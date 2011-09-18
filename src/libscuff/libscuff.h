@@ -6,8 +6,7 @@
  *
  *  1. class definitions for RWGObject and supporting classes
  *  2. class definition for RWGGeometry
- *  3. non-class methods that operate on RWGObjects or other
- *     classes
+ *  3. non-class methods that operate on RWGPanels or RWGObjects
  *  4. other lower-level non-class methods 
  *
  * homer reid  -- 3/2007 -- 9/2011
@@ -445,6 +444,28 @@ void InitRWGPanel(RWGPanel *P, double *Vertices);
 /* non-class methods that operate on RWGObjects ***************/
 /***************************************************************/
 
+// argument structure for GetPanelPanelInts() routine
+typedef struct GPPIArgStruct
+ { 
+   // inputs 
+   RWGObject *O1;
+   int ne1; 
+   RWGObject *O2; 
+   int ne2;
+   cdouble K; 
+   int NeedCross;
+   int NumTorqueAxes; 
+   double *GammaMatrix;
+
+   // outputs
+   cdouble L[3]; 
+   double *GradL; 
+   cdouble *dLdT;
+
+ } GPPIArgStruct;
+
+void InitGLFArgs(GLFArgs *AS);
+
 // argument structure for GetLFunctions() routine
 typedef struct GLFArgStruct
  { 
@@ -470,10 +491,11 @@ void GetLFunctions(GLFArgStruct *AS);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- 4. some other lower-level non-class methods; mostly 3d     -*/
-/*-    vector operations                                       -*/
+/*- 4. some other lower-level non-class methods                -*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
+
+/* 3D vector manipulations */
 void VecZero(double *v);
 double *VecScale(double *v, double alpha);
 double *VecScaleAdd(double *v1, double alpha, double *v2, double *v3);
@@ -490,6 +512,7 @@ double VecNorm2(double *v);
 double VecNormalize(double *v);
 void VecZero(double *v);
 
+/* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
                        double TorqueAxisZ, double *GammaMatrix);
