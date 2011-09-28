@@ -29,24 +29,6 @@
 
 /***************************************************************/
 /***************************************************************/
-/***************************************************************/
-void *CreateTMWorkspace()
-{ 
-  TMWorkspace *TMW;
-
-  TMW=(TMWorkspace *)RWGMalloc(sizeof(*TMW));
-  return (void *)TMW;
-
-}
-
-void FreeTMWorkspace(void *pTMW)
-{
-  TMWorkspace *TMW=(TMWorkspace *)pTMW;
-  free(TMW);
-}
-
-/***************************************************************/
-/***************************************************************/
 /* X functions *************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -169,19 +151,13 @@ static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms, unsigne
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-cdouble TaylorMaster(void *pTMW, int WhichCase, int WhichG, int WhichH,
-                     cdouble GParam, double HParam, 
+cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH,
+                     cdouble GParam, double HParam,
                      double *V1, double *V2, double *V3,
-                     double *V2P, double *V3P, double *Q, double *QP,
-                     double RefVal)
+                     double *V2P, double *V3P, 
+                     double *Q, double *QP, double RefVal)
 {
-
-  TMWorkspace *TMW=(TMWorkspace *)pTMW;
-  static double Lower[3]={0.0, 0.0, 0.0};
-  static double Upper[3]={1.0, 1.0, 1.0};
-  cdouble Result, Error;
-  int Error_Type[2];
-  double A[3], AP[3], B[3], BP[3], L[3], D[3], DP[3], QmQP[3], QxQP[3], TV[3];
+  TMWorkspace MyTMW, *TMW=&MyTMW;
 
   /***************************************************************/
   /* 1. choose In function based on which kernel was requested   */
@@ -231,12 +207,8 @@ cdouble TaylorMaster(void *pTMW, int WhichCase, int WhichG, int WhichH,
    };
 
   /***************************************************************/
-  /* 3. fill in geometric parameters. note for kernels involving */
-  /*    a wavevector K we express all geometric quantities in    */
-  /*    length units such that Kappa=1, then put the correct     */
-  /*    units back in later.                                     */
+  /* 3. fill in geometric parameters.                            */
   /***************************************************************/
-
    /* the manual claims that certain parameters are not referenced    */
    /* in certain cases, which means the users might pass NULL for     */
    /* those parameters, which could cause core dumps unless we do the */
@@ -245,6 +217,8 @@ cdouble TaylorMaster(void *pTMW, int WhichCase, int WhichG, int WhichH,
    { V2P=V2; V3P=V3; } 
   else if (WhichCase==TM_COMMONEDGE)
    V2P=V2;
+
+  double A[3], AP[3], B[3], BP[3], L[3], D[3], DP[3], QmQP[3], QxQP[3], TV[3];
 
   VecSub(V2,V1,A);
   VecSub(V3,V2,B);
@@ -310,6 +284,9 @@ cdouble TaylorMaster(void *pTMW, int WhichCase, int WhichG, int WhichH,
   /***************************************************************/
   /* 4. evaluate the integral over x, x1x2, or x1x2x3            */
   /***************************************************************/
+  static double Lower[3]={0.0, 0.0, 0.0};
+  static double Upper[3]={1.0, 1.0, 1.0};
+  cdouble Result, Error;
   switch(WhichCase)
    { 
      case TM_COMMONTRIANGLE:

@@ -18,39 +18,6 @@
 
 #define II cdouble(0,1)
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-int Diagnostics;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*- PART 0: Routines to create and destroy an (opaque pointer   */
-/*-         to an) LFWorkspace structure                        */
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-typedef struct LFWorkspace
- { void *pTMW; 
-   void *pSPPIDTW;
- } LFWorkspace;
-
-void *CreateLFWorkspace()
-{ 
-  LFWorkspace *W;
-
-  W=(LFWorkspace *)malloc(sizeof *W);
-  W->pTMW=CreateTMWorkspace();
-  return (void *)W;
-}
-
-void FreeLFWorkspace(void *pLFW)
-{ 
-  LFWorkspace *W=(LFWorkspace *)pLFW;
-  FreeTMWorkspace(W->pTMW);
-  free(W);
-}
-
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*- desingularized exponential routines ------------------------*/
@@ -127,7 +94,7 @@ void PanelPanelInt_Fixed(cdouble Wavenumber, int NeedCross,
 
   /***************************************************************/
   /* choose order of quadrature scheme to use.                   */
-  /* TCR ('triangle cubature rule') points to a a vector of 3N   */
+  /* TCR ('triangle cubature rule') points to a vector of 3N     */
   /* doubles (for an N-point cubature rule).                     */
   /* TCR[3*n,3*n+1,3*n+2]=(u,v,w), where (u,v)                   */
   /* are the (x,y) coordinates of the nth quadrature point and w */
@@ -266,8 +233,7 @@ void PanelPanelInt_Fixed(cdouble Wavenumber, int NeedCross,
 /* complicated bifurcation tree to determine the best strategy */
 /* based on how near the two triangles are to each other.      */
 /***************************************************************/
-void PanelPanelInt(LFWorkspace *W, 
-                   cdouble Wavenumber, int NeedCross,
+void PanelPanelInt(cdouble Wavenumber, int NeedCross,
                    int NumTorqueAxes, double *GammaMatrix, 
                    RWGObject *O1, int np1, int iQ1, 
                    RWGObject *O2, int np2, int iQ2, 
@@ -299,12 +265,12 @@ void PanelPanelInt(LFWorkspace *W,
   /***************************************************************/
   if( P1==P2 )
    { 
-     L[0]=TaylorMaster(W->pTMW, TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOT,
+     L[0]=TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOT,
                        Wavenumber, 0.0, PV1[iQ1], PV1[(iQ1+1)%3],
                        PV1[(iQ1+2)%3], PV1[(iQ1+1)%3], 
                        PV1[(iQ1+2)%3], PV1[iQ1], PV1[iQ2], 1.0);
 
-     L[1]=4.0*TaylorMaster(W->pTMW, TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_ONE,
+     L[1]=4.0*TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_ONE,
                            Wavenumber, 0.0, PV1[iQ1], PV1[(iQ1+1)%3],
                            PV1[(iQ1+2)%3], PV1[(iQ1+1)%3], 
                            PV1[(iQ1+2)%3], PV1[iQ1], PV1[iQ2], 1.0);
@@ -381,44 +347,42 @@ void PanelPanelInt(LFWorkspace *W,
       {
         if (ncv==2)
          {
-           L[0]=TaylorMaster(W->pTMW, TM_COMMONEDGE, TM_EIKR_OVER_R, TM_DOT, Wavenumber, 0.0,
+           L[0]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_DOT, Wavenumber, 0.0,
                              PV1[Index[0]],  PV1[Index[1]],  PV1[3-Index[0]-Index[1]],
                              PV2[IndexP[1]], PV2[3-IndexP[0]-IndexP[1]],
                              PV1[iQ1], PV2[iQ2], 1.0);
 
-           L[1]=4.0*TaylorMaster(W->pTMW, TM_COMMONEDGE, TM_EIKR_OVER_R,  TM_ONE, Wavenumber, 0.0,
+           L[1]=4.0*TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R,  TM_ONE, Wavenumber, 0.0,
                                  PV1[Index[0]],  PV1[Index[1]],  PV1[3-Index[0]-Index[1]],
                                  PV2[IndexP[1]], PV2[3-IndexP[0]-IndexP[1]],
                                  PV1[iQ1], PV2[iQ2], 1.0);
 
-           L[2]=TaylorMaster(W->pTMW, TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, Wavenumber, 0.0,
+           L[2]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, Wavenumber, 0.0,
                              PV1[Index[0]],  PV1[Index[1]],  PV1[3-Index[0]-Index[1]],
                              PV2[IndexP[1]], PV2[3-IndexP[0]-IndexP[1]],
                              PV1[iQ1], PV2[iQ2], 1.0);
          }
         else if (ncv==1)
          { 
-           L[0]=TaylorMaster(W->pTMW, TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_DOT, Wavenumber, 0.0,
+           L[0]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_DOT, Wavenumber, 0.0,
                              PV1[Index[0]],   PV1[ (Index[0]+1)%3],  PV1[ (Index[0]+2)%3 ],
                              PV2[ (IndexP[0]+1)%3], PV2[ (IndexP[0]+2)%3 ],
                              PV1[iQ1], PV2[iQ2], 1.0);
 
-           L[1]=4.0*TaylorMaster(W->pTMW, TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_ONE, Wavenumber, 0.0,
+           L[1]=4.0*TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_ONE, Wavenumber, 0.0,
                                  PV1[Index[0]],   PV1[ (Index[0]+1)%3],  PV1[ (Index[0]+2)%3 ],
                                  PV2[ (IndexP[0]+1)%3], PV2[ (IndexP[0]+2)%3 ],
                                  PV1[iQ1], PV2[iQ2], 1.0);
 
-           L[2]=TaylorMaster(W->pTMW, TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, Wavenumber, 0.0,
+           L[2]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, Wavenumber, 0.0,
                              PV1[Index[0]],   PV1[ (Index[0]+1)%3],  PV1[ (Index[0]+2)%3 ],
                              PV2[ (IndexP[0]+1)%3], PV2[ (IndexP[0]+2)%3 ],
                              PV1[iQ1], PV2[iQ2], 1.0);
 
          }
         else if (ncv==0)
-         { PanelPanelInt_Fixed(Wavenumber, NeedCross, 0, 0, 
-                               PV1, iQ1, PV2, iQ2, 20 , 0, L, 0, 0); 
-printf("Howdage\n");
-         };
+         PanelPanelInt_Fixed(Wavenumber, NeedCross, 0, 0, 
+                             PV1, iQ1, PV2, iQ2, 20 , 0, L, 0, 0); 
         return;
       };
 
@@ -435,13 +399,6 @@ printf("Howdage\n");
      /***************************************************************/
      /* 2a. do some preliminary setup *******************************/
      /***************************************************************/
-#if 0
-     if (O1==O2 && np1>np2)
-      { iTemp=np1; np1=np2; np2=iTemp;   
-        iTemp=iQ1; iQ1=iQ2; iQ2=iTemp; 
-      };
-     ncv=O1->CountCommonVertices(np1,np2,Index,IndexP);
-#endif
      double *pV1, *pV2, *pV3, *pV1P, *pV2P, *pV3P, *pQ, *pQP;
      double V1[3], V2[3], V3[3], V1P[3], V2P[3], V3P[3], Q[3], QP[3];
      if (ncv==1)
@@ -602,10 +559,6 @@ printf("Howdage\n");
                                    + SPPID->hrnInt[rp+1][7]*gDot[7]
                                    + SPPID->hrnInt[rp+1][8]*gDot[8] 
                                 ) / (4.0*M_PI);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (Diagnostics)
- printf("  rp=%i: L[0]=%e\n",rp+1,real(L[0]));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
          L[1] += 4.0*ikPowers[rp+1]*SPPID->hrnInt[rp+1][0] / (4.0*M_PI);
 
@@ -633,8 +586,6 @@ if (Diagnostics)
 /*                                                             */
 /* Inputs:                                                     */
 /*                                                             */
-/*     pLFW:        the return value of an earlier call to     */
-/*                  CreateLFWorkspace().                       */
 /*     O1,ne1:      object and BF index of first BF            */
 /*     O2,ne2:      object and BF index of second BF           */
 /*     Wavenumber:  complex wavevector                         */
@@ -674,13 +625,11 @@ if (Diagnostics)
 /*                  (and/or if NumTorqueAxes==0) then          */
 /*                  Theta derivatives are not computed.        */
 /***************************************************************/
-void GetLFunctions(void *pLFW, 
-                   RWGObject *O1, int ne1, RWGObject *O2, int ne2,
+void GetLFunctions(RWGObject *O1, int ne1, RWGObject *O2, int ne2,
                    cdouble Wavenumber, int NeedCross,
                    int NumTorqueAxes, double *GammaMatrix,
                    cdouble L[3], cdouble *GradL, cdouble *dLdT)
 { 
-  LFWorkspace *W=(LFWorkspace *)pLFW;
   RWGEdge *E1, *E2;
   int m, mu;
   int nta;
@@ -711,56 +660,21 @@ void GetLFunctions(void *pLFW,
   /*--------------------------------------------------------------*/
   /*- compute integrals over each of the four pairs of panels    -*/
   /*--------------------------------------------------------------*/
-  PanelPanelInt(W, Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
+  PanelPanelInt(Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
                 O1, iPPanel1, iQP1, O2, iPPanel2, iQP2, 
                 LPP, GradLPP, dLPPdT);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-if ( (ne1==30 && ne2==38) || (ne1==45 && ne2==46) )
- printf("(%i,%i): PP=(%e,%e) (Areas=%e,%e)\n",ne1,ne2,
-         real(LPP[0]),real(LPP[1]),O1->Panels[iPPanel1]->Area,O2->Panels[iPPanel2]->Area);
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  PanelPanelInt(W, Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
+  PanelPanelInt(Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
                 O1, iPPanel1, iQP1, O2, iMPanel2, iQM2, 
                 LPM, GradLPM, dLPMdT);
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-if ( (ne1==30 && ne2==38) || (ne1==45 && ne2==46) )
- printf("(%i,%i): PM=(%e,%e) (Areas=%e,%e)\n",ne1,ne2,
-         real(LPM[0]),real(LPM[1]),O1->Panels[iPPanel1]->Area,O2->Panels[iMPanel2]->Area);
-if (ne1==45 && ne2==46) Diagnostics=1;
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   PanelPanelInt(W, Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
                 O1, iMPanel1, iQM1, O2, iPPanel2, iQP2, 
                 LMP, GradLMP, dLMPdT);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-Diagnostics=0;
-if ( (ne1==30 && ne2==38) || (ne1==45 && ne2==46) )
- printf("(%i,%i): MP=(%e,%e) (Areas=%e,%e)\n",ne1,ne2,
-         real(LMP[0]),real(LMP[1]),O1->Panels[iMPanel1]->Area,O2->Panels[iPPanel2]->Area);
-if (ne1==30 && ne2==38) Diagnostics=1;
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   PanelPanelInt(W, Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
                 O1, iMPanel1, iQM1, O2, iMPanel2, iQM2, 
                 LMM, GradLMM, dLMMdT);
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-Diagnostics=0;
-if ( (ne1==30 && ne2==38) || (ne1==45 && ne2==46) )
- printf("(%i,%i): MM=(%e,%e) (Areas=%e,%e)\n",ne1,ne2,
-         real(LMM[0]),real(LMM[1]),O1->Panels[iMPanel1]->Area,O2->Panels[iMPanel2]->Area);
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /*--------------------------------------------------------------*/
   /*- assemble the final quantities ------------------------------*/

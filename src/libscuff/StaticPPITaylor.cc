@@ -96,8 +96,7 @@ static double X_CV(StaticPPIDTWorkspace *W, int i, double x1, double x2, double 
           + eta1*eta1*W->AP2 + eta2*eta2*W->BP2
           + 2.0*xi1*(xi2*W->AdB - eta1*W->AdAP - eta2*W->AdBP)
           - 2.0*xi2*(eta1*W->BdAP + eta2*W->BdBP) 
-          + 2.0*eta1*eta2*W->APdBP
-        );
+          + 2.0*eta1*eta2*W->APdBP);
 
   if (isnan(r)) 
    return 0.0;
@@ -232,16 +231,6 @@ void ComputeStaticPPIData_Taylor(double *V1, double *V2, double *V3,
   else // common-vertex case 
    adapt_integrate(NUMFUNCS, x1x2x3Integrand, (void *)W, 3, Lower, Upper,
                    MAXFEVALS, ABSTOL, RELTOL, I, AbsErr);
-
-#if 0
-# DELETEME 20110528
-  if( V2P==V2 ) // common-edge case 
-   adapt_integrate(x1x2Integrand, NUMFUNCS, (void *)W, 2, Lower, Upper,
-                   MAXFEVALS, ABSTOL, RELTOL, I, AbsErr);
-  else // common-vertex case 
-   adapt_integrate(x1x2x3Integrand, NUMFUNCS, (void *)W, 3, Lower, Upper,
-                   MAXFEVALS, ABSTOL, RELTOL, I, AbsErr);
-#endif
 
   /***************************************************************/
   /* 3. pack the integrals into the appropriate slots in the     */
