@@ -1,0 +1,480 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MatrixElements.tex 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[dvips,letterpaper]{article}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\newcommand{\BG}{\boldsymbol{\Gamma}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {\lss Implementation and Technical Details}
+\author {Homer Reid}
+\date {October 11, 2011}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: \lss Implementation and Technical Details}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Scattering Geometries in \lss}
+
+\begin{itemize}
+
+\item
+\lss thinks of a scattering geometry as consisting of a collection
+of ``objects.'' Each object $\mathcal{O}_\alpha$ is a region of
+space throughout which the permittivity and permeability are constant,
+$$ \epsilon(\vb x, \omega) \equiv \epsilon_\alpha(\omega), \qquad
+   \mu(\vb x, \omega)      \equiv \mu_\alpha(\omega)
+$$
+where $\epsilon_\alpha(\omega)$ and $\mu_\alpha(\omega)$ may
+be arbitrary user-specified functions of frequency. 
+(Only isotropic $\epsilon$ and $\mu$ are supported).
+
+All objects have finite volume and are geometrically characterized 
+in \lss by a surface mesh consisting of a union of flat triangular
+panels. The surface of object $\mathcal{O}_\alpha$ is labeled 
+$\mathcal{S}_\alpha$.
+
+Objects may be \textit{nested}, i.e. one object may be 
+fully contained inside another object. 
+
+In addition, all objects are understood to be embedded within an 
+infinite homogeneous medium (the ``external medium'') with 
+arbitrary user-specified material properties 
+$\epsilon_e(\omega)$ and $\mu_e(\omega)$. (In what follows it
+will occasionally be convenient to think of the external
+medium as an object $\mathcal{O}_e$ with a surface $\mathcal{S}_e$
+at infinity.)
+
+\item
+\lss recognizes two broad categories of material bodies:
+``PEC'' (perfectly-electrically-conducting) bodies and
+``dielectric'' bodies. 
+The term ``dielectric'' in \lss parlance really just means
+``not perfectly conducting.'' An object described as a ``dielectric''
+for the purposes of \lss may be a good but imperfect conductor,
+a magnetic material, or any other type of material that we wouldn't
+typically think of as a ``dielectric.''
+
+\item
+\lss decomposes the total electric and magnetic fields into 
+``incident'' and ``scattered'' contributions. The ``incident'' 
+fields, $\vb E\sups{inc}$ and $\vb H\sups{inc}$, 
+are arbitrary user-specified functions of space.
+The ``scattered'' fields $\vb E\sups{scat}$ and 
+$\vb H\sups{scat}$ include the contributions of currents
+flowing on the surfaces of all objects in the \lss geometry.
+Generally speaking, the incident fields are the fields that
+would be present if the scattering geometry were 
+empty (all objects and the external medium have
+$\epsilon=\mu=1$) and the scattered fields are the difference
+between these incident fields and the actual fields that
+exist in the presence of the non-empty scattering geometry. 
+
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Representation of Surface Currents in \ls}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Homogeneous Dyadic Green's Functions}
+
+Before proceeding, we must pause briefly to establish our 
+conventions and notation for homogeneous dyadic Green's
+functions.
+
+\paragraph{Shorthand} In what follows, an equation like 
+
+$$ E_i(\vb x, \omega) = 
+   \int_{\mathcal S} 
+     \Gamma\supt{EE}_{ij}(\epsilon_\alpha, \mu_\alpha; \omega; 
+                          \vb x, \vb x^\prime) 
+     K_j(\vb x^\prime)
+    \, d\vb x^\prime
+$$
+will often be abbreviated to read 
+$$ \vb E(\vb x) = 
+    \int_{\mathcal S} 
+      \BG\supt{EE}(\alpha, \vb x, \vb x^\prime) 
+         \cdot \vb K(\vb x^\prime) 
+    \, d\vb x^\prime
+$$
+(with $\omega$ arguments suppressed and the dependence 
+on $\epsilon_\alpha, \mu_\alpha$ condensed into a dependence
+on the region index $\alpha$). 
+
+In some cases we will condense even further by writing
+$$ \vb E = \BG\supt{EE}(\alpha) * \vb K $$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Computation of the Scattered Fields in \ls}
+
+Consider a point $\vb x$ in space. As illustrated in 
+Figure \ref{FieldContributionsFigure}, suppose this point 
+is contained inside an object $\mathcal{O}_\alpha$ (which
+may be the external medium $\mathcal{O}_e$), and suppose
+that there are additional objects 
+$\mathcal{O}_\beta$ (PEC) and $\mathcal{O}_\gamma$ (dielectric) 
+also contained inside $\mathcal{O}_\alpha$. 
+Then the surfaces $\mathcal{S}_\beta$ and $\mathcal{S}_\gamma$,
+together with $\mathcal{S}_\alpha$, constitute the boundary of 
+the volume containing $\vb x$, and the scattered $E$-field at 
+$\vb x$ is
+%====================================================================%
+\begin{align} 
+E_i(\vb x) 
+    = &-\int_{\mathcal{S}_\alpha} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\alpha; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime
+\nn
+     &+\int_{\mathcal{S}_\beta} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime)
+                   K_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime
+\nn
+     &+\int_{\mathcal{S}_\gamma} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\alpha; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime.
+\label{FieldContributionsEquation}
+\end{align}
+%====================================================================%
+(The $\vb H$ fields are given by identical relations with 
+$\{ \Gamma\supt{EE}, \Gamma\supt{EM}\}  \to 
+ \{ \Gamma\supt{ME}, \Gamma\supt{MM}\}$.) 
+
+Note the following points with respect to equation
+(\ref{FieldContributionsEquation}):
+\begin{itemize}
+  \item If $\vb x$ is contained inside an object 
+        $\mathcal{O}_\alpha$, sources on $\mathcal{S}_\alpha$
+        contribute to the fields at $\vb x$ 
+        \textit{with a minus sign} (first line of 
+        (\ref{FieldContributionsEquation})). 
+        (If $\mathcal{O}_\alpha=\mathcal{O}_e$, 
+         the external medium, then this contribution vanishes.) 
+        Sources on the surfaces of objects contained within 
+        $\mathcal{O}_\alpha$ contribute with a plus sign.
+
+  \item In each line of (\ref{FieldContributionsEquation}), 
+        (i.e. regardless of the surface over which we are 
+        integrating) the Green's functions used to compute
+        the fields at $\vb x$ are the Green's functions for
+        object $\mathcal{O}_\alpha$ (i.e. the Green's functions
+        corresponding to material properties 
+        $\{\epsilon_\alpha,\mu_\alpha\}$.) The material properties
+        of objects $\mathcal{O}_\beta$ and $\mathcal{O}_\gamma$
+        are not referenced.
+
+  \item We have considered the case in which $\mathcal{O}_\alpha$
+        contains just one PEC object $\mathcal{O}_\beta$ 
+        and one dielectric object $\mathcal{O}_\gamma$, but 
+        the case of multiple PEC and/or dielectric objects contained
+        within $\mathcal{O}_\alpha$ is easily accommodated simply 
+        by replicating the second and/or third lines on the RHS of 
+        (\ref{FieldContributionsEquation}).
+
+  \item Object $\mathcal{O}_\gamma$ might also contain one
+        or more objects $\mathcal{O}_\delta$, and there
+        may be additional objects $\mathcal{O}_\lambda$ not 
+        contained within $\mathcal{O}_\alpha$ 
+        (indeed, $\mathcal{O}_\alpha$ may itself be contained within
+        an object), but these objects make no contribution
+        to the scattered field at $\vb x$, because their surfaces are 
+        not part of the surface bounding the volume containing $\vb x$.
+\end{itemize}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}
+\begin{center}
+%\includegraphics{FieldContributionsFigure}
+\caption{Contributions of objects to the scattered fields at 
+         an arbitrary point $\vb x$. Objects $\mathcal{O}_\beta$
+         and $\mathcal{O}_\gamma$ contribute
+         to the field at $\vb x$ ``with a plus sign'' 
+         (cf. equation \ref{FieldContributionsEquation}).
+         Object $\mathcal{O}_\alpha$ 
+         contributes to the field at $\vb x$ ``with a minus
+         sign.'' Objects $\mathcal{O}_\delta$ and $\mathcal{O}_\lambda$
+         do not contribute to the field at $\vb x$.}
+\label{FieldContributionsFigure}
+\end{center}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{The equations solved by \lss}
+
+\subsection{The equation imposed at points on PEC object surfaces}
+
+At each point $\vb x$ on the surface of a PEC object,
+we require that the tangential components of the 
+total (incident + scattered) field vanish:
+\numeq{PECEquation1}
+{ \vbhat{n}\times \vb E\sups{total} (\vb x)=0 
+}
+where $\vbhat{n}$ is the normal to the object surface
+at $\vb x$. 
+To break this down a little further, suppose that $\vb x$
+lies on the surface of object $\mathcal{O}_\beta$ in
+Figure (\ref{FieldContributionsFigure}). Then (\ref{PECEquation1}) 
+reads
+%====================================================================%
+\begin{align}
+\vbhat{n}\times
+ \Bigg[  &\hphantom{+}\,\,\int_{\mathcal{S_\beta}} 
+           \Big\{ \BG\supt{EE}(\alpha)*\vb K \Big\} \, d\vb x^\prime
+\nn
+         &+\int_{\mathcal{S_{\beta^\prime}}} 
+           \Big\{ \BG\supt{EE}(\alpha)*\vb K \Big\} \, d\vb x^\prime
+\nn
+         &+\int_{\mathcal{S_\gamma}} 
+           \Big\{ \BG\supt{EE}(\alpha)*\vb K 
+                 +\BG\supt{EM}(\alpha)*\vb N \Big\} \, d\vb x^\prime
+\nn
+         &-\int_{\mathcal{S_\alpha}} 
+           \Big\{ \BG\supt{EE}(\alpha)*\vb K 
+                 +\BG\supt{EM}(\alpha)*\vb N \Big\} \, d\vb x^\prime
+ \Bigg]
+= -\chi\sups{inc}_\alpha \vbhat{n}\times \vb E\sups{inc}(\vb x)
+\label{PECEquationBreakdown}
+\end{align}
+%====================================================================%
+where $S_\alpha$ is the surface of the object $\mathcal{O}_\alpha$ 
+that contains $\mathcal{O}_\beta$ (which may be the exterior medium, 
+in which case the last bracketed term on the LHS 
+of (\ref{PECEquationBreakdown}) vanishes),
+$\beta^\prime$ runs over any other PEC objects contained
+within $\mathcal{O}_\alpha$, and $\gamma$ runs over
+any dielectric objects contained within 
+$\mathcal{O}_\alpha$.
+
+The incident field only contributes to the total field
+inside object $\mathcal{O}_\alpha$, 
+and thus only contributes to equation (\ref{PECEquation1}),
+if the incident field sources are contained inside 
+$\mathcal{O}_\alpha$. This dependence is represented by the 
+quantity $\chi\sups{inc}_\alpha$ on the RHS of 
+(\ref{PECEquationBreakdown}), which is an 
+\textit{indicator function} characterizing the location of 
+the incident field sources:
+$$
+ \chi\sups{inc}_\alpha
+ =\begin{cases} 
+    1, \qquad &\text{if the incident field sources lie inside 
+                      $\mathcal{O}_\alpha$} \\
+    0, \qquad &\text{otherwise.}
+  \end{cases} 
+$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The equation imposed at points on dielectric object surfaces}
+
+At each point $\vb x$ on the surface of a dielectric object, we require
+that the tangential components of the total $\vb E$ and $\vb H$ fields
+be continuous as we pass from just inside to just outside the 
+surface,
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \lim_{\eta \to 0} \vbhat{n}\times 
+ \Big[ \vb E\sups{total}(\vb x + \eta\vbhat{n})
+      -\vb E\sups{total}(\vb x - \eta\vbhat{n})
+ \Big] 
+&= 0 
+\\
+ \lim_{\eta \to 0} \vbhat{n}\times 
+ \Big[ \vb H\sups{total}(\vb x + \eta\vbhat{n})
+      -\vb H\sups{total}(\vb x - \eta\vbhat{n})
+ \Big] 
+&= 0.
+\label{DielectricEquation1}
+\end{align}
+\end{subequations}
+%====================================================================%
+Referring again to Figure (\ref{FieldContributionsFigure}), let 
+$\mathcal{O}_\gamma$ be the dielectric object in question, let 
+$\mathcal{O}_\alpha$ be the object containing 
+$\mathcal{O}_\gamma$, 
+let $\mathcal{O}_{\gamma^\prime}$ represent any other dielectric
+objects contained in $\mathcal{O}_\alpha$, 
+let $\mathcal{O}_{\beta}$ represent any PEC objects contained 
+in $\mathcal{O}_\alpha$, and let $\mathcal{O}_\delta$ represent 
+any objects contained inside $\mathcal{O}_\gamma$.
+
+Then the total $E$-field as we approach $\vb x$ from 
+\textit{inside} $\mathcal{O}_\gamma$ is 
+%====================================================================%
+\begin{align} 
+E\sups{total}_i(\vb x) 
+    = &-\int_{\mathcal{S}_\gamma} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\gamma; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\gamma; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime
+\nn
+     &+\int_{\mathcal{S}_\delta}
+           \Big\{ \Gamma_{ij}\supt{EE}(\gamma; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\gamma; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime.
+\nn
+     &+\chi\sups{inc}_\gamma E_i\supt{inc}(\vb x)
+\label{FieldInsideDielectric}
+\end{align}
+%====================================================================%
+(we have assumed that $\mathcal{O}_\delta$ is dielectric, but 
+the PEC case is similar), while the 
+total $E$-field as we approach $\vb x$ from \textit{outside} 
+$\mathcal{O}_\gamma$ is 
+%====================================================================%
+\begin{align} 
+E\sups{total}_i(\vb x) 
+    = &+\int_{\mathcal{S}_\gamma} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\alpha; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime
+\nn
+     &+\int_{\mathcal{S}_{\gamma^\prime}}
+           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\alpha; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime.
+\nn
+     &+\int_{\mathcal{S}_{\beta}}
+           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime
+\nn
+     &-\int_{\mathcal{S}_{\alpha}}
+           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\alpha; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime
+\nn
+     &+\chi\sups{inc}_\alpha E_i\supt{inc}(\vb x).
+\label{FieldOutsideDielectric}
+\end{align}
+%====================================================================%
+Inserting (\ref{FieldInsideDielectric}) and 
+(\ref{FieldOutsideDielectric}) into (\ref{DielectricEquation1}), 
+the first of the two conditions imposed at $\vb x$ is
+%====================================================================%
+\begin{align}
+\vbhat{n}\times
+ \Bigg[  &\hphantom{+}\,\,\int_{\mathcal{S_\beta}}
+           \Big\{ \big[\BG\supt{EE}(\alpha) + \BG\supt{EE}(\gamma)\big]
+                   *\vb K 
+                + \big[\BG\supt{EM}(\alpha) + \BG\supt{EM}(\gamma)\big]
+                   *\vb N 
+           \Big\} \, d\vb x^\prime
+\nn
+         &+\int_{\mathcal{S_{\gamma}^\prime}} 
+           \Big\{ \BG\supt{EE}(\alpha)*\vb K 
+                 +\BG\supt{EM}(\alpha)*\vb N 
+           \Big\} \, d\vb x^\prime
+\nn
+         &+\int_{\mathcal{S_\beta}} 
+           \Big\{ \BG\supt{EE}(\alpha)*\vb K \Big\} \, d\vb x^\prime
+\nn
+         &-\int_{\mathcal{S_\alpha}}
+           \Big\{ \BG\supt{EE}(\alpha)*\vb K 
+                 +\BG\supt{EM}(\alpha)*\vb N 
+           \Big\} \, d\vb x^\prime
+\nn
+         &-\int_{\mathcal{S_\delta}} 
+           \Big\{ \BG\supt{EE}(\gamma)*\vb K 
+                 +\BG\supt{EM}(\gamma)*\vb N 
+           \Big\} \, d\vb x^\prime
+ \Bigg]
+= \Big[\chi\sups{inc}_\gamma - \chi\sups{inc}_\alpha\Big] 
+   \vbhat{n}\times \vb E\sups{inc}(\vb x)
+\label{DielectricEquationBreakdown}
+\end{align}
+%====================================================================%
+and the second of the two conditions is identical 
+but with 
+$\{\BG\supt{EE}, \BG\supt{EM}\} \to 
+ \{\BG\supt{ME}, \BG\supt{MM}\}$.
+
+\begin{enumerate}
+\item \textit{The two objects are identical,} 
+$\mathcal{O}_\alpha$ and $\mathcal{O}_\beta$. In this case we have
+
+\begin{itemize}
+  \item The object is PEC: 
+  \item The object is dielectric: 
+\end{itemize}
+
+\end{enumerate}
+
+\begin{enumerate}
+\item \textit{The two objects are identical,} 
+$\mathcal{O}_\alpha$ and $\mathcal{O}_\beta$. In this case we have
+
+\begin{itemize}
+  \item The object is PEC: 
+  \item The object is dielectric: 
+\end{itemize}
+
+\end{enumerate}
+
+\end{document}
