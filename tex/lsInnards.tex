@@ -176,7 +176,9 @@ E_i(\vb x)
                   \,+\,
                    \Gamma_{ij}\supt{EM}(\alpha; \vb x, \vb x^\prime) 
                    N_j(\vb x^\prime)
-           \Big\} \, d\vb x^\prime.
+           \Big\} \, d\vb x^\prime
+\nn
+     &+\chi_\alpha\sups{inc} E\sups{inc}_i(\vb x).
 \label{FieldContributionsEquation}
 \end{align}
 %====================================================================%
@@ -223,6 +225,25 @@ Note the following points with respect to equation
         an object), but these objects make no contribution
         to the scattered field at $\vb x$, because their surfaces are 
         not part of the surface bounding the volume containing $\vb x$.
+
+  \item The last line of (\ref{FieldContributionsEquation}) describes
+        the contribution of the incident field to the total field at 
+        $\vb x$.  This contribution is only present if the incident 
+        field sources lie inside $\mathcal{O}_\alpha$, a dependence
+        which is characterized by the \textit{indicator function}
+        $\chi\sups{inc}_\alpha$:
+
+        $$
+         \chi\sups{inc}_\alpha
+         =\begin{cases} 
+            1, \qquad &\text{if the incident field sources lie inside 
+                              $\mathcal{O}_\alpha$} \\
+            0, \qquad &\text{otherwise.}
+          \end{cases} 
+        $$
+        
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \end{itemize}
 
 %####################################################################%
@@ -248,7 +269,7 @@ Note the following points with respect to equation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{The equations solved by \lss}
+\section{The Equations Solved by \ls: Continuous Forms}
 
 \subsection{The equation imposed at points on PEC object surfaces}
 
@@ -420,14 +441,14 @@ the first of the two conditions imposed at $\vb x$ is
 %====================================================================%
 \begin{align}
 \vbhat{n}\times
- \Bigg[  &\hphantom{+}\,\,\int_{\mathcal{S_\beta}}
+ \Bigg[  &\hphantom{+}\,\,\int_{\mathcal{S_\gamma}}
            \Big\{ \big[\BG\supt{EE}(\alpha) + \BG\supt{EE}(\gamma)\big]
                    *\vb K 
                 + \big[\BG\supt{EM}(\alpha) + \BG\supt{EM}(\gamma)\big]
                    *\vb N 
            \Big\} \, d\vb x^\prime
 \nn
-         &+\int_{\mathcal{S_{\gamma}^\prime}} 
+         &+\int_{\mathcal{S}_{\gamma^\prime}}
            \Big\{ \BG\supt{EE}(\alpha)*\vb K 
                  +\BG\supt{EM}(\alpha)*\vb N 
            \Big\} \, d\vb x^\prime
@@ -454,6 +475,345 @@ and the second of the two conditions is identical
 but with 
 $\{\BG\supt{EE}, \BG\supt{EM}\} \to 
  \{\BG\supt{ME}, \BG\supt{MM}\}$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{The Equations Solved by \ls: Discrete Forms}
+
+\subsubsection*{Discretization Procedure} 
+
+\lss uses a two-step procedure to discretize the integral equations 
+(\ref{PECEquationBreakdown}) and (\ref{DielectricEquationBreakdown})
+derived in the previous section. 
+Briefly, we approximate the $\vb K$ and $\vb N$ surface-current 
+distributions as expansions in RWG basis functions, then 
+Galerkin-test the resulting equations again with the RWG basis
+functions. 
+
+In more detail,
+
+\begin{enumerate}
+ \item First, \lss approximates surface currents as expansions 
+       in RWG basis functions.
+
+       For electric currents on the surfaces of PEC objects, 
+       we have the expansion
+       \begin{subequations}
+       %====================================================================%
+       \begin{equation}
+         \vb K(\vb x) \approx \sum K_{\alpha n} \vb f_{\alpha n}(\vb x)
+       \end{equation}
+       %====================================================================%
+       where $\alpha$ runs over all PEC objects in the geometry
+       and $n$ runs over all RWG basis functions on object 
+       $\mathcal{O}_\alpha$.
+
+       For electric and magnetic currents on the surfaces of 
+       dielectric objects, we have the expansions
+       %====================================================================%
+       \begin{equation}
+           \vb K(\vb x) \approx \sum K_{\beta n} \vb f_{\beta n}(\vb x), 
+           \qquad 
+           \vb N(\vb x) \approx -Z_0 \sum N_{\beta n} \vb f_{\beta n}(\vb x)
+       \end{equation}
+       %====================================================================%
+       \label{KNExpansions}
+       \end{subequations}
+       \noindent where $\beta $ runs over all PEC objects in the geometry
+       and $n$ runs over all RWG basis functions on object
+       $\mathcal{O}_\beta$. (The insertion of the prefactor $-Z_0$ 
+       in the expansion of $\vb N(\vb x)$ is a useful convention
+       that results in a symmetric BEM matrix.)
+
+ \item Second, \lss obtains one equation for each of the unknown
+       $K$ and $N$ coefficients in (\ref{KNExpansions}) by proceeding
+       as follows.
+
+       First, we take the inner product of equation
+       (\ref{PECEquationBreakdown})
+       with each RWG basis function $\vb f_{\alpha n}$ defined on 
+       the surface of each PEC object. This gives us one equation
+       for each of the $K_{\alpha n}$ coefficients in 
+       (\ref{KNExpansions}a). 
+
+       Second, we take the inner product of equation
+       (\ref{DielectricEquationBreakdown})
+       with each RWG basis function $\vb f_{\beta n}$ defined on 
+       the surface of each dielectric object. We associate the 
+       resulting equation with the coefficient $K_{\beta n}$ in
+       (\ref{KNExpansions}b). Then, we take the inner product of 
+       the magnetic analogue of 
+       (\ref{DielectricEquationBreakdown}) (which, as stated above,
+       is identical to (\ref{DielectricEquationBreakdown}) with
+       the replacements $\{\BG\supt{EE}, \BG\supt{EM}\} \to 
+       \{\BG\supt{ME}, \BG\supt{MM}\}$) with $\vb f_{\beta n})$
+       and associate the resulting equation with the coefficient
+       $N_{\beta n}$ in (\ref{KNExpansions}b).
+\end{enumerate}
+
+\subsubsection*{Discretized Version of Equation 
+                (\ref{PECEquationBreakdown})}
+
+We consider again the setting of Figure \ref{EmbeddedObjects}:
+We have a PEC object $\mathcal{O}_\beta$, embedded in an object
+$\mathcal{O}_\alpha$ (which may be the environment 
+$\mathcal{O}_e$); also embedded in $\mathcal{O}_\alpha$ are
+additional PEC object(s) $\mathcal{O}_\beta$ and dielectric 
+object(s) $\mathcal{O}_\gamma.$ 
+Inserting expansions (\ref{KNExpansions}) 
+into 
+(\ref{PECEquationBreakdown})
+and Galerkin-testing with a basis function $\vb f_{\beta m}$ on 
+the surface of $\mathcal{O}_\beta$ yields:
+%====================================================================%
+\begin{align}
+&\sum_{n=1}^{\texttt{NEdges}(\beta)} 
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EE}(\alpha) \Big|
+         \vb f_{\beta n}
+   \Big\rangle 
+         K_{\beta n}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\beta^\prime)} 
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\beta^\prime n}
+   \Big\rangle 
+         K_{\beta^\prime n}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\gamma)} \bigg\{
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\gamma n}
+   \Big\rangle 
+         K_{\gamma n}
+   \,-Z_0
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EM}(\alpha) \Big| 
+         \vb f_{\gamma n}
+   \Big\rangle 
+         N_{\gamma n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+-&\sum_{n=1}^{\texttt{NEdges}(\alpha)} \bigg\{
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         K_{\alpha n}
+   \,-Z_0
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EM}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         N_{\alpha n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+&=-\chi_\alpha\sups{inc} 
+   \Big\langle \vb f_{\beta m} \Big| \vb E\sups{inc} \Big\rangle.
+ \label{DiscretizedPECEquation}
+\end{align}
+%====================================================================%
+
+\subsubsection*{Discretized Version of Equation
+                (\ref{DieletricEquationBreakdown}) and its 
+                Magnetic Analogue}
+
+Again in the setting of Figure \ref{EmbeddedObjects}, the 
+discretized version of (\ref{DielectricEquationBreakdown}) reads
+%====================================================================%
+\begin{align}
+&\sum_{n=1}^{\texttt{NEdges}(\gamma)}  \bigg\{
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EE}(\alpha) \Big|
+         \vb f_{\beta n}
+   \Big\rangle 
+         K_{\beta n}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\beta^\prime)} 
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\beta^\prime n}
+   \Big\rangle 
+         K_{\beta^\prime n}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\gamma)} \bigg\{
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\gamma n}
+   \Big\rangle 
+         K_{\gamma n}
+   \,-Z_0
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EM}(\alpha) \Big| 
+         \vb f_{\gamma n}
+   \Big\rangle 
+         N_{\gamma n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+-&\sum_{n=1}^{\texttt{NEdges}(\alpha)} \bigg\{
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         K_{\alpha n}
+   \,-Z_0
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EM}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         N_{\alpha n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+&=-\chi_\alpha\sups{inc} 
+   \Big\langle \vb f_{\beta m} \Big| \vb E\sups{inc} \Big\rangle.
+\end{align}
+%====================================================================%
+
+\noindent This procedure results in a linear system of the form
+\numeq{BEMSystem}
+{ \Big[ \vb M \Big]  \cdot \Big[ \vb{KN} \Big] = \Big[ \vb{RHS} \Big ] }
+where the vector $\big[\vb{KN}\big]$ contains the unknown 
+$K$ and $N$ coefficients from equation (\ref{KNExpansions}),
+the matrix $\big[\vb M\big]$ is the ``BEM matrix,''
+and the right-hand-side vector $\big[\vb{RHS}\big]$ 
+depends on the incident fields.
+
+In the remainder of this section we will describe the structure
+of each of the entities in equation (\ref{BEMSystem}). 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Structure of the coefficient vector}
+
+The $\vb{KN}$ vector contains the $K$ and $N$ coefficients
+in (\ref{KNExpansions}), ordered as follows:
+
+\begin{enumerate}
+ \item All coefficients for object $\mathcal{O}_1$ come first, 
+       followed by all coefficients for object $\mathcal{O}_2$, etc.
+
+       (Object indices correspond with the order in which the 
+        objects were specified in the \texttt{.rwggeo} file 
+        used as input to \ls.)
+       
+ \item Within the portion of the vector corresponding to a 
+       dielectric object, the electric and magnetic coefficients
+       for the first RWG basis function come first, followed
+       by the electric and magnetic coefficients
+       for the second RWG basis function, etc.
+
+\end{enumerate}
+
+Thus, for a geometry consisting of object $\mathcal{O}_1$ (PEC)
+with $M$ interior edges in its surface discretization
+and object $\mathcal{O}_2$ (dielectric) with $N$ interior edges
+in its surface discretization, the $\vb{KN}$ vector has dimension
+$2N+M$ and looks like
+%====================================================================%
+$$ \vb{KN}=\left(\begin{array}{c}
+   K_{11} \\ 
+   \vdots \\
+   K_{1M} \\ 
+   K_{21} \\ 
+   N_{21} \\ 
+   \vdots \\
+   K_{2N} \\ 
+   N_{2N}
+   \end{array}\right).
+$$
+%====================================================================%
+
+To compute the index of any given coefficient $K_{\alpha n}$ 
+or $N_{\alpha n}$ within the $\vb{KN}$ vector,
+it is useful first to define functions \texttt{NBF}($\alpha$) 
+and \texttt{BFIndexOffset}($\alpha$). The former of these 
+is just the number of basis functions on object $\alpha$,
+i.e.
+$$ \texttt{NBF}(\alpha) = 
+   \begin{cases}
+   \texttt{NEdges}(\alpha), \qquad &\text{if object $\mathcal{O}_\alpha$
+                                          is PEC} \\
+   2\cdot \tt{NEdges}(\alpha), 
+                        \qquad &\text{if object $\mathcal{O}_\alpha$
+                                      is dielectric.} \\
+   \end{cases}
+$$
+(Here \texttt{NEdges}($\alpha$) is the number of interior edges 
+in the surface discretization of object $\mathcal{O}_\alpha$.)
+
+The function \texttt{BFIndexOffset}($\alpha$) is the index
+within the $\vb{KN}$ vector of the first coefficient corresponding
+to object $\mathcal{O}_\alpha$; thus 
+\begin{align*}
+ \texttt{BFIndexOffset}(1) &= 1 \\
+ \texttt{BFIndexOffset}(2) &= 1 + \tt{NBF}(1) \\
+ \texttt{BFIndexOffset}(3) &= 1 + \tt{NBF}(1) + \tt{NBF}(2) \\
+\end{align*}
+et cetera.
+
+Then I can write the following relations for the indices 
+with the $\vb{KN}$ vector of individual $K, N$ coefficients.
+(Note that these are one-based indices, which must be translated
+into zero-based indices for use in \texttt{C++} code.)
+%====================================================================%
+\begin{align*}
+\mathcal{I}(K, \alpha, n)
+&\equiv \text{Index of coefficient $K_{\alpha n}$
+              within the $\vb{KN}$ vector}
+\\
+&=\begin{cases}
+   \texttt{BFIndexOffset}(\alpha) + n-1, 
+   \qquad &\text{if $\mathcal{O}_\alpha$ is PEC} \\
+   \texttt{BFIndexOffset}(\alpha) + 2(n-1),
+   \qquad &\text{if $\mathcal{O}_\alpha$ is dielectric}
+  \end{cases}
+\\[5pt]
+\mathcal{I}(N, \alpha, n)
+&\equiv \text{Index of coefficient $N_{\alpha n}$ 
+              within the $\vb{KN}$ vector}
+\\
+&=\texttt{BFIndexOffset}(\alpha) + 2(n-1)+1.
+\end{align*}
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Structure of the RHS vector}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Structure of the BEM matrix}
+
+Consider two basis functions: $\vb f_{\alpha m}$, corresponding
+to the $m$th interior edge of object $\mathcal{O}_\alpha$, 
+and $\vb f_{\beta n}$, corresponding to the $n$th interior edge
+of object $\mathcal{O}_\beta.$ 
 
 \begin{enumerate}
 \item \textit{The two objects are identical,} 
