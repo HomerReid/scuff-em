@@ -489,12 +489,45 @@ typedef struct GLFArgStruct
 void InitGLFArgs(GLFArgStruct *AS);
 void GetLFunctions(GLFArgStruct *AS);
 
+// argument structure for AssembleBEMMatrixBlock() routine
+typedef struct ABMBArgStruct
+ {
+   // input fields to be filled in by caller
+   RWGGeometry *G;
+   RWGObject *Oa, *Ob;
+   cdouble Frequency;
+   int nThread;
+
+   int NumTorqueAxes;
+   double *GammaMatrix;
+  
+   int RowOffset, ColOffset;
+
+   int ForceSymmetric;
+
+   // output fields filled in by routine
+   HMatrix *B;
+   HMatrix **GradB;
+   HMatrix **dBdTheta;
+
+   // additional fields used internally
+   double Sign;
+   cdouble EpsA, EpsB; 
+   double MuA, MuA;
+   int OaIsPEC, ObIsPEC;
+
+ } ABMBArgStruct;
+
+void InitABMBArgs(ABMBArgStruct *Args);
+void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
+
+
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*- 4. some other lower-level non-class methods                -*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-
+  
 /* 3D vector manipulations */
 void VecZero(double *v);
 double *VecScale(double *v, double alpha);
