@@ -114,6 +114,89 @@ Before proceeding, we must pause briefly to establish our
 conventions and notation for homogeneous dyadic Green's
 functions.
 
+Consider an infinite homogeneous medium characterized
+by spatially uniform $\epsilon$ and $\mu$. If we have
+known distributions of electric and magnetic current
+$\vb J(\vb x)$ and $\vb M(\vb x)$
+we can compute the electric and magnetic fields in terms
+of these currents and the properties of the medium, and  
+the relevant convolution kernels in this procedure are
+the dyadic Green's functions (DGFs):
+%====================================================================%
+\begin{align*}
+ E_i(\vb x, \omega) 
+&= 
+   \int
+    \Big\{
+     \Gamma\supt{EE}_{ij}(\epsilon, \mu; \omega; \vb x, \vb x^\prime) 
+     J_j(\vb x^\prime)
+     +
+     \Gamma\supt{EM}_{ij}(\epsilon, \mu; \omega; \vb x, \vb x^\prime) 
+     M_j(\vb x^\prime)
+    \Big\}
+    \, d\vb x^\prime
+\\
+ H_i(\vb x, \omega) 
+&= 
+   \int
+    \Big\{
+     \Gamma\supt{ME}_{ij}(\epsilon, \mu; \omega; \vb x, \vb x^\prime) 
+     J_j(\vb x^\prime)
+     +
+     \Gamma\supt{MM}_{ij}(\epsilon, \mu; \omega; \vb x, \vb x^\prime) 
+     M_j(\vb x^\prime)
+    \Big\}
+    \, d\vb x^\prime.
+\end{align*}
+%====================================================================%
+
+Explicit expressions for the DGFs are 
+%====================================================================%
+\begin{align*}
+\BG\supt{EE}(\epsilon_\alpha, \mu_\alpha, \omega, \vb x, \vb x^\prime)
+&=
+ iZ_0 Z^\alpha k^\alpha \, \vb G(k^\alpha, \vb x-\vb x^\prime)
+\\[8pt]
+%--------------------------------------------------------------------%
+\BG\supt{ME}(\epsilon_\alpha, \mu_\alpha, \omega, \vb x, \vb x^\prime)
+&=
+ -ik^\alpha \vb C(k^\alpha, \vb x-\vb x^\prime)
+\\[8pt]
+%--------------------------------------------------------------------%
+\BG\supt{EM}(\epsilon_\alpha, \mu_\alpha, \omega, \vb x, \vb x^\prime)
+&=
+ ik^\alpha \, \vb C(k^\alpha, \vb x-\vb x^\prime)
+\\[8pt]
+%--------------------------------------------------------------------%
+\BG\supt{MM}(\epsilon_\alpha, \mu_\alpha, \omega, \vb x, \vb x^\prime)
+&= \frac{ik^\alpha}{Z_0 Z^\alpha} \vb G(k^\alpha, \vb x-\vb x^\prime)
+\end{align*}
+%====================================================================%
+$$\bigg(Z_0=\sqrt\frac{\mu_0}{\epsilon_0},
+        \qquad
+        Z^\alpha=\sqrt\frac{\mu^\alpha}{\epsilon^\alpha}, 
+         \qquad
+        k^\alpha=\sqrt{\mu_0 \mu^\alpha \epsilon_0 \epsilon^\alpha}\cdot \omega
+  \bigg)
+$$
+%====================================================================%
+where $\vb G$, the ``photon Green's function,''
+is the solution to the equation
+\begin{equation}
+ \Big[\nabla \times \nabla\times - \,\,k^2 \Big]\vb G(k; \vb r)
+ =\delta(\vb r)\vb{1};
+ \label{DyadicGFG}
+\end{equation}
+and $\vb C$ is defined by  
+\begin{equation}
+  \vb C(k, \vb r) = -\frac{1}{ik} \nabla \times \vb G(k, \vb r).
+ \label{DyadicGFC}
+\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \paragraph{Shorthand} In what follows, an equation like 
 
 $$ E_i(\vb x, \omega) = 
@@ -121,7 +204,7 @@ $$ E_i(\vb x, \omega) =
      \Gamma\supt{EE}_{ij}(\epsilon_\alpha, \mu_\alpha; \omega; 
                           \vb x, \vb x^\prime) 
      K_j(\vb x^\prime)
-    \, d\vb x^\prime
+    \, d\vb x^\prime,
 $$
 will often be abbreviated to read 
 $$ \vb E(\vb x) = 
@@ -480,6 +563,64 @@ $\{\BG\supt{EE}, \BG\supt{EM}\} \to
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
+\section{Introduction of the $-Z_0$ Prefactor in the 
+         Magnetic Current Expansion} 
+
+In rough schematic form, the equations derived in the 
+previous section take the form 
+%====================================================================%
+$$ \left( \begin{array}{cc}
+   \BG\supt{EE} & \BG\supt{EM} \\
+   \BG\supt{ME} & \BG\supt{MM} \\
+   \end{array} \right)
+   *
+   \left( \begin{array}{c} \vb K \\  \vb N\end{array}\right)
+   = 
+   -
+   \left( \begin{array}{c}
+   \vb E\sups{inc} \\
+   \vb H\sups{inc} \\
+   \end{array}\right)
+$$
+%====================================================================%
+where $*$ denotes a convolution operation.
+
+The matrix kernel on the LHS is not symmetric because 
+$\BG\supt{EM} = -\BG\supt{ME}$. To remedy this, I 
+\textbf{(a)} scale the magnetic current by $-1/Z_0$, and then
+\textbf{(b)} divide the upper row of the system by $Z_0$ to obtain
+the following symmetric system:
+%====================================================================%
+\renewcommand{\arraystretch}{2.0}
+$$ \left( \begin{array}{cc}
+   \displaystyle{ \frac{1}{Z_0} \BG\supt{EE}} 
+   & 
+   \displaystyle{-\BG\supt{EM}}
+   \\
+   \displaystyle{\BG\supt{ME}}
+   & 
+   \displaystyle{-\BG\supt{MM}} \\
+   \end{array} \right)
+   *
+   \left( \begin{array}{c} 
+      \displaystyle{\vb K} 
+      \\
+      \displaystyle{-\frac{1}{Z_0}\vb N}
+   \end{array}\right)
+   = 
+   -
+   \left( \begin{array}{c}
+   \displaystyle{\frac{1}{Z_0} \vb E\sups{inc}} 
+   \\
+   \displaystyle{\vb H\sups{inc}}
+   \end{array}\right)
+$$
+\renewcommand{\arraystretch}{1.0}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
 \section{The Equations Solved by \ls: Discrete Forms}
 
 \subsubsection*{Discretization Procedure} 
@@ -523,9 +664,8 @@ In more detail,
        \end{subequations}
        \noindent where $\beta $ runs over all PEC objects in the geometry
        and $n$ runs over all RWG basis functions on object
-       $\mathcal{O}_\beta$. (The insertion of the prefactor $-Z_0$ 
-       in the expansion of $\vb N(\vb x)$ is a useful convention
-       that results in a symmetric BEM matrix.)
+       $\mathcal{O}_\beta$. (The rationale for the prefactor $-Z_0$ 
+       was explained in the previous section).
 
  \item Second, \lss obtains one equation for each of the unknown
        $K$ and $N$ coefficients in (\ref{KNExpansions}) by proceeding
@@ -560,7 +700,7 @@ We consider again the setting of Figure \ref{EmbeddedObjects}:
 We have a PEC object $\mathcal{O}_\beta$, embedded in an object
 $\mathcal{O}_\alpha$ (which may be the environment 
 $\mathcal{O}_e$); also embedded in $\mathcal{O}_\alpha$ are
-additional PEC object(s) $\mathcal{O}_\beta$ and dielectric 
+additional PEC object(s) $\mathcal{O}_{\beta^\prime}$ and dielectric 
 object(s) $\mathcal{O}_\gamma.$ 
 Inserting expansions (\ref{KNExpansions}) 
 into 
@@ -631,55 +771,65 @@ the surface of $\mathcal{O}_\beta$ yields:
                 (\ref{DieletricEquationBreakdown}) and its 
                 Magnetic Analogue}
 
-Again in the setting of Figure \ref{EmbeddedObjects}, the 
-discretized version of (\ref{DielectricEquationBreakdown}) reads
+Again in the setting of Figure \ref{EmbeddedObjects}, we 
+Galerkin-test equation (\ref{DielectricEquationBreakdown}) 
+with a basis function $\vb f_{\gamma m}$ on the surface
+of object $\mathcal{O}_\gamma$ to find
 %====================================================================%
 \begin{align}
 &\sum_{n=1}^{\texttt{NEdges}(\gamma)}  \bigg\{
    \Big\langle 
-         \vb f_{\beta m} 
-   \Big| \BG\supt{EE}(\alpha) \Big|
-         \vb f_{\beta n}
-   \Big\rangle 
-         K_{\beta n}
-\nn
-%--------------------------------------------------------------------%
-+&\sum_{n=1}^{\texttt{NEdges}(\beta^\prime)} 
-   \Big\langle 
-         \vb f_{\beta m} 
-   \Big| \BG\supt{EE}(\alpha) \Big| 
-         \vb f_{\beta^\prime n}
-   \Big\rangle 
-         K_{\beta^\prime n}
-\nn
-%--------------------------------------------------------------------%
-+&\sum_{n=1}^{\texttt{NEdges}(\gamma)} \bigg\{
-   \Big\langle 
-         \vb f_{\beta m} 
-   \Big| \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EE}(\alpha) + \BG\supt{EE}(\gamma) \Big|
          \vb f_{\gamma n}
    \Big\rangle 
          K_{\gamma n}
-   \,-Z_0
+   -Z_0
    \Big\langle 
-         \vb f_{\beta m} 
-   \Big| \BG\supt{EM}(\alpha) \Big| 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EM}(\alpha) + \BG\supt{EM}(\gamma) \Big|
          \vb f_{\gamma n}
    \Big\rangle 
          N_{\gamma n}
   \bigg\}
 \nn
 %--------------------------------------------------------------------%
+&\sum_{n=1}^{\texttt{NEdges}(\gamma^\prime)}  \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EE}(\alpha) \Big|
+         \vb f_{\gamma^\prime n}
+   \Big\rangle 
+         K_{\gamma^\prime n}
+   -Z_0
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EM}(\alpha) \Big|
+         \vb f_{\gamma^\prime n}
+   \Big\rangle 
+         N_{\gamma^\prime n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\beta)} 
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\beta n}
+   \Big\rangle 
+         K_{\beta n}
+\nn
+%--------------------------------------------------------------------%
 -&\sum_{n=1}^{\texttt{NEdges}(\alpha)} \bigg\{
    \Big\langle 
-         \vb f_{\beta m} 
+         \vb f_{\gamma m} 
    \Big| \BG\supt{EE}(\alpha) \Big| 
          \vb f_{\alpha n}
    \Big\rangle 
          K_{\alpha n}
    \,-Z_0
    \Big\langle 
-         \vb f_{\beta m} 
+         \vb f_{\gamma m} 
    \Big| \BG\supt{EM}(\alpha) \Big| 
          \vb f_{\alpha n}
    \Big\rangle 
@@ -687,12 +837,36 @@ discretized version of (\ref{DielectricEquationBreakdown}) reads
   \bigg\}
 \nn
 %--------------------------------------------------------------------%
-&=-\chi_\alpha\sups{inc} 
-   \Big\langle \vb f_{\beta m} \Big| \vb E\sups{inc} \Big\rangle.
+-&\sum_{n=1}^{\texttt{NEdges}(\delta)} \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EE}(\gamma) \Big| 
+         \vb f_{\delta n}
+   \Big\rangle 
+         K_{\delta n}
+   \,-Z_0
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EM}(\gamma) \Big| 
+         \vb f_{\delta n}
+   \Big\rangle 
+         N_{\delta n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+&=\Big[\chi_\gamma\sups{inc} - \chi_\alpha\sups{inc}\Big] 
+   \Big\langle \vb f_{\gamma m} \Big| \vb E\sups{inc} \Big\rangle.
+\label{DiscretizedDielectricEquation1}
 \end{align}
 %====================================================================%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Structure of the BEM System}
 
-\noindent This procedure results in a linear system of the form
+The discretization procedure of the previous section results in a 
+linear system of the form
 \numeq{BEMSystem}
 { \Big[ \vb M \Big]  \cdot \Big[ \vb{KN} \Big] = \Big[ \vb{RHS} \Big ] }
 where the vector $\big[\vb{KN}\big]$ contains the unknown 
@@ -811,30 +985,159 @@ into zero-based indices for use in \texttt{C++} code.)
 \subsection{Structure of the BEM matrix}
 
 Consider two basis functions: $\vb f_{\alpha m}$, corresponding
-to the $m$th interior edge of object $\mathcal{O}_\alpha$, 
+to the $m$th interior edge of object $\mathcal{O}_\alpha$,
 and $\vb f_{\beta n}$, corresponding to the $n$th interior edge
 of object $\mathcal{O}_\beta.$ 
 
-\begin{enumerate}
-\item \textit{The two objects are identical,} 
-$\mathcal{O}_\alpha$ and $\mathcal{O}_\beta$. In this case we have
+Let $\vb A$ be the index of the medium through which the 
+objects interact. (If we have $\texttt{NObj}$ objects in 
+our geometry, then either $1\le \vb A \le \texttt{NObj}$ 
+or else $\vb A=e$ for the external medium.) Thus,
 
 \begin{itemize}
-  \item The object is PEC: 
-  \item The object is dielectric: 
+ \item If $\mathcal{O}_\alpha$ is contained in $\mathcal{O}_\beta$, 
+       then $\vb A=\beta$.
+ \item If $\mathcal{O}_\beta$ is contained in $\mathcal{O}_\alpha$, 
+       then $\vb A=\alpha$.
+ \item If $\mathcal{O}_\alpha$ and $\mathcal{O}_\alpha$ are both
+       contained in the same object $\mathcal{O}_\gamma$ (which may
+       be the external medium $\mathcal{O}_e$), then  
+       then $\vb A=\gamma$.
+ \item If none of the above are true, then the two objects do not
+       interact and the corresponding block of the BEM matrix is
+       zero.
 \end{itemize}
 
-\end{enumerate}
+Define a symbol $\texttt{Sign}$ to have value $-1$ in the first
+two cases (i.e. when one of $\mathcal{O}_\alpha$, $\mathcal{O}_\beta$
+is contained inside the other), while $\texttt{Sign}=+1$ otherwise.
 
+Then the two basis elements contribute a 
+$1\times 1$, $1\times 2$, $2\times 1$, or $2\times 2$
+block of matrix elements to the BEM matrix, as follows:
+%====================================================================%
 \begin{enumerate}
-\item \textit{The two objects are identical,} 
-$\mathcal{O}_\alpha$ and $\mathcal{O}_\beta$. In this case we have
+%--------------------------------------------------------------------%
+\item \textbf{Both objects are PEC:}
 
-\begin{itemize}
-  \item The object is PEC: 
-  \item The object is dielectric: 
-\end{itemize}
+$$ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+   = \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{EE}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+$$
+%--------------------------------------------------------------------%
+\item \textbf{ $\mathcal{O}_\alpha$ is PEC, 
+               $\mathcal{O}_\beta$ is dielectric:}
 
+\begin{align*}
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{EE}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\\
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{EM}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\end{align*}
+%--------------------------------------------------------------------%
+\item \textbf{ $\mathcal{O}_\alpha$ is dielectric, 
+               $\mathcal{O}_\beta$ is PEC:}
+
+\begin{align*}
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{EE}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\\
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{ME}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\end{align*}
+%--------------------------------------------------------------------%
+\item \textbf{ $\mathcal{O}_\alpha, \mathcal{O}_\beta$ are both
+               dielectric but $\mathcal{O}_\alpha \ne \mathcal{O}_\beta$:}
+
+\begin{align*}
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{EE}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\\
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{ME}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\\
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{EM}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\\
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{MM}(\vb A) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\end{align*}
+%--------------------------------------------------------------------%
+\item \textbf{ $\mathcal{O}_\alpha, \mathcal{O}_\beta$ are both
+               dielectric and $\mathcal{O}_\alpha = \mathcal{O}_\beta$:}
+
+This case is identical to the previous case, but now the matrix elements
+are augmented by additional contributions describing the basis functions
+interacting through the medium inside the object:
+
+\begin{align*}
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{EE}(\vb A) + \BG\supt{EE}(\alpha) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\\
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{ME}(\vb A) + \BG\supt{ME}(\alpha) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\\
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{EM}(\vb A) + \BG\supt{EM}(\alpha) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\\
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &= \frac{1}{Z_0} \Big\langle 
+                   \vb f_{\alpha m} 
+                   \Big| \BG\supt{MM}(\vb A) + \BG\supt{MM}(\alpha) \Big|
+                   \vb f_{\beta n} 
+                   \Big\rangle
+\end{align*}
+%--------------------------------------------------------------------%
 \end{enumerate}
+
+%====================================================================%
 
 \end{document}
