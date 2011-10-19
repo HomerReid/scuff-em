@@ -6,6 +6,9 @@ include $(HOME)/work/Makefile.Rules
 ##################################################
 ##################################################
 ##################################################
+HEADERS = libscuff.h			\
+          libscuffInternals.h
+
 OBJS = AssembleBEMMatrix.o		\
        AssembleDMDVMatrix.o		\
        AssembleRHSVector.o		\
@@ -44,7 +47,7 @@ CPPFLAGS+=-I../libMatProp -I../libhmat -I../libSpherical
 CPPFLAGS+=-I../libhrutil
 CPPFLAGS+=$(GOOGLE_INCLUDES)
 
-libRWG.a:	$(OBJS)
+libRWG.a:	$(HEADERS) $(OBJS)
 		ar r $@ $^
 
 install:	libRWG.a

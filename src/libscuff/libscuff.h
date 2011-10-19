@@ -280,8 +280,7 @@ class RWGGeometry
 
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(int RealFreq);
-   void AssembleBEMMatrix(double Frequency, int RealFreq, 
-                          int nThread, HMatrix *M);
+   void AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M);
 
    /* routines for allocating, and then filling in, the derivative */
    /* of the bem matrix w.r.t. the coordinates of a mesh vertex    */
@@ -439,88 +438,6 @@ class RWGGeometry
 /***************************************************************/
 RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3);
 void InitRWGPanel(RWGPanel *P, double *Vertices);
-
-/***************************************************************/
-/* non-class methods that operate on RWGObjects ***************/
-/***************************************************************/
-
-// argument structure for GetPanelPanelInts() routine
-typedef struct GPPIArgStruct
- { 
-   // inputs 
-   RWGObject *O1;
-   int ne1; 
-   RWGObject *O2; 
-   int ne2;
-   cdouble K; 
-   int NeedCross;
-   int NumTorqueAxes; 
-   double *GammaMatrix;
-
-   // outputs
-   cdouble L[3]; 
-   double *GradL; 
-   cdouble *dLdT;
-
- } GPPIArgStruct;
-
-void InitGLFArgs(GLFArgs *AS);
-
-// argument structure for GetLFunctions() routine
-typedef struct GLFArgStruct
- { 
-   // inputs 
-   RWGObject *O1;
-   int ne1; 
-   RWGObject *O2; 
-   int ne2;
-   cdouble K; 
-   int NeedCross;
-   int NumTorqueAxes; 
-   double *GammaMatrix;
-
-   // outputs
-   cdouble L[3]; 
-   double *GradL; 
-   cdouble *dLdT;
-
- } GLFArgStruct;
-
-void InitGLFArgs(GLFArgStruct *AS);
-void GetLFunctions(GLFArgStruct *AS);
-
-// argument structure for AssembleBEMMatrixBlock() routine
-typedef struct ABMBArgStruct
- {
-   // input fields to be filled in by caller
-   RWGGeometry *G;
-   RWGObject *Oa, *Ob;
-   cdouble Frequency;
-   int nThread;
-
-   int NumTorqueAxes;
-   double *GammaMatrix;
-  
-   int RowOffset, ColOffset;
-
-   int ForceSymmetric;
-
-   // output fields filled in by routine
-   HMatrix *B;
-   HMatrix **GradB;
-   HMatrix **dBdTheta;
-
-   // additional fields used internally
-   double Sign;
-   cdouble EpsA, EpsB; 
-   double MuA, MuA;
-   int OaIsPEC, ObIsPEC;
-
- } ABMBArgStruct;
-
-void InitABMBArgs(ABMBArgStruct *Args);
-void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
-
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

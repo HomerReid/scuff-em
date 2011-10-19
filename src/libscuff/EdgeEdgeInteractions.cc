@@ -206,3 +206,14 @@ void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix)
   TorqueAxis[2]=cos(Theta);
   CreateGammaMatrix(TorqueAxis,GammaMatrix);
 } 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void InitGEEIArgs(GEEIArgStruct *Args)
+{
+  Args->NumGradientComponents=0;
+  Args->NumTorqueAxes=0;
+  Args->GammaMatrix=0;
+  
+}
