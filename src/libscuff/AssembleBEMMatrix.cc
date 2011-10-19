@@ -4,7 +4,7 @@
  *                           -- interactions of two objects in the geometry)
  *                           --
  *                           -- (cf. 'libscuff Implementation and Technical
- *                           --  Details', section 6.3, 'Structure of the BEM
+ *                           --  Details', section 8.3, 'Structure of the BEM
  *                           --  Matrix.')
  *                           --
  * homer reid                -- 10/2006 -- 10/2011
@@ -101,14 +101,14 @@ static void *ABMBThread(void *data)
   KA=csqrt2(EpsA*MuA)*Frequency;
   PreFac1A = Sign*II*MuA*Frequency;
   PreFac2A = Sign*II*kA;
-  PreFac3A = Sign*II*Frequency/EpsA;
+  PreFac3A = -1.0*Sign*II*Frequency/EpsA;
 
   if (EpsB!=0.0)
    { // note: Sign==1 for all cases in which EpsB is nonzero
      KB=csqrt2(EpsB*MuB)*Frequency;
      PreFac1B = II*MuB*Frequency;
      PreFac2B = II*kB;
-     PreFac3B = II*Frequency/EpsB;
+     PreFac3B = -1.0*II*Frequency/EpsB;
    };
 
   /***************************************************************/
