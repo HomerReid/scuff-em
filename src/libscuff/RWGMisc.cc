@@ -96,6 +96,12 @@ double VecDistance(double *v1, double *v2)
   return VecNorm(v3);
 }
 
+double VecDistance2(double *v1, double *v2)
+{ double v3[3];
+  VecSub(v1,v2,v3);
+  return VecDot(v3,v3);
+}
+
 double VecNormalize(double *v)
 { double d=VecNorm(v);  
   v[0]/=d;

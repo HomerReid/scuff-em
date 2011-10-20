@@ -457,6 +457,7 @@ double *VecLinComb(double alpha, double *v1, double beta, double *v2,
                    double *v3);
 double VecDot(double *v1, double *v2);
 double VecDistance(double *v1, double *v2);
+double VecDistance2(double *v1, double *v2);
 double VecNorm(double *v);
 double VecNorm2(double *v);
 double VecNormalize(double *v);
