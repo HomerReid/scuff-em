@@ -18,6 +18,14 @@
 
 #define II cdouble(0,1)
 
+// the 'common vertex threshold:' two vertices are considered to be 
+// the same if their distance is less than CVTHRESHOLD*the panel radius
+#define CVTHRESHOLD 1.0e-6
+
+// the 'short-wavelength threshold:' we are in the short-wavelength
+// (high-frequency) regime if |k*PanelRadius| > SWTHRESHOLD
+#define SWTHRESHOLD 1.0*M_PI
+
 /***************************************************************/
 /* this routine gathers some information on the pair of panels */
 /* (Oa, npa) -- (Ob,npb).                                      */
@@ -32,9 +40,6 @@
 /*     come first; for example, if there are 2 common vertices */
 /*     then Va[0] = Vb[0] and Va[1] = Vb[1].                   */
 /***************************************************************/
-// how it works: two vertices are considered to be the same if 
-// their distance is less than CVTHRESHOLD*the panel radius
-#define CVTHRESHOLD 1.0e-6
 int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
                     double *rRel, double **Va, double **Vb)
 {
@@ -150,11 +155,15 @@ cdouble cExpRel(cdouble x, int n)
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
+void GetPPI_Fixed(GPPIArgStruct *Args, int Desingularize, int HighOrder,
+                  double **Va, double *Qa, double **Vb, double *Qb)
+#if 0
 void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
                    int NumTorqueAxes, double *GammaMatrix,
                    double *VD[3], int iQD, double *VS[3], int iQS,
                    int Order, int DeSingularize,
                    cdouble *L, cdouble *GradL, cdouble *dLdT)
+#endif
 { 
   int np, ncp, npp, ncpp, m, mu, nu, ri, nta;
   double u, v, w, up, vp, wp;
@@ -181,7 +190,7 @@ void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
   /* conveniently cancels the corresponding factor coming from   */
   /* the RWG basis function prefactor                            */
   /***************************************************************/
-  QD=VD[iQD];
+  Qa
   VecSub(VD[(iQD+1)%3],VD[iQD],AD);
   VecSub(VD[(iQD+2)%3],VD[iQD],BD);
 
@@ -330,7 +339,7 @@ void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
 /* one of several different methods based on how near the two  */
 /* triangles are to each other.                                */
 /***************************************************************/
-void GetPanelPanelIntegractions(GPPIArgStruct *Args)
+void GetPanelPanelInteractions(GPPIArgStruct *Args)
 { 
   /***************************************************************/
   /* local copies of fields in argument structure ****************/
@@ -345,38 +354,119 @@ void GetPanelPanelIntegractions(GPPIArgStruct *Args)
   int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
   double *GammaMatrix       = Args->GammaMatrix;
+  cdouble *GC               = Args->GC;
+  cdouble *GradGC           = Args->GradGC;
+  cdouble *dGCdT            = Args->dGCdT;
 
   /***************************************************************/
-  /* extract panel vertices and **********************************/
+  /* extract panel vertices, detect common vertices, measure     */
+  /* relative distance                                           */
   /***************************************************************/
-  RWGPanel *Pa, *Pb; 
-
-  Pa=Oa->Panels[npa];
-  Pb=Ob->Panels[npb];
-
   double rRel;
-  int ncv;
   double *Va[3], *Vb[3];
-  
-  ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
-                    double *rRel, double **Va, double **Vb)
+  RWGPanel *Pa = Oa->Panels[npa];
+  RWGPanel *Pb = Ob->Panels[npb];
+  double *Qa   = Oa->Panels[iQa];
+  double *Qb   = Oa->Panels[iQb];
+  int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
+ 
+  /***************************************************************/
+  /* if the panels are far apart then just use naive moderate-   */
+  /* order cubature                                              */
+  /***************************************************************/
+  if ( rRel > DESINGULARIZATION_RADIUS )
+   { GetPPI_Fixed(Args, 0, 0, Va, Vb, Qa, Qb);
+     return;
+   };
 
   /***************************************************************/
-  /* simplest possibility is same panel on same object: just use */
-  /* taylor's common-triangle scheme for the full panel integral.*/
+  /* if the panels are identical then we use taylor's scheme for */
+  /* the full panel integral                                    */
   /***************************************************************/
-  if( Pa==Pb )
+  if( ncv==3 )
    { 
      Args->GC[0]=TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
-                              PV1[iQ1], PV1[(iQ1+1)%3], PV1[(iQ1+2)%3], PV1[(iQ1+1)%3], 
-                              PV1[(iQ1+2)%3], PV1[iQ1], PV1[iQ2]);
+                              Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
 
-     Args->GC[1]=0.0; /* the 'C' integral vanishes for the common-triangle case */
+     Args->GC[1]=0.0; /* 'C' integral vanishes for the common-triangle case */
 
-     if (Args->) memset(GradL,0,9*sizeof(cdouble));
-     if (dLdT) memset(GradL,0,3*NumTorqueAxes*sizeof(cdouble));
-    return;
+     if (GradGC) memset(GradGC, 2*NumGradientComponents, 0*sizeof(cdouble));
+     if (dGCdT)  memset(dGCdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+
+     return;
    };
+
+  /*****************************************************************/
+  /* if we are in the high-frequency regime then desingularization */
+  /* doesn't work; in this case, if there are any common vertices  */
+  /* we use taylor's method for the full panel integral, and       */
+  /* otherwise we use high-order naive cubature                    */
+  /*****************************************************************/
+  cdouble CPreFac=-1.0/(II*k);
+  if ( fabs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD )
+   { 
+     if( ncv==2 )
+      { 
+        /*--------------------------------------------------------------*/
+        /* common-edge case                                             */
+        /*--------------------------------------------------------------*/
+        Args->GC[0]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
+                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+
+        Args->GC[1]=CPreFac*TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, k,
+                                         Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+
+        if (GradGC) memset(GradGC, 2*NumGradientComponents, 0*sizeof(cdouble));
+        if (dGCdT)  memset(dGCdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+
+        return;
+      }
+     else if( ncv==1 )
+      { 
+        /*--------------------------------------------------------------*/
+        /* common-vertex case                                           */
+        /*--------------------------------------------------------------*/
+        Args->GC[0]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_DOTPLUS, k,
+                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+
+        Args->GC[1]=CPreFac*TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, k,
+                                         Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+
+        if (GradGC) memset(GradGC, 2*NumGradientComponents, 0*sizeof(cdouble));
+        if (dGCdT)  memset(dGCdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+
+        return;
+      }
+     else // ncv==0
+      { 
+        /*--------------------------------------------------------------*/
+        /* no common vertices                                           */
+        /*--------------------------------------------------------------*/
+        GetPPI_Fixed(Args, 0, 0, Va, Vb, Qa, Qb);
+        return;
+      };
+
+   };
+
+  /*****************************************************************/
+  /* finally, if we made it here, then we use desingularization:   */
+  /*                                                               */
+  /*  1) use naive cubature to compute panel-panel integral with   */
+  /*     singular terms removed                                    */
+  /*  2) get the singular terms either by looking them up in the   */
+  /*     table (if one was provided) or just computing them on the */
+  /*     fly                                                       */
+  /*  3) add the singular and non-singular contributions           */
+  /*                                                               */
+  /*****************************************************************/
+  
+  // step 1
+  GetPPI_Fixed(Args, 1, 0, Va, Vb, Qa, Qb);
+
+  // step 2
+  PPIData=GetStaticPPIData(SPPIDT, Va, Vb);
+
+  // step 3
 
   double rCC, rRel;
   double *PV1[3], *PV2[3];
