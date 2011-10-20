@@ -152,10 +152,9 @@ static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms, unsigne
 /***************************************************************/
 /***************************************************************/
 cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH,
-                     cdouble GParam, double HParam,
+                     cdouble GParam,
                      double *V1, double *V2, double *V3,
-                     double *V2P, double *V3P, 
-                     double *Q, double *QP, double RefVal)
+                     double *V2P, double *V3P, double *Q, double *QP)
 {
   TMWorkspace MyTMW, *TMW=&MyTMW;
 
@@ -195,8 +194,9 @@ cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH,
        TMW->SiAlphaFunc=SiAlpha_Dot;
        break;
      case TM_DOTPLUS:
+       // note: DOTPLUS is equivalent to 'Dot' + F * 'One' 
+       //  where 'F' = -4.0/(GParam*GParam);
        TMW->SiAlphaFunc=SiAlpha_DotPlus;
-       TMW->HParam=HParam;
        break;
      case TM_CROSS:
        TMW->SiAlphaFunc=SiAlpha_Cross;
@@ -284,6 +284,7 @@ cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH,
   /***************************************************************/
   /* 4. evaluate the integral over x, x1x2, or x1x2x3            */
   /***************************************************************/
+  double RefVal=0.0;  // explain or delete me please
   static double Lower[3]={0.0, 0.0, 0.0};
   static double Upper[3]={1.0, 1.0, 1.0};
   cdouble Result, Error;
@@ -640,14 +641,14 @@ void SiAlpha_Dot(const double *xVec, TMWorkspace *TMW, int WhichCase,
 }
 
 /***************************************************************/
-/* this is equivalent to 'dot' + Factor * 'One'                */
+/* this is equivalent to 'Dot' + Factor * 'One'                */
 /***************************************************************/
 void SiAlpha_DotPlus(const double *xVec, TMWorkspace *TMW, int WhichCase,
                      int *AlphaMin, int *AlphaMax, double S[7][5])
 {
    double SOne[7][5];
    int AlphaMinSOne, AlphaMaxSOne;
-   double Factor = TMW->HParam;
+   double Factor = real(-4.0/(TMW->GParam*TMW->GParam));
 
    /***************************************************************/
    /* get the 'Dot' contributions *********************************/

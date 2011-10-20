@@ -39,14 +39,21 @@ typedef struct GPPIArgStruct
    double *GammaMatrix;
 
    // output fields filled in by routine
-   cdouble GInt, CInt;
-   cdouble GradGInt[3], GradCInt[3];
-   cdouble dGIntdTheta[3], dCIntdTheta[3];
+   // note: GC[0,1] = G, C
+   // note: GradGC[0,1,2,...] = dG/dx, dC/dx, dG/dy, ... 
+   // note: dGCdT[0,1,2,...] = dG/dTheta_1, dC/dTheta_1, dG/dTheta_2, ... 
+   cdouble GC[2];
+   cdouble GradGC[6];
+   cdouble dGCdT[6];
 
  } GPPIArgStruct;
 
 void InitGPPIArgs(GPPIArgStruct *Args);
 void GetPanelPanelInteractions(GEEIArgStruct *Args);
+void GetPanelPanelInteractions(GEEIArgStruct *Args,
+                               cdouble *GC, 
+                               cdouble *GradGC, 
+                               cdouble *dGCdT);
 
 /*--------------------------------------------------------------*/
 /*- GetEdgeEdgeInteractions() ----------------------------------*/
@@ -63,9 +70,12 @@ typedef struct GEEIArgStruct
    double *GammaMatrix;
 
    // output fields filled in by routine
-   cdouble GInt, CInt;
-   cdouble GradGInt[3], GradCInt[3];
-   cdouble dGIntdTheta[3], dCIntdTheta[3];
+   // note: GC[0,1] = G, C
+   // note: GradGC[0,1,2,...] = dG/dx, dC/dx, dG/dy, ... 
+   // note: dGCdT[0,1,2,...] = dG/dTheta_1, dC/dTheta_1, dG/dTheta_2, ... 
+   cdouble GC[2];
+   cdouble GradGC[6];
+   cdouble dGCdT[6];
 
  } GEEIArgStruct;
 

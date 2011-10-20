@@ -90,6 +90,11 @@ void *ABMBThread(void *data)
   GEEIArgs->NumTorqueAxes=NumTorqueAxes;
   GEEIArgs->GammaMatrix=GammaMatrix;
 
+  /* pointers to arrays inside the structure */
+  cdouble *GC=GEEIArgs->GC;
+  cdouble *GradGC=GEEIArgs->GradGC;
+  cdouble *dGCdT=GEEIArgs->dGCdT;
+
   /***************************************************************/
   /* precompute the constant prefactors that multiply the        */
   /* integrals returned by GetEdgeEdgeInteractions()             */
@@ -138,30 +143,30 @@ void *ABMBThread(void *data)
          X=RowOffset + nea;
          Y=ColOffset + neb;  
 
-         B->SetEntry( X, Y, PreFac1A*(GEEIArgs->GInt) );
+         B->SetEntry( X, Y, PreFac1A*GC[0] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          GradB[Mu]->SetEntry( X, Y, PreFac1A*(GEEIArgs->GradGInt[Mu]));
+          GradB[Mu]->SetEntry( X, Y, PreFac1A*GradGC[2*Mu+0]);
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          dBdTheta[Mu]->SetEntry( X, Y, PreFac1A*(GEEIArgs->dGIntdTheta[Mu]));
+          dBdTheta[Mu]->SetEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
        }
       else if ( OaIsPEC && !ObIsPEC )
        { 
          X=RowOffset + nea;
          Y=ColOffset + 2*neb;  
 
-         B->SetEntry( X, Y,   PreFac1A*(GEEIArgs->GInt) );
-         B->SetEntry( X, Y+1, PreFac2A*(GEEIArgs->CInt) );
+         B->SetEntry( X, Y,   PreFac1A*GC[0] );
+         B->SetEntry( X, Y+1, PreFac2A*GC[1] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { GradB[Mu]->SetEntry( X, Y,   PreFac1A*(GEEIArgs->GradGInt[Mu]));
-            GradB[Mu]->SetEntry( X, Y+1, PreFac2A*(GEEIArgs->GradCInt[Mu]));
+          { GradB[Mu]->SetEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
+            GradB[Mu]->SetEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
           };
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          { dBdTheta[Mu]->SetEntry( X, Y, PreFac1A*(GEEIArgs->dGIntdTheta[Mu]));
-            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*(GEEIArgs->dCIntdTheta[Mu]));
+          { dBdTheta[Mu]->SetEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+0]);
           };
        }
       else if ( !OaIsPEC && ObIsPEC )
@@ -169,17 +174,17 @@ void *ABMBThread(void *data)
          X=RowOffset + 2*nea;
          Y=ColOffset + neb;  
 
-         B->SetEntry( X,   Y, PreFac1A*(GEEIArgs->GInt) );
-         B->SetEntry( X+1, Y, PreFac2A*(GEEIArgs->CInt) );
+         B->SetEntry( X,   Y, PreFac1A*GC[0] );
+         B->SetEntry( X+1, Y, PreFac2A*GC[1] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { GradB[Mu]->SetEntry( X, Y,   PreFac1A*(GEEIArgs->GradGInt[Mu]));
-            GradB[Mu]->SetEntry( X+1, Y, PreFac2A*(GEEIArgs->GradCInt[Mu]));
+          { GradB[Mu]->SetEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
+            GradB[Mu]->SetEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
           };
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          { dBdTheta[Mu]->SetEntry( X, Y,   PreFac1A*(GEEIArgs->dGIntdTheta[Mu]));
-            dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2A*(GEEIArgs->dCIntdTheta[Mu]));
+          { dBdTheta[Mu]->SetEntry( X, Y,   PreFac1A*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
           };
        }
       else if ( !OaIsPEC && !ObIsPEC )
@@ -187,28 +192,28 @@ void *ABMBThread(void *data)
          X=RowOffset + 2*nea;
          Y=ColOffset + 2*neb;  
 
-         B->SetEntry( X, Y,   PreFac1A*(GEEIArgs->GInt) );
-         B->SetEntry( X, Y+1, PreFac2A*(GEEIArgs->CInt) );
+         B->SetEntry( X, Y,   PreFac1A*GC[0]);
+         B->SetEntry( X, Y+1, PreFac2A*GC[1]);
          if ( !Symmetric || (nea!=neb) )
-          B->SetEntry( X+1, Y, PreFac2A*(GEEIArgs->CInt) );
-         B->SetEntry( X+1, Y+1, PreFac3A*(GEEIArgs->GInt) );
+          B->SetEntry( X+1, Y, PreFac2A*GC[1]);
+         B->SetEntry( X+1, Y+1, PreFac3A*GC[0]);
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
           { 
-            GradB[Mu]->SetEntry( X, Y,   PreFac1A*(GEEIArgs->GradGInt[Mu]) );
-            GradB[Mu]->SetEntry( X, Y+1, PreFac2A*(GEEIArgs->GradCInt[Mu]) );
+            GradB[Mu]->SetEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
+            GradB[Mu]->SetEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
-             GradB[Mu]->SetEntry( X+1, Y, PreFac2A*(GEEIArgs->GradCInt[Mu]) );
-            GradB[Mu]->SetEntry( X+1, Y+1, PreFac3A*(GEEIArgs->GradGInt[Mu]) );
+             GradB[Mu]->SetEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
+            GradB[Mu]->SetEntry( X+1, Y+1, PreFac3A*GradGC[2*Mu+0]);
           };
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
           { 
-            dBdTheta[Mu]->SetEntry( X, Y,   PreFac1A*(GEEIArgs->dGIntdTheta[Mu]) );
-            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*(GEEIArgs->dCIntdTheta[Mu]) );
+            dBdTheta[Mu]->SetEntry( X, Y,   PreFac1A*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
-             dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2A*(GEEIArgs->dCIntdTheta[Mu]) );
-            dBdTheta[Mu]->SetEntry( X+1, Y+1, PreFac3A*(GEEIArgs->dGIntdTheta[Mu]) );
+             dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
+            dBdTheta[Mu]->SetEntry( X+1, Y+1, PreFac3A*dGCdT[2*Mu+0]);
           };
 
        }; // if ( OaIsPEC && ObIsPEC ) ... else ... 
@@ -226,28 +231,28 @@ void *ABMBThread(void *data)
          X=RowOffset + 2*nea;
          Y=ColOffset + 2*neb;
 
-         B->AddEntry( X, Y,   PreFac1B*(GEEIArgs->GInt) );
-         B->AddEntry( X, Y+1, PreFac2B*(GEEIArgs->CInt) );
+         B->AddEntry( X, Y,   PreFac1B*GC[0]);
+         B->AddEntry( X, Y+1, PreFac2B*GC[1]);
          if ( !Symmetric || (nea!=neb) )
-          B->AddEntry( X+1, Y, PreFac2B*(GEEIArgs->CInt) );
-         B->AddEntry( X+1, Y+1, PreFac3B*(GEEIArgs->GInt) );
+          B->AddEntry( X+1, Y, PreFac2B*GC[1]);
+         B->AddEntry( X+1, Y+1, PreFac3B*GC[0]);
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
           { 
-            GradB[Mu]->SetEntry( X, Y,   PreFac1B*(GEEIArgs->GradGInt[Mu]) );
-            GradB[Mu]->SetEntry( X, Y+1, PreFac2B*(GEEIArgs->GradCInt[Mu]) );
+            GradB[Mu]->SetEntry( X, Y,   PreFac1B*GradGC[2*Mu+0]);
+            GradB[Mu]->SetEntry( X, Y+1, PreFac2B*GradGC[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
-             GradB[Mu]->SetEntry( X+1, Y, PreFac2B*(GEEIArgs->GradCInt[Mu]) );
-            GradB[Mu]->SetEntry( X+1, Y+1, PreFac3B*(GEEIArgs->GradGInt[Mu]) );
+             GradB[Mu]->SetEntry( X+1, Y, PreFac2B*GradGC[2*Mu+1]);
+            GradB[Mu]->SetEntry( X+1, Y+1, PreFac3B*GradGC[2*Mu+0]);
           };
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
           { 
-            dBdTheta[Mu]->SetEntry( X, Y,   PreFac1B*(GEEIArgs->dGIntdTheta[Mu]) );
-            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2B*(GEEIArgs->dCIntdTheta[Mu]) );
+            dBdTheta[Mu]->SetEntry( X, Y,   PreFac1B*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2B*dGCdT[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
-             dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2B*(GEEIArgs->dCIntdTheta[Mu]) );
-            dBdTheta[Mu]->SetEntry( X+1, Y+1, PreFac3B*(GEEIArgs->dGIntdTheta[Mu]) );
+             dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2B*dGCdT[2*Mu+1]);
+            dBdTheta[Mu]->SetEntry( X+1, Y+1, PreFac3B*dGCdT[2*Mu+0]);
           };
        }; // if (EpsB!=0.0)
 

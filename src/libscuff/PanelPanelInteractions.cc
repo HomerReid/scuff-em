@@ -229,21 +229,25 @@ void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
 }
 
 /***************************************************************/
-/* calculate integrals over a single pair of triangles using a */
-/* complicated bifurcation tree to determine the best strategy */
-/* based on how near the two triangles are to each other.      */
+/* calculate integrals over a single pair of triangles using   */
+/* one of several different methods based on how near the two  */
+/* triangles are to each other.                                */
 /***************************************************************/
-void GetPPIs(cdouble Wavenumber, int NeedCross,
-             int NumTorqueAxes, double *GammaMatrix, 
-             RWGObject *O1, int np1, int iQ1, 
-             RWGObject *O2, int np2, int iQ2, 
-             cdouble *L, cdouble *GradL, cdouble *dLdT)
+void GetPanelPanelIntegractions(GPPIArgStruct *Args)
 { 
-  double rCC, rRel;
-  double *PV1[3], *PV2[3];
-  int iTemp, XXPFlipped;
-  int ncv, Index[3], IndexP[3];
-  RWGPanel *P1, *P2;
+  /***************************************************************/
+  /* local copies of fields in argument structure ****************/
+  /***************************************************************/
+  RWGObject *Oa             = Args->Oa;
+  RWGObject *Ob             = Args->Ob;
+  int npa                   = Args->npa; 
+  int npb                   = Args->npb; 
+  int iQa                   = Args->iQa; 
+  int iQb                   = Args->iQb; 
+  cdouble k                 = Args->k;
+  int NumGradientComponents = Args->NumGradientComponents;
+  int NumTorqueAxes         = Args->NumTorqueAxes;
+  double *GammaMatrix       = Args->GammaMatrix;
 
   /***************************************************************/
   /* extract panel vertices **************************************/
@@ -261,26 +265,26 @@ void GetPPIs(cdouble Wavenumber, int NeedCross,
 
   /***************************************************************/
   /* simplest possibility is same panel on same object: just use */
-  /* taylor's common-triangle scheme for full panel integral.    */
+  /* taylor's common-triangle scheme for the full panel integral.*/
   /***************************************************************/
   if( P1==P2 )
    { 
-     L[0]=TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOT,
-                       Wavenumber, 0.0, PV1[iQ1], PV1[(iQ1+1)%3],
-                       PV1[(iQ1+2)%3], PV1[(iQ1+1)%3], 
-                       PV1[(iQ1+2)%3], PV1[iQ1], PV1[iQ2], 1.0);
+     Args->GC[0]=TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
+                              PV1[iQ1], PV1[(iQ1+1)%3], PV1[(iQ1+2)%3], PV1[(iQ1+1)%3], 
+                              PV1[(iQ1+2)%3], PV1[iQ1], PV1[iQ2]);
 
-     L[1]=4.0*TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_ONE,
-                           Wavenumber, 0.0, PV1[iQ1], PV1[(iQ1+1)%3],
-                           PV1[(iQ1+2)%3], PV1[(iQ1+1)%3], 
-                           PV1[(iQ1+2)%3], PV1[iQ1], PV1[iQ2], 1.0);
+     Args->GC[1]=0.0; /* the 'C' integral vanishes for the common-triangle case */
 
-    L[2]=0.0;   /* cross-product integral vanishes for common triangle */
-
-    if (GradL) memset(GradL,0,9*sizeof(cdouble));
-    if (dLdT) memset(GradL,0,3*NumTorqueAxes*sizeof(cdouble));
+     if (Args->) memset(GradL,0,9*sizeof(cdouble));
+     if (dLdT) memset(GradL,0,3*NumTorqueAxes*sizeof(cdouble));
     return;
    };
+
+  double rCC, rRel;
+  double *PV1[3], *PV2[3];
+  int iTemp, XXPFlipped;
+  int ncv, Index[3], IndexP[3];
+  RWGPanel *P1, *P2;
 
   /***************************************************************/
   /* extract a little more information on the panel pair         */
@@ -579,6 +583,25 @@ void GetPPIs(cdouble Wavenumber, int NeedCross,
    };
 
 } 
+
+/***************************************************************/
+/* this is an alternate entry point to GetPanelPanelInteractions*/
+/* that copies the results out of the structure body into      */
+/* user-specified buffers                                      */
+/***************************************************************/
+void GetPanelPanelInteractions(GEEIArgStruct *Args,
+                               cdouble *GC, 
+                               cdouble *GradGC, 
+                               cdouble *dGCdT);
+{ 
+  GetPanelPanelInteractions(Args);
+
+  memcpy(GC, Args->GC, 2*sizeof(cdouble));
+  if(GradGC)  
+   memcpy(GradGC, Args->GradGC, 2*Args->NumGradientComponents*sizeof(cdouble));
+  if(dGCdT)  
+   memcpy(dGCdT, Args->dGCdT, 2*Args->NumTorqueAxes*sizeof(cdouble));
+}
 
 /***************************************************************/
 /***************************************************************/

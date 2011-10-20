@@ -53,12 +53,9 @@ void GetEdgeEdgeInteractions(GEEIArgStruct *Args)
   /* otherwise, obtain the edge-edge interactions as a sum of    */
   /* four panel-panel interactions                               */
   /***************************************************************/
-  cdouble GPP, GPM, GMP, GMM;
-  cdouble CPP, CPM, CMP, CMM;
-  cdouble GradGPP[3], GradGPM[3], GradGMP[3], GradGMM[3];
-  cdouble GradCPP[3], GradCPM[3], GradCMP[3], GradCMM[3];
-  cdouble dGdThetaPP[3], dGdThetaPM[3], dGdThetaMP[3], dGdThetaMM[3];
-  cdouble dCdThetaPP[3], dCdThetaPM[3], dCdThetaMP[3], dCdThetaMM[3];
+  cdouble GCPP[2], GCPM[2], GCMP[2], GCMM[2];
+  cdouble GradGCPP[6], GradGCPM[6], GradGCMP[6], GradGCMM[6];
+  cdouble dGCdTPP[6], dGCdTPM[6], dGCdTMP[6], dGCdTMM[6];
 
   /*--------------------------------------------------------------*/
   /*- initialize argument structure for GetPanelPanelInteractions */
@@ -78,36 +75,36 @@ void GetEdgeEdgeInteractions(GEEIArgStruct *Args)
   /*--------------------------------------------------------------*/
   GPPIArgs->npa = Ea->iPPanel;     GPPIArgs->iQa = Ea->PIndex;
   GPPIArgs->npb = Eb->iPPanel;     GPPIArgs->iQb = Eb->PIndex;
-  GetPanelPanelInteractions(GPPIArgs, GPP, CPP, GradGPP, GradCPP, dGdThetaPP, dCdThetaPP);
+  GetPanelPanelInteractions(GPPIArgs, GCPP, GradGCPP, dGCdThetaPP);
 
   GPPIArgs->npa = Ea->iPPanel;     GPPIArgs->iQa = Ea->PIndex;
   GPPIArgs->npb = Eb->iMPanel;     GPPIArgs->iQb = Eb->MIndex;
-  GetPanelPanelInteractions(GPPIArgs, GPM, CPM, GradGPM, GradCPM, dGdThetaPM, dCdThetaPM);
+  GetPanelPanelInteractions(GPPIArgs, GCPM, GradGCPM, dGCdThetaPM);
 
   GPPIArgs->npa = Ea->iMPanel;     GPPIArgs->iQa = Ea->MIndex;
   GPPIArgs->npb = Eb->iPPanel;     GPPIArgs->iQb = Eb->PIndex;
-  GetPanelPanelInteractions(GPPIArgs, GMP, CMP, GradGMP, GradCMP, dGdThetaMP, dCdThetaMP);
+  GetPanelPanelInteractions(GPPIArgs, GCMP, GradGCMP, dGCdThetaMP);
 
   GPPIArgs->npa = Ea->iMPanel;     GPPIArgs->iQa = Ea->MIndex;
   GPPIArgs->npb = Eb->iMPanel;     GPPIArgs->iQb = Eb->MIndex;
-  GetPanelPanelInteractions(GPPIArgs, GMM, CMM, GradGMM, GradCMM, dGdThetaMM, dCdThetaMM);
+  GetPanelPanelInteractions(GPPIArgs, GCMM, GradGCMM, dGCdThetaMM);
 
   /*--------------------------------------------------------------*/
   /*- assemble the final quantities ------------------------------*/
   /*--------------------------------------------------------------*/
   double PreFac = Ea->Length*Eb->Length;
 
-  Args->GInt = PreFac*(GPP[m] - GPM[m] - GMP[m] + GMM[m]);
-  Args->CInt = PreFac*(CPP[m] - CPM[m] - CMP[m] + CMM[m]);
+  Args->GC[0] = PreFac*(GCPP[0] - GCPM[0] - GCMP[0] + GCMM[0]);
+  Args->GC[1] = PreFac*(GCPP[1] - GCPM[1] - GCMP[1] + GCMM[1]);
 
   for(Mu=0; Mu<NumGradientComponents; Mu++)
-   { Args->GradGInt[Mu] = PreFac*( GradGPP[Mu] - GradGPM[Mu] - GradGMP[Mu] + GradGMM[Mu]);
-     Args->GradCInt[Mu] = PreFac*( GradCPP[Mu] - GradCPM[Mu] - GradCMP[Mu] + GradCMM[Mu]);
+   { Args->GradGC[2*Mu+0] = PreFac*( GradGCPP[2*Mu+0] - GradGCPM[2*Mu+0] - GradGCMP[2*Mu+0] + GradGCMM[2*Mu+0] );
+     Args->GradGC[2*Mu+1] = PreFac*( GradGCPP[2*Mu+1] - GradGCPM[2*Mu+1] - GradGCMP[2*Mu+1] + GradGCMM[2*Mu+1] );
    };
 
   for(Mu=0; Mu<NumTorqueAxes; Mu++)
-   { Args->dGIntdTheta[Mu] = PreFac*( dGdThetaPP[Mu] - dGdThetaPM[Mu] - dGdThetaMP[Mu] + dGdThetaMM[Mu]);
-     Args->dCIntdTheta[Mu] = PreFac*( dCdThetaPP[Mu] - dCdThetaPM[Mu] - dCdThetaMP[Mu] + dCdThetaMM[Mu]);
+   { Args->dGCdT[2*Mu+0] = PreFac*( dGdThetaPP[2*Mu+0] - dGdThetaPM[2*Mu+0] - dGdThetaMP[2*Mu+0] + dGdThetaMM[2*Mu+0]);
+     Args->dGCdT[2*Mu+1] = PreFac*( dGdThetaPP[2*Mu+1] - dGdThetaPM[2*Mu+1] - dGdThetaMP[2*Mu+1] + dGdThetaMM[2*Mu+1]);
    };
 
 }
