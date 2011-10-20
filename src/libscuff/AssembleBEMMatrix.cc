@@ -20,6 +20,7 @@
 #include <libhrutil.h>
 
 #include "libscuff.h"
+#include "libscuffInternals.h"
 
 #define II cdouble(0,1)
 
@@ -36,9 +37,8 @@ typedef struct ThreadData
 /***************************************************************/
 /* 'AssembleBMatrixBlockThread'                                */
 /***************************************************************/
-static void *ABMBThread(void *data)
+void *ABMBThread(void *data)
 { 
-
   /***************************************************************/
   /* extract local copies of fields in argument structure */
   /***************************************************************/
@@ -94,20 +94,20 @@ static void *ABMBThread(void *data)
   /* precompute the constant prefactors that multiply the        */
   /* integrals returned by GetEdgeEdgeInteractions()             */
   /***************************************************************/
-  cdouble KA, KB;
+  cdouble kA, kB;
   cdouble PreFac1A, PreFac2A, PreFac3A;
   cdouble PreFac1B, PreFac2B, PreFac3B;
 
   KA=csqrt2(EpsA*MuA)*Frequency;
   PreFac1A = Sign*II*MuA*Frequency;
-  PreFac2A = Sign*II*kA;
+  PreFac2A = -Sign*II*kA;
   PreFac3A = -1.0*Sign*II*Frequency/EpsA;
 
   if (EpsB!=0.0)
    { // note: Sign==1 for all cases in which EpsB is nonzero
-     KB=csqrt2(EpsB*MuB)*Frequency;
+     kB=csqrt2(EpsB*MuB)*Frequency;
      PreFac1B = II*MuB*Frequency;
-     PreFac2B = II*kB;
+     PreFac2B = -II*kB;
      PreFac3B = -1.0*II*Frequency/EpsB;
    };
 
@@ -130,7 +130,7 @@ static void *ABMBThread(void *data)
       /*--------------------------------------------------------------*/
       EEIArgs->nea  = nea;
       EEIArgs->neb  = neb;
-      EEIArgs->K    = KA;
+      EEIArgs->k    = kA;
       GetEEIs(&EEIArgs);
 
       if ( OaIsPEC && ObIsPEC )
@@ -220,7 +220,7 @@ static void *ABMBThread(void *data)
       /*--------------------------------------------------------------*/
       if (EpsB!=0.0)
        { 
-         EEIArgs->K = KB;
+         EEIArgs->K = kB;
          GetEEIs(&EEIArgs);
 
          X=RowOffset + 2*nea;
@@ -265,7 +265,7 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /***************************************************************/
   /* look at the containership relation between the objects to   */
   /* to figure out how to assign values to Sign, EpsA, MuA,      */
-  /* EpsB, MuB. 
+  /* EpsB, MuB.                                                  */
   /*                                                             */
   /* note: EpsA, MuA are the material properties of the medium   */
   /*       through which the two objects interact.               */
@@ -379,7 +379,8 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
   Args->dBdTheta=0;
 
   /***************************************************************/
-  /* assemble the (blockwise) upper-diagonal part of the matrix  */
+  /* loop over all pairs of objects to assemble the diagonal and */
+  /* above-diagonal blocks of the matrix                         */
   /***************************************************************/
   int no, nop;
   for(no=0; no<G->NumObjects; no++)
@@ -397,8 +398,8 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
     };
 
   /***************************************************************/
-  /* if the matrix does not use packed storage, go through and   */
-  /* fill in its lower diagonal                                  */
+  /* if the matrix uses normal (not packed) storage, fill in its */
+  /* below-diagonal blocks                                       */
   /***************************************************************/
   if (M->StorageType==LHM_NORMAL)
    { int nr, nc;

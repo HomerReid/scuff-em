@@ -29,18 +29,19 @@
 typedef struct GPPIArgStruct
  { 
    // input fields to be filled in by caller
-   RWGObject *O1, *O2;
-   int ne1, ne2;
-   cdouble Frequency;
+   RWGObject *Oa, *Ob;
+   int npa, npb;
+   int iQa, iQb;
+   cdouble k;
 
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
 
    // output fields filled in by routine
-   cdouble L[3]; 
-   cdouble GradL[3][3];
-   cdouble dLdT[3][3];
+   cdouble GInt, CInt;
+   cdouble GradGInt[3], GradCInt[3];
+   cdouble dGIntdTheta[3], dCIntdTheta[3];
 
  } GPPIArgStruct;
 
@@ -55,7 +56,7 @@ typedef struct GEEIArgStruct
    // input fields to be filled in by caller
    RWGObject *Oa, *Ob;
    int nea, neb;
-   cdouble K;
+   cdouble k;
 
    int NumGradientComponents;
    int NumTorqueAxes; 

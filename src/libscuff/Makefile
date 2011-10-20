@@ -10,28 +10,24 @@ HEADERS = libscuff.h			\
           libscuffInternals.h
 
 OBJS = AssembleBEMMatrix.o		\
-       AssembleDMDVMatrix.o		\
        AssembleRHSVector.o		\
        CalcGC.o				\
        GetDipoleMoments.o		\
        GetSphericalMoments.o		\
        GetFields.o			\
-       GetMatrixElement.o		\
+       EdgeEdgeInteractions.o     	\
        ExpandCurrentDistribution.o	\
        InitEdgeList.o			\
        RWGObject.o			\
-       LFunctions.o			\
        ReadComsolFile.o			\
        ReadGMSHFile.o			\
+       PanelPanelInteractions.o		\
        StaticPPI.o			\
        StaticPPITaylor.o		\
        TaylorMaster.o			\
        RWGGeometry.o			\
        Visualize.o			\
        RWGMisc.o			\
-       AssembleRHSVectorArray.o		\
-       GetFieldsArray.o        		\
-       GetStressTensorArray.o
 
 ##################################################
 ##################################################

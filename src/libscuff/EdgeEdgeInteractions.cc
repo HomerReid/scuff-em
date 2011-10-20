@@ -11,122 +11,104 @@
 #include <math.h>
 
 #include <libhrutil.h>
-#include <libTriInt.h>
 
 #include "libscuff.h"
-#include "TaylorMaster.h"
+#include "libscuffInternals.h"
 
 #define II cdouble(0,1)
 
 /***************************************************************/
-/* Evaluate and return the L-functions between two RWG basis   */
-/* functions.                                                  */
-/*                                                             */
-/* Inputs:                                                     */
-/*                                                             */
-/*     O1,ne1:      object and BF index of first BF            */
-/*     O2,ne2:      object and BF index of second BF           */
-/*     Wavenumber:  complex wavevector                         */
-/*     NeedCross:   set to 1 if you need the cross-product     */
-/*                  integrals. if you set this to 0, the       */
-/*                  corresponding slot in the return values    */
-/*                  is set to 0.                               */
-/*                                                             */
-/*    NumTorqueAxes: number (0--3) of axes about which to      */
-/*                  compute theta derivatives.                 */
-/*     GammaMatrix: matrices describing the rotation axes      */
-/*                  about which d/dTheta integrals are         */
-/*                  computed (for torque computations).        */
-/*                  GammaMatrix[ 9*nta + (i+3*j)] = i,j entry  */
-/*                  in the Gamma matrix for torque axis #nta.  */
-/*                  (Not referenced if NumTorqueAxes==0).      */
-/*                                                             */
-/* Outputs:                                                    */
-/*                                                             */
-/*     L[m]:        The inner product of basis functions       */
-/*                  (O1,ne1) and (O2,ne2) with operator L_m    */
-/*                  (m=0, 1, 2 for bullet, nabla, times).      */
-/*                                                             */
-/*     GradL[3*mu + m]: d/dx_mu L[m]                           */
-/*                  where the derivative is wrt displacement   */
-/*                  of the first object (O1, ne1) in the x_mu  */
-/*                  direction.                                 */
-/*                  If GradL is NULL on input, derivatives     */
-/*                  are not computed.                          */
-/*                                                             */
-/*     dLdT[3*nta + m]: d/dTheta L[m]                          */
-/*                  where the derivative is wrt rotation of    */
-/*                  the first object (O1, ne1) about an axis   */
-/*                  described by GammaMatrix[nta] as           */
-/*                  discussed above.                           */
-/*                  If dLdT or GammaMatrix are NULL on input   */
-/*                  (and/or if NumTorqueAxes==0) then          */
-/*                  Theta derivatives are not computed.        */
 /***************************************************************/
-void GetEEIs(RWGObject *O1, int ne1, RWGObject *O2, int ne2,
-             cdouble Wavenumber,
-             int NumTorqueAxes, double *GammaMatrix,
-             cdouble L[3], cdouble *GradL, cdouble *dLdT)
+/***************************************************************/
+void GetEdgeEdgeInteractions(GEEIArgStruct *Args)
 { 
-  RWGEdge *E1, *E2;
-  int m, mu;
-  int nta;
-  int iPPanel1, iMPanel1, iPPanel2, iMPanel2;  
-  int iQP1, iQM1, iQP2, iQM2;
-  double PreFac;
-  cdouble LPP[3], LPM[3], LMP[3], LMM[3];
-  cdouble GradLPP[9], GradLPM[9], GradLMP[9], GradLMM[9];
-  cdouble dLPPdT[9], dLPMdT[9], dLMPdT[9], dLMMdT[9];
+  /***************************************************************/
+  /* local copies of fields in argument structure ****************/
+  /***************************************************************/
+  RWGObject *Oa             = Args->Oa;
+  RWGObject *Ob             = Args->Ob;
+  int nea                   = Args->nea; 
+  int neb                   = Args->neb; 
+  cdouble k                 = Args->k;
+  int NumGradientComponents = Args->NumGradientComponents;
+  int NumTorqueAxes         = Args->NumTorqueAxes;
+  double *GammaMatrix       = Args->GammaMatrix;
+
+  /***************************************************************/
+  /* first look to see if the two basis functions are far enough */
+  /* apart that we can use the multipole method                  */
+  /***************************************************************/
+  RWGEdge *Ea=Oa->Edges[nea];
+  RWGEdge *Eb=Oa->Edges[neb];
+
+  #if 0
+  double RMax=fmax(Ea->Radius, Eb->Radius);
+  if ( VecDistance(Ea->Centroid, Eb->Centroid) > EEITHRESHOLD*RMax )
+   { GetEEIMultipole(Args);
+     return;
+   };
+  #endif
+
+  /***************************************************************/
+  /* otherwise, obtain the edge-edge interactions as a sum of    */
+  /* four panel-panel interactions                               */
+  /***************************************************************/
+  cdouble GPP, GPM, GMP, GMM;
+  cdouble CPP, CPM, CMP, CMM;
+  cdouble GradGPP[3], GradGPM[3], GradGMP[3], GradGMM[3];
+  cdouble GradCPP[3], GradCPM[3], GradCMP[3], GradCMM[3];
+  cdouble dGdThetaPP[3], dGdThetaPM[3], dGdThetaMP[3], dGdThetaMM[3];
+  cdouble dCdThetaPP[3], dCdThetaPM[3], dCdThetaMP[3], dCdThetaMM[3];
 
   /*--------------------------------------------------------------*/
-  /*- preliminary setup ------------------------------------------*/
+  /*- initialize argument structure for GetPanelPanelInteractions */
   /*--------------------------------------------------------------*/
-  E1=O1->Edges[ne1];
-  E2=O2->Edges[ne2];
+  GPPIArgStruct MyGPPIArgs, *GPPIArgs=&MyGPPIArgs;
+  InitGPPIArgs(&GPPIArgs);
 
-  iPPanel1=E1->iPPanel;
-  iMPanel1=E1->iMPanel;
-  iPPanel2=E2->iPPanel;
-  iMPanel2=E2->iMPanel;
-  iQP1=E1->PIndex;
-  iQM1=E1->MIndex;
-  iQP2=E2->PIndex;
-  iQM2=E2->MIndex;
-
-  PreFac=E1->Length * E2->Length;
+  GPPIArgs->Oa                     = Oa;
+  GPPIArgs->Ob                     = Ob;
+  GPPIArgs->k                      = k;
+  GPPIArgs->NumGradientComponents  = NumGradientComponents;
+  GPPIArgs->NumTorqueAxes          = NumTorqueAxes;
+  GPPIArgs->GammaMatrix            = GammaMatrix;
 
   /*--------------------------------------------------------------*/
-  /*- compute integrals over each of the four pairs of panels    -*/
+  /*- positive-positive, positive-negative, etc. -----------------*/
   /*--------------------------------------------------------------*/
-  PanelPanelInt(Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
-                O1, iPPanel1, iQP1, O2, iPPanel2, iQP2, 
-                LPP, GradLPP, dLPPdT);
+  GPPIArgs->npa = Ea->iPPanel;     GPPIArgs->iQa = Ea->PIndex;
+  GPPIArgs->npb = Eb->iPPanel;     GPPIArgs->iQb = Eb->PIndex;
+  GetPanelPanelInteractions(GPPIArgs, GPP, CPP, GradGPP, GradCPP, dGdThetaPP, dCdThetaPP);
 
-  PanelPanelInt(Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
-                O1, iPPanel1, iQP1, O2, iMPanel2, iQM2, 
-                LPM, GradLPM, dLPMdT);
+  GPPIArgs->npa = Ea->iPPanel;     GPPIArgs->iQa = Ea->PIndex;
+  GPPIArgs->npb = Eb->iMPanel;     GPPIArgs->iQb = Eb->MIndex;
+  GetPanelPanelInteractions(GPPIArgs, GPM, CPM, GradGPM, GradCPM, dGdThetaPM, dCdThetaPM);
 
-  PanelPanelInt(W, Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
-                O1, iMPanel1, iQM1, O2, iPPanel2, iQP2, 
-                LMP, GradLMP, dLMPdT);
+  GPPIArgs->npa = Ea->iMPanel;     GPPIArgs->iQa = Ea->MIndex;
+  GPPIArgs->npb = Eb->iPPanel;     GPPIArgs->iQb = Eb->PIndex;
+  GetPanelPanelInteractions(GPPIArgs, GMP, CMP, GradGMP, GradCMP, dGdThetaMP, dCdThetaMP);
 
-  PanelPanelInt(W, Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix,
-                O1, iMPanel1, iQM1, O2, iMPanel2, iQM2, 
-                LMM, GradLMM, dLMMdT);
+  GPPIArgs->npa = Ea->iMPanel;     GPPIArgs->iQa = Ea->MIndex;
+  GPPIArgs->npb = Eb->iMPanel;     GPPIArgs->iQb = Eb->MIndex;
+  GetPanelPanelInteractions(GPPIArgs, GMM, CMM, GradGMM, GradCMM, dGdThetaMM, dCdThetaMM);
 
   /*--------------------------------------------------------------*/
   /*- assemble the final quantities ------------------------------*/
   /*--------------------------------------------------------------*/
-  for(m=0; m<3; m++)
-   L[m]=PreFac*(LPP[m] - LPM[m] - LMP[m] + LMM[m]);
+  double PreFac = Ea->Length*Eb->Length;
 
-  if (GradL)
-   for(m=0; m<9; m++)
-    GradL[m]=PreFac*(GradLPP[m] - GradLPM[m] - GradLMP[m] + GradLMM[m]);
+  Args->GInt = PreFac*(GPP[m] - GPM[m] - GMP[m] + GMM[m]);
+  Args->CInt = PreFac*(CPP[m] - CPM[m] - CMP[m] + CMM[m]);
 
-  if (dLdT)
-   for(m=0; m<3*NumTorqueAxes; m++)
-    dLdT[m]=PreFac*(dLPPdT[m] - dLPMdT[m] - dLMPdT[m] + dLMMdT[m]); 
+  for(Mu=0; Mu<NumGradientComponents; Mu++)
+   { Args->GradGInt[Mu] = PreFac*( GradGPP[Mu] - GradGPM[Mu] - GradGMP[Mu] + GradGMM[Mu]);
+     Args->GradCInt[Mu] = PreFac*( GradCPP[Mu] - GradCPM[Mu] - GradCMP[Mu] + GradCMM[Mu]);
+   };
+
+  for(Mu=0; Mu<NumTorqueAxes; Mu++)
+   { Args->dGIntdTheta[Mu] = PreFac*( dGdThetaPP[Mu] - dGdThetaPM[Mu] - dGdThetaMP[Mu] + dGdThetaMM[Mu]);
+     Args->dCIntdTheta[Mu] = PreFac*( dCdThetaPP[Mu] - dCdThetaPM[Mu] - dCdThetaMP[Mu] + dCdThetaMM[Mu]);
+   };
 
 }
 
@@ -215,5 +197,4 @@ void InitGEEIArgs(GEEIArgStruct *Args)
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
   Args->GammaMatrix=0;
-  
 }

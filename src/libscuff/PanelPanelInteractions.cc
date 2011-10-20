@@ -579,3 +579,13 @@ void GetPPIs(cdouble Wavenumber, int NeedCross,
    };
 
 } 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void InitGPPIArgs(GPPIArgStruct *Args)
+{
+  Args->NumGradientComponents=0;
+  Args->NumTorqueAxes=0;
+  Args->GammaMatrix=0;
+}
