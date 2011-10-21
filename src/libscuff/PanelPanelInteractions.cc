@@ -62,7 +62,7 @@ int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
 
   /***************************************************************/
   /* look for common vertices.                                   */
-  /* NOTE: in an earlier incarnation of the code, i looked for   */
+  /* NOTE: in an earlier incarnation of this code, i looked for  */
   /*       common vertices by simple integer comparisons         */
   /*       (comparing indices within a table of vertices), but   */
   /*       i specifically DON'T want to do that here for several */

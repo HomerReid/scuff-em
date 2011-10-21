@@ -17,6 +17,11 @@
 
 #define II cdouble(0,1)
 
+// the 'distant basis function' threshold: two basis functions are
+// 'distant' if their midpoint--midpoint distance is greater than 
+// DBFTHRESHOLD * the larger of the radii of the two basis functions
+#define DBFTHRESHOLD 10.0
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -29,8 +34,7 @@ void GetEdgeEdgeInteractions(GEEIArgStruct *Args)
   RWGObject *Ob             = Args->Ob;
   int nea                   = Args->nea; 
   int neb                   = Args->neb; 
-  cdouble k                 = Args->k;
-  int NumGradientComponents = Args->NumGradientComponents;
+  cdouble k                 = Args->k; int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
   double *GammaMatrix       = Args->GammaMatrix;
 
@@ -43,7 +47,7 @@ void GetEdgeEdgeInteractions(GEEIArgStruct *Args)
 
   #if 0
   double RMax=fmax(Ea->Radius, Eb->Radius);
-  if ( VecDistance(Ea->Centroid, Eb->Centroid) > EEITHRESHOLD*RMax )
+  if ( VecDistance(Ea->Centroid, Eb->Centroid) > DBFTHRESHOLD*RMax )
    { GetEEIMultipole(Args);
      return;
    };

@@ -1457,7 +1457,9 @@ the matrix elements are
 As demonstrated in the previous section, the elements of the 
 BEM matrix involve integrals over pairs of RWG basis functions 
 of the form
-\begin{align*}
+%====================================================================%
+\begin{subequations}
+\begin{align}
  \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
 &\equiv 
   \int_{\sup \vb f_a} d\vb x \, 
@@ -1473,7 +1475,81 @@ of the form
   \vb f_a(\vb x) \cdot 
   \vb C(k, \vb x-\vb x^\prime) \cdot 
   \vb f_b(\vb x^\prime).
-\end{align*}
+\end{align}
+\label{MatrixElementIntegrals}
+\end{subequations}
+%====================================================================%
+\lss computes these integrals using one of two strategies depending
+on how far apart the basis functions are from one another. To 
+quantify this, let $d_{ab}$ be the distance between the centroids
+of basis functions $\vb f_a$ and $\vb f_b$, and let 
+$R\subs{max}=\texttt{max}(R_a, R_b)$ be the larger of the radii
+of the two basis functions. (The ``radius'' of a compact source distribution
+is the radius of the smallest sphere in which the source distribution
+may be enclosed. For RWG basis functions, we take the centroid to be
+the midpoint of the common edge shared by the two triangle that define
+the basis function; then the radius is the greatest distance from the 
+centroid to any of the four panel vertices 
+(Figure \ref{RWGMidPointRadius}).) 
 
+Then the computation of the integrals (\ref{MatrixElementIntegrals})
+proceeds as follows. 
+
+\begin{enumerate}
+ \item
+ When $d_{ab} > \texttt{DBFTHRESHOLD}\cdot R\subs{max}$,
+ we approximate (\ref{MatrixElementIntegrals}) using a 
+ spherical-multipole expansion. 
+ (Here \texttt{DBFThreshold}, the ``distant basis-function threshold,''
+ is a dimensionless number that must be tuned to yield 
+ optimal accuracy and performance; in \lss its value is set to 8.3.)
+ \item
+ Otherwise, we compute (\ref{MatrixElementIntegrals}) as a sum
+ of four numerically-evaluated integrals over pairs of triangular
+ panels.
+\end{enumerate}
+
+Each of these methods is described in the following sections.
+
+\subsection{Matrix elements between distant basis functions: 
+            spherical multipole method}
+
+\subsection{Matrix elements between nearby basis functions: 
+            panel-panel integration method}
+
+%====================================================================%
+Each of these integrals is a sum of contributions from four panels:
+%====================================================================%
+\begin{align*}
+ \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
+&=
+  \sum_{\sigma, \tau=-}^+ 
+  \frac{\sigma\tau l_a l_b}{4A^\sigma_a A^\tau_b}
+  \int_{\pan_a^\sigma}  d\vb x_a \,
+  \int_{\pan_b^\tau}  d\vb x_b \,
+   \Big[ (\vb x_a - \vb Q_a) \cdot (\vb x_b - \vb Q_b) 
+        -\frac{4}{k^2}
+   \Big]
+   \phi(k,\vb x_a - \vb x_b)
+\\
+%--------------------------------------------------------------------%
+ \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
+&=
+  \frac{1}{ik}
+  \sum_{\sigma, \tau=-}^+ 
+  \frac{\sigma \tau l_a l_b}{2A^\sigma_a A^\tau_b}
+  \int_{\pan_a^\sigma}  d\vb x_a \,
+  \int_{\pan_b^\tau}  d\vb x_b \,
+   \bigg\{ \Big[ (\vb x_a - \vb Q_a) \times (\vb x_b - \vb Q_b) \Big]
+           \cdot (\vb x_a - \vb x_b)
+   \bigg\}
+   \psi(k,\vb x_a - \vb x_b)
+\end{align*}
+%====================================================================%
+where  
+$$ \phi(k, r)=\frac{e^{ikr}}{4\pi r}, \qquad 
+   \psi(k, r)=(ikr-1)\frac{e^{ikr}}{4\pi r^3}.
+$$
+($\psi$ is defined such that $\nabla \phi = \vb r \psi$).
 
 \end{document}
