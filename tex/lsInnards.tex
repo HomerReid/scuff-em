@@ -12,7 +12,6 @@
 %- Special commands for this document -----------------------
 %------------------------------------------------------------
 %------------------------------------------------------------
-\newcommand{\BG}{\boldsymbol{\Gamma}}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -1513,12 +1512,120 @@ Each of these methods is described in the following sections.
 
 \subsection{Matrix elements between distant basis functions: 
             spherical multipole method}
+\label{SphericalMultipoleMatrixElementSection}
+
+The spherical multipole method is based on the spherical-multipole
+expansion of the $\vb G$ and $\vb C$ dyadics:
+
+\begin{align*}
+ \vb G(\vb x, \vb x^\prime)
+ &= -ik\sum_{\alpha} 
+      \left\{   \MInt_{\alpha}(\xInt)\MExt^*(\xExt)
+              - \NInt_{\alpha}(\xInt)\NExt^*(\xExt)
+      \right\} 
+\\
+ \vb C(\vb x, \vb x^\prime)
+ &= -ik\sum_{\alpha} 
+      \left\{   \MInt_{\alpha}(\xInt)\NExt^*(\xExt) 
+              + \NInt_{\alpha}(\xInt)\MExt^*(\xExt)
+      \right\} 
+\end{align*}
+where $\xInt (\xExt)$ denote whichever of $\vb x, \vb x^\prime$
+is closer to (further from) the origin.
+(My notation and conventions for spherical multipole functions
+are summarized in Appendix \ref{SphericalHelmoltzAppendix}; 
+briefly, the $\wedge$ adornment means ``interior,'' 
+while $\vee$ means ``exterior,'' and the mnemonic is to 
+think of $\vee$ as indicating radiation outward to infinity,
+as is appropriate for exterior solutions).
+
+Inserting into (\ref{MatrixElementIntegrals}), we have 
+%====================================================================%
+\begin{align*}
+ \big\langle \vb f_a \big| \vb G \big| \vb f_b \big\rangle
+&=-ik\sum_{\alpha} 
+    \Big\{  \big\langle \vb f_a \big| \MInt_\alpha \big\rangle
+            \big\langle \vb \MExt^*_\alpha \big| \vb f_b \big\rangle
+           -\big\langle \vb f_a \big| \NInt_\alpha \big\rangle
+            \big\langle \vb \NExt^*_\alpha \big| \vb f_b \big\rangle
+    \Big\}\\
+%--------------------------------------------------------------------%
+ \big\langle \vb f_a \big| \vb C \big| \vb f_b \big\rangle
+&=-ik\sum_{\alpha} 
+    \Big\{  \big\langle \vb f_a \big| \MInt_\alpha \big\rangle
+            \big\langle \vb \NExt^*_\alpha \big| \vb f_b \big\rangle
+           +\big\langle \vb f_a \big| \NInt_\alpha \big\rangle
+            \big\langle \vb \MExt^*_\alpha \big| \vb f_b \big\rangle
+    \Big\}
+%--------------------------------------------------------------------%
+\end{align*}
+
+Now use the translation matrices 
+[Appendix \ref{SphericalHelmoltzAppendix}, 
+ equation (\ref{TranslationMatrixDefinition})]
+to rewrite inner products involving exterior functions in terms
+of inner products involving interior functions:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \big\langle \vb f_a \big| \vb G \big| \vb f_b \big\rangle
+&=-ik\sum_{\alpha\beta} 
+   \left(\begin{array}{c}
+     \mathcal{M}_{a\alpha}  \\ \mathcal{N}_{a\alpha}
+   \end{array}\right)^T
+   \left(\begin{array}{cc}
+   A_{\alpha\beta} & B_{\alpha\beta} \\
+   B_{\alpha\beta} & -A_{\alpha\beta}
+   \end{array}\right)
+   \left(\begin{array}{c}
+     \mathcal{M}_{b\alpha}  \\ \mathcal{N}_{b\alpha}
+   \end{array}\right)
+\\
+%--------------------------------------------------------------------%
+ \big\langle \vb f_a \big| \vb C \big| \vb f_b \big\rangle
+&=-ik\sum_{\alpha\beta} 
+   \left(\begin{array}{c}
+     \mathcal{M}_{a\alpha}  \\ \mathcal{N}_{a\alpha}
+   \end{array}\right)^T
+   \left(\begin{array}{cc}
+  -B_{\alpha\beta} & A_{\alpha\beta} \\
+   A_{\alpha\beta} & B_{\alpha\beta}
+   \end{array}\right)
+   \left(\begin{array}{c}
+     \mathcal{M}_{b\alpha}  \\ \mathcal{N}_{b\alpha}
+   \end{array}\right)
+\end{align}
+\label{SphericalMultipoleMatrixElements}
+\end{subequations}
+%====================================================================%
+where $\{ \mathcal{M}, \mathcal{N}\}$ are the spherical multipole moments
+of the RWG basis functions:
+\numeq{RWGSphericalMultipoleMoments}
+{
+   \mathcal{M}_{a\alpha}
+   =
+   \int_{\sup \vb f_a} \vb f_a(\vb x) \cdot \MInt_\alpha(\vb x)\, d\vb x,
+   \qquad
+   \mathcal{N}_{a\alpha}
+   =
+   \int_{\sup \vb f_a} \vb f_a(\vb x) \cdot \NInt_\alpha(\vb x)\, d\vb x.
+}
+The point of this decomposition is that computing the integrals
+(\ref{RWGSphericalMultipoleMoments}) at a given frequency
+requires $O(\texttt{NBF})$ numerical cubatures, in contrast to 
+the $O(\texttt{NBF}^2)$ numerical cubatures that would na\"ively 
+be required to evaluate (\ref{MatrixElementIntegrals}) for 
+all pairs of basis functions.
+
+%====================================================================%
 
 \subsection{Matrix elements between nearby basis functions: 
             panel-panel integration method}
 
-%====================================================================%
-Each of these integrals is a sum of contributions from four panels:
+When the supports of the basis functions $\vb f_a$ and $\vb f_b$ 
+are relatively close to each other, we evaluate each of the 
+integrals in (\ref{MatrixElementIntegrals}) as a sum of four
+integrals over pairs of triangular panels:
 %====================================================================%
 \begin{align*}
  \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
@@ -1551,5 +1658,18 @@ $$ \phi(k, r)=\frac{e^{ikr}}{4\pi r}, \qquad
    \psi(k, r)=(ikr-1)\frac{e^{ikr}}{4\pi r^3}.
 $$
 ($\psi$ is defined such that $\nabla \phi = \vb r \psi$).
+
+%====================================================================%
+\mathcal{G}\left[\pan_a^\sigma 
+%--------------------------------------------------------------------%
+\mathcal{C}\left[\pan_a^\sigma 
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+
+\include{SphericalHelmholtzAppendix} 
 
 \end{document}

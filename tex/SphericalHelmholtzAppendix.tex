@@ -1,0 +1,271 @@
+\newpage
+\section{Notation for Spherical Helmholtz Solutions}
+\label{SphericalHelmoltzAppendix}
+
+The spherical-multipole computations of 
+Section \ref{SphericalMultipoleMatrixElementSection}
+make reference to standard results in the theory of 
+scattering from spherical geometries.\footnote{As discussed 
+at length in Morse and Feschbach, Jackson, and other 
+standard texts.} Here is a summary of the notation 
+and conventions I use for this material.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Vector Helmholtz Solutions}
+
+I use the symbols $\vb M(\vb r)$, $\vb N(\vb r)$ to denote 
+divergenceless vector-valued functions whose components each 
+separately satisfy the Helmholtz equation:
+$$
+ \nabla \cdot 
+ \left\{ \begin{array}{c} \vb M \\ \vb N \end{array} \right\} 
+  = 0 
+$$
+and
+\begin{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%
+ \Big[\nabla^2 + k^2 \Big] 
+ \left\{ \begin{array}{c} \vb M \\ \vb N \end{array} \right\} 
+ &= 0 
+ \qquad \text{real frequency}
+  \\[8pt]
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+ \Big[\nabla^2 - \kappa^2 \Big] 
+ \left\{ \begin{array}{c} \vb M \\ \vb N \end{array} \right\} 
+ &= 0 
+ \qquad \text{imaginary frequency}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{align*}
+%
+\subsubsection*{Vector Helmholtz Solutions for Spherical Geometries}
+For spherical geometries we take $\vb M$ to have the form
+%
+\numeq{Mlm} {\vb M_{lm}(r,\theta,\phi) = R_l(r) \vb X_{lm}(\theta,\phi) }
+%
+where\footnote{Note that my $\vb X$ function is $-i$ times Jackson's $\vb X$
+function.}
+$$
+ \vb X_{lm}(\theta, \phi)
+=-(\vb r \times \nabla) Y_{lm}(\theta,\phi)
+\equiv \frac{1}{\sqrt{l(l+1)}}
+   \Big[ \frac{im}{\sin\theta} Y_{lm} \hat{\boldsymbol{\theta}}
+         -\pard{Y_{lm}}{\theta} \hat{\boldsymbol{\varphi}}
+   \Big]
+$$
+and where the radial function is a spherical Bessel function whose
+precise form depends on whether we are at real or imaginary frequency and 
+whether we want a solution that is well-behaved at the origin (the 
+``interior'' solution) or well-behaved at infinity (the ``exterior'' 
+solution):
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{center}
+\textbf{Forms of the radial function $R_l(r):$}
+
+\medskip
+
+\begin{tabular}{|c|c|c|}  \hline
+                               & \textbf{Interior} & \textbf{Exterior}   \\ \hline
+\textbf{Real frequency}        & $j_l(kr)$         & $j_l(kr) +iy_l(kr)$ \\ \hline
+\textbf{Imaginary frequency}   & $i_l(\kappa r)$   & $k_l(\kappa r)    $ \\ \hline
+\end{tabular}
+\end{center}
+\medskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\noindent Next, $\vb N$ is defined in terms of $\vb M$ according to
+%
+\numeq{NDef}
+{\vb N_{lm}
+   \equiv 
+   \begin{cases} 
+     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     \displaystyle{ -\frac{1}{ik} \nabla \times \vb M_{lm} }, 
+      \qquad &\text{real frequency} \\[10pt]
+     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     \displaystyle{ \quad \frac{1}{\kappa} \nabla \times \vb M_{lm} },
+      \qquad &\text{imaginary frequency}.
+     \end{cases}
+}
+%
+This definition for $\vb N,$ together with the facts that $\vb M$ 
+has vanishing divergence and satisfies the vector Helmholtz equation,
+lead to the reciprocal curl identities:
+%
+$$\nabla \times \vb N_{lm}
+   \equiv 
+   \begin{cases} 
+     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     \displaystyle{ +ik \vb M_{lm} }, 
+      \qquad &\text{real frequency} \\[10pt]
+     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     \displaystyle{ -\kappa \vb M_{lm} },
+      \qquad &\text{imaginary frequency}.
+     \end{cases}
+$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Spherical Components of $\vb M$ and $\vb N$}
+Explicit expression for the components of $\vb M$ and $\vb N$ are 
+%====================================================================%
+\begin{align}
+%--------------------------------------------------------------------%
+ \vb M_{lm}
+&= \frac{1}{\sqrt{l(l+1)}}
+   R_l\bigg[ +\frac{im}{\sin\theta} Y_{lm}\hat{\boldsymbol{\theta}} 
+                   -\pard{Y_{lm}}{\theta}\hat{\boldsymbol{\varphi}}
+         \bigg]
+%--------------------------------------------------------------------%
+\intertext{(valid at real or imaginary frequency)}
+%--------------------------------------------------------------------%
+ \vb N_{lm}
+&= \frac{1}{-ik\sqrt{l(l+1)}}
+   \bigg[\frac{l(l+1)}{r}R_l Y_{lm}\vbhat{r}
+         +\Big(\frac{R_l}{r} + \pard{R_l}{r}\Big)
+          \Big\{\pard{Y_{lm}}{\theta} \hat{\boldsymbol{\theta}}
+              +\frac{im}{\sin\theta} Y_{lm} \hat{\boldsymbol{\varphi}}
+          \Big\} 
+   \bigg]
+\intertext{(at real frequency)}
+%--------------------------------------------------------------------%
+ \vb N_{lm}
+&= \frac{1}{\kappa\sqrt{l(l+1)}}
+   \bigg[\frac{l(l+1)}{r}R_l Y_{lm}\vbhat{r}
+         +\Big(\frac{R_l}{r} + \pard{R_l}{r}\Big)
+          \Big\{\pard{Y_{lm}}{\theta} \hat{\boldsymbol{\theta}}
+              +\frac{im}{\sin\theta} Y_{lm} \hat{\boldsymbol{\varphi}}
+          \Big\} 
+   \bigg]
+%--------------------------------------------------------------------%
+\end{align}
+at imaginary frequency. Here $ R_l$ is one of the functions in the table above.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Hat/Wedge Notation}
+%
+I will use the notation $\MInt,\NInt$ and $\MExt,\NExt$ to refer 
+respectively to the ``interior'' and ``exterior'' solutions. 
+(Mnemonic: The $\vee$ symbol atop $\vb M$ or $\vb N$ suggests that 
+the quantity in question is radiating \textit{outward} into space, 
+as appropriate for an exterior solution.)
+Thus
+%====================================================================%
+\begin{align}
+%--------------------------------------------------------------------%
+   \left\{\begin{array}{c} 
+     \MInt_{lm}(r, \theta, \varphi) \\[5pt] 
+     \MExt_{lm}(r, \theta, \varphi) 
+   \end{array}\right\}
+&=\frac{1}{\sqrt{l(l+1)}}
+   \left\{\begin{array}{c} 
+     j_l(kr) \\[5pt] 
+     j_l(kr)+iy_l(kr)
+   \end{array}\right\}
+   \vb X_{lm}(\theta, \varphi)
+  \label{MDefReal} 
+\intertext{at real frequency, and}
+%--------------------------------------------------------------------%
+   \left\{\begin{array}{c} 
+     \MInt_{lm}(r, \theta, \varphi) \\[5pt] 
+     \MExt_{lm}(r, \theta, \varphi) 
+   \end{array}\right\}
+&=\frac{1}{\sqrt{l(l+1)}}
+   \left\{\begin{array}{c} 
+     i_l(\kappa r) \\[5pt] 
+     k_l(\kappa r)
+   \end{array}\right\}
+   \vb X_{lm}(\theta, \varphi)
+  \label{MDefImag}
+%--------------------------------------------------------------------%
+\end{align}
+at imaginary frequency.
+
+Notwithstanding the resemblance of my $\wedge$ and $\vee$ adornments to 
+Slavic diacritic marks, there is no danger of ambiguity here, as in 
+this particular document I will resist the temptation to write in either 
+the Serbo-Croatian \textit{or} Bosnian dialects. (This means I will
+have to forego all my best jokes, but whaddya gonna do.)
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Compound Indices}
+
+I will frequently use $\alpha=(lm)$ and $\beta=(l^\prime m^\prime)$ 
+as compound indices in summations over spherical multipole indices,
+i.e. 
+$$ \sum_{l=0}^{l\subt{max}} \sum_{m=-l}^{l}
+   \sum_{l^\prime}^{l\subt{max}^\prime} \sum_{m=-l^\prime}^{l^\prime}
+   \Big\{ \cdots \Big\}_{lm} 
+   \Big\{ \cdots \Big\}_{l^\prime m^\prime} 
+\qquad \longrightarrow \qquad 
+   \sum_{\alpha=0}^{N_\alpha-1}
+   \sum_{\beta=0}^{N_\beta-1}
+   \Big\{ \cdots \Big\}_{\alpha} 
+   \Big\{ \cdots \Big\}_{\beta}
+$$
+where 
+$\alpha = l^2 + l + m$,
+$N_\alpha=(l\subt{max}+1)^2.$ 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Translation Matrices}
+
+The translation matrices relate exterior Helmholtz solutions 
+about one origin to interior Helmholtz solutions about a 
+different origin. Let the former origin be $\vb x_0$ and the latter
+origin be $\vb x_0^\prime.$ Then the relevant relations read
+%====================================================================%
+\begin{subequations}
+\begin{align*}
+ \Big|\MExt_\alpha(\vb x - \vb x_0^\prime) \Big\rangle
+&= \sum_{\beta} 
+     A_{\alpha\beta} \Big|\MInt_\beta(\vb x-\vb x_0) \Big\rangle 
+    +B_{\alpha\beta} \Big|\NInt_\beta(\vb x-\vb x_0) \Big\rangle
+\\
+%--------------------------------------------------------------------%
+ \Big|\NExt_\alpha(\vb x - \vb x_0^\prime) \Big\rangle
+&= \sum_{\beta} 
+    -B_{\alpha\beta} \Big|\MInt_\beta(\vb x-\vb x_0) \Big\rangle 
+    +A_{\alpha\beta} \Big|\NInt_\beta(\vb x-\vb x_0) \Big\rangle.
+\end{align*}
+\label{TranslationMatrixDefinition}
+\end{subequations}
+%====================================================================%
+where the translation matrices $\{A_{\alpha\beta}, B_{\alpha\beta}\}$
+depend on $k$ and on the separation
+vector connecting the two origins.
+
+The bra-ket notation in (\ref{TranslationMatrixDefinition})
+obscures the need to rotate the spherical components of the
+vector functions $\vb M$ and $\vb N$, which is actually fine  
+as long as we only ever need to talk about inner products
+of $\vb M$ and $\vb N$ with other vector-valued functions.
+In particular, we have
+\begin{align*}
+ \big\langle \vb f \big| \MExt_\alpha \Big>
+&= \sum_{\beta } \Big\{ 
+   A_{\alpha\beta} \big\langle \vb f \big| \MInt_\beta \big>
+  +B_{\alpha\beta} \big\langle \vb f \big| \NInt_\beta \big>
+  \Big\} 
+\\
+ \big\langle \vb f \big| \NExt_\alpha \Big>
+&= \sum_\beta \Big\{ 
+   -B_{\alpha\beta} \big\langle \vb f \big| \MInt_\beta \big>
+   +A_{\alpha\beta} \big\langle \vb f \big| \NInt_\beta \big>.
+  \Big\}
+\end{align*}
