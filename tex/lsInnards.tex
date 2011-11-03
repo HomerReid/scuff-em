@@ -634,7 +634,10 @@ The matrix kernel on the LHS is not symmetric because
 $\BG\supt{EM} = -\BG\supt{ME}$. To remedy this, I 
 \textbf{(a)} scale the magnetic current by $-1/Z_0$, and then
 \textbf{(b)} divide the upper row of the system by $Z_0$ to obtain
-the following symmetric system:
+the following symmetric 
+system\footnote{L.~N. Medgyesi-Mitschang, J.~M. Putnam, and M.~B. Gedera, ``Generalized method
+  of moments for three-dimensional penetrable scatterers,'' \emph{J. Opt. Soc.
+  Am. A}, vol.~11, no.~4, pp. 1383--1398, Apr 1994.}:
 %====================================================================%
 \renewcommand{\arraystretch}{2.0}
 \numeq{lsSystem}
@@ -663,7 +666,7 @@ the following symmetric system:
 }
 \renewcommand{\arraystretch}{1.0}
 Equation (\ref{lsSystem}) is the actual linear system
-solved by \ls.
+solved by \ls. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1625,51 +1628,136 @@ all pairs of basis functions.
 When the supports of the basis functions $\vb f_a$ and $\vb f_b$ 
 are relatively close to each other, we evaluate each of the 
 integrals in (\ref{MatrixElementIntegrals}) as a sum of four
-integrals over pairs of triangular panels:
+integrals over pairs of triangular panels: 
 %====================================================================%
-\begin{align*}
+\begin{subequations}
+\begin{align}
  \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
 &=
   \sum_{\sigma, \tau=-}^+ 
   \frac{\sigma\tau l_a l_b}{4A^\sigma_a A^\tau_b}
   \int_{\pan_a^\sigma}  d\vb x_a \,
   \int_{\pan_b^\tau}  d\vb x_b \,
-   \Big[ (\vb x_a - \vb Q_a) \cdot (\vb x_b - \vb Q_b) 
-        -\frac{4}{k^2}
+   \Big[                 h_{\bullet}(\vb x_a, \vb x_b)
+         - \frac{1}{k^2} h_{\nabla}(\vb x_a, \vb x_b)
    \Big]
-   \phi(k,\vb x_a - \vb x_b)
+   \phi(k, \vb x_a - \vb x_b)
 \\
 %--------------------------------------------------------------------%
  \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
 &=
   \frac{1}{ik}
   \sum_{\sigma, \tau=-}^+ 
-  \frac{\sigma \tau l_a l_b}{2A^\sigma_a A^\tau_b}
+  \frac{\sigma \tau l_a l_b}{4A^\sigma_a A^\tau_b}
   \int_{\pan_a^\sigma}  d\vb x_a \,
   \int_{\pan_b^\tau}  d\vb x_b \,
-   \bigg\{ \Big[ (\vb x_a - \vb Q_a) \times (\vb x_b - \vb Q_b) \Big]
-           \cdot (\vb x_a - \vb x_b)
-   \bigg\}
-   \psi(k,\vb x_a - \vb x_b)
-\end{align*}
+   h_{\times}(\vb x_a, \vb x_b)
+   \psi(k, \vb x_a - \vb x_b)
+\end{align}
+\label{PanelPanelIntegrals}
+\end{subequations}
 %====================================================================%
 where  
-$$ \phi(k, r)=\frac{e^{ikr}}{4\pi r}, \qquad 
-   \psi(k, r)=(ikr-1)\frac{e^{ikr}}{4\pi r^3}.
-$$
-($\psi$ is defined such that $\nabla \phi = \vb r \psi$).
+%====================================================================%
+\begin{align*}
+h_{\bullet}(\vb x_a, \vb x_b)
+&= (\vb x_a - \vb Q_a) \cdot (\vb x_b - \vb Q_b) 
+\\
+%--------------------------------------------------------------------%
+h_{\nabla}(\vb x_a, \vb x_b)
+&= 4
+\\
+%--------------------------------------------------------------------%
+h_{\times}(\vb x_a, \vb x_b)
+&=
+\Big[ (\vb x_a - \vb Q_a) \times (\vb x_b - \vb Q_b) \Big]
+      \cdot (\vb x_a - \vb x_b)
+\\
+%--------------------------------------------------------------------%
+\phi(k, r)&=\frac{e^{ikr}}{4\pi r}, 
+\\
+%--------------------------------------------------------------------%
+\psi(k, r)&=(ikr-1)\frac{e^{ikr}}{4\pi r^3}.
+\end{align*}
+%====================================================================%
+(Note that $\psi$ is defined such that $\nabla \phi = \vb r \psi$).
+%====================================================================%
+
+The point of this notation is that it expresses the 
+integrands of the panel-panel integrals in (\ref{PanelPanelIntegrals}) 
+as products of benign polynomials in $\vb x_a, \vb x_b$
+(the $h$ functions) times kernel functions that depend only 
+on the distance $\vb x_a-\vb x_b$ and have singularities 
+when this distance vanishes (the $\phi, \psi$ kernels).
+This decomposition facilitates the desingularization procedure
+described below.
+
+\subsubsection*{Desingularization}
 
 %====================================================================%
-\mathcal{G}\left[\pan_a^\sigma 
+\begin{subequations}
+\begin{align}
+ \iint h \phi
+&=
+ \iint h \phi\supt{DS}
++\sum_{n=0}^3 \frac{(ik)^n}{4\pi n!} 
+ \iint h r^{n-1}
+\\
 %--------------------------------------------------------------------%
-\mathcal{C}\left[\pan_a^\sigma 
+ \iint h\psi
+&=
+ \iint h\psi\supt{DS}
++\sum_{n=0}^4 \frac{(ik)^n}{4\pi}C_n 
+ \iint h r^{n-3}
+\end{align}
+\label{DesingularizedPPIs}
+\end{subequations}
 %====================================================================%
+Here we are using a shorthand in which 
+\begin{itemize}
+ \item $h$ is any of the functions $\{h_\bullet, h_\nabla, h_\times\}$,
+ \item $\iint$ is shorthand for 
+       $\int_{\pan_a} \, d\vb x_a \, \int_{\pan_b} \, d\vb x_b, $
+ \item $\iint h r^p$ is shorthand for 
+       $\int_{\pan_a} \, d\vb x_a \, \int_{\pan_b} \, d\vb x_b\,
+        \big\{h(\vb x_a, \vb x_b) |\vb x_a - \vb x_b|^p\big\},$
+ \item the $C$ coefficients in (\ref{DesingularizedPPIs}b) are 
+       $$ C_0 = -1, \qquad C_1 = 0, \qquad C_2 = \frac{1}{2}, \qquad
+          C_3 = \frac{1}{3}, \qquad C_4 = \frac{1}{6}
+       $$
+ \item the desingularized kernels are 
+\begin{subequations}
+\begin{align}
+\phi\supt{DS}(k, r) 
+ &=
+\frac{e^{ikr} - 1 - ikr - \frac{1}{2}(ikr)^2 - \frac{1}{6}(ikr)^3 }
+     {4\pi r}, 
+\nonumber \\
+&\equiv\frac{\texttt{ExpRel}(ikr, 4)}{4\pi r}
+\\
+\intertext{and similarly}
+%--------------------------------------------------------------------%
+\psi\supt{DS}(k, r)&\equiv(ikr-1)\frac{\texttt{ExpRel}(ikr, 4)}{4\pi r^3}.
+\end{align}
+\label{PhiDSPsiDS}
+\end{subequations}
+%====================================================================%
+\end{itemize}
+When computing the ``relative exponential'' functions 
+$\texttt{ExpRel}(x,n)$ in (\ref{PhiDSPsiDS}) it is 
+important that we \textit{not} simply compute 
+$\texttt{exp(x)}$ and then subtract off the first $n$ terms
+in its Taylor series, as doing so could lead to disastrous loss
+of numerical precision. Instead, a better-behaved procedure is 
+to sum the Taylor series for the exponential starting with 
+its $(n+1)$th term.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
 
+\include{IndexNotationAppendix} 
 \include{SphericalHelmholtzAppendix} 
 
 \end{document}

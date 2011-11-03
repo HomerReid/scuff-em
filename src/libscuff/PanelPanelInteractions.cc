@@ -381,7 +381,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
 
   /***************************************************************/
   /* if the panels are identical then we use taylor's scheme for */
-  /* the full panel integral                                    */
+  /* the full panel integral no matter what the frequency        */
   /***************************************************************/
   if( ncv==3 )
    { 
@@ -464,9 +464,10 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   GetPPI_Fixed(Args, 1, 0, Va, Vb, Qa, Qb);
 
   // step 2
-  PPIData=GetStaticPPIData(SPPIDT, Va, Vb);
+  FIPPID=GetFIPPIData(FIPPIDT, Va, Vb);
 
   // step 3
+  Args->GC[0] += 
 
   double rCC, rRel;
   double *PV1[3], *PV2[3];
