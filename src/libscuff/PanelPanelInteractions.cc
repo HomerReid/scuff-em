@@ -403,7 +403,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /* otherwise we use high-order naive cubature                    */
   /*****************************************************************/
   cdouble CPreFac=-1.0/(II*k);
-  if ( fabs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD )
+  if ( abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD )
    { 
      if( ncv==2 )
       { 
@@ -442,7 +442,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
         /*--------------------------------------------------------------*/
         /* no common vertices                                           */
         /*--------------------------------------------------------------*/
-        GetPPI_Fixed(Args, 0, 0, Va, Vb, Qa, Qb);
+        GetPPI_Fixed(Args, 0, 1, Va, Vb, Qa, Qb);
         return;
       };
 
@@ -467,7 +467,13 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   FIPPID=GetFIPPIData(FIPPIDT, Va, Vb);
 
   // step 3
-  Args->GC[0] += 
+  cdouble B0, B1, B2, B3, B4;
+  B0=1.0/(4.0*M_PI); 
+  B1=
+  for(n=0; n<4; n++)
+   { 
+     Args->GC[0] += FIPPID
+   };
 
   double rCC, rRel;
   double *PV1[3], *PV2[3];

@@ -1464,19 +1464,19 @@ of the form
 \begin{align}
  \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
 &\equiv 
-  \int_{\sup \vb f_a} d\vb x \, 
-  \int_{\sup \vb f_b} d\vb x^\prime \,
-  \vb f_a(\vb x) \cdot 
-  \vb G(k, \vb x-\vb x^\prime) \cdot 
-  \vb f_b(\vb x^\prime)
+  \int_{\sup \vb f_a} d\vb x_a \, 
+  \int_{\sup \vb f_b} d\vb x_b\,
+  \vb f_a(\vb x_a) \cdot 
+  \vb G(k, \vb x_a-\vb x_b) \cdot 
+  \vb f_b(\vb x_bprime)
 \\
  \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
 &\equiv 
-  \int_{\sup \vb f_a} d\vb x \, 
-  \int_{\sup \vb f_b} d\vb x^\prime \,
-  \vb f_a(\vb x) \cdot 
-  \vb C(k, \vb x-\vb x^\prime) \cdot 
-  \vb f_b(\vb x^\prime).
+  \int_{\sup \vb f_a} d\vb x_a \, 
+  \int_{\sup \vb f_b} d\vb x_b \,
+  \vb f_a(\vb x_a) \cdot 
+  \vb C(k, \vb x_a-\vb x_b) \cdot 
+  \vb f_b(\vb x_b).
 \end{align}
 \label{MatrixElementIntegrals}
 \end{subequations}
@@ -1751,6 +1751,159 @@ in its Taylor series, as doing so could lead to disastrous loss
 of numerical precision. Instead, a better-behaved procedure is 
 to sum the Taylor series for the exponential starting with 
 its $(n+1)$th term.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Derivatives of Matrix Elements}
+
+For Casimir computations we need derivatives of matrix elements
+with respect to rigid displacements and rotations of basis functions.
+
+\subsection{Derivatives by Spherical-Multipole Method}
+
+\subsection{Derivatives by Panel-Panel Integral Method}
+
+We write the panel-panel decomposition of the RWG inner products
+in the form
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
+&= \sum_{\sigma, \tau=-}^+
+   \frac{\sigma \tau l_a l_b}{4A_a^\sigma A_b^\tau}
+   \left\{ H_\bullet(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
+           -\frac{1}{k^2} H_\nabla(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
+   \right\}
+\\
+ \frac{1}{ik}
+ \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
+&= \sum_{\sigma, \tau=-}^+
+   \frac{\sigma \tau l_a l_b}{4A_a^\sigma A_b^\tau}
+   H_\times(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
+\end{align}
+\end{subequations}
+%====================================================================%
+where
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ H_\bullet(\pan_a, \pan_b, \vb R) 
+   &=\int d\vb y_a \, \int d\vb y_b \,
+     h_\bullet(\vb y_a, \vb y_b)
+     \phi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big) 
+\\
+ H_\nabla(\pan_a, \pan_b, \vb R) 
+   &=\int d\vb y_a \, \int d\vb y_b \,
+     h_\nabla(\vb y_a, \vb y_b)
+     \phi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big) 
+\\
+ H_\times(\pan_a, \pan_b, \vb R)
+   &=\int d\vb y_a \, \int d\vb y_b \,
+     h_\times(\vb y_a, \vb y_b, \vb R)
+     \psi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big). 
+\end{align}
+\label{ThreeHFunctions}
+\end{subequations}
+%====================================================================%
+Here we have rewritten the integrals over $\vb x_a, \vb x_b$ in 
+equation (\ref{PanelPanelIntegrals}) using new integration variables
+defined relative to the panel centroids:
+$$\vb x_a=\vb x_{a0} + \vb y_a, 
+  \qquad 
+  \vb x_b=\vb x_{b0} + \vb y_b, 
+  \qquad
+  \vb R = \vb x_{a0} - \vb x_{b0}.
+$$
+(In equation (\ref{ThreeHFunctions}), note that $h_\times$, 
+unlike $h_\bullet$ and $h_\nabla$, depends on $\vb R$ in 
+addition to $\vb y_a, \vb y_b$.)
+
+Now we can take derivatives with respect to the components 
+of $\vb R$:
+\begin{align*}
+  \pard{H_\bullet}{\vb R_i}
+&= \vb R_i 
+   \int d\vb y_a \, \int d\vb y_b \,
+   h_\bullet(\vb y_a, \vb y_b)
+   \psi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big) 
+\\
+  \pard{H_\nabla}{\vb R_i}
+&= \vb R_i 
+   \int d\vb y_a \, \int d\vb y_b \,
+   h_\nabla(\vb y_a, \vb y_b)
+   \psi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big)
+\\
+  \pard{H_\times}{\vb R_i}
+&= \vb R_i 
+   \int d\vb y_a \, \int d\vb y_b \,
+   h_\times(\vb y_a, \vb y_b, \vb R)
+   \zeta\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big)
+\\
+&\qquad + 
+   \int d\vb y_a \, \int d\vb y_b \,
+   \pard{h_\times(\vb y_a, \vb y_b, \vb R)}{\vb R_i}
+   \psi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big)
+\end{align*}
+In the last line, we put
+$$ \zeta(k, r) = \Big[ (ikr)^2 -3ikr + 3\Big]\frac{e^{ikr}}{4\pi r^5}$$
+[which is defined such that $\nabla \psi(k,|\vb r|) = \vb r \zeta(k, |\vb r|)$]
+and we have 
+\begin{align*}
+ \pard{ h_\times(\vb y_a, \vb y_b, \vb R)}{\vb R_i}
+&=\pard{}{\vb R_i} 
+   \bigg\{ \Big[ (\vb y_a - \vb Q_a) \times (\vb y_b - \vb Q_b) \Big]
+           \cdot \vb R 
+   \bigg\}
+\\
+&= \Big[ (\vb y_a - \vb Q_a) \times (\vb y_b - \vb Q_b) \Big]_i.
+\end{align*}
+
+\subsubsection*{Desingularization}
+
+%====================================================================%
+\begin{align*}
+  \pard{H_\bullet}{\vb R_i}
+&= \vb R_i \iint h_\bullet \psi  
+\\
+&= \vb R_i \left[ \iint h_{\bullet} \psi\supt{DS}
+                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} C_n 
+                  \iint h_{\bullet} r^{n-3}
+           \right]
+\\[10pt]
+%--------------------------------------------------------------------%
+  \pard{H_\nabla}{\vb R_i}
+&= \vb R_i \iint h_\nabla \psi  
+\\
+&= \vb R_i \left[ \iint h_{\nabla} \psi\supt{DS}
+                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} C_n 
+                  \iint h_{\nabla } r^{n-3}
+           \right]
+\\[10pt]
+%--------------------------------------------------------------------%
+  \pard{H_\times}{\vb R_i}
+&=   \vb R_i \iint h_\times \zeta
+   + \iint \left( \pard{h_\times}{\vb R_i}\right) \psi
+\\
+%--------------------------------------------------------------------%
+&= \vb R_i \iint h_{\times} \zeta\supt{DS}
+    +\iint \left(\pard{h_\times}{\vb R_i}\right)\psi\supt{DS}   
+\\ 
+&\qquad
+   +\vb R_i \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} D_n 
+                   \iint h_{\times } r^{n-5}
+            \right]
+   + \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} C_n 
+            \iint \left( \pard{h_{\times}}{\vb R_i}\right) r^{n-3}
+     \right]
+\end{align*}
+%====================================================================%
+In the last line here we used
+$$ \zeta\supt{DS}(k, r) = 
+   \Big[ (ikr)^2 -3ikr + 3\Big]\frac{\texttt{ExpRel(ikr,4)}}{4\pi r^5} 
+$$
+$$ D_0=-1, \qquad$$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
