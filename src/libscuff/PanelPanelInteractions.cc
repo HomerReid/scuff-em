@@ -26,6 +26,58 @@
 // (high-frequency) regime if |k*PanelRadius| > SWTHRESHOLD
 #define SWTHRESHOLD 1.0*M_PI
 
+#define AA0 1.0
+#define AA1 1.0
+#define AA2 (1.0/2.0)
+#define AA3 (1.0/6.0)
+#define BB0 (-1.0)
+#define BB2 (1.0/2.0)
+#define BB3 (1.0/3.0)
+#define BB4 (1.0/6.0)
+#define CC0 3.0
+#define CC2 (-1.0/2.0)
+#define CC5 (1.0/6.0)
+
+/***************************************************************/
+/* this routine gathers some information on the pair of panels */
+/* (Oa, npa) -- (Ob,npb).                                      */
+/*                                                             */
+/* on return from this routine,                                */
+/*  a) the return value is the # of common vertices (0,1,2,3)  */
+/*  b) *rRel is set to the 'relative distance'                 */
+/*  c) Va[0..2] and Vb[0..2] are pointers to the vertices of   */
+/*     the two panels                                          */
+/*  d) if there are any common vertices, then the ordering of  */
+/*     the Va and Vb arrays is such that any common vertices   */
+/*     come first; for example, if there are 2 common vertices */
+/*     then Va[0] = Vb[0] and Va[1] = Vb[1].                   */
+/***************************************************************/
+int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
+                    double *rRel, double **Va, double **Vb)
+{
+  RWGPanel *Pa=Oa->Panels[npa];
+  RWGPanel *Pb=Ob->Panels[npb];
+
+  Va[0] = Oa->Vertices + 3*Pa->VI[0];
+  Va[1] = Oa->Vertices + 3*Pa->VI[1];
+  Va[2] = Oa->Vertices + 3*Pa->VI[2];
+
+  Vb[0] = Ob->Vertices + 3*Pb->VI[0];
+  Vb[1] = Ob->Vertices + 3*Pb->VI[1];
+  Vb[2] = Ob->Vertices + 3*Pb->VI[2];
+
+  double rMax=fmax(Pa->Radius, Pb->Radius);
+
+  *rRel = VecDistance(Pa->Centroid, Pb->Centroid) / fmax(Pa->Radius, Pb->Radius);
+  if ( *rRel > 2.0 ) // there can be no common vertices in this case 
+   return 0;
+
+  /***************************************************************/
+  /* look for common vertices.                                   */
+  /* NOTE: in an earlier incarnation of this code, i looked for  */
+  /*       common vertices by simple integer comparisons         */
+  /*       (comparing indices within a table of vertices), but   */
+
 /***************************************************************/
 /* this routine gathers some information on the pair of panels */
 /* (Oa, npa) -- (Ob,npb).                                      */
@@ -362,7 +414,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /* extract panel vertices, detect common vertices, measure     */
   /* relative distance                                           */
   /***************************************************************/
-  double rRel;
+  double rRel; 
   double *Va[3], *Vb[3];
   RWGPanel *Pa = Oa->Panels[npa];
   RWGPanel *Pb = Ob->Panels[npb];
@@ -459,323 +511,61 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /*  3) add the singular and non-singular contributions           */
   /*                                                               */
   /*****************************************************************/
-  
   // step 1
   GetPPI_Fixed(Args, 1, 0, Va, Vb, Qa, Qb);
 
   // step 2
-  FIPPID=GetFIPPIData(FIPPIDT, Va, Vb);
+  FIPPID=FIPPIDT->GetDataRecord(Va, iQa, Vb, iQb);
 
   // step 3
-  cdouble B0, B1, B2, B3, B4;
-  B0=1.0/(4.0*M_PI); 
-  B1=
-  for(n=0; n<4; n++)
-   { 
-     Args->GC[0] += FIPPID
+  // note: PF[n] = (ik)^n / (4\pi)
+  PF[0]=1.0/(4.0*M_PI);
+  PF[1]=ik*PF[0];
+  PF[2]=ik*PF[1];
+  PF[3]=ik*PF[2];
+  PF[4]=ik*PF[3];
+  PF[5]=ik*PF[4];
+
+  // contributions to panel-panel integrals 
+  Args->GC[0] += PF[0]*AA0*(FIPPID->hDotRm1 - OOK2*FIPPID->hNablaRm1)
+                +PF[1]*AA1*(FIPPID->hDotR0  - OOK2*FIPPID->hNablaR0 )
+                +PF[2]*AA2*(FIPPID->hDotR1  - OOK2*FIPPID->hNablaR1 )
+                +PF[3]*AA3*(FIPPID->hDotR2  - OOK2*FIPPID->hNablaR2 );
+  
+  Args->GC[1] += PF[0]*BB0*FIPPID->hTimesRm3
+                +PF[2]*BB2*FIPPID->hTimesRm1
+                +PF[3]*BB3*FIPPID->hTimesR0 
+                +PF[4]*BB4*FIPPID->hTimesR1;
+
+  if (Args->NumGradientComponents==0 && Args->NumTorqueAxes==0) 
+   return;
+
+  // contributions to gradients of panel-panel integrals
+  double Rab[3];
+  VecSub(Pa->Centroid, Pb->Centroid, Rab);
+
+  GradGScalar=  PF[0]*BB0*(FIPPID->hDotRm3 - OOK2*FIPPID->hNablaRm3)
+               +PF[2]*BB2*(FIPPID->hDotRm1 - OOK2*FIPPID->hNablaRm1)
+               +PF[3]*BB3*(FIPPID->hDotR0  - OOK2*FIPPID->hNablaR0)
+               +PF[4]*BB4*(FIPPID->hDotR1  - OOK2*FIPPID->hNablaR1);
+
+  GradCScalar=  PF[0]*CC0*FIPPID->hTimesRm5
+               +PF[2]*CC2*FIPPID->hTimesRm3
+               +PF[5]*CC5*FIPPID->hTimesR;
+
+  for(Mu=0; Mu<(Args->NumGradientComponents); Mu++)
+   { Args->GradGC[2*Mu + 0] += Rab[Mu]*GradGSCalar;
+     Args->GradGC[2*Mu + 1] += Rab[Mu]*GradCSCalar; 
    };
 
-  double rCC, rRel;
-  double *PV1[3], *PV2[3];
-  int iTemp, XXPFlipped;
-  int ncv, Index[3], IndexP[3];
-  RWGPanel *P1, *P2;
-
-  /***************************************************************/
-  /* extract a little more information on the panel pair         */
-  /***************************************************************/
-  rCC=VecDistance(P1->Centroid, P2->Centroid);
-  rRel=rCC/fmax(P1->Radius,P2->Radius);
-
-  if (O1==O2)
-   ncv=O1->CountCommonVertices(np1,np2,Index,IndexP);
-  else
-   ncv=0;
-
-  /***************************************************************/
-  /* if there are no common vertices and the imaginary part of   */
-  /* kr is >= 25 (i.e. the panel-panel integrals will be down    */
-  /* by a factor of e^{-25}) then we just call them zero.        */
-  /***************************************************************/
-  if ( ncv==0 && (imag(Wavenumber))*rCC>25.0 )
-   { memset(L,0,3*sizeof(cdouble));
-     if (GradL) memset(GradL,0,9*sizeof(cdouble));
-     if (dLdT) memset(dLdT,0,3*NumTorqueAxes*sizeof(cdouble));
-     return;
+  for(Mu=0; Mu<(Args->NumGradientComponents); Mu++)
+   { Args->GradGC[2*Mu + 0] +=  PF[0]*BB0*FIPPID->dhTimesdRMuRm3[Mu]
+                               +PF[2]*BB2*FIPPID->dhTimesdRMuRm1[Mu]
+                               +PF[3]*BB3*FIPPID->dhTimesdRMuR0[Mu]
+                               +PF[4]*BB3*FIPPID->dhTimesdRMuR1[Mu];
    };
 
-  /***************************************************************/
-  /* the next simplest possibility is that the panels are far    */
-  /* enough away from each other that we don't need to           */
-  /* desingularize the kernel in the integrand.                  */
-  /***************************************************************/
-  if ( rRel > 2*DESINGULARIZATION_RADIUS )
-   PanelPanelInt_Fixed(Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix, 
-                       PV1, iQ1, PV2, iQ2, 4, 0, L, GradL, dLdT);
-  else if ( rRel > DESINGULARIZATION_RADIUS )
-   PanelPanelInt_Fixed(Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix, 
-                       PV1, iQ1, PV2, iQ2, 7, 0, L, GradL, dLdT);
-  else if ( O1!=O2 && rRel>0.5*DESINGULARIZATION_RADIUS )
-   PanelPanelInt_Fixed(Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix, 
-                       PV1, iQ1, PV2, iQ2, 14 , 0, L, GradL, dLdT);
-  else if ( O1!=O2 ) /* this should happen rarely */
-   PanelPanelInt_Fixed(Wavenumber, NeedCross, NumTorqueAxes, GammaMatrix, 
-                       PV1, iQ1, PV2, iQ2, 20 , 0, L, GradL, dLdT);
-  else
-   { 
-     /***************************************************************/
-     /* panels are relatively near each other on the same object.   */
-     /***************************************************************/
-
-     /***************************************************************/
-     /* 1. first handle the high-frequency case. for large Kappa,   */
-     /*    the desingularized cubature method doesn't work well,    */
-     /*    but the 'taylor method' works fine.                      */
-     /*    we use the taylor method for panels with 1, 2, or 3      */
-     /*    common vertices, and non-desingularized quadrature for   */
-     /*    panels with no common vertices. (this latter may not be  */
-     /*    very accurate, but in the high-frequency limit the       */
-     /*    panel-panel integral over panels with no common vertices */
-     /*    decays exponentially with kappa, whereas it decays       */
-     /*    algebraically with kappa for panels with common vertices,*/
-     /*    so the contributions from panels with no common vertices */
-     /*    will be small and do not need to be evaluated to high    */
-     /*    accuracy)                                                */
-     /***************************************************************/
-     if ( (imag(Wavenumber)*fmax(P1->Radius, P2->Radius)) > 2.0 )
-      {
-        if (ncv==2)
-         {
-           L[0]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_DOT, Wavenumber, 0.0,
-                             PV1[Index[0]],  PV1[Index[1]],  PV1[3-Index[0]-Index[1]],
-                             PV2[IndexP[1]], PV2[3-IndexP[0]-IndexP[1]],
-                             PV1[iQ1], PV2[iQ2], 1.0);
-
-           L[1]=4.0*TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R,  TM_ONE, Wavenumber, 0.0,
-                                 PV1[Index[0]],  PV1[Index[1]],  PV1[3-Index[0]-Index[1]],
-                                 PV2[IndexP[1]], PV2[3-IndexP[0]-IndexP[1]],
-                                 PV1[iQ1], PV2[iQ2], 1.0);
-
-           L[2]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, Wavenumber, 0.0,
-                             PV1[Index[0]],  PV1[Index[1]],  PV1[3-Index[0]-Index[1]],
-                             PV2[IndexP[1]], PV2[3-IndexP[0]-IndexP[1]],
-                             PV1[iQ1], PV2[iQ2], 1.0);
-         }
-        else if (ncv==1)
-         { 
-           L[0]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_DOT, Wavenumber, 0.0,
-                             PV1[Index[0]],   PV1[ (Index[0]+1)%3],  PV1[ (Index[0]+2)%3 ],
-                             PV2[ (IndexP[0]+1)%3], PV2[ (IndexP[0]+2)%3 ],
-                             PV1[iQ1], PV2[iQ2], 1.0);
-
-           L[1]=4.0*TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_ONE, Wavenumber, 0.0,
-                                 PV1[Index[0]],   PV1[ (Index[0]+1)%3],  PV1[ (Index[0]+2)%3 ],
-                                 PV2[ (IndexP[0]+1)%3], PV2[ (IndexP[0]+2)%3 ],
-                                 PV1[iQ1], PV2[iQ2], 1.0);
-
-           L[2]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, Wavenumber, 0.0,
-                             PV1[Index[0]],   PV1[ (Index[0]+1)%3],  PV1[ (Index[0]+2)%3 ],
-                             PV2[ (IndexP[0]+1)%3], PV2[ (IndexP[0]+2)%3 ],
-                             PV1[iQ1], PV2[iQ2], 1.0);
-
-         }
-        else if (ncv==0)
-         PanelPanelInt_Fixed(Wavenumber, NeedCross, 0, 0, 
-                             PV1, iQ1, PV2, iQ2, 20 , 0, L, 0, 0); 
-        return;
-      };
-
-     /***************************************************************/
-     /* 2. otherwise, we use the desingularized quadrature method.  */
-     /***************************************************************/
-     StaticPPIData MySPPID, *SPPID;
-     int rp;
-     double A[3], AP[3], B[3], BP[3];
-     double VmVP[3], VmQ[3], VPmQP[3], QmQP[3], QxQP[3], VScratch[3];
-     double gDot[9], gCross[9];
-     cdouble ik, ikPowers[RPMAX+2], ikPowers2[RPMAX+1];
-
-     /***************************************************************/
-     /* 2a. do some preliminary setup *******************************/
-     /***************************************************************/
-     double *pV1, *pV2, *pV3, *pV1P, *pV2P, *pV3P, *pQ, *pQP;
-     double V1[3], V2[3], V3[3], V1P[3], V2P[3], V3P[3], Q[3], QP[3];
-     if (ncv==1)
-      { 
-        pV1 = O1->Vertices + 3*O1->Panels[np1]->VI[ Index[0] ];
-        pV2 = O1->Vertices + 3*O1->Panels[np1]->VI[ (Index[0]+1) %3 ];
-        pV3 = O1->Vertices + 3*O1->Panels[np1]->VI[ (Index[0]+2) %3 ];
-     
-        //V1P = V1; 
-        pV1P = O2->Vertices + 3*O2->Panels[np2]->VI[ IndexP[0] ];
-        pV2P = O2->Vertices + 3*O2->Panels[np2]->VI[ (IndexP[0]+1) %3 ];
-        pV3P = O2->Vertices + 3*O2->Panels[np2]->VI[ (IndexP[0]+2) %3 ];
-      }
-     else if (ncv==2)
-      { 
-        pV1 = O1->Vertices  + 3*O1->Panels[np1]->VI[ Index[0] ];
-        pV2  = O1->Vertices + 3*O1->Panels[np1]->VI[ Index[1] ];
-        pV3  = O1->Vertices + 3*O1->Panels[np1]->VI[ 3 - Index[0] - Index[1] ];
-     
-        //V1P = V1;
-        //V2P = V2;
-        pV1P = O2->Vertices + 3*O2->Panels[np2]->VI[ IndexP[0] ];
-        pV2P = O2->Vertices + 3*O2->Panels[np2]->VI[ IndexP[1] ];
-        pV3P = O2->Vertices + 3*O2->Panels[np2]->VI[ 3 - IndexP[0] - IndexP[1] ];
-      }
-     else
-      { 
-        pV1  = O1->Vertices + 3*O1->Panels[np1]->VI[0];
-        pV2  = O1->Vertices + 3*O1->Panels[np1]->VI[1];
-        pV3  = O1->Vertices + 3*O1->Panels[np1]->VI[2];
-        pV1P = O2->Vertices + 3*O2->Panels[np2]->VI[0];
-        pV2P = O2->Vertices + 3*O2->Panels[np2]->VI[1];
-        pV3P = O2->Vertices + 3*O2->Panels[np2]->VI[2];
-      };
-     
-     pQ=O1->Vertices + 3*O1->Panels[np1]->VI[iQ1];
-     pQP=O2->Vertices + 3*O2->Panels[np2]->VI[iQ2];
-
-     memcpy(V1,pV1,3*sizeof(double));
-     memcpy(V2,pV2,3*sizeof(double));
-     memcpy(V3,pV3,3*sizeof(double));
-     memcpy(V1P,pV1P,3*sizeof(double));
-     memcpy(V2P,pV2P,3*sizeof(double));
-     memcpy(V3P,pV3P,3*sizeof(double));
-     memcpy(Q,pQ,3*sizeof(double));
-     memcpy(QP,pQP,3*sizeof(double));
-     
-     /*****************************************************************/
-     /* 2b. first compute the panel-panel integral using medium-order */
-     /*     cubature with the three most singular terms removed.      */
-     /*****************************************************************/
-     P1=O1->Panels[np1];
-     P2=O2->Panels[np2];
-
-     PV1[0]=O1->Vertices + 3*P1->VI[0];
-     PV1[1]=O1->Vertices + 3*P1->VI[1];
-     PV1[2]=O1->Vertices + 3*P1->VI[2];
-
-     PV2[0]=O2->Vertices + 3*P2->VI[0];
-     PV2[1]=O2->Vertices + 3*P2->VI[1];
-     PV2[2]=O2->Vertices + 3*P2->VI[2];
-
-     PanelPanelInt_Fixed(Wavenumber, NeedCross, 0, 0,
-                         PV1, iQ1, PV2, iQ2, 4, 1, L, 0, 0);
-
-     /****************************************************************/
-     /* 2c. next get static panel-panel integral data, from a lookup */
-     /*     table if we have one, or else by computing it on the fly */
-     /****************************************************************/
-     SPPID=0;
-     if( O1->SPPIDTable )
-      { SPPID=GetStaticPPIData(O1->SPPIDTable, np1, np2, &MySPPID);
-          
-        /* this step is important: we calculated the static panel-panel data */
-        /* with the object mesh in its original configuration, i.e. as       */
-        /* specified in the .msh file.  however, since then we may have      */
-        /* transformed (rotated and/or translated) the object. thus, we need */
-        /* to do the following computation with the vertices transformed     */
-        /* back to their original locations.                                 */
-
-        O1->UnTransformPoint(V1);
-        O1->UnTransformPoint(V2);
-        O1->UnTransformPoint(V3);
-        O1->UnTransformPoint(Q);
-        O2->UnTransformPoint(V1P);
-        O2->UnTransformPoint(V2P);
-        O2->UnTransformPoint(V3P);
-        O2->UnTransformPoint(QP);
-      }
-     else
-      { ComputeStaticPPIData(O1, np1, O2, np2, &MySPPID);
-        SPPID=&MySPPID;
-      };
-   
-     /***************************************************************/
-     /* 2d. finally, augment the desingularized integrals by adding */
-     /* the contributions from the integrals of the singular terms. */
-     /***************************************************************/
-     VecSub(V1, V1P, VmVP);
-
-     VecSub(V1,Q,VmQ);
-     VecSub(V2,V1,A);
-     VecSub(V3,V2,B);
-
-     VecSub(V1P,QP,VPmQP);
-     VecSub(V2P,V1P,AP);
-     VecSub(V3P,V2P,BP);
-
-     gDot[0]=VecDot(VmQ,VPmQP);     /* 1   */
-     gDot[1]=VecDot(VmQ,AP);        /* up  */
-     gDot[2]=VecDot(VmQ,BP);        /* vp  */
-     gDot[3]=VecDot(A,VPmQP);       /* u   */
-     gDot[4]=VecDot(A,AP);          /* uup */
-     gDot[5]=VecDot(A,BP);          /* uvp */
-     gDot[6]=VecDot(B,VPmQP);       /* v   */
-     gDot[7]=VecDot(B,AP);          /* vup */
-     gDot[8]=VecDot(B,BP);          /* vvp */
-
-     if (NeedCross)
-      { 
-        VecSub(Q,QP,QmQP);
-        VecCross(Q,QP,QxQP);
-
-        gCross[0]=  VecDot(VmVP, QxQP) + VecDot(VecCross(V1, V1P, VScratch), QmQP); /* 1   */ 
-        gCross[1]= -VecDot(  AP, QxQP) + VecDot(VecCross(V1, AP , VScratch), QmQP); /* up  */
-        gCross[2]= -VecDot(  BP, QxQP) + VecDot(VecCross(V1, BP , VScratch), QmQP); /* vp  */
-        gCross[3]=  VecDot(   A, QxQP) + VecDot(VecCross(A,  V1P, VScratch), QmQP); /* u   */ 
-        gCross[4]=                       VecDot(VecCross(A,  AP,  VScratch), QmQP); /* uup */
-        gCross[5]=                       VecDot(VecCross(A,  BP,  VScratch), QmQP); /* uvp */
-        gCross[6]=  VecDot(   B, QxQP) + VecDot(VecCross(B,  V1P, VScratch), QmQP); /* v   */ 
-        gCross[7]=                       VecDot(VecCross(B,  AP,  VScratch), QmQP); /* vup */
-        gCross[8]=                       VecDot(VecCross(B,  BP,  VScratch), QmQP); /* vvp */
-
-        L[2] -= (  VecDot(SPPID->XmXPoR3Int, QxQP) 
-                 + VecDot(SPPID->XxXPoR3Int, QmQP) ) / (4.0*M_PI);
-      };
-
-     ik = II*Wavenumber;
-
-     ikPowers[0]=1.0;
-     ikPowers[1]=ik;
-     ikPowers[2]=ik*ikPowers[1] / 2.0;
-     ikPowers[3]=ik*ikPowers[2] / 3.0;
-
-     ikPowers2[0]=ikPowers[2];
-     ikPowers2[1]=2.0*ikPowers[3];
-     ikPowers2[2]=ik*ikPowers[3];
-
-     for(rp=-1; rp<=RPMAX; rp++)
-      { 
-         L[0] += ikPowers[rp+1]*(    SPPID->hrnInt[rp+1][0]*gDot[0]
-                                   + SPPID->hrnInt[rp+1][1]*gDot[1]
-                                   + SPPID->hrnInt[rp+1][2]*gDot[2]
-                                   + SPPID->hrnInt[rp+1][3]*gDot[3]
-                                   + SPPID->hrnInt[rp+1][4]*gDot[4]
-                                   + SPPID->hrnInt[rp+1][5]*gDot[5]
-                                   + SPPID->hrnInt[rp+1][6]*gDot[6]
-                                   + SPPID->hrnInt[rp+1][7]*gDot[7]
-                                   + SPPID->hrnInt[rp+1][8]*gDot[8] 
-                                ) / (4.0*M_PI);
-
-         L[1] += 4.0*ikPowers[rp+1]*SPPID->hrnInt[rp+1][0] / (4.0*M_PI);
-
-         if(NeedCross && rp<RPMAX)
-          L[2] += ikPowers2[rp+1]*(    SPPID->hrnInt[rp+1][0]*gCross[0]
-                                     + SPPID->hrnInt[rp+1][1]*gCross[1]
-                                     + SPPID->hrnInt[rp+1][2]*gCross[2]
-                                     + SPPID->hrnInt[rp+1][3]*gCross[3]
-                                     + SPPID->hrnInt[rp+1][4]*gCross[4]
-                                     + SPPID->hrnInt[rp+1][5]*gCross[5]
-                                     + SPPID->hrnInt[rp+1][6]*gCross[6]
-                                     + SPPID->hrnInt[rp+1][7]*gCross[7]
-                                     + SPPID->hrnInt[rp+1][8]*gCross[8]
-                                  ) / (4.0*M_PI);
-
-      };
-
-   };
+  // contributions to angular derivatives of panel-panel integrals
 
 } 
 

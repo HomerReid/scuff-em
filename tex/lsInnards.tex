@@ -1468,7 +1468,7 @@ of the form
   \int_{\sup \vb f_b} d\vb x_b\,
   \vb f_a(\vb x_a) \cdot 
   \vb G(k, \vb x_a-\vb x_b) \cdot 
-  \vb f_b(\vb x_bprime)
+  \vb f_b(\vb x_b)
 \\
  \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
 &\equiv 
@@ -1641,7 +1641,7 @@ integrals over pairs of triangular panels:
    \Big[                 h_{\bullet}(\vb x_a, \vb x_b)
          - \frac{1}{k^2} h_{\nabla}(\vb x_a, \vb x_b)
    \Big]
-   \phi(k, \vb x_a - \vb x_b)
+   \phi\big(k, |\vb x_a - \vb x_b|\big)
 \\
 %--------------------------------------------------------------------%
  \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
@@ -1652,7 +1652,7 @@ integrals over pairs of triangular panels:
   \int_{\pan_a^\sigma}  d\vb x_a \,
   \int_{\pan_b^\tau}  d\vb x_b \,
    h_{\times}(\vb x_a, \vb x_b)
-   \psi(k, \vb x_a - \vb x_b)
+   \psi\big(k, |\vb x_a - \vb x_b|\big)
 \end{align}
 \label{PanelPanelIntegrals}
 \end{subequations}
@@ -1680,7 +1680,8 @@ h_{\times}(\vb x_a, \vb x_b)
 \psi(k, r)&=(ikr-1)\frac{e^{ikr}}{4\pi r^3}.
 \end{align*}
 %====================================================================%
-(Note that $\psi$ is defined such that $\nabla \phi = \vb r \psi$).
+[Note that $\psi$ is defined such that 
+$\nabla \phi(k, |\vb r|) = \vb r \psi(k, |\vb r|)$].
 %====================================================================%
 
 The point of this notation is that it expresses the 
@@ -1700,14 +1701,14 @@ described below.
  \iint h \phi
 &=
  \iint h \phi\supt{DS}
-+\sum_{n=0}^3 \frac{(ik)^n}{4\pi n!} 
++\sum_{n=0}^3 \frac{(ik)^n}{4\pi} A_n  
  \iint h r^{n-1}
 \\
 %--------------------------------------------------------------------%
  \iint h\psi
 &=
  \iint h\psi\supt{DS}
-+\sum_{n=0}^4 \frac{(ik)^n}{4\pi}C_n 
++\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
  \iint h r^{n-3}
 \end{align}
 \label{DesingularizedPPIs}
@@ -1721,9 +1722,11 @@ Here we are using a shorthand in which
  \item $\iint h r^p$ is shorthand for 
        $\int_{\pan_a} \, d\vb x_a \, \int_{\pan_b} \, d\vb x_b\,
         \big\{h(\vb x_a, \vb x_b) |\vb x_a - \vb x_b|^p\big\},$
- \item the $C$ coefficients in (\ref{DesingularizedPPIs}b) are 
-       $$ C_0 = -1, \qquad C_1 = 0, \qquad C_2 = \frac{1}{2}, \qquad
-          C_3 = \frac{1}{3}, \qquad C_4 = \frac{1}{6}
+ \item the $A$ coefficients in (\ref{DesingularizedPPIs}a) are 
+       $$A_n=\frac{1}{n!}$$
+ \item the $B$ coefficients in (\ref{DesingularizedPPIs}b) are 
+       $$ B_0 = -1, \qquad B_1 = 0, \qquad B_2 = \frac{1}{2}, \qquad
+          B_3 = \frac{1}{3}, \qquad B_4 = \frac{1}{6}
        $$
  \item the desingularized kernels are 
 \begin{subequations}
@@ -1792,17 +1795,17 @@ where
  H_\bullet(\pan_a, \pan_b, \vb R) 
    &=\int d\vb y_a \, \int d\vb y_b \,
      h_\bullet(\vb y_a, \vb y_b)
-     \phi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big) 
+     \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
 \\
  H_\nabla(\pan_a, \pan_b, \vb R) 
    &=\int d\vb y_a \, \int d\vb y_b \,
      h_\nabla(\vb y_a, \vb y_b)
-     \phi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big) 
+     \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
 \\
  H_\times(\pan_a, \pan_b, \vb R)
    &=\int d\vb y_a \, \int d\vb y_b \,
      h_\times(\vb y_a, \vb y_b, \vb R)
-     \psi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big). 
+     \psi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big). 
 \end{align}
 \label{ThreeHFunctions}
 \end{subequations}
@@ -1827,24 +1830,24 @@ of $\vb R$:
 &= \vb R_i 
    \int d\vb y_a \, \int d\vb y_b \,
    h_\bullet(\vb y_a, \vb y_b)
-   \psi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big) 
+   \psi\big(k, \vb R + \vb y_a - \vb y_b \big) 
 \\
   \pard{H_\nabla}{\vb R_i}
 &= \vb R_i 
    \int d\vb y_a \, \int d\vb y_b \,
    h_\nabla(\vb y_a, \vb y_b)
-   \psi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big)
+   \psi\big(k, \vb R + \vb y_a - \vb y_b \big)
 \\
   \pard{H_\times}{\vb R_i}
 &= \vb R_i 
    \int d\vb y_a \, \int d\vb y_b \,
    h_\times(\vb y_a, \vb y_b, \vb R)
-   \zeta\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big)
+   \zeta\big(k, \vb R + \vb y_a - \vb y_b \big)
 \\
 &\qquad + 
    \int d\vb y_a \, \int d\vb y_b \,
    \pard{h_\times(\vb y_a, \vb y_b, \vb R)}{\vb R_i}
-   \psi\big(k, \vb R + \vb y_{a0} - \vb y_{a1} \big)
+   \psi\big(k, \vb R + \vb y_a - \vb y_b \big)
 \end{align*}
 In the last line, we put
 $$ \zeta(k, r) = \Big[ (ikr)^2 -3ikr + 3\Big]\frac{e^{ikr}}{4\pi r^5}$$
@@ -1868,7 +1871,7 @@ and we have
 &= \vb R_i \iint h_\bullet \psi  
 \\
 &= \vb R_i \left[ \iint h_{\bullet} \psi\supt{DS}
-                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} C_n 
+                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
                   \iint h_{\bullet} r^{n-3}
            \right]
 \\[10pt]
@@ -1877,7 +1880,7 @@ and we have
 &= \vb R_i \iint h_\nabla \psi  
 \\
 &= \vb R_i \left[ \iint h_{\nabla} \psi\supt{DS}
-                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} C_n 
+                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
                   \iint h_{\nabla } r^{n-3}
            \right]
 \\[10pt]
@@ -1891,10 +1894,10 @@ and we have
     +\iint \left(\pard{h_\times}{\vb R_i}\right)\psi\supt{DS}   
 \\ 
 &\qquad
-   +\vb R_i \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} D_n 
+   +\vb R_i \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} C_n 
                    \iint h_{\times } r^{n-5}
             \right]
-   + \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} C_n 
+   + \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
             \iint \left( \pard{h_{\times}}{\vb R_i}\right) r^{n-3}
      \right]
 \end{align*}
@@ -1903,7 +1906,10 @@ In the last line here we used
 $$ \zeta\supt{DS}(k, r) = 
    \Big[ (ikr)^2 -3ikr + 3\Big]\frac{\texttt{ExpRel(ikr,4)}}{4\pi r^5} 
 $$
-$$ D_0=-1, \qquad$$
+and the $C_n$ coefficients are 
+$$ C_0=3, \qquad C_1=0, \qquad C_2=-\frac{1}{2}, 
+   \qquad C_3=C_4=0, \qquad C_5=\frac{1}{6}.
+$$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -117,4 +117,40 @@ typedef struct ABMBArgStruct
 void InitABMBArgs(ABMBArgStruct *Args);
 void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
 
+/***************************************************************/
+/* 2. definition of the data structures and methods for working*/
+/*    with frequency-independent panel-panel integrals (FIPPIs)*/
+/*                                                             */
+/* note: 'FIPPI' = 'frequency-independent panel-panel integral'*/
+/* note: 'FIPPID' = 'FIPPI data'                               */
+/* note: 'FIPPIDT' = 'FIPPI data table'                        */
+/***************************************************************/
+
+// a 'FIPPIDataRecord' is a structure containing all the FIPPIs  
+// for a single panel-panel pair that are needed to compute 
+// matrix elements *without* derivatives
+typedef struct FIPPIDataRecord
+ { 
+   double hDotRM1, hDotR0, hDotR1, hDotR2;
+   double hNablaRM1, hNablaR0, hNablaR1, hNablaR2;
+   double hTimesRM3, hTimesRM1, hTimesR0, hTimesR1;
+ };
+
+// a 'FIPPIDataRecordWD' is a structure containing all the FIPPIs  
+// for a single panel-panel pair that are needed to compute 
+// matrix elements *with* derivatives
+typedef struct FIPPIDataRecordWD
+ { 
+   double hDotRM1, hDotR0, hDotR1, hDotR2;
+   double hNablaRM1, hNablaR0, hNablaR1, hNablaR2;
+   double hTimesRM3, hTimesRM1, hTimesR0, hTimesR1;
+   double hDotRM3, hNablaRm3, hTimesRm5;
+   double dhTimesdRMuRm3[3], dhTimesdRMuRm1[3], 
+          dhTimesdRMuR0[3], dhTimesdRMuR1[3];
+ }
+
+class FIPPID
+ {
+ };
+
 #endif //LIBSCUFFINTERNALS_H
