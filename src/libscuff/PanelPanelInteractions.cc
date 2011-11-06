@@ -77,46 +77,6 @@ int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
   /* NOTE: in an earlier incarnation of this code, i looked for  */
   /*       common vertices by simple integer comparisons         */
   /*       (comparing indices within a table of vertices), but   */
-
-/***************************************************************/
-/* this routine gathers some information on the pair of panels */
-/* (Oa, npa) -- (Ob,npb).                                      */
-/*                                                             */
-/* on return from this routine,                                */
-/*  a) the return value is the # of common vertices (0,1,2,3)  */
-/*  b) *rRel is set to the 'relative distance'                 */
-/*  c) Va[0..2] and Vb[0..2] are pointers to the vertices of   */
-/*     the two panels                                          */
-/*  d) if there are any common vertices, then the ordering of  */
-/*     the Va and Vb arrays is such that any common vertices   */
-/*     come first; for example, if there are 2 common vertices */
-/*     then Va[0] = Vb[0] and Va[1] = Vb[1].                   */
-/***************************************************************/
-int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
-                    double *rRel, double **Va, double **Vb)
-{
-  RWGPanel *Pa=Oa->Panels[npa];
-  RWGPanel *Pb=Ob->Panels[npb];
-
-  Va[0] = Oa->Vertices + 3*Pa->VI[0];
-  Va[1] = Oa->Vertices + 3*Pa->VI[1];
-  Va[2] = Oa->Vertices + 3*Pa->VI[2];
-
-  Vb[0] = Ob->Vertices + 3*Pb->VI[0];
-  Vb[1] = Ob->Vertices + 3*Pb->VI[1];
-  Vb[2] = Ob->Vertices + 3*Pb->VI[2];
-
-  double rMax=fmax(Pa->Radius, Pb->Radius);
-
-  *rRel = VecDistance(Pa->Centroid, Pb->Centroid) / fmax(Pa->Radius, Pb->Radius);
-  if ( *rRel > 2.0 ) // there can be no common vertices in this case 
-   return 0;
-
-  /***************************************************************/
-  /* look for common vertices.                                   */
-  /* NOTE: in an earlier incarnation of this code, i looked for  */
-  /*       common vertices by simple integer comparisons         */
-  /*       (comparing indices within a table of vertices), but   */
   /*       i specifically DON'T want to do that here for several */
   /*       reasons. ultimately it would be nice to avoid doing   */
   /*       9 separate comparisons here, although in practice it  */

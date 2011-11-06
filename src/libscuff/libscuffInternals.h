@@ -127,30 +127,33 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
 /***************************************************************/
 
 // a 'FIPPIDataRecord' is a structure containing all the FIPPIs  
-// for a single panel-panel pair that are needed to compute 
-// matrix elements *without* derivatives
+// for a single panel-panel pair 
 typedef struct FIPPIDataRecord
  { 
+   int HaveDerivatives;
    double hDotRM1, hDotR0, hDotR1, hDotR2;
    double hNablaRM1, hNablaR0, hNablaR1, hNablaR2;
    double hTimesRM3, hTimesRM1, hTimesR0, hTimesR1;
- };
-
-// a 'FIPPIDataRecordWD' is a structure containing all the FIPPIs  
-// for a single panel-panel pair that are needed to compute 
-// matrix elements *with* derivatives
-typedef struct FIPPIDataRecordWD
- { 
-   double hDotRM1, hDotR0, hDotR1, hDotR2;
-   double hNablaRM1, hNablaR0, hNablaR1, hNablaR2;
-   double hTimesRM3, hTimesRM1, hTimesR0, hTimesR1;
+   
+   // the following fields are needed only if we are computing
+   // derivatives of panel-panel integrals
    double hDotRM3, hNablaRm3, hTimesRm5;
    double dhTimesdRMuRm3[3], dhTimesdRMuRm1[3], 
           dhTimesdRMuR0[3], dhTimesdRMuR1[3];
  }
 
-class FIPPID
+// a 'FIPPIDataTable' is a class that implements a hash table
+// storing panel-panel integrals for many pairs of panels
+class FIPPIDataTable
  {
+   
  };
+
+/***************************************************************/   
+/* 3. some additional non-class-method routines used internally*/
+/***************************************************************/
+cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH, cdouble GParam,
+                     double *V1, double *V2, double *V3,
+                     double *V2P, double *V3P, double *Q, double *QP);
 
 #endif //LIBSCUFFINTERNALS_H
