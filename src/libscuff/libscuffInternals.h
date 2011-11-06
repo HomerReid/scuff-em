@@ -26,7 +26,7 @@
 /*--------------------------------------------------------------*/
 /*- GetPanelPanelInteractions() --------------------------------*/
 /*--------------------------------------------------------------*/
-typedef struct GPPIArgStruct
+typedef struct GetPPIArgStruct
  { 
    // input fields to be filled in by caller
    RWGObject *Oa, *Ob;
@@ -46,11 +46,11 @@ typedef struct GPPIArgStruct
    cdouble GradGC[6];
    cdouble dGCdT[6];
 
- } GPPIArgStruct;
+ } GetPPIArgStruct;
 
-void InitGPPIArgs(GPPIArgStruct *Args);
-void GetPanelPanelInteractions(GEEIArgStruct *Args);
-void GetPanelPanelInteractions(GEEIArgStruct *Args,
+void InitGetPPIArgs(GetPPIArgStruct *Args);
+void GetPanelPanelInteractions(GetPPIArgStruct *Args);
+void GetPanelPanelInteractions(GetPPIArgStruct *Args,
                                cdouble *GC, 
                                cdouble *GradGC, 
                                cdouble *dGCdT);
@@ -58,7 +58,7 @@ void GetPanelPanelInteractions(GEEIArgStruct *Args,
 /*--------------------------------------------------------------*/
 /*- GetEdgeEdgeInteractions() ----------------------------------*/
 /*--------------------------------------------------------------*/
-typedef struct GEEIArgStruct
+typedef struct GetEEIArgStruct
  { 
    // input fields to be filled in by caller
    RWGObject *Oa, *Ob;
@@ -77,10 +77,10 @@ typedef struct GEEIArgStruct
    cdouble GradGC[6];
    cdouble dGCdT[6];
 
- } GEEIArgStruct;
+ } GetEEIArgStruct;
 
-void InitGEEIArgs(GEEIArgStruct *Args);
-void GetEdgeEdgeInteractions(GEEIArgStruct *Args);
+void InitGetEEIArgs(GetEEIArgStruct *Args);
+void GetEdgeEdgeInteractions(GetEEIArgStruct *Args);
 
 /*--------------------------------------------------------------*/
 /*- AssembleBEMMatrixBlock() -----------------------------------*/
@@ -118,12 +118,13 @@ void InitABMBArgs(ABMBArgStruct *Args);
 void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
 
 /***************************************************************/
-/* 2. definition of the data structures and methods for working*/
+/* 2. definition of data structures and methods for working    */
 /*    with frequency-independent panel-panel integrals (FIPPIs)*/
 /*                                                             */
-/* note: 'FIPPI' = 'frequency-independent panel-panel integral'*/
-/* note: 'FIPPID' = 'FIPPI data'                               */
-/* note: 'FIPPIDT' = 'FIPPI data table'                        */
+/* note:                                                       */
+/*  'FIPPI'   = 'frequency-independent panel-panel integral'   */
+/*  'FIPPIDR' = 'FIPPI data record'                            */
+/*  'FIPPIDT' = 'FIPPI data table'                             */
 /***************************************************************/
 
 // a 'FIPPIDataRecord' is a structure containing all the FIPPIs  
@@ -140,12 +141,31 @@ typedef struct FIPPIDataRecord
    double hDotRM3, hNablaRm3, hTimesRm5;
    double dhTimesdRMuRm3[3], dhTimesdRMuRm1[3], 
           dhTimesdRMuR0[3], dhTimesdRMuR1[3];
- }
+ } FIPPIDataRecord;
 
-// a 'FIPPIDataTable' is a class that implements a hash table
-// storing panel-panel integrals for many pairs of panels
+/*--------------------------------------------------------------*/
+/*- this is the routine that computes the FIPPIs for a given    */
+/*- pair of panels                                              */
+/*--------------------------------------------------------------*/
+FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
+                                        double **Vb, double *Qb,
+                                        int NeedDerivatives,
+                                        FIPPIDataRecord *FDR);
+
+// 'FIPPIDataTable' is a class that implements a hash table
+// storing FIPPIDataRecords for many pairs of panels
 class FIPPIDataTable
- {
+ { 
+    // constructor 
+    FIPPIDataTable();
+
+    // destructor 
+    ~FIPPIDataTable();
+
+    // retrieve FIPPIs for a given pair of panels
+    FIPPIDataRecord *GetFIPPIDataRecord(double **Va, double *Qa,
+                                        double **Vb, double *Qb,
+                                        int NeedDerivatives);
    
  };
 
@@ -155,5 +175,12 @@ class FIPPIDataTable
 cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH, cdouble GParam,
                      double *V1, double *V2, double *V3,
                      double *V2P, double *V3P, double *Q, double *QP);
+
+int AssessPanelPair(RWGObject *Oa, int npa, 
+                    RWGObject *Ob, int npb,
+                    double *rRel, 
+                    double **Va, double **Vb);
+
+int AssessPanelPair(double **Va, double **Vb);
 
 #endif //LIBSCUFFINTERNALS_H

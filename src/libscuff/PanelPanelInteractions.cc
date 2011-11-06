@@ -167,8 +167,10 @@ cdouble cExpRel(cdouble x, int n)
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void GetPPI_Fixed(GPPIArgStruct *Args, int Desingularize, int HighOrder,
-                  double **Va, double *Qa, double **Vb, double *Qb)
+void GetPPIs_Cubature(GetPPIArgStruct *Args,
+                      int Desingularize, int HighOrder,
+                      double **Va, double *Qa,
+                      double **Vb, double *Qb)
 #if 0
 void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
                    int NumTorqueAxes, double *GammaMatrix,
@@ -374,20 +376,19 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /* extract panel vertices, detect common vertices, measure     */
   /* relative distance                                           */
   /***************************************************************/
-  double rRel; 
-  double *Va[3], *Vb[3];
   RWGPanel *Pa = Oa->Panels[npa];
   RWGPanel *Pb = Ob->Panels[npb];
-  double *Qa   = Oa->Panels[iQa];
-  double *Qb   = Oa->Panels[iQb];
+  double *Qa   = Oa->Vertices + 3*Oa->Panels->VI[iQa];
+  double *Qb   = Ob->Vertices + 3*Ob->Panels->VI[iQb];
+  double *Va[3], *Vb[3];
+  double rRel; 
   int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
- 
+
   /***************************************************************/
-  /* if the panels are far apart then just use naive moderate-   */
-  /* order cubature                                              */
+  /* if the panels are far apart then just use simple cubature   */
   /***************************************************************/
   if ( rRel > DESINGULARIZATION_RADIUS )
-   { GetPPI_Fixed(Args, 0, 0, Va, Vb, Qa, Qb);
+   { GetPPIs_Cubature(Args, 0, 0, Va, Vb, Qa, Qb);
      return;
    };
 
@@ -414,7 +415,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /* we use taylor's method for the full panel integral, and       */
   /* otherwise we use high-order naive cubature                    */
   /*****************************************************************/
-  cdouble CPreFac=-1.0/(II*k);
+  cdouble CPreFac=1.0/(II*k);
   if ( abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD )
    { 
      if( ncv==2 )
@@ -454,7 +455,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
         /*--------------------------------------------------------------*/
         /* no common vertices                                           */
         /*--------------------------------------------------------------*/
-        GetPPI_Fixed(Args, 0, 1, Va, Vb, Qa, Qb);
+        GetPPIs_Cubature(Args, 0, 1, Va, Vb, Qa, Qb);
         return;
       };
 
@@ -472,10 +473,16 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /*                                                               */
   /*****************************************************************/
   // step 1
-  GetPPI_Fixed(Args, 1, 0, Va, Vb, Qa, Qb);
+  GetPPIs_Cubature(Args, 1, 0, Va, Vb, Qa, Qb);
 
   // step 2
-  FIPPID=FIPPIDT->GetDataRecord(Va, iQa, Vb, iQb);
+  int NeedDerivatives=(NumGradientComponents>0 || NumTorqueAxes>0);
+  FIPPIDataTable *FIPPIDT=0;
+  FIPPIDataRecord MyFDR, *FDR;
+  if (FIPPIDT)
+   FDR=FIPPIDT->GetFIPPIDataRecord(Va, Qa, Vb, Qb, NeedDerivatives);
+  else
+   FDR=ComputeFIPPIDataRecord(Va, Qa, Vb, Qb, NeedDerivatives, &MyFDR);
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
@@ -534,7 +541,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
 /* that copies the results out of the structure body into      */
 /* user-specified buffers                                      */
 /***************************************************************/
-void GetPanelPanelInteractions(GEEIArgStruct *Args,
+void GetPanelPanelInteractions(GetPPIArgStruct *Args,
                                cdouble *GC, 
                                cdouble *GradGC, 
                                cdouble *dGCdT);
@@ -551,7 +558,7 @@ void GetPanelPanelInteractions(GEEIArgStruct *Args,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void InitGPPIArgs(GPPIArgStruct *Args)
+void InitGetPPIArgs(GetPPIArgStruct *Args)
 {
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;

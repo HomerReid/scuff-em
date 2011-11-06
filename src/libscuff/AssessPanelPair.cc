@@ -47,19 +47,25 @@ int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
   if ( *rRel > 2.0 ) // there can be no common vertices in this case 
    return 0;
 
-  /***************************************************************/
-  /* look for common vertices.                                   */
-  /* NOTE: in an earlier incarnation of this code, i looked for  */
-  /*       common vertices by simple integer comparisons         */
-  /*       (comparing indices within a table of vertices), but   */
-  /*       i specifically DON'T want to do that here for several */
-  /*       reasons. ultimately it would be nice to avoid doing   */
-  /*       9 separate comparisons here, although in practice it  */
-  /*       won't matter much since most cases will be caught by  */
-  /*       the rRel>2 check above.                               */
-  /***************************************************************/
-  int CVIa[3], CVIb[3];
+  return AssessPanelPair(Va, Vb);
+
+}
+
+/***************************************************************/
+/* look for common vertices.                                   */
+/* NOTE: in an earlier incarnation of this code, i looked for  */
+/*       common vertices by simple integer comparisons         */
+/*       (comparing indices within a table of vertices), but   */
+/*       i specifically DON'T want to do that here for several */
+/*       reasons. ultimately it would be nice to avoid doing   */
+/*       9 separate comparisons here, although in practice it  */
+/*       won't matter much since most cases will be caught by  */
+/*       the rRel>2 check above.                               */
+/***************************************************************/
+int AssessPanelPair(double **Va, double **Vb)
+{
   int ncv=0;
+  int CVIa[3], CVIb[3];
   int ia, ib;
   double ThresholdDistance2=CVTHRESHOLD*CVTHRESHOLD*rMax*rMax;
   for(ia=0; ia<3; ia++)
