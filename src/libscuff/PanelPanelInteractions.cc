@@ -19,8 +19,7 @@
 #define II cdouble(0,1)
 
 // the 'common vertex threshold:' two vertices are considered to be 
-// the same if their distance is less than CVTHRESHOLD*the panel radius
-#define CVTHRESHOLD 1.0e-6
+// the same if their distance is less than CVTHRESHOLD*the panel radius #define CVTHRESHOLD 1.0e-6
 
 // the 'short-wavelength threshold:' we are in the short-wavelength
 // (high-frequency) regime if |k*PanelRadius| > SWTHRESHOLD
@@ -37,100 +36,6 @@
 #define CC0 3.0
 #define CC2 (-1.0/2.0)
 #define CC5 (1.0/6.0)
-
-/***************************************************************/
-/* this routine gathers some information on the pair of panels */
-/* (Oa, npa) -- (Ob,npb).                                      */
-/*                                                             */
-/* on return from this routine,                                */
-/*  a) the return value is the # of common vertices (0,1,2,3)  */
-/*  b) *rRel is set to the 'relative distance'                 */
-/*  c) Va[0..2] and Vb[0..2] are pointers to the vertices of   */
-/*     the two panels                                          */
-/*  d) if there are any common vertices, then the ordering of  */
-/*     the Va and Vb arrays is such that any common vertices   */
-/*     come first; for example, if there are 2 common vertices */
-/*     then Va[0] = Vb[0] and Va[1] = Vb[1].                   */
-/***************************************************************/
-int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
-                    double *rRel, double **Va, double **Vb)
-{
-  RWGPanel *Pa=Oa->Panels[npa];
-  RWGPanel *Pb=Ob->Panels[npb];
-
-  Va[0] = Oa->Vertices + 3*Pa->VI[0];
-  Va[1] = Oa->Vertices + 3*Pa->VI[1];
-  Va[2] = Oa->Vertices + 3*Pa->VI[2];
-
-  Vb[0] = Ob->Vertices + 3*Pb->VI[0];
-  Vb[1] = Ob->Vertices + 3*Pb->VI[1];
-  Vb[2] = Ob->Vertices + 3*Pb->VI[2];
-
-  double rMax=fmax(Pa->Radius, Pb->Radius);
-
-  *rRel = VecDistance(Pa->Centroid, Pb->Centroid) / fmax(Pa->Radius, Pb->Radius);
-  if ( *rRel > 2.0 ) // there can be no common vertices in this case 
-   return 0;
-
-  /***************************************************************/
-  /* look for common vertices.                                   */
-  /* NOTE: in an earlier incarnation of this code, i looked for  */
-  /*       common vertices by simple integer comparisons         */
-  /*       (comparing indices within a table of vertices), but   */
-  /*       i specifically DON'T want to do that here for several */
-  /*       reasons. ultimately it would be nice to avoid doing   */
-  /*       9 separate comparisons here, although in practice it  */
-  /*       won't matter much since most cases will be caught by  */
-  /*       the rRel>2 check above.                               */
-  /***************************************************************/
-  int CVIa[3], CVIb[3];
-  int ncv=0;
-  int ia, ib;
-  double ThresholdDistance2=CVTHRESHOLD*CVTHRESHOLD*rMax*rMax;
-  for(ia=0; ia<3; ia++)
-   for(ib=0; ib<3; ib++)
-    { if ( VecDistance2(Va[ia],Vb[ib]) < ThresholdDistance2 )
-       { CVIa[ncv]=ia;    
-         CVIb[ncv]=ib;
-         ncv++;
-       };
-    };
-  
-  /***************************************************************/
-  /* if there were any common vertices, reorganize the Va and Vb */
-  /* arrays so that common vertices appear first                 */
-  /***************************************************************/
-  if (ncv==0)
-   { // vertices are already in acceptable order
-   } 
-  else if (ncv==1)
-   { Va[0] = Oa->Vertices + 3*Pa->VI[  CVIa[0] ];
-     Va[1] = Oa->Vertices + 3*Pa->VI[ (CVIa[0]+1)%3 ];
-     Va[2] = Oa->Vertices + 3*Pa->VI[ (CVIa[0]+2)%3 ];
-     Vb[0] = Ob->Vertices + 3*Pb->VI[  CVIb[0] ];
-     Vb[1] = Ob->Vertices + 3*Pb->VI[ (CVIb[0]+1)%3 ];
-     Vb[2] = Ob->Vertices + 3*Pb->VI[ (CVIb[0]+2)%3 ];
-   }
-  else if (ncv==2)
-   { Va[0] = Oa->Vertices + 3*Pa->VI[  CVIa[0] ];
-     Va[1] = Oa->Vertices + 3*Pa->VI[  CVIa[1] ];
-     Va[2] = Oa->Vertices + 3*Pa->VI[  3-CVIa[0]-CVIa[1] ];
-     Vb[0] = Ob->Vertices + 3*Pb->VI[  CVIb[0] ];
-     Vb[1] = Ob->Vertices + 3*Pb->VI[  CVIb[1] ];
-     Vb[2] = Ob->Vertices + 3*Pb->VI[  3-CVIb[0]-CVIb[1] ];
-   }
-  else if (ncv==3)
-   { Va[0] = Oa->Vertices + 3*Pa->VI[  CVIa[0] ];
-     Va[1] = Oa->Vertices + 3*Pa->VI[  CVIa[1] ];
-     Va[2] = Oa->Vertices + 3*Pa->VI[  CVIa[2] ];
-     Vb[0] = Ob->Vertices + 3*Pb->VI[  CVIb[0] ];
-     Vb[1] = Ob->Vertices + 3*Pb->VI[  CVIb[1] ];
-     Vb[2] = Ob->Vertices + 3*Pb->VI[  CVIb[2] ];
-   };
-
-  return ncv;
- 
-}
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -171,13 +76,6 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
                       int Desingularize, int HighOrder,
                       double **Va, double *Qa,
                       double **Vb, double *Qb)
-#if 0
-void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
-                   int NumTorqueAxes, double *GammaMatrix,
-                   double *VD[3], int iQD, double *VS[3], int iQS,
-                   int Order, int DeSingularize,
-                   cdouble *L, cdouble *GradL, cdouble *dLdT)
-#endif
 { 
   int np, ncp, npp, ncpp, m, mu, nu, ri, nta;
   double u, v, w, up, vp, wp;
@@ -204,13 +102,17 @@ void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
   /* conveniently cancels the corresponding factor coming from   */
   /* the RWG basis function prefactor                            */
   /***************************************************************/
-  Qa
-  VecSub(VD[(iQD+1)%3],VD[iQD],AD);
-  VecSub(VD[(iQD+2)%3],VD[iQD],BD);
+  double *V0, A[3], B[3], *Q;
+  V0=Va[0];
+  VecSub(Va[1], Va[0], A);
+  VecSub(Va[2], Va[0], B);
+  Q=Qa;
 
-  QS=VS[iQS];
-  VecSub(VS[(iQS+1)%3],VS[iQS],AS);
-  VecSub(VS[(iQS+2)%3],VS[iQS],BS);
+  double *V0P, AP[3], BP[3], *QP;
+  V0P=Vb[0];
+  VecSub(Vb[1], Vb[0], AP);
+  VecSub(Vb[2], Vb[0], BP);
+  QP=Qb;
 
   /***************************************************************/
   /* choose order of quadrature scheme to use.                   */
@@ -222,7 +124,12 @@ void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
   /* note we use the same quadrature rule for both the source    */
   /* and destination triangles.                                  */
   /***************************************************************/
-  TCR=GetTCR(Order, &NumPts);
+  double *TCR;
+  int NumPts;
+  if (HighOrder)
+   TCR=GetTCR(20, &NumPts);
+  else
+   TCR=GetTCR(4, &NumPts);
 
   /***************************************************************/
   /* preliminary setup before entering quadrature loops          */
@@ -231,16 +138,14 @@ void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
   if (GradL) memset(GradL,0,9*sizeof(cdouble));
   if (dLdT) memset(dLdT,0,3*NumTorqueAxes*sizeof(cdouble));
 
-  LTerm[1]=4.0;   // this is constant throughout
-
-  if (!NeedCross)
-   LInner[2]=0.0 ;
-
-  ik = II*Wavenumber;
-
   /***************************************************************/
   /* outer loop **************************************************/
   /***************************************************************/
+  double hDot, hNabla=4.0, hTimes; // note hNabla is constant throughout
+  int np, ncp, npp, ncpp;
+  int Mu;
+  double u, v, w, up, vp, wp;
+  double X[3], XmQ[3], XP[3], XPmQP[3], R[3], CrossProduct[3];
   for(np=ncp=0; np<NumPts; np++) 
    { 
      u=TCR[ncp++]; v=TCR[ncp++]; w=TCR[ncp++];
@@ -248,9 +153,9 @@ void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
      /***************************************************************/
      /* set XmQ and X ***********************************************/
      /***************************************************************/
-     for(mu=0; mu<3; mu++)
-      { XmQD[mu]=u*AD[mu] + v*BD[mu];
-        X[mu]=XmQD[mu] + QD[mu];
+     for(Mu=0; Mu<3; Mu++)
+      { X[Mu]   = V0[Mu] + u*A[Mu] + v*B[Mu];
+        XmQ[Mu] = X[Mu] - Q[Mu];
       };
 
      /***************************************************************/
@@ -264,26 +169,24 @@ void GetPPIs_Fixed(cdouble Wavenumber, int NeedCross,
         up=TCR[ncpp++]; vp=TCR[ncpp++]; wp=TCR[ncpp++];
 
         /***************************************************************/ 
-        /* set XPmQp and XP ********************************************/
+        /* set XPmQP, XP, R ********************************************/
         /***************************************************************/
-        for(mu=0; mu<3; mu++)
-         { XPmQS[mu]=up*AS[mu] + vp*BS[mu];
-           XP[mu]=XPmQS[mu] + QS[mu];
+        for(Mu=0; Mu<3; Mu++)
+         { XP[Mu]    = V0P[Mu] + up*AP[Mu] + vp*BP[Mu];
+           XPmQP[Mu] = XP[Mu] - QP[Mu];
+           R[Mu] = X[Mu] - XP[Mu];
          };
       
         /***************************************************************/
         /* inner integrand  ********************************************/
         /***************************************************************/
-        VecSub(X,XP,R);
         r=VecNorm(R);
         r2=r*r;
 
-        /* compute L factors */
-        LTerm[0]=VecDot(XmQD, XPmQS); 
-        if (NeedCross)
-         { VecCross(XmQD, XPmQS, gXh);
-           LTerm[2]=VecDot( gXh, R );
-         };
+        /* compute h factors */
+        hDot=VecDot(XmQ, XPmQP);
+        VecCross(XmQ, XPmQP, CrossProduct);
+        hTimes=VecDot( CrossProduct, R);
    
         /* compute Phi, Psi, Zeta factors */
         if (DeSingularize)
@@ -368,9 +271,9 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
   double *GammaMatrix       = Args->GammaMatrix;
-  cdouble *GC               = Args->GC;
-  cdouble *GradGC           = Args->GradGC;
-  cdouble *dGCdT            = Args->dGCdT;
+  cdouble *H                = Args->H;
+  cdouble *GradH            = Args->GradH;
+  cdouble *dHdT             = Args->dHdT;
 
   /***************************************************************/
   /* extract panel vertices, detect common vertices, measure     */
@@ -398,13 +301,13 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /***************************************************************/
   if( ncv==3 )
    { 
-     Args->GC[0]=TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
-                              Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+     Args->H[0]=TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
+                             Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
 
-     Args->GC[1]=0.0; /* 'C' integral vanishes for the common-triangle case */
-
-     if (GradGC) memset(GradGC, 2*NumGradientComponents, 0*sizeof(cdouble));
-     if (dGCdT)  memset(dGCdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+     Args->H[1]=0.0; /* 'H_\times' vanishes for the common-triangle case */
+   
+     if (GradH) memset(GradH, 2*NumGradientComponents, 0*sizeof(cdouble));
+     if (dHdT)  memset(dHdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
 
      return;
    };
@@ -415,7 +318,6 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /* we use taylor's method for the full panel integral, and       */
   /* otherwise we use high-order naive cubature                    */
   /*****************************************************************/
-  cdouble CPreFac=1.0/(II*k);
   if ( abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD )
    { 
      if( ncv==2 )
@@ -423,14 +325,14 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
         /*--------------------------------------------------------------*/
         /* common-edge case                                             */
         /*--------------------------------------------------------------*/
-        Args->GC[0]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
-                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+        Args->H[0]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
+                                Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
 
-        Args->GC[1]=CPreFac*TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, k,
-                                         Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+        Args->H[1]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, k,
+                                Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
 
-        if (GradGC) memset(GradGC, 2*NumGradientComponents, 0*sizeof(cdouble));
-        if (dGCdT)  memset(dGCdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+        if (GradH) memset(GradH, 2*NumGradientComponents, 0*sizeof(cdouble));
+        if (dHdT)  memset(dHdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
 
         return;
       }
@@ -439,14 +341,14 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
         /*--------------------------------------------------------------*/
         /* common-vertex case                                           */
         /*--------------------------------------------------------------*/
-        Args->GC[0]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_DOTPLUS, k,
-                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+        Args->H[0]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_DOTPLUS, k,
+                                Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
 
-        Args->GC[1]=CPreFac*TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, k,
-                                         Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+        Args->H[1]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, k,
+                                Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
 
-        if (GradGC) memset(GradGC, 2*NumGradientComponents, 0*sizeof(cdouble));
-        if (dGCdT)  memset(dGCdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+        if (GradH) memset(GradH, 2*NumGradientComponents, 0*sizeof(cdouble));
+        if (dHdT)  memset(dHdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
 
         return;
       }
@@ -486,6 +388,8 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
+  cdouble OOK2=1.0/(k*k);
+  cdouble PF[5];
   PF[0]=1.0/(4.0*M_PI);
   PF[1]=ik*PF[0];
   PF[2]=ik*PF[1];
@@ -494,12 +398,12 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   PF[5]=ik*PF[4];
 
   // contributions to panel-panel integrals 
-  Args->GC[0] += PF[0]*AA0*(FIPPID->hDotRm1 - OOK2*FIPPID->hNablaRm1)
+  Args->H[0] +=  PF[0]*AA0*(FIPPID->hDotRm1 - OOK2*FIPPID->hNablaRm1)
                 +PF[1]*AA1*(FIPPID->hDotR0  - OOK2*FIPPID->hNablaR0 )
                 +PF[2]*AA2*(FIPPID->hDotR1  - OOK2*FIPPID->hNablaR1 )
                 +PF[3]*AA3*(FIPPID->hDotR2  - OOK2*FIPPID->hNablaR2 );
   
-  Args->GC[1] += PF[0]*BB0*FIPPID->hTimesRm3
+  Args->H[1] +=  PF[0]*BB0*FIPPID->hTimesRm3
                 +PF[2]*BB2*FIPPID->hTimesRm1
                 +PF[3]*BB3*FIPPID->hTimesR0 
                 +PF[4]*BB4*FIPPID->hTimesR1;
@@ -511,22 +415,24 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   double Rab[3];
   VecSub(Pa->Centroid, Pb->Centroid, Rab);
 
-  GradGScalar=  PF[0]*BB0*(FIPPID->hDotRm3 - OOK2*FIPPID->hNablaRm3)
-               +PF[2]*BB2*(FIPPID->hDotRm1 - OOK2*FIPPID->hNablaRm1)
-               +PF[3]*BB3*(FIPPID->hDotR0  - OOK2*FIPPID->hNablaR0)
-               +PF[4]*BB4*(FIPPID->hDotR1  - OOK2*FIPPID->hNablaR1);
+  cdouble GradH0Scalar, GradH1Scalar;
+  GradH0Scalar=  PF[0]*BB0*(FIPPID->hDotRm3 - OOK2*FIPPID->hNablaRm3)
+                +PF[2]*BB2*(FIPPID->hDotRm1 - OOK2*FIPPID->hNablaRm1)
+                +PF[3]*BB3*(FIPPID->hDotR0  - OOK2*FIPPID->hNablaR0)
+                +PF[4]*BB4*(FIPPID->hDotR1  - OOK2*FIPPID->hNablaR1);
 
-  GradCScalar=  PF[0]*CC0*FIPPID->hTimesRm5
-               +PF[2]*CC2*FIPPID->hTimesRm3
-               +PF[5]*CC5*FIPPID->hTimesR;
+  GradH1Scalar=  PF[0]*CC0*FIPPID->hTimesRm5
+                +PF[2]*CC2*FIPPID->hTimesRm3
+                +PF[5]*CC5*FIPPID->hTimesR;
 
+  int Mu;
   for(Mu=0; Mu<(Args->NumGradientComponents); Mu++)
-   { Args->GradGC[2*Mu + 0] += Rab[Mu]*GradGSCalar;
-     Args->GradGC[2*Mu + 1] += Rab[Mu]*GradCSCalar; 
+   { Args->GradH[2*Mu + 0] += Rab[Mu]*GradGSCalar;
+     Args->GradH[2*Mu + 1] += Rab[Mu]*GradCSCalar; 
    };
 
   for(Mu=0; Mu<(Args->NumGradientComponents); Mu++)
-   { Args->GradGC[2*Mu + 0] +=  PF[0]*BB0*FIPPID->dhTimesdRMuRm3[Mu]
+   { Args->GradH[2*Mu + 1] +=   PF[0]*BB0*FIPPID->dhTimesdRMuRm3[Mu]
                                +PF[2]*BB2*FIPPID->dhTimesdRMuRm1[Mu]
                                +PF[3]*BB3*FIPPID->dhTimesdRMuR0[Mu]
                                +PF[4]*BB3*FIPPID->dhTimesdRMuR1[Mu];
@@ -542,17 +448,17 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
 /* user-specified buffers                                      */
 /***************************************************************/
 void GetPanelPanelInteractions(GetPPIArgStruct *Args,
-                               cdouble *GC, 
-                               cdouble *GradGC, 
-                               cdouble *dGCdT);
+                               cdouble *H, 
+                               cdouble *GradH, 
+                               cdouble *dHdT);
 { 
   GetPanelPanelInteractions(Args);
 
-  memcpy(GC, Args->GC, 2*sizeof(cdouble));
-  if(GradGC)  
-   memcpy(GradGC, Args->GradGC, 2*Args->NumGradientComponents*sizeof(cdouble));
-  if(dGCdT)  
-   memcpy(dGCdT, Args->dGCdT, 2*Args->NumTorqueAxes*sizeof(cdouble));
+  memcpy(H, Args->H, 2*sizeof(cdouble));
+  if(GradH)  
+   memcpy(GradH, Args->GradH, 2*Args->NumGradientComponents*sizeof(cdouble));
+  if(dHdT)  
+   memcpy(dHdT, Args->dHdT, 2*Args->NumTorqueAxes*sizeof(cdouble));
 }
 
 /***************************************************************/

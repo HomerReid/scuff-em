@@ -11,19 +11,19 @@ HEADERS = libscuff.h			\
 
 OBJS = AssembleBEMMatrix.o		\
        AssembleRHSVector.o		\
+       AssessPanelPair.o		\
        CalcGC.o				\
        GetDipoleMoments.o		\
        GetSphericalMoments.o		\
        GetFields.o			\
        EdgeEdgeInteractions.o     	\
        ExpandCurrentDistribution.o	\
+       FIPPI.o                    	\
        InitEdgeList.o			\
        RWGObject.o			\
        ReadComsolFile.o			\
        ReadGMSHFile.o			\
        PanelPanelInteractions.o		\
-       StaticPPI.o			\
-       StaticPPITaylor.o		\
        TaylorMaster.o			\
        RWGGeometry.o			\
        Visualize.o			\

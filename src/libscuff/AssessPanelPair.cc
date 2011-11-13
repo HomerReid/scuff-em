@@ -42,8 +42,8 @@ int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
   Vb[2] = Ob->Vertices + 3*Pb->VI[2];
 
   double rMax=fmax(Pa->Radius, Pb->Radius);
+  *rRel=VecDistance(Pa->Centroid, Pb->Centroid) / rMax;
 
-  *rRel = VecDistance(Pa->Centroid, Pb->Centroid) / fmax(Pa->Radius, Pb->Radius);
   if ( *rRel > 2.0 ) // there can be no common vertices in this case 
    return 0;
 
@@ -112,3 +112,23 @@ int AssessPanelPair(double **Va, double **Vb)
   return ncv;
  
 }
+
+/***************************************************************/
+/* alternate entry points in which the caller wants only a     */
+/* subset of the full information returned by AssessPanelPair  */
+/***************************************************************/
+int AssessPanelPair(RWGObject *Oa, int npa, 
+                    RWGObject *Ob, int npb, 
+                    double *rRel)
+{ 
+  double *Va[3], *Vb[3];
+  return AssessPanelPair(Oa, npa, Ob, npb, rRel, Va, Vb);
+} 
+
+int NumCommonVertices(RWGObject *Oa, int npa, 
+                      RWGObject *Ob, int npb)
+{ 
+  double rRel;
+  double *Va[3], *Vb[3];
+  return AssessPanelPair(Oa, npa, Ob, npb, &rRel, Va, Vb);
+} 

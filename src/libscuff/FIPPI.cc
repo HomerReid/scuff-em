@@ -44,8 +44,9 @@ FIPPIDataTable()
 /*- compute a new FIPPI data record for this panel pair and     */
 /*- add it to the table                                         */
 /*--------------------------------------------------------------*/
-FIPPIDataRecord *FIPPIDataTable::GetFIPPIData(double **Va, double *Qa,
-                                              double **Va, double *Qa,
+FIPPIDataRecord *FIPPIDataTable::GetFIPPIDataRecord(double **Va, double *Qa,
+                                                    double **Vb, double *Qb,
+                                                    int NeedDerivatives);
 
 /*--------------------------------------------------------------*/
 /*- integrand routine used for evaluating FIPPIs by cubature   -*/
@@ -104,19 +105,19 @@ void CFDRIntegrand(unsigned ndim, const double *x, void *params,
   /*- assemble output vector -------------------------------------*/
   /*--------------------------------------------------------------*/
 
-  double hDot=VecDot(F, FP);
+  double hDot=u*up*VecDot(F, FP);
   fval[ 0] = hDot / r;
   fval[ 1] = hDot;
   fval[ 2] = hDot*r;
   fval[ 3] = hDot*r2;
 
-  double hNabla=4.0;
+  double hNabla=u*up*4.0;
   fval[ 4] = hNabla / r;
   fval[ 5] = hNabla;
   fval[ 6] = hNabla*r;
   fval[ 7] = hNabla*r2;
 
-  double hTimes=VecDot( VecCross(F, FP, FxFP), R );
+  double hTimes=u*up*VecDot( VecCross(F, FP, FxFP), R );
   fval[ 8] = hTimes / r3;
   fval[ 9] = hTimes / r1;
   fval[10] = hTimes;  
@@ -131,6 +132,10 @@ void CFDRIntegrand(unsigned ndim, const double *x, void *params,
      fval[12] = hDot   / r3;
      fval[13] = hNabla / r3;
      fval[14] = hTimes / (r2*r3);
+
+     FxFP[0]*=u*up;
+     FxFP[1]*=u*up;
+     FxFP[2]*=u*up;
 
      fval[15] = FxFP[0] / r3;
      fval[16] = FxFP[1] / r3;
@@ -202,10 +207,10 @@ void ComputeFIPPIDataRecord_Cubature(double **Va, double *Qa,
   FDR->hNablaR1  = F[ 6];
   FDR->hNablaR2  = F[ 7];
 
-  FDR->hTimesRM1 = F[ 8];
-  FDR->hTimesR0  = F[ 9];
-  FDR->hTimesR1  = F[10];
-  FDR->hTimesR2  = F[11];
+  FDR->hTimesRM3 = F[ 8];
+  FDR->hTimesRM1 = F[ 9];
+  FDR->hTimesR0  = F[10];
+  FDR->hTimesR1  = F[11];
 
   if (NeedDerivatives)
    { 
@@ -268,6 +273,7 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
    };
 
   FDR->HaveDerivatives=0; // no derivatives for common-vertex cases 
+
   /*--------------------------------------------------------------*/
   /*- otherwise (there are common vertices) compute the FIPPIs   -*/
   /*- using the taylor-duffy method                              -*/

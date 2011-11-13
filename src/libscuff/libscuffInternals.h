@@ -39,21 +39,24 @@ typedef struct GetPPIArgStruct
    double *GammaMatrix;
 
    // output fields filled in by routine
-   // note: GC[0,1] = G, C
-   // note: GradGC[0,1,2,...] = dG/dx, dC/dx, dG/dy, ... 
-   // note: dGCdT[0,1,2,...] = dG/dTheta_1, dC/dTheta_1, dG/dTheta_2, ... 
-   cdouble GC[2];
-   cdouble GradGC[6];
-   cdouble dGCdT[6];
+   // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
+   // note: H[1] = HTimes
+   // note: GradH[3*Mu + 0 ] = dHPlus/dR_\Mu
+   // note: GradH[3*Mu + 1 ] = dHTimes/dR_\Mu
+   // note: dHdT[3*Mu + 0 ] = dHPlus/dTheta_\Mu
+   // note: dHdT[3*Mu + 1 ] = dHTimes/dTheta_\Mu
+   cdouble H[2];
+   cdouble GradH[6];
+   cdouble dHdT[6];
 
  } GetPPIArgStruct;
 
 void InitGetPPIArgs(GetPPIArgStruct *Args);
 void GetPanelPanelInteractions(GetPPIArgStruct *Args);
 void GetPanelPanelInteractions(GetPPIArgStruct *Args,
-                               cdouble *GC, 
-                               cdouble *GradGC, 
-                               cdouble *dGCdT);
+                               cdouble *H, 
+                               cdouble *GradH, 
+                               cdouble *dHdT);
 
 /*--------------------------------------------------------------*/
 /*- GetEdgeEdgeInteractions() ----------------------------------*/
@@ -70,9 +73,12 @@ typedef struct GetEEIArgStruct
    double *GammaMatrix;
 
    // output fields filled in by routine
-   // note: GC[0,1] = G, C
-   // note: GradGC[0,1,2,...] = dG/dx, dC/dx, dG/dy, ... 
-   // note: dGCdT[0,1,2,...] = dG/dTheta_1, dC/dTheta_1, dG/dTheta_2, ... 
+   // note: GC[0] = <f_a|G|f_b>
+   // note: GC[1] = <f_a|C|f_b>
+   // note: GradGC[3*Mu + 0 ] d/dR_\Mu (<f_a|G|f_b>)
+   // note: GradGC[3*Mu + 1 ] d/dR_\Mu (<f_a|C|f_b>)
+   // note: dGCdT[3*Mu + 0 ] d/dTheta_\Mu (<f_a|G|f_b>)
+   // note: dGCdT[3*Mu + 1 ] d/dTheta_\Mu (<f_a|C|f_b>)
    cdouble GC[2];
    cdouble GradGC[6];
    cdouble dGCdT[6];
@@ -176,11 +182,23 @@ cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH, cdouble GParam,
                      double *V1, double *V2, double *V3,
                      double *V2P, double *V3P, double *Q, double *QP);
 
+/*--------------------------------------------------------------*/
+/*- AssessPanelPair counts common vertices in a pair of panels  */
+/*--------------------------------------------------------------*/
+int AssessPanelPair(double **Va, double **Vb);
+
 int AssessPanelPair(RWGObject *Oa, int npa, 
                     RWGObject *Ob, int npb,
                     double *rRel, 
                     double **Va, double **Vb);
 
-int AssessPanelPair(double **Va, double **Vb);
+int AssessPanelPair(RWGObject *Oa, int npa, 
+                    RWGObject *Ob, int npb,
+                    double *rRel);
+
+int NumCommonVertices(RWGObject *Oa, int npa, 
+                      RWGObject *Ob, int npb);
+
+
 
 #endif //LIBSCUFFINTERNALS_H

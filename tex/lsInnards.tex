@@ -1632,23 +1632,28 @@ integrals over pairs of triangular panels:
 %====================================================================%
 \begin{subequations}
 \begin{align}
+&\hspace{-0.1in}
  \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
+\nn
 &=
+  l_a l_b 
   \sum_{\sigma, \tau=-}^+ 
-  \frac{\sigma\tau l_a l_b}{4A^\sigma_a A^\tau_b}
+  \frac{\sigma\tau}{4A^\sigma_a A^\tau_b}
   \int_{\pan_a^\sigma}  d\vb x_a \,
   \int_{\pan_b^\tau}  d\vb x_b \,
    \Big[                 h_{\bullet}(\vb x_a, \vb x_b)
          - \frac{1}{k^2} h_{\nabla}(\vb x_a, \vb x_b)
    \Big]
    \phi\big(k, |\vb x_a - \vb x_b|\big)
-\\
+\\[5pt]
 %--------------------------------------------------------------------%
+&\hspace{-0.1in}
  \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
+\nn
 &=
-  \frac{1}{ik}
+  \frac{l_a l_b}{ik}
   \sum_{\sigma, \tau=-}^+ 
-  \frac{\sigma \tau l_a l_b}{4A^\sigma_a A^\tau_b}
+  \frac{\sigma \tau}{4A^\sigma_a A^\tau_b}
   \int_{\pan_a^\sigma}  d\vb x_a \,
   \int_{\pan_b^\tau}  d\vb x_b \,
    h_{\times}(\vb x_a, \vb x_b)
@@ -1657,7 +1662,9 @@ integrals over pairs of triangular panels:
 \label{PanelPanelIntegrals}
 \end{subequations}
 %====================================================================%
-where  
+where\footnote{\textit{Warning:} My notation for the $h$ functions
+hides the fact that $\vb h_\bullet$ and $h_\times$ depend on the current 
+source/sink nodes $\vb Q_{ab}^\pm$ within the two triangles.}
 %====================================================================%
 \begin{align*}
 h_{\bullet}(\vb x_a, \vb x_b)
@@ -1692,6 +1699,59 @@ on the distance $\vb x_a-\vb x_b$ and have singularities
 when this distance vanishes (the $\phi, \psi$ kernels).
 This decomposition facilitates the desingularization procedure
 described below.
+
+In some cases I will write (\ref{PanelPanelIntegrals}) 
+using the notation
+\begin{subequations}
+\begin{align}
+ \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
+&=
+  l_a l_b 
+  \sum_{\sigma, \tau=-}^+ 
+  \sigma\tau
+  \left\{               \texttt{PPI}\Big(\pan_a^\sigma, \pan_b^\tau, h_\bullet, \phi\Big) 
+         -\frac{1}{k^2} \texttt{PPI}\Big(\pan_a^\sigma, \pan_b^\tau, h_\nabla,  \phi\Big) 
+  \right\}
+\\
+%--------------------------------------------------------------------%
+ \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
+&=
+  \frac{l_a l_b }{ik}
+  \sum_{\sigma, \tau=-}^+ \sigma \tau \cdot 
+   \texttt{PPI}\Big(\pan_a^\sigma, \pan_b^\tau, h_\times, \psi\Big) 
+\end{align}
+\label{PPIs}
+\end{subequations}
+with the ``panel-panel integral'' functions defined by 
+\numeq{PPIDefinition}
+{
+   \texttt{PPI}\Big(\pan, \pan^\prime, h, g\Big)
+   \equiv 
+   \frac{1}{4A A^\prime}
+   \int_{\pan} d\vb x \, 
+   \int_{\pan^\prime} d\vb x^\prime \, 
+   h(\vb x, \vb x^\prime) \, g(|\vb x-\vb x^\prime|).
+}
+%Sometimes I will use the alternative notation
+%$$
+%   H_{\bullet, \nabla, \times} \Big(\pan_a, \pan_b, g\Big)
+%   \equiv 
+%   \int_{\pan_a} d\vb x_a \, 
+%   \int_{\pan_b} d\vb x_b \, 
+%   h_{\bullet, \nabla, \times}(\vb x_a, \vb x_b) \, 
+%   g(|\vb x_a-\vb x_b|)
+%$$
+%as well as 
+%$$ H_{+}\Big(\pan_a, \pan_b, g\Big) \equiv 
+%   H_{\bullet}\Big(\pan_a, \pan_b, g\Big)
+%   -\frac{1}{k^2} H_{\nabla }\Big(\pan_a, \pan_b, g\Big).
+%$$
+The quantities (\ref{PPIDefinition}) are what are computed 
+by the \texttt{GetPanelPanelInteractions()} routine in \ls. 
+The responsibility of assembling these quantities together with
+the requisite prefactors to obtain the full inner products
+(\ref{PPIs}) is handled by the routine 
+\texttt{GetEdgeEdgeInteractions()}.
 
 \subsubsection*{Desingularization}
 
@@ -1768,22 +1828,23 @@ with respect to rigid displacements and rotations of basis functions.
 
 \subsection{Derivatives by Panel-Panel Integral Method}
 
-We write the panel-panel decomposition of the RWG inner products
-in the form
+We write the panel-panel decomposition of the RWG inner products,
+equation (\ref{PPIs}), in the form
 %====================================================================%
 \begin{subequations}
 \begin{align}
  \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
-&= \sum_{\sigma, \tau=-}^+
-   \frac{\sigma \tau l_a l_b}{4A_a^\sigma A_b^\tau}
+&= l_a l_b \sum_{\sigma, \tau=-}^+
+   \sigma \tau
    \left\{ H_\bullet(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
            -\frac{1}{k^2} H_\nabla(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
    \right\}
 \\
- \frac{1}{ik}
  \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
-&= \sum_{\sigma, \tau=-}^+
-   \frac{\sigma \tau l_a l_b}{4A_a^\sigma A_b^\tau}
+&= 
+   \frac{l_a l_b }{ik}
+   \sum_{\sigma, \tau=-}^+
+   \sigma \tau \cdot 
    H_\times(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
 \end{align}
 \end{subequations}
@@ -1793,26 +1854,29 @@ where
 \begin{subequations}
 \begin{align}
  H_\bullet(\pan_a, \pan_b, \vb R) 
-   &=\int d\vb y_a \, \int d\vb y_b \,
+   &=\frac{1}{4A_a A_b} 
+     \int d\vb y_a \, \int d\vb y_b \,
      h_\bullet(\vb y_a, \vb y_b)
      \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
 \\
  H_\nabla(\pan_a, \pan_b, \vb R) 
-   &=\int d\vb y_a \, \int d\vb y_b \,
+   &=\frac{1}{4A_a A_b} 
+     \int d\vb y_a \, \int d\vb y_b \,
      h_\nabla(\vb y_a, \vb y_b)
      \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
 \\
  H_\times(\pan_a, \pan_b, \vb R)
-   &=\int d\vb y_a \, \int d\vb y_b \,
-     h_\times(\vb y_a, \vb y_b, \vb R)
-     \psi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big). 
+   &=\frac{1}{4A_a A_b}
+      \int d\vb y_a \, \int d\vb y_b \,
+      h_\times(\vb y_a, \vb y_b, \vb R)
+      \psi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big). 
 \end{align}
 \label{ThreeHFunctions}
 \end{subequations}
 %====================================================================%
 Here we have rewritten the integrals over $\vb x_a, \vb x_b$ in 
 equation (\ref{PanelPanelIntegrals}) using new integration variables
-defined relative to the panel centroids:
+defined relative to the panel centroids (Figure \ref{RabFigure}):
 $$\vb x_a=\vb x_{a0} + \vb y_a, 
   \qquad 
   \vb x_b=\vb x_{b0} + \vb y_b, 
