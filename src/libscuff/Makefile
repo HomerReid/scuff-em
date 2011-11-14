@@ -38,17 +38,17 @@ OBJS = AssembleBEMMatrix.o		\
 ##################################################
 DEBUG=-O3
 CC=g++
-CPPFLAGS+=$(DEBUG) -I../SGJV -I../libTriInt
+CPPFLAGS+=$(DEBUG) -I../SGJC -I../libTriInt
 CPPFLAGS+=-I../libMatProp -I../libhmat -I../libSpherical
 CPPFLAGS+=-I../libhrutil
 CPPFLAGS+=$(GOOGLE_INCLUDES)
 
-libRWG.a:	$(HEADERS) $(OBJS)
+libscuff.a:	$(HEADERS) $(OBJS)
 		ar r $@ $^
 
-install:	libRWG.a
-		(ln -s $(PWD)/libRWG.h $(HOME)/include)
-		(ln -s $(PWD)/libRWG.a $(HOME)/lib)
+install:	libscuff.a
+		(ln -s $(PWD)/libscuff.h $(HOME)/include)
+		(ln -s $(PWD)/libscuff.a $(HOME)/lib)
 
 clean:		
 		rm -f *.o *.a

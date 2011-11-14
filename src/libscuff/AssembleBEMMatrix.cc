@@ -81,19 +81,19 @@ void *ABMBThread(void *data)
   /* initialize an argument structure to be passed to            */
   /* GetEdgeEdgeInteractions() below                             */
   /***************************************************************/
-  GEEIArgStruct MyGEEIArgs, *GEEIArgs=&MyGEEIArgs;
-  InitGEEIArgs(GEEIArgs);
+  GetEEIArgStruct MyGetEEIArgs, *GetEEIArgs=&MyGetEEIArgs;
+  InitGetEEIArgs(GetEEIArgs);
 
-  GEEIArgs->Oa=Oa;
-  GEEIArgs->Ob=Ob;
-  GEEIArgs->NumGradientComponents = GradB ? 3 : 0;
-  GEEIArgs->NumTorqueAxes=NumTorqueAxes;
-  GEEIArgs->GammaMatrix=GammaMatrix;
+  GetEEIArgs->Oa=Oa;
+  GetEEIArgs->Ob=Ob;
+  GetEEIArgs->NumGradientComponents = GradB ? 3 : 0;
+  GetEEIArgs->NumTorqueAxes=NumTorqueAxes;
+  GetEEIArgs->GammaMatrix=GammaMatrix;
 
   /* pointers to arrays inside the structure */
-  cdouble *GC=GEEIArgs->GC;
-  cdouble *GradGC=GEEIArgs->GradGC;
-  cdouble *dGCdT=GEEIArgs->dGCdT;
+  cdouble *GC=GetEEIArgs->GC;
+  cdouble *GradGC=GetEEIArgs->GradGC;
+  cdouble *dGCdT=GetEEIArgs->dGCdT;
 
   /***************************************************************/
   /* precompute the constant prefactors that multiply the        */
@@ -103,7 +103,7 @@ void *ABMBThread(void *data)
   cdouble PreFac1A, PreFac2A, PreFac3A;
   cdouble PreFac1B, PreFac2B, PreFac3B;
 
-  KA=csqrt2(EpsA*MuA)*Frequency;
+  kA=csqrt2(EpsA*MuA)*Frequency;
   PreFac1A = Sign*II*MuA*Frequency;
   PreFac2A = -Sign*II*kA;
   PreFac3A = -1.0*Sign*II*Frequency/EpsA;
@@ -133,10 +133,10 @@ void *ABMBThread(void *data)
       /*--------------------------------------------------------------*/
       /*- contributions of first medium (EpsA, MuA)  -----------------*/
       /*--------------------------------------------------------------*/
-      EEIArgs->nea  = nea;
-      EEIArgs->neb  = neb;
-      EEIArgs->k    = kA;
-      GetEEIs(&EEIArgs);
+      GetEEIArgs->nea  = nea;
+      GetEEIArgs->neb  = neb;
+      GetEEIArgs->k    = kA;
+      GetEdgeEdgeInteractions(GetEEIArgs);
 
       if ( OaIsPEC && ObIsPEC )
        { 
@@ -225,8 +225,8 @@ void *ABMBThread(void *data)
       /*--------------------------------------------------------------*/
       if (EpsB!=0.0)
        { 
-         EEIArgs->K = kB;
-         GetEEIs(&EEIArgs);
+         GetEEIArgs->k = kB;
+         GetEdgeEdgeInteractions(GetEEIArgs);
 
          X=RowOffset + 2*nea;
          Y=ColOffset + 2*neb;
@@ -310,12 +310,12 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /* fire off threads ********************************************/
   /***************************************************************/
   int nt, nThread=Args->nThread;
-  ThreadData TDs[nThread];
+  ThreadData TDs[nThread], *TD;
   pthread_t Threads[nThread];
 
   for(nt=0; nt<nThread; nt++)
    { 
-     TD=&(TDS[nt]);
+     TD=&(TDs[nt]);
      TD->nt=nt;
      TD->nThread=nThread;
      TD->Args=Args;
@@ -388,18 +388,18 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
   /* above-diagonal blocks of the matrix                         */
   /***************************************************************/
   int no, nop;
-  for(no=0; no<G->NumObjects; no++)
-   for(nop=no; nop<G->NumObjects; nop++)
+  for(no=0; no<NumObjects; no++)
+   for(nop=no; nop<NumObjects; nop++)
     { 
-      Args->Oa=G->Objects[no];
-      Args->RowOffset=G->BFIndexOffset[no];
+      Args->Oa=Objects[no];
+      Args->RowOffset=BFIndexOffset[no];
 
-      Args->Ob=G->Objects[nop];
-      Args->ColOffset=G->BFIndexOffset[nop];
+      Args->Ob=Objects[nop];
+      Args->ColOffset=BFIndexOffset[nop];
 
       Args->Symmetric = (no==nop) ? 1 : 0;
 
-      AssembleBEMMatrixBlock(ABMBArgStruct *Args);
+      AssembleBEMMatrixBlock(Args);
     };
 
   /***************************************************************/
@@ -408,7 +408,7 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
   /***************************************************************/
   if (M->StorageType==LHM_NORMAL)
    { int nr, nc;
-     for(nr=1; nr<G->TotalBFs; nr++)
+     for(nr=1; nr<TotalBFs; nr++)
       for(nc=0; nc<nr; nc++)
        M->SetEntry(nr, nc, conj(M->GetEntry(nc, nr)) );
    };

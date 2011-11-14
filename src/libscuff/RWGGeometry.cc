@@ -438,14 +438,3 @@ int RWGGeometry::GetObjectAndEdgeIndex(int ei, RWGObject **pO)
   return ei-EdgeIndexOffset[no];
 } 
 #endif
-
-void RWGGeometry::PreCompute(int nThread)
-{ 
-  int no;
-
-  if (nThread<=0)
-   ErrExit("PreCompute() called with nThread=%i",nThread);
-
-  for(no=0; no<NumObjects; no++)
-   Objects[no]->SPPIDTable=CreateStaticPPIDataTable(Objects[no],Objects[no],nThread);
-}

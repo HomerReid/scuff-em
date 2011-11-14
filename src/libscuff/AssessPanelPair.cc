@@ -13,6 +13,101 @@
 
 #include "libscuff.h"
 
+// the 'common vertex threshold:' two vertices are considered to be 
+// the same if their distance is less than CVTHRESHOLD*the panel radius 
+#define CVTHRESHOLD 1.0e-6
+
+/***************************************************************/
+/* look for vertices that are shared between panels.           */
+/* NOTE: in an earlier incarnation of this code, i looked for  */
+/*       common vertices by simple integer comparisons         */
+/*       (comparing indices within a table of vertices), but   */
+/*       i specifically DON'T want to do that here for several */
+/*       reasons. ultimately it would be nice to avoid doing   */
+/*       9 separate comparisons here, although in practice it  */
+/*       won't matter much since most cases will be caught by  */
+/*       the rRel>2 check above.                               */
+/***************************************************************/
+int AssessPanelPair(double **Va, double **Vb, double Radius)
+{
+  int ncv=0;
+  int CVIa[3], CVIb[3];
+  int ia, ib;
+  double ThresholdDistance2=CVTHRESHOLD*CVTHRESHOLD*Radius*Radius;
+  for(ia=0; ia<3; ia++)
+   for(ib=0; ib<3; ib++)
+    { if ( VecDistance2(Va[ia],Vb[ib]) < ThresholdDistance2 )
+       { CVIa[ncv]=ia;    
+         CVIb[ncv]=ib;
+         ncv++;
+       };
+    };
+  
+  /***************************************************************/
+  /* if there were any common vertices, reorganize the Va and Vb */
+  /* arrays so that common vertices appear first                 */
+  /***************************************************************/
+  if (ncv==0)
+   return 0; // vertices are already in acceptable order
+
+  double *OVa[3]={Va[0], Va[1], Va[2]}; // 'original vertices, a' 
+  double *OVb[3]={Vb[0], Vb[1], Vb[2]}; // 'original vertices, b
+
+  if (ncv==1)
+   { Va[0] = OVa[ CVIa[0]       ];
+     Va[1] = OVa[ (CVIa[0]+1)%3 ];
+     Va[2] = OVa[ (CVIa[0]+2)%3 ];
+     Vb[0] = OVb[ CVIb[0]       ];
+     Vb[1] = OVb[ (CVIb[0]+1)%3 ];
+     Vb[2] = OVb[ (CVIb[0]+2)%3 ];
+   }
+  else if (ncv==2)
+   { Va[0] = OVa[  CVIa[0] ];
+     Va[1] = OVa[  CVIa[1] ];
+     Va[2] = OVa[  3-CVIa[0]-CVIa[1] ];
+     Vb[0] = OVb[  CVIb[0] ];
+     Vb[1] = OVb[  CVIb[1] ];
+     Vb[2] = OVb[  3-CVIb[0]-CVIb[1] ];
+   }
+  else if (ncv==3)
+   { Va[0] = OVa[ CVIa[0] ];
+     Va[1] = OVa[ CVIa[1] ];
+     Va[2] = OVa[ CVIa[2] ];
+     Vb[0] = OVb[ CVIb[0] ];
+     Vb[1] = OVb[ CVIb[1] ];
+     Vb[2] = OVb[ CVIb[2] ];
+   };
+
+  return ncv;
+ 
+}
+
+/***************************************************************/
+/* alternate entry point for the previous routine for the case */
+/* in which the maximum panel radius is not known a priori     */
+/***************************************************************/
+int AssessPanelPair(double **Va, double **Vb)
+{ 
+  int Mu;
+  double CentroidA[3], CentroidB[3];
+
+  for(Mu=0; Mu<3; Mu++)
+   { CentroidA[Mu]=(Va[0][Mu] + Va[1][Mu] + Va[2][Mu])/3.0;
+     CentroidB[Mu]=(Vb[0][Mu] + Vb[1][Mu] + Vb[2][Mu])/3.0;
+   };
+
+  double rMax;
+  rMax=VecDistance(Va[0],CentroidA);
+  rMax=fmax(rMax, VecDistance(Va[1],CentroidA));
+  rMax=fmax(rMax, VecDistance(Va[2],CentroidA));
+  rMax=fmax(rMax, VecDistance(Vb[0],CentroidB));
+  rMax=fmax(rMax, VecDistance(Vb[1],CentroidB));
+  rMax=fmax(rMax, VecDistance(Vb[2],CentroidB));
+
+  return AssessPanelPair(Va, Vb, rMax);
+
+}
+
 /***************************************************************/
 /* this routine gathers some information on the pair of panels */
 /* (Oa, npa) -- (Ob,npb).                                      */
@@ -47,70 +142,8 @@ int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
   if ( *rRel > 2.0 ) // there can be no common vertices in this case 
    return 0;
 
-  return AssessPanelPair(Va, Vb);
+  return AssessPanelPair(Va, Vb, rMax);
 
-}
-
-/***************************************************************/
-/* look for common vertices.                                   */
-/* NOTE: in an earlier incarnation of this code, i looked for  */
-/*       common vertices by simple integer comparisons         */
-/*       (comparing indices within a table of vertices), but   */
-/*       i specifically DON'T want to do that here for several */
-/*       reasons. ultimately it would be nice to avoid doing   */
-/*       9 separate comparisons here, although in practice it  */
-/*       won't matter much since most cases will be caught by  */
-/*       the rRel>2 check above.                               */
-/***************************************************************/
-int AssessPanelPair(double **Va, double **Vb)
-{
-  int ncv=0;
-  int CVIa[3], CVIb[3];
-  int ia, ib;
-  double ThresholdDistance2=CVTHRESHOLD*CVTHRESHOLD*rMax*rMax;
-  for(ia=0; ia<3; ia++)
-   for(ib=0; ib<3; ib++)
-    { if ( VecDistance2(Va[ia],Vb[ib]) < ThresholdDistance2 )
-       { CVIa[ncv]=ia;    
-         CVIb[ncv]=ib;
-         ncv++;
-       };
-    };
-  
-  /***************************************************************/
-  /* if there were any common vertices, reorganize the Va and Vb */
-  /* arrays so that common vertices appear first                 */
-  /***************************************************************/
-  if (ncv==0)
-   { // vertices are already in acceptable order
-   } 
-  else if (ncv==1)
-   { Va[0] = Oa->Vertices + 3*Pa->VI[  CVIa[0] ];
-     Va[1] = Oa->Vertices + 3*Pa->VI[ (CVIa[0]+1)%3 ];
-     Va[2] = Oa->Vertices + 3*Pa->VI[ (CVIa[0]+2)%3 ];
-     Vb[0] = Ob->Vertices + 3*Pb->VI[  CVIb[0] ];
-     Vb[1] = Ob->Vertices + 3*Pb->VI[ (CVIb[0]+1)%3 ];
-     Vb[2] = Ob->Vertices + 3*Pb->VI[ (CVIb[0]+2)%3 ];
-   }
-  else if (ncv==2)
-   { Va[0] = Oa->Vertices + 3*Pa->VI[  CVIa[0] ];
-     Va[1] = Oa->Vertices + 3*Pa->VI[  CVIa[1] ];
-     Va[2] = Oa->Vertices + 3*Pa->VI[  3-CVIa[0]-CVIa[1] ];
-     Vb[0] = Ob->Vertices + 3*Pb->VI[  CVIb[0] ];
-     Vb[1] = Ob->Vertices + 3*Pb->VI[  CVIb[1] ];
-     Vb[2] = Ob->Vertices + 3*Pb->VI[  3-CVIb[0]-CVIb[1] ];
-   }
-  else if (ncv==3)
-   { Va[0] = Oa->Vertices + 3*Pa->VI[  CVIa[0] ];
-     Va[1] = Oa->Vertices + 3*Pa->VI[  CVIa[1] ];
-     Va[2] = Oa->Vertices + 3*Pa->VI[  CVIa[2] ];
-     Vb[0] = Ob->Vertices + 3*Pb->VI[  CVIb[0] ];
-     Vb[1] = Ob->Vertices + 3*Pb->VI[  CVIb[1] ];
-     Vb[2] = Ob->Vertices + 3*Pb->VI[  CVIb[2] ];
-   };
-
-  return ncv;
- 
 }
 
 /***************************************************************/

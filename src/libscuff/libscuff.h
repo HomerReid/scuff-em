@@ -275,9 +275,6 @@ class RWGGeometry
    void PlotSurfaceCurrents(HVector *KN, double Frequency, int RealFreq, 
                             const char *format, ...);
 
-   /* initialize tables for accelerating computation of matrix elements */
-   void PreCompute(int nThread);
-
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(int RealFreq);
    void AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M);

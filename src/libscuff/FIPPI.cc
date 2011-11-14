@@ -15,6 +15,7 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
+#include "TaylorMaster.h"
 
 #define ABSTOL 1.0e-12
 #define RELTOL 1.0e-8
@@ -26,14 +27,14 @@
 /*--------------------------------------------------------------*/
 /*- class constructor ------------------------------------------*/
 /*--------------------------------------------------------------*/
-FIPPIDataTable()
+FIPPIDataTable::FIPPIDataTable()
 {
 }
 
 /*--------------------------------------------------------------*/
 /*- class destructor  ------------------------------------------*/
 /*--------------------------------------------------------------*/
-~FIPPIDataTable()
+FIPPIDataTable::~FIPPIDataTable()
 {
 } 
 
@@ -46,7 +47,9 @@ FIPPIDataTable()
 /*--------------------------------------------------------------*/
 FIPPIDataRecord *FIPPIDataTable::GetFIPPIDataRecord(double **Va, double *Qa,
                                                     double **Vb, double *Qb,
-                                                    int NeedDerivatives);
+                                                    int NeedDerivatives)
+{
+}
 
 /*--------------------------------------------------------------*/
 /*- integrand routine used for evaluating FIPPIs by cubature   -*/
@@ -104,7 +107,6 @@ void CFDRIntegrand(unsigned ndim, const double *x, void *params,
   /*--------------------------------------------------------------*/
   /*- assemble output vector -------------------------------------*/
   /*--------------------------------------------------------------*/
-
   double hDot=u*up*VecDot(F, FP);
   fval[ 0] = hDot / r;
   fval[ 1] = hDot;
@@ -119,7 +121,7 @@ void CFDRIntegrand(unsigned ndim, const double *x, void *params,
 
   double hTimes=u*up*VecDot( VecCross(F, FP, FxFP), R );
   fval[ 8] = hTimes / r3;
-  fval[ 9] = hTimes / r1;
+  fval[ 9] = hTimes / r;
   fval[10] = hTimes;  
   fval[11] = hTimes * r;
 
@@ -187,8 +189,8 @@ void ComputeFIPPIDataRecord_Cubature(double **Va, double *Qa,
   /*--------------------------------------------------------------*/
   /*- evaluate the adaptive cubature                             -*/
   /*--------------------------------------------------------------*/
-  int Lower[4]={0.0, 0.0, 0.0, 0.0};
-  int Upper[4]={1.0, 1.0, 1.0, 1.0};
+  double Lower[4]={0.0, 0.0, 0.0, 0.0};
+  double Upper[4]={1.0, 1.0, 1.0, 1.0};
   int fdim = NeedDerivatives ? 12 : 27;
   double F[fdim], E[fdim];
   adapt_integrate(fdim, CFDRIntegrand, CFDRD, 4, Lower, Upper,
@@ -218,13 +220,13 @@ void ComputeFIPPIDataRecord_Cubature(double **Va, double *Qa,
      FDR->hNablaRM3  = F[13];
      FDR->hTimesRM5  = F[14];
      
-     FDR->dhTimesdRMuRm3[0] = F[15];
-     FDR->dhTimesdRMuRm3[1] = F[16];
-     FDR->dhTimesdRMuRm3[2] = F[17];
+     FDR->dhTimesdRMuRM3[0] = F[15];
+     FDR->dhTimesdRMuRM3[1] = F[16];
+     FDR->dhTimesdRMuRM3[2] = F[17];
 
-     FDR->dhTimesdRMuRm1[0] = F[18];
-     FDR->dhTimesdRMuRm1[1] = F[19];
-     FDR->dhTimesdRMuRm1[2] = F[20];
+     FDR->dhTimesdRMuRM1[0] = F[18];
+     FDR->dhTimesdRMuRM1[1] = F[19];
+     FDR->dhTimesdRMuRM1[2] = F[20];
 
      FDR->dhTimesdRMuR0[0] = F[21];
      FDR->dhTimesdRMuR0[1] = F[22];
@@ -259,7 +261,7 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
                                         int NeedDerivatives,
                                         FIPPIDataRecord *FDR)
 { 
-  ncv=AssessPanelPair(Va, Vb);
+  int ncv=AssessPanelPair(Va, Vb);
 
   /*--------------------------------------------------------------*/
   /*- if there are no common vertices, then use 4-dimensional    -*/
@@ -269,7 +271,7 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
    { ComputeFIPPIDataRecord_Cubature(Va, Qa, Vb, Qb,
                                      NeedDerivatives,
                                      FDR);
-     return;
+     return FDR;
    };
 
   FDR->HaveDerivatives=0; // no derivatives for common-vertex cases 
@@ -288,26 +290,26 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
   /*--------------------------------------------------------------*/
   /*- hDot integrals ---------------------------------------------*/
   /*--------------------------------------------------------------*/
-  FDR->hDotRM1=real( TaylorMaster(WhichCase, TM_RP, TM_DOT, -1.0, 
-                                  Va[0], Va[1], Va[2], 
-                                  Vb[1], Vb[2], Qa, Qb);
+  FDR->hDotRM1=real( TaylorMaster(WhichCase, TM_RP, TM_DOT, -1.0,
+                                  Va[0], Va[1], Va[2],
+                                  Vb[1], Vb[2], Qa, Qb)
                    );
 
   /* FIXME this one can be computed analytically */ 
   FDR->hDotR0 =real( TaylorMaster(WhichCase, TM_RP, TM_DOT, 0.0, 
                                   Va[0], Va[1], Va[2], 
-                                  Vb[1], Vb[2], Qa, Qb);
+                                  Vb[1], Vb[2], Qa, Qb)
                    );
 
   FDR->hDotR1 =real( TaylorMaster(WhichCase, TM_RP, TM_DOT, 1.0, 
                                   Va[0], Va[1], Va[2], 
-                                  Vb[1], Vb[2], Qa, Qb);
+                                  Vb[1], Vb[2], Qa, Qb)
                    );
 
   /* FIXME this one can be computed analytically */ 
   FDR->hDotR2 =real( TaylorMaster(WhichCase, TM_RP, TM_DOT, 2.0, 
                                   Va[0], Va[1], Va[2], 
-                                  Vb[1], Vb[2], Qa, Qb);
+                                  Vb[1], Vb[2], Qa, Qb)
                    );
   
   /*--------------------------------------------------------------*/
@@ -315,24 +317,24 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
   /*--------------------------------------------------------------*/
   FDR->hNablaRM1 = 4.0*real( TaylorMaster(WhichCase, TM_RP, TM_ONE, -1.0,
                                           Va[0], Va[1], Va[2], 
-                                          Vb[1], Vb[2], Qa, Qb);
+                                          Vb[1], Vb[2], Qa, Qb)
                            );
 
   /* FIXME this one can be computed analytically */ 
   FDR->hNablaR0  = 4.0*real( TaylorMaster(WhichCase, TM_RP, TM_ONE, 0.0, 
                                           Va[0], Va[1], Va[2], 
-                                          Vb[1], Vb[2], Qa, Qb);
+                                          Vb[1], Vb[2], Qa, Qb)
                            );
 
   FDR->hNablaR1  = 4.0*real( TaylorMaster(WhichCase, TM_RP, TM_ONE, 1.0, 
                                           Va[0], Va[1], Va[2], 
-                                          Vb[1], Vb[2], Qa, Qb);
+                                          Vb[1], Vb[2], Qa, Qb)
                            );
 
   /* FIXME this one can be computed analytically */ 
   FDR->hNablaR2  = 4.0*real( TaylorMaster(WhichCase, TM_RP, TM_ONE, 2.0, 
                                           Va[0], Va[1], Va[2], 
-                                          Vb[1], Vb[2], Qa, Qb);
+                                          Vb[1], Vb[2], Qa, Qb)
                            );
   
   /*--------------------------------------------------------------*/
@@ -340,23 +342,23 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
   /*--------------------------------------------------------------*/
   FDR->hTimesRM3=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, -3.0,
                                     Va[0], Va[1], Va[2],
-                                    Vb[1], Vb[2], Qa, Qb);
+                                    Vb[1], Vb[2], Qa, Qb)
                      );
 
   FDR->hTimesRM1=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, -1.0,
                                     Va[0], Va[1], Va[2],
-                                    Vb[1], Vb[2], Qa, Qb);
+                                    Vb[1], Vb[2], Qa, Qb)
                      );
 
   /* FIXME this one can be computed analytically */ 
   FDR->hTimesR0=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, 0.0,
                                    Va[0], Va[1], Va[2],
-                                   Vb[1], Vb[2], Qa, Qb);
+                                   Vb[1], Vb[2], Qa, Qb)
                     );
 
-  FDR->hTImesR1=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, 1.0,
+  FDR->hTimesR1=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, 1.0,
                                    Va[0], Va[1], Va[2],
-                                   Vb[1], Vb[2], Qa, Qb);
+                                   Vb[1], Vb[2], Qa, Qb)
                     );
 
 }

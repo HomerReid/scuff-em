@@ -14,12 +14,10 @@
 #include <libTriInt.h>
 
 #include "libscuff.h"
+#include "libscuffInternals.h"
 #include "TaylorMaster.h"
 
-#define II cdouble(0,1)
-
-// the 'common vertex threshold:' two vertices are considered to be 
-// the same if their distance is less than CVTHRESHOLD*the panel radius #define CVTHRESHOLD 1.0e-6
+#define II cdouble(0.0,1.0)
 
 // the 'short-wavelength threshold:' we are in the short-wavelength
 // (high-frequency) regime if |k*PanelRadius| > SWTHRESHOLD
@@ -39,12 +37,12 @@
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- desingularized exponential routines ------------------------*/
+/*- relative exponential routine -------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL  
-cdouble cExpRel(cdouble x, int n)
+cdouble ExpRel(cdouble x, int n)
 {
   int m;
   cdouble Term, Sum;
@@ -73,34 +71,23 @@ cdouble cExpRel(cdouble x, int n)
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 void GetPPIs_Cubature(GetPPIArgStruct *Args,
-                      int Desingularize, int HighOrder,
+                      int DeSingularize, int HighOrder,
                       double **Va, double *Qa,
                       double **Vb, double *Qb)
 { 
-  int np, ncp, npp, ncpp, m, mu, nu, ri, nta;
-  double u, v, w, up, vp, wp;
-  double AD[3], BD[3], AS[3], BS[3], *QD, *QS;
-  double X[3], XmQD[3], XP[3], XPmQS[3], gXh[3], dgXh[3];
-  double *TCR;
-  int NumPts;
-  double r, r2, R[3], dX[3], dG[3];
-  double LTerm[3], Puv;
-  cdouble Phi, Psi, Zeta, ik;
-  cdouble LInner[3], GradLInner[9], dLdTInner[3*NumTorqueAxes];
-
   /***************************************************************/
   /* preliminary setup for numerical cubature.                   */
   /* in what follows, X runs over the 'destination triangle' and */
   /* XP runs over the 'source triangle' according to             */
-  /*  X  = VD_1 +  u*(VD_2 - VD_1) +  v*(VD_3-VD_1)              */
-  /*  XP = VS_1 + up*(VS_2 - VS_1) + vp*(VS_3-VS_1)              */
+  /*  X  = Va_1 +  u*(Va_2 - Va_1) +  v*(Va_3-Vb_1)              */
+  /*  XP = Vb_1 + up*(Va_2 - Vb_1) + vp*(Va_3-Vb_1)              */
   /* where (V_1, V_2, V_3) are the triangle vertices and (u,v)   */
   /* are the cubature points for a 2D numerical cubature rule    */
   /* over the standard triangle with vertices at (0,0)(1,0)(0,1).*/
   /* note that the jacobian of the transformation is 4*A*AP      */
   /* where A and AP are the areas of the triangles; this         */
   /* conveniently cancels the corresponding factor coming from   */
-  /* the RWG basis function prefactor                            */
+  /* the RWG basis function prefactor.                           */
   /***************************************************************/
   double *V0, A[3], B[3], *Q;
   V0=Va[0];
@@ -113,6 +100,28 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
   VecSub(Vb[1], Vb[0], AP);
   VecSub(Vb[2], Vb[0], BP);
   QP=Qb;
+
+  cdouble ik=II*Args->k;
+  cdouble ik2=ik*ik;
+
+  cdouble H[2]; 
+
+  cdouble *GradH, GradHBuffer[6];
+  int NumGradientComponents=Args->NumGradientComponents;
+  if (NumGradientComponents>0 && Args->GradH!=0)
+   GradH = GradHBuffer;
+  else
+   GradH = 0;
+ 
+  cdouble *dHdT, dHdTBuffer[6];
+  int nta, NumTorqueAxes=Args->NumTorqueAxes;
+  double *GammaMatrix=Args->GammaMatrix;
+  if (NumTorqueAxes>0 && GammaMatrix!=0 && Args->dHdT!=0)
+   dHdT = dHdTBuffer;
+  else
+   dHdT = 0;
+
+  cdouble HInner[2], GradHInner[6], dHdTInner[6];
 
   /***************************************************************/
   /* choose order of quadrature scheme to use.                   */
@@ -132,48 +141,48 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
    TCR=GetTCR(4, &NumPts);
 
   /***************************************************************/
-  /* preliminary setup before entering quadrature loops          */
-  /***************************************************************/
-  memset(L,0,3*sizeof(cdouble));
-  if (GradL) memset(GradL,0,9*sizeof(cdouble));
-  if (dLdT) memset(dLdT,0,3*NumTorqueAxes*sizeof(cdouble));
-
-  /***************************************************************/
   /* outer loop **************************************************/
   /***************************************************************/
-  double hDot, hNabla=4.0, hTimes; // note hNabla is constant throughout
+  double hDot, hNabla, hTimes; // note hNabla is constant throughout
+  cdouble hPlus;
   int np, ncp, npp, ncpp;
-  int Mu;
+  int Mu, Nu;
   double u, v, w, up, vp, wp;
-  double X[3], XmQ[3], XP[3], XPmQP[3], R[3], CrossProduct[3];
+  double X[3], F[3], XP[3], FP[3], R[3], FxFP[3];
+  double dX[3], dF[3], Puv, dFxFP[3];
+  double r, r2; 
+  cdouble Phi, Psi, Zeta;
+  memset(H,0,2*sizeof(cdouble));
+  if (GradH) memset(GradH,0,6*sizeof(cdouble));
+  if (dHdT) memset(dHdT,0,2*NumTorqueAxes*sizeof(cdouble));
   for(np=ncp=0; np<NumPts; np++) 
    { 
      u=TCR[ncp++]; v=TCR[ncp++]; w=TCR[ncp++];
 
      /***************************************************************/
-     /* set XmQ and X ***********************************************/
+     /* set X and F=X-Q *********************************************/
      /***************************************************************/
      for(Mu=0; Mu<3; Mu++)
-      { X[Mu]   = V0[Mu] + u*A[Mu] + v*B[Mu];
-        XmQ[Mu] = X[Mu] - Q[Mu];
+      { X[Mu] = V0[Mu] + u*A[Mu] + v*B[Mu];
+        F[Mu] = X[Mu] - Q[Mu];
       };
 
      /***************************************************************/
      /* inner loop to calculate value of inner integrand ************/
      /***************************************************************/
-     memset(LInner,0,3*sizeof(cdouble));
-     if (GradL) memset(GradLInner,0,9*sizeof(cdouble));
-     if (dLdT) memset(dLdTInner,0,3*NumTorqueAxes*sizeof(cdouble));
+     memset(HInner,0,2*sizeof(cdouble));
+     if (GradH) memset(GradHInner,0,6*sizeof(cdouble));
+     if (dHdT) memset(dHdTInner,0,2*NumTorqueAxes*sizeof(cdouble));
      for(npp=ncpp=0; npp<NumPts; npp++)
       { 
         up=TCR[ncpp++]; vp=TCR[ncpp++]; wp=TCR[ncpp++];
 
         /***************************************************************/ 
-        /* set XPmQP, XP, R ********************************************/
+        /* set XP and FP=XP-QP *****************************************/
         /***************************************************************/
         for(Mu=0; Mu<3; Mu++)
-         { XP[Mu]    = V0P[Mu] + up*AP[Mu] + vp*BP[Mu];
-           XPmQP[Mu] = XP[Mu] - QP[Mu];
+         { XP[Mu] = V0P[Mu] + up*AP[Mu] + vp*BP[Mu];
+           FP[Mu] = XP[Mu] - QP[Mu];
            R[Mu] = X[Mu] - XP[Mu];
          };
       
@@ -184,53 +193,51 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
         r2=r*r;
 
         /* compute h factors */
-        hDot=VecDot(XmQ, XPmQP);
-        VecCross(XmQ, XPmQP, CrossProduct);
-        hTimes=VecDot( CrossProduct, R);
+        hDot=VecDot(F, FP);
+        hPlus=hDot + hNabla/ik2;
+        VecCross(F, FP, FxFP);
+        hTimes=VecDot(FxFP, R);
    
         /* compute Phi, Psi, Zeta factors */
         if (DeSingularize)
-         Phi = cExpRel(ik*r,4) / (4.0*M_PI*r);
+         Phi = ExpRel(ik*r,4) / (4.0*M_PI*r);
         else
          Phi = exp(ik*r) / (4.0*M_PI*r);
+        if ( !finite(real(Phi)) ) Phi=0.0;
 
-        if ( !finite(real(Phi)) ) Phi=0.0 ;
-        Phi*=wp;
+        // put the cubature weight into Phi since Phi is a factor in
+        // all integrand components
+        Phi*=wp; 
+
         Psi = Phi * (ik - 1.0/r) / r;
-        Zeta = Phi * (ik*ik - 3.0*ik/r + 3.0/r2) / r2;
+        Zeta = Phi * (ik2 - 3.0*ik/r + 3.0/r2) / r2;
 
-        /* now combine factors as necessary for the various integrands */
+        // combine h terms with kernel factors as necessary 
+        // for the various integrand components
+        HInner[0] += hPlus * Phi;
+        HInner[1] += hTimes * Psi;
 
-        /* 1. L_{0,1,2} */
-        LInner[0] += LTerm[0] * Phi;
-        LInner[1] += LTerm[1] * Phi;
-        if ( NeedCross )
-         LInner[2] += LTerm[2] * Psi;
-
-        /* 2. d/dX_mu L_{0,1,2} */
-        if ( GradL )
-         for(mu=0; mu<3; mu++)
-           { GradLInner[3*mu + 0] += LTerm[0]*R[mu]*Psi;
-             GradLInner[3*mu + 1] += LTerm[1]*R[mu]*Psi;
-             GradLInner[3*mu + 2] += gXh[mu]*Psi + LTerm[2]*R[mu]*Zeta;
+        if ( GradH )
+         for(Mu=0; Mu<3; Mu++)
+           { GradHInner[3*Mu + 0] += R[Mu]*hPlus*Psi;
+             GradHInner[3*Mu + 1] += R[Mu]*hTimes*Zeta + FxFP[Mu]*Psi; 
            };
 
         /* 3. d/dTheta L_{0,1,2} */
-        if ( NumTorqueAxes>0 && GammaMatrix!=0 && dLdT!=0 )
+        if ( NumTorqueAxes>0 && GammaMatrix!=0 )
          for(nta=0; nta<NumTorqueAxes; nta++)
           { memset(dX,0,3*sizeof(double));
-            memset(dG,0,3*sizeof(double));
-            for(mu=0; mu<3; mu++)
-             for(nu=0; nu<3; nu++)
-              { dX[mu]+=GammaMatrix[9*nta + mu + 3*nu]*X[nu];
-                dG[mu]+=GammaMatrix[9*nta + mu + 3*nu]*XmQD[nu];
+            memset(dF,0,3*sizeof(double));
+            for(Mu=0; Mu<3; Mu++)
+             for(Nu=0; Nu<3; Nu++)
+              { dX[Mu]+=GammaMatrix[9*nta + Mu + 3*Nu]*X[Nu];
+                dF[Mu]+=GammaMatrix[9*nta + Mu + 3*Nu]*F[Nu];
               };
             Puv=VecDot(R,dX);
-            dLdTInner[3*nta + 0] += LTerm[0]*Puv*Psi + VecDot(dG,XPmQS)*Phi;
-            dLdTInner[3*nta + 1] += LTerm[1]*Puv*Psi;
-            dLdTInner[3*nta + 2] += LTerm[2]*Puv*Zeta 
-                                    + (  VecDot(VecCross(dG,XPmQS,dgXh),R) 
-                                       + VecDot(gXh,dX)
+            dHdTInner[3*nta + 0] += hPlus*Puv*Psi + VecDot(dF,FP)*Phi;
+            dHdTInner[3*nta + 1] += hTimes*Puv*Zeta 
+                                    + (  VecDot(VecCross(dF,FP,dFxFP),R) 
+                                       + VecDot(FxFP,dX) 
                                       )*Psi;
           }; // for(nta= ... )
 
@@ -239,14 +246,14 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
      /*--------------------------------------------------------------*/
      /*- accumulate contributions to outer integral                  */
      /*--------------------------------------------------------------*/
-     for(m=0; m<3; m++)
-      L[m]+=w*LInner[m];
-     if (GradL)
-      for(m=0; m<9; m++)
-       GradL[m]+=w*GradLInner[m];
-     if (dLdT)
-      for(m=0; m<3*NumTorqueAxes; m++)
-       dLdT[m]+=w*dLdTInner[m];
+     H[0]+=w*HInner[0];
+     H[1]+=w*HInner[1];
+     if (GradH)
+      for(Mu=0; Mu<6; Mu++)
+       GradH[Mu]+=w*GradHInner[Mu];
+     if (dHdT)
+      for(Mu=0; Mu<2*NumTorqueAxes; Mu++)
+       dHdT[Mu]+=w*dHdTInner[Mu];
 
    }; // for(np=ncp=0; np<nPts; np++) 
 }
@@ -256,7 +263,7 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
 /* one of several different methods based on how near the two  */
 /* triangles are to each other.                                */
 /***************************************************************/
-void GetPanelPanelInteractions(GPPIArgStruct *Args)
+void GetPanelPanelInteractions(GetPPIArgStruct *Args)
 { 
   /***************************************************************/
   /* local copies of fields in argument structure ****************/
@@ -281,17 +288,18 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /***************************************************************/
   RWGPanel *Pa = Oa->Panels[npa];
   RWGPanel *Pb = Ob->Panels[npb];
-  double *Qa   = Oa->Vertices + 3*Oa->Panels->VI[iQa];
-  double *Qb   = Ob->Vertices + 3*Ob->Panels->VI[iQb];
+  double *Qa   = Oa->Vertices + 3*Pa->VI[iQa];
+  double *Qb   = Ob->Vertices + 3*Pb->VI[iQb];
   double *Va[3], *Vb[3];
   double rRel; 
   int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
 
   /***************************************************************/
-  /* if the panels are far apart then just use simple cubature   */
+  /* if the panels are far apart then just use simple low-order  */
+  /* non-desingularized cubature.                                */
   /***************************************************************/
   if ( rRel > DESINGULARIZATION_RADIUS )
-   { GetPPIs_Cubature(Args, 0, 0, Va, Vb, Qa, Qb);
+   { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
      return;
    };
 
@@ -306,8 +314,8 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
 
      Args->H[1]=0.0; /* 'H_\times' vanishes for the common-triangle case */
    
-     if (GradH) memset(GradH, 2*NumGradientComponents, 0*sizeof(cdouble));
-     if (dHdT)  memset(dHdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+     if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));
+     if (dHdT)  memset(dHdT,  0, 2*NumTorqueAxes*sizeof(cdouble));
 
      return;
    };
@@ -316,7 +324,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /* if we are in the high-frequency regime then desingularization */
   /* doesn't work; in this case, if there are any common vertices  */
   /* we use taylor's method for the full panel integral, and       */
-  /* otherwise we use high-order naive cubature                    */
+  /* otherwise we use high-order naive cubature.                   */
   /*****************************************************************/
   if ( abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD )
    { 
@@ -331,8 +339,8 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
         Args->H[1]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, k,
                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
 
-        if (GradH) memset(GradH, 2*NumGradientComponents, 0*sizeof(cdouble));
-        if (dHdT)  memset(dHdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+        if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
+        if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
 
         return;
       }
@@ -347,8 +355,8 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
         Args->H[1]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, k,
                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
 
-        if (GradH) memset(GradH, 2*NumGradientComponents, 0*sizeof(cdouble));
-        if (dHdT)  memset(dHdT, 2*NumTorqueAxes, 0*sizeof(cdouble));
+        if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
+        if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
 
         return;
       }
@@ -357,10 +365,26 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
         /*--------------------------------------------------------------*/
         /* no common vertices                                           */
         /*--------------------------------------------------------------*/
-        GetPPIs_Cubature(Args, 0, 1, Va, Vb, Qa, Qb);
+        GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
         return;
       };
 
+   };
+
+  /*****************************************************************/
+  /* if the user requested angular derivatives, then we make a     */
+  /* first call to GetPPIs_Cubature *without* desingularization    */
+  /* just to get the angular derivative integrals, because         */
+  /* desingularization of angular derivative integrals is not      */
+  /* implemented and probably never will be; for this call we      */
+  /* use high-order cubature but then promptly throw away the H    */
+  /* and GradH integrals since we proceed to compute those using   */
+  /* desingularization below.                                      */
+  /*****************************************************************/
+  cdouble dHdTSave[6];
+  if (NumTorqueAxes>0)
+   { GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
+     memcpy(dHdTSave, Args->dHdT, 2*NumTorqueAxes*sizeof(cdouble));
    };
 
   /*****************************************************************/
@@ -375,10 +399,10 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   /*                                                               */
   /*****************************************************************/
   // step 1
-  GetPPIs_Cubature(Args, 1, 0, Va, Vb, Qa, Qb);
+  GetPPIs_Cubature(Args, 1, 0, Va, Qa, Vb, Qb);
 
   // step 2
-  int NeedDerivatives=(NumGradientComponents>0 || NumTorqueAxes>0);
+  int NeedDerivatives=NumGradientComponents>0;
   FIPPIDataTable *FIPPIDT=0;
   FIPPIDataRecord MyFDR, *FDR;
   if (FIPPIDT)
@@ -388,7 +412,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
-  cdouble OOK2=1.0/(k*k);
+  cdouble ik=II*k, OOIK2=1.0/(ik*ik);
   cdouble PF[5];
   PF[0]=1.0/(4.0*M_PI);
   PF[1]=ik*PF[0];
@@ -397,48 +421,47 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
   PF[4]=ik*PF[3];
   PF[5]=ik*PF[4];
 
-  // contributions to panel-panel integrals 
-  Args->H[0] +=  PF[0]*AA0*(FIPPID->hDotRm1 - OOK2*FIPPID->hNablaRm1)
-                +PF[1]*AA1*(FIPPID->hDotR0  - OOK2*FIPPID->hNablaR0 )
-                +PF[2]*AA2*(FIPPID->hDotR1  - OOK2*FIPPID->hNablaR1 )
-                +PF[3]*AA3*(FIPPID->hDotR2  - OOK2*FIPPID->hNablaR2 );
+  // add contributions to panel-panel integrals 
+  Args->H[0] +=  PF[0]*AA0*(FDR->hDotRM1 + OOIK2*FDR->hNablaRM1)
+                +PF[1]*AA1*(FDR->hDotR0  + OOIK2*FDR->hNablaR0 )
+                +PF[2]*AA2*(FDR->hDotR1  + OOIK2*FDR->hNablaR1 )
+                +PF[3]*AA3*(FDR->hDotR2  + OOIK2*FDR->hNablaR2 );
   
-  Args->H[1] +=  PF[0]*BB0*FIPPID->hTimesRm3
-                +PF[2]*BB2*FIPPID->hTimesRm1
-                +PF[3]*BB3*FIPPID->hTimesR0 
-                +PF[4]*BB4*FIPPID->hTimesR1;
+  Args->H[1] +=  PF[0]*BB0*FDR->hTimesRM3
+                +PF[2]*BB2*FDR->hTimesRM1
+                +PF[3]*BB3*FDR->hTimesR0 
+                +PF[4]*BB4*FDR->hTimesR1;
 
-  if (Args->NumGradientComponents==0 && Args->NumTorqueAxes==0) 
+  // restore angular derivatives as necessary 
+  if (NumTorqueAxes>0)
+   memcpy(Args->dHdT, dHdTSave, 2*NumTorqueAxes*sizeof(cdouble));
+
+  if (NumGradientComponents==0)
    return;
 
-  // contributions to gradients of panel-panel integrals
+  // add contributions to gradients of panel-panel integrals
   double Rab[3];
   VecSub(Pa->Centroid, Pb->Centroid, Rab);
 
   cdouble GradH0Scalar, GradH1Scalar;
-  GradH0Scalar=  PF[0]*BB0*(FIPPID->hDotRm3 - OOK2*FIPPID->hNablaRm3)
-                +PF[2]*BB2*(FIPPID->hDotRm1 - OOK2*FIPPID->hNablaRm1)
-                +PF[3]*BB3*(FIPPID->hDotR0  - OOK2*FIPPID->hNablaR0)
-                +PF[4]*BB4*(FIPPID->hDotR1  - OOK2*FIPPID->hNablaR1);
+  GradH0Scalar=  PF[0]*BB0*(FDR->hDotRM3 + OOIK2*FDR->hNablaRM3)
+                +PF[2]*BB2*(FDR->hDotRM1 + OOIK2*FDR->hNablaRM1)
+                +PF[3]*BB3*(FDR->hDotR0  + OOIK2*FDR->hNablaR0)
+                +PF[4]*BB4*(FDR->hDotR1  + OOIK2*FDR->hNablaR1);
 
-  GradH1Scalar=  PF[0]*CC0*FIPPID->hTimesRm5
-                +PF[2]*CC2*FIPPID->hTimesRm3
-                +PF[5]*CC5*FIPPID->hTimesR;
+  GradH1Scalar=  PF[0]*CC0*FDR->hTimesRM5
+                +PF[2]*CC2*FDR->hTimesRM3
+                +PF[5]*CC5*FDR->hTimesR0;
 
   int Mu;
-  for(Mu=0; Mu<(Args->NumGradientComponents); Mu++)
-   { Args->GradH[2*Mu + 0] += Rab[Mu]*GradGSCalar;
-     Args->GradH[2*Mu + 1] += Rab[Mu]*GradCSCalar; 
+  for(Mu=0; Mu<NumGradientComponents; Mu++)
+   { Args->GradH[2*Mu + 0] += Rab[Mu]*GradH0Scalar;
+     Args->GradH[2*Mu + 1] += Rab[Mu]*GradH1Scalar
+                               +PF[0]*BB0*FDR->dhTimesdRMuRM3[Mu]
+                               +PF[2]*BB2*FDR->dhTimesdRMuRM1[Mu]
+                               +PF[3]*BB3*FDR->dhTimesdRMuR0[Mu]
+                               +PF[4]*BB3*FDR->dhTimesdRMuR1[Mu];
    };
-
-  for(Mu=0; Mu<(Args->NumGradientComponents); Mu++)
-   { Args->GradH[2*Mu + 1] +=   PF[0]*BB0*FIPPID->dhTimesdRMuRm3[Mu]
-                               +PF[2]*BB2*FIPPID->dhTimesdRMuRm1[Mu]
-                               +PF[3]*BB3*FIPPID->dhTimesdRMuR0[Mu]
-                               +PF[4]*BB3*FIPPID->dhTimesdRMuR1[Mu];
-   };
-
-  // contributions to angular derivatives of panel-panel integrals
 
 } 
 
@@ -450,7 +473,7 @@ void GetPanelPanelInteractions(GPPIArgStruct *Args)
 void GetPanelPanelInteractions(GetPPIArgStruct *Args,
                                cdouble *H, 
                                cdouble *GradH, 
-                               cdouble *dHdT);
+                               cdouble *dHdT)
 { 
   GetPanelPanelInteractions(Args);
 

@@ -25,7 +25,7 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetEdgeEdgeInteractions(GEEIArgStruct *Args)
+void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
 { 
   /***************************************************************/
   /* local copies of fields in argument structure ****************/
@@ -59,57 +59,58 @@ void GetEdgeEdgeInteractions(GEEIArgStruct *Args)
   /***************************************************************/
   cdouble HPP[2], HPM[2], HMP[2], HMM[2];
   cdouble GradHPP[6], GradHPM[6], GradHMP[6], GradHMM[6];
-  cdouble dGCdTPP[6], dGCdTPM[6], dGCdTMP[6], dGCdTMM[6];
+  cdouble dHdTPP[6], dHdTPM[6], dHdTMP[6], dHdTMM[6];
 
   /*--------------------------------------------------------------*/
   /*- initialize argument structure for GetPanelPanelInteractions */
   /*--------------------------------------------------------------*/
-  GPPIArgStruct MyGPPIArgs, *GPPIArgs=&MyGPPIArgs;
-  InitGPPIArgs(&GPPIArgs);
+  GetPPIArgStruct MyGetPPIArgs, *GetPPIArgs=&MyGetPPIArgs;
+  InitGetPPIArgs(GetPPIArgs);
 
-  GPPIArgs->Oa                     = Oa;
-  GPPIArgs->Ob                     = Ob;
-  GPPIArgs->k                      = k;
-  GPPIArgs->NumGradientComponents  = NumGradientComponents;
-  GPPIArgs->NumTorqueAxes          = NumTorqueAxes;
-  GPPIArgs->GammaMatrix            = GammaMatrix;
+  GetPPIArgs->Oa                     = Oa;
+  GetPPIArgs->Ob                     = Ob;
+  GetPPIArgs->k                      = k;
+  GetPPIArgs->NumGradientComponents  = NumGradientComponents;
+  GetPPIArgs->NumTorqueAxes          = NumTorqueAxes;
+  GetPPIArgs->GammaMatrix            = GammaMatrix;
 
   /*--------------------------------------------------------------*/
   /*- positive-positive, positive-negative, etc. -----------------*/
   /*--------------------------------------------------------------*/
-  GPPIArgs->npa = Ea->iPPanel;     GPPIArgs->iQa = Ea->PIndex;
-  GPPIArgs->npb = Eb->iPPanel;     GPPIArgs->iQb = Eb->PIndex;
-  GetPanelPanelInteractions(GPPIArgs, HPP, GradHPP, dHdTPP);
+  GetPPIArgs->npa = Ea->iPPanel;     GetPPIArgs->iQa = Ea->PIndex;
+  GetPPIArgs->npb = Eb->iPPanel;     GetPPIArgs->iQb = Eb->PIndex;
+  GetPanelPanelInteractions(GetPPIArgs, HPP, GradHPP, dHdTPP);
 
-  GPPIArgs->npa = Ea->iPPanel;     GPPIArgs->iQa = Ea->PIndex;
-  GPPIArgs->npb = Eb->iMPanel;     GPPIArgs->iQb = Eb->MIndex;
-  GetPanelPanelInteractions(GPPIArgs, HPM, GradHPM, dHdTPM);
+  GetPPIArgs->npa = Ea->iPPanel;     GetPPIArgs->iQa = Ea->PIndex;
+  GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
+  GetPanelPanelInteractions(GetPPIArgs, HPM, GradHPM, dHdTPM);
 
-  GPPIArgs->npa = Ea->iMPanel;     GPPIArgs->iQa = Ea->MIndex;
-  GPPIArgs->npb = Eb->iPPanel;     GPPIArgs->iQb = Eb->PIndex;
-  GetPanelPanelInteractions(GPPIArgs, HMP, GradHMP, dHdTMP);
+  GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
+  GetPPIArgs->npb = Eb->iPPanel;     GetPPIArgs->iQb = Eb->PIndex;
+  GetPanelPanelInteractions(GetPPIArgs, HMP, GradHMP, dHdTMP);
 
-  GPPIArgs->npa = Ea->iMPanel;     GPPIArgs->iQa = Ea->MIndex;
-  GPPIArgs->npb = Eb->iMPanel;     GPPIArgs->iQb = Eb->MIndex;
-  GetPanelPanelInteractions(GPPIArgs, HMM, GradHMM, dHdTMM);
+  GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
+  GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
+  GetPanelPanelInteractions(GetPPIArgs, HMM, GradHMM, dHdTMM);
 
   /*--------------------------------------------------------------*/
   /*- assemble the final quantities ------------------------------*/
   /*--------------------------------------------------------------*/
   double GPreFac = Ea->Length*Eb->Length;
   cdouble CPreFac = Ea->Length*Eb->Length / (II*k);
+  int Mu;
 
-  Args->GC[0] = PreFac*(HPP[0] - HPM[0] - HMP[0] + HMM[0]);
-  Args->GC[1] = PreFac*(HPP[1] - HPM[1] - HMP[1] + HMM[1]);
+  Args->GC[0] = GPreFac*(HPP[0] - HPM[0] - HMP[0] + HMM[0]);
+  Args->GC[1] = CPreFac*(HPP[1] - HPM[1] - HMP[1] + HMM[1]);
 
   for(Mu=0; Mu<NumGradientComponents; Mu++)
-   { Args->GradGC[2*Mu+0] = PreFac*( GradHPP[2*Mu+0] - GradHPM[2*Mu+0] - GradHMP[2*Mu+0] + GradHMM[2*Mu+0] );
-     Args->GradGC[2*Mu+1] = PreFac*( GradHPP[2*Mu+1] - GradHPM[2*Mu+1] - GradHMP[2*Mu+1] + GradHMM[2*Mu+1] );
+   { Args->GradGC[2*Mu+0] = GPreFac*( GradHPP[2*Mu+0] - GradHPM[2*Mu+0] - GradHMP[2*Mu+0] + GradHMM[2*Mu+0] );
+     Args->GradGC[2*Mu+1] = CPreFac*( GradHPP[2*Mu+1] - GradHPM[2*Mu+1] - GradHMP[2*Mu+1] + GradHMM[2*Mu+1] );
    };
 
   for(Mu=0; Mu<NumTorqueAxes; Mu++)
-   { Args->dGCdT[2*Mu+0] = PreFac*( dHdTPP[2*Mu+0] - dHdTPM[2*Mu+0] - dHdTMP[2*Mu+0] + dHdTMM[2*Mu+0]);
-     Args->dGCdT[2*Mu+1] = PreFac*( dHdTPP[2*Mu+1] - dHdTPM[2*Mu+1] - dHdTMP[2*Mu+1] + dHdTMM[2*Mu+1]);
+   { Args->dGCdT[2*Mu+0] = GPreFac*( dHdTPP[2*Mu+0] - dHdTPM[2*Mu+0] - dHdTMP[2*Mu+0] + dHdTMM[2*Mu+0]);
+     Args->dGCdT[2*Mu+1] = CPreFac*( dHdTPP[2*Mu+1] - dHdTPM[2*Mu+1] - dHdTMP[2*Mu+1] + dHdTMM[2*Mu+1]);
    };
 
 }
@@ -194,7 +195,7 @@ void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void InitGEEIArgs(GEEIArgStruct *Args)
+void InitGetEEIArgs(GetEEIArgStruct *Args)
 {
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;

@@ -54,7 +54,7 @@ typedef struct GetPPIArgStruct
 void InitGetPPIArgs(GetPPIArgStruct *Args);
 void GetPanelPanelInteractions(GetPPIArgStruct *Args);
 void GetPanelPanelInteractions(GetPPIArgStruct *Args,
-                               cdouble *H, 
+                               cdouble *H,
                                cdouble *GradH, 
                                cdouble *dHdT);
 
@@ -115,7 +115,7 @@ typedef struct ABMBArgStruct
    // the called both before and after the call
    double Sign;
    cdouble EpsA, EpsB; 
-   double MuA, MuA;
+   double MuA, MuB;
    int OaIsPEC, ObIsPEC;
 
  } ABMBArgStruct;
@@ -144,8 +144,8 @@ typedef struct FIPPIDataRecord
    
    // the following fields are needed only if we are computing
    // derivatives of panel-panel integrals
-   double hDotRM3, hNablaRm3, hTimesRm5;
-   double dhTimesdRMuRm3[3], dhTimesdRMuRm1[3], 
+   double hDotRM3, hNablaRM3, hTimesRM5;
+   double dhTimesdRMuRM3[3], dhTimesdRMuRM1[3], 
           dhTimesdRMuR0[3], dhTimesdRMuR1[3];
  } FIPPIDataRecord;
 
@@ -162,6 +162,9 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
 // storing FIPPIDataRecords for many pairs of panels
 class FIPPIDataTable
  { 
+
+  public:
+
     // constructor 
     FIPPIDataTable();
 
@@ -185,6 +188,7 @@ cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH, cdouble GParam,
 /*--------------------------------------------------------------*/
 /*- AssessPanelPair counts common vertices in a pair of panels  */
 /*--------------------------------------------------------------*/
+int AssessPanelPair(double **Va, double **Vb, double rMax);
 int AssessPanelPair(double **Va, double **Vb);
 
 int AssessPanelPair(RWGObject *Oa, int npa, 
