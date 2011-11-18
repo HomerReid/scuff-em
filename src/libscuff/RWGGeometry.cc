@@ -213,8 +213,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* initialize arrays of basis-function and panel index offsets */
   /***************************************************************/
-  BFIndexOffset=(int *)RWGMalloc( NumObjects*sizeof(int) );
-  PanelIndexOffset=(int *)RWGMalloc( NumObjects*sizeof(int) );
+  BFIndexOffset=(int *)RWGMalloc(NumObjects*sizeof(int) );
+  PanelIndexOffset=(int *)RWGMalloc(NumObjects*sizeof(int) );
   BFIndexOffset[0]=PanelIndexOffset[0]=0;
   for(no=1; no<NumObjects; no++)
    { BFIndexOffset[no]=BFIndexOffset[no-1] + Objects[no-1]->NumBFs;

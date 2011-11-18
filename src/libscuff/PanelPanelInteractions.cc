@@ -256,6 +256,14 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
        dHdT[Mu]+=w*dHdTInner[Mu];
 
    }; // for(np=ncp=0; np<nPts; np++) 
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  memcpy(Args->H, H, 2*sizeof(cdouble));
+  if (GradH) memcpy(Args->GradH, GradH, 6*sizeof(cdouble));
+  if (dHdT) memcpy(Args->dHdT, dHdT, 2*NumTorqueAxes*sizeof(cdouble));
+
 }
 
 /***************************************************************/
