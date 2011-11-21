@@ -1,0 +1,5 @@
+SCUFF-EM v. 2.0	(December 1, 2011)
+
+	* Initial public release of SCUFF-EM, replacing a collection
+	  of earlier separately-distributed codes including libRWG, 
+          EMScatter, Casimir3D, and Casimir2D.

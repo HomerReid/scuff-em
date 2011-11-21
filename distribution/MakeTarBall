@@ -1,0 +1,102 @@
+#!/bin/bash
+
+#
+# MakeTarBall -- assemble a downloadable tarball using the most 
+#             -- recent SCUFF-EM source files
+#
+# homer reid  -- 11/2011
+#
+
+NAME=scuff-EM
+BASE=${HOME}/work/scuff-em
+
+TOPLEVELFILES=${BASE}/distribution/TopLevelFiles
+DIRLIST=${BASE}/dirs
+FILELIST=${BASE}/files
+
+#################################################################
+# copy_files function: 
+#  first argument is source directory
+#  second argument is destination directory
+#  all files listed in `manifesto` file of source directory are
+#  copied to destination directory, while any directories listed 
+#  in `manifesto` file are recursively copied using copy_files
+#################################################################
+copy_files()
+{
+  echo "copy_files ${SRCDIR} ${DESTDIR} ..." >> /tmp/copy_files.log
+
+  SRCDIR=$1
+  DESTDIR=$2
+  if [ ! -d ${SRCDIR} -o ! -d ${DESTDIR} -o ! -f ${SRCDIR}/Manifesto ]
+  then
+    echo "copy_files(${SRCDIR},${DESTDIR}): something's gone wrong."
+  fi
+
+  cat ${SRCDIR}/Manifesto | while read ENTRY
+  do
+    if [ -d ${SRCDIR}/${ENTRY} ]
+    then
+      mkdir ${DESTDIR}/${ENTRY}
+      echo "recursing into ${SRCDIR}/${ENTRY}..." >> /tmp/copy_files.log
+      copy_files ${SRCDIR}/${ENTRY} ${DESTDIR}/${ENTRY}
+    else
+      echo "copying ${SRCDIR}/${ENTRY} to ${DESTDIR}"
+      cp ${SRCDIR}/${ENTRY} ${DESTDIR}
+    fi
+  done
+    
+}
+
+#################################################################
+#################################################################
+#################################################################
+if [ $# -ne 1 ] 
+then
+  echo "usage: $0 Version" 
+  echo "example: $0 2.0"
+  exit
+fi
+VERSION=$1
+DEST=${NAME}-${VERSION}
+
+#################################################################
+#################################################################
+#################################################################
+if [ -d ${DEST} -o -f ${DEST} ]
+then
+  printf " ** Warning: ${DEST} already exists; nuke it? (y/n) "
+  read RESPONSE
+  if [ "x${RESPONSE}" != "xy" ]
+  then
+    echo " ** Aborting and leaving ${DEST} untouched." 
+    exit
+  fi
+  /bin/rm -rf ${DEST}
+fi
+mkdir ${DEST}
+
+#################################################################
+# copy files that go into the top-level directory of the         
+# distributed tarball
+#################################################################
+cp ${TOPLEVELFILES}/* ${DEST}
+
+#################################################################
+# now go through the list of top-level subdirectories and 
+# recursively copy 
+#################################################################
+for DIR in src tests examples doc
+do
+  mkdir ${DEST}/${DIR}
+  copy_files ${BASE}/${DIR} ${DEST}/${DIR}
+done
+
+#################################################################
+#################################################################
+#################################################################
+tar cvf ${DEST}.tar ${DEST} 
+bzip2 ${DEST}.tar
+
+echo "Tarball written to ${DEST}.tar.bz2."
+echo "Thank you for your support."

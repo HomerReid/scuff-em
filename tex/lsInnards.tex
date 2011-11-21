@@ -1978,6 +1978,194 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Evaluation of Frequency-Independent Panel-Panel Integrals}
+
+\subsection{FIPPIs for Panels with Common Vertices}
+
+For panels with common vertices, I evaluate the FIPPIs 
+using the Taylor-Duffy method discussed in 
+Section \ref{TaylorDuffySection}.
+
+\subsection{FIPPIs for Panels with no Common Vertices}
+
+For pairs of panels with no common vertices, the FIPPIs may be 
+evaluated by straightforward four-dimensional numerical cubature 
+over the panels. However, this can be somewhat time-consuming.
+To speed things up, it is convenient to observe that in all cases
+we may evaluate one of the four cubatures analytically, leaving
+behind a 3D cubature that we evaluate numerically.
+Although this procedure is tedious and the integrands of the 
+resulting 3D integrals are complicated, the overall procedure 
+leads to a decisive savings of computation time.
+
+We write a FIPPI in the general form
+$$ \int_0^1 du \, \int_0^u dv \, 
+   \int_0^1 du^\prime \, \int_0^{u^\prime} dv^\prime \,
+   h(u, v, u^\prime, v^\prime) r^p(u, v, u^\prime, v^\prime)
+$$
+and proceed to perform the $v^\prime$ integral analytically,
+leaving behind a 3D cubature over the variables $u,v,u^\prime.$
+The first step is to write the $h$ and $r$ functions
+as polynomials in $v^\prime$, with coefficients that are
+functions of $u,v,u^\prime$ (but with this dependence suppressed
+in our notation for now). We begin by writing 
+$$ \vb f = \vb f^{(0)}, 
+   \qquad
+   \vb f^\prime = v^\prime \vb f^{\prime(1)} + \vb f^{\prime(0)},
+   \qquad
+   \vb R = v^\prime \vb R^{(1)} + \vb R^{(0)}
+$$
+$$ \vb f^{(0)} = \vb V_0 - \vb Q + u\vb A + v\vb B$$
+$$ \vb f^{\prime(1)} = \vb B^\prime, 
+   \qquad 
+   \vb f^{\prime(0)} = \vb V_0^\prime - \vb Q^\prime + u\vb A^\prime 
+$$
+$$ \vb R^{(1)} = -\vb B^\prime, 
+   \qquad
+   \vb R^{(0)} = \vb V_0 - \vb V_0^\prime + u\vb A + v\vb B - u\vb A^\prime
+$$
+Then we have 
+
+%====================================================================%
+\begin{align*}
+  h_\bullet(v^\prime) 
+&= v^\prime h_\bullet^{(1)} + h_\bullet^{(0)}
+\\
+%--------------------------------------------------------------------%
+  h_\nabla(v^\prime) 
+&= h_\nabla^{(0)}
+\\
+%--------------------------------------------------------------------%
+  h_\times(v^\prime) 
+&= v^{\prime 2} h_\times^{(2)} + v^{\prime} h_\times^{(1)} + h_\times^{(0)}
+\\
+%--------------------------------------------------------------------%
+  h_\mu(v^\prime) 
+&= v^{\prime} h_\mu^{(1)} + h_\mu^{(0)}
+\end{align*}
+%====================================================================%
+with 
+%====================================================================%
+$$
+h_\bullet^{(1)}
+= \vb f^{(0)} \cdot \vb f^{\prime(1)}, 
+\qquad 
+h_\bullet^{(0)}
+= \vb f^{(0)} \cdot \vb f^{\prime(0)}
+$$
+%--------------------------------------------------------------------%
+$$
+h_\nabla^{(0)}
+=4
+$$
+%--------------------------------------------------------------------%
+$$
+h_\times^{(2)}
+= \big[\vb f^{(0)} \times \vb f^{(1)}\big] \cdot \vb R^{(1)}, 
+\quad
+h_\times^{(1)}
+=
+    \big[\vb f^{(0)} \times \vb f^{(1)}\big] \cdot \vb R^{(0)}
+   +\big[\vb f^{(0)} \times \vb f^{(0)}\big] \cdot \vb R^{(1)}, 
+\quad
+h_\times^{(0)}
+=
+    \big[\vb f^{(0)} \times \vb f^{(0)}\big] \cdot \vb R^{(0)}
+$$
+%--------------------------------------------------------------------%
+$$
+h_\mu^{(1)}
+=\big[\vb f^{(0)} \times \vb f^{(1)}\big]_\mu
+\qquad
+h_\mu^{(0)}
+=\big[\vb f^{(0)} \times \vb f^{(0)}\big]_\mu
+$$
+%====================================================================%
+and
+%====================================================================%
+\begin{align*}
+ r(v^\prime) 
+&= \sqrt{ v^{\prime 2} |\vb R^{(1)}|^2 
+         +2v^{\prime}   \vb R^{(1)}\cdot \vb R^{(0)}
+         +|\vb R^{(0)}|^2
+        }.
+\\
+\intertext{It is actually easiest to rewrite this in the form}
+&= |\vb R^{(1)}| \sqrt{ (v^\prime + v_0^\prime)^2 + b^2 }
+\end{align*}
+%====================================================================%
+with
+$$
+v_0^\prime = \frac{ \vb R^{(1)} \cdot \vb R^{(0)} } {|\vb R^{(1)}|}, 
+\qquad
+b = |\vb R^{(0)}|^2 -\frac{|\vb R^{(1)} \cdot \vb R^{(0)}|^2}{2|\vb R^{(1)}|^2}.
+$$
+Now put 
+$$ \mathcal{I}^q_p=
+   \int_0^{u^\prime} 
+    v^{\prime q} \Big[(v^\prime + v_0^\prime)^2 + b^2\Big]^{p/2} dv^\prime.
+$$
+The cases we will need are 
+\begin{align*}
+\mathcal{I}^0_{-1}
+ &=
+\\
+\mathcal{I}^1_{-1}
+\\
+\mathcal{I}^2_{-1}
+\\
+\mathcal{I}^0_{-3}
+ &=
+\\
+\mathcal{I}^1_{-3}
+ &=
+\\
+\mathcal{I}^2_{-3}
+\\
+\mathcal{I}^2_{-1}
+\\
+\mathcal{I}^0_{-5}
+\\
+\mathcal{I}^1_{-5}
+\\
+\mathcal{I}^2_{-5}
+\\
+\mathcal{I}^3_{-5}
+\end{align*}
+I can now assemble all of the above ingredients to express the
+FIPPIs as 3D cubatures. In the table below, the integrals on the 
+LHS denote the full FIPPIs, while the integrals on the RHS indicate
+3D cubatures evaluated numerically.
+%====================================================================%
+\begin{align*}
+ \iint h_\bullet r^p
+&=\iint \left\{   h_{\bullet}^{(1)} I^1_{p} 
+                + h_{\bullet}^{(0)} I^0_{p} 
+        \right\}
+\\
+%%--------------------------------------------------------------------%
+ \iint h_\nabla r^p 
+&=\iint h_\nabla^{(0)} I^0_p 
+\\
+%%--------------------------------------------------------------------%
+ \iint h_\times r^p
+&=\iint \left\{  h_\times^{(2)} I^2_p
+                +h_\times^{(1)} I^1_p
+                +h_\times^{(0)} I^0_p
+         \right\}
+\\
+%--------------------------------------------------------------------%
+  \iint h_\mu r^p
+&=\iint \left\{  h_{\mu}^{(1)} I^1_p 
+                +h_{\mu}^{(0)} I^0_p 
+         \right\}
+\end{align*}
+%====================================================================%
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
 
 \include{IndexNotationAppendix} 
