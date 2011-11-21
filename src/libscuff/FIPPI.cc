@@ -60,6 +60,7 @@ typedef struct CFDRData
    double *V0, A[3], B[3], *Q;
    double *V0P, AP[3], BP[3], *QP;
    int NeedDerivatives;
+   int nCalls;
  } CFDRData;
 
 void CFDRIntegrand(unsigned ndim, const double *x, void *params,
@@ -69,6 +70,7 @@ void CFDRIntegrand(unsigned ndim, const double *x, void *params,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   CFDRData *CFDRD=(CFDRData *)params;
+  CFDRD->nCalls++;
 
   double *V0=CFDRD->V0;
   double *A=CFDRD->A;
@@ -191,10 +193,12 @@ void ComputeFIPPIDataRecord_Cubature(double **Va, double *Qa,
   /*--------------------------------------------------------------*/
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
-  int fdim = NeedDerivatives ? 12 : 27;
+  int fdim = NeedDerivatives ? 27 : 12;
   double F[fdim], E[fdim];
+CFDRD->nCalls=0;
   adapt_integrate(fdim, CFDRIntegrand, CFDRD, 4, Lower, Upper,
                   0, ABSTOL, RELTOL, F, E);
+printf("FIPPI cubature: %i calls\n",CFDRD->nCalls);
 
   /*--------------------------------------------------------------*/
   /*- unpack the results into the output data record -------------*/

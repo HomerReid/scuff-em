@@ -143,7 +143,7 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
   /***************************************************************/
   /* outer loop **************************************************/
   /***************************************************************/
-  double hDot, hNabla, hTimes; // note hNabla is constant throughout
+  double hDot, hNabla=4.0, hTimes; // note hNabla is constant throughout
   cdouble hPlus;
   int np, ncp, npp, ncpp;
   int Mu, Nu;
@@ -219,8 +219,8 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
 
         if ( GradH )
          for(Mu=0; Mu<3; Mu++)
-           { GradHInner[3*Mu + 0] += R[Mu]*hPlus*Psi;
-             GradHInner[3*Mu + 1] += R[Mu]*hTimes*Zeta + FxFP[Mu]*Psi; 
+           { GradHInner[2*Mu + 0] += R[Mu]*hPlus*Psi;
+             GradHInner[2*Mu + 1] += R[Mu]*hTimes*Zeta + FxFP[Mu]*Psi; 
            };
 
         /* 3. d/dTheta L_{0,1,2} */
@@ -234,8 +234,8 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
                 dF[Mu]+=GammaMatrix[9*nta + Mu + 3*Nu]*F[Nu];
               };
             Puv=VecDot(R,dX);
-            dHdTInner[3*nta + 0] += hPlus*Puv*Psi + VecDot(dF,FP)*Phi;
-            dHdTInner[3*nta + 1] += hTimes*Puv*Zeta 
+            dHdTInner[2*nta + 0] += hPlus*Puv*Psi + VecDot(dF,FP)*Phi;
+            dHdTInner[2*nta + 1] += hTimes*Puv*Zeta 
                                     + (  VecDot(VecCross(dF,FP,dFxFP),R) 
                                        + VecDot(FxFP,dX) 
                                       )*Psi;
@@ -308,6 +308,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /***************************************************************/
   if ( rRel > DESINGULARIZATION_RADIUS )
    { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
+printf("\n**\n** using cubature\n**\n");
      return;
    };
 
@@ -406,6 +407,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /*  3) add the singular and non-singular contributions           */
   /*                                                               */
   /*****************************************************************/
+printf("\n**\n** using desingularization\n**\n");
   // step 1
   GetPPIs_Cubature(Args, 1, 0, Va, Qa, Vb, Qb);
 
