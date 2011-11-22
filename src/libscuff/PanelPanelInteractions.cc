@@ -220,7 +220,7 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
         if ( GradH )
          for(Mu=0; Mu<3; Mu++)
            { GradHInner[2*Mu + 0] += R[Mu]*hPlus*Psi;
-             GradHInner[2*Mu + 1] += R[Mu]*hTimes*Zeta + FxFP[Mu]*Psi; 
+             GradHInner[2*Mu + 1] += R[Mu]*hTimes*Zeta + FxFP[Mu]*Psi;
            };
 
         /* 3. d/dTheta L_{0,1,2} */
@@ -450,9 +450,6 @@ printf("\n**\n** using desingularization\n**\n");
    return;
 
   // add contributions to gradients of panel-panel integrals
-  double Rab[3];
-  VecSub(Pa->Centroid, Pb->Centroid, Rab);
-
   cdouble GradH0Scalar, GradH1Scalar;
   GradH0Scalar=  PF[0]*BB0*(FDR->hDotRM3 + OOIK2*FDR->hNablaRM3)
                 +PF[2]*BB2*(FDR->hDotRM1 + OOIK2*FDR->hNablaRM1)
@@ -462,6 +459,9 @@ printf("\n**\n** using desingularization\n**\n");
   GradH1Scalar=  PF[0]*CC0*FDR->hTimesRM5
                 +PF[2]*CC2*FDR->hTimesRM3
                 +PF[5]*CC5*FDR->hTimesR0;
+
+  double Rab[3];
+  VecSub(Pa->Centroid, Pb->Centroid, Rab);
 
   int Mu;
   for(Mu=0; Mu<NumGradientComponents; Mu++)

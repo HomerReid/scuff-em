@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
   char *Tokens[50];
   char *p;
   int npa, npb, iQa, iQb, ncv, SameObject, Gradient;
-  double rRel, DZ;
+  double rRel, rRelRequest, DZ;
   cdouble K;
   cdouble HLS[2], GradHLS[6]; // G,C integrals by libscuff 
   cdouble HBF[2], GradHBF[6]; // G,C integrals by brute force
@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
      printf("          --npb xx \n");
      printf("          --iQb xx \n");
      printf("          --ncv xx \n");
+     printf("          --rRel xx \n");
      printf("          --same | --ns \n");
      printf("          --DZ \n");
      printf("          --kr     \n");
@@ -105,7 +106,7 @@ int main(int argc, char *argv[])
      NumTokens=Tokenize(p,Tokens,50);
      npa=npb=iQa=iQb=ncv=SameObject=-1;
      Gradient=0;
-     DZ=0.0;
+     DZ=rRelRequest=0.0;
      real(K) = imag(K) = INFINITY;
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--npa") )
@@ -135,6 +136,9 @@ int main(int argc, char *argv[])
       if ( !strcasecmp(Tokens[nt],"--DZ") )
        sscanf(Tokens[nt+1],"%le",&DZ);
      for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--rRel") )
+       sscanf(Tokens[nt+1],"%le",&rRelRequest);
+     for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--ns") )
        SameObject=0;
      for(nt=0; nt<NumTokens; nt++)
@@ -155,6 +159,42 @@ int main(int argc, char *argv[])
          } while( NumCommonVertices(Oa,npa,Oa,npb)!=ncv );
         iQa=lrand48() % 3;
         iQb=lrand48() % 3;
+      }
+     /*--------------------------------------------------------------*/
+     /*- if the user specified a value for rRel then try to find a --*/
+     /*- panel pair whose relative distance is within 10% of rRel  --*/
+     /*--------------------------------------------------------------*/
+     else if ( rRelRequest!=0.0 )
+      { 
+        iQa=lrand48() % 3;
+        iQb=lrand48() % 3;
+        npa=lrand48() % Oa->NumPanels;
+
+        /*--------------------------------------------------------------*/
+        /*- first look on same object ----------------------------------*/
+        /*--------------------------------------------------------------*/
+        SameObject=1;
+        for(npb=0; npb<Oa->NumPanels; npb++)
+         { AssessPanelPair(Oa,npa,Oa,npb,&rRel);
+           if ( 0.9*rRelRequest<rRel && rRel<1.1*rRelRequest )
+            break;
+         };
+
+        /*--------------------------------------------------------------*/
+        /*- look on second object if that didn't work ------------------*/
+        /*--------------------------------------------------------------*/
+        if (npb==Oa->NumPanels)
+         { SameObject=0;
+           for(npb=0; npb<Ob->NumPanels; npb++)
+           { AssessPanelPair(Oa,npa,Ob,npb,&rRel);
+             if ( 0.9*rRelRequest<rRel && rRel<1.1*rRelRequest )
+              break;
+           };
+          if (npb==Ob->NumPanels)
+           { printf("\n**\n** warning: could not find a panel pair with rRel=%e\n",rRelRequest);
+             continue;
+           };
+         };
       }
      /*--------------------------------------------------------------*/
      /* otherwise choose a random pair of panels                     */
