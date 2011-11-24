@@ -7,7 +7,8 @@ include $(HOME)/work/Makefile.Rules
 ##################################################
 ##################################################
 HEADERS = libscuff.h			\
-          libscuffInternals.h
+          libscuffInternals.h		\
+          GTransformation.h
 
 OBJS = AssembleBEMMatrix.o		\
        AssembleRHSVector.o		\
@@ -16,6 +17,7 @@ OBJS = AssembleBEMMatrix.o		\
        GetDipoleMoments.o		\
        GetSphericalMoments.o		\
        GetFields.o			\
+       GTransformation.o		\
        EdgeEdgeInteractions.o     	\
        ExpandCurrentDistribution.o	\
        FIPPI.o                    	\
