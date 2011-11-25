@@ -6,12 +6,16 @@
  * homer reid         -- 11/2011
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include "GTransformation.h"
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3]);
+static void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3]);
 
 /***************************************************************/
 /* constructor 1 ***********************************************/
@@ -108,13 +112,18 @@ static void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3])
   double ct, st, cp, sp, CT, ST;
   double M2M1[3][3], M2[3][3], M1[3][3];
 
-  VecNormalize(ZHat);
+  // first normalize ZHat
+  double nZHat=sqrt(ZHat[0]*ZHat[0] + ZHat[1]*ZHat[1] + ZHat[2]*ZHat[2]);
+  double NZHat[3];
+  NZHat[0]=ZHat[0] / nZHat;
+  NZHat[1]=ZHat[1] / nZHat;
+  NZHat[2]=ZHat[2] / nZHat;
  
   /* construct M1 */
-  ct=ZHat[2];
+  ct=NZHat[2];
   st=sqrt(1.0-ct*ct);
-  cp= ( st < 1.0e-8 ) ? 1.0 : ZHat[0] / st;
-  sp= ( st < 1.0e-8 ) ? 0.0 : ZHat[1] / st;
+  cp= ( st < 1.0e-8 ) ? 1.0 : NZHat[0] / st;
+  sp= ( st < 1.0e-8 ) ? 0.0 : NZHat[1] / st;
   M1[0][0]=ct*cp;  M1[0][1]=ct*sp;   M1[0][2]=-st;
   M1[1][0]=-sp;    M1[1][1]=cp;      M1[1][2]=0.0;
   M1[2][0]=st*cp;  M1[2][1]=st*sp;   M1[2][2]=ct;

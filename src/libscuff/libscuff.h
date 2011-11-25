@@ -177,6 +177,7 @@ class RWGObject
    double *Vertices;              /* Vertices[3*n,3*n+1,3*n+2]=nth vertex coords */
    RWGPanel **Panels;             /* array of pointers to panels */
    RWGEdge **Edges;               /* array of pointers to edges */
+   RWGEdge **ExteriorEdges;       /* array of pointers to exterior edges */
 
    int NumVertices;                /* number of vertices in mesh */
    int NumInteriorVertices;        /* number of interior vertices*/
@@ -184,6 +185,7 @@ class RWGObject
 
    int NumTotalEdges;              /* total number of edges */
    int NumEdges;                   /* number of interior edges */
+   int NumExteriorEdges;           /* number of exterior edges */
 
    int NumBFs;                     /* number of basis functions */
    int NumPanels;                  /* number of panels */
@@ -192,9 +194,9 @@ class RWGObject
    int *WhichBC;                   /* WhichBC[nv] = index of boundary contour */
                                    /* on which vertex #nv lies (=0 if vertex  */
                                    /* #nv is an internal vertex)              */
-   int NumBCEdges[MAXBCS];         /* NumBCEdges[2] is the number of edges in */
+   int *NumBCEdges;                /* NumBCEdges[2] is the number of edges in */
                                    /* boundary contour #2                     */
-   RWGEdge **BCEdges[MAXBCS];      /* BCEdges[2][3] is a pointer to the 3rd   */
+   RWGEdge ***BCEdges;             /* BCEdges[2][3] is a pointer to the 3rd   */
                                    /* edge in boundary contour #2             */
 
    int NumRedundantVertices;

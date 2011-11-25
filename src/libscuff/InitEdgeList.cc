@@ -103,9 +103,11 @@ void RWGObject::InitEdgeList()
   /* or MIndex fields.                                            */
   /****************************************************************/
   NumEdges=NumTotalEdges=0;
-  for(np=0, P=Panels[np]; np<NumPanels; P=Panels[++np])
+  for(np=0; np<NumPanels; np++)
    for(ne=0; ne<3; ne++)   /* loop over panel edges */
     { 
+      P=Panels[np];
+
       /***************************************************************/
       /* get lesser & greater of the two vertex indices for this edge*/
       /***************************************************************/
@@ -188,15 +190,27 @@ void RWGObject::InitEdgeList()
   /*-  a. put each RWGEdge structure corresponding to an interior */ 
   /*      edge into the Edges array.                              */
   /*-  b. put each RWGEdge structure corresponding to an exterior */ 
-  /*      edge into the EVEdges lists for the edge's 2 vertices.  */
+  /*      edge into ExteriorEdges array and also into the EVEdges */
+  /*      lists for the edge's 2 vertices.                        */
+  /*      note that the Index field of the RWGEdge struct         */
+  /*      for an exterior edge is set to -(i+1), where i is the   */
+  /*      index of the edge in the ExteriorEdges array. (thus the */
+  /*      first exterior edge has Index=-1, the second has        */
+  /*      Index=-2, etc.)                                         */
   /*--------------------------------------------------------------*/
   Edges=(RWGEdge **)RWGMalloc(NumEdges*sizeof(Edges[0]));
+  ExteriorEdges=(RWGEdge **)RWGMalloc((NumTotalEdges-NumEdges)*sizeof(Edges[0]));
+  NumExteriorEdges=0;
   NumExteriorVertices=0;
   for(nv=0; nv<NumVertices; nv++)
    for(E=EdgeLists[nv]; E; E=E->Next)
     { 
       if (E->Index==-1)  /* E is an exterior edge */
        { 
+         ExteriorEdges[NumExteriorEdges]=E;
+         E->Index=-(NumExteriorEdges+1);
+         NumExteriorEdges++;
+
          if (EVNumEdges[E->iV1]==2) 
           RWGErrExit("%s: invalid mesh topology: vertex %i",MFN,E->iV1);
          EVEdges[E->iV1][ EVNumEdges[E->iV1]++ ] = E;
@@ -210,6 +224,8 @@ void RWGObject::InitEdgeList()
       else               /* E is an interior edge */
        Edges[E->Index]=E;
     };
+  if ( (NumExteriorEdges+NumEdges) != NumTotalEdges )
+   RWGErrExit("%s:%i: internal error (%i!=%i)",__FILE__,__LINE__,NumExteriorEdges,NumTotalEdges-NumEdges);
 
   /*--------------------------------------------------------------*/
   /*- now go through and classify exterior boundary contours     -*/
@@ -231,18 +247,20 @@ void RWGObject::InitEdgeList()
   /*-     vertices in this contour as having been already        -*/
   /*-     dealt with.                                            -*/
   /*-  5. now repeat from step 1: choose another exterior vertex -*/
-  /*-     and traverse a loop of edges until we come back to the -*/
-  /*-     original vertex, then call this whole loop boundary    -*/
-  /*-     contour #2.                                            -*/
+  /*-     (one that is not contained in the list of exterior     -*/
+  /*-      vertices comprising the boundary contour we just      -*/
+  /*-      traversed) and traverse a loop of edges until we come -*/
+  /*-      back to the original vertex, then call this whole     -*/
+  /*-      boundary contour #2.                                  -*/
   /*-  6. continue in this way until all exterior boundary       -*/
   /*-     contours have been identified.                         -*/
   /*--------------------------------------------------------------*/
-  NumBCs=0;
-// 20110416 turning this off for now
-#if 0
   WhichBC=(int *)RWGMalloc(NumVertices*sizeof(int));
   memset(WhichBC,0,NumVertices*sizeof(int));
-  NumExteriorEdges=NumExteriorVertices=0;
+  NumBCs=0;
+  NumExteriorVertices=0;
+  NumBCEdges=0;
+  BCEdges=0;
   for(;;)
    {   
      /***************************************************************/
@@ -254,9 +272,8 @@ void RWGObject::InitEdgeList()
 
      if (nv==NumVertices) break; /* no more exterior vertices left */
 
-     NumBCs++;
-     if ( NumBCs==MAXBCS )
-      RWGErrExit("%s: invalid mesh topology: too many boundaries",MFN);
+     NumBCEdges=(int *)realloc(NumBCEdges, (NumBCs+1)*sizeof(int));
+     BCEdges=(RWGEdge ***)realloc(BCEdges, (NumBCs+1)*sizeof(RWGEdge **));
 
      /*****************************************************************/
      /* step 2--4: traverse the boundary contour containing vertex nv */
@@ -276,14 +293,8 @@ void RWGObject::InitEdgeList()
         WhichBC[nvp]=NumBCs;
         NumExteriorVertices++;
 
-        /* add E to list of edges for this boundary contour */
-        /* note that we assign a unique negative 'index' to */
-        /* each exterior edge, which is obviously not used  */
-        /* as an index into an array as is the case for     */
-        /* interior edges, but merely serves as a convenient*/
-        /* identifier.                                      */
+        /* add E to list of edges for this boundary contour. */
         E->Next=BCEdgeList;
-        E->Index=-(++NumExteriorEdges);
         BCEdgeList=E;
         NumBCEdges[NumBCs]++;
        
@@ -312,9 +323,10 @@ void RWGObject::InitEdgeList()
      BCEdges[NumBCs]=(RWGEdge **)RWGMalloc(NumBCEdges[NumBCs]*sizeof(RWGEdge *));
      for(ne=0, E=BCEdgeList; E; E=E->Next)
       BCEdges[NumBCs][ne++]=E;
+
+     NumBCs++;
  
    }; // for(;;)
-#endif
 
   /*--------------------------------------------------------------*/
   /*- count unused vertices --------------------------------------*/
