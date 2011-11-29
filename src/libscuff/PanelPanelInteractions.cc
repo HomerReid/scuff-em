@@ -422,7 +422,8 @@ printf("\n**\n** using desingularization\n**\n");
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
-  cdouble ik=II*k, OOIK2=1.0/(ik*ik);
+  cdouble ik=II*k; 
+  cdouble FOIK2=4.0/(ik*ik);
   cdouble PF[5];
   PF[0]=1.0/(4.0*M_PI);
   PF[1]=ik*PF[0];
@@ -431,16 +432,23 @@ printf("\n**\n** using desingularization\n**\n");
   PF[4]=ik*PF[3];
   PF[5]=ik*PF[4];
 
+  double QA[3], QB[3], QAmQB[3], QAxQB[3], QAdQB;
+  VecSub(Qa, PA->Centroid, QA);
+  VecSub(Qb, PB->Centroid, QB);
+  VecSub(QA, QB, QAmQB);
+  VecCross(QA, QB, QAxQB);
+  QAdQB = VecDot(QA, QB);
+
   // add contributions to panel-panel integrals 
-  Args->H[0] +=  PF[0]*AA0*(FDR->hDotRM1 + OOIK2*FDR->hNablaRM1)
-                +PF[1]*AA1*(FDR->hDotR0  + OOIK2*FDR->hNablaR0 )
-                +PF[2]*AA2*(FDR->hDotR1  + OOIK2*FDR->hNablaR1 )
-                +PF[3]*AA3*(FDR->hDotR2  + OOIK2*FDR->hNablaR2 );
+  Args->H[0] +=  PF[0]*AA0*( FDR->YAdYB_RM1 - VecDot(QA, FDR->YB_RM1) - VecDot(QB, FDR->YA_RM1) + (QAdQB+FOIK2)*FDR->RM1 )
+                +PF[1]*AA1*( FDR->YAdYB_R0  - VecDot(QA, FDR->YB_R0 ) - VecDot(QB, FDR->YA_R0 ) + (QAdQB+FOIK2)*FDR->R0  )
+                +PF[2]*AA2*( FDR->YAdYB_R1  - VecDot(QA, FDR->YB_R1 ) - VecDot(QB, FDR->YA_R1 ) + (QAdQB+FOIK2)*FDR->R1  )
+                +PF[3]*AA3*( FDR->YAdYB_R2  - VecDot(QA, FDR->YB_R2 ) - VecDot(QB, FDR->YA_R2 ) + (QAdQB+FOIK2)*FDR->R2  )
   
-  Args->H[1] +=  PF[0]*BB0*FDR->hTimesRM3
-                +PF[2]*BB2*FDR->hTimesRM1
-                +PF[3]*BB3*FDR->hTimesR0 
-                +PF[4]*BB4*FDR->hTimesR1;
+  Args->H[1] +=  PF[0]*BB0*( VecDot( QAxQB, FDR->YAmYB_RM3 ) + VecDot( QAmQB, FDR->YAxYB_RM3) )
+                +PF[2]*BB2*( VecDot( QAxQB, FDR->YAmYB_RM1 ) + VecDot( QAmQB, FDR->YAxYB_RM1) )
+                +PF[3]*BB3*( VecDot( QAxQB, FDR->YAmYB_R0  ) + VecDot( QAmQB, FDR->YAxYB_R0 ) )
+                +PF[4]*BB4*( VecDot( QAxQB, FDR->YAmYB_R1  ) + VecDot( QAmQB, FDR->YAxYB_R1 ) );
 
   // restore angular derivatives as necessary 
   if (NumTorqueAxes>0)
@@ -450,27 +458,32 @@ printf("\n**\n** using desingularization\n**\n");
    return;
 
   // add contributions to gradients of panel-panel integrals
-  cdouble GradH0Scalar, GradH1Scalar;
-  GradH0Scalar=  PF[0]*BB0*(FDR->hDotRM3 + OOIK2*FDR->hNablaRM3)
-                +PF[2]*BB2*(FDR->hDotRM1 + OOIK2*FDR->hNablaRM1)
-                +PF[3]*BB3*(FDR->hDotR0  + OOIK2*FDR->hNablaR0)
-                +PF[4]*BB4*(FDR->hDotR1  + OOIK2*FDR->hNablaR1);
+  double QAxYB_RM3[3], QAxYB_RM1[3], QAxYB_R0[3], QAxYB_R1[3];
+  double QBxYA_RM3[3], QBxYA_RM1[3], QBxYA_R0[3], QBxYA_R1[3];
 
-  GradH1Scalar=  PF[0]*CC0*FDR->hTimesRM5
-                +PF[2]*CC2*FDR->hTimesRM3
-                +PF[5]*CC5*FDR->hTimesR0;
-
-  double Rab[3];
-  VecSub(Pa->Centroid, Pb->Centroid, Rab);
+  VecCross(QA, FDR->YB_RM3, QAxYB_RM3);
+  VecCross(QA, FDR->YB_RM1, QAxYB_RM1);
+  VecCross(QA, FDR->YB_R0 , QAxYB_R0 );
+  VecCross(QA, FDR->YB_R1 , QAxYB_R1 );
+  VecCross(QB, FDR->YA_RM3, QBxYA_RM3);
+  VecCross(QB, FDR->YA_RM1, QBxYA_RM1);
+  VecCross(QB, FDR->YA_R0 , QBxYA_R0 );
+  VecCross(QB, FDR->YA_R1 , QBxYA_R1 );
 
   int Mu;
   for(Mu=0; Mu<NumGradientComponents; Mu++)
-   { Args->GradH[2*Mu + 0] += Rab[Mu]*GradH0Scalar;
-     Args->GradH[2*Mu + 1] += Rab[Mu]*GradH1Scalar
-                               +PF[0]*BB0*FDR->dhTimesdRMuRM3[Mu]
-                               +PF[2]*BB2*FDR->dhTimesdRMuRM1[Mu]
-                               +PF[3]*BB3*FDR->dhTimesdRMuR0[Mu]
-                               +PF[4]*BB3*FDR->dhTimesdRMuR1[Mu];
+   { Args->GradH[2*Mu + 0] +=   PF[0]*BB0*( FDR->Ri_YAdYB_RM3[Mu] - VecDot(QA, FDR->Ri_YB_RM3+3*Mu) - VecDot(QB, FDR->Ri_YA_RM3+3*Mu) + (QAdQB+FOIK2)*FDR->Ri_RM3[Mu] )
+                              + PF[2]*BB2*( FDR->Ri_YAdYB_RM1[Mu] - VecDot(QA, FDR->Ri_YB_RM1+3*Mu) - VecDot(QB, FDR->Ri_YA_RM1+3*Mu) + (QAdQB+FOIK2)*FDR->Ri_RM1[Mu]  )
+                              + PF[3]*BB3*( FDR->Ri_YAdYB_R0[Mu]  - VecDot(QA, FDR->Ri_YB_R0 +3*Mu) - VecDot(QB, FDR->Ri_YA_R0 +3*Mu) + (QAdQB+FOIK2)*FDR->Ri_R0[Mu]  )
+                              + PF[4]*BB4*( FDR->Ri_YAdYB_R1[Mu]  - VecDot(QA, FDR->Ri_YB_R1 +3*Mu) - VecDot(QB, FDR->Ri_YA_R1 +3*Mu) + (QAdQB+FOIK2)*FDR->Ri_R1[Mu]  )
+
+     Args->GradH[2*Mu + 1] +=   PF[0]*BB0*( FDR->YAxYB_RM3[Mu] - QAxYB_RM3[Mu] - QBxYA_RM3[Mu] + QAxQB[Mu]*FDR->RM3 )
+                              + PF[2]*BB2*( FDR->YAxYB_RM1[Mu] - QAxYB_RM1[Mu] - QBxYA_RM1[Mu] + QAxQB[Mu]*FDR->RM1 )
+                              + PF[3]*BB3*( FDR->YAxYB_R0 [Mu] - QAxYB_R0 [Mu] - QBxYA_R0 [Mu] + QAxQB[Mu]*FDR->R0  )
+                              + PF[4]*BB4*( FDR->YAxYB_R1 [Mu] - QAxYB_R1 [Mu] - QBxYA_R1 [Mu] + QAxQB[Mu]*FDR->R1  )
+                              + PF[0]*CC0*( VecDot(QAmQB, FDR->Ri_YAxYB_RM5+3*Mu) + VecDot(QAxQB, FDR->Ri_YAmYB_RM5+3*Mu) )
+                              + PF[2]*CC2*( VecDot(QAmQB, FDR->Ri_YAxYB_RM3+3*Mu) + VecDot(QAxQB, FDR->Ri_YAmYB_RM3+3*Mu) )
+                              + PF[5]*CC5*( VecDot(QAmQB, FDR->Ri_YAxYB_R0 +3*Mu) + VecDot(QAxQB, FDR->Ri_YAmYB_R0 +3*Mu) );
    };
 
 } 

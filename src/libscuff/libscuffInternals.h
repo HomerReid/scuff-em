@@ -138,15 +138,23 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
 typedef struct FIPPIDataRecord
  { 
    int HaveDerivatives;
-   double hDotRM1, hDotR0, hDotR1, hDotR2;
-   double hNablaRM1, hNablaR0, hNablaR1, hNablaR2;
-   double hTimesRM3, hTimesRM1, hTimesR0, hTimesR1;
+
+   double YAdYB_RM1, YA_RM1[3], YB_RM1[3], RM1;
+   double YAdYB_R0,  YA_R0[3],  YB_R0[3],  R0;
+   double YAdYB_R1,  YA_R1[3],  YB_R1[3],  R1;
+   double YAdYB_R2,  YA_R2[3],  YB_R2[3],  R2;
+
+   double YAmYB_RM3[3], YAxYB_RM3[3];
+   double YAmYB_RM1[3], YAxYB_RM1[3];
+   double YAmYB_R0[3],  YAxYB_R0[3];
+   double YAmYB_R1[3],  YAxYB_R1[3];
    
    // the following fields are needed only if we are computing
    // derivatives of panel-panel integrals
-   double hDotRM3, hNablaRM3, hTimesRM5;
-   double dhTimesdRMuRM3[3], dhTimesdRMuRM1[3], 
-          dhTimesdRMuR0[3], dhTimesdRMuR1[3];
+   double YA_RM3[3], YB_RM3[3], RM3;
+   double Ri_YAxYB_RM5[9], Ri_YAmYB_RM5[9];
+   double Ri_YAxYB_RM3[9], Ri_YAmYB_RM3[9];
+   double Ri_YAxYB_R0 [9], Ri_YAmYB_R0 [9];
  } FIPPIDataRecord;
 
 /*--------------------------------------------------------------*/
@@ -163,6 +171,10 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
 class FIPPIDataTable
  { 
 
+    // internal routine to compare vertices
+    int FIPPIDataRecord::VLT(double *V1, double *V2);
+    void FIPPIDataRecord::GetSearchKey(double **Va, double **Vb, double *Key);
+
   public:
 
     // constructor 
@@ -172,8 +184,7 @@ class FIPPIDataTable
     ~FIPPIDataTable();
 
     // retrieve FIPPIs for a given pair of panels
-    FIPPIDataRecord *GetFIPPIDataRecord(double **Va, double *Qa,
-                                        double **Vb, double *Qb,
+    FIPPIDataRecord *GetFIPPIDataRecord(double **Va, double **Vb,
                                         int NeedDerivatives);
    
  };

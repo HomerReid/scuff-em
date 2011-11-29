@@ -39,16 +39,93 @@ FIPPIDataTable::~FIPPIDataTable()
 } 
 
 /*--------------------------------------------------------------*/
+/*- 'vertex less than.' returns 1 if V1<V2, 0 otherwise.        */
+/*- vertices are sorted using a fairly obvious sorting scheme.  */
+/*--------------------------------------------------------------*/
+int FIPPIDataRecord::VLT(double *V1, double *V2)
+{
+  double DV;
+
+  DV=V1[0]-V2[0];
+  if ( fabs(DV) > 1.0e-6*fabs(V1[0]) )
+   return DV<0.0 ? 1 : 0;
+
+  DV=V1[1]-V2[1];
+  if ( fabs(DV) > 1.0e-6*fabs(V1[1]) )
+   return DV<0.0 ? 1 : 0;
+ 
+  DV=V1[2]-V2[2];
+  return DV<0.0 ? 1 : 0;
+}
+
+/***************************************************************/
+/* create a unique search key for the given panel pair.        */
+/* (note: search keys are unique up to rigid translation of    */
+/*  both panels. if Pa,Pb and PaP, PbP are panel pairs that    */
+/*  are equivalent under a rigid translation then we want them */
+/*  to map to the same key since the FIPPIs are equal.         */
+/***************************************************************/
+int FIPPIDataRecord::ComputeSearchKey(double **Va, double **Vb, double *Key)
+{ 
+  /***************************************************************/
+  /* sort the vertices in ascending order ************************/
+  /***************************************************************/
+  double *VMin, *VMed, *VMax;
+  if ( VLT(Va[0], Va[1]) )
+   { VMin=Va[0]; VMax=Va[1]; }
+  else
+   { VMin=Va[1]; VMax=Va[0]; }
+
+  if ( VLT(Va[2], VMin) )
+   { VMed=VMin; VMin=Va[2]; }
+  else if ( VLT(Va[2], VMax) )
+   { VMed=Va[2]; }
+  else 
+   { VMed=VMax; VMax=Va[2]; }
+
+  double *VMinP, *VMedP, *VMaxP;
+  if ( VLT(Vb[0], Vb[1]) )
+   { VMinP=Vb[0]; VMaxP=Vb[1]; }
+  else
+   { VMinP=Vb[1]; VMaxP=Vb[0]; }
+
+  if ( VLT(Vb[2], VMinP) )
+   { VMedP=VMinP; VMinP=Vb[2]; }
+  else if ( VLT(Vb[2], VMaxP) )
+   { VMedP=Vb[2]; }
+  else 
+   { VMedP=VMaxP; VMaxP=Vb[2]; }
+  
+  /***************************************************************/
+  /* the search key is kinda stupid, just a string of 15 doubles */
+  /* as follows:                                                 */
+  /* 0--2    VMed  - VMin [0..2]                                 */
+  /* 3--5    VMax  - VMin [0..2]                                 */
+  /* 6--8    VMinP - VMin [0..2]                                 */
+  /* 9--11   VMedP - VMin [0..2]                                 */
+  /* 12--14  VMaxP - VMin [0..2]                                 */
+  /***************************************************************/
+  VecSub(VMed,  VMin, Key+0 );
+  VecSub(VMax,  VMin, Key+3 );
+  VecSub(VMinP, VMin, Key+6 );
+  VecSub(VMedP, VMin, Key+9 );
+  VecSub(VMaxP, VMin, Key+12);
+  
+}
+
+/*--------------------------------------------------------------*/
 /*- routine for fetching a FIPPI data record from a FIPPIDT:    */
 /*- we look through our table to see if we have a record for    */
 /*- this panel pair, we return it if we do, and otherwise we    */ 
 /*- compute a new FIPPI data record for this panel pair and     */
 /*- add it to the table                                         */
 /*--------------------------------------------------------------*/
-FIPPIDataRecord *FIPPIDataTable::GetFIPPIDataRecord(double **Va, double *Qa,
-                                                    double **Vb, double *Qb,
+FIPPIDataRecord *FIPPIDataTable::GetFIPPIDataRecord(double **Va, double **Vb,
                                                     int NeedDerivatives)
 {
+  double Key[15];
+
+  ComputeSearchKey(Va, Vb, Key);
 }
 
 /*--------------------------------------------------------------*/
