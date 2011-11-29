@@ -151,18 +151,22 @@ typedef struct FIPPIDataRecord
    
    // the following fields are needed only if we are computing
    // derivatives of panel-panel integrals
+   double Ri_YAdYB_RM3[3], Ri_YA_RM3[9], Ri_YB_RM3[9], Ri_RM3[3];
+   double Ri_YAdYB_RM1[3], Ri_YA_RM1[9], Ri_YB_RM1[9], Ri_RM1[3];
+   double Ri_YAdYB_R0[3],  Ri_YA_R0[9],  Ri_YB_R0[9],  Ri_R0[3];
+   double Ri_YAdYB_R1[3],  Ri_YA_R1[9],  Ri_YB_R1[9],  Ri_R1[3];
+
    double YA_RM3[3], YB_RM3[3], RM3;
-   double Ri_YAxYB_RM5[9], Ri_YAmYB_RM5[9];
-   double Ri_YAxYB_RM3[9], Ri_YAmYB_RM3[9];
-   double Ri_YAxYB_R0 [9], Ri_YAmYB_R0 [9];
+   double Ri_YAmYB_RM5[9], Ri_YAxYB_RM5[9];
+   double Ri_YAmYB_RM3[9], Ri_YAxYB_RM3[9];
+   double Ri_YAmYB_R0 [9], Ri_YAxYB_R0 [9];
  } FIPPIDataRecord;
 
 /*--------------------------------------------------------------*/
 /*- this is the routine that computes the FIPPIs for a given    */
 /*- pair of panels                                              */
 /*--------------------------------------------------------------*/
-FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
-                                        double **Vb, double *Qb,
+FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double **Vb,
                                         int NeedDerivatives,
                                         FIPPIDataRecord *FDR);
 
@@ -172,8 +176,8 @@ class FIPPIDataTable
  { 
 
     // internal routine to compare vertices
-    int FIPPIDataRecord::VLT(double *V1, double *V2);
-    void FIPPIDataRecord::GetSearchKey(double **Va, double **Vb, double *Key);
+    int VLT(double *V1, double *V2);
+    void ComputeSearchKey(double **Va, double **Vb, double *Key);
 
   public:
 

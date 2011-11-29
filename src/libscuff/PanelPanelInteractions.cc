@@ -416,9 +416,9 @@ printf("\n**\n** using desingularization\n**\n");
   FIPPIDataTable *FIPPIDT=0;
   FIPPIDataRecord MyFDR, *FDR;
   if (FIPPIDT)
-   FDR=FIPPIDT->GetFIPPIDataRecord(Va, Qa, Vb, Qb, NeedDerivatives);
+   FDR=FIPPIDT->GetFIPPIDataRecord(Va, Vb, NeedDerivatives);
   else
-   FDR=ComputeFIPPIDataRecord(Va, Qa, Vb, Qb, NeedDerivatives, &MyFDR);
+   FDR=ComputeFIPPIDataRecord(Va, Vb, NeedDerivatives, &MyFDR);
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
@@ -433,8 +433,8 @@ printf("\n**\n** using desingularization\n**\n");
   PF[5]=ik*PF[4];
 
   double QA[3], QB[3], QAmQB[3], QAxQB[3], QAdQB;
-  VecSub(Qa, PA->Centroid, QA);
-  VecSub(Qb, PB->Centroid, QB);
+  VecSub(Qa, Pa->Centroid, QA);
+  VecSub(Qb, Pb->Centroid, QB);
   VecSub(QA, QB, QAmQB);
   VecCross(QA, QB, QAxQB);
   QAdQB = VecDot(QA, QB);
@@ -443,7 +443,7 @@ printf("\n**\n** using desingularization\n**\n");
   Args->H[0] +=  PF[0]*AA0*( FDR->YAdYB_RM1 - VecDot(QA, FDR->YB_RM1) - VecDot(QB, FDR->YA_RM1) + (QAdQB+FOIK2)*FDR->RM1 )
                 +PF[1]*AA1*( FDR->YAdYB_R0  - VecDot(QA, FDR->YB_R0 ) - VecDot(QB, FDR->YA_R0 ) + (QAdQB+FOIK2)*FDR->R0  )
                 +PF[2]*AA2*( FDR->YAdYB_R1  - VecDot(QA, FDR->YB_R1 ) - VecDot(QB, FDR->YA_R1 ) + (QAdQB+FOIK2)*FDR->R1  )
-                +PF[3]*AA3*( FDR->YAdYB_R2  - VecDot(QA, FDR->YB_R2 ) - VecDot(QB, FDR->YA_R2 ) + (QAdQB+FOIK2)*FDR->R2  )
+                +PF[3]*AA3*( FDR->YAdYB_R2  - VecDot(QA, FDR->YB_R2 ) - VecDot(QB, FDR->YA_R2 ) + (QAdQB+FOIK2)*FDR->R2  );
   
   Args->H[1] +=  PF[0]*BB0*( VecDot( QAxQB, FDR->YAmYB_RM3 ) + VecDot( QAmQB, FDR->YAxYB_RM3) )
                 +PF[2]*BB2*( VecDot( QAxQB, FDR->YAmYB_RM1 ) + VecDot( QAmQB, FDR->YAxYB_RM1) )
@@ -473,9 +473,9 @@ printf("\n**\n** using desingularization\n**\n");
   int Mu;
   for(Mu=0; Mu<NumGradientComponents; Mu++)
    { Args->GradH[2*Mu + 0] +=   PF[0]*BB0*( FDR->Ri_YAdYB_RM3[Mu] - VecDot(QA, FDR->Ri_YB_RM3+3*Mu) - VecDot(QB, FDR->Ri_YA_RM3+3*Mu) + (QAdQB+FOIK2)*FDR->Ri_RM3[Mu] )
-                              + PF[2]*BB2*( FDR->Ri_YAdYB_RM1[Mu] - VecDot(QA, FDR->Ri_YB_RM1+3*Mu) - VecDot(QB, FDR->Ri_YA_RM1+3*Mu) + (QAdQB+FOIK2)*FDR->Ri_RM1[Mu]  )
+                              + PF[2]*BB2*( FDR->Ri_YAdYB_RM1[Mu] - VecDot(QA, FDR->Ri_YB_RM1+3*Mu) - VecDot(QB, FDR->Ri_YA_RM1+3*Mu) + (QAdQB+FOIK2)*FDR->Ri_RM1[Mu] )
                               + PF[3]*BB3*( FDR->Ri_YAdYB_R0[Mu]  - VecDot(QA, FDR->Ri_YB_R0 +3*Mu) - VecDot(QB, FDR->Ri_YA_R0 +3*Mu) + (QAdQB+FOIK2)*FDR->Ri_R0[Mu]  )
-                              + PF[4]*BB4*( FDR->Ri_YAdYB_R1[Mu]  - VecDot(QA, FDR->Ri_YB_R1 +3*Mu) - VecDot(QB, FDR->Ri_YA_R1 +3*Mu) + (QAdQB+FOIK2)*FDR->Ri_R1[Mu]  )
+                              + PF[4]*BB4*( FDR->Ri_YAdYB_R1[Mu]  - VecDot(QA, FDR->Ri_YB_R1 +3*Mu) - VecDot(QB, FDR->Ri_YA_R1 +3*Mu) + (QAdQB+FOIK2)*FDR->Ri_R1[Mu]  );
 
      Args->GradH[2*Mu + 1] +=   PF[0]*BB0*( FDR->YAxYB_RM3[Mu] - QAxYB_RM3[Mu] - QBxYA_RM3[Mu] + QAxQB[Mu]*FDR->RM3 )
                               + PF[2]*BB2*( FDR->YAxYB_RM1[Mu] - QAxYB_RM1[Mu] - QBxYA_RM1[Mu] + QAxQB[Mu]*FDR->RM1 )

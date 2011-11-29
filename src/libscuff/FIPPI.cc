@@ -42,7 +42,7 @@ FIPPIDataTable::~FIPPIDataTable()
 /*- 'vertex less than.' returns 1 if V1<V2, 0 otherwise.        */
 /*- vertices are sorted using a fairly obvious sorting scheme.  */
 /*--------------------------------------------------------------*/
-int FIPPIDataRecord::VLT(double *V1, double *V2)
+int FIPPIDataTable::VLT(double *V1, double *V2)
 {
   double DV;
 
@@ -65,7 +65,7 @@ int FIPPIDataRecord::VLT(double *V1, double *V2)
 /*  are equivalent under a rigid translation then we want them */
 /*  to map to the same key since the FIPPIs are equal.         */
 /***************************************************************/
-int FIPPIDataRecord::ComputeSearchKey(double **Va, double **Vb, double *Key)
+void FIPPIDataTable::ComputeSearchKey(double **Va, double **Vb, double *Key)
 { 
   /***************************************************************/
   /* sort the vertices in ascending order ************************/
@@ -134,8 +134,9 @@ FIPPIDataRecord *FIPPIDataTable::GetFIPPIDataRecord(double **Va, double **Vb,
 /*--------------------------------------------------------------*/
 typedef struct CFDRData
  {
-   double *V0, A[3], B[3], *Q;
-   double *V0P, AP[3], BP[3], *QP;
+   double V0MC[3], A[3], B[3];
+   double V0MCP[3], AP[3], BP[3];
+   double R0[3];
    int NeedDerivatives;
    int nCalls;
  } CFDRData;
@@ -149,90 +150,119 @@ void CFDRIntegrand(unsigned ndim, const double *x, void *params,
   CFDRData *CFDRD=(CFDRData *)params;
   CFDRD->nCalls++;
 
-  double *V0=CFDRD->V0;
+  double *V0MC=CFDRD->V0MC;
   double *A=CFDRD->A;
   double *B=CFDRD->B;
-  double *Q=CFDRD->Q;
 
-  double *V0P=CFDRD->V0P;
+  double *V0MCP=CFDRD->V0MCP;
   double *AP=CFDRD->AP;
   double *BP=CFDRD->BP;
-  double *QP=CFDRD->QP;
+
+  double *R0=CFDRD->R0;
 
   int NeedDerivatives=CFDRD->NeedDerivatives;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  double u=x[0];
-  double v=u*x[1];
-  double up=x[2];
-  double vp=up*x[3];
+  double u, v, up, vp, uup;
+  u=x[0];
+  v=u*x[1];
+  up=x[2];
+  vp=up*x[3];
+  uup=u*up; // jacobian
 
-  double F[3], X[3], FP[3], XP[3], FxFP[3], R[3];
-  double r, r2=0.0, r3;
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double YA[3], YB[3], R[3];
+  double r, r2=0.0, r3, r5;
   int Mu;
   for (Mu=0; Mu<3; Mu++)
-   { X[Mu]  = V0[Mu] + u*A[Mu] + v*B[Mu];
-     F[Mu]  = X[Mu] - Q[Mu];
-     XP[Mu] = V0P[Mu] + up*AP[Mu] + vp*BP[Mu];
-     FP[Mu] = XP[Mu] - QP[Mu];
-     R[Mu]  = X[Mu]-XP[Mu];
+   { YA[Mu] = V0MC[Mu]  + u*A[Mu]   + v*B[Mu];
+     YB[Mu] = V0MCP[Mu] + up*AP[Mu] + vp*BP[Mu];
+     R[Mu]  = R0[Mu] + YA[Mu] - YB[Mu];
      r2    += R[Mu]*R[Mu];
    };
   r=sqrt(r2);
   r3=r*r2;
+  r5=r3*r2;
+
+  double YAdYB=VecDot(YA, YB);
+  double YAxYB[3], YAmYB[3];
+  VecCross(YA, YB, YAxYB);
+  VecSub(YA, YB, YAmYB);
 
   /*--------------------------------------------------------------*/
   /*- assemble output vector -------------------------------------*/
   /*--------------------------------------------------------------*/
-  double hDot=u*up*VecDot(F, FP);
-  fval[ 0] = hDot / r;
-  fval[ 1] = hDot;
-  fval[ 2] = hDot*r;
-  fval[ 3] = hDot*r2;
+  int rp, nf;
+  double RPowers[6]={uup/r5, uup/r3, uup/r, uup, uup*r, uup*r2};
+  nf=0;
+  for(rp=2; rp<6; rp++)
+   { fval[nf++] = RPowers[rp]*YAdYB;
+     fval[nf++] = RPowers[rp]*YA[0];
+     fval[nf++] = RPowers[rp]*YA[1];
+     fval[nf++] = RPowers[rp]*YA[2];
+     fval[nf++] = RPowers[rp]*YB[0];
+     fval[nf++] = RPowers[rp]*YB[1];
+     fval[nf++] = RPowers[rp]*YB[2];
+     fval[nf++] = RPowers[rp];
+   };
 
-  double hNabla=u*up*4.0;
-  fval[ 4] = hNabla / r;
-  fval[ 5] = hNabla;
-  fval[ 6] = hNabla*r;
-  fval[ 7] = hNabla*r2;
+  for(rp=1; rp<5; rp++)
+   { fval[nf++] = RPowers[rp]*YAmYB[0];
+     fval[nf++] = RPowers[rp]*YAmYB[1];
+     fval[nf++] = RPowers[rp]*YAmYB[2];
+     fval[nf++] = RPowers[rp]*YAxYB[0];
+     fval[nf++] = RPowers[rp]*YAxYB[1];
+     fval[nf++] = RPowers[rp]*YAxYB[2];
+   };
 
-  double hTimes=u*up*VecDot( VecCross(F, FP, FxFP), R );
-  fval[ 8] = hTimes / r3;
-  fval[ 9] = hTimes / r;
-  fval[10] = hTimes;  
-  fval[11] = hTimes * r;
-
-  /*--------------------------------------------------------------*/
-  /*- additional entries in the output vector that are only needed*/
-  /*- for derivative calculations                                 */
-  /*--------------------------------------------------------------*/
   if (NeedDerivatives)
    { 
-     fval[12] = hDot   / r3;
-     fval[13] = hNabla / r3;
-     fval[14] = hTimes / (r2*r3);
+     for(Mu=0; Mu<3; Mu++)
+      for(rp=1; rp<5; rp++)
+       { fval[nf++] = R[Mu] * RPowers[rp] * YAdYB;
+         fval[nf++] = R[Mu] * RPowers[rp] * YA[0];
+         fval[nf++] = R[Mu] * RPowers[rp] * YA[1];
+         fval[nf++] = R[Mu] * RPowers[rp] * YA[2];
+         fval[nf++] = R[Mu] * RPowers[rp] * YB[0];
+         fval[nf++] = R[Mu] * RPowers[rp] * YB[1];
+         fval[nf++] = R[Mu] * RPowers[rp] * YB[2];
+         fval[nf++] = R[Mu] * RPowers[rp];
+       };
 
-     FxFP[0]*=u*up;
-     FxFP[1]*=u*up;
-     FxFP[2]*=u*up;
+     fval[nf++] = RPowers[1]*YA[0];
+     fval[nf++] = RPowers[1]*YA[1];
+     fval[nf++] = RPowers[1]*YA[2];
+     fval[nf++] = RPowers[1]*YB[0];
+     fval[nf++] = RPowers[1]*YB[1];
+     fval[nf++] = RPowers[1]*YB[2];
+     fval[nf++] = RPowers[1];
+   
+     for(Mu=0; Mu<3; Mu++)
+      { fval[nf++] = R[Mu] * RPowers[0] * YAmYB[0];
+        fval[nf++] = R[Mu] * RPowers[0] * YAmYB[1];
+        fval[nf++] = R[Mu] * RPowers[0] * YAmYB[2];
+        fval[nf++] = R[Mu] * RPowers[0] * YAxYB[0];
+        fval[nf++] = R[Mu] * RPowers[0] * YAxYB[1];
+        fval[nf++] = R[Mu] * RPowers[0] * YAxYB[2];
 
-     fval[15] = FxFP[0] / r3;
-     fval[16] = FxFP[1] / r3;
-     fval[17] = FxFP[2] / r3;
+        fval[nf++] = R[Mu] * RPowers[1] * YAmYB[0];
+        fval[nf++] = R[Mu] * RPowers[1] * YAmYB[1];
+        fval[nf++] = R[Mu] * RPowers[1] * YAmYB[2];
+        fval[nf++] = R[Mu] * RPowers[1] * YAxYB[0];
+        fval[nf++] = R[Mu] * RPowers[1] * YAxYB[1];
+        fval[nf++] = R[Mu] * RPowers[1] * YAxYB[2];
 
-     fval[18] = FxFP[0] / r;
-     fval[19] = FxFP[1] / r;
-     fval[20] = FxFP[2] / r;
-
-     fval[21] = FxFP[0];
-     fval[22] = FxFP[1];
-     fval[23] = FxFP[2];
-
-     fval[24] = FxFP[0] * r;
-     fval[25] = FxFP[1] * r;
-     fval[26] = FxFP[2] * r;
+        fval[nf++] = R[Mu] * RPowers[3] * YAmYB[0];
+        fval[nf++] = R[Mu] * RPowers[3] * YAmYB[1];
+        fval[nf++] = R[Mu] * RPowers[3] * YAmYB[2];
+        fval[nf++] = R[Mu] * RPowers[3] * YAxYB[0];
+        fval[nf++] = R[Mu] * RPowers[3] * YAxYB[1];
+        fval[nf++] = R[Mu] * RPowers[3] * YAxYB[2];
+     };
    };
 
 } 
@@ -240,12 +270,23 @@ void CFDRIntegrand(unsigned ndim, const double *x, void *params,
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void ComputeFIPPIDataRecord_Cubature(double **Va, double *Qa,
-                                     double **Vb, double *Qb,
+void ComputeFIPPIDataRecord_Cubature(double **Va, double **Vb,
                                      int NeedDerivatives,
                                      FIPPIDataRecord *FDR)
 {
   FDR->HaveDerivatives=NeedDerivatives;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double CentroidA[3], CentroidB[3];
+
+  CentroidA[0] = (Va[0][0] + Va[1][0] + Va[2][0])/3.0;
+  CentroidA[1] = (Va[0][1] + Va[1][1] + Va[2][1])/3.0;
+  CentroidA[2] = (Va[0][2] + Va[1][2] + Va[2][2])/3.0;
+  CentroidB[0] = (Vb[0][0] + Vb[1][0] + Vb[2][0])/3.0;
+  CentroidB[1] = (Vb[0][1] + Vb[1][1] + Vb[2][1])/3.0;
+  CentroidB[2] = (Vb[0][2] + Vb[1][2] + Vb[2][2])/3.0;
   
   /*--------------------------------------------------------------*/
   /* fill in the data structure used to pass parameters to the    */
@@ -253,24 +294,24 @@ void ComputeFIPPIDataRecord_Cubature(double **Va, double *Qa,
   /*--------------------------------------------------------------*/
   CFDRData MyCFDRData, *CFDRD=&MyCFDRData;
 
-  CFDRD->V0 = Va[0];
+  VecSub(Va[0], CentroidA, CFDRD->V0MC);
   VecSub(Va[1], Va[0], CFDRD->A);
   VecSub(Va[2], Va[1], CFDRD->B);
-  CFDRD->Q  = Qa;
 
-  CFDRD->V0P = Vb[0];
+  VecSub(Vb[0], CentroidB, CFDRD->V0MCP);
   VecSub(Vb[1], Vb[0], CFDRD->AP);
   VecSub(Vb[2], Vb[1], CFDRD->BP);
-  CFDRD->QP = Qb;
+
+  VecSub(CentroidA, CentroidB, CFDRD->R0);
 
   CFDRD->NeedDerivatives = NeedDerivatives;
 
   /*--------------------------------------------------------------*/
-  /*- evaluate the adaptive cubature                             -*/
+  /*- evaluate the adaptive cubature over the pair of triangles  -*/
   /*--------------------------------------------------------------*/
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
-  int fdim = NeedDerivatives ? 27 : 12;
+  int fdim = NeedDerivatives ? 217 : 48;
   double F[fdim], E[fdim];
 CFDRD->nCalls=0;
   adapt_integrate(fdim, CFDRIntegrand, CFDRD, 4, Lower, Upper,
@@ -280,43 +321,171 @@ printf("FIPPI cubature: %i calls\n",CFDRD->nCalls);
   /*--------------------------------------------------------------*/
   /*- unpack the results into the output data record -------------*/
   /*--------------------------------------------------------------*/
-  FDR->hDotRM1   = F[ 0];
-  FDR->hDotR0    = F[ 1];
-  FDR->hDotR1    = F[ 2];
-  FDR->hDotR2    = F[ 3];
+  int nf=0;
 
-  FDR->hNablaRM1 = F[ 4];
-  FDR->hNablaR0  = F[ 5];
-  FDR->hNablaR1  = F[ 6];
-  FDR->hNablaR2  = F[ 7];
+  FDR->YAdYB_RM1    = F[nf++];
+  FDR->YA_RM1[0]    = F[nf++];
+  FDR->YA_RM1[1]    = F[nf++];
+  FDR->YA_RM1[2]    = F[nf++];
+  FDR->YB_RM1[0]    = F[nf++];
+  FDR->YB_RM1[1]    = F[nf++];
+  FDR->YB_RM1[2]    = F[nf++];
+  FDR->RM1          = F[nf++];
 
-  FDR->hTimesRM3 = F[ 8];
-  FDR->hTimesRM1 = F[ 9];
-  FDR->hTimesR0  = F[10];
-  FDR->hTimesR1  = F[11];
+  FDR->YAdYB_R0     = F[nf++];
+  FDR->YA_R0[0]     = F[nf++];
+  FDR->YA_R0[1]     = F[nf++];
+  FDR->YA_R0[2]     = F[nf++];
+  FDR->YB_R0[0]     = F[nf++];
+  FDR->YB_R0[1]     = F[nf++];
+  FDR->YB_R0[2]     = F[nf++];
+  FDR->R0           = F[nf++];
+
+  FDR->YAdYB_R1     = F[nf++];
+  FDR->YA_R1[0]     = F[nf++];
+  FDR->YA_R1[1]     = F[nf++];
+  FDR->YA_R1[2]     = F[nf++];
+  FDR->YB_R1[0]     = F[nf++];
+  FDR->YB_R1[1]     = F[nf++];
+  FDR->YB_R1[2]     = F[nf++];
+  FDR->R1           = F[nf++];
+
+  FDR->YAdYB_R2     = F[nf++];
+  FDR->YA_R2[0]     = F[nf++];
+  FDR->YA_R2[1]     = F[nf++];
+  FDR->YA_R2[2]     = F[nf++];
+  FDR->YB_R2[0]     = F[nf++];
+  FDR->YB_R2[1]     = F[nf++];
+  FDR->YB_R2[2]     = F[nf++];
+  FDR->R2           = F[nf++];
+
+  FDR->YAmYB_RM3[0] = F[nf++];
+  FDR->YAmYB_RM3[1] = F[nf++];
+  FDR->YAmYB_RM3[2] = F[nf++];
+  FDR->YAxYB_RM3[0] = F[nf++];
+  FDR->YAxYB_RM3[1] = F[nf++];
+  FDR->YAxYB_RM3[2] = F[nf++];
+
+  FDR->YAmYB_RM1[0] = F[nf++];
+  FDR->YAmYB_RM1[1] = F[nf++];
+  FDR->YAmYB_RM1[2] = F[nf++];
+  FDR->YAxYB_RM1[0] = F[nf++];
+  FDR->YAxYB_RM1[1] = F[nf++];
+  FDR->YAxYB_RM1[2] = F[nf++];
+
+  FDR->YAmYB_R0[0]  = F[nf++];
+  FDR->YAmYB_R0[1]  = F[nf++];
+  FDR->YAmYB_R0[2]  = F[nf++];
+  FDR->YAxYB_R0[0]  = F[nf++];
+  FDR->YAxYB_R0[1]  = F[nf++];
+  FDR->YAxYB_R0[2]  = F[nf++];
+
+  FDR->YAmYB_R1[0]  = F[nf++];
+  FDR->YAmYB_R1[1]  = F[nf++];
+  FDR->YAmYB_R1[2]  = F[nf++];
+  FDR->YAxYB_R1[0]  = F[nf++];
+  FDR->YAxYB_R1[1]  = F[nf++];
+  FDR->YAxYB_R1[2]  = F[nf++];
 
   if (NeedDerivatives)
-   { 
-     FDR->hDotRM3    = F[12];
-     FDR->hNablaRM3  = F[13];
-     FDR->hTimesRM5  = F[14];
-     
-     FDR->dhTimesdRMuRM3[0] = F[15];
-     FDR->dhTimesdRMuRM3[1] = F[16];
-     FDR->dhTimesdRMuRM3[2] = F[17];
+   {
+     int Mu;
+     for(Mu=0; Mu<3; Mu++)
+      { 
+        FDR->Ri_YAdYB_RM3[Mu]  = F[nf++];
+        FDR->Ri_YA_RM3[3*Mu+0] = F[nf++]; 
+        FDR->Ri_YA_RM3[3*Mu+1] = F[nf++]; 
+        FDR->Ri_YA_RM3[3*Mu+2] = F[nf++]; 
+        FDR->Ri_YB_RM3[3*Mu+0] = F[nf++]; 
+        FDR->Ri_YB_RM3[3*Mu+1] = F[nf++]; 
+        FDR->Ri_YB_RM3[3*Mu+2] = F[nf++]; 
+        FDR->Ri_RM3[Mu]        = F[nf++]; 
 
-     FDR->dhTimesdRMuRM1[0] = F[18];
-     FDR->dhTimesdRMuRM1[1] = F[19];
-     FDR->dhTimesdRMuRM1[2] = F[20];
+        FDR->Ri_YAdYB_RM1[Mu]  = F[nf++];
+        FDR->Ri_YA_RM1[3*Mu+0] = F[nf++]; 
+        FDR->Ri_YA_RM1[3*Mu+1] = F[nf++]; 
+        FDR->Ri_YA_RM1[3*Mu+2] = F[nf++]; 
+        FDR->Ri_YB_RM1[3*Mu+0] = F[nf++]; 
+        FDR->Ri_YB_RM1[3*Mu+1] = F[nf++]; 
+        FDR->Ri_YB_RM1[3*Mu+2] = F[nf++]; 
+        FDR->Ri_RM1[Mu]        = F[nf++]; 
 
-     FDR->dhTimesdRMuR0[0] = F[21];
-     FDR->dhTimesdRMuR0[1] = F[22];
-     FDR->dhTimesdRMuR0[2] = F[23];
+        FDR->Ri_YAdYB_R0[Mu]   = F[nf++];
+        FDR->Ri_YA_R0[3*Mu+0]  = F[nf++]; 
+        FDR->Ri_YA_R0[3*Mu+1]  = F[nf++]; 
+        FDR->Ri_YA_R0[3*Mu+2]  = F[nf++]; 
+        FDR->Ri_YB_R0[3*Mu+0]  = F[nf++]; 
+        FDR->Ri_YB_R0[3*Mu+1]  = F[nf++]; 
+        FDR->Ri_YB_R0[3*Mu+2]  = F[nf++]; 
+        FDR->Ri_R0[Mu]         = F[nf++]; 
 
-     FDR->dhTimesdRMuR1[0] = F[24];
-     FDR->dhTimesdRMuR1[1] = F[25];
-     FDR->dhTimesdRMuR1[2] = F[26];
+        FDR->Ri_YAdYB_R1[Mu]   = F[nf++];
+        FDR->Ri_YA_R1[3*Mu+0]  = F[nf++]; 
+        FDR->Ri_YA_R1[3*Mu+1]  = F[nf++]; 
+        FDR->Ri_YA_R1[3*Mu+2]  = F[nf++]; 
+        FDR->Ri_YB_R1[3*Mu+0]  = F[nf++]; 
+        FDR->Ri_YB_R1[3*Mu+1]  = F[nf++]; 
+        FDR->Ri_YB_R1[3*Mu+2]  = F[nf++]; 
+        FDR->Ri_R1[Mu]         = F[nf++]; 
+      };
 
+     FDR->YA_RM3[0] = F[nf++];
+     FDR->YA_RM3[1] = F[nf++];
+     FDR->YA_RM3[2] = F[nf++];
+     FDR->YB_RM3[0] = F[nf++];
+     FDR->YB_RM3[1] = F[nf++];
+     FDR->YB_RM3[2] = F[nf++];
+     FDR->RM3       = F[nf++];
+
+     for(Mu=0; Mu<3; Mu++)
+      { 
+        FDR->Ri_YAmYB_RM5[3*Mu + 0] = F[nf++]; 
+        FDR->Ri_YAmYB_RM5[3*Mu + 1] = F[nf++]; 
+        FDR->Ri_YAmYB_RM5[3*Mu + 2] = F[nf++]; 
+        FDR->Ri_YAxYB_RM5[3*Mu + 0] = F[nf++]; 
+        FDR->Ri_YAxYB_RM5[3*Mu + 1] = F[nf++]; 
+        FDR->Ri_YAxYB_RM5[3*Mu + 2] = F[nf++]; 
+
+        FDR->Ri_YAmYB_RM3[3*Mu + 0] = F[nf++]; 
+        FDR->Ri_YAmYB_RM3[3*Mu + 1] = F[nf++]; 
+        FDR->Ri_YAmYB_RM3[3*Mu + 2] = F[nf++]; 
+        FDR->Ri_YAxYB_RM3[3*Mu + 0] = F[nf++]; 
+        FDR->Ri_YAxYB_RM3[3*Mu + 1] = F[nf++]; 
+        FDR->Ri_YAxYB_RM3[3*Mu + 2] = F[nf++]; 
+
+        FDR->Ri_YAmYB_R0[3*Mu + 0]  = F[nf++]; 
+        FDR->Ri_YAmYB_R0[3*Mu + 1]  = F[nf++]; 
+        FDR->Ri_YAmYB_R0[3*Mu + 2]  = F[nf++]; 
+        FDR->Ri_YAxYB_R0[3*Mu + 0]  = F[nf++]; 
+        FDR->Ri_YAxYB_R0[3*Mu + 1]  = F[nf++]; 
+        FDR->Ri_YAxYB_R0[3*Mu + 2]  = F[nf++]; 
+
+      };
+   };
+
+}
+
+/*--------------------------------------------------------------*/
+/*- note: on entry it is assumed that a call to AssessPanelPair */
+/*- has already been made and that Va, Vb are in the order      */
+/*- they were put in by that routine                            */
+/*--------------------------------------------------------------*/
+FIPPIDataRecord *ComputeFIPPIDataRecord_TaylorDuffy(int ncv, 
+                                                    double **Va, double **Vb, 
+                                                    FIPPIDataRecord *FDR)
+{ 
+
+  FDR->HaveDerivatives=0;
+
+  /*--------------------------------------------------------------*/
+  /*- otherwise (there are common vertices) compute the FIPPIs   -*/
+  /*- using the taylor-duffy method                              -*/
+  /*--------------------------------------------------------------*/
+  int WhichCase;
+  switch (ncv)
+   { case 1: WhichCase=TM_COMMONVERTEX;   break;
+     case 2: WhichCase=TM_COMMONEDGE;     break;
+     case 3: WhichCase=TM_COMMONTRIANGLE; break; // should never happen
    };
 
 }
@@ -349,97 +518,8 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
   /*- adaptive cubature over both triangles to compute the FIPPIs-*/
   /*--------------------------------------------------------------*/
   if (ncv==0)
-   { ComputeFIPPIDataRecord_Cubature(Va, Qa, Vb, Qb,
-                                     NeedDerivatives,
-                                     FDR);
-     return FDR;
-   };
-
-  FDR->HaveDerivatives=0; // no derivatives for common-vertex cases 
-
-  /*--------------------------------------------------------------*/
-  /*- otherwise (there are common vertices) compute the FIPPIs   -*/
-  /*- using the taylor-duffy method                              -*/
-  /*--------------------------------------------------------------*/
-  int WhichCase;
-  switch (ncv)
-   { case 1: WhichCase=TM_COMMONVERTEX;   break;
-     case 2: WhichCase=TM_COMMONEDGE;     break;
-     case 3: WhichCase=TM_COMMONTRIANGLE; break; // should never happen
-   };
-  
-  /*--------------------------------------------------------------*/
-  /*- hDot integrals ---------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  FDR->hDotRM1=real( TaylorMaster(WhichCase, TM_RP, TM_DOT, -1.0,
-                                  Va[0], Va[1], Va[2],
-                                  Vb[1], Vb[2], Qa, Qb)
-                   );
-
-  /* FIXME this one can be computed analytically */ 
-  FDR->hDotR0 =real( TaylorMaster(WhichCase, TM_RP, TM_DOT, 0.0, 
-                                  Va[0], Va[1], Va[2], 
-                                  Vb[1], Vb[2], Qa, Qb)
-                   );
-
-  FDR->hDotR1 =real( TaylorMaster(WhichCase, TM_RP, TM_DOT, 1.0, 
-                                  Va[0], Va[1], Va[2], 
-                                  Vb[1], Vb[2], Qa, Qb)
-                   );
-
-  /* FIXME this one can be computed analytically */ 
-  FDR->hDotR2 =real( TaylorMaster(WhichCase, TM_RP, TM_DOT, 2.0, 
-                                  Va[0], Va[1], Va[2], 
-                                  Vb[1], Vb[2], Qa, Qb)
-                   );
-  
-  /*--------------------------------------------------------------*/
-  /*- hNabla integrals -------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  FDR->hNablaRM1 = 4.0*real( TaylorMaster(WhichCase, TM_RP, TM_ONE, -1.0,
-                                          Va[0], Va[1], Va[2], 
-                                          Vb[1], Vb[2], Qa, Qb)
-                           );
-
-  /* FIXME this one can be computed analytically */ 
-  FDR->hNablaR0  = 4.0*real( TaylorMaster(WhichCase, TM_RP, TM_ONE, 0.0, 
-                                          Va[0], Va[1], Va[2], 
-                                          Vb[1], Vb[2], Qa, Qb)
-                           );
-
-  FDR->hNablaR1  = 4.0*real( TaylorMaster(WhichCase, TM_RP, TM_ONE, 1.0, 
-                                          Va[0], Va[1], Va[2], 
-                                          Vb[1], Vb[2], Qa, Qb)
-                           );
-
-  /* FIXME this one can be computed analytically */ 
-  FDR->hNablaR2  = 4.0*real( TaylorMaster(WhichCase, TM_RP, TM_ONE, 2.0, 
-                                          Va[0], Va[1], Va[2], 
-                                          Vb[1], Vb[2], Qa, Qb)
-                           );
-  
-  /*--------------------------------------------------------------*/
-  /*- hTimes integrals -------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  FDR->hTimesRM3=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, -3.0,
-                                    Va[0], Va[1], Va[2],
-                                    Vb[1], Vb[2], Qa, Qb)
-                     );
-
-  FDR->hTimesRM1=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, -1.0,
-                                    Va[0], Va[1], Va[2],
-                                    Vb[1], Vb[2], Qa, Qb)
-                     );
-
-  /* FIXME this one can be computed analytically */ 
-  FDR->hTimesR0=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, 0.0,
-                                   Va[0], Va[1], Va[2],
-                                   Vb[1], Vb[2], Qa, Qb)
-                    );
-
-  FDR->hTimesR1=real( TaylorMaster(WhichCase, TM_RP, TM_CROSS, 1.0,
-                                   Va[0], Va[1], Va[2],
-                                   Vb[1], Vb[2], Qa, Qb)
-                    );
+   ComputeFIPPIDataRecord_Cubature(Va, Vb, NeedDerivatives, FDR);
+  else
+   ComputeFIPPIDataRecord_TaylorDuffy(ncv, Va, Vb, FDR);
 
 }
