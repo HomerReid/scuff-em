@@ -38,16 +38,35 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   int NumTorqueAxes         = Args->NumTorqueAxes;
   double *GammaMatrix       = Args->GammaMatrix;
 
-  /***************************************************************/
-  /* first look to see if the two basis functions are far enough */
-  /* apart that we can use the multipole method                  */
-  /***************************************************************/
   RWGEdge *Ea=Oa->Edges[nea];
   RWGEdge *Eb=Oa->Edges[neb];
 
+  /***************************************************************/
+  /* figure out which method to use, as follows:                 */
+  /*  a) if the Args->Force flag was set to force a specific     */
+  /*     method, use that method                                 */
+  /*  b) otherwise, use spherical multipoles if the relative     */
+  /*     distance between the edges exceeds the DBFTHRESHOLD,    */
+  /*     and otherwise use the panel-panel integral method       */
+  /***************************************************************/
+  int UseSMMethod=0;
+  if (Args->Force==EEI_FORCE_SM)
+   UseSMMethod=1;
+  else if (Args->Force==EEI_FORCE_PP)
+   UseSMMethod=0;
+  else
+   { 
+     double RMax=fmax(Ea->Radius, Eb->Radius);
+     if (VecDistance(Ea->Centroid, Eb->Centroid) > DBFTHRESHOLD*RMax )
+      UseSMMethod=1;
+   };
+
+  /***************************************************************/
+  /* get edge-edge interactions by spherical multipole method if */
+  /* that was the verdict of the above                           */
+  /***************************************************************/
   #if 0
-  double RMax=fmax(Ea->Radius, Eb->Radius);
-  if ( VecDistance(Ea->Centroid, Eb->Centroid) > DBFTHRESHOLD*RMax )
+  if ( UseSMMethod )
    { GetEEIMultipole(Args);
      return;
    };
@@ -200,4 +219,5 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
   Args->GammaMatrix=0;
+  Args->Force=EEI_NOFORCE;
 }

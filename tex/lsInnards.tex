@@ -1680,6 +1680,10 @@ h_{\times}(\vb x_a, \vb x_b)
 \Big[ (\vb x_a - \vb Q_a) \times (\vb x_b - \vb Q_b) \Big]
       \cdot (\vb x_a - \vb x_b)
 \\
+&=
+      (\vb x_a \times \vb x_b) \cdot (\vb Q_a - \vb Q_b)
+    + (\vb Q_a \times \vb Q_b) \cdot (\vb x_a - \vb x_b)
+\\
 %--------------------------------------------------------------------%
 \phi(k, r)&=\frac{e^{ikr}}{4\pi r}, 
 \\
@@ -1932,12 +1936,11 @@ and we have
 %====================================================================%
 \begin{align*}
   \pard{H_\bullet}{\vb R_i}
-&= \vb R_i \iint h_\bullet \psi  
+&= \iint \Big(\vb R + \vb y_a - \vb y_b\Big)_i \vb h_\bullet \psi
 \\
-&= \vb R_i \left[ \iint h_{\bullet} \psi\supt{DS}
-                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
-                  \iint h_{\bullet} r^{n-3}
-           \right]
+&= \iint \Big(\vb R + \vb y_a - \vb y_b\Big)_i h_{\bullet} \psi\supt{DS}
+   +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
+    \iint \Big(\vb R + \vb y_a - \vb y_b\Big) h_{\bullet} r^{n-3}
 \\[10pt]
 %--------------------------------------------------------------------%
   \pard{H_\nabla}{\vb R_i}

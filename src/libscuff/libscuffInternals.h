@@ -61,6 +61,9 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args,
 /*--------------------------------------------------------------*/
 /*- GetEdgeEdgeInteractions() ----------------------------------*/
 /*--------------------------------------------------------------*/
+#define EEI_NOFORCE  0       // values for the 'Force' field
+#define EEI_FORCE_PP 12345   //  of the GetEEIArgStruct
+#define EEI_FORCE_SM 23456
 typedef struct GetEEIArgStruct
  { 
    // input fields to be filled in by caller
@@ -71,6 +74,8 @@ typedef struct GetEEIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
+
+   int Force;
 
    // output fields filled in by routine
    // note: GC[0] = <f_a|G|f_b>
