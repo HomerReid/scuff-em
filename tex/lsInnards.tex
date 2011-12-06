@@ -2178,8 +2178,12 @@ discretization of object surfaces. Of course, the solution
 of the EFIE or PMCHW equations automatically gives us the 
 \textit{tangential} components of the fields on the object
 surfaces, but to get the normal components we must do a little
-more work.
+more work. 
 
+Thus, consider the fields at a point lying a distance $z$
+above the centroid of a panel in the direction of the 
+outward-pointing panel normal. Let $\vbrho=(x,y)$ be the
+in-plane coordinate vector. The normal $\vb E-$field is given by
 %====================================================================%
 \begin{align}
 E_z(z) 
@@ -2187,17 +2191,18 @@ E_z(z)
              \Gamma_{zx}\supt{EE}(\vbrho, z) K_x(\vbrho) 
             +\Gamma_{zy}\supt{EE}(\vbrho, z) K_y(\vbrho) 
            \Big\}
-\nonumber
+\nonumber \\
 &\qquad
    + \int d\vbrho \, \Big\{ 
              \Gamma_{zx}\supt{EM}(\vbrho, z) N_x(\vbrho) 
             +\Gamma_{zy}\supt{EM}(\vbrho, z) N_y(\vbrho) 
-           \Big\}
+           \Big\}.
 \label{Ezz}
 \end{align}
 %====================================================================%
-Anticipating that the final answers will involve the values and
-first derivatives of $\vb K$ and $\vb N$ at the origin, I write
+Anticipating that the final answers will involve the 
+first derivatives of $\vb K$ and $\vb N$ at the origin (i.e. the panel 
+centroid), I write
 %====================================================================%
 \begin{align*}
  K_x(\vbrho) &= K_x^{(00)} + x K_x^{(10)} + y K_x^{(01)} + xyK_x^{(11)}
@@ -2206,6 +2211,8 @@ first derivatives of $\vb K$ and $\vb N$ at the origin, I write
  K_y(\vbrho) &= K_y^{(00)} + x K_y^{(10)} + y K_y^{(01)} + xyK_y^{(11)}
   + \cdots
 \end{align*}
+(where $K^{(pq)}$ is short 
+for $|\partial^{p+q} K/\partial^p x \partial^q y|_{\vbrho=0}$)
 and similarly for the components of $\vb N$.
 %====================================================================%
 Also, the components of the $\Gamma$ tensors that I will need are
@@ -2224,8 +2231,8 @@ Also, the components of the $\Gamma$ tensors that I will need are
   \frac{e^{ikr}}{4\pi (ik) r^3}
 \end{align*}
 %====================================================================%
-(where $r=\sqrt{\vbrho^2 + z^2}$ and $k,Z$ are the wavenumber and
-wave impedance for the \textit{exterior} medium.)
+where $r=\sqrt{\vbrho^2 + z^2}$ and $k,Z$ are the wavenumber and
+wave impedance for the medium in question.
 Now I insert everything into (\ref{Ezz}) and note that terms linear
 in $x$ and/or $y$ vanish under the angular portion of the $d\vbrho$
 integration:
@@ -2237,31 +2244,68 @@ $$ \int d\vbrho
    \right\}
 $$
 %====================================================================%
+This yields
 \begin{align*}
  E_z(z) 
-&= \frac{Zz \big( K_x^{(10)} + K_y^{(01)} \big)}{4ik}  
-   \int_0^\infty \, \rho^3 d\rho \, \big[-3 + 3ikr - (ikr)^2\big] 
+&= \frac{Z \big( K_x^{(10)} + K_y^{(01)} \big)}{4ik}  
+   \cdot z \cdot \int_0^\infty \, \rho^3 d\rho \, \big[-3 + 3ikr - (ikr)^2\big] 
    \frac{e^{ikr}}{r^5}
 \\
 &\qquad
  + \frac{\big( N_x^{(01)} - N_y^{(10)} \big)}{4}  
    \int_0^\infty \, \rho^3 d\rho \, \big[-1 + ikr ] 
-   \frac{e^{ikr}}{r^3}
+   \frac{e^{ikr}}{r^3}.
 \end{align*}
 %====================================================================%
-$$ r=\sqrt{\rho^2 + z^2}, \qquad r\,dr = \rho\, d\rho $$
+The prefactor in the second term here involves the $z$ component of the 
+curl of the magnetic current, $\nabla \times \vb N$; but the curl of an 
+RWG basis function vanishes in the interior of the panels on which the 
+function is defined, so this term does not contribute.
+
+On the other hand, the first term here is proportional to $\nabla \cdot \vb K$.
+Change integration variables to 
+$r=\sqrt{\rho^2 + z^2}, \,\, r\,dr = \rho\, d\rho:$
 %====================================================================%
 \begin{align*}
  E_z(z) 
-&= \frac{Zz \big( K_x^{(10)} + K_y^{(01)} \big)}{4ik}  
-   \int_z^\infty \, dr (r^2 - z^2) \, \big[-3 + 3ikr - (ikr)^2\big] 
+&= \frac{Z \big (\nabla \cdot \vb K \big)}{4ik} 
+   \cdot z \cdot \int_z^\infty \, dr (r^2 - z^2) \, \big[-3 + 3ikr - (ikr)^2\big] 
    \frac{e^{ikr}}{r^4}
-\\
-&\qquad
- + \frac{\big( N_x^{(01)} - N_y^{(10)} \big)}{4}  
-   \int_z^\infty \, dr (r^2 - z^2) \, \big[-1 + ikr ] 
-   \frac{e^{ikr}}{r^2}
 \end{align*}
+The only terms in the integrand that lead to nonvanishing results in the 
+$z\to 0$ limit are those coming from the $-3$ term in the square brackets:
+%====================================================================%
+\begin{align*}
+ -3z\cdot \int_z^\infty \left[ \frac{1}{r^2} - \frac{z^2}{r^4} \right]dr 
+&=
+  3z\cdot\left| \frac{1}{r} - \frac{z^2}{3r^3} \right|_{z}^\infty
+\\
+&=2
+\end{align*}
+%====================================================================%
+and thus 
+\numeq{Ezz2}
+{
+   \lim_{z\to 0}E_z(z) 
+   = \frac{Z(\nabla \cdot \vb K)}{2ik} 
+   = \frac{(\nabla \cdot \vb K)}{2i\epsilon \omega } 
+   = \frac{\sigma}{2\epsilon}
+}
+where $\sigma=\frac{1}{i\omega}\nabla \cdot \vb K$ is 
+the surface charge density at the panel centroid. 
+(An analogous calculation for the magnetic field yields
+$$ \lim_{z\to 0}H_z(z) 
+   = \frac{(\nabla \cdot \vb N)}{2ik Z} 
+   = \frac{\eta}{2\mu}
+$$
+where $\eta=\frac{1}{i\omega}\nabla \cdot \vb N$ is 
+the magnetic surface charge density.)
+
+Equation (\ref{Ezz2}) is of course just the result we 
+would have predicted on the basis of electrostatic 
+arguments, but it is useful to see here how it follows 
+from our full frequency-dependent formalism.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
