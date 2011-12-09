@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MatrixElements.tex 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\documentclass[dvips,letterpaper]{article}
+\documentclass[letterpaper]{article}
 
 \input{scufftex}
 
@@ -1492,7 +1492,7 @@ may be enclosed. For RWG basis functions, we take the centroid to be
 the midpoint of the common edge shared by the two triangle that define
 the basis function; then the radius is the greatest distance from the 
 centroid to any of the four panel vertices 
-(Figure \ref{RWGMidPointRadius}).) 
+(Figure \ref{RWGMidPointRadius}).)
 
 Then the computation of the integrals (\ref{MatrixElementIntegrals})
 proceeds as follows. 
@@ -1859,34 +1859,47 @@ where
 \begin{align}
  H_\bullet(\pan_a, \pan_b, \vb R) 
    &=\frac{1}{4A_a A_b} 
-     \int d\vb y_a \, \int d\vb y_b \,
+     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
      h_\bullet(\vb y_a, \vb y_b)
      \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
 \\
  H_\nabla(\pan_a, \pan_b, \vb R) 
    &=\frac{1}{4A_a A_b} 
-     \int d\vb y_a \, \int d\vb y_b \,
+     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
      h_\nabla(\vb y_a, \vb y_b)
      \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
 \\
  H_\times(\pan_a, \pan_b, \vb R)
    &=\frac{1}{4A_a A_b}
-      \int d\vb y_a \, \int d\vb y_b \,
-      h_\times(\vb y_a, \vb y_b, \vb R)
-      \psi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big). 
+     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
+     h_\times(\vb y_a, \vb y_b, \vb R)
+     \psi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big). 
 \end{align}
 \label{ThreeHFunctions}
 \end{subequations}
 %====================================================================%
+%####################################################################%
+\begin{figure}
+\begin{center}
+\includegraphics{figures/PPIDerivatives.pdf}
+\caption{Notation for equation \ref{Rab}.}
+\label{RabFigure}
+\end{center}
+\end{figure}
+%####################################################################%
 Here we have rewritten the integrals over $\vb x_a, \vb x_b$ in 
 equation (\ref{PanelPanelIntegrals}) using new integration variables
 defined relative to the panel centroids (Figure \ref{RabFigure}):
-$$\vb x_a=\vb x_{a0} + \vb y_a, 
-  \qquad 
-  \vb x_b=\vb x_{b0} + \vb y_b, 
-  \qquad
-  \vb R = \vb x_{a0} - \vb x_{b0}.
-$$
+%====================================================================%
+\numeq{Rab}
+{
+  \vb x_a=\vb x_{a0} + \vb y_a, 
+   \qquad 
+   \vb x_b=\vb x_{b0} + \vb y_b, 
+   \qquad
+   \vb R_{ab} = \vb x_{a0} - \vb x_{b0}.
+}
+%====================================================================%
 (In equation (\ref{ThreeHFunctions}), note that $h_\times$, 
 unlike $h_\bullet$ and $h_\nabla$, depends on $\vb R$ in 
 addition to $\vb y_a, \vb y_b$.)
