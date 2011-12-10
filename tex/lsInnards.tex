@@ -1878,15 +1878,6 @@ where
 \label{ThreeHFunctions}
 \end{subequations}
 %====================================================================%
-%####################################################################%
-\begin{figure}
-\begin{center}
-\includegraphics{figures/PPIDerivatives.pdf}
-\caption{Notation for equation \ref{Rab}.}
-\label{RabFigure}
-\end{center}
-\end{figure}
-%####################################################################%
 Here we have rewritten the integrals over $\vb x_a, \vb x_b$ in 
 equation (\ref{PanelPanelIntegrals}) using new integration variables
 defined relative to the panel centroids (Figure \ref{RabFigure}):
@@ -1897,31 +1888,41 @@ defined relative to the panel centroids (Figure \ref{RabFigure}):
    \qquad 
    \vb x_b=\vb x_{b0} + \vb y_b, 
    \qquad
-   \vb R_{ab} = \vb x_{a0} - \vb x_{b0}.
+   \vb R_{ab} \equiv \vb R = \vb x_{a0} - \vb x_{b0}.
 }
 %====================================================================%
+%####################################################################%
+\begin{figure}
+\begin{center}
+\includegraphics{figures/PPIDerivatives.pdf}
+\caption{Notation for equation \ref{Rab}.}
+\label{RabFigure}
+\end{center}
+\end{figure}
+%####################################################################%
 (In equation (\ref{ThreeHFunctions}), note that $h_\times$, 
 unlike $h_\bullet$ and $h_\nabla$, depends on $\vb R$ in 
 addition to $\vb y_a, \vb y_b$.)
 
 Now we can take derivatives with respect to the components 
-of $\vb R$:
+of $\vb R$. Putting $\vb r = \vb R + \vb y_a - \vb y_b)$, we have
 \begin{align*}
   \pard{H_\bullet}{\vb R_i}
-&= \vb R_i 
-   \int d\vb y_a \, \int d\vb y_b \,
+&= \int d\vb y_a \, \int d\vb y_b \,
+   \vb r_i 
    h_\bullet(\vb y_a, \vb y_b)
    \psi\big(k, \vb R + \vb y_a - \vb y_b \big) 
 \\
   \pard{H_\nabla}{\vb R_i}
-&= \vb R_i 
-   \int d\vb y_a \, \int d\vb y_b \,
+&= \int d\vb y_a \, \int d\vb y_b \,
+   \vb r_i 
    h_\nabla(\vb y_a, \vb y_b)
    \psi\big(k, \vb R + \vb y_a - \vb y_b \big)
 \\
   \pard{H_\times}{\vb R_i}
-&= \vb R_i 
+&= 
    \int d\vb y_a \, \int d\vb y_b \,
+   \vb r_i
    h_\times(\vb y_a, \vb y_b, \vb R)
    \zeta\big(k, \vb R + \vb y_a - \vb y_b \big)
 \\
@@ -1949,33 +1950,33 @@ and we have
 %====================================================================%
 \begin{align*}
   \pard{H_\bullet}{\vb R_i}
-&= \iint \Big(\vb R + \vb y_a - \vb y_b\Big)_i \vb h_\bullet \psi
+&= \iint \vb r_i \vb h_\bullet \psi
 \\
-&= \iint \Big(\vb R + \vb y_a - \vb y_b\Big)_i h_{\bullet} \psi\supt{DS}
+&= \iint \vb r_i h_{\bullet} \psi\supt{DS}
    +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
-    \iint \Big(\vb R + \vb y_a - \vb y_b\Big)_i h_{\bullet} r^{n-3}
+    \iint \vb r_i h_{\bullet} r^{n-3}
 \\[10pt]
 %--------------------------------------------------------------------%
   \pard{H_\nabla}{\vb R_i}
-&= \vb R_i \iint h_\nabla \psi  
+&= \iint \vb r_i h_\nabla \psi  
 \\
-&= \vb R_i \left[ \iint h_{\nabla} \psi\supt{DS}
+&= \left[ \iint \vb r_i h_{\nabla} \psi\supt{DS}
                  +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
-                  \iint h_{\nabla } r^{n-3}
+                  \iint \vb r_i h_{\nabla } r^{n-3}
            \right]
 \\[10pt]
 %--------------------------------------------------------------------%
   \pard{H_\times}{\vb R_i}
-&=   \vb R_i \iint h_\times \zeta
+&=   \iint \vb r_i h_\times \zeta
    + \iint \left( \pard{h_\times}{\vb R_i}\right) \psi
 \\
 %--------------------------------------------------------------------%
-&= \vb R_i \iint h_{\times} \zeta\supt{DS}
+&= \iint \vb r_i h_{\times} \zeta\supt{DS}
     +\iint \left(\pard{h_\times}{\vb R_i}\right)\psi\supt{DS}   
 \\ 
 &\qquad
-   +\vb R_i \left[ \sum_{n=0}^5 \frac{(ik)^n}{4\pi} C_n 
-                   \iint h_{\times } r^{n-5}
+   +\left[ \sum_{n=0}^5 \frac{(ik)^n}{4\pi} C_n 
+                   \iint \vb r_i h_{\times } r^{n-5}
             \right]
    + \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
             \iint \left( \pard{h_{\times}}{\vb R_i}\right) r^{n-3}
@@ -1996,6 +1997,32 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \section{Evaluation of Frequency-Independent Panel-Panel Integrals}
+
+\begin{align*}
+\iint \vb r_i h_{\bullet} r^p
+&=\iint \vb r_i \Big\{       (\vb y_a - \overline{\vb Q}_a) 
+                        \cdot (\vb y_b - \overline{\vb Q}_b)
+                 \Big\} r^p
+\\
+&= \Big\langle \vb r_i (\vb y_a \cdot \vb y_b) r^p \Big\rangle
+  -\overline{\vb Q}_a \cdot \Big\langle \vb r_i \vb y_b r^p \Big\rangle
+  -\overline{\vb Q}_b \cdot \Big\langle \vb r_i \vb y_a r^p \Big\rangle
+  +\Big( \overline{\vb Q}_a \cdot \overline{\vb Q}_b \Big) 
+   \Big\langle \vb r_i r^p \Big\rangle
+\\
+\iint \vb r_i h_{\nabla} r^p
+&=4\iint \vb r_i r^p 
+\\
+&= 4 \Big\langle \vb r_i r^p \Big\rangle
+\\
+\iint \vb r_i h_{\times} r^p
+&=\iint \vb r_i \bigg\{ \Big[ (\vb y_a \times \vb y_b)
+                             \times (\vb y_b - \overline{\vb Q}_b)
+                        \Big] \cdot \vb r
+                 \bigg\} r^p
+\\
+\end{align*}
+
 
 \subsection{FIPPIs for Panels with Common Vertices}
 
