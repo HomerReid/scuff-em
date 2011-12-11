@@ -311,9 +311,10 @@ void ComputeFIPPIDataRecord_Cubature(double **Va, double **Vb,
   /*--------------------------------------------------------------*/
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
-  int fdim = NeedDerivatives ? 217 : 48;
+  int fdim = NeedDerivatives ? 237 : 56;
   double F[fdim], E[fdim];
 CFDRD->nCalls=0;
+printf("%i \n",fdim);
   adapt_integrate(fdim, CFDRIntegrand, CFDRD, 4, Lower, Upper,
                   0, ABSTOL, RELTOL, F, E);
 printf("FIPPI cubature: %i calls\n",CFDRD->nCalls);
@@ -427,7 +428,7 @@ printf("FIPPI cubature: %i calls\n",CFDRD->nCalls);
         FDR->Ri_YB_R1[3*Mu+1]  = F[nf++]; 
         FDR->Ri_YB_R1[3*Mu+2]  = F[nf++]; 
         FDR->Ri_R1[Mu]         = F[nf++]; 
-      };
+      }; 
 
      FDR->YA_RM3[0] = F[nf++];
      FDR->YA_RM3[1] = F[nf++];
@@ -470,9 +471,8 @@ printf("FIPPI cubature: %i calls\n",CFDRD->nCalls);
 /*- has already been made and that Va, Vb are in the order      */
 /*- they were put in by that routine                            */
 /*--------------------------------------------------------------*/
-FIPPIDataRecord *ComputeFIPPIDataRecord_TaylorDuffy(int ncv, 
-                                                    double **Va, double **Vb, 
-                                                    FIPPIDataRecord *FDR)
+void ComputeFIPPIDataRecord_TaylorDuffy(int ncv, double **Va, double **Vb, 
+                                        FIPPIDataRecord *FDR)
 { 
 
   FDR->HaveDerivatives=0;
@@ -506,8 +506,7 @@ FIPPIDataRecord *ComputeFIPPIDataRecord_TaylorDuffy(int ncv,
 /*-                                                             */
 /*- the return value is FDR.                                    */
 /*--------------------------------------------------------------*/
-FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
-                                        double **Vb, double *Qb,
+FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double **Vb,
                                         int NeedDerivatives,
                                         FIPPIDataRecord *FDR)
 { 
@@ -521,5 +520,7 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double *Qa,
    ComputeFIPPIDataRecord_Cubature(Va, Vb, NeedDerivatives, FDR);
   else
    ComputeFIPPIDataRecord_TaylorDuffy(ncv, Va, Vb, FDR);
+
+  return FDR;
 
 }
