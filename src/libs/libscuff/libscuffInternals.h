@@ -135,54 +135,56 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
 /*    with frequency-independent panel-panel integrals (FIPPIs)*/
 /*                                                             */
 /* note:                                                       */
-/*  'FIPPI'   = 'frequency-independent panel-panel integral'   */
-/*  'FIPPIDS' = 'FIPPI data store'                             */
-/*  'FIPPIDT' = 'FIPPI data table'                             */
-/*  'FIPPIDR' = 'FIPPI data record'                            */
+/*  'FIPPI'    = 'frequency-independent panel-panel integral'  */
+/*  'QIFIPPID' = 'Q-independent FIPPI data'                    */
+/*  'QDFIPPID' = 'Q-dependent FIPPI data'                      */
+/*  'FIPPIDT'  = 'FIPPI data table'                            */
 /***************************************************************/
 
-// a 'FIPPIDataStore' is the chunk of data that is stored in 
-// memory for each panel-panel pair.
-typedef struct FIPPIDataStore
+// a 'QIFIPPIData' is the minimal chunk of data that needs
+// to be stored for each panel-panel pair.
+typedef struct QIFIPPIData
  { 
    double xMxpRM3, xXxpRM3;
    double uvupvpRM1[9];
    double uvupvpR1[9];
 
- } FIPPIDataStore;
+ } QIFIPPIData;
 
-// a 'FIPPIDataRecord' is ... 
+// a 'QDFIPPIData' is ...
 //
-typedef struct FIPPIDataRecord
+typedef struct QDFIPPIData
  { 
    double hTimesRM3;
    double hDotRM1, hNablaRM1, hTimesRM1;
    double hDotR0,  hNablaR0,  hTimesR0;
    double hDotR1,  hNablaR1,  hTimesR1;
    double hDotR2,  hNablaR2;
- } FIPPIDataRecord;
+ } QDFIPPIData;
 
 
 /*--------------------------------------------------------------*/
-/*- 'GetFIPPIDataRecord' is the basic routine that is exported  */
-/*- to the outside world.                                       */
+/*- GetQDFIPPIData is the basic routine that is exported to the */
+/*- outside world.                                              */
 /*--------------------------------------------------------------*/
-void GetFIPPIDataRecord(double **Va, double *Qa, 
-                        double **Vb, double *Qb, 
-                        void *opFIPPIDT, 
-                        FIPPIDataRecord *FDR);
-
-void ComputeFIPPIDataStore(double **Va, double **Vb, FIPPIDataStore *FDS); 
+void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
+                    void *opFIPPIDT, QDFIPPIData *FD);
 
 /*--------------------------------------------------------------*/
-/* 'FIPPIDataTable' is a class that implements efficient        */
-/* storage and retrieval of FIPPIDataStores for many panelpairs.*/
+/*- ComputeQIFIPPIData is an auxiliary routine that is only     */
+/*- ever called by GetQDFIPPIData.                              */
+/*--------------------------------------------------------------*/
+void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *FDR);
+
+/*--------------------------------------------------------------*/
+/* 'FIPPIDataTable' is a class that implements efficient storage*/
+/* and retrieval of QIFIPPIData structures for many panel pairs.*/
 /*--------------------------------------------------------------*/
 class FIPPIDataTable
  { 
     // internal routine to compare vertices
     int VLT(double *V1, double *V2);
-    void ComputeSearchKey(double **Va, double **Vb, double *Key);
+    void ComputeSearchKey(double **Va, double **Vb, double *Key); 
 
   public:
 
@@ -192,12 +194,8 @@ class FIPPIDataTable
     // destructor 
     ~FIPPIDataTable();
 
-    // retrieve FIPPI data for a given pair of panels
-    FIPPIDataStore *GetFIPPIDataStore(double **Va, double **Vb);
-
-    // insert FIPPI data for a given pair of panels
-    void InsertFIPPIDataStore(double **Va, double **Vb, 
-                              FIPPIDataStore *FDS);
+    // retrieve Q-independent FIPPI data for a given pair of panels
+    QIFIPPIDataRecord *GetQIFIPPIData(double **OVa, double **OVb);
    
  };
 

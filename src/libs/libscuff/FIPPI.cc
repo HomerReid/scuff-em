@@ -116,52 +116,52 @@ void FIPPIDataTable::ComputeSearchKey(double **Va, double **Vb, double *Key)
 /*--------------------------------------------------------------*/
 /*- routine for fetching a FIPPI data record from a FIPPIDT:    */
 /*- we look through our table to see if we have a record for    */
-/*- this panel pair, we return it if we do, and otherwise we    */ 
+/*- this panel pair, we return it if we do, and otherwise we    */
 /*- compute a new FIPPI data record for this panel pair and     */
 /*- add it to the table                                         */
 /*--------------------------------------------------------------*/
-void GetFIPPIDataRecord(double **Va, double *Qa, 
-                        double **Vb, double *Qb, 
-                        void *opFIPPIDT, FIPPIDataRecord *FDR)
+QIFIPPIData *FIPPIDataTable::GetQIFIPPIData(double **Va, double **Vb)
 {
   double Key[15];
 
   ComputeSearchKey(Va, Vb, Key);
 }
 
+void GetQIFIPPIData(double **Va, double **Vb)
+
 /*--------------------------------------------------------------*/
-/*- integrand routine used for evaluating FIPPIs by cubature   -*/
-/*- note: CFDR = 'compute FIPPI data record'                   -*/
+/*- integrand routine used for evaluating FIPPIs by cubature.  -*/
+/*- note: CFD = 'compute FIPPI data.'                          -*/
 /*--------------------------------------------------------------*/
-typedef struct CFDRData
+typedef struct CFDData
  {
    double V0MC[3], A[3], B[3];
    double V0MCP[3], AP[3], BP[3];
    double R0[3];
    int NeedDerivatives;
    int nCalls;
- } CFDRData;
+ } CFDData;
 
-void CFDRIntegrand(unsigned ndim, const double *x, void *params,
-                   unsigned fdim, double *fval)
+void CFDIntegrand(unsigned ndim, const double *x, void *params,
+                  unsigned fdim, double *fval)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  CFDRData *CFDRD=(CFDRData *)params;
-  CFDRD->nCalls++;
+  CFDData *CFDD=(CFDData *)params;
+  CFDD->nCalls++;
 
-  double *V0MC=CFDRD->V0MC;
-  double *A=CFDRD->A;
-  double *B=CFDRD->B;
+  double *V0MC=CFDD->V0MC;
+  double *A=CFDD->A;
+  double *B=CFDD->B;
 
-  double *V0MCP=CFDRD->V0MCP;
-  double *AP=CFDRD->AP;
-  double *BP=CFDRD->BP;
+  double *V0MCP=CFDD->V0MCP;
+  double *AP=CFDD->AP;
+  double *BP=CFDD->BP;
 
-  double *R0=CFDRD->R0;
+  double *R0=CFDD->R0;
 
-  int NeedDerivatives=CFDRD->NeedDerivatives;
+  int NeedDerivatives=CFDD->NeedDerivatives;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -271,12 +271,8 @@ void CFDRIntegrand(unsigned ndim, const double *x, void *params,
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void ComputeFIPPIDataRecord_Cubature(double **Va, double **Vb,
-                                     int NeedDerivatives,
-                                     FIPPIDataRecord *FDR)
+void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *FDR)
 {
-  FDR->HaveDerivatives=NeedDerivatives;
-
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -293,19 +289,19 @@ void ComputeFIPPIDataRecord_Cubature(double **Va, double **Vb,
   /* fill in the data structure used to pass parameters to the    */
   /* integrand routine                                            */
   /*--------------------------------------------------------------*/
-  CFDRData MyCFDRData, *CFDRD=&MyCFDRData;
+  CFDData MyCFDData, *CFDD=&MyCFDData;
 
-  VecSub(Va[0], CentroidA, CFDRD->V0MC);
-  VecSub(Va[1], Va[0], CFDRD->A);
-  VecSub(Va[2], Va[1], CFDRD->B);
+  VecSub(Va[0], CentroidA, CFDD->V0MC);
+  VecSub(Va[1], Va[0], CFDD->A);
+  VecSub(Va[2], Va[1], CFDD->B);
 
-  VecSub(Vb[0], CentroidB, CFDRD->V0MCP);
-  VecSub(Vb[1], Vb[0], CFDRD->AP);
-  VecSub(Vb[2], Vb[1], CFDRD->BP);
+  VecSub(Vb[0], CentroidB, CFDD->V0MCP);
+  VecSub(Vb[1], Vb[0], CFDD->AP);
+  VecSub(Vb[2], Vb[1], CFDD->BP);
 
-  VecSub(CentroidA, CentroidB, CFDRD->R0);
+  VecSub(CentroidA, CentroidB, CFDD->R0);
 
-  CFDRD->NeedDerivatives = NeedDerivatives;
+  CFDD->NeedDerivatives = NeedDerivatives;
 
   /*--------------------------------------------------------------*/
   /*- evaluate the adaptive cubature over the pair of triangles  -*/
@@ -314,11 +310,11 @@ void ComputeFIPPIDataRecord_Cubature(double **Va, double **Vb,
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
   int fdim = NeedDerivatives ? 237 : 56;
   double F[fdim], E[fdim];
-CFDRD->nCalls=0;
+CFDD->nCalls=0;
 printf("%i \n",fdim);
-  adapt_integrate(fdim, CFDRIntegrand, CFDRD, 4, Lower, Upper,
+  adapt_integrate(fdim, CFDIntegrand, CFDD, 4, Lower, Upper,
                   0, ABSTOL, RELTOL, F, E);
-printf("FIPPI cubature: %i calls\n",CFDRD->nCalls);
+printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
 
   /*--------------------------------------------------------------*/
   /*- unpack the results into the output data record -------------*/
@@ -472,11 +468,9 @@ printf("FIPPI cubature: %i calls\n",CFDRD->nCalls);
 /*- has already been made and that Va, Vb are in the order      */
 /*- they were put in by that routine                            */
 /*--------------------------------------------------------------*/
-void ComputeFIPPIDataRecord_TaylorDuffy(int ncv, double **Va, double **Vb, 
-                                        FIPPIDataRecord *FDR)
+void ComputeQIFIPPIData_TaylorDuffy(int ncv, double **Va, double **Vb, 
+                                    QIFIPPIData *FD)
 { 
-
-  FDR->HaveDerivatives=0;
 
   /*--------------------------------------------------------------*/
   /*- otherwise (there are common vertices) compute the FIPPIs   -*/
@@ -492,24 +486,15 @@ void ComputeFIPPIDataRecord_TaylorDuffy(int ncv, double **Va, double **Vb,
 }
 
 /*--------------------------------------------------------------*/
-/*- routine for computing frequency-independent panel-panel     */
-/*- integrals                                                   */
+/*- routine for computing Q-independent FIPPIs.                 */
 /*-                                                             */
 /*- inputs:                                                     */
 /*-                                                             */
 /*-  Va[i][j] = jth cartesian coord of ith vertex of panel A    */
-/*-  Qa[i]    = ith cartesian coordinate of current source/sink */
-/*-             vertex of panel A                               */
-/*-  Vb, Qb   = similarly for panel B                           */
-/*-  NeedDerivatives = set to 1 or 0                            */
-/*-  FDR      = must point to a preallocated FIPPIDataRecord    */
-/*-             structure                                       */
-/*-                                                             */
-/*- the return value is FDR.                                    */
+/*-  Vb       = similarly for panel B                           */
+/*-  FD       = must point to a preallocated QIFIPPIData        */
 /*--------------------------------------------------------------*/
-FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double **Vb,
-                                        int NeedDerivatives,
-                                        FIPPIDataRecord *FDR)
+void ComputeQIFIPPIData(double **Va, double **Vb, FIPPIData *FD)
 { 
   int ncv=AssessPanelPair(Va, Vb);
 
@@ -518,10 +503,27 @@ FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double **Vb,
   /*- adaptive cubature over both triangles to compute the FIPPIs-*/
   /*--------------------------------------------------------------*/
   if (ncv==0)
-   ComputeFIPPIDataRecord_Cubature(Va, Vb, NeedDerivatives, FDR);
+   ComputeQIFIPPIData_Cubature(Va, Vb, NeedDerivatives, FD);
   else
-   ComputeFIPPIDataRecord_TaylorDuffy(ncv, Va, Vb, FDR);
+   ComputeQIFIPPIData_TaylorDuffy(ncv, Va, Vb, FD);
 
-  return FDR;
+}
+
+/*--------------------------------------------------------------*/
+/*- routine for computing Q-dependent FIPPIs.                   */
+/*--------------------------------------------------------------*/
+void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
+                    void *opFIPPIDT, QDFIPPIData *QDFD)
+{
+  double *OVa[3], *OVb[3];  // 'ordered vertices A and B'
+  QIFIPPIData MyQIFD, *QIFD=&MyQIFD;
+  int Flipped=CanonicallyOrderVertices(Va, Vb, OVa, OVb);
+
+  /*--------------------------------------------------------------*/
+  /*- if we have a lookup table for ------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (opFIPPIDT)
+   { 
+     (FIPPIDataTable *)opFDT->GetQIFIPPIData(OVa, OVb);
 
 }
