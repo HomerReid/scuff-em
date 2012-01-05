@@ -31,9 +31,6 @@
 #define BB2 (1.0/2.0)
 #define BB3 (1.0/3.0)
 #define BB4 (1.0/6.0)
-#define CC0 3.0
-#define CC2 (-1.0/2.0)
-#define CC5 (1.0/6.0)
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -381,18 +378,19 @@ printf("\n**\n** using cubature\n**\n");
    };
 
   /*****************************************************************/
-  /* if the user requested angular derivatives, then we make a     */
-  /* first call to GetPPIs_Cubature *without* desingularization    */
-  /* just to get the angular derivative integrals, because         */
-  /* desingularization of angular derivative integrals is not      */
-  /* implemented and probably never will be; for this call we      */
-  /* use high-order cubature but then promptly throw away the H    */
-  /* and GradH integrals since we proceed to compute those using   */
-  /* desingularization below.                                      */
+  /* if the user requested derivatives, then we make a first call  */
+  /* to GetPPIs_Cubature *without* desingularization to get just   */
+  /* the derivative integrals, because desingularization of        */
+  /* derivative integrals is not implemented and probably never    */
+  /* will be. for this call we use high-order cubature but then    */
+  /* promptly throw away the H integrals since we proceed to       */
+  /* compute those using the more-accurate desingularization       */
+  /* method below.                                                 */
   /*****************************************************************/
-  cdouble dHdTSave[6];
-  if (NumTorqueAxes>0)
+  cdouble GradHSave[6], dHdTSave[6];
+  if ( NumGradientComponents>0 || NumTorqueAxes>0 )
    { GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
+     memcpy(GradHSave, Args->GradH, 2*NumGradientComponents*sizeof(cdouble));
      memcpy(dHdTSave, Args->dHdT, 2*NumTorqueAxes*sizeof(cdouble));
    };
 
@@ -412,79 +410,36 @@ printf("\n**\n** using desingularization\n**\n");
   GetPPIs_Cubature(Args, 1, 0, Va, Qa, Vb, Qb);
 
   // step 2
-  int NeedDerivatives=NumGradientComponents>0;
-  FIPPIDataTable *FIPPIDT=0;
   FIPPIDataRecord MyFDR, *FDR;
-  if (FIPPIDT)
-   FDR=FIPPIDT->GetFIPPIDataRecord(Va, Vb, NeedDerivatives);
-  else
-   FDR=ComputeFIPPIDataRecord(Va, Vb, NeedDerivatives, &MyFDR);
+  GetFIPPIDataRecord(Va, Qa, Vb, Qb, Args->opFIPPIDT, FDR);
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
   cdouble ik=II*k; 
-  cdouble FOIK2=4.0/(ik*ik);
+  cdouble OOIK2=1.0/(ik*ik);
   cdouble PF[5];
   PF[0]=1.0/(4.0*M_PI);
   PF[1]=ik*PF[0];
   PF[2]=ik*PF[1];
   PF[3]=ik*PF[2];
   PF[4]=ik*PF[3];
-  PF[5]=ik*PF[4];
 
-  double QA[3], QB[3], QAmQB[3], QAxQB[3], QAdQB;
-  VecSub(Qa, Pa->Centroid, QA);
-  VecSub(Qb, Pb->Centroid, QB);
-  VecSub(QA, QB, QAmQB);
-  VecCross(QA, QB, QAxQB);
-  QAdQB = VecDot(QA, QB);
-
-  // add contributions to panel-panel integrals 
-  Args->H[0] +=  PF[0]*AA0*( FDR->YAdYB_RM1 - VecDot(QA, FDR->YB_RM1) - VecDot(QB, FDR->YA_RM1) + (QAdQB+FOIK2)*FDR->RM1 )
-                +PF[1]*AA1*( FDR->YAdYB_R0  - VecDot(QA, FDR->YB_R0 ) - VecDot(QB, FDR->YA_R0 ) + (QAdQB+FOIK2)*FDR->R0  )
-                +PF[2]*AA2*( FDR->YAdYB_R1  - VecDot(QA, FDR->YB_R1 ) - VecDot(QB, FDR->YA_R1 ) + (QAdQB+FOIK2)*FDR->R1  )
-                +PF[3]*AA3*( FDR->YAdYB_R2  - VecDot(QA, FDR->YB_R2 ) - VecDot(QB, FDR->YA_R2 ) + (QAdQB+FOIK2)*FDR->R2  );
+  // add contributions to panel-panel integrals
+  Args->H[0] +=  PF[0]*AA0*( FDR->hDotRM1 + OOIK2*FDR->hNablaRM1)
+                +PF[1]*AA1*( FDR->hDotR0  + OOIK2*FDR->hNablaR0 )
+                +PF[1]*AA1*( FDR->hDotR1  + OOIK2*FDR->hNablaR1 )
+                +PF[1]*AA2*( FDR->hDotR2  + OOIK2*FDR->hNablaR2 );
   
-  Args->H[1] +=  PF[0]*BB0*( VecDot( QAxQB, FDR->YAmYB_RM3 ) + VecDot( QAmQB, FDR->YAxYB_RM3) )
-                +PF[2]*BB2*( VecDot( QAxQB, FDR->YAmYB_RM1 ) + VecDot( QAmQB, FDR->YAxYB_RM1) )
-                +PF[3]*BB3*( VecDot( QAxQB, FDR->YAmYB_R0  ) + VecDot( QAmQB, FDR->YAxYB_R0 ) )
-                +PF[4]*BB4*( VecDot( QAxQB, FDR->YAmYB_R1  ) + VecDot( QAmQB, FDR->YAxYB_R1 ) );
+  Args->H[1] +=  PF[0]*BB0*FDR->hTimesRM3
+                +PF[2]*BB2*FDR->hTimesRM1
+                +PF[3]*BB3*FDR->hTimesR0 
+                +PF[4]*BB3*FDR->hTimesR1;
 
-  // restore angular derivatives as necessary 
+  // restore derivative integrals as necessary 
+  if (NumGradientComponents>0)
+   memcpy(Args->GradH, GradHSave, 2*NumGradientComponents*sizeof(cdouble));
   if (NumTorqueAxes>0)
    memcpy(Args->dHdT, dHdTSave, 2*NumTorqueAxes*sizeof(cdouble));
-
-  if (NumGradientComponents==0)
-   return;
-
-  // add contributions to gradients of panel-panel integrals
-  double QAxYB_RM3[3], QAxYB_RM1[3], QAxYB_R0[3], QAxYB_R1[3];
-  double QBxYA_RM3[3], QBxYA_RM1[3], QBxYA_R0[3], QBxYA_R1[3];
-
-  VecCross(QA, FDR->YB_RM3, QAxYB_RM3);
-  VecCross(QA, FDR->YB_RM1, QAxYB_RM1);
-  VecCross(QA, FDR->YB_R0 , QAxYB_R0 );
-  VecCross(QA, FDR->YB_R1 , QAxYB_R1 );
-  VecCross(QB, FDR->YA_RM3, QBxYA_RM3);
-  VecCross(QB, FDR->YA_RM1, QBxYA_RM1);
-  VecCross(QB, FDR->YA_R0 , QBxYA_R0 );
-  VecCross(QB, FDR->YA_R1 , QBxYA_R1 );
-
-  int Mu;
-  for(Mu=0; Mu<NumGradientComponents; Mu++)
-   { Args->GradH[2*Mu + 0] +=   PF[0]*BB0*( FDR->Ri_YAdYB_RM3[Mu] - VecDot(QA, FDR->Ri_YB_RM3+3*Mu) - VecDot(QB, FDR->Ri_YA_RM3+3*Mu) + (QAdQB+FOIK2)*FDR->Ri_RM3[Mu] )
-                              + PF[2]*BB2*( FDR->Ri_YAdYB_RM1[Mu] - VecDot(QA, FDR->Ri_YB_RM1+3*Mu) - VecDot(QB, FDR->Ri_YA_RM1+3*Mu) + (QAdQB+FOIK2)*FDR->Ri_RM1[Mu] )
-                              + PF[3]*BB3*( FDR->Ri_YAdYB_R0[Mu]  - VecDot(QA, FDR->Ri_YB_R0 +3*Mu) - VecDot(QB, FDR->Ri_YA_R0 +3*Mu) + (QAdQB+FOIK2)*FDR->Ri_R0[Mu]  )
-                              + PF[4]*BB4*( FDR->Ri_YAdYB_R1[Mu]  - VecDot(QA, FDR->Ri_YB_R1 +3*Mu) - VecDot(QB, FDR->Ri_YA_R1 +3*Mu) + (QAdQB+FOIK2)*FDR->Ri_R1[Mu]  );
-
-     Args->GradH[2*Mu + 1] +=   PF[0]*BB0*( FDR->YAxYB_RM3[Mu] - QAxYB_RM3[Mu] - QBxYA_RM3[Mu] + QAxQB[Mu]*FDR->RM3 )
-                              + PF[2]*BB2*( FDR->YAxYB_RM1[Mu] - QAxYB_RM1[Mu] - QBxYA_RM1[Mu] + QAxQB[Mu]*FDR->RM1 )
-                              + PF[3]*BB3*( FDR->YAxYB_R0 [Mu] - QAxYB_R0 [Mu] - QBxYA_R0 [Mu] + QAxQB[Mu]*FDR->R0  )
-                              + PF[4]*BB4*( FDR->YAxYB_R1 [Mu] - QAxYB_R1 [Mu] - QBxYA_R1 [Mu] + QAxQB[Mu]*FDR->R1  )
-                              + PF[0]*CC0*( VecDot(QAmQB, FDR->Ri_YAxYB_RM5+3*Mu) + VecDot(QAxQB, FDR->Ri_YAmYB_RM5+3*Mu) )
-                              + PF[2]*CC2*( VecDot(QAmQB, FDR->Ri_YAxYB_RM3+3*Mu) + VecDot(QAxQB, FDR->Ri_YAmYB_RM3+3*Mu) )
-                              + PF[5]*CC5*( VecDot(QAmQB, FDR->Ri_YAxYB_R0 +3*Mu) + VecDot(QAxQB, FDR->Ri_YAmYB_R0 +3*Mu) );
-   };
 
 } 
 
@@ -515,4 +470,5 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
   Args->GammaMatrix=0;
+  Args->opFIPPIDataTable=0;
 }

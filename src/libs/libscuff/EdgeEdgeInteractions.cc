@@ -36,7 +36,6 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   int neb                   = Args->neb; 
   cdouble k                 = Args->k; int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
-  double *GammaMatrix       = Args->GammaMatrix;
 
   RWGEdge *Ea=Oa->Edges[nea];
   RWGEdge *Eb=Oa->Edges[neb];
@@ -91,7 +90,8 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgs->k                      = k;
   GetPPIArgs->NumGradientComponents  = NumGradientComponents;
   GetPPIArgs->NumTorqueAxes          = NumTorqueAxes;
-  GetPPIArgs->GammaMatrix            = GammaMatrix;
+  GetPPIArgs->GammaMatrix            = Args->GammaMatrix;
+  GetPPIArgs->opFIPPIDT              = Args->opFIPPIDT;    
 
   /*--------------------------------------------------------------*/
   /*- positive-positive, positive-negative, etc. -----------------*/
@@ -219,5 +219,6 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
   Args->GammaMatrix=0;
+  Args->opFIPPIDT=0;
   Args->Force=EEI_NOFORCE;
 }

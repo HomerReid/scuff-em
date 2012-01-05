@@ -37,6 +37,7 @@ typedef struct GetPPIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
+   void *opFIPPIDT;
 
    // output fields filled in by routine
    // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
@@ -74,6 +75,7 @@ typedef struct GetEEIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
+   void *opFIPPIDT;
 
    int Force;
 
@@ -134,52 +136,50 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
 /*                                                             */
 /* note:                                                       */
 /*  'FIPPI'   = 'frequency-independent panel-panel integral'   */
-/*  'FIPPIDR' = 'FIPPI data record'                            */
+/*  'FIPPIDS' = 'FIPPI data store'                             */
 /*  'FIPPIDT' = 'FIPPI data table'                             */
+/*  'FIPPIDR' = 'FIPPI data record'                            */
 /***************************************************************/
 
-// a 'FIPPIDataRecord' is a structure containing all the FIPPIs  
-// for a single panel-panel pair 
+// a 'FIPPIDataStore' is the chunk of data that is stored in 
+// memory for each panel-panel pair.
+typedef struct FIPPIDataStore
+ { 
+   double xMxpRM3, xXxpRM3;
+   double uvupvpRM1[9];
+   double uvupvpR1[9];
+
+ } FIPPIDataStore;
+
+// a 'FIPPIDataRecord' is ... 
+//
 typedef struct FIPPIDataRecord
  { 
-   int HaveDerivatives;
-
-   double YAdYB_RM1, YA_RM1[3], YB_RM1[3], RM1;
-   double YAdYB_R0,  YA_R0[3],  YB_R0[3],  R0;
-   double YAdYB_R1,  YA_R1[3],  YB_R1[3],  R1;
-   double YAdYB_R2,  YA_R2[3],  YB_R2[3],  R2;
-
-   double YAmYB_RM3[3], YAxYB_RM3[3];
-   double YAmYB_RM1[3], YAxYB_RM1[3];
-   double YAmYB_R0[3],  YAxYB_R0[3];
-   double YAmYB_R1[3],  YAxYB_R1[3];
-   
-   // the following fields are needed only if we are computing
-   // derivatives of panel-panel integrals
-   double Ri_YAdYB_RM3[3], Ri_YA_RM3[9], Ri_YB_RM3[9], Ri_RM3[3];
-   double Ri_YAdYB_RM1[3], Ri_YA_RM1[9], Ri_YB_RM1[9], Ri_RM1[3];
-   double Ri_YAdYB_R0[3],  Ri_YA_R0[9],  Ri_YB_R0[9],  Ri_R0[3];
-   double Ri_YAdYB_R1[3],  Ri_YA_R1[9],  Ri_YB_R1[9],  Ri_R1[3];
-
-   double YA_RM3[3], YB_RM3[3], RM3;
-   double Ri_YAmYB_RM5[9], Ri_YAxYB_RM5[9];
-   double Ri_YAmYB_RM3[9], Ri_YAxYB_RM3[9];
-   double Ri_YAmYB_R0 [9], Ri_YAxYB_R0 [9];
+   double hTimesRM3;
+   double hDotRM1, hNablaRM1, hTimesRM1;
+   double hDotR0,  hNablaR0,  hTimesR0;
+   double hDotR1,  hNablaR1,  hTimesR1;
+   double hDotR2,  hNablaR2;
  } FIPPIDataRecord;
 
-/*--------------------------------------------------------------*/
-/*- this is the routine that computes the FIPPIs for a given    */
-/*- pair of panels                                              */
-/*--------------------------------------------------------------*/
-FIPPIDataRecord *ComputeFIPPIDataRecord(double **Va, double **Vb,
-                                        int NeedDerivatives,
-                                        FIPPIDataRecord *FDR);
 
-// 'FIPPIDataTable' is a class that implements a hash table
-// storing FIPPIDataRecords for many pairs of panels
+/*--------------------------------------------------------------*/
+/*- 'GetFIPPIDataRecord' is the basic routine that is exported  */
+/*- to the outside world.                                       */
+/*--------------------------------------------------------------*/
+void GetFIPPIDataRecord(double **Va, double *Qa, 
+                        double **Vb, double *Qb, 
+                        void *opFIPPIDT, 
+                        FIPPIDataRecord *FDR);
+
+void ComputeFIPPIDataStore(double **Va, double **Vb, FIPPIDataStore *FDS); 
+
+/*--------------------------------------------------------------*/
+/* 'FIPPIDataTable' is a class that implements efficient        */
+/* storage and retrieval of FIPPIDataStores for many panelpairs.*/
+/*--------------------------------------------------------------*/
 class FIPPIDataTable
  { 
-
     // internal routine to compare vertices
     int VLT(double *V1, double *V2);
     void ComputeSearchKey(double **Va, double **Vb, double *Key);
@@ -192,9 +192,12 @@ class FIPPIDataTable
     // destructor 
     ~FIPPIDataTable();
 
-    // retrieve FIPPIs for a given pair of panels
-    FIPPIDataRecord *GetFIPPIDataRecord(double **Va, double **Vb,
-                                        int NeedDerivatives);
+    // retrieve FIPPI data for a given pair of panels
+    FIPPIDataStore *GetFIPPIDataStore(double **Va, double **Vb);
+
+    // insert FIPPI data for a given pair of panels
+    void InsertFIPPIDataStore(double **Va, double **Vb, 
+                              FIPPIDataStore *FDS);
    
  };
 

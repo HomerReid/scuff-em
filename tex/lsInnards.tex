@@ -86,7 +86,7 @@ typically think of as a ``dielectric.''
 fields, $\vb E\sups{inc}$ and $\vb H\sups{inc}$, 
 are arbitrary user-specified functions of space.
 The ``scattered'' fields $\vb E\sups{scat}$ and 
-$\vb H\sups{scat}$ include the contributions of currents
+$\vb H\sups{scat}$ are the fields due to currents
 flowing on the surfaces of all objects in the \lss geometry.
 Generally speaking, the incident fields are the fields that
 would be present if the scattering geometry were 
@@ -196,7 +196,7 @@ and $\vb C$ is defined by
  \label{DyadicGFC}
 \end{equation}
 %
-(Note that the $\BG$ dyadics depend separately on $\epsilon,\mu$ 
+(Note that the $\BG$ dyadics depend separately on $\epsilon,\mu,$ 
 and $\omega$, while $\vb G$ and $\vb C$ depend only on the 
 combination $k=\sqrt{\epsilon\mu}\cdot \omega.$)
 
@@ -1663,7 +1663,7 @@ integrals over pairs of triangular panels:
 \end{subequations}
 %====================================================================%
 where\footnote{\textit{Warning:} My notation for the $h$ functions
-hides the fact that $\vb h_\bullet$ and $h_\times$ depend on the current 
+hides the fact that $h_\bullet$ and $h_\times$ depend on the current 
 source/sink nodes $\vb Q_{ab}^\pm$ within the two triangles.}
 %====================================================================%
 \begin{align*}
@@ -1757,7 +1757,78 @@ the requisite prefactors to obtain the full inner products
 (\ref{PPIs}) is handled by the routine 
 \texttt{GetEdgeEdgeInteractions()}.
 
-\subsubsection*{Desingularization}
+\subsubsection*{Evaluation of distant panel-panel integrals: Cubature}
+
+When the panels $\pan, \pan^\prime$ in 
+(\ref{PPIDefinition}) are relative far away from each other, we
+evaluate the four-dimensional integral using numerical cubature.
+For this purpose it is convenient to parameterize points in the
+triangles using the prescription (Figure \ref{uvDefinitionFigure})
+\numeq{uvDefinition}
+{\begin{array}{cclll}
+ \vb x &=&\vb V_1 + u\vb A + v\vb B, 
+ \qquad &0\le u \le 1, 
+ \qquad &0 \le v \le u 
+\\[5pt]
+ \vb x^\prime &=& \vb V_1^\prime 
+                 + u^\prime\vb A^\prime 
+                 + v^\prime\vb B^\prime
+ \qquad &0\le u^\prime \le 1, 
+ \qquad &0 \le v^\prime \le u^\prime.
+ \end{array}
+}
+The integral (\ref{PPIDefinition}) becomes 
+\numeq{uvIntegral}
+{
+   \texttt{PPI}\Big(\pan, \pan^\prime, h, g\Big)
+   =
+   \int_0^1 du \, \int_0^u dv \, 
+   \int_0^1 du^\prime \, \int_0^{u^\prime} dv^\prime \, 
+   h(u, v, u^\prime, v^\prime)
+   g(u, v, u^\prime, v^\prime)
+}
+where the prefactor $\frac{1}{4AA^\prime}$ is cancelled
+by the Jacobian of the variable transformation (\ref{uvDefinition}),
+and where I put
+$$ h(u,v,u^\prime,v^\prime) = 
+   h\Big( \vb x(u,v), \vb x^\prime(u^\prime,v^\prime) \Big), 
+   \qquad
+   g(u,v,u^\prime,v^\prime) = 
+   g\Big( \big|\vb x(u,v) - \vb x^\prime(u^\prime,v^\prime) \big|\Big).
+$$
+The integral (\ref{uvIntegral}) may be evaluated numerically in 
+one of two ways:
+\begin{enumerate}
+ \item by nesting two cubature rules for the standard triangle 
+       with vertices $\{(0,0), (0,1), (1,0)\}$, or
+ \item by mapping the domain of integration to the four-dimensional 
+       hypercube $[0,1] \times [0,1] \times [0,1] \times [0,1]$
+       and using a four-dimensional cubature rule for this hypercube.
+       (The variable transformation that enables this mapping is
+       $$v=ut, \qquad dv=udt, \qquad \int_0^u f(v) dv = \int_0^1 u f(ut) dt$$
+       and similarly $v^\prime=u^\prime t^\prime.$)
+\end{enumerate}
+The former of these two strategies is slightly more efficient, but
+the latter has the advantage of allowing the use of standard codes
+for adaptive cubature over 
+hypercubes.\footnote{\texttt{http://ab-initio.mit.edu/cubature}}
+Both strategies are used in \ls.
+
+\subsubsection*{Evaluation of nearby panel-panel integrals: Desingularization}
+
+When the panels in (\ref{PPIDefinition}) have one or more common
+vertices, the integrand becomes singular at one or more points in 
+the domain of integration. Although these are \textit{integrable}
+singularities, their existence precludes application of the na\"ive
+numerical cubature scheme discussed above, and instead we must
+resort to more complicated, and more costly, numerical methods.
+
+On the other hand, when the panels have no common vertices but are
+nearby one another, the integrand in (\ref{PPIDefinition}) is
+nonsingular but rapidly varying over the domain of integration, 
+and evaluation of the integral by numerical cubature is technically 
+possible but expensive due to the large number of cubature points 
+required to obtain decent accuracy.
 
 %====================================================================%
 \begin{subequations}
@@ -1814,183 +1885,10 @@ When computing the ``relative exponential'' functions
 $\texttt{ExpRel}(x,n)$ in (\ref{PhiDSPsiDS}) it is 
 important that we \textit{not} simply compute 
 $\texttt{exp(x)}$ and then subtract off the first $n$ terms
-in its Taylor series, as doing so could lead to disastrous loss
+in its Taylor series, as doing so could lead to catastrophic loss
 of numerical precision. Instead, a better-behaved procedure is 
-to sum the Taylor series for the exponential starting with 
-its $(n+1)$th term.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{Derivatives of Matrix Elements}
-
-For Casimir computations we need derivatives of matrix elements
-with respect to rigid displacements and rotations of basis functions.
-
-\subsection{Derivatives by Spherical-Multipole Method}
-
-\subsection{Derivatives by Panel-Panel Integral Method}
-
-We write the panel-panel decomposition of the RWG inner products,
-equation (\ref{PPIs}), in the form
-%====================================================================%
-\begin{subequations}
-\begin{align}
- \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
-&= l_a l_b \sum_{\sigma, \tau=-}^+
-   \sigma \tau
-   \left\{ H_\bullet(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
-           -\frac{1}{k^2} H_\nabla(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
-   \right\}
-\\
- \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
-&= 
-   \frac{l_a l_b }{ik}
-   \sum_{\sigma, \tau=-}^+
-   \sigma \tau \cdot 
-   H_\times(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
-\end{align}
-\end{subequations}
-%====================================================================%
-where
-%====================================================================%
-\begin{subequations}
-\begin{align}
- H_\bullet(\pan_a, \pan_b, \vb R) 
-   &=\frac{1}{4A_a A_b} 
-     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
-     h_\bullet(\vb y_a, \vb y_b)
-     \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
-\\
- H_\nabla(\pan_a, \pan_b, \vb R) 
-   &=\frac{1}{4A_a A_b} 
-     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
-     h_\nabla(\vb y_a, \vb y_b)
-     \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
-\\
- H_\times(\pan_a, \pan_b, \vb R)
-   &=\frac{1}{4A_a A_b}
-     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
-     h_\times(\vb y_a, \vb y_b, \vb R)
-     \psi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big). 
-\end{align}
-\label{ThreeHFunctions}
-\end{subequations}
-%====================================================================%
-Here we have rewritten the integrals over $\vb x_a, \vb x_b$ in 
-equation (\ref{PanelPanelIntegrals}) using new integration variables
-defined relative to the panel centroids (Figure \ref{RabFigure}):
-%====================================================================%
-\numeq{Rab}
-{
-  \vb x_a=\vb x_{a0} + \vb y_a, 
-   \qquad 
-   \vb x_b=\vb x_{b0} + \vb y_b, 
-   \qquad
-   \vb R_{ab} \equiv \vb R = \vb x_{a0} - \vb x_{b0}.
-}
-%====================================================================%
-%####################################################################%
-\begin{figure}
-\begin{center}
-\includegraphics{figures/PPIDerivatives.pdf}
-\caption{Notation for equation \ref{Rab}.}
-\label{RabFigure}
-\end{center}
-\end{figure}
-%####################################################################%
-(In equation (\ref{ThreeHFunctions}), note that $h_\times$, 
-unlike $h_\bullet$ and $h_\nabla$, depends on $\vb R$ in 
-addition to $\vb y_a, \vb y_b$.)
-
-Now we can take derivatives with respect to the components 
-of $\vb R$. Putting $\vb r = \vb R + \vb y_a - \vb y_b)$, we have
-\begin{align*}
-  \pard{H_\bullet}{\vb R_i}
-&= \int d\vb y_a \, \int d\vb y_b \,
-   \vb r_i 
-   h_\bullet(\vb y_a, \vb y_b)
-   \psi\big(k, \vb R + \vb y_a - \vb y_b \big) 
-\\
-  \pard{H_\nabla}{\vb R_i}
-&= \int d\vb y_a \, \int d\vb y_b \,
-   \vb r_i 
-   h_\nabla(\vb y_a, \vb y_b)
-   \psi\big(k, \vb R + \vb y_a - \vb y_b \big)
-\\
-  \pard{H_\times}{\vb R_i}
-&= 
-   \int d\vb y_a \, \int d\vb y_b \,
-   \vb r_i
-   h_\times(\vb y_a, \vb y_b, \vb R)
-   \zeta\big(k, \vb R + \vb y_a - \vb y_b \big)
-\\
-&\qquad + 
-   \int d\vb y_a \, \int d\vb y_b \,
-   \pard{h_\times(\vb y_a, \vb y_b, \vb R)}{\vb R_i}
-   \psi\big(k, \vb R + \vb y_a - \vb y_b \big)
-\end{align*}
-In the last line, we put
-$$ \zeta(k, r) = \Big[ (ikr)^2 -3ikr + 3\Big]\frac{e^{ikr}}{4\pi r^5}$$
-[which is defined such that $\nabla \psi(k,|\vb r|) = \vb r \zeta(k, |\vb r|)$]
-and we have 
-\begin{align*}
- \pard{ h_\times(\vb y_a, \vb y_b, \vb R)}{\vb R_i}
-&=\pard{}{\vb R_i} 
-   \bigg\{ \Big[ (\vb y_a - \vb Q_a) \times (\vb y_b - \vb Q_b) \Big]
-           \cdot \vb R 
-   \bigg\}
-\\
-&= \Big[ (\vb y_a - \vb Q_a) \times (\vb y_b - \vb Q_b) \Big]_i.
-\end{align*}
-
-\subsubsection*{Desingularization}
-
-%====================================================================%
-\begin{align*}
-  \pard{H_\bullet}{\vb R_i}
-&= \iint \vb r_i \vb h_\bullet \psi
-\\
-&= \iint \vb r_i h_{\bullet} \psi\supt{DS}
-   +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
-    \iint \vb r_i h_{\bullet} r^{n-3}
-\\[10pt]
-%--------------------------------------------------------------------%
-  \pard{H_\nabla}{\vb R_i}
-&= \iint \vb r_i h_\nabla \psi  
-\\
-&= \left[ \iint \vb r_i h_{\nabla} \psi\supt{DS}
-                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
-                  \iint \vb r_i h_{\nabla } r^{n-3}
-           \right]
-\\[10pt]
-%--------------------------------------------------------------------%
-  \pard{H_\times}{\vb R_i}
-&=   \iint \vb r_i h_\times \zeta
-   + \iint \left( \pard{h_\times}{\vb R_i}\right) \psi
-\\
-%--------------------------------------------------------------------%
-&= \iint \vb r_i h_{\times} \zeta\supt{DS}
-    +\iint \left(\pard{h_\times}{\vb R_i}\right)\psi\supt{DS}   
-\\ 
-&\qquad
-   +\left[ \sum_{n=0}^5 \frac{(ik)^n}{4\pi} C_n 
-                   \iint \vb r_i h_{\times } r^{n-5}
-            \right]
-   + \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
-            \iint \left( \pard{h_{\times}}{\vb R_i}\right) r^{n-3}
-     \right]
-\end{align*}
-%====================================================================%
-In the last line here we used
-$$ \zeta\supt{DS}(k, r) = 
-   \Big[ (ikr)^2 -3ikr + 3\Big]\frac{\texttt{ExpRel(ikr,4)}}{4\pi r^5} 
-$$
-and the $C_n$ coefficients are 
-$$ C_0=3, \qquad C_1=0, \qquad C_2=-\frac{1}{2}, 
-   \qquad C_3=C_4=0, \qquad C_5=\frac{1}{6}.
-$$
+simply to sum the Taylor series for the exponential starting 
+with its $(n+1)$th term.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1998,29 +1896,36 @@ $$
 \newpage
 \section{Evaluation of Frequency-Independent Panel-Panel Integrals}
 
+
 \begin{align*}
-\iint \vb r_i h_{\bullet} r^p
-&=\iint \vb r_i \Big\{       (\vb y_a - \overline{\vb Q}_a) 
-                        \cdot (\vb y_b - \overline{\vb Q}_b)
-                 \Big\} r^p
+h_{\bullet}(u,v,u^\prime,v^\prime)
+&=\Big[ \big( \vb V_1-\vb Q\big) + u \vb A + v\vb B\Big]\cdot  
+  \Big[ \big( \vb V_1^\prime-\vb Q^\prime\big) + u^\prime \vb A^\prime 
+        + v^\prime\vb B^\prime\Big]
 \\
-&= \Big\langle \vb r_i (\vb y_a \cdot \vb y_b) r^p \Big\rangle
-  -\overline{\vb Q}_a \cdot \Big\langle \vb r_i \vb y_b r^p \Big\rangle
-  -\overline{\vb Q}_b \cdot \Big\langle \vb r_i \vb y_a r^p \Big\rangle
-  +\Big( \overline{\vb Q}_a \cdot \overline{\vb Q}_b \Big) 
-   \Big\langle \vb r_i r^p \Big\rangle
+h_{\nabla}(u,v,u^\prime,v^\prime)
+&=4
 \\
-\iint \vb r_i h_{\nabla} r^p
-&=4\iint \vb r_i r^p 
+h_{\times}(u,v,u^\prime,v^\prime)
+&=\Big[ \big( \vb V_1-\vb Q\big) + u \vb A + v\vb B\Big]\cdot  
+  \Big[ \big( \vb V_1^\prime-\vb Q^\prime\big) + u^\prime \vb A^\prime 
+        + v^\prime\vb B^\prime\Big]
+\end{align*}
+
+\begin{align*}
+\iint h_{\bullet} r^p 
+&= \Big[ \big (\vb V_1-\vb Q\big ) \cdot 
+         \big (\vb V_1^\prime - \vb Q^\prime\big)
+   \Big]
+   \cdot \Big< r^p \Big>
 \\
-&= 4 \Big\langle \vb r_i r^p \Big\rangle
+&\hspace{0.1in} 
+ +\Big[ \big (\vb V_1-\vb Q\big )\cdot \vb A^\prime \Big]
+   \cdot \Big< u^\prime r^p \Big>
 \\
-\iint \vb r_i h_{\times} r^p
-&=\iint \vb r_i \bigg\{ \Big[ (\vb y_a \times \vb y_b)
-                             \times (\vb y_b - \overline{\vb Q}_b)
-                        \Big] \cdot \vb r
-                 \bigg\} r^p
-\\
+&\hspace{0.1in} 
+ + \Big[ \big (\vb V_1-\vb Q\big) \cdot \vb B^\prime \Big]
+   \cdot \Big< v^\prime r^p \Big>
 \end{align*}
 
 
@@ -2207,6 +2112,180 @@ LHS denote the full FIPPIs, while the integrals on the RHS indicate
 %====================================================================%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Derivatives of Matrix Elements}
+
+For Casimir computations we need derivatives of matrix elements
+with respect to rigid displacements and rotations of basis functions.
+
+\subsection{Derivatives by Spherical-Multipole Method}
+
+\subsection{Derivatives by Panel-Panel Integral Method}
+
+We write the panel-panel decomposition of the RWG inner products,
+equation (\ref{PPIs}), in the form
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
+&= l_a l_b \sum_{\sigma, \tau=-}^+
+   \sigma \tau
+   \left\{ H_\bullet(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
+           -\frac{1}{k^2} H_\nabla(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
+   \right\}
+\\
+ \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
+&= 
+   \frac{l_a l_b }{ik}
+   \sum_{\sigma, \tau=-}^+
+   \sigma \tau \cdot 
+   H_\times(\pan_a^\sigma, \pan_b^\sigma, \vb R) 
+\end{align}
+\end{subequations}
+%====================================================================%
+where
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ H_\bullet(\pan_a, \pan_b, \vb R) 
+   &=\frac{1}{4A_a A_b} 
+     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
+     h_\bullet(\vb y_a, \vb y_b)
+     \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
+\\
+ H_\nabla(\pan_a, \pan_b, \vb R) 
+   &=\frac{1}{4A_a A_b} 
+     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
+     h_\nabla(\vb y_a, \vb y_b)
+     \phi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big) 
+\\
+ H_\times(\pan_a, \pan_b, \vb R)
+   &=\frac{1}{4A_a A_b}
+     \int_{\pan_a} d\vb y_a \, \int_{\pan_b} d\vb y_b \,
+     h_\times(\vb y_a, \vb y_b, \vb R)
+     \psi\big(k, \vb R + \vb y_{a} - \vb y_{b} \big). 
+\end{align}
+\label{ThreeHFunctions}
+\end{subequations}
+%====================================================================%
+Here we have rewritten the integrals over $\vb x_a, \vb x_b$ in 
+equation (\ref{PanelPanelIntegrals}) using new integration variables
+defined relative to the panel centroids (Figure \ref{RabFigure}):
+%====================================================================%
+\numeq{Rab}
+{
+  \vb x_a=\vb x_{a0} + \vb y_a, 
+   \qquad 
+   \vb x_b=\vb x_{b0} + \vb y_b, 
+   \qquad
+   \vb R_{ab} \equiv \vb R = \vb x_{a0} - \vb x_{b0}.
+}
+%====================================================================%
+%####################################################################%
+\begin{figure}
+\begin{center}
+\includegraphics{figures/PPIDerivatives.pdf}
+\caption{Notation for equation \ref{Rab}.}
+\label{RabFigure}
+\end{center}
+\end{figure}
+%####################################################################%
+(In equation (\ref{ThreeHFunctions}), note that $h_\times$, 
+unlike $h_\bullet$ and $h_\nabla$, depends on $\vb R$ in 
+addition to $\vb y_a, \vb y_b$.)
+
+Now we can take derivatives with respect to the components 
+of $\vb R$. Putting $\vb r = \vb R + \vb y_a - \vb y_b)$, we have
+\begin{align*}
+  \pard{H_\bullet}{\vb R_i}
+&= \int d\vb y_a \, \int d\vb y_b \,
+   \vb r_i 
+   h_\bullet(\vb y_a, \vb y_b)
+   \psi\big(k, \vb R + \vb y_a - \vb y_b \big) 
+\\
+  \pard{H_\nabla}{\vb R_i}
+&= \int d\vb y_a \, \int d\vb y_b \,
+   \vb r_i 
+   h_\nabla(\vb y_a, \vb y_b)
+   \psi\big(k, \vb R + \vb y_a - \vb y_b \big)
+\\
+  \pard{H_\times}{\vb R_i}
+&= 
+   \int d\vb y_a \, \int d\vb y_b \,
+   \vb r_i
+   h_\times(\vb y_a, \vb y_b, \vb R)
+   \zeta\big(k, \vb R + \vb y_a - \vb y_b \big)
+\\
+&\qquad + 
+   \int d\vb y_a \, \int d\vb y_b \,
+   \pard{h_\times(\vb y_a, \vb y_b, \vb R)}{\vb R_i}
+   \psi\big(k, \vb R + \vb y_a - \vb y_b \big)
+\end{align*}
+In the last line, we put
+$$ \zeta(k, r) = \Big[ (ikr)^2 -3ikr + 3\Big]\frac{e^{ikr}}{4\pi r^5}$$
+[which is defined such that $\nabla \psi(k,|\vb r|) = \vb r \zeta(k, |\vb r|)$]
+and we have 
+\begin{align*}
+ \pard{ h_\times(\vb y_a, \vb y_b, \vb R)}{\vb R_i}
+&=\pard{}{\vb R_i} 
+   \bigg\{ \Big[ (\vb y_a - \vb Q_a) \times (\vb y_b - \vb Q_b) \Big]
+           \cdot \vb R 
+   \bigg\}
+\\
+&= \Big[ (\vb y_a - \vb Q_a) \times (\vb y_b - \vb Q_b) \Big]_i.
+\end{align*}
+
+\subsubsection*{Desingularization}
+
+%====================================================================%
+\begin{align*}
+  \pard{H_\bullet}{\vb R_i}
+&= \iint \vb r_i \vb h_\bullet \psi
+\\
+&= \iint \vb r_i h_{\bullet} \psi\supt{DS}
+   +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
+    \iint \vb r_i h_{\bullet} r^{n-3}
+\\[10pt]
+%--------------------------------------------------------------------%
+  \pard{H_\nabla}{\vb R_i}
+&= \iint \vb r_i h_\nabla \psi  
+\\
+&= \left[ \iint \vb r_i h_{\nabla} \psi\supt{DS}
+                 +\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
+                  \iint \vb r_i h_{\nabla } r^{n-3}
+           \right]
+\\[10pt]
+%--------------------------------------------------------------------%
+  \pard{H_\times}{\vb R_i}
+&=   \iint \vb r_i h_\times \zeta
+   + \iint \left( \pard{h_\times}{\vb R_i}\right) \psi
+\\
+%--------------------------------------------------------------------%
+&= \iint \vb r_i h_{\times} \zeta\supt{DS}
+    +\iint \left(\pard{h_\times}{\vb R_i}\right)\psi\supt{DS}   
+\\ 
+&\qquad
+   +\left[ \sum_{n=0}^5 \frac{(ik)^n}{4\pi} C_n 
+                   \iint \vb r_i h_{\times } r^{n-5}
+            \right]
+   + \left[ \sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
+            \iint \left( \pard{h_{\times}}{\vb R_i}\right) r^{n-3}
+     \right]
+\end{align*}
+%====================================================================%
+In the last line here we used
+$$ \zeta\supt{DS}(k, r) = 
+   \Big[ (ikr)^2 -3ikr + 3\Big]\frac{\texttt{ExpRel(ikr,4)}}{4\pi r^5} 
+$$
+and the $C_n$ coefficients are 
+$$ C_0=3, \qquad C_1=0, \qquad C_2=-\frac{1}{2}, 
+   \qquad C_3=C_4=0, \qquad C_5=\frac{1}{6}.
+$$
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage

@@ -120,8 +120,9 @@ void FIPPIDataTable::ComputeSearchKey(double **Va, double **Vb, double *Key)
 /*- compute a new FIPPI data record for this panel pair and     */
 /*- add it to the table                                         */
 /*--------------------------------------------------------------*/
-FIPPIDataRecord *FIPPIDataTable::GetFIPPIDataRecord(double **Va, double **Vb,
-                                                    int NeedDerivatives)
+void GetFIPPIDataRecord(double **Va, double *Qa, 
+                        double **Vb, double *Qb, 
+                        void *opFIPPIDT, FIPPIDataRecord *FDR)
 {
   double Key[15];
 
