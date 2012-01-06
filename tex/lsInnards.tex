@@ -1896,222 +1896,183 @@ with its $(n+1)$th term.
 \newpage
 \section{Evaluation of Frequency-Independent Panel-Panel Integrals}
 
+The frequency-independent panel-panel integrals (FIPPIs) are
+\numeq{FIPPIs}
+{ \iint h_\bullet r^p,
+  \qquad
+  \iint h_\nabla r^p,
+  \qquad
+  \iint h_\times r^p
+}
+where $\iint$ denotes the four-dimensional integration over
+the pair of triangles as in the previous section.
 
-\begin{align*}
-h_{\bullet}(u,v,u^\prime,v^\prime)
-&=\Big[ \big( \vb V_1-\vb Q\big) + u \vb A + v\vb B\Big]\cdot  
+%The general strategy pursued by \lss is to evaluate the
+%FIPPIs once for each pair of panels and then store and 
+%reuse the results as often as possible. 
+
+\subsubsection*{Evaluation of $\iint h_\bullet r^p$}
+
+In terms of the $u,v,u^\prime,v^\prime$ variables of equation
+(\ref{uvDefinition}), we have
+\numeq{HBulletUVUPVP}
+{ h_{\bullet}(u,v,u^\prime,v^\prime)
+=\Big[ \big( \vb V_1-\vb Q\big) + u \vb A + v\vb B\Big]\cdot  
   \Big[ \big( \vb V_1^\prime-\vb Q^\prime\big) + u^\prime \vb A^\prime 
         + v^\prime\vb B^\prime\Big]
-\\
-h_{\nabla}(u,v,u^\prime,v^\prime)
-&=4
-\\
-h_{\times}(u,v,u^\prime,v^\prime)
-&=\Big[ \big( \vb V_1-\vb Q\big) + u \vb A + v\vb B\Big]\cdot  
-  \Big[ \big( \vb V_1^\prime-\vb Q^\prime\big) + u^\prime \vb A^\prime 
-        + v^\prime\vb B^\prime\Big]
-\end{align*}
-
-\begin{align*}
+}
+and 
+$$
+r(u,v,u^\prime,v^\prime)
+ =\Big| \vb V_1 - \vb V_1^\prime
+       + u\vb A+ v\vb B - u^\prime\vb A^\prime - v^\prime\vb B^\prime
+  \Big|.
+$$
+Expanding the product (\ref{HBulletUVUPVP}) yields a sum of nine terms:
+\begin{align}
 \iint h_{\bullet} r^p 
-&= \Big[ \big (\vb V_1-\vb Q\big ) \cdot 
+ = \big (\vb V_1-\vb Q\big ) \cdot 
          \big (\vb V_1^\prime - \vb Q^\prime\big)
-   \Big]
-   \cdot \Big< r^p \Big>
-\\
-&\hspace{0.1in} 
- +\Big[ \big (\vb V_1-\vb Q\big )\cdot \vb A^\prime \Big]
-   \cdot \Big< u^\prime r^p \Big>
-\\
-&\hspace{0.1in} 
- + \Big[ \big (\vb V_1-\vb Q\big) \cdot \vb B^\prime \Big]
-   \cdot \Big< v^\prime r^p \Big>
-\end{align*}
-
-
-\subsection{FIPPIs for Panels with Common Vertices}
-
-For panels with common vertices, I evaluate the FIPPIs 
-using the Taylor-Duffy method discussed in 
-Section \ref{TaylorDuffySection}.
-
-\subsection{FIPPIs for Panels with no Common Vertices}
-
-For pairs of panels with no common vertices, the FIPPIs may be 
-evaluated by straightforward four-dimensional numerical cubature 
-over the panels. However, this can be somewhat time-consuming.
-To speed things up, it is convenient to observe that in all cases
-we may evaluate one of the four cubatures analytically, leaving
-behind a 3D cubature that we evaluate numerically.
-Although this procedure is tedious and the integrands of the 
-resulting 3D integrals are complicated, the overall procedure 
-leads to a decisive savings of computation time.
-
-We write a FIPPI in the general form
-$$ \int_0^1 du \, \int_0^u dv \, 
-   \int_0^1 du^\prime \, \int_0^{u^\prime} dv^\prime \,
-   h(u, v, u^\prime, v^\prime) r^p(u, v, u^\prime, v^\prime)
-$$
-and proceed to perform the $v^\prime$ integral analytically,
-leaving behind a 3D cubature over the variables $u,v,u^\prime.$
-The first step is to write the $h$ and $r$ functions
-as polynomials in $v^\prime$, with coefficients that are
-functions of $u,v,u^\prime$ (but with this dependence suppressed
-in our notation for now). We begin by writing 
-$$ \vb f = \vb f^{(0)}, 
-   \qquad
-   \vb f^\prime = v^\prime \vb f^{\prime(1)} + \vb f^{\prime(0)},
-   \qquad
-   \vb R = v^\prime \vb R^{(1)} + \vb R^{(0)}
-$$
-$$ \vb f^{(0)} = \vb V_0 - \vb Q + u\vb A + v\vb B$$
-$$ \vb f^{\prime(1)} = \vb B^\prime, 
-   \qquad 
-   \vb f^{\prime(0)} = \vb V_0^\prime - \vb Q^\prime + u\vb A^\prime 
-$$
-$$ \vb R^{(1)} = -\vb B^\prime, 
-   \qquad
-   \vb R^{(0)} = \vb V_0 - \vb V_0^\prime + u\vb A + v\vb B - u\vb A^\prime
-$$
-Then we have 
-
+   \cdot &\iint r^p
+\nn
+ +\vb A \cdot \big (\vb V_1^\prime -\vb Q^\prime\big )
+  &\iint u r^p
+\nn
+ +\vb B \cdot \big (\vb V_1^\prime -\vb Q^\prime\big )
+  &\iint v r^p
+\nn
+  +  &\cdots
+\nn
+ +\vb B \cdot \vb B^\prime
+  &\iint v v^\prime r^p. \label{HBulletExpansion}
+\end{align}
 %====================================================================%
+It is important to notice that the integrals in (\ref{HBulletExpansion}) 
+are independent of $\vb Q$ and $\vb Q^\prime$. This suggests that, to
+compute $\iint h_\bullet r^p$,  I first compute the quantities
+\numeq{QIFIPPIs}
+{
+   \iint \left\{ \begin{array}{c} 
+   1 \\ u \\ v \\ u^\prime \\ uu^\prime \\ vu^\prime \\
+   v^\prime \\ uv^\prime \\ vv^\prime
+   \end{array}\right\} r^p
+}
+and then use (\ref{HBulletExpansion}) to compute $\iint h_\bullet r^p$.
+
+The point of this step is that the quantities (\ref{QIFIPPIs}) need 
+only be evaluated and stored once for each pair of panels, after which 
+the results may be used in (\ref{HBulletExpansion}) to compute the 
+nine separate quantities $\iint h_\bullet r^p$ that result 
+different choices of the current source/sink vertices 
+$\vb Q, \vb Q^\prime$.
+
+The integrals (\ref{HBulletExpansion}) are 
+known in \lss as the ``$\vb Q$-independent FIPPIs,''
+while (\ref{FIPPIs}) are the ``$\vb Q$-dependent FIPPIs.''
+
+\subsubsection*{Evaluation of $\iint h_\nabla r^p$}
+
+Once we have evaluated the $\vb Q$-independent FIPPIs
+for a pair of panels, we get $\iint h_\nabla r^p$ for 
+free, since it is just 
+the first entry in 
+equation (\ref{QIFIPPIs}) times 4.
+
+\subsubsection*{Evaluation of $\iint h_\times r^p$}
+
+\subsubsection*{Evaluation of $\vb Q$-independent FIPPIs}
+
+The $\vb Q$-independent FIPPIs, equation (\ref{QIFIPPIs}),
+are nominally four-dimensional integrals, but we have the 
+following simplifications:
+
+\begin{enumerate}
+  \item For $p=0$ and $p=2$ the integrals may be done analytically
+        in closed form.
+  \item If the panels have one or more common vertices, we may use
+        the Taylor-Duffy method (Appendix \ref{TaylorDuffyAppendix})
+        to perform one or more of the four integrals analytically.
+  \item Even when the panels have no common vertices, we can 
+        always evaluate one of the four integrals analytically,
+        which accelerates numerical evaluation.
+\end{enumerate}
+
+We now address each of these points in turn. 
+
+\paragraph{1. FIPPIs for $p=0,2$.} 
+
+We have
+$$
+   \iint \left\{ \begin{array}{c} 
+   1 \\ u \\ v \\ u^\prime \\ uu^\prime \\ vu^\prime \\
+   v^\prime \\ uv^\prime \\ vv^\prime
+   \end{array}\right\} r^0
+   =
+   \left\{ \begin{array}{c} 
+           1 
+           \end{array}{c} 
+   \right\}
+$$
+
+\paragraph{2. FIPPIs for panels with common vertices.} 
+
+As noted above, for panels with common vertices the Taylor-Duffy
+method of Appendix (\ref{TaylorDuffyAppendix}) is available.
+
+\paragraph{3. FIPPIs for panels with no common vertices.} 
+
+As noted above, even when the panels have no common vertices
+we can always evaluate one of the four integrals 
+analytically to yield a three-dimensional integral.
+We arbitrarily choose the integral we evaluate to be
+the $v^\prime$ integral, and to facilitate its evaluation we 
+write
 \begin{align*}
-  h_\bullet(v^\prime) 
-&= v^\prime h_\bullet^{(1)} + h_\bullet^{(0)}
+r(u,v,u^\prime,v^\prime)
+&=\Big| \vb V_1 - \vb V_1^\prime
+       + u\vb A+ v\vb B - u^\prime\vb A^\prime - v^\prime\vb B^\prime
+  \Big|   
 \\
-%--------------------------------------------------------------------%
-  h_\nabla(v^\prime) 
-&= h_\nabla^{(0)}
-\\
-%--------------------------------------------------------------------%
-  h_\times(v^\prime) 
-&= v^{\prime 2} h_\times^{(2)} + v^{\prime} h_\times^{(1)} + h_\times^{(0)}
-\\
-%--------------------------------------------------------------------%
-  h_\mu(v^\prime) 
-&= v^{\prime} h_\mu^{(1)} + h_\mu^{(0)}
+&=a \sqrt{ (v^\prime - v_0^\prime)^2 + b^2 },
 \end{align*}
 %====================================================================%
-with 
-%====================================================================%
 $$
-h_\bullet^{(1)}
-= \vb f^{(0)} \cdot \vb f^{\prime(1)}, 
-\qquad 
-h_\bullet^{(0)}
-= \vb f^{(0)} \cdot \vb f^{\prime(0)}
-$$
-%--------------------------------------------------------------------%
-$$
-h_\nabla^{(0)}
-=4
-$$
-%--------------------------------------------------------------------%
-$$
-h_\times^{(2)}
-= \big[\vb f^{(0)} \times \vb f^{(1)}\big] \cdot \vb R^{(1)}, 
-\quad
-h_\times^{(1)}
-=
-    \big[\vb f^{(0)} \times \vb f^{(1)}\big] \cdot \vb R^{(0)}
-   +\big[\vb f^{(0)} \times \vb f^{(0)}\big] \cdot \vb R^{(1)}, 
-\quad
-h_\times^{(0)}
-=
-    \big[\vb f^{(0)} \times \vb f^{(0)}\big] \cdot \vb R^{(0)}
-$$
-%--------------------------------------------------------------------%
-$$
-h_\mu^{(1)}
-=\big[\vb f^{(0)} \times \vb f^{(1)}\big]_\mu
+a = |\vb B^\prime|, 
 \qquad
-h_\mu^{(0)}
-=\big[\vb f^{(0)} \times \vb f^{(0)}\big]_\mu
-$$
-%====================================================================%
-and
-%====================================================================%
-\begin{align*}
- r(v^\prime) 
-&= \sqrt{ v^{\prime 2} |\vb R^{(1)}|^2 
-         +2v^{\prime}   \vb R^{(1)}\cdot \vb R^{(0)}
-         +|\vb R^{(0)}|^2
-        }.
-\\
-\intertext{It is actually easiest to rewrite this in the form}
-&= |\vb R^{(1)}| \sqrt{ (v^\prime + v_0^\prime)^2 + b^2 }
-\end{align*}
-%====================================================================%
-with
-$$
-v_0^\prime = \frac{ \vb R^{(1)} \cdot \vb R^{(0)} } {|\vb R^{(1)}|}, 
+v_0^\prime = \frac{1}{a} \vb B^\prime \cdot \vb Y,
 \qquad
-b = |\vb R^{(0)}|^2 -\frac{|\vb R^{(1)} \cdot \vb R^{(0)}|^2}{2|\vb R^{(1)}|^2}.
+b^2=\vb Y^2-v_0^{\prime 2},
+\qquad
+\vb Y=    \vb V_1 - \vb V_1^\prime  
+       + u\vb A+ v\vb B - u^\prime\vb A^\prime.
 $$
-Now put 
-$$ \mathcal{I}^q_p=
-   \int_0^{u^\prime} 
-    v^{\prime q} \Big[(v^\prime + v_0^\prime)^2 + b^2\Big]^{p/2} dv^\prime.
-$$
-The cases we will need are 
-\begin{align*}
-\mathcal{I}^0_{-1}
- &=
-\\
-\mathcal{I}^1_{-1}
-\\
-\mathcal{I}^2_{-1}
-\\
-\mathcal{I}^0_{-3}
- &=
-\\
-\mathcal{I}^1_{-3}
- &=
-\\
-\mathcal{I}^2_{-3}
-\\
-\mathcal{I}^2_{-1}
-\\
-\mathcal{I}^0_{-5}
-\\
-\mathcal{I}^1_{-5}
-\\
-\mathcal{I}^2_{-5}
-\\
-\mathcal{I}^3_{-5}
-\end{align*}
-I can now assemble all of the above ingredients to express the
-FIPPIs as 3D cubatures. In the table below, the integrals on the 
-LHS denote the full FIPPIs, while the integrals on the RHS indicate
-3D cubatures evaluated numerically.
 %====================================================================%
-\begin{align*}
- \iint h_\bullet r^p
-&=\iint \left\{   h_{\bullet}^{(1)} I^1_{p} 
-                + h_{\bullet}^{(0)} I^0_{p} 
-        \right\}
-\\
-%%--------------------------------------------------------------------%
- \iint h_\nabla r^p 
-&=\iint h_\nabla^{(0)} I^0_p 
-\\
-%%--------------------------------------------------------------------%
- \iint h_\times r^p
-&=\iint \left\{  h_\times^{(2)} I^2_p
-                +h_\times^{(1)} I^1_p
-                +h_\times^{(0)} I^0_p
-         \right\}
-\\
-%--------------------------------------------------------------------%
-  \iint h_\mu r^p
-&=\iint \left\{  h_{\mu}^{(1)} I^1_p 
-                +h_{\mu}^{(0)} I^0_p 
-         \right\}
-\end{align*}
-%====================================================================%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The integrals we need are now
+\begin{subequations}
+\begin{align}
+ \int_0^{u^\prime} 
+ \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+ \, \Big[ r (v^\prime)\Big]^{-3} \, dv^\prime
+&=
+\\[5pt]
+ \int_0^{u^\prime} 
+ \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+ \, \Big[r (v^\prime)\Big]^{-1} \, dv^\prime
+&=
+\\[5pt]
+ \int_0^{u^\prime} 
+ \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+ \, r(v^\prime)  \, dv^\prime
+&=
+\end{align}
+\label{vPrimeIntegrals}
+\end{subequations}
+To make use of these results in evaluating the FIPPIs 
+(\ref{QIFIPPIs}), we eliminate the $v^\prime$ integrals
+and replace all factors of $\{1, v^\prime\}$ with
+their counterparts on the RHS of (\ref{vPrimeIntegrals}),
+leaving behind three-dimensional integrals that succumb
+readily to numerical cubature.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
