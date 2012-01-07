@@ -37,7 +37,7 @@ typedef struct GetPPIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
-   void *opFIPPIDT;
+   void *opFDT;
 
    // output fields filled in by routine
    // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
@@ -75,7 +75,7 @@ typedef struct GetEEIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
-   void *opFIPPIDT;
+   void *opFDT;
 
    int Force;
 
@@ -145,10 +145,10 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
 // to be stored for each panel-panel pair.
 typedef struct QIFIPPIData
  { 
-   double xMxpRM3, xXxpRM3;
+   double xMxpRM3[3], xXxpRM3[3];
    double uvupvpRM1[9];
    double uvupvpR1[9];
-
+   double uvupvpR2[9];
  } QIFIPPIData;
 
 // a 'QDFIPPIData' is ...
@@ -161,7 +161,6 @@ typedef struct QDFIPPIData
    double hDotR1,  hNablaR1,  hTimesR1;
    double hDotR2,  hNablaR2;
  } QDFIPPIData;
-
 
 /*--------------------------------------------------------------*/
 /*- GetQDFIPPIData is the basic routine that is exported to the */
@@ -177,14 +176,19 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
 void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *FDR);
 
 /*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+int VLT(double *V1, double *V2);
+void ComputeSearchKey(double **Va, double **Vb, double *Key); 
+int CanonicallyOrderVertices(double **Va, double *Qa, double **Vb, double *Qb,
+                             double **OVa, double **OQa, double **OVb, double *OQb);
+
+/*--------------------------------------------------------------*/
 /* 'FIPPIDataTable' is a class that implements efficient storage*/
 /* and retrieval of QIFIPPIData structures for many panel pairs.*/
 /*--------------------------------------------------------------*/
 class FIPPIDataTable
  { 
-    // internal routine to compare vertices
-    int VLT(double *V1, double *V2);
-    void ComputeSearchKey(double **Va, double **Vb, double *Key); 
 
   public:
 

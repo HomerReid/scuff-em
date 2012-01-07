@@ -411,7 +411,7 @@ printf("\n**\n** using desingularization\n**\n");
 
   // step 2
   QDFIPPIDataRecord MyFDR, *FDR;
-  GetQDFIPPIDataRecord(Va, Qa, Vb, Qb, Args->opFIPPIDT, FDR);
+  GetQDFIPPIDataRecord(Va, Qa, Vb, Qb, Args->opFDT, FDR);
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
@@ -470,5 +470,5 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
   Args->GammaMatrix=0;
-  Args->opFIPPIDT=0;
+  Args->opFDT=0;
 }

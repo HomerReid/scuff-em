@@ -20,6 +20,17 @@
 #define ABSTOL 1.0e-12
 #define RELTOL 1.0e-8
 
+#define _ONE 0
+#define _U   1
+#define _V   2
+#define _UP  3
+#define _UUP 4
+#define _VUP 5
+#define _VP  6
+#define _UVP 7
+#define _VVP 8
+
+
 /***************************************************************/
 /* implementation of the FIPPIDT class *************************/
 /***************************************************************/
@@ -135,10 +146,8 @@ void GetQIFIPPIData(double **Va, double **Vb)
 /*--------------------------------------------------------------*/
 typedef struct CFDData
  {
-   double V0MC[3], A[3], B[3];
-   double V0MCP[3], AP[3], BP[3];
-   double R0[3];
-   int NeedDerivatives;
+   double *V0[3], A[3], B[3];
+   double *V0P[3], AP[3], BP[3];
    int nCalls;
  } CFDData;
 
@@ -151,17 +160,13 @@ void CFDIntegrand(unsigned ndim, const double *x, void *params,
   CFDData *CFDD=(CFDData *)params;
   CFDD->nCalls++;
 
-  double *V0MC=CFDD->V0MC;
+  double *V0=CFDD->V0;
   double *A=CFDD->A;
   double *B=CFDD->B;
 
-  double *V0MCP=CFDD->V0MCP;
+  double *V0P=CFDD->V0P;
   double *AP=CFDD->AP;
   double *BP=CFDD->BP;
-
-  double *R0=CFDD->R0;
-
-  int NeedDerivatives=CFDD->NeedDerivatives;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -176,139 +181,95 @@ void CFDIntegrand(unsigned ndim, const double *x, void *params,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  double YA[3], YB[3], R[3];
-  double r, r2=0.0, r3, r5;
+  double X[3], XP[3], R[3], XxXP[3];
+  double r, r2=0.0;
   int Mu;
   for (Mu=0; Mu<3; Mu++)
-   { YA[Mu] = V0MC[Mu]  + u*A[Mu]   + v*B[Mu];
-     YB[Mu] = V0MCP[Mu] + up*AP[Mu] + vp*BP[Mu];
-     R[Mu]  = R0[Mu] + YA[Mu] - YB[Mu];
+   { X[Mu]  = V0[Mu]  + u*A[Mu]   + v*B[Mu];
+     XP[Mu] = V0P[Mu] + up*AP[Mu] + vp*BP[Mu];
+     R[Mu]  = X[Mu] - XP[Mu];
      r2    += R[Mu]*R[Mu];
    };
   r=sqrt(r2);
-  r3=r*r2;
-  r5=r3*r2;
-
-  double YAdYB=VecDot(YA, YB);
-  double YAxYB[3], YAmYB[3];
-  VecCross(YA, YB, YAxYB);
-  VecSub(YA, YB, YAmYB);
+  VecCross(X,XP,XxXP);
 
   /*--------------------------------------------------------------*/
-  /*- assemble output vector -------------------------------------*/
   /*--------------------------------------------------------------*/
-  int rp, nf;
-  double RPowers[6]={uup/r5, uup/r3, uup/r, uup, uup*r, uup*r2};
-  nf=0;
-  for(rp=2; rp<6; rp++)
-   { fval[nf++] = RPowers[rp]*YAdYB;
-     fval[nf++] = RPowers[rp]*YA[0];
-     fval[nf++] = RPowers[rp]*YA[1];
-     fval[nf++] = RPowers[rp]*YA[2];
-     fval[nf++] = RPowers[rp]*YB[0];
-     fval[nf++] = RPowers[rp]*YB[1];
-     fval[nf++] = RPowers[rp]*YB[2];
-     fval[nf++] = RPowers[rp];
-   };
+  /*--------------------------------------------------------------*/
+  int nf=0;
+  double oor, oor3;
 
-  for(rp=1; rp<5; rp++)
-   { fval[nf++] = RPowers[rp]*YAmYB[0];
-     fval[nf++] = RPowers[rp]*YAmYB[1];
-     fval[nf++] = RPowers[rp]*YAmYB[2];
-     fval[nf++] = RPowers[rp]*YAxYB[0];
-     fval[nf++] = RPowers[rp]*YAxYB[1];
-     fval[nf++] = RPowers[rp]*YAxYB[2];
-   };
+  // we put the jacobian factors into these quantities for convenience
+  oor=u*up/r;
+  oor3=oor/r2;
+  r*=u*up;
+  r2*=u*up;
 
-  if (NeedDerivatives)
-   { 
-     for(Mu=0; Mu<3; Mu++)
-      for(rp=1; rp<5; rp++)
-       { fval[nf++] = R[Mu] * RPowers[rp] * YAdYB;
-         fval[nf++] = R[Mu] * RPowers[rp] * YA[0];
-         fval[nf++] = R[Mu] * RPowers[rp] * YA[1];
-         fval[nf++] = R[Mu] * RPowers[rp] * YA[2];
-         fval[nf++] = R[Mu] * RPowers[rp] * YB[0];
-         fval[nf++] = R[Mu] * RPowers[rp] * YB[1];
-         fval[nf++] = R[Mu] * RPowers[rp] * YB[2];
-         fval[nf++] = R[Mu] * RPowers[rp];
-       };
+  fval[nf++] = R[0] * oor3;
+  fval[nf++] = R[1] * oor3;
+  fval[nf++] = R[2] * oor3;
+  fval[nf++] = XxXP[0] * oor3;
+  fval[nf++] = XxXP[1] * oor3;
+  fval[nf++] = XxXP[2] * oor3;
 
-     fval[nf++] = RPowers[1]*YA[0];
-     fval[nf++] = RPowers[1]*YA[1];
-     fval[nf++] = RPowers[1]*YA[2];
-     fval[nf++] = RPowers[1]*YB[0];
-     fval[nf++] = RPowers[1]*YB[1];
-     fval[nf++] = RPowers[1]*YB[2];
-     fval[nf++] = RPowers[1];
-   
-     for(Mu=0; Mu<3; Mu++)
-      { fval[nf++] = R[Mu] * RPowers[0] * YAmYB[0];
-        fval[nf++] = R[Mu] * RPowers[0] * YAmYB[1];
-        fval[nf++] = R[Mu] * RPowers[0] * YAmYB[2];
-        fval[nf++] = R[Mu] * RPowers[0] * YAxYB[0];
-        fval[nf++] = R[Mu] * RPowers[0] * YAxYB[1];
-        fval[nf++] = R[Mu] * RPowers[0] * YAxYB[2];
+  fval[nf++] = oor;
+  fval[nf++] = u*oor;
+  fval[nf++] = v*oor;
+  fval[nf++] = up*oor;
+  fval[nf++] = u*up*oor;
+  fval[nf++] = v*up*oor;
+  fval[nf++] = vp*oor;
+  fval[nf++] = u*vp*oor;
+  fval[nf++] = v*vp*oor;
 
-        fval[nf++] = R[Mu] * RPowers[1] * YAmYB[0];
-        fval[nf++] = R[Mu] * RPowers[1] * YAmYB[1];
-        fval[nf++] = R[Mu] * RPowers[1] * YAmYB[2];
-        fval[nf++] = R[Mu] * RPowers[1] * YAxYB[0];
-        fval[nf++] = R[Mu] * RPowers[1] * YAxYB[1];
-        fval[nf++] = R[Mu] * RPowers[1] * YAxYB[2];
+  fval[nf++] = r;
+  fval[nf++] = u*r;
+  fval[nf++] = v*r;
+  fval[nf++] = up*r;
+  fval[nf++] = u*up*r;
+  fval[nf++] = v*up*r;
+  fval[nf++] = vp*r;
+  fval[nf++] = u*vp*r;
+  fval[nf++] = v*vp*r;
 
-        fval[nf++] = R[Mu] * RPowers[3] * YAmYB[0];
-        fval[nf++] = R[Mu] * RPowers[3] * YAmYB[1];
-        fval[nf++] = R[Mu] * RPowers[3] * YAmYB[2];
-        fval[nf++] = R[Mu] * RPowers[3] * YAxYB[0];
-        fval[nf++] = R[Mu] * RPowers[3] * YAxYB[1];
-        fval[nf++] = R[Mu] * RPowers[3] * YAxYB[2];
-     };
-   };
+  fval[nf++] = r2;
+  fval[nf++] = u*r2;
+  fval[nf++] = v*r2;
+  fval[nf++] = up*r2;
+  fval[nf++] = u*up*r2;
+  fval[nf++] = v*up*r2;
+  fval[nf++] = vp*r2;
+  fval[nf++] = u*vp*r2;
+  fval[nf++] = v*vp*r2;
 
 } 
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *FDR)
+void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *FD)
 {
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double CentroidA[3], CentroidB[3];
 
-  CentroidA[0] = (Va[0][0] + Va[1][0] + Va[2][0])/3.0;
-  CentroidA[1] = (Va[0][1] + Va[1][1] + Va[2][1])/3.0;
-  CentroidA[2] = (Va[0][2] + Va[1][2] + Va[2][2])/3.0;
-  CentroidB[0] = (Vb[0][0] + Vb[1][0] + Vb[2][0])/3.0;
-  CentroidB[1] = (Vb[0][1] + Vb[1][1] + Vb[2][1])/3.0;
-  CentroidB[2] = (Vb[0][2] + Vb[1][2] + Vb[2][2])/3.0;
-  
   /*--------------------------------------------------------------*/
   /* fill in the data structure used to pass parameters to the    */
   /* integrand routine                                            */
   /*--------------------------------------------------------------*/
   CFDData MyCFDData, *CFDD=&MyCFDData;
 
-  VecSub(Va[0], CentroidA, CFDD->V0MC);
+  CFDD->V0 = Va[0];
   VecSub(Va[1], Va[0], CFDD->A);
   VecSub(Va[2], Va[1], CFDD->B);
 
-  VecSub(Vb[0], CentroidB, CFDD->V0MCP);
+  CFDD->V0P = Vb[0];
   VecSub(Vb[1], Vb[0], CFDD->AP);
   VecSub(Vb[2], Vb[1], CFDD->BP);
-
-  VecSub(CentroidA, CentroidB, CFDD->R0);
-
-  CFDD->NeedDerivatives = NeedDerivatives;
 
   /*--------------------------------------------------------------*/
   /*- evaluate the adaptive cubature over the pair of triangles  -*/
   /*--------------------------------------------------------------*/
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
-  int fdim = NeedDerivatives ? 237 : 56;
+  int fdim = 33;
   double F[fdim], E[fdim];
 CFDD->nCalls=0;
 printf("%i \n",fdim);
@@ -321,145 +282,42 @@ printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
   /*--------------------------------------------------------------*/
   int nf=0;
 
-  FDR->YAdYB_RM1    = F[nf++];
-  FDR->YA_RM1[0]    = F[nf++];
-  FDR->YA_RM1[1]    = F[nf++];
-  FDR->YA_RM1[2]    = F[nf++];
-  FDR->YB_RM1[0]    = F[nf++];
-  FDR->YB_RM1[1]    = F[nf++];
-  FDR->YB_RM1[2]    = F[nf++];
-  FDR->RM1          = F[nf++];
+  FDR->xMxpRM3[0]   = F[nf++];
+  FDR->xMxpRM3[1]   = F[nf++];
+  FDR->xMxpRM3[2]   = F[nf++];
+  FDR->xXxpRM3[3]   = F[nf++];
+  FDR->xXxpRM3[4]   = F[nf++];
+  FDR->xXxpRM3[5]   = F[nf++];
 
-  FDR->YAdYB_R0     = F[nf++];
-  FDR->YA_R0[0]     = F[nf++];
-  FDR->YA_R0[1]     = F[nf++];
-  FDR->YA_R0[2]     = F[nf++];
-  FDR->YB_R0[0]     = F[nf++];
-  FDR->YB_R0[1]     = F[nf++];
-  FDR->YB_R0[2]     = F[nf++];
-  FDR->R0           = F[nf++];
+  FDR->uvupvpRM1[0] = F[nf++];
+  FDR->uvupvpRM1[1] = F[nf++];
+  FDR->uvupvpRM1[2] = F[nf++];
+  FDR->uvupvpRM1[3] = F[nf++];
+  FDR->uvupvpRM1[4] = F[nf++];
+  FDR->uvupvpRM1[5] = F[nf++];
+  FDR->uvupvpRM1[6] = F[nf++];
+  FDR->uvupvpRM1[7] = F[nf++];
+  FDR->uvupvpRM1[8] = F[nf++];
 
-  FDR->YAdYB_R1     = F[nf++];
-  FDR->YA_R1[0]     = F[nf++];
-  FDR->YA_R1[1]     = F[nf++];
-  FDR->YA_R1[2]     = F[nf++];
-  FDR->YB_R1[0]     = F[nf++];
-  FDR->YB_R1[1]     = F[nf++];
-  FDR->YB_R1[2]     = F[nf++];
-  FDR->R1           = F[nf++];
+  FDR->uvupvpR1[0] = F[nf++];
+  FDR->uvupvpR1[1] = F[nf++];
+  FDR->uvupvpR1[2] = F[nf++];
+  FDR->uvupvpR1[3] = F[nf++];
+  FDR->uvupvpR1[4] = F[nf++];
+  FDR->uvupvpR1[5] = F[nf++];
+  FDR->uvupvpR1[6] = F[nf++];
+  FDR->uvupvpR1[7] = F[nf++];
+  FDR->uvupvpR1[8] = F[nf++];
 
-  FDR->YAdYB_R2     = F[nf++];
-  FDR->YA_R2[0]     = F[nf++];
-  FDR->YA_R2[1]     = F[nf++];
-  FDR->YA_R2[2]     = F[nf++];
-  FDR->YB_R2[0]     = F[nf++];
-  FDR->YB_R2[1]     = F[nf++];
-  FDR->YB_R2[2]     = F[nf++];
-  FDR->R2           = F[nf++];
-
-  FDR->YAmYB_RM3[0] = F[nf++];
-  FDR->YAmYB_RM3[1] = F[nf++];
-  FDR->YAmYB_RM3[2] = F[nf++];
-  FDR->YAxYB_RM3[0] = F[nf++];
-  FDR->YAxYB_RM3[1] = F[nf++];
-  FDR->YAxYB_RM3[2] = F[nf++];
-
-  FDR->YAmYB_RM1[0] = F[nf++];
-  FDR->YAmYB_RM1[1] = F[nf++];
-  FDR->YAmYB_RM1[2] = F[nf++];
-  FDR->YAxYB_RM1[0] = F[nf++];
-  FDR->YAxYB_RM1[1] = F[nf++];
-  FDR->YAxYB_RM1[2] = F[nf++];
-
-  FDR->YAmYB_R0[0]  = F[nf++];
-  FDR->YAmYB_R0[1]  = F[nf++];
-  FDR->YAmYB_R0[2]  = F[nf++];
-  FDR->YAxYB_R0[0]  = F[nf++];
-  FDR->YAxYB_R0[1]  = F[nf++];
-  FDR->YAxYB_R0[2]  = F[nf++];
-
-  FDR->YAmYB_R1[0]  = F[nf++];
-  FDR->YAmYB_R1[1]  = F[nf++];
-  FDR->YAmYB_R1[2]  = F[nf++];
-  FDR->YAxYB_R1[0]  = F[nf++];
-  FDR->YAxYB_R1[1]  = F[nf++];
-  FDR->YAxYB_R1[2]  = F[nf++];
-
-  if (NeedDerivatives)
-   {
-     int Mu;
-     for(Mu=0; Mu<3; Mu++)
-      { 
-        FDR->Ri_YAdYB_RM3[Mu]  = F[nf++];
-        FDR->Ri_YA_RM3[3*Mu+0] = F[nf++]; 
-        FDR->Ri_YA_RM3[3*Mu+1] = F[nf++]; 
-        FDR->Ri_YA_RM3[3*Mu+2] = F[nf++]; 
-        FDR->Ri_YB_RM3[3*Mu+0] = F[nf++]; 
-        FDR->Ri_YB_RM3[3*Mu+1] = F[nf++]; 
-        FDR->Ri_YB_RM3[3*Mu+2] = F[nf++]; 
-        FDR->Ri_RM3[Mu]        = F[nf++]; 
-
-        FDR->Ri_YAdYB_RM1[Mu]  = F[nf++];
-        FDR->Ri_YA_RM1[3*Mu+0] = F[nf++]; 
-        FDR->Ri_YA_RM1[3*Mu+1] = F[nf++]; 
-        FDR->Ri_YA_RM1[3*Mu+2] = F[nf++]; 
-        FDR->Ri_YB_RM1[3*Mu+0] = F[nf++]; 
-        FDR->Ri_YB_RM1[3*Mu+1] = F[nf++]; 
-        FDR->Ri_YB_RM1[3*Mu+2] = F[nf++]; 
-        FDR->Ri_RM1[Mu]        = F[nf++]; 
-
-        FDR->Ri_YAdYB_R0[Mu]   = F[nf++];
-        FDR->Ri_YA_R0[3*Mu+0]  = F[nf++]; 
-        FDR->Ri_YA_R0[3*Mu+1]  = F[nf++]; 
-        FDR->Ri_YA_R0[3*Mu+2]  = F[nf++]; 
-        FDR->Ri_YB_R0[3*Mu+0]  = F[nf++]; 
-        FDR->Ri_YB_R0[3*Mu+1]  = F[nf++]; 
-        FDR->Ri_YB_R0[3*Mu+2]  = F[nf++]; 
-        FDR->Ri_R0[Mu]         = F[nf++]; 
-
-        FDR->Ri_YAdYB_R1[Mu]   = F[nf++];
-        FDR->Ri_YA_R1[3*Mu+0]  = F[nf++]; 
-        FDR->Ri_YA_R1[3*Mu+1]  = F[nf++]; 
-        FDR->Ri_YA_R1[3*Mu+2]  = F[nf++]; 
-        FDR->Ri_YB_R1[3*Mu+0]  = F[nf++]; 
-        FDR->Ri_YB_R1[3*Mu+1]  = F[nf++]; 
-        FDR->Ri_YB_R1[3*Mu+2]  = F[nf++]; 
-        FDR->Ri_R1[Mu]         = F[nf++]; 
-      }; 
-
-     FDR->YA_RM3[0] = F[nf++];
-     FDR->YA_RM3[1] = F[nf++];
-     FDR->YA_RM3[2] = F[nf++];
-     FDR->YB_RM3[0] = F[nf++];
-     FDR->YB_RM3[1] = F[nf++];
-     FDR->YB_RM3[2] = F[nf++];
-     FDR->RM3       = F[nf++];
-
-     for(Mu=0; Mu<3; Mu++)
-      { 
-        FDR->Ri_YAmYB_RM5[3*Mu + 0] = F[nf++]; 
-        FDR->Ri_YAmYB_RM5[3*Mu + 1] = F[nf++]; 
-        FDR->Ri_YAmYB_RM5[3*Mu + 2] = F[nf++]; 
-        FDR->Ri_YAxYB_RM5[3*Mu + 0] = F[nf++]; 
-        FDR->Ri_YAxYB_RM5[3*Mu + 1] = F[nf++]; 
-        FDR->Ri_YAxYB_RM5[3*Mu + 2] = F[nf++]; 
-
-        FDR->Ri_YAmYB_RM3[3*Mu + 0] = F[nf++]; 
-        FDR->Ri_YAmYB_RM3[3*Mu + 1] = F[nf++]; 
-        FDR->Ri_YAmYB_RM3[3*Mu + 2] = F[nf++]; 
-        FDR->Ri_YAxYB_RM3[3*Mu + 0] = F[nf++]; 
-        FDR->Ri_YAxYB_RM3[3*Mu + 1] = F[nf++]; 
-        FDR->Ri_YAxYB_RM3[3*Mu + 2] = F[nf++]; 
-
-        FDR->Ri_YAmYB_R0[3*Mu + 0]  = F[nf++]; 
-        FDR->Ri_YAmYB_R0[3*Mu + 1]  = F[nf++]; 
-        FDR->Ri_YAmYB_R0[3*Mu + 2]  = F[nf++]; 
-        FDR->Ri_YAxYB_R0[3*Mu + 0]  = F[nf++]; 
-        FDR->Ri_YAxYB_R0[3*Mu + 1]  = F[nf++]; 
-        FDR->Ri_YAxYB_R0[3*Mu + 2]  = F[nf++]; 
-
-      };
-   };
+  FDR->uvupvpR2[0] = F[nf++];
+  FDR->uvupvpR2[1] = F[nf++];
+  FDR->uvupvpR2[2] = F[nf++];
+  FDR->uvupvpR2[3] = F[nf++];
+  FDR->uvupvpR2[4] = F[nf++];
+  FDR->uvupvpR2[5] = F[nf++];
+  FDR->uvupvpR2[6] = F[nf++];
+  FDR->uvupvpR2[7] = F[nf++];
+  FDR->uvupvpR2[8] = F[nf++];
 
 }
 
@@ -503,7 +361,7 @@ void ComputeQIFIPPIData(double **Va, double **Vb, FIPPIData *FD)
   /*- adaptive cubature over both triangles to compute the FIPPIs-*/
   /*--------------------------------------------------------------*/
   if (ncv==0)
-   ComputeQIFIPPIData_Cubature(Va, Vb, NeedDerivatives, FD);
+   ComputeQIFIPPIData_Cubature(Va, Vb, FD);
   else
    ComputeQIFIPPIData_TaylorDuffy(ncv, Va, Vb, FD);
 
@@ -513,17 +371,140 @@ void ComputeQIFIPPIData(double **Va, double **Vb, FIPPIData *FD)
 /*- routine for computing Q-dependent FIPPIs.                   */
 /*--------------------------------------------------------------*/
 void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
-                    void *opFIPPIDT, QDFIPPIData *QDFD)
+                    void *opFDT, QDFIPPIData *QDFD)
 {
-  double *OVa[3], *OVb[3];  // 'ordered vertices A and B'
-  QIFIPPIData MyQIFD, *QIFD=&MyQIFD;
-  int Flipped=CanonicallyOrderVertices(Va, Vb, OVa, OVb);
+  double *OVa[3], *OQa, *OVb[3], *OQb;  // 'ordered vertices'
+  QIFIPPIData MyQIFD, *QIFD;
 
   /*--------------------------------------------------------------*/
-  /*- if we have a lookup table for ------------------------------*/
+  /*- get the Q-independent FIPPIs by looking them up in a table  */
+  /*- if we have one or by computing them if we don't             */
   /*--------------------------------------------------------------*/
-  if (opFIPPIDT)
+  if (opFDT)
    { 
-     (FIPPIDataTable *)opFDT->GetQIFIPPIData(OVa, OVb);
+     Flipped=CanonicallyOrderVertices(Va, Qa, Vb, Qb, OVa, &Qa, OVb, &Qb);
+     QIFD=((FIPPIDataTable *)opFDT)->GetQIFIPPIData(OVa, OVb);
+   }
+  else
+   { 
+     ComputeQIFIPPIData(Va, Vb, &MyQIFD);
+     QIFD=&MyQIFD;
+
+     OVa[0]=Va[0];
+     OVa[1]=Va[1];
+     OVa[2]=Va[2];
+     OQa=Qa;
+
+     OVb[0]=Vb[0];
+     OVb[1]=Vb[1];
+     OVb[2]=Vb[2];
+     OQb=Qb;
+
+     Flipped=0;
+   };
+  
+  double Sign = ( Flipped ? -1.0 : 1.0 );
+
+  /*--------------------------------------------------------------*/
+  /*- now assemble the Q-dependent FIPPIs.                        */
+  /*--------------------------------------------------------------*/
+  double A[3],  B[3],  V0mQ[3];
+  double AP[3], BP[3], V0PmQP[3], 
+  double Delta;
+
+  VecSub(OVa[1], OVa[0], A);
+  VecSub(OVa[2], OVa[1], B);
+  VecSub(OVa[0], OQa, V0mQ[3]);
+
+  VecSub(OVb[1], OVb[0], AP);
+  VecSub(OVb[2], OVb[1], BP);
+  VecSub(OVb[0], OQb, V0PmQP[3]);
+
+  double VdVP, AdVP, BdVP, VdAP, AdAP, BdAP, VdBP, AdBP, BdBP;
+
+  VecDot(V0mQ, V0PmQP, VdVP);
+  VecDot(A,    V0PmQP, AdVP);
+  VecDot(B,    V0PmQP, BdVP);
+  VecDot(V0mQ, AP,     VdAP);
+  VecDot(A,    AP,     AdAP);
+  VecDot(B,    AP,     BdAP);
+  VecDot(V0mQ, BP,     VdBP);
+  VecDot(A,    BP,     AdBP);
+  VecDot(B,    BP,     BdBP);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  QDFD->hDotRM1 =   QIFD->uvupvpRM1[_ONE] * VdVP
+                  + QIFD->uvupvpRM1[_U  ] * AdVP
+                  + QIFD->uvupvpRM1[_V  ] * BdVP
+                  + QIFD->uvupvpRM1[_UP ] * VdAP
+                  + QIFD->uvupvpRM1[_UUP] * AdAP
+                  + QIFD->uvupvpRM1[_VUP] * BdAP
+                  + QIFD->uvupvpRM1[_VP ] * VdBP
+                  + QIFD->uvupvpRM1[_UVP] * AdBP
+                  + QIFD->uvupvpRM1[_VVP] * BdBP;
+
+  QDFD->hNablaRM1 =  4.0*QIFD->uvupvpRM1[_ONE];
+
+  // QDFD->hTimesRM1 =; 
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  QDFD->hDotR0  =   VdVP / 4.0
+                  + AdVP / 6.0
+                  + BdVP / 12.0
+                  + VdAP / 6.0
+                  + AdAP / 9.0
+                  + BdAP / 18.0
+                  + VdBP / 12.0
+                  + AdBP / 18.0
+                  + BdBP / 36.0;
+
+  QDFD->hNablaR0 = 1.0;
+
+  // QDFD->hTimesR0=; 
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  QDFD->hDotR1 =   QIFD->uvupvpR1[_ONE] * VdVP
+                 + QIFD->uvupvpR1[_U  ] * AdVP
+                 + QIFD->uvupvpR1[_V  ] * BdVP
+                 + QIFD->uvupvpR1[_UP ] * VdAP
+                 + QIFD->uvupvpR1[_UUP] * AdAP
+                 + QIFD->uvupvpR1[_VUP] * BdAP
+                 + QIFD->uvupvpR1[_VP ] * VdBP
+                 + QIFD->uvupvpR1[_UVP] * AdBP
+                 + QIFD->uvupvpR1[_VVP] * BdBP;
+
+  QDFD->hNablaRM1 =  4.0*QIFD->uvupvpR1[_ONE];
+
+  // QDFD->hTimesRM1 =; 
+
+  /*--------------------------------------------------------------*/
+  /*-- NOTE: the R2 integrals may actually be done analytically,  */
+  /*--       but the calculation is so cumbersome that i do them  */
+  /*--       numerically for now. in the future, maybe explore    */
+  /*--       the costs and benefits of doing them analytically.   */
+  /*--------------------------------------------------------------*/
+  QDFD->hDotR2 =   QIFD->uvupvpR2[_ONE] * VdVP
+                 + QIFD->uvupvpR2[_U  ] * AdVP
+                 + QIFD->uvupvpR2[_V  ] * BdVP
+                 + QIFD->uvupvpR2[_UP ] * VdAP
+                 + QIFD->uvupvpR2[_UUP] * AdAP
+                 + QIFD->uvupvpR2[_VUP] * BdAP
+                 + QIFD->uvupvpR2[_VP ] * VdBP
+                 + QIFD->uvupvpR2[_UVP] * AdBP
+                 + QIFD->uvupvpR2[_VVP] * BdBP;
+
+  QDFD->hNablaRM2 =  4.0*QIFD->uvupvpR2[_ONE];
+
+  // QDFD->hTimesRM1 =; 
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
 
 }
