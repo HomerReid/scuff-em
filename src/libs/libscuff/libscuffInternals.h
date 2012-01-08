@@ -173,7 +173,7 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
 /*- ComputeQIFIPPIData is an auxiliary routine that is only     */
 /*- ever called by GetQDFIPPIData.                              */
 /*--------------------------------------------------------------*/
-void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *FDR);
+void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *FD);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
