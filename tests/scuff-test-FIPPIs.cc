@@ -62,12 +62,6 @@ int main(int argc, char *argv[])
    };
 
   /***************************************************************/
-  /* preinitialize an argument structure for the panel-panel     */
-  /* integration routines                                        */
-  /***************************************************************/
-  GetPPIArgStruct MyArgs, *Args=&MyArgs;
-
-  /***************************************************************/
   /* enter command loop ******************************************/
   /***************************************************************/
   using_history();
@@ -75,27 +69,20 @@ int main(int argc, char *argv[])
   int nt, NumTokens;
   char *Tokens[50];
   char *p;
-  int npa, npb, iQa, iQb, ncv, SameObject, Gradient;
+  int npa, npb, ncv, SameObject;
   double rRel, rRelRequest, DZ;
-  cdouble K;
-  cdouble HLS[2], GradHLS[6]; // G,C integrals by libscuff 
-  cdouble HBF[2], GradHBF[6]; // G,C integrals by brute force
+  QIFIPPIData QIFDHRBuffer, *QIFDHR=&QIFDHRBuffer;
+  QIFIPPIData QIFDBFBuffer, *QIFDBF=&QIFDBFBuffer;
   for(;;)
    { 
      /*--------------------------------------------------------------*/
      /*- print prompt and get input string --------------------------*/
      /*--------------------------------------------------------------*/
      printf(" options: --npa xx \n");
-     printf("          --iQa xx \n");
      printf("          --npb xx \n");
-     printf("          --iQb xx \n");
-     printf("          --ncv xx \n");
      printf("          --rRel xx \n");
      printf("          --same | --ns \n");
      printf("          --DZ \n");
-     printf("          --kr     \n");
-     printf("          --ki     \n");
-     printf("          --gradient\n");
      p=readline("enter options: ");
      if (!p) break;
      add_history(p);
@@ -105,31 +92,17 @@ int main(int argc, char *argv[])
      /* parse input string                                          -*/
      /*--------------------------------------------------------------*/
      NumTokens=Tokenize(p,Tokens,50);
-     npa=npb=iQa=iQb=ncv=SameObject=-1;
-     Gradient=0;
+     npa=npb=ncv=SameObject=-1;
      DZ=rRelRequest=0.0;
-     real(K) = imag(K) = INFINITY;
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--npa") )
        sscanf(Tokens[nt+1],"%i",&npa);
      for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--iQa") )
-       sscanf(Tokens[nt+1],"%i",&iQa);
-     for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--npb") )
        sscanf(Tokens[nt+1],"%i",&npb);
      for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--iQb") )
-       sscanf(Tokens[nt+1],"%i",&iQb);
-     for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--ncv") )
        sscanf(Tokens[nt+1],"%i",&ncv);
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--kr") )
-       sscanf(Tokens[nt+1],"%le",&(real(K)));
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--ki") )
-       sscanf(Tokens[nt+1],"%le",&(imag(K)));
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--same") )
        SameObject=1;
@@ -142,9 +115,6 @@ int main(int argc, char *argv[])
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--ns") )
        SameObject=0;
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--Gradient") )
-       Gradient=1;
      free(p);
   
      /*--------------------------------------------------------------*/
@@ -158,8 +128,6 @@ int main(int argc, char *argv[])
         do
          { npb=lrand48() % Oa->NumPanels;
          } while( NumCommonVertices(Oa,npa,Oa,npb)!=ncv );
-        iQa=lrand48() % 3;
-        iQb=lrand48() % 3;
       }
      /*--------------------------------------------------------------*/
      /*- if the user specified a value for rRel then try to find a --*/
@@ -167,8 +135,6 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      else if ( rRelRequest!=0.0 )
       { 
-        iQa=lrand48() % 3;
-        iQb=lrand48() % 3;
         npa=lrand48() % Oa->NumPanels;
 
         /*--------------------------------------------------------------*/
@@ -204,51 +170,20 @@ int main(int argc, char *argv[])
       { if (SameObject==-1) SameObject=lrand48()%2;
         if (npa==-1) npa=lrand48() % Oa->NumPanels;
         if (npb==-1) npb=lrand48() % (SameObject ? Oa->NumPanels : Ob->NumPanels);
-        if (iQa==-1) iQa=lrand48() % 3;
-        if (iQb==-1) iQb=lrand48() % 3;
       };
-
-     /*--------------------------------------------------------------*/
-     /*- if the user specified only the real or imag part of k then -*/
-     /*- assume he meant that the other part should be zero; OTOH if-*/
-     /*- he didn't specify either part then choose random values for-*/
-     /*- both parts                                                  */
-     /*--------------------------------------------------------------*/
-     if ( isinf(real(K)) && isinf(imag(K)) )
-      K=cdouble( drand48(), drand48());
-     else if ( isinf(real(K)) )
-      real(K)=0.0;
-     else if ( isinf(imag(K)) )
-      imag(K)=0.0;
 
      /*--------------------------------------------------------------------*/
      /* print a little summary of the panel pair we will be considering    */
      /*--------------------------------------------------------------------*/
      ncv=AssessPanelPair(Oa, npa, Ob, npb, &rRel);
      printf("*\n");
-     printf("* --npa %i --iQa %i (V %i) --npb %i --iQb %i (V%i) %s\n",
-            npa,iQa,Oa->Panels[npa]->VI[iQa],
-            npb,iQb,(SameObject ? Oa:Ob)->Panels[npb]->VI[iQb],
-            SameObject ? "--same" : "--ns");
+     printf("* --npa %i --npb %i %s\n",
+            npa,npb,SameObject ? "--same" : "--ns");
      printf("*  common vertices:   %i\n",ncv);
      printf("*  relative distance: %+7.3e\n",rRel);
-     printf("*  wavevector:        %s\n",CD2S(K));
      if (DZ!=0.0)
       printf("*  DZ:                %e\n",DZ);
      printf("*\n\n");
-
-     /*--------------------------------------------------------------------*/
-     /*--------------------------------------------------------------------*/
-     /*--------------------------------------------------------------------*/
-     Args->Oa=Oa;
-     Args->Ob=(SameObject) ? Oa : Ob;
-     Args->npa=npa;
-     Args->npb=npb;
-     Args->iQa=iQa;
-     Args->iQb=iQb;
-     Args->k=K;
-     Args->NumGradientComponents = Gradient ? 3 : 0;
-     Args->NumTorqueAxes         = 0;
 
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
@@ -257,18 +192,14 @@ int main(int argc, char *argv[])
       Ob->Transform("DISP 0 0 %e",DZ);
 
      /*--------------------------------------------------------------------*/
-     /* get panel-panel integrals by libscuff method                       */
+     /* get FIPPIs by libscuff method                                      */
      /*--------------------------------------------------------------------*/
-     GetPanelPanelInteractions(Args);
-     memcpy(HLS, Args->H, 2*sizeof(cdouble));
-     memcpy(GradHLS, Args->GradH, 6*sizeof(cdouble));
+     ComputeQIFIPPIData(Va, Vb, QIFDHR);
 
      /*--------------------------------------------------------------------*/
-     /* get panel-panel integrals by brute-force methods                   */
+     /* get FIPPIs by libscuff method                                      */
      /*--------------------------------------------------------------------*/
-     GetPPIs_BruteForce(Args);
-     memcpy(HBF, Args->H, 2*sizeof(cdouble));
-     memcpy(GradHBF, Args->GradH, 6*sizeof(cdouble));
+     ComputeQIFIPPIData_BruteForce(Va, Vb, QIFDBF);
 
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
@@ -279,27 +210,26 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /*- print results ----------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-     printf("Quantity          |  %33s  |  %33s  | %s\n", 
+     printf("Quantity  |  %15s  |  %15s  | %s\n", 
             "            libscuff             ",
             "          brute force            ",
             "rel delta");
-     printf("------------------|--%33s--|--%33s--|-%s\n", 
+     printf("------------------|--%15s--|--%15s--|-%s\n", 
             "---------------------------------",
             "---------------------------------",
             "---------");
-     printf("<fa|G|fb>         |  %s  |  %s  | %5.2e\n", CD2S(HLS[0]), CD2S(HBF[0]), RD(HLS[0],HBF[0]));
-     printf("<fa|C|fb>         |  %s  |  %s  | %5.2e\n", CD2S(HLS[1]), CD2S(HBF[1]), RD(HLS[1],HBF[1]));
-     if (Gradient)
-      { 
-         printf("\n");
-         printf("(d/dx) <fa|G|fb>  |  %s  |  %s  | %5.2e\n", CD2S(GradHLS[0]), CD2S(GradHBF[0]), RD(GradHLS[0],GradHBF[0]));
-         printf("(d/dy) <fa|G|fb>  |  %s  |  %s  | %5.2e\n", CD2S(GradHLS[2]), CD2S(GradHBF[2]), RD(GradHLS[2],GradHBF[2]));
-         printf("(d/dz) <fa|G|fb>  |  %s  |  %s  | %5.2e\n", CD2S(GradHLS[4]), CD2S(GradHBF[4]), RD(GradHLS[4],GradHBF[4]));
-         printf("(d/dx) <fa|C|fb>  |  %s  |  %s  | %5.2e\n", CD2S(GradHLS[1]), CD2S(GradHBF[1]), RD(GradHLS[1],GradHBF[1]));
-         printf("(d/dy) <fa|C|fb>  |  %s  |  %s  | %5.2e\n", CD2S(GradHLS[3]), CD2S(GradHBF[3]), RD(GradHLS[3],GradHBF[3]));
-         printf("(d/dz) <fa|C|fb>  |  %s  |  %s  | %5.2e\n", CD2S(GradHLS[5]), CD2S(GradHBF[5]), RD(GradHLS[5],GradHBF[5]));
-      };
+     printf("RmRPx/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xMxpRM3[0], QIFDBF->xMxpRM3[0], RD(QIFDBF->xMxpRM3[0],QIFDHR->xMxpRM3[0]));
+     printf("RmRPy/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xMxpRM3[1], QIFDBF->xMxpRM3[1], RD(QIFDBF->xMxpRM3[1],QIFDHR->xMxpRM3[1]));
+     printf("RmRPz/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xMxpRM3[2], QIFDBF->xMxpRM3[2], RD(QIFDBF->xMxpRM3[2],QIFDHR->xMxpRM3[2]));
+     printf("RxRPx/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xXxpRM3[0], QIFDBF->xXxpRM3[0], RD(QIFDBF->xXxpRM3[0],QIFDHR->xXxpRM3[0]));
+     printf("RxRPy/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xXxpRM3[1], QIFDBF->xXxpRM3[1], RD(QIFDBF->xXxpRM3[1],QIFDHR->xXxpRM3[1]));
+     printf("RxRPz/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xXxpRM3[2], QIFDBF->xXxpRM3[2], RD(QIFDBF->xXxpRM3[2],QIFDHR->xXxpRM3[2]));
+
      printf("\n");
+     printf("1 / r^1   |  %15.8e  |  %15.8e  | %5.2e\n", 
+QIFDHR->uvupvpRM1[0],
+QIFDBF->uvupvpRM1[0],
+RD(QIFDHR->uvupvpRM1[0],QIFDBF->uvupvpRM1[0])
 
    }; // end of main command loop [ for(;;) ... ]
 

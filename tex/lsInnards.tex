@@ -2001,7 +2001,14 @@ We now address each of these points in turn.
 
 \paragraph{1. FIPPIs for $p=0,2$.} 
 
-We have
+In this case all the FIPPIs are linear combinations of the 
+basic integral
+$$ \iint u^p v^q (u^\prime)^r (v^\prime)^s 
+   = 
+   \frac{1}{(2+p+q)(1+q)(2+r+s)(1+s)}.
+$$
+For example, we have
+
 $$
    \iint \left\{ \begin{array}{c} 
    1 \\ u \\ v \\ u^\prime \\ uu^\prime \\ vu^\prime \\
@@ -2009,8 +2016,24 @@ $$
    \end{array}\right\} r^0
    =
    \left\{ \begin{array}{c} 
-           1 
-           \end{array}{c} 
+           1/4 \\ 1/6 \\ 1/12 \\ 
+           1/6 \\ 1/9 \\ 1/18 \\ 
+           1/12 \\ 1/18 \\ 1/36
+           \end{array}
+   \right\}
+$$
+and
+$$
+   \iint \left\{ \begin{array}{c} 
+   1 \\ u \\ v \\ u^\prime \\ uu^\prime \\ vu^\prime \\
+   v^\prime \\ uv^\prime \\ vv^\prime
+   \end{array}\right\} r^2
+   =
+   \left\{ \begin{array}{c} 
+           1/4 \\ 1/6 \\ 1/12 \\ 
+           1/6 \\ 1/9 \\ 1/18 \\ 
+           1/12 \\ 1/18 \\ 1/36
+           \end{array}
    \right\}
 $$
 
