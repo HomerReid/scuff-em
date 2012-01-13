@@ -2050,43 +2050,78 @@ write
 \begin{align*}
 r(u,v,u^\prime,v^\prime)
 &=\Big| \vb V_1 - \vb V_1^\prime
-       + u\vb A+ v\vb B - u^\prime\vb A^\prime - v^\prime\vb B^\prime
+       + u\vb A + v\vb B - u^\prime\vb A^\prime - v^\prime\vb B^\prime
   \Big|   
 \\
-&=a \sqrt{ (v^\prime - v_0^\prime)^2 + b^2 },
+&=a \sqrt{ (v^\prime + v_0^\prime)^2 + b^2 },
 \end{align*}
 %====================================================================%
 $$
 a = |\vb B^\prime|, 
 \qquad
-v_0^\prime = \frac{1}{a} \vb B^\prime \cdot \vb Y,
+v_0^\prime = -\frac{1}{a^2} \vb B^\prime \cdot \vb Y,
 \qquad
-b^2=\vb Y^2-v_0^{\prime 2},
+b^2=\frac{1}{a^2}|\vb Y|^2 - v_0^{\prime 2},
 \qquad
 \vb Y=    \vb V_1 - \vb V_1^\prime  
        + u\vb A+ v\vb B - u^\prime\vb A^\prime.
 $$
 %====================================================================%
 The integrals we need are now
+%====================================================================%
 \begin{subequations}
 \begin{align}
- \int_0^{u^\prime} 
- \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
- \, \Big[ r (v^\prime)\Big]^{-3} \, dv^\prime
-&=
+ \int_{v_0^\prime}^{v_0^\prime + u^\prime} 
+  \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+  \Big[v^{\prime 2} + b^2\Big]^{-3/2}d v^\prime
+&= \frac{1}{a^3} 
+   \left\{ \begin{array}{c}
+    \frac{(u^\prime + v_0^\prime)}{b^2 S_2} - \frac{v_0^\prime}{b^2 S_1} 
+    \\[5pt]
+    \frac{1}{S_1} - \frac{1}{S_2}
+   \end{array}\right\}
 \\[5pt]
- \int_0^{u^\prime} 
- \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
- \, \Big[r (v^\prime)\Big]^{-1} \, dv^\prime
-&=
-\\[5pt]
- \int_0^{u^\prime} 
- \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
- \, r(v^\prime)  \, dv^\prime
-&=
+%--------------------------------------------------------------------%
+ \int_{v_0^\prime}^{v_0^\prime + u^\prime} 
+  \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+  \Big[v^{\prime 2} + b^2\Big]^{-1/2}d v^\prime
+&= \frac{1}{a} 
+   \left\{ \begin{array}{c}
+    \log \frac{ S_2 + (u^\prime+v_0^\prime) }
+              { S_1 + v_0^\prime }
+    \\[5pt]
+    S_2 - S_1
+   \end{array}\right\}
+\\[8pt]
+%--------------------------------------------------------------------%
+ \int_{v_0^\prime}^{v_0^\prime + u^\prime} 
+  \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+  \Big[v^{\prime 2} + b^2\Big]^{1/2} d v^\prime
+&= a
+   \left\{ \begin{array}{c}
+   \frac{b^2}{2} \log \frac{ S_2 + (u^\prime+v_0^\prime) }
+                           { S_1 + v_0^\prime }
+   +\frac{1}{2}\big[(u^\prime + v_0^\prime)S_2 - v_0^\prime S_1\big]
+   \\[5pt]
+   \frac{1}{3}(S_2^3 - S_1^3)
+   \end{array}\right\}
+\\[8pt]
+%--------------------------------------------------------------------%
+ \int_{v_0^\prime}^{v_0^\prime + u^\prime} 
+  \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+  \Big[v^{\prime 2} + b^2\Big]d v^\prime
+&= a^2
+   \left\{ \begin{array}{c}
+    \\[5pt]
+   \end{array}\right\}
 \end{align}
 \label{vPrimeIntegrals}
 \end{subequations}
+$$ S_1\equiv\sqrt{b^2 + v_0^{\prime 2}}, 
+   \qquad
+   S_2\equiv\sqrt{b + (v_0^{\prime} + u^\prime)^2}, \qquad
+$$
+%====================================================================%
 To make use of these results in evaluating the FIPPIs 
 (\ref{QIFIPPIs}), we eliminate the $v^\prime$ integrals
 and replace all factors of $\{1, v^\prime\}$ with

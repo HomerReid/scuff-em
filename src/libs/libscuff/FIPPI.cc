@@ -17,8 +17,8 @@
 #include "libscuffInternals.h"
 #include "TaylorMaster.h"
 
-#define ABSTOL 1.0e-12
-#define RELTOL 1.0e-8
+#define ABSTOL 1.0e-10
+#define RELTOL 1.0e-6
 
 #define _ONE 0
 #define _UP  1
@@ -180,8 +180,8 @@ typedef struct CFDData
    int nCalls;
  } CFDData;
 
-void CFDIntegrand(unsigned ndim, const double *x, void *params,
-                  unsigned fdim, double *fval)
+void CFDIntegrand4D(unsigned ndim, const double *x, void *params,
+                    unsigned fdim, double *fval)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -276,6 +276,132 @@ void CFDIntegrand(unsigned ndim, const double *x, void *params,
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
+void CFDIntegrand3D(unsigned ndim, const double *x, void *params,
+                    unsigned fdim, double *fval)
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  CFDData *CFDD=(CFDData *)params;
+  CFDD->nCalls++;
+
+  double *V0=CFDD->V0;
+  double *A=CFDD->A;
+  double *B=CFDD->B;
+
+  double *V0P=CFDD->V0P;
+  double *AP=CFDD->AP;
+  double *BP=CFDD->BP;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double u, v, up;
+  u=x[0];
+  v=u*x[1];
+  up=x[2];
+  
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int Mu;
+  double X[3], Y[3], Z[3], BPdY, Y2, a2, a, a3, vp0, vp02, vp03, vp04, b2; 
+  a2=BPdY=Y2=0.0;
+  for (Mu=0; Mu<3; Mu++)
+   { 
+     //Y[Mu]  = V0[Mu] - V0P[Mu] + u*A[Mu] + v*B[Mu] - up*AP[Mu];
+     X[Mu]  = V0[Mu] + u*A[Mu] + v*B[Mu];
+     Z[Mu]  = V0P[Mu] + up*AP[Mu];
+     Y[Mu]  = X[Mu] - Z[Mu];
+     a2    += BP[Mu]*BP[Mu];
+     BPdY  += BP[Mu]*Y[Mu];
+     Y2    += Y[Mu]*Y[Mu];
+   };
+  a=sqrt(a2);
+  a3=a*a2;
+  vp0=-BPdY/a2;
+  vp02=vp0*vp0;
+  vp03=vp02*vp0;
+  vp04=vp03*vp0;
+  b2=Y2/a2 - vp02;
+
+  double S1, S2, LogFac, Sum, Sum3, Sum4;
+  S1=sqrt( b2 + vp02 );
+  S2=sqrt( b2 + (vp0+up)*(vp0+up) );
+  LogFac=log( (S2 + (up+vp0)) / (S1 + vp0) );
+  Sum=vp0+up;
+  Sum3=Sum*Sum*Sum;
+  Sum4=Sum3*Sum;
+
+  // the RHSs here are the integrals evaluated in Section 10 of the memo.
+  // note we put the jacobian factor (u) into these quantities for convenience.
+  double OneRM3Int = u*( (up+vp0)/S2 - vp0/S1 ) / (a3*b2);
+  double  vpRM3Int = -vp0*OneRM3Int + u*( 1.0/S1 - 1.0/S2 ) / a3;
+  double OneRM1Int = u*LogFac/a;
+  double  vpRM1Int = -vp0*OneRM1Int + u*(S2-S1)/a;
+  double OneR1Int  = u*a*0.5*(b2*LogFac + (up+vp0)*S2 - vp0*S1);
+  double  vpR1Int  = -vp0*OneR1Int + u*a*(S2*S2*S2 - S1*S1*S1) / 3.0;
+  double OneR2Int  = u*a2*( (Sum3-vp03)/3.0 + up*b2 );
+  double  vpR2Int  = -vp0*OneR2Int + u*a2*( (Sum4-vp04)/4.0 + up*(vp0 + 0.5*up)*b2 );
+
+  if (    !isfinite(OneRM3Int) 
+       || !isfinite(OneRM1Int)
+       || !isfinite(OneR1Int)
+       || !isfinite(OneR2Int) )
+   { printf("Bawonkatage! b2=%e, vp0=%e, up=%e, S1=%e, S2=%e\n",b2,vp0,up,S1,S2);
+   };
+  
+  double CPCT[3], CPLT[3]; // 'cross product constant term' and 'cross product linear term'
+  VecCross(X,Z,CPCT);
+  VecCross(X,BP,CPLT);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int nf=0;
+
+  fval[nf++] = Y[0]*OneRM3Int - BP[0]*vpRM3Int;
+  fval[nf++] = Y[1]*OneRM3Int - BP[1]*vpRM3Int;
+  fval[nf++] = Y[2]*OneRM3Int - BP[2]*vpRM3Int;
+  fval[nf++] = CPCT[0]*OneRM3Int + CPLT[0]*vpRM3Int;
+  fval[nf++] = CPCT[1]*OneRM3Int + CPLT[1]*vpRM3Int;
+  fval[nf++] = CPCT[2]*OneRM3Int + CPLT[2]*vpRM3Int;
+
+  fval[nf++] = OneRM1Int;
+  fval[nf++] = up*OneRM1Int;
+  fval[nf++] = vpRM1Int;
+  fval[nf++] = u*OneRM1Int;
+  fval[nf++] = u*up*OneRM1Int;
+  fval[nf++] = u*vpRM1Int;
+  fval[nf++] = v*OneRM1Int;
+  fval[nf++] = v*up*OneRM1Int;
+  fval[nf++] = v*vpRM1Int;
+
+  fval[nf++] = OneR1Int;
+  fval[nf++] = up*OneR1Int;
+  fval[nf++] = vpR1Int;
+  fval[nf++] = u*OneR1Int;
+  fval[nf++] = u*up*OneR1Int;
+  fval[nf++] = u*vpR1Int;
+  fval[nf++] = v*OneR1Int;
+  fval[nf++] = v*up*OneR1Int;
+  fval[nf++] = v*vpR1Int;
+
+  fval[nf++] = OneR2Int;
+  fval[nf++] = up*OneR2Int;
+  fval[nf++] = vpR2Int;
+  fval[nf++] = u*OneR2Int;
+  fval[nf++] = u*up*OneR2Int;
+  fval[nf++] = u*vpR2Int;
+  fval[nf++] = v*OneR2Int;
+  fval[nf++] = v*up*OneR2Int;
+  fval[nf++] = v*vpR2Int;
+
+} 
+
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
 void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
 {
 
@@ -296,15 +422,26 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
   /*--------------------------------------------------------------*/
   /*- evaluate the adaptive cubature over the pair of triangles  -*/
   /*--------------------------------------------------------------*/
-  double Lower[4]={0.0, 0.0, 0.0, 0.0};
-  double Upper[4]={1.0, 1.0, 1.0, 1.0};
   int fdim = 33;
   double F[fdim], E[fdim];
-CFDD->nCalls=0;
-printf("%i \n",fdim);
-  adapt_integrate(fdim, CFDIntegrand, CFDD, 4, Lower, Upper,
+
+  CFDD->nCalls=0;
+#ifdef CUBATURE4D
+  double Lower[4]={0.0, 0.0, 0.0, 0.0};
+  double Upper[4]={1.0, 1.0, 1.0, 1.0};
+  adapt_integrate(fdim, CFDIntegrand4D, CFDD, 4, Lower, Upper,
                   0, ABSTOL, RELTOL, F, E);
-printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
+#else
+  double Lower[3]={0.0, 0.0, 0.0};
+  double Upper[3]={1.0, 1.0, 1.0};
+  CFDD->nCalls=0;
+  adapt_integrate(fdim, CFDIntegrand3D, CFDD, 3, Lower, Upper,
+                  0, ABSTOL, RELTOL, F, E);
+
+  printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
+#endif
+  printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
+
 
   /*--------------------------------------------------------------*/
   /*- unpack the results into the output data record -------------*/
@@ -314,9 +451,9 @@ printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
   QIFD->xMxpRM3[0]   = F[nf++];
   QIFD->xMxpRM3[1]   = F[nf++];
   QIFD->xMxpRM3[2]   = F[nf++];
-  QIFD->xXxpRM3[3]   = F[nf++];
-  QIFD->xXxpRM3[4]   = F[nf++];
-  QIFD->xXxpRM3[5]   = F[nf++];
+  QIFD->xXxpRM3[0]   = F[nf++];
+  QIFD->xXxpRM3[1]   = F[nf++];
+  QIFD->xXxpRM3[2]   = F[nf++];
 
   QIFD->uvupvpRM1[0] = F[nf++];
   QIFD->uvupvpRM1[1] = F[nf++];

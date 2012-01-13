@@ -17,8 +17,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
-#define ABSTOL 1.0e-8    // absolute tolerance
-#define RELTOL 1.0e-4    // relative tolerance
+#define ABSTOL 1.0e-12    // absolute tolerance
+#define RELTOL 1.0e-8    // relative tolerance
 
 /***************************************************************/
 /* data structure used to pass data to integrand routines      */
@@ -155,9 +155,9 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
      QIFD->xMxpRM3[0]   = Result[nf++];
      QIFD->xMxpRM3[1]   = Result[nf++];
      QIFD->xMxpRM3[2]   = Result[nf++];
-     QIFD->xXxpRM3[3]   = Result[nf++];
-     QIFD->xXxpRM3[4]   = Result[nf++];
-     QIFD->xXxpRM3[5]   = Result[nf++];
+     QIFD->xXxpRM3[0]   = Result[nf++];
+     QIFD->xXxpRM3[1]   = Result[nf++];
+     QIFD->xXxpRM3[2]   = Result[nf++];
    
      QIFD->uvupvpRM1[0] = Result[nf++];
      QIFD->uvupvpRM1[1] = Result[nf++];

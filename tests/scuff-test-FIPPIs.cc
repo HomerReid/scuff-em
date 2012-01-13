@@ -20,6 +20,9 @@
 #include <libscuff.h>
 #include <libscuffInternals.h>
 
+#define HRTIMES 10
+#define BFTIMES 1
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -81,6 +84,7 @@ int main(int argc, char *argv[])
   QIFIPPIData QIFDHRBuffer, *QIFDHR=&QIFDHRBuffer;
   QIFIPPIData QIFDBFBuffer, *QIFDBF=&QIFDBFBuffer;
   double *OVa[3], *OVb[3];
+  double HRTime, BFTime;
   for(;;)
    { 
      /*--------------------------------------------------------------*/
@@ -199,21 +203,28 @@ int main(int argc, char *argv[])
      if ( !SameObject && DZ!=0.0 )
       Ob->Transform("DISP 0 0 %e",DZ);
 
-     /*--------------------------------------------------------------------*/
-     /* get FIPPIs by libscuff method                                      */
-     /*--------------------------------------------------------------------*/
      OVa[0] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[0]);
      OVa[1] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[1]);
      OVa[2] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[2]);
      OVb[0] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[0]);
      OVb[1] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[1]);
      OVb[2] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[2]);
-     ComputeQIFIPPIData(OVa, OVb, QIFDHR);
 
      /*--------------------------------------------------------------------*/
      /* get FIPPIs by libscuff method                                      */
      /*--------------------------------------------------------------------*/
-     ComputeQIFIPPIData_BruteForce(OVa, OVb, QIFDBF);
+     Tic();
+     for(nt=0; nt<HRTIMES; nt++)
+      ComputeQIFIPPIData(OVa, OVb, QIFDHR);
+     HRTime=Toc() / HRTIMES;
+     
+     /*--------------------------------------------------------------------*/
+     /* get FIPPIs by brute-force method                                   */
+     /*--------------------------------------------------------------------*/
+     Tic();
+     for(nt=0; nt<BFTIMES; nt++)
+      ComputeQIFIPPIData_BruteForce(OVa, OVb, QIFDBF);
+     BFTime=Toc() / BFTIMES;
 
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
@@ -224,6 +235,9 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /*- print results ----------------------------------------------------*/
      /*--------------------------------------------------------------------*/
+     printf(" ** HR time: %e ms \n",HRTime*1.0e3);
+     printf(" ** BF time: %e ms \n",BFTime*1.0e3);
+     printf("\n");
      printf("Quantity  |  %15s  |  %15s  | %s\n", 
             "            libscuff             ",
             "          brute force            ",
