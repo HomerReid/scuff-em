@@ -167,21 +167,7 @@ typedef struct QDFIPPIData
 /*- outside world.                                              */
 /*--------------------------------------------------------------*/
 void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
-                    void *opFIPPIDT, QDFIPPIData *FD);
-
-/*--------------------------------------------------------------*/
-/*- ComputeQIFIPPIData is an auxiliary routine that is only     */
-/*- ever called by GetQDFIPPIData.                              */
-/*--------------------------------------------------------------*/
-void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *FD);
-
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-int VLT(double *V1, double *V2);
-void ComputeSearchKey(double **Va, double **Vb, double *Key); 
-int CanonicallyOrderVertices(double **Va, double *Qa, double **Vb, double *Qb,
-                             double **OVa, double **OQa, double **OVb, double *OQb);
+                    void *opFIPPIDT, QDFIPPIData *QDFD);
 
 /*--------------------------------------------------------------*/
 /* 'FIPPIDataTable' is a class that implements efficient storage*/
@@ -189,18 +175,10 @@ int CanonicallyOrderVertices(double **Va, double *Qa, double **Vb, double *Qb,
 /*--------------------------------------------------------------*/
 class FIPPIDataTable
  { 
-
   public:
-
-    // constructor 
     FIPPIDataTable();
-
-    // destructor 
     ~FIPPIDataTable();
-
-    // retrieve Q-independent FIPPI data for a given pair of panels
-    QIFIPPIDataRecord *GetQIFIPPIData(double **OVa, double **OVb);
-   
+    QIFIPPIData *GetQIFIPPIData(double **OVa, double **OVb);
  };
 
 /***************************************************************/   

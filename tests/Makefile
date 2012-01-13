@@ -23,20 +23,24 @@ CXX=g++
 CFLAGS+=$(DEBUG)
 CPPFLAGS+=$(DEBUG)
 
-CPPFLAGS+=-I../src/libscuff
-LDFLAGS+=-L../src/libscuff
+CPPFLAGS+=-I../src/libs/libscuff
+LDFLAGS+=-L../src//libs/libscuff
 
 ##################################################
 ##################################################
 ##################################################
 STPPI_OBJS = scuff-test-PPIs.o GetPPIs_BruteForce.o
+STFIPPI_OBJS = scuff-test-FIPPIs.o GetFIPPIs_BruteForce.o
+
+scuff-test-FIPPIs:	$(STFIPPI_OBJS) libscuff.a
+			$(CXX) $(LDFLAGS) -o $@ $(STFIPPI_OBJS) $(LIBS)
 
 scuff-test-PPIs:	$(STPPI_OBJS) libscuff.a
 			$(CXX) $(LDFLAGS) -o $@ $(STPPI_OBJS) $(LIBS)
 
 libscuff.a:	
-		(pushd ../src/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)
+		(pushd ../src/libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)
 
 clean:	
 		rm -f *.o *.a
-		(pushd ../src/libscuff; make clean; popd)
+		(pushd ../src/libs/libscuff; make clean; popd)

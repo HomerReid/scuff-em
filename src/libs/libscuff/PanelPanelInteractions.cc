@@ -348,7 +348,7 @@ printf("\n**\n** using cubature\n**\n");
         if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
         if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
 
-        return;
+        return; 
       }
      else if( ncv==1 )
       { 
@@ -410,8 +410,8 @@ printf("\n**\n** using desingularization\n**\n");
   GetPPIs_Cubature(Args, 1, 0, Va, Qa, Vb, Qb);
 
   // step 2
-  QDFIPPIDataRecord MyFDR, *FDR;
-  GetQDFIPPIDataRecord(Va, Qa, Vb, Qb, Args->opFDT, FDR);
+  QDFIPPIData MyQDFD, *QDFD=&MyQDFD;
+  GetQDFIPPIData(Va, Qa, Vb, Qb, Args->opFDT, QDFD);
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
@@ -425,15 +425,15 @@ printf("\n**\n** using desingularization\n**\n");
   PF[4]=ik*PF[3];
 
   // add contributions to panel-panel integrals
-  Args->H[0] +=  PF[0]*AA0*( FDR->hDotRM1 + OOIK2*FDR->hNablaRM1)
-                +PF[1]*AA1*( FDR->hDotR0  + OOIK2*FDR->hNablaR0 )
-                +PF[1]*AA1*( FDR->hDotR1  + OOIK2*FDR->hNablaR1 )
-                +PF[1]*AA2*( FDR->hDotR2  + OOIK2*FDR->hNablaR2 );
+  Args->H[0] +=  PF[0]*AA0*( QDFD->hDotRM1 + OOIK2*QDFD->hNablaRM1)
+                +PF[1]*AA1*( QDFD->hDotR0  + OOIK2*QDFD->hNablaR0 )
+                +PF[1]*AA1*( QDFD->hDotR1  + OOIK2*QDFD->hNablaR1 )
+                +PF[1]*AA2*( QDFD->hDotR2  + OOIK2*QDFD->hNablaR2 );
   
-  Args->H[1] +=  PF[0]*BB0*FDR->hTimesRM3
-                +PF[2]*BB2*FDR->hTimesRM1
-                +PF[3]*BB3*FDR->hTimesR0 
-                +PF[4]*BB3*FDR->hTimesR1;
+  Args->H[1] +=  PF[0]*BB0*QDFD->hTimesRM3
+                +PF[2]*BB2*QDFD->hTimesRM1
+                +PF[3]*BB3*QDFD->hTimesR0 
+                +PF[4]*BB3*QDFD->hTimesR1;
 
   // restore derivative integrals as necessary 
   if (NumGradientComponents>0)

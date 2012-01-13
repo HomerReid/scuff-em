@@ -36,7 +36,6 @@ static void FIPPIBFIntegrand(unsigned ndim, const double *x, void *parms,
                              unsigned nfun, double *fval)
 {
   FIPPIBFData *FIPPIBFD=(FIPPIBFData *)parms;
-  int NeedGradient=FIPPIBFD->NeedGradient;
   
   /***************************************************************/
   /***************************************************************/
@@ -50,7 +49,7 @@ static void FIPPIBFIntegrand(unsigned ndim, const double *x, void *parms,
   /***************************************************************/
   /***************************************************************/
   double X[3], XmQ[3], XP[3], XPmQP[3], R[3], XxXP[3];
-  double r, r2, r4, kr;
+  double r, r2, oor, oor3;
 
   memcpy(X,FIPPIBFD->V0,3*sizeof(double));
   VecPlusEquals(X,u,FIPPIBFD->A);
@@ -71,42 +70,42 @@ static void FIPPIBFIntegrand(unsigned ndim, const double *x, void *parms,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  f[0] = R[0]*oor3;
-  f[1] = R[1]*oor3;
-  f[2] = R[2]*oor3;
-  f[3] = XxXP[0]*oor3;
-  f[4] = XxXP[1]*oor3;
-  f[5] = XxXP[2]*oor3;
+  fval[0] = R[0]*oor3;
+  fval[1] = R[1]*oor3;
+  fval[2] = R[2]*oor3;
+  fval[3] = XxXP[0]*oor3;
+  fval[4] = XxXP[1]*oor3;
+  fval[5] = XxXP[2]*oor3;
 
-  f[6]  = oor;
-  f[7]  = u*oor;
-  f[8]  = v*oor;
-  f[9]  = up*oor;
-  f[10] = u*up*oor;
-  f[11] = v*up*oor;
-  f[12] = vp*oor;
-  f[13] = u*vp*oor;
-  f[14] = v*vp*oor;
+  fval[6]  = oor;
+  fval[7]  = up*oor;
+  fval[8]  = vp*oor;
+  fval[9]  = u*oor;
+  fval[10] = u*up*oor;
+  fval[11] = u*vp*oor;
+  fval[12] = v*oor;
+  fval[13] = v*up*oor;
+  fval[14] = v*vp*oor;
 
-  f[15] = r;
-  f[16] = u*r;
-  f[17] = v*r;
-  f[18] = up*r;
-  f[19] = u*up*r;
-  f[20] = v*up*r;
-  f[21] = vp*r;
-  f[22] = u*vp*r;
-  f[23] = v*vp*r;
+  fval[15] = r;
+  fval[16] = up*r;
+  fval[17] = vp*r;
+  fval[18] = u*r;
+  fval[19] = u*up*r;
+  fval[20] = u*vp*r;
+  fval[21] = v*r;
+  fval[22] = v*up*r;
+  fval[23] = v*vp*r;
 
-  f[24] = r2;
-  f[25] = u*r2;
-  f[26] = v*r2;
-  f[27] = up*r2;
-  f[28] = u*up*r2;
-  f[29] = v*up*r2;
-  f[30] = vp*r2;
-  f[31] = u*vp*r2;
-  f[32] = v*vp*r2;
+  fval[24] = r2;
+  fval[25] = up*r2;
+  fval[26] = vp*r2;
+  fval[27] = u*r2;
+  fval[28] = u*up*r2;
+  fval[29] = u*vp*r2;
+  fval[30] = v*r2;
+  fval[31] = v*up*r2;
+  fval[32] = v*vp*r2;
 
 } 
 
@@ -114,14 +113,14 @@ static void FIPPIBFIntegrand(unsigned ndim, const double *x, void *parms,
 /* compute FIPPIs using brute-force technique                  */
 /* (adaptive cubature over both panels).                       */
 /***************************************************************/
-void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *FD)
+void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
 { 
   double rRel;
 
   /***************************************************************/
   /* setup for call to cubature routine    ***********************/
   /***************************************************************/
-  FIPPIBFData MyFIPPIBFData, *FIPPIBFD=&MyFiPPIBFData;
+  FIPPIBFData MyFIPPIBFData, *FIPPIBFD=&MyFIPPIBFData;
  
   FIPPIBFD->V0 = Va[0];
   VecSub(Va[1], Va[0], FIPPIBFD->A);
@@ -137,7 +136,7 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *FD)
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
 
-  int fDim=33;
+  int nf, fDim=33;
   double Result[fDim], Error[fDim];
 
   /***************************************************************/
@@ -153,6 +152,42 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *FD)
      adapt_integrate_log(fDim, FIPPIBFIntegrand, (void *)FIPPIBFD, 4, Lower, Upper,
                          0, ABSTOL, RELTOL, Result, Error, "SGJC.log", 15);
 
+     QIFD->xMxpRM3[0]   = Result[nf++];
+     QIFD->xMxpRM3[1]   = Result[nf++];
+     QIFD->xMxpRM3[2]   = Result[nf++];
+     QIFD->xXxpRM3[3]   = Result[nf++];
+     QIFD->xXxpRM3[4]   = Result[nf++];
+     QIFD->xXxpRM3[5]   = Result[nf++];
+   
+     QIFD->uvupvpRM1[0] = Result[nf++];
+     QIFD->uvupvpRM1[1] = Result[nf++];
+     QIFD->uvupvpRM1[2] = Result[nf++];
+     QIFD->uvupvpRM1[3] = Result[nf++];
+     QIFD->uvupvpRM1[4] = Result[nf++];
+     QIFD->uvupvpRM1[5] = Result[nf++];
+     QIFD->uvupvpRM1[6] = Result[nf++];
+     QIFD->uvupvpRM1[7] = Result[nf++];
+     QIFD->uvupvpRM1[8] = Result[nf++];
+   
+     QIFD->uvupvpR1[0] = Result[nf++];
+     QIFD->uvupvpR1[1] = Result[nf++];
+     QIFD->uvupvpR1[2] = Result[nf++];
+     QIFD->uvupvpR1[3] = Result[nf++];
+     QIFD->uvupvpR1[4] = Result[nf++];
+     QIFD->uvupvpR1[5] = Result[nf++];
+     QIFD->uvupvpR1[6] = Result[nf++];
+     QIFD->uvupvpR1[7] = Result[nf++];
+     QIFD->uvupvpR1[8] = Result[nf++];
+   
+     QIFD->uvupvpR2[0] = Result[nf++];
+     QIFD->uvupvpR2[1] = Result[nf++];
+     QIFD->uvupvpR2[2] = Result[nf++];
+     QIFD->uvupvpR2[3] = Result[nf++];
+     QIFD->uvupvpR2[4] = Result[nf++];
+     QIFD->uvupvpR2[5] = Result[nf++];
+     QIFD->uvupvpR2[6] = Result[nf++];
+     QIFD->uvupvpR2[7] = Result[nf++];
+     QIFD->uvupvpR2[8] = Result[nf++];
    }
   else
    {
@@ -204,8 +239,12 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *FD)
      PF->PlotFit(Z, CI, NZ, 0.0, Z[NZ-1], "imag(<fa|C|fb>)");
      real(Args->H[1])=PF->f(0.0);
      delete PF;
-#endif 0
+#endif
      
    }; // if (ncv==0 ... else)
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
 
 }

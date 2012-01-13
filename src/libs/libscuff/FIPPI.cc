@@ -21,39 +21,20 @@
 #define RELTOL 1.0e-8
 
 #define _ONE 0
-#define _U   1
-#define _V   2
-#define _UP  3
+#define _UP  1
+#define _VP  2
+#define _U   3
 #define _UUP 4
-#define _VUP 5
-#define _VP  6
-#define _UVP 7
+#define _UVP 5
+#define _V   6
+#define _VUP 7
 #define _VVP 8
 
-
 /***************************************************************/
-/* implementation of the FIPPIDT class *************************/
+/* 'vertex less than.' returns 1 if V1<V2, 0 otherwise.        */
+/* vertices are sorted using a fairly obvious sorting scheme.  */
 /***************************************************************/
-
-/*--------------------------------------------------------------*/
-/*- class constructor ------------------------------------------*/
-/*--------------------------------------------------------------*/
-FIPPIDataTable::FIPPIDataTable()
-{
-}
-
-/*--------------------------------------------------------------*/
-/*- class destructor  ------------------------------------------*/
-/*--------------------------------------------------------------*/
-FIPPIDataTable::~FIPPIDataTable()
-{
-} 
-
-/*--------------------------------------------------------------*/
-/*- 'vertex less than.' returns 1 if V1<V2, 0 otherwise.        */
-/*- vertices are sorted using a fairly obvious sorting scheme.  */
-/*--------------------------------------------------------------*/
-int FIPPIDataTable::VLT(double *V1, double *V2)
+static int VLT(double *V1, double *V2)
 {
   double DV;
 
@@ -70,13 +51,12 @@ int FIPPIDataTable::VLT(double *V1, double *V2)
 }
 
 /***************************************************************/
-/* create a unique search key for the given panel pair.        */
-/* (note: search keys are unique up to rigid translation of    */
-/*  both panels. if Pa,Pb and PaP, PbP are panel pairs that    */
-/*  are equivalent under a rigid translation then we want them */
-/*  to map to the same key since the FIPPIs are equal.         */
 /***************************************************************/
-void FIPPIDataTable::ComputeSearchKey(double **Va, double **Vb, double *Key)
+/***************************************************************/
+int CanonicallyOrderVertices(double **Va, double *Qa,
+                             double **Vb, double *Qb,
+                             double **OVa, double **OQa,
+                             double **OVb, double **OQb)
 { 
   /***************************************************************/
   /* sort the vertices in ascending order ************************/
@@ -106,7 +86,71 @@ void FIPPIDataTable::ComputeSearchKey(double **Va, double **Vb, double *Key)
    { VMedP=Vb[2]; }
   else 
    { VMedP=VMaxP; VMaxP=Vb[2]; }
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( VLT(Va[0], Vb[0] ) )
+   { 
+     OVa[0]=VMin; 
+     OVa[1]=VMed; 
+     OVa[2]=VMax; 
+     *OQa=Qa;
+
+     OVb[0]=VMinP; 
+     OVb[1]=VMedP; 
+     OVb[2]=VMaxP; 
+     *OQb=Qb;
+
+     return 0;
+   }
+  else
+   {
+     OVa[0]=VMinP; 
+     OVa[1]=VMedP; 
+     OVa[2]=VMaxP; 
+     *OQa=Qb;
+
+     OVb[0]=VMin; 
+     OVb[1]=VMed; 
+     OVb[2]=VMax; 
+     *OQb=Qa;
+
+     return 1;
+   };
   
+}
+
+/***************************************************************/
+/* implementation of the FIPPIDT class *************************/
+/***************************************************************/
+
+/*--------------------------------------------------------------*/
+/*- class constructor ------------------------------------------*/
+/*--------------------------------------------------------------*/
+FIPPIDataTable::FIPPIDataTable()
+{
+}
+
+/*--------------------------------------------------------------*/
+/*- class destructor  ------------------------------------------*/
+/*--------------------------------------------------------------*/
+FIPPIDataTable::~FIPPIDataTable()
+{
+} 
+
+/*--------------------------------------------------------------*/
+/*- routine for fetching a FIPPI data record from a FIPPIDT:    */
+/*- we look through our table to see if we have a record for    */
+/*- this panel pair, we return it if we do, and otherwise we    */
+/*- compute a new FIPPI data record for this panel pair and     */
+/*- add it to the table                                         */
+/*- important note: the vertices are assumed to be canonically  */
+/*- ordered on entry.                                           */
+/*--------------------------------------------------------------*/
+QIFIPPIData *FIPPIDataTable::GetQIFIPPIData(double **OVa, double **OVb)
+{
+
   /***************************************************************/
   /* the search key is kinda stupid, just a string of 15 doubles */
   /* as follows:                                                 */
@@ -116,29 +160,14 @@ void FIPPIDataTable::ComputeSearchKey(double **Va, double **Vb, double *Key)
   /* 9--11   VMedP - VMin [0..2]                                 */
   /* 12--14  VMaxP - VMin [0..2]                                 */
   /***************************************************************/
-  VecSub(VMed,  VMin, Key+0 );
-  VecSub(VMax,  VMin, Key+3 );
-  VecSub(VMinP, VMin, Key+6 );
-  VecSub(VMedP, VMin, Key+9 );
-  VecSub(VMaxP, VMin, Key+12);
+  double Key[15];
+  VecSub(OVa[1], OVa[0], Key+0 );
+  VecSub(OVa[2], OVa[0], Key+3 );
+  VecSub(OVb[0], OVa[0], Key+6 );
+  VecSub(OVb[1], OVa[0], Key+9 );
+  VecSub(OVb[2], OVa[0], Key+12);
   
 }
-
-/*--------------------------------------------------------------*/
-/*- routine for fetching a FIPPI data record from a FIPPIDT:    */
-/*- we look through our table to see if we have a record for    */
-/*- this panel pair, we return it if we do, and otherwise we    */
-/*- compute a new FIPPI data record for this panel pair and     */
-/*- add it to the table                                         */
-/*--------------------------------------------------------------*/
-QIFIPPIData *FIPPIDataTable::GetQIFIPPIData(double **Va, double **Vb)
-{
-  double Key[15];
-
-  ComputeSearchKey(Va, Vb, Key);
-}
-
-void GetQIFIPPIData(double **Va, double **Vb)
 
 /*--------------------------------------------------------------*/
 /*- integrand routine used for evaluating FIPPIs by cubature.  -*/
@@ -146,8 +175,8 @@ void GetQIFIPPIData(double **Va, double **Vb)
 /*--------------------------------------------------------------*/
 typedef struct CFDData
  {
-   double *V0[3], A[3], B[3];
-   double *V0P[3], AP[3], BP[3];
+   double *V0, A[3], B[3];
+   double *V0P, AP[3], BP[3];
    int nCalls;
  } CFDData;
 
@@ -213,33 +242,33 @@ void CFDIntegrand(unsigned ndim, const double *x, void *params,
   fval[nf++] = XxXP[2] * oor3;
 
   fval[nf++] = oor;
-  fval[nf++] = u*oor;
-  fval[nf++] = v*oor;
   fval[nf++] = up*oor;
-  fval[nf++] = u*up*oor;
-  fval[nf++] = v*up*oor;
   fval[nf++] = vp*oor;
+  fval[nf++] = u*oor;
+  fval[nf++] = u*up*oor;
   fval[nf++] = u*vp*oor;
+  fval[nf++] = v*oor;
+  fval[nf++] = v*up*oor;
   fval[nf++] = v*vp*oor;
 
   fval[nf++] = r;
-  fval[nf++] = u*r;
-  fval[nf++] = v*r;
   fval[nf++] = up*r;
-  fval[nf++] = u*up*r;
-  fval[nf++] = v*up*r;
   fval[nf++] = vp*r;
+  fval[nf++] = u*r;
+  fval[nf++] = u*up*r;
   fval[nf++] = u*vp*r;
+  fval[nf++] = v*r;
+  fval[nf++] = v*up*r;
   fval[nf++] = v*vp*r;
 
   fval[nf++] = r2;
-  fval[nf++] = u*r2;
-  fval[nf++] = v*r2;
   fval[nf++] = up*r2;
-  fval[nf++] = u*up*r2;
-  fval[nf++] = v*up*r2;
   fval[nf++] = vp*r2;
+  fval[nf++] = u*r2;
+  fval[nf++] = u*up*r2;
   fval[nf++] = u*vp*r2;
+  fval[nf++] = v*r2;
+  fval[nf++] = v*up*r2;
   fval[nf++] = v*vp*r2;
 
 } 
@@ -247,7 +276,7 @@ void CFDIntegrand(unsigned ndim, const double *x, void *params,
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *FD)
+void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
 {
 
   /*--------------------------------------------------------------*/
@@ -282,42 +311,42 @@ printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
   /*--------------------------------------------------------------*/
   int nf=0;
 
-  FDR->xMxpRM3[0]   = F[nf++];
-  FDR->xMxpRM3[1]   = F[nf++];
-  FDR->xMxpRM3[2]   = F[nf++];
-  FDR->xXxpRM3[3]   = F[nf++];
-  FDR->xXxpRM3[4]   = F[nf++];
-  FDR->xXxpRM3[5]   = F[nf++];
+  QIFD->xMxpRM3[0]   = F[nf++];
+  QIFD->xMxpRM3[1]   = F[nf++];
+  QIFD->xMxpRM3[2]   = F[nf++];
+  QIFD->xXxpRM3[3]   = F[nf++];
+  QIFD->xXxpRM3[4]   = F[nf++];
+  QIFD->xXxpRM3[5]   = F[nf++];
 
-  FDR->uvupvpRM1[0] = F[nf++];
-  FDR->uvupvpRM1[1] = F[nf++];
-  FDR->uvupvpRM1[2] = F[nf++];
-  FDR->uvupvpRM1[3] = F[nf++];
-  FDR->uvupvpRM1[4] = F[nf++];
-  FDR->uvupvpRM1[5] = F[nf++];
-  FDR->uvupvpRM1[6] = F[nf++];
-  FDR->uvupvpRM1[7] = F[nf++];
-  FDR->uvupvpRM1[8] = F[nf++];
+  QIFD->uvupvpRM1[0] = F[nf++];
+  QIFD->uvupvpRM1[1] = F[nf++];
+  QIFD->uvupvpRM1[2] = F[nf++];
+  QIFD->uvupvpRM1[3] = F[nf++];
+  QIFD->uvupvpRM1[4] = F[nf++];
+  QIFD->uvupvpRM1[5] = F[nf++];
+  QIFD->uvupvpRM1[6] = F[nf++];
+  QIFD->uvupvpRM1[7] = F[nf++];
+  QIFD->uvupvpRM1[8] = F[nf++];
 
-  FDR->uvupvpR1[0] = F[nf++];
-  FDR->uvupvpR1[1] = F[nf++];
-  FDR->uvupvpR1[2] = F[nf++];
-  FDR->uvupvpR1[3] = F[nf++];
-  FDR->uvupvpR1[4] = F[nf++];
-  FDR->uvupvpR1[5] = F[nf++];
-  FDR->uvupvpR1[6] = F[nf++];
-  FDR->uvupvpR1[7] = F[nf++];
-  FDR->uvupvpR1[8] = F[nf++];
+  QIFD->uvupvpR1[0] = F[nf++];
+  QIFD->uvupvpR1[1] = F[nf++];
+  QIFD->uvupvpR1[2] = F[nf++];
+  QIFD->uvupvpR1[3] = F[nf++];
+  QIFD->uvupvpR1[4] = F[nf++];
+  QIFD->uvupvpR1[5] = F[nf++];
+  QIFD->uvupvpR1[6] = F[nf++];
+  QIFD->uvupvpR1[7] = F[nf++];
+  QIFD->uvupvpR1[8] = F[nf++];
 
-  FDR->uvupvpR2[0] = F[nf++];
-  FDR->uvupvpR2[1] = F[nf++];
-  FDR->uvupvpR2[2] = F[nf++];
-  FDR->uvupvpR2[3] = F[nf++];
-  FDR->uvupvpR2[4] = F[nf++];
-  FDR->uvupvpR2[5] = F[nf++];
-  FDR->uvupvpR2[6] = F[nf++];
-  FDR->uvupvpR2[7] = F[nf++];
-  FDR->uvupvpR2[8] = F[nf++];
+  QIFD->uvupvpR2[0] = F[nf++];
+  QIFD->uvupvpR2[1] = F[nf++];
+  QIFD->uvupvpR2[2] = F[nf++];
+  QIFD->uvupvpR2[3] = F[nf++];
+  QIFD->uvupvpR2[4] = F[nf++];
+  QIFD->uvupvpR2[5] = F[nf++];
+  QIFD->uvupvpR2[6] = F[nf++];
+  QIFD->uvupvpR2[7] = F[nf++];
+  QIFD->uvupvpR2[8] = F[nf++];
 
 }
 
@@ -327,7 +356,7 @@ printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
 /*- they were put in by that routine                            */
 /*--------------------------------------------------------------*/
 void ComputeQIFIPPIData_TaylorDuffy(int ncv, double **Va, double **Vb, 
-                                    QIFIPPIData *FD)
+                                    QIFIPPIData *QIFD)
 { 
 
   /*--------------------------------------------------------------*/
@@ -352,7 +381,7 @@ void ComputeQIFIPPIData_TaylorDuffy(int ncv, double **Va, double **Vb,
 /*-  Vb       = similarly for panel B                           */
 /*-  FD       = must point to a preallocated QIFIPPIData        */
 /*--------------------------------------------------------------*/
-void ComputeQIFIPPIData(double **Va, double **Vb, FIPPIData *FD)
+void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *QIFD)
 { 
   int ncv=AssessPanelPair(Va, Vb);
 
@@ -361,9 +390,9 @@ void ComputeQIFIPPIData(double **Va, double **Vb, FIPPIData *FD)
   /*- adaptive cubature over both triangles to compute the FIPPIs-*/
   /*--------------------------------------------------------------*/
   if (ncv==0)
-   ComputeQIFIPPIData_Cubature(Va, Vb, FD);
+   ComputeQIFIPPIData_Cubature(Va, Vb, QIFD);
   else
-   ComputeQIFIPPIData_TaylorDuffy(ncv, Va, Vb, FD);
+   ComputeQIFIPPIData_TaylorDuffy(ncv, Va, Vb, QIFD);
 
 }
 
@@ -373,6 +402,7 @@ void ComputeQIFIPPIData(double **Va, double **Vb, FIPPIData *FD)
 void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
                     void *opFDT, QDFIPPIData *QDFD)
 {
+  int Flipped;
   double *OVa[3], *OQa, *OVb[3], *OQb;  // 'ordered vertices'
   QIFIPPIData MyQIFD, *QIFD;
 
@@ -409,40 +439,38 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
   /*- now assemble the Q-dependent FIPPIs.                        */
   /*--------------------------------------------------------------*/
   double A[3],  B[3],  V0mQ[3];
-  double AP[3], BP[3], V0PmQP[3], 
+  double AP[3], BP[3], V0PmQP[3]; 
   double Delta;
 
   VecSub(OVa[1], OVa[0], A);
   VecSub(OVa[2], OVa[1], B);
-  VecSub(OVa[0], OQa, V0mQ[3]);
+  VecSub(OVa[0], OQa, V0mQ);
 
   VecSub(OVb[1], OVb[0], AP);
   VecSub(OVb[2], OVb[1], BP);
-  VecSub(OVb[0], OQb, V0PmQP[3]);
+  VecSub(OVb[0], OQb, V0PmQP);
 
-  double VdVP, AdVP, BdVP, VdAP, AdAP, BdAP, VdBP, AdBP, BdBP;
-
-  VecDot(V0mQ, V0PmQP, VdVP);
-  VecDot(A,    V0PmQP, AdVP);
-  VecDot(B,    V0PmQP, BdVP);
-  VecDot(V0mQ, AP,     VdAP);
-  VecDot(A,    AP,     AdAP);
-  VecDot(B,    AP,     BdAP);
-  VecDot(V0mQ, BP,     VdBP);
-  VecDot(A,    BP,     AdBP);
-  VecDot(B,    BP,     BdBP);
+  double VdVP = VecDot(V0mQ, V0PmQP);
+  double VdAP = VecDot(V0mQ, AP);
+  double VdBP = VecDot(V0mQ, BP);
+  double AdVP = VecDot(A, V0PmQP);
+  double AdAP = VecDot(A, AP);
+  double AdBP = VecDot(A, BP);
+  double BdVP = VecDot(B, V0PmQP);
+  double BdAP = VecDot(B, AP);
+  double BdBP = VecDot(B, BP);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   QDFD->hDotRM1 =   QIFD->uvupvpRM1[_ONE] * VdVP
-                  + QIFD->uvupvpRM1[_U  ] * AdVP
-                  + QIFD->uvupvpRM1[_V  ] * BdVP
                   + QIFD->uvupvpRM1[_UP ] * VdAP
-                  + QIFD->uvupvpRM1[_UUP] * AdAP
-                  + QIFD->uvupvpRM1[_VUP] * BdAP
                   + QIFD->uvupvpRM1[_VP ] * VdBP
+                  + QIFD->uvupvpRM1[_U  ] * AdVP
+                  + QIFD->uvupvpRM1[_UUP] * AdAP
                   + QIFD->uvupvpRM1[_UVP] * AdBP
+                  + QIFD->uvupvpRM1[_V  ] * BdVP
+                  + QIFD->uvupvpRM1[_VUP] * BdAP
                   + QIFD->uvupvpRM1[_VVP] * BdBP;
 
   QDFD->hNablaRM1 =  4.0*QIFD->uvupvpRM1[_ONE];
@@ -453,13 +481,13 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   QDFD->hDotR0  =   VdVP / 4.0
-                  + AdVP / 6.0
-                  + BdVP / 12.0
                   + VdAP / 6.0
-                  + AdAP / 9.0
-                  + BdAP / 18.0
                   + VdBP / 12.0
+                  + AdVP / 6.0
+                  + AdAP / 9.0
                   + AdBP / 18.0
+                  + BdVP / 12.0
+                  + BdAP / 18.0
                   + BdBP / 36.0;
 
   QDFD->hNablaR0 = 1.0;
@@ -470,16 +498,16 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   QDFD->hDotR1 =   QIFD->uvupvpR1[_ONE] * VdVP
-                 + QIFD->uvupvpR1[_U  ] * AdVP
-                 + QIFD->uvupvpR1[_V  ] * BdVP
                  + QIFD->uvupvpR1[_UP ] * VdAP
-                 + QIFD->uvupvpR1[_UUP] * AdAP
-                 + QIFD->uvupvpR1[_VUP] * BdAP
                  + QIFD->uvupvpR1[_VP ] * VdBP
+                 + QIFD->uvupvpR1[_U  ] * AdVP
+                 + QIFD->uvupvpR1[_UUP] * AdAP
                  + QIFD->uvupvpR1[_UVP] * AdBP
+                 + QIFD->uvupvpR1[_V  ] * BdVP
+                 + QIFD->uvupvpR1[_VUP] * BdAP
                  + QIFD->uvupvpR1[_VVP] * BdBP;
 
-  QDFD->hNablaRM1 =  4.0*QIFD->uvupvpR1[_ONE];
+  QDFD->hNablaR1 =  4.0*QIFD->uvupvpR1[_ONE];
 
   // QDFD->hTimesRM1 =; 
 
@@ -490,16 +518,16 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
   /*--       the costs and benefits of doing them analytically.   */
   /*--------------------------------------------------------------*/
   QDFD->hDotR2 =   QIFD->uvupvpR2[_ONE] * VdVP
-                 + QIFD->uvupvpR2[_U  ] * AdVP
-                 + QIFD->uvupvpR2[_V  ] * BdVP
                  + QIFD->uvupvpR2[_UP ] * VdAP
-                 + QIFD->uvupvpR2[_UUP] * AdAP
-                 + QIFD->uvupvpR2[_VUP] * BdAP
                  + QIFD->uvupvpR2[_VP ] * VdBP
+                 + QIFD->uvupvpR2[_U  ] * AdVP
+                 + QIFD->uvupvpR2[_UUP] * AdAP
                  + QIFD->uvupvpR2[_UVP] * AdBP
+                 + QIFD->uvupvpR2[_V  ] * BdVP
+                 + QIFD->uvupvpR2[_VUP] * BdAP
                  + QIFD->uvupvpR2[_VVP] * BdBP;
 
-  QDFD->hNablaRM2 =  4.0*QIFD->uvupvpR2[_ONE];
+  QDFD->hNablaR2 =  4.0*QIFD->uvupvpR2[_ONE];
 
   // QDFD->hTimesRM1 =; 
 

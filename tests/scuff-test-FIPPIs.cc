@@ -17,7 +17,14 @@
 
 #include <libhrutil.h>
 
-#include "scuff-test-FIPPIs.h"
+#include <libscuff.h>
+#include <libscuffInternals.h>
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *QIFD);
+void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD);
 
 /***************************************************************/
 /***************************************************************/
@@ -73,6 +80,7 @@ int main(int argc, char *argv[])
   double rRel, rRelRequest, DZ;
   QIFIPPIData QIFDHRBuffer, *QIFDHR=&QIFDHRBuffer;
   QIFIPPIData QIFDBFBuffer, *QIFDBF=&QIFDBFBuffer;
+  double *OVa[3], *OVb[3];
   for(;;)
    { 
      /*--------------------------------------------------------------*/
@@ -194,12 +202,18 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /* get FIPPIs by libscuff method                                      */
      /*--------------------------------------------------------------------*/
-     ComputeQIFIPPIData(Va, Vb, QIFDHR);
+     OVa[0] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[0]);
+     OVa[1] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[1]);
+     OVa[2] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[2]);
+     OVb[0] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[0]);
+     OVb[1] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[1]);
+     OVb[2] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[2]);
+     ComputeQIFIPPIData(OVa, OVb, QIFDHR);
 
      /*--------------------------------------------------------------------*/
      /* get FIPPIs by libscuff method                                      */
      /*--------------------------------------------------------------------*/
-     ComputeQIFIPPIData_BruteForce(Va, Vb, QIFDBF);
+     ComputeQIFIPPIData_BruteForce(OVa, OVb, QIFDBF);
 
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
@@ -224,12 +238,40 @@ int main(int argc, char *argv[])
      printf("RxRPx/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xXxpRM3[0], QIFDBF->xXxpRM3[0], RD(QIFDBF->xXxpRM3[0],QIFDHR->xXxpRM3[0]));
      printf("RxRPy/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xXxpRM3[1], QIFDBF->xXxpRM3[1], RD(QIFDBF->xXxpRM3[1],QIFDHR->xXxpRM3[1]));
      printf("RxRPz/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xXxpRM3[2], QIFDBF->xXxpRM3[2], RD(QIFDBF->xXxpRM3[2],QIFDHR->xXxpRM3[2]));
-
      printf("\n");
-     printf("1 / r^1   |  %15.8e  |  %15.8e  | %5.2e\n", 
-QIFDHR->uvupvpRM1[0],
-QIFDBF->uvupvpRM1[0],
-RD(QIFDHR->uvupvpRM1[0],QIFDBF->uvupvpRM1[0])
+
+     printf(" 1  / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[0], QIFDBF->uvupvpRM1[0], RD(QIFDHR->uvupvpRM1[0],QIFDBF->uvupvpRM1[0]));
+     printf(" up / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[1], QIFDBF->uvupvpRM1[1], RD(QIFDHR->uvupvpRM1[1],QIFDBF->uvupvpRM1[1]));
+     printf(" vp / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[2], QIFDBF->uvupvpRM1[2], RD(QIFDHR->uvupvpRM1[2],QIFDBF->uvupvpRM1[2]));
+     printf("  u / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[3], QIFDBF->uvupvpRM1[3], RD(QIFDHR->uvupvpRM1[3],QIFDBF->uvupvpRM1[3]));
+     printf("uup / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[4], QIFDBF->uvupvpRM1[4], RD(QIFDHR->uvupvpRM1[4],QIFDBF->uvupvpRM1[4]));
+     printf("uvp / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[5], QIFDBF->uvupvpRM1[5], RD(QIFDHR->uvupvpRM1[5],QIFDBF->uvupvpRM1[5]));
+     printf("  v / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[6], QIFDBF->uvupvpRM1[6], RD(QIFDHR->uvupvpRM1[6],QIFDBF->uvupvpRM1[6]));
+     printf("vup / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[7], QIFDBF->uvupvpRM1[7], RD(QIFDHR->uvupvpRM1[7],QIFDBF->uvupvpRM1[7]));
+     printf("vvp / r^1 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpRM1[8], QIFDBF->uvupvpRM1[8], RD(QIFDHR->uvupvpRM1[8],QIFDBF->uvupvpRM1[8]));
+     printf("\n");
+
+     printf(" 1  * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[0], QIFDBF->uvupvpR1[0], RD(QIFDHR->uvupvpR1[0],QIFDBF->uvupvpR1[0]));
+     printf(" up * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[1], QIFDBF->uvupvpR1[1], RD(QIFDHR->uvupvpR1[1],QIFDBF->uvupvpR1[1]));
+     printf(" vp * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[2], QIFDBF->uvupvpR1[2], RD(QIFDHR->uvupvpR1[2],QIFDBF->uvupvpR1[2]));
+     printf("  u * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[3], QIFDBF->uvupvpR1[3], RD(QIFDHR->uvupvpR1[3],QIFDBF->uvupvpR1[3]));
+     printf("uup * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[4], QIFDBF->uvupvpR1[4], RD(QIFDHR->uvupvpR1[4],QIFDBF->uvupvpR1[4]));
+     printf("uvp * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[5], QIFDBF->uvupvpR1[5], RD(QIFDHR->uvupvpR1[5],QIFDBF->uvupvpR1[5]));
+     printf("  v * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[6], QIFDBF->uvupvpR1[6], RD(QIFDHR->uvupvpR1[6],QIFDBF->uvupvpR1[6]));
+     printf("vup * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[7], QIFDBF->uvupvpR1[7], RD(QIFDHR->uvupvpR1[7],QIFDBF->uvupvpR1[7]));
+     printf("vvp * r   |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR1[8], QIFDBF->uvupvpR1[8], RD(QIFDHR->uvupvpR1[8],QIFDBF->uvupvpR1[8]));
+     printf("\n");
+
+     printf(" 1  * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[0], QIFDBF->uvupvpR2[0], RD(QIFDHR->uvupvpR2[0],QIFDBF->uvupvpR2[0]));
+     printf(" up * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[1], QIFDBF->uvupvpR2[1], RD(QIFDHR->uvupvpR2[1],QIFDBF->uvupvpR2[1]));
+     printf(" vp * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[2], QIFDBF->uvupvpR2[2], RD(QIFDHR->uvupvpR2[2],QIFDBF->uvupvpR2[2]));
+     printf("  u * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[3], QIFDBF->uvupvpR2[3], RD(QIFDHR->uvupvpR2[3],QIFDBF->uvupvpR2[3]));
+     printf("uup * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[4], QIFDBF->uvupvpR2[4], RD(QIFDHR->uvupvpR2[4],QIFDBF->uvupvpR2[4]));
+     printf("uvp * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[5], QIFDBF->uvupvpR2[5], RD(QIFDHR->uvupvpR2[5],QIFDBF->uvupvpR2[5]));
+     printf("  v * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[6], QIFDBF->uvupvpR2[6], RD(QIFDHR->uvupvpR2[6],QIFDBF->uvupvpR2[6]));
+     printf("vup * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[7], QIFDBF->uvupvpR2[7], RD(QIFDHR->uvupvpR2[7],QIFDBF->uvupvpR2[7]));
+     printf("vvp * r2  |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->uvupvpR2[8], QIFDBF->uvupvpR2[8], RD(QIFDHR->uvupvpR2[8],QIFDBF->uvupvpR2[8]));
+     printf("\n");
 
    }; // end of main command loop [ for(;;) ... ]
 

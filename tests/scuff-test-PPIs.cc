@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
   /* integration routines                                        */
   /***************************************************************/
   GetPPIArgStruct MyArgs, *Args=&MyArgs;
+  InitGetPPIArgs(Args);
 
   /***************************************************************/
   /* enter command loop ******************************************/
