@@ -15,7 +15,6 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
-#include "TaylorMaster.h"
 
 #define ABSTOL 1.0e-10
 #define RELTOL 1.0e-6
