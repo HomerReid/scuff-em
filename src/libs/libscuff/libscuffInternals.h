@@ -6,7 +6,7 @@
  * homer reid          -- 10/2005 -- 10/2011
  */
 
-#ifndef LIBSCUFFINTERNALS_H
+#ifndef LIBSCUFFINTERNALS_H 
 #define LIBSCUFFINTERNALS_H
 
 #include "libscuff.h"

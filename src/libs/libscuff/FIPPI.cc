@@ -29,6 +29,10 @@
 #define _VUP 7
 #define _VVP 8
 
+void ComputeQIFIPPIData_TaylorDuffy(double *V1, double *V2, double *V3, 
+                                    double *V2P, double *V3P, 
+                                    QIFIPPIData *QIFD);
+
 /***************************************************************/
 /* 'vertex less than.' returns 1 if V1<V2, 0 otherwise.        */
 /* vertices are sorted using a fairly obvious sorting scheme.  */
@@ -58,7 +62,32 @@ int CanonicallyOrderVertices(double **Va, double *Qa,
                              double **OVb, double **OQb)
 { 
   /***************************************************************/
-  /* sort the vertices in ascending order ************************/
+  /* if there are any common vertices, then we define the        */
+  /* canonical ordering to be simply that computed by            */
+  /* AssessPanelPair, albeit possibly with the panels swapped.   */
+  /***************************************************************/
+  OVa[0]=Va[0]; OVa[1]=Va[1]; OVa[2]=Va[2];
+  OVb[0]=Vb[0]; OVb[1]=Vb[1]; OVb[2]=Vb[2];
+  int ncv=AssessPanelPair(OVa, OVb);
+  if ( ncv > 0 )
+   { if ( VLT(OVa[0], OVb[0]) )
+      { *OQa=Qa;
+        *OQb=Qb;
+        return 0;
+      }
+     else
+      { double *TV;
+        TV=OVa[0]; OVa[0]=OVb[0]; OVb[0]=TV;
+        TV=OVa[1]; OVa[1]=OVb[1]; OVb[1]=TV;
+        TV=OVa[2]; OVa[2]=OVb[2]; OVb[2]=TV;
+        *OQa=Qb;
+        *OQb=Qa;
+        return 1;
+      };
+   };
+
+  /***************************************************************/
+  /* otherwise, sort the vertices in ascending order. ************/
   /***************************************************************/
   double *VMin, *VMed, *VMax;
   if ( VLT(Va[0], Va[1]) )
@@ -403,7 +432,6 @@ void CFDIntegrand3D(unsigned ndim, const double *x, void *params,
 /*--------------------------------------------------------------*/
 void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
 {
-
   /*--------------------------------------------------------------*/
   /* fill in the data structure used to pass parameters to the    */
   /* integrand routine                                            */
@@ -487,28 +515,6 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
 }
 
 /*--------------------------------------------------------------*/
-/*- note: on entry it is assumed that a call to AssessPanelPair */
-/*- has already been made and that Va, Vb are in the order      */
-/*- they were put in by that routine                            */
-/*--------------------------------------------------------------*/
-void ComputeQIFIPPIData_TaylorDuffy(int ncv, double **Va, double **Vb, 
-                                    QIFIPPIData *QIFD)
-{ 
-
-  /*--------------------------------------------------------------*/
-  /*- otherwise (there are common vertices) compute the FIPPIs   -*/
-  /*- using the taylor-duffy method                              -*/
-  /*--------------------------------------------------------------*/
-  int WhichCase;
-  switch (ncv)
-   { case 1: WhichCase=TM_COMMONVERTEX;   break;
-     case 2: WhichCase=TM_COMMONEDGE;     break;
-     case 3: WhichCase=TM_COMMONTRIANGLE; break; // should never happen
-   };
-
-}
-
-/*--------------------------------------------------------------*/
 /*- routine for computing Q-independent FIPPIs.                 */
 /*-                                                             */
 /*- inputs:                                                     */
@@ -519,6 +525,7 @@ void ComputeQIFIPPIData_TaylorDuffy(int ncv, double **Va, double **Vb,
 /*--------------------------------------------------------------*/
 void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *QIFD)
 { 
+  
   int ncv=AssessPanelPair(Va, Vb);
 
   /*--------------------------------------------------------------*/
@@ -528,8 +535,7 @@ void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *QIFD)
   if (ncv==0)
    ComputeQIFIPPIData_Cubature(Va, Vb, QIFD);
   else
-   ComputeQIFIPPIData_TaylorDuffy(ncv, Va, Vb, QIFD);
-
+   ComputeQIFIPPIData_TaylorDuffy(Va[0], Va[1], Va[2], Vb[1], Vb[2], QIFD);
 }
 
 /*--------------------------------------------------------------*/
@@ -542,31 +548,20 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
   double *OVa[3], *OQa, *OVb[3], *OQb;  // 'ordered vertices'
   QIFIPPIData MyQIFD, *QIFD;
 
+  Flipped=CanonicallyOrderVertices(Va, Qa, Vb, Qb, OVa, &Qa, OVb, &Qb);
+
   /*--------------------------------------------------------------*/
   /*- get the Q-independent FIPPIs by looking them up in a table  */
   /*- if we have one or by computing them if we don't             */
   /*--------------------------------------------------------------*/
   if (opFDT)
    { 
-     Flipped=CanonicallyOrderVertices(Va, Qa, Vb, Qb, OVa, &Qa, OVb, &Qb);
      QIFD=((FIPPIDataTable *)opFDT)->GetQIFIPPIData(OVa, OVb);
    }
   else
    { 
-     ComputeQIFIPPIData(Va, Vb, &MyQIFD);
+     ComputeQIFIPPIData(OVa, OVb, &MyQIFD);
      QIFD=&MyQIFD;
-
-     OVa[0]=Va[0];
-     OVa[1]=Va[1];
-     OVa[2]=Va[2];
-     OQa=Qa;
-
-     OVb[0]=Vb[0];
-     OVb[1]=Vb[1];
-     OVb[2]=Vb[2];
-     OQb=Qb;
-
-     Flipped=0;
    };
   
   double Sign = ( Flipped ? -1.0 : 1.0 );

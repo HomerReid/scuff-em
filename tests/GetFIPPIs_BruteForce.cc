@@ -145,7 +145,8 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
   /* switch off based on whether or not there are any common     */
   /* vertices                                                    */
   /***************************************************************/
-  if (1) //ncv==0)
+  int ncv=AssessPanelPair(Va, Vb);
+  if (ncv==0)
    {
      /*--------------------------------------------------------------*/
      /* if there are no common vertices then we can just use naive   */
@@ -176,14 +177,16 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
      Radius = VecDistance(Centroid, Vb[0]);
      Radius = fmax(Radius, VecDistance(Centroid, Vb[1]));
      Radius = fmax(Radius, VecDistance(Centroid, Vb[2]));
+     DeltaZ = 0.01*Radius;
 
      for(nz=0; nz<NZ; nz++)
       { 
         Z[nz]=((double)(nz+1))*DeltaZ;
         VecScaleAdd(Vb[0], Z[nz], ZHat, FIPPIBFD->V0P);
+        printf("BFing at Z=%g...\n",Z[nz]);
 
         adapt_integrate(fDim, FIPPIBFIntegrand, (void *)FIPPIBFD, 4, Lower, Upper,
-                        0, ABSTOL, RELTOL, Result, Error);
+                        100000, ABSTOL, RELTOL, Result, Error);
 
         memcpy(FValues + nz*NFIPPIS, Result, NFIPPIS*sizeof(double));
       };
@@ -201,6 +204,7 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
   /***************************************************************/
   /* unpack the results ******************************************/
   /***************************************************************/
+  nf=0;
   QIFD->xMxpRM3[0]   = Result[nf++];
   QIFD->xMxpRM3[1]   = Result[nf++];
   QIFD->xMxpRM3[2]   = Result[nf++];

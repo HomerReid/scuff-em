@@ -21,6 +21,7 @@ OBJS = AssembleBEMMatrix.o		\
        EdgeEdgeInteractions.o     	\
        ExpandCurrentDistribution.o	\
        FIPPI.o                    	\
+       FIPPITaylorDuffy.o         	\
        InitEdgeList.o			\
        RWGObject.o			\
        ReadComsolFile.o			\

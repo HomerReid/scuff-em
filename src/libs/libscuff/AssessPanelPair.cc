@@ -147,7 +147,7 @@ int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
 }
 
 /***************************************************************/
-/* alternate entry points in which the caller wants only a     */
+/* alternate entry point in which the caller wants only a      */
 /* subset of the full information returned by AssessPanelPair  */
 /***************************************************************/
 int AssessPanelPair(RWGObject *Oa, int npa, 
@@ -158,6 +158,10 @@ int AssessPanelPair(RWGObject *Oa, int npa,
   return AssessPanelPair(Oa, npa, Ob, npb, rRel, Va, Vb);
 } 
 
+/***************************************************************/
+/* this routine simply counts the number of common vertices    */
+/* without reordering the vertices                             */
+/***************************************************************/
 int NumCommonVertices(RWGObject *Oa, int npa, 
                       RWGObject *Ob, int npb)
 { 

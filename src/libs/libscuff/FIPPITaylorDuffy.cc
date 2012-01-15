@@ -13,10 +13,13 @@
 #include <libhrutil.h>
 #include <libSGJC.h>
 
-#include "libRWG.h"
+#include "libscuff.h"
+#include "libscuffInternals.h"
+#include "TaylorMaster.h"
 
-#define NUMGS (RPMAX+3)
-#define NUMFUNCS (6 + ((RPMAX+2) * NUMHS))
+#define NUMGS 5
+#define NUMHS 9
+#define NUMFUNCS 42
 
 #define ABSTOL 0.0
 #define RELTOL 1.0e-6
@@ -25,7 +28,7 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-typedef struct StaticPPIDTWorkspace
+typedef struct FIPPITDWorkspace
  { 
    /* geometric data on triangles */
    double A[3], B[3], AP[3], BP[3]; 
@@ -36,17 +39,19 @@ typedef struct StaticPPIDTWorkspace
    double AdB, AdAP, AdBP, AdL;
    double BdAP, BdBP, APdBP, BPdL;
 
- } StaticPPIDTWorkspace;
+   int Calls;
+
+ } FIPPITDWorkspace;
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 static void GetSCE(double x1, double x2, double SCE[NUMHS][7][4]);
-static void GetSCE_RM3(StaticPPIDTWorkspace *W, 
+static void GetSCE_RM3(FIPPITDWorkspace *W, 
                        double x1, double x2, double SCE[6][7][4]);
 
 static void GetSCV(double x1, double x2, double x3, double SCV[NUMHS][3][3]);
-static void GetSCV_RM3(StaticPPIDTWorkspace *W, 
+static void GetSCV_RM3(FIPPITDWorkspace *W, 
                        double x1, double x2, double x3, double SCV[6][3][3]);
 
 static void GetIn(double X, int AlphaMin, int AlphaMax, double I[NUMGS][6]);
@@ -58,7 +63,7 @@ static void GetIn(double X, int AlphaMin, int AlphaMax, double I[NUMGS][6]);
 /***************************************************************/
 
 // common edge
-static double X_CE(StaticPPIDTWorkspace *W, int i, double x1, double x2)
+static double X_CE(FIPPITDWorkspace *W, int i, double x1, double x2)
 { 
   double u1, u2, xi2, r;
 
@@ -83,7 +88,7 @@ static double X_CE(StaticPPIDTWorkspace *W, int i, double x1, double x2)
 }
 
 // common vertex 
-static double X_CV(StaticPPIDTWorkspace *W, int i, double x1, double x2, double x3)
+static double X_CV(FIPPITDWorkspace *W, int i, double x1, double x2, double x3)
 { 
   double xi1, xi2, eta1, eta2, r;
 
@@ -118,7 +123,8 @@ static void x1x2Integrand(unsigned ndim, const double *x, void *parms,
   int i, Alpha, ri, ng, nh;
   double X, In[NUMGS][6], SCE[9][7][4], SCE_RM3[6][7][4];
 
-  StaticPPIDTWorkspace *W=(StaticPPIDTWorkspace *)parms;
+  FIPPITDWorkspace *W=(FIPPITDWorkspace *)parms;
+W->Calls++;
   
   GetSCE(x[0],x[1],SCE);
   GetSCE_RM3(W, x[0], x[1], SCE_RM3);
@@ -149,7 +155,8 @@ static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms,
   int i, Alpha, ri, ng, nh;
   double X, In[NUMGS][6], SCV[9][3][3], SCV_RM3[6][3][3];
 
-  StaticPPIDTWorkspace *W=(StaticPPIDTWorkspace *)parms;
+  FIPPITDWorkspace *W=(FIPPITDWorkspace *)parms;
+W->Calls++;
   
   GetSCV(x[0],x[1],x[2],SCV);
   GetSCV_RM3(W, x[0], x[1], x[2], SCV_RM3);
@@ -177,13 +184,14 @@ static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ComputeQIFIPPIs(double *V1, double *V2, double *V3, 
-                     double *V2P, double *V3P, StaticPPIData *SPPID)
+void ComputeQIFIPPIData_TaylorDuffy(double *V1, double *V2, double *V3, 
+                                    double *V2P, double *V3P, 
+                                    QIFIPPIData *QIFD)
 {
-  StaticPPIDTWorkspace MyStaticPPIDTWorkspace, *W=&MyStaticPPIDTWorkspace;
+  FIPPITDWorkspace MyFIPPITDWorkspace, *W=&MyFIPPITDWorkspace;
   static double Lower[3]={0.0, 0.0, 0.0};
   static double Upper[3]={1.0, 1.0, 1.0};
-  double I[NUMFUNCS], AbsErr[NUMFUNCS];
+  double Result[NUMFUNCS], Error[NUMFUNCS];
   double A[3], AP[3], B[3], BP[3], L[3];
   int rp;
 
@@ -228,19 +236,21 @@ void ComputeQIFIPPIs(double *V1, double *V2, double *V3,
   /***************************************************************/
   if( V2P==V2 ) // common-edge case 
    adapt_integrate(NUMFUNCS, x1x2Integrand, (void *)W, 2, Lower, Upper,
-                   MAXFEVALS, ABSTOL, RELTOL, I, AbsErr);
+                   MAXFEVALS, ABSTOL, RELTOL, Result, Error);
   else // common-vertex case 
    adapt_integrate(NUMFUNCS, x1x2x3Integrand, (void *)W, 3, Lower, Upper,
-                   MAXFEVALS, ABSTOL, RELTOL, I, AbsErr);
+                   MAXFEVALS, ABSTOL, RELTOL, Result, Error);
 
   /***************************************************************/
   /* 3. pack the integrals into the appropriate slots in the     */
-  /* StaticPPIData structure                                     */
+  /*    QIFIPPIData structure.                                   */
   /***************************************************************/
-  memcpy(SPPID->XmXPoR3Int,I,3*sizeof(double));
-  memcpy(SPPID->XxXPoR3Int,I+3,3*sizeof(double));
-  for(rp=-1; rp<=RPMAX; rp++)
-   memcpy(SPPID->hrnInt[rp+1],I + 6 + 9*(rp+1),9*sizeof(double));
+  memcpy(QIFD->xMxpRM3,   Result+0, 3*sizeof(double));
+  memcpy(QIFD->xXxpRM3,   Result+3, 3*sizeof(double));
+  memcpy(QIFD->uvupvpRM1, Result+6, 9*sizeof(double));
+  // skip the next 9 entries in the I vector ... 
+  memcpy(QIFD->uvupvpR1,  Result+24, 9*sizeof(double));
+  memcpy(QIFD->uvupvpR2,  Result+33, 9*sizeof(double));
 
 }
 
@@ -488,7 +498,7 @@ void GetSCE(double x1, double x2, double SCE[9][7][4])
 /***************************************************************/
 /* content of this routine computer-generated by maxima        */
 /***************************************************************/
-void GetSCE_RM3(StaticPPIDTWorkspace *W, 
+void GetSCE_RM3(FIPPITDWorkspace *W, 
                 double x1, double x2, double SCE[6][7][4])
 { 
   double *A       = W->A; 
@@ -680,7 +690,7 @@ void GetSCV(double x1, double x2, double x3, double SCV[9][3][3])
 /***************************************************************/
 /* content of this routine computer-generated by maxima        */
 /***************************************************************/
-void GetSCV_RM3(StaticPPIDTWorkspace *W, 
+void GetSCV_RM3(FIPPITDWorkspace *W, 
                 double x1, double x2, double x3, double SCV[6][3][3])
 { 
   double *A       = W->A; 

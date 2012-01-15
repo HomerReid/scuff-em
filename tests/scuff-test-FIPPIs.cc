@@ -28,6 +28,10 @@
 /***************************************************************/
 void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *QIFD);
 void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD);
+int CanonicallyOrderVertices(double **Va, double *Qa,
+                             double **Vb, double *Qb,
+                             double **OVa, double **OQa,
+                             double **OVb, double **OQb);
 
 /***************************************************************/
 /***************************************************************/
@@ -83,7 +87,7 @@ int main(int argc, char *argv[])
   double rRel, rRelRequest, DZ;
   QIFIPPIData QIFDHRBuffer, *QIFDHR=&QIFDHRBuffer;
   QIFIPPIData QIFDBFBuffer, *QIFDBF=&QIFDBFBuffer;
-  double *OVa[3], *OVb[3];
+  double *Va[3], *OVa[3], *Vb[3], *OVb[3], *Qa, *Qb;
   double HRTime, BFTime;
   for(;;)
    { 
@@ -92,6 +96,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      printf(" options: --npa xx \n");
      printf("          --npb xx \n");
+     printf("          --ncv xx \n");
      printf("          --rRel xx \n");
      printf("          --same | --ns \n");
      printf("          --DZ \n");
@@ -137,6 +142,7 @@ int main(int argc, char *argv[])
      if ( 0<=ncv && ncv<=3 )
       { SameObject=1;
         npa=lrand48() % Oa->NumPanels;
+        printf("Looking for a panel pair with %i common vertices...\n",ncv);
         do
          { npb=lrand48() % Oa->NumPanels;
          } while( NumCommonVertices(Oa,npa,Oa,npb)!=ncv );
@@ -148,6 +154,7 @@ int main(int argc, char *argv[])
      else if ( rRelRequest!=0.0 )
       { 
         npa=lrand48() % Oa->NumPanels;
+        printf("Looking for a panel pair with rRel=%g...\n",rRel);
 
         /*--------------------------------------------------------------*/
         /*- first look on same object ----------------------------------*/
@@ -203,12 +210,14 @@ int main(int argc, char *argv[])
      if ( !SameObject && DZ!=0.0 )
       Ob->Transform("DISP 0 0 %e",DZ);
 
-     OVa[0] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[0]);
-     OVa[1] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[1]);
-     OVa[2] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[2]);
-     OVb[0] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[0]);
-     OVb[1] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[1]);
-     OVb[2] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[2]);
+     Va[0] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[0]);
+     Va[1] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[1]);
+     Va[2] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[2]);
+     Vb[0] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[0]);
+     Vb[1] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[1]);
+     Vb[2] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[2]);
+
+     CanonicallyOrderVertices(Va, Va[0], Vb, Vb[0], OVa, &Qa, OVb, &Qb);
 
      /*--------------------------------------------------------------------*/
      /* get FIPPIs by libscuff method                                      */
@@ -242,10 +251,8 @@ int main(int argc, char *argv[])
             "            libscuff             ",
             "          brute force            ",
             "rel delta");
-     printf("------------------|--%15s--|--%15s--|-%s\n", 
-            "---------------------------------",
-            "---------------------------------",
-            "---------");
+     printf("----------|--%15s--|--%15s--|-%5s\n", 
+            "---------------","---------------","-----");
      printf("RmRPx/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xMxpRM3[0], QIFDBF->xMxpRM3[0], RD(QIFDBF->xMxpRM3[0],QIFDHR->xMxpRM3[0]));
      printf("RmRPy/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xMxpRM3[1], QIFDBF->xMxpRM3[1], RD(QIFDBF->xMxpRM3[1],QIFDHR->xMxpRM3[1]));
      printf("RmRPz/r^3 |  %15.8e  |  %15.8e  | %5.2e\n", QIFDHR->xMxpRM3[2], QIFDBF->xMxpRM3[2], RD(QIFDBF->xMxpRM3[2],QIFDHR->xMxpRM3[2]));
