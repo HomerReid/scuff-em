@@ -20,6 +20,8 @@
 #define ABSTOL 1.0e-12    // absolute tolerance
 #define RELTOL 1.0e-8    // relative tolerance
 
+#define NFIPPIS 33
+
 /***************************************************************/
 /* data structure used to pass data to integrand routines      */
 /***************************************************************/
@@ -136,7 +138,7 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
 
-  int nf, fDim=33;
+  int nf, fDim=NFIPPIS;
   double Result[fDim], Error[fDim];
 
   /***************************************************************/
@@ -149,49 +151,11 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
      /* if there are no common vertices then we can just use naive   */
      /* cubature                                                     */
      /*--------------------------------------------------------------*/
-     adapt_integrate_log(fDim, FIPPIBFIntegrand, (void *)FIPPIBFD, 4, Lower, Upper,
-                         0, ABSTOL, RELTOL, Result, Error, "SGJC.log", 15);
-
-     QIFD->xMxpRM3[0]   = Result[nf++];
-     QIFD->xMxpRM3[1]   = Result[nf++];
-     QIFD->xMxpRM3[2]   = Result[nf++];
-     QIFD->xXxpRM3[0]   = Result[nf++];
-     QIFD->xXxpRM3[1]   = Result[nf++];
-     QIFD->xXxpRM3[2]   = Result[nf++];
-   
-     QIFD->uvupvpRM1[0] = Result[nf++];
-     QIFD->uvupvpRM1[1] = Result[nf++];
-     QIFD->uvupvpRM1[2] = Result[nf++];
-     QIFD->uvupvpRM1[3] = Result[nf++];
-     QIFD->uvupvpRM1[4] = Result[nf++];
-     QIFD->uvupvpRM1[5] = Result[nf++];
-     QIFD->uvupvpRM1[6] = Result[nf++];
-     QIFD->uvupvpRM1[7] = Result[nf++];
-     QIFD->uvupvpRM1[8] = Result[nf++];
-   
-     QIFD->uvupvpR1[0] = Result[nf++];
-     QIFD->uvupvpR1[1] = Result[nf++];
-     QIFD->uvupvpR1[2] = Result[nf++];
-     QIFD->uvupvpR1[3] = Result[nf++];
-     QIFD->uvupvpR1[4] = Result[nf++];
-     QIFD->uvupvpR1[5] = Result[nf++];
-     QIFD->uvupvpR1[6] = Result[nf++];
-     QIFD->uvupvpR1[7] = Result[nf++];
-     QIFD->uvupvpR1[8] = Result[nf++];
-   
-     QIFD->uvupvpR2[0] = Result[nf++];
-     QIFD->uvupvpR2[1] = Result[nf++];
-     QIFD->uvupvpR2[2] = Result[nf++];
-     QIFD->uvupvpR2[3] = Result[nf++];
-     QIFD->uvupvpR2[4] = Result[nf++];
-     QIFD->uvupvpR2[5] = Result[nf++];
-     QIFD->uvupvpR2[6] = Result[nf++];
-     QIFD->uvupvpR2[7] = Result[nf++];
-     QIFD->uvupvpR2[8] = Result[nf++];
+     adapt_integrate(fDim, FIPPIBFIntegrand, (void *)FIPPIBFD, 4, Lower, Upper,
+                     0, ABSTOL, RELTOL, Result, Error);
    }
   else
    {
-#if 0
      /*--------------------------------------------------------------*/
      /* if there are common vertices then we estimate the panel-panel*/
      /* integrals using a limiting process in which we displace the  */
@@ -199,52 +163,79 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
      /* direction of the panel normal and try to fit to Z==0         */
      /*--------------------------------------------------------------*/
      int nz, NZ=10;
-     double Z[NZ], GR[NZ], GI[NZ], CR[NZ], CI[NZ];
-     double DeltaZ=Ob->Panels[npb]->Radius/10.0;
-     double *ZHat=Ob->Panels[npb]->ZHat;
+     double Z[NZ], F[NZ], FValues[NFIPPIS * NZ];
+     PolyFit *PF;
+
+     double Radius, DeltaZ, Centroid[3], BPP[3], ZHat[3];
+     Centroid[0] = (Vb[0][0] + Vb[1][0] + Vb[2][0]) / 3.0;
+     Centroid[1] = (Vb[0][1] + Vb[1][1] + Vb[2][1]) / 3.0;
+     Centroid[2] = (Vb[0][2] + Vb[1][2] + Vb[2][2]) / 3.0;
+     VecSub(Vb[2], Vb[0], BPP);
+     VecCross(FIPPIBFD->AP, BPP, ZHat);
+     VecNormalize(ZHat);
+     Radius = VecDistance(Centroid, Vb[0]);
+     Radius = fmax(Radius, VecDistance(Centroid, Vb[1]));
+     Radius = fmax(Radius, VecDistance(Centroid, Vb[2]));
 
      for(nz=0; nz<NZ; nz++)
       { 
         Z[nz]=((double)(nz+1))*DeltaZ;
-        VecScaleAdd(Vb[0], Z[nz], ZHat, PPIBFD->V0P);
-        VecScaleAdd(Qb,    Z[nz], ZHat, PPIBFD->QP);
+        VecScaleAdd(Vb[0], Z[nz], ZHat, FIPPIBFD->V0P);
 
- //       adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
- //                       0, ABSTOL, RELTOL, Result, Error);
-       adapt_integrate_log(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
-                           100000, ABSTOL, RELTOL, Result, Error, "SGJC.log", 15);
+        adapt_integrate(fDim, FIPPIBFIntegrand, (void *)FIPPIBFD, 4, Lower, Upper,
+                        0, ABSTOL, RELTOL, Result, Error);
 
-        GR[nz]=Result[0];
-        GI[nz]=Result[1];
-        CR[nz]=Result[2];
-        CI[nz]=Result[3];
+        memcpy(FValues + nz*NFIPPIS, Result, NFIPPIS*sizeof(double));
       };
  
-     PolyFit *PF=new PolyFit(Z, GR, NZ, 4);
-     PF->PlotFit(Z, GR, NZ, 0.0, Z[NZ-1], "real(<fa|G|fb>)");
-     real(Args->H[0])=PF->f(0.0);
-     delete PF;
-
-     PF=new PolyFit(Z, GI, NZ, 4);
-     PF->PlotFit(Z, GI, NZ, 0.0, Z[NZ-1], "imag(<fa|G|fb>)");
-     imag(Args->H[0])=PF->f(0.0);
-     delete PF;
-
-     PF=new PolyFit(Z, CR, NZ, 4);
-     PF->PlotFit(Z, CR, NZ, 0.0, Z[NZ-1], "imag(<fa|C|fb>)");
-     real(Args->H[1])=PF->f(0.0);
-     delete PF;
-
-     PF=new PolyFit(Z, CI, NZ, 4);
-     PF->PlotFit(Z, CI, NZ, 0.0, Z[NZ-1], "imag(<fa|C|fb>)");
-     real(Args->H[1])=PF->f(0.0);
-     delete PF;
-#endif
+     for(nf=0; nf<NFIPPIS; nf++)
+      { for(nz=0; nz<NZ; nz++)
+         F[nz] = FValues[ nf + nz*NFIPPIS ];
+        PF=new PolyFit(Z, F, NZ, 4);
+        Result[nf] = PF->f(0.0);
+        delete PF;
+      };
      
    }; // if (ncv==0 ... else)
 
   /***************************************************************/
+  /* unpack the results ******************************************/
   /***************************************************************/
-  /***************************************************************/
+  QIFD->xMxpRM3[0]   = Result[nf++];
+  QIFD->xMxpRM3[1]   = Result[nf++];
+  QIFD->xMxpRM3[2]   = Result[nf++];
+  QIFD->xXxpRM3[0]   = Result[nf++];
+  QIFD->xXxpRM3[1]   = Result[nf++];
+  QIFD->xXxpRM3[2]   = Result[nf++];
+
+  QIFD->uvupvpRM1[0] = Result[nf++];
+  QIFD->uvupvpRM1[1] = Result[nf++];
+  QIFD->uvupvpRM1[2] = Result[nf++];
+  QIFD->uvupvpRM1[3] = Result[nf++];
+  QIFD->uvupvpRM1[4] = Result[nf++];
+  QIFD->uvupvpRM1[5] = Result[nf++];
+  QIFD->uvupvpRM1[6] = Result[nf++];
+  QIFD->uvupvpRM1[7] = Result[nf++];
+  QIFD->uvupvpRM1[8] = Result[nf++];
+
+  QIFD->uvupvpR1[0] = Result[nf++];
+  QIFD->uvupvpR1[1] = Result[nf++];
+  QIFD->uvupvpR1[2] = Result[nf++];
+  QIFD->uvupvpR1[3] = Result[nf++];
+  QIFD->uvupvpR1[4] = Result[nf++];
+  QIFD->uvupvpR1[5] = Result[nf++];
+  QIFD->uvupvpR1[6] = Result[nf++];
+  QIFD->uvupvpR1[7] = Result[nf++];
+  QIFD->uvupvpR1[8] = Result[nf++];
+
+  QIFD->uvupvpR2[0] = Result[nf++];
+  QIFD->uvupvpR2[1] = Result[nf++];
+  QIFD->uvupvpR2[2] = Result[nf++];
+  QIFD->uvupvpR2[3] = Result[nf++];
+  QIFD->uvupvpR2[4] = Result[nf++];
+  QIFD->uvupvpR2[5] = Result[nf++];
+  QIFD->uvupvpR2[6] = Result[nf++];
+  QIFD->uvupvpR2[7] = Result[nf++];
+  QIFD->uvupvpR2[8] = Result[nf++];
 
 }
