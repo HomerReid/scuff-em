@@ -29,6 +29,16 @@
 #define _VUP 7
 #define _VVP 8
 
+#define uvupvpR0_ONE (1.0/4.0)
+#define uvupvpR0_UP  (1.0/6.0)
+#define uvupvpR0_VP  (1.0/12.0)
+#define uvupvpR0_U   (1.0/6.0)
+#define uvupvpR0_UUP (1.0/9.0)
+#define uvupvpR0_UVP (1.0/18.0)
+#define uvupvpR0_V   (1.0/12.0)
+#define uvupvpR0_VUP (1.0/18.0)
+#define uvupvpR0_VVP (1.0/36.0)
+
 void ComputeQIFIPPIData_TaylorDuffy(double *V1, double *V2, double *V3, 
                                     double *V2P, double *V3P, 
                                     QIFIPPIData *QIFD);
@@ -548,7 +558,7 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
   double *OVa[3], *OQa, *OVb[3], *OQb;  // 'ordered vertices'
   QIFIPPIData MyQIFD, *QIFD;
 
-  Flipped=CanonicallyOrderVertices(Va, Qa, Vb, Qb, OVa, &Qa, OVb, &Qb);
+  Flipped=CanonicallyOrderVertices(Va, Qa, Vb, Qb, OVa, &OQa, OVb, &OQb);
 
   /*--------------------------------------------------------------*/
   /*- get the Q-independent FIPPIs by looking them up in a table  */
@@ -564,8 +574,6 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
      QIFD=&MyQIFD;
    };
   
-  double Sign = ( Flipped ? -1.0 : 1.0 );
-
   /*--------------------------------------------------------------*/
   /*- now assemble the Q-dependent FIPPIs.                        */
   /*--------------------------------------------------------------*/
@@ -591,6 +599,26 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
   double BdAP = VecDot(B, AP);
   double BdBP = VecDot(B, BP);
 
+  double V0QaxQb[3], QamQb[3], QaxQb[3], V0mV0P[3], Scratch[3];
+  double *V0=OVa[0], *V0P=OVb[0];
+  VecSub(V0, V0P, V0mV0P);
+  VecSub(Qa, Qb, QamQb);
+  VecCross(Qa, Qb, QaxQb);
+  double hTimes0000 = VecDot(QaxQb, V0mV0P)  + VecDot(QamQb,  VecCross(V0,V0P, Scratch));
+  double hTimes1000 = VecDot(QaxQb, A     )  + VecDot(QamQb,  VecCross(A,V0P,Scratch));
+  double hTimes0100 = VecDot(QaxQb, B     )  + VecDot(QamQb,  VecCross(B,V0P,Scratch));
+  double hTimes0010 = -VecDot(QaxQb, AP    ) + VecDot(QamQb,  VecCross(V0,AP,Scratch));
+  double hTimes0001 = -VecDot(QaxQb, BP    ) + VecDot(QamQb,  VecCross(V0,BP,Scratch));
+  double hTimes1010 = VecDot(QamQb,  VecCross(A,AP,Scratch));
+  double hTimes1001 = VecDot(QamQb,  VecCross(A,BP,Scratch));
+  double hTimes0110 = VecDot(QamQb,  VecCross(B,AP,Scratch));
+  double hTimes0101 = VecDot(QamQb,  VecCross(B,BP,Scratch));
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  QDFD->hTimesRM3 = VecDot(QaxQb, QIFD->xMxpRM3) + VecDot(QamQb, QIFD->xXxpRM3);
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -606,24 +634,40 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
 
   QDFD->hNablaRM1 =  4.0*QIFD->uvupvpRM1[_ONE];
 
-  // QDFD->hTimesRM1 =; 
+  QDFD->hTimesRM1 =   QIFD->uvupvpRM1[_ONE] * hTimes0000
+                    + QIFD->uvupvpRM1[_U  ] * hTimes1000
+                    + QIFD->uvupvpRM1[_V  ] * hTimes0100
+                    + QIFD->uvupvpRM1[_UP ] * hTimes0010
+                    + QIFD->uvupvpRM1[_VP ] * hTimes0001
+                    + QIFD->uvupvpRM1[_UUP] * hTimes1010
+                    + QIFD->uvupvpRM1[_UVP] * hTimes1001
+                    + QIFD->uvupvpRM1[_VUP] * hTimes0110
+                    + QIFD->uvupvpRM1[_VVP] * hTimes0101;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  QDFD->hDotR0  =   VdVP / 4.0
-                  + VdAP / 6.0
-                  + VdBP / 12.0
-                  + AdVP / 6.0
-                  + AdAP / 9.0
-                  + AdBP / 18.0
-                  + BdVP / 12.0
-                  + BdAP / 18.0
-                  + BdBP / 36.0;
+  QDFD->hDotR0  =   uvupvpR0_ONE * VdVP
+                  + uvupvpR0_UP  * VdAP
+                  + uvupvpR0_VP  * VdBP
+                  + uvupvpR0_U   * AdVP
+                  + uvupvpR0_UUP * AdAP
+                  + uvupvpR0_UVP * AdBP
+                  + uvupvpR0_V   * BdVP
+                  + uvupvpR0_VUP * BdAP
+                  + uvupvpR0_VVP * BdBP;
 
   QDFD->hNablaR0 = 1.0;
 
-  // QDFD->hTimesR0=; 
+  QDFD->hTimesR0  =   uvupvpR0_ONE * hTimes0000
+                    + uvupvpR0_U   * hTimes1000
+                    + uvupvpR0_V   * hTimes0100
+                    + uvupvpR0_UP  * hTimes0010
+                    + uvupvpR0_VP  * hTimes0001
+                    + uvupvpR0_UUP * hTimes1010
+                    + uvupvpR0_UVP * hTimes1001
+                    + uvupvpR0_VUP * hTimes0110
+                    + uvupvpR0_VVP * hTimes0101;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -640,7 +684,15 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
 
   QDFD->hNablaR1 =  4.0*QIFD->uvupvpR1[_ONE];
 
-  // QDFD->hTimesRM1 =; 
+  QDFD->hTimesR1 =   QIFD->uvupvpR1[_ONE] * hTimes0000
+                   + QIFD->uvupvpR1[_U  ] * hTimes1000
+                   + QIFD->uvupvpR1[_V  ] * hTimes0100
+                   + QIFD->uvupvpR1[_UP ] * hTimes0010
+                   + QIFD->uvupvpR1[_VP ] * hTimes0001
+                   + QIFD->uvupvpR1[_UUP] * hTimes1010
+                   + QIFD->uvupvpR1[_UVP] * hTimes1001
+                   + QIFD->uvupvpR1[_VUP] * hTimes0110
+                   + QIFD->uvupvpR1[_VVP] * hTimes0101;
 
   /*--------------------------------------------------------------*/
   /*-- NOTE: the R2 integrals may actually be done analytically,  */
@@ -660,10 +712,10 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
 
   QDFD->hNablaR2 =  4.0*QIFD->uvupvpR2[_ONE];
 
-  // QDFD->hTimesRM1 =; 
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  if (Flipped)
+   { QDFD->hTimesRM3 *= -1.0; 
+     QDFD->hTimesRM1 *= -1.0; 
+     QDFD->hTimesR1  *= -1.0; 
+   };
 
 }

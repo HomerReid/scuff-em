@@ -167,7 +167,7 @@ typedef struct QDFIPPIData
 /*- outside world.                                              */
 /*--------------------------------------------------------------*/
 void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
-                    void *opFIPPIDT, QDFIPPIData *QDFD);
+                    void *opFDT, QDFIPPIData *QDFD);
 
 /*--------------------------------------------------------------*/
 /* 'FIPPIDataTable' is a class that implements efficient storage*/

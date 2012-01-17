@@ -29,14 +29,18 @@ LDFLAGS+=-L../src//libs/libscuff
 ##################################################
 ##################################################
 ##################################################
+STQDFIPPI_OBJS = scuff-test-QDFIPPIs.o GetQDFIPPIs_BruteForce.o
+STQIFIPPI_OBJS = scuff-test-QIFIPPIs.o GetQIFIPPIs_BruteForce.o
 STPPI_OBJS = scuff-test-PPIs.o GetPPIs_BruteForce.o
-STFIPPI_OBJS = scuff-test-FIPPIs.o GetFIPPIs_BruteForce.o
-
-scuff-test-FIPPIs:	$(STFIPPI_OBJS) libscuff.a
-			$(CXX) $(LDFLAGS) -o $@ $(STFIPPI_OBJS) $(LIBS)
 
 scuff-test-PPIs:	$(STPPI_OBJS) libscuff.a
 			$(CXX) $(LDFLAGS) -o $@ $(STPPI_OBJS) $(LIBS)
+
+scuff-test-QDFIPPIs:	$(STQDFIPPI_OBJS) libscuff.a
+			$(CXX) $(LDFLAGS) -o $@ $(STQDFIPPI_OBJS) $(LIBS)
+
+scuff-test-QIFIPPIs:	$(STQIFIPPI_OBJS) libscuff.a
+			$(CXX) $(LDFLAGS) -o $@ $(STQIFIPPI_OBJS) $(LIBS)
 
 libscuff.a:	
 		(pushd ../src/libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)

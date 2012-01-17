@@ -305,7 +305,6 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /***************************************************************/
   if ( rRel > DESINGULARIZATION_RADIUS )
    { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
-printf("\n**\n** using cubature\n**\n");
      return;
    };
 
@@ -405,7 +404,6 @@ printf("\n**\n** using cubature\n**\n");
   /*  3) add the singular and non-singular contributions           */
   /*                                                               */
   /*****************************************************************/
-printf("\n**\n** using desingularization\n**\n");
   // step 1
   GetPPIs_Cubature(Args, 1, 0, Va, Qa, Vb, Qb);
 

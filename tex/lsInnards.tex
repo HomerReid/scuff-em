@@ -1955,7 +1955,6 @@ compute $\iint h_\bullet r^p$,  I first compute the quantities
    \end{array}\right\} r^p
 }
 and then use (\ref{HBulletExpansion}) to compute $\iint h_\bullet r^p$.
-
 The point of this step is that the quantities (\ref{QIFIPPIs}) need 
 only be evaluated and stored once for each pair of panels, after which 
 the results may be used in (\ref{HBulletExpansion}) to compute the 
@@ -1971,11 +1970,117 @@ while (\ref{FIPPIs}) are the ``$\vb Q$-dependent FIPPIs.''
 
 Once we have evaluated the $\vb Q$-independent FIPPIs
 for a pair of panels, we get $\iint h_\nabla r^p$ for 
-free, since it is just 
-the first entry in 
+free, since it is just the first entry in 
 equation (\ref{QIFIPPIs}) times 4.
 
 \subsubsection*{Evaluation of $\iint h_\times r^p$}
+
+For $p>-3$, I proceed in analogy to equation (\ref{HBulletExpansion})
+by writing $h_\times$ as a sum of nine terms,
+$$ h_\times 
+   = 
+   \sum_{abcd} u^a v^b u^{\prime c} v^{\prime d} h_\times^{abcd},
+$$
+whereupon $\iint h_\times r^p$ may be reconstructed from 
+the QIFIPPIs (\ref{QIFIPPIs}) according to
+\numeq{HTimesRP}
+{
+ \iint h_\times r^p 
+   = 
+   \sum_{abcd} h_\times^{abcd} 
+               \iint \Big[u^a v^b u^{\prime c} v^{\prime d}\Big] r^p.
+}
+The nonzero values of $h_\times^{abcd}$ are
+%--------------------------------------------------------------------%
+\begin{align*} 
+h_\times^{0000} 
+&=  (\vb Q_a\times \vb Q_b) \cdot (\vb V_0 - \vb V_0^\prime)
+   +(\vb Q_a   -   \vb Q_b) \cdot (\vb V_0 \times\vb V_0^\prime) 
+\\ 
+%--------------------------------------------------------------------%
+h_\times^{1000} 
+&=   (\vb Q_a\times \vb Q_b) \cdot \vb A 
+   + (\vb Q_a   -   \vb Q_b) \cdot (\vb A \times \vb V_0^\prime) 
+\\
+%--------------------------------------------------------------------%
+h_\times^{0100} 
+&= 
+   (\vb Q_a\times \vb Q_b) \cdot \vb B 
+  +(\vb Q_a   -   \vb Q_b) \cdot (\vb B \times \vb V_0^\prime) 
+\\ 
+%--------------------------------------------------------------------%
+h_\times^{0010} 
+&= -(\vb Q_a\times \vb Q_b) \cdot \vb A^\prime 
+   +(\vb Q_a   -   \vb Q_b) \cdot (\vb V_0 \times \vb A^\prime) 
+\\ 
+%--------------------------------------------------------------------%
+h_\times^{0001} 
+&=  -(\vb Q_a\times \vb Q_b) \cdot \vb B^\prime 
+    +(\vb Q_a   -   \vb Q_b) \cdot (\vb V_0 \times \vb B^\prime) 
+\\ 
+%--------------------------------------------------------------------%
+h_\times^{1010} 
+&=   (\vb Q_a   -   \vb Q_b) \cdot (\vb A \times \vb A^\prime)
+\\
+%--------------------------------------------------------------------%
+h_\times^{1001}
+&=   (\vb Q_a   -   \vb Q_b) \cdot (\vb A \times \vb B^\prime)
+\\
+%--------------------------------------------------------------------%
+ h_\times^{0110}
+&=   (\vb Q_a   -   \vb Q_b) \cdot (\vb B \times \vb A^\prime)
+\\
+%--------------------------------------------------------------------%
+ h_\times^{0101}
+&=   (\vb Q_a   -   \vb Q_b) \cdot (\vb B \times \vb B^\prime).
+\end{align*}
+%--------------------------------------------------------------------%
+%
+For the particular case $p=-3$, the above procedure is ill-behaved,
+and instead I write
+\numeq{HTimesRM3}
+{
+   \iint h_\times r^{-3}=
+   (\vb Q_a \times \vb Q_b) 
+   \cdot 
+   \iint (\vb x_a - \vb x_b) r^{-3} 
+   +
+   (\vb Q_a -\vb Q_b) 
+   \cdot 
+   \iint (\vb x_a \times \vb x_b) r^{-3}
+}
+where now
+\numeq{QIFIPPIsSupplement}
+{
+   \iint (\vb x_a-\vb x_b)r^{-3}, \qquad
+    \iint (\vb x_a \times \vb x_b)r^{-3}
+}
+are to be included among the list of $\vb Q-$independent 
+FIPPIs that must be calculated for each panel pair.
+
+On first glance, it might seem that equations
+(\ref{QIFIPPIs}) and (\ref{QIFIPPIsSupplement})
+are redundant, since knowing the former should allow
+reconstruction of the latter. This appearance is 
+deceptive, because for panel pairs with common vertices 
+some of the individual FIPPIs (\ref{QIFIPPIs}) are 
+divergent for $p=-3$, while (\ref{QIFIPPIsSupplement}) 
+are convergent. [For panel pairs with no common
+vertices, the integrals (\ref{QIFIPPIs}) are convergent
+but much more expensive to calculate than 
+(\ref{QIFIPPIsSupplement}).] Of course, for $p=-3$
+the $\vb Q-$independent FIPPIs defined by 
+(\ref{QIFIPPIsSupplement}) are the only ones we 
+\textit{need} 
+(because for $p=-3$ the only $\vb Q$-dependent FIPPI 
+we need is $\iint h_\times r^{p}$), while 
+for $p>-3$ equation (\ref{QIFIPPIsSupplement}) 
+does not suffice and we need instead the full
+set (\ref{QIFIPPIs}). Thus a reasonable 
+compromise seems to be to compute only 
+(\ref{QIFIPPIsSupplement}) for the case $p=-3$, 
+and to compute the full set (\ref{QIFIPPIs}) for
+$p>-3$.
 
 \subsubsection*{Evaluation of $\vb Q$-independent FIPPIs}
 
@@ -1984,8 +2089,9 @@ are nominally four-dimensional integrals, but we have the
 following simplifications:
 
 \begin{enumerate}
-  \item For $p=0$ and $p=2$ the integrals may be done analytically
-        in closed form.
+  \item For $p=0$ the integral may be done analytically
+        in closed form. (Actually, the same is true for $p=2$,
+        but the result is too cumbersome to be useful.)
   \item If the panels have one or more common vertices, we may use
         the Taylor-Duffy method (Appendix \ref{TaylorDuffyAppendix})
         to perform one or more of the four integrals analytically.
@@ -1996,16 +2102,15 @@ following simplifications:
 
 We now address each of these points in turn. 
 
-\paragraph{1. FIPPIs for $p=0,2$.} 
+\paragraph{1. FIPPIs for $p=0$.} 
 
 In this case all the FIPPIs are linear combinations of the 
 basic integral
-$$ \iint u^p v^q (u^\prime)^r (v^\prime)^s 
+$$ \iint u^a v^b (u^\prime)^c (v^\prime)^d 
    = 
-   \frac{1}{(2+p+q)(1+q)(2+r+s)(1+s)}.
+   \frac{1}{(2+a+b)(1+b)(2+c+d)(1+d)}.
 $$
-For example, we have
-
+We have
 $$
    \iint \left\{ \begin{array}{c} 
    1 \\ u \\ v \\ u^\prime \\ uu^\prime \\ vu^\prime \\
@@ -2017,21 +2122,7 @@ $$
            1/6 \\ 1/9 \\ 1/18 \\ 
            1/12 \\ 1/18 \\ 1/36
            \end{array}
-   \right\}
-$$
-and
-$$
-   \iint \left\{ \begin{array}{c} 
-   1 \\ u \\ v \\ u^\prime \\ uu^\prime \\ vu^\prime \\
-   v^\prime \\ uv^\prime \\ vv^\prime
-   \end{array}\right\} r^2
-   =
-   \left\{ \begin{array}{c} 
-           1/4 \\ 1/6 \\ 1/12 \\ 
-           1/6 \\ 1/9 \\ 1/18 \\ 
-           1/12 \\ 1/18 \\ 1/36
-           \end{array}
-   \right\}
+   \right\}.
 $$
 
 \paragraph{2. FIPPIs for panels with common vertices.} 
@@ -2062,7 +2153,8 @@ a = |\vb B^\prime|,
 v_0^\prime = -\frac{1}{a^2} \vb B^\prime \cdot \vb Y,
 \qquad
 b^2=\frac{1}{a^2}|\vb Y|^2 - v_0^{\prime 2},
-\qquad
+$$
+$$
 \vb Y=    \vb V_1 - \vb V_1^\prime  
        + u\vb A+ v\vb B - u^\prime\vb A^\prime.
 $$
