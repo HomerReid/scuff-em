@@ -19,8 +19,10 @@
 #include "TaylorMaster.h"
 #include "scuff-test-PPIs.h"
 
-#define HRTIMES 100
-#define TDTIMES 10
+#define HRTIMES 1 
+//100
+#define TDTIMES 1 
+//10
 
 /***************************************************************/
 /***************************************************************/
@@ -58,12 +60,12 @@ void PrintResults(cdouble *HLS, cdouble *GradHLS,
 /***************************************************************/
 void PrintResults(cdouble *HLS, cdouble *HTD, cdouble *HBF)
 { 
-  printf("Quantity          | %33s | %33s | %33s |%s\n", 
+  printf("Quantity  | %33s | %33s | %33s |%s\n", 
          "            libscuff             ",
          "          taylor-duffy           ",
          "          brute force            ",
          "rd(LS-TD)");
-  printf("------------------|-%33s-|-%33s-|-%33s-|-%s\n",
+  printf("----------|-%33s-|-%33s-|-%33s-|-%s\n",
          "---------------------------------",
          "---------------------------------",
          "---------------------------------",
@@ -134,8 +136,9 @@ int main(int argc, char *argv[])
   double rRel, rRelRequest, DZ;
   cdouble K;
   cdouble HLS[2], GradHLS[6]; // G,C integrals by libscuff 
-  cdouble HTD[2], GradHTD[6]; // G,C integrals by taylor-duffy method
+  cdouble HTD[2];             // G,C integrals by taylor-duffy method
   cdouble HBF[2], GradHBF[6]; // G,C integrals by brute force
+  RWGPanel *Pa, *Pb;
   double *TVa[3], *Qa, *TVb[3], *Qb;
   int nTimes;
   double HRTime, TDTime;
@@ -150,6 +153,7 @@ int main(int argc, char *argv[])
      printf("          --iQb xx \n");
      printf("          --ncv xx \n");
      printf("          --rRel xx \n");
+     printf("          --fTD  (force taylor-duffy) \n");
      printf("          --same | --ns \n");
      printf("          --DZ \n");
      printf("          --kr     \n");
@@ -165,6 +169,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      NumTokens=Tokenize(p,Tokens,50);
      npa=npb=iQa=iQb=ncv=SameObject=-1;
+     Args->ForceTaylorDuffy=0;
      Gradient=0;
      DZ=rRelRequest=0.0;
      real(K) = imag(K) = INFINITY;
@@ -193,14 +198,17 @@ int main(int argc, char *argv[])
       if ( !strcasecmp(Tokens[nt],"--same") )
        SameObject=1;
      for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--ns") )
+       SameObject=0;
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--ftd") )
+       Args->ForceTaylorDuffy=1;
+     for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--DZ") )
        sscanf(Tokens[nt+1],"%le",&DZ);
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--rRel") )
        sscanf(Tokens[nt+1],"%le",&rRelRequest);
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--ns") )
-       SameObject=0;
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--Gradient") )
        Gradient=1;
@@ -283,15 +291,18 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /* print a little summary of the panel pair we will be considering    */
      /*--------------------------------------------------------------------*/
-     ncv=AssessPanelPair(Oa, npa, Ob, npb, &rRel);
+     Pa=Oa->Panels[npa];
+     Pb=(SameObject ? Oa:Ob)->Panels[npb];
+     ncv=AssessPanelPair(Oa,npa,(SameObject ? Oa : Ob),npb,&rRel,TVa,TVb);
+     if (!SameObject) 
+      ncv=0;
      printf("*\n");
-     printf("* --npa %i --iQa %i (V %i) --npb %i --iQb %i (V%i) %s\n",
-            npa,iQa,Oa->Panels[npa]->VI[iQa],
-            npb,iQb,(SameObject ? Oa:Ob)->Panels[npb]->VI[iQb],
-            SameObject ? "--same" : "--ns");
+     printf("* --npa %i --iQa %i (V #%i) --npb %i --iQb %i (V #%i) %s\n",
+            npa,iQa,Pa->VI[iQa],npb,iQb,Pb->VI[iQb],SameObject ? "--same" : "--ns");
      printf("*  common vertices:   %i\n",ncv);
      printf("*  relative distance: %+7.3e\n",rRel);
      printf("*  wavevector:        %s\n",CD2S(K));
+     printf("*  k*MaxRadius:       %.1e\n",abs(K*fmax(Pa->Radius, Pb->Radius)));
      if (DZ!=0.0)
       printf("*  DZ:                %e\n",DZ);
      printf("*\n\n");
@@ -331,38 +342,16 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      if (ncv>0)
       { 
-        TVa[0] = Oa->Vertices + 3*Oa->Panels[npa]->VI[0];
-        TVa[1] = Oa->Vertices + 3*Oa->Panels[npa]->VI[1];
-        TVa[2] = Oa->Vertices + 3*Oa->Panels[npa]->VI[2];
-        Qa     = TVa[iQa];
-
-        TVb[0] = Ob->Vertices + 3*Ob->Panels[npb]->VI[0];
-        TVb[1] = Ob->Vertices + 3*Ob->Panels[npb]->VI[1];
-        TVb[2] = Ob->Vertices + 3*Ob->Panels[npb]->VI[2];
-        Qb     = TVb[iQb];
- 
-        AssessPanelPair(TVa, TVb);
+        Qa = Oa->Vertices + 3*Pa->VI[iQa];
+        Qb = Args->Ob->Vertices + 3*Pb->VI[iQb];
 
         Tic();
         for(nTimes=0; nTimes<TDTIMES; nTimes++)
-         { if (ncv==3)
-            { HTD[0]=TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOTPLUS, K,
-                                     TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
-              HTD[1]=0.0;
-            }
-           else if (ncv==2)
-            { HTD[0]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_DOTPLUS, K,
-                                     TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
-              HTD[1]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, K,
-                                    TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
-            }
-           else if (ncv==1)
-            { HTD[0]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_DOTPLUS, K,
-                                     TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
-              HTD[1]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, K,
-                                     TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
-           };
-         }; 
+         { HTD[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, K,
+                               TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
+           HTD[1]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_CROSS, K,
+                               TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
+         };
         TDTime=Toc() / TDTIMES;
 
       };

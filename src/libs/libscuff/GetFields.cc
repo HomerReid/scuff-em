@@ -304,14 +304,10 @@ void RWGGeometry::GetFields(double *X, int WhichObject,
   RWGObject *ObjectInQuestion;
   cdouble Eps; 
   double Mu;
-if (WhichObject==0)
- { if ( VecNorm(X) < 0.5 )
-    WhichObject=1;
- };
 
   if ( WhichObject==-1 )                                /* in external medium */
    { ObjectInQuestion=0;
-     MP->GetEpsMu(Frequency, RealFreq, &Eps, &Mu);
+     ExteriorMP->GetEpsMu(Frequency, RealFreq, &Eps, &Mu);
    }
   else if ( WhichObject<-1 || WhichObject>=NumObjects ) /* invalid object */
    { fprintf(stderr,"\n*\n* WARNING: invalid object selected in GetFields\n*\n");

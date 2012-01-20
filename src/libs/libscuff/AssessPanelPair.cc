@@ -121,6 +121,8 @@ int AssessPanelPair(double **Va, double **Vb)
 /*     the Va and Vb arrays is such that any common vertices   */
 /*     come first; for example, if there are 2 common vertices */
 /*     then Va[0] = Vb[0] and Va[1] = Vb[1].                   */
+/*     (the pointers aren't necessarily equal, but the         */
+/*      three-vectors to which they point are equal.)          */
 /***************************************************************/
 int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
                     double *rRel, double **Va, double **Vb)

@@ -114,14 +114,20 @@ class RWGObject
    /*--------------------------------------------------------------*/ 
   public:  
 
-   /* constructor entry points, type 1: construct from mesh file   */
+   /* constructor entry points 1 and 2: construct from a mesh file */
    RWGObject(const char *pMeshFileName);
    RWGObject(const char *pMeshFileName, const char *pLabel, 
              const char *Material, const char *RotFileName, double *DX);
 
-   /* constructor entry points, type 2: construct from list of vertices */
+   /* constructor entry point 3: construct from a list of vertices */
    RWGObject(double *pVertices, int pNumVertices, 
              int **PanelVertexIndices, int pNumPanels);
+
+   /* constructor entry point 4: construct from an 'OBJECT...ENDOBJECT' */
+   /* section in a .scuffgeo file                                       */ 
+#if 0
+   RWGObject::RWGObject(FILE *f, const char *Label, int *LineNum);
+#endif
 
    /* destructor */
    ~RWGObject();
@@ -395,7 +401,7 @@ class RWGGeometry
    int TotalPanels;
    double AveragePanelArea;
 
-   MatProp *MP;                     /* material properties of exterior medium*/
+   MatProp *ExteriorMP;             /* material properties of exterior medium*/
    cdouble EpsThisFreq;             /* permittivity and permeability of      */
    double MuThisFreq;               /* exterior medium at this frequency     */
    int AllPEC;                      /* = 1 if all objects are PEC bodies     */

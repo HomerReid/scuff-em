@@ -398,7 +398,7 @@ void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
   /***************************************************************/
   /* compute wavevector in external medium                       */
   /***************************************************************/
-  MP->GetEpsMu(Frequency, RealFreq, &zEps, &Mu); 
+  ExteriorMP->GetEpsMu(Frequency, RealFreq, &zEps, &Mu); 
   Eps=real(zEps);
   Wavevector=sqrt(Eps*Mu*Frequency);
 

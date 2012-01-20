@@ -20,6 +20,47 @@
 #define MAXREFPTS 10
 
 /*--------------------------------------------------------------*/
+/*-  RWGObject class constructor that begins reading an open   -*/
+/*-  file immediately after a line like OBJECT MyObjectLabel.  -*/
+/*-                                                            -*/
+/*-  On return, if an object was successfully created, its     -*/
+/*-   ErrMsg field is NULL, and the file read pointer points   -*/
+/*-   the line immediately following the ENDOBJECT line.       -*/
+/*-                                                            -*/
+/*-  If there was an error in parsing the OBJECT section, the  -*/
+/*-   ErrMsg field points to an error message string.          -*/
+/*-                                                            -*/
+/*-  Note: even if the object is successfully read in, the     -*/
+/*-        'MP' and 'ContainingObject' fields are not          -*/
+/*-        initialized; instead, any user-specified values for -*/
+/*-        these fields are stored in the internal class       -*/
+/*-        fields 'MPName' and 'ContainingObjectName' and must -*/
+/*-        be processed by the calling routine.                -*/
+/*--------------------------------------------------------------*/
+#if 0
+RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
+{ 
+  char Line[MAXSTR];
+  int nt, nTokens;
+  char *p, *Tokens[50];
+    // MESHFILE 
+    // MATERIAL
+    // INSIDE 
+    // DISPLACED
+    // ROTATED
+    
+    MP=0;
+    ContainingObject=0;
+    MPName=0;
+    ContainingObjectName=0;
+
+    MPName=strdup(
+    ContainingObjectName=strdup()
+
+ };
+#endif
+
+/*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*- various entry points to the RWGObject class constructor  --*/
 /*--------------------------------------------------------------*/
@@ -41,10 +82,10 @@ RWGObject::RWGObject(const char *pMeshFileName,
 /*- optionally with a rotation and/or displacement applied.     */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void RWGObject::InitRWGObject(const char *pMeshFileName, 
+void RWGObject::InitRWGObject(const char *pMeshFileName,
                               const char *pLabel,
                               const char *Material,
-                              const char *RotFileName, 
+                              const char *RotFileName,
                               double *DX)
 { 
   char *p, buffer[1000];

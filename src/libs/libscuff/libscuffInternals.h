@@ -36,6 +36,7 @@ typedef struct GetPPIArgStruct
 
    int NumGradientComponents;
    int NumTorqueAxes; 
+   int ForceTaylorDuffy;
    double *GammaMatrix;
    void *opFDT;
 

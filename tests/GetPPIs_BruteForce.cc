@@ -231,7 +231,7 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args)
 
      PF=new PolyFit(Z, CI, NZ, 4);
      PF->PlotFit(Z, CI, NZ, 0.0, Z[NZ-1], "imag(<fa|C|fb>)");
-     real(Args->H[1])=PF->f(0.0);
+     imag(Args->H[1])=PF->f(0.0);
      delete PF;
      
    }; // if (ncv==0 ... else)

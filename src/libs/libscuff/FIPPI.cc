@@ -475,9 +475,8 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
   adapt_integrate(fdim, CFDIntegrand3D, CFDD, 3, Lower, Upper,
                   0, ABSTOL, RELTOL, F, E);
 
-  printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
 #endif
-  printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
+ // printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
 
 
   /*--------------------------------------------------------------*/
@@ -715,6 +714,7 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
   if (Flipped)
    { QDFD->hTimesRM3 *= -1.0; 
      QDFD->hTimesRM1 *= -1.0; 
+     QDFD->hTimesR0  *= -1.0; 
      QDFD->hTimesR1  *= -1.0; 
    };
 

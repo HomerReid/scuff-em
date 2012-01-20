@@ -333,50 +333,35 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /*****************************************************************/
   if ( abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD )
    { 
-     if( ncv==2 )
-      { 
-        /*--------------------------------------------------------------*/
-        /* common-edge case                                             */
-        /*--------------------------------------------------------------*/
-        Args->H[0]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
+     if (ncv==0)
+      GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
+     else
+      { Args->H[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, k,
                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-
-        Args->H[1]=TaylorMaster(TM_COMMONEDGE, TM_EIKR_OVER_R, TM_CROSS, k,
+        Args->H[1]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_CROSS, k,
                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-
         if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
         if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
-
-        return; 
-      }
-     else if( ncv==1 )
-      { 
-        /*--------------------------------------------------------------*/
-        /* common-vertex case                                           */
-        /*--------------------------------------------------------------*/
-        Args->H[0]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_DOTPLUS, k,
-                                Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-
-        Args->H[1]=TaylorMaster(TM_COMMONVERTEX, TM_EIKR_OVER_R, TM_CROSS, k,
-                                Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-
-        if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
-        if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
-
-        return;
-      }
-     else // ncv==0
-      { 
-        /*--------------------------------------------------------------*/
-        /* no common vertices                                           */
-        /*--------------------------------------------------------------*/
-        GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
-        return;
       };
-
+     return;
    };
 
   /*****************************************************************/
+  /*****************************************************************/
+  /*****************************************************************/
+  if ( ncv>0 && Args->ForceTaylorDuffy )
+   { 
+     Args->H[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, k,
+                             Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+     Args->H[1]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_CROSS, k,
+                             Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
+     if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
+     if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
+     return;
+   };
+
+  /*****************************************************************/
+  /* ok, we are in the desingularization regime.                   */
   /* if the user requested derivatives, then we make a first call  */
   /* to GetPPIs_Cubature *without* desingularization to get just   */
   /* the derivative integrals, because desingularization of        */
@@ -425,13 +410,13 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   // add contributions to panel-panel integrals
   Args->H[0] +=  PF[0]*AA0*( QDFD->hDotRM1 + OOIK2*QDFD->hNablaRM1)
                 +PF[1]*AA1*( QDFD->hDotR0  + OOIK2*QDFD->hNablaR0 )
-                +PF[1]*AA1*( QDFD->hDotR1  + OOIK2*QDFD->hNablaR1 )
-                +PF[1]*AA2*( QDFD->hDotR2  + OOIK2*QDFD->hNablaR2 );
+                +PF[2]*AA2*( QDFD->hDotR1  + OOIK2*QDFD->hNablaR1 )
+                +PF[3]*AA3*( QDFD->hDotR2  + OOIK2*QDFD->hNablaR2 );
   
   Args->H[1] +=  PF[0]*BB0*QDFD->hTimesRM3
                 +PF[2]*BB2*QDFD->hTimesRM1
                 +PF[3]*BB3*QDFD->hTimesR0 
-                +PF[4]*BB3*QDFD->hTimesR1;
+                +PF[4]*BB4*QDFD->hTimesR1;
 
   // restore derivative integrals as necessary 
   if (NumGradientComponents>0)
@@ -467,6 +452,7 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
 {
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
+  Args->ForceTaylorDuffy=0;
   Args->GammaMatrix=0;
   Args->opFDT=0;
 }

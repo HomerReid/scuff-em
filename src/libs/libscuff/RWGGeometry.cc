@@ -59,7 +59,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   NumObjects=TotalBFs=TotalPanels=0;
   GeoFileName=strdup(pGeoFileName);
-  MP=0;
+  ExteriorMP=0;
 
   /***************************************************************/
   /* NOTE: i am not sure where to put this. put it here for now. */
@@ -94,9 +94,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
      if ( !strcasecmp(Tokens[0],"MEDIUM") )
       { if ( nTokens!=3 || strcasecmp(Tokens[1],"MATERIAL") )
          RWGErrExit("file %s:%i: syntax error",GeoFileName,LineNum);
-        MP=new MatProp(Tokens[2]);
-        if (MP->ErrMsg)
-         RWGErrExit("file %s:%i: error in MATERIAL value: %s",GeoFileName,LineNum,MP->ErrMsg);
+        ExteriorMP=new MatProp(Tokens[2]);
+        if (ExteriorMP->ErrMsg)
+         RWGErrExit("file %s:%i: error in MATERIAL value: %s",GeoFileName,LineNum,ExteriorMP->ErrMsg);
       }
      else if ( !strcasecmp(Tokens[0],"OBJECT") )
       { 
@@ -183,8 +183,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /*******************************************************************/
   /* if no material was specified, set the external medium to vacuum */
   /*******************************************************************/
-  if (MP==0)
-   MP=new MatProp(MP_VACUUM);
+  if (ExteriorMP==0)
+   ExteriorMP=new MatProp(MP_VACUUM);
 
   /***************************************************************/
   /* copy array of objects                                       */

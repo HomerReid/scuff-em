@@ -293,7 +293,7 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   else if ( Oa->ContainingObject == Ob->ContainingObject )
    { Args->Sign=1.0;
      if (Oa->ContainingObject==0)
-      G->MP->GetEpsMu(Frequency, &(Args->EpsA), &(Args->MuA) );
+      G->ExteriorMP->GetEpsMu(Frequency, &(Args->EpsA), &(Args->MuA) );
      else 
       Oa->ContainingObject->MP->GetEpsMu(Frequency, &(Args->EpsA), &(Args->MuA) );
    };
