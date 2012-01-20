@@ -32,6 +32,11 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
 void ComputeQDFIPPIData_BruteForce(double **Va, double *Qa, double **Vb, double *Qb, 
                                    QDFIPPIData *QDFD);
 
+int CanonicallyOrderVertices(double **Va, double *Qa,
+                             double **Vb, double *Qb,
+                             double **OVa, double **OQa,
+                             double **OVb, double **OQb);
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -202,19 +207,6 @@ int main(int argc, char *argv[])
      if (iQb<0 || iQb>2) iQb=lrand48() % 3;
 
      /*--------------------------------------------------------------------*/
-     /* print a little summary of the panel pair we will be considering    */
-     /*--------------------------------------------------------------------*/
-     ncv=AssessPanelPair(Oa, npa, Ob, npb, &rRel);
-     printf("*\n");
-     printf("* --npa %i --iQa %i --npb %i --iQb %i %s\n",
-            npa,iQa,npb,iQb,SameObject ? "--same" : "--ns");
-     printf("*  common vertices:   %i\n",ncv);
-     printf("*  relative distance: %+7.3e\n",rRel);
-     if (DZ!=0.0)
-      printf("*  DZ:                %e\n",DZ);
-     printf("*\n\n");
-
-     /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      if ( !SameObject && DZ!=0.0 )
@@ -229,6 +221,23 @@ int main(int argc, char *argv[])
      Vb[1] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[1]);
      Vb[2] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[2]);
      Qb    = Vb[iQb];
+
+     double *OVa[3], *OQa, *OVb[3], *OQb;
+     int Flipped=CanonicallyOrderVertices(Va, Qa, Vb, Qb, OVa, &OQa, OVb, &OQb);
+
+     /*--------------------------------------------------------------------*/
+     /* print a little summary of the panel pair we will be considering    */
+     /*--------------------------------------------------------------------*/
+     ncv=AssessPanelPair(Oa, npa, Ob, npb, &rRel);
+     printf("*\n");
+     printf("* --npa %i --iQa %i --npb %i --iQb %i %s\n",
+            npa,iQa,npb,iQb,SameObject ? "--same" : "--ns");
+     printf("*  common vertices:   %i\n",ncv);
+     printf("*  relative distance: %+7.3e\n",rRel);
+     printf("*  (Flipped: %s)\n",Flipped ? "yes" : "no");
+     if (DZ!=0.0)
+      printf("*  DZ:                %e\n",DZ);
+     printf("*\n\n");
 
      /*--------------------------------------------------------------------*/
      /* get FIPPIs by libscuff method                                      */
