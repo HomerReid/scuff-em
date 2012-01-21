@@ -20,8 +20,10 @@ OBJS = AssembleBEMMatrix.o		\
        GTransformation.o		\
        EdgeEdgeInteractions.o     	\
        ExpandCurrentDistribution.o	\
-       FIPPI.o                    	\
-       FIPPITaylorDuffy.o         	\
+       QDFIPPI.o                    	\
+       FIPPITable.o                    	\
+       QIFIPPICubature.o         	\
+       QIFIPPITaylorDuffy.o         	\
        InitEdgeList.o			\
        RWGObject.o			\
        ReadComsolFile.o			\

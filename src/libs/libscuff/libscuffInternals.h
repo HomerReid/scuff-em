@@ -139,7 +139,6 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
 /*  'FIPPI'    = 'frequency-independent panel-panel integral'  */
 /*  'QIFIPPID' = 'Q-independent FIPPI data'                    */
 /*  'QDFIPPID' = 'Q-dependent FIPPI data'                      */
-/*  'FIPPIDT'  = 'FIPPI data table'                            */
 /***************************************************************/
 
 // a 'QIFIPPIData' is the minimal chunk of data that needs
@@ -164,6 +163,11 @@ typedef struct QDFIPPIData
  } QDFIPPIData;
 
 /*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+void ComputeQIFIPPIData(double **Va, double **Vb, int ncv, QIFIPPIData *QIFD);
+
+/*--------------------------------------------------------------*/
 /*- GetQDFIPPIData is the basic routine that is exported to the */
 /*- outside world.                                              */
 /*--------------------------------------------------------------*/
@@ -171,15 +175,17 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
                     void *opFDT, QDFIPPIData *QDFD);
 
 /*--------------------------------------------------------------*/
-/* 'FIPPIDataTable' is a class that implements efficient storage*/
+/* 'FIPPITable' is a class that implements efficient storage    */
 /* and retrieval of QIFIPPIData structures for many panel pairs.*/
+/* i am encapsulating this as its own separate class to allow   */
+/* me easily to experiment with various implementations.        */
 /*--------------------------------------------------------------*/
-class FIPPIDataTable
+class FIPPITable
  { 
   public:
-    FIPPIDataTable();
-    ~FIPPIDataTable();
-    QIFIPPIData *GetQIFIPPIData(double **OVa, double **OVb);
+    FIPPITable();
+    ~FIPPITable();
+    QIFIPPIData *GetQIFIPPIData(double **OVa, double **OVb, int ncv);
  };
 
 /***************************************************************/   
