@@ -338,7 +338,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      else
       { Args->H[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, k,
                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-        Args->H[1]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_CROSS, k,
+        Args->H[1]=TaylorMaster(ncv, TM_GRADEIKR_OVER_R, TM_CROSS, k,
                                 Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
         if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
         if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
@@ -353,7 +353,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
    { 
      Args->H[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, k,
                              Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-     Args->H[1]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_CROSS, k,
+     Args->H[1]=TaylorMaster(ncv, TM_GRADEIKR_OVER_R, TM_CROSS, k,
                              Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
      if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
      if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));

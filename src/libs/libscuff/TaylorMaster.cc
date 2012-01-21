@@ -172,8 +172,8 @@ cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH,
         TMW->InFunc=In_EIKROverR;
        break;
      case TM_GRADEIKR_OVER_R:
-       if ( real(GParam) == 0. )
-        TMW->InFunc=In_GradEMKROverR;   
+       if ( real(GParam) == 0.0 )
+        TMW->InFunc=In_GradEMKROverR;
        else
         TMW->InFunc=In_GradEIKROverR;
        break;

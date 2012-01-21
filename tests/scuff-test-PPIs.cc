@@ -349,7 +349,7 @@ int main(int argc, char *argv[])
         for(nTimes=0; nTimes<TDTIMES; nTimes++)
          { HTD[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, K,
                                TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
-           HTD[1]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_CROSS, K,
+           HTD[1]=TaylorMaster(ncv, TM_GRADEIKR_OVER_R, TM_CROSS, K,
                                TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
          };
         TDTime=Toc() / TDTIMES;
