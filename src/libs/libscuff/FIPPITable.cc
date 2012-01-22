@@ -25,14 +25,14 @@ long HashFunction(const double *Key)
 /*--------------------------------------------------------------*/
 typedef std::pair<const double *, QIFIPPIData *> KeyValuePair;
 
-typedef struct
+struct KeyHash
  {
-   long operator() (const double *Key) { return HashFunction(Key); }
- } KeyHash;
+   long operator() (const double *Key) const { return HashFunction(Key); }
+ };
 
 typedef struct 
  { 
-   bool operator()(const double *D1, const double *D2)
+   bool operator()(const double *D1, const double *D2) const
     { int nd;
       for(nd=0; nd<KEYLEN; nd++)
        if ( fabs(D1[nd]-D2[nd]) > 1.0e-8 * fabs(D1[nd]) )
@@ -94,6 +94,7 @@ QIFIPPIData *FIPPITable::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   VecSub(OVb[1], OVa[0], Key+9 );
   VecSub(OVb[2], OVa[0], Key+12);
 
+#if 0
 KeyCmp MyKeyCmp;
 if (MyKeyCmp(Key,Key))
  printf("yes\n");
@@ -104,6 +105,7 @@ if (MyKeyCmp(Key,Key2))
  printf("yes\n");
 else
  printf("no\n");
+#endif
 
   KeyValueMap::iterator p=MyKeyValueMap->find(Key);
   if ( p == (MyKeyValueMap->end()) )
