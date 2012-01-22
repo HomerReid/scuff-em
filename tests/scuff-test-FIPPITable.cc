@@ -19,6 +19,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+extern int Found, NotFound;
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -64,6 +66,7 @@ int main(int argc, char *argv[])
   nTotal=0; 
   Tic();
 printf("First pass:\n");
+Found=NotFound=0;
   for(noa=0; noa<G->NumObjects; noa++)
    for(nob=noa; nob<G->NumObjects; nob++)
     {
@@ -76,18 +79,22 @@ printf("First pass:\n");
 
           ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
           if (rRel<4.0)
-           { nNearby++;
+           { 
+             nNearby++;
              CanonicallyOrderVertices(Va, Vb, ncv, OVa, OVb);
              QIFD=FT->GetQIFIPPIData(OVa, OVb, ncv);
            };
         };
     };
   AddTime=Toc();
+printf(" %i found, %i not found\n",Found,NotFound);
   
   /***************************************************************/
   /* second pass to do the lookups *******************************/
   /***************************************************************/
 printf("Second pass:\n");
+nNearby=0;
+Found=NotFound=0;
   Tic();
   for(noa=0; noa<G->NumObjects; noa++)
    for(nob=noa; nob<G->NumObjects; nob++)
@@ -99,12 +106,16 @@ printf("Second pass:\n");
         { 
           ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
           if (rRel<4.0)
-           { CanonicallyOrderVertices(Va, Vb, ncv, OVa, OVb);
+           { 
+//if (nNearby==3) break;
+             nNearby++;
+             CanonicallyOrderVertices(Va, Vb, ncv, OVa, OVb);
              QIFD=FT->GetQIFIPPIData(OVa, OVb, ncv);
            };
         };
     };
   LookupTime=Toc();
+printf(" %i found, %i not found\n",Found,NotFound);
 
   /***************************************************************/
   /***************************************************************/

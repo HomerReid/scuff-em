@@ -16,9 +16,32 @@
 
 #define KEYLEN 15
 
+int Found;
+int NotFound;
+
+/*--------------------------------------------------------------*/
+/*- note: i found this on wikipedia ... ------------------------*/
+/*--------------------------------------------------------------*/
+long JenkinsHash(char *key, size_t len)
+{
+    long hash; 
+    int i;
+    for(hash = i = 0; i < len; ++i)
+    {
+        hash += key[i];
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
+    }
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+    return hash;
+}
+
 long HashFunction(const double *Key)
-{ return 0; 
+{ return JenkinsHash( (char *)Key, KEYLEN*sizeof(double) );
 } 
+
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -94,8 +117,8 @@ QIFIPPIData *FIPPITable::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   VecSub(OVb[1], OVa[0], Key+9 );
   VecSub(OVb[2], OVa[0], Key+12);
 
-#if 0
 KeyCmp MyKeyCmp;
+#if 0
 if (MyKeyCmp(Key,Key))
  printf("yes\n");
 double Key2[15];
@@ -113,11 +136,20 @@ else
      if (DoNotCompute==0)
       ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
      MyKeyValueMap->insert( KeyValuePair(Key, QIFD) );
+NotFound++;
+printf(" size %10i: inserting key: (%lu)\n",MyKeyValueMap->size(), HashFunction(Key));
      return QIFD;
    }
   else
 {
-printf(" found it!\n");
+Found++;
+double *Key2=(double *)p->first;
+QIFIPPIData *QIFD2=(QIFIPPIData *)p->second;
+printf(" size %10i: found key: (%lu) (%lu) (%i)\n",
+         MyKeyValueMap->size(),
+         HashFunction(Key),
+         HashFunction(p->first),
+         MyKeyCmp(Key,p->first));
    return p->second;
 }
 
