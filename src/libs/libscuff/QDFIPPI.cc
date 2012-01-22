@@ -36,239 +36,36 @@
 #define uvupvpR0_VUP (1.0/18.0)
 #define uvupvpR0_VVP (1.0/36.0)
 
-/***************************************************************/
-/* 'vertex less than.' returns 1 if V1<=V2, 0 otherwise.       */
-/* vertices are sorted using a fairly obvious sorting scheme.  */
-/***************************************************************/
-static int VLT(double *V1, double *V2)
-{
-  double DV;
-
-  DV=V1[0]-V2[0];
-  if ( fabs(DV) > 1.0e-6*fabs(V1[0]) )
-   return DV<0.0 ? 1 : 0;
-
-  DV=V1[1]-V2[1];
-  if ( fabs(DV) > 1.0e-6*fabs(V1[1]) )
-   return DV<0.0 ? 1 : 0;
- 
-  DV=V1[2]-V2[2];
-  if ( fabs(DV) > 1.0e-6*fabs(V1[2]) )
-   return DV<0.0 ? 1 : 0;
-
-  return 1;
-}
-
-/***************************************************************/
-/* given two sets of panel vertices, this routine puts them    */
-/* in a canonical ordering.                                    */
-/*                                                             */
-/*                                                             */
-/* my 'canonical ordering' for panel vertices obeys the        */
-/* following properties.                                       */
-/*                                                             */
-/*  (a) if the panels have no common vertices, then the        */
-/*      vertices of each panel are sorted in ascending order   */
-/*      and the smallest vertex of OVa is less than OVb, i.e.  */
-/*      we have                                                */ 
-/*        OVa[0] < OVa[1] < OVa[2]                             */ 
-/*        OVb[0] < OVb[1] < OVb[2]                             */
-/*      and                                                    */
-/*        OVa[0] < OVb[0].                                     */
-/*                                                             */
-/*  (b) if the panels have any common vertices, then those     */
-/*      common vertices appear first in both lists; within     */
-/*      each panel, the subset of vertices that are common     */
-/*      with the other panel are sorted in ascending order,    */
-/*      the subset of vertices that are not common are         */
-/*      separately sorted in ascending order, and the first    */
-/*      noncommon vertex in OVa is less than the first         */
-/*      noncommon vertex in OVb.                               */
-/*                                                             */
-/*      more specifically, what this means is:                 */
-/*                                                             */
-/*       (b1) if there are three common vertices, we have      */
-/*                                                             */
-/*             OVa[0] < OVa[1] < OVa[2]                        */
-/*                                                             */
-/*            and                                              */
-/*                                                             */
-/*             OVb[i] = OVa[i]  for i=1,2,3.                   */
-/*                                                             */
-/*       (b2) if there are two common vertices, we have        */
-/*                                                             */
-/*             OVa[0] < OVa[1],                                */
-/*                                                             */
-/*             OVb[i] = OVa[i]  for i=1,2                      */
-/*                                                             */
-/*             and OVa[2] < OVb[2].                            */
-/*                                                             */
-/*       (b3) if there is one common vertex, we have           */
-/*                                                             */
-/*             OVa[0] = OVb[0],                                */
-/*             OVa[1] < OVa[2],                                */
-/*             OVb[1] < OVb[2],                                */
-/*            and                                              */
-/*             OVa[1] < OVb[1].                                */
-/***************************************************************/
-int CanonicallyOrderVertices(double **Va, double **Vb,
-                             double **OVa, double **OVb, int *pncv)
-{
-  double *TV, *TVa[3], *TVb[3];
-  TVa[0]=Va[0]; TVa[1]=Va[1]; TVa[2]=Va[2];
-  TVb[0]=Vb[0]; TVb[1]=Vb[1]; TVb[2]=Vb[2];
-
-  int ncv=AssessPanelPair(TVa, TVb);
-  if (pncv) *pncv=ncv;
-
-  int iMina, iMeda, iMaxa;
-  int iMinb, iMedb, iMaxb;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if ( ncv == 3 )
-   { 
-     if ( VLT(TVa[0], TVa[1]) )
-      { iMina=0; iMaxa=1; }
-     else
-      { iMina=1; iMaxa=0; }
-
-     if ( VLT(TVa[2], TVa[iMina]) )
-      { iMeda=iMina; iMina=2; }
-     else if ( VLT(TVa[2], TVa[iMaxa]) )
-      { iMeda=2; }
-     else
-      { iMeda=iMaxa; iMaxa=2; }
-
-     OVa[0]=TVa[iMina]; OVa[1]=TVa[iMeda]; OVa[2]=TVa[iMaxa];
-     OVb[0]=TVb[iMina]; OVb[1]=TVb[iMeda]; OVb[2]=TVb[iMaxa];
-     return 0;
-   }
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  else if ( ncv == 2 )
-   {
-     if ( VLT(TVa[0], TVa[1]) )
-      { OVa[0]=TVa[0]; OVa[1]=TVa[1];
-        OVb[0]=TVb[0]; OVb[1]=TVb[1];
-      }
-     else
-      { OVa[0]=TVa[1]; OVa[1]=TVa[0];
-        OVb[0]=TVb[1]; OVb[1]=TVb[0];
-      };
-
-     if ( VLT(TVa[2], TVb[2]) )
-      { OVa[2]=TVa[2];
-        OVb[2]=TVb[2];
-        return 0;
-      }
-     else
-      { TV=OVa[0]; OVa[0]=OVb[0]; OVb[0]=TV;
-        TV=OVa[1]; OVa[1]=OVb[1]; OVb[1]=TV;
-        OVa[2]=TVb[2];
-        OVb[2]=TVa[2];
-        return 1;
-      };  
-   }
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  else if ( ncv == 1 )
-   {
-     if ( VLT(TVa[1], TVa[2]) )
-      { TV=TVa[1]; TVa[1]=TVa[2]; TVa[2]=TV; };
-
-     if ( VLT(TVb[1], TVb[2]) )
-      { TV=TVb[1]; TVb[1]=TVb[2]; TVb[2]=TV; };
-
-     if ( VLT(TVa[0], TVb[0]) )
-      { OVa[0]=TVa[0]; OVa[1]=TVa[1]; OVa[2]=TVa[2];
-        OVb[0]=TVb[0]; OVb[1]=TVb[1]; OVb[2]=TVb[2];
-        return 0;
-      }
-     else
-      { OVa[0]=TVb[0]; OVa[1]=TVb[1]; OVa[2]=TVb[2];
-        OVb[0]=TVa[0]; OVb[1]=TVa[1]; OVb[2]=TVa[2];
-        return 1;
-      };
-   }
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  else // ( ncv == 0 )
-   { 
-     if ( VLT(TVa[0], TVa[1]) )
-      { iMina=0; iMaxa=1; }
-     else
-      { iMina=1; iMaxa=0; }
-
-     if ( VLT(TVa[2], TVa[iMina]) )
-      { iMeda=iMina; iMina=2; }
-     else if ( VLT(TVa[2], TVa[iMaxa]) )
-      { iMeda=2; }
-     else
-      { iMeda=iMaxa; iMaxa=2; }
-
-     if ( VLT(TVb[0], TVb[1]) )
-      { iMinb=0; iMaxb=1; }
-     else
-      { iMinb=1; iMaxb=0; }
-
-     if ( VLT(TVb[2], TVb[iMinb]) )
-      { iMedb=iMinb; iMinb=2; }
-     else if ( VLT(TVb[2], TVb[iMaxb]) )
-      { iMedb=2; }
-     else
-      { iMedb=iMaxb; iMaxb=2; }
-
-     if ( VLT(TVa[iMina], TVa[iMinb]) )
-      { OVa[0] = TVa[iMina]; OVa[1] = TVa[iMeda]; OVa[2] = TVa[iMaxa]; 
-        OVb[0] = TVb[iMina]; OVb[1] = TVb[iMeda]; OVb[2] = TVb[iMaxa]; 
-        return 0;
-      }
-     else
-      { OVb[0] = TVa[iMina]; OVb[1] = TVa[iMeda]; OVb[2] = TVa[iMaxa]; 
-        OVa[0] = TVb[iMina]; OVa[1] = TVb[iMeda]; OVa[2] = TVb[iMaxa]; 
-        return 1;
-      };
-
-   }; // if ncv ... else
-  
-}
-
 /*--------------------------------------------------------------*/
 /*- routine for computing Q-dependent FIPPIs.                   */
 /*--------------------------------------------------------------*/
-void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
-                    void *opFDT, QDFIPPIData *QDFD)
+void GetQDFIPPIData(double **Va, double *Qa,
+                    double **Vb, double *Qb,
+                    int ncv, void *opFT, QDFIPPIData *QDFD)
 {
-  int Flipped;
-  double *OVa[3], *OQa, *OVb[3], *OQb;  // 'ordered vertices'
   QIFIPPIData MyQIFD, *QIFD;
-
-  Flipped=CanonicallyOrderVertices(Va, Vb, OVa, OVb, &ncv);
-
-  if (Flipped) 
-   { Oqa=Qb;
-     Oqb=Qa;
-   }
-  else
-   { Oqa=Qa;
-     Oqb=Qb;
-   };
+  double *OVa[3], *OQa, *OVb[3], *OQb;
+  int Flipped;
 
   /*--------------------------------------------------------------*/
   /*- get the Q-independent FIPPIs by looking them up in a table  */
   /*- if we have one or by computing them if we don't             */
   /*--------------------------------------------------------------*/
-  if (opFDT)
+  if (opFT)
    { 
+     Flipped=CanonicallyOrderVertices(Va, Vb, ncv, OVa, OVb);
+     if (Flipped)
+      { OQa=Qa; OQb=Qb; }
+     else
+      { OQb=Qa; OQa=Qb; };
+
      QIFD=((FIPPITable *)opFT)->GetQIFIPPIData(OVa, OVb, ncv);
    }
   else
    { 
+     Flipped=0;
+     OVa[0]=Va[0]; OVa[1]=Va[1]; OVa[2]=Va[2]; OQa=Qa;
+     OVb[0]=Vb[0]; OVb[1]=Vb[1]; OVb[2]=Vb[2]; OQb=Qb;
      ComputeQIFIPPIData(OVa, OVb, ncv, &MyQIFD);
      QIFD=&MyQIFD;
    };

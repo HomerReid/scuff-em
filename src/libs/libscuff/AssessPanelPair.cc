@@ -1,7 +1,7 @@
 /*
  * AssessPanelPair.cc 
  * 
- * homer reid -- 11/2005 -- 10/2011
+ * homer reid -- 11/2005 -- 1/2012
  *
  */
 #include <stdio.h>
@@ -138,9 +138,12 @@ int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
   Vb[1] = Ob->Vertices + 3*Pb->VI[1];
   Vb[2] = Ob->Vertices + 3*Pb->VI[2];
 
-  double rMax=fmax(Pa->Radius, Pb->Radius);
-  *rRel=VecDistance(Pa->Centroid, Pb->Centroid) / rMax;
+  double DC, rRel2, rMax=fmax(Pa->Radius, Pb->Radius);
 
+  DC=(Pa->Centroid[0]-Pb->Centroid[0]); rRel2=DC*DC;
+  DC=(Pa->Centroid[1]-Pb->Centroid[1]); rRel2+=DC*DC;
+  DC=(Pa->Centroid[2]-Pb->Centroid[2]); rRel2+=DC*DC;
+  *rRel=sqrt(rRel2) / rMax;
   if ( *rRel > 2.0 ) // there can be no common vertices in this case 
    return 0;
 
@@ -171,3 +174,221 @@ int NumCommonVertices(RWGObject *Oa, int npa,
   double *Va[3], *Vb[3];
   return AssessPanelPair(Oa, npa, Ob, npb, &rRel, Va, Vb);
 } 
+
+/***************************************************************/
+/* 'vertex less than.' returns 1 if V1<=V2, 0 otherwise.       */
+/* vertices are sorted using a fairly obvious sorting scheme.  */
+/***************************************************************/
+static int VLT(double *V1, double *V2)
+{
+  double DV;
+
+  DV=V1[0]-V2[0];
+  if ( fabs(DV) > 1.0e-6*fabs(V1[0]) )
+   return DV<0.0 ? 1 : 0;
+
+  DV=V1[1]-V2[1];
+  if ( fabs(DV) > 1.0e-6*fabs(V1[1]) )
+   return DV<0.0 ? 1 : 0;
+ 
+  DV=V1[2]-V2[2];
+  if ( fabs(DV) > 1.0e-6*fabs(V1[2]) )
+   return DV<0.0 ? 1 : 0;
+
+  return 1;
+}
+
+/***************************************************************/
+/* given two sets of panel vertices, this routine puts them    */
+/* in a canonical ordering, based on the vertex-ordering       */
+/* algorithm of the above routine.                             */
+/*                                                             */
+/* inputs: Va[0..2], Vb[0..2]: panel vertices                  */
+/*         ncv:                number of common vertices       */
+/*                                                             */
+/* outputs: OVa[0..2], OVb[0..2]: canonically ordered          */
+/*                                panel vertices               */
+/*                                                             */
+/* return value = 1 if the panels were swapped to achieve      */
+/*                  the canonical ordering                     */
+/*                                                             */
+/*                0 if the panels were not swapped.            */
+/*                                                             */
+/* important: this routine is intended to be used as an        */
+/* optional follow-up to a call to AssessPanelPair. in         */
+/* particular, if there are any common vertices (ncv>0), the   */
+/* Va and Vb arrays are assumed to be in the order returned    */
+/* by AssessPanelPair. (note that AssessPanelPair ensures that */
+/* the vertex sets are in acceptable order for passeage to     */
+/* TaylorMaster, but does not take the further step of         */
+/* putting the vertices into the CANONICAL order. (the         */
+/* canonical ordering is used to construct a search key into   */
+/* a FIPPI table.)                                             */
+/*                                                             */
+/* my 'canonical ordering' for panel vertices obeys the        */
+/* following properties.                                       */
+/*                                                             */
+/*  (a) if the panels have no common vertices, then the        */
+/*      vertices of each panel are sorted in ascending order   */
+/*      and the smallest vertex of OVa is less than OVb, i.e.  */
+/*      we have                                                */ 
+/*        OVa[0] < OVa[1] < OVa[2]                             */ 
+/*        OVb[0] < OVb[1] < OVb[2]                             */
+/*      and                                                    */
+/*        OVa[0] < OVb[0].                                     */
+/*                                                             */
+/*  (b) if the panels have any common vertices, then those     */
+/*      common vertices appear first in both lists; within     */
+/*      each panel, the subset of vertices that are common     */
+/*      with the other panel are sorted in ascending order,    */
+/*      the subset of vertices that are not common are         */
+/*      separately sorted in ascending order, and the first    */
+/*      noncommon vertex in OVa is less than the first         */
+/*      noncommon vertex in OVb.                               */
+/*                                                             */
+/*      more specifically, what this means is:                 */
+/*                                                             */
+/*       (b1) if there are three common vertices, we have      */
+/*                                                             */
+/*             OVa[0] < OVa[1] < OVa[2]                        */
+/*                                                             */
+/*            and                                              */
+/*                                                             */
+/*             OVb[i] = OVa[i]  for i=0,l,2.                   */
+/*                                                             */
+/*       (b2) if there are two common vertices, we have        */
+/*                                                             */
+/*             OVa[0] < OVa[1],                                */
+/*                                                             */
+/*             OVb[i] = OVa[i]  for i=0,1                      */
+/*                                                             */
+/*             and OVa[2] < OVb[2].                            */
+/*                                                             */
+/*       (b3) if there is one common vertex, we have           */
+/*                                                             */
+/*             OVa[0] = OVb[0],                                */
+/*             OVa[1] < OVa[2],                                */
+/*             OVb[1] < OVb[2],                                */
+/*            and                                              */
+/*             OVa[1] < OVb[1].                                */
+/***************************************************************/
+int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
+                             double **OVa, double **OVb)
+{
+  int iMina, iMeda, iMaxa;
+  int iMinb, iMedb, iMaxb;
+  double *TV;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( ncv == 3 )
+   { 
+     if ( VLT(Va[0], Va[1]) )
+      { iMina=0; iMaxa=1; }
+     else
+      { iMina=1; iMaxa=0; }
+
+     if ( VLT(Va[2], Va[iMina]) )
+      { iMeda=iMina; iMina=2; }
+     else if ( VLT(Va[2], Va[iMaxa]) )
+      { iMeda=2; }
+     else
+      { iMeda=iMaxa; iMaxa=2; }
+
+     OVa[0]=Va[iMina]; OVa[1]=Va[iMeda]; OVa[2]=Va[iMaxa];
+     OVb[0]=Vb[iMina]; OVb[1]=Vb[iMeda]; OVb[2]=Vb[iMaxa];
+     return 0;
+   }
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  else if ( ncv == 2 )
+   {
+     if ( VLT(Va[0], Va[1]) )
+      { OVa[0]=Va[0]; OVa[1]=Va[1];
+        OVb[0]=Vb[0]; OVb[1]=Vb[1];
+      }
+     else
+      { OVa[0]=Va[1]; OVa[1]=Va[0];
+        OVb[0]=Vb[1]; OVb[1]=Vb[0];
+      };
+
+     if ( VLT(Va[2], Vb[2]) )
+      { OVa[2]=Va[2];
+        OVb[2]=Vb[2];
+        return 0;
+      }
+     else
+      { TV=OVa[0]; OVa[0]=OVb[0]; OVb[0]=TV;
+        TV=OVa[1]; OVa[1]=OVb[1]; OVb[1]=TV;
+        OVa[2]=Vb[2];
+        OVb[2]=Va[2];
+        return 1;
+      };  
+   }
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  else if ( ncv == 1 )
+   {
+     if ( VLT(Va[1], Va[2]) )
+      { TV=Va[1]; Va[1]=Va[2]; Va[2]=TV; };
+
+     if ( VLT(Vb[1], Vb[2]) )
+      { TV=Vb[1]; Vb[1]=Vb[2]; Vb[2]=TV; };
+
+     if ( VLT(Va[0], Vb[0]) )
+      { OVa[0]=Va[0]; OVa[1]=Va[1]; OVa[2]=Va[2];
+        OVb[0]=Vb[0]; OVb[1]=Vb[1]; OVb[2]=Vb[2];
+        return 0;
+      }
+     else
+      { OVa[0]=Vb[0]; OVa[1]=Vb[1]; OVa[2]=Vb[2];
+        OVb[0]=Va[0]; OVb[1]=Va[1]; OVb[2]=Va[2];
+        return 1;
+      };
+   }
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  else // ( ncv == 0 )
+   { 
+     if ( VLT(Va[0], Va[1]) )
+      { iMina=0; iMaxa=1; }
+     else
+      { iMina=1; iMaxa=0; }
+
+     if ( VLT(Va[2], Va[iMina]) )
+      { iMeda=iMina; iMina=2; }
+     else if ( VLT(Va[2], Va[iMaxa]) )
+      { iMeda=2; }
+     else
+      { iMeda=iMaxa; iMaxa=2; }
+
+     if ( VLT(Vb[0], Vb[1]) )
+      { iMinb=0; iMaxb=1; }
+     else
+      { iMinb=1; iMaxb=0; }
+
+     if ( VLT(Vb[2], Vb[iMinb]) )
+      { iMedb=iMinb; iMinb=2; }
+     else if ( VLT(Vb[2], Vb[iMaxb]) )
+      { iMedb=2; }
+     else
+      { iMedb=iMaxb; iMaxb=2; }
+
+     if ( VLT(Va[iMina], Va[iMinb]) )
+      { OVa[0] = Va[iMina]; OVa[1] = Va[iMeda]; OVa[2] = Va[iMaxa]; 
+        OVb[0] = Vb[iMina]; OVb[1] = Vb[iMeda]; OVb[2] = Vb[iMaxa]; 
+        return 0;
+      }
+     else
+      { OVb[0] = Va[iMina]; OVb[1] = Va[iMeda]; OVb[2] = Va[iMaxa]; 
+        OVa[0] = Vb[iMina]; OVa[1] = Vb[iMeda]; OVa[2] = Vb[iMaxa]; 
+        return 1;
+      };
+
+   }; // if ncv ... else
+  
+}

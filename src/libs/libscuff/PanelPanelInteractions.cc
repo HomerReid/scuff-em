@@ -297,6 +297,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   double *Qb   = Ob->Vertices + 3*Pb->VI[iQb];
   double *Va[3], *Vb[3];
   double rRel; 
+
   int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
 
   /***************************************************************/
@@ -394,7 +395,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
 
   // step 2
   QDFIPPIData MyQDFD, *QDFD=&MyQDFD;
-  GetQDFIPPIData(Va, Qa, Vb, Qb, Args->opFDT, QDFD);
+  GetQDFIPPIData(Va, Qa, Vb, Qb, ncv, Args->opFT, QDFD);
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
@@ -454,5 +455,5 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
   Args->NumTorqueAxes=0;
   Args->ForceTaylorDuffy=0;
   Args->GammaMatrix=0;
-  Args->opFDT=0;
+  Args->opFT=0;
 }

@@ -38,7 +38,7 @@ typedef struct GetPPIArgStruct
    int NumTorqueAxes; 
    int ForceTaylorDuffy;
    double *GammaMatrix;
-   void *opFDT;
+   void *opFT;
 
    // output fields filled in by routine
    // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
@@ -76,7 +76,7 @@ typedef struct GetEEIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
-   void *opFDT;
+   void *opFT;
 
    int Force;
 
@@ -172,7 +172,7 @@ void ComputeQIFIPPIData(double **Va, double **Vb, int ncv, QIFIPPIData *QIFD);
 /*- outside world.                                              */
 /*--------------------------------------------------------------*/
 void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
-                    void *opFDT, QDFIPPIData *QDFD);
+                    int ncv, void *opFT, QDFIPPIData *QDFD);
 
 /*--------------------------------------------------------------*/
 /* 'FIPPITable' is a class that implements efficient storage    */
@@ -186,6 +186,9 @@ class FIPPITable
     FIPPITable();
     ~FIPPITable();
     QIFIPPIData *GetQIFIPPIData(double **OVa, double **OVb, int ncv);
+
+    int DoNotCompute;
+ 
  };
 
 /***************************************************************/   
@@ -196,7 +199,10 @@ cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH, cdouble GParam,
                      double *V2P, double *V3P, double *Q, double *QP);
 
 /*--------------------------------------------------------------*/
-/*- AssessPanelPair counts common vertices in a pair of panels  */
+/*- AssessPanelPair counts common vertices in a pair of panels, */
+/*- and puts arrays of panel vertices into certain orders that  */
+/*- are expected by subsequent algorithms that work on the      */
+/*- panel pairs.                                                */
 /*--------------------------------------------------------------*/
 int AssessPanelPair(double **Va, double **Vb, double rMax);
 int AssessPanelPair(double **Va, double **Vb);
@@ -213,6 +219,7 @@ int AssessPanelPair(RWGObject *Oa, int npa,
 int NumCommonVertices(RWGObject *Oa, int npa, 
                       RWGObject *Ob, int npb);
 
-
+int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
+                             double **OVa, double **OVb);
 
 #endif //LIBSCUFFINTERNALS_H
