@@ -110,7 +110,7 @@ static void PPIBFIntegrand(unsigned ndim, const double *x, void *parms,
 /* compute panel-panel integrals using brute-force technique   */
 /* (adaptive cubature over both panels).                       */
 /***************************************************************/
-void GetPPIs_BruteForce(GetPPIArgStruct *Args)
+void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
 { 
   /***************************************************************/
   /* extract fields from argument structure **********************/
@@ -215,22 +215,26 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args)
       };
  
      PolyFit *PF=new PolyFit(Z, GR, NZ, 4);
-     PF->PlotFit(Z, GR, NZ, 0.0, Z[NZ-1], "real(<fa|G|fb>)");
+     if (PlotFits) 
+      PF->PlotFit(Z, GR, NZ, 0.0, Z[NZ-1], "real(<fa|G|fb>)");
      real(Args->H[0])=PF->f(0.0);
      delete PF;
 
      PF=new PolyFit(Z, GI, NZ, 4);
-     PF->PlotFit(Z, GI, NZ, 0.0, Z[NZ-1], "imag(<fa|G|fb>)");
+     if (PlotFits) 
+      PF->PlotFit(Z, GI, NZ, 0.0, Z[NZ-1], "imag(<fa|G|fb>)");
      imag(Args->H[0])=PF->f(0.0);
      delete PF;
 
      PF=new PolyFit(Z, CR, NZ, 4);
-     PF->PlotFit(Z, CR, NZ, 0.0, Z[NZ-1], "imag(<fa|C|fb>)");
+     if (PlotFits) 
+      PF->PlotFit(Z, CR, NZ, 0.0, Z[NZ-1], "imag(<fa|C|fb>)");
      real(Args->H[1])=PF->f(0.0);
      delete PF;
 
      PF=new PolyFit(Z, CI, NZ, 4);
-     PF->PlotFit(Z, CI, NZ, 0.0, Z[NZ-1], "imag(<fa|C|fb>)");
+     if (PlotFits) 
+      PF->PlotFit(Z, CI, NZ, 0.0, Z[NZ-1], "imag(<fa|C|fb>)");
      imag(Args->H[1])=PF->f(0.0);
      delete PF;
      

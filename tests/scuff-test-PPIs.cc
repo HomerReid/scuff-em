@@ -16,13 +16,17 @@
 
 #include <libhrutil.h>
 
+#include <libscuff.h>
+#include <libscuffInternals.h>
 #include "TaylorMaster.h"
-#include "scuff-test-PPIs.h"
 
-#define HRTIMES 1 
-//100
-#define TDTIMES 1 
-//10
+#define HRTIMES 100
+#define TDTIMES 1
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits);
 
 /***************************************************************/
 /***************************************************************/
@@ -31,6 +35,7 @@ void PrintResults(cdouble *HLS, cdouble *GradHLS,
                   cdouble *HBF, cdouble *GradHBF, 
                   int Gradient)
 { 
+  printf("\n");
   printf("Quantity          |  %33s  |  %33s  | %s\n", 
          "            libscuff             ",
          "          brute force            ",
@@ -60,6 +65,7 @@ void PrintResults(cdouble *HLS, cdouble *GradHLS,
 /***************************************************************/
 void PrintResults(cdouble *HLS, cdouble *HTD, cdouble *HBF)
 { 
+  printf("\n");
   printf("Quantity  | %33s | %33s | %33s |%s\n", 
          "            libscuff             ",
          "          taylor-duffy           ",
@@ -122,6 +128,7 @@ int main(int argc, char *argv[])
   /* integration routines                                        */
   /***************************************************************/
   GetPPIArgStruct MyArgs, *Args=&MyArgs;
+  FIPPITable *FT=new FIPPITable();
   InitGetPPIArgs(Args);
 
   /***************************************************************/
@@ -132,7 +139,8 @@ int main(int argc, char *argv[])
   int nt, NumTokens;
   char *Tokens[50];
   char *p;
-  int npa, npb, iQa, iQb, ncv, SameObject, Gradient;
+  int npa, npb, iQa, iQb, ncv;
+  int SameObject, Gradient, PlotFits, NoTable;
   double rRel, rRelRequest, DZ;
   cdouble K;
   cdouble HLS[2], GradHLS[6]; // G,C integrals by libscuff 
@@ -147,6 +155,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*- print prompt and get input string --------------------------*/
      /*--------------------------------------------------------------*/
+     printf("\n");
      printf(" options: --npa xx \n");
      printf("          --iQa xx \n");
      printf("          --npb xx \n");
@@ -159,6 +168,8 @@ int main(int argc, char *argv[])
      printf("          --kr     \n");
      printf("          --ki     \n");
      printf("          --gradient\n");
+     printf("          --PlotFits\n");
+     printf("          --NoTable\n");
      p=readline("enter options: ");
      if (!p) break;
      add_history(p);
@@ -170,7 +181,7 @@ int main(int argc, char *argv[])
      NumTokens=Tokenize(p,Tokens,50);
      npa=npb=iQa=iQb=ncv=SameObject=-1;
      Args->ForceTaylorDuffy=0;
-     Gradient=0;
+     Gradient=PlotFits=NoTable=0;
      DZ=rRelRequest=0.0;
      real(K) = imag(K) = INFINITY;
      for(nt=0; nt<NumTokens; nt++)
@@ -212,6 +223,12 @@ int main(int argc, char *argv[])
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--Gradient") )
        Gradient=1;
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--PlotFits") )
+       PlotFits=1;
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--NoTable") )
+       NoTable=1;
      free(p);
   
      /*--------------------------------------------------------------*/
@@ -303,6 +320,7 @@ int main(int argc, char *argv[])
      printf("*  relative distance: %+7.3e\n",rRel);
      printf("*  wavevector:        %s\n",CD2S(K));
      printf("*  k*MaxRadius:       %.1e\n",abs(K*fmax(Pa->Radius, Pb->Radius)));
+     printf("*  %s FIPPI table\n",NoTable ? "Bypassing" : "Using");
      if (DZ!=0.0)
       printf("*  DZ:                %e\n",DZ);
      printf("*\n\n");
@@ -319,6 +337,8 @@ int main(int argc, char *argv[])
      Args->k=K;
      Args->NumGradientComponents = Gradient ? 3 : 0;
      Args->NumTorqueAxes         = 0;
+
+     Args->opFT = NoTable ? 0 : (void *)FT;
 
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
@@ -359,7 +379,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by brute-force methods                   */
      /*--------------------------------------------------------------------*/
-     GetPPIs_BruteForce(Args);
+     GetPPIs_BruteForce(Args, PlotFits);
      memcpy(HBF, Args->H, 2*sizeof(cdouble));
      memcpy(GradHBF, Args->GradH, 6*sizeof(cdouble));
 
@@ -372,9 +392,9 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /*- print results ----------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-     printf("libscuff computation time:     %e us.\n",HRTime*1.0e6); 
+     printf("libscuff computation time:     %.2f us.\n",HRTime*1.0e6); 
      if (ncv>0)
-      { printf("Taylor-Duffy computation time: %e us.\n",TDTime*1.0e6); 
+      { printf("Taylor-Duffy computation time: %.2f us.\n",TDTime*1.0e6); 
         PrintResults(HLS, HTD, HBF);
       }
      else

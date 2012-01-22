@@ -305,47 +305,42 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
   /***************************************************************/
   else if ( ncv == 2 )
    {
-     if ( VLT(Va[0], Va[1]) )
-      { OVa[0]=Va[0]; OVa[1]=Va[1];
-        OVb[0]=Vb[0]; OVb[1]=Vb[1];
-      }
-     else
-      { OVa[0]=Va[1]; OVa[1]=Va[0];
-        OVb[0]=Vb[1]; OVb[1]=Vb[0];
-      };
+     int a01Min;
 
-     if ( VLT(Va[2], Vb[2]) )
-      { OVa[2]=Va[2];
-        OVb[2]=Vb[2];
+     a01Min = VLT(Va[0], Va[1]) ? 0 : 1;
+
+     if ( VLT( Va[2], Vb[2] ) )
+      { 
+        OVa[0]=Va[a01Min]; OVa[1]=Va[1-a01Min]; OVa[2]=Va[2];
+        OVb[0]=Vb[a01Min]; OVb[1]=Vb[1-a01Min]; OVb[2]=Vb[2];
         return 0;
       }
      else
-      { TV=OVa[0]; OVa[0]=OVb[0]; OVb[0]=TV;
-        TV=OVa[1]; OVa[1]=OVb[1]; OVb[1]=TV;
-        OVa[2]=Vb[2];
-        OVb[2]=Va[2];
+      { 
+        OVa[0]=Vb[a01Min]; OVb[1]=Va[1-a01Min]; OVb[2]=Va[2];
+        OVb[0]=Va[a01Min]; OVa[1]=Vb[1-a01Min]; OVa[2]=Vb[2];
         return 1;
-      };  
+      };
    }
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   else if ( ncv == 1 )
    {
-     if ( VLT(Va[1], Va[2]) )
-      { TV=Va[1]; Va[1]=Va[2]; Va[2]=TV; };
+     int a12Min, b12Min; 
 
-     if ( VLT(Vb[1], Vb[2]) )
-      { TV=Vb[1]; Vb[1]=Vb[2]; Vb[2]=TV; };
+     a12Min = VLT(Va[1], Va[2]) ? 1 : 2;
+     b12Min = VLT(Vb[1], Vb[2]) ? 1 : 2;
 
-     if ( VLT(Va[0], Vb[0]) )
-      { OVa[0]=Va[0]; OVa[1]=Va[1]; OVa[2]=Va[2];
-        OVb[0]=Vb[0]; OVb[1]=Vb[1]; OVb[2]=Vb[2];
+     if ( VLT( Va[a12Min], Vb[b12Min] ) )
+      { 
+        OVa[0]=Va[0]; OVa[1]=Va[a12Min]; OVa[2]=Va[3-a12Min];
+        OVb[0]=Vb[0]; OVb[1]=Vb[b12Min]; OVb[2]=Vb[3-b12Min];
         return 0;
       }
      else
-      { OVa[0]=Vb[0]; OVa[1]=Vb[1]; OVa[2]=Vb[2];
-        OVb[0]=Va[0]; OVb[1]=Va[1]; OVb[2]=Va[2];
+      { OVa[0]=Vb[0]; OVa[1]=Vb[b12Min]; OVa[2]=Vb[3-b12Min];
+        OVb[0]=Va[0]; OVb[1]=Va[a12Min]; OVb[2]=Va[3-a12Min];
         return 1;
       };
    }

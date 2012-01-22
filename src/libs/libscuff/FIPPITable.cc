@@ -42,39 +42,41 @@ long HashFunction(const double *Key)
 { return JenkinsHash( (char *)Key, KEYLEN*sizeof(double) );
 } 
 
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+typedef struct
+ { double Key[KEYLEN];
+ } KeyStruct;
 
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-typedef std::pair<const double *, QIFIPPIData *> KeyValuePair;
+typedef std::pair<KeyStruct, QIFIPPIData *> KeyValuePair;
 
 struct KeyHash
  {
-   long operator() (const double *Key) const { return HashFunction(Key); }
+   long operator() (const KeyStruct &K) const { return HashFunction(K.Key); }
  };
 
 typedef struct 
  { 
-   bool operator()(const double *D1, const double *D2) const
+   bool operator()(const KeyStruct &K1, const KeyStruct &K2) const
     { int nd;
       for(nd=0; nd<KEYLEN; nd++)
-       if ( fabs(D1[nd]-D2[nd]) > 1.0e-8 * fabs(D1[nd]) )
+       if ( fabs(K1.Key[nd] - K2.Key[nd]) > 1.0e-8 * fabs(K1.Key[nd]) )
         return false;
       return true;
     };
 
  } KeyCmp;
 
-typedef std::tr1::unordered_map< const double *, 
+typedef std::tr1::unordered_map< KeyStruct,
                                  QIFIPPIData *, 
                                  KeyHash, 
                                  KeyCmp> KeyValueMap;
 
-KeyValueMap *MyKeyValueMap=0;
-
 /*--------------------------------------------------------------*/
 /*- class constructor ------------------------------------------*/
 /*--------------------------------------------------------------*/
+KeyValueMap *MyKeyValueMap=0;
 FIPPITable::FIPPITable()
 {
   MyKeyValueMap=new KeyValueMap;
@@ -86,7 +88,7 @@ FIPPITable::FIPPITable()
 /*--------------------------------------------------------------*/
 FIPPITable::~FIPPITable()
 {
-
+  delete MyKeyValueMap;
 } 
 
 /*--------------------------------------------------------------*/
@@ -110,47 +112,31 @@ QIFIPPIData *FIPPITable::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   /* 9--11   VMedP - VMin [0..2]                                 */
   /* 12--14  VMaxP - VMin [0..2]                                 */
   /***************************************************************/
-  double Key[15];
-  VecSub(OVa[1], OVa[0], Key+0 );
-  VecSub(OVa[2], OVa[0], Key+3 );
-  VecSub(OVb[0], OVa[0], Key+6 );
-  VecSub(OVb[1], OVa[0], Key+9 );
-  VecSub(OVb[2], OVa[0], Key+12);
+  KeyStruct K;
+  VecSub(OVa[1], OVa[0], K.Key+0 );
+  VecSub(OVa[2], OVa[0], K.Key+3 );
+  VecSub(OVb[0], OVa[0], K.Key+6 );
+  VecSub(OVb[1], OVa[0], K.Key+9 );
+  VecSub(OVb[2], OVa[0], K.Key+12);
 
-KeyCmp MyKeyCmp;
-#if 0
-if (MyKeyCmp(Key,Key))
- printf("yes\n");
-double Key2[15];
-memcpy(Key2,Key,15*sizeof(double));
-Key[0]+=1.0;
-if (MyKeyCmp(Key,Key2))
- printf("yes\n");
-else
- printf("no\n");
-#endif
-
-  KeyValueMap::iterator p=MyKeyValueMap->find(Key);
-  if ( p == (MyKeyValueMap->end()) )
-   { QIFIPPIData *QIFD=(QIFIPPIData *)malloc(sizeof *QIFD);
-     if (DoNotCompute==0)
-      ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
-     MyKeyValueMap->insert( KeyValuePair(Key, QIFD) );
-NotFound++;
-printf(" size %10i: inserting key: (%lu)\n",MyKeyValueMap->size(), HashFunction(Key));
-     return QIFD;
-   }
-  else
-{
-Found++;
-double *Key2=(double *)p->first;
-QIFIPPIData *QIFD2=(QIFIPPIData *)p->second;
-printf(" size %10i: found key: (%lu) (%lu) (%i)\n",
-         MyKeyValueMap->size(),
-         HashFunction(Key),
-         HashFunction(p->first),
-         MyKeyCmp(Key,p->first));
-   return p->second;
-}
-
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  KeyValueMap::iterator p=MyKeyValueMap->find(K);
+  if ( p != (MyKeyValueMap->end()) )
+   { Found++;
+     return (QIFIPPIData *)(p->second);
+   };
+  
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  NotFound++;
+  KeyStruct *K2 = (KeyStruct *)malloc(sizeof(*K2));
+  memcpy(K2->Key, K.Key, KEYLEN*sizeof(double));
+  QIFIPPIData *QIFD=(QIFIPPIData *)malloc(sizeof *QIFD);
+  if (DoNotCompute==0)
+   ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
+  MyKeyValueMap->insert( KeyValuePair(*K2, QIFD) );
+  return QIFD;
 }

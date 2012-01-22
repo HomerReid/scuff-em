@@ -13,6 +13,5 @@
 /***************************************************************/
 /* routine for brute-force evaluation of panel-panel integrals */
 /***************************************************************/
-void GetPPIs_BruteForce(GetPPIArgStruct *Args);
 
 #endif

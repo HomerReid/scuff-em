@@ -69,7 +69,7 @@ typedef struct TMWorkspace
    /* of the G and H functions in the original integrand         */
    cdouble (*InFunc)(int n, cdouble Param, double X);
    void (*SiAlphaFunc)(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                       int *AlphaMin, int *AlphaMax, double SiAlpha[7][5]);
+                       int *AlphaMin, int *AlphaMax, cdouble SiAlpha[7][5]);
 
  } TMWorkspace;
 
@@ -88,15 +88,15 @@ cdouble In_GradEIKROverR(int n, cdouble GParam, double X);
 /* h-functions                                                 */
 /***************************************************************/
 void SiAlpha_One(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                 int *AlphaMin, int *AlphaMax, double Si[7][5]);
+                 int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
 void SiAlpha_Dot(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                 int *AlphaMin, int *AlphaMax, double Si[7][5]);
+                 int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
 void SiAlpha_DotPlus(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                     int *AlphaMin, int *AlphaMax, double Si[7][5]);
+                     int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
 void SiAlpha_Cross(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                   int *AlphaMin, int *AlphaMax, double Si[7][5]);
+                   int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
 void SiAlpha_ENormal(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                     int *AlphaMin, int *AlphaMax, double Si[7][5]);
+                     int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
 
 /***************************************************************/
 /* Prototype for taylor-method routines. ***********************/

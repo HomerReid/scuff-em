@@ -90,8 +90,8 @@ static void xIntegrand(unsigned ndim, const double *x, void *parms,
                        unsigned nfun, double *f)
 { 
   int i, Alpha, AlphaMin, AlphaMax;
-  double X, SiAlpha[7][5];
-  cdouble Sum, *zf=(cdouble *)f;
+  double X; 
+  cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
 
   TMWorkspace *TMW=(TMWorkspace *)parms;
 
@@ -110,8 +110,8 @@ static void xIntegrand(unsigned ndim, const double *x, void *parms,
 static void x1x2Integrand(unsigned ndim, const double *x, void *parms, unsigned nfun, double *f)
 { 
   int i, Alpha, AlphaMin, AlphaMax;
-  double X, SiAlpha[7][5];
-  cdouble Sum, *zf=(cdouble *)f;
+  double X;
+  cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
 
   TMWorkspace *TMW=(TMWorkspace *)parms;
 
@@ -130,8 +130,8 @@ static void x1x2Integrand(unsigned ndim, const double *x, void *parms, unsigned 
 static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms, unsigned nfun, double *f)
 { 
   int i, Alpha, AlphaMin, AlphaMax;
-  double X, SiAlpha[7][5];
-  cdouble Sum, *zf=(cdouble *)f;
+  double X; 
+  cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
 
   TMWorkspace *TMW=(TMWorkspace *)parms;
   
@@ -448,7 +448,7 @@ cdouble In_GradEIKROverR(int n, cdouble K, double R)
 /***************************************************************/
 /***************************************************************/
 void SiAlpha_One(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                 int *AlphaMin, int *AlphaMax, double S[7][5])
+                 int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 { 
   double x, x1, x2, x3;
 
@@ -482,7 +482,7 @@ void SiAlpha_One(const double *xVec, TMWorkspace *TMW, int WhichCase,
 /***************************************************************/
 /***************************************************************/
 void SiAlpha_Dot(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                 int *AlphaMin, int *AlphaMax, double S[7][5])
+                 int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 {
   double x, x1, x1_2, x2, x2_2, x3;
   double A2, B2, AdAP, AdB, AdBP, AdD, AdDP, APdD, BdAP, BdBP, BdDP, BPdD, DdDP;
@@ -644,11 +644,11 @@ void SiAlpha_Dot(const double *xVec, TMWorkspace *TMW, int WhichCase,
 /* this is equivalent to 'Dot' + Factor * 'One'                */
 /***************************************************************/
 void SiAlpha_DotPlus(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                     int *AlphaMin, int *AlphaMax, double S[7][5])
+                     int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 {
    double SOne[7][5];
    int AlphaMinSOne, AlphaMaxSOne;
-   double Factor = real(-4.0/(TMW->GParam*TMW->GParam));
+   cdouble Factor = -4.0/(TMW->GParam*TMW->GParam);
 
    /***************************************************************/
    /* get the 'Dot' contributions *********************************/
@@ -703,7 +703,7 @@ void SiAlpha_DotPlus(const double *xVec, TMWorkspace *TMW, int WhichCase,
 /***************************************************************/
 /***************************************************************/
 void SiAlpha_Cross(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                   int *AlphaMin, int *AlphaMax, double S[7][5])
+                   int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 {
   double x1, x1_2, x2, x3;
 
@@ -850,7 +850,7 @@ void SiAlpha_Cross(const double *xVec, TMWorkspace *TMW, int WhichCase,
 /***************************************************************/
 /***************************************************************/
 void SiAlpha_ENormal(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                     int *AlphaMin, int *AlphaMax, double S[7][5])
+                     int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 {
   double x1, x2, x3;
   double APdZHat, BPdZHat;
