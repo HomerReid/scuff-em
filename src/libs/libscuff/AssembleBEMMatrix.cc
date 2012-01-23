@@ -361,12 +361,12 @@ void InitABMBArgs(ABMBArgStruct *Args)
 /***************************************************************/
 /* the actual API-exposed routine for assembling the BEM matrix*/
 /* is pretty simple, and really just calls the routine above   */
-/* to do all the dirty work                                    */
+/* to do all the dirty work.                                   */
 /***************************************************************/
 void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
 { 
   /***************************************************************/
-  /* preinitialize anargument structure for the matrix-block     */
+  /* preinitialize an argument structure for the matrix-block    */
   /* assembly routine                                            */
   /***************************************************************/
   ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;

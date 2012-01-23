@@ -38,6 +38,10 @@
 
 /*--------------------------------------------------------------*/
 /*- routine for computing Q-dependent FIPPIs.                   */
+/*-                                                             */
+/*- note: on entry, ncv is the number of common vertices, and   */
+/*-       if ncv>0 then the Va and Vb arrays are assumed to be  */
+/*-       in the order computed by AssessPanelPair().           */
 /*--------------------------------------------------------------*/
 void GetQDFIPPIData(double **Va, double *Qa,
                     double **Vb, double *Qb,
@@ -55,9 +59,9 @@ void GetQDFIPPIData(double **Va, double *Qa,
    { 
      Flipped=CanonicallyOrderVertices(Va, Vb, ncv, OVa, OVb);
      if (Flipped)
-      { OQa=Qa; OQb=Qb; }
+      { OQa=Qb; OQb=Qa; }
      else
-      { OQb=Qa; OQa=Qb; };
+      { OQa=Qa; OQb=Qb; };
 
      QIFD=((FIPPITable *)opFT)->GetQIFIPPIData(OVa, OVb, ncv);
    }
@@ -66,6 +70,7 @@ void GetQDFIPPIData(double **Va, double *Qa,
      Flipped=0;
      OVa[0]=Va[0]; OVa[1]=Va[1]; OVa[2]=Va[2]; OQa=Qa;
      OVb[0]=Vb[0]; OVb[1]=Vb[1]; OVb[2]=Vb[2]; OQb=Qb;
+
      ComputeQIFIPPIData(OVa, OVb, ncv, &MyQIFD);
      QIFD=&MyQIFD;
    };

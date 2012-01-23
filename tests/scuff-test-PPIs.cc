@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
      printf("          --gradient\n");
      printf("          --PlotFits\n");
      printf("          --NoTable\n");
+     printf("          --quit\n");
      p=readline("enter options: ");
      if (!p) break;
      add_history(p);
@@ -229,6 +230,9 @@ int main(int argc, char *argv[])
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--NoTable") )
        NoTable=1;
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--quit") )
+       exit(1);
      free(p);
   
      /*--------------------------------------------------------------*/
