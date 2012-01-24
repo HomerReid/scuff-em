@@ -16,6 +16,7 @@
  */
 
 #define MAXSTR 1000
+#define MAXTOK 50  
 
 /***********************************************************************/
 /***********************************************************************/
@@ -59,7 +60,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   char Line[MAXSTR], Label[MAXSTR];
   int LineNum=0; 
   int nt, nTokens;
-  char *p, *Tokens[50];
+  char *p, *Tokens[MAXTOK];
   while( fgets(Line,MAXSTR,f) )
    { 
      LineNum++;
@@ -67,7 +68,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
      /*--------------------------------------------------------------*/
      /*- break up line into tokens; skip blank lines and comments ---*/
      /*--------------------------------------------------------------*/
-     nTokens=Tokenize(Line, Tokens, 50);
+     nTokens=Tokenize(Line, Tokens, MAXTOK);
      if ( nTokens==0 || Tokens[0][0]=='#' )
       continue; 
     

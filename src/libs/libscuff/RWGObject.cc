@@ -15,9 +15,8 @@
 
 #include "libscuff.h"
 
-#include <libTriInt.h>
-
-#define MAXREFPTS 10
+#define MAXSTR 1000
+#define MAXTOK 50  
 
 /*--------------------------------------------------------------*/
 /*-  RWGObject class constructor that begins reading an open   -*/
@@ -37,12 +36,87 @@
 /*-        fields 'MPName' and 'ContainingObjectName' and must -*/
 /*-        be processed by the calling routine.                -*/
 /*--------------------------------------------------------------*/
-#if 0
 RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 { 
+  ErrMsg=0;
+  ContainingObjectLabel=0;
+  MaterialName=0;
+  MeshFileName=0;
+
   char Line[MAXSTR];
   int nt, nTokens;
-  char *p, *Tokens[50];
+  char *p, *Tokens[MAXTOK];
+  int ReachedTheEnd=0;
+  while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
+   { 
+     (*LineNum)++;
+     nTokens=Tokenize(Line, Tokens, MAXTOK);
+     if ( nTokens==0 || Tokens[0][0]=='#' )
+      continue; 
+
+     /*--------------------------------------------------------------*/
+     /*- switch off based on first token on the line ----------------*/
+     /*--------------------------------------------------------------*/
+     if ( !strcasecmp(Tokens[0],"MESHFILE") )
+      { if (NumTokens==1)
+         { snprintf(ErrMsg,"MESHFILE keyword requires an argument");
+           return;
+         };
+        if (NumTokens>2)
+         { snprintf(ErrMsg,"syntax error");
+           return;
+         };
+        MeshFileName=strdup(Tokens[1]);
+      }
+     else if ( !strcasecmp(Tokens[0],"MATERIAL") )
+      { if (NumTokens==1)
+         { snprintf(ErrMsg,"MATERIAL keyword requires an argument");
+           return;
+         };
+        if (NumTokens>2)
+         { snprintf(ErrMsg,"syntax error");
+           return;
+         };
+        MaterialName=strdup(Tokens[1]);
+      }
+     else if ( !strcasecmp(Tokens[0],"INSIDE") )
+      { if (NumTokens==1)
+         { snprintf(ErrMsg,"INSIDE keyword requires an argument");
+           return;
+         };
+        if (NumTokens>2)
+         { snprintf(ErrMsg,"syntax error");
+           return;
+         };
+        ContainingObjectLabel=strdup(Tokens[1]);
+      }
+     else if ( !strcasecmp(Tokens[0],"DISPLACED") )
+      { if (NumTokens!=4)
+         { snprintf(ErrMsg,"DISPLACED keyword requires exactly 3 arguments");
+           return;
+         };
+// fill me in
+      }
+     else if ( !strcasecmp(Tokens[0],"ROTATED") )
+      { if (NumTokens!=4)
+         { snprintf(ErrMsg,"ROTATED keyword requires exactly 4 arguments");
+           return;
+         };
+// fill me in
+      }
+     else if ( !strcasecmp(Tokens[0],"ENDOBJECT") )
+      { 
+        ReachedTheEnd=1;
+      }
+     else
+      { snprintf(ErrMsg,"unknown keyword %s in OBJECT section",Tokens[0]);
+        return;
+      };
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+
     // MESHFILE 
     // MATERIAL
     // INSIDE 
@@ -58,6 +132,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
     ContainingObjectName=strdup()
 
  };
+#if 0
 #endif
 
 /*--------------------------------------------------------------*/
@@ -107,7 +182,8 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
    };
   if (!MeshFile)
    RWGErrExit("could not find file %s in mesh search path",pMeshFileName);
-  MeshFileName=strdup(pMeshFileName);
+  if (MeshFileName==0)
+   MeshFileName=strdup(pMeshFileName);
    
   if (pLabel)
    Label=strdup(pLabel);

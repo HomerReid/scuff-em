@@ -211,6 +211,10 @@ class RWGObject
    char *Label;                    /* unique label identifying object */
 
    RWGObject *ContainingObject;    /* pointer to object containing this object, if any */
+
+   char *ContainingObjectLabel;    /* these fields are only used by */
+   char *MaterialName;             /* the class constructor         */
+   char *ErrMsg;
   
    /* MT and VT encode any transformation that has been carried out */
    /* since the object was read from its mesh file. if X=[X1 X2 X3] */
