@@ -36,70 +36,81 @@
  * 
  *       -------------------------------------------------
  * 
- * a. options specifying the incident field: 
+ * a. options describing the scatterer
  * 
- *     --pwPol Ex Ey Ez 
- *     --pwDir Dx Dy Dz 
- * 
- *          incident field is a plane wave with E-field polarization
- *          given by pwPol and propagating in the pwDir
- *          direction. (the components of the pwPol d
- *          
- * 
- *     --gaussianbeam WW
- * 
- *          incident field is a gaussian beam, traveling in 
- *          the positive z direction, linearly polarized with
- *          E-field pointing in the positive x-direction, and with
- *          beam waist WW microns
- * 
- *     --pointsource xx yy zz nx ny nz 
- * 
- *          incident field is the field of a unit-strength point 
- *          electric dipole source at coordinates (xx,yy,zz) and
- *          pointing in the (nx,ny,nz) direction
+ *     --geometry MyGeometry.scuffgeo
  * 
  *       -------------------------------------------------
  * 
- * b. options specifying the output: 
+ * b. options specifying the incident field: 
  * 
- *     --console 
+ *     --pwPolarization Ex Ey Ez 
+ *     --pwDirection    Nx Ny Nz 
  * 
- *         if this option is specified, the code will enter a  
- *         console-query mode in which the user can enter field evaluation
- *         points and the code will print out the scattered E and H 
- *         fields at each point. 
+ *          incident field is a plane wave with E-field 
+ *          polarization (Ex,Ey,Ez) and propagating in the
+ *          (Nx,Ny,Nz) direction.
+ * 
+ *     --gbCenter xx yy zz
+ *     --gbDirection Nx Ny Nz
+ *     --gbWaist W
+ * 
+ *          incident field is a gaussian beam, traveling in 
+ *          the (Nx, Ny, Nz) direction, with beam center point
+ *          (xx,yy,zz) and beam waist W. 
+ * 
+ *     --psLocation    xx yy zz
+ *     --psStrength    Px Py Pz
+ * 
+ *          incident field is the field of a unit-strength point 
+ *          electric dipole source at coordinates (xx,yy,zz) and
+ *          strength (dipole moment) (Px,Py,Pz)
+ *          
+ *          (note that --psLocation and --psStrength may be 
+ *           specified more than once (up to 10 times) to 
+ *           represent multiple point sources.) 
+ * 
+ *       -------------------------------------------------
+ * 
+ * c. options specifying the output: 
  * 
  *     --EPFile MyEPFile
  * 
  *         a file containing a list of points at which the scattered 
- *         field is to be evaluated. (all field points must lie in the   
- *         EXTERIOR of all scattering objects in the geometry).
+ *         field is to be evaluated.
  * 
  *         each line of EPFile should contain 3 numbers, the cartesian
  *         components of the scattered field. (blank lines and comments,
  *         i.e. lines beginning with a '#', are skipped)
  * 
- *     --FluxMesh  MyFirstFluxMesh.msh
- *     --FluxMesh  MySecondFluxMesh.msh
- *        ...       
- *     --FluxMesh  MyNinthFluxMesh.msh
+ *         (Note that --epfile may be specified more than once.)
  * 
- *         GMSH .msh files containing 3D surface meshes (discretized
- *         into triangles) through which to compute poynting flux.
+ *     --FluxMesh  MyFluxMesh.msh
+ * 
+ *         (Note that --FluxMesh may be specified more than once.)
  * 
  *       -------------------------------------------------
  * 
- * c. options describing the frequency
+ * d. options describing the frequency
  * 
- *     --frequency xx (value of real or imaginary frequency)
- *     --RF | --IF    (choice of real or imaginary frequency)
+ *     --Omega xx    
  *
- *       -------------------------------------------------
+ *         Specify the frequency at which to conduct the 
+ *         simulation. 
+ *
+ *         The specified frequency may be complex, i.e.
+ *         valid specifications include 
+ *
+ *           --Omega 3.4i
+ *           --Omega 0.2e3-4.5e2I
+ *
+ *         Note that --Omega may be specified more than 
+ *         once.
  * 
- * d. options describing the scatterer
+ *     --OmegaFile MyOmegaFile
  * 
- *     --geometry MyGeometry.rwggeo 
+ *         Specify a file containing a list of frequencies
+ *         at which to conduct simulations.               
  * 
  *       -------------------------------------------------
  * 
@@ -158,15 +169,6 @@
 #define MAXFREQ 10    // max number of frequencies 
 #define MAXEPF  10    // max number of evaluation-point files
 #define MAXFM   10    // max number of flux meshes
-
-     {"psLocation",     PA_DOUBLE,  3, MAXPSS,  (void *)psLoc,      &npsLoc,      "point source location"},
-     {"psOrientation",  PA_DOUBLE,  3, MAXPSS,  (void *)psOrnt,     &npsOrnt,     "point source orientation"},
-     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nOmegaVals,  "(angular) frequency"},
-     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile, &nOmegaFiles, "list of (angular) frequencies"},
-     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,    &nEPFiles,    "list of evaluation points"},
-     {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes, &nFluxMeshes, "flux mesh"},
-     {0,0,0,0,0,0,0}
-   };
  
 /***************************************************************/
 /***************************************************************/
@@ -193,6 +195,7 @@ void usage(char *ProgramName, const char *format, ... )
   fprintf(stderr,"  --pwDirection Nx Ny Nz \n");
   fprintf(stderr,"  --gbCenter xx yy zz \n");
   fprintf(stderr,"  --gbDirection Nx Ny Nz\n");
+  fprintf(stderr,"  --gbWaist W \n");
   fprintf(stderr,"  --psLocation xx yy zz \n");
   fprintf(stderr,"  --psOrientation xx yy zz \n");
   fprintf(stderr,"\n");
@@ -202,13 +205,26 @@ void usage(char *ProgramName, const char *format, ... )
   fprintf(stderr,"\n");
   fprintf(stderr," frequency options: \n\n");
   fprintf(stderr,"  --omega xx \n");
-  fprintf(stderr,"  --omegaFile MyFile.dat\n");
+  fprintf(stderr,"  --omegaFile MyOmegaFile.dat\n");
   fprintf(stderr,"\n");
   fprintf(stderr," miscellaneous options: \n");
   fprintf(stderr,"  --nThread xx \n");
   fprintf(stderr,"  --ExportMatrix \n");
   fprintf(stderr,"\n");
   exit(1);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void z2s(cdouble z, char *zStr)
+{ 
+  if ( real(z)==0.0 )
+   snprintf(zStr,MAXSTR,"%gi",imag(z));
+  else if ( imag(z)==0.0 )
+   snprintf(zStr,MAXSTR,"%g",real(z));
+  else 
+   snprintf(zStr,MAXSTR,"%g+%gi",real(z),imag(z));
 }
 
 /***************************************************************/
@@ -251,7 +267,7 @@ int main(int argc, char *argv[])
   double gbDir[3];                   int ngbDir;
   double gbWaist[1];                 int ngbWaist;
   double psLoc[3*MAXPSS];            int npsLoc;
-  double psOrnt[3*MAXPSS];           int npsOrnt;
+  cdouble psStrength[3*MAXPSS];      int npsStrength;
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *EPFile[MAXEPF];              int nEPFiles;
@@ -266,7 +282,7 @@ int main(int argc, char *argv[])
      {"gbDirection",    PA_DOUBLE,  3, 1,       (void *)gbDir,      &ngbDir,      "gaussian beam direction"},
      {"gbWaist",        PA_DOUBLE,  1, 1,       (void *)gbWaist,    &ngbWaist,    "gaussian beam waist"},
      {"psLocation",     PA_DOUBLE,  3, MAXPSS,  (void *)psLoc,      &npsLoc,      "point source location"},
-     {"psOrientation",  PA_DOUBLE,  3, MAXPSS,  (void *)psOrnt,     &npsOrnt,     "point source orientation"},
+     {"psStrength",     PA_CDOUBLE, 3, MAXPSS,  (void *)psStrength, &npsStrength, "point source strength"},
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nOmegaVals,  "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile, &nOmegaFiles, "list of (angular) frequencies"},
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,    &nEPFiles,    "list of evaluation points"},
@@ -321,8 +337,8 @@ int main(int argc, char *argv[])
   /* process incident-field-related options to construct the data    */
   /* used to generate the incident field in our scattering problem   */
   /*******************************************************************/
-  IncFieldData *IFDList=0, *IFD=0;
-  int npw;
+  IncFieldData *IFDList=0, *IFD;
+  int nps;
   if ( npwPol != npwDir )
    ErrExit("numbers of --pwPolarization and --pwDirection options must agree");
   if ( ngbCenter!=ngbDirection || ngbDirection!=ngbWaist )
@@ -330,11 +346,26 @@ int main(int argc, char *argv[])
   if ( npsLoc!=npsOrnt )
    ErrExit("numbers of --psLocation and --psOrientation options must agree");
   if ( npwPol==1 )
-   { IFD=new PlaneWaveData(npwPol, npwDir, OmegaList->GetEntry(0) );
+   { IFD=new PlaneWaveData(npwPol, npwDir);
+     IFD->Next=IFDList;
+     IFDList=IFD;
+   };
+  if ( ngbCenter==1 )
+   { IFD=new GaussianBeamData(gbCenter, gbDirection, gbWaist);
+     IFD->Next=IFDList;
+     IFDList=IFD;
+   };
+  for(nps=0; nps<npsLoc; nps++)
+   { IFD=new PointSourceData(psLoc + 3*nps, psStrength + 3*nps);
+     IFD->Next=IFDList;
+     IFDList=IFD;
    };
 
+  if (IFDList==0)
+   ErrExit("you must specify at least one incident field source");
+
   /*******************************************************************/
-  /* create the RWGGeometry                                          */
+  /* create the RWGGeometry, allocate BEM matrix and RHS vector      */
   /*******************************************************************/
   RWGGeometry *G=new RWGGeometry(GeoFileName); 
   HMatrix *M=G->AllocateBEMMatrix(RealFreq);
@@ -347,13 +378,7 @@ int main(int argc, char *argv[])
   for(nFreq=0; nFreq<NumFreqs; nFreqs++)
    { 
      Omega = OmegaList->GetEntry(nFreq);
-
-     if ( real(Omega)==0.0 )
-      snprintf(OmegaStr,MAXSTR,"%gi",imag(Omega));
-     else if ( imag(Omega)==0.0 )
-      snprintf(OmegaStr,MAXSTR,"%g",real(Omega));
-     else 
-      snprintf(OmegaStr,MAXSTR,"%g+%gi",real(Omega),imag(Omega));
+     z2s(Omega, OmegaStr);
 
      /*******************************************************************/
      /* assemble the BEM matrix, export it to a binary data file if     */
@@ -374,61 +399,9 @@ int main(int argc, char *argv[])
      /***************************************************************/
      /* set up the incident field profile and create the RHS vector */
      /***************************************************************/
-     Log("  Assembling the RHS vector...");
+     Log("  Assembling the RHS vector..."); 
 
-
-     if (PWD)
-      { 
-        PWD->E0[0]=1.0;        PWD->E0[1]=0.0;        PWD->E0[2]=0.0;
-        PWD->nHat[0]=0.0;      PWD->nHat[1]=0.0;      PWD->nHat[2]=1.0;
-        PWD->Frequency=Frequency;
-        PWD->RealFreq=RealFreq;
-        PWD->Eps=G->MP->GetEpsD(Frequency,RealFreq);
-        PWD->Mu=G->MP->GetMu(Frequency,RealFreq);
-        G->AssembleRHSVector(EHPlaneWave, (void *)PWD, RealFreq, nThread, KN);
-      }
-  else if (GBD)
-   { 
-     GBD->X0[0]=0.0;        GBD->X0[1]=0.0;        GBD->X0[2]=0.0;
-     GBD->KProp[0]=0.0;     GBD->KProp[1]=0.0;     GBD->KProp[2]=1.0;
-     GBD->E0[0]=1.0;        GBD->E0[1]=0.0;        GBD->E0[2]=0.0;
-     GBD->Frequency=Frequency;
-     GBD->RealFreq=RealFreq;
-     GBD->Eps=G->MP->GetEpsD(Frequency,RealFreq);
-     GBD->Mu=G->MP->GetMu(Frequency,RealFreq);
-     GBD->W0=WW;
-     G->AssembleRHSVector(EHGaussianBeam, (void *)GBD, RealFreq, nThread, KN);
-   }
-  else if (PSD) // PSD
-   {
-     memcpy(PSD->X0, PSLocation, 3*sizeof(double) );
-     memcpy(PSD->nHat, PSDirection, 3*sizeof(double) );
-     PSD->Frequency=Frequency;
-     PSD->RealFreq=RealFreq;
-     PSD->SourceType=SourceType;
-     PSD->Eps=G->MP->GetEpsD(Frequency,RealFreq);
-     PSD->Mu=G->MP->GetMu(Frequency,RealFreq);
-     G->AssembleRHSVector(EHPointSource, (void *)PSD, RealFreq, nThread, KN);
-   }
-  else  // MFD
-   {
-     MFD->Frequency=Frequency;
-     MFD->RealFreq=RealFreq;
-     MFD->Eps=G->MP->GetEpsD(Frequency,RealFreq);
-     MFD->Mu=G->MP->GetMu(Frequency,RealFreq);
-     MFD->X0[0]=0.0;
-     MFD->X0[1]=-1.0;
-     MFD->X0[2]=0.0;
-     MFD->Theta=0.0;
-     MFD->Phi=0.0;
-     MFD->RIn=0.01;
-     MFD->ROut=0.02;
-     G->AssembleRHSVector(EHMagneticFrill, (void *)MFD, RealFreq, nThread, KN);
-
-     char buffer[1000];
-     snprintf(buffer,1000,"%s.pp",GetFileBase(GeoFileName));
-     DrawMagneticFrill( (void *)MFD, buffer);
-   };
+     // fill in the Omega parameter 
 
 
   /***************************************************************/
