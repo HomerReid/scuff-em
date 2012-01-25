@@ -38,11 +38,13 @@
  * 
  * a. options specifying the incident field: 
  * 
- *     --planewave
+ *     --pwPol Ex Ey Ez 
+ *     --pwDir Dx Dy Dz 
  * 
- *          incident field is a plane wave, traveing in the positive
- *          z direction, linearly polarized with E-field pointing in 
- *          the positive x-direction
+ *          incident field is a plane wave with E-field polarization
+ *          given by pwPol and propagating in the pwDir
+ *          direction. (the components of the pwPol d
+ *          
  * 
  *     --gaussianbeam WW
  * 
@@ -77,7 +79,6 @@
  *         each line of EPFile should contain 3 numbers, the cartesian
  *         components of the scattered field. (blank lines and comments,
  *         i.e. lines beginning with a '#', are skipped)
- * 
  * 
  *     --FluxMesh  MyFirstFluxMesh.msh
  *     --FluxMesh  MySecondFluxMesh.msh
@@ -149,6 +150,23 @@
 
 #include "libRWG.h"
 #include "EMScatter.h"
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#define MAXPSS  10    // max number of point sources
+#define MAXFREQ 10    // max number of frequencies 
+#define MAXEPF  10    // max number of evaluation-point files
+#define MAXFM   10    // max number of flux meshes
+
+     {"psLocation",     PA_DOUBLE,  3, MAXPSS,  (void *)psLoc,      &npsLoc,      "point source location"},
+     {"psOrientation",  PA_DOUBLE,  3, MAXPSS,  (void *)psOrnt,     &npsOrnt,     "point source orientation"},
+     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nOmegaVals,  "(angular) frequency"},
+     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile, &nOmegaFiles, "list of (angular) frequencies"},
+     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,    &nEPFiles,    "list of evaluation points"},
+     {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes, &nFluxMeshes, "flux mesh"},
+     {0,0,0,0,0,0,0}
+   };
  
 /***************************************************************/
 /***************************************************************/
@@ -167,30 +185,28 @@ void usage(char *ProgramName, const char *format, ... )
 
   fprintf(stderr,"usage: %s [incident field options] [scatterer options]\n",ProgramName);
   fprintf(stderr,"\n");
+  fprintf(stderr," scatterer options: \n\n");
+  fprintf(stderr,"  --geometry MyGeometry.scuffgeo\n");
+  fprintf(stderr,"\n");
   fprintf(stderr," incident field options: \n\n");
-  fprintf(stderr,"  --planewave \n");
-  fprintf(stderr,"  --gaussianbeam WW \n");
-  fprintf(stderr,"  --pointsource xx yy zz nx ny nz\n");
-  fprintf(stderr,"  --MRICoil\n");
+  fprintf(stderr,"  --pwPolarization Ex Ey Ez \n");
+  fprintf(stderr,"  --pwDirection Nx Ny Nz \n");
+  fprintf(stderr,"  --gbCenter xx yy zz \n");
+  fprintf(stderr,"  --gbDirection Nx Ny Nz\n");
+  fprintf(stderr,"  --psLocation xx yy zz \n");
+  fprintf(stderr,"  --psOrientation xx yy zz \n");
   fprintf(stderr,"\n");
   fprintf(stderr," output options: \n\n");
-  fprintf(stderr,"  --console \n\n");
-  fprintf(stderr,"  --OutsidePointsFile xx (list of field evaluation points in external region)\n");
-  fprintf(stderr,"  --InsidePointsFile xx (list of field evaluation points inside first object)\n");
-  fprintf(stderr,"  --FluxMesh FluxMesh1.msh [--FluxMesh FluxMesh2.msh ...]\n");
+  fprintf(stderr,"  --EPFile xx \n");
+  fprintf(stderr,"  --FluxMesh MyFluxMesh.msh \n");
   fprintf(stderr,"\n");
   fprintf(stderr," frequency options: \n\n");
-  fprintf(stderr,"  --frequency xx \n\n");
-  fprintf(stderr,"  --rf (real frequency)\n");
-  fprintf(stderr,"  --if (real frequency)\n");
-  fprintf(stderr,"\n");
-  fprintf(stderr," scatterer options: \n");
-  fprintf(stderr,"  --geometry xx \n\n");
+  fprintf(stderr,"  --omega xx \n");
+  fprintf(stderr,"  --omegaFile MyFile.dat\n");
   fprintf(stderr,"\n");
   fprintf(stderr," miscellaneous options: \n");
   fprintf(stderr,"  --nThread xx \n");
   fprintf(stderr,"  --ExportMatrix \n");
-  fprintf(stderr,"\n");
   fprintf(stderr,"\n");
   exit(1);
 }
@@ -227,217 +243,150 @@ int main(int argc, char *argv[])
   int nFluxMeshFiles=0;
 
   /***************************************************************/
+  /* process options *********************************************/
   /***************************************************************/
-  /***************************************************************/
-  cdouble pwPol[MAXPWS * 3];
-  double pwDir[MAXPWS * 3];
-  double gbCenter[MAXGBS];
-  ExtendedArgStruct ASArray[]=
-   { {"pwPolarization", PA_CDOUBLE, 3, MAXPWS,  (void *)&pwPol,     &npwPol,        "plane wave polarization vector"},
-     {"pwDirection",    PA_DOUBLE,  3, MAXPWS,  (void *)&pwDir,     &npwDir,        "plane wave direction vector"},
-     {"gbCenter",       PA_DOUBLE,  3, MAXGBS,  (void *)&gbCenter,  &ngbCenter,     "gaussian beam center"},
-     {"gbDirection",    PA_DOUBLE,  3, MAXGBS,  (void *)&gbDir,     &ngbDir,        "gaussian beam direction vector"},
-     {"gbWaist",        PA_DOUBLE,  1, MAXGBS,  (void *)&gbWaist,   &ngbWaist,      "gaussian beam waist"},
-     {"psLocation",     PA_DOUBLE,  3, MAXPSS,  (void *)&psLoc,     &npsLoc,       "point source location"},
-     {"psOrientation",  PA_DOUBLE,  3, MAXPSS,  (void *)&psOrnt,    &npsOrnt,      "point source orientation vector"},
-     {"Omega",          PA_DOUBLE,  1, MAXFREQ, (void *)&OmegaVals, &psOrientation, "point source orientation vector"},
-     {0,0,0,0,0}
-
-  /***************************************************************/
-  /* process command line arguments not relating to scatterer    */
-  /***************************************************************/
-  nThread=-1;
-  GeoFileName=0;
-  RealFreq=1;
-  ExportMatrix=0;
-  for(narg=1; narg<argc; narg++)
-   { 
-     if ( !strcasecmp(argv[narg], "--geometry") )
-      { 
-        if ( narg+1 >= argc ) 
-         usage(argv[0],"--geometry requires an argument");
-        GeoFileName=argv[narg+1];
-        narg++;
-      }
-     else if ( !strcasecmp(argv[narg], "--frequency") )
-      { 
-        if ( narg+1 >= argc ) 
-         usage(argv[0],"--frequency requires an argument");
-        nConv=sscanf(argv[narg+1],"%le",&Frequency);
-        if (nConv!=1)
-         usage(argv[0],"invalid value (%s) specified for frequency parameter",argv[narg]);
-        printf("Working at frequency Omega=%e.\n",Frequency);
-        narg++;
-      }
-     else if ( !strcasecmp(argv[narg], "--rf") )
-      { 
-        RealFreq=1;
-        printf("Real-frequency computation selected.\n");
-      }
-     else if ( !strcasecmp(argv[narg], "--if") )
-      { 
-        RealFreq=0;
-        printf("Imaginary-frequency computation selected.\n");
-      }
-     else if ( !strcasecmp(argv[narg], "--OutsidePointsFile") )
-      { 
-        if ( narg+1 >= argc ) 
-         usage(argv[0],"--OutsidePointsFile requires an argument");
-        if ( nOEPFiles == MAXEPFILES )
-         ErrExit("too many EP files");
-        OEPFiles[nOEPFiles++]=argv[narg+1];
-        printf("Will evaluate fields at outside points in file %s.\n",argv[narg+1]);
-        narg++;
-      }
-     else if ( !strcasecmp(argv[narg], "--InsidePointsFile") )
-      { 
-        if ( narg+1 >= argc ) 
-         usage(argv[0],"--InsidePointsFile requires an argument");
-        if ( nIEPFiles == MAXEPFILES )
-         ErrExit("too many EP files");
-        IEPFiles[nIEPFiles++]=argv[narg+1];
-        printf("Will evaluate fields at inside points in file %s.\n",argv[narg+1]);
-        narg++;
-      }
-    else if ( !strcasecmp(argv[narg], "--FluxMesh") )
-      { 
-        if ( narg+1 >= argc ) 
-         usage(argv[0],"--FluxMesh requires an argument");
-        if ( nFluxMeshFiles == MAXFLUXMESHES )
-         ErrExit("too many flux meshes");
-        FluxMeshFiles[nFluxMeshFiles++]=argv[narg+1];
-        printf("Will generate flux plot for surface %s.\n",argv[narg+1]);
-        narg++;
-      }
-     else if ( !strcasecmp(argv[narg], "--planewave") )
-      { 
-        if (PWD || GBD || PSD || MFD)
-         usage(argv[0],"only one type of incident field may be specified");
-        PWD=&MyPWD;
-        printf("Incident field is z-traveling x-polarized plane wave.\n");
-      }
-     else if ( !strcasecmp(argv[narg], "--gaussianbeam") )
-      { 
-        if (PWD || GBD || PSD || MFD)
-         usage(argv[0],"only one type of incident field may be specified");
-        if ( narg+1 >= argc ) 
-         usage(argv[0],"--gaussianbeam requires an argument");
-        sscanf(argv[narg+1],"%le",&WW);
-        printf("Incident field is z-traveling x-polarized gaussian beam\n");
-        printf(" with beam waist %g um.\n",WW);
-        GBD=&MyGBD;
-        narg++;
-      }
-     else if ( !strcasecmp(argv[narg], "--pointsource") )
-      { 
-        if (PWD || GBD || PSD || MFD)
-         usage(argv[0],"only one type of incident field may be specified");
-        if ( narg+6 >= argc ) 
-         usage(argv[0],"--pointsource requires 6 arguments");
-        if (    1!=sscanf(argv[narg+1],"%le",PSLocation+0 )
-             || 1!=sscanf(argv[narg+2],"%le",PSLocation+1 )
-             || 1!=sscanf(argv[narg+3],"%le",PSLocation+2 )
-             || 1!=sscanf(argv[narg+4],"%le",PSDirection+0 )
-             || 1!=sscanf(argv[narg+5],"%le",PSDirection+1 )
-             || 1!=sscanf(argv[narg+6],"%le",PSDirection+2 )
-           )
-         usage(argv[0],"invalid argument passed to --pointsource option");
- 
-        PSD=&MyPSD;
-        printf("Incident field is field of point source \n");
-        printf(" at (%g,%g,%g) pointing in (%g,%g,%g) direction.\n",
-                PSLocation[0], PSLocation[1], PSLocation[2],
-                PSDirection[0], PSDirection[1], PSDirection[2]);
-        narg+=6;
-      }
-     else if ( !strcasecmp(argv[narg], "--MRICoil") )
-      { 
-        if (PWD || GBD || PSD || MFD)
-         usage(argv[0],"only one type of incident field may be specified");
-        printf("Incident field is field of MRI coil.\n");
-        MFD=&MyMFD;
-      }
-     else if ( !strcasecmp(argv[narg], "--psmc") )
-      { 
-        SourceType=LIF_TYPE_PSMC;
-        printf("Incident field is PSMC.\n");
-      }
-     else if ( !strcasecmp(argv[narg], "--nThread") )
-      { 
-        if ( narg+1 >= argc ) 
-         usage(argv[0],"--nThread requires an argument");
-        sscanf(argv[narg+1],"%i",&nThread);
-        narg++;
-      }
-     else if ( !strcasecmp(argv[narg], "--ExportMatrix") )
-      { 
-        ExportMatrix=1;
-        printf("Will export BEM matrix to binary file.\n");
-      } 
-     else
-      { 
-         usage(argv[0],"error: unknown option %s (aborting)",argv[narg]);
-      };
+  cdouble pwPol[3];                  int npwPol;
+  double pwDir[3];                   int npwDir;
+  double gbCenter[3];                int ngbCenter;
+  double gbDir[3];                   int ngbDir;
+  double gbWaist[1];                 int ngbWaist;
+  double psLoc[3*MAXPSS];            int npsLoc;
+  double psOrnt[3*MAXPSS];           int npsOrnt;
+  cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
+  char *OmegaFile;                   int nOmegaFiles;
+  char *EPFile[MAXEPF];              int nEPFiles;
+  char *FluxMeshes[MAXFM];           int nFluxMeshes;
+  int nThread=0;
+  int ExportMatrix=0;
+  /* name               type     args  instances  storage           count         description*/
+  OptStruct OSArray[]=
+   { {"pwPolarization", PA_CDOUBLE, 3, 1,       (void *)pwPol,      &npwPol,      "plane wave polarization"},
+     {"pwDirection",    PA_DOUBLE,  3, 1,       (void *)pwDir,      &npwDir,      "plane wave direction"},
+     {"gbCenter",       PA_DOUBLE,  3, 1,       (void *)gbCenter,   &ngbCenter,   "gaussian beam center"},
+     {"gbDirection",    PA_DOUBLE,  3, 1,       (void *)gbDir,      &ngbDir,      "gaussian beam direction"},
+     {"gbWaist",        PA_DOUBLE,  1, 1,       (void *)gbWaist,    &ngbWaist,    "gaussian beam waist"},
+     {"psLocation",     PA_DOUBLE,  3, MAXPSS,  (void *)psLoc,      &npsLoc,      "point source location"},
+     {"psOrientation",  PA_DOUBLE,  3, MAXPSS,  (void *)psOrnt,     &npsOrnt,     "point source orientation"},
+     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nOmegaVals,  "(angular) frequency"},
+     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile, &nOmegaFiles, "list of (angular) frequencies"},
+     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,    &nEPFiles,    "list of evaluation points"},
+     {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes, &nFluxMeshes, "flux mesh"},
+     {"nThread",        PA_BOOL,    0, 1,       (void *)&nThread,   0,            "number of CPU threads to use"},
+     {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,         "export BEM matrix to file"},
+     {0,0,0,0,0,0,0}
    };
 
-  if( GeoFileName==0 )
-   usage(argv[0],"--geometry argument is mandatory ");
-
-  if( PSD==0 && PWD==0 && GBD==0 && MFD==0 ) 
-   usage(argv[0],"you must specify an incident field");
-
-  if (nThread==-1)
+  if (nThread==0)
    nThread=GetNumProcs();
 
-  SetLogFileName("EMScatter.log");
+  /*******************************************************************/
+  /* process frequency-related options to construct a list of        */
+  /* frequencies at which to run simulations                         */
+  /*******************************************************************/
+  HVector *OmegaList0=0, *OmegaList=0;
+  int nFreq, NumFreqs=0;
+  if (nOmegaFiles==1)
+   { 
+     OmegaList0=new HVector(OmegaFile,LHM_TXT);
+     if (OmegaList0->ErrMsg)
+      ErrExit(ErrMsg);
+
+     NumFreqs=OmegaList0->N;
+
+     // convert it to cdouble if it isn't already
+     if (OmegaList0->RealComplex!=LHM_COMPLEX)
+      { OmegaList=new HVector(NumFreqs, LHM_COMPLEX);
+        for(nFreq=0; nFreq<NumFreqs; nFreq++)
+         OmegaList->SetEntry(nFreq, OmegaList0->GetEntry(nFreq));
+        delete OmegaList0;
+        OmegaList0=OmegaList;
+      };
+
+   };
+
+  if (nOmegaVals>0)
+   { 
+     NumFreqs += nOmegaVals;
+     OmegaList=new HVector(NumFreqs, LHM_COMPLEX);
+     nFreq=0;
+     if (OmegaList0) 
+      for(nFreq=0; nFreq<OmegaList0->N; nFreq++)
+       OmegaList->SetEntry(nFreq, OmegaList0->GetEntry(nFreq));
+     int nf;
+     for(nf=0; nf<nOmegaVals; nf++)
+      OmegaList->SetEntry(nFreq+nf, OmegaVals[nf]);
+   };
+
+  /*******************************************************************/
+  /* process incident-field-related options to construct the data    */
+  /* used to generate the incident field in our scattering problem   */
+  /*******************************************************************/
+  IncFieldData *IFDList=0, *IFD=0;
+  int npw;
+  if ( npwPol != npwDir )
+   ErrExit("numbers of --pwPolarization and --pwDirection options must agree");
+  if ( ngbCenter!=ngbDirection || ngbDirection!=ngbWaist )
+   ErrExit("numbers of --gbCenter, --gbDirection, and --gbWaist options must agree ");
+  if ( npsLoc!=npsOrnt )
+   ErrExit("numbers of --psLocation and --psOrientation options must agree");
+  if ( npwPol==1 )
+   { IFD=new PlaneWaveData(npwPol, npwDir, OmegaList->GetEntry(0) );
+   };
 
   /*******************************************************************/
   /* create the RWGGeometry                                          */
   /*******************************************************************/
   RWGGeometry *G=new RWGGeometry(GeoFileName); 
-
-  char buffer[1000];
-  snprintf(buffer,1000,"%s.pp",GetFileBase(GeoFileName));
-  G->WritePPMesh(buffer,GetFileBase(GeoFileName),0);
-
-  Log("Precomputing...");
-  printf("Precomputing tables for BEM matrix...\n");
-  G->PreCompute(nThread);
   HMatrix *M=G->AllocateBEMMatrix(RealFreq);
   HVector *KN=G->AllocateRHSVector(RealFreq);
 
   /*******************************************************************/
-  /* assemble the BEM matrix, export it to a binary data file if     */
-  /* that was requested, then LU-factorize.                          */
+  /* loop over frequencies *******************************************/
   /*******************************************************************/
-  Log("Assembling the BEM matrix...");
-  printf("Assembling the BEM matrix...\n");
-  G->AssembleBEMMatrix(Frequency, RealFreq, nThread, M);
-  if (ExportMatrix)
-   { void *pCC=HMatrix::OpenC2MLContext(GetFileBase(G->GeoFileName));
-     M->ExportToMATLAB(pCC,"M");
-     HMatrix::CloseC2MLContext(pCC);
-   };
-
-  Log("LU-factorizing BEM matrix...");
-  printf("LU-factorizing BEM matrix...\n");
-  M->LUFactorize();
-
-  /***************************************************************/
-  /* set up the incident field profile and create the RHS vector */
-  /***************************************************************/
-  Log("Assembling the RHS vector...");
-  printf("Assembling the RHS vector...\n");
-  if (PWD)
+  char OmegaStr[MAXSTR];
+  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
    { 
-     PWD->E0[0]=1.0;        PWD->E0[1]=0.0;        PWD->E0[2]=0.0;
-     PWD->nHat[0]=0.0;      PWD->nHat[1]=0.0;      PWD->nHat[2]=1.0;
-     PWD->Frequency=Frequency;
-     PWD->RealFreq=RealFreq;
-     PWD->Eps=G->MP->GetEpsD(Frequency,RealFreq);
-     PWD->Mu=G->MP->GetMu(Frequency,RealFreq);
-     G->AssembleRHSVector(EHPlaneWave, (void *)PWD, RealFreq, nThread, KN);
-   }
+     Omega = OmegaList->GetEntry(nFreq);
+
+     if ( real(Omega)==0.0 )
+      snprintf(OmegaStr,MAXSTR,"%gi",imag(Omega));
+     else if ( imag(Omega)==0.0 )
+      snprintf(OmegaStr,MAXSTR,"%g",real(Omega));
+     else 
+      snprintf(OmegaStr,MAXSTR,"%g+%gi",real(Omega),imag(Omega));
+
+     /*******************************************************************/
+     /* assemble the BEM matrix, export it to a binary data file if     */
+     /* that was requested, then LU-factorize.                          */
+     /*******************************************************************/
+     Log("Working at frequency %s...",OmegaStr);
+     Log("  Assembling the BEM matrix...");
+     G->AssembleBEMMatrix(Omega, nThread, M);
+     if (ExportMatrix)
+      { void *pCC=HMatrix::OpenC2MLContext(GetFileBase(G->GeoFileName),"_%s",OmegaStr);
+        M->ExportToMATLAB(pCC,"M");
+        HMatrix::CloseC2MLContext(pCC);
+      };
+
+     Log("  LU-factorizing BEM matrix...");
+     M->LUFactorize();
+
+     /***************************************************************/
+     /* set up the incident field profile and create the RHS vector */
+     /***************************************************************/
+     Log("  Assembling the RHS vector...");
+
+
+     if (PWD)
+      { 
+        PWD->E0[0]=1.0;        PWD->E0[1]=0.0;        PWD->E0[2]=0.0;
+        PWD->nHat[0]=0.0;      PWD->nHat[1]=0.0;      PWD->nHat[2]=1.0;
+        PWD->Frequency=Frequency;
+        PWD->RealFreq=RealFreq;
+        PWD->Eps=G->MP->GetEpsD(Frequency,RealFreq);
+        PWD->Mu=G->MP->GetMu(Frequency,RealFreq);
+        G->AssembleRHSVector(EHPlaneWave, (void *)PWD, RealFreq, nThread, KN);
+      }
   else if (GBD)
    { 
      GBD->X0[0]=0.0;        GBD->X0[1]=0.0;        GBD->X0[2]=0.0;
