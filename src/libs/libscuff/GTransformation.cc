@@ -1,7 +1,6 @@
 /*
- * GTransformation.cc -- a very simple mechanism for 
- *                    -- handling geometric transformations
- *                    -- (displacements and rotations)
+ * GTransformation.cc -- a very simple mechanism for handling geometric 
+ *                    -- transformations (displacements and rotations)
  *                        
  * homer reid         -- 11/2011
  */
@@ -18,22 +17,116 @@
 static void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3]);
 
 /***************************************************************/
-/* constructor 1 ***********************************************/
+/* a transformation that displaces through vector DX           */
 /***************************************************************/
-GTransformation *CreateGTransformation(double *DX)
-{ GTransformation *GT=(GTransformation *)malloc(sizeof *GT);
-  GT->Type=GTRANSFORMATION_DISPLACEMENT;
-  memcpy(GT->DX, DX, 3*sizeof(double));
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX)
+{
+  GTransformation *NGT;
+
+  if (GT==0)
+   { 
+     NGT=(GTransformation *)malloc(sizeof(*NGT));
+
+     memcpy(NGT->DX, DX, 3*sizeof(double));
+
+     memset(M[0], 0, 3*sizeof(double));
+     memset(M[1], 0, 3*sizeof(double));
+     memset(M[2], 0, 3*sizeof(double));
+     M[0][0]=M[1][1]=M[2][2]=1.0;
+
+     NGT->Type=GTRANSFORMATION_DISPLACEMENT;
+
+     return NGT;
+   }
+  else
+   { GT->DX[0] += DX[0];
+     GT->DX[1] += DX[1];
+     GT->DX[2] += DX[2];
+     GT->Type |= GTRANSFORMATION_DISPLACEMENT;
+     return GT;
+   };
 }
 
+GTransformation *CreateGTransformation(double *DX)
+ { CreateOrAugmentGTransformation(0, DX); }
+
 /***************************************************************/
-/* constructor 2 ***********************************************/
+/* a transformation that rotates through Theta degrees         */
+/* (DEGREES, NOT RADIANS) about an axis that passes through    */
+/* the origin and the point with coordinates ZHat[0..2]        */
 /***************************************************************/
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
+                                                double *ZHat, double Theta)
+{
+  if (GT==0)
+   { 
+     NGT=(GTransformation *)malloc(sizeof(*NGT));
+
+     memset(NGT->DX, 0, 3*sizeof(double));
+
+     ConstructRotationMatrix(ZHat, Theta, NGT->M);
+
+     NGT->Type=GTRANSFORMATION_ROTATION;
+
+     return NGT;
+   }
+  else
+   { double MP[3][3], NewDX[3], NewM[3][3];
+     int i, j, k;
+
+     ConstructRotationMatrix(ZHat, Theta, MP);
+
+     for(i=0; i<3; i++)
+      for(NewDX[i]=0.0, j=0; j<3; j++)
+       NewDX[i] += MP[i][j]*(GT->DX[j]);
+     memcpy(GT->DX, NewDX, 3*sizeof(double));
+
+     for(i=0; i<3; i++)
+      for(j=0; j<3; j++)
+       for(NewM[i][j]=0.0, k=0; k<3; k++)
+        NewM[i][j] += MP[i][k]*GT->M[k][j];
+
+     for(i=0; i<3; i++)
+      memcpy(M[i],NewM[i],3*sizeof(double));
+
+     GT->Type |= GTRANSFORMATION_ROTATION;
+     return GT;
+   };
+
 GTransformation *CreateGTransformation(double *ZHat, double Theta)
-{ GTransformation *GT=(GTransformation *)malloc(sizeof *GT);
-  GT->Type=GTRANSFORMATION_ROTATION;
-  ConstructRotationMatrix(ZHat, Theta, GT->M);
-}
+ { CreateOrAugmentGTransformation(0, ZHat, Theta); }
+
+/***************************************************************/
+/* GT -> DeltaGT*GT ********************************************/
+/***************************************************************/
+void AugmentGTransformation(GTransformation *DeltaGT, GTransformation *GT)
+{ 
+  int i, j, k;
+  double NewM[3][3], NewDX[3];
+ 
+  if ( DeltaGT & GTRANSFORMATION_ROTATION )
+   { 
+     for(i=0; i<3; i++)
+      for(j=0; j<3; j++)
+       for(NewM[i][j]=0.0, k=0; k<3; k++)
+        NewM[i][j] += DeltaGT->MP[i][k] * GT->M[k][j];
+
+     for(i=0; i<3; i++)
+      memcpy(GT->M[i], NewM[i], 3*sizeof(double));
+
+     for(i=0; i<3; i++)
+      for(NewDX[i]=0.0, j=0; j<3; j++)
+       NewDX[i] += DeltaGT->MP[i][j]*GT->DX[j];
+
+     memcpy(GT->DX, NewDX, 3*sizeof(double));
+
+   };
+
+  GT->DX[0] += DeltaGT->DX[0];
+  GT->DX[1] += DeltaGT->DX[1];
+  GT->DX[2] += DeltaGT->DX[2];
+   
+} 
 
 /***************************************************************/
 /* apply the transformation (in-place) to a list of NX points  */
@@ -41,26 +134,30 @@ GTransformation *CreateGTransformation(double *ZHat, double Theta)
 /***************************************************************/
 void ApplyGTransformation(GTransformation *GT, double *X, int NX)
 { 
+  if (GT==0) 
+   return;
+
   int nx; 
-  if (GT->Type==GTRANSFORMATION_DISPLACEMENT)
+  int i, j;
+  double XP[3];
+
+  if ( GT->Type & GTRANSFORMATION_ROTATION )
+   { 
+     for(nx=0; nx<NX; nx++)
+      { memcpy(XP, GT->DX, 3*sizeof(double));
+        for(i=0; i<3; i++) 
+         for(j=0; j<3; j++)      
+          XP[i] += GT->M[i][j] * X[3*nx+j];
+        memcpy(X+3*nx, XP, 3*sizeof(double));
+      };
+   }
+  else
    { for(nx=0; nx<NX; nx++)
       { X[3*nx+0] += GT->DX[0];
         X[3*nx+1] += GT->DX[1];
         X[3*nx+2] += GT->DX[2];
       };
-   }
-  else
-   { int Mu, Nu;
-     double XP[3];
-     for(nx=0; nx<NX; nx++)
-      { memset(XP, 0, 3*sizeof(double));
-        for(Mu=0; Mu<3; Mu++) 
-         for(Nu=0; Nu<3; Nu++)      
-          XP[Mu] += GT->M[Mu][Nu] * X[3*nx+Nu];
-        memcpy(X+3*nx, XP, 3*sizeof(double));
-      };
    };
-
 }
 
 void ApplyGTransformation(GTransformation *GT, double *X)
@@ -71,28 +168,74 @@ void ApplyGTransformation(GTransformation *GT, double *X)
 /***************************************************************/
 void ApplyGTransformation(GTransformation *GT, double *X, double *XP, int NX)
 { 
+  if (GT==0) 
+   { memcpy(XP, X, 3*NX*sizeof(double));
+     return;
+   };
+
   int nx; 
-  if (GT->Type==GTRANSFORMATION_DISPLACEMENT)
+  int i, j;
+  if ( GT->Type & GTRANSFORMATION_ROTATION )
+   { 
+     for(nx=0; nx<NX; nx++)
+      { memcpy(XP+3*nx, GT->DX, 3*sizeof(double));
+        for(i=0; i<3; i++) 
+         for(j=0; j<3; j++)      
+          XP[3*nx+i] += GT->M[i][j] * X[3*nx+j];
+      };
+   }
+  else
    { for(nx=0; nx<NX; nx++)
       { XP[3*nx+0] = X[3*nx+0] + GT->DX[0];
         XP[3*nx+1] = X[3*nx+1] + GT->DX[1];
         XP[3*nx+2] = X[3*nx+2] + GT->DX[2];
       };
-   }
-  else
-   { int Mu, Nu;
-     for(nx=0; nx<NX; nx++)
-      { memset(XP+3*nx, 0, 3*sizeof(double));
-        for(Mu=0; Mu<3; Mu++) 
-         for(Nu=0; Nu<3; Nu++)      
-          XP[3*nx + Mu] += GT->M[Mu][Nu] * X[3*nx+Nu];
-      };
    };
-
 }
 
 void ApplyGTransformation(GTransformation *GT, double *X, double *XP)
-{ ApplyGTransformation(GT, X, XP, 1); }
+ { ApplyGTransformation(GT, X, XP, 1); }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void UnApplyGTransformation(GTransformation *GT, double *X, int NX)
+{
+  int i, j, nx;
+  double XP[3];
+
+  for(nx=0; nx<NX; nx++)
+   { X[3*nx+0] -= GT->DX[0];
+     X[3*nx+1] -= GT->DX[1];
+     X[3*nx+2] -= GT->DX[2];
+   };
+
+  if ( GT->Type & GTRANSFORMATION_ROTATION )
+   { for(nx=0; nx<NX; nx++)
+      { 
+        for(i=0; i<3; i++)
+         for(XP[i]=0.0, j=0; j<3; j++)
+          XP[i] += GT->M[j][i]*X[3*nx+j];
+
+        memcpy(X+3*nx, XP, 3*sizeof(double));
+
+      };
+   };
+}
+
+void ResetGTransformation(GTransformation *GT)
+{ 
+  memset(GT->DX, 0, 3*sizeof(double));
+  memset(GT->M[0], 0, 3*sizeof(double));
+  memset(GT->M[1], 0, 3*sizeof(double));
+  memset(GT->M[2], 0, 3*sizeof(double));
+
+  GT->M[0][0]=GT->M[1][1]=GT->M[2][2]=1.0;
+
+  GT->Type = GT->DISPLACEMENT;
+
+}
+   
 
 /***************************************************************/
 /* Construct the 3x3 matrix that represents a rotation of      */

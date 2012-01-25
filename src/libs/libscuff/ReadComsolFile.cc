@@ -36,11 +36,9 @@ static int SkipTo(FILE *f, const char *SearchString, char *Line)
 /* Constructor helper function for reading in nodes and  *******/
 /* elements for a .mphtxt file as produced by COMSOL     *******/
 /***************************************************************/
-void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, 
-                                double *RotMat, double *DX)
+void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *GT)
 { 
   char Line[MAXSTR], *p;
-  double *V, VRotated[3];
   int i, j, nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
   
   LineNum=0;
@@ -78,21 +76,9 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
    };
 
   /***************************************************************/
-  /* apply rotation and/or displacement to nodes if present     **/
+  /*- Apply geometrical transformation (if any) to all nodes.   -*/
   /***************************************************************/
-  if (RotMat)
-   for(nv=0; nv<NumVertices; nv++)
-    { V=Vertices + 3*nv;
-      memset(VRotated,0,3*sizeof(double));
-      for(i=0; i<3; i++)	
-       for(j=0; j<3; j++)	
-        VRotated[i]+=RotMat[ i + 3*j ] * V[j];
-      memcpy(V,VRotated,3*sizeof(double));
-    };
-
-  if (DX)
-   for(nv=0; nv<NumVertices; nv++)
-     VecPlusEquals(Vertices + 3*nv,1.0,DX);
+  if (GT) ApplyGTransformation(GT, Vertices, NumVertices);
 
   /***************************************************************/
   /* skip down to element definition section *********************/

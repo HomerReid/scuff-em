@@ -165,6 +165,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
 
      if ( O->MPName )
       { 
+        // deallocate the default MP created by the RWGObject constructor
+        delete O->MP;
+
         /* look first to see if the requested material was one of */
         /* the materials defined on-the-fly in the .scuffgeo file */
         for(nmp=0; O->MP==0 && nmp<NumMPs; nmp++)
@@ -178,6 +181,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
             ErrExit("%s: object %s (%s): error in MATERIAL value: %s",
                      GeoFileName,O->Label,O->MeshFileName,O->MP->ErrMsg); 
          };
+
+        free(O->MPName);
       }
      else
       O->MP = new MatProp(MP_PEC);
@@ -209,6 +214,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
            ErrExit("%s: object %s: containing object %s not found",
                     GeoFileName, O->Label, O->ContainingObjectName);
          };
+
+        free( O->ContainingObjectName );
 
       };
    };

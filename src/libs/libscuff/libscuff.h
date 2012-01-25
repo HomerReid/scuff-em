@@ -21,25 +21,17 @@
 #include <complex>
 #include <cmath>
 
+#include <libhrutil.h>
 #include <libhmat.h>
 #include <libMatProp.h>
 
-#include "StaticPPI.h"
+#include "GTransformation.h"
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*- 0 couple of quick things before we begin                   -*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-
-#ifndef cdouble
-  typedef std::complex<double> cdouble;
-#endif 
-
-/* values for the RealFreq parameter to functions */
-#define IMAG_FREQ 0
-#define REAL_FREQ 1
-
 /* impedance of free space */
 #define ZVAC 376.73031346177
 
@@ -53,7 +45,6 @@ typedef void (*EHFuncType)(double *R, void *UserData, cdouble *EH);
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/ 
-#define MAXBCS 10  // maximum number of external boundary contours
 
 /***************************************************************/
 /* RWGPanel is a structure containing data on a single        */
@@ -114,20 +105,16 @@ class RWGObject
    /*--------------------------------------------------------------*/ 
   public:  
 
-   /* constructor entry points 1 and 2: construct from a mesh file */
+   /* constructor entry point 1: construct from an 'OBJECT...ENDOBJECT' */
+   /* section in a .scuffgeo file                                       */ 
+   RWGObject::RWGObject(FILE *f, const char *Label, int *LineNum);
+
+   /* constructor entry points 2 and 3: construct from a given mesh file */
    RWGObject(const char *pMeshFileName);
-   RWGObject(const char *pMeshFileName, const char *pLabel, 
-             const char *Material, const char *RotFileName, double *DX);
 
    /* constructor entry point 3: construct from a list of vertices */
    RWGObject(double *pVertices, int pNumVertices, 
              int **PanelVertexIndices, int pNumPanels);
-
-   /* constructor entry point 4: construct from an 'OBJECT...ENDOBJECT' */
-   /* section in a .scuffgeo file                                       */ 
-#if 0
-   RWGObject::RWGObject(FILE *f, const char *Label, int *LineNum);
-#endif
 
    /* destructor */
    ~RWGObject();
@@ -162,9 +149,8 @@ class RWGObject
                                double Wavevector, int RealFreq, 
                                cdouble *aE, cdouble *aM);
 
-   /* calculate the inner product of a single basis function with 
-      given incident electric and magnetic fields 
-   */
+   /* calculate the inner product of a single basis function with  */
+   /* given incident electric and magnetic fields                  */
    void GetInnerProducts(int nbf, EHFuncType EHFunc, void *EHFuncUD, int RealFreq,
                          cdouble *EProd, cdouble *HProd);
 
@@ -197,6 +183,8 @@ class RWGObject
    int NumPanels;                  /* number of panels */
    int NumBCs;                     /* number of boundary countours */
 
+   int Index;                      /* index of this object in geometry  */
+
    int *WhichBC;                   /* WhichBC[nv] = index of boundary contour */
                                    /* on which vertex #nv lies (=0 if vertex  */
                                    /* #nv is an internal vertex)              */
@@ -213,33 +201,27 @@ class RWGObject
    RWGObject *ContainingObject;    /* pointer to object containing this object, if any */
 
    char *ContainingObjectLabel;    /* these fields are only used by */
-   char *MaterialName;             /* the class constructor         */
+   char *MPName;                   /* the class constructor         */
    char *ErrMsg;
   
-   /* MT and VT encode any transformation that has been carried out */
-   /* since the object was read from its mesh file. if X=[X1 X2 X3] */
-   /* are the coordinates of a vertex in the original mesh, then    */
-   /* XT=MT*X + VT are the transformed coordinates.                 */
-   double MT[3][3];
-   double VT[3];
-
-   int Index;                      /* index of this object in geometry  */
- 
-   StaticPPIDataTable *SPPIDTable;
+   /* GT encodes any transformation that has been carried out since */
+   /* the object was read from its mesh file (not including a       */
+   /* possible one-time GTransformation that may have been specified*/
+   /* in the .scuffgeo file when the object was first created)      */
+   GTransformation *GT;
 
    /*--------------------------------------------------------------*/ 
    /*- private class methods --------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
-
-   /* actual body of constructor */
+   /* the actual body of the class constructor */
    void InitRWGObject(const char *pMeshFileName, const char *pLabel, 
-                      const char *Material, const char *RotFileName, double *DX);
+                      const char *Material, GTransformation *GT);
 
    /* constructor subroutines */
    void InitEdgeList();
    void InitSPPIDTable();
-   void ReadGMSHFile(FILE *MeshFile, char *FileName, double *RotMat, double *DX);
-   void ReadComsolFile(FILE *MeshFile, char *FileName, double *RotMat, double *DX);
+   void ReadGMSHFile(FILE *MeshFile, char *FileName, GTransformation *GT);
+   void ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *GT);
 
    /* utility routines */
    int CountCommonVertices(int np1, int np2, int *Index1, int *Index2);

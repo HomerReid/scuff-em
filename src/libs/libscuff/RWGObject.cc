@@ -43,10 +43,14 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   MaterialName=0;
   MeshFileName=0;
 
+  /***************************************************************/
+  /* read lines from the file one at a time **********************/
+  /***************************************************************/
   char Line[MAXSTR];
   int nt, nTokens;
   char *p, *Tokens[MAXTOK];
   int ReachedTheEnd=0;
+  GTransformation *GT=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
      (*LineNum)++;
@@ -58,51 +62,59 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
      /*- switch off based on first token on the line ----------------*/
      /*--------------------------------------------------------------*/
      if ( !strcasecmp(Tokens[0],"MESHFILE") )
-      { if (NumTokens==1)
-         { snprintf(ErrMsg,"MESHFILE keyword requires an argument");
-           return;
-         };
-        if (NumTokens>2)
-         { snprintf(ErrMsg,"syntax error");
+      { if (NumTokens!=2)
+         { snprintf(ErrMsg,"MESHFILE keyword requires one argument");
            return;
          };
         MeshFileName=strdup(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
-      { if (NumTokens==1)
-         { snprintf(ErrMsg,"MATERIAL keyword requires an argument");
-           return;
-         };
-        if (NumTokens>2)
-         { snprintf(ErrMsg,"syntax error");
+      { if (NumTokens!=2)
+         { snprintf(ErrMsg,"MATERIAL keyword requires one argument");
            return;
          };
         MaterialName=strdup(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"INSIDE") )
-      { if (NumTokens==1)
-         { snprintf(ErrMsg,"INSIDE keyword requires an argument");
-           return;
-         };
-        if (NumTokens>2)
-         { snprintf(ErrMsg,"syntax error");
+      { if (NumTokens!=1)
+         { snprintf(ErrMsg,"INSIDE keyword requires one argument");
            return;
          };
         ContainingObjectLabel=strdup(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"DISPLACED") )
-      { if (NumTokens!=4)
-         { snprintf(ErrMsg,"DISPLACED keyword requires exactly 3 arguments");
+      { 
+        if (NumTokens!=4)
+         { snprintf(ErrMsg,"DISPLACED keyword requires 3 arguments");
            return;
          };
-// fill me in
+
+        if (    1!=sscanf(Tokens[1],"%le",DX+0)
+             || 1!=sscanf(Tokens[2],"%le",DX+1)
+             || 1!=sscanf(Tokens[3],"%le",DX+2) ) 
+         { snprintf(ErrMsg,"invalid argument to DISPLACED");
+           return;
+         };
+
+        GT=CreateOrAugmentGTransformation(GT,DX);
       }
      else if ( !strcasecmp(Tokens[0],"ROTATED") )
-      { if (NumTokens!=4)
+      { 
+        if (NumTokens!=5)
          { snprintf(ErrMsg,"ROTATED keyword requires exactly 4 arguments");
            return;
          };
-// fill me in
+
+        if (    1!=sscanf(Tokens[1],"%le",zHat+0)
+             || 1!=sscanf(Tokens[2],"%le",zHat+1)
+             || 1!=sscanf(Tokens[3],"%le",zHat+2)
+             || 1!=sscanf(Tokens[4],"%le",Theta+2) )
+         { snprintf(ErrMsg,"invalid argument to ROTATED");
+           return;
+         };
+
+        GT=CreateOrAugmentGTransformation(GT,zHat,Theta);
+
       }
      else if ( !strcasecmp(Tokens[0],"ENDOBJECT") )
       { 
@@ -112,43 +124,35 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
       { snprintf(ErrMsg,"unknown keyword %s in OBJECT section",Tokens[0]);
         return;
       };
+   }; 
 
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
+  /***************************************************************/
+  /* note that we pass 0 for the material name here; this is     */
+  /* because the material name might refer to a material that    */
+  /* was defined on the fly in the .scuffgeo file, in which case */
+  /* trying to assign that material would fail. instead, we      */
+  /* store any user-specified material name in the MaterialName  */
+  /* field inside the class body and leave it for whoever called */
+  /* this routine to process.                                    */
+  /***************************************************************/
+  InitRWGObject(MeshFileName, Label, 0, GT);
 
-    // MESHFILE 
-    // MATERIAL
-    // INSIDE 
-    // DISPLACED
-    // ROTATED
-    
-    MP=0;
-    ContainingObject=0;
-    MPName=0;
-    ContainingObjectName=0;
-
-    MPName=strdup(
-    ContainingObjectName=strdup()
-
- };
-#if 0
-#endif
+};
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- various entry points to the RWGObject class constructor  --*/
+/*- alternative constructor entry point that uses a given       */
+/*- meshfile name                                               */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 RWGObject::RWGObject(const char *pMeshFileName)
- { InitRWGObject(pMeshFileName, 0, 0, 0, 0); }
+ { InitRWGObject(pMeshFileName, 0, 0, 0); }
 
 RWGObject::RWGObject(const char *pMeshFileName, 
                      const char *pLabel,
                      const char *Material,
-                     const char *RotFileName, 
-                     double *DX)
- { InitRWGObject(pMeshFileName, pLabel, Material, RotFileName, DX); }
+                     GTransformation *GT)
+ { InitRWGObject(pMeshFileName, pLabel, Material, GT); }
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -160,106 +164,47 @@ RWGObject::RWGObject(const char *pMeshFileName,
 void RWGObject::InitRWGObject(const char *pMeshFileName,
                               const char *pLabel,
                               const char *Material,
-                              const char *RotFileName,
-                              double *DX)
+                              GTransformation *OTGT)
 { 
-  char *p, buffer[1000];
-  double RotMat[9], *pRotMat;
-  FILE *MeshFile, *RotFile, *SPPIDTFile;
-  int Mu, Nu, LineNum, i, np;
-  char SPPIDTFileName[200];
-
   /*------------------------------------------------------------*/
-  /*- try to open the mesh file.                                h*/
-  /*- we look in a couple different places:                     */
-  /*-  1. current working directory                             */
-  /*-  2. $(HOME)/geomsh/                                       */
+  /*- try to open the mesh file.                                */
   /*------------------------------------------------------------*/
-  MeshFile=fopen(pMeshFileName,"r");    /* try bare filename */
-  if ( !MeshFile )
-   { sprintf(buffer,"%s/geomsh/%s",getenv("HOME"),pMeshFileName);
-     MeshFile=fopen(buffer,"r");
-   };
+  FILE *MeshFile=fopen(pMeshFileName,"r");
   if (!MeshFile)
-   RWGErrExit("could not find file %s in mesh search path",pMeshFileName);
-  if (MeshFileName==0)
-   MeshFileName=strdup(pMeshFileName);
-   
-  if (pLabel)
-   Label=strdup(pLabel);
-  else
-   Label=strdup("NoLabel");
-
-  /*------------------------------------------------------------*/
-  /*- read in the rotation file if one was specified            */
-  /*------------------------------------------------------------*/
-  pRotMat=0;
-  if ( RotFileName && RotFileName[0]!=0 )
-   { 
-     /* attempt to open the file. we look in the same places as above */
-     RotFile=fopen(RotFileName,"r"); 
-     if ( !RotFile )  
-      { sprintf(buffer,"%s/geomsh/%s",getenv("HOME"),RotFileName);
-        RotFile=fopen(buffer,"r");
-      };
-     if (!RotFile)
-      RWGErrExit("could not find file %s in mesh search path",RotFileName);
-
-     /* read the three rows of the rotation matrix, one per line */
-     LineNum=i=0;
-     while( fgets(buffer,100,RotFile) )
-      { 
-        /* skip blank lines and comments */
-        LineNum++;
-        p=buffer; 
-        while ( isspace(*p) )
-         p++;
-        if ( *p==0 || *p=='#') 
-         continue;
-
-        if(i==3) 
-         RWGErrExit("too many lines in file %s",RotFileName);
-
-        if ( 3!=sscanf(buffer,"%le %le %le",RotMat+i,RotMat+i+3,RotMat+i+6) )
-         RWGErrExit("%s:%i: syntax error",RotFileName,LineNum);
-        i++;
-
-      };
-
-      if(i!=3) 
-       RWGErrExit("too few lines in file %s",RotFileName);
-
-     fclose(RotFile);
-
-     pRotMat=RotMat;
-   };
+   ErrExit("could not open file %s",pMeshFileName);
    
   /*------------------------------------------------------------*/
-  /*- initialize a new RWGObject structure ---------------------*/
+  /*- initialize simple fields ---------------------------------*/
   /*------------------------------------------------------------*/
   NumEdges=NumPanels=NumVertices=NumRefPts=0;
   MP=new MatProp(Material);
-  SPPIDTable=0;
   ContainingObject=0;
-
-  /* initialize the transformation to the identity transformation */
-  for(Mu=0; Mu<3; Mu++)
-   for(Nu=0; Nu<3; Nu++)
-    MT[Mu][Nu] = (Mu==Nu) ? 1.0 : 0.0;
-  memset(VT,0,3*sizeof(double));
+  Label=strdup( pLabel ? pLabel : "NoLabel");
+  if (MeshFileName==0)
+   MeshFileName=strdup(pMeshFileName);
 
   /*------------------------------------------------------------*/
-  /*- At this point we switch off based on the file type:      -*/
+  /*- note: the 'OTGT' parameter to this function is distinct   */
+  /*- from the 'GT' field inside the class body. the former is  */
+  /*- an optional 'One-Time Geometrical Transformation' to be   */
+  /*- applied to the object once at its creation. the latter    */
+  /*- is designed to store a subsequent transformation that may */
+  /*- be applied to the object, and is initialized to zero.     */
+  /*------------------------------------------------------------*/
+  GT=0;
+
+  /*------------------------------------------------------------*/
+  /*- Switch off based on the file type to read the mesh file:  */
   /*-  1. file extension=.msh    --> ReadGMSHFile              -*/
   /*-  2. file extension=.mphtxt --> ReadComsolFile            -*/
   /*------------------------------------------------------------*/
-  p=strrchr(MeshFileName,'.');
+  char *p=GetFileBase(MeshFileName);
   if (!p)
    RWGErrExit("file %s: invalid extension",MeshFileName);
   else if (!strcmp(p,".msh"))
-   ReadGMSHFile(MeshFile,MeshFileName,pRotMat,DX);
+   ReadGMSHFile(MeshFile,MeshFileName,OTGT);
   else if (!strcmp(p,".mphtxt"))
-   ReadComsolFile(MeshFile,MeshFileName,pRotMat,DX);
+   ReadComsolFile(MeshFile,MeshFileName,OTGT);
   else
    RWGErrExit("file %s: unknown extension %s",MeshFileName,p);
 
@@ -304,12 +249,7 @@ RWGObject::RWGObject(double *pVertices, int pNumVertices,
   NumVertices=pNumVertices;
   NumPanels=pNumPanels;
   MP=new MatProp();
-
-  /* initialize the transformation to the identity transformation */
-  for(Mu=0; Mu<3; Mu++)
-   for(Nu=0; Nu<3; Nu++)
-    MT[Mu][Nu] = (Mu==Nu) ? 1.0 : 0.0;
-  memset(VT,0,3*sizeof(double));
+  GT=0;
 
   Vertices=(double *)RWGMalloc(3*NumVertices*sizeof(double));
   memcpy(Vertices,pVertices,3*NumVertices*sizeof(double *));
@@ -333,113 +273,39 @@ RWGObject::RWGObject(double *pVertices, int pNumVertices,
 } 
 
 /***************************************************************/
-/* RWGObject destructor.                                      */
+/* RWGObject destructor.                                       */
 /***************************************************************/
 RWGObject::~RWGObject()
 { 
-  int np, ne;
+  free(Vertices);
 
+  int np;
   for(np=0; np<NumPanels; np++)
    free(Panels[np]);
   free(Panels);
 
+  int ne;
   for(ne=0; ne<NumEdges; ne++)
    free(Edges[ne]);
   free(Edges);
 
-  free(Vertices);
+  for(ne=0; ne<NumExteriorEdges; ne++)
+   free(ExteriorEdges[ne]);
+  free(ExteriorEdges);
+
+  // insert code to deallocate BCEdges
+  int nbc;
+  for(nbc=0; nbc<NumBCs; nbc++)
+   free(BCEdges[nbc]);
+  if (BCEdges) free(BCEdges);
+  if (NumBCEdges) free(NumBCEdges);
+  free(WhichBC);
 
   delete MP;
 
-  if (MeshFileName)
-   free(MeshFileName);
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void RWGObject::TransformPoint(double X[3])
-{ 
-  double XP[3];
-  int Mu, Nu;
-  
-  /* XP <- MT*X */
-  for(Mu=0; Mu<3; Mu++)
-   for(XP[Mu]=0.0, Nu=0; Nu<3; Nu++)
-    XP[Mu]+=MT[Mu][Nu]*X[Nu];
-
-  /* X <- XP + VT */
-  for(Mu=0; Mu<3; Mu++)
-   X[Mu]=XP[Mu]+VT[Mu];
-
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void RWGObject::UnTransformPoint(double X[3])
-{ 
-  double XP[3];
-  int Mu, Nu;
-  
-  /* XP <- X - VT */
-  for(Mu=0; Mu<3; Mu++)
-   XP[Mu]=X[Mu]-VT[Mu];
-
-  /* X <- MT^{-1}*XP */
-  for(Mu=0; Mu<3; Mu++)
-   for(X[Mu]=0.0, Nu=0; Nu<3; Nu++)
-    X[Mu]+=MT[Nu][Mu]*XP[Nu];
-
-}
-
-/***************************************************************/
-/* Construct the 3x3 matrix that represents a rotation of      */
-/* Theta degrees (note we interpret Theta in DEGREES, NOT      */
-/* RADIANS!) about the axis specified by cartesian coordinates */
-/* ZHat.                                                       */
-/* Algorithm:                                                  */
-/*  1. Construct matrix M1 that rotates Z axis into alignment  */
-/*     with ZHat.                                              */
-/*  2. Construct matrix M2 that rotates through Theta about    */ 
-/*     Z axis.                                                 */
-/*  3. Construct matrix M=M1^{-1}*M2*M1=M1^T*M2*M1.            */  
-/***************************************************************/
-void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3])
-{ 
-  int Mu, Nu, Rho;
-  double ct, st, cp, sp, CT, ST;
-  double M2M1[3][3], M2[3][3], M1[3][3];
-
-  VecNormalize(ZHat);
- 
-  /* construct M1 */
-  ct=ZHat[2];
-  st=sqrt(1.0-ct*ct);
-  cp= ( st < 1.0e-8 ) ? 1.0 : ZHat[0] / st;
-  sp= ( st < 1.0e-8 ) ? 0.0 : ZHat[1] / st;
-  M1[0][0]=ct*cp;  M1[0][1]=ct*sp;   M1[0][2]=-st;
-  M1[1][0]=-sp;    M1[1][1]=cp;      M1[1][2]=0.0;
-  M1[2][0]=st*cp;  M1[2][1]=st*sp;   M1[2][2]=ct;
-
-  /* construct M2 */
-  CT=cos(Theta*M_PI/180.0);
-  ST=sin(Theta*M_PI/180.0);
-  M2[0][0]=CT;      M2[0][1]=-ST;     M2[0][2]=0.0;
-  M2[1][0]=ST;      M2[1][1]=CT;      M2[1][2]=0.0;
-  M2[2][0]=0.0;     M2[2][1]=0.0;     M2[2][2]=1.0;
-
-  /* M2M1 <- M2*M1 */
-  for(Mu=0; Mu<3; Mu++)
-   for(Nu=0; Nu<3; Nu++)
-    for(M2M1[Mu][Nu]=0.0, Rho=0; Rho<3; Rho++)
-     M2M1[Mu][Nu] += M2[Mu][Rho] * M1[Rho][Nu];
-
-  /* M <- M1^T * M2M1 */
-  for(Mu=0; Mu<3; Mu++)
-   for(Nu=0; Nu<3; Nu++)
-    for(M[Mu][Nu]=0.0, Rho=0; Rho<3; Rho++)
-     M[Mu][Nu] += M1[Rho][Mu]*M2M1[Rho][Nu];
+  if (MeshFileName) free(MeshFileName);
+  if (Label) free(Label);
+  if (GT) free(GT);
   
 }
 
@@ -459,104 +325,71 @@ void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3])
 /* Returns zero if the TransLine was valid, nonzero if the   */
 /* transline was invalid.                                    */
 /*                                                           */
-/* Implementation notes:                                     */
-/*                                                           */
-/*  a. We keep track of transformations by maintaining a     */
-/*     running matrix MT and vector VT such that XT, the     */
-/*     vector of coordinates of a vertex in the object after */
-/*     the transformation, is given by                       */
-/*      XT = MT*X + VT                                       */
-/*     where X is the vector of coordinates of the vertex in */
-/*     the original geometry, i.e. as given in the .msh file.*/
-/*                                                           */
-/*  b. initially, we set M=unit 3x3 matrix and V=[0 0 0].    */
-/*                                                           */
-/*  c. as we parse the transformation line, we augment       */
-/*     M and V as follows:                                   */
-/*      for every DISP element: V --> V + DISP               */
-/*      for every ROT  element: M --> ROT*M, V --> ROT*V     */
-/*                                                           */
+/* Transformations are cumulative; two calls to Transform()  */
+/* will build on each other.                                 */
 /*************************************************************/
-int RWGObject::Transform(const char *pTransLine, ...)
+int RWGObject::Transform(const char *format, ...)
 { 
-  int nRead, nConv, ne, nv, np;
-  char *p, TransLine[1000], Token[100], TempStr[1000];
-  double D[3], Theta;
-  
-  int Mu, Nu, Rho;
-  double MTP[3][3], MTPP[3][3];
-  double VTP[3];
-
+  /***************************************************************/
+  /* fill out the TransLine with any printf-style arguments      */
+  /***************************************************************/
+  char TransLine[MAXSTR];
   va_list ap;
-  va_start(ap,pTransLine);
-  vsnprintf(TransLine,1000,pTransLine,ap);
+  va_start(ap,format);
+  vsnprintf(TransLine,MAXSTR,format,ap);
   va_end(ap);
 
-  /* skip blank lines and comments */
-  p=TransLine; 
-  while( isspace(*p) )
-   p++;
-  if ( *p==0 || *p=='#' )
-   return 0;
+  /***************************************************************/
+  /* break it up into tokens to be parsed ************************/
+  /***************************************************************/
+  char *Tokens[MAXTOK];
+  int NumTokens=Tokenize(TransLine, Tokens, MAXTOK);
 
-  /*
-   * parse transformation line
-   */
-  nRead=0;
-  while( *p )
-   {
-     /*--------------------------------------------------------------*/
-     /*- read next token off of line --------------------------------*/
-     /*--------------------------------------------------------------*/
-     nConv=sscanf(p,"%s%n",Token,&nRead);  
-     p+=nRead;  
-     if ( nConv<=0 || Token[0]=='\n' )  
-      break;
+  if (NumTokens==0 || Tokens[0][0]=='#') 
+   return 0; // a transformation that does nothing is considered valid
 
+  /***************************************************************/
+  /* parse the line **********************************************/
+  /***************************************************************/
+  int nt, nConv;
+  GTransformation *DeltaGT=0; // 'new geometrical transformation'
+  double DX[3], ZHat[3], Theta;
+  for(nt=0; nt<NumTokens; nt++)
+   { 
      /*--------------------------------------------------------------*/
      /* parse DISP element                                           */
      /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Token,"DISP") )
+     if ( !strcasecmp(Tokens[nt],"DISP") )
       { 
-        nConv=sscanf(p,"%le %le %le %n",D,D+1,D+2,&nRead);
-        p+=nRead;
+        if ( nt+3 >= NumTokens )
+         return 1;
 
-        if ( nConv!=3 )
+        if (    1!=sscanf(Tokens[nt+1],"%le",DX+0)
+             || 1!=sscanf(Tokens[nt+2],"%le",DX+1)
+             || 1!=sscanf(Tokens[nt+3],"%le",DX+2) )
          return 1;
         
-        VecPlusEquals(VT,1.0,D);
+        DeltaGT=CreateOrAugmentGTransformation(DeltaGT, D);
+
+        nt+=3;
       }
      /*--------------------------------------------------------------*/
      /*- parse ROT element ------------------------------------------*/
      /*--------------------------------------------------------------*/
-     else if ( !strcasecmp(Token,"ROT") )
+     else if ( !strcasecmp(Token[nt],"ROT") )
       { 
-        nConv=sscanf(p,"%le %le %le %le %n",D,D+1,D+2,&Theta,&nRead);
-        p+=nRead;
-
-        if ( nConv!=4 )
+        if ( nt+4 >= NumTokens )
          return 1;
 
-        /* construct the 3x3 rotation matrix MTP for this rotation */
-        ConstructRotationMatrix(D, Theta, MTP);
+        if (    1!=sscanf(Tokens[nt+1],"%le",ZHat+0)
+             || 1!=sscanf(Tokens[nt+2],"%le",ZHat+1)
+             || 1!=sscanf(Tokens[nt+3],"%le",ZHat+2)
+             || 1!=sscanf(Tokens[nt+4],"%le",&Theta) )
+         return 1;
+        
+        DeltaGT=CreateOrAugmentGTransformation(DeltaGT, ZHat, Theta);
 
-        /* left-multiply MT by the new matrix MTP */
-        for(Mu=0; Mu<3; Mu++)
-         for(Nu=0; Nu<3; Nu++)
-          for(MTPP[Mu][Nu]=0.0, Rho=0; Rho<3; Rho++)
-           MTPP[Mu][Nu]+=MTP[Mu][Rho]*MT[Rho][Nu];
-        for(Mu=0; Mu<3; Mu++)
-         for(Nu=0; Nu<3; Nu++)
-          MT[Mu][Nu]=MTPP[Mu][Nu];
-
-        /* and we also have to left-multiply VT by MTP as well */
-        for(Mu=0; Mu<3; Mu++)
-         for(VTP[Mu]=0.0, Nu=0; Nu<3; Nu++)
-          VTP[Mu]+=MTP[Mu][Nu]*VT[Nu];
-
-        for(Mu=0; Mu<3; Mu++)
-         VT[Mu]=VTP[Mu];
-
+        nt+=4;
       }
      /*--------------------------------------------------------------*/
      /*- unknown keyword --------------------------------------------*/
@@ -566,19 +399,18 @@ int RWGObject::Transform(const char *pTransLine, ...)
 
    }; // while( *p )
 
-  /*--------------------------------------------------------------*/
-  /*- OK, now that we have constructed the matrix and vector that */
-  /*- define the transformation, we need to apply it to all points*/
-  /*- whose coordinates we store inside the RWGObject structure:  */
-  /*- vertices, edge centroids, and panel centroids.              */
-  /*--------------------------------------------------------------*/
+  /***************************************************************/
+  /*- OK, now that we have constructed the transformation, we    */
+  /*- need to apply it to all points whose coordinates we store  */
+  /*- inside the RWGObject structure: vertices, edge centroids,  */
+  /*- and panel centroids.                                       */
+  /***************************************************************/
   /* vertices */
-  for(nv=0; nv<NumVertices; nv++)
-   TransformPoint(Vertices+3*nv);
+  ApplyGTransformation(DeltaGT, Vertices, NumVertices);
 
   /* edge centroids */
   for(ne=0; ne<NumEdges; ne++)
-   TransformPoint(Edges[ne]->Centroid);
+   ApplyGTransformation(DeltaGT, Edges[ne]->Centroid, 1);
 
   /***************************************************************/
   /* reinitialize geometric data on panels (which takes care of  */ 
@@ -586,6 +418,11 @@ int RWGObject::Transform(const char *pTransLine, ...)
   /***************************************************************/
   for(np=0; np<NumPanels; np++)
    InitRWGPanel(Panels[np], Vertices);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  AugmentGTransformation(DeltaGT, GT);
 
   return 0;
 
@@ -599,14 +436,13 @@ void RWGObject::UnTransform()
   /***************************************************************/
   /* untransform vertices                                        */
   /***************************************************************/
-  for(nv=0; nv<NumVertices; nv++)
-   UnTransformPoint(Vertices+3*nv);
+  UnApplyGTransformation(GT, Vertices, NumVertices);
 
   /***************************************************************/
   /* untransform edge centroids                                  */
   /***************************************************************/
   for(ne=0; ne<NumEdges; ne++)
-   UnTransformPoint(Edges[ne]->Centroid);
+   UnApplyGTransformation(GT, Edges[ne]->Centroid, 1);
 
   /***************************************************************/
   /* reinitialize geometric data on panels (which takes care of  */ 
@@ -616,14 +452,9 @@ void RWGObject::UnTransform()
    InitRWGPanel(Panels[np], Vertices);
 
   /***************************************************************/
-  /* now that we are back to where we started, the transformation*/
-  /* that takes us back to where we started is the identity      */
-  /* transformation                                              */
   /***************************************************************/
-  for(Mu=0; Mu<3; Mu++)
-   for(Nu=0; Nu<3; Nu++)
-    MT[Mu][Nu]=(Mu==Nu) ? 1.0 : 0.0;
-  memset(VT,0,3*sizeof(double));
+  /***************************************************************/
+  ResetGTransformation(GT);
 
 }
 

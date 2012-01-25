@@ -37,12 +37,10 @@
 /*************************************************************/
 /*************************************************************/
 /*************************************************************/
-void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName, 
-                              double *RotMat, double *DX)
+void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName, GTransformation *GT)
 {
   RWGPanel *P;
   char buffer[100];
-  double *V, VRotated[3];
   int VI[3], Temp;
   int *GMSH2HR;
   int jGMSH;
@@ -104,30 +102,11 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
       RWGErrExit("%s: internal error in ReadGMSHFile",FileName);
      GMSH2HR[NodeIndex]=nv;
    }; /* for (nv=0; nv<NumVertices; nv++) */
- 
-  /*------------------------------------------------------------*/
-  /*- Apply rotation matrix (if any) to all vertices.          -*/
-  /*------------------------------------------------------------*/
-  if (RotMat)
-   { 
-     for(nv=0; nv<NumVertices; nv++)
-      { 
-        V=Vertices+3*nv;
-        memset(VRotated,0,3*sizeof(double));
-        for(i=0; i<3; i++)	
-         for(j=0; j<3; j++)	
-          VRotated[i]+=RotMat[ i + 3*j ] * V[j];
-        memcpy(V,VRotated,3*sizeof(double));
-      };
-   };
    
   /*------------------------------------------------------------*/
-  /*- Apply displacement vector (if any) to all nodes. ---------*/
+  /*- Apply geometrical transformation (if any) to all nodes.  -*/
   /*------------------------------------------------------------*/
-  if (DX)
-   { for(nv=0; nv<NumVertices; nv++)
-      VecPlusEquals(Vertices+3*nv,1.0,DX);
-   };
+  if (GT) ApplyGTransformation(GT, Vertices, NumVertices);
  
   /*------------------------------------------------------------*/
   /*- Eliminate any redundant vertices from the vertex list.   -*/
