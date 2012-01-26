@@ -33,7 +33,7 @@ typedef class IncFieldData
    double Mu;
    IncFieldData *Next;
 
-   // constructor just initializes the simple fields 
+   // constructor just initializes the simple fields
    IncFieldData() : Eps(1.0,0.0), Mu(1.0), Next(0) {}
 
    void SetFrequency(cdouble Omega);
@@ -67,8 +67,8 @@ struct PlaneWaveData : public IncFieldData
    cdouble E0[3];         /* E-field polarization vector */
    double nHat[3];        /* unit vector in direction of propagation */
 
-   // constructor 
    PlaneWaveData(cdouble E0[3], double nHat[3]);
+
    void GetFields(double *X, cdouble *EH);
 
  };
@@ -76,24 +76,25 @@ struct PlaneWaveData : public IncFieldData
 /**********************************************************************/
 /* point dipole source ************************************************/
 /**********************************************************************/  
-#if 0
-#define LIF_TYPE_PSEC 0   // 'point source of electric current'
-#define LIF_TYPE_PSMC 1   // 'point source of magnetic current'
+#define LIF_ELECTRIC_DIPOLE 0
+#define LIF_MAGNETIC_DIPOLE 1
 struct PointSourceData: public IncFieldData
  { 
    double X0[3];         /* location */
-   cdouble S[3];         /* strength */
-   int Type;             /* LIF_TYPE_PSEC / PSMC for electric/magnetic */ 
+   cdouble P[3];         /* strength */
+   int Type;             /* LIF_ELECTRIC_DIPOLE or LIF_MAGNETIC_DIPOLE */
 
-   // constructor 
-   PointSourceData(double X0[3], cdouble S[3], int Type);
-   PointSourceData(double X0[3], cdouble S[3]); // defaults to Type=LIF_TYPE_PSEC
+   PointSourceData(double X0[3], cdouble P[3], int Type);
+   PointSourceData(double X0[3], cdouble P[3]); // defaults to Type=LIF_ELECTRIC_DIPOLE
+
+   void GetFields(double *X, cdouble *EH);
 
  };
 
 /**********************************************************************/
 /* focused gaussian beam  **********8**********************************/
 /**********************************************************************/
+#if 0
 struct GaussianBeamData: public IncFieldData
  { 
    double X0[3];            /* beam center point */

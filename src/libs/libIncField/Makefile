@@ -9,7 +9,8 @@ include $(HOME)/work/Makefile.Rules
 HEADERS = libIncField.h
 
 OBJS = IncFieldData.o		\
-       PlaneWave.o
+       PlaneWave.o		\
+       PointSource.o
        
 ##################################################
 ##################################################
