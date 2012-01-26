@@ -159,16 +159,19 @@
 #include <libIncField.h>
 #include <libhmat.h>
 
-#include "libRWG.h"
-#include "EMScatter.h"
+#include "libscuff.h"
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#define MAXPSS  10    // max number of point sources
+#define MAXPW   1     // max number of plane waves
+#define MAXGB   1     // max number of gaussian beams
+#define MAXPS   10    // max number of point sources
 #define MAXFREQ 10    // max number of frequencies 
 #define MAXEPF  10    // max number of evaluation-point files
 #define MAXFM   10    // max number of flux meshes
+
+#define MAXSTR  1000
  
 /***************************************************************/
 /***************************************************************/
@@ -193,8 +196,9 @@ void usage(char *ProgramName, const char *format, ... )
   fprintf(stderr," incident field options: \n\n");
   fprintf(stderr,"  --pwPolarization Ex Ey Ez \n");
   fprintf(stderr,"  --pwDirection Nx Ny Nz \n");
-  fprintf(stderr,"  --gbCenter xx yy zz \n");
+  fprintf(stderr,"  --gbPolarization Nx Ny Nz\n");
   fprintf(stderr,"  --gbDirection Nx Ny Nz\n");
+  fprintf(stderr,"  --gbCenter xx yy zz \n");
   fprintf(stderr,"  --gbWaist W \n");
   fprintf(stderr,"  --psLocation xx yy zz \n");
   fprintf(stderr,"  --psOrientation xx yy zz \n");
@@ -232,42 +236,17 @@ void z2s(cdouble z, char *zStr)
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-
-  int narg, nConv, DoConsole=0, SourceType=LIF_TYPE_PSEC, nThread;
-
-  double Frequency, MuI, MuE;
-  cdouble EpsI, EpsE;
-  int lMax, RealFreq, ExportMatrix;
-
-  PlaneWaveData MyPWD, *PWD=0;
-  PointSourceData MyPSD, *PSD=0;
-  GaussianBeamData MyGBD, *GBD=0;
-  MagneticFrillData MyMFD, *MFD=0;
-  double WW;
-  double PSLocation[3], PSDirection[3];
-
-  char *GeoFileName;
-
-  #define MAXEPFILES 10
-  char *OEPFiles[MAXEPFILES];
-  int nOEPFiles=0;
-  char *IEPFiles[MAXEPFILES];
-  int nIEPFiles=0;
-  
-  #define MAXFLUXMESHES 10
-  char *FluxMeshFiles[MAXFLUXMESHES];
-  int nFluxMeshFiles=0;
-
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
-  cdouble pwPol[3];                  int npwPol;
-  double pwDir[3];                   int npwDir;
-  double gbCenter[3];                int ngbCenter;
-  double gbDir[3];                   int ngbDir;
-  double gbWaist[1];                 int ngbWaist;
-  double psLoc[3*MAXPSS];            int npsLoc;
-  cdouble psStrength[3*MAXPSS];      int npsStrength;
+  cdouble pwPol[3*MAXPW];            int npwPol;
+  double pwDir[3*MAXPW];             int npwDir;
+  cdouble gbPol[3*MAXGB];            int ngbPol;
+  double gbDir[3*MAXGB];             int ngbDir;
+  double gbCenter[3*MAXGB];          int ngbCenter;
+  double gbWaist[MAXGB];             int ngbWaist;
+  double psLoc[3*MAXPS];             int npsLoc;
+  cdouble psStrength[3*MAXPS];       int npsStrength;
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *EPFile[MAXEPF];              int nEPFiles;
@@ -276,13 +255,14 @@ int main(int argc, char *argv[])
   int ExportMatrix=0;
   /* name               type     args  instances  storage           count         description*/
   OptStruct OSArray[]=
-   { {"pwPolarization", PA_CDOUBLE, 3, 1,       (void *)pwPol,      &npwPol,      "plane wave polarization"},
-     {"pwDirection",    PA_DOUBLE,  3, 1,       (void *)pwDir,      &npwDir,      "plane wave direction"},
-     {"gbCenter",       PA_DOUBLE,  3, 1,       (void *)gbCenter,   &ngbCenter,   "gaussian beam center"},
-     {"gbDirection",    PA_DOUBLE,  3, 1,       (void *)gbDir,      &ngbDir,      "gaussian beam direction"},
-     {"gbWaist",        PA_DOUBLE,  1, 1,       (void *)gbWaist,    &ngbWaist,    "gaussian beam waist"},
-     {"psLocation",     PA_DOUBLE,  3, MAXPSS,  (void *)psLoc,      &npsLoc,      "point source location"},
-     {"psStrength",     PA_CDOUBLE, 3, MAXPSS,  (void *)psStrength, &npsStrength, "point source strength"},
+   { {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,      &npwPol,      "plane wave polarization"},
+     {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,      &npwDir,      "plane wave direction"},
+     {"gbPolarization", PA_CDOUBLE, 3, MAXGB,   (void *)gbPol,      &ngbPol,      "gaussian beam polarization"},
+     {"gbDirection",    PA_DOUBLE,  3, MAXGB,   (void *)gbDir,      &ngbDir,      "gaussian beam direction"},
+     {"gbCenter",       PA_DOUBLE,  3, MAXGB,   (void *)gbCenter,   &ngbCenter,   "gaussian beam center"},
+     {"gbWaist",        PA_DOUBLE,  1, MAXGB,   (void *)gbWaist,    &ngbWaist,    "gaussian beam waist"},
+     {"psLocation",     PA_DOUBLE,  3, MAXPS,   (void *)psLoc,      &npsLoc,      "point source location"},
+     {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength, &npsStrength, "point source strength"},
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nOmegaVals,  "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile, &nOmegaFiles, "list of (angular) frequencies"},
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,    &nEPFiles,    "list of evaluation points"},
@@ -299,59 +279,55 @@ int main(int argc, char *argv[])
   /* process frequency-related options to construct a list of        */
   /* frequencies at which to run simulations                         */
   /*******************************************************************/
-  HVector *OmegaList0=0, *OmegaList=0;
-  int nFreq, NumFreqs=0;
-  if (nOmegaFiles==1)
+  HVector *OmegaList=0, *OmegaList0;
+  int nFreq, nOV, NumFreqs=0;
+  if (nOmegaFiles==1) // first process --OmegaFile option if present
    { 
-     OmegaList0=new HVector(OmegaFile,LHM_TXT);
-     if (OmegaList0->ErrMsg)
+     OmegaList=new HVector(OmegaFile,LHM_TXT);
+     if (OmegaList->ErrMsg)
       ErrExit(ErrMsg);
-
-     NumFreqs=OmegaList0->N;
-
-     // convert it to cdouble if it isn't already
-     if (OmegaList0->RealComplex!=LHM_COMPLEX)
-      { OmegaList=new HVector(NumFreqs, LHM_COMPLEX);
-        for(nFreq=0; nFreq<NumFreqs; nFreq++)
-         OmegaList->SetEntry(nFreq, OmegaList0->GetEntry(nFreq));
-        delete OmegaList0;
-        OmegaList0=OmegaList;
-      };
-
+     NumFreqs=OmegaList->N;
    };
 
+  // now add any individually specified --Omega options
   if (nOmegaVals>0)
    { 
      NumFreqs += nOmegaVals;
+     OmegaList0=OmegaList;
      OmegaList=new HVector(NumFreqs, LHM_COMPLEX);
      nFreq=0;
-     if (OmegaList0) 
-      for(nFreq=0; nFreq<OmegaList0->N; nFreq++)
-       OmegaList->SetEntry(nFreq, OmegaList0->GetEntry(nFreq));
-     int nf;
-     for(nf=0; nf<nOmegaVals; nf++)
-      OmegaList->SetEntry(nFreq+nf, OmegaVals[nf]);
+     if (OmegaList0)
+      { for(nFreq=0; nFreq<OmegaList0->N; nFreq++)
+         OmegaList->SetEntry(nFreq, OmegaList0->GetEntry(nFreq));
+        delete OmegaList0;
+      };
+     for(nOV=0; nOV<nOmegaVals; nOV++)
+      OmegaList->SetEntry(nFreq+nOV, OmegaVals[nOV]);
    };
+
+  if ( !OmegaList || OmegaList->N==0)
+   OSUsage(argv[0], OSArray, "you must specify at least one frequency");
 
   /*******************************************************************/
   /* process incident-field-related options to construct the data    */
   /* used to generate the incident field in our scattering problem   */
   /*******************************************************************/
-  IncFieldData *IFDList=0, *IFD;
-  int nps;
   if ( npwPol != npwDir )
    ErrExit("numbers of --pwPolarization and --pwDirection options must agree");
-  if ( ngbCenter!=ngbDirection || ngbDirection!=ngbWaist )
-   ErrExit("numbers of --gbCenter, --gbDirection, and --gbWaist options must agree ");
+  if ( ngbPol != ngbDir || ngbDir!=ngbCenter || ncbCenter!=ngbWaist )
+   ErrExit("numbers of --gbPolarization, --gbDirection, --gbCenter, and --gbWaist options must agree ");
   if ( npsLoc!=npsOrnt )
    ErrExit("numbers of --psLocation and --psOrientation options must agree");
-  if ( npwPol==1 )
-   { IFD=new PlaneWaveData(npwPol, npwDir);
+
+  IncFieldData *IFDList=0, *IFD;
+  int npw, npgb, nps;
+  for(npw=0; npw<npwLoc; npw++)
+   { IFD=new PlaneWaveData(npwPol + 3*npw, npwDir + 3*npw);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
-  if ( ngbCenter==1 )
-   { IFD=new GaussianBeamData(gbCenter, gbDirection, gbWaist);
+  for(ngb=0; ngb<ngbCenter; ngb++)
+   { IFD=new GaussianBeamData(gbCenter + 3*ngb, gbDir + 3*ngb, gbPol + 3*ngb, gbWaist[ngb]);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
@@ -362,7 +338,7 @@ int main(int argc, char *argv[])
    };
 
   if (IFDList==0)
-   ErrExit("you must specify at least one incident field source");
+   OSUsage(argv[0], OSArray, "you must specify at least one incident field source");
 
   /*******************************************************************/
   /* create the RWGGeometry, allocate BEM matrix and RHS vector      */
@@ -370,6 +346,9 @@ int main(int argc, char *argv[])
   RWGGeometry *G=new RWGGeometry(GeoFileName); 
   HMatrix *M=G->AllocateBEMMatrix(RealFreq);
   HVector *KN=G->AllocateRHSVector(RealFreq);
+
+  char GeoFileBase[MAXSTR];
+  snprintf(GeoFileBase, MAXSTR, GetFileBase(GeoFileName));
 
   /*******************************************************************/
   /* loop over frequencies *******************************************/
@@ -388,7 +367,7 @@ int main(int argc, char *argv[])
      Log("  Assembling the BEM matrix...");
      G->AssembleBEMMatrix(Omega, nThread, M);
      if (ExportMatrix)
-      { void *pCC=HMatrix::OpenC2MLContext(GetFileBase(G->GeoFileName),"_%s",OmegaStr);
+      { void *pCC=HMatrix::OpenC2MLContext(GeoFileBase,"_%s",OmegaStr);
         M->ExportToMATLAB(pCC,"M");
         HMatrix::CloseC2MLContext(pCC);
       };
@@ -397,66 +376,43 @@ int main(int argc, char *argv[])
      M->LUFactorize();
 
      /***************************************************************/
-     /* set up the incident field profile and create the RHS vector */
+     /* set up the incident field profile and assemble the RHS vector */
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
+     G->MP->GetEpsMu(Omega,&Eps,&Mu);
+     IFDList->SetFrequencyAndEpsMu(Omega,Eps,Mu);
+     M->AssembleRHSVector(EHIncField, (void *)IFDList, nThread, KN);
 
-     // fill in the Omega parameter 
+     /***************************************************************/
+     /* solve the BEM system*****************************************/
+     /***************************************************************/
+     Log("Solving the BEM system...");
+     printf("Solving the BEM system...\n");
+     M->LUSolve(KN);
 
+     /***************************************************************/
+     /* process requested outputs                                   */
+     /***************************************************************/
 
-  /***************************************************************/
-  /* solve the BEM system*****************************************/
-  /***************************************************************/
-  Log("Solving the BEM system...");
-  printf("Solving the BEM system...\n");
-  M->LUSolve(KN);
+     /*--------------------------------------------------------------*/
+     /*- b. compute fields at user-specified lists of evaluation     */
+     /*--------------------------------------------------------------*/
+     int nepf;
+     for(nepf=0; nepf<nOEPFiles; nepf++)
+      ProcessEPFile(EMSD, OEPFiles[nepf], -1);
+     for(nepf=0; nepf<nIEPFiles; nepf++)
+     ProcessEPFile(EMSD, IEPFiles[nepf], 0);
+     HMatrix *EPMatrix=0;
 
-  /***************************************************************/
-  /* and now we've solved the scattering problem, and we can     */
-  /* proceed to compute the scattered field at arbitary points   */
-  /* in space, which we do in one or more of three ways according*/
-  /* to what the user requested.                                 */
-  /***************************************************************/
+     /*--------------------------------------------------------------*/
+     /*- c. flux plots on user-specified surface meshes -------------*/
+     /*--------------------------------------------------------------*/
+     int nfm;
+     for(nfm=0; nfm<nFluxMeshFiles; nfm++)
+      CreateFluxPlot(EMSD, FluxMeshFiles[nfm]);
 
-  /***************************************************************/
-  /* first create the data structure passed to the output modules*/
-  /***************************************************************/
-  EMSData MyEMSData, *EMSD=&MyEMSData;
-  EMSD->G=G;
-  EMSD->KN=KN;
-  EMSD->Frequency=Frequency;
-  EMSD->RealFreq=RealFreq;
-  EMSD->nThread=nThread;
-  EMSD->opPWD=(void *)PWD;
-  EMSD->opGBD=(void *)GBD;
-  EMSD->opPSD=(void *)PSD;
-  EMSD->opMFD=(void *)MFD;
+   }; //  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
 
-  /*--------------------------------------------------------------*/
-  /* a. interactive console mode if user requested it             */
-  /*--------------------------------------------------------------*/
-  if (DoConsole)
-   { Log("Entering console mode...");
-     Console(EMSD);
-   };
-
-  /*--------------------------------------------------------------*/
-  /*- b. fields at user-specified lists of evaluation points     -*/
-  /*--------------------------------------------------------------*/
-  int nepf;
-  for(nepf=0; nepf<nOEPFiles; nepf++)
-   ProcessEPFile(EMSD, OEPFiles[nepf], -1);
-  for(nepf=0; nepf<nIEPFiles; nepf++)
-   ProcessEPFile(EMSD, IEPFiles[nepf], 0);
-  HMatrix *EPMatrix=0;
-
-  /*--------------------------------------------------------------*/
-  /*- c. flux plots on user-specified surface meshes -------------*/
-  /*--------------------------------------------------------------*/
-  int nfm;
-  for(nfm=0; nfm<nFluxMeshFiles; nfm++)
-   CreateFluxPlot(EMSD, FluxMeshFiles[nfm]);
-   
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
