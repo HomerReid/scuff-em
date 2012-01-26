@@ -1,10 +1,6 @@
 /*
  * libIncField.h -- routines for evaluating the electric and magnetic
- *               -- fields of plane waves and of point sources
- *
- *               -- originally designed for use with libRWG scattering 
- *               -- codes but now split out into a separate standalone 
- *               -- library
+ *               -- fields of various known types of field configurations
  *
  *               -- documentation at
  *               --  http://homerreid.com/scuff-EM/libIncField
@@ -26,113 +22,111 @@
 #endif
 
 /**********************************************************************/
-/* IncFieldData is a general base class from which various specific   */
-/* classes are derived.                                               */
+/* IncFieldData is a general base class from which specific classes   */
+/* for various types of field are derived.                            */
 /**********************************************************************/
-typedef struct IncFieldData;
+typedef class IncFieldData
  { 
+ public:
    cdouble Omega;
    cdouble Eps;
    double Mu;
-   struct IncFieldData *Next;
+   IncFieldData *Next;
+
+   // constructor just initializes the simple fields 
+   IncFieldData() : Eps(1.0,0.0), Mu(1.0), Next(0) {}
+
+   void SetFrequency(cdouble Omega);
+   void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, double Mu);
+   
+   virtual void GetFields(double *X, cdouble *EH) = 0 ;
 
  } IncFieldData;
 
-void 
 
 /**********************************************************************/
+/* this is the function with the proper prototype for passage to the  */
+/* AssembleRHSVector() routine in libscuff. its implementation within */
+/* libIncField expects the UserData field to point to the head of a   */
+/* linked list of structures derived from IncFieldData. the field     */
+/* returned is the sum of the fields associated with each structure in*/
+/* the list.                                                          */
 /**********************************************************************/
-/**********************************************************************/
+void EHIncField(double *X, void *UserData, cdouble EH[6]);
 
+/**********************************************************************/
+/* Next come the various possible types of incident field, implemented*/
+/* as structs derived from IncFieldData.                              */
+/**********************************************************************/
 
 /**********************************************************************/
 /* plane wave *********************************************************/
 /**********************************************************************/
-typedef struct PlaneWaveData
- { double Frequency;      /* real or imaginary frequency */
-   int RealFreq;          /* =1 for real frequency, 0 for imaginary frequency */
-   double Eps, Mu;        /* RELATIVE constants of medium in which wave travels */
+struct PlaneWaveData : public IncFieldData
+ { 
    cdouble E0[3];         /* E-field polarization vector */
    double nHat[3];        /* unit vector in direction of propagation */
- } PlaneWaveData;
 
-void EHPlaneWave(double X[3], void *opPWD, cdouble *EH);
+   // constructor 
+   PlaneWaveData(cdouble E0[3], double nHat[3]);
+   void GetFields(double *X, cdouble *EH);
 
-/**********************************************************************/
-/* point source *******************************************************/
-/**********************************************************************/
-#define LIF_TYPE_PSEC 0
-#define LIF_TYPE_PSMC 1
-
-typedef struct PointSourceData
- {
-   double Frequency;      /* real or imaginary frequency */
-   int RealFreq;          /* =1 for real frequency, 0 for imaginary frequency */
-   double Eps, Mu;        /* properties of medium through which wave travels */
-   double X0[3];          /* location of point source */
-   double nHat[3];        /* direction of point source */
-   int SourceType;        /* either LIF_TYPE_PSEC or LIF_TYPE_PSMC */
- } PointSourceData;
-
-void EHPointSource(double X[3], void *opPSD, cdouble *EH);
+ };
 
 /**********************************************************************/
-/* complex point source  **********************************************/
-/**********************************************************************/
-typedef struct ComplexPointSourceData
- { double Frequency;      /* real or imaginary frequency */
-   int RealFreq;          /* =1 for real frequency, 0 for imaginary frequency */
-   double Eps, Mu;        /* properties of medium through which wave travels */
-   double X0[3];          /* location of point source */
-   cdouble P[3];          /* components of source */
-   int SourceType;        /* either LIF_TYPE_PSEC or LIF_TYPE_PSMC */
- } ComplexPointSourceData;
+/* point dipole source ************************************************/
+/**********************************************************************/  
+#if 0
+#define LIF_TYPE_PSEC 0   // 'point source of electric current'
+#define LIF_TYPE_PSMC 1   // 'point source of magnetic current'
+struct PointSourceData: public IncFieldData
+ { 
+   double X0[3];         /* location */
+   cdouble S[3];         /* strength */
+   int Type;             /* LIF_TYPE_PSEC / PSMC for electric/magnetic */ 
 
-void EHComplexPointSource(double X[3], void *opCPSD, cdouble *EH);
+   // constructor 
+   PointSourceData(double X0[3], cdouble S[3], int Type);
+   PointSourceData(double X0[3], cdouble S[3]); // defaults to Type=LIF_TYPE_PSEC
+
+ };
+
+/**********************************************************************/
+/* focused gaussian beam  **********8**********************************/
+/**********************************************************************/
+struct GaussianBeamData: public IncFieldData
+ { 
+   double X0[3];            /* beam center point */
+   double KProp[3];         /* beam propagation vector */
+   cdouble E0[3];           /* complex field-strength vector */
+   double W0;               /* beam waist */
+
+   // constructor 
+   GaussianBeamData(double X0[3], double KProp[3], cdouble E0[3], double W0);
+
+ };
+#endif
 
 /**********************************************************************/
 /* magnetic 'frill' (annulus)    **************************************/
 /**********************************************************************/
-typedef struct MagneticFrillData
- { double Frequency;      /* real or imaginary frequency */
-   int RealFreq;          /* =1 for real frequency, 0 for imaginary frequency */
-   double Eps, Mu;        /* properties of medium through which wave travels */
+#if 0
+struct MagneticFrillData: public IncFieldData
+ {
    double X0[3];          /* center of frill */
    double Theta, Phi;     /* angles of frill axis */
    double RIn, ROut;      /* inner and outer radii */
  } MagneticFrillData;
 
-void EHMagneticFrill(double X[3], void *opMFD, cdouble *EH);
-void DrawMagneticFrill(void *opMFD, const char *PPFile);
-
 /**********************************************************************/
 /* magnetic solenoid                            ***********************/
 /**********************************************************************/
-typedef struct MagneticSolenoidData
- { double Frequency;      /* real or imaginary frequency */
-   int RealFreq;          /* =1 for real frequency, 0 for imaginary frequency */
-   double Eps, Mu;        /* properties of medium through which wave travels */
+struct MagneticSolenoidData: public IncFieldData
+ { 
    double X0[3];          /* center */
    double Theta, Phi;     /* angles of solenoid axis */
    double Radius, L;      /* radius and length  */
  } MagneticSolenoidData;
-
-void EHMagneticSolenoid(double X[3], void *opMDD, cdouble *EH);
-void DrawMagneticSolenoid(void *opMDD, const char *PPFile);
-
-/**********************************************************************/
-/* focused gaussian beam  **********8**********************************/
-/**********************************************************************/
-typedef struct GaussianBeamData
- { double Frequency;        /* real or imaginary frequency */
-   int RealFreq;            /* =1 for real frequency, 0 for imaginary frequency */
-   double Eps, Mu;          /* properties of medium through which wave travels */
-   double W0;               /* beam waist */
-   double X0[3];            /* beam center point */
-   double KProp[3];         /* beam propagation vector */
-   cdouble E0[3];           /* complex field-strength vector */
- } GaussianBeamData;
-
-void EHGaussianBeam(double X[3], void *opGBD, cdouble *EH);
+#endif
 
 #endif
