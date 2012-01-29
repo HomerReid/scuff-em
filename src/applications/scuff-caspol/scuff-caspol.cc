@@ -28,6 +28,40 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#define FILETYPE_BYXI 0
+#define FILETYPE_OUT  1
+void WriteFilePreamble(FILE *f, int argc, char *argv[], int FileType)
+{ 
+
+  time_t MyTime=time(0);
+  struct tm *MyTm=localtime(&MyTime);
+  char TimeString[200];
+  strftime(TimeString,30,"%D::%T",MyTm);
+
+  fprintf(f,"# scuff-caspol running on %s (%s)\n",getenv("HOST"),TimeString);
+  fprintf(f,"#");
+  fprintf(f,"# command line:\n");
+  fprintf(f,"# scuff-caspol ");
+  for(narg=0; narg<(argc-1); narg++)
+   fprintf(f,"# %s%s",argv[narg+1],(narg%4)==3 ? "\n# " : " ");
+  fprintf(f,"#\n");
+  fprintf(f,"#\n");
+  fprintf(f,"# data columns:\n");
+  fprintf(f,"1: X \n");
+  fprintf(f,"2: Y \n");
+  fprintf(f,"3: Z \n");
+  if (FileType==FILETYPE_BYXI)
+   { fprintf(f,"4: Xi \n");
+     fprintf(f,"5: casimir-polder potential per unit frequency at (X, Y, Z, Xi)\n");
+   }
+  else
+   fprintf(f,"4: casimir-polder potential at (X, Y, Z)\n");
+  
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int main(int argc, char *argv[])
 {
   /***************************************************************/
@@ -40,6 +74,7 @@ int main(int argc, char *argv[])
   char *XiFile=0;
   int nThread=0;
   double Temperature=0.0;
+  double AbsTol=ABSTOL, RelTol=RELTOL, XiMin=XIMIN;
   OptStruct OSArray[]=
    { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,  0,          ".scuffgeo file"},
      {"PolFile",        PA_STRING,  1, 1,       (void *)&PolFile,  0,          "molecule polarizability file"},
@@ -47,7 +82,10 @@ int main(int argc, char *argv[])
      {"Xi",             PA_DOUBLE,  1, MAXXI,   (void *)XiValues,  &nXiValues, "imaginary frequency"},
      {"XiList",         PA_DOUBLE,  1, 1,       (void *)&XiFile,   0,          "list of imaginary frequencies"},
      {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature, 0,       "temperature in kelvin"},
-     {"nThread",        PA_BOOL,    0, 1,       (void *)&nThread,  0,          "number of CPU threads to use"},
+     {"AbsTol",         PA_DOUBLE,  0, 1,       (void *)&AbsTol,   0,          "absolute tolerance for summation/integration"},
+     {"RelTol",         PA_DOUBLE,  0, 1,       (void *)&RelTol,   0,          "relative tolerance for summation/integration"},
+     {"XiMin",          PA_DOUBLE,  0, 1,       (void *)&XiMin,    0,          "relative tolerance for summation/integration"},
+     {"nThread",        PA_INT,     0, 1,       (void *)&nThread,  0,          "number of CPU threads to use"},
      {0,0,0,0,0,0,0}
    };
 
@@ -55,36 +93,35 @@ int main(int argc, char *argv[])
    OSUsage(argv[0], OSArray,"--geometry option is mandatory");
   if (EPFile==0)
    OSUsage(argv[0], OSArray,"--EPfile option is mandatory");
- // if (PolFile==0) 
- //  OSUsage(argv[0], OSArray,"--PolFile option is mandatory");
   if (nThread==0)
    nThread=GetNumProcs();
 
   /*******************************************************************/
-  /* create the RWGGeometry, allocate BEM matrix and RHS vector      */
+  /* create the RWGGeometry, allocate BEM matrix and RHS vector, and */
+  /* set up the data structure passed to the computational routines  */
   /*******************************************************************/
   SCPData MySCPData, *SCPD=&MySCPData;
 
   SCPD->G  = new RWGGeometry(GeoFile); 
   SCPD->M  = G->AllocateBEMMatrix(IMAG_FREQ);
-  SCPF->KN = G->AllocateRHSVector(IMAG_FREQ);
+  SCPD->KN = G->AllocateRHSVector(IMAG_FREQ);
 
   SCPD->nThread=nThread;
+  SCPD->AbsTol=AbsTol;
+  SCPD->RelTol=RelTol;
+  SCPD->XiMin=XiMin;
 
-  char GeoFileBase[MAXSTR];
-  snprintf(GeoFile, MAXSTR, GetFileBase(GeoFile));
   SetLogFileName("scuff-caspol.log");
 
   /*******************************************************************/
   /* process polarization file                                       */
   /*******************************************************************/
-  memset(SCPD->AlphaMP, 0, 9*sizeof(SCPD->AlphaMP[0]) );
-  ProcessPolarizationFile(
+  ProcessPolarizationFile(PolFile, SCPD);
 
   /*******************************************************************/
   /* process list of evaluation points *******************************/
   /*******************************************************************/
-  HMatrix *EPList=new HMatrix(EPFile,LHM_TEXT,"--ncol 3");
+  HMatrix *EPList=SCPD->EPList=new HMatrix(EPFile,LHM_TEXT,"--ncol 3");
   if (EPList->ErrMsg)
    ErrExit(EPList->ErrMsg);
 
@@ -127,6 +164,15 @@ int main(int argc, char *argv[])
    };
 
   /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  char GeoFileBase[MAXSTR], ByXiFileName[MAXSTR]; 
+  snprintf(GeoFileBase, MAXSTR, GetFileBase(GeoFile));
+  snprintf(ByXiFileName, MAXSTR, "%s.byXi",GeoFileBase);
+  SCPD->ByXiFile=CreateUniqueFile(ByXiFileName,1,ByXiFileName);
+  WriteFilePreamble(SCPD->ByXiFile, argc, argv, FILETYPE_BYXI);
+
+  /*******************************************************************/
   /* main program body:                                              */
   /*                                                                 */
   /*  (a) if the user specified a set of frequencies, then we just   */
@@ -146,21 +192,46 @@ int main(int argc, char *argv[])
    {
      for(nXi=0; nXi<XiList->N; nXi++)
       { Xi=XiList->GetEntry(N);
-        GetCPIntegrand(SCPData, Xi, EPList, U);
+        GetCPIntegrand(SCPD, Xi, U);
       };
    }
   else if ( Temperature != 0.0 )
    { 
-     EvaluateMatsubaraSum(SCPData, EPList, U);
+     EvaluateMatsubaraSum(SCPD, Temperature, U);
    }
   else
    { 
-     EvaluateFrequencyIntegral(SCPData, EPList, U);
+     EvaluateFrequencyIntegral(SCPD, U);
+   };
+  fclose(SCPData->ByXiFile);
+
+  /***************************************************************/
+  /* write frequency-integrated or matsubara-summed results to   */
+  /* output file if that was requested                           */
+  /***************************************************************/
+  if (!XiList)
+   {
+     char OutFileName[MAXSTR];
+     snprintf(OutFileName, MAXSTR, "%s.out",GeoFileBase);
+     FILE *OutFile=CreateUniqueFile(OutFileName,1,OutFileName);
+     WriteFilePreamble(OutFileName, argc, argv, FILETYPE_OUT);
+     int nep;
+     for(nep=0; nep<EPList->NR; nep++)
+      fprintf(OutFile,"%e %e %e %e \n", EPList->GetEntryD(nep,0),
+                                        EPList->GetEntryD(nep,1),
+                                        EPList->GetEntryD(nep,2),
+                                        U[nep]);
+     fclose(f);
    };
 
   /***************************************************************/
+  /***************************************************************/  
   /***************************************************************/
-  /***************************************************************/
+  fprintf("Frequency-resolved data written to file %s.\n",ByXiFileName);
+  if (Temperature>0.0)
+   fprintf("Matsubara-summed data written to file %s.\n",OutFileName);
+  else if (XiList!=0)
+   fprintf("Frequency-integrated data written to file %s.\n",OutFileName);
   printf("Thank you for your support.\n");
 
 }
