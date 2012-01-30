@@ -1,49 +1,48 @@
 /*
  * scuff-caspol.h    -- header file for scuff-caspol
  *
- * homer reid        -- 10/2006 -- 2/2012
+ * homer reid        -- 1/2012
  *
  */
+#ifndef SCUFF_CASPOL_H
+#define SCUFF_CASPOL_H
+
 #include <stdio.h>
 #include <math.h>
 #include <stdarg.h>
 
 #include <libhrutil.h>
-#include <libIncField.h>
 #include <libhmat.h>
-
-#include "libscuff.h"
+#include <libMDInterp.h>
+#include <libRWG.h>
 
 // default tolerances for numerical summation and integration
 #define ABSTOL 1.0e-8
 #define RELTOL 1.0e-3
 
-// the minimum frequency at which we do calculations. 
-#define XIMIN 1.0e-3
+// the minimum frequency at which we do calculations
+#define XIMIN 1.0e-6
 
 /***************************************************************/
-/* prototype for user-supplied routine to compute              */
-/* polarizability.                                             */
-/*                                                             */
-/* on entry, Xi is the imaginary (angular) frequency in units  */
-/* of 3e14 radians/second.                                     */
-/*                                                             */
-/* the routine fills in the Alpha array with the components of */
-/* the polarizability tensor, as follows:                      */
-/*                                                             */
-/*  Alpha[ i + 3*j ] = Alpha_{ij}                              */
-/*                                                             */
-/* for i,j = 0,1,2.                                            */
-/*                                                             */
-/* thus, on return,                                            */
-/*  Alpha[0] is the xx polarizability                          */
-/*  Alpha[1] is the xy polarizability                          */
-/*  Alpha[2] is the xz polarizability                          */
-/*  Alpha[3] is the yz polarizability                          */
-/* etc.                                                        */
-/* (only nonzero entries need be filled in.)                   */
+/* PolModel is a simple class used to describe the frequency-  */
+/* dependent polarizability of atoms and molecules. it exports */
+/* just a single class method, GetPolarizability(), which takes*/
+/* an imaginary frequency as an input and computes values of   */
+/* the polarizability tensor at that frequency.                */
 /***************************************************************/
-typedef void (*AlphaFuncType)(double Xi, double *Alpha);
+class PolModel
+ {
+public:
+   // constructor (the parameter is a filename)
+   PolModel(const char *PolFile);
+
+   // routine to compute the polarizability 
+   void GetPolarizability(double Xi, double *Alpha);
+
+   // implementation-dependent data
+   Interp1D *PolInterp;
+
+ };
 
 /***************************************************************/
 /* SCPData ('scuff-caspol-data') is the basic structure passed */
@@ -56,13 +55,22 @@ typedef struct SCPData
    HMatrix *M;
    HVector *KN;
 
-   MatProp *AlphaMP[9];
-   AlphaFuncType AlphaFunc;
+   PolModel *PM;
 
    HMatrix *EPList;
 
    int nThread;
    double AbsTol, RelTol;
+   double XiMin;
    FILE *ByXiFile;
 
  } SCPData; 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetCPIntegrand(SCPData *SCP, double Xi, double *U);
+void EvaluateMatsubaraSum(SCPData *SCP, double Temperature, double *U);
+void EvaluateFrequencyIntegral(SCPData *SCP, double *U);
+
+#endif

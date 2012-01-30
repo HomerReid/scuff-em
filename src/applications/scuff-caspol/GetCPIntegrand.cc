@@ -6,11 +6,83 @@
  *
  */
 
-#include <stdio.h>
-#include <math.h>
-#include <stdarg.h>
+#include <complex>
 
-#include <scuff-caspol.h>
+#include <libSGJC.h>
+#include <libIncField.h>
+
+#include "scuff-caspol.h"
+
+// prefactor that enters into the calculation of the 
+// casimir-polder potential.
+// below, we obtain the casimir-polder potential as the quantity
+//  PF * \int d\xi * \xi^2 * Tr(\alpha * G) 
+// where 
+//  -- \xi has units of 3e14 rad/sec 
+//  -- \alpha has units of a0^3 (bohr radius)
+//  -- G has units of 1/um 
+// thus if we put 
+//  PF = (\hbar c / 1um) * (a0 / 1um)^3
+//     = (0.1973 ev) * (0.529177e-4)^3
+// then the result of our calculation will be an 
+// energy in units of ev.                         
+#define PREFAC 2.9237e-14
+
+
+// factor that converts temperature from degrees
+// kelvin to my internal energy units 
+// (in which '1' == 0.1973 ev.)
+// how this works: 
+//  a. temperature in eV = kT = 8.6173e-5 * (T in kelvin)
+//  b. temperature in my internal energy units
+//     = (kT in eV) / (0.1973 eV)
+//     = (8.6173e-5 / 0.1973 ) * (T in Kelvin)
+#define BOLTZMANNK 4.36763e-4
+
+/***************************************************************/
+/* compute the dyadic green's function at a distance Z above a */
+/* PEC plate using the method of images.                       */
+/***************************************************************/
+void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
+{
+  // construct a point source at the image location
+  PointSourceData MyPSD;
+  MyPSD.Frequency=Xi;
+  MyPSD.RealFreq=IMAG_FREQ;
+  MyPSD.Eps=1.0;
+  MyPSD.Mu=1.0;
+  MyPSD.X0[0]=0.0;
+  MyPSD.X0[1]=0.0;
+  MyPSD.X0[2]=-Z;
+  MyPSD.SourceType=LIF_TYPE_PSEC;
+
+  // get each column of the DGF
+  cdouble EH[6];
+  double X[3]={0.0, 0.0, Z}; 
+
+  MyPSD.nHat[0] = -1.0;   MyPSD.nHat[1] =  0.0; MyPSD.nHat[2] = 0.0;
+  EHPointSource(X, (void *)&MyPSD, EH);
+  GE[0][0]=EH[0]; GE[1][0]=EH[1]; GE[2][0]=EH[2];
+
+  MyPSD.nHat[0] =  0.0;   MyPSD.nHat[1] = -1.0; MyPSD.nHat[2] = 0.0;
+  EHPointSource(X, (void *)&MyPSD, EH);
+  GE[0][1]=EH[0]; GE[1][1]=EH[1]; GE[2][1]=EH[2];
+  
+  MyPSD.nHat[0] =  0.0;   MyPSD.nHat[1] =  0.0; MyPSD.nHat[2] = 1.0;
+  EHPointSource(X, (void *)&MyPSD, EH);
+  GE[0][2]=EH[0]; GE[1][2]=EH[1]; GE[2][2]=EH[2];
+
+  // normalization factor needed to convert from 
+  // my normalization of the DGF, which has units
+  // of electric field / surface current, to the 
+  // usual normalization in which the DGF has units 
+  // of inverse length 
+  double Factor = -ZVAC*Xi;
+  int i, j;
+  for(i=0; i<3; i++)
+   for(j=0; j<3; j++)
+    GE[i][j] /= Factor;
+}
 
 /***************************************************************/
 /***************************************************************/
@@ -20,62 +92,52 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   RWGGeometry *G     = SCPD->G;
   HMatrix *M         = SCPD->M;
   HVector *KN        = SCPD->KN;
-  MatProp **AlphaMP  = SCPD->AlphaMP;
+  PolModel *PM       = SCPD->PM;
   HMatrix *EPList    = SCPD->EPList;
   int nThread        = SCPD->nThread;
   FILE *ByXiFile     = SCPD->ByXiFile;
 
   /***************************************************************/ 
   /* assemble and factorize the BEM matrix at this frequency     */ 
+  /* (unless we are doing the PEC plate case...)                 */ 
   /***************************************************************/
-  Log("Assembling BEM matrix at Xi=%g\n",Xi);
-  G->AssembleBEMMatrix(Xi, IMAG_FREQ, nThread, M);
-  M->LUFactorize();
+  if (G)
+   { Log("Assembling BEM matrix at Xi=%g\n",Xi);
+     G->AssembleBEMMatrix(Xi, IMAG_FREQ, nThread, M);
+     M->LUFactorize();
+   };
 
   /***************************************************************/ 
   /* get polarizability values at this frequency                 */ 
   /***************************************************************/ 
   double Alpha[9];
   memset(Alpha, 0, 9*sizeof(double));
-
-  if (SCPD->AlphaFunc) 
-   { 
-     SCPD->AlphaFunc(Xi, Alpha);
-   }
-  else
-   { int i, j;
-     for(i=0; i<3; i++)
-      for(j=0; j<3; j++)
-       if (AlphaMP[i+3*j])
-        Alpha[ i + 3*j] = AlphaMP[ i + 3*j]->GetEpsD(Xi, IMAG_FREQ);
-   };
+  PM->GetPolarizability(Xi, Alpha);
 
   /***************************************************************/ 
-  /* explain me **************************************************/ 
-  /***************************************************************/ 
-  double PreFac = -Xi / (2.0*M_PI);
-
-  /***************************************************************/ 
-  /* loop over all evaluation points to get the contributione of */ 
+  /* loop over all evaluation points to get the contribution  of */ 
   /* this frequency to the CP potential at each point            */
   /***************************************************************/ 
-  int nep;
+  int i, j, nep;
   double R[3];
   cdouble GE[3][3], GM[3][3];
   for(nep=0; nep<EPList->NR; nep++)
    { 
       /* get the dyadic GF at this eval point */
-      R[0]=M->GetEntryD(nep, 0);
-      R[1]=M->GetEntryD(nep, 1);
-      R[2]=M->GetEntryD(nep, 2);
-      G->GetGij(R, M, 0, KN, Xi, IMAG_FREQ, nThread, GE, GM);
+      R[0]=EPList->GetEntryD(nep, 0);
+      R[1]=EPList->GetEntryD(nep, 1);
+      R[2]=EPList->GetEntryD(nep, 2);
+      if (G)
+       G->GetGij(R, M, 0, KN, Xi, IMAG_FREQ, nThread, GE, GM);
+      else
+       GetPECPlateDGF(R[2], Xi, GE);
 
       /* compute the trace of Alpha \cdot G */
       for(U[nep]=0.0, i=0; i<3; i++)
        for(j=0; j<3; j++)
-        U[nep] += PreFac * Alpha[i][j] * real(GE[j][i]);
+        U[nep] += PREFAC * Xi * Xi * Alpha[i+3*j] * real(GE[j][i]);
       
-      fprintf(SCPD,"%e %e %e %e %e\n",R[0],R[1],R[2],Xi,U[nep]);
+      fprintf(SCPD->ByXiFile,"%e %e %e %e %e\n",R[0],R[1],R[2],Xi,U[nep]);
  
    }; 
 }
@@ -83,12 +145,6 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
 /***************************************************************/
 /* evaluate the matsubara sum at Temperature kelvin.           */
 /***************************************************************/
-// how this works: 
-//  a. temperature in eV = kT = 8.6173e-5 * (T in kelvin)
-//  b. temperature in our internal energy units
-//     = (kT in eV) / (0.1973 eV)
-//     = (8.6173e-5 / 0.1973 ) * (T in Kelvin)
-#define BOLTZMANNK 4.36763e-4
 void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
 { 
   int nXi, NEP=SCPD->EPList->NR;  // 'number of evaluation points' 
@@ -100,7 +156,7 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
   memset(U,0,NEP*sizeof(double));
   memset(ConvergedIters,0,NEP*sizeof(int));
 
-  Log("Beginning Matsubara sum at T=%g kelvin...",T);
+  Log("Beginning Matsubara sum at T=%g kelvin...",Temperature);
 
   for(nXi=0; nXi<100000; nXi++)
    { 
@@ -123,23 +179,18 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
      GetCPIntegrand(SCPD, Xi, dU);
 
      /***************************************************************/
-     /* accumulate contributions to the sum.                        */
+     /* accumulate contributions to the matsubara sum,              */
      /* how it works: the matsubara sum is                          */
      /*  2\pi kT *  \sum_n^\prime F(\xi_n)                          */
      /* where \xi_n is the nth matsubara frequency and F(\xi) is    */
-     /* the frequency integrand.                                    */
-     /* however, my FrequencyIntegrand() routine returns the        */
-     /* quantity FI = F(\xi_n) / (2\pi). (this is so that the       */
-     /* integral of FI over all \xi returns the correct casimir     */
-     /* quantity with no additional multiplicative prefactors.)     */
-     /* thus the matsubara sum is                                   */
-     /*  4\pi^2 kT *  \sum_n^\prime F(\xi_n)                        */
-     /* where the primed sum means that the n==0 term is weighted   */
+     /* the frequency integrand, and where the primed sum means     */
+     /* he n==0 term is weighted                                    */
      /* with a factor of 1/2.                                       */
      /***************************************************************/
      memcpy(LastU,U,NEP*sizeof(double));
+     int nep;
      for(nep=0; nep<NEP; nep++)
-      U[nep] += Weight * 4.0*M_PI*M_PI* kT * dU[nep];
+      U[nep] += Weight * 2.0*M_PI*kT * dU[nep];
 
      /*********************************************************************/
      /* convergence analysis.                                             */
@@ -153,7 +204,7 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
      for(AllConverged=1, nep=0; nep<NEP; nep++)
       { 
         Delta = fabs( (U[nep]-LastU[nep]) );
-        if ( Delta < AbsTol || Delta < RelTol*fabs(U[nep]) )
+        if ( Delta < SCPD->AbsTol || Delta < SCPD->RelTol*fabs(U[nep]) )
          ConvergedIters[nep]++;
         else
          ConvergedIters[nep]=0;
