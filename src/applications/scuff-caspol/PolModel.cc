@@ -33,7 +33,7 @@ PolModel::PolModel(const char *PolFileName)
    double XValues[N], YValues[N];
    for(n=0; n<N; n++)
     { XValues[n]=PolDataMatrix->GetEntryD(n,0);
-      YValues[n]=PolDataMatrix->GetEntryD(n,6);
+      YValues[n]=PolDataMatrix->GetEntryD(n,5);
     };
 
    // initialize the interpolator

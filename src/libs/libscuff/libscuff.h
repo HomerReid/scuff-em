@@ -107,10 +107,12 @@ class RWGObject
 
    /* constructor entry point 1: construct from an 'OBJECT...ENDOBJECT' */
    /* section in a .scuffgeo file                                       */ 
-   RWGObject::RWGObject(FILE *f, const char *Label, int *LineNum);
+   RWGObject(FILE *f, const char *Label, int *LineNum);
 
    /* constructor entry points 2 and 3: construct from a given mesh file */
    RWGObject(const char *pMeshFileName);
+   RWGObject(const char *pMeshFileName, const char *pLabel,
+             const char *Material, GTransformation *GT);
 
    /* constructor entry point 3: construct from a list of vertices */
    RWGObject(double *pVertices, int pNumVertices, 

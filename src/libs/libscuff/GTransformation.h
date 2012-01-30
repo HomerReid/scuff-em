@@ -33,6 +33,8 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
                                                 double *ZHat, double Theta);
 GTransformation *CreateGTransformation(double *ZHat, double Theta);
 
+void AugmentGTransformation(GTransformation *DeltaGT, GTransformation *GT);
+
 void ResetGTransformation(GTransformation *GT);
 
 /* apply in-place */

@@ -1,6 +1,5 @@
 /*
- * RWGGeometry.cc -- implementation of some methods in the RWGGeometry
- *                 -- class 
+ * RWGGeometry.cc -- implementation of some methods in the RWGGeometry class
  *
  * homer reid      -- 3/2007 
  */
@@ -16,43 +15,67 @@
 
 #include "libscuff.h"
 
-#include "StaticPPI.h"
-
-#define MAXOBJECTS 100
 #define MAXSTR 1000
+#define MAXTOK 50
 
 /***********************************************************************/
-/* RWGGeometry class constructor: Create an instance of an             */
-/* RWGGeometry from a .rwggeo file.                                    */
-/*                                                                     */
-/* This file should have the following syntax:                         */
-/*                                                                     */
-/*  OBJECT Object1.msh [additional options]                            */
-/*   ...                                                               */
-/*  OBJECT ObjectN.msh [additional options]                            */
-/*   ...                                                               */
-/*  MEDIUM MATERIAL ExtMaterialName                                    */
-/*                                                                     */
-/* where [additional options] can any assortment of the following:     */
-/*                                                                     */
-/*  LABEL    MyLabel                                                   */
-/*  INSIDE   SomeOtherObjectLabel                                      */
-/*  MATERIAL MyMaterialName                                            */
+/* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
+/* file. (currently the only keyword supported for this section is     */
+/* MATERIAL xx).                                                       */
+/***********************************************************************/
+void ProcessMediumSectionInFile(FILE *f, char *FileName, int *LineNum, 
+                                char *ExteriorMPName)
+{
+  char Line[MAXSTR];
+  int NumTokens;
+  char *p, *Tokens[MAXTOK];
+  ExteriorMPName[0]=0;
+  while( fgets(Line,MAXSTR,f) )
+   { 
+     (*LineNum)++;
+     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+     if ( NumTokens==0 || Tokens[0][0]=='#' )
+      continue; 
+
+     if ( !strcasecmp(Tokens[0],"MATERIAL") )
+      {
+        if (NumTokens!=2)
+         ErrExit("%s:%i: syntax error",FileName,*LineNum);
+        strncpy(ExteriorMPName,Tokens[1],MAXSTR);
+      }
+     else if ( !strcasecmp(Tokens[0],"ENDMEDIUM") )
+      { 
+        return;
+      }
+     else
+      {
+        ErrExit("%s:%i: unknown keyword %s",FileName,*LineNum,Tokens[0]);
+      };
+     
+   };
+
+  ErrExit("%s: unexpected end of file",FileName);
+
+}
+
+/***********************************************************************/
+/***********************************************************************/
 /***********************************************************************/
 RWGGeometry::RWGGeometry(const char *pGeoFileName)
 { 
-  FILE *f;
-  RWGObject *O, *ObjectArray[MAXOBJECTS];
-  char Line[MAXSTR];
-  char MeshFileName[MAXSTR];
-  char Token[MAXSTR];
-  char Label[MAXSTR]; 
-  char RotMat[MAXSTR];
-  char ContainingObjectLabel[MAXSTR];
-  char Material[MAXSTR];
-  char *p, *Tokens[50];
-  double DX[3];
-  int i, j, no, np, nRead, nConv, nt, nTokens, LineNum;
+  /***************************************************************/
+  /* NOTE: i am not sure where to put this. put it here for now. */
+  /***************************************************************/
+  MatProp::SetLengthUnit(1.0e-6);
+   
+  /***************************************************************/
+  /* storage for material properties defined on-the-fly in the   */
+  /* .scuffgeo file.                                             */
+  /* minor garbage-collection issue: MPs allocated in this       */
+  /* routine are never freed.                                    */
+  /***************************************************************/
+  MatProp *MP, **MPs=0;
+  int NumMPs;
 
   /***************************************************************/
   /* initialize simple fields ************************************/
@@ -60,23 +83,24 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   NumObjects=TotalBFs=TotalPanels=0;
   GeoFileName=strdup(pGeoFileName);
   ExteriorMP=0;
-
-  /***************************************************************/
-  /* NOTE: i am not sure where to put this. put it here for now. */
-  /***************************************************************/
-  MatProp::SetLengthUnit(1.0e-6);
+  Objects=0;
 
   /***************************************************************/
   /* try to open input file **************************************/
   /***************************************************************/
-  f=fopen(GeoFileName,"r");
+  FILE *f=fopen(GeoFileName,"r");
   if (!f)
-   RWGErrExit("could not open %s",GeoFileName);
+   ErrExit("could not open %s",GeoFileName);
 
   /***************************************************************/
   /* read and process lines from input file one at a time        */
   /***************************************************************/
-  LineNum=0; 
+  RWGObject *O;
+  char Line[MAXSTR], Label[MAXSTR];
+  int LineNum=0; 
+  int nt, nTokens;
+  char *p, *Tokens[MAXTOK];
+  char ExteriorMPName[MAXSTR];
   while( fgets(Line,MAXSTR,f) )
    { 
      LineNum++;
@@ -84,118 +108,160 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
      /*--------------------------------------------------------------*/
      /*- break up line into tokens; skip blank lines and comments ---*/
      /*--------------------------------------------------------------*/
-     nTokens=Tokenize(Line, Tokens, 50);
+     nTokens=Tokenize(Line, Tokens, MAXTOK);
      if ( nTokens==0 || Tokens[0][0]=='#' )
       continue; 
     
      /*--------------------------------------------------------------*/
-     /*- switch off based on first token ----------------------------*/
+     /*- switch off based on first token on the line ----------------*/
      /*--------------------------------------------------------------*/
      if ( !strcasecmp(Tokens[0],"MEDIUM") )
-      { if ( nTokens!=3 || strcasecmp(Tokens[1],"MATERIAL") )
-         RWGErrExit("file %s:%i: syntax error",GeoFileName,LineNum);
-        ExteriorMP=new MatProp(Tokens[2]);
-        if (ExteriorMP->ErrMsg)
-         RWGErrExit("file %s:%i: error in MATERIAL value: %s",GeoFileName,LineNum,ExteriorMP->ErrMsg);
+      { 
+        ProcessMediumSectionInFile(f,GeoFileName,&LineNum,ExteriorMPName);
+      }
+     else if ( !strcasecmp(Tokens[0],"MATERIAL") )
+      {
+        /*--------------------------------------------------------------*/
+        /* hand off to MatProp class constructor to parse this section  */
+        /*--------------------------------------------------------------*/
+        if ( nTokens==1 )
+         ErrExit("%s:%i: no name given for MATERIAL ",GeoFileName,LineNum);
+        else if ( nTokens>2 )
+         ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
+         
+        //MP = new MatProp(f,Label);
+        if (MP->ErrMsg)
+         ErrExit("%s:%i: %s",GeoFileName,LineNum,MP->ErrMsg); 
+
+        NumMPs++;
+        MPs=(MatProp **)realloc(MPs, NumMPs*sizeof(MatProp *));
+        MPs[NumMPs-1]=MP;
+           
       }
      else if ( !strcasecmp(Tokens[0],"OBJECT") )
       { 
-        if ( nTokens<2 )
-         RWGErrExit("file %s:%i: syntax error",GeoFileName,LineNum);
-        strncpy(MeshFileName,Tokens[1], MAXSTR);
-
-        ContainingObjectLabel[0]=Material[0]=RotMat[0]=0;
-        memset(DX,0,3*sizeof(double));
-        sprintf(Label,"Object%i",NumObjects+1); // default label
-        for(nt=2; nt<nTokens; nt++)
-         { 
-           if ( !strcasecmp(Tokens[nt],"LABEL") )
-            { if ( nt+2 > nTokens )
-               RWGErrExit("file %s:%i: syntax error",GeoFileName,LineNum);
-              strncpy(Label,Tokens[++nt],MAXSTR);
-            }
-           else if ( !strcasecmp(Tokens[nt],"INSIDE") )
-            { if ( nt+2 > nTokens )
-               RWGErrExit("file %s:%i: syntax error",GeoFileName,LineNum);
-              strncpy(ContainingObjectLabel,Tokens[++nt],MAXSTR);
-            }
-           else if ( !strcasecmp(Tokens[nt],"MATERIAL") )
-            { if ( nt+2 > nTokens )
-               RWGErrExit("file %s:%i: syntax error",GeoFileName,LineNum);
-              strncpy(Material,Tokens[++nt],MAXSTR);
-            }
-           else if ( !strcasecmp(Tokens[nt],"ROTMAT") )
-            { if ( nt+2 > nTokens )
-               RWGErrExit("file %s:%i: syntax error",GeoFileName,LineNum);
-              strncpy(RotMat,Tokens[++nt],MAXSTR);
-            }
-           else if ( !strcasecmp(Tokens[nt],"DISP") )
-            { if ( nt+4>nTokens )
-               RWGErrExit("file %s:%i: syntax error",GeoFileName,LineNum);
-              if (    1!=sscanf(Tokens[++nt],"%le",DX)
-                   || 1!=sscanf(Tokens[++nt],"%le",DX+1)
-                   || 1!=sscanf(Tokens[++nt],"%le",DX+2) 
-                 )
-               RWGErrExit("file %s:%i: invalid DISP specification",GeoFileName,LineNum);
-            }
-           else
-            RWGErrExit("file %s:%i: unknown keyword %s",GeoFileName,LineNum,Tokens[nt]);
+        /*--------------------------------------------------------------*/
+        /* hand off to RWGObject class constructor to parse this section*/
+        /*--------------------------------------------------------------*/
+        if ( nTokens>2 )
+         ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
+        else if ( nTokens==2 )
+         O=new RWGObject(f,Tokens[1],&LineNum);
+        else if ( nTokens==1 )
+         { snprintf(Label,MAXSTR,"Object_%i",NumObjects+1);
+           O=new RWGObject(f,Label,&LineNum);
          };
 
-        if (NumObjects==MAXOBJECTS)
-         RWGErrExit("%s:%i: too many objects \n",GeoFileName,LineNum);
+        if (O->ErrMsg)
+         ErrExit("%s:%i: %s",GeoFileName,LineNum,O->ErrMsg); 
 
-        /*--------------------------------------------------------------*/
-        /*- create the new RWG object ----------------------------------*/
-        /*--------------------------------------------------------------*/
-        O=new RWGObject(MeshFileName,Label,Material,RotMat,DX);
-        if (O->MP->ErrMsg)
-         RWGErrExit("file %s:%i: error in MATERIAL value: %s",
-                     GeoFileName,LineNum,O->MP->ErrMsg);
+        NumObjects++;
+        Objects=(RWGObject **)realloc(Objects, NumObjects*sizeof(RWGObject *) );
+        Objects[NumObjects-1]=O;
 
-        /*--------------------------------------------------------------*/
-        /*- attempt to find the containing object if one was specified -*/
-        /*--------------------------------------------------------------*/
-        if ( ContainingObjectLabel[0]!=0 )
-         { 
-           for(no=0; no<NumObjects && O->ContainingObject==0; no++)
-            if ( !strcasecmp(ObjectArray[no]->Label,ContainingObjectLabel) )
-             O->ContainingObject=ObjectArray[no];  
-
-           if ( O->ContainingObject==0 )
-            RWGErrExit("file %s:%i: unknown object (%s) specified for INSIDE",
-                        GeoFileName,LineNum,ContainingObjectLabel);
-         };
-
-        /*--------------------------------------------------------------*/
-        /*- augment tallies to account for the new object  -------------*/
-        /*--------------------------------------------------------------*/
         TotalBFs+=O->NumBFs;
         TotalPanels+=O->NumPanels;
-        O->Index=NumObjects;
-        ObjectArray[NumObjects++]=O;
+        O->Index=NumObjects-1;
       }
      else 
-      RWGErrExit("file %s:%i: unknown keyword %s",GeoFileName,LineNum,Tokens[0]);
+      { 
+        /*--------------------------------------------------------------*/
+        /* unknown keyword                                              */
+        /*--------------------------------------------------------------*/
+        ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
+      };
 
    }; // while( fgets(Line,MAXSTR,f) )
 
-  /*******************************************************************/
-  /* if no material was specified, set the external medium to vacuum */
-  /*******************************************************************/
-  if (ExteriorMP==0)
+  /***************************************************************/
+  /* process material properties of exterior medium             */
+  /***************************************************************/
+  int nmp;
+  int no, nop;
+  if ( strlen(ExteriorMPName)>0 )
+   {
+     for(nmp=0; ExteriorMP==0 && nmp<NumMPs; nmp++)
+      if ( !strcasecmp(ExteriorMPName, MPs[nmp]->Name) )
+       ExteriorMP=MPs[nmp];
+
+     if (ExteriorMP==0)
+      { ExteriorMP = new MatProp(O->MPName);
+        if (ExteriorMP->ErrMsg)
+        ErrExit("%s: medium: error in MATERIAL value: %s",GeoFileName,O->MP->ErrMsg);
+      };
+   }
+  else
    ExteriorMP=new MatProp(MP_VACUUM);
 
   /***************************************************************/
-  /* copy array of objects                                       */
+  /* process material properties of objects                      */
   /***************************************************************/
-  Objects=(RWGObject **)RWGMalloc( NumObjects*sizeof(RWGObject *) );
-  memcpy(Objects,ObjectArray,NumObjects * sizeof(RWGObject *));
+  for(no=0; no<NumObjects; no++)
+   { 
+     O=Objects[no];
 
+     if ( O->MPName )
+      { 
+        // deallocate the default MP created by the RWGObject constructor
+        delete O->MP;
+
+        /* look first to see if the requested material was one of */
+        /* the materials defined on-the-fly in the .scuffgeo file */
+        for(nmp=0; O->MP==0 && nmp<NumMPs; nmp++)
+         if ( !strcasecmp(O->MPName, MPs[nmp]->Name) )
+          O->MP=MPs[nmp];
+
+        /* otherwise ... */ 
+        if (O->MP==0)
+         { O->MP = new MatProp(O->MPName);
+           if (O->MP->ErrMsg)
+            ErrExit("%s: object %s (%s): error in MATERIAL value: %s",
+                     GeoFileName,O->Label,O->MeshFileName,O->MP->ErrMsg); 
+         };
+
+        free(O->MPName);
+      }
+     else
+      O->MP = new MatProp(MP_PEC);
+   };
+
+  /***************************************************************/
+  /* process object nesting relationships                        */
+  /***************************************************************/
+  for(no=0; no<NumObjects; no++)
+   { 
+     O=Objects[no];
+
+     if ( O->ContainingObjectLabel )
+      { 
+        /* look for an object appearing earlier in the .scuffgeo file */
+        /* whose label matches the requested object label             */
+        for(nop=0; O->ContainingObject==0 && nop<no; nop++)
+         if ( !strcasecmp(O->ContainingObjectLabel, Objects[nop]->Label ) )
+          O->ContainingObject=Objects[nop];
+
+        /* if no matching object was found, it's an error */
+        if (O->ContainingObject==0)
+         { 
+           for(nop=no+1; nop<NumObjects; nop++)
+            if ( !strcasecmp(O->ContainingObjectLabel, Objects[nop]->Label ) )
+             ErrExit("%s: object %s: containing object %s must appear earlier in file",
+                     GeoFileName, O->Label, O->ContainingObjectLabel);
+
+           ErrExit("%s: object %s: containing object %s not found",
+                    GeoFileName, O->Label, O->ContainingObjectLabel);
+         };
+
+        free( O->ContainingObjectLabel );
+
+      };
+   };
+ 
   /*******************************************************************/
   /* compute average panel area for statistical bookkeeping purposes */
   /*******************************************************************/
   AveragePanelArea=0.0; 
+  int np;
   for(no=0; no<NumObjects; no++)
    for(np=0; np<Objects[no]->NumPanels; np++)
     AveragePanelArea+=Objects[no]->Panels[np]->Area;
@@ -244,13 +310,13 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   Mate=(int *)malloc(NumObjects*sizeof(int));
   Mate[0]=-1;
-  for(i=1; i<NumObjects; i++)
-   { Mate[i]=-1;
-     for(j=0; j<i && Mate[i]==-1; j++)
-      if (    !strcmp(Objects[i]->MeshFileName, Objects[j]->MeshFileName)
-           && !strcmp(Objects[i]->MP->Name    , Objects[j]->MP->Name)
+  for(no=1; no<NumObjects; no++)
+   { Mate[no]=-1;
+     for(nop=0; nop<no && Mate[no]==-1; nop++)
+      if (    !strcmp(Objects[no]->MeshFileName, Objects[nop]->MeshFileName)
+           && !strcmp(Objects[no]->MP->Name    , Objects[nop]->MP->Name)
          ) 
-       Mate[i]=j;
+       Mate[no]=nop;
    };
 
   /***************************************************************/

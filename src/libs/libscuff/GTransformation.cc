@@ -29,10 +29,10 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX)
 
      memcpy(NGT->DX, DX, 3*sizeof(double));
 
-     memset(M[0], 0, 3*sizeof(double));
-     memset(M[1], 0, 3*sizeof(double));
-     memset(M[2], 0, 3*sizeof(double));
-     M[0][0]=M[1][1]=M[2][2]=1.0;
+     memset(GT->M[0], 0, 3*sizeof(double));
+     memset(GT->M[1], 0, 3*sizeof(double));
+     memset(GT->M[2], 0, 3*sizeof(double));
+     GT->M[0][0]=GT->M[1][1]=GT->M[2][2]=1.0;
 
      NGT->Type=GTRANSFORMATION_DISPLACEMENT;
 
@@ -58,6 +58,8 @@ GTransformation *CreateGTransformation(double *DX)
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
                                                 double *ZHat, double Theta)
 {
+  GTransformation *NGT;
+
   if (GT==0)
    { 
      NGT=(GTransformation *)malloc(sizeof(*NGT));
@@ -87,11 +89,12 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
         NewM[i][j] += MP[i][k]*GT->M[k][j];
 
      for(i=0; i<3; i++)
-      memcpy(M[i],NewM[i],3*sizeof(double));
+      memcpy(GT->M[i],NewM[i],3*sizeof(double));
 
      GT->Type |= GTRANSFORMATION_ROTATION;
      return GT;
    };
+}
 
 GTransformation *CreateGTransformation(double *ZHat, double Theta)
  { CreateOrAugmentGTransformation(0, ZHat, Theta); }
@@ -104,19 +107,19 @@ void AugmentGTransformation(GTransformation *DeltaGT, GTransformation *GT)
   int i, j, k;
   double NewM[3][3], NewDX[3];
  
-  if ( DeltaGT & GTRANSFORMATION_ROTATION )
+  if ( DeltaGT->Type & GTRANSFORMATION_ROTATION )
    { 
      for(i=0; i<3; i++)
       for(j=0; j<3; j++)
        for(NewM[i][j]=0.0, k=0; k<3; k++)
-        NewM[i][j] += DeltaGT->MP[i][k] * GT->M[k][j];
+        NewM[i][j] += DeltaGT->M[i][k] * GT->M[k][j];
 
      for(i=0; i<3; i++)
       memcpy(GT->M[i], NewM[i], 3*sizeof(double));
 
      for(i=0; i<3; i++)
       for(NewDX[i]=0.0, j=0; j<3; j++)
-       NewDX[i] += DeltaGT->MP[i][j]*GT->DX[j];
+       NewDX[i] += DeltaGT->M[i][j]*GT->DX[j];
 
      memcpy(GT->DX, NewDX, 3*sizeof(double));
 
@@ -232,7 +235,7 @@ void ResetGTransformation(GTransformation *GT)
 
   GT->M[0][0]=GT->M[1][1]=GT->M[2][2]=1.0;
 
-  GT->Type = GT->DISPLACEMENT;
+  GT->Type = GTRANSFORMATION_DISPLACEMENT;
 
 }
    

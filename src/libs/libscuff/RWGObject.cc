@@ -40,22 +40,23 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 { 
   ErrMsg=0;
   ContainingObjectLabel=0;
-  MaterialName=0;
+  MPName=0;
   MeshFileName=0;
 
   /***************************************************************/
   /* read lines from the file one at a time **********************/
   /***************************************************************/
   char Line[MAXSTR];
-  int nt, nTokens;
+  int nt, NumTokens;
   char *p, *Tokens[MAXTOK];
   int ReachedTheEnd=0;
   GTransformation *GT=0;
+  double DX[3], ZHat[3], Theta;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
      (*LineNum)++;
-     nTokens=Tokenize(Line, Tokens, MAXTOK);
-     if ( nTokens==0 || Tokens[0][0]=='#' )
+     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+     if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
      /*--------------------------------------------------------------*/
@@ -63,21 +64,21 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
      /*--------------------------------------------------------------*/
      if ( !strcasecmp(Tokens[0],"MESHFILE") )
       { if (NumTokens!=2)
-         { snprintf(ErrMsg,"MESHFILE keyword requires one argument");
+         { snprintf(ErrMsg,MAXSTR,"MESHFILE keyword requires one argument");
            return;
          };
         MeshFileName=strdup(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       { if (NumTokens!=2)
-         { snprintf(ErrMsg,"MATERIAL keyword requires one argument");
+         { snprintf(ErrMsg,MAXSTR,"MATERIAL keyword requires one argument");
            return;
          };
-        MaterialName=strdup(Tokens[1]);
+        MPName=strdup(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"INSIDE") )
       { if (NumTokens!=1)
-         { snprintf(ErrMsg,"INSIDE keyword requires one argument");
+         { snprintf(ErrMsg,MAXSTR,"INSIDE keyword requires one argument");
            return;
          };
         ContainingObjectLabel=strdup(Tokens[1]);
@@ -85,14 +86,14 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
      else if ( !strcasecmp(Tokens[0],"DISPLACED") )
       { 
         if (NumTokens!=4)
-         { snprintf(ErrMsg,"DISPLACED keyword requires 3 arguments");
+         { snprintf(ErrMsg,MAXSTR,"DISPLACED keyword requires 3 arguments");
            return;
          };
 
         if (    1!=sscanf(Tokens[1],"%le",DX+0)
              || 1!=sscanf(Tokens[2],"%le",DX+1)
              || 1!=sscanf(Tokens[3],"%le",DX+2) ) 
-         { snprintf(ErrMsg,"invalid argument to DISPLACED");
+         { snprintf(ErrMsg,MAXSTR,"invalid argument to DISPLACED");
            return;
          };
 
@@ -101,19 +102,19 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
      else if ( !strcasecmp(Tokens[0],"ROTATED") )
       { 
         if (NumTokens!=5)
-         { snprintf(ErrMsg,"ROTATED keyword requires exactly 4 arguments");
+         { snprintf(ErrMsg,MAXSTR,"ROTATED keyword requires exactly 4 arguments");
            return;
          };
 
-        if (    1!=sscanf(Tokens[1],"%le",zHat+0)
-             || 1!=sscanf(Tokens[2],"%le",zHat+1)
-             || 1!=sscanf(Tokens[3],"%le",zHat+2)
-             || 1!=sscanf(Tokens[4],"%le",Theta+2) )
-         { snprintf(ErrMsg,"invalid argument to ROTATED");
+        if (    1!=sscanf(Tokens[1],"%le",ZHat+0)
+             || 1!=sscanf(Tokens[2],"%le",ZHat+1)
+             || 1!=sscanf(Tokens[3],"%le",ZHat+2)
+             || 1!=sscanf(Tokens[4],"%le",&Theta) )
+         { snprintf(ErrMsg,MAXSTR,"invalid argument to ROTATED");
            return;
          };
 
-        GT=CreateOrAugmentGTransformation(GT,zHat,Theta);
+        GT=CreateOrAugmentGTransformation(GT,ZHat,Theta);
 
       }
      else if ( !strcasecmp(Tokens[0],"ENDOBJECT") )
@@ -121,7 +122,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
         ReachedTheEnd=1;
       }
      else
-      { snprintf(ErrMsg,"unknown keyword %s in OBJECT section",Tokens[0]);
+      { snprintf(ErrMsg,MAXSTR,"unknown keyword %s in OBJECT section",Tokens[0]);
         return;
       };
    }; 
@@ -131,9 +132,9 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   /* because the material name might refer to a material that    */
   /* was defined on the fly in the .scuffgeo file, in which case */
   /* trying to assign that material would fail. instead, we      */
-  /* store any user-specified material name in the MaterialName  */
-  /* field inside the class body and leave it for whoever called */
-  /* this routine to process.                                    */
+  /* store any user-specified material name in the MPName field  */
+  /* inside the class body and leave it for whoever called this  */
+  /* routine to process.                                         */
   /***************************************************************/
   InitRWGObject(MeshFileName, Label, 0, GT);
 
@@ -212,6 +213,7 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
   /*- Now that we have put the panels in an array, go through  -*/
   /*- and fill in the Index field of each panel structure.     -*/
   /*------------------------------------------------------------*/
+  int np;
   for(np=0; np<NumPanels; np++)
    Panels[np]->Index=np;
  
@@ -369,14 +371,14 @@ int RWGObject::Transform(const char *format, ...)
              || 1!=sscanf(Tokens[nt+3],"%le",DX+2) )
          return 1;
         
-        DeltaGT=CreateOrAugmentGTransformation(DeltaGT, D);
+        DeltaGT=CreateOrAugmentGTransformation(DeltaGT, DX);
 
         nt+=3;
       }
      /*--------------------------------------------------------------*/
      /*- parse ROT element ------------------------------------------*/
      /*--------------------------------------------------------------*/
-     else if ( !strcasecmp(Token[nt],"ROT") )
+     else if ( !strcasecmp(Tokens[nt],"ROT") )
       { 
         if ( nt+4 >= NumTokens )
          return 1;
@@ -409,6 +411,7 @@ int RWGObject::Transform(const char *format, ...)
   ApplyGTransformation(DeltaGT, Vertices, NumVertices);
 
   /* edge centroids */
+  int ne;
   for(ne=0; ne<NumEdges; ne++)
    ApplyGTransformation(DeltaGT, Edges[ne]->Centroid, 1);
 
@@ -416,6 +419,7 @@ int RWGObject::Transform(const char *format, ...)
   /* reinitialize geometric data on panels (which takes care of  */ 
   /* transforming the panel centroids)                           */ 
   /***************************************************************/
+  int np;
   for(np=0; np<NumPanels; np++)
    InitRWGPanel(Panels[np], Vertices);
 
