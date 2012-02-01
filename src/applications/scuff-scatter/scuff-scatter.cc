@@ -159,7 +159,8 @@
 #include <libIncField.h>
 #include <libhmat.h>
 
-#include "libscuff.h"
+//#include "libscuff.h"
+#include "libRWG.h"
 
 /***************************************************************/
 /***************************************************************/

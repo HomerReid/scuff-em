@@ -27,8 +27,8 @@ PolModel::PolModel(const char *PolFileName)
    if (PolDataMatrix->ErrMsg)
     ErrExit(PolDataMatrix->ErrMsg);
 
-   // extract the 1st and 7th columns as the X and Y data
-   // (the 7th column is for rubidium)
+   // extract the 1st and 6th columns as the X and Y data
+   // (the 6th column is for rubidium)
    int n, N=PolDataMatrix->NR;
    double XValues[N], YValues[N];
    for(n=0; n<N; n++)
@@ -73,6 +73,6 @@ void PolModel::GetPolarizability(double Xi, double *Alpha)
    PolInterp->Evaluate(0.00115493*Xi , &AlphaDiag);
 
    // note we only have to fill in the nonzero entries of Alpha
-   Alpha[0]=Alpha[4]=Alpha[9]=AlphaDiag;
+   Alpha[0]=Alpha[4]=Alpha[8]=AlphaDiag;
 
  }

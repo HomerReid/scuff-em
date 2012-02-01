@@ -228,7 +228,8 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
 } 
 
 /***************************************************************/
-/***************************************************************/
+/* integrand routine used to evaluate imaginary frequency      */
+/* integral by adaptive quadrature                             */
 /***************************************************************/
 void SGJCIntegrand(unsigned ndim, const double *x, void *params,
                    unsigned fdim, double *fval)
@@ -243,7 +244,8 @@ void SGJCIntegrand(unsigned ndim, const double *x, void *params,
   for(nf=0; nf<fdim; nf++)
    fval[nf]*=J;
 }
-
+  
+  
 void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
 {
   double Lower=0.0;
@@ -255,4 +257,5 @@ void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
   adapt_integrate_log(fdim, SGJCIntegrand, (void *)SCPD, 1, 
                       &Lower, &Upper, 0, SCPD->AbsTol, SCPD->RelTol,
                       U, Error, "scuff-caspol.cubaturelog", 15);
+
 }
