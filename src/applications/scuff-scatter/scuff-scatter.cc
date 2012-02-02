@@ -156,11 +156,16 @@
 #include <stdarg.h>
 
 #include <libhrutil.h>
-#include <libIncField.h>
+#include "libIncField.h"
 #include <libhmat.h>
 
-//#include "libscuff.h"
-#include "libRWG.h"
+#include "scuff-scatter.h"
+
+#ifdef SCUFF
+	#include "libscuff.h"
+#else // RWG
+	#include "libRWG.h"
+#endif
 
 /***************************************************************/
 /***************************************************************/
@@ -240,6 +245,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
+  char *GeoFile=0;
   cdouble pwPol[3*MAXPW];            int npwPol;
   double pwDir[3*MAXPW];             int npwDir;
   cdouble gbPol[3*MAXGB];            int ngbPol;
@@ -250,13 +256,14 @@ int main(int argc, char *argv[])
   cdouble psStrength[3*MAXPS];       int npsStrength;
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
-  char *EPFile[MAXEPF];              int nEPFiles;
+  char *EPFiles[MAXEPF];             int nEPFiles;
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
   int nThread=0;
   int ExportMatrix=0;
   /* name               type     args  instances  storage           count         description*/
   OptStruct OSArray[]=
-   { {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,      &npwPol,      "plane wave polarization"},
+   { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,   0,            "geometry file"},
+     {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,      &npwPol,      "plane wave polarization"},
      {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,      &npwDir,      "plane wave direction"},
      {"gbPolarization", PA_CDOUBLE, 3, MAXGB,   (void *)gbPol,      &ngbPol,      "gaussian beam polarization"},
      {"gbDirection",    PA_DOUBLE,  3, MAXGB,   (void *)gbDir,      &ngbDir,      "gaussian beam direction"},
@@ -284,9 +291,9 @@ int main(int argc, char *argv[])
   int nFreq, nOV, NumFreqs=0;
   if (nOmegaFiles==1) // first process --OmegaFile option if present
    { 
-     OmegaList=new HVector(OmegaFile,LHM_TXT);
+     OmegaList=new HVector(OmegaFile,LHM_TEXT);
      if (OmegaList->ErrMsg)
-      ErrExit(ErrMsg);
+      ErrExit(OmegaList->ErrMsg);
      NumFreqs=OmegaList->N;
    };
 
@@ -315,47 +322,64 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   if ( npwPol != npwDir )
    ErrExit("numbers of --pwPolarization and --pwDirection options must agree");
-  if ( ngbPol != ngbDir || ngbDir!=ngbCenter || ncbCenter!=ngbWaist )
+  if ( ngbPol != ngbDir || ngbDir!=ngbCenter || ngbCenter!=ngbWaist )
    ErrExit("numbers of --gbPolarization, --gbDirection, --gbCenter, and --gbWaist options must agree ");
-  if ( npsLoc!=npsOrnt )
-   ErrExit("numbers of --psLocation and --psOrientation options must agree");
+  if ( npsLoc!=npsStrength )
+   ErrExit("numbers of --psLocation and --psStrength options must agree");
 
   IncFieldData *IFDList=0, *IFD;
-  int npw, npgb, nps;
-  for(npw=0; npw<npwLoc; npw++)
-   { IFD=new PlaneWaveData(npwPol + 3*npw, npwDir + 3*npw);
+  int npw, ngb, nps;
+  for(npw=0; npw<npwPol; npw++)
+   { IFD=new PlaneWaveData(pwPol + 3*npw, pwDir + 3*npw);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
+#if 0
   for(ngb=0; ngb<ngbCenter; ngb++)
    { IFD=new GaussianBeamData(gbCenter + 3*ngb, gbDir + 3*ngb, gbPol + 3*ngb, gbWaist[ngb]);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
+#endif
   for(nps=0; nps<npsLoc; nps++)
    { IFD=new PointSourceData(psLoc + 3*nps, psStrength + 3*nps);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
 
-  if (IFDList==0)
-   OSUsage(argv[0], OSArray, "you must specify at least one incident field source");
+  /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  if ( (nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
+   ErrExit("you must specify at least one incident field source");
 
   /*******************************************************************/
   /* create the RWGGeometry, allocate BEM matrix and RHS vector      */
   /*******************************************************************/
-  RWGGeometry *G=new RWGGeometry(GeoFileName); 
-  HMatrix *M=G->AllocateBEMMatrix(RealFreq);
-  HVector *KN=G->AllocateRHSVector(RealFreq);
+  RWGGeometry *G=new RWGGeometry(GeoFile);
+  HMatrix *M=G->AllocateBEMMatrix(REAL_FREQ);
+  HVector *KN=G->AllocateRHSVector(REAL_FREQ);
 
   char GeoFileBase[MAXSTR];
-  snprintf(GeoFileBase, MAXSTR, GetFileBase(GeoFileName));
+  strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
+
+  /*******************************************************************/
+  /* put all relevant information into a data structure to be passed */
+  /* to the output modules                                           */
+  /*******************************************************************/
+  SSData MySSData, *SSD=&MySSData;
+  SSD->G=G;
+  SSD->KN=KN;
+  SSD->opIFD=(void *)IFDList;
 
   /*******************************************************************/
   /* loop over frequencies *******************************************/
   /*******************************************************************/
   char OmegaStr[MAXSTR];
-  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
+  cdouble Omega;
+  cdouble Eps;
+  double Mu;
+  for(nFreq=0; nFreq<NumFreqs; nFreq++)
    { 
      Omega = OmegaList->GetEntry(nFreq);
      z2s(Omega, OmegaStr);
@@ -366,12 +390,27 @@ int main(int argc, char *argv[])
      /*******************************************************************/
      Log("Working at frequency %s...",OmegaStr);
      Log("  Assembling the BEM matrix...");
+#ifdef SCUFF
      G->AssembleBEMMatrix(Omega, nThread, M);
+#else
+     int RealFreq;
+     if ( imag(Omega)==0.0 )
+      RealFreq=1;
+     else if ( real(Omega)==0.0 )
+      RealFreq=0;
+     else
+      ErrExit("%s:%i:internal error",__FILE__,__LINE__);
+     
+      G->AssembleBEMMatrix( abs(Omega), RealFreq, nThread, M);
+#endif
      if (ExportMatrix)
       { void *pCC=HMatrix::OpenC2MLContext(GeoFileBase,"_%s",OmegaStr);
         M->ExportToMATLAB(pCC,"M");
         HMatrix::CloseC2MLContext(pCC);
       };
+
+     if ( nEPFiles==0 && nFluxMeshes==0 )
+      continue;
 
      Log("  LU-factorizing BEM matrix...");
      M->LUFactorize();
@@ -382,7 +421,11 @@ int main(int argc, char *argv[])
      Log("  Assembling the RHS vector..."); 
      G->MP->GetEpsMu(Omega,&Eps,&Mu);
      IFDList->SetFrequencyAndEpsMu(Omega,Eps,Mu);
-     M->AssembleRHSVector(EHIncField, (void *)IFDList, nThread, KN);
+#ifdef SCUFF
+     G->AssembleRHSVector(EHIncField, (void *)IFDList, nThread, KN);
+#else
+     G->AssembleRHSVector(EHIncField, (void *)IFDList, RealFreq, nThread, KN);
+#endif
 
      /***************************************************************/
      /* solve the BEM system*****************************************/
@@ -394,23 +437,15 @@ int main(int argc, char *argv[])
      /***************************************************************/
      /* process requested outputs                                   */
      /***************************************************************/
+     SSD->Omega=Omega;
 
-     /*--------------------------------------------------------------*/
-     /*- b. compute fields at user-specified lists of evaluation     */
-     /*--------------------------------------------------------------*/
      int nepf;
-     for(nepf=0; nepf<nOEPFiles; nepf++)
-      ProcessEPFile(EMSD, OEPFiles[nepf], -1);
-     for(nepf=0; nepf<nIEPFiles; nepf++)
-     ProcessEPFile(EMSD, IEPFiles[nepf], 0);
-     HMatrix *EPMatrix=0;
+     for(nepf=0; nepf<nEPFiles; nepf++)
+      ProcessEPFile(SSD, EPFiles[nepf], 0);
 
-     /*--------------------------------------------------------------*/
-     /*- c. flux plots on user-specified surface meshes -------------*/
-     /*--------------------------------------------------------------*/
      int nfm;
-     for(nfm=0; nfm<nFluxMeshFiles; nfm++)
-      CreateFluxPlot(EMSD, FluxMeshFiles[nfm]);
+     for(nfm=0; nfm<nFluxMeshes; nfm++)
+      CreateFluxPlot(SSD, FluxMeshes[nfm]);
 
    }; //  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
 

@@ -10,37 +10,31 @@
 #include <readline/history.h>
 
 #include <libhrutil.h>
-#include <libIncField.h>
+#include "libIncField.h"
 #include <libhmat.h>
 
-#include "libRWG.h"
+#ifdef SCUFF
+	#include "libscuff.h"
+#else
+	#include "libRWG.h"
+#endif
+
+#include "scuff-scatter.h"
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetIncidentField(EMSData *EMSD, double *X, cdouble EH[6])
-{ 
-  if (EMSD->opPWD)
-   EHPlaneWave(X,EMSD->opPWD,EH);
-  else if (EMSD->opGBD)
-   EHGaussianBeam(X,EMSD->opGBD,EH);
-  else if (EMSD->opPSD)
-   EHPlaneWave(X,EMSD->opPSD,EH);
-  else if (EMSD->opMFD)
-   EHMagneticFrill(X,EMSD->opMFD,EH);
-  else
-   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetTotalField(EMSData *EMSD, double *X, int WhichObject, cdouble *EHS, cdouble *EHT)
+void GetTotalField(SSData *SSD, double *X, int WhichObject, 
+                   cdouble *EHS, cdouble *EHT)
 { 
   /*--------------------------------------------------------------*/
   /*- get scattered field ----------------------------------------*/
   /*--------------------------------------------------------------*/
-  EMSD->G->GetFields(X,WhichObject,EMSD->Frequency,EMSD->RealFreq,EMSD->KN,EMSD->nThread,EHS);
+#ifdef SCUFF
+  SSD->G->GetFields(X,SSD->Omega,SSD->KN,SSD->nThread,EHS);
+#else
+  SSD->G->GetFields(X,abs(SSD->Omega),REAL_FREQ,SSD->KN,SSD->nThread,EHS);
+#endif
   memcpy(EHT,EHS,6*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
@@ -49,7 +43,7 @@ void GetTotalField(EMSData *EMSD, double *X, int WhichObject, cdouble *EHS, cdou
   if (WhichObject==-1)
    { int Mu;
      cdouble EH2[6];
-     GetIncidentField(EMSD,X,EH2);
+     EHIncField(X, SSD->opIFD, EH2);
      for(Mu=0; Mu<6; Mu++) 
       EHT[Mu]+=EH2[Mu];
    };
@@ -57,64 +51,11 @@ void GetTotalField(EMSData *EMSD, double *X, int WhichObject, cdouble *EHS, cdou
 }
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void Console(EMSData *EMSD)
-{ 
-  char *p;
-  double X[3]; 
-  cdouble EHS[6], EHT[6];
-  int i;
-
-  using_history();
-  read_history(0);
-  SetDefaultCD2SFormat("(%+12.5e,%+12.5e)");
-  for(;;)
-   { 
-     p=readline("Enter x y z: "); 
-     add_history(p);
-     write_history(0);
-     sscanf(p,"%le %le %le ",X+0,X+1,X+2);
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     GetTotalField(EMSD, X, -1, EHS,EHT); 
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     printf("%25s %25s %25s\n",
-            "          ESCAT          ",
-            "          EINC           ",
-            "          ETOT           ");
-     for(i=0; i<3; i++)
-      printf("%s %s %s\n", CD2S(EHS[i]), CD2S(EHT[i]-EHS[i]), CD2S(EHT[i]));
-
-     printf("\n");
-     printf("%25s %25s %25s\n",
-            "          HSCAT          ",
-            "          HINC           ",
-            "          HTOT           ");
-     for(i=3; i<6; i++)
-      printf("%s %s %s\n", CD2S(EHS[i]), CD2S(EHT[i]-EHS[i]), CD2S(EHT[i]));
-
-   };
-
-}
-
-
-/***************************************************************/
 /* compute scattered and total fields at a user-specified list */
 /* of evaluation points                                        */
 /***************************************************************/
-void ProcessEPFile(EMSData *EMSD, char *EPFileName, int WhichObject)
+void ProcessEPFile(SSData *SSD, char *EPFileName, char *ObjectLabel)
 { 
-  int nep;
-  double X[3]; 
-  cdouble EHS[6], EHT[6];
-  FILE *f1, *f2;
-  char buffer[200];
 
   HMatrix *EPMatrix=new HMatrix(EPFileName,LHM_TEXT,"-ncol 3");
   if (EPMatrix->ErrMsg)
@@ -122,7 +63,21 @@ void ProcessEPFile(EMSData *EMSD, char *EPFileName, int WhichObject)
      delete EPMatrix;
      return;
    };
+ 
+  /***************************************************************/
+  /* FIXME *******************************************************/
+  /***************************************************************/
+  int WhichObject=-1;
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int nep;
+  double X[3]; 
+  cdouble EHS[6], EHT[6];
+  FILE *f1, *f2;
+  char buffer[200];
+ 
   Log("Evaluating fields at points in file %s...",EPFileName);
   printf("Evaluating fields at points in file %s...\n",EPFileName);
 
@@ -137,7 +92,7 @@ void ProcessEPFile(EMSData *EMSD, char *EPFileName, int WhichObject)
      X[1]=EPMatrix->GetEntryD(nep, 1);
      X[2]=EPMatrix->GetEntryD(nep, 2);
 
-     GetTotalField(EMSD, X, WhichObject, EHS, EHT); 
+     GetTotalField(SSD, X, WhichObject, EHS, EHT); 
 
      fprintf(f1,"%e %e %e ",X[0],X[1],X[2]);
      fprintf(f1,"%s %s %s ",CD2S(EHS[0]),CD2S(EHS[1]),CD2S(EHS[2]));
@@ -158,7 +113,7 @@ void ProcessEPFile(EMSData *EMSD, char *EPFileName, int WhichObject)
 /* generate plots of poynting flux and field-strength arrows   */
 /* on a user-supplied surface mesh                             */
 /***************************************************************/
-void CreateFluxPlot(EMSData *EMSD, char *MeshFileName)
+void CreateFluxPlot(SSData *SSD, char *MeshFileName)
 { 
   RWGObject *O=new RWGObject(MeshFileName);
   RWGPanel *P;
@@ -179,7 +134,7 @@ void CreateFluxPlot(EMSData *EMSD, char *MeshFileName)
   cdouble *EHT=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
   if (EHS==0 || EHT==0) ErrExit("out of memory");
   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
-   GetTotalField(EMSD, P->Centroid, -1, EHS + 6*np, EHT + 6*np);
+   GetTotalField(SSD, P->Centroid, -1, EHS + 6*np, EHT + 6*np);
 
   // maximum values of scattered and total fields, used below for 
   // normalization 
@@ -219,9 +174,9 @@ void CreateFluxPlot(EMSData *EMSD, char *MeshFileName)
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       E=EHS + 6*np;
       H=EHS + 6*np + 3;
-      PF=0.5 * real(  (E[1]*conj(H[2]) - E[2]*conj(H[1])) * P->ZHat[0]
-                         +(E[2]*conj(H[0]) - E[0]*conj(H[2])) * P->ZHat[1]
-                         +(E[0]*conj(H[1]) - E[1]*conj(H[0])) * P->ZHat[2] 
+      PF=0.5 * real(   (E[1]*conj(H[2]) - E[2]*conj(H[1])) * P->ZHat[0]
+                      +(E[2]*conj(H[0]) - E[0]*conj(H[2])) * P->ZHat[1]
+                      +(E[0]*conj(H[1]) - E[1]*conj(H[0])) * P->ZHat[2] 
                    );
 
       fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
@@ -245,9 +200,9 @@ void CreateFluxPlot(EMSData *EMSD, char *MeshFileName)
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       E=EHT + 6*np;
       H=EHT + 6*np + 3;
-      PF=0.5 * real(  (E[1]*conj(H[2]) - E[2]*conj(H[1])) * P->ZHat[0]
-                          +(E[2]*conj(H[0]) - E[0]*conj(H[2])) * P->ZHat[1]
-                          +(E[0]*conj(H[1]) - E[1]*conj(H[0])) * P->ZHat[2] 
+      PF=0.5 * real(   (E[1]*conj(H[2])  - E[2]*conj(H[1])) * P->ZHat[0]
+                      +(E[2]*conj(H[0]) - E[0]*conj(H[2])) * P->ZHat[1]
+                      +(E[0]*conj(H[1]) - E[1]*conj(H[0])) * P->ZHat[2] 
                    );
 
       fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
