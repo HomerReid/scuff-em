@@ -40,6 +40,7 @@ LDFLAGS+=-L../../libs/libIncField
 SS_OBJS = scuff-scatter.o OutputModules.o
 
 scuff-scatter:	$(SS_OBJS) 
+		ln -s ../../libs/libIncField/libIncField.a libIncFieldPrime.a
 		$(CXX) $(LDFLAGS) -o $@ $(SS_OBJS) $(LIBS)
 
 #libscuff.a:	
