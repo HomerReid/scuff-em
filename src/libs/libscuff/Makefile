@@ -15,13 +15,12 @@ OBJS = AssembleBEMMatrix.o		\
        AssessPanelPair.o		\
        CalcGC.o				\
        GetDipoleMoments.o		\
-       GetSphericalMoments.o		\
        GetFields.o			\
        GTransformation.o		\
        EdgeEdgeInteractions.o     	\
        ExpandCurrentDistribution.o	\
        QDFIPPI.o                    	\
-       FIPPITable.o                    	\
+       FIPPICache.o                    	\
        QIFIPPICubature.o         	\
        QIFIPPITaylorDuffy.o         	\
        InitEdgeList.o			\

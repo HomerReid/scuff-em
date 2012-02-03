@@ -64,21 +64,21 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
      /*--------------------------------------------------------------*/
      if ( !strcasecmp(Tokens[0],"MESHFILE") )
       { if (NumTokens!=2)
-         { snprintf(ErrMsg,MAXSTR,"MESHFILE keyword requires one argument");
+         { ErrMsg=strdup("MESHFILE keyword requires one argument");
            return;
          };
         MeshFileName=strdup(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       { if (NumTokens!=2)
-         { snprintf(ErrMsg,MAXSTR,"MATERIAL keyword requires one argument");
+         { ErrMsg=strdup("MATERIAL keyword requires one argument");
            return;
          };
         MPName=strdup(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"INSIDE") )
       { if (NumTokens!=1)
-         { snprintf(ErrMsg,MAXSTR,"INSIDE keyword requires one argument");
+         { ErrMsg=strdup("INSIDE keyword requires one argument");
            return;
          };
         ContainingObjectLabel=strdup(Tokens[1]);
@@ -86,14 +86,14 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
      else if ( !strcasecmp(Tokens[0],"DISPLACED") )
       { 
         if (NumTokens!=4)
-         { snprintf(ErrMsg,MAXSTR,"DISPLACED keyword requires 3 arguments");
+         { ErrMsg=strdup("DISPLACED keyword requires 3 arguments");
            return;
          };
 
         if (    1!=sscanf(Tokens[1],"%le",DX+0)
              || 1!=sscanf(Tokens[2],"%le",DX+1)
              || 1!=sscanf(Tokens[3],"%le",DX+2) ) 
-         { snprintf(ErrMsg,MAXSTR,"invalid argument to DISPLACED");
+         { ErrMsg=strdup("invalid argument to DISPLACED");
            return;
          };
 
@@ -102,7 +102,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
      else if ( !strcasecmp(Tokens[0],"ROTATED") )
       { 
         if (NumTokens!=5)
-         { snprintf(ErrMsg,MAXSTR,"ROTATED keyword requires exactly 4 arguments");
+         { ErrMsg=strdup("ROTATED keyword requires exactly 4 arguments");
            return;
          };
 
@@ -110,7 +110,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
              || 1!=sscanf(Tokens[2],"%le",ZHat+1)
              || 1!=sscanf(Tokens[3],"%le",ZHat+2)
              || 1!=sscanf(Tokens[4],"%le",&Theta) )
-         { snprintf(ErrMsg,MAXSTR,"invalid argument to ROTATED");
+         { ErrMsg=strdup("invalid argument to ROTATED");
            return;
          };
 
@@ -122,7 +122,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
         ReachedTheEnd=1;
       }
      else
-      { snprintf(ErrMsg,MAXSTR,"unknown keyword %s in OBJECT section",Tokens[0]);
+      { ErrMsg=vstrdup("unknown keyword %s in OBJECT section",Tokens[0]);
         return;
       };
    }; 
@@ -199,12 +199,12 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
   /*-  1. file extension=.msh    --> ReadGMSHFile              -*/
   /*-  2. file extension=.mphtxt --> ReadComsolFile            -*/
   /*------------------------------------------------------------*/
-  char *p=GetFileBase(MeshFileName);
+  char *p=GetFileExtension(MeshFileName);
   if (!p)
    RWGErrExit("file %s: invalid extension",MeshFileName);
-  else if (!strcmp(p,".msh"))
+  else if (!strcasecmp(p,"msh"))
    ReadGMSHFile(MeshFile,MeshFileName,OTGT);
-  else if (!strcmp(p,".mphtxt"))
+  else if (!strcasecmp(p,"mphtxt"))
    ReadComsolFile(MeshFile,MeshFileName,OTGT);
   else
    RWGErrExit("file %s: unknown extension %s",MeshFileName,p);

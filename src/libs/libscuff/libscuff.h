@@ -35,8 +35,6 @@
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- 0 couple of quick things before we begin                   -*/
-/*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /* impedance of free space */
 #define ZVAC 376.73031346177
@@ -101,8 +99,8 @@ typedef struct RWGEdge
 } RWGEdge;
 
 /***************************************************************/
-/* an RWGObject is an object describing a single contiguous    */
-/* object read in from a mesh file.                            */
+/* RWGObject is a class describing a single physical object    */
+/* with a surface mesh read in from a mesh file.               */
 /***************************************************************/
 class RWGObject
  { 
@@ -127,6 +125,14 @@ class RWGObject
    /* destructor */
    ~RWGObject();
 
+   /* get overlap integral between two basis functions */
+   double GetOverlap(int neAlpha, int neBeta);
+
+   /* calculate the inner product of a single basis function with  */
+   /* given incident electric and magnetic fields                  */
+   void GetInnerProducts(int nbf, EHFuncType EHFunc, void *EHFuncUD,
+                         int PureImagFreq, cdouble *EProd, cdouble *HProd);
+
    /* move the object */
    void Displace(double DX[3]); /* displace object through DX */
    void Displace(double dx, double dy, double dz);
@@ -147,23 +153,13 @@ class RWGObject
    void WriteGPMesh(const char *format, ...);
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
    void WritePPMesh(const char *FileName, const char *Tag);
-       
-   /* calculate reduced potentials due to a single basis function */
-   void GetReducedPotentials(int ne, double *X, cdouble K,
-                             cdouble *a, cdouble *Curla, cdouble *Gradp);
 
    /* calculate spherical multipole moments due to a single basis function */
+#if 0
    void Get1BFSphericalMoments(int ne, double *X0, int lMax,
                                double Wavevector, int RealFreq, 
                                cdouble *aE, cdouble *aM);
-
-   /* calculate the inner product of a single basis function with  */
-   /* given incident electric and magnetic fields                  */
-   void GetInnerProducts(int nbf, EHFuncType EHFunc, void *EHFuncUD, int RealFreq,
-                         cdouble *EProd, cdouble *HProd);
-
-   /* get overlap between two basis functions */
-   double GetOverlap(int neAlpha, int neBeta);
+#endif
 
 //  private:
 
@@ -172,7 +168,7 @@ class RWGObject
    /*--------------------------------------------------------------*/
    MatProp *MP;                   /* material properties */
    cdouble EpsThisFreq;           // permittivity and permeability
-   double MuThisFreq;             // at the current frequency
+   double MuThisFreq;             //   at the current frequency
 
    double *Vertices;              /* Vertices[3*n,3*n+1,3*n+2]=nth vertex coords */
    RWGPanel **Panels;             /* array of pointers to panels */
@@ -235,6 +231,12 @@ class RWGObject
    int CountCommonVertices(int np1, int np2, int *Index1, int *Index2);
    int CountCommonVertices(int np1, int np2) 
     { return CountCommonVertices(np1, np2, 0, 0); }
+       
+   /* calculate reduced potentials due to a single basis function */
+   /* (this is a helper function used to implement the            */
+   /*  GetInnerProducts() class method)                           */
+   void GetReducedPotentials(int ne, double *X, cdouble K,
+                             cdouble *a, cdouble *Curla, cdouble *Gradp);
  
  };
 
@@ -260,7 +262,7 @@ class RWGGeometry
    RWGGeometry(const char *GeoFileName);
    ~RWGGeometry();
 
-   /* get dimension of linear system */
+   /* get the dimension of the linear BEM system */
    int GetDimension();
 
    /* geometrical transformations */
@@ -297,65 +299,49 @@ class RWGGeometry
                               double Frequency, int RealFreq,
                               cdouble *dmdv);
 
-   /* routines for filling in subblocks of the BEM matrix */
-   void AssembleT(int no, double Frequency, int RealFreq, 
-                  int nThread, HMatrix *T);
-
-   void AssembleU(int noa, int nob, double Frequency, int RealFreq,
-                  int NumTorqueAxes, double *GammaMatrix,
-                  int nThread, HMatrix *Uab,
-                  HMatrix *dUdX, HMatrix *dUdY, HMatrix *dUdZ,
-                  HMatrix *dUdTheta1, HMatrix *dUdTheta2, HMatrix *dUdTheta3);
-
-   /* lowest-level matrix-element routine that stamps a 1x1, 1x2, 2x1, or 2x2 */
-   /* block of matrix elements (corresponding to the interactions of a single */
-   /* pair of basis functions) into the BEM matrix or a subblock thereof      */
-   void StampMatrixElements(void *pLFW, 
-                            RWGObject *Oa, int nea, int OffsetA, 
-                            RWGObject *Ob, int neb, int OffsetB, 
-                            double Frequency, int RealFreq,
-                            int NumTorqueAxes, double *GammaMatrix,
-                            HMatrix *M, 
-                            HMatrix *dMdX, HMatrix *dMdY, HMatrix *dMdZ, 
-                            HMatrix *dMdT1, HMatrix *dMdT2, HMatrix *dMdT3);
-
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(int PureImagFreq);
    HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
 
    void AssembleRHSVector(EHFuncType EHFunc, void *UserDataD, 
-                          int PureImagFreq, int nThread, HVector *B);
-
-   void AssembleRHSVector(EHFuncType EHFunc, void *UserDataD, 
                           int nThread, HVector *B);
 
-   /* routine for evaluating scattered fields */
-   void GetFields(double *X, double Frequency, int RealFreq, 
-                  HVector *KN, int nThread, cdouble *EH);
-   void GetFields(double *X, int WhichObject, 
-                  double Frequency, int RealFreq,
-                  HVector *KN, int nThread, cdouble *EH);
+   /* routine for evaluating scattered fields. */
+   /* in the first two entry points, the caller already knows     */
+   /* which object the evaluation point lies inside (possibly the */
+   /* exterior medium), which saves time.                         */
+   /* in the third entry point, the code automatically determines */
+   /* which object the evaluation point lies inside.              */
+   void GetFields(double *X, int ObjectIndex,
+                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
+   void GetFields(double *X, const char *ObjectLabel,
+                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
+   void GetFields(double *X, 
+                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
 
    /* routine for calculating electric and magnetic dipole moments */
    void GetDipoleMoments(double Frequency, int RealFreq, HVector *KN, 
                          int nThread, cdouble (*PM)[6]);
 
    /* routine for calculating spherical multipole moments */
+#if 0
    void GetSphericalMoments(int WhichObject, double *X0, int lMax,
                             double Frequency, int RealFreq,
                             HVector *KN, int nThread,
                             cdouble *aE, cdouble *aM);
+#endif
 
-   /* justify or delete me ****************************************/
-   void ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD, int RealFreq, 
+   /* routine for computing the expansion coefficients in the RWG basis */
+   /* of an arbitrary user-supplied surface-tangential vector field     */
+   void ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD, 
                                   int nThread, HVector *KNVec);
 
-   void EvalCurrentDistribution(double *X, int RealFreq, HVector *KNVec, cdouble *KN);
+   /* evaluate the surface currents at a given point X on an object */
+   /* surface, given a vector of RWG expansion coefficients         */
+   void EvalCurrentDistribution(double *X, HVector *KNVec, cdouble *KN);
 
    /* routines for evaluating the scattering portions of the electric and magnetic */
    /* dyadic green's functions and the VEV of the maxwell stress tensor            */
-   /* note: the integer parameter after the M m is assumed tress tensor            */
-   /* these are alternate versions of the above two routines in which the */
    void GetGij(double *R, HMatrix *M, int Cholesky, HVector *KN, 
                double Frequency, int RealFreq, int nThread,
                cdouble GE[3][3], cdouble GM[3][3]);
@@ -376,6 +362,7 @@ class RWGGeometry
 
    /* optimized and accelerated array-based routines for evaluating the */
    /* stress tensor at several spatial points all at once               */
+#if 0
    void AssembleRHSVectorArray(double *RArray, int NumPts, double Xi, 
                                int nThread, HMatrix *KNArray);
 
@@ -391,6 +378,7 @@ class RWGGeometry
                       HMatrix *M, int Cholesky, HMatrix *KNArray, 
                       double Xi, int nThread, 
                       double TEArray[][3], double TMArray[][3]);
+#endif
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 

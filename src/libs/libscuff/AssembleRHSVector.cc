@@ -168,7 +168,6 @@ typedef struct ThreadData
    RWGGeometry *G;
    EHFuncType EHFunc;
    void *EHFuncUD;
-   int PureImagFreq ; /* =1 for pure imaginary frequency, 0 otherwise */
    HVector *B;
 
  } ThreadData;
@@ -178,31 +177,29 @@ typedef struct ThreadData
 /***************************************************************/
 void *AssembleRHS_Thread(void *data)
 { 
+  /***************************************************************/
+  /* extract fields from thread data structure *******************/
+  /***************************************************************/
   ThreadData *TD=(ThreadData *)data;
-
   RWGGeometry *G    = TD->G;
-  int PureImagFreq  = TD->PureImagFreq;
   EHFuncType EHFunc = TD->EHFunc;
   void *EHFuncUD    = TD->EHFuncUD;
 
-  int nt, Type, Offset;
-  int no, ne;
-  RWGObject *O;
-  cdouble EProd, HProd, *pHProd;
+  /***************************************************************/
+  /* get a pointer to the real- or complex-valued storage array  */
+  /* inside the HVector                                          */
+  /***************************************************************/
   double *DB;
   cdouble *ZB;
-
-  /* get a pointer to the real- or complex-valued */
-  /* storage array inside the HVector             */
-  if (PureImagFreq)
-   DB=TD->B->DV; 
+  int PureImagFreq;
+  if (TD->B->RealComplex==LHM_COMPLEX)
+   { ZB=TD->B->ZV;
+     PureImagFreq=0;
+   }
   else
-   ZB=TD->B->ZV;
-
-  if (Type==MP_PEC)
-   pHProd=0;
-  else
-   pHProd=&HProd;
+   { DB=TD->B->DV; 
+     PureImagFreq=1;
+   };
 
   /*--------------------------------------------------------------*/
   /*- EXPERIMENTAL -----------------------------------------------*/
@@ -217,11 +214,20 @@ void *AssembleRHS_Thread(void *data)
   /*- EXPERIMENTAL -----------------------------------------------*/
   /*--------------------------------------------------------------*/
 
-  nt=0;
+  RWGObject *O;
+  int no, ne, Type, Offset; 
+  int nt=0;
+  cdouble EProd, HProd, *pHProd;
   for(no=0, O=G->Objects[0]; no<G->NumObjects; O=G->Objects[++no])
    { 
-     Type=O->MP->Type;
      Offset=G->BFIndexOffset[no];
+     Type=O->MP->Type;
+
+     // figure out whether or not we need to compute the H product 
+     if (Type==MP_PEC)
+      pHProd=0;
+     else
+      pHProd=&HProd;
 
      for(ne=0; ne<O->NumEdges; ne++)
       { 
@@ -234,23 +240,23 @@ void *AssembleRHS_Thread(void *data)
         /* there are four choices here based on whether we are at a general */
         /* or a pure imaginary frequency and whether the object is a        */
         /* perfect conductor (EFIE) or not (PMCHW)                          */
-        if ( Type==MP_PEC && PureImagFreq==0 )
-         { 
-           ZB[ Offset + ne ] = -1.0*EProd / ZVAC;
-         } 
-        else if ( Type==MP_PEC && PureImagFreq==1 )
+        if ( Type==MP_PEC && PureImagFreq==1 )
          { 
            DB[ Offset + ne ] = -1.0*(real(EProd)) / ZVAC;
-         }
-        else if ( Type!=MP_PEC && PureImagFreq==0 )
+         } 
+        else if ( Type==MP_PEC && PureImagFreq==0 )
          { 
-           ZB[ Offset + 2*ne    ]  = -1.0*EProd / ZVAC;
-           ZB[ Offset + 2*ne + 1 ] = -1.0*HProd;
+           ZB[ Offset + ne ] = -1.0*EProd / ZVAC;
          }
-        else // ( Type!=MP_PEC && PureImagFreq==1 )
+        else if ( Type!=MP_PEC && PureImagFreq==1 )
          { 
            DB[ Offset + 2*ne    ]  = -1.0*(real(EProd)) /  ZVAC;
            DB[ Offset + 2*ne + 1 ] = -1.0*(real(HProd));
+         }
+        else // ( Type!=MP_PEC && PureImagFreq==0 )
+         { 
+           ZB[ Offset + 2*ne    ]  = -1.0*EProd / ZVAC;
+           ZB[ Offset + 2*ne + 1 ] = -1.0*HProd;
          };
 
       }; // for ne=...
@@ -265,7 +271,6 @@ void *AssembleRHS_Thread(void *data)
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
 void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
-                                    int PureImagFreq, 
                                     int nThread, HVector *B)
 { 
   int nt;
@@ -285,7 +290,6 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
      TD->G=this;
      TD->EHFunc=EHFunc;
      TD->EHFuncUD=EHFuncUD;
-     TD->PureImagFreq=PureImagFreq;
      TD->B=B;
 
      TD->nThread=nThread;
@@ -298,18 +302,14 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
 
 }
 
-void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
-                                    int nThread, HVector *B)
-{ AssembleRHSVector(EHFunc, EHFuncUD, SCUFF_GENERALFREQ, nThread, B); }
-
 /***************************************************************/
 /* Allocate an RHS vector of the appropriate size. *************/
 /***************************************************************/
-HVector *RWGGeometry::AllocateRHSVector(int PureImaginaryFrequency)
+HVector *RWGGeometry::AllocateRHSVector(int PureImagFreq)
 { 
   HVector *V;
 
-  if (PureImaginaryFrequency)
+  if (PureImagFreq)
    V=new HVector(TotalBFs,LHM_REAL);
   else
    V=new HVector(TotalBFs,LHM_COMPLEX);

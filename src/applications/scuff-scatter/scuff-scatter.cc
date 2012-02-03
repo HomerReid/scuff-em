@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile, &nOmegaFiles, "list of (angular) frequencies"},
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,    &nEPFiles,    "list of evaluation points"},
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes, &nFluxMeshes, "flux mesh"},
-     {"nThread",        PA_BOOL,    0, 1,       (void *)&nThread,   0,            "number of CPU threads to use"},
+     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,   0,            "number of CPU threads to use"},
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,         "export BEM matrix to file"},
      {0,0,0,0,0,0,0}
    };
@@ -416,8 +416,13 @@ int main(int argc, char *argv[])
      /* set up the incident field profile and assemble the RHS vector */
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
+#ifdef SCUFF
      G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
+#else
+     G->MP->GetEpsMu(Omega,&Eps,&Mu);
+#endif
      IFDList->SetFrequencyAndEpsMu(Omega,Eps,Mu);
+
 #ifdef SCUFF
      G->AssembleRHSVector(EHIncField, (void *)IFDList, nThread, KN);
 #else

@@ -163,12 +163,6 @@ void *GetFields_Thread(void *data)
   /***************************************************************/
   /* other local fields ******************************************/
   /***************************************************************/
-  RWGObject *O;
-  int nt, ne, no, mu, Type, Offset;
-  cdouble K, ikke, ikku, KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
-  double Sign;
-  double *DKN;
-  cdouble *ZKN;
 
   /*--------------------------------------------------------------*/
   /*- EXPERIMENTAL -----------------------------------------------*/
@@ -186,21 +180,29 @@ void *GetFields_Thread(void *data)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  ikke=II*Omega*Eps;
-  ikku=II*Omega*Mu;
-  if ( PureImagFreq )
+  double *DKN;
+  cdouble *ZKN;
+  cdouble iwe=II*Omega*Eps;
+  cdouble iwu=II*Omega*Mu;
+  cdouble K=csqrt2(Eps*Mu)*Omega;
+  if ( KN->RealComplex==LHM_REAL )
    { DKN=KN->DV;
-     K=II*sqrt(real(Eps)*Mu)*Frequency;
+     ZKN=NULL;
    }
   else
-   { ZKN=KN->ZV;
-     K=csqrt2(Eps*Mu)*Frequency;
+   { 
+     DKN=NULL;
+     ZKN=KN->ZV;
    };
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  nt=0;
+  RWGObject *O;
+  int i, ne, no, Type, Offset;
+  cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
+  double Sign;
+  int nt=0;
   memset(EH, 0, 6*sizeof(cdouble));
   for(no=0, O=G->Objects[0]; no<G->NumObjects; O=G->Objects[++no])
    { 
@@ -230,19 +232,19 @@ void *GetFields_Thread(void *data)
         if (nt==TD->nThread) nt=0;
         if (nt!=TD->nt) continue;
 
-        if ( Type==MP_PEC && RealFreq==1 )
+        if ( Type==MP_PEC && ZKN!=NULL )
          { KAlpha=ZKN[ Offset + ne ];
            NAlpha=0.0;
          }
-        else if ( Type==MP_PEC && RealFreq==0 )
+        else if ( Type==MP_PEC && DKN!=NULL )
          { KAlpha=DKN[ Offset + ne ];
            NAlpha=0.0; 
          }
-        else if ( Type!=MP_PEC && RealFreq==1 )
+        else if ( Type!=MP_PEC && ZKN!=NULL )
          { KAlpha=ZKN[ Offset + 2*ne ];
            NAlpha=ZKN[ Offset + 2*ne + 1 ];
          }
-        else if ( Type!=MP_PEC && RealFreq==0 )
+        else if ( Type!=MP_PEC && DKN!=NULL )
          { KAlpha=DKN[ Offset + 2*ne ];
            NAlpha=DKN[ Offset + 2*ne + 1 ];
          };
@@ -252,24 +254,9 @@ void *GetFields_Thread(void *data)
       
         O->GetReducedPotentials(ne, X, K, a, Curla, Gradp);
 
-#if 0
-if (TERM1ONLY)
-  { memset(Gradp,0,3*sizeof(cdouble));
-    memset(Curla,0,3*sizeof(cdouble));
-  }
-else if (TERM2ONLY)
-  { memset(a,0,3*sizeof(cdouble));
-    memset(Curla,0,3*sizeof(cdouble));
-  }
-else if (TERM3ONLY)
-  { memset(a,0,3*sizeof(cdouble));
-    memset(Gradp,0,3*sizeof(cdouble));
-  };
-#endif
-
-        for(mu=0; mu<3; mu++)
-         { EH[mu]   += ZVAC*( KAlpha*(ikku*a[mu] - Gradp[mu]/ikke) + NAlpha*Curla[mu] );
-           EH[mu+3] += -1.0*NAlpha*(ikke*a[mu] - Gradp[mu]/ikku) + KAlpha*Curla[mu];
+        for(i=0; i<3; i++)
+         { EH[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
+           EH[i+3] += -1.0*NAlpha*(iwe*a[i] - Gradp[i]/iwu) + KAlpha*Curla[i];
          };
 
       }; // for (ne=0 ... 
@@ -282,12 +269,11 @@ else if (TERM3ONLY)
 
 /***************************************************************/
 /* Get scattered fields at point X. ****************************/
-/* If WhichObject = -1, X is assumed to lie in the external    */
+/* If ObjectIndex = -1, X is assumed to lie in the external    */
 /* region. Otherwise, X is assumed to lie in the interior of   */
-/* object #WhichObject.                                        */
+/* object #ObjectIndex.                                        */
 /***************************************************************/
-void RWGGeometry::GetFields(double *X, int WhichObject, 
-                            double Frequency, int RealFreq,
+void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
                             HVector *KN, int nThread, cdouble *EH)
 { 
   if (nThread<=0)
@@ -301,22 +287,22 @@ void RWGGeometry::GetFields(double *X, int WhichObject,
   cdouble Eps; 
   double Mu;
 
-  if ( WhichObject==-1 )                                /* in external medium */
+  if ( ObjectIndex==-1 )                                /* in external medium */
    { ObjectInQuestion=0;
-     ExteriorMP->GetEpsMu(Frequency, RealFreq, &Eps, &Mu);
+     ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
    }
-  else if ( WhichObject<-1 || WhichObject>=NumObjects ) /* invalid object */
+  else if ( ObjectIndex<-1 || ObjectIndex>=NumObjects ) /* invalid object */
    { fprintf(stderr,"\n*\n* WARNING: invalid object selected in GetFields\n*\n");
      memset(EH,0,6*sizeof(cdouble));
      return;
    }
-  else if ( Objects[WhichObject]->MP->IsPEC() )         /* inside a PEC object */
+  else if ( Objects[ObjectIndex]->MP->IsPEC() )         /* inside a PEC object */
    { memset(EH,0,6*sizeof(cdouble));      /* fields vanish in a PEC body */
      return;
    }
   else                                                  /* inside a non-PEC object*/
-   { ObjectInQuestion=Objects[WhichObject];
-     ObjectInQuestion->MP->GetEpsMu(Frequency, RealFreq, &Eps, &Mu);
+   { ObjectInQuestion=Objects[ObjectIndex];
+     ObjectInQuestion->MP->GetEpsMu(Omega, &Eps, &Mu);
    };
 
   /***************************************************************/
@@ -335,8 +321,7 @@ void RWGGeometry::GetFields(double *X, int WhichObject,
 
      TD->G=this;
      TD->X=X;
-     TD->Frequency=Frequency;
-     TD->RealFreq=RealFreq;
+     TD->Omega=Omega;
      TD->Eps=Eps;
      TD->Mu=Mu;
      TD->ObjectInQuestion=ObjectInQuestion;
@@ -374,6 +359,49 @@ void RWGGeometry::GetFields(double *X, int WhichObject,
 
 }
 
-void RWGGeometry::GetFields(double *X, double Frequency, int RealFreq,
+/***************************************************************/
+/* entry point to GetFields() in which the caller identifies   */
+/* the object inside which the evaluation point lies by its    */
+/* label (as assigned using the LABEL keyword in the .scuffgeo */
+/* file) or using the keywords "EXTERIOR" or "MEDIUM" for the  */
+/* exterior medium.                                            */
+/***************************************************************/
+void RWGGeometry::GetFields(double *X, 
+                            const char *ObjectLabel,
+                            cdouble Omega,
                             HVector *KN, int nThread, cdouble *EH)
-{ GetFields(X, -1, Frequency, RealFreq, KN, nThread, EH); }
+{
+  if (!ObjectLabel)
+   ErrExit("%s:%i:internal error",__FILE__,__LINE__);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int ObjectIndex;
+  if ( !strcasecmp(ObjectLabel,"EXTERIOR") || !strcasecmp(ObjectLabel,"MEDIUM") )
+   ObjectIndex=-1;
+  else
+   { for (ObjectIndex=0; ObjectIndex<NumObjects; ObjectIndex++)
+      if ( !strcasecmp(ObjectLabel,Objects[ObjectIndex]->Label) )
+       break;
+   }
+
+  if (ObjectIndex==NumObjects)
+   ErrExit("unknown object label %s in GetFields()",ObjectLabel);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  GetFields(X, ObjectIndex, Omega, KN, nThread, EH);
+
+}
+
+/***************************************************************/
+/* entry point to GetFields() with autodetection of where the  */
+/* evaluation point lies.                                      */
+/***************************************************************/
+void RWGGeometry::GetFields(double *X, 
+                            cdouble Omega,
+                            HVector *KN, int nThread, cdouble *EH)
+{
+}

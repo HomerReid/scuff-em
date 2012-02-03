@@ -75,7 +75,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /* routine are never freed.                                    */
   /***************************************************************/
   MatProp *MP, **MPs=0;
-  int NumMPs;
+  int NumMPs=0;
 
   /***************************************************************/
   /* initialize simple fields ************************************/
@@ -185,13 +185,16 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
        ExteriorMP=MPs[nmp];
 
      if (ExteriorMP==0)
-      { ExteriorMP = new MatProp(O->MPName);
+      { ExteriorMP = new MatProp(ExteriorMPName);
         if (ExteriorMP->ErrMsg)
-        ErrExit("%s: medium: error in MATERIAL value: %s",GeoFileName,O->MP->ErrMsg);
+         ErrExit("%s: medium: error in MATERIAL value: %s",GeoFileName,ExteriorMP->ErrMsg);
       };
    }
   else
    ExteriorMP=new MatProp(MP_VACUUM);
+
+  if ( ExteriorMP->IsPEC() )
+   ErrExit("%s: PEC exteriorm medium not supported",GeoFileName);
 
   /***************************************************************/
   /* process material properties of objects                      */

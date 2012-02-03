@@ -23,6 +23,11 @@
 // (high-frequency) regime if |k*PanelRadius| > SWTHRESHOLD
 #define SWTHRESHOLD 1.0*M_PI
 
+// the 'desingularization radius': if the relative distance  
+// between two panels is < this number, we evaluate the      
+// panel-panel integrals using desingularization.
+#define DESINGULARIZATION_RADIUS 4.0
+
 #define AA0 1.0
 #define AA1 1.0
 #define AA2 (1.0/2.0)
@@ -395,7 +400,10 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
 
   // step 2
   QDFIPPIData MyQDFD, *QDFD=&MyQDFD;
-  GetQDFIPPIData(Va, Qa, Vb, Qb, ncv, Args->opFT, QDFD);
+  if (Args->opFC)
+   GetQDFIPPIData(Va, Qa, Vb, Qb, ncv, Args->opFC, QDFD);
+  else
+   GetQDFIPPIData(Va, Qa, Vb, Qb, ncv, &GlobalFIPPICache, QDFD);
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
@@ -455,5 +463,5 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
   Args->NumTorqueAxes=0;
   Args->ForceTaylorDuffy=0;
   Args->GammaMatrix=0;
-  Args->opFT=0;
+  Args->opFC=0;
 }

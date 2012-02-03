@@ -10,6 +10,7 @@
 #define LIBSCUFFINTERNALS_H
 
 #include "libscuff.h"
+#include <pthread.h>
 
 /***************************************************************/
 /* 1. argument structures for routines whose input/output      */
@@ -38,7 +39,7 @@ typedef struct GetPPIArgStruct
    int NumTorqueAxes; 
    int ForceTaylorDuffy;
    double *GammaMatrix;
-   void *opFT;
+   void *opFC; // 'opaque pointer to FIPPI cache'
 
    // output fields filled in by routine
    // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
@@ -76,7 +77,8 @@ typedef struct GetEEIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
-   void *opFT;
+
+   void *opFC; // 'opaque pointer to FIPPI cache'
 
    int Force;
 
@@ -172,24 +174,41 @@ void ComputeQIFIPPIData(double **Va, double **Vb, int ncv, QIFIPPIData *QIFD);
 /*- outside world.                                              */
 /*--------------------------------------------------------------*/
 void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb, 
-                    int ncv, void *opFT, QDFIPPIData *QDFD);
+                    int ncv, void *opFC, QDFIPPIData *QDFD);
 
 /*--------------------------------------------------------------*/
-/* 'FIPPITable' is a class that implements efficient storage    */
+/* 'FIPPICache' is a class that implements efficient storage    */
 /* and retrieval of QIFIPPIData structures for many panel pairs.*/
 /* i am encapsulating this as its own separate class to allow   */
 /* me easily to experiment with various implementations.        */
 /*--------------------------------------------------------------*/
-class FIPPITable
+class FIPPICache
  { 
   public:
-    FIPPITable();
-    ~FIPPITable();
+    FIPPICache();
+    ~FIPPICache();
     QIFIPPIData *GetQIFIPPIData(double **OVa, double **OVb, int ncv);
+
+  private:
+
+    // any implementation of this class will have some kind of 
+    // storage table, but to allow maximal flexibility in implementation
+    // i am just going to store an opaque pointer to this table
+    // in the class body, with all the details left up to the 
+    // implementation 
+    void *opTable;
+
+    pthread_mutex_t FCMutex; 
 
     int DoNotCompute;
  
  };
+
+/***************************************************************/   
+/* single global instance of FIPPICache that is used whenever  */   
+/* no alternative is provided                                  */   
+/***************************************************************/   
+extern FIPPICache GlobalFIPPICache;
 
 /***************************************************************/   
 /* 3. some additional non-class-method routines used internally*/

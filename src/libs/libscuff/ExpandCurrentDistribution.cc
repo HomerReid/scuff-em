@@ -20,7 +20,7 @@
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD,
-                                            int RealFreq, int nThread, HVector *KNVec)
+                                            int nThread, HVector *KNVec)
 { 
   int n, no, nop, ne, nep;
   RWGObject *O;
@@ -30,12 +30,12 @@ void RWGGeometry::ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD,
 
   /* FIXME */
   if (NumObjects>1)
-   ErrExit("barfatage");
+   ErrExit("%s:%i: ExpandCurrentDistribution only implemented for single-object geometries");
   O=Objects[0];
 
   Log("ExpandCD: Assembling RHS");
-  AssembleRHSVector(KNFunc, KNFuncUD, RealFreq, nThread, KNVec);
-  if (RealFreq)
+  AssembleRHSVector(KNFunc, KNFuncUD, nThread, KNVec);
+  if (KNVec->RealComplex==LHM_COMPLEX)
    { for(n=0; n<(KNVec->N)/2; n++)
       { KNVec->ZV[2*n] *= -1.0*ZVAC;
         KNVec->ZV[2*n+1] /= ZVAC;
@@ -48,7 +48,7 @@ void RWGGeometry::ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD,
       };
    };
 
-  M=new HMatrix(2*O->NumEdges, 2*O->NumEdges, RealFreq ? LHM_COMPLEX : LHM_REAL);
+  M=new HMatrix(2*O->NumEdges, 2*O->NumEdges, KNVec->RealComplex);
   M->Zero();
 
   Log("ExpandCD: Assembling M");
@@ -101,8 +101,10 @@ int InsideTriangle(double *X, double *V1, double *V2, double *V3)
 
 }
 
-void RWGGeometry::EvalCurrentDistribution(double *X, int RealFreq, 
-                                          HVector *KNVec, cdouble *KN)
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::EvalCurrentDistribution(double *X, HVector *KNVec, cdouble *KN)
 { 
   int ne; 
   RWGObject *O;
@@ -111,13 +113,11 @@ void RWGGeometry::EvalCurrentDistribution(double *X, int RealFreq,
   double fRWG[3];
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;
-  cdouble *ZV=KNVec->ZV;
-  double *DV=KNVec->DV;
   cdouble KAlpha, NAlpha;
 
   /* FIXME */
   if (NumObjects>1)
-   ErrExit("barfatage");
+   ErrExit("%s:%i: EvalCurrentDistribution only implemented for single-object geometries");
   O=Objects[0];
 
   memset(KN,0,6*sizeof(cdouble));
@@ -135,32 +135,20 @@ void RWGGeometry::EvalCurrentDistribution(double *X, int RealFreq,
      if ( InsideTriangle(X,QP,V1,V2) )
       { VecSub(X,QP,fRWG);
         VecScale(fRWG, E->Length / (2.0*PArea) );
-        if (RealFreq)
-         { KAlpha=ZV[2*ne];
-           NAlpha=-1.0*ZVAC*ZV[2*ne+1];
-         }
-        else
-         { KAlpha=DV[2*ne];
-           NAlpha=-1.0*ZVAC*DV[2*ne+1];
-         };
-         KN[0] += KAlpha * fRWG[0]; 
-         KN[1] += KAlpha * fRWG[1]; 
-         KN[2] += KAlpha * fRWG[2]; 
-         KN[3] += NAlpha * fRWG[0]; 
-         KN[4] += NAlpha * fRWG[1]; 
-         KN[5] += NAlpha * fRWG[2]; 
+        KAlpha=KNVec->GetEntry(2*ne);
+        NAlpha=-1.0*ZVAC*KNVec->GetEntry(2*ne+1);
+        KN[0] += KAlpha * fRWG[0]; 
+        KN[1] += KAlpha * fRWG[1]; 
+        KN[2] += KAlpha * fRWG[2]; 
+        KN[3] += NAlpha * fRWG[0]; 
+        KN[4] += NAlpha * fRWG[1]; 
+        KN[5] += NAlpha * fRWG[2]; 
       }
      else if ( InsideTriangle(X,QM,V1,V2) )
       { VecSub(X,QM,fRWG);
         VecScale(fRWG, E->Length / (2.0*MArea) );
-        if (RealFreq)
-         { KAlpha=ZV[2*ne];
-           NAlpha=-1.0*ZVAC*ZV[2*ne+1];
-         }
-        else
-         { KAlpha=DV[2*ne];
-           NAlpha=-1.0*ZVAC*DV[2*ne+1];
-         };
+        KAlpha=KNVec->GetEntry(2*ne);
+        NAlpha=-1.0*ZVAC*KNVec->GetEntry(2*ne+1);
         KN[0] -= KAlpha * fRWG[0]; 
         KN[1] -= KAlpha * fRWG[1]; 
         KN[2] -= KAlpha * fRWG[2]; 

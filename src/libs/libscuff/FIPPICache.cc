@@ -1,5 +1,5 @@
 /*
- * FIPPITable.cc -- implementation of the FIPPITable class for libscuff
+ * FIPPICache.cc -- implementation of the FIPPICache class for libscuff
  * 
  * homer reid    -- 11/2005 -- 1/2011
  */
@@ -76,19 +76,23 @@ typedef std::tr1::unordered_map< KeyStruct,
 /*--------------------------------------------------------------*/
 /*- class constructor ------------------------------------------*/
 /*--------------------------------------------------------------*/
-KeyValueMap *MyKeyValueMap=0;
-FIPPITable::FIPPITable()
+FIPPICache::FIPPICache()
 {
-  MyKeyValueMap=new KeyValueMap;
   DoNotCompute=0;
+
+  pthread_mutex_init(&FCMutex,0);
+
+  KeyValueMap *KVM=new KeyValueMap;
+  opTable = (void *)KVM;
 }
 
 /*--------------------------------------------------------------*/
 /*- class destructor  ------------------------------------------*/
 /*--------------------------------------------------------------*/
-FIPPITable::~FIPPITable()
+FIPPICache::~FIPPICache()
 {
-  delete MyKeyValueMap;
+  KeyValueMap *KVM=(KeyValueMap *)opTable;
+  delete KVM;
 } 
 
 /*--------------------------------------------------------------*/
@@ -100,9 +104,8 @@ FIPPITable::~FIPPITable()
 /*- important note: the vertices are assumed to be canonically  */
 /*- ordered on entry.                                           */
 /*--------------------------------------------------------------*/
-QIFIPPIData *FIPPITable::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
+QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
 {
-
   /***************************************************************/
   /* the search key is kinda stupid, just a string of 15 doubles */
   /* as follows:                                                 */
@@ -122,8 +125,9 @@ QIFIPPIData *FIPPITable::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  KeyValueMap::iterator p=MyKeyValueMap->find(K);
-  if ( p != (MyKeyValueMap->end()) )
+  KeyValueMap *KVM=(KeyValueMap *)opTable;
+  KeyValueMap::iterator p=KVM->find(K);
+  if ( p != (KVM->end()) )
    { Found++;
      return (QIFIPPIData *)(p->second);
    };
@@ -137,6 +141,15 @@ QIFIPPIData *FIPPITable::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   QIFIPPIData *QIFD=(QIFIPPIData *)malloc(sizeof *QIFD);
   if (DoNotCompute==0)
    ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
-  MyKeyValueMap->insert( KeyValuePair(*K2, QIFD) );
+   
+  pthread_mutex_lock(&FCMutex);
+  KVM->insert( KeyValuePair(*K2, QIFD) );
+  pthread_mutex_unlock(&FCMutex);
+
   return QIFD;
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+FIPPICache GlobalFIPPICache;

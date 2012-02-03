@@ -363,7 +363,7 @@ void InitABMBArgs(ABMBArgStruct *Args)
 /* is pretty simple, and really just calls the routine above   */
 /* to do all the dirty work.                                   */
 /***************************************************************/
-void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
+void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
 { 
   /***************************************************************/
   /* preinitialize an argument structure for the matrix-block    */
@@ -373,7 +373,7 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
 
   InitABMBArgs(Args);
   Args->G=this;
-  Args->Frequency=Frequency;
+  Args->Frequency=Omega;
   Args->nThread=nThread;
 
   Args->NumTorqueAxes=0;
@@ -420,10 +420,9 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
 /***************************************************************/
 HMatrix *RWGGeometry::AllocateBEMMatrix(int PureImagFreq)
 {
-  HMatrix *M;
   if (PureImagFreq)
-   M=new HMatrix(TotalBFs, TotalBFs, LHM_REAL);
+   return new HMatrix(TotalBFs, TotalBFs, LHM_REAL);
   else
-   M=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+   return new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
     
 }

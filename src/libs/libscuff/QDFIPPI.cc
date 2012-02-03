@@ -45,7 +45,7 @@
 /*--------------------------------------------------------------*/
 void GetQDFIPPIData(double **Va, double *Qa,
                     double **Vb, double *Qb,
-                    int ncv, void *opFT, QDFIPPIData *QDFD)
+                    int ncv, void *opFC, QDFIPPIData *QDFD)
 {
   QIFIPPIData MyQIFD, *QIFD;
   double *OVa[3], *OQa, *OVb[3], *OQb;
@@ -55,7 +55,7 @@ void GetQDFIPPIData(double **Va, double *Qa,
   /*- get the Q-independent FIPPIs by looking them up in a table  */
   /*- if we have one or by computing them if we don't             */
   /*--------------------------------------------------------------*/
-  if (opFT)
+  if (opFC)
    { 
      Flipped=CanonicallyOrderVertices(Va, Vb, ncv, OVa, OVb);
      if (Flipped)
@@ -63,7 +63,7 @@ void GetQDFIPPIData(double **Va, double *Qa,
      else
       { OQa=Qa; OQb=Qb; };
 
-     QIFD=((FIPPITable *)opFT)->GetQIFIPPIData(OVa, OVb, ncv);
+     QIFD=((FIPPICache *)opFC)->GetQIFIPPIData(OVa, OVb, ncv);
    }
   else
    { 
