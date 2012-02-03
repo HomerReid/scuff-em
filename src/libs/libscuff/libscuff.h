@@ -28,6 +28,12 @@
 #include "GTransformation.h"
 
 /*--------------------------------------------------------------*/
+/*- some constants used to pass values to libscuff functions   -*/
+/*--------------------------------------------------------------*/
+#define SCUFF_GENERALFREQ  0
+#define SCUFF_PUREIMAGFREQ 1
+
+/*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*- 0 couple of quick things before we begin                   -*/
 /*--------------------------------------------------------------*/
@@ -272,7 +278,9 @@ class RWGGeometry
                             const char *format, ...);
 
    /* routines for allocating, and then filling in, the BEM matrix */
-   HMatrix *AllocateBEMMatrix(int RealFreq);
+   HMatrix *AllocateBEMMatrix(int PureImagFreq);
+   HMatrix *AllocateBEMMatrix() { return AllocateBEMMatrix(0); };
+
    void AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M);
 
    /* routines for allocating, and then filling in, the derivative */
@@ -312,8 +320,13 @@ class RWGGeometry
                             HMatrix *dMdT1, HMatrix *dMdT2, HMatrix *dMdT3);
 
    /* routines for allocating, and then filling in, the RHS vector */
-   HVector *AllocateRHSVector(int RealFreq);
-   void AssembleRHSVector(EHFuncType EHFunc, void *UserDataD, int RealFreq,
+   HVector *AllocateRHSVector(int PureImagFreq);
+   HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
+
+   void AssembleRHSVector(EHFuncType EHFunc, void *UserDataD, 
+                          int PureImagFreq, int nThread, HVector *B);
+
+   void AssembleRHSVector(EHFuncType EHFunc, void *UserDataD, 
                           int nThread, HVector *B);
 
    /* routine for evaluating scattered fields */

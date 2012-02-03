@@ -414,3 +414,16 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M)
    };
 
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HMatrix *RWGGeometry::AllocateBEMMatrix(int PureImagFreq)
+{
+  HMatrix *M;
+  if (PureImagFreq)
+   M=new HMatrix(TotalBFs, TotalBFs, LHM_REAL);
+  else
+   M=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+    
+}

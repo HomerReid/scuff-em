@@ -155,17 +155,7 @@
 #include <math.h>
 #include <stdarg.h>
 
-#include <libhrutil.h>
-#include "libIncField.h"
-#include <libhmat.h>
-
 #include "scuff-scatter.h"
-
-#ifdef SCUFF
-	#include "libscuff.h"
-#else // RWG
-	#include "libRWG.h"
-#endif
 
 /***************************************************************/
 /***************************************************************/
@@ -279,6 +269,7 @@ int main(int argc, char *argv[])
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,         "export BEM matrix to file"},
      {0,0,0,0,0,0,0}
    };
+  ProcessOptions(argc, argv, OSArray);
 
   if (nThread==0)
    nThread=GetNumProcs();
@@ -357,8 +348,13 @@ int main(int argc, char *argv[])
   /* create the RWGGeometry, allocate BEM matrix and RHS vector      */
   /*******************************************************************/
   RWGGeometry *G=new RWGGeometry(GeoFile);
+#ifdef SCUFF
+  HMatrix *M=G->AllocateBEMMatrix();
+  HVector *KN=G->AllocateRHSVector();
+#else
   HMatrix *M=G->AllocateBEMMatrix(REAL_FREQ);
   HVector *KN=G->AllocateRHSVector(REAL_FREQ);
+#endif
 
   char GeoFileBase[MAXSTR];
   strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
@@ -401,7 +397,8 @@ int main(int argc, char *argv[])
      else
       ErrExit("%s:%i:internal error",__FILE__,__LINE__);
      
-      G->AssembleBEMMatrix( abs(Omega), RealFreq, nThread, M);
+     G->PreCompute(nThread);
+     G->AssembleBEMMatrix( abs(Omega), RealFreq, nThread, M);
 #endif
      if (ExportMatrix)
       { void *pCC=HMatrix::OpenC2MLContext(GeoFileBase,"_%s",OmegaStr);
@@ -419,7 +416,7 @@ int main(int argc, char *argv[])
      /* set up the incident field profile and assemble the RHS vector */
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
-     G->MP->GetEpsMu(Omega,&Eps,&Mu);
+     G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
      IFDList->SetFrequencyAndEpsMu(Omega,Eps,Mu);
 #ifdef SCUFF
      G->AssembleRHSVector(EHIncField, (void *)IFDList, nThread, KN);

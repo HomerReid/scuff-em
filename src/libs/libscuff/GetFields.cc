@@ -132,8 +132,7 @@ typedef struct ThreadData
 
    RWGGeometry *G;   
    double *X;            /* eval point */
-   double Frequency;
-   int RealFreq;
+   cdouble Omega;
    cdouble Eps;
    double Mu;
    RWGObject *ObjectInQuestion;
@@ -154,8 +153,7 @@ void *GetFields_Thread(void *data)
   /***************************************************************/
   RWGGeometry *G              = TD->G;
   double *X                   = TD->X;
-  double Frequency            = TD->Frequency;
-  double RealFreq             = TD->RealFreq;
+  cdouble Omega               = TD->Omega;
   cdouble Eps                 = TD->Eps;
   double Mu                   = TD->Mu;
   RWGObject *ObjectInQuestion = TD->ObjectInQuestion;
@@ -188,17 +186,15 @@ void *GetFields_Thread(void *data)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if ( RealFreq )
-   { ZKN=KN->ZV;
-     ikke=II*Frequency*Eps;
-     ikku=II*Frequency*Mu;
-     K=csqrt2(Eps*Mu)*Frequency;
+  ikke=II*Omega*Eps;
+  ikku=II*Omega*Mu;
+  if ( PureImagFreq )
+   { DKN=KN->DV;
+     K=II*sqrt(real(Eps)*Mu)*Frequency;
    }
   else
-   { DKN=KN->DV;
-     ikke=-1.0*Frequency*Eps;
-     ikku=-1.0*Frequency*Mu;
-     K=II*sqrt(real(Eps)*Mu)*Frequency;
+   { ZKN=KN->ZV;
+     K=csqrt2(Eps*Mu)*Frequency;
    };
 
   /***************************************************************/

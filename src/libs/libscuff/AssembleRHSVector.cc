@@ -26,7 +26,7 @@ typedef struct InnerProductIntegrandData
    double PreFac;
    EHFuncType EHFunc;
    void *EHFuncUD;
-   int RealFreq;
+   int PureImagFreq;
    int NeedHProd;
  } InnerProductIntegrandData;
 
@@ -60,7 +60,7 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
              + fRWG[1] * (real(EH[1]) )
              + fRWG[2] * (real(EH[2]) );
   
-  if (IPID->RealFreq) 
+  if ( !(IPID->PureImagFreq) ) 
    F[nrv++]=   fRWG[0] * (imag(EH[0]) )
              + fRWG[1] * (imag(EH[1]) )
              + fRWG[2] * (imag(EH[2]) );
@@ -70,7 +70,7 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
              + fRWG[1] * (real(EH[4]) )
              + fRWG[2] * (real(EH[5]) );
 
-  if (IPID->NeedHProd && IPID->RealFreq) 
+  if ( IPID->NeedHProd && !(IPID->PureImagFreq) ) 
    F[nrv++]=   fRWG[0] * (imag(EH[3]) )
              + fRWG[1] * (imag(EH[4]) )
              + fRWG[2] * (imag(EH[5]) );
@@ -89,7 +89,7 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 /* magnetic field.                                             */
 /***************************************************************/
 void RWGObject::GetInnerProducts(int nbf, EHFuncType EHFunc, 
-                                 void *EHFuncUD, int RealFreq,
+                                 void *EHFuncUD, int PureImagFreq,
                                  cdouble *pEProd, cdouble *pHProd)
 { 
   double *QP, *V1, *V2, *QM;
@@ -112,16 +112,15 @@ void RWGObject::GetInnerProducts(int nbf, EHFuncType EHFunc,
   /* set up data structure passed to InnerProductIntegrand */
   IPID->EHFunc=EHFunc;
   IPID->EHFuncUD=EHFuncUD;
-  IPID->RealFreq=0;
+  IPID->PureImagFreq=PureImagFreq;
   IPID->NeedHProd=0;
   nFun=1;
   if (pHProd)
    { IPID->NeedHProd=1;
      nFun=2;
    };
-  if (RealFreq)
-   { IPID->RealFreq=1;
-     nFun*=2;
+  if ( !(PureImagFreq) )
+   { nFun*=2;
    };
  
   /* integrate over positive panel */
@@ -147,11 +146,11 @@ void RWGObject::GetInnerProducts(int nbf, EHFuncType EHFunc,
   /* this return value is needed in all cases */ 
   real(EProd) = I[nrv++]; 
 
-  if (RealFreq)
+  if (!PureImagFreq)
    imag(EProd) = I[nrv++]; 
   if (pHProd!=0)
    real(HProd) = I[nrv++]; 
-  if (pHProd!=0 && RealFreq)
+  if (pHProd!=0 && !PureImagFreq)
    imag(HProd) = I[nrv++]; 
 
   *pEProd=EProd;
@@ -169,7 +168,7 @@ typedef struct ThreadData
    RWGGeometry *G;
    EHFuncType EHFunc;
    void *EHFuncUD;
-   int RealFreq; /* =1 for real frequency, 0 for imag */
+   int PureImagFreq ; /* =1 for pure imaginary frequency, 0 otherwise */
    HVector *B;
 
  } ThreadData;
@@ -182,21 +181,28 @@ void *AssembleRHS_Thread(void *data)
   ThreadData *TD=(ThreadData *)data;
 
   RWGGeometry *G    = TD->G;
-  int RealFreq      = TD->RealFreq;
+  int PureImagFreq  = TD->PureImagFreq;
   EHFuncType EHFunc = TD->EHFunc;
   void *EHFuncUD    = TD->EHFuncUD;
 
   int nt, Type, Offset;
   int no, ne;
   RWGObject *O;
-  cdouble EProd, HProd;
+  cdouble EProd, HProd, *pHProd;
   double *DB;
   cdouble *ZB;
 
-  if (RealFreq)
-   ZB=TD->B->ZV;
-  else
+  /* get a pointer to the real- or complex-valued */
+  /* storage array inside the HVector             */
+  if (PureImagFreq)
    DB=TD->B->DV; 
+  else
+   ZB=TD->B->ZV;
+
+  if (Type==MP_PEC)
+   pHProd=0;
+  else
+   pHProd=&HProd;
 
   /*--------------------------------------------------------------*/
   /*- EXPERIMENTAL -----------------------------------------------*/
@@ -223,28 +229,26 @@ void *AssembleRHS_Thread(void *data)
         if (nt==TD->nThread) nt=0;
         if (nt!=TD->nt) continue;
 
-        /* there are four choices here based on whether we are at real or */
-        /* imaginary frequency and whether the object is a perfect        */
-        /* conductor (EFIE) or not (PMCHW)                                */
-        if ( Type==MP_PEC && RealFreq==1 )
+        O->GetInnerProducts(ne, EHFunc, EHFuncUD, PureImagFreq, &EProd, pHProd);
+
+        /* there are four choices here based on whether we are at a general */
+        /* or a pure imaginary frequency and whether the object is a        */
+        /* perfect conductor (EFIE) or not (PMCHW)                          */
+        if ( Type==MP_PEC && PureImagFreq==0 )
          { 
-           O->GetInnerProducts(ne, EHFunc, EHFuncUD, RealFreq, &EProd, 0);
            ZB[ Offset + ne ] = -1.0*EProd / ZVAC;
          } 
-        else if ( Type==MP_PEC && RealFreq==0 )
+        else if ( Type==MP_PEC && PureImagFreq==1 )
          { 
-           O->GetInnerProducts(ne, EHFunc, EHFuncUD, RealFreq, &EProd, 0);
            DB[ Offset + ne ] = -1.0*(real(EProd)) / ZVAC;
          }
-        else if ( Type!=MP_PEC && RealFreq==1 )
+        else if ( Type!=MP_PEC && PureImagFreq==0 )
          { 
-           O->GetInnerProducts(ne , EHFunc, EHFuncUD, RealFreq, &EProd, &HProd);
            ZB[ Offset + 2*ne    ]  = -1.0*EProd / ZVAC;
            ZB[ Offset + 2*ne + 1 ] = -1.0*HProd;
          }
-        else // ( Type!=MP_PEC && RealFreq==0 )
+        else // ( Type!=MP_PEC && PureImagFreq==1 )
          { 
-           O->GetInnerProducts(ne, EHFunc, EHFuncUD, RealFreq, &EProd, &HProd);
            DB[ Offset + 2*ne    ]  = -1.0*(real(EProd)) /  ZVAC;
            DB[ Offset + 2*ne + 1 ] = -1.0*(real(HProd));
          };
@@ -261,7 +265,8 @@ void *AssembleRHS_Thread(void *data)
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
 void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
-                                    int RealFreq, int nThread, HVector *B)
+                                    int PureImagFreq, 
+                                    int nThread, HVector *B)
 { 
   int nt;
 
@@ -280,7 +285,7 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
      TD->G=this;
      TD->EHFunc=EHFunc;
      TD->EHFuncUD=EHFuncUD;
-     TD->RealFreq=RealFreq;
+     TD->PureImagFreq=PureImagFreq;
      TD->B=B;
 
      TD->nThread=nThread;
@@ -293,17 +298,21 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
 
 }
 
+void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
+                                    int nThread, HVector *B)
+{ AssembleRHSVector(EHFunc, EHFuncUD, SCUFF_GENERALFREQ, nThread, B); }
+
 /***************************************************************/
 /* Allocate an RHS vector of the appropriate size. *************/
 /***************************************************************/
-HVector *RWGGeometry::AllocateRHSVector(int RealFreq)
+HVector *RWGGeometry::AllocateRHSVector(int PureImaginaryFrequency)
 { 
   HVector *V;
 
-  if (RealFreq)
-   V=new HVector(TotalBFs,LHM_COMPLEX);
-  else
+  if (PureImaginaryFrequency)
    V=new HVector(TotalBFs,LHM_REAL);
+  else
+   V=new HVector(TotalBFs,LHM_COMPLEX);
 
   return V;
 

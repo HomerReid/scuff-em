@@ -9,16 +9,6 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#include <libhrutil.h>
-#include "libIncField.h"
-#include <libhmat.h>
-
-#ifdef SCUFF
-	#include "libscuff.h"
-#else
-	#include "libRWG.h"
-#endif
-
 #include "scuff-scatter.h"
 
 /***************************************************************/

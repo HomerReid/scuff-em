@@ -9,7 +9,14 @@
 
 #include <libhrutil.h>
 #include <libhmat.h>
-#include <libRWG.h>
+#include "libIncField.h"
+
+#ifdef SCUFF
+	#include "libscuff.h"
+#else // RWG
+	#include "libRWG.h"
+#endif
+
 
 /***************************************************************/
 /* data structure containing everything needed to pass data    */
