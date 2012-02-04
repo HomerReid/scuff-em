@@ -1,6 +1,6 @@
 /*
- * PanelPanelInteractions.cc -- routines for evaluating interactions
- *                           -- between individual RWG panels
+ * PanelPanelInteractions.cc -- libscuff routines for evaluating interactions
+ *                           -- between individual panels
  * 
  * homer reid                -- 11/2005 -- 10/2011
  *

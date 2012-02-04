@@ -1,0 +1,45 @@
+SHELL=/bin/bash
+
+##################################################
+##################################################
+##################################################
+include ../../../../Makefile.Rules
+
+##################################################
+##################################################
+##################################################
+HR_LIBS = -lscuff -lMatProp -lMDInterp \
+          -lhmat -lSGJC -lTriInt -lhrutil
+
+OTHER_LIBS = $(GSL_LIBS) $(MUPARSER_LIBS) $(RDL_LIBS) $(HDF5_LIBS) $(LB_LIBS)
+
+LIBS=$(HR_LIBS) $(OTHER_LIBS)
+
+##################################################
+##################################################
+##################################################
+DEBUG=-O2
+CXX=g++
+CFLAGS+=$(DEBUG)
+CPPFLAGS+=$(DEBUG)
+LDFLAGS+=$(DEBUG)
+
+CPPFLAGS+=-I../../libs/libscuff
+
+LDFLAGS+=-L.
+LDFLAGS+=-L../../libs/libscuff
+
+##################################################
+##################################################
+##################################################
+SA_OBJS = scuff-analyze.o
+
+scuff-analyze:	$(SA_OBJS)
+		$(CXX) $(LDFLAGS) -o $@ $(SA_OBJS) $(LIBS)
+
+libscuff.a:	
+		(pushd ../../libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)
+
+clean:	
+		rm -f *.o *.a
+		(pushd ../../libs/libscuff; make clean; popd)

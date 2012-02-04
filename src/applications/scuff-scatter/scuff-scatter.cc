@@ -273,6 +273,9 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
 
+  if (GeoFile==0)
+   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+
   if (nThread==0)
    nThread=GetNumProcs();
 
