@@ -250,6 +250,7 @@ int main(int argc, char *argv[])
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
   int nThread=0;
   int ExportMatrix=0;
+  char *ObjectOnly=0;
   /* name               type     args  instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,   0,            "geometry file"},
@@ -267,6 +268,7 @@ int main(int argc, char *argv[])
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes, &nFluxMeshes, "flux mesh"},
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,   0,            "number of CPU threads to use"},
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,         "export BEM matrix to file"},
+     {"Only",           PA_STRING,  1, 1,       (void *)&ObjectOnly,0,            "include only object xx"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -360,6 +362,41 @@ int main(int argc, char *argv[])
   strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
 
   /*******************************************************************/
+  /* if the user specified the --only option, then set the material  */
+  /* properties of all other objects to eps=mu=0                     */
+  /*******************************************************************/
+  if (ObjectOnly)
+   { 
+     /*--------------------------------------------------------------*/
+     /* figure out which object the user is talking about            */
+     /*--------------------------------------------------------------*/
+     int ObjectIndex;
+     if ( !strcasecmp(ObjectOnly,"EXTERIOR") || !strcasecmp(ObjectOnly,"MEDIUM") )
+      ObjectIndex=-1;
+     else
+      { for (ObjectIndex=0; ObjectIndex<G->NumObjects; ObjectIndex++)
+         if ( !strcasecmp(ObjectOnly,G->Objects[ObjectIndex]->Label) )
+          break;
+      }
+     if (ObjectIndex==G->NumObjects)
+      ErrExit("unknown object %s specified for --only option",ObjectOnly);
+
+     /*--------------------------------------------------------------*/
+     /*- create a MatProp describing eps=mu=0 and set all other     -*/
+     /*- objects to have this material property.                    -*/
+     /*- garbage collection fail: we don't bother to deallocate     -*/
+     /*- the existing MatProp structures that we overwrite....      -*/
+     /*--------------------------------------------------------------*/
+     MatProp *ZeroMP=new MatProp("CONST_EPS0_MU0");
+     if (ObjectIndex!=-1)
+      G->ExteriorMP=ZeroMP;
+     for(int no=0; no<G->NumObjects; no++)
+      if (no!=ObjectIndex) 
+       G->Objects[no]->MP=ZeroMP;    
+ 
+   };
+   
+  /*******************************************************************/
   /* put all relevant information into a data structure to be passed */
   /* to the output modules                                           */
   /*******************************************************************/
@@ -401,7 +438,11 @@ int main(int argc, char *argv[])
      G->AssembleBEMMatrix( abs(Omega), RealFreq, nThread, M);
 #endif
      if (ExportMatrix)
-      { void *pCC=HMatrix::OpenC2MLContext(GeoFileBase,"_%s",OmegaStr);
+      { void *pCC;
+        if (ObjectOnly)
+         pCC=HMatrix::OpenC2MLContext(GeoFileBase,"_%sOnly_%s",ObjectOnly,OmegaStr);
+        else
+         pCC=HMatrix::OpenC2MLContext(GeoFileBase,"_%s",OmegaStr);
         M->ExportToMATLAB(pCC,"M");
         HMatrix::CloseC2MLContext(pCC);
       };

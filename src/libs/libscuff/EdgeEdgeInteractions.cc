@@ -33,12 +33,27 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   RWGObject *Oa             = Args->Oa;
   RWGObject *Ob             = Args->Ob;
   int nea                   = Args->nea; 
-  int neb                   = Args->neb; 
-  cdouble k                 = Args->k; int NumGradientComponents = Args->NumGradientComponents;
+  int neb                   = Args->neb;
+  cdouble k                 = Args->k; 
+  int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
 
   RWGEdge *Ea=Oa->Edges[nea];
   RWGEdge *Eb=Oa->Edges[neb];
+
+  /***************************************************************/
+  /* since this code doesn't work at DC anyway, we don't bother  */
+  /* to compute the edge--edge interactions at k==0, but instead */
+  /* just set them to zero; this is actually useful as it gives  */
+  /* an easy way to compute the contributions of individual      */
+  /* objects and/or the external medium to the BEM matrix.       */
+  /***************************************************************/
+  if ( real(k)==0.0 && imag(k)==0.0 )
+   { memset(Args->GC, 0, 2*sizeof(cdouble));
+     memset(Args->GradGC, 0, 6*sizeof(cdouble));
+     memset(Args->dGCdT, 0, 6*sizeof(cdouble));
+     return;
+   };
 
   /***************************************************************/
   /* figure out which method to use, as follows:                 */

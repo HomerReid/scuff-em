@@ -107,6 +107,8 @@ FIPPICache::~FIPPICache()
 QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
 {
   /***************************************************************/
+  /* construct a search key from the canonically-ordered panel   */
+  /* vertices.                                                   */
   /* the search key is kinda stupid, just a string of 15 doubles */
   /* as follows:                                                 */
   /* 0--2    VMed  - VMin [0..2]                                 */
@@ -123,7 +125,7 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   VecSub(OVb[2], OVa[0], K.Key+12);
 
   /***************************************************************/
-  /***************************************************************/
+  /* look for this key in the cache ******************************/
   /***************************************************************/
   KeyValueMap *KVM=(KeyValueMap *)opTable;
   KeyValueMap::iterator p=KVM->find(K);
@@ -133,7 +135,8 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
    };
   
   /***************************************************************/
-  /***************************************************************/
+  /* if it was not found, allocate and fill in a new QIFIPPIData */
+  /* if it was not found, allocate and fill in a new QIFIPPI     */
   /***************************************************************/
   NotFound++;
   KeyStruct *K2 = (KeyStruct *)malloc(sizeof(*K2));
