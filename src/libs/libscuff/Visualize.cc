@@ -401,6 +401,98 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag)
  { WritePPMesh(FileName, Tag, 0); }
 
 /***************************************************************/
+/* WritePPMeshLabels: create a GMSH post-processing view       */
+/* containing text strings for an object's panel indices.      */
+/***************************************************************/
+#define LS_PANELINDICES        1
+#define LS_INTERIOREDGEINDICES 2
+#define LS_EXTERIOREDGEINDICES 4
+void RWGObject::WritePPMeshLabels(const char *FileName,
+                                  const char *Tag, 
+                                  int WhichLabels)
+{ 
+  FILE *f;
+  RWGPanel *P;
+  RWGEdge *E;
+  char buffer[1000], *p;
+  double *PV[3], Val;
+  int i, np, ne;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  strncpy(buffer,FileName,996);
+  p=strrchr(buffer,'.');
+  if ( !p || strcmp(p,".pp") )
+   strcat(buffer,".pp");
+
+  f=fopen(buffer,"a");
+  if (!f) 
+   { fprintf(stderr,"warning: could not open file %s \n",FileName);
+     return;
+   };
+
+  /***************************************************************/
+  /* panel indices ***********************************************/
+  /***************************************************************/
+  if (WhichLabels & LS_PANELINDICES)
+   {
+     if (Tag)
+      fprintf(f,"View \"%s_Panels\" {\n",Tag);
+     else
+      fprintf(f,"View \"Panels\" {\n");
+     for(np=0, P=Panels[0]; np<NumPanels; P=Panels[++np])
+      fprintf(f,"T3(%e,%e,%e,0.0) {\"%i\"};\n",
+                 P->Centroid[0],P->Centroid[1],P->Centroid[2],P->Index);
+     fprintf(f,"};\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+   };
+
+  /***************************************************************/
+  /* interior edge indices ***************************************/
+  /***************************************************************/
+  if (WhichLabels & LS_INTERIOREDGEINDICES)
+   {
+     if (Tag)
+      fprintf(f,"View \"%s_InteriorEdges\" {\n",Tag);
+     else
+      fprintf(f,"View \"InteriorEdges\" {\n");
+     for(ne=0, E=Edges[0]; ne<NumEdges; E=Edges[++ne])
+      fprintf(f,"T3(%e,%e,%e,0.0) {\"%i\"};\n",
+                 E->Centroid[0],E->Centroid[1],E->Centroid[2],E->Index);
+     fprintf(f,"};\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+   };
+
+  /***************************************************************/
+  /* exterior edge indices ***************************************/
+  /***************************************************************/
+  if (WhichLabels & LS_EXTERIOREDGEINDICES)
+   {
+     if (Tag)
+      fprintf(f,"View \"%s_ExteriorEdges\" {\n",Tag);
+     else
+      fprintf(f,"View \"ExteriorEdges\" {\n");
+     for(ne=0, E=ExteriorEdges[0]; ne<NumExteriorEdges; E=ExteriorEdges[++ne])
+      fprintf(f,"T3(%e,%e,%e,0.0) {\"%i\"};\n",
+                 E->Centroid[0],E->Centroid[1],E->Centroid[2],-(E->Index+1));
+     fprintf(f,"};\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+   };
+
+  fclose(f);
+}
+
+void RWGObject::WritePPMeshLabels(const char *FileName, const char *Tag)
+{ WritePPMeshLabels(FileName, Tag,   LS_PANELINDICES 
+                                   | LS_INTERIOREDGEINDICES
+                                   | LS_EXTERIOREDGEINDICES );
+}
+
+/***************************************************************/
 /* WriteGPMesh routine for RWGObjects.                        */    
 /*                                                             */
 /* The mesh (with normals) may be plotted with the gnuplot cmd */

@@ -34,7 +34,7 @@ LDFLAGS+=-L../../libs/libscuff
 ##################################################
 SA_OBJS = scuff-analyze.o
 
-scuff-analyze:	$(SA_OBJS)
+scuff-analyze:	$(SA_OBJS) libscuff.a
 		$(CXX) $(LDFLAGS) -o $@ $(SA_OBJS) $(LIBS)
 
 libscuff.a:	

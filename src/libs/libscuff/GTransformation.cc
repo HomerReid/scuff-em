@@ -29,10 +29,10 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX)
 
      memcpy(NGT->DX, DX, 3*sizeof(double));
 
-     memset(GT->M[0], 0, 3*sizeof(double));
-     memset(GT->M[1], 0, 3*sizeof(double));
-     memset(GT->M[2], 0, 3*sizeof(double));
-     GT->M[0][0]=GT->M[1][1]=GT->M[2][2]=1.0;
+     memset(NGT->M[0], 0, 3*sizeof(double));
+     memset(NGT->M[1], 0, 3*sizeof(double));
+     memset(NGT->M[2], 0, 3*sizeof(double));
+     NGT->M[0][0]=NGT->M[1][1]=NGT->M[2][2]=1.0;
 
      NGT->Type=GTRANSFORMATION_DISPLACEMENT;
 
@@ -45,6 +45,7 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX)
      GT->Type |= GTRANSFORMATION_DISPLACEMENT;
      return GT;
    };
+
 }
 
 GTransformation *CreateGTransformation(double *DX)

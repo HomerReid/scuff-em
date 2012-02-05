@@ -54,7 +54,7 @@ void AnalyzeObject(RWGObject *O, int WriteGPFiles, int WritePPFiles)
 
   if (WriteGPFiles)
    { O->WriteGPMesh("%s.gp",GetFileBase(O->MeshFileName));
-     printf("Mesh visualization data written to GNUPLOT file %s.gp.\n",O->MeshFileName);
+     printf("Mesh visualization data written to GNUPLOT file %s.gp.\n\n",O->MeshFileName);
    };
 
   if (WritePPFiles)
@@ -62,7 +62,8 @@ void AnalyzeObject(RWGObject *O, int WriteGPFiles, int WritePPFiles)
      snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(O->MeshFileName));
      unlink(buffer);
      O->WritePPMesh(buffer,GetFileBase(O->MeshFileName),1);
-     printf("Mesh visualization data and panel normals written to GMSH file %s.\n",buffer);
+     O->WritePPMeshLabels(buffer,GetFileBase(O->MeshFileName));
+     printf("Mesh visualization data and panel normals written to GMSH file %s.\n\n",buffer);
    };
 
 }
@@ -105,13 +106,17 @@ void AnalyzeGeometry(char *GeoFile, int WriteGPFiles, int WritePPFiles)
    };
 
   if (WriteGPFiles)
-   G->WriteGPMeshPlus("%s.gp",GetFileBase(GeoFile));
+   { G->WriteGPMesh("%s.gp",GetFileBase(GeoFile));
+     printf("Geometry visualization data written to GNUPLOT file %s.gp.\n\n",
+             GetFileBase(GeoFile));
+   };
 
   if (WritePPFiles)
    { char buffer[MAXSTR];
      snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(GeoFile));
      unlink(buffer);
      G->WritePPMesh(buffer,buffer);
+     printf("Geometry visualization data written to GMSH file %s.\n\n",buffer);
    };
 
 }

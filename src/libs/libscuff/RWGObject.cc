@@ -136,7 +136,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   /* inside the class body and leave it for whoever called this  */
   /* routine to process.                                         */
   /***************************************************************/
-  InitRWGObject(MeshFileName, Label, 0, GT);
+  InitRWGObject(MeshFileName, pLabel, 0, GT);
 
 };
 

@@ -80,6 +80,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* initialize simple fields ************************************/
   /***************************************************************/
+  LogLevel=SCUFF_NOLOGGING;
   NumObjects=TotalBFs=TotalPanels=0;
   GeoFileName=strdup(pGeoFileName);
   ExteriorMP=0;
@@ -487,6 +488,12 @@ void RWGGeometry::UnTransform()
 /***************************************************************/
 int RWGGeometry::GetDimension()
 { return TotalBFs; }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::SetLogLevel(int NewLogLevel)
+ { LogLevel=NewLogLevel; }
 
 /***************************************************************/
 /* Given an index ei into the overall list of edges, figure    */

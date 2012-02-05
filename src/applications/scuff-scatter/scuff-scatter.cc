@@ -409,6 +409,13 @@ int main(int argc, char *argv[])
   SSD->opIFD=(void *)IFDList;
 
   /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  SetLogFileName("scuff-scatter.log");
+  Log("scuff-scatter running on %s",getenv("HOST"));
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
+
+  /*******************************************************************/
   /* loop over frequencies *******************************************/
   /*******************************************************************/
   char OmegaStr[MAXSTR];
@@ -425,7 +432,6 @@ int main(int argc, char *argv[])
      /* that was requested, then LU-factorize.                          */
      /*******************************************************************/
      Log("Working at frequency %s...",OmegaStr);
-     Log("  Assembling the BEM matrix...");
 #ifdef SCUFF
      G->AssembleBEMMatrix(Omega, nThread, M);
 #else

@@ -26,7 +26,7 @@ LDFLAGS+=$(DEBUG)
 
 CPPFLAGS+=-I../../libs/libscuff
 CPPFLAGS+=-I../../libs/libIncField
-CPPFLAGS+=-DSCUFF
+CPPFLAGS+=-DSCUFF -DHAVE_MUPARSER -DHAVE_HDF5
 
 LDFLAGS+=-L.
 LDFLAGS+=-L../../libs/libscuff

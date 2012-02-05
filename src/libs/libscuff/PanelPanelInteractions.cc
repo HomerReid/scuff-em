@@ -306,15 +306,6 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
 
   /***************************************************************/
-  /* if the panels are far apart then just use simple low-order  */
-  /* non-desingularized cubature.                                */
-  /***************************************************************/
-  if ( rRel > DESINGULARIZATION_RADIUS )
-   { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
-     return;
-   };
-
-  /***************************************************************/
   /* if the panels are identical then we use taylor's scheme for */
   /* the full panel integral no matter what the frequency        */
   /***************************************************************/
@@ -328,6 +319,15 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));
      if (dHdT)  memset(dHdT,  0, 2*NumTorqueAxes*sizeof(cdouble));
 
+     return;
+   };
+
+  /***************************************************************/
+  /* if the panels are far apart then just use simple low-order  */
+  /* non-desingularized cubature.                                */
+  /***************************************************************/
+  if ( rRel > DESINGULARIZATION_RADIUS )
+   { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
      return;
    };
 

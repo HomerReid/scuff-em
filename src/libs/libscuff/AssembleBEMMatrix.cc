@@ -383,6 +383,9 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
   Args->GradB=0;
   Args->dBdTheta=0;
 
+  if (LogLevel>=SCUFF_TERSELOGGING)
+   Log(" Assembling the BEM matrix at Omega=%g+%gi...",real(Omega),imag(Omega));
+
   /***************************************************************/
   /* loop over all pairs of objects to assemble the diagonal and */
   /* above-diagonal blocks of the matrix                         */
@@ -391,6 +394,9 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
   for(no=0; no<NumObjects; no++)
    for(nop=no; nop<NumObjects; nop++)
     { 
+      if (LogLevel>=SCUFF_VERBOSELOGGING)
+       Log("  ...(%i,%i) block...",no,nop);
+
       Args->Oa=Objects[no];
       Args->RowOffset=BFIndexOffset[no];
 

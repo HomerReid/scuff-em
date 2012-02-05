@@ -33,6 +33,10 @@
 #define SCUFF_GENERALFREQ  0
 #define SCUFF_PUREIMAGFREQ 1
 
+#define SCUFF_NOLOGGING      0
+#define SCUFF_TERSELOGGING   1
+#define SCUFF_VERBOSELOGGING 2
+
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -153,6 +157,8 @@ class RWGObject
    void WriteGPMesh(const char *format, ...);
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
    void WritePPMesh(const char *FileName, const char *Tag);
+   void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
+   void WritePPMeshLabels(const char *FileName, const char *Tag);
 
    /* calculate spherical multipole moments due to a single basis function */
 #if 0
@@ -323,6 +329,7 @@ class RWGGeometry
    void GetDipoleMoments(double Frequency, int RealFreq, HVector *KN, 
                          int nThread, cdouble (*PM)[6]);
 
+
    /* routine for calculating spherical multipole moments */
 #if 0
    void GetSphericalMoments(int WhichObject, double *X0, int lMax,
@@ -380,6 +387,9 @@ class RWGGeometry
                       double TEArray[][3], double TMArray[][3]);
 #endif
 
+   /* routine for setting logging verbosity */
+   void SetLogLevel(int LogLevel);
+
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
@@ -424,6 +434,8 @@ class RWGGeometry
    int *ObjectMoved;
   
    int GetObjectAndEdgeIndex(int ei, RWGObject **pO);
+
+   int LogLevel; 
 
  };
 
