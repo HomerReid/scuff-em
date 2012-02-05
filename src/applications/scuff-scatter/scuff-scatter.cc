@@ -190,10 +190,10 @@ void usage(char *ProgramName, const char *format, ... )
   fprintf(stderr,"  --geometry MyGeometry.scuffgeo\n");
   fprintf(stderr,"\n");
   fprintf(stderr," incident field options: \n\n");
-  fprintf(stderr,"  --pwPolarization Ex Ey Ez \n");
   fprintf(stderr,"  --pwDirection Nx Ny Nz \n");
-  fprintf(stderr,"  --gbPolarization Nx Ny Nz\n");
+  fprintf(stderr,"  --pwPolarization Ex Ey Ez \n");
   fprintf(stderr,"  --gbDirection Nx Ny Nz\n");
+  fprintf(stderr,"  --gbPolarization Nx Ny Nz\n");
   fprintf(stderr,"  --gbCenter xx yy zz \n");
   fprintf(stderr,"  --gbWaist W \n");
   fprintf(stderr,"  --psLocation xx yy zz \n");
@@ -236,10 +236,10 @@ int main(int argc, char *argv[])
   /* process options *********************************************/
   /***************************************************************/
   char *GeoFile=0;
-  cdouble pwPol[3*MAXPW];            int npwPol;
   double pwDir[3*MAXPW];             int npwDir;
-  cdouble gbPol[3*MAXGB];            int ngbPol;
+  cdouble pwPol[3*MAXPW];            int npwPol;
   double gbDir[3*MAXGB];             int ngbDir;
+  cdouble gbPol[3*MAXGB];            int ngbPol;
   double gbCenter[3*MAXGB];          int ngbCenter;
   double gbWaist[MAXGB];             int ngbWaist;
   double psLoc[3*MAXPS];             int npsLoc;
@@ -254,10 +254,10 @@ int main(int argc, char *argv[])
   /* name               type     args  instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,   0,            "geometry file"},
-     {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,      &npwPol,      "plane wave polarization"},
      {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,      &npwDir,      "plane wave direction"},
-     {"gbPolarization", PA_CDOUBLE, 3, MAXGB,   (void *)gbPol,      &ngbPol,      "gaussian beam polarization"},
+     {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,      &npwPol,      "plane wave polarization"},
      {"gbDirection",    PA_DOUBLE,  3, MAXGB,   (void *)gbDir,      &ngbDir,      "gaussian beam direction"},
+     {"gbPolarization", PA_CDOUBLE, 3, MAXGB,   (void *)gbPol,      &ngbPol,      "gaussian beam polarization"},
      {"gbCenter",       PA_DOUBLE,  3, MAXGB,   (void *)gbCenter,   &ngbCenter,   "gaussian beam center"},
      {"gbWaist",        PA_DOUBLE,  1, MAXGB,   (void *)gbWaist,    &ngbWaist,    "gaussian beam waist"},
      {"psLocation",     PA_DOUBLE,  3, MAXPS,   (void *)psLoc,      &npsLoc,      "point source location"},
