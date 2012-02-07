@@ -51,7 +51,7 @@ int AssessPanelPair(double **Va, double **Vb, double Radius)
    return 0; // vertices are already in acceptable order
 
   double *OVa[3]={Va[0], Va[1], Va[2]}; // 'original vertices, a' 
-  double *OVb[3]={Vb[0], Vb[1], Vb[2]}; // 'original vertices, b
+  double *OVb[3]={Vb[0], Vb[1], Vb[2]}; // 'original vertices, b'
 
   if (ncv==1)
    { Va[0] = OVa[ CVIa[0]       ];

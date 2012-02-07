@@ -485,7 +485,7 @@ void SiAlpha_Dot(const double *xVec, TMWorkspace *TMW, int WhichCase,
                  int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 {
   double x, x1, x1_2, x2, x2_2, x3;
-  double A2, B2, AdAP, AdB, AdBP, AdD, AdDP, APdD, BdAP, BdBP, BdDP, BPdD, DdDP;
+  double A2, B2, AdAP, AdB, AdBP, AdD, BdD, AdDP, APdD, BdAP, BdBP, BdDP, BPdD, DdDP;
 
   switch(WhichCase)
    { 
@@ -500,27 +500,34 @@ void SiAlpha_Dot(const double *xVec, TMWorkspace *TMW, int WhichCase,
        A2=TMW->A2;
        B2=TMW->B2;
        AdB=TMW->AdB;
+       AdD=TMW->APdD;
        AdDP=TMW->AdDP;
+       BdD=TMW->BPdD;
        BdDP=TMW->BdDP;
+       DdDP=TMW->DdDP;
 
-       S[1][0] = (B2+3*A2+2*BdDP+4*AdDP+3*AdB)/6;
-       S[1][1] = ((2*B2+3*BdDP+4*AdB)*x-4*B2-8*A2-6*BdDP-9*AdDP-10*AdB)/6;
-       S[1][2] = (-B2-BdDP-2*AdB)*x+B2+A2+BdDP+AdDP+2*AdB;
-       S[1][3] = ((6*B2+3*BdDP+12*AdB)*x-4*B2-2*BdDP-AdDP-6*AdB)/6;
-       S[1][4] = -((2*B2+4*AdB)*x-B2+A2-AdB)/6;
+       S[1][0] = (B2+3*A2+6*DdDP+2*BdDP+2*BdD+4*AdDP+4*AdD+3*AdB)/6.0;
+       S[1][1] = ((2*B2+3*BdDP+3*BdD+4*AdB)*x-4*B2-8*A2-12*DdDP-6*BdDP-6*BdD-9*AdDP
+                                              -9*AdD-10*AdB)/6.0;
+       S[1][2] = (-B2-BdDP-BdD-2*AdB)*x+B2+A2+DdDP+BdDP+BdD+AdDP+AdD+2*AdB;
+       S[1][3] = ((6*B2+3*BdDP+3*BdD+12*AdB)*x-4*B2-2*BdDP-2*BdD-AdDP-AdD-6*AdB)/6.0;
+       S[1][4] = -((2*B2+4*AdB)*x-B2+A2-AdB)/6.0;
        
-       S[2][0] = (B2+3*A2+2*BdDP+4*AdDP+3*AdB)/6;
-       S[2][1] = -((2*B2+4*A2+3*BdDP+3*AdDP+6*AdB)*x
-                    +2*B2+4*A2+3*BdDP+6*AdDP+4*AdB)/6;
-       S[2][2] = (B2+A2+BdDP+AdDP+2*AdB)*x;
-       S[2][3] = -((6*B2+3*BdDP+3*AdDP+6*AdB)*x-2*B2-BdDP-2*AdDP)/6;
+       S[2][0] = (B2+3*A2+6*DdDP+2*BdDP+2*BdD+4*AdDP+4*AdD+3*AdB)/6.0;
+       S[2][1] = -((2*B2+4*A2+3*BdDP+3*BdD+3*AdDP+3*AdD+6*AdB)*x
+                   +2*B2+4*A2+12*DdDP+3*BdDP+3*BdD+6*AdDP+6*AdD+4*AdB)/6.0;
+       S[2][2] = (B2+A2+BdDP+BdD+AdDP+AdD+2*AdB)*x+DdDP;
+       S[2][3] = -((6*B2+3*BdDP+3*BdD+3*AdDP+3*AdD+6*AdB)*x 
+                   -2*B2-BdDP-BdD-2*AdDP-2*AdD)/6.0;
        S[2][4] = ((2*B2-2*A2)*x-B2+A2+AdB)/6;
        
-       S[3][0] = (B2+3*A2+2*BdDP+4*AdDP+3*AdB)/6;
-       S[3][1] = -((4*A2+3*AdDP+2*AdB)*x+2*B2+4*A2+3*BdDP+6*AdDP+4*AdB)/6;
-       S[3][2] = (A2+AdDP)*x;
-       S[3][3] = -((3*AdDP-6*AdB)*x-2*B2-BdDP-2*AdDP)/6;
-       S[3][4] = -((2*A2+4*AdB)*x+B2-A2-AdB)/6;
+       S[3][0] = (B2+3*A2+6*DdDP+2*BdDP+2*BdD+4*AdDP+4*AdD+3*AdB)/6;
+       S[3][1] = -(  (4*A2+3*AdDP+3*AdD+2*AdB)*x
+                   + 2*B2+4*A2+12*DdDP+3*BdDP+3*BdD+6*AdDP+6*AdD+4*AdB)/6.0;
+       S[3][2] = (A2+AdDP+AdD)*x+DdDP;
+       S[3][3] = -((3*AdDP+3*AdD-6*AdB)*x-2*B2-BdDP-BdD-2*AdDP-2*AdD)/6.0;
+       S[3][4] = -((2*A2+4*AdB)*x+B2-A2-AdB)/6.0;
+
        return;
 
      /*--------------------------------------------------------------*/
@@ -641,14 +648,13 @@ void SiAlpha_Dot(const double *xVec, TMWorkspace *TMW, int WhichCase,
 }
 
 /***************************************************************/
-/* this is equivalent to 'Dot' + Factor * 'One'                */
+/* this is equivalent to 'Dot' - 4/(K*K) * 'One'               */
+/* where K is the parameter that enters into the kernela       */
+/* e^{i*K*r}/(4*pi*r)                                          */
 /***************************************************************/
 void SiAlpha_DotPlus(const double *xVec, TMWorkspace *TMW, int WhichCase,
                      int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 {
-   double SOne[7][5];
-   int AlphaMinSOne, AlphaMaxSOne;
-   cdouble Factor = -4.0/(TMW->GParam*TMW->GParam);
 
    /***************************************************************/
    /* get the 'Dot' contributions *********************************/
@@ -658,6 +664,7 @@ void SiAlpha_DotPlus(const double *xVec, TMWorkspace *TMW, int WhichCase,
    /***************************************************************/
    /* add in the 'One' contributions ******************************/
    /***************************************************************/
+   cdouble Factor = -4.0/(TMW->GParam*TMW->GParam);
    switch(WhichCase)
      { 
        case TM_COMMONTRIANGLE: 

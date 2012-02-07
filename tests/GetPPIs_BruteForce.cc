@@ -194,7 +194,7 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
      /*--------------------------------------------------------------*/
      int nz, NZ=10;
      double Z[NZ], GR[NZ], GI[NZ], CR[NZ], CI[NZ];
-     double DeltaZ=Ob->Panels[npb]->Radius/10.0;
+     double DeltaZ=Ob->Panels[npb]->Radius/100.0;
      double *ZHat=Ob->Panels[npb]->ZHat;
 
      for(nz=0; nz<NZ; nz++)

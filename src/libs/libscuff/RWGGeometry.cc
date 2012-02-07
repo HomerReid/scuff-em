@@ -118,7 +118,13 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
      /*--------------------------------------------------------------*/
      if ( !strcasecmp(Tokens[0],"MEDIUM") )
       { 
+        ExteriorMPName[0]=0;
         ProcessMediumSectionInFile(f,GeoFileName,&LineNum,ExteriorMPName);
+        if ( ExteriorMPName[0]!=0 )
+         { ExteriorMP=new MatProp(ExteriorMPName);
+           if ( ExteriorMP->ErrMsg )
+            ErrExit("%s:%i: %s",GeoFileName,LineNum,ExteriorMP->ErrMsg);
+         };
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       {
@@ -130,14 +136,10 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
         else if ( nTokens>2 )
          ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
          
-        //MP = new MatProp(f,Label);
-        if (MP->ErrMsg)
+        char *ErrMsg=AddMaterialToMatPropDataBase(f, GeoFileName, Label, &LineNum);
+        if (ErrMsg)
          ErrExit("%s:%i: %s",GeoFileName,LineNum,MP->ErrMsg); 
 
-        NumMPs++;
-        MPs=(MatProp **)realloc(MPs, NumMPs*sizeof(MatProp *));
-        MPs[NumMPs-1]=MP;
-           
       }
      else if ( !strcasecmp(Tokens[0],"OBJECT") )
       { 
@@ -174,11 +176,14 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
 
    }; // while( fgets(Line,MAXSTR,f) )
 
+  if (!ExteriorMP)
+   ExteriorMP=new MatProp(MP_VACUUM);
+
+#if 0
   /***************************************************************/
   /* process material properties of exterior medium             */
   /***************************************************************/
   int nmp;
-  int no, nop;
   if ( strlen(ExteriorMPName)>0 )
    {
      for(nmp=0; ExteriorMP==0 && nmp<NumMPs; nmp++)
@@ -208,6 +213,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
       { 
         // deallocate the default MP created by the RWGObject constructor
         delete O->MP;
+        O->MP=0;
 
         /* look first to see if the requested material was one of */
         /* the materials defined on-the-fly in the .scuffgeo file */
@@ -228,10 +234,12 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
      else
       O->MP = new MatProp(MP_PEC);
    };
+#endif
 
   /***************************************************************/
   /* process object nesting relationships                        */
   /***************************************************************/
+  int no, nop;
   for(no=0; no<NumObjects; no++)
    { 
      O=Objects[no];

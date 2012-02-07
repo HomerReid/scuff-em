@@ -128,7 +128,6 @@ int main(int argc, char *argv[])
   /* integration routines                                        */
   /***************************************************************/
   GetPPIArgStruct MyArgs, *Args=&MyArgs;
-  FIPPITable *FT=new FIPPITable();
   InitGetPPIArgs(Args);
 
   /***************************************************************/
@@ -140,7 +139,7 @@ int main(int argc, char *argv[])
   char *Tokens[50];
   char *p;
   int npa, npb, iQa, iQb, ncv;
-  int SameObject, Gradient, PlotFits, NoTable;
+  int SameObject, Gradient, PlotFits;
   double rRel, rRelRequest, DZ;
   cdouble K;
   cdouble HLS[2], GradHLS[6]; // G,C integrals by libscuff 
@@ -169,7 +168,6 @@ int main(int argc, char *argv[])
      printf("          --ki     \n");
      printf("          --gradient\n");
      printf("          --PlotFits\n");
-     printf("          --NoTable\n");
      printf("          --quit\n");
      p=readline("enter options: ");
      if (!p) break;
@@ -182,7 +180,7 @@ int main(int argc, char *argv[])
      NumTokens=Tokenize(p,Tokens,50);
      npa=npb=iQa=iQb=ncv=SameObject=-1;
      Args->ForceTaylorDuffy=0;
-     Gradient=PlotFits=NoTable=0;
+     Gradient=PlotFits=0;
      DZ=rRelRequest=0.0;
      real(K) = imag(K) = INFINITY;
      for(nt=0; nt<NumTokens; nt++)
@@ -227,9 +225,6 @@ int main(int argc, char *argv[])
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--PlotFits") )
        PlotFits=1;
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--NoTable") )
-       NoTable=1;
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--quit") )
        exit(1);
@@ -324,7 +319,6 @@ int main(int argc, char *argv[])
      printf("*  relative distance: %+7.3e\n",rRel);
      printf("*  wavevector:        %s\n",CD2S(K));
      printf("*  k*MaxRadius:       %.1e\n",abs(K*fmax(Pa->Radius, Pb->Radius)));
-     printf("*  %s FIPPI table\n",NoTable ? "Bypassing" : "Using");
      if (DZ!=0.0)
       printf("*  DZ:                %e\n",DZ);
      printf("*\n\n");
@@ -341,8 +335,6 @@ int main(int argc, char *argv[])
      Args->k=K;
      Args->NumGradientComponents = Gradient ? 3 : 0;
      Args->NumTorqueAxes         = 0;
-
-     Args->opFT = NoTable ? 0 : (void *)FT;
 
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/

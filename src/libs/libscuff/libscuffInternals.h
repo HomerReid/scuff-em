@@ -106,7 +106,7 @@ typedef struct ABMBArgStruct
    // input fields to be filled in by caller
    RWGGeometry *G;
    RWGObject *Oa, *Ob;
-   cdouble Frequency;
+   cdouble Omega;    
    int nThread;
 
    int NumTorqueAxes;

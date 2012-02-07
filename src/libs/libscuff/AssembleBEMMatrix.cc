@@ -47,7 +47,7 @@ void *ABMBThread(void *data)
   RWGGeometry *G       = Args->G;
   RWGObject *Oa        = Args->Oa;
   RWGObject *Ob        = Args->Ob;
-  cdouble Frequency    = Args->Frequency;
+  cdouble Omega        = Args->Omega;
   int NumTorqueAxes    = Args->NumTorqueAxes;
   double *GammaMatrix  = Args->GammaMatrix;
   int RowOffset        = Args->RowOffset;
@@ -103,17 +103,17 @@ void *ABMBThread(void *data)
   cdouble PreFac1A, PreFac2A, PreFac3A;
   cdouble PreFac1B, PreFac2B, PreFac3B;
 
-  kA=csqrt2(EpsA*MuA)*Frequency;
-  PreFac1A = Sign*II*MuA*Frequency;
+  kA=csqrt2(EpsA*MuA)*Omega;
+  PreFac1A = Sign*II*MuA*Omega;
   PreFac2A = -Sign*II*kA;
-  PreFac3A = -1.0*Sign*II*Frequency/EpsA;
+  PreFac3A = -1.0*Sign*II*EpsA*Omega;
 
   if (EpsB!=0.0)
    { // note: Sign==1 for all cases in which EpsB is nonzero
-     kB=csqrt2(EpsB*MuB)*Frequency;
-     PreFac1B = II*MuB*Frequency;
+     kB=csqrt2(EpsB*MuB)*Omega;
+     PreFac1B = II*MuB*Omega;
      PreFac2B = -II*kB;
-     PreFac3B = -1.0*II*Frequency/EpsB;
+     PreFac3B = -1.0*II*EpsB*Omega;
    };
 
   /***************************************************************/
@@ -239,20 +239,20 @@ void *ABMBThread(void *data)
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
           { 
-            GradB[Mu]->SetEntry( X, Y,   PreFac1B*GradGC[2*Mu+0]);
-            GradB[Mu]->SetEntry( X, Y+1, PreFac2B*GradGC[2*Mu+1]);
+            GradB[Mu]->AddEntry( X, Y,   PreFac1B*GradGC[2*Mu+0]);
+            GradB[Mu]->AddEntry( X, Y+1, PreFac2B*GradGC[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
-             GradB[Mu]->SetEntry( X+1, Y, PreFac2B*GradGC[2*Mu+1]);
-            GradB[Mu]->SetEntry( X+1, Y+1, PreFac3B*GradGC[2*Mu+0]);
+             GradB[Mu]->AddEntry( X+1, Y, PreFac2B*GradGC[2*Mu+1]);
+            GradB[Mu]->AddEntry( X+1, Y+1, PreFac3B*GradGC[2*Mu+0]);
           };
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
           { 
-            dBdTheta[Mu]->SetEntry( X, Y,   PreFac1B*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2B*dGCdT[2*Mu+1]);
+            dBdTheta[Mu]->AddEntry( X, Y,   PreFac1B*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->AddEntry( X, Y+1, PreFac2B*dGCdT[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
-             dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2B*dGCdT[2*Mu+1]);
-            dBdTheta[Mu]->SetEntry( X+1, Y+1, PreFac3B*dGCdT[2*Mu+0]);
+             dBdTheta[Mu]->AddEntry( X+1, Y, PreFac2B*dGCdT[2*Mu+1]);
+            dBdTheta[Mu]->AddEntry( X+1, Y+1, PreFac3B*dGCdT[2*Mu+0]);
           };
        }; // if (EpsB!=0.0)
 
@@ -281,28 +281,28 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   RWGGeometry *G=Args->G;
   RWGObject *Oa=Args->Oa;
   RWGObject *Ob=Args->Ob;
-  cdouble Frequency=Args->Frequency;
+  cdouble Omega=Args->Omega;
   if ( Ob->ContainingObject == Oa )
    { Args->Sign=-1.0;
-     Oa->MP->GetEpsMu(Frequency, &(Args->EpsA), &(Args->MuA) );
+     Oa->MP->GetEpsMu(Omega, &(Args->EpsA), &(Args->MuA) );
    }
   else if ( Oa->ContainingObject == Ob )
    { Args->Sign=-1.0;
-     Ob->MP->GetEpsMu(Frequency, &(Args->EpsA), &(Args->MuA) );
+     Ob->MP->GetEpsMu(Omega, &(Args->EpsA), &(Args->MuA) );
    } 
   else if ( Oa->ContainingObject == Ob->ContainingObject )
    { Args->Sign=1.0;
      if (Oa->ContainingObject==0)
-      G->ExteriorMP->GetEpsMu(Frequency, &(Args->EpsA), &(Args->MuA) );
+      G->ExteriorMP->GetEpsMu(Omega, &(Args->EpsA), &(Args->MuA) );
      else 
-      Oa->ContainingObject->MP->GetEpsMu(Frequency, &(Args->EpsA), &(Args->MuA) );
+      Oa->ContainingObject->MP->GetEpsMu(Omega, &(Args->EpsA), &(Args->MuA) );
    };
 
   Args->OaIsPEC = Oa->MP->IsPEC();
   Args->ObIsPEC = Ob->MP->IsPEC();
 
   if ( !(Args->OaIsPEC) && !(Args->ObIsPEC) && Oa==Ob ) 
-   Oa->MP->GetEpsMu(Frequency, &(Args->EpsB), &(Args->MuB) );
+   Oa->MP->GetEpsMu(Omega, &(Args->EpsB), &(Args->MuB) );
   else
    Args->EpsB=0.0;
 
@@ -373,7 +373,7 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
 
   InitABMBArgs(Args);
   Args->G=this;
-  Args->Frequency=Omega;
+  Args->Omega=Omega;
   Args->nThread=nThread;
 
   Args->NumTorqueAxes=0;
@@ -410,13 +410,15 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
 
   /***************************************************************/
   /* if the matrix uses normal (not packed) storage, fill in its */
-  /* below-diagonal blocks                                       */
+  /* below-diagonal blocks. note that the BEM matrix is complex  */
+  /* symmetric, not hermitian, so the below-diagonals are equal  */
+  /* to the above-diagonals, not to their complex conjugates.    */
   /***************************************************************/
   if (M->StorageType==LHM_NORMAL)
    { int nr, nc;
      for(nr=1; nr<TotalBFs; nr++)
       for(nc=0; nc<nr; nc++)
-       M->SetEntry(nr, nc, conj(M->GetEntry(nc, nr)) );
+       M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
    };
 
 }

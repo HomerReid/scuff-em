@@ -392,7 +392,11 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      MatProp *ZeroMP=new MatProp("CONST_EPS0_MU0");
      if (ObjectIndex!=-1)
+#ifdef SCUFF
       G->ExteriorMP=ZeroMP;
+#else 
+      G->MP=ZeroMP;
+#endif
      for(int no=0; no<G->NumObjects; no++)
       if (no!=ObjectIndex) 
        G->Objects[no]->MP=ZeroMP;    
@@ -413,7 +417,9 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   SetLogFileName("scuff-scatter.log");
   Log("scuff-scatter running on %s",getenv("HOST"));
+#ifdef SCUFF
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
+#endif
 
   /*******************************************************************/
   /* loop over frequencies *******************************************/

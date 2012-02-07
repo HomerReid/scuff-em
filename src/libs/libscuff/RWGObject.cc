@@ -29,29 +29,30 @@
 /*-  If there was an error in parsing the OBJECT section, the  -*/
 /*-   ErrMsg field points to an error message string.          -*/
 /*-                                                            -*/
-/*-  Note: even if the object is successfully read in, the     -*/
-/*-        'MP' and 'ContainingObject' fields are not          -*/
-/*-        initialized; instead, any user-specified values for -*/
-/*-        these fields are stored in the internal class       -*/
-/*-        fields 'MPName' and 'ContainingObjectName' and must -*/
-/*-        be processed by the calling routine.                -*/
+/*-  Note: the 'ContainingObject' field in the OBJECT          -*/
+/*-        definition cannot be processed at the level of      -*/
+/*-        RWGObject; instead; if that field is specified we   -*/
+/*-        store its value in the 'ContainingObjetName' class  -*/
+/*-        data field for subsequent processsing at the level  -*/
+/*-        of RWGGeometry.                                     -*/
 /*--------------------------------------------------------------*/
 RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 { 
   ErrMsg=0;
   ContainingObjectLabel=0;
-  MPName=0;
   MeshFileName=0;
 
   /***************************************************************/
   /* read lines from the file one at a time **********************/
   /***************************************************************/
   char Line[MAXSTR];
+  char MaterialName[MAXSTR];
   int nt, NumTokens;
   char *p, *Tokens[MAXTOK];
   int ReachedTheEnd=0;
   GTransformation *GT=0;
   double DX[3], ZHat[3], Theta;
+  MaterialName[0]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
      (*LineNum)++;
@@ -74,7 +75,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
          { ErrMsg=strdup("MATERIAL keyword requires one argument");
            return;
          };
-        MPName=strdup(Tokens[1]);
+        strncpy(MaterialName, Tokens[1], MAXSTR);
       }
      else if ( !strcasecmp(Tokens[0],"INSIDE") )
       { if (NumTokens!=1)
@@ -127,16 +128,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
       };
    }; 
 
-  /***************************************************************/
-  /* note that we pass 0 for the material name here; this is     */
-  /* because the material name might refer to a material that    */
-  /* was defined on the fly in the .scuffgeo file, in which case */
-  /* trying to assign that material would fail. instead, we      */
-  /* store any user-specified material name in the MPName field  */
-  /* inside the class body and leave it for whoever called this  */
-  /* routine to process.                                         */
-  /***************************************************************/
-  InitRWGObject(MeshFileName, pLabel, 0, GT);
+  InitRWGObject(MeshFileName, pLabel, MaterialName, GT);
 
 };
 
