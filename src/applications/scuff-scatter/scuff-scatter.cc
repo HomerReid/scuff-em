@@ -227,6 +227,13 @@ void z2s(cdouble z, char *zStr)
    snprintf(zStr,MAXSTR,"%g+%gi",real(z),imag(z));
 }
 
+char *z2s(cdouble z)
+{ 
+  static char buffer[MAXSTR];
+  z2s(z,buffer);
+  return buffer;
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -455,9 +462,9 @@ int main(int argc, char *argv[])
      if (ExportMatrix)
       { void *pCC;
         if (ObjectOnly)
-         pCC=HMatrix::OpenC2MLContext(GeoFileBase,"_%sOnly_%s",ObjectOnly,OmegaStr);
+         pCC=HMatrix::OpenC2MLContext("%s_%sOnly_%s",GeoFileBase,ObjectOnly,OmegaStr);
         else
-         pCC=HMatrix::OpenC2MLContext(GeoFileBase,"_%s",OmegaStr);
+         pCC=HMatrix::OpenC2MLContext("%s_%s",GeoFileBase,OmegaStr);
         M->ExportToMATLAB(pCC,"M");
         HMatrix::CloseC2MLContext(pCC);
       };
