@@ -6,10 +6,12 @@
 #include <math.h>
 #include <stdarg.h>
 
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <libSGJC.h>
 
 #include "scuff-scatter.h"
+
+#define ABSTOL 0.0
+#define RELTOL 1.0e-3
 
 /***************************************************************/
 /***************************************************************/
@@ -337,5 +339,96 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   free(EHS);
   free(EHT);
   delete O;
+
+}
+
+/***************************************************************/
+/* integrand routine for GetPower_BF ***************************/
+/***************************************************************/
+typedef struct GPBFIData 
+ {
+   SSData *SSD;
+   double R;
+
+ } GPBFIData;
+
+void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
+			   unsigned fdim, double *fval)
+{
+  /***************************************************************/
+  /* extract fields from data structure **************************/
+  /***************************************************************/
+  GPBFIData *GPBFID = (GPBFIData *)params;
+  SSData *SSD = GPBFID->SSD;
+  double R    = GPBFID->R;
+
+  /***************************************************************/
+  /* get coordinates of evaluation point *************************/
+  /***************************************************************/
+  double CosTheta=x[0];
+  double SinTheta=sqrt(1.0-CosTheta*CosTheta);
+  double CosPhi=cos(x[1]);
+  double SinPhi=sin(x[1]);
+
+  double nHat[3], X[3];
+  nHat[0]=SinTheta*CosPhi;
+  nHat[1]=SinTheta*SinPhi;
+  nHat[2]=CosTheta;
+  X[0]=R*nHat[0];
+  X[1]=R*nHat[1];
+  X[2]=R*nHat[2];
+  
+  /***************************************************************/
+  /* get total and scattered fields at evaluation point **********/
+  /***************************************************************/
+  cdouble EHS[3], EHT[3];
+  GetTotalField(SSD, X, -1, EHS, EHT);
+
+  /***************************************************************/
+  /* get scattered and total poynting vectors ********************/
+  /***************************************************************/
+  cdouble *EScat = EHS;
+  cdouble *HScat = EHS+3;
+  cdouble *ETot  = EHT;
+  cdouble *HTot  = EHT+3;
+  double PVScat[3], PVTot[3];
+
+  PVScat[0] = 0.5*real( EScat[1] * conj(HScat[2]) - EScat[2] * conj(HScat[1]) );
+  PVScat[1] = 0.5*real( EScat[2] * conj(HScat[0]) - EScat[0] * conj(HScat[2]) );
+  PVScat[2] = 0.5*real( EScat[0] * conj(HScat[1]) - EScat[1] * conj(HScat[0]) );
+
+  PVTot[0]  = 0.5*real( ETot[1]  * conj(HTot[2])  - ETot[2]  * conj(HTot[1])  );
+  PVTot[1]  = 0.5*real( ETot[2]  * conj(HTot[0])  - ETot[0]  * conj(HTot[2])  );
+  PVTot[2]  = 0.5*real( ETot[0]  * conj(HTot[1])  - ETot[1]  * conj(HTot[0])  );
+
+  /***************************************************************/
+  /* components of integrand vector are radial components of     */
+  /* PVScat and -PVTot                                           */
+  /***************************************************************/
+  fval[0] = R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
+  fval[1] = -R*R*( PVTot[0]*nHat[0]  + PVTot[1]*nHat[1]  + PVTot[2]*nHat[2] );
+
+}
+
+/***************************************************************/
+/* evaluate the scattered and absorbed powers by integrating   */
+/* the poynting flux of the scattered and total fields over a  */
+/* bounding sphere at radius r=R                               */
+/***************************************************************/
+void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot)
+{ 
+  double Val[2], Err[2];
+  double Lower[2]={-1.0, 0.0};
+  double Upper[2]={+1.0, 2.0*M_PI};
+
+  GPBFIData MyGPBFID, *GPBFID = &MyGPBFID;
+  GPBFID->SSD = SSD;
+  GPBFID->R = R;
+
+  adapt_integrate(2, GetPower_BF_Integrand, (void *)SSD, 2, 
+		  Lower, Upper, 0, ABSTOL, RELTOL, Val, Err);
+
+  *PScat=Val[0];
+  *PTot=Val[1];
 
 }

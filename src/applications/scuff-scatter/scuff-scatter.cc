@@ -74,6 +74,17 @@
  * 
  * c. options specifying the output: 
  * 
+ *     --PowerFile MyPowerFile.dat
+ *     --PowerRadius R
+ * 
+ *        if the --PowerFile option is present, then the scattered 
+ *        and absorbed powers at each frequency are calculated and 
+ *        written to the specified data file.
+ * 
+ *        if --PowerRadius is specified, then the powers are 
+ *        calculated by integrating the scattered and total Poynting
+ *        fluxes over a sphere at radius R.                           
+ * 
  *     --EPFile MyEPFile
  * 
  *         a file containing a list of points at which the scattered 
@@ -88,7 +99,6 @@
  *     --FluxMesh  MyFluxMesh.msh
  * 
  *         (Note that --FluxMesh may be specified more than once.)
- * 
  *       -------------------------------------------------
  * 
  * d. options describing the frequency
@@ -200,6 +210,8 @@ void usage(char *ProgramName, const char *format, ... )
   fprintf(stderr,"  --psOrientation xx yy zz \n");
   fprintf(stderr,"\n");
   fprintf(stderr," output options: \n\n");
+  fprintf(stderr,"  --PowerFile xx\n");
+  fprintf(stderr,"  --PowerRadius xx\n");
   fprintf(stderr,"  --EPFile xx \n");
   fprintf(stderr,"  --FluxMesh MyFluxMesh.msh \n");
   fprintf(stderr,"\n");
@@ -254,6 +266,8 @@ int main(int argc, char *argv[])
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *EPFiles[MAXEPF];             int nEPFiles;
+  char *PowerFile=0;
+  double PowerRadius=0.0;
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
   int nThread=0;
   int ExportMatrix=0;
@@ -271,6 +285,8 @@ int main(int argc, char *argv[])
      {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength, &npsStrength, "point source strength"},
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nOmegaVals,  "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile, &nOmegaFiles, "list of (angular) frequencies"},
+     {"PowerFile",      PA_STRING,  1, 1,       (void *)&PowerFile, 0,            "name of power output file"},
+     {"PowerRadius",    PA_DOUBLE,  1, 1,       (void *)&PowerRadius, 0,          "radius for power calculation"},
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,    &nEPFiles,    "list of evaluation points"},
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes, &nFluxMeshes, "flux mesh"},
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,   0,            "number of CPU threads to use"},
@@ -350,10 +366,13 @@ int main(int argc, char *argv[])
      IFDList=IFD;
    };
 
+  if (PowerFile && PowerRadius==0.0)
+   ErrExit("--PowerRadius must be specified if --PowerFile is specified");
+
   /*******************************************************************/
   /*******************************************************************/
   /*******************************************************************/
-  if ( (nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
+  if ( (PowerFile!=0 || nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
    ErrExit("you must specify at least one incident field source");
 
   /*******************************************************************/
@@ -435,6 +454,7 @@ int main(int argc, char *argv[])
   cdouble Omega;
   cdouble Eps;
   double Mu;
+  FILE *f;
   for(nFreq=0; nFreq<NumFreqs; nFreq++)
    { 
      Omega = OmegaList->GetEntry(nFreq);
@@ -469,7 +489,7 @@ int main(int argc, char *argv[])
         HMatrix::CloseC2MLContext(pCC);
       };
 
-     if ( nEPFiles==0 && nFluxMeshes==0 )
+     if ( PowerFile==0 && nEPFiles==0 && nFluxMeshes==0 )
       continue;
 
      Log("  LU-factorizing BEM matrix...");
@@ -504,10 +524,28 @@ int main(int argc, char *argv[])
      /***************************************************************/
      SSD->Omega=Omega;
 
+     /*--------------------------------------------------------------*/
+     /*- scattered and absorbed power -------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (PowerFile)
+      { FILE *f=fopen(PowerFile,"a");
+        double PScat, PTot;
+        if (!f) ErrExit("could not open file %s",PowerFile);
+        GetPower_BF(SSD, PowerRadius, &PScat, &PTot);
+        fprintf(f,"%s %e %e \n",z2s(Omega),PScat,PTot);
+        fclose(f);
+      };
+ 
+     /*--------------------------------------------------------------*/
+     /*- scattered fields at user-specified points ------------------*/
+     /*--------------------------------------------------------------*/
      int nepf;
      for(nepf=0; nepf<nEPFiles; nepf++)
       ProcessEPFile(SSD, EPFiles[nepf], 0);
 
+     /*--------------------------------------------------------------*/
+     /*- flux meshes ------------------------------------------------*/
+     /*--------------------------------------------------------------*/
      int nfm;
      for(nfm=0; nfm<nFluxMeshes; nfm++)
       CreateFluxPlot(SSD, FluxMeshes[nfm]);
