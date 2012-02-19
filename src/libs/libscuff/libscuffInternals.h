@@ -180,13 +180,21 @@ void GetQDFIPPIData(double **Va, double *Qa, double **Vb, double *Qb,
 /* 'FIPPICache' is a class that implements efficient storage    */
 /* and retrieval of QIFIPPIData structures for many panel pairs.*/
 /* i am encapsulating this as its own separate class to allow   */
-/* me easily to experiment with various implementations.        */
+/* easy experimentation with various implementations.           */
 /*--------------------------------------------------------------*/
 class FIPPICache
  { 
   public:
+
+    // constructor, destructor 
     FIPPICache();
     ~FIPPICache();
+
+    // store/retrieve cache to/from binary file
+    void Store(char *FileName);
+    void PreLoad(char *FileName);
+    
+    // look up an entry 
     QIFIPPIData *GetQIFIPPIData(double **OVa, double **OVb, int ncv);
 
   private:
@@ -198,7 +206,7 @@ class FIPPICache
     // implementation 
     void *opTable;
 
-    pthread_mutex_t FCMutex; 
+    pthread_rwlock_t FCLock;
 
     int DoNotCompute;
  

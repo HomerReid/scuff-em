@@ -480,6 +480,12 @@ void RWGErrExit(const char *format, ...);
 void *RWGMalloc(int size);
 
 /*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+void PreloadGlobalFIPPICache(char *FileName);
+void StoreGlobalFIPPICache(char *FileName);
+
+/*--------------------------------------------------------------*/
 /*- prototypes for taylor master routines                      -*/
 /*--------------------------------------------------------------*/
 void *CreateTMWorkspace();  

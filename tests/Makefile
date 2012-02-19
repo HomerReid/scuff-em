@@ -30,13 +30,17 @@ LDFLAGS+=-L../src//libs/libscuff
 ##################################################
 ##################################################
 ##################################################
-STFT_OBJS = scuff-test-FIPPITable.o
+STAM_OBJS = scuff-test-AssembleMatrix.o
+STFC_OBJS = scuff-test-FIPPICache.o
 STQDFIPPI_OBJS = scuff-test-QDFIPPIs.o GetQDFIPPIs_BruteForce.o
 STQIFIPPI_OBJS = scuff-test-QIFIPPIs.o GetQIFIPPIs_BruteForce.o
 STPPI_OBJS = scuff-test-PPIs.o GetPPIs_BruteForce.o
 
-scuff-test-FIPPITable:	$(STFT_OBJS) libscuff.a
-			$(CXX) $(LDFLAGS) -o $@ $(STFT_OBJS) $(LIBS)
+scuff-test-AssembleMatrix:	$(STAM_OBJS) libscuff.a
+				$(CXX) $(LDFLAGS) -o $@ $(STAM_OBJS) $(LIBS)
+
+scuff-test-FIPPICache:	$(STFC_OBJS) libscuff.a
+			$(CXX) $(LDFLAGS) -o $@ $(STFC_OBJS) $(LIBS)
 
 
 scuff-test-PPIs:	$(STPPI_OBJS) libscuff.a
