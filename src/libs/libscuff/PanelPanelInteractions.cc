@@ -403,10 +403,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   if (Args->opFC)
    GetQDFIPPIData(Va, Qa, Vb, Qb, ncv, Args->opFC, QDFD);
   else
-{
-printf("npa=%i npb=%i\n",npa,npb);
    GetQDFIPPIData(Va, Qa, Vb, Qb, ncv, &GlobalFIPPICache, QDFD);
-}
 
   // step 3
   // note: PF[n] = (ik)^n / (4\pi)
