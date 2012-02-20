@@ -230,6 +230,7 @@ void CFDIntegrand3D(unsigned ndim, const double *x, void *params,
        || !isfinite(OneR1Int)
        || !isfinite(OneR2Int) )
    { printf("Bawonkatage! b2=%e, vp0=%e, up=%e, S1=%e, S2=%e\n",b2,vp0,up,S1,S2);
+
    };
   
   double CPCT[3], CPLT[3]; // 'cross product constant term' and 'cross product linear term'

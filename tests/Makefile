@@ -27,14 +27,19 @@ LDFLAGS+=$(DEBUG)
 CPPFLAGS+=-I../src/libs/libscuff
 LDFLAGS+=-L../src//libs/libscuff
 
+CPPFLAGS+=-DHAVE_MUPARSER
+
 ##################################################
 ##################################################
 ##################################################
+STQIFIPPI_OBJS = scuff-test-QIFIPPIs.o GetQIFIPPIs_BruteForce.o
 STAM_OBJS = scuff-test-AssembleMatrix.o
 STFC_OBJS = scuff-test-FIPPICache.o
 STQDFIPPI_OBJS = scuff-test-QDFIPPIs.o GetQDFIPPIs_BruteForce.o
-STQIFIPPI_OBJS = scuff-test-QIFIPPIs.o GetQIFIPPIs_BruteForce.o
 STPPI_OBJS = scuff-test-PPIs.o GetPPIs_BruteForce.o
+
+scuff-test-QIFIPPIs:	$(STQIFIPPI_OBJS) libscuff.a
+			$(CXX) $(LDFLAGS) -o $@ $(STQIFIPPI_OBJS) $(LIBS)
 
 scuff-test-AssembleMatrix:	$(STAM_OBJS) libscuff.a
 				$(CXX) $(LDFLAGS) -o $@ $(STAM_OBJS) $(LIBS)
@@ -48,9 +53,6 @@ scuff-test-PPIs:	$(STPPI_OBJS) libscuff.a
 
 scuff-test-QDFIPPIs:	$(STQDFIPPI_OBJS) libscuff.a
 			$(CXX) $(LDFLAGS) -o $@ $(STQDFIPPI_OBJS) $(LIBS)
-
-scuff-test-QIFIPPIs:	$(STQIFIPPI_OBJS) libscuff.a
-			$(CXX) $(LDFLAGS) -o $@ $(STQIFIPPI_OBJS) $(LIBS)
 
 libscuff.a:	
 		(pushd ../src/libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)

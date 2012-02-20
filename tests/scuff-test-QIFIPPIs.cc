@@ -26,6 +26,12 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+extern int MaxCalls;
+extern double DeltaZFraction;
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void ComputeQIFIPPIData(double **Va, double **Vb, QIFIPPIData *QIFD);
 void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD);
 int CanonicallyOrderVertices(double **Va, double *Qa,
@@ -59,8 +65,7 @@ int main(int argc, char *argv[])
   /* create the geometry *****************************************/
   /***************************************************************/
   RWGGeometry *G = new RWGGeometry(GeoFileName);
-  RWGObject *Oa=G->Objects[0];
-  RWGObject *Ob=G->NumObjects>1 ? G->Objects[1] : Oa;
+  RWGObject *Oa=G->Objects[0], *Ob;
 
   /*--------------------------------------------------------------*/
   /*- write visualization files if requested ---------------------*/
@@ -132,8 +137,14 @@ int main(int argc, char *argv[])
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--ns") )
        SameObject=0;
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--DeltaZFraction") )
+       sscanf(Tokens[nt+1],"%le",&DeltaZFraction);
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--MaxCalls") )
+       sscanf(Tokens[nt+1],"%i",&MaxCalls);
      free(p);
-  
+
      /*--------------------------------------------------------------*/
      /* if the user specified a number of common vertices then       */
      /* find a randomly-chosen pair of panels with that number of    */
@@ -141,6 +152,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      if ( 0<=ncv && ncv<=3 )
       { SameObject=1;
+        Ob=Oa;
         npa=lrand48() % Oa->NumPanels;
         printf("Looking for a panel pair with %i common vertices...\n",ncv);
         do
@@ -160,6 +172,7 @@ int main(int argc, char *argv[])
         /*- first look on same object ----------------------------------*/
         /*--------------------------------------------------------------*/
         SameObject=1;
+        Ob=Oa;
         for(npb=0; npb<Oa->NumPanels; npb++)
          { AssessPanelPair(Oa,npa,Oa,npb,&rRel);
            if ( 0.9*rRelRequest<rRel && rRel<1.1*rRelRequest )
@@ -171,6 +184,7 @@ int main(int argc, char *argv[])
         /*--------------------------------------------------------------*/
         if (npb==Oa->NumPanels)
          { SameObject=0;
+           Ob = (G->NumObjects>1 ? G->Objects[1] : Oa );
            for(npb=0; npb<Ob->NumPanels; npb++)
            { AssessPanelPair(Oa,npa,Ob,npb,&rRel);
              if ( 0.9*rRelRequest<rRel && rRel<1.1*rRelRequest )
@@ -187,14 +201,34 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      else 
       { if (SameObject==-1) SameObject=lrand48()%2;
+        if (SameObject)
+         Ob=Oa;
+        else
+         Ob = (G->NumObjects>1 ? G->Objects[1] : Oa );
         if (npa==-1) npa=lrand48() % Oa->NumPanels;
         if (npb==-1) npb=lrand48() % (SameObject ? Oa->NumPanels : Ob->NumPanels);
+      };
+
+     /*--------------------------------------------------------------*/
+     /*- if the user specified specific panel indices then make sure */
+     /*- they make sense                                             */
+     /*--------------------------------------------------------------*/
+     if ( npa >= Oa->NumPanels )
+      { printf("whoops! Object %s has only %i panels (you requested panel %i).\n",
+                Oa->Label,Oa->NumPanels,npa);
+        continue;
+      };
+     if ( npb >= Ob->NumPanels )
+      { printf("whoops! Object %s has only %i panels (you requested panel %i).\n",
+                Ob->Label,Ob->NumPanels,npb);
+        continue;
       };
 
      /*--------------------------------------------------------------------*/
      /* print a little summary of the panel pair we will be considering    */
      /*--------------------------------------------------------------------*/
-     ncv=AssessPanelPair(Oa, npa, Ob, npb, &rRel);
+     ncv=AssessPanelPair(Oa, npa, Ob, npb, &rRel, Va, Vb);
+     CanonicallyOrderVertices(Va, Vb, ncv, OVa, OVb);
      printf("*\n");
      printf("* --npa %i --npb %i %s\n",
             npa,npb,SameObject ? "--same" : "--ns");
@@ -210,21 +244,12 @@ int main(int argc, char *argv[])
      if ( !SameObject && DZ!=0.0 )
       Ob->Transform("DISP 0 0 %e",DZ);
 
-     Va[0] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[0]);
-     Va[1] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[1]);
-     Va[2] = Oa->Vertices + 3*(Oa->Panels[npa]->VI[2]);
-     Vb[0] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[0]);
-     Vb[1] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[1]);
-     Vb[2] = Ob->Vertices + 3*(Ob->Panels[npb]->VI[2]);
-
-     CanonicallyOrderVertices(Va, Va[0], Vb, Vb[0], OVa, &Qa, OVb, &Qb);
-
      /*--------------------------------------------------------------------*/
      /* get FIPPIs by libscuff method                                      */
      /*--------------------------------------------------------------------*/
      Tic();
      for(nt=0; nt<HRTIMES; nt++)
-      ComputeQIFIPPIData(OVa, OVb, QIFDHR);
+      ComputeQIFIPPIData(OVa, OVb, ncv, QIFDHR);
      HRTime=Toc() / HRTIMES;
      
      /*--------------------------------------------------------------------*/
@@ -248,8 +273,8 @@ int main(int argc, char *argv[])
      printf(" ** BF time: %e ms \n",BFTime*1.0e3);
      printf("\n");
      printf("Quantity  |  %15s  |  %15s  | %s\n", 
-            "            libscuff             ",
-            "          brute force            ",
+            "   libscuff   ",
+            " brute force  ",
             "rel delta");
      printf("----------|--%15s--|--%15s--|-%5s\n", 
             "---------------","---------------","-----");

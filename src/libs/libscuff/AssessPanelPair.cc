@@ -201,7 +201,8 @@ static int VLT(double *V1, double *V2)
 /***************************************************************/
 /* given two sets of panel vertices, this routine puts them    */
 /* in a canonical ordering, based on the vertex-ordering       */
-/* algorithm of the above routine.                             */
+/* algorithm of the above routine. the canonical ordering is   */
+/* used to construct a search key into a FIPPI table.          */
 /*                                                             */
 /* inputs: Va[0..2], Vb[0..2]: panel vertices                  */
 /*         ncv:                number of common vertices       */
@@ -219,11 +220,9 @@ static int VLT(double *V1, double *V2)
 /* particular, if there are any common vertices (ncv>0), the   */
 /* Va and Vb arrays are assumed to be in the order returned    */
 /* by AssessPanelPair. (note that AssessPanelPair ensures that */
-/* the vertex sets are in acceptable order for passeage to     */
+/* the vertex sets are in acceptable order for passage to      */
 /* TaylorMaster, but does not take the further step of         */
-/* putting the vertices into the CANONICAL order. (the         */
-/* canonical ordering is used to construct a search key into   */
-/* a FIPPI table.)                                             */
+/* putting the vertices into the CANONICAL order.)             */
 /*                                                             */
 /* my 'canonical ordering' for panel vertices obeys the        */
 /* following properties.                                       */
@@ -317,8 +316,8 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
       }
      else
       { 
-        OVa[0]=Vb[a01Min]; OVb[1]=Va[1-a01Min]; OVb[2]=Va[2];
-        OVb[0]=Va[a01Min]; OVa[1]=Vb[1-a01Min]; OVa[2]=Vb[2];
+        OVa[0]=Vb[a01Min]; OVb[1]=Vb[1-a01Min]; OVb[2]=Vb[2];
+        OVb[0]=Va[a01Min]; OVa[1]=Va[1-a01Min]; OVa[2]=Va[2];
         return 1;
       };
    }

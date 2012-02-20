@@ -23,6 +23,12 @@
 #define NFIPPIS 33
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int MaxCalls=100000;
+double DeltaZFraction=0.01;
+
+/***************************************************************/
 /* data structure used to pass data to integrand routines      */
 /***************************************************************/
 typedef struct FIPPIBFData
@@ -68,6 +74,7 @@ static void FIPPIBFIntegrand(unsigned ndim, const double *x, void *parms,
   oor3=u*up/(r*r*r);
   r2=u*up*r*r;
   r*=u*up;
+   
 
   /***************************************************************/
   /***************************************************************/
@@ -167,17 +174,16 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
      double Z[NZ], F[NZ], FValues[NFIPPIS * NZ];
      PolyFit *PF;
 
-     double Radius, DeltaZ, Centroid[3], BPP[3], ZHat[3];
+     double Radius, DeltaZ, Centroid[3], ZHat[3];
      Centroid[0] = (Vb[0][0] + Vb[1][0] + Vb[2][0]) / 3.0;
      Centroid[1] = (Vb[0][1] + Vb[1][1] + Vb[2][1]) / 3.0;
      Centroid[2] = (Vb[0][2] + Vb[1][2] + Vb[2][2]) / 3.0;
-     VecSub(Vb[2], Vb[0], BPP);
-     VecCross(FIPPIBFD->AP, BPP, ZHat);
+     VecCross(FIPPIBFD->AP, FIPPIBFD->BP, ZHat);
      VecNormalize(ZHat);
      Radius = VecDistance(Centroid, Vb[0]);
      Radius = fmax(Radius, VecDistance(Centroid, Vb[1]));
      Radius = fmax(Radius, VecDistance(Centroid, Vb[2]));
-     DeltaZ = 0.01*Radius;
+     DeltaZ = DeltaZFraction * Radius;
 
      for(nz=0; nz<NZ; nz++)
       { 
@@ -186,7 +192,7 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
         printf("BFing at Z=%g...\n",Z[nz]);
 
         adapt_integrate(fDim, FIPPIBFIntegrand, (void *)FIPPIBFD, 4, Lower, Upper,
-                        100000, ABSTOL, RELTOL, Result, Error);
+                        MaxCalls, ABSTOL, RELTOL, Result, Error);
 
         memcpy(FValues + nz*NFIPPIS, Result, NFIPPIS*sizeof(double));
       };
