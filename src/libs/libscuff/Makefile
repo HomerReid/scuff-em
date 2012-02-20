@@ -45,6 +45,7 @@ CC=g++
 CPPFLAGS+=$(DEBUG) -I../SGJC -I../libTriInt
 CPPFLAGS+=-I../libMatProp -I../libhmat -I../libSpherical
 CPPFLAGS+=-I../libhrutil
+CPPFLAGS+=-DHAVE_MUPARSER
 CPPFLAGS+=$(GOOGLE_INCLUDES)
 
 libscuff.a:	$(HEADERS) $(OBJS)
