@@ -55,7 +55,6 @@ typedef struct CFDData
    int nCalls;
  } CFDData;
 
-#if 0 
  // this is the integrand routine for evaluating the FIPPIs
  // using 4-dimensional cubature; i have since replaced
  // it with the much faster 3-dimensional cubature scheme
@@ -152,7 +151,6 @@ void CFDIntegrand4D(unsigned ndim, const double *x, void *params,
   fval[nf++] = v*vp*r2;
 
 } 
-#endif  // 4D FIPPI cubature routine
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -206,37 +204,60 @@ void CFDIntegrand3D(unsigned ndim, const double *x, void *params,
   vp04=vp03*vp0;
   b2=Y2/a2 - vp02;
 
-  double S1, S2, LogFac, Sum, Sum3, Sum4;
-  S1=sqrt( b2 + vp02 );
-  S2=sqrt( b2 + (vp0+up)*(vp0+up) );
-  LogFac=log( (S2 + (up+vp0)) / (S1 + vp0) );
-  Sum=vp0+up;
-  Sum3=Sum*Sum*Sum;
-  Sum4=Sum3*Sum;
-
-  // the RHSs here are the integrals evaluated in Section 10 of the memo.
+  // the following quantities are the integrals evaluated in Section 10 of the memo.
   // note we put the jacobian factor (u) into these quantities for convenience.
-  double OneRM3Int = u*( (up+vp0)/S2 - vp0/S1 ) / (a3*b2);
-  double  vpRM3Int = -vp0*OneRM3Int + u*( 1.0/S1 - 1.0/S2 ) / a3;
-  double OneRM1Int = u*LogFac/a;
-  double  vpRM1Int = -vp0*OneRM1Int + u*(S2-S1)/a;
-  double OneR1Int  = u*a*0.5*(b2*LogFac + (up+vp0)*S2 - vp0*S1);
-  double  vpR1Int  = -vp0*OneR1Int + u*a*(S2*S2*S2 - S1*S1*S1) / 3.0;
-  double OneR2Int  = u*a2*( (Sum3-vp03)/3.0 + up*b2 );
-  double  vpR2Int  = -vp0*OneR2Int + u*a2*( (Sum4-vp04)/4.0 + up*(vp0 + 0.5*up)*b2 );
-
+  double OneRM3Int, vpRM3Int;
+  double OneRM1Int, vpRM1Int;
+  double OneR1Int,  vpR1Int;
+  double OneR2Int,  vpR2Int;
+  if ( b2 > 1.0e-12)
+   { 
+     double S1, S2, LogFac, Sum, Sum3, Sum4;
+     S1=sqrt( b2 + vp02 );
+     S2=sqrt( b2 + (vp0+up)*(vp0+up) );
+     LogFac=log( (S2 + (up+vp0)) / (S1 + vp0) );
+     Sum=vp0+up;
+     Sum3=Sum*Sum*Sum;
+     Sum4=Sum3*Sum;
+   
+     OneRM3Int = u*( (up+vp0)/S2 - vp0/S1 ) / (a3*b2);
+     vpRM3Int  = -vp0*OneRM3Int + u*( 1.0/S1 - 1.0/S2 ) / a3;
+     OneRM1Int = u*LogFac/a;
+     vpRM1Int  = -vp0*OneRM1Int + u*(S2-S1)/a;
+     OneR1Int  = u*a*0.5*(b2*LogFac + (up+vp0)*S2 - vp0*S1);
+     vpR1Int   = -vp0*OneR1Int + u*a*(S2*S2*S2 - S1*S1*S1) / 3.0;
+     OneR2Int  = u*a2*( (Sum3-vp03)/3.0 + up*b2 );
+     vpR2Int   = -vp0*OneR2Int + u*a2*( (Sum4-vp04)/4.0 + up*(vp0 + 0.5*up)*b2 );
+   }
+  else // b is close to zero
+   {
+     double vp0pup = vp0 + up;
+     double vp0pup2 = vp0pup*vp0pup;
+     double vp0pup3 = vp0pup2*vp0pup;
+     double vp0pup4 = vp0pup3*vp0pup;
+     OneRM3Int = u*fabs( 1.0/vp02 - 1.0/vp0pup2 ) / (2.0*a3);
+     vpRM3Int  = -vp0*OneRM3Int + u*fabs(1.0/vp0 - 1.0/vp0pup) / a3;
+     OneRM1Int = u*fabs(log(vp0pup2/vp02)) / a3;
+     vpRM1Int  = -vp0*OneRM1Int + u*up/a3;
+     OneR1Int  = u*fabs(vp0pup2 - vp02) / (2.0*a3);
+     OneR2Int  = u*fabs(vp0pup3 - vp03) / (3.0*a3);
+     vpR1Int   = -vp0*OneR1Int + OneR2Int;
+     vpR2Int   = -vp0*OneR2Int + u*fabs(vp0pup4 - vp04) / (4.0*a3);
+   };
+   
   if (    !isfinite(OneRM3Int) 
        || !isfinite(OneRM1Int)
        || !isfinite(OneR1Int)
        || !isfinite(OneR2Int) )
-   { printf("Bawonkatage! b2=%e, vp0=%e, up=%e, S1=%e, S2=%e\n",b2,vp0,up,S1,S2);
+   { printf("Bawonkatage! b2=%e, vp0=%e, up=%e\n",b2,vp0,up);
 
 printf("%e %e %e \n",V0[0], V0[1], V0[2]);
 printf("%e %e %e \n",V0[0]+A[0], V0[1]+A[1], V0[2]+A[2]);
 printf("%e %e %e \n",V0[0]+A[0]+B[0], V0[1]+A[1]+B[1], V0[2]+A[2]+B[2]);
 printf("%e %e %e \n",V0P[0],            V0P[1],             V0P[2]);
 printf("%e %e %e \n",V0P[0]+AP[0],      V0P[1]+AP[1],       V0P[2]+AP[2]);
-printf("%e %e %e \n",V0P[0]+AP[0]+B[0], V0P[1]+AP[1]+BP[1], V0P[2]+AP[2]+BP[2]);
+printf("%e %e %e \n",V0P[0]+AP[0]+BP[0], V0P[1]+AP[1]+BP[1], V0P[2]+AP[2]+BP[2]);
+exit(1);
 
    };
   
@@ -314,6 +335,7 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
   double F[fdim], E[fdim];
 
   CFDD->nCalls=0;
+//#define CUBATURE4D
 #ifdef CUBATURE4D
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
