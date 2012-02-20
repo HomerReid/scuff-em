@@ -508,11 +508,14 @@ int main(int argc, char *argv[])
      /*- scattered and absorbed power -------------------------------*/
      /*--------------------------------------------------------------*/
      if (PowerFile)
-      { FILE *f=fopen(PowerFile,"a");
+      {
         double PScat, PTot;
+        FILE *f=fopen(PowerFile,"a");
         if (!f) ErrExit("could not open file %s",PowerFile);
+        GetPower(SSD, &PScat, &PTot);
+        fprintf(f,"%s %e %e ",z2s(Omega),PScat,PTot);
         GetPower_BF(SSD, PowerRadius, &PScat, &PTot);
-        fprintf(f,"%s %e %e \n",z2s(Omega),PScat,PTot);
+        fprintf(f,"%e %e\n ",PScat,PTot);
         fclose(f);
       };
  

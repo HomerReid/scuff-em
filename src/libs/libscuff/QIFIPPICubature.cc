@@ -55,6 +55,7 @@ typedef struct CFDData
    int nCalls;
  } CFDData;
 
+#if 0
  // this is the integrand routine for evaluating the FIPPIs
  // using 4-dimensional cubature; i have since replaced
  // it with the much faster 3-dimensional cubature scheme
@@ -151,6 +152,7 @@ void CFDIntegrand4D(unsigned ndim, const double *x, void *params,
   fval[nf++] = v*vp*r2;
 
 } 
+#endif
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -210,7 +212,7 @@ void CFDIntegrand3D(unsigned ndim, const double *x, void *params,
   double OneRM1Int, vpRM1Int;
   double OneR1Int,  vpR1Int;
   double OneR2Int,  vpR2Int;
-  if ( b2 > 1.0e-12)
+  if ( b2 > 1.0e-10)
    { 
      double S1, S2, LogFac, Sum, Sum3, Sum4;
      S1=sqrt( b2 + vp02 );
@@ -237,12 +239,13 @@ void CFDIntegrand3D(unsigned ndim, const double *x, void *params,
      double vp0pup4 = vp0pup3*vp0pup;
      OneRM3Int = u*fabs( 1.0/vp02 - 1.0/vp0pup2 ) / (2.0*a3);
      vpRM3Int  = -vp0*OneRM3Int + u*fabs(1.0/vp0 - 1.0/vp0pup) / a3;
-     OneRM1Int = u*fabs(log(vp0pup2/vp02)) / a3;
-     vpRM1Int  = -vp0*OneRM1Int + u*up/a3;
-     OneR1Int  = u*fabs(vp0pup2 - vp02) / (2.0*a3);
-     OneR2Int  = u*fabs(vp0pup3 - vp03) / (3.0*a3);
-     vpR1Int   = -vp0*OneR1Int + OneR2Int;
-     vpR2Int   = -vp0*OneR2Int + u*fabs(vp0pup4 - vp04) / (4.0*a3);
+     OneRM1Int = u*fabs(log(vp0pup/vp0)) / a;
+     vpRM1Int  = -vp0*OneRM1Int + u*up/a;
+     OneR1Int  =  u*a*fabs(vp0pup2 - vp02) / 2.0;
+     OneR2Int  = u*a2*fabs(vp0pup3 - vp03) / 3.0;
+     vpR1Int   = -vp0*OneR1Int + OneR2Int/a;
+     vpR2Int   = -vp0*OneR2Int + u*a2*fabs(vp0pup4 - vp04) / 4.0;
+
    };
    
   if (    !isfinite(OneRM3Int) 
