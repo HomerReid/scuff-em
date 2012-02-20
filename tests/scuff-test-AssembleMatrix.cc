@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
   /* create the geometry and allocate space for the BEM matrix   */
   /***************************************************************/
   RWGGeometry *G = new RWGGeometry(GeoFileName);
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
   HMatrix *M=G->AllocateBEMMatrix();
 
   /***************************************************************/
