@@ -78,15 +78,14 @@ void AnalyzeGeometry(char *GeoFile, int WriteGPFiles, int WritePPFiles)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double  RAM=(double)8*(G->TotalBFs)*(G->TotalBFs);
+  unsigned RAM = G->TotalBFs * G->TotalBFs * sizeof(cdouble);
+
   printf("***********************************************\n");
   printf("*  GEOMETRY %s \n",GeoFile);
   printf("***********************************************\n");
   printf(" %6i objects\n",G->NumObjects);
   printf(" %6i total basis functions\n",G->TotalBFs);
-  printf("   --> matrix size %.2f GB\n",RAM/1.0e9);
-  printf("   --> total RAM for 1 force component = %.2f GB\n",4.0*RAM/1.0e9);
-  printf("   --> = %i nodes at 875 MB /node\n",(int)ceil(4.0*RAM/(8.75e8)));
+  printf(" Size of BEM matrix: %.2f GB\n",((double)RAM)/1.0e9);
   printf("\n");
 
   /***************************************************************/

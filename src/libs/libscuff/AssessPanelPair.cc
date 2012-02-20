@@ -316,8 +316,8 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
       }
      else
       { 
-        OVa[0]=Vb[a01Min]; OVb[1]=Vb[1-a01Min]; OVb[2]=Vb[2];
-        OVb[0]=Va[a01Min]; OVa[1]=Va[1-a01Min]; OVa[2]=Va[2];
+        OVa[0]=Vb[a01Min]; OVa[1]=Vb[1-a01Min]; OVa[2]=Vb[2];
+        OVb[0]=Va[a01Min]; OVb[1]=Va[1-a01Min]; OVb[2]=Va[2];
         return 1;
       };
    }
