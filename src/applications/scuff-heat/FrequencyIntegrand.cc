@@ -101,7 +101,7 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
   M0->LUFactorize();
 
   /***************************************************************/
-  /* set M1 = 2*2*sym(M1) and M2 = 2*sym(M2)                     */
+  /* set M1 = sym(M1) and M2 = sym(M2)                           */
   /*  (note that the loop runs over only the upper triangle of   */
   /*  the matrices)                                              */
   /***************************************************************/
@@ -109,7 +109,7 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
   for(nr=0; nr<M1->NR; nr++)
    for(nc=nr; nc<M1->NC; nc++)
     { 
-      Sym = M1->GetEntry(nr, nc) + conj(M1->GetEntry(nc, nr));
+      Sym = 0.5*(M1->GetEntry(nr, nc) + conj(M1->GetEntry(nc, nr)));
       M1->SetEntry(nr, nc, Sym );
       if(nc>nr) M1->SetEntry(nc, nr, Sym );
     }; 
@@ -117,7 +117,7 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
   if (M2)
    { for(nr=0; nr<M2->NR; nr++)
       for(nc=nr; nc<M2->NC; nc++)
-       { Sym = M2->GetEntry(nr, nc) + conj(M2->GetEntry(nc, nr));
+       { Sym = 0.5*(M2->GetEntry(nr, nc) + conj(M2->GetEntry(nc, nr)));
          M2->SetEntry(nr, nc, Sym );
 	 if(nc>nr) M2->SetEntry(nc, nr, Sym );
        };
@@ -128,7 +128,7 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
   /* set M2 <= M^{-1}  * M2 **************************************/
   /***************************************************************/
   M0->LUSolve(M1,'C');
-  if (M2) M0->LUSolve(M2,'N');
+  M0->LUSolve(M2,'N');
 
   /***************************************************************/
   /* set M0 = M1*M2                                              */
@@ -138,7 +138,7 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
   /***************************************************************/
   /* the value of the frequency integrand is now the trace of M0 */
   /***************************************************************/
-  *FI = real(M0->GetTrace());
+  *FI = real( M0->GetTrace() / (8.0*Omega) );
 
   /***************************************************************/
   /* write the result to the frequency-resolved output file ******/
