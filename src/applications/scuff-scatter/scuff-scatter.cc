@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
-  /* name               type     args  instances  storage           count         description*/
+  /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
      {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,       &npwDir,       "plane wave direction"},
