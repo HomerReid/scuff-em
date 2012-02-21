@@ -439,18 +439,6 @@ void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot)
 /***************************************************************/
 void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot)
 { 
-  double Val[2], Err[2];
-  double Lower[2]={-1.0, 0.0};
-  double Upper[2]={+1.0, 2.0*M_PI};
-
-  GPBFIData MyGPBFID, *GPBFID = &MyGPBFID;
-  GPBFID->SSD = SSD;
-  GPBFID->R = R;
-
-  adapt_integrate(2, GetPower_BF_Integrand, (void *)SSD, 2, 
-		  Lower, Upper, 0, ABSTOL, RELTOL, Val, Err);
-
   *PScat=Val[0];
   *PTot=Val[1];
-
 }
