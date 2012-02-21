@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
   // list of frequencies and a frequency range over which to integrate;
   // if a range was specified check that it makes sense 
   if ( NumFreqs>0 ) 
-   { if ( OmegaMin!=-1.0 || OmegaMax!=-1.0 ) 
+   { if ( nOmegaMin>0 || nOmegaMax>0 )
       ErrExit("--OmegaMin/--OmegaMax options may not be used with --Omega/--OmegaFile");  
      Log("Computing spectral density at %i frequencies.",NumFreqs);
    }
@@ -262,7 +262,13 @@ int main(int argc, char *argv[])
   if (ByOmegaFile)
    SHD->ByOmegaFile = ByOmegaFile;
   else 
-   SHD->ByOmegaFile = vstrdup("%s.byOmega",GetFileBase(GeoFile));
+   { SHD->ByOmegaFile = vstrdup("%s.byOmega",GetFileBase(GeoFile));
+     char MyFileName[MAXSTR];
+     FILE *f=CreateUniqueFile(SHD->ByOmegaFile, 1, MyFileName);
+     fclose(f);
+     SHD->ByOmegaFile=strdup(MyFileName);
+   };
+
 
   SHD->nThread=nThread;
   if (SHD->nThread==0)
