@@ -170,14 +170,15 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#define MAXPW   1     // max number of plane waves
-#define MAXGB   1     // max number of gaussian beams
-#define MAXPS   10    // max number of point sources
-#define MAXFREQ 10    // max number of frequencies 
-#define MAXEPF  10    // max number of evaluation-point files
-#define MAXFM   10    // max number of flux meshes
+#define MAXPW    1     // max number of plane waves
+#define MAXGB    1     // max number of gaussian beams
+#define MAXPS    10    // max number of point sources
+#define MAXFREQ  10    // max number of frequencies 
+#define MAXEPF   10    // max number of evaluation-point files
+#define MAXFM    10    // max number of flux meshes
+#define MAXCACHE 10    // max number of cache files for preload
 
-#define MAXSTR  1000
+#define MAXSTR   1000
  
 /***************************************************************/
 /***************************************************************/
@@ -252,26 +253,32 @@ int main(int argc, char *argv[])
   int nThread=0;
   int ExportMatrix=0;
   char *ObjectOnly=0;
+  char *Cache=0;
+  char *ReadCache[MAXCACHE];         int nReadCache;
+  char *WriteCache=0;
   /* name               type     args  instances  storage           count         description*/
   OptStruct OSArray[]=
-   { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,   0,            "geometry file"},
-     {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,      &npwDir,      "plane wave direction"},
-     {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,      &npwPol,      "plane wave polarization"},
-     {"gbDirection",    PA_DOUBLE,  3, MAXGB,   (void *)gbDir,      &ngbDir,      "gaussian beam direction"},
-     {"gbPolarization", PA_CDOUBLE, 3, MAXGB,   (void *)gbPol,      &ngbPol,      "gaussian beam polarization"},
-     {"gbCenter",       PA_DOUBLE,  3, MAXGB,   (void *)gbCenter,   &ngbCenter,   "gaussian beam center"},
-     {"gbWaist",        PA_DOUBLE,  1, MAXGB,   (void *)gbWaist,    &ngbWaist,    "gaussian beam waist"},
-     {"psLocation",     PA_DOUBLE,  3, MAXPS,   (void *)psLoc,      &npsLoc,      "point source location"},
-     {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength, &npsStrength, "point source strength"},
-     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,  &nOmegaVals,  "(angular) frequency"},
-     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile, &nOmegaFiles, "list of (angular) frequencies"},
-     {"PowerFile",      PA_STRING,  1, 1,       (void *)&PowerFile, 0,            "name of power output file"},
-     {"PowerRadius",    PA_DOUBLE,  1, 1,       (void *)&PowerRadius, 0,          "radius for power calculation"},
-     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,    &nEPFiles,    "list of evaluation points"},
-     {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes, &nFluxMeshes, "flux mesh"},
-     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,   0,            "number of CPU threads to use"},
-     {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,         "export BEM matrix to file"},
-     {"Only",           PA_STRING,  1, 1,       (void *)&ObjectOnly,0,            "include only object xx"},
+   { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+     {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,       &npwDir,       "plane wave direction"},
+     {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,       &npwPol,       "plane wave polarization"},
+     {"gbDirection",    PA_DOUBLE,  3, MAXGB,   (void *)gbDir,       &ngbDir,       "gaussian beam direction"},
+     {"gbPolarization", PA_CDOUBLE, 3, MAXGB,   (void *)gbPol,       &ngbPol,       "gaussian beam polarization"},
+     {"gbCenter",       PA_DOUBLE,  3, MAXGB,   (void *)gbCenter,    &ngbCenter,    "gaussian beam center"},
+     {"gbWaist",        PA_DOUBLE,  1, MAXGB,   (void *)gbWaist,     &ngbWaist,     "gaussian beam waist"},
+     {"psLocation",     PA_DOUBLE,  3, MAXPS,   (void *)psLoc,       &npsLoc,       "point source location"},
+     {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength,  &npsStrength,  "point source strength"},
+     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
+     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
+     {"PowerFile",      PA_STRING,  1, 1,       (void *)&PowerFile,  0,             "name of power output file"},
+     {"PowerRadius",    PA_DOUBLE,  1, 1,       (void *)&PowerRadius, 0,            "radius for power calculation"},
+     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
+     {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
+     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
+     {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
+     {"Only",           PA_STRING,  1, 1,       (void *)&ObjectOnly, 0,             "include only object xx"},
+     {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
+     {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
+     {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -350,7 +357,8 @@ int main(int argc, char *argv[])
    ErrExit("--PowerRadius must be specified if --PowerFile is specified");
 
   /*******************************************************************/
-  /*******************************************************************/
+  /* sanity check to make sure the user specified an incident field  */
+  /* if one is required for the outputs the user requested           */
   /*******************************************************************/
   if ( (PowerFile!=0 || nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
    ErrExit("you must specify at least one incident field source");
@@ -426,6 +434,17 @@ int main(int argc, char *argv[])
 #ifdef SCUFF
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
 #endif
+
+  /*******************************************************************/
+  /* preload the scuff cache with any cache preload files the user   */
+  /* may have specified                                              */
+  /*******************************************************************/
+  if ( Cache!=0 && WriteCache!=0 )
+   ErrExit("--cache and --writecache options are mutually exclusive");
+  for (int nrc=0; nrc<nReadCache; nrc++)
+   PreloadGlobalFIPPICache( ReadCache[nrc] );
+  if (Cache)
+   PreloadGlobalFIPPICache( Cache );
 
   /*******************************************************************/
   /* loop over frequencies *******************************************/
@@ -534,6 +553,13 @@ int main(int argc, char *argv[])
       CreateFluxPlot(SSD, FluxMeshes[nfm]);
 
    }; //  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
+
+  /*******************************************************************/
+  /* dump the final cache to a cache storage file if requested       */
+  /*******************************************************************/
+  if (Cache) WriteCache=Cache;
+  if (WriteCache)
+   StoreGlobalFIPPICache( WriteCache );
 
   /***************************************************************/
   /***************************************************************/

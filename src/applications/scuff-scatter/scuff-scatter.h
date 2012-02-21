@@ -25,6 +25,7 @@
 typedef struct SSData
  {
    RWGGeometry *G;
+   RWGGeometry *G0;
    HVector *KN;
    cdouble Omega;
    void *opIFD;
@@ -36,6 +37,7 @@ typedef struct SSData
 /* these are the 'output modules' that compute and process the */
 /* scattered fields in various ways.                           */
 /***************************************************************/
+void GetPower(SSData *SSD, double R, double *PScat, double *PTot);
 void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot);
 void ProcessEPFile(SSData *SSData, char *EPFileName, char *ObjectLabel);
 void CreateFluxPlot(SSData *SSData, char *MeshFileName);
