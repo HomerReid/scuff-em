@@ -114,14 +114,12 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
       if(nc>nr) M1->SetEntry(nc, nr, Sym );
     }; 
 
-  if (M2)
-   { for(nr=0; nr<M2->NR; nr++)
-      for(nc=nr; nc<M2->NC; nc++)
-       { Sym = 0.5*(M2->GetEntry(nr, nc) + conj(M2->GetEntry(nc, nr)));
-         M2->SetEntry(nr, nc, Sym );
-	 if(nc>nr) M2->SetEntry(nc, nr, Sym );
-       };
-   };
+  for(nr=0; nr<M2->NR; nr++)
+   for(nc=nr; nc<M2->NC; nc++)
+    { Sym = 0.5*(M2->GetEntry(nr, nc) + conj(M2->GetEntry(nc, nr)));
+      M2->SetEntry(nr, nc, Sym );
+      if(nc>nr) M2->SetEntry(nc, nr, Sym );
+    };
 
   /***************************************************************/
   /* set M1 <= M^{-1'} * M1 **************************************/
