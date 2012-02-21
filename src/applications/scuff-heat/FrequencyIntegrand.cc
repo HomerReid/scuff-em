@@ -36,23 +36,48 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
   Log("Assembling M0 matrix...");
   G->AssembleBEMMatrix(Omega, nThread, M0);
 
+  // multiply by the 'S' matrix 
+  int nr, nc;
+  for(nr=1; nr<M0->NR; nr+=2)
+   for(nc=0; nc<M0->NC; nc++)
+    M0->SetEntry(nr, nc, -1.0*M0->GetEntry(nr,nc));
+
   /*--------------------------------------------------------------*/
   /*- 1: contributions of object 1 only    -----------------------*/
   /*--------------------------------------------------------------*/
   G->ExteriorMP->Zero();
   G->Objects[0]->MP->UnZero();
+
   Log("Assembling M1 matrix...");
   G->AssembleBEMMatrix(Omega, nThread, M1);
 
+  for(nr=1; nr<M1->NR; nr+=2)
+   for(nc=0; nc<M1->NC; nc++)
+    M1->SetEntry(nr, nc, -1.0*M1->GetEntry(nr,nc));
+
   /*--------------------------------------------------------------*/
-  /*- 2: contributions of objects 2--N only ----------------------*/
+  /*- 2: contributions of objects 2--N only.                      */
+  /*-                                                             */
+  /*-  NOTE: if we only have a single object then we set M2 = M0; */
+  /*-        the calculation them amounts to computing the heat   */
+  /*-        transfer the single body to the environment.         */
   /*--------------------------------------------------------------*/
-  G->Objects[0]->MP->Zero();
-  for(no=1; no<G->NumObjects; no++)
-   G->Objects[no]->MP->UnZero();
-  Log("Assembling M2 matrix...");
-  G->AssembleBEMMatrix(Omega, nThread, M2);
- 
+  if (G->NumObjects==1)
+   M2->Copy(M0);
+  else // (G->NumObjects>1)
+   { 
+     G->Objects[0]->MP->Zero();
+     for(no=1; no<G->NumObjects; no++)
+      G->Objects[no]->MP->UnZero();
+
+     Log("Assembling M2 matrix...");
+     G->AssembleBEMMatrix(Omega, nThread, M2);
+
+     for(nr=1; nr<M2->NR; nr+=2)
+      for(nc=0; nc<M2->NC; nc++)
+       M2->SetEntry(nr, nc, -1.0*M2->GetEntry(nr,nc));
+   };
+  
   // undo the zeroing out of the environment and object 1
   G->ExteriorMP->UnZero();
   G->Objects[0]->MP->UnZero();
@@ -61,47 +86,49 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
   /* assemble and LU-factorize the full BEM matrix (for now we   */
   /* do this in-place using the M0 matrix)                       */
   /***************************************************************/
-  int nr, nc;
-  for(nr=0; nr<M0->NR; nr++)
-   for(nc=0; nc<M0->NC; nc++)
-    M0->AddEntry(nr, nc, M1->GetEntry(nr,nc) + M2->GetEntry(nr,nc) );
+  if (G->NumObjects==1)
+   { for(nr=0; nr<M0->NR; nr++)
+      for(nc=0; nc<M0->NC; nc++)
+       M0->AddEntry(nr, nc, M1->GetEntry(nr,nc) );
+   }
+  else
+   { for(nr=0; nr<M0->NR; nr++)
+      for(nc=0; nc<M0->NC; nc++)
+       M0->AddEntry(nr, nc, M1->GetEntry(nr,nc) + M2->GetEntry(nr,nc) );
+   };
 
+  Log("LU-factorizing MTotal...");
   M0->LUFactorize();
 
   /***************************************************************/
-  /* set M1=M1*S and M2=M2*S *************************************/
-  /***************************************************************/
-  for(nr=1; nr<M1->NR; nr+=2)
-   for(nc=0; nc<M1->NC; nc++)
-    { M1->SetEntry(nr, nc, -1.0*M1->GetEntry(nr,nc));
-      M2->SetEntry(nr, nc, -1.0*M2->GetEntry(nr,nc));
-    }; 
-
-  /***************************************************************/
-  /* set M1 = sym(M1) and M2 = sym(M2)                           */
+  /* set M1 = 2*2*sym(M1) and M2 = 2*sym(M2)                     */
   /*  (note that the loop runs over only the upper triangle of   */
   /*  the matrices)                                              */
   /***************************************************************/
   cdouble Sym;
   for(nr=0; nr<M1->NR; nr++)
-   for(nc=nr+1; nc<M1->NC; nc++)
+   for(nc=nr; nc<M1->NC; nc++)
     { 
-      Sym = 0.5 * ( M1->GetEntry(nr, nc) + M1->GetEntry(nc, nr) );
+      Sym = M1->GetEntry(nr, nc) + conj(M1->GetEntry(nc, nr));
       M1->SetEntry(nr, nc, Sym );
-      M1->SetEntry(nc, nr, Sym );
-
-      Sym = 0.5 * ( M2->GetEntry(nr, nc) + M2->GetEntry(nc, nr) );
-      M2->SetEntry(nr, nc, Sym );
-      M2->SetEntry(nc, nr, Sym );
-
+      if(nc>nr) M1->SetEntry(nc, nr, Sym );
     }; 
+
+  if (M2)
+   { for(nr=0; nr<M2->NR; nr++)
+      for(nc=nr; nc<M2->NC; nc++)
+       { Sym = M2->GetEntry(nr, nc) + conj(M2->GetEntry(nc, nr));
+         M2->SetEntry(nr, nc, Sym );
+	 if(nc>nr) M2->SetEntry(nc, nr, Sym );
+       };
+   };
 
   /***************************************************************/
   /* set M1 <= M^{-1'} * M1 **************************************/
   /* set M2 <= M^{-1}  * M2 **************************************/
   /***************************************************************/
   M0->LUSolve(M1,'C');
-  M0->LUSolve(M2,'N');
+  if (M2) M0->LUSolve(M2,'N');
 
   /***************************************************************/
   /* set M0 = M1*M2                                              */

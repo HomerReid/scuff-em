@@ -269,7 +269,6 @@ int main(int argc, char *argv[])
      SHD->ByOmegaFile=strdup(MyFileName);
    };
 
-
   SHD->nThread=nThread;
   if (SHD->nThread==0)
    SHD->nThread=GetNumProcs();
