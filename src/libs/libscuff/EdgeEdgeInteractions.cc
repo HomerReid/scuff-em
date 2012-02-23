@@ -43,6 +43,8 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   RWGEdge *Ea=Oa->Edges[nea];
   RWGEdge *Eb=Oa->Edges[neb];
 
+Log("   %ul (%i,%i) (%i,%i) start ",pthread_self(),Oa->Index,nea,Ob->Index,neb);
+
   /***************************************************************/
   /* since this code doesn't work at DC anyway, we don't bother  */
   /* to compute the edge--edge interactions at k==0, but instead */
@@ -149,6 +151,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
      Args->dGCdT[2*Mu+1] = CPreFac*( dHdTPP[2*Mu+1] - dHdTPM[2*Mu+1] - dHdTMP[2*Mu+1] + dHdTMM[2*Mu+1]);
    };
 
+Log("   %ul (%i,%i) (%i,%i) stop  ",pthread_self(),Oa->Index,nea,Ob->Index,neb);
 }
 
 /***************************************************************/

@@ -310,8 +310,6 @@ cdouble TaylorDuffy(TaylorDuffyArgStruct *Args)
 
   TMW->nCalls=0;
 
-if (abs(GParam)>2.0) Log("   %ul adapt_integrating(%e)",pthread_self(),abs(GParam));
-
   switch(WhichCase)
    { 
      case TM_COMMONTRIANGLE:
@@ -332,7 +330,6 @@ if (abs(GParam)>2.0) Log("   %ul adapt_integrating(%e)",pthread_self(),abs(GPara
        break;
    };
 
-if (abs(GParam)>2.0) Log("   %ul done (%i)",pthread_self(),TMW->nCalls);
   return Result/(4.0*M_PI);
 
 }
