@@ -328,7 +328,6 @@ cdouble TaylorDuffy(TaylorDuffyArgStruct *Args)
        break;
    };
 
-  printf("...done (%i calls)\n",TMW->nCalls);
   return Result/(4.0*M_PI);
 
 }
