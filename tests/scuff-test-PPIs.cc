@@ -18,9 +18,10 @@
 
 #include <libscuff.h>
 #include <libscuffInternals.h>
-#include "TaylorMaster.h"
+#include "TaylorDuffy.h"
 
-#define HRTIMES 100
+//#define HRTIMES 100
+#define HRTIMES 1
 #define TDTIMES 1
 
 /***************************************************************/
@@ -168,6 +169,7 @@ int main(int argc, char *argv[])
      printf("          --ki     \n");
      printf("          --gradient\n");
      printf("          --PlotFits\n");
+     printf("          --SWPPITol xx\n");
      printf("          --quit\n");
      p=readline("enter options: ");
      if (!p) break;
@@ -228,6 +230,10 @@ int main(int argc, char *argv[])
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--quit") )
        exit(1);
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--SWPPITol") )
+       sscanf(Tokens[nt+1],"%le",&(RWGGeometry::SWPPITol));
+       
      free(p);
   
      /*--------------------------------------------------------------*/
@@ -361,12 +367,29 @@ int main(int argc, char *argv[])
         Qa = Oa->Vertices + 3*Pa->VI[iQa];
         Qb = Args->Ob->Vertices + 3*Pb->VI[iQb];
 
+        TaylorDuffyArgStruct MyTDArgStruct, *TDArgs=&MyTDArgStruct;
+        InitTaylorDuffyArgs(TDArgs);
+
+        TDArgs->WhichCase = ncv;
+        TDArgs->GParam    = K;
+        TDArgs->V1        = TVa[0];
+        TDArgs->V2        = TVa[1];
+        TDArgs->V3        = TVa[2];
+        TDArgs->V2P       = TVb[1];
+        TDArgs->V3P       = TVb[2];
+        TDArgs->Q         = Qa;
+        TDArgs->QP        = Qb;
+
         Tic();
         for(nTimes=0; nTimes<TDTIMES; nTimes++)
-         { HTD[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, K,
-                               TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
-           HTD[1]=TaylorMaster(ncv, TM_GRADEIKR_OVER_R, TM_CROSS, K,
-                               TVa[0], TVa[1], TVa[2], TVb[1], TVb[2], Qa, Qb);
+         { 
+           TDArgs->WhichG=TM_EIKR_OVER_R;
+           TDArgs->WhichH=TM_DOTPLUS;
+           HTD[0]=TaylorDuffy(TDArgs);
+
+           TDArgs->WhichG=TM_GRADEIKR_OVER_R;
+           TDArgs->WhichH=TM_CROSS;
+           HTD[1]=TaylorDuffy(TDArgs);
          };
         TDTime=Toc() / TDTIMES;
 

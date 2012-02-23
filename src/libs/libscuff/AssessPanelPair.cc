@@ -221,7 +221,7 @@ static int VLT(double *V1, double *V2)
 /* Va and Vb arrays are assumed to be in the order returned    */
 /* by AssessPanelPair. (note that AssessPanelPair ensures that */
 /* the vertex sets are in acceptable order for passage to      */
-/* TaylorMaster, but does not take the further step of         */
+/* TaylorDuffy(), but does not take the further step of        */
 /* putting the vertices into the CANONICAL order.)             */
 /*                                                             */
 /* my 'canonical ordering' for panel vertices obeys the        */

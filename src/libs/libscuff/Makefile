@@ -28,7 +28,7 @@ OBJS = AssembleBEMMatrix.o		\
        ReadComsolFile.o			\
        ReadGMSHFile.o			\
        PanelPanelInteractions.o		\
-       TaylorMaster.o			\
+       TaylorDuffy.o			\
        RWGGeometry.o			\
        Visualize.o			\
        RWGMisc.o			\

@@ -522,3 +522,8 @@ int RWGGeometry::GetObjectAndEdgeIndex(int ei, RWGObject **pO)
   return ei-EdgeIndexOffset[no];
 } 
 #endif
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+double RWGGeometry::SWPPITol = 1.0e-5;

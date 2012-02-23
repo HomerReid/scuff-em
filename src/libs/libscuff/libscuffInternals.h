@@ -1,5 +1,5 @@
 /*
- * libscuffInternals.h -- some definitions and prototypes that are used
+ * libscuffInternals.h -- some definitions and prototypes that are used 
  *                     -- internally within libscuff code files, but which
  *                     -- probably don't need to be exported as part of the API
  *
@@ -23,6 +23,28 @@
 /*    fields uninitialized, and it is up to the caller to      */
 /*    fill those in.                                           */
 /***************************************************************/
+
+/*--------------------------------------------------------------*/
+/*- TaylorDuffy() ---------------------------------------------*/
+/*--------------------------------------------------------------*/
+typedef struct TaylorDuffyArgStruct
+ { 
+    int WhichCase;
+    int WhichG;   
+    int WhichH;   
+
+    cdouble GParam;
+
+    double *V1, *V2, *V3;
+    double *V2P, *V3P;
+    double *Q, *QP;
+
+    double AbsTol, RelTol;
+
+ } TaylorDuffyArgStruct;
+
+cdouble TaylorDuffy(TaylorDuffyArgStruct *Args);
+void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args);
 
 /*--------------------------------------------------------------*/
 /*- GetPanelPanelInteractions() --------------------------------*/
@@ -218,18 +240,14 @@ class FIPPICache
 /***************************************************************/   
 extern FIPPICache GlobalFIPPICache;
 
-/***************************************************************/   
-/* 3. some additional non-class-method routines used internally*/
-/***************************************************************/
-cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH, cdouble GParam,
-                     double *V1, double *V2, double *V3,
-                     double *V2P, double *V3P, double *Q, double *QP);
-
 /*--------------------------------------------------------------*/
 /*- AssessPanelPair counts common vertices in a pair of panels, */
 /*- and puts arrays of panel vertices into certain orders that  */
 /*- are expected by subsequent algorithms that work on the      */
 /*- panel pairs.                                                */
+/*- CanonicallyOrderVertices is an optional follow-up routine   */
+/*- to AssessPanelPair that further orders the vertices in a    */
+/*- canonical way for use in FIPPI cache lookups.               */
 /*--------------------------------------------------------------*/
 int AssessPanelPair(double **Va, double **Vb, double rMax);
 int AssessPanelPair(double **Va, double **Vb);

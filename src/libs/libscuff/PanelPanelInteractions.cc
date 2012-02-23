@@ -15,7 +15,7 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
-#include "TaylorMaster.h"
+#include "TaylorDuffy.h"
 
 #define II cdouble(0.0,1.0)
 
@@ -306,63 +306,66 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
 
   /***************************************************************/
-  /* if the panels are identical then we use taylor's scheme for */
-  /* the full panel integral no matter what the frequency        */
-  /***************************************************************/
-  if( ncv==3 )
-   { 
-     Args->H[0]=TaylorMaster(TM_COMMONTRIANGLE, TM_EIKR_OVER_R, TM_DOTPLUS, k,
-                             Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-
-     Args->H[1]=0.0; /* 'H_\times' vanishes for the common-triangle case */
-   
-     if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));
-     if (dHdT)  memset(dHdT,  0, 2*NumTorqueAxes*sizeof(cdouble));
-
-     return;
-   };
-
-  /***************************************************************/
   /* if the panels are far apart then just use simple low-order  */
-  /* non-desingularized cubature.                                */
+  /* non-desingularized cubature                                 */
   /***************************************************************/
   if ( rRel > DESINGULARIZATION_RADIUS )
    { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
      return;
    };
 
-  /*****************************************************************/
-  /* if we are in the high-frequency regime then desingularization */
-  /* doesn't work; in this case, if there are any common vertices  */
-  /* we use taylor's method for the full panel integral, and       */
-  /* otherwise we use high-order naive cubature.                   */
-  /*****************************************************************/
-  if ( abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD )
-   { 
-     if (ncv==0)
-      GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
-     else
-      { Args->H[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, k,
-                                Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-        Args->H[1]=TaylorMaster(ncv, TM_GRADEIKR_OVER_R, TM_CROSS, k,
-                                Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-        if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
-        if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
-      };
-     return;
+  /***************************************************************/
+  /* determine if we are in the short-wavelength regime          */
+  /***************************************************************/
+  int InSWRegime = abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD;
+
+  /***************************************************************/
+  /* if we are in the short-wavelength regime and there are no   */
+  /* common vertices then we use high-order non-adaptive cubature*/
+  /***************************************************************/
+  if ( InSWRegime && ncv==0 )
+   { GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
+     return; 
    };
 
-  /*****************************************************************/
-  /*****************************************************************/
-  /*****************************************************************/
-  if ( ncv>0 && Args->ForceTaylorDuffy )
+  /***************************************************************/
+  /* figure out if we are in one of the situations in which      */
+  /* we want to switch off immediately to the taylor-duffy method*/
+  /***************************************************************/
+  if ( ncv==3 || ( ncv>0 && (InSWRegime || Args->ForceTaylorDuffy) ) )
    { 
-     Args->H[0]=TaylorMaster(ncv, TM_EIKR_OVER_R, TM_DOTPLUS, k,
-                             Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-     Args->H[1]=TaylorMaster(ncv, TM_GRADEIKR_OVER_R, TM_CROSS, k,
-                             Va[0], Va[1], Va[2], Vb[1], Vb[2], Qa, Qb);
-     if (GradH) memset(GradH, 2, 2*NumGradientComponents*sizeof(cdouble));
-     if (dHdT)  memset(dHdT, 2, 2*NumTorqueAxes*sizeof(cdouble));
+     TaylorDuffyArgStruct TDArgStruct, *TDArgs=&TDArgStruct;
+     InitTaylorDuffyArgs(TDArgs);
+
+     TDArgs->WhichCase=ncv;
+     TDArgs->GParam=k;
+     TDArgs->V1=Va[0];
+     TDArgs->V2=Va[1];
+     TDArgs->V3=Va[2];
+     TDArgs->V2P=Vb[1];
+     TDArgs->V3P=Vb[2];
+     TDArgs->Q=Qa;
+     TDArgs->QP=Qb;
+
+     // loosen the default taylor-duffy tolerance in the 
+     // short-wavelength regime
+     if (InSWRegime)
+      TDArgs->RelTol=RWGGeometry::SWPPITol;
+
+     TDArgs->WhichG=TM_EIKR_OVER_R;
+     TDArgs->WhichH=TM_DOTPLUS;
+     Args->H[0]=TaylorDuffy(TDArgs);
+
+     if (ncv==3)
+      Args->H[1]=0.0; /* 'C' kernel integral vanishes for the common-triangle case */
+     else
+      { TDArgs->WhichG=TM_GRADEIKR_OVER_R;
+        TDArgs->WhichH=TM_CROSS;
+        Args->H[1]=TaylorDuffy(TDArgs);
+      };
+
+     if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));
+     if (dHdT)  memset(dHdT,  0, 2*NumTorqueAxes*sizeof(cdouble));
      return;
    };
 

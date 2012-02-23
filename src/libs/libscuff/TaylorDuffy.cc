@@ -1,8 +1,8 @@
-/* 
- * TaylorMaster.cc: implementation of master formulae for Taylor's methods
- *                  for evaluating panel-panel integrals 
+/*
+ * TaylorDuffy.cc: an implementation of a generalized Taylor-Duffy method
+ *                 for evaluating singular panel-panel integrals 
  *
- * homer reid       5/18/2009
+ * homer reid      5/2009 -- 2/2012
  *
  */
 #include <stdio.h>
@@ -18,10 +18,11 @@
 #include <libSGJC.h>
 
 #include "libscuff.h"
-#include "TaylorMaster.h"
+#include "libscuffInternals.h"
+#include "TaylorDuffy.h"
 
-#define ABSTOL 0.0
-#define RELTOL 1.0e-8
+#define DEFABSTOL 0.0
+#define DEFRELTOL 1.0e-6
 #define MAXFEVALS 10000
 #define INTERVALS (MAXFEVALS/15)
 
@@ -94,6 +95,7 @@ static void xIntegrand(unsigned ndim, const double *x, void *parms,
   cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
 
   TMWorkspace *TMW=(TMWorkspace *)parms;
+  TMW->nCalls++;
 
   TMW->SiAlphaFunc(x, TMW, TM_COMMONTRIANGLE, &AlphaMin, &AlphaMax, SiAlpha);
 
@@ -114,6 +116,7 @@ static void x1x2Integrand(unsigned ndim, const double *x, void *parms, unsigned 
   cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
 
   TMWorkspace *TMW=(TMWorkspace *)parms;
+  TMW->nCalls++;
 
   TMW->SiAlphaFunc(x, TMW, TM_COMMONEDGE, &AlphaMin, &AlphaMax, SiAlpha);
   for(Sum=0.0, i=1; i<=6; i++)
@@ -134,6 +137,7 @@ static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms, unsigne
   cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
 
   TMWorkspace *TMW=(TMWorkspace *)parms;
+  TMW->nCalls++;
   
   TMW->SiAlphaFunc(x, TMW, TM_COMMONVERTEX, &AlphaMin, &AlphaMax, SiAlpha);
 
@@ -151,11 +155,25 @@ static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms, unsigne
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH,
-                     cdouble GParam,
-                     double *V1, double *V2, double *V3,
-                     double *V2P, double *V3P, double *Q, double *QP)
+cdouble TaylorDuffy(TaylorDuffyArgStruct *Args)
 {
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int WhichCase   = Args->WhichCase;
+  int WhichG      = Args->WhichG;
+  int WhichH      = Args->WhichH;
+  cdouble GParam  = Args->GParam;
+  double *V1      = Args->V1;
+  double *V2      = Args->V2;
+  double *V3      = Args->V3;
+  double *V2P     = Args->V2P;
+  double *V3P     = Args->V3P;
+  double *Q       = Args->Q;
+  double *QP      = Args->QP;
+  double AbsTol   = Args->AbsTol;
+  double RelTol   = Args->RelTol;
+   
   TMWorkspace MyTMW, *TMW=&MyTMW;
 
   /***************************************************************/
@@ -284,33 +302,33 @@ cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH,
   /***************************************************************/
   /* 4. evaluate the integral over x, x1x2, or x1x2x3            */
   /***************************************************************/
-  double RefVal=0.0;  // explain or delete me please
   static double Lower[3]={0.0, 0.0, 0.0};
   static double Upper[3]={1.0, 1.0, 1.0};
   cdouble Result, Error;
+
+  TMW->nCalls=0;
+
   switch(WhichCase)
    { 
      case TM_COMMONTRIANGLE:
        adapt_integrate(2, xIntegrand, (void *)TMW, 1, Lower, Upper,
-                       0, RELTOL*fabs(RefVal), RELTOL,
-                       (double *)&Result, (double *)&Error);
+                       0, AbsTol, RelTol, (double *)&Result, (double *)&Error);
 
        break;
 
      case TM_COMMONEDGE:
        adapt_integrate(2, x1x2Integrand, (void *)TMW, 2, Lower, Upper,
-                       0, RELTOL*fabs(RefVal), RELTOL,
-                       (double *)&Result, (double *)&Error);
+                       0, AbsTol, RelTol, (double *)&Result, (double *)&Error);
        break;
 
      case TM_COMMONVERTEX:
        adapt_integrate(2, x1x2x3Integrand, (void *)TMW, 3, Lower, Upper,
-                       0, RELTOL*fabs(RefVal), RELTOL, 
-                       (double *)&Result, (double *)&Error);
+                       0, AbsTol, RelTol, (double *)&Result, (double *)&Error);
 
        break;
    };
 
+  printf("...done (%i calls)\n",TMW->nCalls);
   return Result/(4.0*M_PI);
 
 }
@@ -919,4 +937,15 @@ void SiAlpha_ENormal(const double *xVec, TMWorkspace *TMW, int WhichCase,
        return;
 
    };
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args)
+{ 
+  Args->Q=0;
+  Args->QP=0;
+  Args->AbsTol=DEFABSTOL;
+  Args->RelTol=DEFRELTOL;
 }

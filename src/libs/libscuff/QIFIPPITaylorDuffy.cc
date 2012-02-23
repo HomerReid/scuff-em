@@ -15,7 +15,7 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
-#include "TaylorMaster.h"
+#include "TaylorDuffy.h"
 
 #define NUMGS 5
 #define NUMHS 9

@@ -1,11 +1,11 @@
 /*
- * TaylorMaster.h -- header file for implementation of taylor's 
- *                -- galerkin integral schemes using master formulae.
+ * TaylorDuffy.h -- header file for implementation of the taylor-duffy
+ *               -- scheme for computing singular panel-panel integrals
  *
- * homer reid     -- 5/2009
+ * homer reid    -- 5/2009 -- 2/2012
  */
-#ifndef TAYLORMASTER_H
-#define TAYLORMASTER_H
+#ifndef TAYLORDUFFY_H
+#define TAYLORDUFFY_H
 
 #include <libhrutil.h>
 
@@ -71,6 +71,8 @@ typedef struct TMWorkspace
    void (*SiAlphaFunc)(const double *xVec, TMWorkspace *TMW, int WhichCase,
                        int *AlphaMin, int *AlphaMax, cdouble SiAlpha[7][5]);
 
+   int nCalls;
+
  } TMWorkspace;
 
 /***************************************************************/
@@ -97,12 +99,5 @@ void SiAlpha_Cross(const double *xVec, TMWorkspace *TMW, int WhichCase,
                    int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
 void SiAlpha_ENormal(const double *xVec, TMWorkspace *TMW, int WhichCase,
                      int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
-
-/***************************************************************/
-/* Prototype for taylor-method routines. ***********************/
-/***************************************************************/
-cdouble TaylorMaster(int WhichCase, int WhichG, int WhichH, cdouble GParam,
-                     double *V1, double *V2, double *V3,
-                     double *V2P, double *V3P, double *Q, double *QP);
 
 #endif

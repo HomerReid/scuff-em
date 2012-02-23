@@ -437,6 +437,9 @@ class RWGGeometry
 
    int LogLevel; 
 
+   // short-wavelength panel-panel-integral tolerance
+   static double SWPPITol; 
+
  };
 
 /***************************************************************/
@@ -484,17 +487,5 @@ void *RWGMalloc(int size);
 /*--------------------------------------------------------------*/
 void PreloadGlobalFIPPICache(char *FileName);
 void StoreGlobalFIPPICache(char *FileName);
-
-/*--------------------------------------------------------------*/
-/*- prototypes for taylor master routines                      -*/
-/*--------------------------------------------------------------*/
-void *CreateTMWorkspace();  
-void FreeTMWorkspace(void *pTMW);  
-cdouble TaylorMaster(void *pTMW, int WhichCase, int WhichG, int WhichH,
-                     cdouble GParam, double HParam, 
-                     double *V1, double *V2, double *V3, 
-                     double *V2P, double *V3P, double *Q, double *QP,
-                     double RefVal);
-
 
 #endif // #ifndef LIBSCUFF_H

@@ -38,6 +38,9 @@ STFC_OBJS = scuff-test-FIPPICache.o
 STQDFIPPI_OBJS = scuff-test-QDFIPPIs.o GetQDFIPPIs_BruteForce.o
 STPPI_OBJS = scuff-test-PPIs.o GetPPIs_BruteForce.o
 
+scuff-test-PPIs:	$(STPPI_OBJS) libscuff.a
+			$(CXX) $(LDFLAGS) -o $@ $(STPPI_OBJS) $(LIBS)
+
 scuff-test-QIFIPPIs:	$(STQIFIPPI_OBJS) libscuff.a
 			$(CXX) $(LDFLAGS) -o $@ $(STQIFIPPI_OBJS) $(LIBS)
 
@@ -46,10 +49,6 @@ scuff-test-AssembleMatrix:	$(STAM_OBJS) libscuff.a
 
 scuff-test-FIPPICache:	$(STFC_OBJS) libscuff.a
 			$(CXX) $(LDFLAGS) -o $@ $(STFC_OBJS) $(LIBS)
-
-
-scuff-test-PPIs:	$(STPPI_OBJS) libscuff.a
-			$(CXX) $(LDFLAGS) -o $@ $(STPPI_OBJS) $(LIBS)
 
 scuff-test-QDFIPPIs:	$(STQDFIPPI_OBJS) libscuff.a
 			$(CXX) $(LDFLAGS) -o $@ $(STQDFIPPI_OBJS) $(LIBS)
