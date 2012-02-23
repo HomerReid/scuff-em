@@ -130,14 +130,10 @@ void *ABMBThread(void *data)
       if (nt==TD->nThread) nt=0;
       if (nt!=TD->nt) continue;
 
-if ( neb==Symmetric*nea )
- Log("%i/%i (%i)...",nea,NEa,nt);
-#if 0
       if (G->LogLevel>=SCUFF_VERBOSELOGGING)
        for(int PerCent=0; PerCent<9; PerCent++)
         if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
          Log("%i0 %% (%i/%i)...",PerCent,nea,NEa);
-#endif
 
       /*--------------------------------------------------------------*/
       /*- contributions of first medium (EpsA, MuA)  -----------------*/
