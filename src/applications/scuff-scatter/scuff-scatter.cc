@@ -430,7 +430,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   SetLogFileName("scuff-scatter.log");
-  Log("scuff-scatter running on %s",getenv("HOST"));
+  Log("scuff-scatter running on %s",getenv("HOSTNAME"));
 #ifdef SCUFF
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
 #endif

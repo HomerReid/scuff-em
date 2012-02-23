@@ -15,6 +15,8 @@
 
 #include "libscuff.h"
 
+using namespace scuff;
+
 #define MAXSTR 1000
 
 /***************************************************************/

@@ -16,6 +16,8 @@
 #include <libMDInterp.h>
 #include <libRWG.h>
 
+//using namespace scuff;
+
 // default tolerances for numerical summation and integration
 #define ABSTOL 1.0e-8
 #define RELTOL 1.0e-3

@@ -350,7 +350,7 @@ static inline double factorial(int n)
 /***************************************************************/
 /* complex version of gsl's 'relative exponential' function.   */
 /* this is similar to but different from the cExpRel() function*/
-/* defined in LFunctions.cc.                                   */
+/* defined in PanelPanelInteractions.cc                        */
 /***************************************************************/
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL

@@ -141,7 +141,7 @@ void *ABMBThread(void *data)
       if (G->LogLevel>=SCUFF_VERBOSELOGGING)
        for(int PerCent=0; PerCent<99; PerCent++)
         if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/100) )
-         Log("%i0 %% (%i/%i)...",PerCent,nea,NEa);
+         Log("%i %% (%i/%i)...",PerCent,nea,NEa);
 
       /*--------------------------------------------------------------*/
       /*- contributions of first medium (EpsA, MuA)  -----------------*/
@@ -340,7 +340,10 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /* await thread completion *************************************/
   /***************************************************************/
   for(nt=0; nt<nThread; nt++)
+{
    pthread_join(Threads[nt],0);
+Log("Thread %i/%i joined.",nt,nThread);
+}
 
 }
 
