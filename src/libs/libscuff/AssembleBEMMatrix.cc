@@ -139,8 +139,8 @@ void *ABMBThread(void *data)
          Log("%i0 %% (%i/%i)...",PerCent,nea,NEa);
 #endif
       if (G->LogLevel>=SCUFF_VERBOSELOGGING)
-       for(int PerCent=0; PerCent<99; PerCent++)
-        if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/100) )
+       for(int PerCent=0; PerCent<=99; PerCent++)
+        if ( neb==Symmetric*nea &&  (nea*100 == PerCent*NEa) )
          Log("%i %% (%i/%i)...",PerCent,nea,NEa);
 
       /*--------------------------------------------------------------*/
