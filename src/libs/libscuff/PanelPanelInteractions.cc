@@ -363,6 +363,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      else
       { TDArgs->WhichG=TM_GRADEIKR_OVER_R;
         TDArgs->WhichH=TM_CROSS;
+TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(Args->H[0]); // TODO explain me
         Args->H[1]=TaylorDuffy(TDArgs);
       };
 

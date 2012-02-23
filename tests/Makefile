@@ -37,9 +37,13 @@ STAM_OBJS = scuff-test-AssembleMatrix.o
 STFC_OBJS = scuff-test-FIPPICache.o
 STQDFIPPI_OBJS = scuff-test-QDFIPPIs.o GetQDFIPPIs_BruteForce.o
 STPPI_OBJS = scuff-test-PPIs.o GetPPIs_BruteForce.o
+STEEI_OBJS = scuff-test-EEIs.o GetPPIs_BruteForce.o
 
 scuff-test-PPIs:	$(STPPI_OBJS) libscuff.a
 			$(CXX) $(LDFLAGS) -o $@ $(STPPI_OBJS) $(LIBS)
+
+scuff-test-EEIs:	$(STEEI_OBJS) libscuff.a
+			$(CXX) $(LDFLAGS) -o $@ $(STEEI_OBJS) $(LIBS)
 
 scuff-test-QIFIPPIs:	$(STQIFIPPI_OBJS) libscuff.a
 			$(CXX) $(LDFLAGS) -o $@ $(STQIFIPPI_OBJS) $(LIBS)

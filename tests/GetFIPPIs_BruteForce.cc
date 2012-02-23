@@ -17,6 +17,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+using namespace scuff;
+
 #define ABSTOL 1.0e-12    // absolute tolerance
 #define RELTOL 1.0e-8    // relative tolerance
 

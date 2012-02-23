@@ -19,6 +19,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+using namespace scuff;
+
 extern int Found, NotFound;
 
 /***************************************************************/

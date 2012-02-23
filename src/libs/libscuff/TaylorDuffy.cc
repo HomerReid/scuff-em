@@ -324,8 +324,16 @@ cdouble TaylorDuffy(TaylorDuffyArgStruct *Args)
        break;
 
      case TM_COMMONVERTEX:
+
        adapt_integrate(2, x1x2x3Integrand, (void *)TMW, 3, Lower, Upper,
                        0, AbsTol, RelTol, (double *)&Result, (double *)&Error);
+
+/*
+       adapt_integrate_log(2, x1x2x3Integrand, (void *)TMW, 3, Lower, Upper,
+                           0, AbsTol, RelTol, 
+                           (double *)&Result, (double *)&Error,
+                           "/tmp/SGJC.log",15);
+*/
 
        break;
    };

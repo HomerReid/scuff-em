@@ -14,11 +14,15 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <complex>
+
 #include <libhrutil.h>
 
 #include <libscuff.h>
 #include <libscuffInternals.h>
 #include "TaylorDuffy.h"
+
+using namespace scuff;
 
 //#define HRTIMES 100
 #define HRTIMES 1
@@ -389,6 +393,7 @@ int main(int argc, char *argv[])
 
            TDArgs->WhichG=TM_GRADEIKR_OVER_R;
            TDArgs->WhichH=TM_CROSS;
+           TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(HTD[0]);
            HTD[1]=TaylorDuffy(TDArgs);
          };
         TDTime=Toc() / TDTIMES;

@@ -25,14 +25,14 @@ void GetEEIs_BruteForce(GetEEIArgStruct *Args)
 {
   GetPPIArgStruct *GetPPIArgs;
 
-  GetPPIs_BruteForce(GetPPIArgs);
+  GetPPIs_BruteForce(GetPPIArgs, 0);
   
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-int AssessEdgePair(RWGObject *Oa, int nea, RWGObject *Oa, int neb,
+int AssessEdgePair(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
                    double *rRel)
 {
   /***************************************************************/
@@ -45,14 +45,18 @@ int AssessEdgePair(RWGObject *Oa, int nea, RWGObject *Oa, int neb,
   /***************************************************************/
   /* count common vertices ***************************************/
   /***************************************************************/
-  double **Va[4]={ Oa->Vertices + 3*Ea->iQP, 
-                   Oa->Vertices + 3*Ea->iV1, 
-                   Oa->Vertices + 3*Ea->iV2, 
-                   Oa->Vertices + 3*Ea->iQM};
-  double **Vb[4]={ Ob->Vertices + 3*Eb->iQP, 
-                   Ob->Vertices + 3*Eb->iV1, 
-                   Ob->Vertices + 3*Eb->iV2, 
-                   Ob->Vertices + 3*Eb->iQM};
+  double *Va[4], *Vb[4];
+
+  Va[0] = Oa->Vertices + 3*(Ea->iQP);
+  Va[1] = Oa->Vertices + 3*(Ea->iV1);
+  Va[2] = Oa->Vertices + 3*(Ea->iV2);
+  Va[3] = Oa->Vertices + 3*(Ea->iQM);
+
+  Vb[0] = Ob->Vertices + 3*(Eb->iQP);
+  Vb[1] = Ob->Vertices + 3*(Eb->iV1);
+  Vb[2] = Ob->Vertices + 3*(Eb->iV2);
+  Vb[3] = Ob->Vertices + 3*(Eb->iQM);
+
   int i, j, ncv;
   ncv=0;
   for(i=0; i<4; i++)
@@ -243,7 +247,7 @@ int main(int argc, char *argv[])
      printf("* --nea %i --neb %i %s\n",
             nea, neb, SameObject ? "--same" : "--ns");
      printf("*  common vertices:   %i\n",ncv);
-     printf("*  relative distance: %+7.3e (DBFThreshold=10.0)\n");
+     printf("*  relative distance: %+7.3e (DBFThreshold=10.0)\n",rRel);
      printf("*  wavevector:        %s\n",CD2S(K));
      if (DZ!=0.0)
       printf("*  DZ:                %e\n",DZ);
@@ -272,7 +276,7 @@ int main(int argc, char *argv[])
      Args->Force=EEI_FORCE_PP;
      GetEdgeEdgeInteractions(Args);
      memcpy(GCPP, Args->GC, 2*sizeof(cdouble));
-     memcpy(GradGCP, Args->GradGC, 6*sizeof(cdouble));
+     memcpy(GradGCPP, Args->GradGC, 6*sizeof(cdouble));
 
      /*--------------------------------------------------------------------*/
      /* get edge-edge interactions by spherical multipole method           */
@@ -280,7 +284,7 @@ int main(int argc, char *argv[])
      Args->Force=EEI_FORCE_SM;
      GetEdgeEdgeInteractions(Args);
      memcpy(GCSM, Args->GC, 2*sizeof(cdouble));
-     memcpy(GradGSM, Args->GradGC, 6*sizeof(cdouble));
+     memcpy(GradGCSM, Args->GradGC, 6*sizeof(cdouble));
 
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by brute-force methods                   */

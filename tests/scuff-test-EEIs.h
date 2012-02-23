@@ -10,9 +10,11 @@
 #include "libscuff.h" 
 #include "libscuffInternals.h" 
 
+using namespace scuff;
+
 /******************************************************************/
 /* routine for brute-force evaluation of panel-panel interactions */
 /******************************************************************/
-void GetPPIs_BruteForce(GetPPIArgStruct *Args);
+void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits);
 
 #endif

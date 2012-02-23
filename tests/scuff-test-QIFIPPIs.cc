@@ -20,6 +20,8 @@
 #include <libscuff.h>
 #include <libscuffInternals.h>
 
+using namespace scuff;
+
 #define HRTIMES 10
 #define BFTIMES 1
 
