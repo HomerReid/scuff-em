@@ -17,6 +17,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+namespace scuff {
+
 #define ABSTOL 1.0e-10
 #define RELTOL 1.0e-6
 
@@ -423,3 +425,4 @@ void ComputeQIFIPPIData(double **Va, double **Vb, int ncv, QIFIPPIData *QIFD)
    ComputeQIFIPPIData_TaylorDuffy(Va[0], Va[1], Va[2], Vb[1], Vb[2], QIFD);
 }
 
+} // namespace scuff

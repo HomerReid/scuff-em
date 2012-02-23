@@ -20,6 +20,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 #define II cdouble(0,1)
 
 /*******************************************************************/
@@ -443,3 +445,5 @@ void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
     };
 
 }
+
+} // namespace scuff

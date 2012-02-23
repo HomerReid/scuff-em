@@ -17,6 +17,8 @@
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
 
+namespace scuff {
+
 #define NUMGS 5
 #define NUMHS 9
 #define NUMFUNCS 42
@@ -731,3 +733,5 @@ void GetSCV_RM3(FIPPITDWorkspace *W,
   SCV[5][2][1] = BxV0[2]*x2*x3+AxV0[2]*x2+V0xBP[2]*x1+V0xAP[2];
   SCV[5][2][2] = (BxBP[2]*x1+BxAP[2])*x2*x3+(AxBP[2]*x1+AxAP[2])*x2;
 }
+
+} // namespace scuff

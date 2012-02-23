@@ -11,6 +11,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 #define MAXSTR 1000
 
 /***************************************************************/
@@ -121,3 +123,5 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *
   fclose(MeshFile);
 
 } 
+
+} // namespace scuff

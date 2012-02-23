@@ -18,9 +18,9 @@
 
 #include "libscuff.h"
 
-#define II cdouble(0,1)
+namespace scuff {
 
-int KONLY=0, NONLY=0;
+#define II cdouble(0,1)
 
 /***************************************************************/
 /***************************************************************/
@@ -102,8 +102,6 @@ static void *GetDipoleMoment_Thread(void *data)
         VecCross( QPmQM, V1pV2, QPmQMxV1pV2 );
 
         PreFac= O->Edges[ne]->Length / 3.0;
-if (KONLY) NAlpha=0.0;
-if (NONLY) KAlpha=0.0;
         for(mu=0; mu<3; mu++)
          { TD->PM[no][mu]   += PreFac * (   KAlpha * QPmQM[mu] / iw
                                           + NAlpha * QPmQMxV1pV2[mu] );
@@ -166,3 +164,5 @@ void RWGGeometry::GetDipoleMoments(double Frequency, int RealFreq,
    pthread_join(Threads[nt],0);
 
 }
+
+} // namespace scuff

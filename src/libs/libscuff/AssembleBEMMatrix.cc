@@ -22,6 +22,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+namespace scuff {
+
 #define II cdouble(0,1)
 
 /***************************************************************/
@@ -130,9 +132,15 @@ void *ABMBThread(void *data)
       if (nt==TD->nThread) nt=0;
       if (nt!=TD->nt) continue;
 
+#if 0
       if (G->LogLevel>=SCUFF_VERBOSELOGGING)
        for(int PerCent=0; PerCent<9; PerCent++)
         if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
+         Log("%i0 %% (%i/%i)...",PerCent,nea,NEa);
+#endif
+      if (G->LogLevel>=SCUFF_VERBOSELOGGING)
+       for(int PerCent=0; PerCent<99; PerCent++)
+        if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/100) )
          Log("%i0 %% (%i/%i)...",PerCent,nea,NEa);
 
       /*--------------------------------------------------------------*/
@@ -439,3 +447,6 @@ HMatrix *RWGGeometry::AllocateBEMMatrix(int PureImagFreq)
    return new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
     
 }
+
+} // namespace scuff
+

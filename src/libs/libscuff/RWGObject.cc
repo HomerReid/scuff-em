@@ -15,6 +15,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 #define MAXSTR 1000
 #define MAXTOK 50  
 
@@ -601,3 +603,5 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta)
   return Sum;
 
 }
+
+} // namespace scuff

@@ -15,6 +15,8 @@
 
 #include <libhrutil.h>
 
+namespace scuff {
+
 #define II cdouble(0,1)
 
 /***************************************************************/
@@ -160,3 +162,5 @@ void CalcGC(double R1[3], double R2[3], double Frequency, int RealFreq,
 
   CalcGC(R,Frequency,RealFreq,EpsR,MuR,GMuNu,CMuNu,GMuNuRho,CMuNuRho);
 }
+
+} // namespace scuff

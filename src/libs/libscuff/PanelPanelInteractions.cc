@@ -17,6 +17,8 @@
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
 
+namespace scuff {
+
 #define II cdouble(0.0,1.0)
 
 // the 'short-wavelength threshold:' we are in the short-wavelength
@@ -468,3 +470,5 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
   Args->GammaMatrix=0;
   Args->opFC=0;
 }
+
+} // namespace scuff

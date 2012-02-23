@@ -15,6 +15,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 #define II cdouble(0,1)
 
 /***************************************************************/
@@ -193,3 +195,5 @@ HMatrix *RWGGeometry::AllocateDMDVMatrix(int RealFreq)
   return DMDV;
 
 } 
+
+} // namespace scuff

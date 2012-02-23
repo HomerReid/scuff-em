@@ -15,6 +15,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 #define MAXSTR 1000
 #define MAXTOK 50
 
@@ -527,3 +529,5 @@ int RWGGeometry::GetObjectAndEdgeIndex(int ei, RWGObject **pO)
 /***************************************************************/
 /***************************************************************/
 double RWGGeometry::SWPPITol = 1.0e-5;
+
+} // namespace scuff

@@ -287,3 +287,4 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   ObjectMoved=(int *)RWGMalloc(NumObjects*sizeof(int));
 
 }
+} // namespace scuff

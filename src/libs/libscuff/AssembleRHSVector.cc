@@ -16,6 +16,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 /***************************************************************/
 /* data structure used to pass parameters to                   */
 /* InnerProductIntegrand routine.                              */
@@ -317,3 +319,5 @@ HVector *RWGGeometry::AllocateRHSVector(int PureImagFreq)
   return V;
 
 } 
+
+} // namespace scuff

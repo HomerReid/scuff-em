@@ -11,6 +11,8 @@
 #include <libhmat.h>
 #include <libscuff.h>
 
+using namespace scuff;
+
 typedef struct ScuffHeatData
  {
    RWGGeometry *G;

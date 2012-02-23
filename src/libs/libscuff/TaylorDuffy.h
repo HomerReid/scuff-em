@@ -9,9 +9,7 @@
 
 #include <libhrutil.h>
 
-#ifndef cdouble
-  typedef std::complex<double> cdouble;
-#endif
+namespace scuff {
 
 #define TM_INTERVALS 10000
 
@@ -99,5 +97,7 @@ void SiAlpha_Cross(const double *xVec, TMWorkspace *TMW, int WhichCase,
                    int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
 void SiAlpha_ENormal(const double *xVec, TMWorkspace *TMW, int WhichCase,
                      int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
+
+} // namespace scuff
 
 #endif

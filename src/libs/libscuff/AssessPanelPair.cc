@@ -13,6 +13,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 // the 'common vertex threshold:' two vertices are considered to be 
 // the same if their distance is less than CVTHRESHOLD*the panel radius 
 #define CVTHRESHOLD 1.0e-6
@@ -386,3 +388,5 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
    }; // if ncv ... else
   
 }
+
+} // namespace scuff

@@ -17,6 +17,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 /***************************************************************/
 /* InitEdgeList: After reading in a set of panels, we call     */
 /* this function to extract all necessary information          */
@@ -378,3 +380,5 @@ void RWGObject::InitEdgeList()
 #endif
 
 }
+
+} // namespace scuff

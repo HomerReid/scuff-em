@@ -15,6 +15,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+namespace scuff {
+
 #define II cdouble(0,1)
 
 // the 'distant basis function' threshold: two basis functions are
@@ -237,3 +239,5 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->opFC=0;
   Args->Force=EEI_NOFORCE;
 }
+
+} // namespace scuff

@@ -16,6 +16,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 /***************************************************************/
 /* integrand routine passed to adaptive integrator *************/
 /***************************************************************/
@@ -162,3 +164,5 @@ void GetEdgeMNMoments(RWGObject *O, int ne, cdouble K, int lMax,
    };
 
 }
+
+} // namespace scuff

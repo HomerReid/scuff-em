@@ -11,6 +11,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 #define II cdouble(0,1)
 
 /************************************************************/
@@ -997,3 +999,5 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, double Frequency, int RealFre
   fclose(f);
 
 }
+
+} // namespace scuff

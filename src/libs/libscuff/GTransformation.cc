@@ -11,6 +11,8 @@
 #include <math.h>
 #include "GTransformation.h"
 
+namespace scuff {
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -294,3 +296,5 @@ static void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3])
     for(M[Mu][Nu]=0.0, Rho=0; Rho<3; Rho++)
      M[Mu][Nu] += M1[Rho][Mu]*M2M1[Rho][Nu];
 }
+
+} // namespace scuff

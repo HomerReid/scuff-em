@@ -11,6 +11,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 /*************************************************************/
 /* constants needed in this file only  ***********************/
 /*************************************************************/
@@ -275,3 +277,5 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName, GTransformation *GT
   fclose(MeshFile);
  
 } 
+
+} // namespace scuff

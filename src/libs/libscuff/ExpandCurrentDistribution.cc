@@ -16,6 +16,8 @@
 
 #include "libscuff.h"
 
+namespace scuff {
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -159,3 +161,5 @@ void RWGGeometry::EvalCurrentDistribution(double *X, HVector *KNVec, cdouble *KN
 
    };
 }  
+
+} // namespace scuff

@@ -17,9 +17,9 @@
 
 #include "libscuff.h"
 
-#define II cdouble(0,1)
+namespace scuff {
 
-int TERM1ONLY=0, TERM2ONLY=0, TERM3ONLY=0;
+#define II cdouble(0,1)
 
 /*******************************************************************/
 /* integrand passed to TriInt to compute contributions to electric */
@@ -405,3 +405,5 @@ void RWGGeometry::GetFields(double *X,
                             HVector *KN, int nThread, cdouble *EH)
 {
 }
+
+} // namespace scuff

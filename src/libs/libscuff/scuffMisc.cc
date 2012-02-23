@@ -1,5 +1,5 @@
 /*
- * RWGMisc.cc  -- miscellaneous stuff for libscuff
+ * scuffMisc.cc  -- miscellaneous stuff for libscuff
  *
  * homer reid  -- 10/2006
  */
@@ -11,6 +11,8 @@
 #include <stdarg.h>
 
 #include "libscuff.h"
+
+namespace scuff {
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -146,3 +148,5 @@ void *RWGMalloc(int size)
  if (!p) RWGErrExit("out of memory");
  return p;
 }
+
+} // namespace scuff

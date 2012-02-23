@@ -9,8 +9,11 @@
 #ifndef LIBSCUFFINTERNALS_H 
 #define LIBSCUFFINTERNALS_H
 
-#include "libscuff.h"
 #include <pthread.h>
+
+#include "libscuff.h"
+
+namespace scuff {
 
 /***************************************************************/
 /* 1. argument structures for routines whose input/output      */
@@ -266,5 +269,7 @@ int NumCommonVertices(RWGObject *Oa, int npa,
 
 int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
                              double **OVa, double **OVb);
+
+} // namespace scuff
 
 #endif //LIBSCUFFINTERNALS_H

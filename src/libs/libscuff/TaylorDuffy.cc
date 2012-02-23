@@ -21,6 +21,8 @@
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
 
+namespace scuff {
+
 #define DEFABSTOL 0.0
 #define DEFRELTOL 1.0e-6
 #define MAXFEVALS 10000
@@ -948,3 +950,5 @@ void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args)
   Args->AbsTol=DEFABSTOL;
   Args->RelTol=DEFRELTOL;
 }
+
+} // namespace scuff

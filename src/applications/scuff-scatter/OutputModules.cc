@@ -437,8 +437,6 @@ void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot)
 /* evaluate the scattered and absorbed powers using the        */
 /* concise BEM vector-matrix-vector product expressions        */
 /***************************************************************/
-void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot)
+void GetPower(SSData *SSD, double *PScat, double *PTot)
 { 
-  *PScat=Val[0];
-  *PTot=Val[1];
 }

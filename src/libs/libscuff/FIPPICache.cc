@@ -18,6 +18,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+namespace scuff {
+
 #define KEYLEN 15
 
 int Found;
@@ -356,3 +358,5 @@ void StoreGlobalFIPPICache(char *FileName)
 { 
   GlobalFIPPICache.Store(FileName);
 }
+
+} // namespace scuff

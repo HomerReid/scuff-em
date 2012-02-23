@@ -11,6 +11,8 @@
 #define GTRANSFORMATION_DISPLACEMENT 1
 #define GTRANSFORMATION_ROTATION     2
 
+namespace scuff{
+
 /***************************************************************/
 /* a GTransformation maps a point with cartesian coordinates   */
 /* X[0..2] into a new point with coordinates XP[0..2] such that*/
@@ -46,5 +48,7 @@ void ApplyGTransformation(GTransformation *GT, double *X, double *XP, int NX);
 void ApplyGTransformation(GTransformation *GT, double *X, double *XP);
 
 void UnApplyGTransformation(GTransformation *GT, double *X, int NX);
+
+} // namespace scuff
 
 #endif // #ifndef GTRANSFORMATION_H

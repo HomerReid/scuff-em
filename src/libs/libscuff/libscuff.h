@@ -27,6 +27,8 @@
 
 #include "GTransformation.h"
 
+namespace scuff{
+
 /*--------------------------------------------------------------*/
 /*- some constants used to pass values to libscuff functions   -*/
 /*--------------------------------------------------------------*/
@@ -487,5 +489,7 @@ void *RWGMalloc(int size);
 /*--------------------------------------------------------------*/
 void PreloadGlobalFIPPICache(char *FileName);
 void StoreGlobalFIPPICache(char *FileName);
+
+} // namespace scuff
 
 #endif // #ifndef LIBSCUFF_H

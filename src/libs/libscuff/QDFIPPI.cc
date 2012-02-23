@@ -16,6 +16,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+namespace scuff {
+
 #define _ONE 0
 #define _UP  1
 #define _VP  2
@@ -221,3 +223,5 @@ void GetQDFIPPIData(double **Va, double *Qa,
    };
 
 }
+
+} // namespace scuff
