@@ -356,9 +356,10 @@ static inline double factorial(int n)
 }
 
 /***************************************************************/
-/* complex version of gsl's 'relative exponential' function.   */
-/* this is similar to but different from the cExpRel() function*/
-/* defined in PanelPanelInteractions.cc                        */
+/* complex version of the 'relative exponential' function,     */
+/* which is e^x, minus the first n terms in the taylor series  */
+/* for e^x, divided by the n+1th term in the taylor series for */
+/* e^x (so that cExpRel2(n,0)==1 for all n.)                   */
 /***************************************************************/
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL
@@ -368,16 +369,31 @@ cdouble cExpRel2(int n, cdouble x)
   cdouble Term, Sum;
   double mag2Term, mag2Sum;
 
-  Sum=1.0;
-  for(Term=1.0, m=1; m<100; m++)
-   { Term*=x/((double)(m+n));
-     Sum+=Term;
-     mag2Term=norm(Term);
-     mag2Sum=norm(Sum);
-     if ( mag2Term < EXPRELTOL2*mag2Sum )
-      break;
+  /*--------------------------------------------------------------*/
+  /*- small-x expansion                                          -*/
+  /*--------------------------------------------------------------*/
+  if ( abs(x) < 0.1 )
+   { Sum=1.0;
+     for(Term=1.0, m=1; m<100; m++)
+      { Term*=x/((double)(m+n));
+        Sum+=Term;
+        mag2Term=norm(Term);
+        mag2Sum=norm(Sum);
+        if ( mag2Term < EXPRELTOL2*mag2Sum )
+         break;
+      };
+     return Sum;
+   }
+  else
+   {
+     Sum=exp(x);
+     for(Term=1.0, m=0; m<n; m++)
+      { 
+        Sum-=Term;
+        Term*=x/((double)(m+1));
+      };
+     return Sum / Term;
    };
-  return Sum;
 } 
 
 /***************************************************************/
