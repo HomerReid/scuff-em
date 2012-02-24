@@ -1,0 +1,9 @@
+include /home/homer/work/Makefile.Rules
+
+CPPFLAGS+=-I/home/homer/include
+LDFLAGS+=-L/home/homer/lib
+LIBS=-lhrutil $(GSL_LIBS) $(LB_LIBS) -lm    
+
+tExpRel:	tExpRel.o ExpRel_libRWG.o
+		g++ $(CPPFLAGS) $(LDFLAGS) $^ -o $@ $(LIBS)
+
