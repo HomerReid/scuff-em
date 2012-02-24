@@ -11,7 +11,7 @@ include ../../../../Makefile.Rules
 HR_LIBS = -lscuff -lMatProp -lMDInterp \
           -lhmat -lSGJC -lTriInt -lhrutil
 
-OTHER_LIBS = $(GSL_LIBS) $(MUPARSER_LIBS) $(RDL_LIBS) $(HDF5_LIBS) $(LB_LIBS)
+OTHER_LIBS = $(GSL_LIBS) $(MUPARSER_LIBS) $(RDL_LIBS) $(HDF5_LIBS)  $(LB_LIBS)
 
 LIBS=$(HR_LIBS) $(OTHER_LIBS)
 
@@ -35,8 +35,8 @@ LDFLAGS+=-L../../libs/libscuff
 ##################################################
 SH_OBJS = scuff-heat.o FrequencyIntegrand.o
 
-scuff-heat:   	$(SH_OBJS) libscuff.a 
-		$(CXX) $(LDFLAGS) -o $@ $(SH_OBJS) $(LIBS)
+scuff-heat${SUFFIX}:   	$(SH_OBJS) libscuff.a 
+			$(CXX) $(LDFLAGS) -o $@ $(SH_OBJS) $(LIBS)
 
 libscuff.a:	
 		(pushd ../../libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)
