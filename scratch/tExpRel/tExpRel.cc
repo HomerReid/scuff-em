@@ -9,11 +9,36 @@
 #include <complex>
 
 #include <libhrutil.h>
+#include <libSGJC.h>
 
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL
 
 #define II cdouble(0.0,1.0)
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+cdouble g_K;
+double g_R;
+int g_n;
+void MyIntegrand(unsigned ndim, const double *x, void *params,
+                 unsigned fdim, double *fval)
+{
+  cdouble *zfval=(cdouble *)fval;
+  
+  double w=x[0];
+  double wnm1=pow(w,g_n-1);
+  double wnm3=pow(w,g_n-3);
+  cdouble expFac=exp(II*g_K*g_R*w);
+
+  zfval[0] = wnm1*expFac/g_R;
+
+  zfval[1] = wnm3*(II*g_K*g_R*w-1.0)*expFac/(g_R*g_R*g_R);
+
+}
+
+
 
 /***************************************************************/
 /***************************************************************/
@@ -37,7 +62,11 @@ static inline double factorial(int n)
 }
 
 /***************************************************************/
-/***************************************************************/
+/* this is what the GSL calls the 'relative exponential'       */
+/* function. it is equal to exp(Z), minus the first n terms in */
+/* the taylor expansion for exp(Z), divided by the (n+1)th     */
+/* term in the taylor expansion for exp(Z). (this latter       */
+/* normalization ensures that ExpRel(n,0) = 1 for all n.)      */
 /***************************************************************/
 cdouble ExpRel(int n, cdouble Z)
 {
@@ -82,9 +111,7 @@ cdouble ExpRel(int n, cdouble Z)
      /*--------------------------------------------------------------*/
      if ( abs(Z) < 0.1 )
       { cdouble Term, Sum;
-        double mag2Term, mag2Sum;
-        Sum=1.0;
-        for(Term=1.0, m=1; m<100; m++)
+        for(Sum=Term=1.0, m=1; m<100; m++)
          { Term*=Z/((double)(m+n));
            Sum+=Term;
            if ( norm(Term) < EXPRELTOL2*norm(Sum) )
@@ -109,6 +136,7 @@ cdouble ExpRel(int n, cdouble Z)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+// g(r) = exp(-K*r)/r
 cdouble In_EMKROverR(int n, double K, double R)
 {
   double KR=K*R;
@@ -153,21 +181,24 @@ cdouble In_EIKROverR(int n, cdouble K, double R)
    };
 }
 
+// g(r) = (-KR-1) * exp(-K*r) / r^3
 cdouble In_GradEMKROverR(int n, double K, double R)
 {
   double KR=K*R;
+  double PreFac=((double)(n-1))/((double)(n-2));
 
   if ( abs(KR) < 0.1 )
-   return exp(-KR)*ExpRel(n,KR) / ((double)(n)*R);
+   return exp(-KR)*( 1.0 - PreFac*ExpRel(n-2,KR)) / (R*R*R); 
   else 
    { cdouble Sum, Term;
      int m;
-     for(Sum=0.0, Term=1.0, m=0; m<n; m++)
+     for(Sum=0.0, Term=1.0, m=0; m<n-2; m++)
       { 
         Sum+=Term;
         Term *= KR/((double)(m+1));
       };
-     return (1.0 - exp(-K*R)*Sum) / (n*R*Term);
+     Sum+=Term/PreFac;
+     return PreFac*(exp(-KR)*Sum - 1.0) / (Term*R*R*R);
    };
 }
 
@@ -179,11 +210,11 @@ cdouble In_GradEIKROverR(int n, cdouble K, double R)
   cdouble KR=K*R;
 
   if ( (imag(KR)) > 40.0  )
-   return factorial(n-1) / (R*pow(-II*KR,n));
+   return PreFac*factorial(n-2) / (R*R*R*pow(-II*KR,n-2));
   else if ( real(K)==0.0 )
    return In_GradEMKROverR(n, imag(K), R);
   else if ( abs(KR) < 0.1 )
-   return exp(II*KR)*( PreFac*ExpRel(n-2,-II*KR) - 1.0 ) / (R*R*R); 
+   return exp(II*KR)*( 1.0 - PreFac*ExpRel(n-2,-II*KR)) / (R*R*R); 
   else 
    { cdouble Sum, Term, miKR=-II*KR;
      int m;
@@ -193,7 +224,7 @@ cdouble In_GradEIKROverR(int n, cdouble K, double R)
         Term *= miKR/((double)(m+1));
       };
      Sum+=Term/PreFac;
-     return PreFac*(1.0 - exp(II*KR)*Sum) / (((double)n)*Term*R*R*R);
+     return PreFac*(exp(II*KR)*Sum - 1.0) / (Term*R*R*R);
    };
 }
 
@@ -266,5 +297,22 @@ int main(int argc, char *argv[])
   printf("%35s %35s %s\n","                OLD                ","                NEW                "," RD "); 
   printf("%35s-%35s-%s\n","-----------------------------------","-----------------------------------","-----"); 
   printf("%s %s %e\n\n",CD2S(HROld),CD2S(HRNew),RD(HROld,HRNew));
+
+  
+  double Lower[1]={0.0};
+  double Upper[1]={1.0};
+  double Result[4], Error[4];
+  g_K=K;
+  g_R=R;
+  g_n=n;
+  adapt_integrate(4, MyIntegrand, 0, 1, Lower, Upper,
+		  0, 0.0, 1.0e-12, Result, Error);
+
+  HROld=cdouble(Result[0],Result[1]);
+  HRNew=cdouble(Result[2],Result[3]);
+  printf("%35s %35s\n","                BF1                ","                BF2                ");
+  printf("%35s-%35s\n","-----------------------------------","-----------------------------------");
+  printf("%s %s\n",CD2S(HROld),CD2S(HRNew));
+
 
 }

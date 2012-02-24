@@ -16,8 +16,6 @@
 #include <libSpherical.h>
 #include <libTriInt.h>
 
-#include <gsl/gsl_sf.h>
-
 #include "libscuff.h"
 
 namespace scuff {
@@ -104,6 +102,8 @@ static void SphericalMMIntegrand(double *X, void *parms, double *f)
   GetYlmDerivArray(lMax, Theta, Phi, Ylm, dYlmdTheta);
 
   /* get the values of the radial functions at the evaluation point */
+#if 0
+FIXME to remove gsl bessel functions
   if (SMMID->RealFreq)
    gsl_sf_bessel_jl_steed_array (lMax+1, kr, Rl);
   else
@@ -112,6 +112,7 @@ static void SphericalMMIntegrand(double *X, void *parms, double *f)
      for(l=0; l<=lMax; l++)
       Rl[l]*=ExpFac;
    };
+#endif
 
   /* get derivatives of radial functions using  */
   /* d/dx f_l(x) = (l/x)f_l(x) - f_{l+1}(x)     */

@@ -10,7 +10,6 @@
 #include <string.h>
 #include <math.h>
 #include <pthread.h>
-#include <gsl/gsl_sf.h>
 
 #include <complex>
 
@@ -186,17 +185,9 @@ cdouble TaylorDuffy(TaylorDuffyArgStruct *Args)
        TMW->InFunc=In_RP;
        break;
      case TM_EIKR_OVER_R: 
-       if ( real(GParam) == 0.0 )
-        TMW->InFunc=In_EMKROverR;   
-       else
-        TMW->InFunc=In_EIKROverR;
-       break;
+       TMW->InFunc=In_EIKROverR;
      case TM_GRADEIKR_OVER_R:
-       if ( real(GParam) == 0.0 )
-        TMW->InFunc=In_GradEMKROverR;
-       else
-        TMW->InFunc=In_GradEIKROverR;
-       break;
+       TMW->InFunc=In_GradEIKROverR;
      default:
        ErrExit("%s:%i: unknown G function %i",__FILE__,__LINE__,WhichG);
    };
@@ -356,44 +347,77 @@ static inline double factorial(int n)
 }
 
 /***************************************************************/
-/* complex version of the 'relative exponential' function,     */
-/* which is e^x, minus the first n terms in the taylor series  */
-/* for e^x, divided by the n+1th term in the taylor series for */
-/* e^x (so that cExpRel2(n,0)==1 for all n.)                   */
+/* this is what the GSL calls the 'relative exponential'       */
+/* function. it is equal to exp(Z), minus the first n terms in */
+/* the taylor expansion for exp(Z), divided by the (n+1)th     */
+/* term in the taylor expansion for exp(Z). (this latter       */
+/* normalization ensures that ExpRel(n,0) = 1 for all n.)      */
 /***************************************************************/
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL
-cdouble cExpRel2(int n, cdouble x)
+cdouble ExpRel(int n, cdouble Z)
 {
   int m;
-  cdouble Term, Sum;
-  double mag2Term, mag2Sum;
 
   /*--------------------------------------------------------------*/
-  /*- small-x expansion                                          -*/
+  /*- purely real case                                           -*/
   /*--------------------------------------------------------------*/
-  if ( abs(x) < 0.1 )
-   { Sum=1.0;
-     for(Term=1.0, m=1; m<100; m++)
-      { Term*=x/((double)(m+n));
-        Sum+=Term;
-        mag2Term=norm(Term);
-        mag2Sum=norm(Sum);
-        if ( mag2Term < EXPRELTOL2*mag2Sum )
-         break;
+  if ( imag(Z)==0.0 )
+   { 
+     double Term, Sum;
+     double X=real(Z);
+
+     //////////////////////////////////////////////////
+     // small-Z expansion
+     //////////////////////////////////////////////////
+     if ( fabs(X) < 0.1 )
+      { Sum=1.0;
+        for(Term=1.0, m=1; m<100; m++)
+         { Term*=X/((double)(m+n));
+           Sum+=Term;
+           if ( fabs(Term) < EXPRELTOL*fabs(Sum) )
+            break;
+         };
+        return Sum;
+      }
+     else
+      { Sum=exp(X);
+        for(Term=1.0, m=0; m<n; m++)
+         { 
+          Sum-=Term;
+           Term*=X/((double)(m+1));
+         };
+        return Sum / Term;
       };
-     return Sum;
    }
   else
-   {
-     Sum=exp(x);
-     for(Term=1.0, m=0; m<n; m++)
-      { 
-        Sum-=Term;
-        Term*=x/((double)(m+1));
+   { 
+     cdouble Term, Sum;
+     /*--------------------------------------------------------------*/
+     /*- small-Z expansion                                          -*/
+     /*--------------------------------------------------------------*/
+     if ( abs(Z) < 0.1 )
+      { cdouble Term, Sum;
+        for(Sum=Term=1.0, m=1; m<100; m++)
+         { Term*=Z/((double)(m+n));
+           Sum+=Term;
+           if ( norm(Term) < EXPRELTOL2*norm(Sum) )
+            break;
+         };
+        return Sum;
+      }
+     else
+      {
+        Sum=exp(Z);
+        for(Term=1.0, m=0; m<n; m++)
+         { 
+           Sum-=Term;
+           Term*=Z/((double)(m+1));
+         };
+        return Sum / Term;
       };
-     return Sum / Term;
    };
+
 } 
 
 /***************************************************************/
@@ -412,80 +436,94 @@ cdouble In_RP(int n, cdouble GParam, double X)
   return RetVal;
 }
 
-// In function for g(r) = e^{-Kappa*r}/r 
-cdouble In_EMKROverR(int n, cdouble GParam, double X)
-{ 
-  double RetVal, Kappa = imag(GParam);
-  double KX=Kappa*X;
+// In function for g(r) = exp(-K*r)/r
+cdouble In_EMKROverR(int n, double K, double R)
+{
+  double KR=K*R;
 
-  /* 20100610 note: if KX>40.0, then 
-      exp(-KX)*gsl_sf_exprel_n(n,KX) 
-     agrees with
-      n! / (KX)^n
-     to 12 digits (tested this for n up to 5).
-     this modification essentially allows us to 
-     go up to arbitrarily large values of kappa.
-  */
-  if ( KX > 40.0  )
-   RetVal = factorial(n-1) / (X * pow(KX,n));
-  else
-   RetVal = exp(-KX)*gsl_sf_exprel_n(n,KX) / (X*(double)(n));
-  
-  return RetVal;
+  if ( abs(KR) < 0.1 )
+   return exp(-KR)*ExpRel(n,KR) / ((double)(n)*R);
+  else 
+   { cdouble Sum, Term;
+     int m;
+     for(Sum=0.0, Term=1.0, m=0; m<n; m++)
+      { 
+        Sum+=Term;
+        Term *= KR/((double)(m+1));
+      };
+     return (1.0 - exp(-K*R)*Sum) / (n*R*Term);
+   };
 }
 
-// g(r) = -(kr+1.0)*exp(-kr)/r^3
-cdouble In_GradEMKROverR(int n, cdouble GParam, double R)
-{ 
-  double RetVal, Kappa = imag(GParam);
-  double KR=Kappa*R;
-  RetVal=-Kappa*exp(-KR)/(R*R)
-         *(  gsl_sf_exprel_n(n-1,KR)/(    (double)(n-1) )
-           + gsl_sf_exprel_n(n-2,KR)/( KR*(double)(n-2) )
-          );
-  return RetVal;
-}
-
-// g(r) = exp(I*K*r)/r
+// In function for g(r) = exp(I*K*r)/r
 cdouble In_EIKROverR(int n, cdouble K, double R)
 { 
   cdouble KR=K*R;
 
-  /* 20100610 note: if imag(KR) > 40.0, then
-      \int_0^1 dw w^n e^{w*I*K*R} / (w*R)
-     agrees with
-      (n-1)! / ( R* (-I*K*R)^(n) )
-     to high accuracy.
-  */
-
   if ( (imag(KR)) > 40.0  )
    return factorial(n-1) / (R*pow(-II*K*R,n));
-  else
-   return exp(II*K*R)*cExpRel2(n,-II*K*R) / ((double)(n)*R);
+  else if ( real(K)==0.0 )
+   return In_EMKROverR(n, imag(K), R);
+  else if ( abs(KR) < 0.1 )
+   return exp(II*K*R)*ExpRel(n,-II*K*R) / ((double)(n)*R);
+  else 
+   { cdouble Sum, Term, miKR=-II*KR;
+     int m;
+     for(Sum=0.0, Term=1.0, m=0; m<n; m++)
+      { 
+        Sum+=Term;
+        Term *= miKR/((double)(m+1));
+      };
+     return (1.0 - exp(II*K*R)*Sum) / (n*R*Term);
+   };
 }
 
-// g(r) = (ikr-1.0)*exp(ikr)/r^3
+// In function for g(r) = (-KR-1) * exp(-K*r) / r^3
+cdouble In_GradEMKROverR(int n, double K, double R)
+{
+  double KR=K*R;
+  double PreFac=((double)(n-1))/((double)(n-2));
+
+  if ( abs(KR) < 0.1 )
+   return exp(-KR)*( 1.0 - PreFac*ExpRel(n-2,KR)) / (R*R*R); 
+  else 
+   { cdouble Sum, Term;
+     int m;
+     for(Sum=0.0, Term=1.0, m=0; m<n-2; m++)
+      { 
+        Sum+=Term;
+        Term *= KR/((double)(m+1));
+      };
+     Sum+=Term/PreFac;
+     return PreFac*(exp(-KR)*Sum - 1.0) / (Term*R*R*R);
+   };
+}
+
+// In function for g(r) = (ikr-1.0)*exp(ikr)/r^3
 cdouble In_GradEIKROverR(int n, cdouble K, double R)
 { 
+
+  double PreFac=((double)(n-1))/((double)(n-2));
   cdouble KR=K*R;
 
-  return II*K*exp(II*KR)/(R*R)
-          *(      cExpRel2(n-1,-II*KR)/(       (double)(n-1) )
-             -1.0*cExpRel2(n-2,-II*KR)/( II*KR*(double)(n-2) )
-           );
+  if ( (imag(KR)) > 40.0  )
+   return PreFac*factorial(n-2) / (R*R*R*pow(-II*KR,n-2));
+  else if ( real(K)==0.0 )
+   return In_GradEMKROverR(n, imag(K), R);
+  else if ( abs(KR) < 0.1 )
+   return exp(II*KR)*( 1.0 - PreFac*ExpRel(n-2,-II*KR)) / (R*R*R); 
+  else 
+   { cdouble Sum, Term, miKR=-II*KR;
+     int m;
+     for(Sum=0.0, Term=1.0, m=0; m<n-2; m++)
+      { 
+        Sum+=Term;
+        Term *= miKR/((double)(m+1));
+      };
+     Sum+=Term/PreFac;
+     return PreFac*(exp(II*KR)*Sum - 1.0) / (Term*R*R*R);
+   };
 }
-/*
-  return (1.0fi*Kappa*cexp(I*K*R)/(R*R))
-        *( cExpRel2(n-1,-1.0*1.0fi*K*R)/((double)n-1)
-          -cExpRel2(n-2,-1.0*1.0fi*K*R)/((double)n-2)
-                     ) / (R*R);
-}
-  RetVal=-Kappa*exp(-KX)/(X*X)
-         *(  gsl_sf_exprel_n(n-1,KX)/(    (double)(n-1) )
-           + gsl_sf_exprel_n(n-2,KX)/( KX*(double)(n-2) )
-          );
-*/
-
 
 /***************************************************************/
 /***************************************************************/
