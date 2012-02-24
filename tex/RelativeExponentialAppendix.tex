@@ -1,0 +1,61 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\begin{document}
+
+$$ I_n\Big[g(r)\Big] \equiv  \int_0^1 w^n g(wr) dw $$
+
+\begin{enumerate}
+
+\item First, for $g(r)=r^p$ we have simply $I_n\big[g(r)\big]=\frac{r^p}{p+n+1}.$
+
+\item Next, for the case $ g(r)=\frac{e^{ikr}}{r}$ we find
+$$
+   I_n\Big[g(r)\Big]=
+       \frac{1}{nrT_n }
+       \bigg[ 1- e^{ikr}\Big(T_0 + T_1 + \cdots + T_{n-1}\Big) \bigg].
+$$
+where $T_n\equiv \frac{ (-ikr)^n } {n!}.$ 
+For computational purposes, this expression  ... $|kr|>0.1$ ... 
+%====================================================================%
+\begin{align*}
+ I_n\Big[g(r)\Big]=
+    &=\frac{e^{ikr}}{nrT_n}
+       \bigg[ e^{-ikr} - T_0 - T_1 - \cdots - T_{n-1} \bigg]
+ \\
+    &=\frac{e^{ikr}}{nr} \cdot \texttt{ExpRel}_n(-ikr)
+\end{align*}
+%====================================================================%
+\begin{align*}
+\texttt{ExpRel}_n(-ikr)
+ &\equiv \frac{1}{T_n} \bigg[ e^{-ikr} - T_0 - T_1 - \cdots - T_{n-1} \bigg]
+\\
+ &= 1 + \frac{(-ikr)}{(n+1)} + \frac{(-ikr)^2}{(n+1)(n+2)} + \cdots
+ &= n! \sum_{m=0}^\infty \frac{(-ikr)^m}{(m+n)!}
+\end{align*}
+%====================================================================%
+
+\item Finally, for the case $g(r)=\frac{(ikr-1)e^{ikr}}{r^3},$ we have 
+%====================================================================%
+$$
+   I_n\Big[g(r)\Big]=
+       \frac{n-1}{(n-2)T_{n-2} r^3 }
+       \bigg[ 1- e^{ikr}\Big(T_0 + T_1 + \cdots + T_{n-3} 
+                                 + \frac{n-2}{n-1}T_{n-2} \Big)\bigg].
+$$
+%====================================================================%
+For small $kr$ we again rewrite this in the form
+%====================================================================%
+\begin{align*}
+ I_n\Big[g(r)\Big]
+&=\frac{ (n-1)e^{ikr}}{(n-2)T_{n-2} r^3 }
+  \bigg[ e^{-ikr} - T_0 - T_0 - \cdots - T_{n-2} 
+                                 - \frac{1}{n-1}T_{n-2}\bigg]
+     \end{cases}
+\end{align*}
+%====================================================================%
+where again $T_n\equiv \frac{ (-ikr)^n } {n!}.$ 
+
+\end{enumerate}
+\end{document}
