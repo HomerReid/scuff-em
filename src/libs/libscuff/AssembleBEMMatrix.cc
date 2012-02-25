@@ -135,7 +135,7 @@ void *ABMBThread(void *data)
       if (G->LogLevel>=SCUFF_VERBOSELOGGING)
        for(int PerCent=0; PerCent<9; PerCent++)
         if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
-         Log("%i0 %% (%i/%i)...",PerCent,nea,NEa);
+         MutexLog("%i0 %% (%i/%i)...",PerCent,nea,NEa);
 #if 0
       if (G->LogLevel>=SCUFF_VERBOSELOGGING)
        for(int PerCent=0; PerCent<=99; PerCent++)
