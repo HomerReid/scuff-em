@@ -1,32 +1,12 @@
-lib_LIBRARIES = libscuff.a
+lib_LIBRARIES = libIncField.a
 
-include_HEADERS = libscuff.h
+include_HEADERS = libIncField.h
 
-libscuff_a_SOURCES =  		\
- AssembleRHSVector.o		\
- AssessPanelPair.o		\
- CalcGC.o			\
- GetDipoleMoments.o		\
- GetFields.o			\
- GTransformation.o		\
- EdgeEdgeInteractions.o     	\
- ExpandCurrentDistribution.o	\
- QDFIPPI.o                    	\
- FIPPICache.o                   \
- QIFIPPICubature.o         	\
- QIFIPPITaylorDuffy.o         	\
- InitEdgeList.o			\
- RWGObject.o			\
- ReadComsolFile.o		\
- ReadGMSHFile.o			\
- PanelPanelInteractions.o	\
- TaylorDuffy.o			\
- RWGGeometry.o			\
- Visualize.o			\
- scuffMisc.o			\
- libscuff.h			\
- libscuffInternals.h		\
- GTransformation.h
+libIncField_a_SOURCES = 	\
+ IncFieldData.o			\
+ PlaneWave.o    		\
+ PointSource.o	 		\
+ libIncField.h
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libMatProp   \
