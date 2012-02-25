@@ -39,7 +39,7 @@ scuff-analyze:	$(SA_OBJS) libscuff.a
 		$(CXX) $(LDFLAGS) -o $@ $(SA_OBJS) $(LIBS)
 
 libscuff.a:	
-		(pushd ../../libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)
+		(pushd ../../libs/libscuff; make -f Makefile.manual DEBUG=$(DEBUG) libscuff.a; popd)
 
 clean:	
 		rm -f *.o *.a

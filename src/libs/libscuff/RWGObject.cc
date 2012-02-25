@@ -104,15 +104,17 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
       }
      else if ( !strcasecmp(Tokens[0],"ROTATED") )
       { 
-        if (NumTokens!=5)
-         { ErrMsg=strdup("ROTATED keyword requires exactly 4 arguments");
+        // the syntax is ROTATED tt ABOUT xx yy zz 
+        // where 'ABOUT' is a fixed keyword
+        if ( NumTokens!=6 || strcasecmp(Tokens[2],"ABOUT" ) )
+         { ErrMsg=strdup("invalid syntax for ROTATED keyword");
            return;
          };
 
-        if (    1!=sscanf(Tokens[1],"%le",ZHat+0)
-             || 1!=sscanf(Tokens[2],"%le",ZHat+1)
-             || 1!=sscanf(Tokens[3],"%le",ZHat+2)
-             || 1!=sscanf(Tokens[4],"%le",&Theta) )
+        if (    1!=sscanf(Tokens[1],"%le",&Theta)
+             || 1!=sscanf(Tokens[3],"%le",ZHat+0)
+             || 1!=sscanf(Tokens[4],"%le",ZHat+1)
+             || 1!=sscanf(Tokens[5],"%le",ZHat+2) )
          { ErrMsg=strdup("invalid argument to ROTATED");
            return;
          };
