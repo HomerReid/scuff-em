@@ -11,15 +11,10 @@ include ../../../../Makefile.Rules
 HR_LIBS = -lscuff -lMatProp -lMDInterp \
           -lhmat -lSGJC -lTriInt -lhrutil
 
-OTHER_LIBS = $(GSL_LIBS) $(MUPARSER_LIBS) $(RDL_LIBS) $(HDF5_LIBS) 
+OTHER_LIBS = $(GSL_LIBS) $(MUPARSER_LIBS) $(RDL_LIBS) $(HDF5_LIBS)  $(LB_LIBS)
 
-LB_LIBS=-llapack-3.2 -lgoto2 -lgfortran -lpthread
-LB_LIBS_BARCELONA=-llapack-3.2 -lgoto2_barcelona -lgfortran -lpthread
-LB_LIBS_JDJ8=-llapack-3.2 -lblas -lgfortran -lpthread
+LIBS=$(HR_LIBS) $(OTHER_LIBS)
 
-LIBS=$(HR_LIBS) $(OTHER_LIBS) $(LB_LIBS)
-LIBS_BARCELONA=$(HR_LIBS) $(OTHER_LIBS) $(LB_LIBS_BARCELONA)
-LIBS_JDJ8=$(HR_LIBS) $(OTHER_LIBS) $(LB_LIBS_JDJ8) 
 ##################################################
 ##################################################
 ##################################################
@@ -40,13 +35,11 @@ LDFLAGS+=-L../../libs/libscuff
 ##################################################
 SH_OBJS = scuff-heat.o FrequencyIntegrand.o
 
-scuff-heat:   	$(SH_OBJS) libscuff.a 
-		$(CXX) $(LDFLAGS) -o $@ $(SH_OBJS) $(LIBS)
-		$(CXX) $(LDFLAGS) -o $@_Barcelona  $(SH_OBJS) $(LIBS_BARCELONA)
-		$(CXX) $(LDFLAGS) -o $@_JDJ8       $(SH_OBJS) $(LIBS_JDJ8)
+scuff-heat${SUFFIX}:   	$(SH_OBJS) libscuff.a 
+			$(CXX) $(LDFLAGS) -o $@ $(SH_OBJS) $(LIBS)
 
 libscuff.a:	
-		(pushd ../../libs/libscuff; make -f Makefile.manual DEBUG=$(DEBUG) libscuff.a; popd)
+		(pushd ../../libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)
 
 clean:	
 		rm -f *.o *.a
