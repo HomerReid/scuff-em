@@ -4,6 +4,11 @@ scuff-analyze
 scuff-caspol
 scuff-heat
 scuff-scatter
+# don't ignore directories, though:
+!scuff-analyze/
+!scuff-caspol/
+!scuff-heat/
+!scuff-scatter/
 
 # ChangeLog should be generated from 'git log' at 'make dist' time #
 ChangeLog
