@@ -64,6 +64,11 @@ static void GetIn(double X, int AlphaMin, int AlphaMax, double I[NUMGS][6]);
 /***************************************************************/
 /***************************************************************/
 
+/* isnan was standardized in C in 1999, but in C++ only in 2011,
+   and is still not universally available ... punt, since
+   checking for nan in IEEE arithmetic is trivial: */
+#define ISNAN(x) ((x) != (x))
+
 // common edge
 static double X_CE(FIPPITDWorkspace *W, int i, double x1, double x2)
 { 
@@ -82,7 +87,7 @@ static double X_CE(FIPPITDWorkspace *W, int i, double x1, double x2)
           + 2.0*( u1*(u2*W->AdBP + xi2*W->AdL)+ u2*xi2*W->BPdL ) 
         );
 
-  if (isnan(r)) 
+  if (ISNAN(r)) 
    return 0.0;
 
   return r;
@@ -106,7 +111,7 @@ static double X_CV(FIPPITDWorkspace *W, int i, double x1, double x2, double x3)
           + 2.0*eta1*eta2*W->APdBP
         );
 
-  if (isnan(r)) 
+  if (ISNAN(r)) 
    return 0.0;
 
   return r;

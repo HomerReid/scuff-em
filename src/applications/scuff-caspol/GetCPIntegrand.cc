@@ -46,30 +46,27 @@
 void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
 {
   // construct a point source at the image location
-  PointSourceData MyPSD;
-  MyPSD.Frequency=Xi;
-  MyPSD.RealFreq=IMAG_FREQ;
+  double X0[3]={0.0, 0.0, -Z};
+  cdouble P0[3] = {0,0,0}; 
+  PointSourceData MyPSD(X0, P0);
+  MyPSD.Omega=cdouble(0,Xi);
   MyPSD.Eps=1.0;
   MyPSD.Mu=1.0;
-  MyPSD.X0[0]=0.0;
-  MyPSD.X0[1]=0.0;
-  MyPSD.X0[2]=-Z;
-  MyPSD.SourceType=LIF_TYPE_PSEC;
 
   // get each column of the DGF
   cdouble EH[6];
   double X[3]={0.0, 0.0, Z}; 
 
-  MyPSD.nHat[0] = -1.0;   MyPSD.nHat[1] =  0.0; MyPSD.nHat[2] = 0.0;
-  EHPointSource(X, (void *)&MyPSD, EH);
+  MyPSD.P[0] = -1.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] = 0.0;
+  MyPSD.GetFields(X, EH);
   GE[0][0]=EH[0]; GE[1][0]=EH[1]; GE[2][0]=EH[2];
 
-  MyPSD.nHat[0] =  0.0;   MyPSD.nHat[1] = -1.0; MyPSD.nHat[2] = 0.0;
-  EHPointSource(X, (void *)&MyPSD, EH);
+  MyPSD.P[0] =  0.0;   MyPSD.P[1] = -1.0; MyPSD.P[2] = 0.0;
+  MyPSD.GetFields(X, EH);
   GE[0][1]=EH[0]; GE[1][1]=EH[1]; GE[2][1]=EH[2];
   
-  MyPSD.nHat[0] =  0.0;   MyPSD.nHat[1] =  0.0; MyPSD.nHat[2] = 1.0;
-  EHPointSource(X, (void *)&MyPSD, EH);
+  MyPSD.P[0] =  0.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] = 1.0;
+  MyPSD.GetFields(X, EH);
   GE[0][2]=EH[0]; GE[1][2]=EH[1]; GE[2][2]=EH[2];
 
   // normalization factor needed to convert from 
@@ -103,7 +100,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   /***************************************************************/
   if (G)
    { Log("Assembling BEM matrix at Xi=%g\n",Xi);
-     G->AssembleBEMMatrix(Xi, IMAG_FREQ, nThread, M);
+     G->AssembleBEMMatrix(cdouble(0,Xi), nThread, M);
      M->LUFactorize();
    };
 
@@ -127,8 +124,11 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       R[0]=EPList->GetEntryD(nep, 0);
       R[1]=EPList->GetEntryD(nep, 1);
       R[2]=EPList->GetEntryD(nep, 2);
-      if (G)
-       G->GetGij(R, M, 0, KN, Xi, IMAG_FREQ, nThread, GE, GM);
+      if (G) {
+	fprintf(stderr, "error: GetGij not implemented\n");
+	exit(1);
+	// G->GetGij(R, M, 0, KN, Xi, SCUFF_PUREIMAGFREQ, nThread, GE, GM);
+      }
       else
        GetPECPlateDGF(R[2], Xi, GE);
 

@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
 
   if (GeoFile)
    { SCPD->G  = new RWGGeometry(GeoFile); 
-     SCPD->M  = SCPD->G->AllocateBEMMatrix(IMAG_FREQ);
-     SCPD->KN = SCPD->G->AllocateRHSVector(IMAG_FREQ);
+     SCPD->M  = SCPD->G->AllocateBEMMatrix(SCUFF_PUREIMAGFREQ);
+     SCPD->KN = SCPD->G->AllocateRHSVector(SCUFF_PUREIMAGFREQ);
    }
   else
    { SCPD->G  = 0; // in this case we take the 
