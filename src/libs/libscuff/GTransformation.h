@@ -35,19 +35,46 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
                                                 double *ZHat, double Theta);
 GTransformation *CreateGTransformation(double *ZHat, double Theta);
 
+GTransformation *CreateGTransformation(); // identity transformation
+
 void AugmentGTransformation(GTransformation *DeltaGT, GTransformation *GT);
 
 void ResetGTransformation(GTransformation *GT);
 
-/* apply in-place */
+/***************************************************************/
+/* routines to apply a GTransformation to a single point or to */
+/* a list of points.                                           */
+/* coordinates are assumed to be ordered as follows:           */
+/*  X[0, 1, 2] == x,y,z coords of first point                  */
+/*  X[3, 4, 5] == x,y,z coords of second point                 */
+/* etc.                                                        */
+/***************************************************************/
+/* in-place */
 void ApplyGTransformation(GTransformation *GT, double *X, int NX);
 void ApplyGTransformation(GTransformation *GT, double *X);
 
-/* apply out-of-place */
+/* out-of-place */
 void ApplyGTransformation(GTransformation *GT, double *X, double *XP, int NX);
 void ApplyGTransformation(GTransformation *GT, double *X, double *XP);
 
 void UnApplyGTransformation(GTransformation *GT, double *X, int NX);
+
+/***************************************************************/
+/* a GTComplex is collection of GTransformations, each of      */
+/* which is carried out on a different object in a geometry.   */
+/***************************************************************/
+struct GTComplex
+ {
+   char *Tag;                  // a label for this entire complex 
+   int NumObjectsAffected;     // number of objects transformed by this complex
+   char **ObjectLabel;         // ObjectLabel[i] is the label of the ith transformed object
+   GTransformation **GT;       // GT[i] is the transformation applied to the ith object
+
+ } GTComplex;
+
+// this routine reads a scuff-EM transformation (.trans) file
+// and returns an array of GTComplex structures.
+GTComplex **ReadTransFile(char *FileName, int *NumGTComplices);
 
 } // namespace scuff
 
