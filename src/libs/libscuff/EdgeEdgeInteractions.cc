@@ -41,7 +41,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   int NumTorqueAxes         = Args->NumTorqueAxes;
 
   RWGEdge *Ea=Oa->Edges[nea];
-  RWGEdge *Eb=Oa->Edges[neb];
+  RWGEdge *Eb=Ob->Edges[neb];
 
   /***************************************************************/
   /* since this code doesn't work at DC anyway, we don't bother  */

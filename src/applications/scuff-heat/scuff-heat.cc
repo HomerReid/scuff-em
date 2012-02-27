@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
   else
    SetLogFileName("scuff-heat.log");
 
-  Log("scuff-heat running on %s",getenv("HOSTNAME"));
+  Log("scuff-heat running on %s",GetHostName());
 
   if (SWPPITol!=0.0)
    { Log("setting short-wavelength PPI tolerance to %e...",SWPPITol);

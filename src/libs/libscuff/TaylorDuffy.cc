@@ -186,8 +186,10 @@ cdouble TaylorDuffy(TaylorDuffyArgStruct *Args)
        break;
      case TM_EIKR_OVER_R: 
        TMW->InFunc=In_EIKROverR;
+       break;
      case TM_GRADEIKR_OVER_R:
        TMW->InFunc=In_GradEIKROverR;
+       break;
      default:
        ErrExit("%s:%i: unknown G function %i",__FILE__,__LINE__,WhichG);
    };
