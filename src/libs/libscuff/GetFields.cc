@@ -330,19 +330,17 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
 
      TD->nThread=nThread;
 
-     if (nThread==1)
-      GetFields_Thread( (void *) TD);
+     if (nt+1 == nThread)
+       GetFields_Thread((void *)TD);
      else
-      pthread_create( &(Threads[nt]), 0, GetFields_Thread, (void *)TD);
+       pthread_create( &(Threads[nt]), 0, GetFields_Thread, (void *)TD);
    };
 
   /***************************************************************/
   /* wait for threads to complete                                */
   /***************************************************************/
-  if (nThread>1)
-   { for(nt=0; nt<nThread; nt++)
+  for(nt=0; nt<nThread-1; nt++)
       pthread_join(Threads[nt],0);
-   };
 
   /***************************************************************/
   /* sum contributions from all threads *                        */

@@ -333,13 +333,16 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
      TD->nThread=nThread;
      TD->Args=Args;
 
-     pthread_create( &(Threads[nt]), 0, ABMBThread, (void *)TD);
+     if (nt+1 == nThread)
+       ABMBThread((void *)TD);
+     else
+       pthread_create( &(Threads[nt]), 0, ABMBThread, (void *)TD);
    };
 
   /***************************************************************/
   /* await thread completion *************************************/
   /***************************************************************/
-  for(nt=0; nt<nThread; nt++)
+  for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
 }

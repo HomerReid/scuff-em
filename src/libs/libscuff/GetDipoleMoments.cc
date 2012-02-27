@@ -156,11 +156,14 @@ void RWGGeometry::GetDipoleMoments(double Frequency, int RealFreq,
      TD->KN=KN;
      TD->PM=PM;
 
-     pthread_create( &(Threads[nt]), 0, GetDipoleMoment_Thread, (void *)TD);
+     if (nt+1 == nThread)
+       GetDipoleMoment_Thread((void *)TD);
+     else
+       pthread_create( &(Threads[nt]), 0, GetDipoleMoment_Thread, (void *)TD);
    };
 
   /* wait for threads to complete */
-  for(nt=0; nt<nThread; nt++)
+  for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
 }

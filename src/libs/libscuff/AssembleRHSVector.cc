@@ -295,11 +295,14 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
      TD->B=B;
 
      TD->nThread=nThread;
-
-     pthread_create( &(Threads[nt]), 0, AssembleRHS_Thread, (void *)TD);
+     
+     if (nt+1 == nThread)
+       AssembleRHS_Thread((void *)TD);
+     else
+       pthread_create( &(Threads[nt]), 0, AssembleRHS_Thread, (void *)TD);
    };
 
-  for(nt=0; nt<nThread; nt++)
+  for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
 }

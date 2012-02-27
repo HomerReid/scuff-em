@@ -428,12 +428,15 @@ void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
      TD->KN=KN;
      TD->aE=aE + nt*NMM;
      TD->aM=aM + nt*NMM;
-
-     pthread_create( &(Threads[nt]), 0, GetSphericalMoments_Thread, (void *)TD);
-   };
+     
+     if (nt+1 == nThread)
+       GetSphericalMoments_Thread((void *)TD);
+     else
+       pthread_create( &(Threads[nt]), 0, GetSphericalMoments_Thread, (void *)TD);
+   }
 
   /* wait for threads to complete */
-  for(nt=0; nt<nThread; nt++)
+  for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
   /* sum contributions from all threads */
