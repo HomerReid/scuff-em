@@ -9,7 +9,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+
+#include <libhrutil.h>
+
 #include "GTransformation.h"
+
+#define MAXSTR 1000
+#define MAXTOK 50
 
 namespace scuff {
 
@@ -47,7 +53,6 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX)
      GT->Type |= GTRANSFORMATION_DISPLACEMENT;
      return GT;
    };
-
 }
 
 GTransformation *CreateGTransformation(double *DX)
@@ -55,8 +60,10 @@ GTransformation *CreateGTransformation(double *DX)
 
 // create the identity GTransformation
 GTransformation *CreateGTransformation()
- { GT->Type=GTRANSFORMATION->DISPLACEMENT;
-   memset(GT->DX, 0, 3*sizeof(double));
+ { 
+   GTransformation *NGT=(GTransformation *)malloc(sizeof(*NGT));
+   NGT->Type=GTRANSFORMATION_DISPLACEMENT;
+   memset(NGT->DX, 0, 3*sizeof(double));
  }
 
 /***************************************************************/
@@ -107,6 +114,97 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
 
 GTransformation *CreateGTransformation(double *ZHat, double Theta)
  { CreateOrAugmentGTransformation(0, ZHat, Theta); }
+
+/***************************************************************/
+/* this routine augments the given GTransformation by parsing  */
+/* a list of string tokens.                                    */
+/* the list of tokens should look like (with each              */
+/* whitespace-delimited string constituting a single token)    */
+/*                                                             */
+/*  DISPLACED xx yy zz                                         */
+/*                                                             */
+/* or                                                          */
+/*                                                             */
+/*  ROTATED tt ABOUT xx yy zz                                  */
+/*                                                             */
+/* and the above may be combined and repeated.                 */
+/*                                                             */
+/* The parameter 'pCT' stands for 'pointer to current token'   */
+/* (it's actually a pointer to the INDEX of the current token.)*/
+/* On entry, *pCT should be the index in the token list of the */
+/* token from which we should parsing.                         */
+/* On return, *pCT is the index of the first token beyond      */
+/* where we started parsing.                                   */
+/*                                                             */
+/* if the routine succeeds, 0 is returned.                     */
+/*                                                             */
+/* if the routine fails, an error message is returned.         */
+/***************************************************************/
+char *AugmentGTransformation(GTransformation *GT, 
+                             char **Tokens, int NumTokens,
+                             int *pCT)
+{ 
+  double Theta, ZHat[3], DX[3];
+
+  int CT=*pCT;
+  
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  while ( CT < NumTokens )
+   { 
+     if ( !strcasecmp(Tokens[CT],"DISP") || !strcasecmp(Tokens[CT],"DISPLACED") )
+      { 
+        /*--------------------------------------------------------------*/
+        /*-- DISPLACED xx yy zz ----------------------------------------*/
+        /*--------------------------------------------------------------*/
+        if ( CT+3 >= NumTokens )
+         return vstrdup("too few values specified for %s ",Tokens[CT]);
+
+        if (    1!=sscanf(Tokens[CT+1],"%le",DX+0)
+             || 1!=sscanf(Tokens[CT+2],"%le",DX+1)
+             || 1!=sscanf(Tokens[CT+3],"%le",DX+2)
+           )
+         return vstrdup("bad value specified for %s",Tokens[CT]);
+
+        CreateOrAugmentGTransformation(GT, DX);
+        CT+=4;
+        *pCT=CT;
+
+      }
+     else if ( !strcasecmp(Tokens[CT],"ROT") || !strcasecmp(Tokens[CT],"ROTATED") )
+      { 
+        /*--------------------------------------------------------------*/
+        /*-- ROTATED tt ABOUT xx yy zz ---------------------------------*/
+        /*--------------------------------------------------------------*/
+        if ( CT+5 >= NumTokens )
+         return vstrdup("too few values specified for %s ",Tokens[CT]);
+
+        if ( !strcasecmp(Tokens[CT+2],"ABOUT") )
+         return vstrdup("invalid syntax for %s statement",Tokens[CT]);
+
+        if (    1!=sscanf(Tokens[CT+1],"%le",&Theta)
+             || 1!=sscanf(Tokens[CT+3],"%le",ZHat+0)
+             || 1!=sscanf(Tokens[CT+4],"%le",ZHat+1)
+             || 1!=sscanf(Tokens[CT+5],"%le",ZHat+2)
+           )
+         return vstrdup("bad value specified for %s",Tokens[CT]);
+
+        CreateOrAugmentGTransformation(GT, ZHat, Theta);
+
+        CT+=6;
+        *pCT=CT;
+      }
+     else
+      { 
+         return vstrdup("unknown token %s",Tokens[CT]); 
+      };
+  
+   }; // while ( CT < NumTokens )
+
+  return 0;
+
+} 
 
 /***************************************************************/
 /* GT -> DeltaGT*GT ********************************************/
@@ -303,28 +401,19 @@ static void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3])
      M[Mu][Nu] += M1[Rho][Mu]*M2M1[Rho][Nu];
 }
 
-/***************************************************************/
-/* this and the following routine are helper functions for the */
-/* ReadTransFile() routine below.                              */
-/***************************************************************/
-GTComplex *ParseTAGLine(char **Tokens, int NumTokens, char *ErrMsg)
-{
-  if (NumTokens<2) 
-   { *ErrMsg=strdup("no value specified for TAG line");
-     return 0;
-   };
-
-  GTComplex *GTC=(GTComplex *)malloc(sizeof(GTComplex));
-  GTC->Tag=strdup(Tokens[1]);
-
-  return GTC;
-
-}
-
+/********************************************************************/
+/* this is a helper function for the ReadTransFile() routine        */
+/* below; it attempts to parse a TRANSFORMATION...ENDTRANSFORMATION */
+/* section in a scuff-EM .trans file. (the file read pointer is     */
+/* assumed to point to the line following TRANSFORMATION ...)       */
+/* if successful, 0 is returned and *pGTC points on return to a     */
+/* newly allocated GTComplex for the specified transformation.      */
+/* if unsuccessful, an error message is returned.                   */
+/********************************************************************/
 char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **pGTC)
 {
   /***************************************************************/
-  /***************************************************************/
+  /* initialize a bare GTComplex *********************************/
   /***************************************************************/
   GTComplex *GTC=(GTComplex *)malloc(sizeof(GTComplex));
   GTC->Tag=strdup(Tag);
@@ -335,7 +424,8 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
   GTransformation *CurrentGT=0;
 
   /***************************************************************/
-  /***************************************************************/
+  /* parse each line in the TRANSFORMATION...ENDTRANSFORMATION   */
+  /* section.                                                    */
   /***************************************************************/
   char Line[MAXSTR];
   int NumTokens;
@@ -360,9 +450,9 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
          return strdup("OBJECT keyword requires one argument");
 
         // increment the list of objects that will be affected by this
-        // complex of transformations; note the label of the affected  
+        // complex of transformations; save the label of the affected  
         // object and initialize the corresponding GTransformation to the
-        // identity transformations 
+        // identity transformation
         int noa=GTC->NumObjectsAffected;
         GTC->ObjectLabel=(char **)realloc(GTC->ObjectLabel, (noa+1)*sizeof(char *));
         GTC->ObjectLabel[noa]=strdup(Tokens[1]);
@@ -371,44 +461,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         GTC->NumObjectsAffected=noa+1;
         
         // subsequent DISPLACEMENTs / ROTATIONs will augment this GTransformation
-        CurrentGT=GTC->GT;
-      }
-     if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"DISP") )
-      {
-        /*--------------------------------------------------------------*/
-        /*-- DISPLACED xx yy zz ----------------------------------------*/
-        /*--------------------------------------------------------------*/
-        double DX[3];
-        if ( CurrentGT==0 )
-         return strdup("no OBJECT specified for displacement");
-        if ( NumTokens!=4 )
-         return strdup("syntax error");
-        if (    1!=sscanf(Tokens[1],"%le",DX+0)
-             || 1!=sscanf(Tokens[2],"%le",DX+1)
-             || 1!=sscanf(Tokens[3],"%le",DX+2) )
-         return strdup("invalid value");
-
-        CreateOrAugmentGTransformation(CurrentGT, DX);
-
-      }
-     else if ( !strcasecmp(Tokens[0],"ROTATED") || !strcasecmp(Tokens[0],"ROT") )
-      {
-        /*--------------------------------------------------------------*/
-        /*-- ROTATED tt ABOUT xx yy zz ---------------------------------*/
-        /*--------------------------------------------------------------*/
-        double Theta, ZHat[3];
-        if ( CurrentGT==0 )
-         return strdup("no OBJECT specified for rotation");
-        if ( NumTokens!=6 || strcasecmp(Tokens[2],"ABOUT") )
-         return strdup("syntax error");
-        if (    1!=sscanf(Tokens[1],"%le",&Theta)
-             || 1!=sscanf(Tokens[3],"%le",ZHat+0)
-             || 1!=sscanf(Tokens[4],"%le",ZHat+1)
-             || 1!=sscanf(Tokens[5],"%le",ZHat+2) )
-         return strdup("invalid value");
-
-        CreateOrAugmentGTransformation(CurrentGT, ZHat, Theta);
-
+        CurrentGT=GTC->GT[noa];
       }
      else if ( !strcasecmp(Tokens[0],"ENDTRANSFORMATION") )
       { 
@@ -419,17 +472,25 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         return 0;
       }
      else 
-      return vstrdup("unknown token %s",Tokens[0]);
+      { /*--------------------------------------------------------------*/
+        /*-- try to process the line as DISPLACED ... or ROTATED ... ---*/
+        /*--------------------------------------------------------------*/
+        int CT=0;
+        char *ErrMsg=AugmentGTransformation(CurrentGT, Tokens, NumTokens, &CT);
+        if (ErrMsg) 
+         return ErrMsg;
+      };
 
-   };
+   }; // while(fgets(Line, MAXSTR, f))
 
   // if we made it here, the file ended before the TRANSFORMATION
   // section was properly terminated 
   return strdup("unexpected end of file");
+
 }
 
 /***************************************************************/
-/* this routine reads a scuff-EM transformation (.trans) files */
+/* this routine reads a scuff-EM transformation (.trans) file  */
 /* and returns an array of GTComplex structures.               */
 /***************************************************************/
 GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
@@ -459,12 +520,13 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
      //  (b) TRANSFORMATION ... ENDTRANSFORMATION sections
      if ( !strcasecmp(Tokens[0], "TAG") )
       { 
-        ErrMsg=ProcessTAGLine(Tokens, NumTokens, &GTC);
+        // ErrMsg=ProcessTAGLine(Tokens, NumTokens, &GTC);
+        printf("howdatage\n");
       }
      else if ( !strcasecmp(Tokens[0], "TRANSFORMATION") )
       { if (NumTokens!=2) 
          ErrExit("%s:%i: syntax error (no name specified for transformation",FileName,LineNum);
-        ErrMsg=ProcessTRANSFORMATIONSection(Tokens[1], f, &LineNum, &GTC);
+        ErrMsg=ParseTRANSFORMATIONSection(Tokens[1], f, &LineNum, &GTC);
       }
      else
       ErrExit("%s:%i: syntax error",FileName,LineNum,Tokens[0]);
@@ -478,10 +540,10 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
      GTCArray[NumGTCs]=GTC;
      NumGTCs++;
 
-   };
+   }; // while(fgets(Line, MAXSTR, f))
 
   fclose(f);
-  *NumGTCComplices=NumGTCs; 
+  *NumGTComplices=NumGTCs; 
   Log("Read %i geometrical transformations from file %s.\n",NumGTCs,FileName); 
   return GTCArray;
 

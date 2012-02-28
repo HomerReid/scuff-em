@@ -63,7 +63,7 @@ void UnApplyGTransformation(GTransformation *GT, double *X, int NX);
 /* a GTComplex is collection of GTransformations, each of      */
 /* which is carried out on a different object in a geometry.   */
 /***************************************************************/
-struct GTComplex
+typedef struct GTComplex
  {
    char *Tag;                  // a label for this entire complex 
    int NumObjectsAffected;     // number of objects transformed by this complex

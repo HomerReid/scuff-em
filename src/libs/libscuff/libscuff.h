@@ -274,8 +274,9 @@ class RWGGeometry
    int GetDimension();
 
    /* geometrical transformations */
-   int Transform(char *TransLine, char *Tag, char *ErrMsg);
-   int Transform(char *TransLine) { return Transform(TransLine, 0, 0); }
+   // int Transform(char *TransLine, char *Tag, char *ErrMsg);
+   // int Transform(char *TransLine) { return Transform(TransLine, 0, 0); }
+   void Transform(GTComplex *GTC);
    void UnTransform();
 
    /* visualization */
