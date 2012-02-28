@@ -85,9 +85,6 @@ typedef std::tr1::unordered_map< KeyStruct,
 FIPPICache::FIPPICache()
 {
   DoNotCompute=0;
-
-  pthread_rwlock_init(&FCLock,0);
-
   KeyValueMap *KVM=new KeyValueMap;
   opTable = (void *)KVM;
 }
@@ -135,9 +132,9 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   /***************************************************************/
   KeyValueMap *KVM=(KeyValueMap *)opTable;
 
-  pthread_rwlock_rdlock(&FCLock);
+  FCLock.read_lock();
   KeyValueMap::iterator p=KVM->find(K);
-  pthread_rwlock_unlock(&FCLock);
+  FCLock.read_unlock();
 
   if ( p != (KVM->end()) )
    { Found++;
@@ -155,9 +152,9 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   if (DoNotCompute==0)
    ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
    
-  pthread_rwlock_wrlock(&FCLock);
+  FCLock.write_lock();
   KVM->insert( KeyValuePair(*K2, QIFD) );
-  pthread_rwlock_unlock(&FCLock);
+  FCLock.write_unlock();
 
   return QIFD;
 }
@@ -197,12 +194,11 @@ typedef struct FIPPICF_Record
 
 void FIPPICache::Store(char *FileName)
 {
-  /*--------------------------------------------------------------*/
-  /*- this whole routine is write-locked; presumably it will only */
-  /*- ever be called from single-threaded code regions, but just  */
-  /*- to be careful.                                              */
-  /*--------------------------------------------------------------*/
-  pthread_rwlock_wrlock(&FCLock);
+  FCLock.read_lock();
+
+  KeyValueMap *KVM=(KeyValueMap *)opTable;
+  KeyValueMap::iterator it;
+  int NumRecords=0;
 
   /*--------------------------------------------------------------*/
   /*- try to open the file ---------------------------------------*/
@@ -210,8 +206,7 @@ void FIPPICache::Store(char *FileName)
   FILE *f=fopen(FileName,"w");
   if (!f)
    { fprintf(stderr,"warning: could not open file %s (aborting cache dump)...",FileName);
-     pthread_rwlock_unlock(&FCLock);
-     return;
+     goto done;
    };
   Log("Writing FIPPI cache to file %s...",FileName);
 
@@ -223,12 +218,9 @@ void FIPPICache::Store(char *FileName)
   /*---------------------------------------------------------------------*/
   /*- iterate through the table and write entries to the file one-by-one */
   /*---------------------------------------------------------------------*/
-  KeyValueMap *KVM=(KeyValueMap *)opTable;
-  KeyValueMap::iterator it;
   KeyStruct K;
   QIFIPPIData *QIFD;
   FIPPICF_Record MyRecord;
-  int NumRecords=0;
   for ( it = KVM->begin(); it != KVM->end(); it++ ) 
    { 
      K=it->first;
@@ -245,14 +237,16 @@ void FIPPICache::Store(char *FileName)
   /*---------------------------------------------------------------------*/
   fclose(f);
   Log(" ...wrote %i FIPPI records.",NumRecords);
-  pthread_rwlock_unlock(&FCLock);
 
+ done:
+  FCLock.read_unlock();
 }
 
 void FIPPICache::PreLoad(char *FileName)
 {
+  FCLock.write_lock();
 
-  pthread_rwlock_wrlock(&FCLock); 
+  KeyValueMap *KVM=(KeyValueMap *)opTable;
 
   /*--------------------------------------------------------------*/
   /*- try to open the file ---------------------------------------*/
@@ -261,22 +255,23 @@ void FIPPICache::PreLoad(char *FileName)
   if (!f)
    { fprintf(stderr,"warning: could not open file %s (skipping cache preload)\n",FileName);
      Log("Could not open FIPPI cache file %s...",FileName); 
-     pthread_rwlock_unlock(&FCLock);
-     return;
+     goto done;
    };
 
   /*--------------------------------------------------------------*/
   /*- run through some sanity checks to make sure we have a valid */
   /*- cache file                                                  */
   /*--------------------------------------------------------------*/
-  const char *ErrMsg=0;
+  const char *ErrMsg;
+  ErrMsg = 0;
   
   struct stat fileStats;
   if ( fstat(fileno(f), &fileStats) )
    ErrMsg="invalid cache file";
   
   // check that the file signature is present and correct 
-  off_t FileSize=fileStats.st_size;
+  off_t FileSize;
+  FileSize=fileStats.st_size;
   char FileSignature[FIPPICF_SIGLEN]; 
   if ( ErrMsg==0 && FileSize < FIPPICF_SIGLEN )
    ErrMsg="invalid cache file";
@@ -291,14 +286,14 @@ void FIPPICache::PreLoad(char *FileName)
   if ( ErrMsg==0 && (FileSize % FIPPICF_RECLEN)!=0 )
    ErrMsg="cache file has incorrect size";
 
-
   /*--------------------------------------------------------------*/
   /*- allocate memory to store cache entries read from the file. -*/
   /*- for now, we abort if there is not enough memory to store   -*/
   /*- the full cache; TODO explore schemes for partial preload.  -*/
   /*--------------------------------------------------------------*/
-  unsigned int NumRecords = FileSize / FIPPICF_RECLEN;
+  unsigned int NumRecords;
   FIPPICF_Record *Records;
+  NumRecords = FileSize / FIPPICF_RECLEN;
   if ( ErrMsg==0 )
    { Records=(FIPPICF_Record *)malloc(NumRecords*FIPPICF_RECLEN);
      if ( !Records)
@@ -312,15 +307,13 @@ void FIPPICache::PreLoad(char *FileName)
    { fprintf(stderr,"warning: file %s: %s (skipping cache preload)\n",FileName,ErrMsg);
      Log("FIPPI cache file %s: %s (skipping cache preload)",FileName,ErrMsg);
      fclose(f);
-     pthread_rwlock_unlock(&FCLock);
-     return;
+     goto done;
    };
 
   /*--------------------------------------------------------------*/
   /*- now just read records from the file one at a time and add   */
   /*- them to the table.                                          */
   /*--------------------------------------------------------------*/
-  KeyValueMap *KVM=(KeyValueMap *)opTable;
   int nr;
   Log("Preloading FIPPI records from file %s...",FileName);
   for(nr=0; nr<NumRecords; nr++)
@@ -328,8 +321,7 @@ void FIPPICache::PreLoad(char *FileName)
      if ( fread(Records+nr, FIPPICF_RECLEN,1,f) != 1 )
       { fprintf(stderr,"warning: file %s: read only %i of %i records",FileName,nr+1,NumRecords);
         fclose(f);
-        pthread_rwlock_unlock(&FCLock);
-        return;
+	goto done;
       };
 
      KVM->insert( KeyValuePair(Records[nr].K, &(Records[nr].QIFDBuffer)) );
@@ -340,8 +332,9 @@ void FIPPICache::PreLoad(char *FileName)
   /*--------------------------------------------------------------*/
   Log(" ...succesfully preloaded %i FIPPI records.",NumRecords);
   fclose(f);
-  pthread_rwlock_unlock(&FCLock);
 
+ done:
+  FCLock.write_unlock();
 }
 
 /***************************************************************/

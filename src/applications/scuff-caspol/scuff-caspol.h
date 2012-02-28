@@ -14,7 +14,7 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libMDInterp.h>
-#include <libRWG.h>
+#include <libscuff.h>
 
 //using namespace scuff;
 
@@ -45,6 +45,8 @@ public:
    Interp1D *PolInterp;
 
  };
+
+using namespace scuff;
 
 /***************************************************************/
 /* SCPData ('scuff-caspol-data') is the basic structure passed */

@@ -1,4 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = src
-dist_data_DATA = examples
+
+SUBDIRS = src m4
+EXTRA_DIST = COPYRIGHT
 

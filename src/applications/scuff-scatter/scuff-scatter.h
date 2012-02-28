@@ -12,9 +12,9 @@
 #include "libIncField.h"
 
 #ifdef SCUFF
-	#include "libscuff.h"
+#  include "libscuff.h"
 #else // RWG
-	#include "libRWG.h"
+#  include "libRWG.h"
 #endif
 
 using namespace scuff;

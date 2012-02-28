@@ -1,2 +1,2 @@
-ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = libIncField libscuff
+SUBDIRS = libhrutil libhmat libSGJC libMDInterp libMatProp libTriInt \
+          libIncField libscuff

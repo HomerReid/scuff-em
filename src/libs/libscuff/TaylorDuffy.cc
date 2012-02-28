@@ -787,7 +787,7 @@ void SiAlpha_DotPlus(const double *xVec, TMWorkspace *TMW, int WhichCase,
 
      }; //switch(WhichCase)
 
-};
+}
                
 /***************************************************************/
 /***************************************************************/

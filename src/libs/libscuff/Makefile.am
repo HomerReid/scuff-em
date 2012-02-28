@@ -1,32 +1,17 @@
-lib_LIBRARIES = libscuff.a
+lib_LTLIBRARIES = libscuff.la
+pkginclude_HEADERS = libscuff.h GTransformation.h
+libscuff_la_SOURCES = AssembleBEMMatrix.cc AssembleRHSVector.cc AssessPanelPair.cc CalcGC.cc EdgeEdgeInteractions.cc ExpandCurrentDistribution.cc FIPPICache.cc GTransformation.cc GTransformation.h GetDipoleMoments.cc GetFields.cc InitEdgeList.cc PanelPanelInteractions.cc QDFIPPI.cc QIFIPPICubature.cc QIFIPPITaylorDuffy.cc RWGGeometry.cc RWGObject.cc ReadComsolFile.cc ReadGMSHFile.cc TaylorDuffy.cc TaylorDuffy.h Visualize.cc libscuff.h libscuffInternals.h rwlock.cc rwlock.h scuffMisc.cc
 
-include_HEADERS = libscuff.h
+# bitrotted: AssembleDMDVMatrix.cc BORTObject.cc GetSphericalMoments.cc ParseGeoFiles.cc SphericalMoments.cc
 
-libscuff_a_SOURCES =  		\
- AssembleRHSVector.o		\
- AssessPanelPair.o		\
- CalcGC.o			\
- GetDipoleMoments.o		\
- GetFields.o			\
- GTransformation.o		\
- EdgeEdgeInteractions.o     	\
- ExpandCurrentDistribution.o	\
- QDFIPPI.o                    	\
- FIPPICache.o                   \
- QIFIPPICubature.o         	\
- QIFIPPITaylorDuffy.o         	\
- InitEdgeList.o			\
- RWGObject.o			\
- ReadComsolFile.o		\
- ReadGMSHFile.o			\
- PanelPanelInteractions.o	\
- TaylorDuffy.o			\
- RWGGeometry.o			\
- Visualize.o			\
- scuffMisc.o			\
- libscuff.h			\
- libscuffInternals.h		\
- GTransformation.h
+# combine all of the auxiliary libraries into a single library
+libscuff_la_LIBADD = ../libhrutil/libhrutil.la ../libhmat/libhmat.la	\
+../libSGJC/libSGJC.la ../libIncField/libIncField.la			\
+../libMDInterp/libMDInterp.la ../libMatProp/libMatProp.la		\
+../libTriInt/libTriInt.la
+
+# set the shared-library version number (DIFFERENT from human version #)
+libscuff_la_LDFLAGS = -version-info @SHARED_VERSION_INFO@
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libMatProp   \
@@ -34,4 +19,5 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libSGJC      \
               -I$(top_srcdir)/src/libs/libIncField  \
               -I$(top_srcdir)/src/libs/libMDInterp  \
-              -I$(top_srcdir)/src/libs/libTriInt
+              -I$(top_srcdir)/src/libs/libTriInt    \
+              -I$(top_builddir) # for config.h

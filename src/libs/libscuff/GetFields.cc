@@ -10,12 +10,18 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-#include <pthread.h>
 
 #include <libhrutil.h>
 #include <libTriInt.h>
 
 #include "libscuff.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 namespace scuff {
 
@@ -167,7 +173,7 @@ void *GetFields_Thread(void *data)
   /*--------------------------------------------------------------*/
   /*- EXPERIMENTAL -----------------------------------------------*/
   /*--------------------------------------------------------------*/
-#ifdef _GNU_SOURCE
+#if defined(_GNU_SOURCE) && defined(USE_PTHREAD)
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(TD->nt,&cpuset);
@@ -308,14 +314,27 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
   /***************************************************************/
   /* fire off threads                                            */
   /***************************************************************/
-  pthread_t Threads[nThread];
-  ThreadData TDS[nThread], *TD;
-  cdouble PartialEH[6*nThread]; 
+#ifdef USE_PTHREAD
+  pthread_t *Threads = new pthread_t[nThread];
+  ThreadData *TDS = new ThreadData[nThread], *TD;
+  cdouble *PartialEH = new cdouble[6*nThread]; 
+#else
+  ThreadData TD1;
+  double EH0r=0,EH1r=0,EH2r=0,EH3r=0,EH4r=0,EH5r=0;
+  double EH0i=0,EH1i=0,EH2i=0,EH3i=0,EH4i=0,EH5i=0;
+#endif
   int nt;
 
+#ifdef USE_OPENMP
+#pragma omp parallel for private(TD1), schedule(static,1), reduction(+:EH0r,EH1r,EH2r,EH3r,EH4r,EH5r,EH0i,EH1i,EH2i,EH3i,EH4i,EH5i), num_threads(nThread)
+#endif
   for(nt=0; nt<nThread; nt++)
    { 
+#ifdef USE_PTHREAD
      TD=&(TDS[nt]);
+#else
+     ThreadData *TD=&TD1;
+#endif
      TD->nt=nt;
      TD->nThread=nThread;
 
@@ -326,24 +345,38 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
      TD->Mu=Mu;
      TD->ObjectInQuestion=ObjectInQuestion;
      TD->KN=KN;
-     TD->EH=PartialEH + 6*nt;
 
      TD->nThread=nThread;
 
-     if (nThread==1)
-      GetFields_Thread( (void *) TD);
+#ifdef USE_PTHREAD
+     TD->EH=PartialEH + 6*nt;
+     if (nt+1 == nThread)
+       GetFields_Thread((void *)TD);
      else
-      pthread_create( &(Threads[nt]), 0, GetFields_Thread, (void *)TD);
-   };
+       pthread_create( &(Threads[nt]), 0, GetFields_Thread, (void *)TD);
+#else
+     cdouble PartialEH[6];
+     TD->EH=PartialEH;
+     GetFields_Thread((void *)TD);
+     // annoyance: openmp doesn't support reductions on complex types
+     EH0r += real(PartialEH[0]); EH0i += imag(PartialEH[0]);
+     EH1r += real(PartialEH[1]); EH1i += imag(PartialEH[1]);
+     EH2r += real(PartialEH[2]); EH2i += imag(PartialEH[2]);
+     EH3r += real(PartialEH[3]); EH3i += imag(PartialEH[3]);
+     EH4r += real(PartialEH[4]); EH4i += imag(PartialEH[4]);
+     EH5r += real(PartialEH[5]); EH5i += imag(PartialEH[5]);
+#endif
+   }
 
+#ifdef USE_PTHREAD
   /***************************************************************/
   /* wait for threads to complete                                */
   /***************************************************************/
-  if (nThread>1)
-   { for(nt=0; nt<nThread; nt++)
+  for(nt=0; nt<nThread-1; nt++)
       pthread_join(Threads[nt],0);
-   };
+#endif
 
+#ifdef USE_PTHREAD
   /***************************************************************/
   /* sum contributions from all threads *                        */
   /***************************************************************/
@@ -357,6 +390,17 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
      EH[5]+=PartialEH[6*nt + 5]; 
    };
 
+  delete[] Threads;
+  delete[] TDS;
+  delete[] PartialEH;
+#else
+  EH[0] = cdouble(EH0r,EH0i);
+  EH[1] = cdouble(EH1r,EH1i);
+  EH[2] = cdouble(EH2r,EH2i);
+  EH[3] = cdouble(EH3r,EH3i);
+  EH[4] = cdouble(EH4r,EH4i);
+  EH[5] = cdouble(EH5r,EH5i);
+#endif
 }
 
 /***************************************************************/

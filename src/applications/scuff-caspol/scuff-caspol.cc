@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
   if (EPFile==0)
    OSUsage(argv[0], OSArray,"--EPfile option is mandatory");
   if (nThread==0)
-   nThread=GetNumProcs();
+   nThread=GetNumThreads();
 
   /*******************************************************************/
   /* create the RWGGeometry, allocate BEM matrix and RHS vector, and */
@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
 
   if (GeoFile)
    { SCPD->G  = new RWGGeometry(GeoFile); 
-     SCPD->M  = SCPD->G->AllocateBEMMatrix(IMAG_FREQ);
-     SCPD->KN = SCPD->G->AllocateRHSVector(IMAG_FREQ);
+     SCPD->M  = SCPD->G->AllocateBEMMatrix(SCUFF_PUREIMAGFREQ);
+     SCPD->KN = SCPD->G->AllocateRHSVector(SCUFF_PUREIMAGFREQ);
    }
   else
    { SCPD->G  = 0; // in this case we take the 

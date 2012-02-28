@@ -1,78 +1,151 @@
 AC_INIT(scuff-em, 1.0, homer@homerreid.com)
-
-AC_CONFIG_AUX_DIR([config])
-AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([README])
 
-AM_INIT_AUTOMAKE
+# Shared-library version.  This has a technical
+# meaning related to binary compatibility and is NOT
+# the same as the human version number.  See http://tinyurl.com/yegqrlz
+SHARED_VERSION_INFO="0:0:0" # CURRENT:REVISION:AGE
 
-AC_PROG_CC
+AM_INIT_AUTOMAKE
+LT_INIT
+AM_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
+AM_MAINTAINER_MODE
+AC_SUBST(SHARED_VERSION_INFO)
+AC_DISABLE_SHARED dnl shared libs by default cause too much trouble
+
 AC_PROG_CXX
 AC_PROG_F77
-AC_PROG_RANLIB
+AC_F77_WRAPPERS
 AC_PROG_INSTALL
 
+AC_LANG([C++])
+
 ##################################################
-# check for pthreads #############################
+# compiler flags
 ##################################################
-#m4_include([m4/ax_pthread.m4])
-#
-#AX_PTHREAD([],
-#           [AC_MSG_ERROR([pthreads library is required])]
-#          )
+
+AC_ARG_ENABLE(debug, [AC_HELP_STRING([--enable-debug],[compile for debugging])], enable_debug=$enableval, enable_debug=no)
+
+if test "x$enable_debug" = xyes; then
+   CXXFLAGS=-g
+   FFLAGS=-g
+fi
+
+# TODO: set optimization flags? Does it matter, or is the default -g -O2 okay?
+
+# add gcc warnings in debug or maintainer mode
+if test "x$enable_debug" = xyes || test "$USE_MAINTAINER_MODE" = yes; then
+if test "$ac_test_CFLAGS" != "set"; then
+   if test $ac_cv_prog_gcc = yes; then
+      CXXFLAGS="$CXXFLAGS -Wall -W -Wcast-qual -Wpointer-arith -Wcast-align -pedantic -Wno-long-long -Wshadow -Wwrite-strings -Wredundant-decls -ansi -pedantic"
+   fi
+fi
+fi
+
+##################################################
+# threading library
+##################################################
+
+AC_ARG_WITH(openmp, [AC_HELP_STRING([--without-openmp],[don't use OpenMP directives for parallelism])], with_openmp=$withval, with_openmp=yesdefault)
+
+AC_ARG_WITH(pthreads, [AC_HELP_STRING([--with-pthreads],[use POSIX threads for parallelism])], with_pthreads=$withval, with_pthreads=no)
+
+need_pthreads=no
+
+if test "x$with_pthreads" = xyes; then
+   AC_DEFINE([USE_PTHREAD], [1], [Define to use pthread threading.])
+   if test "x$with_openmp" = xyes; then
+      AC_MSG_ERROR([--with-openmp and --with-pthreads are incompatible])
+   fi
+   with_openmp=no
+   need_pthreads=yes
+fi
+
+if test "x$with_openmp" = xyesdefault; then with_openmp=yes; fi
+if test "x$with_openmp" = xyes; then
+   AC_DEFINE([USE_OPENMP], [1], [Define to use OpenMP threading.])
+   AX_OPENMP([], [AC_MSG_ERROR([Could not find OpenMP flag; configure with --without-openmp and/or --with-pthreads])])
+   CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
+   need_pthreads=yes # for pthread_rwlock
+fi
+
+if test $need_pthreads = yes; then
+   AX_PTHREAD([], [AC_MSG_ERROR([Could not find pthreads library.])])
+   LIBS="$PTHREAD_LIBS $LIBS"
+   CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
+fi
 
 ##################################################
 # checks for hdf5
 ##################################################
-AC_CHECK_LIB( [hdf5],
-              [H5Fcreate],
-              [],
-              [AC_MSG_ERROR([hdf5 library is required])]
-            )
 
-AC_CHECK_LIB( [hdf5_hl],
-              [H5LTmake_dataset_double],
-              [],
-              [AC_MSG_ERROR([hdf5 high-level library is required])]
-            )
+AC_ARG_WITH(hdf5, [AC_HELP_STRING([--with-hdf5=<dir>/--without-hdf5],[look for HDF5 in <dir>/include and <dir>/lib])], with_hdf5=$withval, with_hdf5=yes)
+
+if test "x$with_hdf5" != xno; then
+   if test -d "$with_hdf5"; then
+     CPPFLAGS="$CPPFLAGS -I$with_hdf5/include"
+     LDFLAGS="$LDFLAGS -L$with_hdf5/lib"
+   fi
+
+   have_hdf5=yes
+   AC_CHECK_HEADER([hdf5.h],
+     [AC_CHECK_LIB([hdf5], [H5Fcreate],
+       [AC_CHECK_LIB([hdf5_hl], [H5LTmake_dataset_double], [have_hdf5=yes])])])
+   if test $have_hdf5 = yes; then
+      AC_DEFINE([HAVE_HDF5],[1],[define if we have HDF5])
+      LIBS="$LIBS -lhdf5_hl -lhdf5"
+   else
+      AC_MSG_ERROR([couldn't find HDF5; configure --without-hdf5])
+   fi
+fi
 
 ##################################################
 # checks for blas/lapack
 ##################################################
-sinclude(acx_blas.m4)
-sinclude(acx_lapack.m4)
 
 ACX_BLAS([], [AC_MSG_ERROR([BLAS was not found!])])
 ACX_LAPACK([], [AC_MSG_ERROR([LAPACK was not found!])])
 
-
 LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
-
-#ACX_LAPACK( [],
-#            [AC_MSG_ERROR([lapack and blas libraries are required])]
-#          )
 
 ##################################################
 # checks for muparser
 ##################################################
-AC_LANG([C++]) AC_CHECK_HEADER([muParser/muParser.h],[],
-                [AC_MSG_ERROR([muParser is required])]
-               )
-AC_CHECK_LIB( [muparser], 
-              [_init], 
-              [], 
-              [AC_MSG_ERROR([muParser library is required])]
-            )
+AC_CHECK_HEADERS([muParser/muParser.h, muParser.h])
+save_LIBS=$LIBS
+LIBS="$LIBS -lmuparser"
+AC_MSG_CHECKING([for -lmuparser])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([
+#ifdef HAVE_MUPARSER_H
+#  include <muParser.h>
+#else
+#  include <muParser/muParser.h>
+#endif], [mu::Parser p;])],
+               [AC_DEFINE([HAVE_MUPARSER],[1],[have muParser library])
+                AC_MSG_RESULT([yes])],
+               [AC_MSG_RESULT([no])
+                AC_MSG_WARN([muParser library not found, user-defined material functions will not be supported])
+                 LIBS=$save_LIBS]
+              )
 
 ##################################################
 ##################################################
 ##################################################
+
 AC_CONFIG_FILES([
  Makefile
+ m4/Makefile
  src/Makefile
  src/libs/Makefile
- src/libs/libscuff/Makefile
  src/libs/libIncField/Makefile
+ src/libs/libMDInterp/Makefile
+ src/libs/libMatProp/Makefile
+ src/libs/libSGJC/Makefile
+ src/libs/libTriInt/Makefile
+ src/libs/libhmat/Makefile
+ src/libs/libhrutil/Makefile
+ src/libs/libscuff/Makefile
  src/applications/Makefile
  src/applications/scuff-scatter/Makefile
  src/applications/scuff-caspol/Makefile
@@ -86,5 +159,5 @@ AC_OUTPUT
 ##################################################
 AC_MSG_NOTICE([**])
 AC_MSG_NOTICE([** The configure process was successful.])
-AC_MSG_NOTICE([** Now type 'make install.'.])
+AC_MSG_NOTICE([** Now type 'make' to compile and sudo 'make install'.])
 AC_MSG_NOTICE([**])     
