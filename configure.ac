@@ -16,6 +16,7 @@ AC_DISABLE_SHARED dnl shared libs by default cause too much trouble
 
 AC_PROG_CXX
 AC_PROG_F77
+AC_F77_WRAPPERS
 AC_PROG_INSTALL
 
 AC_LANG([C++])
