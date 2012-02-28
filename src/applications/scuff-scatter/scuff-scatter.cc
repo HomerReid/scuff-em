@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
   if (nThread==0)
-   nThread=GetNumProcs();
+   nThread=GetNumThreads();
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */

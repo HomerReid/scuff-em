@@ -10,13 +10,19 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-#include <pthread.h>
 
 #include <libhrutil.h>
 #include <libSpherical.h>
 #include <libTriInt.h>
 
 #include "libscuff.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 namespace scuff {
 
@@ -376,19 +382,24 @@ void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
                                       cdouble *aE, cdouble *aM)
 { 
   int nt;
-  ThreadData TDS[nThread], *TD;
-  pthread_t Threads[nThread];
+
+  if (nThread<=0)
+   ErrExit("GetSphericalMoments called with nThread=%i",nThread);
+
+#ifdef USE_PTHREAD
+  ThreadData *TDS = new ThreadData[nThread], *TD;
+  pthread_t *Threads = new pthread_t[nThread];
+#else
+  ThreadData TD1;
+#endif
 
   int nmm, NMM=(lMax+1)*(lMax+1);
-  cdouble aEPartial[nThread*NMM];
-  cdouble aMPartial[nThread*NMM];
+  cdouble *aEPartial = new cdouble[nThread*NMM];
+  cdouble *aMPartial = new cdouble[nThread*NMM];
 
   cdouble zEps;
   double Eps, Mu;
   double Wavevector;
-
-  if (nThread<=0)
-   ErrExit("GetSphericalMoments called with nThread=%i",nThread);
 
   /***************************************************************/
   /* sanity check on WhichObject *********************************/
@@ -412,9 +423,16 @@ void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
   /*         and aM[ NMM*nt, NMM*nt + 1, ... , NMM*nt + NMM - 1] */
   /*        and afterward we go through and sum them all up.     */
   /***************************************************************/
+#ifdef USE_OPENMP
+#pragma omp parallel for private(TD1), schedule(static,1), num_threads(nThread)
+#endif
   for(nt=0; nt<nThread; nt++)
    { 
+#ifdef USE_PTHREAD
      TD=&(TDS[nt]);
+#else
+     ThreadData *TD=&TD1;
+#endif
 
      TD->nt=nt;
      TD->nThread=nThread;
@@ -429,15 +447,21 @@ void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
      TD->aE=aE + nt*NMM;
      TD->aM=aM + nt*NMM;
      
+#ifdef USE_PTHREAD
      if (nt+1 == nThread)
        GetSphericalMoments_Thread((void *)TD);
      else
        pthread_create( &(Threads[nt]), 0, GetSphericalMoments_Thread, (void *)TD);
+#else
+       GetSphericalMoments_Thread((void *)TD);
+#endif
    }
 
+#ifdef USE_PTHREAD
   /* wait for threads to complete */
   for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
+#endif
 
   /* sum contributions from all threads */
   memset(aE,0,NMM*sizeof(cdouble));
@@ -450,4 +474,10 @@ void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
 
 }
 
+  delete[] aEPartial;
+  delete[] aMPartial;
+#ifdef USE_PTHREAD
+  delete[] Threads;
+  delete[] TDS;
+#endif
 } // namespace scuff

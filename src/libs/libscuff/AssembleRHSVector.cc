@@ -8,13 +8,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
 
 #include <libhrutil.h>
 #include <libTriInt.h>
 #include <libhmat.h>
 
 #include "libscuff.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 namespace scuff {
 
@@ -206,7 +212,7 @@ void *AssembleRHS_Thread(void *data)
   /*--------------------------------------------------------------*/
   /*- EXPERIMENTAL -----------------------------------------------*/
   /*--------------------------------------------------------------*/
-#ifdef _GNU_SOURCE
+#if defined(_GNU_SOURCE) && defined(USE_PTHREAD)
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(TD->nt,&cpuset);
@@ -277,15 +283,26 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
 { 
   int nt;
 
-  ThreadData TDS[nThread], *TD;
-  pthread_t Threads[nThread];
-
   if (nThread<=0)
    ErrExit("AssembleRHSVector called with nThread=%i",nThread);
 
+#ifdef USE_PTHREAD
+  ThreadData *TDS = new ThreadData[nThread], *TD;
+  pthread_t *Threads = new pthread_t[nThread];
+#else
+  ThreadData TD1;
+#endif
+
+#ifdef USE_OPENMP
+#pragma omp parallel for private(TD1), schedule(static,1), num_threads(nThread)
+#endif
   for(nt=0; nt<nThread; nt++)
    { 
+#ifdef USE_PTHREAD
      TD=&(TDS[nt]);
+#else
+     ThreadData *TD=&TD1;
+#endif
      TD->nt=nt;
      TD->nThread=nThread;
 
@@ -296,15 +313,23 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
 
      TD->nThread=nThread;
      
+#ifdef USE_PTHREAD
      if (nt+1 == nThread)
        AssembleRHS_Thread((void *)TD);
      else
        pthread_create( &(Threads[nt]), 0, AssembleRHS_Thread, (void *)TD);
+#else
+     AssembleRHS_Thread((void *)TD);
+#endif
    };
 
+#ifdef USE_PTHREAD
   for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
+  delete[] Threads;
+  delete[] TDS;
+#endif
 }
 
 /***************************************************************/

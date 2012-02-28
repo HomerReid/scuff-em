@@ -14,13 +14,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
-
 #include <libhmat.h>
 #include <libhrutil.h>
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 namespace scuff {
 
@@ -69,12 +74,12 @@ void *ABMBThread(void *data)
   /*--------------------------------------------------------------*/
   /*- hack to force all threads to run on separate CPU cores     -*/
   /*--------------------------------------------------------------*/
-  #ifdef _GNU_SOURCE
+#if defined(_GNU_SOURCE) && defined(USE_PTHREAD)
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
   CPU_SET(TD->nt,&cpuset);
   pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-  #endif
+#endif
   /*--------------------------------------------------------------*/
   /*- end hack ---------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -323,28 +328,47 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /* fire off threads ********************************************/
   /***************************************************************/
   int nt, nThread=Args->nThread;
-  ThreadData TDs[nThread], *TD;
-  pthread_t Threads[nThread];
+#ifdef USE_PTHREAD
+  ThreadData *TDs = new ThreadData[nThread], *TD;
+  pthread_t *Threads = new pthread_t[nThread];
+#else
+  ThreadData TD1;
+#endif
 
+#ifdef USE_OPENMP
+#pragma omp parallel for private(TD1), schedule(static,1), num_threads(nThread)
+#endif
   for(nt=0; nt<nThread; nt++)
    { 
+#ifdef USE_PTHREAD
      TD=&(TDs[nt]);
+#else
+     ThreadData *TD=&TD1;
+#endif
      TD->nt=nt;
      TD->nThread=nThread;
      TD->Args=Args;
 
+#ifdef USE_PTHREAD
      if (nt+1 == nThread)
        ABMBThread((void *)TD);
      else
        pthread_create( &(Threads[nt]), 0, ABMBThread, (void *)TD);
+#else
+     ABMBThread((void *)TD);
+#endif
    };
 
+#ifdef USE_PTHREAD
   /***************************************************************/
   /* await thread completion *************************************/
   /***************************************************************/
   for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
+  delete[] Threads;
+  delete[] TDs;
+#endif
 }
 
 

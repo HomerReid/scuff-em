@@ -207,7 +207,7 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
          Phi = ExpRel(ik*r,4) / (4.0*M_PI*r);
         else
          Phi = exp(ik*r) / (4.0*M_PI*r);
-        if ( !finite(real(Phi)) ) Phi=0.0;
+        if ( !isfinite(real(Phi)) ) Phi=0.0;
 
         // put the cubature weight into Phi since Phi is a factor in
         // all integrand components

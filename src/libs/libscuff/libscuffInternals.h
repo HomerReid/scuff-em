@@ -9,9 +9,8 @@
 #ifndef LIBSCUFFINTERNALS_H 
 #define LIBSCUFFINTERNALS_H
 
-#include <pthread.h>
-
 #include "libscuff.h"
+#include "rwlock.h"
 
 namespace scuff {
 
@@ -231,7 +230,7 @@ class FIPPICache
     // implementation 
     void *opTable;
 
-    pthread_rwlock_t FCLock;
+    rwlock FCLock;
 
     int DoNotCompute;
  

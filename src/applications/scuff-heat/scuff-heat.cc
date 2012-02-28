@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
 
   SHD->nThread=nThread;
   if (SHD->nThread==0)
-   SHD->nThread=GetNumProcs();
+   SHD->nThread=GetNumThreads();
 
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
   /* now switch off based on the requested frequency behavior to     */
   /* perform the actual calculations                                 */
   /*******************************************************************/
-  double I[NumFreqs];
+  double *I = new double[NumFreqs];
   if (NumFreqs>0)
    { for (nFreq=0; nFreq<NumFreqs; nFreq++)
       GetFrequencyIntegrand(SHD, OmegaList->GetEntry(nFreq), I+nFreq );
@@ -306,6 +306,7 @@ int main(int argc, char *argv[])
    { // frequency integration not yet implemented 
      ErrExit("frequency integration is not yet implemented");
    };
+  delete[] I;
 
   /*******************************************************************/
   /* dump the final cache to a cache storage file if requested       */

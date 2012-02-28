@@ -11,12 +11,18 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-#include <pthread.h>
 
 #include <libhrutil.h>
 #include <libTriInt.h>
 
 #include "libscuff.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 namespace scuff {
 
@@ -134,19 +140,30 @@ void RWGGeometry::GetDipoleMoments(double Frequency, int RealFreq,
 { 
   int nt, no, mu;
 
-  ThreadData TDS[nThread], *TD;
-  pthread_t Threads[nThread];
-
   if (nThread<=0)
    ErrExit("GetDipoleMoments called with nThread=%i",nThread);
+
+#ifdef USE_PTHREAD
+  ThreadData *TDS = new ThreadData[nThread], *TD;
+  pthread_t *Threads = new pthread_t[nThread];
+#else
+  ThreadData TD1;
+#endif
 
   for(no=0; no<NumObjects; no++)
    memset(PM[no],0,6*sizeof(cdouble));
 
+#ifdef USE_OPENMP
+#pragma omp parallel for private(TD1), schedule(static,1), num_threads(nThread)
+#endif
   /* fire off threads */
   for(nt=0; nt<nThread; nt++)
    { 
+#ifdef USE_PTHREAD
      TD=&(TDS[nt]);
+#else
+     ThreadData *TD=&TD1;
+#endif
      TD->nt=nt;
      TD->nThread=nThread;
 
@@ -156,16 +173,24 @@ void RWGGeometry::GetDipoleMoments(double Frequency, int RealFreq,
      TD->KN=KN;
      TD->PM=PM;
 
+#ifdef USE_PTHREAD
      if (nt+1 == nThread)
        GetDipoleMoment_Thread((void *)TD);
      else
        pthread_create( &(Threads[nt]), 0, GetDipoleMoment_Thread, (void *)TD);
+#else
+     GetDipoleMoment_Thread((void *)TD);
+#endif
    };
 
+#ifdef USE_PTHREAD
   /* wait for threads to complete */
   for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
+  delete[] Threads;
+  delete[] TDS;
+#endif
 }
 
 } // namespace scuff

@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
   if (EPFile==0)
    OSUsage(argv[0], OSArray,"--EPfile option is mandatory");
   if (nThread==0)
-   nThread=GetNumProcs();
+   nThread=GetNumThreads();
 
   /*******************************************************************/
   /* create the RWGGeometry, allocate BEM matrix and RHS vector, and */

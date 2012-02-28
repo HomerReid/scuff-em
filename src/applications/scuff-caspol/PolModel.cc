@@ -30,7 +30,7 @@ PolModel::PolModel(const char *PolFileName)
    // extract the 1st and 6th columns as the X and Y data
    // (the 6th column is for rubidium)
    int n, N=PolDataMatrix->NR;
-   double XValues[N], YValues[N];
+   double *XValues = new double[N], *YValues = new double[N];
    for(n=0; n<N; n++)
     { XValues[n]=PolDataMatrix->GetEntryD(n,0);
       YValues[n]=PolDataMatrix->GetEntryD(n,5);
@@ -40,7 +40,7 @@ PolModel::PolModel(const char *PolFileName)
    PolInterp = new Interp1D(XValues, YValues, N, 1);
 
    delete PolDataMatrix;
-  
+   delete[] XValues; delete[] YValues;
 }
 
 

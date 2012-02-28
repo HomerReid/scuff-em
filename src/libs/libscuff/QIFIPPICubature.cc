@@ -336,7 +336,7 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
   /*--------------------------------------------------------------*/
   /*- evaluate the adaptive cubature over the pair of triangles  -*/
   /*--------------------------------------------------------------*/
-  int fdim = 33;
+  const int fdim = 33;
   double F[fdim], E[fdim];
 
   CFDD->nCalls=0;

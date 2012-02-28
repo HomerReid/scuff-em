@@ -149,8 +149,8 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
 { 
   int nXi, NEP=SCPD->EPList->NR;  // 'number of evaluation points' 
   double Xi, Weight, Delta;
-  double dU[NEP], LastU[NEP]; 
-  int ConvergedIters[NEP], AllConverged;
+  double *dU = new double[NEP], *LastU = new double[NEP]; 
+  int *ConvergedIters = new int[NEP], AllConverged;
   double kT=Temperature*BOLTZMANNK;
 
   memset(U,0,NEP*sizeof(double));
@@ -224,7 +224,10 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
    } 
   else 
    Log("Matsubara sum converged after summing n=%i frequency points.",nXi);
-    
+
+  delete[] ConvergedIters;
+  delete[] LastU;
+  delete[] dU;
 } 
 
 /***************************************************************/
@@ -252,10 +255,11 @@ void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
   double Upper=1.0;
 
   int fdim=SCPD->EPList->NR; // dimension of integrand vector 
-  double Error[fdim];
+  double *Error = new double[fdim];
 
   adapt_integrate_log(fdim, SGJCIntegrand, (void *)SCPD, 1, 
                       &Lower, &Upper, 0, SCPD->AbsTol, SCPD->RelTol,
                       U, Error, "scuff-caspol.cubaturelog", 15);
 
+  delete[] Error;
 }

@@ -134,7 +134,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 
   InitRWGObject(MeshFileName, pLabel, MaterialName, GT);
 
-};
+}
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
