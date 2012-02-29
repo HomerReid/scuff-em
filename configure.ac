@@ -112,7 +112,7 @@ LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
 ##################################################
 # checks for muparser
 ##################################################
-AC_CHECK_HEADERS([muParser/muParser.h, muParser.h])
+AC_CHECK_HEADERS([muParser/muParser.h muParser.h])
 save_LIBS=$LIBS
 LIBS="$LIBS -lmuparser"
 AC_MSG_CHECKING([for -lmuparser])
