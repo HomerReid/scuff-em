@@ -231,15 +231,9 @@ class RWGObject
 
    /* constructor subroutines */
    void InitEdgeList();
-   void InitSPPIDTable();
    void ReadGMSHFile(FILE *MeshFile, char *FileName, GTransformation *GT);
    void ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *GT);
 
-   /* utility routines */
-   int CountCommonVertices(int np1, int np2, int *Index1, int *Index2);
-   int CountCommonVertices(int np1, int np2) 
-    { return CountCommonVertices(np1, np2, 0, 0); }
-       
    /* calculate reduced potentials due to a single basis function */
    /* (this is a helper function used to implement the            */
    /*  GetInnerProducts() class method)                           */

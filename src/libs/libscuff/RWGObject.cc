@@ -86,7 +86,15 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
          };
         ContainingObjectLabel=strdup(Tokens[1]);
       }
-     else if ( !strcasecmp(Tokens[0],"DISPLACED") )
+     else if (    !strcasecmp(Tokens[0],"DISPLACED")
+               || !strcasecmp(Tokens[0],"DISP")
+               || !strcasecmp(Tokens[0],"ROTATED")
+               || !strcasecmp(Tokens[0],"ROT")
+             )
+      { OTGT=CreateOrAugmentGTransformation(OTGT, Tokens, NumTokens, &ErrMsg);
+        if (ErrMsg) return ErrMsg;
+      };
+
       { 
         if (NumTokens!=4)
          { ErrMsg=strdup("DISPLACED keyword requires 3 arguments");
@@ -351,9 +359,14 @@ int RWGObject::Transform(const char *format, ...)
   /***************************************************************/
   int nt, nConv;
   GTransformation *DeltaGT=0; // 'new geometrical transformation'
-  double DX[3], ZHat[3], Theta;
+  
   for(nt=0; nt<NumTokens; nt++)
    { 
+     /*--------------------------------------------------------------*/
+     /*- attempt to understand the line as a geometrical transform  -*/
+     /*--------------------------------------------------------------*/
+     if ( !strcasecmp(Tokens[nt],"DISP") )
+
      /*--------------------------------------------------------------*/
      /* parse DISP element                                           */
      /*--------------------------------------------------------------*/
@@ -513,33 +526,8 @@ RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3)
 } 
 
 /***************************************************************/
-/* Count how many vertices are shared in common between panels */
-/* #np1 and #np2.                                              */
-/* On return, Index1[0..nc] are the indices of the common      */
-/* vertices in P1, and Index2[0..nc] are the indices of those  */
-/* same vertices in P2, where nc is the number returned by     */
-/* the routine.                                                */
-/* Or, you can pass null pointers for Index1 and Index2, in    */
-/* which case the routine still returns the number of common   */
-/* vertices.                                                   */
-/***************************************************************/
-int RWGObject::CountCommonVertices(int np1, int np2, int *Index1, int *Index2)
-{ 
-  int i, j, nCommon;
-
-  for(nCommon=0, i=0; i<3; i++)
-   for(j=0; j<3; j++)
-    if ( Panels[np1]->VI[i]==Panels[np2]->VI[j] )
-     { if (Index1) Index1[nCommon]=i;
-       if (Index2) Index2[nCommon]=j;
-       nCommon++;
-     };
-
-  return nCommon;
-}
-
-/***************************************************************/
-/***************************************************************/
+/* Compute the overlap integral between the RWG basis functions*/
+/* associated with two edges in an RWG object.                 */
 /***************************************************************/
 double RWGObject::GetOverlap(int neAlpha, int neBeta)
 { 

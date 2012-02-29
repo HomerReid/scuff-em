@@ -28,13 +28,24 @@ typedef struct GTransformation
 /* routines to create a new GTransformation, or to augment an  */
 /* existing one                                                */
 /***************************************************************/
+
+// create or augment using a known displacement vector
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX);
 GTransformation *CreateGTransformation(double *DX);
-
+ 
+// create or augment using a known rotation angle and axis 
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
                                                 double *ZHat, double Theta);
 GTransformation *CreateGTransformation(double *ZHat, double Theta);
 
+// create or augment by parsing a character string.   
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
+                                                char *TransformString,
+                                                char **ErrMsg);
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
+                                                char **Tokens, int NumTokens,
+                                                char **ErrMsg);
+// identity transformation 
 GTransformation *CreateGTransformation(); // identity transformation
 
 void AugmentGTransformation(GTransformation *DeltaGT, GTransformation *GT);

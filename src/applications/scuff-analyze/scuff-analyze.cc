@@ -107,12 +107,12 @@ void AnalyzeGeometry(RWGGeometry *G, int WriteGPFiles, int WritePPFiles)
   if (WriteGPFiles)
    { G->WriteGPMesh("%s.gp",GetFileBase(G->GeoFileName));
      printf("Geometry visualization data written to GNUPLOT file %s.gp.\n\n",
-             GetFileBase(GeoFile));
+             GetFileBase(G->GeoFileName));
    };
 
   if (WritePPFiles)
    { char buffer[MAXSTR];
-     snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(GeoFile));
+     snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(G->GeoFileName));
      unlink(buffer);
      G->WritePPMesh(buffer,buffer);
      printf("Geometry visualization data written to GMSH file %s.\n\n",buffer);
@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
      int ngtc, NGTC;
      GTComplex **GTCList=ReadTransFile(TransFile, &NGTC);
 
-     char *PPFileName[MAXSTR];
+     char PPFileName[MAXSTR];
      snprintf(PPFileName,MAXSTR,"%s.transformed.pp",GetFileBase(G->GeoFileName));
 
      for(ngtc=0; ngtc<NGTC; ngtc++) 
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
         G->UnTransform();
       };
 
-     printf("Visualizations for %i transforms written to %s.\n",PPFileName);
+     printf("Visualizations for %i transforms written to %s.\n",NGTC,PPFileName);
  
    };
 

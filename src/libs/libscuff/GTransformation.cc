@@ -116,6 +116,21 @@ GTransformation *CreateGTransformation(double *ZHat, double Theta)
  { CreateOrAugmentGTransformation(0, ZHat, Theta); }
 
 /***************************************************************/
+/* a transformation described by a character string.           */
+/* in this case, the caller should look at the value returned  */
+/* for the parameter ErrMsg; if ErrMsg==0 on return, the       */
+/* string was successfully parsed and interpreted as a         */
+/* GTransformation, and otherwise ErrMsg points to an error    */
+/* message.                                                    */
+/***************************************************************/
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
+                                                char *TransformString,
+                                                char **ErrMsg)
+{
+}
+                                                
+
+/***************************************************************/
 /* this routine augments the given GTransformation by parsing  */
 /* a list of string tokens.                                    */
 /* the list of tokens should look like (with each              */
