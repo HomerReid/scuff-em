@@ -48,6 +48,7 @@ config.sub
 config.status
 config.log
 libtool
+INSTALL
 
 # Packages #
 ############
