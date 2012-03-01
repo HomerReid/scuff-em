@@ -39,7 +39,8 @@ namespace scuff {
 /*************************************************************/
 /*************************************************************/
 /*************************************************************/
-void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName, GTransformation *GT)
+void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName, 
+                             GTransformation *OTGT)
 {
   RWGPanel *P;
   char buffer[100];
@@ -106,9 +107,10 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName, GTransformation *GT
    }; /* for (nv=0; nv<NumVertices; nv++) */
    
   /*------------------------------------------------------------*/
-  /*- Apply geometrical transformation (if any) to all nodes.  -*/
+  /*- Apply one-time geometrical transformation (if any) to all */ 
+  /*- vertices.                                                 */ 
   /*------------------------------------------------------------*/
-  if (GT) ApplyGTransformation(GT, Vertices, NumVertices);
+  if (OTGT) ApplyGTransformation(OTGT, Vertices, NumVertices);
  
   /*------------------------------------------------------------*/
   /*- Eliminate any redundant vertices from the vertex list.   -*/

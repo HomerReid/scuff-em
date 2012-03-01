@@ -148,7 +148,8 @@ class RWGObject
    void Rotate(double *ZHat, double Theta);
 
    /* apply a general transformation (rotation+displacement) to the object */
-   int Transform(const char *TransLine, ... );
+  // int Transform(const char *TransLine, ... );
+   void Transform(GTransformation *GT);
    void UnTransform();
 
    void TransformPoint(double *X);

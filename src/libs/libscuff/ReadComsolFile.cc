@@ -38,7 +38,8 @@ static int SkipTo(FILE *f, const char *SearchString, char *Line)
 /* Constructor helper function for reading in nodes and  *******/
 /* elements for a .mphtxt file as produced by COMSOL     *******/
 /***************************************************************/
-void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *GT)
+void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, 
+                               GTransformation *OTGT)
 { 
   char Line[MAXSTR], *p;
   int i, j, nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
@@ -80,7 +81,7 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *
   /***************************************************************/
   /*- Apply geometrical transformation (if any) to all nodes.   -*/
   /***************************************************************/
-  if (GT) ApplyGTransformation(GT, Vertices, NumVertices);
+  if (OTGT) ApplyGTransformation(OTGT, Vertices, NumVertices);
 
   /***************************************************************/
   /* skip down to element definition section *********************/

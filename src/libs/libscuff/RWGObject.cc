@@ -49,11 +49,10 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   /***************************************************************/
   char Line[MAXSTR];
   char MaterialName[MAXSTR];
-  int nt, NumTokens;
+  int nt, NumTokens, TokensConsumed;
   char *p, *Tokens[MAXTOK];
   int ReachedTheEnd=0;
-  GTransformation *GT=0;
-  double DX[3], ZHat[3], Theta;
+  GTransformation *OTGT=0; // 'one-time geometrical transformation'
   MaterialName[0]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
@@ -86,49 +85,25 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
          };
         ContainingObjectLabel=strdup(Tokens[1]);
       }
-     else if (    !strcasecmp(Tokens[0],"DISPLACED")
-               || !strcasecmp(Tokens[0],"DISP")
-               || !strcasecmp(Tokens[0],"ROTATED")
-               || !strcasecmp(Tokens[0],"ROT")
-             )
-      { OTGT=CreateOrAugmentGTransformation(OTGT, Tokens, NumTokens, &ErrMsg);
-        if (ErrMsg) return ErrMsg;
-      };
-
+     else if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"ROTATED") )
       { 
-        if (NumTokens!=4)
-         { ErrMsg=strdup("DISPLACED keyword requires 3 arguments");
+        // try to parse the line as a geometrical transformation.
+        // note that OTGT is used as a running GTransformation that may
+        // be augmented by multiple DISPLACED ... and/or ROTATED ...
+        // lines within the OBJECT...ENDOBJECT section, and which is 
+        // applied to the object at its birth and subsequently discarded.
+        // in particular, OTGT is NOT stored as the 'GT' field inside 
+        // the Object class, which is intended to be used for 
+        // transformations that are applied and later un-applied 
+        // during the life of the object. 
+        OTGT=CreateOrAugmentGTransformation(OTGT, Tokens, NumTokens, 
+                                            &ErrMsg, &TokensConsumed);
+        if (ErrMsg)
+         return;
+        if (TokensConsumed!=NumTokens) 
+         { ErrMsg=strdup("junk at end of line");
            return;
          };
-
-        if (    1!=sscanf(Tokens[1],"%le",DX+0)
-             || 1!=sscanf(Tokens[2],"%le",DX+1)
-             || 1!=sscanf(Tokens[3],"%le",DX+2) ) 
-         { ErrMsg=strdup("invalid argument to DISPLACED");
-           return;
-         };
-
-        GT=CreateOrAugmentGTransformation(GT,DX);
-      }
-     else if ( !strcasecmp(Tokens[0],"ROTATED") )
-      { 
-        // the syntax is ROTATED tt ABOUT xx yy zz 
-        // where 'ABOUT' is a fixed keyword
-        if ( NumTokens!=6 || strcasecmp(Tokens[2],"ABOUT" ) )
-         { ErrMsg=strdup("invalid syntax for ROTATED keyword");
-           return;
-         };
-
-        if (    1!=sscanf(Tokens[1],"%le",&Theta)
-             || 1!=sscanf(Tokens[3],"%le",ZHat+0)
-             || 1!=sscanf(Tokens[4],"%le",ZHat+1)
-             || 1!=sscanf(Tokens[5],"%le",ZHat+2) )
-         { ErrMsg=strdup("invalid argument to ROTATED");
-           return;
-         };
-
-        GT=CreateOrAugmentGTransformation(GT,ZHat,Theta);
-
       }
      else if ( !strcasecmp(Tokens[0],"ENDOBJECT") )
       { 
@@ -140,7 +115,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
       };
    }; 
 
-  InitRWGObject(MeshFileName, pLabel, MaterialName, GT);
+  InitRWGObject(MeshFileName, pLabel, MaterialName, OTGT);
 
 }
 
@@ -156,8 +131,8 @@ RWGObject::RWGObject(const char *pMeshFileName)
 RWGObject::RWGObject(const char *pMeshFileName, 
                      const char *pLabel,
                      const char *Material,
-                     GTransformation *GT)
- { InitRWGObject(pMeshFileName, pLabel, Material, GT); }
+                     GTransformation *OTGT)
+ { InitRWGObject(pMeshFileName, pLabel, Material, OTGT); }
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -315,106 +290,15 @@ RWGObject::~RWGObject()
   
 }
 
-/*************************************************************/
-/* Parse a "transformation" line and rotate/displace the     */
-/* object accordingly.                                       */
-/*                                                           */
-/* The "transformation" line is a string containing one or   */
-/* more of the following sections:                           */
-/*                                                           */
-/*  DISP x y z                    (displacement)             */
-/*  ROT  Ax Ay Az Theta           (rotation)                 */
-/*                                                           */
-/* Rotations are through Theta degrees (NOT RADIANS) about   */
-/* an axis passing through (0,0,0) and (Ax,Ay,Az).           */
-/*                                                           */
-/* Returns zero if the TransLine was valid, nonzero if the   */
-/* transline was invalid.                                    */
-/*                                                           */
-/* Transformations are cumulative; two calls to Transform()  */
-/* will build on each other.                                 */
-/*************************************************************/
-int RWGObject::Transform(const char *format, ...)
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+RWGObject::Transform(GTransformation *DeltaGT)
 { 
   /***************************************************************/
-  /* fill out the TransLine with any printf-style arguments      */
-  /***************************************************************/
-  char TransLine[MAXSTR];
-  va_list ap;
-  va_start(ap,format);
-  vsnprintf(TransLine,MAXSTR,format,ap);
-  va_end(ap);
-
-  /***************************************************************/
-  /* break it up into tokens to be parsed ************************/
-  /***************************************************************/
-  char *Tokens[MAXTOK];
-  int NumTokens=Tokenize(TransLine, Tokens, MAXTOK);
-
-  if (NumTokens==0 || Tokens[0][0]=='#') 
-   return 0; // a transformation that does nothing is considered valid
-
-  /***************************************************************/
-  /* parse the line **********************************************/
-  /***************************************************************/
-  int nt, nConv;
-  GTransformation *DeltaGT=0; // 'new geometrical transformation'
-  
-  for(nt=0; nt<NumTokens; nt++)
-   { 
-     /*--------------------------------------------------------------*/
-     /*- attempt to understand the line as a geometrical transform  -*/
-     /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Tokens[nt],"DISP") )
-
-     /*--------------------------------------------------------------*/
-     /* parse DISP element                                           */
-     /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Tokens[nt],"DISP") )
-      { 
-        if ( nt+3 >= NumTokens )
-         return 1;
-
-        if (    1!=sscanf(Tokens[nt+1],"%le",DX+0)
-             || 1!=sscanf(Tokens[nt+2],"%le",DX+1)
-             || 1!=sscanf(Tokens[nt+3],"%le",DX+2) )
-         return 1;
-        
-        DeltaGT=CreateOrAugmentGTransformation(DeltaGT, DX);
-
-        nt+=3;
-      }
-     /*--------------------------------------------------------------*/
-     /*- parse ROT element ------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     else if ( !strcasecmp(Tokens[nt],"ROT") )
-      { 
-        if ( nt+4 >= NumTokens )
-         return 1;
-
-        if (    1!=sscanf(Tokens[nt+1],"%le",ZHat+0)
-             || 1!=sscanf(Tokens[nt+2],"%le",ZHat+1)
-             || 1!=sscanf(Tokens[nt+3],"%le",ZHat+2)
-             || 1!=sscanf(Tokens[nt+4],"%le",&Theta) )
-         return 1;
-        
-        DeltaGT=CreateOrAugmentGTransformation(DeltaGT, ZHat, Theta);
-
-        nt+=4;
-      }
-     /*--------------------------------------------------------------*/
-     /*- unknown keyword --------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     else 
-      return 1;
-
-   }; // while( *p )
-
-  /***************************************************************/
-  /*- OK, now that we have constructed the transformation, we    */
-  /*- need to apply it to all points whose coordinates we store  */
-  /*- inside the RWGObject structure: vertices, edge centroids,  */
-  /*- and panel centroids.                                       */
+  /*- first apply the transformation to all points whose         */
+  /*- coordinates we store inside the RWGObject structure:       */
+  /*- vertices, edge centroids, and panel centroids.             */
   /***************************************************************/
   /* vertices */
   ApplyGTransformation(DeltaGT, Vertices, NumVertices);
@@ -433,9 +317,9 @@ int RWGObject::Transform(const char *format, ...)
    InitRWGPanel(Panels[np], Vertices);
 
   /***************************************************************/
+  /* update the internally stored GTransformation ****************/
   /***************************************************************/
-  /***************************************************************/
-  AugmentGTransformation(DeltaGT, GT);
+  GT=CreateOrAugmentGTransformation(GT, DeltaGT);
 
   return 0;
 
@@ -443,9 +327,6 @@ int RWGObject::Transform(const char *format, ...)
 
 void RWGObject::UnTransform()
 {
-  int Mu, Nu;
-  int nv, ne, np;
-
   /***************************************************************/
   /* untransform vertices                                        */
   /***************************************************************/
@@ -454,6 +335,7 @@ void RWGObject::UnTransform()
   /***************************************************************/
   /* untransform edge centroids                                  */
   /***************************************************************/
+  int ne;
   for(ne=0; ne<NumEdges; ne++)
    UnApplyGTransformation(GT, Edges[ne]->Centroid, 1);
 
@@ -461,6 +343,7 @@ void RWGObject::UnTransform()
   /* reinitialize geometric data on panels (which takes care of  */ 
   /* transforming the panel centroids)                           */ 
   /***************************************************************/
+  int np;
   for(np=0; np<NumPanels; np++)
    InitRWGPanel(Panels[np], Vertices);
 

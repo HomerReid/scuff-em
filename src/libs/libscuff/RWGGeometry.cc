@@ -361,126 +361,9 @@ RWGGeometry::~RWGGeometry()
 }
 
 /***************************************************************/
-/* Transform: Process a 'transformation' line that may contain */
-/* separate displacements for one or more objects in the       */
-/* geometry.                                                   */
-/*                                                             */
-/*                                                             */
-/* The "transformation" line is a string containing one or     */
-/* more of the following sections:                             */
-/*  TAG    mystr                    (description of transform) */
-/*  LABEL  obj1                     (object to transform)      */
-/*  DISP   x1 y1 z1                 (displacement)             */
-/*  ROT    Ax Ay Az Theta           (rotation)                 */
-/*  LABEL  obj2                     (object to transform)      */
-/*  DISP   x2 y2 z2                 (displacement)             */
-/* etc.                                                        */
-/*                                                             */
-/* If any error is incurred in the processing of the           */
-/* transformation line, a nonzero value is returned and an     */
-/* error message is written to ErrMsg.                         */
-/* Otherwise (i.e. if successful) zero is returned.            */
 /***************************************************************/
-int RWGGeometry::Transform(char *TransLine, char *Tag, char *ErrMsg)
+int RWGGeometry::Transform(GTComplex *GTC)
 { 
-  int no, nRead, nConv;
-  RWGObject *O;
-  char *p, *pp, Token[MAXSTR], ObjectLabel[MAXSTR], TagBuf[MAXSTR];
-
-  if (ErrMsg) ErrMsg[0]=0;
-
-  /* skip blank lines and comments */
-  p=TransLine; 
-  while( isspace(*p) )
-   p++;
-  if ( *p==0 || *p=='#' )
-   return 0;
-
-  /* assume no objects will be moved */
-  memset(ObjectMoved,0,NumObjects*sizeof(int));
-
-  /*
-   * parse transformation line
-   */
-  sprintf(TagBuf,"notag"); 
-  while( p && *p )
-   {
-     /*--------------------------------------------------------------*/
-     /*- read next token off of line --------------------------------*/
-     /*--------------------------------------------------------------*/
-     nConv=sscanf(p,"%s%n",Token,&nRead);  
-     p+=nRead;  
-     if ( nConv<=0 || Token[0]=='\n' ) 
-      break;
-     
-     /*--------------------------------------------------------------*/
-     /* parse TAG element */
-     /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Token,"TAG") )
-      {
-        sscanf(p,"%s%n",TagBuf,&nRead);
-        p+=nRead;
-        if ( nConv!=1 )
-         { if (ErrMsg) sprintf(ErrMsg,"syntax error");
-           return 1;
-         };
-      }
-     /*--------------------------------------------------------------*/
-     /* parse LABEL element.                                         */
-     /*--------------------------------------------------------------*/
-     else if ( !strcasecmp(Token,"LABEL") )
-      {  
-        /* read object label */
-        nConv=sscanf(p,"%s%n",ObjectLabel,&nRead);
-        p+=nRead;
-        if ( nConv!=1 )
-         { if (ErrMsg) sprintf(ErrMsg,"syntax error");
-           return 1;
-         };
-
-        /* find matching object */
-        for(no=0; no<NumObjects; no++)
-         if ( !strcasecmp(Objects[no]->Label,ObjectLabel) )
-          break;
-        if(no==NumObjects)
-         { if (ErrMsg) sprintf(ErrMsg,"unknown object %s",ObjectLabel);
-           return 1;
-         };
-        O=Objects[no];
-
-        ObjectMoved[no]=1;
-
-        /* now send everything between here and the  */
-        /* next instance of the 'LABEL' keyword to object O to */
-        /* process as a transformation                         */ 
-        pp=strcasestr(p,"LABEL");
-        if ( !pp )
-         { if ( O->Transform(p) )
-            { if (ErrMsg) sprintf(ErrMsg,"invalid transformation");
-              return 1;
-            };
-           p=0;
-         }
-        else
-         { *pp=0;
-           if ( O->Transform(p) )
-            { if (ErrMsg) sprintf(ErrMsg,"invalid transformation");
-              return 1;
-            };
-           *pp='L';  // put back the 'L' in the LABEL keyword
-           p=pp;
-         };
-      }   // else if ( !strcasecmp(Token,"LABEL") )
-     else 
-      { if (ErrMsg) sprintf(ErrMsg,"syntax error");
-        return 1;
-      };
-
-   }; // while( p && *p )
-
-  if (Tag) strcpy(Tag,TagBuf);
-
-  return 0;
 
 }
 
@@ -488,7 +371,8 @@ int RWGGeometry::Transform(char *TransLine, char *Tag, char *ErrMsg)
 /* Undo transformations. ***************************************/
 /***************************************************************/
 void RWGGeometry::UnTransform()
-{ int no;
+{ 
+  int no;
   for(no=0; no<NumObjects; no++)
    Objects[no]->UnTransform();
 }

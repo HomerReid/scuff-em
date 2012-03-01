@@ -117,6 +117,15 @@ GTransformation *CreateGTransformation(double *ZHat, double Theta)
 
 /***************************************************************/
 /* a transformation described by a character string.           */
+/*                                                             */
+/* the string should be of the form                            */
+/*                                                             */
+/*  DISPLACED xx yy zz                                         */
+/*                                                             */
+/* or                                                          */
+/*                                                             */
+/*  ROTATED tt ABOUT xx yy zz                                  */
+/*                                                             */
 /* in this case, the caller should look at the value returned  */
 /* for the parameter ErrMsg; if ErrMsg==0 on return, the       */
 /* string was successfully parsed and interpreted as a         */
@@ -127,107 +136,88 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
                                                 char *TransformString,
                                                 char **ErrMsg)
 {
+  char Line[MAXSTR];
+  char *Tokens[MAXTOK];
+  int NumTokens;
+  
+  strncpy(Line,TransformString,MAXSTR);
+  NumTokens=Tokenize(Line, Tokens, MAXTOK);
+  return CreateOrAugmentGTransformation(GT, Tokens, NumTokens, ErrMsg, 0);
 }
-                                                
 
-/***************************************************************/
-/* this routine augments the given GTransformation by parsing  */
-/* a list of string tokens.                                    */
-/* the list of tokens should look like (with each              */
-/* whitespace-delimited string constituting a single token)    */
-/*                                                             */
-/*  DISPLACED xx yy zz                                         */
-/*                                                             */
-/* or                                                          */
-/*                                                             */
-/*  ROTATED tt ABOUT xx yy zz                                  */
-/*                                                             */
-/* and the above may be combined and repeated.                 */
-/*                                                             */
-/* The parameter 'pCT' stands for 'pointer to current token'   */
-/* (it's actually a pointer to the INDEX of the current token.)*/
-/* On entry, *pCT should be the index in the token list of the */
-/* token from which we should parsing.                         */
-/* On return, *pCT is the index of the first token beyond      */
-/* where we started parsing.                                   */
-/*                                                             */
-/* if the routine succeeds, 0 is returned.                     */
-/*                                                             */
-/* if the routine fails, an error message is returned.         */
-/***************************************************************/
-char *AugmentGTransformation(GTransformation *GT, 
-                             char **Tokens, int NumTokens,
-                             int *pCT)
-{ 
-  double Theta, ZHat[3], DX[3];
-
-  int CT=*pCT;
-  
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  while ( CT < NumTokens )
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
+                                                char **Tokens, int NumTokens, 
+                                                char **ErrMsg, int *TokensConsumed)
+{
+  if ( !strcasecmp(Tokens[0],"DISP") || !strcasecmp(Tokens[0],"DISPLACED") )
    { 
-     if ( !strcasecmp(Tokens[CT],"DISP") || !strcasecmp(Tokens[CT],"DISPLACED") )
-      { 
-        /*--------------------------------------------------------------*/
-        /*-- DISPLACED xx yy zz ----------------------------------------*/
-        /*--------------------------------------------------------------*/
-        if ( CT+3 >= NumTokens )
-         return vstrdup("too few values specified for %s ",Tokens[CT]);
-
-        if (    1!=sscanf(Tokens[CT+1],"%le",DX+0)
-             || 1!=sscanf(Tokens[CT+2],"%le",DX+1)
-             || 1!=sscanf(Tokens[CT+3],"%le",DX+2)
-           )
-         return vstrdup("bad value specified for %s",Tokens[CT]);
-
-        CreateOrAugmentGTransformation(GT, DX);
-        CT+=4;
-        *pCT=CT;
-
-      }
-     else if ( !strcasecmp(Tokens[CT],"ROT") || !strcasecmp(Tokens[CT],"ROTATED") )
-      { 
-        /*--------------------------------------------------------------*/
-        /*-- ROTATED tt ABOUT xx yy zz ---------------------------------*/
-        /*--------------------------------------------------------------*/
-        if ( CT+5 >= NumTokens )
-         return vstrdup("too few values specified for %s ",Tokens[CT]);
-
-        if ( !strcasecmp(Tokens[CT+2],"ABOUT") )
-         return vstrdup("invalid syntax for %s statement",Tokens[CT]);
-
-        if (    1!=sscanf(Tokens[CT+1],"%le",&Theta)
-             || 1!=sscanf(Tokens[CT+3],"%le",ZHat+0)
-             || 1!=sscanf(Tokens[CT+4],"%le",ZHat+1)
-             || 1!=sscanf(Tokens[CT+5],"%le",ZHat+2)
-           )
-         return vstrdup("bad value specified for %s",Tokens[CT]);
-
-        CreateOrAugmentGTransformation(GT, ZHat, Theta);
-
-        CT+=6;
-        *pCT=CT;
-      }
-     else
-      { 
-         return vstrdup("unknown token %s",Tokens[CT]); 
+     /*--------------------------------------------------------------*/
+     /*-- DISPLACED xx yy zz ----------------------------------------*/
+     /*--------------------------------------------------------------*/
+     if ( NumTokens<4 )
+      { if (ErrMsg) *ErrMsg=vstrdup("too few values specified for %s ",Tokens[CT]);
+        return 0;
       };
-  
-   }; // while ( CT < NumTokens )
 
-  return 0;
+     if (    1!=sscanf(Tokens[1],"%le",DX+0)
+          || 1!=sscanf(Tokens[2],"%le",DX+1)
+          || 1!=sscanf(Tokens[3],"%le",DX+2)
+        )
+      { if (ErrMsg) *ErrMsg=vstrdup("bad value specified for %s",Tokens[CT]);
+        return 0;
+      };
+
+     if (ErrMsg) *ErrMsg=0;
+     if (TokensConsumed) *TokensConsumed=4;
+     return CreateOrAugmentGTransformation(GT, DX);
+   }
+  else if ( !strcasecmp(Tokens[0],"ROT") || !strcasecmp(Tokens[0],"ROTATED") )
+   { 
+     /*--------------------------------------------------------------*/
+     /*-- ROTATED tt ABOUT xx yy zz ---------------------------------*/
+     /*--------------------------------------------------------------*/
+     if ( NumTokens<6 )
+      { if (ErrMsg) *ErrMsg=vstrdup("too few values specified for %s ",Tokens[CT]);
+        return 0;
+      };
+
+     if ( !strcasecmp(Tokens[2],"ABOUT") )
+      {  if (ErrMsg) *ErrMsg=vstrdup("invalid syntax for %s statement",Tokens[CT]);
+         return 0;
+      };
+
+     if (    1!=sscanf(Tokens[1],"%le",&Theta)
+          || 1!=sscanf(Tokens[3],"%le",ZHat+0)
+          || 1!=sscanf(Tokens[4],"%le",ZHat+1)
+          || 1!=sscanf(Tokens[5],"%le",ZHat+2)
+        )
+      { if (ErrMsg) *ErrMsg=vstrdup("bad value specified for %s",Tokens[CT]);
+        return 0;
+      };
+
+     if (ErrMsg) *ErrMsg=0;
+     if (TokensConsumed) *TokensConsumed=6;
+     return CreateOrAugmentGTransformation(GT, ZHat, Theta);
+   }
+  else
+   { 
+     if (ErrMsg) *ErrMsg=vstrdup("unknown keyword %s",Tokens[CT]); 
+     return 0;
+   };
 
 } 
 
 /***************************************************************/
 /* GT -> DeltaGT*GT ********************************************/
 /***************************************************************/
-void AugmentGTransformation(GTransformation *DeltaGT, GTransformation *GT)
+GTransformation *GT=CreateOrAugmentGTransformation(GTransformation *GT, 
+                                                   GTransformation *DeltaGT)
 { 
   int i, j, k;
   double NewM[3][3], NewDX[3];
+
+  if (GT==0)
+   return memdup(DeltaGT, sizeof(GTransformation));
  
   if ( DeltaGT->Type & GTRANSFORMATION_ROTATION )
    { 
@@ -250,8 +240,11 @@ void AugmentGTransformation(GTransformation *DeltaGT, GTransformation *GT)
   GT->DX[0] += DeltaGT->DX[0];
   GT->DX[1] += DeltaGT->DX[1];
   GT->DX[2] += DeltaGT->DX[2];
+
+  return GT;
    
 } 
+#endif
 
 /***************************************************************/
 /* apply the transformation (in-place) to a list of NX points  */
@@ -443,9 +436,10 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
   /* section.                                                    */
   /***************************************************************/
   char Line[MAXSTR];
-  int NumTokens;
+  int NumTokens, TokensConsumed;
   char *p, *Tokens[MAXTOK];
   char CurrentLabel[MAXSTR];
+  char *ErrMsg;
   while(fgets(Line, MAXSTR, f))
    { 
      // read line, break it up into tokens, skip blank lines and comments
@@ -490,10 +484,13 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
       { /*--------------------------------------------------------------*/
         /*-- try to process the line as DISPLACED ... or ROTATED ... ---*/
         /*--------------------------------------------------------------*/
-        int CT=0;
-        char *ErrMsg=AugmentGTransformation(CurrentGT, Tokens, NumTokens, &CT);
-        if (ErrMsg) 
+        CurrentGT=CreateOrAugmentGTransformation(CurrentGT,
+                                                 Tokens, NumTokens,
+                                                 &ErrMsg, &TokensConsumed);
+        if (ErrMsg)
          return ErrMsg;
+        if (TokensConsumed!=NumTokens)
+         return strdup("junk at end of line");
       };
 
    }; // while(fgets(Line, MAXSTR, f))
