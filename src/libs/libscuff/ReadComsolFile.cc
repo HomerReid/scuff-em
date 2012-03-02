@@ -42,7 +42,7 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
                                GTransformation *OTGT)
 { 
   char Line[MAXSTR], *p;
-  int i, j, nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
+  int nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
   
   LineNum=0;
  

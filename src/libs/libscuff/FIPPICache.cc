@@ -31,7 +31,7 @@ int NotFound;
 long JenkinsHash(char *key, size_t len)
 {
     long hash; 
-    int i;
+    unsigned int i;
     for(hash = i = 0; i < len; ++i)
     {
         hash += key[i];
@@ -273,7 +273,7 @@ void FIPPICache::PreLoad(char *FileName)
   off_t FileSize;
   FileSize=fileStats.st_size;
   char FileSignature[FIPPICF_SIGLEN]; 
-  if ( ErrMsg==0 && FileSize < FIPPICF_SIGLEN )
+  if ( ErrMsg==0 && (FileSize < (signed int )FIPPICF_SIGLEN) )
    ErrMsg="invalid cache file";
   if ( ErrMsg==0 && 1!=fread(FileSignature, FIPPICF_SIGLEN, 1, f) )
    ErrMsg="invalid cache file";
@@ -314,7 +314,7 @@ void FIPPICache::PreLoad(char *FileName)
   /*- now just read records from the file one at a time and add   */
   /*- them to the table.                                          */
   /*--------------------------------------------------------------*/
-  int nr;
+  unsigned int nr;
   Log("Preloading FIPPI records from file %s...",FileName);
   for(nr=0; nr<NumRecords; nr++)
    { 

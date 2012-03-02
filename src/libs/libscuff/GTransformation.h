@@ -19,9 +19,9 @@ namespace scuff{
 /*  XP = M*X + DX                                              */
 /***************************************************************/
 typedef struct GTransformation
- { int Type;
-   double DX[3];
-   double M[3][3];
+ { double DX[3];
+   double M[9];
+   int RotationIsNonTrivial;
  } GTransformation;
 
 /***************************************************************/
@@ -29,26 +29,26 @@ typedef struct GTransformation
 /* existing one                                                */
 /***************************************************************/
 
+// create the identity transformation 
+GTransformation *CreateGTransformation();
+
 // create or augment using a known displacement vector
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX);
-GTransformation *CreateGTransformation(double *DX);
  
 // create or augment using a known rotation angle and axis 
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
                                                 double *ZHat, double Theta);
-GTransformation *CreateGTransformation(double *ZHat, double Theta);
 
-// create or augment by parsing a character string.   
+// create or augment by parsing a character string
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
                                                 char *TransformString,
                                                 char **ErrMsg);
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
                                                 char **Tokens, int NumTokens,
-                                                char **ErrMsg);
-// identity transformation 
-GTransformation *CreateGTransformation(); // identity transformation
+                                                char **ErrMsg, int *TokensConsumed);
 
-void AugmentGTransformation(GTransformation *DeltaGT, GTransformation *GT);
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
+                                                GTransformation *DeltaGT);
 
 void ResetGTransformation(GTransformation *GT);
 

@@ -49,8 +49,8 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   /***************************************************************/
   char Line[MAXSTR];
   char MaterialName[MAXSTR];
-  int nt, NumTokens, TokensConsumed;
-  char *p, *Tokens[MAXTOK];
+  int NumTokens, TokensConsumed;
+  char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
   GTransformation *OTGT=0; // 'one-time geometrical transformation'
   MaterialName[0]=0;
@@ -221,7 +221,7 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
 RWGObject::RWGObject(double *pVertices, int pNumVertices,
                      int **PanelVertexIndices, int pNumPanels)
 { 
-  int Mu, Nu, np;
+  int np;
 
   MeshFileName=strdup("ByHand.msh");
   Label=strdup("ByHand");
@@ -293,7 +293,7 @@ RWGObject::~RWGObject()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-RWGObject::Transform(GTransformation *DeltaGT)
+void RWGObject::Transform(GTransformation *DeltaGT)
 { 
   /***************************************************************/
   /*- first apply the transformation to all points whose         */
@@ -321,12 +321,13 @@ RWGObject::Transform(GTransformation *DeltaGT)
   /***************************************************************/
   GT=CreateOrAugmentGTransformation(GT, DeltaGT);
 
-  return 0;
-
 }
 
 void RWGObject::UnTransform()
 {
+  if (!GT)
+   return;
+ 
   /***************************************************************/
   /* untransform vertices                                        */
   /***************************************************************/

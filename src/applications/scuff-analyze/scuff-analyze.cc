@@ -160,11 +160,11 @@ int main(int argc, char *argv[])
   RWGObject *O;
   RWGGeometry *G;
   if (MeshFile)
-   { RWGObject *O=new RWGObject(MeshFile);
+   { O=new RWGObject(MeshFile);
      AnalyzeObject(O, WriteGPFiles, WritePPFiles);
    }
   else
-   { RWGGeometry *G=new RWGGeometry(GeoFile);
+   { G=new RWGGeometry(GeoFile);
      AnalyzeGeometry(G, WriteGPFiles, WritePPFiles);
    };
 
@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
 
      char PPFileName[MAXSTR];
      snprintf(PPFileName,MAXSTR,"%s.transformed.pp",GetFileBase(G->GeoFileName));
+     unlink(PPFileName);
 
      for(ngtc=0; ngtc<NGTC; ngtc++) 
       {

@@ -278,7 +278,6 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
 {
   int iMina, iMeda, iMaxa;
   int iMinb, iMedb, iMaxb;
-  double *TV;
 
   /***************************************************************/
   /***************************************************************/

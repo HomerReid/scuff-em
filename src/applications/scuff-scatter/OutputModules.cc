@@ -46,7 +46,7 @@ void GetTotalField(SSData *SSD, double *X, int WhichObject,
 /* compute scattered and total fields at a user-specified list */
 /* of evaluation points                                        */
 /***************************************************************/
-void ProcessEPFile(SSData *SSD, char *EPFileName, char *ObjectLabel)
+void ProcessEPFile(SSData *SSD, char *EPFileName)
 { 
 
   HMatrix *EPMatrix=new HMatrix(EPFileName,LHM_TEXT,"-ncol 3");
@@ -381,7 +381,7 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   /***************************************************************/
   /* get total and scattered fields at evaluation point **********/
   /***************************************************************/
-  cdouble EHS[3], EHT[3];
+  cdouble EHS[6], EHT[6];
   GetTotalField(SSD, X, -1, EHS, EHT);
 
   /***************************************************************/

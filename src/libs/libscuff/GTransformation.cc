@@ -22,49 +22,43 @@ namespace scuff {
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3]);
+static void ConstructRotationMatrix(double *ZHat, double Theta, double M[9]);
+
+/***************************************************************/
+/* create the identity transformation                          */
+/***************************************************************/
+GTransformation *CreateGTransformation()
+ { 
+   GTransformation *NGT=(GTransformation *)malloc(sizeof(*NGT));
+   memset(NGT->DX, 0, 3*sizeof(double));
+   memset(NGT->M, 0, 9*sizeof(double));
+   NGT->M[0]=NGT->M[4]=NGT->M[8]=1.0;
+   NGT->RotationIsNonTrivial=0;
+   return NGT;
+ }
+
+/***************************************************************/
+/* CreateOrAugmentGTransformation is a routine with multiple   */
+/* entry points that takes an existing GTransformation (which  */
+/* may be NULL) and augments it by tacking on the effect of a  */
+/* second transformation. the return value is a pointer to     */
+/* a GTransformation representing the composite transformation.*/
+/***************************************************************/
 
 /***************************************************************/
 /* a transformation that displaces through vector DX           */
 /***************************************************************/
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX)
 {
-  GTransformation *NGT;
-
   if (GT==0)
-   { 
-     NGT=(GTransformation *)malloc(sizeof(*NGT));
+   GT=CreateGTransformation();
 
-     memcpy(NGT->DX, DX, 3*sizeof(double));
+  GT->DX[0] += DX[0];
+  GT->DX[1] += DX[1];
+  GT->DX[2] += DX[2];
 
-     memset(NGT->M[0], 0, 3*sizeof(double));
-     memset(NGT->M[1], 0, 3*sizeof(double));
-     memset(NGT->M[2], 0, 3*sizeof(double));
-     NGT->M[0][0]=NGT->M[1][1]=NGT->M[2][2]=1.0;
-
-     NGT->Type=GTRANSFORMATION_DISPLACEMENT;
-
-     return NGT;
-   }
-  else
-   { GT->DX[0] += DX[0];
-     GT->DX[1] += DX[1];
-     GT->DX[2] += DX[2];
-     GT->Type |= GTRANSFORMATION_DISPLACEMENT;
-     return GT;
-   };
+  return GT;
 }
-
-GTransformation *CreateGTransformation(double *DX)
- { CreateOrAugmentGTransformation(0, DX); }
-
-// create the identity GTransformation
-GTransformation *CreateGTransformation()
- { 
-   GTransformation *NGT=(GTransformation *)malloc(sizeof(*NGT));
-   NGT->Type=GTRANSFORMATION_DISPLACEMENT;
-   memset(NGT->DX, 0, 3*sizeof(double));
- }
 
 /***************************************************************/
 /* a transformation that rotates through Theta degrees         */
@@ -74,46 +68,30 @@ GTransformation *CreateGTransformation()
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
                                                 double *ZHat, double Theta)
 {
-  GTransformation *NGT;
+  if (GT==0) 
+   GT=CreateGTransformation();
 
-  if (GT==0)
-   { 
-     NGT=(GTransformation *)malloc(sizeof(*NGT));
+  double MP[9], NewDX[3], NewM[9];
+  int i, j, k;
 
-     memset(NGT->DX, 0, 3*sizeof(double));
+  ConstructRotationMatrix(ZHat, Theta, MP);
 
-     ConstructRotationMatrix(ZHat, Theta, NGT->M);
+  for(i=0; i<3; i++)
+   for(NewDX[i]=0.0, j=0; j<3; j++)
+    NewDX[i] += MP[ 3*i + j ]*(GT->DX[j]);
+  memcpy(GT->DX, NewDX, 3*sizeof(double));
 
-     NGT->Type=GTRANSFORMATION_ROTATION;
+  for(i=0; i<3; i++)
+   for(j=0; j<3; j++)
+    for(NewM[ 3*i + j ]=0.0, k=0; k<3; k++)
+     NewM[ 3*i + j ] += MP[ 3*i + k ]*GT->M[ 3*k + j ];
 
-     return NGT;
-   }
-  else
-   { double MP[3][3], NewDX[3], NewM[3][3];
-     int i, j, k;
+  memcpy(GT->M,NewM,9*sizeof(double));
 
-     ConstructRotationMatrix(ZHat, Theta, MP);
+  GT->RotationIsNonTrivial=1;
+  return GT;
 
-     for(i=0; i<3; i++)
-      for(NewDX[i]=0.0, j=0; j<3; j++)
-       NewDX[i] += MP[i][j]*(GT->DX[j]);
-     memcpy(GT->DX, NewDX, 3*sizeof(double));
-
-     for(i=0; i<3; i++)
-      for(j=0; j<3; j++)
-       for(NewM[i][j]=0.0, k=0; k<3; k++)
-        NewM[i][j] += MP[i][k]*GT->M[k][j];
-
-     for(i=0; i<3; i++)
-      memcpy(GT->M[i],NewM[i],3*sizeof(double));
-
-     GT->Type |= GTRANSFORMATION_ROTATION;
-     return GT;
-   };
 }
-
-GTransformation *CreateGTransformation(double *ZHat, double Theta)
- { CreateOrAugmentGTransformation(0, ZHat, Theta); }
 
 /***************************************************************/
 /* a transformation described by a character string.           */
@@ -149,13 +127,22 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
                                                 char **Tokens, int NumTokens, 
                                                 char **ErrMsg, int *TokensConsumed)
 {
+ 
+  double Theta, ZHat[3], DX[3];
+
+  if (NumTokens==0)
+   { if (*ErrMsg) *ErrMsg = strdup("no tranformation specified");
+     if (TokensConsumed) *TokensConsumed=0;
+     return GT;
+   };
+   
   if ( !strcasecmp(Tokens[0],"DISP") || !strcasecmp(Tokens[0],"DISPLACED") )
    { 
      /*--------------------------------------------------------------*/
      /*-- DISPLACED xx yy zz ----------------------------------------*/
      /*--------------------------------------------------------------*/
      if ( NumTokens<4 )
-      { if (ErrMsg) *ErrMsg=vstrdup("too few values specified for %s ",Tokens[CT]);
+      { if (ErrMsg) *ErrMsg=vstrdup("too few values specified for %s ",Tokens[0]);
         return 0;
       };
 
@@ -163,7 +150,7 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
           || 1!=sscanf(Tokens[2],"%le",DX+1)
           || 1!=sscanf(Tokens[3],"%le",DX+2)
         )
-      { if (ErrMsg) *ErrMsg=vstrdup("bad value specified for %s",Tokens[CT]);
+      { if (ErrMsg) *ErrMsg=vstrdup("bad value specified for %s",Tokens[0]);
         return 0;
       };
 
@@ -177,12 +164,12 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
      /*-- ROTATED tt ABOUT xx yy zz ---------------------------------*/
      /*--------------------------------------------------------------*/
      if ( NumTokens<6 )
-      { if (ErrMsg) *ErrMsg=vstrdup("too few values specified for %s ",Tokens[CT]);
+      { if (ErrMsg) *ErrMsg=vstrdup("too few values specified for %s ",Tokens[0]);
         return 0;
       };
 
-     if ( !strcasecmp(Tokens[2],"ABOUT") )
-      {  if (ErrMsg) *ErrMsg=vstrdup("invalid syntax for %s statement",Tokens[CT]);
+     if ( strcasecmp(Tokens[2],"ABOUT") )
+      {  if (ErrMsg) *ErrMsg=vstrdup("invalid syntax for %s statement",Tokens[0]);
          return 0;
       };
 
@@ -191,7 +178,7 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
           || 1!=sscanf(Tokens[4],"%le",ZHat+1)
           || 1!=sscanf(Tokens[5],"%le",ZHat+2)
         )
-      { if (ErrMsg) *ErrMsg=vstrdup("bad value specified for %s",Tokens[CT]);
+      { if (ErrMsg) *ErrMsg=vstrdup("bad value specified for %s",Tokens[0]);
         return 0;
       };
 
@@ -201,7 +188,8 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
    }
   else
    { 
-     if (ErrMsg) *ErrMsg=vstrdup("unknown keyword %s",Tokens[CT]); 
+     if (ErrMsg) *ErrMsg=vstrdup("unknown keyword %s",Tokens[0]); 
+     if (TokensConsumed) *TokensConsumed=0;
      return 0;
    };
 
@@ -210,30 +198,31 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
 /***************************************************************/
 /* GT -> DeltaGT*GT ********************************************/
 /***************************************************************/
-GTransformation *GT=CreateOrAugmentGTransformation(GTransformation *GT, 
-                                                   GTransformation *DeltaGT)
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
+                                                GTransformation *DeltaGT)
 { 
   int i, j, k;
-  double NewM[3][3], NewDX[3];
+  double NewM[9], NewDX[3];
 
   if (GT==0)
-   return memdup(DeltaGT, sizeof(GTransformation));
+   GT=CreateGTransformation();
  
-  if ( DeltaGT->Type & GTRANSFORMATION_ROTATION )
+  if ( DeltaGT->RotationIsNonTrivial )
    { 
      for(i=0; i<3; i++)
       for(j=0; j<3; j++)
-       for(NewM[i][j]=0.0, k=0; k<3; k++)
-        NewM[i][j] += DeltaGT->M[i][k] * GT->M[k][j];
+       for(NewM[ 3*i + j ]=0.0, k=0; k<3; k++)
+        NewM[ 3*i + j ] += DeltaGT->M[ 3*i + k ] * GT->M[ 3*k + j ];
 
-     for(i=0; i<3; i++)
-      memcpy(GT->M[i], NewM[i], 3*sizeof(double));
+     memcpy(GT->M, NewM, 9*sizeof(double));
 
      for(i=0; i<3; i++)
       for(NewDX[i]=0.0, j=0; j<3; j++)
-       NewDX[i] += DeltaGT->M[i][j]*GT->DX[j];
+       NewDX[i] += DeltaGT->M[ 3*i + j ]*GT->DX[j];
 
      memcpy(GT->DX, NewDX, 3*sizeof(double));
+
+     GT->RotationIsNonTrivial=1;
 
    };
 
@@ -244,7 +233,18 @@ GTransformation *GT=CreateOrAugmentGTransformation(GTransformation *GT,
   return GT;
    
 } 
-#endif
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void ResetGTransformation(GTransformation *GT)
+{ 
+  memset(GT->DX, 0, 3*sizeof(double));
+  memset(GT->M,  0, 9*sizeof(double));
+  GT->M[0]=GT->M[4]=GT->M[8]=1.0;
+  GT->RotationIsNonTrivial = 0;
+
+}
 
 /***************************************************************/
 /* apply the transformation (in-place) to a list of NX points  */
@@ -259,13 +259,14 @@ void ApplyGTransformation(GTransformation *GT, double *X, int NX)
   int i, j;
   double XP[3];
 
-  if ( GT->Type & GTRANSFORMATION_ROTATION )
+  if ( GT->RotationIsNonTrivial )
    { 
+     // in this case we do the translation and rotation together
      for(nx=0; nx<NX; nx++)
       { memcpy(XP, GT->DX, 3*sizeof(double));
         for(i=0; i<3; i++) 
          for(j=0; j<3; j++)      
-          XP[i] += GT->M[i][j] * X[3*nx+j];
+          XP[i] += GT->M[ 3*i + j ] * X[3*nx+j];
         memcpy(X+3*nx, XP, 3*sizeof(double));
       };
    }
@@ -293,13 +294,13 @@ void ApplyGTransformation(GTransformation *GT, double *X, double *XP, int NX)
 
   int nx; 
   int i, j;
-  if ( GT->Type & GTRANSFORMATION_ROTATION )
+  if ( GT->RotationIsNonTrivial )
    { 
      for(nx=0; nx<NX; nx++)
       { memcpy(XP+3*nx, GT->DX, 3*sizeof(double));
         for(i=0; i<3; i++) 
          for(j=0; j<3; j++)      
-          XP[3*nx+i] += GT->M[i][j] * X[3*nx+j];
+          XP[3*nx+i] += GT->M[ 3*i + j ] * X[3*nx+j];
       };
    }
   else
@@ -328,32 +329,18 @@ void UnApplyGTransformation(GTransformation *GT, double *X, int NX)
      X[3*nx+2] -= GT->DX[2];
    };
 
-  if ( GT->Type & GTRANSFORMATION_ROTATION )
+  if ( GT->RotationIsNonTrivial )
    { for(nx=0; nx<NX; nx++)
       { 
         for(i=0; i<3; i++)
          for(XP[i]=0.0, j=0; j<3; j++)
-          XP[i] += GT->M[j][i]*X[3*nx+j];
+          XP[i] += GT->M[ 3*j + i ]*X[3*nx+j];  // note matrix transpose
 
         memcpy(X+3*nx, XP, 3*sizeof(double));
 
       };
    };
 }
-
-void ResetGTransformation(GTransformation *GT)
-{ 
-  memset(GT->DX, 0, 3*sizeof(double));
-  memset(GT->M[0], 0, 3*sizeof(double));
-  memset(GT->M[1], 0, 3*sizeof(double));
-  memset(GT->M[2], 0, 3*sizeof(double));
-
-  GT->M[0][0]=GT->M[1][1]=GT->M[2][2]=1.0;
-
-  GT->Type = GTRANSFORMATION_DISPLACEMENT;
-
-}
-   
 
 /***************************************************************/
 /* Construct the 3x3 matrix that represents a rotation of      */
@@ -366,12 +353,13 @@ void ResetGTransformation(GTransformation *GT)
 /*  2. Construct matrix M2 that rotates through Theta about    */ 
 /*     Z axis.                                                 */
 /*  3. Construct matrix M=M1^{-1}*M2*M1=M1^T*M2*M1.            */  
+/* Matrices are stored in row-major order.                     */  
 /***************************************************************/
-static void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3])
+static void ConstructRotationMatrix(double *ZHat, double Theta, double M[9])
 { 
   int Mu, Nu, Rho;
   double ct, st, cp, sp, CT, ST;
-  double M2M1[3][3], M2[3][3], M1[3][3];
+  double M2M1[9], M2[9], M1[9];
 
   // first normalize ZHat
   double nZHat=sqrt(ZHat[0]*ZHat[0] + ZHat[1]*ZHat[1] + ZHat[2]*ZHat[2]);
@@ -385,28 +373,28 @@ static void ConstructRotationMatrix(double *ZHat, double Theta, double M[3][3])
   st=sqrt(1.0-ct*ct);
   cp= ( st < 1.0e-8 ) ? 1.0 : NZHat[0] / st;
   sp= ( st < 1.0e-8 ) ? 0.0 : NZHat[1] / st;
-  M1[0][0]=ct*cp;  M1[0][1]=ct*sp;   M1[0][2]=-st;
-  M1[1][0]=-sp;    M1[1][1]=cp;      M1[1][2]=0.0;
-  M1[2][0]=st*cp;  M1[2][1]=st*sp;   M1[2][2]=ct;
+  M1[ 3*0 + 0 ]=ct*cp;  M1[ 3*0 + 1 ]=ct*sp;   M1[ 3*0 + 2 ]=-st;
+  M1[ 3*1 + 0 ]=-sp;    M1[ 3*1 + 1 ]=cp;      M1[ 3*1 + 2 ]=0.0;
+  M1[ 3*2 + 0 ]=st*cp;  M1[ 3*2 + 1 ]=st*sp;   M1[ 3*2 + 2 ]=ct;
 
   /* construct M2 */
   CT=cos(Theta*M_PI/180.0);
   ST=sin(Theta*M_PI/180.0);
-  M2[0][0]=CT;      M2[0][1]=-ST;     M2[0][2]=0.0;
-  M2[1][0]=ST;      M2[1][1]=CT;      M2[1][2]=0.0;
-  M2[2][0]=0.0;     M2[2][1]=0.0;     M2[2][2]=1.0;
+  M2[ 3*0 + 0 ]=CT;     M2[ 3*0 + 1 ]=-ST;     M2[ 3*0 + 2 ]=0.0;
+  M2[ 3*1 + 0 ]=ST;     M2[ 3*1 + 1 ]=CT;      M2[ 3*1 + 2 ]=0.0;
+  M2[ 3*2 + 0 ]=0.0;    M2[ 3*2 + 1 ]=0.0;     M2[ 3*2 + 2 ]=1.0;
 
   /* M2M1 <- M2*M1 */
   for(Mu=0; Mu<3; Mu++)
    for(Nu=0; Nu<3; Nu++)
-    for(M2M1[Mu][Nu]=0.0, Rho=0; Rho<3; Rho++)
-     M2M1[Mu][Nu] += M2[Mu][Rho] * M1[Rho][Nu];
+    for(M2M1[ 3*Mu + Nu ]=0.0, Rho=0; Rho<3; Rho++)
+     M2M1[ 3*Mu + Nu ] += M2[ 3*Mu + Rho ] * M1[ 3*Rho + Nu ];
 
   /* M <- M1^T * M2M1 */
   for(Mu=0; Mu<3; Mu++)
    for(Nu=0; Nu<3; Nu++)
-    for(M[Mu][Nu]=0.0, Rho=0; Rho<3; Rho++)
-     M[Mu][Nu] += M1[Rho][Mu]*M2M1[Rho][Nu];
+    for(M[ 3*Mu + Nu ]=0.0, Rho=0; Rho<3; Rho++)
+     M[ 3*Mu + Nu ] += M1[ 3*Rho + Mu ]*M2M1[ 3*Rho + Nu ];
 }
 
 /********************************************************************/
@@ -437,8 +425,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
   /***************************************************************/
   char Line[MAXSTR];
   int NumTokens, TokensConsumed;
-  char *p, *Tokens[MAXTOK];
-  char CurrentLabel[MAXSTR];
+  char *Tokens[MAXTOK];
   char *ErrMsg;
   while(fgets(Line, MAXSTR, f))
    { 
@@ -517,7 +504,7 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
   char Line[MAXSTR];
   int LineNum;
   int NumTokens;
-  char *p, *Tokens[MAXTOK];
+  char *Tokens[MAXTOK];
   char *ErrMsg;
   while(fgets(Line, MAXSTR, f))
    { 
@@ -539,6 +526,8 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
       { if (NumTokens!=2) 
          ErrExit("%s:%i: syntax error (no name specified for transformation",FileName,LineNum);
         ErrMsg=ParseTRANSFORMATIONSection(Tokens[1], f, &LineNum, &GTC);
+        if (ErrMsg) 
+         ErrExit("%s:%i: %s",FileName,LineNum,ErrMsg);
       }
      else
       ErrExit("%s:%i: syntax error",FileName,LineNum,Tokens[0]);

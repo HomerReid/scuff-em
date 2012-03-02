@@ -30,7 +30,7 @@ void ProcessMediumSectionInFile(FILE *f, char *FileName, int *LineNum,
 {
   char Line[MAXSTR];
   int NumTokens;
-  char *p, *Tokens[MAXTOK];
+  char *Tokens[MAXTOK];
   ExteriorMPName[0]=0;
   while( fgets(Line,MAXSTR,f) )
    { 
@@ -71,15 +71,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   MatProp::SetLengthUnit(1.0e-6);
    
   /***************************************************************/
-  /* storage for material properties defined on-the-fly in the   */
-  /* .scuffgeo file.                                             */
-  /* minor garbage-collection issue: MPs allocated in this       */
-  /* routine are never freed.                                    */
-  /***************************************************************/
-  MatProp *MP, **MPs=0;
-  int NumMPs=0;
-
-  /***************************************************************/
   /* initialize simple fields ************************************/
   /***************************************************************/
   LogLevel=SCUFF_NOLOGGING;
@@ -101,8 +92,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   RWGObject *O;
   char Line[MAXSTR], Label[MAXSTR];
   int LineNum=0; 
-  int nt, nTokens;
-  char *p, *Tokens[MAXTOK];
+  int nTokens;
+  char *Tokens[MAXTOK];
   char ExteriorMPName[MAXSTR];
   while( fgets(Line,MAXSTR,f) )
    { 
@@ -140,7 +131,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
          
         char *ErrMsg=AddMaterialToMatPropDataBase(f, GeoFileName, Label, &LineNum);
         if (ErrMsg)
-         ErrExit("%s:%i: %s",GeoFileName,LineNum,MP->ErrMsg); 
+         ErrExit("%s:%i: %s",GeoFileName,LineNum,ErrMsg); 
 
       }
      else if ( !strcasecmp(Tokens[0],"OBJECT") )
@@ -334,7 +325,11 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
    };
 
   /***************************************************************/
-  /* initialize ObjectMoved[] array                              */
+  /* initialize ObjectMoved[] array.                             */
+  /* the values of this array are only defined after             */
+  /* a call to the RWGGeometry::Transform() function, when we    */
+  /* have ObjectMoved[i]=1 if the ith object was modified by     */
+  /* the transformation.                                         */
   /***************************************************************/
   ObjectMoved=(int *)RWGMalloc(NumObjects*sizeof(int));
 
@@ -362,8 +357,45 @@ RWGGeometry::~RWGGeometry()
 
 /***************************************************************/
 /***************************************************************/
-int RWGGeometry::Transform(GTComplex *GTC)
+/***************************************************************/
+RWGObject *RWGGeometry::GetObjectByLabel(char *Label, int *pno)
 { 
+  for( (*pno)=0; (*pno)<NumObjects; (*pno)++)
+   if ( !strcasecmp(Label, Objects[(*pno)]->Label) )
+    return Objects[ (*pno) ];
+ 
+  return 0;
+}
+
+RWGObject *RWGGeometry::GetObjectByLabel(char *Label)
+{ int pno;
+  return GetObjectByLabel(Label, &pno);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::Transform(GTComplex *GTC)
+{ 
+  int noa, WhichObject;
+  RWGObject *O;
+
+  // assume that no objects will be modified by this operation
+  memset(ObjectMoved, 0, NumObjects*sizeof(int));
+
+  // loop over the individual transformations in the complex
+  for(noa=0; noa<GTC->NumObjectsAffected; noa++)
+   { 
+     // find the object corresponding to the label for this transformation
+     O=GetObjectByLabel(GTC->ObjectLabel[noa], &WhichObject);
+
+     // apply the transformation to that object
+     if (O) 
+      { O->Transform(GTC->GT[noa]);
+        ObjectMoved[WhichObject]=1;
+      };
+        
+   };
 
 }
 

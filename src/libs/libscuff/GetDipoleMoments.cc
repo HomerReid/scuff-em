@@ -54,11 +54,10 @@ static void *GetDipoleMoment_Thread(void *data)
 
   RWGObject *O;
   int nt, no, ne, mu, Type, Offset;
-  double Wavevector;
   cdouble iw, KAlpha, NAlpha, PreFac;
   double QPmQM[3], V1pV2[3], QPmQMxV1pV2[3];
-  double *DKN;
-  cdouble *ZKN;
+  double *DKN=0;
+  cdouble *ZKN=0;
 
   if ( RealFreq )
    { ZKN=KN->ZV;
@@ -138,7 +137,7 @@ static void *GetDipoleMoment_Thread(void *data)
 void RWGGeometry::GetDipoleMoments(double Frequency, int RealFreq,
                                    HVector *KN, int nThread, cdouble (*PM)[6])
 { 
-  int nt, no, mu;
+  int nt, no;
 
   if (nThread<=0)
    ErrExit("GetDipoleMoments called with nThread=%i",nThread);

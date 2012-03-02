@@ -24,9 +24,8 @@ namespace scuff {
 void RWGGeometry::ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD,
                                             int nThread, HVector *KNVec)
 { 
-  int n, no, nop, ne, nep;
+  int n, ne, nep;
   RWGObject *O;
-  int Offset, OffsetP;
   HMatrix *M;
   double OVLP;
 
@@ -111,7 +110,6 @@ void RWGGeometry::EvalCurrentDistribution(double *X, HVector *KNVec, cdouble *KN
   int ne; 
   RWGObject *O;
   RWGEdge *E;
-  RWGPanel *P;
   double fRWG[3];
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;

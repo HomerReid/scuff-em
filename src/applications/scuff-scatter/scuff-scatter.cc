@@ -453,7 +453,6 @@ int main(int argc, char *argv[])
   cdouble Omega;
   cdouble Eps;
   double Mu;
-  FILE *f;
   for(nFreq=0; nFreq<NumFreqs; nFreq++)
    { 
      Omega = OmegaList->GetEntry(nFreq);
@@ -529,13 +528,13 @@ int main(int argc, char *argv[])
      if (PowerFile)
       {
         double PScat, PTot;
-        FILE *f=fopen(PowerFile,"a");
-        if (!f) ErrExit("could not open file %s",PowerFile);
+        FILE *pf=fopen(PowerFile,"a");
+        if (!pf) ErrExit("could not open file %s",PowerFile);
         GetPower(SSD, &PScat, &PTot);
-        fprintf(f,"%s %e %e ",z2s(Omega),PScat,PTot);
+        fprintf(pf,"%s %e %e ",z2s(Omega),PScat,PTot);
         GetPower_BF(SSD, PowerRadius, &PScat, &PTot);
-        fprintf(f,"%e %e\n ",PScat,PTot);
-        fclose(f);
+        fprintf(pf,"%e %e\n ",PScat,PTot);
+        fclose(pf);
       };
  
      /*--------------------------------------------------------------*/
@@ -543,7 +542,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      int nepf;
      for(nepf=0; nepf<nEPFiles; nepf++)
-      ProcessEPFile(SSD, EPFiles[nepf], 0);
+      ProcessEPFile(SSD, EPFiles[nepf]);
 
      /*--------------------------------------------------------------*/
      /*- flux meshes ------------------------------------------------*/

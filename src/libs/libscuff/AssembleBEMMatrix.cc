@@ -386,7 +386,7 @@ void InitABMBArgs(ABMBArgStruct *Args)
   Args->nThread=1;
 
   Args->NumTorqueAxes=0;
-  Args->GammaMatrix;
+  Args->GammaMatrix=0;
   
   Args->RowOffset=0;
   Args->ColOffset=0;

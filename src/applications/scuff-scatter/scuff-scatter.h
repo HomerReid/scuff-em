@@ -41,7 +41,7 @@ typedef struct SSData
 /***************************************************************/
 void GetPower(SSData *SSD, double *PScat, double *PTot);
 void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot);
-void ProcessEPFile(SSData *SSData, char *EPFileName, char *ObjectLabel);
+void ProcessEPFile(SSData *SSData, char *EPFileName);
 void CreateFluxPlot(SSData *SSData, char *MeshFileName);
 
 #endif

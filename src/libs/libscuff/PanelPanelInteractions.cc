@@ -289,7 +289,6 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   cdouble k                 = Args->k;
   int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
-  double *GammaMatrix       = Args->GammaMatrix;
   cdouble *H                = Args->H;
   cdouble *GradH            = Args->GradH;
   cdouble *dHdT             = Args->dHdT;
@@ -356,15 +355,15 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
 
      TDArgs->WhichG=TM_EIKR_OVER_R;
      TDArgs->WhichH=TM_DOTPLUS;
-     Args->H[0]=TaylorDuffy(TDArgs);
+     H[0]=TaylorDuffy(TDArgs);
 
      if (ncv==3)
-      Args->H[1]=0.0; /* 'C' kernel integral vanishes for the common-triangle case */
+      H[1]=0.0; /* 'C' kernel integral vanishes for the common-triangle case */
      else
       { TDArgs->WhichG=TM_GRADEIKR_OVER_R;
         TDArgs->WhichH=TM_CROSS;
-TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(Args->H[0]); // TODO explain me
-        Args->H[1]=TaylorDuffy(TDArgs);
+TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(H[0]); // TODO explain me
+        H[1]=TaylorDuffy(TDArgs);
       };
 
      if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));
@@ -423,21 +422,21 @@ TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(Args->H[0]); // TODO explain me
   PF[4]=ik*PF[3];
 
   // add contributions to panel-panel integrals
-  Args->H[0] +=  PF[0]*AA0*( QDFD->hDotRM1 + OOIK2*QDFD->hNablaRM1)
-                +PF[1]*AA1*( QDFD->hDotR0  + OOIK2*QDFD->hNablaR0 )
-                +PF[2]*AA2*( QDFD->hDotR1  + OOIK2*QDFD->hNablaR1 )
-                +PF[3]*AA3*( QDFD->hDotR2  + OOIK2*QDFD->hNablaR2 );
+  H[0] +=  PF[0]*AA0*( QDFD->hDotRM1 + OOIK2*QDFD->hNablaRM1)
+          +PF[1]*AA1*( QDFD->hDotR0  + OOIK2*QDFD->hNablaR0 )
+          +PF[2]*AA2*( QDFD->hDotR1  + OOIK2*QDFD->hNablaR1 )
+          +PF[3]*AA3*( QDFD->hDotR2  + OOIK2*QDFD->hNablaR2 );
   
-  Args->H[1] +=  PF[0]*BB0*QDFD->hTimesRM3
-                +PF[2]*BB2*QDFD->hTimesRM1
-                +PF[3]*BB3*QDFD->hTimesR0 
-                +PF[4]*BB4*QDFD->hTimesR1;
+  H[1] +=  PF[0]*BB0*QDFD->hTimesRM3
+          +PF[2]*BB2*QDFD->hTimesRM1
+          +PF[3]*BB3*QDFD->hTimesR0 
+          +PF[4]*BB4*QDFD->hTimesR1;
 
   // restore derivative integrals as necessary 
   if (NumGradientComponents>0)
-   memcpy(Args->GradH, GradHSave, 2*NumGradientComponents*sizeof(cdouble));
+   memcpy(GradH, GradHSave, 2*NumGradientComponents*sizeof(cdouble));
   if (NumTorqueAxes>0)
-   memcpy(Args->dHdT, dHdTSave, 2*NumTorqueAxes*sizeof(cdouble));
+   memcpy(dHdT, dHdTSave, 2*NumTorqueAxes*sizeof(cdouble));
 
 } 
 

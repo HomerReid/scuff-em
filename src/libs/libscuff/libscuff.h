@@ -122,7 +122,7 @@ class RWGObject
    /* constructor entry points 2 and 3: construct from a given mesh file */
    RWGObject(const char *pMeshFileName);
    RWGObject(const char *pMeshFileName, const char *pLabel,
-             const char *Material, GTransformation *GT);
+             const char *Material, GTransformation *OTGT);
 
    /* constructor entry point 3: construct from a list of vertices */
    RWGObject(double *pVertices, int pNumVertices, 
@@ -139,21 +139,9 @@ class RWGObject
    void GetInnerProducts(int nbf, EHFuncType EHFunc, void *EHFuncUD,
                          int PureImagFreq, cdouble *EProd, cdouble *HProd);
 
-   /* move the object */
-   void Displace(double DX[3]); /* displace object through DX */
-   void Displace(double dx, double dy, double dz);
-   void UnDisplace();
-
-   /* rotate the object around an axis */
-   void Rotate(double *ZHat, double Theta);
-
    /* apply a general transformation (rotation+displacement) to the object */
-  // int Transform(const char *TransLine, ... );
    void Transform(GTransformation *GT);
    void UnTransform();
-
-   void TransformPoint(double *X);
-   void UnTransformPoint(double *X);
 
    /* visualization */
    void Visualize(double *KVec, double Kappa, char *format, ...);
@@ -220,7 +208,7 @@ class RWGObject
    /* GT encodes any transformation that has been carried out since */
    /* the object was read from its mesh file (not including a       */
    /* possible one-time GTransformation that may have been specified*/
-   /* in the .scuffgeo file when the object was first created)      */
+   /* in the .scuffgeo file when the object was first created.)     */
    GTransformation *GT;
 
    /*--------------------------------------------------------------*/ 
@@ -265,12 +253,7 @@ class RWGGeometry
    RWGGeometry(const char *GeoFileName);
    ~RWGGeometry();
 
-   /* get the dimension of the linear BEM system */
-   int GetDimension();
-
    /* geometrical transformations */
-   // int Transform(char *TransLine, char *Tag, char *ErrMsg);
-   // int Transform(char *TransLine) { return Transform(TransLine, 0, 0); }
    void Transform(GTComplex *GTC);
    void UnTransform();
 
@@ -279,7 +262,6 @@ class RWGGeometry
    void WritePPMesh(const char *FileName, const char *Tag);
    void WriteGPMesh(const char *format, ...);
    void WriteGPMeshPlus(const char *format, ...);
-   void WriteMLMesh(const char *format, ...);
    void PlotSurfaceCurrents(HVector *KN, double Frequency, int RealFreq, 
                             const char *format, ...);
 
@@ -388,6 +370,11 @@ class RWGGeometry
    /* routine for setting logging verbosity */
    void SetLogLevel(int LogLevel);
 
+   /* some simple utility functions */
+   int GetDimension();
+   RWGObject *GetObjectByLabel(char *Label);
+   RWGObject *GetObjectByLabel(char *Label, int *WhichObject);
+
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
@@ -468,7 +455,6 @@ double VecDistance2(double *v1, double *v2);
 double VecNorm(double *v);
 double VecNorm2(double *v);
 double VecNormalize(double *v);
-void VecZero(double *v);
 
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);

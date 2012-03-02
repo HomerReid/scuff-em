@@ -72,7 +72,7 @@ static void GetIn(double X, int AlphaMin, int AlphaMax, double I[NUMGS][6]);
 // common edge
 static double X_CE(FIPPITDWorkspace *W, int i, double x1, double x2)
 { 
-  double u1, u2, xi2, r;
+  double u1=0.0, u2=0.0, xi2=0.0, r;
 
   switch(i)
    { case 1: u1=-x1;    u2=-x1*x2;       xi2=(1.0-x1+x1*x2);   break;
@@ -200,7 +200,6 @@ void ComputeQIFIPPIData_TaylorDuffy(double *V1, double *V2, double *V3,
   static double Upper[3]={1.0, 1.0, 1.0};
   double Result[NUMFUNCS], Error[NUMFUNCS];
   double A[3], AP[3], B[3], BP[3], L[3];
-  int rp;
 
   /***************************************************************/
   /* 1. compute geometric parameters.                            */
