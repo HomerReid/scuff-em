@@ -17,7 +17,13 @@ typedef struct ScuffHeatData
  {
    RWGGeometry *G;
    char *ByOmegaFile;
+
+   HMatrix **TBlocks, **UBlocks;
    HMatrix *M0, *M1, *M2;
+
+   GTComplex **GTCList;
+   int NumGTComplices;
+
    int nThread;
 
  } ScuffHeatData;

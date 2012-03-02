@@ -154,11 +154,13 @@ int main(int argc, char *argv[])
   /* process options *********************************************/
   /***************************************************************/
   char *GeoFile=0;
+  char *TransFile=0;
   cdouble OmegaMin=0.0;              int nOmegaMin;
   cdouble OmegaMax=-1.0;             int nOmegaMax;
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *ByOmegaFile=0;
+  int PlotFlux;
   char *OutputFile=0;
   char *LogFile=0;
   char *Cache=0;
@@ -169,12 +171,14 @@ int main(int argc, char *argv[])
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
      {"OmegaMin",       PA_CDOUBLE, 1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
      {"OmegaMax",       PA_CDOUBLE, 1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
-     {"ByOmegaFile",    PA_STRING,  1, 1,       (void *)&ByOmegaFile,0,             "name of frequency-resolved output file"},
      {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile, 0,             "name of frequency-integrated output file"},
+     {"ByOmegaFile",    PA_STRING,  1, 1,       (void *)&ByOmegaFile,0,             "name of frequency-resolved output file"},
+     {"PlotFlux",       PA_BOOL,    1, 0,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
      {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,    0,             "name of log file"},
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -263,6 +267,26 @@ int main(int argc, char *argv[])
 
   SHD->G=new RWGGeometry(GeoFile);
   SHD->G->SetLogLevel(SCUFF_VERBOSELOGGING);
+
+  SHD->GTCList=ReadTransFile(TransFile, &(SHD->NumGTComplices));
+
+  SHD->PlotFlux=PlotFlux;
+
+  int no, nop, nb, NO=G->NumObjects, NBF, NBFp;
+
+  SHD->TBlocks = (HMatrix **)malloc(NO*sizeof(HMatrix *));
+  for(no=0; no<G->NumObjects; no++)
+   { NBF=G->Objects[no]->NumBFs;
+     SHD->TBlocks[no] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+   };
+
+  SHD->UBlocks = (HMatrix **)malloc( ( NO*(NO-1)/2)*sizeof(HMatrix *));
+  for(nb=0, no=0; no<G->NumObjects; no++)
+   for(nop=no+1; nop<G->NumObjects; nop++, nb++)
+    { NBF=G->Objects[no]->NumBFs;
+      NBFp=G->Objects[nop]->NumBFs;
+      SHD->UBlocks[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
+    };
 
   SHD->M0 = SHD->G->AllocateBEMMatrix();
   SHD->M1 = SHD->G->AllocateBEMMatrix();

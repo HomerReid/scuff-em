@@ -489,11 +489,35 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+GTComplex *CreateDefaultGTComplex()
+{
+  GTComplex *GTC=(GTComplex *)malloc(sizeof(GTComplex));
+  GTC->Tag=strdup("DEFAULT");
+  GTC->NumObjectsAffected=0;
+  GTC->ObjectLabel=0;
+  GTC->GT=0;
+  return GTC;
+}
+
+/***************************************************************/
 /* this routine reads a scuff-EM transformation (.trans) file  */
 /* and returns an array of GTComplex structures.               */
 /***************************************************************/
 GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
 {
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (FileName==0)
+   { 
+     *NumGTComplices=1;
+     GTComplex **GTCList = (GTComplex **)malloc(sizeof(GTCList[0]));
+     GTCList[0] = CreateDefaultGTComplex();
+     return GTCList;
+   };
+
   FILE *f=fopen(FileName,"r");
   if (f==0)
    ErrExit("could not open file %s",FileName);

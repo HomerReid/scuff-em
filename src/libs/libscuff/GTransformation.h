@@ -83,6 +83,9 @@ typedef struct GTComplex
 
  } GTComplex;
 
+// create a GTComplex that doesn't do anything
+GTComplex *CreateDefaultGTComplex();
+
 // this routine reads a scuff-EM transformation (.trans) file
 // and returns an array of GTComplex structures.
 GTComplex **ReadTransFile(char *FileName, int *NumGTComplices);
