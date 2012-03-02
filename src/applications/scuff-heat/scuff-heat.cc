@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
      {"OmegaMax",       PA_CDOUBLE, 1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
      {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile, 0,             "name of frequency-integrated output file"},
      {"ByOmegaFile",    PA_STRING,  1, 1,       (void *)&ByOmegaFile,0,             "name of frequency-resolved output file"},
-     {"PlotFlux",       PA_BOOL,    1, 0,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
+     {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
      {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,    0,             "name of log file"},
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -265,12 +265,15 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   ScuffHeatData MySHD, *SHD=&MySHD;
 
-  SHD->G=new RWGGeometry(GeoFile);
-  SHD->G->SetLogLevel(SCUFF_VERBOSELOGGING);
+  RWGGeometry *G=new RWGGeometry(GeoFile);
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
 
+  SHD->G=G;
   SHD->GTCList=ReadTransFile(TransFile, &(SHD->NumGTComplices));
 
   SHD->PlotFlux=PlotFlux;
+  if (PlotFlux)
+   SHD->DV=new HVector(G->TotalBFs); // diagonal vector (note real-valued)
 
   int no, nop, nb, NO=G->NumObjects, NBF, NBFp;
 

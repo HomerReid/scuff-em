@@ -21,6 +21,9 @@ typedef struct ScuffHeatData
    HMatrix **TBlocks, **UBlocks;
    HMatrix *M0, *M1, *M2;
 
+   HVector *DV;
+   int PlotFlux;
+
    GTComplex **GTCList;
    int NumGTComplices;
 
