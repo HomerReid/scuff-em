@@ -58,7 +58,7 @@ void PlotFlux(ScuffHeatData *SHD, cdouble Omega)
   /* that plots the flux on each panel                           */
   /***************************************************************/
   FILE *f=vfopen("%s.%g.flux","w",GetFileBase(G->GeoFileName),real(Omega));
-  fprintf(f,"View \"Flux{\n");
+  fprintf(f,"View \"Flux\"{\n");
   int np;
   RWGPanel *P;
   double *PV[3];
@@ -198,7 +198,7 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
        { Sym  = conj(M2->GetEntry(nr, nc));
          SymT = conj(M2->GetEntry(nc, nr));
          M2->SetEntry(nc, nr, Sym );
-         if (nc>nr) M2->SetEntry(nr, nc, Sym );
+         if (nc>nr) M2->SetEntry(nr, nc, SymT );
        };
 
      Log("LU-solving M1...");
