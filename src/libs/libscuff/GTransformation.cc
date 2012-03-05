@@ -398,6 +398,83 @@ static void ConstructRotationMatrix(double *ZHat, double Theta, double M[9])
 }
 
 /********************************************************************/
+/* this is a helper function for the ReadTransFile() routine below  */
+/* that attempts to parse the shorthand syntax for specifying       */
+/* transformations in a .trans file (i.e. a single line beginning   */
+/* with the token TRANS).                                           */
+/* on entry we have already verified that Tokens[0]==TRANS so that  */
+/* does not need to be checked.                                     */
+/********************************************************************/
+char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
+{
+  if ( NumTokens==1 )
+   return strdup("empty TRANS specification");
+
+  /***************************************************************/
+  /* initialize a bare GTComplex *********************************/
+  /***************************************************************/
+  GTComplex *GTC=(GTComplex *)malloc(sizeof(GTComplex));
+  GTC->Tag=strdup(Tokens[1]);
+  GTC->NumObjectsAffected=0;
+  GTC->ObjectLabel=0;
+  GTC->GT=0;
+
+  GTransformation *CurrentGT=0;
+
+  /***************************************************************/
+  /* parse sections of the token string one at at time.          */
+  /* each section is treated as though it were on a separate     */
+  /* line of a TRANSFORMATION...ENDTRANSFORMATION section.       */
+  /***************************************************************/
+  int nt=2; // start parsing the rest of the line at token #2
+  int TokensConsumed;
+  int noa;
+  char *ErrMsg;
+  while( nt<NumTokens )
+   { 
+     if ( !strcasecmp(Tokens[nt], "OBJECT") )
+      { 
+        if ( nt+1 == NumTokens )
+         return strdup("syntax error");
+
+        noa=GTC->NumObjectsAffected;
+        GTC->ObjectLabel=(char **)realloc(GTC->ObjectLabel, (noa+1)*sizeof(char *));
+        GTC->ObjectLabel[noa]=strdup(Tokens[nt+1]);
+        GTC->GT=(GTransformation **)realloc(GTC->GT, (noa+1)*sizeof(GTransformation *));
+        GTC->GT[noa]=CreateGTransformation();
+        GTC->NumObjectsAffected=noa+1;
+        CurrentGT=GTC->GT[noa];
+
+        nt+=2;
+      }
+     else if (    !strcasecmp(Tokens[nt], "DISP") || !strcasecmp(Tokens[nt], "DISPLACED")
+               || !strcasecmp(Tokens[nt], "ROT")  || !strcasecmp(Tokens[nt], "ROTATED")
+             )
+      { 
+        if ( CurrentGT==0 )
+         return vstrdup("no OBJECT specified for %s",Tokens[nt]);
+         
+        CreateOrAugmentGTransformation(CurrentGT, Tokens+nt, NumTokens-nt,
+                                       &ErrMsg, &TokensConsumed);
+        if (ErrMsg)
+         return ErrMsg;
+
+        nt += TokensConsumed;
+      }
+     else
+      return vstrdup("unknown keyword %s %i",Tokens[nt],nt);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  *pGTC=GTC;
+  return 0;
+
+  
+}
+
+/********************************************************************/
 /* this is a helper function for the ReadTransFile() routine        */
 /* below; it attempts to parse a TRANSFORMATION...ENDTRANSFORMATION */
 /* section in a scuff-EM .trans file. (the file read pointer is     */
@@ -471,9 +548,11 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
       { /*--------------------------------------------------------------*/
         /*-- try to process the line as DISPLACED ... or ROTATED ... ---*/
         /*--------------------------------------------------------------*/
-        CurrentGT=CreateOrAugmentGTransformation(CurrentGT,
-                                                 Tokens, NumTokens,
-                                                 &ErrMsg, &TokensConsumed);
+        if (CurrentGT==0)
+         return vstrdup("no OBJECT specified for %s",Tokens[0]);
+
+        CreateOrAugmentGTransformation(CurrentGT, Tokens, NumTokens,
+                                       &ErrMsg, &TokensConsumed);
         if (ErrMsg)
          return ErrMsg;
         if (TokensConsumed!=NumTokens)
@@ -529,7 +608,7 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
   int LineNum;
   int NumTokens;
   char *Tokens[MAXTOK];
-  char *ErrMsg;
+  char *ErrMsg=0;
   while(fgets(Line, MAXSTR, f))
    { 
      // read line, break it up into tokens, skip blank lines and comments
@@ -539,22 +618,21 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
       continue; 
 
      // separately handle the two possible ways to specify complices:
-     //  (a) single-line transformations (TAG ... )
-     //  (b) TRANSFORMATION ... ENDTRANSFORMATION sections
-     if ( !strcasecmp(Tokens[0], "TAG") )
-      { 
-        // ErrMsg=ProcessTAGLine(Tokens, NumTokens, &GTC);
-        printf("howdatage\n");
-      }
-     else if ( !strcasecmp(Tokens[0], "TRANSFORMATION") )
+     //  (a) TRANSFORMATION ... ENDTRANSFORMATION sections
+     //  (b) single-line transformations (TRANS ... )
+     if ( !strcasecmp(Tokens[0], "TRANSFORMATION") )
       { if (NumTokens!=2) 
          ErrExit("%s:%i: syntax error (no name specified for transformation",FileName,LineNum);
         ErrMsg=ParseTRANSFORMATIONSection(Tokens[1], f, &LineNum, &GTC);
-        if (ErrMsg) 
-         ErrExit("%s:%i: %s",FileName,LineNum,ErrMsg);
+      }
+     else if ( !strcasecmp(Tokens[0], "TRANS") )
+      { 
+        ErrMsg=ParseTRANSLine(Tokens, NumTokens, &GTC);
       }
      else
-      ErrExit("%s:%i: syntax error",FileName,LineNum,Tokens[0]);
+      { 
+        ErrMsg=vstrdup("unknown token %s",Tokens[0]);
+      };
 
      if (ErrMsg)
       ErrExit("%s:%i: %s",FileName,LineNum,ErrMsg);
