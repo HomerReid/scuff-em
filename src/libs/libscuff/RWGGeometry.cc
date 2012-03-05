@@ -419,7 +419,7 @@ void RWGGeometry::UnTransform()
 /* geometry.                                                   */
 /* Returns 0 if the check passed, or an error message if not.  */
 /***************************************************************/
-char *CheckGTCList(GTComplex **GTCList, int NumGTCs)
+char *RWGGeometry::CheckGTCList(GTComplex **GTCList, int NumGTCs)
 {
   int ngtc, noa;
   

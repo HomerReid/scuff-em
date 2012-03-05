@@ -33,7 +33,7 @@ LDFLAGS+=-L../../libs/libscuff
 ##################################################
 ##################################################
 ##################################################
-SH_OBJS = scuff-heat.o FrequencyIntegrand.o
+SH_OBJS = scuff-heat.o FrequencyIntegrand.o CreateSHData.o
 
 scuff-heat${SUFFIX}:   	$(SH_OBJS) libscuff.a 
 			$(CXX) $(LDFLAGS) -o $@ $(SH_OBJS) $(LIBS)

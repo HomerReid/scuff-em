@@ -7,11 +7,12 @@
  */
 
 #include "scuff-heat.h"
+#include "libscuffInternals.h"
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void PlotFlux(ScuffHeatData *SHD, cdouble Omega)
+void PlotFlux(SHData *SHD, cdouble Omega)
 { 
   RWGGeometry *G = SHD->G;
 
@@ -79,18 +80,13 @@ void PlotFlux(ScuffHeatData *SHD, cdouble Omega)
   fprintf(f,"};\n\n");
   fclose(f);
 
+
 }
 
+#if 0
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
-{
-  RWGGeometry *G = SHD->G;
-  int nThread    = SHD->nThread;
-  HMatrix *M0    = SHD->M0;
-  HMatrix *M1    = SHD->M1;
-  HMatrix *M2    = SHD->M2;
 
   /***************************************************************/
   /* assemble the three separate blocks that contribute to the   */
@@ -252,4 +248,137 @@ void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *FI)
      fclose(f);
    };
    
+}
+#endif
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void FlipSignOfMagneticColumns(HMatrix *B)
+{ 
+  int nr, nc;
+  for (nr=0; nr<B->NR; nr++)
+   for (nc=1; nc<B->NC; nc+=2)
+    B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
+{
+  RWGGeometry *G = SHD->G;
+  int nThread    = SHD->nThread;
+  HMatrix *M0    = SHD->M0;
+  HMatrix *M1    = SHD->M1;
+  HMatrix *M2    = SHD->M2;
+
+  int no, nop, nb, NO=G->NumObjects;
+
+
+  /***************************************************************/
+  /* preinitialize an argument structure for the BEM matrix      */
+  /* block assembly routine                                      */
+  /***************************************************************/
+  ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
+  InitABMBArgs(Args);
+  Args->G         = SHD->G;
+  Args->Omega     = Omega;
+  Args->nThread   = SHD->nThread;
+
+  Log("Computing heat radiation/transfer at omega=%s...",z2s(Omega));
+
+  /***************************************************************/
+  /* before entering the loop over transformations, we first     */
+  /* assemble the (transformation-independent) T matrix blocks.  */
+  /***************************************************************/
+  Args->Symmetric=1;
+  for(no=0; no<G->NumObjects; no++)
+   { 
+     Args->Oa = Args->Ob = G->Objects[no];
+
+     G->Objects[no]->MP->Zero();
+     Log(" Assembling exterior GF contributions to T(%i)...",no);
+     Args->B = SHD->T0Blocks[no];
+     G->AssembleBEMMatrixBlock(Args);
+ //    FlipSignOfMagneticColumns(Args->B);
+     G->Objects[no]->MP->UnZero();
+
+     G->MP->Zero();
+     Log(" Assembling interior GF contributions to T(%i)...",no);
+     Args->B = SHD->TNBlocks[no];
+     G->AssembleBEMMatrixBlock(Args);
+ //    FlipSignOfMagneticColumns(Args->B);
+     G->MP->UnZero();
+
+   };
+
+  /***************************************************************/
+  /* now loop over transformations. ******************************/
+  /* note: 'gtc' stands for 'geometrical transformation complex' */
+  /***************************************************************/
+  int ngtc, NGTC=SHD->NumGTComplices;
+  for(ngtc=0; ngtc<SHD->NumGTComplices; ngtc++)
+   { 
+     /*--------------------------------------------------------------*/
+     /*- transform the geometry -------------------------------------*/
+     /*--------------------------------------------------------------*/
+     Log(" Computing quantities at geometrical transform %s",SHD->GTCList[ngtc]->Tag);
+     G->Transform(SHD->GTCList[ngtc]);
+
+     /*--------------------------------------------------------------*/
+     /* assemble off-diagonal matrix blocks.                         */
+     /* note that not all off-diagonal blocks necessarily need to    */
+     /* be recomputed for all transformations; this is what the 'if' */
+     /* statement here is checking for.                              */
+     /*--------------------------------------------------------------*/
+     Args->Symmetric=0;
+     for(nb=0, no=0; no<NO; no++)
+      for(nop=no+1; nop<NO; nop++, nb++)
+       if ( ngtc==0 || G->ObjectMoved[no] || G->ObjectMoved[nop] )
+        { 
+          Log(" Assembling U(%i,%i)...",no,nop);
+          Args->Oa = G->Objects[no];
+          Args->Ob = G->Objects[nop];
+          Args->B  = SHD->UBlocks[nb];
+          G->AssembleBEMMatrixBlock(Args);
+ //         FlipSignOfMagneticColumns(Args->B);
+        };
+
+     /*--------------------------------------------------------------*/
+     /*- put together the full W matrix by stamping the T0, TN, and  */
+     /*- U blocks in their appropriate places                        */
+     /*--------------------------------------------------------------*/
+     for(nb=0, no=0; no<NO; no++)
+      { 
+        RowOffset=G->BFIndexOffset[no];
+        SHD->W->InsertBlock(SHD->T0Blocks[no], RowOffset, RowOffset);
+        SHD->W->AddBlock(SHD->TNBlocks[no], RowOffset, RowOffset);
+
+        for(nop=no+1; nop<NO; nop++, nb++)
+         { ColOffset=G->BFIndexOffset[nop];
+           SHD->W->InsertBlock(SHD->UBlocks[nb], RowOffset, ColOffset);
+           SHD->W->InsertBlockTranspose(SHD->UBlocks[nb], RowOffset, ColOffset);
+         };
+
+      };
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+
+     FlipSignOfMagneticColumns(Args->B);
+
+     /*--------------------------------------------------------------*/
+     /*- do the computation to get the desired quantities at this    */
+     /*- frequency and transformation                                */
+     /*--------------------------------------------------------------*/
+
+     /*--------------------------------------------------------------*/
+     /* and untransform the geometry                                 */
+     /*--------------------------------------------------------------*/
+     G->UnTransform();
+
+   }; // for (ngtc=0; ngtc<SHD->NumGTComplices ... )
+
 }
