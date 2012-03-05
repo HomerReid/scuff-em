@@ -175,6 +175,9 @@ int main(int argc, char *argv[])
    { 
      int ngtc, NGTC;
      GTComplex **GTCList=ReadTransFile(TransFile, &NGTC);
+     char *ErrMsg=G->CheckGTCList(GTCList, NGTC);
+     if (ErrMsg)
+      ErrExit("file %s: %s",TransFile,ErrMsg);
 
      char PPFileName[MAXSTR];
      snprintf(PPFileName,MAXSTR,"%s.transformed.pp",GetFileBase(G->GeoFileName));
