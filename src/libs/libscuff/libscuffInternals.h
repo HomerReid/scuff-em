@@ -14,8 +14,7 @@
 
 namespace scuff {
 
-/***************************************************************/
-/* 1. argument structures for routines whose input/output      */
+/***************************************************************/ /* 1. argument structures for routines whose input/output      */
 /*    interface is so complicated that an ordinary C++         */
 /*    function prototype would be too unwieldy.                */
 /*                                                             */
@@ -146,7 +145,7 @@ typedef struct ABMBArgStruct
    HMatrix **dBdTheta;
 
    // additional fields used internally that may be ignored by 
-   // the called both before and after the call
+   // the caller both before and after the call
    double Sign;
    cdouble EpsA, EpsB; 
    double MuA, MuB;

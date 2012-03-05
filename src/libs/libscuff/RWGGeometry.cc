@@ -373,7 +373,9 @@ RWGObject *RWGGeometry::GetObjectByLabel(char *Label)
 }
 
 /***************************************************************/
-/***************************************************************/
+/* Apply the specified GTComplex to transform the geometry.    */
+/* (Note that a 'GTComplex' is a list of GTransformations, each*/
+/* of which is applied to one specific object in the geometry.)*/
 /***************************************************************/
 void RWGGeometry::Transform(GTComplex *GTC)
 { 
@@ -407,6 +409,27 @@ void RWGGeometry::UnTransform()
   int no;
   for(no=0; no<NumObjects; no++)
    Objects[no]->UnTransform();
+}
+
+/***************************************************************/
+/* Quick sanity check to make sure that a given list of        */
+/* GTComplex structures actually makes sense for the given     */
+/* geometry, which is to say that it doesn't request           */
+/* transformations on any objects that don't exist in the      */
+/* geometry.                                                   */
+/* Returns 0 if the check passed, or an error message if not.  */
+/***************************************************************/
+char *CheckGTCList(GTComplex **GTCList, int NumGTCs)
+{
+  int ngtc, noa;
+  
+  for(ngtc=0; ngtc<NumGTCs; ngtc++)
+   for (noa=0; noa<GTCList[ngtc]->NumObjectsAffected; noa++)
+    if (!GetObjectByLabel(GTCList[ngtc]->ObjectLabel[noa]))
+     return vstrdup("transformation requested for unknown object %s",
+                     GTCList[ngtc]->ObjectLabel[noa]);
+
+  return 0;
 }
 
 /***************************************************************/

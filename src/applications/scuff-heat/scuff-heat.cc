@@ -260,54 +260,10 @@ int main(int argc, char *argv[])
    };
 
   /*******************************************************************/
-  /* create the ScuffHeatData structure that contains all the info   */
-  /* needed to evaluate the heat transfer at a single frequency      */
+  /* create the SHData structure that contains all the info needed   */
+  /* to evaluate the heat transfer at a single frequency             */
   /*******************************************************************/
-  ScuffHeatData MySHD, *SHD=&MySHD;
-
-  RWGGeometry *G=new RWGGeometry(GeoFile);
-  G->SetLogLevel(SCUFF_VERBOSELOGGING);
-
-  SHD->G=G;
-  SHD->GTCList=ReadTransFile(TransFile, &(SHD->NumGTComplices));
-
-  SHD->PlotFlux=PlotFlux;
-  if (PlotFlux)
-   SHD->DV=new HVector(G->TotalBFs); // diagonal vector (note real-valued)
-
-  int no, nop, nb, NO=G->NumObjects, NBF, NBFp;
-
-  SHD->TBlocks = (HMatrix **)malloc(NO*sizeof(HMatrix *));
-  for(no=0; no<G->NumObjects; no++)
-   { NBF=G->Objects[no]->NumBFs;
-     SHD->TBlocks[no] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
-   };
-
-  SHD->UBlocks = (HMatrix **)malloc( ( NO*(NO-1)/2)*sizeof(HMatrix *));
-  for(nb=0, no=0; no<G->NumObjects; no++)
-   for(nop=no+1; nop<G->NumObjects; nop++, nb++)
-    { NBF=G->Objects[no]->NumBFs;
-      NBFp=G->Objects[nop]->NumBFs;
-      SHD->UBlocks[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
-    };
-
-  SHD->M0 = SHD->G->AllocateBEMMatrix();
-  SHD->M1 = SHD->G->AllocateBEMMatrix();
-  SHD->M2 = SHD->G->AllocateBEMMatrix();
-
-  if (ByOmegaFile)
-   SHD->ByOmegaFile = ByOmegaFile;
-  else 
-   { SHD->ByOmegaFile = vstrdup("%s.byOmega",GetFileBase(GeoFile));
-     char MyFileName[MAXSTR];
-     FILE *f=CreateUniqueFile(SHD->ByOmegaFile, 1, MyFileName);
-     fclose(f);
-     SHD->ByOmegaFile=strdup(MyFileName);
-   };
-
-  SHD->nThread=nThread;
-  if (SHD->nThread==0)
-   SHD->nThread=GetNumThreads();
+  SHData *SHD=CreateSHData(GeoFile, TransFile, PlotFlux, ByOmegaFile, nThread);
 
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */

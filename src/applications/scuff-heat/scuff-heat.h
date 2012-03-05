@@ -13,7 +13,13 @@
 
 using namespace scuff;
 
-typedef struct ScuffHeatData
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+// SHData ('scuff-heat data') is a structure that contains all 
+// information needed to compute the heat radiation or transfer
+// at a given frequency.
+typedef struct SHData
  {
    RWGGeometry *G;
    char *ByOmegaFile;
@@ -29,8 +35,11 @@ typedef struct ScuffHeatData
 
    int nThread;
 
- } ScuffHeatData;
+ } SHData;
 
-void GetFrequencyIntegrand(ScuffHeatData *SHD, cdouble Omega, double *I);
+SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
+                     char *ByOmegaFile, int nThread);
+
+void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *I);
 
 #endif

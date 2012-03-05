@@ -256,6 +256,7 @@ class RWGGeometry
    /* geometrical transformations */
    void Transform(GTComplex *GTC);
    void UnTransform();
+   char *CheckGTCList(GTComplex **GTCList, int NumGTCs);
 
    /* visualization */
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
