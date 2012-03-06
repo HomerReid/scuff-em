@@ -20,7 +20,7 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   SHData *SHD=(SHData *)mallocEC(sizeof(*SHD));
 
   /*--------------------------------------------------------------*/
-  /*-- try to create the RWGGeometry ------------------------------*/
+  /*-- try to create the RWGGeometry -----------------------------*/
   /*--------------------------------------------------------------*/
   RWGGeometry *G=new RWGGeometry(GeoFile);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
@@ -37,6 +37,11 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   char *ErrMsg=G->CheckGTCList(SHD->GTCList, SHD->NumTransformations);
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
+
+  if (SHD->NumTransformations>0)
+   Log("Read %i geometrical tranformations from file %s",SHD->NumTransformations,TransFile);
+  else
+   Log("Using a single (default) geometrical transformation with tag %s",SHD->GTCList[0]->Tag);
 
   /*--------------------------------------------------------------*/
   /*- the DV field is only needed for generating flux plots.     -*/
@@ -89,8 +94,8 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   // SHD->UMedium[NO]   = 1,2    block
   // etc.                                         
   SHD->UMedium = (HMatrix **)mallocEC( ( NO*(NO-1)/2)*sizeof(HMatrix *));
-  for(nb=0, no=0; no<G->NumObjects; no++)
-   for(nop=no+1; nop<G->NumObjects; nop++, nb++)
+  for(nb=0, no=0; no<NO; no++)
+   for(nop=no+1; nop<NO; nop++, nb++)
     { NBF=G->Objects[no]->NumBFs;
       NBFp=G->Objects[nop]->NumBFs;
       SHD->UMedium[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
@@ -99,9 +104,9 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  int N = SHD->G->TotalBFs;
   int N1 = SHD->N1 = SHD->G->Objects[0]->NumBFs;
-  int N2 = SHD->N2 = SHD->G->TotalBFs - N1;
-  int N = N1+N2;
+  int N2 = SHD->N2 = N - N1;
   SHD->SymG1      = new HMatrix(N1, N1, LHM_COMPLEX );
   SHD->SymG2      = new HMatrix(N2, N2, LHM_COMPLEX );
   SHD->W          = new HMatrix(N,  N,  LHM_COMPLEX );

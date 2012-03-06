@@ -445,7 +445,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      /*--------------------------------------------------------------*/
      SymG2->Zero();
      for(no=1; no<NO; no++)
-      { RowOffset=G->BFIndexOffset[no];
+      { RowOffset=G->BFIndexOffset[no] - N1;
         if (PlotFlux)
          SymG2->InsertBlock(TSelf[no], RowOffset, RowOffset );
         else 

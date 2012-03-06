@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *ByOmegaFile=0;
-  int PlotFlux;
+  int PlotFlux=0;
   char *OutputFile=0;
   char *LogFile=0;
   char *Cache=0;

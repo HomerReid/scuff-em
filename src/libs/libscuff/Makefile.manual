@@ -30,6 +30,7 @@ OBJS = AssembleBEMMatrix.o		\
        PanelPanelInteractions.o		\
        TaylorDuffy.o			\
        RWGGeometry.o			\
+       rwlock.o 	     		\
        Visualize.o			\
        scuffMisc.o			\
 
