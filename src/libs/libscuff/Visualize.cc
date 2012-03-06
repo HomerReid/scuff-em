@@ -576,25 +576,25 @@ void RWGGeometry::PlotVector(double *KVec, const char *format, ...)
   /***************************************************************/
   /* allocate space for vectors exported to matlab              **/
   /***************************************************************/
-  x=(double *)RWGMalloc(NumArrows*sizeof(double));
-  y=(double *)RWGMalloc(NumArrows*sizeof(double));
-  z=(double *)RWGMalloc(NumArrows*sizeof(double));
-  u=(double *)RWGMalloc(NumArrows*sizeof(double));
-  v=(double *)RWGMalloc(NumArrows*sizeof(double));
-  w=(double *)RWGMalloc(NumArrows*sizeof(double));
+  x=(double *)mallocEC(NumArrows*sizeof(double));
+  y=(double *)mallocEC(NumArrows*sizeof(double));
+  z=(double *)mallocEC(NumArrows*sizeof(double));
+  u=(double *)mallocEC(NumArrows*sizeof(double));
+  v=(double *)mallocEC(NumArrows*sizeof(double));
+  w=(double *)mallocEC(NumArrows*sizeof(double));
 
-  x2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  y2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  z2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  u2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  v2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  w2=(double *)RWGMalloc(NumArrows2*sizeof(double));
+  x2=(double *)mallocEC(NumArrows2*sizeof(double));
+  y2=(double *)mallocEC(NumArrows2*sizeof(double));
+  z2=(double *)mallocEC(NumArrows2*sizeof(double));
+  u2=(double *)mallocEC(NumArrows2*sizeof(double));
+  v2=(double *)mallocEC(NumArrows2*sizeof(double));
+  w2=(double *)mallocEC(NumArrows2*sizeof(double));
 
-  X=(double *)RWGMalloc(3*NumArrows*sizeof(double));
-  Y=(double *)RWGMalloc(3*NumArrows*sizeof(double));
-  Z=(double *)RWGMalloc(3*NumArrows*sizeof(double));
-  Tri=(double *)RWGMalloc(3*NumArrows*sizeof(double));
-  C=(double *)RWGMalloc(NumArrows*sizeof(double));
+  X=(double *)mallocEC(3*NumArrows*sizeof(double));
+  Y=(double *)mallocEC(3*NumArrows*sizeof(double));
+  Z=(double *)mallocEC(3*NumArrows*sizeof(double));
+  Tri=(double *)mallocEC(3*NumArrows*sizeof(double));
+  C=(double *)mallocEC(NumArrows*sizeof(double));
 
   /***************************************************************/
   /* first pass to fill in x,y,z, X, Y, Z, Tri vectors ***********/

@@ -241,8 +241,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* initialize arrays of basis-function and panel index offsets */
   /***************************************************************/
-  BFIndexOffset=(int *)RWGMalloc(NumObjects*sizeof(int) );
-  PanelIndexOffset=(int *)RWGMalloc(NumObjects*sizeof(int) );
+  BFIndexOffset=(int *)mallocEC(NumObjects*sizeof(int) );
+  PanelIndexOffset=(int *)mallocEC(NumObjects*sizeof(int) );
   BFIndexOffset[0]=PanelIndexOffset[0]=0;
   for(no=1; no<NumObjects; no++)
    { BFIndexOffset[no]=BFIndexOffset[no-1] + Objects[no-1]->NumBFs;
@@ -270,7 +270,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /*                   Mate[j] = i                               */
   /*                   Mate[k] = i                               */
   /***************************************************************/
-  Mate=(int *)malloc(NumObjects*sizeof(int));
+  Mate=(int *)mallocEC(NumObjects*sizeof(int));
   Mate[0]=-1;
   for(i=1; i<NumObjects; i++)
    { Mate[i]=-1;
@@ -284,7 +284,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* initialize ObjectMoved[] array                              */
   /***************************************************************/
-  ObjectMoved=(int *)RWGMalloc(NumObjects*sizeof(int));
+  ObjectMoved=(int *)mallocEC(NumObjects*sizeof(int));
 
 }
 } // namespace scuff

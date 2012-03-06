@@ -280,10 +280,10 @@ int main(int argc, char *argv[])
   /* now switch off based on the requested frequency behavior to     */
   /* perform the actual calculations                                 */
   /*******************************************************************/
-  double *I = new double[NumFreqs];
+  double *I = new double[SHD->NumTransformations];
   if (NumFreqs>0)
    { for (nFreq=0; nFreq<NumFreqs; nFreq++)
-      GetFrequencyIntegrand(SHD, OmegaList->GetEntry(nFreq), I+nFreq );
+      GetFrequencyIntegrand(SHD, OmegaList->GetEntry(nFreq), I);
    }
   else
    { // frequency integration not yet implemented 

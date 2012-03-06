@@ -12,7 +12,7 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void PlotFlux(SHData *SHD, cdouble Omega)
+void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
 { 
   RWGGeometry *G = SHD->G;
 
@@ -28,7 +28,7 @@ void PlotFlux(SHData *SHD, cdouble Omega)
   /* allocate a vector with enough slots to store one double     */
   /* value per panel in the mesh                                 */
   /***************************************************************/
-  double *PFV=(double *)malloc( (G->TotalPanels)*sizeof(double) ); // panel flux vector
+  double *PFV=(double *)mallocEC( (G->TotalPanels)*sizeof(double) ); // panel flux vector
   memset(PFV, 0, (G->TotalPanels)*sizeof(double));
 
   /***************************************************************/
@@ -58,7 +58,7 @@ void PlotFlux(SHData *SHD, cdouble Omega)
   /* create a GMSH postprocessing file containing a single 'view'*/
   /* that plots the flux on each panel                           */
   /***************************************************************/
-  FILE *f=vfopen("%s.%g.flux","w",GetFileBase(G->GeoFileName),real(Omega));
+  FILE *f=vfopen("%s.%g.%s.flux.pp","w",GetFileBase(G->GeoFileName),real(Omega),Tag);
   fprintf(f,"View \"Flux\"{\n");
   int np;
   RWGPanel *P;
@@ -110,7 +110,7 @@ void PlotFlux(SHData *SHD, cdouble Omega)
 /* becomes:                                                    */
 /*                                                             */
 /*  tr ( W * G1 * W^T * G2 )                                   */
-/*   = tr ( C*X1* B^T * X2 )                                   */
+/*   = tr ( C * X1 * B^T * X2 )                                */
 /*                                                             */
 /*                                                             */
 /***************************************************************/
@@ -290,18 +290,52 @@ void FlipSignOfMagneticColumns(HMatrix *B)
 }
 
 /***************************************************************/
+/* this routine mimics the effect of saying                    */
+/*  A->InsertBlock(B, RowOffset, ColOffset)                    */
+/* with the difference that the symmetrized version of the B   */
+/* matrix, i.e. (B+B^\dagger) / 2, is inserted instead.        */
+/***************************************************************/
+void InsertSymmetrizedBlock(HMatrix *A, HMatrix *B, int RowOffset, int ColOffset)
+{ 
+  int nr, nc;
+  cdouble Z;
+
+  for(nr=0; nr<B->NR; nr++)
+   { 
+     A->SetEntry(RowOffset+nr, ColOffset+nr, real(B->GetEntry(nr,nr)) );
+
+     for(nc=nr+1; nc<B->NC; nc++)
+      { Z = 0.5*( B->GetEntry(nr,nc) + conj(B->GetEntry(nc,nr)) );
+        A->SetEntry( RowOffset+nr, ColOffset+nc, Z       );
+        A->SetEntry( RowOffset+nc, ColOffset+nr, conj(Z) );
+      };
+   };
+
+} 
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
 {
-  RWGGeometry *G = SHD->G;
-  int nThread    = SHD->nThread;
-  HMatrix *M0    = SHD->M0;
-  HMatrix *M1    = SHD->M1;
-  HMatrix *M2    = SHD->M2;
-
-  int no, nop, nb, NO=G->NumObjects;
-
+  /***************************************************************/
+  /* extract fields from SHData structure ************************/
+  /***************************************************************/
+  RWGGeometry *G     = SHD->G;
+  char *ByOmegaFile  = SHD->ByOmegaFile;
+  int N1             = SHD->N1;
+  int N2             = SHD->N2;
+  HMatrix **TSelf    = SHD->TSelf;
+  HMatrix **TMedium  = SHD->TMedium;
+  HMatrix **UMedium  = SHD->UMedium;
+  HMatrix *SymG1     = SHD->SymG1;
+  HMatrix *SymG2     = SHD->SymG2;
+  HMatrix *W         = SHD->W;
+  HMatrix *W21       = SHD->W21;
+  HMatrix *W21SymG1  = SHD->W21SymG1;
+  HMatrix *W21DSymG2 = SHD->W21SymG1;
+  HVector *DV        = SHD->DV;
+  int PlotFlux       = SHD->PlotFlux;
 
   /***************************************************************/
   /* preinitialize an argument structure for the BEM matrix      */
@@ -320,38 +354,47 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
   Args->Symmetric=1;
+  int no, nop, nb, nr, NO=G->NumObjects;
   for(no=0; no<G->NumObjects; no++)
    { 
      Args->Oa = Args->Ob = G->Objects[no];
 
+     Log(" Assembling self contributions to T(%i)...",no);
+     G->ExteriorMP->Zero();
+     Args->B = TSelf[no];
+     AssembleBEMMatrixBlock(Args);
+     G->ExteriorMP->UnZero();
+
+     Log(" Assembling medium contributions to T(%i)...",no);
      G->Objects[no]->MP->Zero();
-     Log(" Assembling exterior GF contributions to T(%i)...",no);
-     Args->B = SHD->T0Blocks[no];
-     G->AssembleBEMMatrixBlock(Args);
- //    FlipSignOfMagneticColumns(Args->B);
+     Args->B = TMedium[no];
+     AssembleBEMMatrixBlock(Args);
      G->Objects[no]->MP->UnZero();
 
-     G->MP->Zero();
-     Log(" Assembling interior GF contributions to T(%i)...",no);
-     Args->B = SHD->TNBlocks[no];
-     G->AssembleBEMMatrixBlock(Args);
- //    FlipSignOfMagneticColumns(Args->B);
-     G->MP->UnZero();
-
    };
+
+  /***************************************************************/
+  /* the SymG1 matrix can be formed and stored ahead of time     */
+  /* (unlike SymG2)                                              */
+  /***************************************************************/
+  InsertSymmetrizedBlock(SymG1, TSelf[0], 0, 0 );
+  FlipSignOfMagneticColumns(SymG1);
 
   /***************************************************************/
   /* now loop over transformations. ******************************/
   /* note: 'gtc' stands for 'geometrical transformation complex' */
   /***************************************************************/
-  int ngtc, NGTC=SHD->NumGTComplices;
-  for(ngtc=0; ngtc<SHD->NumGTComplices; ngtc++)
+  int nt, NT=SHD->NumTransformations;
+  char *Tag;
+  int RowOffset, ColOffset;
+  for(nt=0; nt<SHD->NumTransformations; nt++)
    { 
      /*--------------------------------------------------------------*/
      /*- transform the geometry -------------------------------------*/
      /*--------------------------------------------------------------*/
-     Log(" Computing quantities at geometrical transform %s",SHD->GTCList[ngtc]->Tag);
-     G->Transform(SHD->GTCList[ngtc]);
+     Tag=SHD->GTCList[nt]->Tag;
+     G->Transform(SHD->GTCList[nt]);
+     Log(" Computing quantities at geometrical transform %s",Tag);
 
      /*--------------------------------------------------------------*/
      /* assemble off-diagonal matrix blocks.                         */
@@ -362,49 +405,101 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      Args->Symmetric=0;
      for(nb=0, no=0; no<NO; no++)
       for(nop=no+1; nop<NO; nop++, nb++)
-       if ( ngtc==0 || G->ObjectMoved[no] || G->ObjectMoved[nop] )
+       if ( nt==0 || G->ObjectMoved[no] || G->ObjectMoved[nop] )
         { 
-          Log(" Assembling U(%i,%i)...",no,nop);
+          Log("  Assembling U(%i,%i)...",no,nop);
           Args->Oa = G->Objects[no];
           Args->Ob = G->Objects[nop];
-          Args->B  = SHD->UBlocks[nb];
-          G->AssembleBEMMatrixBlock(Args);
- //         FlipSignOfMagneticColumns(Args->B);
+          Args->B  = SHD->UMedium[nb];
+          AssembleBEMMatrixBlock(Args);
         };
 
      /*--------------------------------------------------------------*/
-     /*- put together the full W matrix by stamping the T0, TN, and  */
-     /*- U blocks in their appropriate places                        */
+     /*- put together the full BEM matrix by stamping the T0, TN,    */
+     /*- and U blocks in their appropriate places, then LU-factorize */
+     /*- and invert it to get the W matrix.                          */
      /*--------------------------------------------------------------*/
      for(nb=0, no=0; no<NO; no++)
       { 
         RowOffset=G->BFIndexOffset[no];
-        SHD->W->InsertBlock(SHD->T0Blocks[no], RowOffset, RowOffset);
-        SHD->W->AddBlock(SHD->TNBlocks[no], RowOffset, RowOffset);
+        W->InsertBlock(TSelf[no], RowOffset, RowOffset);
+        W->AddBlock(TMedium[no], RowOffset, RowOffset);
 
         for(nop=no+1; nop<NO; nop++, nb++)
          { ColOffset=G->BFIndexOffset[nop];
-           SHD->W->InsertBlock(SHD->UBlocks[nb], RowOffset, ColOffset);
-           SHD->W->InsertBlockTranspose(SHD->UBlocks[nb], RowOffset, ColOffset);
+           W->InsertBlock(SHD->UMedium[nb], RowOffset, ColOffset);
+           W->InsertBlockTranspose(SHD->UMedium[nb], ColOffset, RowOffset);
          };
+      };
+     FlipSignOfMagneticColumns(W);
+     Log("  LU factorizing M...");
+     W->LUFactorize();
+     Log("  LU inverting M...");
+     W->LUInvert();
 
+     /*--------------------------------------------------------------*/
+     /*- fill in the SymG2 matrix. this is just what we did for the  */
+     /*- SymG1 matrix above, except that there may be more than one  */
+     /*- block to insert, and also if PlotFlux==1 then we don't want */
+     /*- to symmetrize.                                              */
+     /*--------------------------------------------------------------*/
+     SymG2->Zero();
+     for(no=1; no<NO; no++)
+      { RowOffset=G->BFIndexOffset[no];
+        if (PlotFlux)
+         SymG2->InsertBlock(TSelf[no], RowOffset, RowOffset );
+        else 
+         InsertSymmetrizedBlock(SymG2, TSelf[no], RowOffset, RowOffset );
       };
 
      /*--------------------------------------------------------------*/
+     /*- extract the W21 subblock and compute the products          -*/
+     /*- W21*sym(G1) and W21^{\dagger} * sym(G2)                    -*/
      /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     FlipSignOfMagneticColumns(Args->B);
+     Log("  Multiplication 1...");
+     W->ExtractBlock(N1, 0, W21);
+     W21->Multiply(SymG1, W21SymG1);
+
+     Log("  Multiplication 2...");
+     W21->Adjoint();
+     W21->Multiply(SymG2, W21DSymG2);
 
      /*--------------------------------------------------------------*/
-     /*- do the computation to get the desired quantities at this    */
-     /*- frequency and transformation                                */
+     /*- compute the product W21*sym(G1)*W21^{\dagger}*sym(G2)      -*/
      /*--------------------------------------------------------------*/
+     Log("  Multiplication 3...");
+     W21SymG1->Multiply(W21DSymG2, SymG2);
+
+     /*--------------------------------------------------------------*/
+     /*- if we are plotting the flux, then extract the diagonal of   */
+     /*- the matrix we just computed and plot it; otherwise, compute */
+     /*- the trace and put it in the next slot in the output vector. */
+     /*--------------------------------------------------------------*/
+     if (PlotFlux)
+      { 
+        DV->Zero();
+        for(nr=0; nr<N2; nr++)
+         DV->SetEntry(N1+nr, SymG2->GetEntryD(nr, nr) );
+        CreateFluxPlot(SHD, Omega, Tag);
+      }
+     else
+      { 
+        FI[nt] = real(SymG2->GetTrace());
+
+        /***************************************************************/
+        /* write the result to the frequency-resolved output file ******/
+        /***************************************************************/
+        FILE *f=fopen(SHD->ByOmegaFile, "a");
+        fprintf(f,"%s %s %e\n",Tag,z2s(Omega),FI[nt]);
+        fclose(f);
+      };
 
      /*--------------------------------------------------------------*/
      /* and untransform the geometry                                 */
      /*--------------------------------------------------------------*/
      G->UnTransform();
+     Log(" ...done!");
 
-   }; // for (ngtc=0; ngtc<SHD->NumGTComplices ... )
+   }; // for (nt=0; nt<SHD->NumTransformations... )
 
 }

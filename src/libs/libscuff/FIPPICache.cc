@@ -146,9 +146,9 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   /* structure, then add this structure to the cache             */
   /***************************************************************/
   NotFound++;
-  KeyStruct *K2 = (KeyStruct *)malloc(sizeof(*K2));
+  KeyStruct *K2 = (KeyStruct *)mallocEC(sizeof(*K2));
   memcpy(K2->Key, K.Key, KEYLEN*sizeof(double));
-  QIFIPPIData *QIFD=(QIFIPPIData *)malloc(sizeof *QIFD);
+  QIFIPPIData *QIFD=(QIFIPPIData *)mallocEC(sizeof *QIFD);
   if (DoNotCompute==0)
    ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
    
@@ -295,7 +295,7 @@ void FIPPICache::PreLoad(char *FileName)
   FIPPICF_Record *Records;
   NumRecords = FileSize / FIPPICF_RECLEN;
   if ( ErrMsg==0 )
-   { Records=(FIPPICF_Record *)malloc(NumRecords*FIPPICF_RECLEN);
+   { Records=(FIPPICF_Record *)mallocEC(NumRecords*FIPPICF_RECLEN);
      if ( !Records)
       ErrMsg="insufficient memory to preload cache";
    };

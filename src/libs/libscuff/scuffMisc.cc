@@ -139,11 +139,11 @@ void RWGErrExit(const char *format, ...)
 }
 
 /***************************************************************/
-/* malloc with error checking                                  */
+/* mallocEC with error checking                                  */
 /***************************************************************/
-void *RWGMalloc(int size)
+void *mallocEC(int size)
 {
- void *p=malloc(size);
+ void *p=mallocEC(size);
 
  if (!p) RWGErrExit("out of memory");
  return p;

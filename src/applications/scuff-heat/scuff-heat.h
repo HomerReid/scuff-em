@@ -24,14 +24,16 @@ typedef struct SHData
    RWGGeometry *G;
    char *ByOmegaFile;
 
-   HMatrix **TBlocks, **UBlocks;
-   HMatrix *M0, *M1, *M2;
+   int N1, N2;
+   HMatrix **TSelf, **TMedium, **UMedium;
+   HMatrix *SymG1, *SymG2;
+   HMatrix *W, *W21, *W21SymG1, *W21DSymG2;
 
    HVector *DV;
    int PlotFlux;
 
    GTComplex **GTCList;
-   int NumGTComplices;
+   int NumTransformations;
 
    int nThread;
 
@@ -40,6 +42,6 @@ typedef struct SHData
 SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
                      char *ByOmegaFile, int nThread);
 
-void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *I);
+void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI);
 
 #endif

@@ -232,10 +232,10 @@ RWGObject::RWGObject(double *pVertices, int pNumVertices,
   MP=new MatProp();
   GT=0;
 
-  Vertices=(double *)RWGMalloc(3*NumVertices*sizeof(double));
+  Vertices=(double *)mallocEC(3*NumVertices*sizeof(double));
   memcpy(Vertices,pVertices,3*NumVertices*sizeof(double *));
 
-  Panels=(RWGPanel **)RWGMalloc(NumPanels*sizeof(RWGPanel *));
+  Panels=(RWGPanel **)mallocEC(NumPanels*sizeof(RWGPanel *));
   for(np=0; np<NumPanels; np++)
    { Panels[np]=NewRWGPanel(Vertices,
                              PanelVertexIndices[np][0],
@@ -398,7 +398,7 @@ RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3)
 { 
   RWGPanel *P;
 
-  P=(RWGPanel *)RWGMalloc(sizeof *P);
+  P=(RWGPanel *)mallocEC(sizeof *P);
   P->VI[0]=iV1;
   P->VI[1]=iV2;
   P->VI[2]=iV3;

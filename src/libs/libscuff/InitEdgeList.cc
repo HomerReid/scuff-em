@@ -47,7 +47,7 @@ void RWGObject::InitEdgeList()
   /*- EdgeList[nv] is a linked list of all Edge structures for   -*/
   /*- which the lesser-numbered of the two vertex indices is nv. -*/
   /*--------------------------------------------------------------*/
-  EdgeLists=(RWGEdge **)RWGMalloc(NumVertices*sizeof(RWGEdge *));
+  EdgeLists=(RWGEdge **)mallocEC(NumVertices*sizeof(RWGEdge *));
   memset(EdgeLists,0,NumVertices*sizeof(RWGEdge*));
 
   /*--------------------------------------------------------------*/
@@ -55,7 +55,7 @@ void RWGObject::InitEdgeList()
   /*- on the object. (Used below in the determination of the      */
   /*- number of "interior" vertices.)                             */
   /*--------------------------------------------------------------*/
-  VertexUsed=(int *)RWGMalloc(NumVertices*sizeof(int));
+  VertexUsed=(int *)mallocEC(NumVertices*sizeof(int));
   memset(VertexUsed,0,NumVertices*sizeof(int));
 
   /*--------------------------------------------------------------*/
@@ -66,10 +66,10 @@ void RWGObject::InitEdgeList()
   /*- RWGEdge structures connected to vertex nv (again only      */
   /*- used for nv=exterior vertex)                                */
   /*--------------------------------------------------------------*/
-  EVNumEdges=(int *)RWGMalloc(NumVertices*sizeof(RWGEdge));
+  EVNumEdges=(int *)mallocEC(NumVertices*sizeof(RWGEdge));
   memset(EVNumEdges,0,NumVertices*sizeof(int));
-  EVEdges=(RWGEdge ***)RWGMalloc(NumVertices*sizeof(RWGEdge **));
-  EVEdges[0]=(RWGEdge **)RWGMalloc(2*NumVertices*sizeof(RWGEdge *)); 
+  EVEdges=(RWGEdge ***)mallocEC(NumVertices*sizeof(RWGEdge **));
+  EVEdges[0]=(RWGEdge **)mallocEC(2*NumVertices*sizeof(RWGEdge *)); 
   for(nv=1; nv<NumVertices; nv++)
    EVEdges[nv]=EVEdges[nv-1]+2;
 
@@ -163,7 +163,7 @@ void RWGObject::InitEdgeList()
          /* linked list of RWGEdge structures connected to vrtx #iVLesser  */
          /******************************************************************/
          NumTotalEdges++;
-         E=(RWGEdge *)RWGMalloc(sizeof *E);
+         E=(RWGEdge *)mallocEC(sizeof *E);
          E->Next=EdgeLists[iVLesser];
          EdgeLists[iVLesser]=E;
 
@@ -200,8 +200,8 @@ void RWGObject::InitEdgeList()
   /*      first exterior edge has Index=-1, the second has        */
   /*      Index=-2, etc.)                                         */
   /*--------------------------------------------------------------*/
-  Edges=(RWGEdge **)RWGMalloc(NumEdges*sizeof(Edges[0]));
-  ExteriorEdges=(RWGEdge **)RWGMalloc((NumTotalEdges-NumEdges)*sizeof(Edges[0]));
+  Edges=(RWGEdge **)mallocEC(NumEdges*sizeof(Edges[0]));
+  ExteriorEdges=(RWGEdge **)mallocEC((NumTotalEdges-NumEdges)*sizeof(Edges[0]));
   NumExteriorEdges=0;
   NumExteriorVertices=0;
   for(nv=0; nv<NumVertices; nv++)
@@ -257,7 +257,7 @@ void RWGObject::InitEdgeList()
   /*-  6. continue in this way until all exterior boundary       -*/
   /*-     contours have been identified.                         -*/
   /*--------------------------------------------------------------*/
-  WhichBC=(int *)RWGMalloc(NumVertices*sizeof(int));
+  WhichBC=(int *)mallocEC(NumVertices*sizeof(int));
   memset(WhichBC,0,NumVertices*sizeof(int));
   NumBCs=0;
   NumExteriorVertices=0;
@@ -322,7 +322,7 @@ void RWGObject::InitEdgeList()
      /* step 5: create an array containing all the edges we just      */
      /* visited in this boundary contour.                             */
      /*****************************************************************/
-     BCEdges[NumBCs]=(RWGEdge **)RWGMalloc(NumBCEdges[NumBCs]*sizeof(RWGEdge *));
+     BCEdges[NumBCs]=(RWGEdge **)mallocEC(NumBCEdges[NumBCs]*sizeof(RWGEdge *));
      for(ne=0, E=BCEdgeList; E; E=E->Next)
       BCEdges[NumBCs][ne++]=E;
 

@@ -89,8 +89,8 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
   /*- calls 'node 3' is stored in slot GMSH2HR[3] within our    */
   /*- internal Vertices array.                                  */ 
   /*------------------------------------------------------------*/
-  Vertices=(double *)RWGMalloc(3*NumVertices*sizeof(double));
-  GMSH2HR=(int *)RWGMalloc(2*NumVertices*sizeof(int));
+  Vertices=(double *)mallocEC(3*NumVertices*sizeof(double));
+  GMSH2HR=(int *)mallocEC(2*NumVertices*sizeof(int));
   for(i=0; i<2*NumVertices; i++)
    GMSH2HR[i]=-1;
   for (nv=0; nv<NumVertices; nv++)
@@ -172,7 +172,7 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
   /*- Now read each line of the elements section.               */ 
   /*------------------------------------------------------------*/
   NumPanels=NumRefPts=0;
-  Panels=(RWGPanel **)RWGMalloc(NumElements * sizeof(Panels[0]));
+  Panels=(RWGPanel **)mallocEC(NumElements * sizeof(Panels[0]));
   for (ne=0; ne<NumElements; ne++)
    { 
      if (!fgets(buffer,100,MeshFile))

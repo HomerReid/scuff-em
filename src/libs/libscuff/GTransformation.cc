@@ -29,7 +29,7 @@ static void ConstructRotationMatrix(double *ZHat, double Theta, double M[9]);
 /***************************************************************/
 GTransformation *CreateGTransformation()
  { 
-   GTransformation *NGT=(GTransformation *)malloc(sizeof(*NGT));
+   GTransformation *NGT=(GTransformation *)mallocEC(sizeof(*NGT));
    memset(NGT->DX, 0, 3*sizeof(double));
    memset(NGT->M, 0, 9*sizeof(double));
    NGT->M[0]=NGT->M[4]=NGT->M[8]=1.0;
@@ -413,7 +413,7 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
   /***************************************************************/
   /* initialize a bare GTComplex *********************************/
   /***************************************************************/
-  GTComplex *GTC=(GTComplex *)malloc(sizeof(GTComplex));
+  GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
   GTC->Tag=strdup(Tokens[1]);
   GTC->NumObjectsAffected=0;
   GTC->ObjectLabel=0;
@@ -488,7 +488,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
   /***************************************************************/
   /* initialize a bare GTComplex *********************************/
   /***************************************************************/
-  GTComplex *GTC=(GTComplex *)malloc(sizeof(GTComplex));
+  GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
   GTC->Tag=strdup(Tag);
   GTC->NumObjectsAffected=0;
   GTC->ObjectLabel=0;
@@ -572,7 +572,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
 /***************************************************************/
 GTComplex *CreateDefaultGTComplex()
 {
-  GTComplex *GTC=(GTComplex *)malloc(sizeof(GTComplex));
+  GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
   GTC->Tag=strdup("DEFAULT");
   GTC->NumObjectsAffected=0;
   GTC->ObjectLabel=0;
@@ -592,7 +592,7 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
   if (FileName==0)
    { 
      *NumGTComplices=1;
-     GTComplex **GTCList = (GTComplex **)malloc(sizeof(GTCList[0]));
+     GTComplex **GTCList = (GTComplex **)mallocEC(sizeof(GTCList[0]));
      GTCList[0] = CreateDefaultGTComplex();
      return GTCList;
    };

@@ -232,7 +232,7 @@ BORTObject::IdentifyStraddlingEdges()
         if ( EdgesCoincide( EE->iV1,  EE->iV2,  OVertices,
                             EEP->iV1, EEP->iV2, TVertices, EE->Length)
            ) { 
-               SE=(StraddlingEdge *)malloc(sizeof(StraddlingEdge));
+               SE=(StraddlingEdge *)mallocEC(sizeof(StraddlingEdge));
                memcpy(SE->QP, OVertices + 3*(EE->iQP), 3*sizeof(double));
                memcpy(SE->V1, OVertices + 3*(EE->iV1), 3*sizeof(double));
                memcpy(SE->V2, OVertices + 3*(EE->iV2), 3*sizeof(double));
@@ -274,7 +274,7 @@ BORTObject::BORTObject(FILE *f, char *FileName, int *LineNum)
    /* create TVertices array to store transformed vertices        */
    /***************************************************************/
    int NumVertices=BaseObject->NumVertices;
-   TVertices=(double *)malloc(3*BaseObject->NumVertices*sizeof(double));
+   TVertices=(double *)mallocEC(3*BaseObject->NumVertices*sizeof(double));
 
    /***************************************************************/
    /* identify straddling edges                                   */

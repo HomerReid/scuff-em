@@ -66,7 +66,7 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
   /***************************************************************/
   /* read vertices ***********************************************/
   /***************************************************************/
-  Vertices=(double *)RWGMalloc(3*NumVertices*sizeof(double *));
+  Vertices=(double *)mallocEC(3*NumVertices*sizeof(double *));
   for(nv=0; nv<NumVertices; nv++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
@@ -104,7 +104,7 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
   /***************************************************************/
   /* read panels    **********************************************/ 
   /***************************************************************/
-  Panels=(RWGPanel **)RWGMalloc(NumPanels*sizeof(Panels[0]));
+  Panels=(RWGPanel **)mallocEC(NumPanels*sizeof(Panels[0]));
   for(np=0; np<NumPanels; np++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
