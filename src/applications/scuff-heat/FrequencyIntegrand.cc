@@ -88,6 +88,33 @@ void PlotFlux(SHData *SHD, cdouble Omega)
 /***************************************************************/
 /***************************************************************/
 
+/***************************************************************/
+/* how this works: consider a 2x2 block decomposition of the   */
+/* matrix, where                                               */
+/*                                                             */
+/*  block 1 = basis functions on object 1                      */
+/*  block 2 = basis functions on all other objects, 2..N       */
+/*                                                             */
+/* let W be the inverse of the full BEM matrix and let its     */
+/* block structure be W = (A B ; C D).                         */
+/*                                                             */
+/* the matrices G1 and G2 have the block structure             */
+/*                                                             */
+/*  G1 = [X1 0; 0 0]                                           */
+/*  G2 = [ 0 0; 0 X2]                                          */
+/*                                                             */
+/* (here G1, G2 include the effect of the symmetrization       */
+/* operation, G1=sym(G1), G2=sym(G2))                          */
+/*                                                             */
+/* using the block decompositions, the trace in question       */
+/* becomes:                                                    */
+/*                                                             */
+/*  tr ( W * G1 * W^T * G2 )                                   */
+/*   = tr ( C*X1* B^T * X2 )                                   */
+/*                                                             */
+/*                                                             */
+/***************************************************************/
+
   /***************************************************************/
   /* assemble the three separate blocks that contribute to the   */
   /* BEM matrix:                                                 */
@@ -366,7 +393,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-
      FlipSignOfMagneticColumns(Args->B);
 
      /*--------------------------------------------------------------*/
