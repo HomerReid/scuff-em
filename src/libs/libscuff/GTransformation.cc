@@ -594,6 +594,7 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
      *NumGTComplices=1;
      GTComplex **GTCList = (GTComplex **)mallocEC(sizeof(GTCList[0]));
      GTCList[0] = CreateDefaultGTComplex();
+     Log("Using a single (empty) geometrical transformation with label %s.",GTCList[0]->Tag);
      return GTCList;
    };
 
@@ -647,7 +648,7 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
 
   fclose(f);
   *NumGTComplices=NumGTCs; 
-  Log("Read %i geometrical transformations from file %s.\n",NumGTCs,FileName); 
+  Log("Read %i geometrical transformations from file %s.",NumGTCs,FileName); 
   return GTCArray;
 
 }

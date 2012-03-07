@@ -68,7 +68,7 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
   while(KeywordFound==0)
    { 
      if (!fgets(buffer,100,MeshFile))
-      RWGErrExit("%s: failed to find node start keyword");
+      ErrExit("%s: failed to find node start keyword");
      LineNum++;
      if( !strncmp(buffer,NODE_START_KEYWORD1,strlen(NODE_START_KEYWORD1)))
       { WhichMeshFormat=FORMAT_LEGACY; KeywordFound=1; }
@@ -76,7 +76,7 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
       { WhichMeshFormat=FORMAT_NEW; KeywordFound=1; }
    };
   if ( !fgets(buffer,100,MeshFile) || !(NumVertices=atoi(buffer)) )
-   RWGErrExit("%s: invalid number of nodes",FileName); 
+   ErrExit("%s: invalid number of nodes",FileName); 
   LineNum++;
 
   /*------------------------------------------------------------*/
@@ -95,14 +95,14 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
    GMSH2HR[i]=-1;
   for (nv=0; nv<NumVertices; nv++)
    { if (!fgets(buffer,100,MeshFile))
-      RWGErrExit("%s: too few nodes",FileName);
+      ErrExit("%s: too few nodes",FileName);
      LineNum++;
      nConv=sscanf(buffer,"%i %le %le %le",&NodeIndex,
                           Vertices+3*nv,Vertices+3*nv+1,Vertices+3*nv+2); 
      if(nConv!=4)
-      RWGErrExit("%s:%i: invalid node specification",FileName,LineNum); 
+      ErrExit("%s:%i: invalid node specification",FileName,LineNum); 
      if (NodeIndex>2*NumVertices)
-      RWGErrExit("%s: internal error in ReadGMSHFile",FileName);
+      ErrExit("%s: internal error in ReadGMSHFile",FileName);
      GMSH2HR[NodeIndex]=nv;
    }; /* for (nv=0; nv<NumVertices; nv++) */
    
@@ -136,37 +136,37 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
   /* keyword, then read the number of elements.                 */
   /*------------------------------------------------------------*/
   if ( !fgets(buffer,100,MeshFile) )
-   RWGErrExit("%s: bad file format (nodes section not terminated)",FileName);
+   ErrExit("%s: bad file format (nodes section not terminated)",FileName);
   LineNum++;
 
   if ( WhichMeshFormat==FORMAT_LEGACY ) 
    { if ( strncmp(buffer,NODE_END_KEYWORD1,strlen(NODE_END_KEYWORD1)))
-      RWGErrExit("%s:%i: unexpected keyword",FileName,LineNum);
+      ErrExit("%s:%i: unexpected keyword",FileName,LineNum);
    }
   else
    { if ( strncmp(buffer,NODE_END_KEYWORD2,strlen(NODE_END_KEYWORD2)))
-      RWGErrExit("%s:%i: unexpected keyword",FileName,LineNum);
+      ErrExit("%s:%i: unexpected keyword",FileName,LineNum);
    };
 
   if ( !fgets(buffer,100,MeshFile) )
-   RWGErrExit("%s: bad file format (elements section not initiated)",FileName);
+   ErrExit("%s: bad file format (elements section not initiated)",FileName);
   LineNum++;
 
   if ( WhichMeshFormat==FORMAT_LEGACY ) 
    { if ( strncmp(buffer,ELM_START_KEYWORD1,strlen(ELM_START_KEYWORD1)))
-      RWGErrExit("%s:%i: unexpected keyword",FileName,LineNum);
+      ErrExit("%s:%i: unexpected keyword",FileName,LineNum);
    }
   else
    { if ( strncmp(buffer,ELM_START_KEYWORD2,strlen(ELM_START_KEYWORD2)))
-      RWGErrExit("%s:%i: unexpected keyword",FileName,LineNum);
+      ErrExit("%s:%i: unexpected keyword",FileName,LineNum);
    }
 
   if ( !fgets(buffer,100,MeshFile) )
-   RWGErrExit("%s: bad file format (invalid number of elements)",FileName);
+   ErrExit("%s: bad file format (invalid number of elements)",FileName);
   LineNum++;
   nConv=sscanf(buffer,"%i",&NumElements);
   if (nConv!=1 || NumElements<0) 
-   RWGErrExit("%s:%i: invalid number of elements",FileName,LineNum);
+   ErrExit("%s:%i: invalid number of elements",FileName,LineNum);
  
   /*------------------------------------------------------------*/
   /*- Now read each line of the elements section.               */ 
@@ -176,7 +176,7 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
   for (ne=0; ne<NumElements; ne++)
    { 
      if (!fgets(buffer,100,MeshFile))
-      RWGErrExit("too few elements in input file");
+      ErrExit("too few elements in input file");
      LineNum++;
 
      if (WhichMeshFormat==FORMAT_LEGACY)
@@ -184,13 +184,13 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
         nConv=sscanf(buffer,"%i %i %i %i %i %i %i %i",
                      &ElNum,&ElType,&RegPhys,&RegElem,&NodeCnt,VI,VI+1,VI+2);
         if (nConv<5)
-         RWGErrExit("%s:%i: invalid element specification",FileName,LineNum);
+         ErrExit("%s:%i: invalid element specification",FileName,LineNum);
       }
      else
       { 
         nConv=sscanf(buffer,"%i %i %i%n",&ElNum,&ElType,&nTags,&nRead);
         if (nConv<3)
-         RWGErrExit("%s:%i: invalid element specification",FileName,LineNum);
+         ErrExit("%s:%i: invalid element specification",FileName,LineNum);
         bufPos=nRead;
         for(nt=0; nt<nTags; nt++)
          { sscanf(buffer+bufPos,"%i%n",&iDummy,&nRead);
@@ -198,9 +198,9 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
          };
         nConv=sscanf(buffer+bufPos,"%i %i %i",VI,VI+1,VI+2);
         if (ElType==TYPE_TRIANGLE && nConv!=3)
-         RWGErrExit("%s:%i: invalid element specification",FileName,LineNum);
+         ErrExit("%s:%i: invalid element specification",FileName,LineNum);
         else if (ElType==TYPE_POINT && nConv!=1)
-         RWGErrExit("%s:%i: invalid element specification",FileName,LineNum);
+         ErrExit("%s:%i: invalid element specification",FileName,LineNum);
       };
    
      /* we only process elements that are points or triangles */
@@ -211,7 +211,7 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
         /***************************************************************/
         case TYPE_POINT:
           if (NumRefPts==MAXREFPTS)
-           RWGErrExit("%s:%i: too many reference points",FileName,LineNum); 
+           ErrExit("%s:%i: too many reference points",FileName,LineNum); 
           RefPntIndices[NumRefPts++]=GMSH2HR[ VI[0] ];
           break;
 
@@ -226,7 +226,7 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
           break;
 
         default:
-          //RWGErrExit("%s:%i: unknown element type %i",FileName,LineNum,ElType);
+          //ErrExit("%s:%i: unknown element type %i",FileName,LineNum,ElType);
           //fprintf(stderr,"%s:%i: warning: ignoring unknown element type %i\n",FileName,LineNum,ElType);
           break;
 

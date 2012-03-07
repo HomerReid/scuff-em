@@ -51,16 +51,16 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
   /***************************************************************/
   LinesRead=SkipTo(MeshFile,"# number of mesh points",Line);
   if (LinesRead==0)
-   RWGErrExit("%s: failed to find line '#number of mesh points'",FileName);
+   ErrExit("%s: failed to find line '#number of mesh points'",FileName);
   LineNum+=LinesRead;
 
   nConv=sscanf(Line,"%i ",&NumVertices);
   if (nConv!=1 || NumVertices<0 || NumVertices>10000000)
-   RWGErrExit("%s:%i: too many vertices(%i)",FileName,LineNum,NumVertices);
+   ErrExit("%s:%i: too many vertices(%i)",FileName,LineNum,NumVertices);
 
   LinesRead=SkipTo(MeshFile,"# Mesh point coordinates",Line);
   if (LinesRead==0)
-   RWGErrExit("%s: failed to find line '#Mesh point coordinates'",FileName);
+   ErrExit("%s: failed to find line '#Mesh point coordinates'",FileName);
   LineNum+=LinesRead;
 
   /***************************************************************/
@@ -70,12 +70,12 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
   for(nv=0; nv<NumVertices; nv++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
-      RWGErrExit("%s: unexpected end of file",FileName);
+      ErrExit("%s: unexpected end of file",FileName);
      LineNum++;
 
      if ( 3!=sscanf(Line,"%le %le %le",
                     Vertices+3*nv,Vertices+3*nv+1,Vertices+3*nv+2))
-      RWGErrExit("%s:%i: syntax error",FileName,LineNum);
+      ErrExit("%s:%i: syntax error",FileName,LineNum);
    };
 
   /***************************************************************/
@@ -88,17 +88,17 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
   /***************************************************************/
   LinesRead=SkipTo(MeshFile,"3 # number of nodes per element",Line);
   if (LinesRead==0)
-   RWGErrExit("%s: failed to find line '3 #number of nodes per element'", FileName);
+   ErrExit("%s: failed to find line '3 #number of nodes per element'", FileName);
   LineNum+=LinesRead;
 
   p=fgets(Line,MAXSTR,MeshFile); LineNum++;
   nConv=sscanf(Line,"%i",&NumPanels);
   if (nConv!=1 || !strstr(Line,"# number of elements"))
-   RWGErrExit("%s:%i: syntax error",FileName,LineNum);
+   ErrExit("%s:%i: syntax error",FileName,LineNum);
 
   p=fgets(Line,MAXSTR,MeshFile); LineNum++;
   if ( !strstr(Line,"# Elements") )
-   RWGErrExit("%s:%i: syntax error",FileName,LineNum);
+   ErrExit("%s:%i: syntax error",FileName,LineNum);
 
 
   /***************************************************************/
@@ -108,11 +108,11 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
   for(np=0; np<NumPanels; np++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
-      RWGErrExit("%s: unexpected end of file",FileName);
+      ErrExit("%s: unexpected end of file",FileName);
      LineNum++;
 
      if ( 3!=sscanf(Line,"%i %i %i",&n1,&n2,&n3) )
-      RWGErrExit("%s:%i: syntax error",FileName,LineNum); 
+      ErrExit("%s:%i: syntax error",FileName,LineNum); 
  
      Panels[np]=NewRWGPanel(Vertices,n1,n2,n3);
      Panels[np]->Index=np;

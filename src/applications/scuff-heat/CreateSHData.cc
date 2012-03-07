@@ -25,6 +25,7 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   RWGGeometry *G=new RWGGeometry(GeoFile);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   SHD->G=G;
+printf("at the creation %p !!\n",SHD->G);
 
   /*--------------------------------------------------------------*/
   /*- read the transformation file if one was specified and check */
@@ -37,11 +38,6 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   char *ErrMsg=G->CheckGTCList(SHD->GTCList, SHD->NumTransformations);
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
-
-  if (SHD->NumTransformations>0)
-   Log("Read %i geometrical tranformations from file %s",SHD->NumTransformations,TransFile);
-  else
-   Log("Using a single (default) geometrical transformation with tag %s",SHD->GTCList[0]->Tag);
 
   /*--------------------------------------------------------------*/
   /*- the DV field is only needed for generating flux plots.     -*/
@@ -113,5 +109,7 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   SHD->W21        = new HMatrix(N2, N1, LHM_COMPLEX );
   SHD->W21SymG1   = new HMatrix(N2, N1, LHM_COMPLEX );
   SHD->W21DSymG2  = new HMatrix(N1, N2, LHM_COMPLEX );
+
+  return SHD;
 
 }

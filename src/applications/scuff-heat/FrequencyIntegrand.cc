@@ -322,7 +322,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* extract fields from SHData structure ************************/
   /***************************************************************/
   RWGGeometry *G     = SHD->G;
-  char *ByOmegaFile  = SHD->ByOmegaFile;
   int N1             = SHD->N1;
   int N2             = SHD->N2;
   HMatrix **TSelf    = SHD->TSelf;
@@ -333,7 +332,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   HMatrix *W         = SHD->W;
   HMatrix *W21       = SHD->W21;
   HMatrix *W21SymG1  = SHD->W21SymG1;
-  HMatrix *W21DSymG2 = SHD->W21SymG1;
+  HMatrix *W21DSymG2 = SHD->W21DSymG2;
   HVector *DV        = SHD->DV;
   int PlotFlux       = SHD->PlotFlux;
 
@@ -384,7 +383,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* now loop over transformations. ******************************/
   /* note: 'gtc' stands for 'geometrical transformation complex' */
   /***************************************************************/
-  int nt, NT=SHD->NumTransformations;
+  int nt;
   char *Tag;
   int RowOffset, ColOffset;
   for(nt=0; nt<SHD->NumTransformations; nt++)
@@ -410,7 +409,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
           Log("  Assembling U(%i,%i)...",no,nop);
           Args->Oa = G->Objects[no];
           Args->Ob = G->Objects[nop];
-          Args->B  = SHD->UMedium[nb];
+          Args->B  = UMedium[nb];
           AssembleBEMMatrixBlock(Args);
         };
 
@@ -427,8 +426,8 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
 
         for(nop=no+1; nop<NO; nop++, nb++)
          { ColOffset=G->BFIndexOffset[nop];
-           W->InsertBlock(SHD->UMedium[nb], RowOffset, ColOffset);
-           W->InsertBlockTranspose(SHD->UMedium[nb], ColOffset, RowOffset);
+           W->InsertBlock(UMedium[nb], RowOffset, ColOffset);
+           W->InsertBlockTranspose(UMedium[nb], ColOffset, RowOffset);
          };
       };
      FlipSignOfMagneticColumns(W);
@@ -451,6 +450,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
         else 
          InsertSymmetrizedBlock(SymG2, TSelf[no], RowOffset, RowOffset );
       };
+     FlipSignOfMagneticColumns(SymG2);
 
      /*--------------------------------------------------------------*/
      /*- extract the W21 subblock and compute the products          -*/
@@ -463,6 +463,10 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      Log("  Multiplication 2...");
      W21->Adjoint();
      W21->Multiply(SymG2, W21DSymG2);
+
+     // we have to do this again so that W21 will be the correct
+     // size again on the next go-round
+     W21->Adjoint();
 
      /*--------------------------------------------------------------*/
      /*- compute the product W21*sym(G1)*W21^{\dagger}*sym(G2)      -*/

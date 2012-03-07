@@ -180,13 +180,13 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
   /*------------------------------------------------------------*/
   char *p=GetFileExtension(MeshFileName);
   if (!p)
-   RWGErrExit("file %s: invalid extension",MeshFileName);
+   ErrExit("file %s: invalid extension",MeshFileName);
   else if (!strcasecmp(p,"msh"))
    ReadGMSHFile(MeshFile,MeshFileName,OTGT);
   else if (!strcasecmp(p,"mphtxt"))
    ReadComsolFile(MeshFile,MeshFileName,OTGT);
   else
-   RWGErrExit("file %s: unknown extension %s",MeshFileName,p);
+   ErrExit("file %s: unknown extension %s",MeshFileName,p);
 
   /*------------------------------------------------------------*/
   /*- Now that we have put the panels in an array, go through  -*/
