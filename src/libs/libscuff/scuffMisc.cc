@@ -111,42 +111,4 @@ double VecNormalize(double *v)
   v[2]/=d;
   return d;
 }
-
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*- miscellaneous miscellany------------------------------------*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-
-double RelDiff(double x, double y)
-{ return 2.0*fabs(x-y) / ( fabs(x) + fabs(y) ); }
-
-/***************************************************************/
-/* RWGErrExit:  print an error message and quit.            *******/
-/***************************************************************/
-void RWGErrExit(const char *format, ...)
-{
- va_list ap;
- char buffer[200];
-
- va_start(ap,format);
- vsnprintf(buffer,200,format,ap);
- fprintf(stderr,"error: %s (aborting)\n",buffer);
- //Log("error: %s (aborting)",buffer);
- va_end(ap);
- exit(1);
-
-}
-
-/***************************************************************/
-/* mallocEC with error checking                                  */
-/***************************************************************/
-void *mallocEC(int size)
-{
- void *p=mallocEC(size);
-
- if (!p) RWGErrExit("out of memory");
- return p;
-}
-
 } // namespace scuff

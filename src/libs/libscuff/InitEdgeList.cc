@@ -135,7 +135,7 @@ void RWGObject::InitEdgeList()
          /* we have encountered this edge twice before ******************/
          /***************************************************************/
          if ( E->iMPanel != -1 )
-          RWGErrExit("%s: invalid mesh topology: edge %i of panel %i also belongs to panels %i and %i ",
+          ErrExit("%s: invalid mesh topology: edge %i of panel %i also belongs to panels %i and %i ",
                       MFN,ne,np,E->iPPanel,E->iMPanel);
 
          /***************************************************************/
@@ -214,11 +214,11 @@ void RWGObject::InitEdgeList()
          NumExteriorEdges++;
 
          if (EVNumEdges[E->iV1]==2) 
-          RWGErrExit("%s: invalid mesh topology: vertex %i",MFN,E->iV1);
+          ErrExit("%s: invalid mesh topology: vertex %i",MFN,E->iV1);
          EVEdges[E->iV1][ EVNumEdges[E->iV1]++ ] = E;
 
          if (EVNumEdges[E->iV2]==2) 
-          RWGErrExit("%s: invalid mesh topology: vertex %i",MFN,E->iV2);
+          ErrExit("%s: invalid mesh topology: vertex %i",MFN,E->iV2);
          EVEdges[E->iV2][ EVNumEdges[E->iV2]++ ] = E;
 
          NumExteriorVertices++;
@@ -227,7 +227,7 @@ void RWGObject::InitEdgeList()
        Edges[E->Index]=E;
     };
   if ( (NumExteriorEdges+NumEdges) != NumTotalEdges )
-   RWGErrExit("%s:%i: internal error (%i!=%i)",__FILE__,__LINE__,NumExteriorEdges,NumTotalEdges-NumEdges);
+   ErrExit("%s:%i: internal error (%i!=%i)",__FILE__,__LINE__,NumExteriorEdges,NumTotalEdges-NumEdges);
 
   /*--------------------------------------------------------------*/
   /*- now go through and classify exterior boundary contours     -*/
@@ -288,7 +288,7 @@ void RWGObject::InitEdgeList()
       { 
         /* verify that this vertex is connected to exactly 2 exterior edges */
         if ( EVNumEdges[nvp]!=2 )
-         RWGErrExit("%s: invalid mesh topology: vertex %i",MFN,nvp);
+         ErrExit("%s: invalid mesh topology: vertex %i",MFN,nvp);
 
         /* mark this vertex as having been visited */
         EVNumEdges[nvp]=0; 
@@ -306,7 +306,7 @@ void RWGObject::InitEdgeList()
         else if ( nvp==E->iV2 )
          nvp=E->iV1;
         else
-         RWGErrExit("%s:%i: internal error",__FILE__,__LINE__);
+         ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
         /* set E equal to next edge in boundary contour */
         if ( E==EVEdges[nvp][0] )  
@@ -314,7 +314,7 @@ void RWGObject::InitEdgeList()
         else if ( E==EVEdges[nvp][1] )  
          E=EVEdges[nvp][0];
         else
-         RWGErrExit("%s:%i: internal error",__FILE__,__LINE__);
+         ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
       } while (nvp!=nv);
 

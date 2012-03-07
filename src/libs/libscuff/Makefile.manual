@@ -1,7 +1,6 @@
 ######################################################################
 # include system-dependent paths etc.
 #######################################################################
-include $(HOME)/work/Makefile.Rules
 
 ##################################################
 ##################################################
@@ -32,7 +31,7 @@ OBJS = AssembleBEMMatrix.o		\
        RWGGeometry.o			\
        rwlock.o 	     		\
        Visualize.o			\
-       scuffMisc.o			\
+       scuffMisc.o
 
 ##################################################
 ##################################################
@@ -43,11 +42,9 @@ OBJS = AssembleBEMMatrix.o		\
 ##################################################
 DEBUG=-O3
 CC=g++
-CPPFLAGS+=$(DEBUG) -I../SGJC -I../libTriInt
-CPPFLAGS+=-I../libMatProp -I../libhmat -I../libSpherical
-CPPFLAGS+=-I../libhrutil
-CPPFLAGS+=-DHAVE_MUPARSER
-CPPFLAGS+=$(GOOGLE_INCLUDES)
+CPPFLAGS+=$(DEBUG) -I../libSGJC -I../libTriInt -I../libMDInterp
+CPPFLAGS+=-I../libMatProp -I../libhmat -I../libhrutil
+CPPFLAGS+=-DHAVE_CONFIG_H
 
 libscuff.a:	$(HEADERS) $(OBJS)
 		ar r $@ $^
