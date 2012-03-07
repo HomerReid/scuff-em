@@ -333,6 +333,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   HMatrix *W21       = SHD->W21;
   HMatrix *W21SymG1  = SHD->W21SymG1;
   HMatrix *W21DSymG2 = SHD->W21DSymG2;
+  HMatrix *Scratch   = SHD->Scratch;
   HVector *DV        = SHD->DV;
   int PlotFlux       = SHD->PlotFlux;
 
@@ -371,6 +372,17 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      G->Objects[no]->MP->UnZero();
 
    };
+
+  /***************************************************************/
+  /* pause to dump out the scuff cache to disk. this will be     */
+  /* overwritten later if everything goes well, but if something */
+  /* goes wrong and we never make it to the later step it's nice */
+  /* to dump it out here so that we can at least have a partial  */
+  /* cache to accelerate a subsequent calculation involving      */
+  /* any of the same objects                                     */
+  /***************************************************************/
+  if ( SHD->WriteCache ) 
+   StoreGlobalFIPPICache( SHD->WriteCache );
 
   /***************************************************************/
   /* the SymG1 matrix can be formed and stored ahead of time     */
@@ -433,8 +445,31 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      FlipSignOfMagneticColumns(W);
      Log("  LU factorizing M...");
      W->LUFactorize();
+
+     /*--------------------------------------------------------------*/
+     /*- invert the W matrix and extract the lower-left subblock W21.*/
+     /*--------------------------------------------------------------*/
+#if 0 // old (20120306) slower method
      Log("  LU inverting M...");
      W->LUInvert();
+     W->ExtractBlock(N1, 0, W21);
+#else // new (20120307) hopefully faster method: instead of LUSolving
+      // with the full identity matrix to get the full matrix inverse,
+      // we LUSolve with just the first N1 columns of the identity matrix
+      // since this gives us the only chunk of the inverse that we 
+      // need.
+      // note: we could achieve a further speedup by truncating 
+      // the back-substitution so that we only carry it out far
+      // enough to extract the bottommost N2 entries in each
+      // row, but this would involve tweaking the lapack routines,
+      // so leave it TODO.
+     Log("  Partially LU-inverting M...");
+     Scratch->Zero();
+     for(nr=0; nr<N1; nr++)
+      Scratch->SetEntry(nr, nr, 1.0);
+     W->LUSolve(Scratch);
+     Scratch->ExtractBlock(N1, 0, W21);
+#endif
 
      /*--------------------------------------------------------------*/
      /*- fill in the SymG2 matrix. this is just what we did for the  */
@@ -453,11 +488,9 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      FlipSignOfMagneticColumns(SymG2);
 
      /*--------------------------------------------------------------*/
-     /*- extract the W21 subblock and compute the products          -*/
-     /*- W21*sym(G1) and W21^{\dagger} * sym(G2)                    -*/
+     /*- compute the products W21*sym(G1) and W21^{\dagger} * sym(G2)*/
      /*--------------------------------------------------------------*/
      Log("  Multiplication 1...");
-     W->ExtractBlock(N1, 0, W21);
      W21->Multiply(SymG1, W21SymG1);
 
      Log("  Multiplication 2...");
@@ -505,5 +538,15 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      Log(" ...done!");
 
    }; // for (nt=0; nt<SHD->NumTransformations... )
+
+  /*--------------------------------------------------------------*/
+  /*- at the end of the first successful frequency calculation,  -*/
+  /*- we dump out the cache to disk, and then tell ourselves not -*/
+  /*- to dump the cache to disk again (explain me)               -*/
+  /*--------------------------------------------------------------*/
+  if ( SHD->WriteCache ) 
+   { StoreGlobalFIPPICache( SHD->WriteCache );
+     SHD->WriteCache=0;
+   };
 
 }

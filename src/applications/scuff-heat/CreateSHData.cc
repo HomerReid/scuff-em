@@ -25,7 +25,6 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   RWGGeometry *G=new RWGGeometry(GeoFile);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   SHD->G=G;
-printf("at the creation %p !!\n",SHD->G);
 
   /*--------------------------------------------------------------*/
   /*- read the transformation file if one was specified and check */
@@ -52,6 +51,8 @@ printf("at the creation %p !!\n",SHD->G);
   SHD->nThread=nThread;
   if (SHD->nThread==0)
    SHD->nThread=GetNumThreads();
+
+  SHD->WriteCache=0;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -109,6 +110,7 @@ printf("at the creation %p !!\n",SHD->G);
   SHD->W21        = new HMatrix(N2, N1, LHM_COMPLEX );
   SHD->W21SymG1   = new HMatrix(N2, N1, LHM_COMPLEX );
   SHD->W21DSymG2  = new HMatrix(N1, N2, LHM_COMPLEX );
+  SHD->Scratch    = new HMatrix(N,  N1, LHM_COMPLEX );
 
   return SHD;
 

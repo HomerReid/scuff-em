@@ -276,6 +276,9 @@ int main(int argc, char *argv[])
   if (Cache)
    PreloadGlobalFIPPICache( Cache );
 
+  if (Cache) WriteCache=Cache;
+  SHD->WriteCache = WriteCache;
+
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
   /* perform the actual calculations                                 */
@@ -290,13 +293,6 @@ int main(int argc, char *argv[])
      ErrExit("frequency integration is not yet implemented");
    };
   delete[] I;
-
-  /*******************************************************************/
-  /* dump the final cache to a cache storage file if requested       */
-  /*******************************************************************/
-  if (Cache) WriteCache=Cache;
-  if (WriteCache)
-   StoreGlobalFIPPICache( WriteCache );
 
   /***************************************************************/
   /***************************************************************/

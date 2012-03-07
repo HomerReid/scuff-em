@@ -28,6 +28,7 @@ typedef struct SHData
    HMatrix **TSelf, **TMedium, **UMedium;
    HMatrix *SymG1, *SymG2;
    HMatrix *W, *W21, *W21SymG1, *W21DSymG2;
+   HMatrix *Scratch;
 
    HVector *DV;
    int PlotFlux;
@@ -35,6 +36,7 @@ typedef struct SHData
    GTComplex **GTCList;
    int NumTransformations;
 
+   char *WriteCache;
    int nThread;
 
  } SHData;
