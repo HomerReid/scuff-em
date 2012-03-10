@@ -21,16 +21,17 @@ using namespace scuff;
 
 
 /***************************************************************/
-/* data structure containing everything needed to pass data    */
-/* to the output modules                                       */
+/* data structure containing everything needed to execute a    */
+/* scattering calculation                                      */
 /***************************************************************/
 typedef struct SSData
  {
    RWGGeometry *G;
-   RWGGeometry *G0;
-   HVector *KN;
+   HMatrix *M;
+   HVector *RHS, *KN;
    cdouble Omega;
    void *opIFD;
+   double PowerRadius;
    int nThread;
  } SSData;
  
@@ -39,8 +40,7 @@ typedef struct SSData
 /* these are the 'output modules' that compute and process the */
 /* scattered fields in various ways.                           */
 /***************************************************************/
-void GetPower(SSData *SSD, double *PScat, double *PTot);
-void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot);
+void GetPower(SSData *SSD, char *PowerFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);
 void CreateFluxPlot(SSData *SSData, char *MeshFileName);
 
