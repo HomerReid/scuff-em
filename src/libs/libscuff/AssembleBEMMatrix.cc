@@ -327,6 +327,8 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /***************************************************************/
   /* fire off threads ********************************************/
   /***************************************************************/
+  GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
+
   int nt, nThread=Args->nThread;
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[nThread], *TD;
@@ -369,6 +371,9 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   delete[] Threads;
   delete[] TDs;
 #endif
+
+  if (G->LogLevel>=SCUFF_VERBOSELOGGING)
+   Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
 }
 
 

@@ -9,6 +9,19 @@
 #include "scuff-heat.h"
 #include "libscuffInternals.h"
 
+       #include <malloc.h>
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int GetMallInfo()
+{ 
+   struct mallinfo mi;
+   mi=mallinfo();
+   printf(" allocated/freed: %i %i\n",mi.uordblks,mi.fordblks);
+   return mi.uordblks;
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -348,6 +361,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   Args->nThread   = SHD->nThread;
 
   Log("Computing heat radiation/transfer at omega=%s...",z2s(Omega));
+printf(" omega=%s: ",z2s(Omega) ); GetMallInfo();
 
   /***************************************************************/
   /* before entering the loop over transformations, we first     */
@@ -372,6 +386,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      G->Objects[no]->MP->UnZero();
 
    };
+printf(" after T block assembly: "); GetMallInfo();
 
   /***************************************************************/
   /* pause to dump out the scuff cache to disk. this will be     */
@@ -406,6 +421,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      Tag=SHD->GTCList[nt]->Tag;
      G->Transform(SHD->GTCList[nt]);
      Log(" Computing quantities at geometrical transform %s",Tag);
+printf(" tag %s: ",Tag); GetMallInfo();
 
      /*--------------------------------------------------------------*/
      /* assemble off-diagonal matrix blocks.                         */
@@ -544,9 +560,11 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /*- we dump out the cache to disk, and then tell ourselves not -*/
   /*- to dump the cache to disk again (explain me)               -*/
   /*--------------------------------------------------------------*/
+printf(" before write: "); GetMallInfo();
   if ( SHD->WriteCache ) 
    { StoreGlobalFIPPICache( SHD->WriteCache );
      SHD->WriteCache=0;
    };
+printf(" after write: "); GetMallInfo();
 
 }

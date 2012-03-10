@@ -220,6 +220,8 @@ class FIPPICache
     // look up an entry 
     QIFIPPIData *GetQIFIPPIData(double **OVa, double **OVb, int ncv);
 
+    int Hits, Misses;
+
   private:
 
     // any implementation of this class will have some kind of 
