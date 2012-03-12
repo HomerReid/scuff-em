@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <math.h>
 #include <ctype.h>
 
@@ -321,6 +322,22 @@ void RWGObject::Transform(GTransformation *DeltaGT)
   /***************************************************************/
   GT=CreateOrAugmentGTransformation(GT, DeltaGT);
 
+}
+
+void RWGObject::Transform(char *format,...)
+{
+  va_list ap;
+  char buffer[MAXSTR];
+  va_start(ap,format);
+  vsnprintf(buffer,MAXSTR,format,ap);
+
+  char *ErrMsg;
+  GTransformation *GT=CreateOrAugmentGTransformation(0, buffer, &ErrMsg);
+  if (ErrMsg)
+   ErrExit(ErrMsg);
+  Transform(GT);
+  free(GT);
+  
 }
 
 void RWGObject::UnTransform()

@@ -1,7 +1,7 @@
 /*
  * FIPPICache.cc -- implementation of the FIPPICache class for libscuff
  * 
- * homer reid    -- 11/2005 -- 1/2011
+ * homer reid    -- 11/2005 -- 1/2012
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +64,9 @@ typedef struct
  { 
    bool operator()(const KeyStruct &K1, const KeyStruct &K2) const
     { 
-      return memcmp( (void *)K1.Key, (void *)K2.Key, KEYSIZE);
+      if ( memcmp( (void *)K1.Key, (void *)K2.Key, KEYSIZE) )
+       return false;
+      return true;
 #if 0
       int nd;
       for(nd=0; nd<KEYLEN; nd++)
@@ -143,7 +145,7 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   int n;
   KeyStruct K;
   for(n=0; n<KEYLEN; n++)
-   K.Key[n] = (float)DKey[n];
+   K.Key[n] = (float)(DKey[n]);
 
   /***************************************************************/
   /* look for this key in the cache ******************************/

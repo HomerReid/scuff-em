@@ -16,6 +16,7 @@
 #include <math.h>
 #include <libhmat.h>
 #include <libhrutil.h>
+#include <omp.h>
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
@@ -27,9 +28,16 @@
 #  include <pthread.h>
 #endif
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+//extern "C" {
+//%int omp_get_num_threads();
+//}
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 namespace scuff {
 
 #define II cdouble(0,1)
+
 
 /***************************************************************/
 /***************************************************************/
@@ -342,6 +350,9 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
 #endif
   for(nt=0; nt<nThread; nt++)
    { 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+printf("NumThreads at start of loop iteration %i: %i\n",nt,omp_get_num_threads());
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 #ifdef USE_PTHREAD
      TD=&(TDs[nt]);
 #else
@@ -359,6 +370,9 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
 #else
      ABMBThread((void *)TD);
 #endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+printf("NumThreads at end of loop iteration %i: %i\n",nt,omp_get_num_threads());
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    };
 
 #ifdef USE_PTHREAD

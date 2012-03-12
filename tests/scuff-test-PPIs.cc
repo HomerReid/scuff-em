@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
   double *TVa[3], *Qa, *TVb[3], *Qb;
   int nTimes;
   double HRTime, TDTime;
+GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
   for(;;)
    { 
      /*--------------------------------------------------------------*/
@@ -349,8 +350,10 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
+#if 0
      if ( !SameObject && DZ!=0.0 )
       Ob->Transform("DISP 0 0 %e",DZ);
+#endif
 
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by libscuff method                       */
@@ -358,6 +361,7 @@ int main(int argc, char *argv[])
      Tic();
      for(nTimes=0; nTimes<HRTIMES; nTimes++)
       GetPanelPanelInteractions(Args);
+printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
      HRTime=Toc() / HRTIMES;
      memcpy(HLS, Args->H, 2*sizeof(cdouble));
      memcpy(GradHLS, Args->GradH, 6*sizeof(cdouble));

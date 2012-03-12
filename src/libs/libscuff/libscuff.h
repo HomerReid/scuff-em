@@ -141,6 +141,7 @@ class RWGObject
 
    /* apply a general transformation (rotation+displacement) to the object */
    void Transform(GTransformation *GT);
+   void Transform(char *format, ...);
    void UnTransform();
 
    /* visualization */
