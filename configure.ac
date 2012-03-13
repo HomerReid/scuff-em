@@ -88,10 +88,17 @@ if test "x$with_hdf5" != xno; then
      LDFLAGS="$LDFLAGS -L$with_hdf5/lib"
    fi
 
-   have_hdf5=yes
+   have_hdf5=no
    AC_CHECK_HEADER([hdf5.h],
      [AC_CHECK_LIB([hdf5], [H5Fcreate],
-       [AC_CHECK_LIB([hdf5_hl], [H5LTmake_dataset_double], [have_hdf5=yes])])])
+       [LIBS="-lhdf5 $LIBS";
+        AC_CHECK_LIB([hdf5_hl], [H5LTmake_dataset_double], 
+	             [LIBS="-lhdf5_hl $LIBS"; have_hdf5=yes])])],
+     [AC_CHECK_HEADER([H5pubconf.h],
+       [AC_PREPROC_IFELSE([AC_LANG_PROGRAM([#include <H5pubconf.h>
+#ifdef H5_HAVE_PARALLEL
+#  include <mpi.h>
+#endif], [])], [], [AC_MSG_WARN([HDF5 compiled with parallel support requires MPI compiler, e.g. configure with CXX=mpic++])])])])
    if test $have_hdf5 = yes; then
       AC_DEFINE([HAVE_HDF5],[1],[define if we have HDF5])
       LIBS="$LIBS -lhdf5_hl -lhdf5"
