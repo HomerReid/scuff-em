@@ -59,7 +59,9 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   /*--------------------------------------------------------------*/
   if (ByOmegaFile)
    SHD->ByOmegaFile = ByOmegaFile;
-  else 
+  else if (PlotFlux)
+   SHD->ByOmegaFile = 0;
+  else
    { SHD->ByOmegaFile = vstrdup("%s.byOmega",GetFileBase(GeoFile));
      char MyFileName[MAXSTR];
      FILE *f=CreateUniqueFile(SHD->ByOmegaFile, 1, MyFileName);

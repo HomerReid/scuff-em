@@ -28,12 +28,6 @@
 #  include <pthread.h>
 #endif
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//extern "C" {
-//%int omp_get_num_threads();
-//}
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 namespace scuff {
 
 #define II cdouble(0,1)
@@ -350,9 +344,6 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
 #endif
   for(nt=0; nt<nThread; nt++)
    { 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-printf("NumThreads at start of loop iteration %i: %i\n",nt,omp_get_num_threads());
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 #ifdef USE_PTHREAD
      TD=&(TDs[nt]);
 #else
@@ -370,9 +361,6 @@ printf("NumThreads at start of loop iteration %i: %i\n",nt,omp_get_num_threads()
 #else
      ABMBThread((void *)TD);
 #endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-printf("NumThreads at end of loop iteration %i: %i\n",nt,omp_get_num_threads());
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    };
 
 #ifdef USE_PTHREAD

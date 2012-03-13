@@ -9,19 +9,6 @@
 #include "scuff-heat.h"
 #include "libscuffInternals.h"
 
-       #include <malloc.h>
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-int GetMallInfo()
-{ 
-   struct mallinfo mi;
-   mi=mallinfo();
-   printf(" allocated/freed: %i %i\n",mi.uordblks,mi.fordblks);
-   return mi.uordblks;
-}
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -297,8 +284,13 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
 void FlipSignOfMagneticColumns(HMatrix *B)
 { 
   int nr, nc;
+#if 0
   for (nr=0; nr<B->NR; nr++)
    for (nc=1; nc<B->NC; nc+=2)
+    B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
+#endif
+  for (nr=1; nr<B->NR; nr+=2)
+   for (nc=0; nc<B->NC; nc++)
     B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
 }
 
@@ -361,7 +353,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   Args->nThread   = SHD->nThread;
 
   Log("Computing heat radiation/transfer at omega=%s...",z2s(Omega));
-printf(" omega=%s: ",z2s(Omega) ); GetMallInfo();
 
   /***************************************************************/
   /* before entering the loop over transformations, we first     */
@@ -386,7 +377,6 @@ printf(" omega=%s: ",z2s(Omega) ); GetMallInfo();
      G->Objects[no]->MP->UnZero();
 
    };
-printf(" after T block assembly: "); GetMallInfo();
 
   /***************************************************************/
   /* pause to dump out the scuff cache to disk. this will be     */
@@ -421,7 +411,6 @@ printf(" after T block assembly: "); GetMallInfo();
      Tag=SHD->GTCList[nt]->Tag;
      G->Transform(SHD->GTCList[nt]);
      Log(" Computing quantities at geometrical transform %s",Tag);
-printf(" tag %s: ",Tag); GetMallInfo();
 
      /*--------------------------------------------------------------*/
      /* assemble off-diagonal matrix blocks.                         */
@@ -514,7 +503,7 @@ printf(" tag %s: ",Tag); GetMallInfo();
      W21->Multiply(SymG2, W21DSymG2);
 
      // we have to do this again so that W21 will be the correct
-     // size again on the next go-round
+     // size on the next go-round
      W21->Adjoint();
 
      /*--------------------------------------------------------------*/
@@ -537,7 +526,7 @@ printf(" tag %s: ",Tag); GetMallInfo();
       }
      else
       { 
-        FI[nt] = real(SymG2->GetTrace());
+        FI[nt] = real(SymG2->GetTrace() / 8.0);
 
         /***************************************************************/
         /* write the result to the frequency-resolved output file ******/
@@ -560,11 +549,9 @@ printf(" tag %s: ",Tag); GetMallInfo();
   /*- we dump out the cache to disk, and then tell ourselves not -*/
   /*- to dump the cache to disk again (explain me)               -*/
   /*--------------------------------------------------------------*/
-printf(" before write: "); GetMallInfo();
   if ( SHD->WriteCache ) 
    { StoreGlobalFIPPICache( SHD->WriteCache );
      SHD->WriteCache=0;
    };
-printf(" after write: "); GetMallInfo();
 
 }

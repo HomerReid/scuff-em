@@ -192,6 +192,12 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
+  if ( Cache!=0 && WriteCache!=0 )
+   ErrExit("--cache and --writecache options are mutually exclusive");
+
+  if (PlotFlux && ByOmegaFile!=0 )
+   ErrExit("--PlotFlux and --ByOmegaFile options are mutually exclusive");
+
   if (LogFile)
    SetLogFileName(LogFile);
   else
@@ -269,8 +275,6 @@ int main(int argc, char *argv[])
   /* preload the scuff cache with any cache preload files the user   */
   /* may have specified                                              */
   /*******************************************************************/
-  if ( Cache!=0 && WriteCache!=0 )
-   ErrExit("--cache and --writecache options are mutually exclusive");
   for (int nrc=0; nrc<nReadCache; nrc++)
    PreloadGlobalFIPPICache( ReadCache[nrc] );
   if (Cache)
