@@ -252,7 +252,6 @@ int main(int argc, char *argv[])
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
   int nThread=0;
   int ExportMatrix=0;
-  char *ObjectOnly=0;
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
@@ -275,7 +274,6 @@ int main(int argc, char *argv[])
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
-     {"Only",           PA_STRING,  1, 1,       (void *)&ObjectOnly, 0,             "include only object xx"},
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
@@ -364,76 +362,28 @@ int main(int argc, char *argv[])
    ErrExit("you must specify at least one incident field source");
 
   /*******************************************************************/
-  /* create the RWGGeometry, allocate BEM matrix and RHS vector      */
-  /*******************************************************************/
-  RWGGeometry *G=new RWGGeometry(GeoFile);
-#ifdef SCUFF
-  HMatrix *M=G->AllocateBEMMatrix();
-  HVector *KN=G->AllocateRHSVector();
-#else
-  HMatrix *M=G->AllocateBEMMatrix(REAL_FREQ);
-  HVector *KN=G->AllocateRHSVector(REAL_FREQ);
-#endif
-
-  char GeoFileBase[MAXSTR];
-  strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
-
-  /*******************************************************************/
-  /* if the user specified the --only option, then set the material  */
-  /* properties of all other objects to eps=mu=0                     */
-  /*******************************************************************/
-  if (ObjectOnly)
-   { 
-     /*--------------------------------------------------------------*/
-     /* figure out which object the user is talking about            */
-     /*--------------------------------------------------------------*/
-     int ObjectIndex;
-     if ( !strcasecmp(ObjectOnly,"EXTERIOR") || !strcasecmp(ObjectOnly,"MEDIUM") )
-      ObjectIndex=-1;
-     else
-      { for (ObjectIndex=0; ObjectIndex<G->NumObjects; ObjectIndex++)
-         if ( !strcasecmp(ObjectOnly,G->Objects[ObjectIndex]->Label) )
-          break;
-      }
-     if (ObjectIndex==G->NumObjects)
-      ErrExit("unknown object %s specified for --only option",ObjectOnly);
-
-     /*--------------------------------------------------------------*/
-     /*- create a MatProp describing eps=mu=0 and set all other     -*/
-     /*- objects to have this material property.                    -*/
-     /*- garbage collection fail: we don't bother to deallocate     -*/
-     /*- the existing MatProp structures that we overwrite....      -*/
-     /*--------------------------------------------------------------*/
-     MatProp *ZeroMP=new MatProp("CONST_EPS0_MU0");
-     if (ObjectIndex!=-1)
-#ifdef SCUFF
-      G->ExteriorMP=ZeroMP;
-#else 
-      G->MP=ZeroMP;
-#endif
-     for(int no=0; no<G->NumObjects; no++)
-      if (no!=ObjectIndex) 
-       G->Objects[no]->MP=ZeroMP;    
- 
-   };
-   
-  /*******************************************************************/
-  /* put all relevant information into a data structure to be passed */
-  /* to the output modules                                           */
-  /*******************************************************************/
-  SSData MySSData, *SSD=&MySSData;
-  SSD->G=G;
-  SSD->KN=KN;
-  SSD->opIFD=(void *)IFDList;
-
-  /*******************************************************************/
   /*******************************************************************/
   /*******************************************************************/
   SetLogFileName("scuff-scatter.log");
-  Log("scuff-scatter running on %s",getenv("HOSTNAME"));
-#ifdef SCUFF
+  Log("scuff-scatter running on %s",GetHostName());
+
+  /*******************************************************************/
+  /* create the SSData structure containing everything we need to    */
+  /* execute scattering calculations                                 */
+  /*******************************************************************/
+  SSData MySSData, *SSD=&MySSData;
+
+  RWGGeometry *G = SSD->G = new RWGGeometry(GeoFile);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
-#endif
+  HMatrix *M = SSD->M =G->AllocateBEMMatrix();
+  SSD->RHS =  PowerFile ? G->AllocateRHSVector() : 0;
+  HVector *KN = SSD->KN =G->AllocateRHSVector();
+  SSD->opIFD=(void *)IFDList;
+  SSD->PowerRadius=PowerRadius;
+  SSD->nThread=nThread;
+
+  char GeoFileBase[MAXSTR];
+  strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
 
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -441,6 +391,8 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
+  if (Cache) 
+   WriteCache=Cache;
   for (int nrc=0; nrc<nReadCache; nrc++)
    PreloadGlobalFIPPICache( ReadCache[nrc] );
   if (Cache)
@@ -453,44 +405,51 @@ int main(int argc, char *argv[])
   cdouble Omega;
   cdouble Eps;
   double Mu;
-  FILE *f;
   for(nFreq=0; nFreq<NumFreqs; nFreq++)
    { 
      Omega = OmegaList->GetEntry(nFreq);
      z2s(Omega, OmegaStr);
+     Log("Working at frequency %s...",OmegaStr);
 
      /*******************************************************************/
-     /* assemble the BEM matrix, export it to a binary data file if     */
-     /* that was requested, then LU-factorize.                          */
+     /* assemble the BEM matrix at this frequency                       */
      /*******************************************************************/
-     Log("Working at frequency %s...",OmegaStr);
-#ifdef SCUFF
      G->AssembleBEMMatrix(Omega, nThread, M);
-#else
-     int RealFreq;
-     if ( imag(Omega)==0.0 )
-      RealFreq=1;
-     else if ( real(Omega)==0.0 )
-      RealFreq=0;
-     else
-      ErrExit("%s:%i:internal error",__FILE__,__LINE__);
-     
-     G->PreCompute(nThread);
-     G->AssembleBEMMatrix( abs(Omega), RealFreq, nThread, M);
-#endif
+
+     /*******************************************************************/
+     /* dump the scuff cache to a cache storage file if requested. note */
+     /* we do this only once per execution of the program, after the    */
+     /* assembly of the BEM matrix at the first frequency, since at that*/
+     /* point all cache elements that are to be computed will have been */
+     /* computed and the cache will not grow any further for the rest   */
+     /* of the program run.                                             */
+     /*******************************************************************/
+     if (WriteCache)
+      { StoreGlobalFIPPICache( WriteCache );
+        WriteCache=0;       
+      };
+
+     /*******************************************************************/
+     /* export BEM matrix to a binary file if that was requested        */
+     /*******************************************************************/
      if (ExportMatrix)
-      { void *pCC;
-        if (ObjectOnly)
-         pCC=HMatrix::OpenC2MLContext("%s_%sOnly_%s",GeoFileBase,ObjectOnly,OmegaStr);
-        else
-         pCC=HMatrix::OpenC2MLContext("%s_%s",GeoFileBase,OmegaStr);
+      { void *pCC=HMatrix::OpenC2MLContext("%s_%s",GeoFileBase,OmegaStr);
         M->ExportToMATLAB(pCC,"M");
         HMatrix::CloseC2MLContext(pCC);
       };
 
+     /*******************************************************************/
+     /* if the user requested no output options (for example, if she   **/
+     /* just wanted to export the matrix to a binary file), don't      **/
+     /* bother LU-factorizing the matrix or assembling the RHS vector. **/
+     /*******************************************************************/
      if ( PowerFile==0 && nEPFiles==0 && nFluxMeshes==0 )
       continue;
 
+     /*******************************************************************/
+     /* LU-factorize the BEM matrix to prepare for solving scattering   */
+     /* problems                                                        */
+     /*******************************************************************/
      Log("  LU-factorizing BEM matrix...");
      M->LUFactorize();
 
@@ -498,28 +457,19 @@ int main(int argc, char *argv[])
      /* set up the incident field profile and assemble the RHS vector */
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
-#ifdef SCUFF
      G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
-#else
-     G->MP->GetEpsMu(Omega,&Eps,&Mu);
-#endif
      IFDList->SetFrequencyAndEpsMu(Omega,Eps,Mu);
-
-#ifdef SCUFF
      G->AssembleRHSVector(EHIncField, (void *)IFDList, nThread, KN);
-#else
-     G->AssembleRHSVector(EHIncField, (void *)IFDList, RealFreq, nThread, KN);
-#endif
+     if (PowerFile) SSD->RHS->Copy(SSD->KN); // copy RHS vector for later 
 
      /***************************************************************/
      /* solve the BEM system*****************************************/
      /***************************************************************/
-     Log("Solving the BEM system...");
-     printf("Solving the BEM system...\n");
+     Log("  Solving the BEM system...");
      M->LUSolve(KN);
 
      /***************************************************************/
-     /* process requested outputs                                   */
+     /* now process all requested outputs                           */
      /***************************************************************/
      SSD->Omega=Omega;
 
@@ -527,23 +477,14 @@ int main(int argc, char *argv[])
      /*- scattered and absorbed power -------------------------------*/
      /*--------------------------------------------------------------*/
      if (PowerFile)
-      {
-        double PScat, PTot;
-        FILE *f=fopen(PowerFile,"a");
-        if (!f) ErrExit("could not open file %s",PowerFile);
-        GetPower(SSD, &PScat, &PTot);
-        fprintf(f,"%s %e %e ",z2s(Omega),PScat,PTot);
-        GetPower_BF(SSD, PowerRadius, &PScat, &PTot);
-        fprintf(f,"%e %e\n ",PScat,PTot);
-        fclose(f);
-      };
+      GetPower(SSD, PowerFile);
  
      /*--------------------------------------------------------------*/
      /*- scattered fields at user-specified points ------------------*/
      /*--------------------------------------------------------------*/
      int nepf;
      for(nepf=0; nepf<nEPFiles; nepf++)
-      ProcessEPFile(SSD, EPFiles[nepf], 0);
+      ProcessEPFile(SSD, EPFiles[nepf]);
 
      /*--------------------------------------------------------------*/
      /*- flux meshes ------------------------------------------------*/
@@ -553,13 +494,6 @@ int main(int argc, char *argv[])
       CreateFluxPlot(SSD, FluxMeshes[nfm]);
 
    }; //  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
-
-  /*******************************************************************/
-  /* dump the final cache to a cache storage file if requested       */
-  /*******************************************************************/
-  if (Cache) WriteCache=Cache;
-  if (WriteCache)
-   StoreGlobalFIPPICache( WriteCache );
 
   /***************************************************************/
   /***************************************************************/

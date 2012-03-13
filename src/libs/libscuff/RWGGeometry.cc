@@ -30,7 +30,7 @@ void ProcessMediumSectionInFile(FILE *f, char *FileName, int *LineNum,
 {
   char Line[MAXSTR];
   int NumTokens;
-  char *p, *Tokens[MAXTOK];
+  char *Tokens[MAXTOK];
   ExteriorMPName[0]=0;
   while( fgets(Line,MAXSTR,f) )
    { 
@@ -71,15 +71,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   MatProp::SetLengthUnit(1.0e-6);
    
   /***************************************************************/
-  /* storage for material properties defined on-the-fly in the   */
-  /* .scuffgeo file.                                             */
-  /* minor garbage-collection issue: MPs allocated in this       */
-  /* routine are never freed.                                    */
-  /***************************************************************/
-  MatProp *MP, **MPs=0;
-  int NumMPs=0;
-
-  /***************************************************************/
   /* initialize simple fields ************************************/
   /***************************************************************/
   LogLevel=SCUFF_NOLOGGING;
@@ -101,8 +92,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   RWGObject *O;
   char Line[MAXSTR], Label[MAXSTR];
   int LineNum=0; 
-  int nt, nTokens;
-  char *p, *Tokens[MAXTOK];
+  int nTokens;
+  char *Tokens[MAXTOK];
   char ExteriorMPName[MAXSTR];
   while( fgets(Line,MAXSTR,f) )
    { 
@@ -140,7 +131,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
          
         char *ErrMsg=AddMaterialToMatPropDataBase(f, GeoFileName, Label, &LineNum);
         if (ErrMsg)
-         ErrExit("%s:%i: %s",GeoFileName,LineNum,MP->ErrMsg); 
+         ErrExit("%s:%i: %s",GeoFileName,LineNum,ErrMsg); 
 
       }
      else if ( !strcasecmp(Tokens[0],"OBJECT") )
@@ -293,8 +284,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* initialize arrays of basis-function and panel index offsets */
   /***************************************************************/
-  BFIndexOffset=(int *)RWGMalloc(NumObjects*sizeof(int) );
-  PanelIndexOffset=(int *)RWGMalloc(NumObjects*sizeof(int) );
+  BFIndexOffset=(int *)mallocEC(NumObjects*sizeof(int) );
+  PanelIndexOffset=(int *)mallocEC(NumObjects*sizeof(int) );
   BFIndexOffset[0]=PanelIndexOffset[0]=0;
   for(no=1; no<NumObjects; no++)
    { BFIndexOffset[no]=BFIndexOffset[no-1] + Objects[no-1]->NumBFs;
@@ -322,7 +313,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /*                   Mate[j] = i                               */
   /*                   Mate[k] = i                               */
   /***************************************************************/
-  Mate=(int *)malloc(NumObjects*sizeof(int));
+  Mate=(int *)mallocEC(NumObjects*sizeof(int));
   Mate[0]=-1;
   for(no=1; no<NumObjects; no++)
    { Mate[no]=-1;
@@ -334,9 +325,13 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
    };
 
   /***************************************************************/
-  /* initialize ObjectMoved[] array                              */
+  /* initialize ObjectMoved[] array.                             */
+  /* the values of this array are only defined after             */
+  /* a call to the RWGGeometry::Transform() function, when we    */
+  /* have ObjectMoved[i]=1 if the ith object was modified by     */
+  /* the transformation.                                         */
   /***************************************************************/
-  ObjectMoved=(int *)RWGMalloc(NumObjects*sizeof(int));
+  ObjectMoved=(int *)mallocEC(NumObjects*sizeof(int));
 
 }
 
@@ -361,126 +356,48 @@ RWGGeometry::~RWGGeometry()
 }
 
 /***************************************************************/
-/* Transform: Process a 'transformation' line that may contain */
-/* separate displacements for one or more objects in the       */
-/* geometry.                                                   */
-/*                                                             */
-/*                                                             */
-/* The "transformation" line is a string containing one or     */
-/* more of the following sections:                             */
-/*  TAG    mystr                    (description of transform) */
-/*  LABEL  obj1                     (object to transform)      */
-/*  DISP   x1 y1 z1                 (displacement)             */
-/*  ROT    Ax Ay Az Theta           (rotation)                 */
-/*  LABEL  obj2                     (object to transform)      */
-/*  DISP   x2 y2 z2                 (displacement)             */
-/* etc.                                                        */
-/*                                                             */
-/* If any error is incurred in the processing of the           */
-/* transformation line, a nonzero value is returned and an     */
-/* error message is written to ErrMsg.                         */
-/* Otherwise (i.e. if successful) zero is returned.            */
 /***************************************************************/
-int RWGGeometry::Transform(char *TransLine, char *Tag, char *ErrMsg)
+/***************************************************************/
+RWGObject *RWGGeometry::GetObjectByLabel(char *Label, int *pno)
 { 
-  int no, nRead, nConv;
-  RWGObject *O;
-  char *p, *pp, Token[MAXSTR], ObjectLabel[MAXSTR], TagBuf[MAXSTR];
-
-  if (ErrMsg) ErrMsg[0]=0;
-
-  /* skip blank lines and comments */
-  p=TransLine; 
-  while( isspace(*p) )
-   p++;
-  if ( *p==0 || *p=='#' )
-   return 0;
-
-  /* assume no objects will be moved */
-  memset(ObjectMoved,0,NumObjects*sizeof(int));
-
-  /*
-   * parse transformation line
-   */
-  sprintf(TagBuf,"notag"); 
-  while( p && *p )
-   {
-     /*--------------------------------------------------------------*/
-     /*- read next token off of line --------------------------------*/
-     /*--------------------------------------------------------------*/
-     nConv=sscanf(p,"%s%n",Token,&nRead);  
-     p+=nRead;  
-     if ( nConv<=0 || Token[0]=='\n' ) 
-      break;
-     
-     /*--------------------------------------------------------------*/
-     /* parse TAG element */
-     /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Token,"TAG") )
-      {
-        sscanf(p,"%s%n",TagBuf,&nRead);
-        p+=nRead;
-        if ( nConv!=1 )
-         { if (ErrMsg) sprintf(ErrMsg,"syntax error");
-           return 1;
-         };
-      }
-     /*--------------------------------------------------------------*/
-     /* parse LABEL element.                                         */
-     /*--------------------------------------------------------------*/
-     else if ( !strcasecmp(Token,"LABEL") )
-      {  
-        /* read object label */
-        nConv=sscanf(p,"%s%n",ObjectLabel,&nRead);
-        p+=nRead;
-        if ( nConv!=1 )
-         { if (ErrMsg) sprintf(ErrMsg,"syntax error");
-           return 1;
-         };
-
-        /* find matching object */
-        for(no=0; no<NumObjects; no++)
-         if ( !strcasecmp(Objects[no]->Label,ObjectLabel) )
-          break;
-        if(no==NumObjects)
-         { if (ErrMsg) sprintf(ErrMsg,"unknown object %s",ObjectLabel);
-           return 1;
-         };
-        O=Objects[no];
-
-        ObjectMoved[no]=1;
-
-        /* now send everything between here and the  */
-        /* next instance of the 'LABEL' keyword to object O to */
-        /* process as a transformation                         */ 
-        pp=strcasestr(p,"LABEL");
-        if ( !pp )
-         { if ( O->Transform(p) )
-            { if (ErrMsg) sprintf(ErrMsg,"invalid transformation");
-              return 1;
-            };
-           p=0;
-         }
-        else
-         { *pp=0;
-           if ( O->Transform(p) )
-            { if (ErrMsg) sprintf(ErrMsg,"invalid transformation");
-              return 1;
-            };
-           *pp='L';  // put back the 'L' in the LABEL keyword
-           p=pp;
-         };
-      }   // else if ( !strcasecmp(Token,"LABEL") )
-     else 
-      { if (ErrMsg) sprintf(ErrMsg,"syntax error");
-        return 1;
-      };
-
-   }; // while( p && *p )
-
-  if (Tag) strcpy(Tag,TagBuf);
-
+  for( (*pno)=0; (*pno)<NumObjects; (*pno)++)
+   if ( !strcasecmp(Label, Objects[(*pno)]->Label) )
+    return Objects[ (*pno) ];
+ 
   return 0;
+}
+
+RWGObject *RWGGeometry::GetObjectByLabel(char *Label)
+{ int pno;
+  return GetObjectByLabel(Label, &pno);
+}
+
+/***************************************************************/
+/* Apply the specified GTComplex to transform the geometry.    */
+/* (Note that a 'GTComplex' is a list of GTransformations, each*/
+/* of which is applied to one specific object in the geometry.)*/
+/***************************************************************/
+void RWGGeometry::Transform(GTComplex *GTC)
+{ 
+  int noa, WhichObject;
+  RWGObject *O;
+
+  // assume that no objects will be modified by this operation
+  memset(ObjectMoved, 0, NumObjects*sizeof(int));
+
+  // loop over the individual transformations in the complex
+  for(noa=0; noa<GTC->NumObjectsAffected; noa++)
+   { 
+     // find the object corresponding to the label for this transformation
+     O=GetObjectByLabel(GTC->ObjectLabel[noa], &WhichObject);
+
+     // apply the transformation to that object
+     if (O) 
+      { O->Transform(GTC->GT[noa]);
+        ObjectMoved[WhichObject]=1;
+      };
+        
+   };
 
 }
 
@@ -488,9 +405,31 @@ int RWGGeometry::Transform(char *TransLine, char *Tag, char *ErrMsg)
 /* Undo transformations. ***************************************/
 /***************************************************************/
 void RWGGeometry::UnTransform()
-{ int no;
+{ 
+  int no;
   for(no=0; no<NumObjects; no++)
    Objects[no]->UnTransform();
+}
+
+/***************************************************************/
+/* Quick sanity check to make sure that a given list of        */
+/* GTComplex structures actually makes sense for the given     */
+/* geometry, which is to say that it doesn't request           */
+/* transformations on any objects that don't exist in the      */
+/* geometry.                                                   */
+/* Returns 0 if the check passed, or an error message if not.  */
+/***************************************************************/
+char *RWGGeometry::CheckGTCList(GTComplex **GTCList, int NumGTCs)
+{
+  int ngtc, noa;
+  
+  for(ngtc=0; ngtc<NumGTCs; ngtc++)
+   for (noa=0; noa<GTCList[ngtc]->NumObjectsAffected; noa++)
+    if (!GetObjectByLabel(GTCList[ngtc]->ObjectLabel[noa]))
+     return vstrdup("transformation requested for unknown object %s",
+                     GTCList[ngtc]->ObjectLabel[noa]);
+
+  return 0;
 }
 
 /***************************************************************/

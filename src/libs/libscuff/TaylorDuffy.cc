@@ -399,8 +399,7 @@ cdouble ExpRel(int n, cdouble Z)
      /*- small-Z expansion                                          -*/
      /*--------------------------------------------------------------*/
      if ( abs(Z) < 0.1 )
-      { cdouble Term, Sum;
-        for(Sum=Term=1.0, m=1; m<100; m++)
+      { for(Sum=Term=1.0, m=1; m<100; m++)
          { Term*=Z/((double)(m+n));
            Sum+=Term;
            if ( norm(Term) < EXPRELTOL2*norm(Sum) )
@@ -533,8 +532,6 @@ cdouble In_GradEIKROverR(int n, cdouble K, double R)
 void SiAlpha_One(const double *xVec, TMWorkspace *TMW, int WhichCase,
                  int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 { 
-  double x, x1, x2, x3;
-
   switch(WhichCase)
    { 
      case TM_COMMONTRIANGLE: 

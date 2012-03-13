@@ -1,6 +1,7 @@
 /*
  * scuff-test-FIPPITable.cc -- a test program for libscuff's routines for
- *                          -- computing panel-panel integrals
+ *                          -- looking up frequency-independent 
+ *                          -- panel-panel integrals in cache 
  * 
  * homer reid               -- 11/2005 -- 11/2011
  */
@@ -67,8 +68,6 @@ int main(int argc, char *argv[])
   nNearby=0; 
   nTotal=0; 
   Tic();
-printf("First pass:\n");
-Found=NotFound=0;
   for(noa=0; noa<G->NumObjects; noa++)
    for(nob=noa; nob<G->NumObjects; nob++)
     {
@@ -89,14 +88,10 @@ Found=NotFound=0;
         };
     };
   AddTime=Toc();
-printf(" %i found, %i not found\n",Found,NotFound);
   
   /***************************************************************/
   /* second pass to do the lookups *******************************/
   /***************************************************************/
-printf("Second pass:\n");
-nNearby=0;
-Found=NotFound=0;
   Tic();
   for(noa=0; noa<G->NumObjects; noa++)
    for(nob=noa; nob<G->NumObjects; nob++)
@@ -109,7 +104,6 @@ Found=NotFound=0;
           ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
           if (rRel<4.0)
            { 
-//if (nNearby==3) break;
              nNearby++;
              CanonicallyOrderVertices(Va, Vb, ncv, OVa, OVb);
              QIFD=FT->GetQIFIPPIData(OVa, OVb, ncv);
@@ -117,7 +111,6 @@ Found=NotFound=0;
         };
     };
   LookupTime=Toc();
-printf(" %i found, %i not found\n",Found,NotFound);
 
   /***************************************************************/
   /***************************************************************/

@@ -1,12 +1,12 @@
-bin_PROGRAMS = scuff-heat
+bin_PROGRAMS = scuff-cas3D
 
 scuff_heat_SOURCES = 		\
  FrequencyIntegrand.cc 		\
- CreateSHData.cc       		\
- scuff-heat.cc         		\
- scuff-heat.h
+ CreateSC3Data.cc       	\
+ scuff-cas3D.cc         	\
+ scuff-cas3D.h
 
-scuff_heat_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
+scuff_cas3D_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libscuff      \
               -I$(top_srcdir)/src/libs/libIncField   \

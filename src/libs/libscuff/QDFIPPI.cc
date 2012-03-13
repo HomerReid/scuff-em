@@ -82,7 +82,6 @@ void GetQDFIPPIData(double **Va, double *Qa,
   /*--------------------------------------------------------------*/
   double A[3],  B[3],  V0mQ[3];
   double AP[3], BP[3], V0PmQP[3]; 
-  double Delta;
 
   VecSub(OVa[1], OVa[0], A);
   VecSub(OVa[2], OVa[1], B);
@@ -102,7 +101,7 @@ void GetQDFIPPIData(double **Va, double *Qa,
   double BdAP = VecDot(B, AP);
   double BdBP = VecDot(B, BP);
 
-  double V0QaxQb[3], QamQb[3], QaxQb[3], V0mV0P[3], Scratch[3];
+  double QamQb[3], QaxQb[3], V0mV0P[3], Scratch[3];
   double *V0=OVa[0], *V0P=OVb[0];
   VecSub(V0, V0P, V0mV0P);
   VecSub(Qa, Qb, QamQb);

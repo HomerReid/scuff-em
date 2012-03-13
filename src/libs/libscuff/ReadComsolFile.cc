@@ -38,10 +38,11 @@ static int SkipTo(FILE *f, const char *SearchString, char *Line)
 /* Constructor helper function for reading in nodes and  *******/
 /* elements for a .mphtxt file as produced by COMSOL     *******/
 /***************************************************************/
-void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *GT)
+void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, 
+                               GTransformation *OTGT)
 { 
   char Line[MAXSTR], *p;
-  int i, j, nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
+  int nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
   
   LineNum=0;
  
@@ -50,68 +51,68 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *
   /***************************************************************/
   LinesRead=SkipTo(MeshFile,"# number of mesh points",Line);
   if (LinesRead==0)
-   RWGErrExit("%s: failed to find line '#number of mesh points'",FileName);
+   ErrExit("%s: failed to find line '#number of mesh points'",FileName);
   LineNum+=LinesRead;
 
   nConv=sscanf(Line,"%i ",&NumVertices);
   if (nConv!=1 || NumVertices<0 || NumVertices>10000000)
-   RWGErrExit("%s:%i: too many vertices(%i)",FileName,LineNum,NumVertices);
+   ErrExit("%s:%i: too many vertices(%i)",FileName,LineNum,NumVertices);
 
   LinesRead=SkipTo(MeshFile,"# Mesh point coordinates",Line);
   if (LinesRead==0)
-   RWGErrExit("%s: failed to find line '#Mesh point coordinates'",FileName);
+   ErrExit("%s: failed to find line '#Mesh point coordinates'",FileName);
   LineNum+=LinesRead;
 
   /***************************************************************/
   /* read vertices ***********************************************/
   /***************************************************************/
-  Vertices=(double *)RWGMalloc(3*NumVertices*sizeof(double *));
+  Vertices=(double *)mallocEC(3*NumVertices*sizeof(double *));
   for(nv=0; nv<NumVertices; nv++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
-      RWGErrExit("%s: unexpected end of file",FileName);
+      ErrExit("%s: unexpected end of file",FileName);
      LineNum++;
 
      if ( 3!=sscanf(Line,"%le %le %le",
                     Vertices+3*nv,Vertices+3*nv+1,Vertices+3*nv+2))
-      RWGErrExit("%s:%i: syntax error",FileName,LineNum);
+      ErrExit("%s:%i: syntax error",FileName,LineNum);
    };
 
   /***************************************************************/
   /*- Apply geometrical transformation (if any) to all nodes.   -*/
   /***************************************************************/
-  if (GT) ApplyGTransformation(GT, Vertices, NumVertices);
+  if (OTGT) ApplyGTransformation(OTGT, Vertices, NumVertices);
 
   /***************************************************************/
   /* skip down to element definition section *********************/
   /***************************************************************/
   LinesRead=SkipTo(MeshFile,"3 # number of nodes per element",Line);
   if (LinesRead==0)
-   RWGErrExit("%s: failed to find line '3 #number of nodes per element'", FileName);
+   ErrExit("%s: failed to find line '3 #number of nodes per element'", FileName);
   LineNum+=LinesRead;
 
   p=fgets(Line,MAXSTR,MeshFile); LineNum++;
   nConv=sscanf(Line,"%i",&NumPanels);
   if (nConv!=1 || !strstr(Line,"# number of elements"))
-   RWGErrExit("%s:%i: syntax error",FileName,LineNum);
+   ErrExit("%s:%i: syntax error",FileName,LineNum);
 
   p=fgets(Line,MAXSTR,MeshFile); LineNum++;
   if ( !strstr(Line,"# Elements") )
-   RWGErrExit("%s:%i: syntax error",FileName,LineNum);
+   ErrExit("%s:%i: syntax error",FileName,LineNum);
 
 
   /***************************************************************/
   /* read panels    **********************************************/ 
   /***************************************************************/
-  Panels=(RWGPanel **)RWGMalloc(NumPanels*sizeof(Panels[0]));
+  Panels=(RWGPanel **)mallocEC(NumPanels*sizeof(Panels[0]));
   for(np=0; np<NumPanels; np++)
    { 
      if ( !fgets(Line,MAXSTR,MeshFile) )
-      RWGErrExit("%s: unexpected end of file",FileName);
+      ErrExit("%s: unexpected end of file",FileName);
      LineNum++;
 
      if ( 3!=sscanf(Line,"%i %i %i",&n1,&n2,&n3) )
-      RWGErrExit("%s:%i: syntax error",FileName,LineNum); 
+      ErrExit("%s:%i: syntax error",FileName,LineNum); 
  
      Panels[np]=NewRWGPanel(Vertices,n1,n2,n3);
      Panels[np]->Index=np;

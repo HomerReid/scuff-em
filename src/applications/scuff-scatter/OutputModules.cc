@@ -46,7 +46,7 @@ void GetTotalField(SSData *SSD, double *X, int WhichObject,
 /* compute scattered and total fields at a user-specified list */
 /* of evaluation points                                        */
 /***************************************************************/
-void ProcessEPFile(SSData *SSD, char *EPFileName, char *ObjectLabel)
+void ProcessEPFile(SSData *SSD, char *EPFileName)
 { 
 
   HMatrix *EPMatrix=new HMatrix(EPFileName,LHM_TEXT,"-ncol 3");
@@ -349,7 +349,6 @@ typedef struct GPBFIData
  {
    SSData *SSD;
    double R;
-
  } GPBFIData;
 
 void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
@@ -381,7 +380,7 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   /***************************************************************/
   /* get total and scattered fields at evaluation point **********/
   /***************************************************************/
-  cdouble EHS[3], EHT[3];
+  cdouble EHS[6], EHT[6];
   GetTotalField(SSD, X, -1, EHS, EHT);
 
   /***************************************************************/
@@ -415,7 +414,7 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
 /* the poynting flux of the scattered and total fields over a  */
 /* bounding sphere at radius r=R                               */
 /***************************************************************/
-void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot)
+void GetPower_BF(SSData *SSD, double R, double *PScat, double *PAbs)
 { 
   double Val[2], Err[2];
   double Lower[2]={-1.0, 0.0};
@@ -429,7 +428,7 @@ void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot)
 		  Lower, Upper, 0, ABSTOL, RELTOL, Val, Err);
 
   *PScat=Val[0];
-  *PTot=Val[1];
+  *PAbs=Val[1];
 
 }
 
@@ -437,6 +436,82 @@ void GetPower_BF(SSData *SSD, double R, double *PScat, double *PTot)
 /* evaluate the scattered and absorbed powers using the        */
 /* concise BEM vector-matrix-vector product expressions        */
 /***************************************************************/
-void GetPower(SSData *SSD, double *PScat, double *PTot)
-{ 
+void GetPower(SSData *SSD, char *PowerFile)
+//, double *PScat, double *PTot)
+{
+  RWGGeometry *G = SSD->G;
+  HMatrix *M     = SSD->M;
+  HVector *RHS   = SSD->RHS;
+  HVector *KN    = SSD->KN;
+
+  /***************************************************************/
+  /* a quick sanity check ****************************************/
+  /***************************************************************/
+  cdouble *ZM=M->ZM, *ZRHS=RHS->ZV, *ZKN=KN->ZV;
+  if (ZM==0 || ZRHS==0 || ZKN==0)
+   { fprintf(stderr,"** warning: fast power computation not available for imaginary frequences (skipping)\n");
+     return;
+   };
+
+  Log("  Computing scattered and absorbed power...");
+
+  /***************************************************************/
+  /* open the file and write the frequency at the top of the line*/
+  /***************************************************************/
+  FILE *f=fopen(PowerFile,"a");
+  if ( !f ) ErrExit("could not open file %s",PowerFile);
+
+  if ( imag(SSD->Omega)==0.0 )
+   fprintf(f,"%15.8e ",real(SSD->Omega));
+  else if ( real(SSD->Omega)==0.0 )
+   fprintf(f,"%15.8ei ",imag(SSD->Omega));
+  else 
+   fprintf(f,"%15.8e+%15.8ei ",real(SSD->Omega),imag(SSD->Omega));
+
+  /***************************************************************/
+  /* get the M0 matrix. we overwrite the M matrix for this       */
+  /* purpose, since we won't need that until the next frequency, */
+  /* at which point we will have to re-assemble it anyway.       */
+  /***************************************************************/
+  int no;
+  for(no=0; no<G->NumObjects; no++)
+   G->Objects[no]->MP->Zero();
+
+  G->AssembleBEMMatrix(SSD->Omega, SSD->nThread, M);
+
+  for(no=0; no<G->NumObjects; no++)
+   G->Objects[no]->MP->UnZero();
+
+  /***************************************************************/
+  /* compute the vector-matrix-vector and vector-vector products */
+  /* that enter into the formulas for the scattered and absorbed */
+  /* power                                                       */
+  /***************************************************************/
+
+  // nr runs over rows, nc over columns, ne over matrix entries
+  int nr, nc, ne, N=G->TotalBFs;
+  double VMV, VV;
+  for(VMV=VV=0.0, ne=nc=0; nc<N; nc++)
+   for(nr=0; nr<N; nr++, ne++)
+    { VMV += real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+      VV  += real( conj(ZKN[nr]) * ZRHS[nc] );
+    };
+    
+  double PScat, PAbs;
+  PScat = -0.25 * (VMV - VV);
+  PAbs  = 0.25 * (VMV + VV);
+  fprintf(f,"%e %e ",PScat,PAbs);
+
+  /***************************************************************/
+  /* if the user specified a nonzero PowerRadius, repeat the     */
+  /* power calculation by brute-force integration of the total   */
+  /* and scattered Poynting vectors over a sphere of that radius */
+  /***************************************************************/
+  if (SSD->PowerRadius > 0.0 )
+   { GetPower_BF(SSD, SSD->PowerRadius, &PScat, &PAbs);
+     fprintf(f,"%e %e ",PScat,PAbs);
+   };
+
+  fclose(f);
+   
 }

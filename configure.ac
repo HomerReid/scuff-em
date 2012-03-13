@@ -151,6 +151,8 @@ AC_CONFIG_FILES([
  src/applications/scuff-caspol/Makefile
  src/applications/scuff-heat/Makefile
  src/applications/scuff-analyze/Makefile
+ examples/Makefile
+ examples/SphereCube/Makefile
 ])
 AC_OUTPUT
 

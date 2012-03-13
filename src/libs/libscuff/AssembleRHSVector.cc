@@ -197,8 +197,8 @@ void *AssembleRHS_Thread(void *data)
   /* get a pointer to the real- or complex-valued storage array  */
   /* inside the HVector                                          */
   /***************************************************************/
-  double *DB;
-  cdouble *ZB;
+  double *DB=0;
+  cdouble *ZB=0;
   int PureImagFreq;
   if (TD->B->RealComplex==LHM_COMPLEX)
    { ZB=TD->B->ZV;

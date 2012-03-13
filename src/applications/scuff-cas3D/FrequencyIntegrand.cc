@@ -6,15 +6,15 @@
  *
  */
 
-#include "scuff-heat.h"
+#include "scuff-cas3D.h"
 #include "libscuffInternals.h"
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
+void CreateFluxPlot(SC3Data *SHD, cdouble Omega, char *Tag)
 { 
-  RWGGeometry *G = SHD->G;
+  RWGGeometry *G = SC3D->G;
 
   /***************************************************************/
   /* sanity check ************************************************/
@@ -44,7 +44,7 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
       E=O->Edges[ne];
       
       BFIndex = G->BFIndexOffset[no] + 2*ne;
-      Value = 0.5 * ( SHD->DV->GetEntryD(BFIndex + 0) + SHD->DV->GetEntryD(BFIndex + 1) ); 
+      Value = 0.5 * ( SC3D->DV->GetEntryD(BFIndex + 0) + SHD->DV->GetEntryD(BFIndex + 1) ); 
 
       PanelIndex = G->PanelIndexOffset[no] + E->iPPanel;
       PFV[ PanelIndex ] += 0.5*Value / (O->Panels[E->iPPanel]->Area);
@@ -214,7 +214,7 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (SHD->PlotFlux)
+  if (SC3D->PlotFlux)
    {
      for(nr=0; nr<M2->NR; nr++)
       for(nc=nr; nc<M2->NC; nc++)
@@ -231,9 +231,9 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
      Log("Multipliying...");
      M1->Multiply(M2, M0);
      for(nr=0; nr<M1->NR; nr++)
-      SHD->DV->SetEntry(nr, M1->GetEntry(nr,nr));
+      SC3D->DV->SetEntry(nr, M1->GetEntry(nr,nr));
      Log("Plotting flux vector...");
-     PlotFlux(SHD, Omega);
+     PlotFlux(SC3D, Omega);
 
      *FI=0.0;
    }
@@ -270,7 +270,7 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
      /***************************************************************/
      /* write the result to the frequency-resolved output file ******/
      /***************************************************************/
-     FILE *f=fopen(SHD->ByOmegaFile, "a");
+     FILE *f=fopen(SC3D->ByOmegaFile, "a");
      fprintf(f,"%s %e\n",z2s(Omega),*FI);
      fclose(f);
    };
@@ -284,13 +284,8 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
 void FlipSignOfMagneticColumns(HMatrix *B)
 { 
   int nr, nc;
-#if 0
   for (nr=0; nr<B->NR; nr++)
    for (nc=1; nc<B->NC; nc+=2)
-    B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
-#endif
-  for (nr=1; nr<B->NR; nr+=2)
-   for (nc=0; nc<B->NC; nc++)
     B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
 }
 
@@ -321,26 +316,26 @@ void InsertSymmetrizedBlock(HMatrix *A, HMatrix *B, int RowOffset, int ColOffset
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
+void GetFrequencyIntegrand(SC3Data *SHD, cdouble Omega, double *FI)
 {
   /***************************************************************/
-  /* extract fields from SHData structure ************************/
+  /* extract fields from SC3Data structure ************************/
   /***************************************************************/
-  RWGGeometry *G     = SHD->G;
-  int N1             = SHD->N1;
-  int N2             = SHD->N2;
-  HMatrix **TSelf    = SHD->TSelf;
-  HMatrix **TMedium  = SHD->TMedium;
-  HMatrix **UMedium  = SHD->UMedium;
-  HMatrix *SymG1     = SHD->SymG1;
-  HMatrix *SymG2     = SHD->SymG2;
-  HMatrix *W         = SHD->W;
-  HMatrix *W21       = SHD->W21;
-  HMatrix *W21SymG1  = SHD->W21SymG1;
-  HMatrix *W21DSymG2 = SHD->W21DSymG2;
-  HMatrix *Scratch   = SHD->Scratch;
-  HVector *DV        = SHD->DV;
-  int PlotFlux       = SHD->PlotFlux;
+  RWGGeometry *G     = SC3D->G;
+  int N1             = SC3D->N1;
+  int N2             = SC3D->N2;
+  HMatrix **TSelf    = SC3D->TSelf;
+  HMatrix **TMedium  = SC3D->TMedium;
+  HMatrix **UMedium  = SC3D->UMedium;
+  HMatrix *SymG1     = SC3D->SymG1;
+  HMatrix *SymG2     = SC3D->SymG2;
+  HMatrix *W         = SC3D->W;
+  HMatrix *W21       = SC3D->W21;
+  HMatrix *W21SymG1  = SC3D->W21SymG1;
+  HMatrix *W21DSymG2 = SC3D->W21DSymG2;
+  HMatrix *Scratch   = SC3D->Scratch;
+  HVector *DV        = SC3D->DV;
+  int PlotFlux       = SC3D->PlotFlux;
 
   /***************************************************************/
   /* preinitialize an argument structure for the BEM matrix      */
@@ -348,9 +343,9 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /***************************************************************/
   ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
   InitABMBArgs(Args);
-  Args->G         = SHD->G;
+  Args->G         = SC3D->G;
   Args->Omega     = Omega;
-  Args->nThread   = SHD->nThread;
+  Args->nThread   = SC3D->nThread;
 
   Log("Computing heat radiation/transfer at omega=%s...",z2s(Omega));
 
@@ -386,8 +381,8 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* cache to accelerate a subsequent calculation involving      */
   /* any of the same objects                                     */
   /***************************************************************/
-  if ( SHD->WriteCache ) 
-   StoreGlobalFIPPICache( SHD->WriteCache );
+  if ( SC3D->WriteCache ) 
+   StoreGlobalFIPPICache( SC3D->WriteCache );
 
   /***************************************************************/
   /* the SymG1 matrix can be formed and stored ahead of time     */
@@ -403,13 +398,13 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   int nt;
   char *Tag;
   int RowOffset, ColOffset;
-  for(nt=0; nt<SHD->NumTransformations; nt++)
+  for(nt=0; nt<SC3D->NumTransformations; nt++)
    { 
      /*--------------------------------------------------------------*/
      /*- transform the geometry -------------------------------------*/
      /*--------------------------------------------------------------*/
-     Tag=SHD->GTCList[nt]->Tag;
-     G->Transform(SHD->GTCList[nt]);
+     Tag=SC3D->GTCList[nt]->Tag;
+     G->Transform(SC3D->GTCList[nt]);
      Log(" Computing quantities at geometrical transform %s",Tag);
 
      /*--------------------------------------------------------------*/
@@ -503,7 +498,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      W21->Multiply(SymG2, W21DSymG2);
 
      // we have to do this again so that W21 will be the correct
-     // size on the next go-round
+     // size again on the next go-round
      W21->Adjoint();
 
      /*--------------------------------------------------------------*/
@@ -522,16 +517,16 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
         DV->Zero();
         for(nr=0; nr<N2; nr++)
          DV->SetEntry(N1+nr, SymG2->GetEntryD(nr, nr) );
-        CreateFluxPlot(SHD, Omega, Tag);
+        CreateFluxPlot(SC3D, Omega, Tag);
       }
      else
       { 
-        FI[nt] = real(SymG2->GetTrace() / 8.0);
+        FI[nt] = real(SymG2->GetTrace());
 
         /***************************************************************/
         /* write the result to the frequency-resolved output file ******/
         /***************************************************************/
-        FILE *f=fopen(SHD->ByOmegaFile, "a");
+        FILE *f=fopen(SC3D->ByOmegaFile, "a");
         fprintf(f,"%s %s %e\n",Tag,z2s(Omega),FI[nt]);
         fclose(f);
       };
@@ -542,16 +537,16 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      G->UnTransform();
      Log(" ...done!");
 
-   }; // for (nt=0; nt<SHD->NumTransformations... )
+   }; // for (nt=0; nt<SC3D->NumTransformations... )
 
   /*--------------------------------------------------------------*/
   /*- at the end of the first successful frequency calculation,  -*/
   /*- we dump out the cache to disk, and then tell ourselves not -*/
   /*- to dump the cache to disk again (explain me)               -*/
   /*--------------------------------------------------------------*/
-  if ( SHD->WriteCache ) 
-   { StoreGlobalFIPPICache( SHD->WriteCache );
-     SHD->WriteCache=0;
+  if ( SC3D->WriteCache ) 
+   { StoreGlobalFIPPICache( SC3D->WriteCache );
+     SC3D->WriteCache=0;
    };
 
 }

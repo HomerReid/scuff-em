@@ -39,7 +39,7 @@ void WriteST(double **VV, double Val, FILE *f)
 /* WritePPMesh routine. Writes geometry to a .pp file suitable */
 /* for opening as a GMSH postprocessing file.                  */
 /* Note calling convention and file handling are different     */
-/* from those of WriteGPMesh and WriteMLMesh.                  */
+/* from those of WriteGPMesh.                                  */
 /* If PlotNormals is nonzero, we also plot the normal to each  */
 /* panel.                                                      */
 /***************************************************************/
@@ -50,7 +50,7 @@ void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNor
   RWGPanel *P;
   char buffer[1000], *p;
   double *PV[3], Val;
-  int i, no, np;
+  int no, np;
 
   /***************************************************************/
   /***************************************************************/
@@ -128,7 +128,7 @@ void RWGGeometry::WriteGPMesh(const char *format, ...)
   FILE *f;
   RWGObject *O;
   RWGPanel *P;
-  double *V, *PV[3];
+  double *PV[3];
   int i, no, np;
 
   va_start(ap,format);
@@ -267,68 +267,6 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
 
 }
 
-/***************************************************************/
-/* Generate a matlab script to visualize the geometry.         */
-/***************************************************************/
-void RWGGeometry::WriteMLMesh(const char *format, ...)
-{ 
-#if 0 // this routine needs to be rewritten to eliminate C2ML dependency
-  va_list ap;
-  char FileBase[1000], FileName[1000], *p;
-  FILE *f;
-  double *X, *Y, *Z, *Tri;
-  RWGObject *O;
-  int i, no, np, NP;
-  void *pCC;
-
-  va_start(ap,format);
-  vsnprintf(FileBase,1000,format,ap);
-  va_end(ap);
-
-  pCC=C2MLOpen(FileBase);
-  for(no=0; no<NumObjects; no++)
-   { 
-     O=Objects[no];
-     NP=O->NumPanels;
-
-     X=(double *)RWGMalloc(3*NP*sizeof(double));
-     Y=(double *)RWGMalloc(3*NP*sizeof(double));
-     Z=(double *)RWGMalloc(3*NP*sizeof(double));
-     Tri=(double *)RWGMalloc(3*NP*sizeof(double));
-
-     for(np=0; np<NP; np++)
-      for(i=0; i<3; i++)
-       { 
-         X[ 3*np + i ] = O->Vertices[ 3*(O->Panels[np]->VI[i]) + 0 ];
-         Y[ 3*np + i ] = O->Vertices[ 3*(O->Panels[np]->VI[i]) + 1 ];
-         Z[ 3*np + i ] = O->Vertices[ 3*(O->Panels[np]->VI[i]) + 2 ];
-         Tri[ np + i*NP ]= (double ) 3*np + i + 1;
-       };
-
-     C2MLVector(pCC,X,3*NP,"X_%i",no);
-     C2MLVector(pCC,Y,3*O->NumPanels,"Y_%i",no);
-     C2MLVector(pCC,Z,3*O->NumPanels,"Z_%i",no);
-     C2MLMatrix_RM(pCC,Tri,NP,3,"Tri_%i",no);
-
-     free(X);
-     free(Y);
-     free(Z);
-     free(Tri);
-  }; 
- C2MLClose(pCC); 
-
- for(p=FileBase; *p; p++)
-  if ( *p=='.' || *p=='-' ) *p='_';
- snprintf(FileName,1000,"%s.m",FileBase);
- f=fopen(FileName,"a");
- fprintf(f,"hold on\n");
- for(no=0; no<NumObjects; no++)
-  fprintf(f,"trimesh(Tri_%i,X_%i,Y_%i,Z_%i)\n",no,no,no,no);
- fclose(f);
-#endif
-   
-}
-
 
 /***************************************************************/
 /* WritePPMesh routine for RWGObjects.                         */
@@ -339,7 +277,7 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag, int PlotNorma
   RWGPanel *P;
   char buffer[1000], *p;
   double *PV[3], Val;
-  int i, no, np;
+  int np;
 
   /***************************************************************/
   /***************************************************************/
@@ -366,7 +304,7 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag, int PlotNorma
      PV[1]=Vertices + 3*P->VI[1];
      PV[2]=Vertices + 3*P->VI[2];
 
-     Val=(double)(no+1);
+     Val=(double)(Index+1);
 
      fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                 PV[0][0], PV[0][1], PV[0][2],
@@ -417,8 +355,7 @@ void RWGObject::WritePPMeshLabels(const char *FileName,
   RWGPanel *P;
   RWGEdge *E;
   char buffer[1000], *p;
-  double *PV[3], Val;
-  int i, np, ne;
+  int np, ne;
 
   /***************************************************************/
   /***************************************************************/
@@ -513,7 +450,7 @@ void RWGObject::WriteGPMesh(const char *format, ...)
   double *V, *PV[3];
   double rArea;
   char LabelFileName[200];
-  int i, no, np, ne, nv, LabelIndex;
+  int i, np, ne, nv, LabelIndex;
 
   va_start(ap,format);
   vsnprintf(FileName,1000,format,ap);
@@ -639,25 +576,25 @@ void RWGGeometry::PlotVector(double *KVec, const char *format, ...)
   /***************************************************************/
   /* allocate space for vectors exported to matlab              **/
   /***************************************************************/
-  x=(double *)RWGMalloc(NumArrows*sizeof(double));
-  y=(double *)RWGMalloc(NumArrows*sizeof(double));
-  z=(double *)RWGMalloc(NumArrows*sizeof(double));
-  u=(double *)RWGMalloc(NumArrows*sizeof(double));
-  v=(double *)RWGMalloc(NumArrows*sizeof(double));
-  w=(double *)RWGMalloc(NumArrows*sizeof(double));
+  x=(double *)mallocEC(NumArrows*sizeof(double));
+  y=(double *)mallocEC(NumArrows*sizeof(double));
+  z=(double *)mallocEC(NumArrows*sizeof(double));
+  u=(double *)mallocEC(NumArrows*sizeof(double));
+  v=(double *)mallocEC(NumArrows*sizeof(double));
+  w=(double *)mallocEC(NumArrows*sizeof(double));
 
-  x2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  y2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  z2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  u2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  v2=(double *)RWGMalloc(NumArrows2*sizeof(double));
-  w2=(double *)RWGMalloc(NumArrows2*sizeof(double));
+  x2=(double *)mallocEC(NumArrows2*sizeof(double));
+  y2=(double *)mallocEC(NumArrows2*sizeof(double));
+  z2=(double *)mallocEC(NumArrows2*sizeof(double));
+  u2=(double *)mallocEC(NumArrows2*sizeof(double));
+  v2=(double *)mallocEC(NumArrows2*sizeof(double));
+  w2=(double *)mallocEC(NumArrows2*sizeof(double));
 
-  X=(double *)RWGMalloc(3*NumArrows*sizeof(double));
-  Y=(double *)RWGMalloc(3*NumArrows*sizeof(double));
-  Z=(double *)RWGMalloc(3*NumArrows*sizeof(double));
-  Tri=(double *)RWGMalloc(3*NumArrows*sizeof(double));
-  C=(double *)RWGMalloc(NumArrows*sizeof(double));
+  X=(double *)mallocEC(3*NumArrows*sizeof(double));
+  Y=(double *)mallocEC(3*NumArrows*sizeof(double));
+  Z=(double *)mallocEC(3*NumArrows*sizeof(double));
+  Tri=(double *)mallocEC(3*NumArrows*sizeof(double));
+  C=(double *)mallocEC(NumArrows*sizeof(double));
 
   /***************************************************************/
   /* first pass to fill in x,y,z, X, Y, Z, Tri vectors ***********/

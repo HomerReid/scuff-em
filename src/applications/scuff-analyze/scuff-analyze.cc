@@ -73,17 +73,15 @@ void AnalyzeObject(RWGObject *O, int WriteGPFiles, int WritePPFiles)
 /***************************************************************/
 /* subroutine to analyze an RWGGeometry ************************/
 /***************************************************************/
-void AnalyzeGeometry(char *GeoFile, int WriteGPFiles, int WritePPFiles)
+void AnalyzeGeometry(RWGGeometry *G, int WriteGPFiles, int WritePPFiles)
 { 
-  RWGGeometry *G=new RWGGeometry(GeoFile);
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   unsigned RAM = G->TotalBFs * G->TotalBFs * sizeof(cdouble);
 
   printf("***********************************************\n");
-  printf("*  GEOMETRY %s \n",GeoFile);
+  printf("*  GEOMETRY %s \n",G->GeoFileName);
   printf("***********************************************\n");
   printf(" %6i objects\n",G->NumObjects);
   printf(" %6i total basis functions\n",G->TotalBFs);
@@ -107,14 +105,14 @@ void AnalyzeGeometry(char *GeoFile, int WriteGPFiles, int WritePPFiles)
    };
 
   if (WriteGPFiles)
-   { G->WriteGPMesh("%s.gp",GetFileBase(GeoFile));
+   { G->WriteGPMesh("%s.gp",GetFileBase(G->GeoFileName));
      printf("Geometry visualization data written to GNUPLOT file %s.gp.\n\n",
-             GetFileBase(GeoFile));
+             GetFileBase(G->GeoFileName));
    };
 
   if (WritePPFiles)
    { char buffer[MAXSTR];
-     snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(GeoFile));
+     snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(G->GeoFileName));
      unlink(buffer);
      G->WritePPMesh(buffer,buffer);
      printf("Geometry visualization data written to GMSH file %s.\n\n",buffer);
@@ -132,12 +130,14 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   char *MeshFile=0;
+  char *TransFile=0;
   int WriteGPFiles=0;
   int WritePPFiles=0;
   /* name, type, # args, max # instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,      0, "geometry file"},
      {"mesh",               PA_STRING, 1, 1, (void *)&MeshFile,     0, "mesh file"},
+     {"transfile",          PA_STRING, 1, 1, (void *)&TransFile,    0, "list of transformations"},
      {"WriteGnuplotFiles",  PA_BOOL,   0, 1, (void *)&WriteGPFiles, 0, "write gnuplot visualization files"},
      {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles, 0, "write GMSH visualization files "},
      {0,0,0,0,0,0,0}
@@ -150,17 +150,49 @@ int main(int argc, char *argv[])
   if (GeoFile==0 && MeshFile==0)
    OSUsage(argv[0],OSArray,"either --geometry or --mesh option must be specified");
   if (GeoFile!=0 && MeshFile!=0)
-   OSUsage(argv[0],OSArray,"--geometry and --mesh options are mutually exclusive");
+   ErrExit("--geometry and --mesh options are mutually exclusive");
+  if (TransFile && GeoFile==0)
+   ErrExit("--transfile option may only be used with --geometry");
    
   /***************************************************************/
   /**************************************************************/
   /***************************************************************/
+  RWGObject *O;
+  RWGGeometry *G;
   if (MeshFile)
-   { RWGObject *O=new RWGObject(MeshFile);
+   { O=new RWGObject(MeshFile);
      AnalyzeObject(O, WriteGPFiles, WritePPFiles);
    }
   else
-   AnalyzeGeometry(GeoFile, WriteGPFiles, WritePPFiles);
+   { G=new RWGGeometry(GeoFile);
+     AnalyzeGeometry(G, WriteGPFiles, WritePPFiles);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (TransFile)
+   { 
+     int ngtc, NGTC;
+     GTComplex **GTCList=ReadTransFile(TransFile, &NGTC);
+     char *ErrMsg=G->CheckGTCList(GTCList, NGTC);
+     if (ErrMsg)
+      ErrExit("file %s: %s",TransFile,ErrMsg);
+
+     char PPFileName[MAXSTR];
+     snprintf(PPFileName,MAXSTR,"%s.transformed.pp",GetFileBase(G->GeoFileName));
+     unlink(PPFileName);
+
+     for(ngtc=0; ngtc<NGTC; ngtc++) 
+      {
+        G->Transform(GTCList[ngtc]);
+        G->WritePPMesh(PPFileName, GTCList[ngtc]->Tag);
+        G->UnTransform();
+      };
+
+     printf("Visualizations for %i transforms written to %s.\n",NGTC,PPFileName);
+ 
+   };
 
   /***************************************************************/
   /***************************************************************/

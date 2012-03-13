@@ -1,7 +1,7 @@
 /*
  * FIPPICache.cc -- implementation of the FIPPICache class for libscuff
  * 
- * homer reid    -- 11/2005 -- 1/2011
+ * homer reid    -- 11/2005 -- 1/2012
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,10 +20,8 @@
 
 namespace scuff {
 
-#define KEYLEN 15
-
-int Found;
-int NotFound;
+#define KEYLEN 15 
+#define KEYSIZE (KEYLEN*sizeof(float))
 
 /*--------------------------------------------------------------*/
 /*- note: i found this on wikipedia ... ------------------------*/
@@ -31,7 +29,7 @@ int NotFound;
 long JenkinsHash(char *key, size_t len)
 {
     long hash; 
-    int i;
+    unsigned int i;
     for(hash = i = 0; i < len; ++i)
     {
         hash += key[i];
@@ -44,15 +42,15 @@ long JenkinsHash(char *key, size_t len)
     return hash;
 }
 
-long HashFunction(const double *Key)
-{ return JenkinsHash( (char *)Key, KEYLEN*sizeof(double) );
+long HashFunction(const float *Key)
+{ return JenkinsHash( (char *)Key, KEYSIZE );
 } 
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 typedef struct
- { double Key[KEYLEN];
+ { float Key[KEYLEN];
  } KeyStruct;
 
 typedef std::pair<KeyStruct, QIFIPPIData *> KeyValuePair;
@@ -65,11 +63,17 @@ struct KeyHash
 typedef struct 
  { 
    bool operator()(const KeyStruct &K1, const KeyStruct &K2) const
-    { int nd;
+    { 
+      if ( memcmp( (void *)K1.Key, (void *)K2.Key, KEYSIZE) )
+       return false;
+      return true;
+#if 0
+      int nd;
       for(nd=0; nd<KEYLEN; nd++)
        if ( fabs(K1.Key[nd] - K2.Key[nd]) > 1.0e-8 * fabs(K1.Key[nd]) )
         return false;
       return true;
+#endif
     };
 
  } KeyCmp;
@@ -112,20 +116,36 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   /***************************************************************/
   /* construct a search key from the canonically-ordered panel   */
   /* vertices.                                                   */
-  /* the search key is kinda stupid, just a string of 15 doubles */
+  /* the search key is kinda stupid, just a string of 15 floats  */
   /* as follows:                                                 */
-  /* 0--2    VMed  - VMin [0..2]                                 */
-  /* 3--5    VMax  - VMin [0..2]                                 */
-  /* 6--8    VMinP - VMin [0..2]                                 */
-  /* 9--11   VMedP - VMin [0..2]                                 */
-  /* 12--14  VMaxP - VMin [0..2]                                 */
+  /*  0--2    VMed  - VMin [0..2]                                */
+  /*  3--5    VMax  - VMin [0..2]                                */
+  /*  6--8    VMinP - VMin [0..2]                                */
+  /*  9--11   VMedP - VMin [0..2]                                */
+  /*  12--14  VMaxP - VMin [0..2]                                */
+  /* note that we store floats, not doubles, since we only want  */
+  /* to check equality of vertex coordinates up to one part in   */
+  /* 10^8 anyway.                                                */
   /***************************************************************/
+#if 0
   KeyStruct K;
   VecSub(OVa[1], OVa[0], K.Key+0 );
   VecSub(OVa[2], OVa[0], K.Key+3 );
   VecSub(OVb[0], OVa[0], K.Key+6 );
   VecSub(OVb[1], OVa[0], K.Key+9 );
   VecSub(OVb[2], OVa[0], K.Key+12);
+#endif
+  double DKey[KEYLEN];
+  VecSub(OVa[1], OVa[0], DKey+0 );
+  VecSub(OVa[2], OVa[0], DKey+3 );
+  VecSub(OVb[0], OVa[0], DKey+6 );
+  VecSub(OVb[1], OVa[0], DKey+9 );
+  VecSub(OVb[2], OVa[0], DKey+12);
+
+  int n;
+  KeyStruct K;
+  for(n=0; n<KEYLEN; n++)
+   K.Key[n] = (float)(DKey[n]);
 
   /***************************************************************/
   /* look for this key in the cache ******************************/
@@ -137,7 +157,7 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   FCLock.read_unlock();
 
   if ( p != (KVM->end()) )
-   { Found++;
+   { Hits++;
      return (QIFIPPIData *)(p->second);
    };
   
@@ -145,10 +165,10 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   /* if it was not found, allocate and compute a new QIFIPPIData */
   /* structure, then add this structure to the cache             */
   /***************************************************************/
-  NotFound++;
-  KeyStruct *K2 = (KeyStruct *)malloc(sizeof(*K2));
-  memcpy(K2->Key, K.Key, KEYLEN*sizeof(double));
-  QIFIPPIData *QIFD=(QIFIPPIData *)malloc(sizeof *QIFD);
+  Misses++;
+  KeyStruct *K2 = (KeyStruct *)mallocEC(sizeof(*K2));
+  memcpy(K2->Key, K.Key, KEYSIZE);
+  QIFIPPIData *QIFD=(QIFIPPIData *)mallocEC(sizeof *QIFD);
   if (DoNotCompute==0)
    ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
    
@@ -180,7 +200,7 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
 /* note: FIPPICF = 'FIPPI cache file'                          */
 /***************************************************************/
 const char FIPPICF_Signature[]="FIPPICACHE";
-#define FIPPICF_SIGLEN sizeof(FIPPICF_Signature)
+#define FIPPICF_SIGSIZE sizeof(FIPPICF_Signature)
 
 // note that this structure differs from the KeyValuePair structure 
 // defined above in that it contains the actual contents of 
@@ -190,7 +210,7 @@ typedef struct FIPPICF_Record
  { KeyStruct K;
    QIFIPPIData QIFDBuffer;
  } FIPPICF_Record;
-#define FIPPICF_RECLEN sizeof(FIPPICF_Record)
+#define FIPPICF_RECSIZE sizeof(FIPPICF_Record)
 
 void FIPPICache::Store(char *FileName)
 {
@@ -213,7 +233,7 @@ void FIPPICache::Store(char *FileName)
   /*---------------------------------------------------------------------*/
   /*- write file signature ----------------------------------------------*/
   /*---------------------------------------------------------------------*/
-  fwrite(FIPPICF_Signature,FIPPICF_SIGLEN,1,f);
+  fwrite(FIPPICF_Signature,FIPPICF_SIGSIZE,1,f);
 
   /*---------------------------------------------------------------------*/
   /*- iterate through the table and write entries to the file one-by-one */
@@ -272,18 +292,18 @@ void FIPPICache::PreLoad(char *FileName)
   // check that the file signature is present and correct 
   off_t FileSize;
   FileSize=fileStats.st_size;
-  char FileSignature[FIPPICF_SIGLEN]; 
-  if ( ErrMsg==0 && FileSize < FIPPICF_SIGLEN )
+  char FileSignature[FIPPICF_SIGSIZE]; 
+  if ( ErrMsg==0 && (FileSize < (signed int )FIPPICF_SIGSIZE) )
    ErrMsg="invalid cache file";
-  if ( ErrMsg==0 && 1!=fread(FileSignature, FIPPICF_SIGLEN, 1, f) )
+  if ( ErrMsg==0 && 1!=fread(FileSignature, FIPPICF_SIGSIZE, 1, f) )
    ErrMsg="invalid cache file";
   if ( ErrMsg==0 && strcmp(FileSignature, FIPPICF_Signature) ) 
    ErrMsg="invalid cache file";
 
   // the file size, minus the portion taken up by the signature, 
   // should be an integer multiple of the size of a FIPPICF_Record
-  FileSize-=FIPPICF_SIGLEN;
-  if ( ErrMsg==0 && (FileSize % FIPPICF_RECLEN)!=0 )
+  FileSize-=FIPPICF_SIGSIZE;
+  if ( ErrMsg==0 && (FileSize % FIPPICF_RECSIZE)!=0 )
    ErrMsg="cache file has incorrect size";
 
   /*--------------------------------------------------------------*/
@@ -293,9 +313,9 @@ void FIPPICache::PreLoad(char *FileName)
   /*--------------------------------------------------------------*/
   unsigned int NumRecords;
   FIPPICF_Record *Records;
-  NumRecords = FileSize / FIPPICF_RECLEN;
+  NumRecords = FileSize / FIPPICF_RECSIZE;
   if ( ErrMsg==0 )
-   { Records=(FIPPICF_Record *)malloc(NumRecords*FIPPICF_RECLEN);
+   { Records=(FIPPICF_Record *)mallocEC(NumRecords*FIPPICF_RECSIZE);
      if ( !Records)
       ErrMsg="insufficient memory to preload cache";
    };
@@ -314,11 +334,11 @@ void FIPPICache::PreLoad(char *FileName)
   /*- now just read records from the file one at a time and add   */
   /*- them to the table.                                          */
   /*--------------------------------------------------------------*/
-  int nr;
+  unsigned int nr;
   Log("Preloading FIPPI records from file %s...",FileName);
   for(nr=0; nr<NumRecords; nr++)
    { 
-     if ( fread(Records+nr, FIPPICF_RECLEN,1,f) != 1 )
+     if ( fread(Records+nr, FIPPICF_RECSIZE,1,f) != 1 )
       { fprintf(stderr,"warning: file %s: read only %i of %i records",FileName,nr+1,NumRecords);
         fclose(f);
 	goto done;
@@ -353,3 +373,4 @@ void StoreGlobalFIPPICache(char *FileName)
 }
 
 } // namespace scuff
+

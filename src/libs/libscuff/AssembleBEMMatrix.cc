@@ -16,6 +16,7 @@
 #include <math.h>
 #include <libhmat.h>
 #include <libhrutil.h>
+#include <omp.h>
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
@@ -30,6 +31,7 @@
 namespace scuff {
 
 #define II cdouble(0,1)
+
 
 /***************************************************************/
 /***************************************************************/
@@ -327,6 +329,8 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /***************************************************************/
   /* fire off threads ********************************************/
   /***************************************************************/
+  GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
+
   int nt, nThread=Args->nThread;
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[nThread], *TD;
@@ -369,6 +373,9 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   delete[] Threads;
   delete[] TDs;
 #endif
+
+  if (G->LogLevel>=SCUFF_VERBOSELOGGING)
+   Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
 }
 
 
@@ -386,7 +393,7 @@ void InitABMBArgs(ABMBArgStruct *Args)
   Args->nThread=1;
 
   Args->NumTorqueAxes=0;
-  Args->GammaMatrix;
+  Args->GammaMatrix=0;
   
   Args->RowOffset=0;
   Args->ColOffset=0;
@@ -399,9 +406,9 @@ void InitABMBArgs(ABMBArgStruct *Args)
 }
 
 /***************************************************************/
-/* the actual API-exposed routine for assembling the BEM matrix*/
-/* is pretty simple, and really just calls the routine above   */
-/* to do all the dirty work.                                   */
+/* this is the actual API-exposed routine for assembling the   */
+/* BEM matrix, which is pretty simple and really just calls    */
+/* routine above to do all the dirty work.                     */
 /***************************************************************/
 void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
 { 

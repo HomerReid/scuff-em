@@ -12,20 +12,20 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void IncFieldData::SetFrequency(cdouble Omega)
+void IncFieldData::SetFrequency(cdouble pOmega)
 {
   IncFieldData *IFD;
   for(IFD=this; IFD; IFD=IFD->Next)
-   IFD->Omega=Omega;
+   IFD->Omega=pOmega;
 }
 
-void IncFieldData::SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, double Mu)
+void IncFieldData::SetFrequencyAndEpsMu(cdouble pOmega, cdouble pEps, double pMu)
 {
   IncFieldData *IFD;
   for(IFD=this; IFD; IFD=IFD->Next)
-   { IFD->Omega=Omega;
-     IFD->Eps=Eps;
-     IFD->Mu=Mu;
+   { IFD->Omega=pOmega;
+     IFD->Eps=pEps;
+     IFD->Mu=pMu;
    };
 }
 
@@ -43,6 +43,6 @@ void EHIncField(double *X, void *UserData, cdouble EH[6])
    { 
      IFD->GetFields(X, PEH);
      for(nc=0; nc<6; nc++)
-      EH[nc] += PEH[6];
+      EH[nc] += PEH[nc];
    };
 }

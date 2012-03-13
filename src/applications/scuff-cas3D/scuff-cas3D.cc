@@ -1,10 +1,9 @@
 /*
- * scuff-heat.cc  -- a standalone code within the scuff-EM suite for 
- *                -- solving problems involving the heat radiation
- *                -- of a single object or the heat transfer from
- *                -- one object to another object
+ * scuff-cas3D.cc  -- a standalone code within the scuff-EM suite for 
+ *                 -- computing the Casimir energy, force, and/or
+ *                 -- torque for a collection of interacting objects
  *
- * homer reid     -- 2/2012
+ * homer reid     -- 3/2007 -- 3/2012
  *
  * --------------------------------------------------------------
  *
@@ -24,11 +23,11 @@
  * 
  * and then running 
  * 
- *  scuff-heat < myOptions 
+ *  scuff-cas3D < myOptions 
  * 
  * is equivalent to 
  * 
- *  scuff-heat --option1 value1 --option value2.
+ *  scuff-cas3D --option1 value1 --option value2.
  * 
  * (if any options are specified both on standard input and 
  *  on the command line, the values given on the command line take
@@ -44,65 +43,70 @@
  * 
  *       -------------------------------------------------
  * 
- * b. options describing the frequency
+ * b. options describing the quantities to compute
  * 
- *     --Omega xx
+ *     --energy 
+ *     --xforce 
+ *     --yforce 
+ *     --zforce 
+ *     --torque ABOUT nx ny nz 
+ * 
+ *       -------------------------------------------------
+ * 
+ * c. options specifying frequency behavior
+ * 
+ *     --Xi xx
  *
- *         Specify a single frequency at which to compute 
- *         the spectral density of heat transfer.
+ *         Specify a single imaginary frequency at which to
+ *         evaluate the spectral density of contributions
+ *         to the requested Casimir quantities.
  *
- *         Note that --Omega may be specified more than 
- *         once.
+ *         Note that --Xi may be specified more than once.
  * 
- *     --OmegaFile MyOmegaFile
+ *     --XiFile MyXiFile
  * 
- *         Specify a file containing a list of --Omega values.
+ *         Specify a file containing a list of --Xi values.
  * 
- *     --OmegaMin xx
- *     --OmegaMax xx
+ *     --Temperature T
  * 
- *         Specify a range of frequencies over which to 
- *         integrate the spectral density to compute 
- *         a total (integrated) heat transfer.
+ *         Specify a temperature (in Kelvin) at which to  
+ *         evaluate the Matsubara sum for the requested Casimir
+ *         quantities.
  * 
  *     Note: if no frequency options are specified, the 
  *           default behavior is to integrate over the  
- *           entire positive real frequency axis. In other
- *           words, specifying no frequency options is 
- *           equivalent to setting OmegaMin=0.0 and 
- *           OmegaMax=infinity.
+ *           entire positive imaginary frequency axis to compute
+ *           the full 
  * 
  *       -------------------------------------------------
  * 
  * c. options specifying output file names 
  * 
- *     --ByOmegaFile .byOmega
+ *     --ByXiFile MyFileName.byXi
  * 
  *         Set the name of the frequency-resolved output  
  *         file. If this option is not specified, the 
  *         frequency-resolved output file will be called
- *         Geometry.byOmega, where Geometry.scuffgeo is the
+ *         Geometry.byXi, where Geometry.scuffgeo is the
  *         geometry file specified using the --geometry option.
  * 
  *     --OutputFile MyFile.Out
  * 
- *         Set the name of the total-integrated-power output  
- *         file (which is only generated if your command-line
- *         options call for scuff-heat to evaluate a frequency
- *         integral.)
- *         If this option is not specified, the output file 
- *         will be called Geometry.out, where Geometry.scuffgeo 
- *         is the geometry file specified using the --geometry 
- *         option.
+ *         Set the name of the output file (which is only generated 
+ *         if your command-line options call for scuff-cas3D to 
+ *         evaluate a frequency integral or Matsubara sum.)
+ *         If this option is not specified, the output file will 
+ *         be called Geometry.out, where Geometry.scuffgeo is the
+ *         geometry file specified using the --geometry option.
  * 
  *     --LogFile MyFile.log
  * 
  *         Set the name of the log file. If this option is not
- *         specified, the log file will be named scuff-heat.log.
- * 
- * d. options specifying scuff caches 
+ *         specified, the log file will be named scuff-cas3D.log.
  * 
  *       -------------------------------------------------
+ * 
+ * d. options specifying scuff caches 
  * 
  *     -- ReadCache MyReadCache.scuffcache
  * 
@@ -112,12 +116,12 @@
  *     -- WriteCache MyWriteCache.scuffcache
  * 
  *         Specify the name of a scuff cache file to which
- *         scuff-heat will dump the contents of its cache
+ *         scuff-cas3D will dump the contents of its cache
  *         after completing all computations.
  * 
  *     -- Cache MyCache.scuffcache
  * 
- *         Specify a cache file that scuff-heat will both
+ *         Specify a cache file that scuff-cas3D will both
  *         (a) preload before starting its computations, and
  *         (b) overwrite after completing its computations.
  *         Specifying this option is equivalent to setting
@@ -133,7 +137,7 @@
 #include <stdarg.h>
 #include <math.h>
 
-#include "scuff-heat.h"
+#include "scuff-cas3D.h"
 
 /***************************************************************/
 /***************************************************************/
@@ -155,35 +159,39 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   char *TransFile=0;
-  cdouble OmegaMin=0.0;              int nOmegaMin;
-  cdouble OmegaMax=-1.0;             int nOmegaMax;
-  cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
-  char *OmegaFile;                   int nOmegaFiles;
-  char *ByOmegaFile=0;
-  int PlotFlux=0;
+  int Energy=0;
+  int XForce=0;
+  int YForce=0;
+  int ZForce=0;
+  char *TorqueArgs[TORQUEARGS*MAXTORQUE];   int nTorque;
+  double XiVals[MAXFREQ];	   int nXiVals;
+  char *XiFile;			   int nXiFiles;
+  double Temperature=0.0;          int nTemperature;
+  char *ByXiFile=0;
   char *OutputFile=0;
   char *LogFile=0;
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
-  double SWPPITol=0.0;
   int nThread=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
-     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
-     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
-     {"OmegaMin",       PA_CDOUBLE, 1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
-     {"OmegaMax",       PA_CDOUBLE, 1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
+     {"Energy",         PA_BOOL,    0, 1,       (void *)&Energy,     0,             "compute Casimir energy"},
+     {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,     0,             "compute Casimir energy"},
+     {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,     0,             "compute Casimir energy"},
+     {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,     0,             "compute Casimir energy"},
+     {"Torque",         PA_STRING,  4, 3,       (void *)TorqueArgs,  &nTorque,      "compute Casimir torque"},
+     {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,      &nXiVals,      "imaginary frequency"},
+     {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,     &nXiFiles,     "list of --Xi values"},
+     {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature, &nTemperature, "temperature in Kelvin"},
      {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile, 0,             "name of frequency-integrated output file"},
-     {"ByOmegaFile",    PA_STRING,  1, 1,       (void *)&ByOmegaFile,0,             "name of frequency-resolved output file"},
-     {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
+     {"ByXiFile",       PA_STRING,  1, 1,       (void *)&ByXiFile,   0,             "name of frequency-resolved output file"},
      {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,    0,             "name of log file"},
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
-     {"SWPPITol",       PA_DOUBLE,  1, 1,       (void *)&SWPPITol,   0,             "short-wavelength panel-panel integration tolerance"},
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {0,0,0,0,0,0,0}
    };
@@ -192,105 +200,99 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
-  if ( Cache!=0 && WriteCache!=0 )
-   ErrExit("--cache and --writecache options are mutually exclusive");
-
-  if (PlotFlux && ByOmegaFile!=0 )
-   ErrExit("--PlotFlux and --ByOmegaFile options are mutually exclusive");
-
   if (LogFile)
    SetLogFileName(LogFile);
   else
-   SetLogFileName("scuff-heat.log");
+   SetLogFileName("scuff-cas3D.log");
 
-  Log("scuff-heat running on %s",GetHostName());
-
-  if (SWPPITol!=0.0)
-   { Log("setting short-wavelength PPI tolerance to %e...",SWPPITol);
-     RWGGeometry::SWPPITol=SWPPITol;
-   };
+  Log("scuff-cas3D running on %s",GetHostName());
 
   /*******************************************************************/
-  /* process frequency-related options to construct a list of        */
-  /* frequencies at which to run simulations                         */
+  /* process any frequency-related options to construct a list of    */
+  /* frequencies at which to compute Casimir quantities              */
   /*******************************************************************/
-  HVector *OmegaList=0, *OmegaList0;
+  HVector *Xiist=0, *XiList0;
   int nFreq, nOV, NumFreqs=0;
-  if (nOmegaFiles==1) // first process --OmegaFile option if present
+  if (nXiFiles==1) // first process --XiFile option if present
    { 
-     OmegaList=new HVector(OmegaFile,LHM_TEXT);
-     if (OmegaList->ErrMsg)
-      ErrExit(OmegaList->ErrMsg);
-     NumFreqs=OmegaList->N;
-     Log("Read %i frequencies from file %s.",NumFreqs,OmegaFile);
+     XiList=new HVector(XiFile,LHM_TEXT);
+     if (XiList->ErrMsg)
+      ErrExit(XiList->ErrMsg);
+     NumFreqs=XiList->N;
+     Log("Read %i frequencies from file %s.",NumFreqs,XiFile);
    };
 
-  // now add any individually specified --Omega options
-  if (nOmegaVals>0)
+  // now add any individually specified --Xi options
+  if (nXiVals>0)
    { 
-     NumFreqs += nOmegaVals;
-     OmegaList0=OmegaList;
-     OmegaList=new HVector(NumFreqs, LHM_COMPLEX);
+     NumFreqs += nXiVals;
+     XiList0=XiList;
+     XiList=new HVector(NumFreqs);
      nFreq=0;
-     if (OmegaList0)
-      { for(nFreq=0; nFreq<OmegaList0->N; nFreq++)
-         OmegaList->SetEntry(nFreq, OmegaList0->GetEntry(nFreq));
-        delete OmegaList0;
+     if (XiList0)
+      { for(nFreq=0; nFreq<XiList0->N; nFreq++)
+         XiList->SetEntry(nFreq, XiList0->GetEntry(nFreq));
+        delete XiList0;
       };
-     for(nOV=0; nOV<nOmegaVals; nOV++)
-      OmegaList->SetEntry(nFreq+nOV, OmegaVals[nOV]);
-     Log("Read %i frequencies from command line.",nOmegaVals);
+     for(nOV=0; nOV<nXiVals; nOV++)
+      XiList->SetEntry(nFreq+nOV, XiVals[nOV]);
+     Log("Read %i frequencies from command line.",nXiVals);
    };
 
-  // check that the user didn't simultaneously ask for a discrete
-  // list of frequencies and a frequency range over which to integrate;
-  // if a range was specified check that it makes sense 
-  if ( NumFreqs>0 ) 
-   { if ( nOmegaMin>0 || nOmegaMax>0 )
-      ErrExit("--OmegaMin/--OmegaMax options may not be used with --Omega/--OmegaFile");  
-     Log("Computing spectral density at %i frequencies.",NumFreqs);
-   }
-  else if (NumFreqs==0)
-   { 
-     // if --OmegaMin and/or --OmegaMax values were specified,
-     // check that they make sense
-     if ( nOmegaMin==1 && (real(OmegaMin)<0.0 || imag(OmegaMin)!=0.0) )
-      ErrExit("invalid value specified for --OmegaMin");
-     if ( nOmegaMax==1 && (real(OmegaMax)<real(OmegaMin) || imag(OmegaMax)!=0.0 ) )
-      ErrExit("invalid value specified for --OmegaMax");
-
-     if ( OmegaMax==-1.0 )
-      Log("Integrating over range Omega=(%g,infinity).",real(OmegaMin));
-     else
-      Log("Integrating over range Omega=(%g,%g).",real(OmegaMin),real(OmegaMax));
+  // if the user specified a temperature, check that the
+  // temperature makes sense and that the user didn't also 
+  // specify a list of frequencies
+  if ( nTemperature!=0 )
+   { if (Temperature<0.0)
+      ErrExit("negative value specified for --Temperature");
+     if ( NumFreqs>0 )
+      ErrExit("--Temperature may not be used with --Xi/--XiList");
    };
 
   /*******************************************************************/
-  /* create the SHData structure that contains all the info needed   */
-  /* to evaluate the heat transfer at a single frequency             */
+  /* create the SC3Data structure that contains all the info needed  */
+  /* to evaluate the contributions of a single frequency to the      */
+  /* Casimir quantities                                              */
   /*******************************************************************/
-  SHData *SHD=CreateSHData(GeoFile, TransFile, PlotFlux, ByOmegaFile, nThread);
+
+  SC3Data *SC3D=(SC3Data *)malloc(sizeof(SC3Data));
+
+  RWGGeometry *G = new RWGGeometry(GeoFile);
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
+  SC3D->G=G;
+
+  if (ByXiFile)
+   SC3Data->ByXiFile = ByXiFile;a
+  else
+   { SHD->ByXiFile = vstrdup("%s.byXi",GetFileBase(GeoFile));
+     char MyFileName[MAXSTR];
+     FILE *f=CreateUniqueFile(SHD->ByOmegaFile, 1, MyFileName);
+     fclose(f);
+     SHD->ByOmegaFile=strdup(MyFileName);
+   };
 
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
   /* may have specified                                              */
   /*******************************************************************/
+  if ( Cache!=0 && WriteCache!=0 )
+   ErrExit("--cache and --writecache options are mutually exclusive");
   for (int nrc=0; nrc<nReadCache; nrc++)
    PreloadGlobalFIPPICache( ReadCache[nrc] );
   if (Cache)
    PreloadGlobalFIPPICache( Cache );
 
   if (Cache) WriteCache=Cache;
-  SHD->WriteCache = WriteCache;
+  SC3D->WriteCache = WriteCache;
 
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
   /* perform the actual calculations                                 */
   /*******************************************************************/
-  double *I = new double[SHD->NumTransformations];
+  double *I = new double[SC3D->NumTransformations];
   if (NumFreqs>0)
    { for (nFreq=0; nFreq<NumFreqs; nFreq++)
-      GetFrequencyIntegrand(SHD, OmegaList->GetEntry(nFreq), I);
+      GetFrequencyIntegrand(SC3D, XiList->GetEntry(nFreq), I);
    }
   else
    { // frequency integration not yet implemented 

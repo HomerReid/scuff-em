@@ -3,7 +3,9 @@ SHELL=/bin/bash
 ##################################################
 ##################################################
 ##################################################
-include ../../../../Makefile.Rules
+export LB_LIBS=-llapack -lblas -lpthread
+export HDF5_LIBS=-Xlinker -Bstatic -lhdf5_hl -lhdf5 -Xlinker -Bdynamic -lz
+export MUPARSER_LIBS=-lmuparser
 
 ##################################################
 ##################################################
@@ -13,7 +15,7 @@ HR_LIBS = -lscuff -lMatProp -lMDInterp \
 
 OTHER_LIBS = $(GSL_LIBS) $(MUPARSER_LIBS) $(RDL_LIBS) $(HDF5_LIBS)  $(LB_LIBS)
 
-LIBS=$(HR_LIBS) $(OTHER_LIBS)
+LIBS=$(HR_LIBS) $(OTHER_LIBS) -lgomp
 
 ##################################################
 ##################################################
@@ -24,23 +26,28 @@ CFLAGS+=$(DEBUG)
 CPPFLAGS+=$(DEBUG)
 LDFLAGS+=$(DEBUG)
 
-CPPFLAGS+=-I../../libs/libscuff
-CPPFLAGS+=-DSCUFF -DHAVE_MUPARSER -DHAVE_HDF5
+CPPFLAGS+=-I../../libs/libscuff -I../../libs/libhmat 
+CPPFLAGS+=-I../../libs/libhrutil 
+CPPFLAGS+=-I$(HOME)/include
+CPPFLAGS+=-DHAVE_CONFIG_H
 
-LDFLAGS+=-L.
-LDFLAGS+=-L../../libs/libscuff
+LDFLAGS+=-L. -L../../libs/libscuff -L../../libs/libhmat 
+LDFLAGS+=-L../../libs/libhrutil/
+LDFLAGS+=-L$(HOME)/lib
 
 ##################################################
 ##################################################
 ##################################################
-SH_OBJS = scuff-heat.o FrequencyIntegrand.o
+SCUFF_HEAT_OBJS = scuff-heat.o CreateSHData.o FrequencyIntegrand.o
 
-scuff-heat${SUFFIX}:   	$(SH_OBJS) libscuff.a 
-			$(CXX) $(LDFLAGS) -o $@ $(SH_OBJS) $(LIBS)
+scuff-heat:   	$(SCUFF_HEAT_OBJS) libscuff.a 
+		$(CXX) $(LDFLAGS) $(SCUFF_HEAT_OBJS) -o scuff-heat $(LIBS)
 
 libscuff.a:	
-		(pushd ../../libs/libscuff; make DEBUG=$(DEBUG) libscuff.a; popd)
+		(pushd ../../libs/libscuff; make -f Makefile.manual DEBUG=$(DEBUG) libscuff.a; popd)
+		(pushd ../../libs/libhmat; make -f Makefile.manual DEBUG=$(DEBUG) libhmat.a; popd)
 
 clean:	
 		rm -f *.o *.a
-		(pushd ../../libs/libscuff; make clean; popd)
+		(pushd ../../libs/libscuff; make -f Makefile.manual clean; popd)
+		(pushd ../../libs/libhmat; make -f Makefile.manual clean; popd)
