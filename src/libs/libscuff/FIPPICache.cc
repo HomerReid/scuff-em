@@ -102,6 +102,12 @@ FIPPICache::~FIPPICache()
   delete KVM;
 } 
 
+static void inline VecSubFloat(double *V1, double *V2, float *V1mV2)
+{ V1mV2[0] = ((float)V1[0]) - ((float)V2[0]);
+  V1mV2[1] = ((float)V1[1]) - ((float)V2[1]);
+  V1mV2[2] = ((float)V1[2]) - ((float)V2[2]);
+}
+
 /*--------------------------------------------------------------*/
 /*- routine for fetching a FIPPI data record from a FIPPIDT:    */
 /*- we look through our table to see if we have a record for    */
@@ -127,25 +133,19 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   /* to check equality of vertex coordinates up to one part in   */
   /* 10^8 anyway.                                                */
   /***************************************************************/
-#if 0
   KeyStruct K;
+#if 0
   VecSub(OVa[1], OVa[0], K.Key+0 );
   VecSub(OVa[2], OVa[0], K.Key+3 );
   VecSub(OVb[0], OVa[0], K.Key+6 );
   VecSub(OVb[1], OVa[0], K.Key+9 );
   VecSub(OVb[2], OVa[0], K.Key+12);
 #endif
-  double DKey[KEYLEN];
-  VecSub(OVa[1], OVa[0], DKey+0 );
-  VecSub(OVa[2], OVa[0], DKey+3 );
-  VecSub(OVb[0], OVa[0], DKey+6 );
-  VecSub(OVb[1], OVa[0], DKey+9 );
-  VecSub(OVb[2], OVa[0], DKey+12);
-
-  int n;
-  KeyStruct K;
-  for(n=0; n<KEYLEN; n++)
-   K.Key[n] = (float)(DKey[n]);
+  VecSubFloat(OVa[1], OVa[0], K.Key+0  );
+  VecSubFloat(OVa[2], OVa[0], K.Key+3  );
+  VecSubFloat(OVb[0], OVa[0], K.Key+6  );
+  VecSubFloat(OVb[1], OVa[0], K.Key+9  );
+  VecSubFloat(OVb[2], OVa[0], K.Key+12 );
 
   /***************************************************************/
   /* look for this key in the cache ******************************/
