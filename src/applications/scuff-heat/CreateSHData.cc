@@ -38,16 +38,8 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
-  /*--------------------------------------------------------------*/
-  /*- the DV field is only needed for generating flux plots.     -*/
-  /*--------------------------------------------------------------*/
   SHD->PlotFlux=PlotFlux;
-  if (PlotFlux)
-   SHD->DV=new HVector(G->TotalBFs); // diagonal vector (note real-valued)
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
   SHD->nThread=nThread;
   if (SHD->nThread==0)
    SHD->nThread=GetNumThreads();
@@ -122,6 +114,8 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   SHD->W21SymG1   = new HMatrix(N2, N1, LHM_COMPLEX );
   SHD->W21DSymG2  = new HMatrix(N1, N2, LHM_COMPLEX );
   SHD->Scratch    = new HMatrix(N,  N1, LHM_COMPLEX );
+
+  SHD->DV         = new HVector(N2, LHM_REAL);
 
   return SHD;
 

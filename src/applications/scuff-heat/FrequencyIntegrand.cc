@@ -38,12 +38,13 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
   RWGEdge *E;
   int ne, BFIndex, PanelIndex;
   double Value;
-  for(no=0; no<G->NumObjects; no++)
+  int Offset = (G->NumObjects == 1) ? 0 : G->Objects[0]->NumBFs;
+  for(no=(G->NumObjects==1) ? 0 : 1; no<G->NumObjects; no++)
    for(O=G->Objects[no], ne=0; ne<O->NumEdges; ne++)
     { 
       E=O->Edges[ne];
       
-      BFIndex = G->BFIndexOffset[no] + 2*ne;
+      BFIndex = G->BFIndexOffset[no] - Offset + 2*ne;
       Value = 0.5 * ( SHD->DV->GetEntryD(BFIndex + 0) + SHD->DV->GetEntryD(BFIndex + 1) ); 
 
       PanelIndex = G->PanelIndexOffset[no] + E->iPPanel;
@@ -82,180 +83,6 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
 
 
 }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-void GFI2(RWGGeometry *G, cdouble Omega, int nThread)
-{ 
-  int NBF=G->TotalBFs;
-  HMatrix *M0 = new HMatrix(NBF, NBF, LHM_COMPLEX);
-  HMatrix *M1 = new HMatrix(NBF, NBF, LHM_COMPLEX);
-  HMatrix *M2 = new HMatrix(NBF, NBF, LHM_COMPLEX);
-
-  /***************************************************************/
-  /* assemble the three separate blocks that contribute to the   */
-  /* BEM matrix:                                                 */
-  /*  0: contributions of environment only                       */
-  /*  1: contributions of object 1 only                          */
-  /*  2: contributions of objects 2...N only                     */
-  /***************************************************************/
-
-  /*--------------------------------------------------------------*/
-  /*- 0: contributions of environment only -----------------------*/
-  /*--------------------------------------------------------------*/
-  int no;
-  for(no=0; no<G->NumObjects; no++)
-   G->Objects[no]->MP->Zero();
-
-  Log("Assembling M0 matrix...");
-  G->AssembleBEMMatrix(Omega, nThread, M0);
-
-  // multiply by the 'S' matrix 
-  int nr, nc;
-  for(nr=1; nr<M0->NR; nr+=2)
-   for(nc=0; nc<M0->NC; nc++)
-    M0->SetEntry(nr, nc, -1.0*M0->GetEntry(nr,nc));
-
-  /*--------------------------------------------------------------*/
-  /*- 1: contributions of object 1 only    -----------------------*/
-  /*--------------------------------------------------------------*/
-  G->ExteriorMP->Zero();
-  G->Objects[0]->MP->UnZero();
-
-  Log("Assembling M1 matrix...");
-  G->AssembleBEMMatrix(Omega, nThread, M1);
-
-  for(nr=1; nr<M1->NR; nr+=2)
-   for(nc=0; nc<M1->NC; nc++)
-    M1->SetEntry(nr, nc, -1.0*M1->GetEntry(nr,nc));
-
-  /*--------------------------------------------------------------*/
-  /*- 2: contributions of objects 2--N only.                      */
-  /*-                                                             */
-  /*-  NOTE: if we only have a single object then we set M2 = M0; */
-  /*-        the calculation them amounts to computing the heat   */
-  /*-        transfer the single body to the environment.         */
-  /*--------------------------------------------------------------*/
-  if (G->NumObjects==1)
-   M2->Copy(M0);
-  else // (G->NumObjects>1)
-   { 
-     G->Objects[0]->MP->Zero();
-     for(no=1; no<G->NumObjects; no++)
-      G->Objects[no]->MP->UnZero();
-
-     Log("Assembling M2 matrix...");
-     G->AssembleBEMMatrix(Omega, nThread, M2);
-
-     for(nr=1; nr<M2->NR; nr+=2)
-      for(nc=0; nc<M2->NC; nc++)
-       M2->SetEntry(nr, nc, -1.0*M2->GetEntry(nr,nc));
-   };
-  
-  // undo the zeroing out of the environment and object 1
-  G->ExteriorMP->UnZero();
-  G->Objects[0]->MP->UnZero();
-
-  /***************************************************************/
-  /* assemble and LU-factorize the full BEM matrix (for now we   */
-  /* do this in-place using the M0 matrix)                       */
-  /***************************************************************/
-  if (G->NumObjects==1)
-   { for(nr=0; nr<M0->NR; nr++)
-      for(nc=0; nc<M0->NC; nc++)
-       M0->AddEntry(nr, nc, M1->GetEntry(nr,nc) );
-   }
-  else
-   { for(nr=0; nr<M0->NR; nr++)
-      for(nc=0; nc<M0->NC; nc++)
-       M0->AddEntry(nr, nc, M1->GetEntry(nr,nc) + M2->GetEntry(nr,nc) );
-   };
-
-  Log("LU-factorizing MTotal...");
-  M0->LUFactorize();
-
-  /***************************************************************/
-  /* set M1 = sym(M1) and M2 = sym(M2)                           */
-  /*  (note that the loop runs over only the upper triangle of   */
-  /*  the matrices)                                              */
-  /***************************************************************/
-  cdouble Sym, SymT;
-  for(nr=0; nr<M1->NR; nr++)
-   for(nc=nr; nc<M1->NC; nc++)
-    { 
-      Sym = 0.5*(M1->GetEntry(nr, nc) + conj(M1->GetEntry(nc, nr)));
-      M1->SetEntry(nr, nc, Sym );
-      if(nc>nr) M1->SetEntry(nc, nr, conj(Sym) );
-    }; 
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (PlotFlux)
-   {
-     for(nr=0; nr<M2->NR; nr++)
-      for(nc=nr; nc<M2->NC; nc++)
-       { Sym  = conj(M2->GetEntry(nr, nc));
-         SymT = conj(M2->GetEntry(nc, nr));
-         M2->SetEntry(nc, nr, Sym );
-         if (nc>nr) M2->SetEntry(nr, nc, SymT );
-       };
-
-     Log("LU-solving M1...");
-     M0->LUSolve(M1,'N');
-     Log("LU-solving M2...");
-     M0->LUSolve(M2,'C');
-     Log("Multipliying...");
-     M1->Multiply(M2, M0);
-     for(nr=0; nr<M1->NR; nr++)
-      SHD->DV->SetEntry(nr, M1->GetEntry(nr,nr));
-     Log("Plotting flux vector...");
-     PlotFlux(SHD, Omega);
-
-     *FI=0.0;
-   }
-  else
-   {
-     for(nr=0; nr<M2->NR; nr++)
-      for(nc=nr; nc<M2->NC; nc++)
-       { Sym = 0.5*(M2->GetEntry(nr, nc) + conj(M2->GetEntry(nc, nr)));
-         M2->SetEntry(nr, nc, Sym );
-         if(nc>nr) M2->SetEntry(nc, nr, conj(Sym) );
-       };
-
-     /***************************************************************/
-     /* set M1 <= M^{-1'} * M1 **************************************/
-     /* set M2 <= M^{-1}  * M2 **************************************/
-     /***************************************************************/
-     Log("LU-solving M1...");
-     M0->LUSolve(M1,'C');
-     Log("LU-solving M2...");
-     M0->LUSolve(M2,'N');
-   
-     /***************************************************************/
-     /* set M0 = M1*M2                                              */
-     /***************************************************************/
-     Log("Multiplying M1*M2...");
-     M1->Multiply(M2, M0);
-   
-     /***************************************************************/
-     /* the value of the frequency integrand is now the trace of M0 */
-     /***************************************************************/
-     double FI = real( M0->GetTrace() ) / 8.0 ;
-     Log("...done!");
-
-     /***************************************************************/
-     /* write the result to the frequency-resolved output file ******/
-     /***************************************************************/
-     FILE *f=fopen("GFI2.out", "a");
-     fprintf(f,"%s %e\n",z2s(Omega),FI);
-     fclose(f);
-   };
-   
-}
-#endif 
 
 /***************************************************************/
 /***************************************************************/
@@ -514,10 +341,12 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      W21->Adjoint();
 
      /*--------------------------------------------------------------*/
-     /*- compute the product W21*sym(G1)*W21^{\dagger}*sym(G2)      -*/
+     /*- compute the diagonal elements of the matrix--matrix product */ 
+     /*- W21*sym(G1)*W21^{\dagger}*sym(G2)                           */
      /*--------------------------------------------------------------*/
      Log("  Multiplication 3...");
-     W21SymG1->Multiply(W21DSymG2, SymG2);
+     //W21SymG1->Multiply(W21DSymG2, SymG2);
+     W21SymG1->GetMatrixProductDiagonal(W21DSymG2, DV);
 
      /*--------------------------------------------------------------*/
      /*- if we are plotting the flux, then extract the diagonal of   */
@@ -526,14 +355,13 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      /*--------------------------------------------------------------*/
      if (PlotFlux)
       { 
-        DV->Zero();
-        for(nr=0; nr<N2; nr++)
-         DV->SetEntry(N1+nr, SymG2->GetEntryD(nr, nr) );
         CreateFluxPlot(SHD, Omega, Tag);
       }
      else
       { 
-        FI[nt] = real(SymG2->GetTrace() / 8.0);
+        for(FI[nt]=0.0, nr=0; nr<DV->N; nr++)
+         FI[nt] += DV->GetEntryD(nr);
+        FI[nt] /= 8.0;
 
         /***************************************************************/
         /* write the result to the frequency-resolved output file ******/
