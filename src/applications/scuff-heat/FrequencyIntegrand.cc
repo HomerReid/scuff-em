@@ -83,37 +83,16 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
 
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 #if 0
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-
-/***************************************************************/
-/* how this works: consider a 2x2 block decomposition of the   */
-/* matrix, where                                               */
-/*                                                             */
-/*  block 1 = basis functions on object 1                      */
-/*  block 2 = basis functions on all other objects, 2..N       */
-/*                                                             */
-/* let W be the inverse of the full BEM matrix and let its     */
-/* block structure be W = (A B ; C D).                         */
-/*                                                             */
-/* the matrices G1 and G2 have the block structure             */
-/*                                                             */
-/*  G1 = [X1 0; 0 0]                                           */
-/*  G2 = [ 0 0; 0 X2]                                          */
-/*                                                             */
-/* (here G1, G2 include the effect of the symmetrization       */
-/* operation, G1=sym(G1), G2=sym(G2))                          */
-/*                                                             */
-/* using the block decompositions, the trace in question       */
-/* becomes:                                                    */
-/*                                                             */
-/*  tr ( W * G1 * W^T * G2 )                                   */
-/*   = tr ( C * X1 * B^T * X2 )                                */
-/*                                                             */
-/*                                                             */
-/***************************************************************/
+void GFI2(RWGGeometry *G, cdouble Omega, int nThread)
+{ 
+  int NBF=G->TotalBFs;
+  HMatrix *M0 = new HMatrix(NBF, NBF, LHM_COMPLEX);
+  HMatrix *M1 = new HMatrix(NBF, NBF, LHM_COMPLEX);
+  HMatrix *M2 = new HMatrix(NBF, NBF, LHM_COMPLEX);
 
   /***************************************************************/
   /* assemble the three separate blocks that contribute to the   */
@@ -214,7 +193,7 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (SHD->PlotFlux)
+  if (PlotFlux)
    {
      for(nr=0; nr<M2->NR; nr++)
       for(nc=nr; nc<M2->NC; nc++)
@@ -264,19 +243,19 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
      /***************************************************************/
      /* the value of the frequency integrand is now the trace of M0 */
      /***************************************************************/
-     *FI = real( M0->GetTrace() ) / 8.0 ;
+     double FI = real( M0->GetTrace() ) / 8.0 ;
      Log("...done!");
 
      /***************************************************************/
      /* write the result to the frequency-resolved output file ******/
      /***************************************************************/
-     FILE *f=fopen(SHD->ByOmegaFile, "a");
-     fprintf(f,"%s %e\n",z2s(Omega),*FI);
+     FILE *f=fopen("GFI2.out", "a");
+     fprintf(f,"%s %e\n",z2s(Omega),FI);
      fclose(f);
    };
    
 }
-#endif
+#endif 
 
 /***************************************************************/
 /***************************************************************/
@@ -287,6 +266,22 @@ void FlipSignOfMagneticColumns(HMatrix *B)
   for (nr=0; nr<B->NR; nr++)
    for (nc=1; nc<B->NC; nc+=2)
     B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
+}
+
+void FlipSignOfMagneticRows(HMatrix *B)
+{
+  int nr, nc;
+  for (nr=1; nr<B->NR; nr+=2)
+   for (nc=0; nc<B->NC; nc++)
+    B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
+}
+
+void FillInLowerTriangle(HMatrix *B)
+{
+  int nr, nc;
+  for (nr=1; nr<B->NR; nr++)
+   for (nc=0; nc<nr; nc++)
+    B->SetEntry(nr, nc, B->GetEntry(nc, nr) );
 }
 
 /***************************************************************/
@@ -318,6 +313,7 @@ void InsertSymmetrizedBlock(HMatrix *A, HMatrix *B, int RowOffset, int ColOffset
 /***************************************************************/
 void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
 {
+
   /***************************************************************/
   /* extract fields from SHData structure ************************/
   /***************************************************************/
@@ -353,7 +349,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
-  Args->Symmetric=1;
   int no, nop, nb, nr, NO=G->NumObjects;
   for(no=0; no<G->NumObjects; no++)
    { 
@@ -362,13 +357,19 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      Log(" Assembling self contributions to T(%i)...",no);
      G->ExteriorMP->Zero();
      Args->B = TSelf[no];
+     Args->Symmetric=1;
      AssembleBEMMatrixBlock(Args);
+     FillInLowerTriangle(TSelf[no]);
+     FlipSignOfMagneticColumns(TSelf[no]);
      G->ExteriorMP->UnZero();
 
      Log(" Assembling medium contributions to T(%i)...",no);
      G->Objects[no]->MP->Zero();
      Args->B = TMedium[no];
+     Args->Symmetric=1;
      AssembleBEMMatrixBlock(Args);
+     FillInLowerTriangle(TMedium[no]);
+     FlipSignOfMagneticColumns(TMedium[no]);
      G->Objects[no]->MP->UnZero();
 
    };
@@ -389,7 +390,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* (unlike SymG2)                                              */
   /***************************************************************/
   InsertSymmetrizedBlock(SymG1, TSelf[0], 0, 0 );
-  FlipSignOfMagneticColumns(SymG1);
 
   /***************************************************************/
   /* now loop over transformations. ******************************/
@@ -423,6 +423,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
           Args->Ob = G->Objects[nop];
           Args->B  = UMedium[nb];
           AssembleBEMMatrixBlock(Args);
+          FlipSignOfMagneticColumns(UMedium[nb]);
         };
 
      /*--------------------------------------------------------------*/
@@ -439,10 +440,14 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
         for(nop=no+1; nop<NO; nop++, nb++)
          { ColOffset=G->BFIndexOffset[nop];
            W->InsertBlock(UMedium[nb], RowOffset, ColOffset);
+           
+           FlipSignOfMagneticColumns(UMedium[nb]);
+           FlipSignOfMagneticRows(UMedium[nb]);
            W->InsertBlockTranspose(UMedium[nb], ColOffset, RowOffset);
+           FlipSignOfMagneticRows(UMedium[nb]);
+           FlipSignOfMagneticColumns(UMedium[nb]);
          };
       };
-     FlipSignOfMagneticColumns(W);
      Log("  LU factorizing M...");
      W->LUFactorize();
 
@@ -493,7 +498,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
             InsertSymmetrizedBlock(SymG2, TSelf[no], RowOffset, RowOffset );
          };
       };
-     FlipSignOfMagneticColumns(SymG2);
 
      /*--------------------------------------------------------------*/
      /*- compute the products W21*sym(G1) and W21^{\dagger} * sym(G2)*/

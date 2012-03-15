@@ -78,12 +78,16 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
 
   // SHD->TSelf[no]   = contribution of object #no to (no,no) block of matrix 
   // SHD->TMedium[no] = contribution of external medium to (no,no) block of matrix 
+  // note that the T blocks of the BEM matrix as computed by libscuff are symmetric,
+  // but here (in contrast to the case in scuff-cas3D), we CANNOT use packed-storage
+  // symmetric matrices to store them, because after assembling them via libscuff
+  // we flip the signs of the magnetic columns, which kills the symmetry.
   SHD->TSelf= (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
   SHD->TMedium= (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
   for(no=0; no<G->NumObjects; no++)
    { NBF=G->Objects[no]->NumBFs;
-     SHD->TSelf[no] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
-     SHD->TMedium[no] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+     SHD->TSelf[no] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+     SHD->TMedium[no] = new HMatrix(NBF, NBF, LHM_COMPLEX);
    };
 
   // SHD->UMedium[0]    = 0,1    block
