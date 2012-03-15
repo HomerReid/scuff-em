@@ -300,7 +300,10 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      for(nr=0; nr<N1; nr++)
       Scratch->SetEntry(nr, nr, 1.0);
      W->LUSolve(Scratch);
-     Scratch->ExtractBlock(N1, 0, W21);
+     if (NO==1)
+      Scratch->ExtractBlock(0, 0, W21);
+     else
+      Scratch->ExtractBlock(N1, 0, W21);
 #endif
 
      /*--------------------------------------------------------------*/
