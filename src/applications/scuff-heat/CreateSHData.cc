@@ -103,9 +103,14 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  int N = SHD->G->TotalBFs;
-  int N1 = SHD->N1 = SHD->G->Objects[0]->NumBFs;
-  int N2 = SHD->N2 = N - N1;
+  int N, N1, N2;
+  N = SHD->G->TotalBFs;
+  N1 = SHD->N1 = SHD->G->Objects[0]->NumBFs;
+  if (NO==1)
+   N2 = N1;
+  else
+   N2 = SHD->N2 = N - N1;
+
   SHD->SymG1      = new HMatrix(N1, N1, LHM_COMPLEX );
   SHD->SymG2      = new HMatrix(N2, N2, LHM_COMPLEX );
   SHD->W          = new HMatrix(N,  N,  LHM_COMPLEX );

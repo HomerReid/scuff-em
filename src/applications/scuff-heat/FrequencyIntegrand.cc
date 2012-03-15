@@ -284,13 +284,8 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
 void FlipSignOfMagneticColumns(HMatrix *B)
 { 
   int nr, nc;
-#if 0
   for (nr=0; nr<B->NR; nr++)
    for (nc=1; nc<B->NC; nc+=2)
-    B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
-#endif
-  for (nr=1; nr<B->NR; nr+=2)
-   for (nc=0; nc<B->NC; nc++)
     B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
 }
 
@@ -483,12 +478,20 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      /*- to symmetrize.                                              */
      /*--------------------------------------------------------------*/
      SymG2->Zero();
-     for(no=1; no<NO; no++)
-      { RowOffset=G->BFIndexOffset[no] - N1;
-        if (PlotFlux)
-         SymG2->InsertBlock(TSelf[no], RowOffset, RowOffset );
+     if (NO==1)
+      { if (PlotFlux)
+         SymG2->InsertBlock(TMedium[no], 0, 0);
         else 
-         InsertSymmetrizedBlock(SymG2, TSelf[no], RowOffset, RowOffset );
+         InsertSymmetrizedBlock(SymG2, TMedium[no], 0, 0);
+      }
+     else
+      { for(no=1; no<NO; no++)
+         { RowOffset=G->BFIndexOffset[no] - N1;
+           if (PlotFlux)
+            SymG2->InsertBlock(TSelf[no], RowOffset, RowOffset );
+           else 
+            InsertSymmetrizedBlock(SymG2, TSelf[no], RowOffset, RowOffset );
+         };
       };
      FlipSignOfMagneticColumns(SymG2);
 
