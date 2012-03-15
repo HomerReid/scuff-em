@@ -25,14 +25,10 @@ void *BigExpensiveRoutine(void *v)
   ThreadData *TD=(ThreadData *)v;
 
   double n;
-  int nt=0;
 
   TD->PartialSum=0.0;
-  for(n=1.0; n<TD->NMax; n+=1.0)
+  for(n=1.0 + TD->nt; n<TD->NMax; n+=TD->nThread)
    { 
-     nt++;
-     if ( nt==TD->nThread ) nt=0;
-     if ( nt!=TD->nt ) continue;
 
      TD->PartialSum += 1.0/(n*n);
 
@@ -62,8 +58,10 @@ int main(int argc, char *argv[])
    };
   ProcessArguments(argc, argv, ASArray);
 
-  if (nThread==0)
-   nThread=GetNumProcs();
+  if (nThread==0) {
+   nThread=GetNumThreads();
+   printf("Using nThread = %d\n", nThread);
+  }
 
   if (NMax==0.0)
    ASUsage(argv[0],ASArray,"--nmax option is mandatory");
@@ -78,6 +76,7 @@ int main(int argc, char *argv[])
    { TDs[nt].nt=nt;
      TDs[nt].nThread=nThread;
      TDs[nt].NMax=NMax;
+     TDs[nt].PartialSum = 0.0;
    };
 
   /*--------------------------------------------------------------*/
@@ -97,11 +96,19 @@ int main(int argc, char *argv[])
    }
   else
    {
-     #pragma omp parallel for schedule(static,1), num_threads(nThread)
+#if 1
+#pragma omp parallel for schedule(static,1) num_threads(nThread) firstprivate(TDs)
      for(nt=0; nt<nThread; nt++)
       { 
         BigExpensiveRoutine( (void *)(TDs+nt) );
       };
+#else
+     long long n; double sum = 0.0;
+#pragma omp parallel for schedule(static) num_threads(nThread) reduction(+:sum)
+     for (n = 1; n < ((long long) NMax); ++n)
+       sum += 1.0/(double(n)*double(n));
+     TDs[0].PartialSum = sum;
+#endif
    };
   Toc();
 
