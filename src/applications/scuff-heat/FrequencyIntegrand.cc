@@ -315,9 +315,9 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      SymG2->Zero();
      if (NO==1)
       { if (PlotFlux)
-         SymG2->InsertBlock(TMedium[no], 0, 0);
+         SymG2->InsertBlock(TMedium[0], 0, 0);
         else 
-         InsertSymmetrizedBlock(SymG2, TMedium[no], 0, 0);
+         InsertSymmetrizedBlock(SymG2, TMedium[0], 0, 0);
       }
      else
       { for(no=1; no<NO; no++)
