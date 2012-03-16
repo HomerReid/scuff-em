@@ -30,14 +30,14 @@ typedef class IncFieldData
  public:
    cdouble Omega;
    cdouble Eps;
-   double Mu;
+   cdouble Mu;
    IncFieldData *Next;
 
    // constructor just initializes the simple fields
-   IncFieldData() : Eps(1.0,0.0), Mu(1.0), Next(0) {}
+   IncFieldData() : Eps(1.0,0.0), Mu(1.0,0.0), Next(0) {}
 
    void SetFrequency(cdouble Omega);
-   void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, double Mu);
+   void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu);
    
    virtual void GetFields(double *X, cdouble *EH) = 0 ;
 

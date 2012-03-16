@@ -19,7 +19,7 @@ void IncFieldData::SetFrequency(cdouble pOmega)
    IFD->Omega=pOmega;
 }
 
-void IncFieldData::SetFrequencyAndEpsMu(cdouble pOmega, cdouble pEps, double pMu)
+void IncFieldData::SetFrequencyAndEpsMu(cdouble pOmega, cdouble pEps, cdouble pMu)
 {
   IncFieldData *IFD;
   for(IFD=this; IFD; IFD=IFD->Next)

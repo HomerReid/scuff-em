@@ -403,8 +403,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   char OmegaStr[MAXSTR];
   cdouble Omega;
-  cdouble Eps;
-  double Mu;
+  cdouble Eps, Mu;
   for(nFreq=0; nFreq<NumFreqs; nFreq++)
    { 
      Omega = OmegaList->GetEntry(nFreq);

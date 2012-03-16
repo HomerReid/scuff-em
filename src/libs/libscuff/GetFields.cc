@@ -139,8 +139,7 @@ typedef struct ThreadData
    RWGGeometry *G;   
    double *X;            /* eval point */
    cdouble Omega;
-   cdouble Eps;
-   double Mu;
+   cdouble Eps, Mu;
    RWGObject *ObjectInQuestion;
    HVector *KN;
    cdouble *EH;
@@ -161,7 +160,7 @@ void *GetFields_Thread(void *data)
   double *X                   = TD->X;
   cdouble Omega               = TD->Omega;
   cdouble Eps                 = TD->Eps;
-  double Mu                   = TD->Mu;
+  cdouble Mu                  = TD->Mu;
   RWGObject *ObjectInQuestion = TD->ObjectInQuestion;
   HVector *KN                 = TD->KN;
   cdouble *EH                 = TD->EH;
@@ -290,8 +289,7 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
   /* medium, inside an object, or otherwise                      */
   /***************************************************************/
   RWGObject *ObjectInQuestion;
-  cdouble Eps; 
-  double Mu;
+  cdouble Eps, Mu; 
 
   if ( ObjectIndex==-1 )                                /* in external medium */
    { ObjectInQuestion=0;
