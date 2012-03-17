@@ -19,6 +19,9 @@ AC_PROG_F77
 AC_F77_WRAPPERS
 AC_PROG_INSTALL
 
+AC_PROG_YACC
+AM_PROG_LEX
+
 AC_LANG([C++])
 
 ##################################################
@@ -148,6 +151,7 @@ AC_CONFIG_FILES([
  src/libs/libIncField/Makefile
  src/libs/libMDInterp/Makefile
  src/libs/libMatProp/Makefile
+ src/libs/libMatProp/cmatheval/Makefile
  src/libs/libSGJC/Makefile
  src/libs/libTriInt/Makefile
  src/libs/libhmat/Makefile

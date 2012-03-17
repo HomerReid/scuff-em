@@ -49,6 +49,7 @@ config.status
 config.log
 libtool
 INSTALL
+ylwrap
 
 # Packages #
 ############
