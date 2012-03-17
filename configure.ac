@@ -120,26 +120,6 @@ ACX_LAPACK([], [AC_MSG_ERROR([LAPACK was not found!])])
 LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
 
 ##################################################
-# checks for muparser
-##################################################
-AC_CHECK_HEADERS([muParser/muParser.h muParser.h])
-save_LIBS=$LIBS
-LIBS="$LIBS -lmuparser"
-AC_MSG_CHECKING([for -lmuparser])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([
-#ifdef HAVE_MUPARSER_H
-#  include <muParser.h>
-#else
-#  include <muParser/muParser.h>
-#endif], [mu::Parser p;])],
-               [AC_DEFINE([HAVE_MUPARSER],[1],[have muParser library])
-                AC_MSG_RESULT([yes])],
-               [AC_MSG_RESULT([no])
-                AC_MSG_WARN([muParser library not found, user-defined material functions will not be supported])
-                 LIBS=$save_LIBS]
-              )
-
-##################################################
 ##################################################
 ##################################################
 
