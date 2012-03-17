@@ -68,8 +68,8 @@ void *ABMBThread(void *data)
   double Sign          = Args->Sign;
   cdouble EpsA         = Args->EpsA;
   cdouble EpsB         = Args->EpsB;
-  double MuA           = Args->MuA;
-  double MuB           = Args->MuB;
+  cdouble MuA           = Args->MuA;
+  cdouble MuB           = Args->MuB;
   int OaIsPEC          = Args->OaIsPEC;
   int ObIsPEC          = Args->ObIsPEC;
 

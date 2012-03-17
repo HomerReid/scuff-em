@@ -148,7 +148,7 @@ typedef struct ABMBArgStruct
    // the caller both before and after the call
    double Sign;
    cdouble EpsA, EpsB; 
-   double MuA, MuB;
+   cdouble MuA, MuB;
    int OaIsPEC, ObIsPEC;
 
  } ABMBArgStruct;
