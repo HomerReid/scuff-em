@@ -3,7 +3,7 @@ bin_PROGRAMS = scuff-scatter
 scuff_scatter_SOURCES = 	\
  scuff-scatter.cc 		\
  OutputModules.cc 		\
- scuff-heat.h
+ scuff-scatter.h
 scuff_scatter_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -DSCUFF \
