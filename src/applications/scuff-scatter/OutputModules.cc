@@ -22,7 +22,7 @@ void GetTotalField(SSData *SSD, double *X, int WhichObject,
   /*--------------------------------------------------------------*/
   /*- get scattered field ----------------------------------------*/
   /*--------------------------------------------------------------*/
-  SSD->G->GetFields(X,SSD->Omega,SSD->KN,SSD->nThread,EHS);
+  SSD->G->GetFields(X,WhichObject,SSD->Omega,SSD->KN,SSD->nThread,EHS);
   memcpy(EHT,EHS,6*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
@@ -401,10 +401,6 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   /* PVScat and -PVTot                                           */
   /***************************************************************/
   fval[0] = R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
-printf("fval[0]: %e %e %e %e \n",R, 
-PVScat[0]*nHat[0],
-PVScat[1]*nHat[1],
-PVScat[2]*nHat[2]);
   fval[1] = -R*R*( PVTot[0]*nHat[0]  + PVTot[1]*nHat[1]  + PVTot[2]*nHat[2] );
 
 }
@@ -424,8 +420,8 @@ void GetPower_BF(SSData *SSD, double R, double *PScat, double *PAbs)
   GPBFID->SSD = SSD;
   GPBFID->R = R;
 
-  adapt_integrate(2, GetPower_BF_Integrand, (void *)GPBFID, 2, 
-		  Lower, Upper, 0, ABSTOL, RELTOL, Val, Err);
+  adapt_integrate_log(2, GetPower_BF_Integrand, (void *)GPBFID, 2, 
+	     	      Lower, Upper, 0, ABSTOL, RELTOL, Val, Err, "SGJC.log",15);
 
   *PScat=Val[0];
   *PAbs=Val[1];
