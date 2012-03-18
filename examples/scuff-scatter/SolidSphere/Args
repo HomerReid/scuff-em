@@ -1,4 +1,4 @@
-geometry Sphere_R1P0.scuffgeo
+geometry Sphere.scuffgeo
 Omega 1.0 
 PowerFile Sphere.power 
 PowerRadius 50.0 

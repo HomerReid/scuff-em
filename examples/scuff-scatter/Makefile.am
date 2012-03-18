@@ -1,0 +1,6 @@
+SUBDIRS = 
+ SolidSphere   \
+ SphericalShell 
+
+
+
