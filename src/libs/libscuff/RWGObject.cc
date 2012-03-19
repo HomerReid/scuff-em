@@ -80,7 +80,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
         strncpy(MaterialName, Tokens[1], MAXSTR);
       }
      else if ( !strcasecmp(Tokens[0],"INSIDE") )
-      { if (NumTokens!=1)
+      { if (NumTokens!=2)
          { ErrMsg=strdup("INSIDE keyword requires one argument");
            return;
          };

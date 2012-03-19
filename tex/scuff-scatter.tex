@@ -1,0 +1,116 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\newcommand\supsstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {{\sc scuff-scatter} Implementation Notes}
+\author {Homer Reid}
+\date {March 18, 2012}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: {\sc scuff-scatter} Implementation Notes}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Concise Formulas for Scattered and Absorbed Power}
+
+In many scattering problems we will want to compute the total
+power scattered from, and the total power absorbed by, the
+object(s) in a scattering geometry.  The na\"ive way to do 
+this would be to integrate the normal Poynting vector over
+some fictitious bounding surface surrounding the object(s);
+this integral could be evaluated by numerical quadrature,
+with the values of the Poynting vector at each quadrature
+point computed by the usual {\sc libscuff} methods for
+calculating scattered fields. {\sc scuff-scatter} uses a 
+more efficient approach, obtaining the scattered and absorbed 
+power \textit{directly} from matrix-vector and vector-vector 
+(dot) products involving the BEM matrices and 
+vectors.\footnote{To my knowledge, these formulas were first
+derived by Steven Johnson.}
+
+Throughout this section, $\mathcal{S}$ denotes the boundary
+of the exterior medium (that is, the union of the outer surfaces
+of all objects contained in the exterior medium), and 
+$\vbhat{n}$ denotes the normal vector at a point on 
+$\mathcal{S}$; $\vbhat{n}$ is taken positive pointing
+into the exterior medium (away from the object).
+We work at a single frequency and suppress $\omega$ arguments.
+
+\subsubsection*{Absorbed Power}
+
+The normal component of the \textit{total} Poynting vector 
+(which includes the contributions of both the scattered and 
+incident fields) 
+at a point $\vb x$ on $\mathcal{S}$ is 
+%====================================================================%
+\begin{align*}
+ \vb P\sups{tot}(\vb x) \cdot \vbhat{n}(\vb x)
+  &=\frac{1}{2}\text{Re} 
+    \bigg[ \vb E\supsstar{tot}(\vb x) \times \vb H\sups{tot}(\vb x)\bigg] 
+    \cdot \vbhat{n}(\vb x)
+%--------------------------------------------------------------------%
+\intertext{which may be rewritten in the form 
+           (temporarily suppressing $\vb x$ arguments)}
+%--------------------------------------------------------------------%
+  &=\frac{1}{4}\text{Re}
+    \bigg[ \vb E\supsstar{tot} \cdot \big(\vbhat{n}\times \vb H \big)
+          +\vb H\supsstar{tot} \cdot \big(-\vbhat{n}\times \vb E \big) 
+    \bigg].
+%--------------------------------------------------------------------%
+\intertext{But the quantities in parentheses here are just the electric
+           and magnetic surface currents that enter into the SIE 
+           formulation of scattering problems, so we find simply}
+%--------------------------------------------------------------------%
+\vb P\sups{tot}(\vb x) \cdot \vbhat{n}(\vb x)
+  &=-\frac{1}{4}\text{Re}
+    \Big[ \vb E\supsstar{tot} \cdot \vb K 
+          +\vb H\supsstar{tot} \cdot \vb N
+    \Big].
+\end{align*}
+%====================================================================%
+%
+% some quick matlab code that verifies the above:
+  E=rand(3,1) + sqrt(-1)*rand(3,1);
+  H=rand(3,1) + sqrt(-1)*rand(3,1);
+  nHat=rand(3,1); nHat=nHat/norm(nHat);
+  K=cross(nHat,H);
+  N=-cross(nHat,E);
+  P1 = 0.5*( dot( cross(E, conj(H)), nHat ) )
+  P2 = 0.5*( dot(conj(E), K)  + dot(conj(H),N) )
+
+\begin{align*}
+ P\sups{abs} 
+&= - \oint \vb P\sups{tot}(\vb x) \cdot \vbhat{n} dA 
+\\
+&= 
+\end{align*}
+
+\end{document}

@@ -1,0 +1,16 @@
+#
+# scuff-EM geometry file for a spherical shell of 
+# outer radius 1.0 and inner radius 0.5
+#
+
+OBJECT OuterSphere
+	MESHFILE Sphere_R1P0.msh	
+	MATERIAL CONST_EPS_2.0
+ENDOBJECT
+
+
+OBJECT InnerSphere
+	MESHFILE Sphere_R0P5.msh
+	MATERIAL Vacuum
+	INSIDE OuterSphere
+ENDOBJECT

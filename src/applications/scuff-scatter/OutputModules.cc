@@ -10,8 +10,9 @@
 
 #include "scuff-scatter.h"
 
-#define ABSTOL 0.0
-#define RELTOL 1.0e-3
+#define ABSTOL   1.0e-4
+#define RELTOL   1.0e-2
+#define MAXEVALS 10000
 
 /***************************************************************/
 /***************************************************************/
@@ -22,11 +23,7 @@ void GetTotalField(SSData *SSD, double *X, int WhichObject,
   /*--------------------------------------------------------------*/
   /*- get scattered field ----------------------------------------*/
   /*--------------------------------------------------------------*/
-#ifdef SCUFF
-  SSD->G->GetFields(X,SSD->Omega,SSD->KN,SSD->nThread,EHS);
-#else
-  SSD->G->GetFields(X,abs(SSD->Omega),REAL_FREQ,SSD->KN,SSD->nThread,EHS);
-#endif
+  SSD->G->GetFields(X,WhichObject,SSD->Omega,SSD->KN,SSD->nThread,EHS);
   memcpy(EHT,EHS,6*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
@@ -414,9 +411,8 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
 /* the poynting flux of the scattered and total fields over a  */
 /* bounding sphere at radius r=R                               */
 /***************************************************************/
-void GetPower_BF(SSData *SSD, double R, double *PScat, double *PAbs)
+void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
 { 
-  double Val[2], Err[2];
   double Lower[2]={-1.0, 0.0};
   double Upper[2]={+1.0, 2.0*M_PI};
 
@@ -424,11 +420,9 @@ void GetPower_BF(SSData *SSD, double R, double *PScat, double *PAbs)
   GPBFID->SSD = SSD;
   GPBFID->R = R;
 
-  adapt_integrate(2, GetPower_BF_Integrand, (void *)SSD, 2, 
-		  Lower, Upper, 0, ABSTOL, RELTOL, Val, Err);
-
-  *PScat=Val[0];
-  *PAbs=Val[1];
+  adapt_integrate_log(2, GetPower_BF_Integrand, (void *)GPBFID, 2, 
+	     	      Lower, Upper, MAXEVALS, ABSTOL, RELTOL, 
+                      PBF, EBF, "SGJC.log",15);
 
 }
 
@@ -508,10 +502,12 @@ void GetPower(SSData *SSD, char *PowerFile)
   /* and scattered Poynting vectors over a sphere of that radius */
   /***************************************************************/
   if (SSD->PowerRadius > 0.0 )
-   { GetPower_BF(SSD, SSD->PowerRadius, &PScat, &PAbs);
-     fprintf(f,"%e %e ",PScat,PAbs);
+   { double PBF[2], EBF[2]; 
+     GetPower_BF(SSD, SSD->PowerRadius, PBF, EBF);
+     fprintf(f,"%e %e %e %e ",PBF[0],EBF[0],PBF[1],EBF[1]);
    };
 
+  fprintf(f,"\n");
   fclose(f);
    
 }
