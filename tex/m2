@@ -1,3 +1,4 @@
 #!/bin/bash
 
-pdflatex lsInnards.tex
+#pdflatex lsInnards.tex
+pdflatex scuff-scatter.tex

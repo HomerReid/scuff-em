@@ -1,5 +1,5 @@
-SUBDIRS = 
- SolidSphere   \
+SUBDIRS = 	\
+ SolidSphere	\
  SphericalShell 
 
 
