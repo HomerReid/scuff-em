@@ -485,15 +485,19 @@ void GetPower(SSData *SSD, char *PowerFile)
   // nr runs over rows, nc over columns, ne over matrix entries
   int nr, nc, ne, N=G->TotalBFs;
   double VMV, VV;
-  for(VMV=VV=0.0, ne=nc=0; nc<N; nc++)
-   for(nr=0; nr<N; nr++, ne++)
-    { VMV += real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
-      VV  += real( conj(ZKN[nr]) * ZRHS[nc] );
+  double Sign;
+  for(VMV=VV=0.0, Sign=1.0, ne=nc=0; nc<N; nc++)
+   for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
+    { 
+      if (nr==nc) 
+       VV += Sign*real( conj(ZKN[nr]) * ZRHS[nr] );
+
+      VMV += -0.5*Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
     };
     
   double PScat, PAbs;
-  PScat = -0.25 * (VMV - VV);
-  PAbs  = 0.25 * (VMV + VV);
+  PScat = -0.25 * ZVAC * (VV-VMV);
+  PAbs  =  0.25 * ZVAC * (VV+VMV);
   fprintf(f,"%e %e ",PScat,PAbs);
 
   /***************************************************************/
