@@ -492,7 +492,7 @@ void GetPower(SSData *SSD, char *PowerFile)
       if (nr==nc) 
        VV += Sign*real( conj(ZKN[nr]) * ZRHS[nr] );
 
-      VMV += -0.5*Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+      VMV += -Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
     };
     
   double PScat, PAbs;
