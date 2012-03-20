@@ -1,5 +1,5 @@
 geometry Sphere.scuffgeo
-Omega 1.0 
+OmegaFile OmegaList
 PowerFile Sphere.power 
 PowerRadius 50.0 
 pwDirection 0 0 1 

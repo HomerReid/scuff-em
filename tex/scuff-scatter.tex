@@ -212,7 +212,7 @@ we find
  \right)\right\}d\vb x
 \label{PAbs2}
 \\[10pt]
-&\quad -\frac{1}{4}\text{Re }\oint \left\{
+&\quad -\frac{1}{8}\text{Re }\oint \left\{
 %--------------------------------------------------------------------%
  \left( \begin{array}{c} 
         \vb K(\vb x)  \\ \vb N(\vb x) 
@@ -295,7 +295,7 @@ where
 The second term in (\ref{PAbs2}) is 
 %====================================================================%
 \begin{align*}
-&-\frac{1}{4} \text{Re } \sum_{\alpha \beta}
+&-\frac{1}{8} \text{Re } \sum_{\alpha \beta}
  \left(\begin{array}{c} 
        k_\alpha \\[5pt] -Z_0 n_\alpha
        \end{array}
@@ -319,7 +319,7 @@ The second term in (\ref{PAbs2}) is
  \right)
 \\[10pt]
 %--------------------------------------------------------------------%
-&=\quad -\frac{Z_0}{4} \text{Re } \sum_{\alpha \beta}
+&=\quad -\frac{Z_0}{8} \text{Re } \sum_{\alpha \beta}
  \left(\begin{array}{c} 
        k_\alpha \\[5pt] -n_\alpha
        \end{array}
@@ -347,7 +347,7 @@ The second term in (\ref{PAbs2}) is
 the matrix elements here agrees with the definition of the BEM 
 matrix as computed by {\sc libscuff} (again, see Section 6 of the
 technical memo), whereupon we may write this as}
-&\quad -\frac{Z_0}{4} 
+&\quad -\frac{Z_0}{8} 
         \cdot \overline{\texttt{KN}}^\dagger 
         \cdot \vb M^{e}
         \cdot \texttt{KN}
@@ -364,7 +364,7 @@ To summarize, the total absorbed power as computed by
 {P\sups{abs} = +\frac{Z_0}{4}\text{Re }
    \bigg\{ \overline{\texttt{KN}}^\dagger 
            \cdot 
-           \Big[ \texttt{RHS} - \vb M^{e} \cdot \texttt{KN}\Big]
+           \Big[ \texttt{RHS} - \frac{1}{2}\vb M^{e} \cdot \texttt{KN}\Big]
    \bigg\}.
 }
 
@@ -412,273 +412,5 @@ In analogy to equation (\ref{PTotDotN}), we write
            +\vb H\supsstar{scat} \cdot \big(-\vbhat{n}\times \vb E\sups{scat} \big) 
      \bigg].
 \nonumber
-%--------------------------------------------------------------------%
-\intertext{But the quantities in parentheses here are just the electric
-           and magnetic surface currents that enter into the SIE 
-           formulation of scattering problems, so we find simply}
-%--------------------------------------------------------------------%
-\vb P\sups{tot}(\vb x) \cdot \vbhat{n}(\vb x)
-  &=-\frac{1}{4}\text{Re}
-    \Big[ \vb E\supsstar{tot} \cdot \vb K 
-          \,+\, \vb H\supsstar{tot} \cdot \vb N
-    \Big]
-\nn
-  &=-\frac{1}{4}\text{Re}
-    \Big[ \vb K^* \cdot \vb E\sups{tot}
-          \,+\, 
-          \vb N^* \cdot \vb H\sups{tot}
-    \Big].
-\label{PTotDotN}
 \end{align}
-%====================================================================%
-%
-% some quick matlab code that verifies the above:
-%  E=rand(3,1) + sqrt(-1)*rand(3,1);
-%  EStar=conj(E);
-%  H=rand(3,1) + sqrt(-1)*rand(3,1);
-%  HStar=conj(H);
-%  nHat=rand(3,1); 
-%  nHat=nHat/norm(nHat);
-%  K=cross(nHat,H);
-%  N=-cross(nHat,E);
-%  EStarxH=cross(conj(E),H);
-%  P1 = 0.5*real( EStarxH.' * nHat )
-%  P2 = -0.25*real( (EStar.')*K  + (HStar.')*N )
-Now, in the BEM formulation used by {\sc scuff-em} we have 
-the following two equivalent expressions for the total
-tangential fields at a point on an object surface:
-%====================================================================%
-\begin{subequations}
-%--------------------------------------------------------------------%
-\begin{align}
- \left(\begin{array}{c}
-  \vb E\sups{tot}(\vb x) \\
-  \vb H\sups{tot}(\vb x)
- \end{array}\right)_{\parallel}
- &=
- \left(\begin{array}{c}
-  \vb E\sups{inc}(\vb x) \\
-  \vb H\sups{inc}(\vb x)
- \end{array}\right)_{\parallel}
- \,+\,
- \left(\begin{array}{c}
-  \vb E\sups{scat,outside}(\vb x) \\
-  \vb H\sups{scat,outside}(\vb x)
- \end{array}\right)_{\parallel}
-\\[10pt]
-%--------------------------------------------------------------------%
- &=
- \left(\begin{array}{c}
-  \vb E\sups{scat,inside}(\vb x) \\
-  \vb H\sups{scat,inside}(\vb x)
- \end{array}\right)_{\parallel}.
-\end{align}
-\label{FieldExpressions}
-%--------------------------------------------------------------------%
-\end{subequations}
-%====================================================================%
-Here we will use the first expression.
-The scattered-field term here is 
-%====================================================================%
-\numeq{EScat}
-{
- \left(\begin{array}{c}
-  \vb E\sups{scat, outside}(\vb x) \\
-  \vb H\sups{scat, outside}(\vb x)
- \end{array}\right)_{\parallel}
-%--------------------------------------------------------------------%
-=\frac{1}{2}\oint_\mathcal{S} 
-\left\{ 
-%--------------------------------------------------------------------%
- \left(\begin{array}{cc}
-  \BG\EEe(\vb x, \vb x^\prime) &
-  \BG\EMe(\vb x, \vb x^\prime) \\
-  \BG\MEe(\vb x, \vb x^\prime) &
-  \BG\MMe(\vb x, \vb x^\prime)
- \end{array}\right)_{\parallel}
- \cdot 
-%--------------------------------------------------------------------%
- \left(\begin{array}{c}
-  \vb K(\vb x^\prime) \\
-  \vb N(\vb x^\prime)
- \end{array}\right)
-\right\} d\vb x^\prime
-%--------------------------------------------------------------------%
-}
-%====================================================================%
-(where the prefactor of $\frac{1}{2}$ arises because we are evaluating
-the fields precisely on the object surface). Inserting (\ref{PTotDotN}),
-(\ref{FieldExpressions}a), and (\ref{EScat}) into (\ref{AbsorbedPower}), 
-we find
-%====================================================================%
-\begin{align}
- P\sups{abs}
-&=-\frac{1}{4}\text{Re }\oint \left\{
-%--------------------------------------------------------------------%
- \left(\begin{array}{c} 
-       \vb K(\vb x)  \\ \vb N(\vb x) 
-       \end{array}
- \right)^\dagger
- \cdot 
- \left(\begin{array}{c} 
-       \vb E\sups{inc}(\vb x)  \\ \vb H\sups{inc}(\vb x) 
-       \end{array}
- \right)\right\}d\vb x
-\label{PAbs2}
-\\[10pt]
-&\quad -\frac{1}{4}\text{Re }\oint \left\{
-%--------------------------------------------------------------------%
- \left( \begin{array}{c} 
-        \vb K(\vb x)  \\ \vb N(\vb x) 
-        \end{array}
- \right)^\dagger
- \cdot 
- \oint\left[
- \left(\begin{array}{cc} 
-        \BG\EEe(\vb x, \vb x^\prime) &
-        \BG\EMe(\vb x, \vb x^\prime) \\
-        \BG\MEe(\vb x, \vb x^\prime) &
-        \BG\MMe(\vb x, \vb x^\prime)
- \end{array}\right)_{\parallel}
- \cdot
- \left( \begin{array}{c} 
-        \vb K(\vb x^\prime)  \\ \vb N(\vb x^\prime) 
-        \end{array}
- \right)\right]d\vb x^\prime
- \right\}d\vb x.
-\nonumber
-\end{align}
-%====================================================================%
-Now insert the surface-current expansions:
-$$\vb K(\vb x)=\sum_\alpha k_\alpha \vb f_\alpha(\vb x), \qquad
- \vb N(\vb x)=-Z_0\sum_\alpha n_\alpha \vb f_\alpha(\vb x).
-$$
-The first term in (\ref{PAbs2}) becomes
-%====================================================================%
-\begin{align*}
-&-\frac{1}{4} \text{Re } \sum_\alpha 
- \left(\begin{array}{c} 
-       k_\alpha \\[3pt] -Z_0 n_\alpha
-       \end{array}
- \right)^\dagger
- \cdot 
- \oint
- \left(\begin{array}{c} 
-       \vb f_\alpha(\vb x) \cdot \vb E\sups{inc}(\vb x)
-       \\[3pt]
-       \vb f_\alpha(\vb x) \cdot \vb H\sups{inc}(\vb x)
-       \end{array}
- \right) d\vb x
-\\[10pt]
-%--------------------------------------------------------------------%
-&\quad=
- -\frac{Z_0}{4} \text{Re } \sum_\alpha 
- \left(\begin{array}{c} 
-       k_\alpha \\[3pt] -n_\alpha
-       \end{array}
- \right)^\dagger
- \cdot 
- \oint
- \left(\begin{array}{c} 
-       \vb f_\alpha(\vb x) \cdot \vb E\sups{inc}(\vb x) / Z_0
-       \\[3pt]
-       \vb f_\alpha(\vb x) \cdot \vb H\sups{inc}(\vb x)
-       \end{array}
- \right) d\vb x
-\intertext{which I can write in the form}
-&\quad+\frac{Z_0}{4} \cdot \overline{\texttt{KN}}^\dagger \cdot \texttt{RHS}
-\end{align*}
-%====================================================================%
-where
-\begin{itemize} 
-  \item \texttt{KN} is the vector of surface-current coefficients 
-        computed by {\sc libscuff} as the solution to the BEM scattering
-        problem
-  \item $\overline{\texttt{KN}}$ denotes the vector $\texttt{KN}$ with
-        signs of all magnetic currents flipped 
-  \item $\dagger$ denotes the adjoint operation (complex conjugation
-        and column vector$\to$row vector)
-  \item \texttt{RHS} is the right-hand-side vector for the scattering 
-        problem as computed by {\sc libscuff}. (Note that 
-        the $1/Z_0$ factor in the electric-field inner product,
-        and the overall minus sign, are both present in the RHS 
-        vector as computed by {\sc libscuff};
-        cf. Section 6 of the {\sc libscuff} technical memo.)
-\end{itemize} 
-%====================================================================%
-The second term in (\ref{PAbs2}) is 
-%====================================================================%
-\begin{align*}
-&-\frac{1}{4} \text{Re } \sum_{\alpha \beta}
- \left(\begin{array}{c} 
-       k_\alpha \\[5pt] -Z_0 n_\alpha
-       \end{array}
- \right)^\dagger
- %--------------------------------------------------------------------%
- \left\{
- \oint \oint 
- \left(\begin{array}{cc}
-       \vb f_\alpha \cdot \BG\EEe  \cdot \vb f_\beta  &
-       \vb f_\alpha \cdot \BG\EMe  \cdot \vb f_\beta  \\[5pt]
-       \vb f_\alpha \cdot \BG\MEe  \cdot \vb f_\beta  &
-       \vb f_\alpha \cdot \BG\MMe  \cdot \vb f_\beta
-       \end{array}
- \right) 
- d\vb x^\prime d\vb x
- \right\}
- %--------------------------------------------------------------------%
- \left(\begin{array}{c} 
-       k_\alpha \\[5pt] -Z_0 n_\alpha
-       \end{array}
- \right)
-\\[10pt]
-%--------------------------------------------------------------------%
-&=\quad -\frac{Z_0}{4} \text{Re } \sum_{\alpha \beta}
- \left(\begin{array}{c} 
-       k_\alpha \\[5pt] -n_\alpha
-       \end{array}
- \right)^\dagger
- %--------------------------------------------------------------------%
- \left\{
- \oint \oint 
- \left(\begin{array}{cc}
-       \vb f_\alpha \cdot (\BG\EEe/Z_0)  \cdot \vb f_\beta  &
-       \vb f_\alpha \cdot (-\BG\EMe)  \cdot \vb f_\beta  \\[5pt]
-       \vb f_\alpha \cdot (\BG\MEe)  \cdot \vb f_\beta  &
-       \vb f_\alpha \cdot (-Z_0\BG\MMe)  \cdot \vb f_\beta
-       \end{array}
- \right) 
- d\vb x^\prime d\vb x
- \right\}
- %--------------------------------------------------------------------%
- \left(\begin{array}{c} 
-       k_\alpha \\[5pt] n_\alpha
-       \end{array}
- \right)
-\\[10pt]
-%====================================================================%
-\intertext{Note that the pattern of minus signs and $Z_0$ factors in 
-the matrix elements here agrees with the definition of the BEM 
-matrix as computed by {\sc libscuff} (again, see Section 6 of the
-technical memo), whereupon we may write this as}
-&\quad -\frac{Z_0}{4} 
-        \cdot \overline{\texttt{KN}}^\dagger 
-        \cdot \vb M^{e}
-        \cdot \texttt{KN}
-\end{align*}
-where $\vb M^{e}$ is the portion of the BEM matrix involving only 
-the Green's function of the exterior medium. 
-\textbf{Note that the second \texttt{KN} factor here does \textit{not}
-have the overbar operation.}
-
-To summarize, the total absorbed power as computed by 
-{\sc scuff-scatter} is 
-
-$$ P\sups{abs} = +\frac{Z_0}{4}\text{Re }
-   \bigg\{ \overline{\texttt{KN}}^\dagger 
-           \cdot 
-           \Big[ \texttt{RHS} - \vb M^{e} \cdot \texttt{KN}\Big]
-   \bigg\}.
-$$
-
 \end{document}
