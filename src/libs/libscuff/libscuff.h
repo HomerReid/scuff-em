@@ -44,7 +44,9 @@ namespace scuff{
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /* impedance of free space */
+#ifndef ZVAC
 #define ZVAC 376.73031346177
+#endif
 
 /* prototype for incident field routine passed to AssembleRHS */
 typedef void (*EHFuncType)(double *R, void *UserData, cdouble *EH); 

@@ -108,8 +108,7 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 
 %typemap(out)(HMatrix *) {
   if ($1->StorageType != LHM_NORMAL) { // TODO: return opaque HMatrix* ?
-    HMatrix *copy_$1 = new HMatrix($1->NR, $1->NC, $1->RealComplex);
-    copy_$1->Copy($1);
+    HMatrix *copy_$1 = CopyHMatrixUnpacked($1);
     delete $1;
     $1 = copy_$1;
   }
@@ -162,3 +161,4 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 %typecheck(SWIG_TYPECHECK_POINTER)(HMatrix *) {
   $1 = is_HMatrix($input);
 }
+

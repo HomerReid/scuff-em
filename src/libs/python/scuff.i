@@ -16,4 +16,7 @@ using namespace scuff;
 %include "scuff-python.i"
 #endif
 
+%include "libhmat.h"
+%include "libMatProp.h"
+%include "libIncField.h"
 %include "libscuff.h"
