@@ -24,6 +24,7 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libMatProp.h>
+#include <libIncField.h>
 
 #include "GTransformation.h"
 
@@ -138,6 +139,11 @@ class RWGObject
    /* given incident electric and magnetic fields                  */
    void GetInnerProducts(int nbf, EHFuncType EHFunc, void *EHFuncUD,
                          int PureImagFreq, cdouble *EProd, cdouble *HProd);
+   void GetInnerProducts(int nbf, IncFieldData *inc,
+			 int PureImagFreq, cdouble *EProd, cdouble *HProd) {
+	GetInnerProducts(nbf, EHIncField, (void*) inc,
+			 PureImagFreq, EProd, HProd);
+   }
 
    /* apply a general transformation (rotation+displacement) to the object */
    void Transform(GTransformation *GT);
@@ -268,8 +274,7 @@ class RWGGeometry
                             const char *format, ...);
 
    /* routines for allocating, and then filling in, the BEM matrix */
-   HMatrix *AllocateBEMMatrix(int PureImagFreq);
-   HMatrix *AllocateBEMMatrix() { return AllocateBEMMatrix(0); };
+   HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool packed = false);
 
    void AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M);
 
@@ -291,8 +296,12 @@ class RWGGeometry
    HVector *AllocateRHSVector(int PureImagFreq);
    HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
 
-   void AssembleRHSVector(EHFuncType EHFunc, void *UserDataD, 
+   void AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD, 
                           int nThread, HVector *B);
+   void AssembleRHSVector(IncFieldData *inc,
+                          int nThread, HVector *B) {
+	AssembleRHSVector(EHIncField, (void*) inc, nThread, B);
+   }
 
    /* routine for evaluating scattered fields. */
    /* in the first two entry points, the caller already knows     */
@@ -322,8 +331,11 @@ class RWGGeometry
 
    /* routine for computing the expansion coefficients in the RWG basis */
    /* of an arbitrary user-supplied surface-tangential vector field     */
-   void ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD, 
+   void ExpandCurrentDistribution(EHFuncType EHFunc, void *EHFuncUD, 
                                   int nThread, HVector *KNVec);
+   void ExpandCurrentDistribution(IncFieldData *inc, int nT, HVector *KNVec) {
+	ExpandCurrentDistribution(EHIncField, (void*)inc, nT, KNVec);
+   }
 
    /* evaluate the surface currents at a given point X on an object */
    /* surface, given a vector of RWG expansion coefficients         */

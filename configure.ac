@@ -120,6 +120,53 @@ ACX_LAPACK([], [AC_MSG_ERROR([LAPACK was not found!])])
 LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
 
 ##################################################
+# Python SWIG wrappers
+##################################################
+
+AC_ARG_WITH(python,
+	[AC_HELP_STRING([--without-python], [don't compile Python interface])],
+        with_python=$withval,with_python=yes)
+
+if test "$enable_shared" = no; then
+   AC_MSG_WARN([Python interface requires --enable-shared; disabling])
+   have_python=no
+else
+
+if test "x$with_python" = xno; then
+  have_python=no
+else
+
+AM_PATH_PYTHON([],[have_python=yes],[have_python=no])
+if test $have_python = yes; then
+  AC_MSG_CHECKING([for Python include directory])
+  pinc=`echo "import distutils.sysconfig; print distutils.sysconfig.get_python_inc()" | $PYTHON - 2>/dev/null`
+  AC_MSG_RESULT([${pinc:-unknown}])
+  test -n "$pinc" && PYTHON_INCLUDES="-I$pinc"
+  save_CPPFLAGS=$CPPFLAGS
+  CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDES"
+  AC_CHECK_HEADER([Python.h], [], [AC_MSG_WARN([disabling Python wrappers]) 
+                                   have_python=no])
+  if test $have_python = yes; then
+    AC_MSG_CHECKING([for Numpy include directory])
+    pinc=`echo "import numpy; print numpy.get_include()" | $PYTHON - 2>/dev/null`
+    AC_MSG_RESULT([${pinc:-unknown}])
+    test -n "$pinc" && PYTHON_INCLUDES="$PYTHON_INCLUDES -I$pinc"
+    CPPFLAGS="$save_CPPFLAGS $PYTHON_INCLUDES"
+    AC_CHECK_HEADER([numpy/arrayobject.h],[],[
+      AC_MSG_WARN([disabling Python wrappers])
+      have_python=no],[#include <Python.h>])
+  fi
+  CPPFLAGS=$save_CPPFLAGS
+fi
+
+fi # with_python
+
+fi # if enable_shared
+
+AC_SUBST(PYTHON_INCLUDES)
+AM_CONDITIONAL(WITH_PYTHON, test x"$have_python" = "xyes")
+
+##################################################
 ##################################################
 ##################################################
 
@@ -137,6 +184,7 @@ AC_CONFIG_FILES([
  src/libs/libhmat/Makefile
  src/libs/libhrutil/Makefile
  src/libs/libscuff/Makefile
+ src/libs/python/Makefile
  src/applications/Makefile
  src/applications/scuff-scatter/Makefile
  src/applications/scuff-caspol/Makefile
