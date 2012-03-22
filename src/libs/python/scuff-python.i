@@ -63,19 +63,23 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 // HMatrix and HVector typemaps: these are mapped directly onto
 // NumPy matrices, ideally with no data copying.
 //
-// TODO: support opaque pointers for packed (symmetric) HMatrices.
+// The exception is the case of a packed symmetric/Hermitian HMatrix,
+// for which there is no corresponding NumPy array type.  In this case
+// we return an opaque HMatrix*, and correspondingly all of the routines
+// that take HMatrix* arguments accept either a NumPy array (unpacked storage)
+// or an opaque HMatrix*.
 
 %typemap(out)(HVector *) {
   npy_intp sz = npy_intp($1->N);
   $result = (PyObject*) PyArray_SimpleNewFromData
-    (1, &sz, $1->RealComplex ? NPY_CDOUBLE : NPY_DOUBLE,
-     $1->RealComplex ? (void*) $1->ZV : (void*) $1->DV);
+    (1, &sz, $1->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE,
+     $1->RealComplex == LHM_COMPLEX ? (void*) $1->ZV : (void*) $1->DV);
   $1->ZV = 0; $1->DV = 0; // prevent deallocation
   delete $1;
 }
 
 %{
-  static bool is_HVector(PyObject *o) {
+  static bool is_HVector_array(PyObject *o) {
     return is_array(o) && array_numdims(o) == 1
       && array_is_contiguous(o) && array_is_native(o)
       && PyArray_ISALIGNED(o)
@@ -84,47 +88,46 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 %}
 
 %typemap(in)(HVector *) {
-  if (is_HVector($input)) {
-    // hack to create HVector without making a copy of the data
-    $1 = new HVector(0, array_type($input) == NPY_DOUBLE 
-		        ? LHM_REAL : LHM_COMPLEX);
-    if (array_type($input) == NPY_DOUBLE)
-      $1->DV = (double*) array_data($input);
-    else
-      $1->ZV = (cdouble*) array_data($input);
-    $1->N = array_size($input, 0);
+  if (is_HVector_array($input)) {
+    // create HVector without making a copy of the data
+    $1 = new HVector(array_size($input, 0), 
+		     array_type($input) == NPY_DOUBLE ? LHM_REAL : LHM_COMPLEX,
+		     array_data($input));
   }
   else {
-    $1 = NULL; // TODO: allow conversions (with a copy) from other types?
-    ErrExit("invalid HVector argument - expecting numpy.array");
+    // TODO: allow conversions (with a copy) from other types?
+    SWIG_exception_fail(SWIG_TypeError,
+			"in method '" "$symname" "', argument " "$argnum"
+			"of type '" "$type" "': expecting numpy array");
   }
 }
 %typemap(freearg)(HVector *) {
-  $1->DV = 0; $1->ZV = 0; delete $1; // hack to avoid deallocating Python data
+  delete $1;
 }
 %typecheck(SWIG_TYPECHECK_POINTER)(HVector *) {
-  $1 = is_HVector($input);
+  $1 = is_HVector_array($input);
 }
 
 %typemap(out)(HMatrix *) {
-  if ($1->StorageType != LHM_NORMAL) { // TODO: return opaque HMatrix* ?
-    HMatrix *copy_$1 = CopyHMatrixUnpacked($1);
-    delete $1;
-    $1 = copy_$1;
+  if ($1->StorageType != LHM_NORMAL) { // return opaque HMatrix*
+    $result = SWIG_NewPointerObj((void*) $1, SWIGTYPE_p_HMatrix, 0);
   }
-  npy_intp dims[2];
-  dims[0] = npy_intp($1->NR);
-  dims[1] = npy_intp($1->NR);
-  $result = (PyObject*) PyArray_New // TODO: how to return numpy.matrix?
-    (&PyArray_Type, 2, dims, $1->RealComplex ? NPY_CDOUBLE : NPY_DOUBLE,
-     NULL, $1->RealComplex ? (void*) $1->ZM : (void*) $1->DM, 0,
-     NPY_FARRAY, NULL);
-  $1->ZM = 0; $1->DM = 0; // prevent deallocation
-  delete $1;
+  else { // return numpy.array
+    npy_intp dims[2];
+    dims[0] = npy_intp($1->NR);
+    dims[1] = npy_intp($1->NR);
+    $result = (PyObject*) PyArray_New // TODO: how to return numpy.matrix?
+      (&PyArray_Type, 2, dims,
+       $1->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE, NULL,
+       $1->RealComplex == LHM_COMPLEX ? (void*) $1->ZM : (void*) $1->DM, 0,
+       NPY_FARRAY, NULL);
+    $1->ZM = 0; $1->DM = 0; // prevent deallocation
+    delete $1;
+  }
 }
 
 %{
-  static bool is_HMatrix(PyObject *o) {
+  static bool is_HMatrix_array(PyObject *o) {
     return is_array(o) && array_numdims(o) == 2
       && array_is_contiguous(o) && array_is_native(o)
       && PyArray_ISALIGNED(o)
@@ -133,32 +136,32 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 %}
 
 %typemap(in)(HMatrix *) {
-  if (is_HMatrix($input)) {
-    // hack to create HMatrix without making a copy of the data
-    $1 = new HMatrix(0, 0, array_type($input) == NPY_DOUBLE 
-		        ? LHM_REAL : LHM_COMPLEX);
-    if (array_type($input) == NPY_DOUBLE)
-      $1->DM = (double*) array_data($input);
-    else
-      $1->ZM = (cdouble*) array_data($input);
-    if (array_is_fortran($input)) {
-      $1->NR = array_size($input, 0);
-      $1->NC = array_size($input, 1);
-    }
-    else { // C-ordered: transposed dimensions (FIXME: transpose the data?)
-      $1->NR = array_size($input, 1);
-      $1->NC = array_size($input, 0);
-    }
+  if (SWIG_IsOK(SWIG_ConvertPtr($input, (void**)&$1, SWIGTYPE_p_HMatrix, 0))) {
+    // passed opaque HMatrix*
+  }
+  else if (is_HMatrix_array($input)) {
+    // create HMatrix without making a copy of the data
+    // ... note transposition of dimensions for C-ordered array
+    //     (FIXME: transpose the data in this case?)
+    $1 = new HMatrix(array_size($input, !array_is_fortran($input)),
+		     array_size($input, array_is_fortran($input)),
+		     array_type($input) == NPY_DOUBLE ? LHM_REAL : LHM_COMPLEX,
+		     LHM_NORMAL,
+		     array_data($input));
   }
   else {
-    $1 = NULL; // TODO: allow conversions (with a copy) from other types?
-    ErrExit("invalid HMatrix argument - expecting numpy.array");
+    // TODO: allow conversions (with a copy) from other types?
+    SWIG_exception_fail(SWIG_TypeError,
+			"in method '" "$symname" "', argument " "$argnum"
+			"of type '" "$type" "': expecting numpy array");
   }
 }
 %typemap(freearg)(HMatrix *) {
-  $1->DM = 0; $1->ZM = 0; delete $1; // hack to avoid deallocating Python data
+  if (!$1->ownsM) // only deallocate if wrapper around numpy array
+    delete $1; 
 }
 %typecheck(SWIG_TYPECHECK_POINTER)(HMatrix *) {
-  $1 = is_HMatrix($input);
+  $1 = SWIG_IsOK(SWIG_ConvertPtr($input, NULL, SWIGTYPE_p_HMatrix, 0))
+    || is_HMatrix_array($input);
 }
 
