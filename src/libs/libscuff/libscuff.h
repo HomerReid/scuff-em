@@ -276,7 +276,7 @@ class RWGGeometry
                             const char *format, ...);
 
    /* routines for allocating, and then filling in, the BEM matrix */
-   HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool packed = false);
+   HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
 
    void AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M);
 
