@@ -50,6 +50,7 @@ config.log
 libtool
 INSTALL
 ylwrap
+py-compile
 
 # Packages #
 ############
@@ -76,3 +77,8 @@ ylwrap
 ehthumbs.db
 Icon?
 Thumbs.db
+
+# SWIG-generated files #
+########################
+scuff-python.cpp
+scuff.py

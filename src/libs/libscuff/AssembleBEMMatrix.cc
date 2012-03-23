@@ -469,12 +469,13 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *RWGGeometry::AllocateBEMMatrix(int PureImagFreq)
+HMatrix *RWGGeometry::AllocateBEMMatrix(bool PureImagFreq, bool packed)
 {
+  int storage = packed ? LHM_SYMMETRIC : LHM_NORMAL;
   if (PureImagFreq)
-   return new HMatrix(TotalBFs, TotalBFs, LHM_REAL);
+    return new HMatrix(TotalBFs, TotalBFs, LHM_REAL, storage);
   else
-   return new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+    return new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX, storage);
     
 }
 
