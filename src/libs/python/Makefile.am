@@ -3,7 +3,7 @@ EXTRA_DIST = $(SWIG_SRC)
 BUILT_SOURCES = scuff-python.cpp scuff.py
 
 _scuff_la_SOURCES = scuff-python.cpp
-_scuff_la_LIBADD = ../libscuff/libscuff.la
+_scuff_la_LIBADD = ../libscuff/libscuff.la $(LIBS)
 _scuff_la_LDFLAGS = -module -version-info @SHARED_VERSION_INFO@
 _scuff_la_CPPFLAGS = $(PYTHON_INCLUDES) $(AM_CPPFLAGS)
 

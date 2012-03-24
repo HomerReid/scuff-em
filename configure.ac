@@ -125,7 +125,7 @@ LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
 
 AC_ARG_WITH(python,
 	[AC_HELP_STRING([--without-python], [don't compile Python interface])],
-        with_python=$withval,with_python=yes)
+        with_python=$withval,with_python=no)
 
 if test "$enable_shared" = no; then
    AC_MSG_WARN([Python interface requires --enable-shared; disabling])
