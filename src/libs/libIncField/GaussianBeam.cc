@@ -113,8 +113,8 @@ void GaussianBeamData::GetFields(double *X, cdouble *EH)
     cdouble Hz =     fmgbRsq * y * zc - i2fk * y;
 
     // go back to the laboratory frame
-    E += rnorm * (Ex * zVec(xHat) + Ey * zVec(yHat) + Ez * zVec(zHat));
-    H += rnorm * (Hx * zVec(xHat) + Hy * zVec(yHat) + Hz * zVec(zHat));
+    E += cdouble(rnorm) * (Ex * zVec(xHat) + Ey * zVec(yHat) + Ez * zVec(zHat));
+    H += cdouble(rnorm) * (Hx * zVec(xHat) + Hy * zVec(yHat) + Hz * zVec(zHat));
   } 
   
   double inorm = norm(zvE0.imag());
@@ -148,6 +148,20 @@ void GaussianBeamData::GetFields(double *X, cdouble *EH)
   EH[0] = E[0]; EH[1] = E[1]; EH[2] = E[2];
   H /= (Eorig*ZVAC*ZR);
   EH[3] = H[0]; EH[4] = H[1]; EH[5] = H[2];
+}
+
+/**********************************************************************/
+/**********************************************************************/
+/**********************************************************************/
+double GaussianBeamData::TotalBeamFlux() {
+  // for analytical calculation see gaussian_beam_complexpointsource.nb
+  double k  = sqrt(Eps*Mu)*Frequency; // wavenumber of medium
+  double ZR = sqrt(Mu/Eps);           // relative wave impedance of medium
+  double z0 = k*W0*W0/2, kz0 = k*z0;
+  double Eorig = 3./(2*kz0*kz0*kz0) * (exp(kz0)*kz0*(kz0-1) + sinh(kz0));
+  double flux  = 9*M_PI / (32*kz0*kz0*kz0*k*k);
+  flux *= (-1 - 2*kz0 * (kz0-1) + (1+2*kz0*(2*kz0-1))*cosh(2*kz0) + 2*kz0*(2*kz0-1)*sinh(2*kz0));
+  return flux * norm2(E0) / (Eorig*Eorig*ZVAC*ZR);
 }
 
 /**********************************************************************/

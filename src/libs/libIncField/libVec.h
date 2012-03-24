@@ -57,13 +57,17 @@ public:
   T      & operator[] (int ii)       { return v[ii]; }
   T const& operator[] (int ii) const { return v[ii]; }
 
+  inline static Vec xHat() { return Vec(1,0,0); }
+  inline static Vec yHat() { return Vec(0,1,0); }
+  inline static Vec zHat() { return Vec(0,0,1); }
+
   inline Vec& operator*=(T alpha)       { v[0]*=alpha; v[1]*=alpha; v[2]*=alpha; return *this;}
   inline Vec& operator/=(T alpha)       { v[0]/=alpha; v[1]/=alpha; v[2]/=alpha; return *this;}
   inline Vec& operator+=(Vec const& rhs) { v[0]+=rhs[0]; v[1]+=rhs[1]; v[2]+=rhs[2]; return *this;}
   inline Vec& operator-=(Vec const& rhs) { v[0]-=rhs[0]; v[1]-=rhs[1]; v[2]-=rhs[2]; return *this;}
   inline Vec const operator* (T alpha) const  { return Vec(alpha*v[0], alpha*v[1], alpha*v[2]); }
   friend inline Vec const operator* (T alpha, Vec const& rhs) { return rhs*alpha; }
-  inline Vec const operator/ (T alpha) const  { T inva = 1./alpha; return *this * inva; }
+  inline Vec const operator/ (T alpha) const  { T inva = (T)1/alpha; return *this * inva; }
   inline Vec const operator+ (Vec const& rhs) const { return Vec(v[0]+rhs[0],v[1]+rhs[1],v[2]+rhs[2]);}
   inline Vec const operator- (Vec const& rhs) const { return Vec(v[0]-rhs[0],v[1]-rhs[1],v[2]-rhs[2]);}
   // unary minus
@@ -100,11 +104,9 @@ public:
 
   // these only make sense for complex Vecs
   friend inline Vec const      conj(Vec const& dv) { return Vec(conj(dv[0]),conj(dv[1]),conj(dv[2])); }
-  // cross product with complex conjugation of first argument
-  friend inline Vec const    crossC(Vec const& lhs, Vec const& rhs) { return cross(conj(lhs),rhs); }
 
-  inline Vec<norm_type> real() { return Vec<norm_type>(v[0].real(),v[1].real(),v[2].real()); }
-  inline Vec<norm_type> imag() { return Vec<norm_type>(v[0].imag(),v[1].imag(),v[2].imag()); }
+  inline Vec<norm_type> real() const { return Vec<norm_type>(v[0].real(),v[1].real(),v[2].real()); }
+  inline Vec<norm_type> imag() const { return Vec<norm_type>(v[0].imag(),v[1].imag(),v[2].imag()); }
   
   inline std::ostream& printreim(std::ostream& os) { return os << v[0].real() << " " << v[0].imag() << " " 
 							       << v[1].real() << " " << v[1].imag() << " " 
@@ -118,6 +120,9 @@ private:
 
 typedef Vec<double> dVec;
 typedef Vec<std::complex<double> > zVec;
+
+// cross product with complex conjugation of first argument
+template<typename T> inline Vec<T> const crossC(Vec<T> const& lhs, Vec<T> const& rhs) { return cross(conj(lhs),rhs); }
 
 template<typename T> inline Vec<T> const GetOrthogonalNormVec(Vec<T> const& vin) {
   Vec<T> vout = cross(Vec<T>(1,0,0),vin);
