@@ -153,7 +153,7 @@ class RWGObject
    void UnTransform();
 
    /* visualization */
-   void Visualize(double *KVec, double Kappa, char *format, ...);
+   // void Visualize(double *KVec, double Kappa, char *format, ...);
    void WriteGPMesh(const char *format, ...);
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
    void WritePPMesh(const char *FileName, const char *Tag);
@@ -280,6 +280,7 @@ class RWGGeometry
 
    void AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M);
 
+#if 0
    /* routines for allocating, and then filling in, the derivative */
    /* of the bem matrix w.r.t. the coordinates of a mesh vertex    */
    HMatrix *AllocateDMDVMatrix(int RealFreq);
@@ -293,6 +294,7 @@ class RWGGeometry
                               double AverageRadius,
                               double Frequency, int RealFreq,
                               cdouble *dmdv);
+#endif
 
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(int PureImagFreq);
@@ -343,6 +345,7 @@ class RWGGeometry
    /* surface, given a vector of RWG expansion coefficients         */
    void EvalCurrentDistribution(double *X, HVector *KNVec, cdouble *KN);
 
+#if 0
    /* routines for evaluating the scattering portions of the electric and magnetic */
    /* dyadic green's functions and the VEV of the maxwell stress tensor            */
    void GetGij(double *R, HMatrix *M, int Cholesky, HVector *KN, 
@@ -362,6 +365,7 @@ class RWGGeometry
    void GetTijNj(double R[3], double nHat[3], HMatrix *M,
                  HVector *KN, double Frequency, int RealFreq, 
                  int nThread, double TE[3], double TM[3]);
+#endif
 
    /* optimized and accelerated array-based routines for evaluating the */
    /* stress tensor at several spatial points all at once               */
@@ -434,7 +438,7 @@ class RWGGeometry
    /* recent call to Transform(). otherwise ObjectMoved[i]=0. */
    int *ObjectMoved;
   
-   int GetObjectAndEdgeIndex(int ei, RWGObject **pO);
+   // int GetObjectAndEdgeIndex(int ei, RWGObject **pO);
 
    int LogLevel; 
 
@@ -477,10 +481,6 @@ void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
                        double TorqueAxisZ, double *GammaMatrix);
 void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
-
-/* miscellaneous miscellany */
-void RWGErrExit(const char *format, ...);
-void *RWGMalloc(int size);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
