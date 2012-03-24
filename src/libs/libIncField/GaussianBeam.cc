@@ -155,13 +155,14 @@ void GaussianBeamData::GetFields(double *X, cdouble *EH)
 /**********************************************************************/
 double GaussianBeamData::TotalBeamFlux() {
   // for analytical calculation see gaussian_beam_complexpointsource.nb
-  double k  = sqrt(Eps*Mu)*Frequency; // wavenumber of medium
-  double ZR = sqrt(Mu/Eps);           // relative wave impedance of medium
+  double k  = real(sqrt(Eps*Mu)*Omega);   // wavenumber of medium
+  double ZR = real(sqrt(Mu/Eps));         // relative wave impedance of medium
   double z0 = k*W0*W0/2, kz0 = k*z0;
   double Eorig = 3./(2*kz0*kz0*kz0) * (exp(kz0)*kz0*(kz0-1) + sinh(kz0));
   double flux  = 9*M_PI / (32*kz0*kz0*kz0*k*k);
   flux *= (-1 - 2*kz0 * (kz0-1) + (1+2*kz0*(2*kz0-1))*cosh(2*kz0) + 2*kz0*(2*kz0-1)*sinh(2*kz0));
-  return flux * norm2(E0) / (Eorig*Eorig*ZVAC*ZR);
+  zVec zvE0     = E0;
+  return flux * norm2(zvE0) / (Eorig*Eorig*ZVAC*ZR);
 }
 
 /**********************************************************************/

@@ -106,6 +106,8 @@ struct GaussianBeamData: public IncFieldData
 
    void GetFields(double *X, cdouble *EH);
 
+   double TotalBeamFlux();
+
  };
 
 /**********************************************************************/
