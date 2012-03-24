@@ -72,11 +72,12 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
       PV[1]=O->Vertices + 3*P->VI[1];
       PV[2]=O->Vertices + 3*P->VI[2];
 
-      fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                 PV[0][0], PV[0][1], PV[0][2],
-                 PV[1][0], PV[1][1], PV[1][2],
-                 PV[2][0], PV[2][1], PV[2][2],
-                 PFV[PanelIndex],PFV[PanelIndex],PFV[PanelIndex]);
+      if ( PFV[PanelIndex]!=0.0 )
+       fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                  PV[0][0], PV[0][1], PV[0][2],
+                  PV[1][0], PV[1][1], PV[1][2],
+                  PV[2][0], PV[2][1], PV[2][2],
+                  PFV[PanelIndex],PFV[PanelIndex],PFV[PanelIndex]);
     };
   fprintf(f,"};\n\n");
   fclose(f);
@@ -146,7 +147,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /***************************************************************/
   RWGGeometry *G     = SHD->G;
   int N1             = SHD->N1;
-  int N2             = SHD->N2;
   HMatrix **TSelf    = SHD->TSelf;
   HMatrix **TMedium  = SHD->TMedium;
   HMatrix **UMedium  = SHD->UMedium;
