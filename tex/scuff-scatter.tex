@@ -78,25 +78,28 @@ $\mathcal{S}$:
 \end{align}
 %====================================================================%
 where the minus sign arises because by convention we define $\vbhat{n}$ 
-to be the outward-pointing surface normal.
+to be the outward-directed surface normal.
 
-At a point $\vb x$ on $\mathcal{S}$, the normal component of the total 
-Poynting vector is 
+At a point $\vb x$ on $\mathcal{S}$, the (outward-directed) normal 
+component of the total Poynting vector is 
 %====================================================================%
 \begin{align}
  \vb P\sups{tot}(\vb x) \cdot \vbhat{n}(\vb x)
   &=\frac{1}{2}\text{Re} 
-    \bigg[ \vb E\supsstar{tot}(\vb x) \times \vb H\sups{tot}(\vb x)\bigg] 
-    \cdot \vbhat{n}(\vb x)
-\nonumber
+    \bigg\{ \vbhat{n}(\vb x) \cdot 
+            \Big[\vb E\supsstar{tot}(\vb x) \times \vb H\sups{tot}(\vb x)
+            \Big]
+    \bigg\}
+\\
 %--------------------------------------------------------------------%
-\intertext{which may be rewritten in the form 
-           (temporarily suppressing $\vb x$ arguments)}
-%--------------------------------------------------------------------%
-  &=-\frac{1}{4}\text{Re}
-     \bigg[ \vb E\supsstar{tot} \cdot \big(\vbhat{n}\times \vb H\sups{tot} \big)
-           +\vb H\supsstar{tot} \cdot \big(-\vbhat{n}\times \vb E\sups{tot} \big) 
-     \bigg].
+\intertext{Using the fact that $|\vbhat{n}|=1$, we may rewrite this 
+           in the form (temporarily suppressing $\vb x$ arguments)}
+  &=-\frac{1}{2}\text{Re} 
+    \Bigg\{ \big(\vbhat{n}\times \vb H\supsstar{tot}\big)
+            \cdot
+            \big(\vbhat{n} \times \big(-\vbhat{n} \times \vb E\sups{tot}\big)
+            \big)
+    \Bigg\}.
 \nonumber
 %--------------------------------------------------------------------%
 \intertext{But the quantities in parentheses here are just the electric
@@ -104,16 +107,8 @@ Poynting vector is
            formulation of scattering problems, so we find simply}
 %--------------------------------------------------------------------%
 \vb P\sups{tot}(\vb x) \cdot \vbhat{n}(\vb x)
-  &=-\frac{1}{4}\text{Re}
-    \Big[ \vb E\supsstar{tot} \cdot \vb K 
-          \,+\, \vb H\supsstar{tot} \cdot \vb N
-    \Big]
-\nn
-  &=-\frac{1}{4}\text{Re}
-    \Big[ \vb K^* \cdot \vb E\sups{tot}
-          \,+\, 
-          \vb N^* \cdot \vb H\sups{tot}
-    \Big].
+  &=-\frac{1}{2}\text{Re}
+     \bigg\{ \vb K^* \cdot \Big[\vbhat{n} \times \vb N \Big] \bigg\}.
 \label{PTotDotN}
 \end{align}
 %====================================================================%
@@ -122,158 +117,62 @@ Poynting vector is
 %  E=rand(3,1) + sqrt(-1)*rand(3,1);
 %  EStar=conj(E);
 %  H=rand(3,1) + sqrt(-1)*rand(3,1);
-%  HStar=conj(H);
 %  nHat=rand(3,1); 
 %  nHat=nHat/norm(nHat);
 %  K=cross(nHat,H);
+%  KStar=conj(K);
 %  N=-cross(nHat,E);
 %  EStarxH=cross(conj(E),H);
-%  P1 = 0.5*real( EStarxH.' * nHat )
-%  P2 = -0.25*real( (EStar.')*K  + (HStar.')*N )
-Now, in the BEM formulation used by {\sc scuff-em} we have 
-the following two equivalent expressions for the total
-tangential fields at a point on an object surface:
-%====================================================================%
-\begin{subequations}
-%--------------------------------------------------------------------%
-\begin{align}
- \left(\begin{array}{c}
-  \vb E\sups{tot}(\vb x) \\
-  \vb H\sups{tot}(\vb x)
- \end{array}\right)_{\parallel}
- &=
- \left(\begin{array}{c}
-  \vb E\sups{inc}(\vb x) \\
-  \vb H\sups{inc}(\vb x)
- \end{array}\right)_{\parallel}
- \,+\,
- \left(\begin{array}{c}
-  \vb E\sups{scat,outside}(\vb x) \\
-  \vb H\sups{scat,outside}(\vb x)
- \end{array}\right)_{\parallel}
-\\[10pt]
-%--------------------------------------------------------------------%
- &=
- \left(\begin{array}{c}
-  \vb E\sups{scat,inside}(\vb x) \\
-  \vb H\sups{scat,inside}(\vb x)
- \end{array}\right)_{\parallel}.
-\end{align}
-\label{FieldExpressions}
-%--------------------------------------------------------------------%
-\end{subequations}
-%====================================================================%
-Here we will use the first expression.
-The scattered-field term here is 
-%====================================================================%
-\numeq{EScat}
-{
- \left(\begin{array}{c}
-  \vb E\sups{scat, outside}(\vb x) \\
-  \vb H\sups{scat, outside}(\vb x)
- \end{array}\right)_{\parallel}
-%--------------------------------------------------------------------%
-=\frac{1}{2}\oint_\mathcal{S} 
-\left\{ 
-%--------------------------------------------------------------------%
- \left(\begin{array}{cc}
-  \BG\EEe(\vb x, \vb x^\prime) &
-  \BG\EMe(\vb x, \vb x^\prime) \\
-  \BG\MEe(\vb x, \vb x^\prime) &
-  \BG\MMe(\vb x, \vb x^\prime)
- \end{array}\right)_{\parallel}
- \cdot 
-%--------------------------------------------------------------------%
- \left(\begin{array}{c}
-  \vb K(\vb x^\prime) \\
-  \vb N(\vb x^\prime)
- \end{array}\right)
-\right\} d\vb x^\prime
-%--------------------------------------------------------------------%
-}
-%====================================================================%
-(where the prefactor of $\frac{1}{2}$ arises because we are evaluating
-the fields precisely on the object surface). Inserting (\ref{PTotDotN}),
-(\ref{FieldExpressions}a), and (\ref{EScat}) into (\ref{AbsorbedPower}), 
-we find
+%  P1 = 0.5*real( nHat' * EStarxH )
+%  P2 = -0.5*real( KStar.' * cross(nHat, N) );
+Inserting (\ref{PTotDotN}) into (\ref{AbsorbedPower}), we have
 %====================================================================%
 \begin{align}
  P\sups{abs}
-&=-\frac{1}{4}\text{Re }\oint \left\{
+&=\frac{1}{2}\text{Re }\oint 
+  \bigg\{ \vb K^*(\vb x) \cdot 
+          \Big[\vbhat{n} \times \vb N(\vb x) \Big] 
+  \bigg\} d\vb x
 %--------------------------------------------------------------------%
- \left(\begin{array}{c} 
-       \vb K(\vb x)  \\ \vb N(\vb x) 
-       \end{array}
- \right)^\dagger
- \cdot 
- \left(\begin{array}{c} 
-       \vb E\sups{inc}(\vb x)  \\ \vb H\sups{inc}(\vb x) 
-       \end{array}
- \right)\right\}d\vb x
-\label{PAbs2}
-\\[10pt]
-&\quad -\frac{1}{8}\text{Re }\oint \left\{
+\intertext{
+Insert the surface-current expansions
+$\vb K(\vb x)=\sum_\alpha k_\alpha \vb f_\alpha(\vb x), \, 
+ \vb N(\vb x)=-Z_0\sum_\alpha n_\alpha \vb f_\alpha(\vb x)
+$:}
 %--------------------------------------------------------------------%
- \left( \begin{array}{c} 
-        \vb K(\vb x)  \\ \vb N(\vb x) 
-        \end{array}
- \right)^\dagger
- \cdot 
- \oint\left[
- \left(\begin{array}{cc} 
-        \BG\EEe(\vb x, \vb x^\prime) &
-        \BG\EMe(\vb x, \vb x^\prime) \\
-        \BG\MEe(\vb x, \vb x^\prime) &
-        \BG\MMe(\vb x, \vb x^\prime)
- \end{array}\right)_{\parallel}
- \cdot
- \left( \begin{array}{c} 
-        \vb K(\vb x^\prime)  \\ \vb N(\vb x^\prime) 
-        \end{array}
- \right)\right]d\vb x^\prime
- \right\}d\vb x.
-\nonumber
+&=-\frac{Z_0}{2}\text{Re }\sum_{\alpha\beta}  k^*_\alpha n_\beta
+  \oint  \vb f_\alpha(\vb x) \cdot  
+         \Big[\vbhat{n} \times \vb f_\beta(\vb x) \Big]
+         d\vb x
+\\
+&=-\frac{Z_0}{2}\text{Re }\sum_{\alpha\beta}  k^*_\alpha n_\beta
+  \oint  \vb f_\alpha(\vb x) \cdot  
+         \Big[\vbhat{n} \times \vb f_\beta(\vb x) \Big]
+         d\vb x
+\\
+&=-\frac{Z_0}{2}\text{Re }\sum_{\alpha\beta} 
+    k^*_\alpha O^{(\times)}_{\alpha\beta} n_\beta
+\numeq{PAbsFormula}
 \end{align}
 %====================================================================%
-Now insert the surface-current expansions:
-$$\vb K(\vb x)=\sum_\alpha k_\alpha \vb f_\alpha(\vb x), \qquad
- \vb N(\vb x)=-Z_0\sum_\alpha n_\alpha \vb f_\alpha(\vb x).
-$$
-The first term in (\ref{PAbs2}) becomes
-%====================================================================%
+where I 
 \begin{align*}
-&-\frac{1}{4} \text{Re } \sum_\alpha 
- \left(\begin{array}{c} 
-       k_\alpha \\[3pt] -Z_0 n_\alpha
-       \end{array}
- \right)^\dagger
- \cdot 
- \oint
- \left(\begin{array}{c} 
-       \vb f_\alpha(\vb x) \cdot \vb E\sups{inc}(\vb x)
-       \\[3pt]
-       \vb f_\alpha(\vb x) \cdot \vb H\sups{inc}(\vb x)
-       \end{array}
- \right) d\vb x
-\\[10pt]
-%--------------------------------------------------------------------%
-&\quad=
- -\frac{Z_0}{4} \text{Re } \sum_\alpha 
- \left(\begin{array}{c} 
-       k_\alpha \\[3pt] -n_\alpha
-       \end{array}
- \right)^\dagger
- \cdot 
- \oint
- \left(\begin{array}{c} 
-       \vb f_\alpha(\vb x) \cdot \vb E\sups{inc}(\vb x) / Z_0
-       \\[3pt]
-       \vb f_\alpha(\vb x) \cdot \vb H\sups{inc}(\vb x)
-       \end{array}
- \right) d\vb x
-\intertext{which I can write in the form}
-&\quad+\frac{Z_0}{4} \cdot \overline{\texttt{KN}}^\dagger \cdot \texttt{RHS}
+O^{(\times)}_{\alpha\beta}
+ \oint \vb f_\alpha(\vb x) \cdot 
+       \Big[\vbhat{n} \times \vb f_\beta(\vb x) \Big]
+       d\vb x.
 \end{align*}
+%====================================================================%
+The matrix of quantities $O^{(\times)}_{\alpha\beta}$ is sort of like 
+a crossed version of an overlap matrix for the set of 
+basis functions $\{\vb f_\alpha.\}$ This is an extremely 
+sparse matrix, with vanishing diagonals and precisely 4 nonzero 
+entries per row, and the nonzero entries may be computed in 
+closed form (cf. {\sc libscuff} technical memorandum.)
+Thus the operation count for evaluating (\ref{PAbsFormula}) 
+is $\mathcal{O}(4N)$, as compared to $\mathcal{O}(N^2)$ for 
+the equivalent matrix-vector product formulas.
+
 %====================================================================%
 where
 \begin{itemize} 
