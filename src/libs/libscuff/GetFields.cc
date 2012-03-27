@@ -142,7 +142,7 @@ typedef struct ThreadData
    cdouble Eps, Mu;
    RWGObject *ObjectInQuestion;
    HVector *KN;
-   cdouble *EH;
+   cdouble EH[6];
 
  } ThreadData;
 
@@ -312,6 +312,13 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
   /***************************************************************/
   /* fire off threads                                            */
   /***************************************************************/
+
+#if 0 
+
+  this is the code as of 3/25/2012, commented out 
+  but retained in the file the for the time being 
+  while i experiment with new ways to do the multithreading 
+
 #ifdef USE_PTHREAD
   pthread_t *Threads = new pthread_t[nThread];
   ThreadData *TDS = new ThreadData[nThread], *TD;
@@ -343,8 +350,6 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
      TD->Mu=Mu;
      TD->ObjectInQuestion=ObjectInQuestion;
      TD->KN=KN;
-
-     TD->nThread=nThread;
 
 #ifdef USE_PTHREAD
      TD->EH=PartialEH + 6*nt;
@@ -399,6 +404,77 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
   EH[4] = cdouble(EH4r,EH4i);
   EH[5] = cdouble(EH5r,EH5i);
 #endif
+
+#endif // end of block commented out on 3/25/2012
+
+// ''modern'' attempt at multithreading begins here  
+
+  int nt, nc;
+
+  // set up an instance of ThreadData containing all fields
+  // that are common to all threads, which we can subsequently
+  // copy wholesale to initialize new ThreadData structures
+  ThreadData ReferenceTD; 
+  ReferenceTD.G=this;
+  ReferenceTD.X=X;
+  ReferenceTD.Omega=Omega;
+  ReferenceTD.Eps=Eps;
+  ReferenceTD.Mu=Mu;
+  ReferenceTD.ObjectInQuestion=ObjectInQuestion;
+  ReferenceTD.KN=KN;
+
+  memset(EH, 0, 6*sizeof(cdouble));
+
+#ifdef USE_PTHREAD
+  ThreadData *TDs = new ThreadData[nThread], *TD;
+  pthread_t *Threads = new pthread_t[nThread];
+
+  for(nt=0; nt<nThread; nt++)
+   { 
+     TD=&(TDs[nt]);
+     memcpy(TD, &ReferenceTD, sizeof(ThreadData));
+     TD->nt=nt;
+     TD->nThread=nThread;
+
+     if (nt+1 == nThread)
+       GetFields_Thread((void *)TD);
+     else
+       pthread_create( &(Threads[nt]), 0, GetFields_Thread, (void *)TD);
+   }
+  for(nt=0; nt<nThread-1; nt++)
+   pthread_join(Threads[nt],0);
+
+  /***************************************************************/
+  /* sum contributions from all threads                          */
+  /***************************************************************/
+  for(nt=0; nt<nThread; nt++)
+   for(nc=0; nc<6; nc++)
+    EH[nc]+=TDs[nt].EH[nc];
+
+  delete[] Threads;
+  delete[] TDs;
+
+#else 
+
+#ifndef USE_OPENMP
+  nThread=1;
+#else
+#pragma omp parallel for schedule(dynamic,1), num_threads(nThread)
+#endif
+  for(nt=0; nt<nThread*100; nt++)
+   { 
+     ThreadData TD1;
+     memcpy(&TD1, &ReferenceTD, sizeof(ThreadData));
+     TD1.nt=nt;
+     TD1.nThread=nThread*100;
+     GetFields_Thread((void *)&TD1);
+     for(nc=0; nc<6; nc++)
+      EH[nc]+=TD1.EH[nc];
+   };
+#endif
+
+// end of ''modern'' attempt at multithreading
+
 }
 
 /***************************************************************/

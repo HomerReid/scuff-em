@@ -495,4 +495,125 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta)
 
 }
 
+/***************************************************************/
+/* Compute all nonzero entries in the row of the overlap       */
+/* matrix corresponding to basis function #neAlpha.            */
+/*                                                             */
+/* (The neA, neB entry in this matrix is the overlap between   */
+/*  basis functions neA and neB, i.e.                          */
+/*   O_{neA, neB} = \int f_{neA} \cdot f_{neB}                 */
+/*  where the integral is over the intersection of the supports*/
+/*  of the basis functions).                                   */
+/*                                                             */
+/* The return value is nnz, the number of nonzero entries in   */
+/* the row. (nnz is between 1 and 5.) On return,               */
+/* ColIndices[0..(nnz-1)] are the indices of the nonzero       */
+/* columns, and OEntries[0..(nnz-1)] are the corresponding     */
+/* entries in the overlap matrix.                              */
+/*                                                             */
+/* If OTimesEntries is non-NULL on entry, then on return       */
+/* OTimesEntries[0..4] are the values of the corresponding     */
+/* entries in the 'crossed-overlap matrix,' whose entries are  */
+/* defined by                                                  */
+/*                                                             */
+/*   O^x_{neA, neB} = \int f_{neA} \cdot (nHat \times f_{neB}) */
+/*                                                             */
+/* (Note that OEntries must point to a buffer large enough to  */
+/*  hold 5 doubles, as must OTimesEntries if it is non-NULL.)  */
+/***************************************************************/
+int RWGObject::GetOverlaps(int neAlpha, int *ColIndices,
+                           double *OEntries, double *OTimesEntries)
+{ 
+  /*--------------------------------------------------------------*/
+  /*- precompute some geometric quantities -----------------------*/
+  /*--------------------------------------------------------------*/
+  RWGEdge *EAlpha=Edges[neAlpha]; 
+  double *QP = Vertices + 3*(EAlpha->iQP);
+  double *V1 = Vertices + 3*(EAlpha->iV1);
+  double *V2 = Vertices + 3*(EAlpha->iV2);
+  double *QM = Vertices + 3*(EAlpha->iQM);
+
+  double AP[3], AM[3], B[3], APpBO2[3], AMpBO2[3];
+  double Mag2APpBO2, Mag2AMpBO2, Mag2B;
+  int i;
+
+  Mag2APpBO2 = Mag2AMpBO2 = Mag2B = 0.0;
+  for(i=0; i<3; i++)
+   { AP[i]       = V1[i] - QP[i];
+     AM[i]       = V1[i] - QM[i];
+     B[i]        = V2[i] - V1[i];
+     APpBO2[i]   = AP[i] + 0.5*B[i];
+     APpBO2[i]   = AP[i] + 0.5*B[i];
+     Mag2APpBO2 += APpBO2[i]*APpBO2[i];
+     Mag2AMpBO2 += AMpBO2[i]*AMpBO2[i];
+     Mag2B      += Mag2B[i]*Mag2B[i];
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- first nonzero element (diagonal element) -------------------*/
+  /*--------------------------------------------------------------*/
+
+  ColIndices[0]=neAlpha;
+
+  // the diagonal element of the crossed-overlap matrix is 0
+  if (OTimesEntries) 
+   OTimesEntries[0]=0.0;
+
+  // the indices of the next four nonzero columns are the edge indices
+  // of the other edges in the two panels that share edge neAlpha
+
+  Sum=0.0;
+  if ( EAlpha->iPPanel == EBeta->iPPanel )
+   {  
+      QAlpha=Vertices + 3*(EAlpha->iQP);
+      QBeta =Vertices + 3*(EBeta->iQP);
+      Area=Panels[EAlpha->iPPanel]->Area;
+
+      for(Term=0.0, mu=0; mu<3; mu++)
+       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
+             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
+
+      Sum += PreFac * Term / Area;
+   };
+  if ( EAlpha->iPPanel == EBeta->iMPanel )
+   {  
+      QAlpha=Vertices + 3*(EAlpha->iQP);
+      QBeta =Vertices + 3*(EBeta->iQM);
+      Area=Panels[EAlpha->iPPanel]->Area;
+
+      for(Term=0.0, mu=0; mu<3; mu++)
+       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
+             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
+
+      Sum -= PreFac * Term / Area;
+   };
+  if ( EAlpha->iMPanel == EBeta->iPPanel )
+   {  
+      QAlpha=Vertices + 3*(EAlpha->iQM);
+      QBeta =Vertices + 3*(EBeta->iQP);
+      Area=Panels[EAlpha->iMPanel]->Area;
+
+      for(Term=0.0, mu=0; mu<3; mu++)
+       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
+             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
+
+      Sum -= PreFac * Term / Area;
+   };
+  if ( EAlpha->iMPanel == EBeta->iMPanel )
+   {  
+      QAlpha=Vertices + 3*(EAlpha->iQM);
+      QBeta =Vertices + 3*(EBeta->iQM);
+      Area=Panels[EAlpha->iMPanel]->Area;
+
+      for(Term=0.0, mu=0; mu<3; mu++)
+       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
+             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
+
+      Sum += PreFac * Term / Area;
+   };
+
+  return Sum;
+
+}
+
 } // namespace scuff
