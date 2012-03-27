@@ -53,8 +53,9 @@ calculating scattered fields. {\sc scuff-scatter} uses a
 more efficient approach, obtaining the scattered and absorbed 
 power \textit{directly} from matrix-vector and vector-vector 
 (dot) products involving the BEM matrices and 
-vectors.\footnote{To my knowledge, these formulas were first
-derived by Steven Johnson.}
+vectors.\footnote{The possibility of deriving compact 
+expressions like these seems to have been first noticed by
+Steven Johnson.}
 
 Throughout this section, $\mathcal{S}$ denotes the boundary
 of the exterior medium (that is, the union of the outer surfaces
@@ -152,136 +153,56 @@ $:}
 \\
 &=-\frac{Z_0}{2}\text{Re }\sum_{\alpha\beta} 
     k^*_\alpha O^{(\times)}_{\alpha\beta} n_\beta
-\numeq{PAbsFormula}
+\label{PAbsFormula}
 \end{align}
 %====================================================================%
-where I 
+where I have introduced the ``crossed overlap matrix'' $\vb O^{(\times)}$
+for the RWG basis, with matrix elements 
 \begin{align*}
 O^{(\times)}_{\alpha\beta}
- \oint \vb f_\alpha(\vb x) \cdot 
+=\oint \vb f_\alpha(\vb x) \cdot 
        \Big[\vbhat{n} \times \vb f_\beta(\vb x) \Big]
        d\vb x.
 \end{align*}
 %====================================================================%
-The matrix of quantities $O^{(\times)}_{\alpha\beta}$ is sort of like 
-a crossed version of an overlap matrix for the set of 
-basis functions $\{\vb f_\alpha.\}$ This is an extremely 
+%The matrix of quantities $O^{(\times)}_{\alpha\beta}$ is sort of like 
+%a crossed version of an overlap matrix for the set of 
+%basis functions $\{\vb f_\alpha.\}$ 
+This is an extremely 
 sparse matrix, with vanishing diagonals and precisely 4 nonzero 
-entries per row, and the nonzero entries may be computed in 
-closed form (cf. {\sc libscuff} technical memorandum.)
+entries per row, which may be computed in
+closed form (cf. {\sc libscuff} technical memo, Section 12.2).
 Thus the operation count for evaluating (\ref{PAbsFormula}) 
-is $\mathcal{O}(4N)$, as compared to $\mathcal{O}(N^2)$ for 
+is $\mathcal{O}(N)$, as compared to $\mathcal{O}(N^2)$ for 
 the equivalent matrix-vector product formulas.
 
-%====================================================================%
-where
-\begin{itemize} 
-  \item \texttt{KN} is the vector of surface-current coefficients 
-        computed by {\sc libscuff} as the solution to the BEM scattering
-        problem
-  \item $\overline{\texttt{KN}}$ denotes the vector $\texttt{KN}$ with
-        signs of all magnetic currents flipped 
-  \item $\dagger$ denotes the adjoint operation (complex conjugation
-        and column vector$\to$row vector)
-  \item \texttt{RHS} is the right-hand-side vector for the scattering 
-        problem as computed by {\sc libscuff}. (Note that 
-        the $1/Z_0$ factor in the electric-field inner product,
-        and the overall minus sign, are both present in the RHS 
-        vector as computed by {\sc libscuff};
-        cf. Section 6 of the {\sc libscuff} technical memo.)
-\end{itemize} 
-%====================================================================%
-The second term in (\ref{PAbs2}) is 
-%====================================================================%
-\begin{align*}
-&-\frac{1}{8} \text{Re } \sum_{\alpha \beta}
- \left(\begin{array}{c} 
-       k_\alpha \\[5pt] -Z_0 n_\alpha
-       \end{array}
- \right)^\dagger
- %--------------------------------------------------------------------%
- \left\{
- \oint \oint 
- \left(\begin{array}{cc}
-       \vb f_\alpha \cdot \BG\EEe  \cdot \vb f_\beta  &
-       \vb f_\alpha \cdot \BG\EMe  \cdot \vb f_\beta  \\[5pt]
-       \vb f_\alpha \cdot \BG\MEe  \cdot \vb f_\beta  &
-       \vb f_\alpha \cdot \BG\MMe  \cdot \vb f_\beta
-       \end{array}
- \right) 
- d\vb x^\prime d\vb x
- \right\}
- %--------------------------------------------------------------------%
- \left(\begin{array}{c} 
-       k_\alpha \\[5pt] -Z_0 n_\alpha
-       \end{array}
- \right)
-\\[10pt]
-%--------------------------------------------------------------------%
-&=\quad -\frac{Z_0}{8} \text{Re } \sum_{\alpha \beta}
- \left(\begin{array}{c} 
-       k_\alpha \\[5pt] -n_\alpha
-       \end{array}
- \right)^\dagger
- %--------------------------------------------------------------------%
- \left\{
- \oint \oint 
- \left(\begin{array}{cc}
-       \vb f_\alpha \cdot (\BG\EEe/Z_0)  \cdot \vb f_\beta  &
-       \vb f_\alpha \cdot (-\BG\EMe)  \cdot \vb f_\beta  \\[5pt]
-       \vb f_\alpha \cdot (\BG\MEe)  \cdot \vb f_\beta  &
-       \vb f_\alpha \cdot (-Z_0\BG\MMe)  \cdot \vb f_\beta
-       \end{array}
- \right) 
- d\vb x^\prime d\vb x
- \right\}
- %--------------------------------------------------------------------%
- \left(\begin{array}{c} 
-       k_\alpha \\[5pt] n_\alpha
-       \end{array}
- \right)
-\\[10pt]
-%====================================================================%
-\intertext{Note that the pattern of minus signs and $Z_0$ factors in 
-the matrix elements here agrees with the definition of the BEM 
-matrix as computed by {\sc libscuff} (again, see Section 6 of the
-technical memo), whereupon we may write this as}
-&\quad -\frac{Z_0}{8} 
-        \cdot \overline{\texttt{KN}}^\dagger 
-        \cdot \vb M^{e}
-        \cdot \texttt{KN}
-\end{align*}
-where $\vb M^{e}$ is the portion of the BEM matrix involving only 
-the Green's function of the exterior medium. 
-\textbf{Note that the second \texttt{KN} factor here does \textit{not}
-have the overbar operation.}
-
-To summarize, the total absorbed power as computed by 
-{\sc scuff-scatter} is 
-
-\numeq{PAbs3}
-{P\sups{abs} = +\frac{Z_0}{4}\text{Re }
-   \bigg\{ \overline{\texttt{KN}}^\dagger 
-           \cdot 
-           \Big[ \texttt{RHS} - \frac{1}{2}\vb M^{e} \cdot \texttt{KN}\Big]
-   \bigg\}.
-}
+\subsubsection*{Units}
+The crossed-overlap matrix element $O^{(\times)}_{\alpha\beta}$ has
+units of area.
+The electric and magnetic surface-current expansion coefficients
+$\{k_\alpha, n_\alpha\}$ both have units of current/length.
+(The magnetic current $\vb N$ has units of voltage/length, 
+but in \lss conventions the magnetic-current expansion 
+coefficients $\{n_\alpha\}$ are defined with the $Z_0$ 
+prefactor that ensures they have the same units as $\{k_\alpha\}$.)
+Then the units of (\ref{PAbsFormula}) are 
+$$ \left[\frac{\text{voltage}}{\text{current}}\right]
+   \cdot
+   \left[\frac{\text{current}}{\text{length}}\right]
+   \cdot
+   \Big[\text{length}^2\Big]
+   \cdot
+   \left[\frac{\text{current}}{\text{length}}\right]
+  =\left[\text{voltage }\cdot\text{ current}\right] 
+  =\left[\text{power}\right] \checkmark
+$$
 
 \subsubsection*{Nested Surfaces}
 
-Expression \ref{PAbs3} remains valid as-is when nested
-surfaces are present. 
-This is because \textbf{(1)} assuming the incident field
-sources lie in the exterior medium, the vector \texttt{RHS}
-has zero entries corresponding to all basis functions 
-defined on interior surfaces [whereupon those basis 
-functions make no contribution to the first term in 
-(\ref{PAbs3})], while \textbf{(2)} all elements of the $\vb M^{e}$ 
-matrix corresponding to basis functions on interior surfaces
-are zero because the Green's functions for the exterior
-medium (which are the only GFs that contribute to $\vb M^{e}$)
-make no contribution to matrix elements corresponding to 
-interior-surface basis functions. 
+Expression \ref{PAbsFormula} remains valid as-is when nested
+surfaces are present, as long as the summation is understood
+to run only over basis functions defined on the surfaces of 
+objects that border the exterior medium.
 
 \subsection{Scattered Power}
 
@@ -290,7 +211,7 @@ component of the \textit{scattered} Poynting vector over
 $\mathcal{S}$:
 %====================================================================%
 \begin{align}
- P\sups{scat} 
+P\sups{scat} 
 &= + \oint \vb P\sups{scat}(\vb x) \cdot \vbhat{n} \, dA 
 \label{ScatteredPower}
 \end{align}
@@ -299,17 +220,126 @@ where the scattered Poynting vector is the
 Poynting vector as computed using only the scattered fields.
 In analogy to equation (\ref{PTotDotN}), we write
 %====================================================================%
+\begin{subequations}
 \begin{align}
  \vb P\sups{scat}(\vb x) \cdot \vbhat{n}(\vb x)
-  &=\frac{1}{2}\text{Re} 
-    \bigg[ \vb E\supsstar{scat}(\vb x) \times \vb H\sups{scat}(\vb x)\bigg] 
-    \cdot \vbhat{n}(\vb x)
-\\
-%--------------------------------------------------------------------%
-  &=-\frac{1}{4}\text{Re}
-     \bigg[ \vb E\supsstar{scat} \cdot \big(\vbhat{n}\times \vb H\sups{scat} \big)
-           +\vb H\supsstar{scat} \cdot \big(-\vbhat{n}\times \vb E\sups{scat} \big) 
-     \bigg].
+  &=\frac{1}{2}\text{Re } 
+    \bigg\{ \vbhat{n}(\vb x) \cdot
+            \Big[ \vb E\supsstar{scat}(\vb x) \times \vb H\sups{scat}(\vb x)
+            \Big]
+    \bigg\}
 \nonumber
+\intertext{Noting that scattered fields are the differences between
+total and incident fields and again suppressing $\vb x$ arguments, we
+find }
+%--------------------------------------------------------------------%
+  &=\frac{1}{2}\text{Re }
+    \bigg\{ \vbhat{n}\cdot
+            \Big[ \big(\vb E\supsstar{tot} - \vb E\supsstar{inc}\big)
+                   \times
+                  \big(\vb H\sups{tot} - \vb H\sups{inc}\big)
+            \Big]
+    \bigg\}
+\nonumber
+\intertext{which we write as a sum of three terms:}
+  &= \hspace{0.18in} \vb P\sups{tot} \cdot \vbhat{n}
+\\[3pt]
+  & \hspace{0.2in}
+     +\frac{1}{2}\text{Re } 
+        \bigg\{ \vbhat{n}\cdot \Big[ \vb E\supsstar{inc} \times \vb H\sups{inc} \Big]
+        \bigg\}
+\\[3pt]
+  & \hspace{0.2in}
+     -\frac{1}{2}\text{Re }
+      \bigg\{ \vbhat{n}\cdot 
+              \Big[ \vb E\supsstar{inc} \times \vb H\sups{tot} \Big]
+             \, + \, 
+             \vbhat{n}\cdot 
+              \Big[ \vb E\supsstar{tot} \times \vb H\sups{inc} \Big]
+      \bigg\}.
 \end{align}
+\label{ThreeTerms}
+\end{subequations}
+
+\subsubsection*{First Term}
+
+The first term here (\ref{ThreeTerms}a) is the normal component of the 
+total Poynting vector,
+as considered in the previous section; the surface integral of this
+term yields $-P\sups{abs}.$
+
+\subsubsection*{Second Term}
+
+The second term (\ref{ThreeTerms}b) is the normal Poynting 
+flux due to the incident field sources alone. The surface integral 
+of this term yields the net power delivered to the volume of the 
+scatterer in the absence of the scatterer. But in the absence of the 
+scatterer there is nowhere
+for this power to go; there is nothing to absorb it, so any power
+that flows in must flow back out. Hence the surface integral
+of this term vanishes.
+
+\subsubsection*{Third Term}
+
+The third term (\ref{ThreeTerms}b) is 
+%====================================================================%
+\begin{align*}
+&\hspace{-0.3in}
+ -\frac{1}{2}\text{Re }
+      \bigg\{ \vbhat{n}\cdot 
+              \Big[ \vb E\supsstar{inc} \times \vb H\sups{tot} \Big]
+             \, + \, 
+             \vbhat{n}\cdot 
+              \Big[ \vb E\supsstar{tot} \times \vb H\sups{inc} \Big]
+      \bigg\}
+\\
+&=
+ +\frac{1}{2}\text{Re }
+      \bigg\{ \vb E\supsstar{inc} \cdot \Big[\vbhat{n}\times \vb H\sups{tot}\Big]
+              \, + \, 
+              \vb H\supsstar{inc} \cdot \Big[ -\vbhat{n}\times \vb E\sups{tot}\Big]
+      \bigg\}
+\\
+&=
+ +\frac{1}{2}\text{Re }
+      \bigg\{ \vb E\supsstar{inc} \cdot \vb K \, + \, 
+              \vb H\supsstar{inc} \cdot \vb N
+      \bigg\}
+\intertext{Insert the surface-current expansions 
+           $\vb K=\sum k_\alpha \vb f_\alpha, 
+           \vb N=-Z_0 \sum n_\alpha \vb f_\alpha$:}
+&=
+ +\frac{1}{2}\text{Re }\sum_{\alpha}
+      \bigg\{ k_\alpha \vb E\supsstar{inc} \cdot \vb f_\alpha 
+             \, 
+              - Z_0 n_\alpha \vb H\supsstar{inc} \cdot \vb f_\alpha
+      \bigg\}
+\intertext{The surface integral of this is }
+\oint \left\{ \right\} 
+&= \frac{Z_0}{2} \text{Re }\sum_{\alpha} 
+   \bigg\{ k^*_\alpha 
+           \underbrace{\Big[\oint \vb E\supsstar{inc}(\vb x) \cdot \vb f(\vb x) d\vb x\Big]/Z_0}
+                     _{v\supt{E}_\alpha}
+          -n^*_\alpha
+           \underbrace{\Big[\oint \vb H\supsstar{inc}(\vb x) \cdot \vb f(\vb x) d\vb x\Big]}
+                     _{v\supt{H}_\alpha}
+   \bigg\}
+\\[5pt]
+&= \frac{Z_0}{2} \sum_{\alpha} \Big[k^*_\alpha v\supt{E}_\alpha 
+                                      -n^*_\alpha v\supt{H}_\alpha \Big]
+\end{align*}
+where $\{ v\supt{E}_\alpha, v\supt{H}_\alpha\}$ are the 
+elements of the RHS vector of the BEM system as computed by 
+\ls.
+
+\subsubsection*{Total Scattered Power}
+
+Combining all of the above, the total scattered power is 
+
+$$P\sups{scat} = -P\sups{abs} + \frac{1}{2}\texttt{KN}^* \cdot \overline{\texttt{RHS}}$$
+where \texttt{KN} and \texttt{RHS} are respectively the vector of 
+surface-current expansion coefficients and the RHS vector, as computed
+by \ls, and the bar on the second term in the dot product indicates that 
+the magnetic contributions enter with a minus sign.
+
 \end{document}
