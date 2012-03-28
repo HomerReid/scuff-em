@@ -331,11 +331,11 @@ void RWGObject::Transform(char *format,...)
   va_start(ap,format);
   vsnprintf(buffer,MAXSTR,format,ap);
 
-  GTransformation *GT=CreateOrAugmentGTransformation(0, buffer, &ErrMsg);
+  GTransformation *OTGT=CreateOrAugmentGTransformation(0, buffer, &ErrMsg);
   if (ErrMsg)
    ErrExit(ErrMsg);
-  Transform(GT);
-  free(GT);
+  Transform(OTGT);
+  free(OTGT);
   
 }
 
@@ -429,75 +429,6 @@ RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3)
 /* Compute the overlap integral between the RWG basis functions*/
 /* associated with two edges in an RWG object.                 */
 /***************************************************************/
-double RWGObject::GetOverlapOld(int neAlpha, int neBeta)
-{ 
-  RWGEdge *EAlpha=Edges[neAlpha], *EBeta=Edges[neBeta];
-  double *V1, *V2, *QAlpha, *QBeta;
-  double PreFac, Area, Term, Sum;
-  int mu;
-
-  V1=Vertices + 3*(EAlpha->iV1);
-  V2=Vertices + 3*(EAlpha->iV2);
-  PreFac=EAlpha->Length * EBeta->Length / (24.0);
-
-  Sum=0.0;
-  if ( EAlpha->iPPanel == EBeta->iPPanel )
-   {  
-      QAlpha=Vertices + 3*(EAlpha->iQP);
-      QBeta =Vertices + 3*(EBeta->iQP);
-      Area=Panels[EAlpha->iPPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum += PreFac * Term / Area;
-   };
-  if ( EAlpha->iPPanel == EBeta->iMPanel )
-   {  
-      QAlpha=Vertices + 3*(EAlpha->iQP);
-      QBeta =Vertices + 3*(EBeta->iQM);
-      Area=Panels[EAlpha->iPPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum -= PreFac * Term / Area;
-   };
-  if ( EAlpha->iMPanel == EBeta->iPPanel )
-   {  
-      QAlpha=Vertices + 3*(EAlpha->iQM);
-      QBeta =Vertices + 3*(EBeta->iQP);
-      Area=Panels[EAlpha->iMPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum -= PreFac * Term / Area;
-   };
-  if ( EAlpha->iMPanel == EBeta->iMPanel )
-   {  
-      QAlpha=Vertices + 3*(EAlpha->iQM);
-      QBeta =Vertices + 3*(EBeta->iQM);
-      Area=Panels[EAlpha->iMPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum += PreFac * Term / Area;
-   };
-
-  return Sum;
-
-}
-
-/***************************************************************/
-/* Compute the overlap integral between the RWG basis functions*/
-/* associated with two edges in an RWG object.                 */
-/***************************************************************/
 double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 { 
   RWGEdge *EAlpha=Edges[neAlpha], *EBeta=Edges[neBeta];
@@ -533,38 +464,47 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
     
      if (pOTimes) 
       *pOTimes=0.0;
-     return lA2 * (   ( 3.0*lA2 + lBP2 + 3.0*LAdLBP ) / PArea
-                    + ( 3.0*lA2 + lBM2 - 3.0*LAdLBM ) / MArea
+     return lA2 * (   ( lA2 + 3.0*lBP2 + 3.0*LAdLBP ) / PArea
+                    + ( lA2 + 3.0*lBM2 + 3.0*LAdLBM ) / MArea
                   ) / 24.0;
    };
 
   /*--------------------------------------------------------------*/
   /*- figure out if there is nonzero overlap ---------------------*/
   /*--------------------------------------------------------------*/
-  double Sign, Area, *QA, *QB;
+  double Sign, Area, *QA, *QB; 
+  int IndexA, IndexB;
   if ( EAlpha->iPPanel == EBeta->iPPanel )
    { Sign = 1.0;
      Area = Panels[EAlpha->iPPanel]->Area;
      QA = Vertices + 3*(EAlpha->iQP);
      QB = Vertices + 3*(EBeta ->iQP);
+     IndexA = EAlpha->PIndex;
+     IndexB = EBeta->PIndex;
    }
   else if ( EAlpha->iPPanel == EBeta->iMPanel )
    { Sign = -1.0;
      Area = Panels[EAlpha->iPPanel]->Area;
      QA = Vertices + 3*(EAlpha->iQP);
      QB = Vertices + 3*(EBeta ->iQM);
+     IndexA = EAlpha->PIndex;
+     IndexB = EBeta->MIndex;
    }
   else if ( EAlpha->iMPanel == EBeta->iPPanel )
    { Sign = -1.0;
      Area = Panels[EAlpha->iMPanel]->Area;
      QA = Vertices + 3*(EAlpha->iQM);
      QB = Vertices + 3*(EBeta ->iQP);
+     IndexA = EAlpha->MIndex;
+     IndexB = EBeta->PIndex;
    }
   else if ( EAlpha->iMPanel == EBeta->iMPanel )
    { Sign = +1.0;
      Area = Panels[EAlpha->iMPanel]->Area;
      QA = Vertices + 3*(EAlpha->iQM);
      QB = Vertices + 3*(EBeta ->iQM);
+     IndexA = EAlpha->MIndex;
+     IndexB = EBeta->MIndex;
    }
   else
    {  if (pOTimes)
@@ -592,117 +532,13 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
                       +(QI[2]-QA[2])*(QB[2]-QI[2]);
 
   if (pOTimes)
-   *pOTimes = lA*lB/6.0;
+   { 
+     double SignPrime = ( ((IndexB-IndexA+3)%3) == 2) ? 1.0 : -1.0;
+     *pOTimes = Sign*SignPrime*lA*lB/6.0;
+   };
 
   return -1.0*Sign*lA*lB*( lA*lA + lB*lB + 3.0*DotProduct ) / (24.0*Area);
 
 }
-
-/***************************************************************/
-/* Compute all nonzero entries in the row of the overlap       */
-/* matrix corresponding to basis function #neAlpha.            */
-/*                                                             */
-/* (The neA, neB entry in this matrix is the overlap between   */
-/*  basis functions neA and neB, i.e.                          */
-/*   O_{neA, neB} = \int f_{neA} \cdot f_{neB}                 */
-/*  where the integral is over the intersection of the supports*/
-/*  of the basis functions).                                   */
-/*                                                             */
-/* The return value is nnz, the number of nonzero entries in   */
-/* the row. (nnz is between 1 and 5.) On return,               */
-/* ColIndices[0..(nnz-1)] are the indices of the nonzero       */
-/* columns, and OEntries[0..(nnz-1)] are the corresponding     */
-/* entries in the overlap matrix.                              */
-/*                                                             */
-/* If OTimesEntries is non-NULL on entry, then on return       */
-/* OTimesEntries[0..4] are the values of the corresponding     */
-/* entries in the 'crossed-overlap matrix,' whose entries are  */
-/* defined by                                                  */
-/*                                                             */
-/*   O^x_{neA, neB} = \int f_{neA} \cdot (nHat \times f_{neB}) */
-/*                                                             */
-/* (Note that OEntries must point to a buffer large enough to  */
-/*  hold 5 doubles, as must OTimesEntries if it is non-NULL.)  */
-/***************************************************************/
-#if 0
-int RWGObject::GetOverlaps(int neAlpha, int *ColIndices,
-                           double *pOEntries, double *pOTimesEntries)
-{ 
-  int nnz=0;
-  double OEntries[5], OTimesEntries[5];
-
-  /*--------------------------------------------------------------*/
-  /*- extract edge vertices --------------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGEdge *EAlpha=Edges[neAlpha]; 
-  double *QP = Vertices + 3*(EAlpha->iQP);
-  double *V1 = Vertices + 3*(EAlpha->iV1);
-  double *V2 = Vertices + 3*(EAlpha->iV2);
-  double *QM = Vertices + 3*(EAlpha->iQM);
-
-  /*--------------------------------------------------------------*/
-  /*- precompute some geometric quantities.                       */
-  /*- referring to the figure in Section 12 of the libscuff       */
-  /*- technical memo, LA is L_\alpha, and LB{1,2,3,4} are the     */
-  /*- other four edges of panel pair (P,P'), in the order they    */
-  /*- are encountered as we traverse the edges counterclockwise   */
-  /*- starting with LB1==L_\beta.                                 */
-  /*--------------------------------------------------------------*/
-  int i;
-  double LA[3], LB1P[3], LB2P[3], LB1M[3], LB2M[3];
-  double LAdLB1P=0.0, LAdLB2P=0.0, LAdLB1M[3], LAdLB2M[3];
-  for(i=0; i<3; i++)
-   { 
-     LA[i]   = V2[i] - V1[i]; 
-     LB1P[i] = V2[i] - QP[i];
-     LB2P[i] = V1[i] - QP[i];
-     LB1M[i] = V2[i] - QM[i];
-     LB2M[i] = V1[i] - QM[i];
-
-     LAdLB1P += LA[i]*LB1P[i];
-     LAdLB2P += LA[i]*LB2P[i];
-     LAdLB1M += LA[i]*LB1M[i];
-     LAdLB2M += LA[i]*LB2M[i];
-   };
-
-  double lA = EAlpha->Length;
-  double lA2 = lA*lA;
-
-  /*--------------------------------------------------------------*/
-  /*- diagonal elements                                -----------*/
-  /*--------------------------------------------------------------*/
-  ColIndices[0]=neAlpha;
-
-  OEntries[0] = lA2 * (  ( 3.0*lA2 + 3.0*lB2P + LAdLB2P ) / PArea 
-                        +( 3.0*lA2 + 3.0*lB2M + LAdLB2M ) / MArea
-                      ) / 24.0;
-
-  OTimesEntries[0]=0.0;
-
-  /*--------------------------------------------------------------*/
-  /*- off-diagonal elements --------------------------------------*/
-  /*--------------------------------------------------------------*/
-
-  SigmaA=1.0;
-  neb = PPanel->EdgeIndices[
-  if ( neb >= 0 ) 
-   { ColIndices[nnz] = neb;
-     OEntries[nnz] = lA2 *  ( 3.0*lA2 + 3.0*lB2 + LAdLB2P ) / PArea;
-     nnz++; 
-   };
-
-  SigmaA=1.0;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (pOEntries)
-   memcpy(pOEntries, OEntries, nnz*sizeof(double));
-  if (pOTimesEntries)
-   memcpy(pOTimesEntries, OTimesEntries, nnz*sizeof(double));
-  return nnz;
-
-}
-#endif
 
 } // namespace scuff

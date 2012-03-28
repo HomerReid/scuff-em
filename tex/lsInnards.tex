@@ -2497,9 +2497,9 @@ the total overlap integral is
 O_{\alpha\alpha}
 =\frac{l^2_\alpha}{24}
  \bigg\{ 
-   \frac{1}{A}        \Big[ 3l_\alpha^2 + l_\beta^2 + 3\vb L_\alpha\cdot \vb L_\beta\Big]
- + \frac{1}{A^\prime} \Big[ 3l_\alpha^2 + l_\beta^{\prime 2} 
-                            - 3\vb L_\alpha\cdot \vb L_\beta^\prime\Big]
+   \frac{1}{A}        \Big[ l_\alpha^2 + 3l_\beta^2 + 3\vb L_\alpha\cdot \vb L_\beta\Big]
+ + \frac{1}{A^\prime} \Big[ l_\alpha^2 + 3l_\beta^{\prime 2} 
+                            + 3\vb L_\alpha\cdot \vb L_\beta^\prime\Big]
  \bigg\}.
 }
 
@@ -2526,7 +2526,6 @@ the case of Figure \ref{OverlapIntegralFigure}\textbf{(b)}.
 $ O^{\times}_{\alpha\alpha}$ vanishes.)
 Proceeding in analogy to the computation leading to 
 equation (\ref{OAlphaBeta}), we find
-
 \begin{align}
 O^{\times}_{\alpha\beta}
 &=\int_{\mathcal{P}} \vb f_\alpha(\vb x) \cdot 
@@ -2547,15 +2546,41 @@ O^{\times}_{\alpha\beta}
   \Big[ \vbhat{n} \cdot \big(\vb L_\beta\times \vb L_\alpha\big) \Big]
 \nonumber
 \intertext{by cyclic permutation of the triple vector product. But
-the cross product here is just $\vbhat{n}$ times twice the panel area,}
+the magnitude of the cross product here is just $\vbhat{n}$ times 
+twice the panel area,}
 &=\frac{\sigma^\alpha \sigma^\beta l_\alpha l_\beta}{12A} 
-  \Big[ \vbhat{n} \cdot \big(2A\,\vbhat{n}\big) \Big]
+  \Big[ \vbhat{n} \cdot \big(\pm 2A\,\vbhat{n}\big) \Big]
 \nn
-&=\frac{\sigma^\alpha \sigma^\beta l_\alpha l_\beta}{6}.
+&=\pm\frac{\sigma^\alpha \sigma^\beta l_\alpha l_\beta}{6}.
 \label{OTimesAlphaBeta}
 \end{align}
+The $\pm$ sign is determined as follows: Suppose we start 
+at vertex $\vb Q_\alpha$ and traverse the vertices of 
+$\mathcal{P}$ by following $\vb L_\beta$, then $\vb L_\alpha$.
+If in so doing we encounter the vertices of $\pan$ in 
+the order $(0,1,2)$ or a cyclic permutation thereof, then
+the $+$ sign holds in (\ref{OTimesAlphaBeta}); otherwise
+(i.e. if we encounter the vertices in the order $(0,2,1)$ or 
+a cyclic permutation thereof) the $-$ sign holds.
 
-
+An easy way to determine this sign is to look at the 
+indices within $\mathcal{P}$ of vertices $\vb Q_\beta$
+and $\vb Q_\alpha$. Call these $I_\pan(\vb Q_\beta)$ and 
+$I_\pan(\vb Q_\alpha)$, respectively; they are integers
+defined modulo 3. Then the sign in (\ref{OTimesAlphaBeta})
+is 
+$$ \text{sign in equation (\ref{OTimesAlphaBeta})} 
+   = 
+   \begin{cases}
+   +, \quad &\text{if } I_\pan(\vb Q_\beta)
+                       -I_\pan(\vb Q_\alpha)
+                        \equiv 2 \text{ mod } 3 
+   \\
+   -, \quad &\text{if } I_\pan(\vb Q_\beta)
+                       -I_\pan(\vb Q_\alpha)
+                        \equiv 1 \text{ mod } 3.
+   \end{cases}
+$$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
