@@ -399,10 +399,10 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
 
   /***************************************************************/
   /* components of integrand vector are radial components of     */
-  /* PVScat and -PVTot                                           */
+  /* -PVTot and PVScat                                           */
   /***************************************************************/
-  fval[0] = R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
-  fval[1] = -R*R*( PVTot[0]*nHat[0]  + PVTot[1]*nHat[1]  + PVTot[2]*nHat[2] );
+  fval[0] = -R*R*( PVTot[0]*nHat[0] + PVTot[1]*nHat[1]  + PVTot[2]*nHat[2] );
+  fval[1] =  R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
 
 }
 
@@ -427,11 +427,10 @@ void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
 }
 
 /***************************************************************/
-/* evaluate the scattered and absorbed powers using the        */
-/* concise BEM vector-matrix-vector product expressions        */
+/* get the scattered and absorbed power using steven's formulas*/
+/* involving vector-matrix-vector products                     */
 /***************************************************************/
-void GetPower(SSData *SSD, char *PowerFile)
-//, double *PScat, double *PTot)
+void GetPower_SGJ(SSData *SSD, double *PSGJ)
 {
   RWGGeometry *G = SSD->G;
   HMatrix *M     = SSD->M;
@@ -443,24 +442,9 @@ void GetPower(SSData *SSD, char *PowerFile)
   /***************************************************************/
   cdouble *ZM=M->ZM, *ZRHS=RHS->ZV, *ZKN=KN->ZV;
   if (ZM==0 || ZRHS==0 || ZKN==0)
-   { fprintf(stderr,"** warning: fast power computation not available for imaginary frequences (skipping)\n");
+   { PSGJ[0]=PSGJ[1]=0.0;
      return;
    };
-
-  Log("  Computing scattered and absorbed power...");
-
-  /***************************************************************/
-  /* open the file and write the frequency at the top of the line*/
-  /***************************************************************/
-  FILE *f=fopen(PowerFile,"a");
-  if ( !f ) ErrExit("could not open file %s",PowerFile);
-
-  if ( imag(SSD->Omega)==0.0 )
-   fprintf(f,"%15.8e ",real(SSD->Omega));
-  else if ( real(SSD->Omega)==0.0 )
-   fprintf(f,"%15.8ei ",imag(SSD->Omega));
-  else 
-   fprintf(f,"%15.8e+%15.8ei ",real(SSD->Omega),imag(SSD->Omega));
 
   /***************************************************************/
   /* get the M0 matrix. we overwrite the M matrix for this       */
@@ -481,7 +465,6 @@ void GetPower(SSData *SSD, char *PowerFile)
   /* that enter into the formulas for the scattered and absorbed */
   /* power                                                       */
   /***************************************************************/
-
   // nr runs over rows, nc over columns, ne over matrix entries
   int nr, nc, ne, N=G->TotalBFs;
   double VMV, VV;
@@ -496,9 +479,101 @@ void GetPower(SSData *SSD, char *PowerFile)
     };
     
   double PScat, PAbs;
-  PScat = -0.25 * ZVAC * (VV-VMV);
   PAbs  =  0.25 * ZVAC * (VV+VMV);
-  fprintf(f,"%e %e ",PScat,PAbs);
+  PScat = -0.25 * ZVAC * (VV-VMV);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  PSGJ[0]=PAbs;
+  PSGJ[1]=PScat;
+
+}
+
+/***************************************************************/
+/* evaluate the scattered and absorbed powers using the        */
+/* concise BEM vector-matrix-vector product expressions        */
+/***************************************************************/
+void GetPower(SSData *SSD, char *PowerFile)
+{
+  RWGGeometry *G = SSD->G;
+  HVector *RHS   = SSD->RHS;
+  HVector *KN    = SSD->KN;
+
+  Log("  Computing scattered and absorbed power...");
+
+  /***************************************************************/
+  /* open the file and write the frequency at the top of the line*/
+  /***************************************************************/
+  FILE *f=fopen(PowerFile,"a");
+  if ( !f ) ErrExit("could not open file %s",PowerFile);
+
+  if ( imag(SSD->Omega)==0.0 )
+   fprintf(f,"%15.8e ",real(SSD->Omega));
+  else if ( real(SSD->Omega)==0.0 )
+   fprintf(f,"%15.8ei ",imag(SSD->Omega));
+  else 
+   fprintf(f,"%15.8e+%15.8ei ",real(SSD->Omega),imag(SSD->Omega));
+
+  /***************************************************************/
+  /* get absorbed and scattered powers                           */
+  /***************************************************************/
+  double PAbs=0.0, PScat=0.0;
+  double OTimes;
+  int no, nea, neb, Offset;
+  RWGObject *O;
+  cdouble ka, na, nb, vE, vH;
+  for(no=0; no<G->NumObjects; no++)
+   { 
+     O=G->Objects[no];
+     if ( O->ContainingObject != 0 ) // skip nested objects 
+      continue; 
+
+     Offset=G->BFIndexOffset[no];
+     if ( O->MP->IsPEC() )
+      { 
+        for(nea=0; nea<O->NumEdges; nea++)
+         { ka = KN->GetEntry(Offset  + nea );
+           vE = RHS->GetEntry(Offset + nea );
+           PScat += real( conj(ka*vE) );
+         }; // for(nea==...
+      }
+     else
+      {
+        for(nea=0; nea<O->NumEdges; nea++)
+         { 
+           ka = KN->GetEntry(Offset + 2*nea + 0 );
+           na = KN->GetEntry(Offset + 2*nea + 1 );
+
+           vE = RHS->GetEntry(Offset + 2*nea + 0 );
+           vH = RHS->GetEntry(Offset + 2*nea + 1 );
+
+           PScat+= real( conj(ka)*vE - conj(na)*vH );
+
+           for(neb=0; neb<O->NumEdges; neb++)
+            { 
+             O->GetOverlap(nea, neb, &OTimes);
+             if (OTimes==0.0) 
+              continue;
+
+             nb = KN->GetEntry(Offset + 2*neb + 1 );
+             PAbs += real( conj(ka) * OTimes * nb );
+            }; // for (neb= ... 
+
+         }; // for(nea==...
+      }; // if ( O->MP->IsPEC() )
+   }; // for(no=...)
+  
+  PAbs *= -0.5*ZVAC;
+  PScat = -PAbs + 0.5*ZVAC*PScat;
+  fprintf(f,"%e %e  ",PAbs, PScat);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double PSGJ[2];
+  GetPower_SGJ(SSD, PSGJ);
+  fprintf(f,"%e %e  ",PSGJ[0], PSGJ[1]);
 
   /***************************************************************/
   /* if the user specified a nonzero PowerRadius, repeat the     */
