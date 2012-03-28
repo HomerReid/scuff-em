@@ -331,12 +331,12 @@ void RWGObject::Transform(char *format,...)
   va_start(ap,format);
   vsnprintf(buffer,MAXSTR,format,ap);
 
-  char *ErrMsg;
-  GTransformation *GT=CreateOrAugmentGTransformation(0, buffer, &ErrMsg);
-  if (ErrMsg)
-   ErrExit(ErrMsg);
-  Transform(GT);
-  free(GT);
+  char *errMsg;
+  GTransformation *gt=CreateOrAugmentGTransformation(0, buffer, &errMsg);
+  if (errMsg)
+   ErrExit(errMsg);
+  Transform(gt);
+  free(gt);
   
 }
 

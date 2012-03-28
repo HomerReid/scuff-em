@@ -29,8 +29,8 @@ void RWGObject::InitEdgeList()
 { 
   RWGPanel *P; 
   RWGEdge *E, ***EVEdges, *BCEdgeList;
-  int i, np, ne, nv, nvp, nbc, iVLesser, iVGreater;
-  int NumExteriorVertices, NumUnusedVertices, NumExteriorEdges;
+  int i, np, ne, nv, nvp, iVLesser, iVGreater;
+  int NumExteriorVertices, NumUnusedVertices;
   int *VertexUsed;
   double *VLesser, *VGreater;
   int *EVNumEdges;
@@ -361,7 +361,7 @@ void RWGObject::InitEdgeList()
   fprintf(f,"%i total vertices\n",NumVertices);
   fprintf(f,"%i interior vertices\n",NumInteriorVertices);
   fprintf(f,"%i boundary contours\n",NumBCs);
-  for(nbc=1; nbc<=NumBCs; nbc++)
+  for(int nbc=1; nbc<=NumBCs; nbc++)
    { fprintf(f,"\n** boundary contour %i: \n",NumBCs);
 
      fprintf(f,"    vertices:");
