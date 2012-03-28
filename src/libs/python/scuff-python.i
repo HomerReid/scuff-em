@@ -87,7 +87,7 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
     $result = (PyObject*) PyArray_SimpleNewFromData
       (1, &sz, $1->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE,
        $1->RealComplex == LHM_COMPLEX ? (void*) $1->ZV : (void*) $1->DV);
-    $1->ZV = 0; $1->DV = 0; // prevent deallocation
+    $1->ownsV = false; // prevent deallocation
     delete $1;
   }
 }
@@ -95,7 +95,8 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 %{
   static bool is_HVector_array(PyObject *o) {
     return is_array(o) && array_numdims(o) == 1
-      && array_is_contiguous(o) && array_is_native(o)
+      && (array_is_contiguous(o) || array_is_fortran(o))
+      && array_is_native(o)
       && PyArray_ISALIGNED(o)
       && (array_type(o) == NPY_DOUBLE || array_type(o) == NPY_CDOUBLE);
   }
@@ -115,11 +116,11 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
     // TODO: allow conversions (with a copy) from other types?
     SWIG_exception_fail(SWIG_TypeError,
 			"in method '" "$symname" "', argument " "$argnum"
-			"of type '" "$type" "': expecting numpy array");
+			" of type '" "$type" "': expecting numpy array");
   }
 }
 %typemap(freearg)(HVector *) {
-  if (!$1->ownsV) // only deallocate if wrapper around numpy array
+  if ($1 && !$1->ownsV) // only deallocate if wrapper around numpy array
     delete $1;
 }
 %typecheck(SWIG_TYPECHECK_POINTER)(HVector *) {
@@ -141,7 +142,7 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
        $1->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE, NULL,
        $1->RealComplex == LHM_COMPLEX ? (void*) $1->ZM : (void*) $1->DM, 0,
        NPY_FARRAY, NULL);
-    $1->ZM = 0; $1->DM = 0; // prevent deallocation
+    $1->ownsM = false; // prevent deallocation
     delete $1;
   }
 }
@@ -149,7 +150,8 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 %{
   static bool is_HMatrix_array(PyObject *o) {
     return is_array(o) && array_numdims(o) == 2
-      && array_is_contiguous(o) && array_is_native(o)
+      && (array_is_contiguous(o) || array_is_fortran(o))
+      && array_is_native(o)
       && PyArray_ISALIGNED(o)
       && (array_type(o) == NPY_DOUBLE || array_type(o) == NPY_CDOUBLE);
   }
@@ -173,15 +175,14 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
     // TODO: allow conversions (with a copy) from other types?
     SWIG_exception_fail(SWIG_TypeError,
 			"in method '" "$symname" "', argument " "$argnum"
-			"of type '" "$type" "': expecting numpy array");
+			" of type '" "$type" "': expecting numpy array");
   }
 }
 %typemap(freearg)(HMatrix *) {
-  if (!$1->ownsM) // only deallocate if wrapper around numpy array
+  if ($1 && !$1->ownsM) // only deallocate if wrapper around numpy array
     delete $1; 
 }
 %typecheck(SWIG_TYPECHECK_POINTER)(HMatrix *) {
   $1 = SWIG_IsOK(SWIG_ConvertPtr($input, NULL, SWIGTYPE_p_HMatrix, 0))
     || is_HMatrix_array($input);
 }
-
