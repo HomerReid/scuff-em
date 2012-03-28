@@ -135,7 +135,6 @@ class RWGObject
    ~RWGObject();
 
    /* get overlap integral between two basis functions */
-   double GetOverlapOld(int neAlpha, int neBeta);
    double GetOverlap(int neAlpha, int neBeta, double *pOTimes = NULL);
 
    /* calculate the inner product of a single basis function with  */

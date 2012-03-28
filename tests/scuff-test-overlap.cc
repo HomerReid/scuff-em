@@ -158,6 +158,77 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
 }
 
 /***************************************************************/
+/* Compute the overlap integral between the RWG basis functions*/
+/* associated with two edges in an RWG object. (This is the    */
+/* older libRWG version of the current GetOverlap function in  */
+/* libscuff.)                                                  */
+/***************************************************************/
+double GetOverlapOld(RWGObject *O, int neAlpha, int neBeta)
+{ 
+  RWGEdge *EAlpha=O->Edges[neAlpha], *EBeta=O->Edges[neBeta];
+  double *V1, *V2, *QAlpha, *QBeta;
+  double PreFac, Area, Term, Sum;
+  int mu;
+
+  V1=O->Vertices + 3*(EAlpha->iV1);
+  V2=O->Vertices + 3*(EAlpha->iV2);
+  PreFac=EAlpha->Length * EBeta->Length / (24.0);
+
+  Sum=0.0;
+  if ( EAlpha->iPPanel == EBeta->iPPanel )
+   {  
+      QAlpha=O->Vertices + 3*(EAlpha->iQP);
+      QBeta =O->Vertices + 3*(EBeta->iQP);
+      Area=O->Panels[EAlpha->iPPanel]->Area;
+
+      for(Term=0.0, mu=0; mu<3; mu++)
+       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
+             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
+
+      Sum += PreFac * Term / Area;
+   };
+  if ( EAlpha->iPPanel == EBeta->iMPanel )
+   {  
+      QAlpha=O->Vertices + 3*(EAlpha->iQP);
+      QBeta =O->Vertices + 3*(EBeta->iQM);
+      Area=O->Panels[EAlpha->iPPanel]->Area;
+
+      for(Term=0.0, mu=0; mu<3; mu++)
+       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
+             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
+
+      Sum -= PreFac * Term / Area;
+   };
+  if ( EAlpha->iMPanel == EBeta->iPPanel )
+   {  
+      QAlpha=O->Vertices + 3*(EAlpha->iQM);
+      QBeta =O->Vertices + 3*(EBeta->iQP);
+      Area=O->Panels[EAlpha->iMPanel]->Area;
+
+      for(Term=0.0, mu=0; mu<3; mu++)
+       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
+             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
+
+      Sum -= PreFac * Term / Area;
+   };
+  if ( EAlpha->iMPanel == EBeta->iMPanel )
+   {  
+      QAlpha=O->Vertices + 3*(EAlpha->iQM);
+      QBeta =O->Vertices + 3*(EBeta->iQM);
+      Area=O->Panels[EAlpha->iMPanel]->Area;
+
+      for(Term=0.0, mu=0; mu<3; mu++)
+       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
+             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
+
+      Sum += PreFac * Term / Area;
+   };
+
+  return Sum;
+
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 int main(int argc, char *argv[])
@@ -190,6 +261,7 @@ int main(int argc, char *argv[])
   int nnz, NNZ;
   double OValues[2], OHR, OTimesHR;
   HMatrix *MM = new HMatrix(10, 6);
+  srand48(time(0));
   for(;;)
    { 
      /*--------------------------------------------------------------*/
@@ -239,6 +311,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
+     printf(" ** for nea=%i: \n",nea);
      printf("\n\n");
      printf("%4s | %10s | %10s | %4s | %10s | %10s | %4s\n",
              "neb ","   OHR    ","   OBF    "," RD  ","  OTHR    ","  OTBF    "," RD  ");
