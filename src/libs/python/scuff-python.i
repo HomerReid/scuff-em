@@ -1,10 +1,12 @@
 // -*- C++ -*-
 
+
 %{
-#define SWIG_FILE_WITH_INIT
-#define array_stride(a,i)        (((PyArrayObject *)a)->strides[i])
+#define SWIG_FILE_WITH_INIT // to build as Python module
 %}
-%include "numpy.i"
+
+%include "std_complex.i" // conversion for std::complex
+%include "numpy.i" // numpy array conversions
 %init %{
   import_array();
 %}
@@ -68,14 +70,26 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 // we return an opaque HMatrix*, and correspondingly all of the routines
 // that take HMatrix* arguments accept either a NumPy array (unpacked storage)
 // or an opaque HMatrix*.
+//
+// We also return opaque HVector*/HMatrix* pointers if the user explicitly
+// constructs an HVector/HMatrix object in Python.  This is both to honor
+// the user's request and also to correctly work with the Python wrapper
+// classes.  (SWIG doesn't provide an elegant way of using a different
+// typemap in "new" constructors, but we can do so by checking $symname
+// at runtime.)
 
 %typemap(out)(HVector *) {
-  npy_intp sz = npy_intp($1->N);
-  $result = (PyObject*) PyArray_SimpleNewFromData
-    (1, &sz, $1->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE,
-     $1->RealComplex == LHM_COMPLEX ? (void*) $1->ZV : (void*) $1->DV);
-  $1->ZV = 0; $1->DV = 0; // prevent deallocation
-  delete $1;
+  if (!strcmp("$symname", "new_HVector")) {
+    $result = SWIG_NewPointerObj((void*) $1, SWIGTYPE_p_HVector, 0);
+  }
+  else {
+    npy_intp sz = npy_intp($1->N);
+    $result = (PyObject*) PyArray_SimpleNewFromData
+      (1, &sz, $1->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE,
+       $1->RealComplex == LHM_COMPLEX ? (void*) $1->ZV : (void*) $1->DV);
+    $1->ZV = 0; $1->DV = 0; // prevent deallocation
+    delete $1;
+  }
 }
 
 %{
@@ -88,7 +102,10 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 %}
 
 %typemap(in)(HVector *) {
-  if (is_HVector_array($input)) {
+  if (SWIG_IsOK(SWIG_ConvertPtr($input, (void**)&$1, SWIGTYPE_p_HVector, 0))) {
+    // passed opaque HVector*
+  }
+  else if (is_HVector_array($input)) {
     // create HVector without making a copy of the data
     $1 = new HVector(array_size($input, 0), 
 		     array_type($input) == NPY_DOUBLE ? LHM_REAL : LHM_COMPLEX,
@@ -102,14 +119,17 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
   }
 }
 %typemap(freearg)(HVector *) {
-  delete $1;
+  if (!$1->ownsV) // only deallocate if wrapper around numpy array
+    delete $1;
 }
 %typecheck(SWIG_TYPECHECK_POINTER)(HVector *) {
-  $1 = is_HVector_array($input);
+  $1 = SWIG_IsOK(SWIG_ConvertPtr($input, NULL, SWIGTYPE_p_HVector, 0))
+    || is_HVector_array($input);
 }
 
 %typemap(out)(HMatrix *) {
-  if ($1->StorageType != LHM_NORMAL) { // return opaque HMatrix*
+  if ($1->StorageType != LHM_NORMAL ||
+      !strcmp("$symname", "new_HMatrix")) { // return opaque HMatrix*
     $result = SWIG_NewPointerObj((void*) $1, SWIGTYPE_p_HMatrix, 0);
   }
   else { // return numpy.array

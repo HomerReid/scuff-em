@@ -521,6 +521,7 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta)
 /* (Note that OEntries must point to a buffer large enough to  */
 /*  hold 5 doubles, as must OTimesEntries if it is non-NULL.)  */
 /***************************************************************/
+#if 0
 int RWGObject::GetOverlaps(int neAlpha, int *ColIndices,
                            double *OEntries, double *OTimesEntries)
 { 
@@ -615,5 +616,6 @@ int RWGObject::GetOverlaps(int neAlpha, int *ColIndices,
   return Sum;
 
 }
+#endif
 
 } // namespace scuff
