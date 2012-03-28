@@ -413,7 +413,7 @@ int main(int argc, char *argv[])
      /*******************************************************************/
      /* assemble the BEM matrix at this frequency                       */
      /*******************************************************************/
-     G->AssembleBEMMatrix(Omega, nThread, M);
+     G->AssembleBEMMatrix(Omega, M, nThread);
 
      /*******************************************************************/
      /* dump the scuff cache to a cache storage file if requested. note */
@@ -458,7 +458,7 @@ int main(int argc, char *argv[])
      Log("  Assembling the RHS vector..."); 
      G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
      IFDList->SetFrequencyAndEpsMu(Omega,Eps,Mu);
-     G->AssembleRHSVector(IFDList, nThread, KN);
+     G->AssembleRHSVector(IFDList, KN, nThread);
      if (PowerFile) SSD->RHS->Copy(SSD->KN); // copy RHS vector for later 
 
      /***************************************************************/

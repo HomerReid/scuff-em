@@ -406,7 +406,7 @@ void InitABMBArgs(ABMBArgStruct *Args)
 /* BEM matrix, which is pretty simple and really just calls    */
 /* routine above to do all the dirty work.                     */
 /***************************************************************/
-void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
+void RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
 { 
   /***************************************************************/
   /* preinitialize an argument structure for the matrix-block    */

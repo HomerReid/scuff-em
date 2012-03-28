@@ -279,7 +279,7 @@ void *AssembleRHS_Thread(void *data)
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
 void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
-                                    int nThread, HVector *B)
+                                    HVector *B, int nThread)
 { 
   int nt;
 

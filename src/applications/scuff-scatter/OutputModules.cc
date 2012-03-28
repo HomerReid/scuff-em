@@ -23,7 +23,7 @@ void GetTotalField(SSData *SSD, double *X, int WhichObject,
   /*--------------------------------------------------------------*/
   /*- get scattered field ----------------------------------------*/
   /*--------------------------------------------------------------*/
-  SSD->G->GetFields(X,WhichObject,SSD->Omega,SSD->KN,SSD->nThread,EHS);
+  SSD->G->GetFields(X,WhichObject,SSD->Omega,SSD->KN,EHS,SSD->nThread);
   memcpy(EHT,EHS,6*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
@@ -455,7 +455,7 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   for(no=0; no<G->NumObjects; no++)
    G->Objects[no]->MP->Zero();
 
-  G->AssembleBEMMatrix(SSD->Omega, SSD->nThread, M);
+  G->AssembleBEMMatrix(SSD->Omega, M, SSD->nThread);
 
   for(no=0; no<G->NumObjects; no++)
    G->Objects[no]->MP->UnZero();

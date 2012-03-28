@@ -279,7 +279,7 @@ class RWGGeometry
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
 
-   void AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M);
+   void AssembleBEMMatrix(cdouble Frequency, HMatrix *M, int nThread = 0);
 
 #if 0
    /* routines for allocating, and then filling in, the derivative */
@@ -287,7 +287,7 @@ class RWGGeometry
    HMatrix *AllocateDMDVMatrix(int RealFreq);
    void AssembleDMDVMatrix(int ObjectIndex, int VertexIndex, int Mu, 
                            double Frequency, int RealFreq,
-                           int nThread, HMatrix *DMDV);
+                           HMatrix *DMDV, int nThread = 0);
    void GetMEVertexDerivative(void *pLFW, 
                               RWGObject *O, int ne, 
                               RWGObject *OP, int nep,
@@ -302,10 +302,10 @@ class RWGGeometry
    HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
 
    void AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD, 
-                          int nThread, HVector *B);
+                          HVector *B, int nThread = 0);
    void AssembleRHSVector(IncFieldData *inc,
-                          int nThread, HVector *B) {
-	AssembleRHSVector(EHIncField, (void*) inc, nThread, B);
+                          HVector *B, int nThread = 0) {
+	AssembleRHSVector(EHIncField, (void*) inc, B, nThread);
    }
 
    /* routine for evaluating scattered fields. */
@@ -315,31 +315,31 @@ class RWGGeometry
    /* in the third entry point, the code automatically determines */
    /* which object the evaluation point lies inside.              */
    void GetFields(double *X, int ObjectIndex,
-                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
+                  cdouble Omega, HVector *KN, cdouble *EH, int nThread = 0);
    void GetFields(double *X, const char *ObjectLabel,
-                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
+                  cdouble Omega, HVector *KN, cdouble *EH, int nThread = 0);
    void GetFields(double *X, 
-                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
+                  cdouble Omega, HVector *KN, cdouble *EH, int nThread = 0);
 
    /* routine for calculating electric and magnetic dipole moments */
    void GetDipoleMoments(double Frequency, int RealFreq, HVector *KN, 
-                         int nThread, cdouble (*PM)[6]);
+                         cdouble (*PM)[6], int nThread = 0);
 
 
    /* routine for calculating spherical multipole moments */
 #if 0
    void GetSphericalMoments(int WhichObject, double *X0, int lMax,
                             double Frequency, int RealFreq,
-                            HVector *KN, int nThread,
-                            cdouble *aE, cdouble *aM);
+                            HVector *KN, 
+                            cdouble *aE, cdouble *aM, int nThread = 0);
 #endif
 
    /* routine for computing the expansion coefficients in the RWG basis */
    /* of an arbitrary user-supplied surface-tangential vector field     */
    void ExpandCurrentDistribution(EHFuncType EHFunc, void *EHFuncUD, 
-                                  int nThread, HVector *KNVec);
-   void ExpandCurrentDistribution(IncFieldData *inc, int nT, HVector *KNVec) {
-	ExpandCurrentDistribution(EHIncField, (void*)inc, nT, KNVec);
+                                  HVector *KNVec, int nThread = 0);
+   void ExpandCurrentDistribution(IncFieldData *inc, HVector *KNv, int nT=0) {
+	ExpandCurrentDistribution(EHIncField, (void*)inc, KNv, nT);
    }
 
    /* evaluate the surface currents at a given point X on an object */
@@ -350,42 +350,44 @@ class RWGGeometry
    /* routines for evaluating the scattering portions of the electric and magnetic */
    /* dyadic green's functions and the VEV of the maxwell stress tensor            */
    void GetGij(double *R, HMatrix *M, int Cholesky, HVector *KN, 
-               double Frequency, int RealFreq, int nThread,
-               cdouble GE[3][3], cdouble GM[3][3]);
+               double Frequency, int RealFreq, 
+               cdouble GE[3][3], cdouble GM[3][3], int nThread = 0);
 
    void GetTijNj(double R[3], double nHat[3], HMatrix *M, int Cholesky, 
                  HVector *KN, double Frequency, int RealFreq, 
-                 int nThread, double TE[3], double TM[3]);
+                 double TE[3], double TM[3], int nThread = 0);
 
    /* alternate entry points to the above two routines in which the Cholesky */
    /* parameter is taken equal to its default value of 0                     */
    void GetGij(double *R, HMatrix *M, HVector *KN, 
-               double Frequency, int RealFreq, int nThread,
-               cdouble GE[3][3], cdouble GM[3][3]);
+               double Frequency, int RealFreq, 
+               cdouble GE[3][3], cdouble GM[3][3], int nThread = 0);
 
    void GetTijNj(double R[3], double nHat[3], HMatrix *M,
                  HVector *KN, double Frequency, int RealFreq, 
-                 int nThread, double TE[3], double TM[3]);
+                 double TE[3], double TM[3], int nThread = 0);
 #endif
 
    /* optimized and accelerated array-based routines for evaluating the */
    /* stress tensor at several spatial points all at once               */
 #if 0
    void AssembleRHSVectorArray(double *RArray, int NumPts, double Xi, 
-                               int nThread, HMatrix *KNArray);
+                               HMatrix *KNArray, int nThread = 0);
 
    void GetFieldsArray(double *RArray, int NumPts, double Xi, 
-                       HMatrix *KNArray, int nThread, 
-                       double EArray[][3][3], double HArray[][3][3]);
+                       HMatrix *KNArray, 
+                       double EArray[][3][3], double HArray[][3][3],
+		       int nThread = 0);
 
    void GetGijArray(double *RArray, int NumPts, HMatrix *M, int Cholesky, 
-                    HMatrix *KNArray, double Xi, int nThread,
-                    double GEArray[][3][3], double GMArray[][3][3]);
+                    HMatrix *KNArray, double Xi, 
+                    double GEArray[][3][3], double GMArray[][3][3],
+		    int nThread = 0);
 
    void GetTijNjArray(double *RArray, double *nHatArray, int NumPts,
                       HMatrix *M, int Cholesky, HMatrix *KNArray, 
-                      double Xi, int nThread, 
-                      double TEArray[][3], double TMArray[][3]);
+                      double Xi, double TEArray[][3], double TMArray[][3],
+		      int nThread = 0);
 #endif
 
    /* routine for setting logging verbosity */

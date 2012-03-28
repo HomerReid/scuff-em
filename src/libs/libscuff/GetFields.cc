@@ -279,7 +279,7 @@ void *GetFields_Thread(void *data)
 /* object #ObjectIndex.                                        */
 /***************************************************************/
 void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
-                            HVector *KN, int nThread, cdouble *EH)
+                            HVector *KN, cdouble *EH, int nThread)
 { 
   if (nThread <= 0) nThread = GetNumThreads();
   
@@ -486,7 +486,7 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
 void RWGGeometry::GetFields(double *X, 
                             const char *ObjectLabel,
                             cdouble Omega,
-                            HVector *KN, int nThread, cdouble *EH)
+                            HVector *KN, cdouble *EH, int nThread)
 {
   if (!ObjectLabel)
    ErrExit("%s:%i:internal error",__FILE__,__LINE__);
@@ -509,7 +509,7 @@ void RWGGeometry::GetFields(double *X,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  GetFields(X, ObjectIndex, Omega, KN, nThread, EH);
+  GetFields(X, ObjectIndex, Omega, KN, EH, nThread);
 
 }
 
@@ -519,8 +519,9 @@ void RWGGeometry::GetFields(double *X,
 /***************************************************************/
 void RWGGeometry::GetFields(double *X, 
                             cdouble Omega,
-                            HVector *KN, int nThread, cdouble *EH)
+                            HVector *KN, cdouble *EH, int nThread)
 {
+  ErrExit("autodetection GetFields not yet implemented");
 }
 
 } // namespace scuff

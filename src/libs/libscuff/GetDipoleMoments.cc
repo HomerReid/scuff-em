@@ -135,7 +135,7 @@ static void *GetDipoleMoment_Thread(void *data)
 /* induced on the #noth object.                                */
 /***************************************************************/
 void RWGGeometry::GetDipoleMoments(double Frequency, int RealFreq,
-                                   HVector *KN, int nThread, cdouble (*PM)[6])
+                                   HVector *KN, cdouble (*PM)[6], int nThread)
 { 
   int nt, no;
 

@@ -99,7 +99,7 @@ void RWGGeometry::GetMEVertexDerivative(void *pLFW,
 /***************************************************************/
 void RWGGeometry::AssembleDMDVMatrix(int ObjectIndex, int VertexIndex, int Mu, 
                                      double Frequency, int RealFreq,
-                                     int nThread, HMatrix *DMDV)
+                                     HMatrix *DMDV, int nThread)
 { 
   int ne, nep, nop, Offset, OffsetP;
   int Formulation;
