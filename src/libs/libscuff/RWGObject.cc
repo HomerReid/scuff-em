@@ -331,7 +331,6 @@ void RWGObject::Transform(char *format,...)
   va_start(ap,format);
   vsnprintf(buffer,MAXSTR,format,ap);
 
-  char *ErrMsg;
   GTransformation *GT=CreateOrAugmentGTransformation(0, buffer, &ErrMsg);
   if (ErrMsg)
    ErrExit(ErrMsg);
@@ -534,8 +533,8 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
     
      if (pOTimes) 
       *pOTimes=0.0;
-     return lA2 * (   ( 3.0*lA2 + 3.0*lBP2 + LAdLBP ) / PArea
-                    + ( 3.0*lA2 + 3.0*lBM2 + LAdLBM ) / MArea
+     return lA2 * (   ( 3.0*lA2 + lBP2 + 3.0*LAdLBP ) / PArea
+                    + ( 3.0*lA2 + lBM2 - 3.0*LAdLBM ) / MArea
                   ) / 24.0;
    };
 
@@ -593,9 +592,9 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
                       +(QI[2]-QA[2])*(QB[2]-QI[2]);
 
   if (pOTimes)
-   *pOTimes = Sign*lA*lB/6.0;
+   *pOTimes = lA*lB/6.0;
 
-  return -1.0*Sign*lA*lB*( lA*lA + lB*lB - 3.0*DotProduct ) / (24.0*Area);
+  return -1.0*Sign*lA*lB*( lA*lA + lB*lB + 3.0*DotProduct ) / (24.0*Area);
 
 }
 
