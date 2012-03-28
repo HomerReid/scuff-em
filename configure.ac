@@ -120,6 +120,12 @@ ACX_LAPACK([], [AC_MSG_ERROR([LAPACK was not found!])])
 LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
 
 ##################################################
+# checks for readline 
+# (which is used by some test programs)
+##################################################
+AC_CHECK_LIB(readline, readline)
+
+##################################################
 # Python SWIG wrappers
 ##################################################
 
@@ -196,6 +202,7 @@ AC_CONFIG_FILES([
  examples/scuff-scatter/SphericalShell/Makefile
  examples/scuff-caspol/Makefile
  examples/scuff-cas3D/Makefile
+ tests/Makefile
 ])
 AC_OUTPUT
 
