@@ -108,6 +108,8 @@ void RWGGeometry::AssembleDMDVMatrix(int ObjectIndex, int VertexIndex, int Mu,
   cdouble dmdv[3];
   static void *pLFW=0;
 
+  if (nThread <= 0) nThread = GetNumThreads();
+
   if (pLFW==0)
    pLFW=CreateLFWorkspace();
 

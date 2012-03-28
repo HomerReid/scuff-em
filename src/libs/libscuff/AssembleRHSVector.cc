@@ -283,8 +283,7 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
 { 
   int nt;
 
-  if (nThread<=0)
-   ErrExit("AssembleRHSVector called with nThread=%i",nThread);
+  if (nThread <= 0) nThread = GetNumThreads();
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;

@@ -139,8 +139,7 @@ void RWGGeometry::GetDipoleMoments(double Frequency, int RealFreq,
 { 
   int nt, no;
 
-  if (nThread<=0)
-   ErrExit("GetDipoleMoments called with nThread=%i",nThread);
+  if (nThread <= 0) nThread = GetNumThreads();
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;

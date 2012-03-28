@@ -414,6 +414,7 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
   /***************************************************************/
   ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
 
+  if (nThread <= 0) nThread = GetNumThreads();
   InitABMBArgs(Args);
   Args->G=this;
   Args->Omega=Omega;

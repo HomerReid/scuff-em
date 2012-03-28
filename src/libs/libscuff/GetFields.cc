@@ -281,8 +281,7 @@ void *GetFields_Thread(void *data)
 void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
                             HVector *KN, int nThread, cdouble *EH)
 { 
-  if (nThread<=0)
-   ErrExit("GetFields called with nThread=%i",nThread);
+  if (nThread <= 0) nThread = GetNumThreads();
   
   /***************************************************************/
   /* switch off to determine whether we are in the external      */
