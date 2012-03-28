@@ -102,7 +102,7 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
   }
 %}
 
-%typemap(in)(HVector *) {
+%typemap(in)(HVector *) (PyArrayObject* conv=NULL) {
   if (SWIG_IsOK(SWIG_ConvertPtr($input, (void**)&$1, SWIGTYPE_p_HVector, 0))) {
     // passed opaque HVector*
   }
@@ -113,19 +113,30 @@ static void EHFunc_python(double *R, void *f, cdouble *EH) {
 		     array_data($input));
   }
   else {
-    // TODO: allow conversions (with a copy) from other types?
-    SWIG_exception_fail(SWIG_TypeError,
-			"in method '" "$symname" "', argument " "$argnum"
-			" of type '" "$type" "': expecting numpy array");
+    int is_new_object;
+    conv = obj_to_array_contiguous_allow_conversion($input, NPY_DOUBLE, 
+						     &is_new_object);
+    if (!conv)
+      conv = obj_to_array_contiguous_allow_conversion($input, NPY_CDOUBLE, 
+						       &is_new_object);
+    if (!conv)
+      SWIG_exception_fail(SWIG_TypeError,
+			  "in method '" "$symname" "', argument " "$argnum"
+			  " of type '" "$type" "': expecting array");
+    if (!is_new_object) Py_INCREF(conv); // prevent deallocation
+    $1 = new HVector(array_size(conv, 0),
+		     array_type(conv) == NPY_DOUBLE ? LHM_REAL : LHM_COMPLEX,
+		     array_data(conv));
   }
 }
 %typemap(freearg)(HVector *) {
   if ($1 && !$1->ownsV) // only deallocate if wrapper around numpy array
     delete $1;
+  Py_XDECREF(conv$argnum); // deallocate (if new object was created)
 }
 %typecheck(SWIG_TYPECHECK_POINTER)(HVector *) {
   $1 = SWIG_IsOK(SWIG_ConvertPtr($input, NULL, SWIGTYPE_p_HVector, 0))
-    || is_HVector_array($input);
+    || is_HVector_array($input) || PySequence_Check($input);
 }
 
 %typemap(out)(HMatrix *) {
