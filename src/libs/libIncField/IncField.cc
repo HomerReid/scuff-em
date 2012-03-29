@@ -1,5 +1,5 @@
 /*
- * IncFieldData.cc -- implementation of the IncFieldData base class,  
+ * IncField.cc -- implementation of the IncField base class,  
  *                    together with the EHIncField() non-class method
  *
  * homer reid      -- 1/2012
@@ -12,16 +12,16 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void IncFieldData::SetFrequency(cdouble pOmega)
+void IncField::SetFrequency(cdouble pOmega)
 {
-  IncFieldData *IFD;
+  IncField *IFD;
   for(IFD=this; IFD; IFD=IFD->Next)
    IFD->Omega=pOmega;
 }
 
-void IncFieldData::SetFrequencyAndEpsMu(cdouble pOmega, cdouble pEps, cdouble pMu)
+void IncField::SetFrequencyAndEpsMu(cdouble pOmega, cdouble pEps, cdouble pMu)
 {
-  IncFieldData *IFD;
+  IncField *IFD;
   for(IFD=this; IFD; IFD=IFD->Next)
    { IFD->Omega=pOmega;
      IFD->Eps=pEps;
@@ -30,19 +30,25 @@ void IncFieldData::SetFrequencyAndEpsMu(cdouble pOmega, cdouble pEps, cdouble pM
 }
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void EHIncField(double *X, void *UserData, cdouble EH[6])
+
+void IncField::GetTotalFields(const double X[3], cdouble EH[6])
 {
   memset(EH, 0, 6*sizeof(cdouble));
- 
-  IncFieldData *IFD, *IFDList=(IncFieldData *)UserData;
-  cdouble PEH[6]; 
-  int nc;
-  for(IFD=IFDList; IFD; IFD=IFD->Next)
+  for(IncField *IFD=this; IFD; IFD=IFD->Next)
    { 
+     cdouble PEH[6]; 
      IFD->GetFields(X, PEH);
-     for(nc=0; nc<6; nc++)
+     for(int nc=0; nc<6; nc++)
       EH[nc] += PEH[nc];
    };
+
+}
+
+/***************************************************************/
+/***************************************************************/
+void EHIncField(const double X[3], void *UserData, cdouble EH[6])
+{
+ 
+  IncField *IFD=(IncField *)UserData;
+  IFD->GetTotalFields(X, EH);
 }

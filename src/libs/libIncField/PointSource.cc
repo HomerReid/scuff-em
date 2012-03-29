@@ -1,5 +1,5 @@
 /*
- * PointSource.cc -- point source implementation of IncFieldData
+ * PointSource.cc -- point source implementation of IncField
  *
  * homer reid     -- 11/2009 -- 2/2012
  */
@@ -13,31 +13,23 @@
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-PointSourceData::PointSourceData(double pX0[3], cdouble pP[3], int pType)
+PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType)
 {
   memcpy(X0, pX0, 3*sizeof(double));
   memcpy(P,  pP, 3*sizeof(cdouble));
   Type=pType;
 }
 
-PointSourceData::PointSourceData(double pX0[3], cdouble pP[3])
-{
-  memcpy(X0, pX0, 3*sizeof(double));
-  memcpy(P,  pP, 3*sizeof(cdouble));
-  Type=LIF_ELECTRIC_DIPOLE;
-}
-
-
 /**********************************************************************/
 /* fields of a complex point source.                                  */
 /*                                                                    */
 /* NOTE: for the default case of an electric dipole, the quantity P   */
-/* in the PointSourceData structure is assumed to be the dipole       */
+/* in the PointSource structure is assumed to be the dipole       */
 /* moment divided by \epsilon_0, which means that P has units of      */
 /* voltage*length^2.                                                  */
 /*                                                                    */
 /**********************************************************************/
-void PointSourceData::GetFields(double *X, cdouble *EH)
+void PointSource::GetFields(const double X[3], cdouble EH[6])
 {
   /* construct R, RHat, etc. */
   double RHat[3], R;

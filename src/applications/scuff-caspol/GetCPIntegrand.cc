@@ -48,7 +48,7 @@ void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
   // construct a point source at the image location
   double X0[3]={0.0, 0.0, -Z};
   cdouble P0[3] = {0,0,0}; 
-  PointSourceData MyPSD(X0, P0);
+  PointSource MyPSD(X0, P0);
   MyPSD.Omega=cdouble(0,Xi);
   MyPSD.Eps=1.0;
   MyPSD.Mu=1.0;
@@ -100,7 +100,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   /***************************************************************/
   if (G)
    { Log("Assembling BEM matrix at Xi=%g\n",Xi);
-     G->AssembleBEMMatrix(cdouble(0,Xi), nThread, M);
+     G->AssembleBEMMatrix(cdouble(0,Xi), M, nThread);
      M->LUFactorize();
    };
 

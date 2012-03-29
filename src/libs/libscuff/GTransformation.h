@@ -33,19 +33,19 @@ typedef struct GTransformation
 GTransformation *CreateGTransformation();
 
 // create or augment using a known displacement vector
-GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX);
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, const double DX[3]);
  
 // create or augment using a known rotation angle and axis 
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
-                                                double *ZHat, double Theta);
+                                                const double ZHat[3], double Theta);
 
 // create or augment by parsing a character string
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
                                                 char *TransformString,
-                                                char **ErrMsg);
+                                                char **ErrMsg = 0);
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
                                                 char **Tokens, int NumTokens,
-                                                char **ErrMsg, int *TokensConsumed);
+                                                char **ErrMsg = 0, int *TokensConsumed = 0);
 
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
                                                 GTransformation *DeltaGT);
@@ -62,11 +62,11 @@ void ResetGTransformation(GTransformation *GT);
 /***************************************************************/
 /* in-place */
 void ApplyGTransformation(GTransformation *GT, double *X, int NX);
-void ApplyGTransformation(GTransformation *GT, double *X);
+void ApplyGTransformation(GTransformation *GT, double X[3]);
 
 /* out-of-place */
-void ApplyGTransformation(GTransformation *GT, double *X, double *XP, int NX);
-void ApplyGTransformation(GTransformation *GT, double *X, double *XP);
+void ApplyGTransformation(GTransformation *GT, const double *X, double *XP, int NX);
+void ApplyGTransformation(GTransformation *GT, const double X[3], double XP[3]);
 
 void UnApplyGTransformation(GTransformation *GT, double *X, int NX);
 

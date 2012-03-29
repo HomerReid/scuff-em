@@ -82,3 +82,8 @@ Thumbs.db
 ########################
 scuff-python.cpp
 scuff.py
+scuff.pyc
+
+# Compiled programs #
+#####################
+tests/scuff-test-overlap

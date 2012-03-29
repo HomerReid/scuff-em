@@ -89,7 +89,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* read and process lines from input file one at a time        */
   /***************************************************************/
-  RWGObject *O;
+  RWGObject *O=NULL;
   char Line[MAXSTR], Label[MAXSTR];
   int LineNum=0; 
   int nTokens;

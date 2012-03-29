@@ -336,7 +336,6 @@ void RWGObject::Transform(char *format,...)
    ErrExit(ErrMsg);
   Transform(OTGT);
   free(OTGT);
-  
 }
 
 void RWGObject::UnTransform()
