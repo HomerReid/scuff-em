@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
            MM->SetEntry(NNZ, 3, OTimesHR);
            MM->SetEntry(NNZ, 4, OValues[1]);
 
-           MM->SetEntry(NNZ, 5, O->GetOverlapOld(nea, neb) );
+           MM->SetEntry(NNZ, 5, GetOverlapOld(O, nea, neb) );
 
            NNZ++;
          };

@@ -1,7 +1,0 @@
-geometry Sphere.scuffgeo
-OmegaFile FreqList
-PowerFile Sphere.power 
-PowerRadius 50.0 
-pwDirection 0 0 1 
-pwPolarization 1 0 0 
-cache Sphere.scuffcache
