@@ -16,16 +16,18 @@
 %fragment("NumPy_Macros");
 %numpy_typemaps(double, NPY_DOUBLE, size_t)
 %numpy_typemaps(cdouble, NPY_CDOUBLE, size_t)
+%apply double IN_ARRAY1[ANY] { const double [3] };
+%apply cdouble INPLACE_ARRAY1[ANY] { cdouble [6] };
 
 //////////////////////////////////////////////////////////////////////////////
 // Wrapper for EHFuncType
 
 // wrap Python function EH = f(R)
 %{
-static void EHFunc_python(double *R, void *f, cdouble *EH) {
+static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
   npy_intp sz3 = 3, stride1 = sizeof(double);
   PyObject *Rpy = PyArray_New(&PyArray_Type, 1, &sz3, NPY_DOUBLE, &stride1,
-                              R, // not NPY_WRITEABLE, effectively const
+                              const_cast<double*>(R), // not NPY_WRITEABLE
                               0, NPY_C_CONTIGUOUS | NPY_ALIGNED, NULL);
   PyObject *arglist = Py_BuildValue("O", Rpy);
   PyObject *result = PyEval_CallObject((PyObject *) f, arglist);

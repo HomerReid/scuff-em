@@ -13,20 +13,12 @@
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-PointSourceData::PointSourceData(double pX0[3], cdouble pP[3], int pType)
+PointSourceData::PointSourceData(const double pX0[3], const cdouble pP[3], int pType)
 {
   memcpy(X0, pX0, 3*sizeof(double));
   memcpy(P,  pP, 3*sizeof(cdouble));
   Type=pType;
 }
-
-PointSourceData::PointSourceData(double pX0[3], cdouble pP[3])
-{
-  memcpy(X0, pX0, 3*sizeof(double));
-  memcpy(P,  pP, 3*sizeof(cdouble));
-  Type=LIF_ELECTRIC_DIPOLE;
-}
-
 
 /**********************************************************************/
 /* fields of a complex point source.                                  */
@@ -37,7 +29,7 @@ PointSourceData::PointSourceData(double pX0[3], cdouble pP[3])
 /* voltage*length^2.                                                  */
 /*                                                                    */
 /**********************************************************************/
-void PointSourceData::GetFields(double *X, cdouble *EH)
+void PointSourceData::GetFields(const double X[3], cdouble EH[6])
 {
   /* construct R, RHat, etc. */
   double RHat[3], R;

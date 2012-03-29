@@ -49,7 +49,7 @@ namespace scuff{
 #endif
 
 /* prototype for incident field routine passed to AssembleRHS */
-typedef void (*EHFuncType)(double *R, void *UserData, cdouble *EH); 
+typedef void (*EHFuncType)(const double R[3], void *UserData, cdouble EH[6]); 
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -235,7 +235,7 @@ class RWGObject
    /* calculate reduced potentials due to a single basis function */
    /* (this is a helper function used to implement the            */
    /*  GetInnerProducts() class method)                           */
-   void GetReducedPotentials(int ne, double *X, cdouble K,
+   void GetReducedPotentials(int ne, const double *X, cdouble K,
                              cdouble *a, cdouble *Curla, cdouble *Gradp);
  
  };
@@ -313,12 +313,12 @@ class RWGGeometry
    /* exterior medium), which saves time.                         */
    /* in the third entry point, the code automatically determines */
    /* which object the evaluation point lies inside.              */
-   void GetFields(double *X, int ObjectIndex,
-                  cdouble Omega, HVector *KN, cdouble *EH, int nThread = 0);
-   void GetFields(double *X, const char *ObjectLabel,
-                  cdouble Omega, HVector *KN, cdouble *EH, int nThread = 0);
-   void GetFields(double *X, 
-                  cdouble Omega, HVector *KN, cdouble *EH, int nThread = 0);
+   void GetFields(const double X[3], int ObjectIndex,
+                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
+   void GetFields(const double X[3], const char *ObjectLabel,
+                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
+   void GetFields(const double X[3], 
+                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
 
    /* routine for calculating electric and magnetic dipole moments */
    void GetDipoleMoments(double Frequency, int RealFreq, HVector *KN, 
@@ -327,10 +327,11 @@ class RWGGeometry
 
    /* routine for calculating spherical multipole moments */
 #if 0
-   void GetSphericalMoments(int WhichObject, double *X0, int lMax,
+   void GetSphericalMoments(int WhichObject, const double X0[3], 
                             double Frequency, int RealFreq,
                             HVector *KN, 
-                            cdouble *aE, cdouble *aM, int nThread = 0);
+                            cdouble *aE, cdouble *aM, int lMax,
+			    int nThread = 0);
 #endif
 
    /* routine for computing the expansion coefficients in the RWG basis */
@@ -343,16 +344,16 @@ class RWGGeometry
 
    /* evaluate the surface currents at a given point X on an object */
    /* surface, given a vector of RWG expansion coefficients         */
-   void EvalCurrentDistribution(double *X, HVector *KNVec, cdouble *KN);
+   void EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6]);
 
 #if 0
    /* routines for evaluating the scattering portions of the electric and magnetic */
    /* dyadic green's functions and the VEV of the maxwell stress tensor            */
-   void GetGij(double *R, HMatrix *M, int Cholesky, HVector *KN, 
+   void GetGij(const double R[3], HMatrix *M, int Cholesky, HVector *KN, 
                double Frequency, int RealFreq, 
                cdouble GE[3][3], cdouble GM[3][3], int nThread = 0);
 
-   void GetTijNj(double R[3], double nHat[3], HMatrix *M, int Cholesky, 
+   void GetTijNj(const double R[3], double nHat[3], HMatrix *M, int Cholesky, 
                  HVector *KN, double Frequency, int RealFreq, 
                  double TE[3], double TM[3], int nThread = 0);
 
@@ -362,7 +363,7 @@ class RWGGeometry
                double Frequency, int RealFreq, 
                cdouble GE[3][3], cdouble GM[3][3], int nThread = 0);
 
-   void GetTijNj(double R[3], double nHat[3], HMatrix *M,
+   void GetTijNj(const double R[3], const double nHat[3], HMatrix *M,
                  HVector *KN, double Frequency, int RealFreq, 
                  double TE[3], double TM[3], int nThread = 0);
 #endif
@@ -462,21 +463,21 @@ void InitRWGPanel(RWGPanel *P, double *Vertices);
 /*--------------------------------------------------------------*/
   
 /* 3D vector manipulations */
-void VecZero(double *v);
-double *VecScale(double *v, double alpha);
-double *VecScaleAdd(double *v1, double alpha, double *v2, double *v3);
-double *VecAdd(double *v1, double *v2, double *v3);
-double *VecSub(double *v1, double *v2, double *v3);
-double *VecPlusEquals(double *v1, double alpha, double *v2);
-double *VecCross(double *v1, double *v2, double *v3);
-double *VecLinComb(double alpha, double *v1, double beta, double *v2, 
-                   double *v3);
-double VecDot(double *v1, double *v2);
-double VecDistance(double *v1, double *v2);
-double VecDistance2(double *v1, double *v2);
-double VecNorm(double *v);
-double VecNorm2(double *v);
-double VecNormalize(double *v);
+void VecZero(double v[3]);
+double *VecScale(double v[3], double alpha);
+double *VecScaleAdd(const double v1[3], double alpha, const double v2[3], double v3[3]);
+double *VecAdd(const double v1[3], const double v2[3], double v3[3]);
+double *VecSub(const double v1[3], const double v2[3], double v3[3]);
+double *VecPlusEquals(double v1[3], double alpha, const double v2[3]);
+double *VecCross(const double v1[3], const double v2[3], double v3[3]);
+double *VecLinComb(double alpha, const double v1[3], double beta, const double v2[3], 
+                   double v3[3]);
+double VecDot(const double v1[3], const double v2[3]);
+double VecDistance(const double v1[3], const double v2[3]);
+double VecDistance2(const double v1[3], const double v2[3]);
+double VecNorm(const double v[3]);
+double VecNorm2(const double v[3]);
+double VecNormalize(double v[3]);
 
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);

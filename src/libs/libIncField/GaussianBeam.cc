@@ -33,7 +33,7 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GaussianBeamData::GetFields(double *X, cdouble *EH)
+void GaussianBeamData::GetFields(const double X[3], cdouble EH[6])
 {
   if ( imag(Eps) !=0.0 || imag(Mu) != 0.0 )
    ErrExit("%s:%i: gaussian beams not implemented for dispersive media");
@@ -168,8 +168,8 @@ double GaussianBeamData::TotalBeamFlux() {
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-GaussianBeamData::GaussianBeamData(double pX0[3], double pKProp[3], 
-                                   cdouble pE0[3], double pW0)
+GaussianBeamData::GaussianBeamData(const double pX0[3], const double pKProp[3], 
+                                   const cdouble pE0[3], double pW0)
 {
   memcpy(X0, pX0, 3*sizeof(double));
   memcpy(KProp, pKProp, 3*sizeof(double));

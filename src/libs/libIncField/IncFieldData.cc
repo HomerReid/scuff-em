@@ -32,7 +32,7 @@ void IncFieldData::SetFrequencyAndEpsMu(cdouble pOmega, cdouble pEps, cdouble pM
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void EHIncField(double *X, void *UserData, cdouble EH[6])
+void EHIncField(const double X[3], void *UserData, cdouble EH[6])
 {
   memset(EH, 0, 6*sizeof(cdouble));
  

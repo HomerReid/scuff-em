@@ -78,7 +78,7 @@ void RWGGeometry::ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD,
 /* return 1 if X lies inside the triangle with vertices V1, V2, V3. */
 /* return 0 otherwise.                                              */
 /* X is assumed to lie in the plane of the triangle.                */
-int InsideTriangle(double *X, double *V1, double *V2, double *V3)
+int InsideTriangle(const double *X, const double *V1, const double *V2, const double *V3)
 {
   double V1mX[3], V2mX[3], V3mX[3];
   double Length1, Length2, Length3;
@@ -105,7 +105,7 @@ int InsideTriangle(double *X, double *V1, double *V2, double *V3)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::EvalCurrentDistribution(double *X, HVector *KNVec, cdouble *KN)
+void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6])
 { 
   int ne; 
   RWGObject *O;

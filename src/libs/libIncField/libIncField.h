@@ -39,7 +39,7 @@ typedef class IncFieldData
    void SetFrequency(cdouble Omega);
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu);
    
-   virtual void GetFields(double *X, cdouble *EH) = 0 ;
+   virtual void GetFields(const double X[3], cdouble EH[6]) = 0 ;
 
  } IncFieldData;
 
@@ -52,7 +52,7 @@ typedef class IncFieldData
 /* returned is the sum of the fields associated with each structure in*/
 /* the list.                                                          */
 /**********************************************************************/
-void EHIncField(double *X, void *UserData, cdouble EH[6]);
+void EHIncField(const double X[3], void *UserData, cdouble EH[6]);
 
 /**********************************************************************/
 /* Next come the various possible types of incident field, implemented*/
@@ -67,9 +67,9 @@ struct PlaneWaveData : public IncFieldData
    cdouble E0[3];         /* E-field polarization vector */
    double nHat[3];        /* unit vector in direction of propagation */
 
-   PlaneWaveData(cdouble E0[3], double nHat[3]);
+   PlaneWaveData(const cdouble E0[3], const double nHat[3]);
 
-   void GetFields(double *X, cdouble *EH);
+   void GetFields(const double X[3], cdouble EH[6]);
 
  };
 
@@ -84,10 +84,9 @@ struct PointSourceData: public IncFieldData
    cdouble P[3];         /* strength */
    int Type;             /* LIF_ELECTRIC_DIPOLE or LIF_MAGNETIC_DIPOLE */
 
-   PointSourceData(double X0[3], cdouble P[3], int Type);
-   PointSourceData(double X0[3], cdouble P[3]); // defaults to Type=LIF_ELECTRIC_DIPOLE
+   PointSourceData(const double X0[3], const cdouble P[3], int Type = LIF_ELECTRIC_DIPOLE);
 
-   void GetFields(double *X, cdouble *EH);
+   void GetFields(const double X[3], cdouble EH[6]);
 
  };
 
@@ -102,9 +101,9 @@ struct GaussianBeamData: public IncFieldData
    double W0;               /* beam waist */
 
    // constructor 
-   GaussianBeamData(double X0[3], double KProp[3], cdouble E0[3], double W0);
+   GaussianBeamData(const double X0[3], const double KProp[3], const cdouble E0[3], double W0);
 
-   void GetFields(double *X, cdouble *EH);
+   void GetFields(const double X[3], cdouble EH[6]);
 
    double TotalBeamFlux();
 
