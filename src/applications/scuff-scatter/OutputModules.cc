@@ -518,7 +518,7 @@ void GetPower(SSData *SSD, char *PowerFile)
   /***************************************************************/
   /* get absorbed and scattered powers                           */
   /***************************************************************/
-  double PAbs=0.0, PScat=0.0;
+  double PTot=0.0, PAbs=0.0;
   double OTimes;
   int no, nea, neb, Offset;
   RWGObject *O;
@@ -535,7 +535,7 @@ void GetPower(SSData *SSD, char *PowerFile)
         for(nea=0; nea<O->NumEdges; nea++)
          { ka = KN->GetEntry(Offset  + nea );
            vE = RHS->GetEntry(Offset + nea );
-           PScat += real( conj(ka*vE) );
+           PTot += real( conj(ka*vE) );
          }; // for(nea==...
       }
      else
@@ -548,16 +548,16 @@ void GetPower(SSData *SSD, char *PowerFile)
            vE = RHS->GetEntry(Offset + 2*nea + 0 );
            vH = RHS->GetEntry(Offset + 2*nea + 1 );
 
-           PScat+= real( conj(ka)*vE - conj(na)*vH );
+           PTot += real( conj(ka)*vE - conj(na)*vH );
 
            for(neb=0; neb<O->NumEdges; neb++)
             { 
-             O->GetOverlap(nea, neb, &OTimes);
-             if (OTimes==0.0) 
-              continue;
+              O->GetOverlap(nea, neb, &OTimes);
+              if (OTimes==0.0) 
+               continue;
 
-             nb = KN->GetEntry(Offset + 2*neb + 1 );
-             PAbs += real( conj(ka) * OTimes * nb );
+              nb = KN->GetEntry(Offset + 2*neb + 1 );
+              PAbs += real( conj(ka) * OTimes * nb );
             }; // for (neb= ... 
 
          }; // for(nea==...
@@ -565,8 +565,8 @@ void GetPower(SSData *SSD, char *PowerFile)
    }; // for(no=...)
   
   PAbs *= -0.5*ZVAC;
-  PScat = -PAbs + 0.5*ZVAC*PScat;
-  fprintf(f,"%e %e  ",PAbs, PScat);
+  PTot *=  0.5*ZVAC;
+  fprintf(f,"%e %e  ",PAbs, PTot );
 
   /***************************************************************/
   /***************************************************************/
