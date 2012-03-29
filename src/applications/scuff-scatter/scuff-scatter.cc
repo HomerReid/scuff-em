@@ -351,8 +351,8 @@ int main(int argc, char *argv[])
      IFDList=IFD;
    };
 
-  if (PowerFile && PowerRadius==0.0)
-   ErrExit("--PowerRadius must be specified if --PowerFile is specified");
+  if (PowerRadius!=0.0 && PowerFile==0)
+   ErrExit("--PowerFile must be specified if --PowerRadius is specified");
 
   /*******************************************************************/
   /* sanity check to make sure the user specified an incident field  */
