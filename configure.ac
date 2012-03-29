@@ -131,7 +131,7 @@ AC_CHECK_LIB(readline, readline)
 
 AC_ARG_WITH(python,
 	[AC_HELP_STRING([--without-python], [don't compile Python interface])],
-        with_python=$withval,with_python=no)
+        with_python=$withval,with_python=yes)
 
 if test "$enable_shared" = no; then
    AC_MSG_WARN([Python interface requires --enable-shared; disabling])
