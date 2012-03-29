@@ -141,7 +141,7 @@ class RWGObject
    /* given incident electric and magnetic fields                  */
    void GetInnerProducts(int nbf, EHFuncType EHFunc, void *EHFuncUD,
                          int PureImagFreq, cdouble *EProd, cdouble *HProd);
-   void GetInnerProducts(int nbf, IncFieldData *inc,
+   void GetInnerProducts(int nbf, IncField *inc,
 			 int PureImagFreq, cdouble *EProd, cdouble *HProd) {
 	GetInnerProducts(nbf, EHIncField, (void*) inc,
 			 PureImagFreq, EProd, HProd);
@@ -302,7 +302,7 @@ class RWGGeometry
 
    void AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD, 
                           HVector *B, int nThread = 0);
-   void AssembleRHSVector(IncFieldData *inc,
+   void AssembleRHSVector(IncField *inc,
                           HVector *B, int nThread = 0) {
 	AssembleRHSVector(EHIncField, (void*) inc, B, nThread);
    }
@@ -338,7 +338,7 @@ class RWGGeometry
    /* of an arbitrary user-supplied surface-tangential vector field     */
    void ExpandCurrentDistribution(EHFuncType EHFunc, void *EHFuncUD, 
                                   HVector *KNVec, int nThread = 0);
-   void ExpandCurrentDistribution(IncFieldData *inc, HVector *KNv, int nT=0) {
+   void ExpandCurrentDistribution(IncField *inc, HVector *KNv, int nT=0) {
 	ExpandCurrentDistribution(EHIncField, (void*)inc, KNv, nT);
    }
 

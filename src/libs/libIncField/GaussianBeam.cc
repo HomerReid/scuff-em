@@ -33,7 +33,7 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GaussianBeamData::GetFields(const double X[3], cdouble EH[6])
+void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
 {
   if ( imag(Eps) !=0.0 || imag(Mu) != 0.0 )
    ErrExit("%s:%i: gaussian beams not implemented for dispersive media");
@@ -153,7 +153,7 @@ void GaussianBeamData::GetFields(const double X[3], cdouble EH[6])
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-double GaussianBeamData::TotalBeamFlux() {
+double GaussianBeam::TotalBeamFlux() {
   // for analytical calculation see gaussian_beam_complexpointsource.nb
   double k  = real(sqrt(Eps*Mu)*Omega);   // wavenumber of medium
   double ZR = real(sqrt(Mu/Eps));         // relative wave impedance of medium
@@ -168,7 +168,7 @@ double GaussianBeamData::TotalBeamFlux() {
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-GaussianBeamData::GaussianBeamData(const double pX0[3], const double pKProp[3], 
+GaussianBeam::GaussianBeam(const double pX0[3], const double pKProp[3], 
                                    const cdouble pE0[3], double pW0)
 {
   memcpy(X0, pX0, 3*sizeof(double));

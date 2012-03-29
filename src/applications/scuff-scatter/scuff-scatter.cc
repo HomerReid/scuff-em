@@ -331,22 +331,22 @@ int main(int argc, char *argv[])
   if ( npsLoc!=npsStrength )
    ErrExit("numbers of --psLocation and --psStrength options must agree");
 
-  IncFieldData *IFDList=0, *IFD;
+  IncField *IFDList=0, *IFD;
   int npw, ngb, nps;
   for(npw=0; npw<npwPol; npw++)
-   { IFD=new PlaneWaveData(pwPol + 3*npw, pwDir + 3*npw);
+   { IFD=new PlaneWave(pwPol + 3*npw, pwDir + 3*npw);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
 #if 0
   for(ngb=0; ngb<ngbCenter; ngb++)
-   { IFD=new GaussianBeamData(gbCenter + 3*ngb, gbDir + 3*ngb, gbPol + 3*ngb, gbWaist[ngb]);
+   { IFD=new GaussianBeam(gbCenter + 3*ngb, gbDir + 3*ngb, gbPol + 3*ngb, gbWaist[ngb]);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
 #endif
   for(nps=0; nps<npsLoc; nps++)
-   { IFD=new PointSourceData(psLoc + 3*nps, psStrength + 3*nps);
+   { IFD=new PointSource(psLoc + 3*nps, psStrength + 3*nps);
      IFD->Next=IFDList;
      IFDList=IFD;
    };

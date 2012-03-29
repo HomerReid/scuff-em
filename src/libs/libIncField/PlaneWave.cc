@@ -1,5 +1,5 @@
 /*
- * PlaneWave.cc   -- plane wave implementation of IncFieldData
+ * PlaneWave.cc   -- plane wave implementation of IncField
  *
  * homer reid     -- 11/2009 -- 2/2012
  */
@@ -13,7 +13,7 @@
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-PlaneWaveData::PlaneWaveData(const cdouble pE0[3], const double pnHat[3])
+PlaneWave::PlaneWave(const cdouble pE0[3], const double pnHat[3])
 {
   memcpy(E0, pE0, 3*sizeof(cdouble));
   memcpy(nHat, pnHat, 3*sizeof(double));
@@ -22,7 +22,7 @@ PlaneWaveData::PlaneWaveData(const cdouble pE0[3], const double pnHat[3])
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-void PlaneWaveData::GetFields(const double X[3], cdouble EH[6])
+void PlaneWave::GetFields(const double X[3], cdouble EH[6])
 {
 
   cdouble K=sqrt(Eps*Mu) * Omega;
