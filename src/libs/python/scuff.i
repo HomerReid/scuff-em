@@ -37,5 +37,5 @@ using namespace scuff;
 %include "libhmat.h"
 %include "libMatProp.h"
 %include "libIncField.h"
+%include "GTransformation.h"
 %include "libscuff.h"
-

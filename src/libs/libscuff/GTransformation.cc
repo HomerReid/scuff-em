@@ -22,7 +22,7 @@ namespace scuff {
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void ConstructRotationMatrix(double *ZHat, double Theta, double M[9]);
+static void ConstructRotationMatrix(const double ZHat[3], double Theta, double M[9]);
 
 /***************************************************************/
 /* create the identity transformation                          */
@@ -48,7 +48,7 @@ GTransformation *CreateGTransformation()
 /***************************************************************/
 /* a transformation that displaces through vector DX           */
 /***************************************************************/
-GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX)
+GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, const double DX[3])
 {
   if (GT==0)
    GT=CreateGTransformation();
@@ -66,7 +66,7 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, double *DX)
 /* the origin and the point with coordinates ZHat[0..2]        */
 /***************************************************************/
 GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
-                                                double *ZHat, double Theta)
+                                                const double ZHat[3], double Theta)
 {
   if (GT==0) 
    GT=CreateGTransformation();
@@ -131,7 +131,7 @@ GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
   double Theta, ZHat[3], DX[3];
 
   if (NumTokens==0)
-   { if (*ErrMsg) *ErrMsg = strdup("no tranformation specified");
+   { if (ErrMsg) *ErrMsg = strdup("no tranformation specified");
      if (TokensConsumed) *TokensConsumed=0;
      return GT;
    };
@@ -279,13 +279,13 @@ void ApplyGTransformation(GTransformation *GT, double *X, int NX)
    };
 }
 
-void ApplyGTransformation(GTransformation *GT, double *X)
+void ApplyGTransformation(GTransformation *GT, double X[3])
 { ApplyGTransformation(GT, X, 1); }
 
 /***************************************************************/
 /* like the above, but operate out-of-place.                   */
 /***************************************************************/
-void ApplyGTransformation(GTransformation *GT, double *X, double *XP, int NX)
+void ApplyGTransformation(GTransformation *GT, const double *X, double *XP, int NX)
 { 
   if (GT==0) 
    { memcpy(XP, X, 3*NX*sizeof(double));
@@ -312,7 +312,7 @@ void ApplyGTransformation(GTransformation *GT, double *X, double *XP, int NX)
    };
 }
 
-void ApplyGTransformation(GTransformation *GT, double *X, double *XP)
+void ApplyGTransformation(GTransformation *GT, const double X[3], double XP[3])
  { ApplyGTransformation(GT, X, XP, 1); }
 
 /***************************************************************/
@@ -355,7 +355,7 @@ void UnApplyGTransformation(GTransformation *GT, double *X, int NX)
 /*  3. Construct matrix M=M1^{-1}*M2*M1=M1^T*M2*M1.            */  
 /* Matrices are stored in row-major order.                     */  
 /***************************************************************/
-static void ConstructRotationMatrix(double *ZHat, double Theta, double M[9])
+static void ConstructRotationMatrix(const double ZHat[3], double Theta, double M[9])
 { 
   int Mu, Nu, Rho;
   double ct, st, cp, sp, CT, ST;
