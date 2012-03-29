@@ -566,14 +566,14 @@ void GetPower(SSData *SSD, char *PowerFile)
   
   PAbs *= -0.5*ZVAC;
   PTot *=  0.5*ZVAC;
-  fprintf(f,"%e %e  ",PAbs, PTot );
+  fprintf(f,"%.12e %.12e  ",PAbs, PTot );
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   double PSGJ[2];
   GetPower_SGJ(SSD, PSGJ);
-  fprintf(f,"%e %e  ",PSGJ[0], PSGJ[1]);
+  fprintf(f,"%.12e %.12e  ",PSGJ[0], PSGJ[1]);
 
   /***************************************************************/
   /* if the user specified a nonzero PowerRadius, repeat the     */
@@ -583,7 +583,7 @@ void GetPower(SSData *SSD, char *PowerFile)
   if (SSD->PowerRadius > 0.0 )
    { double PBF[2], EBF[2]; 
      GetPower_BF(SSD, SSD->PowerRadius, PBF, EBF);
-     fprintf(f,"%e %e %e %e ",PBF[0],EBF[0],PBF[1],EBF[1]);
+     fprintf(f,"%.12e %.12e %.12e %.12e ",PBF[0],EBF[0],PBF[1],EBF[1]);
    };
 
   fprintf(f,"\n");
