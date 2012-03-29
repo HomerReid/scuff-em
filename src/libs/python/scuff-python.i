@@ -6,6 +6,8 @@
 %}
 
 %include "std_complex.i" // conversion for std::complex
+%apply std::complex<double> { cdouble };
+
 %include "numpy.i" // numpy array conversions
 %init %{
   import_array();
