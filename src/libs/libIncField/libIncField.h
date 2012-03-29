@@ -40,7 +40,7 @@ typedef class IncFieldData
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu);
    
    virtual void GetFields(const double X[3], cdouble EH[6]) = 0 ;
-
+   void GetTotalFields(const double X[3], cdouble EH[6]);
  } IncFieldData;
 
 

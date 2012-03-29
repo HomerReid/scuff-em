@@ -30,19 +30,25 @@ void IncFieldData::SetFrequencyAndEpsMu(cdouble pOmega, cdouble pEps, cdouble pM
 }
 
 /***************************************************************/
+
+void IncFieldData::GetTotalFields(const double X[3], cdouble EH[6])
+{
+  memset(EH, 0, 6*sizeof(cdouble));
+  for(IncFieldData *IFD=this; IFD; IFD=IFD->Next)
+   { 
+     cdouble PEH[6]; 
+     IFD->GetFields(X, PEH);
+     for(int nc=0; nc<6; nc++)
+      EH[nc] += PEH[nc];
+   };
+
+}
+
 /***************************************************************/
 /***************************************************************/
 void EHIncField(const double X[3], void *UserData, cdouble EH[6])
 {
-  memset(EH, 0, 6*sizeof(cdouble));
  
-  IncFieldData *IFD, *IFDList=(IncFieldData *)UserData;
-  cdouble PEH[6]; 
-  int nc;
-  for(IFD=IFDList; IFD; IFD=IFD->Next)
-   { 
-     IFD->GetFields(X, PEH);
-     for(nc=0; nc<6; nc++)
-      EH[nc] += PEH[nc];
-   };
+  IncFieldData *IFD=(IncFieldData *)UserData;
+  IFD->GetTotalFields(X, EH);
 }

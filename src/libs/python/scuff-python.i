@@ -17,7 +17,9 @@
 %numpy_typemaps(double, NPY_DOUBLE, size_t)
 %numpy_typemaps(cdouble, NPY_CDOUBLE, size_t)
 %apply double IN_ARRAY1[ANY] { const double [3] };
-%apply cdouble INPLACE_ARRAY1[ANY] { cdouble [6] };
+%apply cdouble IN_ARRAY1[ANY] { const cdouble [3] };
+%apply double INPLACE_ARRAY1[ANY] { double [6], double [3] };
+%apply cdouble INPLACE_ARRAY1[ANY] { cdouble [6], cdouble [3] };
 
 //////////////////////////////////////////////////////////////////////////////
 // Wrapper for EHFuncType
