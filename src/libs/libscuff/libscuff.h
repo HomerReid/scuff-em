@@ -279,7 +279,12 @@ class RWGGeometry
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
 
    void AssembleBEMMatrix(cdouble Frequency, HMatrix *M, int nThread = 0);
-
+   HMatrix *AssembleBEMMatrix(cdouble Frequency, int nThread = 0) {
+	HMatrix *M = AllocateBEMMatrix(real(Frequency) == 0.0);
+	AssembleBEMMatrix(Frequency, M, nThread);
+	return M;
+   }
+   
 #if 0
    /* routines for allocating, and then filling in, the derivative */
    /* of the bem matrix w.r.t. the coordinates of a mesh vertex    */
@@ -305,6 +310,11 @@ class RWGGeometry
    void AssembleRHSVector(IncField *inc,
                           HVector *B, int nThread = 0) {
 	AssembleRHSVector(EHIncField, (void*) inc, B, nThread);
+   }
+   HVector *AssembleRHSVector(IncField *inc, int nThread = 0) {
+	HVector *B = AllocateRHSVector(real(inc->Omega) == 0.0);
+	AssembleRHSVector(inc, B, nThread);
+	return B;
    }
 
    /* routine for evaluating scattered fields. */
