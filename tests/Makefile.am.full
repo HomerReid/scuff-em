@@ -1,0 +1,58 @@
+bin_PROGRAMS = \
+ scuff-test-QIFIPPIs         	\
+ scuff-test-QDFIPPIs   		\
+ scuff-test-FIPPICache   	\
+ scuff-test-PPIs   		\
+ scuff-test-EEIs   		\
+ scuff-test-overlap   		\
+ scuff-test-AssembleMatrix
+
+scuff_test_QIFIPPIs_SOURCES = 	\
+ scuff-test-QIFIPPIs.cc 	\
+ GetQIFIPPIs_BruteForce.cc	\
+ libPolyFit.cc			\
+ libPolyFit.h
+
+scuff_test_QDFIPPIs_SOURCES = 	\
+ scuff-test-QDFIPPIs.cc 	\
+ GetQDFIPPIs_BruteForce.cc	\
+ libPolyFit.cc			\
+ libPolyFit.h
+
+scuff_test_FIPPICache_SOURCES = \
+ scuff-test-FIPPICache.cc
+
+scuff_test_PPIs_SOURCES = 	\
+ scuff-test-PPIs.cc		\
+ GetPPIs_BruteForce.cc		\
+ libPolyFit.cc			\
+ libPolyFit.h
+
+scuff_test_EEIs_SOURCES = 	\
+ scuff-test-EEIs.cc		\
+ GetPPIs_BruteForce.cc
+
+scuff_test_overlap_SOURCES =	\
+ scuff-test-overlap.cc
+
+scuff_test_AssembleMatrix_SOURCES = \
+ scuff-test-AssembleMatrix.cc
+
+scuff_test_QIFIPPIs_LDADD    = $(top_builddir)/src/libs/libscuff/libscuff.la
+scuff_test_QDFIPPIs_LDADD    = $(top_builddir)/src/libs/libscuff/libscuff.la
+scuff_test_FIPPICache_LDADD  = $(top_builddir)/src/libs/libscuff/libscuff.la
+scuff_test_PPIs_LDADD        = $(top_builddir)/src/libs/libscuff/libscuff.la
+scuff_test_EEIs_LDADD        = $(top_builddir)/src/libs/libscuff/libscuff.la
+scuff_test_overlap_LDADD     = $(top_builddir)/src/libs/libscuff/libscuff.la
+scuff_test_AssembleMatrix_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
+
+
+AM_CPPFLAGS = -DSCUFF \
+              -I$(top_srcdir)/src/libs/libscuff      \
+              -I$(top_srcdir)/src/libs/libIncField   \
+              -I$(top_srcdir)/src/libs/libMatProp    \
+              -I$(top_srcdir)/src/libs/libMDInterp    \
+              -I$(top_srcdir)/src/libs/libhmat       \
+              -I$(top_srcdir)/src/libs/libSGJC       \
+              -I$(top_srcdir)/src/libs/libTriInt     \
+              -I$(top_srcdir)/src/libs/libhrutil

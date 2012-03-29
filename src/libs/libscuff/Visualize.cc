@@ -280,7 +280,7 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag, int PlotNorma
   int np;
 
   /***************************************************************/
-  /***************************************************************/
+  /* attempt to open .pp file ************************************/
   /***************************************************************/
   strncpy(buffer,FileName,996);
   p=strrchr(buffer,'.');
@@ -296,7 +296,7 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag, int PlotNorma
   fprintf(f,"View \"%s\" {\n",Tag);
   
   /***************************************************************/
-  /* plot all panels on the object.  *****************************/
+  /* plot all panels on the object   *****************************/
   /***************************************************************/
   for(np=0, P=Panels[0]; np<NumPanels; P=Panels[++np])
    { 
@@ -347,6 +347,7 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag)
 #define LS_PANELINDICES        1
 #define LS_INTERIOREDGEINDICES 2
 #define LS_EXTERIOREDGEINDICES 4
+#define LS_VERTEXINDICES       8
 void RWGObject::WritePPMeshLabels(const char *FileName,
                                   const char *Tag, 
                                   int WhichLabels)
@@ -355,7 +356,7 @@ void RWGObject::WritePPMeshLabels(const char *FileName,
   RWGPanel *P;
   RWGEdge *E;
   char buffer[1000], *p;
-  int np, ne;
+  int np, ne, nv;
 
   /***************************************************************/
   /***************************************************************/
@@ -422,13 +423,32 @@ void RWGObject::WritePPMeshLabels(const char *FileName,
      fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
    };
 
+  /***************************************************************/
+  /* vertex indices          *************************************/
+  /***************************************************************/
+  if (WhichLabels & LS_VERTEXINDICES)
+   {
+     if (Tag)
+      fprintf(f,"View \"%s_Vertices\" {\n",Tag);
+     else
+      fprintf(f,"View \"Vertices\" {\n");
+     for(nv=0; nv<NumVertices; nv++)
+      fprintf(f,"T3(%e,%e,%e,0.0) {\"%i\"};\n",
+                 Vertices[3*nv+0], Vertices[3*nv+1], Vertices[3*nv+2],nv);
+     fprintf(f,"};\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+   };
+
+
   fclose(f);
 }
 
 void RWGObject::WritePPMeshLabels(const char *FileName, const char *Tag)
 { WritePPMeshLabels(FileName, Tag,   LS_PANELINDICES 
                                    | LS_INTERIOREDGEINDICES
-                                   | LS_EXTERIOREDGEINDICES );
+                                   | LS_EXTERIOREDGEINDICES
+                                   | LS_VERTEXINDICES );
 }
 
 /***************************************************************/

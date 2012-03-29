@@ -9,11 +9,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#ifdef HAVE_LIBREADLINE
+ #include <readline/readline.h>
+ #include <readline/history.h>
+#else
+ // dummy functions
+ void using_history() {} 
+ void read_history(const char *) {}
+ void add_history(const char *) {}
+ void write_history(const char *) {}
+ char *readline(const char *prompt) 
+  { char str[1000];
+    fputs(prompt, stdout);
+    fgets(str,1000,stdin);
+    return strdup(str);
+  }
+#endif
 
 #include <libhrutil.h>
 
@@ -85,8 +100,6 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* enter command loop ******************************************/
   /***************************************************************/
-  using_history();
-  read_history(0);
   int nt, NumTokens;
   char *Tokens[50];
   char *p;
