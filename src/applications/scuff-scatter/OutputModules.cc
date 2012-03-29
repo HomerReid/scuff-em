@@ -481,6 +481,8 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   double PScat, PAbs;
   PAbs  =  0.25 * ZVAC * (VV+VMV);
   PScat =  0.25 * ZVAC * (VV-VMV);
+PAbs = -0.5*ZVAC*VV;
+PScat = -0.5*ZVAC*VMV;
 
   /***************************************************************/
   /***************************************************************/
