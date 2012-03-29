@@ -356,13 +356,13 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
 #ifndef USE_OPENMP
   nThread=1;
 #else
-#pragma omp parallel for schedule(static,1), num_threads(nThread)
+#pragma omp parallel for schedule(dynamic,1), num_threads(nThread)
 #endif
-  for(nt=0; nt<nThread; nt++)
+  for(nt=0; nt<nThread*100; nt++)
    { 
      ThreadData TD1;
      TD1.nt=nt;
-     TD1.nThread=nThread;
+     TD1.nThread=nThread*100;
      TD1.Args=Args;
      ABMBThread((void *)&TD1);
    };
@@ -469,12 +469,13 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, int nThread, HMatrix *M)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *RWGGeometry::AllocateBEMMatrix(int PureImagFreq)
+HMatrix *RWGGeometry::AllocateBEMMatrix(bool PureImagFreq, bool Packed)
 {
+  int Storage = Packed ? LHM_SYMMETRIC : LHM_NORMAL;
   if (PureImagFreq)
-   return new HMatrix(TotalBFs, TotalBFs, LHM_REAL);
+    return new HMatrix(TotalBFs, TotalBFs, LHM_REAL, Storage);
   else
-   return new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+    return new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX, Storage);
     
 }
 

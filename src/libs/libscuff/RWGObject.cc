@@ -331,12 +331,11 @@ void RWGObject::Transform(char *format,...)
   va_start(ap,format);
   vsnprintf(buffer,MAXSTR,format,ap);
 
-  char *ErrMsg;
-  GTransformation *GT=CreateOrAugmentGTransformation(0, buffer, &ErrMsg);
+  GTransformation *OTGT=CreateOrAugmentGTransformation(0, buffer, &ErrMsg);
   if (ErrMsg)
    ErrExit(ErrMsg);
-  Transform(GT);
-  free(GT);
+  Transform(OTGT);
+  free(OTGT);
   
 }
 
@@ -430,68 +429,115 @@ RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3)
 /* Compute the overlap integral between the RWG basis functions*/
 /* associated with two edges in an RWG object.                 */
 /***************************************************************/
-double RWGObject::GetOverlap(int neAlpha, int neBeta)
+double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 { 
   RWGEdge *EAlpha=Edges[neAlpha], *EBeta=Edges[neBeta];
-  double *V1, *V2, *QAlpha, *QBeta;
-  double PreFac, Area, Term, Sum;
-  int mu;
 
-  V1=Vertices + 3*(EAlpha->iV1);
-  V2=Vertices + 3*(EAlpha->iV2);
-  PreFac=EAlpha->Length * EBeta->Length / (24.0);
+  /*--------------------------------------------------------------*/
+  /*- handle the diagonal case -----------------------------------*/
+  /*--------------------------------------------------------------*/
+  if ( EAlpha==EBeta )
+   { 
+     double *QP = Vertices + 3*(EAlpha->iQP);
+     double *V1 = Vertices + 3*(EAlpha->iV1);
+     double *V2 = Vertices + 3*(EAlpha->iV2);
+     double *QM = Vertices + 3*(EAlpha->iQM);
 
-  Sum=0.0;
+     double PArea = Panels[EAlpha->iPPanel]->Area;
+     double MArea = Panels[EAlpha->iMPanel]->Area;
+
+     double lA2 = (EAlpha->Length) * (EAlpha->Length);
+
+     double LA[3], LBP[3], LBM[3]; 
+     double LAdLBP=0.0, LAdLBM=0.0, lBP2=0.0, lBM2=0.0;
+     int i;
+     for(i=0; i<3; i++)
+      { LA[i]  = V2[i] - V1[i];
+        LBP[i] = V1[i] - QP[i];
+        LBM[i] = V1[i] - QM[i];
+
+        LAdLBP += LA[i] * LBP[i];
+        lBP2   += LBP[i] * LBP[i];
+        LAdLBM += LA[i] * LBM[i];
+        lBM2   += LBM[i] * LBM[i];
+      };
+    
+     if (pOTimes) 
+      *pOTimes=0.0;
+     return lA2 * (   ( lA2 + 3.0*lBP2 + 3.0*LAdLBP ) / PArea
+                    + ( lA2 + 3.0*lBM2 + 3.0*LAdLBM ) / MArea
+                  ) / 24.0;
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- figure out if there is nonzero overlap ---------------------*/
+  /*--------------------------------------------------------------*/
+  double Sign, Area, *QA, *QB; 
+  int IndexA, IndexB;
   if ( EAlpha->iPPanel == EBeta->iPPanel )
-   {  
-      QAlpha=Vertices + 3*(EAlpha->iQP);
-      QBeta =Vertices + 3*(EBeta->iQP);
-      Area=Panels[EAlpha->iPPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum += PreFac * Term / Area;
-   };
-  if ( EAlpha->iPPanel == EBeta->iMPanel )
-   {  
-      QAlpha=Vertices + 3*(EAlpha->iQP);
-      QBeta =Vertices + 3*(EBeta->iQM);
-      Area=Panels[EAlpha->iPPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum -= PreFac * Term / Area;
-   };
-  if ( EAlpha->iMPanel == EBeta->iPPanel )
-   {  
-      QAlpha=Vertices + 3*(EAlpha->iQM);
-      QBeta =Vertices + 3*(EBeta->iQP);
-      Area=Panels[EAlpha->iMPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum -= PreFac * Term / Area;
-   };
-  if ( EAlpha->iMPanel == EBeta->iMPanel )
-   {  
-      QAlpha=Vertices + 3*(EAlpha->iQM);
-      QBeta =Vertices + 3*(EBeta->iQM);
-      Area=Panels[EAlpha->iMPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum += PreFac * Term / Area;
+   { Sign = 1.0;
+     Area = Panels[EAlpha->iPPanel]->Area;
+     QA = Vertices + 3*(EAlpha->iQP);
+     QB = Vertices + 3*(EBeta ->iQP);
+     IndexA = EAlpha->PIndex;
+     IndexB = EBeta->PIndex;
+   }
+  else if ( EAlpha->iPPanel == EBeta->iMPanel )
+   { Sign = -1.0;
+     Area = Panels[EAlpha->iPPanel]->Area;
+     QA = Vertices + 3*(EAlpha->iQP);
+     QB = Vertices + 3*(EBeta ->iQM);
+     IndexA = EAlpha->PIndex;
+     IndexB = EBeta->MIndex;
+   }
+  else if ( EAlpha->iMPanel == EBeta->iPPanel )
+   { Sign = -1.0;
+     Area = Panels[EAlpha->iMPanel]->Area;
+     QA = Vertices + 3*(EAlpha->iQM);
+     QB = Vertices + 3*(EBeta ->iQP);
+     IndexA = EAlpha->MIndex;
+     IndexB = EBeta->PIndex;
+   }
+  else if ( EAlpha->iMPanel == EBeta->iMPanel )
+   { Sign = +1.0;
+     Area = Panels[EAlpha->iMPanel]->Area;
+     QA = Vertices + 3*(EAlpha->iQM);
+     QB = Vertices + 3*(EBeta ->iQM);
+     IndexA = EAlpha->MIndex;
+     IndexB = EBeta->MIndex;
+   }
+  else
+   {  if (pOTimes)
+       *pOTimes=0.0; 
+      return 0.0;
    };
 
-  return Sum;
+  /*--------------------------------------------------------------*/
+  /*- do the computation -----------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double *V1 = Vertices + 3*(EAlpha->iV1);
+  double *V2 = Vertices + 3*(EAlpha->iV2);
+  double *QI; // 'QIntermediate' is the common vertex of L_\alpha, L_\beta
+  if ( QB == V1 ) 
+   QI = V2;
+  else if ( QB == V2 ) 
+   QI = V1;
+  else 
+   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+
+  double lA = EAlpha->Length;
+  double lB = EBeta->Length;
+  double DotProduct =  (QI[0]-QA[0])*(QB[0]-QI[0])
+                      +(QI[1]-QA[1])*(QB[1]-QI[1])
+                      +(QI[2]-QA[2])*(QB[2]-QI[2]);
+
+  if (pOTimes)
+   { 
+     double SignPrime = ( ((IndexB-IndexA+3)%3) == 2) ? 1.0 : -1.0;
+     *pOTimes = Sign*SignPrime*lA*lB/6.0;
+   };
+
+  return -1.0*Sign*lA*lB*( lA*lA + lB*lB + 3.0*DotProduct ) / (24.0*Area);
 
 }
 

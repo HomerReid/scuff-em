@@ -94,7 +94,6 @@ struct PointSourceData: public IncFieldData
 /**********************************************************************/
 /* focused gaussian beam  **********8**********************************/
 /**********************************************************************/
-#if 0
 struct GaussianBeamData: public IncFieldData
  { 
    double X0[3];            /* beam center point */
@@ -105,8 +104,11 @@ struct GaussianBeamData: public IncFieldData
    // constructor 
    GaussianBeamData(double X0[3], double KProp[3], cdouble E0[3], double W0);
 
+   void GetFields(double *X, cdouble *EH);
+
+   double TotalBeamFlux();
+
  };
-#endif
 
 /**********************************************************************/
 /* magnetic 'frill' (annulus)    **************************************/
