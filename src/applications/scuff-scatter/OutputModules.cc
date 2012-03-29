@@ -10,9 +10,9 @@
 
 #include "scuff-scatter.h"
 
-#define ABSTOL   1.0e-4
+#define ABSTOL   0.0
 #define RELTOL   1.0e-2
-#define MAXEVALS 10000
+#define MAXEVALS 50000
 
 /***************************************************************/
 /***************************************************************/
@@ -480,7 +480,7 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
     
   double PScat, PAbs;
   PAbs  =  0.25 * ZVAC * (VV+VMV);
-  PScat = -0.25 * ZVAC * (VV-VMV);
+  PScat =  0.25 * ZVAC * (VV-VMV);
 
   /***************************************************************/
   /***************************************************************/
