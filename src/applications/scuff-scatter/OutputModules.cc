@@ -526,7 +526,7 @@ void GetPower(SSData *SSD, char *PowerFile)
   for(no=0; no<G->NumObjects; no++)
    { 
      O=G->Objects[no];
-     if ( O->ContainingObject != 0 ) // skip nested objects 
+     if ( O->ContainingObject != 0 ) // skip interior surfaces of nested objects
       continue; 
 
      Offset=G->BFIndexOffset[no];
