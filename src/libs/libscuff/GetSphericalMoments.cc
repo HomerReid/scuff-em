@@ -378,13 +378,13 @@ void *GetSphericalMoments_Thread(void *data)
 /***************************************************************/
 void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
                                       double Frequency, int RealFreq,
-                                      HVector *KN, int nThread,
-                                      cdouble *aE, cdouble *aM)
+                                      HVector *KN, 
+                                      cdouble *aE, cdouble *aM,
+				      int nThread)
 { 
   int nt;
 
-  if (nThread<=0)
-   ErrExit("GetSphericalMoments called with nThread=%i",nThread);
+  if (nThread <= 0) nThread = GetNumThreads();
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;

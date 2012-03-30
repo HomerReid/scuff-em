@@ -63,7 +63,7 @@ void ProcessMediumSectionInFile(FILE *f, char *FileName, int *LineNum,
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-RWGGeometry::RWGGeometry(const char *pGeoFileName)
+RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 { 
   /***************************************************************/
   /* NOTE: i am not sure where to put this. put it here for now. */
@@ -73,7 +73,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* initialize simple fields ************************************/
   /***************************************************************/
-  LogLevel=SCUFF_NOLOGGING;
+  LogLevel=pLogLevel;
   NumObjects=TotalBFs=TotalPanels=0;
   GeoFileName=strdup(pGeoFileName);
   ExteriorMP=0;
@@ -89,7 +89,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* read and process lines from input file one at a time        */
   /***************************************************************/
-  RWGObject *O;
+  RWGObject *O=NULL;
   char Line[MAXSTR], Label[MAXSTR];
   int LineNum=0; 
   int nTokens;
@@ -232,8 +232,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   /* process object nesting relationships                        */
   /***************************************************************/
-  int no, nop;
-  for(no=0; no<NumObjects; no++)
+#if 0 // old code, required user to manually specify ContainingObject label
+  for(int no=0; no<NumObjects; no++)
    { 
      O=Objects[no];
 
@@ -241,14 +241,14 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
       { 
         /* look for an object appearing earlier in the .scuffgeo file */
         /* whose label matches the requested object label             */
-        for(nop=0; O->ContainingObject==0 && nop<no; nop++)
+        for(int nop=0; O->ContainingObject==0 && nop<no; nop++)
          if ( !strcasecmp(O->ContainingObjectLabel, Objects[nop]->Label ) )
           O->ContainingObject=Objects[nop];
 
         /* if no matching object was found, it's an error */
         if (O->ContainingObject==0)
          { 
-           for(nop=no+1; nop<NumObjects; nop++)
+           for(int nop=no+1; nop<NumObjects; nop++)
             if ( !strcasecmp(O->ContainingObjectLabel, Objects[nop]->Label ) )
              ErrExit("%s: object %s: containing object %s must appear earlier in file",
                      GeoFileName, O->Label, O->ContainingObjectLabel);
@@ -258,17 +258,60 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
          };
 
         free( O->ContainingObjectLabel );
+	O->ContainingObjectLabel = NULL;
 
       };
    };
+#else 
+  // Autodetect nesting relationships & topologically sort
+  // (so that if A contains B, then B comes after A)
+  for (int no = 0; no < NumObjects; ++no)
+    Objects[no]->InitkdPanels(false, LogLevel);
+  for (int no = 1; no < NumObjects; ++no) {
+    int noi = no;
+    O = Objects[no];
+    for (int nop = no-1; nop >= 0; --nop) { // innermost to outermost
+      if (Objects[nop]->Contains(O)) {
+	O->ContainingObject = Objects[nop];
+	break;
+      }
+      else if (O->Contains(Objects[nop])) {
+	noi = nop; // O must go at noi (or earlier) to be in topo. order
+      }
+    }
+    // insert object O at noi:
+    for (int nop = no; nop > noi; --nop) {
+	Objects[nop] = Objects[nop-1];
+	if (Objects[nop]->ContainingObject == O->ContainingObject
+	    && O->Contains(Objects[nop]))
+	  Objects[nop]->ContainingObject = O;
+    }
+    Objects[noi] = O;
+  }
+  // check user ContainingObjectLabels (if any) for consistency:
+  for (int no = 0; no < NumObjects; ++no) {
+    O=Objects[no];
+    if (O->ContainingObjectLabel && 
+	(!O->ContainingObject 
+	 || strcasecmp(O->ContainingObjectLabel, O->ContainingObject->Label)))
+      ErrExit("%s: object %s: containing object is %s, not %s",
+	      GeoFileName, O->Label,
+	      O->ContainingObject ? O->ContainingObject->Label : "(none)",
+	      O->ContainingObjectLabel);
+    if (LogLevel >= SCUFF_VERBOSELOGGING && O->ContainingObject)
+      Log("%s: object %s contained in object %s", GeoFileName,
+	  O->Label, O->ContainingObject->Label);
+    free(O->ContainingObjectLabel);
+    O->ContainingObjectLabel = NULL;
+  }
+#endif
  
   /*******************************************************************/
   /* compute average panel area for statistical bookkeeping purposes */
   /*******************************************************************/
   AveragePanelArea=0.0; 
-  int np;
-  for(no=0; no<NumObjects; no++)
-   for(np=0; np<Objects[no]->NumPanels; np++)
+  for(int no=0; no<NumObjects; no++)
+   for(int np=0; np<Objects[no]->NumPanels; np++)
     AveragePanelArea+=Objects[no]->Panels[np]->Area;
   AveragePanelArea/=((double) TotalPanels);
 
@@ -277,7 +320,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /* are PEC bodies                                                  */
   /*******************************************************************/
   AllPEC=1;
-  for(no=0; no<NumObjects && AllPEC; no++)
+  for(int no=0; no<NumObjects && AllPEC; no++)
    if ( !(Objects[no]->MP->IsPEC()) )
     AllPEC=0;
 
@@ -287,7 +330,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   BFIndexOffset=(int *)mallocEC(NumObjects*sizeof(int) );
   PanelIndexOffset=(int *)mallocEC(NumObjects*sizeof(int) );
   BFIndexOffset[0]=PanelIndexOffset[0]=0;
-  for(no=1; no<NumObjects; no++)
+  for(int no=1; no<NumObjects; no++)
    { BFIndexOffset[no]=BFIndexOffset[no-1] + Objects[no-1]->NumBFs;
      PanelIndexOffset[no]=PanelIndexOffset[no-1] + Objects[no-1]->NumPanels;
    };
@@ -315,9 +358,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName)
   /***************************************************************/
   Mate=(int *)mallocEC(NumObjects*sizeof(int));
   Mate[0]=-1;
-  for(no=1; no<NumObjects; no++)
+  for(int no=1; no<NumObjects; no++)
    { Mate[no]=-1;
-     for(nop=0; nop<no && Mate[no]==-1; nop++)
+     for(int nop=0; nop<no && Mate[no]==-1; nop++)
       if (    !strcmp(Objects[no]->MeshFileName, Objects[nop]->MeshFileName)
            && !strcmp(Objects[no]->MP->Name    , Objects[nop]->MP->Name)
          ) 

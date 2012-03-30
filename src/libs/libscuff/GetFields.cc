@@ -46,7 +46,7 @@ typedef struct EHFieldIntegrandData
  { 
    double *Q;           // RWG basis function source/sink vertex 
    double PreFac;       // RWG basis function prefactor 
-   double *X0;          // field evaluation point 
+   const double *X0;          // field evaluation point 
    cdouble K;           // \sqrt{Eps*Mu} * frequency
  } EHFIData;
 
@@ -87,7 +87,7 @@ static void EHFieldIntegrand(double *X, void *parms, double *f)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGObject::GetReducedPotentials(int ne, double *X, cdouble K,
+void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
                                      cdouble *a, cdouble *Curla,
                                      cdouble *Gradp)
 {
@@ -137,7 +137,7 @@ typedef struct ThreadData
    int nt, nThread;
 
    RWGGeometry *G;   
-   double *X;            /* eval point */
+   const double *X;            /* eval point */
    cdouble Omega;
    cdouble Eps, Mu;
    RWGObject *ObjectInQuestion;
@@ -157,7 +157,7 @@ void *GetFields_Thread(void *data)
   /* fields unpacked from thread data structure ******************/
   /***************************************************************/
   RWGGeometry *G              = TD->G;
-  double *X                   = TD->X;
+  const double *X                   = TD->X;
   cdouble Omega               = TD->Omega;
   cdouble Eps                 = TD->Eps;
   cdouble Mu                  = TD->Mu;
@@ -278,11 +278,10 @@ void *GetFields_Thread(void *data)
 /* region. Otherwise, X is assumed to lie in the interior of   */
 /* object #ObjectIndex.                                        */
 /***************************************************************/
-void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
-                            HVector *KN, int nThread, cdouble *EH)
+void RWGGeometry::GetFields(const double X[3], int ObjectIndex, cdouble Omega,
+                            HVector *KN, cdouble EH[6], int nThread)
 { 
-  if (nThread<=0)
-   ErrExit("GetFields called with nThread=%i",nThread);
+  if (nThread <= 0) nThread = GetNumThreads();
   
   /***************************************************************/
   /* switch off to determine whether we are in the external      */
@@ -484,10 +483,10 @@ void RWGGeometry::GetFields(double *X, int ObjectIndex, cdouble Omega,
 /* file) or using the keywords "EXTERIOR" or "MEDIUM" for the  */
 /* exterior medium.                                            */
 /***************************************************************/
-void RWGGeometry::GetFields(double *X, 
+void RWGGeometry::GetFields(const double X[3], 
                             const char *ObjectLabel,
                             cdouble Omega,
-                            HVector *KN, int nThread, cdouble *EH)
+                            HVector *KN, cdouble EH[6], int nThread)
 {
   if (!ObjectLabel)
    ErrExit("%s:%i:internal error",__FILE__,__LINE__);
@@ -510,7 +509,7 @@ void RWGGeometry::GetFields(double *X,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  GetFields(X, ObjectIndex, Omega, KN, nThread, EH);
+  GetFields(X, ObjectIndex, Omega, KN, EH, nThread);
 
 }
 
@@ -518,10 +517,30 @@ void RWGGeometry::GetFields(double *X,
 /* entry point to GetFields() with autodetection of where the  */
 /* evaluation point lies.                                      */
 /***************************************************************/
-void RWGGeometry::GetFields(double *X, 
+void RWGGeometry::GetFields(const double X[3], 
                             cdouble Omega,
-                            HVector *KN, int nThread, cdouble *EH)
+                            HVector *KN, cdouble EH[6], int nThread)
 {
+  GetFields(X, GetObjectIndex(X), Omega, KN, EH, nThread);
+}
+
+/***************************************************************/
+/* Autodetection of object where a given point lies; assumes   */
+/* objects have been topologically sorted (so that if object A */
+/* contains object B, then B comes after A).                  */
+/***************************************************************/
+
+int RWGGeometry::GetObjectIndex(const double X[3]) {
+  // find the innermost object containing X
+  for (int i = NumObjects - 1; i >= 0; --i) // innermost to outermost order
+    if (Objects[i]->Contains(X))
+      return i;
+  return -1; // not in any object
+}
+
+RWGObject *RWGGeometry::GetObject(const double X[3]) {
+  int i = GetObjectIndex(X);
+  return i < 0 ? NULL : Objects[i];
 }
 
 } // namespace scuff

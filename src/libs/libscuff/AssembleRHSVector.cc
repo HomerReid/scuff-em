@@ -279,12 +279,11 @@ void *AssembleRHS_Thread(void *data)
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
 void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
-                                    int nThread, HVector *B)
+                                    HVector *B, int nThread)
 { 
   int nt;
 
-  if (nThread<=0)
-   ErrExit("AssembleRHSVector called with nThread=%i",nThread);
+  if (nThread <= 0) nThread = GetNumThreads();
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;

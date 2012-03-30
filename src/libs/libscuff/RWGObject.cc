@@ -147,6 +147,9 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
                               const char *Material,
                               GTransformation *OTGT)
 { 
+  ErrMsg=0;
+  kdPanels = NULL;
+
   /*------------------------------------------------------------*/
   /*- try to open the mesh file.                                */
   /*------------------------------------------------------------*/
@@ -224,6 +227,9 @@ RWGObject::RWGObject(double *pVertices, int pNumVertices,
 { 
   int np;
 
+  ErrMsg=0;
+  kdPanels = NULL;
+
   MeshFileName=strdup("ByHand.msh");
   Label=strdup("ByHand");
 
@@ -251,7 +257,6 @@ RWGObject::RWGObject(double *pVertices, int pNumVertices,
   InitEdgeList();
 
   NumBFs = MP->IsPEC() ? NumEdges : 2*NumEdges;
-
 } 
 
 /***************************************************************/
@@ -288,7 +293,8 @@ RWGObject::~RWGObject()
   if (MeshFileName) free(MeshFileName);
   if (Label) free(Label);
   if (GT) free(GT);
-  
+
+  kdtri_destroy(kdPanels);
 }
 
 /***************************************************************/
@@ -336,7 +342,6 @@ void RWGObject::Transform(char *format,...)
    ErrExit(ErrMsg);
   Transform(OTGT);
   free(OTGT);
-  
 }
 
 void RWGObject::UnTransform()

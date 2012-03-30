@@ -49,7 +49,7 @@ namespace scuff{
 #endif
 
 /* prototype for incident field routine passed to AssembleRHS */
-typedef void (*EHFuncType)(double *R, void *UserData, cdouble *EH); 
+typedef void (*EHFuncType)(const double R[3], void *UserData, cdouble EH[6]); 
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -108,6 +108,18 @@ typedef struct RWGEdge
 } RWGEdge;
 
 /***************************************************************/
+/* fast kd-tree based point-in-object calculations             */
+/***************************************************************/
+typedef struct kdtri_s *kdtri;
+void kdtri_destroy(kdtri t); // destructor
+
+// some tree statistics for informational purposes:
+unsigned kdtri_maxdepth(kdtri t);
+size_t kdtri_maxleaf(kdtri t);
+double kdtri_meandepth(kdtri t);
+double kdtri_meanleaf(kdtri t);
+
+/***************************************************************/
 /* RWGObject is a class describing a single physical object    */
 /* with a surface mesh read in from a mesh file.               */
 /***************************************************************/
@@ -141,7 +153,7 @@ class RWGObject
    /* given incident electric and magnetic fields                  */
    void GetInnerProducts(int nbf, EHFuncType EHFunc, void *EHFuncUD,
                          int PureImagFreq, cdouble *EProd, cdouble *HProd);
-   void GetInnerProducts(int nbf, IncFieldData *inc,
+   void GetInnerProducts(int nbf, IncField *inc,
 			 int PureImagFreq, cdouble *EProd, cdouble *HProd) {
 	GetInnerProducts(nbf, EHIncField, (void*) inc,
 			 PureImagFreq, EProd, HProd);
@@ -152,8 +164,12 @@ class RWGObject
    void Transform(char *format, ...);
    void UnTransform();
 
+   /* fast inclusion tests */
+   bool Contains(const double X[3]);
+   bool Contains(const RWGObject *O);
+
    /* visualization */
-   void Visualize(double *KVec, double Kappa, char *format, ...);
+   // void Visualize(double *KVec, double Kappa, char *format, ...);
    void WriteGPMesh(const char *format, ...);
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
    void WritePPMesh(const char *FileName, const char *Tag);
@@ -213,6 +229,9 @@ class RWGObject
    char *ContainingObjectLabel;    /* these fields are only used by */
    char *MPName;                   /* the class constructor         */
    char *ErrMsg;
+
+   kdtri kdPanels; /* kd-tree of panels */
+   void InitkdPanels(bool reinit = false, int LogLevel = SCUFF_NOLOGGING);
   
    /* GT encodes any transformation that has been carried out since */
    /* the object was read from its mesh file (not including a       */
@@ -235,7 +254,7 @@ class RWGObject
    /* calculate reduced potentials due to a single basis function */
    /* (this is a helper function used to implement the            */
    /*  GetInnerProducts() class method)                           */
-   void GetReducedPotentials(int ne, double *X, cdouble K,
+   void GetReducedPotentials(int ne, const double *X, cdouble K,
                              cdouble *a, cdouble *Curla, cdouble *Gradp);
  
  };
@@ -259,7 +278,7 @@ class RWGGeometry
   public:  
 
    /* constructor / destructor */
-   RWGGeometry(const char *GeoFileName);
+   RWGGeometry(const char *GeoFileName, int pLogLevel = SCUFF_NOLOGGING);
    ~RWGGeometry();
 
    /* geometrical transformations */
@@ -278,14 +297,20 @@ class RWGGeometry
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
 
-   void AssembleBEMMatrix(cdouble Frequency, int nThread, HMatrix *M);
-
+   void AssembleBEMMatrix(cdouble Frequency, HMatrix *M, int nThread = 0);
+   HMatrix *AssembleBEMMatrix(cdouble Frequency, int nThread = 0) {
+	HMatrix *M = AllocateBEMMatrix(real(Frequency) == 0.0);
+	AssembleBEMMatrix(Frequency, M, nThread);
+	return M;
+   }
+   
+#if 0
    /* routines for allocating, and then filling in, the derivative */
    /* of the bem matrix w.r.t. the coordinates of a mesh vertex    */
    HMatrix *AllocateDMDVMatrix(int RealFreq);
    void AssembleDMDVMatrix(int ObjectIndex, int VertexIndex, int Mu, 
                            double Frequency, int RealFreq,
-                           int nThread, HMatrix *DMDV);
+                           HMatrix *DMDV, int nThread = 0);
    void GetMEVertexDerivative(void *pLFW, 
                               RWGObject *O, int ne, 
                               RWGObject *OP, int nep,
@@ -293,17 +318,26 @@ class RWGGeometry
                               double AverageRadius,
                               double Frequency, int RealFreq,
                               cdouble *dmdv);
+#endif
 
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(int PureImagFreq);
    HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
 
    void AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD, 
-                          int nThread, HVector *B);
-   void AssembleRHSVector(IncFieldData *inc,
-                          int nThread, HVector *B) {
-	AssembleRHSVector(EHIncField, (void*) inc, nThread, B);
+                          HVector *B, int nThread = 0);
+   void AssembleRHSVector(IncField *inc,
+                          HVector *B, int nThread = 0) {
+	AssembleRHSVector(EHIncField, (void*) inc, B, nThread);
    }
+   HVector *AssembleRHSVector(IncField *inc, int nThread = 0) {
+	HVector *B = AllocateRHSVector(real(inc->Omega) == 0.0);
+	AssembleRHSVector(inc, B, nThread);
+	return B;
+   }
+
+   int GetObjectIndex(const double X[3]);
+   RWGObject *GetObject(const double X[3]);
 
    /* routine for evaluating scattered fields. */
    /* in the first two entry points, the caller already knows     */
@@ -311,76 +345,81 @@ class RWGGeometry
    /* exterior medium), which saves time.                         */
    /* in the third entry point, the code automatically determines */
    /* which object the evaluation point lies inside.              */
-   void GetFields(double *X, int ObjectIndex,
-                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
-   void GetFields(double *X, const char *ObjectLabel,
-                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
-   void GetFields(double *X, 
-                  cdouble Omega, HVector *KN, int nThread, cdouble *EH);
+   void GetFields(const double X[3], int ObjectIndex,
+                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
+   void GetFields(const double X[3], const char *ObjectLabel,
+                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
+   void GetFields(const double X[3], 
+                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
 
    /* routine for calculating electric and magnetic dipole moments */
    void GetDipoleMoments(double Frequency, int RealFreq, HVector *KN, 
-                         int nThread, cdouble (*PM)[6]);
+                         cdouble (*PM)[6], int nThread = 0);
 
 
    /* routine for calculating spherical multipole moments */
 #if 0
-   void GetSphericalMoments(int WhichObject, double *X0, int lMax,
+   void GetSphericalMoments(int WhichObject, const double X0[3], 
                             double Frequency, int RealFreq,
-                            HVector *KN, int nThread,
-                            cdouble *aE, cdouble *aM);
+                            HVector *KN, 
+                            cdouble *aE, cdouble *aM, int lMax,
+			    int nThread = 0);
 #endif
 
    /* routine for computing the expansion coefficients in the RWG basis */
    /* of an arbitrary user-supplied surface-tangential vector field     */
    void ExpandCurrentDistribution(EHFuncType EHFunc, void *EHFuncUD, 
-                                  int nThread, HVector *KNVec);
-   void ExpandCurrentDistribution(IncFieldData *inc, int nT, HVector *KNVec) {
-	ExpandCurrentDistribution(EHIncField, (void*)inc, nT, KNVec);
+                                  HVector *KNVec, int nThread = 0);
+   void ExpandCurrentDistribution(IncField *inc, HVector *KNv, int nT=0) {
+	ExpandCurrentDistribution(EHIncField, (void*)inc, KNv, nT);
    }
 
    /* evaluate the surface currents at a given point X on an object */
    /* surface, given a vector of RWG expansion coefficients         */
-   void EvalCurrentDistribution(double *X, HVector *KNVec, cdouble *KN);
+   void EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6]);
 
+#if 0
    /* routines for evaluating the scattering portions of the electric and magnetic */
    /* dyadic green's functions and the VEV of the maxwell stress tensor            */
-   void GetGij(double *R, HMatrix *M, int Cholesky, HVector *KN, 
-               double Frequency, int RealFreq, int nThread,
-               cdouble GE[3][3], cdouble GM[3][3]);
+   void GetGij(const double R[3], HMatrix *M, int Cholesky, HVector *KN, 
+               double Frequency, int RealFreq, 
+               cdouble GE[3][3], cdouble GM[3][3], int nThread = 0);
 
-   void GetTijNj(double R[3], double nHat[3], HMatrix *M, int Cholesky, 
+   void GetTijNj(const double R[3], double nHat[3], HMatrix *M, int Cholesky, 
                  HVector *KN, double Frequency, int RealFreq, 
-                 int nThread, double TE[3], double TM[3]);
+                 double TE[3], double TM[3], int nThread = 0);
 
    /* alternate entry points to the above two routines in which the Cholesky */
    /* parameter is taken equal to its default value of 0                     */
    void GetGij(double *R, HMatrix *M, HVector *KN, 
-               double Frequency, int RealFreq, int nThread,
-               cdouble GE[3][3], cdouble GM[3][3]);
+               double Frequency, int RealFreq, 
+               cdouble GE[3][3], cdouble GM[3][3], int nThread = 0);
 
-   void GetTijNj(double R[3], double nHat[3], HMatrix *M,
+   void GetTijNj(const double R[3], const double nHat[3], HMatrix *M,
                  HVector *KN, double Frequency, int RealFreq, 
-                 int nThread, double TE[3], double TM[3]);
+                 double TE[3], double TM[3], int nThread = 0);
+#endif
 
    /* optimized and accelerated array-based routines for evaluating the */
    /* stress tensor at several spatial points all at once               */
 #if 0
    void AssembleRHSVectorArray(double *RArray, int NumPts, double Xi, 
-                               int nThread, HMatrix *KNArray);
+                               HMatrix *KNArray, int nThread = 0);
 
    void GetFieldsArray(double *RArray, int NumPts, double Xi, 
-                       HMatrix *KNArray, int nThread, 
-                       double EArray[][3][3], double HArray[][3][3]);
+                       HMatrix *KNArray, 
+                       double EArray[][3][3], double HArray[][3][3],
+		       int nThread = 0);
 
    void GetGijArray(double *RArray, int NumPts, HMatrix *M, int Cholesky, 
-                    HMatrix *KNArray, double Xi, int nThread,
-                    double GEArray[][3][3], double GMArray[][3][3]);
+                    HMatrix *KNArray, double Xi, 
+                    double GEArray[][3][3], double GMArray[][3][3],
+		    int nThread = 0);
 
    void GetTijNjArray(double *RArray, double *nHatArray, int NumPts,
                       HMatrix *M, int Cholesky, HMatrix *KNArray, 
-                      double Xi, int nThread, 
-                      double TEArray[][3], double TMArray[][3]);
+                      double Xi, double TEArray[][3], double TMArray[][3],
+		      int nThread = 0);
 #endif
 
    /* routine for setting logging verbosity */
@@ -434,7 +473,7 @@ class RWGGeometry
    /* recent call to Transform(). otherwise ObjectMoved[i]=0. */
    int *ObjectMoved;
   
-   int GetObjectAndEdgeIndex(int ei, RWGObject **pO);
+   // int GetObjectAndEdgeIndex(int ei, RWGObject **pO);
 
    int LogLevel; 
 
@@ -456,31 +495,27 @@ void InitRWGPanel(RWGPanel *P, double *Vertices);
 /*--------------------------------------------------------------*/
   
 /* 3D vector manipulations */
-void VecZero(double *v);
-double *VecScale(double *v, double alpha);
-double *VecScaleAdd(double *v1, double alpha, double *v2, double *v3);
-double *VecAdd(double *v1, double *v2, double *v3);
-double *VecSub(double *v1, double *v2, double *v3);
-double *VecPlusEquals(double *v1, double alpha, double *v2);
-double *VecCross(double *v1, double *v2, double *v3);
-double *VecLinComb(double alpha, double *v1, double beta, double *v2, 
-                   double *v3);
-double VecDot(double *v1, double *v2);
-double VecDistance(double *v1, double *v2);
-double VecDistance2(double *v1, double *v2);
-double VecNorm(double *v);
-double VecNorm2(double *v);
-double VecNormalize(double *v);
+void VecZero(double v[3]);
+double *VecScale(double v[3], double alpha);
+double *VecScaleAdd(const double v1[3], double alpha, const double v2[3], double v3[3]);
+double *VecAdd(const double v1[3], const double v2[3], double v3[3]);
+double *VecSub(const double v1[3], const double v2[3], double v3[3]);
+double *VecPlusEquals(double v1[3], double alpha, const double v2[3]);
+double *VecCross(const double v1[3], const double v2[3], double v3[3]);
+double *VecLinComb(double alpha, const double v1[3], double beta, const double v2[3], 
+                   double v3[3]);
+double VecDot(const double v1[3], const double v2[3]);
+double VecDistance(const double v1[3], const double v2[3]);
+double VecDistance2(const double v1[3], const double v2[3]);
+double VecNorm(const double v[3]);
+double VecNorm2(const double v[3]);
+double VecNormalize(double v[3]);
 
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
                        double TorqueAxisZ, double *GammaMatrix);
 void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
-
-/* miscellaneous miscellany */
-void RWGErrExit(const char *format, ...);
-void *RWGMalloc(int size);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

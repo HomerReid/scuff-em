@@ -135,12 +135,11 @@ static void *GetDipoleMoment_Thread(void *data)
 /* induced on the #noth object.                                */
 /***************************************************************/
 void RWGGeometry::GetDipoleMoments(double Frequency, int RealFreq,
-                                   HVector *KN, int nThread, cdouble (*PM)[6])
+                                   HVector *KN, cdouble (*PM)[6], int nThread)
 { 
   int nt, no;
 
-  if (nThread<=0)
-   ErrExit("GetDipoleMoments called with nThread=%i",nThread);
+  if (nThread <= 0) nThread = GetNumThreads();
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;

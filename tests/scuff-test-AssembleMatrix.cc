@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   Tic();
   printf("Starting BEM matrix assembly...\n");
-  G->AssembleBEMMatrix(Omega, nThread, M);
+  G->AssembleBEMMatrix(Omega, M, nThread);
   printf("...done in %.3f seconds\n",Toc());
 
   /***************************************************************/
