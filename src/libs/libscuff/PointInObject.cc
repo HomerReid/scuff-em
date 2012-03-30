@@ -528,9 +528,6 @@ bool RWGObject::Contains(const RWGObject *O)
 {
   if (!O || O->NumPanels <= 0) return false;
   int vi = O->Panels[0]->VI[0]; // the first vertex of the first panel
-  Log("checking for (%g,%g,%g) of %s in %s: %s",
-      O->Vertices[3*vi],O->Vertices[3*vi+1],O->Vertices[3*vi+2],
-      O->Label, Label, Contains(O->Vertices+3*vi) ? "yes" : "no");
   return Contains(O->Vertices + 3*vi);
 }
 
