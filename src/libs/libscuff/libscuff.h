@@ -108,6 +108,18 @@ typedef struct RWGEdge
 } RWGEdge;
 
 /***************************************************************/
+/* fast kd-tree based point-in-object calculations             */
+/***************************************************************/
+typedef struct kdtri_s *kdtri;
+void kdtri_destroy(kdtri t); // destructor
+
+// some tree statistics for informational purposes:
+unsigned kdtri_maxdepth(kdtri t);
+size_t kdtri_maxleaf(kdtri t);
+double kdtri_meandepth(kdtri t);
+double kdtri_meanleaf(kdtri t);
+
+/***************************************************************/
 /* RWGObject is a class describing a single physical object    */
 /* with a surface mesh read in from a mesh file.               */
 /***************************************************************/
@@ -151,6 +163,10 @@ class RWGObject
    void Transform(GTransformation *GT);
    void Transform(char *format, ...);
    void UnTransform();
+
+   /* fast inclusion tests */
+   bool Contains(const double X[3]);
+   bool Contains(const RWGObject *O);
 
    /* visualization */
    // void Visualize(double *KVec, double Kappa, char *format, ...);
@@ -213,6 +229,9 @@ class RWGObject
    char *ContainingObjectLabel;    /* these fields are only used by */
    char *MPName;                   /* the class constructor         */
    char *ErrMsg;
+
+   kdtri kdPanels; /* kd-tree of panels */
+   void InitkdPanels(bool reinit = false, int LogLevel = SCUFF_NOLOGGING);
   
    /* GT encodes any transformation that has been carried out since */
    /* the object was read from its mesh file (not including a       */
@@ -259,7 +278,7 @@ class RWGGeometry
   public:  
 
    /* constructor / destructor */
-   RWGGeometry(const char *GeoFileName);
+   RWGGeometry(const char *GeoFileName, int pLogLevel = SCUFF_NOLOGGING);
    ~RWGGeometry();
 
    /* geometrical transformations */
@@ -316,6 +335,9 @@ class RWGGeometry
 	AssembleRHSVector(inc, B, nThread);
 	return B;
    }
+
+   int GetObjectIndex(const double X[3]);
+   RWGObject *GetObject(const double X[3]);
 
    /* routine for evaluating scattered fields. */
    /* in the first two entry points, the caller already knows     */

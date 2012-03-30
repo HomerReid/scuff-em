@@ -521,7 +521,26 @@ void RWGGeometry::GetFields(const double X[3],
                             cdouble Omega,
                             HVector *KN, cdouble EH[6], int nThread)
 {
-  ErrExit("autodetection GetFields not yet implemented");
+  GetFields(X, GetObjectIndex(X), Omega, KN, EH, nThread);
+}
+
+/***************************************************************/
+/* Autodetection of object where a given point lies; assumes   */
+/* objects have been topologically sorted (so that if object A */
+/* contains object B, then B comes after A).                  */
+/***************************************************************/
+
+int RWGGeometry::GetObjectIndex(const double X[3]) {
+  // find the innermost object containing X
+  for (int i = NumObjects - 1; i >= 0; --i) // innermost to outermost order
+    if (Objects[i]->Contains(X))
+      return i;
+  return -1; // not in any object
+}
+
+RWGObject *RWGGeometry::GetObject(const double X[3]) {
+  int i = GetObjectIndex(X);
+  return i < 0 ? NULL : Objects[i];
 }
 
 } // namespace scuff

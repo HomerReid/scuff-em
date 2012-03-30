@@ -34,6 +34,7 @@ using namespace scuff;
 
 //////////////////////////////////////////////////////////////////////////////
 
+%include "libhrutil.h"
 %include "libhmat.h"
 %include "libMatProp.h"
 %include "libIncField.h"
