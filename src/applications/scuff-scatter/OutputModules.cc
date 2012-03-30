@@ -14,6 +14,8 @@
 #define RELTOL   1.0e-2
 #define MAXEVALS 50000
 
+FILE *PVCLogFile=0;
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -58,8 +60,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /***************************************************************/
   int WhichObject=-1;
 
-  /***************************************************************/
-  /***************************************************************/
+  /***************************************************************/ /***************************************************************/
   /***************************************************************/
   int nep;
   double X[3]; 
@@ -404,6 +405,9 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   fval[0] = -R*R*( PVTot[0]*nHat[0] + PVTot[1]*nHat[1]  + PVTot[2]*nHat[2] );
   fval[1] =  R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
 
+if (PVCLogFile)
+ fprintf(PVCLogFile,"%e %e %e %e \n",CosTheta,CosPhi,fval[0],fval[1]);
+
 }
 
 /***************************************************************/
@@ -518,7 +522,7 @@ void GetPower(SSData *SSD, char *PowerFile)
   /***************************************************************/
   /* get absorbed and scattered powers                           */
   /***************************************************************/
-  double PAbs=0.0, PScat=0.0;
+  double PTot=0.0, PAbs=0.0;
   double OTimes;
   int no, nea, neb, Offset;
   RWGObject *O;
@@ -535,7 +539,7 @@ void GetPower(SSData *SSD, char *PowerFile)
         for(nea=0; nea<O->NumEdges; nea++)
          { ka = KN->GetEntry(Offset  + nea );
            vE = RHS->GetEntry(Offset + nea );
-           PScat += real( conj(ka*vE) );
+           PTot += real( conj(ka*vE) );
          }; // for(nea==...
       }
      else
@@ -548,16 +552,16 @@ void GetPower(SSData *SSD, char *PowerFile)
            vE = RHS->GetEntry(Offset + 2*nea + 0 );
            vH = RHS->GetEntry(Offset + 2*nea + 1 );
 
-           PScat+= real( conj(ka)*vE - conj(na)*vH );
+           PTot += real( conj(ka)*vE - conj(na)*vH );
 
            for(neb=0; neb<O->NumEdges; neb++)
             { 
-             O->GetOverlap(nea, neb, &OTimes);
-             if (OTimes==0.0) 
-              continue;
+              O->GetOverlap(nea, neb, &OTimes);
+              if (OTimes==0.0) 
+               continue;
 
-             nb = KN->GetEntry(Offset + 2*neb + 1 );
-             PAbs += real( conj(ka) * OTimes * nb );
+              nb = KN->GetEntry(Offset + 2*neb + 1 );
+              PAbs += real( conj(ka) * OTimes * nb );
             }; // for (neb= ... 
 
          }; // for(nea==...
@@ -565,15 +569,15 @@ void GetPower(SSData *SSD, char *PowerFile)
    }; // for(no=...)
   
   PAbs *= -0.5*ZVAC;
-  PScat = -PAbs + 0.5*ZVAC*PScat;
-  fprintf(f,"%e %e  ",PAbs, PScat);
+  PTot *=  0.5*ZVAC;
+  fprintf(f,"%.12e %.12e  ",PAbs, PTot-PAbs );
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   double PSGJ[2];
   GetPower_SGJ(SSD, PSGJ);
-  fprintf(f,"%e %e  ",PSGJ[0], PSGJ[1]);
+  fprintf(f,"%.12e %.12e  ",PSGJ[0], PSGJ[1]);
 
   /***************************************************************/
   /* if the user specified a nonzero PowerRadius, repeat the     */
@@ -583,8 +587,21 @@ void GetPower(SSData *SSD, char *PowerFile)
   if (SSD->PowerRadius > 0.0 )
    { double PBF[2], EBF[2]; 
      GetPower_BF(SSD, SSD->PowerRadius, PBF, EBF);
-     fprintf(f,"%e %e %e %e ",PBF[0],EBF[0],PBF[1],EBF[1]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+static int init=0;
+if (init==0)
+ { init=1;
+   PVCLogFile=fopen("freddy","w");
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+     fprintf(f,"%.12e %.12e %.12e %.12e ",PBF[0],EBF[0],PBF[1],EBF[1]);
    };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (PVCLogFile)
+ fclose(PVCLogFile);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   fprintf(f,"\n");
   fclose(f);
