@@ -446,7 +446,7 @@ static kdtri kdtri_create_from_object(const RWGObject *O)
   boxtri *B;
   kdtri t = NULL;
 
-  if (!O) goto done;
+  if (!O || !O->NumPanels) goto done;
   if (!(B = (boxtri *) malloc(sizeof(boxtri) * O->NumPanels))) goto done;
 
   for (i = 0; i < O->NumPanels; ++i) {
@@ -496,7 +496,9 @@ void RWGObject::InitkdPanels(bool reinit, int LogLevel)
   if (kdPanels) {
     if (!reinit) return;
     kdtri_destroy(kdPanels); // destroy pre-existing tree
+    kdPanels = NULL;
   }
+  if (!NumPanels) return;
   kdPanels = kdtri_create_from_object(this);
   if (!kdPanels) ErrExit("out of memory when creating panel kd-tree for %s",
 			 Label);
