@@ -352,10 +352,10 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
         noa=GTC->NumObjectsAffected;
         GTC->ObjectLabel=(char **)realloc(GTC->ObjectLabel, (noa+1)*sizeof(char *));
         GTC->ObjectLabel[noa]=strdup(Tokens[nt+1]);
-        GTC->GT=(GTransformation **)realloc(GTC->GT, (noa+1)*sizeof(GTransformation *));
-        GTC->GT[noa]=new GTransformation();
+        GTC->GT=(GTransformation *)realloc(GTC->GT, (noa+1)*sizeof(GTransformation));
+        GTC->GT[noa]=GTransformation();
         GTC->NumObjectsAffected=noa+1;
-        CurrentGT=GTC->GT[noa];
+        CurrentGT=GTC->GT+noa;
 
         nt+=2;
       }
@@ -442,12 +442,12 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         int noa=GTC->NumObjectsAffected;
         GTC->ObjectLabel=(char **)realloc(GTC->ObjectLabel, (noa+1)*sizeof(char *));
         GTC->ObjectLabel[noa]=strdup(Tokens[1]);
-        GTC->GT=(GTransformation **)realloc(GTC->GT, (noa+1)*sizeof(GTransformation *));
-        GTC->GT[noa]=new GTransformation();
+        GTC->GT=(GTransformation *)realloc(GTC->GT, (noa+1)*sizeof(GTransformation));
+        GTC->GT[noa]=GTransformation();
         GTC->NumObjectsAffected=noa+1;
         
         // subsequent DISPLACEMENTs / ROTATIONs will augment this GTransformation
-        CurrentGT=GTC->GT[noa];
+        CurrentGT=GTC->GT+noa;
       }
      else if ( !strcasecmp(Tokens[0],"ENDTRANSFORMATION") )
       { 

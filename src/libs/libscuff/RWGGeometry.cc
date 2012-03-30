@@ -436,7 +436,7 @@ void RWGGeometry::Transform(GTComplex *GTC)
 
      // apply the transformation to that object
      if (O) 
-      { O->Transform(GTC->GT[noa]);
+      { O->Transform(GTC->GT + noa);
         ObjectMoved[WhichObject]=1;
       };
         

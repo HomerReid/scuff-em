@@ -82,7 +82,7 @@ typedef struct GTComplex
    char *Tag;                  // a label for this entire complex 
    int NumObjectsAffected;     // number of objects transformed by this complex
    char **ObjectLabel;         // ObjectLabel[i] is the label of the ith transformed object
-   GTransformation **GT;       // GT[i] is the transformation applied to the ith object
+   GTransformation *GT;       // GT[i] is the transformation applied to the ith object
 
  } GTComplex;
 
