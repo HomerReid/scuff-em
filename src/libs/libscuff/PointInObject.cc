@@ -33,7 +33,7 @@ namespace scuff {
    to handle points on edges in a consistent fashion for adjacent triangles.
 
    Note that vertices are stored in single precision (Kahan-style "fiducial"
-   representation, but computations are done in double precision) */
+   representation), but computations are done in double precision) */
 
 #define PAST_EDGE(x,y,x0,y0,x1,y1) (((y0>y) != (y1>y)) &&		\
 				    (x-x0)*(y1-y0) < (x1-x0)*(y-y0))
