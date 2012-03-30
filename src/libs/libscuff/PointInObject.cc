@@ -58,9 +58,9 @@ static int point_above_tri(double x, double y, double z,
     double d2x = xt[2] - xt[0];
     double d2y = yt[2] - yt[0];
     double d2z = zt[2] - zt[0];
-    double cx = d1y * d2z - d1z * d1y; /* (d1 x d2).x */
-    double cy = d1z * d2x - d1x * d1z; /* (d1 x d2).y */
-    double cz = d1x * d2y - d1y * d1x; /* (d1 x d2).z */
+    double cx = d1y * d2z - d1z * d2y; /* (d1 x d2).x */
+    double cy = d1z * d2x - d1x * d2z; /* (d1 x d2).y */
+    double cz = d1x * d2y - d1y * d2x; /* (d1 x d2).z */
     return ((x - xt[0]) * cx + (y - yt[0]) * cy + (z - zt[0]) * cz) * cz > 0;
   }
   return 0;
@@ -528,6 +528,16 @@ bool RWGObject::Contains(const RWGObject *O)
 {
   if (!O || O->NumPanels <= 0) return false;
   int vi = O->Panels[0]->VI[0]; // the first vertex of the first panel
+#if 0 // debugging: exhaustively check all vertices
+  bool cont = Contains(O->Vertices + 3*vi);
+  for (int np = 0; np < O->NumPanels; ++np)
+    for (int j = 0; j < 3; ++j) {
+      int vj = O->Panels[np]->VI[j];
+      if (Contains(O->Vertices + 3*vj) != cont) {
+	ErrExit("object %s and %s have intersecting surfaces? (%g,%g,%g) is %s %s but (%g,%g,%g) %s", Label, O->Label, O->Vertices[3*vi],O->Vertices[3*vi+1],O->Vertices[3*vi+2], cont ? "is in" : "is not in", Label, O->Vertices[3*vj],O->Vertices[3*vj+1],O->Vertices[3*vj+2], cont ? "is not" : "is");
+      }
+    }
+#endif
   return Contains(O->Vertices + 3*vi);
 }
 
