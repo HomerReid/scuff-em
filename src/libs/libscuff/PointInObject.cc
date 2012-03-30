@@ -402,11 +402,7 @@ static boxtri *kdtri_find(kdtri t, const double p[2])
    intersecting the ray from p to (p[0],p[1],-infinity). */
 static int kdtri_count_below(kdtri t, const double p[3])
 {
-  if (!t ||
-      p[0] < t->bmin[0] || p[0] > t->bmax[0] ||
-      p[1] < t->bmin[1] || p[1] > t->bmax[1] ||
-      p[2] < t->bmin[2] || p[2] > t->bmax[2])
-    return 0;
+  if (!t) return 0;
   if (t->le) { /* search subtrees */
     if (p[t->dim] <= t->div)
       return kdtri_count_below(t->le, p);
@@ -429,6 +425,12 @@ static int kdtri_count_below(kdtri t, const double p[3])
    contains the point p. */
 static int kdtri_object_contains(kdtri t, const double p[3])
 {
+  if (!t ||
+      p[0] < t->bmin[0] || p[0] > t->bmax[0] ||
+      p[1] < t->bmin[1] || p[1] > t->bmax[1] ||
+      p[2] < t->bmin[2] || p[2] > t->bmax[2])
+    return 0;
+
   /* contains p iff an odd number of triangles lie below p */
   return kdtri_count_below(t, p) % 2;
 }
