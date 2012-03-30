@@ -25,6 +25,19 @@ void VecZero(double v[3])
 { memset(v,0,3*sizeof(double));
 }
 
+/* v2 = v1 */
+double *VecCopy(const double v1[3], double v2[3]) {
+  v2[0] = v1[0]; v2[1] = v1[1]; v2[2] = v1[2];
+  return v2;
+}
+
+/* v2 = alpha * v1 */
+double *VecScale(const double v1[3], double alpha, double v2[3])
+{
+  v2[0] = alpha * v1[0];
+  v2[1] = alpha * v1[1];
+  v2[2] = alpha * v1[2];
+}
 
 /* v *= alpha */
 double *VecScale(double v[3], double alpha)

@@ -137,7 +137,7 @@ class RWGObject
    /* constructor entry points 2 and 3: construct from a given mesh file */
    RWGObject(const char *pMeshFileName);
    RWGObject(const char *pMeshFileName, const char *pLabel,
-             const char *Material, GTransformation *OTGT);
+             const char *Material, const GTransformation *OTGT);
 
    /* constructor entry point 3: construct from a list of vertices */
    RWGObject(double *pVertices, int pNumVertices, 
@@ -160,7 +160,7 @@ class RWGObject
    }
 
    /* apply a general transformation (rotation+displacement) to the object */
-   void Transform(GTransformation *GT);
+   void Transform(const GTransformation *GT);
    void Transform(char *format, ...);
    void UnTransform();
 
@@ -244,12 +244,12 @@ class RWGObject
    /*--------------------------------------------------------------*/ 
    /* the actual body of the class constructor */
    void InitRWGObject(const char *pMeshFileName, const char *pLabel, 
-                      const char *Material, GTransformation *GT);
+                      const char *Material, const GTransformation *GT);
 
    /* constructor subroutines */
    void InitEdgeList();
-   void ReadGMSHFile(FILE *MeshFile, char *FileName, GTransformation *GT);
-   void ReadComsolFile(FILE *MeshFile, char *FileName, GTransformation *GT);
+   void ReadGMSHFile(FILE *MeshFile, char *FileName, const GTransformation *GT);
+   void ReadComsolFile(FILE *MeshFile, char *FileName, const GTransformation *GT);
 
    /* calculate reduced potentials due to a single basis function */
    /* (this is a helper function used to implement the            */
@@ -496,6 +496,8 @@ void InitRWGPanel(RWGPanel *P, double *Vertices);
   
 /* 3D vector manipulations */
 void VecZero(double v[3]);
+double *VecCopy(const double v1[3], double v2[3]);
+double *VecScale(const double v1[3], double alpha, double v2[3]);
 double *VecScale(double v[3], double alpha);
 double *VecScaleAdd(const double v1[3], double alpha, const double v2[3], double v3[3]);
 double *VecAdd(const double v1[3], const double v2[3], double v3[3]);

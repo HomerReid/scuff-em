@@ -39,7 +39,7 @@ static int SkipTo(FILE *f, const char *SearchString, char *Line)
 /* elements for a .mphtxt file as produced by COMSOL     *******/
 /***************************************************************/
 void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, 
-                               GTransformation *OTGT)
+                               const GTransformation *OTGT)
 { 
   char Line[MAXSTR], *p;
   int nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
@@ -81,7 +81,7 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
   /***************************************************************/
   /*- Apply geometrical transformation (if any) to all nodes.   -*/
   /***************************************************************/
-  if (OTGT) ApplyGTransformation(OTGT, Vertices, NumVertices);
+  if (OTGT) OTGT->Apply(Vertices, NumVertices);
 
   /***************************************************************/
   /* skip down to element definition section *********************/

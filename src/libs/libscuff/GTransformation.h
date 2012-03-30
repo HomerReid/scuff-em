@@ -8,67 +8,70 @@
 #ifndef GTRANSFORMATION_H
 #define GTRANSFORMATION_H
 
-#define GTRANSFORMATION_DISPLACEMENT 1
-#define GTRANSFORMATION_ROTATION     2
-
-namespace scuff{
+namespace scuff {
 
 /***************************************************************/
 /* a GTransformation maps a point with cartesian coordinates   */
 /* X[0..2] into a new point with coordinates XP[0..2] such that*/
 /*  XP = M*X + DX                                              */
 /***************************************************************/
-typedef struct GTransformation
- { double DX[3];
-   double M[9];
-   int RotationIsNonTrivial;
- } GTransformation;
+class GTransformation {
+public:
+     GTransformation();
+     GTransformation(const double dx[3]); // displacement
+     GTransformation(const double ZHat[3], double ThetaDegrees); // rotation
+     GTransformation(const char *TransformString, char **ErrMsg = 0); // parse
+     GTransformation(char **Tokens, int NumTokens, char **ErrMsg = 0,
+		     int *TokensConsumed = 0); // parse
 
-/***************************************************************/
-/* routines to create a new GTransformation, or to augment an  */
-/* existing one                                                */
-/***************************************************************/
+     // copy constructors
+     GTransformation(const GTransformation &G);
+     GTransformation(const GTransformation *G);
+     void operator=(const GTransformation &G);
 
-// create the identity transformation 
-GTransformation *CreateGTransformation();
+     ~GTransformation() {}
+     // no need for destructor or assignment op since no private allocation
 
-// create or augment using a known displacement vector
-GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, const double DX[3]);
- 
-// create or augment using a known rotation angle and axis 
-GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
-                                                const double ZHat[3], double Theta);
+     void Reset(); // reset to identity transformation
 
-// create or augment by parsing a character string
-GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
-                                                char *TransformString,
-                                                char **ErrMsg = 0);
-GTransformation *CreateOrAugmentGTransformation(GTransformation *GT, 
-                                                char **Tokens, int NumTokens,
-                                                char **ErrMsg = 0, int *TokensConsumed = 0);
+     void Displace(const double dx[3]);
+     void Rotate(const double ZHat[3], double ThetaDegrees);
 
-GTransformation *CreateOrAugmentGTransformation(GTransformation *GT,
-                                                GTransformation *DeltaGT);
+     void Transform(const GTransformation *G); // compose G * this
+     void Transform(const GTransformation &G) { Transform(&G); }
 
-void ResetGTransformation(GTransformation *GT);
+     void Invert(); // invert
+     GTransformation Inverse() const; // return inverse
 
-/***************************************************************/
-/* routines to apply a GTransformation to a single point or to */
-/* a list of points.                                           */
-/* coordinates are assumed to be ordered as follows:           */
-/*  X[0, 1, 2] == x,y,z coords of first point                  */
-/*  X[3, 4, 5] == x,y,z coords of second point                 */
-/* etc.                                                        */
-/***************************************************************/
-/* in-place */
-void ApplyGTransformation(GTransformation *GT, double *X, int NX);
-void ApplyGTransformation(GTransformation *GT, double X[3]);
+     bool Parse(const char *TransformString, char **ErrMsg = 0);
+     bool Parse(char **Tokens, int NumTokens, char **ErrMsg = 0, 
+		int *TokensConsumed = 0);
 
-/* out-of-place */
-void ApplyGTransformation(GTransformation *GT, const double *X, double *XP, int NX);
-void ApplyGTransformation(GTransformation *GT, const double X[3], double XP[3]);
+     // compose this with G or inverse(G)
+     GTransformation operator+(const GTransformation &G) const;
+     GTransformation operator-(const GTransformation &G) const;
+     GTransformation operator-() const { return Inverse(); };
 
-void UnApplyGTransformation(GTransformation *GT, double *X, int NX);
+     // apply out-of-place to one or NX 3-vectors,
+     // where i-th point is (X[3*i+0],X[3*i+1],X[3*i+2]),
+     // defined as: Apply(X) = M*X + DX.
+     void Apply(const double *X, double *XP, int NX) const;
+     void Apply(const double X[3], double XP[3]) const { Apply(X, XP, 1); }
+
+     // apply in-place to one or NX 3-vectors
+     void Apply(double *X, int NX) const { Apply(X, X, NX); }
+     void Apply(double X[3]) const { Apply(X, X, 1); }
+
+     // apply inverse transformation
+     void UnApply(const double *X, double *XP, int NX) const;
+     void UnApply(const double X[3], double XP[3]) const { UnApply(X, XP, 1); }
+     void UnApply(double *X, int NX) const { UnApply(X, X, NX); }
+     void UnApply(double X[3]) const { UnApply(X, X, 1); }
+     
+private:
+     double DX[3]; // translation
+     double M[3][3]; // rotation matrix
+};
 
 /***************************************************************/
 /* a GTComplex is collection of GTransformations, each of      */

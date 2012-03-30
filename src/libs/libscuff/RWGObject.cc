@@ -53,7 +53,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   int NumTokens, TokensConsumed;
   char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
-  GTransformation *OTGT=0; // 'one-time geometrical transformation'
+  GTransformation OTGT; // 'one-time geometrical transformation'
   MaterialName[0]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
@@ -97,8 +97,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
         // the Object class, which is intended to be used for 
         // transformations that are applied and later un-applied 
         // during the life of the object. 
-        OTGT=CreateOrAugmentGTransformation(OTGT, Tokens, NumTokens, 
-                                            &ErrMsg, &TokensConsumed);
+	OTGT.Parse(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
         if (ErrMsg)
          return;
         if (TokensConsumed!=NumTokens) 
@@ -116,7 +115,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
       };
    }; 
 
-  InitRWGObject(MeshFileName, pLabel, MaterialName, OTGT);
+  InitRWGObject(MeshFileName, pLabel, MaterialName, &OTGT);
 
 }
 
@@ -132,7 +131,7 @@ RWGObject::RWGObject(const char *pMeshFileName)
 RWGObject::RWGObject(const char *pMeshFileName, 
                      const char *pLabel,
                      const char *Material,
-                     GTransformation *OTGT)
+                     const GTransformation *OTGT)
  { InitRWGObject(pMeshFileName, pLabel, Material, OTGT); }
 
 /*--------------------------------------------------------------*/
@@ -145,7 +144,7 @@ RWGObject::RWGObject(const char *pMeshFileName,
 void RWGObject::InitRWGObject(const char *pMeshFileName,
                               const char *pLabel,
                               const char *Material,
-                              GTransformation *OTGT)
+                              const GTransformation *OTGT)
 { 
   ErrMsg=0;
   kdPanels = NULL;
@@ -292,7 +291,7 @@ RWGObject::~RWGObject()
 
   if (MeshFileName) free(MeshFileName);
   if (Label) free(Label);
-  if (GT) free(GT);
+  if (GT) delete GT;
 
   kdtri_destroy(kdPanels);
 }
@@ -300,7 +299,7 @@ RWGObject::~RWGObject()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGObject::Transform(GTransformation *DeltaGT)
+void RWGObject::Transform(const GTransformation *DeltaGT)
 { 
   /***************************************************************/
   /*- first apply the transformation to all points whose         */
@@ -308,12 +307,12 @@ void RWGObject::Transform(GTransformation *DeltaGT)
   /*- vertices, edge centroids, and panel centroids.             */
   /***************************************************************/
   /* vertices */
-  ApplyGTransformation(DeltaGT, Vertices, NumVertices);
+  DeltaGT->Apply(Vertices, NumVertices);
 
   /* edge centroids */
   int ne;
   for(ne=0; ne<NumEdges; ne++)
-   ApplyGTransformation(DeltaGT, Edges[ne]->Centroid, 1);
+    DeltaGT->Apply(Edges[ne]->Centroid, 1);
 
   /***************************************************************/
   /* reinitialize geometric data on panels (which takes care of  */ 
@@ -326,8 +325,10 @@ void RWGObject::Transform(GTransformation *DeltaGT)
   /***************************************************************/
   /* update the internally stored GTransformation ****************/
   /***************************************************************/
-  GT=CreateOrAugmentGTransformation(GT, DeltaGT);
-
+  if (!GT)
+    GT = new GTransformation(DeltaGT);
+  else
+    GT->Transform(DeltaGT);
 }
 
 void RWGObject::Transform(char *format,...)
@@ -337,11 +338,10 @@ void RWGObject::Transform(char *format,...)
   va_start(ap,format);
   vsnprintf(buffer,MAXSTR,format,ap);
 
-  GTransformation *OTGT=CreateOrAugmentGTransformation(0, buffer, &ErrMsg);
+  GTransformation OTGT(buffer, &ErrMsg);
   if (ErrMsg)
    ErrExit(ErrMsg);
-  Transform(OTGT);
-  free(OTGT);
+  Transform(&OTGT);
 }
 
 void RWGObject::UnTransform()
@@ -352,14 +352,14 @@ void RWGObject::UnTransform()
   /***************************************************************/
   /* untransform vertices                                        */
   /***************************************************************/
-  UnApplyGTransformation(GT, Vertices, NumVertices);
+  GT->UnApply(Vertices, NumVertices);
 
   /***************************************************************/
   /* untransform edge centroids                                  */
   /***************************************************************/
   int ne;
   for(ne=0; ne<NumEdges; ne++)
-   UnApplyGTransformation(GT, Edges[ne]->Centroid, 1);
+    GT->UnApply(Edges[ne]->Centroid, 1);
 
   /***************************************************************/
   /* reinitialize geometric data on panels (which takes care of  */ 
@@ -372,8 +372,7 @@ void RWGObject::UnTransform()
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  ResetGTransformation(GT);
-
+  GT->Reset();
 }
 
 /*-----------------------------------------------------------------*/
