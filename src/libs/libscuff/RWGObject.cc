@@ -521,12 +521,12 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
   /*--------------------------------------------------------------*/
   double *V1 = Vertices + 3*(EAlpha->iV1);
   double *V2 = Vertices + 3*(EAlpha->iV2);
-  double *QI; // 'QIntermediate' is the common vertex of L_\alpha, L_\beta
+  double *QI=0; // 'QIntermediate' is the common vertex of L_\alpha, L_\beta
   if ( QB == V1 ) 
    QI = V2;
   else if ( QB == V2 ) 
    QI = V1;
-  else 
+  else
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   double lA = EAlpha->Length;
