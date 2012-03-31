@@ -162,6 +162,7 @@ void CFDIntegrand4D(unsigned ndim, const double *x, void *params,
 void CFDIntegrand3D(unsigned ndim, const double *x, void *params,
                     unsigned fdim, double *fval)
 {
+  (void) ndim; (void) fdim; // unused;
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

@@ -169,10 +169,11 @@ double GaussianBeam::TotalBeamFlux() {
 /**********************************************************************/
 /**********************************************************************/
 GaussianBeam::GaussianBeam(const double pX0[3], const double pKProp[3], 
-                                   const cdouble pE0[3], double pW0)
+			   const cdouble pE0[3], double pW0, const char *Label)
 {
   memcpy(X0, pX0, 3*sizeof(double));
   memcpy(KProp, pKProp, 3*sizeof(double));
   memcpy(E0, pE0, 3*sizeof(cdouble));
   W0=pW0;
+  SetObject(Label);
 }

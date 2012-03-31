@@ -32,12 +32,23 @@ typedef class IncField
    cdouble Eps;
    cdouble Mu;
    IncField *Next;
+   char *Object; // label for the object the IncField lies within (NULL == "EXTERIOR")
+   
+   // alternatively, if !Object, specify index of Object in RWGGeometry;
+   // this is also used to cache the index for field computations.
+   int ObjectIndex;
 
    // constructor just initializes the simple fields
-   IncField() : Eps(1.0,0.0), Mu(1.0,0.0), Next(0) {}
+ IncField() : Eps(1.0,0.0), Mu(1.0,0.0), Next(0), Object(0), ObjectIndex(-1) {}
+   ~IncField();
 
    void SetFrequency(cdouble Omega);
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu);
+   void SetObject(const char *Label = 0);
+
+   // if true, returns the location of the source, used to
+   // set the ObjectIndex if !Object.
+   virtual bool GetSourcePoint(double X[3]) const { (void) X; return false; }
    
    virtual void GetFields(const double X[3], cdouble EH[6]) = 0 ;
    void GetTotalFields(const double X[3], cdouble EH[6]);
@@ -54,6 +65,9 @@ typedef class IncField
 /**********************************************************************/
 void EHIncField(const double X[3], void *UserData, cdouble EH[6]);
 
+void EHIncField2(const double X[3], void *UserData, cdouble EH[6],
+		int exterior_index, int interior_index);
+
 /**********************************************************************/
 /* Next come the various possible types of incident field, implemented*/
 /* as structs derived from IncField.                              */
@@ -67,7 +81,7 @@ struct PlaneWave : public IncField
    cdouble E0[3];         /* E-field polarization vector */
    double nHat[3];        /* unit vector in direction of propagation */
 
-   PlaneWave(const cdouble E0[3], const double nHat[3]);
+   PlaneWave(const cdouble E0[3], const double nHat[3], const char *Label = 0);
 
    void GetFields(const double X[3], cdouble EH[6]);
 
@@ -84,10 +98,12 @@ struct PointSource: public IncField
    cdouble P[3];         /* strength */
    int Type;             /* LIF_ELECTRIC_DIPOLE or LIF_MAGNETIC_DIPOLE */
 
-   PointSource(const double X0[3], const cdouble P[3], int Type = LIF_ELECTRIC_DIPOLE);
+   PointSource(const double X0[3], const cdouble P[3], int Type = LIF_ELECTRIC_DIPOLE,
+	       const char *Label = 0);
 
    void GetFields(const double X[3], cdouble EH[6]);
 
+   bool GetSourcePoint(double X[3]) const { X[0]=X0[0];X[1]=X0[1];X[2]=X0[2]; return true; }
  };
 
 /**********************************************************************/
@@ -101,7 +117,8 @@ struct GaussianBeam: public IncField
    double W0;               /* beam waist */
 
    // constructor 
-   GaussianBeam(const double X0[3], const double KProp[3], const cdouble E0[3], double W0);
+   GaussianBeam(const double X0[3], const double KProp[3], const cdouble E0[3], double W0,
+		const char *Label = 0);
 
    void GetFields(const double X[3], cdouble EH[6]);
 

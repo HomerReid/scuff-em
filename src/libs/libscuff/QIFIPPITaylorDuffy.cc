@@ -127,6 +127,7 @@ static double X_CV(FIPPITDWorkspace *W, int i, double x1, double x2, double x3)
 static void x1x2Integrand(unsigned ndim, const double *x, void *parms,
                           unsigned nfun, double *f)
 { 
+  (void) ndim; (void) nfun; // unused
   int i, Alpha, ri, ng, nh;
   double X, In[NUMGS][6], SCE[9][7][4], SCE_RM3[6][7][4];
 
@@ -159,6 +160,7 @@ W->Calls++;
 static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms,
                             unsigned nfun, double *f)
 { 
+  (void) ndim; (void) nfun; // unused
   int i, Alpha, ri, ng, nh;
   double X, In[NUMGS][6], SCV[9][3][3], SCV_RM3[6][3][3];
 

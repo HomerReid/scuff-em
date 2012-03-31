@@ -403,16 +403,16 @@ RWGGeometry::~RWGGeometry()
 /***************************************************************/
 RWGObject *RWGGeometry::GetObjectByLabel(char *Label, int *pno)
 { 
-  for( (*pno)=0; (*pno)<NumObjects; (*pno)++)
-   if ( !strcasecmp(Label, Objects[(*pno)]->Label) )
-    return Objects[ (*pno) ];
- 
-  return 0;
-}
+  for(int no=0; no<NumObjects; no++)
+    if ( !strcasecmp(Label, Objects[no]->Label) ) {
+      if (pno) *pno = no;
+      return Objects[no];
+    }
 
-RWGObject *RWGGeometry::GetObjectByLabel(char *Label)
-{ int pno;
-  return GetObjectByLabel(Label, &pno);
+  if (pno && (!strcasecmp(Label,"EXTERIOR") || !strcasecmp(Label,"MEDIUM")))
+    *pno = -1;
+
+  return NULL;
 }
 
 /***************************************************************/
@@ -436,7 +436,7 @@ void RWGGeometry::Transform(GTComplex *GTC)
 
      // apply the transformation to that object
      if (O) 
-      { O->Transform(GTC->GT[noa]);
+      { O->Transform(GTC->GT + noa);
         ObjectMoved[WhichObject]=1;
       };
         

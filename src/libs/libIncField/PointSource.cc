@@ -13,11 +13,13 @@
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/
-PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType)
+PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType,
+			 const char *Label)
 {
   memcpy(X0, pX0, 3*sizeof(double));
   memcpy(P,  pP, 3*sizeof(cdouble));
   Type=pType;
+  SetObject(Label);
 }
 
 /**********************************************************************/
