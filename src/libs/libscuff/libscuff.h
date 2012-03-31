@@ -48,8 +48,14 @@ namespace scuff{
 #define ZVAC 376.73031346177
 #endif
 
-/* prototype for incident field routine passed to AssembleRHS */
-typedef void (*EHFuncType)(const double R[3], void *UserData, cdouble EH[6]); 
+/* prototype for incident field routine passed to AssembleRHS,
+   assuming sources are in the exterior medium only. */
+typedef void (*EHFuncType)(const double R[3], void *UserData, cdouble EH[6]);
+
+/* alternatively pass the indices of the exterior and interior objects
+   (-1 for EXTERIOR) for the current object being assembled */
+typedef void (*EHFuncType2)(const double R[3], void *UserData, cdouble EH[6],
+			    int exterior_index, int interior_index); 
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -151,13 +157,9 @@ class RWGObject
 
    /* calculate the inner product of a single basis function with  */
    /* given incident electric and magnetic fields                  */
-   void GetInnerProducts(int nbf, EHFuncType EHFunc, void *EHFuncUD,
-                         int PureImagFreq, cdouble *EProd, cdouble *HProd);
-   void GetInnerProducts(int nbf, IncField *inc,
-			 int PureImagFreq, cdouble *EProd, cdouble *HProd) {
-	GetInnerProducts(nbf, EHIncField, (void*) inc,
-			 PureImagFreq, EProd, HProd);
-   }
+   void GetInnerProducts(int nbf, EHFuncType2 EHFunc, void *EHFuncUD,
+                         int PureImagFreq, cdouble *EProd, cdouble *HProd,
+			 int exterior_index, int interior_index);
 
    /* apply a general transformation (rotation+displacement) to the object */
    void Transform(const GTransformation *GT);
@@ -324,15 +326,21 @@ class RWGGeometry
    HVector *AllocateRHSVector(int PureImagFreq);
    HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
 
-   void AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD, 
+   void AssembleRHSVector(EHFuncType2 EHFunc, void *EHFuncUD, 
                           HVector *B, int nThread = 0);
-   void AssembleRHSVector(IncField *inc,
-                          HVector *B, int nThread = 0) {
-	AssembleRHSVector(EHIncField, (void*) inc, B, nThread);
-   }
+   void AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD, // source in
+                          HVector *B, int nThread = 0);      // exterior only
+   void AssembleRHSVector(IncField *inc, HVector *B, int nThread = 0);
+   void AssembleRHSVector(cdouble omega, IncField *inc, 
+                          HVector *B, int nThread = 0);
    HVector *AssembleRHSVector(IncField *inc, int nThread = 0) {
 	HVector *B = AllocateRHSVector(real(inc->Omega) == 0.0);
 	AssembleRHSVector(inc, B, nThread);
+	return B;
+   }
+   HVector *AssembleRHSVector(cdouble omega, IncField *inc, int nThread = 0) {
+	HVector *B = AllocateRHSVector(real(omega) == 0.0);
+	AssembleRHSVector(omega, inc, B, nThread);
 	return B;
    }
 
@@ -427,8 +435,7 @@ class RWGGeometry
 
    /* some simple utility functions */
    int GetDimension();
-   RWGObject *GetObjectByLabel(char *Label);
-   RWGObject *GetObjectByLabel(char *Label, int *WhichObject);
+   RWGObject *GetObjectByLabel(char *Label, int *WhichObject = NULL);
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
