@@ -531,6 +531,12 @@ bool RWGObject::Contains(const double X[3])
 bool RWGObject::Contains(const RWGObject *O)
 {
   if (!O || O->NumPanels <= 0) return false;
+
+  /* return false for all PEC objects.  This is because PEC objects
+     are actually treated as infinitesimally thin PEC surfaces (which 
+     may not even be closed surfaces), so they have no interior. */
+  if (O->MP->IsPEC()) return false;
+
   int vi = O->Panels[0]->VI[0]; // the first vertex of the first panel
 #if 0 // debugging: exhaustively check all vertices
   bool cont = Contains(O->Vertices + 3*vi);

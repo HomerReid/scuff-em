@@ -13,10 +13,6 @@ libscuff_la_LIBADD = ../libhrutil/libhrutil.la ../libhmat/libhmat.la	\
 # set the shared-library version number (DIFFERENT from human version #)
 libscuff_la_LDFLAGS = -version-info @SHARED_VERSION_INFO@
 
-noinst_PROGRAMS = Sphere
-Sphere_SOURCES = Sphere.cc
-Sphere_LDADD = libscuff.la
-
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libMatProp   \
               -I$(top_srcdir)/src/libs/libMatProp/cmatheval  \
