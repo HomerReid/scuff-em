@@ -25,7 +25,7 @@
 /* IncField is a general base class from which specific classes   */
 /* for various types of field are derived.                            */
 /**********************************************************************/
-typedef class IncField
+class IncField
  { 
  public:
    cdouble Omega;
@@ -52,7 +52,7 @@ typedef class IncField
    
    virtual void GetFields(const double X[3], cdouble EH[6]) = 0 ;
    void GetTotalFields(const double X[3], cdouble EH[6]);
- } IncField;
+ };
 
 
 /**********************************************************************/
@@ -76,8 +76,9 @@ void EHIncField2(const double X[3], void *UserData, cdouble EH[6],
 /**********************************************************************/
 /* plane wave *********************************************************/
 /**********************************************************************/
-struct PlaneWave : public IncField
+class PlaneWave : public IncField
  { 
+ public:
    cdouble E0[3];         /* E-field polarization vector */
    double nHat[3];        /* unit vector in direction of propagation */
 
@@ -92,8 +93,9 @@ struct PlaneWave : public IncField
 /**********************************************************************/  
 #define LIF_ELECTRIC_DIPOLE 0
 #define LIF_MAGNETIC_DIPOLE 1
-struct PointSource: public IncField
+class PointSource: public IncField
  { 
+ public:
    double X0[3];         /* location */
    cdouble P[3];         /* strength */
    int Type;             /* LIF_ELECTRIC_DIPOLE or LIF_MAGNETIC_DIPOLE */
@@ -109,8 +111,9 @@ struct PointSource: public IncField
 /**********************************************************************/
 /* focused gaussian beam  **********8**********************************/
 /**********************************************************************/
-struct GaussianBeam: public IncField
+class GaussianBeam: public IncField
  { 
+ public:
    double X0[3];            /* beam center point */
    double KProp[3];         /* beam propagation vector */
    cdouble E0[3];           /* complex field-strength vector */
@@ -130,8 +133,9 @@ struct GaussianBeam: public IncField
 /* magnetic 'frill' (annulus)    **************************************/
 /**********************************************************************/
 #if 0
-struct MagneticFrill: public IncField
+class MagneticFrill: public IncField
  {
+ public:
    double X0[3];          /* center of frill */
    double Theta, Phi;     /* angles of frill axis */
    double RIn, ROut;      /* inner and outer radii */
@@ -140,8 +144,9 @@ struct MagneticFrill: public IncField
 /**********************************************************************/
 /* magnetic solenoid                            ***********************/
 /**********************************************************************/
-struct MagneticSolenoid: public IncField
+class MagneticSolenoid: public IncField
  { 
+ public:
    double X0[3];          /* center */
    double Theta, Phi;     /* angles of solenoid axis */
    double Radius, L;      /* radius and length  */
