@@ -33,10 +33,18 @@ using namespace scuff;
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+// for some reason SWIG gets confused about whether some classes are abstract
+
+%feature("notabstract") PlaneGrid;
+%feature("notabstract") SphereGrid;
+%feature("notabstract") CylinderGrid;
+
+//////////////////////////////////////////////////////////////////////////////
 
 %include "libhrutil.h"
 %include "libhmat.h"
 %include "libMatProp.h"
 %include "libIncField.h"
 %include "GTransformation.h"
+%include "FieldGrid.h"
 %include "libscuff.h"

@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libscuff.la
-pkginclude_HEADERS = libscuff.h GTransformation.h
-libscuff_la_SOURCES = AssembleBEMMatrix.cc AssembleRHSVector.cc AssessPanelPair.cc CalcGC.cc EdgeEdgeInteractions.cc ExpandCurrentDistribution.cc FIPPICache.cc GTransformation.cc GTransformation.h GetDipoleMoments.cc GetFields.cc InitEdgeList.cc PanelPanelInteractions.cc PointInObject.cc QDFIPPI.cc QIFIPPICubature.cc QIFIPPITaylorDuffy.cc RWGGeometry.cc RWGObject.cc ReadComsolFile.cc ReadGMSHFile.cc TaylorDuffy.cc TaylorDuffy.h Visualize.cc libscuff.h libscuffInternals.h rwlock.cc rwlock.h scuffMisc.cc
+pkginclude_HEADERS = libscuff.h GTransformation.h FieldGrid.h
+libscuff_la_SOURCES = AssembleBEMMatrix.cc AssembleRHSVector.cc AssessPanelPair.cc CalcGC.cc EdgeEdgeInteractions.cc ExpandCurrentDistribution.cc FieldGrid.cc FIPPICache.cc GTransformation.cc GTransformation.h GetDipoleMoments.cc GetFields.cc InitEdgeList.cc PanelPanelInteractions.cc PointInObject.cc QDFIPPI.cc QIFIPPICubature.cc QIFIPPITaylorDuffy.cc RWGGeometry.cc RWGObject.cc ReadComsolFile.cc ReadGMSHFile.cc TaylorDuffy.cc TaylorDuffy.h Visualize.cc libscuff.h libscuffInternals.h rwlock.cc rwlock.h scuffMisc.cc
 
 # bitrotted: AssembleDMDVMatrix.cc BORTObject.cc GetSphericalMoments.cc ParseGeoFiles.cc SphericalMoments.cc
 
@@ -13,8 +13,13 @@ libscuff_la_LIBADD = ../libhrutil/libhrutil.la ../libhmat/libhmat.la	\
 # set the shared-library version number (DIFFERENT from human version #)
 libscuff_la_LDFLAGS = -version-info @SHARED_VERSION_INFO@
 
+noinst_PROGRAMS = Sphere
+Sphere_SOURCES = Sphere.cc
+Sphere_LDADD = libscuff.la
+
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libMatProp   \
+              -I$(top_srcdir)/src/libs/libMatProp/cmatheval  \
               -I$(top_srcdir)/src/libs/libhmat      \
               -I$(top_srcdir)/src/libs/libSGJC      \
               -I$(top_srcdir)/src/libs/libIncField  \

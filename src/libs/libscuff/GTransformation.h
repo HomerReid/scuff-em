@@ -67,6 +67,12 @@ public:
      void UnApply(const double X[3], double XP[3]) const { UnApply(X, XP, 1); }
      void UnApply(double *X, int NX) const { UnApply(X, X, NX); }
      void UnApply(double X[3]) const { UnApply(X, X, 1); }
+
+     // apply rotations only
+     void ApplyRotation(const double X[3], double XP[3]) const;
+     void ApplyRotation(double X[3]) const { ApplyRotation(X, X); }
+     void UnApplyRotation(const double X[3], double XP[3]) const;
+     void UnApplyRotation(double X[3]) const { UnApplyRotation(X, X); }
      
 private:
      double DX[3]; // translation

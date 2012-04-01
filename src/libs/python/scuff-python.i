@@ -84,18 +84,24 @@ static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
 // typemap in "new" constructors, but we can do so by checking $symname
 // at runtime.)
 
+%{
+  static PyObject *HVector_to_Py(HVector *V, bool opaque) {
+    if (opaque)
+      return SWIG_NewPointerObj((void*) V, SWIGTYPE_p_HVector, 0);
+    else {
+      npy_intp sz = npy_intp(V->N);
+      PyObject *result = (PyObject*) PyArray_SimpleNewFromData
+	(1, &sz, V->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE,
+	 V->RealComplex == LHM_COMPLEX ? (void*) V->ZV : (void*) V->DV);
+      V->ownsV = false; // prevent deallocation
+      delete V;
+      return result;
+    }
+  }
+%}
+
 %typemap(out)(HVector *) {
-  if (!strcmp("$symname", "new_HVector")) {
-    $result = SWIG_NewPointerObj((void*) $1, SWIGTYPE_p_HVector, 0);
-  }
-  else {
-    npy_intp sz = npy_intp($1->N);
-    $result = (PyObject*) PyArray_SimpleNewFromData
-      (1, &sz, $1->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE,
-       $1->RealComplex == LHM_COMPLEX ? (void*) $1->ZV : (void*) $1->DV);
-    $1->ownsV = false; // prevent deallocation
-    delete $1;
-  }
+  $result = HVector_to_Py($1, !strcmp("$symname", "new_HVector"));
 }
 
 %{
@@ -145,23 +151,28 @@ static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
     || is_HVector_array($input) || PySequence_Check($input);
 }
 
+%{
+  static PyObject *HMatrix_to_Py(HMatrix *M, bool opaque) {
+    if (M->StorageType != LHM_NORMAL || opaque)
+      return SWIG_NewPointerObj((void*) M, SWIGTYPE_p_HMatrix, 0);
+    else { // return numpy.array
+      npy_intp dims[2];
+      dims[0] = npy_intp(M->NR);
+      dims[1] = npy_intp(M->NR);
+      PyObject *result = (PyObject*) PyArray_New
+	(&PyArray_Type, 2, dims,
+	 M->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE, NULL,
+	 M->RealComplex == LHM_COMPLEX ? (void*) M->ZM : (void*) M->DM, 0,
+	 NPY_FARRAY, NULL);
+      M->ownsM = false; // prevent deallocation
+      delete M;
+      return result;
+    }
+  }
+%}
+
 %typemap(out)(HMatrix *) {
-  if ($1->StorageType != LHM_NORMAL ||
-      !strcmp("$symname", "new_HMatrix")) { // return opaque HMatrix*
-    $result = SWIG_NewPointerObj((void*) $1, SWIGTYPE_p_HMatrix, 0);
-  }
-  else { // return numpy.array
-    npy_intp dims[2];
-    dims[0] = npy_intp($1->NR);
-    dims[1] = npy_intp($1->NR);
-    $result = (PyObject*) PyArray_New // TODO: how to return numpy.matrix?
-      (&PyArray_Type, 2, dims,
-       $1->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE, NULL,
-       $1->RealComplex == LHM_COMPLEX ? (void*) $1->ZM : (void*) $1->DM, 0,
-       NPY_FARRAY, NULL);
-    $1->ownsM = false; // prevent deallocation
-    delete $1;
-  }
+  $result = HMatrix_to_Py($1, !strcmp("$symname", "new_HMatrix"));
 }
 
 %{
@@ -202,4 +213,17 @@ static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
 %typecheck(SWIG_TYPECHECK_POINTER)(HMatrix *) {
   $1 = SWIG_IsOK(SWIG_ConvertPtr($input, NULL, SWIGTYPE_p_HMatrix, 0))
     || is_HMatrix_array($input);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Turn a NULL-terminated HMatrix** array into a Python list of arrays
+// for use in GetFieldsGrids.
+
+%typemap(out)(HMatrix **) {
+  Py_ssize_t numM = 0;
+  for (HMatrix **Ms = $1; *Ms; ++Ms) numM++;
+  $result = PyList_New(numM);
+  for (Py_ssize_t iM = 0; iM < numM; ++iM)
+    PyList_SET_ITEM($result, iM, HMatrix_to_Py($1[iM], false));
+  free($1);
 }

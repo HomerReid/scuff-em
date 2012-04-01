@@ -348,14 +348,15 @@ void RWGGeometry::AssembleRHSVector(EHFuncType2 EHFunc, void *EHFuncUD,
 }
 
 /***************************************************************/
-/* Assemble the RHS vector from an IncField object.            */
+/* Update the IncField ObjectIndex, Omega, Eps, and Mu values. */
+/* (Only update ObjectIndex if ignoreOmega is true.)           */
 /***************************************************************/
 
-void RWGGeometry::AssembleRHSVector(cdouble omega, IncField *inc,
-				    HVector *B, int nThread) {
+void RWGGeometry::UpdateIncFields(IncField *inc, cdouble Omega,
+				  bool ignoreOmega) {
   for (IncField *i = inc; i; i = i->Next) {
     int io = 0; double X[3];
-    i->Omega = omega;
+    if (!ignoreOmega) i->Omega = Omega;
     if ((i->Object && GetObjectByLabel(i->Object, &io))
      	|| (i->GetSourcePoint(X) && ((io = GetObjectIndex(X)) >= 0))
 	|| ((io = i->ObjectIndex) >= 0 && i->ObjectIndex < NumObjects)) {
@@ -363,27 +364,31 @@ void RWGGeometry::AssembleRHSVector(cdouble omega, IncField *inc,
 	i->ObjectIndex = -2; // disable sources inside PEC
       else {
 	i->ObjectIndex = io;
-	Objects[io]->MP->GetEpsMu(omega, &i->Eps, &i->Mu);
+	if (!ignoreOmega)
+	  Objects[io]->MP->GetEpsMu(Omega, &i->Eps, &i->Mu);
       }
     }
     else if (!i->Object || i->ObjectIndex == -1 || io == -1) {
       i->ObjectIndex = -1;
-      ExteriorMP->GetEpsMu(omega, &i->Eps, &i->Mu);
+      if (!ignoreOmega)
+	ExteriorMP->GetEpsMu(Omega, &i->Eps, &i->Mu);
     }
   }
+}
+
+/***************************************************************/
+/* Assemble the RHS vector from an IncField object.            */
+/***************************************************************/
+
+void RWGGeometry::AssembleRHSVector(cdouble omega, IncField *inc,
+				    HVector *B, int nThread) {
+  UpdateIncFields(inc, omega);
   AssembleRHSVector(EHIncField2, (void*) inc, B, nThread);
 }
 
 // as above, but requires that frequencies and eps/mu have already been set
 void RWGGeometry::AssembleRHSVector(IncField *inc, HVector *B, int nThread) {
-  for (IncField *i = inc; i; i = i->Next) {
-    int io = 0; double X[3];
-    if ((i->Object && GetObjectByLabel(i->Object, &io))
-	|| (i->GetSourcePoint(X) && ((io = GetObjectIndex(X)) >= 0)))
-      i->ObjectIndex = Objects[io]->MP->Type == MP_PEC ? -2 : io;
-    else if (!i->Object || i->ObjectIndex == -1 || io == -1)
-      i->ObjectIndex = -1;
-  }
+  UpdateIncFields(inc);
   AssembleRHSVector(EHIncField2, (void*) inc, B, nThread);
 }
 
