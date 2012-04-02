@@ -32,10 +32,11 @@ typedef struct InnerProductIntegrandData
  { 
    double *Q;
    double PreFac;
-   EHFuncType EHFunc;
+   EHFuncType2 EHFunc;
    void *EHFuncUD;
    int PureImagFreq;
    int NeedHProd;
+   int exterior_idx, interior_idx;
  } InnerProductIntegrandData;
 
 /***************************************************************/
@@ -56,7 +57,7 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
   VecScale(fRWG,IPID->PreFac);
 
   /* call user's incident field routine to get E and H fields at X */
-  IPID->EHFunc(X,IPID->EHFuncUD,EH); 
+  IPID->EHFunc(X,IPID->EHFuncUD,EH, IPID->exterior_idx, IPID->interior_idx); 
   
   /*--------------------------------------------------------------*/
   /*- now switch off to determine which return values are needed -*/
@@ -96,9 +97,10 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 /* If pHProd==0, we don't compute the inner product with the   */
 /* magnetic field.                                             */
 /***************************************************************/
-void RWGObject::GetInnerProducts(int nbf, EHFuncType EHFunc, 
+void RWGObject::GetInnerProducts(int nbf, EHFuncType2 EHFunc, 
                                  void *EHFuncUD, int PureImagFreq,
-                                 cdouble *pEProd, cdouble *pHProd)
+                                 cdouble *pEProd, cdouble *pHProd,
+				 int exterior_index, int interior_index)
 { 
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;
@@ -122,6 +124,8 @@ void RWGObject::GetInnerProducts(int nbf, EHFuncType EHFunc,
   IPID->EHFuncUD=EHFuncUD;
   IPID->PureImagFreq=PureImagFreq;
   IPID->NeedHProd=0;
+  IPID->exterior_idx = exterior_index;
+  IPID->interior_idx = interior_index;
   nFun=1;
   if (pHProd)
    { IPID->NeedHProd=1;
@@ -174,7 +178,7 @@ typedef struct ThreadData
    int nt, nThread;
 
    RWGGeometry *G;
-   EHFuncType EHFunc;
+   EHFuncType2 EHFunc;
    void *EHFuncUD;
    HVector *B;
 
@@ -190,7 +194,7 @@ void *AssembleRHS_Thread(void *data)
   /***************************************************************/
   ThreadData *TD=(ThreadData *)data;
   RWGGeometry *G    = TD->G;
-  EHFuncType EHFunc = TD->EHFunc;
+  EHFuncType2 EHFunc = TD->EHFunc;
   void *EHFuncUD    = TD->EHFuncUD;
 
   /***************************************************************/
@@ -237,13 +241,25 @@ void *AssembleRHS_Thread(void *data)
      else
       pHProd=&HProd;
 
+     // find index of exterior object to O (-1 if none)
+     int exterior_index = -1;
+     if (O->ContainingObject) {
+       for (int no2=0; no2 < G->NumObjects; ++no2)
+	 if (O->ContainingObject == G->Objects[no2]) {
+	   exterior_index = no2;
+	   break;
+	 }
+       if (exterior_index == -1) ErrExit("invalid containing object");
+     }
+
      for(ne=0; ne<O->NumEdges; ne++)
       { 
         nt++;
         if (nt==TD->nThread) nt=0;
         if (nt!=TD->nt) continue;
 
-        O->GetInnerProducts(ne, EHFunc, EHFuncUD, PureImagFreq, &EProd, pHProd);
+        O->GetInnerProducts(ne, EHFunc, EHFuncUD, PureImagFreq, &EProd, pHProd,
+			    exterior_index, no);
 
         /* there are four choices here based on whether we are at a general */
         /* or a pure imaginary frequency and whether the object is a        */
@@ -278,13 +294,12 @@ void *AssembleRHS_Thread(void *data)
 /***************************************************************/
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
-void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
-                                    int nThread, HVector *B)
+void RWGGeometry::AssembleRHSVector(EHFuncType2 EHFunc, void *EHFuncUD,
+                                    HVector *B, int nThread)
 { 
   int nt;
 
-  if (nThread<=0)
-   ErrExit("AssembleRHSVector called with nThread=%i",nThread);
+  if (nThread <= 0) nThread = GetNumThreads();
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;
@@ -333,6 +348,51 @@ void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
 }
 
 /***************************************************************/
+/* Update the IncField ObjectIndex, Omega, Eps, and Mu values. */
+/* (Only update ObjectIndex if ignoreOmega is true.)           */
+/***************************************************************/
+
+void RWGGeometry::UpdateIncFields(IncField *inc, cdouble Omega,
+				  bool ignoreOmega) {
+  for (IncField *i = inc; i; i = i->Next) {
+    int io = 0; double X[3];
+    if (!ignoreOmega) i->Omega = Omega;
+    if ((i->Object && GetObjectByLabel(i->Object, &io))
+     	|| (i->GetSourcePoint(X) && ((io = GetObjectIndex(X)) >= 0))
+	|| ((io = i->ObjectIndex) >= 0 && i->ObjectIndex < NumObjects)) {
+      if (Objects[io]->MP->Type == MP_PEC)
+	i->ObjectIndex = -2; // disable sources inside PEC
+      else {
+	i->ObjectIndex = io;
+	if (!ignoreOmega)
+	  Objects[io]->MP->GetEpsMu(Omega, &i->Eps, &i->Mu);
+      }
+    }
+    else if (!i->Object || i->ObjectIndex == -1 || io == -1) {
+      i->ObjectIndex = -1;
+      if (!ignoreOmega)
+	ExteriorMP->GetEpsMu(Omega, &i->Eps, &i->Mu);
+    }
+  }
+}
+
+/***************************************************************/
+/* Assemble the RHS vector from an IncField object.            */
+/***************************************************************/
+
+void RWGGeometry::AssembleRHSVector(cdouble omega, IncField *inc,
+				    HVector *B, int nThread) {
+  UpdateIncFields(inc, omega);
+  AssembleRHSVector(EHIncField2, (void*) inc, B, nThread);
+}
+
+// as above, but requires that frequencies and eps/mu have already been set
+void RWGGeometry::AssembleRHSVector(IncField *inc, HVector *B, int nThread) {
+  UpdateIncFields(inc);
+  AssembleRHSVector(EHIncField2, (void*) inc, B, nThread);
+}
+
+/***************************************************************/
 /* Allocate an RHS vector of the appropriate size. *************/
 /***************************************************************/
 HVector *RWGGeometry::AllocateRHSVector(int PureImagFreq)
@@ -347,5 +407,34 @@ HVector *RWGGeometry::AllocateRHSVector(int PureImagFreq)
   return V;
 
 } 
+
+/***************************************************************/
+/* AssembleRHSVector for an EHFunc assumed to be sources in    */
+/* the exterior medium only.                                   */
+/***************************************************************/
+
+typedef struct { EHFuncType f; void *UserData; } EHFuncType_wrap_data;
+
+// wrapper to make EHFuncType look like EHFuncType2, which
+// assumes that the sources lie in exterior_index == -1 only.
+static void EHFuncType_wrap(const double R[3], void *UserData, cdouble EH[6],
+			    int exterior_index, int interior_index)
+{
+  (void) interior_index; // unused
+  if (exterior_index == -1) {
+    EHFuncType_wrap_data *wd = (EHFuncType_wrap_data *) UserData;
+    wd->f(R, wd->UserData, EH);
+  }
+  else
+    memset(EH, 0, sizeof(cdouble) * 6);
+}
+
+void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
+				    HVector *B, int nThread) {
+  EHFuncType_wrap_data wd;
+  wd.f = EHFunc;
+  wd.UserData = EHFuncUD;
+  AssembleRHSVector(EHFuncType_wrap, (void*) &wd, B, nThread);
+}
 
 } // namespace scuff

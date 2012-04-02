@@ -14,8 +14,6 @@
 #define RELTOL   1.0e-2
 #define MAXEVALS 50000
 
-FILE *PVCLogFile=0;
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -25,7 +23,7 @@ void GetTotalField(SSData *SSD, double *X, int WhichObject,
   /*--------------------------------------------------------------*/
   /*- get scattered field ----------------------------------------*/
   /*--------------------------------------------------------------*/
-  SSD->G->GetFields(X,WhichObject,SSD->Omega,SSD->KN,SSD->nThread,EHS);
+  SSD->G->GetFields(X,WhichObject,SSD->Omega,SSD->KN,EHS,SSD->nThread);
   memcpy(EHT,EHS,6*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
@@ -405,9 +403,6 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   fval[0] = -R*R*( PVTot[0]*nHat[0] + PVTot[1]*nHat[1]  + PVTot[2]*nHat[2] );
   fval[1] =  R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
 
-if (PVCLogFile)
- fprintf(PVCLogFile,"%e %e %e %e \n",CosTheta,CosPhi,fval[0],fval[1]);
-
 }
 
 /***************************************************************/
@@ -459,7 +454,7 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   for(no=0; no<G->NumObjects; no++)
    G->Objects[no]->MP->Zero();
 
-  G->AssembleBEMMatrix(SSD->Omega, SSD->nThread, M);
+  G->AssembleBEMMatrix(SSD->Omega, M, SSD->nThread);
 
   for(no=0; no<G->NumObjects; no++)
    G->Objects[no]->MP->UnZero();
@@ -471,20 +466,20 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   /***************************************************************/
   // nr runs over rows, nc over columns, ne over matrix entries
   int nr, nc, ne, N=G->TotalBFs;
-  double VMV, VV;
+  double PScat, PAbs, PTot;
   double Sign;
-  for(VMV=VV=0.0, Sign=1.0, ne=nc=0; nc<N; nc++)
+  for(PTot=PScat=0.0, Sign=1.0, ne=nc=0; nc<N; nc++)
    for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
     { 
       if (nr==nc) 
-       VV += Sign*real( conj(ZKN[nr]) * ZRHS[nr] );
+       PTot+= Sign*real( conj(ZKN[nr]) * ZRHS[nr] );
 
-      VMV += -Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+      PScat += -Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
     };
     
-  double PScat, PAbs;
-  PAbs  =  0.25 * ZVAC * (VV+VMV);
-  PScat =  0.25 * ZVAC * (VV-VMV);
+  PTot  *=  -0.5 * ZVAC;
+  PScat *=  0.5 * ZVAC;
+  PAbs = PTot - PScat;
 
   /***************************************************************/
   /***************************************************************/
@@ -522,7 +517,7 @@ void GetPower(SSData *SSD, char *PowerFile)
   /***************************************************************/
   /* get absorbed and scattered powers                           */
   /***************************************************************/
-  double PTot=0.0, PAbs=0.0;
+  double PTot=0.0, PAbs=0.0, PScat;
   double OTimes;
   int no, nea, neb, Offset;
   RWGObject *O;
@@ -568,9 +563,10 @@ void GetPower(SSData *SSD, char *PowerFile)
       }; // if ( O->MP->IsPEC() )
    }; // for(no=...)
   
-  PAbs *= -0.5*ZVAC;
-  PTot *=  0.5*ZVAC;
-  fprintf(f,"%.12e %.12e  ",PAbs, PTot-PAbs );
+  PAbs  *= -0.5*ZVAC;
+  PTot  *= -0.5*ZVAC;
+  PScat *= PTot - PAbs;
+  fprintf(f,"%.12e %.12e  ",PAbs, PScat);
 
   /***************************************************************/
   /***************************************************************/
@@ -587,21 +583,9 @@ void GetPower(SSData *SSD, char *PowerFile)
   if (SSD->PowerRadius > 0.0 )
    { double PBF[2], EBF[2]; 
      GetPower_BF(SSD, SSD->PowerRadius, PBF, EBF);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-static int init=0;
-if (init==0)
- { init=1;
-   PVCLogFile=fopen("freddy","w");
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      fprintf(f,"%.12e %.12e %.12e %.12e ",PBF[0],EBF[0],PBF[1],EBF[1]);
    };
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (PVCLogFile)
- fclose(PVCLogFile);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   fprintf(f,"\n");
   fclose(f);

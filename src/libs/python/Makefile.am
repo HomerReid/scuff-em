@@ -3,7 +3,7 @@ EXTRA_DIST = $(SWIG_SRC)
 BUILT_SOURCES = scuff-python.cpp scuff.py
 
 _scuff_la_SOURCES = scuff-python.cpp
-_scuff_la_LIBADD = ../libscuff/libscuff.la
+_scuff_la_LIBADD = ../libscuff/libscuff.la $(LIBS)
 _scuff_la_LDFLAGS = -module -version-info @SHARED_VERSION_INFO@
 _scuff_la_CPPFLAGS = $(PYTHON_INCLUDES) $(AM_CPPFLAGS)
 
@@ -28,7 +28,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
 if MAINTAINER_MODE
 
 scuff-python.cpp scuff.py: $(SWIG_SRC) $(top_srcdir)/src/libs/libscuff/libscuff.h $(top_srcdir)/src/libs/libscuff/GTransformation.h $(top_srcdir)/src/libs/libIncField/libIncField.h $(top_srcdir)/src/libs/libhrutil/libhrutil.h $(top_srcdir)/src/libs/libMatProp/libMatProp.h $(top_srcdir)/src/libs/libhmat/libhmat.h
-	swig $(AM_CPPFLAGS) -outdir $(builddir) -c++ -python -o $(builddir)/scuff-python.cpp scuff.i
+	swig -Wall $(AM_CPPFLAGS) -outdir $(builddir) -c++ -python -o $(builddir)/scuff-python.cpp scuff.i
 
 endif
 

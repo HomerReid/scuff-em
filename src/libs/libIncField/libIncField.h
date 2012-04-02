@@ -22,54 +22,69 @@
 #endif
 
 /**********************************************************************/
-/* IncFieldData is a general base class from which specific classes   */
+/* IncField is a general base class from which specific classes   */
 /* for various types of field are derived.                            */
 /**********************************************************************/
-typedef class IncFieldData
+class IncField
  { 
  public:
    cdouble Omega;
    cdouble Eps;
    cdouble Mu;
-   IncFieldData *Next;
+   IncField *Next;
+   char *Object; // label for the object the IncField lies within (NULL == "EXTERIOR")
+   
+   // alternatively, if !Object, specify index of Object in RWGGeometry;
+   // this is also used to cache the index for field computations.
+   int ObjectIndex;
 
    // constructor just initializes the simple fields
-   IncFieldData() : Eps(1.0,0.0), Mu(1.0,0.0), Next(0) {}
+   IncField() : Eps(1.0,0.0), Mu(1.0,0.0), Next(0), Object(0), ObjectIndex(-1) {}
+   ~IncField();
 
    void SetFrequency(cdouble Omega);
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu);
-   
-   virtual void GetFields(double *X, cdouble *EH) = 0 ;
+   void SetObject(const char *Label = 0);
 
- } IncFieldData;
+   // if true, returns the location of the source, used to
+   // set the ObjectIndex if !Object.
+   virtual bool GetSourcePoint(double X[3]) const { (void) X; return false; }
+   
+   virtual void GetFields(const double X[3], cdouble EH[6]) = 0 ;
+   void GetTotalFields(const double X[3], cdouble EH[6]);
+ };
 
 
 /**********************************************************************/
 /* this is the function with the proper prototype for passage to the  */
 /* AssembleRHSVector() routine in libscuff. its implementation within */
 /* libIncField expects the UserData field to point to the head of a   */
-/* linked list of structures derived from IncFieldData. the field     */
+/* linked list of structures derived from IncField. the field         */
 /* returned is the sum of the fields associated with each structure in*/
 /* the list.                                                          */
 /**********************************************************************/
-void EHIncField(double *X, void *UserData, cdouble EH[6]);
+void EHIncField(const double X[3], void *UserData, cdouble EH[6]);
+
+void EHIncField2(const double X[3], void *UserData, cdouble EH[6],
+                 int exterior_index, int interior_index);
 
 /**********************************************************************/
 /* Next come the various possible types of incident field, implemented*/
-/* as structs derived from IncFieldData.                              */
+/* as structs derived from IncField.                                  */
 /**********************************************************************/
 
 /**********************************************************************/
 /* plane wave *********************************************************/
 /**********************************************************************/
-struct PlaneWaveData : public IncFieldData
+class PlaneWave : public IncField
  { 
+ public:
    cdouble E0[3];         /* E-field polarization vector */
    double nHat[3];        /* unit vector in direction of propagation */
 
-   PlaneWaveData(cdouble E0[3], double nHat[3]);
+   PlaneWave(const cdouble E0[3], const double nHat[3], const char *Label = 0);
 
-   void GetFields(double *X, cdouble *EH);
+   void GetFields(const double X[3], cdouble EH[6]);
 
  };
 
@@ -78,33 +93,37 @@ struct PlaneWaveData : public IncFieldData
 /**********************************************************************/  
 #define LIF_ELECTRIC_DIPOLE 0
 #define LIF_MAGNETIC_DIPOLE 1
-struct PointSourceData: public IncFieldData
+class PointSource: public IncField
  { 
+ public:
    double X0[3];         /* location */
    cdouble P[3];         /* strength */
    int Type;             /* LIF_ELECTRIC_DIPOLE or LIF_MAGNETIC_DIPOLE */
 
-   PointSourceData(double X0[3], cdouble P[3], int Type);
-   PointSourceData(double X0[3], cdouble P[3]); // defaults to Type=LIF_ELECTRIC_DIPOLE
+   PointSource(const double X0[3], const cdouble P[3], int Type = LIF_ELECTRIC_DIPOLE,
+	       const char *Label = 0);
 
-   void GetFields(double *X, cdouble *EH);
+   void GetFields(const double X[3], cdouble EH[6]);
 
+   bool GetSourcePoint(double X[3]) const { X[0]=X0[0];X[1]=X0[1];X[2]=X0[2]; return true; }
  };
 
 /**********************************************************************/
 /* focused gaussian beam  **********8**********************************/
 /**********************************************************************/
-struct GaussianBeamData: public IncFieldData
+class GaussianBeam: public IncField
  { 
+ public:
    double X0[3];            /* beam center point */
    double KProp[3];         /* beam propagation vector */
    cdouble E0[3];           /* complex field-strength vector */
    double W0;               /* beam waist */
 
    // constructor 
-   GaussianBeamData(double X0[3], double KProp[3], cdouble E0[3], double W0);
+   GaussianBeam(const double X0[3], const double KProp[3], const cdouble E0[3], double W0,
+		const char *Label = 0);
 
-   void GetFields(double *X, cdouble *EH);
+   void GetFields(const double X[3], cdouble EH[6]);
 
    double TotalBeamFlux();
 
@@ -114,22 +133,24 @@ struct GaussianBeamData: public IncFieldData
 /* magnetic 'frill' (annulus)    **************************************/
 /**********************************************************************/
 #if 0
-struct MagneticFrillData: public IncFieldData
+class MagneticFrill: public IncField
  {
+ public:
    double X0[3];          /* center of frill */
    double Theta, Phi;     /* angles of frill axis */
    double RIn, ROut;      /* inner and outer radii */
- } MagneticFrillData;
+ } MagneticFrill;
 
 /**********************************************************************/
 /* magnetic solenoid                            ***********************/
 /**********************************************************************/
-struct MagneticSolenoidData: public IncFieldData
+class MagneticSolenoid: public IncField
  { 
+ public:
    double X0[3];          /* center */
    double Theta, Phi;     /* angles of solenoid axis */
    double Radius, L;      /* radius and length  */
- } MagneticSolenoidData;
+ } MagneticSolenoid;
 #endif
 
 #endif

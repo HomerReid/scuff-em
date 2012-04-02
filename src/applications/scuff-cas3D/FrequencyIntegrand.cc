@@ -131,7 +131,7 @@ void CreateFluxPlot(SC3Data *SHD, cdouble Omega, char *Tag)
    G->Objects[no]->MP->Zero();
 
   Log("Assembling M0 matrix...");
-  G->AssembleBEMMatrix(Omega, nThread, M0);
+  G->AssembleBEMMatrix(Omega, M0, nThread);
 
   // multiply by the 'S' matrix 
   int nr, nc;
@@ -146,7 +146,7 @@ void CreateFluxPlot(SC3Data *SHD, cdouble Omega, char *Tag)
   G->Objects[0]->MP->UnZero();
 
   Log("Assembling M1 matrix...");
-  G->AssembleBEMMatrix(Omega, nThread, M1);
+  G->AssembleBEMMatrix(Omega, M1, nThread);
 
   for(nr=1; nr<M1->NR; nr+=2)
    for(nc=0; nc<M1->NC; nc++)
@@ -168,7 +168,7 @@ void CreateFluxPlot(SC3Data *SHD, cdouble Omega, char *Tag)
       G->Objects[no]->MP->UnZero();
 
      Log("Assembling M2 matrix...");
-     G->AssembleBEMMatrix(Omega, nThread, M2);
+     G->AssembleBEMMatrix(Omega, M2, nThread);
 
      for(nr=1; nr<M2->NR; nr+=2)
       for(nc=0; nc<M2->NC; nc++)

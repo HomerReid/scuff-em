@@ -29,61 +29,10 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
-/***************************************************************/
-/***************************************************************/
-/* X functions *************************************************/
-/***************************************************************/
-/***************************************************************/
-// common triangle
-double X_CT(TMWorkspace *TMW, int i, double x)
-{
-  double u1, u2;
-
-  switch(i)
-   { case 1: u1=1.0;  u2=x;     break;
-     case 2: u1=x;    u2=(x-1); break;
-     case 3: u1=x;    u2=1.0;   break;
-   };
-  return sqrt( TMW->A2*u1*u1 + 2.0*TMW->AdB*u1*u2 + TMW->B2*u2*u2);
-}
-
-// common edge
-double X_CE(TMWorkspace *TMW, int i, double x1, double x2)
-{ 
-  double u1, u2, xi2;
-
-  switch(i)
-   { case 1: u1=-x1;    u2=-x1*x2;       xi2=(1.0-x1+x1*x2);   break;
-     case 2: u1=x1;     u2=x1*x2;        xi2=(1.0-x1);         break;
-     case 3: u1=-x1*x2; u2=x1*(1.0-x2);  xi2=(1.0-x1);         break;
-     case 4: u1=x1*x2;  u2=-x1*(1.0-x2); xi2=(1.0-x1*x2);      break;
-     case 5: u1=-x1*x2; u2=-x1;          xi2=1.0;              break;
-     case 6: u1=x1*x2;  u2=x1;           xi2=(1.0-x1);         break;
-   };
-  
-  return sqrt(  u1*u1*TMW->A2 + u2*u2*TMW->BP2 + xi2*xi2*TMW->L2 
-              + 2.0*(u1*(u2*TMW->AdBP + xi2*TMW->AdL) + u2*xi2*TMW->BPdL) );
-
-}
-
-// common vertex 
-double X_CV(TMWorkspace *TMW, int i, double x1, double x2, double x3)
-{ 
-  double xi1, xi2, eta1, eta2;
-
-  switch(i)
-   { case 1: xi1=1.0; xi2=x1; eta1=x2; eta2=x2*x3; break;
-     case 2: xi1=x2; xi2=x2*x3; eta1=1.0; eta2=x1; break;
-   };
-    
-  return sqrt(     xi1*xi1*TMW->A2    +   xi2*xi2*TMW->B2 
-               + eta1*eta1*TMW->AP2   + eta2*eta2*TMW->BP2
-               + 2.0*xi1*(xi2*TMW->AdB - eta1*TMW->AdAP - eta2*TMW->AdBP)
-               - 2.0*xi2*(eta1*TMW->BdAP + eta2*TMW->BdBP) 
-               + 2.0*eta1*eta2*TMW->APdBP
-             );
-
-}
+// defined at end for warning-disabling purposes
+static double X_CT(TMWorkspace *TMW, int i, double x);
+static double X_CE(TMWorkspace *TMW, int i, double x1, double x2);
+static double X_CV(TMWorkspace *TMW, int i, double x1, double x2, double x3);
 
 /***************************************************************/
 /* integrands for x, x1x2, x1x2x3 integrals                    */
@@ -91,6 +40,7 @@ double X_CV(TMWorkspace *TMW, int i, double x1, double x2, double x3)
 static void xIntegrand(unsigned ndim, const double *x, void *parms,
                        unsigned nfun, double *f)
 { 
+  (void) ndim; (void) nfun; // unused
   int i, Alpha, AlphaMin, AlphaMax;
   double X; 
   cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
@@ -112,6 +62,7 @@ static void xIntegrand(unsigned ndim, const double *x, void *parms,
 
 static void x1x2Integrand(unsigned ndim, const double *x, void *parms, unsigned nfun, double *f)
 { 
+  (void) ndim; (void) nfun; // unused
   int i, Alpha, AlphaMin, AlphaMax;
   double X;
   cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
@@ -133,6 +84,7 @@ static void x1x2Integrand(unsigned ndim, const double *x, void *parms, unsigned 
 
 static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms, unsigned nfun, double *f)
 { 
+  (void) ndim; (void) nfun; // unused
   int i, Alpha, AlphaMin, AlphaMax;
   double X; 
   cdouble SiAlpha[7][5], Sum, *zf=(cdouble *)f;
@@ -532,6 +484,7 @@ cdouble In_GradEIKROverR(int n, cdouble K, double R)
 void SiAlpha_One(const double *xVec, TMWorkspace *TMW, int WhichCase,
                  int *AlphaMin, int *AlphaMax, cdouble S[7][5])
 { 
+  (void) xVec; (void) TMW; // unused
   switch(WhichCase)
    { 
      case TM_COMMONTRIANGLE: 
@@ -1010,6 +963,66 @@ void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args)
   Args->QP=0;
   Args->AbsTol=DEFABSTOL;
   Args->RelTol=DEFRELTOL;
+}
+
+/***************************************************************/
+/***************************************************************/
+/* X functions *************************************************/
+/***************************************************************/
+/***************************************************************/
+
+// Disable spurious gcc warnings for variables initialized in case statements.
+// (These functions are at the end of the file so that we only disable the 
+//  warnings for these three functions.)
+#pragma GCC diagnostic ignored "-Wuninitialized"
+
+// common triangle
+static double X_CT(TMWorkspace *TMW, int i, double x)
+{
+  double u1, u2;
+
+  switch(i)
+   { case 1: u1=1.0;  u2=x;     break;
+     case 2: u1=x;    u2=(x-1); break;
+     case 3: u1=x;    u2=1.0;   break;
+   };
+  return sqrt( TMW->A2*u1*u1 + 2.0*TMW->AdB*u1*u2 + TMW->B2*u2*u2);
+}
+
+// common edge
+static double X_CE(TMWorkspace *TMW, int i, double x1, double x2)
+{ 
+  double u1, u2, xi2;
+
+  switch(i)
+   { case 1: u1=-x1;    u2=-x1*x2;       xi2=(1.0-x1+x1*x2);   break;
+     case 2: u1=x1;     u2=x1*x2;        xi2=(1.0-x1);         break;
+     case 3: u1=-x1*x2; u2=x1*(1.0-x2);  xi2=(1.0-x1);         break;
+     case 4: u1=x1*x2;  u2=-x1*(1.0-x2); xi2=(1.0-x1*x2);      break;
+     case 5: u1=-x1*x2; u2=-x1;          xi2=1.0;              break;
+     case 6: u1=x1*x2;  u2=x1;           xi2=(1.0-x1);         break;
+   };
+  
+  return sqrt(  u1*u1*TMW->A2 + u2*u2*TMW->BP2 + xi2*xi2*TMW->L2 
+              + 2.0*(u1*(u2*TMW->AdBP + xi2*TMW->AdL) + u2*xi2*TMW->BPdL) );
+}
+
+// common vertex 
+static double X_CV(TMWorkspace *TMW, int i, double x1, double x2, double x3)
+{ 
+  double xi1, xi2, eta1, eta2;
+
+  switch(i)
+   { case 1: xi1=1.0; xi2=x1; eta1=x2; eta2=x2*x3; break;
+     case 2: xi1=x2; xi2=x2*x3; eta1=1.0; eta2=x1; break;
+   };
+    
+  return sqrt(     xi1*xi1*TMW->A2    +   xi2*xi2*TMW->B2 
+               + eta1*eta1*TMW->AP2   + eta2*eta2*TMW->BP2
+               + 2.0*xi1*(xi2*TMW->AdB - eta1*TMW->AdAP - eta2*TMW->AdBP)
+               - 2.0*xi2*(eta1*TMW->BdAP + eta2*TMW->BdBP) 
+               + 2.0*eta1*eta2*TMW->APdBP
+             );
 }
 
 } // namespace scuff

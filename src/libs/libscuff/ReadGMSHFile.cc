@@ -40,7 +40,7 @@ namespace scuff {
 /*************************************************************/
 /*************************************************************/
 void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName, 
-                             GTransformation *OTGT)
+                             const GTransformation *OTGT)
 {
   RWGPanel *P;
   char buffer[100];
@@ -110,7 +110,7 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
   /*- Apply one-time geometrical transformation (if any) to all */ 
   /*- vertices.                                                 */ 
   /*------------------------------------------------------------*/
-  if (OTGT) ApplyGTransformation(OTGT, Vertices, NumVertices);
+  if (OTGT) OTGT->Apply(Vertices, NumVertices);
  
   /*------------------------------------------------------------*/
   /*- Eliminate any redundant vertices from the vertex list.   -*/
