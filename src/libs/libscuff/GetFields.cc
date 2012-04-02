@@ -157,7 +157,7 @@ void *GetFields_Thread(void *data)
   /* fields unpacked from thread data structure ******************/
   /***************************************************************/
   RWGGeometry *G              = TD->G;
-  const double *X                   = TD->X;
+  const double *X                  = TD->X;
   cdouble Omega               = TD->Omega;
   cdouble Eps                 = TD->Eps;
   cdouble Mu                  = TD->Mu;

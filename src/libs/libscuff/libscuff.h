@@ -6,9 +6,7 @@
  *
  *  1. class definitions for RWGObject and supporting classes
  *  2. class definition for RWGGeometry
- *  3. non-class methods that operate on RWGPanels or RWGObjects
- *  4. other lower-level non-class methods 
- *
+ *  3. non-class methods that operate on RWGPanels or RWGObjects *  4. other lower-level non-class methods *
  * homer reid  -- 3/2007 -- 9/2011
  */
 
