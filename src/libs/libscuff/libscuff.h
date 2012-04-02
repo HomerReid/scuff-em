@@ -25,8 +25,9 @@
 #include <libIncField.h>
 
 #include "GTransformation.h"
+#include "FieldGrid.h"
 
-namespace scuff{
+namespace scuff {
 
 /*--------------------------------------------------------------*/
 /*- some constants used to pass values to libscuff functions   -*/
@@ -342,6 +343,11 @@ class RWGGeometry
 	return B;
    }
 
+   // update ObjectIndex, and optionally Omega/Eps/Mu, of inc:
+   void UpdateIncFields(IncField *inc, cdouble Omega,
+			bool ignoreOmega = false);
+   void UpdateIncFields(IncField *inc) { UpdateIncFields(inc,0.0,true); }
+
    int GetObjectIndex(const double X[3]);
    RWGObject *GetObject(const double X[3]);
 
@@ -357,6 +363,41 @@ class RWGGeometry
                   cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
    void GetFields(const double X[3], 
                   cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
+
+   /****************************************************/
+
+   /* Routine for evaluating arbitrary functions of the fields on a 2d
+      surface grid; see FieldGrid.h/cc.  Returns a NULL-terminated
+      (malloc'ed) array of HMatrix pointers.  If a non-NULL incident
+      field function is supplied, then the total of scattered plus
+      incident fields is used.  If KN == NULL, then the scattered
+      fields are set to zero. */
+   HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
+			    cdouble Omega, HVector *KN,
+			    EHFuncType2 EHFunc, void *EHFuncUD,
+			    int nThread = 0);
+   HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
+			    cdouble Omega, HVector *KN,
+			    EHFuncType EHFunc, void *EHFuncUD, // in exterior
+			    int nThread = 0);
+   HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
+			    cdouble Omega, HVector *KN = NULL,
+			    IncField *inc = NULL, int nThread = 0);
+
+   // exprs is a string of COMMA-SEPARATED expressions
+   HMatrix **GetFieldsGrids(SurfaceGrid &grid, const char *exprs,
+			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
+			    int nThread = 0);
+
+   // variants that only compute one function and return one matrix
+   HMatrix *GetFieldsGrid(SurfaceGrid &grid, FieldFunc &func,
+			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
+			  int nThread = 0);
+   HMatrix *GetFieldsGrid(SurfaceGrid &grid, const char *expr,
+			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
+			  int nThread = 0);
+
+   /****************************************************/
 
    /* routine for calculating electric and magnetic dipole moments */
    void GetDipoleMoments(double Frequency, int RealFreq, HVector *KN, 

@@ -305,6 +305,21 @@ void GTransformation::UnApply(const double *X, double *XP, int NX) const {
   }
 }
 
+void GTransformation::ApplyRotation(const double X[3], double XP[3]) const {
+  double x0 = X[0], x1 = X[1], x2 = X[2];
+  XP[0] = M[0][0]*x0 + M[0][1]*x1 + M[0][2]*x2;
+  XP[1] = M[1][0]*x0 + M[1][1]*x1 + M[1][2]*x2;
+  XP[2] = M[2][0]*x0 + M[2][1]*x1 + M[2][2]*x2;
+}
+
+void GTransformation::UnApplyRotation(const double X[3], double XP[3]) const {
+  double x0 = X[0], x1 = X[1], x2 = X[2];
+  XP[0] = M[0][0]*x0 + M[1][0]*x1 + M[2][0]*x2;
+  XP[1] = M[0][1]*x0 + M[1][1]*x1 + M[2][1]*x2;
+  XP[2] = M[0][2]*x0 + M[1][2]*x1 + M[2][2]*x2;
+}
+
+// same, but apply the inverse transformation:
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
