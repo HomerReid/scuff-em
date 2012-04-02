@@ -251,22 +251,6 @@ void CFDIntegrand3D(unsigned ndim, const double *x, void *params,
      vpR2Int   = -vp0*OneR2Int + u*a2*fabs(vp0pup4 - vp04) / 4.0;
 
    };
-   
-  if (    !isfinite(OneRM3Int) 
-       || !isfinite(OneRM1Int)
-       || !isfinite(OneR1Int)
-       || !isfinite(OneR2Int) )
-   { printf("Bawonkatage! b2=%e, vp0=%e, up=%e\n",b2,vp0,up);
-
-printf("%e %e %e \n",V0[0], V0[1], V0[2]);
-printf("%e %e %e \n",V0[0]+A[0], V0[1]+A[1], V0[2]+A[2]);
-printf("%e %e %e \n",V0[0]+A[0]+B[0], V0[1]+A[1]+B[1], V0[2]+A[2]+B[2]);
-printf("%e %e %e \n",V0P[0],            V0P[1],             V0P[2]);
-printf("%e %e %e \n",V0P[0]+AP[0],      V0P[1]+AP[1],       V0P[2]+AP[2]);
-printf("%e %e %e \n",V0P[0]+AP[0]+BP[0], V0P[1]+AP[1]+BP[1], V0P[2]+AP[2]+BP[2]);
-exit(1);
-
-   };
   
   double CPCT[3], CPLT[3]; // 'cross product constant term' and 'cross product linear term'
   VecCross(X,Z,CPCT);
@@ -355,27 +339,46 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
   adapt_integrate(fdim, CFDIntegrand3D, CFDD, 3, Lower, Upper,
                   MAXEVALS, ABSTOL, RELTOL, F, E);
 #endif
-
+  
+  // error logging 
   if ( CFDD->nCalls >= MAXEVALS ) 
    { 
-     char NewFileName[20];
-     sprintf(NewFileName,"/tmp/FIPPI.XXXXXX");
-     FILE *f=fdopen( mkstemp(NewFileName), "w");
-     if (f)
-      { fprintf(f,"%.12e %.12e %.12e \n", Va[0][0], Va[0][1], Va[0][2]);
-        fprintf(f,"%.12e %.12e %.12e \n", Va[1][0], Va[1][1], Va[1][2]);
-        fprintf(f,"%.12e %.12e %.12e \n", Va[2][0], Va[2][1], Va[2][2]);
-        fprintf(f,"%.12e %.12e %.12e \n", Vb[0][0], Vb[0][1], Vb[0][2]);
-        fprintf(f,"%.12e %.12e %.12e \n", Vb[1][0], Vb[1][1], Vb[1][2]);
-        fprintf(f,"%.12e %.12e %.12e \n", Vb[2][0], Vb[2][1], Vb[2][2]);
-        fclose(f);
-        ErrExit("panel integration irregularities detected (file %s)",NewFileName);
-      }
-     else
-      ErrExit("panel integration irregularities detected");
-   };
+     int IsBad[fdim], NumBad=0, nn;
+     memset(IsBad, 0, fdim*sizeof(int));
+     for (nn=0; nn<fdim; nn++)
+      { 
+        if ( fabs(F[nn])>1.0e-6 && E[nn]>ABSTOL && E[nn]>RELTOL*fabs(F[nn]) )
+         { IsBad[nn]=1;
+           NumBad++;
+         };
 
- // printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
+        if (NumBad>0)
+         { 
+           char NewFileName[20];
+           sprintf(NewFileName,"/tmp/FIPPI.XXXXXX");
+           FILE *f=fdopen( mkstemp(NewFileName), "w");
+           if (!f)
+            { fprintf(stderr,"WARNING: panel integration irregularities detected\n");
+            }
+           else
+            { fprintf(f,"%.12e %.12e %.12e \n", Va[0][0], Va[0][1], Va[0][2]);
+              fprintf(f,"%.12e %.12e %.12e \n", Va[1][0], Va[1][1], Va[1][2]);
+              fprintf(f,"%.12e %.12e %.12e \n", Va[2][0], Va[2][1], Va[2][2]);
+              fprintf(f,"%.12e %.12e %.12e \n", Vb[0][0], Vb[0][1], Vb[0][2]);
+              fprintf(f,"%.12e %.12e %.12e \n", Vb[1][0], Vb[1][1], Vb[1][2]);
+              fprintf(f,"%.12e %.12e %.12e \n", Vb[2][0], Vb[2][1], Vb[2][2]);
+              for(nn=0; nn<fdim; nn++)
+               if (IsBad[nn])
+                fprintf(f,"%2i: %+10.e %+10.e\n",nn,F[nn],E[nn]);
+              fclose(f);
+              fprintf(stderr,"WARNING: panel integration irregularities detected (%s)\n",NewFileName);
+            };
+
+         }; // if (NumBad>0) 
+
+      }; // for(nn=0) ... 
+
+   }; // if (nCalls > MAXEVALS)
 
 
   /*--------------------------------------------------------------*/

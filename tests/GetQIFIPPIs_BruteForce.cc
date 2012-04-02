@@ -13,16 +13,66 @@
 #include <libhrutil.h>
 #include <libSGJC.h>
 #include <libPolyFit.h>
-
-#include "libscuff.h"
-#include "libscuffInternals.h"
+#include <libscuff.h>
+#include <libscuffInternals.h>
 
 using namespace scuff;
 
-#define ABSTOL 1.0e-12    // absolute tolerance
-#define RELTOL 1.0e-8    // relative tolerance
+#define ABSTOL  1.0e-12    // absolute tolerance
+#define RELTOL  1.0e-8    // relative tolerance
+#define MAXEVAL 1000000   // relative tolerance
 
 #define NFIPPIS 33
+
+void MyVecScaleAdd(const double v1[3], double alpha, const double v2[3], double v3[3])
+{ v3[0]=v1[0] + alpha*v2[0];
+  v3[1]=v1[1] + alpha*v2[1];
+  v3[2]=v1[2] + alpha*v2[2];
+}
+
+/* v3 = v1 - v2 */
+void MyVecSub(const double v1[3], const double v2[3], double v3[3])
+{ v3[0]=v1[0] - v2[0];
+  v3[1]=v1[1] - v2[1];
+  v3[2]=v1[2] - v2[2];
+}
+
+/* v1 += alpha*v2 */
+void MyVecPlusEquals(double v1[3], double alpha, const double v2[3])
+{ v1[0]+=alpha*v2[0];
+  v1[1]+=alpha*v2[1];
+  v1[2]+=alpha*v2[2];
+}
+
+
+/* v3 = v1 \times v2 */
+void MyVecCross(const double v1[3], const double v2[3], double v3[3])
+{ v3[0]=v1[1]*v2[2] - v1[2]*v2[1];
+  v3[1]=v1[2]*v2[0] - v1[0]*v2[2];
+  v3[2]=v1[0]*v2[1] - v1[1]*v2[0];
+}
+
+double MyVecDot(const double v1[3], const double v2[3])
+{ return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; }
+
+double MyVecNorm(const double v[3])
+{ return sqrt(MyVecDot(v,v)); }
+
+
+double MyVecDistance(const double v1[3], const double v2[3])
+{ double v3[3];
+  MyVecSub(v1,v2,v3);
+  return MyVecNorm(v3);
+}
+
+double MyVecNormalize(double v[3])
+{ double d=MyVecNorm(v);  
+  v[0]/=d;
+  v[1]/=d;
+  v[2]/=d;
+  return d;
+}
+
 
 /***************************************************************/
 /***************************************************************/
@@ -62,16 +112,16 @@ static void FIPPIBFIntegrand(unsigned ndim, const double *x, void *parms,
   double r, r2, oor, oor3;
 
   memcpy(X,FIPPIBFD->V0,3*sizeof(double));
-  VecPlusEquals(X,u,FIPPIBFD->A);
-  VecPlusEquals(X,v,FIPPIBFD->B);
+  MyVecPlusEquals(X,u,FIPPIBFD->A);
+  MyVecPlusEquals(X,v,FIPPIBFD->B);
 
   memcpy(XP,FIPPIBFD->V0P,3*sizeof(double));
-  VecPlusEquals(XP,up,FIPPIBFD->AP);
-  VecPlusEquals(XP,vp,FIPPIBFD->BP);
+  MyVecPlusEquals(XP,up,FIPPIBFD->AP);
+  MyVecPlusEquals(XP,vp,FIPPIBFD->BP);
 
-  VecSub(X, XP, R);
-  VecCross(X, XP, XxXP);
-  r=VecNorm(R);
+  MyVecSub(X, XP, R);
+  MyVecCross(X, XP, XxXP);
+  r=MyVecNorm(R);
   oor=u*up/r;
   oor3=u*up/(r*r*r);
   r2=u*up*r*r;
@@ -123,9 +173,7 @@ static void FIPPIBFIntegrand(unsigned ndim, const double *x, void *parms,
 /***************************************************************/
 /* compute FIPPIs using brute-force technique                  */
 /* (adaptive cubature over both panels).                       */
-/***************************************************************/
-void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
-{ 
+/***************************************************************/ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD) { 
   double rRel;
 
   /***************************************************************/
@@ -134,15 +182,15 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
   FIPPIBFData MyFIPPIBFData, *FIPPIBFD=&MyFIPPIBFData;
  
   FIPPIBFD->V0 = Va[0];
-  VecSub(Va[1], Va[0], FIPPIBFD->A);
-  VecSub(Va[2], Va[1], FIPPIBFD->B);
+  MyVecSub(Va[1], Va[0], FIPPIBFD->A);
+  MyVecSub(Va[2], Va[1], FIPPIBFD->B);
 
   // note that for Vb[0] we make copies of the 
   // entries (not just the pointer) because we may need
   // to displace them, see below.
   memcpy(FIPPIBFD->V0P,Vb[0],3*sizeof(double));
-  VecSub(Vb[1], Vb[0], FIPPIBFD->AP);
-  VecSub(Vb[2], Vb[1], FIPPIBFD->BP);
+  MyVecSub(Vb[1], Vb[0], FIPPIBFD->AP);
+  MyVecSub(Vb[2], Vb[1], FIPPIBFD->BP);
    
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
@@ -162,7 +210,7 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
      /* cubature                                                     */
      /*--------------------------------------------------------------*/
      adapt_integrate(fDim, FIPPIBFIntegrand, (void *)FIPPIBFD, 4, Lower, Upper,
-                     0, ABSTOL, RELTOL, Result, Error);
+                     MAXEVAL, ABSTOL, RELTOL, Result, Error);
    }
   else
    {
@@ -180,17 +228,17 @@ void ComputeQIFIPPIData_BruteForce(double **Va, double **Vb, QIFIPPIData *QIFD)
      Centroid[0] = (Vb[0][0] + Vb[1][0] + Vb[2][0]) / 3.0;
      Centroid[1] = (Vb[0][1] + Vb[1][1] + Vb[2][1]) / 3.0;
      Centroid[2] = (Vb[0][2] + Vb[1][2] + Vb[2][2]) / 3.0;
-     VecCross(FIPPIBFD->AP, FIPPIBFD->BP, ZHat);
-     VecNormalize(ZHat);
-     Radius = VecDistance(Centroid, Vb[0]);
-     Radius = fmax(Radius, VecDistance(Centroid, Vb[1]));
-     Radius = fmax(Radius, VecDistance(Centroid, Vb[2]));
+     MyVecCross(FIPPIBFD->AP, FIPPIBFD->BP, ZHat);
+     MyVecNormalize(ZHat);
+     Radius = MyVecDistance(Centroid, Vb[0]);
+     Radius = fmax(Radius, MyVecDistance(Centroid, Vb[1]));
+     Radius = fmax(Radius, MyVecDistance(Centroid, Vb[2]));
      DeltaZ = DeltaZFraction * Radius;
 
      for(nz=0; nz<NZ; nz++)
       { 
         Z[nz]=((double)(nz+1))*DeltaZ;
-        VecScaleAdd(Vb[0], Z[nz], ZHat, FIPPIBFD->V0P);
+        MyVecScaleAdd(Vb[0], Z[nz], ZHat, FIPPIBFD->V0P);
         printf("BFing at Z=%g...\n",Z[nz]);
 
         adapt_integrate(fDim, FIPPIBFIntegrand, (void *)FIPPIBFD, 4, Lower, Upper,

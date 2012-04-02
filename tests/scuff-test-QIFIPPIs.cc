@@ -67,8 +67,8 @@ int main(int argc, char *argv[])
   char *GeoFileName=0;
   int Visualize=0;
   ArgStruct ASArray[]=
-   { {"geometry",  PA_STRING, (void *)&GeoFileName, 0, ".rwggeo file"},
-     {"visualize", PA_BOOL,   (void *)&Visualize,   0, "write visualization files"},
+   { {"geometry",   PA_STRING, (void *)&GeoFileName, 0, ".rwggeo file"},
+     {"visualize",  PA_BOOL,   (void *)&Visualize,   0, "write visualization files"},
      {0,0,0,0,0}
    };
   ProcessArguments(argc, argv, ASArray);
