@@ -19,8 +19,9 @@
 
 namespace scuff {
 
-#define ABSTOL 1.0e-10
-#define RELTOL 1.0e-6
+#define ABSTOL   1.0e-10
+#define RELTOL   1.0e-6
+#define MAXEVALS 100000
 
 #define _ONE 0
 #define _UP  1
@@ -346,15 +347,34 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
   double Lower[4]={0.0, 0.0, 0.0, 0.0};
   double Upper[4]={1.0, 1.0, 1.0, 1.0};
   adapt_integrate(fdim, CFDIntegrand4D, CFDD, 4, Lower, Upper,
-                  0, ABSTOL, RELTOL, F, E);
+                  MAXEVALS, ABSTOL, RELTOL, F, E);
 #else
   double Lower[3]={0.0, 0.0, 0.0};
   double Upper[3]={1.0, 1.0, 1.0};
   CFDD->nCalls=0;
   adapt_integrate(fdim, CFDIntegrand3D, CFDD, 3, Lower, Upper,
-                  0, ABSTOL, RELTOL, F, E);
-
+                  MAXEVALS, ABSTOL, RELTOL, F, E);
 #endif
+
+  if ( CFDD->nCalls >= MAXEVALS ) 
+   { 
+     char NewFileName[20];
+     sprintf(NewFileName,"/tmp/FIPPI.XXXXXX");
+     FILE *f=fdopen( mkstemp(NewFileName), "w");
+     if (f)
+      { fprintf(f,"%.12e %.12e %.12e \n", Va[0][0], Va[0][1], Va[0][2]);
+        fprintf(f,"%.12e %.12e %.12e \n", Va[1][0], Va[1][1], Va[1][2]);
+        fprintf(f,"%.12e %.12e %.12e \n", Va[2][0], Va[2][1], Va[2][2]);
+        fprintf(f,"%.12e %.12e %.12e \n", Vb[0][0], Vb[0][1], Vb[0][2]);
+        fprintf(f,"%.12e %.12e %.12e \n", Vb[1][0], Vb[1][1], Vb[1][2]);
+        fprintf(f,"%.12e %.12e %.12e \n", Vb[2][0], Vb[2][1], Vb[2][2]);
+        fclose(f);
+        ErrExit("panel integration irregularities detected (file %s)",NewFileName);
+      }
+     else
+      ErrExit("panel integration irregularities detected");
+   };
+
  // printf("FIPPI cubature: %i calls\n",CFDD->nCalls);
 
 

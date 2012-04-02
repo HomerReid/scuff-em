@@ -6,7 +6,9 @@
  *
  *  1. class definitions for RWGObject and supporting classes
  *  2. class definition for RWGGeometry
- *  3. non-class methods that operate on RWGPanels or RWGObjects *  4. other lower-level non-class methods *
+ *  3. non-class methods that operate on RWGPanels or RWGObjects 
+ *  4. other lower-level non-class methods 
+ *
  * homer reid  -- 3/2007 -- 9/2011
  */
 
@@ -386,7 +388,7 @@ class RWGGeometry
 
    // exprs is a string of COMMA-SEPARATED expressions
    HMatrix **GetFieldsGrids(SurfaceGrid &grid, const char *exprs,
-			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
+                            cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
 			    int nThread = 0);
 
    // variants that only compute one function and return one matrix
@@ -424,50 +426,6 @@ class RWGGeometry
    /* evaluate the surface currents at a given point X on an object */
    /* surface, given a vector of RWG expansion coefficients         */
    void EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6]);
-
-#if 0
-   /* routines for evaluating the scattering portions of the electric and magnetic */
-   /* dyadic green's functions and the VEV of the maxwell stress tensor            */
-   void GetGij(const double R[3], HMatrix *M, int Cholesky, HVector *KN, 
-               double Frequency, int RealFreq, 
-               cdouble GE[3][3], cdouble GM[3][3], int nThread = 0);
-
-   void GetTijNj(const double R[3], double nHat[3], HMatrix *M, int Cholesky, 
-                 HVector *KN, double Frequency, int RealFreq, 
-                 double TE[3], double TM[3], int nThread = 0);
-
-   /* alternate entry points to the above two routines in which the Cholesky */
-   /* parameter is taken equal to its default value of 0                     */
-   void GetGij(double *R, HMatrix *M, HVector *KN, 
-               double Frequency, int RealFreq, 
-               cdouble GE[3][3], cdouble GM[3][3], int nThread = 0);
-
-   void GetTijNj(const double R[3], const double nHat[3], HMatrix *M,
-                 HVector *KN, double Frequency, int RealFreq, 
-                 double TE[3], double TM[3], int nThread = 0);
-#endif
-
-   /* optimized and accelerated array-based routines for evaluating the */
-   /* stress tensor at several spatial points all at once               */
-#if 0
-   void AssembleRHSVectorArray(double *RArray, int NumPts, double Xi, 
-                               HMatrix *KNArray, int nThread = 0);
-
-   void GetFieldsArray(double *RArray, int NumPts, double Xi, 
-                       HMatrix *KNArray, 
-                       double EArray[][3][3], double HArray[][3][3],
-		       int nThread = 0);
-
-   void GetGijArray(double *RArray, int NumPts, HMatrix *M, int Cholesky, 
-                    HMatrix *KNArray, double Xi, 
-                    double GEArray[][3][3], double GMArray[][3][3],
-		    int nThread = 0);
-
-   void GetTijNjArray(double *RArray, double *nHatArray, int NumPts,
-                      HMatrix *M, int Cholesky, HMatrix *KNArray, 
-                      double Xi, double TEArray[][3], double TMArray[][3],
-		      int nThread = 0);
-#endif
 
    /* routine for setting logging verbosity */
    void SetLogLevel(int LogLevel);

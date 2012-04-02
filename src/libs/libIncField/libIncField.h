@@ -39,7 +39,7 @@ class IncField
    int ObjectIndex;
 
    // constructor just initializes the simple fields
- IncField() : Eps(1.0,0.0), Mu(1.0,0.0), Next(0), Object(0), ObjectIndex(-1) {}
+   IncField() : Eps(1.0,0.0), Mu(1.0,0.0), Next(0), Object(0), ObjectIndex(-1) {}
    ~IncField();
 
    void SetFrequency(cdouble Omega);
@@ -59,18 +59,18 @@ class IncField
 /* this is the function with the proper prototype for passage to the  */
 /* AssembleRHSVector() routine in libscuff. its implementation within */
 /* libIncField expects the UserData field to point to the head of a   */
-/* linked list of structures derived from IncField. the field     */
+/* linked list of structures derived from IncField. the field         */
 /* returned is the sum of the fields associated with each structure in*/
 /* the list.                                                          */
 /**********************************************************************/
 void EHIncField(const double X[3], void *UserData, cdouble EH[6]);
 
 void EHIncField2(const double X[3], void *UserData, cdouble EH[6],
-		int exterior_index, int interior_index);
+                 int exterior_index, int interior_index);
 
 /**********************************************************************/
 /* Next come the various possible types of incident field, implemented*/
-/* as structs derived from IncField.                              */
+/* as structs derived from IncField.                                  */
 /**********************************************************************/
 
 /**********************************************************************/
