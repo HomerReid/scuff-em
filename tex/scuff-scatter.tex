@@ -342,4 +342,23 @@ surface-current expansion coefficients and the RHS vector, as computed
 by \ls, and the bar on the second term in the dot product indicates that 
 the magnetic contributions enter with a minus sign.
 
+\section{Plane-wave scattering from a dielectric sphere}
+
+To demonstrate the validity of the concise power formulas, we'll use
+them here to investigate the scattering and absorption cross-sections
+for a dielectric sphere illuminated by a plane wave.
+
+\subsection*{Exact Results}
+
+\subsection*{Calculations using {\sc scuff-scatter}}
+
+\subsection*{Converting power data to cross-sections}
+The quantities that {\sc scuff-scatter} writes to the
+{\texttt Sphere.power} file are the total 
+scattered and absorbed power. To obtain the scattering 
+and absorption cross-sections, we divide the power by
+the incident power per unit area, which in this case 
+is 
+$$\text{incident flux of a plane wave in vacuum}=\frac{|\vb E_0|^2}{2Z_0}.$$
+
 \end{document}

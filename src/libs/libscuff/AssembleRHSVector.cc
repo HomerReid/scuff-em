@@ -269,8 +269,7 @@ void *AssembleRHS_Thread(void *data)
            DB[ Offset + ne ] = -1.0*(real(EProd)) / ZVAC;
          } 
         else if ( Type==MP_PEC && PureImagFreq==0 )
-         { 
-           ZB[ Offset + ne ] = -1.0*EProd / ZVAC;
+         { ZB[ Offset + ne ] = -1.0*EProd / ZVAC;
          }
         else if ( Type!=MP_PEC && PureImagFreq==1 )
          { 
