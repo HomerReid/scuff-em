@@ -466,26 +466,30 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   /***************************************************************/
   // nr runs over rows, nc over columns, ne over matrix entries
   int nr, nc, ne, N=G->TotalBFs;
-  double PScat, PAbs, PTot;
+  double VV=0.0, VMV=0.0;
   double Sign;
   for(PTot=PScat=0.0, Sign=1.0, ne=nc=0; nc<N; nc++)
    for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
     { 
       if (nr==nc) 
-       PTot+= Sign*real( conj(ZKN[nr]) * ZRHS[nr] );
+       VV += Sign*real( conj(ZKN[nr]) * (-1.0*ZRHS[nr]) );
 
-      PScat += -Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+      VMV += Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
     };
     
-  PTot  *=  -0.5 * ZVAC;
-  PScat *=  0.5 * ZVAC;
-  PAbs = PTot - PScat;
+  VV  *=  0.25 * ZVAC;
+  VMV *=  0.25 * ZVAC;
+
+  double PTot, PAbs, PScat;
+  PTot  = 2.0*VV;
+  PAbs  = VV + VMV;
+  PScat = VV - VMV;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  PSGJ[0]=PAbs;
-  PSGJ[1]=PScat;
+  PSGJ[0]=VV;
+  PSGJ[1]=VMV;
 
 }
 
@@ -544,8 +548,8 @@ void GetPower(SSData *SSD, char *PowerFile)
            ka = KN->GetEntry(Offset + 2*nea + 0 );
            na = KN->GetEntry(Offset + 2*nea + 1 );
 
-           vE = RHS->GetEntry(Offset + 2*nea + 0 );
-           vH = RHS->GetEntry(Offset + 2*nea + 1 );
+           vE = -1.0*RHS->GetEntry(Offset + 2*nea + 0 );
+           vH = -1.0*RHS->GetEntry(Offset + 2*nea + 1 );
 
            PTot += real( conj(ka)*vE - conj(na)*vH );
 
@@ -564,7 +568,6 @@ void GetPower(SSData *SSD, char *PowerFile)
    }; // for(no=...)
   
   PAbs  *= -0.5*ZVAC;
-  PTot  *= -0.5*ZVAC;
   PScat *= PTot - PAbs;
   fprintf(f,"%.12e %.12e  ",PAbs, PScat);
 

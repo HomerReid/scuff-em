@@ -68,8 +68,8 @@ void *ABMBThread(void *data)
   double Sign          = Args->Sign;
   cdouble EpsA         = Args->EpsA;
   cdouble EpsB         = Args->EpsB;
-  cdouble MuA           = Args->MuA;
-  cdouble MuB           = Args->MuB;
+  cdouble MuA          = Args->MuA;
+  cdouble MuB          = Args->MuB;
   int OaIsPEC          = Args->OaIsPEC;
   int ObIsPEC          = Args->ObIsPEC;
 
@@ -368,7 +368,6 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
    };
 
 #endif
-
 
   if (G->LogLevel>=SCUFF_VERBOSELOGGING)
    Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
