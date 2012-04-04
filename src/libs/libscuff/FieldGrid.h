@@ -141,13 +141,12 @@ public:
      }
 };
 
-#if 0 // TODO
-
 // spherical surface (latitude/longitude grid)
 class SphereGrid : public SurfaceGrid {
 public:
      double X0[3]; // origin
      double R; // radius
+     double dPhi, dTheta; // step sizes in polar (lat/long) angles
 
      SphereGrid(int n1, int n2, const double x0[3], double r);
      
@@ -160,24 +159,25 @@ public:
 class CylinderGrid : public SurfaceGrid {
 public:
      double X0[3]; // center of cylinder bottom
-     double S2[3]; // X0+S2 is center of cylinder top
+     double S2[3]; // X0+S2*N2 is center of cylinder top
      double R; // radius
+     double R0[3], R1[3]; // radial axes (R0 \perp R1 \perp S2, R1 x R2 || S2)
+     double dPhi; // step size in polar angle
 
-     CylinderGrid(int n1, int n2, const double x0[3], 
+     CylinderGrid(int n1, int n2, const double c0[3], // center
 		  const double s2[3], double r);
 
      // common case of a cylinder along the x/y/z axes
      CylinderGrid(int n1, int n2, const double x0[3], 
-		  double s2, CartesianDirection axis);
+		  double s2, CartesianDirection axis, double r);
      
      void GetPoint(int n1, int n2, double X[3], double dA[3]) const;
 
      void Transform(const GTransformation &G) {
 	  G.Apply(X0); G.ApplyRotation(S2);
+	  G.ApplyRotation(R0); G.ApplyRotation(R1);
      }
 };
-
-#endif
 
 /***************************************************************************/
 

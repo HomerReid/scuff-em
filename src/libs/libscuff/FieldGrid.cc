@@ -143,6 +143,74 @@ void PlaneGrid::GetPoint(int n1, int n2, double X[3], double dA[3]) const {
 }
 
 /***************************************************************************/
+
+SphereGrid::SphereGrid(int n1, int n2, const double x0[3], double r)
+{
+  N1 = n1; N2 = n2;
+  VecCopy(x0, X0);
+  R = r;
+  dPhi = 2*3.14159265358979323846 / n1;
+  dTheta = 3.14159265358979323846 / n2;
+}
+
+void SphereGrid::GetPoint(int n1, int n2, double X[3], double dA[3]) const {
+  double Phi = dPhi * n1;
+  double Theta = dTheta * (n2 + 0.5);
+  X[0] = X0[0] + R * (dA[0] = sin(Theta) * cos(Phi));
+  X[1] = X0[1] + R * (dA[1] = sin(Theta) * sin(Phi));
+  X[2] = X0[2] + R * (dA[2] = cos(Theta));
+  VecScale(dA, R*R * sin(Theta) * dPhi * dTheta);
+}
+
+/***************************************************************************/
+
+CylinderGrid::CylinderGrid(int n1, int n2, const double c0[3],
+			   const double s2[3], double r) {
+  N1 = n1; N2 = n2;
+  VecPlusEquals(VecCopy(c0, X0), -0.5, s2);
+  VecScale(VecCopy(s2, S2), 1.0 / N2);
+  R = r;
+  dPhi = 2*3.14159265358979323846 / n1;
+
+  // pick R0 and R1 somewhat arbitrarily (but so that R0 x R1 || S2):
+
+  double V[3] = {0,0,0}; // pick direction of 1st minimum component of S2
+  if (fabs(S2[0]) < fabs(S2[1]) && fabs(S2[0]) < fabs(S2[2]))
+    V[0] = 1;
+  else if (fabs(S2[1]) < fabs(S2[2]))
+    V[1] = 1;
+  else
+    V[2] = 1;
+
+  VecNormalize(VecCross(V, S2, R1));
+  VecNormalize(VecCross(R1, V, R0));
+  VecScale(R0, R); VecScale(R1, R);
+}
+
+CylinderGrid::CylinderGrid(int n1, int n2, const double c0[3],
+			   double s2, CartesianDirection axis, double r) {
+  N1 = n1; N2 = n2;
+  VecCopy(c0, X0);
+  X0[axis] -= 0.5*s2;
+  VecZero(S2);
+  S2[axis] = s2 / N2;
+  VecZero(R0); VecZero(R1);
+  R0[(axis + 1) % 3] = R;
+  R1[(axis + 2) % 3] = R;
+  R = r;
+  dPhi = 2*3.14159265358979323846 / n1;
+}
+
+void CylinderGrid::GetPoint(int n1, int n2, double X[3], double dA[3]) const {
+  double Phi = dPhi * n1;
+  double cosPhi = cos(Phi), sinPhi = sin(Phi);
+  X[0] = X0[0] + (dA[0] = R0[0]*cosPhi + R1[0]*sinPhi) + n2*S2[0];
+  X[1] = X0[1] + (dA[1] = R0[1]*cosPhi + R1[1]*sinPhi) + n2*S2[1];
+  X[2] = X0[2] + (dA[2] = R0[2]*cosPhi + R1[2]*sinPhi) + n2*S2[2];
+  dA[0] *= dPhi; dA[1] *= dPhi; dA[2] *= dPhi;
+}
+
+/***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
 /* Routine for evaluating arbitrary functions of the fields on a 2d
