@@ -185,11 +185,12 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 #endif
   for (int n1 = 0; n1 < grid.N1; ++n1)
     for (int n2 = 0; n2 < grid.N2; ++n2) {
-      int count = n1*grid.N2 + n2;
-      if (LogLevel >= SCUFF_VERBOSELOGGING)
+      if (LogLevel >= SCUFF_VERBOSELOGGING) {
+	int count = n1*grid.N2 + n2;
 	for (int PerCent=0; PerCent<9; PerCent++)
 	  if (count == (PerCent*grid.N1*grid.N2)/10)
 	    MutexLog("%i0 %% (%i/%i)...",PerCent,count,grid.N1*grid.N2);
+      }
 
       double X[3], dA[3];
       grid.GetPoint(n1, n2, X, dA);
