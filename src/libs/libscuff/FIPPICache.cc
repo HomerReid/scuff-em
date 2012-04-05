@@ -67,13 +67,6 @@ typedef struct
       if ( memcmp( (void *)K1.Key, (void *)K2.Key, KEYSIZE) )
        return false;
       return true;
-#if 0
-      int nd;
-      for(nd=0; nd<KEYLEN; nd++)
-       if ( fabs(K1.Key[nd] - K2.Key[nd]) > 1.0e-8 * fabs(K1.Key[nd]) )
-        return false;
-      return true;
-#endif
     };
 
  } KeyCmp;
@@ -88,9 +81,10 @@ typedef std::tr1::unordered_map< KeyStruct,
 /*--------------------------------------------------------------*/
 FIPPICache::FIPPICache()
 {
-  DoNotCompute=0;
   KeyValueMap *KVM=new KeyValueMap;
   opTable = (void *)KVM;
+  PreloadFileName=0;
+  RecordsPreloaded=0;
 }
 
 /*--------------------------------------------------------------*/
@@ -98,6 +92,9 @@ FIPPICache::FIPPICache()
 /*--------------------------------------------------------------*/
 FIPPICache::~FIPPICache()
 {
+  if (PreloadFileName) 
+   free(PreloadFileName);
+
   KeyValueMap *KVM=(KeyValueMap *)opTable;
   delete KVM;
 } 
@@ -134,13 +131,6 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   /* 10^8 anyway.                                                */
   /***************************************************************/
   KeyStruct K;
-#if 0
-  VecSub(OVa[1], OVa[0], K.Key+0 );
-  VecSub(OVa[2], OVa[0], K.Key+3 );
-  VecSub(OVb[0], OVa[0], K.Key+6 );
-  VecSub(OVb[1], OVa[0], K.Key+9 );
-  VecSub(OVb[2], OVa[0], K.Key+12);
-#endif
   VecSubFloat(OVa[1], OVa[0], K.Key+0  );
   VecSubFloat(OVa[2], OVa[0], K.Key+3  );
   VecSubFloat(OVb[0], OVa[0], K.Key+6  );
@@ -169,8 +159,7 @@ QIFIPPIData *FIPPICache::GetQIFIPPIData(double **OVa, double **OVb, int ncv)
   KeyStruct *K2 = (KeyStruct *)mallocEC(sizeof(*K2));
   memcpy(K2->Key, K.Key, KEYSIZE);
   QIFIPPIData *QIFD=(QIFIPPIData *)mallocEC(sizeof *QIFD);
-  if (DoNotCompute==0)
-   ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
+  ComputeQIFIPPIData(OVa, OVb, ncv, QIFD);
    
   FCLock.write_lock();
   KVM->insert( KeyValuePair(*K2, QIFD) );
@@ -214,9 +203,32 @@ typedef struct FIPPICF_Record
 
 void FIPPICache::Store(char *FileName)
 {
+  KeyValueMap *KVM=(KeyValueMap *)opTable;
+
+  /*--------------------------------------------------------------*/
+  /*- pause to check if the following conditions are satisfied:  -*/
+  /*-  (1) the FIPPI cache was preloaded from an input file whose-*/
+  /*-      name matches the name of the output file to which we  -*/
+  /*-      are being asked to dump the cache                     -*/
+  /*-  (2) the number of cache records hasn't changed since we   -*/
+  /*-      preloaded from the input file.                        -*/
+  /*- if both conditions are satisfied, we don't bother to dump  -*/
+  /*- the cache since the operation would result in a cache dump -*/
+  /*- file identical to the one that already exists.             -*/
+  /*--------------------------------------------------------------*/
+  if (     PreloadFileName 
+       && !strcmp(PreloadFileName, FileName) 
+       && RecordsPreloaded==(KVM->size())
+     )  
+   { Log("FIPPI cache unchanged since reading from %s (skipping cache dump)",FileName);
+     return;
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   FCLock.read_lock();
 
-  KeyValueMap *KVM=(KeyValueMap *)opTable;
   KeyValueMap::iterator it;
   int NumRecords=0;
 
@@ -264,6 +276,7 @@ void FIPPICache::Store(char *FileName)
 
 void FIPPICache::PreLoad(char *FileName)
 {
+
   FCLock.write_lock();
 
   KeyValueMap *KVM=(KeyValueMap *)opTable;
@@ -352,6 +365,15 @@ void FIPPICache::PreLoad(char *FileName)
   /*--------------------------------------------------------------*/
   Log(" ...succesfully preloaded %i FIPPI records.",NumRecords);
   fclose(f);
+
+  // the most recent file from which we preloaded, and the number of 
+  // records preloaded, are stored within the class body to allow us 
+  // to skip dumping the cache back to disk in cases where that would
+  // amount to just rewriting the same cache file
+  if (PreloadFileName)
+   free(PreloadFileName);
+  PreloadFileName=strdup(FileName);
+  RecordsPreloaded=NumRecords;
 
  done:
   FCLock.write_unlock();
