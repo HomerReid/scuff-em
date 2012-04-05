@@ -1,7 +1,7 @@
-geometry Sphere_654.scuffgeo
-cache Sphere_654.scuffcache
+geometry    Sphere_654.scuffgeo
+cache       Sphere_654.scuffcache
+PowerFile   Sphere_654.power
+#PowerRadius 100.0 
 OmegaFile OmegaList
-PowerFile Sphere.power 
-PowerRadius 50.0 
 pwDirection 0 0 1 
 pwPolarization 1 0 0 

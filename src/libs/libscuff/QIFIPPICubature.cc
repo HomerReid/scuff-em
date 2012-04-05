@@ -21,7 +21,7 @@ namespace scuff {
 
 #define ABSTOL   1.0e-10
 #define RELTOL   1.0e-6
-#define MAXEVALS 100000
+#define MAXEVALS 1000000
 
 #define _ONE 0
 #define _UP  1
