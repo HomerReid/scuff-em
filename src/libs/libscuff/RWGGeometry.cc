@@ -129,7 +129,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         else if ( nTokens>2 )
          ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
          
-        char *ErrMsg=AddMaterialToMatPropDataBase(f, GeoFileName, Label, &LineNum);
+        char *ErrMsg=AddMaterialToMatPropDataBase(f, GeoFileName, Tokens[1], &LineNum);
         if (ErrMsg)
          ErrExit("%s:%i: %s",GeoFileName,LineNum,ErrMsg); 
 

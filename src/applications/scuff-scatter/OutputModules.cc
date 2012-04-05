@@ -11,8 +11,12 @@
 #include "scuff-scatter.h"
 
 #define ABSTOL   0.0
-#define RELTOL   1.0e-2
-#define MAXEVALS 50000
+#define RELTOL   5.0e-2
+#define MAXEVALS 20000
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+FILE *LogFile=0;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 /***************************************************************/
 /***************************************************************/
@@ -58,7 +62,8 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /***************************************************************/
   int WhichObject=-1;
 
-  /***************************************************************/ /***************************************************************/
+  /***************************************************************/ 
+  /***************************************************************/
   /***************************************************************/
   int nep;
   double X[3]; 
@@ -386,7 +391,7 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   cdouble *HScat = EHS+3;
   cdouble *ETot  = EHT;
   cdouble *HTot  = EHT+3;
-  double PVScat[3], PVTot[3];
+  double PVScat[3], PVTot[3]; 
 
   PVScat[0] = 0.5*real( EScat[1] * conj(HScat[2]) - EScat[2] * conj(HScat[1]) );
   PVScat[1] = 0.5*real( EScat[2] * conj(HScat[0]) - EScat[0] * conj(HScat[2]) );
@@ -396,12 +401,34 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   PVTot[1]  = 0.5*real( ETot[2]  * conj(HTot[0])  - ETot[0]  * conj(HTot[2])  );
   PVTot[2]  = 0.5*real( ETot[0]  * conj(HTot[1])  - ETot[1]  * conj(HTot[0])  );
 
+  double PVSI[3]; // 'poynting vector, scattered--incident'
+  cdouble EHI[6];
+  cdouble *EInc=EHI;
+  cdouble *HInc=EHI+3;
+  for(int n=0; n<6; n++) 
+   EHI[n] = EHT[n] - EHS[n];
+  
+  PVSI[0]  = 0.5*real( EScat[1] * conj(HInc[2])  - EScat[2] * conj(HInc[1]) );
+  PVSI[1]  = 0.5*real( EScat[2] * conj(HInc[0])  - EScat[0] * conj(HInc[2]) );
+  PVSI[2]  = 0.5*real( EScat[0] * conj(HInc[1])  - EScat[1] * conj(HInc[0]) );
+
+  PVSI[0] += 0.5*real( EInc[1] * conj(HScat[2])  - EInc[2] * conj(HScat[1]) );
+  PVSI[1] += 0.5*real( EInc[2] * conj(HScat[0])  - EInc[0] * conj(HScat[2]) );
+  PVSI[2] += 0.5*real( EInc[0] * conj(HScat[1])  - EInc[1] * conj(HScat[0]) );
+
   /***************************************************************/
   /* components of integrand vector are radial components of     */
-  /* -PVTot and PVScat                                           */
+  /* PVSI and PVScat                                             */
   /***************************************************************/
-  fval[0] = -R*R*( PVTot[0]*nHat[0] + PVTot[1]*nHat[1]  + PVTot[2]*nHat[2] );
+  //fval[0] = -R*R*( PVTot[0]*nHat[0] +  PVTot[1]*nHat[1] +  PVTot[2]*nHat[2]);
+  fval[0] =  R*R*(  PVSI[0]*nHat[0] +   PVSI[1]*nHat[1] +   PVSI[2]*nHat[2]);
   fval[1] =  R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (LogFile)
+ fprintf(LogFile,"%e %e %e %e %e %e %e %e %e %e\n",
+                  CosTheta,SinPhi,X[0],X[1],X[2],nHat[0],nHat[1],nHat[2],fval[0],fval[1]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
@@ -419,9 +446,21 @@ void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
   GPBFID->SSD = SSD;
   GPBFID->R = R;
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+//LogFile=fopen("doomatage","w");
+//setlinebuf(LogFile);
+LogFile=0;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   adapt_integrate_log(2, GetPower_BF_Integrand, (void *)GPBFID, 2, 
 	     	      Lower, Upper, MAXEVALS, ABSTOL, RELTOL, 
                       PBF, EBF, "SGJC.log",15);
+  PBF[0] = -(PBF[0] + PBF[1]);
+  EBF[0] =  (EBF[0] + EBF[1]);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+//fclose(LogFile);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
@@ -466,20 +505,20 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   /***************************************************************/
   // nr runs over rows, nc over columns, ne over matrix entries
   int nr, nc, ne, N=G->TotalBFs;
-  double PScat, PAbs, PTot;
-  double Sign;
+  double PTot, PAbs, PScat, Sign;
   for(PTot=PScat=0.0, Sign=1.0, ne=nc=0; nc<N; nc++)
    for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
     { 
       if (nr==nc) 
-       PTot+= Sign*real( conj(ZKN[nr]) * ZRHS[nr] );
+       PTot += Sign*real( conj(ZKN[nr]) * (-1.0*ZRHS[nr]) );
 
-      PScat += -Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+      PScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
     };
     
-  PTot  *=  -0.5 * ZVAC;
-  PScat *=  0.5 * ZVAC;
-  PAbs = PTot - PScat;
+  PTot  *= 0.5 * ZVAC;
+  PScat *= 0.5 * ZVAC;
+
+  PAbs  = PTot - PScat;
 
   /***************************************************************/
   /***************************************************************/
@@ -544,8 +583,8 @@ void GetPower(SSData *SSD, char *PowerFile)
            ka = KN->GetEntry(Offset + 2*nea + 0 );
            na = KN->GetEntry(Offset + 2*nea + 1 );
 
-           vE = RHS->GetEntry(Offset + 2*nea + 0 );
-           vH = RHS->GetEntry(Offset + 2*nea + 1 );
+           vE = -1.0*RHS->GetEntry(Offset + 2*nea + 0 );
+           vH = -1.0*RHS->GetEntry(Offset + 2*nea + 1 );
 
            PTot += real( conj(ka)*vE - conj(na)*vH );
 
@@ -556,17 +595,17 @@ void GetPower(SSData *SSD, char *PowerFile)
                continue;
 
               nb = KN->GetEntry(Offset + 2*neb + 1 );
-              PAbs += real( conj(ka) * OTimes * nb );
+              PAbs -= real( conj(ka) * OTimes * nb );
             }; // for (neb= ... 
 
          }; // for(nea==...
       }; // if ( O->MP->IsPEC() )
    }; // for(no=...)
   
-  PAbs  *= -0.5*ZVAC;
-  PTot  *= -0.5*ZVAC;
-  PScat *= PTot - PAbs;
-  fprintf(f,"%.12e %.12e  ",PAbs, PScat);
+  PTot *= 0.5*ZVAC;
+  PAbs *= 0.5*ZVAC;
+  PScat = PTot - PAbs;
+  fprintf(f,"%.12e %.12e  ",PAbs,PScat);
 
   /***************************************************************/
   /***************************************************************/

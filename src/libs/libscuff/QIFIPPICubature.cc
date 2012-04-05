@@ -21,7 +21,7 @@ namespace scuff {
 
 #define ABSTOL   1.0e-10
 #define RELTOL   1.0e-6
-#define MAXEVALS 100000
+#define MAXEVALS 1000000
 
 #define _ONE 0
 #define _UP  1
@@ -347,7 +347,7 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
      memset(IsBad, 0, fdim*sizeof(int));
      for (nn=0; nn<fdim; nn++)
       { 
-        if ( fabs(F[nn])>1.0e-6 && E[nn]>ABSTOL && E[nn]>RELTOL*fabs(F[nn]) )
+        if ( fabs(F[nn])>1.0e-6 && E[nn]>1.0e-3*fabs(F[nn]) )
          { IsBad[nn]=1;
            NumBad++;
          };
