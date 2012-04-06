@@ -526,6 +526,53 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   PSGJ[0]=PAbs;
   PSGJ[1]=PScat;
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+double PTotBH[2], PScatBQ[4];
+double *WhichPTot, *WhichPScat;
+memset(PTotBH, 0, 2*sizeof(double));
+memset(PScatBQ, 0, 4*sizeof(double));
+for(Sign=1.0, ne=nc=0; nc<N; nc++)
+ for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
+  { 
+    if ( (nr%2)==0 && (nc%2)==0 )
+     { WhichPTot  = PTotBH + 0;
+       WhichPScat = PScatBQ + 0;
+     }
+    else if ( (nr%2)==0 && (nc%2)==1 )
+     { WhichPTot  = PTotBH + 0;
+       WhichPScat = PScatBQ + 1;
+     }
+    else if ( (nr%2)==1 && (nc%2)==0 )
+     { WhichPTot  = PTotBH + 1;
+       WhichPScat = PScatBQ + 2;
+     }
+    else if ( (nr%2)==1 && (nc%2)==1 )
+     { WhichPTot  = PTotBH + 1;
+       WhichPScat = PScatBQ + 3;
+     };
+
+    if ( nr==nc ) 
+     *WhichPTot += Sign*real( conj(ZKN[nr]) * (-1.0*ZRHS[nr]) );
+
+    *WhichPScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+  };
+PTotBH[0] *= 0.5*ZVAC;
+PTotBH[1] *= 0.5*ZVAC;
+PScatBQ[0] *= 0.5*ZVAC;
+PScatBQ[1] *= 0.5*ZVAC;
+PScatBQ[2] *= 0.5*ZVAC;
+PScatBQ[3] *= 0.5*ZVAC;
+FILE *ff=fopen("byQuadrant.out","a");
+fprintf(ff,"%e %.12e %.12e %.12e %.12e %.12e %.12e \n",
+            real(SSD->Omega), PTotBH[0], PTotBH[1], 
+            PScatBQ[0], PScatBQ[1], PScatBQ[2], PScatBQ[3]);
+fclose(ff);
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 }
 
 /***************************************************************/
