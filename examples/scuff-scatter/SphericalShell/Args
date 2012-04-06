@@ -1,0 +1,5 @@
+geometry       SphericalShell.scuffgeo
+cache          SphericalShell.cache
+omega          0.001
+pwDirection    1.0 0.0 0.0
+pwPolarization 0.0 0.0 1.0

@@ -1,9 +1,12 @@
 EXTRA_DIST = 			\
- EPFile				\
+ CenterPoint			\
+ LineOfPoints			\
  Sphere_R0P5.geo		\
  Sphere_R0P5.msh		\
  Sphere_R1P0.geo		\
  Sphere_R1P0.msh		\
- SphericalShell.scuffgeo
-
-
+ SphericalShell.scuffgeo	\
+ Args				\
+ GetDataVsEps.sh		\
+ EpsValues      		\
+ SphericalShellElectrostatics.pdf	

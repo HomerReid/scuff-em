@@ -21,19 +21,18 @@ FILE *LogFile=0;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetTotalField(SSData *SSD, double *X, int WhichObject, 
-                   cdouble *EHS, cdouble *EHT)
+void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
 { 
   /*--------------------------------------------------------------*/
   /*- get scattered field ----------------------------------------*/
   /*--------------------------------------------------------------*/
-  SSD->G->GetFields(X,WhichObject,SSD->Omega,SSD->KN,EHS,SSD->nThread);
+  SSD->G->GetFields(X,SSD->Omega,SSD->KN,EHS,SSD->nThread);
   memcpy(EHT,EHS,6*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
   /*- add incident field only if we are in the external region    */
   /*--------------------------------------------------------------*/
-  if (WhichObject==-1)
+  if ( SSD->G->GetObjectIndex(X)==-1 )
    { int Mu;
      cdouble EH2[6];
      EHIncField(X, SSD->opIFD, EH2);
@@ -57,11 +56,6 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
      return;
    };
  
-  /***************************************************************/
-  /* FIXME *******************************************************/
-  /***************************************************************/
-  int WhichObject=-1;
-
   /***************************************************************/ 
   /***************************************************************/
   /***************************************************************/
@@ -85,7 +79,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
      X[1]=EPMatrix->GetEntryD(nep, 1);
      X[2]=EPMatrix->GetEntryD(nep, 2);
 
-     GetTotalField(SSD, X, WhichObject, EHS, EHT); 
+     GetTotalField(SSD, X, EHS, EHT); 
 
      fprintf(f1,"%e %e %e ",X[0],X[1],X[2]);
      fprintf(f1,"%s %s %s ",CD2S(EHS[0]),CD2S(EHS[1]),CD2S(EHS[2]));
@@ -127,7 +121,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   cdouble *EHT=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
   if (EHS==0 || EHT==0) ErrExit("out of memory");
   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
-   GetTotalField(SSD, P->Centroid, -1, EHS + 6*np, EHT + 6*np);
+   GetTotalField(SSD, P->Centroid, EHS + 6*np, EHT + 6*np);
 
   // maximum values of scattered and total fields, used below for 
   // normalization 
@@ -382,7 +376,7 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   /* get total and scattered fields at evaluation point **********/
   /***************************************************************/
   cdouble EHS[6], EHT[6];
-  GetTotalField(SSD, X, -1, EHS, EHT);
+  GetTotalField(SSD, X, EHS, EHT);
 
   /***************************************************************/
   /* get scattered and total poynting vectors ********************/
