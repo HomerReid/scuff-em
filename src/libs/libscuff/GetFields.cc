@@ -46,7 +46,7 @@ typedef struct EHFieldIntegrandData
  { 
    double *Q;           // RWG basis function source/sink vertex 
    double PreFac;       // RWG basis function prefactor 
-   const double *X0;          // field evaluation point 
+   const double *X0;    // field evaluation point 
    cdouble K;           // \sqrt{Eps*Mu} * frequency
  } EHFIData;
 
@@ -157,7 +157,7 @@ void *GetFields_Thread(void *data)
   /* fields unpacked from thread data structure ******************/
   /***************************************************************/
   RWGGeometry *G              = TD->G;
-  const double *X                  = TD->X;
+  const double *X             = TD->X;
   cdouble Omega               = TD->Omega;
   cdouble Eps                 = TD->Eps;
   cdouble Mu                  = TD->Mu;
@@ -273,7 +273,7 @@ void *GetFields_Thread(void *data)
 }
 
 /***************************************************************/
-/* Get scattered fields at point X. ****************************/
+/* Get scattered fields at point X.                            */
 /* If ObjectIndex = -1, X is assumed to lie in the external    */
 /* region. Otherwise, X is assumed to lie in the interior of   */
 /* object #ObjectIndex.                                        */
@@ -517,8 +517,7 @@ void RWGGeometry::GetFields(const double X[3],
 /* entry point to GetFields() with autodetection of where the  */
 /* evaluation point lies.                                      */
 /***************************************************************/
-void RWGGeometry::GetFields(const double X[3], 
-                            cdouble Omega,
+void RWGGeometry::GetFields(const double X[3], cdouble Omega,
                             HVector *KN, cdouble EH[6], int nThread)
 {
   GetFields(X, GetObjectIndex(X), Omega, KN, EH, nThread);
