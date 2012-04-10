@@ -32,10 +32,8 @@ typedef struct InnerProductIntegrandData
  { 
    double *Q;
    double PreFac;
-   EHFuncType2 EHFunc;
-   void *EHFuncUD;
+   IncField *IF;
    int PureImagFreq;
-   int NeedHProd;
    int exterior_idx, interior_idx;
  } InnerProductIntegrandData;
 
@@ -293,7 +291,7 @@ void *AssembleRHS_Thread(void *data)
 /***************************************************************/
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
-void RWGGeometry::AssembleRHSVector(EHFuncType2 EHFunc, void *EHFuncUD,
+void RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
                                     HVector *B, int nThread)
 { 
   int nt;
@@ -321,8 +319,7 @@ void RWGGeometry::AssembleRHSVector(EHFuncType2 EHFunc, void *EHFuncUD,
      TD->nThread=nThread;
 
      TD->G=this;
-     TD->EHFunc=EHFunc;
-     TD->EHFuncUD=EHFuncUD;
+     TD->IF=IF;
      TD->B=B;
 
      TD->nThread=nThread;

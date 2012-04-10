@@ -404,9 +404,19 @@ void InitABMBArgs(ABMBArgStruct *Args)
 /* this is the actual API-exposed routine for assembling the   */
 /* BEM matrix, which is pretty simple and really just calls    */
 /* routine above to do all the dirty work.                     */
+/*                                                             */
+/* If the M matrix is NULL on entry, a new HMatrix of the      */
+/* appropriate size is allocated and returned. Otherwise, the  */
+/* return value is M.                                          */
 /***************************************************************/
-void RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
+HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
 { 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (M==NULL)
+   M=AllocateBEMMatrix();
+
   /***************************************************************/
   /* preinitialize an argument structure for the matrix-block    */
   /* assembly routine                                            */
@@ -463,6 +473,8 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
       for(nc=0; nc<nr; nc++)
        M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
    };
+
+ return M;
 
 }
 
