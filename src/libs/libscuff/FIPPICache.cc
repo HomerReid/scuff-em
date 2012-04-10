@@ -363,7 +363,7 @@ void FIPPICache::PreLoad(char *FileName)
   /*--------------------------------------------------------------*/
   /*- the full file was successfully preloaded -------------------*/
   /*--------------------------------------------------------------*/
-  Log(" ...succesfully preloaded %i FIPPI records.",NumRecords);
+  Log(" ...successfully preloaded %i FIPPI records.",NumRecords);
   fclose(f);
 
   // the most recent file from which we preloaded, and the number of 

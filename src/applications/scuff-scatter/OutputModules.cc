@@ -21,19 +21,18 @@ FILE *LogFile=0;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetTotalField(SSData *SSD, double *X, int WhichObject, 
-                   cdouble *EHS, cdouble *EHT)
+void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
 { 
   /*--------------------------------------------------------------*/
   /*- get scattered field ----------------------------------------*/
   /*--------------------------------------------------------------*/
-  SSD->G->GetFields(X,WhichObject,SSD->Omega,SSD->KN,EHS,SSD->nThread);
+  SSD->G->GetFields(X,SSD->Omega,SSD->KN,EHS,SSD->nThread);
   memcpy(EHT,EHS,6*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
   /*- add incident field only if we are in the external region    */
   /*--------------------------------------------------------------*/
-  if (WhichObject==-1)
+  if ( SSD->G->GetObjectIndex(X)==-1 )
    { int Mu;
      cdouble EH2[6];
      EHIncField(X, SSD->opIFD, EH2);
@@ -57,11 +56,6 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
      return;
    };
  
-  /***************************************************************/
-  /* FIXME *******************************************************/
-  /***************************************************************/
-  int WhichObject=-1;
-
   /***************************************************************/ 
   /***************************************************************/
   /***************************************************************/
@@ -85,7 +79,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
      X[1]=EPMatrix->GetEntryD(nep, 1);
      X[2]=EPMatrix->GetEntryD(nep, 2);
 
-     GetTotalField(SSD, X, WhichObject, EHS, EHT); 
+     GetTotalField(SSD, X, EHS, EHT); 
 
      fprintf(f1,"%e %e %e ",X[0],X[1],X[2]);
      fprintf(f1,"%s %s %s ",CD2S(EHS[0]),CD2S(EHS[1]),CD2S(EHS[2]));
@@ -127,7 +121,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   cdouble *EHT=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
   if (EHS==0 || EHT==0) ErrExit("out of memory");
   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
-   GetTotalField(SSD, P->Centroid, -1, EHS + 6*np, EHT + 6*np);
+   GetTotalField(SSD, P->Centroid, EHS + 6*np, EHT + 6*np);
 
   // maximum values of scattered and total fields, used below for 
   // normalization 
@@ -382,7 +376,7 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   /* get total and scattered fields at evaluation point **********/
   /***************************************************************/
   cdouble EHS[6], EHT[6];
-  GetTotalField(SSD, X, -1, EHS, EHT);
+  GetTotalField(SSD, X, EHS, EHT);
 
   /***************************************************************/
   /* get scattered and total poynting vectors ********************/
@@ -525,6 +519,53 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   /***************************************************************/
   PSGJ[0]=PAbs;
   PSGJ[1]=PScat;
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+double PTotBH[2], PScatBQ[4];
+double *WhichPTot, *WhichPScat;
+memset(PTotBH, 0, 2*sizeof(double));
+memset(PScatBQ, 0, 4*sizeof(double));
+for(Sign=1.0, ne=nc=0; nc<N; nc++)
+ for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
+  { 
+    if ( (nr%2)==0 && (nc%2)==0 )
+     { WhichPTot  = PTotBH + 0;
+       WhichPScat = PScatBQ + 0;
+     }
+    else if ( (nr%2)==0 && (nc%2)==1 )
+     { WhichPTot  = PTotBH + 0;
+       WhichPScat = PScatBQ + 1;
+     }
+    else if ( (nr%2)==1 && (nc%2)==0 )
+     { WhichPTot  = PTotBH + 1;
+       WhichPScat = PScatBQ + 2;
+     }
+    else if ( (nr%2)==1 && (nc%2)==1 )
+     { WhichPTot  = PTotBH + 1;
+       WhichPScat = PScatBQ + 3;
+     };
+
+    if ( nr==nc ) 
+     *WhichPTot += Sign*real( conj(ZKN[nr]) * (-1.0*ZRHS[nr]) );
+
+    *WhichPScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+  };
+PTotBH[0] *= 0.5*ZVAC;
+PTotBH[1] *= 0.5*ZVAC;
+PScatBQ[0] *= 0.5*ZVAC;
+PScatBQ[1] *= 0.5*ZVAC;
+PScatBQ[2] *= 0.5*ZVAC;
+PScatBQ[3] *= 0.5*ZVAC;
+FILE *ff=fopen("byQuadrant.out","a");
+fprintf(ff,"%e %.12e %.12e %.12e %.12e %.12e %.12e \n",
+            real(SSD->Omega), PTotBH[0], PTotBH[1], 
+            PScatBQ[0], PScatBQ[1], PScatBQ[2], PScatBQ[3]);
+fclose(ff);
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 

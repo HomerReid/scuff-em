@@ -338,8 +338,8 @@ static void IncField_wrap(const double R[3], void *UserData, cdouble EH[6],
 }
 
 HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, 
-				      int nfuncs, FieldFunc **funcs,
-				    cdouble Omega, HVector *KN, IncField *inc,
+                                      int nfuncs, FieldFunc **funcs,
+                                      cdouble Omega, HVector *KN, IncField *inc,
                                       int nThread) {
   UpdateIncFields(inc, Omega); // update ObjectIndex/Eps/Mu/Omega of inc
   return GetFieldsGrids(grid, nfuncs, funcs, Omega, KN,
@@ -348,7 +348,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 }
 
 HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, const char *exprs_,
-			  cdouble Omega, HVector *KN, IncField *inc,
+                                      cdouble Omega, HVector *KN, IncField *inc,
 				      int nThread) {
   FieldFunc **f;
   int nf = 1;
