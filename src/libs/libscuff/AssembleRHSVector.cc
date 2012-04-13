@@ -54,8 +54,9 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
   VecSub(X,IPID->Q,fRWG);
   VecScale(fRWG,IPID->PreFac);
 
-  /* call user's incident field routine to get E and H fields at X */
-  IPID->EHFunc(X,IPID->EHFuncUD,EH, IPID->exterior_idx, IPID->interior_idx); 
+  /* get incident E and H fields at X */
+  //IPID->EHFunc(X,IPID->EHFuncUD,EH, IPID->exterior_idx, IPID->interior_idx); 
+  IF->GetFields(X,EH);
   
   /*--------------------------------------------------------------*/
   /*- now switch off to determine which return values are needed -*/
@@ -95,8 +96,8 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 /* If pHProd==0, we don't compute the inner product with the   */
 /* magnetic field.                                             */
 /***************************************************************/
-void RWGObject::GetInnerProducts(int nbf, EHFuncType2 EHFunc, 
-                                 void *EHFuncUD, int PureImagFreq,
+void RWGObject::GetInnerProducts(int nbf, IncField *IF,
+                                 int PureImagFreq,
                                  cdouble *pEProd, cdouble *pHProd,
 				 int exterior_index, int interior_index)
 { 
@@ -176,8 +177,8 @@ typedef struct ThreadData
    int nt, nThread;
 
    RWGGeometry *G;
-   EHFuncType2 EHFunc;
-   void *EHFuncUD;
+   IncField *IF;
+   RWGObject *FieldSourceLocation;
    HVector *B;
 
  } ThreadData;
@@ -192,24 +193,8 @@ void *AssembleRHS_Thread(void *data)
   /***************************************************************/
   ThreadData *TD=(ThreadData *)data;
   RWGGeometry *G    = TD->G;
-  EHFuncType2 EHFunc = TD->EHFunc;
-  void *EHFuncUD    = TD->EHFuncUD;
-
-  /***************************************************************/
-  /* get a pointer to the real- or complex-valued storage array  */
-  /* inside the HVector                                          */
-  /***************************************************************/
-  double *DB=0;
-  cdouble *ZB=0;
-  int PureImagFreq;
-  if (TD->B->RealComplex==LHM_COMPLEX)
-   { ZB=TD->B->ZV;
-     PureImagFreq=0;
-   }
-  else
-   { DB=TD->B->DV; 
-     PureImagFreq=1;
-   };
+  IncField    *IF   = TD->IF;
+  RWGObject   *FieldSourceLocation = TD->FieldSourceLocation;
 
   /*--------------------------------------------------------------*/
   /*- EXPERIMENTAL -----------------------------------------------*/
@@ -225,20 +210,27 @@ void *AssembleRHS_Thread(void *data)
   /*--------------------------------------------------------------*/
 
   RWGObject *O;
-  int no, ne, Type, Offset; 
+  int no, ne, Offset; 
   int nt=0;
   cdouble EProd, HProd, *pHProd;
   for(no=0, O=G->Objects[0]; no<G->NumObjects; O=G->Objects[++no])
    { 
-     Offset=G->BFIndexOffset[no];
-     Type=O->MP->Type;
-
-     // figure out whether or not we need to compute the H product 
-     if (Type==MP_PEC)
-      pHProd=0;
+     // determine the sign of this object's contribution to the 
+     // RHS vector, as follows: 
+     // 1. if the exterior field sources lie in the medium exterior
+     //    to this object, then Sign=-1
+     // 2. if the exterior field sources lie in the medium interior
+     //    to this object, then Sign=+1
+     // 3. if neither of the above, then this object makes no 
+     //    contribution to the RHS vector.
+     if( O->ContainingObject == FieldSourceLocation ) 
+      Sign = -1.0;
+     else if (O == FieldSourceLocation )
+      Sign = +1.0;
      else
-      pHProd=&HProd;
+      continue;
 
+#if 0
      // find index of exterior object to O (-1 if none)
      int exterior_index = -1;
      if (O->ContainingObject) {
@@ -249,35 +241,28 @@ void *AssembleRHS_Thread(void *data)
 	 }
        if (exterior_index == -1) ErrExit("invalid containing object");
      }
+#endif
 
+     // figure out whether or not we need to compute the H product 
+     if ( O->MP->Type == MP_PEC )
+      pHProd=0;
+     else
+      pHProd=&HProd;
+
+     Offset=G->BFIndexOffset[no];
      for(ne=0; ne<O->NumEdges; ne++)
       { 
         nt++;
         if (nt==TD->nThread) nt=0;
         if (nt!=TD->nt) continue;
 
-        O->GetInnerProducts(ne, EHFunc, EHFuncUD, PureImagFreq, &EProd, pHProd,
-			    exterior_index, no);
+        O->GetInnerProducts(ne, IF, &EProd, pHProd);
 
-        /* there are four choices here based on whether we are at a general */
-        /* or a pure imaginary frequency and whether the object is a        */
-        /* perfect conductor (EFIE) or not (PMCHW)                          */
-        if ( Type==MP_PEC && PureImagFreq==1 )
-         { 
-           DB[ Offset + ne ] = -1.0*(real(EProd)) / ZVAC;
-         } 
-        else if ( Type==MP_PEC && PureImagFreq==0 )
-         { ZB[ Offset + ne ] = -1.0*EProd / ZVAC;
-         }
-        else if ( Type!=MP_PEC && PureImagFreq==1 )
-         { 
-           DB[ Offset + 2*ne    ]  = -1.0*(real(EProd)) /  ZVAC;
-           DB[ Offset + 2*ne + 1 ] = -1.0*(real(HProd));
-         }
-        else // ( Type!=MP_PEC && PureImagFreq==0 )
-         { 
-           ZB[ Offset + 2*ne    ]  = -1.0*EProd / ZVAC;
-           ZB[ Offset + 2*ne + 1 ] = -1.0*HProd;
+        if ( O->MP->Type == MP_PEC )
+         B->SetEntry(Offset + ne), Sign*EProd / ZVac;
+        else 
+         { B->SetEntry(Offset + 2*ne+0), Sign*EProd / ZVac;
+           B->SetEntry(Offset + 2*ne+1), Sign*HProd;
          };
 
       }; // for ne=...
@@ -291,12 +276,14 @@ void *AssembleRHS_Thread(void *data)
 /***************************************************************/
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
-void RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
-                                    HVector *B, int nThread)
+HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, 
+                                        HVector *B, int nThread)
 { 
-  int nt;
-
-  if (nThread <= 0) nThread = GetNumThreads();
+  if (B==0)
+   B=AllocateRHSVector();
+   
+  if (nThread <= 0) 
+   nThread = GetNumThreads();
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;
@@ -320,6 +307,7 @@ void RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
 
      TD->G=this;
      TD->IF=IF;
+     TD->FieldSourceLocation=FieldSourceLocation;
      TD->B=B;
 
      TD->nThread=nThread;
@@ -373,22 +361,6 @@ void RWGGeometry::UpdateIncFields(IncField *inc, cdouble Omega,
 }
 
 /***************************************************************/
-/* Assemble the RHS vector from an IncField object.            */
-/***************************************************************/
-
-void RWGGeometry::AssembleRHSVector(cdouble omega, IncField *inc,
-				    HVector *B, int nThread) {
-  UpdateIncFields(inc, omega);
-  AssembleRHSVector(EHIncField2, (void*) inc, B, nThread);
-}
-
-// as above, but requires that frequencies and eps/mu have already been set
-void RWGGeometry::AssembleRHSVector(IncField *inc, HVector *B, int nThread) {
-  UpdateIncFields(inc);
-  AssembleRHSVector(EHIncField2, (void*) inc, B, nThread);
-}
-
-/***************************************************************/
 /* Allocate an RHS vector of the appropriate size. *************/
 /***************************************************************/
 HVector *RWGGeometry::AllocateRHSVector(int PureImagFreq)
@@ -403,34 +375,3 @@ HVector *RWGGeometry::AllocateRHSVector(int PureImagFreq)
   return V;
 
 } 
-
-/***************************************************************/
-/* AssembleRHSVector for an EHFunc assumed to be sources in    */
-/* the exterior medium only.                                   */
-/***************************************************************/
-
-typedef struct { EHFuncType f; void *UserData; } EHFuncType_wrap_data;
-
-// wrapper to make EHFuncType look like EHFuncType2, which
-// assumes that the sources lie in exterior_index == -1 only.
-static void EHFuncType_wrap(const double R[3], void *UserData, cdouble EH[6],
-			    int exterior_index, int interior_index)
-{
-  (void) interior_index; // unused
-  if (exterior_index == -1) {
-    EHFuncType_wrap_data *wd = (EHFuncType_wrap_data *) UserData;
-    wd->f(R, wd->UserData, EH);
-  }
-  else
-    memset(EH, 0, sizeof(cdouble) * 6);
-}
-
-void RWGGeometry::AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD,
-				    HVector *B, int nThread) {
-  EHFuncType_wrap_data wd;
-  wd.f = EHFunc;
-  wd.UserData = EHFuncUD;
-  AssembleRHSVector(EHFuncType_wrap, (void*) &wd, B, nThread);
-}
-
-} // namespace scuff
