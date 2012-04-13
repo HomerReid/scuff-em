@@ -526,8 +526,8 @@ void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void PreloadGlobalFIPPICache(char *FileName);
-void StoreGlobalFIPPICache(char *FileName);
+void PreloadGlobalFIPPICache(const char *FileName);
+void StoreGlobalFIPPICache(const char *FileName);
 
 } // namespace scuff
 

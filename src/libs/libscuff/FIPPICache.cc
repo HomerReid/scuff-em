@@ -201,7 +201,7 @@ typedef struct FIPPICF_Record
  } FIPPICF_Record;
 #define FIPPICF_RECSIZE sizeof(FIPPICF_Record)
 
-void FIPPICache::Store(char *FileName)
+void FIPPICache::Store(const char *FileName)
 {
   KeyValueMap *KVM=(KeyValueMap *)opTable;
 
@@ -274,7 +274,7 @@ void FIPPICache::Store(char *FileName)
   FCLock.read_unlock();
 }
 
-void FIPPICache::PreLoad(char *FileName)
+void FIPPICache::PreLoad(const char *FileName)
 {
 
   FCLock.write_lock();
@@ -384,12 +384,12 @@ void FIPPICache::PreLoad(char *FileName)
 /***************************************************************/
 FIPPICache GlobalFIPPICache;
 
-void PreloadGlobalFIPPICache(char *FileName)
+void PreloadGlobalFIPPICache(const char *FileName)
 { 
   GlobalFIPPICache.PreLoad(FileName);
 }
 
-void StoreGlobalFIPPICache(char *FileName)
+void StoreGlobalFIPPICache(const char *FileName)
 { 
   GlobalFIPPICache.Store(FileName);
 }
