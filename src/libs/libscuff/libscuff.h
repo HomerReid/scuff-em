@@ -300,12 +300,16 @@ class RWGGeometry
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
 
+   HMatrix *AssembleBEMMatrix(cdouble Omega, HMatrix *M = NULL, int nThread = 0);
+
+#if 0 // delete me 20120408
    void AssembleBEMMatrix(cdouble Frequency, HMatrix *M, int nThread = 0);
    HMatrix *AssembleBEMMatrix(cdouble Frequency, int nThread = 0) {
 	HMatrix *M = AllocateBEMMatrix(real(Frequency) == 0.0);
 	AssembleBEMMatrix(Frequency, M, nThread);
 	return M;
    }
+#endif
    
 #if 0
    /* routines for allocating, and then filling in, the derivative */

@@ -60,13 +60,15 @@ ParsedFieldFunc::ParsedFieldFunc(const char *ExprString) {
   // (variables 10..19)
   cdouble cvals[10];
   for (int i = 0; i < 10; ++i) cvals[i] = cdouble(0,1);
-
+#if 0
+  //HR20120408 delete me
   isReal = cevaluator_is_real(Expr, 10, const_cast<char**>(&PFF_names[10]), 
 			      cvals);
 
   // Make first 20 variables thread-safe (using fixed index into vals array)
   for (int i = 0; i < 20; ++i)
     cevaluator_set_var_index(Expr, const_cast<char*>(PFF_names[i]), i);
+#endif 
 }
 
 ParsedFieldFunc::~ParsedFieldFunc() {

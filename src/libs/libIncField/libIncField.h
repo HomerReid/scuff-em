@@ -2,9 +2,6 @@
  * libIncField.h -- routines for evaluating the electric and magnetic
  *               -- fields of various known types of field configurations
  *
- *               -- documentation at
- *               --  http://homerreid.com/scuff-EM/libIncField
- *
  * homer reid    -- 11/2009
  */
 #ifndef LIBINCFIELD_H
@@ -22,7 +19,7 @@
 #endif
 
 /**********************************************************************/
-/* IncField is a general base class from which specific classes   */
+/* IncField is a general base class from which specific classes       */
 /* for various types of field are derived.                            */
 /**********************************************************************/
 class IncField
@@ -120,7 +117,8 @@ class GaussianBeam: public IncField
    double W0;               /* beam waist */
 
    // constructor 
-   GaussianBeam(const double X0[3], const double KProp[3], const cdouble E0[3], double W0,
+   GaussianBeam(const double X0[3], const double KProp[3], 
+const cdouble E0[3], double W0,
 		const char *Label = 0);
 
    void GetFields(const double X[3], cdouble EH[6]);
