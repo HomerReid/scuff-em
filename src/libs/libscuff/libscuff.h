@@ -326,18 +326,20 @@ class RWGGeometry
    int GetObjectIndex(const double X[3]);
    RWGObject *GetObject(const double X[3]);
 
-   /* routine for evaluating scattered fields. */
-   /* in the first two entry points, the caller already knows     */
-   /* which object the evaluation point lies inside (possibly the */
-   /* exterior medium), which saves time.                         */
-   /* in the third entry point, the code automatically determines */
-   /* which object the evaluation point lies inside.              */
-   void GetFields(const double X[3], int ObjectIndex,
-                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
-   void GetFields(const double X[3], const char *ObjectLabel,
-                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
-   void GetFields(const double X[3], 
-                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
+   /* basic routines for computing fields */
+   void GetFields(const IncField *IF, const HVector *KN, 
+                  const cdouble Omega, const double *X, 
+                  cdouble *EH, int nThread=0);
+
+   HMatrix *GetFields(const IncField *IF, const HVector *KN, 
+                      const cdouble Omega, const HMatrix *XMatrix, 
+                      const char *Functions=NULL, HMatrix *FMatrix=NULL,
+                      int nThread=0);
+
+   HMatrix *GetFields(const IncField *IF, const HVector *KN,
+                      const cdouble Omega, const HMatrix *XMatrix,
+                      HMatrix *FMatrix=NULL, int nThread=0)
+    { return GetFields(IF, KN, Omega, XMatrix, 0, FMatrix); }
 
    /****************************************************/
 

@@ -28,8 +28,8 @@ namespace scuff {
 #define II cdouble(0,1)
 
 /*******************************************************************/
-/* integrand passed to TriInt to compute contributions to electric */
-/* and magnetic fields from a single panel                         */
+/* 'GetReducedPotentialsIntegrand' is the integrand routine passed */
+/* to TriInt to compute the reduced potentials of a single panel.  */
 /*                                                                 */
 /* integrand values:                                               */
 /*  f[0],  f[1]  == real , imag  (X-Q)_x            Phi(|X-X0|)    */
@@ -42,32 +42,32 @@ namespace scuff {
 /*  f[14], f[15] == real , imag  2(X-X0)_y          Psi(|X-X0|)    */
 /*  f[16], f[17] == real , imag  2(X-X0)_z          Psi(|X-X0|)    */
 /*******************************************************************/
-typedef struct EHFieldIntegrandData
+typedef struct GRPIntegrandData
  { 
    double *Q;           // RWG basis function source/sink vertex 
    double PreFac;       // RWG basis function prefactor 
    const double *X0;    // field evaluation point 
    cdouble K;           // \sqrt{Eps*Mu} * frequency
- } EHFIData;
+ } GRPIData;
 
-static void EHFieldIntegrand(double *X, void *parms, double *f)
+static void GRPIntegrand(double *X, void *parms, double *f)
 { 
-  EHFieldIntegrandData *EHFID=(EHFieldIntegrandData *)parms;
+  GRPIntegrandData *GRPID=(GRPIntegrandData *)parms;
   double fRWG[3], XmX0[3], fxR[3];
   cdouble Phi, Psi, *L=(cdouble *)f;
   double r;
   cdouble K;
-  double PreFac=EHFID->PreFac;
+  double PreFac=GRPID->PreFac;
 
   /* get the value of the RWG basis function at XP */
-  VecSub(X,EHFID->Q,fRWG);
+  VecSub(X,GRPID->Q,fRWG);
   VecScale(fRWG,PreFac);
   
-  VecSub(X,EHFID->X0,XmX0);
+  VecSub(X,GRPID->X0,XmX0);
   VecCross(fRWG,XmX0,fxR);
   r=VecNorm(XmX0);
 
-  K=EHFID->K;
+  K=GRPID->K;
   
   Phi= exp(II*K*r) / (4.0*M_PI*r);
   Psi= (II*K - 1.0/r) * Phi / r;
@@ -85,7 +85,16 @@ static void EHFieldIntegrand(double *X, void *parms, double *f)
 } 
 
 /***************************************************************/
-/***************************************************************/
+/* Compute the 'reduced potentials' of a single RWG basis      */
+/* function.                                                   */
+/*                                                             */
+/* The 'reduced potentials' are dimensionless analogues of the */
+/* scalar and vector potentials of the source distributions    */
+/* described by the RWG function populated with unit strength: */
+/*                                                             */
+/*    p(x) = \int G(x,y) \nabla \cdot f(y) dy                  */
+/*  a_i(x) = \int G(x,y) f_i(y) dy                             */
+/*                                                             */
 /***************************************************************/
 void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
                                      cdouble *a, cdouble *Curla,
@@ -95,7 +104,7 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
   double PArea, MArea;
   RWGEdge *E;
   int mu;
-  EHFieldIntegrandData MyEHFIData, *EHFID=&MyEHFIData;
+  GRPIntegrandData MyGRPIData, *GRPID=&MyGRPIData;
   cdouble IP[9], IM[9];
 
   /* get edge vertices */
@@ -107,19 +116,19 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
   PArea=Panels[E->iPPanel]->Area;
   MArea=Panels[E->iMPanel]->Area;
 
-  /* set up data structure passed to EFieldIntegrand */
-  EHFID->X0=X;
-  EHFID->K=K;
+  /* set up data structure passed to GRPIntegrand */
+  GRPID->X0=X;
+  GRPID->K=K;
 
   /* contribution of positive panel */
-  EHFID->Q=QP;
-  EHFID->PreFac = E->Length / (2.0*PArea);
-  TriIntFixed(EHFieldIntegrand, 18, (void *)EHFID, QP, V1, V2, 25, (double *)IP);
+  GRPID->Q=QP;
+  GRPID->PreFac = E->Length / (2.0*PArea);
+  TriIntFixed(GRPIntegrand, 18, (void *)GRPID, QP, V1, V2, 25, (double *)IP);
 
   /* contribution of negative panel */
-  EHFID->Q=QM;
-  EHFID->PreFac = E->Length / (2.0*MArea);
-  TriIntFixed(EHFieldIntegrand, 18, (void *)EHFID, V1, V2, QM, 25, (double *)IM);
+  GRPID->Q=QM;
+  GRPID->PreFac = E->Length / (2.0*MArea);
+  TriIntFixed(GRPIntegrand, 18, (void *)GRPID, V1, V2, QM, 25, (double *)IM);
 
   for(mu=0; mu<3; mu++) 
    { a[mu]     = IP[mu]   - IM[mu];
@@ -172,7 +181,6 @@ void *GetFields_Thread(void *data)
   /***************************************************************/
   /* other local fields ******************************************/
   /***************************************************************/
-
   double *DKN;
   cdouble *ZKN;
   cdouble iwe=II*Omega*Eps;
@@ -261,139 +269,84 @@ void *GetFields_Thread(void *data)
 }
 
 /***************************************************************/
-/* Get scattered fields at point X.                            */
-/* If ObjectIndex = -1, X is assumed to lie in the external    */
-/* region. Otherwise, X is assumed to lie in the interior of   */
-/* object #ObjectIndex.                                        */
 /***************************************************************/
-void RWGGeometry::GetFields(const double X[3], int ObjectIndex, cdouble Omega,
-                            HVector *KN, cdouble EH[6], int nThread)
+/***************************************************************/
+void *GetFields_Thread(ThreadData *TD)
+{
+  ThreadData *TD=(ThreadData *)data;
+
+#ifdef USE_PTHREAD
+  SetCPUAffinity(TD->nt);
+#endif
+
+  /***************************************************************/
+  /* fields unpacked from thread data structure ******************/
+  /***************************************************************/
+  RWGGeometry *G              = TD->G;
+  const double *X             = TD->X;
+  cdouble Omega               = TD->Omega;
+  cdouble Eps                 = TD->Eps;
+  cdouble Mu                  = TD->Mu;
+  RWGObject *ObjectInQuestion = TD->ObjectInQuestion;
+  HVector *KN                 = TD->KN;
+  cdouble *EH                 = TD->EH;
+
+  /***************************************************************/
+  /* other local fields ******************************************/
+  /***************************************************************/
+  double *DKN;
+  cdouble *ZKN;
+  cdouble iwe=II*Omega*Eps;
+  cdouble iwu=II*Omega*Mu;
+  cdouble K=csqrt2(Eps*Mu)*Omega;
+  if ( KN->RealComplex==LHM_REAL )
+   { DKN=KN->DV;
+     ZKN=NULL;
+   }
+  else
+   { 
+     DKN=NULL;
+     ZKN=KN->ZV;
+   };
+
+  /***************************************************************/
+  /* loop over all eval points (all rows of the XMatrix)         */
+  /***************************************************************/
+  for(nr=0; nr<XMatrix->NR; nr++) 
+   { 
+     X[0]=
+    
+     /*--------------------------------------------------------------*/
+     /*- get scattered fields at eval point -------------------------*/
+     /*--------------------------------------------------------------*/
+     for(no=0;  
+
+     /*--------------------------------------------------------------*/
+     /*- add incident fields   --------------------------------------*/
+     /*--------------------------------------------------------------*/
+
+     /*--------------------------------------------------------------*/
+     /*- compute field functions ------------------------------------*/
+     /*--------------------------------------------------------------*/
+
+   }; // for (nr=0; nr<XMatrix->NR; nr++)
+
+} 
+
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::GetFields(const IncField *IF, const HVector *KN, 
+                            const cdouble Omega, const HMatrix *XMatrix, 
+                            const char *Functions, HMatrix *FMatrix, 
+                            int nThread)
 { 
   if (nThread <= 0) nThread = GetNumThreads();
   
   /***************************************************************/
-  /* switch off to determine whether we are in the external      */
-  /* medium, inside an object, or otherwise                      */
-  /***************************************************************/
-  RWGObject *ObjectInQuestion;
-  cdouble Eps, Mu; 
-
-  if ( ObjectIndex==-1 )                                /* in external medium */
-   { ObjectInQuestion=0;
-     ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
-   }
-  else if ( ObjectIndex<-1 || ObjectIndex>=NumObjects ) /* invalid object */
-   { fprintf(stderr,"\n*\n* WARNING: invalid object selected in GetFields\n*\n");
-     memset(EH,0,6*sizeof(cdouble));
-     return;
-   }
-  else if ( Objects[ObjectIndex]->MP->IsPEC() )         /* inside a PEC object */
-   { memset(EH,0,6*sizeof(cdouble));      /* fields vanish in a PEC body */
-     return;
-   }
-  else                                                  /* inside a non-PEC object*/
-   { ObjectInQuestion=Objects[ObjectIndex];
-     ObjectInQuestion->MP->GetEpsMu(Omega, &Eps, &Mu);
-   };
-
-  /***************************************************************/
   /* fire off threads                                            */
   /***************************************************************/
-
-#if 0 
-
-  this is the code as of 3/25/2012, commented out 
-  but retained in the file the for the time being 
-  while i experiment with new ways to do the multithreading 
-
-#ifdef USE_PTHREAD
-  pthread_t *Threads = new pthread_t[nThread];
-  ThreadData *TDS = new ThreadData[nThread], *TD;
-  cdouble *PartialEH = new cdouble[6*nThread]; 
-#else
-  ThreadData TD1;
-  double EH0r=0,EH1r=0,EH2r=0,EH3r=0,EH4r=0,EH5r=0;
-  double EH0i=0,EH1i=0,EH2i=0,EH3i=0,EH4i=0,EH5i=0;
-#endif
-  int nt;
-
-#ifdef USE_OPENMP
-#pragma omp parallel for private(TD1), schedule(static,1), reduction(+:EH0r,EH1r,EH2r,EH3r,EH4r,EH5r,EH0i,EH1i,EH2i,EH3i,EH4i,EH5i), num_threads(nThread)
-#endif
-  for(nt=0; nt<nThread; nt++)
-   { 
-#ifdef USE_PTHREAD
-     TD=&(TDS[nt]);
-#else
-     ThreadData *TD=&TD1;
-#endif
-     TD->nt=nt;
-     TD->nThread=nThread;
-
-     TD->G=this;
-     TD->X=X;
-     TD->Omega=Omega;
-     TD->Eps=Eps;
-     TD->Mu=Mu;
-     TD->ObjectInQuestion=ObjectInQuestion;
-     TD->KN=KN;
-
-#ifdef USE_PTHREAD
-     TD->EH=PartialEH + 6*nt;
-     if (nt+1 == nThread)
-       GetFields_Thread((void *)TD);
-     else
-       pthread_create( &(Threads[nt]), 0, GetFields_Thread, (void *)TD);
-#else
-     cdouble PartialEH[6];
-     TD->EH=PartialEH;
-     GetFields_Thread((void *)TD);
-     // annoyance: openmp doesn't support reductions on complex types
-     EH0r += real(PartialEH[0]); EH0i += imag(PartialEH[0]);
-     EH1r += real(PartialEH[1]); EH1i += imag(PartialEH[1]);
-     EH2r += real(PartialEH[2]); EH2i += imag(PartialEH[2]);
-     EH3r += real(PartialEH[3]); EH3i += imag(PartialEH[3]);
-     EH4r += real(PartialEH[4]); EH4i += imag(PartialEH[4]);
-     EH5r += real(PartialEH[5]); EH5i += imag(PartialEH[5]);
-#endif
-   }
-
-#ifdef USE_PTHREAD
-  /***************************************************************/
-  /* wait for threads to complete                                */
-  /***************************************************************/
-  for(nt=0; nt<nThread-1; nt++)
-      pthread_join(Threads[nt],0);
-#endif
-
-#ifdef USE_PTHREAD
-  /***************************************************************/
-  /* sum contributions from all threads *                        */
-  /***************************************************************/
-  memset(EH,0,6*sizeof(cdouble));
-  for(nt=0; nt<nThread; nt++)
-   { EH[0]+=PartialEH[6*nt + 0]; 
-     EH[1]+=PartialEH[6*nt + 1]; 
-     EH[2]+=PartialEH[6*nt + 2]; 
-     EH[3]+=PartialEH[6*nt + 3]; 
-     EH[4]+=PartialEH[6*nt + 4]; 
-     EH[5]+=PartialEH[6*nt + 5]; 
-   };
-
-  delete[] Threads;
-  delete[] TDS;
-  delete[] PartialEH;
-#else
-  EH[0] = cdouble(EH0r,EH0i);
-  EH[1] = cdouble(EH1r,EH1i);
-  EH[2] = cdouble(EH2r,EH2i);
-  EH[3] = cdouble(EH3r,EH3i);
-  EH[4] = cdouble(EH4r,EH4i);
-  EH[5] = cdouble(EH5r,EH5i);
-#endif
-
-#endif // end of block commented out on 3/25/2012
-
 // ''modern'' attempt at multithreading begins here  
 
   int nt, nc;
@@ -467,69 +420,18 @@ void RWGGeometry::GetFields(const double X[3], int ObjectIndex, cdouble Omega,
 }
 
 /***************************************************************/
-/* entry point to GetFields() in which the caller identifies   */
-/* the object inside which the evaluation point lies by its    */
-/* label (as assigned using the LABEL keyword in the .scuffgeo */
-/* file) or using the keywords "EXTERIOR" or "MEDIUM" for the  */
-/* exterior medium.                                            */
+/* simple (old) interface to GetFields *************************/
 /***************************************************************/
-void RWGGeometry::GetFields(const double X[3], 
-                            const char *ObjectLabel,
-                            cdouble Omega,
-                            HVector *KN, cdouble EH[6], int nThread)
+void GetFields(const IncField *IF, const HVector *KN, 
+               const cdouble Omega, const double *X, 
+               cdouble *EH, int nThread)
 {
-  if (!ObjectLabel)
-   ErrExit("%s:%i:internal error",__FILE__,__LINE__);
+  HMatrix XMatrix(1, 3, LHM_REAL, LHM_NORMAL, (void *)X);
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int ObjectIndex;
-  if ( !strcasecmp(ObjectLabel,"EXTERIOR") || !strcasecmp(ObjectLabel,"MEDIUM") )
-   ObjectIndex=-1;
-  else
-   { for (ObjectIndex=0; ObjectIndex<NumObjects; ObjectIndex++)
-      if ( !strcasecmp(ObjectLabel,Objects[ObjectIndex]->Label) )
-       break;
-   }
+  HMatrix FMatrix(1, 6, LHM_COMPLEX, LHM_NORMAL, (void *)EH);
 
-  if (ObjectIndex==NumObjects)
-   ErrExit("unknown object label %s in GetFields()",ObjectLabel);
+  GetFields(IF, KN, Omega, XMatrix, FMatrix, nThread);
+} 
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  GetFields(X, ObjectIndex, Omega, KN, EH, nThread);
-
-}
-
-/***************************************************************/
-/* entry point to GetFields() with autodetection of where the  */
-/* evaluation point lies.                                      */
-/***************************************************************/
-void RWGGeometry::GetFields(const double X[3], cdouble Omega,
-                            HVector *KN, cdouble EH[6], int nThread)
-{
-  GetFields(X, GetObjectIndex(X), Omega, KN, EH, nThread);
-}
-
-/***************************************************************/
-/* Autodetection of object where a given point lies; assumes   */
-/* objects have been topologically sorted (so that if object A */
-/* contains object B, then B comes after A).                  */
-/***************************************************************/
-
-int RWGGeometry::GetObjectIndex(const double X[3]) {
-  // find the innermost object containing X
-  for (int i = NumObjects - 1; i >= 0; --i) // innermost to outermost order
-    if (Objects[i]->Contains(X))
-      return i;
-  return -1; // not in any object
-}
-
-RWGObject *RWGGeometry::GetObject(const double X[3]) {
-  int i = GetObjectIndex(X);
-  return i < 0 ? NULL : Objects[i];
-}
 
 } // namespace scuff
