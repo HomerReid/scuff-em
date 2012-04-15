@@ -49,15 +49,6 @@ namespace scuff {
 #define ZVAC 376.73031346177
 #endif
 
-/* prototype for incident field routine passed to AssembleRHS,
-   assuming sources are in the exterior medium only. */
-typedef void (*EHFuncType)(const double R[3], void *UserData, cdouble EH[6]);
-
-/* alternatively pass the indices of the exterior and interior objects
-   (-1 for EXTERIOR) for the current object being assembled */
-typedef void (*EHFuncType2)(const double R[3], void *UserData, cdouble EH[6],
-			    int exterior_index, int interior_index); 
-
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -331,29 +322,13 @@ class RWGGeometry
    HVector *AllocateRHSVector(int PureImagFreq);
    HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
 
-   void AssembleRHSVector(EHFuncType2 EHFunc, void *EHFuncUD, 
-                          HVector *B, int nThread = 0);
-   void AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD, // source in
-                          HVector *B, int nThread = 0);      // exterior only
-   void AssembleRHSVector(IncField *inc, HVector *B, int nThread = 0);
-   void AssembleRHSVector(cdouble omega, IncField *inc, 
-                          HVector *B, int nThread = 0);
-   HVector *AssembleRHSVector(IncField *inc, int nThread = 0) {
-	HVector *B = AllocateRHSVector(real(inc->Omega) == 0.0);
-	AssembleRHSVector(inc, B, nThread);
-	return B;
-   }
-   HVector *AssembleRHSVector(cdouble omega, IncField *inc, int nThread = 0) {
-	HVector *B = AllocateRHSVector(real(omega) == 0.0);
-	AssembleRHSVector(omega, inc, B, nThread);
-	return B;
-   }
+   HVector *AssembleRHSVector(cdouble Omega, IncField *IF,
+                              HVector *RHS = NULL, int nThread = 0);
 
-   // update ObjectIndex, and optionally Omega/Eps/Mu, of inc:
-   void UpdateIncFields(IncField *inc, cdouble Omega,
-			bool ignoreOmega = false);
-   void UpdateIncFields(IncField *inc) { UpdateIncFields(inc,0.0,true); }
+   // update ObjectIndex, and optionally Omega/Eps/Mu, of IF:
+   int UpdateIncFields(IncField *IF, cdouble Omega);
 
+   // get the index of the object containing point X
    int GetObjectIndex(const double X[3]);
    RWGObject *GetObject(const double X[3]);
 

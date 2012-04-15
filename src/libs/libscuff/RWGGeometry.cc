@@ -403,9 +403,14 @@ RWGGeometry::~RWGGeometry()
 /***************************************************************/
 RWGObject *RWGGeometry::GetObjectByLabel(char *Label, int *pno)
 { 
+  if (Label==0)
+   { if (pno) *pno=-1;
+     return 0;
+   };
+  
   for(int no=0; no<NumObjects; no++)
-    if ( !strcasecmp(Label, Objects[no]->Label) ) {
-      if (pno) *pno = no;
+   if ( !strcasecmp(Label, Objects[no]->Label) ) 
+    { if (pno) *pno = no;
       return Objects[no];
     }
 

@@ -34,7 +34,6 @@ typedef struct InnerProductIntegrandData
    double PreFac;
    IncField *IF;
    int PureImagFreq;
-   int exterior_idx, interior_idx;
  } InnerProductIntegrandData;
 
 /***************************************************************/
@@ -178,7 +177,6 @@ typedef struct ThreadData
 
    RWGGeometry *G;
    IncField *IF;
-   RWGObject *FieldSourceLocation;
    HVector *B;
 
  } ThreadData;
@@ -188,86 +186,85 @@ typedef struct ThreadData
 /***************************************************************/
 void *AssembleRHS_Thread(void *data)
 { 
+  ThreadData *TD    = (ThreadData *)data;
+
+#ifdef USE_PTHREAD
+  SetCPUAffinity(TD->nt);
+#endif
+
   /***************************************************************/
   /* extract fields from thread data structure *******************/
   /***************************************************************/
-  ThreadData *TD=(ThreadData *)data;
-  RWGGeometry *G    = TD->G;
-  IncField    *IF   = TD->IF;
-  RWGObject   *FieldSourceLocation = TD->FieldSourceLocation;
+  RWGGeometry *G       = TD->G;
+  IncField    *IFList  = TD->IF;
+  int         NIF      = TD->NIF;
 
-  /*--------------------------------------------------------------*/
-  /*- EXPERIMENTAL -----------------------------------------------*/
-  /*--------------------------------------------------------------*/
-#if defined(_GNU_SOURCE) && defined(USE_PTHREAD)
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(TD->nt,&cpuset);
-  pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-#endif
-  /*--------------------------------------------------------------*/
-  /*- EXPERIMENTAL -----------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  IncField *PositiveIFs = new *IncField[NIF];
+  IncField *NegativeIFs = new *IncField[NIF];
+  int NPositiveIFs;
+  int NNegativeIFs;
 
   RWGObject *O;
-  int no, ne, Offset; 
+  int no, ne, Offset, IsPEC;
   int nt=0;
-  cdouble EProd, HProd, *pHProd;
+  cdouble EProd, HProd;
   for(no=0, O=G->Objects[0]; no<G->NumObjects; O=G->Objects[++no])
    { 
-     // determine the sign of this object's contribution to the 
-     // RHS vector, as follows: 
-     // 1. if the exterior field sources lie in the medium exterior
-     //    to this object, then Sign=-1
-     // 2. if the exterior field sources lie in the medium interior
-     //    to this object, then Sign=+1
-     // 3. if neither of the above, then this object makes no 
-     //    contribution to the RHS vector.
-     if( O->ContainingObject == FieldSourceLocation ) 
-      Sign = -1.0;
-     else if (O == FieldSourceLocation )
-      Sign = +1.0;
-     else
+     /*--------------------------------------------------------------*/
+     /*- Go through the chain of IncField structures to identify     */
+     /*- the subset of IncFields whose sources lie inside this       */
+     /*- object, as well as the subset whose sources lie in the      */
+     /*- region to the immediate exterior of this object. (The       */
+     /*- former contribute to the RHS vector with a plus sign, while */
+     /*- the latter contribute with a minus sign). If both subsets   */
+     /*- are empty, this object does not contribute to the RHS.      */
+     /*--------------------------------------------------------------*/
+     NPositiveIFs = NNegativeIFs = 0;
+     for(IF=IFList; IF!=0; IF=IF->Next)
+      { 
+        if (O->Index==IF->ObjectIndex)
+         PositiveIFs[NPositiveIFs++] = IF;
+        else if (ContainingObjectIndex==IF->ObjectIndex)
+         NegativeIFs[NNegativeIFs++] = IF;
+      };
+     if ( (NPositiveIFs + NNegativeIFs) == 0 ) 
       continue;
 
-#if 0
-     // find index of exterior object to O (-1 if none)
-     int exterior_index = -1;
-     if (O->ContainingObject) {
-       for (int no2=0; no2 < G->NumObjects; ++no2)
-	 if (O->ContainingObject == G->Objects[no2]) {
-	   exterior_index = no2;
-	   break;
-	 }
-       if (exterior_index == -1) ErrExit("invalid containing object");
-     }
-#endif
-
-     // figure out whether or not we need to compute the H product 
-     if ( O->MP->Type == MP_PEC )
-      pHProd=0;
-     else
-      pHProd=&HProd;
-
+     /*--------------------------------------------------------------*/
+     /*- Loop over all basis functions (edges) on this object to get-*/
+     /*- each BF's contribution to the RHS.                         -*/
+     /*--------------------------------------------------------------*/
      Offset=G->BFIndexOffset[no];
+     IsPEC=O->MP->IsPEC();
      for(ne=0; ne<O->NumEdges; ne++)
       { 
         nt++;
         if (nt==TD->nThread) nt=0;
         if (nt!=TD->nt) continue;
 
-        O->GetInnerProducts(ne, IF, &EProd, pHProd);
+        O->GetInnerProducts( ne, 
+                             PositiveIFs, NPositiveIFs,
+                             NegativeIFs, NNegativeIFs,
+                             &EProd, IsPEC ? 0 : &HProd );
 
-        if ( O->MP->Type == MP_PEC )
-         B->SetEntry(Offset + ne), Sign*EProd / ZVac;
+        if ( IsPEC )
+         { 
+           RHS->SetEntry(Offset + ne), EProd / ZVac;
+         }
         else 
-         { B->SetEntry(Offset + 2*ne+0), Sign*EProd / ZVac;
-           B->SetEntry(Offset + 2*ne+1), Sign*HProd;
+         { RHS->SetEntry(Offset + 2*ne+0), EProd / ZVac;
+           RHS->SetEntry(Offset + 2*ne+1), HProd;
          };
 
       }; // for ne=...
 
    }; // for no=...
+
+  delete[] PositiveIFs;
+  delete[] NegativeIFs;
 
   return 0;
  
@@ -276,14 +273,19 @@ void *AssembleRHS_Thread(void *data)
 /***************************************************************/
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
-HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, 
+HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
                                         HVector *B, int nThread)
 { 
-  if (B==0)
+  if (B==NULL)
    B=AllocateRHSVector();
    
   if (nThread <= 0) 
    nThread = GetNumThreads();
+
+  // count the number of IncField structures in the chain
+  int NIF=0;
+  for (IncField *Node=IF; Node; Node=Node->Next)
+   NIF++;
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;
@@ -307,8 +309,8 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
 
      TD->G=this;
      TD->IF=IF;
-     TD->FieldSourceLocation=FieldSourceLocation;
-     TD->B=B;
+     TD->NIF=NIF;
+     TD->RHS=RHS;
 
      TD->nThread=nThread;
      
@@ -329,35 +331,66 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
   delete[] Threads;
   delete[] TDS;
 #endif
+
+  return RHS;
 }
 
 /***************************************************************/
-/* Update the IncField ObjectIndex, Omega, Eps, and Mu values. */
-/* (Only update ObjectIndex if ignoreOmega is true.)           */
+/* Prepare a chain of IncField structures for computations in  */
+/* a given RWGGeometry at a given geometry:                    */
+/*  (1) For each IncField in the chain, set the frequency to   */
+/*      Omega, and set Eps and Mu to the material properties   */
+/*      (at frequency Omega) of the RWGObject within which the */
+/*      field sources are contained.                           */
+/*  (2) Make sure the ObjectIndex field in the IncField        */
+/*      structure matches the index of the object specified by */
+/*      the ObjectLabel field.                                 */
+/* Returns the total number of IncFields in the chain.         */
 /***************************************************************/
+int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega)
+{
+  cdouble ExteriorEps, ExteriorMu;
+  cdouble ObjectEps, ObjectMu;
+  RWGObject *O; 
+  double X[3];
+  int NIF;
 
-void RWGGeometry::UpdateIncFields(IncField *inc, cdouble Omega,
-				  bool ignoreOmega) {
-  for (IncField *i = inc; i; i = i->Next) {
-    int io = 0; double X[3];
-    if (!ignoreOmega) i->Omega = Omega;
-    if ((i->Object && GetObjectByLabel(i->Object, &io))
-     	|| (i->GetSourcePoint(X) && ((io = GetObjectIndex(X)) >= 0))
-	|| ((io = i->ObjectIndex) >= 0 && i->ObjectIndex < NumObjects)) {
-      if (Objects[io]->MP->Type == MP_PEC)
-	i->ObjectIndex = -2; // disable sources inside PEC
-      else {
-	i->ObjectIndex = io;
-	if (!ignoreOmega)
-	  Objects[io]->MP->GetEpsMu(Omega, &i->Eps, &i->Mu);
+  ExteriorMP->GetEpsMu(Omega, &ExteriorEps, &ExteriorMu);
+
+  for (NIF=0, IncField *IF = IFList; IF; IF = IF->Next) 
+   {
+     NIF++;
+
+     /*--------------------------------------------------------------*/
+     /*- first get the index of the object containing the field     -*/
+     /*- sources for IF                                             -*/
+     /*--------------------------------------------------------------*/
+     if ( IF->ObjectLabel ) 
+      GetObjectByLabel(IF->ObjectLabel, &(IF->ObjectIndex) );
+     else if ( IF->GetSourcePoint(X) )
+      IF->ObjectIndex = GetObjectIndex(X);
+     else
+      IF->ObjectIndex = -1;
+
+     /*--------------------------------------------------------------*/
+     /*- now set the material properties of IF                      -*/
+     /*--------------------------------------------------------------*/
+     if ( IF->ObjectIndex == -1 )
+      {  
+        IF->SetFrequencyAndEpsMu(Omega, ExteriorEps, ExteriorMu, 0 );
       }
-    }
-    else if (!i->Object || i->ObjectIndex == -1 || io == -1) {
-      i->ObjectIndex = -1;
-      if (!ignoreOmega)
-	ExteriorMP->GetEpsMu(Omega, &i->Eps, &i->Mu);
-    }
-  }
+     else
+      { 
+        if ( IF->ObjectIndex<0  || IF->ObjectIndex>NumObjects )
+         ErrExit("invalid object specification %i",IF->ObjectIndex);
+
+        O=Objects[IF->ObjectIndex];
+        O->MP->GetEpsMu(Omega, &ObjectEps, &ObjectMu);
+      };
+   };
+
+  return NIF;
+
 }
 
 /***************************************************************/

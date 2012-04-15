@@ -73,18 +73,9 @@ void *ABMBThread(void *data)
   int OaIsPEC          = Args->OaIsPEC;
   int ObIsPEC          = Args->ObIsPEC;
 
-  /*--------------------------------------------------------------*/
-  /*- hack to force all threads to run on separate CPU cores     -*/
-  /*--------------------------------------------------------------*/
-#if defined(_GNU_SOURCE) && defined(USE_PTHREAD)
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(TD->nt,&cpuset);
-  pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+#ifdef USE_PTHREAD
+  SetCPUAffinity(TD->nt);
 #endif
-  /*--------------------------------------------------------------*/
-  /*- end hack ---------------------------------------------------*/
-  /*--------------------------------------------------------------*/
 
   /***************************************************************/
   /* initialize an argument structure to be passed to            */
