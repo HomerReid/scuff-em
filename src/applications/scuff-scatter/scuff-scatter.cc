@@ -456,9 +456,7 @@ int main(int argc, char *argv[])
      /* set up the incident field profile and assemble the RHS vector */
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
-     G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
-     IFDList->SetFrequencyAndEpsMu(Omega,Eps,Mu);
-     G->AssembleRHSVector(IFDList, KN, nThread);
+     G->AssembleRHSVector(Omega, IFDList, KN, nThread);
      if (PowerFile) SSD->RHS->Copy(SSD->KN); // copy RHS vector for later 
 
      /***************************************************************/

@@ -84,12 +84,11 @@ class PointSource: public IncField
    cdouble P[3];         /* strength */
    int Type;             /* LIF_ELECTRIC_DIPOLE or LIF_MAGNETIC_DIPOLE */
 
-   PointSource(const double X0[3], const cdouble P[3], int Type = LIF_ELECTRIC_DIPOLE,
-	       const char *Label = 0);
+   PointSource(const double X0[3], const cdouble P[3], 
+               int Type = LIF_ELECTRIC_DIPOLE, const char *Label = 0);
 
    void GetFields(const double X[3], cdouble EH[6]);
-
-   bool GetSourcePoint(double X[3]) const { X[0]=X0[0];X[1]=X0[1];X[2]=X0[2]; return true; }
+   bool GetSourcePoint(double X[3]);
  };
 
 /**********************************************************************/

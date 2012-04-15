@@ -32,8 +32,14 @@ typedef struct InnerProductIntegrandData
  { 
    double *Q;
    double PreFac;
-   IncField *IF;
-   int PureImagFreq;
+
+   IncField **PositiveIFs;
+   int NPositiveIFs;
+   IncField **NegativeIFs;
+   int NNegativeIFs;
+
+   int NeedHProd;
+
  } InnerProductIntegrandData;
 
 /***************************************************************/
@@ -45,94 +51,74 @@ typedef struct InnerProductIntegrandData
 static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 { 
   InnerProductIntegrandData *IPID=(InnerProductIntegrandData *)opIPID;
-  double fRWG[3];
-  cdouble EH[6];
-  int nrv;
 
   /* get value of RWG basis function at X */
+  double fRWG[3];
   VecSub(X,IPID->Q,fRWG);
   VecScale(fRWG,IPID->PreFac);
 
   /* get incident E and H fields at X */
-  //IPID->EHFunc(X,IPID->EHFuncUD,EH, IPID->exterior_idx, IPID->interior_idx); 
-  IF->GetFields(X,EH);
+  cdouble dEH[6], EH[6];
+  memset(EH, 0, 6*sizeof(cdouble));
+  int n, nif;
+  for(nif=0; nif<IPID->NPositiveIFs; nif++)
+   { IPID->PositiveIFs[nif]->GetFields(X,dEH);
+     for(n=0; n<6; n++) 
+      EH[n]+=dEH[n];
+   };
+  for(nif=0; nif<IPID->NNegativeIFs; nif++)
+   { IPID->NegativeIFs[nif]->GetFields(X,dEH);
+     for(n=0; n<6; n++) 
+      EH[n]-=dEH[n];
+   };
   
-  /*--------------------------------------------------------------*/
-  /*- now switch off to determine which return values are needed -*/
-  /*--------------------------------------------------------------*/
-  nrv=0;
-
-  /* this return value is needed in all cases */ 
-  F[nrv++]=    fRWG[0] * (real(EH[0]) )
-             + fRWG[1] * (real(EH[1]) )
-             + fRWG[2] * (real(EH[2]) );
-  
-  if ( !(IPID->PureImagFreq) ) 
-   F[nrv++]=   fRWG[0] * (imag(EH[0]) )
-             + fRWG[1] * (imag(EH[1]) )
-             + fRWG[2] * (imag(EH[2]) );
-
-  if (IPID->NeedHProd) 
-   F[nrv++]=   fRWG[0] * (real(EH[3]) )
-             + fRWG[1] * (real(EH[4]) )
-             + fRWG[2] * (real(EH[5]) );
-
-  if ( IPID->NeedHProd && !(IPID->PureImagFreq) ) 
-   F[nrv++]=   fRWG[0] * (imag(EH[3]) )
-             + fRWG[1] * (imag(EH[4]) )
-             + fRWG[2] * (imag(EH[5]) );
+  /* compute dot products */
+  cdouble *zF = (cdouble *)F;
+  zF[0] = fRWG[0]*EH[0] + fRWG[1]*EH[1] + fRWG[2]*EH[2];
+  if (IPID->NeedHProd)
+   zF[1] = fRWG[0]*EH[3] + fRWG[1]*EH[4] + fRWG[2]*EH[5];
   
 } 
 
 /***************************************************************/
-/* Calculate the inner product of basis function #nbf          */
-/* with the electric and magnetic fields described by EHFunc.  */
+/* Calculate the inner product of given electric and magnetic  */
+/* fields with the basis function associated with edge #ne on  */
+/* the given RWGObject.                                        */
 /*                                                             */
-/* If RealFreq==1, then we need both the real and              */
-/* imaginary parts of the results. Otherwise the imaginary     */
-/* parts are zeroed out.                                       */
+/* PositiveIFs[0..NPositiveIFs] are IncFields whose fields     */
+/* contribute with a positive sign.                            */
 /*                                                             */
-/* If pHProd==0, we don't compute the inner product with the   */
-/* magnetic field.                                             */
+/* NegativeIFs[0..NNegativeIFs] are IncFields whose fields     */
+/* contribute with a negative sign.                            */
+/*                                                             */
+/* If pHProd==0, we skip the computation of the magnetic-field */
+/* inner product.                                              */
 /***************************************************************/
-void RWGObject::GetInnerProducts(int nbf, IncField *IF,
-                                 int PureImagFreq,
-                                 cdouble *pEProd, cdouble *pHProd,
-				 int exterior_index, int interior_index)
+void GetInnerProducts(RWGObject *O, int ne, 
+                      IncField **PositiveIFs, int NPositiveIFs,
+                      IncField **NegativeIFs, int NNegativeIFs,
+                      cdouble *pEProd, cdouble *pHProd)
 { 
-  double *QP, *V1, *V2, *QM;
-  double PArea, MArea;
-  int nf, nFun, nrv;
-  RWGEdge *E;
-  InnerProductIntegrandData MyIPID, *IPID=&MyIPID;
-  double I[4], IP[4], IM[4];
-  cdouble EProd, HProd;
-
   /* get edge vertices */
-  E=Edges[nbf];
-  QP=Vertices + 3*(E->iQP);
-  V1=Vertices + 3*(E->iV1);
-  V2=Vertices + 3*(E->iV2);
-  QM=Vertices + 3*(E->iQM);
-  PArea=Panels[E->iPPanel]->Area;
-  MArea=Panels[E->iMPanel]->Area;
+  RWGEdge *E   = O->Edges[ne];
+  double *QP   = O->Vertices + 3*(E->iQP);
+  double *V1   = O->Vertices + 3*(E->iV1);
+  double *V2   = O->Vertices + 3*(E->iV2);
+  double *QM   = O->Vertices + 3*(E->iQM);
+  double PArea = O->Panels[E->iPPanel]->Area;
+  double MArea = O->Panels[E->iMPanel]->Area;
 
   /* set up data structure passed to InnerProductIntegrand */
-  IPID->EHFunc=EHFunc;
-  IPID->EHFuncUD=EHFuncUD;
-  IPID->PureImagFreq=PureImagFreq;
-  IPID->NeedHProd=0;
-  IPID->exterior_idx = exterior_index;
-  IPID->interior_idx = interior_index;
-  nFun=1;
-  if (pHProd)
-   { IPID->NeedHProd=1;
-     nFun=2;
-   };
-  if ( !(PureImagFreq) )
-   { nFun*=2;
-   };
- 
+  InnerProductIntegrandData MyIPID, *IPID=&MyIPID;
+  IPID->PositiveIFs  = PositiveIFs;
+  IPID->NPositiveIFs = NPositiveIFs;
+  IPID->NegativeIFs  = NegativeIFs;
+  IPID->NNegativeIFs = NNegativeIFs;
+  IPID->NeedHProd    = (pHProd==NULL ? 0 : 1);
+  
+  int nFun = (pHProd==NULL ? 2 : 4);
+  double I[4], IP[4], IM[4];
+
   /* integrate over positive panel */
   IPID->Q=QP;
   IPID->PreFac=E->Length / (2.0*PArea);
@@ -144,28 +130,14 @@ void RWGObject::GetInnerProducts(int nbf, IncField *IF,
   TriIntFixed(InnerProductIntegrand, nFun, (void *)IPID, V1, V2, QM, 20, IM);
 
   /* total integral is difference between pos and neg pan integrals */
-  for(nf=0; nf<nFun; nf++)
+  for(int nf=0; nf<nFun; nf++)
    I[nf] = IP[nf] - IM[nf];
   
-  /*--------------------------------------------------------------*/
-  /*- now switch off to determine which return values are needed -*/
-  /*--------------------------------------------------------------*/
-  nrv=0;
-  EProd=HProd=0.0;
+  /* return values */
+  *pEProd = cdouble(I[0], I[1]);
+  if (pHProd)
+   *pHProd = cdouble(I[2], I[3]);
 
-  /* this return value is needed in all cases */ 
-  real(EProd) = I[nrv++]; 
-
-  if (!PureImagFreq)
-   imag(EProd) = I[nrv++]; 
-  if (pHProd!=0)
-   real(HProd) = I[nrv++]; 
-  if (pHProd!=0 && !PureImagFreq)
-   imag(HProd) = I[nrv++]; 
-
-  *pEProd=EProd;
-  if (pHProd) *pHProd=HProd;
- 
 }
 
 /***************************************************************/
@@ -177,7 +149,8 @@ typedef struct ThreadData
 
    RWGGeometry *G;
    IncField *IF;
-   HVector *B;
+   int NIF;
+   HVector *RHS;
 
  } ThreadData;
 
@@ -195,24 +168,38 @@ void *AssembleRHS_Thread(void *data)
   /***************************************************************/
   /* extract fields from thread data structure *******************/
   /***************************************************************/
-  RWGGeometry *G       = TD->G;
-  IncField    *IFList  = TD->IF;
-  int         NIF      = TD->NIF;
+  RWGGeometry *G   = TD->G;
+  IncField *IFList = TD->IF;
+  int NIF          = TD->NIF;
+  HVector *RHS     = TD->RHS;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  IncField *PositiveIFs = new *IncField[NIF];
-  IncField *NegativeIFs = new *IncField[NIF];
+  IncField **PositiveIFs = new IncField *[NIF];
+  IncField **NegativeIFs = new IncField *[NIF];
   int NPositiveIFs;
   int NNegativeIFs;
 
+  /***************************************************************/
+  /* loop over all objects to get contributions to RHS vector    */
+  /***************************************************************/
   RWGObject *O;
   int no, ne, Offset, IsPEC;
   int nt=0;
+  int ContainingObjectIndex;
   cdouble EProd, HProd;
-  for(no=0, O=G->Objects[0]; no<G->NumObjects; O=G->Objects[++no])
+  IncField *IF;
+  for(no=0; no<G->NumObjects; no++)
    { 
+     O=G->Objects[no];
+     Offset=G->BFIndexOffset[no];
+     IsPEC=O->MP->IsPEC();
+     if ( O->ContainingObject==NULL )
+      ContainingObjectIndex=-1;
+     else
+      ContainingObjectIndex=O->ContainingObject->Index;
+
      /*--------------------------------------------------------------*/
      /*- Go through the chain of IncField structures to identify     */
      /*- the subset of IncFields whose sources lie inside this       */
@@ -222,41 +209,38 @@ void *AssembleRHS_Thread(void *data)
      /*- the latter contribute with a minus sign). If both subsets   */
      /*- are empty, this object does not contribute to the RHS.      */
      /*--------------------------------------------------------------*/
-     NPositiveIFs = NNegativeIFs = 0;
-     for(IF=IFList; IF!=0; IF=IF->Next)
+     for(NPositiveIFs=NNegativeIFs=0, IF=IFList; IF; IF=IF->Next)
       { 
         if (O->Index==IF->ObjectIndex)
          PositiveIFs[NPositiveIFs++] = IF;
         else if (ContainingObjectIndex==IF->ObjectIndex)
          NegativeIFs[NNegativeIFs++] = IF;
       };
-     if ( (NPositiveIFs + NNegativeIFs) == 0 ) 
+     if ( NPositiveIFs==0 && NNegativeIFs==0 )
       continue;
 
      /*--------------------------------------------------------------*/
      /*- Loop over all basis functions (edges) on this object to get-*/
      /*- each BF's contribution to the RHS.                         -*/
      /*--------------------------------------------------------------*/
-     Offset=G->BFIndexOffset[no];
-     IsPEC=O->MP->IsPEC();
      for(ne=0; ne<O->NumEdges; ne++)
       { 
         nt++;
         if (nt==TD->nThread) nt=0;
         if (nt!=TD->nt) continue;
 
-        O->GetInnerProducts( ne, 
-                             PositiveIFs, NPositiveIFs,
-                             NegativeIFs, NNegativeIFs,
-                             &EProd, IsPEC ? 0 : &HProd );
+        GetInnerProducts(O,ne, 
+                         PositiveIFs, NPositiveIFs,
+                         NegativeIFs, NNegativeIFs,
+                         &EProd, IsPEC ? 0 : &HProd );
 
         if ( IsPEC )
          { 
-           RHS->SetEntry(Offset + ne), EProd / ZVac;
+           RHS->SetEntry(Offset + ne, EProd / ZVAC);
          }
         else 
-         { RHS->SetEntry(Offset + 2*ne+0), EProd / ZVac;
-           RHS->SetEntry(Offset + 2*ne+1), HProd;
+         { RHS->SetEntry(Offset + 2*ne+0, EProd / ZVAC);
+           RHS->SetEntry(Offset + 2*ne+1, HProd);
          };
 
       }; // for ne=...
@@ -274,62 +258,61 @@ void *AssembleRHS_Thread(void *data)
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
 HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
-                                        HVector *B, int nThread)
+                                        HVector *RHS, int nThread)
 { 
-  if (B==NULL)
-   B=AllocateRHSVector();
+  if (RHS==NULL)
+   RHS=AllocateRHSVector();
    
   if (nThread <= 0) 
    nThread = GetNumThreads();
 
-  // count the number of IncField structures in the chain
-  int NIF=0;
-  for (IncField *Node=IF; Node; Node=Node->Next)
-   NIF++;
+  int nt, NIF=UpdateIncFields(IF, Omega);
+
+  ThreadData ReferenceTD;
+  ReferenceTD.G=this;
+  ReferenceTD.IF=IF;
+  ReferenceTD.NIF=NIF;
+  ReferenceTD.RHS=RHS;
 
 #ifdef USE_PTHREAD
   ThreadData *TDS = new ThreadData[nThread], *TD;
   pthread_t *Threads = new pthread_t[nThread];
-#else
-  ThreadData TD1;
-#endif
-
-#ifdef USE_OPENMP
-#pragma omp parallel for private(TD1), schedule(static,1), num_threads(nThread)
-#endif
   for(nt=0; nt<nThread; nt++)
    { 
-#ifdef USE_PTHREAD
-     TD=&(TDS[nt]);
-#else
-     ThreadData *TD=&TD1;
-#endif
+     TD=&(TDs[nt]);
+     memcpy(TD, &ReferenceTD, sizeof(ThreadData));
      TD->nt=nt;
      TD->nThread=nThread;
 
-     TD->G=this;
-     TD->IF=IF;
-     TD->NIF=NIF;
-     TD->RHS=RHS;
-
-     TD->nThread=nThread;
-     
-#ifdef USE_PTHREAD
      if (nt+1 == nThread)
        AssembleRHS_Thread((void *)TD);
      else
        pthread_create( &(Threads[nt]), 0, AssembleRHS_Thread, (void *)TD);
-#else
-     AssembleRHS_Thread((void *)TD);
-#endif
    };
-
-#ifdef USE_PTHREAD
   for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
   delete[] Threads;
   delete[] TDS;
+
+#else
+
+  int nTask;
+
+#ifndef USE_OPENMP
+  nThread=nTask=1;
+#else
+  nTask=nThread*100;
+#pragma omp parallel for schedule(dynamic,1), num_threads(nThread)
+#endif
+  for(nt=0; nt<nTask; nt++)
+   { 
+     ThreadData TD1;
+     memcpy(&TD1, &ReferenceTD, sizeof(ThreadData));
+     TD1.nt=nt;
+     TD1.nThread=nTask;
+     AssembleRHS_Thread((void *)&TD1);
+   };
 #endif
 
   return RHS;
@@ -354,21 +337,20 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega)
   RWGObject *O; 
   double X[3];
   int NIF;
+  IncField *IF;
 
   ExteriorMP->GetEpsMu(Omega, &ExteriorEps, &ExteriorMu);
-
-  for (NIF=0, IncField *IF = IFList; IF; IF = IF->Next) 
+  
+  for (NIF=0, IF=IFList; IF; NIF++, IF=IF->Next) 
    {
-     NIF++;
-
      /*--------------------------------------------------------------*/
      /*- first get the index of the object containing the field     -*/
      /*- sources for IF                                             -*/
      /*--------------------------------------------------------------*/
-     if ( IF->ObjectLabel ) 
-      GetObjectByLabel(IF->ObjectLabel, &(IF->ObjectIndex) );
-     else if ( IF->GetSourcePoint(X) )
+     if ( IF->GetSourcePoint(X) )
       IF->ObjectIndex = GetObjectIndex(X);
+     else if ( IF->ObjectLabel )
+      GetObjectByLabel(IF->ObjectLabel, &(IF->ObjectIndex) );
      else
       IF->ObjectIndex = -1;
 
@@ -386,8 +368,10 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega)
 
         O=Objects[IF->ObjectIndex];
         O->MP->GetEpsMu(Omega, &ObjectEps, &ObjectMu);
+        IF->SetFrequencyAndEpsMu(Omega, ObjectEps, ObjectMu, 0 );
       };
-   };
+
+   }; // for(NIF=0, IF=IFList ... 
 
   return NIF;
 
@@ -408,3 +392,5 @@ HVector *RWGGeometry::AllocateRHSVector(int PureImagFreq)
   return V;
 
 } 
+
+} // namespace scuff

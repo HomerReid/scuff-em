@@ -442,18 +442,20 @@ void RWGGeometry::GetFields(const double X[3], int ObjectIndex, cdouble Omega,
   delete[] TDs;
 
 #else 
+  int nTask;
 
 #ifndef USE_OPENMP
-  nThread=1;
+  nThread=nTask=1;
 #else
+  nTask=nThread*100;
 #pragma omp parallel for schedule(dynamic,1), num_threads(nThread)
 #endif
-  for(nt=0; nt<nThread*100; nt++)
+  for(nt=0; nt<nTask; nt++)
    { 
      ThreadData TD1;
      memcpy(&TD1, &ReferenceTD, sizeof(ThreadData));
      TD1.nt=nt;
-     TD1.nThread=nThread*100;
+     TD1.nThread=nTask;
      GetFields_Thread((void *)&TD1);
      for(nc=0; nc<6; nc++)
       EH[nc]+=TD1.EH[nc];

@@ -23,7 +23,19 @@ PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType,
 }
 
 /**********************************************************************/
-/* fields of a complex point source.                                  */
+/* For this implementation of IncField we want to override the default*/
+/* implementation of GetSourcePoint so that libscuff can use the      */
+/* coordinates of the source point to determine automatically which   */
+/* (if any) object contains the source point.                         */
+/**********************************************************************/
+bool PointSource::GetSourcePoint(double X[3]) 
+{ 
+  memcpy(X, X0, 3*sizeof(double)); 
+  return true;
+}
+
+/**********************************************************************/
+/* fields of a point source.                                          */
 /*                                                                    */
 /* NOTE: for the default case of an electric dipole, the quantity P   */
 /* in the PointSource structure is assumed to be the dipole           */

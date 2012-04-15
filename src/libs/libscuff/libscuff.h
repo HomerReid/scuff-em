@@ -147,12 +147,6 @@ class RWGObject
    /* get overlap integral between two basis functions */
    double GetOverlap(int neAlpha, int neBeta, double *pOTimes = NULL);
 
-   /* calculate the inner product of a single basis function with  */
-   /* given incident electric and magnetic fields                  */
-   void GetInnerProducts(int nbf, EHFuncType2 EHFunc, void *EHFuncUD,
-                         int PureImagFreq, cdouble *EProd, cdouble *HProd,
-			 int exterior_index, int interior_index);
-
    /* apply a general transformation (rotation+displacement) to the object */
    void Transform(const GTransformation *GT);
    void Transform(char *format, ...);
@@ -325,7 +319,7 @@ class RWGGeometry
    HVector *AssembleRHSVector(cdouble Omega, IncField *IF,
                               HVector *RHS = NULL, int nThread = 0);
 
-   // update ObjectIndex, and optionally Omega/Eps/Mu, of IF:
+   // update Omega/Eps/Mu of IF:
    int UpdateIncFields(IncField *IF, cdouble Omega);
 
    // get the index of the object containing point X
@@ -353,6 +347,7 @@ class RWGGeometry
       field function is supplied, then the total of scattered plus
       incident fields is used.  If KN == NULL, then the scattered
       fields are set to zero. */
+#if 0
    HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
 			    cdouble Omega, HVector *KN,
 			    EHFuncType2 EHFunc, void *EHFuncUD,
@@ -377,6 +372,7 @@ class RWGGeometry
    HMatrix *GetFieldsGrid(SurfaceGrid &grid, const char *expr,
 			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
 			  int nThread = 0);
+#endif
 
    /****************************************************/
 
@@ -395,12 +391,8 @@ class RWGGeometry
 #endif
 
    /* routine for computing the expansion coefficients in the RWG basis */
-   /* of an arbitrary user-supplied surface-tangential vector field     */
-   void ExpandCurrentDistribution(EHFuncType EHFunc, void *EHFuncUD, 
-                                  HVector *KNVec, int nThread = 0);
-   void ExpandCurrentDistribution(IncField *inc, HVector *KNv, int nT=0) {
-	ExpandCurrentDistribution(EHIncField, (void*)inc, KNv, nT);
-   }
+   /* of an arbitrary user-supplied surface-tangential vector field;    */
+   void ExpandCurrentDistribution(IncField *IF, HVector *KN, int nT=0);
 
    /* evaluate the surface currents at a given point X on an object */
    /* surface, given a vector of RWG expansion coefficients         */

@@ -14,33 +14,8 @@
 #define RELTOL   5.0e-2
 #define MAXEVALS 20000
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-FILE *LogFile=0;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
-{ 
-  /*--------------------------------------------------------------*/
-  /*- get scattered field ----------------------------------------*/
-  /*--------------------------------------------------------------*/
-  SSD->G->GetFields(X,SSD->Omega,SSD->KN,EHS,SSD->nThread);
-  memcpy(EHT,EHS,6*sizeof(cdouble));
-
-  /*--------------------------------------------------------------*/
-  /*- add incident field only if we are in the external region    */
-  /*--------------------------------------------------------------*/
-  if ( SSD->G->GetObjectIndex(X)==-1 )
-   { int Mu;
-     cdouble EH2[6];
-     EHIncField(X, SSD->opIFD, EH2);
-     for(Mu=0; Mu<6; Mu++) 
-      EHT[Mu]+=EH2[Mu];
-   };
-
-}
+{}
 
 /***************************************************************/
 /* compute scattered and total fields at a user-specified list */
@@ -418,11 +393,6 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   fval[0] =  R*R*(  PVSI[0]*nHat[0] +   PVSI[1]*nHat[1] +   PVSI[2]*nHat[2]);
   fval[1] =  R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (LogFile)
- fprintf(LogFile,"%e %e %e %e %e %e %e %e %e %e\n",
-                  CosTheta,SinPhi,X[0],X[1],X[2],nHat[0],nHat[1],nHat[2],fval[0],fval[1]);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
@@ -440,21 +410,11 @@ void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
   GPBFID->SSD = SSD;
   GPBFID->R = R;
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//LogFile=fopen("doomatage","w");
-//setlinebuf(LogFile);
-LogFile=0;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   adapt_integrate_log(2, GetPower_BF_Integrand, (void *)GPBFID, 2, 
 	     	      Lower, Upper, MAXEVALS, ABSTOL, RELTOL, 
                       PBF, EBF, "SGJC.log",15);
   PBF[0] = -(PBF[0] + PBF[1]);
   EBF[0] =  (EBF[0] + EBF[1]);
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//fclose(LogFile);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
