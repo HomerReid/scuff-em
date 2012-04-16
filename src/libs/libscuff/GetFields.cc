@@ -223,7 +223,7 @@ typedef struct ThreadData
    int nt, nTask;
 
    RWGGeometry *G;
-   const HMatrix *XMatrix;
+   HMatrix *XMatrix;
    HMatrix *FMatrix;
    HVector *KN;
    IncField *IF;
@@ -248,13 +248,13 @@ void *GetFields_Thread(void *data)
   /* fields unpacked from thread data structure ******************/
   /***************************************************************/
   RWGGeometry *G              = TD->G;
-  const HMatrix *XMatrix      = TD->XMatrix;
+  HMatrix *XMatrix            = TD->XMatrix;
   HMatrix *FMatrix            = TD->FMatrix;
   HVector *KN                 = TD->KN;
   IncField *IFList            = TD->IF;
   cdouble Omega               = TD->Omega;
   ParsedFieldFunc **PFFuncs   = TD->PFFuncs;
-  int NumFuncs;
+  int NumFuncs                = TD->NumFuncs;
 
   /***************************************************************/
   /* other local variables ***************************************/
@@ -321,9 +321,9 @@ void *GetFields_Thread(void *data)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *RWGGeometry::GetFields(IncField *IF, const HVector *KN,
-                                const cdouble Omega, const HMatrix *XMatrix,
-                                const char *FuncString, HMatrix *FMatrix,
+HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
+                                cdouble Omega, HMatrix *XMatrix,
+                                char *FuncString, HMatrix *FMatrix,
                                 int nThread)
 { 
   if (nThread <= 0) nThread = GetNumThreads();
@@ -335,7 +335,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, const HVector *KN,
   /***************************************************************/
   char *FCopy;
   char *Funcs[MAXFUNC];
-  int NumFuncs;
+  int nf, NumFuncs;
 
   if (FuncString==0)
    FCopy=strdup("Ex,Ey,Ez,Hx,Hy,Hz"); // default is cartesian field components
@@ -345,7 +345,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, const HVector *KN,
   NumFuncs=Tokenize(FCopy, Funcs, MAXFUNC, ",");
   
   ParsedFieldFunc **PFFuncs = new ParsedFieldFunc *[NumFuncs];
-  for(int nf=0; nf<NumFuncs; nf++)
+  for(nf=0; nf<NumFuncs; nf++)
    PFFuncs[nf] = new ParsedFieldFunc(Funcs[nf]);
 
   /***************************************************************/
@@ -374,7 +374,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, const HVector *KN,
   /***************************************************************/
   /* fire off threads                                            */
   /***************************************************************/
-  int nt, nc;
+  int nt;
 
   // set up an instance of ThreadData containing all fields
   // that are common to all threads, which we can subsequently
@@ -415,7 +415,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, const HVector *KN,
   ReferenceTD.nTask=nThread*100;
 #pragma omp parallel for schedule(dynamic,1), num_threads(nThread)
 #endif
-  for(nt=0; nt<nTask; nt++)
+  for(nt=0; nt<ReferenceTD.nTask; nt++)
    { 
      ThreadData TD1;
      memcpy(&TD1, &ReferenceTD, sizeof(ThreadData));
@@ -436,15 +436,14 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, const HVector *KN,
 /***************************************************************/
 /* simple (old) interface to GetFields *************************/
 /***************************************************************/
-void GetFields(const IncField *IF, const HVector *KN, 
-               const cdouble Omega, const double *X, 
-               cdouble *EH, int nThread)
+void RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X, 
+                            cdouble *EH, int nThread)
 {
   HMatrix XMatrix(1, 3, LHM_REAL, LHM_NORMAL, (void *)X);
 
   HMatrix FMatrix(1, 6, LHM_COMPLEX, LHM_NORMAL, (void *)EH);
 
-  GetFields(IF, KN, Omega, XMatrix, FMatrix, nThread);
+  GetFields(IF, KN, Omega, &XMatrix, 0, &FMatrix, nThread);
 } 
 
 

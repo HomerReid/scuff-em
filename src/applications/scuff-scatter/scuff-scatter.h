@@ -10,12 +10,7 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include "libIncField.h"
-
-#ifdef SCUFF
-#  include "libscuff.h"
-#else // RWG
-#  include "libRWG.h"
-#endif
+#include "libscuff.h"
 
 using namespace scuff;
 

@@ -7,6 +7,7 @@ libscuff_la_SOURCES = \
  CalcGC.cc \
  EdgeEdgeInteractions.cc \
  ExpandCurrentDistribution.cc \
+ FieldGrid.cc \
  FIPPICache.cc \
  GTransformation.cc \
  GTransformation.h \

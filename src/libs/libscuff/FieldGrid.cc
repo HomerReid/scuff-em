@@ -47,7 +47,6 @@ ParsedFieldFunc::ParsedFieldFunc(const char *ExprString) {
       ;
     if (j == 24)
       ErrExit("unrecognized variable %s in FieldFunc expression %s",
-      memset(EHS, 0, 6*sizeof(double));
 	      names[i], ExprString);
   }
 
@@ -154,8 +153,11 @@ void PlaneGrid::GetPoint(int n1, int n2, double X[3], double dA[3]) const {
 HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 				      int nfuncs, FieldFunc **funcs,
 				      cdouble Omega, HVector *KN,
-				      EHFuncType2 EHFunc, void *EHFuncUD,
-				      int nThread) {
+				      IncField *IF, int nThread) {
+
+  if (IF)
+   UpdateIncFields(IF, Omega);
+
   HMatrix **Ms = (HMatrix **) mallocEC(sizeof(HMatrix*) * (nfuncs + 1));
 
   for (int i = 0; i < nfuncs; ++i)
@@ -181,7 +183,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
     Objects[no]->InitkdPanels(false, LogLevel);
 
 #ifdef USE_OPENMP
-#pragma omp parallel for firstprivate(grid,nFuncs,funcs,Omega,KN,EHFunc,EHFuncUD,nThreadFields,Ms,this), schedule(static), num_threads(nThread), collapse(2)
+#pragma omp parallel for firstprivate(grid,nFuncs,funcs,Omega,KN,IF,nThreadFields,Ms,this), schedule(static), num_threads(nThread), collapse(2)
 #endif
   for (int n1 = 0; n1 < grid.N1; ++n1)
     for (int n2 = 0; n2 < grid.N2; ++n2) {
@@ -197,15 +199,19 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
       int no = GetObjectIndex(X);
       cdouble EH[6];
       if (KN)
-	GetFields(X, no, Omega, KN, EH, nThreadFields);
+	GetFields(0, KN, Omega, X, EH, nThreadFields);
       else
 	memset(EH, 0, sizeof(cdouble) * 6);
 
-      if (EHFunc) {
-	cdouble EHi[6];
-	EHFunc(X, EHFuncUD, EHi, -2, no);
-	for (int j = 0; j < 6; ++j) EH[j] += EHi[j];
-      }
+     if (IF)
+      { cdouble EHi[6];
+        IncField *IFNode;
+        for(IFNode=IF; IFNode; IFNode=IFNode->Next)
+         if ( IFNode->ObjectIndex == no )
+          { IFNode->GetFields(X, EHi);
+            SixVecPlusEquals(EH, 1.0, EHi);
+          };
+      };
 
       // in theory this could be done outside the grid loop and
       // cached somewhere per-object
@@ -225,58 +231,6 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 
 /***************************************************************************/
 // Convenience wrappers of GetFieldsGrids with simpler arguments.
-
-typedef struct {
-  EHFuncType EHFunc; void *EHFuncUD;
-} EHFunc_wrap_data;
-
-// EHFuncType2 wrapper for EHFunc, assuming exterior incident fields
-static void EHFunc_wrap(const double R[3], void *UserData, cdouble EH[6],
-			  int exterior_index, int interior_index) {
-  (void) exterior_index; // unused
-  if (interior_index == -1) {
-    EHFunc_wrap_data *d = (EHFunc_wrap_data *) UserData;
-    d->EHFunc(R, d->EHFuncUD, EH);
-  }
-  else
-    memset(EH, 0, sizeof(cdouble) * 6);
-}
-
-HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, 
-				      int nfuncs, FieldFunc **funcs,
-				      cdouble Omega, HVector *KN,
-				      EHFuncType EHFunc, void *EHFuncUD,
-                                      int nThread) {
-  EHFunc_wrap_data d;
-  d.EHFunc = EHFunc; d.EHFuncUD = EHFuncUD;
-  return GetFieldsGrids(grid, nfuncs, funcs, Omega, KN,
-                        EHFunc ? EHFunc_wrap : NULL, (void*) &d,
-                        nThread);  
-}
-
-// EHFuncType2 wrapper for IncField
-static void IncField_wrap(const double R[3], void *UserData, cdouble EH[6],
-			  int exterior_index, int interior_index) {
-  (void) exterior_index; // unused
-  IncField *inc = (IncField *) UserData;
-  memset(EH, 0, sizeof(cdouble) * 6);
-  for (; inc; inc = inc->Next) 
-    if (inc->ObjectIndex == interior_index) {
-      cdouble EHi[6];
-      inc->GetFields(R, EHi);
-      for (int j = 0; j < 6; ++j) EH[j] += EHi[j];
-    }
-}
-
-HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, 
-                                      int nfuncs, FieldFunc **funcs,
-                                      cdouble Omega, HVector *KN, IncField *inc,
-                                      int nThread) {
-  UpdateIncFields(inc, Omega); // update ObjectIndex/Eps/Mu/Omega of inc
-  return GetFieldsGrids(grid, nfuncs, funcs, Omega, KN,
-			inc ? IncField_wrap : NULL, (void*) inc,
-			nThread);
-}
 
 HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, const char *exprs_,
                                       cdouble Omega, HVector *KN, IncField *inc,

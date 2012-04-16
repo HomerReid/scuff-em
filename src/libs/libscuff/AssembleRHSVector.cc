@@ -380,7 +380,7 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega)
 /***************************************************************/
 /* Allocate an RHS vector of the appropriate size. *************/
 /***************************************************************/
-HVector *RWGGeometry::AllocateRHSVector(int PureImagFreq)
+HVector *RWGGeometry::AllocateRHSVector(bool PureImagFreq)
 { 
   HVector *V;
 

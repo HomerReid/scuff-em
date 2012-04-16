@@ -133,14 +133,14 @@ void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
    V3[n] = V1[n] + Alpha*V2[n];
 }
 
-void SixVecPlusEquals(const cdouble V1[6], const cdouble Alpha,
+void SixVecPlusEquals(cdouble V1[6], const cdouble Alpha,
                       const cdouble V2[6])
 { 
   for(int n=0; n<6; n++)
    V1[n] += Alpha*V2[n];
 }
 
-void SixVecPlusEquals(const cdouble V1[6], const cdouble V2[6])
+void SixVecPlusEquals(cdouble V1[6], const cdouble V2[6])
  { SixVecPlusEquals(V1, 1.0, V2); }
 
 } // namespace scuff

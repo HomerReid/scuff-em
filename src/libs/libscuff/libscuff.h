@@ -313,8 +313,7 @@ class RWGGeometry
 #endif
 
    /* routines for allocating, and then filling in, the RHS vector */
-   HVector *AllocateRHSVector(int PureImagFreq);
-   HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
+   HVector *AllocateRHSVector(bool PureImagFreq = false );
 
    HVector *AssembleRHSVector(cdouble Omega, IncField *IF,
                               HVector *RHS = NULL, int nThread = 0);
@@ -327,17 +326,17 @@ class RWGGeometry
    RWGObject *GetObject(const double X[3]);
 
    /* basic routines for computing fields */
-   void GetFields(IncField *IF, const HVector *KN, 
-                  const cdouble Omega, const double *X, 
+   void GetFields(IncField *IF, HVector *KN, 
+                  cdouble Omega, double *X, 
                   cdouble *EH, int nThread=0);
 
-   HMatrix *GetFields(const IncField *IF, const HVector *KN, 
-                      const cdouble Omega, const HMatrix *XMatrix, 
-                      const char *FuncString=NULL, HMatrix *FMatrix=NULL,
+   HMatrix *GetFields(IncField *IF, HVector *KN,
+                      cdouble Omega, HMatrix *XMatrix,
+                      char *FuncString=NULL, HMatrix *FMatrix=NULL,
                       int nThread=0);
 
-   HMatrix *GetFields(const IncField *IF, const HVector *KN,
-                      const cdouble Omega, const HMatrix *XMatrix,
+   HMatrix *GetFields(IncField *IF, HVector *KN,
+                      cdouble Omega, HMatrix *XMatrix,
                       HMatrix *FMatrix=NULL, int nThread=0)
     { return GetFields(IF, KN, Omega, XMatrix, 0, FMatrix, nThread); }
 
@@ -349,23 +348,14 @@ class RWGGeometry
       field function is supplied, then the total of scattered plus
       incident fields is used.  If KN == NULL, then the scattered
       fields are set to zero. */
-#if 0
-   HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
-			    cdouble Omega, HVector *KN,
-			    EHFuncType2 EHFunc, void *EHFuncUD,
-			    int nThread = 0);
-   HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
-			    cdouble Omega, HVector *KN,
-			    EHFuncType EHFunc, void *EHFuncUD, // in exterior
-			    int nThread = 0);
    HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
 			    cdouble Omega, HVector *KN = NULL,
-			    IncField *inc = NULL, int nThread = 0);
+			    IncField *inc=NULL, int nThread = 0);
 
    // exprs is a string of COMMA-SEPARATED expressions
    HMatrix **GetFieldsGrids(SurfaceGrid &grid, const char *exprs,
-                            cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
-			    int nThread = 0);
+                            cdouble Omega, HVector *KN=NULL, 
+                            IncField *inc=NULL, int nThread = 0);
 
    // variants that only compute one function and return one matrix
    HMatrix *GetFieldsGrid(SurfaceGrid &grid, FieldFunc &func,
@@ -374,7 +364,6 @@ class RWGGeometry
    HMatrix *GetFieldsGrid(SurfaceGrid &grid, const char *expr,
 			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
 			  int nThread = 0);
-#endif
 
    /****************************************************/
 
@@ -490,11 +479,10 @@ double VecNorm(const double v[3]);
 double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
 
-void SixVecPlus(const cdouble V1[6], const cdouble Alpha, 
-                const cdouble V2[6], const cdouble V3[6]);
-void SixVecPlusEquals(const cdouble V1[6], const cdouble Alpha,
-                      const cdouble V2[6]);
-void SixVecPlusEquals(const cdouble V1[6], const cdouble V2[6]);
+void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
+                const cdouble V2[6], cdouble V3[6]);
+void SixVecPlusEquals(cdouble V1[6], const cdouble Alpha, const cdouble V2[6]);
+void SixVecPlusEquals(cdouble V1[6], const cdouble V2[6]);
 
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);

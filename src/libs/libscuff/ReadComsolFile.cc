@@ -41,7 +41,7 @@ static int SkipTo(FILE *f, const char *SearchString, char *Line)
 void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, 
                                const GTransformation *OTGT)
 { 
-  char Line[MAXSTR], *p;
+  char Line[MAXSTR];
   int nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
   
   LineNum=0;
@@ -91,12 +91,16 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
    ErrExit("%s: failed to find line '3 #number of nodes per element'", FileName);
   LineNum+=LinesRead;
 
-  p=fgets(Line,MAXSTR,MeshFile); LineNum++;
+  if ( !fgets(Line,MAXSTR,MeshFile) )
+   ErrExit("%s: unexpected end of file",FileName);
+  LineNum++;
   nConv=sscanf(Line,"%i",&NumPanels);
   if (nConv!=1 || !strstr(Line,"# number of elements"))
    ErrExit("%s:%i: syntax error",FileName,LineNum);
 
-  p=fgets(Line,MAXSTR,MeshFile); LineNum++;
+  if ( !fgets(Line,MAXSTR,MeshFile) )
+   ErrExit("%s: unexpected end of file",FileName);
+  LineNum++;
   if ( !strstr(Line,"# Elements") )
    ErrExit("%s:%i: syntax error",FileName,LineNum);
 
