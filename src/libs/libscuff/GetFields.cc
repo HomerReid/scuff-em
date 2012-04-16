@@ -15,6 +15,7 @@
 #include <libTriInt.h>
 
 #include "libscuff.h"
+#include "FieldGrid.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -22,6 +23,8 @@
 #ifdef USE_PTHREAD
 #  include <pthread.h>
 #endif
+
+#define MAXFUNC 50
 
 namespace scuff {
 
@@ -44,43 +47,44 @@ namespace scuff {
 /*******************************************************************/
 typedef struct GRPIntegrandData
  { 
-   double *Q;           // RWG basis function source/sink vertex 
-   double PreFac;       // RWG basis function prefactor 
-   const double *X0;    // field evaluation point 
-   cdouble K;           // \sqrt{Eps*Mu} * frequency
+   double *Q;         // RWG basis function source/sink vertex  
+   double PreFac;     // RWG basis function prefactor 
+   const double *X0;  // field evaluation point 
+   cdouble K;         // \sqrt{Eps*Mu} * frequency
  } GRPIData;
 
 static void GRPIntegrand(double *X, void *parms, double *f)
 { 
   GRPIntegrandData *GRPID=(GRPIntegrandData *)parms;
-  double fRWG[3], XmX0[3], fxR[3];
-  cdouble Phi, Psi, *L=(cdouble *)f;
-  double r;
-  cdouble K;
-  double PreFac=GRPID->PreFac;
+  double *Q         = GRPID->Q;
+  double PreFac     = GRPID->PreFac;
+  const double *X0  = GRPID->X0;
+  cdouble K         = GRPID->K;
 
-  /* get the value of the RWG basis function at XP */
-  VecSub(X,GRPID->Q,fRWG);
+  /* get the value of the RWG basis function at X */
+  double fRWG[3];
+  VecSub(X,Q,fRWG);
   VecScale(fRWG,PreFac);
   
-  VecSub(X,GRPID->X0,XmX0);
+  /* compute the scalar helmholtz GFs */
+  double XmX0[3], fxR[3];
+  VecSub(X,X0,XmX0);
   VecCross(fRWG,XmX0,fxR);
-  r=VecNorm(XmX0);
-
-  K=GRPID->K;
+  double r=VecNorm(XmX0);
+  cdouble Phi = exp(II*K*r) / (4.0*M_PI*r);
+  cdouble Psi = (II*K - 1.0/r) * Phi / r;
   
-  Phi= exp(II*K*r) / (4.0*M_PI*r);
-  Psi= (II*K - 1.0/r) * Phi / r;
-  
-  L[0]= fRWG[0] * Phi;
-  L[1]= fRWG[1] * Phi;
-  L[2]= fRWG[2] * Phi;
-  L[3]= fxR[0] * Psi;
-  L[4]= fxR[1] * Psi;
-  L[5]= fxR[2] * Psi;
-  L[6]= -2.0 * PreFac * XmX0[0] * Psi;
-  L[7]= -2.0 * PreFac * XmX0[1] * Psi;
-  L[8]= -2.0 * PreFac * XmX0[2] * Psi;
+  /* assemble integrand components */
+  cdouble *zf=(cdouble *)f;
+  zf[0]= fRWG[0] * Phi;
+  zf[1]= fRWG[1] * Phi;
+  zf[2]= fRWG[2] * Phi;
+  zf[3]= fxR[0] * Psi;
+  zf[4]= fxR[1] * Psi;
+  zf[5]= fxR[2] * Psi;
+  zf[6]= -2.0 * PreFac * XmX0[0] * Psi;
+  zf[7]= -2.0 * PreFac * XmX0[1] * Psi;
+  zf[8]= -2.0 * PreFac * XmX0[2] * Psi;
 
 } 
 
@@ -141,87 +145,47 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-typedef struct ThreadData
- { 
-   int nt, nThread;
-
-   RWGGeometry *G;   
-   const double *X;            /* eval point */
-   cdouble Omega;
-   cdouble Eps, Mu;
-   RWGObject *ObjectInQuestion;
-   HVector *KN;
-   cdouble EH[6];
-
- } ThreadData;
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void *GetFields_Thread(void *data)
+void GetScatteredFields(RWGGeometry *G, 
+                        const double *X, 
+                        const int ObjectIndex, 
+                        HVector *KN,
+                        const cdouble Omega, 
+                        const cdouble Eps,
+                        const cdouble Mu,
+                        cdouble EHS[6])
 { 
-  ThreadData *TD=(ThreadData *)data;
+  memset(EHS, 0, 6*sizeof(cdouble));
 
-#ifdef USE_PTHREAD
-  SetCPUAffinity(TD->nt);
-#endif
-
-  /***************************************************************/
-  /* fields unpacked from thread data structure ******************/
-  /***************************************************************/
-  RWGGeometry *G              = TD->G;
-  const double *X             = TD->X;
-  cdouble Omega               = TD->Omega;
-  cdouble Eps                 = TD->Eps;
-  cdouble Mu                  = TD->Mu;
-  RWGObject *ObjectInQuestion = TD->ObjectInQuestion;
-  HVector *KN                 = TD->KN;
-  cdouble *EH                 = TD->EH;
-
-  /***************************************************************/
-  /* other local fields ******************************************/
-  /***************************************************************/
-  double *DKN;
-  cdouble *ZKN;
   cdouble iwe=II*Omega*Eps;
   cdouble iwu=II*Omega*Mu;
   cdouble K=csqrt2(Eps*Mu)*Omega;
-  if ( KN->RealComplex==LHM_REAL )
-   { DKN=KN->DV;
-     ZKN=NULL;
-   }
-  else
-   { 
-     DKN=NULL;
-     ZKN=KN->ZV;
-   };
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
   RWGObject *O;
   int i, ne, no, Type, Offset;
   cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
   double Sign;
-  int nt=0;
-  memset(EH, 0, 6*sizeof(cdouble));
-  for(no=0, O=G->Objects[0]; no<G->NumObjects; O=G->Objects[++no])
+  int ContainingObjectIndex;
+  for(no=0; no<G->NumObjects; no++)
    { 
-     /******************************************************************/
-     /* figure out the sign of the contribution of currents on this    */
-     /* object's surface to the field at the evaluation point.         */
-     /* note that this code does the correct thing if ObjectInQuestion */
-     /* is NULL (i.e. evaluation point in external medium)             */
-     /*****************************************************************/
-     if (O==ObjectInQuestion)
-      Sign=-1.0;
-     else if (O->ContainingObject==ObjectInQuestion)
-      Sign=+1.0;
-     else
-      continue; // in this case O does not contribute to field at eval pt
+     O=G->Objects[no];
 
      Type=O->MP->Type;
      Offset=G->BFIndexOffset[O->Index];
+     if (O->ContainingObject==NULL)
+      ContainingObjectIndex=-1;
+     else
+      ContainingObjectIndex=O->ContainingObject->Index;
+
+     /******************************************************************/
+     /* figure out the sign of the contribution of currents on this    */
+     /* object's surface to the field at the evaluation point.         */
+     /*****************************************************************/
+     if ( ObjectIndex==O->Index )
+      Sign=-1.0;
+     else if ( ObjectIndex==ContainingObjectIndex )
+      Sign=+1.0;
+     else
+      continue; // in this case O does not contribute to field at eval pt
 
      /***************************************************************/
      /* now loop over panels on object's surface to get             */
@@ -229,49 +193,50 @@ void *GetFields_Thread(void *data)
      /***************************************************************/
      for(ne=0; ne<O->NumEdges; ne++)
       { 
-        nt++;
-        if (nt==TD->nThread) nt=0;
-        if (nt!=TD->nt) continue;
-
-        if ( Type==MP_PEC && ZKN!=NULL )
-         { KAlpha=ZKN[ Offset + ne ];
-           NAlpha=0.0;
+        if ( Type==MP_PEC )
+         { 
+           KAlpha = Sign*KN->GetEntry( Offset + ne );
          }
-        else if ( Type==MP_PEC && DKN!=NULL )
-         { KAlpha=DKN[ Offset + ne ];
-           NAlpha=0.0; 
-         }
-        else if ( Type!=MP_PEC && ZKN!=NULL )
-         { KAlpha=ZKN[ Offset + 2*ne ];
-           NAlpha=ZKN[ Offset + 2*ne + 1 ];
-         }
-        else if ( Type!=MP_PEC && DKN!=NULL )
-         { KAlpha=DKN[ Offset + 2*ne ];
-           NAlpha=DKN[ Offset + 2*ne + 1 ];
+        else
+         { KAlpha = Sign*KN->GetEntry( Offset + 2*ne + 0 );
+           NAlpha = Sign*KN->GetEntry( Offset + 2*ne + 1 );
          };
-
-        KAlpha*=Sign;
-        NAlpha*=Sign;
       
         O->GetReducedPotentials(ne, X, K, a, Curla, Gradp);
 
         for(i=0; i<3; i++)
-         { EH[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
-           EH[i+3] += -1.0*NAlpha*(iwe*a[i] - Gradp[i]/iwu) + KAlpha*Curla[i];
+         { EHS[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
+           EHS[i+3] += -1.0*NAlpha*(iwe*a[i] - Gradp[i]/iwu) + KAlpha*Curla[i];
          };
 
       }; // for (ne=0 ... 
 
     }; // for(no=0 ... 
-
-  return 0;
- 
 }
 
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void *GetFields_Thread(ThreadData *TD)
+typedef struct ThreadData
+ { 
+   int nt, nTask;
+
+   RWGGeometry *G;
+   const HMatrix *XMatrix;
+   HMatrix *FMatrix;
+   HVector *KN;
+   IncField *IF;
+   cdouble Omega;
+   ParsedFieldFunc **PFFuncs;
+   int NumFuncs;
+
+ } ThreadData;
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void *GetFields_Thread(void *data)
 {
   ThreadData *TD=(ThreadData *)data;
 
@@ -283,72 +248,132 @@ void *GetFields_Thread(ThreadData *TD)
   /* fields unpacked from thread data structure ******************/
   /***************************************************************/
   RWGGeometry *G              = TD->G;
-  const double *X             = TD->X;
-  cdouble Omega               = TD->Omega;
-  cdouble Eps                 = TD->Eps;
-  cdouble Mu                  = TD->Mu;
-  RWGObject *ObjectInQuestion = TD->ObjectInQuestion;
+  const HMatrix *XMatrix      = TD->XMatrix;
+  HMatrix *FMatrix            = TD->FMatrix;
   HVector *KN                 = TD->KN;
-  cdouble *EH                 = TD->EH;
+  IncField *IFList            = TD->IF;
+  cdouble Omega               = TD->Omega;
+  ParsedFieldFunc **PFFuncs   = TD->PFFuncs;
+  int NumFuncs;
 
   /***************************************************************/
-  /* other local fields ******************************************/
+  /* other local variables ***************************************/
   /***************************************************************/
-  double *DKN;
-  cdouble *ZKN;
-  cdouble iwe=II*Omega*Eps;
-  cdouble iwu=II*Omega*Mu;
-  cdouble K=csqrt2(Eps*Mu)*Omega;
-  if ( KN->RealComplex==LHM_REAL )
-   { DKN=KN->DV;
-     ZKN=NULL;
-   }
-  else
-   { 
-     DKN=NULL;
-     ZKN=KN->ZV;
-   };
+  double X[3];
+  int ObjectIndex;
+  cdouble EH[6], dEH[6];
+  cdouble Eps, Mu;
+  double dA[3]={0.0, 0.0, 0.0};
+  IncField *IF;
 
   /***************************************************************/
   /* loop over all eval points (all rows of the XMatrix)         */
   /***************************************************************/
-  for(nr=0; nr<XMatrix->NR; nr++) 
+  int nt=0;
+  for(int nr=0; nr<XMatrix->NR; nr++)
    { 
-     X[0]=
+     nt++;
+     if (nt==TD->nTask) nt=0;
+     if (nt!=TD->nt) continue;
+
+     X[0]=XMatrix->GetEntryD(nr, 0);
+     X[1]=XMatrix->GetEntryD(nr, 1);
+     X[2]=XMatrix->GetEntryD(nr, 2);
+
+     ObjectIndex = G->GetObjectIndex(X);
+     if (ObjectIndex==-1)
+      G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
+     else
+      G->Objects[ObjectIndex]->MP->GetEpsMu(Omega, &Eps, &Mu);
     
      /*--------------------------------------------------------------*/
-     /*- get scattered fields at eval point -------------------------*/
+     /*- get scattered fields at X                                   */
      /*--------------------------------------------------------------*/
-     for(no=0;  
+     if (KN)
+      GetScatteredFields(G, X, ObjectIndex, KN, Omega, Eps, Mu, EH);
+     else
+      memset(EH, 0, 6*sizeof(cdouble));
 
      /*--------------------------------------------------------------*/
-     /*- add incident fields   --------------------------------------*/
+     /*- add incident fields by summing contributions of all        -*/
+     /*- IncFields whose sources lie in the same region as X        -*/
      /*--------------------------------------------------------------*/
+     if (IFList)
+      { for(IF=IFList; IF; IF=IF->Next)
+         if ( IF->ObjectIndex == ObjectIndex )
+          { IF->GetFields(X, dEH);
+            SixVecPlusEquals(EH, 1.0, dEH);
+          };
+      };
 
      /*--------------------------------------------------------------*/
      /*- compute field functions ------------------------------------*/
      /*--------------------------------------------------------------*/
+     for(int nf=0; nf<NumFuncs; nf++)
+      FMatrix->SetEntry(nr, nf, PFFuncs[nf]->Eval(X, dA, EH, Eps, Mu));
 
    }; // for (nr=0; nr<XMatrix->NR; nr++)
 
+  return 0;
+
 } 
 
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::GetFields(const IncField *IF, const HVector *KN, 
-                            const cdouble Omega, const HMatrix *XMatrix, 
-                            const char *Functions, HMatrix *FMatrix, 
-                            int nThread)
+HMatrix *RWGGeometry::GetFields(IncField *IF, const HVector *KN,
+                                const cdouble Omega, const HMatrix *XMatrix,
+                                const char *FuncString, HMatrix *FMatrix,
+                                int nThread)
 { 
   if (nThread <= 0) nThread = GetNumThreads();
+ 
+  /***************************************************************/
+  /* preprocess the Functions string to count the number of      */
+  /* comma-separated function strings and verify that each string*/
+  /* is a valid function                                         */
+  /***************************************************************/
+  char *FCopy;
+  char *Funcs[MAXFUNC];
+  int NumFuncs;
+
+  if (FuncString==0)
+   FCopy=strdup("Ex,Ey,Ez,Hx,Hy,Hz"); // default is cartesian field components
+  else
+   FCopy=strdup(FuncString);
+
+  NumFuncs=Tokenize(FCopy, Funcs, MAXFUNC, ",");
   
+  ParsedFieldFunc **PFFuncs = new ParsedFieldFunc *[NumFuncs];
+  for(int nf=0; nf<NumFuncs; nf++)
+   PFFuncs[nf] = new ParsedFieldFunc(Funcs[nf]);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( XMatrix==0 || XMatrix->NC!=3 || XMatrix->NR==0 )
+   ErrExit("invalid XMatrix passed to GetFields() ");
+
+  if (FMatrix==0) 
+   FMatrix=new HMatrix(XMatrix->NR, NumFuncs, LHM_COMPLEX);
+  else if ( (FMatrix->NR != XMatrix->NR) || (FMatrix->NC!=NumFuncs) ) 
+   { Warn(" ** warning: wrong-size FMatrix passed to GetFields(); allocating new matrix");
+     FMatrix=new HMatrix(XMatrix->NR, NumFuncs, LHM_COMPLEX);
+   };
+
+  /***************************************************************/
+  /* the incident fields will most likely have been updated at   */
+  /* the current frequency already by an earlier call to         */
+  /* AssembleRHSVector(), but somewhat might call GetFields()    */
+  /* to get information on just the incident fields before       */
+  /* before setting up and solving the BEM problem, so we should */
+  /* do this just to make sure.                                  */
+  /***************************************************************/
+  UpdateIncFields(IF, Omega);
+
   /***************************************************************/
   /* fire off threads                                            */
   /***************************************************************/
-// ''modern'' attempt at multithreading begins here  
-
   int nt, nc;
 
   // set up an instance of ThreadData containing all fields
@@ -356,25 +381,21 @@ void RWGGeometry::GetFields(const IncField *IF, const HVector *KN,
   // copy wholesale to initialize new ThreadData structures
   ThreadData ReferenceTD; 
   ReferenceTD.G=this;
-  ReferenceTD.X=X;
-  ReferenceTD.Omega=Omega;
-  ReferenceTD.Eps=Eps;
-  ReferenceTD.Mu=Mu;
-  ReferenceTD.ObjectInQuestion=ObjectInQuestion;
+  ReferenceTD.XMatrix = XMatrix;
+  ReferenceTD.FMatrix = FMatrix;
   ReferenceTD.KN=KN;
-
-  memset(EH, 0, 6*sizeof(cdouble));
+  ReferenceTD.IF=IF;
+  ReferenceTD.Omega=Omega;
 
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[nThread], *TD;
   pthread_t *Threads = new pthread_t[nThread];
-
+  ReferenceTD.nTask=nThread;
   for(nt=0; nt<nThread; nt++)
    { 
      TD=&(TDs[nt]);
      memcpy(TD, &ReferenceTD, sizeof(ThreadData));
      TD->nt=nt;
-     TD->nThread=nThread;
 
      if (nt+1 == nThread)
        GetFields_Thread((void *)TD);
@@ -384,23 +405,14 @@ void RWGGeometry::GetFields(const IncField *IF, const HVector *KN,
   for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
 
-  /***************************************************************/
-  /* sum contributions from all threads                          */
-  /***************************************************************/
-  for(nt=0; nt<nThread; nt++)
-   for(nc=0; nc<6; nc++)
-    EH[nc]+=TDs[nt].EH[nc];
-
   delete[] Threads;
   delete[] TDs;
 
 #else 
-  int nTask;
-
 #ifndef USE_OPENMP
-  nThread=nTask=1;
+  nThread=ReferenceTD.nTask=1;
 #else
-  nTask=nThread*100;
+  ReferenceTD.nTask=nThread*100;
 #pragma omp parallel for schedule(dynamic,1), num_threads(nThread)
 #endif
   for(nt=0; nt<nTask; nt++)
@@ -408,14 +420,16 @@ void RWGGeometry::GetFields(const IncField *IF, const HVector *KN,
      ThreadData TD1;
      memcpy(&TD1, &ReferenceTD, sizeof(ThreadData));
      TD1.nt=nt;
-     TD1.nThread=nTask;
      GetFields_Thread((void *)&TD1);
-     for(nc=0; nc<6; nc++)
-      EH[nc]+=TD1.EH[nc];
    };
 #endif
 
-// end of ''modern'' attempt at multithreading
+  free(FCopy);
+  for(nf=0; nf<NumFuncs; nf++)
+   delete PFFuncs[nf];
+  delete[] PFFuncs;
+
+  return FMatrix;
 
 }
 

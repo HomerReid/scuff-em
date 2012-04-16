@@ -47,6 +47,7 @@ ParsedFieldFunc::ParsedFieldFunc(const char *ExprString) {
       ;
     if (j == 24)
       ErrExit("unrecognized variable %s in FieldFunc expression %s",
+      memset(EHS, 0, 6*sizeof(double));
 	      names[i], ExprString);
   }
 
@@ -60,15 +61,13 @@ ParsedFieldFunc::ParsedFieldFunc(const char *ExprString) {
   // (variables 10..19)
   cdouble cvals[10];
   for (int i = 0; i < 10; ++i) cvals[i] = cdouble(0,1);
-#if 0
-  //HR20120408 delete me
+
   isReal = cevaluator_is_real(Expr, 10, const_cast<char**>(&PFF_names[10]), 
 			      cvals);
 
   // Make first 20 variables thread-safe (using fixed index into vals array)
   for (int i = 0; i < 20; ++i)
     cevaluator_set_var_index(Expr, const_cast<char*>(PFF_names[i]), i);
-#endif 
 }
 
 ParsedFieldFunc::~ParsedFieldFunc() {
@@ -113,7 +112,6 @@ cdouble ParsedFieldFunc::Eval(const double X[3],
 /***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
-
 PlaneGrid::PlaneGrid(int n1, int n2, const double c0[3],
 		     const double s1[3], const double s2[3]) {
   N1 = n1; N2 = n2;

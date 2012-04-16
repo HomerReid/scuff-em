@@ -327,19 +327,19 @@ class RWGGeometry
    RWGObject *GetObject(const double X[3]);
 
    /* basic routines for computing fields */
-   void GetFields(const IncField *IF, const HVector *KN, 
+   void GetFields(IncField *IF, const HVector *KN, 
                   const cdouble Omega, const double *X, 
                   cdouble *EH, int nThread=0);
 
    HMatrix *GetFields(const IncField *IF, const HVector *KN, 
                       const cdouble Omega, const HMatrix *XMatrix, 
-                      const char *Functions=NULL, HMatrix *FMatrix=NULL,
+                      const char *FuncString=NULL, HMatrix *FMatrix=NULL,
                       int nThread=0);
 
    HMatrix *GetFields(const IncField *IF, const HVector *KN,
                       const cdouble Omega, const HMatrix *XMatrix,
                       HMatrix *FMatrix=NULL, int nThread=0)
-    { return GetFields(IF, KN, Omega, XMatrix, 0, FMatrix); }
+    { return GetFields(IF, KN, Omega, XMatrix, 0, FMatrix, nThread); }
 
    /****************************************************/
 
@@ -489,6 +489,12 @@ double VecDistance2(const double v1[3], const double v2[3]);
 double VecNorm(const double v[3]);
 double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
+
+void SixVecPlus(const cdouble V1[6], const cdouble Alpha, 
+                const cdouble V2[6], const cdouble V3[6]);
+void SixVecPlusEquals(const cdouble V1[6], const cdouble Alpha,
+                      const cdouble V2[6]);
+void SixVecPlusEquals(const cdouble V1[6], const cdouble V2[6]);
 
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);

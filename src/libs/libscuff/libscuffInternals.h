@@ -234,7 +234,7 @@ class FIPPICache
     rwlock FCLock;
 
     char *PreloadFileName;
-    int RecordsPreloaded;
+    unsigned int RecordsPreloaded;
 
  };
 
