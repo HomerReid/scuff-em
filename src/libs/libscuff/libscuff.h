@@ -327,18 +327,13 @@ class RWGGeometry
 
    /* basic routines for computing fields */
    void GetFields(IncField *IF, HVector *KN, 
-                  cdouble Omega, double *X, 
+                  cdouble Omega, double *X,
                   cdouble *EH, int nThread=0);
 
    HMatrix *GetFields(IncField *IF, HVector *KN,
                       cdouble Omega, HMatrix *XMatrix,
-                      char *FuncString=NULL, HMatrix *FMatrix=NULL,
+                      HMatrix *FMatrix=NULL, char *FuncString=NULL, 
                       int nThread=0);
-
-   HMatrix *GetFields(IncField *IF, HVector *KN,
-                      cdouble Omega, HMatrix *XMatrix,
-                      HMatrix *FMatrix=NULL, int nThread=0)
-    { return GetFields(IF, KN, Omega, XMatrix, 0, FMatrix, nThread); }
 
    /****************************************************/
 

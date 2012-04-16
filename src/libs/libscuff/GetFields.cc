@@ -323,7 +323,7 @@ void *GetFields_Thread(void *data)
 /***************************************************************/
 HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
                                 cdouble Omega, HMatrix *XMatrix,
-                                char *FuncString, HMatrix *FMatrix,
+                                HMatrix *FMatrix, char *FuncString,
                                 int nThread)
 { 
   if (nThread <= 0) nThread = GetNumThreads();
@@ -443,7 +443,7 @@ void RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X,
 
   HMatrix FMatrix(1, 6, LHM_COMPLEX, LHM_NORMAL, (void *)EH);
 
-  GetFields(IF, KN, Omega, &XMatrix, 0, &FMatrix, nThread);
+  GetFields(IF, KN, Omega, &XMatrix, &FMatrix, 0, nThread);
 } 
 
 

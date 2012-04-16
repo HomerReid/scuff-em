@@ -338,13 +338,11 @@ int main(int argc, char *argv[])
      IFD->Next=IFDList;
      IFDList=IFD;
    };
-#if 0
   for(ngb=0; ngb<ngbCenter; ngb++)
    { IFD=new GaussianBeam(gbCenter + 3*ngb, gbDir + 3*ngb, gbPol + 3*ngb, gbWaist[ngb]);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
-#endif
   for(nps=0; nps<npsLoc; nps++)
    { IFD=new PointSource(psLoc + 3*nps, psStrength + 3*nps);
      IFD->Next=IFDList;
@@ -378,7 +376,7 @@ int main(int argc, char *argv[])
   HMatrix *M = SSD->M =G->AllocateBEMMatrix();
   SSD->RHS =  PowerFile ? G->AllocateRHSVector() : 0;
   HVector *KN = SSD->KN =G->AllocateRHSVector();
-  SSD->opIFD=(void *)IFDList;
+  SSD->IF=IFDList;
   SSD->PowerRadius=PowerRadius;
   SSD->nThread=nThread;
 

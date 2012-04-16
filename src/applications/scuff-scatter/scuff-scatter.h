@@ -25,7 +25,7 @@ typedef struct SSData
    HMatrix *M;
    HVector *RHS, *KN;
    cdouble Omega;
-   void *opIFD;
+   IncField *IF;
    double PowerRadius;
    int nThread;
  } SSData;

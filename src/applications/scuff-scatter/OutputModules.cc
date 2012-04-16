@@ -10,12 +10,14 @@
 
 #include "scuff-scatter.h"
 
+#define MAXSTR   1000 
+
 #define ABSTOL   0.0
 #define RELTOL   5.0e-2
 #define MAXEVALS 20000
 
 void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
-{}
+{ }
 
 /***************************************************************/
 /* compute scattered and total fields at a user-specified list */
@@ -23,52 +25,70 @@ void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
 /***************************************************************/
 void ProcessEPFile(SSData *SSD, char *EPFileName)
 { 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGGeometry *G  = SSD->G;
+  IncField *IF    = SSD->IF;
+  HVector  *KN    = SSD->KN;
+  cdouble  Omega  = SSD->Omega;
 
-  HMatrix *EPMatrix=new HMatrix(EPFileName,LHM_TEXT,"-ncol 3");
-  if (EPMatrix->ErrMsg)
-   { fprintf(stderr,"Error processing EP file: %s\n",EPMatrix->ErrMsg);
-     delete EPMatrix;
+  /*--------------------------------------------------------------*/
+  /*- try to read eval points from file --------------------------*/
+  /*--------------------------------------------------------------*/
+  HMatrix *XMatrix=new HMatrix(EPFileName,LHM_TEXT,"-ncol 3");
+  if (XMatrix->ErrMsg)
+   { fprintf(stderr,"Error processing EP file: %s\n",XMatrix->ErrMsg);
+     delete XMatrix;
      return;
    };
- 
-  /***************************************************************/ 
-  /***************************************************************/
-  /***************************************************************/
-  int nep;
-  double X[3]; 
-  cdouble EHS[6], EHT[6];
-  FILE *f1, *f2;
-  char buffer[200];
- 
+
+  /*--------------------------------------------------------------*/
+  /*- get components of scattered and incident fields            -*/
+  /*--------------------------------------------------------------*/
   Log("Evaluating fields at points in file %s...",EPFileName);
-  printf("Evaluating fields at points in file %s...\n",EPFileName);
 
-  sprintf(buffer,"%s.scattered",GetFileBase(EPFileName));
-  f1=CreateUniqueFile(buffer,1);
-  sprintf(buffer,"%s.total",GetFileBase(EPFileName));
-  f2=CreateUniqueFile(buffer,1);
-  SetDefaultCD2SFormat("%18.12e %18.12e");
-  for(nep=0; nep<EPMatrix->NR; nep++)
-   { 
-     X[0]=EPMatrix->GetEntryD(nep, 0);
-     X[1]=EPMatrix->GetEntryD(nep, 1);
-     X[2]=EPMatrix->GetEntryD(nep, 2);
+  HMatrix *FMatrix1 = G->GetFields( 0, KN, Omega, XMatrix); // scattered
+  HMatrix *FMatrix2 = G->GetFields(IF,  0, Omega, XMatrix); // incident
 
-     GetTotalField(SSD, X, EHS, EHT); 
+  /*--------------------------------------------------------------*/
+  /*- create .scattered and .total output files and write fields -*/
+  /*--------------------------------------------------------------*/
+  char buffer[MAXSTR];
+  snprintf(buffer,MAXSTR,"%s.scattered",GetFileBase(EPFileName));
+  FILE *f1=CreateUniqueFile(buffer,1);
+  snprintf(buffer,MAXSTR,"%s.total",GetFileBase(EPFileName));
+  FILE *f2=CreateUniqueFile(buffer,1);
 
-     fprintf(f1,"%e %e %e ",X[0],X[1],X[2]);
-     fprintf(f1,"%s %s %s ",CD2S(EHS[0]),CD2S(EHS[1]),CD2S(EHS[2]));
-     fprintf(f1,"%s %s %s ",CD2S(EHS[3]),CD2S(EHS[4]),CD2S(EHS[5]));
+  int nr, nc; 
+  for(nr=0; nr<FMatrix1->NR; nr++)
+   { fprintf(f1,"%.8e %.8e %.8e ",XMatrix->GetEntry(nr, 0),
+                                  XMatrix->GetEntry(nr, 1),
+                                  XMatrix->GetEntry(nr, 2));
+
+     fprintf(f2,"%.8e %.8e %.8e ",XMatrix->GetEntry(nr, 0),
+                                  XMatrix->GetEntry(nr, 1),
+                                  XMatrix->GetEntry(nr, 2));
+
+     for(nc=0; nc<FMatrix1->NC; nc++)
+      { 
+        fprintf(f1,"%s ",CD2S(  FMatrix1->GetEntry(nr,nc)) );
+
+        fprintf(f2,"%s ",CD2S(  FMatrix1->GetEntry(nr,nc)  
+                               +FMatrix1->GetEntry(nr,nc)) );
+      };
+
      fprintf(f1,"\n");
-
-     fprintf(f2,"%e %e %e ",X[0],X[1],X[2]);
-     fprintf(f2,"%s %s %s ",CD2S(EHT[0]),CD2S(EHT[1]),CD2S(EHT[2]));
-     fprintf(f2,"%s %s %s ",CD2S(EHT[3]),CD2S(EHT[4]),CD2S(EHT[5]));
      fprintf(f2,"\n");
- 
+
    };
-  fprintf(f1,"\n\n");
-  fprintf(f2,"\n\n");
+
+  fclose(f1);
+  fclose(f2);
+  delete XMatrix;
+  delete FMatrix1;
+  delete FMatrix2;
+
 }
 
 /***************************************************************/

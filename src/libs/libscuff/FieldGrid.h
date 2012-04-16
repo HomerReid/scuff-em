@@ -43,7 +43,7 @@ public:
 //             nx,ny,nz -- unit normal to grid surface = dA / |dA|
 //             Eps,Mu -- relative permittivity/permeability
 //             eps,mu -- absolute permittivity/permeability
-//             eps0,m0,c,Z0 -- vacuum permittivity/permeability/speed/impedance
+//             eps0,mu0,c,Z0 -- vacuum permittivity/permeability/speed/impedance
 // (This should be plenty fast in comparison to the cost of GetField
 //  and should be convenient enough for most common field computations
 //  that most users will not need or want any other subclasses.)
