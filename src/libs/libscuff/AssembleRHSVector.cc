@@ -275,7 +275,7 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
   ReferenceTD.RHS=RHS;
 
 #ifdef USE_PTHREAD
-  ThreadData *TDS = new ThreadData[nThread], *TD;
+  ThreadData *TDs = new ThreadData[nThread], *TD;
   pthread_t *Threads = new pthread_t[nThread];
   for(nt=0; nt<nThread; nt++)
    { 
@@ -293,7 +293,7 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
    pthread_join(Threads[nt],0);
 
   delete[] Threads;
-  delete[] TDS;
+  delete[] TDs;
 
 #else
 

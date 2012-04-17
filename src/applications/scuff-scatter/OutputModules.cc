@@ -61,21 +61,22 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   FILE *f2=CreateUniqueFile(buffer,1);
 
   int nr, nc; 
+  SetDefaultCD2SFormat("%.8e %.8e ");
   for(nr=0; nr<FMatrix1->NR; nr++)
-   { fprintf(f1,"%.8e %.8e %.8e ",XMatrix->GetEntry(nr, 0),
-                                  XMatrix->GetEntry(nr, 1),
-                                  XMatrix->GetEntry(nr, 2));
+   { fprintf(f1,"%.8e %.8e %.8e ",XMatrix->GetEntryD(nr, 0),
+                                  XMatrix->GetEntryD(nr, 1),
+                                  XMatrix->GetEntryD(nr, 2));
 
-     fprintf(f2,"%.8e %.8e %.8e ",XMatrix->GetEntry(nr, 0),
-                                  XMatrix->GetEntry(nr, 1),
-                                  XMatrix->GetEntry(nr, 2));
+     fprintf(f2,"%.8e %.8e %.8e ",XMatrix->GetEntryD(nr, 0),
+                                  XMatrix->GetEntryD(nr, 1),
+                                  XMatrix->GetEntryD(nr, 2));
 
      for(nc=0; nc<FMatrix1->NC; nc++)
       { 
         fprintf(f1,"%s ",CD2S(  FMatrix1->GetEntry(nr,nc)) );
 
         fprintf(f2,"%s ",CD2S(  FMatrix1->GetEntry(nr,nc)  
-                               +FMatrix1->GetEntry(nr,nc)) );
+                               +FMatrix2->GetEntry(nr,nc)) );
       };
 
      fprintf(f1,"\n");

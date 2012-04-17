@@ -386,6 +386,8 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   ReferenceTD.KN=KN;
   ReferenceTD.IF=IF;
   ReferenceTD.Omega=Omega;
+  ReferenceTD.PFFuncs=PFFuncs;
+  ReferenceTD.NumFuncs=NumFuncs;
 
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[nThread], *TD;
