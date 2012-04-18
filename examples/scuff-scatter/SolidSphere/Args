@@ -1,0 +1,6 @@
+geometry SiCSphere.scuffgeo
+OmegaFile OmegaValues.dat
+PowerFile SiCSphere.power 
+Cache Sphere.scuffcache
+pwDirection 0 0 1
+pwPolarization 1 0 0

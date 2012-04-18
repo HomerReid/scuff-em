@@ -440,7 +440,7 @@ void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
 }
 
 /***************************************************************/
-/* get the scattered and absorbed power using steven's formulas*/
+/* get the scattered and absorbed power using the SGJ formulas */
 /* involving vector-matrix-vector products                     */
 /***************************************************************/
 void GetPower_SGJ(SSData *SSD, double *PSGJ)
@@ -560,7 +560,7 @@ void GetPower(SSData *SSD, char *PowerFile)
   HVector *RHS   = SSD->RHS;
   HVector *KN    = SSD->KN;
 
-  Log("  Computing scattered and absorbed power...");
+  Log("Computing scattered and absorbed power...");
 
   /***************************************************************/
   /* open the file and write the frequency at the top of the line*/
@@ -627,14 +627,24 @@ void GetPower(SSData *SSD, char *PowerFile)
   PTot *= 0.5*ZVAC;
   PAbs *= 0.5*ZVAC;
   PScat = PTot - PAbs;
-  fprintf(f,"%.12e %.12e  ",PAbs,PScat);
 
   /***************************************************************/
+  /* the HR formula computes the scattered power as the          */
+  /* difference between the total and absorbed power; if the     */
+  /* total and absorbed powers agree to three decimal places,    */
+  /* then the scattered power computed this way will probably be */
+  /* inaccurate, so in this case we use the SGJ scattered-power  */
+  /* fomulas instead                                             */
   /***************************************************************/
-  /***************************************************************/
-  double PSGJ[2];
-  GetPower_SGJ(SSD, PSGJ);
-  fprintf(f,"%.12e %.12e  ",PSGJ[0], PSGJ[1]);
+  if ( fabs(PScat) < 1.0e-3*fabs(PTot) ) 
+   { 
+     double PSGJ[2];
+     GetPower_SGJ(SSD, PSGJ);
+     Log("Using SGJ formulas (PTot,PAbs,PScat) = (%.5e,%.5e,%.5e) (HR) (%.5e,%.5e,%.5e) (SGJ)",
+          PTot,PAbs,PScat,PSGJ[0]+PSGJ[1],PSGJ[0],PSGJ[1]);
+     PScat=PSGJ[1];
+   };
+  fprintf(f,"%.12e %.12e  ",PAbs,PScat);
 
   /***************************************************************/
   /* if the user specified a nonzero PowerRadius, repeat the     */
