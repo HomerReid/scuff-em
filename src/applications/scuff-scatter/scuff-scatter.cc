@@ -392,9 +392,9 @@ int main(int argc, char *argv[])
   if (Cache) 
    WriteCache=Cache;
   for (int nrc=0; nrc<nReadCache; nrc++)
-   PreloadGlobalFIPPICache( ReadCache[nrc] );
+   PreloadCache( ReadCache[nrc] );
   if (Cache)
-   PreloadGlobalFIPPICache( Cache );
+   PreloadCache( Cache );
 
   /*******************************************************************/
   /* loop over frequencies *******************************************/
@@ -422,7 +422,7 @@ int main(int argc, char *argv[])
      /* of the program run.                                             */
      /*******************************************************************/
      if (WriteCache)
-      { StoreGlobalFIPPICache( WriteCache );
+      { StoreCache( WriteCache );
         WriteCache=0;       
       };
 

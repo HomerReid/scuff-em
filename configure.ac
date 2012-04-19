@@ -197,11 +197,9 @@ AC_CONFIG_FILES([
  src/applications/scuff-heat/Makefile
  src/applications/scuff-analyze/Makefile
  examples/Makefile
- examples/scuff-scatter/Makefile
- examples/scuff-scatter/SolidSphere/Makefile
- examples/scuff-scatter/SphericalShell/Makefile
- examples/scuff-caspol/Makefile
- examples/scuff-cas3D/Makefile
+ examples/ApertureDiffraction/Makefile
+ examples/SolidSphere/Makefile
+ examples/SphericalShell/Makefile
  tests/Makefile
 ])
 AC_OUTPUT

@@ -382,7 +382,7 @@ void GetFrequencyIntegrand(SC3Data *SHD, cdouble Omega, double *FI)
   /* any of the same objects                                     */
   /***************************************************************/
   if ( SC3D->WriteCache ) 
-   StoreGlobalFIPPICache( SC3D->WriteCache );
+   StoreCache( SC3D->WriteCache );
 
   /***************************************************************/
   /* the SymG1 matrix can be formed and stored ahead of time     */

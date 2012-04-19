@@ -384,12 +384,12 @@ void FIPPICache::PreLoad(const char *FileName)
 /***************************************************************/
 FIPPICache GlobalFIPPICache;
 
-void PreloadGlobalFIPPICache(const char *FileName)
+void PreloadCache(const char *FileName)
 { 
   GlobalFIPPICache.PreLoad(FileName);
 }
 
-void StoreGlobalFIPPICache(const char *FileName)
+void StoreCache(const char *FileName)
 { 
   GlobalFIPPICache.Store(FileName);
 }
