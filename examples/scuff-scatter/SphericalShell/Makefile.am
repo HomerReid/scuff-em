@@ -10,3 +10,6 @@ EXTRA_DIST = 			\
  GetDataVsEps.sh		\
  EpsValues      		\
  SphericalShellElectrostatics.pdf	
+
+pkgdatadir = $(datadir)/scuff-em/examples/SphericalShell
+nodist_pkgdata_DATA = ${EXTRA_DIST}

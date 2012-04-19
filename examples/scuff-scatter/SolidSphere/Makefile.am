@@ -1,9 +1,10 @@
 EXTRA_DIST=		\
  Sphere.geo		\
- SICSphere.scuffgeo	\
+ SiCSphere.scuffgeo	\
  GoldSphere.scuffgeo	\
  Args     		\
  OmegaValues.dat	\
  Mie.math
 
-
+pkgdatadir = $(datadir)/scuff-em/examples/SolidSphere
+nodist_pkgdata_DATA = ${EXTRA_DIST}
