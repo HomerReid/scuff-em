@@ -342,13 +342,6 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   else
    FCopy=strdup(FuncString);
 
-if (FMatrix==0)
- printf("FMatrix is 0\n");
-else
- { printf("FMatrix is not 0\n");
-   printf("FMatrix->size = %i,%i\n",FMatrix->NR,FMatrix->NC);
- };
-
   NumFuncs=Tokenize(FCopy, Funcs, MAXFUNC, ",");
 
   ParsedFieldFunc **PFFuncs = new ParsedFieldFunc *[NumFuncs];
