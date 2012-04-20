@@ -387,9 +387,16 @@ class RWGGeometry
    /* routine for setting logging verbosity */
    void SetLogLevel(int LogLevel);
 
+   /* routines for changing material properties */
+   void SetEps(cdouble Eps);
+   void SetEps(const char *Label, cdouble Eps);
+   void SetEpsMu(cdouble Eps, cdouble Mu);
+   void SetEpsMu(const char *Label, cdouble Eps, cdouble Mu);
+
    /* some simple utility functions */
    int GetDimension();
-   RWGObject *GetObjectByLabel(char *Label, int *WhichObject = NULL);
+   RWGObject *GetObjectByLabel(const char *Label, int *WhichObject = NULL);
+
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 

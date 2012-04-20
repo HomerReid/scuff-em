@@ -401,7 +401,7 @@ RWGGeometry::~RWGGeometry()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-RWGObject *RWGGeometry::GetObjectByLabel(char *Label, int *pno)
+RWGObject *RWGGeometry::GetObjectByLabel(const char *Label, int *pno)
 { 
   if (Label==0)
    { if (pno) *pno=-1;
@@ -491,6 +491,32 @@ int RWGGeometry::GetDimension()
 /***************************************************************/
 void RWGGeometry::SetLogLevel(int NewLogLevel)
  { LogLevel=NewLogLevel; }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::SetEpsMu(const char *Label, cdouble Eps, cdouble Mu)
+{ 
+  if ( Label==NULL || strcasecmp(Label,"EXTERIOR") )
+   ExteriorMP->SetEpsMu(Eps, Mu); 
+  else
+   { RWGObject *O=GetObjectByLabel(Label);
+     if (O)
+      O->MP->SetEpsMu(Eps, Mu); 
+     else
+      Warn("unknown object %s specified in SetEpsMu() (ignoring)",Label);
+   };
+} 
+
+void RWGGeometry::SetEpsMu(cdouble Eps, cdouble Mu)
+{ SetEpsMu(0, Eps, Mu); }
+
+void RWGGeometry::SetEps(const char *Label, cdouble Eps)
+{ SetEpsMu(Label, Eps, 1.0); }
+
+void RWGGeometry::SetEps(cdouble Eps)
+{ SetEpsMu(0, Eps, 1.0); }
+
 
 /***************************************************************/
 /* Given an index ei into the overall list of edges, figure    */
