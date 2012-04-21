@@ -1,4 +1,4 @@
-AC_INIT(scuff-em, 1.0, homer@homerreid.com)
+AC_INIT(scuff-em, 0.9, homer@homerreid.com)
 AC_CONFIG_SRCDIR([README])
 
 # Shared-library version.  This has a technical

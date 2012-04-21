@@ -9,6 +9,7 @@ EXTRA_DIST = 			\
  Args				\
  GetDataVsEps.sh		\
  EpsValues      		\
+ PythonScript   		\
  SphericalShellElectrostatics.pdf	
 
 pkgdatadir = $(datadir)/scuff-em/examples/SphericalShell

@@ -352,7 +352,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /***************************************************************/
   /***************************************************************/
   if ( XMatrix==0 || XMatrix->NC!=3 || XMatrix->NR==0 )
-   ErrExit("invalid XMatrix passed to GetFields() ");
+   ErrExit("wrong-size XMatrix (%ix%i) passed to GetFields",XMatrix->NR,XMatrix->NC);
 
   if (FMatrix==0) 
    FMatrix=new HMatrix(XMatrix->NR, NumFuncs, LHM_COMPLEX);

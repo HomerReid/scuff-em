@@ -407,6 +407,10 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
   /***************************************************************/
   if (M==NULL)
    M=AllocateBEMMatrix();
+  else if ( M->NR != TotalBFs || M->NC != TotalBFs )
+   { Warn("wrong-size matrix passed to AssembleBEMMatrix; reallocating...");
+     M=AllocateBEMMatrix();
+   };
 
   /***************************************************************/
   /* preinitialize an argument structure for the matrix-block    */

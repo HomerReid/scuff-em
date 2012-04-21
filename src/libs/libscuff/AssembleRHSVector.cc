@@ -262,6 +262,8 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF,
 { 
   if (RHS==NULL)
    RHS=AllocateRHSVector();
+
+  RHS->Zero();
    
   if (nThread <= 0) 
    nThread = GetNumThreads();

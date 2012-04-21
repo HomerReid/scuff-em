@@ -497,7 +497,7 @@ void RWGGeometry::SetLogLevel(int NewLogLevel)
 /***************************************************************/
 void RWGGeometry::SetEpsMu(const char *Label, cdouble Eps, cdouble Mu)
 { 
-  if ( Label==NULL || strcasecmp(Label,"EXTERIOR") )
+  if ( Label==NULL || !strcasecmp(Label,"EXTERIOR") )
    ExteriorMP->SetEpsMu(Eps, Mu); 
   else
    { RWGObject *O=GetObjectByLabel(Label);
