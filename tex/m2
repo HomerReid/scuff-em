@@ -1,5 +1,6 @@
 #!/bin/bash
 
 #pdflatex lsInnards.tex
-pdflatex scuff-scatter.tex
+#pdflatex scuff-scatter.tex
+pdflatex SurfaceImpedance.tex
 #pdflatex scuff-heat.tex
