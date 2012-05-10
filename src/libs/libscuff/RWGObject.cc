@@ -43,7 +43,6 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 { 
   ErrMsg=0;
   ContainingObjectLabel=0;
-  MeshFileName=0;
 
   /***************************************************************/
   /* read lines from the file one at a time **********************/
@@ -53,6 +52,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   int NumTokens, TokensConsumed;
   char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
+  char *pMeshFileName=0;
   GTransformation OTGT; // 'one-time geometrical transformation'
   MaterialName[0]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
@@ -70,7 +70,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
          { ErrMsg=strdup("MESHFILE keyword requires one argument");
            return;
          };
-        MeshFileName=strdup(Tokens[1]);
+        pMeshFileName=strdup(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       { if (NumTokens!=2)
@@ -115,7 +115,12 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
       };
    }; 
 
-  InitRWGObject(MeshFileName, pLabel, MaterialName, &OTGT);
+  if (pMeshFileName==0)
+   ErrMsg=vstrdup("OBJECT section must include a MESHFILE specification",Tokens[0]);
+
+  InitRWGObject(pMeshFileName, pLabel, MaterialName, &OTGT);
+  
+  free(pMeshFileName);
 
 }
 
@@ -163,8 +168,7 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
   MP=new MatProp(Material);
   ContainingObject=0;
   Label=strdup( pLabel ? pLabel : "NoLabel");
-  if (MeshFileName==0)
-   MeshFileName=strdup(pMeshFileName);
+  MeshFileName=strdup(pMeshFileName);
 
   /*------------------------------------------------------------*/
   /*- note: the 'OTGT' parameter to this function is distinct   */

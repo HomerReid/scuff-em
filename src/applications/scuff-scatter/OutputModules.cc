@@ -17,7 +17,13 @@
 #define MAXEVALS 20000
 
 void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
-{ }
+{ 
+  SSD->G->GetFields(      0, SSD->KN, SSD->Omega, X, EHS, 0); // scattered
+  SSD->G->GetFields(SSD->IF,       0, SSD->Omega, X, EHT, 0); // incident
+ 
+  for (int Mu=0; Mu<6; Mu++)
+   EHT[Mu]+=EHS[Mu];
+}
 
 /***************************************************************/
 /* compute scattered and total fields at a user-specified list */
@@ -106,19 +112,55 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   printf("Creating flux plot for surface %s...\n",MeshFileName);
 
   /*--------------------------------------------------------------*/
-  /*- because of the way the datasets need to be organized in    -*/
-  /*- the .pp file, it is easiest to make multiple passes        -*/
-  /*- through the list of panels on the flux surface: one pass   -*/
-  /*- to get the E and H fields at each panel centroid, and then -*/
-  /*- subsequent passes to write each of the various different   -*/
-  /*- data sets to the .pp file.                                 -*/
+  /*- create an Nx3 HMatrix whose columns are the coordinates of  */
+  /*- the centroids of the panels on the flux mesh                */
+  /*--------------------------------------------------------------*/
+  int NP=O->NumPanels;
+  HMatrix *XMatrix=new HMatrix(NP, 3);
+  for(np=0; np<O->NumPanels; np++)
+   { 
+     P=O->Panels[np]; 
+     XMatrix->SetEntry(np, 0, P->Centroid[0]);
+     XMatrix->SetEntry(np, 1, P->Centroid[1]);
+     XMatrix->SetEntry(np, 2, P->Centroid[2]);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  HMatrix *FSMatrix=SSD->G->GetFields( 0, SSD->KN, SSD->Omega, XMatrix); // scattered
+  HMatrix *FTMatrix=SSD->G->GetFields(SSD->IF,  0, SSD->Omega, XMatrix); // incident
+
+  // set total = incident + scattered
+  FTMatrix->AddBlock(FSMatrix, 0, 0);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   cdouble *EHS=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
   cdouble *EHT=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
-  if (EHS==0 || EHT==0) ErrExit("out of memory");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
-   GetTotalField(SSD, P->Centroid, EHS + 6*np, EHT + 6*np);
+  if (EHS==0 || EHT==0) 
+   ErrExit("out of memory");
+  for(np=0; np<NP; np++)
+   { 
+      EHS[6*np + 0] = FSMatrix->GetEntry(np, 0);
+      EHS[6*np + 1] = FSMatrix->GetEntry(np, 1);
+      EHS[6*np + 2] = FSMatrix->GetEntry(np, 2);
+      EHS[6*np + 3] = FSMatrix->GetEntry(np, 3);
+      EHS[6*np + 4] = FSMatrix->GetEntry(np, 4);
+      EHS[6*np + 5] = FSMatrix->GetEntry(np, 5);
 
+      EHT[6*np + 0] = FTMatrix->GetEntry(np, 0);
+      EHT[6*np + 1] = FTMatrix->GetEntry(np, 1);
+      EHT[6*np + 2] = FTMatrix->GetEntry(np, 2);
+      EHT[6*np + 3] = FTMatrix->GetEntry(np, 3);
+      EHT[6*np + 4] = FTMatrix->GetEntry(np, 4);
+      EHT[6*np + 5] = FTMatrix->GetEntry(np, 5);
+   };
+  
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   // maximum values of scattered and total fields, used below for 
   // normalization 
   double MaxESMag=0.0, MaxETMag=0.0, MaxHSMag=0.0, MaxHTMag=0.0;
@@ -329,10 +371,12 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
 
   free(EHS);
   free(EHT);
+  delete FSMatrix;
+  delete FTMatrix;
+  delete XMatrix;
   delete O;
 
 }
-
 /***************************************************************/
 /* integrand routine for GetPower_BF ***************************/
 /***************************************************************/
