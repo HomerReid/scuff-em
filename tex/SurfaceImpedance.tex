@@ -60,6 +60,14 @@ the following:
        tangential $\vb E$ field, but this vanishes in view of 
        the boundary condition (\ref{PECBC1}):
        $$\vb N(\vb x) = -\vbhat{n}\times \vb E\sups{tot}(\vb x)\equiv0.$$
+ \item $\vb K$ gives rise to scattered $\vb E$ and $\vb H$ fields according to
+       \begin{align*}
+        \vb E\sups{scat} &= \int \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+                            \cdot \vb K(\vb x^\prime) d\vb x^\prime
+        \\
+        \vb H\sups{scat} &= \int \BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime) 
+                            \cdot \vb K(\vb x^\prime) d\vb x^\prime.
+       \end{align*}
  \item We solve for $\vb K$ by demanding that the scattered field 
        to which it gives rise satisfy the boundary condition
        (\ref{PECBC1}):
@@ -99,18 +107,67 @@ For IPEC surfaces, I modify the EFIE procedure as follows:
        the boundary condition (\ref{PECBC1}):
        $$\vb N(\vb x) = -\vbhat{n}\times \vb E\sups{tot}(\vb x)
                       = -Z_s \vbhat{n}\times \vb K(\vb x).$$
- \item I solve for $\vb K$ by demanding that the scattered fields 
-       to which it -- now together with $\vb N$ -- gives rise 
-       satisfy the boundary condition (\ref{IPECBC1}):
+ \item $\vb K$ and $\vb N\equiv \vb N[\vb K]$ give rise to scattered $\vb E$ and 
+       $\vb H$ fields according to
        \begin{align*}
+         \vb E\sups{scat} &= 
+           \int \left\{       \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+                        \cdot \vb K(\vb x^\prime)
+                        \,-\, 
+                           Z_s\BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime) 
+                        \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big] 
+                \right\}\,d\vb x^\prime
+         \\
+         \vb H\sups{scat} &= 
+           \int \left\{       \BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime) 
+                        \cdot \vb K(\vb x^\prime)
+                        \,-\, 
+                           Z_s\BG_{\parallel}\supt{MM}(\vb x, \vb x^\prime) 
+                        \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big] 
+                \right\}\,d\vb x^\prime.
+       \end{align*}
+%       which I could write alternatively as 
+%       \begin{align*}
+%         \vb E\sups{scat} &= 
+%           \int \left\{ \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+%                        +Z_s \Big[\vbhat{n}\times \BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime)\Big]
+%                \right\}
+%                        \cdot \vb K(\vb x^\prime) \,d\vb x^\prime
+%         \\
+%         \vb H\sups{scat} &= 
+%           \int \left\{ \BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime) 
+%                        +Z_s \Big[\vbhat{n}\times \BG_{\parallel}\supt{MM}(\vb x, \vb x^\prime)\Big]
+%                \right\}
+%                        \cdot \vb K(\vb x^\prime) \,d\vb x^\prime
+%       \end{align*}
+ \item I solve for $\vb K$ by demanding that the scattered fields 
+       to which it -- now in concert with $\vb N$ -- gives rise 
+       satisfy the boundary condition (\ref{IPECBC1}):
+       $$
            \vb E_{\parallel}\sups{scat}(\vb x) 
             -Z_s \vbhat{n}\times \vb H_{\parallel}\sups{scat}(\vb x)
-        &= 
+       = 
           -\vb E_{\parallel}\sups{inc}(\vb x) 
             +Z_s \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
-        \intertext{or} 
-            &=.
-        \end{align*}
+       $$
+       or
+       \begin{align*}
+       \int\bigg\{ &\BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+                   \cdot \vb K(\vb x^\prime)
+                   \\
+                   &- Z_s\BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime)
+                   \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big] 
+                   \\
+                   &-Z_s\vbhat{n}\times \BG_{\parallel}\supt{EM}(\vb x, \vb x^\prime) 
+                   \cdot \vb K(\vb x^\prime)
+                   \\
+                   &+Z_s^2
+                   \vbhat{n}\times\BG_{\parallel}\supt{MM}(\vb x, \vb x^\prime)
+                   \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big]
+       \bigg\}
+       = -\vb E_{\parallel}\sups{inc}(\vb x) 
+            +Z_s \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
+       \end{align*}
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
