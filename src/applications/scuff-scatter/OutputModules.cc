@@ -99,9 +99,106 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+static char *FieldFuncs=
+ "|Ex|,|Ey|,|Ez|,"
+ "sqrt(|Ex|^2+|Ey|^2+|Ez|^2),"
+ "|Hx|,|Hy|,|Hz|,"
+ "sqrt(|Hx|^2+|Hy|^2+|Hz|^2)";
+
+static const char *FieldTitles[]=
+ {"|Ex|", "|Ey|", "|Ez|", "|E|",
+  "|Hx|", "|Hy|", "|Hz|", "|H|",
+ };
+
+#define NUMFIELDFUNCS 8
+
+void CreateFluxPlot(SSData *SSD, char *MeshFileName)
+{ 
+  /*--------------------------------------------------------------*/
+  /*- try to open output file ------------------------------------*/
+  /*--------------------------------------------------------------*/
+  FILE *f=vfopen("%s.pp","w",GetFileBase(MeshFileName));
+  if (!f) 
+   { fprintf(stderr,"warning: could not open output file %s.pp\n",GetFileBase(MeshFileName));
+     return;
+   };
+  
+  /*--------------------------------------------------------------*/
+  /*- try to open user's mesh file -------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGObject *O=new RWGObject(MeshFileName);
+
+  Log("Creating flux plot for surface %s...",MeshFileName);
+  printf("Creating flux plot for surface %s...\n",MeshFileName);
+
+  /*--------------------------------------------------------------*/
+  /*- create an Nx3 HMatrix whose columns are the coordinates of  */
+  /*- the flux mesh panel vertices                                */
+  /*--------------------------------------------------------------*/
+  HMatrix *XMatrix=new HMatrix(O->NumVertices, 3);
+  int nv;
+  for(nv=0; nv<O->NumVertices; nv++)
+   { 
+     XMatrix->SetEntry(nv, 0, O->Vertices[3*nv + 0]);
+     XMatrix->SetEntry(nv, 1, O->Vertices[3*nv + 1]);
+     XMatrix->SetEntry(nv, 2, O->Vertices[3*nv + 2]);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  HMatrix *FMatrix=SSD->G->GetFields(SSD->IF, SSD->KN, SSD->Omega, XMatrix, 0, FieldFuncs);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGPanel *P;
+  int nff, np, iV1, iV2, iV3;
+  double *V1, *V2, *V3;
+  for(nff=0; nff<NUMFIELDFUNCS; nff++)
+   { 
+     fprintf(f,"View \"%s\" {\n",FieldTitles[nff]);
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     for(np=0; np<O->NumPanels; np++)
+      {
+        P=O->Panels[np];
+        iV1 = P->VI[0];  V1 = O->Vertices + 3*iV1;
+        iV2 = P->VI[1];  V2 = O->Vertices + 3*iV2;
+        iV3 = P->VI[2];  V3 = O->Vertices + 3*iV3;
+
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   V1[0], V1[1], V1[2], 
+                   V2[0], V2[1], V2[2], 
+                   V3[0], V3[1], V3[2], 
+                   FMatrix->GetEntryD(iV1,nff),
+                   FMatrix->GetEntryD(iV2,nff),
+                   FMatrix->GetEntryD(iV3,nff));
+
+      };
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     fprintf(f,"};\n\n");
+   };
+
+  fclose(f);
+  delete FMatrix;
+  delete XMatrix;
+  delete O;
+
+}
+
+/***************************************************************/
 /* generate plots of poynting flux and field-strength arrows   */
 /* on a user-supplied surface mesh                             */
 /***************************************************************/
+#if 0
 void CreateFluxPlot(SSData *SSD, char *MeshFileName)
 { 
   RWGObject *O=new RWGObject(MeshFileName);
@@ -377,6 +474,8 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   delete O;
 
 }
+#endif 
+
 /***************************************************************/
 /* integrand routine for GetPower_BF ***************************/
 /***************************************************************/
