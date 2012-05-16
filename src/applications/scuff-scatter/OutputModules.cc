@@ -805,3 +805,40 @@ void GetPower(SSData *SSD, char *PowerFile)
   fclose(f);
    
 }
+
+/***************************************************************/
+/* evaluate the induced dipole moments                         */
+/***************************************************************/
+void GetMoments(SSData *SSD, char *MomentFile)
+{
+  /***************************************************************/
+  /* open the file and write the frequency at the top of the line*/
+  /***************************************************************/
+  FILE *f=fopen(MomentFile,"a");
+  setlinebuf(f);
+  if ( !f ) ErrExit("could not open file %s",MomentFile);
+  
+  /***************************************************************/
+  /* get dipole moments ******************************************/
+  /***************************************************************/
+  RWGGeometry *G = SSD->G;
+  HVector *KN    = SSD->KN;
+  cdouble Omega  = SSD->Omega;
+
+  HVector *PM  = G->GetDipoleMoments(Omega, KN);
+
+  /***************************************************************/
+  /* print to file ***********************************************/
+  /***************************************************************/
+  int no, nm, Mu;
+  fprintf(f,"%s ",z2s(Omega));
+  for (no=0; no<G->NumObjects; no++)
+   { fprintf(f,"%s ",G->Objects[no]->Label);
+     for(Mu=0; Mu<6; Mu++)
+      fprintf(f,"%s ",CD2S(PM->GetEntry(6*no + Mu),"%.8e %.8e "));
+   };
+  fprintf(f,"\n");
+
+  delete PM;
+
+}

@@ -363,9 +363,7 @@ class RWGGeometry
    /****************************************************/
 
    /* routine for calculating electric and magnetic dipole moments */
-   void GetDipoleMoments(double Frequency, int RealFreq, HVector *KN, 
-                         cdouble (*PM)[6], int nThread = 0);
-
+   HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
 
    /* routine for calculating spherical multipole moments */
 #if 0

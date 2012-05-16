@@ -36,6 +36,7 @@ typedef struct SSData
 /* scattered fields in various ways.                           */
 /***************************************************************/
 void GetPower(SSData *SSD, char *PowerFile);
+void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);
 void CreateFluxPlot(SSData *SSData, char *MeshFileName);
 
