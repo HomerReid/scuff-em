@@ -89,8 +89,8 @@ void CalcGC(double R[3], double Frequency, int RealFreq,
   ikr3=ikr2*ikr;
 
   /* scalar factors */
-  f1=MuR*ExpFac / (4.0*M_PI*ikr2*r);
-  f1p=MuR*(ikr-3.0) * ExpFac / (4.0*M_PI*ikr2*r*r);
+  f1=ExpFac / (4.0*M_PI*ikr2*r);
+  f1p=(ikr-3.0) * ExpFac / (4.0*M_PI*ikr2*r*r);
 
   f2=1.0 - ikr + ikr2;
   f2p=-1.0*ik + 2.0*ik*ik*r;
@@ -101,8 +101,8 @@ void CalcGC(double R[3], double Frequency, int RealFreq,
   f4=(-1.0+ikr)/(ik);
   f4p=1.0;
 
-  f5=MuR*ExpFac / (4.0*M_PI*r*r*r);
-  f5p=MuR*(ikr-3.0)*ExpFac/(4.0*M_PI*r*r*r*r);
+  f5=ExpFac / (4.0*M_PI*r*r*r);
+  f5p=(ikr-3.0)*ExpFac/(4.0*M_PI*r*r*r*r);
 
   /* computation of G_{\mu\nu} */
   if (GMuNu)
