@@ -2646,11 +2646,11 @@ described by an RWG function populated with unit strength is
 
 The magnetic dipole moment of an electric current distribution $\vb J(\vb x)$ is 
 $$\vb m= \frac{1}{2} \int_{\sup \vb J}  \vb x \times \vb J(\vb x) \,d\vb x. $$
-Then the electric dipole moment of a magnetic current distribution 
+Then the magnetic dipole moment of an electric current distribution 
 described by an RWG function populated with unit strength is 
 \begin{align*}
   \vb m_\alpha 
-&= l_\alpha
+&= \frac{l_\alpha}{2}
    \left\{ 
    \frac{1}{2A^+_\alpha} \int_{\pan_\alpha^+} 
                          \vb x \times \Big(\vb x-\vb Q^+\Big) 
@@ -2660,7 +2660,7 @@ described by an RWG function populated with unit strength is
                          \vb x \times \Big(\vb x-\vb Q^-\Big) 
                          \,d\vb x  
    \right\}  \\
-&= l_\alpha
+&= \frac{l_\alpha}{2}
    \left\{ 
    \frac{1}{2A^+_\alpha} 
      \left[\vb Q^+ \times \int_{\pan_\alpha^+} \vb x \,d\vb x  \right]
@@ -2668,7 +2668,7 @@ described by an RWG function populated with unit strength is
    \frac{1}{2A^-_\alpha} 
      \left[ \vb Q^- \times \int_{\pan_\alpha^-} \vb x \,d\vb x \right]
    \right\}\\
-&= l_\alpha
+&= \frac{l_\alpha}{2}
    \left\{ 
             \int_0^1 \,du\,\int_0^u \, dv 
             \Big[  u(\vb Q^+ \times \vb V_1) 
@@ -2682,7 +2682,7 @@ described by an RWG function populated with unit strength is
                   +v(\vb Q^- \times (\vb V_2 - \vb V_1)) 
             \Big]
    \right\} \\
-&= \frac{l_\alpha}{3}
+&= \frac{l_\alpha}{12}
    \Big(\vb Q^+_\alpha - \vb Q^-_\alpha\Big) \times 
    \Big(\vb V_{1\alpha} + \vb V_{2\alpha}\Big).
 \end{align*}
