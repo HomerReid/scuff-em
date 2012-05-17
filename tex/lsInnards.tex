@@ -2755,7 +2755,7 @@ $\vb N$ into the mix. The fields become
                   \underbrace{\Big\{ \moment{p_j}{K} + \frac{1}{Z}\moment{m_j}{N} \Big\}}
                              _{\moment{p_j}{K,N}}
                   +B_{ij} 
-                  \underbrace{\Big\{ \moment{m}{K} - \frac{1}{Z}\moment{p}{N} \Big\}}
+                  \underbrace{\Big\{ \moment{m_j}{K} - \frac{1}{Z}\moment{p_j}{N} \Big\}}
                              _{\moment{m_j}{K,N}}
           \bigg]
 \\[10pt]
@@ -2763,14 +2763,14 @@ $\vb N$ into the mix. The fields become
  &=  -ik\oint \vb C(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) d\vb x^\prime
    +\frac{ik}{Z} \oint \vb G(\vb x, \vb x^\prime) \cdot \vb N(\vb x^\prime) d\vb x^\prime
 \\[5pt]
- &\to       -ik\Big[  -B_{ij} \moment{p}{K} + A_{ij} \moment{m}{K} \Big]
-  +\frac{ik}{Z}\Big[   A_{ij} \moment{p}{N} + B_{ij} \moment{m}{N} \Big].
+ &\to       -ik\Big[  -B_{ij} \moment{p_j}{K} + A_{ij} \moment{m_j}{K} \Big]
+  +\frac{ik}{Z}\Big[   A_{ij} \moment{p_j}{N} + B_{ij} \moment{m_j}{N} \Big].
 \\[5pt]
  &\to      -ik\bigg[  -B_{ij} 
-                      \underbrace{\Big\{\moment{p}{K} + \frac{1}{Z}\moment{m}{N}\Big\}}
+                      \underbrace{\Big\{\moment{p_j}{K} + \frac{1}{Z}\moment{m_j}{N}\Big\}}
                                 _{\moment{p_j}{K,N}}
                       +A_{ij} 
-                      \underbrace{\Big\{\moment{m}{K} - \frac{1}{Z}\moment{m}{P}\Big\}}
+                      \underbrace{\Big\{\moment{m_j}{K} - \frac{1}{Z}\moment{m_j}{N}\Big\}}
                                 _{\moment{m_j}{K,N}}
               \bigg].
 \end{align*}
@@ -2780,7 +2780,7 @@ $$ \moment{\vb p}{K,N} \equiv \moment{\vb p}{K} + \frac{1}{Z}\moment{\vb m}{N},
    \qquad
    \moment{\vb m}{K,N} \equiv \moment{\vb m}{K} - \frac{1}{Z}\moment{\vb p}{N}.
 $$
-Note that these depend on $\vb Z$.
+Note that these depend on $Z$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

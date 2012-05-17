@@ -85,6 +85,14 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
       VecAdd(V1, V2, V1pV2);
       VecCross(QPmQM, V1pV2, QQxVV);
       PreFac=E->Length / 3.0;
+
+      pRWG[0] = PreFac * QPmQM[0] / (IK);
+      pRWG[1] = PreFac * QPmQM[1] / (IK);
+      pRWG[2] = PreFac * QPmQM[2] / (IK);
+      mRWG[0] = PreFac * QQxVV[0];
+      mRWG[1] = PreFac * QQxVV[1];
+      mRWG[2] = PreFac * QQxVV[2];
+
       KAlpha=KN->GetEntry( nbf++ );
       if ( O->MP->Type==MP_PEC )
        NAlpha=0.0;
@@ -92,8 +100,8 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
        NAlpha=KN->GetEntry( nbf++ ) * (-1.0*ZVAC);
 
       for(Mu=0; Mu<3; Mu++)
-       { PM->AddEntry( 6*no + Mu + 0, PreFac*(KAlpha*QPmQM[Mu]/IK + NAlpha*QQxVV[Mu]/ZVAC) );
-         PM->AddEntry( 6*no + Mu + 3, PreFac*(KAlpha*QQxVV[Mu]    - NAlpha*QQxVV[Mu]/(IK*ZVAC)) );
+       { PM->AddEntry( 6*no + Mu + 0, KAlpha*pRWG[Mu] + NAlpha*mRWG[Mu]/ZVAC);
+         PM->AddEntry( 6*no + Mu + 3, KAlpha*mRWG[Mu] - NAlpha*pRWG[Mu]/ZVAC);
        };
  
     };
