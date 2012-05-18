@@ -25,6 +25,7 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
+
 /***************************************************************/
 /* get electric and magnetic dipole moments of a current       */
 /* distribution described by a set of RWG basis functions      */
@@ -89,9 +90,9 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
       pRWG[0] = PreFac * QPmQM[0] / (IK);
       pRWG[1] = PreFac * QPmQM[1] / (IK);
       pRWG[2] = PreFac * QPmQM[2] / (IK);
-      mRWG[0] = PreFac * QQxVV[0];
-      mRWG[1] = PreFac * QQxVV[1];
-      mRWG[2] = PreFac * QQxVV[2];
+      mRWG[0] = PreFac * QQxVV[0] / 4.0;
+      mRWG[1] = PreFac * QQxVV[1] / 4.0;
+      mRWG[2] = PreFac * QQxVV[2] / 4.0;
 
       KAlpha=KN->GetEntry( nbf++ );
       if ( O->MP->Type==MP_PEC )
@@ -109,6 +110,7 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+PM->Scale(ZVAC); /* ? */ 
   return PM;
 
 }
