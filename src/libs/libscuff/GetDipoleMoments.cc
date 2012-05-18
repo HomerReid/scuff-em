@@ -63,7 +63,7 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
   double QPmQM[3], V1pV2[3], QQxVV[3];
   double PreFac;
   cdouble KAlpha, NAlpha;
-  cdouble pK[3], mK[3], pN[3], mN[3];
+  cdouble pRWG[3], mRWG[3];
   cdouble IK=II*Omega; 
   int nbf, no, ne, Mu;
   for(nbf=no=0; no<NumObjects; no++)

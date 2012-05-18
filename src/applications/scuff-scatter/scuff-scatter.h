@@ -14,7 +14,6 @@
 
 using namespace scuff;
 
-
 /***************************************************************/
 /* data structure containing everything needed to execute a    */
 /* scattering calculation                                      */

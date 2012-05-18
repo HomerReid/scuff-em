@@ -1,5 +1,6 @@
 SUBDIRS =            \
  SolidSphere         \
  SphericalShell      \
- ApertureDiffraction
+ ApertureDiffraction \
+ WireAntenna         
 

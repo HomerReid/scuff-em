@@ -192,10 +192,11 @@ AC_CONFIG_FILES([
  src/libs/libscuff/Makefile
  src/libs/python/Makefile
  src/applications/Makefile
- src/applications/scuff-scatter/Makefile
+ src/applications/scuff-analyze/Makefile
  src/applications/scuff-caspol/Makefile
  src/applications/scuff-heat/Makefile
- src/applications/scuff-analyze/Makefile
+ src/applications/scuff-rf/Makefile
+ src/applications/scuff-scatter/Makefile
  examples/Makefile
  examples/ApertureDiffraction/Makefile
  examples/SolidSphere/Makefile
