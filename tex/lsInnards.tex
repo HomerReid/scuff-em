@@ -2925,6 +2925,35 @@ from our full frequency-dependent formalism.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\newcommand{\GBar}{\overline{\vb G}}
+\newcommand{\CBar}{\overline{\vb G}}
+
+\section{Periodic Boundary Conditions}
+
+\subsection{Periodic DGFs}
+
+To avoid confusion with the free-space photon wavenumber, 
+I use the symbol $\vb p$ to denote a two-dimensional 
+Bloch wavevector.
+
+\begin{align*}
+  \GBar(\vb p; \vb r, \vb r^\prime)
+&= \sum_{\vb L} e^{i \vb p \cdot \vb L} G(\vb r, \vb r^\prime-\vb L)
+\\
+  \CBar(\vb p; \vb r, \vb r^\prime)
+&= \sum_{\vb L} e^{i \vb p \cdot \vb L} C(\vb r, \vb r^\prime-\vb L)
+\end{align*}
+
+\subsection{Assembling the BEM matrix}
+
+\begin{align*}
+M_{\alpha\beta}
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \appendix
 
 \include{IndexNotationAppendix} 
