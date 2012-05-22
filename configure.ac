@@ -201,6 +201,7 @@ AC_CONFIG_FILES([
  examples/ApertureDiffraction/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
+ examples/WireAntenna/Makefile
  tests/Makefile
 ])
 AC_OUTPUT

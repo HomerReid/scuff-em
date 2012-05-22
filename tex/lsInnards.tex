@@ -2927,7 +2927,7 @@ from our full frequency-dependent formalism.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \newcommand{\GBar}{\overline{\vb G}}
-\newcommand{\CBar}{\overline{\vb G}}
+\newcommand{\CBar}{\overline{\vb C}}
 
 \section{Periodic Boundary Conditions}
 
@@ -2939,10 +2939,10 @@ Bloch wavevector.
 
 \begin{align*}
   \GBar(\vb p; \vb r, \vb r^\prime)
-&= \sum_{\vb L} e^{i \vb p \cdot \vb L} G(\vb r, \vb r^\prime-\vb L)
+&= \sum_{\vb L} e^{i \vb p \cdot \vb L} \vb G(\vb r, \vb r^\prime+\vb L)
 \\
   \CBar(\vb p; \vb r, \vb r^\prime)
-&= \sum_{\vb L} e^{i \vb p \cdot \vb L} C(\vb r, \vb r^\prime-\vb L)
+&= \sum_{\vb L} e^{i \vb p \cdot \vb L} \vb C(\vb r, \vb r^\prime+\vb L)
 \end{align*}
 
 \subsection{Assembling the BEM matrix}

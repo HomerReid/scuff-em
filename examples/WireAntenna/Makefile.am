@@ -7,7 +7,7 @@ EXTRA_DIST=			\
  SquareCoil_79.ports		\
  SquareCoil_79.pp		\
  SquareCoil_79.scuffgeo		\
- SquareCoil.geo			\
+ SquareCoil.geo
 
 pkgdatadir = $(datadir)/scuff-em/examples/WireAntenna
 nodist_pkgdata_DATA = ${EXTRA_DIST}

@@ -6,6 +6,7 @@ scuff_rf_SOURCES =		\
  GetPortVoltages.cc		\
  ProcessEPFile.cc		\
  RWGPorts.cc			\
+ RWGPorts.h 	 		\
  ZSConvert.cc
 
 scuff_rf_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
