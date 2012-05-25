@@ -14,6 +14,7 @@ libscuff_la_SOURCES = \
  GetDipoleMoments.cc \
  GetFields.cc \
  InitEdgeList.cc \
+ Overlap.cc \
  PanelPanelInteractions.cc \
  PointInObject.cc \
  QDFIPPI.cc \
