@@ -144,8 +144,9 @@ class RWGObject
    /* destructor */
    ~RWGObject();
 
-   /* get overlap integral between two basis functions */
+   /* get overlap integrals between two basis functions */
    double GetOverlap(int neAlpha, int neBeta, double *pOTimes = NULL);
+   void GetOverlaps(int neAlpha, int neBeta, int i, double Overlaps[5]);
 
    /* apply a general transformation (rotation+displacement) to the object */
    void Transform(const GTransformation *GT);

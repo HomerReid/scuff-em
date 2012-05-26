@@ -31,6 +31,7 @@ typedef struct GOBFData
  {
    double *V0, *V1, *V2, *QP, *ZHat;
    double PreFac;
+   int i;
  } GOBFData;
 
 void GetOverlapBFIntegrand(unsigned ndim, const double *x, void *params,
@@ -45,15 +46,21 @@ void GetOverlapBFIntegrand(unsigned ndim, const double *x, void *params,
   double *QP   = GOBFD->QP;
   double *ZHat = GOBFD->ZHat;
   double PreFac = GOBFD->PreFac;
+  int i        = GOBFD->i;
 
   double X[3], fA[3], fB[3]; 
 
-  int i;
-  for(i=0; i<3; i++)
-   { X[i]  = V0[i] + u*(V1[i]-V0[i]) + v*(V2[i]-V1[i]);
-     fA[i] = X[i] - V0[i];
-     fB[i] = X[i] - QP[i];
+  int Mu;
+  for(Mu=0; Mu<3; Mu++)
+   { X[Mu]  = V0[Mu] + u*(V1[Mu]-V0[Mu]) + v*(V2[Mu]-V1[Mu]);
+     fA[Mu] = X[Mu] - V0[Mu];
+     fB[Mu] = X[Mu] - QP[Mu];
    };
+
+  double nxfA[3];
+  nxfA[0] = ZHat[1]*fA[2] - ZHat[2]*fA[1];
+  nxfA[1] = ZHat[2]*fA[0] - ZHat[0]*fA[2];
+  nxfA[2] = ZHat[0]*fA[1] - ZHat[1]*fA[0];
 
   double nxfB[3];
   nxfB[0] = ZHat[1]*fB[2] - ZHat[2]*fB[1];
@@ -62,13 +69,16 @@ void GetOverlapBFIntegrand(unsigned ndim, const double *x, void *params,
 
   fval[0] = u*PreFac*(fA[0]*fB[0]   + fA[1]*fB[1]   + fA[2]*fB[2]);
   fval[1] = u*PreFac*(fA[0]*nxfB[0] + fA[1]*nxfB[1] + fA[2]*nxfB[2]);
+  fval[2] = u*ZHat[i]*PreFac*(fA[0]*fB[0] + fA[1]*fB[1] + fA[2]*fB[2]);
+  fval[3] = u*ZHat[i]*PreFac*4.0;
+  fval[4] = u*nxfA[i]*PreFac*2.0;
 
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
+void GetOverlapBF(RWGObject *O, int nea, int neb, int i,double OValues[5])
 {
   RWGEdge *Ea=O->Edges[nea], *Eb=O->Edges[neb];
 
@@ -80,11 +90,12 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
   double *QPP = O->Vertices + 3*Eb->iQP;
   double *QMP = O->Vertices + 3*Eb->iQM;
 
-  OValues[0]=OValues[1]=0.0;
+  memset(OValues,0,5*sizeof(double));
 
   GOBFData MyGOBFD, *GOBFD = &MyGOBFD;
   GOBFD->V1   = V1;
   GOBFD->V2   = V2;
+  GOBFD->i    = i;
 
   RWGPanel *PP= O->Panels[Ea->iPPanel];
   double PArea = PP->Area;
@@ -94,7 +105,7 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
 
   double Lower[2]={0.0, 0.0};
   double Upper[2]={1.0, 1.0};
-  double I[2], E[2];
+  double I[5], E[5];
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -104,13 +115,16 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
      GOBFD->V0     = QP; 
      GOBFD->QP     = QPP;
      GOBFD->ZHat   = PP->ZHat;
-     GOBFD->PreFac = (Ea->Length * Eb->Length)/(2*PArea);
+     GOBFD->PreFac = (Ea->Length * Eb->Length)/(2.0*PArea);
 
-     adapt_integrate(2, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
+     adapt_integrate(5, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
 		     Lower, Upper, MAXEVAL, ABSTOL, RELTOL, I, E);
 
      OValues[0] += I[0];
      OValues[1] += I[1];
+     OValues[2] += I[2];
+     OValues[3] += I[3];
+     OValues[4] += I[4];
    };
 
   if ( Ea->iPPanel == Eb->iMPanel )
@@ -118,13 +132,16 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
      GOBFD->V0     = QP; 
      GOBFD->QP     = QMP;
      GOBFD->ZHat   = PP->ZHat;
-     GOBFD->PreFac = (Ea->Length * Eb->Length)/(2*PArea);
+     GOBFD->PreFac = (Ea->Length * Eb->Length)/(2.0*PArea);
 
-     adapt_integrate(2, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
+     adapt_integrate(5, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
 		     Lower, Upper, MAXEVAL, ABSTOL, RELTOL, I, E);
 
      OValues[0] -= I[0];
      OValues[1] -= I[1];
+     OValues[2] -= I[2];
+     OValues[3] -= I[3];
+     OValues[4] -= I[4];
    };
 
   if ( Ea->iMPanel == Eb->iPPanel )
@@ -132,13 +149,16 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
      GOBFD->V0     = QM; 
      GOBFD->QP     = QPP;
      GOBFD->ZHat   = PM->ZHat;
-     GOBFD->PreFac = (Ea->Length * Eb->Length)/(2*MArea);
+     GOBFD->PreFac = (Ea->Length * Eb->Length)/(2.0*MArea);
 
-     adapt_integrate(2, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
+     adapt_integrate(5, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
 		     Lower, Upper, MAXEVAL, ABSTOL, RELTOL, I, E);
 
      OValues[0] -= I[0];
      OValues[1] -= I[1];
+     OValues[2] -= I[2];
+     OValues[3] -= I[3];
+     OValues[4] -= I[4];
    };
 
   if ( Ea->iMPanel == Eb->iMPanel )
@@ -146,13 +166,16 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
      GOBFD->V0     = QM; 
      GOBFD->QP     = QMP;
      GOBFD->ZHat   = PM->ZHat;
-     GOBFD->PreFac = (Ea->Length * Eb->Length)/(2*MArea);
+     GOBFD->PreFac = (Ea->Length * Eb->Length)/(2.0*MArea);
 
-     adapt_integrate(2, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
+     adapt_integrate(5, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
 		     Lower, Upper, MAXEVAL, ABSTOL, RELTOL, I, E);
 
      OValues[0] += I[0];
      OValues[1] += I[1];
+     OValues[2] += I[2];
+     OValues[3] += I[3];
+     OValues[4] += I[4];
    };
 
 }
@@ -163,6 +186,7 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[2])
 /* older libRWG version of the current GetOverlap function in  */
 /* libscuff.)                                                  */
 /***************************************************************/
+#if 0
 double GetOverlapOld(RWGObject *O, int neAlpha, int neBeta)
 { 
   RWGEdge *EAlpha=O->Edges[neAlpha], *EBeta=O->Edges[neBeta];
@@ -227,6 +251,7 @@ double GetOverlapOld(RWGObject *O, int neAlpha, int neBeta)
   return Sum;
 
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/
@@ -258,16 +283,15 @@ int main(int argc, char *argv[])
   char *Tokens[50];
   char *p;
   int nea, neb;
-  int nnz, NNZ;
-  double OValues[2], OHR, OTimesHR;
-  HMatrix *MM = new HMatrix(10, 6);
+  int i;
+  double OBF[5], OHR[5], OOld[2];
   srand48(time(0));
   for(;;)
    { 
      /*--------------------------------------------------------------*/
      /*- print prompt and get input string --------------------------*/
      /*--------------------------------------------------------------*/
-     printf(" options: --nea xx \n");
+     printf(" options: --nea xx --i xx\n");
      p=readline("enter options: ");
      if (!p) break;
      add_history(p);
@@ -277,70 +301,45 @@ int main(int argc, char *argv[])
      /* parse input string                                          -*/
      /*--------------------------------------------------------------*/
      NumTokens=Tokenize(p,Tokens,50);
-     nea=-1;
+     nea=i=-1;
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--nea") )
        sscanf(Tokens[nt+1],"%i",&nea);
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--i") )
+       sscanf(Tokens[nt+1],"%i",&i);
      free(p);
 
      if (nea==-1)
       nea = lrand48() % O->NumEdges;
+     if (i<0 || i>2)
+      i = lrand48() % 3;
+
+     double ReferenceArea = O->Panels[O->Edges[nea]->iPPanel]->Area;
+
+     printf(" ** for nea=%i (i=%i): \n",nea,i);
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     for(NNZ=neb=0; NNZ<10 && neb<O->NumEdges; neb++)
+     for(neb=0; neb<O->NumEdges; neb++)
       {
-        GetOverlapBF(O, nea, neb, OValues);
-        OHR=O->GetOverlap(nea, neb, &OTimesHR);
-        if (    fabs(OValues[0])>0.0 || fabs(OValues[1])>0.0 
-             || fabs(OHR)>0.0 || fabs(OTimesHR)>0.0 )
-         { 
-           MM->SetEntry(NNZ, 0, (double)neb );
-           MM->SetEntry(NNZ, 1, OHR);
-           MM->SetEntry(NNZ, 2, OValues[0]);
-           MM->SetEntry(NNZ, 3, OTimesHR);
-           MM->SetEntry(NNZ, 4, OValues[1]);
+        GetOverlapBF(O, nea, neb, i, OBF);
+        O->GetOverlaps(nea, neb, i, OHR);
+ //       OOld[0]=O->GetOverlapOld(nea, neb, OOld+1);
 
-           MM->SetEntry(NNZ, 5, GetOverlapOld(O, nea, neb) );
+        if ( fabs(OBF[0])<1.0e-2*ReferenceArea ) 
+         continue;
 
-           NNZ++;
-         };
+        printf("**neb=%i: \n",neb);
+        printf(" bullet:  %+12.4e | %+12.4e | %+.2e | (%+12.4e)\n",OBF[0],OHR[0],RD(OBF[0],OHR[0]),OOld[0]);
+        printf(" times:   %+12.4e | %+12.4e | %+.2e | (%+12.4e)\n",OBF[1],OHR[1],RD(OBF[1],OHR[1]),OOld[1]);
+        printf(" ibullet: %+12.4e | %+12.4e | %+.2e\n",OBF[2],OHR[2],RD(OBF[2],OHR[2]));
+        printf(" iNN    : %+12.4e | %+12.4e | %+.2e\n",OBF[3],OHR[3],RD(OBF[3],OHR[3]));
+        printf(" iTN    : %+12.4e | %+12.4e | %+.2e\n",OBF[4],OHR[4],RD(OBF[4],OHR[4]));
+        printf(" \n");
+         
       };
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     printf(" ** for nea=%i: \n",nea);
-     printf("\n\n");
-     printf("%4s | %10s | %10s | %4s | %10s | %10s | %4s\n",
-             "neb ","   OHR    ","   OBF    "," RD  ","  OTHR    ","  OTBF    "," RD  ");
-     printf("%4s-|-%10s-|-%10s-|-%4s-|-%10s-|-%10s-|-%4s\n",
-             "----","----------","----------","-----","----------","----------","-----");
-
-     for(nnz=0; nnz<NNZ; nnz++)
-      printf("%4g | %+10.3e | %+10.3e | %5.0e | %+10.3e | %+10.3e | %5.0e\n",
-              MM->GetEntryD(nnz,0),
-              MM->GetEntryD(nnz,1),
-              MM->GetEntryD(nnz,2),
-              RD(MM->GetEntryD(nnz,1), MM->GetEntryD(nnz,2)),
-              MM->GetEntryD(nnz,3),
-              MM->GetEntryD(nnz,4),
-              RD(MM->GetEntryD(nnz,3), MM->GetEntryD(nnz,4)));
-
-     printf("\n\n");
-     printf("%4s | %10s | %10s | %5s\n",
-             "neb ","   OHR    ","  OHROLD  ","  RD ");
-     printf("%4s-|-%10s-|-%10s-|-%5s\n",
-             "----","----------","----------","-----");
-
-     for(nnz=0; nnz<NNZ; nnz++)
-      printf("%4g | %+10.3e | %+10.3e | %5.0e\n",
-              MM->GetEntryD(nnz,0), 
-              MM->GetEntryD(nnz,1), 
-              MM->GetEntryD(nnz,5),
-              RD( MM->GetEntryD(nnz,1), MM->GetEntryD(nnz,5) )
-            );
 
    }; // for(;;)
 

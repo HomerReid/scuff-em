@@ -21,7 +21,8 @@ namespace scuff {
 /* Compute the overlap integral between the RWG basis functions*/
 /* associated with two edges in an RWG object.                 */
 /***************************************************************/
-double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
+#if 0
+double RWGObject::GetOverlapOld(int neAlpha, int neBeta, double *pOTimes)
 { 
   RWGEdge *EAlpha=Edges[neAlpha], *EBeta=Edges[neBeta];
 
@@ -131,34 +132,110 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
   return -1.0*Sign*lA*lB*( lA*lA + lB*lB + 3.0*DotProduct ) / (24.0*Area);
 
 }
+#endif
+
+/***************************************************************/
+/* this is a helper function for GetOverlaps that computes the */
+/* contributions of a single panel to the overlap integrals    */
+/***************************************************************/
+#define OVERLAP_BULLET       0
+#define OVERLAP_TIMES        1
+#define OVERLAP_iBULLET      2
+#define OVERLAP_iNABLANABLA  3
+#define OVERLAP_iTIMESNABLA  4
+void AddOverlapContributions(RWGObject *O, RWGPanel *P, int iQa, int iQb, 
+                             double Sign, double LL, int i, 
+                             double Overlaps[5])
+{
+  double *Qa   = O->Vertices + 3*P->VI[ iQa ];
+  double *QaP1 = O->Vertices + 3*P->VI[ (iQa+1)%3 ];
+  double *QaP2 = O->Vertices + 3*P->VI[ (iQa+2)%3 ];
+  double *Qb   = O->Vertices + 3*P->VI[ iQb ];
+  double *ZHat = P->ZHat;
+
+  double A[3], B[3], DQ[3];
+  VecSub(QaP1, Qa, A);
+  VecSub(QaP2, QaP1, B);
+  VecSub(Qa, Qb, DQ);
+
+  double ZxA[3], ZxB[3], ZxDQ[3];
+  VecCross(ZHat, A, ZxA);
+  VecCross(ZHat, B, ZxB);
+  VecCross(ZHat, DQ, ZxDQ);
+
+  double PreFac = Sign * LL / (2.0*P->Area);
+
+  double Bullet=0.0, Times=0.0;
+  for(int Mu=0; Mu<3; Mu++)
+   { Bullet += A[Mu]*(A[Mu]/4.0 + B[Mu]/4.0 + DQ[Mu]/3.0) + B[Mu]*(B[Mu]/12.0 + DQ[Mu]/6.0);
+     Times  += (A[Mu]+0.5*B[Mu])*ZxDQ[Mu]/3.0;
+   };
+
+  Overlaps[OVERLAP_BULLET]      += PreFac*Bullet;
+  Overlaps[OVERLAP_TIMES]       += PreFac*Times;
+  Overlaps[OVERLAP_iBULLET]     += PreFac * ZHat[i] * Bullet;
+  Overlaps[OVERLAP_iNABLANABLA] += PreFac * ZHat[i] * 2.0;
+  Overlaps[OVERLAP_iTIMESNABLA] += PreFac * (ZxA[i]/3.0 + ZxB[i]/6.0) * 2.0;
+
+}
+
 
 /***************************************************************/
 /*                                                             */
 /* entries of output array:                                    */
 /*                                                             */
+/*  Overlaps [0] = O^{\bullet}_{\alpha\beta}                   */
+/*   = \int f_a \cdot f_b                                      */
+/*                                                             */
+/*  Overlaps [1] = O^{\times}_{\alpha\beta}                    */
+/*   = \int f_a \cdot (nHat \times f_b)                        */
+/*                                                             */
+/*  Overlaps [2] = O^{i,\bullet}_{\alpha\beta}                 */
+/*   = \int nHat_i f_a \cdot f_b                               */
+/*                                                             */
+/*  Overlaps [3] = O^{i,\nabla\nabla}_{\alpha\beta}            */
+/*   = \int nHat_i (\nabla \cdot f_a) (\nabla \cdot f_b)       */
+/*                                                             */
+/*  Overlaps [4] = O^{i,\times\nabla}_{\alpha\beta}            */
+/*   = \int (nHat \times \cdot f_a)_i (\nabla \cdot f_b)       */
+/*                                                             */
 /***************************************************************/
-void AddOverlapContributions(RWGEdge *E, RWGEdge 
-{
-  PreFac = Sign*EAlpha->Length*EBeta->Length / P->Area;
-  OTimes       += PreFac * ( VecDot(ApB02,ApB02)/8.0 + VecDot(ApB02,DeltaQ)/6.0 )
-  OiBullet     += PreFac * ( VecDot(ApB02,ApB02)/8.0 + VecDot(ApB02,DeltaQ)/6.0 )
-  OiNablaNabla += PreFac * ZHat[i] / 4.0;
-  OiTimesNabla += PreFac * ( B[i]/3.0 - A[i]/6.0 );
-}
-
-
 void RWGObject::GetOverlaps(int neAlpha, int neBeta, int i, double Overlaps[5])
 {
   RWGEdge *EAlpha = Edges[neAlpha];
   RWGEdge *EBeta  = Edges[neBeta];
 
-  double LL = EAlpha->L
+  RWGPanel *PAlphaP=Panels[EAlpha->iPPanel];
+  RWGPanel *PAlphaM=Panels[EAlpha->iMPanel];
+
+  int iQPAlpha = EAlpha->PIndex;
+  int iQMAlpha = EAlpha->MIndex;
+  int iQPBeta  = EBeta->PIndex;
+  int iQMBeta  = EBeta->MIndex;
+
+  double LL = EAlpha->Length * EBeta->Length;
 
   memset(Overlaps,0,5*sizeof(double));
-  if ( EAlpha->iPPanel == EBeta->iPPanel )
-   { AddOverlapContributions(LL, Panels[EAlpha->iPPanel], 
 
-  O            += PreFac * ( VecDot(ApB02,ApB02)/8.0 + VecDot(ApB02,DeltaQ)/6.0 )
+  if ( EAlpha->iPPanel == EBeta->iPPanel )
+   AddOverlapContributions(this, PAlphaP, iQPAlpha, iQPBeta,  1.0, LL, i, Overlaps);
+  if ( EAlpha->iPPanel == EBeta->iMPanel )
+   AddOverlapContributions(this, PAlphaP, iQPAlpha, iQMBeta, -1.0, LL, i, Overlaps);
+  if ( EAlpha->iMPanel == EBeta->iPPanel )
+   AddOverlapContributions(this, PAlphaM, iQMAlpha, iQPBeta, -1.0, LL, i, Overlaps);
+  if ( EAlpha->iMPanel == EBeta->iMPanel )
+   AddOverlapContributions(this, PAlphaM, iQMAlpha, iQMBeta,  1.0, LL, i, Overlaps);
 }
+
+// return just the simple overlap integral and set *pOTimes = crossed overlap
+// integral if it is non-NULL 
+double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
+{
+  double Overlaps[5];
+  GetOverlaps(neAlpha, neBeta, 0, Overlaps);
+  if (pOTimes) *pOTimes=Overlaps[1];
+  return Overlaps[0];
+}
+
 
 } // namespace scuff
