@@ -14,7 +14,8 @@
 
 namespace scuff {
 
-/***************************************************************/ /* 1. argument structures for routines whose input/output      */
+/***************************************************************/ 
+/* 1. argument structures for routines whose input/output      */
 /*    interface is so complicated that an ordinary C++         */
 /*    function prototype would be too unwieldy.                */
 /*                                                             */
@@ -155,6 +156,7 @@ typedef struct ABMBArgStruct
 
 void InitABMBArgs(ABMBArgStruct *Args);
 void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
+void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args);
 
 /***************************************************************/
 /* 2. definition of data structures and methods for working    */

@@ -15,6 +15,7 @@
 #include <libhrutil.h>
 
 #include "libscuff.h"
+#include "cmatheval.h"
 
 namespace scuff {
 
@@ -47,7 +48,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   /***************************************************************/
   /* read lines from the file one at a time **********************/
   /***************************************************************/
-  char Line[MAXSTR];
+  char Line[MAXSTR], LineCopy[MAXSTR];
   char MaterialName[MAXSTR];
   int NumTokens, TokensConsumed;
   char *Tokens[MAXTOK];
@@ -58,7 +59,8 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
      (*LineNum)++;
-     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+     strcpy(LineCopy,Line);
+     NumTokens=Tokenize(LineCopy, Tokens, MAXTOK);
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
@@ -105,6 +107,23 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
            return;
          };
       }
+     else if ( !strcasecmp(Tokens[0],"SURFACE_CONDUCTIVITY") )
+      { 
+        if (NumTokens<2)
+         { ErrMsg=strdup("no argument specified for SURFACE_CONDUCTIVITY");
+           return;
+         };
+
+        /* try to create a cevaluator for the user's function */
+        char SigmaString[MAXSTR];
+        strncpy(SigmaString,Line + strlen(Tokens[0]) + 1,MAXSTR);
+        SigmaString[strlen(SigmaString)-1]=0; // remove trailing newline
+        SurfaceSigma=cevaluator_create(SigmaString);
+        if (SurfaceSigma==0)
+         { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification");
+           return;
+         };
+      }
      else if ( !strcasecmp(Tokens[0],"ENDOBJECT") )
       { 
         ReachedTheEnd=1;
@@ -117,6 +136,17 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 
   if (pMeshFileName==0)
    ErrMsg=vstrdup("OBJECT section must include a MESHFILE specification",Tokens[0]);
+
+  if ( SurfaceSigma!=0 && MaterialName[0]!=0 && strcasecmp(MaterialName,"PEC") )
+   ErrMsg=vstrdup("SURFACE_CONDUCTIVITY may only be specified for PEC objects");
+
+  if (SurfaceSigma!=0)
+   Log("Object %s has surface conductivity Sigma=%s.\n",Label,cevaluator_get_string(SurfaceSigma));
+
+if (SurfaceSigma!=0)
+ printf("Object %s has surface conductivity Sigma=%s.\n",pLabel,cevaluator_get_string(SurfaceSigma));
+else
+ printf("SurfaceSigma=%p.\n",SurfaceSigma);
 
   InitRWGObject(pMeshFileName, pLabel, MaterialName, &OTGT);
   
@@ -131,13 +161,19 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 RWGObject::RWGObject(const char *pMeshFileName)
- { InitRWGObject(pMeshFileName, 0, 0, 0); }
+{ 
+   SurfaceSigma=0;
+   InitRWGObject(pMeshFileName, 0, 0, 0); 
+}
 
 RWGObject::RWGObject(const char *pMeshFileName, 
                      const char *pLabel,
                      const char *Material,
                      const GTransformation *OTGT)
- { InitRWGObject(pMeshFileName, pLabel, Material, OTGT); }
+{ 
+   SurfaceSigma=0;
+   InitRWGObject(pMeshFileName, pLabel, Material, OTGT);
+}
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

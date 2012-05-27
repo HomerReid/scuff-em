@@ -228,6 +228,11 @@ class RWGObject
    /* in the .scuffgeo file when the object was first created.)     */
    GTransformation *GT;
 
+   /* SurfaceSigma, if non-NULL, points to a cevaluator for a     */
+   /* user-specified function of frequency and position (w,x,y,z) */
+   /* describing the object's surface conductivity                */
+   void *SurfaceSigma;
+
    /*--------------------------------------------------------------*/ 
    /*- private class methods --------------------------------------*/ 
    /*--------------------------------------------------------------*/ 

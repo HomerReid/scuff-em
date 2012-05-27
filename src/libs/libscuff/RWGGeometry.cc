@@ -172,97 +172,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   if (!ExteriorMP)
    ExteriorMP=new MatProp(MP_VACUUM);
 
-#if 0
-  /***************************************************************/
-  /* process material properties of exterior medium             */
-  /***************************************************************/
-  int nmp;
-  if ( strlen(ExteriorMPName)>0 )
-   {
-     for(nmp=0; ExteriorMP==0 && nmp<NumMPs; nmp++)
-      if ( !strcasecmp(ExteriorMPName, MPs[nmp]->Name) )
-       ExteriorMP=MPs[nmp];
-
-     if (ExteriorMP==0)
-      { ExteriorMP = new MatProp(ExteriorMPName);
-        if (ExteriorMP->ErrMsg)
-         ErrExit("%s: medium: error in MATERIAL value: %s",GeoFileName,ExteriorMP->ErrMsg);
-      };
-   }
-  else
-   ExteriorMP=new MatProp(MP_VACUUM);
-
-  if ( ExteriorMP->IsPEC() )
-   ErrExit("%s: PEC exteriorm medium not supported",GeoFileName);
-
-  /***************************************************************/
-  /* process material properties of objects                      */
-  /***************************************************************/
-  for(no=0; no<NumObjects; no++)
-   { 
-     O=Objects[no];
-
-     if ( O->MPName )
-      { 
-        // deallocate the default MP created by the RWGObject constructor
-        delete O->MP;
-        O->MP=0;
-
-        /* look first to see if the requested material was one of */
-        /* the materials defined on-the-fly in the .scuffgeo file */
-        for(nmp=0; O->MP==0 && nmp<NumMPs; nmp++)
-         if ( !strcasecmp(O->MPName, MPs[nmp]->Name) )
-          O->MP=MPs[nmp];
-
-        /* otherwise ... */ 
-        if (O->MP==0)
-         { O->MP = new MatProp(O->MPName);
-           if (O->MP->ErrMsg)
-            ErrExit("%s: object %s (%s): error in MATERIAL value: %s",
-                     GeoFileName,O->Label,O->MeshFileName,O->MP->ErrMsg); 
-         };
-
-        free(O->MPName);
-      }
-     else
-      O->MP = new MatProp(MP_PEC);
-   };
-#endif
-
-  /***************************************************************/
-  /* process object nesting relationships                        */
-  /***************************************************************/
-#if 0 // old code, required user to manually specify ContainingObject label
-  for(int no=0; no<NumObjects; no++)
-   { 
-     O=Objects[no];
-
-     if ( O->ContainingObjectLabel )
-      { 
-        /* look for an object appearing earlier in the .scuffgeo file */
-        /* whose label matches the requested object label             */
-        for(int nop=0; O->ContainingObject==0 && nop<no; nop++)
-         if ( !strcasecmp(O->ContainingObjectLabel, Objects[nop]->Label ) )
-          O->ContainingObject=Objects[nop];
-
-        /* if no matching object was found, it's an error */
-        if (O->ContainingObject==0)
-         { 
-           for(int nop=no+1; nop<NumObjects; nop++)
-            if ( !strcasecmp(O->ContainingObjectLabel, Objects[nop]->Label ) )
-             ErrExit("%s: object %s: containing object %s must appear earlier in file",
-                     GeoFileName, O->Label, O->ContainingObjectLabel);
-
-           ErrExit("%s: object %s: containing object %s not found",
-                    GeoFileName, O->Label, O->ContainingObjectLabel);
-         };
-
-        free( O->ContainingObjectLabel );
-	O->ContainingObjectLabel = NULL;
-
-      };
-   };
-#else 
   // Autodetect nesting relationships & topologically sort
   // (so that if A contains B, then B comes after A)
   for (int no = 0; no < NumObjects; ++no)
@@ -304,7 +213,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
     free(O->ContainingObjectLabel);
     O->ContainingObjectLabel = NULL;
   }
-#endif
  
   /*******************************************************************/
   /* compute average panel area for statistical bookkeeping purposes */
