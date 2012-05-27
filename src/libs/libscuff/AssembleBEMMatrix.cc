@@ -437,8 +437,9 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
        };
 
       Sigma=cevaluator_evaluate(O->SurfaceSigma, 4, SSParmNames, SSParmValues);
+
 if (neAlpha==0 && neBeta==0)
- Log("Sigma at Omega=%e is %e,%e\n",real(Args->Omega),real(Sigma),imag(Sigma));
+ Log("Object %s: Sigma (Omega=%s) is %s\n",O->Label,z2s(Args->Omega),z2s(Sigma));
 
       B->AddEntry(RowOffset+neAlpha, ColOffset+neBeta, -2.0*Overlap/Sigma);
       if (neAlpha!=neBeta)
