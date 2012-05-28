@@ -307,13 +307,28 @@ RWGGeometry::~RWGGeometry()
 }
 
 /***************************************************************/
-/***************************************************************/
+/* return the object whose label is Label. if pno is non-NULL  */
+/* on entry, then on return it is set to the index of the      */
+/* object.                                                     */
+/*                                                             */
+/* note: if the return value is NULL, then there are three     */
+/* possibilities:                                              */
+/*  (a) the Label string was NULL on entry                     */
+/*  (b) the Label string was "EXTERIOR" or "MEDIUM"            */
+/*  (c) the Label string was some non-empty string that did    */
+/*      not match the label of any object in the geometry.     */
+/*                                                             */
+/* you can tell which happened by looking at pno: in cases (a) */
+/* and (b) (medium was specified) then *pno==-1, whereas in    */
+/* case (c) (invalid object label) *pno==-2.                   */
 /***************************************************************/
 RWGObject *RWGGeometry::GetObjectByLabel(const char *Label, int *pno)
-{ 
+{
+  if (pno) *pno=-2;
+ 
   if (Label==0)
    { if (pno) *pno=-1;
-     return 0;
+     return NULL;
    };
   
   for(int no=0; no<NumObjects; no++)
