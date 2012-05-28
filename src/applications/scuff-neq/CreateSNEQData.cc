@@ -47,10 +47,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile,
   /*--------------------------------------------------------------*/
   SNEQD->WhichQuantities=WhichQuantities;
   SNEQD->NumQuantities=0;
-  if ( WhichQuantities | QUANTITY_POWER  ) SNEQD->NumQuantities++;
-  if ( WhichQuantities | QUANTITY_XFORCE ) SNEQD->NumQuantities++;
-  if ( WhichQuantities | QUANTITY_YFORCE ) SNEQD->NumQuantities++;
-  if ( WhichQuantities | QUANTITY_ZFORCE ) SNEQD->NumQuantities++;
+  if ( WhichQuantities & QUANTITY_POWER  ) SNEQD->NumQuantities++;
+  if ( WhichQuantities & QUANTITY_XFORCE ) SNEQD->NumQuantities++;
+  if ( WhichQuantities & QUANTITY_YFORCE ) SNEQD->NumQuantities++;
+  if ( WhichQuantities & QUANTITY_ZFORCE ) SNEQD->NumQuantities++;
   SNEQD->NTNQ = (SNEQD->NumQuantities * SNEQD->NumTransformations);
 
   /*--------------------------------------------------------------*/

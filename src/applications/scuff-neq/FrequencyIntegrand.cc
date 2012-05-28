@@ -44,7 +44,42 @@ void AssembleOverlapMatrices(SNEQData *SNEQD)
 }
 
 /***************************************************************/
+/* evaluate the four-matrix trace formula for the given        */
+/* quantity on the given object                                */
 /***************************************************************/
+double GetTrace(SNEQData *SNEQD, int WhichQuantity, int WhichObject)
+{
+  int qIndex 
+
+  RWGGeometry *G=SNEQD->G;
+  int NO=G->NumObjects;
+
+  /***************************************************************/
+  /***************************************************************/
+  int nr1, Offset1, no2, nr2, Offset2;
+
+  O1 = G->Objects[WhichObject];
+  Offset1 = G->BFIndexOffset[WhichObject];
+  for(nr1=0; nr1<O1->NumEdges; nr1++)
+   for(no2=0; no2<NO; no2++)
+    { 
+      if (no2==WhichObject) continue;
+
+      O2=G->Objects[no2];
+      Offset2 = G->BFIndexOffset[no2];
+      for(nr2=0; nr2<O2->NumEdges; nr2++)
+
+    };
+
+} 
+
+/***************************************************************/
+/* the computed quantities are ordered in the output vector    */
+/* like this:                                                  */
+/*  FI[ nt*NONQ + nq*NQ + no ]                                 */
+/*   = nqth quantity for noth object under ntth transform      */
+/*  where   NQ = number of quantities computed (between 1-4)   */
+/*  where NONQ = number of objects * number of quantities      */
 /***************************************************************/
 void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
 {
@@ -149,8 +184,8 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      FILE *f=fopen(SNEQD->ByOmegaFile, "a");
-     if (WhichQuantities & 
-     GetTrace(
+     if ( WhichQuantities & QUANTITY_ENERGY )
+      FI[ntnq++] = GetTrace(W, 
 
      /*--------------------------------------------------------------*/
      /* write the result to the frequency-resolved output file ------*/
