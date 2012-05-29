@@ -15,7 +15,7 @@
 /***************************************************************/
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile, 
-                         int WhichQuantities, int PlotFlux)
+                         int QuantityFlags, int PlotFlux)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
@@ -31,6 +31,14 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile,
   SNEQD->G=G;
 
   /*--------------------------------------------------------------*/
+  /*- this code does not make sense if any of the objects are PEC */
+  /*--------------------------------------------------------------*/
+  int no;
+  for(no=0; no<G->NumObjects; no++)
+   if ( G->Objects[no]->MP->IsPEC() ) 
+    ErrExit("%s: object %s: PEC objects are not allowed in scuff-neq", G->GeoFileName,G->Objects[no]->Label);
+
+  /*--------------------------------------------------------------*/
   /*- read the transformation file if one was specified and check */
   /*- that it plays well with the specified geometry file.        */
   /*- note if TransFile==0 then this code snippet still works; in */
@@ -43,14 +51,14 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile,
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
   /*--------------------------------------------------------------*/
+  /*- figure out which quantities were specified                 -*/
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  SNEQD->WhichQuantities=WhichQuantities;
+  SNEQD->QuantityFlags=QuantityFlags;
   SNEQD->NumQuantities=0;
-  if ( WhichQuantities & QUANTITY_POWER  ) SNEQD->NumQuantities++;
-  if ( WhichQuantities & QUANTITY_XFORCE ) SNEQD->NumQuantities++;
-  if ( WhichQuantities & QUANTITY_YFORCE ) SNEQD->NumQuantities++;
-  if ( WhichQuantities & QUANTITY_ZFORCE ) SNEQD->NumQuantities++;
+  if ( QuantityFlags & QFLAG_POWER  ) SNEQD->NumQuantities++;
+  if ( QuantityFlags & QFLAG_XFORCE ) SNEQD->NumQuantities++;
+  if ( QuantityFlags & QFLAG_YFORCE ) SNEQD->NumQuantities++;
+  if ( QuantityFlags & QFLAG_ZFORCE ) SNEQD->NumQuantities++;
   SNEQD->NTNQ = (SNEQD->NumQuantities * SNEQD->NumTransformations);
 
   /*--------------------------------------------------------------*/
@@ -91,21 +99,21 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile,
   SNEQD->W = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
 
   /*--------------------------------------------------------------*/
-  /*- allocate sparse matrices for the OPF and OiMF overlap      -*/
-  /*- matrices. note all overlap matrices have 10 nonzero        -*/
+  /*- allocate sparse matrices to store the various overlap      -*/
+  /*- matrices. note that all overlap matrices have 10 nonzero   -*/
   /*- entries per row.                                           -*/
+  /*-                                                            -*/
+  /*- Also note: we allocate space for all overlap matrices even -*/
+  /*- though they may not all be required depending on which     -*/
+  /*- quantities the user requested. (For example, if only       -*/
+  /*- --power and --zforce were specified, then the x- and y-    -*/
+  /*- momentum flux matrices are not needed.) We could save some -*/
+  /*- small amount of memory by allocating space for only the    -*/
+  /*- matrices we will actually need.                            -*/
   /*--------------------------------------------------------------*/
-  SNEQD->OPF=(SMatrix **)mallocEC(NO*sizeof(SMatrix *));
-  SNEQD->OiMF=(SMatrix **)mallocEC(3*NO*sizeof(SMatrix *));
+  SNEQD->OMatrices=(SMatrix **)mallocEC(MAXQUANTITIES*NO*sizeof(SMatrix *));
   for(no=0; no<NO; no++)
-   { if ( WhichQuantities | QUANTITY_POWER )
-      SNEQD->OPF[no]=new SMatrix(G->Objects[no]->NumBFs,10);
-     if ( WhichQuantities | QUANTITY_XFORCE)
-      SNEQD->OiMF[3*no+0]=new SMatrix(G->Objects[no]->NumBFs,10);
-     if ( WhichQuantities | QUANTITY_YFORCE)
-      SNEQD->OiMF[3*no+1]=new SMatrix(G->Objects[no]->NumBFs,10);
-     if ( WhichQuantities | QUANTITY_ZFORCE)
-      SNEQD->OiMF[3*no+2]=new SMatrix(G->Objects[no]->NumBFs,10);
-   };
+   for(nq=0; nq<MAXQUANTITIES; nq++)
+    SNEQD->OMatrices[ no*MAXQUANTITIES + nq ]=new SMatrix(G->Objects[no]->NumBFs,10);
 
 }

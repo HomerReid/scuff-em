@@ -16,10 +16,21 @@
 
 using namespace scuff;
 
-#define QUANTITY_POWER  1
-#define QUANTITY_XFORCE 2
-#define QUANTITY_YFORCE 4
-#define QUANTITY_ZFORCE 8
+// these are 'quantity flags' and 'quantity indices' used to 
+// differentiate the various quantities that may be computed
+// (power flux and i-directed momentum flux for i=x,y,z)
+
+#define QFLAG_POWER  1
+#define QFLAG_XFORCE 2
+#define QFLAG_YFORCE 4
+#define QFLAG_ZFORCE 8
+
+#define QINDEX_POWER  0
+#define QINDEX_XFORCE 1
+#define QINDEX_YFORCE 2
+#define QINDEX_ZFORCE 3
+
+#define MAXQUANTITIES 4
 
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
@@ -33,18 +44,23 @@ typedef struct SNEQData
    GTComplex **GTCList;
    int NumTransformations;
 
-   int WhichQuantities;
+   int QuantityFlags;
    int NumQuantities;     
+
+   int NumObjects;
    int NTNQ;
 
    char *WriteCache;
 
+   // HMatrix structures for the BEM matrix and its subblocks
    HMatrix *W;        // BEM matrix 
    HMatrix **T;       // T[no] = T-matrix block for object #no
    HMatrix **U;       // U[no*NO + nop] = // U-matrix block for objects #no, #nop
 
-   SMatrix **OPF;     // OCross[no] = power-flux matrix for object #no
-   SMatrix **OiMF;    // OCross[3*no + i] = i-momentum flux matrix for object #no
+   // SMatrix structures for overlap matrices
+   // note: nq=0,1,2,3 for O^{PF}, O^{xMF}, O^{yMF}, O^{zMF}, 
+   // (the matrices for power, x-force, y-force, and z-force.)
+   SMatrix **OMatrices // OMatrices[ no*4 + nq ] = nqth overlap matrix for object no
 
  } SNEQData;
 

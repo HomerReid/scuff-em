@@ -114,12 +114,12 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /* determine which output quantities were requested ****************/
   /*******************************************************************/
-  int WhichQuantities=0;
-  if (Power)  WhichQuantities|=QUANTITY_POWER;
-  if (XForce) WhichQuantities|=QUANTITY_XFORCE;
-  if (YForce) WhichQuantities|=QUANTITY_YFORCE;
-  if (ZForce) WhichQuantities|=QUANTITY_ZFORCE;
-  if (WhichQuantities==0)
+  int QuantityFlags=0;
+  if (Power)  QuantityFlags|=QFLAG_POWER;
+  if (XForce) QuantityFlags|=QFLAG_XFORCE;
+  if (YForce) QuantityFlags|=QFLAG_YFORCE;
+  if (ZForce) QuantityFlags|=QFLAG_ZFORCE;
+  if (QuantityFlags==0)
    ErrExit("you must specify at least one quantity to compute");
 
   /*******************************************************************/
@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
   /* create the SHNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SHNEQData *SHNEQD=CreateSHNEQData(GeoFile, TransFile, ByOmegaFile, WhichQuantities, PlotFlux);
+  SHNEQData *SHNEQD=CreateSHNEQData(GeoFile, TransFile, ByOmegaFile, QuantityFlags, PlotFlux);
   RWGGeometry *G=SHNEQD->G;
 
   /*******************************************************************/

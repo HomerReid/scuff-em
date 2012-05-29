@@ -25,20 +25,93 @@ void UndoMagneticRenormalization(HMatrix *M)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#define OVERLAP_OVERLAP     0
+#define OVERLAP_CROSS       1
+#define OVERLAP_XBULLET     2
+#define OVERLAP_XNABLANABLA 3
+#define OVERLAP_XTIMESNABLA 4
+#define OVERLAP_YBULLET     5
+#define OVERLAP_YNABLANABLA 6
+#define OVERLAP_YTIMESNABLA 7
+#define OVERLAP_ZBULLET     8
+#define OVERLAP_ZNABLANABLA 9
+#define OVERLAP_ZTIMESNABLA 10
 void AssembleOverlapMatrices(SNEQData *SNEQD)
 {
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   RWGGeometry *G=SNEQD->G;
 
-  RWGObject *O;
-  int no, neAlpha, neBeta;
-  double Overlaps[5];
-  int Offset;
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  SMatrix **OMatrices = SNEQD->OMatrices;
+  SMatrix *PFMatrix;
+  SMatrix *xMFMatrix;
+  SMatrix *yMFMatrix;
+  SMatrix *zMFMatrix;
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  cdouble Omega = SNEQD->Omega;
+  cdouble Eps, Mu;
+  G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
+  cdouble ESo4Omega = conj(Eps) / (4.0*Omega);
+  cdouble MSo4Omega = conj(Mu) / (4.0*Omega);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int no, neAlpha, neBeta;
+  RWGObject *O;
+  double Overlaps[11];
+  cdouble PFEntry, MFEntry1, MFEntry2, MFEntry3;
   for(no=0; no<G->NumObjects; no++)
-   { O=G->Objects[no];
+   { 
+     O=G->Objects[no];
+
+     PFMatrix  = OMatrices[ no*MAXQUANTITIES + QINDEX_POWER  ];
+     xMFMatrix = OMatrices[ no*MAXQUANTITIES + QINDEX_XFORCE ];
+     yMFMatrix = OMatrices[ no*MAXQUANTITIES + QINDEX_YFORCE ];
+     zMFMatrix = OMatrices[ no*MAXQUANTITIES + QINDEX_ZFORCE ];
+ 
      for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
       for(neBeta=0; neBeta<O->NumEdges; neBeta++)
-       { O->GetOverlaps(ne, 
+       { 
+         O->GetOverlaps(neAlpha, neBeta, Overlaps);
+         if (Overlaps[0]==0.0) continue; 
+
+         PFEntry=Overlaps[OVERLAP_CROSS];
+         PFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, PFEntry);
+         PFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, PFEntry);
+
+         MFEntry1 = ESo4Omega * Overlaps[OVERLAP_XNABLANABLA] - Mu*Overlaps[OVERLAP_XBULLET];
+         MFEntry2 = Overlaps[OVERLAP_XTIMESNABLA]
+         MFEntry3 = MSo4Omega * Overlaps[OVERLAP_XNABLANABLA] - Eps*Overlaps[OVERLAP_XBULLET];
+         xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
+         xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
+         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
+         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry3);
+
+         MFEntry1 = ESo4Omega * Overlaps[OVERLAP_YNABLANABLA] - Mu*Overlaps[OVERLAP_YBULLET];
+         MFEntry2 = Overlaps[OVERLAP_YTIMESNABLA]
+         MFEntry3 = MSo4Omega * Overlaps[OVERLAP_YNABLANABLA] - Eps*Overlaps[OVERLAP_YBULLET];
+         yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
+         yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
+         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
+         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry3);
+
+         MFEntry1 = ESo4Omega * Overlaps[OVERLAP_ZNABLANABLA] - Mu*Overlaps[OVERLAP_ZBULLET];
+         MFEntry2 = Overlaps[OVERLAP_ZTIMESNABLA]
+         MFEntry3 = MSo4Omega * Overlaps[OVERLAP_ZNABLANABLA] - Eps*Overlaps[OVERLAP_ZBULLET];
+         zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
+         zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
+         zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
+         zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry3);
+         
    };
 
 }
@@ -49,27 +122,38 @@ void AssembleOverlapMatrices(SNEQData *SNEQD)
 /***************************************************************/
 double GetTrace(SNEQData *SNEQD, int WhichQuantity, int WhichObject)
 {
-  int qIndex 
-
   RWGGeometry *G=SNEQD->G;
   int NO=G->NumObjects;
 
+  RWGObject *O1, *O2;
+  SMatrix *OMatrix1, *OMatrix2;
+  int ColIndices1[10], ColIndices2[10];
+  double Entries1[10], Entries2[10];
+
+  /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   int nr1, Offset1, no2, nr2, Offset2;
 
   O1 = G->Objects[WhichObject];
   Offset1 = G->BFIndexOffset[WhichObject];
+  OMatrix1 = SNEQD->OMatrices[ WhichObject*4 + WhichQuantity ];
   for(nr1=0; nr1<O1->NumEdges; nr1++)
-   for(no2=0; no2<NO; no2++)
-    { 
-      if (no2==WhichObject) continue;
+   { 
+     OMatrix1->GetRow(nr1, ColIndices1, Entries1);
 
-      O2=G->Objects[no2];
-      Offset2 = G->BFIndexOffset[no2];
-      for(nr2=0; nr2<O2->NumEdges; nr2++)
+     for(no2=0; no2<NO; no2++)
+      { 
+        if (no2==WhichObject) 
+         continue;
 
-    };
+        O2=G->Objects[no2];
+        Offset2 = G->BFIndexOffset[no2];
+        OMatrix2 = SNEQD->OMatrices[ no2*4 + QINDEX_POWER ];
+        for(nr2=0; nr2<O2->NumEdges; nr2++)
+
+      };
+   };
 
 } 
 

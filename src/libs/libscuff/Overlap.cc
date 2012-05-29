@@ -138,14 +138,8 @@ double RWGObject::GetOverlapOld(int neAlpha, int neBeta, double *pOTimes)
 /* this is a helper function for GetOverlaps that computes the */
 /* contributions of a single panel to the overlap integrals    */
 /***************************************************************/
-#define OVERLAP_BULLET       0
-#define OVERLAP_TIMES        1
-#define OVERLAP_iBULLET      2
-#define OVERLAP_iNABLANABLA  3
-#define OVERLAP_iTIMESNABLA  4
 void AddOverlapContributions(RWGObject *O, RWGPanel *P, int iQa, int iQb, 
-                             double Sign, double LL, int i, 
-                             double Overlaps[5])
+                             double Sign, double LL, double Overlaps[11])
 {
   double *Qa   = O->Vertices + 3*P->VI[ iQa ];
   double *QaP1 = O->Vertices + 3*P->VI[ (iQa+1)%3 ];
@@ -171,17 +165,25 @@ void AddOverlapContributions(RWGObject *O, RWGPanel *P, int iQa, int iQb,
      Times  += (A[Mu]+0.5*B[Mu])*ZxDQ[Mu]/3.0;
    };
 
-  Overlaps[OVERLAP_BULLET]      += PreFac*Bullet;
-  Overlaps[OVERLAP_TIMES]       += PreFac*Times;
-  Overlaps[OVERLAP_iBULLET]     += PreFac * ZHat[i] * Bullet;
-  Overlaps[OVERLAP_iNABLANABLA] += PreFac * ZHat[i] * 2.0;
-  Overlaps[OVERLAP_iTIMESNABLA] += PreFac * (ZxA[i]/3.0 + ZxB[i]/6.0) * 2.0;
+  Overlaps[0]  += PreFac*Bullet;
+  Overlaps[1]  += PreFac*Times;
+
+  Overlaps[2]  += PreFac * ZHat[0] * Bullet;
+  Overlaps[3]  += PreFac * ZHat[0] * 2.0;
+  Overlaps[4]  += PreFac * (ZxA[0]/3.0 + ZxB[0]/6.0) * 2.0;
+
+  Overlaps[5]  += PreFac * ZHat[1] * Bullet;
+  Overlaps[6]  += PreFac * ZHat[1] * 2.0;
+  Overlaps[7]  += PreFac * (ZxA[1]/3.0 + ZxB[1]/6.0) * 2.0;
+
+  Overlaps[8]  += PreFac * ZHat[2] * Bullet;
+  Overlaps[9]  += PreFac * ZHat[2] * 2.0;
+  Overlaps[10] += PreFac * (ZxA[2]/3.0 + ZxB[2]/6.0) * 2.0;
 
 }
 
 
 /***************************************************************/
-/*                                                             */
 /* entries of output array:                                    */
 /*                                                             */
 /*  Overlaps [0] = O^{\bullet}_{\alpha\beta}                   */
@@ -190,17 +192,19 @@ void AddOverlapContributions(RWGObject *O, RWGPanel *P, int iQa, int iQb,
 /*  Overlaps [1] = O^{\times}_{\alpha\beta}                    */
 /*   = \int f_a \cdot (nHat \times f_b)                        */
 /*                                                             */
-/*  Overlaps [2] = O^{i,\bullet}_{\alpha\beta}                 */
-/*   = \int nHat_i f_a \cdot f_b                               */
+/*  Overlaps [2] = O^{x,\bullet}_{\alpha\beta}                 */
+/*   = \int nHat_x f_a \cdot f_b                               */
 /*                                                             */
-/*  Overlaps [3] = O^{i,\nabla\nabla}_{\alpha\beta}            */
-/*   = \int nHat_i (\nabla \cdot f_a) (\nabla \cdot f_b)       */
+/*  Overlaps [3] = O^{x,\nabla\nabla}_{\alpha\beta}            */
+/*   = \int nHat_x (\nabla \cdot f_a) (\nabla \cdot f_b)       */
 /*                                                             */
-/*  Overlaps [4] = O^{i,\times\nabla}_{\alpha\beta}            */
-/*   = \int (nHat \times \cdot f_a)_i (\nabla \cdot f_b)       */
+/*  Overlaps [4] = O^{x,\times\nabla}_{\alpha\beta}            */
+/*   = \int (nHat \times \cdot f_a)_x (\nabla \cdot f_b)       */
 /*                                                             */
+/*  [5,6,7]  = like [2,3,4] but with x-->y                     */
+/*  [8,9,10] = like [2,3,4] but with x-->z                     */
 /***************************************************************/
-void RWGObject::GetOverlaps(int neAlpha, int neBeta, int i, double Overlaps[5])
+void RWGObject::GetOverlaps(int neAlpha, int neBeta, double Overlaps[11])
 {
   RWGEdge *EAlpha = Edges[neAlpha];
   RWGEdge *EBeta  = Edges[neBeta];
@@ -215,24 +219,27 @@ void RWGObject::GetOverlaps(int neAlpha, int neBeta, int i, double Overlaps[5])
 
   double LL = EAlpha->Length * EBeta->Length;
 
-  memset(Overlaps,0,5*sizeof(double));
+  memset(Overlaps,0,11*sizeof(double));
 
   if ( EAlpha->iPPanel == EBeta->iPPanel )
-   AddOverlapContributions(this, PAlphaP, iQPAlpha, iQPBeta,  1.0, LL, i, Overlaps);
+   AddOverlapContributions(this, PAlphaP, iQPAlpha, iQPBeta,  1.0, LL, Overlaps);
   if ( EAlpha->iPPanel == EBeta->iMPanel )
-   AddOverlapContributions(this, PAlphaP, iQPAlpha, iQMBeta, -1.0, LL, i, Overlaps);
+   AddOverlapContributions(this, PAlphaP, iQPAlpha, iQMBeta, -1.0, LL, Overlaps);
   if ( EAlpha->iMPanel == EBeta->iPPanel )
-   AddOverlapContributions(this, PAlphaM, iQMAlpha, iQPBeta, -1.0, LL, i, Overlaps);
+   AddOverlapContributions(this, PAlphaM, iQMAlpha, iQPBeta, -1.0, LL, Overlaps);
   if ( EAlpha->iMPanel == EBeta->iMPanel )
-   AddOverlapContributions(this, PAlphaM, iQMAlpha, iQMBeta,  1.0, LL, i, Overlaps);
+   AddOverlapContributions(this, PAlphaM, iQMAlpha, iQMBeta,  1.0, LL, Overlaps);
 }
 
-// return just the simple overlap integral and set *pOTimes = crossed overlap
-// integral if it is non-NULL 
+/*****************************************************************/
+/* this is a simpler interface to the above routine that returns */
+/* the simple overlap integral and sets *pOTimes = crossed       */
+/* overlap integral if it is non-NULL                            */
+/*****************************************************************/
 double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 {
-  double Overlaps[5];
-  GetOverlaps(neAlpha, neBeta, 0, Overlaps);
+  double Overlaps[11];
+  GetOverlaps(neAlpha, neBeta, Overlaps);
   if (pOTimes) *pOTimes=Overlaps[1];
   return Overlaps[0];
 }
