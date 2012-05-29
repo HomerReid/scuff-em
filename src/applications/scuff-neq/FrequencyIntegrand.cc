@@ -12,14 +12,14 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void UndoMagneticRenormalization(HMatrix *M)
+void UndoSCUFFMatrixTransformation(HMatrix *M)
 { 
-#if 0
-  int nr, nc;
-  for (nr=0; nr<B->NR; nr++)
-   for (nc=1; nc<B->NC; nc+=2)
-    M->SetEntry(nr, nc, -1.0*M->GetEntry(nr, nc) );
-#endif
+  for (int nr=0; nr<M->NR; nr+=2)
+   for (int nc=0; nc<M->NC; nc+=2)
+    { M->SetEntry(nr,   nc,   ZVAC*M->GetEntry(nr,   nc)   );
+      M->SetEntry(nr,   nc+1, -1.0*M->GetEntry(nr,   nc+1) );
+      M->SetEntry(nr+1, nc+1, -1.0*M->GetEntry(nr+1, nc+1)/ZVAC );
+    };
 }
 
 /***************************************************************/
@@ -59,7 +59,8 @@ void AssembleOverlapMatrices(SNEQData *SNEQD, cdouble Omega)
   cdouble FK2 = 4.0*Omega*Omega;
   cdouble Eps, Mu;
   G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
-
+  double Z2 = ZVAC*ZVAC * real(Mu/Eps);
+ 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -87,25 +88,25 @@ void AssembleOverlapMatrices(SNEQData *SNEQD, cdouble Omega)
          PFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, PFEntry);
 
          MFEntry1 = -Overlaps[OVERLAP_XBULLET] + Overlaps[OVERLAP_XNABLANABLA]/FK2;
-         MFEntry2 = Overlaps[OVERLAP_XTIMESNABLA]
-         xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
+         MFEntry2 = Overlaps[OVERLAP_XTIMESNABLA];
+         xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z2*MFEntry1);
          xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
          xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
-         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1);
+         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z2);
 
          MFEntry1 = -Overlaps[OVERLAP_YBULLET] + Overlaps[OVERLAP_YNABLANABLA]/FK2;
-         MFEntry2 = Overlaps[OVERLAP_YTIMESNABLA]
-         yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
+         MFEntry2 = Overlaps[OVERLAP_YTIMESNABLA];
+         yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z2*MFEntry1);
          yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
          yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
-         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1);
+         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z2);
 
          MFEntry1 = -Overlaps[OVERLAP_ZBULLET] + Overlaps[OVERLAP_ZNABLANABLA]/FK2;
-         MFEntry2 = Overlaps[OVERLAP_ZTIMESNABLA]
-         zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
+         MFEntry2 = Overlaps[OVERLAP_ZTIMESNABLA];
+         zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z2*MFEntry1);
          zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
          zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
-         zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry3);
+         zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z2);
        };
          
    };
@@ -113,57 +114,64 @@ void AssembleOverlapMatrices(SNEQData *SNEQD, cdouble Omega)
 }
 
 /***************************************************************/
-/* evaluate the four-matrix trace formula for the given        */
-/* quantity on the given object.                               */
-/* WhichObject = index of object on which we are computing     */
-/*               whatever we are computing                     */
-/* QIndex      = 0,1,2,3 for power, xForce, yForce, zForce     */
+/* evaluate the four-matrix trace formula for the contribution */
+/* of fluctuations within SourceObject to the flux of quantity */
+/* QIndex into DestObject.                                     */
+/*                                                             */
+/* QIndex      = 0,1,2,3 for power, {x,y,z} momentum           */
+/*                                                             */
+/* Note: the four-matrix trace is (WD=W^\dagger)               */
+/*                                                             */
+/*  FMT = tr (O1 * WD * O2 * W )                               */
+/*      = \sum_{pqrs} O1_{pq} WD_{qr} O2_{rs} W_{sp}           */
+/*      = \sum_{pqrs} O1_{pq} (W_{rq})^* O2_{rs} W_{sp}        */
+/*                                                             */
+/* because O1 and O2 are sparse, we evaluate the sum by        */
+/* looping over the rows of O1 and O2 (which we index by       */
+/* p and r respectively). for each row, we extract the         */
+/* list of nonzero column indices in each row (that is,        */
+/* the nonzero values of q and s) and then evaluate the        */
+/* contribution to the sum of (p,q,r,s).                       */
+/*                                                             */
 /***************************************************************/
-double GetTrace(SNEQData *SNEQD, int WhichObject, int QIndex, FILE *ByOmegaFile)
+double GetTrace(SNEQData *SNEQD, int QIndex, 
+                int SourceObject, int DestObject, 
+                FILE *ByOmegaFile)
 {
-  RWGGeometry *G=SNEQD->G;
-  int NO=G->NumObjects;
+  RWGGeometry *G      = SNEQD->G;
+  HMatrix *W          = SNEQD->W;
+  SMatrix **OMatrices = SNEQD->OMatrices;
 
-  RWGObject *O1, *O2;
-  SMatrix *OMatrix1, *OMatrix2;
-  int ColIndices1[10], ColIndices2[10];
-  double Entries1[10], Entries2[10];
+  int Offset1       = G->BFIndexOffset[DestObject];
+  SMatrix *OMatrix1 = OMatrices[ DestObject*MAXQUANTITIES + QIndex ];
+
+  int Offset2       = G->BFIndexOffset[SourceObject];
+  SMatrix *OMatrix2 = OMatrices[ SourceObject*MAXQUANTITIES + QIndex ];
+
+  int p, q, r, s; 
+  int nnzq, nq, nnzs, ns;
+  int qValues[11], sValues[11];
+  double O1Entries[10], O2Entries[10];
 
   cdouble FMPTrace=0.0; //'four-matrix-product trace'
 
-  int nr1, nnz1, Offset1, p;
-  int nr2, nnz2, Offset2, q;
-
-  O1 = G->Objects[WhichObject];
-  Offset1 = G->BFIndexOffset[WhichObject];
-  OMatrix1 = SNEQD->OMatrices[ WhichObject*MAXQUANTITIES + QIndex ];
-  for(nr1=0; nr1<O1->NumEdges; nr1++)
+  for(p=0; p<OMatrix1->NR; p++)
    { 
-     nnz1=OMatrix1->GetRow(nr1, ColIndices1, Entries1);
+     nnzq=OMatrix1->GetRow(p, qValues, O1Entries);
 
-     for(no2=0; no2<NO; no2++)
+     for(r=0; r<OMatrix2->NR; r++)
       { 
-        if (no2==WhichObject) 
-         continue;
+        nnzs=OMatrix2->GetRow(r, sValues, O2Entries);
 
-        O2=G->Objects[no2];
-        Offset2 = G->BFIndexOffset[no2];
-        OMatrix2 = SNEQD->OMatrices[ no2*MAXQUANTITIES + QINDEX_POWER ];
-        for(nr2=0; nr2<O2->NumEdges; nr2++)
-         { 
-           nnz2=OMatrix2->GetRow(nr2, ColIndices2, Entries2);
-
-           for(p=0; p<nnz1; p++)
-            for(q=0; q<nnz2; q++)
-             FMPTrace +=  Entries1[p]
-                         *conj( W->GetEntry( Offset2+nr2, Offset1+ColIndices1[p]) )
-                         *Entries2[q]
-                         *W->GetEntry( Offset2+ColIndices2[q], Offset1+nr1 );
-
-         };
-
+        for(nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
+         for(ns=0, s=sValues[0]; ns<nnzs; s=sValues[++ns] )
+          FMPTrace +=  O1Entries[nq]
+                      *conj( W->GetEntry( Offset2+r, Offset1+q ) )
+                      *O2Entries[ns]
+                      *W->GetEntry( Offset2+s, Offset1+p );
       };
    };
+  FMPTrace *= (-1.0/16.0);
 
   /***************************************************************/
   /***************************************************************/
@@ -171,15 +179,21 @@ double GetTrace(SNEQData *SNEQD, int WhichObject, int QIndex, FILE *ByOmegaFile)
   if (ByOmegaFile)
    fprintf(ByOmegaFile,"%e ",real(FMPTrace));
 
+ return real(FMPTrace);
+
 } 
 
 /***************************************************************/
 /* the computed quantities are ordered in the output vector    */
 /* like this:                                                  */
-/*  FI[ nt*NONQ + no*NQ + nq ]                                 */
-/*   = nqth quantity for noth object under ntth transform      */
-/*  where   NQ = number of quantities (1--4)                   */
-/*  where NONQ = number of objects * NQ                        */
+/*                                                             */
+/*  FI[ nt*NO2NQ + no*NONQ + nop*NQ + nq ]                     */
+/*   = contribution of sources in object #nop to flux of       */
+/*     quantity #nq into object #no                            */
+/*                                                             */
+/*  where    NQ = number of quantities (1--4)                  */
+/*  where  NONQ = number of objects * NQ                       */
+/*  where NO2NQ = (number of objects)^2* NQ                    */
 /***************************************************************/
 void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
 {
@@ -207,7 +221,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
-  int no, nop, nb, nr, NO=G->NumObjects;
+  int no, nop, nb, NO=G->NumObjects;
   for(no=0; no<NO; no++)
    { 
      Log(" Assembling self contributions to T(%i)...",no);
@@ -257,7 +271,6 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
           Args->B  = U[nb];
           Args->Symmetric=0;
           AssembleBEMMatrixBlock(Args);
-          FlipSignOfMagneticColumns(U[nb]);
         };
 
      /*--------------------------------------------------------------*/
@@ -274,31 +287,36 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
            W->InsertBlockTranspose(U[nb], ColOffset, RowOffset);
          };
       };
-     UndoMagneticRenormalization(W);
+     UndoSCUFFMatrixTransformation(W);
      W->LUFactorize();
      W->LUInvert();
 
      /*--------------------------------------------------------------*/
      /*- compute the requested quantities for all objects -----------*/
      /*--------------------------------------------------------------*/
-     FILE *f;
+     FILE *f=0;
      int nfi=0;
      for(no=0; no<NO; no++)
-      {
-        f=fopen(SNEQD->ByOmegaFileNames[no],"a");
-        fprintf(f,"%e %s ",real(Omega),Tag);
+      for(nop=0; nop<NO; nop++)
+       {
+         if (SNEQD->ByOmegaFileNames)
+          { f=fopen(SNEQD->ByOmegaFileNames[no*NO+nop],"a");
+            fprintf(f,"%e %s ",real(Omega),Tag);
+          };
 
-        if ( QuantityFlags & QFLAG_POWER )
-         FI[nfi++] = GetTrace(SNEQD, no, QINDEX_POWER, f);
-        if ( QuantityFlags & QFLAG_XFORCE )
-         FI[nfi++] = GetTrace(SNEQD, no, QINDEX_XFORCE, f);
-        if ( QuantityFlags & QFLAG_YFORCE )
-         FI[nfi++] = GetTrace(SNEQD, no, QINDEX_YFORCE, f);
-        if ( QuantityFlags & QFLAG_ZFORCE )
-         FI[nfi++] = GetTrace(SNEQD, no, QINDEX_ZFORCE, f);
+         if ( QuantityFlags & QFLAG_POWER )
+          FI[nfi++] = GetTrace(SNEQD, QINDEX_POWER,  no, nop, f);
+         if ( QuantityFlags & QFLAG_XFORCE )
+          FI[nfi++] = GetTrace(SNEQD, QINDEX_XFORCE, no, nop, f);
+         if ( QuantityFlags & QFLAG_YFORCE )
+          FI[nfi++] = GetTrace(SNEQD, QINDEX_YFORCE, no, nop, f);
+         if ( QuantityFlags & QFLAG_ZFORCE )
+          FI[nfi++] = GetTrace(SNEQD, QINDEX_ZFORCE, no, nop, f);
 
-        fprintf(SNEQD->ByOmegaFiles[no],"\n");
-        fclose(f);
+         if (f)
+          { fprintf(f,"\n");
+            fclose(f);
+          };
       };
 
      /*--------------------------------------------------------------*/

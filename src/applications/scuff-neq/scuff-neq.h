@@ -60,17 +60,21 @@ typedef struct SNEQData
    // SMatrix structures for overlap matrices
    // note: nq=0,1,2,3 for O^{PF}, O^{xMF}, O^{yMF}, O^{zMF}, 
    // (the matrices for power, x-force, y-force, and z-force.)
-   SMatrix **OMatrices // OMatrices[ no*4 + nq ] = nqth overlap matrix for object no
+   SMatrix **OMatrices; // OMatrices[ no*4 + nq ] = nqth overlap matrix for object no
 
    // frequency-resolved output files for each object 
    char **ByOmegaFileNames;
-   //  FILE **ByOmegaFiles;
 
  } SNEQData;
 
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile, 
-                         int WhichQuantities, int PlotFlux);
+SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int WhichQuantities, int PlotFlux);
 
 void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI);
+
+void EvaluateFrequencyIntegral(SNEQData *SNEQD, 
+                               double OmegaMin, double OmegaMax,
+                               double *TObjects, double TEnvironment, 
+                               double AbsTol, double RelTol,
+                               double *I, double *E);
 
 #endif

@@ -14,6 +14,7 @@
 #include <math.h>
 
 #include "scuff-neq.h"
+#include <libhrutil.h>
 
 /***************************************************************/
 /***************************************************************/
@@ -39,16 +40,19 @@ int main(int argc, char *argv[])
   char *TransFile=0;
 
   int Power=0;
-  int xForce=0;
-  int yForce=0;
-  int zForce=0;
+  int XForce=0;
+  int YForce=0;
+  int ZForce=0;
 
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
-  cdouble OmegaMin;                  int nOmegaMin;
-  cdouble OmegaMax;                  int nOmegaMax;
+  double OmegaMin=0.0;               int nOmegaMin;
+  double OmegaMax=-1.0;              int nOmegaMax;
 
   char *TempStrings[2*MAXTEMPS];     int nTempStrings;
+
+  double AbsTol=0.0;
+  double RelTol=5.0e-2;
 
   char *OutputFile=0;
   char *LogFile=0;
@@ -68,14 +72,14 @@ int main(int argc, char *argv[])
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
 /**/     
      {"Power",          PA_BOOL,    0, 1,       (void *)&Power,      0,             "compute power transfer"},
-     {"xForce",         PA_BOOL,    0, 1,       (void *)&xForce,     0,             "compute X-momentum transfer"},
-     {"yForce",         PA_BOOL,    0, 1,       (void *)&yForce,     0,             "compute Y-momentum transfer"},
-     {"zForce",         PA_BOOL,    0, 1,       (void *)&zForce,     0,             "compute Z-momentum transfer"},
+     {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,     0,             "compute X-momentum transfer"},
+     {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,     0,             "compute Y-momentum transfer"},
+     {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,     0,             "compute Z-momentum transfer"},
 /**/     
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
-     {"OmegaMin",       PA_CDOUBLE, 1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
-     {"OmegaMax",       PA_CDOUBLE, 1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
+     {"OmegaMin",       PA_DOUBLE,  1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
+     {"OmegaMax",       PA_DOUBLE,  1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
 /**/     
      {"Temperature",    PA_STRING,  2, MAXTEMPS, (void *)TempStrings, &nTempStrings,  "set object xx temperature to xx"},
 /**/     
@@ -83,6 +87,9 @@ int main(int argc, char *argv[])
      {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,    0,             "name of log file"},
 /**/     
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
+/**/     
+     {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,     0,             "absolute tolerance for frequency quadrature"},
+     {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for frequency quadrature"},
 /**/     
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -149,9 +156,11 @@ int main(int argc, char *argv[])
      Log("Read %i frequencies from command line.",nOmegaVals);
    };
 
-  // check that the user didn't simultaneously ask for a discrete
-  // list of frequencies and a frequency range over which to integrate;
-  // if a range was specified check that it makes sense 
+  /*******************************************************************/
+  /* check that the user didn't simultaneously ask for a discret set */
+  /* of frequencies and a frequency range over which to integrate;   */
+  /* if a range was specified check that it makes sense              */
+  /*******************************************************************/
   if ( NumFreqs>0 ) 
    { if ( nOmegaMin>0 || nOmegaMax>0 )
       ErrExit("--OmegaMin/--OmegaMax options may not be used with --Omega/--OmegaFile");
@@ -161,25 +170,23 @@ int main(int argc, char *argv[])
    }
   else if (NumFreqs==0)
    { 
-     // if --OmegaMin and/or --OmegaMax values were specified,
-     // check that they make sense
-     if ( nOmegaMin==1 && (real(OmegaMin)<0.0 || imag(OmegaMin)!=0.0) )
+     if ( nOmegaMin==1 && OmegaMin<0.0 )
       ErrExit("invalid value specified for --OmegaMin");
-     if ( nOmegaMax==1 && (real(OmegaMax)<real(OmegaMin) || imag(OmegaMax)!=0.0 ) )
+     if ( nOmegaMax==1 && OmegaMax<OmegaMin )
       ErrExit("invalid value specified for --OmegaMax");
 
      if ( OmegaMax==-1.0 )
-      Log("Integrating over range Omega=(%g,infinity).",real(OmegaMin));
+      Log("Integrating over range Omega=(%g,infinity).",OmegaMin);
      else
-      Log("Integrating over range Omega=(%g,%g).",real(OmegaMin),real(OmegaMax));
+      Log("Integrating over range Omega=(%g,%g).",OmegaMin,OmegaMax);
    };
 
   /*******************************************************************/
-  /* create the SHNEQData structure that contains all the info needed*/
+  /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SHNEQData *SHNEQD=CreateSHNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux);
-  RWGGeometry *G=SHNEQD->G;
+  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux);
+  RWGGeometry *G=SNEQD->G;
 
   /*******************************************************************/
   /* process any temperature specifications **************************/
@@ -224,20 +231,24 @@ int main(int argc, char *argv[])
    PreloadCache( Cache );
 
   if (Cache) WriteCache=Cache;
-  SHNEQD->WriteCache = WriteCache;
+  SNEQD->WriteCache = WriteCache;
 
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
   /* perform the actual calculations                                 */
   /*******************************************************************/
-  double *I = new double[SHNEQD->NTNQ];
+  int OutputVectorLength = SNEQD->NumTransformations * G->NumObjects * G->NumObjects * SNEQD->NQ;
+  double *I = new double[ OutputVectorLength ];
   if (NumFreqs>0)
    { for (nFreq=0; nFreq<NumFreqs; nFreq++)
-      GetFrequencyIntegrand(SHNEQD, OmegaList->GetEntry(nFreq), I);
+      GetFrequencyIntegrand(SNEQD, OmegaList->GetEntry(nFreq), I);
    }
   else
-   { // frequency integration not yet implemented 
-     ErrExit("frequency integration is not yet implemented");
+   { 
+      double *E = new double[ OutputVectorLength ];
+      EvaluateFrequencyIntegral(SNEQD, OmegaMin, OmegaMax,
+                                TObjects, TEnvironment, AbsTol, RelTol, I, E);
+      delete[] E;
    };
   delete[] I;
 

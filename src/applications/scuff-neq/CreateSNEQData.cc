@@ -21,7 +21,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
 
   SNEQD->WriteCache=0;
-  //SNEQD->PlotFlux=PlotFlux;
+  SNEQD->PlotFlux=PlotFlux;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/
@@ -33,7 +33,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   /*- this code does not make sense if any of the objects are PEC */
   /*--------------------------------------------------------------*/
-  int no;
+  int no, nop;
   for(no=0; no<G->NumObjects; no++)
    if ( G->Objects[no]->MP->IsPEC() ) 
     ErrExit("%s: object %s: PEC objects are not allowed in scuff-neq", G->GeoFileName,G->Objects[no]->Label);
@@ -85,7 +85,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations.                                           -*/
   /*--------------------------------------------------------------*/
-  int no, nop, nb, nq, NO=G->NumObjects, NBF, NBFp;
+  int nb, nq, NO=G->NumObjects, NBF, NBFp;
   SNEQD->T = (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NO*(NO-1))/2)*sizeof(HMatrix *));
   for(nb=no=0; no<G->NumObjects; no++)
@@ -124,30 +124,41 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- create frequency-resolved output files for each object in  -*/
   /*- the geometry and write a file header to each file.         -*/
   /*--------------------------------------------------------------*/
-  FILE *f;
-  SNEQD->ByOmegaFileNames=(char **)mallocSE(NO*sizeof(char *));
-  for(no=0; no<NO; no++)
+  SNEQD->ByOmegaFileNames=0;
+  int WriteByOmegaFiles=1;
+  if (WriteByOmegaFiles)
    { 
-     SNEQD->ByOmegaFileNames[no]=vstrdup("%s.byOmega",G->Objects[no]->Label);
-     f=fopen(SNEQD->ByOmegaFileNames[no],"a");
-     if (!f)
-      ErrExit("could not create file %s",SNEQD->ByOmegaFileNames[no]);
-     fprintf(f,"# data file columns: \n");
-     fprintf(f,"# 1: angular frequency in units of 3e14 rad/sec \n");
-     fprintf(f,"# 2: transformation tag \n");
-     
-     nq=3;
-     if (QuantityFlags && QFLAG_POWER)
-      fprintf(f,"# %i: spectral density of power flux \n",nq++);
-     if (QuantityFlags && QFLAG_XFORCE)
-      fprintf(f,"# %i: spectral density of x-momentum flux\n",nq++);
-     if (QuantityFlags && QFLAG_YFORCE)
-      fprintf(f,"# %i: spectral density of y-momentum flux\n",nq++);
-     if (QuantityFlags && QFLAG_ZFORCE)
-      fprintf(f,"# %i: spectral density of z-momentum flux\n",nq++);
+     SNEQD->ByOmegaFileNames=(char **)mallocEC(NO*NO*sizeof(char *));
+     FILE *f;
+     for(no=0; no<NO; no++)
+      for(nop=0; nop<NO; nop++)
+       { 
+         SNEQD->ByOmegaFileNames[no*NO+nop] = vstrdup("From%sTo%s.byOmega",
+                                                       G->Objects[no]->Label,
+                                                       G->Objects[nop]->Label);
+   
+         f=fopen(SNEQD->ByOmegaFileNames[no*NO+nop],"a");
+         if (!f)
+          ErrExit("could not create file %s",SNEQD->ByOmegaFileNames[no]);
+         fprintf(f,"# data file columns: \n");
+         fprintf(f,"# 1: angular frequency in units of 3e14 rad/sec \n");
+         fprintf(f,"# 2: transformation tag \n");
+        
+         nq=3;
+         if (QuantityFlags && QFLAG_POWER)
+          fprintf(f,"# %i: spectral density of power flux \n",nq++);
+         if (QuantityFlags && QFLAG_XFORCE)
+          fprintf(f,"# %i: spectral density of x-momentum flux\n",nq++);
+         if (QuantityFlags && QFLAG_YFORCE)
+          fprintf(f,"# %i: spectral density of y-momentum flux\n",nq++);
+         if (QuantityFlags && QFLAG_ZFORCE)
+          fprintf(f,"# %i: spectral density of z-momentum flux\n",nq++);
+   
+         fclose(f);
+       }; // for ( no = ...) for (nop = ...)
 
-     fclose(f);
+   }; //if (WriteByOmegaFiles)
 
-   };
+  return SNEQD;
 
 }
