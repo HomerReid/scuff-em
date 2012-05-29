@@ -129,19 +129,17 @@ double GetTrace(SNEQData *SNEQD, int WhichObject, int QIndex, FILE *ByOmegaFile)
   int ColIndices1[10], ColIndices2[10];
   double Entries1[10], Entries2[10];
 
-  double FMPTrace; //'four-matrix-product trace'
+  cdouble FMPTrace=0.0; //'four-matrix-product trace'
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int nr1, Offset1, no2, nr2, Offset2;
+  int nr1, nnz1, Offset1, p;
+  int nr2, nnz2, Offset2, q;
 
   O1 = G->Objects[WhichObject];
   Offset1 = G->BFIndexOffset[WhichObject];
-  OMatrix1 = SNEQD->OMatrices[ WhichObject*4 + WhichQuantity ];
+  OMatrix1 = SNEQD->OMatrices[ WhichObject*MAXQUANTITIES + QIndex ];
   for(nr1=0; nr1<O1->NumEdges; nr1++)
    { 
-     OMatrix1->GetRow(nr1, ColIndices1, Entries1);
+     nnz1=OMatrix1->GetRow(nr1, ColIndices1, Entries1);
 
      for(no2=0; no2<NO; no2++)
       { 
@@ -150,8 +148,19 @@ double GetTrace(SNEQData *SNEQD, int WhichObject, int QIndex, FILE *ByOmegaFile)
 
         O2=G->Objects[no2];
         Offset2 = G->BFIndexOffset[no2];
-        OMatrix2 = SNEQD->OMatrices[ no2*4 + QINDEX_POWER ];
+        OMatrix2 = SNEQD->OMatrices[ no2*MAXQUANTITIES + QINDEX_POWER ];
         for(nr2=0; nr2<O2->NumEdges; nr2++)
+         { 
+           nnz2=OMatrix2->GetRow(nr2, ColIndices2, Entries2);
+
+           for(p=0; p<nnz1; p++)
+            for(q=0; q<nnz2; q++)
+             FMPTrace +=  Entries1[p]
+                         *conj( W->GetEntry( Offset2+nr2, Offset1+ColIndices1[p]) )
+                         *Entries2[q]
+                         *W->GetEntry( Offset2+ColIndices2[q], Offset1+nr1 );
+
+         };
 
       };
    };
@@ -160,17 +169,17 @@ double GetTrace(SNEQData *SNEQD, int WhichObject, int QIndex, FILE *ByOmegaFile)
   /***************************************************************/
   /***************************************************************/
   if (ByOmegaFile)
-   fprintf(ByOmegaFile,"%e ",FMPTrace);
+   fprintf(ByOmegaFile,"%e ",real(FMPTrace));
 
 } 
 
 /***************************************************************/
 /* the computed quantities are ordered in the output vector    */
 /* like this:                                                  */
-/*  FI[ nt*NQNO + nq*NO + no ]                                 */
+/*  FI[ nt*NONQ + no*NQ + nq ]                                 */
 /*   = nqth quantity for noth object under ntth transform      */
-/*  where   NQ = number of objects                             */
-/*  where NQNO = number of quantities (1--4) * NO              */
+/*  where   NQ = number of quantities (1--4)                   */
+/*  where NONQ = number of objects * NQ                        */
 /***************************************************************/
 void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
 {
@@ -184,11 +193,6 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   HMatrix **T         = SNEQD->T;
   HMatrix **U         = SNEQD->U;
   int QuantityFlags   = SNEQD->QuantityFlags;
-
-  /***************************************************************/
-  /* initialize overlap matrices *********************************/
-  /***************************************************************/
-  AssembleOverlapMatrices(SNEQD, Omega);
 
   /***************************************************************/
   /* preinitialize an argument structure for the BEM matrix      */
@@ -215,7 +219,13 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
    };
 
   /***************************************************************/
-  /* now loop over transformations. ******************************/
+  /* also before entering the loop over transformations, we      */
+  /* pause to assemble the overlap matrices.                     */
+  /***************************************************************/
+  AssembleOverlapMatrices(SNEQD, Omega);
+
+  /***************************************************************/
+  /* now loop over transformations.                              */
   /* note: 'gtc' stands for 'geometrical transformation complex' */
   /***************************************************************/
   int nt;

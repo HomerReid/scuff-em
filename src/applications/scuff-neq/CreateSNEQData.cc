@@ -60,8 +60,8 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   if ( QuantityFlags & QFLAG_YFORCE ) SNEQD->NQ++;
   if ( QuantityFlags & QFLAG_ZFORCE ) SNEQD->NQ++;
 
-  SNEQD->NQNO = SNEQD->NQ * G->NumObjects;
-  SNEQD->NTNONQ = SNEQD->NumTransformations * SNEQD->NQNO;
+  SNEQD->NONQ = G->NumObjects * SNEQD->NQ; 
+  SNEQD->NTNONQ = SNEQD->NumTransformations * SNEQD->NONQ;
 
   /*--------------------------------------------------------------*/
   /*- set the name of the .byOmega output file -------------------*/

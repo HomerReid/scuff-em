@@ -49,8 +49,8 @@ typedef struct SNEQData
 
    int QuantityFlags;
    int NQ;
-   int NQNO;
-   int NTNQNO;
+   int NONQ;
+   int NTNONQ;
 
    // HMatrix structures for the BEM matrix and its subblocks
    HMatrix *W;        // BEM matrix 
