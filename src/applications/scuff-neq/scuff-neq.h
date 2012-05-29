@@ -40,17 +40,17 @@ typedef struct SNEQData
  {
    RWGGeometry *G;
    char *ByOmegaFile;
+   char *WriteCache;
+
+   int PlotFlux;
 
    GTComplex **GTCList;
    int NumTransformations;
 
    int QuantityFlags;
-   int NumQuantities;     
-
-   int NumObjects;
-   int NTNQ;
-
-   char *WriteCache;
+   int NQ;
+   int NQNO;
+   int NTNQNO;
 
    // HMatrix structures for the BEM matrix and its subblocks
    HMatrix *W;        // BEM matrix 
@@ -61,6 +61,10 @@ typedef struct SNEQData
    // note: nq=0,1,2,3 for O^{PF}, O^{xMF}, O^{yMF}, O^{zMF}, 
    // (the matrices for power, x-force, y-force, and z-force.)
    SMatrix **OMatrices // OMatrices[ no*4 + nq ] = nqth overlap matrix for object no
+
+   // frequency-resolved output files for each object 
+   char **ByOmegaFileNames;
+   //  FILE **ByOmegaFiles;
 
  } SNEQData;
 

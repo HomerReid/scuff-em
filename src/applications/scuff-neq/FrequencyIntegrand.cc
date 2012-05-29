@@ -36,7 +36,7 @@ void UndoMagneticRenormalization(HMatrix *M)
 #define OVERLAP_ZBULLET     8
 #define OVERLAP_ZNABLANABLA 9
 #define OVERLAP_ZTIMESNABLA 10
-void AssembleOverlapMatrices(SNEQData *SNEQD)
+void AssembleOverlapMatrices(SNEQData *SNEQD, cdouble Omega)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -56,11 +56,9 @@ void AssembleOverlapMatrices(SNEQData *SNEQD)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  cdouble Omega = SNEQD->Omega;
+  cdouble FK2 = 4.0*Omega*Omega;
   cdouble Eps, Mu;
   G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
-  cdouble ESo4Omega = conj(Eps) / (4.0*Omega);
-  cdouble MSo4Omega = conj(Mu) / (4.0*Omega);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -88,29 +86,27 @@ void AssembleOverlapMatrices(SNEQData *SNEQD)
          PFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, PFEntry);
          PFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, PFEntry);
 
-         MFEntry1 = ESo4Omega * Overlaps[OVERLAP_XNABLANABLA] - Mu*Overlaps[OVERLAP_XBULLET];
+         MFEntry1 = -Overlaps[OVERLAP_XBULLET] + Overlaps[OVERLAP_XNABLANABLA]/FK2;
          MFEntry2 = Overlaps[OVERLAP_XTIMESNABLA]
-         MFEntry3 = MSo4Omega * Overlaps[OVERLAP_XNABLANABLA] - Eps*Overlaps[OVERLAP_XBULLET];
          xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
          xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
          xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
-         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry3);
+         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1);
 
-         MFEntry1 = ESo4Omega * Overlaps[OVERLAP_YNABLANABLA] - Mu*Overlaps[OVERLAP_YBULLET];
+         MFEntry1 = -Overlaps[OVERLAP_YBULLET] + Overlaps[OVERLAP_YNABLANABLA]/FK2;
          MFEntry2 = Overlaps[OVERLAP_YTIMESNABLA]
-         MFEntry3 = MSo4Omega * Overlaps[OVERLAP_YNABLANABLA] - Eps*Overlaps[OVERLAP_YBULLET];
          yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
          yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
          yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
-         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry3);
+         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1);
 
-         MFEntry1 = ESo4Omega * Overlaps[OVERLAP_ZNABLANABLA] - Mu*Overlaps[OVERLAP_ZBULLET];
+         MFEntry1 = -Overlaps[OVERLAP_ZBULLET] + Overlaps[OVERLAP_ZNABLANABLA]/FK2;
          MFEntry2 = Overlaps[OVERLAP_ZTIMESNABLA]
-         MFEntry3 = MSo4Omega * Overlaps[OVERLAP_ZNABLANABLA] - Eps*Overlaps[OVERLAP_ZBULLET];
          zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, MFEntry1);
          zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
          zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
          zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry3);
+       };
          
    };
 
@@ -118,9 +114,12 @@ void AssembleOverlapMatrices(SNEQData *SNEQD)
 
 /***************************************************************/
 /* evaluate the four-matrix trace formula for the given        */
-/* quantity on the given object                                */
+/* quantity on the given object.                               */
+/* WhichObject = index of object on which we are computing     */
+/*               whatever we are computing                     */
+/* QIndex      = 0,1,2,3 for power, xForce, yForce, zForce     */
 /***************************************************************/
-double GetTrace(SNEQData *SNEQD, int WhichQuantity, int WhichObject)
+double GetTrace(SNEQData *SNEQD, int WhichObject, int QIndex, FILE *ByOmegaFile)
 {
   RWGGeometry *G=SNEQD->G;
   int NO=G->NumObjects;
@@ -129,6 +128,8 @@ double GetTrace(SNEQData *SNEQD, int WhichQuantity, int WhichObject)
   SMatrix *OMatrix1, *OMatrix2;
   int ColIndices1[10], ColIndices2[10];
   double Entries1[10], Entries2[10];
+
+  double FMPTrace; //'four-matrix-product trace'
 
   /***************************************************************/
   /***************************************************************/
@@ -155,15 +156,21 @@ double GetTrace(SNEQData *SNEQD, int WhichQuantity, int WhichObject)
       };
    };
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (ByOmegaFile)
+   fprintf(ByOmegaFile,"%e ",FMPTrace);
+
 } 
 
 /***************************************************************/
 /* the computed quantities are ordered in the output vector    */
 /* like this:                                                  */
-/*  FI[ nt*NONQ + nq*NQ + no ]                                 */
+/*  FI[ nt*NQNO + nq*NO + no ]                                 */
 /*   = nqth quantity for noth object under ntth transform      */
-/*  where   NQ = number of quantities computed (between 1-4)   */
-/*  where NONQ = number of objects * number of quantities      */
+/*  where   NQ = number of objects                             */
+/*  where NQNO = number of quantities (1--4) * NO              */
 /***************************************************************/
 void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
 {
@@ -176,15 +183,12 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   HMatrix *W          = SNEQD->W;
   HMatrix **T         = SNEQD->T;
   HMatrix **U         = SNEQD->U;
-  HVector *OPF;       = SNEQD->OPF;
-  HVector *OiMF;      = SNEQD->OiMF;
-  int PlotFlux        = SNEQD->PlotFlux;
-  int WhichQuantities = SNEQD->WhichQuantities;
+  int QuantityFlags   = SNEQD->QuantityFlags;
 
   /***************************************************************/
   /* initialize overlap matrices *********************************/
   /***************************************************************/
-  AssembleOverlapMatrices(SNEQD);
+  AssembleOverlapMatrices(SNEQD, Omega);
 
   /***************************************************************/
   /* preinitialize an argument structure for the BEM matrix      */
@@ -192,7 +196,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   /***************************************************************/
   ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
   InitABMBArgs(Args);
-  Args->G         = SNEQD->G;
+  Args->G         = G;
   Args->Omega     = Omega;
 
   /***************************************************************/
@@ -200,7 +204,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
   int no, nop, nb, nr, NO=G->NumObjects;
-  for(no=0; no<G->NumObjects; no++)
+  for(no=0; no<NO; no++)
    { 
      Log(" Assembling self contributions to T(%i)...",no);
 
@@ -265,17 +269,27 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
      W->LUInvert();
 
      /*--------------------------------------------------------------*/
+     /*- compute the requested quantities for all objects -----------*/
      /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     FILE *f=fopen(SNEQD->ByOmegaFile, "a");
-     if ( WhichQuantities & QUANTITY_ENERGY )
-      FI[ntnq++] = GetTrace(W, 
+     FILE *f;
+     int nfi=0;
+     for(no=0; no<NO; no++)
+      {
+        f=fopen(SNEQD->ByOmegaFileNames[no],"a");
+        fprintf(f,"%e %s ",real(Omega),Tag);
 
-     /*--------------------------------------------------------------*/
-     /* write the result to the frequency-resolved output file ------*/
-     /*--------------------------------------------------------------*/
-     fprintf(f,"%s %s %e\n",Tag,z2s(Omega),FI[nt]);
-     fclose(f);
+        if ( QuantityFlags & QFLAG_POWER )
+         FI[nfi++] = GetTrace(SNEQD, no, QINDEX_POWER, f);
+        if ( QuantityFlags & QFLAG_XFORCE )
+         FI[nfi++] = GetTrace(SNEQD, no, QINDEX_XFORCE, f);
+        if ( QuantityFlags & QFLAG_YFORCE )
+         FI[nfi++] = GetTrace(SNEQD, no, QINDEX_YFORCE, f);
+        if ( QuantityFlags & QFLAG_ZFORCE )
+         FI[nfi++] = GetTrace(SNEQD, no, QINDEX_ZFORCE, f);
+
+        fprintf(SNEQD->ByOmegaFiles[no],"\n");
+        fclose(f);
+      };
 
      /*--------------------------------------------------------------*/
      /* and untransform the geometry                                 */

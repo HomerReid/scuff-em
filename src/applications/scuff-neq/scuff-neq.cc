@@ -51,7 +51,6 @@ int main(int argc, char *argv[])
   char *TempStrings[2*MAXTEMPS];     int nTempStrings;
 
   char *OutputFile=0;
-  char *ByOmegaFile=0;
   char *LogFile=0;
 
   int PlotFlux=0;
@@ -81,7 +80,6 @@ int main(int argc, char *argv[])
      {"Temperature",    PA_STRING,  2, MAXTEMPS, (void *)TempStrings, &nTempStrings,  "set object xx temperature to xx"},
 /**/     
      {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile, 0,             "name of frequency-integrated output file"},
-     {"ByOmegaFile",    PA_STRING,  1, 1,       (void *)&ByOmegaFile,0,             "name of frequency-resolved output file"},
      {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,    0,             "name of log file"},
 /**/     
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
@@ -100,9 +98,6 @@ int main(int argc, char *argv[])
 
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
-
-  if (PlotFlux && ByOmegaFile!=0 )
-   ErrExit("--PlotFlux and --ByOmegaFile options are mutually exclusive");
 
   if (LogFile)
    SetLogFileName(LogFile);
@@ -183,7 +178,7 @@ int main(int argc, char *argv[])
   /* create the SHNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SHNEQData *SHNEQD=CreateSHNEQData(GeoFile, TransFile, ByOmegaFile, QuantityFlags, PlotFlux);
+  SHNEQData *SHNEQD=CreateSHNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux);
   RWGGeometry *G=SHNEQD->G;
 
   /*******************************************************************/

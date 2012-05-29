@@ -14,14 +14,14 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile, 
+SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          int QuantityFlags, int PlotFlux)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
 
-  SNEQD->PlotFlux=PlotFlux;
   SNEQD->WriteCache=0;
+  //SNEQD->PlotFlux=PlotFlux;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/
@@ -54,16 +54,19 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile,
   /*- figure out which quantities were specified                 -*/
   /*--------------------------------------------------------------*/
   SNEQD->QuantityFlags=QuantityFlags;
-  SNEQD->NumQuantities=0;
-  if ( QuantityFlags & QFLAG_POWER  ) SNEQD->NumQuantities++;
-  if ( QuantityFlags & QFLAG_XFORCE ) SNEQD->NumQuantities++;
-  if ( QuantityFlags & QFLAG_YFORCE ) SNEQD->NumQuantities++;
-  if ( QuantityFlags & QFLAG_ZFORCE ) SNEQD->NumQuantities++;
-  SNEQD->NTNQ = (SNEQD->NumQuantities * SNEQD->NumTransformations);
+  SNEQD->NQ=0;
+  if ( QuantityFlags & QFLAG_POWER  ) SNEQD->NQ++;
+  if ( QuantityFlags & QFLAG_XFORCE ) SNEQD->NQ++;
+  if ( QuantityFlags & QFLAG_YFORCE ) SNEQD->NQ++;
+  if ( QuantityFlags & QFLAG_ZFORCE ) SNEQD->NQ++;
+
+  SNEQD->NQNO = SNEQD->NQ * G->NumObjects;
+  SNEQD->NTNONQ = SNEQD->NumTransformations * SNEQD->NQNO;
 
   /*--------------------------------------------------------------*/
   /*- set the name of the .byOmega output file -------------------*/
   /*--------------------------------------------------------------*/
+#if 0
   if (ByOmegaFile)
    SNEQD->ByOmegaFile = ByOmegaFile;
   else if (PlotFlux)
@@ -75,13 +78,14 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile,
      fclose(f);
      SNEQD->ByOmegaFile=strdup(MyFileName);
    };
+#endif
 
   /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse -*/
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations.                                           -*/
   /*--------------------------------------------------------------*/
-  int no, nop, nb, NO=G->NumObjects, NBF, NBFp;
+  int no, nop, nb, nq, NO=G->NumObjects, NBF, NBFp;
   SNEQD->T = (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NO*(NO-1))/2)*sizeof(HMatrix *));
   for(nb=no=0; no<G->NumObjects; no++)
@@ -115,5 +119,35 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, char *ByOmegaFile,
   for(no=0; no<NO; no++)
    for(nq=0; nq<MAXQUANTITIES; nq++)
     SNEQD->OMatrices[ no*MAXQUANTITIES + nq ]=new SMatrix(G->Objects[no]->NumBFs,10);
+
+  /*--------------------------------------------------------------*/
+  /*- create frequency-resolved output files for each object in  -*/
+  /*- the geometry and write a file header to each file.         -*/
+  /*--------------------------------------------------------------*/
+  FILE *f;
+  SNEQD->ByOmegaFileNames=(char **)mallocSE(NO*sizeof(char *));
+  for(no=0; no<NO; no++)
+   { 
+     SNEQD->ByOmegaFileNames[no]=vstrdup("%s.byOmega",G->Objects[no]->Label);
+     f=fopen(SNEQD->ByOmegaFileNames[no],"a");
+     if (!f)
+      ErrExit("could not create file %s",SNEQD->ByOmegaFileNames[no]);
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 1: angular frequency in units of 3e14 rad/sec \n");
+     fprintf(f,"# 2: transformation tag \n");
+     
+     nq=3;
+     if (QuantityFlags && QFLAG_POWER)
+      fprintf(f,"# %i: spectral density of power flux \n",nq++);
+     if (QuantityFlags && QFLAG_XFORCE)
+      fprintf(f,"# %i: spectral density of x-momentum flux\n",nq++);
+     if (QuantityFlags && QFLAG_YFORCE)
+      fprintf(f,"# %i: spectral density of y-momentum flux\n",nq++);
+     if (QuantityFlags && QFLAG_ZFORCE)
+      fprintf(f,"# %i: spectral density of z-momentum flux\n",nq++);
+
+     fclose(f);
+
+   };
 
 }
