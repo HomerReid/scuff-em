@@ -16,6 +16,12 @@
 #define RELTOL   5.0e-2
 #define MAXEVALS 20000
 
+
+#define II cdouble(0.0,1.0)
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
 { 
   SSD->G->GetFields(      0, SSD->KN, SSD->Omega, X, EHS, 0); // scattered
@@ -488,6 +494,9 @@ typedef struct GPBFIData
 void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
 			   unsigned fdim, double *fval)
 {
+  (void) ndim;
+  (void) fdim;
+
   /***************************************************************/
   /* extract fields from data structure **************************/
   /***************************************************************/
@@ -758,9 +767,6 @@ void GetPower(SSData *SSD, char *PowerFile)
               O->GetOverlap(nea, neb, &OTimes);
               if (OTimes==0.0) 
                continue;
-
-              nb = KN->GetEntry(Offset + 2*neb + 1 );
-              PAbs -= real( conj(ka) * OTimes * nb );
             }; // for (neb= ... 
 
          }; // for(nea==...
@@ -830,7 +836,7 @@ void GetMoments(SSData *SSD, char *MomentFile)
   /***************************************************************/
   /* print to file ***********************************************/
   /***************************************************************/
-  int no, nm, Mu;
+  int no, Mu;
   fprintf(f,"%s ",z2s(Omega));
   for (no=0; no<G->NumObjects; no++)
    { fprintf(f,"%s ",G->Objects[no]->Label);
@@ -840,5 +846,107 @@ void GetMoments(SSData *SSD, char *MomentFile)
   fprintf(f,"\n");
 
   delete PM;
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#define OVERLAP_OVERLAP     0
+#define OVERLAP_CROSS       1
+#define OVERLAP_XBULLET     2
+#define OVERLAP_XNABLANABLA 3
+#define OVERLAP_XTIMESNABLA 4
+#define OVERLAP_YBULLET     5
+#define OVERLAP_YNABLANABLA 6
+#define OVERLAP_YTIMESNABLA 7
+#define OVERLAP_ZBULLET     8
+#define OVERLAP_ZNABLANABLA 9
+#define OVERLAP_ZTIMESNABLA 10
+void GetForce(SSData *SSD, char *ForceFile)
+{
+  RWGGeometry *G = SSD->G;
+  HVector *KN    = SSD->KN;
+  cdouble Omega  = SSD->Omega;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  FILE *f=fopen(ForceFile,"a");
+  if (!f)
+   { Warn("could not open file %s for append",ForceFile);
+     return;
+   };
+  fprintf(f,"%s ",z2s(Omega));
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  cdouble Eps, Mu;
+  G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
+  cdouble Z2 = ZVAC*ZVAC*Mu/Eps;
+  cdouble OOZ2 = 1.0/Z2;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double Force[3];
+  double Overlaps[11];
+  double OiBullet, OiNablaNabla, OiTimesNabla;
+  int no, nfc, neAlpha, neBeta, Offset, IsPEC;
+  cdouble KAlpha, NAlpha=0.0, KBeta, NBeta=0.0;
+  cdouble FK2 = 4.0*Omega*Omega; 
+  double PreFac=-0.5;
+  cdouble M11, M12, M21, M22;
+  RWGObject *O;
+  for(no=0; no<G->NumObjects; no++)
+   { 
+     O=G->Objects[no];
+     IsPEC = O->MP->IsPEC() ? 1 : 0;
+     Offset=G->BFIndexOffset[no];
+     memset(Force,0,3*sizeof(double));
+     for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
+      for(neBeta=0; neBeta<O->NumEdges; neBeta++)
+       { 
+         if (IsPEC) 
+          { KAlpha = KN->GetEntry( Offset + neAlpha );
+            KBeta  = KN->GetEntry( Offset + neBeta  );
+          }
+         else
+          { KAlpha =       KN->GetEntry( Offset + 2*neAlpha + 0 );
+            NAlpha = -ZVAC*KN->GetEntry( Offset + 2*neAlpha + 1 );
+            KBeta  =       KN->GetEntry( Offset + 2*neBeta  + 0 );
+            NBeta  = -ZVAC*KN->GetEntry( Offset + 2*neBeta  + 1 );
+          };
+
+         O->GetOverlaps(neAlpha, neBeta, Overlaps);
+         if (Overlaps[0]==0.0)
+          continue; 
+ 
+         for(nfc=0; nfc<3; nfc++)
+          { 
+            OiBullet     = Overlaps[ 2 + (nfc*3) + 0 ];
+            OiNablaNabla = Overlaps[ 2 + (nfc*3) + 1 ];
+            OiTimesNabla = Overlaps[ 2 + (nfc*3) + 2 ];
+
+            M11 = Z2*(-OiBullet + OiNablaNabla/FK2); 
+            M12 = OiTimesNabla / (II*Omega);
+            M21 = OiTimesNabla / (II*Omega);
+            M22 = OOZ2*(-OiBullet + OiNablaNabla/FK2); 
+
+            Force[nfc] += PreFac*real(   conj(KAlpha)*M11*KBeta 
+                                       + conj(KAlpha)*M12*NBeta
+                                       + conj(NAlpha)*M21*KBeta 
+                                       + conj(NAlpha)*M22*NBeta );
+          };
+
+       };
+
+     fprintf(f,"%s %e %e %e ",O->Label,Force[0],Force[1],Force[2]);
+
+   };// for(no=...)
+
+  fprintf(f,"\n");
+  fclose(f);
 
 }

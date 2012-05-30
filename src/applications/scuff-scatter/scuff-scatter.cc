@@ -78,6 +78,7 @@
  *     --PowerRadius R
  * 
  *        if the --PowerFile option is present, then the scattered 
+
  *        and absorbed powers at each frequency are calculated and 
  *        written to the specified data file.
  * 
@@ -186,53 +187,6 @@
 #define MAXCACHE 10    // max number of cache files for preload
 
 #define MAXSTR   1000
- 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void usage(char *ProgramName, const char *format, ... )
-{ 
-  va_list ap;
-  char buffer[1000];
-
-  if (format)
-   { va_start(ap,format);
-     vsnprintf(buffer,1000,format,ap);
-     va_end(ap);
-     fprintf(stderr,"error: %s (aborting)\n\n",buffer);
-   };
-
-  fprintf(stderr,"usage: %s [incident field options] [scatterer options]\n",ProgramName);
-  fprintf(stderr,"\n");
-  fprintf(stderr," scatterer options: \n\n");
-  fprintf(stderr,"  --geometry MyGeometry.scuffgeo\n");
-  fprintf(stderr,"\n");
-  fprintf(stderr," incident field options: \n\n");
-  fprintf(stderr,"  --pwDirection Nx Ny Nz \n");
-  fprintf(stderr,"  --pwPolarization Ex Ey Ez \n");
-  fprintf(stderr,"  --gbDirection Nx Ny Nz\n");
-  fprintf(stderr,"  --gbPolarization Nx Ny Nz\n");
-  fprintf(stderr,"  --gbCenter xx yy zz \n");
-  fprintf(stderr,"  --gbWaist W \n");
-  fprintf(stderr,"  --psLocation xx yy zz \n");
-  fprintf(stderr,"  --psOrientation xx yy zz \n");
-  fprintf(stderr,"\n");
-  fprintf(stderr," output options: \n\n");
-  fprintf(stderr,"  --PowerFile xx\n");
-  fprintf(stderr,"  --EPFile xx \n");
-  fprintf(stderr,"  --FluxMesh MyFluxMesh.msh \n");
-  fprintf(stderr,"  --MomentFile xx\n");
-  fprintf(stderr,"\n");
-  fprintf(stderr," frequency options: \n\n");
-  fprintf(stderr,"  --omega xx \n");
-  fprintf(stderr,"  --omegaFile MyOmegaFile.dat\n");
-  fprintf(stderr,"\n");
-  fprintf(stderr," miscellaneous options: \n");
-  fprintf(stderr,"  --nThread xx \n");
-  fprintf(stderr,"  --ExportMatrix \n");
-  fprintf(stderr,"\n");
-  exit(1);
-}
 
 /***************************************************************/
 /***************************************************************/
@@ -256,6 +210,7 @@ int main(int argc, char *argv[])
   char *EPFiles[MAXEPF];             int nEPFiles;
   char *PowerFile=0;
   double PowerRadius=0.0;
+  char *ForceFile=0;
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
   char *MomentFile=0;
   int nThread=0;
@@ -265,27 +220,36 @@ int main(int argc, char *argv[])
   char *WriteCache=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
-   { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+   { 
+     {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+/**/
+     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
+     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
+/**/
      {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,       &npwDir,       "plane wave direction"},
      {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,       &npwPol,       "plane wave polarization"},
+/**/
      {"gbDirection",    PA_DOUBLE,  3, MAXGB,   (void *)gbDir,       &ngbDir,       "gaussian beam direction"},
      {"gbPolarization", PA_CDOUBLE, 3, MAXGB,   (void *)gbPol,       &ngbPol,       "gaussian beam polarization"},
      {"gbCenter",       PA_DOUBLE,  3, MAXGB,   (void *)gbCenter,    &ngbCenter,    "gaussian beam center"},
      {"gbWaist",        PA_DOUBLE,  1, MAXGB,   (void *)gbWaist,     &ngbWaist,     "gaussian beam waist"},
+/**/
      {"psLocation",     PA_DOUBLE,  3, MAXPS,   (void *)psLoc,       &npsLoc,       "point source location"},
      {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength,  &npsStrength,  "point source strength"},
-     {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
-     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
+/**/
+     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
      {"PowerFile",      PA_STRING,  1, 1,       (void *)&PowerFile,  0,             "name of power output file"},
      {"PowerRadius",    PA_DOUBLE,  1, 1,       (void *)&PowerRadius, 0,            "radius for power calculation"},
-     {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
+     {"ForceFile",      PA_STRING,  1, 1,       (void *)&ForceFile,  0,             "name of force output file"},
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
-     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
-     {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
+/**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
+/**/
+     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
+     {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -365,7 +329,7 @@ int main(int argc, char *argv[])
   /* sanity check to make sure the user specified an incident field  */
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
-  if ( (PowerFile!=0 || MomentFile!=0 || nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
+  if ( (PowerFile!=0 || MomentFile!=0 || PowerFile!=0 || nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
    ErrExit("you must specify at least one incident field source");
 
   /*******************************************************************/
@@ -449,7 +413,7 @@ int main(int argc, char *argv[])
      /* just wanted to export the matrix to a binary file), don't      **/
      /* bother LU-factorizing the matrix or assembling the RHS vector. **/
      /*******************************************************************/
-     if ( PowerFile==0 && MomentFile==0 && nEPFiles==0 && nFluxMeshes==0 )
+     if ( PowerFile==0 && ForceFile==0 && MomentFile==0 && nEPFiles==0 && nFluxMeshes==0 )
       continue;
 
      /*******************************************************************/
@@ -482,6 +446,12 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      if (PowerFile)
       GetPower(SSD, PowerFile);
+
+     /*--------------------------------------------------------------*/
+     /*- momentum transfer             ------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (ForceFile)
+      GetForce(SSD, ForceFile);
 
      /*--------------------------------------------------------------*/
      /*- induced dipole moments       -------------------------------*/
