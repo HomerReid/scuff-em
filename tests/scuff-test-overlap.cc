@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
      for(neb=0; neb<O->NumEdges; neb++)
       {
         GetOverlapBF(O, nea, neb, i, OBF);
-        O->GetOverlaps(nea, neb, i, OHR);
+        O->GetOverlaps(nea, neb, OHR);
  //       OOld[0]=O->GetOverlapOld(nea, neb, OOld+1);
 
         if ( fabs(OBF[0])<1.0e-2*ReferenceArea ) 

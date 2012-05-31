@@ -884,8 +884,7 @@ void GetForce(SSData *SSD, char *ForceFile)
   /*--------------------------------------------------------------*/
   cdouble Eps, Mu;
   G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
-  cdouble Z2 = ZVAC*ZVAC*Mu/Eps;
-  cdouble OOZ2 = 1.0/Z2;
+  cdouble Z = ZVAC*sqrt(Mu/Eps);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -896,7 +895,7 @@ void GetForce(SSData *SSD, char *ForceFile)
   int no, nfc, neAlpha, neBeta, Offset, IsPEC;
   cdouble KAlpha, NAlpha=0.0, KBeta, NBeta=0.0;
   cdouble FK2 = 4.0*Omega*Omega; 
-  double PreFac=-0.5;
+  double PreFac=+0.25;
   cdouble M11, M12, M21, M22;
   RWGObject *O;
   for(no=0; no<G->NumObjects; no++)
@@ -929,10 +928,10 @@ void GetForce(SSData *SSD, char *ForceFile)
             OiNablaNabla = Overlaps[ 2 + (nfc*3) + 1 ];
             OiTimesNabla = Overlaps[ 2 + (nfc*3) + 2 ];
 
-            M11 = Z2*(-OiBullet + OiNablaNabla/FK2); 
-            M12 = OiTimesNabla / (II*Omega);
-            M21 = OiTimesNabla / (II*Omega);
-            M22 = OOZ2*(-OiBullet + OiNablaNabla/FK2); 
+            M11 = Z*(OiBullet - OiNablaNabla/FK2); 
+            M12 = -OiTimesNabla / (II*Omega);
+            M21 = -OiTimesNabla / (II*Omega);
+            M22 = (OiBullet - OiNablaNabla/FK2) / Z;
 
             Force[nfc] += PreFac*real(   conj(KAlpha)*M11*KBeta 
                                        + conj(KAlpha)*M12*NBeta

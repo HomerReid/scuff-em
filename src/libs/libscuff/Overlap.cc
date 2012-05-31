@@ -244,5 +244,12 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
   return Overlaps[0];
 }
 
+/*****************************************************************/
+/*****************************************************************/
+/*****************************************************************/
+//void RWGObject::GetOverlapMatrices(double Omega)
+//{
+//}
+
 
 } // namespace scuff
