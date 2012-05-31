@@ -907,6 +907,10 @@ void GetForce(SSData *SSD, char *ForceFile)
      for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
       for(neBeta=0; neBeta<O->NumEdges; neBeta++)
        { 
+         O->GetOverlaps(neAlpha, neBeta, Overlaps);
+         if (Overlaps[0]==0.0)
+          continue; 
+
          if (IsPEC) 
           { KAlpha = KN->GetEntry( Offset + neAlpha );
             KBeta  = KN->GetEntry( Offset + neBeta  );
@@ -917,10 +921,6 @@ void GetForce(SSData *SSD, char *ForceFile)
             KBeta  =       KN->GetEntry( Offset + 2*neBeta  + 0 );
             NBeta  = -ZVAC*KN->GetEntry( Offset + 2*neBeta  + 1 );
           };
-
-         O->GetOverlaps(neAlpha, neBeta, Overlaps);
-         if (Overlaps[0]==0.0)
-          continue; 
  
          for(nfc=0; nfc<3; nfc++)
           { 
