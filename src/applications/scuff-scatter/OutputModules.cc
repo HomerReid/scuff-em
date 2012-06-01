@@ -894,7 +894,7 @@ void GetForce(SSData *SSD, char *ForceFile)
   double OiBullet, OiNablaNabla, OiTimesNabla;
   int no, nfc, neAlpha, neBeta, Offset, IsPEC;
   cdouble KAlpha, NAlpha=0.0, KBeta, NBeta=0.0;
-  cdouble FK2 = 4.0*Omega*Omega; 
+  cdouble K2 = Omega*Omega; 
   double PreFac=+0.25;
   cdouble M11, M12, M21, M22;
   RWGObject *O;
@@ -928,10 +928,10 @@ void GetForce(SSData *SSD, char *ForceFile)
             OiNablaNabla = Overlaps[ 2 + (nfc*3) + 1 ];
             OiTimesNabla = Overlaps[ 2 + (nfc*3) + 2 ];
 
-            M11 = Z*(OiBullet - OiNablaNabla/FK2); 
-            M12 = -OiTimesNabla / (II*Omega);
-            M21 = -OiTimesNabla / (II*Omega);
-            M22 = (OiBullet - OiNablaNabla/FK2) / Z;
+            M11 = Z*(OiBullet - OiNablaNabla/K2); 
+            M12 = -2.0*OiTimesNabla / (II*Omega);
+            M21 = -2.0*OiTimesNabla / (II*Omega);
+            M22 = (OiBullet - OiNablaNabla/K2) / Z;
 
             Force[nfc] += PreFac*real(   conj(KAlpha)*M11*KBeta 
                                        + conj(KAlpha)*M12*NBeta

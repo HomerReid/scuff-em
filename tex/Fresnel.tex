@@ -163,11 +163,11 @@ and the full wave is transmitted.
                   }
 \end{array}}
 
-\subsection{Non-Normal Incidence, $\vb E$ parallel to plane}
+\subsection{Non-Normal Incidence, $\vb E$ perpendicular to plane of incidence}
 
 I now rotate the propagation vector through an angle $\theta$ around
-the $y$ axis. For $\theta=0$ I recover the results of the previous
-section.
+the $y$ axis. (For $\theta=0$ I recover the results of the previous
+section.)
 
 \begin{align*}
  \vbhat{k}^i &= k_0\Big( \sin\theta \vbhat{y} - \cos\theta\vbhat{z} \Big) \\
@@ -201,7 +201,7 @@ $$ k_0\sin\theta = k_1 \sin \theta^\prime. $$
  &= tE_0 \vbhat{x} 
     e^{ik_1[\sin\theta^\prime y + \cos\theta^\prime z]} \\
 \vb H\sups{inc} 
- &= \frac{tE_0}{Z_0} \Big( -\cos\theta\vbhat{y} - \sin\theta\vbhat{z}\Big)
+ &= \frac{tE_0}{Z_1} \Big( -\cos\theta\vbhat{y} - \sin\theta\vbhat{z}\Big)
     e^{ik_1[\sin\theta^\prime y + \cos\theta^\prime z]} \\
 \end{align*}
 
@@ -211,6 +211,18 @@ $$ k_0\sin\theta = k_1 \sin \theta^\prime. $$
   \vb K &= \frac{E_0}{Z_0} (1-r)\cos\theta \vbhat{x} e^{ik_0 \sin \theta y}
 \\
   \vb N &= E_0 (1+r) \vbhat{y} e^{ik_0 \sin \theta y}
+\end{align*}
+
+Let's check that the normal fields at the surface are 
+correctly recovered from the divergence-of-surface-current 
+prescription:
+
+\begin{align*}
+  E_z &= \frac{\nabla \cdot \vb K}{i\epsilon\omega} = 0
+\\
+  H_z & = -\frac{\nabla \cdot \vb N}{i\mu\omega} 
+        = -\frac{i E_0 k_0 \sin\theta(1+r)}{i\mu\omega} e^{ik_0 y\sin\theta}
+        = -\frac{E_0}{Z_0}(1+r) e^{ik_0 y \sin\theta}
 \end{align*}
 
 
