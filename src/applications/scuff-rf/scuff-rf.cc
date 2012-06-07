@@ -37,30 +37,6 @@ void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HVector *LinSpace(double Min, double Max, int Num)
-{ 
-  if (Num<1) ErrExit("LinSpace: invalid N value (%i)\n",Num);
-  HVector *V=new HVector(Num);
-  V->SetEntry(0, Min);
-  double Delta=(Max-Min) / ( ((double)Num) - 1.0 );
-  for(int n=1; n<Num; n++)
-   V->SetEntry(n, V->GetEntryD(n-1) + Delta);
-  return V;
-  
-} 
-
-HVector *LogSpace(double Min, double Max, int Num)
-{ 
-  if (Num<1) ErrExit("LogSpace: invalid N value (%i)\n",Num);
-  HVector *V=new HVector(Num);
-  V->SetEntry(0, Min);
-  double Mult=exp( log(Max/Min)/((double)(Num-1)) );
-  for(int n=1; n<Num; n++)
-   V->SetEntry(n, V->GetEntry(n-1) * Mult );
-  return V;
-  
-} 
-
 void HVConcat(HVector *V1, HVector *V2)
 { 
   if ( V1==0 || V2==0 || V2->N==0 ) return;
@@ -71,8 +47,6 @@ void HVConcat(HVector *V1, HVector *V2)
   V1->N=NewN;
 
 }
-
-
 
 /***************************************************************/
 /* main function   *********************************************/

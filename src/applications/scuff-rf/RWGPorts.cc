@@ -125,7 +125,6 @@ RWGPort **ParsePortFile(RWGGeometry *G,
                         const char *PortFileName, 
                         int *pNumPorts)
 {
-
   /***************************************************************/
   /* try to open the file ****************************************/
   /***************************************************************/
@@ -382,11 +381,13 @@ void AddPortContributionsToRHS(RWGGeometry *G,
               GPPIArgs->Ob  = DestObject;
               GPPIArgs->npb = DestPPanelIndex;
               GPPIArgs->iQb = DestPPaneliQ;
+              GetPanelPanelInteractions(GPPIArgs);
               EFieldIntegral += Weight*SourceLength*DestLength*IK*GPPIArgs->H[0];
 
               GPPIArgs->Ob  = DestObject;
               GPPIArgs->npb = DestMPanelIndex;
               GPPIArgs->iQb = DestMPaneliQ;
+              GetPanelPanelInteractions(GPPIArgs);
               EFieldIntegral -= Weight*SourceLength*DestLength*IK*GPPIArgs->H[0];
 
             }; // for ne=0; ne<Port->NumMEdges; ne++)
