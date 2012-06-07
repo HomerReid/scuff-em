@@ -96,13 +96,13 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
 
       KAlpha=KN->GetEntry( nbf++ );
       if ( O->MP->Type==MP_PEC )
-       NAlpha=0.0;
+       NAlpha = 0.0;
       else 
-       NAlpha=KN->GetEntry( nbf++ ) * (-1.0*ZVAC);
+       NAlpha = -ZVAC*KN->GetEntry( nbf++ );
 
       for(Mu=0; Mu<3; Mu++)
-       { PM->AddEntry( 6*no + Mu + 0, KAlpha*pRWG[Mu] + NAlpha*mRWG[Mu]/ZVAC);
-         PM->AddEntry( 6*no + Mu + 3, KAlpha*mRWG[Mu] - NAlpha*pRWG[Mu]/ZVAC);
+       { PM->AddEntry( 6*no + Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
+         PM->AddEntry( 6*no + Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
        };
  
     };

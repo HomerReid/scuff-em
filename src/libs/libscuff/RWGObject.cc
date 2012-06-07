@@ -143,11 +143,6 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   if (SurfaceSigma!=0)
    Log("Object %s has surface conductivity Sigma=%s.\n",Label,cevaluator_get_string(SurfaceSigma));
 
-if (SurfaceSigma!=0)
- printf("Object %s has surface conductivity Sigma=%s.\n",pLabel,cevaluator_get_string(SurfaceSigma));
-else
- printf("SurfaceSigma=%p.\n",SurfaceSigma);
-
   InitRWGObject(pMeshFileName, pLabel, MaterialName, &OTGT);
   
   free(pMeshFileName);

@@ -894,16 +894,23 @@ void GetForce(SSData *SSD, char *ForceFile)
   double OiBullet, OiNablaNabla, OiTimesNabla;
   int no, nfc, neAlpha, neBeta, Offset, IsPEC;
   cdouble KAlpha, NAlpha=0.0, KBeta, NBeta=0.0;
-  cdouble K2 = Omega*Omega; 
+  cdouble K2 = Eps*Mu*Omega*Omega; 
   double PreFac=+0.25;
   cdouble M11, M12, M21, M22;
   RWGObject *O;
+
+#if 0
+double SubForce[4];
+memset(SubForce,0,4*sizeof(double));
+#endif
+
   for(no=0; no<G->NumObjects; no++)
    { 
      O=G->Objects[no];
      IsPEC = O->MP->IsPEC() ? 1 : 0;
      Offset=G->BFIndexOffset[no];
      memset(Force,0,3*sizeof(double));
+
      for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
       for(neBeta=0; neBeta<O->NumEdges; neBeta++)
        { 
@@ -929,9 +936,18 @@ void GetForce(SSData *SSD, char *ForceFile)
             OiTimesNabla = Overlaps[ 2 + (nfc*3) + 2 ];
 
             M11 = Z*(OiBullet - OiNablaNabla/K2); 
-            M12 = -2.0*OiTimesNabla / (II*Omega);
+            M12 = +2.0*OiTimesNabla / (II*Omega);
             M21 = -2.0*OiTimesNabla / (II*Omega);
             M22 = (OiBullet - OiNablaNabla/K2) / Z;
+
+#if 0
+if (nfc==2)
+ { SubForce[0] += PreFac*real(conj(KAlpha)*M11*KBeta);
+   SubForce[1] += PreFac*real(conj(KAlpha)*M12*NBeta);
+   SubForce[2] += PreFac*real(conj(NAlpha)*M21*KBeta);
+   SubForce[3] += PreFac*real(conj(NAlpha)*M22*NBeta);
+ };
+#endif
 
             Force[nfc] += PreFac*real(   conj(KAlpha)*M11*KBeta 
                                        + conj(KAlpha)*M12*NBeta
@@ -947,5 +963,11 @@ void GetForce(SSData *SSD, char *ForceFile)
 
   fprintf(f,"\n");
   fclose(f);
+
+#if 0
+f=fopen("/tmp/byQuadrant.out","a");
+fprintf(f,"%e %e %e %e %e \n",real(Omega),SubForce[0],SubForce[1],SubForce[2],SubForce[3]);
+fclose(f);
+#endif
 
 }
