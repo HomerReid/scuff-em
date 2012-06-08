@@ -203,6 +203,7 @@ AC_CONFIG_FILES([
  examples/ApertureDiffraction/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
+ examples/TwoSpheres/Makefile
  examples/WireAntenna/Makefile
  tests/Makefile
 ])

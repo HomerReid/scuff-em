@@ -65,6 +65,8 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   ContainingObjectLabel=0;
   SurfaceSigma=0;
 
+  Label = strdup(pLabel);
+
   /***************************************************************/
   /* read lines from the file one at a time **********************/
   /***************************************************************/
@@ -74,7 +76,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
   char *pMeshFileName=0;
-  GTransformation OTGT; // 'one-time geometrical transformation'
+  GTransformation *OTGT=0; // 'one-time geometrical transformation'
   MaterialName[0]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
@@ -99,7 +101,11 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
          { ErrMsg=strdup("MATERIAL keyword requires one argument");
            return;
          };
-        strncpy(MaterialName, Tokens[1], MAXSTR);
+        MP=new MatProp(Tokens[1]);
+        if (MP->ErrMsg)
+         { ErrMsg=vstrdup("material %s: %s",Tokens[1],MP->ErrMsg);
+           return; 
+         };
       }
      else if ( !strcasecmp(Tokens[0],"INSIDE") )
       { if (NumTokens!=2)
@@ -119,7 +125,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
         // the Object class, which is intended to be used for 
         // transformations that are applied and later un-applied 
         // during the life of the object. 
-	OTGT.Parse(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
+	OTGT = new GTransformation(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
         if (ErrMsg)
          return;
         if (TokensConsumed!=NumTokens) 
@@ -163,7 +169,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   if (SurfaceSigma!=0)
    Log("Object %s has surface conductivity Sigma=%s.\n",Label,cevaluator_get_string(SurfaceSigma));
 
-  InitRWGObject(pMeshFileName, pLabel, MaterialName, &OTGT);
+  InitRWGObject(pMeshFileName, OTGT);
   
   free(pMeshFileName);
 
@@ -175,31 +181,32 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 /*- meshfile name                                               */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-RWGObject::RWGObject(const char *pMeshFileName)
-{ 
-   SurfaceSigma=0;
-   InitRWGObject(pMeshFileName, 0, 0, 0); 
-}
-
 RWGObject::RWGObject(const char *pMeshFileName, 
                      const char *pLabel,
-                     const char *Material,
-                     const GTransformation *OTGT)
+                     const char *Material)
 { 
+   Label=strdup( pLabel ? pLabel : "NoLabel");
+   
+   MP=new MatProp( Material ? Material : "PEC" );
+   if (MP->ErrMsg)
+    ErrExit("error: material %s: %s",Material,MP->ErrMsg);
+
    SurfaceSigma=0;
-   InitRWGObject(pMeshFileName, pLabel, Material, OTGT);
+
+   InitRWGObject(pMeshFileName);
 }
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- Actual body of RWGObject constructor: Create an RWGObject */
+/*- Actual body of RWGObject constructor: Create an RWGObject   */
 /*- from a mesh file describing a discretized object,           */
 /*- optionally with a rotation and/or displacement applied.     */
+/*-                                                             */
+/*- This routine assumes that the following fields have already */
+/*- been initialized: Label, Material, and SurfaceSigma.        */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 void RWGObject::InitRWGObject(const char *pMeshFileName,
-                              const char *pLabel,
-                              const char *Material,
                               const GTransformation *OTGT)
 { 
   ErrMsg=0;
@@ -216,9 +223,7 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
   /*- initialize simple fields ---------------------------------*/
   /*------------------------------------------------------------*/
   NumEdges=NumPanels=NumVertices=NumRefPts=0;
-  MP=new MatProp(Material);
   ContainingObject=0;
-  Label=strdup( pLabel ? pLabel : "NoLabel");
   MeshFileName=strdup(pMeshFileName);
 
   /*------------------------------------------------------------*/

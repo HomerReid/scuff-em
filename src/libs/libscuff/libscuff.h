@@ -151,10 +151,9 @@ class RWGObject
    /* section in a .scuffgeo file                                       */ 
    RWGObject(FILE *f, const char *Label, int *LineNum);
 
-   /* constructor entry points 2 and 3: construct from a given mesh file */
-   RWGObject(const char *pMeshFileName);
-   RWGObject(const char *pMeshFileName, const char *pLabel,
-             const char *Material, const GTransformation *OTGT);
+   /* constructor entry point 2: construct from a given mesh file */
+   RWGObject(const char *pMeshFileName, const char *pLabel=0, 
+             const char *Material=0);
 
    /* constructor entry point 3: construct from a list of vertices */
    RWGObject(double *pVertices, int pNumVertices, 
@@ -256,8 +255,7 @@ class RWGObject
    /*- private class methods --------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
    /* the actual body of the class constructor */
-   void InitRWGObject(const char *pMeshFileName, const char *pLabel, 
-                      const char *Material, const GTransformation *GT);
+   void InitRWGObject(const char *pMeshFileName, const GTransformation *OTGT=0);
 
    /* constructor subroutines */
    void InitEdgeList();
