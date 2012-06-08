@@ -28,6 +28,8 @@
 #include "scuff-neq.h"
 #include "libscuffInternals.h"
 
+#define II cdouble(0.0,1.0)
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -75,10 +77,10 @@ void AssembleOverlapMatrices(SNEQData *SNEQD, cdouble Omega)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  cdouble FK2 = 4.0*Omega*Omega;
   cdouble Eps, Mu;
   G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
-  double Z2 = ZVAC*ZVAC * real(Mu/Eps);
+  cdouble K2 = Eps*Mu*Omega*Omega;
+  cdouble Z = ZVAC * sqrt(Mu/Eps);
  
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -106,26 +108,26 @@ void AssembleOverlapMatrices(SNEQData *SNEQD, cdouble Omega)
          PFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, PFEntry);
          PFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, PFEntry);
 
-         MFEntry1 = -Overlaps[OVERLAP_XBULLET] + Overlaps[OVERLAP_XNABLANABLA]/FK2;
-         MFEntry2 = Overlaps[OVERLAP_XTIMESNABLA];
-         xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z2*MFEntry1);
+         MFEntry1 = Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2;
+         MFEntry2 = 2.0*Overlaps[OVERLAP_XTIMESNABLA] / (II*Omega);
+         xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*MFEntry1);
          xMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
-         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
-         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z2);
+         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, -MFEntry2);
+         xMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z);
 
-         MFEntry1 = -Overlaps[OVERLAP_YBULLET] + Overlaps[OVERLAP_YNABLANABLA]/FK2;
-         MFEntry2 = Overlaps[OVERLAP_YTIMESNABLA];
-         yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z2*MFEntry1);
+         MFEntry1 = Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2;
+         MFEntry2 = 2.0*Overlaps[OVERLAP_YTIMESNABLA] / (II*Omega);
+         yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*MFEntry1);
          yMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
-         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
-         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z2);
+         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, -MFEntry2);
+         yMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z);
 
-         MFEntry1 = -Overlaps[OVERLAP_ZBULLET] + Overlaps[OVERLAP_ZNABLANABLA]/FK2;
-         MFEntry2 = Overlaps[OVERLAP_ZTIMESNABLA];
-         zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z2*MFEntry1);
+         MFEntry1 = Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2;
+         MFEntry2 = 2.0*Overlaps[OVERLAP_ZTIMESNABLA] / (II*Omega);
+         zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*MFEntry1);
          zMFMatrix->SetEntry(2*neAlpha+0, 2*neBeta+1, MFEntry2);
-         zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, MFEntry2);
-         zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z2);
+         zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+0, -MFEntry2);
+         zMFMatrix->SetEntry(2*neAlpha+1, 2*neBeta+1, MFEntry1/Z);
        };
          
    };

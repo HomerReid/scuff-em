@@ -63,6 +63,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 { 
   ErrMsg=0;
   ContainingObjectLabel=0;
+  SurfaceSigma=0;
 
   /***************************************************************/
   /* read lines from the file one at a time **********************/
