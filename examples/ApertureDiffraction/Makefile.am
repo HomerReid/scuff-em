@@ -1,7 +1,7 @@
-EXTRA_DIST =				\
- ScreenWithCircularAperture.geo		\
- ScreenWithCircularAperture.msh		\
- ScreenWithCircularAperture.scuffgeo
+EXTRA_DIST =			\
+ ScreenWithHole.geo		\
+ ScreenWithHole.msh		\
+ ScreenWithHole.scuffgeo
 
 pkgdatadir = $(datadir)/scuff-em/examples/ApertureDiffraction
 nodist_pkgdata_DATA = ${EXTRA_DIST}
