@@ -1,0 +1,10 @@
+geometry        ScreenWithCircularAperture_1976.scuffgeo 
+cache           ScreenWithCircularAperture_1976.scuffcache
+FluxMesh        FluxMesh.msh
+Omega           1
+#gbDirection     0 0 1 
+#gbPolarization  1 0 0 
+#gbCenter        0 0 0 
+#gbWaist         0.01
+pwDirection     0 0 1
+pwPolarization  1 0 0 
