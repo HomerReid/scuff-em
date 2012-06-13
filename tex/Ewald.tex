@@ -1,0 +1,71 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+%\usepackage{hyperref}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\newcommand{\GB}{\overline{G}}
+\newcommand{\vbGB}{\overline{\vb G}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Implementation of Ewald Summation in {\sc scuff-em}}
+\author {Homer Reid}
+\date {June 12, 2012}
+
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Ewald Summation in {\sc scuff-em}}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+
+\section{The Periodic Dyadic Green's Function}
+
+Consider a two-dimensional lattice consisting of a set of 
+lattice vectors $\{\vb L=(L_x, L_y)\}.$
+We use the symbol $\vb p=(p_x, p_y)$ to denote a two-dimensional
+Bloch wavevector.
+
+The Bloch-periodic version of the scalar Helmholtz Green's function is
+%====================================================================%
+\numeq{PGF}
+{ \GB(k; \vb p; \vb x) 
+  \equiv 
+  \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+               \frac{ e^{ i k |\vb x + \vb L|}}
+                    { 4\pi|\vb x + \vb L|}
+}
+%====================================================================%
+
+\section{Evaluation by Ewald Summation}
+To evaluate the sum in (\ref{PGF}) efficiently, we use a method 
+outlined by Jordan et al\footnote{K. E. Jordan, G. R. Richter, 
+and P. Sheng, "An Efficient Numerical Evaluation of the Green's 
+Function for the Helmholtz Operator on Periodic Structures," 
+\textit{Journal of Computational Physics} \textbf{63} 222 (1986).
+\texttt{http://dx.doi.org/10.1016/0021-9991(86)90093-8}}
+based on the original ideas of Ewald\footnote{}.
+
+\end{document}

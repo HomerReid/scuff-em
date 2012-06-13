@@ -118,6 +118,15 @@ int main(int argc, char *argv[])
    ErrExit(MP->ErrMsg);
 
   /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int HaveRealFreqData=1, HaveImagFreqData=1;
+  if (MP->Type==MP_INTERP && MP->InterpReal==0)
+   HaveRealFreqData=0;
+  if (MP->Type==MP_INTERP && MP->InterpImag==0)
+   HaveImagFreqData=0;
+
+  /***************************************************************/
   /*- write eps, mu vs. frequency to data file                   */
   /***************************************************************/
   cdouble Eps; 
@@ -129,10 +138,16 @@ int main(int argc, char *argv[])
    { 
       fprintf(f,"%e ",Omega);
 
-      MP->GetEpsMu( cdouble(Omega,0.0), &Eps, &Mu);
+      if (HaveRealFreqData)
+       MP->GetEpsMu( cdouble(Omega,0.0), &Eps, &Mu);
+      else 
+       Eps=Mu=1.0;
       fprintf(f,"%+15.12e %+15.12e %+15.12e %+15.12e",real(Eps), imag(Eps), real(Mu), imag(Mu));
 
-      MP->GetEpsMu( cdouble(0.0,Omega), &Eps, &Mu);
+      if (HaveImagFreqData)
+       MP->GetEpsMu( cdouble(0.0,Omega), &Eps, &Mu);
+      else
+       Eps=Mu=1.0;
       fprintf(f," %+15.12e %+15.12e \n",real(Eps), real(Mu));
 
    };
@@ -150,22 +165,28 @@ int main(int argc, char *argv[])
       ErrExit("could not launch gnuplot");
 
      fprintf(f,"set logscale x\n");
-     fprintf(f,"set title 'Eps,Mu for %s along the real omega axis\n",MP->Name);
-     fprintf(f,"set xlabel 'Real(Omega) (radians/second)'\n");
-     fprintf(f,"set ylabel 'Relative permittivity / permeability'\n");
-     fprintf(f,"plot '%s.epsmu' u 1:2 t 'Re(Eps)' w lp,",MP->Name); 
-     fprintf(f,"     '%s.epsmu' u 1:3 t 'Im(Eps)' w lp,",MP->Name); 
-     fprintf(f,"     '%s.epsmu' u 1:4 t 'Re(Mu)' w lp,",MP->Name); 
-     fprintf(f,"     '%s.epsmu' u 1:5 t 'Im(Mu)' w lp\n",MP->Name); 
 
-     fprintf(f,"set title 'Eps,Mu for %s along the imaginary omega axis\n",MP->Name);
-     fprintf(f,"set terminal x11 2\n");
-     fprintf(f,"set xlabel 'Imag(Omega) (radians/second)'\n");
-     fprintf(f,"set ylabel 'Relative permittivity / permeability'\n");
-     fprintf(f,"plot '%s.epsmu' u 1:6 t 'Eps' w lp,",MP->Name); 
-     fprintf(f,"     '%s.epsmu' u 1:7 t 'Mu' w lp\n",MP->Name); 
+     if (HaveRealFreqData)
+      { fprintf(f,"set title 'Eps,Mu for %s along the real omega axis\n",MP->Name);
+        fprintf(f,"set xlabel 'Real(Omega) (radians/second)'\n");
+        fprintf(f,"set ylabel 'Relative permittivity / permeability'\n");
+        fprintf(f,"plot '%s.epsmu' u 1:2 t 'Re(Eps)' w lp,",MP->Name); 
+        fprintf(f,"     '%s.epsmu' u 1:3 t 'Im(Eps)' w lp,",MP->Name); 
+        fprintf(f,"     '%s.epsmu' u 1:4 t 'Re(Mu)' w lp,",MP->Name); 
+        fprintf(f,"     '%s.epsmu' u 1:5 t 'Im(Mu)' w lp\n",MP->Name); 
+      };
+
+     if (HaveImagFreqData)
+      { fprintf(f,"set title 'Eps,Mu for %s along the imaginary omega axis\n",MP->Name);
+        fprintf(f,"set terminal x11 2\n");
+        fprintf(f,"set xlabel 'Imag(Omega) (radians/second)'\n");
+        fprintf(f,"set ylabel 'Relative permittivity / permeability'\n");
+        fprintf(f,"plot '%s.epsmu' u 1:6 t 'Eps' w lp,",MP->Name); 
+        fprintf(f,"     '%s.epsmu' u 1:7 t 'Mu' w lp\n",MP->Name); 
+      };
 
      pclose(f);
+
    };
 
 }

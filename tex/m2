@@ -1,7 +1,8 @@
 #!/bin/bash
 
-pdflatex Fresnel.tex
+#pdflatex Fresnel.tex
 #pdflatex lsInnards.tex
 #pdflatex scuff-scatter.tex
 #pdflatex SurfaceImpedance.tex
 #pdflatex scuff-heat.tex
+pdflatex Ewald.tex
