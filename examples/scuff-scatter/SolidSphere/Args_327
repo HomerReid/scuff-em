@@ -1,7 +1,0 @@
-geometry Sphere_327.scuffgeo
-cache Sphere_327.scuffcache
-OmegaFile OmegaList
-PowerFile Sphere.power 
-PowerRadius 50.0 
-pwDirection 0 0 1 
-pwPolarization 1 0 0 

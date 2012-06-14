@@ -553,4 +553,18 @@ bool RWGObject::Contains(const RWGObject *O)
 
 /***********************************************************************/
 
+int RWGGeometry::GetObjectIndex(const double X[3]) {
+  // find the innermost object containing X
+  for (int i = NumObjects - 1; i >= 0; --i) // innermost to outermost order
+    if (Objects[i]->Contains(X))
+      return i;
+  return -1; // not in any object
+}
+
+RWGObject *RWGGeometry::GetObject(const double X[3]) {
+  int i = GetObjectIndex(X);
+  return i < 0 ? NULL : Objects[i];
+}
+
+
 } // namespace scuff

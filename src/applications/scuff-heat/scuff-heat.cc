@@ -276,9 +276,9 @@ int main(int argc, char *argv[])
   /* may have specified                                              */
   /*******************************************************************/
   for (int nrc=0; nrc<nReadCache; nrc++)
-   PreloadGlobalFIPPICache( ReadCache[nrc] );
+   PreloadCache( ReadCache[nrc] );
   if (Cache)
-   PreloadGlobalFIPPICache( Cache );
+   PreloadCache( Cache );
 
   if (Cache) WriteCache=Cache;
   SHD->WriteCache = WriteCache;

@@ -10,36 +10,19 @@
 
 #include "scuff-scatter.h"
 
+#define MAXSTR   1000 
+
 #define ABSTOL   0.0
 #define RELTOL   5.0e-2
 #define MAXEVALS 20000
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-FILE *LogFile=0;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
 { 
-  /*--------------------------------------------------------------*/
-  /*- get scattered field ----------------------------------------*/
-  /*--------------------------------------------------------------*/
-  SSD->G->GetFields(X,SSD->Omega,SSD->KN,EHS,SSD->nThread);
-  memcpy(EHT,EHS,6*sizeof(cdouble));
-
-  /*--------------------------------------------------------------*/
-  /*- add incident field only if we are in the external region    */
-  /*--------------------------------------------------------------*/
-  if ( SSD->G->GetObjectIndex(X)==-1 )
-   { int Mu;
-     cdouble EH2[6];
-     EHIncField(X, SSD->opIFD, EH2);
-     for(Mu=0; Mu<6; Mu++) 
-      EHT[Mu]+=EH2[Mu];
-   };
-
+  SSD->G->GetFields(      0, SSD->KN, SSD->Omega, X, EHS, 0); // scattered
+  SSD->G->GetFields(SSD->IF,       0, SSD->Omega, X, EHT, 0); // incident
+ 
+  for (int Mu=0; Mu<6; Mu++)
+   EHT[Mu]+=EHS[Mu];
 }
 
 /***************************************************************/
@@ -48,58 +31,174 @@ void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
 /***************************************************************/
 void ProcessEPFile(SSData *SSD, char *EPFileName)
 { 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGGeometry *G  = SSD->G;
+  IncField *IF    = SSD->IF;
+  HVector  *KN    = SSD->KN;
+  cdouble  Omega  = SSD->Omega;
 
-  HMatrix *EPMatrix=new HMatrix(EPFileName,LHM_TEXT,"-ncol 3");
-  if (EPMatrix->ErrMsg)
-   { fprintf(stderr,"Error processing EP file: %s\n",EPMatrix->ErrMsg);
-     delete EPMatrix;
+  /*--------------------------------------------------------------*/
+  /*- try to read eval points from file --------------------------*/
+  /*--------------------------------------------------------------*/
+  HMatrix *XMatrix=new HMatrix(EPFileName,LHM_TEXT,"-ncol 3");
+  if (XMatrix->ErrMsg)
+   { fprintf(stderr,"Error processing EP file: %s\n",XMatrix->ErrMsg);
+     delete XMatrix;
      return;
    };
- 
-  /***************************************************************/ 
-  /***************************************************************/
-  /***************************************************************/
-  int nep;
-  double X[3]; 
-  cdouble EHS[6], EHT[6];
-  FILE *f1, *f2;
-  char buffer[200];
- 
+
+  /*--------------------------------------------------------------*/
+  /*- get components of scattered and incident fields            -*/
+  /*--------------------------------------------------------------*/
   Log("Evaluating fields at points in file %s...",EPFileName);
-  printf("Evaluating fields at points in file %s...\n",EPFileName);
 
-  sprintf(buffer,"%s.scattered",GetFileBase(EPFileName));
-  f1=CreateUniqueFile(buffer,1);
-  sprintf(buffer,"%s.total",GetFileBase(EPFileName));
-  f2=CreateUniqueFile(buffer,1);
-  SetDefaultCD2SFormat("%18.12e %18.12e");
-  for(nep=0; nep<EPMatrix->NR; nep++)
-   { 
-     X[0]=EPMatrix->GetEntryD(nep, 0);
-     X[1]=EPMatrix->GetEntryD(nep, 1);
-     X[2]=EPMatrix->GetEntryD(nep, 2);
+  HMatrix *FMatrix1 = G->GetFields( 0, KN, Omega, XMatrix); // scattered
+  HMatrix *FMatrix2 = G->GetFields(IF,  0, Omega, XMatrix); // incident
 
-     GetTotalField(SSD, X, EHS, EHT); 
+  /*--------------------------------------------------------------*/
+  /*- create .scattered and .total output files and write fields -*/
+  /*--------------------------------------------------------------*/
+  char buffer[MAXSTR];
+  snprintf(buffer,MAXSTR,"%s.scattered",GetFileBase(EPFileName));
+  FILE *f1=CreateUniqueFile(buffer,1);
+  snprintf(buffer,MAXSTR,"%s.total",GetFileBase(EPFileName));
+  FILE *f2=CreateUniqueFile(buffer,1);
 
-     fprintf(f1,"%e %e %e ",X[0],X[1],X[2]);
-     fprintf(f1,"%s %s %s ",CD2S(EHS[0]),CD2S(EHS[1]),CD2S(EHS[2]));
-     fprintf(f1,"%s %s %s ",CD2S(EHS[3]),CD2S(EHS[4]),CD2S(EHS[5]));
+  int nr, nc; 
+  SetDefaultCD2SFormat("%.8e %.8e ");
+  for(nr=0; nr<FMatrix1->NR; nr++)
+   { fprintf(f1,"%.8e %.8e %.8e ",XMatrix->GetEntryD(nr, 0),
+                                  XMatrix->GetEntryD(nr, 1),
+                                  XMatrix->GetEntryD(nr, 2));
+
+     fprintf(f2,"%.8e %.8e %.8e ",XMatrix->GetEntryD(nr, 0),
+                                  XMatrix->GetEntryD(nr, 1),
+                                  XMatrix->GetEntryD(nr, 2));
+
+     for(nc=0; nc<FMatrix1->NC; nc++)
+      { 
+        fprintf(f1,"%s ",CD2S(  FMatrix1->GetEntry(nr,nc)) );
+
+        fprintf(f2,"%s ",CD2S(  FMatrix1->GetEntry(nr,nc)  
+                               +FMatrix2->GetEntry(nr,nc)) );
+      };
+
      fprintf(f1,"\n");
-
-     fprintf(f2,"%e %e %e ",X[0],X[1],X[2]);
-     fprintf(f2,"%s %s %s ",CD2S(EHT[0]),CD2S(EHT[1]),CD2S(EHT[2]));
-     fprintf(f2,"%s %s %s ",CD2S(EHT[3]),CD2S(EHT[4]),CD2S(EHT[5]));
      fprintf(f2,"\n");
- 
+
    };
-  fprintf(f1,"\n\n");
-  fprintf(f2,"\n\n");
+
+  fclose(f1);
+  fclose(f2);
+  delete XMatrix;
+  delete FMatrix1;
+  delete FMatrix2;
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+static char *FieldFuncs=
+ "|Ex|,|Ey|,|Ez|,"
+ "sqrt(|Ex|^2+|Ey|^2+|Ez|^2),"
+ "|Hx|,|Hy|,|Hz|,"
+ "sqrt(|Hx|^2+|Hy|^2+|Hz|^2)";
+
+static const char *FieldTitles[]=
+ {"|Ex|", "|Ey|", "|Ez|", "|E|",
+  "|Hx|", "|Hy|", "|Hz|", "|H|",
+ };
+
+#define NUMFIELDFUNCS 8
+
+void CreateFluxPlot(SSData *SSD, char *MeshFileName)
+{ 
+  /*--------------------------------------------------------------*/
+  /*- try to open output file ------------------------------------*/
+  /*--------------------------------------------------------------*/
+  FILE *f=vfopen("%s.pp","w",GetFileBase(MeshFileName));
+  if (!f) 
+   { fprintf(stderr,"warning: could not open output file %s.pp\n",GetFileBase(MeshFileName));
+     return;
+   };
+  
+  /*--------------------------------------------------------------*/
+  /*- try to open user's mesh file -------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGObject *O=new RWGObject(MeshFileName);
+
+  Log("Creating flux plot for surface %s...",MeshFileName);
+  printf("Creating flux plot for surface %s...\n",MeshFileName);
+
+  /*--------------------------------------------------------------*/
+  /*- create an Nx3 HMatrix whose columns are the coordinates of  */
+  /*- the flux mesh panel vertices                                */
+  /*--------------------------------------------------------------*/
+  HMatrix *XMatrix=new HMatrix(O->NumVertices, 3);
+  int nv;
+  for(nv=0; nv<O->NumVertices; nv++)
+   { 
+     XMatrix->SetEntry(nv, 0, O->Vertices[3*nv + 0]);
+     XMatrix->SetEntry(nv, 1, O->Vertices[3*nv + 1]);
+     XMatrix->SetEntry(nv, 2, O->Vertices[3*nv + 2]);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  HMatrix *FMatrix=SSD->G->GetFields(SSD->IF, SSD->KN, SSD->Omega, XMatrix, 0, FieldFuncs);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGPanel *P;
+  int nff, np, iV1, iV2, iV3;
+  double *V1, *V2, *V3;
+  for(nff=0; nff<NUMFIELDFUNCS; nff++)
+   { 
+     fprintf(f,"View \"%s\" {\n",FieldTitles[nff]);
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     for(np=0; np<O->NumPanels; np++)
+      {
+        P=O->Panels[np];
+        iV1 = P->VI[0];  V1 = O->Vertices + 3*iV1;
+        iV2 = P->VI[1];  V2 = O->Vertices + 3*iV2;
+        iV3 = P->VI[2];  V3 = O->Vertices + 3*iV3;
+
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   V1[0], V1[1], V1[2], 
+                   V2[0], V2[1], V2[2], 
+                   V3[0], V3[1], V3[2], 
+                   FMatrix->GetEntryD(iV1,nff),
+                   FMatrix->GetEntryD(iV2,nff),
+                   FMatrix->GetEntryD(iV3,nff));
+
+      };
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     fprintf(f,"};\n\n");
+   };
+
+  fclose(f);
+  delete FMatrix;
+  delete XMatrix;
+  delete O;
+
 }
 
 /***************************************************************/
 /* generate plots of poynting flux and field-strength arrows   */
 /* on a user-supplied surface mesh                             */
 /***************************************************************/
+#if 0
 void CreateFluxPlot(SSData *SSD, char *MeshFileName)
 { 
   RWGObject *O=new RWGObject(MeshFileName);
@@ -110,19 +209,55 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   printf("Creating flux plot for surface %s...\n",MeshFileName);
 
   /*--------------------------------------------------------------*/
-  /*- because of the way the datasets need to be organized in    -*/
-  /*- the .pp file, it is easiest to make multiple passes        -*/
-  /*- through the list of panels on the flux surface: one pass   -*/
-  /*- to get the E and H fields at each panel centroid, and then -*/
-  /*- subsequent passes to write each of the various different   -*/
-  /*- data sets to the .pp file.                                 -*/
+  /*- create an Nx3 HMatrix whose columns are the coordinates of  */
+  /*- the centroids of the panels on the flux mesh                */
+  /*--------------------------------------------------------------*/
+  int NP=O->NumPanels;
+  HMatrix *XMatrix=new HMatrix(NP, 3);
+  for(np=0; np<O->NumPanels; np++)
+   { 
+     P=O->Panels[np]; 
+     XMatrix->SetEntry(np, 0, P->Centroid[0]);
+     XMatrix->SetEntry(np, 1, P->Centroid[1]);
+     XMatrix->SetEntry(np, 2, P->Centroid[2]);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  HMatrix *FSMatrix=SSD->G->GetFields( 0, SSD->KN, SSD->Omega, XMatrix); // scattered
+  HMatrix *FTMatrix=SSD->G->GetFields(SSD->IF,  0, SSD->Omega, XMatrix); // incident
+
+  // set total = incident + scattered
+  FTMatrix->AddBlock(FSMatrix, 0, 0);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   cdouble *EHS=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
   cdouble *EHT=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
-  if (EHS==0 || EHT==0) ErrExit("out of memory");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
-   GetTotalField(SSD, P->Centroid, EHS + 6*np, EHT + 6*np);
+  if (EHS==0 || EHT==0) 
+   ErrExit("out of memory");
+  for(np=0; np<NP; np++)
+   { 
+      EHS[6*np + 0] = FSMatrix->GetEntry(np, 0);
+      EHS[6*np + 1] = FSMatrix->GetEntry(np, 1);
+      EHS[6*np + 2] = FSMatrix->GetEntry(np, 2);
+      EHS[6*np + 3] = FSMatrix->GetEntry(np, 3);
+      EHS[6*np + 4] = FSMatrix->GetEntry(np, 4);
+      EHS[6*np + 5] = FSMatrix->GetEntry(np, 5);
 
+      EHT[6*np + 0] = FTMatrix->GetEntry(np, 0);
+      EHT[6*np + 1] = FTMatrix->GetEntry(np, 1);
+      EHT[6*np + 2] = FTMatrix->GetEntry(np, 2);
+      EHT[6*np + 3] = FTMatrix->GetEntry(np, 3);
+      EHT[6*np + 4] = FTMatrix->GetEntry(np, 4);
+      EHT[6*np + 5] = FTMatrix->GetEntry(np, 5);
+   };
+  
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   // maximum values of scattered and total fields, used below for 
   // normalization 
   double MaxESMag=0.0, MaxETMag=0.0, MaxHSMag=0.0, MaxHTMag=0.0;
@@ -333,9 +468,13 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
 
   free(EHS);
   free(EHT);
+  delete FSMatrix;
+  delete FTMatrix;
+  delete XMatrix;
   delete O;
 
 }
+#endif 
 
 /***************************************************************/
 /* integrand routine for GetPower_BF ***************************/
@@ -418,11 +557,6 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   fval[0] =  R*R*(  PVSI[0]*nHat[0] +   PVSI[1]*nHat[1] +   PVSI[2]*nHat[2]);
   fval[1] =  R*R*(PVScat[0]*nHat[0] + PVScat[1]*nHat[1] + PVScat[2]*nHat[2]);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (LogFile)
- fprintf(LogFile,"%e %e %e %e %e %e %e %e %e %e\n",
-                  CosTheta,SinPhi,X[0],X[1],X[2],nHat[0],nHat[1],nHat[2],fval[0],fval[1]);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
@@ -440,26 +574,16 @@ void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
   GPBFID->SSD = SSD;
   GPBFID->R = R;
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//LogFile=fopen("doomatage","w");
-//setlinebuf(LogFile);
-LogFile=0;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   adapt_integrate_log(2, GetPower_BF_Integrand, (void *)GPBFID, 2, 
 	     	      Lower, Upper, MAXEVALS, ABSTOL, RELTOL, 
                       PBF, EBF, "SGJC.log",15);
   PBF[0] = -(PBF[0] + PBF[1]);
   EBF[0] =  (EBF[0] + EBF[1]);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//fclose(LogFile);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 }
 
 /***************************************************************/
-/* get the scattered and absorbed power using steven's formulas*/
+/* get the scattered and absorbed power using the SGJ formulas */
 /* involving vector-matrix-vector products                     */
 /***************************************************************/
 void GetPower_SGJ(SSData *SSD, double *PSGJ)
@@ -579,7 +703,7 @@ void GetPower(SSData *SSD, char *PowerFile)
   HVector *RHS   = SSD->RHS;
   HVector *KN    = SSD->KN;
 
-  Log("  Computing scattered and absorbed power...");
+  Log("Computing scattered and absorbed power...");
 
   /***************************************************************/
   /* open the file and write the frequency at the top of the line*/
@@ -646,14 +770,24 @@ void GetPower(SSData *SSD, char *PowerFile)
   PTot *= 0.5*ZVAC;
   PAbs *= 0.5*ZVAC;
   PScat = PTot - PAbs;
-  fprintf(f,"%.12e %.12e  ",PAbs,PScat);
 
   /***************************************************************/
+  /* the HR formula computes the scattered power as the          */
+  /* difference between the total and absorbed power; if the     */
+  /* total and absorbed powers agree to three decimal places,    */
+  /* then the scattered power computed this way will probably be */
+  /* inaccurate, so in this case we use the SGJ scattered-power  */
+  /* fomulas instead                                             */
   /***************************************************************/
-  /***************************************************************/
-  double PSGJ[2];
-  GetPower_SGJ(SSD, PSGJ);
-  fprintf(f,"%.12e %.12e  ",PSGJ[0], PSGJ[1]);
+  if ( fabs(PScat) < 1.0e-3*fabs(PTot) ) 
+   { 
+     double PSGJ[2];
+     GetPower_SGJ(SSD, PSGJ);
+     Log("Using SGJ formulas (PTot,PAbs,PScat) = (%.5e,%.5e,%.5e) (HR) (%.5e,%.5e,%.5e) (SGJ)",
+          PTot,PAbs,PScat,PSGJ[0]+PSGJ[1],PSGJ[0],PSGJ[1]);
+     PScat=PSGJ[1];
+   };
+  fprintf(f,"%.12e %.12e  ",PAbs,PScat);
 
   /***************************************************************/
   /* if the user specified a nonzero PowerRadius, repeat the     */
@@ -670,4 +804,41 @@ void GetPower(SSData *SSD, char *PowerFile)
   fprintf(f,"\n");
   fclose(f);
    
+}
+
+/***************************************************************/
+/* evaluate the induced dipole moments                         */
+/***************************************************************/
+void GetMoments(SSData *SSD, char *MomentFile)
+{
+  /***************************************************************/
+  /* open the file and write the frequency at the top of the line*/
+  /***************************************************************/
+  FILE *f=fopen(MomentFile,"a");
+  setlinebuf(f);
+  if ( !f ) ErrExit("could not open file %s",MomentFile);
+  
+  /***************************************************************/
+  /* get dipole moments ******************************************/
+  /***************************************************************/
+  RWGGeometry *G = SSD->G;
+  HVector *KN    = SSD->KN;
+  cdouble Omega  = SSD->Omega;
+
+  HVector *PM  = G->GetDipoleMoments(Omega, KN);
+
+  /***************************************************************/
+  /* print to file ***********************************************/
+  /***************************************************************/
+  int no, nm, Mu;
+  fprintf(f,"%s ",z2s(Omega));
+  for (no=0; no<G->NumObjects; no++)
+   { fprintf(f,"%s ",G->Objects[no]->Label);
+     for(Mu=0; Mu<6; Mu++)
+      fprintf(f,"%s ",CD2S(PM->GetEntry(6*no + Mu),"%.8e %.8e "));
+   };
+  fprintf(f,"\n");
+
+  delete PM;
+
 }

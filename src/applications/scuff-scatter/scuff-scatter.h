@@ -10,15 +10,9 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include "libIncField.h"
-
-#ifdef SCUFF
-#  include "libscuff.h"
-#else // RWG
-#  include "libRWG.h"
-#endif
+#include "libscuff.h"
 
 using namespace scuff;
-
 
 /***************************************************************/
 /* data structure containing everything needed to execute a    */
@@ -30,7 +24,7 @@ typedef struct SSData
    HMatrix *M;
    HVector *RHS, *KN;
    cdouble Omega;
-   void *opIFD;
+   IncField *IF;
    double PowerRadius;
    int nThread;
  } SSData;
@@ -41,6 +35,7 @@ typedef struct SSData
 /* scattered fields in various ways.                           */
 /***************************************************************/
 void GetPower(SSData *SSD, char *PowerFile);
+void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);
 void CreateFluxPlot(SSData *SSData, char *MeshFileName);
 

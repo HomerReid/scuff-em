@@ -1,0 +1,179 @@
+\documentclass{article} 
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% special commands for this document %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\renewcommand{\inp}[2]{ \big\langle #1 \big| #2 \big\rangle}
+\newcommand{\INP}[2]{ \Big\langle #1 \Big| #2 \Big\rangle}
+\newcommand{\vmv}[3]{ \big\langle #1 \big| #2 \big| #3 \Big\rangle}
+\newcommand{\VMV}[3]{ \Big\langle #1 \Big| #2 \Big| #3 \Big\rangle}
+
+%**************************************************
+%* Document header info ***************************
+%**************************************************
+\title{Surface Impedance Boundary Conditions in {\sc scuff-em}}
+\author {Homer Reid}
+\date {May 9, 2012}
+
+%**************************************************
+%* Start of actual document ***********************
+%**************************************************
+
+\begin{document}
+\maketitle
+
+\pagestyle{myheadings}
+\markright{Homer Reid: Surface Impedance Boundary Conditions in {\sc scuff-em} }
+
+\tableofcontents 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{The Basic Formulation}
+
+\subsubsection*{The usual boundary condition for PEC surfaces}
+
+In SIE/BEM formulations, the usual boundary condition imposed at the 
+surface of a perfectly electrically conducting (PEC) scatterer is that 
+the total tangential electric field vanish:
+\numeq{PECBC1}{ \vb E_{\parallel}\sups{tot}(\vb x) = 0. }
+
+\subsubsection*{The usual EFIE procedure for PEC surfaces}
+ 
+The usual electric-field-integral-equation (EFIE) procedure for 
+handling scattering from zero-thickness PEC surfaces is the
+the following:
+%
+\begin{enumerate}
+ \item We introduce an electric surface current $\vb K(\vb x)$ on 
+       the scatterer surface. This current is related to 
+       the total tangential $\vb H$-field according to 
+       $$\vb K(\vb x) = \vbhat{n}\times \vb H\sups{tot}(\vb x).$$
+ \item We do \textit{not} need to introduce a magnetic surface 
+       current; such a current would be proportional to the total
+       tangential $\vb E$ field, but this vanishes in view of 
+       the boundary condition (\ref{PECBC1}):
+       $$\vb N(\vb x) = -\vbhat{n}\times \vb E\sups{tot}(\vb x)\equiv0.$$
+ \item $\vb K$ gives rise to scattered $\vb E$ and $\vb H$ fields according to
+       \begin{align*}
+        \vb E\sups{scat} &= \int \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+                            \cdot \vb K(\vb x^\prime) d\vb x^\prime
+        \\
+        \vb H\sups{scat} &= \int \BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime) 
+                            \cdot \vb K(\vb x^\prime) d\vb x^\prime.
+       \end{align*}
+ \item We solve for $\vb K$ by demanding that the scattered field 
+       to which it gives rise satisfy the boundary condition
+       (\ref{PECBC1}):
+       \begin{align*}
+                \vb E_{\parallel}\sups{scat}(\vb x) 
+            &= -\vb E_{\parallel}\sups{inc}(\vb x)
+        \intertext{or} 
+                \int \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+                     \cdot \vb K(\vb x^\prime) d\vb x^\prime 
+            &= - \vb E\sups{inc}(\vb x).
+        \end{align*}
+\end{enumerate}
+%
+\subsubsection*{The modified boundary condition for IPEC surfaces}
+
+At the surface of an \textit{imperfectly} electrically conducting 
+(IPEC) scatterer with surface impedance $Z_s$, boundary condition 
+(\ref{PECBC1}) is modified to read 
+\numeq{IPECBC1}
+{
+\vb E_{\parallel}\sups{tot}(\vb x) 
+= Z_s \vbhat{n}\times \vb H_{\parallel}\sups{tot}(\vb x)
+}
+
+\subsubsection*{The modified EFIE procedure for IPEC surfaces}
+ 
+For IPEC surfaces, I modify the EFIE procedure as follows:
+%
+\begin{enumerate}
+ \item As above, I introduce an electric surface current $\vb K(\vb x)$,
+       which is again related to the total tangential $\vb H$-field 
+       according to 
+       $$\vb K(\vb x) = \vbhat{n}\times \vb H\sups{tot}(\vb x).$$
+ \item In contrast to the above, I now have a nonvanishing magnetic 
+       current, which is not an independent unknown but is instead
+       determined by $\vb K$ via equation (\ref{IPECBC1}):
+       the boundary condition (\ref{PECBC1}):
+       $$\vb N(\vb x) = -\vbhat{n}\times \vb E\sups{tot}(\vb x)
+                      = -Z_s \vbhat{n}\times \vb K(\vb x).$$
+ \item $\vb K$ and $\vb N\equiv \vb N[\vb K]$ give rise to scattered $\vb E$ and 
+       $\vb H$ fields according to
+       \begin{align*}
+         \vb E\sups{scat} &= 
+           \int \left\{       \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+                        \cdot \vb K(\vb x^\prime)
+                        \,-\, 
+                           Z_s\BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime) 
+                        \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big] 
+                \right\}\,d\vb x^\prime
+         \\
+         \vb H\sups{scat} &= 
+           \int \left\{       \BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime) 
+                        \cdot \vb K(\vb x^\prime)
+                        \,-\, 
+                           Z_s\BG_{\parallel}\supt{MM}(\vb x, \vb x^\prime) 
+                        \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big] 
+                \right\}\,d\vb x^\prime.
+       \end{align*}
+%       which I could write alternatively as 
+%       \begin{align*}
+%         \vb E\sups{scat} &= 
+%           \int \left\{ \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+%                        +Z_s \Big[\vbhat{n}\times \BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime)\Big]
+%                \right\}
+%                        \cdot \vb K(\vb x^\prime) \,d\vb x^\prime
+%         \\
+%         \vb H\sups{scat} &= 
+%           \int \left\{ \BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime) 
+%                        +Z_s \Big[\vbhat{n}\times \BG_{\parallel}\supt{MM}(\vb x, \vb x^\prime)\Big]
+%                \right\}
+%                        \cdot \vb K(\vb x^\prime) \,d\vb x^\prime
+%       \end{align*}
+ \item I solve for $\vb K$ by demanding that the scattered fields 
+       to which it -- now in concert with $\vb N$ -- gives rise 
+       satisfy the boundary condition (\ref{IPECBC1}):
+       $$
+           \vb E_{\parallel}\sups{scat}(\vb x) 
+            -Z_s \vbhat{n}\times \vb H_{\parallel}\sups{scat}(\vb x)
+       = 
+          -\vb E_{\parallel}\sups{inc}(\vb x) 
+            +Z_s \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
+       $$
+       or
+       \begin{align*}
+       \int\bigg\{ &\BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+                   \cdot \vb K(\vb x^\prime)
+                   \\
+                   &- Z_s\BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime)
+                   \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big] 
+                   \\
+                   &-Z_s\vbhat{n}\times \BG_{\parallel}\supt{EM}(\vb x, \vb x^\prime) 
+                   \cdot \vb K(\vb x^\prime)
+                   \\
+                   &+Z_s^2
+                   \vbhat{n}\times\BG_{\parallel}\supt{MM}(\vb x, \vb x^\prime)
+                   \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big]
+       \bigg\}
+       = -\vb E_{\parallel}\sups{inc}(\vb x) 
+            +Z_s \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
+       \end{align*}
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{How it works: A simple analytically-solvable model}
+
+\end{document}

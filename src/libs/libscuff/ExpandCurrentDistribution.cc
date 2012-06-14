@@ -21,8 +21,7 @@ namespace scuff {
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD,
-					    HVector *KNVec, int nThread)
+void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec, int nThread)
 { 
   int n, ne, nep;
   RWGObject *O;
@@ -35,7 +34,7 @@ void RWGGeometry::ExpandCurrentDistribution(EHFuncType KNFunc, void *KNFuncUD,
   O=Objects[0];
 
   Log("ExpandCD: Assembling RHS");
-  AssembleRHSVector(KNFunc, KNFuncUD, KNVec, nThread);
+  AssembleRHSVector(1.0, IF, KNVec, nThread);
   if (KNVec->RealComplex==LHM_COMPLEX)
    { for(n=0; n<(KNVec->N)/2; n++)
       { KNVec->ZV[2*n] *= -1.0*ZVAC;

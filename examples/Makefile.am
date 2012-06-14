@@ -1,5 +1,6 @@
-SUBDIRS = 	\
- scuff-cas3D   	\
- scuff-caspol  	\
- scuff-scatter
+SUBDIRS =            \
+ SolidSphere         \
+ SphericalShell      \
+ ApertureDiffraction \
+ WireAntenna         
 

@@ -135,11 +135,6 @@ void RWGGeometry::WriteGPMesh(const char *format, ...)
   vsnprintf(FileName,997,format,ap);
   va_end(ap);
 
-  /* for compatibility with the matlab visualization file names, */ 
-  /* go through and change all decimal places to underscores     */
-  /* in the filename, then add a .gp file extension              */
-  for(i=0; FileName[i]!=0; i++)
-   if (FileName[i]=='.') FileName[i]='_';
   p=strrchr(FileName,'.');
   if ( !p || strcmp(p,".gp") )
    strcat(FileName,".gp");
@@ -395,7 +390,7 @@ void RWGObject::WritePPMeshLabels(const char *FileName,
   if (WhichLabels & LS_INTERIOREDGEINDICES)
    {
      if (Tag)
-      fprintf(f,"View \"%s_InteriorEdges\" {\n",Tag);
+      fprintf(f,"View \"%s.InteriorEdges\" {\n",Tag);
      else
       fprintf(f,"View \"InteriorEdges\" {\n");
      for(ne=0, E=Edges[0]; ne<NumEdges; E=Edges[++ne])
@@ -412,7 +407,7 @@ void RWGObject::WritePPMeshLabels(const char *FileName,
   if (WhichLabels & LS_EXTERIOREDGEINDICES)
    {
      if (Tag)
-      fprintf(f,"View \"%s_ExteriorEdges\" {\n",Tag);
+      fprintf(f,"View \"%s.ExteriorEdges\" {\n",Tag);
      else
       fprintf(f,"View \"ExteriorEdges\" {\n");
      for(ne=0, E=ExteriorEdges[0]; ne<NumExteriorEdges; E=ExteriorEdges[++ne])
@@ -429,7 +424,7 @@ void RWGObject::WritePPMeshLabels(const char *FileName,
   if (WhichLabels & LS_VERTEXINDICES)
    {
      if (Tag)
-      fprintf(f,"View \"%s_Vertices\" {\n",Tag);
+      fprintf(f,"View \"%s.Vertices\" {\n",Tag);
      else
       fprintf(f,"View \"Vertices\" {\n");
      for(nv=0; nv<NumVertices; nv++)

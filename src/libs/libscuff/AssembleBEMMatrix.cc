@@ -73,18 +73,9 @@ void *ABMBThread(void *data)
   int OaIsPEC          = Args->OaIsPEC;
   int ObIsPEC          = Args->ObIsPEC;
 
-  /*--------------------------------------------------------------*/
-  /*- hack to force all threads to run on separate CPU cores     -*/
-  /*--------------------------------------------------------------*/
-#if defined(_GNU_SOURCE) && defined(USE_PTHREAD)
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(TD->nt,&cpuset);
-  pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+#ifdef USE_PTHREAD
+  SetCPUAffinity(TD->nt);
 #endif
-  /*--------------------------------------------------------------*/
-  /*- end hack ---------------------------------------------------*/
-  /*--------------------------------------------------------------*/
 
   /***************************************************************/
   /* initialize an argument structure to be passed to            */
@@ -404,9 +395,23 @@ void InitABMBArgs(ABMBArgStruct *Args)
 /* this is the actual API-exposed routine for assembling the   */
 /* BEM matrix, which is pretty simple and really just calls    */
 /* routine above to do all the dirty work.                     */
+/*                                                             */
+/* If the M matrix is NULL on entry, a new HMatrix of the      */
+/* appropriate size is allocated and returned. Otherwise, the  */
+/* return value is M.                                          */
 /***************************************************************/
-void RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
+HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
 { 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (M==NULL)
+   M=AllocateBEMMatrix();
+  else if ( M->NR != TotalBFs || M->NC != TotalBFs )
+   { Warn("wrong-size matrix passed to AssembleBEMMatrix; reallocating...");
+     M=AllocateBEMMatrix();
+   };
+
   /***************************************************************/
   /* preinitialize an argument structure for the matrix-block    */
   /* assembly routine                                            */
@@ -463,6 +468,8 @@ void RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
       for(nc=0; nc<nr; nc++)
        M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
    };
+
+ return M;
 
 }
 

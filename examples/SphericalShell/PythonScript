@@ -1,0 +1,25 @@
+import sys
+sys.path.append("/home/homer/work/scuff-em-installation/lib/python2.7/site-packages");
+
+import scuff;
+import numpy.linalg;
+
+G = scuff.RWGGeometry("SphericalShell.scuffgeo");
+PW=scuff.PlaneWave([0,0,1],[1,0,0]);
+scuff.PreloadCache("SphericalShell.cache");
+Omega=0.001;
+
+# read in matrix of eval-point coordinates
+X=scuff.HMatrix("CenterPoint")
+
+for Eps in range(2,102,2):
+	G.SetEps("OuterSphere",Eps);
+ 	M=G.AssembleBEMMatrix(Omega);
+ 	RHS=G.AssembleRHSVector(Omega, PW);
+ 	KN=numpy.linalg.solve(M,RHS);
+        Fields = G.GetFields(PW, KN, Omega, X );
+        print Eps, Fields[0][2].real
+        del M
+        del RHS
+        del KN
+        del Fields

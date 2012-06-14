@@ -214,8 +214,8 @@ class FIPPICache
     ~FIPPICache();
 
     // store/retrieve cache to/from binary file
-    void Store(char *FileName);
-    void PreLoad(char *FileName);
+    void Store(const char *FileName);
+    void PreLoad(const char *FileName);
     
     // look up an entry 
     QIFIPPIData *GetQIFIPPIData(double **OVa, double **OVb, int ncv);
@@ -234,7 +234,7 @@ class FIPPICache
     rwlock FCLock;
 
     char *PreloadFileName;
-    int RecordsPreloaded;
+    unsigned int RecordsPreloaded;
 
  };
 

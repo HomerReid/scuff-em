@@ -1,0 +1,11 @@
+geometry  SquareCoil_79.scuffgeo
+portfile  SquareCoil_79.ports
+cache     SquareCoil_79.cache
+# note frequencies are specified in ghz 
+#minFreq   0.01 
+#maxFreq   1.0
+numFreqs  60
+#logFreq
+minFreq 0.25 
+maxFreq 0.40 
+zParameters

@@ -278,9 +278,9 @@ int main(int argc, char *argv[])
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
   for (int nrc=0; nrc<nReadCache; nrc++)
-   PreloadGlobalFIPPICache( ReadCache[nrc] );
+   PreloadCache( ReadCache[nrc] );
   if (Cache)
-   PreloadGlobalFIPPICache( Cache );
+   PreloadCache( Cache );
 
   if (Cache) WriteCache=Cache;
   SC3D->WriteCache = WriteCache;

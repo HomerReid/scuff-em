@@ -158,7 +158,7 @@ static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
     else { // return numpy.array
       npy_intp dims[2];
       dims[0] = npy_intp(M->NR);
-      dims[1] = npy_intp(M->NR);
+      dims[1] = npy_intp(M->NC);
       PyObject *result = (PyObject*) PyArray_New
 	(&PyArray_Type, 2, dims,
 	 M->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE, NULL,

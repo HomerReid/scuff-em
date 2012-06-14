@@ -210,7 +210,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* any of the same objects                                     */
   /***************************************************************/
   if ( SHD->WriteCache ) 
-   StoreGlobalFIPPICache( SHD->WriteCache );
+   StoreCache( SHD->WriteCache );
 
   /***************************************************************/
   /* the SymG1 matrix can be formed and stored ahead of time     */
@@ -388,7 +388,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /*- to dump the cache to disk again (explain me)               -*/
   /*--------------------------------------------------------------*/
   if ( SHD->WriteCache ) 
-   { StoreGlobalFIPPICache( SHD->WriteCache );
+   { StoreCache( SHD->WriteCache );
      SHD->WriteCache=0;
    };
 

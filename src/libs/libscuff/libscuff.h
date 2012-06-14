@@ -49,15 +49,6 @@ namespace scuff {
 #define ZVAC 376.73031346177
 #endif
 
-/* prototype for incident field routine passed to AssembleRHS,
-   assuming sources are in the exterior medium only. */
-typedef void (*EHFuncType)(const double R[3], void *UserData, cdouble EH[6]);
-
-/* alternatively pass the indices of the exterior and interior objects
-   (-1 for EXTERIOR) for the current object being assembled */
-typedef void (*EHFuncType2)(const double R[3], void *UserData, cdouble EH[6],
-			    int exterior_index, int interior_index); 
-
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -155,12 +146,6 @@ class RWGObject
 
    /* get overlap integral between two basis functions */
    double GetOverlap(int neAlpha, int neBeta, double *pOTimes = NULL);
-
-   /* calculate the inner product of a single basis function with  */
-   /* given incident electric and magnetic fields                  */
-   void GetInnerProducts(int nbf, EHFuncType2 EHFunc, void *EHFuncUD,
-                         int PureImagFreq, cdouble *EProd, cdouble *HProd,
-			 int exterior_index, int interior_index);
 
    /* apply a general transformation (rotation+displacement) to the object */
    void Transform(const GTransformation *GT);
@@ -300,12 +285,16 @@ class RWGGeometry
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
 
+   HMatrix *AssembleBEMMatrix(cdouble Omega, HMatrix *M = NULL, int nThread = 0);
+
+#if 0 // delete me 20120408
    void AssembleBEMMatrix(cdouble Frequency, HMatrix *M, int nThread = 0);
    HMatrix *AssembleBEMMatrix(cdouble Frequency, int nThread = 0) {
 	HMatrix *M = AllocateBEMMatrix(real(Frequency) == 0.0);
 	AssembleBEMMatrix(Frequency, M, nThread);
 	return M;
    }
+#endif
    
 #if 0
    /* routines for allocating, and then filling in, the derivative */
@@ -324,47 +313,27 @@ class RWGGeometry
 #endif
 
    /* routines for allocating, and then filling in, the RHS vector */
-   HVector *AllocateRHSVector(int PureImagFreq);
-   HVector *AllocateRHSVector() { return AllocateRHSVector(0); }
+   HVector *AllocateRHSVector(bool PureImagFreq = false );
 
-   void AssembleRHSVector(EHFuncType2 EHFunc, void *EHFuncUD, 
-                          HVector *B, int nThread = 0);
-   void AssembleRHSVector(EHFuncType EHFunc, void *EHFuncUD, // source in
-                          HVector *B, int nThread = 0);      // exterior only
-   void AssembleRHSVector(IncField *inc, HVector *B, int nThread = 0);
-   void AssembleRHSVector(cdouble omega, IncField *inc, 
-                          HVector *B, int nThread = 0);
-   HVector *AssembleRHSVector(IncField *inc, int nThread = 0) {
-	HVector *B = AllocateRHSVector(real(inc->Omega) == 0.0);
-	AssembleRHSVector(inc, B, nThread);
-	return B;
-   }
-   HVector *AssembleRHSVector(cdouble omega, IncField *inc, int nThread = 0) {
-	HVector *B = AllocateRHSVector(real(omega) == 0.0);
-	AssembleRHSVector(omega, inc, B, nThread);
-	return B;
-   }
+   HVector *AssembleRHSVector(cdouble Omega, IncField *IF,
+                              HVector *RHS = NULL, int nThread = 0);
 
-   // update ObjectIndex, and optionally Omega/Eps/Mu, of inc:
-   void UpdateIncFields(IncField *inc, cdouble Omega,
-			bool ignoreOmega = false);
-   void UpdateIncFields(IncField *inc) { UpdateIncFields(inc,0.0,true); }
+   // update Omega/Eps/Mu of IF:
+   int UpdateIncFields(IncField *IF, cdouble Omega);
 
+   // get the index of the object containing point X
    int GetObjectIndex(const double X[3]);
    RWGObject *GetObject(const double X[3]);
 
-   /* routine for evaluating scattered fields. */
-   /* in the first two entry points, the caller already knows     */
-   /* which object the evaluation point lies inside (possibly the */
-   /* exterior medium), which saves time.                         */
-   /* in the third entry point, the code automatically determines */
-   /* which object the evaluation point lies inside.              */
-   void GetFields(const double X[3], int ObjectIndex,
-                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
-   void GetFields(const double X[3], const char *ObjectLabel,
-                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
-   void GetFields(const double X[3], 
-                  cdouble Omega, HVector *KN, cdouble EH[6], int nThread = 0);
+   /* basic routines for computing fields */
+   void GetFields(IncField *IF, HVector *KN, 
+                  cdouble Omega, double *X,
+                  cdouble *EH, int nThread=0);
+
+   HMatrix *GetFields(IncField *IF, HVector *KN,
+                      cdouble Omega, HMatrix *XMatrix,
+                      HMatrix *FMatrix=NULL, char *FuncString=NULL, 
+                      int nThread=0);
 
    /****************************************************/
 
@@ -375,21 +344,13 @@ class RWGGeometry
       incident fields is used.  If KN == NULL, then the scattered
       fields are set to zero. */
    HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
-			    cdouble Omega, HVector *KN,
-			    EHFuncType2 EHFunc, void *EHFuncUD,
-			    int nThread = 0);
-   HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
-			    cdouble Omega, HVector *KN,
-			    EHFuncType EHFunc, void *EHFuncUD, // in exterior
-			    int nThread = 0);
-   HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
 			    cdouble Omega, HVector *KN = NULL,
-			    IncField *inc = NULL, int nThread = 0);
+			    IncField *inc=NULL, int nThread = 0);
 
    // exprs is a string of COMMA-SEPARATED expressions
    HMatrix **GetFieldsGrids(SurfaceGrid &grid, const char *exprs,
-                            cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
-			    int nThread = 0);
+                            cdouble Omega, HVector *KN=NULL, 
+                            IncField *inc=NULL, int nThread = 0);
 
    // variants that only compute one function and return one matrix
    HMatrix *GetFieldsGrid(SurfaceGrid &grid, FieldFunc &func,
@@ -402,9 +363,7 @@ class RWGGeometry
    /****************************************************/
 
    /* routine for calculating electric and magnetic dipole moments */
-   void GetDipoleMoments(double Frequency, int RealFreq, HVector *KN, 
-                         cdouble (*PM)[6], int nThread = 0);
-
+   HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
 
    /* routine for calculating spherical multipole moments */
 #if 0
@@ -416,12 +375,8 @@ class RWGGeometry
 #endif
 
    /* routine for computing the expansion coefficients in the RWG basis */
-   /* of an arbitrary user-supplied surface-tangential vector field     */
-   void ExpandCurrentDistribution(EHFuncType EHFunc, void *EHFuncUD, 
-                                  HVector *KNVec, int nThread = 0);
-   void ExpandCurrentDistribution(IncField *inc, HVector *KNv, int nT=0) {
-	ExpandCurrentDistribution(EHIncField, (void*)inc, KNv, nT);
-   }
+   /* of an arbitrary user-supplied surface-tangential vector field;    */
+   void ExpandCurrentDistribution(IncField *IF, HVector *KN, int nT=0);
 
    /* evaluate the surface currents at a given point X on an object */
    /* surface, given a vector of RWG expansion coefficients         */
@@ -430,9 +385,16 @@ class RWGGeometry
    /* routine for setting logging verbosity */
    void SetLogLevel(int LogLevel);
 
+   /* routines for changing material properties */
+   void SetEps(cdouble Eps);
+   void SetEps(const char *Label, cdouble Eps);
+   void SetEpsMu(cdouble Eps, cdouble Mu);
+   void SetEpsMu(const char *Label, cdouble Eps, cdouble Mu);
+
    /* some simple utility functions */
    int GetDimension();
-   RWGObject *GetObjectByLabel(char *Label, int *WhichObject = NULL);
+   RWGObject *GetObjectByLabel(const char *Label, int *WhichObject = NULL);
+
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
@@ -517,6 +479,11 @@ double VecNorm(const double v[3]);
 double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
 
+void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
+                const cdouble V2[6], cdouble V3[6]);
+void SixVecPlusEquals(cdouble V1[6], const cdouble Alpha, const cdouble V2[6]);
+void SixVecPlusEquals(cdouble V1[6], const cdouble V2[6]);
+
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
@@ -526,8 +493,8 @@ void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void PreloadGlobalFIPPICache(char *FileName);
-void StoreGlobalFIPPICache(char *FileName);
+void PreloadCache(const char *FileName);
+void StoreCache(const char *FileName);
 
 } // namespace scuff
 

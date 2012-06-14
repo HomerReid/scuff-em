@@ -43,7 +43,7 @@ public:
 //             nx,ny,nz -- unit normal to grid surface = dA / |dA|
 //             Eps,Mu -- relative permittivity/permeability
 //             eps,mu -- absolute permittivity/permeability
-//             eps0,m0,c,Z0 -- vacuum permittivity/permeability/speed/impedance
+//             eps0,mu0,c,Z0 -- vacuum permittivity/permeability/speed/impedance
 // (This should be plenty fast in comparison to the cost of GetField
 //  and should be convenient enough for most common field computations
 //  that most users will not need or want any other subclasses.)
@@ -75,6 +75,10 @@ public:
 #define E_ENERGYDENSITY_EXPR "0.25*real(eps*(|Ex|^2+|Ey|^2+|Ez|^2))" // electric energy density per unit volume (neglecting dispersion)
 #define H_ENERGYDENSITY_EXPR "0.25*real(mu*(|Hx|^2+|Hy|^2+|Hz|^2))" // magnetic energy density per unit volume (neglecting dispersion)
 #define ABSORPTION_EXPR "0.5*imag(eps*(|Ex|^2+|Ey|^2+|Ez|^2) + mu*(|Hx|^2+|Hy|^2+|Hz|^2))" // absorption loss per unit time & volume, divided by omega
+#define EMAG_EXPR  "sqrt(|Ex|^2+|Ey|^2+|Ez|^2)"
+#define EMAG2_EXPR "|Ex|^2+|Ey|^2+|Ez|^2"
+#define HMAG_EXPR  "sqrt(|Hx|^2+|Hy|^2+|Hz|^2)"
+#define HMAG2_EXPR "|Hx|^2+|Hy|^2+|Hz|^2"
 
 // Maxwell stress tensor (problematic in non-vacuum materials)
 #define FORCEx_DENSITY_EXPR "0.5*real(eps*conj(Ex)*(Ex*nx+Ey*ny+Ez*nz) + mu*conj(Hx)*(Hx*nx+Hy*ny+Hz*nz) - 0.5*nx*(eps*(|Ex|^2+|Ey|^2+|Ez|^2) + mu*(|Hx|^2+|Hy|^2+|Hz|^2)))"

@@ -30,6 +30,19 @@
 #include "libIncField.h"
 #include "libVec.h"
 
+/**********************************************************************/
+/**********************************************************************/
+/**********************************************************************/
+GaussianBeam::GaussianBeam(const double pX0[3], const double pKProp[3], 
+			   const cdouble pE0[3], double pW0, const char *Label)
+{
+  memcpy(X0, pX0, 3*sizeof(double));
+  memcpy(KProp, pKProp, 3*sizeof(double));
+  memcpy(E0, pE0, 3*sizeof(cdouble));
+  W0=pW0;
+  SetObjectLabel(Label);
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -38,9 +51,8 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
   if ( imag(Eps) !=0.0 || imag(Mu) != 0.0 )
    ErrExit("%s:%i: gaussian beams not implemented for dispersive media");
   if ( imag(Omega) !=0.0 )
-   ErrExit("%s:%i: gaussian beams not implemented for imaginary frequency");
+   ErrExit("%s:%i: gaussian beams not implemented for imaginary frequencies");
 
-   
   const cdouble IU(0,1);
   double EpsR = real(Eps);
   double MuR  = real(Mu);
@@ -163,17 +175,4 @@ double GaussianBeam::TotalBeamFlux() {
   flux *= (-1 - 2*kz0 * (kz0-1) + (1+2*kz0*(2*kz0-1))*cosh(2*kz0) + 2*kz0*(2*kz0-1)*sinh(2*kz0));
   zVec zvE0     = E0;
   return flux * norm2(zvE0) / (Eorig*Eorig*ZVAC*ZR);
-}
-
-/**********************************************************************/
-/**********************************************************************/
-/**********************************************************************/
-GaussianBeam::GaussianBeam(const double pX0[3], const double pKProp[3], 
-			   const cdouble pE0[3], double pW0, const char *Label)
-{
-  memcpy(X0, pX0, 3*sizeof(double));
-  memcpy(KProp, pKProp, 3*sizeof(double));
-  memcpy(E0, pE0, 3*sizeof(cdouble));
-  W0=pW0;
-  SetObject(Label);
 }

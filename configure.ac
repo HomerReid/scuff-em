@@ -1,4 +1,4 @@
-AC_INIT(scuff-em, 1.0, homer@homerreid.com)
+AC_INIT(scuff-em, 0.9, homer@homerreid.com)
 AC_CONFIG_SRCDIR([README])
 
 # Shared-library version.  This has a technical
@@ -192,16 +192,16 @@ AC_CONFIG_FILES([
  src/libs/libscuff/Makefile
  src/libs/python/Makefile
  src/applications/Makefile
- src/applications/scuff-scatter/Makefile
+ src/applications/scuff-analyze/Makefile
  src/applications/scuff-caspol/Makefile
  src/applications/scuff-heat/Makefile
- src/applications/scuff-analyze/Makefile
+ src/applications/scuff-rf/Makefile
+ src/applications/scuff-scatter/Makefile
  examples/Makefile
- examples/scuff-scatter/Makefile
- examples/scuff-scatter/SolidSphere/Makefile
- examples/scuff-scatter/SphericalShell/Makefile
- examples/scuff-caspol/Makefile
- examples/scuff-cas3D/Makefile
+ examples/ApertureDiffraction/Makefile
+ examples/SolidSphere/Makefile
+ examples/SphericalShell/Makefile
+ examples/WireAntenna/Makefile
  tests/Makefile
 ])
 AC_OUTPUT

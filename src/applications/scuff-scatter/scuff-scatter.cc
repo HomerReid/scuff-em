@@ -99,6 +99,13 @@
  *     --FluxMesh  MyFluxMesh.msh
  * 
  *         (Note that --FluxMesh may be specified more than once.)
+ * 
+ *     --MomentFile MyMoments.dat
+ * 
+ *        if the --MomentFile option is present, then the electric
+ *        and magnetic dipole moments induced on each object in the 
+ *        geometry will be computed and reported in the file MyMoments.dat. 
+ *
  *       -------------------------------------------------
  * 
  * d. options describing the frequency
@@ -212,9 +219,9 @@ void usage(char *ProgramName, const char *format, ... )
   fprintf(stderr,"\n");
   fprintf(stderr," output options: \n\n");
   fprintf(stderr,"  --PowerFile xx\n");
-  fprintf(stderr,"  --PowerRadius xx\n");
   fprintf(stderr,"  --EPFile xx \n");
   fprintf(stderr,"  --FluxMesh MyFluxMesh.msh \n");
+  fprintf(stderr,"  --MomentFile xx\n");
   fprintf(stderr,"\n");
   fprintf(stderr," frequency options: \n\n");
   fprintf(stderr,"  --omega xx \n");
@@ -250,6 +257,7 @@ int main(int argc, char *argv[])
   char *PowerFile=0;
   double PowerRadius=0.0;
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
+  char *MomentFile=0;
   int nThread=0;
   int ExportMatrix=0;
   char *Cache=0;
@@ -271,6 +279,7 @@ int main(int argc, char *argv[])
      {"PowerFile",      PA_STRING,  1, 1,       (void *)&PowerFile,  0,             "name of power output file"},
      {"PowerRadius",    PA_DOUBLE,  1, 1,       (void *)&PowerRadius, 0,            "radius for power calculation"},
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
+     {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
@@ -338,13 +347,11 @@ int main(int argc, char *argv[])
      IFD->Next=IFDList;
      IFDList=IFD;
    };
-#if 0
   for(ngb=0; ngb<ngbCenter; ngb++)
    { IFD=new GaussianBeam(gbCenter + 3*ngb, gbDir + 3*ngb, gbPol + 3*ngb, gbWaist[ngb]);
      IFD->Next=IFDList;
      IFDList=IFD;
    };
-#endif
   for(nps=0; nps<npsLoc; nps++)
    { IFD=new PointSource(psLoc + 3*nps, psStrength + 3*nps);
      IFD->Next=IFDList;
@@ -358,7 +365,7 @@ int main(int argc, char *argv[])
   /* sanity check to make sure the user specified an incident field  */
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
-  if ( (PowerFile!=0 || nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
+  if ( (PowerFile!=0 || MomentFile!=0 || nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
    ErrExit("you must specify at least one incident field source");
 
   /*******************************************************************/
@@ -378,7 +385,7 @@ int main(int argc, char *argv[])
   HMatrix *M = SSD->M =G->AllocateBEMMatrix();
   SSD->RHS =  PowerFile ? G->AllocateRHSVector() : 0;
   HVector *KN = SSD->KN =G->AllocateRHSVector();
-  SSD->opIFD=(void *)IFDList;
+  SSD->IF=IFDList;
   SSD->PowerRadius=PowerRadius;
   SSD->nThread=nThread;
 
@@ -394,9 +401,9 @@ int main(int argc, char *argv[])
   if (Cache) 
    WriteCache=Cache;
   for (int nrc=0; nrc<nReadCache; nrc++)
-   PreloadGlobalFIPPICache( ReadCache[nrc] );
+   PreloadCache( ReadCache[nrc] );
   if (Cache)
-   PreloadGlobalFIPPICache( Cache );
+   PreloadCache( Cache );
 
   /*******************************************************************/
   /* loop over frequencies *******************************************/
@@ -424,7 +431,7 @@ int main(int argc, char *argv[])
      /* of the program run.                                             */
      /*******************************************************************/
      if (WriteCache)
-      { StoreGlobalFIPPICache( WriteCache );
+      { StoreCache( WriteCache );
         WriteCache=0;       
       };
 
@@ -442,7 +449,7 @@ int main(int argc, char *argv[])
      /* just wanted to export the matrix to a binary file), don't      **/
      /* bother LU-factorizing the matrix or assembling the RHS vector. **/
      /*******************************************************************/
-     if ( PowerFile==0 && nEPFiles==0 && nFluxMeshes==0 )
+     if ( PowerFile==0 && MomentFile==0 && nEPFiles==0 && nFluxMeshes==0 )
       continue;
 
      /*******************************************************************/
@@ -456,9 +463,7 @@ int main(int argc, char *argv[])
      /* set up the incident field profile and assemble the RHS vector */
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
-     G->ExteriorMP->GetEpsMu(Omega,&Eps,&Mu);
-     IFDList->SetFrequencyAndEpsMu(Omega,Eps,Mu);
-     G->AssembleRHSVector(IFDList, KN, nThread);
+     G->AssembleRHSVector(Omega, IFDList, KN, nThread);
      if (PowerFile) SSD->RHS->Copy(SSD->KN); // copy RHS vector for later 
 
      /***************************************************************/
@@ -477,6 +482,12 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      if (PowerFile)
       GetPower(SSD, PowerFile);
+
+     /*--------------------------------------------------------------*/
+     /*- induced dipole moments       -------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (MomentFile)
+      GetMoments(SSD, MomentFile);
  
      /*--------------------------------------------------------------*/
      /*- scattered fields at user-specified points ------------------*/

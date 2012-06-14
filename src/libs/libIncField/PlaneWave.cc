@@ -18,7 +18,7 @@ PlaneWave::PlaneWave(const cdouble pE0[3], const double pnHat[3],
 {
   memcpy(E0, pE0, 3*sizeof(cdouble));
   memcpy(nHat, pnHat, 3*sizeof(double));
-  SetObject(Label);
+  SetObjectLabel(Label);
 }
 
 /**********************************************************************/
