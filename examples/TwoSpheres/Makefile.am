@@ -1,7 +1,8 @@
-EXTRA_DIST=		\
- Sphere.geo		\
- TwoSpheres.scuffgeo	\
- scuff-neq.args     	\
+EXTRA_DIST=			\
+ Sphere.geo			\
+ Sphere_327.msh         	\
+ TwoSpheres_327.scuffgeo	\
+ scuff-neq.args     		\
  OmegaValues.dat
 
 pkgdatadir = $(datadir)/scuff-em/examples/TwoSpheres

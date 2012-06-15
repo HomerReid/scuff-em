@@ -83,23 +83,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   SNEQD->NTNONQ = SNEQD->NumTransformations * SNEQD->NONQ;
 
   /*--------------------------------------------------------------*/
-  /*- set the name of the .byOmega output file -------------------*/
-  /*--------------------------------------------------------------*/
-#if 0
-  if (ByOmegaFile)
-   SNEQD->ByOmegaFile = ByOmegaFile;
-  else if (PlotFlux)
-   SNEQD->ByOmegaFile = 0;
-  else
-   { SNEQD->ByOmegaFile = vstrdup("%s.byOmega",GetFileBase(GeoFile));
-     char MyFileName[MAXSTR];
-     FILE *f=CreateUniqueFile(SNEQD->ByOmegaFile, 1, MyFileName);
-     fclose(f);
-     SNEQD->ByOmegaFile=strdup(MyFileName);
-   };
-#endif
-
-  /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse -*/
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations.                                           -*/

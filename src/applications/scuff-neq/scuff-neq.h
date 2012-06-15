@@ -58,7 +58,6 @@ using namespace scuff;
 typedef struct SNEQData
  {
    RWGGeometry *G;
-   char *ByOmegaFile;
    char *WriteCache;
 
    int PlotFlux;
@@ -79,7 +78,7 @@ typedef struct SNEQData
    // SMatrix structures for overlap matrices
    // note: nq=0,1,2,3 for O^{PF}, O^{xMF}, O^{yMF}, O^{zMF}, 
    // (the matrices for power, x-force, y-force, and z-force.)
-   SMatrix **OMatrices; // OMatrices[ no*4 + nq ] = nqth overlap matrix for object no
+   SMatrix **OMatrices; // OMatrices[ no*4 + nq ] = overlap matrix for object no, quantity nq
 
    // frequency-resolved output files for each object 
    char **ByOmegaFileNames;

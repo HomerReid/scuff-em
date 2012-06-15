@@ -143,9 +143,9 @@ void AssembleOverlapMatrices(SNEQData *SNEQD, cdouble Omega)
 /*                                                             */
 /* Note: the four-matrix trace is (WD=W^\dagger)               */
 /*                                                             */
-/*  FMT = tr (O1 * WD * O2 * W )                               */
-/*      = \sum_{pqrs} O1_{pq} WD_{qr} O2_{rs} W_{sp}           */
-/*      = \sum_{pqrs} O1_{pq} (W_{rq})^* O2_{rs} W_{sp}        */
+/*  FMT = tr (O1 * W * O2 * WD )                               */
+/*      = \sum_{pqrs} O1_{pq} W_{qr} O2_{rs} WD_{sp}           */
+/*      = \sum_{pqrs} O1_{pq} W_{qr} O2_{rs} (W_{ps})^*        */
 /*                                                             */
 /* because O1 and O2 are sparse, we evaluate the sum by        */
 /* looping over the rows of O1 and O2 (which we index by       */
@@ -167,7 +167,7 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
   SMatrix *OMatrix1 = OMatrices[ DestObject*MAXQUANTITIES + QIndex ];
 
   int Offset2       = G->BFIndexOffset[SourceObject];
-  SMatrix *OMatrix2 = OMatrices[ SourceObject*MAXQUANTITIES + QIndex ];
+  SMatrix *OMatrix2 = OMatrices[ SourceObject*MAXQUANTITIES + QINDEX_POWER ];
 
   int p, q, r, s; 
   int nnzq, nq, nnzs, ns;
@@ -187,9 +187,9 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
         for(nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
          for(ns=0, s=sValues[0]; ns<nnzs; s=sValues[++ns] )
           FMPTrace +=  O1Entries[nq]
-                      *conj( W->GetEntry( Offset2+r, Offset1+q ) )
+                      *W->GetEntry( Offset1+q, Offset2+r )
                       *O2Entries[ns]
-                      *W->GetEntry( Offset2+s, Offset1+p );
+                      *conj( W->GetEntry( Offset1+p, Offset2+s ));
       };
    };
   FMPTrace *= (-1.0/16.0);
