@@ -87,6 +87,9 @@ class PlaneWave : public IncField
 
    PlaneWave(const cdouble E0[3], const double nHat[3], const char *Label = 0);
 
+   void SetE0(cdouble pE0[3]);
+   void SetnHat(double nHat[3]);
+
    void GetFields(const double X[3], cdouble EH[6]);
 
  };
@@ -106,6 +109,10 @@ class PointSource: public IncField
    PointSource(const double X0[3], const cdouble P[3], 
                int Type = LIF_ELECTRIC_DIPOLE, const char *Label = 0);
 
+   void SetX0(double X0[3]);
+   void SetP(cdouble P[3]);
+   void SetType(int pType);
+
    void GetFields(const double X[3], cdouble EH[6]);
    bool GetSourcePoint(double X[3]);
  };
@@ -124,6 +131,11 @@ class GaussianBeam: public IncField
    // constructor 
    GaussianBeam(const double X0[3], const double KProp[3], 
                 const cdouble E0[3], double W0, const char *Label = 0);
+
+   void SetX0(double pX0[3]);
+   void SetKProp(double pKProp[3]);
+   void SetE0(cdouble pE0[3]);
+   void SetW0(double pW0);
 
    void GetFields(const double X[3], cdouble EH[6]);
 

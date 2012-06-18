@@ -201,6 +201,7 @@ AC_CONFIG_FILES([
  src/applications/scuff-scatter/Makefile
  examples/Makefile
  examples/ApertureDiffraction/Makefile
+ examples/PlateWithHole/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
  examples/TwoSpheres/Makefile

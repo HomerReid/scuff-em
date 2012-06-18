@@ -42,6 +42,13 @@ PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType,
 }
 
 /**********************************************************************/
+/**********************************************************************/
+/**********************************************************************/
+void PointSource::SetX0(double pX0[3]) { memcpy(X0, pX0, 3*sizeof(double)); }
+void PointSource::SetP(cdouble pP[3])  { memcpy(P,  pP, 3*sizeof(cdouble)); }
+void PointSource::SetType(int pType)   { Type=pType; }
+
+/**********************************************************************/
 /* For this implementation of IncField we want to override the default*/
 /* implementation of GetSourcePoint so that libscuff can use the      */
 /* coordinates of the source point to determine automatically which   */
