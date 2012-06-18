@@ -64,7 +64,7 @@ GaussianBeam::GaussianBeam(const double pX0[3], const double pKProp[3],
 
 void GaussianBeam::SetX0(double pX0[3])       { memcpy(X0,    pX0,    3*sizeof(double)); }
 void GaussianBeam::SetKProp(double pKProp[3]) { memcpy(KProp, pKProp, 3*sizeof(double)); }
-void GaussianBeam::SetE0(cdouble E0[3])       { memcpy(E0,    pE0,    3*sizeof(cdouble)); }
+void GaussianBeam::SetE0(cdouble pE0[3])      { memcpy(E0,    pE0,    3*sizeof(cdouble)); }
 void GaussianBeam::SetW0(double pW0)          { W0 = pW0; }
 
 /***************************************************************/

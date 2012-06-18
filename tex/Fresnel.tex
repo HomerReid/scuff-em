@@ -1,4 +1,5 @@
 \documentclass{article} 
+\usepackage{bbding} 
 \input{physcmds}
 \graphicspath{{figures/}}
 
@@ -163,68 +164,146 @@ and the full wave is transmitted.
                   }
 \end{array}}
 
+%=================================================
+%=================================================
+%=================================================
 \subsection{Non-Normal Incidence, $\vb E$ perpendicular to plane of incidence}
 
 I now rotate the propagation vector through an angle $\theta$ around
 the $y$ axis. (For $\theta=0$ I recover the results of the previous
 section.)
-
+The wavevectors of the incident, reflected, and transmitted waves
+are 
 \begin{align*}
  \vbhat{k}^i &= k_0\Big( \sin\theta \vbhat{y} - \cos\theta\vbhat{z} \Big) \\
  \vbhat{k}^r &= k_0\Big( \sin\theta \vbhat{y} + \cos\theta\vbhat{z} \Big) \\
  \vbhat{k}^t &= k_1\Big( \sin\theta^\prime \vbhat{y} + \cos\theta^\prime\vbhat{z} \Big)\\
 \end{align*}
-where 
+where $\theta^\prime$ is related to the incident angle by 
 $$ k_0\sin\theta = k_1 \sin \theta^\prime. $$
-
+%
+Incident wave:
+%
 \begin{align*}
 \vb E\sups{inc}(\vb x) 
- &= E_0 \vbhat{x} 
-    e^{ik_0[\sin\theta y - \cos\theta z]} 
+ &= E_0 e^{ik_0[y\sin\theta y - z\cos\theta ]} \, \vbhat{x} 
 \\
 \vb H\sups{inc}(\vb x) 
- &= \frac{E_0}{Z_0} \Big( -\cos\theta\vbhat{y} - \sin\theta\vbhat{z}\Big)
-    e^{ik_0[\sin\theta y - \cos\theta z]} \\
+ &= \frac{E_0}{Z_0} 
+    e^{ik_0[y\sin\theta  - z\cos\theta]} 
+    \Big( -\cos\theta\,\vbhat{y} - \sin\theta\,\vbhat{z}\Big)
 \end{align*}
-
+%
+Reflected wave:
+%
 \begin{align*}
-\vb E\sups{refl} 
- &= rE_0 \vbhat{x} e^{ik_0[\sin\theta y + \cos\theta z]}
-    e^{ik_0[\sin\theta y + \cos\theta z]} \\
-\vb H\sups{inc} 
- &= \frac{rE_0}{Z_0} \Big( +\cos\theta\vbhat{y} - \sin\theta\vbhat{z}\Big)
-    e^{ik_0[\sin\theta y + \cos\theta z]} \\
+\vb E\sups{refl}(\vb x)
+ &= rE_0 e^{ik_0[y\sin\theta  + z\cos\theta]} \, \vbhat{x} 
+\\
+\vb H\sups{refl}(\vb x)
+ &= \frac{rE_0}{Z_0} 
+    e^{ik_0[y\sin\theta  + z\cos\theta ]}
+    \Big( +\cos\theta\,\vbhat{y} - \sin\theta\,\vbhat{z}\Big)
 \end{align*}
-
+%
+Transmitted wave:
+%
 \begin{align*}
-\vb E\sups{trans} 
- &= tE_0 \vbhat{x} 
-    e^{ik_1[\sin\theta^\prime y + \cos\theta^\prime z]} \\
-\vb H\sups{inc} 
- &= \frac{tE_0}{Z_1} \Big( -\cos\theta\vbhat{y} - \sin\theta\vbhat{z}\Big)
-    e^{ik_1[\sin\theta^\prime y + \cos\theta^\prime z]} \\
+\vb E\sups{trans}(\vb x)
+ &= tE_0 e^{ik_1[y\sin\theta^\prime  + z\cos\theta^\prime]} \, \vbhat{x} 
+\\
+\vb H\sups{trans}(\vb x)
+ &= \frac{tE_0}{Z_1} 
+    e^{ik_1[y\sin\theta^\prime  + z\cos\theta^\prime]}
+    \Big( -\cos\theta^\prime\,\vbhat{y} - \sin\theta^\prime\,\vbhat{z}\Big)
 \end{align*}
 
 \subsection*{Surface currents}
 
 \begin{align*}
-  \vb K &= \frac{E_0}{Z_0} (1-r)\cos\theta \vbhat{x} e^{ik_0 \sin \theta y}
+  \vb K &= \frac{E_0}{Z_0} (1-r)\cos\theta e^{ik_0 y \sin \theta} 
+            \, \vbhat{x} 
 \\
-  \vb N &= E_0 (1+r) \vbhat{y} e^{ik_0 \sin \theta y}
+  \vb N &= E_0 (1+r) e^{ik_0 y \sin \theta} \, \vbhat{y} 
 \end{align*}
-
+%
 Let's check that the normal fields at the surface are 
 correctly recovered from the divergence-of-surface-current 
 prescription:
 
 \begin{align*}
   E_z &= \frac{\nabla \cdot \vb K}{i\epsilon\omega} = 0
+\qquad \text{\CheckmarkBold}
 \\
   H_z & = -\frac{\nabla \cdot \vb N}{i\mu\omega} 
         = -\frac{i E_0 k_0 \sin\theta(1+r)}{i\mu\omega} e^{ik_0 y\sin\theta}
-        = -\frac{E_0}{Z_0}(1+r) e^{ik_0 y \sin\theta}
+        = -\frac{E_0}{Z_0}(1+r) e^{ik_0 y \sin\theta} 
+\qquad \text{\CheckmarkBold}
 \end{align*}
 
+%=================================================
+%=================================================
+%=================================================
+\subsection{Non-Normal Incidence, $\vb E$ parallel to plane of incidence}
+
+%
+Incident wave:
+%
+\begin{align*}
+\vb E\sups{inc}(\vb x) 
+ &= E_0 
+    e^{ik_0[y\sin\theta  - z\cos\theta ]} 
+    \Big( \cos\theta\,\vbhat{y} + \sin\theta\,\vbhat{z}\Big)
+\\
+\vb H\sups{inc}(\vb x) 
+ &= \frac{E_0}{Z_0} 
+    e^{ik_0[y\sin\theta -z \cos\theta]} \,\vbhat{x}
+\end{align*}
+%
+Reflected wave:
+%
+\begin{align*}
+\vb E\sups{refl} 
+ &= rE_0 e^{ik_0[y\sin\theta + z\cos\theta ]} 
+    \Big( -\cos\theta\,\vbhat{y} + \sin\theta\,\vbhat{z}\Big)
+\\
+\vb H\sups{refl}(\vb x) 
+ &=  r \frac{E_0}{Z_0} 
+       e^{ik_0[y\sin\theta +z \cos\theta]} \,\vbhat{x}
+\end{align*}
+%
+Transmitted wave:
+%
+\begin{align*}
+\vb E\sups{trans}(\vb x) 
+ &= tE_0 e^{ik_1[y\sin\theta^\prime - z\cos\theta^\prime ]} 
+    \Big( \cos\theta^\prime\,\vbhat{y} + \sin\theta^\prime\,\vbhat{z}\Big)
+\\
+\vb H\sups{trans}(\vb x) 
+ &= \frac{tE_0}{Z_1} 
+    e^{ik_0[y\sin\theta^\prime -z \cos\theta^\prime]} \,\vbhat{x}
+\end{align*}
+
+\subsection*{Surface currents}
+
+\begin{align*}
+  \vb K &= \frac{E_0}{Z_0} (1+r) e^{ik_0 y \sin \theta} \, \vbhat{y} 
+\\
+  \vb N &= E_0 (1-r) \cos\theta e^{ik_0 y \sin \theta} \, \vbhat{x} 
+\end{align*}
+%
+Let's check that the normal fields at the surface are 
+correctly recovered from the divergence-of-surface-current 
+prescription:
+
+\begin{align*}
+  E_z &= \frac{\nabla \cdot \vb K}{i\epsilon\omega} = E_0(1+r)\sin\theta
+\qquad \text{\CheckmarkBold}
+\\
+  H_z & = -\frac{\nabla \cdot \vb N}{i\mu\omega} 
+        = 0
+\qquad \text{\CheckmarkBold}
+\end{align*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -561,7 +640,7 @@ $$
 %=====================================================================
 %=====================================================================
 %=====================================================================
-\subsection*{Solution to Scattering Problem}
+\subsection{SIE Scattering Solution: Normal Incidence}
 For the normally incident plane wave of equation 
 (\ref{NormalPlaneWave}), the RHS vector of the SIE system 
 [again being somewhat cavalier about neglecting 
@@ -761,7 +840,7 @@ closed form for the RWG basis functions.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\
+\newpage
 \section{Comparison of Power Formulas}
 
 \subsection{Exact Results for Transmitted, Scattered, and Total Power}
