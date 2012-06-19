@@ -1,5 +1,6 @@
 EXTRA_DIST=		\
  PlateWithHole.geo	\
+ PlateWithHole.msh	\
  PlateWithHole.cc	\
  Makefile
 

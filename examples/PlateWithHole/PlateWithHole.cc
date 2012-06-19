@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #include <libscuff.h>
+using namespace scuff;
 
 /***************************************************************/
 /***************************************************************/
@@ -22,7 +23,10 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /* create the RWGGeometry from the .scuffgeo file               */
   /*--------------------------------------------------------------*/
-  RWGGeometry *G=new RWGGeomety("PlateWithHole.scuffgeo");
+  RWGGeometry *G=new RWGGeometry("PlateWithHole.scuffgeo");
+  SetLogFileName("PlateWithHole.log");
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
+  PreloadCache("PlateWithHole.scuffcache");
 
   /*--------------------------------------------------------------*/
   /* preallocate BEM matrix and RHS vector                        */
@@ -44,7 +48,7 @@ int main(int argc, char *argv[])
   double Omega;
   cdouble EH[6];
   FILE *f=fopen("PlateWithHole.out","w");
-  for(Omega=0.01; Omega*=sqrt(sqrt(10.0)); Omega<=1.0)
+  for(Omega=0.01; Omega<=1.0; Omega*=sqrt(10.0))
    {
      /*--------------------------------------------------------------*/
      /* assemble and factorize the BEM matrix at this frequency      */
@@ -53,34 +57,34 @@ int main(int argc, char *argv[])
      M->LUFactorize();
 
     /*--------------------------------------------------------------*/
-    /*- inner loop over point source locations ---------------------*/
+    /*- inner loop over Z coordinate of point source ---------------*/
     /*--------------------------------------------------------------*/
-    for ( X0[2] = 0.0; X0[2] < 5.0. X0[2]+=0.1 )
+    for ( X0[2] = 0.0; X0[2] < 4.0; X0[2]+=0.1 )
      { 
-       fprintf(f,"%e %e ");
+       fprintf(f,"%e %e ",Omega,X0[2]);
 
        // set the location of the point source 
-       PS->SetX0(X0);
+       PS.SetX0(X0);
 
-       // solve three separate scattering problems (one for 
-       // each possible direction of the point source) and 
-       // in each case extract the corresponding component of 
-       // the electric field 
-       for(i=0; i<3; i++)
+       // solve three separate scattering problems (one for each 
+       // possible direction of the point source) and in each case 
+       // extract the corresponding electric field component
+       for(int i=0; i<3; i++)
         { 
            // configure the point source to point in the i direction
-           memset(P,0,3*sizeof(double)); 
+           memset(P,0,3*sizeof(double));
            P[i]=1.0; 
-           PS->SetP(P);  
+           PS.SetP(P);  
 
            // solve the scattering problem for this point source
-           G->AssembleRHSVector(Omega, PS, KN);
+           G->AssembleRHSVector(Omega, &PS, KN);
            M->LUSolve(KN);
 
-           // compute the scattered E and H fields at X0
-           // and extract the ith component.
+           // compute the scattered E and H fields at X0 
+           // and extract the ith component of the E field
            G->GetFields(0, KN, Omega, X0, EH);
-           fprintf(f,"%e %e ",EH[i],EH[i];);     // of the 
+           fprintf(f,"%e %e ",real(EH[i]),imag(EH[i]));
+
         }; // for (i=0; ... 
        fprintf(f,"\n");
 
@@ -90,6 +94,7 @@ int main(int argc, char *argv[])
    }; // for (Omega= ... );
 
  fclose(f);
+ StoreCache("PlateWithHole.scuffcache");
  printf("Thank you for your support.\n");
   
 }
