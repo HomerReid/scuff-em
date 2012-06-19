@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
   double Omega;
   cdouble EH[6];
   FILE *f=fopen("PlateWithHole.out","w");
-  for(Omega=0.01; Omega<=1.0; Omega*=sqrt(10.0))
+  for(Omega=0.01; Omega<=1.1; Omega*=sqrt(10.0))
    {
      /*--------------------------------------------------------------*/
      /* assemble and factorize the BEM matrix at this frequency      */
@@ -72,8 +72,8 @@ int main(int argc, char *argv[])
        for(int i=0; i<3; i++)
         { 
            // configure the point source to point in the i direction
-           memset(P,0,3*sizeof(double));
-           P[i]=1.0; 
+           memset(P,0,3*sizeof(cdouble));
+           P[i]=1.0;
            PS.SetP(P);  
 
            // solve the scattering problem for this point source
