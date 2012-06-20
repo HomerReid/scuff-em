@@ -20,11 +20,11 @@ lInner = RInner/4; // meshing fineness near hole
 // geometry description
 //
 
-Point(100) = {       0,         0,  0,  lInner};
-Point(101) = {  RInner,         0,  0,  lInner};
-Point(102) = {       0,    RInner,  0,  lInner};
-Point(103) = { -RInner,         0,  0,  lInner};
-Point(104) = {       0,   -RInner,  0,  lInner};
+Point(100) = {       0,         0,  T/2,  lInner};
+Point(101) = {  RInner,         0,  T/2,  lInner};
+Point(102) = {       0,    RInner,  T/2,  lInner};
+Point(103) = { -RInner,         0,  T/2,  lInner};
+Point(104) = {       0,   -RInner,  T/2,  lInner};
 
 Circle (100) = { 101, 100, 102 };
 Circle (101) = { 102, 100, 103 };
@@ -32,10 +32,10 @@ Circle (102) = { 103, 100, 104 };
 Circle (103) = { 104, 100, 101 };
 Line Loop(100) = { 100, 101, 102, 103};
 
-Point(201) = {  ROuter,         0,  0,  lOuter};
-Point(202) = {       0,    ROuter,  0,  lOuter};
-Point(203) = { -ROuter,         0,  0,  lOuter};
-Point(204) = {       0,   -ROuter,  0,  lOuter};
+Point(201) = {  ROuter,         0,  T/2,  lOuter};
+Point(202) = {       0,    ROuter,  T/2,  lOuter};
+Point(203) = { -ROuter,         0,  T/2,  lOuter};
+Point(204) = {       0,   -ROuter,  T/2,  lOuter};
 
 Circle (200) = { 201, 100, 202 };
 Circle (201) = { 202, 100, 203 };

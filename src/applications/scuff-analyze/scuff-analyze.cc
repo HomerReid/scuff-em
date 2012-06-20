@@ -176,8 +176,8 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /**************************************************************/
   /***************************************************************/
-  RWGObject *O;
-  RWGGeometry *G;
+  RWGObject *O=0;
+  RWGGeometry *G=0;
   if (MeshFile)
    { O=new RWGObject(MeshFile);
      AnalyzeObject(O, WriteGPFiles, WritePPFiles);
@@ -192,6 +192,9 @@ int main(int argc, char *argv[])
   /***************************************************************/
   if (TransFile)
    { 
+     if (!G) 
+      ErrExit("--transfile option may only be used with --geometry");
+
      int ngtc, NGTC;
      GTComplex **GTCList=ReadTransFile(TransFile, &NGTC);
      char *ErrMsg=G->CheckGTCList(GTCList, NGTC);

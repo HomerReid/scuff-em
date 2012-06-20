@@ -28,9 +28,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <time.h>
+
+#ifdef HAVE_READLINE
+ #include <readline/readline.h>
+ #include <readline/history.h>
+#else
+ #include "readlineReplacement.h"
+#endif
 
 #include "libhrutil.h"
 #include "libSGJC.h"

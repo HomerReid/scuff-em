@@ -2,6 +2,7 @@ bin_PROGRAMS = \
  scuff-test-overlap
 
 scuff_test_overlap_SOURCES =	\
+ readlineReplacement.h          \
  scuff-test-overlap.cc
 
 scuff_test_overlap_LDADD     = $(top_builddir)/src/libs/libscuff/libscuff.la

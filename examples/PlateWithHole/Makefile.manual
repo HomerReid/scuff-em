@@ -1,0 +1,33 @@
+#
+# this is a simple, handwritten, bare-bones makefile that 
+# indicates how to compile and link a C++ program with 
+# libscuff.
+#
+# homer reid 6/2012
+#
+
+# 
+# root directory of scuff-EM installation 
+#
+
+SCUFFEM = /usr/local
+#SCUFFEM = /home/homer/work/scuff-em-installation
+
+CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
+LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
+
+#
+# you may need to change this line depending on the 
+# names of the HDF5 and lapack/blas library binaries 
+# on your system (and also if you configured using 
+# pthreads instead of OpenMP)
+#
+
+LIBS = -lscuff -lhdf5_hl -llapack -lblas -lgomp
+
+
+#
+# hopefully this should be all that is needed
+#
+PlateWithHole:	PlateWithHole.o
+		$(CXX) $(LDFLAGS) -o PlateWithHole PlateWithHole.o $(LIBS)

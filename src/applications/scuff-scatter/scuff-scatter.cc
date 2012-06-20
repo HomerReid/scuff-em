@@ -422,9 +422,9 @@ int main(int argc, char *argv[])
      /* export BEM matrix to a binary file if that was requested        */
      /*******************************************************************/
      if (ExportMatrix)
-      { void *pCC=HMatrix::OpenC2MLContext("%s_%s",GeoFileBase,OmegaStr);
+      { void *pCC=HMatrix::OpenMATLABContext("%s_%s",GeoFileBase,OmegaStr);
         M->ExportToMATLAB(pCC,"M");
-        HMatrix::CloseC2MLContext(pCC);
+        HMatrix::CloseMATLABContext(pCC);
       };
 
      /*******************************************************************/

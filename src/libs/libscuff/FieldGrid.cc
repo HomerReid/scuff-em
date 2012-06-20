@@ -279,7 +279,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, const char *exprs_,
 
   HMatrix **Ms = GetFieldsGrids(grid, nf, f, Omega, KN, inc, nThread);
 
-  for (int i; i < nf; ++i) delete f[i];
+  for (int i=0; i < nf; ++i) delete f[i];
   free(f);
   
   return Ms;

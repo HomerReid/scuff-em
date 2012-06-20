@@ -27,11 +27,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#undef HAVE_READLINE
+
+#ifdef HAVE_READLINE
+ #include <readline/readline.h>
+ #include <readline/history.h>
+#else
+ #include "readlineReplacement.h"
+#endif
 
 #include <complex>
 

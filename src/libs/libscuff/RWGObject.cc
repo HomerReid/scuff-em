@@ -64,6 +64,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   ErrMsg=0;
   ContainingObjectLabel=0;
   SurfaceSigma=0;
+  MP=0;
 
   Label = strdup(pLabel);
 
@@ -168,6 +169,9 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 
   if (SurfaceSigma!=0)
    Log("Object %s has surface conductivity Sigma=%s.\n",Label,cevaluator_get_string(SurfaceSigma));
+
+  if (MP==0)
+   MP=new MatProp("PEC");
 
   InitRWGObject(pMeshFileName, OTGT);
   

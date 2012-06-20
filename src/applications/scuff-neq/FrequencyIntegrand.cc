@@ -171,6 +171,18 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   for(no=0; no<NO; no++)
    G->Objects[no]->GetOverlapMatrices(NeedMatrix, SArray[no], Omega, G->ExteriorMP);
 
+void *pCC=HMatrix::OpenMATLABContext("SMatrices.out");
+for(no=0; no<NO; no++)
+ for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
+  { if (NeedMatrix[nom])
+     { HMatrix *M=new HMatrix(SArray[no][nom]);
+       M->ExportToMATLAB(pCC,"M_%i_%i",no,nom);
+       delete M;
+     };
+  };
+HMatrix::CloseMATLABContext(pCC);
+       
+
   /***************************************************************/
   /* now loop over transformations.                              */
   /* note: 'gtc' stands for 'geometrical transformation complex' */
