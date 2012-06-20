@@ -1,0 +1,334 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Handling of material junctions in {\sc scuff-em}}
+\author {Homer Reid}
+\date {June 18, 2012}
+
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Handling of Material Junctions in {\sc scuff-em}}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Material Junctions}
+
+This is distinct 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Half-RWG Basis Functions}
+
+The half-RWG (HRWG) basis function associated with 
+an edge $\vb L_\alpha$ of a panel $\pan$ is
+$$ \vb h_\alpha(\vb x) = 
+   \begin{cases}
+   \displaystyle{ \frac{l_\alpha}{2A_\alpha}(\vb x - \vb Q_\alpha)}, 
+   \qquad & \vb x \in \pan 
+   \\[5pt]
+   0, \qquad & \text{otherwise}
+   \end{cases}
+$$
+where $l_\alpha$ is the edge length, $\vb Q_\alpha$ is 
+the vertex of $\pan$ opposite the edge, and $A_\alpha$ 
+is the area of $\pan$.
+Introducing the \textit{indicator function} $\chi_\pan(\vb x)$, 
+which equals unity for $\vb x\in \pan$ and 0 otherwise, 
+we can rewrite this in the form
+$$ \vb h_\alpha(\vb x) = 
+   \frac{l_\alpha}{2A_\alpha}(\vb x - \vb Q_\alpha)\chi_\pan(\vb x).
+$$
+The novelty of the HRWG basis function is that the charge density
+associated with it has both a surface-charge portion 
+(like the ordinary RWG basis function) and a new \textit{line-charge}
+density on edge $\vb L_\alpha$. Suppose we have an HRWG function
+$\vb h_\alpha$ populated with strength $k_\alpha$. (Recall $k_\alpha$
+has units of current/length.) Then the surface and line charge
+densities associated with this current distribution are 
+\begin{align*}
+  \sigma(\vb x)
+ &=
+ -\frac{lk_\alpha}{i\omega A}\chi_\pan(\vb x)
+\\
+\textcolor{red}{ \lambda(\vb x)}
+ &=
+\textcolor{red}{-\frac{lk_\alpha}{i\omega}\chi_{\vb L_\alpha}(\vb x)}
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Matrix Elements between RWG and HRWG Basis Functions}
+
+\begin{align*}
+  \Big\langle \vb f_\alpha 
+  \Big|       \vb G
+  \Big|       \vb h_\beta 
+  \Big\rangle
+&= -\frac{1}{k^2}
+   \sum \sigma_{\alpha}^{\pm}
+   \int_{\pan_\alpha^\pm} d\vb x 
+   \int_{\vb L_\beta} d\vb x^\prime
+   \left\{ \Big[\nabla \cdot \vb f_\alpha(\vb x)\Big]
+           G(\vb x, \vb x^\prime)
+           \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
+   \right\}
+\end{align*}
+
+\subsection*{Interaction between $\vb L$ and $\pan$}
+
+\textit{Case 1. $\vb L$ is an edge of $\pan$.}
+
+This is the situation of 
+Figure \ref{EdgePanelInteractionFigure}\textbf{(a)}.
+We parameterize points in $\pan$ and $\vb L$ as 
+$$ \vb x = \vb V_0 + u\vb L + v\vb B
+   \qquad
+   \vb x^\prime = \vb V_0 + u^\prime \vb L
+$$
+$$ \vb x - \vb x^\prime = (u-u^\prime)\vb L + \vb v\vb B$$
+
+\begin{align*}
+  \int_{\pan{P}}\int_{\vb L} (\nabla \cdot \vb f) (\nabla \cdot h) G 
+&=
+  2l_\alpha l_\beta^2 
+  \int_0^1 du \, \int_0^u \, dv \int_0^1 dv^\prime \,
+  \frac{e^{ik|\vb x - \vb x^\prime|}}{4\pi |\vb x- \vb x^\prime|}
+\end{align*}
+
+\begin{align*}
+  \int_0^1 du \int_0^u dv \int_0^1 du^\prime f(u,v,u^\prime)
+&=\quad 
+  \int_0^1 du^\prime \int_0^{u^\prime} du \int_0^u dv 
+  f(u,v,u^\prime)
+\\
+&\quad+ 
+  \int_0^1 du^\prime \int_{u^\prime}^1 du \int_0^{u-u^\prime} dv 
+  f(u,v,u^\prime)
+\\
+&\quad+ 
+  \int_0^1 du^\prime \int_{u^\prime}^1 du \int_{u-u^\prime}^u dv 
+  f(u,v,u^\prime)
+\end{align*}
+
+\textit{Case 2. $\vb L$ shares one point in common with $\pan$.}
+
+This is the situation of 
+Figure \ref{EdgePanelInteractionFigure}\textbf{(b)}.
+We parameterize points in $\pan$ and $\vb L$ as 
+$$ \vb x = \vb V_0 + u\vb A + v\vb B
+   \qquad
+   \vb x^\prime = \vb V_0 + u^\prime \vb L.
+$$
+$$ \vb x - \vb x^\prime = u\vb A + v\vb B + u^\prime \vb L$$
+
+\begin{align*}
+  \int_{\pan{P}}\int_{\vb L} (\nabla \cdot \vb f) (\nabla \cdot h) G 
+&=
+  2l_\alpha l_beta^2 
+  \int_0^1 du \, \int_0^u \, dv \int_0^1 dv^\prime \,
+  \frac{e^{ik|\vb x - \vb x^\prime|}}{4\pi |\vb x- \vb x^\prime|}
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+
+\newpage
+\section{Taylor-Duffy transformation of integrals}
+
+In this section we justify equation 
+(\ref{TaylorDuffy}).
+
+The integration region for the integral on the LHS of 
+(\ref{TaylorDuffy}) is the direct product of a unit
+right triangle in the $(u,v)$ plane with the unit 
+interval on the $u^\prime$ axis, i.e. 
+$$\text{region of integration}=\mathcal{R}=
+  \begin{cases}
+  0\le u \le 1 \\
+  0\le v \le u \\
+  0\le u^\prime \le 1.
+  \end{cases}
+$$
+
+\subsection*{Step 1. Decompose region of integration into tetrahedra}
+
+Following the spirit of the Taylor-Duffy method, we 
+decompose $\mathcal{R}$ as the nonintersecting union 
+of three tetrahedral regions:
+$$ \mathcal{R} = \mathcal{R}_1 \cup
+                 \mathcal{R}_2 \cup
+                 \mathcal{R}_3
+$$
+where 
+\begin{align*}
+  \mathcal{R}_1 = 
+  \begin{cases}
+  0 \le u^\prime \le 1 \\
+  0 \le u \le u^\prime \\
+  0 \le v \le u
+  \end{cases},
+\qquad
+  \mathcal{R}_2 = 
+  \begin{cases}
+  0 \le u \le 1 \\
+  0 \le u^\prime \le u \\
+  0 \le v \le u-u^\prime
+  \end{cases}
+\qquad
+  \mathcal{R}_3 = 
+  \begin{cases}
+  0 \le u \le 1 \\
+  0 \le u^\prime \le u \\
+  u-u^\prime \le v \le u.
+  \end{cases}
+\end{align*}
+
+\subsection*{Step 2. Introduce Duffy-transformed variables} 
+
+The next step is to introduce Duffy-transformed variables for each 
+of the three integration regions. The idea of the Duffy transform
+is to single out one of the three variables as the ``independent''
+variable (call it $w$), and then to ``measure the other two variables
+in units of $w$.'' This ensures that the transformed versions of 
+all three of the original variables $u,v,u^\prime$ are now expressed
+as multiples of $w$, whereupon a factor of $w$ may be pulled out 
+of radicals like $\sqrt{Au^2 + Bv^2 + Cu^{\prime 2}}$. When such radicals
+appear in the denominator of the integrand, we then get overall 
+multiplicative factors of $w$ in the denominator, which cancel with
+the Jacobian of the variable transformation to yield 
+
+It is also convenient, although not strictly necessary, to define our
+Duffy-transformed variables $w,x,y$ in such a way that the region of
+integration for all three of the transformed integrals is the unit
+three-dimensional cube (i.e. $w,x,y$ all running from 0 to 1.) This 
+allows the three integrals to be combined into a \textit{single} integral 
+over the unit cube.
+
+Such a variable transformation is 
+
+%====================================================================%
+\begin{align*}
+\mathcal{R}_1:\qquad
+    &u^\prime=w, \qquad u=wx, \qquad v=wxy, \quad \qquad \mathcal{J}=w^2 x
+\\
+\mathcal{R}_2: \qquad 
+    &u=w, \qquad u^\prime=wx, \qquad v=w(1-x)y, \qquad \mathcal{J}=w^2 (1-x)
+\\
+\mathcal{R}_3: \qquad 
+    &u=w, \qquad u^\prime=wx, \qquad v=w-wxy, \qquad \mathcal{J}= w^2x
+\end{align*}
+%====================================================================%
+
+\subsection*{Step 3. Recast original integral as an integral over 
+                     the unit cube}
+
+%====================================================================%
+\begin{align}
+\int_0^1 du \int_0^u dv \int_0^1 du^\prime f(u,v,u^\prime)
+\nn
+=\int_0^1 dw \int_0^1 dx \int_0^1 dy 
+  \bigg\{\quad & w^2 x f\Big(wx, wxy, w\Big)
+\nn
+       + &w^2(1-x) f\Big(w, w(1-x)y, wx\Big)
+\nn
+       + &w^2x  f\Big(w, w(1-xy), wx\Big)
+  \bigg\}
+\label{TransformedEdgePanelIntegral1}
+\end{align}
+%====================================================================%
+
+\subsection*{Step 4. Evaluate the $w$ integral}
+
+The integrand in question here is 
+\begin{align*}
+ f(u,v,u^\prime)
+&=\frac{e^{ikR(u,v,u^\prime)}}{4\pi R(u,v,u^\prime)},
+\qquad 
+ R(u,v,u^\prime)=\Big|u\vb A + v\vb B - \vb u^\prime \vb L\Big|
+\end{align*}
+(where $\vb A=\vb L$ for the shared-edge case).
+Applying (\ref{TransformedEdgePanelIntegral1}), we have
+%====================================================================%
+\begin{align}
+&\int_0^1 du \int_0^u dv \int_0^1 du^\prime f(u,v,u^\prime)
+\nn
+&=\frac{1}{4\pi}\int_0^1 dx \int_0^1 dy \int_0^1 dw
+\Big[  \frac{ w x     e^{ikwR_1(x,y)}}{R_1(x,y)} 
+     + \frac{ w (1-x) e^{ikwR_2(x,y)}}{R_2(x,y)} 
+     + \frac{ w x     e^{ikwR_3(x,y)}}{R_3(x,y)}
+\Big] 
+\label{TransformedEdgePanelIntegral2}
+\end{align}
+$$ R_1(x,y)=\Big| x\vb A + xy \vb B + \vb L|\Big|,
+   \qquad
+   R_2(x,y)=\Big| \vb A + (1-x)y \vb B + x\vb L|\Big|
+   \qquad
+   R_3(x,y)=\Big| \vb A + (1-xy) \vb B + x\vb L|\Big|.
+$$
+%====================================================================%
+The $w$ integral may be evaluated in closed form:
+\numeq{WIntegral}
+{\int_0^1 w e^{wX} dw  = \frac{1}{2}e^X \cdot \text{ExpRel}(2,-X)}
+where $\text{ExpRel}(N,X)$ is 
+$e^X$, minus the first $N$ terms in its series expansion,
+normalized so that $\text{ExpRel(N,0)}=1$:
+\begin{align*}
+ \text{ExpRel}(N,X) &\equiv
+   \frac{N!}{X^N}\Big[e^{X} - 1 - X - \frac{X^2}{2!} - \cdots 
+                             - \frac{X^{N-1}}{(N-1)!} \Big]
+\\
+&=
+   \frac{N!}{X^N}\Big[\frac{X^N}{N!} + \frac{X^{N+1}}{(N+1)^1} + \cdots\Big] 
+\\
+&=
+   1 + \frac{X}{N+1} + \frac{X^2}{(N+1)(N+2)} + \cdots
+\end{align*}
+
+Using (\ref{WIntegral}), equation (\ref{TransformedEdgePanelIntegral2})
+becomes 
+\begin{align*}
+=\frac{1}{8\pi}\int_0^1 dx \int_0^1 dy \bigg\{
+ \quad &\frac{x e^ikR_1}{R_1} e^{ikR_1} \cdot \text{ExpRel}(2,-ikR_1)
+\\
+      +&\frac{(1-x)}{R_2} e^{ikR_2} \cdot \text{ExpRel}(2,-ikR_2)
+\\
+      +&\frac{x}{R_3}e^{ikR_3} \cdot \text{ExpRel}(2,-ikR_3)
+  \bigg\}
+\end{align*}
+where $R_1, R_2, R_3$ are functions of $x$ and $y$. This is a nonsingular
+integral over the unit square which may be evaluated by straighforward
+numerical cubature.
+
+\end{document}
