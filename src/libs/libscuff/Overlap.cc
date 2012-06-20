@@ -34,131 +34,40 @@
 
 #include "libscuff.h"
 
+#define II cdouble(0.0,1.0)
+
 namespace scuff {
 
 /***************************************************************/
-/* Compute the overlap integral between the RWG basis functions*/
-/* associated with two edges in an RWG object.                 */
+/* these constants identify various types of overlap           */
+/* integrals; they are only used in this file.                 */
+/* Note that these constants are talking about types of        */
+/* overlap *integrals*, not to be confused with the various    */ 
+/* types of overlap *matrices,* which are index by different   */
+/* constants defined in libscuff.h. (The entries of the overlap*/
+/* matrices are linear combinations of various types of overlap*/
+/* integrals.)                                                 */
 /***************************************************************/
-#if 0
-double RWGObject::GetOverlapOld(int neAlpha, int neBeta, double *pOTimes)
-{ 
-  RWGEdge *EAlpha=Edges[neAlpha], *EBeta=Edges[neBeta];
+#define OVERLAP_OVERLAP     0
+#define OVERLAP_CROSS       1
+#define OVERLAP_XBULLET     2  
+#define OVERLAP_XNABLANABLA 3
+#define OVERLAP_XTIMESNABLA 4
+#define OVERLAP_YBULLET     5  
+#define OVERLAP_YNABLANABLA 6
+#define OVERLAP_YTIMESNABLA 7
+#define OVERLAP_ZBULLET     8  
+#define OVERLAP_ZNABLANABLA 9
+#define OVERLAP_ZTIMESNABLA 10
 
-  /*--------------------------------------------------------------*/
-  /*- handle the diagonal case -----------------------------------*/
-  /*--------------------------------------------------------------*/
-  if ( EAlpha==EBeta )
-   { 
-     double *QP = Vertices + 3*(EAlpha->iQP);
-     double *V1 = Vertices + 3*(EAlpha->iV1);
-     double *V2 = Vertices + 3*(EAlpha->iV2);
-     double *QM = Vertices + 3*(EAlpha->iQM);
-
-     double PArea = Panels[EAlpha->iPPanel]->Area;
-     double MArea = Panels[EAlpha->iMPanel]->Area;
-
-     double lA2 = (EAlpha->Length) * (EAlpha->Length);
-
-     double LA[3], LBP[3], LBM[3]; 
-     double LAdLBP=0.0, LAdLBM=0.0, lBP2=0.0, lBM2=0.0;
-     int i;
-     for(i=0; i<3; i++)
-      { LA[i]  = V2[i] - V1[i];
-        LBP[i] = V1[i] - QP[i];
-        LBM[i] = V1[i] - QM[i];
-
-        LAdLBP += LA[i] * LBP[i];
-        lBP2   += LBP[i] * LBP[i];
-        LAdLBM += LA[i] * LBM[i];
-        lBM2   += LBM[i] * LBM[i];
-      };
-    
-     if (pOTimes) 
-      *pOTimes=0.0;
-     return lA2 * (   ( lA2 + 3.0*lBP2 + 3.0*LAdLBP ) / PArea
-                    + ( lA2 + 3.0*lBM2 + 3.0*LAdLBM ) / MArea
-                  ) / 24.0;
-   };
-
-  /*--------------------------------------------------------------*/
-  /*- figure out if there is nonzero overlap ---------------------*/
-  /*--------------------------------------------------------------*/
-  double Sign, Area, *QA, *QB; 
-  int IndexA, IndexB;
-  if ( EAlpha->iPPanel == EBeta->iPPanel )
-   { Sign = 1.0;
-     Area = Panels[EAlpha->iPPanel]->Area;
-     QA = Vertices + 3*(EAlpha->iQP);
-     QB = Vertices + 3*(EBeta ->iQP);
-     IndexA = EAlpha->PIndex;
-     IndexB = EBeta->PIndex;
-   }
-  else if ( EAlpha->iPPanel == EBeta->iMPanel )
-   { Sign = -1.0;
-     Area = Panels[EAlpha->iPPanel]->Area;
-     QA = Vertices + 3*(EAlpha->iQP);
-     QB = Vertices + 3*(EBeta ->iQM);
-     IndexA = EAlpha->PIndex;
-     IndexB = EBeta->MIndex;
-   }
-  else if ( EAlpha->iMPanel == EBeta->iPPanel )
-   { Sign = -1.0;
-     Area = Panels[EAlpha->iMPanel]->Area;
-     QA = Vertices + 3*(EAlpha->iQM);
-     QB = Vertices + 3*(EBeta ->iQP);
-     IndexA = EAlpha->MIndex;
-     IndexB = EBeta->PIndex;
-   }
-  else if ( EAlpha->iMPanel == EBeta->iMPanel )
-   { Sign = +1.0;
-     Area = Panels[EAlpha->iMPanel]->Area;
-     QA = Vertices + 3*(EAlpha->iQM);
-     QB = Vertices + 3*(EBeta ->iQM);
-     IndexA = EAlpha->MIndex;
-     IndexB = EBeta->MIndex;
-   }
-  else
-   {  if (pOTimes)
-       *pOTimes=0.0; 
-      return 0.0;
-   };
- /*--------------------------------------------------------------*/
-  /*- do the computation -----------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double *V1 = Vertices + 3*(EAlpha->iV1);
-  double *V2 = Vertices + 3*(EAlpha->iV2);
-  double *QI=0; // 'QIntermediate' is the common vertex of L_\alpha, L_\beta
-  if ( QB == V1 ) 
-   QI = V2;
-  else if ( QB == V2 ) 
-   QI = V1;
-  else
-   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-
-  double lA = EAlpha->Length;
-  double lB = EBeta->Length;
-  double DotProduct =  (QI[0]-QA[0])*(QB[0]-QI[0])
-                      +(QI[1]-QA[1])*(QB[1]-QI[1])
-                      +(QI[2]-QA[2])*(QB[2]-QI[2]);
-
-  if (pOTimes)
-   { 
-     double SignPrime = ( ((IndexB-IndexA+3)%3) == 2) ? 1.0 : -1.0;
-     *pOTimes = Sign*SignPrime*lA*lB/6.0;
-   };
-
-  return -1.0*Sign*lA*lB*( lA*lA + lB*lB + 3.0*DotProduct ) / (24.0*Area);
-
-}
-#endif
+#define NUMOVERLAPS 11
 
 /***************************************************************/
 /* this is a helper function for GetOverlaps that computes the */
 /* contributions of a single panel to the overlap integrals    */
 /***************************************************************/
 void AddOverlapContributions(RWGObject *O, RWGPanel *P, int iQa, int iQb, 
-                             double Sign, double LL, double Overlaps[11])
+                             double Sign, double LL, double *Overlaps)
 {
   double *Qa   = O->Vertices + 3*P->VI[ iQa ];
   double *QaP1 = O->Vertices + 3*P->VI[ (iQa+1)%3 ];
@@ -223,7 +132,7 @@ void AddOverlapContributions(RWGObject *O, RWGPanel *P, int iQa, int iQb,
 /*  [5,6,7]  = like [2,3,4] but with x-->y                     */
 /*  [8,9,10] = like [2,3,4] but with x-->z                     */
 /***************************************************************/
-void RWGObject::GetOverlaps(int neAlpha, int neBeta, double Overlaps[11])
+void RWGObject::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
 {
   RWGEdge *EAlpha = Edges[neAlpha];
   RWGEdge *EBeta  = Edges[neBeta];
@@ -238,7 +147,7 @@ void RWGObject::GetOverlaps(int neAlpha, int neBeta, double Overlaps[11])
 
   double LL = EAlpha->Length * EBeta->Length;
 
-  memset(Overlaps,0,11*sizeof(double));
+  memset(Overlaps,0,NUMOVERLAPS*sizeof(double));
 
   if ( EAlpha->iPPanel == EBeta->iPPanel )
    AddOverlapContributions(this, PAlphaP, iQPAlpha, iQPBeta,  1.0, LL, Overlaps);
@@ -257,18 +166,162 @@ void RWGObject::GetOverlaps(int neAlpha, int neBeta, double Overlaps[11])
 /*****************************************************************/
 double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 {
-  double Overlaps[11];
+  double Overlaps[NUMOVERLAPS];
   GetOverlaps(neAlpha, neBeta, Overlaps);
   if (pOTimes) *pOTimes=Overlaps[1];
   return Overlaps[0];
 }
 
 /*****************************************************************/
+/* on entry, NeedMatrix is an array of 5 boolean flags, with     */
+/* NeedMatrix[n] = 1 if the user wants overlap matrix #n.        */
+/* (here 5 = SCUFF_NUM_OMATRICES).                               */
+/*                                                               */
+/* If NeedMatrix[n] = 1, then SArray must have at least n slots. */
+/*                                                               */
+/* If SArray[n] = 0 on entry, then a new SMatrix of the correct  */
+/* size is allocated for that slot. If SArray[n] is nonzero but  */
+/* points to an SMatrix of the incorrect size, then a new        */
+/* SMatrix of the correct size is allocated, and SArray[n] is    */
+/* overwritten with a pointer to this new SMatrix; the memory    */
+/* allocated for the old SMatrix is not deallocated.             */
+/*                                                               */
+/* Omega is only referenced for the computation of force overlap */
+/* matrices.                                                     */
+/*                                                               */
+/* ExteriorMP is only referenced for the computation of force    */
+/* overlap matrices, and then only if it non-null; if ExteriorMP */
+/* is null then the exterior medium is assumed to be vacuum.     */
 /*****************************************************************/
-/*****************************************************************/
-//void RWGObject::GetOverlapMatrices(double Omega)
-//{
-//}
+void RWGObject::GetOverlapMatrices(int *NeedMatrix,
+                                   SMatrix **SArray,
+                                   cdouble Omega,
+                                   MatProp *ExteriorMP)
+{
+  int NR  = NumBFs;
 
+  /*--------------------------------------------------------------*/
+  /*- the number of nonzero entries per row of the overlap matrix */
+  /*- is fixed by the definition of the RWG basis function; each  */
+  /*- RWG function overlaps with at most 5 RWG functions          */
+  /*- (including itself), which gives 10 if we have both electric */
+  /*- and magnetic currents.                                      */
+  /*--------------------------------------------------------------*/
+  int IsPEC = (MP->Type==MP_PEC);
+  int nnz = IsPEC ? 5 : 10;
 
-} // namespace scuff
+  /*--------------------------------------------------------------*/
+  /*- make sure each necessary slot of SArray points to an SMatrix*/  
+  /*- of the appropriate size                                     */  
+  /*--------------------------------------------------------------*/
+  for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
+   { 
+     if ( NeedMatrix[n] ) 
+      { 
+        if (     SArray[n] 
+             && ( (SArray[n]->NR != NR) || (SArray[n]->nnz != nnz) )
+           )
+         { Warn("wrong-sized matrix passed to GetOverlapMatrices (reallocating)...");
+           SArray[n]=0;
+         };
+
+        if (SArray[n]==0)
+         SArray[n]=new SMatrix(NR, nnz);
+
+        SArray[n]->Zero();
+
+      };   
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  cdouble Z=ZVAC, K2=Omega*Omega;
+  if (ExteriorMP)
+   { 
+     cdouble Eps, Mu;
+     ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
+     K2 *= Eps*Mu;
+     Z *= sqrt(Mu/Eps);
+   };
+ 
+  /*--------------------------------------------------------------*/
+  /*- sadly we use an N^2 algorithm for computing the O(N) matrix */
+  /*- elements; this could be corrected at the expense of adding  */
+  /*- some bookkeeping data (namely, a list within each RWGEdge   */
+  /*- structure of the edges with which it overlaps), but for now */ 
+  /*- the cost of this operation is negligible anyway so i don't  */
+  /*- bother.                                                     */
+  /*--------------------------------------------------------------*/
+  int neAlpha, neBeta;
+  double Overlaps[NUMOVERLAPS];
+  cdouble XForce1, XForce2, YForce1, YForce2, ZForce1, ZForce2;
+  for(neAlpha=0; neAlpha<NumEdges; neAlpha++)
+   for(neBeta=0; neBeta<NumEdges; neBeta++)
+    { 
+      GetOverlaps(neAlpha, neBeta, Overlaps);
+      if (Overlaps[0]==0.0) continue; 
+
+      XForce1 = Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2;
+      XForce2 = 2.0*Overlaps[OVERLAP_XTIMESNABLA] / (II*Omega);
+
+      YForce1 = Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2;
+      YForce2 = 2.0*Overlaps[OVERLAP_YTIMESNABLA] / (II*Omega);
+
+      ZForce1 = Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2;
+      ZForce2 = 2.0*Overlaps[OVERLAP_ZTIMESNABLA] / (II*Omega);
+
+      if (IsPEC)
+       { 
+         if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
+          SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(neAlpha, neBeta, Overlaps[OVERLAP_OVERLAP]);
+
+         // note in this case there is no entry in the power matrix 
+
+         if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
+          SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(neAlpha, neBeta, Z*XForce1);
+         if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
+          SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(neAlpha, neBeta, Z*YForce1);
+         if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
+          SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(neAlpha, neBeta, Z*ZForce1);
+       }
+      else
+       {
+         if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
+          { SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+0, 2*neBeta+0, Overlaps[OVERLAP_OVERLAP]);
+            SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+1, 2*neBeta+1, Overlaps[OVERLAP_OVERLAP]);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_POWER] )
+          { SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+0, 2*neBeta+1, Overlaps[OVERLAP_CROSS]);
+            SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+1, 2*neBeta+0, Overlaps[OVERLAP_CROSS]);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
+          { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*XForce1);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XForce2);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -XForce2);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XForce1/Z);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
+          { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*YForce1);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YForce2);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -YForce2);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YForce1/Z);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
+          { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*ZForce1);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZForce2);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -ZForce2);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZForce1/Z);
+          };
+
+       }; // if (IsPEC) ... else ... 
+         
+   }; // for(neAlpha...) ... for (neBeta...)
+
+}
+
+}// namespace scuff

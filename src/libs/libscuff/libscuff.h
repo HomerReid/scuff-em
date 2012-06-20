@@ -60,6 +60,14 @@ namespace scuff {
 #define SCUFF_TERSELOGGING   1
 #define SCUFF_VERBOSELOGGING 2
 
+// various types of overlap matrix
+#define SCUFF_OMATRIX_OVERLAP    0
+#define SCUFF_OMATRIX_POWER      1
+#define SCUFF_OMATRIX_XFORCE     2
+#define SCUFF_OMATRIX_YFORCE     3
+#define SCUFF_OMATRIX_ZFORCE     4
+#define SCUFF_NUM_OMATRICES      5
+
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -164,7 +172,12 @@ class RWGObject
 
    /* get overlap integrals between two basis functions */
    double GetOverlap(int neAlpha, int neBeta, double *pOTimes = NULL);
-   void GetOverlaps(int neAlpha, int neBeta, double Overlaps[11]);
+   void GetOverlaps(int neAlpha, int neBeta, double *Overlaps);
+
+   /* get one or more overlap matrices for the object as a whole*/
+   /* note NeedMatrix and SArray are arrays of length SCUFF_NUM_OMATRICES*/
+   void GetOverlapMatrices(int *NeedMatrix, SMatrix **SArray, 
+                           cdouble Omega=1.0, MatProp *ExteriorMP=NULL);
 
    /* apply a general transformation (rotation+displacement) to the object */
    void Transform(const GTransformation *GT);

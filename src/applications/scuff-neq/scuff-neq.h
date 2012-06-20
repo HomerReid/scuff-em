@@ -75,10 +75,14 @@ typedef struct SNEQData
    HMatrix **T;       // T[no] = T-matrix block for object #no
    HMatrix **U;       // U[no*NO + nop] = // U-matrix block for objects #no, #nop
 
-   // SMatrix structures for overlap matrices
-   // note: nq=0,1,2,3 for O^{PF}, O^{xMF}, O^{yMF}, O^{zMF}, 
-   // (the matrices for power, x-force, y-force, and z-force.)
-   SMatrix **OMatrices; // OMatrices[ no*4 + nq ] = overlap matrix for object no, quantity nq
+   // the NMth slot in this array of flags is 1 iff we will need
+   // to compute the NMth type of overlap matrix
+   int NeedMatrix[SCUFF_NUM_OMATRICES]; 
+
+   // SMatrix structures for overlap matrices.
+   // SArray[ no*5 + nm ] = overlap matrix of type #nm for object #no 
+   // (here 5 = SCUFF_NUM_OMATRICES)
+   SMatrix ***SArray;
 
    // frequency-resolved output files for each object 
    char **ByOmegaFileNames;

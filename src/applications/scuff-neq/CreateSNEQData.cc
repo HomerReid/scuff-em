@@ -109,6 +109,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- matrices. note that all overlap matrices have 10 nonzero   -*/
   /*- entries per row.                                           -*/
   /*-                                                            -*/
+  /*- SArray[no] is an array of SCUFF_NUM_OMATRICES pointers to  -*/
+  /*- SMatrix structures for object #no.                         -*/
+  /*-                                                            -*/
   /*- Also note: we allocate space for all overlap matrices even -*/
   /*- though they may not all be required depending on which     -*/
   /*- quantities the user requested. (For example, if only       -*/
@@ -117,10 +120,23 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- small amount of memory by allocating space for only the    -*/
   /*- matrices we will actually need.                            -*/
   /*--------------------------------------------------------------*/
-  SNEQD->OMatrices=(SMatrix **)mallocEC(MAXQUANTITIES*NO*sizeof(SMatrix *));
+  int *NeedMatrix=SNEQD->NeedMatrix;
+  memset(NeedMatrix, 0, SCUFF_NUM_OMATRICES*sizeof(int));
+  NeedMatrix[SCUFF_OMATRIX_OVERLAP] = 0;
+  NeedMatrix[SCUFF_OMATRIX_POWER  ] = QuantityFlags && QFLAG_POWER;
+  NeedMatrix[SCUFF_OMATRIX_XFORCE ] = QuantityFlags && QFLAG_XFORCE;
+  NeedMatrix[SCUFF_OMATRIX_YFORCE ] = QuantityFlags && QFLAG_YFORCE;
+  NeedMatrix[SCUFF_OMATRIX_ZFORCE ] = QuantityFlags && QFLAG_ZFORCE;
+
+  SNEQD->SArray=(SMatrix ***)mallocEC(NO*sizeof(SMatrix **));
   for(no=0; no<NO; no++)
-   for(nq=0; nq<MAXQUANTITIES; nq++)
-    SNEQD->OMatrices[ no*MAXQUANTITIES + nq ]=new SMatrix(G->Objects[no]->NumBFs,10);
+   { 
+     SNEQD->SArray[no]=(SMatrix **)mallocEC(SCUFF_NUM_OMATRICES*sizeof(SMatrix *));
+
+     for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
+      if (NeedMatrix[nom]) 
+       SNEQD->SArray[no][nom] = new SMatrix(G->Objects[no]->NumBFs,10);
+   };
 
   /*--------------------------------------------------------------*/
   /*- create frequency-resolved output files for each object in  -*/
