@@ -33,6 +33,40 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void SpyPlot(HMatrix *M, char *Title, char *FileName)
+{
+  if (!FileName)
+   FileName="/tmp/.spyplot.dat";
+   
+  FILE *f=fopen(FileName,"w");
+  if (!f) return;
+
+  cdouble ME;
+  for(int nr=0; nr<M->NR; nr++)
+   for(int nc=0; nc<M->NC; nc++)
+    { ME=M->GetEntry(nr,nc);
+      if ( abs(ME) != 0.0 )
+       fprintf(f,"%i %i %e %e \n",nr,nc,real(ME),imag(ME));
+    };
+
+  fclose(f);
+
+  f=popen("gnuplot -persist","w");
+  if (!f) return;
+  if (Title)
+   fprintf(f,"set title '%s'\n",Title);
+  fprintf(f,"set xlabel 'Rows'\n");
+  fprintf(f,"set ylabel 'Columns'\n");
+  fprintf(f,"plot '%s' w p pt 7 ps 1\n",FileName);
+printf("george jetson\n");
+ // pclose(f);
+printf("doomatage\n");
+  
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void UndoSCUFFMatrixTransformation(HMatrix *M)
 { 
   for (int nr=0; nr<M->NR; nr+=2)
@@ -171,16 +205,24 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   for(no=0; no<NO; no++)
    G->Objects[no]->GetOverlapMatrices(NeedMatrix, SArray[no], Omega, G->ExteriorMP);
 
-void *pCC=HMatrix::OpenMATLABContext("SMatrices.out");
+#if 0
+//void *pCC=HMatrix::OpenMATLABContext("SMatrices.out");
+char buffer1[100];
+char buffer2[100];
 for(no=0; no<NO; no++)
  for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
   { if (NeedMatrix[nom])
      { HMatrix *M=new HMatrix(SArray[no][nom]);
-       M->ExportToMATLAB(pCC,"M_%i_%i",no,nom);
+  //     M->ExportToMATLAB(pCC,"M_%i_%i",no,nom);
+sprintf(buffer1,"M_%i_%i",no,nom);
+sprintf(buffer2,"M_%i_%i.dat",no,nom);
+SpyPlot(M,buffer1,buffer2);
+printf("Suppatage foryaf %i %i \n",no,nom);
        delete M;
      };
   };
-HMatrix::CloseMATLABContext(pCC);
+//HMatrix::CloseMATLABContext(pCC);
+#endif
        
 
   /***************************************************************/
@@ -247,6 +289,10 @@ HMatrix::CloseMATLABContext(pCC);
          if (SNEQD->ByOmegaFileNames)
           { f=fopen(SNEQD->ByOmegaFileNames[no*NO+nop],"a");
             fprintf(f,"%e %s ",real(Omega),Tag);
+cdouble Eps1, Eps2, Mu;
+G->Objects[0]->MP->GetEpsMu(Omega,&Eps1,&Mu);
+G->Objects[1]->MP->GetEpsMu(Omega,&Eps2,&Mu);
+fprintf(f,"%e %e %e %e ",real(Eps1),imag(Eps1),real(Eps2),imag(Eps2));
           };
 
          if ( QuantityFlags & QFLAG_POWER )
