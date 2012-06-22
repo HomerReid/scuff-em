@@ -126,6 +126,14 @@ LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
 AC_CHECK_LIB(readline, readline)
 
 ##################################################
+# checks for backtrace functionality, used to 
+# output useful debugging info to log files in
+# the event of code crashes
+##################################################
+AC_CHECK_HEADERS([execinfo.h])
+AC_CHECK_FUNCS([backtrace])
+
+##################################################
 # Python SWIG wrappers
 ##################################################
 
