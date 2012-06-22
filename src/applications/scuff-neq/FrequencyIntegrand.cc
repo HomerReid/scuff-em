@@ -115,7 +115,7 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
   int p, q, r, s; 
   int nnzq, nq, nnzs, ns;
   int qValues[11], sValues[11];
-  double O1Entries[10], O2Entries[10];
+  cdouble O1Entries[10], O2Entries[10];
 
   cdouble FMPTrace=0.0; //'four-matrix-product trace'
 
