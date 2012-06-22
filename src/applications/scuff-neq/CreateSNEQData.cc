@@ -135,10 +135,8 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
      SNEQD->SArray[no]=(SMatrix **)mallocEC(SCUFF_NUM_OMATRICES*sizeof(SMatrix *));
 
      for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
-      { RealComplex = (nom==SCUFF_OMATRIX_POWER) ? LHM_REAL : LHM_COMPLEX;
-        if (NeedMatrix[nom]) 
-         SNEQD->SArray[no][nom] = new SMatrix(G->Objects[no]->NumBFs,10,RealComplex);
-      };
+      if (NeedMatrix[nom]) 
+       SNEQD->SArray[no][nom] = new SMatrix(G->Objects[no]->NumBFs,10, LHM_COMPLEX);
    };
 
   /*--------------------------------------------------------------*/
