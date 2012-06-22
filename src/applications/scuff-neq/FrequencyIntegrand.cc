@@ -184,10 +184,37 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   Args->Omega     = Omega;
 
   /***************************************************************/
+  /* also before entering the loop over transformations, we      */
+  /* pause to assemble the overlap matrices.                     */
+  /***************************************************************/
+  int no, nop, nb, NO=G->NumObjects;
+  for(no=0; no<NO; no++)
+   G->Objects[no]->GetOverlapMatrices(NeedMatrix, SArray[no], Omega, G->ExteriorMP);
+
+#if 0
+void *pCC=HMatrix::OpenMATLABContext("SMatrices.out");
+char buffer1[100];
+char buffer2[100];
+for(no=0; no<NO; no++)
+ for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
+  { if (NeedMatrix[nom])
+     { HMatrix *M=new HMatrix(SArray[no][nom]);
+       M->ExportToMATLAB(pCC,"M_%i_%i",no,nom);
+//sprintf(buffer1,"M_%i_%i",no,nom);
+//sprintf(buffer2,"M_%i_%i.dat",no,nom);
+//SpyPlot(M,buffer1,buffer2);
+//printf("Suppatage foryaf %i %i \n",no,nom);
+       delete M;
+     };
+  };
+HMatrix::CloseMATLABContext(pCC);
+exit(1);
+#endif
+
+  /***************************************************************/
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
-  int no, nop, nb, NO=G->NumObjects;
   for(no=0; no<NO; no++)
    { 
      Log(" Assembling self contributions to T(%i)...",no);
@@ -197,32 +224,6 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
      Args->Symmetric=1;
      AssembleBEMMatrixBlock(Args);
    };
-
-  /***************************************************************/
-  /* also before entering the loop over transformations, we      */
-  /* pause to assemble the overlap matrices.                     */
-  /***************************************************************/
-  for(no=0; no<NO; no++)
-   G->Objects[no]->GetOverlapMatrices(NeedMatrix, SArray[no], Omega, G->ExteriorMP);
-
-#if 0
-//void *pCC=HMatrix::OpenMATLABContext("SMatrices.out");
-char buffer1[100];
-char buffer2[100];
-for(no=0; no<NO; no++)
- for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
-  { if (NeedMatrix[nom])
-     { HMatrix *M=new HMatrix(SArray[no][nom]);
-  //     M->ExportToMATLAB(pCC,"M_%i_%i",no,nom);
-sprintf(buffer1,"M_%i_%i",no,nom);
-sprintf(buffer2,"M_%i_%i.dat",no,nom);
-SpyPlot(M,buffer1,buffer2);
-printf("Suppatage foryaf %i %i \n",no,nom);
-       delete M;
-     };
-  };
-//HMatrix::CloseMATLABContext(pCC);
-#endif
        
 
   /***************************************************************/

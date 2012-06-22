@@ -155,12 +155,6 @@ void *ABMBThread(void *data)
        for(int PerCent=0; PerCent<9; PerCent++)
         if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
          MutexLog("%i0 %% (%i/%i)...",PerCent,nea,NEa);
-#if 0
-      if (G->LogLevel>=SCUFF_VERBOSELOGGING)
-       for(int PerCent=0; PerCent<=99; PerCent++)
-        if ( neb==Symmetric*nea &&  (nea*100 == PerCent*NEa) )
-         Log("%i %% (%i/%i)...",PerCent,nea,NEa);
-#endif
 
       /*--------------------------------------------------------------*/
       /*- contributions of first medium (EpsA, MuA)  -----------------*/

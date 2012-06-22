@@ -80,85 +80,265 @@ densities associated with this current distribution are
 \\
 \textcolor{red}{ \lambda(\vb x)}
  &=
-\textcolor{red}{-\frac{lk_\alpha}{i\omega}\chi_{\vb L_\alpha}(\vb x)}
+\textcolor{red}{-\frac{k_\alpha}{i\omega}\chi_{\vb L_\alpha}(\vb x)}
 \end{align*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Matrix Elements between RWG and HRWG Basis Functions}
+\section{Matrix Elements involving HRWG Basis Functions}
 
+\subsection{Matrix elements between RWG and HRWG functions}
+
+Consider an RWG function $\vb f_\alpha$ and an HRWG function
+$\vb h_\beta.$ $\vb f_\alpha$ describes surface currents 
+on two panels $\pan_\alpha^\pm$, while $\vb h_\beta$ describes
+surface currents on a single panel $\pan_\beta$
+$\pan+\beta$ plus the line charge on an edge $\vb L_\beta$.
+The BEM matrix elements between these two basis functions
+involve the interactions
+\begin{subequations}
+\begin{align}
+  \VMV{\vb f_\alpha}{\vb G}{\vb h_\beta}
+&=
+  \VMV{\vb f_\alpha}{\vb G}{\vb h_\beta}\sups{panel--panel}
++
+  \VMV{\vb f_\alpha}{\vb G}{\vb h_\beta}\sups{panel--edge}
+\\
+  \VMV{\vb f_\alpha}{\vb C}{\vb h_\beta}
+&=
+  \VMV{\vb f_\alpha}{\vb C}{\vb h_\beta}\sups{panel--panel}
+\end{align}
+\label{fGCh}
+\end{subequations}
+The first terms here are just the usual panel-panel
+interactions between currents on panels $\pan_{\alpha}^\pm$ 
+and $\pan_\beta$, and may be computed using the usual
+\lss methods for panel-panel interactions. 
+
+The second term in (\ref{fGCh}a) is a new interaction
+between the surface charge densities on $\pan_{\alpha}^\pm$ 
+and the line charge density on $\vb L_\beta$:
 \begin{align*}
-  \Big\langle \vb f_\alpha 
-  \Big|       \vb G
-  \Big|       \vb h_\beta 
-  \Big\rangle
-&= -\frac{1}{k^2}
-   \sum \sigma_{\alpha}^{\pm}
-   \int_{\pan_\alpha^\pm} d\vb x 
+  \VMV{\vb f_\alpha}{\vb G}{\vb h_\beta}\sups{panel--edge}
+=
+-\frac{1}{k^2}
+   \sum \pm
+   \int_{\pan_\alpha^\pm} d\vb x
    \int_{\vb L_\beta} d\vb x^\prime
    \left\{ \Big[\nabla \cdot \vb f_\alpha(\vb x)\Big]
            G(\vb x, \vb x^\prime)
            \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
    \right\}
 \end{align*}
+Note that there is no edge-panel contribution to 
+$\vmv{\vb f}{\vb C}{\vb h}.$
 
-\subsection*{Interaction between $\vb L$ and $\pan$}
+\subsection{Matrix elements between HRWG and HRWG functions}
 
-\textit{Case 1. $\vb L$ is an edge of $\pan$.}
-
-This is the situation of 
-Figure \ref{EdgePanelInteractionFigure}\textbf{(a)}.
-We parameterize points in $\pan$ and $\vb L$ as 
-$$ \vb x = \vb V_0 + u\vb L + v\vb B
-   \qquad
-   \vb x^\prime = \vb V_0 + u^\prime \vb L
-$$
-$$ \vb x - \vb x^\prime = (u-u^\prime)\vb L + \vb v\vb B$$
-
-\begin{align*}
-  \int_{\pan{P}}\int_{\vb L} (\nabla \cdot \vb f) (\nabla \cdot h) G 
+Next consider an HRWG function $\vb h_\alpha$ and an HRWG function
+$\vb h_\beta.$ We have 
+\begin{subequations}
+\begin{align}
+  \VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}
 &=
-  2l_\alpha l_\beta^2 
-  \int_0^1 du \, \int_0^u \, dv \int_0^1 dv^\prime \,
-  \frac{e^{ik|\vb x - \vb x^\prime|}}{4\pi |\vb x- \vb x^\prime|}
+  \VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{panel--panel}
++
+  \VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{panel--edge}
++
+  \VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{edge--edge}
+\\
+  \VMV{\vb h_\alpha}{\vb C}{\vb h_\beta}
+&=
+  \VMV{\vb h_\alpha}{\vb C}{\vb h_\beta}\sups{panel--panel}
+\end{align}
+\label{hGCh}
+\end{subequations}
+
+As above, the panel-panel interactions may be computed using 
+the usual \lss methods for panel-panel interactions.
+
+The second term in (\ref{hGCh}a) consists of two terms:
+\begin{align*}
+\VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{panel--edge}
+= -&\frac{1}{k^2}
+   \int_{\pan_\alpha} d\vb x
+   \int_{\vb L_\beta} d\vb x^\prime
+   \left\{ \Big[\nabla \cdot \vb h_\alpha(\vb x)\Big]
+           G(\vb x, \vb x^\prime)
+           \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
+   \right\}
+\\
+ -&\frac{1}{k^2}
+   \int_{\vb L_\alpha} d\vb x
+   \int_{\pan_\beta} d\vb x^\prime
+   \left\{ \Big[\nabla \cdot \vb h_\alpha(\vb x)\Big]
+           G(\vb x, \vb x^\prime)
+           \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
+   \right\}
 \end{align*}
+
+Finally, the last term in (\ref{hGCh}a) is
+\begin{align*}
+\VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{edge--edge}
+= -\frac{1}{k^2}
+   \int_{\vb L_\beta} d\vb x
+   \int_{\vb L_\beta} d\vb x^\prime
+   \left\{ \Big[\nabla \cdot \vb h_\alpha(\vb x)\Big]
+           G(\vb x, \vb x^\prime)
+           \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
+   \right\}.
+\end{align*}
+
+\subsection*{Nonsingular Edge-Panel Interactions}
 
 \begin{align*}
-  \int_0^1 du \int_0^u dv \int_0^1 du^\prime f(u,v,u^\prime)
-&=\quad 
-  \int_0^1 du^\prime \int_0^{u^\prime} du \int_0^u dv 
-  f(u,v,u^\prime)
-\\
-&\quad+ 
-  \int_0^1 du^\prime \int_{u^\prime}^1 du \int_0^{u-u^\prime} dv 
-  f(u,v,u^\prime)
-\\
-&\quad+ 
-  \int_0^1 du^\prime \int_{u^\prime}^1 du \int_{u-u^\prime}^u dv 
-  f(u,v,u^\prime)
+\VMV{\vb f_\alpha}{\vb G}{\vb h_\beta}\sups{panel--edge}
+&=-\frac{1}{k^2}\sum\pm \frac{l_\alpha}{A_\alpha^\pm}
+   \int_{\pan_\alpha^\pm} d\vb x \int_{\vb L_\beta} d\vb x^\prime
+   G(\vb x, \vb x^\prime)
 \end{align*}
+Consider one of the two integrals here 
+[Figure \ref{EdgePanelInteractionFigure}\textbf{(a)}]:
+\begin{align}
+&
+ -\frac{l_\alpha}{Ak^2 }
+   \int_{\pan} d\vb x \int_{\vb L_\beta} d\vb x^\prime
+   G(\vb x, \vb x^\prime)
+\nn
+&\quad=
+ -\frac{2l_\alpha l_\beta}{k^2 }
+  \int_0^1 du \, \int_0^u dv \, \int_0^1 du^\prime
+   G\Big[\vb x\big(u,v\big), \vb x^\prime\big(u^\prime\big)\Big]
+\label{EdgePanelCubature}
+\end{align}
+$$ \vb x = \vb V_0 + u\vb A + v\vb B, \qquad 
+   \vb x^\prime = \vb V_0^\prime + u^\prime\vb L
+$$
+This integral is easy to evaluate via three-dimensional
+numerical cubature.
 
-\textit{Case 2. $\vb L$ shares one point in common with $\pan$.}
+\subsection*{Singular Edge-Panel Interactions}
 
-This is the situation of 
-Figure \ref{EdgePanelInteractionFigure}\textbf{(b)}.
-We parameterize points in $\pan$ and $\vb L$ as 
+If the edge or panel share a vertex or the full 
+edge [Figures \ref{EdgePanelInteractionFigure}\textbf{(b,c)}],
+then the integral is singular and we have to be more clever.
+In this case we parameterize points in $\pan$ and $\vb L$ 
+according to
 $$ \vb x = \vb V_0 + u\vb A + v\vb B
    \qquad
-   \vb x^\prime = \vb V_0 + u^\prime \vb L.
+   \vb x^\prime = \vb V_0 + u^\prime \vb L,
 $$
-$$ \vb x - \vb x^\prime = u\vb A + v\vb B + u^\prime \vb L$$
+and it is shown in Appendix \ref{EdgePanelAppendix}
+that the singular three-dimensional integral in (\ref{EdgePanelCubature})
+may be reduced to a nonsingular two-dimensional integral:
+\begin{align}
+&\hspace{-2in}
+ -\frac{l_\alpha}{Ak^2}
+   \int_{\pan} d\vb x \int_{\vb L_\beta} d\vb x^\prime
+   G(\vb x, \vb x^\prime)
+\\
+ =
+ -\frac{l_\alpha l_\beta}{4\pi k^2}\int_0^1 dx \int_0^1 dy \bigg\{
+ \quad &\frac{x}{R_1} e^{ikR_1} \cdot \text{ExpRel}(2,-ikR_1)
+\\
+      +&\frac{(1-x)}{R_2} e^{ikR_2} \cdot \text{ExpRel}(2,-ikR_2)
+\\
+      +&\frac{x}{R_3}e^{ikR_3} \cdot \text{ExpRel}(2,-ikR_3)
+  \bigg\}
+\end{align}
+with
+$$ R_1(x,y)=\Big| x\vb A + xy \vb B + \vb L \Big|,
+   \qquad
+   R_2(x,y)=\Big| \vb A + (1-x)y \vb B + x\vb L\Big|
+   \qquad
+   R_3(x,y)=\Big| \vb A + (1-xy) \vb B + x\vb L\Big|
+$$
+and
+%====================================================================%
+\begin{align*}
+ \text{ExpRel}(N,X) \equiv
+ \frac{N!}{X^N}\Big[e^{X} - 1 - X - \frac{X^2}{2!} - \cdots 
+                             - \frac{X^{N-1}}{(N-1)!} \Big].
+\end{align*}
+%====================================================================%
+
+\subsection*{Nonsingular Edge-Edge Interactions}
+
+\numeq{xxpEdgeEdge}
+{
+   \vb x = \vb V_0 + u\vb L
+   \qquad
+   \vb x^\prime = \vb V_0^\prime + u^\prime \vb L^\prime
+}
+\begin{align}
+&\hspace{-1in}
+ -\frac{1}{k^2}\int_{\vb L_\alpha} d\vb x \int_{\vb L_\beta} d\vb x^\prime
+    \big [\nabla \cdot \vb h(\vb x)        \big] 
+    G(\vb x, \vb x^\prime)
+    \big [\nabla \cdot \vb h(\vb x^\prime) \big]
+\nn
+&=
+  -\frac{l_\alpha l_\beta}{k^2} \int_0^1 du \, \int_0^1 du^\prime \,
+  \frac{e^{ik|\vb x - \vb x^\prime|}}{4\pi |\vb x- \vb x^\prime|}
+\label{EdgeEdgeCubature}
+\end{align}
+
+\subsection*{Singular Edge-Edge Interaction: Common-Vertex Case }
+
+If $\vb V_0=\vb V_0^\prime$ but $\vb L\ne \vb L^\prime$ 
+in (\ref{xxpEdgeEdge}),
+
+\subsection*{Singular Edge-Edge Interaction: Common-Edge Case }
+
+If $\vb V_0=\vb V_0^\prime$ and $\vb L=\vb L^\prime$
+in (\ref{xxpEdgeEdge}), the integral in (\ref{EdgeEdgeCubature})
+is 
 
 \begin{align*}
-  \int_{\pan{P}}\int_{\vb L} (\nabla \cdot \vb f) (\nabla \cdot h) G 
-&=
-  2l_\alpha l_beta^2 
-  \int_0^1 du \, \int_0^u \, dv \int_0^1 dv^\prime \,
-  \frac{e^{ik|\vb x - \vb x^\prime|}}{4\pi |\vb x- \vb x^\prime|}
+&
+ -\frac{l}{k^2} \int_0^1 du \, \int_0^1 du^\prime \,
+  \frac{e^{ik l(u-u^\prime)}}{4\pi |u-u^\prime|}.
+\intertext{Change variables to $s=u+u^\prime$, $t=u-u^\prime$:}
+
 \end{align*}
 
+%\begin{align*}
+%&
+% -\frac{l}{k^2} \int_0^1 du \, \int_0^1 du^\prime \,
+%  \frac{e^{ik l(u-u^\prime)}}{4\pi |u-u^\prime|}.
+%\intertext{Split the unit square into two triangles:}
+%&= -\frac{l}{k^2} 
+%    \left\{ \int_0^1 du \, \int_0^u du^\prime \,
+%            \frac{e^{ik l(u-u^\prime)}}{4\pi |u-u^\prime|}
+%   +
+%            \int_0^1 du^\prime \, \int_0^{u^\prime} du \,
+%            \frac{e^{ik l(u-u^\prime)}}{4\pi |u-u^\prime|}
+%    \right\}
+%\intertext{In the first (second) integral put 
+%             $u^\prime=u\,x, du^\prime=u\,dx$ 
+%            ($u=u^\prime x, du=u^\prime dx$):
+%          }
+%&= -\frac{l}{k^2} 
+%    \left\{ \int_0^1 du \, \int_0^1 dx \,
+%            \frac{e^{ik lu(1-x)}}{4\pi |1-x|}
+%   +
+%            \int_0^1 du^\prime \, \int_0^1 dx \,
+%            \frac{e^{ik lu^\prime(x-1)}}{4\pi |1-x|}
+%    \right\}
+%\\
+%&= -\frac{2l}{k^2} \text{ Re }
+%    \left\{ \int_0^1 du \, \int_0^1 dx \,
+%            \frac{e^{ik lu(1-x)}}{4\pi |1-x|}
+%    \right\}
+%\intertext{Evaluate the $u$ integral:}
+%&= -\frac{2l}{k^2} \text{ Re }
+%    \left\{ \int_0^1 du \, \int_0^1 dx \,
+%            \frac{e^{ik lu(1-x)}}{4\pi |1-x|}
+%    \right\}
+%\end{align*}
+ 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -166,6 +346,7 @@ $$ \vb x - \vb x^\prime = u\vb A + v\vb B + u^\prime \vb L$$
 
 \newpage
 \section{Taylor-Duffy transformation of integrals}
+\label{EdgePanelAppendix}
 
 In this section we justify equation 
 (\ref{TaylorDuffy}).
@@ -250,10 +431,7 @@ Such a variable transformation is
     &u=w, \qquad u^\prime=wx, \qquad v=w-wxy, \qquad \mathcal{J}= w^2x
 \end{align*}
 %====================================================================%
-
-\subsection*{Step 3. Recast original integral as an integral over 
-                     the unit cube}
-
+and our integral in terms of the transformed variables becomes
 %====================================================================%
 \begin{align}
 \int_0^1 du \int_0^u dv \int_0^1 du^\prime f(u,v,u^\prime)
@@ -320,7 +498,7 @@ Using (\ref{WIntegral}), equation (\ref{TransformedEdgePanelIntegral2})
 becomes 
 \begin{align*}
 =\frac{1}{8\pi}\int_0^1 dx \int_0^1 dy \bigg\{
- \quad &\frac{x e^ikR_1}{R_1} e^{ikR_1} \cdot \text{ExpRel}(2,-ikR_1)
+ \quad &\frac{x}{R_1} e^{ikR_1} \cdot \text{ExpRel}(2,-ikR_1)
 \\
       +&\frac{(1-x)}{R_2} e^{ikR_2} \cdot \text{ExpRel}(2,-ikR_2)
 \\
