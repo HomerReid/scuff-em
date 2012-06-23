@@ -110,18 +110,13 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- entries per row.                                           -*/
   /*-                                                            -*/
   /*- SArray[no] is an array of SCUFF_NUM_OMATRICES pointers to  -*/
-  /*- SMatrix structures for object #no.                         -*/
+  /*- SMatrix structures for object #no. SArray[no][nom] is only -*/
+  /*- non-NULL if we need the nomth type of overlap matrix. (Here-*/ 
+  /*- nom=1,2,3,4 for power, x-force, y-force, z-force, as defined*/ 
+  /*- in libscuff.h).                                             */ 
   /*-                                                            -*/
-  /*- Also note: we allocate space for all overlap matrices even -*/
-  /*- though they may not all be required depending on which     -*/
-  /*- quantities the user requested. (For example, if only       -*/
-  /*- --power and --zforce were specified, then the x- and y-    -*/
-  /*- momentum flux matrices are not needed.) We could save some -*/
-  /*- small amount of memory by allocating space for only the    -*/
-  /*- matrices we will actually need.                            -*/
   /*--------------------------------------------------------------*/
   int *NeedMatrix=SNEQD->NeedMatrix;
-  int RealComplex;
   memset(NeedMatrix, 0, SCUFF_NUM_OMATRICES*sizeof(int));
   NeedMatrix[SCUFF_OMATRIX_OVERLAP] = 0;
   NeedMatrix[SCUFF_OMATRIX_POWER  ] = QuantityFlags && QFLAG_POWER;
@@ -136,7 +131,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
 
      for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
       if (NeedMatrix[nom]) 
-       SNEQD->SArray[no][nom] = new SMatrix(G->Objects[no]->NumBFs,10, LHM_COMPLEX);
+       SNEQD->SArray[no][nom] = new SMatrix(G->Objects[no]->NumBFs,10,LHM_COMPLEX);
    };
 
   /*--------------------------------------------------------------*/

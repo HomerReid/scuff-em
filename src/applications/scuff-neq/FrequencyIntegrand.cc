@@ -290,10 +290,6 @@ exit(1);
          if (SNEQD->ByOmegaFileNames)
           { f=fopen(SNEQD->ByOmegaFileNames[no*NO+nop],"a");
             fprintf(f,"%e %s ",real(Omega),Tag);
-cdouble Eps1, Eps2, Mu;
-G->Objects[0]->MP->GetEpsMu(Omega,&Eps1,&Mu);
-G->Objects[1]->MP->GetEpsMu(Omega,&Eps2,&Mu);
-fprintf(f,"%e %e %e %e ",real(Eps1),imag(Eps1),real(Eps2),imag(Eps2));
           };
 
          if ( QuantityFlags & QFLAG_POWER )

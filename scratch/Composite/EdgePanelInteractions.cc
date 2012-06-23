@@ -1,5 +1,4 @@
-/* Copyright (C) 2005-2011 M. T. Homer Reid
- *
+/* Copyright (C) 2005-2011 M. T. Homer Reid *
  * This file is part of SCUFF-EM.
  *
  * SCUFF-EM is free software; you can redistribute it and/or modify
@@ -41,78 +40,28 @@ namespace scuff {
 #define II cdouble(0.0,1.0)
 
 /*--------------------------------------------------------------*/
-/*-                                                             */
 /*- PART 1: Routine to compute edge-panel interaction using     */
 /*-         fixed-order numerical cubature.                     */
 /*-                                                             */
 /*- V[0][0..2] = cartesian coordinates of panel vertex 1        */
 /*- V[1][0..2] = cartesian coordinates of panel vertex 2        */
 /*- V[2][0..2] = cartesian coordinates of panel vertex 3        */
-/*- Q[0..2]    = cartesian coordinates of panel source/sink vtx */
 /*- L1[0..2]   = cartesian coordinates of edge vertex 1         */
 /*- L2[0..2]   = cartesian coordinates of edge vertex 2         */
 /*--------------------------------------------------------------*/
 void GetEPIs_Cubature(GetEPIArgStruct *Args, int HighOrder,
-                      double **V, double *Q, double *L1, double *L2)
+                      double **V, double *L1, double *L2)
                       
 { 
-  /***************************************************************/
-  /* preliminary setup for numerical cubature.                   */
-  /* in what follows, X runs over the 'destination triangle' and */
-  /* XP runs over the 'source triangle' according to             */
-  /*  X  = Va_1 +  u*(Va_2 - Va_1) +  v*(Va_3-Vb_1)              */
-  /*  XP = Vb_1 + up*(Va_2 - Vb_1) + vp*(Va_3-Vb_1)              */
-  /* where (V_1, V_2, V_3) are the triangle vertices and (u,v)   */
-  /* are the cubature points for a 2D numerical cubature rule    */
-  /* over the standard triangle with vertices at (0,0)(1,0)(0,1).*/
-  /* note that the jacobian of the transformation is 4*A*AP      */
-  /* where A and AP are the areas of the triangles; this         */
-  /* conveniently cancels the corresponding factor coming from   */
-  /* the RWG basis function prefactor.                           */
-  /***************************************************************/
-  double *V0, A[3], B[3], *Q;
-  V0=Va[0];
-  VecSub(Va[1], Va[0], A);
-  VecSub(Va[2], Va[0], B);
-  Q=Qa;
-
-  double *V0P, AP[3], BP[3], *QP;
-  V0P=Vb[0];
-  VecSub(Vb[1], Vb[0], AP);
-  VecSub(Vb[2], Vb[0], BP);
-  QP=Qb;
+  double *V0, A[3], B[3];
+  V0=V[0];
+  VecSub(V[1], V[0], A);
+  VecSub(V[2], V[0], B);
 
   cdouble ik=II*Args->k;
   cdouble ik2=ik*ik;
 
-  cdouble H[2]; 
-
-  cdouble *GradH, GradHBuffer[6];
-  int NumGradientComponents=Args->NumGradientComponents;
-  if (NumGradientComponents>0 && Args->GradH!=0)
-   GradH = GradHBuffer;
-  else
-   GradH = 0;
- 
-  cdouble *dHdT, dHdTBuffer[6];
-  int nta, NumTorqueAxes=Args->NumTorqueAxes;
-  double *GammaMatrix=Args->GammaMatrix;
-  if (NumTorqueAxes>0 && GammaMatrix!=0 && Args->dHdT!=0)
-   dHdT = dHdTBuffer;
-  else
-   dHdT = 0;
-
-  cdouble HInner[2], GradHInner[6], dHdTInner[6];
-
   /***************************************************************/
-  /* choose order of quadrature scheme to use.                   */
-  /* TCR ('triangle cubature rule') points to a vector of 3N     */
-  /* doubles (for an N-point cubature rule).                     */
-  /* TCR[3*n,3*n+1,3*n+2]=(u,v,w), where (u,v)                   */
-  /* are the (x,y) coordinates of the nth quadrature point and w */
-  /* is its weight.                                              */
-  /* note we use the same quadrature rule for both the source    */
-  /* and destination triangles.                                  */
   /***************************************************************/
   double *TCR;
   int NumPts;

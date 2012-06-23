@@ -226,7 +226,7 @@ void RWGObject::GetOverlapMatrices(int *NeedMatrix,
          };
 
         if (SArray[n]==0)
-         SArray[n]=new SMatrix(NR, nnz);
+         SArray[n]=new SMatrix(NR, nnz, LHM_COMPLEX);
 
         SArray[n]->Zero();
 
