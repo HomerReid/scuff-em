@@ -514,6 +514,7 @@ double VecDistance2(const double v1[3], const double v2[3]);
 double VecNorm(const double v[3]);
 double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
+bool VecEqualFloat(const double *a, const double *b);
 
 void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
                 const cdouble V2[6], cdouble V3[6]);

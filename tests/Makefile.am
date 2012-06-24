@@ -7,6 +7,11 @@ scuff_test_overlap_SOURCES =	\
 
 scuff_test_overlap_LDADD     = $(top_builddir)/src/libs/libscuff/libscuff.la
 
+#scuff_test_EPIs_SOURCES =	\
+# readlineReplacement.h          \
+# GetEPIs_BruteForce.cc		\
+#scuff-test-EPIs.cc
+#scuff_test_EPIs_LDADD     = $(top_builddir)/src/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -DSCUFF \
               -I$(top_srcdir)/src/libs/libscuff      \

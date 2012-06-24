@@ -31,8 +31,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#undef HAVE_READLINE
-
 #ifdef HAVE_READLINE
  #include <readline/readline.h>
  #include <readline/history.h>

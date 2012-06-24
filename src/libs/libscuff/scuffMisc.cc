@@ -145,6 +145,14 @@ double VecNormalize(double v[3])
   return d;
 }
 
+bool VecEqualFloat(const double *a, const double *b) 
+{
+   return (     float(a[0]) == float(b[0])
+            &&  float(a[1]) == float(b[1])
+            &&  float(a[2]) == float(b[2])
+          );
+}
+
 void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
                 const cdouble V2[6], cdouble V3[6])
 { 

@@ -95,7 +95,7 @@ Consider an RWG function $\vb f_\alpha$ and an HRWG function
 $\vb h_\beta.$ $\vb f_\alpha$ describes surface currents 
 on two panels $\pan_\alpha^\pm$, while $\vb h_\beta$ describes
 surface currents on a single panel $\pan_\beta$
-$\pan+\beta$ plus the line charge on an edge $\vb L_\beta$.
+plus the line charge on an edge $\vb L_\beta$.
 The BEM matrix elements between these two basis functions
 involve the interactions
 \begin{subequations}
@@ -120,7 +120,8 @@ and $\pan_\beta$, and may be computed using the usual
 The second term in (\ref{fGCh}a) is a new interaction
 between the surface charge densities on $\pan_{\alpha}^\pm$ 
 and the line charge density on $\vb L_\beta$:
-\begin{align*}
+\numeq{FGHPanelEdge}
+{
   \VMV{\vb f_\alpha}{\vb G}{\vb h_\beta}\sups{panel--edge}
 =
 -\frac{1}{k^2}
@@ -131,8 +132,8 @@ and the line charge density on $\vb L_\beta$:
            G(\vb x, \vb x^\prime)
            \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
    \right\}
-\end{align*}
-Note that there is no edge-panel contribution to 
+}
+Note that there is no panel-edge contribution to 
 $\vmv{\vb f}{\vb C}{\vb h}.$
 
 \subsection{Matrix elements between HRWG and HRWG functions}
@@ -146,8 +147,6 @@ $\vb h_\beta.$ We have
   \VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{panel--panel}
 +
   \VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{panel--edge}
-+
-  \VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{edge--edge}
 \\
   \VMV{\vb h_\alpha}{\vb C}{\vb h_\beta}
 &=
@@ -159,7 +158,9 @@ $\vb h_\beta.$ We have
 As above, the panel-panel interactions may be computed using 
 the usual \lss methods for panel-panel interactions.
 
-The second term in (\ref{hGCh}a) consists of two terms:
+The second term in (\ref{hGCh}a) is similar to (\ref{fGhPanelEdge}),
+but without the sum over positive and negative panels, since
+there is only one panel in the support of $\vb h_\alpha$:
 \begin{align*}
 \VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{panel--edge}
 = -&\frac{1}{k^2}
@@ -169,26 +170,6 @@ The second term in (\ref{hGCh}a) consists of two terms:
            G(\vb x, \vb x^\prime)
            \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
    \right\}
-\\
- -&\frac{1}{k^2}
-   \int_{\vb L_\alpha} d\vb x
-   \int_{\pan_\beta} d\vb x^\prime
-   \left\{ \Big[\nabla \cdot \vb h_\alpha(\vb x)\Big]
-           G(\vb x, \vb x^\prime)
-           \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
-   \right\}
-\end{align*}
-
-Finally, the last term in (\ref{hGCh}a) is
-\begin{align*}
-\VMV{\vb h_\alpha}{\vb G}{\vb h_\beta}\sups{edge--edge}
-= -\frac{1}{k^2}
-   \int_{\vb L_\beta} d\vb x
-   \int_{\vb L_\beta} d\vb x^\prime
-   \left\{ \Big[\nabla \cdot \vb h_\alpha(\vb x)\Big]
-           G(\vb x, \vb x^\prime)
-           \Big[\nabla \cdot \vb h_\alpha(\vb x^\prime)\Big]
-   \right\}.
 \end{align*}
 
 \subsection*{Nonsingular Edge-Panel Interactions}
