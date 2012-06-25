@@ -53,7 +53,6 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -372,7 +371,6 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
      TD1.Args=Args;
      ABMBThread((void *)&TD1);
    };
-
 #endif
 
   if (G->LogLevel>=SCUFF_VERBOSELOGGING)

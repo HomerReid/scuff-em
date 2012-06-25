@@ -36,6 +36,10 @@
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+extern int ForceNCV=-1; /* 20120625 */
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 namespace scuff {
 
 #define II cdouble(0.0,1.0)
@@ -324,6 +328,11 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   double rRel; 
 
   int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
+ { H[0]=H[1]=0.0; return; } /*  20120625 */
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /* if the panels are far apart then just use simple low-order  */
