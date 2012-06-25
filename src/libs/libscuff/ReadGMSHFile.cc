@@ -99,7 +99,7 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
   LineNum++;
 
   /*------------------------------------------------------------*/
-  /*- Read in the vertice (which GMSH calls 'nodes.')           */
+  /*- Read in the vertices (which GMSH calls 'nodes.')          */
   /*- Note that the numbering of the vertices in GMSH does not  */
   /*- necessarily correspond to their ordering in the mesh      */
   /*- file. To remedy this situation, we construct a mapping    */

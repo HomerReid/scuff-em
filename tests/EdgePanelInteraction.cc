@@ -31,49 +31,114 @@
 
 #include "libhrutil.h"
 #include "libTriInt.h"
+#include "libSGJC.h"
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
-namespace scuff {
+using namespace scuff;
+
+#define ABSTOL 1.0e-12
+#define RELTOL 1.0e-8
+#define MAXEVALS 100000
+
+int nCalls;
 
 #define II cdouble(0.0,1.0)
+
+/*--------------------------------------------------------------*/
+/* 5- and 10-pt legendre quadrature rules for the interval [0,1]*/
+/* format: QR[2*n+0, 2*n+1] = nth quadrature point, weight      */
+/*--------------------------------------------------------------*/
+double QR5[]=
+ { 4.691007703066802e-02, 1.184634425280909e-01, 
+   2.307653449471584e-01, 2.393143352496832e-01, 
+   5.000000000000000e-01, 2.844444444444444e-01,
+   7.692346550528415e-01, 2.393143352496832e-01, 
+   9.530899229693319e-01, 1.184634425280909e-01
+ };
+
+double QR10[]=
+ { 1.304673574141418e-02, 3.333567215434143e-02, 
+   6.746831665550773e-02, 7.472567457529027e-02, 
+   1.602952158504878e-01, 1.095431812579910e-01,
+   2.833023029353764e-01, 1.346333596549959e-01, 
+   4.255628305091844e-01, 1.477621123573765e-01, 
+   5.744371694908156e-01, 7.166976970646236e-01, 
+   8.397047841495122e-01, 9.325316833444923e-01,
+   9.869532642585859e-01, 1.477621123573765e-01,
+   1.346333596549959e-01, 1.095431812579910e-01, 
+   7.472567457529027e-02, 3.333567215434143e-02
+ };
+
+double QR20[]=
+ { 3.435700407452558e-03, 8.807003569575289e-03,
+   1.801403636104310e-02, 2.030071490019352e-02,
+   4.388278587433703e-02, 3.133602416705452e-02,
+   8.044151408889055e-02, 4.163837078835237e-02,
+   1.268340467699246e-01, 5.096505990861661e-02,
+   1.819731596367425e-01, 5.909726598075887e-02,
+   2.445664990245864e-01, 6.584431922458830e-02,
+   3.131469556422902e-01, 7.104805465919108e-02,
+   3.861070744291775e-01, 7.458649323630188e-02,
+   4.617367394332513e-01, 7.637669356536299e-02,
+   5.382632605667487e-01, 7.637669356536299e-02,
+   6.138929255708225e-01, 7.458649323630188e-02,
+   6.868530443577098e-01, 7.104805465919108e-02,
+   7.554335009754136e-01, 6.584431922458830e-02,
+   8.180268403632576e-01, 5.909726598075887e-02,
+   8.731659532300754e-01, 5.096505990861661e-02,
+   9.195584859111094e-01, 4.163837078835237e-02,
+   9.561172141256630e-01, 3.133602416705452e-02,
+   9.819859636389570e-01, 2.030071490019352e-02,
+   9.965642995925474e-01, 8.807003569575289e-03
+};
+
+int QROrder=-1, TCROrder=-1;
 
 /*--------------------------------------------------------------*/
 /*- PART 1: Routine to compute edge-panel interaction using     */
 /*-         fixed-order numerical cubature.                     */
 /*-                                                             */
-/*- V[0][0..2] = cartesian coordinates of panel vertex 1        */
-/*- V[1][0..2] = cartesian coordinates of panel vertex 2        */
-/*- V[2][0..2] = cartesian coordinates of panel vertex 3        */
-/*- L1[0..2]   = cartesian coordinates of edge vertex 1         */
-/*- L2[0..2]   = cartesian coordinates of edge vertex 2         */
+/*- PV[0][0..2] = cartesian coordinates of panel vertex 1       */
+/*- PV[1][0..2] = cartesian coordinates of panel vertex 2       */
+/*- PV[2][0..2] = cartesian coordinates of panel vertex 3       */
+/*- EV[0][0..2] = cartesian coordinates of edge vertex 1        */
+/*- EV[1][0..2] = cartesian coordinates of edge vertex 2        */
 /*--------------------------------------------------------------*/
-cdouble GetEPI_Cubature(double **V, double **L, cdouble K)
-                      
+cdouble GetEPI_Cubature(double **PV, double **EV, cdouble K)
 { 
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double *V0, A[3], B[3], *V0P, DL[3];
-  V0=V[0];
-  VecSub(V[1], V[0], A);
-  VecSub(V[2], V[0], B);
-  V0P=L[0];
-  VecSub(L[1],L[0],DL);
+  double *V0, A[3], B[3], *V0P, L[3];
+  V0=PV[0];
+  VecSub(PV[1], PV[0], A);
+  VecSub(PV[2], PV[0], B);
+  V0P=EV[0];
+  VecSub(EV[1],EV[0],L);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   double *TCR;  // triangle cubature rule 
   int NumTCPts;
-  if (HighOrder)
-   TCR=GetTCR(20, &NumTCPts);
-  else
-   TCR=GetTCR(4, &NumTCPts);
+  TCR=GetTCR(4, &NumTCPts);
 
-  double *QR;   // quadrature rule 
-  int NumQPts;
+if (TCROrder!=-1)
+ TCR=GetTCR(TCROrder, &NumTCPts);
+if (TCR==0) ErrExit("unknown TCR order"); 
+
+  double *QR=QR5;   // quadrature rule 
+  int NumQPts=5;
+
+if (QROrder==5)
+ QR=QR5, NumQPts=5;
+else if (QROrder==10)
+ QR=QR10, NumQPts=10;
+else if (QROrder==20)
+ QR=QR20, NumQPts=20;
 
   /***************************************************************/
   /* outer loop (cubature over triangle) *************************/
@@ -108,7 +173,7 @@ cdouble GetEPI_Cubature(double **V, double **L, cdouble K)
         /* set XP and FP=XP-QP *****************************************/
         /***************************************************************/
         for(Mu=0; Mu<3; Mu++)
-         { XP[Mu] = V0P[Mu] + up*DL[Mu];
+         { XP[Mu] = V0P[Mu] + up*L[Mu];
            R[Mu] = X[Mu] - XP[Mu];
          };
       
@@ -116,7 +181,7 @@ cdouble GetEPI_Cubature(double **V, double **L, cdouble K)
         /* inner integrand  ********************************************/
         /***************************************************************/
         r=VecNorm(R);
-        Phi = exp(II*k*r)/(4.0*M_PI*r);
+        Phi = exp(II*K*r)/(4.0*M_PI*r);
         GInner += wp*Phi;
 
       }; /* for(npp=ncpp=0; npp<NumPts; npp++) */
@@ -124,7 +189,7 @@ cdouble GetEPI_Cubature(double **V, double **L, cdouble K)
      /*--------------------------------------------------------------*/
      /*- accumulate contributions to outer integral                  */
      /*--------------------------------------------------------------*/
-     GOuter+=w*HInner[0];
+     GOuter+=w*GInner;
 
    }; // for(np=ncp=0; np<nPts; np++) 
 
@@ -137,23 +202,26 @@ cdouble GetEPI_Cubature(double **V, double **L, cdouble K)
 /***************************************************************/
 typedef struct EPITDData
 { 
-  double *A, *B, *L;
+  double A[3], B[3], L[3];
   cdouble K;
 
 } EPITDData;
 
 void EPITDIntegrand(unsigned ndim, const double *xy, void *params,
-		    unsigned fdim, double *fval);
+		    unsigned fdim, double *fval)
 {
+
+nCalls++;
+
   (void) ndim;
   (void) fdim;
 
-  EPITDData *EPITDD = (EPITDData *)params;
+  EPITDData *Data= (EPITDData *)params;
 
-  double *A = EPITDD->A;
-  double *B = EPITDD->B;
-  double *L = EPITDD->L;
-  cdouble IK = II*EPITDD->K;
+  double *A  = Data->A;
+  double *B  = Data->B;
+  double *L  = Data->L;
+  cdouble IK = II*Data->K;
 
   double x=xy[0];
   double y=xy[1];
@@ -161,9 +229,9 @@ void EPITDIntegrand(unsigned ndim, const double *xy, void *params,
   int p;
   double RR1[3], RR2[3], RR3[3];
   for(p=0; p<3; p++)
-   { RR1[p] = x*A[p] + x*y*B[p]       + L[p];
-     RR2[p] =   A[p] + (1.0-x)*y*B[p] + x*L[p];
-     RR3[p] =   A[p] + (1.0-x*y)*B[p] + x*L[p];
+   { RR1[p] = x*A[p] + x*y*B[p]       - L[p];
+     RR2[p] =   A[p] + (1.0-x)*y*B[p] - x*L[p];
+     RR3[p] =   A[p] + (1.0-x*y)*B[p] - x*L[p];
    };
   
   double R1 = sqrt( RR1[0]*RR1[0] + RR1[1]*RR1[1] + RR1[2]*RR1[2] );
@@ -178,23 +246,6 @@ void EPITDIntegrand(unsigned ndim, const double *xy, void *params,
   
 }
 
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-cdouble GetEPI_TaylorDuffy(double *V0, double *A, double *B, double *DL, cdouble K)
-{
-  
-  EPITDData;
- 
-  double Lower[2] = {0.0, 0.0 };
-  double Upper[2] = {1.0, 1.0 };
-  adapt_integrate(2, EPITDIntegrand, (void *)Data, 2, Lower, Upper,
-		  MAXEVALS, ABSTOL, RELTOL, (double *)&G, Error);
-
-  return G;
-
-}
 
 /***************************************************************/
 /* PV[0][0..2] = cartesian coordinates of panel vertex 1       */
@@ -220,30 +271,47 @@ cdouble GetEPI_TaylorDuffy(double *V0, double *A, double *B, double *DL, cdouble
 /***************************************************************/
 cdouble GetEdgePanelInteraction(double **PV, double **EV, cdouble K)
 { 
-  
-  int EIEV[2]; // 'edge index of equal vertex' 
-  int PIEV[2]; // 'panel index of equal vertex'
-  int i, j, ncv=0; 
-  for (i=0; i<2; i++)
-   for (j=0; j<3; j++)
-    if ( VecEqualFloat(L[i], V[j]) )
+  /*--------------------------------------------------------------*/
+  /*- look for common vertices -----------------------------------*/
+  /*--------------------------------------------------------------*/
+  int EICV[2]; // 'edge index of common vertex' 
+  int PICV[2]; // 'panel index of common vertex'
+  int ncv=0;   // 'number of common vertices'
+  for (int i=0; i<2; i++)
+   for (int j=0; j<3; j++)
+    if ( VecEqualFloat(EV[i], PV[j]) )
      { if (ncv==2) ErrExit("%s:%i: internal error \n",__FILE__,__LINE__);
-       EIEV[ncv]=i;
-       PIEV[ncv]=j;
+       EICV[ncv]=i;
+       PICV[ncv]=j;
        ncv++;
      };
 
+  /*--------------------------------------------------------------*/
+  /*- use simple cubature if there are no common vertices --------*/
+  /*--------------------------------------------------------------*/
   if ( ncv == 0 )
    return GetEPI_Cubature(PV, EV, K);
 
-  double A[3], B[3], DL[3];
+  /*--------------------------------------------------------------*/
+  /*- use taylor-duffy method if there are common vertices -------*/
+  /*--------------------------------------------------------------*/
+  EPITDData MyData, *Data=&MyData;
 
-  int i=PIEV[0], ip1=(i+1)%3, ip2=(i+2)%3;
-  int j=EIEV[0], jp1=(j+1)%2;
-  VecSub(PV[ip1], PV[i],   A);
-  VecSub(PV[ip2], PV[ip1], B);
-  VecSub(EV[jp1], EV[j],   DL);
-  
-  return GetEPI_TaylorDuffy(PV[0], A, B, DL, K);
-  
+  int i=PICV[0], ip1=(i+1)%3, ip2=(i+2)%3;
+  int j=EICV[0], jp1=(j+1)%2;
+  VecSub(PV[ip1], PV[i],   Data->A);
+  VecSub(PV[ip2], PV[ip1], Data->B);
+  VecSub(EV[jp1], EV[j],   Data->L);
+
+  Data->K=K;
+ 
+  double Lower[2] = { 0.0, 0.0 };
+  double Upper[2] = { 1.0, 1.0 };
+  cdouble G, Error;
+nCalls=0;
+  adapt_integrate(2, EPITDIntegrand, (void *)Data, 2, Lower, Upper,
+		  MAXEVALS, ABSTOL, RELTOL, (double *)&G, (double *)&Error);
+
+  return G;
+
 }

@@ -36,8 +36,8 @@
 
 using namespace scuff;
 
-#define ABSTOL 1.0e-8    // absolute tolerance
-#define RELTOL 1.0e-4    // relative tolerance
+#define ABSTOL 1.0e-12    // absolute tolerance
+#define RELTOL 1.0e-8    // relative tolerance
 
 #define II cdouble(0.0,1.0)
 
@@ -48,7 +48,7 @@ typedef struct EPIBFData
  { 
    double V0[3], A[3], B[3];
    double *L1, *L2;
-   cdouble k;
+   cdouble K;
  } EPIBFData;
 
 /***************************************************************/
@@ -63,8 +63,7 @@ static void EPIBFIntegrand(unsigned ndim, const double *x, void *parms,
   double v=u*x[1];
   double up=x[2];
 
-  double X[3], XP[3], R[3];
-  double r;
+  double X[3], XP[3];
 
   X[0] = EPIBFD->V0[0] + u*EPIBFD->A[0] + v*EPIBFD->B[0];
   X[1] = EPIBFD->V0[1] + u*EPIBFD->A[1] + v*EPIBFD->B[1];
@@ -74,10 +73,9 @@ static void EPIBFIntegrand(unsigned ndim, const double *x, void *parms,
   XP[1] = EPIBFD->L1[1] + up*(EPIBFD->L2[1] - EPIBFD->L1[1]);
   XP[2] = EPIBFD->L1[2] + up*(EPIBFD->L2[2] - EPIBFD->L1[2]);
 
-  VecSub(X, XP, R);
-  r=VecNorm(R);
+  double r=VecDistance(X, XP);
 
-  cdouble ik=II*EPIBFD->k;
+  cdouble ik=II*EPIBFD->K;
   cdouble Phi=exp(ik*r)/(4.0*M_PI*r);
 
   cdouble *zf=(cdouble *)fval;
@@ -89,15 +87,15 @@ static void EPIBFIntegrand(unsigned ndim, const double *x, void *parms,
 /* compute edge-panel integrals using brute-force technique    */
 /* (adaptive cubature over the panel and the edge).            */
 /***************************************************************/
-cdouble GetEPI_BruteForce(double **V, double **L, cdouble k, int PlotFits)
+cdouble GetEPI_BruteForce(double **PV, double **EV, cdouble K, int PlotFits)
 { 
   /***************************************************************/
   /* detect common vertices **************************************/
   /***************************************************************/
   int ncv=0;
-  if ( VecEqualFloat(L[0], V[0]) || VecEqualFloat(L[0], V[1]) || VecEqualFloat(L[0],V[2]))
+  if ( VecEqualFloat(EV[0], PV[0]) || VecEqualFloat(EV[0], PV[1]) || VecEqualFloat(EV[0],PV[2]))
    ncv++;
-  if ( VecEqualFloat(L[1], V[0]) || VecEqualFloat(L[1], V[1]) || VecEqualFloat(L[1],V[2]))
+  if ( VecEqualFloat(EV[1], PV[0]) || VecEqualFloat(EV[1], PV[1]) || VecEqualFloat(EV[1],PV[2]))
    ncv++;
 
   /***************************************************************/
@@ -105,13 +103,13 @@ cdouble GetEPI_BruteForce(double **V, double **L, cdouble k, int PlotFits)
   /***************************************************************/
   EPIBFData MyEPIBFData, *EPIBFD=&MyEPIBFData;
  
-  memcpy(EPIBFD->V0, V[0], 3*sizeof(double));
-  VecSub(V[1], V[0], EPIBFD->A);
-  VecSub(V[2], V[1], EPIBFD->B);
-  EPIBFD->L1=L[0];
-  EPIBFD->L2=L[1];
+  memcpy(EPIBFD->V0, PV[0], 3*sizeof(double));
+  VecSub(PV[1], PV[0], EPIBFD->A);
+  VecSub(PV[2], PV[1], EPIBFD->B);
+  EPIBFD->L1=EV[0];
+  EPIBFD->L2=EV[1];
 
-  EPIBFD->k = k;
+  EPIBFD->K = K;
 
   double Lower[3]={0.0, 0.0, 0.0};
   double Upper[3]={1.0, 1.0, 1.0};
@@ -146,15 +144,15 @@ cdouble GetEPI_BruteForce(double **V, double **L, cdouble k, int PlotFits)
      /*--------------------------------------------------------------*/
      int nz, NZ=10;
      double Z[NZ], GR[NZ], GI[NZ];
-     double DeltaZ=VecDistance(L[1],L[0])/100.0;
+     double DeltaZ=VecDistance(EV[1],EV[0])/100.0;
 
      for(nz=0; nz<NZ; nz++)
       { 
         Z[nz]=((double)(nz+1))*DeltaZ;
-        VecScaleAdd(V[0], Z[nz], ZHat, EPIBFD->V0);
+        VecScaleAdd(PV[0], Z[nz], ZHat, EPIBFD->V0);
 
-       adapt_integrate(fDim, EPIBFIntegrand, (void *)EPIBFD, 3, Lower, Upper,
-                       100000, ABSTOL, RELTOL, (double *)&Result, (double *)&Error);
+        adapt_integrate(fDim, EPIBFIntegrand, (void *)EPIBFD, 3, Lower, Upper,
+                        100000, ABSTOL, RELTOL, (double *)&Result, (double *)&Error);
  
         GR[nz]=real(Result);
         GI[nz]=imag(Result);

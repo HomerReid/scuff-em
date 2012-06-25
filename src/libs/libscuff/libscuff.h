@@ -527,6 +527,8 @@ void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY,
                        double TorqueAxisZ, double *GammaMatrix);
 void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
 
+cdouble ExpRel(int n, cdouble Z);
+
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
