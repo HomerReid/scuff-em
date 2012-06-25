@@ -1,14 +1,16 @@
 
 /***************************************************************/
-/* an **********************************************************/
+/***************************************************************/
 /***************************************************************/
 struct OpenSurface
 {  
-    int NumEdges;
-    RWGEdge  *Edges;  // internal edges to which we assign a full RWG function
+  int NumEdges;
+  RWGEdge  *Edges;  // internal edges to which we assign a full RWG function
 
-    int NumHEdges;
-    HRWGEdge *HEdges; // external edges to which we assign a half-RWG function
+  int NumHEdges;
+  HRWGEdge *HEdges; // external edges to which we assign a half-RWG function
+
+  int NumTotalEdges;
 
 };
 
@@ -46,7 +48,7 @@ void GetOpenSurfaceInteraction()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void *ABMBThread()
+void *AOCMBThread()
 {
   int NOSA, NOSB;
   int nosa, nosb;
@@ -85,26 +87,32 @@ void *ABMBThread()
       /* now loop over all basis functions (both full and half RWG    */
       /* functions) on open surfaces nosa and nosb.                   */
       /*--------------------------------------------------------------*/
-  for(ntea=0; nbfa<a; nea++)
-   for(nbf=Symmetric*nea; neb<NEb; neb++)
-    { 
-      nt++;
-      if (nt==TD->nThread) nt=0;
-      if (nt!=TD->nt) continue;
+      NTEA=
+      for(ntea=0; ntea<NTEA; ntea++)
+       for(nteb=0; nteb<NTEB; nteb++)
+        { 
+          nt++;
+          if (nt==TD->nThread) nt=0;
+          if (nt!=TD->nt) continue;
 
-      if (G->LogLevel>=SCUFF_VERBOSELOGGING)
-       for(int PerCent=0; PerCent<9; PerCent++)
-        if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
-         MutexLog("%i0 %% (%i/%i)...",PerCent,nea,NEa);
-
-      if 
-
-    };
+          if (G->LogLevel>=SCUFF_VERBOSELOGGING)
+           for(int PerCent=0; PerCent<9; PerCent++)
+            if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
+             MutexLog("%i0 %% (%i/%i)...",PerCent,nea,NEa);
+ 
+          if 
+  
+        };
 
     }; // for (nosa=0 ...) for nosb=0 ...)
 }
 
-void AssembleMatrixBlock()
+/***************************************************************/
+/* this is a version of the AssembleBEMMatrixBlock() routine   */
+/* for use when one (or both) of the two objects in question   */
+/* is an RWGComposite instead of an RWGObject.                 */
+/***************************************************************/
+void AssembleBEMMatrixBlock_Composite()
 { 
  
   /***************************************************************/ 
