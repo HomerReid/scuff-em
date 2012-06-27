@@ -123,7 +123,6 @@ void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName,
   if ( !strstr(Line,"# Elements") )
    ErrExit("%s:%i: syntax error",FileName,LineNum);
 
-
   /***************************************************************/
   /* read panels    **********************************************/ 
   /***************************************************************/

@@ -101,6 +101,7 @@ typedef struct RWGPanel
    double ZHat[3];              /* normal vector */
    double Radius;               /* radius of enclosing sphere */
    double Area;                 /* panel area */
+   int SurfaceIndex;
 
    int Index;                   /* index of this panel within object(0..NP-1)*/
 
@@ -175,7 +176,7 @@ class RWGObject
    void GetOverlaps(int neAlpha, int neBeta, double *Overlaps);
 
    /* get one or more overlap matrices for the object as a whole*/
-   /* note NeedMatrix and SArray are arrays of length SCUFF_NUM_OMATRICES*/
+   /* note: NeedMatrix and SArray are arrays of length SCUFF_NUM_OMATRICES */
    void GetOverlapMatrices(int *NeedMatrix, SMatrix **SArray, 
                            cdouble Omega=1.0, MatProp *ExteriorMP=NULL);
 
@@ -195,13 +196,6 @@ class RWGObject
    void WritePPMesh(const char *FileName, const char *Tag);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
-
-   /* calculate spherical multipole moments due to a single basis function */
-#if 0
-   void Get1BFSphericalMoments(int ne, double *X0, int lMax,
-                               double Wavevector, int RealFreq, 
-                               cdouble *aE, cdouble *aM);
-#endif
 
 //  private:
 
