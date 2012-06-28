@@ -46,6 +46,11 @@ using namespace scuff;
 #define MAXCACHE 10    // max number of cache files for preload
 #define MAXSTR   1000
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+extern FILE *BreakoutFile;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -91,6 +96,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
+  int Breakout=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"meshfile",       PA_STRING,  1, 1,       (void *)&MeshFile,   0,             "mesh file"},
@@ -114,6 +120,7 @@ int main(int argc, char *argv[])
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
+     {"Breakout",       PA_BOOL,    0, 1,       (void *)&Breakout,   0,             "breakout"},
 //
      {0,0,0,0,0,0,0}
    };
@@ -292,6 +299,12 @@ int main(int argc, char *argv[])
   if (Cache)
    PreloadCache( Cache );
 
+/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (Breakout)
+ BreakoutFile=fopen("/tmp/Breakout.dat","a");
+/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+
   /***************************************************************/
   /* sweep over frequencies                                      */
   /* note: Freq is measured in GHz, while Omega is measured in   */
@@ -418,5 +431,10 @@ int main(int argc, char *argv[])
      printf("S-parameters vs. frequency written to file %s\n",SParFileName);
    };
   printf("Thank you for your support.\n");
+
+/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (BreakoutFile)
+ fclose(BreakoutFile);
+/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
