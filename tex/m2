@@ -5,5 +5,5 @@
 #pdflatex scuff-scatter.tex
 #pdflatex SurfaceImpedance.tex
 #pdflatex scuff-heat.tex
-#pdflatex Ewald.tex
-pdflatex Junction.tex
+pdflatex Ewald.tex
+#pdflatex Junction.tex

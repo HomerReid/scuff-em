@@ -59,13 +59,84 @@ The Bloch-periodic version of the scalar Helmholtz Green's function is
 }
 %====================================================================%
 
-\section{Evaluation by Ewald Summation}
+\section{Evaluation by Ewald Summation: The JRS Method}
+
 To evaluate the sum in (\ref{PGF}) efficiently, we use a method 
-outlined by Jordan et al\footnote{K. E. Jordan, G. R. Richter, 
+outlined by Jordan, Richter, and Sheng (JRS)\footnote{K. E. Jordan, G. R. Richter, 
 and P. Sheng, "An Efficient Numerical Evaluation of the Green's 
 Function for the Helmholtz Operator on Periodic Structures," 
 \textit{Journal of Computational Physics} \textbf{63} 222 (1986).
 \texttt{http://dx.doi.org/10.1016/0021-9991(86)90093-8}}
-based on the original ideas of Ewald\footnote{}.
+based on the original ideas of Ewald\footnote{}. For completeness,
+I will briefly recapitulate the key ideas of this approach.
+
+The starting point is the identity
+$$ \frac{e^{ikr}}{4\pi r} 
+   \equiv 
+   \frac{1}{2\pi^{3/2}} \int_0^\infty e^{ -s^2 r^2 + \frac{k^2}{4s^2}} ds.
+$$ 
+
+\subsection*{Split the sum into direct-lattice-local and reciprocal-lattice-local
+             contributions}
+
+\begin{align}
+\GB(k; \vb p; \vb x) 
+ &= \GB^{(1)}(k; \vb p; \vb x) 
+   +\GB^{(2)}(k; \vb p; \vb x) 
+\label{GBDecomposition}
+\\
+\GB^{(1)}(k; \vb p; \vb x) 
+&= \frac{1}{2\pi^{3/2}}
+   \sum_{\vb L} e^{i\vb p \cdot \vb L} \int_0^E e^{-s^2 |\vb x+\vb L|^2 + \frac{k^2}{4s^2}} ds
+\label{GB1Sum}
+\\
+\GB^{(2)}(k; \vb p; \vb x) 
+&= \frac{1}{2\pi^{3/2}}
+   \sum_{\vb L} e^{i\vb p \cdot \vb L} \int_E^\infty e^{-s^2 |\vb x + \vb L|^2 + \frac{k^2}{4s^2}} ds
+\label{GB2Sum}
+\end{align}
+
+\subsection*{Evaluate $\GB^{(1)}$ in real space} 
+
+The first step is to tackle the sum in (\ref{GB1Sum}) head-on. 
+The integral in that equation may be evaluated in closed form in terms of
+the complex error function:
+\numeq{ErfInt}
+{
+   \int_0^E e^{-s^2 r^2 + \frac{k^2}{4s^2}} ds
+   = 
+}
+Plugging into (\ref{GB1Sum}), the real-space sum is 
+\begin{align*}
+\GB^{(1)}(k; \vb p; \vb x) 
+&= \frac{1}{2\pi^{3/2}}
+   \sum_{\vb L}
+\end{align*}
+This sum converges very rapidly in real space. Indeed, as soon as 
+$|\vb r + \vb L|$ is greater than a few times $E$, the error-function
+factors start to bite down \textit{doubly exponentially} and
+the contribution of distant lattice sites becomes utterly negligible.
+In practice, for a 2D lattice we achieve 8 or more digits of accuracy 
+by retaining only $\approx$ terms in the sum.
+Thus we consider this term done, and move on to $\GB^{(2)}.$ 
+
+\subsection*{Evaluate $\GB^{(2)}$ in reciprocal space} 
+
+We would next like to do for $\GB^{(2)}$ what we just did for $\GB^{(1)}$,
+but this requires a little more work. 
+
+First, the integral in (\ref{GB2Sum}) involves the upper range of the 
+original integration limit (from $E$ to $\infty$), but the nice closed-form 
+expression we have, equation (\ref{ErfInt}), is for the lower range 
+of the integration range (0 to $E$). We can get from one to the other 
+by changing variables in (\ref{GB2Sum}) from $s$ to $1/s$: 
+
+\begin{align*}
+\int_E^\infty e^{-s^2 |\vb x + \vb L|^2 + \frac{k^2}{4s^2}} ds
+&= \int_0^\frac{1}{E} \frac{1}{s^2} e^{-\frac{1}{s^2} |\vb x + \vb L|^2 + \frac{s^2 k^2}{4}} ds
+\label{GB2Sum2}
+\end{align*}
+
+Now our integral looks the way we want it to
 
 \end{document}
