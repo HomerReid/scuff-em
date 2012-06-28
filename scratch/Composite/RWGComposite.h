@@ -28,7 +28,7 @@ typedef struct OpenSurface
   RWGEdge *Edges;   // internal edges to which we assign a full RWG function
 
   int NumHEdges;
-  RWGHEdge *HEdges; // external edges to which we assign a half-RWG function
+  RWGEdge *HEdges;  // external edges to which we assign a half-RWG function
 
   int NumTotalEdges;
 
@@ -44,10 +44,6 @@ class RWGComposite
    /*--------------------------------------------------------------*/
    RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum);
    ~RWGComposite::RWGComposite();
-
-   /*--------------------------------------------------------------*/
-   /*--------------------------------------------------------------*/
-   /*--------------------------------------------------------------*/
 
    /*--------------------------------------------------------------*/
    /*- class data -------------------------------------------------*/
