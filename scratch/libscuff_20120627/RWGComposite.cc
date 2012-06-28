@@ -239,6 +239,7 @@ void RWGComposite::InitRWGComposite(char *pMeshFileName, GTransformation *OTGT)
   /*- create OpenSurface structures ----------------------------*/
   /*------------------------------------------------------------*/
   OpenSurfaces=(OpenSurface **)mallocEC(NumOpenSurfaces*sizeof(OpenSurface *));
+  BFIndexOffset=(int *)mallocEC(NumOpenSurfaces*sizeof(int));
   OpenSurface *OS;
   int np, npTOS;
   NumBFs=0;
@@ -263,6 +264,8 @@ void RWGComposite::InitRWGComposite(char *pMeshFileName, GTransformation *OTGT)
      InitEdgeList();
 
      NumBFs += 2*(OS->NumEdges + OS->NumHEdges);
+
+     BFIndexOffset[nos] = (nos==0) ? 0 : NumBFs + BFIndexOffset[nos-1];
 
    };
 

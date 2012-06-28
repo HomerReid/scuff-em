@@ -317,6 +317,15 @@ class RWGGeometry
 
    HMatrix *AssembleBEMMatrix(cdouble Omega, HMatrix *M = NULL, int nThread = 0);
 
+#if 0 // delete me 20120408
+   void AssembleBEMMatrix(cdouble Frequency, HMatrix *M, int nThread = 0);
+   HMatrix *AssembleBEMMatrix(cdouble Frequency, int nThread = 0) {
+	HMatrix *M = AllocateBEMMatrix(real(Frequency) == 0.0);
+	AssembleBEMMatrix(Frequency, M, nThread);
+	return M;
+   }
+#endif
+   
 #if 0
    /* routines for allocating, and then filling in, the derivative */
    /* of the bem matrix w.r.t. the coordinates of a mesh vertex    */
@@ -355,6 +364,7 @@ class RWGGeometry
                       cdouble Omega, HMatrix *XMatrix,
                       HMatrix *FMatrix=NULL, char *FuncString=NULL, 
                       int nThread=0);
+
    /****************************************************/
 
    /* Routine for evaluating arbitrary functions of the fields on a 2d
@@ -380,12 +390,19 @@ class RWGGeometry
 			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
 			  int nThread = 0);
 
-   /* routine for computing power, force, and torque on an object */
-   void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, 
-               char *ObjectLabel, double PFT[8]);
+   /****************************************************/
 
    /* routine for calculating electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
+
+   /* routine for calculating spherical multipole moments */
+#if 0
+   void GetSphericalMoments(int WhichObject, const double X0[3], 
+                            double Frequency, int RealFreq,
+                            HVector *KN, 
+                            cdouble *aE, cdouble *aM, int lMax,
+			    int nThread = 0);
+#endif
 
    /* routine for computing the expansion coefficients in the RWG basis */
    /* of an arbitrary user-supplied surface-tangential vector field;    */
