@@ -328,16 +328,15 @@ void RWGObject::GetOverlapMatrices(int *NeedMatrix,
 /* get power, force, and torque on an object                   */
 /***************************************************************/
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                         char *ObjectLabel, double PFT[8])
+                         int ObjectIndex, double PFT[8])
 {
-  /*--------------------------------------------------------------*/
-  /*- find the object in question --------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGObject *O=GetObjectByLabel(ObjectLabel);
-  if (!O)
-   { Warn("unknown object label %s passed to GetPFT",ObjectLabel);
+  if (ObjectIndex<0 || ObjectIndex>=NumObjects)
+   { Warn("invalid object index passed to GetPFT",ObjectIndex);
      memset(PFT, 0, 8*sizeof(double));
+     return;
    };
+
+  RWGObject *O=Objects[ObjectIndex];
 
   /*--------------------------------------------------------------*/
   /*- we need the material properties of the exterior medium for -*/
@@ -418,6 +417,36 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
 
     }; // for (neAlpha ... neBeta...)
 
+  // force prefactors to get units right.
+  // how it works: the force quantity that we just computed 
+  // has units of 1 watt / c = (1 joule/s) * (1 s/nm) / 3  
+  //                         = (1 nanoNewton / 3 )
+  // so we multiply it by 3 to get a force in nanonewtons.
+  PFT[2]*=3.0;
+  PFT[3]*=3.0;
+  PFT[4]*=3.0;
+
+}
+
+/***************************************************************/
+/* alternative interface to GetPFT in which the caller         */
+/* specifies the label of the object instead of the index      */
+/***************************************************************/
+void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
+                         char *ObjectLabel, double PFT[8])
+{
+  /*--------------------------------------------------------------*/
+  /*- find the object in question --------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGObject *O=GetObjectByLabel(ObjectLabel);
+  if (O)
+   { 
+     GetPFT(KN, RHS, Omega, O->Index, PFT);
+   }
+  else
+   { Warn("unknown object label %s passed to GetPFT",ObjectLabel);
+     memset(PFT, 0, 8*sizeof(double));
+   };
 }
 
 }// namespace scuff

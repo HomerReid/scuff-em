@@ -382,6 +382,8 @@ class RWGGeometry
 
    /* routine for computing power, force, and torque on an object */
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, 
+               int ObjectIndex, double PFT[8]);
+   void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, 
                char *ObjectLabel, double PFT[8]);
 
    /* routine for calculating electric and magnetic dipole moments */

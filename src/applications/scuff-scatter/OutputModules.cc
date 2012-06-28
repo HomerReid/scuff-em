@@ -918,11 +918,6 @@ void GetForce(SSData *SSD, char *ForceFile)
   cdouble M11, M12, M21, M22;
   RWGObject *O;
 
-#if 0
-double SubForce[4];
-memset(SubForce,0,4*sizeof(double));
-#endif
-
   for(no=0; no<G->NumObjects; no++)
    { 
      O=G->Objects[no];
@@ -959,15 +954,6 @@ memset(SubForce,0,4*sizeof(double));
             M21 = -2.0*OiTimesNabla / (II*Omega);
             M22 = (OiBullet - OiNablaNabla/K2) / Z;
 
-#if 0
-if (nfc==2)
- { SubForce[0] += PreFac*real(conj(KAlpha)*M11*KBeta);
-   SubForce[1] += PreFac*real(conj(KAlpha)*M12*NBeta);
-   SubForce[2] += PreFac*real(conj(NAlpha)*M21*KBeta);
-   SubForce[3] += PreFac*real(conj(NAlpha)*M22*NBeta);
- };
-#endif
-
             Force[nfc] += PreFac*real(   conj(KAlpha)*M11*KBeta 
                                        + conj(KAlpha)*M12*NBeta
                                        + conj(NAlpha)*M21*KBeta 
@@ -983,10 +969,27 @@ if (nfc==2)
   fprintf(f,"\n");
   fclose(f);
 
-#if 0
-f=fopen("/tmp/byQuadrant.out","a");
-fprintf(f,"%e %e %e %e %e \n",real(Omega),SubForce[0],SubForce[1],SubForce[2],SubForce[3]);
-fclose(f);
-#endif
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WritePFTFiles(SSData *SSD)
+{
+  RWGGeometry *G=SSD->G;
+
+  int no, nq;
+  double PFT[8]; 
+  FILE *f;
+  for(no=0; no<G->NumObjects; no++)
+   { 
+     G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, no, PFT);
+     f=vfopen("%s.PFT","a",G->Objects[no]->Label);
+     fprintf(f,"%s  ",z2s(SSD->Omega));
+     for(nq=0; nq<8; nq++)
+      fprintf(f,"%e ",PFT[nq]);
+     fprintf(f,"\n");
+     fclose(f);
+   };
 
 }

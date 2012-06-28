@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
+  int PFT=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
@@ -269,6 +270,7 @@ int main(int argc, char *argv[])
 /**/
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
+     {"PFT",            PA_BOOL,    0, 1,       (void *)&PFT,        0,             "write power, force, torque files"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -471,6 +473,12 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      if (ForceFile)
       GetForce(SSD, ForceFile);
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (PFT)
+      WritePFTFiles(SSD);
 
      /*--------------------------------------------------------------*/
      /*- induced dipole moments       -------------------------------*/
