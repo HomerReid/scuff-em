@@ -12,6 +12,7 @@
 %------------------------------------------------------------
 \newcommand{\GB}{\overline{G}}
 \newcommand{\vbGB}{\overline{\vb G}}
+\newcommand{\erfc}{\text{Erfc }}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -73,7 +74,8 @@ I will briefly recapitulate the key ideas of this approach.
 The starting point is the identity
 $$ \frac{e^{ikr}}{4\pi r} 
    \equiv 
-   \frac{1}{2\pi^{3/2}} \int_0^\infty e^{ -s^2 r^2 + \frac{k^2}{4s^2}} ds.
+   \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
+   \int_0^\infty e^{ -s^2 r^2 + \frac{k^2}{4s^2}} ds.
 $$ 
 
 \subsection*{Split the sum into direct-lattice-local and reciprocal-lattice-local
@@ -86,49 +88,58 @@ $$
 \label{GBDecomposition}
 \\
 \GB^{(1)}(k; \vb p; \vb x) 
-&= \frac{1}{2\pi^{3/2}}
+&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
    \sum_{\vb L} e^{i\vb p \cdot \vb L} \int_0^E e^{-s^2 |\vb x+\vb L|^2 + \frac{k^2}{4s^2}} ds
 \label{GB1Sum}
 \\
 \GB^{(2)}(k; \vb p; \vb x) 
-&= \frac{1}{2\pi^{3/2}}
+&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
    \sum_{\vb L} e^{i\vb p \cdot \vb L} \int_E^\infty e^{-s^2 |\vb x + \vb L|^2 + \frac{k^2}{4s^2}} ds
 \label{GB2Sum}
 \end{align}
 
-\subsection*{Evaluate $\GB^{(1)}$ in real space} 
+\subsection*{Evaluate $\GB^{(2)}$ in real space} 
 
-The first step is to tackle the sum in (\ref{GB1Sum}) head-on. 
+The first step is to tackle the sum in (\ref{GB2Sum}) head-on. 
 The integral in that equation may be evaluated in closed form in terms of
 the complex error function:
 \numeq{ErfInt}
 {
-   \int_0^E e^{-s^2 r^2 + \frac{k^2}{4s^2}} ds
-   = 
+ \frac{2}{\sqrt\pi}\int_E^\infty e^{-s^2 R^2 + \frac{k^2}{4s^2}} ds
+ = \frac{1}{2R}\bigg\{ e^{ikR} \,\erfc\Big[ RE + \frac{ik}{2E}\Big]
+                     +e^{-ikR} \,\erfc\Big[ RE - \frac{ik}{2E}\Big]
+               \bigg\}
 }
-Plugging into (\ref{GB1Sum}), the real-space sum is 
+Plugging into (\ref{GB2Sum}), the real-space sum is 
 \begin{align*}
-\GB^{(1)}(k; \vb p; \vb x) 
+\GB^{(2)}(k; \vb p; \vb x) 
 &= \frac{1}{2\pi^{3/2}}
    \sum_{\vb L}
 \end{align*}
 This sum converges very rapidly in real space. Indeed, as soon as 
-$|\vb r + \vb L|$ is greater than a few times $E$, the error-function
+$|\vb r + \vb L|$ is greater than a few times $E$, the $\erfc$\!\!
 factors begin to bite down \textit{doubly exponentially} on the
 summand, and the contribution of distant lattice sites becomes 
 utterly negligible. In practice, for a 2D lattice we achieve 8 
 or more digits of accuracy by retaining only $\approx$ terms in the sum.
-Thus we consider this term done, and move on to $\GB^{(2)}.$ 
+Thus we consider this term done, and move on to $\GB^{(1)}.$ 
 
-\subsection*{Evaluate $\GB^{(2)}$ in reciprocal space} 
+\subsection*{Evaluate $\GB^{(1)}$ in reciprocal space} 
 
-We would next like to do for $\GB^{(2)}$ what we just did for $\GB^{(1)}$,
+We would next like to do for $\GB^{(1)}$ what we just did for $\GB^{(2)}$,
 but this requires a little more work. 
 
-First, the integral in (\ref{GB2Sum}) involves the upper range of the 
-original integration limit (from $E$ to $\infty$), but the nice closed-form 
-expression we have, equation (\ref{ErfInt}), is for the lower range 
-of the integration range (0 to $E$). We can get from one to the other 
+First, the integral in (\ref{GB2Sum}) involves the lower range of the 
+$s$ integral (from $s=0$ to $E$), but the nice closed-form
+expression we have, equation (\ref{ErfInt}), is for the upper range 
+of the integral ($s=E$ to $\infty$). This difficulty was circumvented 
+by Ewald in an ingenious way by appealing to the properties of the 
+classical \textit{Jacobi theta function}, which is defined as 
+$$ \theta(x)=\sum_{n=-\infty}^\infty e^{-n^2 \pi x} $$
+and which satisfies the amazing and bizarre functional identity 
+$$ \theta(x)=\sqrt\frac{1}{x} \cdot \theta\left(\frac{1}{x}\right).$$
+
+We can get from one to the other
 by changing variables in (\ref{GB2Sum}) from $s$ to $1/s$: 
 
 \begin{align*}
