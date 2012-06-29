@@ -50,9 +50,15 @@ HMatrix::HMatrix(int NRows, int NCols, int pRealComplex, int pStorageType,
 		 void *data)
  { InitHMatrix(NRows, NCols, pRealComplex, pStorageType, data); }
 
-HMatrix::HMatrix(HMatrix *M) {
-  InitHMatrix(M->NR, M->NC, M->RealComplex, M->StorageType);
-  Copy(M);
+HMatrix::HMatrix(HMatrix *M, bool takedatandownership) {
+  if (takedatandownership) {
+    InitHMatrix(M->NR, M->NC, M->RealComplex, M->StorageType, M->RealComplex==LHM_COMPLEX ? (void*)M->ZM : (void*)M->DM);
+    ownsM = true;
+    M->ownsM = false;
+  } else {
+    InitHMatrix(M->NR, M->NC, M->RealComplex, M->StorageType);
+    Copy(M);
+  }
 }
 
 /***************************************************************/
