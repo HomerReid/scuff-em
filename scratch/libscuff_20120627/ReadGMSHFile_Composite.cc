@@ -77,6 +77,8 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
   double CentroidDisplaced[3];
   int nrp;
   int RefPntIndices[MAXREFPTS];
+
+  int nps;
  
   /*------------------------------------------------------------*/
   /* Read lines until we hit the keyword indicating the start   */
@@ -262,14 +264,14 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
           // find the index of the open surface corresponding 
           // to this panel and increment its number of panels.
           snprintf(RPStr, 100, "%i", RegPhys);
-          for(nos=0; nos<NumOpenSurfaces; nos++)
-           if ( !strcmp(RPStr, OpenSurfaceLabels[nos]) )
+          for(nps=0; nps<NumPartialSurfaces; nps++)
+           if ( !strcmp(RPStr, PartialSurfaceLabels[nps]) )
             break;
-          if (nos==NumOpenSurfaces)
+          if (nps==NumPartialSurfaces)
            ErrExit("%s:%i: physical region %i does not match any known partial surface",FileName,LineNum,RegPhys);
 
-          Panels[NumPanels]->SurfaceIndex = nos;
-          NumPanelsPerOpenSurface[nos]++;
+          Panels[NumPanels]->SurfaceIndex = nps;
+          NumPanelsPerPartialSurface[nps]++;
 
           break;
 
@@ -327,5 +329,6 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
   fclose(MeshFile);
  
 } 
+
 
 } // namespace scuff

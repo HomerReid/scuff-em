@@ -1,18 +1,58 @@
-/***************************************************************/
-/*                                                             */
-/***************************************************************/
-void GetGCEdgeHalfEdge(OpenSurface *OSA, int ntea,
-                       OpenSurface *OSB, int nteb,
-                       k, cdouble GC[2])
-{
-  /*--------------------------------------------------------------*/
-  /*- panel-panel interactions -----------------------------------*/
-  /*--------------------------------------------------------------*/
 
-  /*--------------------------------------------------------------*/
-  /*- edge-panel interactions  -----------------------------------*/
-  /*--------------------------------------------------------------*/
-}
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
+ * AssembleBEMMatrix.cc -- libscuff routine for assembling a single 
+ *                      -- block of the BEM matrix (i.e. the       
+ *                      -- interactions of two objects in the geometry)
+ *                      --
+ *                      -- (cf. 'libscuff Implementation and Technical
+ *                      --  Details', section 8.3, 'Structure of the BEM
+ *                      --  Matrix.')
+ *                      --
+ * homer reid           -- 10/2006 -- 6/2012
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <libhmat.h>
+#include <libhrutil.h>
+#include <omp.h>
+
+#include "libscuff.h"
+#include "libscuffInternals.h"
+
+#include "cmatheval.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
+
+namespace scuff {
+
+#define II cdouble(0,1)
 
 /***************************************************************/
 /***************************************************************/
@@ -33,7 +73,7 @@ typedef struct ACCMBArgStruct
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void *AOCMBThread(void *data)
+void *ACCMBThread(void *data)
 {
   /***************************************************************/
   /* local copies of fields in argument structure                */
@@ -50,37 +90,37 @@ void *AOCMBThread(void *data)
   /***************************************************************/
   /* other local variables ***************************************/
   /***************************************************************/
-  int nosa, NOSA = CA->NumOpenSurfaces;
-  int nosb, NOSB = CB->NumOpenSurfaces;
+  int npsa, NPSA = CA->NumPartialSurfaces;
+  int npsb, NPSB = CB->NumPartialSurfaces;
   int ntea, NTEA;
   int nteb, NTEB; 
 
-  int RegionA1, RegionA2, RegionB1, RegionB2;
-  int CommonRegion[2], NumCommonRegions;
+  int SubRegionA1, SubRegionA2, SubRegionB1, SubRegionB2;
+  int CommonSubRegion[2], NumCommonSubRegions;
 
   cdouble Eps1, Mu1, k1, EEPreFac1, MEPreFac1, MMPreFac1;
   cdouble Eps2, Mu2, k2, EEPreFac2, MEPreFac2, MMPreFac2;
 
   cdouble GC[2];
 
-  for(nosa=0; nosa<NOSA; nosa++)
-   for(nosb=0; nosb<NOSB; nosb++)
+  for(npsa=0; npsa<NPSA; npsa++)
+   for(npsb=0; npsb<NPSB; npsb++)
     { 
       /*--------------------------------------------------------------*/
-      /* figure out if open surfaces #nosa and #nosb share 0, 1, or 2 */
-      /* regions in common. if the answer is 0 then basis functions   */
-      /* on the two surfaces do not interact with one another.        */
+      /* figure out if partial surfaces #npsa and #npsb share 0, 1,   */
+      /* or 2 subregions in common. if the answer is 0 then basis     */
+      /* functions on these two partial surfaces do not interact.     */
       /*--------------------------------------------------------------*/
-      RegionA1 = Regions[2*nosa+0];
-      RegionA2 = Regions[2*nosa+1];
-      RegionB1 = Regions[2*nosb+0];
-      RegionB2 = Regions[2*nosb+1];
-      NumCommonRegions=0;
-      if ( RegionA1==RegionB1 || RegionA1==RegionB2 )
-       CommonRegion[NumCommonRegions++]=RegionA1;
-      if ( RegionA2==RegionB1 || RegionA2==RegionB2 )
-       CommonRegion[NumCommonRegions++]=RegionA2;
-      if (NumCommonRegions==0) 
+      SubRegionA1 = SubRegions[2*npsa+0];
+      SubRegionA2 = SubRegions[2*npsa+1];
+      SubRegionB1 = SubRegions[2*npsb+0];
+      SubRegionB2 = SubRegions[2*npsb+1];
+      NumCommonSubRegions=0;
+      if ( SubRegionA1==SubRegionB1 || SubRegionA1==SubRegionB2 )
+       CommonSubRegion[NumCommonSubRegions++]=SubRegionA1;
+      if ( SubRegionA2==SubRegionB1 || SubRegionA2==SubRegionB2 )
+       CommonSubRegion[NumCommonSubRegions++]=SubRegionA2;
+      if (NumCommonSubRegions==0) 
        continue;
 
       /*--------------------------------------------------------------*/
@@ -92,16 +132,16 @@ void *AOCMBThread(void *data)
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
-      Eps1=EpsTF[ CommonRegion[0] ];
-      Mu1=EpsTF[ CommonRegion[0] ];
+      Eps1=EpsTF[ CommonSubRegion[0] ];
+      Mu1=EpsTF[ CommonSubRegion[0] ];
       k1=csqrt2(Eps1*Mu1)*Omega;
       EEPreFac1 = Sign*II*Mu1*Omega;
       EMPreFac1 = -Sign*II*k1;
       MMPreFac1 = -1.0*Sign*II*Eps1*Omega;
 
-      if (NumCommonRegions==2)
-       { Eps2=EpsTF[ CommonRegion[1] ]; 
-         Mu2=EpsTF[ CommonRegion[1] ]; }
+      if (NumCommonSubRegions==2)
+       { Eps2=EpsTF[ CommonSubRegion[1] ]; 
+         Mu2=EpsTF[ CommonSubRegion[1] ]; }
          k2=csqrt2(Eps2*Mu2)*Omega;
          EEPreFac2 = Sign*II*Mu2*Omega;
          EMPreFac2 = -Sign*II*k2;
@@ -130,14 +170,14 @@ void *AOCMBThread(void *data)
           
       /*--------------------------------------------------------------*/
       /* now loop over all basis functions (both full and half RWG    */
-      /* functions) on open surfaces #nosa and #nosb.                 */
+      /* functions) on partial surfaces #npsa and #npsb.              */
       /*--------------------------------------------------------------*/
-      NTEA=OpenSurfaces[nosa]->NumTotalEdges;
-      OffsetA = RowOffset + BFIndexOffset[nosa];
-      NTEB=OpenSurfaces[nosb]->NumTotalEdges;
-      OffsetB = ColOffset + BFIndexOffset[nosb];
+      NTEA=PartialSurfaces[npsa]->NumTotalEdges;
+      OffsetA = RowOffset + BFIndexOffset[npsa];
+      NTEB=PartialSurfaces[npsb]->NumTotalEdges;
+      OffsetB = ColOffset + BFIndexOffset[npsb];
       for(ntea=0; ntea<NTEA; ntea++)
-       for(nteb=0; nteb<NTEB; nteb++)
+       for(nteb=Symmetric*ntea; nteb<NTEB; nteb++)
         { 
           nt++;
           if (nt==TD->nThread) nt=0;
@@ -148,24 +188,28 @@ void *AOCMBThread(void *data)
             if ( nteb==Symmetric*ntea &&  (ntea == (PerCent*NTEA)/10) )
              MutexLog("%i0 %% (%i/%i)...",PerCent,ntea,NTEA);
           
-          GetGCEdgeHalfEdge(OSA, ntea, OSB, nteb, k1, GC);
+          GetEEIArgs->k=k1;
+          GetEEIArgs->Ea=PartialSurfaces[npsa]->Edges[ntea];
+          GetEEIArgs->Eb=PartialSurfaces[npsa]->Edges[nteb];
+          GetEdgeEdgeInteractions(&GetEEIArgs);
+
           B->SetEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+0, EEPreFac1*GC[0]);
           B->SetEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+1, EMPreFac1*GC[1]);
           B->SetEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+0, EMPreFac1*GC[1]);
           B->SetEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+1, MMPreFac1*GC[0]);
           
-          if (NumCommonRegions==2)
-           { GetGCEdgeHalfEdge(OSA, ntea, OSB, nteb, k2, GC);
+          if (NumCommonSubRegions==2)
+           { GetEEIArgs->k=k2;
+             GetEdgeEdgeInteractions(&GetEEIArgs);
              B->AddEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+0, EEPreFac2*GC[0]);
              B->AddEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+1, EMPreFac2*GC[1]);
              B->AddEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+0, EMPreFac2*GC[1]);
              B->AddEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+1, MMPreFac2*GC[0]);
-
            };
   
         };
 
-    }; // for (nosa=0 ...) for nosb=0 ...)
+    }; // for (npsa=0 ...) for npsb=0 ...)
 }
 
 /***************************************************************/
@@ -190,12 +234,12 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args)
   /* precompute material properties of all regions on both       */
   /* composites                                                  */
   /***************************************************************/
-  int nr;
-  for(nr=0; nr<CA->NumRegions; nr++)
-   CA->RegionMPs[nr] -> GetEpsMu(Omega, CA->EpsTF + nr, CA->MuTF + nr);
+  int nsr;
+  for(nsr=0; nsr<CA->NumSubRegions; nsr++)
+   CA->SubRegionMPs[nsr] -> GetEpsMu(Omega, CA->EpsTF + nsr, CA->MuTF + nsr);
   if (CB!=CA)
-   { for(nr=0; nr<CB->NumRegions; nr++)
-      CB->RegionMPs[nr] -> GetEpsMu(Omega, CB->EpsTF + nr, CB->MuTF + nr);
+   { for(nsr=0; nr<CB->NumSubRegions; nsr++)
+      CB->SubRegionMPs[nsr] -> GetEpsMu(Omega, CB->EpsTF + nsr, CB->MuTF + nsr);
    };
 
   /***************************************************************/

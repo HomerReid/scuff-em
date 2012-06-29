@@ -138,10 +138,6 @@ typedef struct GetEEIArgStruct
    cdouble GradGC[6];
    cdouble dGCdT[6];
 
-   cdouble DeltaGPanelEdge;
-   cdouble GradDeltaGPanelEdge[3];
-   cdouble dDeltaGPanelEdgedT[3];
-
  } GetEEIArgStruct;
 
 void InitGetEEIArgs(GetEEIArgStruct *Args);

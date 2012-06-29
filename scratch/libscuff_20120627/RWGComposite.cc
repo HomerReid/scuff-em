@@ -31,12 +31,12 @@
 /*-                                                            -*/
 /*-           MESHFILE MyMesh.msh                              -*/
 /*-                                                            -*/
-/*-           REGION 1 SiO2                                    -*/
-/*-           REGION 2 Gold                                    -*/
+/*-           SUBREGION 1 SiO2                                 -*/
+/*-           SUBREGION 2 Gold                                 -*/
 /*-                                                            -*/
-/*-           OPENSURFACE 1 REGIONS 0 1                        -*/
-/*-           OPENSURFACE 2 REGIONS 0 2                        -*/
-/*-           OPENSURFACE 3 REGIONS 1 2                        -*/
+/*-           PARTIALSURFACE 1 SUBREGIONS 0 1                  -*/
+/*-           PARTIALSURFACE 2 SUBREGIONS 0 2                  -*/
+/*-           PARTIALSURFACE 3 SUBREGIONS 1 2                  -*/
 /*-                                                            -*/
 /*- ENDCOMPOSITE                                               -*/
 /*--------------------------------------------------------------*/
@@ -48,14 +48,14 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
   Label = strdup(pLabel);
   ErrMsg=0;
 
-  OpenSurfaces=0 ;
-  NumOpenSurfaces=0;
-  OpenSurfaceIDs=0;
+  PartialSurfaces=0 ;
+  NumPartialSurfaces=0;
+  PartialSurfaceIDs=0;
 
   // we start with one region, namely, the exterior medium
-  //  (the 0th slot of the RegionMPs array is filled in later)
-  NumRegions = 1; 
-  RegionMPs = (MatProp *) mallocEC( 1*sizeof(MatProp *) );
+  //  (the 0th slot of the SubRegionMPs array is filled in later)
+  NumSubRegions = 1; 
+  SubRegionMPs = (MatProp *) mallocEC( 1*sizeof(MatProp *) );
 
   Log("Processing COMPOSITE %s",pLabel);
 
@@ -68,8 +68,8 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
   int ReachedTheEnd=0;
   char *pMeshFileName=0;
   GTransformation *OTGT=0; // 'one-time geometrical transformation'
-  int RegionID, RegionID1, RegionID2, OpenSurfaceID;
-  MatProp *MP;$
+  int SubRegionID, SubRegionID1, SubRegionID2, PartialSurfaceID;
+  MatProp *MP;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
      (*LineNum)++;
@@ -88,15 +88,15 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
          };
         pMeshFileName=strdup(Tokens[1]);
       }
-     else if ( !strcasecmp(Tokens[0],"REGION") )
+     else if ( !strcasecmp(Tokens[0],"SUBREGION") )
       { 
         if (NumTokens!=3)
-         { ErrMsg=strdup("REGION keyword requires two arguments ");
+         { ErrMsg=strdup("SUBREGION keyword requires two arguments ");
            return;
          };
 
-        if ( 1!=sscanf(Tokens[1],"%i", &RegionID) || RegionID != (NumRegions+1) )
-         { ErrMsg=vstrdup("REGIONs must be numbered sequentially starting from 1");
+        if ( 1!=sscanf(Tokens[1],"%i", &SubRegionID) || SubRegionID != (NumSubRegions+1) )
+         { ErrMsg=vstrdup("SUBREGIONs must be numbered sequentially starting from 1");
            return; 
          };
 
@@ -107,41 +107,42 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
          };
 
         // add a new region to the list of regions for this composite
-        NumRegions++;
-        RegionMPs=(MatProp *)realloc(RegionMPs, (NumRegions+1)*sizeof(MatProp *));
-        RegionMPs[NumRegions-1]=MP;
-        Log(" Adding new region (%i) for material %s",MP->Name);
+        NumSubRegions++;
+        SubRegionMPs=(MatProp *)realloc(SubRegionMPs, (NumSubRegions+1)*sizeof(MatProp *));
+        SubRegionMPs[NumSubRegions-1]=MP;
+        Log(" Adding new subregion (%i) for material %s",MP->Name);
 
       }
-     else if ( !strcasecmp(Tokens[0],"OPENSURFACE") )
+     else if ( !strcasecmp(Tokens[0],"PARTIALSURFACE") )
       { 
-        if (NumTokens!=5 || strcasecmp(Tokens[2],"REGIONS") )
-         ErrMsg=strdup("invalid syntax for OPENSURFACE keyword");
-        if ( !ErrMsg && 1!=sscanf(Tokens[3],"%i",&RegionID1) )
+        if (NumTokens!=5 || strcasecmp(Tokens[2],"SUBREGIONS") )
+         ErrMsg=strdup("invalid syntax for PARTIALSURFACE keyword");
+        if ( !ErrMsg && 1!=sscanf(Tokens[3],"%i",&SubRegionID1) )
          ErrMsg=vstrdup("syntax error");
-        if ( !ErrMsg && 1!=sscanf(Tokens[4],"%i",&RegionID2) )
+        if ( !ErrMsg && 1!=sscanf(Tokens[4],"%i",&SubRegionID2) )
          ErrMsg=vstrdup("syntax error");
 
-        if ( RegionID1<0 || RegionID1>NumRegions ) 
-         ErrMsg=vstrdup("invalid region ID (%i)",RegionID1);
-        if ( RegionID2<0 || RegionID2>NumRegions ) 
-         ErrMsg=vstrdup("invalid region ID (%i)",RegionID1);
+        if ( SubRegionID1<0 || SubRegionID1>NumSubRegions ) 
+         ErrMsg=vstrdup("invalid subregion ID (%i)",SubRegionID1);
+        if ( SubRegionID2<0 || SubRegionID2>NumSubRegions ) 
+         ErrMsg=vstrdup("invalid subregion ID (%i)",SubRegionID1);
 
         if (ErrMsg)
          return;
 
         // add a new open surface to this composite.
         //  (actually for now we just make a note of its existence; the
-        //   actual OpenSurface data structure is not created until later)
-        NumOpenSurfaces++;
-        OpenSurfaceLabels=(char *)realloc(OpenSurfaceLabels, NumOpenSurfaces * sizeof(char *) );
-        OpenSurfaceLabels[NumOpenSurfaces-1]=vstrdup(Tokens[1]);
-        Regions = (int *)realloc(Regions, 2*NumOpenSurfaces*sizeof(int) );
-        Regions[ 2*(NumOpenSurfaces-1) + 0 ] = RegionID1;
-        Regions[ 2*(NumOpenSurfaces-1) + 1 ] = RegionID2;
-        Log(" Adding new open surface (mesh physical surface %i) bounding %s and %s", OpenSurfaceID, 
-              RegionMPs[RegionID1] ? RegionMPs[RegionID1]->Name : "exterior",
-              RegionMPs[RegionID2] ? RegionMPs[RegionID2]->Name : "exterior");
+        //   actual PartialSurface data structure is not created until later)
+        NumPartialSurfaces++;
+        PartialSurfaceLabels=(char *)realloc(PartialSurfaceLabels, NumPartialSurfaces * sizeof(char *) );
+        PartialSurfaceLabels[NumPartialSurfaces-1]=vstrdup(Tokens[1]);
+        SubRegions = (int *)realloc(SubRegions, 2*NumPartialSurfaces*sizeof(int) );
+        SubRegions[ 2*(NumPartialSurfaces-1) + 0 ] = SubRegionID1;
+        SubRegions[ 2*(NumPartialSurfaces-1) + 1 ] = SubRegionID2;
+        Log(" Adding new open surface (mesh physical surface %i) bounding %s and %s", 
+              PartialSurfaceID, 
+              SubRegionMPs[SubRegionID1] ? SubRegionMPs[SubRegionID1]->Name : "exterior",
+              SubRegionMPs[SubRegionID2] ? SubRegionMPs[SubRegionID2]->Name : "exterior");
 
       }
      else if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"ROTATED") )
@@ -175,10 +176,10 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
 
   if (pMeshFileName==0)
    ErrMsg=vstrdup("COMPOSITE section must include a MESHFILE specification");
-  if (NumRegions==0)
-   ErrMsg=vstrdup("COMPOSITE section must include one or more REGION designations");
-  if (NumOpenSurfaces==0)
-   ErrMsg=vstrdup("COMPOSITE section must include one or more OPENSURFACE designations");
+  if (NumSubRegions==0)
+   ErrMsg=vstrdup("COMPOSITE section must include one or more SUBREGION designations");
+  if (NumPartialSurfaces==0)
+   ErrMsg=vstrdup("COMPOSITE section must include one or more PARTIALSURFACE designations");
 
   InitRWGComposite(pMeshFileName, OTGT);
   
@@ -208,7 +209,7 @@ void RWGComposite::InitRWGComposite(char *pMeshFileName, GTransformation *OTGT)
   ContainingObject=0;
   MeshFileName=strdup(pMeshFileName);
 
-  NumPanelsPerOpenSurface=(int *)mallocEC(NumOpenSurfaces*sizeof(int));
+  NumPanelsPerPartialSurface=(int *)mallocEC(NumPartialSurfaces*sizeof(int));
 
   /*------------------------------------------------------------*/
   /*- note: the 'OTGT' parameter to this function is distinct   */
@@ -236,36 +237,36 @@ void RWGComposite::InitRWGComposite(char *pMeshFileName, GTransformation *OTGT)
    ErrExit("file %s: unknown extension %s",MeshFileName,p);
 
   /*------------------------------------------------------------*/
-  /*- create OpenSurface structures ----------------------------*/
+  /*- create PartialSurface structures ----------------------------*/
   /*------------------------------------------------------------*/
-  OpenSurfaces=(OpenSurface **)mallocEC(NumOpenSurfaces*sizeof(OpenSurface *));
-  BFIndexOffset=(int *)mallocEC(NumOpenSurfaces*sizeof(int));
-  OpenSurface *OS;
-  int np, npTOS;
+  PartialSurfaces=(PartialSurface **)mallocEC(NumPartialSurfaces*sizeof(PartialSurface *));
+  BFIndexOffset=(int *)mallocEC(NumPartialSurfaces*sizeof(int));
+  PartialSurface *PS;
+  int np, npTPS;
   NumBFs=0;
-  for(nos=0; nos<NumOpenSurfaces; nos++)
+  for(int nps=0; nps<NumPartialSurfaces; nps++)
    { 
-     // create a new OpenSurface structure for this open surface 
-     OS = OpenSurfaces[nos]=(OpenSurface *)mallocEC(sizeof(OpenSurface *));
+     // create a new PartialSurface structure for this partial surface 
+     PS = PartialSurfaces[nps]=(PartialSurface *)mallocEC(sizeof(PartialSurface *));
 
-     // initialize the list of panels that reside on this open
-     // surface. Note that the entries of the Panels[] array  
-     // within the OpenSurface structure are just pointers to 
+     // initialize the list of panels that reside on this partial
+     // surface. Note that the entries of the Panels[] array 
+     // within the PartialSurface structure are just pointers to 
      // the same RWGPanel structures that were created by the 
      // meshfile input routine. 
-     // note: npTOS = 'num panels, this open surface'
-     OS->NumPanels = NumPanelsPerOpenSurface[nos];
-     OS->Panels=(RWGPanel *)mallocEC(OS->NumPanels*sizeof(RWGPanel *));
-     for(npTOS=np=0; np<NumPanels; np++)
-      if ( Panels[np]->SurfaceIndex==nos )
-       OpenSurfaces[nos]->Panels[npTOS++]= Panels[np];
+     // note: npTPS = 'num panels, this open surface'
+     PS->NumPanels = NumPanelsPerPartialSurface[nos];
+     PS->Panels=(RWGPanel *)mallocEC(PS->NumPanels*sizeof(RWGPanel *));
+     for(npTPS=np=0; np<NumPanels; np++)
+      if ( Panels[np]->SurfaceIndex==nps )
+       PartialSurfaces[nps]->Panels[npTPS++]= Panels[np];
 
      // analyze edge connectivity for this open surface 
      InitEdgeList();
 
      NumBFs += 2*(OS->NumEdges + OS->NumHEdges);
 
-     BFIndexOffset[nos] = (nos==0) ? 0 : NumBFs + BFIndexOffset[nos-1];
+     BFIndexOffset[nps] = (nps==0) ? 0 : NumBFs + BFIndexOffset[nps-1];
 
    };
 

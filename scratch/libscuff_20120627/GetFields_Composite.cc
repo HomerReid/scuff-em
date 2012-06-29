@@ -165,6 +165,8 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
 /***************************************************************/
 /***************************************************************/
 void GetScatteredFields(RWGGeometry *G, 
+                        RWGComposite *C, 
+                        int SubRegion, 
                         const double *X, 
                         const int ObjectIndex, 
                         HVector *KN,
@@ -179,7 +181,7 @@ void GetScatteredFields(RWGGeometry *G,
   cdouble iwu=II*Omega*Mu;
   cdouble K=csqrt2(Eps*Mu)*Omega;
 
-  RWGObject *O;
+  //RWGObject *O;
   int i, ne, no, Type, Offset;
   cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
   double Sign;
@@ -242,6 +244,8 @@ typedef struct ThreadData
    int nt, nTask;
 
    RWGGeometry *G;
+   RWGComposite *C;
+   int SubRegion;
    HMatrix *XMatrix;
    HMatrix *FMatrix;
    HVector *KN;
@@ -267,10 +271,12 @@ void *GetFields_Thread(void *data)
   /* fields unpacked from thread data structure ******************/
   /***************************************************************/
   RWGGeometry *G              = TD->G;
+  RWGComposite *C             = TD->C;
+  int SubRegion               = TD->SubRegion;
   HMatrix *XMatrix            = TD->XMatrix;
   HMatrix *FMatrix            = TD->FMatrix;
   HVector *KN                 = TD->KN;
-  IncField *IFList            = TD->IF;
+  IncField *IFList            = TD->IF;   
   cdouble Omega               = TD->Omega;
   ParsedFieldFunc **PFFuncs   = TD->PFFuncs;
   int NumFuncs                = TD->NumFuncs;
@@ -299,17 +305,20 @@ void *GetFields_Thread(void *data)
      X[1]=XMatrix->GetEntryD(nr, 1);
      X[2]=XMatrix->GetEntryD(nr, 2);
 
-     ObjectIndex = G->GetObjectIndex(X);
-     if (ObjectIndex==-1)
-      G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
-     else
-      G->Objects[ObjectIndex]->MP->GetEpsMu(Omega, &Eps, &Mu);
+     //ObjectIndex = G->GetObjectIndex(X);
+     //ObjectIndex = G->GetObjectIndex(X);
+     //if (ObjectIndex==-1)
+     // G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
+     //else
+     // G->Objects[ObjectIndex]->MP->GetEpsMu(Omega, &Eps, &Mu);
+     Eps   = C->EpsTF[SubRegion+1];
+     EpsMu = C->MuTF[SubRegion+1];
     
      /*--------------------------------------------------------------*/
      /*- get scattered fields at X                                   */
      /*--------------------------------------------------------------*/
      if (KN)
-      GetScatteredFields(G, X, ObjectIndex, KN, Omega, Eps, Mu, EH);
+      GetScatteredFields(G, C, SubRegion, X, KN, Omega, Eps, Mu, EH);
      else
       memset(EH, 0, 6*sizeof(cdouble));
 
@@ -319,7 +328,7 @@ void *GetFields_Thread(void *data)
      /*--------------------------------------------------------------*/
      if (IFList)
       { for(IF=IFList; IF; IF=IF->Next)
-         if ( IF->ObjectIndex == ObjectIndex )
+         if ( IF->ObjectIndex == SubRegion /*ObjectIndex*/ )
           { IF->GetFields(X, dEH);
             SixVecPlusEquals(EH, 1.0, dEH);
           };
@@ -340,7 +349,8 @@ void *GetFields_Thread(void *data)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
+HMatrix *RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
+                                IncField *IF, HVector *KN,
                                 cdouble Omega, HMatrix *XMatrix,
                                 HMatrix *FMatrix, char *FuncString,
                                 int nThread)
@@ -400,6 +410,8 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   // copy wholesale to initialize new ThreadData structures
   ThreadData ReferenceTD; 
   ReferenceTD.G=this;
+  ReferenceTD.C=C;
+  ReferenceTD.SubRegion=SubRegion;
   ReferenceTD.XMatrix = XMatrix;
   ReferenceTD.FMatrix = FMatrix;
   ReferenceTD.KN=KN;
@@ -455,16 +467,17 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
 }
 
 /***************************************************************/
-/* simple (old) interface to GetFields *************************/
+/* simple  interface to GetFields ******************************/
 /***************************************************************/
-void RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X, 
+void RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
+                            IncField *IF, HVector *KN, cdouble Omega, double *X,
                             cdouble *EH, int nThread)
 {
   HMatrix XMatrix(1, 3, LHM_REAL, LHM_NORMAL, (void *)X);
 
   HMatrix FMatrix(1, 6, LHM_COMPLEX, LHM_NORMAL, (void *)EH);
 
-  GetFields(IF, KN, Omega, &XMatrix, &FMatrix, 0, nThread);
+  GetFields(C, SubRegion, IF, KN, Omega, &XMatrix, &FMatrix, 0, nThread);
 } 
 
 
