@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -61,17 +60,8 @@ typedef struct ThreadData
  { 
    AOCMBArgStruct *Args;
    int nt, nThread;
+
  } ThreadData;
-
-typedef struct ACCMBArgStruct 
-{
-  RWGGeometry *G;
-  RWGComposite *CA, *CB;
-  cdouble Omega;
-  HMatrix *M;
-  int RowOffset, ColOffset;
-
-} ACCMBArgStruct;
 
 /***************************************************************/
 /***************************************************************/
@@ -83,7 +73,7 @@ void *ACCMBThread(void *data)
   /***************************************************************/
   ThreadData *TD = (ThreadData *)data;
   AOCMBArgStruct *Args  = TD->Args;
-  RWGGeometry *G        = Args->G;
+  //RWGGeometry *G        = Args->G;
   RWGComposite *CA      = Args->CA;
   RWGComposite *CB      = Args->CB;
   cdouble Omega         = Args->Omega;
@@ -229,7 +219,7 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  RWGGeometry  *G=Args->G;
+  //RWGGeometry  *G=Args->G;
   RWGComposite *CA=Args->CA;
   RWGComposite *CB=Args->CB;
   cdouble Omega=Args->Omega;

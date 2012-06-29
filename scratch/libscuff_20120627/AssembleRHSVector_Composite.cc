@@ -113,19 +113,18 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 /* If pHProd==0, we skip the computation of the magnetic-field */
 /* inner product.                                              */
 /***************************************************************/
-void GetInnerProducts(RWGObject *O, int ne, 
+void GetInnerProducts(RWGEdge *E, RWGPanel *Panels, double *Vertices,
                       IncField **PositiveIFs, int NPositiveIFs,
                       IncField **NegativeIFs, int NNegativeIFs,
                       cdouble *pEProd, cdouble *pHProd)
 { 
   /* get edge vertices */
-  RWGEdge *E   = O->Edges[ne];
-  double *QP   = O->Vertices + 3*(E->iQP);
-  double *V1   = O->Vertices + 3*(E->iV1);
-  double *V2   = O->Vertices + 3*(E->iV2);
-  double *QM   = O->Vertices + 3*(E->iQM);
-  double PArea = O->Panels[E->iPPanel]->Area;
-  double MArea = O->Panels[E->iMPanel]->Area;
+  //RWGEdge *E   = O->Edges[ne];
+  double *QP   = Vertices + 3*(E->iQP);
+  double *V1   = Vertices + 3*(E->iV1);
+  double *V2   = Vertices + 3*(E->iV2);
+  double PArea = Panels[E->iPPanel]->Area; 
+  double MArea;
 
   /* set up data structure passed to InnerProductIntegrand */
   InnerProductIntegrandData MyIPID, *IPID=&MyIPID;
@@ -144,9 +143,13 @@ void GetInnerProducts(RWGObject *O, int ne,
   TriIntFixed(InnerProductIntegrand, nFun, (void *)IPID, QP, V1, V2, 20, IP);
 
   /* integrate over negative panel */
-  IPID->Q=QM;
-  IPID->PreFac=E->Length / (2.0*MArea);
-  TriIntFixed(InnerProductIntegrand, nFun, (void *)IPID, V1, V2, QM, 20, IM);
+  if ( E->iMPanel != -1)
+   { double MArea = Panels[E->iMPanel]->Area;
+     double *QM   = Vertices + 3*(E->iQM);
+     IPID->Q=QM;
+     IPID->PreFac=E->Length / (2.0*MArea);
+     TriIntFixed(InnerProductIntegrand, nFun, (void *)IPID, V1, V2, QM, 20, IM);
+   };
 
   /* total integral is difference between pos and neg pan integrals */
   for(int nf=0; nf<nFun; nf++)
@@ -166,7 +169,6 @@ typedef struct ThreadData
  { 
    int nt, nThread;
 
-   RWGGeometry *G;
    RWGComposite *C;
    IncField *IF;
    int NIF;
@@ -188,7 +190,6 @@ static void *AssembleRHS_Thread(void *data)
   /***************************************************************/
   /* extract fields from thread data structure *******************/
   /***************************************************************/
-  RWGGeometry *G   = TD->G;
   RWGComposite *C  = TD->C;
   IncField *IFList = TD->IF;
   int NIF          = TD->NIF;
@@ -243,7 +244,7 @@ static void *AssembleRHS_Thread(void *data)
         else
          E=OS->HEdges[ net - OS->NumEdges ];
 
-        GetInnerProducts(E, OS->Panels, C->Vertices,
+        GetInnerProducts(E, Panels, Vertices,
                          PositiveIFs, NPositiveIFs,
                          NegativeIFs, NNegativeIFs,
                          &EProd, IsPEC ? 0 : &HProd );
@@ -265,7 +266,7 @@ static void *AssembleRHS_Thread(void *data)
 /***************************************************************/
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
-HVector *RWGGeometry::AssembleRHSVector_Composite(RWGComposite *C,
+HVector AssembleRHSVector_Composite(RWGComposite *C,
                                                   cdouble Omega,
                                                   IncField *IF,
                                                   HVector *RHS,
@@ -279,7 +280,7 @@ HVector *RWGGeometry::AssembleRHSVector_Composite(RWGComposite *C,
   int nt, NIF=UpdateIncFields(IF, Omega);
 
   ThreadData ReferenceTD;
-  ReferenceTD.G=this;
+ // ReferenceTD.G=this;
   ReferenceTD.C=C;
   ReferenceTD.IF=IF;
   ReferenceTD.NIF=NIF;

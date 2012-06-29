@@ -9,7 +9,10 @@
 #include <libhmat.h>
 #include <libMatProp.h>
 #include <libscuff.h>
+
 using namespace scuff;
+
+
 
 /***************************************************************/
 /***************************************************************/
@@ -38,7 +41,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   int NTBF=C->TotalBFs;
   HMatrix *M  = new HMatrix(NTBF, NTBF, LHM_COMPLEX);
-  HVector *KN = new HVector(NTBF, NTBF, LHM_COMPLEX);
+  HVector *KN = new HVector(NTBF, LHM_COMPLEX);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -53,20 +56,22 @@ int main(int argc, char *argv[])
   double Omega=0.001;
 
   ACCMBArgStruct MyACCMBArgs, *ACCMBArgs=&MyACCMBArgs;
-  ACCMBArgs->G=0;
   ACCMBArgs->CA=C;
   ACCMBArgs->CB=C;
   ACCMBArgs->Omega=Omega;
   ACCMBArgs->M=M;
   ACCMBArgs->RowOffset=0;
   ACCMBArgs->ColOffset=0;
+
   AssembleCCMatrixBlock(ACCMBArgs);
+
   M->LUFactorize();
   StoreCache("BiHemisphere.scuffcache");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  AssembleRHSVector_Composite(C, Omega, PW, KN, 0);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -148,6 +153,8 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  GetFields(
+  HMatrix *FMatrix0=GetFields(C, 0, IF, KN, Omega, EP0);
+  HMatrix *FMatrix1=GetFields(C, 1, IF, KN, Omega, EP0);
+  HMatrix *FMatrix2=GetFields(C, 2, IF, KN, Omega, EP2);
 
 }

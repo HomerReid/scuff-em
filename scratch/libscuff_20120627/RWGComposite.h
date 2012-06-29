@@ -58,13 +58,13 @@ class RWGComposite
    int NumPanels;
 
    // for nps = 0 , 1, ..., NumPartialSurfaces-1, 
-   // SubRegions[2*nps+0] and Regions[2*nps+1] are the indices of 
+   // PSSubRegions[2*nps+0] and PSSubRegions[2*nps+1] are the indices of 
    // the two SubRegions bounded by PartialSurface #nps.
-   int *SubRegions;
+   int *PSSubRegions;
    int NumSubRegions;
 
-   // SubRegionMPs[0]     = material properties of exterior medium
-   // SubRegionMPs[nsr+1] = material properties of subregion #nsr (nsr=0,...,NumSubRegions-1)
+   // SubRegionMPs[0]   = material properties of exterior medium
+   // SubRegionMPs[nsr] = material properties of subregion #nsr for nsr=1,...,NumSubRegions
    MatProp **SubRegionMPs;
 
    // PartialSurface structures for each section of the composite surface
@@ -104,3 +104,29 @@ class RWGComposite
    void InitEdgeList();
 
  };
+
+typedef struct ACCMBArgStruct 
+{
+  //RWGGeometry *G;
+  RWGComposite *CA, *CB;
+  cdouble Omega;
+  HMatrix *M;
+  int RowOffset, ColOffset;
+
+} ACCMBArgStruct;
+
+void AssembleCCMatrixBlock(ACCMBArgStruct *Args);
+
+HMatrix *GetFields(RWGComposite *C, int SubRegion,
+                   IncField *IF, HVector *KN,
+                   cdouble Omega, HMatrix *XMatrix,
+                   HMatrix *FMatrix, char *FuncString,
+                   int nThread=0);
+
+HVector AssembleRHSVector_Composite(RWGComposite *C,
+                                                  cdouble Omega,
+                                                  IncField *IF,
+                                                  HVector *RHS,
+                                                  int nThread=0);
+
+#endif // ifdef RWGCOMPOSITE

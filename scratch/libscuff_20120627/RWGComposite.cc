@@ -52,9 +52,10 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
   NumPartialSurfaces=0;
   PartialSurfaceIDs=0;
 
-  // we start with one region, namely, the exterior medium
-  //  (the 0th slot of the SubRegionMPs array is filled in later)
-  NumSubRegions = 1; 
+  // 
+  // explain me  
+  // 
+  NumSubRegions = 0; 
   SubRegionMPs = (MatProp *) mallocEC( 1*sizeof(MatProp *) );
 
   Log("Processing COMPOSITE %s",pLabel);
@@ -109,8 +110,8 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
         // add a new region to the list of regions for this composite
         NumSubRegions++;
         SubRegionMPs=(MatProp *)realloc(SubRegionMPs, (NumSubRegions+1)*sizeof(MatProp *));
-        SubRegionMPs[NumSubRegions-1]=MP;
-        Log(" Adding new subregion (%i) for material %s",MP->Name);
+        SubRegionMPs[NumSubRegions]=MP;
+        Log(" Adding new subregion (%i) for material %s",NumSubRegions,MP->Name);
 
       }
      else if ( !strcasecmp(Tokens[0],"PARTIALSURFACE") )
@@ -136,9 +137,9 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
         NumPartialSurfaces++;
         PartialSurfaceLabels=(char *)realloc(PartialSurfaceLabels, NumPartialSurfaces * sizeof(char *) );
         PartialSurfaceLabels[NumPartialSurfaces-1]=vstrdup(Tokens[1]);
-        SubRegions = (int *)realloc(SubRegions, 2*NumPartialSurfaces*sizeof(int) );
-        SubRegions[ 2*(NumPartialSurfaces-1) + 0 ] = SubRegionID1;
-        SubRegions[ 2*(NumPartialSurfaces-1) + 1 ] = SubRegionID2;
+        PSSubRegions = (int *)realloc(PSSubRegions, 2*NumPartialSurfaces*sizeof(int) );
+        PSSubRegions[ 2*(NumPartialSurfaces-1) + 0 ] = SubRegionID1;
+        PSSubRegions[ 2*(NumPartialSurfaces-1) + 1 ] = SubRegionID2;
         Log(" Adding new open surface (mesh physical surface %i) bounding %s and %s", 
               PartialSurfaceID, 
               SubRegionMPs[SubRegionID1] ? SubRegionMPs[SubRegionID1]->Name : "exterior",

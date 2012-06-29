@@ -119,25 +119,22 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /*  a_i(x) = \int G(x,y) f_i(y) dy                             */
 /*                                                             */
 /***************************************************************/
-void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
+void RWGObject::GetReducedPotentials(RWGEdge *E, RWGPanel **Panels, double *Vertices
+                                     const double *X, cdouble K,
                                      cdouble *a, cdouble *Curla,
                                      cdouble *Gradp)
 {
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;
-  RWGEdge *E;
   int mu;
   GRPIntegrandData MyGRPIData, *GRPID=&MyGRPIData;
   cdouble IP[9], IM[9];
 
   /* get edge vertices */
-  E=Edges[ne];
   QP=Vertices + 3*(E->iQP);
   V1=Vertices + 3*(E->iV1);
   V2=Vertices + 3*(E->iV2);
-  QM=Vertices + 3*(E->iQM);
   PArea=Panels[E->iPPanel]->Area;
-  MArea=Panels[E->iMPanel]->Area;
 
   /* set up data structure passed to GRPIntegrand */
   GRPID->X0=X;
@@ -148,10 +145,20 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
   GRPID->PreFac = E->Length / (2.0*PArea);
   TriIntFixed(GRPIntegrand, 18, (void *)GRPID, QP, V1, V2, 25, (double *)IP);
 
-  /* contribution of negative panel */
-  GRPID->Q=QM;
-  GRPID->PreFac = E->Length / (2.0*MArea);
-  TriIntFixed(GRPIntegrand, 18, (void *)GRPID, V1, V2, QM, 25, (double *)IM);
+  /* contribution of negative panel if present */
+  if ( E->iQM!=-1 )
+   { 
+     MArea=Panels[E->iMPanel]->Area;
+     QM=Vertices + 3*(E->iQM);
+     GRPID->Q=QM;
+     GRPID->PreFac = E->Length / (2.0*MArea);
+     MArea=Panels[E->iMPanel]->Area;
+     TriIntFixed(GRPIntegrand, 18, (void *)GRPID, V1, V2, QM, 25, (double *)IM);
+   }
+  else // if there is no negative panel then there is a line-charge edge 
+   { 
+     // fix me 
+   }
 
   for(mu=0; mu<3; mu++) 
    { a[mu]     = IP[mu]   - IM[mu];
@@ -164,11 +171,9 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetScatteredFields(RWGGeometry *G, 
-                        RWGComposite *C, 
+void GetScatteredFields(RWGComposite *C, 
                         int SubRegion, 
                         const double *X, 
-                        const int ObjectIndex, 
                         HVector *KN,
                         const cdouble Omega, 
                         const cdouble Eps,
@@ -181,49 +186,34 @@ void GetScatteredFields(RWGGeometry *G,
   cdouble iwu=II*Omega*Mu;
   cdouble K=csqrt2(Eps*Mu)*Omega;
 
-  //RWGObject *O;
-  int i, ne, no, Type, Offset;
-  cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
+  int nps, nte, Offset;
   double Sign;
-  int ContainingObjectIndex;
-  for(no=0; no<G->NumObjects; no++)
+  cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
+  for(nps=0; nps<C->NumPartialSurfaces; nps++)
    { 
-     O=G->Objects[no];
-
-     Type=O->MP->Type;
-     Offset=G->BFIndexOffset[O->Index];
-     if (O->ContainingObject==NULL)
-      ContainingObjectIndex=-1;
-     else
-      ContainingObjectIndex=O->ContainingObject->Index;
-
-     /******************************************************************/
-     /* figure out the sign of the contribution of currents on this    */
-     /* object's surface to the field at the evaluation point.         */
-     /*****************************************************************/
-     if ( ObjectIndex==O->Index )
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
+     if ( C->SubRegions[2*nps + 0] == SubRegion )
+      Sign=1.0;
+     else if ( C->SubRegions[2*nps + 1] == SubRegion )
       Sign=-1.0;
-     else if ( ObjectIndex==ContainingObjectIndex )
-      Sign=+1.0;
      else
-      continue; // in this case O does not contribute to field at eval pt
+      continue;
 
      /***************************************************************/
      /* now loop over panels on object's surface to get             */
      /* contributions to field at evaluation point.                 */
      /***************************************************************/
-     for(ne=0; ne<O->NumEdges; ne++)
+     PS=C->PartialSurfaces[nps];
+     Offset = C->BFIndexOffset[nps];
+     for(nte=0; nte<PS->NumTotalEdges; ne++)
       { 
-        if ( Type==MP_PEC )
-         { 
-           KAlpha = Sign*KN->GetEntry( Offset + ne );
-         }
-        else
-         { KAlpha = Sign*KN->GetEntry( Offset + 2*ne + 0 );
-           NAlpha = Sign*KN->GetEntry( Offset + 2*ne + 1 );
-         };
+        KAlpha = Sign*KN->GetEntry( Offset + 2*nte + 0 );
+        NAlpha = Sign*KN->GetEntry( Offset + 2*nte + 1 );
       
-        O->GetReducedPotentials(ne, X, K, a, Curla, Gradp);
+        GetReducedPotentials(PS->Edges[nte], PS->Panels, C->Vertices, 
+                             X, K, a, Curla, Gradp);
 
         for(i=0; i<3; i++)
          { EHS[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
@@ -285,7 +275,6 @@ void *GetFields_Thread(void *data)
   /* other local variables ***************************************/
   /***************************************************************/
   double X[3];
-  int ObjectIndex;
   cdouble EH[6], dEH[6];
   cdouble Eps, Mu;
   double dA[3]={0.0, 0.0, 0.0};
@@ -306,7 +295,6 @@ void *GetFields_Thread(void *data)
      X[2]=XMatrix->GetEntryD(nr, 2);
 
      //ObjectIndex = G->GetObjectIndex(X);
-     //ObjectIndex = G->GetObjectIndex(X);
      //if (ObjectIndex==-1)
      // G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
      //else
@@ -318,7 +306,7 @@ void *GetFields_Thread(void *data)
      /*- get scattered fields at X                                   */
      /*--------------------------------------------------------------*/
      if (KN)
-      GetScatteredFields(G, C, SubRegion, X, KN, Omega, Eps, Mu, EH);
+      GetScatteredFields(C, SubRegion, X, KN, Omega, Eps, Mu, EH);
      else
       memset(EH, 0, 6*sizeof(cdouble));
 
@@ -326,6 +314,12 @@ void *GetFields_Thread(void *data)
      /*- add incident fields by summing contributions of all        -*/
      /*- IncFields whose sources lie in the same region as X        -*/
      /*--------------------------------------------------------------*/
+if ( IFList && SubRegion==0 )
+ { IF->GetFields(X, dEH);
+   SixVecPlusEquals(EH, 1.0, dEH);
+ };
+
+#if 0
      if (IFList)
       { for(IF=IFList; IF; IF=IF->Next)
          if ( IF->ObjectIndex == SubRegion /*ObjectIndex*/ )
@@ -333,6 +327,7 @@ void *GetFields_Thread(void *data)
             SixVecPlusEquals(EH, 1.0, dEH);
           };
       };
+#endif
 
      /*--------------------------------------------------------------*/
      /*- compute field functions ------------------------------------*/
@@ -349,18 +344,11 @@ void *GetFields_Thread(void *data)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#if 0
-HMatrix *RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
-                                IncField *IF, HVector *KN,
-                                cdouble Omega, HMatrix *XMatrix,
-                                HMatrix *FMatrix, char *FuncString,
-                                int nThread)
-#endif
-void GetFields(RWGComposite *C, int SubRegion,
-               IncField *IF, HVector *KN,
-               cdouble Omega, HMatrix *XMatrix,
-               HMatrix *FMatrix, char *FuncString,
-               int nThread)
+HMatrix *GetFields(RWGComposite *C, int SubRegion,
+                   IncField *IF, HVector *KN,
+                   cdouble Omega, HMatrix *XMatrix,
+                   HMatrix *FMatrix, char *FuncString,
+                   int nThread)
 #endif
 { 
 { 
@@ -476,12 +464,11 @@ void GetFields(RWGComposite *C, int SubRegion,
 }
 
 /***************************************************************/
-/* simple  interface to GetFields ******************************/
+/* simple interface to GetFields *******************************/
 /***************************************************************/
-#if 0
-void RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
-                            IncField *IF, HVector *KN, cdouble Omega, double *X,
-                            cdouble *EH, int nThread)
+void GetFields(RWGComposite *C, int SubRegion,
+               IncField *IF, HVector *KN, cdouble Omega, double *X,
+               cdouble *EH, int nThread)
 {
   HMatrix XMatrix(1, 3, LHM_REAL, LHM_NORMAL, (void *)X);
 
@@ -489,7 +476,6 @@ void RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
 
   GetFields(C, SubRegion, IF, KN, Omega, &XMatrix, &FMatrix, 0, nThread);
 } 
-#endif
 
 
 } // namespace scuff
