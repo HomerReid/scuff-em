@@ -270,7 +270,7 @@ void *GetFields_Thread(void *data)
   /***************************************************************/
   /* fields unpacked from thread data structure ******************/
   /***************************************************************/
-  RWGGeometry *G              = TD->G;
+ // RWGGeometry *G              = TD->G;
   RWGComposite *C             = TD->C;
   int SubRegion               = TD->SubRegion;
   HMatrix *XMatrix            = TD->XMatrix;
@@ -311,8 +311,8 @@ void *GetFields_Thread(void *data)
      // G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
      //else
      // G->Objects[ObjectIndex]->MP->GetEpsMu(Omega, &Eps, &Mu);
-     Eps   = C->EpsTF[SubRegion+1];
-     EpsMu = C->MuTF[SubRegion+1];
+     Eps = C->EpsTF[SubRegion];
+     Mu  = C->MuTF[SubRegion];
     
      /*--------------------------------------------------------------*/
      /*- get scattered fields at X                                   */
@@ -349,11 +349,20 @@ void *GetFields_Thread(void *data)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 HMatrix *RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
                                 IncField *IF, HVector *KN,
                                 cdouble Omega, HMatrix *XMatrix,
                                 HMatrix *FMatrix, char *FuncString,
                                 int nThread)
+#endif
+void GetFields(RWGComposite *C, int SubRegion,
+               IncField *IF, HVector *KN,
+               cdouble Omega, HMatrix *XMatrix,
+               HMatrix *FMatrix, char *FuncString,
+               int nThread)
+#endif
+{ 
 { 
   if (nThread <= 0) nThread = GetNumThreads();
  
@@ -398,7 +407,7 @@ HMatrix *RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
   /* before setting up and solving the BEM problem, so we should */
   /* do this just to make sure.                                  */
   /***************************************************************/
-  UpdateIncFields(IF, Omega);
+  //UpdateIncFields(IF, Omega);
 
   /***************************************************************/
   /* fire off threads                                            */
@@ -409,7 +418,7 @@ HMatrix *RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
   // that are common to all threads, which we can subsequently
   // copy wholesale to initialize new ThreadData structures
   ThreadData ReferenceTD; 
-  ReferenceTD.G=this;
+  // ReferenceTD.G=this;
   ReferenceTD.C=C;
   ReferenceTD.SubRegion=SubRegion;
   ReferenceTD.XMatrix = XMatrix;
@@ -469,6 +478,7 @@ HMatrix *RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
 /***************************************************************/
 /* simple  interface to GetFields ******************************/
 /***************************************************************/
+#if 0
 void RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
                             IncField *IF, HVector *KN, cdouble Omega, double *X,
                             cdouble *EH, int nThread)
@@ -479,6 +489,7 @@ void RWGGeometry::GetFields(RWGComposite *C, int SubRegion,
 
   GetFields(C, SubRegion, IF, KN, Omega, &XMatrix, &FMatrix, 0, nThread);
 } 
+#endif
 
 
 } // namespace scuff

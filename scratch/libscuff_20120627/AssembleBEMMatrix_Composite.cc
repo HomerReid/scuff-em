@@ -67,8 +67,11 @@ typedef struct ACCMBArgStruct
 {
   RWGGeometry *G;
   RWGComposite *CA, *CB;
+  cdouble Omega;
+  HMatrix *M;
+  int RowOffset, ColOffset;
 
-} AOCMBArgStruct;
+} ACCMBArgStruct;
 
 /***************************************************************/
 /***************************************************************/
@@ -83,9 +86,10 @@ void *ACCMBThread(void *data)
   RWGGeometry *G        = Args->G;
   RWGComposite *CA      = Args->CA;
   RWGComposite *CB      = Args->CB;
+  cdouble Omega         = Args->Omega;
+  HMatrix *M            = Args->M;
   int RowOffset         = Args->RowOffset;
   int ColOffset         = Args->ColOffset;
-  HMatrix *M            = Args->M;
 
   /***************************************************************/
   /* other local variables ***************************************/
@@ -183,7 +187,7 @@ void *ACCMBThread(void *data)
           if (nt==TD->nThread) nt=0;
           if (nt!=TD->nt) continue;
 
-          if (G->LogLevel>=SCUFF_VERBOSELOGGING)
+       //   if (G->LogLevel>=SCUFF_VERBOSELOGGING)
            for(int PerCent=0; PerCent<9; PerCent++)
             if ( nteb==Symmetric*ntea &&  (ntea == (PerCent*NTEA)/10) )
              MutexLog("%i0 %% (%i/%i)...",PerCent,ntea,NTEA);
@@ -284,7 +288,8 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args)
    };
 #endif
 
-  if (G->LogLevel>=SCUFF_VERBOSELOGGING)
+
+ // if (G->LogLevel>=SCUFF_VERBOSELOGGING)
    Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
 
 }
