@@ -12,6 +12,7 @@
 %------------------------------------------------------------
 \newcommand{\GB}{\overline{G}}
 \newcommand{\vbGB}{\overline{\vb G}}
+%\newcommand{\BG}{\boldsymbol{\Gamma}}
 \newcommand{\erfc}{\text{Erfc }}
 
 %------------------------------------------------------------
@@ -135,17 +136,48 @@ expression we have, equation (\ref{ErfInt}), is for the upper range
 of the integral ($s=E$ to $\infty$). This difficulty was circumvented 
 by Ewald in an ingenious way by appealing to the properties of the 
 classical \textit{Jacobi theta function}, which is defined as 
-$$ \theta(x)=\sum_{n=-\infty}^\infty e^{-n^2 \pi x} $$
+\numeq{ThetaFunction}{\theta(s)=\sum_{n=-\infty}^\infty e^{-n^2 \pi s}}
 and which satisfies the amazing and bizarre functional identity 
-$$ \theta(x)=\sqrt\frac{1}{x} \cdot \theta\left(\frac{1}{x}\right).$$
+\numeq{ThetaIdentity}
+{ \theta(s)=\sqrt\frac{1}{s} \cdot \theta\left(\frac{1}{s}\right).}
+We will need a slightly more complicated version of this identity,
+obtained by generalizing (\ref{ThetaFunction}) in two ways: 
+\textbf{(a)} we consider a more general summand in which the exponent
+contains a term linear in $n$ besides the quadratic term 
+in (\ref{ThetaFunction}), and 
+\textbf{(b)} instead of summing over all integers $n$ (which we may 
+think of as a sum over a one-dimensional lattice) we instead sum 
+over a \textit{two-dimensional} lattice.
+The result is that the sum over lattice vectors $\vb L$ that enters into
+our equation (\ref{GB1Sum}) is converted into a sum over
+\textit{reciprocal lattice} vectors $\BG$:
+\begin{align}
+&\hspace{-0.5in}
+ \frac{1}{4\pi} \cdot \frac{2}{\sqrt\pi} \sum_{\vb L} e^{i \vb p \cdot \vb L}
+ e^{-s^2|\vb x + \vb L|^2 + \frac{k^2}{4s^2}}
+\nn
+&=\frac{1}{s^2} \cdot \frac{A_\Gamma}{8\pi^{5/2}} 
+ \sum_{\BG} e^{i\BG \cdot \vb x} 
+            e^{-\frac{1}{4s^2}[|\BG + \vb p|^2 + k^2] - z^2 s^2}
+\label{DirectToReciprocal}
+\end{align}
+Here the sum is over all vectors $\BG$ that satisfy 
+$\BG \cdot \vb L=2\pi$ for some lattice vector $\vb L,$
+and $A_{\Gamma}$ is the area of Brillouin zone of the 
+reciprocal lattice. For a simple square lattice with
+$\vb L=n_x L_x\vbhat{x} + n_y L_y\vbhat{y}$, the reciprocal
+lattice vectors are 
+$\BG=\frac{2n_x \pi}{L_x}\vbhat{x} + \frac{2n_y \pi}{L_y}\vbhat{y}$
+and $A_\Gamma=\frac{4\pi^2}{L_x L_y}$.
 
-We can get from one to the other
-by changing variables in (\ref{GB2Sum}) from $s$ to $1/s$: 
-
+Inserting (\ref{DirectToReciprocal}) in (\ref{GB1Sum}) and making 
+the change of variables $s \to \frac{1}{s}$ yields 
 \begin{align*}
-\int_E^\infty e^{-s^2 |\vb x + \vb L|^2 + \frac{k^2}{4s^2}} ds
-&= \int_0^\frac{1}{E} \frac{1}{s^2} e^{-\frac{1}{s^2} |\vb x + \vb L|^2 + \frac{s^2 k^2}{4}} ds
+
 \label{GB2Sum2}
+\GB^{(2)}(k; \vb p; \vb x) 
+&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
+   \sum_{\vb L} e^{i\vb p \cdot \vb L} \int_E^\infty e^{-s^2 |\vb x + \vb L|^2 + \frac{k^2}{4s^2}} ds
 \end{align*}
 
 Now our integral looks the way we want it to
