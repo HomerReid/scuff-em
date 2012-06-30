@@ -156,30 +156,65 @@ our equation (\ref{GB1Sum}) is converted into a sum over
  \frac{1}{4\pi} \cdot \frac{2}{\sqrt\pi} \sum_{\vb L} e^{i \vb p \cdot \vb L}
  e^{-s^2|\vb x + \vb L|^2 + \frac{k^2}{4s^2}}
 \nn
-&=\frac{1}{s^2} \cdot \frac{A_\Gamma}{8\pi^{5/2}} 
- \sum_{\BG} e^{i\BG \cdot \vb x} 
-            e^{-\frac{1}{4s^2}[|\BG + \vb p|^2 + k^2] - z^2 s^2}
+&=\frac{1}{s^2} \cdot \frac{A_{\BG}}{8\pi^{5/2}}
+ \sum_{\BG} e^{i(\BG-\vb p) \cdot \vb x} 
+            e^{-\frac{1}{4s^2}[|\BG - \vb p|^2 - k^2] - z^2 s^2}
 \label{DirectToReciprocal}
 \end{align}
 Here the sum is over all vectors $\BG$ that satisfy 
 $\BG \cdot \vb L=2\pi$ for some lattice vector $\vb L,$
-and $A_{\Gamma}$ is the area of Brillouin zone of the 
-reciprocal lattice. For a simple square lattice with
-$\vb L=n_x L_x\vbhat{x} + n_y L_y\vbhat{y}$, the reciprocal
-lattice vectors are 
-$\BG=\frac{2n_x \pi}{L_x}\vbhat{x} + \frac{2n_y \pi}{L_y}\vbhat{y}$
-and $A_\Gamma=\frac{4\pi^2}{L_x L_y}$.
-
-Inserting (\ref{DirectToReciprocal}) in (\ref{GB1Sum}) and making 
-the change of variables $s \to \frac{1}{s}$ yields 
-\begin{align*}
-
-\label{GB2Sum2}
-\GB^{(2)}(k; \vb p; \vb x) 
-&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
-   \sum_{\vb L} e^{i\vb p \cdot \vb L} \int_E^\infty e^{-s^2 |\vb x + \vb L|^2 + \frac{k^2}{4s^2}} ds
-\end{align*}
-
-Now our integral looks the way we want it to
-
+and $A_{\BG}$ is the area of Brillouin zone of the 
+reciprocal lattice.
+\footnote{For a simple rectangular lattice with basis vectors 
+$$\vb L_1=L_x\vbhat{x}, \qquad \vb L_2=L_y\vbhat{y},$$
+a basis for the reciprocal lattice is 
+$$\BG_1=\frac{2\pi}{L_x}\vbhat{x},\qquad \BG_2=\frac{2\pi}{L_y}\vbhat{y}$$
+and we have $A_{\BG}=\frac{4\pi^2}{L_x L_y}$.\\
+For a hexagonal lattice with basis vectors 
+$$ \vb L_1=L\vbhat{x}, \qquad 
+   \vb L_2=\frac{L}{2}\vbhat{x} + \frac{L\sqrt{3}}{2}\vbhat{y}
+$$
+a basis for the reciprocal lattice is 
+$$ \BG_1=\frac{2\pi}{L}\vbhat{x} + \frac{2\pi}{L\sqrt{3}}\vbhat{y},
+   \qquad 
+   \BG_2=\frac{4\pi}{\sqrt{3} L}\vbhat{y}
+$$
+and we have $A_{\BG}=\frac{8\pi^2}{L^2 \sqrt{3}}$.
+}
+Inserting (\ref{DirectToReciprocal}) in (\ref{GB1Sum}), we have 
+\begin{align}
+\GB^{(1)}(k; \vb p; \vb x) 
+&=\frac{A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
+    e^{i(\BG-\vb p) \cdot \vb x} 
+    \int_{0}^E 
+    \frac{ds}{s^2} 
+    e^{-\frac{1}{4s^2}[|\BG - \vb p|^2 - k^2] - z^2 s^2}
+\nonumber
+\intertext{Change integration variables according to $s\to\frac{1}{s}$:}
+&=\frac{A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
+    e^{i(\BG-\vb p) \cdot \vb x} 
+    \int_{\frac{1}{E}}^\infty
+    ds
+    e^{-\frac{s^2}{4}[|\BG - \vb p|^2 - k^2] - \frac{z^2}{s^2}}
+\nonumber
+\intertext{Apply identity (\ref{ErfInt}):}
+&=\frac{A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
+    e^{i(\BG-\vb p) \cdot \vb x} 
+    \int_{\frac{1}{E}}^\infty
+    ds
+    e^{-\frac{s^2}{4}[|\BG - \vb p|^2 - k^2] - \frac{z^2}{s^2}}
+\intertext{Evaluate the integral using (\ref{ErfInt}):}
+&=\frac{A_{\BG}}{32\pi^2} \sum_{\BG}
+   \frac{e^{i(\BG-\vb p) \cdot \vb x}}{Q(\BG, \vb p, k)} 
+   \bigg\{  e^{+2Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{E} + Qz \Big]
+\label{GB1Sum2}\\
+&\hspace{2in}
+          +e^{-2Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{E} - Qz \Big]
+   \bigg\}
+\nonumber
+\end{align}
+where we put
+$$
+Q(\BG, \vb p, k)  = \sqrt{ (\BG-\vb p)^2 - k^2 }.
+$$
 \end{document}

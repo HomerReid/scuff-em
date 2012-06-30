@@ -1,0 +1,15 @@
+#SCUFFEM = /usr/local
+SCUFFEM = /home/homer/work/scuff-em-installation
+
+CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
+LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
+
+LIBS = -lscuff -lhdf5_hl -lhdf5 -llapack -lblas -lgomp
+
+TE = tEwald.o GBarVDEwald.o GBarVDBF.o ACMTOMS680.o cerf.o
+
+tEwald:	$(TE)
+	$(CXX) $(LDFLAGS) -o $@ $(TE) $(LIBS)
+
+tDL2RL:	tDL2RL.o
+	$(CXX) $(LDFLAGS) -o tDL2RL tDL2RL.o $(LIBS)
