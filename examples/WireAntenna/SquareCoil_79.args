@@ -1,5 +1,6 @@
 geometry  SquareCoil_79.scuffgeo
-portfile  SquareCoil_79.ports
+#portfile  SquareCoil_79.ports
+portfile  SquareCoil.ports
 cache     SquareCoil_79.cache
 # note frequencies are specified in ghz 
 #minFreq   0.01 
