@@ -200,10 +200,13 @@ int FindEdgesOnLine(RWGObject *O, double LineVertices[MAXLINES][6],
       };
 
      if (FoundV1 && FoundV2)
-      EIndices[NumEdgesOnLine++]=nei;
+      { if (NumEdgesOnLine==MAXEDGES)
+         ErrExit("too many edges on port");
+        EIndices[NumEdgesOnLine++]=nei;
+      };
    };
 
-  Log(" Found %i edges on %s edge of port %i: ",PM,PortIndex);
+  Log(" Found %i edges on %s edge of port %i: ",NumEdgesOnLine,PM,PortIndex);
   for(nei=0; nei<NumEdgesOnLine; nei++)
    LogC(" %i",EIndices[nei]);
 
@@ -340,7 +343,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
            for(nt=6; nt<9; nt++)
             if (1!=sscanf(Tokens[nt],"%le",PLineVertices[NumPLines]+(nt-3)))
              ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           NumPLines=1;
+           NumPLines++;
          }
         else if ( !strcasecmp(Tokens[0],"MLINE") )
          { if (NumMLines==MAXLINES)
@@ -355,7 +358,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
            for(nt=6; nt<9; nt++)
             if (1!=sscanf(Tokens[nt],"%le",MLineVertices[NumMLines]+(nt-3)))
              ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           NumMLines=1;
+           NumMLines++;
          }
         else if ( !strcasecmp(Tokens[0],"PREFPOINT") )
          {
