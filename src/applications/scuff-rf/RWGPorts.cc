@@ -45,6 +45,7 @@
 #define II cdouble(0.0,1.0)
 
 #define MAXEDGES 100 // max # of edges in (each half of) a port
+#define MAXLINES 100 // max # of straight lines used to define a port contour
 
 using namespace scuff;
 
@@ -139,8 +140,8 @@ bool PointOnLineSegment(double *X, double *L1, double *L2)
 {
   double A[3], B[3];
 
-  VecSub( X, L1, A);
-  VecSub(L2, L1, B);
+  VecSub(  X, L1, A);
+  VecSub( L2, L1, B);
   double A2  =   A[0]*A[0] + A[1]*A[1] + A[2]*A[2];
   double B2  =   B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
 
@@ -167,29 +168,42 @@ bool PointOnLineSegment(double *X, double *L1, double *L2)
 }
 
 /***************************************************************/
+/* for nl between 0 and NumLines-1, LineVertices[nl][0..2] and */
+/* LineVertices[nl][3..5] are the cartesian coordinates of the */
+/* endpoints of a line segment.                                */
 /***************************************************************/
-/***************************************************************/
-int FindEdgesOnLine(RWGObject *O, double LineVertices[6], int *EIndices)
+int FindEdgesOnLine(RWGObject *O, double LineVertices[MAXLINES][6], 
+                    int NumLines, int *EIndices, const char *PM, int PortIndex)
 {
-  int nei;
-  int NumEdgesOnLine=0;
+  int nei, nl, NumEdgesOnLine=0;
+  int FoundV1, FoundV2;
   RWGEdge *E;
-  double *V1, *V2;
-  double *L1 = LineVertices + 0;
-  double *L2 = LineVertices + 3;
+  double *V1, *V2, *L1, *L2;
   for(nei=0; nei<O->NumExteriorEdges; nei++)
-   { E=O->ExteriorEdges[nei];
+   { 
+     E=O->ExteriorEdges[nei];
      V1 = O->Vertices + 3*E->iV1;
      V2 = O->Vertices + 3*E->iV2;
-     if ( PointOnLineSegment(V1, L1, L2) && PointOnLineSegment(V2, L1, L2) )
-      { if (NumEdgesOnLine==MAXEDGES)
-         ErrExit("too many RWG edges on port line");
-        EIndices[NumEdgesOnLine++]=nei;
+
+     FoundV1=FoundV2=0;
+     for(nl=0; nl<NumLines; nl++)
+      { 
+        L1 = LineVertices[nl] + 0;
+        L2 = LineVertices[nl] + 3;
+        if ( PointOnLineSegment(V1, L1, L2) )
+         FoundV1=1;
+        if ( PointOnLineSegment(V2, L1, L2) )
+         FoundV2=1;
+
+        if (FoundV1 && FoundV2) 
+         break;
       };
+
+     if (FoundV1 && FoundV2)
+      EIndices[NumEdgesOnLine++]=nei;
    };
 
-  Log(" Found %i edges on port line (%g,%g,%g)--(%g,%g,%g):",
-       NumEdgesOnLine,L1[0],L1[1],L1[2],L2[0],L2[1],L2[2]);
+  Log(" Found %i edges on %s edge of port %i: ",PM,PortIndex);
   for(nei=0; nei<NumEdgesOnLine; nei++)
    LogC(" %i",EIndices[nei]);
 
@@ -229,8 +243,8 @@ RWGPort **ParsePortFile(RWGGeometry *G,
   RWGPort **PortArray=0;
   int NumPorts=0;
   int NumPEdges=0, NumMEdges=0;
-  int PLineSpecified=0, MLineSpecified=0;
-  double PLineVertices[6], MLineVertices[6];
+  int NumPLines=0, NumMLines=0;
+  double PLineVertices[MAXLINES][6], MLineVertices[MAXLINES][6];
   int PEIndices[MAXEDGES], MEIndices[MAXEDGES];
   double PRefPoint[3], MRefPoint[3];
   int no;
@@ -261,7 +275,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
       { if ( !strcasecmp(Tokens[0],"PORT") )
          { InPortSection=1;
            NumPEdges=NumMEdges=0;
-           PLineSpecified=MLineSpecified=0;
+           NumPLines=NumMLines=0;
            PRefPointSpecified=MRefPointSpecified=0;
            PObject=MObject=G->Objects[0];
          }
@@ -272,10 +286,10 @@ RWGPort **ParsePortFile(RWGGeometry *G,
       {
         if ( !strcasecmp(Tokens[0],"ENDPORT") )
          { 
-           if ( PLineSpecified )
-            NumPEdges=FindEdgesOnLine(PObject, PLineVertices, PEIndices);
-           if ( MLineSpecified )
-            NumMEdges=FindEdgesOnLine(MObject, MLineVertices, MEIndices);
+           if ( NumPLines > 0)
+            NumPEdges=FindEdgesOnLine(PObject, PLineVertices, NumPLines, PEIndices, "P", NumPorts);
+           if ( NumMLines > 0 )
+            NumMEdges=FindEdgesOnLine(MObject, MLineVertices, NumMLines, MEIndices, "M", NumPorts);
     
            PortArray = (RWGPort **)realloc( PortArray, (NumPorts+1)*sizeof(PortArray[0]) );
            PortArray[NumPorts] = CreatePort(PObject, NumPEdges, PEIndices,
@@ -292,7 +306,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
         else if ( !strcasecmp(Tokens[0],"PEDGES") )
          { if (NumPEdges!=0)
             ErrExit("%s:%i: multiple PEDGES specifications",PortFileName,LineNum);
-           if (PLineSpecified!=0)
+           if (NumPLines!=0)
             ErrExit("%s:%i: PEDGES may not be combined with PLINE ",PortFileName,LineNum);
            for(nt=1; nt<NumTokens; nt++)
             if (1!=sscanf(Tokens[nt],"%i",PEIndices+(nt-1)))
@@ -304,7 +318,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
         else if ( !strcasecmp(Tokens[0],"MEDGES") )
          { if (NumMEdges!=0)
             ErrExit("%s:%i: multiple MEDGES specifications",PortFileName,LineNum);
-           if (MLineSpecified!=0)
+           if (NumMLines!=0)
             ErrExit("%s:%i: MEDGES may not be combined with MLINE ",PortFileName,LineNum);
            for(nt=1; nt<NumTokens; nt++)
             if (1!=sscanf(Tokens[nt],"%i",MEIndices+(nt-1)))
@@ -314,34 +328,34 @@ RWGPort **ParsePortFile(RWGGeometry *G,
             ErrExit("%s:%i: too many edges",PortFileName,LineNum);
          }
         else if ( !strcasecmp(Tokens[0],"PLINE") )
-         { if (PLineSpecified!=0)
-            ErrExit("%s:%i: multiple PLINE specifications",PortFileName,LineNum);
+         { if (NumPLines==MAXLINES)
+            ErrExit("%s:%i: too many PLINE specifications",PortFileName,LineNum);
            if (NumPEdges!=0)
             ErrExit("%s:%i: PLINE may not be combined with PEDGES",PortFileName,LineNum);
            if (NumTokens!=9 || strcasecmp(Tokens[1],"From") || strcasecmp(Tokens[5],"To") ) 
             ErrExit("%s:%i: invalid PLINE syntax",PortFileName,LineNum);
            for(nt=2; nt<5; nt++)
-            if (1!=sscanf(Tokens[nt],"%le",PLineVertices+(nt-2)))
+            if (1!=sscanf(Tokens[nt],"%le",PLineVertices[NumPLines]+(nt-2)))
              ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
            for(nt=6; nt<9; nt++)
-            if (1!=sscanf(Tokens[nt],"%le",PLineVertices+(nt-3)))
+            if (1!=sscanf(Tokens[nt],"%le",PLineVertices[NumPLines]+(nt-3)))
              ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           PLineSpecified=1;
+           NumPLines=1;
          }
         else if ( !strcasecmp(Tokens[0],"MLINE") )
-         { if (MLineSpecified!=0)
-            ErrExit("%s:%i: multiple MLINE specifications",PortFileName,LineNum);
+         { if (NumMLines==MAXLINES)
+            ErrExit("%s:%i: too many MLINE specifications",PortFileName,LineNum);
            if (NumMEdges!=0)
             ErrExit("%s:%i: MLINE may not be combined with MEDGES",PortFileName,LineNum);
            if (NumTokens!=9 || strcasecmp(Tokens[1],"From") || strcasecmp(Tokens[5],"To") ) 
             ErrExit("%s:%i: invalid MLINE syntax",PortFileName,LineNum);
            for(nt=2; nt<5; nt++)
-            if (1!=sscanf(Tokens[nt],"%le",MLineVertices+(nt-2)))
+            if (1!=sscanf(Tokens[nt],"%le",MLineVertices[NumMLines]+(nt-2)))
              ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
            for(nt=6; nt<9; nt++)
-            if (1!=sscanf(Tokens[nt],"%le",MLineVertices+(nt-3)))
+            if (1!=sscanf(Tokens[nt],"%le",MLineVertices[NumMLines]+(nt-3)))
              ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           MLineSpecified=1;
+           NumMLines=1;
          }
         else if ( !strcasecmp(Tokens[0],"PREFPOINT") )
          {
