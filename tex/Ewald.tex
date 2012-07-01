@@ -114,8 +114,16 @@ the complex error function:
 Plugging into (\ref{GB2Sum}), the real-space sum is 
 \begin{align*}
 \GB^{(2)}(k; \vb p; \vb x) 
-&= \frac{1}{2\pi^{3/2}}
-   \sum_{\vb L}
+&= \frac{1}{8\pi}
+   \sum_{\vb L} 
+   \frac{e^{i\vb p \cdot \vb L}}{|\vb x + \vb L|}
+    \bigg\{ e^{ik|\vb x + \vb L|}
+            \erfc\Big[R|\vb x + \vb L| + \frac{ik}{2E} \Big]
+\\
+&\hspace{1.5in}
+ +          e^{-ik|\vb x + \vb L|}
+    \erfc\Big[R|\vb x + \vb L| - \frac{ik}{2E} \Big]
+    \bigg\}
 \end{align*}
 This sum converges very rapidly in real space. Indeed, as soon as 
 $|\vb r + \vb L|$ is greater than a few times $E$, the $\erfc$\!\!
@@ -164,8 +172,8 @@ our equation (\ref{GB1Sum}) is converted into a sum over
 Here the sum is over all vectors $\BG$ that satisfy 
 $\BG \cdot \vb L=2\pi$ for some lattice vector $\vb L,$
 and $A_{\BG}$ is the area of Brillouin zone of the 
-reciprocal lattice.
-\footnote{For a simple rectangular lattice with basis vectors 
+reciprocal lattice.\footnote{For a simple rectangular 
+lattice with basis vectors 
 $$\vb L_1=L_x\vbhat{x}, \qquad \vb L_2=L_y\vbhat{y},$$
 a basis for the reciprocal lattice is 
 $$\BG_1=\frac{2\pi}{L_x}\vbhat{x},\qquad \BG_2=\frac{2\pi}{L_y}\vbhat{y}$$
@@ -190,26 +198,20 @@ Inserting (\ref{DirectToReciprocal}) in (\ref{GB1Sum}), we have
     \frac{ds}{s^2} 
     e^{-\frac{1}{4s^2}[|\BG - \vb p|^2 - k^2] - z^2 s^2}
 \nonumber
-\intertext{Change integration variables according to $s\to\frac{1}{s}$:}
-&=\frac{A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
+\intertext{Change integration variables according to $s\to\frac{1}{2s}$:}
+&=\frac{A_{\BG}}{4\pi^{5/2}} \sum_{\BG} 
     e^{i(\BG-\vb p) \cdot \vb x} 
-    \int_{\frac{1}{E}}^\infty
+    \int_{\frac{1}{2E}}^\infty
     ds
-    e^{-\frac{s^2}{4}[|\BG - \vb p|^2 - k^2] - \frac{z^2}{s^2}}
+    e^{-s^2[|\BG - \vb p|^2 - k^2] - \frac{z^2}{4s^2}}
 \nonumber
-\intertext{Apply identity (\ref{ErfInt}):}
-&=\frac{A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
-    e^{i(\BG-\vb p) \cdot \vb x} 
-    \int_{\frac{1}{E}}^\infty
-    ds
-    e^{-\frac{s^2}{4}[|\BG - \vb p|^2 - k^2] - \frac{z^2}{s^2}}
 \intertext{Evaluate the integral using (\ref{ErfInt}):}
-&=\frac{A_{\BG}}{32\pi^2} \sum_{\BG}
+&=\frac{A_{\BG}}{16\pi^2} \sum_{\BG}
    \frac{e^{i(\BG-\vb p) \cdot \vb x}}{Q(\BG, \vb p, k)} 
-   \bigg\{  e^{+2Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{E} + Qz \Big]
+   \bigg\{  e^{+Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E} + Ez \Big]
 \label{GB1Sum2}\\
 &\hspace{2in}
-          +e^{-2Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{E} - Qz \Big]
+          +e^{-Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E} - Ez \Big]
    \bigg\}
 \nonumber
 \end{align}

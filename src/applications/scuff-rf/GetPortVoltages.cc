@@ -140,10 +140,7 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
         iQ           = Port->PPaneliQs[nPanel];
         
         GetPanelPotentials(O, PanelIndex, iQ, IK, X, PhiA);
-        iwAI -= Weight * (  (PhiA[1]-PhiA[1])*X2mX1[0]
-                           +(PhiA[2]-PhiA[2])*X2mX1[1]
-                           +(PhiA[3]-PhiA[3])*X2mX1[2]
-                         );
+        iwAI -= Weight * ( PhiA[1]*X2mX1[0] + PhiA[2]*X2mX1[1] + PhiA[3]*X2mX1[2] );
       };
      
      /*--------------------------------------------------------------*/
@@ -157,10 +154,7 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
         iQ           = Port->MPaneliQs[nPanel];
         
         GetPanelPotentials(O, PanelIndex, iQ, IK, X, PhiA);
-        iwAI += Weight * (  (PhiA[1]-PhiA[1])*X2mX1[0]
-                           +(PhiA[2]-PhiA[2])*X2mX1[1]
-                           +(PhiA[3]-PhiA[3])*X2mX1[2]
-                         );
+        iwAI += Weight * ( PhiA[1]*X2mX1[0] + PhiA[2]*X2mX1[1] + PhiA[3]*X2mX1[2] );
       };
 
    };
@@ -299,7 +293,6 @@ for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
    += Port->MLengths[nPanel]*PortCurrent/(IW*Port->MPerimeter);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    };
-
 
   /***************************************************************/
   /* ok, now that we know the charge on all panels, go through   */

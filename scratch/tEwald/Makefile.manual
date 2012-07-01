@@ -4,9 +4,18 @@ SCUFFEM = /home/homer/work/scuff-em-installation
 CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
 LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
 
-LIBS = -lscuff -lhdf5_hl -lhdf5 -llapack -lblas -lgomp
+HR_LIBS = -lscuff
+
+OTHER_LIBS = -lreadline -lhdf5_hl -lhdf5 -llapack -lblas -lgomp
+
+LIBS = $(HR_LIBS) $(OTHER_LIBS)
+
+F77 = gfortran
+
+#################################################################
 
 TE = tEwald.o GBarVDEwald.o GBarVDBF.o ACMTOMS680.o cerf.o
+
 
 tEwald:	$(TE)
 	$(CXX) $(LDFLAGS) -o $@ $(TE) $(LIBS)
