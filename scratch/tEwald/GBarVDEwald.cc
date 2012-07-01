@@ -48,9 +48,6 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
   Arg       = 0.5*Q/E + z*E;
  
   ErfcFac   = cerfc( Arg );
-
-printf("Doomatage foryaf %e Q=%e,%e, E=%e, z=%e\n",abs(ErfcFac),real(Q),imag(Q),E,z);
-
   dErfcFac  = -E*exp( -Arg*Arg );
   PlusTerm  = ExpFac*ErfcFac;
   dPlusTerm = dExpFac*ErfcFac + ExpFac*dErfcFac;
@@ -60,9 +57,6 @@ printf("Doomatage foryaf %e Q=%e,%e, E=%e, z=%e\n",abs(ErfcFac),real(Q),imag(Q),
   dExpFac    = -Q*ExpFac;
   Arg        = 0.5*Q/E - z*E;
   ErfcFac    = cerfc( Arg );
-
-printf("Goofatage foryaf %e Q=%e,%e, E=%e, z=%e\n",abs(ErfcFac),real(Q),imag(Q),E,z);
-
   dErfcFac   = +E*exp( -Arg*Arg );
   MinusTerm  = ExpFac*ErfcFac;
   dMinusTerm = dExpFac*ErfcFac + ExpFac*dErfcFac;
