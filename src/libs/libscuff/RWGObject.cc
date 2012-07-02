@@ -125,10 +125,25 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
         // in particular, OTGT is NOT stored as the 'GT' field inside 
         // the Object class, which is intended to be used for 
         // transformations that are applied and later un-applied 
-        // during the life of the object. 
-	OTGT = new GTransformation(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
-        if (ErrMsg)
-         return;
+        // during the life of the object.
+        if (OTGT)
+	 { GTransformation *OTGT2 = new GTransformation(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
+           if (ErrMsg)
+            return;
+
+           OTGT->Transform(OTGT2);
+           delete OTGT2;
+ // 20120701 why is this not the right thing to do? apparently it isn't, but dunno why.
+ //          OTGT2->Transform(OTGT);
+ //          delete OTGT;
+ //          OTGT=OTGT2;
+	 }
+        else
+	 { OTGT = new GTransformation(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
+           if (ErrMsg)
+            return;
+	 };
+	 
         if (TokensConsumed!=NumTokens) 
          { ErrMsg=strdup("junk at end of line");
            return;
@@ -140,7 +155,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
          { ErrMsg=strdup("no argument specified for SURFACE_CONDUCTIVITY");
            return;
          };
-
+;
         /* try to create a cevaluator for the user's function */
         char SigmaString[MAXSTR];
         strncpy(SigmaString,Line + strlen(Tokens[0]) + 1,MAXSTR);

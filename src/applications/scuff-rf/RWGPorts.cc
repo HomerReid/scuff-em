@@ -384,23 +384,17 @@ RWGPort **ParsePortFile(RWGGeometry *G,
          {
            if( NumTokens!=2 )
             ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           for(no=0; no<G->NumObjects; no++)
-            if (!strcasecmp(G->Objects[no]->Label,Tokens[1]))
-             break;
-           if( no==G->NumObjects )
+           PObject=G->GetObjectByLabel(Tokens[1]);
+           if( !PObject )
             ErrExit("%s:%i: could not find object %s in geometry %s", PortFileName,LineNum,Tokens[1],G->GeoFileName);
-           PObject=G->Objects[no]; 
          }
         else if ( !strcasecmp(Tokens[0],"MOBJECT") )
          {
            if( NumTokens!=2 )
             ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           for(no=0; no<G->NumObjects; no++)
-            if (!strcasecmp(G->Objects[no]->Label,Tokens[1]))
-             break;
-           if( no==G->NumObjects )
+           MObject=G->GetObjectByLabel(Tokens[1]);
+           if( !MObject )
             ErrExit("%s:%i: could not find object %s in geometry %s", PortFileName,LineNum,Tokens[1],G->GeoFileName);
-           MObject=G->Objects[no];
          }
        else
         ErrExit("%s:%i: unknown keyword %s",PortFileName,LineNum,Tokens[0]);

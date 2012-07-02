@@ -48,6 +48,7 @@ using namespace scuff;
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 extern FILE *BreakoutFile;
+extern int SkipInterior, SkipExterior;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 
@@ -77,6 +78,7 @@ void HVConcat(HVector *V1, HVector *V2)
 /***************************************************************/  
 int main(int argc, char *argv[])
 {
+EnableAllCPUs();
   /***************************************************************/
   /** process command-line arguments *****************************/
   /***************************************************************/
@@ -96,7 +98,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
-  int Breakout=0;
+int Breakout=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"meshfile",       PA_STRING,  1, 1,       (void *)&MeshFile,   0,             "mesh file"},
@@ -121,6 +123,8 @@ int main(int argc, char *argv[])
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
      {"Breakout",       PA_BOOL,    0, 1,       (void *)&Breakout,   0,             "breakout"},
+{"SkipInterior",       PA_INT,    1, 1,       (void *)&SkipInterior,   0,             "Skipinterior"},
+{"SkipExterior",       PA_INT,    1, 1,       (void *)&SkipExterior,   0,             "Skipexterior"},
 //
      {0,0,0,0,0,0,0}
    };
@@ -303,7 +307,6 @@ int main(int argc, char *argv[])
 if (Breakout)
  BreakoutFile=fopen("/tmp/Breakout.dat","a");
 /*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 
   /***************************************************************/
   /* sweep over frequencies                                      */
