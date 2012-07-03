@@ -5,7 +5,9 @@
 #ifndef RWGCOMPOSITE_H
 #define RWGCOMPOSITE_H
 
-#include <libscuff.h>
+#include "libscuff.h"
+
+namespace scuff {
 
 /***************************************************************/
 /* An PartialSurface is a basically just a collection of RWG   */
@@ -22,13 +24,13 @@
 typedef struct PartialSurface
 {  
   int NumPanels;
-  RWGPanel *Panels;
+  RWGPanel **Panels;
 
   int NumEdges;
-  RWGEdge *Edges;   // internal edges to which we assign a full RWG function
+  RWGEdge **Edges;   // internal edges to which we assign a full RWG function
 
   int NumHEdges;
-  RWGEdge *HEdges;  // external edges to which we assign a half-RWG function
+  RWGEdge **HEdges;  // external edges to which we assign a half-RWG function
 
   int NumTotalEdges;
 
@@ -39,11 +41,12 @@ typedef struct PartialSurface
 /***************************************************************/
 class RWGComposite
  {
+public:
    /*--------------------------------------------------------------*/
    /*- class methods ----------------------------------------------*/
    /*--------------------------------------------------------------*/
-   RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum);
-   ~RWGComposite::RWGComposite();
+   RWGComposite(FILE *f, const char *pLabel, int *LineNum);
+   ~RWGComposite();
 
    /*--------------------------------------------------------------*/
    /*- class data -------------------------------------------------*/
@@ -54,7 +57,7 @@ class RWGComposite
 
    // this is a full list of *all* panels on all PartialSurfaces 
    // in the composite. 
-   RWGPanel *Panels;
+   RWGPanel **Panels;
    int NumPanels;
 
    // for nps = 0 , 1, ..., NumPartialSurfaces-1, 
@@ -68,8 +71,8 @@ class RWGComposite
    MatProp **SubRegionMPs;
 
    // PartialSurface structures for each section of the composite surface
-   PartialSurface *PartialSurfaces;
-   char *PartialSurfaceLabels;
+   PartialSurface **PartialSurfaces;
+   char **PartialSurfaceLabels;
    int NumPartialSurfaces;
    int *NumPanelsPerPartialSurface;
 
@@ -101,7 +104,7 @@ class RWGComposite
    /*--------------------------------------------------------------*/
    void InitRWGComposite(const char *pMeshFileName, const GTransformation *OTGT=0);
    void ReadGMSHFile(FILE *MeshFile, char *FileName, const GTransformation *GT);
-   void InitEdgeList();
+   void InitEdgeList(PartialSurface *PS);
 
  };
 
@@ -110,17 +113,18 @@ typedef struct ACCMBArgStruct
   //RWGGeometry *G;
   RWGComposite *CA, *CB;
   cdouble Omega;
-  HMatrix *M;
+  HMatrix *B;
   int RowOffset, ColOffset;
+  int nThread;
 
 } ACCMBArgStruct;
 
-void AssembleCCMatrixBlock(ACCMBArgStruct *Args);
+void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread=0);
 
 HMatrix *GetFields(RWGComposite *C, int SubRegion,
                    IncField *IF, HVector *KN,
                    cdouble Omega, HMatrix *XMatrix,
-                   HMatrix *FMatrix, char *FuncString,
+                   HMatrix *FMatrix=0, char *FuncString=0,
                    int nThread=0);
 
 HVector AssembleRHSVector_Composite(RWGComposite *C,
@@ -128,5 +132,7 @@ HVector AssembleRHSVector_Composite(RWGComposite *C,
                                                   IncField *IF,
                                                   HVector *RHS,
                                                   int nThread=0);
+
+} // namespace scuff
 
 #endif // ifdef RWGCOMPOSITE

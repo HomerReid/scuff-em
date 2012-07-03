@@ -29,6 +29,7 @@
 #include <math.h>
 
 #include "libscuff.h"
+#include "RWGComposite.h"
 
 namespace scuff {
 
@@ -54,6 +55,7 @@ namespace scuff {
 #define FORMAT_NEW    1
 
 #define MAXREFPTS 100
+#define MAXSTR    100
 
 /*************************************************************/
 /*************************************************************/
@@ -79,6 +81,7 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
   int RefPntIndices[MAXREFPTS];
 
   int nps;
+  char RPStr[MAXSTR];
  
   /*------------------------------------------------------------*/
   /* Read lines until we hit the keyword indicating the start   */
@@ -137,7 +140,7 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
   /*- Eliminate any redundant vertices from the vertex list.   -*/
   /*- Explain me in greater detail please.                     -*/
   /*------------------------------------------------------------*/
-  NumRedundantVertices=0;
+  int NumRedundantVertices=0;
   for(i=0; i<NumVertices; i++)
    for(j=i+1; j<NumVertices; j++)
     if ( VecDistance(Vertices+3*i, Vertices+3*j) < 1.0e-6 )
@@ -192,7 +195,8 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
   /*------------------------------------------------------------*/
   /*- Now read each line of the elements section.               */ 
   /*------------------------------------------------------------*/
-  NumPanels=NumRefPts=0;
+  NumPanels=0;
+  int NumRefPts=0;
   Panels=(RWGPanel **)mallocEC(NumElements * sizeof(Panels[0]));
   for (ne=0; ne<NumElements; ne++)
    { 
@@ -263,7 +267,7 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
 
           // find the index of the open surface corresponding 
           // to this panel and increment its number of panels.
-          snprintf(RPStr, 100, "%i", RegPhys);
+          snprintf(RPStr, MAXSTR , "%i", RegPhys);
           for(nps=0; nps<NumPartialSurfaces; nps++)
            if ( !strcmp(RPStr, PartialSurfaceLabels[nps]) )
             break;

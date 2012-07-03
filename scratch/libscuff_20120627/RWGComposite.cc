@@ -11,9 +11,14 @@
 #include <math.h>
 
 #include <libhrutil.h>
-#include <libscuff.h>
 
+#include "libscuff.h"
 #include "RWGComposite.h"
+
+#define MAXSTR 1000
+#define MAXTOK 50
+
+namespace scuff{
 
 /*--------------------------------------------------------------*/
 /*-  RWGComposite constructor that begins reading an open      -*/
@@ -50,13 +55,12 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
 
   PartialSurfaces=0 ;
   NumPartialSurfaces=0;
-  PartialSurfaceIDs=0;
 
   // 
   // explain me  
   // 
   NumSubRegions = 0; 
-  SubRegionMPs = (MatProp *) mallocEC( 1*sizeof(MatProp *) );
+  SubRegionMPs = (MatProp **) mallocEC( 1*sizeof(MatProp *) );
 
   Log("Processing COMPOSITE %s",pLabel);
 
@@ -109,7 +113,7 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
 
         // add a new region to the list of regions for this composite
         NumSubRegions++;
-        SubRegionMPs=(MatProp *)realloc(SubRegionMPs, (NumSubRegions+1)*sizeof(MatProp *));
+        SubRegionMPs=(MatProp **)realloc(SubRegionMPs, (NumSubRegions+1)*sizeof(MatProp *));
         SubRegionMPs[NumSubRegions]=MP;
         Log(" Adding new subregion (%i) for material %s",NumSubRegions,MP->Name);
 
@@ -131,16 +135,16 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
         if (ErrMsg)
          return;
 
-        // add a new open surface to this composite.
+        // add a new partial surface to this composite.
         //  (actually for now we just make a note of its existence; the
         //   actual PartialSurface data structure is not created until later)
         NumPartialSurfaces++;
-        PartialSurfaceLabels=(char *)realloc(PartialSurfaceLabels, NumPartialSurfaces * sizeof(char *) );
+        PartialSurfaceLabels=(char **)realloc(PartialSurfaceLabels, NumPartialSurfaces * sizeof(char *) );
         PartialSurfaceLabels[NumPartialSurfaces-1]=vstrdup(Tokens[1]);
         PSSubRegions = (int *)realloc(PSSubRegions, 2*NumPartialSurfaces*sizeof(int) );
         PSSubRegions[ 2*(NumPartialSurfaces-1) + 0 ] = SubRegionID1;
         PSSubRegions[ 2*(NumPartialSurfaces-1) + 1 ] = SubRegionID2;
-        Log(" Adding new open surface (mesh physical surface %i) bounding %s and %s", 
+        Log(" Adding new partial surface (mesh physical surface %i) bounding %s and %s", 
               PartialSurfaceID, 
               SubRegionMPs[SubRegionID1] ? SubRegionMPs[SubRegionID1]->Name : "exterior",
               SubRegionMPs[SubRegionID2] ? SubRegionMPs[SubRegionID2]->Name : "exterior");
@@ -191,7 +195,7 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void RWGComposite::InitRWGComposite(char *pMeshFileName, GTransformation *OTGT)
+void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransformation *OTGT)
 {
   ErrMsg=0;
   //kdPanels = NULL;
@@ -206,8 +210,7 @@ void RWGComposite::InitRWGComposite(char *pMeshFileName, GTransformation *OTGT)
   /*------------------------------------------------------------*/
   /*- initialize simple fields ---------------------------------*/
   /*------------------------------------------------------------*/
-  NumEdges=NumPanels=NumVertices=NumRefPts=0;
-  ContainingObject=0;
+  NumPanels=NumVertices=0;
   MeshFileName=strdup(pMeshFileName);
 
   NumPanelsPerPartialSurface=(int *)mallocEC(NumPartialSurfaces*sizeof(int));
@@ -244,7 +247,7 @@ void RWGComposite::InitRWGComposite(char *pMeshFileName, GTransformation *OTGT)
   BFIndexOffset=(int *)mallocEC(NumPartialSurfaces*sizeof(int));
   PartialSurface *PS;
   int np, npTPS;
-  NumBFs=0;
+  TotalBFs=0;
   for(int nps=0; nps<NumPartialSurfaces; nps++)
    { 
      // create a new PartialSurface structure for this partial surface 
@@ -255,20 +258,22 @@ void RWGComposite::InitRWGComposite(char *pMeshFileName, GTransformation *OTGT)
      // within the PartialSurface structure are just pointers to 
      // the same RWGPanel structures that were created by the 
      // meshfile input routine. 
-     // note: npTPS = 'num panels, this open surface'
-     PS->NumPanels = NumPanelsPerPartialSurface[nos];
-     PS->Panels=(RWGPanel *)mallocEC(PS->NumPanels*sizeof(RWGPanel *));
+     // note: npTPS = 'num panels, this partial surface'
+     PS->NumPanels = NumPanelsPerPartialSurface[nps];
+     PS->Panels=(RWGPanel **)mallocEC(PS->NumPanels*sizeof(RWGPanel *));
      for(npTPS=np=0; np<NumPanels; np++)
       if ( Panels[np]->SurfaceIndex==nps )
        PartialSurfaces[nps]->Panels[npTPS++]= Panels[np];
 
-     // analyze edge connectivity for this open surface 
-     InitEdgeList();
+     // analyze edge connectivity for this partial surface 
+     InitEdgeList(PS);
 
-     NumBFs += 2*(OS->NumEdges + OS->NumHEdges);
+     TotalBFs += 2*(PS->NumEdges + PS->NumHEdges);
 
-     BFIndexOffset[nps] = (nps==0) ? 0 : NumBFs + BFIndexOffset[nps-1];
+     BFIndexOffset[nps] = (nps==0) ? 0 : TotalBFs + BFIndexOffset[nps-1];
 
    };
 
-} 
+}
+
+} // namespace scuff

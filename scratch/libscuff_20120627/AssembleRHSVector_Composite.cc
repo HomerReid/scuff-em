@@ -33,6 +33,7 @@
 #include <libhmat.h>
 
 #include "libscuff.h"
+#include "RWGComposite.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -65,7 +66,7 @@ typedef struct InnerProductIntegrandData
 /* integrand routine passed to TriInt. this returns the dot    */
 /* product of the RWG basis function at point X with the       */
 /* electric field at point X, and optionally the dot product   */
-/* with the magnetic field as well.                            */
+/* with the magnteic field as well.                            */
 /***************************************************************/
 static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 { 
@@ -100,7 +101,7 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 } 
 
 /***************************************************************/
-/* Calculate the inner product of given electric and magnetic  */
+/* Calculate the inner product of given electric and magnteic  */
 /* fields with the basis function associated with edge #ne on  */
 /* the given RWGObject.                                        */
 /*                                                             */
@@ -110,10 +111,10 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 /* NegativeIFs[0..NNegativeIFs] are IncFields whose fields     */
 /* contribute with a negative sign.                            */
 /*                                                             */
-/* If pHProd==0, we skip the computation of the magnetic-field */
+/* If pHProd==0, we skip the computation of the magnteic-field */
 /* inner product.                                              */
 /***************************************************************/
-void GetInnerProducts(RWGEdge *E, RWGPanel *Panels, double *Vertices,
+void GetInnerProducts(RWGEdge *E, RWGPanel **Panels, double *Vertices,
                       IncField **PositiveIFs, int NPositiveIFs,
                       IncField **NegativeIFs, int NNegativeIFs,
                       cdouble *pEProd, cdouble *pHProd)
@@ -206,23 +207,24 @@ static void *AssembleRHS_Thread(void *data)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  OpenSurface *OS;
+  PartialSurface *PS;
   RWGEdge *E;
-  int nos, net, Offset;
+  int nps, nte, Offset;
   cdouble EProd, HProd;
   IncField *IF;
-  for(nos=0; nos<C->NumOpenSurfaces; nos++)
+  int nt;
+  for(nps=0; nps<C->NumPartialSurfaces; nps++)
    { 
-     OS=C->OpenSurfaces[nos];
-     Offset = C->BFIndexOffset[nos];
+     PS=C->PartialSurfaces[nps];
+     Offset = C->BFIndexOffset[nps];
 
      /*--------------------------------------------------------------*/
      /*- go through the list of IncField structures to identify the -*/
      /*- sublists of IFs that contribute with a plus sign and with  -*/
      /*- a minus sign to the RHS vector for this region.            -*/
      /*--------------------------------------------------------------*/
-     if ( (C->Regions[2*nos+0]!=0) && (C->Regions[2*nos+1]!=0) ) 
-      { Log("partial surface %i does not contribute to RHS; skipping",nos);
+     if ( (C->PSSubRegions[2*nps+0]!=0) && (C->PSSubRegions[2*nps+1]!=0) ) 
+      { Log("partial surface %i does not contribute to RHS; skipping",nps);
         continue;
       };
      for(NPositiveIFs=NNegativeIFs=0, IF=IFList; IF; IF=IF->Next)
@@ -233,24 +235,24 @@ static void *AssembleRHS_Thread(void *data)
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     for(net=0; net<OS->NumTotalEdges; net++)
+     for(nte=0; nte<PS->NumTotalEdges; nte++)
       { 
         nt++;
         if (nt==TD->nThread) nt=0;
         if (nt!=TD->nt) continue;
 
-        if ( net<OS->NumEdges )
-         E=OS->Edges[net];
+        if ( nte<PS->NumEdges )
+         E=PS->Edges[nte];
         else
-         E=OS->HEdges[ net - OS->NumEdges ];
+         E=PS->HEdges[ nte - PS->NumEdges ];
 
-        GetInnerProducts(E, Panels, Vertices,
+        GetInnerProducts(E, PS->Panels, C->Vertices,
                          PositiveIFs, NPositiveIFs,
                          NegativeIFs, NNegativeIFs,
-                         &EProd, IsPEC ? 0 : &HProd );
+                         &EProd, &HProd );
 
-        RHS->SetEntry(Offset + 2*net+0, EProd / ZVAC);
-        RHS->SetEntry(Offset + 2*net+1, HProd);
+        RHS->SetEntry(Offset + 2*nte+0, EProd / ZVAC);
+        RHS->SetEntry(Offset + 2*nte+1, HProd);
 
       }; // for ne=...
 
@@ -277,7 +279,8 @@ HVector AssembleRHSVector_Composite(RWGComposite *C,
   if (nThread <= 0) 
    nThread = GetNumThreads();
 
-  int nt, NIF=UpdateIncFields(IF, Omega);
+  //int nt, NIF=UpdateIncFields(IF, Omega);
+  int nt, NIF=1; // FIXME 
 
   ThreadData ReferenceTD;
  // ReferenceTD.G=this;

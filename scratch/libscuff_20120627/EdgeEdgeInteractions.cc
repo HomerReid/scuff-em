@@ -52,11 +52,11 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   /* local copies of fields in argument structure ****************/
   /***************************************************************/
   RWGEdge *Ea               = Args->Ea;
-  RWGPanel *PanelsA         = Args->PanelsA;
+  RWGPanel **PanelsA        = Args->PanelsA;
   double *VerticesA         = Args->VerticesA;
 
   RWGEdge *Eb               = Args->Eb;
-  RWGPanel *PanelsB         = Args->PanelsB;
+  RWGPanel **PanelsB        = Args->PanelsB;
   double *VerticesB         = Args->VerticesB;
 
   cdouble k                 = Args->k; 
@@ -186,33 +186,6 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   for(Mu=0; Mu<NumTorqueAxes; Mu++)
    { Args->dGCdT[2*Mu+0] = GPreFac*( dHdTPP[2*Mu+0] - dHdTPM[2*Mu+0] - dHdTMP[2*Mu+0] + dHdTMM[2*Mu+0]);
      Args->dGCdT[2*Mu+1] = CPreFac*( dHdTPP[2*Mu+1] - dHdTPM[2*Mu+1] - dHdTMP[2*Mu+1] + dHdTMM[2*Mu+1]);
-   };
-
-  /*--------------------------------------------------------------*/
-  /*- NOTE: explain me -------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if ( Eb->iMPanel == -1 )
-   { 
-     cdouble DG;
-
-     double *EV[2];
-     EV[0] = VerticesB + 3*(Eb->iV1);
-     EV[1] = VerticesB + 3*(Eb->iV2);
-
-     double *PV[3];
-
-     PV[0] = VerticesA + 3*(Ea->iQP);
-     PV[1] = VerticesA + 3*(Ea->iV1);
-     PV[2] = VerticesA + 3*(Ea->iV2);
-     DG = GetEdgePanelInteraction(PV, EV, K);
-
-     if (Eb->iMPanel!=-1)
-      { PV[0] = VerticesA + 3*(Ea->iQM);
-        DG - GetEdgePanelInteraction(PV, EV, K);
-      };
-
-     Args->DeltaGPanelEdge = GPreFac * DG;
-
    };
 
 }

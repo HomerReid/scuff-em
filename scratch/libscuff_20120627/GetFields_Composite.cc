@@ -34,6 +34,7 @@
 #include <libTriInt.h>
 
 #include "libscuff.h"
+#include "RWGComposite.h"
 #include "FieldGrid.h"
 
 #ifdef HAVE_CONFIG_H
@@ -111,24 +112,29 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /***************************************************************/
 /***************************************************************/
 extern double *QR10;
-void GetEdgeContributionToGradp(double *X0, double *V1, double *V2, 
+void GetEdgeContributionToGradp(const double *X0, double *V1, double *V2, 
                                 cdouble K, cdouble *Gradp)
 {
   int np;
-  double u, w, X0mV1[3], V2mV1[3], X0mX;
+  double u, w, X0mV1[3], V2mV1[3], X0mX[3], r;
   cdouble Psi;
+
 // R = X0 - X = X0 - ( V1 + u*(V2-V1) )
+
+  int NumPts=10;
+  double *QR=QR10;
 
   VecSub(V2, V1, V2mV1);
   VecSub(X0, V1, X0mV1);
   Gradp[0]=Gradp[1]=Gradp[2]=0.0;
-  for(np=0; np<10; np++)
+
+  for(np=0; np<NumPts; np++)
    { 
      u=QR[2*np+0]; w=QR[2*np+1];
 
-     X0mX[0]= X0mV1[0] + u*V2mV1[0];
-     X0mX[1]= X0mV1[1] + u*V2mV1[1];
-     X0mX[2]= X0mV1[2] + u*V2mV1[2];
+     X0mX[0] = X0mV1[0] + u*V2mV1[0];
+     X0mX[1] = X0mV1[1] + u*V2mV1[1];
+     X0mX[2] = X0mV1[2] + u*V2mV1[2];
 
      r=VecNorm(X0mX);
 
@@ -154,10 +160,11 @@ void GetEdgeContributionToGradp(double *X0, double *V1, double *V2,
 /*  a_i(x) = \int G(x,y) f_i(y) dy                             */
 /*                                                             */
 /***************************************************************/
-void RWGObject::GetReducedPotentials(RWGEdge *E, RWGPanel **Panels, double *Vertices
-                                     const double *X, cdouble K,
-                                     cdouble *a, cdouble *Curla,
-                                     cdouble *Gradp)
+void GetReducedPotentials(RWGEdge *E, RWGPanel **Panels, 
+                          double *Vertices,
+                          const double *X, cdouble K,
+                          cdouble *a, cdouble *Curla,
+                          cdouble *Gradp)
 {
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;
@@ -194,13 +201,13 @@ void RWGObject::GetReducedPotentials(RWGEdge *E, RWGPanel **Panels, double *Vert
    }
   else // if there is no negative panel then there is a line-charge edge 
    { memset(IM, 0, 9*sizeof(cdouble));
-     Gradp_Edge = GetEdgeContributionToGradp(X0, V1, V2, K, GradpEdge); 
+     GetEdgeContributionToGradp(X, V1, V2, K, Gradp_Edge); 
    };
 
   for(mu=0; mu<3; mu++) 
    { a[mu]     = IP[mu]   - IM[mu];
      Curla[mu] = IP[mu+3] - IM[mu+3];
-     Gradp[mu] = IP[mu+6] - IM[mu+6] + GradpEdge[mu];
+     Gradp[mu] = IP[mu+6] - IM[mu+6] + Gradp_Edge[mu];
    };
 
 }
@@ -223,17 +230,19 @@ void GetScatteredFields(RWGComposite *C,
   cdouble iwu=II*Omega*Mu;
   cdouble K=csqrt2(Eps*Mu)*Omega;
 
-  int nps, nte, Offset;
+  int nps, nte, Offset, i;
   double Sign;
   cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
+  PartialSurface *PS;
+  RWGEdge *E;
   for(nps=0; nps<C->NumPartialSurfaces; nps++)
    { 
      /***************************************************************/
      /***************************************************************/
      /***************************************************************/
-     if ( C->SubRegions[2*nps + 0] == SubRegion )
+     if ( C->PSSubRegions[2*nps + 0] == SubRegion )
       Sign=1.0;
-     else if ( C->SubRegions[2*nps + 1] == SubRegion )
+     else if ( C->PSSubRegions[2*nps + 1] == SubRegion )
       Sign=-1.0;
      else
       continue;
@@ -244,12 +253,17 @@ void GetScatteredFields(RWGComposite *C,
      /***************************************************************/
      PS=C->PartialSurfaces[nps];
      Offset = C->BFIndexOffset[nps];
-     for(nte=0; nte<PS->NumTotalEdges; ne++)
+     for(nte=0; nte<PS->NumTotalEdges; nte++)
       { 
         KAlpha = Sign*KN->GetEntry( Offset + 2*nte + 0 );
         NAlpha = Sign*KN->GetEntry( Offset + 2*nte + 1 );
-      
-        GetReducedPotentials(PS->Edges[nte], PS->Panels, C->Vertices, 
+
+        if ( nte<PS->NumEdges )
+         E=PS->Edges[nte];
+        else
+         E=PS->HEdges[ nte - PS->NumEdges ];
+
+        GetReducedPotentials(E, PS->Panels, C->Vertices, 
                              X, K, a, Curla, Gradp);
 
         for(i=0; i<3; i++)
@@ -386,8 +400,6 @@ HMatrix *GetFields(RWGComposite *C, int SubRegion,
                    cdouble Omega, HMatrix *XMatrix,
                    HMatrix *FMatrix, char *FuncString,
                    int nThread)
-#endif
-{ 
 { 
   if (nThread <= 0) nThread = GetNumThreads();
  
@@ -503,6 +515,7 @@ HMatrix *GetFields(RWGComposite *C, int SubRegion,
 /***************************************************************/
 /* simple interface to GetFields *******************************/
 /***************************************************************/
+#if 0
 void GetFields(RWGComposite *C, int SubRegion,
                IncField *IF, HVector *KN, cdouble Omega, double *X,
                cdouble *EH, int nThread)
@@ -513,6 +526,7 @@ void GetFields(RWGComposite *C, int SubRegion,
 
   GetFields(C, SubRegion, IF, KN, Omega, &XMatrix, &FMatrix, 0, nThread);
 } 
+#endif
 
 
 } // namespace scuff

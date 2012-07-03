@@ -107,7 +107,7 @@ int QROrder=-1, TCROrder=-1;
 /*- EV[1][0..2] = cartesian coordinates of edge vertex 2        */
 /*-                                                             */
 /*--------------------------------------------------------------*/
-void GetEPI_Cubature(double **PV, double **EV, cdouble K)
+cdouble GetEPI_Cubature(double **PV, double **EV, cdouble K)
 { 
 
   /***************************************************************/

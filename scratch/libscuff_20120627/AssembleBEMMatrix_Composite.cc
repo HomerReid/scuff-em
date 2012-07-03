@@ -39,6 +39,7 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
+#include "RWGComposite.h"
 
 #include "cmatheval.h"
 
@@ -58,7 +59,7 @@ namespace scuff {
 /***************************************************************/
 typedef struct ThreadData
  { 
-   AOCMBArgStruct *Args;
+   ACCMBArgStruct *Args;
    int nt, nThread;
 
  } ThreadData;
@@ -72,12 +73,12 @@ void *ACCMBThread(void *data)
   /* local copies of fields in argument structure                */
   /***************************************************************/
   ThreadData *TD = (ThreadData *)data;
-  AOCMBArgStruct *Args  = TD->Args;
+  ACCMBArgStruct *Args  = TD->Args;
   //RWGGeometry *G        = Args->G;
   RWGComposite *CA      = Args->CA;
   RWGComposite *CB      = Args->CB;
   cdouble Omega         = Args->Omega;
-  HMatrix *M            = Args->M;
+  HMatrix *B            = Args->B;
   int RowOffset         = Args->RowOffset;
   int ColOffset         = Args->ColOffset;
 
@@ -92,11 +93,31 @@ void *ACCMBThread(void *data)
   int SubRegionA1, SubRegionA2, SubRegionB1, SubRegionB2;
   int CommonSubRegion[2], NumCommonSubRegions;
 
-  cdouble Eps1, Mu1, k1, EEPreFac1, MEPreFac1, MMPreFac1;
-  cdouble Eps2, Mu2, k2, EEPreFac2, MEPreFac2, MMPreFac2;
+  PartialSurface *PSA, *PSB;
+  int OffsetA, OffsetB;
 
-  cdouble GC[2];
+  cdouble Eps1, Mu1, k1, EEPreFac1, EMPreFac1, MMPreFac1;
+  cdouble Eps2, Mu2, k2, EEPreFac2, EMPreFac2, MMPreFac2;
 
+  cdouble Sign=1.0;
+  int Symmetric=0;
+
+  int nt;
+          
+  /***************************************************************/
+  /* preinitialize an argument structure to be passed to         */
+  /* GetEdgeEdgeInteractions() below                             */
+  /***************************************************************/
+  GetEEIArgStruct MyGetEEIArgs, *GetEEIArgs=&MyGetEEIArgs;
+  InitGetEEIArgs(GetEEIArgs);
+  // pointers to fields inside the structure 
+  cdouble *GC=GetEEIArgs->GC;
+  cdouble *GradGC=GetEEIArgs->GradGC;
+  cdouble *dGCdT=GetEEIArgs->dGCdT;
+
+  /***************************************************************/
+  /* loop over all partial surfaces on both RWGComposites        */
+  /***************************************************************/
   for(npsa=0; npsa<NPSA; npsa++)
    for(npsb=0; npsb<NPSB; npsb++)
     { 
@@ -105,10 +126,10 @@ void *ACCMBThread(void *data)
       /* or 2 subregions in common. if the answer is 0 then basis     */
       /* functions on these two partial surfaces do not interact.     */
       /*--------------------------------------------------------------*/
-      SubRegionA1 = SubRegions[2*npsa+0];
-      SubRegionA2 = SubRegions[2*npsa+1];
-      SubRegionB1 = SubRegions[2*npsb+0];
-      SubRegionB2 = SubRegions[2*npsb+1];
+      SubRegionA1 = CA->PSSubRegions[2*npsa+0];
+      SubRegionA2 = CA->PSSubRegions[2*npsa+1];
+      SubRegionB1 = CB->PSSubRegions[2*npsb+0];
+      SubRegionB2 = CB->PSSubRegions[2*npsb+1];
       NumCommonSubRegions=0;
       if ( SubRegionA1==SubRegionB1 || SubRegionA1==SubRegionB2 )
        CommonSubRegion[NumCommonSubRegions++]=SubRegionA1;
@@ -123,53 +144,41 @@ void *ACCMBThread(void *data)
       if ( (CA!=CB) )
        ErrExit("%s:%i: feature not yet implemented",__FILE__,__LINE__);
 
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      Eps1=EpsTF[ CommonSubRegion[0] ];
-      Mu1=EpsTF[ CommonSubRegion[0] ];
+      PSA=CA->PartialSurfaces[npsa];
+      PSB=CB->PartialSurfaces[npsb];
+
+      Eps1=CA->EpsTF[ CommonSubRegion[0] ];
+      Mu1=CA->EpsTF[ CommonSubRegion[0] ];
       k1=csqrt2(Eps1*Mu1)*Omega;
       EEPreFac1 = Sign*II*Mu1*Omega;
       EMPreFac1 = -Sign*II*k1;
       MMPreFac1 = -1.0*Sign*II*Eps1*Omega;
 
       if (NumCommonSubRegions==2)
-       { Eps2=EpsTF[ CommonSubRegion[1] ]; 
-         Mu2=EpsTF[ CommonSubRegion[1] ]; }
+       { Eps2=CA->EpsTF[ CommonSubRegion[1] ]; 
+         Mu2=CA->EpsTF[ CommonSubRegion[1] ]; }
          k2=csqrt2(Eps2*Mu2)*Omega;
          EEPreFac2 = Sign*II*Mu2*Omega;
          EMPreFac2 = -Sign*II*k2;
          MMPreFac2 = -1.0*Sign*II*Eps2*Omega;
        };
 
-      /***************************************************************/
-      /* preinitialize an argument structure to be passed to         */
-      /* GetEdgeEdgeInteractions() below                             */
-      /***************************************************************/
-      GetEEIArgStruct MyGetEEIArgs, *GetEEIArgs=&MyGetEEIArgs;
-      InitGetEEIArgs(GetEEIArgs);
-
-      GetEEIArgs->PanelsA=OSA->Panels;
+      GetEEIArgs->PanelsA=PSA->Panels;
       GetEEIArgs->VerticesA=CA->Vertices;
-      GetEEIArgs->PanelsB=OSB->Panels;
+      GetEEIArgs->PanelsB=PSB->Panels;
       GetEEIArgs->VerticesB=CB->Vertices;
-      GetEEIArgs->NumGradientComponents = GradB ? 3 : 0;
-      GetEEIArgs->NumTorqueAxes=NumTorqueAxes;
-      GetEEIArgs->GammaMatrix=GammaMatrix;
+      //GetEEIArgs->NumGradientComponents = GradB ? 3 : 0;
+      //GetEEIArgs->NumTorqueAxes=NumTorqueAxes;
+      //GetEEIArgs->GammaMatrix=GammaMatrix;
     
-      /* pointers to arrays inside the structure */
-      cdouble *GC=GetEEIArgs->GC;
-      cdouble *GradGC=GetEEIArgs->GradGC;
-      cdouble *dGCdT=GetEEIArgs->dGCdT;
-          
       /*--------------------------------------------------------------*/
       /* now loop over all basis functions (both full and half RWG    */
       /* functions) on partial surfaces #npsa and #npsb.              */
       /*--------------------------------------------------------------*/
-      NTEA=PartialSurfaces[npsa]->NumTotalEdges;
-      OffsetA = RowOffset + BFIndexOffset[npsa];
-      NTEB=PartialSurfaces[npsb]->NumTotalEdges;
-      OffsetB = ColOffset + BFIndexOffset[npsb];
+      NTEA=PSA->NumTotalEdges;
+      OffsetA = RowOffset + CA->BFIndexOffset[npsa];
+      NTEB=PSB->NumTotalEdges;
+      OffsetB = ColOffset + CB->BFIndexOffset[npsb];
       for(ntea=0; ntea<NTEA; ntea++)
        for(nteb=Symmetric*ntea; nteb<NTEB; nteb++)
         { 
@@ -183,9 +192,21 @@ void *ACCMBThread(void *data)
              MutexLog("%i0 %% (%i/%i)...",PerCent,ntea,NTEA);
           
           GetEEIArgs->k=k1;
-          GetEEIArgs->Ea=PartialSurfaces[npsa]->Edges[ntea];
-          GetEEIArgs->Eb=PartialSurfaces[npsa]->Edges[nteb];
-          GetEdgeEdgeInteractions(&GetEEIArgs);
+/* FIXME */
+          if (ntea<PSA->NumEdges)
+           GetEEIArgs->Ea=PSA->Edges[ntea];
+          else
+           GetEEIArgs->Ea=PSA->HEdges[ntea - PSA->NumEdges];
+
+          if (nteb<PSB->NumEdges)
+           GetEEIArgs->Eb=PSB->Edges[nteb];
+          else
+           GetEEIArgs->Eb=PSB->HEdges[nteb - PSB->NumEdges];
+  
+//          GetEEIArgs->Ea=PSA->Edges[ntea];
+//          GetEEIArgs->Eb=PSB->Edges[nteb];
+
+          GetEdgeEdgeInteractions(GetEEIArgs);
 
           B->SetEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+0, EEPreFac1*GC[0]);
           B->SetEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+1, EMPreFac1*GC[1]);
@@ -194,7 +215,7 @@ void *ACCMBThread(void *data)
           
           if (NumCommonSubRegions==2)
            { GetEEIArgs->k=k2;
-             GetEdgeEdgeInteractions(&GetEEIArgs);
+             GetEdgeEdgeInteractions(GetEEIArgs);
              B->AddEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+0, EEPreFac2*GC[0]);
              B->AddEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+1, EMPreFac2*GC[1]);
              B->AddEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+0, EMPreFac2*GC[1]);
@@ -214,7 +235,7 @@ void *ACCMBThread(void *data)
 /***************************************************************/  
 /***************************************************************/  
 /***************************************************************/
-void AssembleCCMatrixBlock(ACCMBArgStruct *Args)
+void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread)
 { 
   /***************************************************************/
   /***************************************************************/
@@ -232,7 +253,7 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args)
   for(nsr=0; nsr<CA->NumSubRegions; nsr++)
    CA->SubRegionMPs[nsr] -> GetEpsMu(Omega, CA->EpsTF + nsr, CA->MuTF + nsr);
   if (CB!=CA)
-   { for(nsr=0; nr<CB->NumSubRegions; nsr++)
+   { for(nsr=0; nsr<CB->NumSubRegions; nsr++)
       CB->SubRegionMPs[nsr] -> GetEpsMu(Omega, CB->EpsTF + nsr, CB->MuTF + nsr);
    };
 
@@ -241,7 +262,10 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args)
   /***************************************************************/
   GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
 
-  int nt, nThread=Args->nThread;
+  if (nThread==0) 
+   nThread=GetNumThreads();
+
+  int nt;
 
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[nThread], *TD;
