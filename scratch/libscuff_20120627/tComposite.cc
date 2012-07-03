@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
   ACCMBArgs->ColOffset=0;
 
   AssembleCCMatrixBlock(ACCMBArgs);
+  AddEdgePanelContributions(ACCMBArgs);
 
   M->LUFactorize();
   StoreCache("BiHemisphere.scuffcache");
@@ -87,7 +88,7 @@ int main(int argc, char *argv[])
   HMatrix *EvalPoints0=new HMatrix(NXPoints*NZPoints,3);
   HMatrix *EvalPoints1=new HMatrix(NXPoints*NZPoints,3);
   HMatrix *EvalPoints2=new HMatrix(NXPoints*NZPoints,3);
-  int nr0, nr1, nr2;
+  int nr0=0, nr1=0, nr2=0;
   for(X=XMin; X<=1.01*XMax; X+= (XMax-XMin)/((double)(NXPoints-1)))
    for(Z=ZMin; Z<=1.01*ZMax; Z+= (ZMax-ZMin)/((double)(NZPoints-1)))
     { 
@@ -156,5 +157,40 @@ int main(int argc, char *argv[])
   HMatrix *FMatrix0=GetFields(C, 0, &PW, KN, Omega, EP0);
   HMatrix *FMatrix1=GetFields(C, 1, &PW, KN, Omega, EP0);
   HMatrix *FMatrix2=GetFields(C, 2, &PW, KN, Omega, EP2);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  f=fopen("tComposite.out","w"); 
+  SetDefaultCD2SFormat("%+10.3e %+10.3e");
+  for(nr=0; nr<nr0; nr++)
+   { fprintf(f,"%e %e %e ", EP0->GetEntryD(nr,0), EP0->GetEntryD(nr,1), EP0->GetEntryD(nr,2));
+     fprintf(f,"%s %s %s %s %s %s \n", CD2S(FMatrix0->GetEntry(nr,0)), CD2S(FMatrix0->GetEntry(nr,1)), 
+                                       CD2S(FMatrix0->GetEntry(nr,2)), CD2S(FMatrix0->GetEntry(nr,3)), 
+                                       CD2S(FMatrix0->GetEntry(nr,4)), CD2S(FMatrix0->GetEntry(nr,5)));
+   };
+  fprintf(f,"\n\n");
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  for(nr=0; nr<nr1; nr++)
+   { fprintf(f,"%e %e %e ", EP1->GetEntryD(nr,0), EP1->GetEntryD(nr,1), EP1->GetEntryD(nr,2));
+     fprintf(f,"%s %s %s %s %s %s \n", CD2S(FMatrix1->GetEntry(nr,0)), CD2S(FMatrix1->GetEntry(nr,1)), 
+                                       CD2S(FMatrix1->GetEntry(nr,2)), CD2S(FMatrix1->GetEntry(nr,3)), 
+                                       CD2S(FMatrix1->GetEntry(nr,4)), CD2S(FMatrix1->GetEntry(nr,5)));
+   };
+  fprintf(f,"\n\n");
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  for(nr=0; nr<nr2; nr++)
+   { fprintf(f,"%e %e %e ", EP2->GetEntryD(nr,0), EP1->GetEntryD(nr,1), EP2->GetEntryD(nr,2));
+     fprintf(f,"%s %s %s %s %s %s \n", CD2S(FMatrix2->GetEntry(nr,0)), CD2S(FMatrix2->GetEntry(nr,1)), 
+                                       CD2S(FMatrix2->GetEntry(nr,2)), CD2S(FMatrix2->GetEntry(nr,3)), 
+                                       CD2S(FMatrix2->GetEntry(nr,4)), CD2S(FMatrix2->GetEntry(nr,5)));
+   };
+  fprintf(f,"\n\n");
 
 }

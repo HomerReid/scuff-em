@@ -18,15 +18,6 @@
  */
 
 /*
- * AssembleBEMMatrix.cc -- libscuff routine for assembling a single 
- *                      -- block of the BEM matrix (i.e. the       
- *                      -- interactions of two objects in the geometry)
- *                      --
- *                      -- (cf. 'libscuff Implementation and Technical
- *                      --  Details', section 8.3, 'Structure of the BEM
- *                      --  Matrix.')
- *                      --
- * homer reid           -- 10/2006 -- 6/2012
  */
 
 #include <stdio.h>
@@ -67,7 +58,7 @@ typedef struct ThreadData
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void *ACCMBThread(void *data)
+void *AEPCThread(void *data)
 {
   /***************************************************************/
   /* local copies of fields in argument structure                */
@@ -95,6 +86,8 @@ void *ACCMBThread(void *data)
 
   PartialSurface *PSA, *PSB;
   int OffsetA, OffsetB;
+  RWGEdge *Ea, *Eb;
+  double *PV[3], *EV[2];
 
   cdouble Eps1, Mu1, k1, EEPreFac1, EMPreFac1, MMPreFac1;
   cdouble Eps2, Mu2, k2, EEPreFac2, EMPreFac2, MMPreFac2;
@@ -194,32 +187,45 @@ void *ACCMBThread(void *data)
           GetEEIArgs->k=k1;
 /* FIXME */
           if (ntea<PSA->NumEdges)
-           GetEEIArgs->Ea=PSA->Edges[ntea];
+           Ea=PSA->Edges[ntea];
           else
-           GetEEIArgs->Ea=PSA->HEdges[ntea - PSA->NumEdges];
+           Ea=PSA->HEdges[ntea - PSA->NumEdges];
 
           if (nteb<PSB->NumEdges)
-           GetEEIArgs->Eb=PSB->Edges[nteb];
+           continue;
           else
-           GetEEIArgs->Eb=PSB->HEdges[nteb - PSB->NumEdges];
+           Eb=PSB->HEdges[nteb - PSB->NumEdges];
   
 //          GetEEIArgs->Ea=PSA->Edges[ntea];
 //          GetEEIArgs->Eb=PSB->Edges[nteb];
 
-          GetEdgeEdgeInteractions(GetEEIArgs);
+          PV[1]=CA->Vertices + 3*(Ea->iV1);
+          PV[2]=CA->Vertices + 3*(Ea->iV2);
+          EV[0]=CB->Vertices + 3*(Eb->iV1);
+          EV[1]=CB->Vertices + 3*(Eb->iV2);
 
-          B->SetEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+0, EEPreFac1*GC[0]);
-          B->SetEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+1, EMPreFac1*GC[1]);
-          B->SetEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+0, EMPreFac1*GC[1]);
-          B->SetEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+1, MMPreFac1*GC[0]);
+          PV[0]=CA->Vertices + 3*(Ea->iQP);
+          GC[0]  = +2.0*Ea->Length*Eb->Length*GetEdgePanelInteraction(PV, EV, k1);
+          if ( Ea->iQM!=1 )
+           { PV[0]=CA->Vertices + 3*(Ea->iQM);
+             GC[0] -= +2.0*Ea->Length*Eb->Length*GetEdgePanelInteraction(PV, EV, k1);
+           };
+
+          B->AddEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+0, EEPreFac1*GC[0]);
+          B->AddEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+1, MMPreFac1*GC[0]);
           
           if (NumCommonSubRegions==2)
-           { GetEEIArgs->k=k2;
-             GetEdgeEdgeInteractions(GetEEIArgs);
+           { 
+             PV[0]=CA->Vertices + 3*(Ea->iQP);
+             GC[0]  = +2.0*Ea->Length*Eb->Length*GetEdgePanelInteraction(PV, EV, k2);
+             if ( Ea->iQM!=1 )
+              { PV[0]=CA->Vertices + 3*(Ea->iQM);
+                GC[0] -= +2.0*Ea->Length*Eb->Length*GetEdgePanelInteraction(PV, EV, k2);
+              };
+             
              B->AddEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+0, EEPreFac2*GC[0]);
-             B->AddEntry(OffsetA + 2*ntea+0, OffsetB + 2*nteb+1, EMPreFac2*GC[1]);
-             B->AddEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+0, EMPreFac2*GC[1]);
              B->AddEntry(OffsetA + 2*ntea+1, OffsetB + 2*nteb+1, MMPreFac2*GC[0]);
+
            };
   
         };
@@ -232,7 +238,7 @@ void *ACCMBThread(void *data)
 /* for use when one (or both) of the two objects in question   */
 /* is an RWGComposite instead of an RWGObject.                 */
 /***************************************************************/
-void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread)
+void AddEdgePanelContributions(ACCMBArgStruct *Args, int nThread)
 { 
   /***************************************************************/
   /***************************************************************/
@@ -242,7 +248,7 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread)
   RWGComposite *CB=Args->CB;
   cdouble Omega=Args->Omega;
 
-  Log(" Assembling the matrix...");
+  Log(" Adding edge-panel contributions...");
 
   /***************************************************************/
   /* precompute material properties of all regions on both       */
@@ -276,9 +282,9 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread)
      TD->nThread=nThread;
      TD->Args=Args;
      if (nt+1 == nThread)
-       ACCMBThread((void *)TD);
+       AEPCThread((void *)TD);
      else
-       pthread_create( &(Threads[nt]), 0, ACCMBThread, (void *)TD);
+       pthread_create( &(Threads[nt]), 0, AEPCThread, (void *)TD);
    }
   for(nt=0; nt<nThread-1; nt++)
    pthread_join(Threads[nt],0);
@@ -297,7 +303,7 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread)
      TD1.nt=nt;
      TD1.nThread=nThread*100;
      TD1.Args=Args;
-     ACCMBThread((void *)&TD1);
+     AEPCThread((void *)&TD1);
    };
 #endif
 

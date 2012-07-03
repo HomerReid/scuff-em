@@ -263,7 +263,6 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
                                         GMSH2HR[ VI[1] ],
                                         GMSH2HR[ VI[2] ]);
           Panels[NumPanels]->Index=NumPanels;
-          NumPanels++;
 
           // find the index of the open surface corresponding 
           // to this panel and increment its number of panels.
@@ -276,6 +275,7 @@ void RWGComposite::ReadGMSHFile(FILE *MeshFile, char *FileName,
 
           Panels[NumPanels]->SurfaceIndex = nps;
           NumPanelsPerPartialSurface[nps]++;
+          NumPanels++;
 
           break;
 

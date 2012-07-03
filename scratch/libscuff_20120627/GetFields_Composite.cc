@@ -111,7 +111,19 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-extern double *QR10;
+double MyQR10[]=
+ { 1.304673574141418e-02, 3.333567215434143e-02, 
+   6.746831665550773e-02, 7.472567457529027e-02, 
+   1.602952158504878e-01, 1.095431812579910e-01,
+   2.833023029353764e-01, 1.346333596549959e-01, 
+   4.255628305091844e-01, 1.477621123573765e-01, 
+   5.744371694908156e-01, 7.166976970646236e-01, 
+   8.397047841495122e-01, 9.325316833444923e-01,
+   9.869532642585859e-01, 1.477621123573765e-01,
+   1.346333596549959e-01, 1.095431812579910e-01, 
+   7.472567457529027e-02, 3.333567215434143e-02
+ };
+
 void GetEdgeContributionToGradp(const double *X0, double *V1, double *V2, 
                                 cdouble K, cdouble *Gradp)
 {
@@ -122,7 +134,7 @@ void GetEdgeContributionToGradp(const double *X0, double *V1, double *V2,
 // R = X0 - X = X0 - ( V1 + u*(V2-V1) )
 
   int NumPts=10;
-  double *QR=QR10;
+  double *QR=MyQR10;
 
   VecSub(V2, V1, V2mV1);
   VecSub(X0, V1, X0mV1);
@@ -145,6 +157,11 @@ void GetEdgeContributionToGradp(const double *X0, double *V1, double *V2,
      Gradp[2] += w*X0mX[2]*Psi;
      
    };
+
+  cdouble PreFac = -1.0*VecNorm(V2mV1);
+  Gradp[0] *= PreFac;
+  Gradp[1] *= PreFac;
+  Gradp[2] *= PreFac;
  
 }
 
@@ -195,7 +212,6 @@ void GetReducedPotentials(RWGEdge *E, RWGPanel **Panels,
      QM=Vertices + 3*(E->iQM);
      GRPID->Q=QM;
      GRPID->PreFac = E->Length / (2.0*MArea);
-     MArea=Panels[E->iMPanel]->Area;
      TriIntFixed(GRPIntegrand, 18, (void *)GRPID, V1, V2, QM, 25, (double *)IM);
      memset(Gradp_Edge, 0, 3*sizeof(cdouble));
    }

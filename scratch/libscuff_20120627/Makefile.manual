@@ -1,3 +1,5 @@
+CPPFLAGS = $(DEBUG)
+LDFLAGS = $(DEBUG)
 
 SCUFFEM = /home/homer/work/scuff-em-installation
 CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
@@ -11,7 +13,6 @@ LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libMatProp/.libs
 LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libIncField/.libs
 LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libMatProp/cmatheval/.libs
 
-CPPFLAGS += -I$(SCUFFEM)//scuff-em
 
 HR_LIBS = -lIncField -lMatProp -lcmatheval -lMDInterp -lhmat -lTriInt -lSGJC -lhrutil
 
@@ -32,6 +33,7 @@ tComposite:	tComposite.o libscuff.a
 #################################################################
 #################################################################
 LS_OBJS= \
+AddEdgePanelContributions.o \
 AssembleBEMMatrix.o \
 AssembleBEMMatrix_Composite.o \
 AssembleRHSVector.o \
@@ -66,4 +68,7 @@ Visualize.o
 
 libscuff.a:	$(LS_OBJS)
 		ar r $@ $^
+
+clean:
+		rm *.o *.a
 

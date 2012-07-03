@@ -120,6 +120,7 @@ typedef struct ACCMBArgStruct
 } ACCMBArgStruct;
 
 void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread=0);
+void AddEdgePanelContributions(ACCMBArgStruct *Args, int nThread=0);
 
 HMatrix *GetFields(RWGComposite *C, int SubRegion,
                    IncField *IF, HVector *KN,
@@ -132,6 +133,8 @@ HVector AssembleRHSVector_Composite(RWGComposite *C,
                                                   IncField *IF,
                                                   HVector *RHS,
                                                   int nThread=0);
+
+cdouble GetEdgePanelInteraction(double **PV, double **EV, cdouble K);
 
 } // namespace scuff
 

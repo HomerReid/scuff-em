@@ -214,6 +214,8 @@ void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransforma
   MeshFileName=strdup(pMeshFileName);
 
   NumPanelsPerPartialSurface=(int *)mallocEC(NumPartialSurfaces*sizeof(int));
+  EpsTF=(cdouble *)mallocEC( (NumSubRegions+1) * sizeof(cdouble) );
+  MuTF=(cdouble *)mallocEC( (NumSubRegions+1) * sizeof(cdouble) );
 
   /*------------------------------------------------------------*/
   /*- note: the 'OTGT' parameter to this function is distinct   */
@@ -251,7 +253,7 @@ void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransforma
   for(int nps=0; nps<NumPartialSurfaces; nps++)
    { 
      // create a new PartialSurface structure for this partial surface 
-     PS = PartialSurfaces[nps]=(PartialSurface *)mallocEC(sizeof(PartialSurface *));
+     PS = PartialSurfaces[nps]=(PartialSurface *)mallocEC(sizeof(PartialSurface));
 
      // initialize the list of panels that reside on this partial
      // surface. Note that the entries of the Panels[] array 
