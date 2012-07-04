@@ -16,7 +16,7 @@ LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libMatProp/cmatheval/.libs
 
 HR_LIBS = -lIncField -lMatProp -lcmatheval -lMDInterp -lhmat -lTriInt -lSGJC -lhrutil
 
-OTHER_LIBS = -lreadline -lhdf5_hl -lhdf5 -llapack -lblas -lgomp
+OTHER_LIBS = -lreadline -lhdf5_hl -lhdf5 -llapack -lblas -lgomp -lgfortran
 
 LIBS = $(HR_LIBS) $(OTHER_LIBS)
 
