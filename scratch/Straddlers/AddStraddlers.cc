@@ -34,24 +34,61 @@
 
 namespace scuff {
 
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-typedef struct NewVPEs
- {
-  
- } 
+/***************************************************************/
+/* return 1 if the point with cartesian coordinates X lies on  */
+/* the line connecting the origin with point L                 */
+/* Note that this routine is only looking at the first two     */
+/* cartesian components of X; the z component is arbitrary.    */
+/***************************************************************/
+int PointOnLine(double *X, double *L)
+{ 
+   return ((float)(L[1]*X[0])) == ((float)(L[0]*X[1])) ? 1 : 0;
+} 
 
-
-/*--------------------------------------------------------------*/
+/***************************************************************/
 /*- Result= 0: the edge is not a straddler.                     */
 /*-         1: the edge is a proper straddler. in this case,    */
-/*-            on return Q[0..2] are the coordinates of the     */
+/*-            on return V[0..2] are the coordinates of the     */
 /*-            new vertex.                                      */
 /*-            coordinates of the dler and Q[0..2] are the      */
 /*-         2: the edge is an improper straddler.               */
-/*--------------------------------------------------------------*/
-int StraddleCheck(int nei, double Q[3])
+/***************************************************************/
+int StraddleCheck(RWGObject *O, int nei, double *UCBV[2], double *V)
+{
+  RWGEdge *E = O->ExteriorEdges[nei];
+  double *V1 = O->Vertices + 3*(E->iV1);
+  double *V2 = O->Vertices + 3*(E->iV2);
+  double *QP = O->Vertices + 3*(E->iQP);
+   
+  /*--------------------------------------------------------------*/
+  /*- determine whether or not the edge lies on the unit cell     */
+  /*- boundary, and if so which face of that boundary it lies on. */
+  /*--------------------------------------------------------------*/
+  double *ThisBV, *OtherBF;
+  if ( PointOnLine(V1, UCBV[0]) && PointOnLine(V2, UCBV[0]) )
+   { ThisBV=UCBV[0]; 
+     OtherBV=UCBV[1];
+   }
+  else if ( PointOnLine(V1, UCBV[1]) && PointOnLine(V2, UCBV[1]) )
+   { ThisBV=UCBV[1]; 
+     OtherBV=UCBV[0];
+   }
+  else
+   return 0; // edge does not lie on unit cell boundary 
+
+  /*--------------------------------------------------------------*/
+  /* Look for exterior edge that is the translate through OtherBV */
+  /* of the present edge.                                         */
+  /*--------------------------------------------------------------*/
+  int neip;
+  for(int nbv=0; nbv<2; nbv++)
+   { 
+     ThisBV = UCBV[nbv]; 
+     OtherBV = UCBV[1-nbv];
+
+   };
+
+}
 
 /*--------------------------------------------------------------*/
 /*                                                              */
@@ -74,7 +111,7 @@ void AddStraddlers(RWGObject *O, double *L1, double *L2)
   int Result;
   for(int nei=0; nei<NumExteriorEdges; nei++)
    { 
-      Result=StraddleCheck(O, nei, L1, L2);
+      Result=StraddleCheck(O, nei, L1, L2, V);
                            
       if ( Result==1 )
        { 
@@ -112,8 +149,9 @@ void AddStraddlers(RWGObject *O, double *L1, double *L2)
    };
 
   /*--------------------------------------------------------------*/
+  /*- ------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  
   
 
 }
