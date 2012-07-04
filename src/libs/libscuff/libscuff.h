@@ -192,8 +192,7 @@ class RWGObject
    /* visualization */
    // void Visualize(double *KVec, double Kappa, char *format, ...);
    void WriteGPMesh(const char *format, ...);
-   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
-   void WritePPMesh(const char *FileName, const char *Tag);
+   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
 
@@ -305,8 +304,7 @@ class RWGGeometry
    char *CheckGTCList(GTComplex **GTCList, int NumGTCs);
 
    /* visualization */
-   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
-   void WritePPMesh(const char *FileName, const char *Tag);
+   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WriteGPMesh(const char *format, ...);
    void WriteGPMeshPlus(const char *format, ...);
    void PlotSurfaceCurrents(HVector *KN, double Frequency, int RealFreq, 

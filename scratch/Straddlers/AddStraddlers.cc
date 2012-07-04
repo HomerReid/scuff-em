@@ -32,11 +32,11 @@
 #include "libscuff.h"
 #include "cmatheval.h"
 
-namespace scuff {
+using namespace scuff;
 
 /***************************************************************/
 /* return 1 if the point with cartesian coordinates X lies on  */
-/* the line connecting the origin with point L                 */
+/* the line connecting the origin to point L.                  */
 /* Note that this routine is only looking at the first two     */
 /* cartesian components of X; the z component is arbitrary.    */
 /***************************************************************/
@@ -46,114 +46,202 @@ int PointOnLine(double *X, double *L)
 } 
 
 /***************************************************************/
-/*- Result= 0: the edge is not a straddler.                     */
-/*-         1: the edge is a proper straddler. in this case,    */
-/*-            on return V[0..2] are the coordinates of the     */
-/*-            new vertex.                                      */
-/*-            coordinates of the dler and Q[0..2] are the      */
-/*-         2: the edge is an improper straddler.               */
+/* LBV = 'lattice basis vectors'                               */
 /***************************************************************/
-int StraddleCheck(RWGObject *O, int nei, double *UCBV[2], double *V)
+int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2], double *V)
 {
   RWGEdge *E = O->ExteriorEdges[nei];
   double *V1 = O->Vertices + 3*(E->iV1);
   double *V2 = O->Vertices + 3*(E->iV2);
-  double *QP = O->Vertices + 3*(E->iQP);
-   
+  
   /*--------------------------------------------------------------*/
   /*- determine whether or not the edge lies on the unit cell     */
   /*- boundary, and if so which face of that boundary it lies on. */
   /*--------------------------------------------------------------*/
-  double *ThisBV, *OtherBF;
-  if ( PointOnLine(V1, UCBV[0]) && PointOnLine(V2, UCBV[0]) )
-   { ThisBV=UCBV[0]; 
-     OtherBV=UCBV[1];
+  double *ThisBV, *OtherBV;
+  if ( PointOnLine(V1, LBV[0]) && PointOnLine(V2, LBV[0]) )
+   { ThisBV=LBV[0]; 
+     OtherBV=LBV[1];
    }
-  else if ( PointOnLine(V1, UCBV[1]) && PointOnLine(V2, UCBV[1]) )
-   { ThisBV=UCBV[1]; 
-     OtherBV=UCBV[0];
+  else if ( PointOnLine(V1, LBV[1]) && PointOnLine(V2, LBV[1]) )
+   { ThisBV=LBV[1]; 
+     OtherBV=LBV[0];
    }
   else
-   return 0; // edge does not lie on unit cell boundary 
+   return -1; // edge does not lie on unit cell boundary 
 
   /*--------------------------------------------------------------*/
-  /* Look for exterior edge that is the translate through OtherBV */
-  /* of the present edge.                                         */
+  /* Look for an exterior edge that is the translate through      */
+  /* OtherBV of the present exterior edge.                        */
   /*--------------------------------------------------------------*/
-  int neip;
-  for(int nbv=0; nbv<2; nbv++)
+  double V1T[3], V2T[3]; // 'V12, translated'
+  VecScaleAdd(V1, 1.0, OtherBV, V1T);
+  VecScaleAdd(V2, 1.0, OtherBV, V2T);
+  double *QP, *V1P, *V2P; // 'Q,V1,V2, primed'
+  for(int neip=0; neip<O->NumExteriorEdges; neip++)
    { 
-     ThisBV = UCBV[nbv]; 
-     OtherBV = UCBV[1-nbv];
+     if (O->ExteriorEdges[neip]==0) 
+      continue;
 
+     V1P = O->Vertices + 3*(O->ExteriorEdges[neip]->iV1);
+     V2P = O->Vertices + 3*(O->ExteriorEdges[neip]->iV2);
+     if (   (VecEqualFloat(V1T, V1P) && VecEqualFloat(V2T, V2P))
+         || (VecEqualFloat(V1T, V2P) && VecEqualFloat(V2T, V1P))
+        )
+      { 
+        /*--------------------------------------------------------------*/
+        /*- found a translate of the edge in question.                  */
+        /*--------------------------------------------------------------*/
+        QP = O->Vertices + 3*(O->ExteriorEdges[neip]->iQP);
+        VecScaleAdd(QP, -1.0, OtherBV, V);
+        return neip;
+      };
    };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  ErrExit("exterior edge %i of object %s has no image "
+          "on the opposite side of the unit cell",nei, O->Label);
+
+  return -1; // i am indecisive about how to handle this error
 
 }
 
 /*--------------------------------------------------------------*/
-/*                                                              */
-/* L1 and L2 are two-dimensional lattice vectors                */
-/*                                                              */
-/* algorithm:                                                   */
+/* LBV[0][0..1] and LBV[1][0..1] are two 2-dimensional vectors  */
+/* defining a lattice                                           */
 /*                                                              */
 /*--------------------------------------------------------------*/
 #define CHUNK 100
-void AddStraddlers(RWGObject *O, double *L1, double *L2)
+void AddStraddlers(RWGObject *O, double **LBV)
 { 
   int NumNew=0, NumAllocated=0;
   double V[3], *NewVertices=0;
   RWGPanel *P, **NewPanels=0;
   RWGEdge *E, **NewEdges=0;
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int Result;
-  for(int nei=0; nei<NumExteriorEdges; nei++)
+  int nei, neip;
+  for(nei=0; nei<O->NumExteriorEdges; nei++)
    { 
-      Result=StraddleCheck(O, nei, L1, L2, V);
-                           
-      if ( Result==1 )
+      if ( O->ExteriorEdges[nei]==0 )
+       continue;
+
+      // see if this edge is a straddler, i.e. it lies on a face
+      // of the unit cell and it has a partner (a translated 
+      // version of itself) on the opposite side of the unit cell
+      neip=FindPartnerEdge(O, nei, LBV, V);
+
+      // if so, add a new vertex, panel, and edge.
+      if (neip!=-1)
        { 
-          // add a new vertex, panel, and edge
+          // if necessary, expand local arrays of new vertices, panels, and edges 
           if( NumAllocated == NumNew )
            { NumAllocated+=CHUNK;
-             NewVertices = (double *)reallocEC(NewVertices, NumAllocated*sizeof(double));
-             NewPanels   = (RWGPanel **)reallocEC(NewPanels, NumAllocated*sizeof(NewPanels *));
-             NewEdges    = (RWGEdge **)reallocEC(NewEdges, NumAllocated*sizeof(NewEdges *));
+             NewVertices = (double *)reallocEC(NewVertices, 3*NumAllocated*sizeof(double));
+             NewPanels   = (RWGPanel **)reallocEC(NewPanels, NumAllocated*sizeof(RWGPanel *));
+             NewEdges    = (RWGEdge **)reallocEC(NewEdges, NumAllocated*sizeof(RWGEdge *));
            };
-      
+
+          // add a new vertex
           memcpy( NewVertices + 3*NumNew, V, 3*sizeof(double));
  
-          E=(RWGEdge *)mallocEC(sizeof(RWGEdge));
-          memcpy(E, O->ExteriorEdges[nei], sizeof(RWGEdge) );
+          // add a new edge. actually, we simply appropriate the 
+          // existing RWGEdge structure for edge #nei, since we 
+          // will be removing it from object O's set of exterior 
+          // edges anyway. 
+          E=O->ExteriorEdges[nei];
           E->iQM  = O->NumVertices + NumNew;
-          E->iMPanel = O->Panels + NumNew;
+          E->iMPanel = O->NumPanels + NumNew;
           E->Index = O->NumEdges + NumNew;
-          E->Radius=VecDistance(E->Centroid, Vertices+3*E->iQP);
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iQM));
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV1));
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV2));
+          E->Radius=VecDistance(E->Centroid, O->Vertices+3*E->iQP);
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,O->Vertices+3*E->iQM));
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,O->Vertices+3*E->iV1));
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,O->Vertices+3*E->iV2));
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,O->Vertices+3*E->iV2));
           NewEdges[NumNew] = E;
 
-          (RWGPanel *)mallocEC(sizeof(RWGPanel));
+          // what we just did was to combine two exterior edges 
+          // into a single interior edge, so we now remove the 
+          // exterior edges 
+          free(O->ExteriorEdges[neip]);
+          O->ExteriorEdges[nei]=O->ExteriorEdges[neip]=0;
+
+          // add a new panel. Note that we can't call InitRWGPanel yet 
+          // because the new vertices have yet been added to the Vertices 
+          // array; this happens later, below.
+          P=(RWGPanel *)mallocEC(sizeof(RWGPanel));
           P->VI[0] = E->iV1;
           P->VI[1] = E->iV2;
           P->VI[2] = E->iQM;
+          P->Index = O->NumPanels + NumNew;
           NewPanels[NumNew] = P;
-          // can't call InitRWGPanel yet because not all the panel vertices
-          // have been added to the Vertices array; this happens later, below.
+  
+          NumNew++;
 
        };
      
-   };
+   }; // for(nei=0; nei<O->NumExteriorEdges; nei++)
+  //NumStraddlers=NumNew;
+  if (NumNew==0)
+   return;
 
   /*--------------------------------------------------------------*/
-  /*- ------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  
-  
+  /*--------------------------------------------------------------*/
+  double *Vertices        = O->Vertices;
+  RWGPanel **Panels       = O->Panels;
+  RWGEdge **Edges         = O->Edges;
+  RWGEdge **ExteriorEdges = O->ExteriorEdges;
+  int NumVertices         = O->NumVertices;
+  int NumPanels           = O->NumPanels;
+  int NumEdges            = O->NumEdges;
+  int NumExteriorEdges    = O->NumExteriorEdges;
 
+  Vertices = (double *)reallocEC( Vertices, 3*(NumVertices+NumNew) * sizeof(double));
+  memcpy( &(Vertices[3*NumVertices]) , NewVertices, 3*NumNew*sizeof(double));
+  NumVertices+=NumNew;
+
+  Edges    = (RWGEdge **)reallocEC( Edges, (NumEdges+NumNew) * sizeof(RWGEdge *));
+  memcpy( &(Edges[NumEdges]), NewEdges, NumNew*sizeof(RWGEdge *));
+  NumEdges+=NumNew;
+
+  Panels    = (RWGPanel **)reallocEC( Panels, (NumPanels+NumNew) * sizeof(RWGPanel *));
+  memcpy( &(Panels[NumPanels]), NewPanels, NumNew*sizeof(RWGPanel *));
+  NumPanels+=NumNew;
+  for(int np=NumPanels-NumNew; np<NumPanels; np++)
+   InitRWGPanel(Panels[np], Vertices);
+
+  //NumStraddlers=NumNew;
+  /*--------------------------------------------------------------*/
+  /*- defragment the ExteriorEdges array -------------------------*/
+  /*--------------------------------------------------------------*/
+  int NewNumExteriorEdges=NumExteriorEdges-2*NumNew;
+  RWGEdge **NewExteriorEdges=(RWGEdge **)mallocEC(NewNumExteriorEdges*sizeof(RWGEdge *));
+  for(nei=neip=0; nei<NumExteriorEdges; nei++)
+   if (ExteriorEdges[nei]!=0)
+    { NewExteriorEdges[neip]=ExteriorEdges[nei];
+      NewExteriorEdges[neip]->Index=neip;
+      neip++;
+    };
+      
+  free(ExteriorEdges);
+  ExteriorEdges=NewExteriorEdges;
+  NumExteriorEdges=NewNumExteriorEdges;
+ 
+  O->Vertices         = Vertices;
+  O->Panels           = Panels;
+  O->Edges            = Edges;
+  O->ExteriorEdges    = ExteriorEdges;
+  O->NumVertices      = NumVertices;
+  O->NumPanels        = NumPanels;
+  O->NumEdges         = NumEdges;
+  O->NumExteriorEdges = NumExteriorEdges;
+
+  O->NumTotalEdges=NumEdges + NumExteriorEdges;
+  O->NumBFs = ( O->MP->IsPEC() ? NumEdges : 2*NumEdges );
+
+  /*--------------------------------------------------------------*/
+  /*- implement the kdtri thing here ... -------------------------*/
+  /*--------------------------------------------------------------*/
 }
-
-  // namespace scuff

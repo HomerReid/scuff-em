@@ -18,6 +18,9 @@ using namespace scuff;
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  SetLogFileName("BiHemisphere.log");
+  Log("tComposite running on %s",GetHostName());
+
   /*--------------------------------------------------------------*/
   /* create the RWGGeometry from the .scuffgeo file               */
   /*--------------------------------------------------------------*/
@@ -31,7 +34,6 @@ int main(int argc, char *argv[])
   if (C->ErrMsg)
    ErrExit("%s: %i: %s\n","BiHemisphere.scuffgeo",LineNum,C->ErrMsg);
 
-  SetLogFileName("BiHemisphere.log");
   //SetLogLevel(SCUFF_VERBOSELOGGING);
   PreloadCache("BiHemisphere.scuffcache");
 

@@ -382,7 +382,7 @@ void *GetFields_Thread(void *data)
      /*- IncFields whose sources lie in the same region as X        -*/
      /*--------------------------------------------------------------*/
 if ( IFList && SubRegion==0 )
- { IF->GetFields(X, dEH);
+ { IFList->GetFields(X, dEH);
    SixVecPlusEquals(EH, 1.0, dEH);
  };
 

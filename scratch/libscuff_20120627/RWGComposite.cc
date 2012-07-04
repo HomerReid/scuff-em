@@ -54,6 +54,8 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
   ErrMsg=0;
 
   PartialSurfaces=0 ;
+  PartialSurfaceLabels=0 ;
+  PSSubRegions=0;
   NumPartialSurfaces=0;
 
   // 
@@ -73,7 +75,7 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
   int ReachedTheEnd=0;
   char *pMeshFileName=0;
   GTransformation *OTGT=0; // 'one-time geometrical transformation'
-  int SubRegionID, SubRegionID1, SubRegionID2, PartialSurfaceID;
+  int SubRegionID, SubRegionID1, SubRegionID2;
   MatProp *MP;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
@@ -144,10 +146,10 @@ RWGComposite::RWGComposite(FILE *f, const char *pLabel, int *LineNum)
         PSSubRegions = (int *)realloc(PSSubRegions, 2*NumPartialSurfaces*sizeof(int) );
         PSSubRegions[ 2*(NumPartialSurfaces-1) + 0 ] = SubRegionID1;
         PSSubRegions[ 2*(NumPartialSurfaces-1) + 1 ] = SubRegionID2;
-        Log(" Adding new partial surface (mesh physical surface %i) bounding %s and %s", 
-              PartialSurfaceID, 
-              SubRegionMPs[SubRegionID1] ? SubRegionMPs[SubRegionID1]->Name : "exterior",
-              SubRegionMPs[SubRegionID2] ? SubRegionMPs[SubRegionID2]->Name : "exterior");
+        Log(" Adding new partial surface (%s) bounding %s and %s", 
+              PartialSurfaceLabels[NumPartialSurfaces-1],
+              SubRegionID1 ? SubRegionMPs[SubRegionID1]->Name : "exterior",
+              SubRegionID2 ? SubRegionMPs[SubRegionID2]->Name : "exterior");
 
       }
      else if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"ROTATED") )
@@ -206,6 +208,7 @@ void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransforma
   FILE *MeshFile=fopen(pMeshFileName,"r");
   if (!MeshFile)
    ErrExit("could not open file %s",pMeshFileName);
+  Log(" Processing RWG composite from meshfile %s",pMeshFileName);
    
   /*------------------------------------------------------------*/
   /*- initialize simple fields ---------------------------------*/
@@ -265,7 +268,10 @@ void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransforma
      PS->Panels=(RWGPanel **)mallocEC(PS->NumPanels*sizeof(RWGPanel *));
      for(npTPS=np=0; np<NumPanels; np++)
       if ( Panels[np]->SurfaceIndex==nps )
-       PartialSurfaces[nps]->Panels[npTPS++]= Panels[np];
+       { PartialSurfaces[nps]->Panels[npTPS]= Panels[np];
+         PartialSurfaces[nps]->Panels[npTPS]->Index=npTPS;
+         npTPS++;
+       };
 
      // analyze edge connectivity for this partial surface 
      InitEdgeList(PS);
@@ -273,6 +279,8 @@ void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransforma
      TotalBFs += 2*(PS->NumEdges + PS->NumHEdges);
 
      BFIndexOffset[nps] = (nps==0) ? 0 : TotalBFs + BFIndexOffset[nps-1];
+
+     Log("  Partial surface %i (subregions %i,%i): (%i,%i,%i) full/half/total edges",nps,PSSubRegions[2*nps+0],PSSubRegions[2*nps+1],PS->NumEdges,PS->NumHEdges,PS->NumTotalEdges);
 
    };
 

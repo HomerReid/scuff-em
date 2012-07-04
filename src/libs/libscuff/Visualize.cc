@@ -126,9 +126,6 @@ void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNor
   fclose(f);
 }
 
-void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag)
- { WritePPMesh(FileName, Tag, 0); }
-
 /***************************************************************/
 /* WriteGPMesh routine. This writes out the panel set as a     */
 /* collection of lines. Useful for visualizing in gnuplot.     */
@@ -350,9 +347,6 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag, int PlotNorma
 
   fclose(f);
 }
-
-void RWGObject::WritePPMesh(const char *FileName, const char *Tag)
- { WritePPMesh(FileName, Tag, 0); }
 
 /***************************************************************/
 /* WritePPMeshLabels: create a GMSH post-processing view       */
