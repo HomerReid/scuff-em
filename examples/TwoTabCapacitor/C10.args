@@ -1,0 +1,7 @@
+PortFile C10.ports
+MinFreq 0.001
+MaxFreq 0.1
+NumFreqs 20
+LogFreq
+zparameters
+Cache Tab.tache
