@@ -12,6 +12,7 @@
 #include "RWGComposite.h"
 
 using namespace scuff;
+void GetCPUAffinity();
 
 /***************************************************************/
 /***************************************************************/
@@ -20,6 +21,7 @@ int main(int argc, char *argv[])
 {
   SetLogFileName("BiHemisphere.log");
   Log("tComposite running on %s",GetHostName());
+GetCPUAffinity();
 
   /*--------------------------------------------------------------*/
   /* create the RWGGeometry from the .scuffgeo file               */
@@ -29,6 +31,8 @@ int main(int argc, char *argv[])
   char Line[100];
   int LineNum=1;
   fgets(Line,100,f);
+ EnableAllCPUs(); 
+GetCPUAffinity();
   RWGComposite *C=new RWGComposite(f,"BiHemisphere",&LineNum);
   C->SubRegionMPs[0]=new MatProp(MP_VACUUM);
   if (C->ErrMsg)
@@ -67,18 +71,25 @@ int main(int argc, char *argv[])
   AssembleCCMatrixBlock(ACCMBArgs);
   AddEdgePanelContributions(ACCMBArgs);
 
+void *pCC=HMatrix::OpenMATLABContext("tComposite"); 
+M->ExportToMATLAB(pCC,"MBefore");
   M->LUFactorize();
+M->ExportToMATLAB(pCC,"MAfter");
   StoreCache("BiHemisphere.scuffcache");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  AssembleRHSVector_Composite(C, Omega, &PW, KN, 0);
+PW.SetFrequency(Omega);
+  AssembleRHSVector_Composite(C, Omega, &PW, KN, 1);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+KN->ExportToMATLAB(pCC,"RHS");
   M->LUSolve(KN);
+KN->ExportToMATLAB(pCC,"KN");
+HMatrix::CloseMATLABContext(pCC);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

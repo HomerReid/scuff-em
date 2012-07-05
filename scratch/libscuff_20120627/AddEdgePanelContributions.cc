@@ -41,6 +41,10 @@
 #  include <pthread.h>
 #endif
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#define USE_OPENMP
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 namespace scuff {
 
 #define II cdouble(0,1)
@@ -95,7 +99,7 @@ void *AEPCThread(void *data)
   cdouble Sign=1.0;
   int Symmetric=0;
 
-  int nt;
+  int nt=0;
           
   /***************************************************************/
   /* preinitialize an argument structure to be passed to         */
@@ -172,6 +176,7 @@ void *AEPCThread(void *data)
       OffsetA = RowOffset + CA->BFIndexOffset[npsa];
       NTEB=PSB->NumTotalEdges;
       OffsetB = ColOffset + CB->BFIndexOffset[npsb];
+      int nt=0;
       for(ntea=0; ntea<NTEA; ntea++)
        for(nteb=Symmetric*ntea; nteb<NTEB; nteb++)
         { 

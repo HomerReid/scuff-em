@@ -42,6 +42,10 @@
 #  include <pthread.h>
 #endif
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#define USE_OPENMP
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 namespace scuff {
 
 /***************************************************************/
@@ -212,7 +216,7 @@ static void *AssembleRHS_Thread(void *data)
   int nps, nte, Offset;
   cdouble EProd, HProd;
   IncField *IF;
-  int nt;
+  int nt=0;
   for(nps=0; nps<C->NumPartialSurfaces; nps++)
    { 
      PS=C->PartialSurfaces[nps];

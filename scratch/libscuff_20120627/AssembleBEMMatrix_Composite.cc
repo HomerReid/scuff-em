@@ -43,12 +43,17 @@
 
 #include "cmatheval.h"
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#define USE_OPENMP
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 #ifdef USE_PTHREAD
 #  include <pthread.h>
 #endif
+
 
 namespace scuff {
 
@@ -102,7 +107,7 @@ void *ACCMBThread(void *data)
   cdouble Sign=1.0;
   int Symmetric=0;
 
-  int nt;
+  int nt=0;
           
   /***************************************************************/
   /* preinitialize an argument structure to be passed to         */
@@ -225,6 +230,7 @@ void *ACCMBThread(void *data)
         };
 
     }; // for (npsa=0 ...) for npsb=0 ...)
+
 }
 
 /***************************************************************/
@@ -300,7 +306,6 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread)
      ACCMBThread((void *)&TD1);
    };
 #endif
-
 
  // if (G->LogLevel>=SCUFF_VERBOSELOGGING)
    Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
