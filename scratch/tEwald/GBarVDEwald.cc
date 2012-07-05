@@ -23,6 +23,8 @@
 #define NFIRSTROUND 1
 #define NMAX 10000
 
+int RetainFirst9=0;
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -46,7 +48,6 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
   ExpFac    = exp( Q*z );
   dExpFac   = Q*ExpFac;
   Arg       = 0.5*Q/E + z*E;
- 
   ErfcFac   = cerfc( Arg );
   dErfcFac  = -E*exp( -Arg*Arg );
   PlusTerm  = ExpFac*ErfcFac;
@@ -107,7 +108,7 @@ void AddG1Contribution(cdouble k, double *P, double *R,
 void ComputeG1(cdouble k, double *P, double *L1, double *L2, 
                double *R, double E, int *pnCells, cdouble *Sum)
 { 
-  int nx, ny;
+  int n1, n2;
   double RelDelta, AbsDelta;
   cdouble LastSum[NSUM];
   double MaxRelDelta, MaxAbsDelta;
@@ -133,11 +134,11 @@ void ComputeG1(cdouble k, double *P, double *L1, double *L2,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  for (nx=-NFIRSTROUND; nx<=NFIRSTROUND; nx++)
-   for (ny=-NFIRSTROUND; ny<=NFIRSTROUND; ny++, nCells++)
+  for (n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
+   for (n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
     AddG1Contribution(k, P, R,
-                      nx*Gamma1[0] + ny*Gamma2[0],
-                      nx*Gamma1[1] + ny*Gamma2[1],
+                      n1*Gamma1[0] + n2*Gamma2[0],
+                      n1*Gamma1[1] + n2*Gamma2[1],
                       E, Sum);
          
   /***************************************************************/
@@ -147,15 +148,15 @@ void ComputeG1(cdouble k, double *P, double *L1, double *L2,
   ConvergedIters=0;
   for(NN=NFIRSTROUND+1; ConvergedIters<3 && NN<=NMAX; NN++)
    {  
-     for(nx=-NN; nx<=NN; nx++)
-      for(ny=-NN; ny<=NN; ny++)
+     for(n1=-NN; n1<=NN; n1++)
+      for(n2=-NN; n2<=NN; n2++)
         { 
-          if ( (abs(nx)<NN) && (abs(ny)<NN) )
+          if ( (abs(n1)<NN) && (abs(n2)<NN) )
            continue;
 
           AddG1Contribution(k, P, R, 
-                            nx*Gamma1[0] + ny*Gamma2[0],
-                            nx*Gamma1[1] + ny*Gamma2[1], 
+                            n1*Gamma1[0] + n2*Gamma2[0],
+                            n1*Gamma1[1] + n2*Gamma2[1], 
                             E, Sum);
 
           nCells++;
@@ -307,7 +308,7 @@ void AddG2Contribution(cdouble k, double *P, double *R,
 void ComputeG2(cdouble k, double *P, double *L1, double *L2,
                double *R, double E, int *pnCells, cdouble *Sum)
 { 
-  int nx, ny;
+  int n1, n2;
   double RelDelta, AbsDelta;
   cdouble LastSum[NSUM];
   double MaxRelDelta, MaxAbsDelta;
@@ -324,20 +325,20 @@ void ComputeG2(cdouble k, double *P, double *L1, double *L2,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  for (nx=-NFIRSTROUND; nx<=NFIRSTROUND; nx++)
-   for (ny=-NFIRSTROUND; ny<=NFIRSTROUND; ny++, nCells++)
+  for (n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
+   for (n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
     { 
 #if 0
-      if ( (abs(nx)<=1) && (abs(ny)<=1) )
+      if ( (abs(n1)<=1) && (abs(n2)<=1) )
        continue; // skip the innermost 9 grid cells 
 #endif
 
       AddG2Contribution(k, P, R, 
-                        nx*L1[0] + ny*L2[0],
-                        nx*L1[1] + ny*L2[1], 
+                        n1*L1[0] + n2*L2[0],
+                        n1*L1[1] + n2*L2[1], 
                         E, Sum);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//printf("%i %i %s \n",nx,ny,CD2S(Sum[0]));
+//printf("%i %i %s \n",n1,n2,CD2S(Sum[0]));
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
     };
          
@@ -348,18 +349,18 @@ void ComputeG2(cdouble k, double *P, double *L1, double *L2,
   ConvergedIters=0;
   for(NN=NFIRSTROUND+1; ConvergedIters<3 && NN<=NMAX; NN++)
    {  
-     for(nx=-NN; nx<=NN; nx++)
-      for(ny=-NN; ny<=NN; ny++)
+     for(n1=-NN; n1<=NN; n1++)
+      for(n2=-NN; n2<=NN; n2++)
         { 
-          if ( (abs(nx)<NN) && (abs(ny)<NN) )
+          if ( (abs(n1)<NN) && (abs(n2)<NN) )
            continue;
 
           AddG2Contribution(k, P, R, 
-                            nx*L1[0] + ny*L2[0],
-                            nx*L1[1] + ny*L2[1], 
+                            n1*L1[0] + n2*L2[0],
+                            n1*L1[1] + n2*L2[1], 
                             E, Sum);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//printf("%i %i %s \n",nx,ny,CD2S(Sum[0]));
+//printf("%i %i %s \n",n1,n2,CD2S(Sum[0]));
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
           nCells++;
@@ -494,17 +495,17 @@ void AddGBFContribution(cdouble k, double P[2], double R[3],
 void ComputeGBFFirst9(cdouble k, double *P, double *L1, double *L2,
                       double *R, cdouble *Sum)
 { 
-  int nx, ny;
+  int n1, n2;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   memset(Sum,0,NSUM*sizeof(cdouble));
-  for (nx=-1; nx<=1; nx++)
-   for (ny=-1; ny<=1; ny++)
+  for (n1=-1; n1<=1; n1++)
+   for (n2=-1; n2<=1; n2++)
     AddGBFContribution(k, P, R, 
-                       nx*L1[0] + ny*L2[0],
-                       nx*L1[1] + ny*L2[1], 
+                       n1*L1[0] + n2*L2[0],
+                       n1*L1[1] + n2*L2[1], 
                        Sum);
 }
 
@@ -539,7 +540,7 @@ void GBarVDEwald(cdouble k, double *P, double *L1, double *L2,
 
   /* E is the separation parameter, which we set to its  */
   /* optimal value if the user didn't specify it already */
-  if(E==-1.0)
+  if (E==-1.0)
    E=sqrt( M_PI / (L1[0]*L2[1]) );
 
   /***************************************************************/
@@ -558,6 +559,9 @@ void GBarVDEwald(cdouble k, double *P, double *L1, double *L2,
 
   ComputeG1(k, P, L1, L2, R, E, 0, G1);
   ComputeG2(k, P, L1, L2, R, E, 0, G2);
+if (RetainFirst9) 
+  memset(GBFFirst9,0,NSUM*sizeof(double));
+else
   ComputeGBFFirst9(k, P, L1, L2, R, GBFFirst9);
 
   int ns;

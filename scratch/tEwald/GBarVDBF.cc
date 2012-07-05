@@ -12,6 +12,8 @@
 #define NFIRSTROUND 1
 #define NMAX 10000
 
+extern int RetainFirst9;
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -41,7 +43,7 @@ void GBarVDBF(cdouble k, double *P, double *L1, double *L2, double *R,
    for (ny=-NFIRSTROUND; ny<=NFIRSTROUND; ny++, nCells++)
     { 
 #if 1
-      if ( (abs(nx)<=1) && (abs(ny)<=1) )
+      if ( RetainFirst9==0 && (abs(nx)<=1) && (abs(ny)<=1) )
        continue; // skip the innermost 9 grid cells 
 #endif
 

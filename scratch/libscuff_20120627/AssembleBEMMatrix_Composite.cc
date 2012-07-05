@@ -255,10 +255,10 @@ void AssembleCCMatrixBlock(ACCMBArgStruct *Args, int nThread)
   /* composites                                                  */
   /***************************************************************/
   int nsr;
-  for(nsr=0; nsr<CA->NumSubRegions; nsr++)
+  for(nsr=0; nsr<CA->NumSubRegions+1; nsr++)
    CA->SubRegionMPs[nsr] -> GetEpsMu(Omega, CA->EpsTF + nsr, CA->MuTF + nsr);
   if (CB!=CA)
-   { for(nsr=0; nsr<CB->NumSubRegions; nsr++)
+   { for(nsr=0; nsr<CB->NumSubRegions+1; nsr++)
       CB->SubRegionMPs[nsr] -> GetEpsMu(Omega, CB->EpsTF + nsr, CB->MuTF + nsr);
    };
 

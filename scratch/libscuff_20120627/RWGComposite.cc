@@ -250,6 +250,7 @@ void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransforma
   /*------------------------------------------------------------*/
   PartialSurfaces=(PartialSurface **)mallocEC(NumPartialSurfaces*sizeof(PartialSurface *));
   BFIndexOffset=(int *)mallocEC(NumPartialSurfaces*sizeof(int));
+  BFIndexOffset[0]=0;
   PartialSurface *PS;
   int np, npTPS;
   TotalBFs=0;
@@ -278,7 +279,8 @@ void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransforma
 
      TotalBFs += 2*(PS->NumEdges + PS->NumHEdges);
 
-     BFIndexOffset[nps] = (nps==0) ? 0 : BFIndexOffset[nps-1] + 2*(PS->NumEdges+PS->NumHEdges);
+     if ( nps+1 < NumPartialSurfaces )
+      BFIndexOffset[nps+1] = BFIndexOffset[nps] + 2*(PS->NumEdges+PS->NumHEdges);
 
      Log("  Partial surface %i (subregions %i,%i): (%i,%i,%i) full/half/total edges",nps,PSSubRegions[2*nps+0],PSSubRegions[2*nps+1],PS->NumEdges,PS->NumHEdges,PS->NumTotalEdges);
 

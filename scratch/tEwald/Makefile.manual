@@ -3,6 +3,7 @@ SCUFFEM = /home/homer/work/scuff-em-installation
 
 CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
 LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
+LDFLAGS += -L$(HOME)/codes/lib
 
 HR_LIBS = -lscuff
 

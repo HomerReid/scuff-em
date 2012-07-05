@@ -13,6 +13,7 @@ LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libhmat/.libs
 LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libMatProp/.libs
 LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libIncField/.libs
 LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libMatProp/cmatheval/.libs
+LDFLAGS += -L/home/homer/codes/lib
 
 HR_LIBS = -lIncField -lMatProp -lcmatheval -lMDInterp -lhmat -lTriInt -lSGJC -lhrutil
 
