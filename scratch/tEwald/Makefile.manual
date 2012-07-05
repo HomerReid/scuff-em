@@ -11,7 +11,7 @@ OTHER_LIBS = -lreadline -lhdf5_hl -lhdf5 -llapack -lblas -lgomp
 
 LIBS = $(HR_LIBS) $(OTHER_LIBS)
 
-F77 = gfortran
+FC = /usr/bin/gfortran
 
 #################################################################
 
