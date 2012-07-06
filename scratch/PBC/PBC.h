@@ -14,5 +14,8 @@ void AddStraddlers(RWGObject *O, double **LBV);
 void AssembleBEMMatrix_PBC(RWGGeometry *G, double **LBV, double *P, 
                            PBCAccelerator *PBCA, HMatrix *M);
 
+PBCAccelerator *CreatePBCAccelerator(RWGGeometry *G);
+void SetPBC(PBCAccelerator PBCA, cdouble Omega, double *P);
+
 
 #endif
