@@ -1,3 +1,4 @@
+int PSOnly=-1;
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -222,6 +223,7 @@ void GetReducedPotentials(RWGEdge *E, RWGPanel **Panels,
   else // if there is no negative panel then there is a line-charge edge 
    { memset(IM, 0, 9*sizeof(cdouble));
      GetEdgeContributionToGradp(X, V1, V2, K, Gradp_Edge); 
+memset(Gradp_Edge,0,3*sizeof(cdouble));
    };
 
   for(mu=0; mu<3; mu++) 
@@ -257,6 +259,12 @@ void GetScatteredFields(RWGComposite *C,
   RWGEdge *E;
   for(nps=0; nps<C->NumPartialSurfaces; nps++)
    { 
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (PSOnly!=-1 && nps!=PSOnly)
+ continue;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
      /***************************************************************/
      /***************************************************************/
      /***************************************************************/

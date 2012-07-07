@@ -107,10 +107,10 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
   SMatrix ***SArray   = SNEQD->SArray;
 
   int Offset1       = G->BFIndexOffset[DestObject];
-  SMatrix *OMatrix1 = SArray[SourceObject][ 1 + QIndex ];
+  SMatrix *OMatrix1 = SArray[DestObject][ 1 + QIndex ];
 
   int Offset2       = G->BFIndexOffset[SourceObject];
-  SMatrix *OMatrix2 = SArray[DestObject][ 1 + QINDEX_POWER];
+  SMatrix *OMatrix2 = SArray[SourceObject][ 1 + QINDEX_POWER];
 
   int p, q, r, s; 
   int nnzq, nq, nnzs, ns;
@@ -191,7 +191,7 @@ if (QIndex==QINDEX_ZFORCE) exit(1);
 /*                                                             */
 /*  FI[ nt*NO2NQ + no*NONQ + nop*NQ + nq ]                     */
 /*   = contribution of sources in object #nop to flux of       */
-/*     quantity #nq into object #no                            */
+/*     quantity #nq into object #no, all at transformation #nt */
 /*                                                             */
 /*  where    NQ = number of quantities (1--4)                  */
 /*  where  NONQ = number of objects * NQ                       */
@@ -271,6 +271,7 @@ exit(1);
   int nt;
   char *Tag;
   int RowOffset, ColOffset;
+  int nfi=0;
   for(nt=0; nt<SNEQD->NumTransformations; nt++)
    { 
      /*--------------------------------------------------------------*/
@@ -321,7 +322,6 @@ exit(1);
      /*- compute the requested quantities for all objects -----------*/
      /*--------------------------------------------------------------*/
      FILE *f=0;
-     int nfi=0;
      for(no=0; no<NO; no++)
       for(nop=0; nop<NO; nop++)
        {

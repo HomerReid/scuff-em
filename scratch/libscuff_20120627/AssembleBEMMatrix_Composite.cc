@@ -136,12 +136,26 @@ void *ACCMBThread(void *data)
       SubRegionB1 = CB->PSSubRegions[2*npsb+0];
       SubRegionB2 = CB->PSSubRegions[2*npsb+1];
       NumCommonSubRegions=0;
+#if 0
       if ( SubRegionA1==SubRegionB1 || SubRegionA1==SubRegionB2 )
        CommonSubRegion[NumCommonSubRegions++]=SubRegionA1;
       if ( SubRegionA2==SubRegionB1 || SubRegionA2==SubRegionB2 )
        CommonSubRegion[NumCommonSubRegions++]=SubRegionA2;
+#endif
+      Sign=1.0;
+      if ( SubRegionA1==SubRegionB1 )
+       CommonSubRegion[NumCommonSubRegions++]=SubRegionA1;
+      if ( SubRegionA1==SubRegionB2 )
+       Sign=-1.0, CommonSubRegion[NumCommonSubRegions++]=SubRegionA1;
+      if ( SubRegionA2==SubRegionB1 )
+       Sign=-1.0, CommonSubRegion[NumCommonSubRegions++]=SubRegionA2;
+      if ( SubRegionA2==SubRegionB2 )
+       CommonSubRegion[NumCommonSubRegions++]=SubRegionA2;
       if (NumCommonSubRegions==0) 
        continue;
+
+      if (NumCommonSubRegions==2 && Sign==-1.0)
+       ErrExit("partial surfaces %i, %i bound the same subregions with opposite orientations",npsa,npsb);
 
       /*--------------------------------------------------------------*/
       /* if the two RWG composites in question are distinct ... ------*/
@@ -197,7 +211,6 @@ void *ACCMBThread(void *data)
              MutexLog("%i0 %% (%i/%i)...",PerCent,ntea,NTEA);
           
           GetEEIArgs->k=k1;
-/* FIXME */
           if (ntea<PSA->NumEdges)
            GetEEIArgs->Ea=PSA->Edges[ntea];
           else

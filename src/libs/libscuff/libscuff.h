@@ -307,8 +307,7 @@ class RWGGeometry
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WriteGPMesh(const char *format, ...);
    void WriteGPMeshPlus(const char *format, ...);
-   void PlotSurfaceCurrents(HVector *KN, double Frequency, int RealFreq, 
-                            const char *format, ...);
+   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
 
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);

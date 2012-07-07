@@ -75,8 +75,8 @@ int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2], double *V)
   /* OtherBV of the present exterior edge.                        */
   /*--------------------------------------------------------------*/
   double V1T[3], V2T[3]; // 'V12, translated'
-  VecScaleAdd(V1, 1.0, OtherBV, V1T);
-  VecScaleAdd(V2, 1.0, OtherBV, V2T);
+  V1T[0] = V1[0] + OtherBV[0]; V1T[1] = V1[1] + OtherBV[1]; V1T[2] = V1[2];
+  V2T[0] = V2[0] + OtherBV[0]; V2T[1] = V2[1] + OtherBV[1]; V2T[2] = V2[2];
   double *QP, *V1P, *V2P; // 'Q,V1,V2, primed'
   for(int neip=0; neip<O->NumExteriorEdges; neip++)
    { 
@@ -92,8 +92,9 @@ int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2], double *V)
         /*--------------------------------------------------------------*/
         /*- found a translate of the edge in question.                  */
         /*--------------------------------------------------------------*/
-        QP = O->Vertices + 3*(O->ExteriorEdges[neip]->iQP);
-        VecScaleAdd(QP, -1.0, OtherBV, V);
+        memcpy(V, O->Vertices + 3*(O->ExteriorEdges[neip]->iQP), 3*sizeof(double));
+        V[0] -= OtherBV[0]; 
+        V[1] -= OtherBV[1]; 
         return neip;
       };
    };

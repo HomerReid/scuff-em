@@ -13,25 +13,40 @@
 
 using namespace scuff;
 void GetCPUAffinity();
+extern int PSOnly;
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-  SetLogFileName("BiHemisphere.log");
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  char *GeoFileName=0;
+  /* name        type    #args  max_instances  storage    count  description*/
+  OptStruct OSArray[]=
+   { {"geometry",  PA_STRING,  1, 1, (void *)&GeoFileName, 0, ".scuffgeo file"},
+     {"psonly",    PA_INT,     1, 1, (void *)&PSOnly,      0, "psonly"},
+     {0,0,0,0,0,0,0}
+   };
+  ProcessOptions(argc, argv, OSArray);
+  if (GeoFileName==0)
+   OSUsage(argv[0],OSArray,"--Geometry option is mandatory");
+
+  SetLogFileName("tComposite.log");
   Log("tComposite running on %s",GetHostName());
-GetCPUAffinity();
+  GetCPUAffinity();
 
   /*--------------------------------------------------------------*/
   /* create the RWGGeometry from the .scuffgeo file               */
   /*--------------------------------------------------------------*/
   //RWGGeometry *G=new RWGGeometry(f,"BiHemisphere.scuffgeo");
-  FILE *f=fopen("BiHemisphere.scuffgeo","r");
+  FILE *f=fopen(GeoFileName,"r");
   char Line[100];
   int LineNum=1;
   fgets(Line,100,f);
- EnableAllCPUs(); 
+EnableAllCPUs(); 
 GetCPUAffinity();
   RWGComposite *C=new RWGComposite(f,"BiHemisphere",&LineNum);
   C->SubRegionMPs[0]=new MatProp(MP_VACUUM);
@@ -69,27 +84,23 @@ GetCPUAffinity();
   ACCMBArgs->ColOffset=0;
 
   AssembleCCMatrixBlock(ACCMBArgs);
-  AddEdgePanelContributions(ACCMBArgs);
+  //AddEdgePanelContributions(ACCMBArgs);
 
-void *pCC=HMatrix::OpenMATLABContext("tComposite"); 
-M->ExportToMATLAB(pCC,"MBefore");
   M->LUFactorize();
-M->ExportToMATLAB(pCC,"MAfter");
-  StoreCache("BiHemisphere.scuffcache");
+  //StoreCache("BiHemisphere.scuffcache");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-PW.SetFrequency(Omega);
+  PW.SetFrequency(Omega);
   AssembleRHSVector_Composite(C, Omega, &PW, KN, 1);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-KN->ExportToMATLAB(pCC,"RHS");
   M->LUSolve(KN);
-KN->ExportToMATLAB(pCC,"KN");
-HMatrix::CloseMATLABContext(pCC);
+
+  PlotSurfaceCurrents(C, KN, Omega, "%s.pp",GetFileBase(GeoFileName));
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -168,13 +179,13 @@ HMatrix::CloseMATLABContext(pCC);
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   HMatrix *FMatrix0=GetFields(C, 0, &PW, KN, Omega, EP0);
-  HMatrix *FMatrix1=GetFields(C, 1, &PW, KN, Omega, EP0);
+  HMatrix *FMatrix1=GetFields(C, 1, &PW, KN, Omega, EP1);
   HMatrix *FMatrix2=GetFields(C, 2, &PW, KN, Omega, EP2);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  f=fopen("tComposite.out","w"); 
+  f=vfopen("%s.out","w",GetFileBase(GeoFileName)); 
   SetDefaultCD2SFormat("%+10.3e %+10.3e");
   for(nr=0; nr<nr0; nr++)
    { fprintf(f,"%e %e %e ", EP0->GetEntryD(nr,0), EP0->GetEntryD(nr,1), EP0->GetEntryD(nr,2));

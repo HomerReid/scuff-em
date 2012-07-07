@@ -136,6 +136,9 @@ HVector AssembleRHSVector_Composite(RWGComposite *C,
 
 cdouble GetEdgePanelInteraction(double **PV, double **EV, cdouble K);
 
+void PlotSurfaceCurrents(RWGComposite *C, HVector *KN, cdouble Omega,
+                         const char *format, ...);
+
 } // namespace scuff
 
 #endif // ifdef RWGCOMPOSITE

@@ -277,6 +277,9 @@ void RWGComposite::InitRWGComposite(const char *pMeshFileName, const GTransforma
      // analyze edge connectivity for this partial surface 
      InitEdgeList(PS);
 
+PS->NumHEdges=0;
+PS->NumTotalEdges=PS->NumEdges;
+
      TotalBFs += 2*(PS->NumEdges + PS->NumHEdges);
 
      if ( nps+1 < NumPartialSurfaces )
