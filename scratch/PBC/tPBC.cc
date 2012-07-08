@@ -15,11 +15,11 @@ int main(int argc, char *argv[])
   cdouble Omega;
   /* name, type, #args, max_instances, storage, count, description*/
   OptStruct OSArray[]=
-   { {"LBV1",      PA_DOUBLE,  2, 1, (void *)LBV[0],       0,        "lattice basis vector 1"},
+   { {"Geometry",  PA_STRING,  1, 1, (void *)&GeoFileName, 0,        ".scuffgeo file"},
+     {"LBV1",      PA_DOUBLE,  2, 1, (void *)LBV[0],       0,        "lattice basis vector 1"},
      {"LBV2",      PA_DOUBLE,  2, 1, (void *)LBV[1],       0,        "lattice basis vector 2"},
      {"P",         PA_DOUBLE,  2, 1, (void *)P,            0,        "bloch wavevector"},
      {"Omega",     PA_CDOUBLE, 1, 1, (void *)&Omega,       0,        "angular frequency"},
-     {"Geometry",  PA_STRING,  1, 1, (void *)&GeoFileName, 0,        ".scuffgeo file"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -73,5 +73,6 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  GetFields_PBC(G, Omega, LBV, P, PBCA, M);
 
 }
