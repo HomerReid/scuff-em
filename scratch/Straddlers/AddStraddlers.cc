@@ -48,7 +48,8 @@ int PointOnLine(double *X, double *L)
 /***************************************************************/
 /* LBV = 'lattice basis vectors'                               */
 /***************************************************************/
-int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2], double *V)
+int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2], 
+                    int NumStraddlers[2], double *V)
 {
   RWGEdge *E = O->ExteriorEdges[nei];
   double *V1 = O->Vertices + 3*(E->iV1);
@@ -58,13 +59,16 @@ int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2], double *V)
   /*- determine whether or not the edge lies on the unit cell     */
   /*- boundary, and if so which face of that boundary it lies on. */
   /*--------------------------------------------------------------*/
+  int WhichBV;
   double *ThisBV, *OtherBV;
   if ( PointOnLine(V1, LBV[0]) && PointOnLine(V2, LBV[0]) )
-   { ThisBV=LBV[0]; 
+   { WhichBV=0;
+     ThisBV=LBV[0]; 
      OtherBV=LBV[1];
    }
   else if ( PointOnLine(V1, LBV[1]) && PointOnLine(V2, LBV[1]) )
-   { ThisBV=LBV[1]; 
+   { WhichBV=1;
+     ThisBV=LBV[1]; 
      OtherBV=LBV[0];
    }
   else
@@ -95,6 +99,7 @@ int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2], double *V)
         memcpy(V, O->Vertices + 3*(O->ExteriorEdges[neip]->iQP), 3*sizeof(double));
         V[0] -= OtherBV[0]; 
         V[1] -= OtherBV[1]; 
+        NumStraddlers[WhichBV]++;
         return neip;
       };
    };
@@ -122,6 +127,10 @@ void AddStraddlers(RWGObject *O, double **LBV)
   RWGPanel *P, **NewPanels=0;
   RWGEdge *E, **NewEdges=0;
 
+  // NumStraddlers[i] (i=0,1) his the number of straddlers on LBV[i]
+  int NumStraddlers[2];
+  memset(NumStraddlers,0,2*sizeof(int));
+
   int nei, neip;
   for(nei=0; nei<O->NumExteriorEdges; nei++)
    { 
@@ -131,7 +140,7 @@ void AddStraddlers(RWGObject *O, double **LBV)
       // see if this edge is a straddler, i.e. it lies on a face
       // of the unit cell and it has a partner (a translated 
       // version of itself) on the opposite side of the unit cell
-      neip=FindPartnerEdge(O, nei, LBV, V);
+      neip=FindPartnerEdge(O, nei, LBV, NumStraddlers, V);
 
       // if so, add a new vertex, panel, and edge.
       if (neip!=-1)
