@@ -68,20 +68,20 @@ typedef struct ThreadData
  { 
    PBCGeometry *PG;
    int nt, nTask;
- };
+ } ThreadData;
 
 /***************************************************************/
 /* thread routine for AddOuterContributions ********************/
 /***************************************************************/
-void AOC_Thread()
+void *AOC_Thread(void *data)
 {
   /***************************************************************/
   /* extract local copies of fields in argument structure */
   /***************************************************************/
   ThreadData *TD=(ThreadData *)data;
-  PBCGeometry *PG      = Args->PG;
+  PBCGeometry *PG      = TD->PG;
   RWGGeometry *G       = PG->G;
-  cdouble Omega        = PG->CurrenOmega;
+  cdouble Omega        = PG->CurrentOmega;
 
   /***************************************************************/
   /* other local variables ***************************************/
