@@ -11,6 +11,59 @@ namespace scuff{
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void AddMEs(HMatrix *M, 
+            RWGObject *Oa, int nea, RWGObject *Ob, int neb, 
+            int RowOffset, int ColOffset, 
+            cdouble PreFac[3], cdouble GC[2])
+{
+  int OaIsPEC = Oa->MP->IsPEC();
+  int ObIsPEC = Ob->MP->IsPEC();
+  int X, Y;
+  int Symmetric=0;
+
+  if ( OaIsPEC && ObIsPEC )
+   { 
+     X=RowOffset + nea;
+     Y=ColOffset + neb;  
+
+     M->AddEntry( X, Y, PreFac[0]*GC[0] );
+   }
+  else if ( OaIsPEC && !ObIsPEC )
+   { 
+     X=RowOffset + nea;
+     Y=ColOffset + 2*neb;  
+
+     B->AddEntry( X, Y,   PreFac[0]*GC[0] );
+     B->AddEntry( X, Y+1, PreFac[1]*GC[1] );
+
+   }
+  else if ( !OaIsPEC && ObIsPEC )
+   {
+     X=RowOffset + 2*nea;
+     Y=ColOffset + neb;  
+
+     B->AddEntry( X,   Y, PreFac[0]*GC[0] );
+     B->AddEntry( X+1, Y, PreFac[1]*GC[1] );
+   }
+  else // ( !OaIsPEC && !ObIsPEC )
+   { 
+     X=RowOffset + 2*nea;
+     Y=ColOffset + 2*neb;  
+
+     B->AddEntry( X, Y,   PreFac[0]*GC[0]);
+     B->AddEntry( X, Y+1, PreFac[1]*GC[1]);
+     if ( !Symmetric || (nea!=neb) )
+      B->AddEntry( X+1, Y, PreFac[1]*GC[1]);
+     B->AddEntry( X+1, Y+1, PreFac[2]*GC[0]);
+
+   };
+
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 typedef struct ThreadData
  { 
    PBCGeometry *PG;
@@ -28,15 +81,48 @@ void AOC_Thread()
   ThreadData *TD=(ThreadData *)data;
   PBCGeometry *PG      = Args->PG;
   RWGGeometry *G       = PG->G;
+  cdouble Omega        = PG->CurrenOmega;
 
   /***************************************************************/
-  /***************************************************************/
+  /* other local variables ***************************************/
   /***************************************************************/
   int nt=0;
+  RWGObject *Oa, *Ob;
+  int RowOffset, ColOffset;
+
+  cdouble EpsExt=PG->EpsTF[0];
+  cdouble MuExt=PG->MuTF[0];
+  cdouble kExt=csqrt2(EpsExt*MuExt)*Omega;
+  cdouble ExteriorPreFac[3];
+  ExteriorPreFac[0] = II*MuExt*Omega;
+  ExteriorPreFac[1] = -II*kExt;
+  ExteriorPreFac[2] = -1.0*II*EpsExt*Omega;
+
+  cdouble EpsInt, MuInt, kInt, InteriorPreFac[3];
+
+  Interp3D *ExteriorInterpolator = PG->GBarAB9_Exterior;
+  Interp3D *InteriorInterpolator;
+
   for(int noa=0; noa<G->NumObjects; noa++)
    for(int nob=0; nob<G->NumObjects; nob++)
-    { Oa=G->Objects[noa];
+    { 
+      Oa=G->Objects[noa];
+      RowOffset = G->BFIndexOffset[noa];
       Ob=G->Objects[nob];
+      ColOffset = G->BFIndexOffset[nob];
+
+      if ( noa==nob && PG->GBarAB9_Interior[noa] )
+       { InteriorInterpolator = GBarGB9_Interior[noa];
+         EpsInt=PG->EpsTF[noa+1];
+         MuInt=PG->MuTF[noa+1];
+         kInt=csqrt2(EpsInt*MuInt)*Omega;
+         InteriorPreFac[0] = II*MuInt*Omega;
+         InteriorPreFac[1] = -II*kInt;
+         InteriorPreFac[2] = -1.0*II*EpsInt*Omega;
+       }
+      else
+       InteriorInterpolator=0;
+
       for(int nea=0; nea<Oa->NumEdges; nea++)  
        for(int neb=0; neb<Ob->NumEdges; neb++)
         { 
@@ -45,14 +131,19 @@ void AOC_Thread()
           if (nt!=TD->nt) continue;
 
           // contribution from exterior medium 
-          GetAB9MatrixElements(Oa, nea, Ob, neb, k, PG->GBar_Exterior, GC);
-
+          GetAB9MatrixElements(Oa, nea, Ob, neb, k, ExteriorInterpolator, GC);
+          AddMEs(M, Oa, nea, Ob, neb, RowOffset, ColOffset, ExteriorPreFac, GC);
+          
           // contribution from interior medium if present 
+          if (InteriorInterpolator)
+           { 
+             GetAB9MatrixElements(Oa, nea, Ob, neb, k, InteriorInterpolator, GC);
+             AddMEs(M, Oa, nea, Ob, neb, RowOffset, ColOffset, InteriorPreFac, GC);
+           };
 
-        }
-        
-  
-    };
+        }; // for(nea=0 ... for(neb=0 ... 
+
+    }; // for (noa=0 ... for(nob=0 ... 
 
 } 
 
@@ -148,7 +239,16 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->ColOffset=G->BFIndexOffset[nop];
       Args->Symmetric=0;
       Args->B=MPP;
+
+      // explain me
+      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+       Oa->MP->Zero()
+
       AssembleBEMMatrixBlock(Args);
+
+      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+       Oa->MP->UnZero()
+
     };
 
   Log("Assembling MPM block ...");
@@ -161,7 +261,16 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->RowOffset=G->BFIndexOffset[no];
       Args->Ob=G->Objects[nop];
       Args->ColOffset=G->BFIndexOffset[nop];
+
+      // explain me
+      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+       Oa->MP->Zero()
+
       AssembleBEMMatrixBlock(Args);
+
+      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+       Oa->MP->UnZero()
+
     };
 
   Log("Assembling MPZ block ...");
@@ -174,7 +283,16 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->RowOffset=G->BFIndexOffset[no];
       Args->Ob=G->Objects[nop];
       Args->ColOffset=G->BFIndexOffset[nop];
+
+      // explain me
+      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
+       Oa->MP->Zero()
+
       AssembleBEMMatrixBlock(Args);
+
+      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
+       Oa->MP->UnZero()
+
     };
 
   Log("Assembling MZP block ...");
@@ -187,7 +305,16 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->RowOffset=G->BFIndexOffset[no];
       Args->Ob=G->Objects[nop];
       Args->ColOffset=G->BFIndexOffset[nop];
+
+      // explain me
+      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+1]==0 )
+       Oa->MP->Zero()
+
       AssembleBEMMatrixBlock(Args);
+
+      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+1]==0 )
+       Oa->MP->UnZero()
+
     };
 
 }
@@ -215,6 +342,9 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double P[2], HMatrix *M)
   /*--------------------------------------------------------------*/
   if( CurrentOmega != Omega )
    { CurrentOmega=Omega;
+     G->ExteriorMP->GetEpsMu(Omega, PG->EpsTF+0, PG->MuTF+0);
+     for(no=0; no<G->NumObjects; no++)
+      G->Objects[no]->MP->GetEpsMu(Omega, PG->EpsTF+no+1, PG->MuTF+no+1);
      AssembleInnerCellBlocks();
    };
 
@@ -244,4 +374,4 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double P[2], HMatrix *M)
 
 }
 
-} // namespace scuff
+} //namespace scuff{

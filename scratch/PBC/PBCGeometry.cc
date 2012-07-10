@@ -41,6 +41,8 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double pLBV[2][2])
   LBV[1][0]=pLBV[1][0];
   LBV[1][1]=pLBV[1][1];
   CurrentOmega=-1.0;
+  EpsTF = (cdouble *)mallocSE( (G->NumObjects+1)*sizeof(cdouble));
+  MuTF  = (cdouble *)mallocSE( (G->NumObjects+1)*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
   /*- add straddlers to all objects ... maybe FIXME to prevent   -*/

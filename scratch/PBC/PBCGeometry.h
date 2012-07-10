@@ -52,7 +52,7 @@ public:
    { return G->AssembleRHSVector(Omega, IF, RHS); }
 
    // get scattered fields
-  void GetFields(double *X, IncField *IF, cdouble *EH);
+  void GetScatteredFields(double *X, cdouble *EH);
 
    /*--------------------------------------------------------------*/
    /*- class data (would be private if we were fastidious about    */
@@ -77,6 +77,8 @@ public:
    // of the bloch vector P), then we can reuse the MPP...MZZ matrix 
    // blocks. 
    cdouble CurrentOmega;
+   cdouble *EpsTF; // EpsTF[0] = epsilon of exterior medium at this frequency
+   cdouble *MuTF;  // EpsTF[no+1] = epsilon of object #no at this frequency
 
    /* interpolation tables to accelerate the calculation of */
    /* the periodic green's function for the exterior medium */
