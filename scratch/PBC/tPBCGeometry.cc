@@ -31,17 +31,6 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*- add straddlers to all objects ------------------------------*/
   /*--------------------------------------------------------------*/
-  G->TotalBFs=G->TotalPanels=0;
-  for(int no=0; no<G->NumObjects; no++)
-   { RWGObject *O = G->Objects[no];
-     AddStraddlers(O, LBV);
-     G->TotalBFs    += O->NumBFs;
-     G->TotalPanels += O->NumPanels;
-     if ( no+1 < G->NumObjects )
-      { G->BFIndexOffset[no+1]=G->BFIndexOffset[no] + O->NumBFs;
-        G->PanelIndexOffset[no+1]=G->PanelIndexOffset[no] + O->NumPanels;
-      };
-   };
 
   /*--------------------------------------------------------------*/
   /*- initialize the PBC accelerator -----------------------------*/

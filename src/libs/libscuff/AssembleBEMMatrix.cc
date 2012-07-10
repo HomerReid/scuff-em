@@ -82,6 +82,7 @@ void *ABMBThread(void *data)
   int RowOffset        = Args->RowOffset;
   int ColOffset        = Args->ColOffset;
   int Symmetric        = Args->Symmetric;
+  double *Displacement = Args->Displacement;
   HMatrix *B           = Args->B;
   HMatrix **GradB      = Args->GradB;
   HMatrix **dBdTheta   = Args->dBdTheta;
@@ -109,6 +110,7 @@ void *ABMBThread(void *data)
   GetEEIArgs->NumGradientComponents = GradB ? 3 : 0;
   GetEEIArgs->NumTorqueAxes=NumTorqueAxes;
   GetEEIArgs->GammaMatrix=GammaMatrix;
+  GetEEIArgs->Displacement=Displacement;
 
   /* pointers to arrays inside the structure */
   cdouble *GC=GetEEIArgs->GC;
@@ -481,6 +483,8 @@ void InitABMBArgs(ABMBArgStruct *Args)
 
   Args->Symmetric=0;
 
+  Args->Displacement = 0;
+
   Args->GradB=0;
   Args->dBdTheta=0;
 
@@ -489,13 +493,14 @@ void InitABMBArgs(ABMBArgStruct *Args)
 /***************************************************************/
 /* this is the actual API-exposed routine for assembling the   */
 /* BEM matrix, which is pretty simple and really just calls    */
-/* routine above to do all the dirty work.                     */
+/* the routine above to do all the dirty work.                 */
 /*                                                             */
 /* If the M matrix is NULL on entry, a new HMatrix of the      */
 /* appropriate size is allocated and returned. Otherwise, the  */
 /* return value is M.                                          */
 /***************************************************************/
-HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, int nThread)
+HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M, 
+                                        int nThread)
 { 
   /***************************************************************/
   /***************************************************************/

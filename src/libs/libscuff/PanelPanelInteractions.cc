@@ -37,7 +37,7 @@
 #include "TaylorDuffy.h"
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-extern int ForceNCV=-1; /* 20120625 */
+int ForceNCV=-1; /* 20120625 */
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 namespace scuff {
@@ -312,6 +312,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   cdouble k                 = Args->k;
   int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
+  double *Displacement      = Args->Displacement;
   cdouble *H                = Args->H;
   cdouble *GradH            = Args->GradH;
   cdouble *dHdT             = Args->dHdT;
@@ -325,9 +326,35 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   double *Qa   = Oa->Vertices + 3*Pa->VI[iQa];
   double *Qb   = Ob->Vertices + 3*Pb->VI[iQb];
   double *Va[3], *Vb[3];
+  double VbDisplaced[3][3];
   double rRel; 
+  int ncv;
 
-  int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
+  if (Displacement==0)
+   ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
+  else 
+   { 
+     Va[0] = Oa->Vertices + 3*Pa->VI[0];
+     Va[1] = Oa->Vertices + 3*Pa->VI[1];
+     Va[2] = Oa->Vertices + 3*Pa->VI[2];
+
+     VecScaleAdd(Ob->Vertices + 3*Pb->VI[0], 1.0, Displacement, VbDisplaced[0]);
+     VecScaleAdd(Ob->Vertices + 3*Pb->VI[1], 1.0, Displacement, VbDisplaced[1]);
+     VecScaleAdd(Ob->Vertices + 3*Pb->VI[2], 1.0, Displacement, VbDisplaced[2]);
+     Vb[0] = VbDisplaced[0];
+     Vb[1] = VbDisplaced[1];
+     Vb[2] = VbDisplaced[2];
+
+     double DC[3]; // 'delta centroid' 
+     DC[0] = Pa->Centroid[0] - Pb->Centroid[0] - Displacement[0];
+     DC[1] = Pa->Centroid[1] - Pb->Centroid[1] - Displacement[1];
+     DC[2] = Pa->Centroid[2] - Pb->Centroid[2] - Displacement[2];
+
+     double rMax = fmax(Pa->Radius, Pb->Radius);
+     rRel = VecNorm(DC) / rMax; 
+
+     ncv=AssessPanelPair(Va, Vb, rMax);
+   };
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
@@ -497,6 +524,7 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
   Args->ForceTaylorDuffy=0;
   Args->GammaMatrix=0;
   Args->opFC=0;
+  Args->Displacement=0;
 }
 
 } // namespace scuff

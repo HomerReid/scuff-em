@@ -128,6 +128,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgs->NumTorqueAxes          = NumTorqueAxes;
   GetPPIArgs->GammaMatrix            = Args->GammaMatrix;
   GetPPIArgs->opFC                   = Args->opFC;
+  GetPPIArgs->Displacement           = Args->Displacement;
 
   /*--------------------------------------------------------------*/
   /*- positive-positive, positive-negative, etc. -----------------*/
@@ -255,6 +256,7 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
   Args->GammaMatrix=0;
+  Args->Displacement=0;
   Args->opFC=0;
   Args->Force=EEI_NOFORCE;
 }
