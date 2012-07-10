@@ -120,4 +120,7 @@ typedef struct GBarData
 void GBarVDPhi3D(double X1, double X2, double X3, 
                  void *UserData, double *PhiVD);
 
+void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb, 
+                                cdouble k, Interp3D *Interpolator, cdouble *GC);
+
 #endif

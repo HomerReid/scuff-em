@@ -8,40 +8,115 @@
 
 namespace scuff{
 
-#define ABSURD 1.234567e89
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+typedef struct ThreadData
+ { 
+   PBCGeometry *PG;
+   int nt, nTask;
+ };
 
 /***************************************************************/
+/* thread routine for AddOuterContributions ********************/
 /***************************************************************/
-/***************************************************************/
-void AddOuterContributions_Thread()
+void AOC_Thread()
 {
+  /***************************************************************/
+  /* extract local copies of fields in argument structure */
+  /***************************************************************/
+  ThreadData *TD=(ThreadData *)data;
+  PBCGeometry *PG      = Args->PG;
+  RWGGeometry *G       = PG->G;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int nt=0;
+  for(int noa=0; noa<G->NumObjects; noa++)
+   for(int nob=0; nob<G->NumObjects; nob++)
+    { Oa=G->Objects[noa];
+      Ob=G->Objects[nob];
+      for(int nea=0; nea<Oa->NumEdges; nea++)  
+       for(int neb=0; neb<Ob->NumEdges; neb++)
+        { 
+          nt++;
+          if (nt==TD->nTask) nt=0;
+          if (nt!=TD->nt) continue;
+
+          // contribution from exterior medium 
+          GetAB9MatrixElements(Oa, nea, Ob, neb, k, PG->GBar_Exterior, GC);
+
+          // contribution from interior medium if present 
+
+        }
+        
+  
+    };
+
 } 
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void PBCGeometry::GetOuterContributions(double *P)
+void PBCGeometry::AddOuterCellContributions(double *P)
 { 
   /*--------------------------------------------------------------*/
+  /*- initialize the interpolation tables at the present frequency*/
+  /*- and bloch wavevector                                        */
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int nThread=GetNumThreads();
   GBarData MyGBarData, *GBD=&MyGBarData;
 
   cdouble Eps, Mu;
   GBarAB9Exterior->ReInitialize(nThread, GBarVDPhi3D,
 
   /*--------------------------------------------------------------*/
+  /*- fire off threads -------------------------------------------*/
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  for(no=0; no<
+  int nThread=GetNumThreads();
+#ifdef USE_PTHREAD
+  ThreadData *TDs = new ThreadData[nThread], *TD;
+  pthread_t *Threads = new pthread_t[nThread];
+  for(nt=0; nt<nThread; nt++)
+   { 
+     TD=&(TDs[nt]);
+     TD->PG = this;
+     TD->nt=nt;
+     TD->nTask=nThread;
+     if (nt+1 == nThread)
+       AOC_Thread((void *)TD);
+     else
+       pthread_create( &(Threads[nt]), 0, AOC_Thread, (void *)TD);
+   }
+  for(nt=0; nt<nThread-1; nt++)
+   pthread_join(Threads[nt],0);
+  delete[] Threads;
+  delete[] TDs;
+
+#else 
+  int nTask;
+#ifndef USE_OPENMP
+  nThread=nTask=1;
+#else
+  nTask=nThread*100;
+#pragma omp parallel for schedule(dynamic,1), num_threads(nThread)
+#endif
+  for(nt=0; nt<nTask; nt++)
+   { 
+     ThreadData TD1;
+     TD1.PG=this;
+     TD1.nt=nt;
+     TD1.nTask=nTask;
+     AOC_Thread((void *)&TD1);
+   };
+#endif
   
 } 
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void PBCGeometry::GetInnerContributions()
+void PBCGeometry::AssembleInnerCellBlocks()
 {
   Log("Assembling inner matrix blocks at Omega=%s\n",z2s(CurrentOmega));
 
@@ -140,7 +215,7 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double P[2], HMatrix *M)
   /*--------------------------------------------------------------*/
   if( CurrentOmega != Omega )
    { CurrentOmega=Omega;
-     GetInnerContributions();
+     AssembleInnerCellBlocks();
    };
 
   /*--------------------------------------------------------------*/
@@ -165,7 +240,7 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double P[2], HMatrix *M)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  AddOuterContributions(P);
+  AddOuterCellContributions(P);
 
 }
 
