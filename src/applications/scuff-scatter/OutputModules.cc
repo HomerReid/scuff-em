@@ -786,8 +786,9 @@ void GetPower(SSData *SSD, char *PowerFile)
               O->GetOverlap(nea, neb, &OTimes);
               if (OTimes==0.0) 
                continue;
+              nb = KN->GetEntry(Offset + 2*neb + 1 );
+              PAbs -= real( conj(ka) * OTimes * nb );
             }; // for (neb= ... 
-
          }; // for(nea==...
       }; // if ( O->MP->IsPEC() )
    }; // for(no=...)
