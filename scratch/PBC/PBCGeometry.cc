@@ -3,15 +3,17 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <libhrutil.h>
+#include <libMDInterp.h>
 #include <libscuff.h>
-#include <PBC.h>
+#include <PBCGeometry.h>
 
 namespace scuff{
 
-#define DELTAINTERP 0.05 // FIXME
 
-/***************************************************************/
-/***************************************************************/
+/* get the maximum and minimum cartesian coordinates obtained  */
+/* by points on an RWGObject                                   */
 /***************************************************************/
 void GetXYZMaxMin(RWGObject *O, double XYZMax[3], XYZMin[3])
 { 
@@ -30,7 +32,7 @@ void GetXYZMaxMin(RWGObject *O, double XYZMax[3], XYZMin[3])
 /***************************************************************/
 /* PBCGeometry class constructor *******************************/
 /***************************************************************/
-PBCGeometry::PBCGeometry(RWGGeometry *pG, double pLBV[2][2])
+PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
 {
   /*--------------------------------------------------------------*/
   /*- initialize simple class fields -----------------------------*/
@@ -44,26 +46,43 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double pLBV[2][2])
   EpsTF = (cdouble *)mallocSE( (G->NumObjects+1)*sizeof(cdouble));
   MuTF  = (cdouble *)mallocSE( (G->NumObjects+1)*sizeof(cdouble));
 
+  Log("Creating PBC geometry: unit cell geometry %s, lattice (%g,%g) x (%g,%g)",
+       G->GeoFileName,LBV[0][0],LBV[0][1],LBV[1][0],LBV[1][1]); 
+
   /*--------------------------------------------------------------*/
-  /*- add straddlers to all objects ... maybe FIXME to prevent   -*/
-  /*- G and its constituent objects from being modified?         -*/
+  /*- add straddlers to all objects ... note that this modifies  -*/
+  /*- G and its constituent objects. it would be better program  -*/
+  /*- design to make a copy of G?                                -*/
   /*--------------------------------------------------------------*/
   NumStraddlers=(int *)mallocEC(2*G->NumObjects*sizeof(int));
   G->TotalBFs=G->TotalPanels=0;
   for(int no=0; no<G->NumObjects; no++)
-   { RWGObject *O = G->Objects[no];
+   {
+     RWGObject *O = G->Objects[no];
      AddStraddlers(O, LBV, NumStraddlers + 2*no);
+ 
+     // FIXME
+     if ( (NumStraddlers[2*no+0]==0) != (NumStraddlers[2*no+1]==0) )
+      ErrExit("object %s: 1D straddling periodicity is not yet supported",O->Label); 
+
      G->TotalBFs    += O->NumBFs;
      G->TotalPanels += O->NumPanels;
      if ( no+1 < G->NumObjects )
       { G->BFIndexOffset[no+1]=G->BFIndexOffset[no] + O->NumBFs;
         G->PanelIndexOffset[no+1]=G->PanelIndexOffset[no] + O->NumPanels;
       };
+
+     Log(" Detected (%i,%i) straddlers for object %s", NumStraddlers[2*no+0],NumStraddlers[2*no+1],O->Label);
+
    };
 
   /*--------------------------------------------------------------*/
   /*- allocate memory for the contributions of the innermost     -*/
-  /*- lattice cells to the BEM matrix                            -*/
+  /*- lattice cells to the BEM matrix.                           -*/
+  /*- note: P, M, Z stand for 'plus 1, minus 1, zero.'           -*/
+  /*- Mab is the BEM interaction matrix between the unit-cell    -*/
+  /*- geometry and a copy of itself translated through vector    -*/
+  /*- a*LBV[0] + b*LBV[1].                                      -*/
   /*--------------------------------------------------------------*/
   MPP=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
   MPM=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
@@ -93,16 +112,18 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double pLBV[2][2])
      XYZMin[1] = fmin(XYZMin[1], XYZMinTO[1]);
      XYZMin[2] = fmin(XYZMin[2], XYZMinTO[2]);
 
-     if ( O->MP->IsPEC() || (NumStraddlers[2*no+0]==0 && NumStraddlers[2*no+1]==0) )
+     // FIXME to handle 1D periodicity
+     if ( O->MP->IsPEC() || (NumStraddlers[2*no+0]==0) )
       GBarAB9_Interior[no]=0;
      else
-      { NXPoints = (XYZMaxTO[0] - XYZMinTO[0]) / DELTAINTERP; 
-        NYPoints = (XYZMaxTO[1] - XYZMinTO[1]) / DELTAINTERP; 
-        NZPoints = (XYZMaxTO[2] - XYZMinTO[2]) / DELTAINTERP; 
+      { NXPoints = (XYZMaxTO[0] - XYZMinTO[0]) / PBCGeometry::DeltaInterp;
+        NYPoints = (XYZMaxTO[1] - XYZMinTO[1]) / PBCGeometry::DeltaInterp;
+        NZPoints = (XYZMaxTO[2] - XYZMinTO[2]) / PBCGeometry::DeltaInterp;
+        Log("Creating %ix%ix%i interpolation table for object %s",O->Label,NXPoints,NYPoints,NZPoints);
         GBarAB9_Interior[no]=new Interp3D( XYZMinTO[0], XYZMaxTO[0], NXPoints+1,
-                                           XYZMinTO[1], XYZMaxTO[1], NXPoints+1,
-                                           XYZMinTO[2], XYZMaxTO[2], NXPoints+1,
-                                           1, 0, 0, 0);
+                                           XYZMinTO[1], XYZMaxTO[1], NYPoints+1,
+                                           XYZMinTO[2], XYZMaxTO[2], NZPoints+1,
+                                           2, 0, 0, 0);
       };
 
    };
@@ -110,19 +131,14 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double pLBV[2][2])
   /*--------------------------------------------------------------*/
   /*- allocate interpolator for exterior medium ------------------*/
   /*--------------------------------------------------------------*/
-  NXPoints = (XYZMax[0] - XYZMin[0]) / DELTAINTERP; 
-  NYPoints = (XYZMax[1] - XYZMin[1]) / DELTAINTERP; 
-  NZPoints = (XYZMax[2] - XYZMin[2]) / DELTAINTERP; 
+  NXPoints = (XYZMax[0] - XYZMin[0]) / PBCGeometry::DeltaInterp; 
+  NYPoints = (XYZMax[1] - XYZMin[1]) / PBCGeometry::DeltaInterp; 
+  NZPoints = (XYZMax[2] - XYZMin[2]) / PBCGeometry::DeltaInterp; 
   GBarAB9_Exterior=new Interp3D( XYZMin[0], XYZMax[0], NXPoints+1,
-                                 XYZMin[1], XYZMax[1], NXPoints+1,
-                                 XYZMin[2], XYZMax[2], NXPoints+1,
-                                 1, 0, 0, 0);
+                                 XYZMin[1], XYZMax[1], NYPoints+1,
+                                 XYZMin[2], XYZMax[2], NZPoints+1,
+                                 2, 0, 0, 0);
 
 }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-
 
 } // namespace scuff

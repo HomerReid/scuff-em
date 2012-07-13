@@ -24,6 +24,14 @@
  * homer reid  -- 4/2011 -- 7/2012
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <libhrutil.h>
+#include <libMDInterp.h>
+#include <libIncField.h>
+#include <libscuff.h>
+
 #ifndef PBCGEOMETRY_H
 #define PBCGEOMETRY_H
 
@@ -38,27 +46,35 @@ class PBCGeometry
    /*--------------------------------------------------------------*/
 public:
 
-   // constructor / destructor 
-   PBCGeometry::PBCGeometry(RWGGeometry *G, double LBV[2][2]);
-   ~PBCGeometry::PBCGeometry(RWGGeometry *G, double LBV[2][2]);
+   // constructor / destructor.
+   // LBV[i][j] = jth component of ith lattice basis vector (i,j = 0,1)
+   PBCGeometry::PBCGeometry(RWGGeometry *G, double **LBV);
+   ~PBCGeometry::PBCGeometry(RWGGeometry *G, double **LBV);
 
    // assemble BEM matrix
-  HMatrix *AssembleBEMMatrix(cdouble Omega, double P[2], HMatrix *M=0);
+  HMatrix *AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *M=0);
 
-  // assemble RHS vector; this just devolves to a call to the usual
-  // RWGGeometry routine for assembling the BEM matrix, but i will 
+  // assemble RHS vector; this actually just devolves to a call to the
+  // usual RWGGeometry routine for assembling the BEM matrix, but i will
   // make it a PBCGeometry routine for completeness
   HVector *AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS)
    { return G->AssembleRHSVector(Omega, IF, RHS); }
 
-   // get scattered fields
-  void GetScatteredFields(double *X, cdouble *EH);
+   // get fields
+   HMatrix *GetFields(IncField *IF, HVector *KN,
+                      cdouble Omega, double *BlochP, 
+                      HMatrix *XMatrix, HMatrix *FMatrix=0, 
+                      char *FuncString=0, int nThread=0);
+ 
+   void GetFields(IncField *IF, HVector *KN, 
+                  cdouble Omega, double *BlochP,
+                  double *X, cdouble *EH, int nThread=0);
 
    /*--------------------------------------------------------------*/
    /*- class data (would be private if we were fastidious about    */
    /*-             such things)                                    */
    /*--------------------------------------------------------------*/
-   RWGGeometry *G;       // unit cell geometry
+   RWGGeometry *G;       // unit cell geometry, augmented to include straddlers
 
    double LBV[2][2];     // lattice basis vectors 
 
@@ -94,6 +110,13 @@ public:
    void GetInnerContributions();
    void AddOuterContributions();
 
+   /*--------------------------------------------------------------*/
+   /*--------------------------------------------------------------*/
+   /*--------------------------------------------------------------*/
+   static int TriangleCubatureOrder=7;
+   static double DeltaInterp=0.05;
+
+
  };
 
 /***************************************************************/
@@ -104,17 +127,22 @@ public:
 void AddStraddlers(RWGObject *O, double **LBV, int NumStraddlers[2]);
 
 /***************************************************************/
+/* routine for computing the periodic green's function via     */
+/* ewald summation                                             */
 /***************************************************************/
-/***************************************************************/
-void GBarVDEwald(double R, cdouble k, double *P, double *LBV[2],
+void GBarVDEwald(double R, cdouble k, double *BlochP, double **LBV,
                  double E, int ExcludeFirst9, cdouble *GBarVD);
 
+/***************************************************************/
+/* this is an alternative interface to GBarVDEwald that has the*/
+/* proper prototype for passage to my Interp3D class routines  */
+/***************************************************************/
 typedef struct GBarData 
  { 
    cdouble k;           // wavenumber 
-   double P[2];         // bloch vector 
+   double BlochP[2];    // bloch vector 
    double **LBV;        // lattice basis vectors 
-   double E;            // separation parameter
+   double E;            // ewald separation parameter
    bool ExcludeInner9;  
  
  } GBarData;
@@ -122,7 +150,11 @@ typedef struct GBarData
 void GBarVDPhi3D(double X1, double X2, double X3, 
                  void *UserData, double *PhiVD);
 
-void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb, 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
                                 cdouble k, Interp3D *Interpolator, cdouble *GC);
+
 
 #endif

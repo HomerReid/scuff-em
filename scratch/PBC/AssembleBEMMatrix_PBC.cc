@@ -152,19 +152,35 @@ void *AOC_Thread(void *data)
 /***************************************************************/
 void PBCGeometry::AddOuterCellContributions(double *P)
 { 
+
+  Log(" Adding contributions of outer cells...\n");
+  int nThread=GetNumThreads();
+
   /*--------------------------------------------------------------*/
   /*- initialize the interpolation tables at the present frequency*/
   /*- and bloch wavevector                                        */
   /*--------------------------------------------------------------*/
   GBarData MyGBarData, *GBD=&MyGBarData;
+  GBD->BlochP = P;
+  GBD->ExcludeInner9=true;
+  GBD->E=-1.0;
+  GBD->LBV=LBV;
 
-  cdouble Eps, Mu;
-  GBarAB9Exterior->ReInitialize(nThread, GBarVDPhi3D,
+  Log("  Reinitializing exterior interpolator...");
+  GBD->k = sqrt(EpsTF[0]*MuTF[0])*CurrentOmega;
+  GBarAB9_Exterior->ReInitialize(nThread, GBarVDPhi3D, (void *)GBD);
+
+  for(int no=0; no<G->NumObjects; no++)
+   { if (GBarAB9_Interior[no]==0)
+      continue;
+     Log("  Reinitializing interpolator for object %i (%s)...",no,G->Objects[no]->Label);
+     GBD->k = sqrt(EpsTF[no+1]*MuTF[no+1])*CurrentOmega;
+     GBarAB9_Interior->ReInitialize(nThread, GBarVDPhi3D, (void *)GBD);
+   };
 
   /*--------------------------------------------------------------*/
   /*- fire off threads -------------------------------------------*/
   /*--------------------------------------------------------------*/
-  int nThread=GetNumThreads();
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[nThread], *TD;
   pthread_t *Threads = new pthread_t[nThread];
@@ -209,13 +225,12 @@ void PBCGeometry::AddOuterCellContributions(double *P)
 /***************************************************************/
 void PBCGeometry::AssembleInnerCellBlocks()
 {
-  Log("Assembling inner matrix blocks at Omega=%s\n",z2s(CurrentOmega));
+  Log(" Assembling inner matrix blocks at Omega=%s\n",z2s(CurrentOmega));
 
   Log(" MZZ block...");
   G->AssembleBEMMatrix(Omega, MZZ);
 
   int no, nop;
-
   ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
   Args->G = G; 
   Args->Omega = CurrentOmega;
@@ -241,13 +256,13 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->B=MPP;
 
       // explain me
-      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
-       Oa->MP->Zero()
+      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+       Args->Oa->MP->Zero()
 
       AssembleBEMMatrixBlock(Args);
 
-      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
-       Oa->MP->UnZero()
+      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+       Args->Oa->MP->UnZero()
 
     };
 
@@ -263,13 +278,13 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->ColOffset=G->BFIndexOffset[nop];
 
       // explain me
-      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
-       Oa->MP->Zero()
+      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+       Args->Oa->MP->Zero()
 
       AssembleBEMMatrixBlock(Args);
 
-      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
-       Oa->MP->UnZero()
+      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+       Args->Oa->MP->UnZero()
 
     };
 
@@ -285,13 +300,13 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->ColOffset=G->BFIndexOffset[nop];
 
       // explain me
-      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
-       Oa->MP->Zero()
+      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
+       Args->Oa->MP->Zero()
 
       AssembleBEMMatrixBlock(Args);
 
-      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
-       Oa->MP->UnZero()
+      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
+       Args->Oa->MP->UnZero()
 
     };
 
@@ -307,13 +322,13 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->ColOffset=G->BFIndexOffset[nop];
 
       // explain me
-      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+1]==0 )
-       Oa->MP->Zero()
+      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+1]==0 )
+       Args->Oa->MP->Zero()
 
       AssembleBEMMatrixBlock(Args);
 
-      if ( no==nop && !(Oa->MP->IsPEC()) && NumStraddlers[2*no+1]==0 )
-       Oa->MP->UnZero()
+      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+1]==0 )
+       Args->Oa->MP->UnZero()
 
     };
 
@@ -322,8 +337,10 @@ void PBCGeometry::AssembleInnerCellBlocks()
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double P[2], HMatrix *M)
+HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *M)
 {
+  Log("Assembling PBC BEM matrix at (Omega,Px,Py)=(%s,%g,%g)",z2s(Omega),BlochP[0],BlochP[1]);
+
   /*--------------------------------------------------------------*/
   /*- (re)allocate the matrix as necessary -----------------------*/
   /*--------------------------------------------------------------*/
@@ -333,8 +350,8 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double P[2], HMatrix *M)
    };
 
   if(M==0)
-
    M=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+
 
   /*--------------------------------------------------------------*/
   /*- assemble contributions of innermost lattice cells if the   -*/
@@ -354,10 +371,10 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double P[2], HMatrix *M)
   /*-       PFPZ = 'phase factor, plus-zero'                      */
   /*- etc.                                                        */
   /*--------------------------------------------------------------*/
-  cdouble PFPP = exp( II* ( P[0]*(LBV[0][0] + LBV[1][0]) + P[1]*(LBV[0][1] + LBV[1][1]) ) );
-  cdouble PFPM = exp( II* ( P[0]*(LBV[0][0] - LBV[1][0]) + P[1]*(LBV[0][1] - LBV[1][1]) ) );
-  cdouble PFPZ = exp( II* ( P[0]*(LBV[0][0]            ) + P[1]*(LBV[0][1]            ) ) );
-  cdouble PFZP = exp( II* ( P[0]*(            LBV[1][0]) + P[1]*(            LBV[1][1]) ) );
+  cdouble PFPP = exp( II* ( BlochP[0]*(LBV[0][0] + LBV[1][0]) + BlochP[1]*(LBV[0][1] + LBV[1][1]) ) );
+  cdouble PFPM = exp( II* ( BlochP[0]*(LBV[0][0] - LBV[1][0]) + BlochP[1]*(LBV[0][1] - LBV[1][1]) ) );
+  cdouble PFPZ = exp( II* ( BlochP[0]*(LBV[0][0]            ) + BlochP[1]*(LBV[0][1]            ) ) );
+  cdouble PFZP = exp( II* ( BlochP[0]*(            LBV[1][0]) + BlochP[1]*(            LBV[1][1]) ) );
   for(int nr=0; nr<M->NR; nr++)
    for(int nc=0; nc<M->NR; nc++)
     M->SetEntry(nr, nc,  PFPP*MPP->GetEntry(nr, nc) + conj(PFPP)*MPP->GetEntry(nc,nr)

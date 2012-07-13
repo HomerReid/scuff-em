@@ -244,6 +244,7 @@ memset(PortPanelCharges, 0, NumPanels*sizeof(cdouble));
   RWGObject *O;
   RWGEdge *E;
   int PIOffset;
+
   for(BFIndex=0, no=0; no<G->NumObjects; no++)
    { 
      O=G->Objects[no];
@@ -273,6 +274,7 @@ if (SkipInterior)
   int nPort, nPanel;
   RWGPort *Port;
   cdouble PortCurrent;
+
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*! 20120701 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -328,10 +330,42 @@ TotalVP=TotalVM=0.0;
        Port=Ports[nPort];
        VP = GetPanelPotential(O, nPanel, IK, Port->PRefPoint);
        VM = GetPanelPotential(O, nPanel, IK, Port->MRefPoint);
-       PortVoltages[nPort] += PanelCharges[nPanel] * (VP - VM);
-TotalVP+=PanelCharges[nPanel]*VP;
-TotalVM+=PanelCharges[nPanel]*VM;
+       PortVoltages[nPort] += PanelCharges[G->PanelIndexOffset[no] + nPanel] * (VP - VM);
+TotalVP+=PanelCharges[G->PanelIndexOffset[no] + nPanel]*VP;
+TotalVM+=PanelCharges[G->PanelIndexOffset[no] + nPanel]*VM;
      };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+{ int no, nop, np, npp;
+  RWGObject *O, *OP;
+FILE *f=fopen("doom.out","a");
+cdouble V;
+double *X;
+for(no=0; no<G->NumObjects; no++)
+ for(O=G->Objects[no], np=0; np<O->NumPanels; np++)
+  { 
+    X=O->Panels[np]->Centroid;
+
+    for(V=0.0, nop=0; nop<G->NumObjects; nop++)
+     for(OP=G->Objects[nop], npp=0; npp<OP->NumPanels; npp++)
+      V+=PanelCharges[G->PanelIndexOffset[nop] + npp]*GetPanelPotential(OP, npp, IK, X);
+
+    fprintf(f,"%e %e %e %e %e \n",X[0],X[1],X[2],real(V),imag(V));
+    if ( np+1 == O->NumPanels)  
+     fprintf(f,"\n\n");
+  };
+fclose(f);
+}
+#endif 
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+
 
   /***************************************************************/
   /* next get the contribution to the port voltage from the line */

@@ -47,18 +47,8 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
                                  cdouble GC[2])
 { 
   /***************************************************************/
-  /* preliminary setup for numerical cubature.                   */
-  /* in what follows, X runs over the 'destination triangle' and */
-  /* XP runs over the 'source triangle' according to             */
-  /*  X  = Va_1 +  u*(Va_2 - Va_1) +  v*(Va_3-Vb_1)              */
-  /*  XP = Vb_1 + up*(Va_2 - Vb_1) + vp*(Va_3-Vb_1)              */
-  /* where (V_1, V_2, V_3) are the triangle vertices and (u,v)   */
-  /* are the cubature points for a 2D numerical cubature rule    */
-  /* over the standard triangle with vertices at (0,0)(1,0)(0,1).*/
-  /* note that the jacobian of the transformation is 4*A*AP      */
-  /* where A and AP are the areas of the triangles; this         */
-  /* conveniently cancels the corresponding factor coming from   */
-  /* the RWG basis function prefactor.                           */
+  /* preliminary setup for numerical cubature, similar to        */
+  /* PanelPanelInteractions in the scuff core library.           */
   /***************************************************************/
   double *V0, A[3], B[3], *Q;
   V0=Va[0];
@@ -83,11 +73,7 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
   /***************************************************************/
   double *TCR;
   int NumPts;
-  TCR=GetTCR(7, &NumPts);
- // if (HighOrder)
- //  TCR=GetTCR(20, &NumPts);
- // else
- //  TCR=GetTCR(4, &NumPts);
+  TCR=GetTCR(PBCGeometry::TriangleCubatureOrder, &NumPts);
 
   /***************************************************************/
   /* outer loop **************************************************/
@@ -133,7 +119,7 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
          };
 
         /***************************************************************/
-        /***************************************************************/
+        /* use interpolators to get the value of the periodic GF at R  */
         /***************************************************************/
         if ( R[2] < 0.0 )
          { R[2] *= -1.0;
@@ -142,14 +128,11 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
         else
          ZFlipped=0;
 
-        /***************************************************************/
-        /***************************************************************/
-	/***************************************************************/    
         Interpolator->EvaluatePlus(R[0], R[1], R[2], PhiVD);
         GBar = cdouble(PhiVD[0],PhiVD[8+0]);
-        GradGBar[0] = cdouble(PhiVD[1],PhiVD[8+0]);
-        GradGBar[1] = cdouble(PhiVD[2],PhiVD[8+1]);
-        GradGBar[2] = cdouble(PhiVD[3],PhiVD[8+2]);
+        GradGBar[0] = cdouble(PhiVD[1],PhiVD[8+1]);
+        GradGBar[1] = cdouble(PhiVD[2],PhiVD[8+2]);
+        GradGBar[2] = cdouble(PhiVD[3],PhiVD[8+3]);
 
         if (ZFlipped)
          GradGBar[2]*=-1.0; // flip the sign of dG/dz 
@@ -177,13 +160,12 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
 
    }; // for(np=ncp=0; np<nPts; np++) 
 
-
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb, 
+void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
                                 cdouble k, Interp3D *Interpolator, cdouble *GC)
 {
 
@@ -195,7 +177,7 @@ void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
   Va[1] = Oa->Vertices + 3*(Ea->iV1);
   Va[2] = Oa->Vertices + 3*(Ea->iV2);
 
-  Vb[1] = Oa->Vertices + 3*(Eb->iV1);
+  Vb[1] = Ob->Vertices + 3*(Eb->iV1);
   Vb[2] = Ob->Vertices + 3*(Eb->iV2);
 
   /*- PP ---------------------------------------------------------*/ 

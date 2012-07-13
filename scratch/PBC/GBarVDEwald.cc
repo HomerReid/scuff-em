@@ -25,21 +25,11 @@
  *
  */
 
-/*
- * GBarVD[0] = GBar
- * GBarVD[1] = dGBar/dX
- * GBarVD[2] = dGBar/dY
- * GBarVD[3] = dGBar/dZ
- * GBarVD[4] = d^2GBar/dXdY
- * GBarVD[5] = d^2GBar/dXdZ
- * GBarVD[6] = d^2GBar/dYdZ
- * GBarVD[7] = d^3GBar/dXdYdZ
- */
 #include <stdlib.h>
 #include <math.h>
 
-#include "libhrutil.h"
-#include "libMDInterp.h"
+#include <libhrutil.h>
+#include <libMDInterp.h>
 
 #define ABSTOL 0.0
 #define RELTOL 1.0e-8
@@ -50,15 +40,40 @@
 #define NFIRSTROUND 1
 #define NMAX 10000
 
-int RetainFirst9=0;
+/***************************************************************/
+/* complex error function **************************************/
+/***************************************************************/
+extern "C" { 
+ void wofz_(double *XI, double *YI, double *U, double *V, int *FLAG); 
+};
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-cdouble cerfc(cdouble z);
+cdouble cerfc(cdouble z)
+{ 
+  double zr, zi, wr, wi;
+  int flag;
 
-//void GBarVDBF(R, cdouble k, double *P, double *LBV[2],
-//              double AbsTol, double RelTol, int *pnCells, cdouble *GBarVD);
+  /* handle some special cases that can cause the wofz routine to barf */
+  if ( real(z)<-4.0 && fabs(imag(z))<1.0 )
+   return cdouble(2.0,0.0);
+
+  /* note the wofz_ function interprets its input as i*Z */
+  zr = -imag(z);
+  zi = real(z);
+
+  wofz_(&zr, &zi, &wr, &wi, &flag);
+
+  if (flag)
+   { fprintf(stderr,"** warning: wofz(%e,%e) barfed\n",zr,zi);
+     return 0.0;
+   };
+
+  return exp(-z*z) * cdouble(wr, wi);
+} 
+
+cdouble cerf(cdouble z)
+{ 
+  return cdouble(1.0,0.0) - cerfc(z);
+} 
 
 /***************************************************************/
 /* 'EEF' = 'exp*erfc factor'  **********************************/
@@ -102,7 +117,7 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AddG1Contribution(R, cdouble k, double *P,
+void AddG1Contribution(double *R, cdouble k, double *P,
                        double GammaX, double GammaY,
                        double E, cdouble *GBarVD)
 { 
@@ -132,7 +147,7 @@ void AddG1Contribution(R, cdouble k, double *P,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ComputeG1(double *R, cdouble k, double *P, double *LBV[2],
+void ComputeG1(double *R, cdouble k, double *P, double **LBV,
                double E, int *pnCells, cdouble *Sum)
 { 
   int n1, n2;
@@ -149,7 +164,7 @@ void ComputeG1(double *R, cdouble k, double *P, double *LBV[2],
   /*--------------------------------------------------------------*/  
   /*--------------------------------------------------------------*/  
   if ( !(LBV[0][1]==0.0 && LBV[1][0]==0.0) )
-   ErrExit("non-square lattices not supported");
+   ErrExit("non-square lattices not yet supported");
   Gamma1[0] = 2.0*M_PI / LBV[0][0];
   Gamma1[1] = 0.0;
   Gamma2[0] = 0.0;
@@ -335,7 +350,7 @@ void AddG2Contribution(double *R, cdouble k, double *P,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ComputeG2(double *R, cdouble k, double *P, double *LBV[2],
+void ComputeG2(double *R, cdouble k, double *P, double **LBV,
                double E, int *pnCells, cdouble *Sum)
 { 
   int n1, n2;
@@ -357,20 +372,10 @@ void ComputeG2(double *R, cdouble k, double *P, double *LBV[2],
   /***************************************************************/
   for (n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
    for (n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
-    { 
-#if 0
-      if ( (abs(n1)<=1) && (abs(n2)<=1) )
-       continue; // skip the innermost 9 grid cells 
-#endif
-
-      AddG2Contribution(R, k, P,
-                        n1*LBV[0][0] + n2*LBV[1][0],
-                        n1*LBV[0][1] + n2*LBV[1][1],
-                        E, Sum);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//printf("%i %i %s \n",n1,n2,CD2S(Sum[0]));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-    };
+    AddG2Contribution(R, k, P,
+                      n1*LBV[0][0] + n2*LBV[1][0],
+                      n1*LBV[0][1] + n2*LBV[1][1],
+                      E, Sum);
          
   /***************************************************************/
   /***************************************************************/
@@ -389,10 +394,6 @@ void ComputeG2(double *R, cdouble k, double *P, double *LBV[2],
                             n1*LBV[0][0] + n2*LBV[1][0],
                             n1*LBV[0][1] + n2*LBV[1][1], 
                             E, Sum);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//printf("%i %i %s \n",n1,n2,CD2S(Sum[0]));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
           nCells++;
         };
 
@@ -422,67 +423,8 @@ void ComputeG2(double *R, cdouble k, double *P, double *LBV[2],
 }
 
 /***************************************************************/
-/***************************************************************/
-/* compute the contribution of the innermost 9 real-space      */
-/* cells to the fourier-space sum                              */
-/***************************************************************/
-/***************************************************************/
-#if 0 // this seems not to have worked
-void ComputeG1First9(cdouble k, double *P, double *L1, double *L2, 
-                     double *R, double E, cdouble *Sum)
-{
-  int n1, n2;
-  double L[2], RpL[3], rpl2, rpl;
-  cdouble PhaseFactor, IKR, Phi, Psi, Zeta, Upsilon;
-  cdouble Part1[8], Part2[8];
-
-  memset(Part1,0,NSUM*sizeof(cdouble));
-  memset(Part2,0,NSUM*sizeof(cdouble));
-  for(n1=-1; n1<=1; n1++)
-   for(n2=-1; n2<=1; n2++)
-    { 
-      L[0] = n1*L1[0] + n2*L2[0];
-      L[1] = n1*L1[1] + n2*L2[1];
-
-      PhaseFactor = exp( II*(P[0]*L[0] + P[1]*L[1]) ) / (4.0*M_PI);
-
-      RpL[0] = R[0]-L[0];
-      RpL[1] = R[1]-L[1];
-      RpL[2] = R[2];
-
-      rpl2=RpL[0]*RpL[0] + RpL[1]*RpL[1] + RpL[2]*RpL[2];
-      rpl=sqrt(rpl2);
-      if (fabs(rpl)<1.0e-7) 
-       continue;
-
-      IKR=II*k*rpl;
-      Phi=exp(IKR) / (4.0*M_PI*rpl);
-      Psi=(-1.0 + IKR) * Phi / rpl2;
-      Zeta=(3.0 + IKR*(-3.0 + IKR))*Phi/(rpl2*rpl2);
-      Upsilon=(-15.0 + IKR*(15.0 + IKR*(-6.0 + IKR)))*Phi/(rpl2*rpl2*rpl2);
- 
-      Part1[0] += PhaseFactor * Phi;
-      Part1[1] += PhaseFactor * RpL[0] * Psi;
-      Part1[2] += PhaseFactor * RpL[1] * Psi;
-      Part1[3] += PhaseFactor * RpL[2] * Psi;
-      Part1[4] += PhaseFactor * RpL[0] * RpL[1] * Zeta;
-      Part1[5] += PhaseFactor * RpL[0] * RpL[2] * Zeta;
-      Part1[6] += PhaseFactor * RpL[1] * RpL[2] * Zeta;
-      Part1[7] += PhaseFactor * RpL[1] * RpL[2] * RpL[3] * Zeta;
-
-      AddG2Contribution(k, P, R, L[0], L[1], E, Part2);
-
-    };
-
-  int ns;
-  for(ns=0; ns<NSUM; ns++)
-   Sum[ns] = Part1[ns] - 0.5*Part2[ns];
-
-};
-#endif
-
-/***************************************************************/
-/* get the contributions ***************************************/
+/* get the contributions of a single real-space lattice cell to*/
+/* the full periodic green's function (no ewald decomposition) */
 /***************************************************************/
 void AddGBFContribution(double R[3], cdouble k, double P[2],
                         double Lx, double Ly, cdouble *Sum)
@@ -561,9 +503,8 @@ void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2],
 void GBarVDEwald(double R, cdouble k, double *P, double *LBV[2],
                  double E, int ExcludeFirst9, cdouble *GBarVD)
 { 
-  
   if ( (LBV[0][1]!=0.0) || (LBV[1][0]!=0.0) )
-   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+   ErrExit("non-square lattices not yet supported");
 
   /* E is the separation parameter, which we set to its  */
   /* optimal value if the user didn't specify it already */
@@ -587,10 +528,10 @@ void GBarVDEwald(double R, cdouble k, double *P, double *LBV[2],
   ComputeG1(R, k, P, LBV, E, 0, G1);
   ComputeG2(R, k, P, LBV, E, 0, G2);
 
-  if (ExcludeFirst9) 
+  if (ExcludeFirst9)
    ComputeGBFFirst9(R, k, P, LBV, GBFFirst9);
   else
-   memset(GBFFirst9,0,NSUM*sizeof(double));
+   memset(GBFFirst9,0,NSUM*sizeof(cdouble));
 
   for(int ns=0; ns<NSUM; ns++)
    GBarVD[ns] = G1[ns] + G2[ns] - GBFFirst9[ns];
@@ -600,18 +541,8 @@ void GBarVDEwald(double R, cdouble k, double *P, double *LBV[2],
 /***************************************************************/
 /* this is an entry point for GBarVD that has the proper       */
 /* prototype for passage to the Interp3D() initialization      */
-/* routine                                                     */
+/* routine; the structure GBarData is defined in PBCGeometry.h.*/
 /***************************************************************/
-typedef struct GBarData 
- { 
-   cdouble k;           // wavenumber 
-   double P[2];         // bloch vector 
-   double **LBV;        // lattice basis vectors 
-   double E;            // separation parameter
-   bool ExcludeInner9;  
- 
- } GBarData;
-
 void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
 {
 
@@ -621,6 +552,26 @@ void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
   R[0]=X1;
   R[1]=X2;
   R[2]=X3;
-  GBarVDEwald(R, GBD->k, GBD->P, GBD->LBV, GBD->E, GBD->ExcludeInner9, PhiVD);
+
+  cdouble GBarVD[8];
+  GBarVDEwald(R, GBD->k, GBD->BlochP, GBD->LBV, GBD->E, 
+              GBD->ExcludeInner9, GBarVD);
+ 
+  PhiVD[ 0] = real(GBarVD[0]);
+  PhiVD[ 1] = real(GBarVD[1]);
+  PhiVD[ 2] = real(GBarVD[2]);
+  PhiVD[ 3] = real(GBarVD[3]);
+  PhiVD[ 4] = real(GBarVD[4]);
+  PhiVD[ 5] = real(GBarVD[5]);
+  PhiVD[ 6] = real(GBarVD[6]);
+  PhiVD[ 7] = real(GBarVD[7]);
+  PhiVD[ 8] = imag(GBarVD[0]);
+  PhiVD[ 9] = imag(GBarVD[1]);
+  PhiVD[10] = imag(GBarVD[2]);
+  PhiVD[11] = imag(GBarVD[3]);
+  PhiVD[12] = imag(GBarVD[4]);
+  PhiVD[13] = imag(GBarVD[5]);
+  PhiVD[14] = imag(GBarVD[6]);
+  PhiVD[15] = imag(GBarVD[7]);
 
 } 
