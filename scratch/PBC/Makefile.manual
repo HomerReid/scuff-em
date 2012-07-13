@@ -1,0 +1,40 @@
+CPPFLAGS = $(DEBUG)
+LDFLAGS = $(DEBUG)
+
+SCUFFEM = /home/homer/work/scuff-em-installation
+CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
+CXXFLAGS += -fopenmp
+
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libMDInterp/.libs
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libSGJC/.libs
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libTriInt/.libs
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libhrutil/.libs
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libhmat/.libs
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libMatProp/.libs
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libIncField/.libs
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libMatProp/cmatheval/.libs
+LDFLAGS += -L/home/homer/codes/lib
+
+HR_LIBS = -lIncField -lMatProp -lcmatheval -lMDInterp -lhmat -lTriInt -lSGJC -lhrutil
+
+OTHER_LIBS = -lreadline -lhdf5_hl -lhdf5 -llapack -lblas -lgomp -lgfortran
+
+LIBS = $(HR_LIBS) $(OTHER_LIBS)
+
+F77 = gfortran
+
+#################################################################
+#################################################################
+#################################################################
+PBCG_OBJS = AddStraddlers.o 	\
+ AB9MatrixElements.o 		\
+ AssembleBEMMatrix_PBC.o	\
+ GBarVDEwald.o			\
+ GetFields_PBC.o		\
+ PBCGeometry.o
+
+tComposite:	tComposite.o $(PBCG_OBJS)
+		$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+clean:
+		rm *.o *.a
