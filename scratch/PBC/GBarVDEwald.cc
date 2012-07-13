@@ -30,6 +30,7 @@
 
 #include <libhrutil.h>
 #include <libMDInterp.h>
+#include "PBCGeometry.h"
 
 #define ABSTOL 0.0
 #define RELTOL 1.0e-8
@@ -39,6 +40,8 @@
 #define NSUM 8
 #define NFIRSTROUND 1
 #define NMAX 10000
+
+namespace scuff{
 
 /***************************************************************/
 /* complex error function **************************************/
@@ -500,7 +503,7 @@ void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2],
 /*  GBarVD[7] = d^3GBar/dXdYdZ                                 */
 /*                                                             */
 /***************************************************************/
-void GBarVDEwald(double R, cdouble k, double *P, double *LBV[2],
+void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
                  double E, int ExcludeFirst9, cdouble *GBarVD)
 { 
   if ( (LBV[0][1]!=0.0) || (LBV[1][0]!=0.0) )
@@ -546,7 +549,7 @@ void GBarVDEwald(double R, cdouble k, double *P, double *LBV[2],
 void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
 {
 
-  GBarData GBD = (GBarData *)UserData;
+  GBarData *GBD = (GBarData *)UserData;
 
   double R[3];
   R[0]=X1;
@@ -575,3 +578,5 @@ void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
   PhiVD[15] = imag(GBarVD[7]);
 
 } 
+
+} // namespace scuff

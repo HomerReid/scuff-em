@@ -7,15 +7,21 @@
 #include <libhrutil.h>
 #include <libMDInterp.h>
 #include <libscuff.h>
-#include <PBCGeometry.h>
+#include "PBCGeometry.h"
 
 namespace scuff{
 
+/***************************************************************/
+/* do something about me please ********************************/
+/***************************************************************/
+int PBCGeometry::TriangleCubatureOrder=7;
+double PBCGeometry::DeltaInterp=0.05;
 
+/***************************************************************/
 /* get the maximum and minimum cartesian coordinates obtained  */
 /* by points on an RWGObject                                   */
 /***************************************************************/
-void GetXYZMaxMin(RWGObject *O, double XYZMax[3], XYZMin[3])
+void GetXYZMaxMin(RWGObject *O, double XYZMax[3], double XYZMin[3])
 { 
   XYZMax[0] = XYZMax[1] = XYZMax[2] = -1.0e+9;
   XYZMin[0] = XYZMin[1] = XYZMin[2] = +1.0e+9;
@@ -28,6 +34,7 @@ void GetXYZMaxMin(RWGObject *O, double XYZMax[3], XYZMin[3])
      XYZMax[2] = fmax(XYZMax[2], O->Vertices[3*nv + 2]);
      XYZMin[2] = fmin(XYZMin[2], O->Vertices[3*nv + 2]);
    };
+}
 
 /***************************************************************/
 /* PBCGeometry class constructor *******************************/
@@ -43,8 +50,8 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   LBV[1][0]=pLBV[1][0];
   LBV[1][1]=pLBV[1][1];
   CurrentOmega=-1.0;
-  EpsTF = (cdouble *)mallocSE( (G->NumObjects+1)*sizeof(cdouble));
-  MuTF  = (cdouble *)mallocSE( (G->NumObjects+1)*sizeof(cdouble));
+  EpsTF = (cdouble *)mallocEC( (G->NumObjects+1)*sizeof(cdouble));
+  MuTF  = (cdouble *)mallocEC( (G->NumObjects+1)*sizeof(cdouble));
 
   Log("Creating PBC geometry: unit cell geometry %s, lattice (%g,%g) x (%g,%g)",
        G->GeoFileName,LBV[0][0],LBV[0][1],LBV[1][0],LBV[1][1]); 
@@ -56,10 +63,13 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   /*--------------------------------------------------------------*/
   NumStraddlers=(int *)mallocEC(2*G->NumObjects*sizeof(int));
   G->TotalBFs=G->TotalPanels=0;
+  double *MyLBVs[2];
+  MyLBVs[0]=LBV[0];
+  MyLBVs[1]=LBV[1];
   for(int no=0; no<G->NumObjects; no++)
    {
      RWGObject *O = G->Objects[no];
-     AddStraddlers(O, LBV, NumStraddlers + 2*no);
+     AddStraddlers(O, MyLBVs, NumStraddlers + 2*no);
  
      // FIXME
      if ( (NumStraddlers[2*no+0]==0) != (NumStraddlers[2*no+1]==0) )
@@ -93,7 +103,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   /*--------------------------------------------------------------*/
   /*- allocate interpolators for each object interior             */
   /*--------------------------------------------------------------*/
-  GBarAB9_Interior=(Interp3D **)mallocSE(NumObject * sizeof(Interp3D *));
+  GBarAB9_Interior=(Interp3D **)mallocEC(G->NumObjects * sizeof(Interp3D *));
   double XYZMaxTO[3], XYZMinTO[3]; // 'x, y, z max/min, this object'
   double XYZMax[3], XYZMin[3];     // x,y,z max/min for geometry overall
   XYZMax[0] = XYZMax[1] = XYZMax[2] = -1.0e+9;
@@ -104,7 +114,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   for(no=0; no<G->NumObjects; no++)
    { 
      O=G->Objects[no];
-     GetMaxMinCoords(O, XYZMaxTO, XYZMinTO);
+     GetXYZMaxMin(O, XYZMaxTO, XYZMinTO);
      XYZMax[0] = fmax(XYZMax[0], XYZMaxTO[0]);
      XYZMax[1] = fmax(XYZMax[1], XYZMaxTO[1]);
      XYZMax[2] = fmax(XYZMax[2], XYZMaxTO[2]);
@@ -113,8 +123,16 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
      XYZMin[2] = fmin(XYZMin[2], XYZMinTO[2]);
 
      // FIXME to handle 1D periodicity
-     if ( O->MP->IsPEC() || (NumStraddlers[2*no+0]==0) )
-      GBarAB9_Interior[no]=0;
+     if ( O->MP->IsPEC() )
+      { 
+        Log(" Object %s is PEC; no interpolation table needed",O->Label);
+        GBarAB9_Interior[no]=0;
+      }
+     else if ( NumStraddlers[2*no+0]==0 && NumStraddlers[2*no+1]==0 )
+      { 
+        Log(" Object %s straddles no unit cell boundaries; no interpolation table needed",O->Label);
+        GBarAB9_Interior[no]=0;
+      }
      else
       { NXPoints = (XYZMaxTO[0] - XYZMinTO[0]) / PBCGeometry::DeltaInterp;
         NYPoints = (XYZMaxTO[1] - XYZMinTO[1]) / PBCGeometry::DeltaInterp;

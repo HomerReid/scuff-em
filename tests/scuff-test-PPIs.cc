@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define HAVE_READLINE
 #ifdef HAVE_READLINE
  #include <readline/readline.h>
  #include <readline/history.h>
@@ -399,16 +400,19 @@ printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
         Qa = Oa->Vertices + 3*Pa->VI[iQa];
         Qb = Args->Ob->Vertices + 3*Pb->VI[iQb];
 
+        double *OVa[3], *OVb[3];
+        CanonicallyOrderVertices(TVa, TVb, ncv, OVa, OVb);
+
         TaylorDuffyArgStruct MyTDArgStruct, *TDArgs=&MyTDArgStruct;
         InitTaylorDuffyArgs(TDArgs);
 
         TDArgs->WhichCase = ncv;
         TDArgs->GParam    = K;
-        TDArgs->V1        = TVa[0];
-        TDArgs->V2        = TVa[1];
-        TDArgs->V3        = TVa[2];
-        TDArgs->V2P       = TVb[1];
-        TDArgs->V3P       = TVb[2];
+        TDArgs->V1        = OVa[0];
+        TDArgs->V2        = OVa[1];
+        TDArgs->V3        = OVa[2];
+        TDArgs->V2P       = OVb[1];
+        TDArgs->V3P       = OVb[2];
         TDArgs->Q         = Qa;
         TDArgs->QP        = Qb;
 

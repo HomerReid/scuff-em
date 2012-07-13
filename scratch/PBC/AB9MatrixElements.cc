@@ -33,7 +33,9 @@
 #include <libMDInterp.h>
 #include <libTriInt.h>
 #include <libscuff.h>
-#include <PBCGeometry.h>
+#include "PBCGeometry.h"
+
+#define II cdouble (0.0,1.0)
 
 namespace scuff{
 
@@ -173,6 +175,7 @@ void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
   RWGEdge *Eb = Ob->Edges[neb];
 
   double *Va[3], *Qa, *Vb[3], *Qb;
+  cdouble GCPP[2], GCPM[2], GCMP[2], GCMM[2];
 
   Va[1] = Oa->Vertices + 3*(Ea->iV1);
   Va[2] = Oa->Vertices + 3*(Ea->iV2);

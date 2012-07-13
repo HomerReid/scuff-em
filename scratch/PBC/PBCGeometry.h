@@ -35,6 +35,8 @@
 #ifndef PBCGEOMETRY_H
 #define PBCGEOMETRY_H
 
+namespace scuff{
+
 /***************************************************************/
 /* PBCGeometry is a class built atop RWGGeometry for handling  */
 /* periodic boundary conditions.                               */
@@ -48,8 +50,8 @@ public:
 
    // constructor / destructor.
    // LBV[i][j] = jth component of ith lattice basis vector (i,j = 0,1)
-   PBCGeometry::PBCGeometry(RWGGeometry *G, double **LBV);
-   ~PBCGeometry::PBCGeometry(RWGGeometry *G, double **LBV);
+   PBCGeometry(RWGGeometry *G, double **LBV);
+   ~PBCGeometry();
 
    // assemble BEM matrix
   HMatrix *AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *M=0);
@@ -107,17 +109,17 @@ public:
    /*- about such things; these are helper routines for the public */
    /*- class methods                                               */
    /*--------------------------------------------------------------*/
-   void GetInnerContributions();
-   void AddOuterContributions();
+   void AssembleInnerCellBlocks();
+   void AddOuterCellContributions(double *BlochP, HMatrix *M);
 
    /*--------------------------------------------------------------*/
    /*--------------------------------------------------------------*/
    /*--------------------------------------------------------------*/
-   static int TriangleCubatureOrder=7;
-   static double DeltaInterp=0.05;
-
+   static int TriangleCubatureOrder;
+   static double DeltaInterp;
 
  };
+
 
 /***************************************************************/
 /* this is really a helper routine for the PBCGeometry class   */
@@ -130,7 +132,7 @@ void AddStraddlers(RWGObject *O, double **LBV, int NumStraddlers[2]);
 /* routine for computing the periodic green's function via     */
 /* ewald summation                                             */
 /***************************************************************/
-void GBarVDEwald(double R, cdouble k, double *BlochP, double **LBV,
+void GBarVDEwald(double *R, cdouble k, double *BlochP, double **LBV,
                  double E, int ExcludeFirst9, cdouble *GBarVD);
 
 /***************************************************************/
@@ -140,8 +142,8 @@ void GBarVDEwald(double R, cdouble k, double *BlochP, double **LBV,
 typedef struct GBarData 
  { 
    cdouble k;           // wavenumber 
-   double BlochP[2];    // bloch vector 
-   double **LBV;        // lattice basis vectors 
+   double *BlochP;      // bloch vector 
+   double *LBV[2];      // lattice basis vectors 
    double E;            // ewald separation parameter
    bool ExcludeInner9;  
  
@@ -157,4 +159,5 @@ void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
                                 cdouble k, Interp3D *Interpolator, cdouble *GC);
 
 
+} // namespace scuff
 #endif

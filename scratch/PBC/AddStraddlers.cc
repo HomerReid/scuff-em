@@ -36,7 +36,7 @@
 #include <libscuff.h>
 #include "PBCGeometry.h"
 
-using namespace scuff;
+namespace scuff {
 
 /***************************************************************/
 /* return 1 if the point with cartesian coordinates X lies on  */
@@ -137,7 +137,7 @@ static int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2],
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 #define CHUNK 100
-void AddStraddlers(RWGObject *O, double LBV[2][2], int *NumStraddlers);
+void AddStraddlers(RWGObject *O, double **LBV, int *NumStraddlers)
 { 
   int NumNew=0, NumAllocated=0;
   double V[3], *NewVertices=0;
@@ -271,3 +271,5 @@ void AddStraddlers(RWGObject *O, double LBV[2][2], int *NumStraddlers);
   /*- implement the kdtri thing here ... -------------------------*/
   /*--------------------------------------------------------------*/
 }
+
+} // namespace scuff

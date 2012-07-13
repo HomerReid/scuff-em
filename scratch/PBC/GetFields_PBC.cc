@@ -33,6 +33,7 @@
 #include <libTriInt.h>
 
 #include "libscuff.h"
+#include "PBCGeometry.h"
 #include "FieldGrid.h"
 
 #ifdef HAVE_CONFIG_H
@@ -69,8 +70,8 @@ typedef struct GRPIntegrandData
    double PreFac;     // RWG basis function prefactor 
    const double *X0;  // field evaluation point 
    cdouble K;         // \sqrt{Eps*Mu} * frequency
-   double *P;         // bloch wavevector 
-   double **LBV;      // lattice basis vectors
+   double *BlochP;    // bloch wavevector 
+   double *LBV[2];    // lattice basis vectors
  } GRPIData;
 
 static void GRPIntegrand(double *X, void *parms, double *f)
@@ -80,7 +81,7 @@ static void GRPIntegrand(double *X, void *parms, double *f)
   double PreFac     = GRPID->PreFac;
   const double *X0  = GRPID->X0;
   cdouble K         = GRPID->K;
-  double *P         = GRPID->P;
+  double *BlochP    = GRPID->BlochP;
   double **LBV      = GRPID->LBV;
 
   /* get the value of the RWG basis function at X */
@@ -92,7 +93,7 @@ static void GRPIntegrand(double *X, void *parms, double *f)
   cdouble GBarVD[8];
   double XmX0[3];
   VecSub(X,X0,XmX0);
-  GBarVDEwald(XmX0, K, P, LBV, -1.0, 0, GBarVD);
+  GBarVDEwald(XmX0, K, BlochP, LBV, -1.0, 0, GBarVD);
   cdouble Phi = GBarVD[0], *GradPhi=GBarVD+1;
   
   /* assemble integrand components */
@@ -122,7 +123,7 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /*                                                             */
 /***************************************************************/
 void GetReducedPotentials(RWGObject *O, int ne, const double *X, 
-                          cdouble K, double *P, double **LBV,
+                          cdouble K, double *BlochP, double **LBV,
                           cdouble *a, cdouble *Curla, cdouble *Gradp)
 {
   double *QP, *V1, *V2, *QM;
@@ -133,19 +134,20 @@ void GetReducedPotentials(RWGObject *O, int ne, const double *X,
   cdouble IP[9], IM[9];
 
   /* get edge vertices */
-  E=Edges[ne];
-  QP=Vertices + 3*(E->iQP);
-  V1=Vertices + 3*(E->iV1);
-  V2=Vertices + 3*(E->iV2);
-  QM=Vertices + 3*(E->iQM);
-  PArea=Panels[E->iPPanel]->Area;
-  MArea=Panels[E->iMPanel]->Area;
+  E=O->Edges[ne];
+  QP=O->Vertices + 3*(E->iQP);
+  V1=O->Vertices + 3*(E->iV1);
+  V2=O->Vertices + 3*(E->iV2);
+  QM=O->Vertices + 3*(E->iQM);
+  PArea=O->Panels[E->iPPanel]->Area;
+  MArea=O->Panels[E->iMPanel]->Area;
 
   /* set up data structure passed to GRPIntegrand */
   GRPID->X0=X;
   GRPID->K=K;
-  GRPID->P=P;
-  GRPID->LBV=LBV;
+  GRPID->BlochP=BlochP;
+  GRPID->LBV[0]=LBV[0];
+  GRPID->LBV[1]=LBV[1];
 
   /* contribution of positive panel */
   GRPID->Q=QP;
@@ -173,7 +175,7 @@ void GetScatteredFields(PBCGeometry *PG,
                         const int ObjectIndex, 
                         HVector *KN,
                         const cdouble Omega, 
-                        const double *P,
+                        double *BlochP,
                         const cdouble Eps,
                         const cdouble Mu,
                         cdouble EHS[6])
@@ -190,6 +192,9 @@ void GetScatteredFields(PBCGeometry *PG,
   cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
   double Sign;
   int ContainingObjectIndex;
+  double *LBV[2];
+  LBV[0]=PG->LBV[0];
+  LBV[1]=PG->LBV[1];
   for(no=0; no<G->NumObjects; no++)
    { 
      O=G->Objects[no];
@@ -227,7 +232,7 @@ void GetScatteredFields(PBCGeometry *PG,
            NAlpha = Sign*KN->GetEntry( Offset + 2*ne + 1 );
          };
       
-        GetReducedPotentials(O, ne, X, K, P, PG->LBV, a, Curla, Gradp);
+        GetReducedPotentials(O, ne, X, K, BlochP, LBV, a, Curla, Gradp);
 
         for(i=0; i<3; i++)
          { EHS[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
