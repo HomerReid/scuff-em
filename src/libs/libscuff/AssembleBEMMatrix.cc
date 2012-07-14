@@ -397,7 +397,6 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
   if (Args->Oa != Args->Ob) return;
   RWGObject *O=Args->Oa;
   if ( !(O->SurfaceSigma) ) return;
-  if ( !(O->MP->IsPEC())  ) return;
  
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -407,8 +406,10 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
   SSParmValues[0]=Args->Omega*MatProp::FreqUnit;
 
   HMatrix *B    = Args->B;
-  int RowOffset = Args->RowOffset;
-  int ColOffset = Args->ColOffset;
+  int Offset    = Args->RowOffset;
+
+  if (Offset!=Args->ColOffset)
+   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -416,7 +417,7 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
   int neAlpha, neBeta;
   RWGEdge *EAlpha, *EBeta;
   RWGPanel *P;
-  cdouble Sigma;
+  cdouble GZ;
   double Overlap;
   for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
    for(neBeta=neAlpha; neBeta<O->NumEdges; neBeta++)
@@ -449,14 +450,23 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
          SSParmValues[3] = P->Centroid[2];
        };
 
-      Sigma=cevaluator_evaluate(O->SurfaceSigma, 4, SSParmNames, SSParmValues);
+      GZ=cevaluator_evaluate(O->SurfaceSigma, 4, SSParmNames, SSParmValues);
 
 if (neAlpha==0 && neBeta==0)
- Log("Object %s: Sigma (Omega=%s) is %s\n",O->Label,z2s(Args->Omega),z2s(Sigma));
+ Log("Object %s: Sigma (Omega=%s) is %s\n",O->Label,z2s(Args->Omega),z2s(GZ));
 
-      B->AddEntry(RowOffset+neAlpha, ColOffset+neBeta, -2.0*Overlap/Sigma);
-      if (neAlpha!=neBeta)
-       B->AddEntry(RowOffset+neBeta, ColOffset+neAlpha, -2.0*Overlap/Sigma);
+      GZ*=ZVAC;
+
+      if ( O->MP->IsPEC() )
+       { B->AddEntry(Offset+neAlpha, Offset+neBeta, -2.0*Overlap/GZ);
+         if (neAlpha!=neBeta)
+          B->AddEntry(Offset+neBeta, Offset+neAlpha, -2.0*Overlap/GZ);
+       }
+      else
+       { B->AddEntry(Offset + 2*neAlpha+1, Offset + 2*neBeta+1, +2.0*Overlap/GZ);
+         if (neAlpha!=neBeta)
+          B->AddEntry(Offset + 2*neBeta+1, Offset + 2*neAlpha+1, +2.0*Overlap/GZ);
+       }
       
     };
 

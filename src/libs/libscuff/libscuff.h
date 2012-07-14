@@ -383,6 +383,10 @@ class RWGGeometry
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, 
                char *ObjectLabel, double PFT[8]);
 
+   /* routine for computing scattered power */
+   cdouble GetScatteredPower(HVector *KN, cdouble Omega, int ObjectIndex);
+   cdouble GetScatteredPower(HVector *KN, cdouble Omega, char *ObjectLabel);
+
    /* routine for calculating electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
 
