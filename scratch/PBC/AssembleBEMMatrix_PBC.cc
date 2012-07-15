@@ -11,6 +11,16 @@
 #include "/home/homer/work/scuff-em/src/libs/libscuff/libscuffInternals.h"
 #include "PBCGeometry.h"
 
+//FIXME
+#define HAVE_CONFIG_H
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
+
 #define II cdouble(0.0,1.0)
 
 namespace scuff{
@@ -248,6 +258,7 @@ void PBCGeometry::AssembleInnerCellBlocks()
 
   int no, nop;
   ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
+  InitABMBArgs(Args);
   Args->G = G; 
   Args->Omega = CurrentOmega;
   Args->nThread = GetNumThreads();
@@ -368,7 +379,6 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
   if(M==0)
    M=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
 
-
   /*--------------------------------------------------------------*/
   /*- assemble contributions of innermost lattice cells if the   -*/
   /*- frequency has changed since the last call                  -*/
@@ -403,7 +413,7 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  AddOuterCellContributions(BlochP, M);
+ // AddOuterCellContributions(BlochP, M);
 
 }
 

@@ -31,8 +31,10 @@ PBCG_OBJS = AddStraddlers.o 	\
  ACMTOMS680.o			\
  cerf.o	
 
-tPBCGeometry:      	tPBCGeometry.o $(PBCG_OBJS)
-			$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+OBJS = tPBCGeometry.o $(PBCG_OBJS)
+
+tPBCGeometry:      	$(OBJS) PBCGeometry.h
+			$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 
 clean:
 		rm *.o *.a

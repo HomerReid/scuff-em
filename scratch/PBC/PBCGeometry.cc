@@ -105,7 +105,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   /*--------------------------------------------------------------*/
   GBarAB9_Interior=(Interp3D **)mallocEC(G->NumObjects * sizeof(Interp3D *));
   double XYZMaxTO[3], XYZMinTO[3]; // 'x, y, z max/min, this object'
-  double XYZMax[3], XYZMin[3];     // x,y,z max/min for geometry overall
+  //double XYZMax[3], XYZMin[3];  // these are now class data fields
   XYZMax[0] = XYZMax[1] = XYZMax[2] = -1.0e+9;
   XYZMin[0] = XYZMin[1] = XYZMin[2] = +1.0e+9;
   int no;
@@ -115,6 +115,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
    { 
      O=G->Objects[no];
      GetXYZMaxMin(O, XYZMaxTO, XYZMinTO);
+
      XYZMax[0] = fmax(XYZMax[0], XYZMaxTO[0]);
      XYZMax[1] = fmax(XYZMax[1], XYZMaxTO[1]);
      XYZMax[2] = fmax(XYZMax[2], XYZMaxTO[2]);
@@ -137,7 +138,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
       { NXPoints = (XYZMaxTO[0] - XYZMinTO[0]) / PBCGeometry::DeltaInterp;
         NYPoints = (XYZMaxTO[1] - XYZMinTO[1]) / PBCGeometry::DeltaInterp;
         NZPoints = (XYZMaxTO[2] - XYZMinTO[2]) / PBCGeometry::DeltaInterp;
-        Log("Creating %ix%ix%i interpolation table for object %s",O->Label,NXPoints,NYPoints,NZPoints);
+        Log("Creating %ix%ix%i interpolation table for object %s",NXPoints,NYPoints,NZPoints,O->Label);
         GBarAB9_Interior[no]=new Interp3D( XYZMinTO[0], XYZMaxTO[0], NXPoints+1,
                                            XYZMinTO[1], XYZMaxTO[1], NYPoints+1,
                                            XYZMinTO[2], XYZMaxTO[2], NZPoints+1,
@@ -152,6 +153,8 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   NXPoints = (XYZMax[0] - XYZMin[0]) / PBCGeometry::DeltaInterp; 
   NYPoints = (XYZMax[1] - XYZMin[1]) / PBCGeometry::DeltaInterp; 
   NZPoints = (XYZMax[2] - XYZMin[2]) / PBCGeometry::DeltaInterp; 
+  if (NZPoints<2) 
+   NZPoints=2;
   GBarAB9_Exterior=new Interp3D( XYZMin[0], XYZMax[0], NXPoints+1,
                                  XYZMin[1], XYZMax[1], NYPoints+1,
                                  XYZMin[2], XYZMax[2], NZPoints+1,

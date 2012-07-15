@@ -30,11 +30,15 @@
 #include <ctype.h>
 
 #include <libhrutil.h>
+#include <libMDInterp.h>
 #include <libTriInt.h>
 
 #include "libscuff.h"
 #include "PBCGeometry.h"
 #include "FieldGrid.h"
+
+//FIXME
+#define HAVE_CONFIG_H
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -66,23 +70,25 @@ namespace scuff {
 /*******************************************************************/
 typedef struct GRPIntegrandData
  { 
-   double *Q;         // RWG basis function source/sink vertex  
-   double PreFac;     // RWG basis function prefactor 
-   const double *X0;  // field evaluation point 
-   cdouble K;         // \sqrt{Eps*Mu} * frequency
-   double *BlochP;    // bloch wavevector 
-   double *LBV[2];    // lattice basis vectors
+   double *Q;             // RWG basis function source/sink vertex  
+   double PreFac;         // RWG basis function prefactor 
+   const double *X0;      // field evaluation point 
+   cdouble K;             // \sqrt{Eps*Mu} * frequency
+   double *BlochP;        // bloch wavevector 
+   double *LBV[2];        // lattice basis vectors
+   Interp3D *GBarInterp;  
  } GRPIData;
 
 static void GRPIntegrand(double *X, void *parms, double *f)
 { 
   GRPIntegrandData *GRPID=(GRPIntegrandData *)parms;
-  double *Q         = GRPID->Q;
-  double PreFac     = GRPID->PreFac;
-  const double *X0  = GRPID->X0;
-  cdouble K         = GRPID->K;
-  double *BlochP    = GRPID->BlochP;
-  double **LBV      = GRPID->LBV;
+  double *Q             = GRPID->Q;
+  double PreFac         = GRPID->PreFac;
+  const double *X0      = GRPID->X0;
+  cdouble K             = GRPID->K;
+  double *BlochP        = GRPID->BlochP;
+  double **LBV          = GRPID->LBV;
+  Interp3D *GBarInterp  = GRPID->GBarInterp;
 
   /* get the value of the RWG basis function at X */
   double fRWG[3];
@@ -93,8 +99,22 @@ static void GRPIntegrand(double *X, void *parms, double *f)
   cdouble GBarVD[8];
   double XmX0[3];
   VecSub(X,X0,XmX0);
-  GBarVDEwald(XmX0, K, BlochP, LBV, -1.0, 0, GBarVD);
-  cdouble Phi = GBarVD[0], *GradPhi=GBarVD+1;
+  cdouble Phi, GradPhi[3];
+  if (GBarInterp)
+   { double PhiVD[16];
+     GBarInterp->EvaluatePlus(XmX0[0], XmX0[1], XmX0[2], PhiVD);
+     Phi        = cdouble(PhiVD[0],PhiVD[8+0]);
+     GradPhi[0] = cdouble(PhiVD[1],PhiVD[8+1]);
+     GradPhi[1] = cdouble(PhiVD[2],PhiVD[8+2]);
+     GradPhi[2] = cdouble(PhiVD[3],PhiVD[8+3]);
+   }
+  else
+   { GBarVDEwald(XmX0, K, BlochP, LBV, -1.0, 0, GBarVD);
+     Phi        = GBarVD[0];
+     GradPhi[0] = GBarVD[1];
+     GradPhi[1] = GBarVD[2];
+     GradPhi[2] = GBarVD[3];
+   };
   
   /* assemble integrand components */
   cdouble *zf=(cdouble *)f;
@@ -123,7 +143,8 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /*                                                             */
 /***************************************************************/
 void GetReducedPotentials(RWGObject *O, int ne, const double *X, 
-                          cdouble K, double *BlochP, double **LBV,
+                          cdouble K, double *BlochP, double **LBV, 
+                          Interp3D *GBarInterp,
                           cdouble *a, cdouble *Curla, cdouble *Gradp)
 {
   double *QP, *V1, *V2, *QM;
@@ -148,6 +169,7 @@ void GetReducedPotentials(RWGObject *O, int ne, const double *X,
   GRPID->BlochP=BlochP;
   GRPID->LBV[0]=LBV[0];
   GRPID->LBV[1]=LBV[1];
+  GRPID->GBarInterp=GBarInterp;
 
   /* contribution of positive panel */
   GRPID->Q=QP;
@@ -178,6 +200,7 @@ void GetScatteredFields(PBCGeometry *PG,
                         double *BlochP,
                         const cdouble Eps,
                         const cdouble Mu,
+                        Interp3D *GBarInterp,
                         cdouble EHS[6])
 { 
   memset(EHS, 0, 6*sizeof(cdouble));
@@ -232,7 +255,7 @@ void GetScatteredFields(PBCGeometry *PG,
            NAlpha = Sign*KN->GetEntry( Offset + 2*ne + 1 );
          };
       
-        GetReducedPotentials(O, ne, X, K, BlochP, LBV, a, Curla, Gradp);
+        GetReducedPotentials(O, ne, X, K, BlochP, LBV, GBarInterp, a, Curla, Gradp);
 
         for(i=0; i<3; i++)
          { EHS[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
@@ -258,16 +281,17 @@ typedef struct ThreadData
    HVector *KN;
    IncField *IF;
    cdouble Omega;
-   double *P;
+   double *BlochP;
    ParsedFieldFunc **PFFuncs;
    int NumFuncs;
+   Interp3D *GBarInterp;
 
  } ThreadData;
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void *GetFields_Thread(void *data)
+static void *GetFields_Thread(void *data)
 {
   ThreadData *TD=(ThreadData *)data;
 
@@ -285,9 +309,10 @@ void *GetFields_Thread(void *data)
   HVector *KN                 = TD->KN;
   IncField *IFList            = TD->IF;
   cdouble Omega               = TD->Omega;
-  double *P                   = TD->P;
+  double *BlochP              = TD->BlochP;
   ParsedFieldFunc **PFFuncs   = TD->PFFuncs;
   int NumFuncs                = TD->NumFuncs;
+  Interp3D *GBarInterp        = TD->GBarInterp;
 
   /***************************************************************/
   /* other local variables ***************************************/
@@ -308,6 +333,9 @@ void *GetFields_Thread(void *data)
      nt++;
      if (nt==TD->nTask) nt=0;
      if (nt!=TD->nt) continue;
+ 
+     if (G->LogLevel>=SCUFF_VERBOSELOGGING)
+      LogPercent(nr, XMatrix->NR, 100);
 
      X[0]=XMatrix->GetEntryD(nr, 0);
      X[1]=XMatrix->GetEntryD(nr, 1);
@@ -328,7 +356,7 @@ void *GetFields_Thread(void *data)
      /*- get scattered fields at X                                   */
      /*--------------------------------------------------------------*/
      if (KN)
-      GetScatteredFields(PG, X, ObjectIndex, KN, Omega, P, Eps, Mu, EH);
+      GetScatteredFields(PG, X, ObjectIndex, KN, Omega, BlochP, Eps, Mu, GBarInterp, EH);
      else
       memset(EH, 0, 6*sizeof(cdouble));
 
@@ -359,9 +387,8 @@ void *GetFields_Thread(void *data)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN,
-                                cdouble Omega, double *P, HMatrix *XMatrix,
-                                HMatrix *FMatrix, char *FuncString,
+HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double *BlochP, 
+                                HMatrix *XMatrix, HMatrix *FMatrix, char *FuncString,
                                 int nThread)
 { 
   if (nThread <= 0) nThread = GetNumThreads();
@@ -387,7 +414,7 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN,
    PFFuncs[nf] = new ParsedFieldFunc(Funcs[nf]);
 
   /***************************************************************/
-  /***************************************************************/
+  /* check matrix sizes and (re)allocate FMatrix as necessary ****/
   /***************************************************************/
   if ( XMatrix==0 || XMatrix->NC!=3 || XMatrix->NR==0 )
    ErrExit("wrong-size XMatrix (%ix%i) passed to GetFields",XMatrix->NR,XMatrix->NC);
@@ -399,15 +426,57 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN,
      FMatrix=new HMatrix(XMatrix->NR, NumFuncs, LHM_COMPLEX);
    };
 
+  Log("Computing fields at %i evaluation points",XMatrix->NR);
+
   /***************************************************************/
   /* the incident fields will most likely have been updated at   */
   /* the current frequency already by an earlier call to         */
-  /* AssembleRHSVector(), but somewhat might call GetFields()    */
+  /* AssembleRHSVector(), but someone might call GetFields()     */
   /* to get information on just the incident fields before       */
   /* before setting up and solving the BEM problem, so we should */
   /* do this just to make sure.                                  */
   /***************************************************************/
   G->UpdateIncFields(IF, Omega);
+
+  /***************************************************************/
+  /* RMax[i] is the maximum value of X_i - Y_i                   */
+  /*  where X ranges over all vertices on all objects in the     */
+  /*  geometry, and Y ranges over all field evaluation points    */
+  /***************************************************************/
+  double RMax[3], RMin[3];
+  RMax[0]=RMax[1]=RMax[2]=-1.0e9;
+  RMin[0]=RMin[1]=RMin[2]=+1.0e9;
+  for(int nr=0; nr<XMatrix->NR; nr++)
+   { RMax[0] = fmax(RMax[0], XYZMax[0] - XMatrix->GetEntryD(nr, 0) );
+     RMin[0] = fmin(RMin[0], XYZMin[0] - XMatrix->GetEntryD(nr, 0) );
+     RMax[1] = fmax(RMax[1], XYZMax[1] - XMatrix->GetEntryD(nr, 1) );
+     RMin[1] = fmin(RMin[1], XYZMin[1] - XMatrix->GetEntryD(nr, 1) );
+     RMax[2] = fmax(RMax[2], XYZMax[2] - XMatrix->GetEntryD(nr, 2) );
+     RMin[2] = fmin(RMin[2], XYZMin[2] - XMatrix->GetEntryD(nr, 2) );
+   };
+
+  int NXPoints = (RMax[0] - RMin[0]) / PBCGeometry::DeltaInterp; 
+  if (NXPoints<2) NXPoints=2;
+  int NYPoints = (RMax[1] - RMin[1]) / PBCGeometry::DeltaInterp; 
+  if (NYPoints<2) NYPoints=2;
+  int NZPoints = (RMax[2] - RMin[2]) / PBCGeometry::DeltaInterp; 
+  if (NZPoints<2) NZPoints=2;
+
+  GBarData MyGBarData, *GBD=&MyGBarData;
+  GBD->BlochP = BlochP;
+  GBD->ExcludeInner9=false;
+  GBD->E=-1.0;
+  GBD->LBV[0]=LBV[0];
+  GBD->LBV[1]=LBV[1];
+ // FIXME for eval points in interior regions
+  GBD->k = sqrt(EpsTF[0]*MuTF[0])*CurrentOmega;
+  Interp3D *GBarInterp=new Interp3D( RMin[0], RMax[0], NXPoints, 
+                                     RMin[1], RMax[1], NYPoints, 
+                                     RMin[2], RMax[2], NZPoints, 
+                                     2, nThread, GBarVDPhi3D, (void *)GBD);
+
+  Log(" Range of interp table: (%g,%g) (N=%i) -- (%g,%g) (N=%i) -- (%g,%g) (N=%i)",
+        RMin[0],RMax[0],NXPoints, RMin[1],RMax[1],NYPoints, RMin[2],RMax[2],NZPoints);
 
   /***************************************************************/
   /* fire off threads                                            */
@@ -424,9 +493,10 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN,
   ReferenceTD.KN=KN;
   ReferenceTD.IF=IF;
   ReferenceTD.Omega=Omega;
-  ReferenceTD.P=P;
+  ReferenceTD.BlochP=BlochP;
   ReferenceTD.PFFuncs=PFFuncs;
   ReferenceTD.NumFuncs=NumFuncs;
+  ReferenceTD.GBarInterp=GBarInterp;
 
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[nThread], *TD;
@@ -470,6 +540,8 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN,
    delete PFFuncs[nf];
   delete[] PFFuncs;
 
+  delete GBarInterp;
+
   return FMatrix;
 
 }
@@ -478,14 +550,14 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN,
 /***************************************************************/
 /***************************************************************/
 void PBCGeometry::GetFields(IncField *IF, HVector *KN, 
-                            cdouble Omega, double *P, 
+                            cdouble Omega, double *BlochP, 
                             double *X, cdouble *EH, int nThread)
 {
   HMatrix XMatrix(1, 3, LHM_REAL, LHM_NORMAL, (void *)X);
 
   HMatrix FMatrix(1, 6, LHM_COMPLEX, LHM_NORMAL, (void *)EH);
 
-  GetFields(IF, KN, Omega, P, &XMatrix, &FMatrix, 0, nThread);
+  GetFields(IF, KN, Omega, BlochP, &XMatrix, &FMatrix, 0, nThread);
 } 
 
 

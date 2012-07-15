@@ -62,6 +62,7 @@ public:
   HVector *AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS)
    { return G->AssembleRHSVector(Omega, IF, RHS); }
 
+
    // get fields
    HMatrix *GetFields(IncField *IF, HVector *KN,
                       cdouble Omega, double *BlochP, 
@@ -103,6 +104,11 @@ public:
    /* and for the medium interior to each object            */
    Interp3D *GBarAB9_Exterior;
    Interp3D **GBarAB9_Interior;
+
+   // maximum and minimum values of cartesian coordinates of 
+   // any object in the geometry, used to determine the ranges 
+   // that must be covered by interpolation tables
+   double XYZMax[3], XYZMin[3];
 
    /*--------------------------------------------------------------*/
    /*- class methods which would be private if we were fastidious  */
