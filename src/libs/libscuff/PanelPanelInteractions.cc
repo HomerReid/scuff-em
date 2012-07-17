@@ -344,6 +344,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      Vb[0] = VbDisplaced[0];
      Vb[1] = VbDisplaced[1];
      Vb[2] = VbDisplaced[2];
+     Qb    = VbDisplaced[iQb];
 
      double DC[3]; // 'delta centroid' 
      DC[0] = Pa->Centroid[0] - Pb->Centroid[0] - Displacement[0];

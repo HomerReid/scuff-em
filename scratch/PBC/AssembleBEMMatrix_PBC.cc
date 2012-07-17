@@ -319,6 +319,9 @@ void PBCGeometry::AssembleInnerCellBlocks()
   Displacement[0]=LBV[0][0]; 
   Displacement[1]=LBV[0][1];
   Args->B=MPZ;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+void *pCC=HMatrix::OpenMATLABContext("Hello2");
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   for(no=0; no<G->NumObjects; no++)
    for(nop=0; nop<G->NumObjects; nop++)
     { Args->Oa=G->Objects[no];
@@ -331,11 +334,17 @@ void PBCGeometry::AssembleInnerCellBlocks()
        Args->Oa->MP->Zero();
 
       AssembleBEMMatrixBlock(Args);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+MPZ->ExportToMATLAB(pCC,"MPZ"); 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
       if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
        Args->Oa->MP->UnZero();
 
     };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+HMatrix::CloseMATLABContext(pCC);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   Log("Assembling MZP block ...");
   Displacement[0]=LBV[1][0]; 
@@ -409,6 +418,13 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
                        + PFZP*MZP->GetEntry(nr, nc) + conj(PFZP)*MZP->GetEntry(nc,nr)
                        + MZZ->GetEntry(nr,nc) 
                );
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  for(int nr=0; nr<M->NR; nr++)
+   for(int nc=0; nc<M->NR; nc++)
+    M->SetEntry(nr, nc,   MPZ->GetEntry(nr, nc) + MPZ->GetEntry(nc, nr)
+                        + MZZ->GetEntry(nr,nc) );
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

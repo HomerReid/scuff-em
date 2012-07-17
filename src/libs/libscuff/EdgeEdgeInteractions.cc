@@ -83,6 +83,8 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   /*  b) otherwise, use spherical multipoles if the relative     */
   /*     distance between the edges exceeds the DBFTHRESHOLD,    */
   /*     and otherwise use the panel-panel integral method       */
+  /* // FIXME to take into account the possibility of nonzero    */
+  /* displacement when figuring the distance between edge centroids */
   /***************************************************************/
   int UseSMMethod=0;
   if (Args->Force==EEI_FORCE_SM)
