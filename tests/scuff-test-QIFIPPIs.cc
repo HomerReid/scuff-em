@@ -32,6 +32,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "config.h"
+
 #ifdef HAVE_LIBREADLINE
  #include <readline/readline.h>
  #include <readline/history.h>

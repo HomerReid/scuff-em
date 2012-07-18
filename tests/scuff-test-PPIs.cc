@@ -346,8 +346,6 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      Pa=Oa->Panels[npa];
      Pb=(SameObject ? Oa:Ob)->Panels[npb];
      ncv=AssessPanelPair(Oa,npa,(SameObject ? Oa : Ob),npb,&rRel,TVa,TVb);
-     if (!SameObject) 
-      ncv=0;
      printf("*\n");
      printf("* --npa %i --iQa %i (V #%i) --npb %i --iQb %i (V #%i) %s\n",
             npa,iQa,Pa->VI[iQa],npb,iQb,Pb->VI[iQb],SameObject ? "--same" : "--ns");
@@ -375,10 +373,8 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-#if 0
      if ( !SameObject && DZ!=0.0 )
       Ob->Transform("DISP 0 0 %e",DZ);
-#endif
 
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by libscuff method                       */
@@ -401,7 +397,7 @@ printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
         Qb = Args->Ob->Vertices + 3*Pb->VI[iQb];
 
         double *OVa[3], *OVb[3];
-        CanonicallyOrderVertices(TVa, TVb, ncv, OVa, OVb);
+        int Flipped=CanonicallyOrderVertices(TVa, TVb, ncv, OVa, OVb);
 
         TaylorDuffyArgStruct MyTDArgStruct, *TDArgs=&MyTDArgStruct;
         InitTaylorDuffyArgs(TDArgs);
@@ -413,8 +409,8 @@ printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
         TDArgs->V3        = OVa[2];
         TDArgs->V2P       = OVb[1];
         TDArgs->V3P       = OVb[2];
-        TDArgs->Q         = Qa;
-        TDArgs->QP        = Qb;
+        TDArgs->Q         = Flipped ? Qb : Qa ;
+        TDArgs->QP        = Flipped ? Qa : Qb ;
 
         Tic();
         for(nTimes=0; nTimes<TDTIMES; nTimes++)
