@@ -202,6 +202,7 @@ class RWGObject
    /*- private data fields  ---------------------------------------*/
    /*--------------------------------------------------------------*/
    MatProp *MP;                   /* material properties */
+   int IsPEC;                     /* =1 if this is a PEC object */
    cdouble EpsThisFreq;           // permittivity and permeability
    double MuThisFreq;             //   at the current frequency
 

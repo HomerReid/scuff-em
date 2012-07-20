@@ -290,7 +290,8 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
   /*- if it is a perfect electrical conductor, or 2 times the   */
   /*- number of internal edges otherwise.                       */
   /*------------------------------------------------------------*/
-  NumBFs = MP->IsPEC() ? NumEdges : 2*NumEdges;
+  IsPEC = MP->IsPEC();
+  NumBFs = IsPEC ? NumEdges : 2*NumEdges;
 
 } 
 
@@ -334,7 +335,8 @@ RWGObject::RWGObject(double *pVertices, int pNumVertices,
   /*------------------------------------------------------------*/
   InitEdgeList();
 
-  NumBFs = MP->IsPEC() ? NumEdges : 2*NumEdges;
+  IsPEC = MP->IsPEC();
+  NumBFs = IsPEC ? NumEdges : 2*NumEdges;
 } 
 
 /***************************************************************/

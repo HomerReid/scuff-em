@@ -265,7 +265,7 @@ void AddStraddlers(RWGObject *O, double **LBV, int *NumStraddlers)
   O->NumExteriorEdges = NumExteriorEdges;
 
   O->NumTotalEdges=NumEdges + NumExteriorEdges;
-  O->NumBFs = ( O->MP->IsPEC() ? NumEdges : 2*NumEdges );
+  O->NumBFs = ( O->IsPEC ? NumEdges : 2*NumEdges );
 
   /*--------------------------------------------------------------*/
   /*- implement the kdtri thing here ... -------------------------*/

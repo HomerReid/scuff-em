@@ -124,7 +124,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
      XYZMin[2] = fmin(XYZMin[2], XYZMinTO[2]);
 
      // FIXME to handle 1D periodicity
-     if ( O->MP->IsPEC() )
+     if ( O->IsPEC )
       { 
         Log(" Object %s is PEC; no interpolation table needed",O->Label);
         GBarAB9_Interior[no]=0;
@@ -136,8 +136,11 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
       }
      else
       { NXPoints = (XYZMaxTO[0] - XYZMinTO[0]) / PBCGeometry::DeltaInterp;
+        if (NXPoints<2) NXPoints=2;
         NYPoints = (XYZMaxTO[1] - XYZMinTO[1]) / PBCGeometry::DeltaInterp;
+        if (NYPoints<2) NYPoints=2;
         NZPoints = (XYZMaxTO[2] - XYZMinTO[2]) / PBCGeometry::DeltaInterp;
+        if (NZPoints<2) NZPoints=2;
         Log("Creating %ix%ix%i interpolation table for object %s",NXPoints,NYPoints,NZPoints,O->Label);
         GBarAB9_Interior[no]=new Interp3D( XYZMinTO[0], XYZMaxTO[0], NXPoints+1,
                                            XYZMinTO[1], XYZMaxTO[1], NYPoints+1,
@@ -151,10 +154,11 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   /*- allocate interpolator for exterior medium ------------------*/
   /*--------------------------------------------------------------*/
   NXPoints = (XYZMax[0] - XYZMin[0]) / PBCGeometry::DeltaInterp; 
+  if (NXPoints<2) NXPoints=2;
   NYPoints = (XYZMax[1] - XYZMin[1]) / PBCGeometry::DeltaInterp; 
+  if (NYPoints<2) NYPoints=2;
   NZPoints = (XYZMax[2] - XYZMin[2]) / PBCGeometry::DeltaInterp; 
-  if (NZPoints<2) 
-   NZPoints=2;
+  if (NZPoints<2) NZPoints=2;
   GBarAB9_Exterior=new Interp3D( XYZMin[0], XYZMax[0], NXPoints+1,
                                  XYZMin[1], XYZMax[1], NYPoints+1,
                                  XYZMin[2], XYZMax[2], NZPoints+1,

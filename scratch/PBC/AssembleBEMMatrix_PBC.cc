@@ -33,19 +33,17 @@ void AddMEs(HMatrix *M,
             int RowOffset, int ColOffset, 
             cdouble PreFac[3], cdouble GC[2])
 {
-  int OaIsPEC = Oa->MP->IsPEC();
-  int ObIsPEC = Ob->MP->IsPEC();
   int X, Y;
   int Symmetric=0;
 
-  if ( OaIsPEC && ObIsPEC )
+  if ( Oa->IsPEC && Ob->IsPEC )
    { 
      X=RowOffset + nea;
      Y=ColOffset + neb;  
 
      M->AddEntry( X, Y, PreFac[0]*GC[0] );
    }
-  else if ( OaIsPEC && !ObIsPEC )
+  else if ( Oa->IsPEC && !Ob->IsPEC )
    { 
      X=RowOffset + nea;
      Y=ColOffset + 2*neb;  
@@ -54,7 +52,7 @@ void AddMEs(HMatrix *M,
      M->AddEntry( X, Y+1, PreFac[1]*GC[1] );
 
    }
-  else if ( !OaIsPEC && ObIsPEC )
+  else if ( !Oa->IsPEC && Ob->IsPEC )
    {
      X=RowOffset + 2*nea;
      Y=ColOffset + neb;  
@@ -62,7 +60,7 @@ void AddMEs(HMatrix *M,
      M->AddEntry( X,   Y, PreFac[0]*GC[0] );
      M->AddEntry( X+1, Y, PreFac[1]*GC[1] );
    }
-  else // ( !OaIsPEC && !ObIsPEC )
+  else // ( !Oa->IsPEC && !Ob->IsPEC )
    { 
      X=RowOffset + 2*nea;
      Y=ColOffset + 2*neb;  
@@ -283,12 +281,14 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->B=MPP;
 
       // explain me
-      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+      if ( no==nop && !(Args->Oa->IsPEC) && (NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0) )
+{ Log("Zeroing' it out, PP");
        Args->Oa->MP->Zero();
+}
 
       AssembleBEMMatrixBlock(Args);
 
-      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+      if ( no==nop && !(Args->Oa->IsPEC) && (NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0) )
        Args->Oa->MP->UnZero();
 
     };
@@ -305,12 +305,14 @@ void PBCGeometry::AssembleInnerCellBlocks()
       Args->ColOffset=G->BFIndexOffset[nop];
 
       // explain me
-      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+      if ( no==nop && !(Args->Oa->IsPEC) && (NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0) )
+{ Log("Zeroing' it out, PM");
        Args->Oa->MP->Zero();
+};
 
       AssembleBEMMatrixBlock(Args);
 
-      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0 )
+      if ( no==nop && !(Args->Oa->IsPEC) && (NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0) )
        Args->Oa->MP->UnZero();
 
     };
@@ -319,9 +321,6 @@ void PBCGeometry::AssembleInnerCellBlocks()
   Displacement[0]=LBV[0][0]; 
   Displacement[1]=LBV[0][1];
   Args->B=MPZ;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void *pCC=HMatrix::OpenMATLABContext("Hello2");
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   for(no=0; no<G->NumObjects; no++)
    for(nop=0; nop<G->NumObjects; nop++)
     { Args->Oa=G->Objects[no];
@@ -330,21 +329,19 @@ void *pCC=HMatrix::OpenMATLABContext("Hello2");
       Args->ColOffset=G->BFIndexOffset[nop];
 
       // explain me
-      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
+      if ( no==nop && !(Args->Oa->IsPEC) && NumStraddlers[2*no+0]==0 )
+{ Log("Zeroing' it out, PM");
        Args->Oa->MP->Zero();
+};
 
       AssembleBEMMatrixBlock(Args);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-MPZ->ExportToMATLAB(pCC,"MPZ"); 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+0]==0 )
+      if ( no==nop && !(Args->Oa->IsPEC) && NumStraddlers[2*no+0]==0 )
+{ Log("Zeroing' it out, MP");
        Args->Oa->MP->UnZero();
+};
 
     };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-HMatrix::CloseMATLABContext(pCC);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   Log("Assembling MZP block ...");
   Displacement[0]=LBV[1][0]; 
@@ -358,15 +355,26 @@ HMatrix::CloseMATLABContext(pCC);
       Args->ColOffset=G->BFIndexOffset[nop];
 
       // explain me
-      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+1]==0 )
+      if ( no==nop && !(Args->Oa->IsPEC) && NumStraddlers[2*no+1]==0 )
        Args->Oa->MP->Zero();
 
       AssembleBEMMatrixBlock(Args);
 
-      if ( no==nop && !(Args->Oa->MP->IsPEC()) && NumStraddlers[2*no+1]==0 )
+      if ( no==nop && !(Args->Oa->IsPEC) && NumStraddlers[2*no+1]==0 )
        Args->Oa->MP->UnZero();
 
     };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+void *pCC=HMatrix::OpenMATLABContext("Hello2");
+MZZ->ExportToMATLAB(pCC,"MZZ"); 
+MPP->ExportToMATLAB(pCC,"MPP"); 
+MPM->ExportToMATLAB(pCC,"MPM"); 
+MPZ->ExportToMATLAB(pCC,"MPZ"); 
+MZP->ExportToMATLAB(pCC,"MZP"); 
+HMatrix::CloseMATLABContext(pCC);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 
 }
 
@@ -410,6 +418,7 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
   cdouble PFPM = exp( II* ( BlochP[0]*(LBV[0][0] - LBV[1][0]) + BlochP[1]*(LBV[0][1] - LBV[1][1]) ) );
   cdouble PFPZ = exp( II* ( BlochP[0]*(LBV[0][0]            ) + BlochP[1]*(LBV[0][1]            ) ) );
   cdouble PFZP = exp( II* ( BlochP[0]*(            LBV[1][0]) + BlochP[1]*(            LBV[1][1]) ) );
+#if 0 
   for(int nr=0; nr<M->NR; nr++)
    for(int nc=0; nc<M->NR; nc++)
     M->SetEntry(nr, nc,  PFPP*MPP->GetEntry(nr, nc) + conj(PFPP)*MPP->GetEntry(nc,nr)
@@ -418,14 +427,25 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
                        + PFZP*MZP->GetEntry(nr, nc) + conj(PFZP)*MZP->GetEntry(nc,nr)
                        + MZZ->GetEntry(nr,nc) 
                );
+#endif
+  for(int no=0; no<G->NumObjects; no++)
+   for(int nop=0; nop<G->NumObjects; nop++)
+    { 
+      int RowSignFlip = G->Objects[no]->IsPEC ? 1.0 : -1.0;
+      int ColSignFlip = G->Objects[nop]->IsPEC ? 1.0 : -1.0;
+      int nrMin=G->BFIndexOffset[no], nrMax = nrMin + G->Objects[no]->NumBFs;
+      int ncMin=G->BFIndexOffset[nop], ncMax = ncMin + G->Objects[nop]->NumBFs;
+      double Sign=1.0;
+      for(int nr=nrMin; nr<nrMax; nr++, Sign*=RowSignFlip)
+       for(int nc=ncMin; nc<ncMax; nc++, Sign*=ColSignFlip)
+        M->SetEntry(nr, nc,  PFPP*MPP->GetEntry(nr, nc) + conj(PFPP)*Sign*MPP->GetEntry(nc,nr)
+                           + PFPM*MPM->GetEntry(nr, nc) + conj(PFPM)*Sign*MPM->GetEntry(nc,nr)
+                           + PFPZ*MPZ->GetEntry(nr, nc) + conj(PFPZ)*Sign*MPZ->GetEntry(nc,nr)
+                           + PFZP*MZP->GetEntry(nr, nc) + conj(PFZP)*Sign*MZP->GetEntry(nc,nr)
+                           + MZZ->GetEntry(nr,nc) 
+                   );
+    };
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  for(int nr=0; nr<M->NR; nr++)
-   for(int nc=0; nc<M->NR; nc++)
-    M->SetEntry(nr, nc,   MPZ->GetEntry(nr, nc) + MPZ->GetEntry(nc, nr)
-                        + MZZ->GetEntry(nr,nc) );
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
