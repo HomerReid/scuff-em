@@ -405,7 +405,7 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
      G->ExteriorMP->GetEpsMu(Omega, EpsTF+0, MuTF+0);
      for(int no=0; no<G->NumObjects; no++)
       G->Objects[no]->MP->GetEpsMu(Omega, EpsTF+no+1, MuTF+no+1);
-     AssembleInnerCellBlocks();
+//     AssembleInnerCellBlocks();
    };
 
   /*--------------------------------------------------------------*/
@@ -418,7 +418,6 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
   cdouble PFPM = exp( II* ( BlochP[0]*(LBV[0][0] - LBV[1][0]) + BlochP[1]*(LBV[0][1] - LBV[1][1]) ) );
   cdouble PFPZ = exp( II* ( BlochP[0]*(LBV[0][0]            ) + BlochP[1]*(LBV[0][1]            ) ) );
   cdouble PFZP = exp( II* ( BlochP[0]*(            LBV[1][0]) + BlochP[1]*(            LBV[1][1]) ) );
-#if 0 
   for(int nr=0; nr<M->NR; nr++)
    for(int nc=0; nc<M->NR; nc++)
     M->SetEntry(nr, nc,  PFPP*MPP->GetEntry(nr, nc) + conj(PFPP)*MPP->GetEntry(nc,nr)
@@ -427,7 +426,7 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
                        + PFZP*MZP->GetEntry(nr, nc) + conj(PFZP)*MZP->GetEntry(nc,nr)
                        + MZZ->GetEntry(nr,nc) 
                );
-#endif
+#if 0
   for(int no=0; no<G->NumObjects; no++)
    for(int nop=0; nop<G->NumObjects; nop++)
     { 
@@ -445,11 +444,13 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
                            + MZZ->GetEntry(nr,nc) 
                    );
     };
+#endif
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
- // AddOuterCellContributions(BlochP, M);
+M->Zero();
+  AddOuterCellContributions(BlochP, M);
 
 }
 

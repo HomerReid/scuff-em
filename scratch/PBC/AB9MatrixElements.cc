@@ -80,8 +80,6 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
   /***************************************************************/
   /* outer loop **************************************************/
   /***************************************************************/
-  memset(GC,0,2*sizeof(cdouble));
-
   double hDot, hNabla=4.0; // note hNabla is constant throughout
   cdouble hPlus, ik = II*k, ik2=ik*ik;
   int np, ncp, npp, ncpp, i;
@@ -91,6 +89,7 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
   double PhiVD[16];
   cdouble GBar, GradGBar[3];
   cdouble GCInner[2];
+  memset(GC,0,2*sizeof(cdouble));
   for(np=ncp=0; np<NumPts; np++) 
    { 
      u=TCR[ncp++]; v=TCR[ncp++]; w=TCR[ncp++];
