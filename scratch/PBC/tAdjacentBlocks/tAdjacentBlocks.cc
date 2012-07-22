@@ -19,7 +19,6 @@ int main(int argc, char *argv[])
   EnableAllCPUs();
   InstallHRSignalHandler();
   
-
   double LBV1[2]={1.0, 0.0};
   double LBV2[2]={0.0, 1.0};
   double *LBV[2]={LBV1, LBV2};

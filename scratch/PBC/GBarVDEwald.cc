@@ -506,6 +506,30 @@ void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2],
 void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
                  double E, int ExcludeFirst9, cdouble *GBarVD)
 { 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+memset(GBarVD,0,NSUM*sizeof(cdouble));
+//AddGBFContribution(R, k, P, +2.0, +2.0, GBarVD);
+AddGBFContribution(R, k, P, -2.0, -2.0, GBarVD);
+#if 0
+{ double Lx, Ly;
+  for(Lx=-2.0; Lx<=2.1; Lx+=1.0)
+   { AddGBFContribution(R, k, P, Lx, +2.0, GBarVD);
+     AddGBFContribution(R, k, P, Lx, -2.0, GBarVD);
+   };
+  for(Ly=-1.0; Ly<=1.1; Ly+=1.0)
+   { AddGBFContribution(R, k, P, +2.0, Ly, GBarVD);
+     AddGBFContribution(R, k, P, -2.0, Ly, GBarVD);
+   };
+};
+#endif
+return;
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+
   if ( (LBV[0][1]!=0.0) || (LBV[1][0]!=0.0) )
    ErrExit("non-square lattices not yet supported");
 
@@ -538,26 +562,6 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
 
   for(int ns=0; ns<NSUM; ns++)
    GBarVD[ns] = G1[ns] + G2[ns] - GBFFirst9[ns];
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-memset(GBarVD,0,NSUM*sizeof(cdouble));
-
-{ double Lx, Ly;
-  for(Lx=-2.0; Lx<=2.1; Lx+=1.0)
-   { AddGBFContribution(R, k, P, Lx, +2.0, GBarVD);
-     AddGBFContribution(R, k, P, Lx, -2.0, GBarVD);
-   };
-  for(Ly=-1.0; Ly<=1.1; Ly+=1.0)
-   { AddGBFContribution(R, k, P, +2.0, Ly, GBarVD);
-     AddGBFContribution(R, k, P, -2.0, Ly, GBarVD);
-   };
-};
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-
 
 } 
 
