@@ -511,9 +511,9 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
 /***************************************************************/
 /***************************************************************/
 memset(GBarVD,0,NSUM*sizeof(cdouble));
+//AddGBFContribution(R, k, P, -2.0, -2.0, GBarVD);
+//return;
 //AddGBFContribution(R, k, P, +2.0, +2.0, GBarVD);
-AddGBFContribution(R, k, P, -2.0, -2.0, GBarVD);
-#if 0
 { double Lx, Ly;
   for(Lx=-2.0; Lx<=2.1; Lx+=1.0)
    { AddGBFContribution(R, k, P, Lx, +2.0, GBarVD);
@@ -524,7 +524,6 @@ AddGBFContribution(R, k, P, -2.0, -2.0, GBarVD);
      AddGBFContribution(R, k, P, -2.0, Ly, GBarVD);
    };
 };
-#endif
 return;
 /***************************************************************/
 /***************************************************************/

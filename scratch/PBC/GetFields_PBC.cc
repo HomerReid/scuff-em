@@ -439,28 +439,28 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double
   G->UpdateIncFields(IF, Omega);
 
   /***************************************************************/
-  /* RMax[i] is the maximum value of X_i - Y_i                   */
+  /* DeltaRMax[i] is the maximum value of X_i - Y_i              */
   /*  where X ranges over all vertices on all objects in the     */
   /*  geometry, and Y ranges over all field evaluation points    */
   /***************************************************************/
-  double RMax[3], RMin[3];
-  RMax[0]=RMax[1]=RMax[2]=-1.0e9;
-  RMin[0]=RMin[1]=RMin[2]=+1.0e9;
+  double DeltaRMax[3], DeltaRMin[3];
+  int NPoints[3];
+  DeltaRMax[0]=DeltaRMax[1]=DeltaRMax[2]=-1.0e9;
+  DeltaRMin[0]=DeltaRMin[1]=DeltaRMin[2]=+1.0e9;
   for(int nr=0; nr<XMatrix->NR; nr++)
-   { RMax[0] = fmax(RMax[0], XYZMax[0] - XMatrix->GetEntryD(nr, 0) );
-     RMin[0] = fmin(RMin[0], XYZMin[0] - XMatrix->GetEntryD(nr, 0) );
-     RMax[1] = fmax(RMax[1], XYZMax[1] - XMatrix->GetEntryD(nr, 1) );
-     RMin[1] = fmin(RMin[1], XYZMin[1] - XMatrix->GetEntryD(nr, 1) );
-     RMax[2] = fmax(RMax[2], XYZMax[2] - XMatrix->GetEntryD(nr, 2) );
-     RMin[2] = fmin(RMin[2], XYZMin[2] - XMatrix->GetEntryD(nr, 2) );
+   { DeltaRMax[0] = fmax(DeltaRMax[0], RMax[0] - XMatrix->GetEntryD(nr, 0) );
+     DeltaRMin[0] = fmin(DeltaRMin[0], RMin[0] - XMatrix->GetEntryD(nr, 0) );
+     DeltaRMax[1] = fmax(DeltaRMax[1], RMax[1] - XMatrix->GetEntryD(nr, 1) );
+     DeltaRMin[1] = fmin(DeltaRMin[1], RMin[1] - XMatrix->GetEntryD(nr, 1) );
+     DeltaRMax[2] = fmax(DeltaRMax[2], RMax[2] - XMatrix->GetEntryD(nr, 2) );
+     DeltaRMin[2] = fmin(DeltaRMin[2], RMin[2] - XMatrix->GetEntryD(nr, 2) );
    };
 
-  int NXPoints = (RMax[0] - RMin[0]) / PBCGeometry::DeltaInterp; 
-  if (NXPoints<2) NXPoints=2;
-  int NYPoints = (RMax[1] - RMin[1]) / PBCGeometry::DeltaInterp; 
-  if (NYPoints<2) NYPoints=2;
-  int NZPoints = (RMax[2] - RMin[2]) / PBCGeometry::DeltaInterp; 
-  if (NZPoints<2) NZPoints=2;
+  for(int i=0; i<3; i++)
+   { NPoints[i] = 1 + (DeltaRMax[i] - DeltaRMin[i]) / PBCGeometry::DeltaInterp; 
+     if (NPoints[i]<2) 
+      NPoints[i]=2;
+   };
 
   GBarData MyGBarData, *GBD=&MyGBarData;
   GBD->BlochP = BlochP;
@@ -470,13 +470,15 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double
   GBD->LBV[1]=LBV[1];
  // FIXME for eval points in interior regions
   GBD->k = sqrt(EpsTF[0]*MuTF[0])*CurrentOmega;
-  Interp3D *GBarInterp=new Interp3D( RMin[0], RMax[0], NXPoints, 
-                                     RMin[1], RMax[1], NYPoints, 
-                                     RMin[2], RMax[2], NZPoints, 
+  Interp3D *GBarInterp=new Interp3D( DeltaRMin[0], DeltaRMax[0], NPoints[0],
+                                     DeltaRMin[1], DeltaRMax[1], NPoints[1],
+                                     DeltaRMin[2], DeltaRMax[2], NPoints[2],
                                      2, nThread, GBarVDPhi3D, (void *)GBD);
 
   Log(" Range of interp table: (%g,%g) (N=%i) -- (%g,%g) (N=%i) -- (%g,%g) (N=%i)",
-        RMin[0],RMax[0],NXPoints, RMin[1],RMax[1],NYPoints, RMin[2],RMax[2],NZPoints);
+        DeltaRMin[0],DeltaRMax[0],NPoints[0],
+        DeltaRMin[1],DeltaRMax[1],NPoints[1],
+        DeltaRMin[2],DeltaRMax[2],NPoints[2]);
 
   /***************************************************************/
   /* fire off threads                                            */

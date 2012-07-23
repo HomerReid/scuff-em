@@ -40,8 +40,10 @@ int main(int argc, char *argv[])
   PG->AssembleBEMMatrix(Omega, BlochP, M);
   StoreCache("../Sphere_48.cache");
 
-  void *pCC=HMatrix::OpenMATLABContext("Hello");
+  void *pCC=HMatrix::OpenMATLABContext("LoadPeriodic");
   M->ExportToMATLAB(pCC,"Periodic");
+  HMatrix::CloseMATLABContext(pCC);
+exit(1);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -87,11 +89,9 @@ int main(int argc, char *argv[])
   G->Objects[16]->Transform("DISPLACED -2 +1 0");
 #endif
   G->AssembleBEMMatrix(Omega, M);
-  M->ExportToMATLAB(pCC,"Direct");
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  pCC=HMatrix::OpenMATLABContext("LoadDirect");
+  M->ExportToMATLAB(pCC,"Direct");
   HMatrix::CloseMATLABContext(pCC);
 
 

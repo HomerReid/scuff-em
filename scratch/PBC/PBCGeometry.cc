@@ -14,25 +14,27 @@ namespace scuff{
 /***************************************************************/
 /* do something about me please ********************************/
 /***************************************************************/
-int PBCGeometry::TriangleCubatureOrder=7;
-double PBCGeometry::DeltaInterp=0.05;
+int PBCGeometry::TriangleCubatureOrder=4;
+double PBCGeometry::DeltaInterp=0.025;
 
 /***************************************************************/
 /* get the maximum and minimum cartesian coordinates obtained  */
-/* by points on an RWGObject                                   */
+/* by points on an RWGObject. (we do this by looking at the    */
+/* panel vertices, which suffices because the panels are       */
+/* flat and thus convex)                                       */
 /***************************************************************/
-void GetXYZMaxMin(RWGObject *O, double XYZMax[3], double XYZMin[3])
+void GetObjectExtents(RWGObject *O, double RMax[3], double RMin[3])
 { 
-  XYZMax[0] = XYZMax[1] = XYZMax[2] = -1.0e+9;
-  XYZMin[0] = XYZMin[1] = XYZMin[2] = +1.0e+9;
-  for(int nv=0; nv<O->NumVertices; nv++)
+  memcpy(RMax, O->Vertices + 0, 3*sizeof(double));
+  memcpy(RMin, O->Vertices + 0, 3*sizeof(double));
+  for(int nv=1; nv<O->NumVertices; nv++)
    { 
-     XYZMax[0] = fmax(XYZMax[0], O->Vertices[3*nv + 0]);
-     XYZMin[0] = fmin(XYZMin[0], O->Vertices[3*nv + 0]);
-     XYZMax[1] = fmax(XYZMax[1], O->Vertices[3*nv + 1]);
-     XYZMin[1] = fmin(XYZMin[1], O->Vertices[3*nv + 1]);
-     XYZMax[2] = fmax(XYZMax[2], O->Vertices[3*nv + 2]);
-     XYZMin[2] = fmin(XYZMin[2], O->Vertices[3*nv + 2]);
+     RMax[0] = fmax(RMax[0], O->Vertices[3*nv + 0]);
+     RMin[0] = fmin(RMin[0], O->Vertices[3*nv + 0]);
+     RMax[1] = fmax(RMax[1], O->Vertices[3*nv + 1]);
+     RMin[1] = fmin(RMin[1], O->Vertices[3*nv + 1]);
+     RMax[2] = fmax(RMax[2], O->Vertices[3*nv + 2]);
+     RMin[2] = fmin(RMin[2], O->Vertices[3*nv + 2]);
    };
 }
 
@@ -92,7 +94,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   /*- note: P, M, Z stand for 'plus 1, minus 1, zero.'           -*/
   /*- Mab is the BEM interaction matrix between the unit-cell    -*/
   /*- geometry and a copy of itself translated through vector    -*/
-  /*- a*LBV[0] + b*LBV[1].                                      -*/
+  /*- a*LBV[0] + b*LBV[1].                                       -*/
   /*--------------------------------------------------------------*/
   MPP=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
   MPM=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
@@ -104,24 +106,25 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   /*- allocate interpolators for each object interior             */
   /*--------------------------------------------------------------*/
   GBarAB9_Interior=(Interp3D **)mallocEC(G->NumObjects * sizeof(Interp3D *));
-  double XYZMaxTO[3], XYZMinTO[3]; // 'x, y, z max/min, this object'
-  //double XYZMax[3], XYZMin[3];  // these are now class data fields
-  XYZMax[0] = XYZMax[1] = XYZMax[2] = -1.0e+9;
-  XYZMin[0] = XYZMin[1] = XYZMin[2] = +1.0e+9;
-  int no;
-  int NXPoints, NYPoints, NZPoints;
+  double RMaxTO[3], RMinTO[3]; // max/min coordinates values for this object
+  //double RMax[3], RMin[3];   // max/min coord values for entire geometry (now class fields)
+  double DeltaR[3];
+  int NPoints[3];
   RWGObject *O;
-  for(no=0; no<G->NumObjects; no++)
+  RMax[0] = RMax[1] = RMax[2] = -1.0e+9;
+  RMin[0] = RMin[1] = RMin[2] = +1.0e+9;
+  for(int no=0; no<G->NumObjects; no++)
    { 
      O=G->Objects[no];
-     GetXYZMaxMin(O, XYZMaxTO, XYZMinTO);
-
-     XYZMax[0] = fmax(XYZMax[0], XYZMaxTO[0]);
-     XYZMax[1] = fmax(XYZMax[1], XYZMaxTO[1]);
-     XYZMax[2] = fmax(XYZMax[2], XYZMaxTO[2]);
-     XYZMin[0] = fmin(XYZMin[0], XYZMinTO[0]);
-     XYZMin[1] = fmin(XYZMin[1], XYZMinTO[1]);
-     XYZMin[2] = fmin(XYZMin[2], XYZMinTO[2]);
+     GetObjectExtents(O, RMaxTO, RMinTO);
+     for(int i=0; i<3; i++)
+      {  DeltaR[i]   = RMaxTO[i] - RMinTO[i];
+         NPoints[i]  = 1 + (2.0*DeltaR[i] / PBCGeometry::DeltaInterp );
+         if (NPoints[i] < 2)
+          NPoints[i]=2;
+         RMax[i]     = fmax(RMax[i], RMaxTO[i]);
+         RMin[i]     = fmin(RMin[i], RMinTO[i]);
+      };
 
      // FIXME to handle 1D periodicity
      if ( O->IsPEC )
@@ -135,16 +138,11 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
         GBarAB9_Interior[no]=0;
       }
      else
-      { NXPoints = (XYZMaxTO[0] - XYZMinTO[0]) / PBCGeometry::DeltaInterp;
-        if (NXPoints<2) NXPoints=2;
-        NYPoints = (XYZMaxTO[1] - XYZMinTO[1]) / PBCGeometry::DeltaInterp;
-        if (NYPoints<2) NYPoints=2;
-        NZPoints = (XYZMaxTO[2] - XYZMinTO[2]) / PBCGeometry::DeltaInterp;
-        if (NZPoints<2) NZPoints=2;
-        Log("Creating %ix%ix%i interpolation table for object %s",NXPoints,NYPoints,NZPoints,O->Label);
-        GBarAB9_Interior[no]=new Interp3D( XYZMinTO[0], XYZMaxTO[0], NXPoints+1,
-                                           XYZMinTO[1], XYZMaxTO[1], NYPoints+1,
-                                           XYZMinTO[2], XYZMaxTO[2], NZPoints+1,
+      { 
+        Log("Creating %ix%ix%i i-table for object %s",NPoints[0],NPoints[1],NPoints[2],O->Label);
+        GBarAB9_Interior[no]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
+                                           -DeltaR[1], DeltaR[1], NPoints[1],
+                                                  0.0, DeltaR[2], 1 + NPoints[2]/2,
                                            2, 0, 0, 0);
       };
 
@@ -153,15 +151,15 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   /*--------------------------------------------------------------*/
   /*- allocate interpolator for exterior medium ------------------*/
   /*--------------------------------------------------------------*/
-  NXPoints = (XYZMax[0] - XYZMin[0]) / PBCGeometry::DeltaInterp; 
-  if (NXPoints<2) NXPoints=2;
-  NYPoints = (XYZMax[1] - XYZMin[1]) / PBCGeometry::DeltaInterp; 
-  if (NYPoints<2) NYPoints=2;
-  NZPoints = (XYZMax[2] - XYZMin[2]) / PBCGeometry::DeltaInterp; 
-  if (NZPoints<2) NZPoints=2;
-  GBarAB9_Exterior=new Interp3D( XYZMin[0], XYZMax[0], NXPoints+1,
-                                 XYZMin[1], XYZMax[1], NYPoints+1,
-                                 XYZMin[2], XYZMax[2], NZPoints+1,
+  for(int i=0; i<3; i++)
+   { DeltaR[i]   = RMax[i] - RMin[i];
+     NPoints[i]  = 1 + (2.0*DeltaR[i] / PBCGeometry::DeltaInterp );
+     if (NPoints[i] < 2)
+      NPoints[i]=2;
+   };
+  GBarAB9_Exterior=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
+                                 -DeltaR[1], DeltaR[1], NPoints[1],
+                                        0.0, DeltaR[2], 1 + NPoints[2]/2,
                                  2, 0, 0, 0);
 
 }

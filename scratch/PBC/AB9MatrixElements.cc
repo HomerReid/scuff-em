@@ -75,8 +75,7 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
   /***************************************************************/
   double *TCR;
   int NumPts;
-  //TCR=GetTCR(PBCGeometry::TriangleCubatureOrder, &NumPts);
-TCR=GetTCR(4, &NumPts);
+  TCR=GetTCR(PBCGeometry::TriangleCubatureOrder, &NumPts);
 
   /***************************************************************/
   /* outer loop **************************************************/
@@ -130,7 +129,7 @@ TCR=GetTCR(4, &NumPts);
         else
          ZFlipped=0;
 
- //       Interpolator->EvaluatePlus(R[0], R[1], R[2], PhiVD);
+        Interpolator->EvaluatePlus(R[0], R[1], R[2], PhiVD);
 
         GBar = cdouble(PhiVD[0],PhiVD[8+0]);
         GradGBar[0] = cdouble(PhiVD[1],PhiVD[8+1]);
@@ -141,6 +140,7 @@ TCR=GetTCR(4, &NumPts);
          GradGBar[2]*=-1.0; // flip the sign of dG/dz 
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
 { cdouble GBarVD[8];
   double P[2]={0.0,0.0};
   double LBV1[2]={1.0, 0.0};
@@ -153,6 +153,7 @@ TCR=GetTCR(4, &NumPts);
   GradGBar[2]=GBarVD[3];
 }
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#endif
 
       
         /***************************************************************/
@@ -217,21 +218,52 @@ Vb[2] = Ob->Vertices + 3*(Pb->VI[2]);
   /*- PM ---------------------------------------------------------*/ 
   Va[0] = Qa = Oa->Vertices + 3*(Ea->iQP);
   Vb[0] = Qb = Ob->Vertices + 3*(Eb->iQM);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+Pa = Oa->Panels[Ea->iPPanel];
+Pb = Ob->Panels[Eb->iMPanel];
+Va[0] = Oa->Vertices + 3*(Pa->VI[0]);
+Va[1] = Oa->Vertices + 3*(Pa->VI[1]);
+Va[2] = Oa->Vertices + 3*(Pa->VI[2]);
+Vb[0] = Ob->Vertices + 3*(Pb->VI[0]);
+Vb[1] = Ob->Vertices + 3*(Pb->VI[1]);
+Vb[2] = Ob->Vertices + 3*(Pb->VI[2]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   GetAB9PanelPanelInteraction(Va, Qa, Vb, Qb, k, Interpolator, GCPM);
 
   /*- MP ---------------------------------------------------------*/ 
   Va[0] = Qa = Oa->Vertices + 3*(Ea->iQM);
   Vb[0] = Qb = Ob->Vertices + 3*(Eb->iQP);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+Pa = Oa->Panels[Ea->iMPanel];
+Pb = Ob->Panels[Eb->iPPanel];
+Va[0] = Oa->Vertices + 3*(Pa->VI[0]);
+Va[1] = Oa->Vertices + 3*(Pa->VI[1]);
+Va[2] = Oa->Vertices + 3*(Pa->VI[2]);
+Vb[0] = Ob->Vertices + 3*(Pb->VI[0]);
+Vb[1] = Ob->Vertices + 3*(Pb->VI[1]);
+Vb[2] = Ob->Vertices + 3*(Pb->VI[2]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   GetAB9PanelPanelInteraction(Va, Qa, Vb, Qb, k, Interpolator, GCMP);
 
   /*- MM ---------------------------------------------------------*/ 
   Va[0] = Qa = Oa->Vertices + 3*(Ea->iQM);
   Vb[0] = Qb = Ob->Vertices + 3*(Eb->iQM);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+Pa = Oa->Panels[Ea->iMPanel];
+Pb = Ob->Panels[Eb->iMPanel];
+Va[0] = Oa->Vertices + 3*(Pa->VI[0]);
+Va[1] = Oa->Vertices + 3*(Pa->VI[1]);
+Va[2] = Oa->Vertices + 3*(Pa->VI[2]);
+Vb[0] = Ob->Vertices + 3*(Pb->VI[0]);
+Vb[1] = Ob->Vertices + 3*(Pb->VI[1]);
+Vb[2] = Ob->Vertices + 3*(Pb->VI[2]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   GetAB9PanelPanelInteraction(Va, Qa, Vb, Qb, k, Interpolator, GCMM);
 
-  double PreFac = Ea->Length * Eb->Length;
-  GC[0] = PreFac * (GCPP[0] - GCPM[0] - GCMP[0] + GCMM[0]);
-  GC[1] = PreFac * (GCPP[1] - GCPM[1] - GCMP[1] + GCMM[1]);
+  double GPreFac = Ea->Length * Eb->Length;
+  cdouble CPreFac = GPreFac / (II*k);
+  GC[0] = GPreFac * (GCPP[0] - GCPM[0] - GCMP[0] + GCMM[0]);
+  GC[1] = CPreFac * (GCPP[1] - GCPM[1] - GCMP[1] + GCMM[1]);
   
 }
 
