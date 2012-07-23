@@ -1,0 +1,15 @@
+SCUFFEM = /home/homer/work/scuff-em-installation
+
+CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
+LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
+
+LIBS = -lscuff -lhdf5_hl -llapack -lblas -lgomp
+
+#
+# hopefully this should be all that is needed
+#
+
+OBJS = tSWPPI.o TaylorDuffy2.o
+
+tSWPPI:	$(OBJS)
+	$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
