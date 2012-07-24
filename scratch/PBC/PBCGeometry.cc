@@ -118,7 +118,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
      O=G->Objects[no];
      GetObjectExtents(O, RMaxTO, RMinTO);
      for(int i=0; i<3; i++)
-      {  DeltaR[i]   = RMaxTO[i] - RMinTO[i];
+      {  DeltaR[i]   = fmax( RMaxTO[i] - RMinTO[i], PBCGeometry::DeltaInterp );
          NPoints[i]  = 1 + (2.0*DeltaR[i] / PBCGeometry::DeltaInterp );
          if (NPoints[i] < 2)
           NPoints[i]=2;
@@ -152,7 +152,7 @@ PBCGeometry::PBCGeometry(RWGGeometry *pG, double **pLBV)
   /*- allocate interpolator for exterior medium ------------------*/
   /*--------------------------------------------------------------*/
   for(int i=0; i<3; i++)
-   { DeltaR[i]   = RMax[i] - RMin[i];
+   { DeltaR[i] = fmax( RMax[i] - RMin[i], PBCGeometry::DeltaInterp );
      NPoints[i]  = 1 + (2.0*DeltaR[i] / PBCGeometry::DeltaInterp );
      if (NPoints[i] < 2)
       NPoints[i]=2;

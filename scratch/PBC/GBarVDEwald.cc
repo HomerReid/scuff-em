@@ -539,19 +539,41 @@ return;
    E=sqrt( M_PI / (LBV[0][0]*LBV[1][1]) );
 
   /***************************************************************/
-  /* FIXME *******************************************************/
+  /* detect evaluation points at the origin or lattice-equivalent*/
+  /* to the origin.                                              */
   /***************************************************************/
-  int OnLatticePoint=0.0;
+  int ZeroCoordinate[3]={0, 0, 0};
+  double UnitCellCorners[4][2];
+  int nc, n1, n2;
+  for(nc=n1=0; n1<2; n1++)
+   for(n2=0; n2<2; n2++, nc++)
+    { UnitCellCorners[nc][0] = ((double)n1)*LBV[0][0] + ((double)n2)*LBV[1][0];
+      UnitCellCorners[nc][1] = ((double)n1)*LBV[0][1] + ((double)n2)*LBV[1][1];
+    };
+
+  if (    (fabs(R[0]) < 1.0e-8)
+       || EqualFloat( R[0], UnitCellCorners[1][0] )
+       || EqualFloat( R[0], UnitCellCorners[2][0] )
+       || EqualFloat( R[0], UnitCellCorners[3][0] )
+     ) 
+   ZeroCoordinate[0]=1;
+  if (    (fabs(R[1])< 1.0e-8)
+       || EqualFloat( R[1], UnitCellCorners[1][1] )
+       || EqualFloat( R[1], UnitCellCorners[2][1] )
+       || EqualFloat( R[1], UnitCellCorners[3][1] )
+     ) 
+   ZeroCoordinate[1]=1;
+  if ( fabs(R[2]) < 1.0e-8 ) 
+   ZeroCoordinate[2]=1;
+
   double MyR[3];
-  memcpy(MyR,R,3*sizeof(double));
-  if (    (EqualFloat( R[0], 0.0 ) || EqualFloat( R[0], LBV[0][0]))
-       && (EqualFloat( R[1], 0.0 ) || EqualFloat( R[1], LBV[1][1]))
-       &&  EqualFloat( R[2], 0.0 ) 
-     )
-   { E=0.1;
-     MyR[0] = 1.0e-6;
-     MyR[1] = 1.0e-6;
-     MyR[2] = 1.0e-6;
+  MyR[0]=R[0]; MyR[1]=R[1]; MyR[2]=R[2];
+  if ( ZeroCoordinate[0] && ZeroCoordinate[1] && ZeroCoordinate[2] )
+   { 
+     E=0.1;
+     MyR[0] += 1.0e-6;
+     MyR[1] += 1.0e-6;
+     MyR[2] += 1.0e-6;
    };
 
   /***************************************************************/
@@ -569,6 +591,13 @@ return;
 
   for(int ns=0; ns<NSUM; ns++)
    GBarVD[ns] = G1[ns] + G2[ns] - GBFFirst9[ns];
+
+  if ( ZeroCoordinate[0] )
+   GBarVD[1]=GBarVD[4]=GBarVD[5]=GBarVD[7]=0.0;
+  if ( ZeroCoordinate[1] )
+   GBarVD[2]=GBarVD[4]=GBarVD[6]=GBarVD[7]=0.0;
+  if ( ZeroCoordinate[2] )
+   GBarVD[3]=GBarVD[5]=GBarVD[6]=GBarVD[7]=0.0;
 
 } 
 

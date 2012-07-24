@@ -99,7 +99,7 @@ GetFieldObject=0;
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   SetDefaultCD2SFormat("%15.8e %15.8e");
-  FILE *f = fopen("tNormal.out","w");
+  FILE *f = vfopen("%s.out","w",GetFileBase(GeoFileName));
   for(n=0; n<ZVector->N; n++)
    { fprintf(f,"%e %e %e ", XAbove->GetEntryD(n, 0), XAbove->GetEntryD(n, 1), XAbove->GetEntryD(n, 2));
      fprintf(f,"%s ", CD2S(FAbove->GetEntry(n,0)));

@@ -23,9 +23,9 @@ using namespace scuff;
 
 /***************************************************************/
 /* compute \sum_L e^{iP\dot L} G(r+L)                          */
-/* where G(r)=exp(i*k*|r|) / (4*pi*|r|)                     */
+/* where G(r)=exp(i*k*|r|) / (4*pi*|r|)                        */
 /***************************************************************/
-void GBarVDBF(double *R, cdouble k, double *P, double **LBV, int RetainFirst9,
+void GBarVDBF(double *R, cdouble k, double *P, double **LBV, int ExcludeFirst9,
               double AbsTol, double RelTol, int *pnCells, cdouble *Sum)
 { 
   int nx, ny;
@@ -43,8 +43,8 @@ void GBarVDBF(double *R, cdouble k, double *P, double **LBV, int RetainFirst9,
   for (nx=-NFIRSTROUND; nx<=NFIRSTROUND; nx++)
    for (ny=-NFIRSTROUND; ny<=NFIRSTROUND; ny++, nCells++)
     { 
-      if ( RetainFirst9==0 && (abs(nx)<=1) && (abs(ny)<=1) )
-       continue; // skip the innermost 9 grid cells unless RetainFirst9==1 
+      if ( ExcludeFirst9==1 && (abs(nx)<=1) && (abs(ny)<=1) )
+       continue; // skip the innermost 9 grid cells if ExcludeFirst9==1 
 
       AddGBFContribution(R, k, P, 
                          nx*LBV[0][0] + ny*LBV[1][0],

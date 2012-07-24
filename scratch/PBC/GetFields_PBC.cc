@@ -465,7 +465,9 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double
    };
 
   for(int i=0; i<3; i++)
-   { NPoints[i] = 1 + (DeltaRMax[i] - DeltaRMin[i]) / PBCGeometry::DeltaInterp; 
+   { if ( DeltaRMax[i] < (DeltaRMin[i] + PBCGeometry::DeltaInterp) )
+      DeltaRMax[i] = DeltaRMin[i] + PBCGeometry::DeltaInterp;
+     NPoints[i] = 1 + (DeltaRMax[i] - DeltaRMin[i]) / PBCGeometry::DeltaInterp; 
      if (NPoints[i]<2) 
       NPoints[i]=2;
    };
