@@ -467,8 +467,7 @@ void AddGBFContribution(double R[3], cdouble k, double P[2],
 /***************************************************************/
 /* sum the contributions to the innermost 9 real-space cells   */
 /***************************************************************/
-void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2],
-                      cdouble *Sum)
+void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2], cdouble *Sum)
 { 
   memset(Sum,0,NSUM*sizeof(cdouble));
   for (int n1=-1; n1<=1; n1++)
@@ -510,6 +509,7 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 memset(GBarVD,0,NSUM*sizeof(cdouble));
 //AddGBFContribution(R, k, P, -2.0, -2.0, GBarVD);
 //return;
@@ -525,6 +525,7 @@ memset(GBarVD,0,NSUM*sizeof(cdouble));
    };
 };
 return;
+#endif
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -541,21 +542,28 @@ return;
   /* FIXME *******************************************************/
   /***************************************************************/
   int OnLatticePoint=0.0;
-  if ( fabs(R[2]) < 1.0e-7
-      && ( (fabs(R[0]) < 1.0e-7) || (fabs(fabs(R[0])-LBV[0][0]) < 1.0e-7) )
-      && ( (fabs(R[1]) < 1.0e-7) || (fabs(fabs(R[1])-LBV[1][1]) < 1.0e-7) )
-     ) E=0.1;
+  double MyR[3];
+  memcpy(MyR,R,3*sizeof(double));
+  if (    (EqualFloat( R[0], 0.0 ) || EqualFloat( R[0], LBV[0][0]))
+       && (EqualFloat( R[1], 0.0 ) || EqualFloat( R[1], LBV[1][1]))
+       &&  EqualFloat( R[2], 0.0 ) 
+     )
+   { E=0.1;
+     MyR[0] = 1.0e-6;
+     MyR[1] = 1.0e-6;
+     MyR[2] = 1.0e-6;
+   };
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   cdouble G1[NSUM], G2[NSUM], GBFFirst9[NSUM];
 
-  ComputeG1(R, k, P, LBV, E, 0, G1);
-  ComputeG2(R, k, P, LBV, E, 0, G2);
+  ComputeG1(MyR, k, P, LBV, E, 0, G1);
+  ComputeG2(MyR, k, P, LBV, E, 0, G2);
 
   if (ExcludeFirst9)
-   ComputeGBFFirst9(R, k, P, LBV, GBFFirst9);
+   ComputeGBFFirst9(MyR, k, P, LBV, GBFFirst9);
   else
    memset(GBFFirst9,0,NSUM*sizeof(cdouble));
 

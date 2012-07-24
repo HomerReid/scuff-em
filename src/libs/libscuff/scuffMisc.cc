@@ -145,6 +145,9 @@ double VecNormalize(double v[3])
   return d;
 }
 
+bool EqualFloat(const double a, const double b) 
+{ return ( float(a) == float(b) ); }
+
 bool VecEqualFloat(const double *a, const double *b) 
 {
    return (     float(a[0]) == float(b[0])

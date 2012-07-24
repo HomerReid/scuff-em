@@ -10,49 +10,55 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#include "libhrutil.h"
+#include <libhrutil.h>
+#include <libscuff.h>
 
-#define ABSTOL 1.0e-8
-#define RELTOL 1.0e-4
+#define ABSTOL 1.0e-4
+#define RELTOL 1.0e-2
 
 #define II cdouble(0,1)
 
 #define NSUM 8
 
-extern int RetainFirst9;
+int RetainFirst9;
+
+void GBarVDBF(double *R, cdouble k, double *P, double **LBV, int RetainFirst9,
+              double AbsTol, double RelTol, int *nCells, cdouble *Sum);
 
 /***************************************************************/
 /* brute-force evaluation of sum *******************************/
 /***************************************************************/
-void GBarVDBF(cdouble k, double *P, double *L1, double *L2, double *R,
-              double AbsTol, double RelTol, int *nCells, cdouble *Sum);
+namespace scuff{
 
-void ComputeG1(cdouble k, double *P, double *L1, double *L2, 
-               double *R, double E, int *pnCells, cdouble *Sum);
+void ComputeG1(double *R, cdouble k, double *P, double **LBV,
+               double E, int *pnCells, cdouble *Sum);
 
-void ComputeG2(cdouble k, double *P, double *L1, double *L2,
-               double *R, double E, int *pnCells, cdouble *Sum);
+void ComputeG2(double *R, cdouble k, double *P, double **LBV,
+               double E, int *pnCells, cdouble *Sum);
 
-void ComputeGBFFirst9(cdouble k, double *P, double *L1, double *L2,
-                      double *R, cdouble *Sum);
+void AddGBFContribution(double R[3], cdouble k, double P[2],
+                        double Lx, double Ly, cdouble *Sum);
+
+void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2], cdouble *Sum);
+}
+using namespace scuff;
 
 /***************************************************************/
 /* ewald evaluation of sum       *******************************/
 /***************************************************************/
-void GBarVDEwald(cdouble k, double *P, double *L1, double *L2, 
-                 double *R, cdouble *GBarVD, double E=-1.0);
+void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
+                 double E, int ExcludeFirst9, cdouble *GBarVD);
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-  double L1[2]={1.0, 0.0};
-  double L2[2]={0.0, 1.0};
+  double LBV1[2]={1.0, 0.0};
+  double LBV2[2]={0.0, 1.0};
+  double *LBV[2]={LBV1, LBV2};
 
   double E;
-
-  SetDefaultCD2SFormat("(%+20.12e, %+20.12e)");
 
   /***************************************************************/
   /***************************************************************/
@@ -81,7 +87,7 @@ int main(int argc, char *argv[])
      R[0]=0.5 - drand48();
      R[1]=0.5 - drand48();
      R[2]=0.5 - drand48();
-     E=sqrt( M_PI / (L1[0]*L2[1]) );
+     E=sqrt( M_PI / (LBV[0][0]*LBV[1][1]) );
      AbsTol=1.0e-8;
      RelTol=1.0e-2;
 
@@ -141,17 +147,19 @@ RetainFirst9=0;
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     GBarVDBF(k, P, L1, L2, R, AbsTol, RelTol, &nCells1, GBF);
+     GBarVDBF(R, k, P, LBV, RetainFirst9, AbsTol, RelTol, &nCells1, GBF);
      printf("**Direct method: %i cells summed.\n",nCells1);
 
-     ComputeG1(k, P, L1, L2, R, E, &nCells1, G1);
-     ComputeG2(k, P, L1, L2, R, E, &nCells2, G2);
+     ComputeG1(R, k, P, LBV, E, &nCells1, G1);
+     ComputeG2(R, k, P, LBV, E, &nCells2, G2);
+
 if (RetainFirst9) 
  memset(GBFFirst9,0,NSUM*sizeof(cdouble));
 else
- ComputeGBFFirst9(k, P, L1, L2, R, GBFFirst9);
+ ComputeGBFFirst9(R, k, P, LBV, GBFFirst9);
  
-     GEwald[0]=G1[0]+G2[0] - GBFFirst9[0];
+     SetDefaultCD2SFormat("(%+20.12e, %+20.12e)");
+     GEwald[0]=G1[0] + G2[0] - GBFFirst9[0];
      printf("**Ewald method: %i momentum-space / %i real-space cells summed.\n",
              nCells1, nCells2);
      printf("\n");
@@ -161,6 +169,11 @@ else
      printf("\nContributions to Ewald sum: \n");
      printf(" Momentum space: %s\n",CD2S(G1[0]));
      printf(" Real space    : %s\n",CD2S(G2[0]));
+     printf(" \n\n");
+ 
+     SetDefaultCD2SFormat("(%+12.4e, %+12.4e)");
+     for(int n=0; n<8; n++)
+      printf("%i: | %s | %s | %.1e \n",n,CD2S(GEwald[n]),CD2S(GBF[n]),RD(GEwald[n],GBF[n]));
     
    };
 

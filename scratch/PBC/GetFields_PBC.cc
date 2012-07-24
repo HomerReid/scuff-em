@@ -49,6 +49,8 @@
 
 #define MAXFUNC 50
 
+int GetFieldObject=-1;
+
 namespace scuff {
 
 #define II cdouble(0,1)
@@ -344,14 +346,20 @@ static void *GetFields_Thread(void *data)
 // FIXME 
 #if 0
      ObjectIndex = G->GetObjectIndex(X);
-#endif
      ObjectIndex = -1;
 
      if (ObjectIndex==-1)
       G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
      else
       G->Objects[ObjectIndex]->MP->GetEpsMu(Omega, &Eps, &Mu);
-    
+#endif
+  
+     if (GetFieldObject==-1)
+      G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
+     else
+      G->Objects[GetFieldObject]->MP->GetEpsMu(Omega, &Eps, &Mu);
+ObjectIndex=GetFieldObject;
+
      /*--------------------------------------------------------------*/
      /*- get scattered fields at X                                   */
      /*--------------------------------------------------------------*/
@@ -468,8 +476,13 @@ HMatrix *PBCGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double
   GBD->E=-1.0;
   GBD->LBV[0]=LBV[0];
   GBD->LBV[1]=LBV[1];
- // FIXME for eval points in interior regions
-  GBD->k = sqrt(EpsTF[0]*MuTF[0])*CurrentOmega;
+
+ // FIXME 
+  if (GetFieldObject==-1)
+   GBD->k = sqrt(EpsTF[0]*MuTF[0])*CurrentOmega;
+  else
+   GBD->k = sqrt(EpsTF[GetFieldObject+1]*MuTF[GetFieldObject+1])*CurrentOmega;
+
   Interp3D *GBarInterp=new Interp3D( DeltaRMin[0], DeltaRMax[0], NPoints[0],
                                      DeltaRMin[1], DeltaRMax[1], NPoints[1],
                                      DeltaRMin[2], DeltaRMax[2], NPoints[2],

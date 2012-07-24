@@ -15,7 +15,7 @@ namespace scuff{
 /* do something about me please ********************************/
 /***************************************************************/
 int PBCGeometry::TriangleCubatureOrder=4;
-double PBCGeometry::DeltaInterp=0.025;
+double PBCGeometry::DeltaInterp=0.05;
 
 /***************************************************************/
 /* get the maximum and minimum cartesian coordinates obtained  */

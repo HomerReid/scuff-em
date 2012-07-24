@@ -282,9 +282,7 @@ void PBCGeometry::AssembleInnerCellBlocks()
 
       // explain me
       if ( no==nop && !(Args->Oa->IsPEC) && (NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0) )
-{ Log("Zeroing' it out, PP");
        Args->Oa->MP->Zero();
-}
 
       AssembleBEMMatrixBlock(Args);
 
@@ -306,9 +304,7 @@ void PBCGeometry::AssembleInnerCellBlocks()
 
       // explain me
       if ( no==nop && !(Args->Oa->IsPEC) && (NumStraddlers[2*no+0]==0 || NumStraddlers[2*no+1]==0) )
-{ Log("Zeroing' it out, PM");
        Args->Oa->MP->Zero();
-};
 
       AssembleBEMMatrixBlock(Args);
 
@@ -330,16 +326,12 @@ void PBCGeometry::AssembleInnerCellBlocks()
 
       // explain me
       if ( no==nop && !(Args->Oa->IsPEC) && NumStraddlers[2*no+0]==0 )
-{ Log("Zeroing' it out, PM");
        Args->Oa->MP->Zero();
-};
 
       AssembleBEMMatrixBlock(Args);
 
       if ( no==nop && !(Args->Oa->IsPEC) && NumStraddlers[2*no+0]==0 )
-{ Log("Zeroing' it out, MP");
        Args->Oa->MP->UnZero();
-};
 
     };
 
@@ -364,17 +356,6 @@ void PBCGeometry::AssembleInnerCellBlocks()
        Args->Oa->MP->UnZero();
 
     };
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void *pCC=HMatrix::OpenMATLABContext("Hello2");
-MZZ->ExportToMATLAB(pCC,"MZZ"); 
-MPP->ExportToMATLAB(pCC,"MPP"); 
-MPM->ExportToMATLAB(pCC,"MPM"); 
-MPZ->ExportToMATLAB(pCC,"MPZ"); 
-MZP->ExportToMATLAB(pCC,"MZP"); 
-HMatrix::CloseMATLABContext(pCC);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 
 }
 
@@ -405,7 +386,7 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
      G->ExteriorMP->GetEpsMu(Omega, EpsTF+0, MuTF+0);
      for(int no=0; no<G->NumObjects; no++)
       G->Objects[no]->MP->GetEpsMu(Omega, EpsTF+no+1, MuTF+no+1);
-//     AssembleInnerCellBlocks();
+     AssembleInnerCellBlocks();
    };
 
   /*--------------------------------------------------------------*/
@@ -449,7 +430,6 @@ HMatrix *PBCGeometry::AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-M->Zero();
   AddOuterCellContributions(BlochP, M);
 
 }

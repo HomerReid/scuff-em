@@ -12,19 +12,20 @@
 #define NFIRSTROUND 1
 #define NMAX 10000
 
-extern int RetainFirst9;
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AddGBFContribution(cdouble k, double P[2], double R[3],
+namespace scuff{
+void AddGBFContribution(double R[3], cdouble k, double P[2],
                         double Lx, double Ly, cdouble *Sum);
+}
+using namespace scuff;
 
 /***************************************************************/
 /* compute \sum_L e^{iP\dot L} G(r+L)                          */
 /* where G(r)=exp(i*k*|r|) / (4*pi*|r|)                     */
 /***************************************************************/
-void GBarVDBF(cdouble k, double *P, double *L1, double *L2, double *R, 
+void GBarVDBF(double *R, cdouble k, double *P, double **LBV, int RetainFirst9,
               double AbsTol, double RelTol, int *pnCells, cdouble *Sum)
 { 
   int nx, ny;
@@ -42,14 +43,12 @@ void GBarVDBF(cdouble k, double *P, double *L1, double *L2, double *R,
   for (nx=-NFIRSTROUND; nx<=NFIRSTROUND; nx++)
    for (ny=-NFIRSTROUND; ny<=NFIRSTROUND; ny++, nCells++)
     { 
-#if 1
       if ( RetainFirst9==0 && (abs(nx)<=1) && (abs(ny)<=1) )
-       continue; // skip the innermost 9 grid cells 
-#endif
+       continue; // skip the innermost 9 grid cells unless RetainFirst9==1 
 
-      AddGBFContribution(k, P, R, 
-                         nx*L1[0] + ny*L2[0],
-                         nx*L1[1] + ny*L2[1],
+      AddGBFContribution(R, k, P, 
+                         nx*LBV[0][0] + ny*LBV[1][0],
+                         nx*LBV[0][1] + ny*LBV[1][1],
                          Sum);
     };
         
@@ -66,9 +65,10 @@ void GBarVDBF(cdouble k, double *P, double *L1, double *L2, double *R,
          if ( (abs(nx)<NN) && (abs(ny)<NN) )
           continue;
 
-         AddGBFContribution(k, P, R, 
-                            nx*L1[0] + ny*L2[0],
-                            nx*L1[1] + ny*L2[1], Sum);
+         AddGBFContribution(R, k, P, 
+                            nx*LBV[0][0] + ny*LBV[1][0],
+                            nx*LBV[0][1] + ny*LBV[1][1],
+                            Sum);
 
          nCells++;
         };

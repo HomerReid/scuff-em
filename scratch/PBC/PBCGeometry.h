@@ -53,20 +53,34 @@ public:
    PBCGeometry(RWGGeometry *G, double **LBV);
    ~PBCGeometry();
 
-   // assemble BEM matrix
-  HMatrix *AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *M=0);
+   // the routines for allocating the BEM matrix, allocating the RHS vector,
+   // and assembling the RHS vector all simply devolve to calls to the 
+   // corresponding RWGGeometry routines, but they deserve status as 
+   // PBCGeometry class methods to encourage users not to call them
+   // before the PBCGeometry class constructor has been invoked; the
+   // reason this is important is that the size of the linear system
+   // (i.e. the number of interior edges in the unit-cell surface mesh)
+   // may differ before and after the call to the PBCGeometry constructor 
+   // due to the addition of straddlers.
+   HMatrix *AllocateBEMMatrix(int PureImagFreq = false)
+    { return G->AllocateBEMMatrix(PureImagFreq); }
+   HVector *AllocateRHSVector(int PureImagFreq = false)
+    { return G->AllocateRHSVector(PureImagFreq); }
+   HVector *AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS)
+    { return G->AssembleRHSVector(Omega, IF, RHS); }
 
-  // assemble RHS vector; this actually just devolves to a call to the
-  // usual RWGGeometry routine for assembling the BEM matrix, but i will
-  // make it a PBCGeometry routine for completeness
-  HVector *AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS)
-   { return G->AssembleRHSVector(Omega, IF, RHS); }
+   // this routine does not simply devolve to an RWGGeometry call.
+   HMatrix *AssembleBEMMatrix(cdouble Omega, double *BlochP, HMatrix *M=0);
+
+   // assemble RHS vector; this actually just devolves to a call to the
+   // usual RWGGeometry routine for assembling the BEM matrix, but i will
+   // make it a PBCGeometry routine for completeness
 
 
    // get fields
    HMatrix *GetFields(IncField *IF, HVector *KN,
-                      cdouble Omega, double *BlochP, 
-                      HMatrix *XMatrix, HMatrix *FMatrix=0, 
+                      cdouble Omega, double *BlochP,
+                      HMatrix *XMatrix, HMatrix *FMatrix=0,
                       char *FuncString=0, int nThread=0);
  
    void GetFields(IncField *IF, HVector *KN, 
@@ -74,8 +88,8 @@ public:
                   double *X, cdouble *EH, int nThread=0);
 
    /*--------------------------------------------------------------*/
-   /*- class data (would be private if we were fastidious about    */
-   /*-             such things)                                    */
+   /*- class data which would be private if we were fastidious     */
+   /*-            about such things)                               */
    /*--------------------------------------------------------------*/
    RWGGeometry *G;       // unit cell geometry, augmented to include straddlers
 
@@ -86,7 +100,8 @@ public:
    int *NumStraddlers;  
 
    // contributions to the BEM matrix from lattice sites 
-   // (n1,n2) = { (1,1), (1,-1), (1,0), (0,1), (0,0) }
+   // (n1,n2) = { (+1,+1), (+1,-1), (+1,0), (0,+1), (0,0) }
+   // (P, M, Z = 'plus 1, minus 1, zero')
    HMatrix *MPP, *MPM, *MPZ, *MZP, *MZZ;
 
    // this field stores the value of Omega that was passed to 
