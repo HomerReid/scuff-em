@@ -1,6 +1,8 @@
 SUBDIRS =            \
+ ApertureDiffraction \
+ PlateWithHole       \
  SolidSphere         \
  SphericalShell      \
- ApertureDiffraction \
+ TwoSpheres          \
  WireAntenna         
 

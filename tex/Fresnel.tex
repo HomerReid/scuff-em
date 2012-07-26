@@ -1,0 +1,1014 @@
+\documentclass{article} 
+\usepackage{bbding} 
+\input{physcmds}
+\graphicspath{{figures/}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% special commands for this document %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\bs}[1]{\boldsymbol{#1}}
+\newcommand{\BG}{\boldsymbol{\Gamma}}
+
+\newcommand\eee{^{ \text{{\tiny EE}},e}}
+\newcommand\eme{^{ \text{{\tiny EM}},e}}
+\newcommand\mee{^{ \text{{\tiny ME}},e}}
+\newcommand\mme{^{ \text{{\tiny MM}},e}}
+\newcommand\een{^{ \text{{\tiny EE}},n}}
+\newcommand\emn{^{ \text{{\tiny EM}},n}}
+\newcommand\men{^{ \text{{\tiny ME}},n}}
+\newcommand\mmn{^{ \text{{\tiny MM}},n}}
+
+\newcommand\eeo{^{ \text{{\tiny EE,1}}}}
+\newcommand\emo{^{ \text{{\tiny EM,1}}}}
+\newcommand\meo{^{ \text{{\tiny ME,1}}}}
+\newcommand\mmo{^{ \text{{\tiny ME,1}}}}
+\newcommand\eet{^{ \text{{\tiny EE,2}}}}
+\newcommand\emt{^{ \text{{\tiny EM,2}}}}
+\newcommand\met{^{ \text{{\tiny ME,2}}}}
+\newcommand\mmt{^{ \text{{\tiny ME,2}}}}
+
+\newcommand\eees{^{ \text{{\tiny EE}},e*}}
+\newcommand\emes{^{ \text{{\tiny EM}},e*}}
+\newcommand\mees{^{ \text{{\tiny ME}},e*}}
+\newcommand\mmes{^{ \text{{\tiny MM}},e*}}
+\newcommand\eens{^{ \text{{\tiny EE}},n*}}
+\newcommand\emns{^{ \text{{\tiny EM}},n*}}
+\newcommand\mens{^{ \text{{\tiny ME}},n*}}
+\newcommand\mmns{^{ \text{{\tiny MM}},n*}}
+
+\renewcommand{\inp}[2]{ \big\langle #1 \big| #2 \big\rangle}
+\newcommand{\INP}[2]{ \Big\langle #1 \Big| #2 \Big\rangle}
+\newcommand{\vmv}[3]{ \big\langle #1 \big| #2 \big| #3 \Big\rangle}
+\newcommand{\VMV}[3]{ \Big\langle #1 \Big| #2 \Big| #3 \Big\rangle}
+
+%**************************************************
+%* Document header info ***************************
+%**************************************************
+\title{SIE Approach to Fresnel Scattering}
+\author {Homer Reid}
+\date {May 3, 2012}
+
+%**************************************************
+%* Start of actual document ***********************
+%**************************************************
+
+\begin{document}
+\maketitle
+
+\pagestyle{myheadings}
+\markright{Homer Reid: SIE Approach to Fresnel Scattering}
+
+\abstract{I revisit the theory of Fresnel scattering (that is,
+the scattering of a plane wave from an infinite planar dielectric
+interface)  from the perspective of the surface-integral-equation 
+approach to electromagnetic scattering. The idea is to develop
+some intuition for the physical significance of effective
+electric and magnetic surface currents by demonstrating how
+they arise in the simplest analytically-solvable scattering
+problem.}
+
+\tableofcontents 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Scattering from a Planar Surface: Exact Solution}
+
+\subsection{Normal Incidence}
+
+Consider an infinite dielectric half-space filling the region $z<0,$
+and a plane wave normally incident from above.
+\numeq{NormalPlaneWave}
+{
+  \vb E\sups{inc}(\vb x) = E_0 e^{-i k_0 z} \vbhat{x}  \qquad
+  \vb H\sups{inc}(\vb x) = -\frac{1}{Z_0} E_0 e^{-i k_0 z} \vbhat{y}
+}
+The scattered fields above the $xy$ plane, and the total fields below 
+the $xy$ plane, are 
+%====================================================================%
+$$\begin{array}{lcllcl}
+ \displaystyle{
+  \vb E\sups{scat,above}(\vb x) 
+              }
+ &=
+ &
+ \displaystyle{
+   A e^{+ik_0z}\vbhat{x}, 
+              }
+\qquad  
+ &\displaystyle{
+  \vb H\sups{scat,above}(\vb x) 
+               }
+ &= 
+ &\displaystyle{
+  \frac{1}{Z_0} A e^{+ik_0z}\vbhat{y}, 
+               }
+\\[10pt]
+%--------------------------------------------------------------------%
+ \displaystyle{
+  \vb E\sups{tot,below}(\vb x) 
+              }
+ &=
+ &
+ \displaystyle{
+   B e^{-ik_1z}\vbhat{x}, 
+              }
+\qquad  
+ &\displaystyle{
+  \vb H\sups{tot,below}(\vb x) 
+               }
+ &= 
+ &\displaystyle{
+  -\frac{1}{Z_0 Z^1} B e^{-ik_1z}\vbhat{y}
+               }
+\end{array}$$
+%====================================================================%
+where $Z_0$ is the impedance of free space, 
+$Z^1$ is the dimensionless relative wave impedance 
+of the half-space, and $A$ and $B$ are unknown 
+coefficients to be determined.
+
+Matching tangential fields at $z=0$ yields
+\begin{align*} 
+ E_0 + A &= B, \\
+ E_0 - A &= \frac{1}{Z^1}B,
+\end{align*} 
+with solution
+$$ A=\frac{Z^1-1}{Z^1+1}E_0, \qquad 
+   B=\frac{2Z^1}{Z^1+1} E_0.
+$$
+For $Z^1=1$ (the dielectric half-space isn't there) 
+we have $A=0, B=1$, so there is no reflected wave
+and the full wave is transmitted. 
+
+\subsubsection*{Surface Currents}
+
+\numeq{KNExact}
+{ \begin{array}{lclcl}
+     \vb K
+ &=& \displaystyle{
+        \vbhat z \times \vb H\sups{tot} 
+                  }
+ &=& \displaystyle{
+    +\frac{2E_0}{Z_0(Z^1+1)}\vbhat{x}
+                  }
+\\[15pt]
+     \vb N
+ &=& \displaystyle{
+       -\vbhat z \times \vb E\sups{tot}
+                  }
+ &=& \displaystyle{
+      -\frac{2Z^1E_0}{(Z^1+1)}\vbhat{y}
+                  }
+\end{array}}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Non-Normal Incidence, $\vb E$ perpendicular to plane of incidence}
+
+I now rotate the propagation vector through an angle $\theta$ around
+the $y$ axis. (For $\theta=0$ I recover the results of the previous
+section.)
+The wavevectors of the incident, reflected, and transmitted waves
+are 
+\begin{align*}
+ \vbhat{k}^i &= k_0\Big( \sin\theta \vbhat{y} - \cos\theta\vbhat{z} \Big) \\
+ \vbhat{k}^r &= k_0\Big( \sin\theta \vbhat{y} + \cos\theta\vbhat{z} \Big) \\
+ \vbhat{k}^t &= k_1\Big( \sin\theta^\prime \vbhat{y} + \cos\theta^\prime\vbhat{z} \Big)\\
+\end{align*}
+where $\theta^\prime$ is related to the incident angle by 
+$$ k_0\sin\theta = k_1 \sin \theta^\prime. $$
+%
+Incident wave:
+%
+\begin{align*}
+\vb E\sups{inc}(\vb x) 
+ &= E_0 e^{ik_0[y\sin\theta y - z\cos\theta ]} \, \vbhat{x} 
+\\
+\vb H\sups{inc}(\vb x) 
+ &= \frac{E_0}{Z_0} 
+    e^{ik_0[y\sin\theta  - z\cos\theta]} 
+    \Big( -\cos\theta\,\vbhat{y} - \sin\theta\,\vbhat{z}\Big)
+\end{align*}
+%
+Reflected wave:
+%
+\begin{align*}
+\vb E\sups{refl}(\vb x)
+ &= rE_0 e^{ik_0[y\sin\theta  + z\cos\theta]} \, \vbhat{x} 
+\\
+\vb H\sups{refl}(\vb x)
+ &= \frac{rE_0}{Z_0} 
+    e^{ik_0[y\sin\theta  + z\cos\theta ]}
+    \Big( +\cos\theta\,\vbhat{y} - \sin\theta\,\vbhat{z}\Big)
+\end{align*}
+%
+Transmitted wave:
+%
+\begin{align*}
+\vb E\sups{trans}(\vb x)
+ &= tE_0 e^{ik_1[y\sin\theta^\prime  + z\cos\theta^\prime]} \, \vbhat{x} 
+\\
+\vb H\sups{trans}(\vb x)
+ &= \frac{tE_0}{Z_1} 
+    e^{ik_1[y\sin\theta^\prime  + z\cos\theta^\prime]}
+    \Big( -\cos\theta^\prime\,\vbhat{y} - \sin\theta^\prime\,\vbhat{z}\Big)
+\end{align*}
+
+\subsection*{Surface currents}
+
+\begin{align*}
+  \vb K &= \frac{E_0}{Z_0} (1-r)\cos\theta e^{ik_0 y \sin \theta} 
+            \, \vbhat{x} 
+\\
+  \vb N &= E_0 (1+r) e^{ik_0 y \sin \theta} \, \vbhat{y} 
+\end{align*}
+%
+Let's check that the normal fields at the surface are 
+correctly recovered from the divergence-of-surface-current 
+prescription:
+
+\begin{align*}
+  E_z &= \frac{\nabla \cdot \vb K}{i\epsilon\omega} = 0
+\qquad \text{\CheckmarkBold}
+\\
+  H_z & = -\frac{\nabla \cdot \vb N}{i\mu\omega} 
+        = -\frac{i E_0 k_0 \sin\theta(1+r)}{i\mu\omega} e^{ik_0 y\sin\theta}
+        = -\frac{E_0}{Z_0}(1+r) e^{ik_0 y \sin\theta} 
+\qquad \text{\CheckmarkBold}
+\end{align*}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Non-Normal Incidence, $\vb E$ parallel to plane of incidence}
+
+%
+Incident wave:
+%
+\begin{align*}
+\vb E\sups{inc}(\vb x) 
+ &= E_0 
+    e^{ik_0[y\sin\theta  - z\cos\theta ]} 
+    \Big( \cos\theta\,\vbhat{y} + \sin\theta\,\vbhat{z}\Big)
+\\
+\vb H\sups{inc}(\vb x) 
+ &= \frac{E_0}{Z_0} 
+    e^{ik_0[y\sin\theta -z \cos\theta]} \,\vbhat{x}
+\end{align*}
+%
+Reflected wave:
+%
+\begin{align*}
+\vb E\sups{refl} 
+ &= rE_0 e^{ik_0[y\sin\theta + z\cos\theta ]} 
+    \Big( -\cos\theta\,\vbhat{y} + \sin\theta\,\vbhat{z}\Big)
+\\
+\vb H\sups{refl}(\vb x) 
+ &=  r \frac{E_0}{Z_0} 
+       e^{ik_0[y\sin\theta +z \cos\theta]} \,\vbhat{x}
+\end{align*}
+%
+Transmitted wave:
+%
+\begin{align*}
+\vb E\sups{trans}(\vb x) 
+ &= tE_0 e^{ik_1[y\sin\theta^\prime - z\cos\theta^\prime ]} 
+    \Big( \cos\theta^\prime\,\vbhat{y} + \sin\theta^\prime\,\vbhat{z}\Big)
+\\
+\vb H\sups{trans}(\vb x) 
+ &= \frac{tE_0}{Z_1} 
+    e^{ik_0[y\sin\theta^\prime -z \cos\theta^\prime]} \,\vbhat{x}
+\end{align*}
+
+\subsection*{Surface currents}
+
+\begin{align*}
+  \vb K &= \frac{E_0}{Z_0} (1+r) e^{ik_0 y \sin \theta} \, \vbhat{y} 
+\\
+  \vb N &= E_0 (1-r) \cos\theta e^{ik_0 y \sin \theta} \, \vbhat{x} 
+\end{align*}
+%
+Let's check that the normal fields at the surface are 
+correctly recovered from the divergence-of-surface-current 
+prescription:
+
+\begin{align*}
+  E_z &= \frac{\nabla \cdot \vb K}{i\epsilon\omega} = E_0(1+r)\sin\theta
+\qquad \text{\CheckmarkBold}
+\\
+  H_z & = -\frac{\nabla \cdot \vb N}{i\mu\omega} 
+        = 0
+\qquad \text{\CheckmarkBold}
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Scattering from a Planar Surface: SIE solution}
+
+I now re-solve the same problem using the SIE method.
+
+\subsection{Surface-Current Basis Functions}
+
+Notation: 
+
+\begin{itemize}
+ \item $\vb x =(x,y)$ is a two-component coordinate vector.
+ \item $\vb r =(x,y,z)=(\vb x, z)$ is a three-component coordinate vector.
+ \item $\vb p  $ is a two-component Fourier vector.
+\end{itemize}
+
+There are two types of surface-current basis functions 
+for surface currents at $z=0$:
+$$ \vb f_{x\vb p}(\vb x) = e^{i\vb p \cdot \vb x} \vbhat{x}, \qquad
+   \vb f_{y\vb p}(\vb x) = e^{i\vb p \cdot \vb x} \vbhat{y}
+$$
+
+The electric and magnetic surface currents at $z=0$ are 
+expanded in the $\vb f_{\vb p}$ basis:
+\begin{align*}
+  \vb K(\vb x) 
+&= \sum_{\vb p}
+   \Big[   K_{x\vb p} \vb f_{x\vb p}(\vb x)  
+         + K_{y\vb p} \vb f_{y\vb p}(\vb x)  
+   \Big]
+\\[3pt]
+  \vb N(\vb x) 
+&= \sum_{\vb p}
+   \Big[   N_{x\vb p} \vb f_{x\vb p}(\vb x)  
+         + N_{y\vb p} \vb f_{y\vb p}(\vb x)  10
+   \Big]
+\end{align*}
+where  
+$$ \sum_{\vb p} = \int\frac{d^2 \vb p}{(2\pi)^2}. $$
+
+\subsection{Convolutions of surface currents with $\vb G$ and $\vb C$ dyadics:}
+
+I first recall my conventions for the dyadic green's functions: In homogeneous
+medium $r$, the fields arising from surface currents are
+\begin{align*}
+    \vb E(\vb x) 
+&= \int\bigg\{ 
+   \BG^{\text{\tiny{EE}},r}(\vb x, \vb x^\prime) 
+   \cdot 
+   \vb K(\vb x^\prime) 
+  +\BG^{\text{\tiny{EM}},r}(\vb x, \vb x^\prime) 
+   \cdot 
+   \vb N(\vb x^\prime) \bigg\} d\vb x^\prime
+\\[10pt]
+    \vb H(\vb x) 
+&= \int\bigg\{ 
+   \BG^{\text{\tiny{ME}},r}(\vb x, \vb x^\prime) 
+   \cdot 
+   \vb K(\vb x^\prime) 
+  +\BG^{\text{\tiny{MM}},r}(\vb x, \vb x^\prime) 
+   \cdot 
+   \vb N(\vb x^\prime) \bigg\} d\vb x^\prime
+\end{align*}
+where 
+%====================================================================%
+$$\begin{array}{lcllcl}
+ \BG^{\text{\tiny{EE}},r}
+ &=&ik_r Z_0 Z^r \vb G, 
+ \qquad 
+ &\BG^{\text{\tiny{EM}},r}
+ &=&+ik_r \vb C, 
+\\
+%--------------------------------------------------------------------%
+ \BG^{\text{\tiny{ME}},r}
+ &=&-ik_r \vb C, 
+ \qquad 
+ &\BG^{\text{\tiny{MM}},r}
+ &=&+\frac{ik_r}{Z_0Z^r} \vb G, 
+\\
+\end{array}$$
+%====================================================================%
+In the following, I put 
+$$ Q \equiv Q(k,\vb p) = \sqrt{k^2 - |\vb p|^2}.$$
+Note that $Q$ is imaginary for $|\vb p|>k$. At a temporal
+frequency of $\omega=ck,$ the fields arising from surface 
+currents with spatial frequency $|\vb p|>k$ are evanescent 
+waves.
+
+The inner products I need are 
+
+\begin{align*}
+ \int \vb G(k; \vb r, \vb r^\prime) \cdot \vb f_{x\vb p}(\vb r^\prime)
+d\vb r^\prime
+&=\frac{ ie^{i\vb p \cdot \vb x} e^{iQ|z|}}{2Q}
+       \left[   \left(1-\frac{p_x^2}{k^2}\right) \vbhat{x}
+               -\frac{p_x p_y}{k^2} \vbhat{y}
+               -\frac{iQ p_x}{k^2} \vbhat{z}
+       \right]
+\\[5pt]
+ \int \vb G(k; \vb r, \vb r^\prime) \cdot \vb f_{y\vb p}(\vb r^\prime)
+d\vb r^\prime
+&=\frac{ ie^{i\vb p \cdot \vb x} e^{iQ|z|}}{2Q}
+       \left[  -\frac{p_x p_y}{k^2} \vbhat{x}
+               +\left(1-\frac{p_y^2}{k^2} \right) \vbhat{y}  
+               -\frac{iQ p_y}{k^2} \vbhat{z}
+       \right]
+\\[5pt]
+ \int \vb C(k; \vb r, \vb r^\prime) \cdot \vb f_{x\vb p}(\vb r^\prime)
+d\vb r^\prime
+&=   \text{sign }(z)
+   \frac{ ie^{i\vb p \cdot \vb x} e^{iQ|z|}}{2k}
+   \left[ \vbhat{y} + \frac{ip_y}{Q} \vbhat{z} \right]
+\\[5pt]
+ \int \vb C(k; \vb r, \vb r^\prime) \cdot \vb f_{y\vb p}(\vb r^\prime)
+d\vb r^\prime
+&= - \text{sign }(z)
+   \frac{ ie^{i\vb p \cdot \vb x} e^{iQ|z|}}{2k}
+   \left[ \vbhat{x} - \frac{ip_x}{Q} \vbhat{z} \right]
+\end{align*}
+
+Note that the tangential component of the $\vb C$ integrals 
+(that is, the magnetic field due to an electric surface current, 
+or vice versa) is discontinuous at $z=z^\prime$.
+
+\subsection{Inner Products of $\vb f_{\vb p}$ functions with dyadic GFs}
+
+Note: In what follows I am being a little cavalier. The four-dimensional
+integrals in a quantity like 
+$\vmv{\vb f_{\vb p}}{\vb G}{\vb f_{\vb p}}$ are actually
+infinite: if I restricted each surface integral to a finite 
+area $A$, then the matrix element would be proportional to 
+$A$ and would diverge with the area of the planar interface.
+The proper way to write this is to say
+$$  \vmv{\vb f_{\vb p}}{\vb G}{\vb f_{\vb p^\prime}}
+  = \overline{\vmv{\vb f_{\vb p}}{\vb G}{\vb f_{\vb p}}}
+    \cdot (2\pi)^2 \delta(\vb p-\vb p^\prime)
+$$
+where the $\delta$ function factor has units of area,
+and the barred inner product is finite. In what follows I
+will not bother to write out the overbar or the 
+$\delta$ function factor, but it's good to keep them
+in mind.
+
+I have verified the following calculations numerically:
+\begin{align*} 
+ \VMV{ \vb f_{x\vb p}(\vb x) }
+     { \vb G(\vb x, z; \vb x^\prime, z^\prime) }
+     { \vb f_{x\vb p}(\vb x^\prime) }
+ &= \frac{ ie^{iQ|z-z^\prime|} }{2Q}\left(1-\frac{p_x^2}{k^2}\right)
+\\
+ \VMV{ \vb f_{x\vb p}(\vb x) }
+     { \vb G(\vb x, z; \vb x^\prime, z^\prime) }
+     { \vb f_{y\vb p}(\vb x^\prime) }
+ &= -\frac{ ie^{iQ|z-z^\prime|} }{2Q} \cdot \frac{p_x p_y}{k^2}
+\\
+ \VMV{ \vb f_{y\vb p}(\vb x) }
+     { \vb G(\vb x, z; \vb x^\prime, z^\prime) }
+     { \vb f_{x\vb p}(\vb x^\prime) }
+ &= -\frac{ ie^{iQ|z-z^\prime|} }{2Q} \cdot \frac{p_x p_y}{k^2}
+\\
+ \VMV{ \vb f_{y\vb p}(\vb x) }
+     { \vb G(\vb x, z; \vb x^\prime, z^\prime) }
+     { \vb f_{y\vb p}(\vb x^\prime) }
+ &= \frac{ ie^{iQ|z-z^\prime|} }{2Q}\left(1-\frac{p_y^2}{k^2}\right)
+\end{align*} 
+\begin{align*} 
+ \VMV{ \vb f_{x\vb p}(\vb x) }
+     { \vb C(\vb x, z; \vb x^\prime, z^\prime) }
+     { \vb f_{y\vb p}(\vb x^\prime) }
+ &=  \text{sign}(z-z^\prime) \frac{ i e^{iQ|z-z^\prime|} }{2k}
+\\
+ \VMV{ \vb f_{y\vb p}(\vb x) }
+     { \vb C(\vb x, z; \vb x^\prime, z^\prime) }
+     { \vb f_{x\vb p}(\vb x^\prime) }
+ &= -\text{sign}(z-z^\prime) \frac{ i e^{iQ|z-z^\prime|} }{2k}
+\end{align*} 
+%
+Note that, at $z\to z^\prime$, the $\vmv{\vb f}{\vb C}{\vb f}$
+inner products approach a nonzero constant whose sign depends 
+on whether $z\to z^{\prime +}$ or $z\to z^{\prime -}$. This 
+subtlety turns out to be unimportant for setting up and 
+solving scattering problems using the SIE formalism, but 
+crucial for understanding the compact power formulas discussed
+in the next section.
+
+%=====================================================================
+%=====================================================================
+%=====================================================================
+\newpage
+\subsection{SIE Matrices}
+
+In this section I omit the $\vb p$ subscript.
+
+I order the expansion coefficients and the incident-field inner
+products into 4-dimensional vectors thusly:
+\numeq{SIEVectors}
+{ \left(\begin{array}{c}
+ K_x \\[3pt] K_y \\[3pt] N_x \\[3pt] N_y
+ \end{array}\right),
+\qquad
+ \left(\begin{array}{c}
+ \inp{\vb f_{x}}{\vb E\sups{inc}} \\[3pt]
+ \inp{\vb f_{y}}{\vb E\sups{inc}} \\[3pt]
+ \inp{\vb f_{x}}{\vb H\sups{inc}} \\[3pt]
+ \inp{\vb f_{y}}{\vb H\sups{inc}}
+ \end{array}\right).
+}
+Then the SIE matrix has the following structure:
+$$ \vb M=
+   \left(\begin{array}{cccc}
+   \vmv{ \vb f_{x} } { \BG\supt{EE} } { \vb f_x }
+  &\vmv{ \vb f_{x} } { \BG\supt{EE} } { \vb f_y }
+  &\vmv{ \vb f_{x} } { \BG\supt{EM} } { \vb f_x }
+  &\vmv{ \vb f_{x} } { \BG\supt{EM} } { \vb f_y }
+ \\[3pt]
+   \vmv{ \vb f_{y} } { \BG\supt{EE} } { \vb f_x }
+  &\vmv{ \vb f_{y} } { \BG\supt{EE} } { \vb f_y }
+  &\vmv{ \vb f_{y} } { \BG\supt{EM} } { \vb f_x }
+  &\vmv{ \vb f_{y} } { \BG\supt{EM} } { \vb f_y }
+ \\[3pt]
+   \vmv{ \vb f_{x} } { \BG\supt{ME} } { \vb f_x }
+  &\vmv{ \vb f_{x} } { \BG\supt{ME} } { \vb f_y }
+  &\vmv{ \vb f_{x} } { \BG\supt{MM} } { \vb f_x }
+  &\vmv{ \vb f_{x} } { \BG\supt{MM} } { \vb f_y }
+ \\[3pt]
+   \vmv{ \vb f_{y} } { \BG\supt{ME} } { \vb f_x }
+  &\vmv{ \vb f_{y} } { \BG\supt{ME} } { \vb f_y }
+  &\vmv{ \vb f_{y} } { \BG\supt{MM} } { \vb f_x }
+  &\vmv{ \vb f_{y} } { \BG\supt{MM} } { \vb f_y }
+   \end{array}\right).
+$$
+The contribution of medium $m$ to the SIE matrix is 
+%====================================================================%
+$$ \vb M^{(m)}=
+   ik_m 
+   \left(\begin{array}{cccc}
+    Z_0 Z^m
+    \vmv{ \vb f_{x} } { \vb G } { \vb f_x }
+  & Z_0 Z^m
+    \vmv{ \vb f_{x} } { \vb G } { \vb f_y }
+  & \vmv{ \vb f_{x} } { \vb C } { \vb f_x }
+  & \vmv{ \vb f_{x} } { \vb C } { \vb f_y }
+ \\[3pt]
+%--------------------------------------------------------------------%
+    Z_0 Z^m
+    \vmv{ \vb f_{y} } { \vb G } { \vb f_x }
+  & Z_0 Z^m
+    \vmv{ \vb f_{y} } { \vb G } { \vb f_y }
+  & \vmv{ \vb f_{y} } { \vb C } { \vb f_x }
+  & \vmv{ \vb f_{y} } { \vb C } { \vb f_y }
+ \\[3pt]
+%--------------------------------------------------------------------%
+    -\vmv{ \vb f_{x} } { \vb C } { \vb f_x }
+  & -\vmv{ \vb f_{x} } { \vb C } { \vb f_y }
+  & \frac{1}{Z_0 Z^m} \vmv{ \vb f_{x} } { \vb G } { \vb f_x }
+  & \frac{1}{Z_0 Z^m} \vmv{ \vb f_{x} } { \vb G } { \vb f_y }
+ \\[3pt]
+%--------------------------------------------------------------------%
+    -\vmv{ \vb f_{y} } { \vb C } { \vb f_x }
+  & -\vmv{ \vb f_{y} } { \vb C } { \vb f_y }
+  & \frac{1}{Z_0 Z^m} \vmv{ \vb f_{y} } { \vb G } { \vb f_x }
+  & \frac{1}{Z_0 Z^m} \vmv{ \vb f_{y} } { \vb G } { \vb f_y }
+   \end{array}\right).
+$$
+%====================================================================%
+Inserting the results of the last section, the exterior and interior
+contributions to the SIE matrix are 
+%====================================================================%
+$$ \vb M^{(0)}=
+   -\frac{k_0}{2}
+   \left(\begin{array}{cccc}
+    \frac{Z_0}{Q_0}\left(1-\frac{p_x^2}{k_0^2}\right)
+  &
+    \frac{Z_0}{Q_0}\left(-\frac{p_xp_y}{k_0^2}\right)
+  & 0 
+  & \frac{1}{k_0}
+ \\[6pt]
+%--------------------------------------------------------------------%
+    \frac{Z_0}{Q_0}\left(-\frac{p_x p_y}{k_0^2}\right)
+  &
+    \frac{Z_0}{Q_0}\left(1-\frac{p_y^2}{k_0^2}\right)
+  & -\frac{1}{k_0}
+  & 0 
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  & -\frac{1}{k_0}
+  & \frac{1}{Q_0 Z_0} \left(1-\frac{p_x^2}{k_0^2}\right)
+  & \frac{1}{Q_0 Z_0} \left(-\frac{p_xp_y }{k_0^2}\right)
+ \\[6pt]
+%--------------------------------------------------------------------%
+    \frac{1}{k_0}
+  & 0
+  & \frac{1}{Q_0 Z_0} \left(-\frac{p_xp_y}{k_0^2}\right)
+  & \frac{1}{Q_0 Z_0} \left(1-\frac{p_y^2}{k_0^2}\right)
+   \end{array}\right).
+$$
+%====================================================================%
+%====================================================================%
+$$ \vb M^{(1)}=
+   -\frac{k_1}{2}
+    \left(\begin{array}{cccc}
+    \frac{Z_0Z^1}{Q_1}\left(1-\frac{p_x^2}{k_1^2}\right)
+  &
+    \frac{Z_0Z^1}{Q_1}\left(-\frac{p_xp_y}{k_1^2}\right)
+  & 0 
+  & -\frac{1}{k_1}
+ \\[6pt]
+%--------------------------------------------------------------------%
+    \frac{Z_0Z^1}{Q_1}\left(-\frac{p_x^2}{k_1^2}\right)
+  &
+    \frac{Z_0Z^1}{Q_1}\left(1-\frac{p_y^2}{k_1^2}\right)
+  & +\frac{1}{k_1}
+  & 0 
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  & +\frac{1}{k_1}
+  & \frac{1}{Q_1 Z_0 Z^1} \left(1-\frac{p_x^2}{k_1^2}\right)
+  & \frac{1}{Q_1 Z_0 Z^1} \left(-\frac{p_xp_y }{k_1^2}\right)
+ \\[6pt]
+%--------------------------------------------------------------------%
+   -\frac{1}{k_1}
+  & 0
+  & \frac{1}{Q_1 Z_0 Z^1} \left(-\frac{p_xp_y}{k_1^2}\right)
+  & \frac{1}{Q_1 Z_0 Z^1} \left(1-\frac{p_y^2}{k_1^2}\right)
+   \end{array}\right).
+$$
+%====================================================================%
+
+%=====================================================================
+%=====================================================================
+%=====================================================================
+\subsection{SIE Scattering Solution: Normal Incidence}
+For the normally incident plane wave of equation 
+(\ref{NormalPlaneWave}), the RHS vector of the SIE system 
+[again being somewhat cavalier about neglecting 
+factors of $\delta(\vb p-\vb p^\prime)$] is 
+$$-
+ \left(\begin{array}{c}
+ \inp{\vb f_{x}}{\vb E\sups{inc}} \\[3pt]
+ \inp{\vb f_{y}}{\vb E\sups{inc}} \\[3pt]
+ \inp{\vb f_{x}}{\vb H\sups{inc}} \\[3pt]
+ \inp{\vb f_{y}}{\vb H\sups{inc}}
+ \end{array}\right)
+\,=\,
+  -E_0 
+ \left(\begin{array}{c}
+ 1 \\ 
+ 0 \\ 
+ 0 \\ 
+ -\frac{1}{Z_0}
+ \end{array}\right).
+$$
+Out of the four unknown coefficients in the unknown
+vector (\ref{SIEVectors}), only $K_x$ and $N_y$ are 
+nonzero, and then only for $\vb p=0$, in which
+case I have simply $Q=k$.
+The SIE system reduces to 
+
+$$ 
+ -\frac{1}{2}
+ \left(\begin{array}{cc}
+ \displaystyle{ \vphantom{\frac{1}{Z_0}} Z_0(Z^1+1) } & 0 \\
+ 0 & \displaystyle{\frac{1}{Z_0(\frac{1}{Z^1} + 1)}}
+ \end{array} \right)
+ \left(\begin{array}{c}
+ \displaystyle{ \vphantom{\frac{1}{Z_0}} K_x } 
+ \\
+ \displaystyle{ \vphantom{\frac{1}{Z_0}} N_y } 
+ \end{array}\right)
+=
+ -E_0
+ \left(\begin{array}{c}
+ \displaystyle{ \vphantom{\frac{1}{Z_0}} 1 }
+ \\
+ \displaystyle{ -\frac{1}{Z_0} }
+ \end{array}\right)
+$$ 
+with solution
+$$ K_x = \frac{2E_0}{Z_0(Z^1+1)}, \qquad 
+   N_y = -\frac{2 Z^1 E_0 }{(Z^1+1)}.
+$$
+This reproduces the exact result (\ref{KNExact}).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{An Important Subtlety in the SIE matrices}
+
+Before proceeding, I pause to note the following important subtlety
+in the SIE matrices. The subtlety is easiest to see 
+for the case $\vb p=0$, although it is present for $\vb p\ne 0$  
+as well.
+
+By the results of the previous section, the exterior and
+interior contributions to the SIE matrices at $\vb p=0$ 
+are as follows:
+%====================================================================%
+\begin{align*}
+ \vb M^{(0)}
+&=\left(\begin{array}{cccc}
+   \hspace{0.07in} -\frac{Z_0}{2}\hspace{0.07in}
+  &
+    0
+  & 0 
+  & -\frac{1}{2}
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  &\hspace{0.07in} -\frac{Z_0}{2}\hspace{0.07in}
+  & \frac{1}{2}
+  & 0 
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  &  \frac{1}{2}
+  & \hspace{0.07in} -\frac{1}{2Z_0}\hspace{0.07in}
+  & -\frac{1}{2Z_0}
+ \\[6pt]
+%--------------------------------------------------------------------%
+    -\frac{1}{2}
+  & 0
+  & 0
+  & \hspace{0.07in} -\frac{1}{2Z_0}\hspace{0.07in}
+   \end{array}\right).
+\\[10pt]
+%--------------------------------------------------------------------%
+\vb M^{(1)}
+&=
+   \left(\begin{array}{cccc}
+    -\frac{Z_0Z^1}{2}
+  &
+    0
+  & 0 
+  & \frac{1}{2}
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  & -\frac{Z_0Z^1}{2}
+  & -\frac{1}{2}
+  & 0 
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  & -\frac{1}{2}
+  & -\frac{1}{2Z_0Z^1}
+  & 0
+ \\[6pt]
+%--------------------------------------------------------------------%
+    \frac{1}{2}
+  & 0
+  & 0
+  & -\frac{1}{2Z_0Z^1}
+   \end{array}\right).
+\end{align*}
+%====================================================================%
+The total SIE matrix is the sum of the exterior and interior contributions:
+\begin{align*}
+ \vb M
+&=
+   \left(\begin{array}{cccc}
+    -\frac{Z_0}{2}(1+Z^1)
+  &
+    0
+  & 0 
+  & 0
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  & -\frac{Z_0}{2}(1+Z^1)
+  & 0
+  & 0 
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  & 0
+  & -\frac{1}{2Z_0}(1+\frac{1}{Z^1})
+  &
+ \\[6pt]
+%--------------------------------------------------------------------%
+    0
+  & 0
+  & 0
+  & -\frac{1}{2Z_0}(1+\frac{1}{Z^1})
+   \end{array}\right).
+\end{align*}
+Note something interesting here: The off-diagonal elements of 
+$\pm \frac{1}{2}$, which are present in the \textit{individual}
+contributions to the SIE matrix, cancel when we form the sum 
+and are \textit{absent} from the final SIE matrix.
+
+\subsubsection*{Origin of the $\pm\frac{1}{2}$ factors}
+
+The factors of $\pm \frac{1}{2}$ come from a $\delta$ function
+in the $\vb C$ dyadic Green's function. The proper way to 
+write inner products involving the $\vb C$ function is something
+like this:
+\numeq{CFinite}
+{
+   \VMV{\vb f}{\vb C}{\vb g} 
+   = 
+     \VMV{\vb f}{\vb C\sups{finite}}{\vb g} 
+     \,\pm\, 
+     \frac{1}{2ik}\cdot \VMV{\vb f}{\vbhat{n}\times}{\vb g} 
+}
+The first term here gives zero inner for coplanar surface-current 
+basis functions $\vb f$ and $\vb g$, but the second term 
+is nonvanishing whenever $\vb f$ and $\vb g$ have crossed
+overlap (in fact, this term is proportional to what Steven
+calls the ''$T$ matrix.'') The choice of $\pm$ sign is 
+determined by whether we are taking the limit as $\vb f$ approaches
+$\vb g$ from the \textit{exterior} or the \textit{interior}. 
+
+\subsubsection*{Implications for concise power formulas in {\sc scuff-em}}
+
+The additional $\delta$ function term here is
+\textbf{not taken into account by {\sc scuff-em.}}
+Indeed, as noted above, it is perfectly acceptable 
+to ignore this term as long as we are only ever computing
+the \textit{total} SIE matrices. 
+However, when we need to compute \textit{individual} 
+contributions to the SIE matrices, we need to account for
+the extra $\delta$ function term. 
+
+Computationally, this is actually easy, because the crossed-overlap
+integrals $\vmv{\vb f}{\vbhat{n}\times}{\vb g}$ can be computed in 
+closed form for the RWG basis functions.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Comparison of Power Formulas}
+
+\subsection{Exact Results for Transmitted, Scattered, and Total Power}
+
+It is easy to read off expressions for the various power quantities 
+from the exact solution of Section 1.
+
+\subsubsection*{Transmitted (Absorbed) Power}
+The total Poynting vector at $z=0$ is 
+$$
+ \vb P\sups{tot}
+=\frac{1}{2}\,\text{Re }
+ \Big[\vb E^{\text{\scriptsize{tot}}*} \times \vb H\sups{tot}\Big]
+=-\text{Re } \frac{|B|^2}{2Z_0 Z^1}\vbhat{z}
+$$
+so the power per unit area transmitted through the infinite planar 
+surface is 
+\numeq{Ptrans}
+{ P\sups{trans}
+  =\frac{4 \cdot (\text{Re }Z_1)}{|Z_1+1|^2} \cdot \frac{|E_0|^2}{2Z_0}.
+}
+This quantity is the analogue of what we normally compute as 
+the absorbed power for a finite scatterer; I call it $P\sups{trans}$
+instead of $P\sups{abs}$ because it contains both the power absorbed 
+by the dielectric (if it is lossy) and the flux of the plane wave 
+travelling through the dielectric toward $z\to-\infty$. (In 
+particular, it is nonzero even for a lossless dielectric, which
+would not be the case for a finite scatterer.)
+
+\subsubsection*{Scattered Power}
+On the other hand, the scattered Poynting vector at $z=0$ is 
+$$
+ \vb P\sups{scat}
+=\frac{1}{2}\,\text{Re }
+ \Big[\vb E^{\text{\scriptsize{scat}}*} \times \vb H\sups{scat}\Big]
+=+\text{Re } \frac{|A|^2}{2Z_0}\vbhat{z}
+$$
+so the power scattered per unit area by the infinite planar 
+surface is 
+\numeq{PScat}
+{ P\sups{scat}
+  =\left|\frac{Z^1-1}{Z^1 + 1}\right|^2 \cdot \frac{|E_0|^2}{2Z_0}.
+}
+
+\subsubsection*{Total Power}
+The analogue of what we normally call the ``total power''
+(or the ``extinction'') is the sum of the transmitted and 
+scattered powers:
+\numeq{Ptot}
+{
+  P\sups{tot} = P\sups{scat} + P\sups{abs}
+=\frac{|E_0|^2}{2Z_0}.
+}
+Note that this is actually equal to the entire flux of 
+the incident plane wave, i.e. 100\% of its power its
+``extinguished'' by the interaction with the dielectric
+half-space. This just reflects the fact that, in contrast
+to the case of a finite scatterer, in this case there is
+no way for a portion of the incident power to flow ``around''
+the scatterer; all power is either reflected or transmitted.
+
+\subsection{Concise SIE Formulas for Transmitted, Scattered, and Total Power}
+
+\subsubsection{Transmitted power by HR formula}
+
+The HR formula for the transmitted power is, in SGJ notation,
+$$ P^{\text{{\scriptsize trans},{\sc hr} }}=\frac{1}{4}x^* T x $$
+where the elements of the $T$ matrix are the crossed-overlaps
+of the basis functions:
+$$ T_{\alpha\beta} = \VMV{\vb f_\alpha}{\vbhat{n}\times}{\vb f_\beta}.$$
+In the present case this works out to 
+\begin{align*}
+ P^{\text{{\scriptsize trans},{\sc hr} }}
+& = -\frac{1}{2}\text{Re } K^*_x N_y \VMV{\vb f_x}{\vbhat{z}\times}{\vb f_y}
+\\
+& = \frac{4\cdot(\text{Re }Z^1)}{|Z^1+1|^2}\cdot \frac{|E_0|^2}{2Z_0}
+\end{align*}
+in agreement with the exact solution (\ref{Ptrans}).
+
+\subsubsection{Absorbed power by SGJ formula}
+
+The SGJ formula for the absorbed power reads (in SGJ notation)
+\numeq{PabsSGJ1}
+{
+ P\sups{abs,{\sc sgj}}
+ =\frac{1}{4}\text{Re }\Big[ x^* G^0 x + x^* s^0 \Big]
+}
+The first term here is 
+%====================================================================%
+\begin{align}
+ \frac{1}{4}\,\text{Re }\,x^* G^0 x 
+&= 
+ -\frac{1}{8}\text{ Re }
+ \left(\begin{array}{c}
+ \displaystyle{ \frac{2E_0}{Z_0(Z^1+1)} }
+ \\[5pt]
+ \displaystyle{ -\frac{2Z^1 E_0}{Z^1+1} }
+ \end{array}\right)^\dagger 
+%--------------------------------------------------------------------%
+ \left(\begin{array}{cc}
+ \displaystyle{ \vphantom{\frac{1}{Z_0}} Z_0 } & -\frac{1}{2}
+ \\[5pt]
+ -\frac{1}{2} & \displaystyle{\frac{1}{Z_0}}
+ \end{array} \right)
+%--------------------------------------------------------------------%
+ \left(\begin{array}{c}
+ \displaystyle{ \frac{2E_0}{Z_0(Z^1+1)} }
+ \\[5pt]
+ \displaystyle{ -\frac{2Z^1 E_0}{Z^1+1} }
+ \end{array}\right)
+\nonumber\\[10pt]
+%--------------------------------------------------------------------%
+&= -\frac{|E_0|^2}{8Z_0}\text{ Re }
+   \bigg\{   \underbrace{ \frac{4}{|Z^1+1|^2} }_{\text{EE}} 
+          \,+\,\underbrace{ \frac{2Z^1}{|Z^1+1|^2} }_{\text{EM}} 
+          \,+\,\underbrace{ \frac{2Z^{1*}}{|Z^1+1|^2} }_{\text{ME}}
+          \,+\,\underbrace{ \frac{4|Z^1|^2}{|Z^1+1|^2} }_{\text{MM}}
+   \bigg\}
+\nonumber\\[10pt]
+&= -\frac{|E_0|^2}{2Z_0}
+   \bigg\{ 1 - \frac{4(\text{Re} Z^1)}{|Z^1+1|^2} \bigg\}
+\label{xGxo4}
+\end{align}
+%====================================================================%
+The second term is 
+\begin{align}
+&= \frac{1}{4}\text{Re }
+ \left(\begin{array}{c}
+ \displaystyle{ \frac{2E_0}{Z_0(Z^1+1)} }
+ \\[8pt]
+ \displaystyle{ -\frac{2Z^1 E_0}{Z^1+1} }
+ \end{array}\right)^\dagger 
+ \cdot 
+ \left(\begin{array}{c}
+ \displaystyle{ \vphantom{\frac{1}{Z_0}} E_0 }
+ \\[8pt]
+ \displaystyle{ -\frac{E_0}{Z_0} }
+ \end{array}\right)
+\nn
+&= \frac{|E_0|^2}{2Z_0}
+\label{xso4}
+\end{align}
+Inserting (\ref{xGxo4}) and (\ref{xso4}) into (\ref{PabsSGJ1}), 
+I find
+\begin{align*}
+ P\sups{abs,{\sc sgj}}
+ &=  \frac{1}{4}\text{Re }\Big[ x^* G^0 x \Big]
+   +\frac{1}{4}\text{Re }\Big[ x^* s^0 \Big]
+\\
+ &= +\frac{4\cdot(\text{Re }Z^1)}{|Z^1+1|^2}\cdot \frac{|E_0|^2}{2Z_0}
+\end{align*}
+again reproducing the correct result.
+
+\subsubsection{Contribution of $\delta$-function terms to SGJ formula}
+
+Let's now investigate what would happen if the weird off-diagonal
+factors of $\frac{1}{2}$ were missing from the individual SIE
+matrices (as is the case in {\sc scuff-em}). This would correspond
+to eliminating the terms marked ``EM'' and ``ME'' from the sum in
+equation (\ref{xGxo4}). The contribution made by these terms to the 
+sum is 
+\begin{align*}
+\Delta P\sups{abs,{\sc sgj}} 
+  &= -\frac{\text{Re }Z^1}{|Z^1+1|^2}\cdot \frac{|E_0|^2}{2Z_0}
+\\
+  &=\frac{1}{4}P\sups{abs,{\sc sgj}}.
+\end{align*}
+So eliminating these terms from the sum would result in an answer
+that is off by a factor of $\frac{3}{4}$, not $\frac{1}{2}$ as I seem
+to observe in practice.
+\end{document}

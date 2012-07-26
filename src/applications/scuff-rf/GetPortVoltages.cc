@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /* 
  * homer reid  -- 9/2011                                        
  *                                         
@@ -22,6 +41,7 @@
 #define II cdouble(0.0,1.0)
 
 FILE *BreakoutFile=0; 
+int SkipInterior=0, SkipExterior=0;
 
 using namespace scuff;
 
@@ -121,10 +141,7 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
         iQ           = Port->PPaneliQs[nPanel];
         
         GetPanelPotentials(O, PanelIndex, iQ, IK, X, PhiA);
-        iwAI -= Weight * (  (PhiA[1]-PhiA[1])*X2mX1[0]
-                           +(PhiA[2]-PhiA[2])*X2mX1[1]
-                           +(PhiA[3]-PhiA[3])*X2mX1[2]
-                         );
+        iwAI -= Weight * ( PhiA[1]*X2mX1[0] + PhiA[2]*X2mX1[1] + PhiA[3]*X2mX1[2] );
       };
      
      /*--------------------------------------------------------------*/
@@ -138,10 +155,7 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
         iQ           = Port->MPaneliQs[nPanel];
         
         GetPanelPotentials(O, PanelIndex, iQ, IK, X, PhiA);
-        iwAI += Weight * (  (PhiA[1]-PhiA[1])*X2mX1[0]
-                           +(PhiA[2]-PhiA[2])*X2mX1[1]
-                           +(PhiA[3]-PhiA[3])*X2mX1[2]
-                         );
+        iwAI += Weight * ( PhiA[1]*X2mX1[0] + PhiA[2]*X2mX1[1] + PhiA[3]*X2mX1[2] );
       };
 
    };
@@ -206,7 +220,7 @@ void GetPortVoltages(RWGGeometry *G, HVector *KN,
   if (NumPanels!=G->TotalPanels)
    { NumPanels=G->TotalPanels;
      if (PanelCharges==0) free(PanelCharges);
-     PanelCharges=(cdouble *)malloc(NumPanels * sizeof(cdouble));
+     PanelCharges=(cdouble *)mallocEC(NumPanels * sizeof(cdouble));
    };
 
   /***************************************************************/
@@ -244,12 +258,28 @@ memset(PortPanelCharges, 0, NumPanels*sizeof(cdouble));
 
    };
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*! 20120701 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (SkipInterior)
+ memset(PanelCharges, 0, NumPanels*sizeof(cdouble));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*! 20120701 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   /*--------------------------------------------------------------*/
   /*- contributions of driven ports ------------------------------*/
   /*--------------------------------------------------------------*/
   int nPort, nPanel;
   RWGPort *Port;
   cdouble PortCurrent;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*! 20120701 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (SkipExterior==0)
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   for(nPort=0; nPort<NumPorts; nPort++)
    { 
      PortCurrent=PortCurrents[nPort];
@@ -280,7 +310,6 @@ for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
    += Port->MLengths[nPanel]*PortCurrent/(IW*Port->MPerimeter);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    };
-
 
   /***************************************************************/
   /* ok, now that we know the charge on all panels, go through   */

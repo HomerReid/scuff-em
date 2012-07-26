@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /*
  * libscuff.h    -- header file for libscuff
  *
@@ -41,6 +60,14 @@ namespace scuff {
 #define SCUFF_TERSELOGGING   1
 #define SCUFF_VERBOSELOGGING 2
 
+// various types of overlap matrix
+#define SCUFF_OMATRIX_OVERLAP    0
+#define SCUFF_OMATRIX_POWER      1
+#define SCUFF_OMATRIX_XFORCE     2
+#define SCUFF_OMATRIX_YFORCE     3
+#define SCUFF_OMATRIX_ZFORCE     4
+#define SCUFF_NUM_OMATRICES      5
+
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -74,6 +101,7 @@ typedef struct RWGPanel
    double ZHat[3];              /* normal vector */
    double Radius;               /* radius of enclosing sphere */
    double Area;                 /* panel area */
+   int SurfaceIndex;
 
    int Index;                   /* index of this panel within object(0..NP-1)*/
 
@@ -132,10 +160,9 @@ class RWGObject
    /* section in a .scuffgeo file                                       */ 
    RWGObject(FILE *f, const char *Label, int *LineNum);
 
-   /* constructor entry points 2 and 3: construct from a given mesh file */
-   RWGObject(const char *pMeshFileName);
-   RWGObject(const char *pMeshFileName, const char *pLabel,
-             const char *Material, const GTransformation *OTGT);
+   /* constructor entry point 2: construct from a given mesh file */
+   RWGObject(const char *pMeshFileName, const char *pLabel=0, 
+             const char *Material=0);
 
    /* constructor entry point 3: construct from a list of vertices */
    RWGObject(double *pVertices, int pNumVertices, 
@@ -144,8 +171,14 @@ class RWGObject
    /* destructor */
    ~RWGObject();
 
-   /* get overlap integral between two basis functions */
+   /* get overlap integrals between two basis functions */
    double GetOverlap(int neAlpha, int neBeta, double *pOTimes = NULL);
+   void GetOverlaps(int neAlpha, int neBeta, double *Overlaps);
+
+   /* get one or more overlap matrices for the object as a whole*/
+   /* note: NeedMatrix and SArray are arrays of length SCUFF_NUM_OMATRICES */
+   void GetOverlapMatrices(int *NeedMatrix, SMatrix **SArray, 
+                           cdouble Omega=1.0, MatProp *ExteriorMP=NULL);
 
    /* apply a general transformation (rotation+displacement) to the object */
    void Transform(const GTransformation *GT);
@@ -163,13 +196,6 @@ class RWGObject
    void WritePPMesh(const char *FileName, const char *Tag);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
-
-   /* calculate spherical multipole moments due to a single basis function */
-#if 0
-   void Get1BFSphericalMoments(int ne, double *X0, int lMax,
-                               double Wavevector, int RealFreq, 
-                               cdouble *aE, cdouble *aM);
-#endif
 
 //  private:
 
@@ -227,12 +253,16 @@ class RWGObject
    /* in the .scuffgeo file when the object was first created.)     */
    GTransformation *GT;
 
+   /* SurfaceSigma, if non-NULL, points to a cevaluator for a     */
+   /* user-specified function of frequency and position (w,x,y,z) */
+   /* describing the object's surface conductivity                */
+   void *SurfaceSigma;
+
    /*--------------------------------------------------------------*/ 
    /*- private class methods --------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
    /* the actual body of the class constructor */
-   void InitRWGObject(const char *pMeshFileName, const char *pLabel, 
-                      const char *Material, const GTransformation *GT);
+   void InitRWGObject(const char *pMeshFileName, const GTransformation *OTGT=0);
 
    /* constructor subroutines */
    void InitEdgeList();
@@ -287,15 +317,6 @@ class RWGGeometry
 
    HMatrix *AssembleBEMMatrix(cdouble Omega, HMatrix *M = NULL, int nThread = 0);
 
-#if 0 // delete me 20120408
-   void AssembleBEMMatrix(cdouble Frequency, HMatrix *M, int nThread = 0);
-   HMatrix *AssembleBEMMatrix(cdouble Frequency, int nThread = 0) {
-	HMatrix *M = AllocateBEMMatrix(real(Frequency) == 0.0);
-	AssembleBEMMatrix(Frequency, M, nThread);
-	return M;
-   }
-#endif
-   
 #if 0
    /* routines for allocating, and then filling in, the derivative */
    /* of the bem matrix w.r.t. the coordinates of a mesh vertex    */
@@ -334,7 +355,6 @@ class RWGGeometry
                       cdouble Omega, HMatrix *XMatrix,
                       HMatrix *FMatrix=NULL, char *FuncString=NULL, 
                       int nThread=0);
-
    /****************************************************/
 
    /* Routine for evaluating arbitrary functions of the fields on a 2d
@@ -360,19 +380,14 @@ class RWGGeometry
 			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL,
 			  int nThread = 0);
 
-   /****************************************************/
+   /* routine for computing power, force, and torque on an object */
+   void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, 
+               int ObjectIndex, double PFT[8]);
+   void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, 
+               char *ObjectLabel, double PFT[8]);
 
    /* routine for calculating electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
-
-   /* routine for calculating spherical multipole moments */
-#if 0
-   void GetSphericalMoments(int WhichObject, const double X0[3], 
-                            double Frequency, int RealFreq,
-                            HVector *KN, 
-                            cdouble *aE, cdouble *aM, int lMax,
-			    int nThread = 0);
-#endif
 
    /* routine for computing the expansion coefficients in the RWG basis */
    /* of an arbitrary user-supplied surface-tangential vector field;    */
@@ -478,6 +493,7 @@ double VecDistance2(const double v1[3], const double v2[3]);
 double VecNorm(const double v[3]);
 double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
+bool VecEqualFloat(const double *a, const double *b);
 
 void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
                 const cdouble V2[6], cdouble V3[6]);
@@ -489,6 +505,8 @@ void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
                        double TorqueAxisZ, double *GammaMatrix);
 void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
+
+cdouble ExpRel(int n, cdouble Z);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

@@ -1,0 +1,267 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {{\sc scuff-rf} Implementation Notes}
+\author {Homer Reid}
+\date {June 27, 2012}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: {\sc scuff-rf} Implementation Notes}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Overview}
+
+{\sc scuff-rf} extends the functionality present in the
+{\sc scuff-em} core library in three main ways:
+
+\begin{enumerate}
+  \item It introduces the notion of a \textit{port.} This is the region
+        of your structure (be it an antenna, a coaxial cable, etc.)
+        that interfaces with the RF circuitry. Information on ports 
+        is stored internally within {\sc scuff-rf} in a data structure
+        named \texttt{RWGPort}.
+  \item It allows you to specify a fixed set of \textit{port currents}, 
+        rather than a fixed incident field configuration, to define the
+        RHS vector of the BEM scattering problem. (This basically
+        involves computing the field radiated by the RWG panels on
+        the driven ports.)
+  \item Once the scattering problem is solved, it provides functionality
+        to compute \textit{port voltages}. (This basically involves 
+        computing the line integral of the scattered electric field 
+        between two points on opposite sides of the port.)
+\end{enumerate}
+
+In this memo we will discuss the implementation of these features.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{The concept of an \texttt{RWGPort}}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}
+\begin{center}
+%\includegraphics{RWGPortFigure
+\caption{An \texttt{RWGPort}. The port current $I$ is 
+         forced into the positive port edge, while  
+         an identical current is extracted from the negative
+         port edge. (Note that the two port edges do not need 
+         to be the same length, nor do they need to comprise  
+         the same number of panels.) The figure indicates
+         the positive and negative ``reference points,''
+         between which the line integral of the electric
+         field is computed when evaluating the port voltage.
+        }
+\label{RWGPortFigure}
+\end{center}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+
+A key extension of the \lss core library provided by {\sc scuff-rf}
+is the idea of an \texttt{RWGPort}. This is a physical region of
+a structure that interfaces with RF circuitry.
+
+Figure \ref{PortFigure} depicts an \texttt{RWGPort}. 
+The port consists of two \textit{port edges}, 
+one arbitrarily chosen to be the ``positive'' edge and 
+the other the ``negative edge.'' Each port edge
+is comprised of a number of panel edges. 
+(Note that there is no need for the two port edges
+to have the same length, nor must they be comprised
+of the same number of panel edges.) 
+If the port current for this port is $I$, then 
+a total current $I$, equidistributed over the 
+length $W^+$, is forced into the positive edge 
+of the port, while a total current $I$ equidistributed
+over the length $W^-$. 
+
+Also shown in the figure are the positive and negative
+\textit{reference points} associated with the port. 
+These are the points between which the line integral
+of the $\vb E$ field is computed when computing the 
+port voltage (see \ref{PortVoltageSection}).
+
+These should lie respectively on the positive and 
+negative port edges, but may otherwise be chosen
+arbitrarily.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+
+\section{Port currents: A new type of incident field}
+\label{PortCurrentSection}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}
+\begin{center}
+%\includegraphics{PortCurrentIncidentField}}
+\caption{The incident field in the BEM scattering problem
+         is the field radiated by the half-RWG basis functions
+         associated with the edges \texttt{RWGPort}.
+         Each half-RWG basis function is populated with
+         a strength proportional to the port current.
+        }
+\label{PortCurrentFigure}
+\end{center}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+
+In the BEM scattering problems solved by {\sc scuff-rf}, the incident
+field is the field radiated by the half-RWG basis functions associated 
+with each port, with those basis functions populated by strengths
+proportional to the port current.
+
+The positive port current is assumed to be equally distributed over 
+all edges on the positive side of the port, while the 
+negative port current is assumed to be equally distributed over 
+all edges on the negative side of the port.
+Thus, if the port current in Figure \ref{PortCurrentFigure}) is $I$, 
+then the coefficients of the three half-RWG functions on the 
+positive side of the port are
+$$K_{15}=K_{29}=K_{37}=-\frac{I}{W^+},$$
+while the coefficients of the three half-RWG functions on the 
+positive side of the port are
+$$K_{61}=K_{82}=+\frac{I}{W^-}.$$
+Note that our sign convention is that the current carried
+by a half-RWG function always flows \textit{from} the vertex 
+\textit{to} the edge, which is why the half-RWG functions
+on the positive port edge have negative coefficients.
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}
+\begin{center}
+%\includegraphics{PortCurrentIncidentField}}
+\caption{The fields radiated by a half-RWG basis function
+         contain one contribution from surface sources 
+         (surface current and associated surface charge)
+         on the triangular panel $\pan$, and a second contribution
+         from the line charge that accumulates on the edge 
+         $\vb L.$
+        }
+\label{HalfRWGBasisFunction}
+\end{center}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+
+\subsection*{Fields radiated by a half-RWG basis function}
+
+Consider a half-RWG basis function $h_\alpha(\vb x)$, as depicted in 
+Figure \ref{HalfRWGBasisFunction}.  Suppose the basis function
+is weighted with coefficient $k_\alpha$. 
+($k_\alpha$ has dimensions of current/length.) 
+The $\vb E$ field may be expressed in terms of the Lorentz-gauge potentials,
+\begin{align*}
+  \vb E(\vb x) 
+ &= iw\vb A(\vb x) - \nabla \Phi(\vb x),,,,
+\end{align*}
+where the vector potential is obtained by integrating over surface 
+currents on $\pan_\alpha$,
+\begin{align*}
+ \vb A(\vb x) 
+&=\mu\int_{\pan_\alpha} G(\vb x, \vb x^\prime) \vb K(\vb x^\prime) 
+  d\vb x^\prime
+\intertext{but the scalar potential contains contributions from both
+           the surface charge on $\pan_\alpha$ and the line charge 
+           on $\vb L_\alpha$:}
+ \vb \phi(\vb x) 
+&=+\frac{1}{\epsilon}
+  \int_{\pan_\alpha} G(\vb x, \vb x^\prime) \sigma(\vb x^\prime) dA 
++\,\frac{1}{\epsilon}
+  \int_{\vb L_\alpha} G(\vb x, \vb x^\prime) \lambda(\vb x^\prime) dl
+\end{align*}
+For a half-RWG function populated by strength $k_\alpha$ we have 
+$$ \left.
+   \begin{array}{lcl}
+   \vb K(\vb x)  &=& \frac{lk_\alpha}{2A}(\vb x-\vb Q)
+   \\[8pt]
+   \sigma(\vb x) &=& \frac{lk_\alpha}{i\omega A}
+   \end{array}
+   \right\} \qquad \vb x\in\pan_\alpha 
+$$
+and 
+$$ \lambda(\vb x) = \frac{k_\alpha}{i\omega}, \qquad 
+   \vb x \in \vb L 
+$$
+and hence the 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Port voltages: A new type of post-processing computation}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}
+\begin{center}
+%\includegraphics{PortCurrentIncidentField}}
+\caption{The port voltage is the line integral of the total $\vb E$ 
+         field along the straight line connecting the port's 
+         positive reference point to its negative reference point.
+        }
+\label{LineIntegralFigure}
+\end{center}
+\end{figure}
+%####################################################################%
+%####################################################################%
+%####################################################################%
+
+\label{PortVoltageSection}
+
+The port voltage is defined to be the directed line integral 
+of the total $\vb E$ field over the straight line connecting
+the port's positive reference point to its negative reference
+point (Figure \ref{LineIntegralFigure}).
+
+\begin{align*}
+  V\sups{port}
+&=\int_{P^+}^{P^-} \vb E(\vb x) \cdot d \vb l 
+\\
+&=\int_{P^+}^{P^-} \Big[ i\omega \vb A(\vb x) - \nabla \Phi(\vb x)\Big]
+                   \cdot d \vb l
+\\
+&= \Big[ \Phi\big(P^+\big) - \Phi\big(P^-\big)\Big]
+   +i\omega \int_{P^+}^{P^-} \vb A(\vb x) \cdot d\vb l
+\end{align*}
+
+\end{document}

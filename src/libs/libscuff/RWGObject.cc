@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /*
  * RWGObject.cc -- implementation of some methods in the RWGObject
  *               -- class 
@@ -15,6 +34,7 @@
 #include <libhrutil.h>
 
 #include "libscuff.h"
+#include "cmatheval.h"
 
 namespace scuff {
 
@@ -43,22 +63,27 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 { 
   ErrMsg=0;
   ContainingObjectLabel=0;
+  SurfaceSigma=0;
+  MP=0;
+
+  Label = strdup(pLabel);
 
   /***************************************************************/
   /* read lines from the file one at a time **********************/
   /***************************************************************/
-  char Line[MAXSTR];
+  char Line[MAXSTR], LineCopy[MAXSTR];
   char MaterialName[MAXSTR];
   int NumTokens, TokensConsumed;
   char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
   char *pMeshFileName=0;
-  GTransformation OTGT; // 'one-time geometrical transformation'
+  GTransformation *OTGT=0; // 'one-time geometrical transformation'
   MaterialName[0]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
      (*LineNum)++;
-     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+     strcpy(LineCopy,Line);
+     NumTokens=Tokenize(LineCopy, Tokens, MAXTOK);
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
@@ -77,7 +102,11 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
          { ErrMsg=strdup("MATERIAL keyword requires one argument");
            return;
          };
-        strncpy(MaterialName, Tokens[1], MAXSTR);
+        MP=new MatProp(Tokens[1]);
+        if (MP->ErrMsg)
+         { ErrMsg=vstrdup("material %s: %s",Tokens[1],MP->ErrMsg);
+           return; 
+         };
       }
      else if ( !strcasecmp(Tokens[0],"INSIDE") )
       { if (NumTokens!=2)
@@ -96,12 +125,44 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
         // in particular, OTGT is NOT stored as the 'GT' field inside 
         // the Object class, which is intended to be used for 
         // transformations that are applied and later un-applied 
-        // during the life of the object. 
-	OTGT.Parse(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
-        if (ErrMsg)
-         return;
+        // during the life of the object.
+        if (OTGT)
+	 { GTransformation *OTGT2 = new GTransformation(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
+           if (ErrMsg)
+            return;
+
+           OTGT->Transform(OTGT2);
+           delete OTGT2;
+ // 20120701 why is this not the right thing to do? apparently it isn't, but dunno why.
+ //          OTGT2->Transform(OTGT);
+ //          delete OTGT;
+ //          OTGT=OTGT2;
+	 }
+        else
+	 { OTGT = new GTransformation(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
+           if (ErrMsg)
+            return;
+	 };
+	 
         if (TokensConsumed!=NumTokens) 
          { ErrMsg=strdup("junk at end of line");
+           return;
+         };
+      }
+     else if ( !strcasecmp(Tokens[0],"SURFACE_CONDUCTIVITY") )
+      { 
+        if (NumTokens<2)
+         { ErrMsg=strdup("no argument specified for SURFACE_CONDUCTIVITY");
+           return;
+         };
+;
+        /* try to create a cevaluator for the user's function */
+        char SigmaString[MAXSTR];
+        strncpy(SigmaString,Line + strlen(Tokens[0]) + 1,MAXSTR);
+        SigmaString[strlen(SigmaString)-1]=0; // remove trailing newline
+        SurfaceSigma=cevaluator_create(SigmaString);
+        if (SurfaceSigma==0)
+         { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification");
            return;
          };
       }
@@ -118,7 +179,16 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   if (pMeshFileName==0)
    ErrMsg=vstrdup("OBJECT section must include a MESHFILE specification",Tokens[0]);
 
-  InitRWGObject(pMeshFileName, pLabel, MaterialName, &OTGT);
+  if ( SurfaceSigma!=0 && MaterialName[0]!=0 && strcasecmp(MaterialName,"PEC") )
+   ErrMsg=vstrdup("SURFACE_CONDUCTIVITY may only be specified for PEC objects");
+
+  if (SurfaceSigma!=0)
+   Log("Object %s has surface conductivity Sigma=%s.\n",Label,cevaluator_get_string(SurfaceSigma));
+
+  if (MP==0)
+   MP=new MatProp("PEC");
+
+  InitRWGObject(pMeshFileName, OTGT);
   
   free(pMeshFileName);
 
@@ -130,25 +200,32 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
 /*- meshfile name                                               */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-RWGObject::RWGObject(const char *pMeshFileName)
- { InitRWGObject(pMeshFileName, 0, 0, 0); }
-
 RWGObject::RWGObject(const char *pMeshFileName, 
                      const char *pLabel,
-                     const char *Material,
-                     const GTransformation *OTGT)
- { InitRWGObject(pMeshFileName, pLabel, Material, OTGT); }
+                     const char *Material)
+{ 
+   Label=strdup( pLabel ? pLabel : "NoLabel");
+   
+   MP=new MatProp( Material ? Material : "PEC" );
+   if (MP->ErrMsg)
+    ErrExit("error: material %s: %s",Material,MP->ErrMsg);
+
+   SurfaceSigma=0;
+
+   InitRWGObject(pMeshFileName);
+}
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- Actual body of RWGObject constructor: Create an RWGObject */
+/*- Actual body of RWGObject constructor: Create an RWGObject   */
 /*- from a mesh file describing a discretized object,           */
 /*- optionally with a rotation and/or displacement applied.     */
+/*-                                                             */
+/*- This routine assumes that the following fields have already */
+/*- been initialized: Label, Material, and SurfaceSigma.        */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 void RWGObject::InitRWGObject(const char *pMeshFileName,
-                              const char *pLabel,
-                              const char *Material,
                               const GTransformation *OTGT)
 { 
   ErrMsg=0;
@@ -165,9 +242,7 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
   /*- initialize simple fields ---------------------------------*/
   /*------------------------------------------------------------*/
   NumEdges=NumPanels=NumVertices=NumRefPts=0;
-  MP=new MatProp(Material);
   ContainingObject=0;
-  Label=strdup( pLabel ? pLabel : "NoLabel");
   MeshFileName=strdup(pMeshFileName);
 
   /*------------------------------------------------------------*/
@@ -432,121 +507,5 @@ RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3)
   return P;
 
 } 
-
-/***************************************************************/
-/* Compute the overlap integral between the RWG basis functions*/
-/* associated with two edges in an RWG object.                 */
-/***************************************************************/
-double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
-{ 
-  RWGEdge *EAlpha=Edges[neAlpha], *EBeta=Edges[neBeta];
-
-  /*--------------------------------------------------------------*/
-  /*- handle the diagonal case -----------------------------------*/
-  /*--------------------------------------------------------------*/
-  if ( EAlpha==EBeta )
-   { 
-     double *QP = Vertices + 3*(EAlpha->iQP);
-     double *V1 = Vertices + 3*(EAlpha->iV1);
-     double *V2 = Vertices + 3*(EAlpha->iV2);
-     double *QM = Vertices + 3*(EAlpha->iQM);
-
-     double PArea = Panels[EAlpha->iPPanel]->Area;
-     double MArea = Panels[EAlpha->iMPanel]->Area;
-
-     double lA2 = (EAlpha->Length) * (EAlpha->Length);
-
-     double LA[3], LBP[3], LBM[3]; 
-     double LAdLBP=0.0, LAdLBM=0.0, lBP2=0.0, lBM2=0.0;
-     int i;
-     for(i=0; i<3; i++)
-      { LA[i]  = V2[i] - V1[i];
-        LBP[i] = V1[i] - QP[i];
-        LBM[i] = V1[i] - QM[i];
-
-        LAdLBP += LA[i] * LBP[i];
-        lBP2   += LBP[i] * LBP[i];
-        LAdLBM += LA[i] * LBM[i];
-        lBM2   += LBM[i] * LBM[i];
-      };
-    
-     if (pOTimes) 
-      *pOTimes=0.0;
-     return lA2 * (   ( lA2 + 3.0*lBP2 + 3.0*LAdLBP ) / PArea
-                    + ( lA2 + 3.0*lBM2 + 3.0*LAdLBM ) / MArea
-                  ) / 24.0;
-   };
-
-  /*--------------------------------------------------------------*/
-  /*- figure out if there is nonzero overlap ---------------------*/
-  /*--------------------------------------------------------------*/
-  double Sign, Area, *QA, *QB; 
-  int IndexA, IndexB;
-  if ( EAlpha->iPPanel == EBeta->iPPanel )
-   { Sign = 1.0;
-     Area = Panels[EAlpha->iPPanel]->Area;
-     QA = Vertices + 3*(EAlpha->iQP);
-     QB = Vertices + 3*(EBeta ->iQP);
-     IndexA = EAlpha->PIndex;
-     IndexB = EBeta->PIndex;
-   }
-  else if ( EAlpha->iPPanel == EBeta->iMPanel )
-   { Sign = -1.0;
-     Area = Panels[EAlpha->iPPanel]->Area;
-     QA = Vertices + 3*(EAlpha->iQP);
-     QB = Vertices + 3*(EBeta ->iQM);
-     IndexA = EAlpha->PIndex;
-     IndexB = EBeta->MIndex;
-   }
-  else if ( EAlpha->iMPanel == EBeta->iPPanel )
-   { Sign = -1.0;
-     Area = Panels[EAlpha->iMPanel]->Area;
-     QA = Vertices + 3*(EAlpha->iQM);
-     QB = Vertices + 3*(EBeta ->iQP);
-     IndexA = EAlpha->MIndex;
-     IndexB = EBeta->PIndex;
-   }
-  else if ( EAlpha->iMPanel == EBeta->iMPanel )
-   { Sign = +1.0;
-     Area = Panels[EAlpha->iMPanel]->Area;
-     QA = Vertices + 3*(EAlpha->iQM);
-     QB = Vertices + 3*(EBeta ->iQM);
-     IndexA = EAlpha->MIndex;
-     IndexB = EBeta->MIndex;
-   }
-  else
-   {  if (pOTimes)
-       *pOTimes=0.0; 
-      return 0.0;
-   };
-
-  /*--------------------------------------------------------------*/
-  /*- do the computation -----------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double *V1 = Vertices + 3*(EAlpha->iV1);
-  double *V2 = Vertices + 3*(EAlpha->iV2);
-  double *QI=0; // 'QIntermediate' is the common vertex of L_\alpha, L_\beta
-  if ( QB == V1 ) 
-   QI = V2;
-  else if ( QB == V2 ) 
-   QI = V1;
-  else
-   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-
-  double lA = EAlpha->Length;
-  double lB = EBeta->Length;
-  double DotProduct =  (QI[0]-QA[0])*(QB[0]-QI[0])
-                      +(QI[1]-QA[1])*(QB[1]-QI[1])
-                      +(QI[2]-QA[2])*(QB[2]-QI[2]);
-
-  if (pOTimes)
-   { 
-     double SignPrime = ( ((IndexB-IndexA+3)%3) == 2) ? 1.0 : -1.0;
-     *pOTimes = Sign*SignPrime*lA*lB/6.0;
-   };
-
-  return -1.0*Sign*lA*lB*( lA*lA + lB*lB + 3.0*DotProduct ) / (24.0*Area);
-
-}
 
 } // namespace scuff

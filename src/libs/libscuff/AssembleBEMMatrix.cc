@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /*
  * AssembleBEMMatrixBlock.cc -- libscuff routine for assembling a single 
  *                           -- block of the BEM matrix (i.e. the       
@@ -21,6 +40,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+#include "cmatheval.h"
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
@@ -31,7 +52,6 @@
 namespace scuff {
 
 #define II cdouble(0,1)
-
 
 /***************************************************************/
 /***************************************************************/
@@ -134,12 +154,6 @@ void *ABMBThread(void *data)
        for(int PerCent=0; PerCent<9; PerCent++)
         if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
          MutexLog("%i0 %% (%i/%i)...",PerCent,nea,NEa);
-#if 0
-      if (G->LogLevel>=SCUFF_VERBOSELOGGING)
-       for(int PerCent=0; PerCent<=99; PerCent++)
-        if ( neb==Symmetric*nea &&  (nea*100 == PerCent*NEa) )
-         Log("%i %% (%i/%i)...",PerCent,nea,NEa);
-#endif
 
       /*--------------------------------------------------------------*/
       /*- contributions of first medium (EpsA, MuA)  -----------------*/
@@ -357,13 +371,94 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
      TD1.Args=Args;
      ABMBThread((void *)&TD1);
    };
-
 #endif
 
   if (G->LogLevel>=SCUFF_VERBOSELOGGING)
    Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
+
+  /***************************************************************/
+  /* 20120526 handle objects with finite surface conductivity    */
+  /***************************************************************/
+  if ( (Args->Oa == Args->Ob) && (Args->Oa->SurfaceSigma!=0) )
+   AddSurfaceSigmaContributionToBEMMatrix(Args);
+
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (Args->Oa != Args->Ob) return;
+  RWGObject *O=Args->Oa;
+  if ( !(O->SurfaceSigma) ) return;
+  if ( !(O->MP->IsPEC())  ) return;
+ 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  char *SSParmNames[4]={"w","x","y","z"};
+  cdouble SSParmValues[4];
+  SSParmValues[0]=Args->Omega*MatProp::FreqUnit;
+
+  HMatrix *B    = Args->B;
+  int RowOffset = Args->RowOffset;
+  int ColOffset = Args->ColOffset;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int neAlpha, neBeta;
+  RWGEdge *EAlpha, *EBeta;
+  RWGPanel *P;
+  cdouble Sigma;
+  double Overlap;
+  for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
+   for(neBeta=neAlpha; neBeta<O->NumEdges; neBeta++)
+    { 
+      Overlap=O->GetOverlap(neAlpha, neBeta);
+      if (Overlap==0.0) continue;
+
+      EAlpha=O->Edges[neAlpha];
+      EBeta=O->Edges[neBeta];
+
+      // if there was a nonzero overlap, get the value 
+      // of the surface conductivity at the centroid
+      // of the common panel (if there was only one common panel)
+      // or of the common edge if there were two common panels.
+      if (neAlpha==neBeta)
+       { SSParmValues[1] = EAlpha->Centroid[0];
+         SSParmValues[2] = EAlpha->Centroid[1];
+         SSParmValues[3] = EAlpha->Centroid[2];
+       }
+      else if ( (EAlpha->iPPanel==EBeta->iPPanel) || (EAlpha->iPPanel==EBeta->iMPanel) ) 
+       { P=O->Panels[EAlpha->iPPanel];
+         SSParmValues[1] = P->Centroid[0];
+         SSParmValues[2] = P->Centroid[1];
+         SSParmValues[3] = P->Centroid[2];
+       }
+      else if ( (EAlpha->iMPanel==EBeta->iPPanel) || (EAlpha->iMPanel==EBeta->iMPanel) ) 
+       { P=O->Panels[EAlpha->iMPanel];
+         SSParmValues[1] = P->Centroid[0];
+         SSParmValues[2] = P->Centroid[1];
+         SSParmValues[3] = P->Centroid[2];
+       };
+
+      Sigma=cevaluator_evaluate(O->SurfaceSigma, 4, SSParmNames, SSParmValues);
+
+if (neAlpha==0 && neBeta==0)
+ Log("Object %s: Sigma (Omega=%s) is %s\n",O->Label,z2s(Args->Omega),z2s(Sigma));
+
+      B->AddEntry(RowOffset+neAlpha, ColOffset+neBeta, -2.0*Overlap/Sigma);
+      if (neAlpha!=neBeta)
+       B->AddEntry(RowOffset+neBeta, ColOffset+neAlpha, -2.0*Overlap/Sigma);
+      
+    };
+
+}
 
 /***************************************************************/
 /* initialize an argument structure for AssembleBEMMatrixBlock.*/

@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /*
  * GetDipoleMoments.cc  -- libscuff class methods for computing electric 
  *                      -- and magnetic dipole moments induced on 
@@ -96,13 +115,13 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
 
       KAlpha=KN->GetEntry( nbf++ );
       if ( O->MP->Type==MP_PEC )
-       NAlpha=0.0;
+       NAlpha = 0.0;
       else 
-       NAlpha=KN->GetEntry( nbf++ ) * (-1.0*ZVAC);
+       NAlpha = -ZVAC*KN->GetEntry( nbf++ );
 
       for(Mu=0; Mu<3; Mu++)
-       { PM->AddEntry( 6*no + Mu + 0, KAlpha*pRWG[Mu] + NAlpha*mRWG[Mu]/ZVAC);
-         PM->AddEntry( 6*no + Mu + 3, KAlpha*mRWG[Mu] - NAlpha*pRWG[Mu]/ZVAC);
+       { PM->AddEntry( 6*no + Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
+         PM->AddEntry( 6*no + Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
        };
  
     };

@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /*
  * scuff-analyze.cc -- a simple standalone program within the scuff-EM
  *                  -- suite for printing statistics on a geometry or  
@@ -157,8 +176,8 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /**************************************************************/
   /***************************************************************/
-  RWGObject *O;
-  RWGGeometry *G;
+  RWGObject *O=0;
+  RWGGeometry *G=0;
   if (MeshFile)
    { O=new RWGObject(MeshFile);
      AnalyzeObject(O, WriteGPFiles, WritePPFiles);
@@ -173,6 +192,9 @@ int main(int argc, char *argv[])
   /***************************************************************/
   if (TransFile)
    { 
+     if (!G) 
+      ErrExit("--transfile option may only be used with --geometry");
+
      int ngtc, NGTC;
      GTComplex **GTCList=ReadTransFile(TransFile, &NGTC);
      char *ErrMsg=G->CheckGTCList(GTCList, NGTC);

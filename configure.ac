@@ -126,6 +126,14 @@ LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
 AC_CHECK_LIB(readline, readline)
 
 ##################################################
+# checks for backtrace functionality, used to 
+# output useful debugging info to log files in
+# the event of code crashes
+##################################################
+AC_CHECK_HEADERS([execinfo.h])
+AC_CHECK_FUNCS([backtrace])
+
+##################################################
 # Python SWIG wrappers
 ##################################################
 
@@ -195,12 +203,16 @@ AC_CONFIG_FILES([
  src/applications/scuff-analyze/Makefile
  src/applications/scuff-caspol/Makefile
  src/applications/scuff-heat/Makefile
+ src/applications/scuff-neq/Makefile
+ src/applications/scuff-plotEpsMu/Makefile
  src/applications/scuff-rf/Makefile
  src/applications/scuff-scatter/Makefile
  examples/Makefile
  examples/ApertureDiffraction/Makefile
+ examples/PlateWithHole/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
+ examples/TwoSpheres/Makefile
  examples/WireAntenna/Makefile
  tests/Makefile
 ])

@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /*
  * PointSource.cc -- point source implementation of IncField
  *
@@ -21,6 +40,13 @@ PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType,
   Type=pType;
   SetObjectLabel(Label);
 }
+
+/**********************************************************************/
+/**********************************************************************/
+/**********************************************************************/
+void PointSource::SetX0(double pX0[3]) { memcpy(X0, pX0, 3*sizeof(double)); }
+void PointSource::SetP(cdouble pP[3])  { memcpy(P,  pP, 3*sizeof(cdouble)); }
+void PointSource::SetType(int pType)   { Type=pType; }
 
 /**********************************************************************/
 /* For this implementation of IncField we want to override the default*/

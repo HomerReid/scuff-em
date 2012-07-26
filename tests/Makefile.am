@@ -2,10 +2,16 @@ bin_PROGRAMS = \
  scuff-test-overlap
 
 scuff_test_overlap_SOURCES =	\
+ readlineReplacement.h          \
  scuff-test-overlap.cc
 
 scuff_test_overlap_LDADD     = $(top_builddir)/src/libs/libscuff/libscuff.la
 
+#scuff_test_EPIs_SOURCES =	\
+# readlineReplacement.h          \
+# GetEPIs_BruteForce.cc		\
+#scuff-test-EPIs.cc
+#scuff_test_EPIs_LDADD     = $(top_builddir)/src/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -DSCUFF \
               -I$(top_srcdir)/src/libs/libscuff      \

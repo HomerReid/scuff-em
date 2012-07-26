@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /* 
  * scuff-rf.cc   -- scuff-EM module for modeling of RF and microwave
  *               -- structures
@@ -27,6 +46,12 @@ using namespace scuff;
 #define MAXCACHE 10    // max number of cache files for preload
 #define MAXSTR   1000
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+extern FILE *BreakoutFile;
+extern int SkipInterior, SkipExterior;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -37,30 +62,6 @@ void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HVector *LinSpace(double Min, double Max, int Num)
-{ 
-  if (Num<1) ErrExit("LinSpace: invalid N value (%i)\n",Num);
-  HVector *V=new HVector(Num);
-  V->SetEntry(0, Min);
-  double Delta=(Max-Min) / ( ((double)Num) - 1.0 );
-  for(int n=1; n<Num; n++)
-   V->SetEntry(n, V->GetEntryD(n-1) + Delta);
-  return V;
-  
-} 
-
-HVector *LogSpace(double Min, double Max, int Num)
-{ 
-  if (Num<1) ErrExit("LogSpace: invalid N value (%i)\n",Num);
-  HVector *V=new HVector(Num);
-  V->SetEntry(0, Min);
-  double Mult=exp( log(Max/Min)/((double)(Num-1)) );
-  for(int n=1; n<Num; n++)
-   V->SetEntry(n, V->GetEntry(n-1) * Mult );
-  return V;
-  
-} 
-
 void HVConcat(HVector *V1, HVector *V2)
 { 
   if ( V1==0 || V2==0 || V2->N==0 ) return;
@@ -72,13 +73,12 @@ void HVConcat(HVector *V1, HVector *V2)
 
 }
 
-
-
 /***************************************************************/
 /* main function   *********************************************/
 /***************************************************************/  
 int main(int argc, char *argv[])
 {
+EnableAllCPUs();
   /***************************************************************/
   /** process command-line arguments *****************************/
   /***************************************************************/
@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
+int Breakout=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"meshfile",       PA_STRING,  1, 1,       (void *)&MeshFile,   0,             "mesh file"},
@@ -121,6 +122,9 @@ int main(int argc, char *argv[])
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
+     {"Breakout",       PA_BOOL,    0, 1,       (void *)&Breakout,   0,             "breakout"},
+{"SkipInterior",       PA_INT,    1, 1,       (void *)&SkipInterior,   0,             "Skipinterior"},
+{"SkipExterior",       PA_INT,    1, 1,       (void *)&SkipExterior,   0,             "Skipexterior"},
 //
      {0,0,0,0,0,0,0}
    };
@@ -299,6 +303,11 @@ int main(int argc, char *argv[])
   if (Cache)
    PreloadCache( Cache );
 
+/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (Breakout)
+ BreakoutFile=fopen("/tmp/Breakout.dat","a");
+/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   /***************************************************************/
   /* sweep over frequencies                                      */
   /* note: Freq is measured in GHz, while Omega is measured in   */
@@ -425,5 +434,10 @@ int main(int argc, char *argv[])
      printf("S-parameters vs. frequency written to file %s\n",SParFileName);
    };
   printf("Thank you for your support.\n");
+
+/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (BreakoutFile)
+ fclose(BreakoutFile);
+/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }

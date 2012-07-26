@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /*
  * PanelPanelInteractions.cc -- libscuff routines for evaluating interactions
  *                           -- between individual panels
@@ -16,6 +35,10 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+extern int ForceNCV=-1; /* 20120625 */
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 namespace scuff {
 
@@ -305,6 +328,11 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   double rRel; 
 
   int ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
+ { H[0]=H[1]=0.0; return; } /*  20120625 */
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /* if the panels are far apart then just use simple low-order  */
