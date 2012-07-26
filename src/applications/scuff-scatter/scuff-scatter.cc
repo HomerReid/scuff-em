@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */
-  /* frequencies at which to run simulations                         */
+  /* frequencies at which to run calculations                        */
   /*******************************************************************/
   HVector *OmegaList=0, *OmegaList0;
   int nFreq, nOV, NumFreqs=0;
