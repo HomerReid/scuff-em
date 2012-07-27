@@ -126,9 +126,6 @@ void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNor
   fclose(f);
 }
 
-void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag)
- { WritePPMesh(FileName, Tag, 0); }
-
 /***************************************************************/
 /* WriteGPMesh routine. This writes out the panel set as a     */
 /* collection of lines. Useful for visualizing in gnuplot.     */
@@ -350,9 +347,6 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag, int PlotNorma
 
   fclose(f);
 }
-
-void RWGObject::WritePPMesh(const char *FileName, const char *Tag)
- { WritePPMesh(FileName, Tag, 0); }
 
 /***************************************************************/
 /* WritePPMeshLabels: create a GMSH post-processing view       */
@@ -778,8 +772,7 @@ void RWGGeometry::PlotVector(double *KVec, const char *format, ...)
 /* distribution described by a single vector.                  */
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::PlotSurfaceCurrents(HVector *KN, double Frequency, int RealFreq,
-                                      const char *format, ...)
+void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...)
 { 
   int no, np, ne;
   FILE *f;
@@ -794,7 +787,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, double Frequency, int RealFre
   char FileName[1000];
   va_list ap;
 
-  cdouble iw = RealFreq ? II*Frequency : -1.0*Frequency;
+  cdouble iw = II*Omega;
  
   /***************************************************************/
   /***************************************************************/

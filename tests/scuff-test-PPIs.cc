@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define HAVE_READLINE
 #ifdef HAVE_READLINE
  #include <readline/readline.h>
  #include <readline/history.h>
@@ -345,8 +346,6 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      Pa=Oa->Panels[npa];
      Pb=(SameObject ? Oa:Ob)->Panels[npb];
      ncv=AssessPanelPair(Oa,npa,(SameObject ? Oa : Ob),npb,&rRel,TVa,TVb);
-     if (!SameObject) 
-      ncv=0;
      printf("*\n");
      printf("* --npa %i --iQa %i (V #%i) --npb %i --iQb %i (V #%i) %s\n",
             npa,iQa,Pa->VI[iQa],npb,iQb,Pb->VI[iQb],SameObject ? "--same" : "--ns");
@@ -374,10 +373,8 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-#if 0
      if ( !SameObject && DZ!=0.0 )
       Ob->Transform("DISP 0 0 %e",DZ);
-#endif
 
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by libscuff method                       */
@@ -399,18 +396,21 @@ printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
         Qa = Oa->Vertices + 3*Pa->VI[iQa];
         Qb = Args->Ob->Vertices + 3*Pb->VI[iQb];
 
+        double *OVa[3], *OVb[3];
+        int Flipped=CanonicallyOrderVertices(TVa, TVb, ncv, OVa, OVb);
+
         TaylorDuffyArgStruct MyTDArgStruct, *TDArgs=&MyTDArgStruct;
         InitTaylorDuffyArgs(TDArgs);
 
         TDArgs->WhichCase = ncv;
         TDArgs->GParam    = K;
-        TDArgs->V1        = TVa[0];
-        TDArgs->V2        = TVa[1];
-        TDArgs->V3        = TVa[2];
-        TDArgs->V2P       = TVb[1];
-        TDArgs->V3P       = TVb[2];
-        TDArgs->Q         = Qa;
-        TDArgs->QP        = Qb;
+        TDArgs->V1        = OVa[0];
+        TDArgs->V2        = OVa[1];
+        TDArgs->V3        = OVa[2];
+        TDArgs->V2P       = OVb[1];
+        TDArgs->V3P       = OVb[2];
+        TDArgs->Q         = Flipped ? Qb : Qa ;
+        TDArgs->QP        = Flipped ? Qa : Qb ;
 
         Tic();
         for(nTimes=0; nTimes<TDTIMES; nTimes++)

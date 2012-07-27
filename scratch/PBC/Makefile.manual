@@ -1,0 +1,40 @@
+CPPFLAGS = $(DEBUG)
+LDFLAGS = $(DEBUG)
+
+SCUFFEM = /home/homer/work/scuff-em-installation
+CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
+CXXFLAGS += -fopenmp
+
+LDFLAGS += -L$(SCUFFEM)/libs
+LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libscuff/.libs
+LDFLAGS += -Wl,-rpath,$(SCUFFEM)/lib
+LDFLAGS += -L/home/homer/codes/lib
+LDFLAGS += -Wl,-rpath,/home/homer/codes/lib
+
+HR_LIBS = -lscuff
+
+OTHER_LIBS = -lreadline -lhdf5_hl -lhdf5 -llapack -lblas -lgomp -lgfortran
+
+LIBS = $(HR_LIBS) $(OTHER_LIBS)
+
+FC = gfortran
+
+#################################################################
+#################################################################
+#################################################################
+PBCG_OBJS = AddStraddlers.o 	\
+ AB9MatrixElements.o 		\
+ AssembleBEMMatrix_PBC.o	\
+ GBarVDEwald.o			\
+ GetFields_PBC.o		\
+ PBCGeometry.o			\
+ ACMTOMS680.o			\
+ cerf.o	
+
+OBJS = tPBCGeometry.o $(PBCG_OBJS)
+
+tPBCGeometry:      	$(OBJS) PBCGeometry.h
+			$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+
+clean:
+		rm *.o *.a

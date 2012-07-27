@@ -1,8 +1,9 @@
 #SCUFFEM = /usr/local
-SCUFFEM = /home/homer/work/scuff-em-installation
+SCUFFEM = /home/homer/work/scuff-em-debug
 
 CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
 LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
+LDFLAGS += -L$(HOME)/codes/lib
 
 HR_LIBS = -lscuff
 
@@ -10,7 +11,7 @@ OTHER_LIBS = -lreadline -lhdf5_hl -lhdf5 -llapack -lblas -lgomp
 
 LIBS = $(HR_LIBS) $(OTHER_LIBS)
 
-F77 = gfortran
+FC = /usr/bin/gfortran
 
 #################################################################
 
@@ -22,3 +23,6 @@ tEwald:	$(TE)
 
 tDL2RL:	tDL2RL.o
 	$(CXX) $(LDFLAGS) -o tDL2RL tDL2RL.o $(LIBS)
+
+clean:	
+	rm *.o ../PBC/*.o

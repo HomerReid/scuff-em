@@ -414,4 +414,4 @@ HVector *RWGGeometry::AllocateRHSVector(bool PureImagFreq)
 
 } 
 
-W // namespace scuff
+} // namespace scuff

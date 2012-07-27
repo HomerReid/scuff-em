@@ -36,7 +36,7 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
-using namespace scuff;
+namespace scuff{
 
 #define ABSTOL 1.0e-12
 #define RELTOL 1.0e-8
@@ -107,7 +107,7 @@ int QROrder=-1, TCROrder=-1;
 /*- EV[1][0..2] = cartesian coordinates of edge vertex 2        */
 /*-                                                             */
 /*--------------------------------------------------------------*/
-void GetEPI_Cubature(double **PV, double **EV, cdouble K)
+cdouble GetEPI_Cubature(double **PV, double **EV, cdouble K)
 { 
 
   /***************************************************************/
@@ -266,7 +266,7 @@ nCalls++;
 /*       This means that the calling routine must multiply the */
 /*       return value by a prefactor of                        */
 /*                                                             */
-/*         -l_\alpha l_\beta/K^2                               */
+/*         +2*l_\alpha l_\beta/k^2                             */
 /*                                                             */
 /*       to get the value of the <f|G|h> inner product.        */
 /***************************************************************/
@@ -316,3 +316,5 @@ nCalls=0;
   return G;
 
 }
+
+} // namespace scuff;

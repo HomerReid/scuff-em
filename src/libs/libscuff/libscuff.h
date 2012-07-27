@@ -192,8 +192,7 @@ class RWGObject
    /* visualization */
    // void Visualize(double *KVec, double Kappa, char *format, ...);
    void WriteGPMesh(const char *format, ...);
-   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
-   void WritePPMesh(const char *FileName, const char *Tag);
+   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
 
@@ -203,6 +202,7 @@ class RWGObject
    /*- private data fields  ---------------------------------------*/
    /*--------------------------------------------------------------*/
    MatProp *MP;                   /* material properties */
+   int IsPEC;                     /* =1 if this is a PEC object */
    cdouble EpsThisFreq;           // permittivity and permeability
    double MuThisFreq;             //   at the current frequency
 
@@ -305,12 +305,10 @@ class RWGGeometry
    char *CheckGTCList(GTComplex **GTCList, int NumGTCs);
 
    /* visualization */
-   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals);
-   void WritePPMesh(const char *FileName, const char *Tag);
+   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WriteGPMesh(const char *format, ...);
    void WriteGPMeshPlus(const char *format, ...);
-   void PlotSurfaceCurrents(HVector *KN, double Frequency, int RealFreq, 
-                            const char *format, ...);
+   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
 
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
@@ -385,6 +383,10 @@ class RWGGeometry
                int ObjectIndex, double PFT[8]);
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, 
                char *ObjectLabel, double PFT[8]);
+
+   /* routine for computing scattered power */
+   cdouble GetScatteredPower(HVector *KN, cdouble Omega, int ObjectIndex);
+   cdouble GetScatteredPower(HVector *KN, cdouble Omega, char *ObjectLabel);
 
    /* routine for calculating electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
@@ -493,6 +495,7 @@ double VecDistance2(const double v1[3], const double v2[3]);
 double VecNorm(const double v[3]);
 double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
+bool EqualFloat(const double a, const double b);
 bool VecEqualFloat(const double *a, const double *b);
 
 void SixVecPlus(const cdouble V1[6], const cdouble Alpha,

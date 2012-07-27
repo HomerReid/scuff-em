@@ -212,6 +212,9 @@
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  EnableAllCPUs(); 
+  InstallHRSignalHandler();
+
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
@@ -238,6 +241,7 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
   int PFT=0;
+  char *SCSCFile=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
@@ -271,6 +275,7 @@ int main(int argc, char *argv[])
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
      {"PFT",            PA_BOOL,    0, 1,       (void *)&PFT,        0,             "write power, force, torque files"},
+     {"SCSCFile",       PA_STRING,  1, 1,       (void *)&SCSCFile,   0,             "surface current / surface charge file"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -283,7 +288,7 @@ int main(int argc, char *argv[])
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */
-  /* frequencies at which to run simulations                         */
+  /* frequencies at which to run calculations                        */
   /*******************************************************************/
   HVector *OmegaList=0, *OmegaList0;
   int nFreq, nOV, NumFreqs=0;
@@ -499,6 +504,12 @@ int main(int argc, char *argv[])
      int nfm;
      for(nfm=0; nfm<nFluxMeshes; nfm++)
       CreateFluxPlot(SSD, FluxMeshes[nfm]);
+
+     /*--------------------------------------------------------------*/
+     /*- plots of induced surface charge and current ----------------*/
+     /*--------------------------------------------------------------*/
+     if (SCSCFile)   
+      G->PlotSurfaceCurrents(KN, Omega, SCSCFile);
 
    }; //  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
 

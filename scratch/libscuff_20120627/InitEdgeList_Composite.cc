@@ -9,7 +9,7 @@
  *
  * SCUFF-EM is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPPSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -20,7 +20,7 @@
 /*
  * InitEdgeList.cc -- RWGComposite class method for gathering 
  *                 -- information on the interior and exterior
- *                 -- edges of an OpenSurface.
+ *                 -- edges of an PartialSurface.
  *                 
  *                 -- This is really just a part of the RWGComposite
  *                 -- class constructor, but we put it in a separate
@@ -35,6 +35,7 @@
 #include <math.h>
 
 #include "libscuff.h"
+#include "RWGComposite.h"
 
 namespace scuff {
 
@@ -44,7 +45,7 @@ namespace scuff {
 /* that surface, and in particular to construct arrays of      */
 /* full and half RWG basis functions.                          */
 /***************************************************************/
-void RWGComposite::InitEdgeList(OpenSurface *OS)
+void RWGComposite::InitEdgeList(PartialSurface *PS)
 { 
   RWGPanel *P; 
   RWGEdge *E;
@@ -98,10 +99,10 @@ void RWGComposite::InitEdgeList(OpenSurface *OS)
   /* or MIndex fields.                                            */
   /****************************************************************/
   int NumInteriorEdges=0, NumTotalEdges=0;
-  for(np=0; np<OS->NumPanels; np++)
+  for(np=0; np<PS->NumPanels; np++)
    for(ne=0; ne<3; ne++)   /* loop over panel edges */
     { 
-      P=OS->Panels[np];
+      P=PS->Panels[np];
 
       /***************************************************************/
       /* get lesser & greater of the two vertex indices for this edge*/
@@ -189,8 +190,8 @@ void RWGComposite::InitEdgeList(OpenSurface *OS)
   /*      the value -1 for their iQM, iMPanel, and MIndex fields. */
   /*--------------------------------------------------------------*/
   int NumExteriorEdges=NumTotalEdges-NumInteriorEdges; 
-  OS->Edges=(RWGEdge **)mallocEC(NumInteriorEdges*sizeof(RWGEdge *));
-  OS->HEdges=(RWGEdge **)mallocEC(NumExteriorEdges*sizeof(RWGEdge *))
+  PS->Edges=(RWGEdge **)mallocEC(NumInteriorEdges*sizeof(RWGEdge *));
+  PS->HEdges=(RWGEdge **)mallocEC(NumExteriorEdges*sizeof(RWGEdge *));
   int nee2=0; // at the end of the operation, we should have nee2=NumExteriorEdges
   for(nv=0; nv<NumVertices; nv++)
    for(E=EdgeLists[nv]; E; E=E->Next)
@@ -198,18 +199,18 @@ void RWGComposite::InitEdgeList(OpenSurface *OS)
       if (E->Index==-1)  /* E is an exterior edge */
        { 
          E->Index=nee2;
-         OS->HEdges[nee2]=E;
+         PS->HEdges[nee2]=E;
          nee2++;
        }
       else               /* E is an interior edge */
-       OS->Edges[E->Index]=E;
+       PS->Edges[E->Index]=E;
     };
   if ( (nee2!=NumExteriorEdges ) )
    ErrExit("%s:%i: internal error (%i!=%i)",__FILE__,__LINE__,nee2,NumExteriorEdges);
 
-  OS->NumEdges=NumInteriorEdges;
-  OS->NumHEdges=NumExteriorEdges;
-  OS->NumTotalEdges=NumTotalEdges;
+  PS->NumEdges=NumInteriorEdges;
+  PS->NumHEdges=NumExteriorEdges;
+  PS->NumTotalEdges=NumTotalEdges;
 
   /*--------------------------------------------------------------*/
   /*- deallocate temporary storage -------------------------------*/

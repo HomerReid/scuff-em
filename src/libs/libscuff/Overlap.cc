@@ -33,6 +33,7 @@
 #include <libhrutil.h>
 
 #include "libscuff.h"
+#include "libscuffInternals.h"
 
 #define II cdouble(0.0,1.0)
 
@@ -446,6 +447,88 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
   else
    { Warn("unknown object label %s passed to GetPFT",ObjectLabel);
      memset(PFT, 0, 8*sizeof(double));
+   };
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega, 
+                                       int ObjectIndex)
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (ObjectIndex<0 || ObjectIndex>=NumObjects)
+   { Warn("invalid object index %i passed to GetScatteredPower",ObjectIndex);
+     return 0.0;
+   };
+
+  if (KN->RealComplex==LHM_REAL)
+   return 0.0;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGObject *O=Objects[ObjectIndex];
+  int NBF=O->NumBFs;
+  HMatrix *M=new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+
+  ABMBArgStruct MyArgs, *Args=&MyArgs;
+  InitABMBArgs(Args);
+
+  Args->G=this;
+  Args->Oa = Args->Ob = O;
+  Args->Omega=Omega;
+  Args->nThread=0;
+  Args->Symmetric=1;
+  Args->B=M;
+
+  Log("GetScatteredPower: Computing M0 matrix for object (%i) (%s) ... ",ObjectIndex,O->Label);
+  int SaveZeroed = O->MP->Zeroed;
+  O->MP->Zeroed = 1;
+  AssembleBEMMatrixBlock(Args);
+  O->MP->Zeroed = SaveZeroed;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double Sign;
+  cdouble PScat=0.0;
+  cdouble *ZM=M->ZM;
+  cdouble *ZKN=KN->ZV + BFIndexOffset[ObjectIndex];
+  // nr runs over rows, nc over columns, ne over matrix entries
+  int nr, nc, ne;
+  for(PScat=0.0, Sign=1.0, ne=nc=0; nc<NBF; nc++)
+   for(nr=0; nr<NBF; nr++, ne++, Sign*=-1.0)
+    PScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+ 
+  PScat *= 0.5*ZVAC;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  delete M;
+  return PScat;
+
+}
+
+/***************************************************************/
+/***************************************************************/
+cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
+                                       char *ObjectLabel)
+{
+  /*--------------------------------------------------------------*/
+  /*- find the object in question --------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGObject *O=GetObjectByLabel(ObjectLabel);
+  if (O)
+   { 
+     return GetScatteredPower(KN, Omega, O->Index);
+   }
+  else
+   { Warn("unknown object label %s passed to GetScatteredPower",ObjectLabel);
+     return 0.0;
    };
 }
 

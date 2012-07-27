@@ -217,10 +217,12 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 
       int no = GetObjectIndex(X);
       cdouble EH[6];
+#if 0 //FIXME
       if (KN)
 	GetFields(0, KN, Omega, X, EH, nThreadFields);
       else
 	memset(EH, 0, sizeof(cdouble) * 6);
+#endif
 
      if (IF)
       { cdouble EHi[6];

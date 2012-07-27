@@ -1,0 +1,19 @@
+
+//
+// this was the first attempt
+//
+//Point(0) = {            0, R            , 0.0, l };
+//Point(1) = {  R*Sin(GR/2), R-R*Cos(GR/2), 0.0, l };
+//Point(2) = {            0, 2*R          , 0.0, l };
+//Point(3) = { -R*Sin(GR/2), R-R*Cos(GR/2), 0.0, l };
+//
+//Circle(1) = {1,0,2}; 
+//Circle(2) = {2,0,3}; 
+//
+//Line Loop(1) = { 1, 2 };
+//Plane Surface(1) = { 1 };
+//
+//Extrude { 0, 0, T } { Surface{1}; }
+//
+//Physical Surface(1) = { 9, 13 };
+

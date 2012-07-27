@@ -615,6 +615,53 @@ but with
 $\{\BG\supt{EE}, \BG\supt{EM}\} \to 
  \{\BG\supt{ME}, \BG\supt{MM}\}$.
 
+\subsection{The equations in the presence of nonzero surface impedance}
+
+\medskip
+
+\subsubsection*{PEC bodies} 
+
+In the presence of a nonzero surface impedance $Z_s(\vb x)>0$
+(corresponding to a finite surface conductivity
+ $G_s(\vb x) = \frac{1}{Z_s(\vb x)} < \infty$),
+equation (\ref{PECEquation1}) is modified to read 
+
+\numeq{PECEquationZS}
+{ \vbhat{n}\times \vb E\sups{total} (\vb x) 
+  = 
+  \frac{2}{G_s(\vb x)} \vbhat{n}\times \vb K(\vb x)
+}
+where $\vb K(\vb x)$ is the (unknown) electric surface current
+at $\vb x$. 
+
+Note that we use the symbol $G$, not $\sigma$, for surface
+conductivity, because this quantity has the dimensions of a 
+conductance (current/voltage), not the dimensions of a conductivity
+[current/(voltage $\cdot $length)].
+
+\subsubsection*{General bodies} 
+
+In the presence of a nonvanishing surface impedance $Z_s(\vb x)$
+(corresponding to a finite surface conductivity, 
+ $G_s(\vb x) = \frac{1}{Z_s(\vb x)} < \infty$),
+the $\vb E$-field continuity equation [the first of equations
+(\ref{DielectricEquation1})] is unchanged, while the $\vb H$-field
+continuity equation is modified to read
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \lim_{\eta \to 0} \vbhat{n}\times 
+ \Big[ \vb H\sups{total}(\vb x + \eta\vbhat{n})
+      -\vb H\sups{total}(\vb x - \eta\vbhat{n})
+ \Big] 
+&= \frac{2}{G(\vb x)} \vb E\sups{total}(\vb x)
+\\
+&= -\frac{2}{G(\vb x)} \vbhat{n} \times \vb{N}(\vb x)
+\label{DielectricEquationZS}
+\end{align}
+\end{subequations}
+is the (unknown) magnetic surface current at $\vb x$.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

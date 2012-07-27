@@ -115,7 +115,7 @@ typedef struct GetEEIArgStruct
  { 
    // input fields to be filled in by caller
    RWGEdge *Ea, *Eb;
-   RWGPanel *PanelsA, *PanelsB;
+   RWGPanel **PanelsA, **PanelsB;
    double *VerticesA, *VerticesB;
    cdouble k;
 

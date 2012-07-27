@@ -83,6 +83,8 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   /*  b) otherwise, use spherical multipoles if the relative     */
   /*     distance between the edges exceeds the DBFTHRESHOLD,    */
   /*     and otherwise use the panel-panel integral method       */
+  /* // FIXME to take into account the possibility of nonzero    */
+  /* displacement when figuring the distance between edge centroids */
   /***************************************************************/
   int UseSMMethod=0;
   if (Args->Force==EEI_FORCE_SM)
@@ -128,6 +130,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgs->NumTorqueAxes          = NumTorqueAxes;
   GetPPIArgs->GammaMatrix            = Args->GammaMatrix;
   GetPPIArgs->opFC                   = Args->opFC;
+  GetPPIArgs->Displacement           = Args->Displacement;
 
   /*--------------------------------------------------------------*/
   /*- positive-positive, positive-negative, etc. -----------------*/
@@ -255,6 +258,7 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
   Args->GammaMatrix=0;
+  Args->Displacement=0;
   Args->opFC=0;
   Args->Force=EEI_NOFORCE;
 }

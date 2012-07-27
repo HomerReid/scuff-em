@@ -261,7 +261,7 @@ void ComputeQIFIPPIData_TaylorDuffy(double *V1, double *V2, double *V3,
   /***************************************************************/
   /* 2. evaluate the integral over x1x2 or x1x2x3                */
   /***************************************************************/
-  if( V2P==V2 ) // common-edge case 
+  if( VecEqualFloat(V2, V2P) ) // common-edge case 
    adapt_integrate(NUMFUNCS, x1x2Integrand, (void *)W, 2, Lower, Upper,
                    MAXFEVALS, ABSTOL, RELTOL, Result, Error);
   else // common-vertex case 

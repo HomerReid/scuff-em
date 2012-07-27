@@ -383,7 +383,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /***************************************************************/
   /* the incident fields will most likely have been updated at   */
   /* the current frequency already by an earlier call to         */
-  /* AssembleRHSVector(), but somewhat might call GetFields()    */
+  /* AssembleRHSVector(), but someone might call GetFields()     */
   /* to get information on just the incident fields before       */
   /* before setting up and solving the BEM problem, so we should */
   /* do this just to make sure.                                  */

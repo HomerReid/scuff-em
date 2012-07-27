@@ -84,6 +84,9 @@ typedef struct GetPPIArgStruct
    double *GammaMatrix;
    void *opFC; // 'opaque pointer to FIPPI cache'
 
+   // this is an optional 3-vector displacement applied to object b
+   double *Displacement;
+
    // output fields filled in by routine
    // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
    // note: H[1] = HTimes
@@ -120,6 +123,9 @@ typedef struct GetEEIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
+   
+   // this is an optional 3-vector displacement applied to object b
+   double *Displacement;
 
    void *opFC; // 'opaque pointer to FIPPI cache'
 
@@ -154,10 +160,13 @@ typedef struct ABMBArgStruct
 
    int NumTorqueAxes;
    double *GammaMatrix;
-  
+
    int RowOffset, ColOffset;
 
    int Symmetric;
+
+   // this is an optional 3-vector displacement applied to object b
+   double *Displacement;
 
    // output fields filled in by routine
    HMatrix *B;

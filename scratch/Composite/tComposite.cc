@@ -8,11 +8,9 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libMatProp.h>
-#include <libscuff.h>
+#include "libscuff.h"
 
 using namespace scuff;
-
-
 
 /***************************************************************/
 /***************************************************************/
