@@ -36,6 +36,7 @@ extern int GetFieldObject;
 #define II cdouble (0.0, 1.0)
 
 #define MAXFREQ 10
+#define MAXCACHE 10    // max number of cache files for preload
 
 /***************************************************************/
 /***************************************************************/
@@ -58,6 +59,9 @@ int main(int argc, char *argv[])
   double ThetaPoints=25;
   double XAbove[3]={0.0, 0.0, +2.0};
   double XBelow[3]={0.0, 0.0, -2.0};
+  char *Cache=0;
+  char *ReadCache[MAXCACHE];         int nReadCache;
+  char *WriteCache=0;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFileName,  0,       ".scuffgeo file"},
@@ -67,7 +71,6 @@ int main(int argc, char *argv[])
      {"Omega",       PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nOmegaVals, "(angular) frequency"},
      {"OmegaFile",   PA_STRING,  1, 1,       (void *)&OmegaFile,    0,       "list of (angular) frequencies"},
 /**/
-/**/
      {"ThetaMin",    PA_DOUBLE,  1, 1,       (void *)&ThetaMin,     0,       "minimum incident angle"},
      {"ThetaMax",    PA_DOUBLE,  1, 1,       (void *)&ThetaMax,     0,       "maximum incident angle"},
      {"ThetaPoints", PA_INT,     1, 1,       (void *)&ThetaPoints,  0,       "number of incident angles"},
@@ -75,6 +78,9 @@ int main(int argc, char *argv[])
      {"XAbove",      PA_DOUBLE,  3, 1,       (void *)XAbove,        0,       "upper evaluation point"},
      {"XBelow",      PA_DOUBLE,  3, 1,       (void *)XBelow,        0,       "lower evaluation point"},
 /**/
+     {"Cache",       PA_STRING,  1, 1,       (void *)&Cache,        0,             "read/write cache"},
+     {"ReadCache",   PA_STRING,  1, MAXCACHE,(void *)ReadCache,     &nReadCache,   "read cache"},
+     {"WriteCache",  PA_STRING,  1, 1,       (void *)&WriteCache,   0,             "write cache"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -127,7 +133,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*- create the RWGGeometry and PBCGeometry structures             -*/
   /*******************************************************************/
-  SetLogFileName("%s.log",GeoFileName);
+  SetLogFileName("%s.log",GetFileBase(GeoFileName));
   RWGGeometry *G=new RWGGeometry(GeoFileName);
 
   double *LBV[2]={LBV1, LBV2};
@@ -136,9 +142,18 @@ int main(int argc, char *argv[])
   HMatrix *M  = PG->AllocateBEMMatrix();
   HVector *KN = PG->AllocateRHSVector();
 
-  char CacheFileName[100];
-  sprintf(CacheFileName,"%s.cache",G->Objects[0]->MeshFileName);
-  PreloadCache(CacheFileName);
+  /*******************************************************************/
+  /* preload the scuff cache with any cache preload files the user   */
+  /* may have specified                                              */
+  /*******************************************************************/
+  if ( Cache!=0 && WriteCache!=0 )
+   ErrExit("--cache and --writecache options are mutually exclusive");
+  if (Cache) 
+   WriteCache=Cache;
+  for (int nrc=0; nrc<nReadCache; nrc++)
+   PreloadCache( ReadCache[nrc] );
+  if (Cache)
+   PreloadCache( Cache );
 
   /*******************************************************************/
   /*- create the incident field                                      */
@@ -155,6 +170,7 @@ int main(int argc, char *argv[])
   char OutFileName[1000];
   snprintf(OutFileName,1000,"%s.transmission",GetFileBase(GeoFileName));
   FILE *f=CreateUniqueFile(OutFileName,1);
+  setlinebuf(f);
   fprintf(f,"# data file columns: \n");
   fprintf(f,"# 1: omega \n");
   fprintf(f,"# 2: theta (incident angle) (theta=0 --> normal incidence)\n");
@@ -193,6 +209,14 @@ int main(int argc, char *argv[])
       BlochP[1] = 0.0;
       PG->AssembleBEMMatrix(Omega, BlochP, M);
       M->LUFactorize();
+
+     /*******************************************************************/
+     /*******************************************************************/
+     /*******************************************************************/
+     if (WriteCache)
+      { StoreCache( WriteCache );
+        WriteCache=0;       
+      };
 
       // set plane wave direction 
       nHat[0] = +SinTheta;
@@ -244,6 +268,5 @@ GetFieldObject=-1;
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   printf("Thank you for your support.\n");
-  StoreCache(CacheFileName);
 
 }

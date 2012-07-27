@@ -33,6 +33,10 @@ PBCG_OBJS = ../AddStraddlers.o 	\
  ../cerf.o	
 
 ST = scuff-transmission.o $(PBCG_OBJS)
+SR = SpatiallyResolved.o $(PBCG_OBJS)
+
+SpatiallyResolved: 	$(SR)
+			$(CXX) $(LDFLAGS) -o $@ $(SR) $(LIBS)
 
 scuff-transmission:	$(ST)
 			$(CXX) $(LDFLAGS) -o $@ $(ST) $(LIBS)
