@@ -57,8 +57,22 @@ $$ k_0=\frac{\omega}{c}
    \qquad 
    k_1 = \sqrt{\epsilon^r \cdot \mu^r} \cdot \frac{\omega}{c} 
    \qquad 
-   \gamma = \sqrt{\epsilon^r}{\mu^r}
+   \gamma = \sqrt{\epsilon^r}{\mu^r}.
 $$ 
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}[h]
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{SlabCartoon.pdf}}
+\label{SlabCartoon}
+\caption{Transmission through a finite-thickness slab.}
+\end{center}
+\end{figure}
+%####################################################################%
+%####################################################################%
+
 Match tangential components of $\vb E$ and $\vb H$ at 
 $z=0$ and $z=-T$ gives 
 \begin{align*}
@@ -87,13 +101,13 @@ We have a 4$\times $4 linear system:
 
 The solution is 
 \begin{align*}
-  r &= \frac{ (\gamma^2 - 1)\sin k_1 T}
+  r &= \frac{ (1-\gamma^2)\sin k_1 T}
             { (1+\gamma^2)\sin k_1 T + 2i\gamma\cos k_1 T}
 \\
-  a &= \frac{ i(1+\gamma)e^{-ik_1 T}}
+  a &= \frac{ i(\gamma+1)e^{-ik_1 T}}
             { (1+\gamma^2)\sin k_1 T + 2i\gamma\cos k_1 T}
 \\
-  b &= \frac{ -i(1-\gamma)e^{ik_1 T}}
+  b &= \frac{ i(\gamma-1)e^{ik_1 T}}
             { (1+\gamma^2)\sin k_1 T + 2i\gamma\cos k_1 T}
 \\
   t &= \frac{ 2i\gamma }

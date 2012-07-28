@@ -294,7 +294,7 @@ void AddG2Contribution(double *R, cdouble k, double *P,
 
   rpl2=RpL[0]*RpL[0] + RpL[1]*RpL[1] + RpL[2]*RpL[2];
   rpl=sqrt(rpl2);
-  if ( rpl < 1.0e-7 ) 
+  if ( rpl < 1.0e-6 ) 
    return;
   rpl3=rpl2*rpl;
   rpl4=rpl3*rpl;
@@ -315,6 +315,13 @@ void AddG2Contribution(double *R, cdouble k, double *P,
 
   ggPgg = g2p*g3p + g2m*g3m;
   ggMgg = g2p*g3p - g2m*g3m;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if ( !isfinite(g2p) ) printf(" Howdy doody! E, rpl, g2p %e %e %s\n",E,rpl,CD2S(g2p));
+if ( !isfinite(g3p) ) printf(" Howdy doody! E, rpl, g3p %e %e %s\n",E,rpl,CD2S(g3p));
+if ( !isfinite(g2m) ) printf(" Howdy doody! E, rpl, g2m %e %e %s\n",E,rpl,CD2S(g2m));
+if ( !isfinite(g3m) ) printf(" Howdy doody! E, rpl, g3m %e %e %s\n",E,rpl,CD2S(g3m));
+if ( !isfinite(g4) )  printf(" Howdy doody! E, rpl, g4  %e %e %s\n",E,rpl,CD2S(g4));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -445,7 +452,7 @@ void AddGBFContribution(double R[3], cdouble k, double P[2],
 
   r2=RpL[0]*RpL[0] + RpL[1]*RpL[1] + RpL[2]*RpL[2];
   r=sqrt(r2);
-  if (r<1.0e-7) 
+  if ( r < 1.0e-8 )
    return;
   IKR=II*k*r;
   Phi=exp(IKR)/(4.0*M_PI*r);
@@ -570,10 +577,11 @@ return;
   MyR[0]=R[0]; MyR[1]=R[1]; MyR[2]=R[2];
   if ( ZeroCoordinate[0] && ZeroCoordinate[1] && ZeroCoordinate[2] )
    { 
-     E=0.1;
-     MyR[0] += 1.0e-6;
-     MyR[1] += 1.0e-6;
-     MyR[2] += 1.0e-6;
+ //    E=0.1;
+     MyR[0] += 1.0e-5;
+     MyR[1] += 1.0e-5;
+     MyR[2] += 1.0e-5;
+printf("  Howdatage! ZC\n");
    };
 
   /***************************************************************/
@@ -591,6 +599,10 @@ return;
 
   for(int ns=0; ns<NSUM; ns++)
    GBarVD[ns] = G1[ns] + G2[ns] - GBFFirst9[ns];
+
+if ( !isfinite(GBarVD[0]))
+ printf("Bawonkatage! (%e,%e,%e) (%s, %s, %s) \n",
+         R[0],R[1],R[2],CD2S(G1[0]),CD2S(G2[0]),CD2S(GBFFirst9[0]));
 
   if ( ZeroCoordinate[0] )
    GBarVD[1]=GBarVD[4]=GBarVD[5]=GBarVD[7]=0.0;
