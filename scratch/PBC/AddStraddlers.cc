@@ -175,11 +175,14 @@ void AddStraddlers(RWGObject *O, double **LBV, int *NumStraddlers)
           // add a new edge. actually, we simply appropriate the 
           // existing RWGEdge structure for edge #nei, since we 
           // will be removing it from object O's set of exterior 
-          // edges anyway. 
+          // edges anyway. note that the iQP, iV1, iV2, iPPanel, PIndex, 
+          // Centroid, and Length fields of this structure will be already 
+          // correctly initialized. 
           E=O->ExteriorEdges[nei];
           E->iQM  = O->NumVertices + NumNew;
           E->iMPanel = O->NumPanels + NumNew;
           E->Index = O->NumEdges + NumNew;
+          E->MIndex = 2; // because below we hard-code P->VI[2] = E->iQM;
           E->Radius=VecDistance(E->Centroid, O->Vertices+3*E->iQP);
           E->Radius=fmax(E->Radius, VecDistance(E->Centroid,O->Vertices+3*E->iQM));
           E->Radius=fmax(E->Radius, VecDistance(E->Centroid,O->Vertices+3*E->iV1));
