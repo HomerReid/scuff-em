@@ -863,7 +863,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
 
        fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
                   P->Centroid[0],P->Centroid[1],P->Centroid[2],
-                  real(J[0]),real(J[1]),real(J[2]));
+                  abs(J[0]),abs(J[1]),abs(J[2]));
 
      };
   fprintf(f,"};\n");
@@ -955,7 +955,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
  
         fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
                    P->Centroid[0],P->Centroid[1],P->Centroid[2],
-                   real(J[0]),real(J[1]),real(J[2]));
+                   abs(J[0]),abs(J[1]),abs(J[2]));
 
       };
    };

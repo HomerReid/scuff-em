@@ -41,5 +41,8 @@ SpatiallyResolved: 	$(SR)
 scuff-transmission:	$(ST)
 			$(CXX) $(LDFLAGS) -o $@ $(ST) $(LIBS)
 
+WriteSquareMesh:   	WriteSquareMesh.o
+			$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+
 clean:
 		rm *.o *.a ../*.o ../*.a

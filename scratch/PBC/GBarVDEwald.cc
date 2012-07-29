@@ -36,10 +36,13 @@
 #define RELTOL 1.0e-8
 
 #define II cdouble(0,1)
+//#define EMPIO4 cdouble( 0.707106781186548, -0.707106781186548 )
+#define EMPIO4 1.0
 
 #define NSUM 8
 #define NFIRSTROUND 1
 #define NMAX 10000
+
 
 namespace scuff{
 
@@ -89,21 +92,23 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
   cdouble Arg, ExpFac, dExpFac, ErfcFac, dErfcFac;
   cdouble PlusTerm, dPlusTerm, MinusTerm, dMinusTerm;
 
+  cdouble EZeta = E*EMPIO4;
+
   // PlusTerm  = exp(  kz*R[2] ) * cerfc( 0.5*kz/E  + R[2]*E );
   ExpFac    = exp( Q*z );
   dExpFac   = Q*ExpFac;
-  Arg       = 0.5*Q/E + z*E;
+  Arg       = 0.5*Q/EZeta + z*EZeta;
   ErfcFac   = cerfc( Arg );
-  dErfcFac  = -E*exp( -Arg*Arg );
+  dErfcFac  = -EZeta*exp( -Arg*Arg );
   PlusTerm  = ExpFac*ErfcFac;
   dPlusTerm = dExpFac*ErfcFac + ExpFac*dErfcFac;
 
   // MinusTerm  = exp( -kz*R[2] ) * cerfc( 0.5*kz/E  - R[2]*E );
   ExpFac     = exp( -Q*z );
   dExpFac    = -Q*ExpFac;
-  Arg        = 0.5*Q/E - z*E;
+  Arg        = 0.5*Q/EZeta - z*EZeta;
   ErfcFac    = cerfc( Arg );
-  dErfcFac   = +E*exp( -Arg*Arg );
+  dErfcFac   = +EZeta*exp( -Arg*Arg );
   MinusTerm  = ExpFac*ErfcFac;
   dMinusTerm = dExpFac*ErfcFac + ExpFac*dErfcFac;
   
@@ -302,26 +307,23 @@ void AddG2Contribution(double *R, cdouble k, double *P,
   rpl6=rpl5*rpl;
   rpl7=rpl6*rpl;
 
+  cdouble EZeta = E*EMPIO4;
+  cdouble EZeta2 = EZeta*EZeta;
+  cdouble EZeta4 = EZeta2*EZeta2;
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   g2p = exp( II*k*rpl );
-  g3p = cerfc( E*rpl + II*k/(2.0*E) );
+  g3p = cerfc( EZeta*rpl + II*k/(2.0*EZeta) );
 
   g2m = exp( -II*k*rpl );
-  g3m = cerfc( E*rpl - II*k/(2.0*E) );
+  g3m = cerfc( EZeta*rpl - II*k/(2.0*EZeta) );
 
-  g4 = -2.0*M_2_SQRTPI*E*exp(-E*E*rpl2 + k*k/(4.0*E*E));
+  g4 = -2.0*M_2_SQRTPI*EZeta*exp(-EZeta2*rpl2 + k*k/(4.0*EZeta2));
 
   ggPgg = g2p*g3p + g2m*g3m;
   ggMgg = g2p*g3p - g2m*g3m;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if ( !isfinite(g2p) ) printf(" Howdy doody! E, rpl, g2p %e %e %s\n",E,rpl,CD2S(g2p));
-if ( !isfinite(g3p) ) printf(" Howdy doody! E, rpl, g3p %e %e %s\n",E,rpl,CD2S(g3p));
-if ( !isfinite(g2m) ) printf(" Howdy doody! E, rpl, g2m %e %e %s\n",E,rpl,CD2S(g2m));
-if ( !isfinite(g3m) ) printf(" Howdy doody! E, rpl, g3m %e %e %s\n",E,rpl,CD2S(g3m));
-if ( !isfinite(g4) )  printf(" Howdy doody! E, rpl, g4  %e %e %s\n",E,rpl,CD2S(g4));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -340,7 +342,7 @@ if ( !isfinite(g4) )  printf(" Howdy doody! E, rpl, g4  %e %e %s\n",E,rpl,CD2S(g
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  Term = 3.0*ggPgg/rpl5 - 3.0*(g4+II*k*ggMgg)/rpl4 - k*k*ggPgg/rpl3 - 2.0*E*E*g4/rpl2;
+  Term = 3.0*ggPgg/rpl5 - 3.0*(g4+II*k*ggMgg)/rpl4 - k*k*ggPgg/rpl3 - 2.0*EZeta2*g4/rpl2;
 
   Sum[4] += PhaseFactor * RpL[0] * RpL[1] * Term;
   Sum[5] += PhaseFactor * RpL[0] * RpL[2] * Term;
@@ -350,8 +352,8 @@ if ( !isfinite(g4) )  printf(" Howdy doody! E, rpl, g4  %e %e %s\n",E,rpl,CD2S(g
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   Term = -15.0*ggPgg/rpl7 + 15.0*(g4+II*k*ggMgg)/rpl6 
-         + 6.0*k*k*ggPgg/rpl5 + 10.0*E*E*g4/rpl4
-         -k*k*(II*k*ggMgg + g4)/rpl4 + 4.0*E*E*E*E*g4/rpl2;
+         + 6.0*k*k*ggPgg/rpl5 + 10.0*EZeta2*g4/rpl4
+         -k*k*(II*k*ggMgg + g4)/rpl4 + 4.0*EZeta4*g4/rpl2;
 
   Sum[7] += PhaseFactor * RpL[0] * RpL[1] * RpL[2] * Term;
 
@@ -581,7 +583,6 @@ return;
      MyR[0] += 1.0e-5;
      MyR[1] += 1.0e-5;
      MyR[2] += 1.0e-5;
-printf("  Howdatage! ZC\n");
    };
 
   /***************************************************************/
@@ -599,10 +600,6 @@ printf("  Howdatage! ZC\n");
 
   for(int ns=0; ns<NSUM; ns++)
    GBarVD[ns] = G1[ns] + G2[ns] - GBFFirst9[ns];
-
-if ( !isfinite(GBarVD[0]))
- printf("Bawonkatage! (%e,%e,%e) (%s, %s, %s) \n",
-         R[0],R[1],R[2],CD2S(G1[0]),CD2S(G2[0]),CD2S(GBFFirst9[0]));
 
   if ( ZeroCoordinate[0] )
    GBarVD[1]=GBarVD[4]=GBarVD[5]=GBarVD[7]=0.0;
