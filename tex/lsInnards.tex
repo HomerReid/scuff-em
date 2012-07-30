@@ -2647,7 +2647,7 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Cartesian Multiple Moments}
+\section{Cartesian Multipole Moments}
 
 \subsection{Electric Dipole Moment of an RWG Electric Current}
 The electric dipole moment of an electric current distribution $\vb J(\vb x)$ is 
@@ -2828,6 +2828,156 @@ $$ \moment{\vb p}{K,N} \equiv \moment{\vb p}{K} + \frac{1}{Z}\moment{\vb m}{N},
    \moment{\vb m}{K,N} \equiv \moment{\vb m}{K} - \frac{1}{Z}\moment{\vb p}{N}.
 $$
 Note that these depend on $Z$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\MMExt}{\check{\mathcal{M}}}
+\newcommand{\MMInt}{\hat{\mathcal{M}}}
+\newcommand{\NNExt}{\check{\mathcal{N}}}
+\newcommand{\NNInt}{\hat{\mathcal{N}}}
+\newcommand{\BMMExt}{\boldsymbol{\check{\mathcal{M}}}}
+\newcommand{\BMMInt}{\boldsymbol{\hat{\mathcal{M}}}}
+\newcommand{\BNNExt}{\boldsymbol{\check{\mathcal{N}}}}
+\newcommand{\BNNInt}{\boldsymbol{\hat{\mathcal{N}}}}
+\newpage
+\section{Spherical Multipole Moments}
+
+\subsection*{Definition of the Spherical Multipole Moments}
+
+Following Jackson and other authors, I define the 
+electric and magnetic spherical multipole moments of a localized source 
+distribution to be the coefficients in a spherical-wave
+expansion of the fields away from the source regions:
+\begin{subequations}
+\begin{align}
+ \vb E(\vb r) &= \sum_{\ell m} \Big\{  a\supt{M}_{\ell,m} \MMExt_{\ell m}(\vb r)
+                                      +a\supt{E}_{\ell,m} \NNExt_{\ell m}(\vb r)
+                               \Big\}
+\\
+ \vb H(\vb r) &= -\frac{ik}{Z_0}
+                 \sum_{\ell m} \Big\{  a\supt{M}_{\ell,m} \NNExt_{\ell m}(\vb r)
+                                      -a\supt{N}_{\ell,m} \MMExt_{\ell m}(\vb r)
+                               \Big\}
+\end{align}
+\label{SphericalMultipoleDefinitions}
+\end{subequations}
+Note that my coefficients are not normalized in quite the same way
+as Jackson's; the relationship is 
+$$ a\supt{M}_{\ell,m} = Z_0 a\subt{$M$}(l,m), \qquad 
+   a\supt{E}_{\ell,m} = Z_0 \frac{i}{k} a\subt{$E$}(l,m)
+$$
+
+\subsection*{Expansion of the Dyadic Green's Functions in Spherical Helmholtz Solutions}
+
+In the following expression, the $\rho$ and $\sigma$ subscripts run over
+spherical vector components ($r,\theta,\phi$.)
+
+\begin{subequations}
+\begin{align}
+  G_{\rho\sigma} (k; \vb r-\vb r^\prime)
+&=\hspace{0.09in} ik
+  \sum_{\ell m} 
+  \Big\{ 
+     \MMExt_{\ell m \rho}( k, \vb r_>)
+     \MMInt^*_{\ell m \sigma}( k, \vb r_<) 
+   - \NNExt_{\ell m \rho}( k, \vb r_>)
+     \NNInt^*_{\ell m \sigma}( k, \vb r_>) 
+  \Big\}
+\\
+  C_{\rho\sigma} (k; \vb r-\vb r^\prime)
+&=-ik
+  \sum_{\ell m} 
+  \Big\{ 
+     \MMExt_{\ell m \rho}( k, \vb r_>)
+     \NNInt^*_{\ell m \sigma}( k, \vb r_<) 
+   + \NNExt_{\ell m \rho}( k, \vb r_>)
+     \MMInt^*_{\ell m \sigma}( k, \vb r_>) 
+  \Big\}
+\end{align}
+\label{GCExpansions}
+\end{subequations}
+
+\subsection*{Fields due to localized current distributions}
+
+Now consider the fields arising from localized surface electric
+and magnetic current distributions $\vb K(\vb x)$ and $\vb N(\vb x):$
+\begin{align*}
+ \vb E(\vb r) 
+&= 
+   ik\int \Big\{ Z\vb G(k, \vb r-\vb r^\prime) \cdot \vb K(\vb r^\prime)
+                 +\vb C(k, \vb r-\vb r^\prime) \cdot \vb N(\vb r^\prime)
+          \Big\} 
+\\
+ \vb H(\vb r) 
+&= 
+   ik\int \Big\{ -\vb C(k, \vb r-\vb r^\prime) \cdot \vb K(\vb r^\prime)
+                 +\frac{1}{Z}\vb G(k, \vb r-\vb r^\prime) \cdot \vb N(\vb r^\prime)
+          \Big\}.
+\end{align*}
+Insert the expansions (\ref{GCExpansions}) and assume that the 
+field evaluation point will always be further from the origin than
+the source current point: 
+\begin{subequations}
+\begin{align*}
+ \vb E(\vb r) 
+&= 
+ -k^2 \sum_{\ell m} 
+       \Bigg\{ \BMMExt_{\ell m}(\vb r) \cdot 
+               \bigg[   \INP{ \BMMInt_{\ell m} }{Z \vb K}
+                      - \INP{ \BNNInt_{\ell m} }{\vb N}
+               \bigg]
+\\
+&\hspace{1.0in}
+             + \BNNExt_{\ell m}(\vb r) \cdot 
+               \bigg[ - \INP{ \BNNInt_{\ell m} }{Z \vb K}
+                      - \INP{ \BMMInt_{\ell m} }{\vb N}
+               \bigg]
+       \Bigg\}
+\\[8pt]
+ \vb H(\vb r) 
+&= 
+ -k^2 \sum_{\ell m} 
+       \Bigg\{ \BMMExt_{\ell m}(\vb r) \cdot 
+               \bigg[   \INP{ \BNNInt_{\ell m} }{\vb K}
+                      + \INP{ \BMMInt_{\ell m} }{\frac{1}{Z}\vb N}
+               \bigg]
+\\
+&\hspace{1.0in}
+             + \BNNExt_{\ell m}(\vb r) \cdot 
+               \bigg[   \INP{ \BMMInt_{\ell m} }{\vb K}
+                      - \INP{ \BNNInt_{\ell m} }{\frac{1}{Z}\vb N}
+               \bigg]
+       \Bigg\}
+\end{align*}
+\label{SphericalFieldExpansions}
+\end{subequations}
+
+Comparing (\ref{SphericalFieldExpansions}) with the definitions
+(\ref{SphericalMultipoleMoments}) now allows us to read off
+the expressions for $a\sups{E,M}$ in terms of the source
+distributions $\vb K$ and $\vb N$: 
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\begin{subequations}
+\begin{align}
+a\sups{M}_{\ell,m}
+ &= -k^2\bigg[ \INP{ \BMMInt_{\ell m} }{Z\vb K}
+              -\INP{ \BNNInt_{\ell m} }{\vb N}
+        \bigg]
+\\
+a\sups{E}_{\ell,m}
+ &= +k^2\bigg[  \INP{ \BNNInt_{\ell m} }{Z\vb K}
+               +\INP{ \BMMInt_{\ell m} }{\vb N}
+        \bigg]
+\end{align}
+\label{SphericalMultipolesFromKN}
+\end{subequations}
+%====================================================================%
+%====================================================================%
+%====================================================================%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
