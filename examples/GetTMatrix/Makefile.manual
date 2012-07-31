@@ -27,3 +27,6 @@ OBJS = GetTMatrix.o GetSphericalMoments.o SphericalWave.o
 
 GetTMatrix:	$(OBJS) GetTMatrix.h
 		$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+
+clean:	
+		rm *.o *.a
