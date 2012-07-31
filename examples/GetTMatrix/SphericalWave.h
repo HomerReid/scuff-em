@@ -11,8 +11,8 @@
 #include <libhrutil.h>
 #include <libIncField.h>
 
-#define SW_ELECTRIC 0
-#define SW_MAGNETIC 1
+#define SW_MAGNETIC 0
+#define SW_ELECTRIC 1
 
 /**********************************************************************/
 /**********************************************************************/

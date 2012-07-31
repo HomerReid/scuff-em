@@ -17,9 +17,9 @@
 #include <stdlib.h>
 
 #include <libscuff.h>
-using namespace scuff;
-
 #include "GetTMatrix.h"
+
+using namespace scuff;
 
 /***************************************************************/
 /***************************************************************/
@@ -77,22 +77,24 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*- preallocate an HMatrix to store the T-matrix data           */
   /*--------------------------------------------------------------*/
-  int Dimension = 2*(lMax+1)*(lMax+1);
-  HMatrix *TMatrix = new HMatrix(Dimension, Dimension, LHM_COMPLEX);
+  int NumMoments= 2*(lMax+1)*(lMax+1);
+  HMatrix *TMatrix = new HMatrix(NumMoments, NumMoments, LHM_COMPLEX);
+  HVector *AVector = new HVector(NumMoments, LHM_COMPLEX);
 
   /*--------------------------------------------------------------*/
   /* instantiate a SphericalWave structure (we will set the l, m, */
   /* and Type fields later)                                       */
   /*--------------------------------------------------------------*/
-  SphericalWave SW(0, 0, SW_ELECTRIC);
+  SphericalWave SW;
 
   /*--------------------------------------------------------------*/
   /*- outer loop over frequencies --------------------------------*/
   /*--------------------------------------------------------------*/
-  double Omega;
   int Type, l, m;
   int TypeP, lP, mP;
+  const char *TypeChar="ME";
   int nr, nc;
+  FILE *TextOutputFile=vfopen("%s.TMatrix","w",GetFileBase(GeoFileName));
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    {
      /*--------------------------------------------------------------*/
@@ -103,13 +105,15 @@ int main(int argc, char *argv[])
      M->LUFactorize();
 
      /*--------------------------------------------------------------*/
-     /*- inner loop over incident spherical waves (i.e. over rows   -*/
-     /*- of the T matrix; note nr is a running row index)           -*/
+     /*- inner loop over incident spherical waves (i.e. over columns-*/
+     /*- of the T matrix; note nc is a running column index)        -*/
      /*--------------------------------------------------------------*/
-     for(nr=Type=0; Type<=1; Type++)
-      for(l=0; l<=lMax; l++)
-       for(m=-l; m<=l; m++, nr++)
-        { if (l==0) 
+     TMatrix->Zero();
+     for(nc=l=0; l<=lMax; l++)
+      for(m=-l; m<=l; m++)
+       for(Type=SW_MAGNETIC; Type<=SW_ELECTRIC; Type++, nc++)
+        { 
+          if (l==0) 
            continue;
 
            SW.SetType(Type);
@@ -120,17 +124,38 @@ int main(int argc, char *argv[])
            G->AssembleRHSVector(Omega, &SW, KN);
            M->LUSolve(KN);
 
-           // compute the projection of the scattered field onto each
-           // spherical wave
+           // compute the spherical multipole moments induced by the 
+           // incident wave on the object 
+           GetSphericalMoments(G->Objects[0], Omega, lMax, KN, 0, AVector);
 
-        }; // for (nr=Type= ... )
+           // stamp in the vector of moments as the ncth row of the T-matrix
+           for(nr=0; nr<NumMoments; nr++)
+            TMatrix->SetEntry(nr, nc, AVector->GetEntry(nr));
+
+        }; // for (nc=l=0...)
+
+     /*--------------------------------------------------------------*/
+     /*- write the full content of the T-matrix at this frequency to */
+     /*- the text output file                                        */
+     /*--------------------------------------------------------------*/
+     for(nr=l=0; l<=lMax; l++)
+      for(m=-l; m<=l; m++)
+       for(Type=SW_MAGNETIC; Type<=SW_ELECTRIC; Type++, nr++)
+        for(nc=lP=0; lP<=lMax; lP++)
+         for(mP=-lP; mP<=lP; mP++)
+          for(TypeP=SW_MAGNETIC; TypeP<=SW_ELECTRIC; TypeP++, nc++)
+           fprintf(TextOutputFile,"%s %+2i %+2i %c %+2i %+2i %c %+15.8e %+15.8e\n",
+                                   z2s(Omega),l,m,TypeChar[Type],lP,mP,TypeChar[TypeP],
+                                   real(TMatrix->GetEntry(nr,nc)), 
+                                   imag(TMatrix->GetEntry(nr,nc)));
 
     }; // for( nOmega= ... )
+
+  fclose(TextOutputFile);
       
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  fclose(f);
   StoreCache(Cache);
   printf("Thank you for your support.\n");
   
