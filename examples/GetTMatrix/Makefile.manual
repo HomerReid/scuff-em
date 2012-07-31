@@ -1,6 +1,8 @@
 #SCUFFEM = /usr/local
 SCUFFEM = /home/homer/work/scuff-em-installation
 
+CXXFLAGS = -O2 -fopenmp
+
 CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
 CPPFLAGS += -I/home/homer/include
 
@@ -19,14 +21,23 @@ export HDF5_LIBS=-lhdf5 -lhdf5_hl
 ##################################################
 # HR libraries ###################################
 ##################################################
-HR_LIBS = -lscuff -lSpherical -lAmosBessel
+HR_LIBS = -lSpherical -lscuff -lAmosBessel
 
 LIBS = $(HR_LIBS) $(HDF5_LIBS) $(LB_LIBS)
 
-OBJS = GetTMatrix.o GetSphericalMoments.o SphericalWave.o 
+GTM = GetTMatrix.o GetSphericalMoments.o SphericalWave.o 
+TSM = tSphericalMoments.o GetSphericalMoments.o SphericalWave.o 
+STM = SphereTMatrix.o
 
-GetTMatrix:	$(OBJS) GetTMatrix.h
-		$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+SphereTMatrix:	$(STM)
+		$(CXX) $(LDFLAGS) -o $@ $(STM) $(LIBS)
+
+
+tSphericalMoments:	$(TSM) GetTMatrix.h
+			$(CXX) $(LDFLAGS) -o $@ $(TSM) $(LIBS)
+
+GetTMatrix:	$(GTM) GetTMatrix.h
+		$(CXX) $(LDFLAGS) -o $@ $(GTM) $(LIBS)
 
 clean:	
 		rm *.o *.a
