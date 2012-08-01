@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 
            // compute the spherical multipole moments induced by the 
            // incident wave on the object 
-           GetSphericalMoments(G->Objects[0], Omega, lMax, KN, 0, AVector);
+           GetSphericalMoments(G, Omega, lMax, KN, AVector);
 
            // stamp in the vector of moments as the ncth row of the T-matrix
            for(nr=0; nr<NumMoments; nr++)

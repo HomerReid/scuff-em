@@ -44,6 +44,10 @@ class SphericalWave : public IncField
 /**********************************************************************/
 HVector *GetSphericalMoments(RWGObject *O, cdouble k, int lMax,
                              HVector *KNVector, int BFIndexOffset, 
-                             HVector *AVector=0, int NumThreads=0);
+                             HVector *AVector=0);
+
+HVector *GetSphericalMoments(RWGGeometry *O, cdouble k, int lMax,
+                             HVector *KNVector, HVector *AVector=0);
+
 
 #endif // #ifndef GETTMATRIX_H

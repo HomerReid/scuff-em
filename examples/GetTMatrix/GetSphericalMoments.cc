@@ -290,7 +290,7 @@ void *GSM_Thread(void *data)
 /***************************************************************/
 HVector *GetSphericalMoments(RWGObject *O, cdouble k, int lMax,
                              HVector *KN, int BFIndexOffset, 
-                             HVector *AVector, int NumThreads)
+                             HVector *AVector)
 { 
   
   /***************************************************************/
@@ -309,8 +309,7 @@ HVector *GetSphericalMoments(RWGObject *O, cdouble k, int lMax,
   /***************************************************************/
   /* set up thread data ******************************************/
   /***************************************************************/
-  if (NumThreads==0) 
-   NumThreads=GetNumThreads();
+  int NumThreads=GetNumThreads();
   
   int WorkspaceSize = 10*NumLMs;
   int PartialAVectorSize = 2*NumLMs;
@@ -376,4 +375,45 @@ HVector *GetSphericalMoments(RWGObject *O, cdouble k, int lMax,
 
   return AVector;
 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
+                             HVector *KN, HVector *AVector)
+{ 
+  
+  /***************************************************************/
+  /* (re)allocate the AVector as necessary ***********************/
+  /***************************************************************/
+  int NumLMs = (lMax+1)*(lMax+1);
+  int NumMoments = 2*NumLMs; // a^E and a^M moments for each l,m
+  if ( AVector && AVector->N != NumMoments )
+   { Warn("wrong-size AVector passed to GetSphericalMoments (reallocating...)");
+     AVector=0;
+   };
+  if ( AVector==0 )
+   AVector=new HVector(NumMoments, LHM_COMPLEX);
+  AVector->Zero();
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  HVector *Scratch=new HVector(NumMoments, LHM_COMPLEX);
+
+  AVector->Zero();
+  for(int no=0; no<G->NumObjects; no++)
+   { 
+     GetSphericalMoments(G->Objects[no], k, lMax, KN, G->BFIndexOffset[no], Scratch);
+
+     for(int nm=0; nm<NumMoments; nm++)
+      AVector->AddEntry(nm, Scratch->GetEntry(nm));
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  delete Scratch;
+   
 }

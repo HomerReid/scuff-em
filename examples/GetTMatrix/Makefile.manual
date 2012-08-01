@@ -29,15 +29,14 @@ GTM = GetTMatrix.o GetSphericalMoments.o SphericalWave.o
 TSM = tSphericalMoments.o GetSphericalMoments.o SphericalWave.o 
 STM = SphereTMatrix.o
 
+GetTMatrix:	$(GTM) GetTMatrix.h
+		$(CXX) $(LDFLAGS) -o $@ $(GTM) $(LIBS)
+
 SphereTMatrix:	$(STM)
 		$(CXX) $(LDFLAGS) -o $@ $(STM) $(LIBS)
 
-
 tSphericalMoments:	$(TSM) GetTMatrix.h
 			$(CXX) $(LDFLAGS) -o $@ $(TSM) $(LIBS)
-
-GetTMatrix:	$(GTM) GetTMatrix.h
-		$(CXX) $(LDFLAGS) -o $@ $(GTM) $(LIBS)
 
 clean:	
 		rm *.o *.a

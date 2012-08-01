@@ -46,7 +46,7 @@ void SphericalWave::GetFields(const double X[3], cdouble EHC[6])
   cdouble MVec[3], NVec[3];
 
   // the GetMlm routine computes the 
-  GetMlm(L, M, K, r, Theta, Phi, LS_INCOMING, MVec, NVec);
+  GetMlm(L, M, K, r, Theta, Phi, LS_REGULAR, MVec, NVec);
   
   // set the spherical components of E and H to the 
   // proper linear combinations of the M and N functions
