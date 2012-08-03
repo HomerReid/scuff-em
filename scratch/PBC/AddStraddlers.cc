@@ -133,8 +133,28 @@ static int FindPartnerEdge(RWGObject *O, int nei, double *LBV[2],
 
 }
 
+
 /*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
+/* A 'straddler' is a panel edge that lies on a face of the unit*/
+/* cell and has a partner edge on the opposite face of the unit */
+/* cell. This routine goes through the list of exterior edges   */
+/* in the given RWGObject and identifies all straddlers. For    */
+/* each straddler, the routine adds one new panel and one new   */
+/* vertex to the Object. The new panel is the translate of the  */
+/* panel to which the partner edge is attached, while the new   */
+/* vertex is the vertex opposite the partner edge within that   */
+/* panel. Once we have added this new vertex and panel, we can  */
+/* promote the exterior edge to an interior edge.               */
+/*                                                              */
+/* Parameters:                                                  */
+/*  O points to the RWGObject in question; its contents are     */
+/*  modified if any straddlers were detected.                   */
+/*                                                              */
+/*  LBV[i][j] is the jth cartesian component of the ith lattice */
+/*  basis vector (i,j=0,1.)                                     */
+/*                                                              */
+/*  On return, NumStraddlers[i] is the number of straddlers     */
+/*  that were detected on unit cell boundary #i (i=0,1.)        */
 /*--------------------------------------------------------------*/
 #define CHUNK 100
 void AddStraddlers(RWGObject *O, double **LBV, int *NumStraddlers)
@@ -191,13 +211,13 @@ void AddStraddlers(RWGObject *O, double **LBV, int *NumStraddlers)
           NewEdges[NumNew] = E;
 
           // what we just did was to combine two exterior edges 
-          // into a single interior edge, so we now remove the 
-          // exterior edges 
+          // into a single interior edge, so we now remove those
+          // two exterior edges from O's list of exterior edges
           free(O->ExteriorEdges[neip]);
           O->ExteriorEdges[nei]=O->ExteriorEdges[neip]=0;
 
           // add a new panel. Note that we can't call InitRWGPanel yet 
-          // because the new vertices have yet been added to the Vertices 
+          // because the new vertex has not yet been added to the Vertices 
           // array; this happens later, below.
           P=(RWGPanel *)mallocEC(sizeof(RWGPanel));
           P->VI[0] = E->iV1;

@@ -27,13 +27,13 @@ LIBS = $(HR_LIBS) $(HDF5_LIBS) $(LB_LIBS)
 
 GTM = GetTMatrix.o GetSphericalMoments.o SphericalWave.o 
 TSM = tSphericalMoments.o GetSphericalMoments.o SphericalWave.o 
-STM = SphereTMatrix.o
+GSTM = GetSphereTMatrix.o
+
+GetSphereTMatrix:	$(GSTM)
+			$(CXX) $(LDFLAGS) -o $@ $(GSTM) $(LIBS)
 
 GetTMatrix:	$(GTM) GetTMatrix.h
 		$(CXX) $(LDFLAGS) -o $@ $(GTM) $(LIBS)
-
-SphereTMatrix:	$(STM)
-		$(CXX) $(LDFLAGS) -o $@ $(STM) $(LIBS)
 
 tSphericalMoments:	$(TSM) GetTMatrix.h
 			$(CXX) $(LDFLAGS) -o $@ $(TSM) $(LIBS)

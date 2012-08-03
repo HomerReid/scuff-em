@@ -193,7 +193,7 @@ void *ABMBThread(void *data)
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
           { dBdTheta[Mu]->SetEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
           };
        }
       else if ( !OaIsPEC && ObIsPEC )

@@ -138,23 +138,6 @@ void GetAB9PanelPanelInteraction(double **Va, double *Qa,
 
         if (ZFlipped)
          GradGBar[2]*=-1.0; // flip the sign of dG/dz 
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-{ cdouble GBarVD[8];
-  double P[2]={0.0,0.0};
-  double LBV1[2]={1.0, 0.0};
-  double LBV2[2]={0.0, 1.0};
-  double *LBV[2]={LBV1, LBV2};
-  GBarVDEwald(R, 0.1, P, LBV, -1.0, 0.0, GBarVD);
-  GBar=GBarVD[0];
-  GradGBar[0]=GBarVD[1];
-  GradGBar[1]=GBarVD[2];
-  GradGBar[2]=GBarVD[3];
-}
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#endif
-
       
         /***************************************************************/
         /* inner integrand  ********************************************/
