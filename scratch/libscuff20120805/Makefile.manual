@@ -1,0 +1,73 @@
+CPPFLAGS = $(DEBUG)
+LDFLAGS = $(DEBUG)
+
+#################################################################
+#################################################################
+#################################################################
+SCUFFEM = /home/homer/work/scuff-em
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libhrutil
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libhmat
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libSGJC
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libTriInt
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libMatProp
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libMatProp/cmatheval
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libMDInterp
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libIncField
+CXXFLAGS += -fopenmp
+
+LDFLAGS  += -L$(SCUFFEM)/src/libs/libhrutil/.libs
+LDFLAGS  += -L$(SCUFFEM)/src/libs/libhmat/.libs
+LDFLAGS  += -L$(SCUFFEM)/src/libs/libSGJC/.libs
+LDFLAGS  += -L$(SCUFFEM)/src/libs/libTriInt/.libs
+LDFLAGS  += -L$(SCUFFEM)/src/libs/libMatProp/.libs
+CPPFLAGS += -I$(SCUFFEM)/src/libs/libMatProp/cmatheval/.libs
+LDFLAGS  += -L$(SCUFFEM)/src/libs/libMDInterp/.libs
+LDFLAGS  += -L$(SCUFFEM)/src/libs/libIncField/.libs
+
+HR_LIBS = -lhrutil -lMatProp -lMDInterp -lTriInt -lSGJC -lhmat
+
+OTHER_LIBS = -lreadline -lhdf5_hl -lhdf5 -llapack -lblas -lgomp -lgfortran
+
+LIBS = $(HR_LIBS) $(OTHER_LIBS)
+
+FC = gfortran
+
+#################################################################
+#################################################################
+#################################################################
+LS_OBJS=                     \
+AssembleBEMMatrix.o		\
+AssembleRHSVector.o		\
+AssessPanelPair.o		\
+CalcGC.o			\
+EdgeEdgeInteractions.o		\
+ExpandCurrentDistribution.o	\
+FieldGrid.o			\
+FIPPICache.o			\
+GetDipoleMoments.o		\
+GetFields.o			\
+GTransformation.o		\
+InitEdgeList.o			\
+Overlap.o			\
+PanelPanelInteractions.o	\
+PointInObject.o			\
+QDFIPPI.o			\
+QIFIPPICubature.o		\
+QIFIPPITaylorDuffy.o		\
+ReadComsolFile.o		\
+ReadGMSHFile.o			\
+RWGGeometry.o			\
+RWGObject.o			\
+rwlock.o			\
+scuffMisc.o			\
+TaylorDuffy.o			\
+Visualize.o			\
+
+test:      	test.o libscuff.a
+		$(CXX) $(LDFLAGS) -o $@ test.o libscuff.a $(LIBS)
+
+libscuff.a:	$(LS_OBJS)
+		ar r $@ $^
+
+clean:
+		rm *.o *.a
