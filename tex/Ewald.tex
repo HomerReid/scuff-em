@@ -76,7 +76,21 @@ The starting point is the identity
 $$ \frac{e^{ikr}}{4\pi r} 
    \equiv 
    \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
-   \int_0^\infty e^{ -s^2 r^2 + \frac{k^2}{4s^2}} ds.
+   \int_{\mathcal C} e^{ -z^2 r^2 + \frac{k^2}{4z^2}} dz
+$$ 
+where $\mathcal{C}$ is a contour in the complex plane running from
+the origin to $\infty$ and satisfying certain conditions depending
+on $k$. One choice of $\mathcal{C}$ 
+that suffices for $k$ in the upper-right quadrant is a straight line
+running from the origin to infinity at an angle of $-\pi/4$ from
+the positive real axis, i.e. 
+$$ z=\zeta s, \qquad 0\le s \le \infty, \qquad \zeta=e^{-i\pi/4}$$
+in terms of which our identity becomes
+$$ \frac{e^{ikr}}{4\pi r} 
+   \equiv 
+   \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
+   \cdot \zeta \cdot 
+   \int_{0}^\infty e^{ + i s^2 r^2 + \frac{ik^2}{4s^2}} ds.
 $$ 
 
 \subsection*{Split the sum into direct-lattice-local and reciprocal-lattice-local
@@ -89,13 +103,15 @@ $$
 \label{GBDecomposition}
 \\
 \GB^{(1)}(k; \vb p; \vb x) 
-&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
-   \sum_{\vb L} e^{i\vb p \cdot \vb L} \int_0^E e^{-s^2 |\vb x+\vb L|^2 + \frac{k^2}{4s^2}} ds
+&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}\cdot \zeta\cdot
+   \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+                \int_0^E e^{is^2 |\vb x+\vb L|^2 + \frac{ik^2}{4s^2}} ds
 \label{GB1Sum}
 \\
 \GB^{(2)}(k; \vb p; \vb x) 
-&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
-   \sum_{\vb L} e^{i\vb p \cdot \vb L} \int_E^\infty e^{-s^2 |\vb x + \vb L|^2 + \frac{k^2}{4s^2}} ds
+&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}\cdot\zeta\cdot
+   \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+                \int_E^\infty e^{is^2 |\vb x + \vb L|^2 + \frac{ik^2}{4s^2}} ds
 \label{GB2Sum}
 \end{align}
 
@@ -106,9 +122,9 @@ The integral in that equation may be evaluated in closed form in terms of
 the complex error function:
 \numeq{ErfInt}
 {
- \frac{2}{\sqrt\pi}\int_E^\infty e^{-s^2 R^2 + \frac{k^2}{4s^2}} ds
- = \frac{1}{2R}\bigg\{ e^{ikR} \,\erfc\Big[ RE + \frac{ik}{2E}\Big]
-                     +e^{-ikR} \,\erfc\Big[ RE - \frac{ik}{2E}\Big]
+ \frac{2}{\sqrt\pi} \cdot \zeta \int_E^\infty e^{is^2 R^2 + \frac{ik^2}{4s^2}} ds
+ = \frac{1}{2R}\bigg\{ e^{ikR} \,\erfc\Big[ RE\zeta + \frac{ik}{2E\zeta}\Big]
+                     +e^{-ikR} \,\erfc\Big[ RE\zeta - \frac{ik}{2E\zeta}\Big]
                \bigg\}
 }
 Plugging into (\ref{GB2Sum}), the real-space sum is 
@@ -192,26 +208,26 @@ and we have $A_{\BG}=\frac{8\pi^2}{L^2 \sqrt{3}}$.
 Inserting (\ref{DirectToReciprocal}) in (\ref{GB1Sum}), we have 
 \begin{align}
 \GB^{(1)}(k; \vb p; \vb x) 
-&=\frac{A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
+&=\frac{\zeta A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
     e^{i(\BG-\vb p) \cdot \vb x} 
     \int_{0}^E 
     \frac{ds}{s^2} 
-    e^{-\frac{1}{4s^2}[|\BG - \vb p|^2 - k^2] - z^2 s^2}
+    e^{\frac{i}{4s^2}[|\BG - \vb p|^2 - k^2] + iz^2 s^2}
 \nonumber
 \intertext{Change integration variables according to $s\to\frac{1}{2s}$:}
-&=\frac{A_{\BG}}{4\pi^{5/2}} \sum_{\BG} 
+&=\frac{\zeta A_{\BG}}{4\pi^{5/2}} \sum_{\BG} 
     e^{i(\BG-\vb p) \cdot \vb x} 
     \int_{\frac{1}{2E}}^\infty
     ds
-    e^{-s^2[|\BG - \vb p|^2 - k^2] - \frac{z^2}{4s^2}}
+    e^{is^2[|\BG - \vb p|^2 - k^2] + \frac{iz^2}{4s^2}}
 \nonumber
 \intertext{Evaluate the integral using (\ref{ErfInt}):}
 &=\frac{A_{\BG}}{16\pi^2} \sum_{\BG}
    \frac{e^{i(\BG-\vb p) \cdot \vb x}}{Q(\BG, \vb p, k)} 
-   \bigg\{  e^{+Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E} + Ez \Big]
+   \bigg\{  e^{+Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E\zeta} + E\zeta z \Big]
 \label{GB1Sum2}\\
 &\hspace{2in}
-          +e^{-Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E} - Ez \Big]
+          +e^{-Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E\zeta} - E\zeta z \Big]
    \bigg\}
 \nonumber
 \end{align}

@@ -202,7 +202,7 @@ void RWGObject::InitEdgeList()
 
          E->iMPanel=-1;
          E->Index=-1;
-
+         E->MIndex=(ne+2)%3;
        };
     };
 
