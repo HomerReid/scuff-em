@@ -321,8 +321,7 @@ class RWGGeometry
    int UpdateIncFields(IncField *IF, cdouble Omega);
 
    // get the index of the object containing point X
-   int GetObjectIndex(const double X[3]);
-   RWGObject *GetObject(const double X[3]);
+   int GetRegionIndex(const double X[3]);
 
    /* simplest routine for computing fields */
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X, cdouble *EH);
@@ -384,8 +383,8 @@ class RWGGeometry
 
    /* some simple utility functions */
    int GetDimension();
-   RWGObject *GetObjectByLabel(const char *Label, int *WhichObject = NULL);
-
+   int GetRegionByLabel(const char *Label);
+   void UpdateCachedEpsMuValues(cdouble Omega);
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
@@ -395,6 +394,11 @@ class RWGGeometry
    int NumRegions;
    char **RegionLabels;
    MatProp **RegionMPs;
+
+   // cached values of epsilon and mu for each region
+   // 'EpsTF' = 'epsilon, this frequency'
+   cdouble *EpsTF, *MuTF;
+   cdouble StoredOmega;
 
    int NumSurfaces;
    RWGSurface **Surfaces;

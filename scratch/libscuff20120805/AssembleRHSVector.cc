@@ -102,7 +102,7 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 /***************************************************************/
 /* Calculate the inner product of given electric and magnetic  */
 /* fields with the basis function associated with edge #ne on  */
-/* the given RWGObject.                                        */
+/* the given RWGSurface.                                       */
 /*                                                             */
 /* PositiveIFs[0..NPositiveIFs] are IncFields whose fields     */
 /* contribute with a positive sign.                            */
@@ -113,19 +113,25 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
 /* If pHProd==0, we skip the computation of the magnetic-field */
 /* inner product.                                              */
 /***************************************************************/
-void GetInnerProducts(RWGObject *O, int ne, 
+void GetInnerProducts(RWGSurface *S, int ne, 
                       IncField **PositiveIFs, int NPositiveIFs,
                       IncField **NegativeIFs, int NNegativeIFs,
                       cdouble *pEProd, cdouble *pHProd)
 { 
   /* get edge vertices */
-  RWGEdge *E   = O->Edges[ne];
-  double *QP   = O->Vertices + 3*(E->iQP);
-  double *V1   = O->Vertices + 3*(E->iV1);
-  double *V2   = O->Vertices + 3*(E->iV2);
-  double *QM   = O->Vertices + 3*(E->iQM);
-  double PArea = O->Panels[E->iPPanel]->Area;
-  double MArea = O->Panels[E->iMPanel]->Area;
+  RWGEdge *E   = S->Edges[ne];
+  double *QP   = S->Vertices + 3*(E->iQP);
+  double *V1   = S->Vertices + 3*(E->iV1);
+  double *V2   = S->Vertices + 3*(E->iV2);
+  double PArea = S->Panels[E->iPPanel]->Area;
+  double *QM;
+  double MArea;
+  if ( E->iQM==-1 ) 
+   { QM = S->Vertices + 3*(E->iQM);
+     MArea = S->Panels[E->iMPanel]->Area;
+   }
+  else
+   QM = 0;
 
   /* set up data structure passed to InnerProductIntegrand */
   InnerProductIntegrandData MyIPID, *IPID=&MyIPID;
@@ -143,10 +149,15 @@ void GetInnerProducts(RWGObject *O, int ne,
   IPID->PreFac=E->Length / (2.0*PArea);
   TriIntFixed(InnerProductIntegrand, nFun, (void *)IPID, QP, V1, V2, 20, IP);
 
-  /* integrate over negative panel */
-  IPID->Q=QM;
-  IPID->PreFac=E->Length / (2.0*MArea);
-  TriIntFixed(InnerProductIntegrand, nFun, (void *)IPID, V1, V2, QM, 20, IM);
+  /* integrate over negative panel if present */
+  if (QM)
+   { IPID->Q=QM;
+     IPID->PreFac=E->Length / (2.0*MArea);
+     TriIntFixed(InnerProductIntegrand, nFun, (void *)IPID, V1, V2, QM, 20, IM);
+   }
+  else
+   { // TODO: add edge contribution 
+   };
 
   /* total integral is difference between pos and neg pan integrals */
   for(int nf=0; nf<nFun; nf++)
@@ -201,39 +212,36 @@ void *AssembleRHS_Thread(void *data)
   int NNegativeIFs;
 
   /***************************************************************/
-  /* loop over all objects to get contributions to RHS vector    */
+  /* loop over all surfaces to get contributions to RHS vector   */
   /***************************************************************/
-  RWGObject *O;
+  RWGSurface *S;
   int no, ne, Offset, IsPEC;
   int nt=0;
-  int ContainingObjectIndex;
   cdouble EProd, HProd;
   IncField *IF;
-  for(no=0; no<G->NumObjects; no++)
+  for(ns=0; ns<G->NumSurfaces; ns++)
    { 
-     O=G->Objects[no];
-     Offset=G->BFIndexOffset[no];
-     IsPEC=O->MP->IsPEC();
-     if ( O->ContainingObject==NULL )
-      ContainingObjectIndex=-1;
-     else
-      ContainingObjectIndex=O->ContainingObject->Index;
+     S=G->Surfaces[ns];
+     Offset=G->BFIndexOffset[ns];
+     IsPEC=S->IsPEC;
 
      /*--------------------------------------------------------------*/
      /*- Go through the chain of IncField structures to identify     */
-     /*- the subset of IncFields whose sources lie inside this       */
-     /*- object, as well as the subset whose sources lie in the      */
-     /*- region to the immediate exterior of this object. (The       */
-     /*- former contribute to the RHS vector with a plus sign, while */
-     /*- the latter contribute with a minus sign). If both subsets   */
-     /*- are empty, this object does not contribute to the RHS.      */
+     /*- the subset of IncFields that contribute with a plus sign to */
+     /*- the RHS vector entries for this surface, as well as those   */
+     /*- that contribute with a minus sign.                          */
+     /*- (IncFields whose sources lie in the 'negative' region       */
+     /*- associated with this surface contribute with a minus sign;  */
+     /*- IncFields whose sources lie in the 'positive' region        */
+     /*- associated with this surface contribute with a plus sign;   */
+     /*- and all other IncFields do not contribute.                  */
      /*--------------------------------------------------------------*/
      for(NPositiveIFs=NNegativeIFs=0, IF=IFList; IF; IF=IF->Next)
       { 
-        if (O->Index==IF->ObjectIndex)
-         PositiveIFs[NPositiveIFs++] = IF;
-        else if (ContainingObjectIndex==IF->ObjectIndex)
+        if (S->RegionIndices[0]==IF->RegionIndex)
          NegativeIFs[NNegativeIFs++] = IF;
+        else if (S->RegionIndices[1]==IF->RegionIndex)
+         PositiveIFs[NPositiveIFs++] = IF;
       };
      if ( NPositiveIFs==0 && NNegativeIFs==0 )
       continue;
@@ -248,7 +256,7 @@ void *AssembleRHS_Thread(void *data)
         if (nt==TD->NumTasks) nt=0;
         if (nt!=TD->nt) continue;
 
-        GetInnerProducts(O,ne, 
+        GetInnerProducts(S,ne, 
                          PositiveIFs, NPositiveIFs,
                          NegativeIFs, NNegativeIFs,
                          &EProd, IsPEC ? 0 : &HProd );
@@ -315,8 +323,6 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
 
 #else
 
-  int nTask;
-
 #ifndef USE_OPENMP
   NumThreads=NumTasks=1;
 #else
@@ -341,53 +347,51 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
 /* a given RWGGeometry at a given geometry:                    */
 /*  (1) For each IncField in the chain, set the frequency to   */
 /*      Omega, and set Eps and Mu to the material properties   */
-/*      (at frequency Omega) of the RWGObject within which the */
+/*      (at frequency Omega) of the region within which the    */
 /*      field sources are contained.                           */
-/*  (2) Make sure the ObjectIndex field in the IncField        */
+/*  (2) Make sure the RegionIndex field in the IncField        */
 /*      structure matches the index of the object specified by */
-/*      the ObjectLabel field.                                 */
+/*      the RegionLabel field (or, if the IncField implements  */
+/*      the GetSourcePoint() routine, the index of the region  */
+/*      containing the source point).                          */
 /* Returns the total number of IncFields in the chain.         */
 /***************************************************************/
 int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega)
 {
-  cdouble ExteriorEps, ExteriorMu;
-  cdouble ObjectEps, ObjectMu;
-  RWGObject *O; 
-  double X[3];
-  int NIF;
-  IncField *IF;
+  /*--------------------------------------------------------------*/
+  /*- make sure the cached epsilon and mu values for all regions  */
+  /*- are up-to-date for the present frequency                    */
+  /*--------------------------------------------------------------*/
+  UpdateCachedEpsMuValues(Omega);
 
-  ExteriorMP->GetEpsMu(Omega, &ExteriorEps, &ExteriorMu);
-  
-  for (NIF=0, IF=IFList; IF; NIF++, IF=IF->Next) 
+  /*--------------------------------------------------------------*/
+  /*- run through the chain of IncField structures and set the   -*/
+  /*- epsilon and mu values for each structure depending on the  -*/
+  /*- region in which its sources are contained                  -*/
+  /*--------------------------------------------------------------*/
+  IncField *IF;
+  double X[3];
+  for (int NIF=0, IF=IFList; IF; NIF++, IF=IF->Next) 
    {
      /*--------------------------------------------------------------*/
      /*- first get the index of the object containing the field     -*/
      /*- sources for IF                                             -*/
      /*--------------------------------------------------------------*/
      if ( IF->GetSourcePoint(X) )
-      IF->ObjectIndex = GetObjectIndex(X);
-     else if ( IF->ObjectLabel )
-      GetObjectByLabel(IF->ObjectLabel, &(IF->ObjectIndex) );
+      IF->RegionIndex = GetRegionIndex(X);
+     else if ( IF->RegionLabel )
+      IF->RegionIndex = GetRegionByLabel(IF->RegionLabel);
      else
-      IF->ObjectIndex = -1;
+      IF->RegionIndex = 0; // exterior medium
+
+     if ( IF->RegionIndex<0  || IF->RegionIndex>NumRegions )
+      ErrExit("invalid region index %i",IF->RegionIndex);
 
      /*--------------------------------------------------------------*/
-     /*- now set the material properties of IF                      -*/
+     /*- now set the material properties of IF as appropriate for   -*/
+     /*- the region in question                                     -*/
      /*--------------------------------------------------------------*/
-     if ( IF->ObjectIndex == -1 )
-      {  
-        IF->SetFrequencyAndEpsMu(Omega, ExteriorEps, ExteriorMu, 0 );
-      }
-     else
-      { 
-        if ( IF->ObjectIndex<0  || IF->ObjectIndex>NumObjects )
-         ErrExit("invalid object specification %i",IF->ObjectIndex);
-
-        O=Objects[IF->ObjectIndex];
-        O->MP->GetEpsMu(Omega, &ObjectEps, &ObjectMu);
-        IF->SetFrequencyAndEpsMu(Omega, ObjectEps, ObjectMu, 0 );
-      };
+     IF->SetFrequencyAndEpsMu(Omega, EpsTF[ IF->RegionIndex ], MuTF[ IF->RegionIndex ] );
 
    }; // for(NIF=0, IF=IFList ... 
 

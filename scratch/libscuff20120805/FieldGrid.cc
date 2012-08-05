@@ -174,6 +174,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 				      cdouble Omega, HVector *KN,
 				      IncField *IF) {
 
+  UpdateCachedEpsMuValues(Omega);
   if (IF)
    UpdateIncFields(IF, Omega);
 
@@ -198,8 +199,8 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 #endif
 
   // make sure kdPanels is initialized outside loop (this is not thread-safe)
-  for (int no = 0; no < NumObjects; ++no)
-    Objects[no]->InitkdPanels(false, LogLevel);
+  for (int ns = 0; ns < NumSurfaces; ++ns)
+    Surfaces[ns]->InitkdPanels(false, LogLevel);
 
 #ifdef USE_OPENMP
 #pragma omp parallel for firstprivate(grid,nFuncs,funcs,Omega,KN,IF,nThreadFields,Ms,this), schedule(static), num_threads(nThread), collapse(2)
@@ -215,7 +216,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
       double X[3], dA[3];
       grid.GetPoint(n1, n2, X, dA);
 
-      int no = GetObjectIndex(X);
+      int nr = GetRegionIndex(X);
       cdouble EH[6];
       if (KN)
 	GetFields(0, KN, Omega, X, EH);
@@ -226,23 +227,15 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
       { cdouble EHi[6];
         IncField *IFNode;
         for(IFNode=IF; IFNode; IFNode=IFNode->Next)
-         if ( IFNode->ObjectIndex == no )
+         if ( IFNode->RegionIndex == nr )
           { IFNode->GetFields(X, EHi);
             SixVecPlusEquals(EH, 1.0, EHi);
           };
       };
 
-      // in theory this could be done outside the grid loop and
-      // cached somewhere per-object
-      cdouble Eps, Mu;
-      if (no >= 0)
-	Objects[no]->MP->GetEpsMu(Omega, &Eps, &Mu);
-      else
-	ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
-
       // Call the field functions and store in the output matrices
       for (int i = 0; i < nfuncs; ++i)
-	Ms[i]->SetEntry(n1,n2, funcs[i]->Eval(X, dA, EH, Eps, Mu));
+	Ms[i]->SetEntry(n1,n2, funcs[i]->Eval(X, dA, EH, EpsTF[nr], MuTF[nr]));
     }
 
   return Ms;

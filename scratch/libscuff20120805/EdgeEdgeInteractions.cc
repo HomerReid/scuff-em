@@ -51,16 +51,16 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   /***************************************************************/
   /* local copies of fields in argument structure ****************/
   /***************************************************************/
-  RWGObject *Oa             = Args->Oa;
-  RWGObject *Ob             = Args->Ob;
+  RWGSurface *Sa            = Args->Sa;
+  RWGSurface *Sb            = Args->Sb;
   int nea                   = Args->nea; 
   int neb                   = Args->neb;
   cdouble k                 = Args->k; 
   int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
 
-  RWGEdge *Ea=Oa->Edges[nea];
-  RWGEdge *Eb=Ob->Edges[neb];
+  RWGEdge *Ea=Sa->Edges[nea];
+  RWGEdge *Eb=Sb->Edges[neb];
 
   /***************************************************************/
   /* since this code doesn't work at DC anyway, we don't bother  */
@@ -123,8 +123,8 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgStruct MyGetPPIArgs, *GetPPIArgs=&MyGetPPIArgs;
   InitGetPPIArgs(GetPPIArgs);
 
-  GetPPIArgs->Oa                     = Oa;
-  GetPPIArgs->Ob                     = Ob;
+  GetPPIArgs->Sa                     = Sa;
+  GetPPIArgs->Sb                     = Sb;
   GetPPIArgs->k                      = k;
   GetPPIArgs->NumGradientComponents  = NumGradientComponents;
   GetPPIArgs->NumTorqueAxes          = NumTorqueAxes;

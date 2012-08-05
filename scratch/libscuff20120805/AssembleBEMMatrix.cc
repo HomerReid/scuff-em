@@ -74,8 +74,8 @@ void *ABMBThread(void *data)
   ThreadData *TD=(ThreadData *)data;
   ABMBArgStruct *Args  = TD->Args;
   RWGGeometry *G       = Args->G;
-  RWGObject *Oa        = Args->Oa;
-  RWGObject *Ob        = Args->Ob;
+  RWGSurface *Sa       = Args->Sa;
+  RWGSurcace *Sb       = Args->Sb;
   cdouble Omega        = Args->Omega;
   int NumTorqueAxes    = Args->NumTorqueAxes;
   double *GammaMatrix  = Args->GammaMatrix;
@@ -86,13 +86,14 @@ void *ABMBThread(void *data)
   HMatrix *B           = Args->B;
   HMatrix **GradB      = Args->GradB;
   HMatrix **dBdTheta   = Args->dBdTheta;
-  double Sign          = Args->Sign;
   cdouble EpsA         = Args->EpsA;
   cdouble EpsB         = Args->EpsB;
   cdouble MuA          = Args->MuA;
   cdouble MuB          = Args->MuB;
-  int OaIsPEC          = Args->OaIsPEC;
-  int ObIsPEC          = Args->ObIsPEC;
+  double SignA         = Args->SignA;
+  double SignB         = Args->SignB;
+  int SaIsPEC          = Args->SaIsPEC;
+  int SbIsPEC          = Args->SbIsPEC;
 
 #ifdef USE_PTHREAD
   SetCPUAffinity(TD->nt);
@@ -105,8 +106,8 @@ void *ABMBThread(void *data)
   GetEEIArgStruct MyGetEEIArgs, *GetEEIArgs=&MyGetEEIArgs;
   InitGetEEIArgs(GetEEIArgs);
 
-  GetEEIArgs->Oa=Oa;
-  GetEEIArgs->Ob=Ob;
+  GetEEIArgs->Sa=Sa;
+  GetEEIArgs->Sb=Sb;
   GetEEIArgs->NumGradientComponents = GradB ? 3 : 0;
   GetEEIArgs->NumTorqueAxes=NumTorqueAxes;
   GetEEIArgs->GammaMatrix=GammaMatrix;
@@ -126,23 +127,23 @@ void *ABMBThread(void *data)
   cdouble PreFac1B, PreFac2B, PreFac3B;
 
   kA=csqrt2(EpsA*MuA)*Omega;
-  PreFac1A = Sign*II*MuA*Omega;
-  PreFac2A = -Sign*II*kA;
-  PreFac3A = -1.0*Sign*II*EpsA*Omega;
+  PreFac1A = SignA*II*MuA*Omega;
+  PreFac2A = -SignA*II*kA;
+  PreFac3A = -1.0*SignA*II*EpsA*Omega;
 
   if (EpsB!=0.0)
-   { // note: Sign==1 for all cases in which EpsB is nonzero
+   { 
      kB=csqrt2(EpsB*MuB)*Omega;
-     PreFac1B = II*MuB*Omega;
-     PreFac2B = -II*kB;
-     PreFac3B = -1.0*II*EpsB*Omega;
+     PreFac1B = SignB*II*MuB*Omega;
+     PreFac2B = -SignB*II*kB;
+     PreFac3B = -1.0*SignB*II*EpsB*Omega;
    };
 
   /***************************************************************/
   /* loop over all internal edges on both objects.               */
   /***************************************************************/
-  int nea, NEa=Oa->NumEdges;
-  int neb, NEb=Ob->NumEdges;
+  int nea, NEa=Sa->NumEdges;
+  int neb, NEb=Sb->NumEdges;
   int X, Y, Mu, nt=0;
   int NumGradientComponents = GradB ? 3 : 0;
   for(nea=0; nea<NEa; nea++)
@@ -165,7 +166,7 @@ void *ABMBThread(void *data)
       GetEEIArgs->k    = kA;
       GetEdgeEdgeInteractions(GetEEIArgs);
 
-      if ( OaIsPEC && ObIsPEC )
+      if ( SaIsPEC && SbIsPEC )
        { 
          X=RowOffset + nea;
          Y=ColOffset + neb;  
@@ -178,7 +179,7 @@ void *ABMBThread(void *data)
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
           dBdTheta[Mu]->SetEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
        }
-      else if ( OaIsPEC && !ObIsPEC )
+      else if ( SaIsPEC && !SbIsPEC )
        { 
          X=RowOffset + nea;
          Y=ColOffset + 2*neb;  
@@ -196,7 +197,7 @@ void *ABMBThread(void *data)
             dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
           };
        }
-      else if ( !OaIsPEC && ObIsPEC )
+      else if ( !SaIsPEC && SbIsPEC )
        {
          X=RowOffset + 2*nea;
          Y=ColOffset + neb;  
@@ -214,7 +215,7 @@ void *ABMBThread(void *data)
             dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
           };
        }
-      else if ( !OaIsPEC && !ObIsPEC )
+      else if ( !SaIsPEC && !SbIsPEC )
        { 
          X=RowOffset + 2*nea;
          Y=ColOffset + 2*neb;  
@@ -246,7 +247,7 @@ void *ABMBThread(void *data)
        }; // if ( OaIsPEC && ObIsPEC ) ... else ... 
 
       /*--------------------------------------------------------------*/
-      /*- contributions of second medium if objects are identical.    */
+      /*- contributions of second medium if present.                  */
       /*- note this case we already know we are in the fourth case    */
       /*- of the above if...else statement.                           */
       /*--------------------------------------------------------------*/
@@ -294,44 +295,60 @@ void *ABMBThread(void *data)
 /***************************************************************/
 void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
 { 
+  RWGGeometry *G = Args->G;
+  cdouble Omega = Args->Omega;
+
+  /*--------------------------------------------------------------*/
+  /*- make sure the cached epsilon and mu values for all regions  */
+  /*- are up-to-date for the present frequency                    */
+  /*--------------------------------------------------------------*/
+  G->UpdateCachedEpsMuValues(Omega);
+
   /***************************************************************/
-  /* look at the containership relation between the objects to   */
-  /* to figure out how to assign values to Sign, EpsA, MuA,      */
-  /* EpsB, MuB.                                                  */
-  /*                                                             */
-  /* note: EpsA, MuA are the material properties of the medium   */
-  /*       through which the two objects interact.               */
-  /*       if the two objects are identical, then EpsB, MuB are  */
-  /*       the material properties of the medium interior to the */
-  /*       object; otherwise, EpsB is set to 0.0.                */
+  /* figure out if the two surfaces have 0, 1, or 2 regions in   */
+  /* common.                                                     */
   /***************************************************************/
-  RWGGeometry *G=Args->G;
-  RWGObject *Oa=Args->Oa;
-  RWGObject *Ob=Args->Ob;
-  cdouble Omega=Args->Omega;
-  if ( Ob->ContainingObject == Oa )
-   { Args->Sign=-1.0;
-     Oa->MP->GetEpsMu(Omega, &(Args->EpsA), &(Args->MuA) );
+  RWGSurface  *Sa = Args->Sa;
+  RWGSurface  *Sb = Args->Sb;
+
+  int CommonRegions[2], NumCommonRegions=0;
+  double Signs[2];
+  if ( Sa->RegionIndices[0] == Sb->RegionIndices[0] )
+   { CommonRegions[nCommonRegions] = Sa->RegionIndices[0];
+     Signs[NumCommonRegions]=+1.0;
+     NumCommonRegions++;
    }
-  else if ( Oa->ContainingObject == Ob )
-   { Args->Sign=-1.0;
-     Ob->MP->GetEpsMu(Omega, &(Args->EpsA), &(Args->MuA) );
-   } 
-  else if ( Oa->ContainingObject == Ob->ContainingObject )
-   { Args->Sign=1.0;
-     if (Oa->ContainingObject==0)
-      G->ExteriorMP->GetEpsMu(Omega, &(Args->EpsA), &(Args->MuA) );
-     else 
-      Oa->ContainingObject->MP->GetEpsMu(Omega, &(Args->EpsA), &(Args->MuA) );
+  else if ( Sa->RegionIndices[0] == Sb->RegionIndices[1] )
+   { CommonRegions[NumCommonRegions] = Sa->RegionIndices[0];
+     NumCommonRegions++;
+   }
+  if ( Sa->RegionIndices[1] == Sb->RegionIndices[0] )
+   { CommonRegions[NumCommonRegions] = Sa->RegionIndices[1];
+     Signs[NumCommonRegions]=-1.0;
+     NumCommonRegions++;
+   }
+  else if ( Sa->RegionIndices[1] == Sb->RegionIndices[1] )
+   { CommonRegions[NumCommonRegions] = Sa->RegionIndices[1];
+     Signs[NumCommonRegions]=+1.0;
+     NumCommonRegions++;
    };
 
-  Args->OaIsPEC = Oa->MP->IsPEC();
-  Args->ObIsPEC = Ob->MP->IsPEC();
+  if (NumCommonRegions==0)
+   return;
 
-  if ( !(Args->OaIsPEC) && !(Args->ObIsPEC) && Oa==Ob ) 
-   Oa->MP->GetEpsMu(Omega, &(Args->EpsB), &(Args->MuB) );
+  Args->EpsA  = G->EpsTF[ CommonRegions[0] ];
+  Args->MuA   = G->MuTF[  CommonRegions[0] ];
+  Args->SignA = Signs[0];
+  if ( NumCommonRegions==2 && !(Sa->IsPEC) )
+   { Args->EpsB = G->EpsTF[ CommonRegions[1] ];
+     Args->MuB  = G->MuTF[  CommonRegions[1] ];
+     Args->SignB = Signs[1];
+   }
   else
-   Args->EpsB=0.0;
+   Args->EpsB = Args->MuB = Args->SignB = 0.0;
+
+  Args->SaIsPEC = Sa->IsPEC();
+  Args->SbIsPEC = Sb->IsPEC();
 
   /***************************************************************/
   /* fire off threads ********************************************/
@@ -382,7 +399,7 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /***************************************************************/
   /* 20120526 handle objects with finite surface conductivity    */
   /***************************************************************/
-  if ( (Args->Oa == Args->Ob) && (Args->Oa->SurfaceSigma!=0) )
+  if ( (Args->Sa == Args->Sb) && (Args->Sa->SurfaceSigma!=0) )
    AddSurfaceSigmaContributionToBEMMatrix(Args);
 
 }
@@ -395,9 +412,9 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (Args->Oa != Args->Ob) return;
-  RWGObject *O=Args->Oa;
-  if ( !(O->SurfaceSigma) ) return;
+  if (Args->Sa != Args->Sb) return;
+  RWGSurface *S=Args->Sa;
+  if ( !(S->SurfaceSigma) ) return;
  
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -420,14 +437,14 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
   RWGPanel *P;
   cdouble GZ;
   double Overlap;
-  for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
-   for(neBeta=neAlpha; neBeta<O->NumEdges; neBeta++)
+  for(neAlpha=0; neAlpha<S->NumEdges; neAlpha++)
+   for(neBeta=neAlpha; neBeta<S->NumEdges; neBeta++)
     { 
-      Overlap=O->GetOverlap(neAlpha, neBeta);
+      Overlap=S->GetOverlap(neAlpha, neBeta);
       if (Overlap==0.0) continue;
 
-      EAlpha=O->Edges[neAlpha];
-      EBeta=O->Edges[neBeta];
+      EAlpha=S->Edges[neAlpha];
+      EBeta=S->Edges[neBeta];
 
       // if there was a nonzero overlap, get the value 
       // of the surface conductivity at the centroid
@@ -439,26 +456,23 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
          SSParmValues[3] = EAlpha->Centroid[2];
        }
       else if ( (EAlpha->iPPanel==EBeta->iPPanel) || (EAlpha->iPPanel==EBeta->iMPanel) ) 
-       { P=O->Panels[EAlpha->iPPanel];
+       { P=S->Panels[EAlpha->iPPanel];
          SSParmValues[1] = P->Centroid[0];
          SSParmValues[2] = P->Centroid[1];
          SSParmValues[3] = P->Centroid[2];
        }
       else if ( (EAlpha->iMPanel==EBeta->iPPanel) || (EAlpha->iMPanel==EBeta->iMPanel) ) 
-       { P=O->Panels[EAlpha->iMPanel];
+       { P=S->Panels[EAlpha->iMPanel];
          SSParmValues[1] = P->Centroid[0];
          SSParmValues[2] = P->Centroid[1];
          SSParmValues[3] = P->Centroid[2];
        };
 
-      GZ=cevaluator_evaluate(O->SurfaceSigma, 4, SSParmNames, SSParmValues);
-
-if (neAlpha==0 && neBeta==0)
- Log("Object %s: Sigma (Omega=%s) is %s\n",O->Label,z2s(Args->Omega),z2s(GZ));
+      GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
 
       GZ*=ZVAC;
 
-      if ( O->MP->IsPEC() )
+      if ( S->IsPEC() )
        { B->AddEntry(Offset+neAlpha, Offset+neBeta, -2.0*Overlap/GZ);
          if (neAlpha!=neBeta)
           B->AddEntry(Offset+neBeta, Offset+neAlpha, -2.0*Overlap/GZ);
@@ -544,20 +558,20 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
   /* loop over all pairs of objects to assemble the diagonal and */
   /* above-diagonal blocks of the matrix                         */
   /***************************************************************/
-  int no, nop;
-  for(no=0; no<NumObjects; no++)
-   for(nop=no; nop<NumObjects; nop++)
+  int ns, nsp;
+  for(ns=0; ns<NumSurfaces; ns++)
+   for(nsp=ns; nsp<NumSurfaces; nsp++)
     { 
       if (LogLevel>=SCUFF_VERBOSELOGGING)
-       Log("  ...(%i,%i) block...",no,nop);
+       Log("  ...(%i,%i) block...",ns,nsp);
 
-      Args->Oa=Objects[no];
-      Args->RowOffset=BFIndexOffset[no];
+      Args->Sa=Surfaces[ns];
+      Args->RowOffset=BFIndexOffset[ns];
 
-      Args->Ob=Objects[nop];
-      Args->ColOffset=BFIndexOffset[nop];
+      Args->Sb=Surfaces[nsp];
+      Args->ColOffset=BFIndexOffset[nsp];
 
-      Args->Symmetric = (no==nop) ? 1 : 0;
+      Args->Symmetric = (ns==nsp) ? 1 : 0;
 
       AssembleBEMMatrixBlock(Args);
     };

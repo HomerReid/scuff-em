@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-2011 M. T. Homer Reid
+	/* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
  *
@@ -44,8 +44,8 @@ namespace scuff {
 /* file. (currently the only keyword supported for this section is     */
 /* MATERIAL xx).                                                       */
 /***********************************************************************/
-void ProcessMediumSectionInFile(FILE *f, char *FileName, int *LineNum, 
-                                char *ExteriorMPName)
+void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum, 
+                          char *ExteriorMPName)
 {
   char Line[MAXSTR];
   int NumTokens;
@@ -175,7 +175,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      if ( !strcasecmp(Tokens[0],"MEDIUM") )
       { 
         ExteriorMPName[0]=0;
-        ProcessMediumSectionInFile(f,GeoFileName,&LineNum,ExteriorMPName);
+        ProcessMEDIUMSection(f,GeoFileName,&LineNum,ExteriorMPName);
         if ( ExteriorMPName[0]!=0 )
          { ExteriorMP=new MatProp(ExteriorMPName);
            if ( ExteriorMP->ErrMsg )
@@ -207,6 +207,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         AddRegion(Tokens[1], Tokens[3]);
         if ( RegionMPs[NumRegions-1]->ErrMsg )
          ErrExit("%s:%i: %s\n",RegionMPs[NumRegions-1]->ErrMsg);
+
       }
      else if ( !strcasecmp(Tokens[0],"OBJECT") || !strcasecmp(Tokens[0],"SURFACE") )
       { 
@@ -252,8 +253,10 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   if (!ExteriorMP)
    ExteriorMP=new MatProp(MP_VACUUM);
 
-  // Autodetect nesting relationships & topologically sort
-  // (so that if A contains B, then B comes after A)
+  /*--------------------------------------------------------------*/
+  /* Autodetect nesting relationships & topologically sort        */
+  /* (so that if A contains B, then B comes after A)              */
+  /*--------------------------------------------------------------*/
   for (int no = 0; no < NumObjects; ++no)
     Objects[no]->InitkdPanels(false, LogLevel);
   for (int no = 1; no < NumObjects; ++no) {
@@ -306,6 +309,13 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
    { BFIndexOffset[no]=BFIndexOffset[no-1] + Objects[no-1]->NumBFs;
      PanelIndexOffset[no]=PanelIndexOffset[no-1] + Objects[no-1]->NumPanels;
    };
+
+  /***************************************************************/
+  /* allocate space for cached epsilon and mu values *************/
+  /***************************************************************/
+  StoredOmega=0.0;
+  EpsTF = (cdouble *)mallocEC(NumRegions * sizeof(cdouble));
+  MuTF  = (cdouble *)mallocEC(NumRegions * sizeof(cdouble));
 
   /***************************************************************/
   /* initialize Identical[][] and Mate[] arrays.                 */
@@ -371,38 +381,43 @@ RWGGeometry::~RWGGeometry()
 }
 
 /***************************************************************/
-/* return the object whose label is Label. if pno is non-NULL  */
-/* on entry, then on return it is set to the index of the      */
-/* object.                                                     */
+/* return the index of the region whose label is Label. (This  */
+/* index is between 0 and NumRegions-1, and is the index into  */
+/* the RegionLabels[] and RegionMPs[] arrays for the object    */
+/* in question.)                                               */
 /*                                                             */
-/* note: if the return value is NULL, then there are three     */
-/* possibilities:                                              */
-/*  (a) the Label string was NULL on entry                     */
-/*  (b) the Label string was "EXTERIOR" or "MEDIUM"            */
-/*  (c) the Label string was some non-empty string that did    */
-/*      not match the label of any object in the geometry.     */
-/*                                                             */
-/* you can tell which happened by looking at pno: in cases (a) */
-/* and (b) (medium was specified) then *pno==-1, whereas in    */
-/* case (c) (invalid object label) *pno==-2.                   */
+/* if there was no such region, -1 is returned.                */
 /***************************************************************/
-RWGObject *RWGGeometry::GetObjectByLabel(const char *Label, int *pno)
+int RWGGeometry::GetRegionByLabel(const char *Label)
 {
-  if (pno) *pno=-2;
+  if (Label==0)
+   return -1;
+  
+  for(int nr=0; nr<NumRegions; nr++)
+   if ( !strcasecmp(Label, RegionLabels[nr]) ) 
+    return nr;
+
+  return -1;
+}
+
+/***************************************************************/
+/* return the RWGSurface whose label is Label. if pns is       */
+/* non-NULL on entry, then on return it is set to the index of */
+/* RWGSurface. If no corresponding RWGSurface was found, then  */
+/* the return value is NULL and *pns is set to -1.             */
+/***************************************************************/
+RWGSurface *RWGGeometry::GetSurfaceByLabel(const char *Label, int *pns)
+{
+  if (pns) *pns=-1;
  
   if (Label==0)
-   { if (pno) *pno=-1;
-     return NULL;
-   };
+   return NULL;
   
-  for(int no=0; no<NumObjects; no++)
-   if ( !strcasecmp(Label, Objects[no]->Label) ) 
-    { if (pno) *pno = no;
-      return Objects[no];
+  for(int ns=0; ns<NumSurfaces; ns++)
+   if ( !strcasecmp(Label, Surfaces[ns]->Label) ) 
+    { if (pns) *pns = ns;
+      return Surfaces[ns];
     }
-
-  if (pno && (!strcasecmp(Label,"EXTERIOR") || !strcasecmp(Label,"MEDIUM")))
-    *pno = -1;
 
   return NULL;
 }
@@ -410,26 +425,26 @@ RWGObject *RWGGeometry::GetObjectByLabel(const char *Label, int *pno)
 /***************************************************************/
 /* Apply the specified GTComplex to transform the geometry.    */
 /* (Note that a 'GTComplex' is a list of GTransformations, each*/
-/* of which is applied to one specific object in the geometry.)*/
+/* of which is applied to one specific surface in the geometry.)*/
 /***************************************************************/
 void RWGGeometry::Transform(GTComplex *GTC)
 { 
-  int noa, WhichObject;
-  RWGObject *O;
+  int nsa, WhichSurface;
+  RWGSurface *S;
 
   // assume that no objects will be modified by this operation
   memset(ObjectMoved, 0, NumObjects*sizeof(int));
 
   // loop over the individual transformations in the complex
-  for(noa=0; noa<GTC->NumObjectsAffected; noa++)
+  for(nsa=0; nsa<GTC->NumSurfacesAffected; nsa++)
    { 
-     // find the object corresponding to the label for this transformation
-     O=GetObjectByLabel(GTC->ObjectLabel[noa], &WhichObject);
+     // find the surface corresponding to the label for this transformation
+     S=GetSurfaceByLabel(GTC->SurfaceLabel[nsa], &WhichSurface);
 
      // apply the transformation to that object
-     if (O) 
-      { O->Transform(GTC->GT + noa);
-        ObjectMoved[WhichObject]=1;
+     if (S) 
+      { S->Transform(GTC->GT + nsa);
+        SurfaceMoved[WhichSurface]=1;
       };
         
    };
@@ -441,9 +456,8 @@ void RWGGeometry::Transform(GTComplex *GTC)
 /***************************************************************/
 void RWGGeometry::UnTransform()
 { 
-  int no;
-  for(no=0; no<NumObjects; no++)
-   Objects[no]->UnTransform();
+  for(int ns=0; ns<NumSurfaces; ns++)
+   Surfaces[ns]->UnTransform();
 }
 
 /***************************************************************/
@@ -456,13 +470,13 @@ void RWGGeometry::UnTransform()
 /***************************************************************/
 char *RWGGeometry::CheckGTCList(GTComplex **GTCList, int NumGTCs)
 {
-  int ngtc, noa;
+  int ngtc, nsa;
   
   for(ngtc=0; ngtc<NumGTCs; ngtc++)
-   for (noa=0; noa<GTCList[ngtc]->NumObjectsAffected; noa++)
-    if (!GetObjectByLabel(GTCList[ngtc]->ObjectLabel[noa]))
-     return vstrdup("transformation requested for unknown object %s",
-                     GTCList[ngtc]->ObjectLabel[noa]);
+   for (nsa=0; nsa<GTCList[ngtc]->NumSurfacesAffected; nsa++)
+    if (!GetSurfaceByLabel(GTCList[ngtc]->SurfaceLabel[nsa]))
+     return vstrdup("transformation requested for unknown surface %s",
+                     GTCList[ngtc]->SurfaceLabel[nsa]);
 
   return 0;
 }
@@ -484,15 +498,11 @@ void RWGGeometry::SetLogLevel(int NewLogLevel)
 /***************************************************************/
 void RWGGeometry::SetEpsMu(const char *Label, cdouble Eps, cdouble Mu)
 { 
-  if ( Label==NULL || !strcasecmp(Label,"EXTERIOR") )
-   ExteriorMP->SetEpsMu(Eps, Mu); 
+  int nr=GetRegionByLabel(Label);
+  if (nr==-1)
+   Warn("unknown object %s specified in SetEpsMu() (ignoring)",Label);
   else
-   { RWGObject *O=GetObjectByLabel(Label);
-     if (O)
-      O->MP->SetEpsMu(Eps, Mu); 
-     else
-      Warn("unknown object %s specified in SetEpsMu() (ignoring)",Label);
-   };
+   RegionMPs[nr]->SetEpsMu(Eps, Mu);
 } 
 
 void RWGGeometry::SetEpsMu(cdouble Eps, cdouble Mu)
@@ -504,30 +514,21 @@ void RWGGeometry::SetEps(const char *Label, cdouble Eps)
 void RWGGeometry::SetEps(cdouble Eps)
 { SetEpsMu(0, Eps, 1.0); }
 
-
 /***************************************************************/
-/* Given an index ei into the overall list of edges, figure    */
-/* out which object edge #ei belongs to and get its index      */
-/* within the list of edges for that object. no error checking */
-/* to determine if ei is a valid edge index.                   */
+/* update the internally stored cache of epsilon and mu values */
+/* for a given frequency                                       */
 /***************************************************************/
-#if 0
-int RWGGeometry::GetObjectAndEdgeIndex(int ei, RWGObject **pO)
-{ 
-  RWGObject *O;
-  int no;
-
-  for (no=0; no<(NumObjects-1); no++)
-   if ( ei<EdgeIndexOffset[no+1] ) 
-    break;
-  if (pO) *pO=Objects[no];
-  return ei-EdgeIndexOffset[no];
-} 
-#endif
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-double RWGGeometry::SWPPITol = 1.0e-5;
+void RWGGeometry::UpdateCachedEpsMuValues(cdouble Omega)
+{
+  /*--------------------------------------------------------------*/
+  /*- update cached epsilon and mu values at this frequency if    */
+  /*- necessary                                                   */
+  /*--------------------------------------------------------------*/
+  if (Omega != StoredOmega )
+   { StoredOmega=Omega;
+     for(int nr=0; nr<NumRegions; nr++)
+      RegionMPs[nr]->GetEpsMu(Omega, &(EpsTF[nr]), &(MuTF[nr]) );
+   };
+}
 
 } // namespace scuff

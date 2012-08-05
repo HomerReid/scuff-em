@@ -142,7 +142,7 @@ int AssessPanelPair(double **Va, double **Vb)
 
 /***************************************************************/
 /* this routine gathers some information on the pair of panels */
-/* (Oa, npa) -- (Ob,npb).                                      */
+/* (Sa, npa) -- (Sb,npb).                                      */
 /*                                                             */
 /* on return from this routine,                                */
 /*  a) the return value is the # of common vertices (0,1,2,3)  */
@@ -156,19 +156,19 @@ int AssessPanelPair(double **Va, double **Vb)
 /*     (the pointers aren't necessarily equal, but the         */
 /*      three-vectors to which they point are equal.)          */
 /***************************************************************/
-int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
+int AssessPanelPair(RWGSurface *Sa, int npa, RWGSurface *Sb, int npb,
                     double *rRel, double **Va, double **Vb)
 {
-  RWGPanel *Pa=Oa->Panels[npa];
-  RWGPanel *Pb=Ob->Panels[npb];
+  RWGPanel *Pa=Sa->Panels[npa];
+  RWGPanel *Pb=Sb->Panels[npb];
 
-  Va[0] = Oa->Vertices + 3*Pa->VI[0];
-  Va[1] = Oa->Vertices + 3*Pa->VI[1];
-  Va[2] = Oa->Vertices + 3*Pa->VI[2];
+  Va[0] = Sa->Vertices + 3*Pa->VI[0];
+  Va[1] = Sa->Vertices + 3*Pa->VI[1];
+  Va[2] = Sa->Vertices + 3*Pa->VI[2];
 
-  Vb[0] = Ob->Vertices + 3*Pb->VI[0];
-  Vb[1] = Ob->Vertices + 3*Pb->VI[1];
-  Vb[2] = Ob->Vertices + 3*Pb->VI[2];
+  Vb[0] = Sb->Vertices + 3*Pb->VI[0];
+  Vb[1] = Sb->Vertices + 3*Pb->VI[1];
+  Vb[2] = Sb->Vertices + 3*Pb->VI[2];
 
   double DC, rRel2, rMax=fmax(Pa->Radius, Pb->Radius);
 
@@ -187,24 +187,24 @@ int AssessPanelPair(RWGObject *Oa, int npa, RWGObject *Ob, int npb,
 /* alternate entry point in which the caller wants only a      */
 /* subset of the full information returned by AssessPanelPair  */
 /***************************************************************/
-int AssessPanelPair(RWGObject *Oa, int npa, 
-                    RWGObject *Ob, int npb, 
+int AssessPanelPair(RWGSurface *Sa, int npa, 
+                    RWGSurface *Sb, int npb, 
                     double *rRel)
 { 
   double *Va[3], *Vb[3];
-  return AssessPanelPair(Oa, npa, Ob, npb, rRel, Va, Vb);
+  return AssessPanelPair(Sa, npa, Sb, npb, rRel, Va, Vb);
 } 
 
 /***************************************************************/
 /* this routine simply counts the number of common vertices    */
 /* without reordering the vertices                             */
 /***************************************************************/
-int NumCommonVertices(RWGObject *Oa, int npa, 
-                      RWGObject *Ob, int npb)
+int NumCommonVertices(RWGSurface *Sa, int npa, 
+                      RWGSurface *Sb, int npb)
 { 
   double rRel;
   double *Va[3], *Vb[3];
-  return AssessPanelPair(Oa, npa, Ob, npb, &rRel, Va, Vb);
+  return AssessPanelPair(Sa, npa, Sb, npb, &rRel, Va, Vb);
 } 
 
 /***************************************************************/
