@@ -1,4 +1,4 @@
-	/* Copyright (C) 2005-2011 M. T. Homer Reid
+/* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
  *
@@ -43,14 +43,15 @@ namespace scuff {
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
 /* file. (currently the only keyword supported for this section is     */
 /* MATERIAL xx).                                                       */
+/* note: this is legacy syntax for changing the material properties of */
+/* the exterior region; the modern way to do it would be to use a      */
+/* line like REGION Exterior MATERIAL SiC.                             */
 /***********************************************************************/
-void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum, 
-                          char *ExteriorMPName)
+void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
 {
   char Line[MAXSTR];
   int NumTokens;
   char *Tokens[MAXTOK];
-  ExteriorMPName[0]=0;
   while( fgets(Line,MAXSTR,f) )
    { 
      (*LineNum)++;
@@ -62,7 +63,10 @@ void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum,
       {
         if (NumTokens!=2)
          ErrExit("%s:%i: syntax error",FileName,*LineNum);
-        strncpy(ExteriorMPName,Tokens[1],MAXSTR);
+        RegionMPs[0] = new MatProp(Tokens[1]); 
+        if (RegionMPs[0]->ErrMsg)
+         ErrExit("%s:%i: %s",FileName,*LineNum,RegionMPs[0]->ErrMsg);
+        Log("Setting material properties of exterior region to %s.",Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"ENDMEDIUM") )
       { 
@@ -82,43 +86,39 @@ void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum,
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName)
+void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
 {
-  RegionLabels = (char **)reallocEC( (NumRegions+1)*sizeof(char *));
-  RegionLabels[NumRegions] = strdup(RegionLabel);
-  RegionMPs = (MatProp **)reallocEC( (NumRegions+1)*sizeof(MatProp *));
-  RegionMPs[NumRegions] = new MatProp(MaterialName);
-  NumRegions++;
+  int RegionID; 
+
+  /*--------------------------------------------------------------*/
+  /*- first check to see if the region label is 'Exterior', in   -*/
+  /*- which case we aren't adding a new region but just redefining*/
+  /*- the properties of the exterior region.                      */
+  /*--------------------------------------------------------------*/
+  if ( !strcasecmp(RegionLabel,"EXTERIOR") )
+   { 
+     RegionID = 0; 
+   }
+  else if ( !strcasecmp(RegionLabel,"PEC") )
+   { 
+     ErrExit("%s:%i: REGIONS cannot be PEC (use an OBJECT instead)",GeoFileName,LineNum);
+   }
+  else
+   { 
+     RegionLabels = (char **)reallocEC( RegionLabels, (NumRegions+1)*sizeof(char *));
+     RegionLabels[NumRegions] = strdup(RegionLabel);
+     RegionMPs = (MatProp **)reallocEC( RegionMPs, (NumRegions)*sizeof(MatProp *));
+     NumRegions++;
+
+     RegionID = NumRegions-1;
+   };
+
+  RegionMPs[RegionID] = new MatProp(MaterialName);
+  if ( RegionMPs[RegionID]->ErrMsg )
+   ErrExit("%s:%i: %s\n",GeoFileName,LineNum,RegionMPs[RegionID]->ErrMsg);
+
 }
 
-
-/***********************************************************************/
-/* subroutine to parse either an OBJECT...ENDOBJECT section or a       */
-/* SURFACE...ENDSURFACE section in a .scuffgeo file.                   */
-/*                                                                     */
-/* (IsObject=true for the former case, =false for the latter case).    */
-/*                                                                     */
-/* the two are similar, with a couple of distinctions:                 */
-/*                                                                     */
-/*  a) in the OBJECT case, if the user specifies the MATERIAL keyword, */
-/*     then we add a new Region to our internal list of Regions to     */
-/*     describe the interior of the specified object. (If no MATERIAL  */
-/*     is specified, or if MATERIAL=PEC, then we don't add a new region*/
-/*     for the object interior.)                                       */
-/*                                                                     */
-/*  b) in the SURFACE case, the user instead specifies the REGIONS     */
-/*     keyword, in which case the two specified region must refer to   */
-/*     regions that have already been defined using the REGION keyword.*/
-/*                                                                     */
-/* The handling of the DISPLACED, ROTATED, and SURFACE_CONDUCTIVITY    */
-/* keywords is the same in the two cases.                              */
-/***********************************************************************/
-void ProcessObjectOrSurfaceSection(FILE *f, char *FileName, 
-                                   int *LineNum, char *Label, bool IsObject)
-{
-  
-
-}
 
 /***********************************************************************/
 /***********************************************************************/
@@ -136,11 +136,15 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   LogLevel=pLogLevel;
   NumSurfaces=TotalPanels=TotalBFs=0;
   GeoFileName=strdup(pGeoFileName);
+  AllSurfacesClosed=1;
 
-  NumRegions=0;
-  RegionMPs=0; 
-  RegionLabels=0;
-  AddRegion("EXTERIOR", "VACUUM");
+  // we always start with a single Region, for the exterior,
+  // taken to be vacuum by default
+  NumRegions=1;
+  RegionLabels=(char **)mallocEC(1*sizeof(char *));
+  RegionLabels[0]=strdup("EXTERIOR");
+  RegionMPs=(MatProp **)mallocEC(1*sizeof(MatProp *));
+  RegionMPs[0] = new MatProp("VACUUM");
 
   /***************************************************************/
   /* try to open input file **************************************/
@@ -152,12 +156,11 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   /* read and process lines from input file one at a time        */
   /***************************************************************/
-  RWGObject *O=NULL;
-  char Line[MAXSTR], Label[MAXSTR];
+  RWGSurface *S, *SP;
+  char Line[MAXSTR];
   int LineNum=0; 
   int nTokens;
   char *Tokens[MAXTOK];
-  char ExteriorMPName[MAXSTR];
   while( fgets(Line,MAXSTR,f) )
    { 
      LineNum++;
@@ -174,13 +177,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      /*--------------------------------------------------------------*/
      if ( !strcasecmp(Tokens[0],"MEDIUM") )
       { 
-        ExteriorMPName[0]=0;
-        ProcessMEDIUMSection(f,GeoFileName,&LineNum,ExteriorMPName);
-        if ( ExteriorMPName[0]!=0 )
-         { ExteriorMP=new MatProp(ExteriorMPName);
-           if ( ExteriorMP->ErrMsg )
-            ErrExit("%s:%i: %s",GeoFileName,LineNum,ExteriorMP->ErrMsg);
-         };
+        ProcessMEDIUMSection(f,GeoFileName,&LineNum);
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       {
@@ -204,32 +201,53 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         /*--------------------------------------------------------------*/
         if ( nTokens!=4 || strcasecmp(Tokens[2],"MATERIAL") )
          ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
-        AddRegion(Tokens[1], Tokens[3]);
-        if ( RegionMPs[NumRegions-1]->ErrMsg )
-         ErrExit("%s:%i: %s\n",RegionMPs[NumRegions-1]->ErrMsg);
-
+        AddRegion(Tokens[1], Tokens[3], LineNum);
       }
      else if ( !strcasecmp(Tokens[0],"OBJECT") || !strcasecmp(Tokens[0],"SURFACE") )
       { 
-        if ( nTokens>2 )
-         ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
         if ( nTokens==2 )
-         S=new RWGSurface(f,Tokens[1],&LineNum, Tokens[0] );
-        else if ( nTokens==1 )
-        { snprintf(Label,MAXSTR,"Surface_%i",NumSurfaces+1);
-          S=new RWGSurface(f,Label,&LineNum);
+         S=new RWGSurface(f,Tokens[1],&LineNum,Tokens[0]);
+        else if (nTokens!=1)
+         ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
+        else
+         { 
+           char Label[MAXSTR];
+           snprintf(Label,MAXSTR,"Surface_%i",NumSurfaces+1);
+           S=new RWGSurface(f,Label,&LineNum, Tokens[0]);
          };
 
         if (S->ErrMsg)
          ErrExit("%s:%i: %s",GeoFileName,LineNum,S->ErrMsg); 
 
-        /* for an OBJECT, we need to add a new Region to our list of Regions */
-        /* for the interior of the object.                                   */
-        /* on the other hand, for a SURFACE, we need to check that the       */
-        /* REGIONS specified in the SURFACE...ENDSURFACE description         */
-        /* are regions that have been previously declared.                   */
         if ( S->IsObject )
-         { AddRegion(S->RegionLabels[1], S->MaterialName);
+         { 
+            /* for an OBJECT, if it is non-PEC, we need to add a new Region for  */
+            /* the region interior to the object. In this case, for now, we set  */
+            /* S->RegionLabels[0] = EXTERIOR and S->RegionLabels[1] = the label  */
+            /* specified for the object in question. We may subsequently need to */
+            /* change S->RegionLabels[0] (and S->RegionIndices[0]) to another    */
+            /* region if we detect that the object is embedded in another object.*/
+            S->RegionIndices[0] = 0;
+            if ( S->IsPEC )
+             S->RegionIndices[1] = -1;
+            else
+             { AddRegion(S->RegionLabels[1], S->MaterialName, S->MaterialRegionsLineNum );
+               S->RegionIndices[1] = NumRegions - 1 ;
+             };
+         }
+        else
+         { 
+           AllSurfacesClosed=0;
+
+           /* On the other hand, for a SURFACE, we need to check that the       */
+           /* REGIONS specified in the SURFACE...ENDSURFACE description         */
+           /* are regions that have been previously declared.                   */
+           for(int i=0; i<2; i++)
+            { S->RegionIndices[i] = GetRegionByLabel(S->RegionLabels[i]);
+              if (S->RegionIndices[i]==-1)
+               ErrExit("%s:%i: unknown region %s",GeoFileName,S->MaterialRegionsLineNum,S->RegionLabels[i]);
+            };
+         };
 
         NumSurfaces++;
         Surfaces=(RWGSurface **)realloc(Surfaces, NumSurfaces*sizeof(RWGSurface *) );
@@ -250,64 +268,84 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 
    }; // while( fgets(Line,MAXSTR,f) )
 
-  if (!ExteriorMP)
-   ExteriorMP=new MatProp(MP_VACUUM);
-
   /*--------------------------------------------------------------*/
   /* Autodetect nesting relationships & topologically sort        */
-  /* (so that if A contains B, then B comes after A)              */
+  /* (so that if A contains B, then B comes after A).             */
+  /* Note that the Contains() function and the autodetection of   */
+  /* containership relations is only applicable to CLOSED         */
+  /* surfaces; for OPEN surfaces there is no autodetection, and   */
+  /* we rely instead on the user to specify explicitly which      */
+  /* surfaces bound which regions.                                */
   /*--------------------------------------------------------------*/
-  for (int no = 0; no < NumObjects; ++no)
-    Objects[no]->InitkdPanels(false, LogLevel);
-  for (int no = 1; no < NumObjects; ++no) {
-    int noi = no;
-    O = Objects[no];
-    for (int nop = no-1; nop >= 0; --nop) { // innermost to outermost
-      if (Objects[nop]->Contains(O)) {
-	O->ContainingObject = Objects[nop];
-	break;
-      }
-      else if (O->Contains(Objects[nop])) {
-	noi = nop; // O must go at noi (or earlier) to be in topo. order
-      }
-    }
-    // insert object O at noi:
-    for (int nop = no; nop > noi; --nop) {
-	Objects[nop] = Objects[nop-1];
-	if (Objects[nop]->ContainingObject == O->ContainingObject
-	    && O->Contains(Objects[nop]))
-	  Objects[nop]->ContainingObject = O;
-    }
-    Objects[noi] = O;
-  }
+  for (int ns = 0; ns < NumSurfaces; ++ns)
+   Surfaces[ns]->InitkdPanels(false, LogLevel);
+  for (int ns = 1; ns < NumSurfaces; ++ns) 
+   { 
+     S=Surfaces[ns];
+     int NewSlotForS=-1;
+     for (int nsp = ns-1; nsp >= 0; --nsp) // innermost to outermost
+      { 
+        SP = Surfaces[nsp];
+        if ( SP->Contains(S) ) 
+         {
+           if (SP->IsPEC) 
+            ErrExit("%s: PEC object %s cannot contain object %s",GeoFileName,SP->Label,S->Label);
+
+	   // if SP contains S, then we set the exterior region for S to be
+	   // the interior region for SP.
+	   S->RegionIndices[0] = SP->RegionIndices[1];
+	   free(S->RegionLabels[0]);
+	   S->RegionLabels[0]=strdup(SP->RegionLabels[1]);
+	   break;
+         } 
+        else if ( S->Contains(SP) )
+         NewSlotForS = nsp;
+      };
+
+     if ( NewSlotForS != -1 )
+      {  
+        // for each surface between the current occupant of slot #NewSlotForS  
+        // and slot #ns, move the surface one slot forward in the array and
+        // adjust its region ID as necessary
+        for(int nsp = ns; nsp > NewSlotForS; --nsp) 
+         { 
+           Surfaces[nsp] = Surfaces[nsp-1];
+
+           SP = Surfaces[nsp];
+           if (    SP->RegionIndices[0] == S->RegionIndices[0] 
+                && S->Contains(SP) 
+              ) 
+            { 
+              if (S->IsPEC) 
+               ErrExit("%s: PEC object %s cannot contain object %s",GeoFileName,S->Label,SP->Label);
+              SP->RegionIndices[0] = S->RegionIndices[1];
+	      free(SP->RegionLabels[0]);
+	      SP->RegionLabels[0]=strdup(S->RegionLabels[1]);
+            };
+         };
+        Surfaces[NewSlotForS] = S;
+      };
+
+    }; // for(ns = 1 ...)
  
   /*******************************************************************/
   /* compute average panel area for statistical bookkeeping purposes */
   /*******************************************************************/
   AveragePanelArea=0.0; 
-  for(int no=0; no<NumObjects; no++)
-   for(int np=0; np<Objects[no]->NumPanels; np++)
-    AveragePanelArea+=Objects[no]->Panels[np]->Area;
+  for(int ns=0; ns<NumSurfaces; ns++)
+   for(int np=0; np<Surfaces[ns]->NumPanels; np++)
+    AveragePanelArea+=Surfaces[ns]->Panels[np]->Area;
   AveragePanelArea/=((double) TotalPanels);
-
-  /*******************************************************************/
-  /* set the AllPEC flag based on whether or not all material objects*/
-  /* are PEC bodies                                                  */
-  /*******************************************************************/
-  AllPEC=1;
-  for(int no=0; no<NumObjects && AllPEC; no++)
-   if ( !(Objects[no]->MP->IsPEC()) )
-    AllPEC=0;
 
   /***************************************************************/
   /* initialize arrays of basis-function and panel index offsets */
   /***************************************************************/
-  BFIndexOffset=(int *)mallocEC(NumObjects*sizeof(int) );
-  PanelIndexOffset=(int *)mallocEC(NumObjects*sizeof(int) );
+  BFIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
+  PanelIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
   BFIndexOffset[0]=PanelIndexOffset[0]=0;
-  for(int no=1; no<NumObjects; no++)
-   { BFIndexOffset[no]=BFIndexOffset[no-1] + Objects[no-1]->NumBFs;
-     PanelIndexOffset[no]=PanelIndexOffset[no-1] + Objects[no-1]->NumPanels;
+  for(int ns=1; ns<NumSurfaces; ns++)
+   { BFIndexOffset[ns]=BFIndexOffset[ns-1] + Surfaces[ns-1]->NumBFs;
+     PanelIndexOffset[ns]=PanelIndexOffset[ns-1] + Surfaces[ns-1]->NumPanels;
    };
 
   /***************************************************************/
@@ -318,45 +356,52 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   MuTF  = (cdouble *)mallocEC(NumRegions * sizeof(cdouble));
 
   /***************************************************************/
-  /* initialize Identical[][] and Mate[] arrays.                 */
+  /* initialize Mate[] array.                                    */
   /*                                                             */
   /* how it works:                                               */
   /*                                                             */
-  /* (1) two objects are considered identical if                 */
-  /*     (a) they have the same mesh file, and                   */
-  /*     (b) they have the same material properties (i.e. they   */
-  /*         were given identical values for the MATERIAL        */
-  /*         keyword in the .rwggeo file.)                       */
+  /* (1) two surfaces are considered identical if                */
+  /*     (a) they were read in from the same physical region of  */
+  /*         the same mesh file, and                             */
+  /*     (b) the two regions they bound have the same material   */
+  /*         properties.                                         */
   /*                                                             */
-  /* (2) Identical[][] array: We set Identical[i][j] = 1 if      */
-  /*                          objects i and j are identical, =0  */
-  /*                          otherwise.                         */
-  /*                                                             */
-  /* (3) Mate[] array: If objects i, j, k, ... are identical and */
+  /* (2) Mate[] array: If surfaces i, j, k, ... are identical and*/
   /*                   i<j<k<..., then we set                    */
   /*                   Mate[i] = -1                              */
   /*                   Mate[j] = i                               */
   /*                   Mate[k] = i                               */
   /***************************************************************/
-  Mate=(int *)mallocEC(NumObjects*sizeof(int));
+  Mate=(int *)mallocEC(NumSurfaces*sizeof(int));
   Mate[0]=-1;
-  for(int no=1; no<NumObjects; no++)
-   { Mate[no]=-1;
-     for(int nop=0; nop<no && Mate[no]==-1; nop++)
-      if (    !strcmp(Objects[no]->MeshFileName, Objects[nop]->MeshFileName)
-           && !strcmp(Objects[no]->MP->Name    , Objects[nop]->MP->Name)
-         ) 
-       Mate[no]=nop;
+  for(int ns=1; ns<NumSurfaces; ns++)
+   { S=Surfaces[ns];
+     Mate[ns]=-1;
+     int nr1=S->RegionIndices[0];
+     int nr2=S->RegionIndices[1];
+     for(int nsp=0; nsp<ns && Mate[ns]==-1; nsp++)
+      { SP=Surfaces[nsp];
+        int nr1p=SP->RegionIndices[0];
+        int nr2p=SP->RegionIndices[1];
+        if (    ( !strcmp(S->MeshFileName, SP->MeshFileName)           )
+             && ( S->PhysicalRegion == SP->PhysicalRegion              )
+             && ( !strcmp(RegionMPs[nr1]->Name, RegionMPs[nr1p]->Name) )
+             && (   (S->IsPEC && SP->IsPEC)
+                 || (!S->IsPEC && !SP->IsPEC && !strcmp(RegionMPs[nr2]->Name, RegionMPs[nr2p]->Name) )
+                )
+           ) 
+         Mate[ns]=nsp;
+      };
    };
 
   /***************************************************************/
-  /* initialize ObjectMoved[] array.                             */
+  /* initialize SurfaceMoved[] array.                            */
   /* the values of this array are only defined after             */
   /* a call to the RWGGeometry::Transform() function, when we    */
-  /* have ObjectMoved[i]=1 if the ith object was modified by     */
+  /* have SurfaceMoved[i]=1 if the ith surface was modified by   */
   /* the transformation.                                         */
   /***************************************************************/
-  ObjectMoved=(int *)mallocEC(NumObjects*sizeof(int));
+  SurfaceMoved=(int *)mallocEC(NumSurfaces*sizeof(int));
 
 }
 
@@ -365,17 +410,26 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 /***************************************************************/
 RWGGeometry::~RWGGeometry()
 {
-  int no;
+  int ns;
 
-  for(no=0; no<NumObjects; no++)
-   delete Objects[no];
+  for(int ns=0; ns<NumSurfaces; ns++)
+   delete Surfaces[ns];
 
-  free(Objects);
+  free(Surfaces);
+
+  for(int nr=0; nr<NumRegions; nr++)
+   { delete RegionMPs[nr];
+     free(RegionLabels[nr]); 
+   };
+  free(RegionMPs);
+  free(RegionLabels);
 
   free(BFIndexOffset);
   free(PanelIndexOffset);
+  free(EpsTF);
+  free(MuTF);
   free(Mate);
-  free(ObjectMoved);
+  free(SurfaceMoved);
   free(GeoFileName);
 
 }
@@ -403,7 +457,7 @@ int RWGGeometry::GetRegionByLabel(const char *Label)
 /***************************************************************/
 /* return the RWGSurface whose label is Label. if pns is       */
 /* non-NULL on entry, then on return it is set to the index of */
-/* RWGSurface. If no corresponding RWGSurface was found, then  */
+/* the RWGSurface. If no corresponding RWGSurface was found,   */
 /* the return value is NULL and *pns is set to -1.             */
 /***************************************************************/
 RWGSurface *RWGGeometry::GetSurfaceByLabel(const char *Label, int *pns)
@@ -433,7 +487,7 @@ void RWGGeometry::Transform(GTComplex *GTC)
   RWGSurface *S;
 
   // assume that no objects will be modified by this operation
-  memset(ObjectMoved, 0, NumObjects*sizeof(int));
+  memset(SurfaceMoved, 0, NumSurfaces*sizeof(int));
 
   // loop over the individual transformations in the complex
   for(nsa=0; nsa<GTC->NumSurfacesAffected; nsa++)
@@ -464,7 +518,7 @@ void RWGGeometry::UnTransform()
 /* Quick sanity check to make sure that a given list of        */
 /* GTComplex structures actually makes sense for the given     */
 /* geometry, which is to say that it doesn't request           */
-/* transformations on any objects that don't exist in the      */
+/* transformations on any surfaces that don't exist in the     */
 /* geometry.                                                   */
 /* Returns 0 if the check passed, or an error message if not.  */
 /***************************************************************/

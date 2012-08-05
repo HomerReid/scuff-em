@@ -285,17 +285,17 @@ extern FIPPICache GlobalFIPPICache;
 int AssessPanelPair(double **Va, double **Vb, double rMax);
 int AssessPanelPair(double **Va, double **Vb);
 
-int AssessPanelPair(RWGObject *Oa, int npa, 
-                    RWGObject *Ob, int npb,
+int AssessPanelPair(RWGSurface *Sa, int npa, 
+                    RWGSurface *Sb, int npb,
                     double *rRel, 
                     double **Va, double **Vb);
 
-int AssessPanelPair(RWGObject *Oa, int npa, 
-                    RWGObject *Ob, int npb,
+int AssessPanelPair(RWGSurface *Sa, int npa, 
+                    RWGSurface *Sb, int npb,
                     double *rRel);
 
-int NumCommonVertices(RWGObject *Oa, int npa, 
-                      RWGObject *Ob, int npb);
+int NumCommonVertices(RWGSurface *Sa, int npa, 
+                      RWGSurface *Sb, int npb);
 
 int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
                              double **OVa, double **OVb);

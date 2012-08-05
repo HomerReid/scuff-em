@@ -12,7 +12,7 @@ CPPFLAGS += -I$(SCUFFEM)/src/libs/libTriInt
 CPPFLAGS += -I$(SCUFFEM)/src/libs/libMatProp
 CPPFLAGS += -I$(SCUFFEM)/src/libs/libMatProp/cmatheval
 CPPFLAGS += -I$(SCUFFEM)/src/libs/libMDInterp
-CPPFLAGS += -I$(SCUFFEM)/src/libs/libIncField
+CPPFLAGS += -I.
 CXXFLAGS += -fopenmp
 
 LDFLAGS  += -L$(SCUFFEM)/src/libs/libhrutil/.libs
@@ -22,7 +22,6 @@ LDFLAGS  += -L$(SCUFFEM)/src/libs/libTriInt/.libs
 LDFLAGS  += -L$(SCUFFEM)/src/libs/libMatProp/.libs
 CPPFLAGS += -I$(SCUFFEM)/src/libs/libMatProp/cmatheval/.libs
 LDFLAGS  += -L$(SCUFFEM)/src/libs/libMDInterp/.libs
-LDFLAGS  += -L$(SCUFFEM)/src/libs/libIncField/.libs
 
 HR_LIBS = -lhrutil -lMatProp -lMDInterp -lTriInt -lSGJC -lhmat
 
@@ -57,14 +56,14 @@ QIFIPPITaylorDuffy.o		\
 ReadComsolFile.o		\
 ReadGMSHFile.o			\
 RWGGeometry.o			\
-RWGObject.o			\
+RWGSurface.o			\
 rwlock.o			\
 scuffMisc.o			\
 TaylorDuffy.o			\
 Visualize.o			\
 
-test:      	test.o libscuff.a
-		$(CXX) $(LDFLAGS) -o $@ test.o libscuff.a $(LIBS)
+tlibscuff:     	tlibscuff.o libscuff.a
+		$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 libscuff.a:	$(LS_OBJS)
 		ar r $@ $^

@@ -19,9 +19,9 @@
 
 /*
  * RWGSurface.cc -- implementation of some methods in the RWGSurface
- *               -- class 
+ *               -- class (this is the class formerly known as RWGObject)
  *
- * homer reid    -- 3/2007 
+ * homer reid    -- 3/2007
  */
 
 #include <stdio.h>
@@ -43,8 +43,8 @@ namespace scuff {
 
 /*--------------------------------------------------------------*/
 /*-  RWGSurface class constructor that begins reading an open  -*/
-/*-  file immediately after a line like OBJECT MyObjectLabel   -*/
-/*-  or SURFACE MySurfaceLabel.                                -*/
+/*-  .scuffgeo file immediately after a line like either       -*/ 
+/*   OBJECT MyObjectLabel or SURFACE MySurfaceLabel.           -*/
 /*-                                                            -*/
 /*-  (Keyword is either "OBJECT" or "SURFACE.")                -*/
 /*-                                                            -*/
@@ -60,10 +60,11 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 { 
   ErrMsg=0;
   SurfaceSigma=0;
-
+  PhysicalRegion=-1;
+  MeshFileName=0;
   Label = strdup(pLabel);
 
-  if ( !strcasecmp(Which, "OBJECT") )
+  if ( !strcasecmp(Keyword, "OBJECT") )
    IsObject=1;
   else
    IsObject=0;
@@ -73,14 +74,12 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   /***************************************************************/
   char Line[MAXSTR], LineCopy[MAXSTR];
   char Region1[MAXSTR], Region2[MAXSTR];
-  char MaterialName[MAXSTR];
   int NumTokens, TokensConsumed;
   char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
-  char *pMeshFileName=0;
   GTransformation *OTGT=0; // 'one-time geometrical transformation'
-  MaterialName[0]=0;
-  int PhysicalRegion=-1;
+  MaterialName=0;
+  RegionLabels[0]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
      /*--------------------------------------------------------------*/
@@ -100,16 +99,15 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
          { ErrMsg=strdup("MESHFILE keyword requires one argument");
            return;
          };
-        pMeshFileName=strdup(Tokens[1]);
+        MeshFileName=strdup(Tokens[1]);
       }
-     if ( !strcasecmp(Tokens[0],"PHYSICAL_REGION") )
+     else if ( !strcasecmp(Tokens[0],"PHYSICAL_REGION") )
       { if (NumTokens!=2)
          { ErrMsg=strdup("PHYSICAL_REGION keyword requires one argument");
            return;
          };
-        sscanf(Tokens[1],&PhysicalRegion);
+        sscanf(Tokens[1],"%i",&PhysicalRegion);
       }
-
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       { 
         if (!IsObject)
@@ -123,6 +121,9 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         MaterialName = strdup(Tokens[1]);
         RegionLabels[0] = strdup("EXTERIOR");
         RegionLabels[1] = strdup(Label);
+        MaterialRegionsLineNum = *LineNum;
+        if ( !strcasecmp(MaterialName,"PEC") )
+         IsPEC=1;
       }
      else if ( !strcasecmp(Tokens[0],"REGIONS") )
       { 
@@ -134,20 +135,23 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
          { ErrMsg=strdup("REGIONS keyword requires two arguments");
            return;
          };
+        IsPEC=0;
         RegionLabels[0] = strdup(Tokens[1]);
         RegionLabels[1] = strdup(Tokens[2]);
+        MaterialRegionsLineNum = *LineNum;
       }
      else if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"ROTATED") )
       { 
         // try to parse the line as a geometrical transformation.
         // note that OTGT is used as a running GTransformation that may
         // be augmented by multiple DISPLACED ... and/or ROTATED ...
-        // lines within the OBJECT...ENDOBJECT section, and which is 
-        // applied to the object at its birth and subsequently discarded.
+        // lines within the OBJECT...ENDOBJECT or SURFACE...ENDSURFACE section, 
+        // and which is applied to the object at its birth and subsequently 
+        // discarded.
         // in particular, OTGT is NOT stored as the 'GT' field inside 
-        // the Surface class, which is intended to be used for 
+        // the RWGSurface class, which is intended to be used for
         // transformations that are applied and later un-applied 
-        // during the life of the object.
+        // during the life of the object/surface.
         if (OTGT)
 	 { GTransformation *OTGT2 = new GTransformation(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
            if (ErrMsg)
@@ -155,7 +159,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 
            OTGT->Transform(OTGT2);
            delete OTGT2;
- // 20120701 why is this not the right thing to do? apparently it isn't, but dunno why.
+ // 20120701 why is this not the right thing to do? apparently it isn't, but i dunno why.
  //          OTGT2->Transform(OTGT);
  //          delete OTGT;
  //          OTGT=OTGT2;
@@ -188,40 +192,56 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
            return;
          };
       }
-     else if ( !strcasecmp(Tokens[0],"ENDOBJECT") )
+     else if (   !strcasecmp(Tokens[0],"ENDOBJECT") || !strcasecmp(Tokens[0],"ENDSURFACE") )
       { 
         ReachedTheEnd=1;
       }
      else
-      { ErrMsg=vstrdup("unknown keyword %s in %s section",Keyword);
+      { ErrMsg=vstrdup("unknown keyword %s in %s section",Tokens[0],Keyword);
         return;
       };
    }; 
 
-  if (pMeshFileName==0)
-   ErrMsg=vstrdup("%s section must include a MESHFILE specification",Keyword,Tokens[0]);
+  if (MeshFileName==0)
+   { ErrMsg=vstrdup("%s section must include a MESHFILE specification",Keyword,Tokens[0]);
+     return;
+   };
 
   if (SurfaceSigma!=0)
    Log("Surface %s has surface conductivity Sigma=%s.\n",Label,cevaluator_get_string(SurfaceSigma));
 
-  InitRWGSurface(pMeshFileName, OTGT);
-  
-  free(pMeshFileName);
+  // if we are an OBJECT and there was no MATERIAL specification,
+  // then we consider ourselves to be PEC.
+  if ( IsObject && RegionLabels[0]==0 )
+   { IsPEC=1;
+     RegionLabels[0] = strdup("EXTERIOR");
+     RegionLabels[1] = strdup("PEC");
+   };
 
+  // on the other hand, if we are a SURFACE and there was no REGIONS specification,
+  // then we call that an error.
+  if ( !IsObject && RegionLabels[0]==0 )
+   { ErrMsg=vstrdup("%s section must include a REGIONS specification",Keyword);
+     return;
+   };
+
+  // ok, all checks passed, now on to the main body of the class constructor.
+  InitRWGSurface(OTGT);
+  
 }
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- Actual body of RWGSurface constructor: Create an RWGSurface   */
+/*- Main body of RWGSurface constructor: Create an RWGSurface   */
 /*- from a mesh file describing a discretized object,           */
 /*- optionally with a rotation and/or displacement applied.     */
 /*-                                                             */
-/*- This routine assumes that the following fields have already */
-/*- been initialized: Label, Material, and SurfaceSigma.        */
+/*- This routine assumes that the following internal class      */
+/*- fields have been initialized: MeshFileName, PhysicalRegion, */
+/*- Label, SurfaceSigma, and IsPEC.                             */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void RWGSurface::InitRWGSurface(const char *pMeshFileName,
-                              const GTransformation *OTGT)
+void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
 { 
   ErrMsg=0;
   kdPanels = NULL;
@@ -229,16 +249,14 @@ void RWGSurface::InitRWGSurface(const char *pMeshFileName,
   /*------------------------------------------------------------*/
   /*- try to open the mesh file.                                */
   /*------------------------------------------------------------*/
-  FILE *MeshFile=fopen(pMeshFileName,"r");
+  FILE *MeshFile=fopen(MeshFileName,"r");
   if (!MeshFile)
-   ErrExit("could not open file %s",pMeshFileName);
+   ErrExit("could not open file %s",MeshFileName);
    
   /*------------------------------------------------------------*/
   /*- initialize simple fields ---------------------------------*/
   /*------------------------------------------------------------*/
   NumEdges=NumPanels=NumVertices=NumRefPts=0;
-  ContainingSurface=0;
-  MeshFileName=strdup(pMeshFileName);
 
   /*------------------------------------------------------------*/
   /*- note: the 'OTGT' parameter to this function is distinct   */
@@ -246,7 +264,7 @@ void RWGSurface::InitRWGSurface(const char *pMeshFileName,
   /*- an optional 'One-Time Geometrical Transformation' to be   */
   /*- applied to the object once at its creation. the latter    */
   /*- is designed to store a subsequent transformation that may */
-  /*- be applied to the object, and is initialized to zero.     */
+  /*- be applied to the surface , and is initialized to zero.   */
   /*------------------------------------------------------------*/
   GT=0;
 
@@ -259,11 +277,24 @@ void RWGSurface::InitRWGSurface(const char *pMeshFileName,
   if (!p)
    ErrExit("file %s: invalid extension",MeshFileName);
   else if (!strcasecmp(p,"msh"))
-   ReadGMSHFile(MeshFile,MeshFileName,OTGT);
+   ReadGMSHFile(MeshFile,MeshFileName,OTGT,PhysicalRegion);
   else if (!strcasecmp(p,"mphtxt"))
-   ReadComsolFile(MeshFile,MeshFileName,OTGT);
+   { if ( PhysicalRegion != -1 )
+      ErrExit("PHYSICAL_REGION is not yet implemented for .mphtxt files");
+     ReadComsolFile(MeshFile,MeshFileName,OTGT);
+   }
   else
    ErrExit("file %s: unknown extension %s",MeshFileName,p);
+
+  /*------------------------------------------------------------*/
+  /*------------------------------------------------------------*/
+  /*------------------------------------------------------------*/
+  if (NumPanels==0)
+   { if ( PhysicalRegion == -1 ) 
+      ErrExit("file %s: no panels found",MeshFileName);
+     else
+      ErrExit("file %s: no panels found on physical region %i",MeshFileName,PhysicalRegion);
+   };
 
   /*------------------------------------------------------------*/
   /*- Now that we have put the panels in an array, go through  -*/
@@ -285,8 +316,8 @@ void RWGSurface::InitRWGSurface(const char *pMeshFileName,
   /*- if it is a perfect electrical conductor, or 2 times the   */
   /*- number of internal edges otherwise.                       */
   /*------------------------------------------------------------*/
-  IsPEC = MP->IsPEC();
   NumBFs = IsPEC ? NumEdges : 2*NumEdges;
+  IsClosed = (NumExteriorEdges == 0);
 
 } 
 
@@ -294,10 +325,14 @@ void RWGSurface::InitRWGSurface(const char *pMeshFileName,
 /*--------------------------------------------------------------*/
 /*- Alternative RWGSurface constructor: Create an RWGSurface    */
 /*- from lists of vertices and panels.                          */
+/*-                                                             */
+/*- HR 20120703 i am not going to bother to maintain this       */
+/*-             anymore until somebody has a use for it.        */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
+#if 0
 RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
-                     int **PanelVertexIndices, int pNumPanels)
+                       int **PanelVertexIndices, int pNumPanels)
 { 
   int np;
 
@@ -333,6 +368,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   IsPEC = MP->IsPEC();
   NumBFs = IsPEC ? NumEdges : 2*NumEdges;
 } 
+#endif
 
 /***************************************************************/
 /* RWGSurface destructor.                                       */
@@ -355,7 +391,6 @@ RWGSurface::~RWGSurface()
    free(ExteriorEdges[ne]);
   free(ExteriorEdges);
 
-  // insert code to deallocate BCEdges
   int nbc;
   for(nbc=0; nbc<NumBCs; nbc++)
    free(BCEdges[nbc]);
@@ -363,11 +398,14 @@ RWGSurface::~RWGSurface()
   if (NumBCEdges) free(NumBCEdges);
   free(WhichBC);
 
-  delete MP;
-
   if (MeshFileName) free(MeshFileName);
   if (Label) free(Label);
+  if (ErrMsg) free(ErrMsg);
   if (GT) delete GT;
+
+  if (MaterialName) free(MaterialName);
+  if (RegionLabels[0]) free(RegionLabels[0]);
+  if (RegionLabels[1]) free(RegionLabels[1]);
 
   kdtri_destroy(kdPanels);
 }

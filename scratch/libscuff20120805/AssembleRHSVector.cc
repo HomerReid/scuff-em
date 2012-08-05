@@ -157,6 +157,7 @@ void GetInnerProducts(RWGSurface *S, int ne,
    }
   else
    { // TODO: add edge contribution 
+     memset(IM, 0, 4*sizeof(cdouble));
    };
 
   /* total integral is difference between pos and neg pan integrals */
@@ -215,11 +216,11 @@ void *AssembleRHS_Thread(void *data)
   /* loop over all surfaces to get contributions to RHS vector   */
   /***************************************************************/
   RWGSurface *S;
-  int no, ne, Offset, IsPEC;
+  int ne, Offset, IsPEC;
   int nt=0;
   cdouble EProd, HProd;
   IncField *IF;
-  for(ns=0; ns<G->NumSurfaces; ns++)
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      S=G->Surfaces[ns];
      Offset=G->BFIndexOffset[ns];
@@ -250,7 +251,7 @@ void *AssembleRHS_Thread(void *data)
      /*- Loop over all basis functions (edges) on this object to get-*/
      /*- each BF's contribution to the RHS.                         -*/
      /*--------------------------------------------------------------*/
-     for(ne=0; ne<O->NumEdges; ne++)
+     for(ne=0; ne<S->NumEdges; ne++)
       { 
         nt++;
         if (nt==TD->NumTasks) nt=0;
@@ -329,7 +330,7 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
   NumTasks=NumThreads*100;
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
-  for(nt=0; nt<nTask; nt++)
+  for(nt=0; nt<NumTasks; nt++)
    { 
      ThreadData TD1;
      memcpy(&TD1, &ReferenceTD, sizeof(ThreadData));
@@ -369,9 +370,10 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega)
   /*- epsilon and mu values for each structure depending on the  -*/
   /*- region in which its sources are contained                  -*/
   /*--------------------------------------------------------------*/
+  int NIF;
   IncField *IF;
   double X[3];
-  for (int NIF=0, IF=IFList; IF; NIF++, IF=IF->Next) 
+  for (NIF=0, IF=IFList; IF; NIF++, IF=IF->Next) 
    {
      /*--------------------------------------------------------------*/
      /*- first get the index of the object containing the field     -*/

@@ -67,13 +67,13 @@ namespace scuff {
 /* this is a helper function for GetOverlaps that computes the */
 /* contributions of a single panel to the overlap integrals    */
 /***************************************************************/
-void AddOverlapContributions(RWGObject *O, RWGPanel *P, int iQa, int iQb, 
+void AddOverlapContributions(RWGSurface *S, RWGPanel *P, int iQa, int iQb, 
                              double Sign, double LL, double *Overlaps)
 {
-  double *Qa   = O->Vertices + 3*P->VI[ iQa ];
-  double *QaP1 = O->Vertices + 3*P->VI[ (iQa+1)%3 ];
-  double *QaP2 = O->Vertices + 3*P->VI[ (iQa+2)%3 ];
-  double *Qb   = O->Vertices + 3*P->VI[ iQb ];
+  double *Qa   = S->Vertices + 3*P->VI[ iQa ];
+  double *QaP1 = S->Vertices + 3*P->VI[ (iQa+1)%3 ];
+  double *QaP2 = S->Vertices + 3*P->VI[ (iQa+2)%3 ];
+  double *Qb   = S->Vertices + 3*P->VI[ iQb ];
   double *ZHat = P->ZHat;
 
   double A[3], B[3], DQ[3];
@@ -133,7 +133,7 @@ void AddOverlapContributions(RWGObject *O, RWGPanel *P, int iQa, int iQb,
 /*  [5,6,7]  = like [2,3,4] but with x-->y                     */
 /*  [8,9,10] = like [2,3,4] but with x-->z                     */
 /***************************************************************/
-void RWGObject::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
+void RWGSurface::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
 {
   RWGEdge *EAlpha = Edges[neAlpha];
   RWGEdge *EBeta  = Edges[neBeta];
@@ -165,7 +165,7 @@ void RWGObject::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
 /* the simple overlap integral and sets *pOTimes = crossed       */
 /* overlap integral if it is non-NULL                            */
 /*****************************************************************/
-double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
+double RWGSurface::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 {
   double Overlaps[NUMOVERLAPS];
   GetOverlaps(neAlpha, neBeta, Overlaps);
@@ -194,10 +194,10 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 /* overlap matrices, and then only if it non-null; if ExteriorMP */
 /* is null then the exterior medium is assumed to be vacuum.     */
 /*****************************************************************/
-void RWGObject::GetOverlapMatrices(int *NeedMatrix,
-                                   SMatrix **SArray,
-                                   cdouble Omega,
-                                   MatProp *ExteriorMP)
+void RWGSurface::GetOverlapMatrices(int *NeedMatrix,
+                                    SMatrix **SArray,
+                                    cdouble Omega,
+                                    MatProp *ExteriorMP)
 {
   int NR  = NumBFs;
 
@@ -208,7 +208,6 @@ void RWGObject::GetOverlapMatrices(int *NeedMatrix,
   /*- (including itself), which gives 10 if we have both electric */
   /*- and magnetic currents.                                      */
   /*--------------------------------------------------------------*/
-  int IsPEC = (MP->Type==MP_PEC);
   int nnz = IsPEC ? 5 : 10;
 
   /*--------------------------------------------------------------*/
@@ -326,45 +325,45 @@ void RWGObject::GetOverlapMatrices(int *NeedMatrix,
 }
 
 /***************************************************************/
-/* get power, force, and torque on an object                   */
+/* get power, force, and torque on a surface                   */
 /***************************************************************/
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                         int ObjectIndex, double PFT[8])
+                         int SurfaceIndex, double PFT[8])
 {
-  if (ObjectIndex<0 || ObjectIndex>=NumObjects)
-   { Warn("invalid object index passed to GetPFT",ObjectIndex);
+  if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
+   { Warn("invalid surface index passed to GetPFT",SurfaceIndex);
      memset(PFT, 0, 8*sizeof(double));
      return;
    };
 
-  RWGObject *O=Objects[ObjectIndex];
+  RWGSurface *S=Surfaces[SurfaceIndex];
+  int Offset=BFIndexOffset[SurfaceIndex];
 
   /*--------------------------------------------------------------*/
   /*- we need the material properties of the exterior medium for -*/
   /*- force and torque calculations                              -*/
   /*--------------------------------------------------------------*/
-  cdouble Eps, Mu;
-  ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
+  UpdateCachedEpsMuValues(Omega);
+  cdouble Eps = EpsTF[ S->RegionIndices[0] ];
+  cdouble Mu  = MuTF[  S->RegionIndices[0] ];
   cdouble Z  = ZVAC*sqrt(Mu/Eps);
   cdouble K2 = Eps*Mu*Omega*Omega;
 
   /*--------------------------------------------------------------*/
   /*- sum contributions of all edges -----------------------------*/
   /*--------------------------------------------------------------*/
-  int IsPEC = O->MP->IsPEC() ? 1 : 0;
-  int Offset=BFIndexOffset[O->Index];
   int neAlpha, neBeta;
   cdouble KAlpha, KBeta, NAlpha, NBeta, vEAlpha, vHAlpha;
   cdouble M11, M12, M21, M22;
   double Overlaps[NUMOVERLAPS];
   memset(PFT, 0, 8*sizeof(double));
-  for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
-   for(neBeta=0; neBeta<O->NumEdges; neBeta++)
+  for(neAlpha=0; neAlpha<S->NumEdges; neAlpha++)
+   for(neBeta=0; neBeta<S->NumEdges; neBeta++)
     { 
-      O->GetOverlaps(neAlpha, neBeta, Overlaps);
+      S->GetOverlaps(neAlpha, neBeta, Overlaps);
       if (Overlaps[0]==0.0) continue;
 
-      if (IsPEC) 
+      if (S->IsPEC) 
        { KAlpha  = KN->GetEntry( Offset + neAlpha );
          KBeta   = KN->GetEntry( Offset + neBeta  );
          vEAlpha = RHS ? -ZVAC*RHS->GetEntry(Offset + neAlpha) : 0.0;
@@ -431,21 +430,21 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
 
 /***************************************************************/
 /* alternative interface to GetPFT in which the caller         */
-/* specifies the label of the object instead of the index      */
+/* specifies the label of the surface instead of the index     */
 /***************************************************************/
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                         char *ObjectLabel, double PFT[8])
+                         char *SurfaceLabel, double PFT[8])
 {
   /*--------------------------------------------------------------*/
-  /*- find the object in question --------------------------------*/
+  /*- find the surface in question -------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGObject *O=GetObjectByLabel(ObjectLabel);
-  if (O)
+  RWGSurface *S=GetSurfaceByLabel(SurfaceLabel);
+  if (S)
    { 
-     GetPFT(KN, RHS, Omega, O->Index, PFT);
+     GetPFT(KN, RHS, Omega, S->Index, PFT);
    }
   else
-   { Warn("unknown object label %s passed to GetPFT",ObjectLabel);
+   { Warn("unknown surface label %s passed to GetPFT",SurfaceLabel);
      memset(PFT, 0, 8*sizeof(double));
    };
 }
@@ -454,13 +453,13 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega, 
-                                       int ObjectIndex)
+                                       int SurfaceIndex)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (ObjectIndex<0 || ObjectIndex>=NumObjects)
-   { Warn("invalid object index %i passed to GetScatteredPower",ObjectIndex);
+  if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
+   { Warn("invalid surface index %i passed to GetScatteredPower",SurfaceIndex);
      return 0.0;
    };
 
@@ -470,24 +469,26 @@ cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGObject *O=Objects[ObjectIndex];
-  int NBF=O->NumBFs;
+  RWGSurface *S=Surfaces[SurfaceIndex];
+  int NBF=S->NumBFs;
   HMatrix *M=new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
 
   ABMBArgStruct MyArgs, *Args=&MyArgs;
   InitABMBArgs(Args);
 
   Args->G=this;
-  Args->Oa = Args->Ob = O;
+  Args->Sa = Args->Sb = S;
   Args->Omega=Omega;
   Args->Symmetric=1;
   Args->B=M;
 
-  Log("GetScatteredPower: Computing M0 matrix for object (%i) (%s) ... ",ObjectIndex,O->Label);
-  int SaveZeroed = O->MP->Zeroed;
-  O->MP->Zeroed = 1;
+  Log("GetScatteredPower: Computing M0 matrix for surface %i (%s) ... ",SurfaceIndex,S->Label);
+  
+  int InteriorRegionIndex = S->RegionIndices[1];
+  int SaveZeroed = RegionMPs[InteriorRegionIndex]->Zeroed;
+  RegionMPs[InteriorRegionIndex]->Zeroed = 1;
   AssembleBEMMatrixBlock(Args);
-  O->MP->Zeroed = SaveZeroed;
+  RegionMPs[InteriorRegionIndex]->Zeroed = SaveZeroed;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -495,7 +496,7 @@ cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
   double Sign;
   cdouble PScat=0.0;
   cdouble *ZM=M->ZM;
-  cdouble *ZKN=KN->ZV + BFIndexOffset[ObjectIndex];
+  cdouble *ZKN=KN->ZV + BFIndexOffset[SurfaceIndex];
   // nr runs over rows, nc over columns, ne over matrix entries
   int nr, nc, ne;
   for(PScat=0.0, Sign=1.0, ne=nc=0; nc<NBF; nc++)
@@ -515,18 +516,18 @@ cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
-                                       char *ObjectLabel)
+                                       char *SurfaceLabel)
 {
   /*--------------------------------------------------------------*/
-  /*- find the object in question --------------------------------*/
+  /*- find the surface in question -------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGObject *O=GetObjectByLabel(ObjectLabel);
-  if (O)
+  RWGSurface *S=GetSurfaceByLabel(SurfaceLabel);
+  if (S)
    { 
-     return GetScatteredPower(KN, Omega, O->Index);
+     return GetScatteredPower(KN, Omega, S->Index);
    }
   else
-   { Warn("unknown object label %s passed to GetScatteredPower",ObjectLabel);
+   { Warn("unknown surface label %s passed to GetScatteredPower",SurfaceLabel);
      return 0.0;
    };
 }

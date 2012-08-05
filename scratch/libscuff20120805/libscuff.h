@@ -164,7 +164,7 @@ class RWGSurface
 
    /* constructor entry point: construct from an 'OBJECT...ENDOBJECT' */
    /* or SURFACE...ENDSURFACE section in a .scuffgeo file             */
-   RWGSurface(FILE *f, const char *Label, int *LineNum);
+   RWGSurface(FILE *f, const char *Label, int *LineNum, char *Keyword);
 
    /* destructor */
    ~RWGSurface();
@@ -199,16 +199,17 @@ class RWGSurface
    /*--------------------------------------------------------------*/
    /*- private data fields  ---------------------------------------*/
    /*--------------------------------------------------------------*/
-   char *RegionLabels[2];         /* names of the regions on either side of the surface */
-   int RegionIndices[2];          /* indices of the two regions within the RWGGeometry list of Regions */
-   int IsPEC;                     /* =1 if this is a simple PEC object */
-   int IsObject;                  /* =1 if we came from an OBJECT...ENDOBJECT section */
-                                  /* =0 if we came from a SURFACE...ENDSURFACE section */
+   char *RegionLabels[2];          /* names of the regions on either side of the surface */
+   int RegionIndices[2];           /* indices of the two regions within the RWGGeometry list of Regions */
+   int IsPEC;                      /* =1 if this is a simple PEC object */
+   int IsObject;                   /* =1 if we came from an OBJECT...ENDOBJECT section */
+                                   /* =0 if we came from a SURFACE...ENDSURFACE section */
 
-   double *Vertices;              /* Vertices[3*n,3*n+1,3*n+2]=nth vertex coords */
-   RWGPanel **Panels;             /* array of pointers to panels         */
-   RWGEdge **Edges;               /* array of pointers to edges          */
-   RWGEdge **ExteriorEdges;       /* array of pointers to exterior edges */
+   double *Vertices;               /* Vertices[3*n,3*n+1,3*n+2]=nth vertex coords */
+   RWGPanel **Panels;              /* array of pointers to panels         */
+   RWGEdge **Edges;                /* array of pointers to edges          */
+   RWGEdge **ExteriorEdges;        /* array of pointers to exterior edges */
+   int IsClosed;                   /* = 1 for a closed surface, 0 for an open surface */
 
    int NumVertices;                /* number of vertices in mesh  */
    int NumInteriorVertices;        /* number of interior vertices */
@@ -236,14 +237,11 @@ class RWGSurface
 
    char *MeshFileName;             /* saved name of mesh file */
    int PhysicalRegion;             /* index of surface within mesh file; = -1 if not applicable */
-   char *MaterialName;             /* name of material in OBJECT...ENDOBJECT section */
    char *Label;                    /* unique label identifying object */
-
-   char *ErrMsg;                   /* used to indicate to a calling routine that an error has occurred */
 
    kdtri kdPanels; /* kd-tree of panels */
    void InitkdPanels(bool reinit = false, int LogLevel = SCUFF_NOLOGGING);
-  
+
    /* GT encodes any transformation that has been carried out since */
    /* the surface was read from its mesh file (not including a      */
    /* possible one-time GTransformation that may have been specified*/
@@ -255,15 +253,21 @@ class RWGSurface
    /* describing surface conductivity                             */
    void *SurfaceSigma;
 
+   // the following fields are used to pass some data items up to the 
+   // higher-level routine that calls the RWGSurface constructor
+   char *ErrMsg;                   /* used to indicate to a calling routine that an error has occurred */
+   int MaterialRegionsLineNum;     /* line of .scuffgeo file on which MATERIAL or REGIONS keyword appeared */
+   char *MaterialName;             /* name of material in OBJECT...ENDOBJECT section */
+
    /*--------------------------------------------------------------*/ 
    /*- private class methods --------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
    /* the actual body of the class constructor */
-   void InitRWGSurface(const char *pMeshFileName, const GTransformation *OTGT=0);
+   void InitRWGSurface(const GTransformation *OTGT=0);
 
    /* constructor subroutines */
    void InitEdgeList();
-   void ReadGMSHFile(FILE *MeshFile, char *FileName, const GTransformation *GT);
+   void ReadGMSHFile(FILE *MeshFile, char *FileName, const GTransformation *GT, int PhysicalRegion);
    void ReadComsolFile(FILE *MeshFile, char *FileName, const GTransformation *GT);
 
    /* calculate reduced potentials due to a single basis function */
@@ -282,14 +286,14 @@ class RWGSurface
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 
-/***************************************************************/
+/*************************** ************************************/
 /* an RWGGeometry is a collection of regions with interfaces   */
 /* described by RWGSurfaces.                                   */
 /***************************************************************/
 class RWGGeometry 
  { 
    /*--------------------------------------------------------------*/ 
-   /*- class methods ----------------------------------------------*/ 
+   /*- public class methods ---------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
   public:  
 
@@ -310,18 +314,17 @@ class RWGGeometry
 
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
-
    HMatrix *AssembleBEMMatrix(cdouble Omega, HMatrix *M = NULL);
 
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(bool PureImagFreq = false );
    HVector *AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS = NULL);
 
-   // update Omega/Eps/Mu of IF:
    int UpdateIncFields(IncField *IF, cdouble Omega);
 
    // get the index of the object containing point X
    int GetRegionIndex(const double X[3]);
+   int PointInRegion(int RegionIndex, const double X[3]);
 
    /* simplest routine for computing fields */
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X, cdouble *EH);
@@ -384,6 +387,17 @@ class RWGGeometry
    /* some simple utility functions */
    int GetDimension();
    int GetRegionByLabel(const char *Label);
+   RWGSurface *GetSurfaceByLabel(const char *Label, int *pns=NULL);
+
+   /*--------------------------------------------------------------------*/ 
+   /*- class methods intended for internal use only, i.e. which          */ 
+   /*- would be private if we cared about the public/private distinction */
+   /*--------------------------------------------------------------------*/ 
+
+   // constructor helper functions
+   void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum);
+   void AddRegion(char *RegionLabel, char *MaterialName, int LineNum);
+
    void UpdateCachedEpsMuValues(cdouble Omega);
 
    /*--------------------------------------------------------------*/ 
@@ -402,6 +416,7 @@ class RWGGeometry
 
    int NumSurfaces;
    RWGSurface **Surfaces;
+   int AllSurfacesClosed;
 
    int TotalBFs;
    int TotalPanels;

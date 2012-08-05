@@ -118,10 +118,11 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /*    p(x) = \int G(x,y) \nabla \cdot f(y) dy                  */
 /*  a_i(x) = \int G(x,y) f_i(y) dy                             */
 /*                                                             */
+/* where G(x,y) is the scalar green's function and f(y) is the */
+/* vector-valued RWG current at y.                             */
 /***************************************************************/
-void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
-                                     cdouble *a, cdouble *Curla,
-                                     cdouble *Gradp)
+void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
+                                      cdouble *a, cdouble *Curla, cdouble *Gradp)
 {
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;
@@ -135,9 +136,14 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
   QP=Vertices + 3*(E->iQP);
   V1=Vertices + 3*(E->iV1);
   V2=Vertices + 3*(E->iV2);
-  QM=Vertices + 3*(E->iQM);
   PArea=Panels[E->iPPanel]->Area;
-  MArea=Panels[E->iMPanel]->Area;
+
+  if (E->iQM==-1)
+   QM=0;
+  else
+   { QM=Vertices + 3*(E->iQM);
+     MArea=Panels[E->iMPanel]->Area;
+   };
 
   /* set up data structure passed to GRPIntegrand */
   GRPID->X0=X;
@@ -148,10 +154,17 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
   GRPID->PreFac = E->Length / (2.0*PArea);
   TriIntFixed(GRPIntegrand, 18, (void *)GRPID, QP, V1, V2, 25, (double *)IP);
 
-  /* contribution of negative panel */
-  GRPID->Q=QM;
-  GRPID->PreFac = E->Length / (2.0*MArea);
-  TriIntFixed(GRPIntegrand, 18, (void *)GRPID, V1, V2, QM, 25, (double *)IM);
+  /* contribution of negative panel if present */
+  if (QM)
+   { GRPID->Q=QM;
+     GRPID->PreFac = E->Length / (2.0*MArea);
+     TriIntFixed(GRPIntegrand, 18, (void *)GRPID, V1, V2, QM, 25, (double *)IM);
+   }
+  else
+   { 
+     // TODO: add edge contribution 
+     memset(IM, 0, 9*sizeof(cdouble));
+   };
 
   for(mu=0; mu<3; mu++) 
    { a[mu]     = IP[mu]   - IM[mu];
@@ -164,13 +177,8 @@ void RWGObject::GetReducedPotentials(int ne, const double *X, cdouble K,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetScatteredFields(RWGGeometry *G, 
-                        const double *X, 
-                        const int ObjectIndex, 
-                        HVector *KN,
-                        const cdouble Omega, 
-                        const cdouble Eps,
-                        const cdouble Mu,
+void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex, 
+                        HVector *KN, const cdouble Omega, const cdouble Eps, const cdouble Mu,
                         cdouble EHS[6])
 { 
   memset(EHS, 0, 6*sizeof(cdouble));
@@ -179,49 +187,43 @@ void GetScatteredFields(RWGGeometry *G,
   cdouble iwu=II*Omega*Mu;
   cdouble K=csqrt2(Eps*Mu)*Omega;
 
-  RWGObject *O;
-  int i, ne, no, Type, Offset;
+  RWGSurface *S;
+  int i, ne, Offset;
   cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
   double Sign;
-  int ContainingObjectIndex;
-  for(no=0; no<G->NumObjects; no++)
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     O=G->Objects[no];
+     S=G->Surfaces[ns];
+     Offset=G->BFIndexOffset[ns];
 
-     Type=O->MP->Type;
-     Offset=G->BFIndexOffset[O->Index];
-     if (O->ContainingObject==NULL)
-      ContainingObjectIndex=-1;
-     else
-      ContainingObjectIndex=O->ContainingObject->Index;
-
-     /******************************************************************/
-     /* figure out the sign of the contribution of currents on this    */
-     /* object's surface to the field at the evaluation point.         */
      /*****************************************************************/
-     if ( ObjectIndex==O->Index )
-      Sign=-1.0;
-     else if ( ObjectIndex==ContainingObjectIndex )
+     /* figure out the sign of the contribution of currents on this   */
+     /* surface to the field at the evaluation point.                 */
+     /*****************************************************************/
+     if ( S->RegionIndices[0] == RegionIndex )
       Sign=+1.0;
+     if ( S->RegionIndices[1] == RegionIndex )
+      Sign=-1.0;
      else
-      continue; // in this case O does not contribute to field at eval pt
+      continue; // in this case S does not contribute to field at eval pt
 
      /***************************************************************/
-     /* now loop over panels on object's surface to get             */
-     /* contributions to field at evaluation point.                 */
+     /* now loop over all basis functions on the surface to         */
+     /* get contributions to the field at the evaluation point.     */
      /***************************************************************/
-     for(ne=0; ne<O->NumEdges; ne++)
+     for(ne=0; ne<S->NumEdges; ne++)
       { 
-        if ( Type==MP_PEC )
+        if ( S->IsPEC )
          { 
            KAlpha = Sign*KN->GetEntry( Offset + ne );
+           NAlpha = 0.0;
          }
         else
          { KAlpha = Sign*KN->GetEntry( Offset + 2*ne + 0 );
            NAlpha = Sign*KN->GetEntry( Offset + 2*ne + 1 );
          };
       
-        O->GetReducedPotentials(ne, X, K, a, Curla, Gradp);
+        S->GetReducedPotentials(ne, X, K, a, Curla, Gradp);
 
         for(i=0; i<3; i++)
          { EHS[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
@@ -230,7 +232,7 @@ void GetScatteredFields(RWGGeometry *G,
 
       }; // for (ne=0 ... 
 
-    }; // for(no=0 ... 
+    }; // for(ns=0 ... 
 }
 
 
@@ -239,7 +241,7 @@ void GetScatteredFields(RWGGeometry *G,
 /***************************************************************/
 typedef struct ThreadData
  { 
-   int nt, nTask;
+   int nt, NumTasks;
 
    RWGGeometry *G;
    HMatrix *XMatrix;
@@ -279,7 +281,7 @@ void *GetFields_Thread(void *data)
   /* other local variables ***************************************/
   /***************************************************************/
   double X[3];
-  int ObjectIndex;
+  int RegionIndex;
   cdouble EH[6], dEH[6];
   cdouble Eps, Mu;
   double dA[3]={0.0, 0.0, 0.0};
@@ -292,24 +294,22 @@ void *GetFields_Thread(void *data)
   for(int nr=0; nr<XMatrix->NR; nr++)
    { 
      nt++;
-     if (nt==TD->nTask) nt=0;
+     if (nt==TD->NumTasks) nt=0;
      if (nt!=TD->nt) continue;
 
      X[0]=XMatrix->GetEntryD(nr, 0);
      X[1]=XMatrix->GetEntryD(nr, 1);
      X[2]=XMatrix->GetEntryD(nr, 2);
 
-     ObjectIndex = G->GetObjectIndex(X);
-     if (ObjectIndex==-1)
-      G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
-     else
-      G->Objects[ObjectIndex]->MP->GetEpsMu(Omega, &Eps, &Mu);
+     RegionIndex = G->GetRegionIndex(X);
+     Eps = G->EpsTF[RegionIndex];
+     Mu  = G->MuTF[RegionIndex];
     
      /*--------------------------------------------------------------*/
      /*- get scattered fields at X                                   */
      /*--------------------------------------------------------------*/
      if (KN)
-      GetScatteredFields(G, X, ObjectIndex, KN, Omega, Eps, Mu, EH);
+      GetScatteredFields(G, X, RegionIndex, KN, Omega, Eps, Mu, EH);
      else
       memset(EH, 0, 6*sizeof(cdouble));
 
@@ -319,7 +319,7 @@ void *GetFields_Thread(void *data)
      /*--------------------------------------------------------------*/
      if (IFList)
       { for(IF=IFList; IF; IF=IF->Next)
-         if ( IF->ObjectIndex == ObjectIndex )
+         if ( IF->RegionIndex == RegionIndex )
           { IF->GetFields(X, dEH);
             SixVecPlusEquals(EH, 1.0, dEH);
           };
@@ -410,7 +410,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[NumThreads], *TD;
   pthread_t *Threads = new pthread_t[NumThreads];
-  ReferenceTD.nTask=NumThreads;
+  ReferenceTD.NumTasks=NumThreads;
   for(nt=0; nt<NumThreads; nt++)
    { 
      TD=&(TDs[nt]);
@@ -430,12 +430,12 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
 
 #else 
 #ifndef USE_OPENMP
-  NumThreads=ReferenceTD.nTask=1;
+  NumThreads=ReferenceTD.NumTasks=1;
 #else
-  ReferenceTD.nTask=NumThreads*100;
+  ReferenceTD.NumTasks=NumThreads*100;
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
-  for(nt=0; nt<ReferenceTD.nTask; nt++)
+  for(nt=0; nt<ReferenceTD.NumTasks; nt++)
    { 
      ThreadData TD1;
      memcpy(&TD1, &ReferenceTD, sizeof(ThreadData));

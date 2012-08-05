@@ -18,11 +18,11 @@
  */
 
 /*
- * InitEdgeList.cc -- RWGObject class method for gathering 
+ * InitEdgeList.cc -- RWGSurface class method for gathering 
  *                 -- information on the edges of the panels in
- *                 -- the object mesh.
+ *                 -- a surface mesh.
  *                 
- *                 -- This is really just a part of the RWGObject
+ *                 -- This is really just a part of the RWGSurface
  *                 -- class constructor, but we put it in a separate
  *                 -- file for clarity.
  *
@@ -44,7 +44,7 @@ namespace scuff {
 /* regarding interior edges, exterior edges, boundary contours,*/
 /* etc.                                                        */
 /***************************************************************/
-void RWGObject::InitEdgeList()
+void RWGSurface::InitEdgeList()
 { 
   RWGPanel *P; 
   RWGEdge *E, ***EVEdges, *BCEdgeList;
@@ -71,7 +71,7 @@ void RWGObject::InitEdgeList()
 
   /*--------------------------------------------------------------*/
   /*- VertexUsed[nv] = 1 if vertex # nv is a vertex of any panel  */
-  /*- on the object. (Used below in the determination of the      */
+  /*- on the surface. (Used below in the determination of the     */
   /*- number of "interior" vertices.)                             */
   /*--------------------------------------------------------------*/
   VertexUsed=(int *)mallocEC(NumVertices*sizeof(int));
@@ -93,7 +93,7 @@ void RWGObject::InitEdgeList()
    EVEdges[nv]=EVEdges[nv-1]+2;
 
   /****************************************************************/
-  /* construct a list of RWGEdge structures by going over every  */
+  /* construct a list of RWGEdge structures by going over every   */
   /* edge of every panel:                                         */ 
   /*                                                              */
   /*  a. if the edge does not exist in the list (we have not      */
@@ -104,7 +104,7 @@ void RWGObject::InitEdgeList()
   /*  c. if we find ourselves visiting an edge more than two      */
   /*     times then the topology of the panel set is defective.   */
   /*                                                              */
-  /* note that when we first create a new RWGEdge structure for  */
+  /* note that when we first create a new RWGEdge structure for   */
   /* edge, we assign the panel it came from as its 'positive'     */
   /* panel, but we don't yet assign it an 'Index' in the overall  */
   /* problem, because it may turn out to be an exterior edge. we  */

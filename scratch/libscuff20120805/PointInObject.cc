@@ -31,6 +31,38 @@
 
    The preprocessing time is O(N log N), where N is the number of panels,
    and the storage is O(N).  Subsequent inclusion tests should be O(log N).
+   
+   HR 20120805 updating to accommodate the transition from RWGObjects to 
+               RWGSurfaces, which are a generalization of RWGObjects.
+
+               RWGSurfaces are essentially the same thing as RWGObjects, but 
+               with the new feature an RWGSurface may describe an *open* 
+               surface, as opposed to RWGObjects, which were always 
+               closed surfaces. A closed region of space may be bounded
+               by a single closed RWGSurface, or by a collection of 
+               multiple open RWGSurfaces. 
+ 
+               To detect whether a point lies in a given region, we 
+               proceed as before by drawing a ray to negative infinity,
+               but now we just count the total number of triangular panels 
+               intersected by this ray on *all* RWGSurfaces bounding the 
+               region in question. For the case of a closed RWGSurface, 
+               this defaults to the same computation that was done previously 
+               for RWGObjects.
+
+               In the updated version of the routines below, 
+               kdtri_object_contains() has been replaced by 
+               kdtri_surface_piercings(), which does the same 
+               computation but returns the full number of surface 
+               piercings, not merely its parity.
+               
+               The old RWGObject::Contains() class method lives on as
+               the RWGSurface::Contains() class method, but it only does
+               a nontrival computation if the surface in question is
+               closed. Otherwise, it automatically returns false.
+
+               In addition, the RWGGeometry::PointInObject()
+               has been replaced by RWGGeometry::PointInRegion().
 */
 
 #include <stdlib.h>
@@ -440,41 +472,37 @@ static int kdtri_count_below(kdtri t, const double p[3])
   }
 }
 
-/* Return true iff the object that was used to create kdtri
-   contains the point p. */
-static int kdtri_object_contains(kdtri t, const double p[3])
+/* returns the number of times a ray from (px,py,pz) to (px,py,-infinity) 
+   intersects the surface that was used to define t.
+*/
+static int kdtri_surface_piercings(kdtri t, const double p[3])
 {
-  if (!t ||
-      p[0] < t->bmin[0] || p[0] > t->bmax[0] ||
-      p[1] < t->bmin[1] || p[1] > t->bmax[1] ||
-      p[2] < t->bmin[2] || p[2] > t->bmax[2])
-    return 0;
+  if (!t) return 0;
 
-  /* contains p iff an odd number of triangles lie below p */
-  return kdtri_count_below(t, p) % 2;
+  return kdtri_count_below(t, p);
 }
 
 /***********************************************************************/
 
-/* Create a (tree-partitioned) kdtri object for the panels of O, using
+/* Create a (tree-partitioned) kdtri object for the panels of S, using
    O(NumPanels) storage and O(NumPanels*log(NumPanels)) time.   Returns
    NULL if we ran out of memory. */
-static kdtri kdtri_create_from_object(const RWGObject *O)
+static kdtri kdtri_create_from_surface(const RWGSurface *S)
 {
   int i;
   boxtri *B;
   kdtri t = NULL;
 
-  if (!O || !O->NumPanels) goto done;
-  if (!(B = (boxtri *) malloc(sizeof(boxtri) * O->NumPanels))) goto done;
+  if (!S || !S->NumPanels) goto done;
+  if (!(B = (boxtri *) malloc(sizeof(boxtri) * S->NumPanels))) goto done;
 
-  for (i = 0; i < O->NumPanels; ++i) {
+  for (i = 0; i < S->NumPanels; ++i) {
     int j;
     for (j = 0; j < 3; ++j) {
-      int k, vj = O->Panels[i]->VI[j];
-      B[i].x[j] = O->Vertices[3*vj];
-      B[i].y[j] = O->Vertices[3*vj+1];
-      B[i].z[j] = O->Vertices[3*vj+2];
+      int k, vj = S->Panels[i]->VI[j];
+      B[i].x[j] = S->Vertices[3*vj];
+      B[i].y[j] = S->Vertices[3*vj+1];
+      B[i].z[j] = S->Vertices[3*vj+2];
       for (k = 0; k < j; ++k) /* sort in y order */
 	if (B[i].y[k] > B[i].y[j]) {
 	  float x = B[i].x[k], y = B[i].y[k], z = B[i].z[k];
@@ -492,7 +520,7 @@ static kdtri kdtri_create_from_object(const RWGObject *O)
     B[i].bmax[1] = MAX3(B[i].y[0], B[i].y[1], B[i].y[2]);
   }
 
-  if (!(t = kdtri_create(B, (size_t) O->NumPanels))) {
+  if (!(t = kdtri_create(B, (size_t) S->NumPanels))) {
     free(B);
     goto done;
   }
@@ -509,8 +537,7 @@ static kdtri kdtri_create_from_object(const RWGObject *O)
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
-
-void RWGObject::InitkdPanels(bool reinit, int LogLevel)
+void RWGSurface::InitkdPanels(bool reinit, int LogLevel)
 {
   if (kdPanels) {
     if (!reinit) return;
@@ -518,9 +545,8 @@ void RWGObject::InitkdPanels(bool reinit, int LogLevel)
     kdPanels = NULL;
   }
   if (!NumPanels) return;
-  kdPanels = kdtri_create_from_object(this);
-  if (!kdPanels) ErrExit("out of memory when creating panel kd-tree for %s",
-			 Label);
+  kdPanels = kdtri_create_from_surface(this);
+  if (!kdPanels) ErrExit("out of memory when creating panel kd-tree for %s", Label);
 
   if (LogLevel >= SCUFF_VERBOSELOGGING) {
     Log("kdPanels(%s): depth mean %g/max %u, leaf mean %g/max %lu", Label,
@@ -530,33 +556,44 @@ void RWGObject::InitkdPanels(bool reinit, int LogLevel)
 }
 
 /***********************************************************************/
-
-/* return whether object contains X */
-bool RWGObject::Contains(const double X[3])
+/* return whether a closed surface contains X.                         */
+/***********************************************************************/
+bool RWGSurface::Contains(const double X[3])
 {
+  if (!IsClosed) return false;
+
   InitkdPanels(false);
-  return kdtri_object_contains(kdPanels, X);
+
+  // attempt to bypass the calculation by checking if the eval point lies 
+  // outside the bounding box of the kdtri. (this check formerly existed 
+  // in the kdtri_object_contains routine)
+  if ( X[0] < kdPanels->bmin[0] || X[0] > kdPanels->bmax[0] ||
+       X[1] < kdPanels->bmin[1] || X[1] > kdPanels->bmax[1] ||
+       X[2] < kdPanels->bmin[2] || X[2] > kdPanels->bmax[2])
+    return 0;
+
+  return kdtri_surface_piercings(kdPanels, X) % 2;
 }
 
 /***********************************************************************/
-
-/* return whether object contains O; assumes that surfaces
+/* return whether a closed surface contains S; assumes that surfaces  
    are non-intersecting (so that it either contains every
-   vertex or no vertices of O).
+   vertex or no vertices of S).
 
    Note: the Vertices list contains interior reference points in addition
    to actual surface vertices, so we must use a vertex in the Panels list
    rather that just the first vertex in the Vertices list. */
-bool RWGObject::Contains(const RWGObject *O)
+bool RWGSurface::Contains(const RWGSurface *S)
 {
-  if (!O || O->NumPanels <= 0) return false;
+  if ( !IsClosed ) return false; 
+  if ( !S || S->NumPanels <= 0 ) return false;
 
   /* return false for all PEC objects.  This is because PEC objects
      are actually treated as infinitesimally thin PEC surfaces (which 
      may not even be closed surfaces), so they have no interior. */
-  if (O->MP->IsPEC()) return false;
+  if (S->IsPEC) return false;
 
-  int vi = O->Panels[0]->VI[0]; // the first vertex of the first panel
+  int vi = S->Panels[0]->VI[0]; // the first vertex of the first panel
 #if 0 // debugging: exhaustively check all vertices
   bool cont = Contains(O->Vertices + 3*vi);
   for (int np = 0; np < O->NumPanels; ++np)
@@ -567,23 +604,53 @@ bool RWGObject::Contains(const RWGObject *O)
       }
     }
 #endif
-  return Contains(O->Vertices + 3*vi);
+  return Contains(S->Vertices + 3*vi);
 }
 
 /***********************************************************************/
+/***********************************************************************/
+/***********************************************************************/
+int RWGGeometry::PointInRegion(int RegionIndex, const double X[3])
+{ 
+  // for all surfaces bounding the region in question, count the 
+  // number of intersections between the surface and a plumb line
+  // dropped from X to z=minus infinity
+  int TotalPiercings=0;
+  for(int ns=0; ns<NumSurfaces; ns++)
+   if (    (Surfaces[ns]->RegionIndices[0]==RegionIndex)
+        || (Surfaces[ns]->RegionIndices[1]==RegionIndex) 
+      )
+    { Surfaces[ns]->InitkdPanels(false);
+      TotalPiercings += kdtri_surface_piercings(Surfaces[ns]->kdPanels, X);
 
-int RWGGeometry::GetObjectIndex(const double X[3]) {
-  // find the innermost object containing X
-  for (int i = NumObjects - 1; i >= 0; --i) // innermost to outermost order
-    if (Objects[i]->Contains(X))
-      return i;
-  return -1; // not in any object
+printf(" **PIR (%i) (%g,%g,%g): (%s,%i,%i) \n", 
+         RegionIndex,X[0],X[1],X[2],Surfaces[ns]->Label,
+         kdtri_surface_piercings(Surfaces[ns]->kdPanels, X),TotalPiercings);
+    };
+
+
+  if ( RegionIndex==0 )
+   return TotalPiercings%2 ? 0 : 1; 
+  else
+   return TotalPiercings%2 ? 1 : 0;
+} 
+
+int RWGGeometry::GetRegionIndex(const double X[3]) 
+{
+  if (AllSurfacesClosed)
+   { // find the innermost object containing X
+     for (int i = NumSurfaces - 1; i >= 0; --i) // innermost to outermost order
+      if (Surfaces[i]->Contains(X))
+       return i;
+     return 0; // if not in any object, then in exterior medium 
+   };
+
+  for (int nr=0; nr<NumRegions; nr++)
+   if (PointInRegion(nr, X))
+    return nr;
+
+  return 0;
+
 }
-
-RWGObject *RWGGeometry::GetObject(const double X[3]) {
-  int i = GetObjectIndex(X);
-  return i < 0 ? NULL : Objects[i];
-}
-
 
 } // namespace scuff

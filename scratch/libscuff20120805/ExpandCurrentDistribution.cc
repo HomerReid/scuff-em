@@ -43,7 +43,7 @@ namespace scuff {
 void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
 { 
   int n, ne, nep;
-  RWGSurface *O;
+  RWGSurface *S;
   HMatrix *M;
   double OVLP;
 
@@ -67,14 +67,14 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
       };
    };
 
-  M=new HMatrix(2*O->NumEdges, 2*O->NumEdges, KNVec->RealComplex);
+  M=new HMatrix(2*S->NumEdges, 2*S->NumEdges, KNVec->RealComplex);
   M->Zero();
 
   Log("ExpandCD: Assembling M");
-  for(ne=0; ne<O->NumEdges; ne++)
-   for(nep=ne; nep<O->NumEdges; nep++)
+  for(ne=0; ne<S->NumEdges; ne++)
+   for(nep=ne; nep<S->NumEdges; nep++)
     { 
-      OVLP=O->GetOverlap(ne, nep);
+      OVLP=S->GetOverlap(ne, nep);
       M->SetEntry( 2*ne, 2*nep, OVLP);
       M->SetEntry( 2*nep, 2*ne, OVLP);
 
@@ -125,7 +125,7 @@ int InsideTriangle(const double *X, const double *V1, const double *V2, const do
 /***************************************************************/
 void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6])
 { 
-  int no, ne, Offset;
+  int ne, Offset;
   RWGSurface *S;
   RWGEdge *E;
   double fRWG[3];
@@ -134,7 +134,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdo
   cdouble KAlpha, NAlpha;
 
   memset(KN,0,6*sizeof(cdouble));
-  for(ns=0; ns<NumSurfaces; ns++)
+  for(int ns=0; ns<NumSurfaces; ns++)
    for(S=Surfaces[ns], Offset=BFIndexOffset[ns], ne=0; ne<S->NumEdges; ne++)
     { 
       E=S->Edges[ne];
@@ -151,12 +151,12 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdo
        continue;
 
       Sign = (Q==QP) ? +1.0 : -1.0;
-      Area = (Q==QP) ? O->Panels[E->iPPanel]->Area : O->Panels[E->iMPanel]->Area;
+      Area = (Q==QP) ? S->Panels[E->iPPanel]->Area : S->Panels[E->iMPanel]->Area;
    
       VecSub(X,Q,fRWG);
       VecScale(fRWG, E->Length / (2.0*Area) );
 
-      if ( O->IsPEC )
+      if ( S->IsPEC )
        { KAlpha = KNVec->GetEntry( Offset + ne );
          NAlpha = 0.0;
        }

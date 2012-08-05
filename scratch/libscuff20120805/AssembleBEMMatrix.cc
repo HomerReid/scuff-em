@@ -75,7 +75,7 @@ void *ABMBThread(void *data)
   ABMBArgStruct *Args  = TD->Args;
   RWGGeometry *G       = Args->G;
   RWGSurface *Sa       = Args->Sa;
-  RWGSurcace *Sb       = Args->Sb;
+  RWGSurface *Sb       = Args->Sb;
   cdouble Omega        = Args->Omega;
   int NumTorqueAxes    = Args->NumTorqueAxes;
   double *GammaMatrix  = Args->GammaMatrix;
@@ -314,7 +314,7 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   int CommonRegions[2], NumCommonRegions=0;
   double Signs[2];
   if ( Sa->RegionIndices[0] == Sb->RegionIndices[0] )
-   { CommonRegions[nCommonRegions] = Sa->RegionIndices[0];
+   { CommonRegions[NumCommonRegions] = Sa->RegionIndices[0];
      Signs[NumCommonRegions]=+1.0;
      NumCommonRegions++;
    }
@@ -327,7 +327,7 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
      Signs[NumCommonRegions]=-1.0;
      NumCommonRegions++;
    }
-  else if ( Sa->RegionIndices[1] == Sb->RegionIndices[1] )
+  else if ( !Sa->IsPEC && !Sb->IsPEC && Sa->RegionIndices[1] == Sb->RegionIndices[1] )
    { CommonRegions[NumCommonRegions] = Sa->RegionIndices[1];
      Signs[NumCommonRegions]=+1.0;
      NumCommonRegions++;
@@ -339,7 +339,7 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   Args->EpsA  = G->EpsTF[ CommonRegions[0] ];
   Args->MuA   = G->MuTF[  CommonRegions[0] ];
   Args->SignA = Signs[0];
-  if ( NumCommonRegions==2 && !(Sa->IsPEC) )
+  if ( NumCommonRegions==2 )
    { Args->EpsB = G->EpsTF[ CommonRegions[1] ];
      Args->MuB  = G->MuTF[  CommonRegions[1] ];
      Args->SignB = Signs[1];
@@ -347,8 +347,8 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   else
    Args->EpsB = Args->MuB = Args->SignB = 0.0;
 
-  Args->SaIsPEC = Sa->IsPEC();
-  Args->SbIsPEC = Sb->IsPEC();
+  Args->SaIsPEC = Sa->IsPEC;
+  Args->SbIsPEC = Sb->IsPEC;
 
   /***************************************************************/
   /* fire off threads ********************************************/
@@ -419,7 +419,7 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  char *SSParmNames[4]={"w","x","y","z"};
+  char *SSParmNames[4]={ (char *)"w", (char *)"x", (char *)"y", (char *)"z"};
   cdouble SSParmValues[4];
   SSParmValues[0]=Args->Omega*MatProp::FreqUnit;
 
@@ -472,7 +472,7 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
 
       GZ*=ZVAC;
 
-      if ( S->IsPEC() )
+      if ( S->IsPEC )
        { B->AddEntry(Offset+neAlpha, Offset+neBeta, -2.0*Overlap/GZ);
          if (neAlpha!=neBeta)
           B->AddEntry(Offset+neBeta, Offset+neAlpha, -2.0*Overlap/GZ);
