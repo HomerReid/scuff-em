@@ -622,12 +622,7 @@ int RWGGeometry::PointInRegion(int RegionIndex, const double X[3])
       )
     { Surfaces[ns]->InitkdPanels(false);
       TotalPiercings += kdtri_surface_piercings(Surfaces[ns]->kdPanels, X);
-
-printf(" **PIR (%i) (%g,%g,%g): (%s,%i,%i) \n", 
-         RegionIndex,X[0],X[1],X[2],Surfaces[ns]->Label,
-         kdtri_surface_piercings(Surfaces[ns]->kdPanels, X),TotalPiercings);
     };
-
 
   if ( RegionIndex==0 )
    return TotalPiercings%2 ? 0 : 1; 

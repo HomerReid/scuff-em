@@ -404,11 +404,6 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
      TDArgs->Q=Qa;
      TDArgs->QP=Qb;
 
-     // loosen the default taylor-duffy tolerance in the 
-     // short-wavelength regime
-     if (InSWRegime)
-      TDArgs->RelTol=RWGGeometry::SWPPITol;
-
      TDArgs->WhichG=TM_EIKR_OVER_R;
      TDArgs->WhichH=TM_DOTPLUS;
      H[0]=TaylorDuffy(TDArgs);
@@ -418,7 +413,6 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
      else
       { TDArgs->WhichG=TM_GRADEIKR_OVER_R;
         TDArgs->WhichH=TM_CROSS;
-TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(H[0]); // TODO explain me
         H[1]=TaylorDuffy(TDArgs);
       };
 

@@ -453,9 +453,6 @@ class RWGGeometry
   
    int LogLevel; 
 
-   // short-wavelength panel-panel-integral tolerance
-   static double SWPPITol; 
-
  };
 
 /***************************************************************/
