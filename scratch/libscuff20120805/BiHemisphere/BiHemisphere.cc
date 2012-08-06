@@ -12,13 +12,15 @@ using namespace scuff;
 /***************************************************************/
 int main(int argc, char *argv[]) 
 {  
+  EnableAllCPUs();
+  InstallHRSignalHandler();
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   char *GeoFileName=0;
   char *Cache=0;
   char *EPFile=0;
-  cdouble Omega;      
+  cdouble Omega=0.01;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry", PA_STRING,  1, 1, (void *)&GeoFileName,  0,  ".scuffgeo file"},
@@ -34,7 +36,8 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGGeometry *G = new RWGGeometry(GeoFileName);
+  SetLogFileName("BiHemisphere.log");
+  RWGGeometry *G = new RWGGeometry(GeoFileName, SCUFF_VERBOSELOGGING);
   HMatrix *M = G->AllocateBEMMatrix();
   HVector *KN = G->AllocateRHSVector();
   
@@ -48,6 +51,7 @@ int main(int argc, char *argv[])
   M->LUFactorize();
 
   G->AssembleRHSVector(Omega, &PW, KN);
+  M->LUSolve(KN);
 
   HMatrix *XMatrix = new HMatrix(EPFile);
   HMatrix *FMatrix= G->GetFields(&PW, KN, Omega, XMatrix);

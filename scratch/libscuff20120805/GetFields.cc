@@ -202,7 +202,7 @@ void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex,
      /*****************************************************************/
      if ( S->RegionIndices[0] == RegionIndex )
       Sign=+1.0;
-     if ( S->RegionIndices[1] == RegionIndex )
+     else if ( S->RegionIndices[1] == RegionIndex )
       Sign=-1.0;
      else
       continue; // in this case S does not contribute to field at eval pt

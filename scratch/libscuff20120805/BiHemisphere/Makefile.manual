@@ -1,4 +1,5 @@
-CPPFLAGS = $(DEBUG)
+CXXFLAGS = $(DEBUG) 
+CXXFLAGS += -fopenmp
 LDFLAGS = $(DEBUG)
 
 #################################################################
@@ -42,4 +43,4 @@ BiHemisphere:   BiHemisphere.o ../libscuff.a
 		(pushd ../; make libscuff.a; popd)
 
 clean:
-		rm *.o *.a ../*.o ../*.a
+		rm *.o *.a

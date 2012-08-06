@@ -1,6 +1,6 @@
 REGION Exterior        MATERIAL VACUUM
-REGION UpperHemisphere MATERIAL CONST_EPS_20
-REGION LowerHemisphere MATERIAL CONST_EPS_2
+REGION UpperHemisphere MATERIAL CONST_EPS_2
+REGION LowerHemisphere MATERIAL CONST_EPS_20
 
 SURFACE LowerHemisphereSurface 
 
@@ -22,6 +22,6 @@ SURFACE EquatorialPlane
 
 	MESHFILE BiHemisphere_762.msh
 	PHYSICAL_REGION 3
-	REGIONS	UpperHemisphere LowerHemisphere
+	REGIONS	LowerHemisphere UpperHemisphere 
 
 ENDSURFACE
