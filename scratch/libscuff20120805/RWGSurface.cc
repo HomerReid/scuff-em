@@ -325,14 +325,11 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
 /*--------------------------------------------------------------*/
 /*- Alternative RWGSurface constructor: Create an RWGSurface    */
 /*- from lists of vertices and panels.                          */
-/*-                                                             */
-/*- HR 20120703 i am not going to bother to maintain this       */
-/*-             anymore until somebody has a use for it.        */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-#if 0
 RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
-                       int **PanelVertexIndices, int pNumPanels)
+                       int *PanelVertices, int pNumPanels, 
+                       int IncludeExteriorEdges)
 { 
   int np;
 
@@ -345,18 +342,25 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   NumEdges=0;
   NumVertices=pNumVertices;
   NumPanels=pNumPanels;
-  MP=new MatProp();
+  RegionLabels[0]=strdup("Exterior");
+  RegionLabels[1]=strdup("Exterior");
+  RegionIndices[0]=RegionIndices[1]=0;
+  IsPEC=1;
+  IsObject=1;
   GT=0;
 
   Vertices=(double *)mallocEC(3*NumVertices*sizeof(double));
   memcpy(Vertices,pVertices,3*NumVertices*sizeof(double *));
 
+  /*------------------------------------------------------------*/
+  /*- add the panels -------------------------------------------*/
+  /*------------------------------------------------------------*/
   Panels=(RWGPanel **)mallocEC(NumPanels*sizeof(RWGPanel *));
   for(np=0; np<NumPanels; np++)
    { Panels[np]=NewRWGPanel(Vertices,
-                             PanelVertexIndices[np][0],
-                             PanelVertexIndices[np][1],
-                             PanelVertexIndices[np][2]);
+                            PanelVertexIndices[3*np+0],
+                            PanelVertexIndices[3*np+1],
+                            PanelVertexIndices[3*np+2]);
      Panels[np]->Index=np;
    };
  
@@ -365,10 +369,20 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   /*------------------------------------------------------------*/
   InitEdgeList();
 
+  /*------------------------------------------------------------*/
+  /*------------------------------------------------------------*/
+  /*------------------------------------------------------------*/
+  if (IncludeExteriorEdges)
+   { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
+     memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
+     for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)
+      Edges[ne]->Index = ne;
+     NumEdges += NumExteriorEdges;
+   };
+
   IsPEC = MP->IsPEC();
   NumBFs = IsPEC ? NumEdges : 2*NumEdges;
 } 
-#endif
 
 /***************************************************************/
 /* RWGSurface destructor.                                       */

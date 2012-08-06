@@ -139,11 +139,10 @@ void RWGSurface::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
   RWGEdge *EBeta  = Edges[neBeta];
 
   RWGPanel *PAlphaP=Panels[EAlpha->iPPanel];
-  RWGPanel *PAlphaM=Panels[EAlpha->iMPanel];
-
+  RWGPanel *PAlphaM = (EAlpha->iMPanel == -1) ? 0 : Panels[EAlpha->iMPanel];
   int iQPAlpha = EAlpha->PIndex;
   int iQMAlpha = EAlpha->MIndex;
-  int iQPBeta  = EBeta->PIndex;
+  int  iQPBeta  = EBeta->PIndex;
   int iQMBeta  = EBeta->MIndex;
 
   double LL = EAlpha->Length * EBeta->Length;
@@ -154,9 +153,9 @@ void RWGSurface::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
    AddOverlapContributions(this, PAlphaP, iQPAlpha, iQPBeta,  1.0, LL, Overlaps);
   if ( EAlpha->iPPanel == EBeta->iMPanel )
    AddOverlapContributions(this, PAlphaP, iQPAlpha, iQMBeta, -1.0, LL, Overlaps);
-  if ( EAlpha->iMPanel == EBeta->iPPanel )
+  if ( (EAlpha->iMPanel!=-1) && (EAlpha->iMPanel == EBeta->iPPanel ) )
    AddOverlapContributions(this, PAlphaM, iQMAlpha, iQPBeta, -1.0, LL, Overlaps);
-  if ( EAlpha->iMPanel == EBeta->iMPanel )
+  if ( (EAlpha->iMPanel!=-1) && (EAlpha->iMPanel == EBeta->iMPanel ) )
    AddOverlapContributions(this, PAlphaM, iQMAlpha, iQMBeta,  1.0, LL, Overlaps);
 }
 

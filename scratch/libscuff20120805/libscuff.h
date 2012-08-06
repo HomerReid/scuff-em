@@ -167,6 +167,19 @@ class RWGSurface
    /* or SURFACE...ENDSURFACE section in a .scuffgeo file             */
    RWGSurface(FILE *f, const char *Label, int *LineNum, char *Keyword);
 
+   /* alternative constructor entry point: construct from fixed lists */
+   /* of vertices and panels. This defines an RWGSurface which exists */
+   /* independently of any RWGGeometry structure, which means it      */
+   /* doesn't know what regions it bounds or what materials are on    */
+   /* either side of it, but can still be used for low-level          */
+   /* computations at the level of individual basis functions and     */
+   /* panels.                                                         */
+   /* In this case, Vertices[3*nv+0, 3*nv+1, 3*nv+2] are the cartesian*/
+   /* coordinates of the nvth vertex, and the vertex indices of the   */
+   /* npth panel should be PanelVertices[3*np, 3*np+1, 3*np+2].       */
+   RWGSurface(double *Vertices, int NumVertices, 
+              int *PanelVertices, int NumPanels, int IncludeExteriorEdges=0)
+
    /* destructor */
    ~RWGSurface();
 

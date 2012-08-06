@@ -126,12 +126,12 @@ void GetInnerProducts(RWGSurface *S, int ne,
   double PArea = S->Panels[E->iPPanel]->Area;
   double *QM;
   double MArea;
-  if ( E->iQM==-1 )
+  if ( E->iQM == -1 )
    QM = 0;
   else
    { QM = S->Vertices + 3*(E->iQM);
      MArea = S->Panels[E->iMPanel]->Area;
-   }
+   };
 
   /* set up data structure passed to InnerProductIntegrand */
   InnerProductIntegrandData MyIPID, *IPID=&MyIPID;

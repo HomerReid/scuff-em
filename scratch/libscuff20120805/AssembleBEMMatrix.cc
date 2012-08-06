@@ -455,13 +455,13 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
          SSParmValues[2] = EAlpha->Centroid[1];
          SSParmValues[3] = EAlpha->Centroid[2];
        }
-      else if ( (EAlpha->iPPanel==EBeta->iPPanel) || (EAlpha->iPPanel==EBeta->iMPanel) ) 
+      else if ( EAlpha->iPPanel==EBeta->iPPanel || EAlpha->iPPanel==EBeta->iMPanel )
        { P=S->Panels[EAlpha->iPPanel];
          SSParmValues[1] = P->Centroid[0];
          SSParmValues[2] = P->Centroid[1];
          SSParmValues[3] = P->Centroid[2];
        }
-      else if ( (EAlpha->iMPanel==EBeta->iPPanel) || (EAlpha->iMPanel==EBeta->iMPanel) ) 
+      else if ( (EAlpha->iMPanel!=-1) && ( (EAlpha->iMPanel==EBeta->iPPanel) || (EAlpha->iMPanel==EBeta->iMPanel) ) ) 
        { P=S->Panels[EAlpha->iMPanel];
          SSParmValues[1] = P->Centroid[0];
          SSParmValues[2] = P->Centroid[1];

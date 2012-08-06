@@ -53,6 +53,9 @@ namespace scuff {
 /* 'GetReducedPotentialsIntegrand' is the integrand routine passed */
 /* to TriInt to compute the reduced potentials of a single panel.  */
 /*                                                                 */
+/* ('reduced' in the context of this file means 'without certain   */
+/*   constant prefactors.')                                        */
+/*                                                                 */
 /* integrand values:                                               */
 /*  f[0],  f[1]  == real , imag  (X-Q)_x            Phi(|X-X0|)    */
 /*  f[2],  f[3]  == real , imag  (X-Q)_y            Phi(|X-X0|)    */
@@ -108,6 +111,65 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 } 
 
 /***************************************************************/
+/* compute the extra contribution to the gradient of the       */
+/* reduced scalar potential from the constant line charge on   */
+/* the unmatched edge of a half-RWG basis function.            */
+/***************************************************************/
+static double x10[]=
+ { 1.304673574141418e-02, 6.746831665550773e-02, 1.602952158504878e-01,
+   2.833023029353764e-01, 4.255628305091844e-01, 5.744371694908156e-01,
+   7.166976970646236e-01, 8.397047841495122e-01, 9.325316833444923e-01,
+   9.869532642585859e-01
+ };
+
+static double w10[]=
+ { 3.333567215434143e-02, 7.472567457529027e-02, 1.095431812579910e-01,
+   1.346333596549959e-01, 1.477621123573765e-01, 1.477621123573765e-01,
+   1.346333596549959e-01, 1.095431812579910e-01, 7.472567457529027e-02,
+   3.333567215434143e-02
+ };
+
+void GetEdgeContributionToGradp(const double *X0, double *V1, double *V2,
+                                cdouble K, cdouble *Gradp)
+{
+  int np;
+  double u, w, X0mV1[3], V2mV1[3], X0mX[3], r;
+  cdouble Psi;
+
+  // we do a 10-point gauss-legendre quadrature over the edge
+  int NumPts=10;
+  double *QRX=x10, *QRW=w10;
+
+  VecSub(V2, V1, V2mV1);
+  VecSub(X0, V1, X0mV1);
+  Gradp[0]=Gradp[1]=Gradp[2]=0.0;
+
+  for(np=0; np<NumPts; np++)
+   { 
+     u=QRX[np]; w=QRW[np];
+
+     X0mX[0] = X0mV1[0] - u*V2mV1[0];
+     X0mX[1] = X0mV1[1] - u*V2mV1[1];
+     X0mX[2] = X0mV1[2] - u*V2mV1[2];
+
+     r=VecNorm(X0mX);
+
+     Psi = (II*K - 1.0/r) * exp(II*K*r) / (4.0*M_PI*r*r);
+
+     Gradp[0] += w*X0mX[0]*Psi;
+     Gradp[1] += w*X0mX[1]*Psi;
+     Gradp[2] += w*X0mX[2]*Psi;
+     
+   };
+
+  cdouble PreFac = -1.0*VecNorm(V2mV1);
+  Gradp[0] *= PreFac;
+  Gradp[1] *= PreFac;
+  Gradp[2] *= PreFac;
+ 
+}
+
+/***************************************************************/
 /* Compute the 'reduced potentials' of a single RWG basis      */
 /* function.                                                   */
 /*                                                             */
@@ -127,9 +189,8 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;
   RWGEdge *E;
-  int mu;
   GRPIntegrandData MyGRPIData, *GRPID=&MyGRPIData;
-  cdouble IP[9], IM[9];
+  cdouble IP[9], IM[9], Gradp_Edge[3];
 
   /* get edge vertices */
   E=Edges[ne];
@@ -138,7 +199,7 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
   V2=Vertices + 3*(E->iV2);
   PArea=Panels[E->iPPanel]->Area;
 
-  if (E->iQM==-1)
+  if (E->iQM == -1)
    QM=0;
   else
    { QM=Vertices + 3*(E->iQM);
@@ -159,17 +220,17 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
    { GRPID->Q=QM;
      GRPID->PreFac = E->Length / (2.0*MArea);
      TriIntFixed(GRPIntegrand, 18, (void *)GRPID, V1, V2, QM, 25, (double *)IM);
+     memset(Gradp_Edge, 0, 3*sizeof(cdouble));
    }
-  else
-   { 
-     // TODO: add edge contribution 
+  else // if there is no negative panel then there is a line-charge edge 
+   { GetEdgeContributionToGradp(X, V1, V2, K, Gradp_Edge); 
      memset(IM, 0, 9*sizeof(cdouble));
    };
 
-  for(mu=0; mu<3; mu++) 
-   { a[mu]     = IP[mu]   - IM[mu];
-     Curla[mu] = IP[mu+3] - IM[mu+3];
-     Gradp[mu] = IP[mu+6] - IM[mu+6];
+  for(int Mu=0; Mu<3; Mu++) 
+   { a[Mu]     = IP[Mu]   - IM[Mu];
+     Curla[Mu] = IP[Mu+3] - IM[Mu+3];
+     Gradp[Mu] = IP[Mu+6] - IM[Mu+6] + Gradp_Edge[Mu];
    };
 
 }
