@@ -311,6 +311,19 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   InitEdgeList();
 
   /*------------------------------------------------------------*/
+  /*------------------------------------------------------------*/
+  /*------------------------------------------------------------*/
+#if 0
+  if (IncludeExteriorEdges)
+   { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
+     memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
+     for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)
+      Edges[ne]->Index = ne;
+     NumEdges += NumExteriorEdges;
+   };
+#endif
+
+  /*------------------------------------------------------------*/
   /*- the number of basis functions that this object takes up   */
   /*- in the full BEM system is the number of internal edges    */
   /*- if it is a perfect electrical conductor, or 2 times the   */
@@ -329,7 +342,7 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
 /*--------------------------------------------------------------*/
 RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
                        int *PanelVertices, int pNumPanels, 
-                       int IncludeExteriorEdges)
+                       bool IncludeExteriorEdges)
 { 
   int np;
 
@@ -358,9 +371,9 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   Panels=(RWGPanel **)mallocEC(NumPanels*sizeof(RWGPanel *));
   for(np=0; np<NumPanels; np++)
    { Panels[np]=NewRWGPanel(Vertices,
-                            PanelVertexIndices[3*np+0],
-                            PanelVertexIndices[3*np+1],
-                            PanelVertexIndices[3*np+2]);
+                            PanelVertices[3*np+0],
+                            PanelVertices[3*np+1],
+                            PanelVertices[3*np+2]);
      Panels[np]->Index=np;
    };
  
@@ -379,8 +392,6 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
       Edges[ne]->Index = ne;
      NumEdges += NumExteriorEdges;
    };
-
-  IsPEC = MP->IsPEC();
   NumBFs = IsPEC ? NumEdges : 2*NumEdges;
 } 
 

@@ -86,13 +86,13 @@ namespace scuff {
 /*--------------------------------------------------------------*/ 
 
 /***************************************************************/
-/* RWGPanel is a structure containing data on a single        */
+/* RWGPanel is a structure containing data on a single         */
 /* triangular panel in the meshed geometry.                    */
 /*                                                             */
 /* note: after the following code snippet                      */
 /*  double *R= O->Vertices + 3*O->Panels[np]->VI[i]            */
 /* we have that R[0..2] are the cartesian coordinates of the   */
-/* ith vertex (i=0,1,2) of the npth panel in object O.         */ 
+/* ith vertex (i=0,1,2) of the npth panel in surface O.        */
 /*                                                             */
 /***************************************************************/
 typedef struct RWGPanel
@@ -102,9 +102,7 @@ typedef struct RWGPanel
    double ZHat[3];              /* normal vector */
    double Radius;               /* radius of enclosing sphere */
    double Area;                 /* panel area */
-   int SurfaceIndex;
-
-   int Index;                   /* index of this panel within object(0..NP-1)*/
+   int Index;                   /* index of this panel within RWGSurface (0..NumPanelsP-1)*/
 
 } RWGPanel;
 
@@ -129,11 +127,11 @@ typedef struct RWGEdge
    double Length;               /* length of edge */
    double Radius;               /* radius of enclosing sphere */
 
-   int iPPanel;                 /* index of PPanel within object (0..NP-1)*/
-   int iMPanel;                 /* index of MPanel within object (0..NP-1)*/
+   int iPPanel;                 /* index of PPanel within RWGSurface (0..NumPanelsP-1)*/
+   int iMPanel;                 /* index of MPanel within RWGSurface (0..NumPanelsP-1)*/
    int PIndex;                  /* index of this edge within PPanel (0..2)*/
    int MIndex;                  /* index of this edge within MPanel (0..2)*/
-   int Index;                   /* index of this edge within object(0..NE-1)*/
+   int Index;                   /* index of this edge within RWGSurface (0..NumEdges-1)*/
 
    RWGEdge *Next;               /* pointer to next edge in linked list */
 
@@ -178,7 +176,7 @@ class RWGSurface
    /* coordinates of the nvth vertex, and the vertex indices of the   */
    /* npth panel should be PanelVertices[3*np, 3*np+1, 3*np+2].       */
    RWGSurface(double *Vertices, int NumVertices, 
-              int *PanelVertices, int NumPanels, int IncludeExteriorEdges=0)
+              int *PanelVertices, int NumPanels, bool IncludeExteriorEdges=false);
 
    /* destructor */
    ~RWGSurface();
@@ -237,7 +235,7 @@ class RWGSurface
    int NumPanels;                  /* number of panels */
    int NumBCs;                     /* number of boundary countours */
 
-   int Index;                      /* index of this object in geometry  */
+   int Index;                      /* index of this surface in geometry  */
 
    int *WhichBC;                   /* WhichBC[nv] = index of boundary contour */
                                    /* on which vertex #nv lies (=0 if vertex  */
@@ -251,7 +249,7 @@ class RWGSurface
 
    char *MeshFileName;             /* saved name of mesh file */
    int PhysicalRegion;             /* index of surface within mesh file; = -1 if not applicable */
-   char *Label;                    /* unique label identifying object */
+   char *Label;                    /* unique label identifying surface */
 
    kdtri kdPanels; /* kd-tree of panels */
    void InitkdPanels(bool reinit = false, int LogLevel = SCUFF_NOLOGGING);
@@ -336,7 +334,7 @@ class RWGGeometry
 
    int UpdateIncFields(IncField *IF, cdouble Omega);
 
-   // get the index of the object containing point X
+   // get the index of the region containing point X
    int GetRegionIndex(const double X[3]);
    int PointInRegion(int RegionIndex, const double X[3]);
 

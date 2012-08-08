@@ -41,6 +41,7 @@ AssembleRHSVector.o		\
 AssessPanelPair.o		\
 CalcGC.o			\
 EdgeEdgeInteractions.o		\
+EdgePanelInteractions.o		\
 ExpandCurrentDistribution.o	\
 FieldGrid.o			\
 FIPPICache.o			\

@@ -161,7 +161,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
      GetPanelPanelInteractions(GetPPIArgs, HMP, GradHMP, dHdTMP);
    };
 
-  if ( Ea->iMPanel!=1 && Eb->iMPanel!=-1 )
+  if ( Ea->iMPanel!=-1 && Eb->iMPanel!=-1 )
    { GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
      GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
      GetPanelPanelInteractions(GetPPIArgs, HMM, GradHMM, dHdTMM);
