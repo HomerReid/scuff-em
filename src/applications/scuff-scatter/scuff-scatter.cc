@@ -93,18 +93,6 @@
  * 
  * c. options specifying the output: 
  * 
- *     --PowerFile MyPowerFile.dat
- *     --PowerRadius R
- * 
- *        if the --PowerFile option is present, then the scattered 
-
- *        and absorbed powers at each frequency are calculated and 
- *        written to the specified data file.
- * 
- *        if --PowerRadius is specified, then the powers are 
- *        calculated by integrating the scattered and total Poynting
- *        fluxes over a sphere at radius R.                           
- * 
  *     --EPFile MyEPFile
  * 
  *         a file containing a list of points at which the scattered 
@@ -116,15 +104,29 @@
  * 
  *         (Note that --epfile may be specified more than once.)
  * 
- *     --FluxMesh  MyFluxMesh.msh
+ *     --PFTFile MyPFTFile
  * 
- *         (Note that --FluxMesh may be specified more than once.)
+ *        Requests that the power, force, and torque delivered to 
+ *        the scattering objects from the incident field be written
+ *        to the file MyPFTFile.
+ * 
+ *     --FluxMesh  MyFluxMesh.msh
+ *        
+ *        This specification will cause field visualization data
+ *        to be written to the file MyFluxMesh.pp.
  * 
  *     --MomentFile MyMoments.dat
  * 
  *        if the --MomentFile option is present, then the electric
  *        and magnetic dipole moments induced on each object in the 
  *        geometry will be computed and reported in the file MyMoments.dat. 
+ * 
+ *     --PlotSurfaceCurrents
+ *
+ *        If this flag is specified, scuff-scatter will generate 
+ *        GMSH graphical data files that you can open in GMSH 
+ *        to visualize the electric and magnetic surface currents 
+ *        induced by the incident fields on the scattering objects.
  *
  *       -------------------------------------------------
  * 
@@ -212,12 +214,10 @@
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-  EnableAllCPUs(); 
-  InstallHRSignalHandler();
-
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
+  InstallHRSignalHandler();
   char *GeoFile=0;
   double pwDir[3*MAXPW];             int npwDir;
   cdouble pwPol[3*MAXPW];            int npwPol;
@@ -230,18 +230,15 @@ int main(int argc, char *argv[])
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *EPFiles[MAXEPF];             int nEPFiles;
-  char *PowerFile=0;
-  double PowerRadius=0.0;
-  char *ForceFile=0;
-  char *FluxMeshes[MAXFM];           int nFluxMeshes;
+  char *PFTFile=0;
   char *MomentFile=0;
+  char *FluxMeshes[MAXFM];           int nFluxMeshes;
+  int PlotSurfaceCurrents=0;
   int nThread=0;
   int ExportMatrix=0;
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
-  int PFT=0;
-  char *SCSCFile=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
@@ -262,11 +259,10 @@ int main(int argc, char *argv[])
      {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength,  &npsStrength,  "point source strength"},
 /**/
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
-     {"PowerFile",      PA_STRING,  1, 1,       (void *)&PowerFile,  0,             "name of power output file"},
-     {"PowerRadius",    PA_DOUBLE,  1, 1,       (void *)&PowerRadius, 0,            "radius for power calculation"},
-     {"ForceFile",      PA_STRING,  1, 1,       (void *)&ForceFile,  0,             "name of force output file"},
+     {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power/force/torque output file"},
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
+     {"PlotSurfaceCurrents", PA_BOOL, 0, 1,     (void *)&PlotSurfaceCurrents,  0,     "generate surface current visualization files"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -274,8 +270,6 @@ int main(int argc, char *argv[])
 /**/
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
-     {"PFT",            PA_BOOL,    0, 1,       (void *)&PFT,        0,             "write power, force, torque files"},
-     {"SCSCFile",       PA_STRING,  1, 1,       (void *)&SCSCFile,   0,             "surface current / surface charge file"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -348,14 +342,11 @@ int main(int argc, char *argv[])
      IFDList=IFD;
    };
 
-  if (PowerRadius!=0.0 && PowerFile==0)
-   ErrExit("--PowerFile must be specified if --PowerRadius is specified");
-
   /*******************************************************************/
   /* sanity check to make sure the user specified an incident field  */
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
-  if ( (PowerFile!=0 || MomentFile!=0 || PowerFile!=0 || nEPFiles>0 || nFluxMeshes>0) && IFDList==0 )
+  if ( (MomentFile!=0 || PFTFile!=0 || nEPFiles>0 || nFluxMeshes>0 || PlotSurfaceCurrents) && IFDList==0 )
    ErrExit("you must specify at least one incident field source");
 
   /*******************************************************************/
@@ -373,10 +364,9 @@ int main(int argc, char *argv[])
   RWGGeometry *G = SSD->G = new RWGGeometry(GeoFile);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   HMatrix *M = SSD->M =G->AllocateBEMMatrix();
-  SSD->RHS =  PowerFile ? G->AllocateRHSVector() : 0;
+  SSD->RHS = G->AllocateRHSVector();
   HVector *KN = SSD->KN =G->AllocateRHSVector();
   SSD->IF=IFDList;
-  SSD->PowerRadius=PowerRadius;
   SSD->nThread=nThread;
 
   char GeoFileBase[MAXSTR];
@@ -439,7 +429,7 @@ int main(int argc, char *argv[])
      /* just wanted to export the matrix to a binary file), don't      **/
      /* bother LU-factorizing the matrix or assembling the RHS vector. **/
      /*******************************************************************/
-     if ( PowerFile==0 && ForceFile==0 && MomentFile==0 && nEPFiles==0 && nFluxMeshes==0 )
+     if ( PFTFile==0 && MomentFile==0 && nEPFiles==0 && nFluxMeshes==0 && PlotSurfaceCurrents==0 )
       continue;
 
      /*******************************************************************/
@@ -454,7 +444,7 @@ int main(int argc, char *argv[])
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
      G->AssembleRHSVector(Omega, IFDList, KN, nThread);
-     if (PowerFile) SSD->RHS->Copy(SSD->KN); // copy RHS vector for later 
+     SSD->RHS->Copy(SSD->KN); // copy RHS vector for later 
 
      /***************************************************************/
      /* solve the BEM system*****************************************/
@@ -470,26 +460,20 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*- scattered and absorbed power -------------------------------*/
      /*--------------------------------------------------------------*/
-     if (PowerFile)
-      GetPower(SSD, PowerFile);
-
-     /*--------------------------------------------------------------*/
-     /*- momentum transfer             ------------------------------*/
-     /*--------------------------------------------------------------*/
-     if (ForceFile)
-      GetForce(SSD, ForceFile);
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     if (PFT)
-      WritePFTFiles(SSD);
+     if (PFTFile)
+      WritePFTFile(SSD, PFTFile);
 
      /*--------------------------------------------------------------*/
      /*- induced dipole moments       -------------------------------*/
      /*--------------------------------------------------------------*/
      if (MomentFile)
       GetMoments(SSD, MomentFile);
+
+     /*--------------------------------------------------------------*/
+     /*- surface currents -------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (PlotSurfaceCurrents)
+      G->PlotSurfaceCurrents(KN, Omega, "%s.%s.pp",GetFileBase(GeoFile),z2s(Omega));
  
      /*--------------------------------------------------------------*/
      /*- scattered fields at user-specified points ------------------*/
@@ -504,12 +488,6 @@ int main(int argc, char *argv[])
      int nfm;
      for(nfm=0; nfm<nFluxMeshes; nfm++)
       CreateFluxPlot(SSD, FluxMeshes[nfm]);
-
-     /*--------------------------------------------------------------*/
-     /*- plots of induced surface charge and current ----------------*/
-     /*--------------------------------------------------------------*/
-     if (SCSCFile)   
-      G->PlotSurfaceCurrents(KN, Omega, SCSCFile);
 
    }; //  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
 

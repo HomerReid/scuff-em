@@ -1,8 +1,7 @@
 geometry SiCSphere.scuffgeo
 OmegaFile OmegaValues.dat
-PowerFile SiCSphere.power 
+PFTFile   SiCSphere.pft
 MomentFile SiCSphere.moments
-Cache Sphere.scuffcache
+Cache Sphere.cache
 pwDirection 0 0 1
 pwPolarization 1 0 0
-PFT
