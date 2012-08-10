@@ -175,8 +175,7 @@ class RWGSurface
    /* In this case, Vertices[3*nv+0, 3*nv+1, 3*nv+2] are the cartesian*/
    /* coordinates of the nvth vertex, and the vertex indices of the   */
    /* npth panel should be PanelVertices[3*np, 3*np+1, 3*np+2].       */
-   RWGSurface(double *Vertices, int NumVertices, 
-              int *PanelVertices, int NumPanels, bool IncludeExteriorEdges=false);
+   RWGSurface(double *Vertices, int NumVertices, int *PanelVertices, int NumPanels);
 
    /* destructor */
    ~RWGSurface();
@@ -222,6 +221,7 @@ class RWGSurface
    RWGEdge **Edges;                /* array of pointers to edges          */
    RWGEdge **ExteriorEdges;        /* array of pointers to exterior edges */
    int IsClosed;                   /* = 1 for a closed surface, 0 for an open surface */
+   int HaveLineCharges;            /* = 1 if any surface in the geometry has line charges */
 
    int NumVertices;                /* number of vertices in mesh  */
    int NumInteriorVertices;        /* number of interior vertices */
@@ -405,11 +405,13 @@ class RWGGeometry
    /*- class methods intended for internal use only, i.e. which          */ 
    /*- would be private if we cared about the public/private distinction */
    /*--------------------------------------------------------------------*/ 
-
    // constructor helper functions
    void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum);
    void AddRegion(char *RegionLabel, char *MaterialName, int LineNum);
 
+   // helper functions for AssembleBEMMatrix
+   int CountCommonRegions(int nsa, int nsb, double Signs[2], cdouble Eps[2], cdouble Mu[2]);
+   void AddLineChargeContributionsToBEMMatrix(cdouble Omega, HMatrix *M);
    void UpdateCachedEpsMuValues(cdouble Omega);
 
    /*--------------------------------------------------------------*/ 
@@ -429,6 +431,7 @@ class RWGGeometry
    int NumSurfaces;
    RWGSurface **Surfaces;
    int AllSurfacesClosed;
+   int HaveLineCharges;
 
    int TotalBFs;
    int TotalPanels;
@@ -464,6 +467,9 @@ class RWGGeometry
    int *SurfaceMoved;
   
    int LogLevel; 
+   
+   static bool AssignBasisFunctionsToExteriorEdges;
+   static bool IncludeLineChargeContributions;
 
  };
 

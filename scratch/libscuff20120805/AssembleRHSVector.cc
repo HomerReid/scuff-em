@@ -156,8 +156,8 @@ void GetInnerProducts(RWGSurface *S, int ne,
      TriIntFixed(InnerProductIntegrand, nFun, (void *)IPID, V1, V2, QM, 20, IM);
    }
   else
-   { // TODO: add edge contribution 
-     memset(IM, 0, 4*sizeof(cdouble));
+   { 
+     memset(IM, 0, 4*sizeof(double));
    };
 
   /* total integral is difference between pos and neg pan integrals */

@@ -18,10 +18,11 @@
  */
 
 /*
- * GetSphericalMoments.cc  -- libscuff class method for computing spherical
- *                         -- multipole moments of induced charge distributions
+ * GetSphericalMoments.cc  -- libscuff class method for computing the 
+ *                         -- spherical multipole moments induced by 
+ *                         -- the incident field on the scattering objects
  *
- * homer reid              -- 2/2010
+ * homer reid              -- 3/2007  -- 7/2012
  */
 
 #include <stdio.h>
@@ -36,467 +37,404 @@
 
 #include "libscuff.h"
 
+#define HAVE_CONFIG_H
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
-#ifdef USE_PTHREAD
-#  include <pthread.h>
-#endif
 
-namespace scuff {
+using namespace scuff;
 
 #define II cdouble(0,1)
 
-/*******************************************************************/
-/* integrand passed to TriInt to compute the contributions to the  */
-/* electric and magnetic multipole moments for a single triangle   */
-/*                                                                 */ 
-/* the integrand has length 4*(lMax+1)*(lMax+1) doubles            */
-/*  because there are (lMax+1)*(lMax+1) multipoles with l<=lMax    */
-/*  and there is an electric and magnetic moment for each multipole*/
-/*  and each moment is a cdouble.                                  */
-/*                                                                 */
-/* integrand values:                                               */
-/*  f[0],  f[1]        == real , imag a^E_{l=0, m=0}               */
-/*  f[2],  f[3]        == real , imag a^E_{l=1, m=-1}              */
-/*  f[4],  f[5]        == real , imag a^E_{l=1, m=0}               */
-/*  f[6],  f[7]        == real , imag a^E_{l=1, m=+1}              */
-/*  f[8],  f[9]        == real , imag a^E_{l=2, m=-2}              */
-/*   ...                                                           */
-/*  f[2*N-2], f[2*N-1] == real , imag a^E_{l=lMax, m=+lMax}        */
-/*  f[2*N],   f[2*N+1] == real , imag a^M_{l=0, m=0}               */
-/*  f[2*N+2], f[2*N+3] == real , imag a^M_{l=1, m=-1}              */
-/*   ...                                                           */
-/*  f[4*N-2], f[4*N-1] == real , imag a^M_{l=lMax, m=+lMax}        */
-/*                                                                 */
-/* (where N=(lMax+1)*(lMax+1))                                     */
-/*******************************************************************/
-typedef struct SMMIntegrandData
- { 
-   double *Q;          // RWG basis function source/sink vertex 
-   double PreFac;      // RWG basis function prefactor
-
-   double *X0;         // origin about which we are computing moments
-
-   double Wavevector;  // \sqrt{Eps*Mu} * frequency
-   int RealFreq;
-
-   int lMax;           // compute moments for l=0,1, ..., lMax 
-
- } SMMIData;
-
-static void SphericalMMIntegrand(double *X, void *parms, double *f)
-{ 
-  SMMIntegrandData *SMMID=(SMMIntegrandData *)parms;
-  double fRWG[3], DivfRWG, fRWGSpherical[3];
-  double R[3], r, Theta, Phi;
-  double w;
-  int l, m, nmm, NMM;
-  cdouble aE, aM;
-  cdouble *zf=(cdouble *)f;
-
-  double Wavevector=SMMID->Wavevector;
-  int lMax=SMMID->lMax;
-  NMM=(lMax+1)*(lMax+1); // 'number of multipole moments' 
-
-  cdouble Ylm[NMM], dYlmdTheta[NMM];
-  double Rl[lMax+2], dRldr[lMax+1]; /* either j_l(kr) or i_l(kr), l=0,...,lMax */
-  double kr, ExpFac;
-
-  cdouble iw, ir, PreFac;
-  double w2, r2mrdq, dl;
-
-  /* get the value of the RWG basis function at XP */
-  VecSub(X,SMMID->Q,fRWG);
-  VecScale(fRWG,SMMID->PreFac);
-
-  /* get its divergence */
-  DivfRWG=2.0*SMMID->PreFac;
-
-  /* get the spherical coordinates of the evaluation point */
-  VecSub(X, SMMID->X0, R);
-  CoordinateC2S(R, &r, &Theta, &Phi);
-  kr=Wavevector*r;
-
-  /* get the spherical components of the RWG basis function  */
-  /* (after this step, fRWGSpherical[0,1,2] = f_r, f_t, f_p) */ 
-  VectorC2S(Theta, Phi, fRWG, fRWGSpherical);
-
-  /* get the values of the spherical harmonics and their theta */
-  /* derivatives at the evaluation point                       */
-  GetYlmDerivArray(lMax, Theta, Phi, Ylm, dYlmdTheta);
-
-  /* get the values of the radial functions at the evaluation point */
-#if 0
-FIXME to remove gsl bessel functions
-  if (SMMID->RealFreq)
-   gsl_sf_bessel_jl_steed_array (lMax+1, kr, Rl);
-  else
-   { gsl_sf_bessel_il_scaled_array(lMax+2, kr, Rl);
-     ExpFac=exp(kr);
-     for(l=0; l<=lMax; l++)
-      Rl[l]*=ExpFac;
-   };
-#endif
-
-  /* get derivatives of radial functions using  */
-  /* d/dx f_l(x) = (l/x)f_l(x) - f_{l+1}(x)     */
-  for(l=0; l<=lMax; l++)
-   dRldr[l] = ((double)l)*Rl[l]/kr - Rl[l+1];
-
-  /* compute some auxiliary quantities needed to evaluate    */
-  /* the integrands                                          */
-  iw=SMMID->RealFreq ? II*(SMMID->Wavevector) : -1.0*(SMMID->Wavevector);
-  ir=SMMID->RealFreq ? II*r : 1.0*r;
-  w2=(SMMID->Wavevector)*(SMMID->Wavevector);
-  r2mrdq=r*r-VecDot(X,SMMID->Q);
-
-  /* now loop over all multipoles (l,m) for l=0 ... lMax and */
-  /* m=-l to l.                                              */
-  /* nmm ('number of multipole moment') is a running index   */
-  /* that numbers the multipoles, from nmm=0 for (l=0,m=0)   */
-  /* to nmm=NMM-1 for (l=lMax, m=+lMax).                     */
-  for(nmm=0, l=0; l<=SMMID->lMax; l++)
-   for(m=-l; m<=l; m++, nmm++)
-    { 
-
-      dl=(double)l;
-      PreFac= 2.0*w2 / sqrt(dl*(dl+1.0));
-      if ( SMMID->RealFreq == IMAG_FREQ )
-       PreFac*= -1.0;
-
-      /* set aE and aM equal to the integrands for the (l,m)th */
-      /* electric and magnetic multipoles                      */
-      aE= PreFac * conj(Ylm[nmm]) * ( ( 0.5*iw*r2mrdq - dl/iw)*Rl[l] - (l>0 ? ir*Rl[l-1] : 0.0 ) );
-      aM= /*insert contribution here */ 0.0;
-   
-      /* insert aE and aM into the correct slots in the output vector */
-      zf[nmm]=aE;
-      zf[NMM + nmm]=aM;
-    };
-
-} 
-
 /***************************************************************/
-/* get the electric and magnetic spherical multipole moments   */
-/* for a single basis function ('1BF') populated with unit     */
-/* strength                                                    */
-/*                                                             */
-/* inputs:                                                     */
-/*  ne: basis function index (0...NumEdges-1)                  */
-/*  X0: cartesian components of origin about which to compute  */
-/*      moments                                                */
-/*  lMax: maximum l-value of spherical multipole moments to    */
-/*        compute. (moments are computed for l=0,1,...,lMax    */
-/*        and all values of m (i.e. m=-l, ... +l).             */
-/*  Wavevector: real or imaginary wavevector                   */
-/*  RealFreq:   1 or 0 for real or imaginary frequency         */
-/*                                                             */
-/* outputs:                                                    */
-/*                                                             */
-/*  aE, aM: must each point to a buffer with space for at      */
-/*          least (lMax+1)*(lMax+1) cdoubles. on output, these */
-/*          store the electric and magnetic multipole moments  */
-/*          of the (electric) current distribution described   */
-/*          by basis function #ne populated with unit strength,*/
-/*          packed as follows:                                 */
-/*           aE[0] : aE_{l=0, m=0}                             */
-/*           aE[1] : aE_{l=1, m=-1}                            */
-/*           aE[2] : aE_{l=1, m=0}                             */
-/*           aE[3] : aE_{l=1, m=+1}                            */
-/*           aE[4] : aE_{l=2, m=-2}                            */
-/*           ...                                               */
-/*           aE[ (lMax+1)*(lMax+1) - 1] : aE_{l=lmax, m=+lmax} */ 
-/*          and similarly for the aM.                          */
+/* cubature integrand for the GetMNProjections routine         */
 /***************************************************************/
-void RWGObject::Get1BFSphericalMoments(int ne, double *X0, int lMax,
-                                       double Wavevector, int RealFreq, 
-                                       cdouble *aE, cdouble *aM)
+typedef struct GMNPData
+ {
+   cdouble k; 
+   int lMax;
+   double *Q;
+   double RWGPreFac;
+   cdouble *MArray;
+   cdouble *NArray;
+  
+ } GMNPData;
+
+void GMNPIntegrand(double *X, void *parms, double *f)
 {
-  double *QP, *V1, *V2, *QM;
-  double PArea, MArea; RWGEdge *E;
-  int mu;
-  SMMIntegrandData MySMMIData, *SMMID=&MySMMIData;
-  int nmm, NMM=(lMax+1)*(lMax+1);
-  cdouble PBuf[2*NMM], MBuf[2*NMM];
+  /*--------------------------------------------------------------*/
+  /*- extract parameters from data structure.                     */
+  /*- note: the MArray and NArray fields must point to caller-    */
+  /*- allocated buffers with enough room for 3*(lMax+1)*(lMax+1)  */
+  /*- cdoubles each.                                              */
+  /*--------------------------------------------------------------*/
+  GMNPData *Data    = (GMNPData *)parms;
+  cdouble k         = Data->k;
+  int lMax          = Data->lMax;
+  double *Q         = Data->Q;
+  double RWGPreFac  = Data->RWGPreFac;
+  cdouble *MArray   = Data->MArray;
+  cdouble *NArray   = Data->NArray;
 
-  /* get edge vertices */
-  E=Edges[ne];
-  QP=Vertices + 3*(E->iQP);
-  V1=Vertices + 3*(E->iV1);
-  V2=Vertices + 3*(E->iV2);
-  QM=Vertices + 3*(E->iQM);
-  PArea=Panels[E->iPPanel]->Area;
-  MArea=Panels[E->iMPanel]->Area;
+  /*--------------------------------------------------------------*/
+  /*- convert the eval point to spherical coordinates, then get   */
+  /*- the M, N vector helmholtz solutions at this eval point.     */
+  /*--------------------------------------------------------------*/
+  double r, Theta, Phi;
+  CoordinateC2S(X, &r, &Theta, &Phi);
+  GetMNlmArray(lMax, k, r, Theta, Phi, LS_REGULAR, MArray, NArray);
 
-  /* set up data structure passed to SMMIntegrand */
-  SMMID->X0=X0;
-  SMMID->lMax=lMax;
-  SMMID->Wavevector=Wavevector;
-  SMMID->RealFreq=RealFreq;
+  /*--------------------------------------------------------------*/
+  /*- get the vector-valued RWG basis function at this eval point */
+  /*--------------------------------------------------------------*/
+  double fRWG[3];
+  fRWG[0] = RWGPreFac*(X[0] - Q[0]); 
+  fRWG[1] = RWGPreFac*(X[1] - Q[1]); 
+  fRWG[2] = RWGPreFac*(X[2] - Q[2]); 
 
-  /* get contribution of positive panel */
-  SMMID->Q=QP;
-  SMMID->PreFac = E->Length / (2.0*PArea);  
-  TriIntFixed(SphericalMMIntegrand, 4*NMM, (void *)SMMID, QP, V1, V2, 25, (double *)PBuf);
+  /*--------------------------------------------------------------*/
+  /*- and convert it to spherical components                      */
+  /*--------------------------------------------------------------*/
+  double fRWGS[3];
+  VectorC2S(Theta, Phi, fRWG, fRWGS);
 
-  /* contribution of negative panel */
-  SMMID->Q=QM;
-  SMMID->PreFac = E->Length / (2.0*MArea);
-  TriIntFixed(SphericalMMIntegrand, 4*NMM, (void *)SMMID, V1, V2, QM, 25, (double *)MBuf);
+  /*--------------------------------------------------------------*/
+  /*- loop over all elements in the M, N array to compute the     */
+  /*- elements of the integrand vector                            */
+  /*--------------------------------------------------------------*/
+  cdouble MDotF, NDotF;
+  int nf=0;
+  int NumLMs=(lMax+1)*(lMax+1);
+  for(int nLM=0; nLM<NumLMs; nLM++)
+   { 
+     MDotF = MArray[3*nLM + 0]*fRWGS[0] + MArray[3*nLM + 1]*fRWGS[1] + MArray[3*nLM + 2]*fRWGS[2];
+     NDotF = NArray[3*nLM + 0]*fRWGS[0] + NArray[3*nLM + 1]*fRWGS[1] + NArray[3*nLM + 2]*fRWGS[2];
 
-  /* pack results into output arrays */
-  for(nmm=0; nmm<NMM; nmm++)
-   { aE[nmm] = PBuf[nmm ]       - MBuf[NMM];
-     aM[nmm] = PBuf[NMM + nmm ] - MBuf[NMM + nmm];
+     // note: what we really want is the dot product with the complex conjugate
+     // of M and N; since fRWG is real-valued we can just take the complex 
+     // conjugate of the dot project with M and N. 
+     f[nf++] = real( MDotF );
+     f[nf++] = -imag( MDotF );
+     f[nf++] = real( NDotF );
+     f[nf++] = -imag( NDotF );
+
    };
 
 }
 
 /***************************************************************/
+/* get the projections of a single RWG basis function onto the */
+/* M and N spherical waves, up to a maximum l-value of lMax.   */
+/*                                                             */
+/* Workspace is a caller-allocated workspace with enough room  */
+/* to store at least 10*(lMax+1)*(lMax+1) cdoubles.            */
+/*                                                             */
+/* The MProjection and NProjection output buffers are caller-  */
+/* allocated arrays which each must have enough room to store  */
+/* (lMax+1)*(lMax+1) cdoubles. On return, MProjection[Alpha]   */
+/* is the projection of the given basis function onto the      */
+/* M-type spherical wave with spherical wave indices l,m       */
+/* such that Alpha=l^2 + l + m.                                */
 /***************************************************************/
+void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
+                      cdouble *Workspace, 
+                      cdouble *MProjection, cdouble *NProjection)
+{
+  /* extract edge vertices */
+  RWGEdge *E   = S->Edges[ne];
+
+  double *QP   = S->Vertices + 3*(E->iQP);
+  double *V1   = S->Vertices + 3*(E->iV1);
+  double *V2   = S->Vertices + 3*(E->iV2);
+  double *QM   = (E->iQM == -1) ? 0 : S->Vertices + 3*(E->iQM);
+
+  double PArea = S->Panels[E->iPPanel]->Area;
+  double MArea = (E->iQM == -1) ? 0.0 : S->Panels[E->iMPanel]->Area;
+
+  /* set up data structure passed to GMNPIntegrand.           */
+  GMNPData MyData, *Data=&MyData;
+  Data->k=k;
+  Data->lMax=lMax;
+
+  // the Workspace field is used as follows:
+  // first 3*NumLMs cdoubles: passed as the MArray scratch buffer 
+  //                          required by the GMNPIntegrand routine
+  //  next 3*NumLMs cdoubles: passed as the NArray scratch buffer 
+  //                          required by the GMNPIntegrand routine
+  //  next 2*NumLMs cdoubles: store the integrand vector resulting 
+  //                          from the call to GMNPIntegrand for the 
+  //                          positive triangle 
+  //  next 2*NumLMs cdoubles: store the integrand vector resulting 
+  //                          from the call to GMNPIntegrand for the 
+  //                          negative triangle 
+  // (obviously if memory were tight some of the above could be 
+  //  consolidated to cut down on memory requirements)
+  int NumLMs = (lMax+1)*(lMax+1);
+  Data->MArray = Workspace + 0 ;
+  Data->NArray = Workspace + 3*NumLMs;
+  cdouble *IP  = Workspace + 6*NumLMs;
+  cdouble *IM  = Workspace + 8*NumLMs;
+
+  /* contribution of positive panel */
+  Data->Q=QP;
+  Data->RWGPreFac = E->Length / (2.0*PArea);
+  TriIntFixed(GMNPIntegrand, 4*NumLMs, (void *)Data, QP, V1, V2, 25, (double *)IP);
+
+  /* contribution of negative panel if present */
+  if (QM)
+   { Data->Q=QM;
+     Data->RWGPreFac = E->Length / (2.0*MArea);
+     TriIntFixed(GMNPIntegrand, 4*NumLMs, (void *)Data, V1, V2, QM, 25, (double *)IM);
+   } 
+  else
+   {  
+     memset(IM, 0, 2*NumLMs*sizeof(cdouble));
+     // TODO: add line-charge contributions
+   };
+
+  for(int nLM=0; nLM<NumLMs; nLM++)
+   { MProjection[nLM] = IP[2*nLM+0] - IM[2*nLM+0];
+     NProjection[nLM] = IP[2*nLM+1] - IM[2*nLM+1];
+   };
+
+}
+
+/***************************************************************/
+/* thread routine for GetSphericalMoments **********************/
 /***************************************************************/
 typedef struct ThreadData
  { 
-   int nt, nThread;
+   int nt, NumTasks;
 
-   RWGGeometry *G;   
-   int WhichObject;
+   RWGSurface *S;
+   cdouble k;
    int lMax;
-   double *X0;
-   double Wavevector;
-   int RealFreq;
+
    HVector *KN;
-   cdouble *aE; 
-   cdouble *aM;
+   int BFIndexOffset;
+
+   cdouble *Workspace;
+
+   cdouble *PartialAVector;
+   double Sign;
 
  } ThreadData;
 
-void *GetSphericalMoments_Thread(void *data)
+
+void *GSM_Thread(void *data)
 { 
-  ThreadData *TD=(ThreadData *)data;
-
-  RWGGeometry *G    = TD->G;
-  int WhichObject   = TD->WhichObject;
-  int lMax          = TD->lMax;
-  double *X0        = TD->X0;
-  double Wavevector = TD->Wavevector;
-  double RealFreq   = TD->RealFreq;
-  HVector *KN       = TD->KN;
-  cdouble *aE       = TD->aE;
-  cdouble *aM       = TD->aM;
-
-  RWGObject *O;
-  int nt, ne, mu, Type, Offset;
-  cdouble KAlpha, NAlpha;
-  double *DKN;
-  cdouble *ZKN;
-  int IsPEC;
-
-  int nmm, NMM=(lMax+1)*(lMax+1);
-  cdouble aE1BF[NMM], aM1BF[NMM];
-
-  O=G->Objects[WhichObject];
-  IsPEC=O->MP->IsPEC();
-  Offset=G->BFIndexOffset[O->Index];
-
-  if ( RealFreq )
-   ZKN=KN->ZV;
-  else
-   DKN=KN->DV;
-
-  memset(aE, 0, NMM*sizeof(cdouble));
-  memset(aM, 0, NMM*sizeof(cdouble));
+  ThreadData *TD          = (ThreadData *)data;
+  RWGSurface *S           = TD->S;
+  cdouble k               = TD->k;
+  int lMax                = TD->lMax;
+  HVector *KN             = TD->KN; 
+  int BFIndexOffset       = TD->BFIndexOffset;
+  cdouble *Workspace      = TD->Workspace;
+  cdouble *PartialAVector = TD->PartialAVector;
+  double Sign             = TD->Sign;
   
-  /*--------------------------------------------------------------*/
-  /*- loop over all basis functions on the object                -*/
-  /*--------------------------------------------------------------*/
-  for(nt=ne=0; ne<O->NumEdges; ne++)
-   { 
-     /*--------------------------------------------------------------*/
-     /*- thread #nt handles edges #nt,lnt+nThread, nt+2*nThread ...  */
-     /*--------------------------------------------------------------*/
-     nt++;
-     if (nt==TD->nThread) nt=0;
-     if (nt!=TD->nt) continue;
+#ifdef USE_PTHREAD
+  SetCPUAffinity(TD->nt);
+#endif
 
-     /*--------------------------------------------------------------*/
-     /* extract basis function weight(s)                             */
-     /*--------------------------------------------------------------*/
-     if ( IsPEC && RealFreq==1 )
-      { KAlpha=ZKN[ Offset + ne ];
-        NAlpha=0.0;
-      }
-     else if ( IsPEC && RealFreq==0 )
-      { KAlpha=DKN[ Offset + ne ];
-        NAlpha=0.0;
-      }
-     else if ( !IsPEC && RealFreq==1 )
-      { KAlpha=ZKN[ Offset + 2*ne ];
-        NAlpha=ZKN[ Offset + 2*ne + 1 ];
-      }
-     else if ( !IsPEC && RealFreq==0 )
-      { KAlpha=DKN[ Offset + 2*ne ];
-        NAlpha=DKN[ Offset + 2*ne + 1 ];
-      };
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  cdouble KAlpha, NAlpha;
+  int NumLMs = (lMax+1)*(lMax+1); 
+  int NumMoments=2*NumLMs;
+  cdouble *MProjection = Workspace + 0;
+  cdouble *NProjection = Workspace + 2*NumLMs; 
+  int nt=0, nbf, ne;
+  memset(PartialAVector, 0, NumMoments * sizeof(cdouble));
+  for(nbf=BFIndexOffset, ne=0; ne<S->NumEdges; ne++)
+    { 
+      nt++;
+      if (nt==TD->NumTasks) nt=0;
+      if (nt!=TD->nt) continue;
 
-     /*--------------------------------------------------------------*/
-     /*- get spherical moments of the basis function in question    -*/
-     /*- populated with unit strength                               -*/
-     /*--------------------------------------------------------------*/
-     O->Get1BFSphericalMoments(ne, X0, lMax, Wavevector, RealFreq, aE1BF, aM1BF);
-      
-     /*--------------------------------------------------------------*/
-     /*- add contributions to overall moments -----------------------*/
-     /*--------------------------------------------------------------*/
-     for(nmm=0; nmm<NMM; nmm++)
-      { aE[nmm] += KAlpha * aE1BF[nmm] - NAlpha * aM1BF[nmm];
-        aM[nmm] += KAlpha * aM1BF[nmm] - NAlpha * aE1BF[nmm];
-      };
+      LogPercent(ne, S->NumEdges);
 
-   }; // for(nt=ne=0; ne<O->NumEdges; ne++)
+      /***************************************************************/
+      /* get the projections of the basis function onto the M and N  */
+      /* spherical waves                                             */
+      /***************************************************************/
+      GetMNProjections(S, ne, k, lMax, Workspace, MProjection, NProjection);
 
-  return 0;
+      /***************************************************************/
+      /* add the contributions of the electric and magnetic currents */
+      /* described by this basis function to the a^{M,E} moments     */
+      /***************************************************************/
+      if ( S->IsPEC )
+       { 
+         KAlpha = Sign*KN->GetEntry( BFIndexOffset + ne );
+         NAlpha = 0.0;
+       }
+      else 
+       { KAlpha =       Sign*KN->GetEntry( BFIndexOffset + 2*ne + 0 );
+         NAlpha = -Sign*ZVAC*KN->GetEntry( BFIndexOffset + 2*ne + 1 );
+       };
+
+      for(int nLM=0; nLM<NumLMs; nLM++)
+       { 
+         // contributions to a^M moment 
+         PartialAVector[2*nLM + 0] += -k*k*( ZVAC*MProjection[nLM]*KAlpha
+                                                 -NProjection[nLM]*NAlpha
+                                           );
+
+         // contributions to a^E moment
+         PartialAVector[2*nLM + 1] += -k*k*( ZVAC*NProjection[nLM]*KAlpha
+                                                 +MProjection[nLM]*NAlpha 
+                                           );
+
+       };
  
-}
-
-/***************************************************************/
-/* get the electric and magnetic spherical multipole moments   */
-/* of the current distribution on a single object.             */
-/*                                                             */
-/* inputs:                                                     */
-/*  WhichObject: index of object for which to compute moments  */
-/*               (0...NumObjects - 1)                          */
-/*  X0: cartesian components of origin about which to compute  */
-/*      moments                                                */
-/*  lMax: maximum l-value of spherical multipole moments to    */
-/*        compute. (moments are computed for l=0,1,...,lMax    */
-/*        and all values of m (i.e. m=-l, ... +l).             */
-/*  Wavevector: real or imaginary wavevector                   */
-/*  RealFreq:   1 or 0 for real or imaginary frequency         */
-/*  KN:  solution vector of linear BEM system                  */
-/*  nThread: number of threads to use                          */
-/*                                                             */
-/* outputs:                                                    */
-/*                                                             */
-/*  aE, aM: must each point to a buffer with space for at      */
-/*          least (lMax+1)*(lMax+1) cdoubles. on output, these */
-/*          store the electric and magnetic multipole moments  */
-/*          of the source distribution on the given object,    */
-/*          packed as follows:                                 */
-/*                                                             */
-/*           aE[0] : aE_{l=0, m=0}                             */
-/*           aE[1] : aE_{l=1, m=-1}                            */
-/*           aE[2] : aE_{l=1, m=0}                             */
-/*           aE[3] : aE_{l=1, m=+1}                            */
-/*           aE[4] : aE_{l=2, m=-2}                            */
-/*           ...                                               */
-/*           aE[ (lMax+1)*(lMax+1) - 1] : aE_{l=lmax, m=+lmax} */ 
-/*                                                             */
-/*          and similarly for the aM.                          */
-/***************************************************************/
-void RWGGeometry::GetSphericalMoments(int WhichObject, double *X0, int lMax,
-                                      double Frequency, int RealFreq,
-                                      HVector *KN, 
-                                      cdouble *aE, cdouble *aM,
-				      int nThread)
-{ 
-  int nt;
-
-  if (nThread <= 0) nThread = GetNumThreads();
-
-#ifdef USE_PTHREAD
-  ThreadData *TDS = new ThreadData[nThread], *TD;
-  pthread_t *Threads = new pthread_t[nThread];
-#else
-  ThreadData TD1;
-#endif
-
-  int nmm, NMM=(lMax+1)*(lMax+1);
-  cdouble *aEPartial = new cdouble[nThread*NMM];
-  cdouble *aMPartial = new cdouble[nThread*NMM];
-
-  cdouble zEps;
-  double Eps, Mu;
-  double Wavevector;
-
-  /***************************************************************/
-  /* sanity check on WhichObject *********************************/
-  /***************************************************************/
-  if (WhichObject<0 || WhichObject > NumObjects)
-   { fprintf(stderr,"invalid object %i specified in GetSphericalMoments\n",WhichObject);
-     return;
-   };
-
-  /***************************************************************/
-  /* compute wavevector in external medium                       */
-  /***************************************************************/
-  ExteriorMP->GetEpsMu(Frequency, RealFreq, &zEps, &Mu); 
-  Eps=real(zEps);
-  Wavevector=sqrt(Eps*Mu*Frequency);
-
-  /***************************************************************/
-  /* fire off threads                                            */
-  /*  note: thread #nt writes its contributions to the moments   */
-  /*        into aE[ NMM*nt, NMM*nt + 1, ... , NMM*nt + NMM - 1] */
-  /*         and aM[ NMM*nt, NMM*nt + 1, ... , NMM*nt + NMM - 1] */
-  /*        and afterward we go through and sum them all up.     */
-  /***************************************************************/
-#ifdef USE_OPENMP
-#pragma omp parallel for private(TD1), schedule(static,1), num_threads(nThread)
-#endif
-  for(nt=0; nt<nThread; nt++)
-   { 
-#ifdef USE_PTHREAD
-     TD=&(TDS[nt]);
-#else
-     ThreadData *TD=&TD1;
-#endif
-
-     TD->nt=nt;
-     TD->nThread=nThread;
-
-     TD->G=this;
-     TD->WhichObject=WhichObject;
-     TD->lMax=lMax;
-     TD->X0=X0;
-     TD->Wavevector=Wavevector;
-     TD->RealFreq=RealFreq;
-     TD->KN=KN;
-     TD->aE=aE + nt*NMM;
-     TD->aM=aM + nt*NMM;
-     
-#ifdef USE_PTHREAD
-     if (nt+1 == nThread)
-       GetSphericalMoments_Thread((void *)TD);
-     else
-       pthread_create( &(Threads[nt]), 0, GetSphericalMoments_Thread, (void *)TD);
-#else
-       GetSphericalMoments_Thread((void *)TD);
-#endif
-   }
-
-#ifdef USE_PTHREAD
-  /* wait for threads to complete */
-  for(nt=0; nt<nThread-1; nt++)
-   pthread_join(Threads[nt],0);
-#endif
-
-  /* sum contributions from all threads */
-  memset(aE,0,NMM*sizeof(cdouble));
-  memset(aM,0,NMM*sizeof(cdouble));
-  for(nt=0; nt<nThread; nt++)
-   for(nmm=0; nmm<NMM; nmm++)
-    { aE[nmm] += aEPartial[nt*NMM + nmm];
-      aM[nmm] += aMPartial[nt*NMM + nmm];
     };
 
 }
 
-  delete[] aEPartial;
-  delete[] aMPartial;
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
+                             HVector *KN, int BFIndexOffset, 
+                             HVector *AVector)
+{ 
+  
+  /***************************************************************/
+  /* (re)allocate the AVector as necessary ***********************/
+  /***************************************************************/
+  int NumLMs = (lMax+1)*(lMax+1);
+  int NumMoments = 2*NumLMs; // a^E and a^M moments for each l,m
+  if ( AVector && AVector->N != NumMoments )
+   { Warn("wrong-size AVector passed to GetSphericalMoments (reallocating...)");
+     AVector=0;
+   };
+  if ( AVector==0 )
+   AVector=new HVector(NumMoments, LHM_COMPLEX);
+  AVector->Zero();
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double Sign; 
+  if(S->RegionIndices[0]==0)
+   Sign=+1.0;
+  else if (S->RegionIndices[1]==0)
+   Sign=-1.0;
+  else 
+   return AVector; // currents on this surface do not contribute
+
+  Log("Computing induced spherical moments on surface %s...",S->Label);
+
+  /***************************************************************/
+  /* set up thread data ******************************************/
+  /***************************************************************/
+  int NumThreads=GetNumThreads();
+  
+  int WorkspaceSize = 10*NumLMs;
+  int PartialAVectorSize = 2*NumLMs;
+  cdouble *WorkspaceBuffer = (cdouble *)mallocEC(NumThreads*WorkspaceSize*sizeof(cdouble));
+  cdouble *PartialAVectorBuffer = (cdouble *)mallocEC(NumThreads*PartialAVectorSize*sizeof(cdouble));
+
+  ThreadData *TDs = new ThreadData[NumThreads];
+  int nt;
+  for(nt=0; nt<NumThreads; nt++)
+   { TDs[nt].nt             = nt;
+     TDs[nt].NumTasks       = NumThreads;
+     TDs[nt].S              = S;
+     TDs[nt].k              = k;
+     TDs[nt].lMax           = lMax;
+     TDs[nt].KN             = KN;
+     TDs[nt].BFIndexOffset  = BFIndexOffset;
+     TDs[nt].Workspace      = WorkspaceBuffer + nt*WorkspaceSize;
+     TDs[nt].PartialAVector = PartialAVectorBuffer + nt*PartialAVectorSize;
+     TDs[nt].Sign           = Sign;
+   };
+
+  /***************************************************************/
+  /* fire off the threads ****************************************/
+  /***************************************************************/
 #ifdef USE_PTHREAD
+  pthread_t *Threads = new pthread_t[NumThreads];
+  for(nt=0; nt<NumThreads; nt++)
+   { 
+     if (nt+1 == NumThreads)
+      GSM_Thread((void *) &(TDs[nt]) );
+     else
+      pthread_create( &(Threads[nt]), 0, GSM_Thread, (void *)(&(TDs[nt])));
+   };
+  for(nt=0; nt<NumThreads-1; nt++)
+   pthread_join(Threads[nt],0);
   delete[] Threads;
-  delete[] TDS;
+#else
+#ifndef USE_OPENMP
+ NumThreads=1;
+#else
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
-} // namespace scuff
+  for(nt=0; nt<NumThreads; nt++)
+   GSM_Thread((void *)&(TDs[nt]));
+#endif
+
+  /***************************************************************/
+  /* accumulate contributions of all threads to the A vector     */
+  /***************************************************************/
+  AVector->Zero();
+  cdouble *PAV;
+  for(nt=0; nt<NumThreads; nt++)
+   { PAV=PartialAVectorBuffer + nt*PartialAVectorSize;
+     for(int nMoment=0; nMoment<NumMoments; nMoment++)
+      AVector->AddEntry(nMoment, PAV[nMoment]);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  delete[] TDs;
+  free(WorkspaceBuffer);
+  free(PartialAVectorBuffer);
+
+  return AVector;
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
+                             HVector *KN, HVector *AVector)
+{ 
+  /***************************************************************/
+  /* (re)allocate the AVector as necessary ***********************/
+  /***************************************************************/
+  int NumLMs = (lMax+1)*(lMax+1);
+  int NumMoments = 2*NumLMs; // a^E and a^M moments for each l,m
+  if ( AVector && AVector->N != NumMoments )
+   { Warn("wrong-size AVector passed to GetSphericalMoments (reallocating...)");
+     AVector=0;
+   };
+  if ( AVector==0 )
+   AVector=new HVector(NumMoments, LHM_COMPLEX);
+  AVector->Zero();
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  HVector *Scratch=new HVector(NumMoments, LHM_COMPLEX);
+
+  AVector->Zero();
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     GetSphericalMoments(G->Surfaces[ns], k, lMax, KN, G->BFIndexOffset[ns], Scratch);
+
+     for(int nm=0; nm<NumMoments; nm++)
+      AVector->AddEntry(nm, Scratch->GetEntry(nm));
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  delete Scratch;
+   
+}

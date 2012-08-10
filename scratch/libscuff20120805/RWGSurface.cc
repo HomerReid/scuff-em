@@ -131,14 +131,20 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
          { ErrMsg=strdup("REGIONS keyword may not be used in OBJECT...ENDOBJECT sections");
            return;
          };
-        if (NumTokens!=3)
-         { ErrMsg=strdup("REGIONS keyword requires two arguments");
-           return;
-         };
-        IsPEC=0;
-        RegionLabels[0] = strdup(Tokens[1]);
-        RegionLabels[1] = strdup(Tokens[2]);
-        MaterialRegionsLineNum = *LineNum;
+        if (NumTokens==3)
+         { IsPEC=0;
+           RegionLabels[0] = strdup(Tokens[1]);
+           RegionLabels[1] = strdup(Tokens[2]);
+           MaterialRegionsLineNum = *LineNum;
+         }
+        else if (NumTokens==2)
+         { IsPEC=1;
+           RegionLabels[0] = strdup(Tokens[1]);
+           RegionLabels[1] = strdup("PEC");
+           MaterialRegionsLineNum = *LineNum;
+         }
+        else
+         ErrMsg=strdup("REGIONS keyword requires one or two arguments");
       }
      else if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"ROTATED") )
       { 
@@ -211,18 +217,12 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
    Log("Surface %s has surface conductivity Sigma=%s.\n",Label,cevaluator_get_string(SurfaceSigma));
 
   // if we are an OBJECT and there was no MATERIAL specification,
-  // then we consider ourselves to be PEC.
-  if ( IsObject && RegionLabels[0]==0 )
+  // or we are a SURFACE and there was no REGIONS specification, then 
+  // we consider ourselves to be a PEC surface in the exterior medium.
+  if ( RegionLabels[0]==0 )
    { IsPEC=1;
      RegionLabels[0] = strdup("EXTERIOR");
      RegionLabels[1] = strdup("PEC");
-   };
-
-  // on the other hand, if we are a SURFACE and there was no REGIONS specification,
-  // then we call that an error.
-  if ( !IsObject && RegionLabels[0]==0 )
-   { ErrMsg=vstrdup("%s section must include a REGIONS specification",Keyword);
-     return;
    };
 
   // ok, all checks passed, now on to the main body of the class constructor.
@@ -311,17 +311,25 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   InitEdgeList();
 
   /*------------------------------------------------------------*/
+  /*- By default, if we are an OBJECT we do not assign half-RWG */
+  /*- basis functions to exterior edges, whereas if we are a    */
+  /*- SURFACE we do.                                            */
+  /*- The procedure for assigning half-RWG basis functions to   */
+  /*- exterior edges is simply to append the contents of the    */
+  /*- ExteriorEdges array to the end of the Edges array. The    */
+  /*- content of each individual edge structure is already      */
+  /*- properly initialized by the InitEdgeList() routine (with  */
+  /*- the exception of the Index field.) The edges remain in    */
+  /*- place within the ExteriorEdges array.                     */
   /*------------------------------------------------------------*/
-  /*------------------------------------------------------------*/
-#if 0
-  if (IncludeExteriorEdges)
+  if ( !IsObject && RWGGeometry::AssignBasisFunctionsToExteriorEdges)
    { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
      memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
      for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)
       Edges[ne]->Index = ne;
      NumEdges += NumExteriorEdges;
+     Log("Promoted %i exterior edges for surface %s to half-RWG basis functions.",NumExteriorEdges,Label);
    };
-#endif
 
   /*------------------------------------------------------------*/
   /*- the number of basis functions that this object takes up   */
@@ -341,8 +349,7 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
-                       int *PanelVertices, int pNumPanels, 
-                       bool IncludeExteriorEdges)
+                       int *PanelVertices, int pNumPanels)
 { 
   int np;
 
@@ -356,8 +363,9 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   NumVertices=pNumVertices;
   NumPanels=pNumPanels;
   RegionLabels[0]=strdup("Exterior");
-  RegionLabels[1]=strdup("Exterior");
-  RegionIndices[0]=RegionIndices[1]=0;
+  RegionLabels[1]=strdup("PEC");
+  RegionIndices[0]=0;
+  RegionIndices[1]=-1;
   IsPEC=1;
   IsObject=1;
   GT=0;
@@ -385,7 +393,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
-  if (IncludeExteriorEdges)
+  if (RWGGeometry::AssignBasisFunctionsToExteriorEdges)
    { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
      memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
      for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)
@@ -393,6 +401,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
      NumEdges += NumExteriorEdges;
    };
   NumBFs = IsPEC ? NumEdges : 2*NumEdges;
+
 } 
 
 /***************************************************************/

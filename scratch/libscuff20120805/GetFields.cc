@@ -223,8 +223,12 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
      memset(Gradp_Edge, 0, 3*sizeof(cdouble));
    }
   else // if there is no negative panel then there is a line-charge edge 
-   { GetEdgeContributionToGradp(X, V1, V2, K, Gradp_Edge); 
+   { 
      memset(IM, 0, 9*sizeof(cdouble));
+     if (RWGGeometry::IncludeLineChargeContributions)
+      GetEdgeContributionToGradp(X, V1, V2, K, Gradp_Edge); 
+     else 
+      memset(Gradp_Edge,0,3*sizeof(cdouble));
    };
 
   for(int Mu=0; Mu<3; Mu++) 

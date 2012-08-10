@@ -417,7 +417,7 @@ numerical cubature.
 \subsection{The common edge case}
 
 In this case we parameterize points in the triangle and on the edge according to 
-$$\vb x=\vb V_0 + u\vb A + v \vb B, \qquad \vb x^\prime = V_0 + u\vb A.$$
+$$\vb x=\vb V_0 + u\vb A + v \vb B, \qquad \vb x^\prime = \vb V_0 + u\vb A.$$
 The edge-panel integral is 
 \numeq{EPICE1}
 {
@@ -439,7 +439,7 @@ $$
 Applying this to (\ref{EPICE1}) yields 
 \numeq{EPICE2}
 { \texttt{EPI} = 
-  \int_0^1 dy \, \int_0^1 du^\prime \, \int_y^1 du \, f(u-u^\prime,v).
+  \int_0^1 dv \, \int_0^1 du^\prime \, \int_y^1 du \, \mathcal{I}(u-u^\prime,v).
 }
 Now we rewrite the $u,u^\prime$ integral to take advantage of the 
 fact that the integrand only depends on the difference $u-u^\prime$.
@@ -474,29 +474,35 @@ integrals:
 &=\frac{1}{2}\int_0^1\,dv\,\int_v^1 dt \,\, (2-2t) \, \mathcal{I}(t,v).
 \end{align*}
 Now make Duffy transformations:
-\begin{align*}
+$$\begin{array}{lcl}
   \texttt{EPI}_1
-  \xrightarrow[v=xy]{t=x(y-1)}
-&=\frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
+ &\xrightarrow[v=xy]{t=x(y-1)}&
+  \displaystyle{
+ \frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
               x(2-xy-x)\,\mathcal{I}\Big(x(y-1),xy\Big)
-\\[5pt]
+               }
+\\[10pt]
   \texttt{EPI}_2
-  \xrightarrow[y=t/v]{x=v}
-&=\frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
+ &\xrightarrow[y=t/v]{x=v}&
+  \displaystyle{
+  \frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
               x(2-2x)\,\mathcal{I}\Big(xy,x\Big)
-\\[5pt]
+               }
+\\[10pt]
   \texttt{EPI}_3
-  \xrightarrow[y=v/t]{x=t}
-&=\frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
+ &\xrightarrow[y=v/t]{x=t}&
+  \displaystyle{
+  \frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
               x(2-2x)\,\mathcal{I}\Big(x,xy\Big)
-\end{align*}
+               }
+\end{array}$$
 Recombine into a single big integral:
 \begin{align*}
  \texttt{EPI}
 &=\frac{1}{8\pi}\int_0^1 \, dx \int_0^1 \, dy \, 
- \Big\{  x(2-xy-x)\frac{e^{ikxR_1(y)}}{R_1(y)}
-        +x(2-2x)\frac{e^{ikxR_2(y)}}{R_2(y)}
-        +x(2-2x)\frac{e^{ikxR_3(y)}}{R_3(y)}
+ \Big\{  (2-xy-x)\frac{e^{ikxR_1(y)}}{R_1(y)}
+        +(2-2x)\frac{e^{ikxR_2(y)}}{R_2(y)}
+        +(2-2x)\frac{e^{ikxR_3(y)}}{R_3(y)}
  \Big\}
 \end{align*}
 $$
@@ -513,18 +519,18 @@ numerically:
  \texttt{EPI}=\frac{1}{8\pi}\int_0^1 dy \, \Bigg\{ 
 \,\,\,\,\,
 &\frac{e^{ikR_1}}{R_1}
- \Big[  \texttt{ExpRel}\big(2,-ikR_1\big)
-       -\frac{y+1}{3} \texttt{ExpRel}\big(3,-ikR_1\big)
+ \Big[ 2\,\texttt{ExpRel}\big(1,-ikR_1\big)
+       -\frac{y+1}{2} \texttt{ExpRel}\big(2,-ikR_1\big)
  \Big]
 \\
 +&\frac{e^{ikR_2}}{R_2}
- \Big[  \texttt{ExpRel}\big(2,-ikR_2\big)
-       -\frac{2}{3} \texttt{ExpRel}\big(3,-ikR_2\big)
+ \Big[ 2\, \texttt{ExpRel}\big(1,-ikR_2\big)
+       - \texttt{ExpRel}\big(2,-ikR_2\big)
  \Big]
 \\
 +&\frac{e^{ikR_3}}{R_3}
- \Big[  \texttt{ExpRel}\big(2,-ikR_3\big)
-       -\frac{2}{3} \texttt{ExpRel}\big(3,-ikR_3\big)
+ \Big[ 2\,\texttt{ExpRel}\big(1,-ikR_3\big)
+       - \texttt{ExpRel}\big(2,-ikR_3\big)
  \Big]\Bigg\}.
 \end{align*}
 

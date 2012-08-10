@@ -1,6 +1,6 @@
 REGION Exterior        MATERIAL VACUUM
-REGION UpperHemisphere MATERIAL CONST_EPS_2
-REGION LowerHemisphere MATERIAL CONST_EPS_20
+REGION UpperHemisphere MATERIAL CONST_EPS_20
+REGION LowerHemisphere MATERIAL CONST_EPS_2
 
 SURFACE LowerHemisphereSurface 
 

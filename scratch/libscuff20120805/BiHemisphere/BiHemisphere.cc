@@ -21,17 +21,26 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *EPFile=0;
   cdouble Omega=0.01;
+  int ExcludeHalfBFs=0;
+  int ExcludeLineCharges=0;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
-   { {"geometry", PA_STRING,  1, 1, (void *)&GeoFileName,  0,  ".scuffgeo file"},
-     {"cache",    PA_STRING,  1, 1, (void *)&Cache,        0,  ".scuffcache file"},
-     {"Omega",    PA_CDOUBLE, 1, 1, (void *)&Omega,        0,  "angular frequency"},
-     {"EPFile",   PA_STRING,  1, 1, (void *)&EPFile,       0,  "list of evaluation points"},
+   { {"geometry",           PA_STRING,  1, 1, (void *)&GeoFileName,        0, ".scuffgeo file"},
+     {"cache",              PA_STRING,  1, 1, (void *)&Cache,              0, ".scuffcache file"},
+     {"Omega",              PA_CDOUBLE, 1, 1, (void *)&Omega,              0, "angular frequency"},
+     {"EPFile",             PA_STRING,  1, 1, (void *)&EPFile,             0, "list of evaluation points"},
+     {"ExcludeHalfBFs",     PA_BOOL,    0, 1, (void *)&ExcludeHalfBFs,     0, "exclude half-RWG basis functions"},
+     {"ExcludeLineCharges", PA_BOOL,    0, 1, (void *)&ExcludeLineCharges, 0, "exclude line charge contributions"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
   if (GeoFileName==0)
    OSUsage(argv[0],OSArray,"--geometry option is mandatory");
+
+  if (ExcludeHalfBFs)
+   RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
+  if (ExcludeLineCharges)
+   RWGGeometry::IncludeLineChargeContributions=false;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

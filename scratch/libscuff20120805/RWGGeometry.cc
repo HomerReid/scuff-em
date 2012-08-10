@@ -39,6 +39,9 @@ namespace scuff {
 #define MAXSTR 1000
 #define MAXTOK 50
 
+bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
+bool RWGGeometry::IncludeLineChargeContributions=true;
+
 /***********************************************************************/
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
 /* file. (currently the only keyword supported for this section is     */
@@ -136,7 +139,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   LogLevel=pLogLevel;
   NumSurfaces=TotalPanels=TotalBFs=0;
   GeoFileName=strdup(pGeoFileName);
+  Surfaces=0;
   AllSurfacesClosed=1;
+  HaveLineCharges=0;
 
   // we always start with a single Region, for the exterior,
   // taken to be vacuum by default
@@ -242,10 +247,16 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
            /* On the other hand, for a SURFACE, we need to check that the       */
            /* REGIONS specified in the SURFACE...ENDSURFACE description         */
            /* are regions that have been previously declared.                   */
-           for(int i=0; i<2; i++)
-            { S->RegionIndices[i] = GetRegionByLabel(S->RegionLabels[i]);
-              if (S->RegionIndices[i]==-1)
-               ErrExit("%s:%i: unknown region %s",GeoFileName,S->MaterialRegionsLineNum,S->RegionLabels[i]);
+           S->RegionIndices[0] = GetRegionByLabel(S->RegionLabels[0]);
+           if (S->RegionIndices[0]==-1)
+            ErrExit("%s:%i: unknown region %s",GeoFileName,S->MaterialRegionsLineNum,S->RegionLabels[0]);
+
+           if( S->IsPEC )
+            S->RegionIndices[1] = -1;
+           else
+            { S->RegionIndices[1] = GetRegionByLabel(S->RegionLabels[1]);
+              if (S->RegionIndices[1]==-1)
+               ErrExit("%s:%i: unknown region %s",GeoFileName,S->MaterialRegionsLineNum,S->RegionLabels[1]);
             };
          };
 
@@ -267,6 +278,20 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       };
 
    }; // while( fgets(Line,MAXSTR,f) )
+
+  /*--------------------------------------------------------------*/
+  /*- set a flag if there are line charges present. --------------*/
+  /*- line charges are present iff:                              -*/
+  /*-  (1) one or more surface contains exterior edges, and      -*/
+  /*-  (2) we are assigning half-RWG basis functions to those    -*/
+  /*-      exterior edges (as opposed to simply ignoring them).  -*/
+  /*--------------------------------------------------------------*/
+  if( IncludeLineChargeContributions )
+   { for(int ns=0; ns<NumSurfaces; ns++)
+      if ( Surfaces[ns]->NumExteriorEdges > 0 )
+       HaveLineCharges=1;
+   };
+
 
   /*--------------------------------------------------------------*/
   /* Autodetect nesting relationships & topologically sort        */

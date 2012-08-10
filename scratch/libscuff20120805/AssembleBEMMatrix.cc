@@ -122,9 +122,8 @@ void *ABMBThread(void *data)
   /* precompute the constant prefactors that multiply the        */
   /* integrals returned by GetEdgeEdgeInteractions()             */
   /***************************************************************/
-  cdouble kA, kB;
-  cdouble PreFac1A, PreFac2A, PreFac3A;
-  cdouble PreFac1B, PreFac2B, PreFac3B;
+  cdouble kA, PreFac1A, PreFac2A, PreFac3A;
+  cdouble kB, PreFac1B, PreFac2B, PreFac3B;
 
   kA=csqrt2(EpsA*MuA)*Omega;
   PreFac1A = SignA*II*MuA*Omega;
@@ -588,6 +587,12 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
       for(nc=0; nc<nr; nc++)
        M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
    };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( HaveLineCharges && RWGGeometry::IncludeLineChargeContributions )
+   AddLineChargeContributionsToBEMMatrix(Omega, M);
 
  return M;
 

@@ -13,6 +13,7 @@ CPPFLAGS += -I$(SCUFFEM)/src/libs/libTriInt
 CPPFLAGS += -I$(SCUFFEM)/src/libs/libMatProp
 CPPFLAGS += -I$(SCUFFEM)/src/libs/libMatProp/cmatheval
 CPPFLAGS += -I$(SCUFFEM)/src/libs/libMDInterp
+CPPFLAGS += -I/home/homer/work/libSpherical
 CPPFLAGS += -I.
 CXXFLAGS += -fopenmp
 
@@ -46,9 +47,11 @@ ExpandCurrentDistribution.o	\
 FieldGrid.o			\
 FIPPICache.o			\
 GetDipoleMoments.o		\
+GetSphericalMoments.o		\
 GetFields.o			\
 GTransformation.o		\
 InitEdgeList.o			\
+LineChargeContributions.o	\
 Overlap.o			\
 PanelPanelInteractions.o	\
 PointInObject.o			\
