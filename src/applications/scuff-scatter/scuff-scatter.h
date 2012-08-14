@@ -53,9 +53,9 @@ typedef struct SSData
 /* these are the 'output modules' that compute and process the */
 /* scattered fields in various ways.                           */
 /***************************************************************/
-void GetPower(SSData *SSD, char *PowerFile);
-void GetForce(SSData *SSD, char *ForceFile);
-void WritePFTFiles(SSData *SSD);
+//void GetPower(SSData *SSD, char *PowerFile);
+//void GetForce(SSData *SSD, char *ForceFile);
+void WritePFTFile(SSData *SSD, char *PFTFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);
 void CreateFluxPlot(SSData *SSData, char *MeshFileName);

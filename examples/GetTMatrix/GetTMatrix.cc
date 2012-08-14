@@ -26,6 +26,8 @@ using namespace scuff;
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  EnableAllCPUs();
+
   /*--------------------------------------------------------------*/
   /*- process command-line options -------------------------------*/
   /*--------------------------------------------------------------*/
@@ -33,7 +35,7 @@ int main(int argc, char *argv[])
   int lMax=5;           // maximum L-value of spherical wave computed
   cdouble Omega=0;      // angular frequency at which to run the computation
   char *OmegaFile=0;    // list of angular frequencies
-  char *Cache;          // scuff cache file 
+  char *Cache=0;        // scuff cache file 
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry",  PA_STRING,  1, 1, (void *)&GeoFileName,  0,  ".scuffgeo file"},
@@ -55,7 +57,7 @@ int main(int argc, char *argv[])
    OmegaVector=new HVector(OmegaFile);
   else if ( Omega!=0.0 )
    { OmegaVector=new HVector(1, LHM_COMPLEX);
-     OmegaVector->SetEntry(1,Omega);
+     OmegaVector->SetEntry(0,Omega);
    }
   else
    OSUsage(argv[0],OSArray,"either --omega or --omegafile must be specified");
@@ -66,7 +68,8 @@ int main(int argc, char *argv[])
   SetLogFileName("%s.log",GetFileBase(GeoFileName));
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
-  PreloadCache(Cache);
+  if (Cache)
+   PreloadCache(Cache);
 
   /*--------------------------------------------------------------*/
   /* preallocate BEM matrix and RHS vector                        */
@@ -82,7 +85,7 @@ int main(int argc, char *argv[])
   HVector *AVector = new HVector(NumMoments, LHM_COMPLEX);
 
   /*--------------------------------------------------------------*/
-  /* instantiate a SphericalWave structure (we will set the l, m, */
+ /* instantiate a SphericalWave structure (we will set the l, m, */
   /* and Type fields later)                                       */
   /*--------------------------------------------------------------*/
   SphericalWave SW;
@@ -97,6 +100,8 @@ int main(int argc, char *argv[])
   FILE *TextOutputFile=vfopen("%s.TMatrix","w",GetFileBase(GeoFileName));
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    {
+     Log("Computing T matrix at frequency %s...",z2s(Omega));
+
      /*--------------------------------------------------------------*/
      /* assemble and factorize the BEM matrix at this frequency      */
      /*--------------------------------------------------------------*/
@@ -121,12 +126,13 @@ int main(int argc, char *argv[])
            SW.SetM(m);
 
            // solve the scattering problem for this incident spherical wave
+           Log("Solving scattering problem with incident spherical wave P(l,m)=%c(%i,%i)",TypeChar[Type],l,m);
            G->AssembleRHSVector(Omega, &SW, KN);
            M->LUSolve(KN);
 
            // compute the spherical multipole moments induced by the 
            // incident wave on the object 
-           GetSphericalMoments(G->Objects[0], Omega, lMax, KN, 0, AVector);
+           GetSphericalMoments(G, Omega, lMax, KN, AVector);
 
            // stamp in the vector of moments as the ncth row of the T-matrix
            for(nr=0; nr<NumMoments; nr++)
@@ -144,10 +150,17 @@ int main(int argc, char *argv[])
         for(nc=lP=0; lP<=lMax; lP++)
          for(mP=-lP; mP<=lP; mP++)
           for(TypeP=SW_MAGNETIC; TypeP<=SW_ELECTRIC; TypeP++, nc++)
-           fprintf(TextOutputFile,"%s %+2i %+2i %c %+2i %+2i %c %+15.8e %+15.8e\n",
-                                   z2s(Omega),l,m,TypeChar[Type],lP,mP,TypeChar[TypeP],
-                                   real(TMatrix->GetEntry(nr,nc)), 
-                                   imag(TMatrix->GetEntry(nr,nc)));
+           { 
+             if (l==0 || lP==0) continue;
+
+ //            fprintf(TextOutputFile,"%s  %c(%3i, %3i)  %c(%3i, %3i)  %+15.8e %+15.8e\n",
+             fprintf(TextOutputFile,"%s %c %i %i %c %i %i  %+15.8e %+15.8e\n",
+                                     z2s(Omega),
+                                     TypeChar[Type],l,m,
+                                     TypeChar[TypeP],lP,mP,
+                                     real(TMatrix->GetEntry(nr,nc)), 
+                                     imag(TMatrix->GetEntry(nr,nc)));
+           };
 
     }; // for( nOmega= ... )
 
@@ -156,7 +169,8 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  StoreCache(Cache);
+  if (Cache)
+   StoreCache(Cache);
   printf("Thank you for your support.\n");
   
 }

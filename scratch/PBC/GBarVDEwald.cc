@@ -43,7 +43,6 @@
 #define NFIRSTROUND 1
 #define NMAX 10000
 
-
 namespace scuff{
 
 /***************************************************************/
@@ -514,31 +513,6 @@ void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2], cdouble *
 void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
                  double E, int ExcludeFirst9, cdouble *GBarVD)
 { 
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-memset(GBarVD,0,NSUM*sizeof(cdouble));
-//AddGBFContribution(R, k, P, -2.0, -2.0, GBarVD);
-//return;
-//AddGBFContribution(R, k, P, +2.0, +2.0, GBarVD);
-{ double Lx, Ly;
-  for(Lx=-2.0; Lx<=2.1; Lx+=1.0)
-   { AddGBFContribution(R, k, P, Lx, +2.0, GBarVD);
-     AddGBFContribution(R, k, P, Lx, -2.0, GBarVD);
-   };
-  for(Ly=-1.0; Ly<=1.1; Ly+=1.0)
-   { AddGBFContribution(R, k, P, +2.0, Ly, GBarVD);
-     AddGBFContribution(R, k, P, -2.0, Ly, GBarVD);
-   };
-};
-return;
-#endif
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-
   if ( (LBV[0][1]!=0.0) || (LBV[1][0]!=0.0) )
    ErrExit("non-square lattices not yet supported");
 

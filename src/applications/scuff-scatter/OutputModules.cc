@@ -614,7 +614,7 @@ void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
 /* get the scattered and absorbed power using the SGJ formulas */
 /* involving vector-matrix-vector products                     */
 /***************************************************************/
-void GetPower_SGJ(SSData *SSD, double *PSGJ)
+void GetPower_SGJ(SSData *SSD, double *pPAbs, double *pPScat)
 {
   RWGGeometry *G = SSD->G;
   HMatrix *M     = SSD->M;
@@ -626,7 +626,8 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   /***************************************************************/
   cdouble *ZM=M->ZM, *ZRHS=RHS->ZV, *ZKN=KN->ZV;
   if (ZM==0 || ZRHS==0 || ZKN==0)
-   { PSGJ[0]=PSGJ[1]=0.0;
+   { if (*pPAbs) *pPAbs=0.0;
+     if (*pPScat) *pPScat=0.0;
      return;
    };
 
@@ -669,55 +670,8 @@ void GetPower_SGJ(SSData *SSD, double *PSGJ)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  PSGJ[0]=PAbs;
-  PSGJ[1]=PScat;
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-double PTotBH[2], PScatBQ[4];
-double *WhichPTot, *WhichPScat;
-memset(PTotBH, 0, 2*sizeof(double));
-memset(PScatBQ, 0, 4*sizeof(double));
-for(Sign=1.0, ne=nc=0; nc<N; nc++)
- for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
-  { 
-    if ( (nr%2)==0 && (nc%2)==0 )
-     { WhichPTot  = PTotBH + 0;
-       WhichPScat = PScatBQ + 0;
-     }
-    else if ( (nr%2)==0 && (nc%2)==1 )
-     { WhichPTot  = PTotBH + 0;
-       WhichPScat = PScatBQ + 1;
-     }
-    else if ( (nr%2)==1 && (nc%2)==0 )
-     { WhichPTot  = PTotBH + 1;
-       WhichPScat = PScatBQ + 2;
-     }
-    else if ( (nr%2)==1 && (nc%2)==1 )
-     { WhichPTot  = PTotBH + 1;
-       WhichPScat = PScatBQ + 3;
-     };
-
-    if ( nr==nc ) 
-     *WhichPTot += Sign*real( conj(ZKN[nr]) * (-1.0*ZRHS[nr]) );
-
-    *WhichPScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
-  };
-PTotBH[0] *= 0.5*ZVAC;
-PTotBH[1] *= 0.5*ZVAC;
-PScatBQ[0] *= 0.5*ZVAC;
-PScatBQ[1] *= 0.5*ZVAC;
-PScatBQ[2] *= 0.5*ZVAC;
-PScatBQ[3] *= 0.5*ZVAC;
-FILE *ff=fopen("byQuadrant.out","a");
-fprintf(ff,"%e %.12e %.12e %.12e %.12e %.12e %.12e \n",
-            real(SSD->Omega), PTotBH[0], PTotBH[1], 
-            PScatBQ[0], PScatBQ[1], PScatBQ[2], PScatBQ[3]);
-fclose(ff);
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  if (pPAbs) *pPAbs=PAbs;
+  if (pPScat) *pPScat=PScat;
 
 }
 
@@ -805,13 +759,13 @@ void GetPower(SSData *SSD, char *PowerFile)
   /* inaccurate, so in this case we use the SGJ scattered-power  */
   /* fomulas instead                                             */
   /***************************************************************/
-  if ( fabs(PScat) < 1.0e-3*fabs(PTot) ) 
+  if ( fabs(PScat) < 1.0e-2*fabs(PTot) ) 
    { 
-     double PSGJ[2];
-     GetPower_SGJ(SSD, PSGJ);
+     double PAbsSGJ, PScatSGJ;
+     GetPower_SGJ(SSD, &PAbsSGJ, &PScatSGJ);
      Log("Using SGJ formulas (PTot,PAbs,PScat) = (%.5e,%.5e,%.5e) (HR) (%.5e,%.5e,%.5e) (SGJ)",
-          PTot,PAbs,PScat,PSGJ[0]+PSGJ[1],PSGJ[0],PSGJ[1]);
-     PScat=PSGJ[1];
+          PTot,PAbs,PScat,PAbsSGJ+PScatSGJ,PAbsSGJ,PScatSGJ);
+     PScat=PScatSGJ;
    };
   fprintf(f,"%.12e %.12e  ",PAbs,PScat);
 
@@ -975,22 +929,44 @@ void GetForce(SSData *SSD, char *ForceFile)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WritePFTFiles(SSData *SSD)
+void WritePFTFile(SSData *SSD, char *PFTFile)
 {
-  RWGGeometry *G=SSD->G;
+  FILE *f=fopen(PFTFile,"a");
+  if (!f)
+   return;
+  fprintf(f,"%s ",z2s(SSD->Omega));
 
-  int no, nq;
+  Log("Computing power, force, torque at Omega=%s...",z2s(SSD->Omega));
+
   double PFT[8]; 
-  FILE *f;
-  for(no=0; no<G->NumObjects; no++)
+  double PScat;
+  RWGGeometry *G=SSD->G;
+  for(int no=0; no<G->NumObjects; no++)
    { 
+     fprintf(f,"%s ",G->Objects[no]->Label);
+
      G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, no, PFT);
-     f=vfopen("%s.PFT","a",G->Objects[no]->Label);
-     fprintf(f,"%s  ",z2s(SSD->Omega));
-     for(nq=0; nq<8; nq++)
+     GetPower_SGJ(SSD, 0, &PScat);
+     PFT[1]=PScat;
+
+     // get scattered power as difference between total and absorbed power.
+     // if the difference between the quantities is less than 1% of their 
+     // magnitude, recompute using the more accurate but slower SGJ formula.
+ //    PScat=PFT[1] - PFT[0];
+ //    if ( fabs(PScat) < 0.01*fabs(PFT[0]) )
+ //     { 
+ //       Log(" (PAbs,PTot) = (%.5e,%.5e); (PScatHR, PScatSGJ)=(%.5e,%.5e)\n",PFT[1]-PFT[0],PScat);
+ //     };
+     // put PScat in the 1 slot in the array 
+
+     for(int nq=0; nq<8; nq++)
       fprintf(f,"%e ",PFT[nq]);
      fprintf(f,"\n");
-     fclose(f);
    };
+
+  fclose(f);
+
+// DELETEME
+GetForce(SSD, "/tmp/Force.dat");
 
 }

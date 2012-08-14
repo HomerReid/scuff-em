@@ -198,10 +198,10 @@ $$
 This integral is easy to evaluate via three-dimensional
 numerical cubature.
 
-\subsection*{Singular Edge-Panel Interactions}
+\subsection*{Singular Edge-Panel Interactions: The Common Vertex Case}
 
-If the edge or panel share a vertex or the full 
-edge [Figures \ref{EdgePanelInteractionFigure}\textbf{(b,c)}],
+If the edge or panel share a single vertex 
+[Figure \ref{EdgePanelInteractionFigure}\textbf{(bc)}],
 then the integral is singular and we have to be more clever.
 In this case we parameterize points in $\pan$ and $\vb L$ 
 according to
@@ -245,8 +245,10 @@ and
 
 \appendix
 \newpage
-\section{Taylor-Duffy transformation of integrals}
+\section{Taylor-Duffy transformation of edge-panel integrals}
 \label{EdgePanelAppendix}
+
+\subsection{The common vertex case}
 
 In this section we justify equation 
 (\ref{TaylorDuffy}).
@@ -408,5 +410,128 @@ becomes
 where $R_1, R_2, R_3$ are functions of $x$ and $y$. This is a nonsingular
 integral over the unit square which may be evaluated by straighforward
 numerical cubature.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The common edge case}
+
+In this case we parameterize points in the triangle and on the edge according to 
+$$\vb x=\vb V_0 + u\vb A + v \vb B, \qquad \vb x^\prime = \vb V_0 + u\vb A.$$
+The edge-panel integral is 
+\numeq{EPICE1}
+{
+   \texttt{EPI} \equiv 
+   \int_0^1 du^\prime \, \int_0^1 du \, \int_0^u dv \, 
+   \mathcal{I}(u-u^\prime,v) 
+}
+$$ \mathcal{I}(u-u^\prime, v) = 
+   \frac{e^{ikR(u-u^\prime,v)}}{4\pi R(u-u^\prime,v)}, 
+   \qquad 
+   R(u-u^\prime,v)=\Big|(u-u^\prime)\vb A + v\vb B\Big| 
+$$
+We begin by rewriting the integral over the triangle in the $u,v$ 
+plane: for any integrand function $F(u,v)$, we have 
+$$ \int_0^1 du \, \int_0^u dv \, F(u,v)
+   =
+   \int_0^1 dv \, \int_v^1 du \, F(u,v)
+$$
+Applying this to (\ref{EPICE1}) yields 
+\numeq{EPICE2}
+{ \texttt{EPI} = 
+  \int_0^1 dv \, \int_0^1 du^\prime \, \int_y^1 du \, \mathcal{I}(u-u^\prime,v).
+}
+Now we rewrite the $u,u^\prime$ integral to take advantage of the 
+fact that the integrand only depends on the difference $u-u^\prime$.
+Putting $s=(u+u^\prime), t=u-u^\prime,$ the result we need
+(again valid for arbitrary integrand functions $g(u,u^\prime)$ 
+is 
+\begin{align*}
+&
+ \int_0^1 du^\prime\, \int_v^1 du \, g(u,u^\prime)
+\\
+&=\frac{1}{2}\Bigg\{     \int_{v-1}^0 dt \, \int_{2v-t}^{2}   ds \, 
+                   \,+\, \int_0^v     dt \, \int_{2v-t}^{2-t} ds \, 
+                   \,+\, \int_v^1     dt \, \int_{t}^{2-t}    ds
+             \Bigg\}
+             g\Big( \frac{1}{2}(s+t), \frac{1}{2}(s-t)\Big).
+\end{align*}
+Applying this to (\ref{EPICE2}) and evaluating the $s$ integrals 
+allows us to express the EPI as a sum of three two-dimensional 
+integrals:
+
+\begin{align*}
+  \texttt{EPI}
+&=\texttt{EPI}_1 + \texttt{EPI}_2 + \texttt{EPI}_3
+\\[5pt]
+  \texttt{EPI}_1
+&=\frac{1}{2}\int_0^1\,dv\,\int_{v-1}^0 dt \,\, (2+t-2v)\mathcal{I}(t,v) \\
+\\
+  \texttt{EPI}_2
+&=\frac{1}{2}\int_0^1\,dv\,\int_{0}^v dt \,\, (2-2v) \, \mathcal{I}(t,v) \\
+\\
+  \texttt{EPI}_3
+&=\frac{1}{2}\int_0^1\,dv\,\int_v^1 dt \,\, (2-2t) \, \mathcal{I}(t,v).
+\end{align*}
+Now make Duffy transformations:
+$$\begin{array}{lcl}
+  \texttt{EPI}_1
+ &\xrightarrow[v=xy]{t=x(y-1)}&
+  \displaystyle{
+ \frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
+              x(2-xy-x)\,\mathcal{I}\Big(x(y-1),xy\Big)
+               }
+\\[10pt]
+  \texttt{EPI}_2
+ &\xrightarrow[y=t/v]{x=v}&
+  \displaystyle{
+  \frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
+              x(2-2x)\,\mathcal{I}\Big(xy,x\Big)
+               }
+\\[10pt]
+  \texttt{EPI}_3
+ &\xrightarrow[y=v/t]{x=t}&
+  \displaystyle{
+  \frac{1}{2}\int_0^1\,dx\,\int_0^1 dy \,\, 
+              x(2-2x)\,\mathcal{I}\Big(x,xy\Big)
+               }
+\end{array}$$
+Recombine into a single big integral:
+\begin{align*}
+ \texttt{EPI}
+&=\frac{1}{8\pi}\int_0^1 \, dx \int_0^1 \, dy \, 
+ \Big\{  (2-xy-x)\frac{e^{ikxR_1(y)}}{R_1(y)}
+        +(2-2x)\frac{e^{ikxR_2(y)}}{R_2(y)}
+        +(2-2x)\frac{e^{ikxR_3(y)}}{R_3(y)}
+ \Big\}
+\end{align*}
+$$
+ R_1(y) = \Big|(y-1)\vb A + y\vb B\Big|, 
+ \qquad 
+ R_2(y) = \Big|y\vb A + \vb B\Big|, 
+ \qquad 
+ R_3(y) = \Big|\vb A + y\vb B\Big|.
+$$
+Finally, evaluate the $x$ integral, leaving behind
+a single one-dimensional integral to be evaluated
+numerically:
+\begin{align*}
+ \texttt{EPI}=\frac{1}{8\pi}\int_0^1 dy \, \Bigg\{ 
+\,\,\,\,\,
+&\frac{e^{ikR_1}}{R_1}
+ \Big[ 2\,\texttt{ExpRel}\big(1,-ikR_1\big)
+       -\frac{y+1}{2} \texttt{ExpRel}\big(2,-ikR_1\big)
+ \Big]
+\\
++&\frac{e^{ikR_2}}{R_2}
+ \Big[ 2\, \texttt{ExpRel}\big(1,-ikR_2\big)
+       - \texttt{ExpRel}\big(2,-ikR_2\big)
+ \Big]
+\\
++&\frac{e^{ikR_3}}{R_3}
+ \Big[ 2\,\texttt{ExpRel}\big(1,-ikR_3\big)
+       - \texttt{ExpRel}\big(2,-ikR_3\big)
+ \Big]\Bigg\}.
+\end{align*}
 
 \end{document}

@@ -1,0 +1,7 @@
+OBJECT TheSphere
+	MESHFILE Sphere_327.msh
+ENDOBJECT
+MEDIUM 
+	Material CONST_EPS_10
+ENDMEDIUM 
+

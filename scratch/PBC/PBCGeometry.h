@@ -130,6 +130,7 @@ public:
    /*- about such things; these are helper routines for the public */
    /*- class methods                                               */
    /*--------------------------------------------------------------*/
+   void AddStraddlers(RWGObject *O, double **LBV, int *NumStraddlers);
    void AssembleInnerCellBlocks();
    void AddOuterCellContributions(double *BlochP, HMatrix *M);
 
@@ -140,14 +141,6 @@ public:
    static double DeltaInterp;
 
  };
-
-
-/***************************************************************/
-/* this is really a helper routine for the PBCGeometry class   */
-/* constructor, but i am going to make it a standalone routine */
-/* for now                                                     */
-/***************************************************************/
-void AddStraddlers(RWGObject *O, double **LBV, int NumStraddlers[2]);
 
 /***************************************************************/
 /* routine for computing the periodic green's function via     */
@@ -178,7 +171,6 @@ void GBarVDPhi3D(double X1, double X2, double X3,
 /***************************************************************/
 void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
                                 cdouble k, Interp3D *Interpolator, cdouble *GC);
-
 
 } // namespace scuff
 #endif

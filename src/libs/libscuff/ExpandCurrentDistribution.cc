@@ -125,57 +125,54 @@ int InsideTriangle(const double *X, const double *V1, const double *V2, const do
 /***************************************************************/
 void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6])
 { 
-  int ne; 
+  int no, ne, Offset;
   RWGObject *O;
   RWGEdge *E;
   double fRWG[3];
-  double *QP, *V1, *V2, *QM;
-  double PArea, MArea;
+  double *QP, *V1, *V2, *QM, *Q;
+  double Area, Sign;
   cdouble KAlpha, NAlpha;
 
-  /* FIXME */
-  if (NumObjects>1)
-   ErrExit("%s:%i: EvalCurrentDistribution only implemented for single-object geometries");
-  O=Objects[0];
-
   memset(KN,0,6*sizeof(cdouble));
-  for(ne=0; ne<O->NumEdges; ne++)
-   { 
-     E=O->Edges[ne];
-     QP=O->Vertices + 3*E->iQP;
-     V1=O->Vertices + 3*E->iV1;
-     V2=O->Vertices + 3*E->iV2;
-     QM=O->Vertices + 3*E->iQM;
-     PArea=O->Panels[E->iPPanel]->Area;
-     MArea=O->Panels[E->iMPanel]->Area;
+  for(no=0; no<NumObjects; no++)
+   for(O=Objects[no], Offset=BFIndexOffset[no], ne=0; ne<O->NumEdges; ne++)
+    { 
+      E=O->Edges[ne];
+      QP=O->Vertices + 3*E->iQP;
+      V1=O->Vertices + 3*E->iV1;
+      V2=O->Vertices + 3*E->iV2;
+      QM=O->Vertices + 3*E->iQM;
 
-     /* if X lies within positive panel */
-     if ( InsideTriangle(X,QP,V1,V2) )
-      { VecSub(X,QP,fRWG);
-        VecScale(fRWG, E->Length / (2.0*PArea) );
-        KAlpha=KNVec->GetEntry(2*ne);
-        NAlpha=-1.0*ZVAC*KNVec->GetEntry(2*ne+1);
-        KN[0] += KAlpha * fRWG[0]; 
-        KN[1] += KAlpha * fRWG[1]; 
-        KN[2] += KAlpha * fRWG[2]; 
-        KN[3] += NAlpha * fRWG[0]; 
-        KN[4] += NAlpha * fRWG[1]; 
-        KN[5] += NAlpha * fRWG[2]; 
-      }
-     else if ( InsideTriangle(X,QM,V1,V2) )
-      { VecSub(X,QM,fRWG);
-        VecScale(fRWG, E->Length / (2.0*MArea) );
-        KAlpha=KNVec->GetEntry(2*ne);
-        NAlpha=-1.0*ZVAC*KNVec->GetEntry(2*ne+1);
-        KN[0] -= KAlpha * fRWG[0]; 
-        KN[1] -= KAlpha * fRWG[1]; 
-        KN[2] -= KAlpha * fRWG[2]; 
-        KN[3] -= NAlpha * fRWG[0]; 
-        KN[4] -= NAlpha * fRWG[1]; 
-        KN[5] -= NAlpha * fRWG[2]; 
-      };
+      if ( InsideTriangle(X,QP,V1,V2) )
+       Q=QP;
+      else if ( InsideTriangle(X,QM,V1,V2) )
+       Q=QM;
+      else
+       continue;
 
-   };
+      Sign = (Q==QP) ? +1.0 : -1.0;
+      Area = (Q==QP) ? O->Panels[E->iPPanel]->Area : O->Panels[E->iMPanel]->Area;
+   
+      VecSub(X,Q,fRWG);
+      VecScale(fRWG, E->Length / (2.0*Area) );
+
+      if ( O->IsPEC )
+       { KAlpha = KNVec->GetEntry( Offset + ne );
+         NAlpha = 0.0;
+       }
+      else
+       { KAlpha = KNVec->GetEntry( Offset + 2*ne);
+         NAlpha = -1.0*ZVAC*KNVec->GetEntry( Offset + 2*ne+1);
+       };
+
+      KN[0] += Sign * KAlpha * fRWG[0]; 
+      KN[1] += Sign * KAlpha * fRWG[1]; 
+      KN[2] += Sign * KAlpha * fRWG[2]; 
+      KN[3] += Sign * NAlpha * fRWG[0]; 
+      KN[4] += Sign * NAlpha * fRWG[1]; 
+      KN[5] += Sign * NAlpha * fRWG[2]; 
+
+   }; // for(no=0; ... for(ne=0 ... 
 }  
 
 } // namespace scuff
