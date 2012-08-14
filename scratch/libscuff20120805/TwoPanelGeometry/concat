@@ -1,0 +1,44 @@
+echo 'MFull:'
+echo
+cat MFull.txt
+echo
+
+echo 'RHSFull:'
+echo
+cat RHSFull.txt
+echo
+
+echo 'KNFull:'
+echo
+cat KNFull.txt
+echo
+
+echo 'MHalfWO:'
+echo
+cat MHalfWO.txt
+echo
+
+echo 'RHSHalfWO:'
+echo
+cat RHSHalfWO.txt
+echo
+
+echo 'KNHalfWO:'
+echo
+cat KNHalfWO.txt
+echo
+
+echo 'MHalfW:'
+echo
+cat MHalfW.txt
+echo
+
+echo 'RHSHalfW:'
+echo
+cat RHSHalfW.txt
+echo
+
+echo 'KNHalfW:'
+echo
+cat KNHalfW.txt
+echo

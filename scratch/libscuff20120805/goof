@@ -1,0 +1,27 @@
+AssembleBEMMatrix.cc:      else if ( (EAlpha->iPPanel==EBeta->iPPanel) || (EAlpha->iPPanel==EBeta->iMPanel) ) 
+AssembleBEMMatrix.cc:      else if ( (EAlpha->iMPanel==EBeta->iPPanel) || (EAlpha->iMPanel==EBeta->iMPanel) ) 
+AssembleBEMMatrix.cc:       { P=S->Panels[EAlpha->iMPanel];
+AssembleRHSVector.cc:     MArea = S->Panels[E->iMPanel]->Area;
+EdgeEdgeInteractions.cc:  if ( Eb->iMPanel!=-1 )
+EdgeEdgeInteractions.cc:     GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
+EdgeEdgeInteractions.cc:  if ( Ea->iMPanel!=-1 )
+EdgeEdgeInteractions.cc:   { GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
+EdgeEdgeInteractions.cc:  if ( Ea->iMPanel!=1 && Eb->iMPanel!=-1 )
+EdgeEdgeInteractions.cc:   { GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
+EdgeEdgeInteractions.cc:     GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
+ExpandCurrentDistribution.cc:      Area = (Q==QP) ? S->Panels[E->iPPanel]->Area : S->Panels[E->iMPanel]->Area;
+GetFields.cc:     MArea=Panels[E->iMPanel]->Area;
+GetSphericalMoments.cc:  MArea=Panels[E->iMPanel]->Area;
+InitEdgeList.cc:  /* iPPanel, and PIndex fields, but not its iQM, MPanel, iMPanel,*/
+InitEdgeList.cc:         if ( E->iMPanel != -1 )
+InitEdgeList.cc:                      MFN,ne,np,E->iPPanel,E->iMPanel);
+InitEdgeList.cc:         E->iMPanel=P->Index;
+InitEdgeList.cc:         E->iMPanel=-1;
+Overlap.cc:  RWGPanel *PAlphaM=Panels[EAlpha->iMPanel];
+Overlap.cc:  if ( EAlpha->iPPanel == EBeta->iMPanel )
+Overlap.cc:  if ( EAlpha->iMPanel == EBeta->iPPanel )
+Overlap.cc:  if ( EAlpha->iMPanel == EBeta->iMPanel )
+Visualize.cc:        else if ( S->Edges[ne]->iMPanel == np )
+Visualize.cc:          else if ( E->iMPanel == np )
+Visualize.cc:          else if ( S->Edges[ne]->iMPanel == np )
+Visualize.cc:           else if ( E->iMPanel == np )

@@ -1,0 +1,10 @@
+ 
+
+BiHemisphere --geometry E10Sphere_3348.scuffgeo --cache BiHemisphere_3348.cache --EPFile X0P1Y0P1.EPFile --excludehalfbfs
+mv E10Sphere_3348.X0P1Y0P1.out New/E10Sphere_3348.X0P1Y0P1.WithoutHalfBFs.out
+
+BiHemisphere --geometry E10Sphere_3348.scuffgeo --cache BiHemisphere_3348.cache --EPFile X0P1Y0P1.EPFile --excludeLineCharges
+mv E10Sphere_3348.X0P1Y0P1.out New/E10Sphere_3348.X0P1Y0P1.WithHalfBFsWithoutLineCharges.out
+
+BiHemisphere --geometry E10Sphere_3348.scuffgeo --cache BiHemisphere_3348.cache --EPFile X0P1Y0P1.EPFile 
+mv E10Sphere_3348.X0P1Y0P1.out New/E10Sphere_3348.X0P1Y0P1.WithHalfBFsWithLineCharges.out
