@@ -194,8 +194,8 @@ double RWGObject::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 /* overlap matrices, and then only if it non-null; if ExteriorMP */
 /* is null then the exterior medium is assumed to be vacuum.     */
 /*****************************************************************/
-void RWGObject::GetOverlapMatrices(int *NeedMatrix,
-                                   SMatrix **SArray,
+void RWGObject::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
+                                   SMatrix *SArray[SCUFF_NUM_OMATRICES],
                                    cdouble Omega,
                                    MatProp *ExteriorMP)
 {
@@ -220,17 +220,17 @@ void RWGObject::GetOverlapMatrices(int *NeedMatrix,
      if ( NeedMatrix[n] ) 
       { 
         if (     SArray[n] 
-             && ( (SArray[n]->NR != NR) || (SArray[n]->nnz != nnz) )
+             && ( (SArray[n]->NR != NR) || (SArray[n]->NC != NR) )
            )
          { Warn("wrong-sized matrix passed to GetOverlapMatrices (reallocating)...");
            SArray[n]=0;
          };
 
         if (SArray[n]==0)
-         SArray[n]=new SMatrix(NR, nnz, LHM_COMPLEX);
+         SArray[n]=new SMatrix(NR, NR, LHM_COMPLEX);
 
-        SArray[n]->Zero();
-
+	// TODO: avoid reallocation if shape is okay?
+        SArray[n]->BeginAssembly(nnz*NR);
       };   
    };
 
@@ -323,6 +323,9 @@ void RWGObject::GetOverlapMatrices(int *NeedMatrix,
          
    }; // for(neAlpha...) ... for (neBeta...)
 
+  for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
+    if ( NeedMatrix[n] ) 
+      SArray[n]->EndAssembly();
 }
 
 /***************************************************************/

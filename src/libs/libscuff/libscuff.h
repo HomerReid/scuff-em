@@ -175,8 +175,8 @@ class RWGObject
    void GetOverlaps(int neAlpha, int neBeta, double *Overlaps);
 
    /* get one or more overlap matrices for the object as a whole*/
-   /* note: NeedMatrix and SArray are arrays of length SCUFF_NUM_OMATRICES */
-   void GetOverlapMatrices(int *NeedMatrix, SMatrix **SArray, 
+   void GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
+			   SMatrix *SArray[SCUFF_NUM_OMATRICES], 
                            cdouble Omega=1.0, MatProp *ExteriorMP=NULL);
 
    /* apply a general transformation (rotation+displacement) to the object */

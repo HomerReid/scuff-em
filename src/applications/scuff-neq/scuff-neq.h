@@ -77,7 +77,7 @@ typedef struct SNEQData
 
    // the NMth slot in this array of flags is 1 iff we will need
    // to compute the NMth type of overlap matrix
-   int NeedMatrix[SCUFF_NUM_OMATRICES]; 
+   bool NeedMatrix[SCUFF_NUM_OMATRICES]; 
 
    // SMatrix structures for overlap matrices.
    // SArray[ no*5 + nm ] = overlap matrix of type #nm for object #no 
@@ -87,6 +87,7 @@ typedef struct SNEQData
    // frequency-resolved output files for each object 
    char **ByOmegaFileNames;
 
+   int nThread;
  } SNEQData;
 
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int WhichQuantities, int PlotFlux);
