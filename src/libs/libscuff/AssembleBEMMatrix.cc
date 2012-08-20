@@ -399,7 +399,8 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
   if ( !(O->SurfaceSigma) ) return;
  
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /*- note that the order in which w, x, y, z appears in this    -*/
+  /*- variables appears in thees h the values of the w, x, y, z  -*/
   /*--------------------------------------------------------------*/
   char *SSParmNames[4]={"w","x","y","z"};
   cdouble SSParmValues[4];

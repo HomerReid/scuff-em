@@ -197,6 +197,15 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
          { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification");
            return;
          };
+
+        /* these calls are required for thread safety, and they     */
+        /* mandate that the w, x, y, z values be specified in that  */
+        /* order in the 'values' parameter to cevaluator_evaluate() */ 
+        cevaluator_set_var_index(SurfaceSigma, "w", 0);
+        cevaluator_set_var_index(SurfaceSigma, "x", 1);
+        cevaluator_set_var_index(SurfaceSigma, "y", 2);
+        cevaluator_set_var_index(SurfaceSigma, "z", 3);
+
       }
      else if (   !strcasecmp(Tokens[0],"ENDOBJECT") || !strcasecmp(Tokens[0],"ENDSURFACE") )
       { 

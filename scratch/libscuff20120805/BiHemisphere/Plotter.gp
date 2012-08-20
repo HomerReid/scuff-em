@@ -1,24 +1,50 @@
-FILE1='WithoutHalfEdges/BiHemisphere_3348.X0P1Y0P1.out'
-FILE2='New/BiHemisphere_3348.X0P1Y0P.WithoutHalfEdges.out'
-FILE3='New/BiHemisphere_3348.X0P1Y0P1.WithHalfEdgesWithoutLineCharges.out'
-FILE4='New/BiHemisphere_3348.X0P1Y0P.WithHalfEdgesWithLineCharges.out'
-FILE9='X0P1Y0P1.20.2'		
+FILE00='X0P1Y0P1.20.2'
+FILE01='X0P5Y0P1.20.2'
+FILE10='BiHemisphere_762.X0P1Y0P1.out'
+FILE11='BiHemisphere_762.X0P5Y0P1.out'
+FILE20='BiHemisphere_3348.X0P1Y0P1.out'
+FILE21='BiHemisphere_3348.X0P5Y0P1.out'
 
-plot   FILE1   u (-$3):8 t '(Old) Without half-RWG functions' w p pt 7 ps 1.5 \
-     , FILE2   u 3:8 t '(New) Without half-RWG functions' w p pt 7 ps 1.5 \
-     , FILE3   u 3:8 t '(New) With half-RWG functions, without line charges' w p pt 7 ps 1.5 \
-     , FILE4   u 3:8 t '(New) With half-RWG functions, with line charges' w p pt 7 ps 1.5  \
-     , FILE9   u 3:6 t 'Exact calculation' w l
+set terminal x11 1
+set xlabel 'Z'
+set ylabel 'E_x/E_0'
+call 'vline' '-0.99'
+call 'vline' '0.99'
+set title 'X component of E-field along (X,Y,Z)=(0.1,0.1,Z)'
+plot   FILE10  u 3:4 t 'scuff, N=762' w p pt 7 ps 1  \
+     , FILE20  u 3:4 t 'scuff, N=3348' w p pt 7 ps 1 \
+     , FILE00  u 3:4 t 'Exact' w l
+unset arrow
 
 set terminal x11 2
+set xlabel 'Z'
+set ylabel 'E_x/E_0'
+call 'vline' '-0.8602'
+call 'vline' '+0.8602'
+set title 'X component of E-field along (X,Y,Z)=(0.5,0.1,Z)'
+plot   FILE11  u 3:4 t 'scuff, N=762' w p pt 7 ps 1  \
+     , FILE21  u 3:4 t 'scuff, N=3348' w p pt 7 ps 1 \
+     , FILE01  u 3:4 t 'Exact' w l
+unset arrow
 
-FILE10 = 'New/E10Sphere_3348.X0P1Y0P1.WithHalfBFsWithLineCharges.out'
-FILE11 = 'New/E10Sphere_3348.X0P1Y0P1.WithHalfBFsWithoutLineCharges.out'
-FILE12 = 'New/E10Sphere_3348.X0P1Y0P1.WithoutHalfBFs.out'
-FILE19 = 'X0P1Y0P1.10.10'
+set terminal x11 3
+set xlabel 'Z'
+set ylabel 'E_z/E_0'
+call 'vline' '-0.99'
+call 'vline' '+0.99'
+set title 'Z component of E-field along (X,Y,Z)=(0.1,0.1,Z)'
+plot   FILE10  u 3:8 t 'scuff, N=762' w p pt 7 ps 1  \
+     , FILE20  u 3:8 t 'scuff, N=3348' w p pt 7 ps 1 \
+     , FILE00  u 3:6 t 'Exact' w l
+unset arrow
 
-plot   FILE10  u 3:8 t 'With half-RWG functions, with line charges'    w p pt 7 ps 1.5 \
-     , FILE11  u 3:8 t 'With half-RWG functions, without line charges' w p pt 7 ps 1.5 \
-     , FILE12  u 3:8 t 'WithoutHalfBFs.out'                            w p pt 7 ps 1.5 \
-     , FILE19  u 3:6 t 'Exact calculation' w l
-
+set terminal x11 4
+set xlabel 'Z'
+set ylabel 'E_z/E_0'
+call 'vline' '-0.8602'
+call 'vline' '+0.8602'
+set title 'Z component of E-field along (X,Y,Z)=(0.5,0.1,Z)'
+plot   FILE11  u 3:8 t 'scuff, N=762' w p pt 7 ps 1  \
+     , FILE21  u 3:8 t 'scuff, N=3348' w p pt 7 ps 1 \
+     , FILE01  u 3:6 t 'Exact' w l
+unset arrow
