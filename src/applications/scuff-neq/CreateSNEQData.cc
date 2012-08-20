@@ -116,7 +116,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- in libscuff.h).                                             */ 
   /*-                                                            -*/
   /*--------------------------------------------------------------*/
-  int *NeedMatrix=SNEQD->NeedMatrix;
+  bool *NeedMatrix=SNEQD->NeedMatrix;
   memset(NeedMatrix, 0, SCUFF_NUM_OMATRICES*sizeof(int));
   NeedMatrix[SCUFF_OMATRIX_OVERLAP] = 0;
   NeedMatrix[SCUFF_OMATRIX_POWER  ] = QuantityFlags && QFLAG_POWER;
@@ -131,7 +131,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
 
      for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
       if (NeedMatrix[nom]) 
-       SNEQD->SArray[no][nom] = new SMatrix(G->Objects[no]->NumBFs,10,LHM_COMPLEX);
+       SNEQD->SArray[no][nom] = new SMatrix(G->Objects[no]->NumBFs,G->Objects[no]->NumBFs,LHM_COMPLEX);
    };
 
   /*--------------------------------------------------------------*/

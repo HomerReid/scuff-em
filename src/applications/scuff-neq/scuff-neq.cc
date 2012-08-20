@@ -123,6 +123,9 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
+  if (nThread==0)
+    nThread=GetNumThreads();
+
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
 
@@ -206,6 +209,7 @@ int main(int argc, char *argv[])
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux);
+  SNEQD->nThread = nThread;
   RWGGeometry *G=SNEQD->G;
 
   /*******************************************************************/

@@ -209,7 +209,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   HMatrix **T         = SNEQD->T;
   HMatrix **U         = SNEQD->U;
   int QuantityFlags   = SNEQD->QuantityFlags;
-  int *NeedMatrix     = SNEQD->NeedMatrix;
+  bool *NeedMatrix     = SNEQD->NeedMatrix;
   SMatrix ***SArray   = SNEQD->SArray;
 
   /***************************************************************/
@@ -220,6 +220,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   InitABMBArgs(Args);
   Args->G         = G;
   Args->Omega     = Omega;
+  Args->nThread = SNEQD->nThread;
 
   /***************************************************************/
   /* also before entering the loop over transformations, we      */
