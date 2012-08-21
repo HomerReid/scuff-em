@@ -43,9 +43,9 @@ IncField::IncField()
 
   Next = NULL;
 
-  // field sources lie in the exterior medium by default
-  ObjectLabel = NULL;
-  ObjectIndex = -1;
+  // field sources lie in the exterior region by default
+  RegionLabel = NULL;
+  RegionIndex = 0;
 }
 
 /***************************************************************/
@@ -53,7 +53,8 @@ IncField::IncField()
 /***************************************************************/
 IncField::~IncField()
 {
-  free(ObjectLabel);
+  if (RegionLabel)
+   free(RegionLabel);
 }
 
 /***************************************************************/
@@ -88,11 +89,11 @@ void IncField::SetFrequencyAndEpsMu(cdouble pOmega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void IncField::SetObjectLabel(const char *Label) 
+void IncField::SetRegionLabel(const char *Label) 
 {
-  if (ObjectLabel) free(ObjectLabel);
-  ObjectLabel = Label ? strdup(Label) : 0;
-  if (!Label) ObjectIndex = -1; // exterior medium is always index == -1
+  if (RegionLabel) free(RegionLabel);
+  RegionLabel = Label ? strdup(Label) : 0;
+  if (!Label) RegionIndex = 0; // exterior medium is always index == 0
 }
 
 /***************************************************************/

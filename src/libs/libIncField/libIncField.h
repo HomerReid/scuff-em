@@ -50,10 +50,10 @@ class IncField
    cdouble Mu;
    IncField *Next;
 
-   // label and/or index for the object within which the field sources 
+   // label and/or index for the region within which the field sources 
    // lie (NULL == "EXTERIOR")
-   char *ObjectLabel; 
-   int ObjectIndex;
+   char *RegionLabel; 
+   int RegionIndex;
 
    // constructor just initializes the simple fields
    IncField(); 
@@ -61,10 +61,13 @@ class IncField
 
    void SetFrequency(cdouble Omega, bool Traverse=true);
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu, bool Traverse=true);
-   void SetObjectLabel(const char *Label = 0);
+   void SetRegionLabel(const char *Label = 0);
+
+   // obsolete calling convention retained for backward compatibility
+   void SetObjectLabel(const char *Label) { SetRegionLabel(Label); }
 
    // if true, returns the location of the source, used to
-   // set the ObjectIndex if !ObjectLabel.
+   // set the RegionIndex if !RegionLabel.
    virtual bool GetSourcePoint(double X[3]) const { (void) X; return false; }
    
    virtual void GetFields(const double X[3], cdouble EH[6]) = 0 ;

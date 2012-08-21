@@ -59,7 +59,7 @@ GaussianBeam::GaussianBeam(const double pX0[3], const double pKProp[3],
   memcpy(KProp, pKProp, 3*sizeof(double));
   memcpy(E0, pE0, 3*sizeof(cdouble));
   W0=pW0;
-  SetObjectLabel(Label);
+  SetRegionLabel(Label);
 }
 
 void GaussianBeam::SetX0(double pX0[3])       { memcpy(X0,    pX0,    3*sizeof(double)); }
