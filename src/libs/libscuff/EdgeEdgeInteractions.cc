@@ -51,16 +51,16 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   /***************************************************************/
   /* local copies of fields in argument structure ****************/
   /***************************************************************/
-  RWGObject *Oa             = Args->Oa;
-  RWGObject *Ob             = Args->Ob;
+  RWGSurface *Sa            = Args->Sa;
+  RWGSurface *Sb            = Args->Sb;
   int nea                   = Args->nea; 
   int neb                   = Args->neb;
   cdouble k                 = Args->k; 
   int NumGradientComponents = Args->NumGradientComponents;
   int NumTorqueAxes         = Args->NumTorqueAxes;
 
-  RWGEdge *Ea=Oa->Edges[nea];
-  RWGEdge *Eb=Ob->Edges[neb];
+  RWGEdge *Ea=Sa->Edges[nea];
+  RWGEdge *Eb=Sb->Edges[neb];
 
   /***************************************************************/
   /* since this code doesn't work at DC anyway, we don't bother  */
@@ -117,14 +117,24 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   cdouble GradHPP[6], GradHPM[6], GradHMP[6], GradHMM[6];
   cdouble dHdTPP[6], dHdTPM[6], dHdTMP[6], dHdTMM[6];
 
+  memset(HPM,     0, 2*sizeof(cdouble));
+  memset(HMP,     0, 2*sizeof(cdouble));
+  memset(HMM,     0, 2*sizeof(cdouble));
+  memset(GradHPM, 0, 6*sizeof(cdouble));
+  memset(GradHMP, 0, 6*sizeof(cdouble));
+  memset(GradHMM, 0, 6*sizeof(cdouble));
+  memset(dHdTPM,  0, 6*sizeof(cdouble));
+  memset(dHdTMP,  0, 6*sizeof(cdouble));
+  memset(dHdTMM,  0, 6*sizeof(cdouble));
+
   /*--------------------------------------------------------------*/
   /*- initialize argument structure for GetPanelPanelInteractions */
   /*--------------------------------------------------------------*/
   GetPPIArgStruct MyGetPPIArgs, *GetPPIArgs=&MyGetPPIArgs;
   InitGetPPIArgs(GetPPIArgs);
 
-  GetPPIArgs->Oa                     = Oa;
-  GetPPIArgs->Ob                     = Ob;
+  GetPPIArgs->Sa                     = Sa;
+  GetPPIArgs->Sb                     = Sb;
   GetPPIArgs->k                      = k;
   GetPPIArgs->NumGradientComponents  = NumGradientComponents;
   GetPPIArgs->NumTorqueAxes          = NumTorqueAxes;
@@ -139,17 +149,23 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgs->npb = Eb->iPPanel;     GetPPIArgs->iQb = Eb->PIndex;
   GetPanelPanelInteractions(GetPPIArgs, HPP, GradHPP, dHdTPP);
 
-  GetPPIArgs->npa = Ea->iPPanel;     GetPPIArgs->iQa = Ea->PIndex;
-  GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
-  GetPanelPanelInteractions(GetPPIArgs, HPM, GradHPM, dHdTPM);
+  if ( Eb->iMPanel!=-1 )
+   { GetPPIArgs->npa = Ea->iPPanel;     GetPPIArgs->iQa = Ea->PIndex;
+     GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
+     GetPanelPanelInteractions(GetPPIArgs, HPM, GradHPM, dHdTPM);
+   };
 
-  GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
-  GetPPIArgs->npb = Eb->iPPanel;     GetPPIArgs->iQb = Eb->PIndex;
-  GetPanelPanelInteractions(GetPPIArgs, HMP, GradHMP, dHdTMP);
+  if ( Ea->iMPanel!=-1 )
+   { GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
+     GetPPIArgs->npb = Eb->iPPanel;     GetPPIArgs->iQb = Eb->PIndex;
+     GetPanelPanelInteractions(GetPPIArgs, HMP, GradHMP, dHdTMP);
+   };
 
-  GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
-  GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
-  GetPanelPanelInteractions(GetPPIArgs, HMM, GradHMM, dHdTMM);
+  if ( Ea->iMPanel!=-1 && Eb->iMPanel!=-1 )
+   { GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
+     GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
+     GetPanelPanelInteractions(GetPPIArgs, HMM, GradHMM, dHdTMM);
+   };
 
   /*--------------------------------------------------------------*/
   /*- assemble the final quantities ------------------------------*/

@@ -105,9 +105,9 @@ private:
 typedef struct GTComplex
  {
    char *Tag;                  // a label for this entire complex 
-   int NumObjectsAffected;     // number of objects transformed by this complex
-   char **ObjectLabel;         // ObjectLabel[i] is the label of the ith transformed object
-   GTransformation *GT;       // GT[i] is the transformation applied to the ith object
+   int NumSurfacesAffected;    // number of surfaces transformed by this complex
+   char **SurfaceLabel;        // SurfaceLabel[i] is the label of the ith transformed surface
+   GTransformation *GT;        // GT[i] is the transformation applied to the ith surface
 
  } GTComplex;
 

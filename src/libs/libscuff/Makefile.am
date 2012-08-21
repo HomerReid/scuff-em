@@ -14,6 +14,7 @@ libscuff_la_SOURCES = \
  GetDipoleMoments.cc \
  GetFields.cc \
  InitEdgeList.cc \
+ LineChargeContributions.cc \
  Overlap.cc \
  PanelPanelInteractions.cc \
  PointInObject.cc \
@@ -21,7 +22,7 @@ libscuff_la_SOURCES = \
  QIFIPPICubature.cc \
  QIFIPPITaylorDuffy.cc \
  RWGGeometry.cc \
- RWGObject.cc \
+ RWGSurface.cc \
  ReadComsolFile.cc \
  ReadGMSHFile.cc \
  TaylorDuffy.cc \

@@ -37,7 +37,6 @@ namespace scuff {
 /************************************************************/
 /* subroutines for emitting GMSH postprocessing code        */
 /************************************************************/
-
 /* vector point (otherwise known as 'arrow') */
 void WriteVP(double *X, double *V, FILE *f)
 {
@@ -65,11 +64,11 @@ void WriteST(double **VV, double Val, FILE *f)
 void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNormals)
 { 
   FILE *f;
-  RWGObject *O;
+  RWGSurface *S;
   RWGPanel *P;
   char buffer[1000], *p;
   double *PV[3], Val;
-  int no, np;
+  int ns, np;
 
   /***************************************************************/
   /***************************************************************/
@@ -89,13 +88,13 @@ void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNor
   /* plot all panels on all objects  *****************************/
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n",Tag);
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
     { 
-      PV[0]=O->Vertices + 3*P->VI[0];
-      PV[1]=O->Vertices + 3*P->VI[1];
-      PV[2]=O->Vertices + 3*P->VI[2];
-      Val=(double)(no+1);
+      PV[0]=S->Vertices + 3*P->VI[0];
+      PV[1]=S->Vertices + 3*P->VI[1];
+      PV[2]=S->Vertices + 3*P->VI[2];
+      Val=(double)(ns+1);
       fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                  PV[0][0], PV[0][1], PV[0][2],
                  PV[1][0], PV[1][1], PV[1][2],
@@ -112,8 +111,8 @@ void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNor
   if (PlotNormals)
    { 
      fprintf(f,"View \"%s.Normals\" {\n",Tag);
-     for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-      for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+     for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+      for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
        { 
           Val=fmax(VecNorm(P->Centroid), 2.0*P->Area);
           fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
@@ -142,10 +141,10 @@ void RWGGeometry::WriteGPMesh(const char *format, ...)
   va_list ap;
   char FileName[1000], *p;
   FILE *f;
-  RWGObject *O;
+  RWGSurface *S;
   RWGPanel *P;
   double *PV[3];
-  int i, no, np;
+  int i, ns, np;
 
   va_start(ap,format);
   vsnprintf(FileName,997,format,ap);
@@ -164,12 +163,12 @@ void RWGGeometry::WriteGPMesh(const char *format, ...)
   /***************************************************************/
   /* plot mesh ***************************************************/
   /***************************************************************/
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
      { 
-       PV[0]=O->Vertices + 3*P->VI[0];
-       PV[1]=O->Vertices + 3*P->VI[1];
-       PV[2]=O->Vertices + 3*P->VI[2];
+       PV[0]=S->Vertices + 3*P->VI[0];
+       PV[1]=S->Vertices + 3*P->VI[1];
+       PV[2]=S->Vertices + 3*P->VI[2];
 
        /* plot edges */
        for(i=0; i<3; i++)
@@ -192,11 +191,11 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
   FILE *f;
   RWGPanel *P;
   RWGEdge *E;
-  RWGObject *O;
+  RWGSurface *S;
   double *V, *PV[3];
   double rArea;
   char LabelFileName[200];
-  int i, no, np, ne, nv, LabelIndex;
+  int i, ns, np, ne, nv, LabelIndex;
 
   va_start(ap,format);
   vsnprintf(FileName,1000,format,ap);
@@ -206,12 +205,12 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
   /* plot mesh ***************************************************/
   /***************************************************************/
   f=fopen(FileName,"w");
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
      { 
-       PV[0]=O->Vertices + 3*P->VI[0];
-       PV[1]=O->Vertices + 3*P->VI[1];
-       PV[2]=O->Vertices + 3*P->VI[2];
+       PV[0]=S->Vertices + 3*P->VI[0];
+       PV[1]=S->Vertices + 3*P->VI[1];
+       PV[2]=S->Vertices + 3*P->VI[2];
 
        /* plot edges */
        for(i=0; i<3; i++)
@@ -227,8 +226,8 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
   strncpy(LabelFileName,FileName,180);
   strcat(LabelFileName,".normals");
   f=fopen(LabelFileName,"w");
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
      { 
        fprintf(f,"%e %e %e\n",P->Centroid[0], P->Centroid[1], P->Centroid[2]);
        rArea=sqrt(P->Area);
@@ -246,8 +245,8 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
   strcat(LabelFileName,".edgelabels");
   f=fopen(LabelFileName,"w");
   LabelIndex=1;
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(ne=0, E=O->Edges[0]; ne<O->NumEdges; E=O->Edges[++ne])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(ne=0, E=S->Edges[0]; ne<S->NumEdges; E=S->Edges[++ne])
     fprintf(f,"set label %i \"%i\" at %e,%e,%e\n",LabelIndex++,
                ne,E->Centroid[0], E->Centroid[1], E->Centroid[2]);
   fclose(f);
@@ -258,8 +257,8 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
   strncpy(LabelFileName,FileName,180);
   strcat(LabelFileName,".panellabels");
   f=fopen(LabelFileName,"w");
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
     fprintf(f,"set label %i \"%i\" at %e,%e,%e tc lt 2\n",LabelIndex++,
                np, P->Centroid[0], P->Centroid[1], P->Centroid[2]);
   fclose(f);
@@ -270,8 +269,8 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
   strncpy(LabelFileName,FileName,180);
   strcat(LabelFileName,".vertexlabels");
   f=fopen(LabelFileName,"w");
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(nv=0, V=O->Vertices; nv<O->NumVertices; nv++, V+=3)
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(nv=0, V=S->Vertices; nv<S->NumVertices; nv++, V+=3)
     fprintf(f,"set label %i \"%i\" at %e,%e,%e tc lt 3\n",LabelIndex++,
                nv,V[0],V[1],V[2]);
   fclose(f);
@@ -280,9 +279,9 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
 
 
 /***************************************************************/
-/* WritePPMesh routine for RWGObjects.                         */
+/* WritePPMesh routine for RWGSurfaces.                         */
 /***************************************************************/
-void RWGObject::WritePPMesh(const char *FileName, const char *Tag, int PlotNormals)
+void RWGSurface::WritePPMesh(const char *FileName, const char *Tag, int PlotNormals)
 { 
   FILE *f;
   RWGPanel *P;
@@ -356,7 +355,7 @@ void RWGObject::WritePPMesh(const char *FileName, const char *Tag, int PlotNorma
 #define LS_INTERIOREDGEINDICES 2
 #define LS_EXTERIOREDGEINDICES 4
 #define LS_VERTEXINDICES       8
-void RWGObject::WritePPMeshLabels(const char *FileName,
+void RWGSurface::WritePPMeshLabels(const char *FileName,
                                   const char *Tag, 
                                   int WhichLabels)
 { 
@@ -452,7 +451,7 @@ void RWGObject::WritePPMeshLabels(const char *FileName,
   fclose(f);
 }
 
-void RWGObject::WritePPMeshLabels(const char *FileName, const char *Tag)
+void RWGSurface::WritePPMeshLabels(const char *FileName, const char *Tag)
 { WritePPMeshLabels(FileName, Tag,   LS_PANELINDICES 
                                    | LS_INTERIOREDGEINDICES
                                    | LS_EXTERIOREDGEINDICES
@@ -460,7 +459,7 @@ void RWGObject::WritePPMeshLabels(const char *FileName, const char *Tag)
 }
 
 /***************************************************************/
-/* WriteGPMesh routine for RWGObjects.                        */    
+/* WriteGPMesh routine for RWGSurfaces.                        */    
 /*                                                             */
 /* The mesh (with normals) may be plotted with the gnuplot cmd */
 /*  splot 'file.gpmsh'  w l                                    */
@@ -468,7 +467,7 @@ void RWGObject::WritePPMeshLabels(const char *FileName, const char *Tag)
 /*  splot 'file.gpmsh' i 0:10000:2 w l                         */
 /* will show the mesh sans normals.                            */
 /***************************************************************/
-void RWGObject::WriteGPMesh(const char *format, ...)
+void RWGSurface::WriteGPMesh(const char *format, ...)
 { 
   va_list ap;
   char FileName[1000];
@@ -556,228 +555,16 @@ void RWGObject::WriteGPMesh(const char *format, ...)
 }
 
 /***************************************************************/
-/***************************************************************/
-/* Experimental (10/19/09) code for visualizing the current    */
-/* distribution described by a single vector.                  */
-/***************************************************************/
-/***************************************************************/
-#if 0
-void RWGGeometry::PlotVector(double *KVec, const char *format, ...)
-{ 
-  int i, no, np, nv, ne, ei, na, NumArrows;
-  int Offset;
-  RWGObject *O;
-  RWGEdge *E;
-  RWGPanel *P;
-  double J[3];
-  char FileBase[1000], *p;
-  va_list ap;
-  void *pCC;
-  double *x, *y, *z, *u, *v, *w, *X, *Y, *Z, *Tri, *C;
- 
-  double *x2, *y2, *z2, *u2, *v2, *w2;
-  int NumArrows2, VertexIndexOffset[10];
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  va_start(ap,format);
-  vsnprintf(FileBase,1000,format,ap);
-  va_end(ap);
-  pCC=C2MLOpen(FileBase);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  NumArrows=TotalPanels;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  NumArrows2=Objects[0]->NumVertices;
-  VertexIndexOffset[0]=0;
-  for(no=1; no<NumObjects; no++) 
-   { NumArrows2 += Objects[no]->NumVertices;
-     VertexIndexOffset[no]=VertexIndexOffset[no-1]+Objects[no-1]->NumVertices;
-   };
- 
-  /***************************************************************/
-  /* allocate space for vectors exported to matlab              **/
-  /***************************************************************/
-  x=(double *)mallocEC(NumArrows*sizeof(double));
-  y=(double *)mallocEC(NumArrows*sizeof(double));
-  z=(double *)mallocEC(NumArrows*sizeof(double));
-  u=(double *)mallocEC(NumArrows*sizeof(double));
-  v=(double *)mallocEC(NumArrows*sizeof(double));
-  w=(double *)mallocEC(NumArrows*sizeof(double));
-
-  x2=(double *)mallocEC(NumArrows2*sizeof(double));
-  y2=(double *)mallocEC(NumArrows2*sizeof(double));
-  z2=(double *)mallocEC(NumArrows2*sizeof(double));
-  u2=(double *)mallocEC(NumArrows2*sizeof(double));
-  v2=(double *)mallocEC(NumArrows2*sizeof(double));
-  w2=(double *)mallocEC(NumArrows2*sizeof(double));
-
-  X=(double *)mallocEC(3*NumArrows*sizeof(double));
-  Y=(double *)mallocEC(3*NumArrows*sizeof(double));
-  Z=(double *)mallocEC(3*NumArrows*sizeof(double));
-  Tri=(double *)mallocEC(3*NumArrows*sizeof(double));
-  C=(double *)mallocEC(NumArrows*sizeof(double));
-
-  /***************************************************************/
-  /* first pass to fill in x,y,z, X, Y, Z, Tri vectors ***********/
-  /***************************************************************/
-  for(no=0; no<NumObjects; no++)
-   {
-     O=Objects[no];
-
-     for(np=0; np<O->NumPanels; np++)
-      { 
-        na=PanelIndexOffset[no] + np;
-
-        x[na]=O->Panels[np]->Centroid[0];
-        y[na]=O->Panels[np]->Centroid[1];
-        z[na]=O->Panels[np]->Centroid[2];
-
-        for(i=0; i<3; i++)
-         { X[ 3*na + i ] = O->Vertices[ 3*(O->Panels[np]->VI[i]) + 0 ];
-           Y[ 3*na + i ] = O->Vertices[ 3*(O->Panels[np]->VI[i]) + 1 ];
-           Z[ 3*na + i ] = O->Vertices[ 3*(O->Panels[np]->VI[i]) + 2 ];
-           Tri[ na + i*NumArrows ]= (double ) 3*na + i + 1;
-         };
-
-      };
-
-     for(nv=0; nv<O->NumVertices; nv++)
-      { 
-        na=VertexIndexOffset[no] + nv;
-        x2[na]=O->Vertices[3*nv];
-        y2[na]=O->Vertices[3*nv + 1];
-        z2[na]=O->Vertices[3*nv + 2];
-      };
-   };
-  
-  /***************************************************************/
-  /* second pass to fill in u, v, w, c vectors  ******************/
-  /***************************************************************/
-  memset(u,0,NumArrows*sizeof(double));
-  memset(v,0,NumArrows*sizeof(double));
-  memset(w,0,NumArrows*sizeof(double));
-  memset(C,0,NumArrows*sizeof(double));
-
-  for(ei=0; ei<TotalEdges; ei++)
-   { 
-     ne=GetObjectAndEdgeIndex(ei, &O);
-     no=O->Index;
-     E=O->Edges[ne];
-
-     /*--------------------------------------------------------------*/
-     /*- compute contribution of this edge to the arrows at the     -*/
-     /*- centroids of the two panels to which it belongs            -*/
-     /*--------------------------------------------------------------*/
-     P=O->Panels[E->iPPanel];
-     na=PanelIndexOffset[no] + P->Index;
-     VecSub(P->Centroid, O->Vertices + 3*(E->iQP), J);
-     VecScale(J, KVec[ei] * E->Length / (2.0*P->Area) );
-     u[na] += J[0];
-     v[na] += J[1];
-     w[na] += J[2];
-     C[na] += KVec[ei] * E->Length / ( P->Area );
-
-     P=O->Panels[E->iMPanel];
-     na=PanelIndexOffset[no] + P->Index;
-     VecSub(P->Centroid, O->Vertices + 3*(E->iQM), J);
-     VecScale(J, KVec[ei] * E->Length / (2.0*P->Area) );
-     u[na] -= J[0];
-     v[na] -= J[1];
-     w[na] -= J[2];
-     C[na] -= KVec[ei] * E->Length / ( P->Area );
-
-     /*--------------------------------------------------------------*/
-     /*- compute contribution of this edge to the arrows at its     -*/
-     /*- two endpoints                                              -*/
-     /*--------------------------------------------------------------*/
-     P=O->Panels[E->iPPanel];
-     na=VertexIndexOffset[no] + E->iV1;
-     VecSub(O->Vertices+3*(E->iV1), O->Vertices + 3*(E->iQP), J);
-     VecScale(J, KVec[ei] * E->Length / (2.0*P->Area) );
-     u2[na] += J[0];
-     v2[na] += J[1];
-     w2[na] += J[2];
-
-     na=VertexIndexOffset[no] + E->iV2;
-     VecSub(O->Vertices+3*(E->iV2), O->Vertices + 3*(E->iQP), J);
-     VecScale(J, KVec[ei] * E->Length / (2.0*P->Area) );
-     u2[na] += J[0];
-     v2[na] += J[1];
-     w2[na] += J[2];
-     
-   };
-
-  /***************************************************************/
-  /* write quiver-plot vectors to hd5 file ***********************/
-  /***************************************************************/
-  C2MLVector(pCC,x,NumArrows,"x");
-  C2MLVector(pCC,y,NumArrows,"y");
-  C2MLVector(pCC,z,NumArrows,"z");
-  C2MLVector(pCC,u,NumArrows,"u");
-  C2MLVector(pCC,v,NumArrows,"v");
-  C2MLVector(pCC,w,NumArrows,"w");
-
-  C2MLVector(pCC,X,3*NumArrows,"X");
-  C2MLVector(pCC,Y,3*NumArrows,"Y");
-  C2MLVector(pCC,Z,3*NumArrows,"Z");
-  C2MLMatrix_RM(pCC,Tri,NumArrows,3,"Tri",no);
-  C2MLVector(pCC,C,NumArrows,"C");
-
-  C2MLVector(pCC,x2,NumArrows2,"x2");
-  C2MLVector(pCC,y2,NumArrows2,"y2");
-  C2MLVector(pCC,z2,NumArrows2,"z2");
-  C2MLVector(pCC,u2,NumArrows2,"u2");
-  C2MLVector(pCC,v2,NumArrows2,"v2");
-  C2MLVector(pCC,w2,NumArrows2,"w2");
-
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  free(x);
-  free(y);
-  free(z);
-  free(u);
-  free(v);
-  free(w);
-
-  free(x2);
-  free(y2);
-  free(z2);
-  free(u2);
-  free(v2);
-  free(w2);
-
-  free(X);
-  free(Y);
-  free(Z);
-  free(Tri);
-  free(C);
-
-  C2MLClose(pCC); 
-
-}
-#endif
-
-/***************************************************************/
-/***************************************************************/
-/* Experimental (12/16/09) code for visualizing the current    */
-/* distribution described by a single vector.                  */
-/***************************************************************/
+/* Emit GMSH postprocessing code for visualizing the current   */
+/* distribution described by a single vector of surface-current*/
+/* expansion coefficients.                                     */
 /***************************************************************/
 void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...)
 { 
-  int no, np, ne;
+  int ns, np, ne;
   FILE *f;
   int MM, Offset, NeedMagnetic;
-  RWGObject *O;
+  RWGSurface *S;
   RWGPanel *P;
   RWGEdge *E;
   double *PV[3];
@@ -802,24 +589,24 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* plot electric charge densities of all basis functions       */
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Electric Charge Density");
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
      { 
-       MM=O->MP->IsPEC() ? 1 : 2;
-       Offset=BFIndexOffset[no];
+       MM=S->IsPEC ? 1 : 2;
+       Offset=BFIndexOffset[ns];
 
        /* */
        Rho=0.0;
-       for(ne=0; ne<O->NumEdges; ne++)
-        if ( O->Edges[ne]->iPPanel == np )
-         Rho += O->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne);
-        else if ( O->Edges[ne]->iMPanel == np )
-         Rho -= O->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne);
+       for(ne=0; ne<S->NumEdges; ne++)
+        if ( S->Edges[ne]->iPPanel == np )
+         Rho += S->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne);
+        else if ( S->Edges[ne]->iMPanel == np )
+         Rho -= S->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne);
        Rho /= (P->Area * iw);
 
-       PV[0]=O->Vertices + 3*P->VI[0];
-       PV[1]=O->Vertices + 3*P->VI[1];
-       PV[2]=O->Vertices + 3*P->VI[2];
+       PV[0]=S->Vertices + 3*P->VI[0];
+       PV[1]=S->Vertices + 3*P->VI[1];
+       PV[2]=S->Vertices + 3*P->VI[2];
 
        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                   PV[0][0], PV[0][1], PV[0][2],
@@ -833,24 +620,24 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* plot electric current densities at centroids of all panels  */
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Electric Current");
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
      { 
-       MM=O->MP->IsPEC() ? 1 : 2;
-       Offset=BFIndexOffset[no];
+       MM=S->IsPEC ? 1 : 2;
+       Offset=BFIndexOffset[ns];
 
        /* */
        memset(J,0,3*sizeof(cdouble));
-       for(ne=0, E=O->Edges[0]; ne<O->NumEdges; E=O->Edges[++ne])
+       for(ne=0, E=S->Edges[0]; ne<S->NumEdges; E=S->Edges[++ne])
         { if ( E->iPPanel == np )
-           { VecSub( P->Centroid, O->Vertices + 3*(E->iQP), XmQ);
+           { VecSub( P->Centroid, S->Vertices + 3*(E->iQP), XmQ);
              Weight = E->Length * KN->GetEntry(Offset + MM*ne);
              J[0] += Weight * XmQ[0];
              J[1] += Weight * XmQ[1];
              J[2] += Weight * XmQ[2];
            }
           else if ( E->iMPanel == np )
-           { VecSub( P->Centroid, O->Vertices + 3*(E->iQM), XmQ);
+           { VecSub( P->Centroid, S->Vertices + 3*(E->iQM), XmQ);
              Weight = E->Length * KN->GetEntry(Offset + MM*ne);
              J[0] -= Weight * XmQ[0];
              J[1] -= Weight * XmQ[1];
@@ -873,8 +660,8 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* object is non-PEC                                           */
   /***************************************************************/
   NeedMagnetic=0;
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
-   if ( !(O->MP->IsPEC()) )
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+   if ( !(S->IsPEC) )
     NeedMagnetic=1;
   if (NeedMagnetic==0)
    { fclose(f); 
@@ -885,27 +672,27 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* plot magnetic charge densities of all basis functions       */
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Magnetic Charge Density");
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
    { 
-     if ( O->MP->IsPEC() ) 
+     if ( S->IsPEC ) 
       continue;
      MM=2;
-     Offset=BFIndexOffset[no];
+     Offset=BFIndexOffset[ns];
 
-     for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+     for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
        { 
          Rho=0.0;
-         for(ne=0; ne<O->NumEdges; ne++)
-          if ( O->Edges[ne]->iPPanel == np )
-           Rho += O->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne + 1);
-          else if ( O->Edges[ne]->iMPanel == np )
-           Rho -= O->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne + 1);
+         for(ne=0; ne<S->NumEdges; ne++)
+          if ( S->Edges[ne]->iPPanel == np )
+           Rho += S->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne + 1);
+          else if ( S->Edges[ne]->iMPanel == np )
+           Rho -= S->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne + 1);
          Rho /= (P->Area * iw);
          Rho*=(-1.0*ZVAC);
 
-         PV[0]=O->Vertices + 3*P->VI[0];
-         PV[1]=O->Vertices + 3*P->VI[1];
-         PV[2]=O->Vertices + 3*P->VI[2];
+         PV[0]=S->Vertices + 3*P->VI[0];
+         PV[1]=S->Vertices + 3*P->VI[1];
+         PV[2]=S->Vertices + 3*P->VI[2];
 
          fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                     PV[0][0], PV[0][1], PV[0][2],
@@ -920,20 +707,20 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* plot electric current densities at centroids of all panels  */
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Magnetic Current");
-  for(no=0, O=Objects[0]; no<NumObjects; O=Objects[++no])
+  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
    { 
-     if ( O->MP->IsPEC() ) 
+     if ( S->IsPEC )
       continue;
      MM=2;
-     Offset=BFIndexOffset[no];
+     Offset=BFIndexOffset[ns];
 
-     for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+     for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
       {
         /* */
         memset(J,0,3*sizeof(cdouble));
-        for(ne=0, E=O->Edges[0]; ne<O->NumEdges; E=O->Edges[++ne])
+        for(ne=0, E=S->Edges[0]; ne<S->NumEdges; E=S->Edges[++ne])
          { if ( E->iPPanel == np )
-            { VecSub( P->Centroid, O->Vertices + 3*(E->iQP), XmQ);
+            { VecSub( P->Centroid, S->Vertices + 3*(E->iQP), XmQ);
               Weight = E->Length * KN->GetEntry(Offset + MM*ne + 1);
               Weight *= -1.0*ZVAC;
               J[0] += Weight * XmQ[0];
@@ -941,7 +728,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
               J[2] += Weight * XmQ[2];
             }
            else if ( E->iMPanel == np )
-            { VecSub( P->Centroid, O->Vertices + 3*(E->iQM), XmQ);
+            { VecSub( P->Centroid, S->Vertices + 3*(E->iQM), XmQ);
               Weight = E->Length * KN->GetEntry(Offset + MM*ne + 1);
               Weight *= -1.0*ZVAC;
               J[0] -= Weight * XmQ[0];

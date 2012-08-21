@@ -161,74 +161,6 @@ void PlaneGrid::GetPoint(int n1, int n2, double X[3], double dA[3]) const {
 }
 
 /***************************************************************************/
-
-SphereGrid::SphereGrid(int n1, int n2, const double x0[3], double r)
-{
-  N1 = n1; N2 = n2;
-  VecCopy(x0, X0);
-  R = r;
-  dPhi = 2*3.14159265358979323846 / n1;
-  dTheta = 3.14159265358979323846 / n2;
-}
-
-void SphereGrid::GetPoint(int n1, int n2, double X[3], double dA[3]) const {
-  double Phi = dPhi * n1;
-  double Theta = dTheta * (n2 + 0.5);
-  X[0] = X0[0] + R * (dA[0] = sin(Theta) * cos(Phi));
-  X[1] = X0[1] + R * (dA[1] = sin(Theta) * sin(Phi));
-  X[2] = X0[2] + R * (dA[2] = cos(Theta));
-  VecScale(dA, R*R * sin(Theta) * dPhi * dTheta);
-}
-
-/***************************************************************************/
-
-CylinderGrid::CylinderGrid(int n1, int n2, const double c0[3],
-			   const double s2[3], double r) {
-  N1 = n1; N2 = n2;
-  VecPlusEquals(VecCopy(c0, X0), -0.5, s2);
-  VecScale(VecCopy(s2, S2), 1.0 / N2);
-  R = r;
-  dPhi = 2*3.14159265358979323846 / n1;
-
-  // pick R0 and R1 somewhat arbitrarily (but so that R0 x R1 || S2):
-
-  double V[3] = {0,0,0}; // pick direction of 1st minimum component of S2
-  if (fabs(S2[0]) < fabs(S2[1]) && fabs(S2[0]) < fabs(S2[2]))
-    V[0] = 1;
-  else if (fabs(S2[1]) < fabs(S2[2]))
-    V[1] = 1;
-  else
-    V[2] = 1;
-
-  VecNormalize(VecCross(V, S2, R1));
-  VecNormalize(VecCross(R1, V, R0));
-  VecScale(R0, R); VecScale(R1, R);
-}
-
-CylinderGrid::CylinderGrid(int n1, int n2, const double c0[3],
-			   double s2, CartesianDirection axis, double r) {
-  N1 = n1; N2 = n2;
-  VecCopy(c0, X0);
-  X0[axis] -= 0.5*s2;
-  VecZero(S2);
-  S2[axis] = s2 / N2;
-  VecZero(R0); VecZero(R1);
-  R0[(axis + 1) % 3] = R;
-  R1[(axis + 2) % 3] = R;
-  R = r;
-  dPhi = 2*3.14159265358979323846 / n1;
-}
-
-void CylinderGrid::GetPoint(int n1, int n2, double X[3], double dA[3]) const {
-  double Phi = dPhi * n1;
-  double cosPhi = cos(Phi), sinPhi = sin(Phi);
-  X[0] = X0[0] + (dA[0] = R0[0]*cosPhi + R1[0]*sinPhi) + n2*S2[0];
-  X[1] = X0[1] + (dA[1] = R0[1]*cosPhi + R1[1]*sinPhi) + n2*S2[1];
-  X[2] = X0[2] + (dA[2] = R0[2]*cosPhi + R1[2]*sinPhi) + n2*S2[2];
-  dA[0] *= dPhi; dA[1] *= dPhi; dA[2] *= dPhi;
-}
-
-/***************************************************************************/
 /***************************************************************************/
 /***************************************************************************/
 /* Routine for evaluating arbitrary functions of the fields on a 2d
@@ -240,8 +172,9 @@ void CylinderGrid::GetPoint(int n1, int n2, double X[3], double dA[3]) const {
 HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 				      int nfuncs, FieldFunc **funcs,
 				      cdouble Omega, HVector *KN,
-				      IncField *IF, int nThread) {
+				      IncField *IF) {
 
+  UpdateCachedEpsMuValues(Omega);
   if (IF)
    UpdateIncFields(IF, Omega);
 
@@ -255,7 +188,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
   Ms[nfuncs] = NULL;
   if (!nfuncs) return Ms;
 
-  if (nThread <= 0) nThread = GetNumThreads();
+  int nThread = GetNumThreads();
 
   // number of threads to use in GetFields
 #ifdef USE_OPENMP // grid loop is parallelized
@@ -266,28 +199,27 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 #endif
 
   // make sure kdPanels is initialized outside loop (this is not thread-safe)
-  for (int no = 0; no < NumObjects; ++no)
-    Objects[no]->InitkdPanels(false, LogLevel);
+  for (int ns = 0; ns < NumSurfaces; ++ns)
+    Surfaces[ns]->InitkdPanels(false, LogLevel);
 
 #ifdef USE_OPENMP
 #pragma omp parallel for firstprivate(grid,nFuncs,funcs,Omega,KN,IF,nThreadFields,Ms,this), schedule(static), num_threads(nThread), collapse(2)
 #endif
   for (int n1 = 0; n1 < grid.N1; ++n1)
     for (int n2 = 0; n2 < grid.N2; ++n2) {
-      if (LogLevel >= SCUFF_VERBOSELOGGING) {
-	int count = n1*grid.N2 + n2;
+      int count = n1*grid.N2 + n2;
+      if (LogLevel >= SCUFF_VERBOSELOGGING)
 	for (int PerCent=0; PerCent<9; PerCent++)
 	  if (count == (PerCent*grid.N1*grid.N2)/10)
 	    MutexLog("%i0 %% (%i/%i)...",PerCent,count,grid.N1*grid.N2);
-      }
 
       double X[3], dA[3];
       grid.GetPoint(n1, n2, X, dA);
 
-      int no = GetObjectIndex(X);
+      int nr = GetRegionIndex(X);
       cdouble EH[6];
       if (KN)
-	GetFields(0, KN, Omega, X, EH, nThreadFields);
+	GetFields(0, KN, Omega, X, EH);
       else
 	memset(EH, 0, sizeof(cdouble) * 6);
 
@@ -295,23 +227,15 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
       { cdouble EHi[6];
         IncField *IFNode;
         for(IFNode=IF; IFNode; IFNode=IFNode->Next)
-         if ( IFNode->ObjectIndex == no )
+         if ( IFNode->RegionIndex == nr )
           { IFNode->GetFields(X, EHi);
             SixVecPlusEquals(EH, 1.0, EHi);
           };
       };
 
-      // in theory this could be done outside the grid loop and
-      // cached somewhere per-object
-      cdouble Eps, Mu;
-      if (no >= 0)
-	Objects[no]->MP->GetEpsMu(Omega, &Eps, &Mu);
-      else
-	ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
-
       // Call the field functions and store in the output matrices
       for (int i = 0; i < nfuncs; ++i)
-	Ms[i]->SetEntry(n1,n2, funcs[i]->Eval(X, dA, EH, Eps, Mu));
+	Ms[i]->SetEntry(n1,n2, funcs[i]->Eval(X, dA, EH, EpsTF[nr], MuTF[nr]));
     }
 
   return Ms;
@@ -321,8 +245,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
 // Convenience wrappers of GetFieldsGrids with simpler arguments.
 
 HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, const char *exprs_,
-                                      cdouble Omega, HVector *KN, IncField *inc,
-				      int nThread) {
+                                      cdouble Omega, HVector *KN, IncField *inc) {
   FieldFunc **f;
   int nf = 1;
 
@@ -346,7 +269,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, const char *exprs_,
   if (LogLevel >= SCUFF_VERBOSELOGGING)
     Log(" GetFieldsGrids %dx%d of: %s ...", grid.N1,grid.N2, exprs_);
 
-  HMatrix **Ms = GetFieldsGrids(grid, nf, f, Omega, KN, inc, nThread);
+  HMatrix **Ms = GetFieldsGrids(grid, nf, f, Omega, KN, inc);
 
   for (int i=0; i < nf; ++i) delete f[i];
   free(f);
@@ -355,22 +278,20 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, const char *exprs_,
 }
 
 HMatrix *RWGGeometry::GetFieldsGrid(SurfaceGrid &grid, FieldFunc &func,
-				    cdouble Omega, HVector *KN, IncField *inc,
-				    int nThread) {
+				    cdouble Omega, HVector *KN, IncField *inc) {
   FieldFunc *funcs = &func;
-  HMatrix *M, **Ms = GetFieldsGrids(grid, 1, &funcs, Omega, KN, inc, nThread);
+  HMatrix *M, **Ms = GetFieldsGrids(grid, 1, &funcs, Omega, KN, inc);
   M = *Ms;
   free(Ms);
   return M;
 }
 
 HMatrix *RWGGeometry::GetFieldsGrid(SurfaceGrid &grid, const char *expr,
-				    cdouble Omega, HVector *KN, IncField *inc,
-				    int nThread) {
+				    cdouble Omega, HVector *KN, IncField *inc) {
   ParsedFieldFunc f(expr);
   if (LogLevel >= SCUFF_VERBOSELOGGING)
     Log(" GetFieldsGrid %dx%d of: %s ...", grid.N1,grid.N2, expr);
-  return GetFieldsGrid(grid, f, Omega, KN, inc, nThread);
+  return GetFieldsGrid(grid, f, Omega, KN, inc);
 }
 
 /***************************************************************************/

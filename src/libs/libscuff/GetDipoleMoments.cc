@@ -51,13 +51,13 @@ namespace scuff {
 /* populated with a vector of basis-function weights.          */
 /*                                                             */
 /* The return value is an HVector of length 6N, where N is the */
-/* number of objects in the geometry. The entries of this      */
+/* number of surfaces in the geometry. The entries of this     */
 /* vector are:                                                 */
 /*                                                             */
 /*  PM[ 6*n + 0..2 ] = x,y,z components of electric dipole     */
-/*                     moment induced on nth object            */
+/*                     moment induced on nth surface           */
 /*  PM[ 6*n + 3..5 ] = x,y,z components of magnetic dipole     */
-/*                     moment induced on nth object            */
+/*                     moment induced on nth surface           */
 /*                                                             */
 /* If the input parameter PM is NULL on entry (or if PM points */
 /* to an HVector of the wrong size), then the returned HVector */
@@ -70,14 +70,14 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if ( PM==0 || PM->N!=6*NumObjects )
-   PM=new HVector(6*NumObjects, LHM_COMPLEX);
+  if ( PM==0 || PM->N!=6*NumSurfaces)
+   PM=new HVector(6*NumSurfaces, LHM_COMPLEX);
   PM->Zero(); 
  
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  RWGObject *O;
+  RWGSurface *S;
   RWGEdge *E;
   double QP[3], V1[3], V2[3], QM[3];
   double QPmQM[3], V1pV2[3], QQxVV[3];
@@ -85,21 +85,21 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
   cdouble KAlpha, NAlpha;
   cdouble pRWG[3], mRWG[3];
   cdouble IK=II*Omega; 
-  int nbf, no, ne, Mu;
-  for(nbf=no=0; no<NumObjects; no++)
-   for(O=Objects[no], ne=0; ne<O->NumEdges; ne++)
+  int nbf, ns, ne, Mu;
+  for(nbf=ns=0; ns<NumSurfaces; ns++)
+   for(S=Surfaces[ns], ne=0; ne<S->NumEdges; ne++)
     { 
-      E=O->Edges[ne];
+      E=S->Edges[ne];
 
-      memcpy(QP,O->Vertices + 3*E->iQP, 3*sizeof(double));
-      memcpy(V1,O->Vertices + 3*E->iV1, 3*sizeof(double));
-      memcpy(V2,O->Vertices + 3*E->iV2, 3*sizeof(double));
-      memcpy(QM,O->Vertices + 3*E->iQM, 3*sizeof(double));
-      if (O->GT)
-       { O->GT->UnApply(QP);
-         O->GT->UnApply(V1);
-         O->GT->UnApply(V2);
-         O->GT->UnApply(QM);
+      memcpy(QP,S->Vertices + 3*E->iQP, 3*sizeof(double));
+      memcpy(V1,S->Vertices + 3*E->iV1, 3*sizeof(double));
+      memcpy(V2,S->Vertices + 3*E->iV2, 3*sizeof(double));
+      memcpy(QM,S->Vertices + 3*E->iQM, 3*sizeof(double));
+      if (S->GT)
+       { S->GT->UnApply(QP);
+         S->GT->UnApply(V1);
+         S->GT->UnApply(V2);
+         S->GT->UnApply(QM);
        };
       VecSub(QP, QM, QPmQM);
       VecAdd(V1, V2, V1pV2);
@@ -114,14 +114,14 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
       mRWG[2] = PreFac * QQxVV[2] / 4.0;
 
       KAlpha=KN->GetEntry( nbf++ );
-      if ( O->MP->Type==MP_PEC )
+      if ( S->IsPEC )
        NAlpha = 0.0;
       else 
        NAlpha = -ZVAC*KN->GetEntry( nbf++ );
 
       for(Mu=0; Mu<3; Mu++)
-       { PM->AddEntry( 6*no + Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
-         PM->AddEntry( 6*no + Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
+       { PM->AddEntry( 6*ns + Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
+         PM->AddEntry( 6*ns + Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
        };
  
     };

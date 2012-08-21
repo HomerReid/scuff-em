@@ -18,7 +18,7 @@
  */
 
 /*
- * ReadGMSHFile.cc -- subroutine of the RWGObject class constructor
+ * ReadGMSHFile.cc -- subroutine of the RWGSurface class constructor
  *
  * homer reid    -- 3/2007 
  */
@@ -56,10 +56,14 @@ namespace scuff {
 #define MAXREFPTS 100
 
 /*************************************************************/
+/* Read vertices and panels from a GMSH .msh file to specify */
+/* a surface.                                                */
+/* If PhysicalRegion==-1, then all panels are read.          */
+/* Otherwise, only panels on the specified physical region   */
+/* are read.                                                 */
 /*************************************************************/
-/*************************************************************/
-void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName, 
-                             const GTransformation *OTGT)
+void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName, 
+                             const GTransformation *OTGT, int PhysicalRegion)
 {
   RWGPanel *P;
   char buffer[100];
@@ -208,14 +212,26 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
      else
       { 
         nConv=sscanf(buffer,"%i %i %i%n",&ElNum,&ElType,&nTags,&nRead);
+        bufPos=nRead;
         if (nConv<3)
          ErrExit("%s:%i: invalid element specification",FileName,LineNum);
-        bufPos=nRead;
-        for(nt=0; nt<nTags; nt++)
+
+        // read the first 'tag,' which should be the physical region
+        if (nTags==0)
+         RegPhys=0;
+        else 
+         sscanf(buffer+bufPos,"%i%n",&RegPhys,&nRead);
+        bufPos+=nRead;
+
+        // read any remaining tags 
+        for(nt=0; nt<nTags-1; nt++)
          { sscanf(buffer+bufPos,"%i%n",&iDummy,&nRead);
            bufPos+=nRead;
          };
+
+        // finally, read the vertex indices. 
         nConv=sscanf(buffer+bufPos,"%i %i %i",VI,VI+1,VI+2);
+
         if (ElType==TYPE_TRIANGLE && nConv!=3)
          ErrExit("%s:%i: invalid element specification",FileName,LineNum);
         else if (ElType==TYPE_POINT && nConv!=1)
@@ -238,10 +254,12 @@ void RWGObject::ReadGMSHFile(FILE *MeshFile, char *FileName,
         /* add new triangle to list of panels                          */
         /***************************************************************/
         case TYPE_TRIANGLE:
-          Panels[NumPanels]=NewRWGPanel(Vertices, GMSH2HR[ VI[0] ], GMSH2HR[ VI[1] ], 
-                                        GMSH2HR[ VI[2] ]);
-          Panels[NumPanels]->Index=NumPanels;
-          NumPanels++;
+          if ( (PhysicalRegion == -1) || (PhysicalRegion==RegPhys) )
+           { Panels[NumPanels]=NewRWGPanel(Vertices, GMSH2HR[ VI[0] ], GMSH2HR[ VI[1] ], 
+                                           GMSH2HR[ VI[2] ]);
+             Panels[NumPanels]->Index=NumPanels;
+             NumPanels++;
+           };
           break;
 
         default:

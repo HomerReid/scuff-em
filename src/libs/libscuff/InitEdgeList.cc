@@ -18,11 +18,11 @@
  */
 
 /*
- * InitEdgeList.cc -- RWGObject class method for gathering 
+ * InitEdgeList.cc -- RWGSurface class method for gathering 
  *                 -- information on the edges of the panels in
- *                 -- the object mesh.
+ *                 -- a surface mesh.
  *                 
- *                 -- This is really just a part of the RWGObject
+ *                 -- This is really just a part of the RWGSurface
  *                 -- class constructor, but we put it in a separate
  *                 -- file for clarity.
  *
@@ -44,7 +44,7 @@ namespace scuff {
 /* regarding interior edges, exterior edges, boundary contours,*/
 /* etc.                                                        */
 /***************************************************************/
-void RWGObject::InitEdgeList()
+void RWGSurface::InitEdgeList()
 { 
   RWGPanel *P; 
   RWGEdge *E, ***EVEdges, *BCEdgeList;
@@ -71,18 +71,18 @@ void RWGObject::InitEdgeList()
 
   /*--------------------------------------------------------------*/
   /*- VertexUsed[nv] = 1 if vertex # nv is a vertex of any panel  */
-  /*- on the object. (Used below in the determination of the      */
+  /*- on the surface. (Used below in the determination of the     */
   /*- number of "interior" vertices.)                             */
   /*--------------------------------------------------------------*/
   VertexUsed=(int *)mallocEC(NumVertices*sizeof(int));
   memset(VertexUsed,0,NumVertices*sizeof(int));
 
   /*--------------------------------------------------------------*/
-  /*- EVNumEdges[nv] is the number of edges connected to vertex   */
-  /*- nv (only filled in for nv=exterior vertex). This number     */
-  /*- should be 2 for all exterior vertices.                      */
+  /*- EVNumEdges[nv] is the number of exterior edges connected to */
+  /*- vertex nv (only filled in for nv=exterior vertex). This     */
+  /*- number should be 2 for all exterior vertices.               */
   /*- EVEdges[nv][0] and EVEdges[nv][1] are pointers to the two   */
-  /*- RWGEdge structures connected to vertex nv (again only      */
+  /*- RWGEdge structures connected to vertex nv (again only       */
   /*- used for nv=exterior vertex)                                */
   /*--------------------------------------------------------------*/
   EVNumEdges=(int *)mallocEC(NumVertices*sizeof(RWGEdge));
@@ -93,8 +93,8 @@ void RWGObject::InitEdgeList()
    EVEdges[nv]=EVEdges[nv-1]+2;
 
   /****************************************************************/
-  /* construct a list of RWGEdge structures by going over every  */
-  /* edge of every panel:                                         */ 
+  /* construct a list of RWGEdge structures by going over every   */
+  /* edge of every triangular panel:                              */ 
   /*                                                              */
   /*  a. if the edge does not exist in the list (we have not      */
   /*     visited this edge before) then add it to the list        */
@@ -104,18 +104,18 @@ void RWGObject::InitEdgeList()
   /*  c. if we find ourselves visiting an edge more than two      */
   /*     times then the topology of the panel set is defective.   */
   /*                                                              */
-  /* note that when we first create a new RWGEdge structure for  */
+  /* note that when we first create a new RWGEdge structure for an*/
   /* edge, we assign the panel it came from as its 'positive'     */
   /* panel, but we don't yet assign it an 'Index' in the overall  */
   /* problem, because it may turn out to be an exterior edge. we  */
-  /* also tentatively set the 'EdgeSign' and 'EdgeIndex' fields   */
-  /* for this edge in the corresponding panel structure to 0.0    */
-  /* and -1 in view of this possibility.                          */
+  /* also set the iQM, iMPanel, and MIndex fields to -1 in view   */
+  /* of this possibility.                                         */
   /*                                                              */
-  /* when we come across the edge for the second time (because it */
-  /* turned out to be attached to a second triangle) we call the  */
-  /* second triangle the 'negative' panel associated with the     */
-  /* edge, and now we do assign an Index to this edge.            */
+  /* if we subsequently come across the edge for the second time  */
+  /* (because it turned out to be attached to a second panel)     */
+  /* we call this second panel the 'negative' panel associated to */
+  /* the edge, and now we do assign an Index to the edge, as well */
+  /* as fill in its iQM, iMPanel, and MIndex fields.              */
   /*                                                              */
   /* thus, at the conclusion of this loop, any Edge structure that*/
   /* still has Index==-1 is an exterior edge. such a structure    */

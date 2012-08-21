@@ -361,8 +361,8 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
   /***************************************************************/
   GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
   GTC->Tag=strdup(Tokens[1]);
-  GTC->NumObjectsAffected=0;
-  GTC->ObjectLabel=0;
+  GTC->NumSurfacesAffected=0;
+  GTC->SurfaceLabel=0;
   GTC->GT=0;
 
   GTransformation *CurrentGT=0;
@@ -374,7 +374,7 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
   /***************************************************************/
   int nt=2; // start parsing the rest of the line at token #2
   int TokensConsumed;
-  int noa;
+  int nsa;
   char *ErrMsg;
   while( nt<NumTokens )
    { 
@@ -383,13 +383,13 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
         if ( nt+1 == NumTokens )
          return strdup("syntax error");
 
-        noa=GTC->NumObjectsAffected;
-        GTC->ObjectLabel=(char **)realloc(GTC->ObjectLabel, (noa+1)*sizeof(char *));
-        GTC->ObjectLabel[noa]=strdup(Tokens[nt+1]);
-        GTC->GT=(GTransformation *)realloc(GTC->GT, (noa+1)*sizeof(GTransformation));
-        GTC->GT[noa]=GTransformation();
-        GTC->NumObjectsAffected=noa+1;
-        CurrentGT=GTC->GT+noa;
+        nsa=GTC->NumSurfacesAffected;
+        GTC->SurfaceLabel=(char **)realloc(GTC->SurfaceLabel, (nsa+1)*sizeof(char *));
+        GTC->SurfaceLabel[nsa]=strdup(Tokens[nt+1]);
+        GTC->GT=(GTransformation *)realloc(GTC->GT, (nsa+1)*sizeof(GTransformation));
+        GTC->GT[nsa]=GTransformation();
+        GTC->NumSurfacesAffected=nsa+1;
+        CurrentGT=GTC->GT+nsa;
 
         nt+=2;
       }
@@ -437,8 +437,8 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
   /***************************************************************/
   GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
   GTC->Tag=strdup(Tag);
-  GTC->NumObjectsAffected=0;
-  GTC->ObjectLabel=0;
+  GTC->NumSurfacesAffected=0;
+  GTC->SurfaceLabel=0;
   GTC->GT=0;
 
   GTransformation *CurrentGT=0;
@@ -464,7 +464,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
      if ( !strcasecmp(Tokens[0],"OBJECT") )
       { 
         /*--------------------------------------------------------------*/
-        /*-- OBJECT MyObject--------------------------------------------*/
+        /*-- OBJECT MySurface--------------------------------------------*/
         /*--------------------------------------------------------------*/
         if (NumTokens!=2) 
          return strdup("OBJECT keyword requires one argument");
@@ -473,15 +473,15 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         // complex of transformations; save the label of the affected  
         // object and initialize the corresponding GTransformation to the
         // identity transformation
-        int noa=GTC->NumObjectsAffected;
-        GTC->ObjectLabel=(char **)realloc(GTC->ObjectLabel, (noa+1)*sizeof(char *));
-        GTC->ObjectLabel[noa]=strdup(Tokens[1]);
-        GTC->GT=(GTransformation *)realloc(GTC->GT, (noa+1)*sizeof(GTransformation));
-        GTC->GT[noa]=GTransformation();
-        GTC->NumObjectsAffected=noa+1;
+        int nsa=GTC->NumSurfacesAffected;
+        GTC->SurfaceLabel=(char **)realloc(GTC->SurfaceLabel, (nsa+1)*sizeof(char *));
+        GTC->SurfaceLabel[nsa]=strdup(Tokens[1]);
+        GTC->GT=(GTransformation *)realloc(GTC->GT, (nsa+1)*sizeof(GTransformation));
+        GTC->GT[nsa]=GTransformation();
+        GTC->NumSurfacesAffected=nsa+1;
         
         // subsequent DISPLACEMENTs / ROTATIONs will augment this GTransformation
-        CurrentGT=GTC->GT+noa;
+        CurrentGT=GTC->GT+nsa;
       }
      else if ( !strcasecmp(Tokens[0],"ENDTRANSFORMATION") )
       { 
@@ -520,8 +520,8 @@ GTComplex *CreateDefaultGTComplex()
 {
   GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
   GTC->Tag=strdup("DEFAULT");
-  GTC->NumObjectsAffected=0;
-  GTC->ObjectLabel=0;
+  GTC->NumSurfacesAffected=0;
+  GTC->SurfaceLabel=0;
   GTC->GT=0;
   return GTC;
 }

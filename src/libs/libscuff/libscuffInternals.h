@@ -73,7 +73,7 @@ void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args);
 typedef struct GetPPIArgStruct
  { 
    // input fields to be filled in by caller
-   RWGObject *Oa, *Ob;
+   RWGSurface *Sa, *Sb;
    int npa, npb;
    int iQa, iQb;
    cdouble k;
@@ -116,7 +116,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args,
 typedef struct GetEEIArgStruct
  { 
    // input fields to be filled in by caller
-   RWGObject *Oa, *Ob;
+   RWGSurface *Sa, *Sb;
    int nea, neb;
    cdouble k;
 
@@ -154,9 +154,8 @@ typedef struct ABMBArgStruct
  {
    // input fields to be filled in by caller
    RWGGeometry *G;
-   RWGObject *Oa, *Ob;
+   RWGSurface *Sa, *Sb;
    cdouble Omega;    
-   int nThread;
 
    int NumTorqueAxes;
    double *GammaMatrix;
@@ -175,10 +174,10 @@ typedef struct ABMBArgStruct
 
    // additional fields used internally that may be ignored by 
    // the caller both before and after the call
-   double Sign;
+   double SignA, SignB;
    cdouble EpsA, EpsB; 
    cdouble MuA, MuB;
-   int OaIsPEC, ObIsPEC;
+   int SaIsPEC, SbIsPEC;
 
  } ABMBArgStruct;
 
@@ -286,17 +285,17 @@ extern FIPPICache GlobalFIPPICache;
 int AssessPanelPair(double **Va, double **Vb, double rMax);
 int AssessPanelPair(double **Va, double **Vb);
 
-int AssessPanelPair(RWGObject *Oa, int npa, 
-                    RWGObject *Ob, int npb,
+int AssessPanelPair(RWGSurface *Sa, int npa, 
+                    RWGSurface *Sb, int npb,
                     double *rRel, 
                     double **Va, double **Vb);
 
-int AssessPanelPair(RWGObject *Oa, int npa, 
-                    RWGObject *Ob, int npb,
+int AssessPanelPair(RWGSurface *Sa, int npa, 
+                    RWGSurface *Sb, int npb,
                     double *rRel);
 
-int NumCommonVertices(RWGObject *Oa, int npa, 
-                      RWGObject *Ob, int npb);
+int NumCommonVertices(RWGSurface *Sa, int npa, 
+                      RWGSurface *Sb, int npb);
 
 int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
                              double **OVa, double **OVb);

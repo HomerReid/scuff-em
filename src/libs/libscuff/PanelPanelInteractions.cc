@@ -303,8 +303,8 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /***************************************************************/
   /* local copies of fields in argument structure ****************/
   /***************************************************************/
-  RWGObject *Oa             = Args->Oa;
-  RWGObject *Ob             = Args->Ob;
+  RWGSurface *Sa            = Args->Sa;
+  RWGSurface *Sb            = Args->Sb;
   int npa                   = Args->npa; 
   int npb                   = Args->npb; 
   int iQa                   = Args->iQa; 
@@ -321,26 +321,26 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /* extract panel vertices, detect common vertices, measure     */
   /* relative distance                                           */
   /***************************************************************/
-  RWGPanel *Pa = Oa->Panels[npa];
-  RWGPanel *Pb = Ob->Panels[npb];
-  double *Qa   = Oa->Vertices + 3*Pa->VI[iQa];
-  double *Qb   = Ob->Vertices + 3*Pb->VI[iQb];
+  RWGPanel *Pa = Sa->Panels[npa];
+  RWGPanel *Pb = Sb->Panels[npb];
+  double *Qa   = Sa->Vertices + 3*Pa->VI[iQa];
+  double *Qb   = Sb->Vertices + 3*Pb->VI[iQb];
   double *Va[3], *Vb[3];
   double VbDisplaced[3][3];
   double rRel; 
   int ncv;
 
   if (Displacement==0)
-   ncv=AssessPanelPair(Oa,npa,Ob,npb,&rRel,Va,Vb);
+   ncv=AssessPanelPair(Sa,npa,Sb,npb,&rRel,Va,Vb);
   else 
    { 
-     Va[0] = Oa->Vertices + 3*Pa->VI[0];
-     Va[1] = Oa->Vertices + 3*Pa->VI[1];
-     Va[2] = Oa->Vertices + 3*Pa->VI[2];
+     Va[0] = Sa->Vertices + 3*Pa->VI[0];
+     Va[1] = Sa->Vertices + 3*Pa->VI[1];
+     Va[2] = Sa->Vertices + 3*Pa->VI[2];
 
-     VecScaleAdd(Ob->Vertices + 3*Pb->VI[0], 1.0, Displacement, VbDisplaced[0]);
-     VecScaleAdd(Ob->Vertices + 3*Pb->VI[1], 1.0, Displacement, VbDisplaced[1]);
-     VecScaleAdd(Ob->Vertices + 3*Pb->VI[2], 1.0, Displacement, VbDisplaced[2]);
+     VecScaleAdd(Sb->Vertices + 3*Pb->VI[0], 1.0, Displacement, VbDisplaced[0]);
+     VecScaleAdd(Sb->Vertices + 3*Pb->VI[1], 1.0, Displacement, VbDisplaced[1]);
+     VecScaleAdd(Sb->Vertices + 3*Pb->VI[2], 1.0, Displacement, VbDisplaced[2]);
      Vb[0] = VbDisplaced[0];
      Vb[1] = VbDisplaced[1];
      Vb[2] = VbDisplaced[2];
@@ -404,11 +404,6 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
      TDArgs->Q=Qa;
      TDArgs->QP=Qb;
 
-     // loosen the default taylor-duffy tolerance in the 
-     // short-wavelength regime
-     if (InSWRegime)
-      TDArgs->RelTol=RWGGeometry::SWPPITol;
-
      TDArgs->WhichG=TM_EIKR_OVER_R;
      TDArgs->WhichH=TM_DOTPLUS;
      H[0]=TaylorDuffy(TDArgs);
@@ -418,7 +413,6 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
      else
       { TDArgs->WhichG=TM_GRADEIKR_OVER_R;
         TDArgs->WhichH=TM_CROSS;
-TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(H[0]); // TODO explain me
         H[1]=TaylorDuffy(TDArgs);
       };
 

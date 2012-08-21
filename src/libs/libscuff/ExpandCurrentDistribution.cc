@@ -40,20 +40,20 @@ namespace scuff {
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec, int nThread)
+void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
 { 
   int n, ne, nep;
-  RWGObject *O;
+  RWGSurface *S;
   HMatrix *M;
   double OVLP;
 
   /* FIXME */
-  if (NumObjects>1)
+  if (NumSurfaces>1)
    ErrExit("%s:%i: ExpandCurrentDistribution only implemented for single-object geometries");
-  O=Objects[0];
+  S=Surfaces[0];
 
   Log("ExpandCD: Assembling RHS");
-  AssembleRHSVector(1.0, IF, KNVec, nThread);
+  AssembleRHSVector(1.0, IF, KNVec);
   if (KNVec->RealComplex==LHM_COMPLEX)
    { for(n=0; n<(KNVec->N)/2; n++)
       { KNVec->ZV[2*n] *= -1.0*ZVAC;
@@ -67,14 +67,14 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec, int nT
       };
    };
 
-  M=new HMatrix(2*O->NumEdges, 2*O->NumEdges, KNVec->RealComplex);
+  M=new HMatrix(2*S->NumEdges, 2*S->NumEdges, KNVec->RealComplex);
   M->Zero();
 
   Log("ExpandCD: Assembling M");
-  for(ne=0; ne<O->NumEdges; ne++)
-   for(nep=ne; nep<O->NumEdges; nep++)
+  for(ne=0; ne<S->NumEdges; ne++)
+   for(nep=ne; nep<S->NumEdges; nep++)
     { 
-      OVLP=O->GetOverlap(ne, nep);
+      OVLP=S->GetOverlap(ne, nep);
       M->SetEntry( 2*ne, 2*nep, OVLP);
       M->SetEntry( 2*nep, 2*ne, OVLP);
 
@@ -125,8 +125,8 @@ int InsideTriangle(const double *X, const double *V1, const double *V2, const do
 /***************************************************************/
 void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6])
 { 
-  int no, ne, Offset;
-  RWGObject *O;
+  int ne, Offset;
+  RWGSurface *S;
   RWGEdge *E;
   double fRWG[3];
   double *QP, *V1, *V2, *QM, *Q;
@@ -134,29 +134,29 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdo
   cdouble KAlpha, NAlpha;
 
   memset(KN,0,6*sizeof(cdouble));
-  for(no=0; no<NumObjects; no++)
-   for(O=Objects[no], Offset=BFIndexOffset[no], ne=0; ne<O->NumEdges; ne++)
+  for(int ns=0; ns<NumSurfaces; ns++)
+   for(S=Surfaces[ns], Offset=BFIndexOffset[ns], ne=0; ne<S->NumEdges; ne++)
     { 
-      E=O->Edges[ne];
-      QP=O->Vertices + 3*E->iQP;
-      V1=O->Vertices + 3*E->iV1;
-      V2=O->Vertices + 3*E->iV2;
-      QM=O->Vertices + 3*E->iQM;
+      E=S->Edges[ne];
+      QP=S->Vertices + 3*E->iQP;
+      V1=S->Vertices + 3*E->iV1;
+      V2=S->Vertices + 3*E->iV2;
+      QM= (E->iQM==-1) ? 0 : S->Vertices + 3*E->iQM;
 
       if ( InsideTriangle(X,QP,V1,V2) )
        Q=QP;
-      else if ( InsideTriangle(X,QM,V1,V2) )
+      else if ( QM && InsideTriangle(X,QM,V1,V2) )
        Q=QM;
       else
        continue;
 
       Sign = (Q==QP) ? +1.0 : -1.0;
-      Area = (Q==QP) ? O->Panels[E->iPPanel]->Area : O->Panels[E->iMPanel]->Area;
+      Area = (Q==QP) ? S->Panels[E->iPPanel]->Area : S->Panels[E->iMPanel]->Area;
    
       VecSub(X,Q,fRWG);
       VecScale(fRWG, E->Length / (2.0*Area) );
 
-      if ( O->IsPEC )
+      if ( S->IsPEC )
        { KAlpha = KNVec->GetEntry( Offset + ne );
          NAlpha = 0.0;
        }
@@ -172,7 +172,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdo
       KN[4] += Sign * NAlpha * fRWG[1]; 
       KN[5] += Sign * NAlpha * fRWG[2]; 
 
-   }; // for(no=0; ... for(ne=0 ... 
+   }; // for(ns=0; ... for(ne=0 ... 
 }  
 
 } // namespace scuff

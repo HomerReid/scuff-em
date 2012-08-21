@@ -57,8 +57,8 @@ static int SkipTo(FILE *f, const char *SearchString, char *Line)
 /* Constructor helper function for reading in nodes and  *******/
 /* elements for a .mphtxt file as produced by COMSOL     *******/
 /***************************************************************/
-void RWGObject::ReadComsolFile(FILE *MeshFile, char *FileName, 
-                               const GTransformation *OTGT)
+void RWGSurface::ReadComsolFile(FILE *MeshFile, char *FileName, 
+                                const GTransformation *OTGT)
 { 
   char Line[MAXSTR];
   int nv, np, n1, n2, n3, LineNum, LinesRead, nConv;
