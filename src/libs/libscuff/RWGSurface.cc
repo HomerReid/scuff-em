@@ -62,7 +62,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   SurfaceSigma=0;
   PhysicalRegion=-1;
   MeshFileName=0;
-  Label = strdup(pLabel);
+  Label = strdupEC(pLabel);
 
   if ( !strcasecmp(Keyword, "OBJECT") )
    IsObject=1;
@@ -96,14 +96,14 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
      /*--------------------------------------------------------------*/
      if ( !strcasecmp(Tokens[0],"MESHFILE") )
       { if (NumTokens!=2)
-         { ErrMsg=strdup("MESHFILE keyword requires one argument");
+         { ErrMsg=strdupEC("MESHFILE keyword requires one argument");
            return;
          };
-        MeshFileName=strdup(Tokens[1]);
+        MeshFileName=strdupEC(Tokens[1]);
       }
      else if ( !strcasecmp(Tokens[0],"PHYSICAL_REGION") )
       { if (NumTokens!=2)
-         { ErrMsg=strdup("PHYSICAL_REGION keyword requires one argument");
+         { ErrMsg=strdupEC("PHYSICAL_REGION keyword requires one argument");
            return;
          };
         sscanf(Tokens[1],"%i",&PhysicalRegion);
@@ -111,16 +111,16 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       { 
         if (!IsObject)
-         { ErrMsg=strdup("MATERIAL keyword may not be used in SURFACE...ENDSURFACE sections");
+         { ErrMsg=strdupEC("MATERIAL keyword may not be used in SURFACE...ENDSURFACE sections");
            return;
          };
         if (NumTokens!=2)
-         { ErrMsg=strdup("MATERIAL keyword requires one argument");
+         { ErrMsg=strdupEC("MATERIAL keyword requires one argument");
            return;
          };
-        MaterialName = strdup(Tokens[1]);
-        RegionLabels[0] = strdup("EXTERIOR");
-        RegionLabels[1] = strdup(Label);
+        MaterialName = strdupEC(Tokens[1]);
+        RegionLabels[0] = strdupEC("EXTERIOR");
+        RegionLabels[1] = strdupEC(Label);
         MaterialRegionsLineNum = *LineNum;
         if ( !strcasecmp(MaterialName,"PEC") )
          IsPEC=1;
@@ -128,23 +128,23 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
      else if ( !strcasecmp(Tokens[0],"REGIONS") )
       { 
         if (IsObject)
-         { ErrMsg=strdup("REGIONS keyword may not be used in OBJECT...ENDOBJECT sections");
+         { ErrMsg=strdupEC("REGIONS keyword may not be used in OBJECT...ENDOBJECT sections");
            return;
          };
         if (NumTokens==3)
          { IsPEC=0;
-           RegionLabels[0] = strdup(Tokens[1]);
-           RegionLabels[1] = strdup(Tokens[2]);
+           RegionLabels[0] = strdupEC(Tokens[1]);
+           RegionLabels[1] = strdupEC(Tokens[2]);
            MaterialRegionsLineNum = *LineNum;
          }
         else if (NumTokens==2)
          { IsPEC=1;
-           RegionLabels[0] = strdup(Tokens[1]);
-           RegionLabels[1] = strdup("PEC");
+           RegionLabels[0] = strdupEC(Tokens[1]);
+           RegionLabels[1] = strdupEC("PEC");
            MaterialRegionsLineNum = *LineNum;
          }
         else
-         ErrMsg=strdup("REGIONS keyword requires one or two arguments");
+         ErrMsg=strdupEC("REGIONS keyword requires one or two arguments");
       }
      else if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"ROTATED") )
       { 
@@ -177,14 +177,14 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 	 };
 	 
         if (TokensConsumed!=NumTokens) 
-         { ErrMsg=strdup("junk at end of line");
+         { ErrMsg=strdupEC("junk at end of line");
            return;
          };
       }
      else if ( !strcasecmp(Tokens[0],"SURFACE_CONDUCTIVITY") )
       { 
         if (NumTokens<2)
-         { ErrMsg=strdup("no argument specified for SURFACE_CONDUCTIVITY");
+         { ErrMsg=strdupEC("no argument specified for SURFACE_CONDUCTIVITY");
            return;
          };
 ;
@@ -230,8 +230,8 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   // we consider ourselves to be a PEC surface in the exterior medium.
   if ( RegionLabels[0]==0 )
    { IsPEC=1;
-     RegionLabels[0] = strdup("EXTERIOR");
-     RegionLabels[1] = strdup("PEC");
+     RegionLabels[0] = strdupEC("EXTERIOR");
+     RegionLabels[1] = strdupEC("PEC");
    };
 
   // ok, all checks passed, now on to the main body of the class constructor.
@@ -365,14 +365,14 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   ErrMsg=0;
   kdPanels = NULL;
 
-  MeshFileName=strdup("ByHand.msh");
-  Label=strdup("ByHand");
+  MeshFileName=strdupEC("ByHand.msh");
+  Label=strdupEC("ByHand");
 
   NumEdges=0;
   NumVertices=pNumVertices;
   NumPanels=pNumPanels;
-  RegionLabels[0]=strdup("Exterior");
-  RegionLabels[1]=strdup("PEC");
+  RegionLabels[0]=strdupEC("Exterior");
+  RegionLabels[1]=strdupEC("PEC");
   RegionIndices[0]=0;
   RegionIndices[1]=-1;
   IsPEC=1;
@@ -493,7 +493,7 @@ void RWGSurface::Transform(char *format,...)
   va_list ap;
   char buffer[MAXSTR];
   va_start(ap,format);
-  vsnprintf(buffer,MAXSTR,format,ap);
+  vsnprintfEC(buffer,MAXSTR,format,ap);
 
   GTransformation OTGT(buffer, &ErrMsg);
   if (ErrMsg)

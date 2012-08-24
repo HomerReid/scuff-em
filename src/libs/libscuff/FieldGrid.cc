@@ -93,7 +93,7 @@ ParsedFieldFunc::~ParsedFieldFunc() {
 }
 
 char *ParsedFieldFunc::String() const {
-  return strdup(cevaluator_get_string(Expr));
+  return strdupEC(cevaluator_get_string(Expr));
 }
 
 cdouble ParsedFieldFunc::Eval(const double X[3],
@@ -256,7 +256,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid, const char *exprs_,
   f = (FieldFunc**) mallocEC(sizeof(FieldFunc*) * nf);
 
   // extract each comma-separated expression and parse it
-  char *exprs = strdup(exprs_);
+  char *exprs = strdupEC(exprs_);
   char *expr = exprs;
   for (int i = 0; i < nf; ++i) {
     char *c = strchr(expr,',');

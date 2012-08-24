@@ -27,6 +27,7 @@
 #include <stdlib.h>
 
 #include "libIncField.h"
+#include "libhrutil.h"
 
 /***************************************************************/
 /* base class constructor **************************************/
@@ -92,7 +93,7 @@ void IncField::SetFrequencyAndEpsMu(cdouble pOmega,
 void IncField::SetRegionLabel(const char *Label) 
 {
   if (RegionLabel) free(RegionLabel);
-  RegionLabel = Label ? strdup(Label) : 0;
+  RegionLabel = Label ? strdupEC(Label) : 0;
   if (!Label) RegionIndex = 0; // exterior medium is always index == 0
 }
 

@@ -109,7 +109,7 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
   else
    { 
      RegionLabels = (char **)reallocEC( RegionLabels, (NumRegions+1)*sizeof(char *));
-     RegionLabels[NumRegions] = strdup(RegionLabel);
+     RegionLabels[NumRegions] = strdupEC(RegionLabel);
      RegionMPs = (MatProp **)reallocEC( RegionMPs, (NumRegions)*sizeof(MatProp *));
      NumRegions++;
 
@@ -138,7 +138,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   LogLevel=pLogLevel;
   NumSurfaces=TotalPanels=TotalBFs=0;
-  GeoFileName=strdup(pGeoFileName);
+  GeoFileName=strdupEC(pGeoFileName);
   Surfaces=0;
   AllSurfacesClosed=1;
   HaveLineCharges=0;
@@ -147,7 +147,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   // taken to be vacuum by default
   NumRegions=1;
   RegionLabels=(char **)mallocEC(1*sizeof(char *));
-  RegionLabels[0]=strdup("EXTERIOR");
+  RegionLabels[0]=strdupEC("EXTERIOR");
   RegionMPs=(MatProp **)mallocEC(1*sizeof(MatProp *));
   RegionMPs[0] = new MatProp("VACUUM");
 
@@ -320,7 +320,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 	   // the interior region for SP.
 	   S->RegionIndices[0] = SP->RegionIndices[1];
 	   free(S->RegionLabels[0]);
-	   S->RegionLabels[0]=strdup(SP->RegionLabels[1]);
+	   S->RegionLabels[0]=strdupEC(SP->RegionLabels[1]);
 	   break;
          } 
         else if ( S->Contains(SP) )
@@ -345,7 +345,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
                ErrExit("%s: PEC object %s cannot contain object %s",GeoFileName,S->Label,SP->Label);
               SP->RegionIndices[0] = S->RegionIndices[1];
 	      free(SP->RegionLabels[0]);
-	      SP->RegionLabels[0]=strdup(S->RegionLabels[1]);
+	      SP->RegionLabels[0]=strdupEC(S->RegionLabels[1]);
             };
          };
         Surfaces[NewSlotForS] = S;
