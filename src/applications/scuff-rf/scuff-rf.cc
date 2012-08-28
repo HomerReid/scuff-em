@@ -51,7 +51,6 @@ extern FILE *BreakoutFile;
 extern int SkipInterior, SkipExterior;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -106,7 +105,7 @@ int Breakout=0;
 //
      {"portfile",       PA_STRING,  1, 1,       (void *)&PortFile,   0,             "port file"},
 //
-     {"frequency",      PA_DOUBLE,  1, MAXFREQ, (void *)FrequencyValues,  &nFrequency,   "frequency (Hz)"},
+     {"frequency",      PA_DOUBLE,  1, MAXFREQ, (void *)FrequencyValues,  &nFrequency,   "frequency (GHz)"},
      {"minfreq",        PA_DOUBLE,  1, 1,       (void *)&MinFreq,    &nMinFreq,     "starting frequency"},
      {"maxfreq",        PA_DOUBLE,  1, 1,       (void *)&MaxFreq,    &nMaxFreq,     "ending frequency"},
      {"numfreqs",       PA_INT,     1, 1,       (void *)&NumFreqs,   &nNumFreqs,    "number of frequencies"},
@@ -307,7 +306,9 @@ int Breakout=0;
 
 /*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 if (Breakout)
- BreakoutFile=fopen("/tmp/Breakout.dat","a");
+ { BreakoutFile=fopen("/tmp/Breakout.dat","a");
+   setlinebuf(BreakoutFile);
+ };
 /*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/

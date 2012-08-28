@@ -241,6 +241,19 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+RWGSurface::RWGSurface(const char *MeshFile, int pPhysicalRegion)
+{
+  MeshFileName=strdup(MeshFile);
+  PhysicalRegion=pPhysicalRegion;
+  Label=strdup(MeshFile);
+  SurfaceSigma=0;
+  IsPEC=1;
+  InitRWGSurface();
+}
+
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
 /*- Main body of RWGSurface constructor: Create an RWGSurface   */
 /*- from a mesh file describing a discretized object,           */
 /*- optionally with a rotation and/or displacement applied.     */

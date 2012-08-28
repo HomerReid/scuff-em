@@ -56,10 +56,6 @@ void GetPanelPotentials(RWGSurface *S, int np, int iQ, cdouble IK,
 
 cdouble GetPanelPotential(RWGSurface *S, int np, cdouble IK, double *X);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void WriteST(RWGSurface *S, int np, double Val, FILE *f);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 /***************************************************************/
 /* integrand function used to evaluate the line integral       */
 /* iwA \cdot dl from X1 to X2                                  */
@@ -236,8 +232,7 @@ void GetPortVoltages(RWGGeometry *G, HVector *KN,
 cdouble TotalVP, TotalVM;
 static cdouble *PortPanelCharges=0;
 if (PortPanelCharges==0)
- PortPanelCharges=(cdouble *)malloc(NumPanels * sizeof(cdouble));
-memset(PortPanelCharges, 0, NumPanels*sizeof(cdouble));
+ PortPanelCharges=(cdouble *)mallocEC(NumPanels * sizeof(cdouble));
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /*--------------------------------------------------------------*/

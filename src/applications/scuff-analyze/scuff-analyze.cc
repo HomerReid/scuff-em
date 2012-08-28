@@ -114,34 +114,53 @@ void AnalyzeGeometry(RWGGeometry *G, int WriteGPFiles, int WritePPFiles)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   printf("***********************************************\n");
-  printf("*  REGIONS: %i\n",NumRegions);
+  printf("*  REGIONS: %i\n",G->NumRegions);
   printf("***********************************************\n");
+  printf("\n");
   int RLL, MaxRLL = strlen(G->RegionLabels[0]); // 'RLL=region label length'
-  for(nr=1; nr<G->NumRegions; nr++)
+  for(int nr=1; nr<G->NumRegions; nr++)
    { RLL=strlen(G->RegionLabels[nr]);
      if (RLL > MaxRLL) MaxRLL=RLL;
    };
-  char *fs[100]; // 'format string'
-  sprintf(fs,"index | %%%is | Material properties",MaxRLL)
-  printf(fs,"Label")
-  sprintf(fs,"%%5i | %%%is | %%s",MaxRLL)
-  for(int nr=0; nr<NumRegions; nr++)
+  if (MaxRLL>150) 
+   ErrExit("%s:%i:internal error",__FILE__,__LINE__);
+  char fs[200]; // 'format string'
+
+  sprintf(fs,"index | %%-%is | Material properties\n",MaxRLL);
+  printf(fs,"Label");
+
+  int nh;
+  for(nh=0; nh<(MaxRLL+30); nh++) fs[nh]='-';
+  fs[nh]=0;
+  printf("%s\n",fs);
+
+  sprintf(fs,"%%5i | %%-%is | %%s\n",MaxRLL);
+  for(int nr=0; nr<G->NumRegions; nr++)
    printf(fs,nr,G->RegionLabels[nr],G->RegionMPs[nr]->Name);
+  printf("\n");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  int ns;
-  RWGSurface *S;
-  for(ns=0, S=G->Surfaces[0]; ns<G->NumSurfaces; S=G->Surfaces[++ns])
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    {
+     RWGSurface *S=G->Surfaces[ns];
      printf("***********************************************\n");
      printf("*  SURFACE %i: Label = %s\n",ns,S->Label);
      printf("***********************************************\n");
      if (G->Mate[ns]!=-1)
-      printf(" (duplicate of surface %i)\n\n",G->Mate[ns]+1);
+      printf(" (duplicate of surface %s)\n\n",G->Surfaces[G->Mate[ns]]->Label);
      else
-      AnalyzeSurface(G->Surfaces[ns],0,0);
+      { 
+        if (S->IsPEC)
+         printf("PEC surface in region %i (%s) \n",
+                 S->RegionIndices[0], G->RegionLabels[S->RegionIndices[0]]);
+        else
+         printf("Interface between regions %i (%s) and %i (%s)\n",
+              S->RegionIndices[0], G->RegionLabels[S->RegionIndices[0]],
+              S->RegionIndices[1], G->RegionLabels[S->RegionIndices[1]]);
+        AnalyzeSurface(G->Surfaces[ns],0,0);
+      };
    };
 
   if (WriteGPFiles)
@@ -179,7 +198,7 @@ int main(int argc, char *argv[])
    { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,        0, "geometry file"},
      {"mesh",               PA_STRING, 1, 1, (void *)&MeshFile,       0, "mesh file"},
      {"meshfile",           PA_STRING, 1, 1, (void *)&MeshFile,       0, "mesh file"},
-     {"physicalregion",     PA_INT,    1, 1, (void *)&PhysicalRegion, 0, "index of surface within mesh file"},
+     {"PhysicalRegion",     PA_INT,    1, 1, (void *)&PhysicalRegion, 0, "index of surface within mesh file"},
      {"transfile",          PA_STRING, 1, 1, (void *)&TransFile,      0, "list of transformations"},
      {"WriteGnuplotFiles",  PA_BOOL,   0, 1, (void *)&WriteGPFiles,   0, "write gnuplot visualization files"},
      {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles,   0, "write GMSH visualization files "},
@@ -194,6 +213,8 @@ int main(int argc, char *argv[])
    OSUsage(argv[0],OSArray,"either --geometry or --meshfile option must be specified");
   if (GeoFile!=0 && MeshFile!=0)
    ErrExit("--geometry and --meshfile options are mutually exclusive");
+  if (PhysicalRegion!=-1 && MeshFile==0)
+   ErrExit("--PhysicalRegion option may only be used with --meshfile");
   if (TransFile && GeoFile==0)
    ErrExit("--transfile option may only be used with --geometry");
    

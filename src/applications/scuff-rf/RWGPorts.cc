@@ -44,8 +44,8 @@
 #define FREQ2OMEGA (2.0*M_PI/300.0)
 #define II cdouble(0.0,1.0)
 
-#define MAXEDGES 100 // max # of edges in (each half of) a port
-#define MAXLINES 100 // max # of straight lines used to define a port contour
+#define MAXEDGES 100           // max # of edges in (each half of) a port
+#define MAXPOLYGONVERTICES 30
 
 using namespace scuff;
 
@@ -132,16 +132,38 @@ RWGPort *CreatePort(RWGSurface *PSurface, int NumPEdges, int *PEdgeIndices,
 } 
 
 /***************************************************************/
-/* return 1 if X lies on the line segment connecting L1 and L2 */
+/* compute the normal to the triangle defined by three points  */
+/***************************************************************/
+void GetNormal(double *V1, double *V2, double *V3, double *Z)
+{ 
+  double A[3], B[3];
+  VecSub(V2, V1, A);
+  VecSub(V3, V2, B);
+  VecCross(A, B, Z);
+} 
+
+/***************************************************************/
+/* return the cosine of the angle between two 3-vectors ********/
+/***************************************************************/
+double CosAngle(double *L1, double *L2)
+{
+  double L1L1 = L1[0]*L1[0] + L1[1]*L1[1] + L1[2]*L1[2];
+  double L2L2 = L2[0]*L2[0] + L2[1]*L2[1] + L2[2]*L2[2];
+  double L1L2 = L1[0]*L2[0] + L1[1]*L2[1] + L1[2]*L2[2];
+  return L1L2 / sqrt(L1L1*L2L2);
+}
+
+/***************************************************************/
+/* return 1 if X lies on the line segment connecting V1 and V2 */
 /*  (more specifically: if the shortest distance from X to the */
 /*   line segment is <1e-6 * the length of the line segment)   */
 /***************************************************************/
-bool PointOnLineSegment(double *X, double *L1, double *L2)
+bool PointOnLineSegment(double *X, double *V1, double *V2)
 {
   double A[3], B[3];
 
-  VecSub(  X, L1, A);
-  VecSub( L2, L1, B);
+  VecSub( X, V1, A);
+  VecSub(V2, V1, B);
   double A2  =   A[0]*A[0] + A[1]*A[1] + A[2]*A[2];
   double B2  =   B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
 
@@ -168,66 +190,90 @@ bool PointOnLineSegment(double *X, double *L1, double *L2)
 }
 
 /***************************************************************/
-/* for nl between 0 and NumLines-1, LineVertices[nl][0..2] and */
-/* LineVertices[nl][3..5] are the cartesian coordinates of the */
-/* endpoints of a line segment.                                */
+/* return true if the point X lies within the polygon defined  */
+/* by vertices V. (If V has only two vertices, i.e. it is a    */
+/* line segment, this amounts to testing whether X lies on     */
+/* that line segment.)                                         */
+/*                                                             */
+/* X[0..2] = X,Y,Z coordinates of evaluation point             */
+/*                                                             */
+/* V[0..2] = X,Y,Z coordinates of polygon vertex 1             */
+/* V[3..5] = X,Y,Z coordinates of polygon vertex 2             */
+/* etc.                                                        */
+/*                                                             */
+/* V must have (at least) 3*NumVertices entries.               */
+/*                                                             */
+/* All vertices should be coplanar; this is not checked.       */
+/*                                                             */
+/* If X coincides with one of the vertices, then the return    */
+/* value is true.                                              */
 /***************************************************************/
-int FindEdgesOnLine(RWGSurface *S, double LineVertices[MAXLINES][6], 
-                    int NumLines, int *EIndices, const char *PM, int PortIndex)
+bool PointInPolygon(double *X, double *V, int NumVertices)
 {
-  int nei, nl, NumEdgesOnLine=0;
-  int FoundV1, FoundV2;
+  if (NumVertices==0) 
+   return false; 
+  else if (NumVertices==1)
+   return VecEqualFloat(X,V);
+  else if (NumVertices==2)
+   return PointOnLineSegment(X, V+0, V+3);
+
+  /*--------------------------------------------------------------*/
+  /* 3 or more vertices; check that the normals to the triangles  */
+  /* formed by X and all sequential pairs of vertices are parallel*/
+  /*--------------------------------------------------------------*/
+  double FirstZ[3], ThisZ[3], AD;
+  GetNormal(V+0, V+3, X, FirstZ);
+  for(int nv=1; nv<NumVertices; nv++)
+   { GetNormal(V + 3*nv, V+3*((nv+1)%NumVertices), X, ThisZ);
+     AD=fabs(1.0-CosAngle(ThisZ,FirstZ)); // 'angle deviation'
+     if (AD>1.0e-12)
+      return false;
+   };
+  return true; 
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int FindEdgesInPolygon(RWGSurface *S, 
+                       double *PolygonVertices, int NumVertices,
+                       int *NewEdgeIndices)
+{
   RWGEdge *E;
-  double *V1, *V2, *L1, *L2;
-  for(nei=0; nei<S->NumExteriorEdges; nei++)
+  double *V1, *V2;
+  int Count=0;
+  for(int nei=0; nei<S->NumExteriorEdges; nei++)
    { 
      E=S->ExteriorEdges[nei];
      V1 = S->Vertices + 3*E->iV1;
      V2 = S->Vertices + 3*E->iV2;
 
-     FoundV1=FoundV2=0;
-     for(nl=0; nl<NumLines; nl++)
-      { 
-        L1 = LineVertices[nl] + 0;
-        L2 = LineVertices[nl] + 3;
-        if ( PointOnLineSegment(V1, L1, L2) )
-         FoundV1=1;
-        if ( PointOnLineSegment(V2, L1, L2) )
-         FoundV2=1;
-
-        if (FoundV1 && FoundV2) 
-         break;
-      };
-
-     if (FoundV1 && FoundV2)
-      { if (NumEdgesOnLine==MAXEDGES)
-         ErrExit("too many edges on port");
-        EIndices[NumEdgesOnLine++]=nei;
+     if (    PointInPolygon(V1, PolygonVertices, NumVertices)
+          && PointInPolygon(V2, PolygonVertices, NumVertices)  
+        )
+      { if (Count==MAXEDGES) return -1;
+        NewEdgeIndices[Count++]=nei;
       };
    };
 
-  Log(" Found %i edges on %s edge of port %i: ",NumEdgesOnLine,PM,PortIndex);
-  for(nei=0; nei<NumEdgesOnLine; nei++)
-   LogC(" %i",EIndices[nei]);
-
-  return NumEdgesOnLine;
-
+  return Count;
 }
 
 /***************************************************************/
 /* port file syntax example                                    */
 /*  PORT                                                       */
+/*   POBJECT   FirstObjectLabel                                */
+/*   MOBJECT   SecondObjectLabel                               */
+/*   PSURFACE  FirstSurfaceLabel                               */
+/*   MSURFACE  SecondSurfaceLabel                              */
 /*   PEDGES pe1 pe2 ... peN                                    */
 /*   MEDGES me1 me2 ... meN                                    */
-/*   PLINE FROM X1 Y1 Z1 TO X2 Y2 Z2                           */
-/*   MLINE FROM X1 Y1 Z1 TO X2 Y2 Z2                           */
+/*   PPOLYGON A1 A2 A3 B1 B2 B3 ... Z1 Z2 Z3                   */
+/*   MPOLYGON A1 A2 A3 B1 B2 B3 ... Z1 Z2 Z3                   */
 /*   PREFPOINT x1 x2 x3 <optional>                             */
 /*   MREFPOINT x1 x2 x3 <optional>                             */
-/*   POBJECT   FirstSurface                                     */
-/*   MOBJECT   SecondSurface                                    */
 /*  ENDPORT                                                    */
-/*                                                             */
-/* note: only one of PEdges / PLine may be specified.          */
 /***************************************************************/
 RWGPort **ParsePortFile(RWGGeometry *G, 
                         const char *PortFileName, 
@@ -246,11 +292,19 @@ RWGPort **ParsePortFile(RWGGeometry *G,
   RWGPort **PortArray=0;
   int NumPorts=0;
   int NumPEdges=0, NumMEdges=0;
-  int NumPLines=0, NumMLines=0;
-  double PLineVertices[MAXLINES][6], MLineVertices[MAXLINES][6];
   int PEIndices[MAXEDGES], MEIndices[MAXEDGES];
   double PRefPoint[3], MRefPoint[3];
   RWGSurface *PSurface=0, *MSurface=0;
+
+  bool IsPositive;
+
+  int NumNewEdges;
+  int NewEdgeIndices[MAXEDGES];
+
+  int NumPolygonVertices;
+  double PolygonVertices[3*MAXPOLYGONVERTICES];
+
+  RWGSurface *WhichSurface;
 
   char buffer[1000];
   char *Tokens[MAXEDGES+2];
@@ -277,7 +331,6 @@ RWGPort **ParsePortFile(RWGGeometry *G,
       { if ( !strcasecmp(Tokens[0],"PORT") )
          { InPortSection=1;
            NumPEdges=NumMEdges=0;
-           NumPLines=NumMLines=0;
            PRefPointSpecified=MRefPointSpecified=0;
            PSurface=MSurface=G->Surfaces[0];
          }
@@ -288,11 +341,11 @@ RWGPort **ParsePortFile(RWGGeometry *G,
       {
         if ( !strcasecmp(Tokens[0],"ENDPORT") )
          { 
-           if ( NumPLines > 0)
-            NumPEdges=FindEdgesOnLine(PSurface, PLineVertices, NumPLines, PEIndices, "P", NumPorts);
-           if ( NumMLines > 0 )
-            NumMEdges=FindEdgesOnLine(MSurface, MLineVertices, NumMLines, MEIndices, "M", NumPorts);
-    
+           if (NumPEdges==0)
+            ErrExit("%s:%i: no edges specified or detected for positive port",PortFileName,LineNum);
+           if (NumMEdges==0)
+            ErrExit("%s:%i: no edges specified or detected for negative port",PortFileName,LineNum);
+           
            PortArray = (RWGPort **)realloc( PortArray, (NumPorts+1)*sizeof(PortArray[0]) );
            PortArray[NumPorts] = CreatePort(PSurface, NumPEdges, PEIndices,
                                             MSurface, NumMEdges, MEIndices);
@@ -305,95 +358,120 @@ RWGPort **ParsePortFile(RWGGeometry *G,
            NumPorts++;
            InPortSection=0;
          }
-        else if ( !strcasecmp(Tokens[0],"PEDGES") )
-         { if (NumPEdges!=0)
-            ErrExit("%s:%i: multiple PEDGES specifications",PortFileName,LineNum);
-           if (NumPLines!=0)
-            ErrExit("%s:%i: PEDGES may not be combined with PLINE ",PortFileName,LineNum);
-           for(nt=1; nt<NumTokens; nt++)
-            if (1!=sscanf(Tokens[nt],"%i",PEIndices+(nt-1)))
-             ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           NumPEdges=NumTokens-1;
-           if (NumPEdges>=MAXEDGES)
-            ErrExit("%s:%i: too many edges",PortFileName,LineNum);
-         }
-        else if ( !strcasecmp(Tokens[0],"MEDGES") )
-         { if (NumMEdges!=0)
-            ErrExit("%s:%i: multiple MEDGES specifications",PortFileName,LineNum);
-           if (NumMLines!=0)
-            ErrExit("%s:%i: MEDGES may not be combined with MLINE ",PortFileName,LineNum);
-           for(nt=1; nt<NumTokens; nt++)
-            if (1!=sscanf(Tokens[nt],"%i",MEIndices+(nt-1)))
-              ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           NumMEdges=NumTokens-1;
-           if (NumMEdges>=MAXEDGES)
-            ErrExit("%s:%i: too many edges",PortFileName,LineNum);
-         }
-        else if ( !strcasecmp(Tokens[0],"PLINE") )
-         { if (NumPLines==MAXLINES)
-            ErrExit("%s:%i: too many PLINE specifications",PortFileName,LineNum);
-           if (NumPEdges!=0)
-            ErrExit("%s:%i: PLINE may not be combined with PEDGES",PortFileName,LineNum);
-           if (NumTokens!=9 || strcasecmp(Tokens[1],"From") || strcasecmp(Tokens[5],"To") ) 
-            ErrExit("%s:%i: invalid PLINE syntax",PortFileName,LineNum);
-           for(nt=2; nt<5; nt++)
-            if (1!=sscanf(Tokens[nt],"%le",PLineVertices[NumPLines]+(nt-2)))
-             ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           for(nt=6; nt<9; nt++)
-            if (1!=sscanf(Tokens[nt],"%le",PLineVertices[NumPLines]+(nt-3)))
-             ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           NumPLines++;
-         }
-        else if ( !strcasecmp(Tokens[0],"MLINE") )
-         { if (NumMLines==MAXLINES)
-            ErrExit("%s:%i: too many MLINE specifications",PortFileName,LineNum);
-           if (NumMEdges!=0)
-            ErrExit("%s:%i: MLINE may not be combined with MEDGES",PortFileName,LineNum);
-           if (NumTokens!=9 || strcasecmp(Tokens[1],"From") || strcasecmp(Tokens[5],"To") ) 
-            ErrExit("%s:%i: invalid MLINE syntax",PortFileName,LineNum);
-           for(nt=2; nt<5; nt++)
-            if (1!=sscanf(Tokens[nt],"%le",MLineVertices[NumMLines]+(nt-2)))
-             ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           for(nt=6; nt<9; nt++)
-            if (1!=sscanf(Tokens[nt],"%le",MLineVertices[NumMLines]+(nt-3)))
-             ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
-           NumMLines++;
-         }
-        else if ( !strcasecmp(Tokens[0],"PREFPOINT") )
+        else if (    !strcasecmp(Tokens[0],"POBJECT") || !strcasecmp(Tokens[0],"PSURFACE") 
+                  || !strcasecmp(Tokens[0],"MOBJECT") || !strcasecmp(Tokens[0],"MSURFACE") 
+                )
          {
+           /*--------------------------------------------------------------*/
+           /*- POBJECT/PSURFACE or MOBJECT/MSURFACE specifies the label of */
+           /*- the RWGSurface on which the port edges lie                  */
+           /*--------------------------------------------------------------*/
+           if( NumTokens!=2 )
+            ErrExit("%s:%i: syntax error",PortFileName,LineNum);
+
+           WhichSurface=G->GetSurfaceByLabel(Tokens[1]);
+           if( !WhichSurface )
+            ErrExit("%s:%i: could not find object/surface %s in geometry %s",PortFileName,LineNum,Tokens[1],G->GeoFileName);
+
+           IsPositive = (Tokens[0][0]=='P') || (Tokens[0][0]=='p');
+           if (IsPositive)
+            PSurface=WhichSurface;
+           else
+            MSurface=WhichSurface;
+         }
+        else if ( !strcasecmp(Tokens[0],"PEDGES") || !strcasecmp(Tokens[0],"MEDGES") )
+         { 
+           /*--------------------------------------------------------------*/
+           /*- PEDGES / MEDGES specifies a list of exterior edge indices   */
+           /*- for the positive / negative port                            */
+           /*--------------------------------------------------------------*/
+           NumNewEdges = NumTokens-1;
+           if ( NumNewEdges > MAXEDGES )
+            ErrExit("%s:%i: too many edges",PortFileName,LineNum);
+
+           for(nt=1; nt<NumTokens; nt++)
+            if (1!=sscanf(Tokens[nt],"%i",NewEdgeIndices+(nt-1)) )
+             ErrExit("%s:%i: syntax error %s",PortFileName,LineNum,Tokens[nt]);
+
+           IsPositive = (Tokens[0][0]=='P') || (Tokens[0][0]=='p');
+           if (IsPositive)
+            { if ( (NumPEdges+NumNewEdges) > MAXEDGES )
+               ErrExit("%s:%i: too many edges",PortFileName,LineNum);
+              memcpy( &(PEIndices[NumPEdges]), NewEdgeIndices, NumNewEdges*sizeof(int));
+              NumPEdges+=NumNewEdges;
+            }
+           else
+            { if ( (NumMEdges+NumNewEdges) > MAXEDGES )
+               ErrExit("%s:%i: too many edges",PortFileName,LineNum);
+              memcpy( &(MEIndices[NumMEdges]), NewEdgeIndices, NumNewEdges*sizeof(int));
+              NumMEdges+=NumNewEdges;
+            };
+         }
+        else if ( !strcasecmp(Tokens[0],"PPOLYGON") || !strcasecmp(Tokens[0],"MPOLYGON") )
+         { 
+           /*--------------------------------------------------------------*/
+           /*- PPOLYGON/MPOLYGON specifies a list of polygon vertices;     */
+           /*- exterior RWG edges that lie within the specified polygon    */
+           /*- are added to the positive/negative port                     */
+           /*--------------------------------------------------------------*/
+           if ( ((NumTokens-1) % 3) != 0 )
+            ErrExit("%s:%i: number of arguments to %s must be a multiple of 3",PortFileName,LineNum,Tokens[0]);
+           NumPolygonVertices = (NumTokens-1)/3;
+           if ( NumPolygonVertices < 2 )
+            ErrExit("%s:%i: %s requires at least 2 vertices",PortFileName,LineNum,Tokens[0]);
+           if ( NumPolygonVertices > MAXPOLYGONVERTICES )
+            ErrExit("%s:%i: too many vertices for %s",PortFileName,LineNum,Tokens[0]);
+
+           for(nt=1; nt<NumTokens; nt++)
+            sscanf(Tokens[nt],"%le",PolygonVertices+(nt-1));
+
+           IsPositive = (Tokens[0][0]=='P') || (Tokens[0][0]=='p');
+           NumNewEdges=FindEdgesInPolygon(IsPositive ? PSurface : MSurface,
+                                          PolygonVertices, NumPolygonVertices, 
+                                          NewEdgeIndices);
+           if (NumNewEdges==-1)
+            ErrExit("%s:%i: too many edges",PortFileName,LineNum);
+
+           if (IsPositive)
+            { if ( (NumPEdges + NumNewEdges) > MAXEDGES )
+               ErrExit("%s:%i: too many edges",PortFileName,LineNum);
+              memcpy( &(PEIndices[NumPEdges]), NewEdgeIndices, NumNewEdges*sizeof(int));
+              NumPEdges += NumNewEdges;
+            }
+           else 
+            { if ( (NumMEdges + NumNewEdges) > MAXEDGES )
+               ErrExit("%s:%i: too many edges",PortFileName,LineNum);
+              memcpy( &(MEIndices[NumMEdges]), NewEdgeIndices, NumNewEdges*sizeof(int));
+              NumMEdges += NumNewEdges;
+            };
+
+           Log("Port %i, %s edge: found %i edges in polygon: ", 
+                NumPorts+1, IsPositive ? "positive" : "negative", NumNewEdges);
+           for(int nne=0; nne<NumNewEdges; nne++)
+            LogC("%i ",NewEdgeIndices[nne]);
+         }
+        else if ( !strcasecmp(Tokens[0],"PREFPOINT") || !strcasecmp(Tokens[0],"MREFPOINT") )
+         {
+           /*--------------------------------------------------------------*/
+           /*- PREFPOINT/MREFPOINT specifies the cartesian coordinates of  */
+           /*- the positive/negative port reference point                  */
+           /*--------------------------------------------------------------*/
+           IsPositive = (Tokens[0][0]=='P') || (Tokens[0][0]=='p');
+           double *Target;
+           if (IsPositive)
+            { PRefPointSpecified=1;
+              Target = PRefPoint;
+            }
+           else
+            { MRefPointSpecified=1;
+              Target = MRefPoint;
+            };
            if(    NumTokens!=4
-               || 1!=sscanf(Tokens[1],"%le",PRefPoint+0)
-               || 1!=sscanf(Tokens[2],"%le",PRefPoint+1)
-               || 1!=sscanf(Tokens[3],"%le",PRefPoint+2)
+               || 1!=sscanf(Tokens[1],"%le",Target+0)
+               || 1!=sscanf(Tokens[2],"%le",Target+1)
+               || 1!=sscanf(Tokens[3],"%le",Target+2)
              )
             ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           PRefPointSpecified=1;
-         }
-        else if ( !strcasecmp(Tokens[0],"MREFPOINT") )
-         {
-           if(    NumTokens!=4
-               || 1!=sscanf(Tokens[1],"%le",MRefPoint+0)
-               || 1!=sscanf(Tokens[2],"%le",MRefPoint+1)
-               || 1!=sscanf(Tokens[3],"%le",MRefPoint+2)
-             ) 
-            ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           MRefPointSpecified=1;
-         }
-        else if ( !strcasecmp(Tokens[0],"POBJECT") )
-         {
-           if( NumTokens!=2 )
-            ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           PSurface=G->GetSurfaceByLabel(Tokens[1]);
-           if( !PSurface )
-            ErrExit("%s:%i: could not find object %s in geometry %s", PortFileName,LineNum,Tokens[1],G->GeoFileName);
-         }
-        else if ( !strcasecmp(Tokens[0],"MOBJECT") )
-         {
-           if( NumTokens!=2 )
-            ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           MSurface=G->GetSurfaceByLabel(Tokens[1]);
-           if( !MSurface )
-            ErrExit("%s:%i: could not find object %s in geometry %s", PortFileName,LineNum,Tokens[1],G->GeoFileName);
          }
        else
         ErrExit("%s:%i: unknown keyword %s",PortFileName,LineNum,Tokens[0]);
