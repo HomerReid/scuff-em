@@ -133,15 +133,17 @@ int Breakout=0;
   /***************************************************************/
   /* handle the --meshfile option first **************************/
   /***************************************************************/
+#if 0
   if (MeshFile)
    { 
-     RWGObject *O=new RWGObject(MeshFile);
-     O->WritePPMesh(GetFileBase(MeshFile), GetFileBase(MeshFile));
-     O->WritePPMeshLabels(GetFileBase(MeshFile),0,4);
+     RWGSurface *S=new RWGSurface(MeshFile);
+     S->WritePPMesh(GetFileBase(MeshFile), GetFileBase(MeshFile));
+     S->WritePPMeshLabels(GetFileBase(MeshFile),0,4);
      fprintf(stderr,"Visualization file written to %s.pp.\n",GetFileBase(MeshFile));
      fprintf(stderr,"Thank you for your support.\n");
      exit(1);
    };
+#endif
 
   /***************************************************************/
   /* create the log file *****************************************/

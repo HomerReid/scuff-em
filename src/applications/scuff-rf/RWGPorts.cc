@@ -65,19 +65,19 @@ using namespace scuff;
 /* side of the port, which makes them the negative of the two  */  
 /* panels in the RWG basis function to which they belong.      */  
 /***************************************************************/
-RWGPort *CreatePort(RWGObject *PObject, int NumPEdges, int *PEdgeIndices, 
-                    RWGObject *MObject, int NumMEdges, int *MEdgeIndices)
+RWGPort *CreatePort(RWGSurface *PSurface, int NumPEdges, int *PEdgeIndices, 
+                    RWGSurface *MSurface, int NumMEdges, int *MEdgeIndices)
 {
   RWGPort *P=(RWGPort *)malloc(sizeof *P);
   RWGEdge *E;
 
-  P->PObject       = PObject;
+  P->PSurface       = PSurface;
   P->NumPEdges     = NumPEdges;
   P->PPanelIndices = (int *)malloc(NumPEdges*sizeof(int));
   P->PPaneliQs     = (int *)malloc(NumPEdges*sizeof(int));
   P->PLengths      = (double *)malloc(NumPEdges*sizeof(double));
 
-  P->MObject       = MObject;
+  P->MSurface       = MSurface;
   P->NumMEdges     = NumMEdges;
   P->MPanelIndices = (int *)malloc(NumMEdges*sizeof(int));
   P->MPaneliQs     = (int *)malloc(NumMEdges*sizeof(int));
@@ -93,10 +93,10 @@ RWGPort *CreatePort(RWGObject *PObject, int NumPEdges, int *PEdgeIndices,
   for(ne=0; ne<NumPEdges; ne++)
    { 
      EI = PEdgeIndices[ne];
-     if ( EI<0 || EI>PObject->NumExteriorEdges )
+     if ( EI<0 || EI>PSurface->NumExteriorEdges )
       ErrExit("object %s(%s): invalid exterior edge index %i",
-               PObject->Label,PObject->MeshFileName,EI);
-     E=PObject->ExteriorEdges[EI];
+               PSurface->Label,PSurface->MeshFileName,EI);
+     E=PSurface->ExteriorEdges[EI];
      P->PPanelIndices[ne]=E->iPPanel;
      P->PPaneliQs[ne]=E->PIndex;
      P->PLengths[ne]=E->Length;
@@ -114,10 +114,10 @@ RWGPort *CreatePort(RWGObject *PObject, int NumPEdges, int *PEdgeIndices,
   for(ne=0; ne<NumMEdges; ne++)
    {    
      EI=MEdgeIndices[ne]; // 'minus edge index'
-     if ( EI<0 || EI>MObject->NumExteriorEdges )
+     if ( EI<0 || EI>MSurface->NumExteriorEdges )
       ErrExit("object %s(%s): invalid exterior edge index %i",
-               MObject->Label,MObject->MeshFileName,EI);
-     E=MObject->ExteriorEdges[EI];
+               MSurface->Label,MSurface->MeshFileName,EI);
+     E=MSurface->ExteriorEdges[EI];
      P->MPanelIndices[ne]=E->iPPanel;
      P->MPaneliQs[ne]=E->PIndex;
      P->MLengths[ne]=E->Length;
@@ -172,18 +172,18 @@ bool PointOnLineSegment(double *X, double *L1, double *L2)
 /* LineVertices[nl][3..5] are the cartesian coordinates of the */
 /* endpoints of a line segment.                                */
 /***************************************************************/
-int FindEdgesOnLine(RWGObject *O, double LineVertices[MAXLINES][6], 
+int FindEdgesOnLine(RWGSurface *S, double LineVertices[MAXLINES][6], 
                     int NumLines, int *EIndices, const char *PM, int PortIndex)
 {
   int nei, nl, NumEdgesOnLine=0;
   int FoundV1, FoundV2;
   RWGEdge *E;
   double *V1, *V2, *L1, *L2;
-  for(nei=0; nei<O->NumExteriorEdges; nei++)
+  for(nei=0; nei<S->NumExteriorEdges; nei++)
    { 
-     E=O->ExteriorEdges[nei];
-     V1 = O->Vertices + 3*E->iV1;
-     V2 = O->Vertices + 3*E->iV2;
+     E=S->ExteriorEdges[nei];
+     V1 = S->Vertices + 3*E->iV1;
+     V2 = S->Vertices + 3*E->iV2;
 
      FoundV1=FoundV2=0;
      for(nl=0; nl<NumLines; nl++)
@@ -223,8 +223,8 @@ int FindEdgesOnLine(RWGObject *O, double LineVertices[MAXLINES][6],
 /*   MLINE FROM X1 Y1 Z1 TO X2 Y2 Z2                           */
 /*   PREFPOINT x1 x2 x3 <optional>                             */
 /*   MREFPOINT x1 x2 x3 <optional>                             */
-/*   POBJECT   FirstObject                                     */
-/*   MOBJECT   SecondObject                                    */
+/*   POBJECT   FirstSurface                                     */
+/*   MOBJECT   SecondSurface                                    */
 /*  ENDPORT                                                    */
 /*                                                             */
 /* note: only one of PEdges / PLine may be specified.          */
@@ -250,8 +250,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
   double PLineVertices[MAXLINES][6], MLineVertices[MAXLINES][6];
   int PEIndices[MAXEDGES], MEIndices[MAXEDGES];
   double PRefPoint[3], MRefPoint[3];
-  int no;
-  RWGObject *PObject=0, *MObject=0;
+  RWGSurface *PSurface=0, *MSurface=0;
 
   char buffer[1000];
   char *Tokens[MAXEDGES+2];
@@ -280,7 +279,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
            NumPEdges=NumMEdges=0;
            NumPLines=NumMLines=0;
            PRefPointSpecified=MRefPointSpecified=0;
-           PObject=MObject=G->Objects[0];
+           PSurface=MSurface=G->Surfaces[0];
          }
         else
          ErrExit("%s:%i: syntax error",PortFileName,LineNum);
@@ -290,13 +289,13 @@ RWGPort **ParsePortFile(RWGGeometry *G,
         if ( !strcasecmp(Tokens[0],"ENDPORT") )
          { 
            if ( NumPLines > 0)
-            NumPEdges=FindEdgesOnLine(PObject, PLineVertices, NumPLines, PEIndices, "P", NumPorts);
+            NumPEdges=FindEdgesOnLine(PSurface, PLineVertices, NumPLines, PEIndices, "P", NumPorts);
            if ( NumMLines > 0 )
-            NumMEdges=FindEdgesOnLine(MObject, MLineVertices, NumMLines, MEIndices, "M", NumPorts);
+            NumMEdges=FindEdgesOnLine(MSurface, MLineVertices, NumMLines, MEIndices, "M", NumPorts);
     
            PortArray = (RWGPort **)realloc( PortArray, (NumPorts+1)*sizeof(PortArray[0]) );
-           PortArray[NumPorts] = CreatePort(PObject, NumPEdges, PEIndices,
-                                            MObject, NumMEdges, MEIndices);
+           PortArray[NumPorts] = CreatePort(PSurface, NumPEdges, PEIndices,
+                                            MSurface, NumMEdges, MEIndices);
 
            if (PRefPointSpecified) 
             memcpy(PortArray[NumPorts]->PRefPoint, PRefPoint, 3*sizeof(double));
@@ -384,16 +383,16 @@ RWGPort **ParsePortFile(RWGGeometry *G,
          {
            if( NumTokens!=2 )
             ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           PObject=G->GetObjectByLabel(Tokens[1]);
-           if( !PObject )
+           PSurface=G->GetSurfaceByLabel(Tokens[1]);
+           if( !PSurface )
             ErrExit("%s:%i: could not find object %s in geometry %s", PortFileName,LineNum,Tokens[1],G->GeoFileName);
          }
         else if ( !strcasecmp(Tokens[0],"MOBJECT") )
          {
            if( NumTokens!=2 )
             ErrExit("%s:%i: syntax error",PortFileName,LineNum);
-           MObject=G->GetObjectByLabel(Tokens[1]);
-           if( !MObject )
+           MSurface=G->GetSurfaceByLabel(Tokens[1]);
+           if( !MSurface )
             ErrExit("%s:%i: could not find object %s in geometry %s", PortFileName,LineNum,Tokens[1],G->GeoFileName);
          }
        else
@@ -419,18 +418,18 @@ void AddPortContributionsToRHS(RWGGeometry *G,
                                RWGPort **Ports, int NumPorts, cdouble *PortCurrents, 
                                cdouble Omega, HVector *KN)
 {
-  int no, ne, npe, BFIndex, nPort;
+  int ns, ne, npe, BFIndex, nPort;
   RWGPort *Port;
   RWGEdge *E;
   cdouble IK=II*Omega;
  
-  RWGObject *SourceObject;
+  RWGSurface *SourceSurface;
   int SourcePanelIndex;
   int SourcePaneliQ;
   double SourceLength;
   cdouble PortCurrent, Weight;
 
-  RWGObject *DestObject;
+  RWGSurface *DestSurface;
   int DestPPanelIndex, DestMPanelIndex;
   int DestPPaneliQ, DestMPaneliQ;
   double DestLength;
@@ -449,12 +448,12 @@ void AddPortContributionsToRHS(RWGGeometry *G,
   /* fill in (actually augment) entries of the RHS vector one-by-*/
   /* one                                                         */
   /***************************************************************/
-  for(BFIndex=0, no=0; no<G->NumObjects; no++)
+  for(BFIndex=0, ns=0; ns<G->NumSurfaces; ns++)
    { 
-     DestObject=G->Objects[no];
-     for(ne=0; ne<DestObject->NumEdges; ne++, BFIndex++)
+     DestSurface=G->Surfaces[ns];
+     for(ne=0; ne<DestSurface->NumEdges; ne++, BFIndex++)
       { 
-        E=DestObject->Edges[ne];
+        E=DestSurface->Edges[ne];
 
         DestPPanelIndex  = E->iPPanel;
         DestPPaneliQ     = E->PIndex;
@@ -482,7 +481,7 @@ void AddPortContributionsToRHS(RWGGeometry *G,
            /***************************************************************/
            /* get contributions of panels on the positive side of the port*/
            /***************************************************************/
-           SourceObject=Port->PObject;
+           SourceSurface=Port->PSurface;
            Weight=PortCurrent/(Port->PPerimeter);
            for(npe=0; npe<Port->NumPEdges; npe++) // npe = 'num port edge'
             { 
@@ -490,17 +489,17 @@ void AddPortContributionsToRHS(RWGGeometry *G,
               SourcePaneliQ     = Port->PPaneliQs[npe];
               SourceLength      = Port->PLengths[npe];
 
-              GPPIArgs->Oa  = SourceObject;
+              GPPIArgs->Sa  = SourceSurface;
               GPPIArgs->npa = SourcePanelIndex;
               GPPIArgs->iQa = SourcePaneliQ;
 
-              GPPIArgs->Ob  = DestObject;
+              GPPIArgs->Sb  = DestSurface;
               GPPIArgs->npb = DestPPanelIndex;
               GPPIArgs->iQb = DestPPaneliQ;
               GetPanelPanelInteractions(GPPIArgs);
               EFieldIntegral -= Weight*SourceLength*DestLength*IK*GPPIArgs->H[0];
 
-              GPPIArgs->Ob  = DestObject;
+              GPPIArgs->Sb  = DestSurface;
               GPPIArgs->npb = DestMPanelIndex;
               GPPIArgs->iQb = DestMPaneliQ;
               GetPanelPanelInteractions(GPPIArgs);
@@ -511,7 +510,7 @@ void AddPortContributionsToRHS(RWGGeometry *G,
            /***************************************************************/
            /* get contributions of panels on the negative side of the port*/
            /***************************************************************/
-           SourceObject=Port->MObject;
+           SourceSurface=Port->MSurface;
            Weight=PortCurrent/(Port->MPerimeter);
            for(npe=0; npe<Port->NumMEdges; npe++)
             { 
@@ -519,17 +518,17 @@ void AddPortContributionsToRHS(RWGGeometry *G,
               SourcePaneliQ     = Port->MPaneliQs[npe];
               SourceLength      = Port->MLengths[npe];
 
-              GPPIArgs->Oa  = SourceObject;
+              GPPIArgs->Sa  = SourceSurface;
               GPPIArgs->npa = SourcePanelIndex;
               GPPIArgs->iQa = SourcePaneliQ;
 
-              GPPIArgs->Ob  = DestObject;
+              GPPIArgs->Sb  = DestSurface;
               GPPIArgs->npb = DestPPanelIndex;
               GPPIArgs->iQb = DestPPaneliQ;
               GetPanelPanelInteractions(GPPIArgs);
               EFieldIntegral += Weight*SourceLength*DestLength*IK*GPPIArgs->H[0];
 
-              GPPIArgs->Ob  = DestObject;
+              GPPIArgs->Sb  = DestSurface;
               GPPIArgs->npb = DestMPanelIndex;
               GPPIArgs->iQb = DestMPaneliQ;
               GetPanelPanelInteractions(GPPIArgs);
@@ -540,8 +539,8 @@ void AddPortContributionsToRHS(RWGGeometry *G,
 
         KN->AddEntry(BFIndex, -1.0*EFieldIntegral );
 
-      }; // for(ne=0; ne<O->NumEdges; ne++)
-   }; // for(no=0=; no<G->NumObjects; no++)
+      }; // for(ne=0; ne<S->NumEdges; ne++)
+   }; // for(ns=0=; ns<G->NumSurfaces; ns++)
 
 }
 
@@ -552,7 +551,7 @@ void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts)
 {
   FILE *f=fopen(GPFileName,"w");
 
-  RWGObject *O;
+  RWGSurface *S;
   RWGPort *Port;
   int nPort, nPanel, PanelIndex, PaneliQ;
   double *V1, *V2;
@@ -568,13 +567,13 @@ void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts)
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     O=Port->PObject;
+     S=Port->PSurface;
      for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
       { 
         PanelIndex = Port->PPanelIndices[nPanel]; 
         PaneliQ    = Port->PPaneliQs[nPanel]; 
-        V1 = O->Vertices + 3*O->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
-        V2 = O->Vertices + 3*O->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
+        V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
+        V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
         fprintf(f,"%e %e %e \n",V1[0],V1[1],V1[2]);
         fprintf(f,"%e %e %e \n",V2[0],V2[1],V2[2]);
         fprintf(f,"\n\n");
@@ -583,13 +582,13 @@ void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts)
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     O=Port->MObject;
+     S=Port->MSurface;
      for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
       { 
         PanelIndex = Port->MPanelIndices[nPanel]; 
         PaneliQ    = Port->MPaneliQs[nPanel]; 
-        V1 = O->Vertices + 3*O->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
-        V2 = O->Vertices + 3*O->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
+        V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
+        V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
         fprintf(f,"%e %e %e \n",V1[0],V1[1],V1[2]);
         fprintf(f,"%e %e %e \n",V2[0],V2[1],V2[2]);
         fprintf(f,"\n\n");

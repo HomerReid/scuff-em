@@ -244,10 +244,10 @@ static void GPPIntegrand(unsigned ndim, const double *x, void *params,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetPanelPotentials(RWGObject *O, int np, int iQ, cdouble IK,
+void GetPanelPotentials(RWGSurface *S, int np, int iQ, cdouble IK,
                         double *X, cdouble *PhiA)
 {
-  RWGPanel *P=O->Panels[np];
+  RWGPanel *P=S->Panels[np];
   cdouble PhiA1[4], PhiA2[4], PhiA3[4];
   int nv, i, Mu;
   double Length, PreFac;
@@ -255,13 +255,13 @@ void GetPanelPotentials(RWGObject *O, int np, int iQ, cdouble IK,
   
   double *V[3], *Q;
 
-  V[0] = O->Vertices + 3*P->VI[0];
-  V[1] = O->Vertices + 3*P->VI[1];
-  V[2] = O->Vertices + 3*P->VI[2];
-     Q = O->Vertices + 3*P->VI[iQ];
+  V[0] = S->Vertices + 3*P->VI[0];
+  V[1] = S->Vertices + 3*P->VI[1];
+  V[2] = S->Vertices + 3*P->VI[2];
+     Q = S->Vertices + 3*P->VI[iQ];
 
-  Length=VecDistance( O->Vertices + 3*P->VI[ (iQ+1)%3 ], 
-                      O->Vertices + 3*P->VI[ (iQ+2)%3 ]);
+  Length=VecDistance( S->Vertices + 3*P->VI[ (iQ+1)%3 ], 
+                      S->Vertices + 3*P->VI[ (iQ+2)%3 ]);
 
   PreFac = Length / (2.0*P->Area);
 
@@ -354,18 +354,18 @@ WhichCase=0;
 /*      current density injected across one of the panel edges).*/
 /*                                                             */
 /***************************************************************/
-cdouble GetPanelPotential(RWGObject *O, int np, cdouble IK, double *X)
+cdouble GetPanelPotential(RWGSurface *S, int np, cdouble IK, double *X)
 {
 
   /* do the above computation assuming the edge in question */
   /* is the edge opposite panel vertex 0                    */
   cdouble PhiA[4];
-  GetPanelPotentials(O, np, 0, IK, X, PhiA);
+  GetPanelPotentials(S, np, 0, IK, X, PhiA);
 
   /* get the length of the panel edge opposite vertex 0 */
-  RWGPanel *P=O->Panels[np];
-  double Length=VecDistance( O->Vertices + 3*P->VI[1], 
-                             O->Vertices + 3*P->VI[2]
+  RWGPanel *P=S->Panels[np];
+  double Length=VecDistance( S->Vertices + 3*P->VI[1], 
+                             S->Vertices + 3*P->VI[2]
                            );
 
   /* return the appropriately renormalized scalar potential */
@@ -443,21 +443,21 @@ static void GPP2Integrand(unsigned ndim, const double *x, void *params,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetPanelPotentials2(RWGObject *O, int np, int iQ, 
+void GetPanelPotentials2(RWGSurface *S, int np, int iQ, 
                          cdouble Omega, double *X, 
                          cdouble *A, cdouble *CurlA, cdouble *GradPhi)
 {
-  RWGPanel *P=O->Panels[np];
+  RWGPanel *P=S->Panels[np];
   double Length;
   double *V[3], *Q;
 
-  V[0] = O->Vertices + 3*P->VI[0];
-  V[1] = O->Vertices + 3*P->VI[1];
-  V[2] = O->Vertices + 3*P->VI[2];
-     Q = O->Vertices + 3*P->VI[iQ];
+  V[0] = S->Vertices + 3*P->VI[0];
+  V[1] = S->Vertices + 3*P->VI[1];
+  V[2] = S->Vertices + 3*P->VI[2];
+     Q = S->Vertices + 3*P->VI[iQ];
 
-  Length=VecDistance( O->Vertices + 3*P->VI[ (iQ+1)%3 ], 
-                      O->Vertices + 3*P->VI[ (iQ+2)%3 ]);
+  Length=VecDistance( S->Vertices + 3*P->VI[ (iQ+1)%3 ], 
+                      S->Vertices + 3*P->VI[ (iQ+2)%3 ]);
 
   /***************************************************************/
   /***************************************************************/

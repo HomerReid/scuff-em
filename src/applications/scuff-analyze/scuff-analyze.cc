@@ -20,7 +20,7 @@
 /*
  * scuff-analyze.cc -- a simple standalone program within the scuff-EM
  *                  -- suite for printing statistics on a geometry or  
- *                  -- on a single object, and optionally for generating
+ *                  -- on a single mesh, and optionally for generating
  *                  -- visualization files that identify the internal 
  *                  -- numbering scheme that libscuff uses for vertices, 
  *                  -- panels, and edges
@@ -41,32 +41,32 @@ using namespace scuff;
 /***************************************************************/
 /* subroutine to analyze a single RWG object *******************/
 /***************************************************************/
-void AnalyzeObject(RWGObject *O, int WriteGPFiles, int WritePPFiles)
+void AnalyzeSurface(RWGSurface *S, int WriteGPFiles, int WritePPFiles)
 {
   double TotalArea, AvgArea;
   int np;
-  for(TotalArea=AvgArea=0.0, np=0; np<O->NumPanels; np++)
-   { TotalArea+=O->Panels[np]->Area;
-     AvgArea+=O->Panels[np]->Area;
+  for(TotalArea=AvgArea=0.0, np=0; np<S->NumPanels; np++)
+   { TotalArea+=S->Panels[np]->Area;
+     AvgArea+=S->Panels[np]->Area;
    };
-  AvgArea/=((double)O->NumPanels);
+  AvgArea/=((double)S->NumPanels);
   
-  printf(" Meshfile: %s \n",O->MeshFileName);
-  printf(" %i panels\n",O->NumPanels);
-  printf(" %i total edges\n",O->NumTotalEdges);
-  printf(" %i total basis functions\n",O->NumBFs);
-  printf(" %i interior edges\n",O->NumEdges);
-  printf(" %i total vertices ",O->NumVertices);
+  printf(" Meshfile: %s \n",S->MeshFileName);
+  printf(" %i panels\n",S->NumPanels);
+  printf(" %i total edges\n",S->NumTotalEdges);
+  printf(" %i total basis functions\n",S->NumBFs);
+  printf(" %i interior edges\n",S->NumEdges);
+  printf(" %i total vertices ",S->NumVertices);
   printf("(after eliminating %i redundant vertices)\n",
-            O->NumRedundantVertices);
-  printf(" %i interior vertices\n",O->NumInteriorVertices);
-  printf(" %i boundary contours\n",O->NumBCs);
+            S->NumRedundantVertices);
+  printf(" %i interior vertices\n",S->NumInteriorVertices);
+  printf(" %i boundary contours\n",S->NumBCs);
 
   printf("\n");
   printf(" interior vertices - interior edges + panels = euler characteristic\n");
   printf(" %17i - %14i + %6i = %i\n",
-            O->NumInteriorVertices, O->NumEdges, O->NumPanels, 
-            O->NumInteriorVertices-O->NumEdges+O->NumPanels);
+            S->NumInteriorVertices, S->NumEdges, S->NumPanels, 
+            S->NumInteriorVertices-S->NumEdges+S->NumPanels);
   printf("\n");
 
   printf(" Total area: %9.7e \n",TotalArea);
@@ -74,16 +74,16 @@ void AnalyzeObject(RWGObject *O, int WriteGPFiles, int WritePPFiles)
   printf(" \n");
 
   if (WriteGPFiles)
-   { O->WriteGPMesh("%s.gp",GetFileBase(O->MeshFileName));
-     printf("Mesh visualization data written to GNUPLOT file %s.gp.\n\n",O->MeshFileName);
+   { S->WriteGPMesh("%s.gp",GetFileBase(S->MeshFileName));
+     printf("Mesh visualization data written to GNUPLOT file %s.gp.\n\n",S->MeshFileName);
    };
 
   if (WritePPFiles)
    { char buffer[MAXSTR];
-     snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(O->MeshFileName));
+     snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(S->MeshFileName));
      unlink(buffer);
-     O->WritePPMesh(buffer,GetFileBase(O->MeshFileName),1);
-     O->WritePPMeshLabels(buffer,GetFileBase(O->MeshFileName));
+     S->WritePPMesh(buffer,GetFileBase(S->MeshFileName),1);
+     S->WritePPMeshLabels(buffer,GetFileBase(S->MeshFileName));
      printf("Mesh visualization data and panel normals written to GMSH file %s.\n\n",buffer);
    };
 
@@ -99,28 +99,49 @@ void AnalyzeGeometry(RWGGeometry *G, int WriteGPFiles, int WritePPFiles)
   /***************************************************************/
   unsigned RAM = G->TotalBFs * G->TotalBFs * sizeof(cdouble);
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   printf("***********************************************\n");
   printf("*  GEOMETRY %s \n",G->GeoFileName);
   printf("***********************************************\n");
-  printf(" %6i objects\n",G->NumObjects);
+  printf(" %6i surfaces\n",G->NumSurfaces);
   printf(" %6i total basis functions\n",G->TotalBFs);
   printf(" Size of BEM matrix: %.2f GB\n",((double)RAM)/1.0e9);
   printf("\n");
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int no;
-  RWGObject *O;
-  for(no=0, O=G->Objects[0]; no<G->NumObjects; O=G->Objects[++no])
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  printf("***********************************************\n");
+  printf("*  REGIONS: %i\n",NumRegions);
+  printf("***********************************************\n");
+  int RLL, MaxRLL = strlen(G->RegionLabels[0]); // 'RLL=region label length'
+  for(nr=1; nr<G->NumRegions; nr++)
+   { RLL=strlen(G->RegionLabels[nr]);
+     if (RLL > MaxRLL) MaxRLL=RLL;
+   };
+  char *fs[100]; // 'format string'
+  sprintf(fs,"index | %%%is | Material properties",MaxRLL)
+  printf(fs,"Label")
+  sprintf(fs,"%%5i | %%%is | %%s",MaxRLL)
+  for(int nr=0; nr<NumRegions; nr++)
+   printf(fs,nr,G->RegionLabels[nr],G->RegionMPs[nr]->Name);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int ns;
+  RWGSurface *S;
+  for(ns=0, S=G->Surfaces[0]; ns<G->NumSurfaces; S=G->Surfaces[++ns])
    {
      printf("***********************************************\n");
-     printf("*  OBJECT %i: Label = %s\n",no,O->Label);
+     printf("*  SURFACE %i: Label = %s\n",ns,S->Label);
      printf("***********************************************\n");
-     if (G->Mate[no]!=-1)
-      printf(" (duplicate of object %i)\n\n",G->Mate[no]+1);
+     if (G->Mate[ns]!=-1)
+      printf(" (duplicate of surface %i)\n\n",G->Mate[ns]+1);
      else
-      AnalyzeObject(G->Objects[no],0,0);
+      AnalyzeSurface(G->Surfaces[ns],0,0);
    };
 
   if (WriteGPFiles)
@@ -152,13 +173,16 @@ int main(int argc, char *argv[])
   char *TransFile=0;
   int WriteGPFiles=0;
   int WritePPFiles=0;
+  int PhysicalRegion=-1;
   /* name, type, # args, max # instances, storage, count, description*/
   OptStruct OSArray[]=
-   { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,      0, "geometry file"},
-     {"mesh",               PA_STRING, 1, 1, (void *)&MeshFile,     0, "mesh file"},
-     {"transfile",          PA_STRING, 1, 1, (void *)&TransFile,    0, "list of transformations"},
-     {"WriteGnuplotFiles",  PA_BOOL,   0, 1, (void *)&WriteGPFiles, 0, "write gnuplot visualization files"},
-     {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles, 0, "write GMSH visualization files "},
+   { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,        0, "geometry file"},
+     {"mesh",               PA_STRING, 1, 1, (void *)&MeshFile,       0, "mesh file"},
+     {"meshfile",           PA_STRING, 1, 1, (void *)&MeshFile,       0, "mesh file"},
+     {"physicalregion",     PA_INT,    1, 1, (void *)&PhysicalRegion, 0, "index of surface within mesh file"},
+     {"transfile",          PA_STRING, 1, 1, (void *)&TransFile,      0, "list of transformations"},
+     {"WriteGnuplotFiles",  PA_BOOL,   0, 1, (void *)&WriteGPFiles,   0, "write gnuplot visualization files"},
+     {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles,   0, "write GMSH visualization files "},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -167,20 +191,21 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /***************************************************************/
   if (GeoFile==0 && MeshFile==0)
-   OSUsage(argv[0],OSArray,"either --geometry or --mesh option must be specified");
+   OSUsage(argv[0],OSArray,"either --geometry or --meshfile option must be specified");
   if (GeoFile!=0 && MeshFile!=0)
-   ErrExit("--geometry and --mesh options are mutually exclusive");
+   ErrExit("--geometry and --meshfile options are mutually exclusive");
   if (TransFile && GeoFile==0)
    ErrExit("--transfile option may only be used with --geometry");
    
   /***************************************************************/
   /**************************************************************/
   /***************************************************************/
-  RWGObject *O=0;
+  RWGSurface *S=0;
   RWGGeometry *G=0;
   if (MeshFile)
-   { O=new RWGObject(MeshFile);
-     AnalyzeObject(O, WriteGPFiles, WritePPFiles);
+   {
+     S=new RWGSurface(MeshFile, PhysicalRegion);
+     AnalyzeSurface(S, WriteGPFiles, WritePPFiles);
    }
   else
    { G=new RWGGeometry(GeoFile);

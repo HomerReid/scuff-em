@@ -45,7 +45,7 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetPanelPotentials2(RWGObject *O, int np, int iQ,
+void GetPanelPotentials2(RWGSurface *O, int np, int iQ,
                          cdouble Omega, double *X, 
                          cdouble *A, cdouble *CurlA, cdouble *GradPhi);
 
@@ -58,7 +58,7 @@ void GetFieldOfDrivenPorts(RWGPort **Ports, int NumPorts,
 {
   int nPort;
   RWGPort *Port;
-  RWGObject *O;
+  RWGSurface *S;
   int nPanel, PanelIndex, iQ;
   cdouble PortCurrent, Weight;
   cdouble A[3], CurlA[3], GradPhi[3];
@@ -74,14 +74,14 @@ void GetFieldOfDrivenPorts(RWGPort **Ports, int NumPorts,
      /***************************************************************/
      /* contributions of panels on the positive side of the port    */
      /***************************************************************/
-     O=Port->PObject;
+     S=Port->PSurface;
      Weight=PortCurrent/(Port->PPerimeter);
      for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
       { 
         PanelIndex  = Port->PPanelIndices[nPanel];
         iQ          = Port->PPaneliQs[nPanel];
 
-        GetPanelPotentials2(O, PanelIndex, iQ, Omega, X, A, CurlA, GradPhi );
+        GetPanelPotentials2(S, PanelIndex, iQ, Omega, X, A, CurlA, GradPhi );
 
         EH[0] -= Weight*(IZK*A[0] - IZoK*GradPhi[0]); 
         EH[1] -= Weight*(IZK*A[1] - IZoK*GradPhi[1]); 
@@ -95,14 +95,14 @@ void GetFieldOfDrivenPorts(RWGPort **Ports, int NumPorts,
      /***************************************************************/
      /* contributions of panels on the negative side of the port    */
      /***************************************************************/
-     O=Port->MObject;
+     S=Port->MSurface;
      Weight=PortCurrent/(Port->MPerimeter);
      for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
       { 
         PanelIndex  = Port->MPanelIndices[nPanel];
         iQ          = Port->MPaneliQs[nPanel];
 
-        GetPanelPotentials2(O, PanelIndex, iQ, Omega, X, A, CurlA, GradPhi );
+        GetPanelPotentials2(S, PanelIndex, iQ, Omega, X, A, CurlA, GradPhi );
 
         EH[0] += Weight*(IZK*A[0] - IZoK*GradPhi[0]); 
         EH[1] += Weight*(IZK*A[1] - IZoK*GradPhi[1]); 

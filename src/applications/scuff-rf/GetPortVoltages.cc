@@ -18,7 +18,10 @@
  */
 
 /* 
- * homer reid  -- 9/2011                                        
+ * GetPortVoltages -- a scuff-EM module to compute the 'voltage' gaps between
+ *                 -- the positive and negative terminals of a port
+ * 
+ * homer reid      -- 9/2011                                        
  *                                         
  */
 
@@ -48,13 +51,13 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetPanelPotentials(RWGObject *O, int np, int iQ, cdouble IK,
+void GetPanelPotentials(RWGSurface *S, int np, int iQ, cdouble IK,
                         double *X, cdouble *PhiA);
 
-cdouble GetPanelPotential(RWGObject *O, int np, cdouble IK, double *X);
+cdouble GetPanelPotential(RWGSurface *S, int np, cdouble IK, double *X);
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void WriteST(RWGObject *O, int np, double Val, FILE *f);
+void WriteST(RWGSurface *S, int np, double Val, FILE *f);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 /***************************************************************/
@@ -100,17 +103,17 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
   /*--------------------------------------------------------------*/
   /*- contributions of interior edges ----------------------------*/
   /*--------------------------------------------------------------*/
-  int BFIndex, no, ne;
+  int BFIndex, ns, ne;
   cdouble PhiAP[4], PhiAM[4], iwAI;
-  RWGObject *O;
+  RWGSurface *S;
   RWGEdge *E;
   iwAI=0.0;
-  for(BFIndex=0, no=0; no<G->NumObjects; no++)
-   for(O=G->Objects[no], ne=0; ne<O->NumEdges; ne++, BFIndex++)
+  for(BFIndex=0, ns=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], ne=0; ne<S->NumEdges; ne++, BFIndex++)
     { 
-      E=O->Edges[ne];
-      GetPanelPotentials(O, E->iPPanel, E->PIndex, IK, X, PhiAP);
-      GetPanelPotentials(O, E->iMPanel, E->MIndex, IK, X, PhiAM);
+      E=S->Edges[ne];
+      GetPanelPotentials(S, E->iPPanel, E->PIndex, IK, X, PhiAP);
+      GetPanelPotentials(S, E->iMPanel, E->MIndex, IK, X, PhiAM);
       iwAI += KN->GetEntry(BFIndex) * (  (PhiAP[1]-PhiAM[1])*X2mX1[0]
                                         +(PhiAP[2]-PhiAM[2])*X2mX1[1]
                                         +(PhiAP[3]-PhiAM[3])*X2mX1[2]
@@ -133,28 +136,28 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
      /*--------------------------------------------------------------*/
      /*- contribution of panels on positive edge of port ------------*/
      /*--------------------------------------------------------------*/
-     O = Port->PObject;
+     S = Port->PSurface;
      Weight = PortCurrent / Port->PPerimeter;
      for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
       { 
         PanelIndex   = Port->PPanelIndices[nPanel];
         iQ           = Port->PPaneliQs[nPanel];
         
-        GetPanelPotentials(O, PanelIndex, iQ, IK, X, PhiA);
+        GetPanelPotentials(S, PanelIndex, iQ, IK, X, PhiA);
         iwAI -= Weight * ( PhiA[1]*X2mX1[0] + PhiA[2]*X2mX1[1] + PhiA[3]*X2mX1[2] );
       };
      
      /*--------------------------------------------------------------*/
      /*- contribution of panels on negative edge of port ------------*/
      /*--------------------------------------------------------------*/
-     O = Port->MObject;
+     S = Port->MSurface;
      Weight = PortCurrent / Port->MPerimeter;
      for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
       { 
         PanelIndex   = Port->MPanelIndices[nPanel];
         iQ           = Port->MPaneliQs[nPanel];
         
-        GetPanelPotentials(O, PanelIndex, iQ, IK, X, PhiA);
+        GetPanelPotentials(S, PanelIndex, iQ, IK, X, PhiA);
         iwAI += Weight * ( PhiA[1]*X2mX1[0] + PhiA[2]*X2mX1[1] + PhiA[3]*X2mX1[2] );
       };
 
@@ -240,19 +243,19 @@ memset(PortPanelCharges, 0, NumPanels*sizeof(cdouble));
   /*--------------------------------------------------------------*/
   /*- contributions of interior edges  ---------------------------*/
   /*--------------------------------------------------------------*/
-  int BFIndex, no, ne; 
-  RWGObject *O;
+  int BFIndex, ns, ne; 
+  RWGSurface *S;
   RWGEdge *E;
   int PIOffset;
 
-  for(BFIndex=0, no=0; no<G->NumObjects; no++)
+  for(BFIndex=0, ns=0; ns<G->NumSurfaces; ns++)
    { 
-     O=G->Objects[no];
-     PIOffset=G->PanelIndexOffset[no];
+     S=G->Surfaces[ns];
+     PIOffset=G->PanelIndexOffset[ns];
 
-     for(ne=0; ne<O->NumEdges; ne++, BFIndex++)
+     for(ne=0; ne<S->NumEdges; ne++, BFIndex++)
       { 
-        E=O->Edges[ne];
+        E=S->Edges[ne];
         PanelCharges[PIOffset + E->iPPanel] += KN->GetEntry(BFIndex) * E->Length  / IW;
         PanelCharges[PIOffset + E->iMPanel] -= KN->GetEntry(BFIndex) * E->Length  / IW;
       };
@@ -288,8 +291,8 @@ if (SkipExterior==0)
      if (PortCurrent==0.0) continue;
      Port=Ports[nPort];
 
-     O=Ports[nPort]->PObject;
-     PIOffset=G->PanelIndexOffset[O->Index];
+     S=Ports[nPort]->PSurface;
+     PIOffset=G->PanelIndexOffset[S->Index];
      for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
       PanelCharges[PIOffset + Port->PPanelIndices[nPanel]] 
        -= Port->PLengths[nPanel]*PortCurrent/(IW*Port->PPerimeter);
@@ -300,8 +303,8 @@ for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
   -= Port->PLengths[nPanel]*PortCurrent/(IW*Port->PPerimeter);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-     O=Ports[nPort]->MObject;
-     PIOffset=G->PanelIndexOffset[O->Index];
+     S=Ports[nPort]->MSurface;
+     PIOffset=G->PanelIndexOffset[S->Index];
      for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
       PanelCharges[PIOffset + Port->MPanelIndices[nPanel]]
        += Port->MLengths[nPanel]*PortCurrent/(IW*Port->MPerimeter);
@@ -323,16 +326,16 @@ for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
   cdouble VP, VM;
 TotalVP=TotalVM=0.0;
   Log("   scalar potential contribution");
-  for(no=0; no<G->NumObjects; no++)
-   for(O=G->Objects[no], nPanel=0; nPanel<O->NumPanels; nPanel++)
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], nPanel=0; nPanel<S->NumPanels; nPanel++)
     for(nPort=0; nPort<NumPorts; nPort++)
      {
        Port=Ports[nPort];
-       VP = GetPanelPotential(O, nPanel, IK, Port->PRefPoint);
-       VM = GetPanelPotential(O, nPanel, IK, Port->MRefPoint);
-       PortVoltages[nPort] += PanelCharges[G->PanelIndexOffset[no] + nPanel] * (VP - VM);
-TotalVP+=PanelCharges[G->PanelIndexOffset[no] + nPanel]*VP;
-TotalVM+=PanelCharges[G->PanelIndexOffset[no] + nPanel]*VM;
+       VP = GetPanelPotential(S, nPanel, IK, Port->PRefPoint);
+       VM = GetPanelPotential(S, nPanel, IK, Port->MRefPoint);
+       PortVoltages[nPort] += PanelCharges[G->PanelIndexOffset[ns] + nPanel] * (VP - VM);
+TotalVP+=PanelCharges[G->PanelIndexOffset[ns] + nPanel]*VP;
+TotalVM+=PanelCharges[G->PanelIndexOffset[ns] + nPanel]*VM;
      };
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -340,21 +343,21 @@ TotalVM+=PanelCharges[G->PanelIndexOffset[no] + nPanel]*VM;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 #if 0
 { int no, nop, np, npp;
-  RWGObject *O, *OP;
+  RWGSurface *O, *OP;
 FILE *f=fopen("doom.out","a");
 cdouble V;
 double *X;
-for(no=0; no<G->NumObjects; no++)
- for(O=G->Objects[no], np=0; np<O->NumPanels; np++)
+for(no=0; no<G->NumSurfaces; no++)
+ for(O=G->Surfaces[no], np=0; np<S->NumPanels; np++)
   { 
-    X=O->Panels[np]->Centroid;
+    X=S->Panels[np]->Centroid;
 
-    for(V=0.0, nop=0; nop<G->NumObjects; nop++)
-     for(OP=G->Objects[nop], npp=0; npp<OP->NumPanels; npp++)
+    for(V=0.0, nop=0; nop<G->NumSurfaces; nop++)
+     for(OP=G->Surfaces[nop], npp=0; npp<OP->NumPanels; npp++)
       V+=PanelCharges[G->PanelIndexOffset[nop] + npp]*GetPanelPotential(OP, npp, IK, X);
 
     fprintf(f,"%e %e %e %e %e \n",X[0],X[1],X[2],real(V),imag(V));
-    if ( np+1 == O->NumPanels)  
+    if ( np+1 == S->NumPanels)  
      fprintf(f,"\n\n");
   };
 fclose(f);

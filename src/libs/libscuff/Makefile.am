@@ -6,6 +6,7 @@ libscuff_la_SOURCES = \
  AssessPanelPair.cc \
  CalcGC.cc \
  EdgeEdgeInteractions.cc \
+ EdgePanelInteractions.cc \
  ExpandCurrentDistribution.cc \
  FieldGrid.cc \
  FIPPICache.cc \

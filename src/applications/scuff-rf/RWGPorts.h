@@ -44,7 +44,7 @@ using namespace scuff;
 /***************************************************************/
 typedef struct RWGPort
  { 
-   RWGObject *PObject;
+   RWGSurface *PSurface;
    int NumPEdges; 
    int *PPanelIndices;
    int *PPaneliQs;
@@ -52,7 +52,7 @@ typedef struct RWGPort
    double PPerimeter;
    double PRefPoint[3]; 
 
-   RWGObject *MObject;
+   RWGSurface *MSurface;
    int NumMEdges;
    int *MPanelIndices;
    int *MPaneliQs;
