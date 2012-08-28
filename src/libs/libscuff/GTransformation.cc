@@ -178,7 +178,7 @@ bool GTransformation::Parse(char **Tokens, int NumTokens,
   double Theta, ZHat[3], dx[3];
 
   if (NumTokens==0) {
-    if (ErrMsg) *ErrMsg = strdup("no tranformation specified");
+    if (ErrMsg) *ErrMsg = strdupEC("no tranformation specified");
     if (TokensConsumed) *TokensConsumed=0;
     return false;
   }
@@ -354,13 +354,13 @@ void GTransformation::UnApplyRotation(const double X[3], double XP[3]) const {
 char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
 {
   if ( NumTokens==1 )
-   return strdup("empty TRANS specification");
+   return strdupEC("empty TRANS specification");
 
   /***************************************************************/
   /* initialize a bare GTComplex *********************************/
   /***************************************************************/
   GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
-  GTC->Tag=strdup(Tokens[1]);
+  GTC->Tag=strdupEC(Tokens[1]);
   GTC->NumSurfacesAffected=0;
   GTC->SurfaceLabel=0;
   GTC->GT=0;
@@ -381,11 +381,11 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
      if ( !strcasecmp(Tokens[nt], "OBJECT") )
       { 
         if ( nt+1 == NumTokens )
-         return strdup("syntax error");
+         return strdupEC("syntax error");
 
         nsa=GTC->NumSurfacesAffected;
         GTC->SurfaceLabel=(char **)realloc(GTC->SurfaceLabel, (nsa+1)*sizeof(char *));
-        GTC->SurfaceLabel[nsa]=strdup(Tokens[nt+1]);
+        GTC->SurfaceLabel[nsa]=strdupEC(Tokens[nt+1]);
         GTC->GT=(GTransformation *)realloc(GTC->GT, (nsa+1)*sizeof(GTransformation));
         GTC->GT[nsa]=GTransformation();
         GTC->NumSurfacesAffected=nsa+1;
@@ -436,7 +436,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
   /* initialize a bare GTComplex *********************************/
   /***************************************************************/
   GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
-  GTC->Tag=strdup(Tag);
+  GTC->Tag=strdupEC(Tag);
   GTC->NumSurfacesAffected=0;
   GTC->SurfaceLabel=0;
   GTC->GT=0;
@@ -467,7 +467,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         /*-- OBJECT MySurface--------------------------------------------*/
         /*--------------------------------------------------------------*/
         if (NumTokens!=2) 
-         return strdup("OBJECT keyword requires one argument");
+         return strdupEC("OBJECT keyword requires one argument");
 
         // increment the list of objects that will be affected by this
         // complex of transformations; save the label of the affected  
@@ -475,7 +475,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         // identity transformation
         int nsa=GTC->NumSurfacesAffected;
         GTC->SurfaceLabel=(char **)realloc(GTC->SurfaceLabel, (nsa+1)*sizeof(char *));
-        GTC->SurfaceLabel[nsa]=strdup(Tokens[1]);
+        GTC->SurfaceLabel[nsa]=strdupEC(Tokens[1]);
         GTC->GT=(GTransformation *)realloc(GTC->GT, (nsa+1)*sizeof(GTransformation));
         GTC->GT[nsa]=GTransformation();
         GTC->NumSurfacesAffected=nsa+1;
@@ -502,14 +502,14 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         if (ErrMsg)
          return ErrMsg;
         if (TokensConsumed!=NumTokens)
-         return strdup("junk at end of line");
+         return strdupEC("junk at end of line");
       };
 
    }; // while(fgets(Line, MAXSTR, f))
 
   // if we made it here, the file ended before the TRANSFORMATION
   // section was properly terminated 
-  return strdup("unexpected end of file");
+  return strdupEC("unexpected end of file");
 
 }
 
@@ -519,7 +519,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
 GTComplex *CreateDefaultGTComplex()
 {
   GTComplex *GTC=(GTComplex *)mallocEC(sizeof(GTComplex));
-  GTC->Tag=strdup("DEFAULT");
+  GTC->Tag=strdupEC("DEFAULT");
   GTC->NumSurfacesAffected=0;
   GTC->SurfaceLabel=0;
   GTC->GT=0;

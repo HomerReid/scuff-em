@@ -77,7 +77,7 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
      char MyFileName[MAXSTR];
      FILE *f=CreateUniqueFile(SHD->ByOmegaFile, 1, MyFileName);
      fclose(f);
-     SHD->ByOmegaFile=strdup(MyFileName);
+     SHD->ByOmegaFile=strdupEC(MyFileName);
    };
 
   /*--------------------------------------------------------------*/

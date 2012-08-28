@@ -83,7 +83,7 @@ SC3Data *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
      char MyFileName[MAXSTR];
      FILE *f=CreateUniqueFile(SC3D->ByOmegaFile, 1, MyFileName);
      fclose(f);
-     SC3D->ByOmegaFile=strdup(MyFileName);
+     SC3D->ByOmegaFile=strdupEC(MyFileName);
    };
 
   /*--------------------------------------------------------------*/

@@ -391,7 +391,7 @@ void FIPPICache::PreLoad(const char *FileName)
   // amount to just rewriting the same cache file
   if (PreloadFileName)
    free(PreloadFileName);
-  PreloadFileName=strdup(FileName);
+  PreloadFileName=strdupEC(FileName);
   RecordsPreloaded=NumRecords;
 
  done:

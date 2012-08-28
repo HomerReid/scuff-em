@@ -147,7 +147,7 @@ void RWGGeometry::WriteGPMesh(const char *format, ...)
   int i, ns, np;
 
   va_start(ap,format);
-  vsnprintf(FileName,997,format,ap);
+  vsnprintfEC(FileName,997,format,ap);
   va_end(ap);
 
   p=strrchr(FileName,'.');
@@ -198,7 +198,7 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
   int i, ns, np, ne, nv, LabelIndex;
 
   va_start(ap,format);
-  vsnprintf(FileName,1000,format,ap);
+  vsnprintfEC(FileName,1000,format,ap);
   va_end(ap);
   
   /***************************************************************/
@@ -480,7 +480,7 @@ void RWGSurface::WriteGPMesh(const char *format, ...)
   int i, np, ne, nv, LabelIndex;
 
   va_start(ap,format);
-  vsnprintf(FileName,1000,format,ap);
+  vsnprintfEC(FileName,1000,format,ap);
   va_end(ap);
   
   /***************************************************************/
@@ -580,7 +580,7 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /***************************************************************/
   /***************************************************************/
   va_start(ap,format);
-  vsnprintf(FileName,1000,format,ap);
+  vsnprintfEC(FileName,1000,format,ap);
   va_end(ap);
   f=fopen(FileName,"w");
   if (!f) return;

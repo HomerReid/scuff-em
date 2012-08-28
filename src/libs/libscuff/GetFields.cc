@@ -421,9 +421,9 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   int nf, NumFuncs;
 
   if (FuncString==NULL)
-   FCopy=strdup("Ex,Ey,Ez,Hx,Hy,Hz"); // default is cartesian field components
+   FCopy=strdupEC("Ex,Ey,Ez,Hx,Hy,Hz"); // default is cartesian field components
   else
-   FCopy=strdup(FuncString);
+   FCopy=strdupEC(FuncString);
 
   NumFuncs=Tokenize(FCopy, Funcs, MAXFUNC, ",");
 
