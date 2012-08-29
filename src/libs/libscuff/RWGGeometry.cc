@@ -87,6 +87,70 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
 }
 
 /***********************************************************************/
+/* subroutine to parse the LATTICE...ENDLATTICE section in a .scuffgeo */
+/* file.                                                               */
+/***********************************************************************/
+void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
+{
+  char Line[MAXSTR];
+  int NumTokens;
+  char *Tokens[MAXTOK];
+  double *LBV;
+  while( fgets(Line,MAXSTR,f) )
+   { 
+     (*LineNum)++;
+     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+     if ( NumTokens==0 || Tokens[0][0]=='#' )
+      continue; 
+
+     if ( !strcasecmp(Tokens[0],"VECTOR") )
+      {
+        if (NumLatticeBasisVectors==MAXLATTICE)
+         ErrExit("%s:%i: too many lattice vectors",FileName,*LineNum);
+        LBV=LatticeBasisVectors[NumLatticeVectors++];
+
+        if (NumTokens==4)
+         { sscanf(Tokens[1],"%le",LBV+0);
+           sscanf(Tokens[2],"%le",LBV+1);
+           sscanf(Tokens[3],"%le",LBV+2);
+         }
+        else if (NumTokens==3)
+         { sscanf(Tokens[1],"%le",LBV+0);
+           sscanf(Tokens[2],"%le",LBV+1);
+           LBV[2]=0.0;
+         }
+        else
+         ErrExit("%s:%i: syntax error",FileName,*LineNum);
+
+        if (LBV[2]!=0.0)
+         ErrExit("%s:%i: lattice vectors must have zero Z component",FileName,*LineNum);
+
+        Log("Adding lattice basis vector (%g,%g,%g).",LBV[0],LBV[1],LBV[2]);
+      }
+     else if ( !strcasecmp(Tokens[0],"ENDLATTICE") )
+      { 
+        // if the user specified two basis vectors, test for orthogonality
+        if (NumLatticeVectors==2)
+         { double DotProd=VecDot(LBV[0],LBV[1]);
+           double NormProd=VecNorm(LBV[0])*VecNorm(LBV[1]);
+           if ( DotProd > 1.0e-6*NormProd )
+            ErrExit("%s:%i: lattice basis vectors are not orthogonal",FileName,*LineNum);
+         };
+
+        return; 
+      }
+     else
+      {
+        ErrExit("%s:%i: unknown keyword %s",FileName,*LineNum,Tokens[0]);
+      };
+     
+   };
+
+  ErrExit("%s: unexpected end of file",FileName);
+
+}
+
+/***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
 void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
@@ -142,6 +206,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   Surfaces=0;
   AllSurfacesClosed=1;
   HaveLineCharges=0;
+  NumLatticeVectors=0;
 
   // we always start with a single Region, for the exterior,
   // taken to be vacuum by default
@@ -183,6 +248,10 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      if ( !strcasecmp(Tokens[0],"MEDIUM") )
       { 
         ProcessMEDIUMSection(f,GeoFileName,&LineNum);
+      }
+     else if ( !strcasecmp(Tokens[0],"LATTICE") )
+      { 
+        ProcessLATTICESection(f,GeoFileName,&LineNum);
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       {
@@ -279,29 +348,37 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 
    }; // while( fgets(Line,MAXSTR,f) )
 
-  /*--------------------------------------------------------------*/
+  /*******************************************************************/
   /*- set a flag if there are line charges present. --------------*/
   /*- line charges are present iff:                              -*/
   /*-  (1) one or more surface contains exterior edges, and      -*/
   /*-  (2) we are assigning half-RWG basis functions to those    -*/
   /*-      exterior edges (as opposed to simply ignoring them).  -*/
-  /*--------------------------------------------------------------*/
+  /*******************************************************************/
   if( IncludeLineChargeContributions )
    { for(int ns=0; ns<NumSurfaces; ns++)
       if ( Surfaces[ns]->NumExteriorEdges > 0 )
        HaveLineCharges=1;
    };
 
+  /*******************************************************************/
+  /* if a lattice is present, then we need to do some preliminary    */
+  /* setup:                                                          */
+  /*      internally stored fields that accelerate the computation   */
+  /*      of the BEM matrix in the presence of PBCs                  */
+  /*******************************************************************/
+  if (NumLatticeVectors>0)
+   InitPBCData();
 
-  /*--------------------------------------------------------------*/
-  /* Autodetect nesting relationships & topologically sort        */
-  /* (so that if A contains B, then B comes after A).             */
-  /* Note that the Contains() function and the autodetection of   */
-  /* containership relations is only applicable to CLOSED         */
-  /* surfaces; for OPEN surfaces there is no autodetection, and   */
-  /* we rely instead on the user to specify explicitly which      */
-  /* surfaces bound which regions.                                */
-  /*--------------------------------------------------------------*/
+  /*******************************************************************/
+  /* Autodetect nesting relationships & topologically sort           */
+  /* (so that if A contains B, then B comes after A).                */
+  /* Note that the Contains() function and the autodetection of      */
+  /* containership relations is only applicable to CLOSED            */
+  /* surfaces; for OPEN surfaces there is no autodetection, and      */
+  /* we rely instead on the user to specify explicitly which         */
+  /* surfaces bound which regions.                                   */
+  /*******************************************************************/
   for (int ns = 0; ns < NumSurfaces; ++ns)
    Surfaces[ns]->InitkdPanels(false, LogLevel);
   for (int ns = 1; ns < NumSurfaces; ++ns) 

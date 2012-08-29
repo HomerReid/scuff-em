@@ -68,6 +68,9 @@ namespace scuff {
 #define SCUFF_OMATRIX_ZFORCE     4
 #define SCUFF_NUM_OMATRICES      5
 
+// maximum number of lattice basis vectors
+#define MAXLATTICE 2
+
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -440,6 +443,13 @@ class RWGGeometry
 
    char *GeoFileName;
 
+   /* NumLatticeVectors>0 iff we have periodic boundary conditions. */
+   /* The M.. and RegionInterpolator fields are only used if PBCS   */
+   /* are present.                                                  */
+   int NumLatticeBasisVectors;
+   double LatticeBasisVectors[MAXLATTICE][3];
+   HMatrix *MPP, *MPM, *MPZ, *MZP, *MZZ;
+
    /* BFIndexOffset[n] is the index within the overall BEM          */
    /* system vector of the first basis function on surface #n. thus */
    /*  BFIndexOffset[0]=0                                           */
@@ -469,14 +479,17 @@ class RWGGeometry
    
    static bool AssignBasisFunctionsToExteriorEdges;
    static bool IncludeLineChargeContributions;
+   static int PBCCubatureOrder;
+   static double DeltaInterp;
 
  };
 
 /***************************************************************/
-/* non-class methods that operate on RWGPanels                 */
+/* non-class methods that operate on RWGPanels and RWGSurfaces */
 /***************************************************************/
 RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3);
 void InitRWGPanel(RWGPanel *P, double *Vertices);
+void AddStraddlers(RWGSurface *S, double **LBV, int NumLatticeVectors, int *NumStraddlers);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

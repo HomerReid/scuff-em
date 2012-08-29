@@ -18,6 +18,7 @@ libscuff_la_SOURCES = \
  LineChargeContributions.cc \
  Overlap.cc \
  PanelPanelInteractions.cc \
+ PBCSetup.cc \
  PointInObject.cc \
  QDFIPPI.cc \
  QIFIPPICubature.cc \
