@@ -43,8 +43,8 @@
 /***************************************************************/
 void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
 { 
-  SSD->G->GetFields(      0, SSD->KN, SSD->Omega, X, EHS, 0); // scattered
-  SSD->G->GetFields(SSD->IF,       0, SSD->Omega, X, EHT, 0); // incident
+  SSD->G->GetFields(      0, SSD->KN, SSD->Omega, X, EHS); // scattered
+  SSD->G->GetFields(SSD->IF,       0, SSD->Omega, X, EHT); // incident
  
   for (int Mu=0; Mu<6; Mu++)
    EHT[Mu]+=EHS[Mu];
@@ -126,11 +126,11 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static char *FieldFuncs=
+static char *FieldFuncs=const_cast<char *>(
  "|Ex|,|Ey|,|Ez|,"
  "sqrt(|Ex|^2+|Ey|^2+|Ez|^2),"
  "|Hx|,|Hy|,|Hz|,"
- "sqrt(|Hx|^2+|Hy|^2+|Hz|^2)";
+ "sqrt(|Hx|^2+|Hy|^2+|Hz|^2)");
 
 static const char *FieldTitles[]=
  {"|Ex|", "|Ey|", "|Ez|", "|E|",
@@ -153,7 +153,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*- try to open user's mesh file -------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGObject *O=new RWGObject(MeshFileName);
+  RWGSurface *S=new RWGSurface(MeshFileName);
 
   Log("Creating flux plot for surface %s...",MeshFileName);
   printf("Creating flux plot for surface %s...\n",MeshFileName);
@@ -162,13 +162,13 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*- create an Nx3 HMatrix whose columns are the coordinates of  */
   /*- the flux mesh panel vertices                                */
   /*--------------------------------------------------------------*/
-  HMatrix *XMatrix=new HMatrix(O->NumVertices, 3);
+  HMatrix *XMatrix=new HMatrix(S->NumVertices, 3);
   int nv;
-  for(nv=0; nv<O->NumVertices; nv++)
+  for(nv=0; nv<S->NumVertices; nv++)
    { 
-     XMatrix->SetEntry(nv, 0, O->Vertices[3*nv + 0]);
-     XMatrix->SetEntry(nv, 1, O->Vertices[3*nv + 1]);
-     XMatrix->SetEntry(nv, 2, O->Vertices[3*nv + 2]);
+     XMatrix->SetEntry(nv, 0, S->Vertices[3*nv + 0]);
+     XMatrix->SetEntry(nv, 1, S->Vertices[3*nv + 1]);
+     XMatrix->SetEntry(nv, 2, S->Vertices[3*nv + 2]);
    };
 
   /*--------------------------------------------------------------*/
@@ -189,12 +189,12 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     for(np=0; np<O->NumPanels; np++)
+     for(np=0; np<S->NumPanels; np++)
       {
-        P=O->Panels[np];
-        iV1 = P->VI[0];  V1 = O->Vertices + 3*iV1;
-        iV2 = P->VI[1];  V2 = O->Vertices + 3*iV2;
-        iV3 = P->VI[2];  V3 = O->Vertices + 3*iV3;
+        P=S->Panels[np];
+        iV1 = P->VI[0];  V1 = S->Vertices + 3*iV1;
+        iV2 = P->VI[1];  V2 = S->Vertices + 3*iV2;
+        iV3 = P->VI[2];  V3 = S->Vertices + 3*iV3;
 
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                    V1[0], V1[1], V1[2], 
@@ -215,7 +215,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   fclose(f);
   delete FMatrix;
   delete XMatrix;
-  delete O;
+  delete S;
 
 }
 
@@ -226,7 +226,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
 #if 0
 void CreateFluxPlot(SSData *SSD, char *MeshFileName)
 { 
-  RWGObject *O=new RWGObject(MeshFileName);
+  RWGSurface *S=new RWGSurface(MeshFileName);
   RWGPanel *P;
   int np;
 
@@ -237,11 +237,11 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*- create an Nx3 HMatrix whose columns are the coordinates of  */
   /*- the centroids of the panels on the flux mesh                */
   /*--------------------------------------------------------------*/
-  int NP=O->NumPanels;
+  int NP=S->NumPanels;
   HMatrix *XMatrix=new HMatrix(NP, 3);
-  for(np=0; np<O->NumPanels; np++)
+  for(np=0; np<S->NumPanels; np++)
    { 
-     P=O->Panels[np]; 
+     P=S->Panels[np]; 
      XMatrix->SetEntry(np, 0, P->Centroid[0]);
      XMatrix->SetEntry(np, 1, P->Centroid[1]);
      XMatrix->SetEntry(np, 2, P->Centroid[2]);
@@ -259,8 +259,8 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  cdouble *EHS=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
-  cdouble *EHT=(cdouble *)malloc(6*O->NumPanels*sizeof(cdouble));
+  cdouble *EHS=(cdouble *)malloc(6*S->NumPanels*sizeof(cdouble));
+  cdouble *EHT=(cdouble *)malloc(6*S->NumPanels*sizeof(cdouble));
   if (EHS==0 || EHT==0) 
    ErrExit("out of memory");
   for(np=0; np<NP; np++)
@@ -286,7 +286,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   // maximum values of scattered and total fields, used below for 
   // normalization 
   double MaxESMag=0.0, MaxETMag=0.0, MaxHSMag=0.0, MaxHTMag=0.0;
-  for(np=0; np<O->NumPanels; np++)
+  for(np=0; np<S->NumPanels; np++)
    { MaxESMag=fmax(MaxESMag,sqrt( norm(EHS[6*np+0]) + norm(EHS[6*np+1]) + norm(EHS[6*np+2]) ));
      MaxETMag=fmax(MaxETMag,sqrt( norm(EHT[6*np+0]) + norm(EHT[6*np+1]) + norm(EHT[6*np+2]) ));
      MaxHSMag=fmax(MaxHSMag,sqrt( norm(EHS[6*np+3]) + norm(EHS[6*np+4]) + norm(EHS[6*np+5]) ));
@@ -301,7 +301,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
    { fprintf(stderr,"warning: could not open output file %s.pp\n",GetFileBase(MeshFileName));
      free(EHS); 
      free(EHT); 
-     delete O;
+     delete S;
      return;
    };
   
@@ -312,11 +312,11 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   double PF;    // poynting flux
   cdouble *E, *H;
   fprintf(f,"View \"Poynting Flux (Scattered)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
-      PV[0]=O->Vertices + 3*P->VI[0];
-      PV[1]=O->Vertices + 3*P->VI[1];
-      PV[2]=O->Vertices + 3*P->VI[2];
+      PV[0]=S->Vertices + 3*P->VI[0];
+      PV[1]=S->Vertices + 3*P->VI[1];
+      PV[2]=S->Vertices + 3*P->VI[2];
 
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       E=EHS + 6*np;
@@ -338,11 +338,11 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*- poynting flux of total field     ---------------------------*/
   /*--------------------------------------------------------------*/
   fprintf(f,"View \"Poynting Flux (Total)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
-      PV[0]=O->Vertices + 3*P->VI[0];
-      PV[1]=O->Vertices + 3*P->VI[1];
-      PV[2]=O->Vertices + 3*P->VI[2];
+      PV[0]=S->Vertices + 3*P->VI[0];
+      PV[1]=S->Vertices + 3*P->VI[1];
+      PV[2]=S->Vertices + 3*P->VI[2];
 
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       E=EHT + 6*np;
@@ -369,16 +369,16 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   double NormFac, AvgPanelRadius=0;
 
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    AvgPanelRadius += P->Radius;
-  AvgPanelRadius/=((double)(O->NumPanels));
+  AvgPanelRadius/=((double)(S->NumPanels));
    
   /*--------------------------------------------------------------*/
   /*- real part of scattered E field   ---------------------------*/
   /*--------------------------------------------------------------*/
   NormFac=MaxESMag / AvgPanelRadius;
   fprintf(f,"View \"E_Scattered (real part)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
       E=EHS + 6*np;
       fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
@@ -391,7 +391,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*- imag part of scattered E field   ---------------------------*/
   /*--------------------------------------------------------------*/
   fprintf(f,"View \"E_Scattered (imag part)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       E=EHS + 6*np;
@@ -406,7 +406,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   NormFac=MaxETMag / AvgPanelRadius;
   fprintf(f,"View \"E_Total(real part)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       E=EHT + 6*np;
@@ -420,7 +420,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*- imag part of total E fields --------------------------------*/
   /*--------------------------------------------------------------*/
   fprintf(f,"View \"E_Total (imag part)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
       E=EHT + 6*np;
       fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
@@ -434,7 +434,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   NormFac=MaxHSMag / AvgPanelRadius;
   fprintf(f,"View \"H_Scattered (real part)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
       H=EHS + 6*np + 3;
       fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
@@ -447,7 +447,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*- imag part of scattered H field   ---------------------------*/
   /*--------------------------------------------------------------*/
   fprintf(f,"View \"H_Scattered (imag part)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       H=EHS + 6*np + 3;
@@ -462,7 +462,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   NormFac=MaxHSMag / AvgPanelRadius;
   fprintf(f,"View \"H_Total (real part)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       H=EHT + 6*np + 3;
@@ -476,7 +476,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*- imag part of total H field ---------------------------------*/
   /*--------------------------------------------------------------*/
   fprintf(f,"View \"H_Total (imag part)\" {\n");
-  for(np=0, P=O->Panels[0]; np<O->NumPanels; P=O->Panels[++np])
+  for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
    {
       // poynting flux = (E \cross H^*) \dot (panel normal) / 2 
       H=EHT + 6*np + 3;
@@ -496,7 +496,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   delete FSMatrix;
   delete FTMatrix;
   delete XMatrix;
-  delete O;
+  delete S;
 
 }
 #endif 
@@ -636,14 +636,13 @@ void GetPower_SGJ(SSData *SSD, double *pPAbs, double *pPScat)
   /* purpose, since we won't need that until the next frequency, */
   /* at which point we will have to re-assemble it anyway.       */
   /***************************************************************/
-  int no;
-  for(no=0; no<G->NumObjects; no++)
-   G->Objects[no]->MP->Zero();
+  for(int nr=1; nr<G->NumRegions; nr++)
+   G->RegionMPs[nr]->Zero();
 
-  G->AssembleBEMMatrix(SSD->Omega, M, SSD->nThread);
+  G->AssembleBEMMatrix(SSD->Omega, M);
 
-  for(no=0; no<G->NumObjects; no++)
-   G->Objects[no]->MP->UnZero();
+  for(int nr=1; nr<G->NumRegions; nr++)
+   G->RegionMPs[nr]->UnZero();
 
   /***************************************************************/
   /* compute the vector-matrix-vector and vector-vector products */
@@ -705,19 +704,19 @@ void GetPower(SSData *SSD, char *PowerFile)
   /***************************************************************/
   double PTot=0.0, PAbs=0.0, PScat;
   double OTimes;
-  int no, nea, neb, Offset;
-  RWGObject *O;
+  int ns, nea, neb, Offset;
+  RWGSurface *S;
   cdouble ka, na, nb, vE, vH;
-  for(no=0; no<G->NumObjects; no++)
+  for(ns=0; ns<G->NumSurfaces; ns++)
    { 
-     O=G->Objects[no];
-     if ( O->ContainingObject != 0 ) // skip interior surfaces of nested objects
+     S=G->Surfaces[ns];
+     if ( S->RegionIndices[0] != 0 ) // we consider only surfaces in the exterior medium
       continue; 
 
-     Offset=G->BFIndexOffset[no];
-     if ( O->MP->IsPEC() )
+     Offset=G->BFIndexOffset[ns];
+     if ( S->IsPEC )
       { 
-        for(nea=0; nea<O->NumEdges; nea++)
+        for(nea=0; nea<S->NumEdges; nea++)
          { ka = KN->GetEntry(Offset  + nea );
            vE = RHS->GetEntry(Offset + nea );
            PTot += real( conj(ka*vE) );
@@ -725,7 +724,7 @@ void GetPower(SSData *SSD, char *PowerFile)
       }
      else
       {
-        for(nea=0; nea<O->NumEdges; nea++)
+        for(nea=0; nea<S->NumEdges; nea++)
          { 
            ka = KN->GetEntry(Offset + 2*nea + 0 );
            na = KN->GetEntry(Offset + 2*nea + 1 );
@@ -735,17 +734,17 @@ void GetPower(SSData *SSD, char *PowerFile)
 
            PTot += real( conj(ka)*vE - conj(na)*vH );
 
-           for(neb=0; neb<O->NumEdges; neb++)
+           for(neb=0; neb<S->NumEdges; neb++)
             { 
-              O->GetOverlap(nea, neb, &OTimes);
+              S->GetOverlap(nea, neb, &OTimes);
               if (OTimes==0.0) 
                continue;
               nb = KN->GetEntry(Offset + 2*neb + 1 );
               PAbs -= real( conj(ka) * OTimes * nb );
             }; // for (neb= ... 
          }; // for(nea==...
-      }; // if ( O->MP->IsPEC() )
-   }; // for(no=...)
+      }; // if ( S->IsPEC )
+   }; // for(ns=...)
   
   PTot *= 0.5*ZVAC;
   PAbs *= 0.5*ZVAC;
@@ -810,12 +809,11 @@ void GetMoments(SSData *SSD, char *MomentFile)
   /***************************************************************/
   /* print to file ***********************************************/
   /***************************************************************/
-  int no, Mu;
   fprintf(f,"%s ",z2s(Omega));
-  for (no=0; no<G->NumObjects; no++)
-   { fprintf(f,"%s ",G->Objects[no]->Label);
-     for(Mu=0; Mu<6; Mu++)
-      fprintf(f,"%s ",CD2S(PM->GetEntry(6*no + Mu),"%.8e %.8e "));
+  for (int ns=0; ns<G->NumSurfaces; ns++)
+   { fprintf(f,"%s ",G->Surfaces[ns]->Label);
+     for(int Mu=0; Mu<6; Mu++)
+      fprintf(f,"%s ",CD2S(PM->GetEntry(6*ns + Mu),"%.8e %.8e "));
    };
   fprintf(f,"\n");
 
@@ -857,7 +855,7 @@ void GetForce(SSData *SSD, char *ForceFile)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   cdouble Eps, Mu;
-  G->ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
+  G->RegionMPs[0]->GetEpsMu(Omega, &Eps, &Mu);
   cdouble Z = ZVAC*sqrt(Mu/Eps);
 
   /*--------------------------------------------------------------*/
@@ -866,28 +864,26 @@ void GetForce(SSData *SSD, char *ForceFile)
   double Force[3];
   double Overlaps[11];
   double OiBullet, OiNablaNabla, OiTimesNabla;
-  int no, nfc, neAlpha, neBeta, Offset, IsPEC;
+  int nfc, neAlpha, neBeta, Offset;
   cdouble KAlpha, NAlpha=0.0, KBeta, NBeta=0.0;
   cdouble K2 = Eps*Mu*Omega*Omega; 
   double PreFac=+0.25;
   cdouble M11, M12, M21, M22;
-  RWGObject *O;
-
-  for(no=0; no<G->NumObjects; no++)
+  RWGSurface *S;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     O=G->Objects[no];
-     IsPEC = O->MP->IsPEC() ? 1 : 0;
-     Offset=G->BFIndexOffset[no];
+     S=G->Surfaces[ns];
+     Offset=G->BFIndexOffset[ns];
      memset(Force,0,3*sizeof(double));
 
-     for(neAlpha=0; neAlpha<O->NumEdges; neAlpha++)
-      for(neBeta=0; neBeta<O->NumEdges; neBeta++)
+     for(neAlpha=0; neAlpha<S->NumEdges; neAlpha++)
+      for(neBeta=0; neBeta<S->NumEdges; neBeta++)
        { 
-         O->GetOverlaps(neAlpha, neBeta, Overlaps);
+         S->GetOverlaps(neAlpha, neBeta, Overlaps);
          if (Overlaps[0]==0.0)
           continue; 
 
-         if (IsPEC) 
+         if (S->IsPEC) 
           { KAlpha = KN->GetEntry( Offset + neAlpha );
             KBeta  = KN->GetEntry( Offset + neBeta  );
           }
@@ -917,9 +913,9 @@ void GetForce(SSData *SSD, char *ForceFile)
 
        };
 
-     fprintf(f,"%s %e %e %e ",O->Label,Force[0],Force[1],Force[2]);
+     fprintf(f,"%s %e %e %e ",S->Label,Force[0],Force[1],Force[2]);
 
-   };// for(no=...)
+   };// for(ns=...)
 
   fprintf(f,"\n");
   fclose(f);
@@ -941,11 +937,11 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
   double PFT[8]; 
   double PScat;
   RWGGeometry *G=SSD->G;
-  for(int no=0; no<G->NumObjects; no++)
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     fprintf(f,"%s ",G->Objects[no]->Label);
+     fprintf(f,"%s ",G->Surfaces[ns]->Label);
 
-     G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, no, PFT);
+     G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
      GetPower_SGJ(SSD, 0, &PScat);
      PFT[1]=PScat;
 
@@ -965,8 +961,5 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
    };
 
   fclose(f);
-
-// DELETEME
-GetForce(SSD, "/tmp/Force.dat");
 
 }

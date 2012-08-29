@@ -67,36 +67,35 @@ typedef struct SNEQData
 
    int QuantityFlags;
    int NQ;
-   int NONQ;
-   int NTNONQ;
+   int NSNQ;
+   int NTNSNQ;
 
    // HMatrix structures for the BEM matrix and its subblocks
    HMatrix *W;        // BEM matrix 
-   HMatrix **T;       // T[no] = T-matrix block for object #no
-   HMatrix **U;       // U[no*NO + nop] = // U-matrix block for objects #no, #nop
+   HMatrix **T;       // T[ns] = T-matrix block for surface #ns
+   HMatrix **U;       // U[ns*NS + nsp] = // U-matrix block for surfaces #ns, #nsp
 
    // the NMth slot in this array of flags is 1 iff we will need
    // to compute the NMth type of overlap matrix
    bool NeedMatrix[SCUFF_NUM_OMATRICES]; 
 
    // SMatrix structures for overlap matrices.
-   // SArray[ no*5 + nm ] = overlap matrix of type #nm for object #no 
+   // SArray[ ns*5 + nm ] = overlap matrix of type #nm for surface #ns 
    // (here 5 = SCUFF_NUM_OMATRICES)
    SMatrix ***SArray;
 
-   // frequency-resolved output files for each object 
+   // frequency-resolved output files for each surface
    char **ByOmegaFileNames;
 
-   int nThread;
  } SNEQData;
 
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int WhichQuantities, int PlotFlux);
 
 void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI);
 
-void EvaluateFrequencyIntegral(SNEQData *SNEQD, 
+void EvaluateFrequencyIntegral(SNEQData *SNEQD,
                                double OmegaMin, double OmegaMax,
-                               double *TObjects, double TEnvironment, 
+                               double *TObjects, double TEnvironment,
                                double AbsTol, double RelTol,
                                double *I, double *E);
 

@@ -45,7 +45,6 @@ typedef struct SSData
    cdouble Omega;
    IncField *IF;
    double PowerRadius;
-   int nThread;
  } SSData;
  
 

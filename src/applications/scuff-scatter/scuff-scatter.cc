@@ -277,8 +277,8 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
-  if (nThread==0)
-   nThread=GetNumThreads();
+  if (nThread!=0)
+   SetNumThreads(nThread);
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */
@@ -367,7 +367,6 @@ int main(int argc, char *argv[])
   SSD->RHS = G->AllocateRHSVector();
   HVector *KN = SSD->KN =G->AllocateRHSVector();
   SSD->IF=IFDList;
-  SSD->nThread=nThread;
 
   char GeoFileBase[MAXSTR];
   strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
@@ -400,7 +399,7 @@ int main(int argc, char *argv[])
      /*******************************************************************/
      /* assemble the BEM matrix at this frequency                       */
      /*******************************************************************/
-     G->AssembleBEMMatrix(Omega, M, nThread);
+     G->AssembleBEMMatrix(Omega, M);
 
      /*******************************************************************/
      /* dump the scuff cache to a cache storage file if requested. note */
@@ -443,7 +442,7 @@ int main(int argc, char *argv[])
      /* set up the incident field profile and assemble the RHS vector */
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
-     G->AssembleRHSVector(Omega, IFDList, KN, nThread);
+     G->AssembleRHSVector(Omega, IFDList, KN);
      SSD->RHS->Copy(SSD->KN); // copy RHS vector for later 
 
      /***************************************************************/

@@ -177,7 +177,7 @@ class RWGSurface
    /* low-level computations at the level of individual RWG functions.*/
    /*-----------------------------------------------------------------*/
    RWGSurface(double *Vertices, int NumVertices, int *PanelVertices, int NumPanels);
-   RWGSurface(const char *MeshFile, int PhysicalRegion);
+   RWGSurface(const char *MeshFile, int PhysicalRegion=-1);
 
    /* destructor */
    ~RWGSurface();
@@ -324,6 +324,7 @@ class RWGGeometry
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WriteGPMesh(const char *format, ...);
    void WriteGPMeshPlus(const char *format, ...);
+   void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
    void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
 
    /* routines for allocating, and then filling in, the BEM matrix */
@@ -409,12 +410,16 @@ class RWGGeometry
    /*--------------------------------------------------------------------*/ 
    // constructor helper functions
    void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum);
+   void ProcessLATTICESection(FILE *f, char *FileName, int *LineNum);
    void AddRegion(char *RegionLabel, char *MaterialName, int LineNum);
 
    // helper functions for AssembleBEMMatrix
    int CountCommonRegions(int nsa, int nsb, double Signs[2], cdouble Eps[2], cdouble Mu[2]);
    void AddLineChargeContributionsToBEMMatrix(cdouble Omega, HMatrix *M);
    void UpdateCachedEpsMuValues(cdouble Omega);
+
+   // functions to support periodic boundary conditions 
+   void InitPBCData();
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
@@ -444,10 +449,10 @@ class RWGGeometry
    char *GeoFileName;
 
    /* NumLatticeVectors>0 iff we have periodic boundary conditions. */
-   /* The M.. and RegionInterpolator fields are only used if PBCS   */
-   /* are present.                                                  */
+   /* All other fields in this section are only used for PBCs.      */
    int NumLatticeBasisVectors;
    double LatticeBasisVectors[MAXLATTICE][3];
+   int *NumStraddlers;
    HMatrix *MPP, *MPM, *MPZ, *MZP, *MZZ;
 
    /* BFIndexOffset[n] is the index within the overall BEM          */
@@ -489,7 +494,8 @@ class RWGGeometry
 /***************************************************************/
 RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3);
 void InitRWGPanel(RWGPanel *P, double *Vertices);
-void AddStraddlers(RWGSurface *S, double **LBV, int NumLatticeVectors, int *NumStraddlers);
+void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3],
+                   int NumLatticeVectors, int NumStraddlers[MAXLATTICE]);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

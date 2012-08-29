@@ -114,26 +114,26 @@ void GetOverlapBFIntegrand(unsigned ndim, const double *x, void *params,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[11])
+void GetOverlapBF(RWGSurface *S, int nea, int neb, double OValues[11])
 {
-  RWGEdge *Ea=O->Edges[nea], *Eb=O->Edges[neb];
+  RWGEdge *Ea=S->Edges[nea], *Eb=S->Edges[neb];
 
-  double *QP = O->Vertices + 3*Ea->iQP;
-  double *V1 = O->Vertices + 3*Ea->iV1;
-  double *V2 = O->Vertices + 3*Ea->iV2;
-  double *QM = O->Vertices + 3*Ea->iQM;
+  double *QP = S->Vertices + 3*Ea->iQP;
+  double *V1 = S->Vertices + 3*Ea->iV1;
+  double *V2 = S->Vertices + 3*Ea->iV2;
+  double *QM = S->Vertices + 3*Ea->iQM;
 
-  double *QPP = O->Vertices + 3*Eb->iQP;
-  double *QMP = O->Vertices + 3*Eb->iQM;
+  double *QPP = S->Vertices + 3*Eb->iQP;
+  double *QMP = S->Vertices + 3*Eb->iQM;
 
   GOBFData MyGOBFD, *GOBFD = &MyGOBFD;
   GOBFD->V1   = V1;
   GOBFD->V2   = V2;
 
-  RWGPanel *PP= O->Panels[Ea->iPPanel];
+  RWGPanel *PP= S->Panels[Ea->iPPanel];
   double PArea = PP->Area;
 
-  RWGPanel *PM= O->Panels[Ea->iMPanel];
+  RWGPanel *PM= S->Panels[Ea->iMPanel];
   double MArea = PM->Area;
 
   double Lower[2]={0.0, 0.0};
@@ -210,23 +210,23 @@ void GetOverlapBF(RWGObject *O, int nea, int neb, double OValues[11])
 /* libscuff.)                                                  */
 /***************************************************************/
 #if 0
-double GetOverlapOld(RWGObject *O, int neAlpha, int neBeta)
+double GetOverlapOld(RWGSurface *S, int neAlpha, int neBeta)
 { 
-  RWGEdge *EAlpha=O->Edges[neAlpha], *EBeta=O->Edges[neBeta];
+  RWGEdge *EAlpha=S->Edges[neAlpha], *EBeta=S->Edges[neBeta];
   double *V1, *V2, *QAlpha, *QBeta;
   double PreFac, Area, Term, Sum;
   int mu;
 
-  V1=O->Vertices + 3*(EAlpha->iV1);
-  V2=O->Vertices + 3*(EAlpha->iV2);
+  V1=S->Vertices + 3*(EAlpha->iV1);
+  V2=S->Vertices + 3*(EAlpha->iV2);
   PreFac=EAlpha->Length * EBeta->Length / (24.0);
 
   Sum=0.0;
   if ( EAlpha->iPPanel == EBeta->iPPanel )
    {  
-      QAlpha=O->Vertices + 3*(EAlpha->iQP);
-      QBeta =O->Vertices + 3*(EBeta->iQP);
-      Area=O->Panels[EAlpha->iPPanel]->Area;
+      QAlpha=S->Vertices + 3*(EAlpha->iQP);
+      QBeta =S->Vertices + 3*(EBeta->iQP);
+      Area=S->Panels[EAlpha->iPPanel]->Area;
 
       for(Term=0.0, mu=0; mu<3; mu++)
        Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
@@ -236,9 +236,9 @@ double GetOverlapOld(RWGObject *O, int neAlpha, int neBeta)
    };
   if ( EAlpha->iPPanel == EBeta->iMPanel )
    {  
-      QAlpha=O->Vertices + 3*(EAlpha->iQP);
-      QBeta =O->Vertices + 3*(EBeta->iQM);
-      Area=O->Panels[EAlpha->iPPanel]->Area;
+      QAlpha=S->Vertices + 3*(EAlpha->iQP);
+      QBeta =S->Vertices + 3*(EBeta->iQM);
+      Area=S->Panels[EAlpha->iPPanel]->Area;
 
       for(Term=0.0, mu=0; mu<3; mu++)
        Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
@@ -248,9 +248,9 @@ double GetOverlapOld(RWGObject *O, int neAlpha, int neBeta)
    };
   if ( EAlpha->iMPanel == EBeta->iPPanel )
    {  
-      QAlpha=O->Vertices + 3*(EAlpha->iQM);
-      QBeta =O->Vertices + 3*(EBeta->iQP);
-      Area=O->Panels[EAlpha->iMPanel]->Area;
+      QAlpha=S->Vertices + 3*(EAlpha->iQM);
+      QBeta =S->Vertices + 3*(EBeta->iQP);
+      Area=S->Panels[EAlpha->iMPanel]->Area;
 
       for(Term=0.0, mu=0; mu<3; mu++)
        Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
@@ -260,9 +260,9 @@ double GetOverlapOld(RWGObject *O, int neAlpha, int neBeta)
    };
   if ( EAlpha->iMPanel == EBeta->iMPanel )
    {  
-      QAlpha=O->Vertices + 3*(EAlpha->iQM);
-      QBeta =O->Vertices + 3*(EBeta->iQM);
-      Area=O->Panels[EAlpha->iMPanel]->Area;
+      QAlpha=S->Vertices + 3*(EAlpha->iQM);
+      QBeta =S->Vertices + 3*(EBeta->iQM);
+      Area=S->Panels[EAlpha->iMPanel]->Area;
 
       for(Term=0.0, mu=0; mu<3; mu++)
        Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
    ASUsage(argv[0],ASArray,"--Geometry option is mandatory");
 
   RWGGeometry *G=new RWGGeometry(GeoFileName);
-  RWGObject *O=G->Objects[0];
+  RWGSurface *S=G->Surfaces[0];
 
   /***************************************************************/
   /* enter command loop ******************************************/
@@ -330,20 +330,20 @@ int main(int argc, char *argv[])
      free(p);
 
      if (nea==-1)
-      nea = lrand48() % O->NumEdges;
+      nea = lrand48() % S->NumEdges;
 
-     double ReferenceArea = O->Panels[O->Edges[nea]->iPPanel]->Area;
+     double ReferenceArea = S->Panels[S->Edges[nea]->iPPanel]->Area;
 
      printf(" ** for nea=%i: \n",nea);
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     for(neb=0; neb<O->NumEdges; neb++)
+     for(neb=0; neb<S->NumEdges; neb++)
       {
-        GetOverlapBF(O, nea, neb, OBF);
-        O->GetOverlaps(nea, neb, OHR);
- //       OOld[0]=O->GetOverlapOld(nea, neb, OOld+1);
+        GetOverlapBF(S, nea, neb, OBF);
+        S->GetOverlaps(nea, neb, OHR);
+ //       OOld[0]=S->GetOverlapOld(nea, neb, OOld+1);
 
         if ( fabs(OBF[0])<1.0e-2*ReferenceArea ) 
          continue;

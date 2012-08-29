@@ -52,10 +52,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   /*- this code does not make sense if any of the objects are PEC */
   /*--------------------------------------------------------------*/
-  int no, nop;
-  for(no=0; no<G->NumObjects; no++)
-   if ( G->Objects[no]->MP->IsPEC() ) 
-    ErrExit("%s: object %s: PEC objects are not allowed in scuff-neq", G->GeoFileName,G->Objects[no]->Label);
+  int ns, nsp;
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   if ( G->Surfaces[ns]->IsPEC ) 
+    ErrExit("%s: object %s: PEC objects are not allowed in scuff-neq", G->GeoFileName,G->Surfaces[ns]->Label);
 
   /*--------------------------------------------------------------*/
   /*- read the transformation file if one was specified and check */
@@ -79,22 +79,22 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   if ( QuantityFlags & QFLAG_YFORCE ) SNEQD->NQ++;
   if ( QuantityFlags & QFLAG_ZFORCE ) SNEQD->NQ++;
 
-  SNEQD->NONQ = G->NumObjects * SNEQD->NQ; 
-  SNEQD->NTNONQ = SNEQD->NumTransformations * SNEQD->NONQ;
+  SNEQD->NSNQ = G->NumSurfaces * SNEQD->NQ; 
+  SNEQD->NTNSNQ = SNEQD->NumTransformations * SNEQD->NSNQ;
 
   /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse -*/
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations.                                           -*/
   /*--------------------------------------------------------------*/
-  int nb, nq, NO=G->NumObjects, NBF, NBFp;
-  SNEQD->T = (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
-  SNEQD->U = (HMatrix **)mallocEC( ((NO*(NO-1))/2)*sizeof(HMatrix *));
-  for(nb=no=0; no<G->NumObjects; no++)
-   { NBF=G->Objects[no]->NumBFs;
-     SNEQD->T[no] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
-     for(nop=no+1; nop<G->NumObjects; nop++, nb++)
-      { NBFp=G->Objects[nop]->NumBFs;
+  int nb, nq, NS=G->NumSurfaces, NBF, NBFp;
+  SNEQD->T = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  SNEQD->U = (HMatrix **)mallocEC( ((NS*(NS-1))/2)*sizeof(HMatrix *));
+  for(nb=ns=0; ns<G->NumSurfaces; ns++)
+   { NBF=G->Surfaces[ns]->NumBFs;
+     SNEQD->T[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+     for(nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
+      { NBFp=G->Surfaces[nsp]->NumBFs;
         SNEQD->U[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
       };
    };
@@ -109,8 +109,8 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- matrices. note that all overlap matrices have 10 nonzero   -*/
   /*- entries per row.                                           -*/
   /*-                                                            -*/
-  /*- SArray[no] is an array of SCUFF_NUM_OMATRICES pointers to  -*/
-  /*- SMatrix structures for object #no. SArray[no][nom] is only -*/
+  /*- SArray[ns] is an array of SCUFF_NUM_OMATRICES pointers to  -*/
+  /*- SMatrix structures for object #ns. SArray[ns][nom] is only -*/
   /*- non-NULL if we need the nomth type of overlap matrix. (Here-*/ 
   /*- nom=1,2,3,4 for power, x-force, y-force, z-force, as defined*/ 
   /*- in libscuff.h).                                             */ 
@@ -124,14 +124,14 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   NeedMatrix[SCUFF_OMATRIX_YFORCE ] = QuantityFlags && QFLAG_YFORCE;
   NeedMatrix[SCUFF_OMATRIX_ZFORCE ] = QuantityFlags && QFLAG_ZFORCE;
 
-  SNEQD->SArray=(SMatrix ***)mallocEC(NO*sizeof(SMatrix **));
-  for(no=0; no<NO; no++)
+  SNEQD->SArray=(SMatrix ***)mallocEC(NS*sizeof(SMatrix **));
+  for(ns=0; ns<NS; ns++)
    { 
-     SNEQD->SArray[no]=(SMatrix **)mallocEC(SCUFF_NUM_OMATRICES*sizeof(SMatrix *));
+     SNEQD->SArray[ns]=(SMatrix **)mallocEC(SCUFF_NUM_OMATRICES*sizeof(SMatrix *));
 
      for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
       if (NeedMatrix[nom]) 
-       SNEQD->SArray[no][nom] = new SMatrix(G->Objects[no]->NumBFs,G->Objects[no]->NumBFs,LHM_COMPLEX);
+       SNEQD->SArray[ns][nom] = new SMatrix(G->Surfaces[ns]->NumBFs,G->Surfaces[ns]->NumBFs,LHM_COMPLEX);
    };
 
   /*--------------------------------------------------------------*/
@@ -142,18 +142,18 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   int WriteByOmegaFiles=1;
   if (WriteByOmegaFiles)
    { 
-     SNEQD->ByOmegaFileNames=(char **)mallocEC(NO*NO*sizeof(char *));
+     SNEQD->ByOmegaFileNames=(char **)mallocEC(NS*NS*sizeof(char *));
      FILE *f;
-     for(no=0; no<NO; no++)
-      for(nop=0; nop<NO; nop++)
+     for(ns=0; ns<NS; ns++)
+      for(nsp=0; nsp<NS; nsp++)
        { 
-         SNEQD->ByOmegaFileNames[no*NO+nop] = vstrdup("From%sTo%s.byOmega",
-                                                       G->Objects[no]->Label,
-                                                       G->Objects[nop]->Label);
+         SNEQD->ByOmegaFileNames[ns*NS+nsp] = vstrdup("From%sTo%s.byOmega",
+                                                       G->Surfaces[ns]->Label,
+                                                       G->Surfaces[nsp]->Label);
    
-         f=fopen(SNEQD->ByOmegaFileNames[no*NO+nop],"a");
+         f=fopen(SNEQD->ByOmegaFileNames[ns*NS+nsp],"a");
          if (!f)
-          ErrExit("could not create file %s",SNEQD->ByOmegaFileNames[no]);
+          ErrExit("could not create file %s",SNEQD->ByOmegaFileNames[ns]);
          fprintf(f,"# data file columns: \n");
          fprintf(f,"# 1: angular frequency in units of 3e14 rad/sec \n");
          fprintf(f,"# 2: transformation tag \n");
@@ -169,7 +169,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
           fprintf(f,"# %i: spectral density of z-momentum flux\n",nq++);
    
          fclose(f);
-       }; // for ( no = ...) for (nop = ...)
+       }; // for ( ns = ...) for (nsp = ...)
 
    }; //if (WriteByOmegaFiles)
 

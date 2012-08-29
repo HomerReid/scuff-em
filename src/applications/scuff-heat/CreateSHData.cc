@@ -85,33 +85,33 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations                                            -*/
   /*--------------------------------------------------------------*/
-  int no, nop, nb, NO=G->NumObjects, NBF, NBFp;
+  int ns, nsp, nb, NS=G->NumSurfaces, NBF, NBFp;
 
-  // SHD->TSelf[no]   = contribution of object #no to (no,no) block of matrix 
-  // SHD->TMedium[no] = contribution of external medium to (no,no) block of matrix 
+  // SHD->TSelf[ns]   = contribution of medium inside surface #ns to (ns,ns) block of matrix 
+  // SHD->TMedium[ns] = contribution of external medium to (ns,ns) block of matrix 
   // note that the T blocks of the BEM matrix as computed by libscuff are symmetric,
   // but here (in contrast to the case in scuff-cas3D), we CANNOT use packed-storage
   // symmetric matrices to store them, because after assembling them via libscuff
   // we flip the signs of the magnetic columns, which kills the symmetry.
-  SHD->TSelf= (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
-  SHD->TMedium= (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
-  for(no=0; no<G->NumObjects; no++)
-   { NBF=G->Objects[no]->NumBFs;
-     SHD->TSelf[no] = new HMatrix(NBF, NBF, LHM_COMPLEX);
-     SHD->TMedium[no] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+  SHD->TSelf= (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  SHD->TMedium= (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   { NBF=G->Surfaces[ns]->NumBFs;
+     SHD->TSelf[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+     SHD->TMedium[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
    };
 
   // SHD->UMedium[0]    = 0,1    block
   // SHD->UMedium[1]    = 0,2    block
   //             ...    = ...
-  // SHD->UMedium[NO-1] = 0,NO-1 block
-  // SHD->UMedium[NO]   = 1,2    block
+  // SHD->UMedium[NS-1] = 0,NS-1 block
+  // SHD->UMedium[NS]   = 1,2    block
   // etc.                                         
-  SHD->UMedium = (HMatrix **)mallocEC( ( NO*(NO-1)/2)*sizeof(HMatrix *));
-  for(nb=0, no=0; no<NO; no++)
-   for(nop=no+1; nop<NO; nop++, nb++)
-    { NBF=G->Objects[no]->NumBFs;
-      NBFp=G->Objects[nop]->NumBFs;
+  SHD->UMedium = (HMatrix **)mallocEC( ( NS*(NS-1)/2)*sizeof(HMatrix *));
+  for(nb=0, ns=0; ns<NS; ns++)
+   for(nsp=ns+1; nsp<NS; nsp++, nb++)
+    { NBF=G->Surfaces[ns]->NumBFs;
+      NBFp=G->Surfaces[nsp]->NumBFs;
       SHD->UMedium[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
     };
 
@@ -120,8 +120,8 @@ SHData *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   /*--------------------------------------------------------------*/
   int N, N1, N2;
   N = SHD->G->TotalBFs;
-  N1 = SHD->N1 = SHD->G->Objects[0]->NumBFs;
-  if (NO==1)
+  N1 = SHD->N1 = SHD->G->Surfaces[0]->NumBFs;
+  if (NS==1)
    N2 = N1;
   else
    N2 = SHD->N2 = N - N1;

@@ -23,7 +23,7 @@ LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
 # pthreads instead of OpenMP)
 #
 
-LIBS = -lscuff -lhdf5_hl -llapack -lblas -lgomp
+LIBS = -lscuff -lhdf5_hl -lhdf5 -llapack -lblas -lgomp
 
 
 #

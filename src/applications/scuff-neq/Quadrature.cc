@@ -59,7 +59,7 @@ typedef struct FIData
    SNEQData *SNEQD;
    double OmegaMin;
    int Infinite;
-   double *TObjects;
+   double *TSurfaces;
    double TEnvironment;
 
  } FIData;
@@ -75,7 +75,7 @@ void SGJCIntegrand(unsigned ndim, const double *x, void *params,
   SNEQData *SNEQD     = FID->SNEQD; 
   double OmegaMin     = FID->OmegaMin;
   int Infinite        = FID->Infinite;
-  double *TObjects    = FID->TObjects;
+  double *TSurfaces    = FID->TSurfaces;
   double TEnvironment = FID->TEnvironment;
 
   /*--------------------------------------------------------------*/
@@ -97,22 +97,22 @@ void SGJCIntegrand(unsigned ndim, const double *x, void *params,
   GetFrequencyIntegrand(SNEQD, Omega, fval);
 
   /*--------------------------------------------------------------*/
-  /*- quantities arising from sources inside object nop are       */
+  /*- quantities arising from sources inside object nsp are       */
   /*- weighted by a factor [Theta(T) - Theta(TEnv)]                */
   /*--------------------------------------------------------------*/
-  int nt, nq, no, nop;
-  int NO = SNEQD->G->NumObjects;
+  int nt, nq, ns, nsp;
+  int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
   int NQ = SNEQD->NQ;
-  int NONQ = NO*NQ;
-  int NO2NQ = NO*NO*NQ;
+  int NSNQ = NS*NQ;
+  int NS2NQ = NS*NS*NQ;
   double DeltaTheta;
-  for(nop=0; nop<NO; nop++)
-   { DeltaTheta = Theta(Omega, TObjects[nop]) - Theta(Omega, TEnvironment);
+  for(nsp=0; nsp<NS; nsp++)
+   { DeltaTheta = Theta(Omega, TSurfaces[nsp]) - Theta(Omega, TEnvironment);
      for(nt=0; nt<NT; nt++)
-      for(no=0; no<NO; no++)
+      for(ns=0; ns<NS; ns++)
        for(nq=0; nq<NQ; nq++)
-        fval[ nt*NO2NQ + no*NONQ + nop*NQ + nq ] *= Jacobian*DeltaTheta/M_PI;
+        fval[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ] *= Jacobian*DeltaTheta/M_PI;
    };
      
 }
@@ -122,7 +122,7 @@ void SGJCIntegrand(unsigned ndim, const double *x, void *params,
 /***************************************************************/
 void EvaluateFrequencyIntegral(SNEQData *SNEQD, 
                                double OmegaMin, double OmegaMax,
-                               double *TObjects, double TEnvironment, 
+                               double *TSurfaces, double TEnvironment, 
                                double AbsTol, double RelTol,
                                double *I, double *E)
 { 
@@ -141,38 +141,38 @@ void EvaluateFrequencyIntegral(SNEQData *SNEQD,
   else
    FID->Infinite=0;
 
-  FID->TObjects=TObjects;
+  FID->TSurfaces=TSurfaces;
   FID->TEnvironment=TEnvironment;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   RWGGeometry *G = SNEQD -> G;
-  int NO = G->NumObjects;
+  int NS = G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
   int NQ = SNEQD->NQ;
-  int fdim = NT*NO*NO*NQ;
+  int fdim = NT*NS*NS*NQ;
   adapt_integrate_log(fdim, SGJCIntegrand, (void *)FID, 1, &OmegaMin, &OmegaMax,
                       1000, AbsTol, RelTol, I, E, "scuff-neq.SGJClog",15);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int nt, nq, no, nop;
-  int NONQ = NO*NQ;
-  int NO2NQ = NO*NO*NQ;
+  int nt, nq, ns, nsp;
+  int NSNQ = NS*NQ;
+  int NS2NQ = NS*NS*NQ;
   FILE *f;
   char FileName[1000];
-  for(no=0; no<NO; no++)
-   for(nop=0; nop<NO; nop++)
+  for(ns=0; ns<NS; ns++)
+   for(nsp=0; nsp<NS; nsp++)
     { 
-      snprintf(FileName,1000,"From%sTo%s.out",G->Objects[no]->Label,G->Objects[nop]->Label);
+      snprintf(FileName,1000,"From%sTo%s.out",G->Surfaces[ns]->Label,G->Surfaces[nsp]->Label);
       f=CreateUniqueFile(FileName,1);
       for(nt=0; nt<NT; nt++)
        { fprintf(f,"%s ",SNEQD->GTCList[nt]->Tag);
          for(nq=0; nq<NQ; nq++)
-          fprintf(f,"%e %e ", I[ nt*NO2NQ + no*NONQ + nop*NQ + nq ],
-                              E[ nt*NO2NQ + no*NONQ + nop*NQ + nq ] );
+          fprintf(f,"%e %e ", I[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ],
+                              E[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ] );
          fprintf(f,"\n");
        };
       fclose(f);

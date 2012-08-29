@@ -123,8 +123,8 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
-  if (nThread==0)
-    nThread=GetNumThreads();
+  if (nThread!=0)
+   SetNumThreads(nThread);
 
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
@@ -209,36 +209,35 @@ int main(int argc, char *argv[])
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux);
-  SNEQD->nThread = nThread;
   RWGGeometry *G=SNEQD->G;
 
   /*******************************************************************/
   /* process any temperature specifications **************************/
   /*******************************************************************/
   double TEnvironment=0.0;
-  double *TObjects=(double *)malloc(G->NumObjects*sizeof(double));
-  memset(TObjects, 0, G->NumObjects*sizeof(double));
+  double *TObjects=(double *)malloc(G->NumSurfaces*sizeof(double));
+  memset(TObjects, 0, G->NumSurfaces*sizeof(double));
   if (nTempStrings)
    { 
-     RWGObject *O;
-     int WhichObject;
+     RWGSurface *S;
+     int WhichSurface;
      double TTemp;
 
      for(int nts=0; nts<nTempStrings; nts++)
-      { O=G->GetObjectByLabel(TempStrings[2*nts],&WhichObject);
+      { S=G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface);
 
-        if(WhichObject==-2)
+        if(WhichSurface==-2)
          ErrExit("unknown object (%s) passed for --temperature option",TempStrings[2*nts]);
         if ( 1!=sscanf(TempStrings[2*nts+1],"%le",&TTemp) )
          ErrExit("invalid temperature (%s) passed for --temperature option",TempStrings[2*nts+1]);
 
-        if(WhichObject==-1)
+        if(WhichSurface==-1)
          { TEnvironment=TTemp;
            Log("Setting environment temperature to %g kelvin.\n",TTemp);
            printf("Setting environment temperature to %g kelvin.\n",TTemp);
          }
         else
-         { TObjects[WhichObject]=TTemp;
+         { TObjects[WhichSurface]=TTemp;
            Log("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
            printf("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
          };
@@ -261,7 +260,7 @@ int main(int argc, char *argv[])
   /* now switch off based on the requested frequency behavior to     */
   /* perform the actual calculations                                 */
   /*******************************************************************/
-  int OutputVectorLength = SNEQD->NumTransformations * G->NumObjects * G->NumObjects * SNEQD->NQ;
+  int OutputVectorLength = SNEQD->NumTransformations * G->NumSurfaces * G->NumSurfaces * SNEQD->NQ;
   double *I = new double[ OutputVectorLength ];
   if (NumFreqs>0)
    { for (nFreq=0; nFreq<NumFreqs; nFreq++)

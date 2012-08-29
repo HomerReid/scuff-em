@@ -27,10 +27,10 @@ void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag)
   /***************************************************************/
   /* sanity check ************************************************/
   /***************************************************************/
-  int no;
-  for(no=0; no<G->NumObjects; no++)
-   if ( G->Objects[no]->MP->IsPEC() )
-    ErrExit("flux plot not available for geometries containing PEC objects");
+  int ns;
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   if ( G->Surfaces[ns]->MP->IsPEC() )
+    ErrExit("flux plot not available for geometries containing PEC surfaces");
 
   /***************************************************************/
   /* allocate a vector with enough slots to store one double     */
@@ -42,24 +42,24 @@ void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag)
   /***************************************************************/
   /* fill in the panel flux vector with the flux on each panel   */
   /***************************************************************/
-  RWGObject *O;
+  RWGSurface *S;
   RWGEdge *E;
   int ne, BFIndex, PanelIndex;
   double Value;
-  int Offset = (G->NumObjects == 1) ? 0 : G->Objects[0]->NumBFs;
-  for(no=(G->NumObjects==1) ? 0 : 1; no<G->NumObjects; no++)
-   for(O=G->Objects[no], ne=0; ne<O->NumEdges; ne++)
+  int Offset = (G->NumSurfaces == 1) ? 0 : G->Surfaces[0]->NumBFs;
+  for(ns=(G->NumSurfaces==1) ? 0 : 1; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], ne=0; ne<S->NumEdges; ne++)
     { 
-      E=O->Edges[ne];
+      E=S->Edges[ne];
       
-      BFIndex = G->BFIndexOffset[no] - Offset + 2*ne;
+      BFIndex = G->BFIndexOffset[ns] - Offset + 2*ne;
       Value = 0.5 * ( SNEQD->DV->GetEntryD(BFIndex + 0) + SNEQD->DV->GetEntryD(BFIndex + 1) ); 
 
-      PanelIndex = G->PanelIndexOffset[no] + E->iPPanel;
-      PFV[ PanelIndex ] += 0.5*Value / (O->Panels[E->iPPanel]->Area);
+      PanelIndex = G->PanelIndexOffset[ns] + E->iPPanel;
+      PFV[ PanelIndex ] += 0.5*Value / (S->Panels[E->iPPanel]->Area);
 
-      PanelIndex = G->PanelIndexOffset[no] + E->iMPanel;
-      PFV[ PanelIndex ] += 0.5*Value / (O->Panels[E->iMPanel]->Area);
+      PanelIndex = G->PanelIndexOffset[ns] + E->iMPanel;
+      PFV[ PanelIndex ] += 0.5*Value / (S->Panels[E->iMPanel]->Area);
 
     };
   
@@ -72,13 +72,13 @@ void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag)
   int np;
   RWGPanel *P;
   double *PV[3];
-  for(PanelIndex=no=0; no<G->NumObjects; no++)
-   for(O=G->Objects[no], np=0, P=O->Panels[0]; np<O->NumPanels; np++, PanelIndex++)
+  for(PanelIndex=ns=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], np=0, P=S->Panels[0]; np<S->NumPanels; np++, PanelIndex++)
    {
-      P=O->Panels[np];
-      PV[0]=O->Vertices + 3*P->VI[0];
-      PV[1]=O->Vertices + 3*P->VI[1];
-      PV[2]=O->Vertices + 3*P->VI[2];
+      P=S->Panels[np];
+      PV[0]=S->Vertices + 3*P->VI[0];
+      PV[1]=S->Vertices + 3*P->VI[1];
+      PV[2]=S->Vertices + 3*P->VI[2];
 
       if ( PFV[PanelIndex]!=0.0 )
        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",

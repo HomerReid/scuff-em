@@ -107,7 +107,7 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
       {
         if (NumLatticeBasisVectors==MAXLATTICE)
          ErrExit("%s:%i: too many lattice vectors",FileName,*LineNum);
-        LBV=LatticeBasisVectors[NumLatticeVectors++];
+        LBV=LatticeBasisVectors[NumLatticeBasisVectors++];
 
         if (NumTokens==4)
          { sscanf(Tokens[1],"%le",LBV+0);
@@ -130,9 +130,9 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
      else if ( !strcasecmp(Tokens[0],"ENDLATTICE") )
       { 
         // if the user specified two basis vectors, test for orthogonality
-        if (NumLatticeVectors==2)
-         { double DotProd=VecDot(LBV[0],LBV[1]);
-           double NormProd=VecNorm(LBV[0])*VecNorm(LBV[1]);
+        if (NumLatticeBasisVectors==2)
+         { double DotProd=VecDot(LatticeBasisVectors[0],LatticeBasisVectors[1]);
+           double NormProd=VecNorm(LatticeBasisVectors[0])*VecNorm(LatticeBasisVectors[1]);
            if ( DotProd > 1.0e-6*NormProd )
             ErrExit("%s:%i: lattice basis vectors are not orthogonal",FileName,*LineNum);
          };
@@ -206,7 +206,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   Surfaces=0;
   AllSurfacesClosed=1;
   HaveLineCharges=0;
-  NumLatticeVectors=0;
+  NumLatticeBasisVectors=0;
 
   // we always start with a single Region, for the exterior,
   // taken to be vacuum by default
@@ -367,7 +367,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /*      internally stored fields that accelerate the computation   */
   /*      of the BEM matrix in the presence of PBCs                  */
   /*******************************************************************/
-  if (NumLatticeVectors>0)
+  if (NumLatticeBasisVectors>0)
    InitPBCData();
 
   /*******************************************************************/
@@ -512,8 +512,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 /***************************************************************/
 RWGGeometry::~RWGGeometry()
 {
-  int ns;
-
   for(int ns=0; ns<NumSurfaces; ns++)
    delete Surfaces[ns];
 

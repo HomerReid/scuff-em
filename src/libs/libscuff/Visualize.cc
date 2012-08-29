@@ -34,6 +34,8 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
+#define MAXSTR 1000
+
 /************************************************************/
 /* subroutines for emitting GMSH postprocessing code        */
 /************************************************************/
@@ -66,7 +68,7 @@ void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNor
   FILE *f;
   RWGSurface *S;
   RWGPanel *P;
-  char buffer[1000], *p;
+  char buffer[MAXSTR], *p;
   double *PV[3], Val;
   int ns, np;
 
@@ -139,7 +141,7 @@ void RWGGeometry::WritePPMesh(const char *FileName, const char *Tag, int PlotNor
 void RWGGeometry::WriteGPMesh(const char *format, ...)
 { 
   va_list ap;
-  char FileName[1000], *p;
+  char FileName[MAXSTR], *p;
   FILE *f;
   RWGSurface *S;
   RWGPanel *P;
@@ -187,7 +189,7 @@ void RWGGeometry::WriteGPMesh(const char *format, ...)
 void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
 { 
   va_list ap;
-  char FileName[1000];
+  char FileName[MAXSTR];
   FILE *f;
   RWGPanel *P;
   RWGEdge *E;
@@ -198,7 +200,7 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
   int i, ns, np, ne, nv, LabelIndex;
 
   va_start(ap,format);
-  vsnprintfEC(FileName,1000,format,ap);
+  vsnprintfEC(FileName,MAXSTR,format,ap);
   va_end(ap);
   
   /***************************************************************/
@@ -285,7 +287,7 @@ void RWGSurface::WritePPMesh(const char *FileName, const char *Tag, int PlotNorm
 { 
   FILE *f;
   RWGPanel *P;
-  char buffer[1000], *p;
+  char buffer[MAXSTR], *p;
   double *PV[3], Val;
   int np;
 
@@ -362,7 +364,7 @@ void RWGSurface::WritePPMeshLabels(const char *FileName,
   FILE *f;
   RWGPanel *P;
   RWGEdge *E;
-  char buffer[1000], *p;
+  char buffer[MAXSTR], *p;
   int np, ne, nv;
 
   /***************************************************************/
@@ -470,7 +472,7 @@ void RWGSurface::WritePPMeshLabels(const char *FileName, const char *Tag)
 void RWGSurface::WriteGPMesh(const char *format, ...)
 { 
   va_list ap;
-  char FileName[1000];
+  char FileName[MAXSTR];
   FILE *f;
   RWGPanel *P;
   RWGEdge *E;
@@ -480,7 +482,7 @@ void RWGSurface::WriteGPMesh(const char *format, ...)
   int i, np, ne, nv, LabelIndex;
 
   va_start(ap,format);
-  vsnprintfEC(FileName,1000,format,ap);
+  vsnprintfEC(FileName,MAXSTR,format,ap);
   va_end(ap);
   
   /***************************************************************/
@@ -559,28 +561,35 @@ void RWGSurface::WriteGPMesh(const char *format, ...)
 /* distribution described by a single vector of surface-current*/
 /* expansion coefficients.                                     */
 /***************************************************************/
-void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...)
+void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
+                                      HVector *KN, cdouble Omega, 
+                                      const char *format, ...)
 { 
   int ns, np, ne;
   FILE *f;
   int MM, Offset, NeedMagnetic;
-  RWGSurface *S;
+  RWGSurface *S, *WhichSurface;
   RWGPanel *P;
   RWGEdge *E;
   double *PV[3];
   double XmQ[3];
   cdouble Weight, Rho, J[3];
 
-  char FileName[1000];
+  char FileName[MAXSTR];
   va_list ap;
 
   cdouble iw = II*Omega;
+
+  if (SurfaceLabel)
+   WhichSurface=GetSurfaceByLabel(SurfaceLabel);
+  else
+   WhichSurface=NULL;
  
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   va_start(ap,format);
-  vsnprintfEC(FileName,1000,format,ap);
+  vsnprintfEC(FileName,MAXSTR,format,ap);
   va_end(ap);
   f=fopen(FileName,"w");
   if (!f) return;
@@ -589,70 +598,81 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* plot electric charge densities of all basis functions       */
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Electric Charge Density");
-  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
-   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
-     { 
-       MM=S->IsPEC ? 1 : 2;
-       Offset=BFIndexOffset[ns];
+  for(ns=0; ns<NumSurfaces; ns++)
+   { 
+     S=Surfaces[ns];
+     if (WhichSurface && S!=WhichSurface) 
+      continue;
 
-       /* */
-       Rho=0.0;
-       for(ne=0; ne<S->NumEdges; ne++)
-        if ( S->Edges[ne]->iPPanel == np )
-         Rho += S->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne);
-        else if ( S->Edges[ne]->iMPanel == np )
-         Rho -= S->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne);
-       Rho /= (P->Area * iw);
+     for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
+      { 
+        MM=S->IsPEC ? 1 : 2;
+        Offset=BFIndexOffset[ns];
 
-       PV[0]=S->Vertices + 3*P->VI[0];
-       PV[1]=S->Vertices + 3*P->VI[1];
-       PV[2]=S->Vertices + 3*P->VI[2];
+        /* */
+        Rho=0.0;
+        for(ne=0; ne<S->NumEdges; ne++)
+         if ( S->Edges[ne]->iPPanel == np )
+          Rho += S->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne);
+         else if ( S->Edges[ne]->iMPanel == np )
+          Rho -= S->Edges[ne]->Length * KN->GetEntry(Offset + MM*ne);
+        Rho /= (P->Area * iw);
 
-       fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                  PV[0][0], PV[0][1], PV[0][2],
-                  PV[1][0], PV[1][1], PV[1][2],
-                  PV[2][0], PV[2][1], PV[2][2],
-                  real(Rho),real(Rho),real(Rho));
-     };
+        PV[0]=S->Vertices + 3*P->VI[0];
+        PV[1]=S->Vertices + 3*P->VI[1];
+        PV[2]=S->Vertices + 3*P->VI[2];
+
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   PV[0][0], PV[0][1], PV[0][2],
+                   PV[1][0], PV[1][1], PV[1][2],
+                   PV[2][0], PV[2][1], PV[2][2],
+                   real(Rho),real(Rho),real(Rho));
+      };
+   }; 
   fprintf(f,"};\n");
 
   /***************************************************************/
   /* plot electric current densities at centroids of all panels  */
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Electric Current");
-  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
-   for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
-     { 
-       MM=S->IsPEC ? 1 : 2;
-       Offset=BFIndexOffset[ns];
+  for(ns=0; ns<NumSurfaces; ns++)
+   { 
+     S=Surfaces[ns];
+     if (WhichSurface && S!=WhichSurface) 
+      continue;
 
-       /* */
-       memset(J,0,3*sizeof(cdouble));
-       for(ne=0, E=S->Edges[0]; ne<S->NumEdges; E=S->Edges[++ne])
-        { if ( E->iPPanel == np )
-           { VecSub( P->Centroid, S->Vertices + 3*(E->iQP), XmQ);
-             Weight = E->Length * KN->GetEntry(Offset + MM*ne);
-             J[0] += Weight * XmQ[0];
-             J[1] += Weight * XmQ[1];
-             J[2] += Weight * XmQ[2];
-           }
-          else if ( E->iMPanel == np )
-           { VecSub( P->Centroid, S->Vertices + 3*(E->iQM), XmQ);
-             Weight = E->Length * KN->GetEntry(Offset + MM*ne);
-             J[0] -= Weight * XmQ[0];
-             J[1] -= Weight * XmQ[1];
-             J[2] -= Weight * XmQ[2];
-           };
-        };
-       J[0] /= (2.0*P->Area);
-       J[1] /= (2.0*P->Area);
-       J[2] /= (2.0*P->Area);
-
-       fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
-                  P->Centroid[0],P->Centroid[1],P->Centroid[2],
-                  abs(J[0]),abs(J[1]),abs(J[2]));
-
-     };
+     for(np=0, P=S->Panels[0]; np<S->NumPanels; P=S->Panels[++np])
+      { 
+        MM=S->IsPEC ? 1 : 2;
+        Offset=BFIndexOffset[ns];
+ 
+        memset(J,0,3*sizeof(cdouble));
+        for(ne=0, E=S->Edges[0]; ne<S->NumEdges; E=S->Edges[++ne])
+         { if ( E->iPPanel == np )
+            { VecSub( P->Centroid, S->Vertices + 3*(E->iQP), XmQ);
+              Weight = E->Length * KN->GetEntry(Offset + MM*ne);
+              J[0] += Weight * XmQ[0];
+              J[1] += Weight * XmQ[1];
+              J[2] += Weight * XmQ[2];
+            }
+           else if ( E->iMPanel == np )
+            { VecSub( P->Centroid, S->Vertices + 3*(E->iQM), XmQ);
+              Weight = E->Length * KN->GetEntry(Offset + MM*ne);
+              J[0] -= Weight * XmQ[0];
+              J[1] -= Weight * XmQ[1];
+              J[2] -= Weight * XmQ[2];
+            };
+         };
+        J[0] /= (2.0*P->Area);
+        J[1] /= (2.0*P->Area);
+        J[2] /= (2.0*P->Area);
+ 
+        fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
+                   P->Centroid[0],P->Centroid[1],P->Centroid[2],
+                   abs(J[0]),abs(J[1]),abs(J[2]));
+ 
+      };
+   };
   fprintf(f,"};\n");
 
   /***************************************************************/
@@ -660,9 +680,16 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* object is non-PEC                                           */
   /***************************************************************/
   NeedMagnetic=0;
-  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
-   if ( !(S->IsPEC) )
-    NeedMagnetic=1;
+  for(ns=0; NeedMagnetic==0 && ns<NumSurfaces; ns++)
+   { 
+     S=Surfaces[ns];
+     if (WhichSurface && S!=WhichSurface)
+      continue;
+     if ( S->IsPEC )
+      continue;
+     NeedMagnetic=1;
+   };
+
   if (NeedMagnetic==0)
    { fclose(f); 
      return;
@@ -672,8 +699,11 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* plot magnetic charge densities of all basis functions       */
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Magnetic Charge Density");
-  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+  for(ns=0; ns<NumSurfaces; ns++)
    { 
+     S=Surfaces[ns];
+     if (WhichSurface && S!=WhichSurface) 
+      continue;
      if ( S->IsPEC ) 
       continue;
      MM=2;
@@ -707,8 +737,11 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   /* plot electric current densities at centroids of all panels  */
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Magnetic Current");
-  for(ns=0, S=Surfaces[0]; ns<NumSurfaces; S=Surfaces[++ns])
+  for(ns=0; ns<NumSurfaces; ns++)
    { 
+     S=Surfaces[ns];
+     if (WhichSurface && S!=WhichSurface) 
+      continue;
      if ( S->IsPEC )
       continue;
      MM=2;
@@ -749,6 +782,23 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *fo
   fprintf(f,"};\n");
   fclose(f);
 
+}
+
+/***************************************************************/
+/* an alternative entry point to PlotSurfaceCurrents in which  */
+/* the called doesn't specify a surface label; in this case    */
+/* currents on all surfaces are plotted.                       */
+/***************************************************************/
+void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, 
+                                      const char *format, ...)
+{ 
+  va_list ap;
+  char FileName[MAXSTR];
+  va_start(ap,format);
+  vsnprintfEC(FileName,MAXSTR,format,ap);
+  va_end(ap);
+  
+  PlotSurfaceCurrents(0, KN, Omega, FileName);
 }
 
 } // namespace scuff

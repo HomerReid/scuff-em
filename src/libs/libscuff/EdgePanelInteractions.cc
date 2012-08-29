@@ -145,7 +145,7 @@ else if (QROrder==20)
   /* outer loop (cubature over triangle) *************************/
   /***************************************************************/
   int np, ncp, npp, ncpp;
-  int Mu, Nu;
+  int Mu;
   double u, v, w, up, wp;
   double X[3], XP[3], R[3];
   double r;
@@ -229,7 +229,7 @@ nCalls++;
   cdouble IK    = II*Data->K;
   int WhichCase = Data->WhichCase;
 
-  double x, y, RR1[3], RR2[3], RR3[3], R1, R2, R3;
+  double RR1[3], RR2[3], RR3[3], R1, R2, R3;
   cdouble *zfval=(cdouble *)fval;
   int p;
 

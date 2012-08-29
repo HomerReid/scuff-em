@@ -89,8 +89,9 @@ static int PointOnLine(double *X, double *L)
 /* be added to turn the half-RWG basis function associated with*/
 /* edge #nei into a full RWG basis function.                   */
 /***************************************************************/
-static int FindPartnerEdge(RWGSurface *S, int nei, double *LBV[2], 
-                           int NumLatticeVectors, int NumStraddlers[2], double *V)
+static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3], 
+                           int NumLatticeVectors, int NumStraddlers[MAXLATTICE], 
+                           double *V)
 {
   if (NumLatticeVectors!=2)
    ErrExit("%s:%i: NumLatticeVectors != 2 not yet supported",__FILE__,__LINE__);
@@ -125,7 +126,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double *LBV[2],
   double V1T[3], V2T[3]; // 'V12, translated'
   V1T[0] = V1[0] + OtherBV[0]; V1T[1] = V1[1] + OtherBV[1]; V1T[2] = V1[2];
   V2T[0] = V2[0] + OtherBV[0]; V2T[1] = V2[1] + OtherBV[1]; V2T[2] = V2[2];
-  double *QP, *V1P, *V2P; // 'Q,V1,V2, primed'
+  double *V1P, *V2P; // 'V1,V2, primed'
   for(int neip=0; neip<S->NumExteriorEdges; neip++)
    { 
      if (S->ExteriorEdges[neip]==0) 
@@ -179,20 +180,19 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double *LBV[2],
 /*  NumLatticeVectors is the length of the first dimension of   */
 /*  the LBV array.                                              */
 /*                                                              */
-/*  If NumStraddlers is non-NULL, then on return                */ 
-/*  NumStraddlers[i] is the number of straddlers detected on    */
-/*  the unit-cell boundary normal to LBV[i].                    */
+/*  On return, NumStraddlers[i] is the number of straddlers     */
+/*  detected on the unit-cell boundary normal to LBV[i].        */
 /*--------------------------------------------------------------*/
 #define CHUNK 100
-void AddStraddlers(RWGSurface *S, double **LBV, int NumLatticeVectors, int *NumStraddlers)
+void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3], 
+                   int NumLatticeVectors, int NumStraddlers[MAXLATTICE])
 { 
   int NumNew=0, NumAllocated=0;
   double V[3], *NewVertices=0;
   RWGPanel *P, **NewPanels=0;
   RWGEdge *E, **NewEdges=0;
 
-  if (NumStraddlers)
-   memset(NumStraddlers, 0, 2*sizeof(int));
+  memset(NumStraddlers, 0, MAXLATTICE*sizeof(int));
 
   int nei, neip;
   for(nei=0; nei<S->NumExteriorEdges; nei++)
@@ -318,7 +318,7 @@ void AddStraddlers(RWGSurface *S, double **LBV, int NumLatticeVectors, int *NumS
   S->NumBFs = ( S->IsPEC ? NumEdges : 2*NumEdges );
 
   if (NumStraddlers)
-   Log(" Detected (%i,%i) straddlers for object %s", NumStraddlers[MAXLATTICE*ns+0],NumStraddlers[MAXLATTICE*ns+1],S->Label);
+   Log(" Detected (%i,%i) straddlers for object %s", NumStraddlers[0],NumStraddlers[1],S->Label);
 
 }
 
@@ -327,7 +327,7 @@ void AddStraddlers(RWGSurface *S, double **LBV, int NumLatticeVectors, int *NumS
 /* initializes internal data fields needed for working with    */
 /* periodic boundary conditions.                               */
 /***************************************************************/
-RWGGeometry::InitPBCData()
+void RWGGeometry::InitPBCData()
 {
   /*--------------------------------------------------------------*/
   /* Step 1: Addition of 'straddlers.'                            */
@@ -335,15 +335,27 @@ RWGGeometry::InitPBCData()
   /* on the unit-cell boundary ('straddlers'), and we add new     */
   /* panels and vertices to the surface to allow those edges to   */
   /* be promoted from exterior to interior edges.                 */
+  /*                                                              */
+  /* Note: NumStraddlers is an array stored within RWGGeometry    */
+  /* that tabulates how many straddlers each surface has in each  */
+  /* possible direction.                                          */
+  /* NumStraddlers[MAXLATTICE*ns + i] = number of stradders for   */
+  /*                                    surface #ns that straddle */
+  /*                                    the unit cell boundary    */
+  /*                                    normal to basis vector #i */
   /*--------------------------------------------------------------*/
   TotalBFs=TotalPanels=0;
+  NumStraddlers=(int *)mallocEC(NumSurfaces*MAXLATTICE*sizeof(int)); 
   for(int ns=0; ns<NumSurfaces; ns++)
-   { AddStraddlers(Surfaces[ns], LBV, NumLatticeVectors, 0);
+   { 
+     RWGSurface *S=Surfaces[ns];
+     AddStraddlers(S, LatticeBasisVectors, NumLatticeBasisVectors, 
+                   NumStraddlers + ns*MAXLATTICE);
      TotalBFs+=S->NumBFs;
      TotalPanels+=S->NumPanels;
-     if ( ns+1 < G->NumSurfaces )
-      { G->BFIndexOffset[ns+1]=G->BFIndexOffset[ns] + S->NumBFs;
-        G->PanelIndexOffset[ns+1]=G->PanelIndexOffset[ns] + S->NumPanels;
+     if ( ns+1 < NumSurfaces )
+      { BFIndexOffset[ns+1]=BFIndexOffset[ns] + S->NumBFs;
+        PanelIndexOffset[ns+1]=PanelIndexOffset[ns] + S->NumPanels;
       };
    };
 
@@ -355,11 +367,11 @@ RWGGeometry::InitPBCData()
   /*- geometry and a copy of itself translated through vector    -*/
   /*- a*LBV[0] + b*LBV[1].                                       -*/
   /*--------------------------------------------------------------*/
-  MPP=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
-  MPM=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
-  MPZ=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
-  MZP=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
-  MZZ=new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX);
+  MPP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+  MPM=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+  MPZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+  MZP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+  MZZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
   // this one could be symmetric ...
 
   /*--------------------------------------------------------------*/

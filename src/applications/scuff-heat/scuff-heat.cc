@@ -202,7 +202,6 @@ int main(int argc, char *argv[])
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
-     {"SWPPITol",       PA_DOUBLE,  1, 1,       (void *)&SWPPITol,   0,             "short-wavelength panel-panel integration tolerance"},
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {0,0,0,0,0,0,0}
    };
@@ -223,11 +222,6 @@ int main(int argc, char *argv[])
    SetLogFileName("scuff-heat.log");
 
   Log("scuff-heat running on %s",GetHostName());
-
-  if (SWPPITol!=0.0)
-   { Log("setting short-wavelength PPI tolerance to %e...",SWPPITol);
-     RWGGeometry::SWPPITol=SWPPITol;
-   };
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */

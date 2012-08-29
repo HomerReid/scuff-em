@@ -418,7 +418,9 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  char *SSParmNames[4]={ (char *)"w", (char *)"x", (char *)"y", (char *)"z"};
+ // char *SSParmNames[4]={ (char *)"w", (char *)"x", (char *)"y", (char *)"z"};
+  char *SSParmNames[4]={ const_cast<char *>("w"), const_cast<char *>("x"), 
+                         const_cast<char *>("y"), const_cast<char *>("z") };
   cdouble SSParmValues[4];
   SSParmValues[0]=Args->Omega*MatProp::FreqUnit;
 

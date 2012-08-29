@@ -153,10 +153,10 @@ void AnalyzeGeometry(RWGGeometry *G, int WriteGPFiles, int WritePPFiles)
      else
       { 
         if (S->IsPEC)
-         printf("PEC surface in region %i (%s) \n",
+         printf("\n PEC surface in region %i (%s) \n\n",
                  S->RegionIndices[0], G->RegionLabels[S->RegionIndices[0]]);
         else
-         printf("Interface between regions %i (%s) and %i (%s)\n",
+         printf("\n Interface between regions %i (%s) and %i (%s)\n\n",
               S->RegionIndices[0], G->RegionLabels[S->RegionIndices[0]],
               S->RegionIndices[1], G->RegionLabels[S->RegionIndices[1]]);
         AnalyzeSurface(G->Surfaces[ns],0,0);

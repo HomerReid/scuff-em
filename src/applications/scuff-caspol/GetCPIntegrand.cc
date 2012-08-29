@@ -119,7 +119,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   /***************************************************************/
   if (G)
    { Log("Assembling BEM matrix at Xi=%g\n",Xi);
-     G->AssembleBEMMatrix(cdouble(0,Xi), M, nThread);
+     G->AssembleBEMMatrix(cdouble(0,Xi), M);
      M->LUFactorize();
    };
 

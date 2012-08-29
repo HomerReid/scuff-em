@@ -38,10 +38,10 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
   /***************************************************************/
   /* sanity check ************************************************/
   /***************************************************************/
-  int no;
-  for(no=0; no<G->NumObjects; no++)
-   if ( G->Objects[no]->MP->IsPEC() )
-    ErrExit("flux plot not available for geometries containing PEC objects");
+  int ns;
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   if ( G->Surfaces[ns]->IsPEC )
+    ErrExit("flux plot not available for geometries containing PEC surfaces");
 
   /***************************************************************/
   /* allocate a vector with enough slots to store one double     */
@@ -53,24 +53,24 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
   /***************************************************************/
   /* fill in the panel flux vector with the flux on each panel   */
   /***************************************************************/
-  RWGObject *O;
+  RWGSurface *S;
   RWGEdge *E;
   int ne, BFIndex, PanelIndex;
   double Value;
-  int Offset = (G->NumObjects == 1) ? 0 : G->Objects[0]->NumBFs;
-  for(no=(G->NumObjects==1) ? 0 : 1; no<G->NumObjects; no++)
-   for(O=G->Objects[no], ne=0; ne<O->NumEdges; ne++)
+  int Offset = (G->NumSurfaces == 1) ? 0 : G->Surfaces[0]->NumBFs;
+  for(ns=(G->NumSurfaces==1) ? 0 : 1; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], ne=0; ne<S->NumEdges; ne++)
     { 
-      E=O->Edges[ne];
+      E=S->Edges[ne];
       
-      BFIndex = G->BFIndexOffset[no] - Offset + 2*ne;
+      BFIndex = G->BFIndexOffset[ns] - Offset + 2*ne;
       Value = 0.5 * ( SHD->DV->GetEntryD(BFIndex + 0) + SHD->DV->GetEntryD(BFIndex + 1) ); 
 
-      PanelIndex = G->PanelIndexOffset[no] + E->iPPanel;
-      PFV[ PanelIndex ] += 0.5*Value / (O->Panels[E->iPPanel]->Area);
+      PanelIndex = G->PanelIndexOffset[ns] + E->iPPanel;
+      PFV[ PanelIndex ] += 0.5*Value / (S->Panels[E->iPPanel]->Area);
 
-      PanelIndex = G->PanelIndexOffset[no] + E->iMPanel;
-      PFV[ PanelIndex ] += 0.5*Value / (O->Panels[E->iMPanel]->Area);
+      PanelIndex = G->PanelIndexOffset[ns] + E->iMPanel;
+      PFV[ PanelIndex ] += 0.5*Value / (S->Panels[E->iMPanel]->Area);
 
     };
   
@@ -83,13 +83,13 @@ void CreateFluxPlot(SHData *SHD, cdouble Omega, char *Tag)
   int np;
   RWGPanel *P;
   double *PV[3];
-  for(PanelIndex=no=0; no<G->NumObjects; no++)
-   for(O=G->Objects[no], np=0, P=O->Panels[0]; np<O->NumPanels; np++, PanelIndex++)
-   {
-      P=O->Panels[np];
-      PV[0]=O->Vertices + 3*P->VI[0];
-      PV[1]=O->Vertices + 3*P->VI[1];
-      PV[2]=O->Vertices + 3*P->VI[2];
+  for(PanelIndex=ns=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], np=0, P=S->Panels[0]; np<S->NumPanels; np++, PanelIndex++)
+    {
+      P=S->Panels[np];
+      PV[0]=S->Vertices + 3*P->VI[0];
+      PV[1]=S->Vertices + 3*P->VI[1];
+      PV[2]=S->Vertices + 3*P->VI[2];
 
       if ( PFV[PanelIndex]!=0.0 )
        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
@@ -187,7 +187,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   InitABMBArgs(Args);
   Args->G         = SHD->G;
   Args->Omega     = Omega;
-  Args->nThread   = SHD->nThread;
 
   Log("Computing heat radiation/transfer at omega=%s...",z2s(Omega));
 
@@ -195,28 +194,28 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
-  int no, nop, nb, nr, NO=G->NumObjects;
-  for(no=0; no<G->NumObjects; no++)
+  int ns, nsp, nb, nr, NS=G->NumSurfaces;
+  for(ns=0; ns<G->NumSurfaces; ns++)
    { 
-     Args->Oa = Args->Ob = G->Objects[no];
+     Args->Sa = Args->Sb = G->Surfaces[ns];
 
-     Log(" Assembling self contributions to T(%i)...",no);
-     G->ExteriorMP->Zero();
-     Args->B = TSelf[no];
+     Log(" Assembling self contributions to T(%i)...",ns);
+     G->RegionMPs[0]->Zero();
+     Args->B = TSelf[ns];
      Args->Symmetric=1;
      AssembleBEMMatrixBlock(Args);
-     FillInLowerTriangle(TSelf[no]);
-     FlipSignOfMagneticColumns(TSelf[no]);
-     G->ExteriorMP->UnZero();
+     FillInLowerTriangle(TSelf[ns]);
+     FlipSignOfMagneticColumns(TSelf[ns]);
+     G->RegionMPs[0]->UnZero();
 
-     Log(" Assembling medium contributions to T(%i)...",no);
-     G->Objects[no]->MP->Zero();
-     Args->B = TMedium[no];
+     Log(" Assembling medium contributions to T(%i)...",ns);
+     G->RegionMPs[ns+1]->Zero();
+     Args->B = TMedium[ns];
      Args->Symmetric=1;
      AssembleBEMMatrixBlock(Args);
-     FillInLowerTriangle(TMedium[no]);
-     FlipSignOfMagneticColumns(TMedium[no]);
-     G->Objects[no]->MP->UnZero();
+     FillInLowerTriangle(TMedium[ns]);
+     FlipSignOfMagneticColumns(TMedium[ns]);
+     G->RegionMPs[ns+1]->UnZero();
 
    };
 
@@ -226,7 +225,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   /* goes wrong and we never make it to the later step it's nice */
   /* to dump it out here so that we can at least have a partial  */
   /* cache to accelerate a subsequent calculation involving      */
-  /* any of the same objects                                     */
+  /* any of the same surfaces                                    */
   /***************************************************************/
   if ( SHD->WriteCache ) 
    StoreCache( SHD->WriteCache );
@@ -260,13 +259,13 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      /* statement here is checking for.                              */
      /*--------------------------------------------------------------*/
      Args->Symmetric=0;
-     for(nb=0, no=0; no<NO; no++)
-      for(nop=no+1; nop<NO; nop++, nb++)
-       if ( nt==0 || G->ObjectMoved[no] || G->ObjectMoved[nop] )
+     for(nb=0, ns=0; ns<NS; ns++)
+      for(nsp=ns+1; nsp<NS; nsp++, nb++)
+       if ( nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
         { 
-          Log("  Assembling U(%i,%i)...",no,nop);
-          Args->Oa = G->Objects[no];
-          Args->Ob = G->Objects[nop];
+          Log("  Assembling U(%i,%i)...",ns,nsp);
+          Args->Sa = G->Surfaces[ns];
+          Args->Sb = G->Surfaces[nsp];
           Args->B  = UMedium[nb];
           AssembleBEMMatrixBlock(Args);
           FlipSignOfMagneticColumns(UMedium[nb]);
@@ -277,14 +276,14 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      /*- and U blocks in their appropriate places, then LU-factorize */
      /*- and invert it to get the W matrix.                          */
      /*--------------------------------------------------------------*/
-     for(nb=0, no=0; no<NO; no++)
+     for(nb=0, ns=0; ns<NS; ns++)
       { 
-        RowOffset=G->BFIndexOffset[no];
-        W->InsertBlock(TSelf[no], RowOffset, RowOffset);
-        W->AddBlock(TMedium[no], RowOffset, RowOffset);
+        RowOffset=G->BFIndexOffset[ns];
+        W->InsertBlock(TSelf[ns], RowOffset, RowOffset);
+        W->AddBlock(TMedium[ns], RowOffset, RowOffset);
 
-        for(nop=no+1; nop<NO; nop++, nb++)
-         { ColOffset=G->BFIndexOffset[nop];
+        for(nsp=ns+1; nsp<NS; nsp++, nb++)
+         { ColOffset=G->BFIndexOffset[nsp];
            W->InsertBlock(UMedium[nb], RowOffset, ColOffset);
            
            FlipSignOfMagneticColumns(UMedium[nb]);
@@ -319,7 +318,7 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      for(nr=0; nr<N1; nr++)
       Scratch->SetEntry(nr, nr, 1.0);
      W->LUSolve(Scratch);
-     if (NO==1)
+     if (NS==1)
       Scratch->ExtractBlock(0, 0, W21);
      else
       Scratch->ExtractBlock(N1, 0, W21);
@@ -332,19 +331,19 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      /*- to symmetrize.                                              */
      /*--------------------------------------------------------------*/
      SymG2->Zero();
-     if (NO==1)
+     if (NS==1)
       { if (PlotFlux)
          SymG2->InsertBlock(TMedium[0], 0, 0);
         else 
          InsertSymmetrizedBlock(SymG2, TMedium[0], 0, 0);
       }
      else
-      { for(no=1; no<NO; no++)
-         { RowOffset=G->BFIndexOffset[no] - N1;
+      { for(ns=1; ns<NS; ns++)
+         { RowOffset=G->BFIndexOffset[ns] - N1;
            if (PlotFlux)
-            SymG2->InsertBlock(TSelf[no], RowOffset, RowOffset );
+            SymG2->InsertBlock(TSelf[ns], RowOffset, RowOffset );
            else 
-            InsertSymmetrizedBlock(SymG2, TSelf[no], RowOffset, RowOffset );
+            InsertSymmetrizedBlock(SymG2, TSelf[ns], RowOffset, RowOffset );
          };
       };
 

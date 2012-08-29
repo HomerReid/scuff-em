@@ -36,7 +36,7 @@
 void SpyPlot(HMatrix *M, char *Title, char *FileName)
 {
   if (!FileName)
-   FileName="/tmp/.spyplot.dat";
+   FileName=const_cast<char *>("/tmp/.spyplot.dat");
    
   FILE *f=fopen(FileName,"w");
   if (!f) return;
@@ -79,8 +79,8 @@ void UndoSCUFFMatrixTransformation(HMatrix *M)
 
 /***************************************************************/
 /* evaluate the four-matrix trace formula for the contribution */
-/* of fluctuations within SourceObject to the flux of quantity */
-/* QIndex into DestObject.                                     */
+/* of fluctuations within SourceSurface to the flux of quantity */
+/* QIndex into DestSurface.                                     */
 /*                                                             */
 /* QIndex      = 0,1,2,3 for power, {x,y,z} momentum           */
 /*                                                             */
@@ -99,18 +99,18 @@ void UndoSCUFFMatrixTransformation(HMatrix *M)
 /*                                                             */
 /***************************************************************/
 double GetTrace(SNEQData *SNEQD, int QIndex, 
-                int SourceObject, int DestObject, 
+                int SourceSurface, int DestSurface, 
                 FILE *ByOmegaFile)
 {
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
   SMatrix ***SArray   = SNEQD->SArray;
 
-  int Offset1       = G->BFIndexOffset[DestObject];
-  SMatrix *OMatrix1 = SArray[DestObject][ 1 + QIndex ];
+  int Offset1       = G->BFIndexOffset[DestSurface];
+  SMatrix *OMatrix1 = SArray[DestSurface][ 1 + QIndex ];
 
-  int Offset2       = G->BFIndexOffset[SourceObject];
-  SMatrix *OMatrix2 = SArray[SourceObject][ 1 + QINDEX_POWER];
+  int Offset2       = G->BFIndexOffset[SourceSurface];
+  SMatrix *OMatrix2 = SArray[SourceSurface][ 1 + QINDEX_POWER];
 
   int p, q, r, s; 
   int nnzq, nq, nnzs, ns;
@@ -189,13 +189,13 @@ if (QIndex==QINDEX_ZFORCE) exit(1);
 /* the computed quantities are ordered in the output vector    */
 /* like this:                                                  */
 /*                                                             */
-/*  FI[ nt*NO2NQ + no*NONQ + nop*NQ + nq ]                     */
-/*   = contribution of sources in object #nop to flux of       */
-/*     quantity #nq into object #no, all at transformation #nt */
+/*  FI[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ]                     */
+/*   = contribution of sources inside surface #nsp to flux of  */
+/*     quantity #nq into surface #ns, all at transformation #nt*/
 /*                                                             */
 /*  where    NQ = number of quantities (1--4)                  */
-/*  where  NONQ = number of objects * NQ                       */
-/*  where NO2NQ = (number of objects)^2* NQ                    */
+/*  where  NSNQ = number of surface * NQ                       */
+/*  where NS2NQ = (number of surfaces)^2* NQ                   */
 /***************************************************************/
 void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
 {
@@ -220,46 +220,25 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   InitABMBArgs(Args);
   Args->G         = G;
   Args->Omega     = Omega;
-  Args->nThread = SNEQD->nThread;
 
   /***************************************************************/
   /* also before entering the loop over transformations, we      */
   /* pause to assemble the overlap matrices.                     */
   /***************************************************************/
-  int no, nop, nb, NO=G->NumObjects;
-  for(no=0; no<NO; no++)
-   G->Objects[no]->GetOverlapMatrices(NeedMatrix, SArray[no], Omega, G->ExteriorMP);
-
-#if 0
-void *pCC=HMatrix::OpenMATLABContext("SMatrices.out");
-char buffer1[100];
-char buffer2[100];
-for(no=0; no<NO; no++)
- for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
-  { if (NeedMatrix[nom])
-     { HMatrix *M=new HMatrix(SArray[no][nom]);
-       M->ExportToMATLAB(pCC,"M_%i_%i",no,nom);
-//sprintf(buffer1,"M_%i_%i",no,nom);
-//sprintf(buffer2,"M_%i_%i.dat",no,nom);
-//SpyPlot(M,buffer1,buffer2);
-//printf("Suppatage foryaf %i %i \n",no,nom);
-       delete M;
-     };
-  };
-HMatrix::CloseMATLABContext(pCC);
-exit(1);
-#endif
+  int ns, nsp, nb, NS=G->NumSurfaces;
+  for(ns=0; ns<NS; ns++)
+   G->Surfaces[ns]->GetOverlapMatrices(NeedMatrix, SArray[ns], Omega, G->RegionMPs[0]);
 
   /***************************************************************/
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
-  for(no=0; no<NO; no++)
+  for(ns=0; ns<NS; ns++)
    { 
-     Log(" Assembling self contributions to T(%i)...",no);
+     Log(" Assembling self contributions to T(%i)...",ns);
 
-     Args->Oa = Args->Ob = G->Objects[no];
-     Args->B = T[no];
+     Args->Sa = Args->Sb = G->Surfaces[ns];
+     Args->B = T[ns];
      Args->Symmetric=1;
      AssembleBEMMatrixBlock(Args);
    };
@@ -289,13 +268,13 @@ exit(1);
      /* statement here is checking for.                              */
      /*--------------------------------------------------------------*/
      Args->Symmetric=0;
-     for(nb=0, no=0; no<NO; no++)
-      for(nop=no+1; nop<NO; nop++, nb++)
-       if ( nt==0 || G->ObjectMoved[no] || G->ObjectMoved[nop] )
+     for(nb=0, ns=0; ns<NS; ns++)
+      for(nsp=ns+1; nsp<NS; nsp++, nb++)
+       if ( nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
         { 
-          Log("  Assembling U(%i,%i)...",no,nop);
-          Args->Oa = G->Objects[no];
-          Args->Ob = G->Objects[nop];
+          Log("  Assembling U(%i,%i)...",ns,nsp);
+          Args->Sa = G->Surfaces[ns];
+          Args->Sb = G->Surfaces[nsp];
           Args->B  = U[nb];
           Args->Symmetric=0;
           AssembleBEMMatrixBlock(Args);
@@ -304,13 +283,13 @@ exit(1);
      /*--------------------------------------------------------------*/
      /*- stamp all blocks into the BEM matrix and invert it         -*/
      /*--------------------------------------------------------------*/
-     for(nb=0, no=0; no<NO; no++)
+     for(nb=0, ns=0; ns<NS; ns++)
       { 
-        RowOffset=G->BFIndexOffset[no];
-        W->InsertBlock(T[no], RowOffset, RowOffset);
+        RowOffset=G->BFIndexOffset[ns];
+        W->InsertBlock(T[ns], RowOffset, RowOffset);
 
-        for(nop=no+1; nop<NO; nop++, nb++)
-         { ColOffset=G->BFIndexOffset[nop];
+        for(nsp=ns+1; nsp<NS; nsp++, nb++)
+         { ColOffset=G->BFIndexOffset[nsp];
            W->InsertBlock(U[nb], RowOffset, ColOffset);
            W->InsertBlockTranspose(U[nb], ColOffset, RowOffset);
          };
@@ -323,22 +302,22 @@ exit(1);
      /*- compute the requested quantities for all objects -----------*/
      /*--------------------------------------------------------------*/
      FILE *f=0;
-     for(no=0; no<NO; no++)
-      for(nop=0; nop<NO; nop++)
+     for(ns=0; ns<NS; ns++)
+      for(nsp=0; nsp<NS; nsp++)
        {
          if (SNEQD->ByOmegaFileNames)
-          { f=fopen(SNEQD->ByOmegaFileNames[no*NO+nop],"a");
+          { f=fopen(SNEQD->ByOmegaFileNames[ns*NS+nsp],"a");
             fprintf(f,"%e %s ",real(Omega),Tag);
           };
 
          if ( QuantityFlags & QFLAG_POWER )
-          FI[nfi++] = GetTrace(SNEQD, QINDEX_POWER,  no, nop, f);
+          FI[nfi++] = GetTrace(SNEQD, QINDEX_POWER,  ns, nsp, f);
          if ( QuantityFlags & QFLAG_XFORCE )
-          FI[nfi++] = GetTrace(SNEQD, QINDEX_XFORCE, no, nop, f);
+          FI[nfi++] = GetTrace(SNEQD, QINDEX_XFORCE, ns, nsp, f);
          if ( QuantityFlags & QFLAG_YFORCE )
-          FI[nfi++] = GetTrace(SNEQD, QINDEX_YFORCE, no, nop, f);
+          FI[nfi++] = GetTrace(SNEQD, QINDEX_YFORCE, ns, nsp, f);
          if ( QuantityFlags & QFLAG_ZFORCE )
-          FI[nfi++] = GetTrace(SNEQD, QINDEX_ZFORCE, no, nop, f);
+          FI[nfi++] = GetTrace(SNEQD, QINDEX_ZFORCE, ns, nsp, f);
 
          if (f)
           { fprintf(f,"\n");
