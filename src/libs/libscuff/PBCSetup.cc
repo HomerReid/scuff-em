@@ -47,17 +47,61 @@ double RWGGeometry::DeltaInterp=0.05;
 /***************************************************************/
 void GetSurfaceExtents(RWGSurface *S, double RMax[3], double RMin[3])
 { 
-  memcpy(RMax, S->Vertices + 0, 3*sizeof(double));
-  memcpy(RMin, S->Vertices + 0, 3*sizeof(double));
-  for(int nv=1; nv<S->NumVertices; nv++)
+  RMax[0] = RMax[1] = RMax[2] = -1.0e9;
+  RMin[0] = RMin[1] = RMin[2] = +1.0e9;
+  double *V;
+  for(int np=0; np<S->NumPanels; np++)
+   for(int i=0; i<3; i++)
+    { V = S->Vertices + 3*(S->Panels[np]->VI[i]);
+      RMax[0] = fmax(RMax[0], V[0] );
+      RMax[1] = fmax(RMax[1], V[1] );
+      RMax[2] = fmax(RMax[2], V[2] );
+      RMin[0] = fmin(RMin[0], V[0] );
+      RMin[1] = fmin(RMin[1], V[1] );
+      RMin[2] = fmin(RMin[2], V[2] );
+    };
+}
+
+
+/***************************************************************/
+/* Get the maximum and minimum coordinates of all panel        */
+/* vertices on all surfaces bounding the region in question.   */
+/*                                                             */
+/* The return value is false if the region in question is      */
+/* compact, and true if the region is extended.                */
+/***************************************************************/
+bool RWGGeometry::GetRegionExtents(int nr, double RMax[3], double RMin[3])
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S;
+  bool IsExtended=false;
+  double RMaxTS[3], RMinTS[3]; // 'RMax/Min, this surface'
+  RMax[0] = RMax[1] = RMax[2] = -1.0e9;
+  RMin[0] = RMin[1] = RMin[2] = +1.0e9;
+  for(int ns=0; ns<NumSurfaces; ns++)
    { 
-     RMax[0] = fmax(RMax[0], S->Vertices[3*nv + 0]);
-     RMin[0] = fmin(RMin[0], S->Vertices[3*nv + 0]);
-     RMax[1] = fmax(RMax[1], S->Vertices[3*nv + 1]);
-     RMin[1] = fmin(RMin[1], S->Vertices[3*nv + 1]);
-     RMax[2] = fmax(RMax[2], S->Vertices[3*nv + 2]);
-     RMin[2] = fmin(RMin[2], S->Vertices[3*nv + 2]);
+     S=Surfaces[ns];
+     if ( S->RegionIndices[0]!=nr && S->RegionIndices[1]!=nr )
+      continue;
+     GetSurfaceExtents(S, RMaxTS, RMinTS);
+
+     RMax[0] = fmax(RMax[0], RMaxTS[0]);
+     RMax[1] = fmax(RMax[1], RMaxTS[1]);
+     RMax[2] = fmax(RMax[2], RMaxTS[2]);
+     RMin[0] = fmin(RMin[0], RMinTS[0]);
+     RMin[1] = fmin(RMin[1], RMinTS[1]);
+     RMin[2] = fmin(RMin[2], RMinTS[2]);
+
+     if (      NumStraddlers[MAXLATTICE*ns+0] > 0 
+          ||   NumStraddlers[MAXLATTICE*ns+1] > 0 
+        ) IsExtended=true;
+
    };
+
+  return IsExtended;
+
 }
 
 /***************************************************************/
@@ -375,66 +419,41 @@ void RWGGeometry::InitPBCData()
   // this one could be symmetric ...
 
   /*--------------------------------------------------------------*/
-  /*- allocate interpolators for each region in the geometry.     */
+  /*- allocate interpolators for each extended region in the      */
+  /*- geometry. (Here 'extended' means extended beyond the        */
+  /*- confines of a single unit cell.)                            */
+  /*-                                                             */
+  /*- GBarAB9Interpolators[nr] = interpolator for region #nr      */
+  /*-                            (NULL if region #nr is compact)  */
+  /*-                                                             */
+  /*- Note: GBarAB9 stands for 'GBar, all but 9', where GBar is   */
+  /*- the periodic green's function; the 'all but 9' part refers  */
+  /*- to the fact that we exclude the contributions of the        */
+  /*- innermost 9 lattice cells.                                  */
   /*--------------------------------------------------------------*/
-#if 0
-  GBarAB9_Interior=(Interp3D **)mallocEC(G->NumSurfaces * sizeof(Interp3D *));
-  double RMaxTS[3], RMinTS[3]; // max/min coordinates values for this surface
-  //double RMax[3], RMin[3];   // max/min coord values for entire geometry (now class fields)
-  double DeltaR[3];
+  GBarAB9Interpolators = (Interp3D **)mallocEC(NumRegions * sizeof(Interp3D *));
+  double RMax[3], RMin[3], DeltaR[3];
   int NPoints[3];
-  RWGSurface *S;
-  RMax[0] = RMax[1] = RMax[2] = -1.0e+9;
-  RMin[0] = RMin[1] = RMin[2] = +1.0e+9;
-  for(int ns=0; ns<G->NumSurfaces; ns++)
+  bool RegionIsExtended;
+  for(int nr=0; nr<NumRegions; nr++)
    { 
-     S=G->Surfaces[ns];
-     GetSurfaceExtents(S, RMaxTS, RMinTS);
+     RegionIsExtended=GetRegionExtents(nr, RMax, RMin);
+     if (!RegionIsExtended) 
+      continue; // we do not need an interpolator for non-extended regions
+
      for(int i=0; i<3; i++)
-      {  DeltaR[i]   = fmax( RMaxTS[i] - RMinTS[i], PBCGeometry::DeltaInterp );
-         NPoints[i]  = 1 + (2.0*DeltaR[i] / PBCGeometry::DeltaInterp );
+      {  DeltaR[i]   = fmax( RMax[i] - RMin[i], RWGGeometry::DeltaInterp );
+         NPoints[i]  = 1 + (2.0*DeltaR[i] / RWGGeometry::DeltaInterp );
          if (NPoints[i] < 2)
           NPoints[i]=2;
-         RMax[i]     = fmax(RMax[i], RMaxTS[i]);
-         RMin[i]     = fmin(RMin[i], RMinTS[i]);
       };
 
-     // FIXME to handle 1D periodicity
-     if ( S->IsPEC )
-      { 
-        Log(" Surface %s is PEC; no interpolation table needed",S->Label);
-        GBarAB9_Interior[ns]=0;
-      }
-     else if ( NumStraddlers[MAXLATTICE*ns+0]==0 && NumStraddlers[MAXLATTICE*ns+1]==0 )
-      { 
-        Log(" Surface %s straddles no unit cell boundaries; no interpolation table needed",S->Label);
-        GBarAB9_Interior[ns]=0;
-      }
-     else
-      { 
-        Log("Creating %ix%ix%i i-table for object %s",NPoints[0],NPoints[1],NPoints[2],S->Label);
-        GBarAB9_Interior[ns]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
-                                           -DeltaR[1], DeltaR[1], NPoints[1],
-                                                  0.0, DeltaR[2], 1 + NPoints[2]/2,
-                                           2, 0, 0, 0);
-      };
-
+     Log("Creating %ix%ix%i i-table for region %i (%s)",NPoints[0],NPoints[1],NPoints[2],nr,RegionLabels[nr]);
+     GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
+                                            -DeltaR[1], DeltaR[1], NPoints[1],
+                                                   0.0, DeltaR[2], 1 + NPoints[2]/2,
+                                                     2, 0, 0, 0);
    };
-
-  /*--------------------------------------------------------------*/
-  /*- allocate interpolator for exterior medium ------------------*/
-  /*--------------------------------------------------------------*/
-  for(int i=0; i<3; i++)
-   { DeltaR[i] = fmax( RMax[i] - RMin[i], PBCGeometry::DeltaInterp );
-     NPoints[i]  = 1 + (2.0*DeltaR[i] / PBCGeometry::DeltaInterp );
-     if (NPoints[i] < 2)
-      NPoints[i]=2;
-   };
-  GBarAB9_Exterior=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
-                                 -DeltaR[1], DeltaR[1], NPoints[1],
-                                        0.0, DeltaR[2], 1 + NPoints[2]/2,
-                                 2, 0, 0, 0);
-#endif
 
 }
 

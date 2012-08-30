@@ -420,6 +420,7 @@ class RWGGeometry
 
    // functions to support periodic boundary conditions 
    void InitPBCData();
+   bool GetRegionExtents(int nr, double RMax[3], double RMin[3]);
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
@@ -454,6 +455,7 @@ class RWGGeometry
    double LatticeBasisVectors[MAXLATTICE][3];
    int *NumStraddlers;
    HMatrix *MPP, *MPM, *MPZ, *MZP, *MZZ;
+   Interp3D **GBarAB9Interpolators;
 
    /* BFIndexOffset[n] is the index within the overall BEM          */
    /* system vector of the first basis function on surface #n. thus */
