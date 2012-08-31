@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = libscuff.la
 pkginclude_HEADERS = libscuff.h GTransformation.h FieldGrid.h
 libscuff_la_SOURCES = \
+ ACMTOMS680.f	\
  AssembleBEMMatrix.cc \
  AssembleBEMMatrix_PBC.cc \
  AssembleRHSVector.cc \
