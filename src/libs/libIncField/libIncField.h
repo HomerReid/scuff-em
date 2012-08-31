@@ -37,6 +37,8 @@
 #define ZVAC 376.73031346177   // impedance of free space
 #endif
 
+#define MAXLATTICE 2
+
 /**********************************************************************/
 /* IncField is a general base class from which specific classes       */
 /* for various types of field are derived.                            */
@@ -48,6 +50,7 @@ class IncField
    cdouble Omega;
    cdouble Eps;
    cdouble Mu;
+   double kBloch[MAXLATTICE];
    IncField *Next;
 
    // label and/or index for the region within which the field sources 

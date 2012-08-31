@@ -42,6 +42,8 @@ IncField::IncField()
   // SetFrequency()
   Omega=-1.0;
 
+  memset(kBloch, 0, MAXLATTICE*sizeof(double));
+
   Next = NULL;
 
   // field sources lie in the exterior region by default
@@ -85,6 +87,11 @@ void IncField::SetFrequencyAndEpsMu(cdouble pOmega,
       IFD->Eps=pEps;
       IFD->Mu=pMu;
     };
+}
+
+void IncField::SetkBloch(double *NewkBloch)
+{ if (NewkBloch)
+   memcpy(kBloch, NewkBloch, MAXLATTICE*sizeof(double));
 }
 
 /***************************************************************/

@@ -357,7 +357,7 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
 /*      containing the source point).                          */
 /* Returns the total number of IncFields in the chain.         */
 /***************************************************************/
-int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega)
+int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch)
 {
   /*--------------------------------------------------------------*/
   /*- make sure the cached epsilon and mu values for all regions  */
@@ -394,6 +394,8 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega)
      /*- the region in question                                     -*/
      /*--------------------------------------------------------------*/
      IF->SetFrequencyAndEpsMu(Omega, EpsTF[ IF->RegionIndex ], MuTF[ IF->RegionIndex ] );
+     if (kBloch)
+      IF->SetkBloch(kBloch);
 
    }; // for(NIF=0, IF=IFList ... 
 

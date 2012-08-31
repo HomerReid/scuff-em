@@ -335,7 +335,7 @@ class RWGGeometry
    HVector *AllocateRHSVector(bool PureImagFreq = false );
    HVector *AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS = NULL);
 
-   int UpdateIncFields(IncField *IF, cdouble Omega);
+   int UpdateIncFields(IncField *IF, cdouble Omega, double *kBloch=0);
 
    // get the index of the region containing point X
    int GetRegionIndex(const double X[3]);

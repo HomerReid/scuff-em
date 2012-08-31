@@ -13,10 +13,11 @@ libscuff_la_SOURCES = \
  FieldGrid.cc \
  FIPPICache.cc \
  GBarVDEwald.cc \
- GTransformation.cc \
- GTransformation.h \
  GetDipoleMoments.cc \
  GetFields.cc \
+ GetFields_PBC.cc \
+ GTransformation.cc \
+ GTransformation.h \
  InitEdgeList.cc \
  LineChargeContributions.cc \
  Overlap.cc \
