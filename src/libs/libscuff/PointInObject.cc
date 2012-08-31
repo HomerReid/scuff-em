@@ -636,7 +636,7 @@ int RWGGeometry::GetRegionIndex(const double X[3])
    { // find the innermost object containing X
      for (int i = NumSurfaces - 1; i >= 0; --i) // innermost to outermost order
       if (Surfaces[i]->Contains(X))
-       return i;
+       return Surfaces[i]->RegionIndices[1];
      return 0; // if not in any object, then in exterior medium 
    };
 
