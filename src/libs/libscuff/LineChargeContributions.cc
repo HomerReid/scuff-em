@@ -50,12 +50,12 @@ cdouble GetLineChargeInteraction(RWGSurface *S1, int ne1, RWGSurface *S2, int ne
 /* Figure out if the RWGSurfaces with indices nsa and nsb have */
 /* zero, one, or two regions in common.                        */
 /***************************************************************/
-int RWGGeometry::CountCommonRegions(int nsa, int nsb, 
-                                    double Signs[2], cdouble Eps[2], cdouble Mu[2])
+int CountCommonRegions2(RWGGeometry *G, int nsa, int nsb, 
+                        double Signs[2], cdouble Eps[2], cdouble Mu[2])
                                   
 {
-  RWGSurface  *Sa = Surfaces[nsa];
-  RWGSurface  *Sb = Surfaces[nsb];
+  RWGSurface  *Sa = G->Surfaces[nsa];
+  RWGSurface  *Sb = G->Surfaces[nsb];
 
   int CommonRegions[2], NumCommonRegions=0;
   if ( Sa->RegionIndices[0] == Sb->RegionIndices[0] )
@@ -81,14 +81,14 @@ int RWGGeometry::CountCommonRegions(int nsa, int nsb,
   if (NumCommonRegions==0)
    return 0;
 
-  Eps[0] = EpsTF[ CommonRegions[0] ];
-  Mu[0]  = MuTF[ CommonRegions[0] ];
+  Eps[0] = G->EpsTF[ CommonRegions[0] ];
+  Mu[0]  = G->MuTF[ CommonRegions[0] ];
 
   if (NumCommonRegions==1)
    return 1;
 
-  Eps[1] = EpsTF[ CommonRegions[1] ];
-  Mu[1]  = MuTF[ CommonRegions[1] ];
+  Eps[1] = G->EpsTF[ CommonRegions[1] ];
+  Mu[1]  = G->MuTF[ CommonRegions[1] ];
 
   return 2;
   
@@ -145,7 +145,7 @@ void *ALCCThread(void *data)
       for(nrs=0; nrs<G->NumSurfaces; nrs++)
        { 
           // figure out if the two surfaces interact or not 
-          NumCommonRegions=G->CountCommonRegions(ncs, nrs, Signs, EpsAB, MuAB);
+          NumCommonRegions=CountCommonRegions2(G,ncs, nrs, Signs, EpsAB, MuAB);
           if (NumCommonRegions==0) continue;
  
           kA=csqrt2(EpsAB[0]*MuAB[0])*Omega;
@@ -196,6 +196,9 @@ void *ALCCThread(void *data)
        };
 
     }; // for(ncs=0; ...)
+
+  return 0;
+
 }
 
 /***************************************************************/

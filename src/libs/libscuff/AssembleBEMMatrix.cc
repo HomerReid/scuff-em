@@ -54,6 +54,43 @@ namespace scuff {
 #define II cdouble(0,1)
 
 /***************************************************************/
+/* Given two surfaces, identify whether they bound zero, one,  */
+/* or two common regions. If there are any common regions,     */
+/* identify their indices and the relative sign between the    */
+/* contributions of surface currents on the two surfaces to    */
+/* fields in those regions.                                    */
+/***************************************************************/
+int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb, 
+                       int CommonRegionIndices[2], double Signs[2])
+{
+  int NumCommonRegions=0;
+
+  if ( Sa->RegionIndices[0] == Sb->RegionIndices[0] )
+   { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[0];
+     Signs[NumCommonRegions]=+1.0;
+     NumCommonRegions++;
+   }
+  else if ( Sa->RegionIndices[0] == Sb->RegionIndices[1] )
+   { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[0];
+     Signs[NumCommonRegions]=-1.0;
+     NumCommonRegions++;
+   }
+  if ( Sa->RegionIndices[1] == Sb->RegionIndices[0] )
+   { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[1];
+     Signs[NumCommonRegions]=-1.0;
+     NumCommonRegions++;
+   }
+  else if ( !Sa->IsPEC && !Sb->IsPEC && Sa->RegionIndices[1] == Sb->RegionIndices[1] )
+   { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[1];
+     Signs[NumCommonRegions]=+1.0;
+     NumCommonRegions++;
+   };
+
+  return NumCommonRegions;
+
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 typedef struct ThreadData
@@ -126,16 +163,16 @@ void *ABMBThread(void *data)
   cdouble kB, PreFac1B, PreFac2B, PreFac3B;
 
   kA=csqrt2(EpsA*MuA)*Omega;
-  PreFac1A = SignA*II*MuA*Omega;
+  PreFac1A =  SignA*II*MuA*Omega;
   PreFac2A = -SignA*II*kA;
-  PreFac3A = -1.0*SignA*II*EpsA*Omega;
+  PreFac3A = -SignA*II*EpsA*Omega;
 
   if (EpsB!=0.0)
    { 
      kB=csqrt2(EpsB*MuB)*Omega;
-     PreFac1B = SignB*II*MuB*Omega;
+     PreFac1B =  SignB*II*MuB*Omega;
      PreFac2B = -SignB*II*kB;
-     PreFac3B = -1.0*SignB*II*EpsB*Omega;
+     PreFac3B = -SignB*II*EpsB*Omega;
    };
 
   /***************************************************************/
@@ -309,29 +346,9 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /***************************************************************/
   RWGSurface  *Sa = Args->Sa;
   RWGSurface  *Sb = Args->Sb;
-
-  int CommonRegions[2], NumCommonRegions=0;
   double Signs[2];
-  if ( Sa->RegionIndices[0] == Sb->RegionIndices[0] )
-   { CommonRegions[NumCommonRegions] = Sa->RegionIndices[0];
-     Signs[NumCommonRegions]=+1.0;
-     NumCommonRegions++;
-   }
-  else if ( Sa->RegionIndices[0] == Sb->RegionIndices[1] )
-   { CommonRegions[NumCommonRegions] = Sa->RegionIndices[0];
-     NumCommonRegions++;
-   }
-  if ( Sa->RegionIndices[1] == Sb->RegionIndices[0] )
-   { CommonRegions[NumCommonRegions] = Sa->RegionIndices[1];
-     Signs[NumCommonRegions]=-1.0;
-     NumCommonRegions++;
-   }
-  else if ( !Sa->IsPEC && !Sb->IsPEC && Sa->RegionIndices[1] == Sb->RegionIndices[1] )
-   { CommonRegions[NumCommonRegions] = Sa->RegionIndices[1];
-     Signs[NumCommonRegions]=+1.0;
-     NumCommonRegions++;
-   };
-
+  int CommonRegions[2]; 
+  int NumCommonRegions=CountCommonRegions(Sa, Sb, CommonRegions, Signs);
   if (NumCommonRegions==0)
    return;
 
@@ -522,6 +539,11 @@ void InitABMBArgs(ABMBArgStruct *Args)
 /* If the M matrix is NULL on entry, a new HMatrix of the      */
 /* appropriate size is allocated and returned. Otherwise, the  */
 /* return value is M.                                          */
+/*                                                             */
+/* Note: This version of AssembleBEMMatrix is used for compact */
+/* geometries (that is, geometries without periodic boundary   */
+/* conditions). The PBC version of the routine is in the file  */
+/* AssembleBEMMatrix_PBC.cc.                                   */
 /***************************************************************/
 HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
 { 

@@ -387,36 +387,59 @@ void RWGGeometry::InitPBCData()
   /*                                    surface #ns that straddle */
   /*                                    the unit cell boundary    */
   /*                                    normal to basis vector #i */
+  /*                                                              */
+  /* Also, RegionIsExtended[MAXLATTICE*nr + i] = 1 if region nr   */
+  /* is extended (as opposed to compact) in the direction of      */
+  /* lattice basis vector i; =0 otherwise.                        */
   /*--------------------------------------------------------------*/
   TotalBFs=TotalPanels=0;
   NumStraddlers=(int *)mallocEC(NumSurfaces*MAXLATTICE*sizeof(int)); 
+  RegionIsExtended=(int *)mallocEC(NumRegions*MAXLATTICE*sizeof(int));
+  RegionIsExtended[0]=RegionIsExtended[1]=1; // exterior medium is extended
+  int nr1, nr2;
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
      AddStraddlers(S, LatticeBasisVectors, NumLatticeBasisVectors, 
                    NumStraddlers + ns*MAXLATTICE);
+
      TotalBFs+=S->NumBFs;
      TotalPanels+=S->NumPanels;
      if ( ns+1 < NumSurfaces )
       { BFIndexOffset[ns+1]=BFIndexOffset[ns] + S->NumBFs;
         PanelIndexOffset[ns+1]=PanelIndexOffset[ns] + S->NumPanels;
       };
+     
+     nr1=S->RegionIndices[0];
+     nr2=S->RegionIndices[1];
+     for(int i=0; i<2; i++)
+      if ( NumStraddlers[ MAXLATTICE*ns + i] > 0 )
+       { RegionIsExtended[ MAXLATTICE*nr1 + i]=1;
+         if (nr2!=-1) RegionIsExtended[ MAXLATTICE*nr2 + i ]=1;
+       };
+
    };
 
   /*--------------------------------------------------------------*/
-  /*- allocate memory for the contributions of the innermost     -*/
-  /*- lattice cells to the BEM matrix.                           -*/
-  /*- note: P, M, Z stand for 'plus 1, minus 1, zero.'           -*/
+  /*- Step 2: allocate memory for the contributions of the       -*/
+  /*- innermost lattice cells to the BEM matrix.                 -*/
+  /*- Here P, M, Z stand for 'plus 1, minus 1, zero.'            -*/
   /*- Mab is the BEM interaction matrix between the unit-cell    -*/
   /*- geometry and a copy of itself translated through vector    -*/
   /*- a*LBV[0] + b*LBV[1].                                       -*/
+  /*- (Note: We cache these contributions because they are       -*/
+  /*-  independent of bloch vector and hence may be reused for   -*/
+  /*-  multiple computations at the same Omega but different     -*/
+  /*-  bloch vectors. However, it may get a little memory-       -*/
+  /*-  intensive to have all 5 of them lying around, in which    -*/
+  /*-  case we should switch over to computing them on the fly.  -*/
+  /*-  FIXME to do later.                                        -*/
   /*--------------------------------------------------------------*/
   MPP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
   MPM=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
   MPZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
   MZP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-  MZZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-  // this one could be symmetric ...
+  MZZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX); // this one could be symmetric ...
 
   /*--------------------------------------------------------------*/
   /*- allocate interpolators for each extended region in the      */
@@ -434,12 +457,12 @@ void RWGGeometry::InitPBCData()
   GBarAB9Interpolators = (Interp3D **)mallocEC(NumRegions * sizeof(Interp3D *));
   double RMax[3], RMin[3], DeltaR[3];
   int NPoints[3];
-  bool RegionIsExtended;
   for(int nr=0; nr<NumRegions; nr++)
    { 
-     RegionIsExtended=GetRegionExtents(nr, RMax, RMin);
-     if (!RegionIsExtended) 
+     if ( !RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
       continue; // we do not need an interpolator for non-extended regions
+
+     GetRegionExtents(nr, RMax, RMin);
 
      for(int i=0; i<3; i++)
       {  DeltaR[i]   = fmax( RMax[i] - RMin[i], RWGGeometry::DeltaInterp );
@@ -451,8 +474,8 @@ void RWGGeometry::InitPBCData()
      Log("Creating %ix%ix%i i-table for region %i (%s)",NPoints[0],NPoints[1],NPoints[2],nr,RegionLabels[nr]);
      GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
                                             -DeltaR[1], DeltaR[1], NPoints[1],
-                                                   0.0, DeltaR[2], 1 + NPoints[2]/2,
-                                                     2, 0, 0, 0);
+                                                   0.0, DeltaR[2], 1 + NPoints[2]/2, 
+                                                     2);
    };
 
 }

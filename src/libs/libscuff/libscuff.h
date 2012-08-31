@@ -404,6 +404,15 @@ class RWGGeometry
    int GetRegionByLabel(const char *Label);
    RWGSurface *GetSurfaceByLabel(const char *Label, int *pns=NULL);
 
+   /* periodic-boundary-condition versions of API routines. */
+   /* Note PBC routines are distinguished from their non-PBC counterparts      */
+   /* by the kBloch argument, which always follows Omega in the argument list. */
+   HMatrix *AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLATTICE], HMatrix *M);
+   void GetFields(IncField *IF, HVector *KN, cdouble Omega, double kBloch[MAXLATTICE],
+                  double *X, cdouble *EH);
+   HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double kBloch[MAXLATTICE],
+                      HMatrix *XMatrix, HMatrix *FMatrix=NULL, char *FuncString=NULL);
+
    /*--------------------------------------------------------------------*/ 
    /*- class methods intended for internal use only, i.e. which          */ 
    /*- would be private if we cared about the public/private distinction */
@@ -414,13 +423,14 @@ class RWGGeometry
    void AddRegion(char *RegionLabel, char *MaterialName, int LineNum);
 
    // helper functions for AssembleBEMMatrix
-   int CountCommonRegions(int nsa, int nsb, double Signs[2], cdouble Eps[2], cdouble Mu[2]);
    void AddLineChargeContributionsToBEMMatrix(cdouble Omega, HMatrix *M);
    void UpdateCachedEpsMuValues(cdouble Omega);
 
-   // functions to support periodic boundary conditions 
+   // the following helper functions are only used for periodic boundary conditions
    void InitPBCData();
    bool GetRegionExtents(int nr, double RMax[3], double RMin[3]);
+   void AssembleInnerCellBlocks();
+   void AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *M);
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
@@ -454,6 +464,7 @@ class RWGGeometry
    int NumLatticeBasisVectors;
    double LatticeBasisVectors[MAXLATTICE][3];
    int *NumStraddlers;
+   int *RegionIsExtended;
    HMatrix *MPP, *MPM, *MPZ, *MZP, *MZZ;
    Interp3D **GBarAB9Interpolators;
 
@@ -498,6 +509,8 @@ RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3);
 void InitRWGPanel(RWGPanel *P, double *Vertices);
 void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3],
                    int NumLatticeVectors, int NumStraddlers[MAXLATTICE]);
+int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb, 
+                       int CommonRegionIndices[2], double Signs[2]);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

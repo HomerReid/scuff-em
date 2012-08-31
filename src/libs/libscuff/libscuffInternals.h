@@ -273,7 +273,7 @@ class FIPPICache
 /***************************************************************/   
 extern FIPPICache GlobalFIPPICache;
 
-/*--------------------------------------------------------------*/
+/****************************************************************/   
 /*- AssessPanelPair counts common vertices in a pair of panels, */
 /*- and puts arrays of panel vertices into certain orders that  */
 /*- are expected by subsequent algorithms that work on the      */
@@ -281,7 +281,7 @@ extern FIPPICache GlobalFIPPICache;
 /*- CanonicallyOrderVertices is an optional follow-up routine   */
 /*- to AssessPanelPair that further orders the vertices in a    */
 /*- canonical way for use in FIPPI cache lookups.               */
-/*--------------------------------------------------------------*/
+/****************************************************************/   
 int AssessPanelPair(double **Va, double **Vb, double rMax);
 int AssessPanelPair(double **Va, double **Vb);
 
@@ -299,6 +299,30 @@ int NumCommonVertices(RWGSurface *Sa, int npa,
 
 int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
                              double **OVa, double **OVb);
+
+/***************************************************************/
+/* routine for computing the periodic green's function via     */
+/* ewald summation                                             */
+/***************************************************************/
+void GBarVDEwald(double *R, cdouble k, double *kBloch, double **LBV,
+                 double E, int ExcludeFirst9, cdouble *GBarVD);
+
+/***************************************************************/
+/* this is an alternative interface to GBarVDEwald that has the*/
+/* proper prototype for passage to my Interp3D class routines  */
+/***************************************************************/
+typedef struct GBarData 
+ { 
+   cdouble k;           // wavenumber 
+   double *kBloch;      // bloch vector 
+   double *LBV[2];      // lattice basis vectors 
+   double E;            // ewald separation parameter
+   bool ExcludeInner9;  
+ 
+ } GBarData;
+
+void GBarVDPhi3D(double X1, double X2, double X3, 
+                 void *UserData, double *PhiVD);
 
 } // namespace scuff
 
