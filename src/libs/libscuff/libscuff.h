@@ -223,7 +223,7 @@ class RWGSurface
    RWGEdge **Edges;                /* array of pointers to edges          */
    RWGEdge **ExteriorEdges;        /* array of pointers to exterior edges */
    int IsClosed;                   /* = 1 for a closed surface, 0 for an open surface */
-   int HaveLineCharges;            /* = 1 if any surface in the geometry has line charges */
+   double RMax[3], RMin[3];        /* bounding box corners */
 
    int NumVertices;                /* number of vertices in mesh  */
    int NumInteriorVertices;        /* number of interior vertices */
@@ -287,8 +287,13 @@ class RWGSurface
    /* calculate reduced potentials due to a single basis function */
    /* (this is a helper function used to implement the            */
    /*  GetInnerProducts() class method)                           */
-   void GetReducedPotentials(int ne, const double *X, cdouble K,
+   void GetReducedPotentials(int ne, const double *X, cdouble K, Interp3D *GBarInterp,
                              cdouble *a, cdouble *Curla, cdouble *Gradp);
+
+   /* this is not really private, as it is called by RWGGeometry class methods, */
+   /* but it is also not an API routine for use by API programmers.             */
+   void AddStraddlers(double LBV[MAXLATTICE][3],
+                      int NumLatticeVectors, int NumStraddlers[MAXLATTICE]);
  
  };
 
@@ -408,9 +413,9 @@ class RWGGeometry
    /* Note PBC routines are distinguished from their non-PBC counterparts      */
    /* by the kBloch argument, which always follows Omega in the argument list. */
    HMatrix *AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLATTICE], HMatrix *M);
-   void GetFields(IncField *IF, HVector *KN, cdouble Omega, double kBloch[MAXLATTICE],
+   void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                   double *X, cdouble *EH);
-   HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double kBloch[MAXLATTICE],
+   HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                       HMatrix *XMatrix, HMatrix *FMatrix=NULL, char *FuncString=NULL);
 
    /*--------------------------------------------------------------------*/ 
@@ -423,14 +428,15 @@ class RWGGeometry
    void AddRegion(char *RegionLabel, char *MaterialName, int LineNum);
 
    // helper functions for AssembleBEMMatrix
-   void AddLineChargeContributionsToBEMMatrix(cdouble Omega, HMatrix *M);
    void UpdateCachedEpsMuValues(cdouble Omega);
 
    // the following helper functions are only used for periodic boundary conditions
    void InitPBCData();
-   bool GetRegionExtents(int nr, double RMax[3], double RMin[3]);
+   void GetRegionExtents(int nr, double RMax[3], double RMin[3]);
    void AssembleInnerCellBlocks();
    void AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *M);
+   Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
+                                      double kBloch[MAXLATTICE], HMatrix *XMatrix);
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
@@ -449,7 +455,6 @@ class RWGGeometry
    int NumSurfaces;
    RWGSurface **Surfaces;
    int AllSurfacesClosed;
-   int HaveLineCharges;
 
    int TotalBFs;
    int TotalPanels;
@@ -490,13 +495,12 @@ class RWGGeometry
    int *Mate;
 
    /* SurfaceMoved[i] = 1 if surface #i was moved on the most   */
-   /* recent call to Transform(). otherwise SurfaceMoved[i]=0.  */
+   /* recent call to Transform(). Otherwise SurfaceMoved[i]=0.  */
    int *SurfaceMoved;
   
    int LogLevel; 
    
    static bool AssignBasisFunctionsToExteriorEdges;
-   static bool IncludeLineChargeContributions;
    static int PBCCubatureOrder;
    static double DeltaInterp;
 
@@ -507,8 +511,6 @@ class RWGGeometry
 /***************************************************************/
 RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3);
 void InitRWGPanel(RWGPanel *P, double *Vertices);
-void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3],
-                   int NumLatticeVectors, int NumStraddlers[MAXLATTICE]);
 int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb, 
                        int CommonRegionIndices[2], double Signs[2]);
 

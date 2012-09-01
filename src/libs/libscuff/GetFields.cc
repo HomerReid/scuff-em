@@ -32,8 +32,10 @@
 
 #include <libhrutil.h>
 #include <libTriInt.h>
+#include <libMDInterp.h>
 
 #include "libscuff.h"
+#include "libscuffInternals.h"
 #include "FieldGrid.h"
 
 #ifdef HAVE_CONFIG_H
@@ -56,6 +58,11 @@ namespace scuff {
 /* ('reduced' in the context of this file means 'without certain   */
 /*   constant prefactors.')                                        */
 /*                                                                 */
+/* The GBarInterp field may be used to specify an optional         */
+/* Interp3D interpolator for the periodic Green's function. If     */
+/* this field is NULL, then the computation is done using the usual*/
+/* non-periodic Green's function, (e^{iKR}/4\piR).                 */
+/*                                                                 */
 /* integrand values:                                               */
 /*  f[0],  f[1]  == real , imag  (X-Q)_x            Phi(|X-X0|)    */
 /*  f[2],  f[3]  == real , imag  (X-Q)_y            Phi(|X-X0|)    */
@@ -63,111 +70,85 @@ namespace scuff {
 /*  f[6],  f[7]  == real , imag  [(X-Q) x (X-X0)]_x Psi(|X-X0|)    */
 /*  f[8],  f[9]  == real , imag  [(X-Q) x (X-X0)]_y Psi(|X-X0|)    */
 /*  f[10], f[11] == real , imag  [(X-Q) x (X-X0)]_z Psi(|X-X0|)    */
-/*  f[12], f[13] == real , imag  2(X-X0)_x          Psi(|X-X0|)    */
-/*  f[14], f[15] == real , imag  2(X-X0)_y          Psi(|X-X0|)    */
-/*  f[16], f[17] == real , imag  2(X-X0)_z          Psi(|X-X0|)    */
+/*  f[12], f[13] == real , imag  -2(X-X0)_x          Psi(|X-X0|)   */
+/*  f[14], f[15] == real , imag  -2(X-X0)_y          Psi(|X-X0|)   */
+/*  f[16], f[17] == real , imag  -2(X-X0)_z          Psi(|X-X0|)   */
 /*******************************************************************/
 typedef struct GRPIntegrandData
  { 
-   double *Q;         // RWG basis function source/sink vertex  
-   double PreFac;     // RWG basis function prefactor 
-   const double *X0;  // field evaluation point 
-   cdouble K;         // \sqrt{Eps*Mu} * frequency
+   double *Q;            // RWG basis function source/sink vertex  
+   double PreFac;        // RWG basis function prefactor 
+   const double *X0;     // field evaluation point 
+   cdouble K;            // \sqrt{Eps*Mu} * frequency
+   Interp3D *GBarInterp; // optional interpolator object for periodic GF
  } GRPIData;
 
 static void GRPIntegrand(double *X, void *parms, double *f)
 { 
   GRPIntegrandData *GRPID=(GRPIntegrandData *)parms;
-  double *Q         = GRPID->Q;
-  double PreFac     = GRPID->PreFac;
-  const double *X0  = GRPID->X0;
-  cdouble K         = GRPID->K;
+  double *Q            = GRPID->Q;
+  double PreFac        = GRPID->PreFac;
+  const double *X0     = GRPID->X0;
+  cdouble K            = GRPID->K;
+  Interp3D *GBarInterp = GRPID->GBarInterp;
 
   /* get the value of the RWG basis function at X */
   double fRWG[3];
   VecSub(X,Q,fRWG);
   VecScale(fRWG,PreFac);
-  
-  /* compute the scalar helmholtz GFs */
-  double XmX0[3], fxR[3];
+
+  double XmX0[3];
   VecSub(X,X0,XmX0);
-  VecCross(fRWG,XmX0,fxR);
-  double r=VecNorm(XmX0);
-  cdouble Phi = exp(II*K*r) / (4.0*M_PI*r);
-  cdouble Psi = (II*K - 1.0/r) * Phi / r;
-  
-  /* assemble integrand components */
+
   cdouble *zf=(cdouble *)f;
-  zf[0]= fRWG[0] * Phi;
-  zf[1]= fRWG[1] * Phi;
-  zf[2]= fRWG[2] * Phi;
-  zf[3]= fxR[0] * Psi;
-  zf[4]= fxR[1] * Psi;
-  zf[5]= fxR[2] * Psi;
-  zf[6]= -2.0 * PreFac * XmX0[0] * Psi;
-  zf[7]= -2.0 * PreFac * XmX0[1] * Psi;
-  zf[8]= -2.0 * PreFac * XmX0[2] * Psi;
-
-} 
-
-/***************************************************************/
-/* compute the extra contribution to the gradient of the       */
-/* reduced scalar potential from the constant line charge on   */
-/* the unmatched edge of a half-RWG basis function.            */
-/***************************************************************/
-static double x10[]=
- { 1.304673574141418e-02, 6.746831665550773e-02, 1.602952158504878e-01,
-   2.833023029353764e-01, 4.255628305091844e-01, 5.744371694908156e-01,
-   7.166976970646236e-01, 8.397047841495122e-01, 9.325316833444923e-01,
-   9.869532642585859e-01
- };
-
-static double w10[]=
- { 3.333567215434143e-02, 7.472567457529027e-02, 1.095431812579910e-01,
-   1.346333596549959e-01, 1.477621123573765e-01, 1.477621123573765e-01,
-   1.346333596549959e-01, 1.095431812579910e-01, 7.472567457529027e-02,
-   3.333567215434143e-02
- };
-
-void GetEdgeContributionToGradp(const double *X0, double *V1, double *V2,
-                                cdouble K, cdouble *Gradp)
-{
-  int np;
-  double u, w, X0mV1[3], V2mV1[3], X0mX[3], r;
-  cdouble Psi;
-
-  // we do a 10-point gauss-legendre quadrature over the edge
-  int NumPts=10;
-  double *QRX=x10, *QRW=w10;
-
-  VecSub(V2, V1, V2mV1);
-  VecSub(X0, V1, X0mV1);
-  Gradp[0]=Gradp[1]=Gradp[2]=0.0;
-
-  for(np=0; np<NumPts; np++)
+  
+  if (GBarInterp==0)
+   {
+     /* compute the scalar functions Phi and Psi  */
+     /* (Phi = e^{ikr}/4*pi*r, and Psi is defined */
+     /* such that \nabla Phi = r*Psi              */
+     double fxR[3];
+     VecCross(fRWG,XmX0,fxR);
+     double r=VecNorm(XmX0);
+     cdouble Phi = exp(II*K*r) / (4.0*M_PI*r);
+     cdouble Psi = (II*K - 1.0/r) * Phi / r;
+  
+     /* assemble integrand components */
+     zf[0]= fRWG[0] * Phi;
+     zf[1]= fRWG[1] * Phi;
+     zf[2]= fRWG[2] * Phi;
+     zf[3]= fxR[0] * Psi;
+     zf[4]= fxR[1] * Psi;
+     zf[5]= fxR[2] * Psi;
+     zf[6]= -2.0 * PreFac * XmX0[0] * Psi;
+     zf[7]= -2.0 * PreFac * XmX0[1] * Psi;
+     zf[8]= -2.0 * PreFac * XmX0[2] * Psi;
+   }
+  else
    { 
-     u=QRX[np]; w=QRW[np];
+     /* compute the scalar function Phi and its gradient \nabla Phi */
+     // TODO: clean me up a little and consolidate with the above code
+     cdouble Phi, GradPhi[3];
+     double PhiVD[16];
+     GBarInterp->EvaluatePlus(XmX0[0], XmX0[1], XmX0[2], PhiVD);
+     Phi        = cdouble(PhiVD[0],PhiVD[8+0]);
+     GradPhi[0] = cdouble(PhiVD[1],PhiVD[8+1]);
+     GradPhi[1] = cdouble(PhiVD[2],PhiVD[8+2]);
+     GradPhi[2] = cdouble(PhiVD[3],PhiVD[8+3]);
 
-     X0mX[0] = X0mV1[0] - u*V2mV1[0];
-     X0mX[1] = X0mV1[1] - u*V2mV1[1];
-     X0mX[2] = X0mV1[2] - u*V2mV1[2];
-
-     r=VecNorm(X0mX);
-
-     Psi = (II*K - 1.0/r) * exp(II*K*r) / (4.0*M_PI*r*r);
-
-     Gradp[0] += w*X0mX[0]*Psi;
-     Gradp[1] += w*X0mX[1]*Psi;
-     Gradp[2] += w*X0mX[2]*Psi;
-     
+     /* assemble integrand components */
+     zf[0]= fRWG[0] * Phi;
+     zf[1]= fRWG[1] * Phi;
+     zf[2]= fRWG[2] * Phi;
+     zf[3]= (fRWG[1] * GradPhi[2] - fRWG[2] * GradPhi[1]);
+     zf[4]= (fRWG[2] * GradPhi[0] - fRWG[0] * GradPhi[2]);
+     zf[5]= (fRWG[0] * GradPhi[1] - fRWG[1] * GradPhi[0]);
+     zf[6]= -2.0 * PreFac * GradPhi[0];
+     zf[7]= -2.0 * PreFac * GradPhi[1];
+     zf[8]= -2.0 * PreFac * GradPhi[2];
    };
 
-  cdouble PreFac = -1.0*VecNorm(V2mV1);
-  Gradp[0] *= PreFac;
-  Gradp[1] *= PreFac;
-  Gradp[2] *= PreFac;
- 
-}
+} 
 
 /***************************************************************/
 /* Compute the 'reduced potentials' of a single RWG basis      */
@@ -183,14 +164,15 @@ void GetEdgeContributionToGradp(const double *X0, double *V1, double *V2,
 /* where G(x,y) is the scalar green's function and f(y) is the */
 /* vector-valued RWG current at y.                             */
 /***************************************************************/
-void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
+void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K, 
+                                      Interp3D *GBarInterp,
                                       cdouble *a, cdouble *Curla, cdouble *Gradp)
 {
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;
   RWGEdge *E;
   GRPIntegrandData MyGRPIData, *GRPID=&MyGRPIData;
-  cdouble IP[9], IM[9], Gradp_Edge[3];
+  cdouble IP[9], IM[9];
 
   /* get edge vertices */
   E=Edges[ne];
@@ -209,6 +191,7 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
   /* set up data structure passed to GRPIntegrand */
   GRPID->X0=X;
   GRPID->K=K;
+  GRPID->GBarInterp = GBarInterp;
 
   /* contribution of positive panel */
   GRPID->Q=QP;
@@ -220,21 +203,14 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
    { GRPID->Q=QM;
      GRPID->PreFac = E->Length / (2.0*MArea);
      TriIntFixed(GRPIntegrand, 18, (void *)GRPID, V1, V2, QM, 25, (double *)IM);
-     memset(Gradp_Edge, 0, 3*sizeof(cdouble));
    }
-  else // if there is no negative panel then there is a line-charge edge 
-   { 
-     memset(IM, 0, 9*sizeof(cdouble));
-     if (RWGGeometry::IncludeLineChargeContributions)
-      GetEdgeContributionToGradp(X, V1, V2, K, Gradp_Edge); 
-     else 
-      memset(Gradp_Edge,0,3*sizeof(cdouble));
-   };
+  else
+   memset(IM, 0, 9*sizeof(cdouble));
 
   for(int Mu=0; Mu<3; Mu++) 
    { a[Mu]     = IP[Mu]   - IM[Mu];
      Curla[Mu] = IP[Mu+3] - IM[Mu+3];
-     Gradp[Mu] = IP[Mu+6] - IM[Mu+6] + Gradp_Edge[Mu];
+     Gradp[Mu] = IP[Mu+6] - IM[Mu+6];
    };
 
 }
@@ -242,12 +218,14 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex, 
-                        HVector *KN, const cdouble Omega, const cdouble Eps, const cdouble Mu,
+void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex,
+                        HVector *KN, const cdouble Omega, Interp3D *GBarInterp,
                         cdouble EHS[6])
 { 
   memset(EHS, 0, 6*sizeof(cdouble));
 
+  cdouble Eps=G->EpsTF[RegionIndex];
+  cdouble Mu=G->MuTF[RegionIndex];
   cdouble iwe=II*Omega*Eps;
   cdouble iwu=II*Omega*Mu;
   cdouble K=csqrt2(Eps*Mu)*Omega;
@@ -288,7 +266,7 @@ void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex,
            NAlpha = Sign*KN->GetEntry( Offset + 2*ne + 1 );
          };
       
-        S->GetReducedPotentials(ne, X, K, a, Curla, Gradp);
+        S->GetReducedPotentials(ne, X, K, GBarInterp, a, Curla, Gradp);
 
         for(i=0; i<3; i++)
          { EHS[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
@@ -299,7 +277,6 @@ void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex,
 
     }; // for(ns=0 ... 
 }
-
 
 /***************************************************************/
 /***************************************************************/
@@ -314,6 +291,7 @@ typedef struct ThreadData
    HVector *KN;
    IncField *IF;
    cdouble Omega;
+   Interp3D **RegionInterpolators;
    ParsedFieldFunc **PFFuncs;
    int NumFuncs;
 
@@ -333,14 +311,15 @@ void *GetFields_Thread(void *data)
   /***************************************************************/
   /* fields unpacked from thread data structure ******************/
   /***************************************************************/
-  RWGGeometry *G              = TD->G;
-  HMatrix *XMatrix            = TD->XMatrix;
-  HMatrix *FMatrix            = TD->FMatrix;
-  HVector *KN                 = TD->KN;
-  IncField *IFList            = TD->IF;
-  cdouble Omega               = TD->Omega;
-  ParsedFieldFunc **PFFuncs   = TD->PFFuncs;
-  int NumFuncs                = TD->NumFuncs;
+  RWGGeometry *G                 = TD->G;
+  HMatrix *XMatrix               = TD->XMatrix;
+  HMatrix *FMatrix               = TD->FMatrix;
+  HVector *KN                    = TD->KN;
+  IncField *IFList               = TD->IF;
+  cdouble Omega                  = TD->Omega;
+  Interp3D **RegionInterpolators = TD->RegionInterpolators;
+  ParsedFieldFunc **PFFuncs      = TD->PFFuncs;
+  int NumFuncs                   = TD->NumFuncs;
 
   /***************************************************************/
   /* other local variables ***************************************/
@@ -351,6 +330,7 @@ void *GetFields_Thread(void *data)
   cdouble Eps, Mu;
   double dA[3]={0.0, 0.0, 0.0};
   IncField *IF;
+  Interp3D *GBarInterp;
 
   /***************************************************************/
   /* loop over all eval points (all rows of the XMatrix)         */
@@ -369,12 +349,13 @@ void *GetFields_Thread(void *data)
      RegionIndex = G->GetRegionIndex(X);
      Eps = G->EpsTF[RegionIndex];
      Mu  = G->MuTF[RegionIndex];
+     GBarInterp = RegionInterpolators ? RegionInterpolators[RegionIndex] : 0;
     
      /*--------------------------------------------------------------*/
      /*- get scattered fields at X                                   */
      /*--------------------------------------------------------------*/
      if (KN)
-      GetScatteredFields(G, X, RegionIndex, KN, Omega, Eps, Mu, EH);
+      GetScatteredFields(G, X, RegionIndex, KN, Omega, GBarInterp, EH);
      else
       memset(EH, 0, 6*sizeof(cdouble));
 
@@ -405,9 +386,9 @@ void *GetFields_Thread(void *data)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
-                                cdouble Omega, HMatrix *XMatrix,
-                                HMatrix *FMatrix, char *FuncString)
+HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN, 
+                                cdouble Omega, double *kBloch, 
+                                HMatrix *XMatrix, HMatrix *FMatrix, char *FuncString)
 { 
   int NumThreads = GetNumThreads();
  
@@ -452,7 +433,20 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /* before setting up and solving the BEM problem, so we should */
   /* do this just to make sure.                                  */
   /***************************************************************/
-  UpdateIncFields(IF, Omega);
+  UpdateIncFields(IF, Omega, kBloch);
+
+  /***************************************************************/
+  /* For the periodic-boundary-condition case, we need to        */
+  /* initialize interpolator objects for computing the periodic  */
+  /* Green's function in each extended region of the geometry.   */
+  /***************************************************************/
+  Interp3D **RegionInterpolators=0;
+
+  if (NumLatticeBasisVectors>0)
+   { RegionInterpolators=(Interp3D **)mallocEC(NumRegions*sizeof(Interp3D *));
+     for(int nr=0; nr<NumRegions; nr++)
+      RegionInterpolators[nr]=CreateRegionInterpolator(nr, Omega, kBloch, XMatrix);
+   };
 
   /***************************************************************/
   /* fire off threads                                            */
@@ -461,7 +455,10 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
 
   // set up an instance of ThreadData containing all fields
   // that are common to all threads, which we can subsequently
-  // copy wholesale to initialize new ThreadData structures
+  // copy wholesale to initialize new ThreadData structures.
+  // Note in this version of the routine there are no periodic 
+  // boundary conditions and hence no interpolator object for 
+  // the periodic Green's function (so GBarInterp=0).
   ThreadData ReferenceTD; 
   ReferenceTD.G=this;
   ReferenceTD.XMatrix = XMatrix;
@@ -469,6 +466,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   ReferenceTD.KN=KN;
   ReferenceTD.IF=IF;
   ReferenceTD.Omega=Omega;
+  ReferenceTD.RegionInterpolators=RegionInterpolators;
   ReferenceTD.PFFuncs=PFFuncs;
   ReferenceTD.NumFuncs=NumFuncs;
 
@@ -509,26 +507,144 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
    };
 #endif
 
+  /***************************************************************/
+  /* deallocate temporary storage ********************************/
+  /***************************************************************/
   free(FCopy);
   for(nf=0; nf<NumFuncs; nf++)
    delete PFFuncs[nf];
   delete[] PFFuncs;
 
+  if (NumLatticeBasisVectors>0)
+   { for(int nr=0; nr<NumRegions; nr++)
+      if (RegionInterpolators[nr])
+       delete RegionInterpolators[nr];
+     free(RegionInterpolators);
+   };
+
   return FMatrix;
 
 }
-
+  
 /***************************************************************/
-/* simple (old) interface to GetFields *************************/
+/* simpler interface to GetFields with only a single eval point*/
 /***************************************************************/
-void RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X, cdouble *EH)
+void RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, 
+                            double *kBloch, double *X, cdouble *EH)
 {
   HMatrix XMatrix(1, 3, LHM_REAL, LHM_NORMAL, (void *)X);
-
   HMatrix FMatrix(1, 6, LHM_COMPLEX, LHM_NORMAL, (void *)EH);
-
-  GetFields(IF, KN, Omega, &XMatrix, &FMatrix, 0);
+  GetFields(IF, KN, Omega, kBloch, &XMatrix, &FMatrix, 0);
 } 
 
+/***************************************************************/
+/* non-PBC entry points to GetFields                           */
+/***************************************************************/
+HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, 
+                                HMatrix *XMatrix, HMatrix *FMatrix, char *FuncString)
+{ return GetFields(IF, KN, Omega, 0, XMatrix, FMatrix, FuncString); }
+
+void RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, 
+                            double *X, cdouble *EH)
+{ GetFields(IF, KN, Omega, 0, X, EH); }
+
+
+/***************************************************************/
+/* routine to initialize an interpolator object for the        */
+/* periodic green's function in a given region                 */
+/***************************************************************/
+Interp3D *RWGGeometry::CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
+                                                double kBloch[MAXLATTICE],
+                                                HMatrix *XMatrix)
+{
+  // no interpolator needed if the region is compact 
+  if (    !RegionIsExtended[MAXLATTICE*RegionIndex+0] 
+       && !RegionIsExtended[MAXLATTICE*RegionIndex+1] 
+     )
+   return 0;
+
+  /*--------------------------------------------------------------*/
+  /* get bounding box enclosing all eval points in this region    */
+  /*--------------------------------------------------------------*/
+  int NumPointsInRegion=0;
+  double X[3];
+  double EvalPointRMax[3]={-1.0e89, -1.0e89, -1.0e89}; 
+  double EvalPointRMin[3]={+1.0e89, +1.0e89, +1.0e89}; 
+  for(int np=0; np<XMatrix->NR; np++)
+   { 
+     X[0] = XMatrix->GetEntryD(np,0);
+     X[1] = XMatrix->GetEntryD(np,1);
+     X[2] = XMatrix->GetEntryD(np,2);
+
+     if ( PointInRegion(RegionIndex, X ) )
+      { 
+        NumPointsInRegion++;
+        EvalPointRMax[0] = fmax(EvalPointRMax[0], X[0] );
+        EvalPointRMax[1] = fmax(EvalPointRMax[1], X[1] );
+        EvalPointRMax[2] = fmax(EvalPointRMax[2], X[2] );
+        EvalPointRMin[0] = fmin(EvalPointRMin[0], X[0] );
+        EvalPointRMin[1] = fmin(EvalPointRMin[1], X[1] );
+        EvalPointRMin[2] = fmin(EvalPointRMin[2], X[2] );
+      };
+   };
+
+  if (NumPointsInRegion==0) 
+   return 0;
+
+  /*--------------------------------------------------------------*/
+  // get the maximum and minimum values of X-Y where              */
+  /* X runs over all vertices on all surfaces bounding the region */
+  /* and Y runs over all evaluation points in the region          */
+  /*--------------------------------------------------------------*/
+  double DeltaRMax[3]={-1.0e9, -1.0e9, -1.0e9};
+  double DeltaRMin[3]={+1.0e9, +1.0e9, +1.0e9};
+  double *SurfaceRMax, *SurfaceRMin;  
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     if (    Surfaces[ns]->RegionIndices[0] == RegionIndex
+          || Surfaces[ns]->RegionIndices[1] == RegionIndex
+        )
+      { 
+        SurfaceRMax = Surfaces[ns]->RMax;
+        SurfaceRMin = Surfaces[ns]->RMin;
+        DeltaRMax[0] = fmax(DeltaRMax[0], SurfaceRMax[0] - EvalPointRMax[0] );
+        DeltaRMax[1] = fmax(DeltaRMax[1], SurfaceRMax[1] - EvalPointRMax[1] );
+        DeltaRMax[2] = fmax(DeltaRMax[2], SurfaceRMax[2] - EvalPointRMax[2] );
+        DeltaRMin[0] = fmin(DeltaRMin[0], SurfaceRMin[0] - EvalPointRMin[0] );
+        DeltaRMin[1] = fmin(DeltaRMin[1], SurfaceRMin[1] - EvalPointRMin[1] );
+        DeltaRMin[2] = fmin(DeltaRMin[2], SurfaceRMin[2] - EvalPointRMin[2] );
+      };
+   };
+
+  int NPoints[3];
+  for(int i=0; i<3; i++)
+   { if ( DeltaRMax[i] < (DeltaRMin[i] + RWGGeometry::DeltaInterp) )
+      DeltaRMax[i] = DeltaRMin[i] + RWGGeometry::DeltaInterp;
+     NPoints[i] = 1 + (DeltaRMax[i] - DeltaRMin[i]) / RWGGeometry::DeltaInterp;
+     if (NPoints[i]<2)
+      NPoints[i]=2;
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- initialize the interpolator --------------------------------*/
+  /*--------------------------------------------------------------*/
+  GBarData MyGBarData, *GBD=&MyGBarData;
+  GBD->k=csqrt2(EpsTF[RegionIndex]*MuTF[RegionIndex])*Omega;
+  GBD->kBloch = kBloch;
+  GBD->ExcludeInner9=false;
+  GBD->E=-1.0;
+  GBD->LBV[0]=LatticeBasisVectors[0];
+  GBD->LBV[1]=LatticeBasisVectors[1];
+
+  Log("Region %i (%s): creating %ix%ix%i interpolation table",
+       RegionIndex,RegionLabels[RegionIndex], NPoints[0], NPoints[1], NPoints[2]);
+
+  Interp3D *GBarInterp=new Interp3D( DeltaRMin[0], DeltaRMax[0], NPoints[0],
+                                     DeltaRMin[1], DeltaRMax[1], NPoints[1],
+                                     DeltaRMin[2], DeltaRMax[2], NPoints[2],
+                                     2, GBarVDPhi3D, (void *)GBD);
+
+  return GBarInterp;
+}
 
 } // namespace scuff

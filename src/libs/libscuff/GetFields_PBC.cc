@@ -34,7 +34,6 @@
 #include <libTriInt.h>
 
 #include "libscuff.h"
-#include "PBCGeometry.h"
 #include "FieldGrid.h"
 
 #ifdef HAVE_CONFIG_H
@@ -274,7 +273,7 @@ typedef struct ThreadData
  { 
    int nt, nTask;
 
-   PBCGeometry *PG;
+   RWGGeometry *G;
    HMatrix *XMatrix;
    HMatrix *FMatrix;
    HVector *KN;
@@ -397,8 +396,6 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
                                 HMatrix *XMatrix, HMatrix *FMatrix, 
                                 char *FuncString)
 { 
-  int nThread = GetNumThreads();
- 
   /***************************************************************/
   /* preprocess the Functions string to count the number of      */
   /* comma-separated function strings and verify that each string*/
@@ -496,13 +493,13 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /***************************************************************/
   /* fire off threads                                            */
   /***************************************************************/
-  int nt;
+  int nt, nThread = GetNumThreads();
 
   // set up an instance of ThreadData containing all fields
   // that are common to all threads, which we can subsequently
   // copy wholesale to initialize new ThreadData structures
   ThreadData ReferenceTD; 
-  ReferenceTD.PG=this;
+  ReferenceTD.G=this;
   ReferenceTD.XMatrix = XMatrix;
   ReferenceTD.FMatrix = FMatrix;
   ReferenceTD.KN=KN;
@@ -572,7 +569,7 @@ void RWGGeometry::GetFields(IncField *IF, HVector *KN,
 
   HMatrix FMatrix(1, 6, LHM_COMPLEX, LHM_NORMAL, (void *)EH);
 
-  GetFields(IF, KN, Omega, kBloch, &XMatrix, &FMatrix, 0;
+  GetFields(IF, KN, Omega, kBloch, &XMatrix, &FMatrix, 0);
 } 
 
 

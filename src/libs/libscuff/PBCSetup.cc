@@ -40,67 +40,33 @@ int RWGGeometry::PBCCubatureOrder=4;
 double RWGGeometry::DeltaInterp=0.05;
 
 /***************************************************************/
-/* get the maximum and minimum cartesian coordinates obtained  */
-/* by points on an RWGSurface. (we do this by looking at the    */
-/* panel vertices, which suffices because the panels are       */
-/* flat and thus convex)                                       */
-/***************************************************************/
-void GetSurfaceExtents(RWGSurface *S, double RMax[3], double RMin[3])
-{ 
-  RMax[0] = RMax[1] = RMax[2] = -1.0e9;
-  RMin[0] = RMin[1] = RMin[2] = +1.0e9;
-  double *V;
-  for(int np=0; np<S->NumPanels; np++)
-   for(int i=0; i<3; i++)
-    { V = S->Vertices + 3*(S->Panels[np]->VI[i]);
-      RMax[0] = fmax(RMax[0], V[0] );
-      RMax[1] = fmax(RMax[1], V[1] );
-      RMax[2] = fmax(RMax[2], V[2] );
-      RMin[0] = fmin(RMin[0], V[0] );
-      RMin[1] = fmin(RMin[1], V[1] );
-      RMin[2] = fmin(RMin[2], V[2] );
-    };
-}
-
-
-/***************************************************************/
 /* Get the maximum and minimum coordinates of all panel        */
 /* vertices on all surfaces bounding the region in question.   */
-/*                                                             */
-/* The return value is false if the region in question is      */
-/* compact, and true if the region is extended.                */
 /***************************************************************/
-bool RWGGeometry::GetRegionExtents(int nr, double RMax[3], double RMin[3])
+void RWGGeometry::GetRegionExtents(int nr, double RegionRMax[3], double RegionRMin[3])
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   RWGSurface *S;
-  bool IsExtended=false;
-  double RMaxTS[3], RMinTS[3]; // 'RMax/Min, this surface'
-  RMax[0] = RMax[1] = RMax[2] = -1.0e9;
-  RMin[0] = RMin[1] = RMin[2] = +1.0e9;
+  double *SurfaceRMax, *SurfaceRMin;
+  RegionRMax[0] = RegionRMax[1] = RegionRMax[2] = -1.0e89;
+  RegionRMin[0] = RegionRMin[1] = RegionRMin[2] = +1.0e89;
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      S=Surfaces[ns];
      if ( S->RegionIndices[0]!=nr && S->RegionIndices[1]!=nr )
       continue;
-     GetSurfaceExtents(S, RMaxTS, RMinTS);
+     SurfaceRMax = S->RMax;
+     SurfaceRMin = S->RMin;
 
-     RMax[0] = fmax(RMax[0], RMaxTS[0]);
-     RMax[1] = fmax(RMax[1], RMaxTS[1]);
-     RMax[2] = fmax(RMax[2], RMaxTS[2]);
-     RMin[0] = fmin(RMin[0], RMinTS[0]);
-     RMin[1] = fmin(RMin[1], RMinTS[1]);
-     RMin[2] = fmin(RMin[2], RMinTS[2]);
-
-     if (      NumStraddlers[MAXLATTICE*ns+0] > 0 
-          ||   NumStraddlers[MAXLATTICE*ns+1] > 0 
-        ) IsExtended=true;
-
+     RegionRMax[0] = fmax(RegionRMax[0], SurfaceRMax[0]);
+     RegionRMax[1] = fmax(RegionRMax[1], SurfaceRMax[1]);
+     RegionRMax[2] = fmax(RegionRMax[2], SurfaceRMax[2]);
+     RegionRMin[0] = fmin(RegionRMin[0], SurfaceRMin[0]);
+     RegionRMin[1] = fmin(RegionRMin[1], SurfaceRMin[1]);
+     RegionRMin[2] = fmin(RegionRMin[2], SurfaceRMin[2]);
    };
-
-  return IsExtended;
 
 }
 
@@ -228,8 +194,9 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3],
 /*  detected on the unit-cell boundary normal to LBV[i].        */
 /*--------------------------------------------------------------*/
 #define CHUNK 100
-void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3], 
-                   int NumLatticeVectors, int NumStraddlers[MAXLATTICE])
+void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3], 
+                               int NumLatticeVectors, 
+                               int NumStraddlers[MAXLATTICE])
 { 
   int NumNew=0, NumAllocated=0;
   double V[3], *NewVertices=0;
@@ -239,15 +206,15 @@ void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3],
   memset(NumStraddlers, 0, MAXLATTICE*sizeof(int));
 
   int nei, neip;
-  for(nei=0; nei<S->NumExteriorEdges; nei++)
+  for(nei=0; nei<NumExteriorEdges; nei++)
    { 
-      if ( S->ExteriorEdges[nei]==0 )
+      if ( ExteriorEdges[nei]==0 )
        continue;
 
       // see if this edge is a straddler, i.e. it lies on a face
       // of the unit cell and it has a partner (a translated 
       // version of itself) on the opposite side of the unit cell
-      neip=FindPartnerEdge(S, nei, LBV, NumLatticeVectors, NumStraddlers, V);
+      neip=FindPartnerEdge(this, nei, LBV, NumLatticeVectors, NumStraddlers, V);
 
       // if so, add a new vertex, panel, and interior edge to the RWGSurface.
       if (neip!=-1)
@@ -262,6 +229,12 @@ void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3],
 
           // add a new vertex
           memcpy( NewVertices + 3*NumNew, V, 3*sizeof(double));
+          RMax[0] = fmax(RMax[0], V[0] );
+          RMax[1] = fmax(RMax[1], V[1] );
+          RMax[2] = fmax(RMax[2], V[2] );
+          RMin[0] = fmin(RMin[0], V[0] );
+          RMin[1] = fmin(RMin[1], V[1] );
+          RMin[2] = fmin(RMin[2], V[2] );
  
           // add a new edge. actually, we simply appropriate the 
           // existing RWGEdge structure for edge #nei, since we 
@@ -269,23 +242,23 @@ void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3],
           // edges anyway. note that the iQP, iV1, iV2, iPPanel, PIndex, 
           // Centroid, and Length fields of this structure will be already 
           // correctly initialized. 
-          E=S->ExteriorEdges[nei];
-          E->iQM  = S->NumVertices + NumNew;
-          E->iMPanel = S->NumPanels + NumNew;
-          E->Index = S->NumEdges + NumNew;
+          E=ExteriorEdges[nei];
+          E->iQM  = NumVertices + NumNew;
+          E->iMPanel = NumPanels + NumNew;
+          E->Index = NumEdges + NumNew;
           E->MIndex = 2; // because below we hard-code P->VI[2] = E->iQM;
-          E->Radius=VecDistance(E->Centroid, S->Vertices+3*E->iQP);
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,S->Vertices+3*E->iQM));
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,S->Vertices+3*E->iV1));
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,S->Vertices+3*E->iV2));
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,S->Vertices+3*E->iV2));
+          E->Radius=VecDistance(E->Centroid, Vertices+3*E->iQP);
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iQM));
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV1));
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV2));
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV2));
           NewEdges[NumNew] = E;
 
           // what we just did was to combine two exterior edges 
           // into a single interior edge, so we now remove those
           // two exterior edges from S's list of exterior edges
-          free(S->ExteriorEdges[neip]);
-          S->ExteriorEdges[nei]=S->ExteriorEdges[neip]=0;
+          free(ExteriorEdges[neip]);
+          ExteriorEdges[nei]=ExteriorEdges[neip]=0;
 
           // add a new panel. Note that we can't call InitRWGPanel yet 
           // because the new vertex has not yet been added to the Vertices 
@@ -294,31 +267,22 @@ void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3],
           P->VI[0] = E->iV1;
           P->VI[1] = E->iV2;
           P->VI[2] = E->iQM;
-          P->Index = S->NumPanels + NumNew;
+          P->Index = NumPanels + NumNew;
           NewPanels[NumNew] = P;
   
           NumNew++;
 
        };
      
-   }; // for(nei=0; nei<S->NumExteriorEdges; nei++)
+   }; // for(nei=0; nei<NumExteriorEdges; nei++)
 
   if (NumNew==0)
    return;
 
   /*--------------------------------------------------------------*/
-  /*- replace S's arrays of Vertices, Panels, Edges, and          */
+  /*- replace internal arrays of Vertices, Panels, Edges, and     */
   /*- ExteriorEdges with new arrays that include the straddlers   */
   /*--------------------------------------------------------------*/
-  double *Vertices        = S->Vertices;
-  RWGPanel **Panels       = S->Panels;
-  RWGEdge **Edges         = S->Edges;
-  RWGEdge **ExteriorEdges = S->ExteriorEdges;
-  int NumVertices         = S->NumVertices;
-  int NumPanels           = S->NumPanels;
-  int NumEdges            = S->NumEdges;
-  int NumExteriorEdges    = S->NumExteriorEdges;
-
   Vertices = (double *)reallocEC( Vertices, 3*(NumVertices+NumNew) * sizeof(double));
   memcpy( &(Vertices[3*NumVertices]) , NewVertices, 3*NumNew*sizeof(double));
   NumVertices+=NumNew;
@@ -344,25 +308,16 @@ void AddStraddlers(RWGSurface *S, double LBV[MAXLATTICE][3],
       NewExteriorEdges[neip]->Index=neip;
       neip++;
     };
-      
+
   free(ExteriorEdges);
   ExteriorEdges=NewExteriorEdges;
   NumExteriorEdges=NewNumExteriorEdges;
  
-  S->Vertices         = Vertices;
-  S->Panels           = Panels;
-  S->Edges            = Edges;
-  S->ExteriorEdges    = ExteriorEdges;
-  S->NumVertices      = NumVertices;
-  S->NumPanels        = NumPanels;
-  S->NumEdges         = NumEdges;
-  S->NumExteriorEdges = NumExteriorEdges;
-
-  S->NumTotalEdges=NumEdges + NumExteriorEdges;
-  S->NumBFs = ( S->IsPEC ? NumEdges : 2*NumEdges );
+  NumTotalEdges=NumEdges + NumExteriorEdges;
+  NumBFs = ( IsPEC ? NumEdges : 2*NumEdges );
 
   if (NumStraddlers)
-   Log(" Detected (%i,%i) straddlers for object %s", NumStraddlers[0],NumStraddlers[1],S->Label);
+   Log(" Detected (%i,%i) straddlers for surface %s", NumStraddlers[0],NumStraddlers[1],Label);
 
 }
 
@@ -400,8 +355,8 @@ void RWGGeometry::InitPBCData()
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
-     AddStraddlers(S, LatticeBasisVectors, NumLatticeBasisVectors, 
-                   NumStraddlers + ns*MAXLATTICE);
+     S->AddStraddlers(LatticeBasisVectors, NumLatticeBasisVectors, 
+                      NumStraddlers + ns*MAXLATTICE);
 
      TotalBFs+=S->NumBFs;
      TotalPanels+=S->NumPanels;
@@ -453,6 +408,11 @@ void RWGGeometry::InitPBCData()
   /*- the periodic green's function; the 'all but 9' part refers  */
   /*- to the fact that we exclude the contributions of the        */
   /*- innermost 9 lattice cells.                                  */
+  /*-                                                             */
+  /*- Note: These interpolators are used to compute the BEM       */
+  /*- matrix. They are not to be confused with the separate set   */
+  /*- of interpolators for the various regions that are computed  */
+  /*- in the PBC version of GetFields().                          */
   /*--------------------------------------------------------------*/
   GBarAB9Interpolators = (Interp3D **)mallocEC(NumRegions * sizeof(Interp3D *));
   double RMax[3], RMin[3], DeltaR[3];

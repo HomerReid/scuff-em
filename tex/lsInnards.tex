@@ -2648,6 +2648,54 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
+\section{Fields due to individual basis functions}
+
+To compute the electric and magnetic fields at a point $\vb x$ 
+arising from the current carried by a single RWG or
+half-RWG basis function $\vb f_\alpha(\vb x)$, we first define the
+``reduced potentials'' of $\vb f_\alpha$. These are basically just 
+the usual vector and scalar potentials due to a current 
+distribution, but without the proper dimensionful prefactors:
+$$ \vb a_\alpha(\vb x) =
+   \int_{\sup \vb f_\alpha} 
+     G(k; \vb x - \vb x^\prime) \vb f_\alpha(\vb x^\prime) \, d\vb x^\prime,
+   \qquad
+   p(\vb x) =
+   \int_{\sup \vb f_\alpha} G(k; \vb x - \vb x^\prime) 
+                     \Big[\nabla \cdot \vb f_\alpha(\vb x^\prime)\Big] \, d\vb x^\prime.
+$$
+(Here $G(k; \vb r)=e^{ik|\vb r|}/{(4\pi|\vb r|)}$,
+with $k=\sqrt{\epsilon\mu}\cdot \omega$ the wavenumber in the medium 
+of interest.)
+
+Now suppose we have electric and magnetic current distributions
+described by basis function $\vb f_\alpha$ populated with strengths $K_\alpha$
+and $N_\alpha$, respectively. Then the electric and magnetic fields at
+$\vb x$ are 
+\begin{align*}
+ \vb E (\vb x) 
+&= 
+  Z_0 K_\alpha \Big[ i\omega \mu \vb a_\alpha(\vb x) 
+                     - \frac{1}{i\omega \epsilon}\nabla p(\vb x)
+               \Big]
+ - N_\alpha \nabla \times \vb a(\vb x)
+\\[5pt]
+ \vb H(\vb x) 
+&=
+  K_\alpha \nabla \times \vb a(\vb x)
+ +\frac{1}{Z_0}
+  N_\alpha \Big[   i\omega \epsilon \vb a(\vb x) 
+                 - \frac{1}{i\omega \mu }\nabla p(\vb x)
+               \Big]
+\end{align*}
+(Note that $\epsilon$ and $\mu$ here are the \textit{relative}
+permeability and permittivity of the medium in question; $Z_0$ 
+is the impedance of free space.)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
 \section{Cartesian Multipole Moments}
 
 \subsection{Electric Dipole Moment of an RWG Electric Current}
@@ -2866,7 +2914,7 @@ expansion of the fields away from the source regions:
 where $Z$ is the wave impedance of the medium ($Z=377\,\Omega$ for vacuum).
 Note that my $a\supt{M}_{\ell,m}, a\supt{E}_{\ell,m}$ coefficients
 are not normalized in quite the same way as Jackson's
-$a\supt{$M$}(l,m), a\supt{$E$}(l,m)$ coefficients; 
+$a\subt{$M$}(l,m), a\subt{$E$}(l,m)$ coefficients; 
 the relationship is 
 $$ a\supt{M}_{\ell,m} = Z_0 a\subt{$M$}(l,m), \qquad 
    a\supt{E}_{\ell,m} = Z_0 \frac{i}{k} a\subt{$E$}(l,m)
@@ -2888,7 +2936,7 @@ from known source distributions.
 \subsection*{Expansion of the Dyadic Green's Functions in Spherical Helmholtz Solutions}
 
 This approach is based on the well-known spherical-wave expansion 
-of the dyadic Green's functions of Section (\ref{DyadicGreensFunctionsSection}).
+of the dyadic Green's functions of Section \ref{DyadicGreensFunctionsSection}.
 [In the following expression, the $\rho$ and $\sigma$ subscripts run over
 spherical vector components ($r,\theta,\phi$.)]
 
@@ -2977,7 +3025,7 @@ the source current point:
 \end{subequations}
 
 Comparing (\ref{SphericalFieldExpansions}) with the definitions
-(\ref{SphericalMultipoleMoments}) now allows us to read off
+(\ref{SphericalMultipoleDefinitions}) now allows us to read off
 the expressions for $a\sups{E,M}$ in terms of the source
 distributions $\vb K$ and $\vb N$: 
 
@@ -3147,8 +3195,7 @@ Note the minus sign compared to (\ref{Ezz2}).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\newcommand{\GBar}{\overline{\vb G}}
-\newcommand{\CBar}{\overline{\vb C}}
+\newcommand{\GBar}{\overline{G}}
 
 \section{Periodic Boundary Conditions}
 
@@ -3158,13 +3205,25 @@ To avoid confusion with the free-space photon wavenumber,
 I use the symbol $\vb p$ to denote a two-dimensional 
 Bloch wavevector.
 
-\begin{align*}
-  \GBar(\vb p; \vb r, \vb r^\prime)
-&= \sum_{\vb L} e^{i \vb p \cdot \vb L} \vb G(\vb r, \vb r^\prime+\vb L)
-\\
-  \CBar(\vb p; \vb r, \vb r^\prime)
-&= \sum_{\vb L} e^{i \vb p \cdot \vb L} \vb C(\vb r, \vb r^\prime+\vb L)
-\end{align*}
+I use an overbar notation to denote the 
+\textit{periodic Green's function}, which contains contributions
+from all lattice cells appropriately weighted by Bloch phases.
+$$
+  \GBar(\vb p; k; \vb r, \vb r^\prime)
+= \sum_{\vb L} e^{i \vb p \cdot \vb L} G(k; \vb r, \vb r^\prime+\vb L)
+\qquad 
+ \bigg( G(k; \vb r, \vb r^\prime) 
+ = \frac{e^{ik|\vb r-\vb r^\prime|}}{4\pi|\vb r-\vb r^\prime|}
+ \bigg)
+$$
+
+I will also need to define a version of this function that 
+excludes the contributions of the innermost 9 lattice cells.
+I will call this version 
+$\GBar_{\texttt{AB9}}$
+%$\GBar_{\text{\scriptsize{AB9}}}$, 
+where the subscript stands for 
+stands for ``all but 9.''
 
 \subsection{Assembling the BEM matrix}
 

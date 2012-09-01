@@ -8,18 +8,15 @@ libscuff_la_SOURCES = \
  AssessPanelPair.cc \
  CalcGC.cc \
  EdgeEdgeInteractions.cc \
- EdgePanelInteractions.cc \
  ExpandCurrentDistribution.cc \
  FieldGrid.cc \
  FIPPICache.cc \
  GBarVDEwald.cc \
  GetDipoleMoments.cc \
  GetFields.cc \
- GetFields_PBC.cc \
  GTransformation.cc \
  GTransformation.h \
  InitEdgeList.cc \
- LineChargeContributions.cc \
  Overlap.cc \
  PanelPanelInteractions.cc \
  PBCSetup.cc \

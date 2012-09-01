@@ -40,7 +40,6 @@ namespace scuff {
 #define MAXTOK 50
 
 bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
-bool RWGGeometry::IncludeLineChargeContributions=false;
 
 /***********************************************************************/
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
@@ -205,7 +204,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   GeoFileName=strdupEC(pGeoFileName);
   Surfaces=0;
   AllSurfacesClosed=1;
-  HaveLineCharges=0;
   NumLatticeBasisVectors=0;
 
   // we always start with a single Region, for the exterior,
@@ -347,19 +345,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       };
 
    }; // while( fgets(Line,MAXSTR,f) )
-
-  /*******************************************************************/
-  /*- set a flag if there are line charges present. --------------*/
-  /*- line charges are present iff:                              -*/
-  /*-  (1) one or more surface contains exterior edges, and      -*/
-  /*-  (2) we are assigning half-RWG basis functions to those    -*/
-  /*-      exterior edges (as opposed to simply ignoring them).  -*/
-  /*******************************************************************/
-  if( IncludeLineChargeContributions )
-   { for(int ns=0; ns<NumSurfaces; ns++)
-      if ( Surfaces[ns]->NumExteriorEdges > 0 )
-       HaveLineCharges=1;
-   };
 
   /*******************************************************************/
   /* if a lattice is present, then we need to do some preliminary    */

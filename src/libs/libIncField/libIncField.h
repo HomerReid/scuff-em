@@ -65,6 +65,7 @@ class IncField
    void SetFrequency(cdouble Omega, bool Traverse=true);
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu, bool Traverse=true);
    void SetRegionLabel(const char *Label = 0);
+   void SetkBloch(double *NewkBloch);
 
    // obsolete calling convention retained for backward compatibility
    void SetObjectLabel(const char *Label) { SetRegionLabel(Label); }

@@ -612,12 +612,6 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
        M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
    };
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if ( HaveLineCharges && RWGGeometry::IncludeLineChargeContributions )
-   AddLineChargeContributionsToBEMMatrix(Omega, M);
-
  return M;
 
 }

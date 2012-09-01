@@ -125,7 +125,7 @@ void GetInnerProducts(RWGSurface *S, int ne,
   double *V2   = S->Vertices + 3*(E->iV2);
   double PArea = S->Panels[E->iPPanel]->Area;
   double *QM;
-  double MArea;
+  double MArea=0.0;
   if ( E->iQM == -1 )
    QM = 0;
   else

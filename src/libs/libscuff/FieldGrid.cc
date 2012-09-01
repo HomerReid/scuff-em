@@ -188,14 +188,10 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
   Ms[nfuncs] = NULL;
   if (!nfuncs) return Ms;
 
-  int nThread = GetNumThreads();
-
-  // number of threads to use in GetFields
 #ifdef USE_OPENMP // grid loop is parallelized
+  int nThread = GetNumThreads();
   int nThreadFields = nThread / (grid.N1 * grid.N2);
   if (nThreadFields < 1) nThreadFields = 1;
-#else // grid loop not parallelized
-  int nThreadFields = nThread;
 #endif
 
   // make sure kdPanels is initialized outside loop (this is not thread-safe)
