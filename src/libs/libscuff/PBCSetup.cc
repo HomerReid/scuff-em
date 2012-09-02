@@ -195,7 +195,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3],
 /*--------------------------------------------------------------*/
 #define CHUNK 100
 void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3], 
-                               int NumLatticeVectors, 
+                               int NumLatticeVectors,
                                int NumStraddlers[MAXLATTICE])
 { 
   int NumNew=0, NumAllocated=0;
@@ -358,13 +358,6 @@ void RWGGeometry::InitPBCData()
      S->AddStraddlers(LatticeBasisVectors, NumLatticeBasisVectors, 
                       NumStraddlers + ns*MAXLATTICE);
 
-     TotalBFs+=S->NumBFs;
-     TotalPanels+=S->NumPanels;
-     if ( ns+1 < NumSurfaces )
-      { BFIndexOffset[ns+1]=BFIndexOffset[ns] + S->NumBFs;
-        PanelIndexOffset[ns+1]=PanelIndexOffset[ns] + S->NumPanels;
-      };
-     
      nr1=S->RegionIndices[0];
      nr2=S->RegionIndices[1];
      for(int i=0; i<2; i++)
@@ -372,6 +365,19 @@ void RWGGeometry::InitPBCData()
        { RegionIsExtended[ MAXLATTICE*nr1 + i]=1;
          if (nr2!=-1) RegionIsExtended[ MAXLATTICE*nr2 + i ]=1;
        };
+
+     TotalBFs+=S->NumBFs;
+     TotalPanels+=S->NumPanels;
+
+/* 20120901 in the modern reorganization of this code, i don't 
+   need to do this step here because it comes later in the 
+   RWGGeometry class constructor  */
+#if 0
+     if ( ns+1 < NumSurfaces )
+      { BFIndexOffset[ns+1]=BFIndexOffset[ns] + S->NumBFs;
+        PanelIndexOffset[ns+1]=PanelIndexOffset[ns] + S->NumPanels;
+      };
+#endif
 
    };
 

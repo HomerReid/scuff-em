@@ -351,7 +351,7 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   /*- the exception of the Index field.) The edges remain in    */
   /*- place within the ExteriorEdges array.                     */
   /*------------------------------------------------------------*/
-  if ( !IsObject && RWGGeometry::AssignBasisFunctionsToExteriorEdges)
+  if ( !IsObject && RWGGeometry::AssignBasisFunctionsToExteriorEdges )
    { Edges = (RWGEdge **)realloc(Edges, (NumEdges + NumExteriorEdges)*sizeof(RWGEdge *));
      memcpy(Edges + NumEdges, ExteriorEdges, NumExteriorEdges * sizeof(RWGEdge *));
      for(int ne=NumEdges; ne<NumEdges + NumExteriorEdges; ne++)

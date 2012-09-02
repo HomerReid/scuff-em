@@ -185,7 +185,6 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
 
 }
 
-
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
@@ -285,7 +284,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
          { 
            char Label[MAXSTR];
            snprintf(Label,MAXSTR,"Surface_%i",NumSurfaces+1);
-           S=new RWGSurface(f,Label,&LineNum, Tokens[0]);
+           S=new RWGSurface(f,Label,&LineNum,Tokens[0]);
          };
 
         if (S->ErrMsg)

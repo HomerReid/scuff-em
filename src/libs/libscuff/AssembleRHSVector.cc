@@ -285,7 +285,8 @@ void *AssembleRHS_Thread(void *data)
 /***************************************************************/
 /* Assemble the RHS vector.  ***********************************/
 /***************************************************************/
-HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS)
+HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, double *kBloch,
+                                        IncField *IF, HVector *RHS)
 { 
   if (RHS==NULL)
    RHS=AllocateRHSVector();
@@ -293,7 +294,7 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
   RHS->Zero();
    
   int nt, NumTasks, NumThreads = GetNumThreads();
-  int NIF=UpdateIncFields(IF, Omega);
+  int NIF=UpdateIncFields(IF, Omega, kBloch);
 
   ThreadData ReferenceTD;
   ReferenceTD.G=this;
@@ -342,6 +343,12 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
 
   return RHS;
 }
+
+/***************************************************************/
+/* non-PBC entry point for AssembleRHSVector                   */
+/***************************************************************/
+HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS)
+{ return AssembleRHSVector(Omega, 0, IF, RHS); }
 
 /***************************************************************/
 /* Prepare a chain of IncField structures for computations in  */

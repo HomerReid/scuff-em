@@ -290,10 +290,8 @@ class RWGSurface
    void GetReducedPotentials(int ne, const double *X, cdouble K, Interp3D *GBarInterp,
                              cdouble *a, cdouble *Curla, cdouble *Gradp);
 
-   /* this is not really private, as it is called by RWGGeometry class methods, */
-   /* but it is also not an API routine for use by API programmers.             */
-   void AddStraddlers(double LBV[MAXLATTICE][3],
-                      int NumLatticeVectors, int NumStraddlers[MAXLATTICE]);
+   void AddStraddlers(double LBV[MAXLATTICE][3], int NumLatticeVectors, 
+                      int NumStraddlers[MAXLATTICE]);
  
  };
 
@@ -413,6 +411,7 @@ class RWGGeometry
    /* Note PBC routines are distinguished from their non-PBC counterparts      */
    /* by the kBloch argument, which always follows Omega in the argument list. */
    HMatrix *AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLATTICE], HMatrix *M);
+   HVector *AssembleRHSVector(cdouble Omega, double *kBloch, IncField *IF, HVector *RHS = NULL);
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                   double *X, cdouble *EH);
    HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
