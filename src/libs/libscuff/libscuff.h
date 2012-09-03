@@ -69,7 +69,9 @@ namespace scuff {
 #define SCUFF_NUM_OMATRICES      5
 
 // maximum number of lattice basis vectors
+#ifndef MAXLATTICE
 #define MAXLATTICE 2
+#endif
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

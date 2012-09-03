@@ -393,6 +393,8 @@ void *AOCC_Thread(void *data)
           if (nt==TD->nTask) nt=0;
           if (nt!=TD->nt) continue;
 
+          if (neb==0) LogPercent(nea, Sa->NumEdges);
+
           // contribution from first medium if it is extended
           if (Interpolator1)
            { GetAB9EdgeEdgeInteractions(Sa, nea, Sb, neb, k1, Interpolator1, GC);
@@ -419,7 +421,7 @@ void *AOCC_Thread(void *data)
 void RWGGeometry::AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *M)
 { 
 
-  Log(" Adding contributions of outer cells...\n");
+  Log(" Adding contributions of outer cells...");
 
   /*--------------------------------------------------------------*/
   /*- initialize GBarAB9 interpolation tables for all regions at -*/
@@ -439,6 +441,8 @@ void RWGGeometry::AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *
      GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*StoredOmega;
      GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
    };
+  
+  Log("  Computing GBarAB9 panel--panel integrals...");
 
   /*--------------------------------------------------------------*/
   /*- fire off threads -------------------------------------------*/
@@ -521,7 +525,7 @@ void RWGGeometry::AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *
 /***************************************************************/
 void RWGGeometry::AssembleInnerCellBlocks()
 {
-  Log(" Assembling inner matrix blocks at Omega=%s\n",z2s(StoredOmega));
+  Log(" Assembling inner matrix blocks at Omega=%s",z2s(StoredOmega));
 
   Log(" MZZ block...");
   AssembleBEMMatrix(StoredOmega, MZZ);
@@ -543,7 +547,7 @@ void RWGGeometry::AssembleInnerCellBlocks()
   Displacement[2]=0.0;
   Args->Displacement=Displacement;
 
-  Log("Assembling MPP block ...");
+  Log(" MPP block ...");
   Displacement[0]=LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
   Displacement[1]=LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
   Args->B=MPP;
@@ -592,7 +596,7 @@ void RWGGeometry::AssembleInnerCellBlocks()
 
     };
 
-  Log("Assembling MPM block ...");
+  Log(" MPM block ...");
   Displacement[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
   Displacement[1]=LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
   Args->B=MPM;
@@ -638,7 +642,7 @@ void RWGGeometry::AssembleInnerCellBlocks()
 
     };
 
-  Log("Assembling MPZ block ...");
+  Log(" MPZ block ...");
   Displacement[0]=LatticeBasisVectors[0][0]; 
   Displacement[1]=LatticeBasisVectors[0][1];
   Args->B=MPZ;
@@ -684,7 +688,7 @@ void RWGGeometry::AssembleInnerCellBlocks()
 
     };
 
-  Log("Assembling MZP block ...");
+  Log(" MZP block ...");
   Displacement[0]=LatticeBasisVectors[1][0]; 
   Displacement[1]=LatticeBasisVectors[1][1];
   Args->B=MZP;

@@ -596,8 +596,8 @@ Interp3D *RWGGeometry::CreateRegionInterpolator(int RegionIndex, cdouble Omega,
   /* X runs over all vertices on all surfaces bounding the region */
   /* and Y runs over all evaluation points in the region          */
   /*--------------------------------------------------------------*/
-  double DeltaRMax[3]={-1.0e9, -1.0e9, -1.0e9};
-  double DeltaRMin[3]={+1.0e9, +1.0e9, +1.0e9};
+  double DeltaRMax[3]={-1.0e89, -1.0e89, -1.0e89};
+  double DeltaRMin[3]={+1.0e89, +1.0e89, +1.0e89};
   double *SurfaceRMax, *SurfaceRMin;  
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
@@ -607,12 +607,12 @@ Interp3D *RWGGeometry::CreateRegionInterpolator(int RegionIndex, cdouble Omega,
       { 
         SurfaceRMax = Surfaces[ns]->RMax;
         SurfaceRMin = Surfaces[ns]->RMin;
-        DeltaRMax[0] = fmax(DeltaRMax[0], SurfaceRMax[0] - EvalPointRMax[0] );
-        DeltaRMax[1] = fmax(DeltaRMax[1], SurfaceRMax[1] - EvalPointRMax[1] );
-        DeltaRMax[2] = fmax(DeltaRMax[2], SurfaceRMax[2] - EvalPointRMax[2] );
-        DeltaRMin[0] = fmin(DeltaRMin[0], SurfaceRMin[0] - EvalPointRMin[0] );
-        DeltaRMin[1] = fmin(DeltaRMin[1], SurfaceRMin[1] - EvalPointRMin[1] );
-        DeltaRMin[2] = fmin(DeltaRMin[2], SurfaceRMin[2] - EvalPointRMin[2] );
+        DeltaRMax[0] = fmax(DeltaRMax[0], SurfaceRMax[0] - EvalPointRMin[0] );
+        DeltaRMax[1] = fmax(DeltaRMax[1], SurfaceRMax[1] - EvalPointRMin[1] );
+        DeltaRMax[2] = fmax(DeltaRMax[2], SurfaceRMax[2] - EvalPointRMin[2] );
+        DeltaRMin[0] = fmin(DeltaRMin[0], SurfaceRMin[0] - EvalPointRMax[0] );
+        DeltaRMin[1] = fmin(DeltaRMin[1], SurfaceRMin[1] - EvalPointRMax[1] );
+        DeltaRMin[2] = fmin(DeltaRMin[2], SurfaceRMin[2] - EvalPointRMax[2] );
       };
    };
 
@@ -643,7 +643,6 @@ Interp3D *RWGGeometry::CreateRegionInterpolator(int RegionIndex, cdouble Omega,
                                      DeltaRMin[1], DeltaRMax[1], NPoints[1],
                                      DeltaRMin[2], DeltaRMax[2], NPoints[2],
                                      2, GBarVDPhi3D, (void *)GBD);
-
   return GBarInterp;
 }
 
