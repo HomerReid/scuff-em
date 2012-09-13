@@ -224,6 +224,8 @@ void FIPPICache::Store(const char *FileName)
 {
   KeyValueMap *KVM=(KeyValueMap *)opTable;
 
+  if (FileName==0) return;
+
   /*--------------------------------------------------------------*/
   /*- pause to check if the following conditions are satisfied:  -*/
   /*-  (1) the FIPPI cache was preloaded from an input file whose-*/

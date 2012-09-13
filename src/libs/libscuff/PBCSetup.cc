@@ -34,12 +34,6 @@
 namespace scuff{
 
 /***************************************************************/
-/* do something about me please ********************************/
-/***************************************************************/
-int RWGGeometry::PBCCubatureOrder=4;
-double RWGGeometry::DeltaInterp=0.05;
-
-/***************************************************************/
 /* Get the maximum and minimum coordinates of all panel        */
 /* vertices on all surfaces bounding the region in question.   */
 /***************************************************************/
@@ -388,19 +382,19 @@ void RWGGeometry::InitPBCData()
   /*- Mab is the BEM interaction matrix between the unit-cell    -*/
   /*- geometry and a copy of itself translated through vector    -*/
   /*- a*LBV[0] + b*LBV[1].                                       -*/
-  /*- (Note: We cache these contributions because they are       -*/
-  /*-  independent of bloch vector and hence may be reused for   -*/
-  /*-  multiple computations at the same Omega but different     -*/
-  /*-  bloch vectors. However, it may get a little memory-       -*/
-  /*-  intensive to have all 5 of them lying around, in which    -*/
-  /*-  case we should switch over to computing them on the fly.  -*/
-  /*-  FIXME to do later.                                        -*/
+  /*-                                                            -*/
+  /*- If PBCAcceleration is enabled, we allocate all 5 blocks.   -*/
+  /*- Otherwise, we allocate only a single block. (Ultimately    -*/
+  /*- even this extra memory allocation could be saved, but only -*/
+  /*- at the cost of significant programming hassle.)            -*/
   /*--------------------------------------------------------------*/
-  MPP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-  MPM=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-  MPZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-  MZP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-  MZZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX); // this one could be symmetric ...
+  MZZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX); // this one is always allocated 
+  if (UsePBCAcceleration)
+   { MPP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+     MPM=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+     MPZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+     MZP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
+   };
 
   /*--------------------------------------------------------------*/
   /*- allocate interpolators for each extended region in the      */
@@ -431,7 +425,8 @@ void RWGGeometry::InitPBCData()
      GetRegionExtents(nr, RMax, RMin);
 
      for(int i=0; i<3; i++)
-      {  DeltaR[i]   = fmax( RMax[i] - RMin[i], RWGGeometry::DeltaInterp );
+      {
+         DeltaR[i]   = fmax( RMax[i] - RMin[i], RWGGeometry::DeltaInterp );
          NPoints[i]  = 1 + (2.0*DeltaR[i] / RWGGeometry::DeltaInterp );
          if (NPoints[i] < 2)
           NPoints[i]=2;

@@ -491,8 +491,19 @@ void RWGGeometry::AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *
 } 
 
 /***************************************************************/
-/* This routine fills in the the MPP, MPM, MPZ, MZP, and MZZ   */
-/* matrices stored within the RWGGeometry class.               */
+/* This routine handles the contributions of the innermost     */
+/* lattice cells to the BEM matrix.                            */
+/*                                                             */
+/* If UsePBCAcceleration is true, then the contributions are   */
+/* simply stored in the MPP, MPM, MPZ, MZP, and MZZ blocks     */
+/* inside the RWGGeometry class and are not stamped into the   */
+/* actual BEM matrix. In this case the M input parameter       */
+/* should be set to NULL.                                      */
+/*                                                             */
+/* If UsePBCAcceleration is false, then the contributions are  */
+/* stamped into the BEM matrix (stored in the M parameter)     */ 
+/* with the proper phase factors depending on the bloch        */
+/* wavevector, as they are assembled.                          */
 /*                                                             */
 /* Here Mij = the interaction of the unit cell geometry with   */
 /*            the periodic copy of that geometry at i*L1 + j*L2*/
@@ -523,12 +534,31 @@ void RWGGeometry::AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *
 /*       material properties after the call to                 */
 /*       AssembleBEMMatrixBlock. Kinda klugey, but it works.   */
 /***************************************************************/
-void RWGGeometry::AssembleInnerCellBlocks()
+void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
 {
+  /*- note: PFPP = 'phase factor, plus-plus'                      */
+  /*-       PFPZ = 'phase factor, plus-zero'                      */
+  /*- etc.                                                        */
+  cdouble PFPP, PFPM, PFPZ, PFZP;
+  if (M)
+   { 
+     double *LBV[2];
+     LBV[0]=LatticeBasisVectors[0];
+     LBV[1]=LatticeBasisVectors[1];
+     PFPP = exp( II* ( kBloch[0]*(LBV[0][0] + LBV[1][0]) + kBloch[1]*(LBV[0][1] + LBV[1][1]) ) );
+     PFPM = exp( II* ( kBloch[0]*(LBV[0][0] - LBV[1][0]) + kBloch[1]*(LBV[0][1] - LBV[1][1]) ) );
+     PFPZ = exp( II* ( kBloch[0]*(LBV[0][0]            ) + kBloch[1]*(LBV[0][1]            ) ) );
+     PFZP = exp( II* ( kBloch[0]*(            LBV[1][0]) + kBloch[1]*(            LBV[1][1]) ) );
+   };
+
   Log(" Assembling inner matrix blocks at Omega=%s",z2s(StoredOmega));
 
   Log(" MZZ block...");
-  AssembleBEMMatrix(StoredOmega, MZZ);
+  AssembleBEMMatrix(StoredOmega, M ? M : MZZ );
+
+  // if we are not using PBC acceleration, then we use MZZ as a 
+  // scratch matrix for assembling all inner cell blocks.
+  HMatrix *MScratch = MZZ;
 
   int nr1, nr2=0;
   int NumCommonRegions, CommonRegionIndices[2];
@@ -550,16 +580,15 @@ void RWGGeometry::AssembleInnerCellBlocks()
   Log(" MPP block ...");
   Displacement[0]=LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
   Displacement[1]=LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
-  Args->B=MPP;
+  Args->B = M ? MScratch : MPP;
   for(ns=0; ns<NumSurfaces; ns++)
    for(nsp=0; nsp<NumSurfaces; nsp++)
     { 
       Args->Sa=Surfaces[ns];
-      Args->RowOffset=BFIndexOffset[ns];
       Args->Sb=Surfaces[nsp];
-      Args->ColOffset=BFIndexOffset[nsp];
       Args->Symmetric=0;
-      Args->B=MPP;
+      Args->RowOffset=BFIndexOffset[ns];
+      Args->ColOffset=BFIndexOffset[nsp];
 
       NumCommonRegions=CountCommonRegions(Args->Sa, Args->Sb, CommonRegionIndices, Signs);
       if (NumCommonRegions==0) 
@@ -595,11 +624,17 @@ void RWGGeometry::AssembleInnerCellBlocks()
        RegionMPs[nr2]->Zeroed=SaveZeroed2;
 
     };
+  if (M)
+   { for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NR; nc++)
+       M->AddEntry(nr, nc,       PFPP*MScratch->GetEntry(nr, nc) +
+                            conj(PFPP)*MScratch->GetEntry(nc, nr) );
+   };
 
   Log(" MPM block ...");
   Displacement[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
   Displacement[1]=LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
-  Args->B=MPM;
+  Args->B = M ? MScratch : MPM;
   for(ns=0; ns<NumSurfaces; ns++)
    for(nsp=0; nsp<NumSurfaces; nsp++)
     { Args->Sa=Surfaces[ns];
@@ -641,11 +676,18 @@ void RWGGeometry::AssembleInnerCellBlocks()
        RegionMPs[nr2]->Zeroed=SaveZeroed2;
 
     };
+  if (M)
+   { for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NR; nc++)
+       M->AddEntry(nr, nc,       PFPM*MScratch->GetEntry(nr, nc) +
+                            conj(PFPM)*MScratch->GetEntry(nc, nr) );
+   };
+
 
   Log(" MPZ block ...");
   Displacement[0]=LatticeBasisVectors[0][0]; 
   Displacement[1]=LatticeBasisVectors[0][1];
-  Args->B=MPZ;
+  Args->B = M ? MScratch : MPZ;
   for(ns=0; ns<NumSurfaces; ns++)
    for(nsp=0; nsp<NumSurfaces; nsp++)
     { Args->Sa=Surfaces[ns];
@@ -687,14 +729,24 @@ void RWGGeometry::AssembleInnerCellBlocks()
        RegionMPs[nr2]->Zeroed=SaveZeroed2;
 
     };
+  if (M)
+   { for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NR; nc++)
+       M->AddEntry(nr, nc,       PFPZ*MScratch->GetEntry(nr, nc) +
+                            conj(PFPZ)*MScratch->GetEntry(nc, nr) );
+   };
+
+
+
 
   Log(" MZP block ...");
   Displacement[0]=LatticeBasisVectors[1][0]; 
   Displacement[1]=LatticeBasisVectors[1][1];
-  Args->B=MZP;
+  Args->B = M ? MScratch : MZP;
   for(ns=0; ns<NumSurfaces; ns++)
    for(nsp=0; nsp<NumSurfaces; nsp++)
-    { Args->Sa=Surfaces[ns];
+    { 
+      Args->Sa=Surfaces[ns];
       Args->RowOffset=BFIndexOffset[ns];
       Args->Sb=Surfaces[nsp];
       Args->ColOffset=BFIndexOffset[nsp];
@@ -733,6 +785,14 @@ void RWGGeometry::AssembleInnerCellBlocks()
        RegionMPs[nr2]->Zeroed=SaveZeroed2;
 
     };
+  if (M)
+   { for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NR; nc++)
+       M->AddEntry(nr, nc,       PFZP*MScratch->GetEntry(nr, nc) +
+                            conj(PFZP)*MScratch->GetEntry(nc, nr) );
+   };
+
+
 
 }
 
@@ -757,35 +817,46 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLATTICE]
    M=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
 
   /*--------------------------------------------------------------*/
-  /*- assemble contributions of innermost lattice cells if the   -*/
-  /*- frequency has changed since the last call                  -*/
+  /*- make sure cached values of epsilon and mu are correct for   */
+  /*- this frequency; also, if we are using PBCAcceleration and   */
+  /*- the frequency has changed since we last computed the inner  */
+  /*- cell blocks, we need to recompute those.                    */
   /*--------------------------------------------------------------*/
   if( StoredOmega != Omega )
    { UpdateCachedEpsMuValues(Omega);
-     AssembleInnerCellBlocks();
+     if (UsePBCAcceleration)
+      AssembleInnerCellBlocks(0, 0);
    };
 
   /*--------------------------------------------------------------*/
-  /*- stamp in the contributions of the innermost 9 lattice cells */
+  /*- stamp in the contributions of the innermost 9 lattice cells,*/
+  /*- by looking them up in the MPP, MPM, ... internal storage    */
+  /*- blocks if those are present, and otherwise by computing them*/
+  /*- on the fly.                                                 */
   /*- note: PFPP = 'phase factor, plus-plus'                      */
   /*-       PFPZ = 'phase factor, plus-zero'                      */
   /*- etc.                                                        */
   /*--------------------------------------------------------------*/
-  double *LBV[2];
-  LBV[0]=LatticeBasisVectors[0];
-  LBV[1]=LatticeBasisVectors[1];
-  cdouble PFPP = exp( II* ( kBloch[0]*(LBV[0][0] + LBV[1][0]) + kBloch[1]*(LBV[0][1] + LBV[1][1]) ) );
-  cdouble PFPM = exp( II* ( kBloch[0]*(LBV[0][0] - LBV[1][0]) + kBloch[1]*(LBV[0][1] - LBV[1][1]) ) );
-  cdouble PFPZ = exp( II* ( kBloch[0]*(LBV[0][0]            ) + kBloch[1]*(LBV[0][1]            ) ) );
-  cdouble PFZP = exp( II* ( kBloch[0]*(            LBV[1][0]) + kBloch[1]*(            LBV[1][1]) ) );
-  for(int nr=0; nr<M->NR; nr++)
-   for(int nc=0; nc<M->NR; nc++)
-    M->SetEntry(nr, nc,  PFPP*MPP->GetEntry(nr, nc) + conj(PFPP)*MPP->GetEntry(nc,nr)
-                       + PFPM*MPM->GetEntry(nr, nc) + conj(PFPM)*MPM->GetEntry(nc,nr)
-                       + PFPZ*MPZ->GetEntry(nr, nc) + conj(PFPZ)*MPZ->GetEntry(nc,nr)
-                       + PFZP*MZP->GetEntry(nr, nc) + conj(PFZP)*MZP->GetEntry(nc,nr)
-                       + MZZ->GetEntry(nr,nc) 
-               );
+  if ( UsePBCAcceleration )
+   { 
+     double *LBV[2];
+     LBV[0]=LatticeBasisVectors[0];
+     LBV[1]=LatticeBasisVectors[1];
+     cdouble PFPP = exp( II* ( kBloch[0]*(LBV[0][0] + LBV[1][0]) + kBloch[1]*(LBV[0][1] + LBV[1][1]) ) );
+     cdouble PFPM = exp( II* ( kBloch[0]*(LBV[0][0] - LBV[1][0]) + kBloch[1]*(LBV[0][1] - LBV[1][1]) ) );
+     cdouble PFPZ = exp( II* ( kBloch[0]*(LBV[0][0]            ) + kBloch[1]*(LBV[0][1]            ) ) );
+     cdouble PFZP = exp( II* ( kBloch[0]*(            LBV[1][0]) + kBloch[1]*(            LBV[1][1]) ) );
+     for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NR; nc++)
+       M->SetEntry(nr, nc,  PFPP*MPP->GetEntry(nr, nc) + conj(PFPP)*MPP->GetEntry(nc,nr)
+                          + PFPM*MPM->GetEntry(nr, nc) + conj(PFPM)*MPM->GetEntry(nc,nr)
+                          + PFPZ*MPZ->GetEntry(nr, nc) + conj(PFPZ)*MPZ->GetEntry(nc,nr)
+                          + PFZP*MZP->GetEntry(nr, nc) + conj(PFZP)*MZP->GetEntry(nc,nr)
+                          + MZZ->GetEntry(nr,nc) 
+                  );
+   }
+  else
+   AssembleInnerCellBlocks(kBloch, M);
 
   /*--------------------------------------------------------------*/
   /*- add the contribution of lattice cells beyond the innermost 9*/
