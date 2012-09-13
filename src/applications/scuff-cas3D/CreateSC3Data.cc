@@ -33,17 +33,26 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SC3Data *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux, 
-                     char *ByOmegaFile, int nThread)
+SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
+                       char *ByXiFile, char *ByXikBlochFile)
 {
-  SC3Data *SHD=(SHData *)mallocEC(sizeof(*SHD));
+  SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
+  SC3D->G = G;
 
   /*--------------------------------------------------------------*/
-  /*-- try to create the RWGGeometry -----------------------------*/
   /*--------------------------------------------------------------*/
-  RWGGeometry *G=new RWGGeometry(GeoFile);
-  G->SetLogLevel(SCUFF_VERBOSELOGGING);
-  SC3D->G=G;
+  /*--------------------------------------------------------------*/
+  SC3D->WhichQuantities=WhichQuantities;
+  SC3D->NumQuantities=NumQuantities;
+  SC3D->NumTorqueAxes=0;
+  if (NumQuantities & QUANTITY_TORQUE1)
+   SC3D->NumTorqueAxes++;
+  if (NumQuantities & QUANTITY_TORQUE2)
+   SC3D->NumTorqueAxes++;
+  if (NumQuantities & QUANTITY_TORQUE3)
+   SC3D->NumTorqueAxes++;
+  if (SC3D->NumTorqueAxes)
+   memcpy(SC3D->TorqueAxes, TorqueArgs, 3*NumTorqueAxes*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
   /*- read the transformation file if one was specified and check */
@@ -52,39 +61,34 @@ SC3Data *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   /*- this case the list of GTComplices is initialized to contain */
   /*- a single empty GTComplex and the check automatically passes.*/
   /*--------------------------------------------------------------*/
-  SC3D->GTCList=ReadTransFile(TransFile, &(SHD->NumTransformations));
-  char *ErrMsg=G->CheckGTCList(SC3D->GTCList, SHD->NumTransformations);
+  SC3D->GTCList=ReadTransFile(TransFile, &(SC3D->NumTransformations));
+  char *ErrMsg=G->CheckGTCList(SC3D->GTCList, SC3D->NumTransformations);
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
   /*--------------------------------------------------------------*/
-  /*- the DV field is only needed for generating flux plots.     -*/
+  /*- FIXME ------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  SC3D->PlotFlux=PlotFlux;
-  if (PlotFlux)
-   SC3D->DV=new HVector(G->TotalBFs); // diagonal vector (note real-valued)
+  if ( TransFile && G->NumLatticeBasisVectors>0 )
+   ErrExit("--TransFiles are not yet supported for PBC geometries");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  SC3D->nThread=nThread;
-  if (SC3D->nThread==0)
-   SC3D->nThread=GetNumThreads();
-
-  SC3D->WriteCache=0;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (ByOmegaFile)
-   SC3D->ByOmegaFile = ByOmegaFile;
+  if (ByXiFile)
+   SC3D->ByXiFile = ByOmegaFile;
   else 
-   { SC3D->ByOmegaFile = vstrdup("%s.byOmega",GetFileBase(GeoFile));
+   { SC3D->ByXiFile = vstrdup("%s.byXi",GetFileBase(GeoFile));
      char MyFileName[MAXSTR];
-     FILE *f=CreateUniqueFile(SC3D->ByOmegaFile, 1, MyFileName);
+     FILE *f=CreateUniqueFile(SC3D->ByXiFile, 1, MyFileName);
      fclose(f);
-     SC3D->ByOmegaFile=strdupEC(MyFileName);
+     SC3D->ByXiFile=strdupEC(MyFileName);
    };
+
+  if (ByXikBlochFile)
+   SC3D->ByXiFile = ByXikBlochFile;
+  else 
+   ByXikBlochFile=0;
 
   /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse -*/
@@ -121,7 +125,7 @@ SC3Data *CreateSHData(char *GeoFile, char *TransFile, int PlotFlux,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   int N = SC3D->G->TotalBFs;
-  int N1 = SC3D->N1 = SHD->G->Objects[0]->NumBFs;
+  int N1 = SC3D->N1 = SC3D->G->Objects[0]->NumBFs;
   int N2 = SC3D->N2 = N - N1;
   SC3D->SymG1      = new HMatrix(N1, N1, LHM_COMPLEX );
   SC3D->SymG2      = new HMatrix(N2, N2, LHM_COMPLEX );

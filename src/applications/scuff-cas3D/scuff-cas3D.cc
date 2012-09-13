@@ -86,6 +86,11 @@
  * 
  *         Specify a file containing a list of --Xi values.
  * 
+ *     --XikBlochFile MyXikBlochFile
+ * 
+ *         Specify a file containing a list of --Xi and --kBloch
+ *         values (see below)
+ * 
  *     --Temperature T
  * 
  *         Specify a temperature (in Kelvin) at which to  
@@ -99,7 +104,27 @@
  * 
  *       -------------------------------------------------
  * 
- * c. options specifying output file names 
+ * d. options specifying bloch wavevector (for periodically 
+ *    extended geometries only)                                 
+ * 
+ *  --kBloch xx yy 
+ *
+ *         Specify a single bloch wavevector at which to 
+ *         evaluate the spectral density of contributions
+ *         to the requested Casimir quantities.
+ *
+ *  --kBlochFile MykBlochFile
+ * 
+ *         Specify a file containing a list of --kBloch
+ *         values.
+ * 
+ *     Note: if none of the options --kBloch, --kBlochFile, or
+ *           --XikBlochFile are specified, the default is
+ *           to integrate over the Brillouin zone. 
+ * 
+ *       -------------------------------------------------
+ * 
+ * e. options specifying output file names 
  * 
  *     --ByXiFile MyFileName.byXi
  * 
@@ -125,7 +150,7 @@
  * 
  *       -------------------------------------------------
  * 
- * d. options specifying scuff caches 
+ * f. options specifying scuff caches 
  * 
  *     -- ReadCache MyReadCache.scuffcache
  * 
@@ -146,7 +171,7 @@
  *         Specifying this option is equivalent to setting
  *         --ReadCache and --WriteCache both to MyCache.scuffcache.
  * 
- * e. other options 
+ * g. other options 
  * 
  *     --nThread xx   (use xx computational threads)
  *
@@ -166,6 +191,127 @@
 
 #define MAXSTR   1000
 
+/*******************************************************************/
+/* subroutine to process command-line options related to           */
+/* frequencies and bloch wavevectors to figure out the list of     */
+/* (Xi, kx, ky) points at which we will compute Casimir quantities.*/
+/*                                                                 */
+/* On return, one of the following is true.                        */
+/*                                                                 */
+/*  a) *pXikBlochPoints is non-NULL and points to an Nx3 HMatrix   */
+/*     whose rows are the (Xi, kx, ky) points at which we compute  */
+/*     Casimir quantities.                                         */
+/*                                                                 */
+/*  b) *pXiPoints is non-NULL and points to an N-dimensional       */
+/*      HVector whose entries are the Xi points at which we        */
+/*      compute Casimir quantities.                                */
+/*      In this case, if a lattice is present, *pBZIMethod tells   */
+/*      us which method to use for integrating over the Brillouin  */
+/*      zone at each frequency.                                    */
+/*                                                                 */
+/*  c) *pXikBlochPoints and *pXiPoints are both NULL. This means   */
+/*      the user wants us to integrate over the entire positive    */
+/*      Xi axis (if no temperature was specified) or else to       */
+/*      evaluate the full Matsubara sum at the given temperature.  */
+/*      In this case, if a lattice is present, *pBZIMethod tells   */
+/*      us which method to use for integrating over the Brillouin  */
+/*      zone at each frequency.                                    */
+/*                                                                 */
+/*  Note that if *pBZIMethod = BZIMETHOD_SINGLEPOINT, then kBloch  */
+/*  stores the components of a single Bloch vector at which we do  */
+/*  calculations at each frequency.                                */
+/*******************************************************************/
+void ProcessFrequencyOptions(bool HaveLattice,
+                             double *XiVals, int nXiVals,
+                             double *kBloch, int nkBloch,
+                             char *XiFile, char *XikBlochFile, char *BZIString,
+                             double Temperature, int nTemperature,
+                             HMatrix **pXikBlochPoints, HVector **pXiPoints,
+                             int *pBZIMethod)
+{
+  /*--------------------------------------------------------------*/
+  /*- a deluge of sanity checks ----------------------------------*/
+  /*--------------------------------------------------------------*/
+  if ( HaveLattice==0 )
+   { if ( (nkBLoch!=0) )
+       ErrExit("--kBloch may only be specified for .scuffgeo files with LATTICE statements");
+     if ( (XikBlochFile!=0) )
+       ErrExit("--XikBlochFile may only be specified for .scuffgeo files with LATTICE statements");
+     if ( (BZIString!=0) )
+       ErrExit("--BZIMethod may only be specified for .scuffgeo files with LATTICE statements");
+   };
+
+  if ( BZIString!=0 && nkBloch!=0 )
+   ErrExit("--BZIMethod and --kBloch options are mutually exclusive");
+  if ( (nkBLoch!=0) && XikBlochFile!=0 )
+   ErrExit("--kBloch and --XikBlochFile options are mutually exclusive");
+  if ( (BZIString!=0) && XikBlochFile!=0 )
+   ErrExit("--BZIMethod and --XikBlochFile options are mutually exclusive");
+  if ( (nXiVals!=0) && XikBlochFile!=0 )
+   ErrExit("--Xi and --XikBlochFile options are mutually exclusive");
+
+  if ( nTemperature > 0 )
+   { if ( nXiVals!=0 )
+      ErrExit("--Xi and --Temperature options are mutually exclusive");
+     if ( XiFile!=0 )
+      ErrExit("--XiFile and --Temperature options are mutually exclusive");
+     if ( XikBlochFile!=0 )
+      ErrExit("--XikBlochFile and --Temperature options are mutually exclusive");
+     if ( Temperature < 0.0 )
+      ErrExit("negative value specified for the --Temperature option")
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- process BZIString argument ---------------------------------*/
+  /*--------------------------------------------------------------*/
+  *pBZIMethod=BZIMETHOD_MP7;              // default if nothing specified
+  if ( BZIString )
+   { if ( !strcasecmp(BZIString,"MP7") )
+      { Log("Using 7-point monkhorst-pack scheme for Brillouin zone integration.");
+        *pBZIMethod=BZIMETHOD_MP7;
+      }
+     else if ( !strcasecmp(BZIString,"MP15") )
+      { Log("Using 15-point monkhorst-pack scheme for Brillouin zone integration.");
+        *pBZIMethod=BZIMETHOD_MP15;
+      }
+     else
+      { fprintf(f," error: unknown Brillouin-zone integration scheme %s (aborting)\n",BZIString);
+        fprintf(f," \n");
+        fprintf(f," Available schemes for Brillouin-zone integration:\n");
+        fprintf(f,"  --bziMethod MP7   (7-point monkhorst-pack scheme)\n");
+        fprintf(f,"  --bziMethod MP15  (15-point monkhorst-pack scheme)\n");
+        exit(1);
+      };
+   }
+  else if ( nkBloch!=0 )
+   *pBZIMethod = BZIMETHOD_SINGLEPOINT;
+     
+  /*--------------------------------------------------------------*/
+  /*- look for a XikBloch file                                    */
+  /*--------------------------------------------------------------*/
+  if (XikBlochFile)
+   { *pXikBlochPoints=new HMatrix(XikBlochFile);
+     if (*pXikBlochPoints->ErrMsg) 
+      ErrExit(*pXikBlochPoints->ErrMsg);
+     Log("Read %i (Xi, kBloch) points from file %s.",*pXikBlockPoints->NR, XikBlochFile);
+     *pXiPoints=0;
+     return;
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- otherwise, the user may have given just a list of Xi points,*/
+  /*- on the command line and/or in a --XiFile                    */
+  /*--------------------------------------------------------------*/
+  HVector *XiList1 = nXiVals==0 ? 0 : new HVector(XiVals, nXiVals);
+  HVector *XiList2 =  XiFile==0 ? 0 : new HVector(XiFile);
+  if (XiList2 && XiList2->ErrMsg)
+   ErrExit(XiList2->ErrMsg);
+  *pXiPoints = Concat(XiList1, XiList2); // note the return value may be NULL
+
+
+}
+  
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -182,113 +328,94 @@ int main(int argc, char *argv[])
   int XForce=0;
   int YForce=0;
   int ZForce=0;
+  int AllTorque=0;
   char *TorqueArgs[TORQUEARGS*MAXTORQUE];   int nTorque;
-  double XiVals[MAXFREQ];	   int nXiVals;
-  char *XiFile;			   int nXiFiles;
-  double Temperature=0.0;          int nTemperature;
-  char *ByXiFile=0;
+  double XiVals[MAXFREQ];	            int nXiVals;
+  double kBloch[2];                         int nkBloch;
+  char *XiFile=0;
+  char *XikBlochFile=0;
+  double Temperature=0.0;                   int nTemperature;
+  char *BZIMethod;      
   char *OutputFile=0;
+  char *ByXiFile=0;
+  char *ByXikBlochFile=0;
   char *LogFile=0;
   char *Cache=0;
-  char *ReadCache[MAXCACHE];         int nReadCache;
+  char *ReadCache[MAXCACHE];                int nReadCache;
   char *WriteCache=0;
   int nThread=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
-   { {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
-     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
-     {"Energy",         PA_BOOL,    0, 1,       (void *)&Energy,     0,             "compute Casimir energy"},
-     {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,     0,             "compute Casimir energy"},
-     {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,     0,             "compute Casimir energy"},
-     {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,     0,             "compute Casimir energy"},
-     {"Torque",         PA_STRING,  4, 3,       (void *)TorqueArgs,  &nTorque,      "compute Casimir torque"},
-     {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,      &nXiVals,      "imaginary frequency"},
-     {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,     &nXiFiles,     "list of --Xi values"},
-     {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature, &nTemperature, "temperature in Kelvin"},
-     {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile, 0,             "name of frequency-integrated output file"},
-     {"ByXiFile",       PA_STRING,  1, 1,       (void *)&ByXiFile,   0,             "name of frequency-resolved output file"},
-     {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,    0,             "name of log file"},
-     {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
-     {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
-     {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
-     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
+   { {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,       0,             "geometry file"},
+     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,     0,             "list of geometrical transformation"},
+     {"Energy",         PA_BOOL,    0, 1,       (void *)&Energy,        0,             "compute Casimir energy"},
+     {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,        0,             "compute x-directed Casimir force"},
+     {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,        0,             "compute y-directed Casimir force"},
+     {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,        0,             "compute z-directed Casimir force"},
+     {"Torque",         PA_STRING,  3, 3,       (void *)TorqueArgs,     &nTorque,      "compute Casimir torque about a given axis"},
+     {"AllTorque",      PA_BOOL,    0, 1,       (void *)AllTorque,      0,             "compute all three Casimir torque components"},
+     {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,         &nXiVals,      "imaginary frequency"},
+     {"kBloch",         PA_STRING,  2, 1,       (void *)kBloch,         &nkBloch,      "bloch wavevector"},
+     {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,        &nXiFiles,     "list of --Xi values"},
+     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XikBlochFile,  0,             "list of (--Xi, --kBloch) values"},
+     {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature,   &nTemperature, "temperature in Kelvin"},
+     {"BZIMethod",      PA_STRING,  1, 1,       (void *)&BZIString,     0,             "Brillouin-zone integration method"},
+     {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile,    0,             "name of frequency-integrated output file"},
+     {"ByXiFile",       PA_STRING,  1, 1,       (void *)&ByXiFile,      0,             "name of frequency-resolved output file"},
+     {"ByXikBlochFile", PA_STRING,  1, 1,       (void *)&ByXikBlochFile, 0,            "name of frequency- and kBloch-resolved output file"},
+     {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,       0,             "name of log file"},
+     {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,         0,             "read/write cache"},
+     {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,      &nReadCache,   "read cache"},
+     {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache,    0,             "write cache"},
+     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,       0,             "number of CPU threads to use"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
-
-  if (GeoFile==0)
-   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
   if (LogFile)
    SetLogFileName(LogFile);
   else
    SetLogFileName("scuff-cas3D.log");
-
   Log("scuff-cas3D running on %s",GetHostName());
 
-  /*******************************************************************/
-  /* process any frequency-related options to construct a list of    */
-  /* frequencies at which to compute Casimir quantities              */
-  /*******************************************************************/
-  HVector *Xiist=0, *XiList0;
-  int nFreq, nOV, NumFreqs=0;
-  if (nXiFiles==1) // first process --XiFile option if present
-   { 
-     XiList=new HVector(XiFile,LHM_TEXT);
-     if (XiList->ErrMsg)
-      ErrExit(XiList->ErrMsg);
-     NumFreqs=XiList->N;
-     Log("Read %i frequencies from file %s.",NumFreqs,XiFile);
-   };
+  /***************************************************************/
+  /* try to create the geometry  *********************************/
+  /***************************************************************/
+  if (GeoFile==0)
+   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+  RWGGeometry *G = new RWGGeometry(GeoFile);
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
 
-  // now add any individually specified --Xi options
-  if (nXiVals>0)
-   { 
-     NumFreqs += nXiVals;
-     XiList0=XiList;
-     XiList=new HVector(NumFreqs);
-     nFreq=0;
-     if (XiList0)
-      { for(nFreq=0; nFreq<XiList0->N; nFreq++)
-         XiList->SetEntry(nFreq, XiList0->GetEntry(nFreq));
-        delete XiList0;
-      };
-     for(nOV=0; nOV<nXiVals; nOV++)
-      XiList->SetEntry(nFreq+nOV, XiVals[nOV]);
-     Log("Read %i frequencies from command line.",nXiVals);
-   };
+  /***************************************************************/
+  /* process frequency- and kBloch-related options               */
+  /***************************************************************/
+  HMatrix *XikBlochFile;
+  HVector *XiPoints;
+  ProcessFrequencyOptions(G->NumLatticeBasisVectors > 0 ,
+                          XiVals, nXiVals, kBloch, nkBloch, 
+                          XiFile, XikBlochFile, BZIString,
+                          Temperature, nTemperature,
+                          &XikBlochPoints, &XiPoints, &BZIMethod);
 
-  // if the user specified a temperature, check that the
-  // temperature makes sense and that the user didn't also 
-  // specify a list of frequencies
-  if ( nTemperature!=0 )
-   { if (Temperature<0.0)
-      ErrExit("negative value specified for --Temperature");
-     if ( NumFreqs>0 )
-      ErrExit("--Temperature may not be used with --Xi/--XiList");
-   };
+  /*******************************************************************/
+  /* figure out which quantities to compute **************************/
+  /*******************************************************************/
+  int WhichQuantities=0, NumQuantities=0;
+  if (Energy)    { NumQuantities++; WhichQuantities |= QUANTITY_ENERGY; };
+  if (XForce)    { NumQuantities++; WhichQuantities |= QUANTITY_XFORCE; };
+  if (YForce)    { NumQuantities++; WhichQuantities |= QUANTITY_YFORCE; };
+  if (ZForce)    { NumQuantities++; WhichQuantities |= QUANTITY_ZFORCE; };
+  if (nTorque>0) { NumQuantities++; WhichQuantities |= QUANTITY_TORQUE1; };
+  if (nTorque>1) { NumQuantities++; WhichQuantities |= QUANTITY_TORQUE2; };
+  if (nTorque>2) { NumQuantities++; WhichQuantities |= QUANTITY_TORQUE3; };
 
   /*******************************************************************/
   /* create the SC3Data structure that contains all the info needed  */
-  /* to evaluate the contributions of a single frequency to the      */
-  /* Casimir quantities                                              */
+  /* to evaluate the contributions of a single frequency and kBloch  */
+  /* point to the Casimir quantities                                 */
   /*******************************************************************/
-
-  SC3Data *SC3D=(SC3Data *)malloc(sizeof(SC3Data));
-
-  RWGGeometry *G = new RWGGeometry(GeoFile);
-  G->SetLogLevel(SCUFF_VERBOSELOGGING);
-  SC3D->G=G;
-
-  if (ByXiFile)
-   SC3Data->ByXiFile = ByXiFile;a
-  else
-   { SHD->ByXiFile = vstrdup("%s.byXi",GetFileBase(GeoFile));
-     char MyFileName[MAXSTR];
-     FILE *f=CreateUniqueFile(SHD->ByOmegaFile, 1, MyFileName);
-     fclose(f);
-     SHD->ByOmegaFile=strdupEC(MyFileName);
-   };
+  SC3Data *SC3D=CreateSC3Data(G, TransFile, ByXiFile, ByXikBlochFile, 
+                              WhichQuantities, NumQuantities, Torque);
 
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -309,14 +436,29 @@ int main(int argc, char *argv[])
   /* perform the actual calculations                                 */
   /*******************************************************************/
   double *I = new double[SC3D->NumTransformations];
-  if (NumFreqs>0)
-   { for (nFreq=0; nFreq<NumFreqs; nFreq++)
-      GetFrequencyIntegrand(SC3D, XiList->GetEntry(nFreq), I);
+  if ( XikBlochPoints )
+   { 
+     for(int nr=0; nr<XikBlochPoints->NR; nr++)
+      { 
+        Xi        = XikBlochPoints->GetEntry(nr, 0);
+        kBloch[0] = XikBlochPoints->GetEntry(nr, 1);
+        kBloch[1] = XikBlochPoints->GetEntry(nr, 2);
+        GetCasimirIntegrand(SC3D, Xi, kBloch, I); 
+      };
+   }
+  else if ( XiPoints > 0)
+   { 
+     for (int nr=0; nr<XiPoints->NR; nr++)
+      GetFrequencyIntegrand(SC3D, XiList->GetEntry(nr), I);
+   }
+  else if ( Temperature > 0.0) 
+   { 
+     GetMatsubaraSum(SC3D, Temperature, I);
    }
   else
-   { // frequency integration not yet implemented 
-     ErrExit("frequency integration is not yet implemented");
-   };
+   { 
+     GetXiIntegral(SC3D, I);
+   }
   delete[] I;
 
   /***************************************************************/
@@ -324,4 +466,4 @@ int main(int argc, char *argv[])
   /***************************************************************/
   printf("Thank you for your support.\n");
 
-}
+et 
