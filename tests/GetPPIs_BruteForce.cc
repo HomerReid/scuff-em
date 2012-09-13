@@ -136,20 +136,20 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
   /***************************************************************/
   /* extract fields from argument structure **********************/
   /***************************************************************/
-  RWGObject *Oa = Args->Oa;
-  RWGObject *Ob = Args->Ob;
+  RWGSurface *Sa = Args->Sa;
+  RWGSurface *Sb = Args->Sb;
   int npa = Args->npa;
   int npb = Args->npb;
   int iQa = Args->iQa;
   int iQb = Args->iQb;
-  double *Qa = Oa->Vertices + 3*Oa->Panels[npa]->VI[iQa];
-  double *Qb = Ob->Vertices + 3*Ob->Panels[npb]->VI[iQb];
+  double *Qa = Sa->Vertices + 3*Sa->Panels[npa]->VI[iQa];
+  double *Qb = Sb->Vertices + 3*Sb->Panels[npb]->VI[iQb];
   int NeedGradient= (Args->NumGradientComponents > 0 );
   cdouble k = Args->k;
 
   double rRel;
   double *Va[3], *Vb[3];
-  int ncv=AssessPanelPair(Oa, npa, Ob, npb, &rRel, Va, Vb);
+  int ncv=AssessPanelPair(Sa, npa, Sb, npb, &rRel, Va, Vb);
 
   /***************************************************************/
   /* setup for call to cubature routine    ***********************/
@@ -215,8 +215,8 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
      /*--------------------------------------------------------------*/
      int nz, NZ=10;
      double Z[NZ], GR[NZ], GI[NZ], CR[NZ], CI[NZ];
-     double DeltaZ=Ob->Panels[npb]->Radius/100.0;
-     double *ZHat=Ob->Panels[npb]->ZHat;
+     double DeltaZ=Sb->Panels[npb]->Radius/100.0;
+     double *ZHat=Sb->Panels[npb]->ZHat;
 
      for(nz=0; nz<NZ; nz++)
       { 

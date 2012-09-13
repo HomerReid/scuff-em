@@ -434,7 +434,7 @@ class RWGGeometry
    // the following helper functions are only used for periodic boundary conditions
    void InitPBCData();
    void GetRegionExtents(int nr, double RMax[3], double RMin[3]);
-   void AssembleInnerCellBlocks();
+   void AssembleInnerCellBlocks(double *kBloch, HMatrix *M);
    void AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *M);
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
                                       double kBloch[MAXLATTICE], HMatrix *XMatrix);
@@ -492,7 +492,8 @@ class RWGGeometry
    /* note: two surfaces are identical if  	                */
    /*  (1) they have the same mesh file (and the same physical  */
    /*      region in that mesh file)                            */
-   /*  (2) they have the same Regions on the er side            */
+   /*  (1) the regions on either side have the same material    */
+   /*      properties                                           */
    int *Mate;
 
    /* SurfaceMoved[i] = 1 if surface #i was moved on the most   */
@@ -504,6 +505,7 @@ class RWGGeometry
    static bool AssignBasisFunctionsToExteriorEdges;
    static int PBCCubatureOrder;
    static double DeltaInterp;
+   static bool UsePBCAcceleration;
 
  };
 

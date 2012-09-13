@@ -39,7 +39,13 @@ namespace scuff {
 #define MAXSTR 1000
 #define MAXTOK 50
 
+/***************************************************************/
+/* initialization of static class variables                    */
+/***************************************************************/
+int RWGGeometry::PBCCubatureOrder=4;
 bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
+bool RWGGeometry::UsePBCAcceleration=false;
+double RWGGeometry::DeltaInterp=0.05;
 
 /***********************************************************************/
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */

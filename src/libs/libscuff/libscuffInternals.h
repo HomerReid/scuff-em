@@ -167,6 +167,10 @@ typedef struct ABMBArgStruct
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;
 
+   // if this field is true, the call to AssembleBEMMatrixBlock 
+   // augments (does not overwrite) the matrix entries
+   bool Accumulate;
+
    // output fields filled in by routine
    HMatrix *B;
    HMatrix **GradB;

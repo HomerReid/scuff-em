@@ -129,7 +129,7 @@ void GetEdgeMNMoments(RWGObject *O, int ne, cdouble K, int lMax,
   double *QP = O->Vertices + 3*E->iQP;
   double *V1 = O->Vertices + 3*E->iV1;
   double *V2 = O->Vertices + 3*E->iV2;
-  double *QM = O->Vertices + 3*E->iQM;
+  double *QM = E->iQM==-1 ? 0 : O->Vertices + 3*E->iQM;
 
   /***************************************************************/
   /***************************************************************/
@@ -139,12 +139,14 @@ void GetEdgeMNMoments(RWGObject *O, int ne, cdouble K, int lMax,
   D->lMax = lMax;
   D->R0   = R0 ? R0 : E->Centroid;
 
-  /***************************************************************/
+  /***************************************************************/ 
   /* (lMax+1)*(lMax+1) multipoles, times 2 (M,N multipoles),     */
   /* times 2 (cdouble-valued integrand vector)                   */
   /***************************************************************/
   int fdim=2*2*(lMax+1)*(lMax+1);
-  double FP[fdim], FM[fdim], E[fdim];
+  new double FP[fdim]; 
+  new double FM[fdim]; 
+  new double Error[fdim];
 
   double Lower[2]={0.0, 0.0};
   double Upper[2]={1.0, 1.0};
@@ -158,19 +160,22 @@ void GetEdgeMNMoments(RWGObject *O, int ne, cdouble K, int lMax,
   D->Q  = QP;
   
   adapt_integrate(fdim, GetEdgeMNMomentsIntegrand, (void *)D, 2,
-		  Lower, Upper, 0, ABSTOL, RELTOL, FP, E);
+		  Lower, Upper, 0, ABSTOL, RELTOL, FP, Error);
    
 
   /***************************************************************/
-  /* contribution of negative panel ******************************/
+  /* contribution of negative panel if present *******************/
   /***************************************************************/
-  D->V0 = QM;
-  VecSub(V1, QM, D->A);
-  VecSub(V2, V1, D->B);
-  D->Q  = QM;
-  
-  adapt_integrate(fdim, GetEdgeMNMomentsIntegrand, (void *)D, 2,
-		  Lower, Upper, 0, ABSTOL, RELTOL, FM, E);
+  if (QM)
+   { D->V0 = QM;
+     VecSub(V1, QM, D->A);
+     VecSub(V2, V1, D->B);
+     D->Q  = QM;
+     adapt_integrate(fdim, GetEdgeMNMomentsIntegrand, (void *)D, 2,
+                     Lower, Upper, 0, ABSTOL, RELTOL, FM, Error);
+   }
+  else
+   memset(FM, fdim, 0*sizeof(double)); 
 
   /***************************************************************/
   /***************************************************************/
@@ -181,6 +186,10 @@ void GetEdgeMNMoments(RWGObject *O, int ne, cdouble K, int lMax,
    { AM[Alpha] = PreFac*(FP[2*Alpha+0] - FM[2*Alpha+0]);
      AN[Alpha] = PreFac*(FP[2*Alpha+1] - FM[2*Alpha+1]);
    };
+
+  delete[] FP;
+  delete[] FM;
+  delete[] Error;
 
 }
 

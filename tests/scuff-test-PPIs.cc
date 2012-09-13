@@ -137,8 +137,8 @@ int main(int argc, char *argv[])
   /* create the geometry *****************************************/
   /***************************************************************/
   RWGGeometry *G = new RWGGeometry(GeoFileName);
-  RWGObject *Oa=G->Objects[0];
-  RWGObject *Ob=G->NumObjects>1 ? G->Objects[1] : Oa;
+  RWGSurface *Sa=G->Surfaces[0];
+  RWGSurface *Sb=G->NumSurfaces>1 ? G->Surfaces[1] : Sa;
 
   /*--------------------------------------------------------------*/
   /*- write visualization files if requested ---------------------*/
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
   char *Tokens[50];
   char *p;
   int npa, npb, iQa, iQb, ncv;
-  int SameObject, Gradient, PlotFits;
+  int SameSurface, Gradient, PlotFits;
   double rRel, rRelRequest, DZ;
   cdouble K;
   cdouble HLS[2], GradHLS[6]; // G,C integrals by libscuff 
@@ -210,7 +210,7 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /* parse input string                                          -*/
      /*--------------------------------------------------------------*/
      NumTokens=Tokenize(p,Tokens,50);
-     npa=npb=iQa=iQb=ncv=SameObject=-1;
+     npa=npb=iQa=iQb=ncv=SameSurface=-1;
      Args->ForceTaylorDuffy=0;
      Gradient=PlotFits=0;
      DZ=rRelRequest=0.0;
@@ -238,10 +238,10 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
        sscanf(Tokens[nt+1],"%le",&(imag(K)));
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--same") )
-       SameObject=1;
+       SameSurface=1;
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--ns") )
-       SameObject=0;
+       SameSurface=0;
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--ftd") )
        Args->ForceTaylorDuffy=1;
@@ -260,9 +260,6 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--quit") )
        exit(1);
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--SWPPITol") )
-       sscanf(Tokens[nt+1],"%le",&(RWGGeometry::SWPPITol));
        
      free(p);
   
@@ -272,11 +269,11 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /* common vertices                                              */
      /*--------------------------------------------------------------*/
      if ( 0<=ncv && ncv<=3 )
-      { SameObject=1;
-        npa=lrand48() % Oa->NumPanels;
+      { SameSurface=1;
+        npa=lrand48() % Sa->NumPanels;
         do
-         { npb=lrand48() % Oa->NumPanels;
-         } while( NumCommonVertices(Oa,npa,Oa,npb)!=ncv );
+         { npb=lrand48() % Sa->NumPanels;
+         } while( NumCommonVertices(Sa,npa,Sa,npb)!=ncv );
         iQa=lrand48() % 3;
         iQb=lrand48() % 3;
       }
@@ -288,14 +285,14 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
       { 
         iQa=lrand48() % 3;
         iQb=lrand48() % 3;
-        npa=lrand48() % Oa->NumPanels;
+        npa=lrand48() % Sa->NumPanels;
 
         /*--------------------------------------------------------------*/
         /*- first look on same object ----------------------------------*/
         /*--------------------------------------------------------------*/
-        SameObject=1;
-        for(npb=0; npb<Oa->NumPanels; npb++)
-         { AssessPanelPair(Oa,npa,Oa,npb,&rRel);
+        SameSurface=1;
+        for(npb=0; npb<Sa->NumPanels; npb++)
+         { AssessPanelPair(Sa,npa,Sa,npb,&rRel);
            if ( 0.9*rRelRequest<rRel && rRel<1.1*rRelRequest )
             break;
          };
@@ -303,14 +300,14 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
         /*--------------------------------------------------------------*/
         /*- look on second object if that didn't work ------------------*/
         /*--------------------------------------------------------------*/
-        if (npb==Oa->NumPanels)
-         { SameObject=0;
-           for(npb=0; npb<Ob->NumPanels; npb++)
-           { AssessPanelPair(Oa,npa,Ob,npb,&rRel);
+        if (npb==Sa->NumPanels)
+         { SameSurface=0;
+           for(npb=0; npb<Sb->NumPanels; npb++)
+           { AssessPanelPair(Sa,npa,Sb,npb,&rRel);
              if ( 0.9*rRelRequest<rRel && rRel<1.1*rRelRequest )
               break;
            };
-          if (npb==Ob->NumPanels)
+          if (npb==Sb->NumPanels)
            { printf("\n**\n** warning: could not find a panel pair with rRel=%e\n",rRelRequest);
              continue;
            };
@@ -320,9 +317,9 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /* otherwise choose a random pair of panels                     */
      /*--------------------------------------------------------------*/
      else 
-      { if (SameObject==-1) SameObject=lrand48()%2;
-        if (npa==-1) npa=lrand48() % Oa->NumPanels;
-        if (npb==-1) npb=lrand48() % (SameObject ? Oa->NumPanels : Ob->NumPanels);
+      { if (SameSurface==-1) SameSurface=lrand48()%2;
+        if (npa==-1) npa=lrand48() % Sa->NumPanels;
+        if (npb==-1) npb=lrand48() % (SameSurface ? Sa->NumPanels : Sb->NumPanels);
         if (iQa==-1) iQa=lrand48() % 3;
         if (iQb==-1) iQb=lrand48() % 3;
       };
@@ -343,12 +340,12 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /*--------------------------------------------------------------------*/
      /* print a little summary of the panel pair we will be considering    */
      /*--------------------------------------------------------------------*/
-     Pa=Oa->Panels[npa];
-     Pb=(SameObject ? Oa:Ob)->Panels[npb];
-     ncv=AssessPanelPair(Oa,npa,(SameObject ? Oa : Ob),npb,&rRel,TVa,TVb);
+     Pa=Sa->Panels[npa];
+     Pb=(SameSurface ? Sa:Sb)->Panels[npb];
+     ncv=AssessPanelPair(Sa,npa,(SameSurface ? Sa : Sb),npb,&rRel,TVa,TVb);
      printf("*\n");
      printf("* --npa %i --iQa %i (V #%i) --npb %i --iQb %i (V #%i) %s\n",
-            npa,iQa,Pa->VI[iQa],npb,iQb,Pb->VI[iQb],SameObject ? "--same" : "--ns");
+            npa,iQa,Pa->VI[iQa],npb,iQb,Pb->VI[iQb],SameSurface ? "--same" : "--ns");
      printf("*  common vertices:   %i\n",ncv);
      printf("*  relative distance: %+7.3e\n",rRel);
      printf("*  wavevector:        %s\n",CD2S(K));
@@ -360,8 +357,8 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-     Args->Oa=Oa;
-     Args->Ob=(SameObject) ? Oa : Ob;
+     Args->Sa=Sa;
+     Args->Sb=(SameSurface) ? Sa : Sb;
      Args->npa=npa;
      Args->npb=npb;
      Args->iQa=iQa;
@@ -373,8 +370,8 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-     if ( !SameObject && DZ!=0.0 )
-      Ob->Transform("DISP 0 0 %e",DZ);
+     if ( !SameSurface && DZ!=0.0 )
+      Sb->Transform("DISP 0 0 %e",DZ);
 
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by libscuff method                       */
@@ -382,7 +379,6 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      Tic();
      for(nTimes=0; nTimes<HRTIMES; nTimes++)
       GetPanelPanelInteractions(Args);
-printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
      HRTime=Toc() / HRTIMES;
      memcpy(HLS, Args->H, 2*sizeof(cdouble));
      memcpy(GradHLS, Args->GradH, 6*sizeof(cdouble));
@@ -393,8 +389,8 @@ printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
      /*--------------------------------------------------------------------*/
      if (ncv>0)
       { 
-        Qa = Oa->Vertices + 3*Pa->VI[iQa];
-        Qb = Args->Ob->Vertices + 3*Pb->VI[iQb];
+        Qa = Sa->Vertices + 3*Pa->VI[iQa];
+        Qb = Args->Sb->Vertices + 3*Pb->VI[iQb];
 
         double *OVa[3], *OVb[3];
         int Flipped=CanonicallyOrderVertices(TVa, TVb, ncv, OVa, OVb);
@@ -421,7 +417,8 @@ printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
 
            TDArgs->WhichG=TM_GRADEIKR_OVER_R;
            TDArgs->WhichH=TM_CROSS;
-           TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(HTD[0]);
+ //          TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(HTD[0]);
+           TDArgs->AbsTol = 1.0e-8;
            HTD[1]=TaylorDuffy(TDArgs);
          };
         TDTime=Toc() / TDTIMES;
@@ -431,6 +428,7 @@ printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by brute-force methods                   */
      /*--------------------------------------------------------------------*/
+printf("BFing...\n");
      GetPPIs_BruteForce(Args, PlotFits);
      memcpy(HBF, Args->H, 2*sizeof(cdouble));
      memcpy(GradHBF, Args->GradH, 6*sizeof(cdouble));
@@ -438,8 +436,8 @@ printf("Hits/misses: %i/%i\n", GlobalFIPPICache.Hits, GlobalFIPPICache.Misses);
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-     if ( !SameObject && DZ!=0.0 )
-      Ob->UnTransform();
+     if ( !SameSurface && DZ!=0.0 )
+      Sb->UnTransform();
 
      /*--------------------------------------------------------------------*/
      /*- print results ----------------------------------------------------*/

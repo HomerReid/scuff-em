@@ -207,30 +207,30 @@ void *ABMBThread(void *data)
          X=RowOffset + nea;
          Y=ColOffset + neb;  
 
-         B->SetEntry( X, Y, PreFac1A*GC[0] );
+         B->AddEntry( X, Y, PreFac1A*GC[0] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          GradB[Mu]->SetEntry( X, Y, PreFac1A*GradGC[2*Mu+0]);
+          GradB[Mu]->AddEntry( X, Y, PreFac1A*GradGC[2*Mu+0]);
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          dBdTheta[Mu]->SetEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
+          dBdTheta[Mu]->AddEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
        }
       else if ( SaIsPEC && !SbIsPEC )
        { 
          X=RowOffset + nea;
          Y=ColOffset + 2*neb;  
 
-         B->SetEntry( X, Y,   PreFac1A*GC[0] );
-         B->SetEntry( X, Y+1, PreFac2A*GC[1] );
+         B->AddEntry( X, Y,   PreFac1A*GC[0] );
+         B->AddEntry( X, Y+1, PreFac2A*GC[1] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { GradB[Mu]->SetEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
-            GradB[Mu]->SetEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
+          { GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
+            GradB[Mu]->AddEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
           };
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          { dBdTheta[Mu]->SetEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
+          { dBdTheta[Mu]->AddEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->AddEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
           };
        }
       else if ( !SaIsPEC && SbIsPEC )
@@ -238,17 +238,17 @@ void *ABMBThread(void *data)
          X=RowOffset + 2*nea;
          Y=ColOffset + neb;  
 
-         B->SetEntry( X,   Y, PreFac1A*GC[0] );
-         B->SetEntry( X+1, Y, PreFac2A*GC[1] );
+         B->AddEntry( X,   Y, PreFac1A*GC[0] );
+         B->AddEntry( X+1, Y, PreFac2A*GC[1] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { GradB[Mu]->SetEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
-            GradB[Mu]->SetEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
+          { GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
+            GradB[Mu]->AddEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
           };
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          { dBdTheta[Mu]->SetEntry( X, Y,   PreFac1A*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
+          { dBdTheta[Mu]->AddEntry( X, Y,   PreFac1A*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->AddEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
           };
        }
       else if ( !SaIsPEC && !SbIsPEC )
@@ -256,28 +256,28 @@ void *ABMBThread(void *data)
          X=RowOffset + 2*nea;
          Y=ColOffset + 2*neb;  
 
-         B->SetEntry( X, Y,   PreFac1A*GC[0]);
-         B->SetEntry( X, Y+1, PreFac2A*GC[1]);
+         B->AddEntry( X, Y,   PreFac1A*GC[0]);
+         B->AddEntry( X, Y+1, PreFac2A*GC[1]);
          if ( !Symmetric || (nea!=neb) )
-          B->SetEntry( X+1, Y, PreFac2A*GC[1]);
-         B->SetEntry( X+1, Y+1, PreFac3A*GC[0]);
+          B->AddEntry( X+1, Y, PreFac2A*GC[1]);
+         B->AddEntry( X+1, Y+1, PreFac3A*GC[0]);
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
           { 
-            GradB[Mu]->SetEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
-            GradB[Mu]->SetEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
+            GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
+            GradB[Mu]->AddEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
-             GradB[Mu]->SetEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
-            GradB[Mu]->SetEntry( X+1, Y+1, PreFac3A*GradGC[2*Mu+0]);
+             GradB[Mu]->AddEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
+            GradB[Mu]->AddEntry( X+1, Y+1, PreFac3A*GradGC[2*Mu+0]);
           };
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
           { 
-            dBdTheta[Mu]->SetEntry( X, Y,   PreFac1A*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->SetEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
+            dBdTheta[Mu]->AddEntry( X, Y,   PreFac1A*dGCdT[2*Mu+0]);
+            dBdTheta[Mu]->AddEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
-             dBdTheta[Mu]->SetEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
-            dBdTheta[Mu]->SetEntry( X+1, Y+1, PreFac3A*dGCdT[2*Mu+0]);
+             dBdTheta[Mu]->AddEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
+            dBdTheta[Mu]->AddEntry( X+1, Y+1, PreFac3A*dGCdT[2*Mu+0]);
           };
 
        }; // if ( OaIsPEC && ObIsPEC ) ... else ... 
@@ -333,6 +333,8 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
 { 
   RWGGeometry *G = Args->G;
   cdouble Omega = Args->Omega;
+  RWGSurface  *Sa = Args->Sa;
+  RWGSurface  *Sb = Args->Sb;
 
   /*--------------------------------------------------------------*/
   /*- make sure the cached epsilon and mu values for all regions  */
@@ -340,12 +342,16 @@ void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
   /*--------------------------------------------------------------*/
   G->UpdateCachedEpsMuValues(Omega);
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if ( Args->Accumulate==false )
+   Args->B->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+
   /***************************************************************/
   /* figure out if the two surfaces have 0, 1, or 2 regions in   */
   /* common.                                                     */
   /***************************************************************/
-  RWGSurface  *Sa = Args->Sa;
-  RWGSurface  *Sb = Args->Sb;
   double Signs[2];
   int CommonRegions[2]; 
   int NumCommonRegions=CountCommonRegions(Sa, Sb, CommonRegions, Signs);
@@ -513,6 +519,14 @@ void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
 /* leaving several other fields uninitialized; any caller of   */
 /* AssembleBEMMatrixBlock must fill in those remaining fields  */
 /* before the call.                                            */
+/*                                                             */
+/* Note: If Accumulate is set to true before the call to       */
+/*       AssembleBEMMatrixBlock(), then the entries of the     */
+/*       HMatrix will be augmented, not replaced, by the new   */
+/*       matrix entries. As far as I know this is only ever    */
+/*       useful for accumulating the contributions of          */
+/*       neighboring lattice cells when assembling the BEM     */
+/*       matrix with periodic boundary conditions.             */
 /***************************************************************/
 void InitABMBArgs(ABMBArgStruct *Args)
 {
@@ -528,6 +542,8 @@ void InitABMBArgs(ABMBArgStruct *Args)
 
   Args->GradB=0;
   Args->dBdTheta=0;
+
+  Args->Accumulate=false;
 
 }
 
@@ -566,13 +582,7 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
   InitABMBArgs(Args);
   Args->G=this;
   Args->Omega=Omega;
-
-  Args->NumTorqueAxes=0;
-  Args->GammaMatrix=0;
-
   Args->B=M;
-  Args->GradB=0;
-  Args->dBdTheta=0;
 
   if (LogLevel>=SCUFF_TERSELOGGING)
    Log(" Assembling the BEM matrix at Omega=%g+%gi...",real(Omega),imag(Omega));
