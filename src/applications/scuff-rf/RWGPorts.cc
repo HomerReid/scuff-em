@@ -343,8 +343,10 @@ RWGPort **ParsePortFile(RWGGeometry *G,
          { 
            if (NumPEdges==0)
             ErrExit("%s:%i: no edges specified or detected for positive port",PortFileName,LineNum);
+/*
            if (NumMEdges==0)
             ErrExit("%s:%i: no edges specified or detected for negative port",PortFileName,LineNum);
+*/
            
            PortArray = (RWGPort **)realloc( PortArray, (NumPorts+1)*sizeof(PortArray[0]) );
            PortArray[NumPorts] = CreatePort(PSurface, NumPEdges, PEIndices,

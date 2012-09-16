@@ -186,10 +186,7 @@ void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
      TriIntFixed(GMNPIntegrand, 4*NumLMs, (void *)Data, V1, V2, QM, 25, (double *)IM);
    } 
   else
-   {  
-     memset(IM, 0, 2*NumLMs*sizeof(cdouble));
-     // TODO: add line-charge contributions
-   };
+   memset(IM, 0, 2*NumLMs*sizeof(cdouble));
 
   for(int nLM=0; nLM<NumLMs; nLM++)
    { MProjection[nLM] = IP[2*nLM+0] - IM[2*nLM+0];

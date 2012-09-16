@@ -159,6 +159,7 @@ int Breakout=0;
   /***************************************************************/
   if (GeoFile==0)
    OSUsage(argv[0],OSArray,"--geometry option is mandatory");
+  RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
   RWGGeometry *G=new RWGGeometry(GeoFile);
  
   HMatrix *M=G->AllocateBEMMatrix();
