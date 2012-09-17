@@ -157,11 +157,6 @@ typedef struct ABMBArgStruct
    RWGSurface *Sa, *Sb;
    cdouble Omega;    
 
-   // WhichGradientComponents =  x*1 + y*2 + z*4 
-   //  where x,y,z=1 if the caller wants the (X,Y,Z) gradient component, 0 otherwise
-   int NumGradientComponents;
-   int WhichGradientComponents;
-
    int NumTorqueAxes;
    double *GammaMatrix;
 
