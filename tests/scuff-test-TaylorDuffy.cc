@@ -35,7 +35,6 @@
 
 #include "config.h"
 
-#define HAVE_LIBREADLINE
 #ifdef HAVE_LIBREADLINE
  #include <readline/readline.h>
  #include <readline/history.h>
