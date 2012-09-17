@@ -213,6 +213,8 @@ int main(int argc, char *argv[])
   int npa, iQa, npb, iQb, ncv;
   double P;
   cdouble k, TDOne, TDDot;
+  int Times, NumTimes;
+  double ElapsedOne, ElapsedDot;
   double *Va[3], *OVa[3], *Vb[3], *OVb[3], *Qa, *Qb;
   for(;;)
    { 
@@ -237,6 +239,7 @@ int main(int argc, char *argv[])
      /* parse input string                                          -*/
      /*--------------------------------------------------------------*/
      npa=iQa=npb=iQb=ncv=-1;
+     NumTimes=10;
      P=ABSURD;
      k=1.0;
      NumTokens=Tokenize(p,Tokens,50);
@@ -255,6 +258,9 @@ int main(int argc, char *argv[])
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--ncv") )
        sscanf(Tokens[nt+1],"%i",&ncv);
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--NumTimes") )
+       sscanf(Tokens[nt+1],"%i",&NumTimes);
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--P") )
        sscanf(Tokens[nt+1],"%le",&P);
@@ -322,7 +328,7 @@ int main(int argc, char *argv[])
      Args.V3P = OVb[2];
      Args.QP  = Vb[iQb];
      Args.WhichCase = ncv;
- 
+  
      if (P==ABSURD)
       { Args.WhichG = TM_EIKR_OVER_R;
         Args.GParam = k;
@@ -333,10 +339,15 @@ int main(int argc, char *argv[])
       };
 
      Args.WhichH    = TM_ONE;
-     TDOne = TaylorDuffy(&Args);
+     Tic();
+     for(int Times=0; Times<NumTimes; Times++)
+      TDOne = TaylorDuffy(&Args);
+     ElapsedOne=Toc() / NumTimes;
 
      Args.WhichH    = TM_DOT;
-     TDDot = TaylorDuffy(&Args);
+     for(int Times=0; Times<NumTimes; Times++)
+      TDDot = TaylorDuffy(&Args);
+     ElapsedDot=Toc() / NumTimes;
 
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
@@ -347,9 +358,9 @@ int main(int argc, char *argv[])
      /*- print results ----------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      printf("\n");
-     printf("One: %s\n",CD2S(TDOne));
+     printf("One (%10f ms) %s\n",1e3*ElapsedOne,CD2S(TDOne));
      printf("\n");
-     printf("Dot: %s\n",CD2S(TDDot));
+     printf("Dot (%10f ms) %s\n",1e3*ElapsedDot,CD2S(TDDot));
 
    }; // end of main command loop [ for(;;) ... ]
 
