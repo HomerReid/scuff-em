@@ -8,7 +8,7 @@
  * (at your option) any later version.
  *
  * SCUFF-EM is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but SC3DITHOUT ANY SC3DARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
@@ -17,555 +17,461 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/*
- * FrequencyIntegrand.cc -- evaluate the spectral density of 
- *                       -- power transfer at a single frequency
- *
- * homer reid            -- 2/2012
- *
- */
 
+/*
+ * FrequencyIntegrand.cc  -- evaluate the casimir energy, force, and/or torque
+ *                        -- integrand at a single Xi point (or a single (Xi,kBloch)
+ *                        -- point) 
+ *
+ * homer reid  -- 10/2008 -- 6/2010
+ */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <ctype.h>
+
+#include "Casimir3D.h"
 #include "scuff-cas3D.h"
 #include "libscuffInternals.h"
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void CreateFluxPlot(SC3Data *SHD, cdouble Omega, char *Tag)
-{ 
-  RWGGeometry *G = SC3D->G;
-
-  /***************************************************************/
-  /* sanity check ************************************************/
-  /***************************************************************/
-  int no;
-  for(no=0; no<G->NumObjects; no++)
-   if ( G->Objects[no]->MP->IsPEC() )
-    ErrExit("flux plot not available for geometries containing PEC objects");
-
-  /***************************************************************/
-  /* allocate a vector with enough slots to store one double     */
-  /* value per panel in the mesh                                 */
-  /***************************************************************/
-  double *PFV=(double *)mallocEC( (G->TotalPanels)*sizeof(double) ); // panel flux vector
-  memset(PFV, 0, (G->TotalPanels)*sizeof(double));
-
-  /***************************************************************/
-  /* fill in the panel flux vector with the flux on each panel   */
-  /***************************************************************/
-  RWGObject *O;
-  RWGEdge *E;
-  int ne, BFIndex, PanelIndex;
-  double Value;
-  for(no=0; no<G->NumObjects; no++)
-   for(O=G->Objects[no], ne=0; ne<O->NumEdges; ne++)
-    { 
-      E=O->Edges[ne];
-      
-      BFIndex = G->BFIndexOffset[no] + 2*ne;
-      Value = 0.5 * ( SC3D->DV->GetEntryD(BFIndex + 0) + SHD->DV->GetEntryD(BFIndex + 1) ); 
-
-      PanelIndex = G->PanelIndexOffset[no] + E->iPPanel;
-      PFV[ PanelIndex ] += 0.5*Value / (O->Panels[E->iPPanel]->Area);
-
-      PanelIndex = G->PanelIndexOffset[no] + E->iMPanel;
-      PFV[ PanelIndex ] += 0.5*Value / (O->Panels[E->iMPanel]->Area);
-
-    };
-  
-  /***************************************************************/
-  /* create a GMSH postprocessing file containing a single 'view'*/
-  /* that plots the flux on each panel                           */
-  /***************************************************************/
-  FILE *f=vfopen("%s.%g.%s.flux.pp","w",GetFileBase(G->GeoFileName),real(Omega),Tag);
-  fprintf(f,"View \"Flux\"{\n");
-  int np;
-  RWGPanel *P;
-  double *PV[3];
-  for(PanelIndex=no=0; no<G->NumObjects; no++)
-   for(O=G->Objects[no], np=0, P=O->Panels[0]; np<O->NumPanels; np++, PanelIndex++)
-   {
-      P=O->Panels[np];
-      PV[0]=O->Vertices + 3*P->VI[0];
-      PV[1]=O->Vertices + 3*P->VI[1];
-      PV[2]=O->Vertices + 3*P->VI[2];
-
-      fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                 PV[0][0], PV[0][1], PV[0][2],
-                 PV[1][0], PV[1][1], PV[1][2],
-                 PV[2][0], PV[2][1], PV[2][2],
-                 PFV[PanelIndex],PFV[PanelIndex],PFV[PanelIndex]);
-    };
-  fprintf(f,"};\n\n");
-  fclose(f);
-
-
-}
-
-#if 0
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-
-/***************************************************************/
-/* how this works: consider a 2x2 block decomposition of the   */
-/* matrix, where                                               */
-/*                                                             */
-/*  block 1 = basis functions on object 1                      */
-/*  block 2 = basis functions on all other objects, 2..N       */
-/*                                                             */
-/* let W be the inverse of the full BEM matrix and let its     */
-/* block structure be W = (A B ; C D).                         */
-/*                                                             */
-/* the matrices G1 and G2 have the block structure             */
-/*                                                             */
-/*  G1 = [X1 0; 0 0]                                           */
-/*  G2 = [ 0 0; 0 X2]                                          */
-/*                                                             */
-/* (here G1, G2 include the effect of the symmetrization       */
-/* operation, G1=sym(G1), G2=sym(G2))                          */
-/*                                                             */
-/* using the block decompositions, the trace in question       */
-/* becomes:                                                    */
-/*                                                             */
-/*  tr ( W * G1 * W^T * G2 )                                   */
-/*   = tr ( C * X1 * B^T * X2 )                                */
-/*                                                             */
-/*                                                             */
-/***************************************************************/
-
-  /***************************************************************/
-  /* assemble the three separate blocks that contribute to the   */
-  /* BEM matrix:                                                 */
-  /*  0: contributions of environment only                       */
-  /*  1: contributions of object 1 only                          */
-  /*  2: contributions of objects 2...N only                     */
-  /***************************************************************/
-
-  /*--------------------------------------------------------------*/
-  /*- 0: contributions of environment only -----------------------*/
-  /*--------------------------------------------------------------*/
-  int no;
-  for(no=0; no<G->NumObjects; no++)
-   G->Objects[no]->MP->Zero();
-
-  Log("Assembling M0 matrix...");
-  G->AssembleBEMMatrix(Omega, M0, nThread);
-
-  // multiply by the 'S' matrix 
-  int nr, nc;
-  for(nr=1; nr<M0->NR; nr+=2)
-   for(nc=0; nc<M0->NC; nc++)
-    M0->SetEntry(nr, nc, -1.0*M0->GetEntry(nr,nc));
-
-  /*--------------------------------------------------------------*/
-  /*- 1: contributions of object 1 only    -----------------------*/
-  /*--------------------------------------------------------------*/
-  G->ExteriorMP->Zero();
-  G->Objects[0]->MP->UnZero();
-
-  Log("Assembling M1 matrix...");
-  G->AssembleBEMMatrix(Omega, M1, nThread);
-
-  for(nr=1; nr<M1->NR; nr+=2)
-   for(nc=0; nc<M1->NC; nc++)
-    M1->SetEntry(nr, nc, -1.0*M1->GetEntry(nr,nc));
-
-  /*--------------------------------------------------------------*/
-  /*- 2: contributions of objects 2--N only.                      */
-  /*-                                                             */
-  /*-  NOTE: if we only have a single object then we set M2 = M0; */
-  /*-        the calculation them amounts to computing the heat   */
-  /*-        transfer the single body to the environment.         */
-  /*--------------------------------------------------------------*/
-  if (G->NumObjects==1)
-   M2->Copy(M0);
-  else // (G->NumObjects>1)
-   { 
-     G->Objects[0]->MP->Zero();
-     for(no=1; no<G->NumObjects; no++)
-      G->Objects[no]->MP->UnZero();
-
-     Log("Assembling M2 matrix...");
-     G->AssembleBEMMatrix(Omega, M2, nThread);
-
-     for(nr=1; nr<M2->NR; nr+=2)
-      for(nc=0; nc<M2->NC; nc++)
-       M2->SetEntry(nr, nc, -1.0*M2->GetEntry(nr,nc));
-   };
-  
-  // undo the zeroing out of the environment and object 1
-  G->ExteriorMP->UnZero();
-  G->Objects[0]->MP->UnZero();
-
-  /***************************************************************/
-  /* assemble and LU-factorize the full BEM matrix (for now we   */
-  /* do this in-place using the M0 matrix)                       */
-  /***************************************************************/
-  if (G->NumObjects==1)
-   { for(nr=0; nr<M0->NR; nr++)
-      for(nc=0; nc<M0->NC; nc++)
-       M0->AddEntry(nr, nc, M1->GetEntry(nr,nc) );
-   }
-  else
-   { for(nr=0; nr<M0->NR; nr++)
-      for(nc=0; nc<M0->NC; nc++)
-       M0->AddEntry(nr, nc, M1->GetEntry(nr,nc) + M2->GetEntry(nr,nc) );
-   };
-
-  Log("LU-factorizing MTotal...");
-  M0->LUFactorize();
-
-  /***************************************************************/
-  /* set M1 = sym(M1) and M2 = sym(M2)                           */
-  /*  (note that the loop runs over only the upper triangle of   */
-  /*  the matrices)                                              */
-  /***************************************************************/
-  cdouble Sym, SymT;
-  for(nr=0; nr<M1->NR; nr++)
-   for(nc=nr; nc<M1->NC; nc++)
-    { 
-      Sym = 0.5*(M1->GetEntry(nr, nc) + conj(M1->GetEntry(nc, nr)));
-      M1->SetEntry(nr, nc, Sym );
-      if(nc>nr) M1->SetEntry(nc, nr, conj(Sym) );
-    }; 
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (SC3D->PlotFlux)
-   {
-     for(nr=0; nr<M2->NR; nr++)
-      for(nc=nr; nc<M2->NC; nc++)
-       { Sym  = conj(M2->GetEntry(nr, nc));
-         SymT = conj(M2->GetEntry(nc, nr));
-         M2->SetEntry(nc, nr, Sym );
-         if (nc>nr) M2->SetEntry(nr, nc, SymT );
-       };
-
-     Log("LU-solving M1...");
-     M0->LUSolve(M1,'N');
-     Log("LU-solving M2...");
-     M0->LUSolve(M2,'C');
-     Log("Multipliying...");
-     M1->Multiply(M2, M0);
-     for(nr=0; nr<M1->NR; nr++)
-      SC3D->DV->SetEntry(nr, M1->GetEntry(nr,nr));
-     Log("Plotting flux vector...");
-     PlotFlux(SC3D, Omega);
-
-     *FI=0.0;
-   }
-  else
-   {
-     for(nr=0; nr<M2->NR; nr++)
-      for(nc=nr; nc<M2->NC; nc++)
-       { Sym = 0.5*(M2->GetEntry(nr, nc) + conj(M2->GetEntry(nc, nr)));
-         M2->SetEntry(nr, nc, Sym );
-         if(nc>nr) M2->SetEntry(nc, nr, conj(Sym) );
-       };
-
-     /***************************************************************/
-     /* set M1 <= M^{-1'} * M1 **************************************/
-     /* set M2 <= M^{-1}  * M2 **************************************/
-     /***************************************************************/
-     Log("LU-solving M1...");
-     M0->LUSolve(M1,'C');
-     Log("LU-solving M2...");
-     M0->LUSolve(M2,'N');
-   
-     /***************************************************************/
-     /* set M0 = M1*M2                                              */
-     /***************************************************************/
-     Log("Multiplying M1*M2...");
-     M1->Multiply(M2, M0);
-   
-     /***************************************************************/
-     /* the value of the frequency integrand is now the trace of M0 */
-     /***************************************************************/
-     *FI = real( M0->GetTrace() ) / 8.0 ;
-     Log("...done!");
-
-     /***************************************************************/
-     /* write the result to the frequency-resolved output file ******/
-     /***************************************************************/
-     FILE *f=fopen(SC3D->ByOmegaFile, "a");
-     fprintf(f,"%s %e\n",z2s(Omega),*FI);
-     fclose(f);
-   };
-   
-}
-#endif
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void FlipSignOfMagneticColumns(HMatrix *B)
-{ 
-  int nr, nc;
-  for (nr=0; nr<B->NR; nr++)
-   for (nc=1; nc<B->NC; nc+=2)
-    B->SetEntry(nr, nc, -1.0*B->GetEntry(nr, nc) );
+extern "C" {
+int dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
 }
 
 /***************************************************************/
-/* this routine mimics the effect of saying                    */
-/*  A->InsertBlock(B, RowOffset, ColOffset)                    */
-/* with the difference that the symmetrized version of the B   */
-/* matrix, i.e. (B+B^\dagger) / 2, is inserted instead.        */
+/* CacheRead: attempt to bypass an entire FrequencyIntegrand   */
+/* calculation by reading results from the .byXi file.         */
+/* Returns 1 if successful (which means the values of the      */
+/* energy/force integrand for ALL transformations at this      */
+/* value of Xi were successfully read from the file) or 0      */
+/* on failure).                                                */
 /***************************************************************/
-void InsertSymmetrizedBlock(HMatrix *A, HMatrix *B, int RowOffset, int ColOffset)
+int CacheRead(const char *ByXiFileName, SC3Data *SC3D, double Xi, double *EFT)
 { 
-  int nr, nc;
-  cdouble Z;
+  FILE *f;
+  double Q[4];
+  char Line[1000], fTag[1000], *p;
+  double fXi;
+  int nt, ntnq, nRead, FoundFirst;
 
-  for(nr=0; nr<B->NR; nr++)
-   { 
-     A->SetEntry(RowOffset+nr, ColOffset+nr, real(B->GetEntry(nr,nr)) );
+  /*----------------------------------------------------------*/
+  /* 0. try to open the cache file. --------------------------*/
+  /*----------------------------------------------------------*/
+  if ( !(f=fopen(ByXiileName,"r")) )
+   return 0;
 
-     for(nc=nr+1; nc<B->NC; nc++)
-      { Z = 0.5*( B->GetEntry(nr,nc) + conj(B->GetEntry(nc,nr)) );
-        A->SetEntry( RowOffset+nr, ColOffset+nc, Z       );
-        A->SetEntry( RowOffset+nc, ColOffset+nr, conj(Z) );
+  /*----------------------------------------------------------*/
+  /*----------------------------------------------------------*/
+  /*----------------------------------------------------------*/
+  for(;;)
+   {
+     /*----------------------------------------------------------*/
+     /* 1. skip down through the cache file until we find a line */
+     /*    whose Xi and Tag values equal Xi and the first        */
+     /*    tag in the workspace structure.                       */
+     /*----------------------------------------------------------*/
+     FoundFirst=0;
+     while( !FoundFirst && fgets(Line,1000,f) )
+      { sscanf(Line,"%s %le",fTag,&fXi);
+        if ( fabs(fXi-Xi) < 1.0e-8*Xi && !strcmp(fTag,SC3D->Tags[0]) )
+         FoundFirst=1;
       };
+     if ( !FoundFirst ) 
+      { fclose(f); 
+        return 0;
+      };
+   
+     Log(" found (Tag,Xi)=(%s,%e) in cache file...",fTag,Xi);
+   
+     /*----------------------------------------------------------*/
+     /* 2. verify that the line we just read from the cache file */
+     /*    contains data for all the quantities we need          */
+     /*----------------------------------------------------------*/ 
+     nRead=sscanf(Line,"%s %le %le %le %le %le",fTag,&fXi,Q,Q+1,Q+2,Q+3); 
+     if ( nRead != SC3D->NumQuantities+2 )
+      { Log(" ...but number of quantities is wrong (skipping)");
+        continue;
+      };
+     memcpy(EFT,Q,SC3D->NumQuantities*sizeof(double));
+     ntnq=SC3D->NumQuantities;
+   
+     /*----------------------------------------------------------*/
+     /* 3. ok, since that worked, now keep going ----------------*/
+     /*----------------------------------------------------------*/
+     for(nt=1; nt<SC3D->NumTransforms; nt++)
+      { 
+        /* check for premature end of file */
+        if ( !fgets(Line,1000,f) )
+         { Log(" ...but data for some transforms were missing (skipping)");
+           break;
+         };
+   
+        nRead=sscanf(Line,"%s %le %le %le %le %le",fTag,&fXi,Q,Q+1,Q+2,Q+3);
+   
+        /* check for incorrect number of quantities */
+        if ( nRead != SC3D->NumQuantities+2 )
+         { Log(" ...but number of quantities is wrong (skipping)");
+           break;
+         };
+   
+        /* check for tag and/or Xi mismatch */
+        if ( fabs(fXi-Xi)>1.0e-8*Xi || strcmp(fTag,SC3D->Tags[nt]) )
+         { Log(" ...but tag #%i did not match (%s != %s) (skipping)",
+               nt,fTag,SC3D->Tags[nt]);
+           break;
+         };
+   
+        memcpy(EFT+ntnq,Q,SC3D->NumQuantities*sizeof(double));
+        ntnq+=SC3D->NumQuantities;
+      };
+   
+     if (ntnq==SC3D->NTNQ)
+      { Log(" ...and successfully read data for all quantities at all transforms");
+        fclose(f);
+        return 1;
+      };
+
    };
+
+}
+
+/***************************************************************/
+/* stamp T and U blocks into the BEM matrix, then LU-factorize */
+/* M.                                                          */
+/* returns 0 on failure (factorization failed), or 1 on        */
+/* success.                                                    */
+/***************************************************************/
+int Factorize(SC3Data *SC3D)
+{ 
+  RSC3DGGeometry *G;
+  HMatrix *M;
+
+  int ns, nsp, m, n;
+  int Offset, RowOffset, ColOffset;
+  double LNDet;
+  int info, idum;
+
+  /***************************************************************/
+  /* unpack fields from workspace structure **********************/
+  /***************************************************************/
+  G=SC3D->G;
+  M=SC3D->M;
+
+  /***************************************************************/
+  /* stamp T and U blocks into R matrix. note we only fill in    */
+  /* the upper triangle of the matrix.                           */
+  /* 20100725 no! now we fill in the full matrix, because we are */
+  /* no longer using the packed-storage versions of the lapack   */
+  /* LU-factorization routines.                                  */
+  /***************************************************************/
+  /* T blocks */
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     Offset=G->BFIndexOffset[ns];
+     M->InsertBlock(SC3D->T[ns], Offset, Offset);
+   };
+
+  /* U blocks */
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   for(nsp=ns+1; nsp<G->NumSurfaces; nsp++)
+    { 
+      RowOffset=G->BFIndexOffset[ns];
+      ColOffset=G->BFIndexOffset[nsp];
+      M->InsertBlock(SC3D->Uab[ns][nsp], RowOffset, ColOffset);
+      M->InsertBlockTranspose(SC3D->Uab[ns][nsp], ColOffset, RowOffset);
+    };
+
+  /***************************************************************/
+  /* write the BEM matrix to an hdf5 file if user requested it ***/
+  /***************************************************************/
+  if (SC3D->pCC)
+   M->ExportToMATLAB(SC3D->pCC,"M%s",SC3D->CurrentTag);
+
+  /***************************************************************/
+  /* LU factorize                                                */
+  /***************************************************************/
+  info=M->LUFactorize();
+
+  if (info==0)
+   Log("...success!");
+
+  return (info==0) ? 1 : 0;
 
 } 
 
 /***************************************************************/
+/* evaluate the casimir energy, force, and/or torque integrand */
+/* at a single Xi point, or a single (Xi,kBloch) point for PBC */
+/* geometries, possibly under multiple spatial transformations).*/                                   */
+/* the output vector 'EFT' stands for 'energy, force, and      */
+/* torque.' the output quantities are packed into this vector  */
+/* in the following order:                                     */
+/*  energy  integrand (spatial transformation 1)               */
+/*  xforce  integrand (spatial transformation 1)               */
+/*  yforce  integrand (spatial transformation 1)               */
+/*  zforce  integrand (spatial transformation 1)               */
+/*  torque1 integrand (spatial transformation 1)               */
+/*  torque2 integrand (spatial transformation 1)               */
+/*  torque3 integrand (spatial transformation 1)               */
+/*  energy  integrand (spatial transformation 2)               */
+/* ...                                                         */
+/* where only requested quantities are present, i.e. if the    */
+/* user requested only energy and yforce then we would have    */
+/*  EFT[0] = energy integrand (spatial transformation 1)       */
+/*  EFT[1] = yforce integrand (spatial transformation 1)       */
+/*  EFT[2] = energy integrand (spatial transformation 2)       */
+/*  EFT[3] = yforce integrand (spatial transformation 2)       */
+/*  ...                                                        */
+/*  EFT[2*N-1] = yforce integrand (spatial transformation N)   */
 /***************************************************************/
-/***************************************************************/
-void GetFrequencyIntegrand(SC3Data *SHD, cdouble Omega, double *FI)
-{
-  /***************************************************************/
-  /* extract fields from SC3Data structure ************************/
-  /***************************************************************/
-  RWGGeometry *G     = SC3D->G;
-  int N1             = SC3D->N1;
-  int N2             = SC3D->N2;
-  HMatrix **TSelf    = SC3D->TSelf;
-  HMatrix **TMedium  = SC3D->TMedium;
-  HMatrix **UMedium  = SC3D->UMedium;
-  HMatrix *SymG1     = SC3D->SymG1;
-  HMatrix *SymG2     = SC3D->SymG2;
-  HMatrix *W         = SC3D->W;
-  HMatrix *W21       = SC3D->W21;
-  HMatrix *W21SymG1  = SC3D->W21SymG1;
-  HMatrix *W21DSymG2 = SC3D->W21DSymG2;
-  HMatrix *Scratch   = SC3D->Scratch;
-  HVector *DV        = SC3D->DV;
-  int PlotFlux       = SC3D->PlotFlux;
-
-  /***************************************************************/
-  /* preinitialize an argument structure for the BEM matrix      */
-  /* block assembly routine                                      */
-  /***************************************************************/
-  ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
-  InitABMBArgs(Args);
-  Args->G         = SC3D->G;
-  Args->Omega     = Omega;
-  Args->nThread   = SC3D->nThread;
-
-  Log("Computing heat radiation/transfer at omega=%s...",z2s(Omega));
-
-  /***************************************************************/
-  /* before entering the loop over transformations, we first     */
-  /* assemble the (transformation-independent) T matrix blocks.  */
-  /***************************************************************/
-  Args->Symmetric=1;
-  int no, nop, nb, nr, NO=G->NumObjects;
-  for(no=0; no<G->NumObjects; no++)
-   { 
-     Args->Oa = Args->Ob = G->Objects[no];
-
-     Log(" Assembling self contributions to T(%i)...",no);
-     G->ExteriorMP->Zero();
-     Args->B = TSelf[no];
-     AssembleBEMMatrixBlock(Args);
-     G->ExteriorMP->UnZero();
-
-     Log(" Assembling medium contributions to T(%i)...",no);
-     G->Objects[no]->MP->Zero();
-     Args->B = TMedium[no];
-     AssembleBEMMatrixBlock(Args);
-     G->Objects[no]->MP->UnZero();
-
-   };
-
-  /***************************************************************/
-  /* pause to dump out the scuff cache to disk. this will be     */
-  /* overwritten later if everything goes well, but if something */
-  /* goes wrong and we never make it to the later step it's nice */
-  /* to dump it out here so that we can at least have a partial  */
-  /* cache to accelerate a subsequent calculation involving      */
-  /* any of the same objects                                     */
-  /***************************************************************/
-  if ( SC3D->WriteCache ) 
-   StoreCache( SC3D->WriteCache );
-
-  /***************************************************************/
-  /* the SymG1 matrix can be formed and stored ahead of time     */
-  /* (unlike SymG2)                                              */
-  /***************************************************************/
-  InsertSymmetrizedBlock(SymG1, TSelf[0], 0, 0 );
-  FlipSignOfMagneticColumns(SymG1);
-
-  /***************************************************************/
-  /* now loop over transformations. ******************************/
-  /* note: 'gtc' stands for 'geometrical transformation complex' */
-  /***************************************************************/
-  int nt;
+void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
+{ 
+  RSC3DGGeometry *G=SC3D->G;
+  int nbf, nbfp, NBF;
+  int ns, nsp, nt, nq, ntnq, AllConverged;
+  int Offset, MateOffset, info;
   char *Tag;
-  int RowOffset, ColOffset;
-  for(nt=0; nt<SC3D->NumTransformations; nt++)
+  FILE *ByXiFile;
+  int SurfaceNeverMoved[SC3D->G->NumSurfaces];
+
+  /***************************************************************/
+  /* record the value of Xi in the internal storage slot within SC3D*/
+  /***************************************************************/
+  SC3D->Xi=Xi;
+
+  /***************************************************************/
+  /* SurfaceNeverMoved[ns] is initialized to 1 and remains at 1  */
+  /* as long as surface #ns is not displaced or rotated by any   */
+  /* geometrical transformation, but switches to 0 as soon as    */
+  /* that surface is moved, and then remains at 0 for the rest   */
+  /* rest of the calculations done at this frequency             */
+  /***************************************************************/
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   SurfaceNeverMoved[ns]=1;
+
+  /***************************************************************/
+  /* preallocate an argument structure for AssembleBEMMatrixBlock*/
+  /***************************************************************/
+  ABMBArgs MyArgs, *Args=&MyArgs;
+  InitABMBArgs(Args);
+  Args->G=G;
+  Args->Omega = II*Xi;
+
+  /***************************************************************/
+  /* assemble T matrices                                         */
+  /***************************************************************/
+  for(ns=0; ns<G->NumSurfaces; ns++)
    { 
-     /*--------------------------------------------------------------*/
-     /*- transform the geometry -------------------------------------*/
-     /*--------------------------------------------------------------*/
-     Tag=SC3D->GTCList[nt]->Tag;
-     G->Transform(SC3D->GTCList[nt]);
-     Log(" Computing quantities at geometrical transform %s",Tag);
+     /* skip if this surface is identical to a previous surface */
+     if ( (nsp=G->Mate[ns]) !=-1 )
+      { Log("Surface %i is identical to object %i (skipping)",ns,nsp);
+        continue;
+      };
 
-     /*--------------------------------------------------------------*/
-     /* assemble off-diagonal matrix blocks.                         */
-     /* note that not all off-diagonal blocks necessarily need to    */
-     /* be recomputed for all transformations; this is what the 'if' */
-     /* statement here is checking for.                              */
-     /*--------------------------------------------------------------*/
-     Args->Symmetric=0;
-     for(nb=0, no=0; no<NO; no++)
-      for(nop=no+1; nop<NO; nop++, nb++)
-       if ( nt==0 || G->ObjectMoved[no] || G->ObjectMoved[nop] )
-        { 
-          Log("  Assembling U(%i,%i)...",no,nop);
-          Args->Oa = G->Objects[no];
-          Args->Ob = G->Objects[nop];
-          Args->B  = UMedium[nb];
-          AssembleBEMMatrixBlock(Args);
-        };
+     Log("Assembling T%i at Xi=%e...",ns+1,Xi); 
+     Args->Sa = Args->Sb = G->Surfaces[ns];
+     Args->B = SC3D->T[ns];
+     Args->Symmetric = 1;
+     
+     //G->AssembleT(ns,Xi,IMAG_FREQ,SC3D->nThread,SC3D->T[ns]);
 
-     /*--------------------------------------------------------------*/
-     /*- put together the full BEM matrix by stamping the T0, TN,    */
-     /*- and U blocks in their appropriate places, then LU-factorize */
-     /*- and invert it to get the W matrix.                          */
-     /*--------------------------------------------------------------*/
-     for(nb=0, no=0; no<NO; no++)
+   }; // for(ns=0; ns<G->NumSurfaces; ns++)
+
+  /***************************************************************/
+  /* if an energy calculation was requested, compute and save    */
+  /* the diagonals of the LU factorization of the T blocks       */
+  /* (which collectively constitute the diagonal of the LU       */
+  /* factorization of the M_{\infinity} matrix).                 */
+  /***************************************************************/
+  if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
+   {
+     HVector *DRMInf=SC3D->DRMInf;
+     HMatrix *M=SC3D->M;
+     for(ns=0; ns<G->NumSurfaces; ns++)
       { 
-        RowOffset=G->BFIndexOffset[no];
-        W->InsertBlock(TSelf[no], RowOffset, RowOffset);
-        W->AddBlock(TMedium[no], RowOffset, RowOffset);
+        Offset=G->BFIndexOffset[ns];
+        NBF=G->Surfaces[ns]->NumBFs;
 
-        for(nop=no+1; nop<NO; nop++, nb++)
-         { ColOffset=G->BFIndexOffset[nop];
-           W->InsertBlock(UMedium[nb], RowOffset, ColOffset);
-           W->InsertBlockTranspose(UMedium[nb], ColOffset, RowOffset);
+        if ( (nsp=G->Mate[ns]) != -1 )
+         { 
+           /* if this object has a mate, just copy the diagonals of the */
+           /* mate's LU factor                                          */
+           MateOffset=G->BFIndexOffset[nsp];
+           memcpy(DRMInf->DV+Offset,DRMInf->DV+MateOffset,NBF*sizeof(double));
+         }
+        else
+         { 
+           /* LU factorize the matrix (non-PEC) case or cholesky-factorize */
+           /* the negative of the matrix (all-PEC case).                   */
+           /* KIND OF HACKY: we use the data buffer inside M as temporary  */
+           /* storage for the content of T; this means that we have to     */
+           /* call the lapack routines directly instead of using the nice  */
+           /* wrappers provided by libhmat                                 */
+           for(nbf=0; nbf<NBF; nbf++)
+            for(nbfp=0; nbfp<NBF; nbfp++)
+             M->DM[nbf + nbfp*NBF] = SC3D->T[ns]->GetEntryD(nbf,nbfp);
+
+           Log("LU-factorizing T%i at Xi=%g...",ns+1,Xi);
+           dgetrf_(&NBF, &NBF, M->DM, &NBF, SC3D->ipiv, &info);
+           if (info!=0)
+            Log("...FAILED with info=%i (N=%i)",info,NBF);
          };
-      };
-     FlipSignOfMagneticColumns(W);
-     Log("  LU factorizing M...");
-     W->LUFactorize();
 
-     /*--------------------------------------------------------------*/
-     /*- invert the W matrix and extract the lower-left subblock W21.*/
-     /*--------------------------------------------------------------*/
-#if 0 // old (20120306) slower method
-     Log("  LU inverting M...");
-     W->LUInvert();
-     W->ExtractBlock(N1, 0, W21);
-#else // new (20120307) hopefully faster method: instead of LUSolving
-      // with the full identity matrix to get the full matrix inverse,
-      // we LUSolve with just the first N1 columns of the identity matrix
-      // since this gives us the only chunk of the inverse that we 
-      // need.
-      // note: we could achieve a further speedup by truncating 
-      // the back-substitution so that we only carry it out far
-      // enough to extract the bottommost N2 entries in each
-      // row, but this would involve tweaking the lapack routines,
-      // so leave it TODO.
-     Log("  Partially LU-inverting M...");
-     Scratch->Zero();
-     for(nr=0; nr<N1; nr++)
-      Scratch->SetEntry(nr, nr, 1.0);
-     W->LUSolve(Scratch);
-     Scratch->ExtractBlock(N1, 0, W21);
-#endif
-
-     /*--------------------------------------------------------------*/
-     /*- fill in the SymG2 matrix. this is just what we did for the  */
-     /*- SymG1 matrix above, except that there may be more than one  */
-     /*- block to insert, and also if PlotFlux==1 then we don't want */
-     /*- to symmetrize.                                              */
-     /*--------------------------------------------------------------*/
-     SymG2->Zero();
-     for(no=1; no<NO; no++)
-      { RowOffset=G->BFIndexOffset[no] - N1;
-        if (PlotFlux)
-         SymG2->InsertBlock(TSelf[no], RowOffset, RowOffset );
-        else 
-         InsertSymmetrizedBlock(SymG2, TSelf[no], RowOffset, RowOffset );
-      };
-     FlipSignOfMagneticColumns(SymG2);
-
-     /*--------------------------------------------------------------*/
-     /*- compute the products W21*sym(G1) and W21^{\dagger} * sym(G2)*/
-     /*--------------------------------------------------------------*/
-     Log("  Multiplication 1...");
-     W21->Multiply(SymG1, W21SymG1);
-
-     Log("  Multiplication 2...");
-     W21->Adjoint();
-     W21->Multiply(SymG2, W21DSymG2);
-
-     // we have to do this again so that W21 will be the correct
-     // size again on the next go-round
-     W21->Adjoint();
-
-     /*--------------------------------------------------------------*/
-     /*- compute the product W21*sym(G1)*W21^{\dagger}*sym(G2)      -*/
-     /*--------------------------------------------------------------*/
-     Log("  Multiplication 3...");
-     W21SymG1->Multiply(W21DSymG2, SymG2);
-
-     /*--------------------------------------------------------------*/
-     /*- if we are plotting the flux, then extract the diagonal of   */
-     /*- the matrix we just computed and plot it; otherwise, compute */
-     /*- the trace and put it in the next slot in the output vector. */
-     /*--------------------------------------------------------------*/
-     if (PlotFlux)
-      { 
-        DV->Zero();
-        for(nr=0; nr<N2; nr++)
-         DV->SetEntry(N1+nr, SymG2->GetEntryD(nr, nr) );
-        CreateFluxPlot(SC3D, Omega, Tag);
-      }
-     else
-      { 
-        FI[nt] = real(SymG2->GetTrace());
-
-        /***************************************************************/
-        /* write the result to the frequency-resolved output file ******/
-        /***************************************************************/
-        FILE *f=fopen(SC3D->ByOmegaFile, "a");
-        fprintf(f,"%s %s %e\n",Tag,z2s(Omega),FI[nt]);
-        fclose(f);
+        /* copy the LU diagonals into DRMInf */
+        for(nbf=0; nbf<NBF; nbf++)
+         DRMInf->SetEntry(Offset+nbf, M->DM[nbf+nbf*NBF]);
       };
 
-     /*--------------------------------------------------------------*/
-     /* and untransform the geometry                                 */
-     /*--------------------------------------------------------------*/
-     G->UnTransform();
-     Log(" ...done!");
+     if (SC3D->pCC)
+      DRMInf->ExportToMATLAB(SC3D->pCC,"DRMInf");
 
-   }; // for (nt=0; nt<SC3D->NumTransformations... )
-
-  /*--------------------------------------------------------------*/
-  /*- at the end of the first successful frequency calculation,  -*/
-  /*- we dump out the cache to disk, and then tell ourselves not -*/
-  /*- to dump the cache to disk again (explain me)               -*/
-  /*--------------------------------------------------------------*/
-  if ( SC3D->WriteCache ) 
-   { StoreGlobalFIPPICache( SC3D->WriteCache );
-     SC3D->WriteCache=0;
    };
+     
+  /***************************************************************/
+  /* for each line in the TransFile, apply the specified         */
+  /* transformation, then calculate all quantities requested.    */
+  /***************************************************************/
+  ByXiFile=fopen(SC3D->ByXiFileName,"a");
+  setlinebuf(ByXiFile);
+  for(ntnq=nt=0; nt<SC3D->NumTransforms; nt++)
+   { 
+     Tag=SC3D->CurrentTag=SC3D->Tags[nt];
 
+     /******************************************************************/
+     /* skip if all quantities are already converged at this transform */
+     /******************************************************************/
+     AllConverged=1;
+     for(nq=0; AllConverged==1 && nq<SC3D->NumQuantities; nq++)
+      if ( !SC3D->Converged[ ntnq + nq ] )
+       AllConverged=0;
+     if (AllConverged)
+      { Log("All quantities already converged at Tag %s",Tag);
+
+        for(nq=0; nq<SC3D->NumQuantities; nq++)
+         EFT[ntnq++]=0.0;
+
+        fprintf(ByXiFile,"%s %.15e ",Tag,Xi);
+        for(nq=0; nq<SC3D->NumQuantities; nq++)
+         fprintf(ByXiFile,"%.15e ",0.0);
+        fprintf(ByXiFile,"\n");
+
+        continue;
+      };
+
+     /******************************************************************/
+     /* apply the geometrical transform                                */
+     /******************************************************************/
+     Log("Applying transform %s...",Tag);
+     G->Transform( SC3D->TransLines[nt] );
+     for(ns=0; ns<G->NumSurfaces; ns++)
+      if (G->SurfaceMoved[ns]) SurfaceNeverMoved[ns]=0;
+
+     /***************************************************************/
+     /* assemble U_{a,b} blocks and dUdXYZT_{0,b} blocks            */
+     /***************************************************************/
+     Args->NumTorqueAxes = SC3D->NumTorqueAxes;
+     if (Args->NumTorqueAxes>0)
+      memcpy(Args->GammaMatrix, SC3D->GammaMatrix, NumTorqueAxes*9*sizeof(double));
+     Args->Symmetric=0;
+     for(ns=0; ns<G->NumSurfaces; ns++)
+      for(nsp=ns+1; nsp<G->NumSurfaces; nsp++)
+       { 
+         /* if we already computed the interaction between objects ns  */
+         /* and nsp once at this frequency, and if neither object has  */
+         /* moved, then we do not need to recompute the interaction    */
+         if ( nt>0 && SurfaceNeverMoved[ns] && SurfaceNeverMoved[nsp] )
+          continue;
+
+         Log(" Assembling U(%i,%i)",ns,nsp);
+         Args->Sa    = G->Surfaces[ns];
+         Args->Sb    = G->Surfaces[nsp];
+         Args->B     = SC3D->Uab[ns][nsp],
+         Args->GradB = SC3D->Uab[ns][nsp],
+
+         if (ns==0)
+          G->AssembleU(ns, nsp, Xi, IMAG_FREQ,
+                       SC3D->NumTorqueAxes, SC3D->GammaMatrix, SC3D->nThread,
+                       SC3D->dU0bdX[nsp], SC3D->dU0bdY[nsp], SC3D->dU0bdZ[nsp], 
+                       SC3D->dU0bdTheta1[nsp], SC3D->dU0bdTheta2[nsp], SC3D->dU0bdTheta3[nsp]);
+         else
+          G->AssembleU(ns, nsp, Xi, IMAG_FREQ, 0, 0, SC3D->nThread, 
+                       SC3D->Uab[ns][nsp], 0, 0, 0, 0, 0, 0);
+
+         if (ns==0 && SC3D->pCC)
+          { if (SC3D->dU0bdX[nsp]) 
+             SC3D->dU0bdX[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idX%s",nsp,SC3D->CurrentTag);
+            if (SC3D->dU0bdY[nsp]) 
+             SC3D->dU0bdY[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idY%s",nsp,SC3D->CurrentTag);
+            if (SC3D->dU0bdZ[nsp]) 
+             SC3D->dU0bdZ[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idZ%s",nsp,SC3D->CurrentTag);
+            if (SC3D->dU0bdTheta1[nsp]) 
+             SC3D->dU0bdTheta1[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idTheta1%s",nsp,SC3D->CurrentTag);
+            if (SC3D->dU0bdTheta2[nsp]) 
+             SC3D->dU0bdTheta2[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idTheta2%s",nsp,SC3D->CurrentTag);
+            if (SC3D->dU0bdTheta3[nsp]) 
+             SC3D->dU0bdTheta3[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idTheta3%s",nsp,SC3D->CurrentTag);
+          };
+       };
+
+     /* factorize the M matrix, and, if successful, compute all quantities */
+     if ( Factorize(SC3D) ) 
+      {
+        if ( SC3D->SIMethod==SIMETHOD_SPECTRAL )
+         { 
+           /* compute all requested quantities using logdet/trace methods */
+           if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
+            EFT[ntnq++]=GetLNDetMInvMInf(SC3D);
+           if ( SC3D->WhichQuantities & QUANTITY_XFORCE )
+            EFT[ntnq++]=GetTraceMInvdM(SC3D,'X');
+           if ( SC3D->WhichQuantities & QUANTITY_YFORCE )
+            EFT[ntnq++]=GetTraceMInvdM(SC3D,'Y');
+           if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
+            EFT[ntnq++]=GetTraceMInvdM(SC3D,'Z');
+           if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
+            EFT[ntnq++]=GetTraceMInvdM(SC3D,'1');
+           if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
+            EFT[ntnq++]=GetTraceMInvdM(SC3D,'2');
+           if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
+            EFT[ntnq++]=GetTraceMInvdM(SC3D,'3');
+         }
+        else
+         { 
+           SpatialIntegral(SC3D,SC3D->TransLines[nt],EFT+ntnq, SC3D->Error + ntnq);
+           ntnq+=SC3D->NumQuantities;
+         };
+      }
+     else 
+      { 
+        /* matrix factorization failed */
+        memset(EFT+ntnq,0,SC3D->NumQuantities*sizeof(double));
+        ntnq+=SC3D->NumQuantities;
+      };
+
+     /******************************************************************/
+     /* write results to .byXi file                                    */
+     /******************************************************************/
+     fprintf(ByXiFile,"%s %.15e ",Tag,Xi);
+     for(nq=SC3D->NumQuantities; nq>0; nq--)
+      fprintf(ByXiFile,"%.15e ",EFT[ntnq-nq]);
+     if (SC3D->SIMethod!=SIMETHOD_SPECTRAL)
+      fprintf(ByXiFile,"%i ",SC3D->SIPoints);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     if(SC3D->Error)
+      { for(nq=SC3D->NumQuantities; nq>0; nq--)
+         fprintf(ByXiFile,"%.15e ",SC3D->Error[ntnq-nq]);
+      };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     fprintf(ByXiFile,"\n");
+
+     /******************************************************************/
+     /* undo the geometrical transform                                 */
+     /******************************************************************/
+     G->UnTransform();
+
+   }; // for(ntnq=nt=0; nt<SC3D->NumTransforms; nt++)
+  fclose(ByXiFile);
 }

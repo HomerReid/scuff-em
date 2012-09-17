@@ -52,3 +52,10 @@ void GetXiIntegral(SC3Data *SC3D, double *EFT)
 void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT)
 {
 }
+
+  /***************************************************************/
+  /* attempt to bypass calculation by reading data from .byXi file */
+  /***************************************************************/
+  if ( W->pCC==0 && CacheRead(W->ByXiFileName, W, Xi, EFT) )
+   return; 
+
