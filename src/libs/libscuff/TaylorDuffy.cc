@@ -46,7 +46,7 @@ namespace scuff {
 #define MAXFEVALS 10000
 #define INTERVALS (MAXFEVALS/15)
 
-#define II cdouble(0,1)J
+#define II cdouble(0,1)
 
 // defined at end for warning-disabling purposes
 static double X_CT(TMWorkspace *TMW, int i, double x);
@@ -432,7 +432,7 @@ cdouble In_EIKROverR(int n, cdouble K, double R)
 { 
   cdouble KR=K*R;
 
-  if ( (imag(KR)) > 10.0  )
+  if ( (imag(KR)) > 40.0  )
    return factorial(n-1) / (R*pow(-II*K*R,n));
   else if ( real(K)==0.0 )
    return In_EMKROverR(n, imag(K), R);

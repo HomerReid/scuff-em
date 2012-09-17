@@ -40,6 +40,7 @@
 #include "libhrutil.h"
 #include "libSGJC.h"
 #include "libscuff.h"
+#include "libscuffInternals.h"
 
 #define MAXSTR 1000
 #define MAXEVAL 10000

@@ -224,7 +224,7 @@ void GetPortVoltages(RWGGeometry *G, HVector *KN,
 
   /***************************************************************/
   /* do a first pass through all interior edges and all driven   */
-  /* ports to compute the total charge on each panel             */
+  /* ports to compute the total charge on each panel.            */
   /***************************************************************/
   memset(PanelCharges, 0, NumPanels*sizeof(cdouble));
 

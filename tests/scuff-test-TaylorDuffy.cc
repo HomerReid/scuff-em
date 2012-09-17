@@ -35,6 +35,7 @@
 
 #include "config.h"
 
+#define HAVE_LIBREADLINE
 #ifdef HAVE_LIBREADLINE
  #include <readline/readline.h>
  #include <readline/history.h>
@@ -56,6 +57,11 @@
 #include <libscuff.h>
 #include <libscuffInternals.h>
 #include <TaylorDuffy.h>
+
+namespace scuff{
+cdouble TaylorDuffy2(TaylorDuffyArgStruct *Args);
+extern double SWPPIThreshold;
+}
 
 using namespace scuff;
 
@@ -216,6 +222,8 @@ int main(int argc, char *argv[])
   int Times, NumTimes;
   double ElapsedOne, ElapsedDot;
   double *Va[3], *OVa[3], *Vb[3], *OVb[3], *Qa, *Qb;
+  using_history();
+  read_history(0);
   for(;;)
    { 
      /*--------------------------------------------------------------*/
@@ -228,6 +236,7 @@ int main(int argc, char *argv[])
      printf("          --ncv xx \n");
      printf("          --P (power of r)\n"); 
      printf("          --k (k parameter in e^{ikr}/r})\n");
+     printf("          --SWPPIThreshold xx\n");
      printf("          --same | --ns \n");
      printf("          --DZ \n");
      p=readline("enter options: ");
@@ -267,6 +276,9 @@ int main(int argc, char *argv[])
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--k") )
        S2CD(Tokens[nt+1],&k);
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--SWPPIThreshold") )
+       sscanf(Tokens[nt+1],"%le",&SWPPIThreshold);
      free(p);
 
      /*--------------------------------------------------------------*/
@@ -341,12 +353,12 @@ int main(int argc, char *argv[])
      Args.WhichH    = TM_ONE;
      Tic();
      for(int Times=0; Times<NumTimes; Times++)
-      TDOne = TaylorDuffy(&Args);
+      TDOne = TaylorDuffy2(&Args);
      ElapsedOne=Toc() / NumTimes;
 
      Args.WhichH    = TM_DOT;
      for(int Times=0; Times<NumTimes; Times++)
-      TDDot = TaylorDuffy(&Args);
+      TDDot = TaylorDuffy2(&Args);
      ElapsedDot=Toc() / NumTimes;
 
      /*--------------------------------------------------------------------*/
