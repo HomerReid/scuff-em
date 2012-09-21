@@ -5,4 +5,5 @@ SUBDIRS =            \
  SolidSphere         \
  SphericalShell      \
  TwoSpheres          \
+ ThinFilm            \
  WireAntenna         
