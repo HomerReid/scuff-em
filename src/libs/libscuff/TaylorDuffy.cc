@@ -42,7 +42,8 @@
 namespace scuff {
 
 #define DEFABSTOL 0.0
-#define DEFRELTOL 1.0e-6
+//#define DEFRELTOL 1.0e-6
+#define DEFRELTOL 1.0e-10
 #define MAXFEVALS 10000
 #define INTERVALS (MAXFEVALS/15)
 
@@ -129,6 +130,12 @@ static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms, unsigne
 /***************************************************************/
 cdouble TaylorDuffy(TaylorDuffyArgStruct *Args)
 {
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (RWGGeometry::UseHighKTaylorDuffy)
+   return HighKTaylorDuffy(Args);
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -843,8 +850,9 @@ void SiAlpha_Cross(const double *xVec, TMWorkspace *TMW, int WhichCase,
        S[4][2] = ((BxBPdQmQP+AxBPdQmQP)*x1_2+(-V1xBdQmQP-V1xAdQmQP-LdQxQP-BxBPdQmQP
                                                         +BPdQxQP-AxBPdQmQP+AdQxQP)*x1)*x2
                +(V1xBPdQmQP-BxBPdQmQP-BPdQxQP)*x1+V1xBdQmQP-V1xBPdQmQP+LdQxQP+BxBPdQmQP;
-       S[4][3] = -(((2*BxBPdQmQP+2*AxBPdQmQP)*x1_2+(-2*BxBPdQmQP+AxBdQmQP-2*AxBPdQmQP)*x1)
-               *x2+(-2*BxBPdQmQP-AxBPdQmQP)*x1+2*BxBPdQmQP-AxBdQmQP+AxBPdQmQP)/2;
+       S[4][3] = -(  ((2*BxBPdQmQP+2*AxBPdQmQP)*x1_2 
+                      +(-2*BxBPdQmQP+AxBdQmQP-2*AxBPdQmQP)*x1)*x2
+                    +(-2*BxBPdQmQP-AxBPdQmQP)*x1+2*BxBPdQmQP-AxBdQmQP+AxBPdQmQP)/2;
        
        S[5][1] = -((2*V1xAdQmQP-2*AdQxQP)*x1*x2+(2*V1xBPdQmQP-2*BPdQxQP+AxBPdQmQP)*x1
                                                +2*V1xBdQmQP-2*V1xBPdQmQP+2*LdQxQP
@@ -855,10 +863,10 @@ void SiAlpha_Cross(const double *xVec, TMWorkspace *TMW, int WhichCase,
        S[5][3] = -(2*AxBdQmQP*x1*x2+(-2*BxBPdQmQP-AxBPdQmQP)*x1+2*BxBPdQmQP-AxBdQmQP
                                    +AxBPdQmQP)/2;
        
-       S[6][1] = ((2*V1xAdQmQP-2*AdQxQP)*x1*x2+(2*V1xBdQmQP+2*LdQxQP-2*BPdQxQP
-                                                           +AxBdQmQP)
-                                               *x1-2*V1xBdQmQP+2*V1xBPdQmQP-2*LdQxQP
-                                              -AxBdQmQP+AxBPdQmQP)/2;
+       S[6][1] = ( (2*V1xAdQmQP-2*AdQxQP)*x1*x2
+                  +(2*V1xBdQmQP+2*LdQxQP-2*BPdQxQP +AxBdQmQP)*x1
+                  - 2*V1xBdQmQP+2*V1xBPdQmQP-2*LdQxQP-AxBdQmQP+AxBPdQmQP)/2;
+
        S[6][2] = (-V1xAdQmQP-AxBPdQmQP+AdQxQP)*x1*x2
                  +(-V1xBdQmQP-LdQxQP-BxBPdQmQP+BPdQxQP)*x1+V1xBdQmQP-V1xBPdQmQP+LdQxQP
                  +BxBPdQmQP;

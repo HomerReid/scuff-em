@@ -406,14 +406,20 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
 
      TDArgs->WhichG=TM_EIKR_OVER_R;
      TDArgs->WhichH=TM_DOTPLUS;
-     H[0]=TaylorDuffy(TDArgs);
+     if ( InSWRegime && RWGGeometry::UseHighKTaylorDuffy )
+      H[0]=HighKTaylorDuffy(TDArgs);
+     else
+      H[0]=TaylorDuffy(TDArgs);
 
      if (ncv==3)
       H[1]=0.0; /* 'C' kernel integral vanishes for the common-triangle case */
      else
       { TDArgs->WhichG=TM_GRADEIKR_OVER_R;
         TDArgs->WhichH=TM_CROSS;
-        H[1]=TaylorDuffy(TDArgs);
+        if ( InSWRegime && RWGGeometry::UseHighKTaylorDuffy )
+         H[1]=HighKTaylorDuffy(TDArgs);
+        else
+         H[1]=TaylorDuffy(TDArgs);
       };
 
      if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));

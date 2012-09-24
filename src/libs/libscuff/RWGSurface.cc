@@ -67,7 +67,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 { 
   ErrMsg=0;
   SurfaceSigma=0;
-  PhysicalRegion=-1;
+  MeshTag=-1;
   MeshFileName=0;
   Label = strdupEC(pLabel);
 
@@ -108,12 +108,12 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
          };
         MeshFileName=strdupEC(Tokens[1]);
       }
-     else if ( !strcasecmp(Tokens[0],"PHYSICAL_REGION") )
+     else if ( !strcasecmp(Tokens[0],"MESHTAG") )
       { if (NumTokens!=2)
-         { ErrMsg=strdupEC("PHYSICAL_REGION keyword requires one argument");
+         { ErrMsg=strdupEC("MESHTAG keyword requires one argument");
            return;
          };
-        sscanf(Tokens[1],"%i",&PhysicalRegion);
+        sscanf(Tokens[1],"%i",&MeshTag);
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       { 
@@ -251,10 +251,10 @@ printf("SigmaString=%s\n",SigmaString);
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-RWGSurface::RWGSurface(const char *MeshFile, int pPhysicalRegion)
+RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
 {
   MeshFileName=strdup(MeshFile);
-  PhysicalRegion=pPhysicalRegion;
+  MeshTag=pMeshTag;
   Label=strdup(MeshFile);
   SurfaceSigma=0;
   IsPEC=1;
@@ -268,7 +268,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pPhysicalRegion)
 /*- optionally with a rotation and/or displacement applied.     */
 /*-                                                             */
 /*- This routine assumes that the following internal class      */
-/*- fields have been initialized: MeshFileName, PhysicalRegion, */
+/*- fields have been initialized: MeshFileName, MeshTag,        */
 /*- Label, SurfaceSigma, and IsPEC.                             */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -308,10 +308,10 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   if (!p)
    ErrExit("file %s: invalid extension",MeshFileName);
   else if (!strcasecmp(p,"msh"))
-   ReadGMSHFile(MeshFile,MeshFileName,OTGT,PhysicalRegion);
+   ReadGMSHFile(MeshFile,MeshFileName,OTGT,MeshTag);
   else if (!strcasecmp(p,"mphtxt"))
-   { if ( PhysicalRegion != -1 )
-      ErrExit("PHYSICAL_REGION is not yet implemented for .mphtxt files");
+   { if ( MeshTag != -1 )
+      ErrExit("MESHTAG is not yet implemented for .mphtxt files");
      ReadComsolFile(MeshFile,MeshFileName,OTGT);
    }
   else
@@ -321,10 +321,10 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   /*------------------------------------------------------------*/
   /*------------------------------------------------------------*/
   if (NumPanels==0)
-   { if ( PhysicalRegion == -1 ) 
+   { if ( MeshTag == -1 ) 
       ErrExit("file %s: no panels found",MeshFileName);
      else
-      ErrExit("file %s: no panels found on physical region %i",MeshFileName,PhysicalRegion);
+      ErrExit("file %s: no panels found for mesh tag %i",MeshFileName,MeshTag);
    };
 
   /*------------------------------------------------------------*/

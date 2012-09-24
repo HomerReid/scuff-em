@@ -46,6 +46,7 @@ int RWGGeometry::PBCCubatureOrder=4;
 bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
 bool RWGGeometry::UsePBCAcceleration=false;
 double RWGGeometry::DeltaInterp=0.05;
+bool RWGGeometry::UseHighKTaylorDuffy=true;
 
 /***********************************************************************/
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
@@ -476,7 +477,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         int nr1p=SP->RegionIndices[0];
         int nr2p=SP->RegionIndices[1];
         if (    ( !strcmp(S->MeshFileName, SP->MeshFileName)           )
-             && ( S->PhysicalRegion == SP->PhysicalRegion              )
+             && ( S->MeshTag == SP->MeshTag )
              && ( !strcmp(RegionMPs[nr1]->Name, RegionMPs[nr1p]->Name) )
              && (   (S->IsPEC && SP->IsPEC)
                  || (!S->IsPEC && !SP->IsPEC && !strcmp(RegionMPs[nr2]->Name, RegionMPs[nr2p]->Name) )

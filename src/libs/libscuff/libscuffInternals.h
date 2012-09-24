@@ -65,6 +65,7 @@ typedef struct TaylorDuffyArgStruct
  } TaylorDuffyArgStruct;
 
 cdouble TaylorDuffy(TaylorDuffyArgStruct *Args);
+cdouble HighKTaylorDuffy(TaylorDuffyArgStruct *Args);
 void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args);
 
 /*--------------------------------------------------------------*/

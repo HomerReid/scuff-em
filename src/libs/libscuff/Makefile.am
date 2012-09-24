@@ -17,6 +17,7 @@ libscuff_la_SOURCES = \
  GTransformation.cc \
  GTransformation.h \
  InitEdgeList.cc \
+ HighKTaylorDuffy.cc \
  Overlap.cc \
  PanelPanelInteractions.cc \
  PBCSetup.cc \

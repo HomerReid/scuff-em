@@ -207,13 +207,16 @@ AC_CONFIG_FILES([
  src/applications/scuff-plotEpsMu/Makefile
  src/applications/scuff-rf/Makefile
  src/applications/scuff-scatter/Makefile
+ src/applications/scuff-transmission/Makefile
  examples/Makefile
  examples/ApertureDiffraction/Makefile
  examples/GetTMatrix/Makefile
  examples/PlateWithHole/Makefile
+ examples/PerforatedThinFilm/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
  examples/TwoSpheres/Makefile
+ examples/ThinFilm/Makefile
  examples/WireAntenna/Makefile
  tests/Makefile
 ])

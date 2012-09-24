@@ -58,12 +58,12 @@ namespace scuff {
 /*************************************************************/
 /* Read vertices and panels from a GMSH .msh file to specify */
 /* a surface.                                                */
-/* If PhysicalRegion==-1, then all panels are read.          */
+/* If MeshTag==-1, then all panels are read.          */
 /* Otherwise, only panels on the specified physical region   */
 /* are read.                                                 */
 /*************************************************************/
 void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName, 
-                             const GTransformation *OTGT, int PhysicalRegion)
+                             const GTransformation *OTGT, int MeshTag)
 {
   RWGPanel *P;
   char buffer[100];
@@ -254,7 +254,7 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName,
         /* add new triangle to list of panels                          */
         /***************************************************************/
         case TYPE_TRIANGLE:
-          if ( (PhysicalRegion == -1) || (PhysicalRegion==RegPhys) )
+          if ( (MeshTag == -1) || (MeshTag==RegPhys) )
            { Panels[NumPanels]=NewRWGPanel(Vertices, GMSH2HR[ VI[0] ], GMSH2HR[ VI[1] ], 
                                            GMSH2HR[ VI[2] ]);
              Panels[NumPanels]->Index=NumPanels;

@@ -88,6 +88,8 @@ typedef struct TMWorkspace
    void (*SiAlphaFunc)(const double *xVec, TMWorkspace *TMW, int WhichCase,
                        int *AlphaMin, int *AlphaMax, cdouble SiAlpha[7][5]);
 
+   int WhichH;
+   int WhichG;
    int nCalls;
 
  } TMWorkspace;

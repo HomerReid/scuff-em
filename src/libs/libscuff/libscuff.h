@@ -179,7 +179,7 @@ class RWGSurface
    /* low-level computations at the level of individual RWG functions.*/
    /*-----------------------------------------------------------------*/
    RWGSurface(double *Vertices, int NumVertices, int *PanelVertices, int NumPanels);
-   RWGSurface(const char *MeshFile, int PhysicalRegion=-1);
+   RWGSurface(const char *MeshFile, int MeshTag=-1);
 
    /* destructor */
    ~RWGSurface();
@@ -252,7 +252,7 @@ class RWGSurface
    int NumRedundantVertices;
 
    char *MeshFileName;             /* saved name of mesh file */
-   int PhysicalRegion;             /* index of surface within mesh file; = -1 if not applicable */
+   int MeshTag;                    /* index of entity within mesh file; = -1 if not applicable */
    char *Label;                    /* unique label identifying surface */
 
    kdtri kdPanels; /* kd-tree of panels */
@@ -283,7 +283,7 @@ class RWGSurface
 
    /* constructor subroutines */
    void InitEdgeList();
-   void ReadGMSHFile(FILE *MeshFile, char *FileName, const GTransformation *GT, int PhysicalRegion);
+   void ReadGMSHFile(FILE *MeshFile, char *FileName, const GTransformation *GT, int MeshTag);
    void ReadComsolFile(FILE *MeshFile, char *FileName, const GTransformation *GT);
 
    /* calculate reduced potentials due to a single basis function */
@@ -506,6 +506,7 @@ class RWGGeometry
    static int PBCCubatureOrder;
    static double DeltaInterp;
    static bool UsePBCAcceleration;
+   static bool UseHighKTaylorDuffy;
 
  };
 
