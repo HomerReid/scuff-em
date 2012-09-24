@@ -1,3 +1,4 @@
+#define ONEMEG 1048576
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -346,6 +347,7 @@ void RWGGeometry::InitPBCData()
   RegionIsExtended=(int *)mallocEC(NumRegions*MAXLATTICE*sizeof(int));
   RegionIsExtended[0]=RegionIsExtended[1]=1; // exterior medium is extended
   int nr1, nr2;
+  Log(" Mem before straddlers: %lu",GetMemoryUsage()/ONEMEG);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
@@ -388,6 +390,7 @@ void RWGGeometry::InitPBCData()
   /*- even this extra memory allocation could be saved, but only -*/
   /*- at the cost of significant programming hassle.)            -*/
   /*--------------------------------------------------------------*/
+  Log(" Mem before image blocks: %lu",GetMemoryUsage()/ONEMEG);
   MZZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX); // this one is always allocated 
   if (UsePBCAcceleration)
    { MPP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
@@ -414,6 +417,7 @@ void RWGGeometry::InitPBCData()
   /*- of interpolators for the various regions that are computed  */
   /*- in the PBC version of GetFields().                          */
   /*--------------------------------------------------------------*/
+  Log(" Mem before interpolators: %lu",GetMemoryUsage()/ONEMEG);
   GBarAB9Interpolators = (Interp3D **)mallocEC(NumRegions * sizeof(Interp3D *));
   double RMax[3], RMin[3], DeltaR[3];
   int NPoints[3];
