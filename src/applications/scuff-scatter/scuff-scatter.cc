@@ -377,9 +377,14 @@ int main(int argc, char *argv[])
   /* source, which must be a plane wave, and the bloch wavevector    */
   /* is extracted from the plane wave direction                      */
   /*******************************************************************/
+  double kBlochBuffer[3];
   if (G->NumLatticeBasisVectors>0)
-   if ( npwPol!=1 || ngbCenter!=0 || npsLoc!=0 )
-    ErrExit("for extended geometries, the incident field must be a single plane wave");
+   { if ( npwPol!=1 || ngbCenter!=0 || npsLoc!=0 )
+      ErrExit("for extended geometries, the incident field must be a single plane wave");
+     SSD->kBloch = kBlochBuffer;
+   }
+  else
+   SSD->kBloch=0;
 
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -412,14 +417,13 @@ int main(int argc, char *argv[])
      if ( G->NumLatticeBasisVectors==0 )
       G->AssembleBEMMatrix(Omega, M);
      else
-      { double kBloch[3];
-        cdouble EpsExterior, MuExterior;
-        G->RegionMPs[0]->GetEpsMu(Omega, &EpsExterior, &MuExterior);
+      { cdouble EpsExterior, MuExterior;
         double kExterior = real( sqrt( EpsExterior*MuExterior) * Omega );
-        kBloch[0] = kExterior*pwDir[0];
-        kBloch[1] = kExterior*pwDir[1];
-        kBloch[2] = 0.0;
-        G->AssembleBEMMatrix(Omega, kBloch, M);
+        G->RegionMPs[0]->GetEpsMu(Omega, &EpsExterior, &MuExterior);
+        SSD->kBloch[0] = kExterior*pwDir[0];
+        SSD->kBloch[1] = kExterior*pwDir[1];
+        SSD->kBloch[2] = 0.0;
+        G->AssembleBEMMatrix(Omega, SSD->kBloch, M);
       };
 
      /*******************************************************************/

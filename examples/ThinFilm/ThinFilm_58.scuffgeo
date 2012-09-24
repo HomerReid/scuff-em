@@ -4,7 +4,7 @@ LATTICE
 ENDLATTICE
 
 REGION Exterior       MATERIAL Vacuum
-REGION ThinFilm       MATERIAL CONST_EPS_10+5i
+REGION ThinFilm       MATERIAL CONST_EPS_100
 REGION LowerHalfSpace MATERIAL Vacuum
 
 SURFACE UpperFilmSurface

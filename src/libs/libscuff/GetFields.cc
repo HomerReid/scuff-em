@@ -384,7 +384,7 @@ void *GetFields_Thread(void *data)
 } 
 
 /***************************************************************/
-/***************************************************************/
+/* set kBloch=NULL for non-PBC geometries **********************/
 /***************************************************************/
 HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN, 
                                 cdouble Omega, double *kBloch, 

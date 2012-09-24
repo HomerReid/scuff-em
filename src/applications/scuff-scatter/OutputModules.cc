@@ -43,8 +43,8 @@
 /***************************************************************/
 void GetTotalField(SSData *SSD, double *X, cdouble *EHS, cdouble *EHT)
 { 
-  SSD->G->GetFields(      0, SSD->KN, SSD->Omega, X, EHS); // scattered
-  SSD->G->GetFields(SSD->IF,       0, SSD->Omega, X, EHT); // incident
+  SSD->G->GetFields(      0, SSD->KN, SSD->Omega, SSD->kBloch, X, EHS); // scattered
+  SSD->G->GetFields(SSD->IF,       0, SSD->Omega, SSD->kBloch, X, EHT); // incident
  
   for (int Mu=0; Mu<6; Mu++)
    EHT[Mu]+=EHS[Mu];
@@ -63,6 +63,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   IncField *IF    = SSD->IF;
   HVector  *KN    = SSD->KN;
   cdouble  Omega  = SSD->Omega;
+  double *kBloch  = SSD->kBloch;
 
   /*--------------------------------------------------------------*/
   /*- try to read eval points from file --------------------------*/
@@ -79,8 +80,8 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /*--------------------------------------------------------------*/
   Log("Evaluating fields at points in file %s...",EPFileName);
 
-  HMatrix *FMatrix1 = G->GetFields( 0, KN, Omega, XMatrix); // scattered
-  HMatrix *FMatrix2 = G->GetFields(IF,  0, Omega, XMatrix); // incident
+  HMatrix *FMatrix1 = G->GetFields( 0, KN, Omega, kBloch, XMatrix); // scattered
+  HMatrix *FMatrix2 = G->GetFields(IF,  0, Omega, kBloch, XMatrix); // incident
 
   /*--------------------------------------------------------------*/
   /*- create .scattered and .total output files and write fields -*/
@@ -174,7 +175,8 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  HMatrix *FMatrix=SSD->G->GetFields(SSD->IF, SSD->KN, SSD->Omega, XMatrix, 0, FieldFuncs);
+  HMatrix *FMatrix=SSD->G->GetFields(SSD->IF, SSD->KN, SSD->Omega, SSD->kBloch, 
+                                     XMatrix, 0, FieldFuncs);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

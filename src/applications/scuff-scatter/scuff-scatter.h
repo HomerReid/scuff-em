@@ -43,6 +43,7 @@ typedef struct SSData
    HMatrix *M;
    HVector *RHS, *KN;
    cdouble Omega;
+   double *kBloch;
    IncField *IF;
    double PowerRadius;
  } SSData;
