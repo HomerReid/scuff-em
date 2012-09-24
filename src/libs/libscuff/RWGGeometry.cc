@@ -180,7 +180,7 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
    { 
      RegionLabels = (char **)reallocEC( RegionLabels, (NumRegions+1)*sizeof(char *));
      RegionLabels[NumRegions] = strdupEC(RegionLabel);
-     RegionMPs = (MatProp **)reallocEC( RegionMPs, (NumRegions)*sizeof(MatProp *));
+     RegionMPs = (MatProp **)reallocEC( RegionMPs, (NumRegions+1)*sizeof(MatProp *));
      NumRegions++;
 
      RegionID = NumRegions-1;

@@ -243,17 +243,13 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
           E->Index = NumEdges + NumNew;
           E->MIndex = 2; // because below we hard-code P->VI[2] = E->iQM;
           E->Radius=VecDistance(E->Centroid, Vertices+3*E->iQP);
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iQM));
+          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,V));
           E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV1));
-          E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV2));
           E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV2));
           NewEdges[NumNew] = E;
 
-          // what we just did was to combine two exterior edges 
-          // into a single interior edge, so we now remove those
-          // two exterior edges from S's list of exterior edges
-          free(ExteriorEdges[neip]);
-          ExteriorEdges[nei]=ExteriorEdges[neip]=0;
+          // remove edge #nei from the list of exterior edges 
+          ExteriorEdges[nei]=0;
 
           // add a new panel. Note that we can't call InitRWGPanel yet 
           // because the new vertex has not yet been added to the Vertices 
@@ -295,7 +291,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
   /*--------------------------------------------------------------*/
   /*- defragment the ExteriorEdges array -------------------------*/
   /*--------------------------------------------------------------*/
-  int NewNumExteriorEdges=NumExteriorEdges-2*NumNew;
+  int NewNumExteriorEdges=NumExteriorEdges-NumNew;
   RWGEdge **NewExteriorEdges=(RWGEdge **)mallocEC(NewNumExteriorEdges*sizeof(RWGEdge *));
   for(nei=neip=0; nei<NumExteriorEdges; nei++)
    if (ExteriorEdges[nei]!=0)

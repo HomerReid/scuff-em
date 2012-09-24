@@ -372,6 +372,16 @@ int main(int argc, char *argv[])
   strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
 
   /*******************************************************************/
+  /* sanity check: for now (20120924), calculations involving        */
+  /* extended geometries must have only a single incident field      */
+  /* source, which must be a plane wave, and the bloch wavevector    */
+  /* is extracted from the plane wave direction                      */
+  /*******************************************************************/
+  if (G->NumLatticeBasisVectors>0)
+   if ( npwPol!=1 || ngbCenter!=0 || npsLoc!=0 )
+    ErrExit("for extended geometries, the incident field must be a single plane wave");
+
+  /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
   /* may have specified                                              */
   /*******************************************************************/
@@ -399,7 +409,18 @@ int main(int argc, char *argv[])
      /*******************************************************************/
      /* assemble the BEM matrix at this frequency                       */
      /*******************************************************************/
-     G->AssembleBEMMatrix(Omega, M);
+     if ( G->NumLatticeBasisVectors==0 )
+      G->AssembleBEMMatrix(Omega, M);
+     else
+      { double kBloch[3];
+        cdouble EpsExterior, MuExterior;
+        G->RegionMPs[0]->GetEpsMu(Omega, &EpsExterior, &MuExterior);
+        double kExterior = real( sqrt( EpsExterior*MuExterior) * Omega );
+        kBloch[0] = kExterior*pwDir[0];
+        kBloch[1] = kExterior*pwDir[1];
+        kBloch[2] = 0.0;
+        G->AssembleBEMMatrix(Omega, kBloch, M);
+      };
 
      /*******************************************************************/
      /* dump the scuff cache to a cache storage file if requested. note */

@@ -1,0 +1,6 @@
+geometry ThinFilm_58.scuffgeo
+cache ThinFilm_58.cache
+omega 0.1
+EPFile EPFile
+pwDirection 0 0 1
+pwPolarization 1 0 0
