@@ -256,6 +256,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      else if ( !strcasecmp(Tokens[0],"LATTICE") )
       { 
         ProcessLATTICESection(f,GeoFileName,&LineNum);
+        AssignBasisFunctionsToExteriorEdges=false;
       }
      else if ( !strcasecmp(Tokens[0],"MATERIAL") )
       {
