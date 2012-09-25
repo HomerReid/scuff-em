@@ -1,16 +1,12 @@
 CPPFLAGS = $(DEBUG)
 LDFLAGS = $(DEBUG)
 
-#SCUFFEM = /home/homer/work/scuff-em-installation
-SCUFFEM = /home/homer/work/scuff-em-debug
+SCUFFEM = /home/homer/work/scuff-em-sandbox/OldInstallation
 CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
 CXXFLAGS += -fopenmp
 
-LDFLAGS += -L$(SCUFFEM)/libs
-LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libscuff/.libs
+LDFLAGS += -L$(SCUFFEM)/lib
 LDFLAGS += -Wl,-rpath,$(SCUFFEM)/lib
-LDFLAGS += -L/home/homer/codes/lib
-LDFLAGS += -Wl,-rpath,/home/homer/codes/lib
 
 HR_LIBS = -lscuff
 
@@ -23,8 +19,7 @@ FC = gfortran
 #################################################################
 #################################################################
 #################################################################
-PBCG_OBJS = ../AddStraddlers.o 	\
- ../AB9MatrixElements.o 		\
+PBCG_OBJS = ../AB9MatrixElements.o 		\
  ../AssembleBEMMatrix_PBC.o	\
  ../GBarVDEwald.o			\
  ../GetFields_PBC.o		\

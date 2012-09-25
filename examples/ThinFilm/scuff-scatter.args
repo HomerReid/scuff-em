@@ -1,6 +1,6 @@
 geometry ThinFilm_58.scuffgeo
 cache ThinFilm_58.scuffcache
-omega 0.1
-EPFile EPFile
+omega 1.0
+EPFile ThinFilm.EvalPoints
 pwDirection 0 0 1
 pwPolarization 1 0 0

@@ -214,6 +214,7 @@
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+EnableAllCPUs();
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
@@ -418,8 +419,8 @@ int main(int argc, char *argv[])
       G->AssembleBEMMatrix(Omega, M);
      else
       { cdouble EpsExterior, MuExterior;
-        double kExterior = real( sqrt( EpsExterior*MuExterior) * Omega );
         G->RegionMPs[0]->GetEpsMu(Omega, &EpsExterior, &MuExterior);
+        double kExterior = real( csqrt2(EpsExterior*MuExterior) * Omega );
         SSD->kBloch[0] = kExterior*pwDir[0];
         SSD->kBloch[1] = kExterior*pwDir[1];
         SSD->kBloch[2] = 0.0;

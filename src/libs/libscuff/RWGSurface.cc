@@ -69,6 +69,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   SurfaceSigma=0;
   MeshTag=-1;
   MeshFileName=0;
+  IsPEC=1;
   Label = strdupEC(pLabel);
 
   if ( !strcasecmp(Keyword, "OBJECT") )
@@ -131,6 +132,8 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         MaterialRegionsLineNum = *LineNum;
         if ( !strcasecmp(MaterialName,"PEC") )
          IsPEC=1;
+        else
+         IsPEC=0;
       }
      else if ( !strcasecmp(Tokens[0],"REGIONS") )
       { 
@@ -200,7 +203,6 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         while (strchr(" \t\n",*SigmaString)) // skip forward to the start of the 
          SigmaString++;                        //  actual expression
         SigmaString+=strlen("SURFACE_CONDUCTIVITY"); 
-printf("SigmaString=%s\n",SigmaString);
         SurfaceSigma=cevaluator_create(SigmaString);
         if (SurfaceSigma==0)
          { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification");

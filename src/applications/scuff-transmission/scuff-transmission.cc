@@ -165,6 +165,7 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  EnableAllCPUs();
   InstallHRSignalHandler();
 
   /*--------------------------------------------------------------*/
@@ -274,9 +275,9 @@ int main(int argc, char *argv[])
      ThetaVector->SetEntry(0,Theta*DEG2RAD);
    };
   if (ThetaPoints==1)
-   Log("Calculating at the single incident angle Theta=%e degrees\n",ThetaVector->GetEntryD(0)*RAD2DEG);
+   Log("Calculating at the single incident angle Theta=%e degrees",ThetaVector->GetEntryD(0)*RAD2DEG);
   else 
-   Log("Calculating at %i incident angles in range Theta=(%e,%e) degrees\n",
+   Log("Calculating at %i incident angles in range Theta=(%e,%e) degrees",
        ThetaVector->N, ThetaVector->GetEntryD(0)*RAD2DEG,
        ThetaVector->GetEntryD(ThetaVector->N-1)*RAD2DEG);
 
@@ -335,7 +336,7 @@ int main(int argc, char *argv[])
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
     { 
-      Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)\n",real(Omega),Theta*RAD2DEG);
+      Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)",real(Omega),Theta*RAD2DEG);
       Omega = OmegaVector->GetEntry(nOmega);
 
       Theta = ThetaVector->GetEntryD(nTheta);

@@ -8,7 +8,7 @@
 #include <math.h>
 #include <libhrutil.h>
 #include <libscuff.h>
-#include "/home/homer/work/scuff-em/src/libs/libscuff/libscuffInternals.h"
+#include "libscuffInternals.h"
 #include "PBCGeometry.h"
 
 //FIXME

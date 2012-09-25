@@ -350,14 +350,13 @@ void *GetFields_Thread(void *data)
      Eps = G->EpsTF[RegionIndex];
      Mu  = G->MuTF[RegionIndex];
      GBarInterp = RegionInterpolators ? RegionInterpolators[RegionIndex] : 0;
+     memset(EH, 0, 6*sizeof(cdouble));
     
      /*--------------------------------------------------------------*/
      /*- get scattered fields at X                                   */
      /*--------------------------------------------------------------*/
      if (KN)
       GetScatteredFields(G, X, RegionIndex, KN, Omega, GBarInterp, EH);
-     else
-      memset(EH, 0, 6*sizeof(cdouble));
 
      /*--------------------------------------------------------------*/
      /*- add incident fields by summing contributions of all        -*/
@@ -442,7 +441,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /***************************************************************/
   Interp3D **RegionInterpolators=0;
 
-  if (NumLatticeBasisVectors>0)
+  if (KN && NumLatticeBasisVectors>0)
    { RegionInterpolators=(Interp3D **)mallocEC(NumRegions*sizeof(Interp3D *));
      for(int nr=0; nr<NumRegions; nr++)
       RegionInterpolators[nr]=CreateRegionInterpolator(nr, Omega, kBloch, XMatrix);
@@ -515,7 +514,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
    delete PFFuncs[nf];
   delete[] PFFuncs;
 
-  if (NumLatticeBasisVectors>0)
+  if (KN && NumLatticeBasisVectors>0)
    { for(int nr=0; nr<NumRegions; nr++)
       if (RegionInterpolators[nr])
        delete RegionInterpolators[nr];

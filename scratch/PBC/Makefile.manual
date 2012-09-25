@@ -1,15 +1,13 @@
 CPPFLAGS = $(DEBUG)
 LDFLAGS = $(DEBUG)
 
-SCUFFEM = /home/homer/work/scuff-em-installation
+#SCUFFEM = /home/homer/work/scuff-em-sandbox/OldCode/scuff-em
+SCUFFEM = /home/homer/work/scuff-em-sandbox/OldInstallation
 CPPFLAGS += -I$(SCUFFEM)/include/scuff-em
 CXXFLAGS += -fopenmp
 
-LDFLAGS += -L$(SCUFFEM)/libs
-LDFLAGS += -L/home/homer/work/scuff-em/src/libs/libscuff/.libs
+LDFLAGS += -L$(SCUFFEM)/lib
 LDFLAGS += -Wl,-rpath,$(SCUFFEM)/lib
-LDFLAGS += -L/home/homer/codes/lib
-LDFLAGS += -Wl,-rpath,/home/homer/codes/lib
 
 HR_LIBS = -lscuff
 

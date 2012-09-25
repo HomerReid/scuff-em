@@ -668,9 +668,18 @@ void RWGGeometry::UpdateCachedEpsMuValues(cdouble Omega)
 {
   /*--------------------------------------------------------------*/
   /*- update cached epsilon and mu values at this frequency if    */
-  /*- necessary                                                   */
+  /*- necessary.                                                  */
+  /*-                                                             */
+  /*- Note (20120924): Previously I looked to see if              */
+  /*- Omega==StoredOmega (i.e. the frequency is the same as it    */
+  /*- was the last time we updated the EpsMu values), and if so   */
+  /*- I bypassed the update. However, this doesn't work, because  */
+  /*- one or more of the RegionMPs may have been zeroed or        */
+  /*- unzeroed since the last call. So now I just do the updating */
+  /*- in all cases no matter what.                                */
   /*--------------------------------------------------------------*/
-  if (Omega != StoredOmega )
+  //if (Omega != StoredOmega )
+  if (1)
    { StoredOmega=Omega;
      for(int nr=0; nr<NumRegions; nr++)
       RegionMPs[nr]->GetEpsMu(Omega, &(EpsTF[nr]), &(MuTF[nr]) );

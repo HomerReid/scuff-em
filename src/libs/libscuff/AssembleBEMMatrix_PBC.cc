@@ -545,10 +545,10 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
      double *LBV[2];
      LBV[0]=LatticeBasisVectors[0];
      LBV[1]=LatticeBasisVectors[1];
-     PFPP = exp( II* ( kBloch[0]*(LBV[0][0] + LBV[1][0]) + kBloch[1]*(LBV[0][1] + LBV[1][1]) ) );
-     PFPM = exp( II* ( kBloch[0]*(LBV[0][0] - LBV[1][0]) + kBloch[1]*(LBV[0][1] - LBV[1][1]) ) );
-     PFPZ = exp( II* ( kBloch[0]*(LBV[0][0]            ) + kBloch[1]*(LBV[0][1]            ) ) );
-     PFZP = exp( II* ( kBloch[0]*(            LBV[1][0]) + kBloch[1]*(            LBV[1][1]) ) );
+     PFPP = exp( II* (kBloch[0]*(LBV[0][0] + LBV[1][0]) + kBloch[1]*(LBV[0][1] + LBV[1][1]) ) );
+     PFPM = exp( II* (kBloch[0]*(LBV[0][0] - LBV[1][0]) + kBloch[1]*(LBV[0][1] - LBV[1][1]) ) );
+     PFPZ = exp( II* (kBloch[0]*(LBV[0][0]            ) + kBloch[1]*(LBV[0][1]            ) ) );
+     PFZP = exp( II* (kBloch[0]*(            LBV[1][0]) + kBloch[1]*(            LBV[1][1]) ) );
    };
 
   Log(" Assembling inner matrix blocks at Omega=%s",z2s(StoredOmega));
@@ -611,7 +611,7 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
        { SaveZeroed1=RegionMPs[nr1]->Zeroed; 
          RegionMPs[nr1]->Zero();
        };
-      if ( Region2Contributes==false )
+      if ( NumCommonRegions==2 && Region2Contributes==false )
        { SaveZeroed2=RegionMPs[nr2]->Zeroed; 
          RegionMPs[nr2]->Zero();
        };
@@ -620,14 +620,14 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
 
       if ( Region1Contributes==false )
        RegionMPs[nr1]->Zeroed=SaveZeroed1;
-      if ( Region2Contributes==false )
+      if ( NumCommonRegions==2 && Region2Contributes==false )
        RegionMPs[nr2]->Zeroed=SaveZeroed2;
 
     };
   if (M)
    { for(int nr=0; nr<M->NR; nr++)
       for(int nc=0; nc<M->NR; nc++)
-       M->AddEntry(nr, nc,       PFPP*MScratch->GetEntry(nr, nc) +
+       M->AddEntry(nr, nc,       PFPP* MScratch->GetEntry(nr, nc) +
                             conj(PFPP)*MScratch->GetEntry(nc, nr) );
    };
 
@@ -663,7 +663,7 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
        { SaveZeroed1=RegionMPs[nr1]->Zeroed; 
          RegionMPs[nr1]->Zero();
        };
-      if ( Region2Contributes==false )
+      if ( NumCommonRegions==2 && Region2Contributes==false )
        { SaveZeroed2=RegionMPs[nr2]->Zeroed; 
          RegionMPs[nr2]->Zero();
        };
@@ -672,14 +672,14 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
 
       if ( Region1Contributes==false )
        RegionMPs[nr1]->Zeroed=SaveZeroed1;
-      if ( Region2Contributes==false )
+      if ( NumCommonRegions==2 && Region2Contributes==false )
        RegionMPs[nr2]->Zeroed=SaveZeroed2;
 
     };
   if (M)
    { for(int nr=0; nr<M->NR; nr++)
       for(int nc=0; nc<M->NR; nc++)
-       M->AddEntry(nr, nc,       PFPM*MScratch->GetEntry(nr, nc) +
+       M->AddEntry(nr, nc,       PFPM *MScratch->GetEntry(nr, nc) +
                             conj(PFPM)*MScratch->GetEntry(nc, nr) );
    };
 
@@ -716,7 +716,7 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
        { SaveZeroed1=RegionMPs[nr1]->Zeroed; 
          RegionMPs[nr1]->Zero();
        };
-      if ( Region2Contributes==false )
+      if ( NumCommonRegions==2 && Region2Contributes==false )
        { SaveZeroed2=RegionMPs[nr2]->Zeroed; 
          RegionMPs[nr2]->Zero();
        };
@@ -725,14 +725,14 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
 
       if ( Region1Contributes==false )
        RegionMPs[nr1]->Zeroed=SaveZeroed1;
-      if ( Region2Contributes==false )
+      if ( NumCommonRegions==2 && Region2Contributes==false )
        RegionMPs[nr2]->Zeroed=SaveZeroed2;
 
     };
   if (M)
    { for(int nr=0; nr<M->NR; nr++)
       for(int nc=0; nc<M->NR; nc++)
-       M->AddEntry(nr, nc,       PFPZ*MScratch->GetEntry(nr, nc) +
+       M->AddEntry(nr, nc,       PFPZ *MScratch->GetEntry(nr, nc) +
                             conj(PFPZ)*MScratch->GetEntry(nc, nr) );
    };
 
@@ -772,7 +772,7 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
        { SaveZeroed1=RegionMPs[nr1]->Zeroed; 
          RegionMPs[nr1]->Zero();
        };
-      if ( Region2Contributes==false )
+      if ( NumCommonRegions==2 && Region2Contributes==false )
        { SaveZeroed2=RegionMPs[nr2]->Zeroed; 
          RegionMPs[nr2]->Zero();
        };
@@ -781,18 +781,24 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
 
       if ( Region1Contributes==false )
        RegionMPs[nr1]->Zeroed=SaveZeroed1;
-      if ( Region2Contributes==false )
+      if ( NumCommonRegions==2 && Region2Contributes==false )
        RegionMPs[nr2]->Zeroed=SaveZeroed2;
 
     };
   if (M)
    { for(int nr=0; nr<M->NR; nr++)
       for(int nc=0; nc<M->NR; nc++)
-       M->AddEntry(nr, nc,       PFZP*MScratch->GetEntry(nr, nc) +
+       M->AddEntry(nr, nc,       PFZP* MScratch->GetEntry(nr, nc) +
                             conj(PFZP)*MScratch->GetEntry(nc, nr) );
    };
 
-
+ // 20120924: the zeroing/unzeroing of MPs may have wreaked havoc 
+ //           on the internally-stored Eps/Mu arrays, so i will 
+ //           quickly restore them here. 
+ //           it must be said that this zeroing/unzeroing          
+ //           paradigm is fairly kludgy, and it would be nice to 
+ //           redo it more elegantly at some point.
+ UpdateCachedEpsMuValues(StoredOmega);
 
 }
 
