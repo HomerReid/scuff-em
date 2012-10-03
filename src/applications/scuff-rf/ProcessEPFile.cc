@@ -137,7 +137,6 @@ void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega,
   char buffer[1000], FieldFileName[1000];
   snprintf(buffer,1000,"%s.fields",GetFileBase(EPFile));
   FILE *FieldFile=CreateUniqueFile(buffer,1,FieldFileName);
-  setlinebuf(FieldFile);
 
   /***************************************************************/
   /* call the usual scuff-EM routine to get the contribution of  */
@@ -168,7 +167,7 @@ void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega,
       };
 
      fprintf(FieldFile,"\n");
-
+     fflush(FieldFile);
    };
 
   fclose(FieldFile);

@@ -41,7 +41,7 @@ fi
 if test "x$enable_debug" = xyes || test "$USE_MAINTAINER_MODE" = yes; then
 if test "$ac_test_CFLAGS" != "set"; then
    if test $ac_cv_prog_gcc = yes; then
-      CXXFLAGS="$CXXFLAGS -Wall -W -Wcast-qual -Wpointer-arith -Wcast-align -pedantic -Wno-long-long -Wshadow -Wwrite-strings -Wredundant-decls -ansi -pedantic"
+      CXXFLAGS="$CXXFLAGS -Wall -W -Wcast-qual -Wpointer-arith -Wcast-align -pedantic -Wno-long-long -Wshadow -Wwrite-strings -Wredundant-decls -pedantic"
    fi
 fi
 fi

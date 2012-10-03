@@ -35,7 +35,10 @@
 #include <math.h>
 #include <libhmat.h>
 #include <libhrutil.h>
-#include <omp.h>
+
+#ifdef USE_OPENMP
+#  include <omp.h>
+#endif
 
 #include "libscuff.h"
 #include "libscuffInternals.h"

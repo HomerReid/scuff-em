@@ -58,13 +58,13 @@ void ProcessMediumSectionInFile(FILE *f, char *FileName, int *LineNum,
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
-     if ( !strcasecmp(Tokens[0],"MATERIAL") )
+     if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       {
         if (NumTokens!=2)
          ErrExit("%s:%i: syntax error",FileName,*LineNum);
         strncpy(ExteriorMPName,Tokens[1],MAXSTR);
       }
-     else if ( !strcasecmp(Tokens[0],"ENDMEDIUM") )
+     else if ( !StrCaseCmp(Tokens[0],"ENDMEDIUM") )
       { 
         return;
       }
@@ -128,7 +128,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      /*--------------------------------------------------------------*/
      /*- switch off based on first token on the line ----------------*/
      /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Tokens[0],"MEDIUM") )
+     if ( !StrCaseCmp(Tokens[0],"MEDIUM") )
       { 
         ExteriorMPName[0]=0;
         ProcessMediumSectionInFile(f,GeoFileName,&LineNum,ExteriorMPName);
@@ -138,7 +138,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
             ErrExit("%s:%i: %s",GeoFileName,LineNum,ExteriorMP->ErrMsg);
          };
       }
-     else if ( !strcasecmp(Tokens[0],"MATERIAL") )
+     else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       {
         /*--------------------------------------------------------------*/
         /* hand off to MatProp class constructor to parse this section  */
@@ -153,7 +153,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
          ErrExit("%s:%i: %s",GeoFileName,LineNum,ErrMsg); 
 
       }
-     else if ( !strcasecmp(Tokens[0],"OBJECT") )
+     else if ( !StrCaseCmp(Tokens[0],"OBJECT") )
       { 
         /*--------------------------------------------------------------*/
         /* hand off to RWGObject class constructor to parse this section*/
@@ -221,7 +221,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
     O=Objects[no];
     if (O->ContainingObjectLabel && 
 	(!O->ContainingObject 
-	 || strcasecmp(O->ContainingObjectLabel, O->ContainingObject->Label)))
+	 || StrCaseCmp(O->ContainingObjectLabel, O->ContainingObject->Label)))
       ErrExit("%s: object %s: containing object is %s, not %s",
 	      GeoFileName, O->Label,
 	      O->ContainingObject ? O->ContainingObject->Label : "(none)",
@@ -351,12 +351,12 @@ RWGObject *RWGGeometry::GetObjectByLabel(const char *Label, int *pno)
    };
   
   for(int no=0; no<NumObjects; no++)
-   if ( !strcasecmp(Label, Objects[no]->Label) ) 
+   if ( !StrCaseCmp(Label, Objects[no]->Label) ) 
     { if (pno) *pno = no;
       return Objects[no];
     }
 
-  if (pno && (!strcasecmp(Label,"EXTERIOR") || !strcasecmp(Label,"MEDIUM")))
+  if (pno && (!StrCaseCmp(Label,"EXTERIOR") || !StrCaseCmp(Label,"MEDIUM")))
     *pno = -1;
 
   return NULL;
@@ -439,7 +439,7 @@ void RWGGeometry::SetLogLevel(int NewLogLevel)
 /***************************************************************/
 void RWGGeometry::SetEpsMu(const char *Label, cdouble Eps, cdouble Mu)
 { 
-  if ( Label==NULL || !strcasecmp(Label,"EXTERIOR") )
+  if ( Label==NULL || !StrCaseCmp(Label,"EXTERIOR") )
    ExteriorMP->SetEpsMu(Eps, Mu); 
   else
    { RWGObject *O=GetObjectByLabel(Label);

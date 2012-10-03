@@ -371,6 +371,7 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
            NumBad++;
          };
 
+#ifndef _WIN32
         if (NumBad>0)
          { 
            char NewFileName[20];
@@ -394,6 +395,7 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
             };
 
          }; // if (NumBad>0) 
+#endif // _WIN32
 
       }; // for(nn=0) ... 
 

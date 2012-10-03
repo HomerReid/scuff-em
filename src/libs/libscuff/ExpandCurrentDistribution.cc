@@ -27,7 +27,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
+
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 #include <libhrutil.h>
 #include <libTriInt.h>

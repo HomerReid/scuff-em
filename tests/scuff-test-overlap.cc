@@ -41,6 +41,15 @@
 #include "libSGJC.h"
 #include "libscuff.h"
 
+#if defined(_WIN32)
+#  define srand48 srand
+#  define drand48 my_drand48
+static double my_drand48(void) {
+  return rand() * 1.0 / RAND_MAX;
+}
+static long int lrand48() { return rand(); }
+#endif
+
 #define MAXSTR 1000
 #define MAXEVAL 10000
 #define ABSTOL 1.0e-8

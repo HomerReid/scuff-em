@@ -90,14 +90,14 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
      /*--------------------------------------------------------------*/
      /*- switch off based on first token on the line ----------------*/
      /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Tokens[0],"MESHFILE") )
+     if ( !StrCaseCmp(Tokens[0],"MESHFILE") )
       { if (NumTokens!=2)
          { ErrMsg=strdup("MESHFILE keyword requires one argument");
            return;
          };
         pMeshFileName=strdup(Tokens[1]);
       }
-     else if ( !strcasecmp(Tokens[0],"MATERIAL") )
+     else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       { if (NumTokens!=2)
          { ErrMsg=strdup("MATERIAL keyword requires one argument");
            return;
@@ -108,14 +108,14 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
            return; 
          };
       }
-     else if ( !strcasecmp(Tokens[0],"INSIDE") )
+     else if ( !StrCaseCmp(Tokens[0],"INSIDE") )
       { if (NumTokens!=2)
          { ErrMsg=strdup("INSIDE keyword requires one argument");
            return;
          };
         ContainingObjectLabel=strdup(Tokens[1]);
       }
-     else if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"ROTATED") )
+     else if ( !StrCaseCmp(Tokens[0],"DISPLACED") || !StrCaseCmp(Tokens[0],"ROTATED") )
       { 
         // try to parse the line as a geometrical transformation.
         // note that OTGT is used as a running GTransformation that may
@@ -149,7 +149,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
            return;
          };
       }
-     else if ( !strcasecmp(Tokens[0],"SURFACE_CONDUCTIVITY") )
+     else if ( !StrCaseCmp(Tokens[0],"SURFACE_CONDUCTIVITY") )
       { 
         if (NumTokens<2)
          { ErrMsg=strdup("no argument specified for SURFACE_CONDUCTIVITY");
@@ -166,7 +166,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
            return;
          };
       }
-     else if ( !strcasecmp(Tokens[0],"ENDOBJECT") )
+     else if ( !StrCaseCmp(Tokens[0],"ENDOBJECT") )
       { 
         ReachedTheEnd=1;
       }
@@ -179,7 +179,7 @@ RWGObject::RWGObject(FILE *f, const char *pLabel, int *LineNum)
   if (pMeshFileName==0)
    ErrMsg=vstrdup("OBJECT section must include a MESHFILE specification",Tokens[0]);
 
-  if ( SurfaceSigma!=0 && MaterialName[0]!=0 && strcasecmp(MaterialName,"PEC") )
+  if ( SurfaceSigma!=0 && MaterialName[0]!=0 && StrCaseCmp(MaterialName,"PEC") )
    ErrMsg=vstrdup("SURFACE_CONDUCTIVITY may only be specified for PEC objects");
 
   if (SurfaceSigma!=0)
@@ -263,9 +263,9 @@ void RWGObject::InitRWGObject(const char *pMeshFileName,
   char *p=GetFileExtension(MeshFileName);
   if (!p)
    ErrExit("file %s: invalid extension",MeshFileName);
-  else if (!strcasecmp(p,"msh"))
+  else if (!StrCaseCmp(p,"msh"))
    ReadGMSHFile(MeshFile,MeshFileName,OTGT);
-  else if (!strcasecmp(p,"mphtxt"))
+  else if (!StrCaseCmp(p,"mphtxt"))
    ReadComsolFile(MeshFile,MeshFileName,OTGT);
   else
    ErrExit("file %s: unknown extension %s",MeshFileName,p);

@@ -250,7 +250,6 @@ RWGPort **ParsePortFile(RWGGeometry *G,
   double PLineVertices[MAXLINES][6], MLineVertices[MAXLINES][6];
   int PEIndices[MAXEDGES], MEIndices[MAXEDGES];
   double PRefPoint[3], MRefPoint[3];
-  int no;
   RWGObject *PObject=0, *MObject=0;
 
   char buffer[1000];
