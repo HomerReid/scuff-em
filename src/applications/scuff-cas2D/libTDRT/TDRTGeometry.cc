@@ -400,8 +400,8 @@ void TDRTGeometry::UnTransform()
 /***************************************************************/
 #define NUMFUNCTIONS 2
 #define NUMPOINTS 5000
-extern double *TValues;
-extern double *G1G2Values;
+extern double TValues[NUMPOINTS];
+extern double G1G2Values[2*NUMPOINTS];
 void TDRTGeometry::InitG1G2Interp()
 {
   G1G2Interp = new Interp1D(TValues, G1G2Values, NUMPOINTS, NUMFUNCTIONS);
