@@ -83,28 +83,13 @@ StaticSSIDataRecord *GetStaticSSIData(StaticSSIDataTable *SSSIDT,
   StaticSSIDataRecord *SSSIDR;
   StaticSSIDataMap::const_iterator it;
   StaticSSIDataMap *Map;
-#ifdef USE_PTHREAD
-  static pthread_mutex_t MyMutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
 
   if(SSSIDT==0) return 0;
    
   Key=GetStaticSSIDataTableKey(Oa, iXs, iXe, Ob, iXsp, iXep);
   Map=SSSIDT->Map;
 
-#ifdef USE_PTHREAD
-  pthread_mutex_lock(&MyMutex);
-#endif
-#ifdef USE_OPENMP
-#  pragma omp critical {
-#endif
   it=Map->find(Key); 
-#ifdef USE_OPENMP
-  } // critical section
-#endif
-#ifdef USE_PTHREAD
-  pthread_mutex_unlock(&MyMutex);
-#endif
 
   if ( it==(Map->end()) ) /* no matching data record was found */
    return 0;
@@ -132,28 +117,13 @@ StaticSSIDataRecord *FindStaticSSIData(StaticSSIDataTable *SSSIDT,
   unsigned long Key;
   StaticSSIDataMap::const_iterator it;
   StaticSSIDataMap *Map;
-#ifdef USE_PTHREAD
-  static pthread_mutex_t MyMutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
 
   if(SSSIDT==0) return 0;
    
   Key=GetStaticSSIDataTableKey(Oa, iXs, iXe, Ob, iXsp, iXep);
   Map=SSSIDT->Map;
 
-#ifdef USE_PTHREAD
-  pthread_mutex_lock(&MyMutex);
-#endif
-#ifdef USE_OPENMP
-#  pragma omp critical {
-#endif
   it=Map->find(Key);
-#ifdef USE_OPENMP
-  } // critical section
-#endif
-#ifdef USE_PTHREAD
-  pthread_mutex_unlock(&MyMutex);
-#endif
 
   if ( it==(Map->end()) ) /* no matching data record was found */
    return 0;
