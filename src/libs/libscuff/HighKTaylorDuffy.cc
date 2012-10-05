@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
 
 #include <complex>
 
@@ -39,6 +38,10 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
+
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 //int iOnly=-1, AlphaOnly=-1;

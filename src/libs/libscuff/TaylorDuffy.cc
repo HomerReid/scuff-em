@@ -29,10 +29,6 @@
 #include <string.h>
 #include <math.h>
 
-#ifdef USE_PTHREAD
-#  include <pthread.h>
-#endif
-
 #include <complex>
 
 #include <libhrutil.h>
@@ -41,6 +37,10 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
+
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 namespace scuff {
 

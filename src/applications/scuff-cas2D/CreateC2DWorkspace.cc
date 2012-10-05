@@ -94,8 +94,13 @@ C2DWorkspace *CreateC2DWorkspace(TDRTGeometry *G, char *TransListName,
   if ( !(TransFile=fopen(TransListName,"r")) )
    ErrExit("cannot open file %s",TransListName);
 
+#ifdef _WIN32
+  mkdir("gpmesh");
+  mkdir("ppmesh");
+#else
   mkdir("gpmesh",0755);
   mkdir("ppmesh",0755);
+#endif
 
   GeoFileBase=GetFileBase(G->GeoFileName);
 

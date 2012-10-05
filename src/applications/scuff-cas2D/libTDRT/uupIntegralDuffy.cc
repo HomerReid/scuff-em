@@ -73,7 +73,7 @@ static void uupIDIntegrand(unsigned ndim, const double *ut, void *fdata,
   double K02, K12oX2;
 
   AuX1=Alpha*u*X1;
-  if ( fabs(X1) < 1.0e-8 | AuX1 > 50.0 )
+  if ( fabs(X1) < 1.0e-8 || AuX1 > 50.0 )
    { K01 = K11oX1 = 0.0; }
   else
    { 
@@ -83,7 +83,7 @@ static void uupIDIntegrand(unsigned ndim, const double *ut, void *fdata,
    };
 
   AuX2=Alpha*u*X2;
-  if ( fabs(X2) < 1.0e-8 | AuX2 > 50.0 )
+  if ( fabs(X2) < 1.0e-8 || AuX2 > 50.0 )
    { K02 = K12oX2 = 0.0; }
   else
    { 

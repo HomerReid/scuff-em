@@ -184,7 +184,7 @@ void MyPhi1D(double z, void *UserData, double *PhiVD)
   PhiVD[5] = -KArray[3]/z2 + 8.0/z5 - 1.0/z3;
 } 
 
-int InitHRBesselK()
+void InitHRBesselK()
 {
   BesselKInterp=new Interp1D(LOWZTHRESH, HIGHZTHRESH, NINTERP, 3, MyPhi1D, 0);
 }

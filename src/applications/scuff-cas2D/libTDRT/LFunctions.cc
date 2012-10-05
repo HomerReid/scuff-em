@@ -7,10 +7,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
 
 #include "libTDRT.h"
 #include "libhrutil.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 /***************************************************************/
 /* Compute the contributions to the L-functions from a         */

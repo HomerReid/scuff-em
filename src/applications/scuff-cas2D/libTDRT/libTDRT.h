@@ -362,7 +362,7 @@ void ComputeStaticSSIData_SameSegment(double *Xs, double *Xe, int Flip,
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-int InitHRBesselK();
+void InitHRBesselK();
 void HRBesselK(double z, int NeedK2, double *KArray);
 
 /*--------------------------------------------------------------*/

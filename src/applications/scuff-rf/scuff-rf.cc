@@ -47,7 +47,6 @@ using namespace scuff;
 #define MAXSTR   1000
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-extern FILE *BreakoutFile;
 extern int SkipInterior, SkipExterior;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
@@ -97,7 +96,6 @@ EnableAllCPUs();
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
-int Breakout=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"meshfile",       PA_STRING,  1, 1,       (void *)&MeshFile,   0,             "mesh file"},
@@ -121,7 +119,6 @@ int Breakout=0;
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
-     {"Breakout",       PA_BOOL,    0, 1,       (void *)&Breakout,   0,             "breakout"},
 {"SkipInterior",       PA_INT,    1, 1,       (void *)&SkipInterior,   0,             "Skipinterior"},
 {"SkipExterior",       PA_INT,    1, 1,       (void *)&SkipExterior,   0,             "Skipexterior"},
 //
@@ -305,13 +302,6 @@ int Breakout=0;
   if (Cache)
    PreloadCache( Cache );
 
-/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (Breakout)
- { BreakoutFile=fopen("/tmp/Breakout.dat","a");
-   setlinebuf(BreakoutFile);
- };
-/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   /***************************************************************/
   /* sweep over frequencies                                      */
   /* note: Freq is measured in GHz, while Omega is measured in   */
@@ -438,10 +428,4 @@ if (Breakout)
      printf("S-parameters vs. frequency written to file %s\n",SParFileName);
    };
   printf("Thank you for your support.\n");
-
-/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (BreakoutFile)
- fclose(BreakoutFile);
-/*! DELETEME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 }

@@ -11,10 +11,16 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-#include <pthread.h>
 
 #include "libhrutil.h"
 #include "libTDRT.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 /*******************************************************************/
 /* function that returns 1 if the two edges ************************/

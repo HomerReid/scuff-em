@@ -557,7 +557,6 @@ void XQIntegrand(C2DWorkspace *W, double Xi, double q, double *EF)
   /* transformation, then calculate all quantities requested.    */
   /***************************************************************/
   f=fopen(W->ByXQFileName,"a");
-  setlinebuf(f);
   EFPtr=EF;
   for(ntnq=nt=0; nt<W->NumTransforms; nt++)
    { 
@@ -707,6 +706,7 @@ void XQIntegrand(C2DWorkspace *W, double Xi, double q, double *EF)
      for(nq=W->NumQuantities; nq>0; nq--)
       fprintf(f,"%.15e ",EF[ntnq++]);
      fprintf(f,"\n");
+     fflush(f);
   
      /* undo transform */
      G->UnTransform();

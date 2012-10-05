@@ -315,7 +315,6 @@ int main(int argc, char *argv[])
      f=CreateUniqueFile(buffer,1,buffer);
      OutFileName=strdup(buffer);
    };
-  setlinebuf(f);
   fprintf(f,"# data file columns: \n");
   fprintf(f,"# 1: omega \n");
   fprintf(f,"# 2: theta (incident angle) (theta=0 --> normal incidence)\n");
@@ -323,6 +322,7 @@ int main(int argc, char *argv[])
   fprintf(f,"# 4: reflected flux   / incident flux (perpendicular polarization)\n");
   fprintf(f,"# 5: transmitted flux / incident flux (parallel polarization)\n");
   fprintf(f,"# 6: reflected flux   / incident flux (parallel polarization)\n");
+  fflush(f);
 
   cdouble EpsExterior, MuExterior, kExterior;
 
@@ -384,6 +384,7 @@ int main(int argc, char *argv[])
       fprintf(f,"%s %e %e %e %e %e\n",z2s(Omega),Theta*RAD2DEG,
                  TRFluxPerp[0]/IncFlux, TRFluxPerp[1]/IncFlux,
                   TRFluxPar[0]/IncFlux,  TRFluxPar[1]/IncFlux);
+      fflush(f);
 
    }; 
   fclose(f);

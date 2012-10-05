@@ -242,6 +242,24 @@ TDRTGeometry::~TDRTGeometry()
 }
 
 /***************************************************************/
+/* portable strcasestr replacement******************************/
+/***************************************************************/
+
+static char *my_strcasestr(const char *haystack, const char *needle)
+{
+  while (*haystack) {
+    const char *p = haystack;
+    const char *n = needle;
+    while (*n && *p && tolower(*p) == tolower(*n)) {
+      ++n; ++p;
+    }
+    if (!*n) return const_cast<char*>(haystack);
+    haystack++;
+  }
+  return NULL;
+}
+
+/***************************************************************/
 /* Transform: Process a 'transformation' line that may contain */
 /* separate displacements for one or more objects in the       */
 /* geometry.                                                   */
@@ -333,7 +351,7 @@ int TDRTGeometry::Transform(char *TransLine, char *Tag, char *ErrMsg)
         /* now basically send everything between here and the  */
         /* next instance of the 'LABEL' keyword to object O to */
         /* process as a transformation                         */ 
-        pp=strcasestr(p,"LABEL");
+        pp=my_strcasestr(p,"LABEL");
         if ( !pp )
          { if ( O->Transform(p) )
             { if (ErrMsg) sprintf(ErrMsg,"invalid transformation");

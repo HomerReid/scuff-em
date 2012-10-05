@@ -28,15 +28,18 @@
 #include <string.h>
 #include <math.h>
 
-#ifdef USE_PTHREAD
-#  include <pthread.h>
-#endif
-
 #include <libhrutil.h>
 #include <libTriInt.h>
 #include <libhmat.h>
 
 #include "libscuff.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 namespace scuff {
 

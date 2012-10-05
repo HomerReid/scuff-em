@@ -36,20 +36,16 @@
 #include <libhmat.h>
 #include <libhrutil.h>
 
-#ifdef USE_OPENMP
-#  include <omp.h>
-#endif
-
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
 #include "cmatheval.h"
 
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
 #ifdef USE_PTHREAD
 #  include <pthread.h>
+#endif
+#ifdef USE_OPENMP
+#  include <omp.h>
 #endif
 
 namespace scuff {

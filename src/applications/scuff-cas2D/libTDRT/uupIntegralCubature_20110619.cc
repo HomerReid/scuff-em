@@ -8,12 +8,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
 
 #include <gsl/gsl_sf.h>
 
 #include "libTDRT.h"
 #include "libhrutil.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 // ln(2) - euler's constant 
 #define LN2MGAMMA 0.115931515658412 
