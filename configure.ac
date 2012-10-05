@@ -219,6 +219,7 @@ AC_CONFIG_FILES([
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
  examples/TwoSpheres/Makefile
+ examples/TwoDimensionalCylinders/Makefile
  examples/ThinFilm/Makefile
  examples/WireAntenna/Makefile
  tests/Makefile

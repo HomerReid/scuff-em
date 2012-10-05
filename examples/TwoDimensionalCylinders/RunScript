@@ -1,0 +1,14 @@
+#!/bin/bash
+
+DIRBASE=/home/homer/work/scuff-em-installation/bin
+
+CODE=${DIRBASE}/scuff-cas2D
+
+ARGS=""
+ARGS="${ARGS} --geometry  PECCyls_27.tdgeo"
+ARGS="${ARGS} --TransList Cyls.trans"
+ARGS="${ARGS} --xforce"
+ARGS="${ARGS} --q 0"
+ARGS="${ARGS} --RelTol 1.0e-1"
+
+${CODE} ${ARGS}

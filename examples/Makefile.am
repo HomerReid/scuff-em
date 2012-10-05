@@ -5,6 +5,7 @@ SUBDIRS =            \
  PerforatedThinFilm  \
  SolidSphere         \
  SphericalShell      \
+ TwoDimensionalCylinders \
  TwoSpheres          \
  ThinFilm            \
  WireAntenna         
