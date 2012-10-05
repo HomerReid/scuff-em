@@ -1,4 +1,5 @@
 noinst_LTLIBRARIES = libTDRT.la
+noinst_HEADERS = libTDRT.h
 
 libTDRT_la_SOURCES = 			\
  Assemble.cc				\
@@ -16,7 +17,9 @@ libTDRT_la_SOURCES = 			\
  uupIntegralCubature.cc			\
  uupIntegralDuffy.cc			\
  uupIntegralSameSegment.cc		\
- Visualize.cc			
+ Visualize.cc				\
+ TValues.cc                  		\
+ G1G2Values.cc                  
 
 
 AM_CPPFLAGS = \

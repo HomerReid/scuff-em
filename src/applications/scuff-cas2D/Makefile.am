@@ -3,6 +3,7 @@ SUBDIRS = libTDRT libAmosBessel
 bin_PROGRAMS = scuff-cas2D
 
 scuff_cas2D_SOURCES = 		\
+ scuff-cas2D.h  		\
  scuff-cas2D.cc			\
  CreateC2DWorkspace.cc		\
  CubatureMethods.cc		\

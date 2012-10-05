@@ -8,8 +8,6 @@
 #include <time.h>
 #include <math.h>
 
-#include <gsl/gsl_sf.h>
-
 #include <libhrutil.h>
 #include "libTDRT.h"
 
