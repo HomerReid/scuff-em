@@ -1,4 +1,4 @@
-AC_INIT(scuff-em, 0.9, homer@homerreid.com)
+AC_INIT(scuff-em, 0.95, homer@homerreid.com)
 AC_CONFIG_SRCDIR([README])
 
 # Shared-library version.  This has a technical
@@ -202,6 +202,9 @@ AC_CONFIG_FILES([
  src/applications/Makefile
  src/applications/scuff-analyze/Makefile
  src/applications/scuff-caspol/Makefile
+ src/applications/scuff-cas2D/libTDRT/Makefile
+ src/applications/scuff-cas2D/libAmosBessel/Makefile
+ src/applications/scuff-cas2D/Makefile
  src/applications/scuff-heat/Makefile
  src/applications/scuff-neq/Makefile
  src/applications/scuff-plotEpsMu/Makefile

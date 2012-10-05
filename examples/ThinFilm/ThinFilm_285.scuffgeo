@@ -1,0 +1,19 @@
+LATTICE 
+	VECTOR 1 0 
+	VECTOR 0 1 
+ENDLATTICE
+
+REGION Exterior       MATERIAL Vacuum
+REGION ThinFilm       MATERIAL CONST_EPS_100
+REGION UpperHalfSpace MATERIAL Vacuum
+
+SURFACE LowerFilmSurface
+	MESHFILE Square_285.msh
+	REGIONS Exterior ThinFilm
+ENDSURFACE
+
+SURFACE UpperFilmSurface
+	MESHFILE Square_285.msh
+	DISPLACED 0 0 1
+	REGIONS ThinFilm UpperHalfSpace
+ENDSURFACE

@@ -189,7 +189,7 @@ void RWGGeometry::AssembleDMDVMatrix(int ObjectIndex, int VertexIndex, int Mu,
             }
            else
             { DMDV->SetEntry(Offset+2*ne,   OffsetP+2*nep,   dmdv[0] );
-              DMDV->SetEntry(Offset+2*ne,   OffsetP+2*nep+1, dmdv[1] );
+              DMDV->SetEntry(Offset+2*ne,   OffsetP+2*nep+1, dmdv[1] ); 
               DMDV->SetEntry(Offset+2*ne+1, OffsetP+2*nep,   dmdv[1] );
               DMDV->SetEntry(Offset+2*ne+1, OffsetP+2*nep+1, dmdv[2] );
             };
