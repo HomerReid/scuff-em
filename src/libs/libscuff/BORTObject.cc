@@ -123,7 +123,7 @@ void BORTObject::ParseBORTSectionInFile(FILE *f, char *FileName, int *LineNum)
 
         GT=CreateGTransformation(DX);
       }
-     else if (!strcasecmp(Tokens[0],"ROT"))
+     else if (!StrCaseCmp(Tokens[0],"ROT"))
       { 
         if (GT!=0)
          ErrExit("%s:%i: multiple transformations not allowed",FileName,LineNum);
@@ -139,7 +139,7 @@ void BORTObject::ParseBORTSectionInFile(FILE *f, char *FileName, int *LineNum)
 
         GT=CreateGTransformation(ZHat, Angle);
       }
-     else if (!strcasecmp(Tokens[0],"PIECES"))
+     else if (!StrCaseCmp(Tokens[0],"PIECES"))
       { 
         if ( NumTokens!=2 || 1!=sscanf(Tokens[1],"%i",&NumPieces))
          ErrExit("%s:%i: syntax error",FileName,LineNum);

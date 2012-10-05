@@ -68,7 +68,7 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
-     if ( !strcasecmp(Tokens[0],"MATERIAL") )
+     if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       {
         if (NumTokens!=2)
          ErrExit("%s:%i: syntax error",FileName,*LineNum);
@@ -77,7 +77,7 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
          ErrExit("%s:%i: %s",FileName,*LineNum,RegionMPs[0]->ErrMsg);
         Log("Setting material properties of exterior region to %s.",Tokens[1]);
       }
-     else if ( !strcasecmp(Tokens[0],"ENDMEDIUM") )
+     else if ( !StrCaseCmp(Tokens[0],"ENDMEDIUM") )
       { 
         return;
       }
@@ -109,7 +109,7 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
-     if ( !strcasecmp(Tokens[0],"VECTOR") )
+     if ( !StrCaseCmp(Tokens[0],"VECTOR") )
       {
         if (NumLatticeBasisVectors==MAXLATTICE)
          ErrExit("%s:%i: too many lattice vectors",FileName,*LineNum);
@@ -133,7 +133,7 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
 
         Log("Adding lattice basis vector (%g,%g,%g).",LBV[0],LBV[1],LBV[2]);
       }
-     else if ( !strcasecmp(Tokens[0],"ENDLATTICE") )
+     else if ( !StrCaseCmp(Tokens[0],"ENDLATTICE") )
       { 
         // if the user specified two basis vectors, test for orthogonality
         if (NumLatticeBasisVectors==2)
@@ -168,11 +168,11 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
   /*- which case we aren't adding a new region but just redefining*/
   /*- the properties of the exterior region.                      */
   /*--------------------------------------------------------------*/
-  if ( !strcasecmp(RegionLabel,"EXTERIOR") )
+  if ( !StrCaseCmp(RegionLabel,"EXTERIOR") )
    { 
      RegionID = 0; 
    }
-  else if ( !strcasecmp(RegionLabel,"PEC") )
+  else if ( !StrCaseCmp(RegionLabel,"PEC") )
    { 
      ErrExit("%s:%i: REGIONS cannot be PEC (use an OBJECT instead)",GeoFileName,LineNum);
    }
@@ -249,16 +249,16 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      /*--------------------------------------------------------------*/
      /*- switch off based on first token on the line ----------------*/
      /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Tokens[0],"MEDIUM") )
+     if ( !StrCaseCmp(Tokens[0],"MEDIUM") )
       { 
         ProcessMEDIUMSection(f,GeoFileName,&LineNum);
       }
-     else if ( !strcasecmp(Tokens[0],"LATTICE") )
+     else if ( !StrCaseCmp(Tokens[0],"LATTICE") )
       { 
         ProcessLATTICESection(f,GeoFileName,&LineNum);
         AssignBasisFunctionsToExteriorEdges=false;
       }
-     else if ( !strcasecmp(Tokens[0],"MATERIAL") )
+     else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       {
         /*--------------------------------------------------------------*/
         /* hand off to MatProp class constructor to parse this section  */
@@ -273,16 +273,16 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
          ErrExit("%s:%i: %s",GeoFileName,LineNum,ErrMsg); 
 
       }
-     else if ( !strcasecmp(Tokens[0],"REGION") )
+     else if ( !StrCaseCmp(Tokens[0],"REGION") )
       {
         /*--------------------------------------------------------------*/
         /*- add a new region to our geometry ---------------------------*/
         /*--------------------------------------------------------------*/
-        if ( nTokens!=4 || strcasecmp(Tokens[2],"MATERIAL") )
+        if ( nTokens!=4 || StrCaseCmp(Tokens[2],"MATERIAL") )
          ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
         AddRegion(Tokens[1], Tokens[3], LineNum);
       }
-     else if ( !strcasecmp(Tokens[0],"OBJECT") || !strcasecmp(Tokens[0],"SURFACE") )
+     else if ( !StrCaseCmp(Tokens[0],"OBJECT") || !StrCaseCmp(Tokens[0],"SURFACE") )
       { 
         if ( nTokens==2 )
          S=new RWGSurface(f,Tokens[1],&LineNum,Tokens[0]);
@@ -540,7 +540,7 @@ int RWGGeometry::GetRegionByLabel(const char *Label)
    return -1;
   
   for(int nr=0; nr<NumRegions; nr++)
-   if ( !strcasecmp(Label, RegionLabels[nr]) ) 
+   if ( !StrCaseCmp(Label, RegionLabels[nr]) ) 
     return nr;
 
   return -1;
@@ -560,11 +560,10 @@ RWGSurface *RWGGeometry::GetSurfaceByLabel(const char *Label, int *pns)
    return NULL;
   
   for(int ns=0; ns<NumSurfaces; ns++)
-   if ( !strcasecmp(Label, Surfaces[ns]->Label) ) 
+   if ( !StrCaseCmp(Label, Surfaces[ns]->Label) ) 
     { if (pns) *pns = ns;
       return Surfaces[ns];
     }
-
   return NULL;
 }
 

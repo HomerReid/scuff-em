@@ -285,8 +285,11 @@ StaticSSIDataTable *CreateStaticSSIDataTable(TDRTObject *Oa, TDRTObject *Ob, int
   /*******************************************************************/
   SSSIDT=(StaticSSIDataTable *)malloc(sizeof(*SSSIDT));
   SSSIDT->Map=new StaticSSIDataMap;
-  SSSIDT->Map->set_empty_key(-1);
-  SSSIDT->Map->set_deleted_key(-2);
+  // the following two commands are needed if we are using the 
+  // google dense_hash_map implementation of map, but not for  
+  // the std::tr1 implementation
+  // SSSIDT->Map->set_empty_key(-1); 
+  // SSSIDT->Map->set_deleted_key(-2);
   SSSIDT->Buffer=(StaticSSIDataRecord *)malloc(NNearby*sizeof(StaticSSIDataRecord));
   if (SSSIDT->Buffer==0)
    { if (TDRTGeometry::LogLevel>=2)

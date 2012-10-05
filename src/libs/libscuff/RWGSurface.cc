@@ -72,7 +72,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   IsPEC=1;
   Label = strdupEC(pLabel);
 
-  if ( !strcasecmp(Keyword, "OBJECT") )
+  if ( !StrCaseCmp(Keyword, "OBJECT") )
    IsObject=1;
   else
    IsObject=0;
@@ -102,21 +102,21 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
      /*--------------------------------------------------------------*/
      /*- switch off based on first token on the line ----------------*/
      /*--------------------------------------------------------------*/
-     if ( !strcasecmp(Tokens[0],"MESHFILE") )
+     if ( !StrCaseCmp(Tokens[0],"MESHFILE") )
       { if (NumTokens!=2)
          { ErrMsg=strdupEC("MESHFILE keyword requires one argument");
            return;
          };
         MeshFileName=strdupEC(Tokens[1]);
       }
-     else if ( !strcasecmp(Tokens[0],"MESHTAG") )
+     else if ( !StrCaseCmp(Tokens[0],"MESHTAG") )
       { if (NumTokens!=2)
          { ErrMsg=strdupEC("MESHTAG keyword requires one argument");
            return;
          };
         sscanf(Tokens[1],"%i",&MeshTag);
       }
-     else if ( !strcasecmp(Tokens[0],"MATERIAL") )
+     else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
       { 
         if (!IsObject)
          { ErrMsg=strdupEC("MATERIAL keyword may not be used in SURFACE...ENDSURFACE sections");
@@ -130,12 +130,12 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         RegionLabels[0] = strdupEC("EXTERIOR");
         RegionLabels[1] = strdupEC(Label);
         MaterialRegionsLineNum = *LineNum;
-        if ( !strcasecmp(MaterialName,"PEC") )
+        if ( !StrCaseCmp(MaterialName,"PEC") )
          IsPEC=1;
         else
          IsPEC=0;
       }
-     else if ( !strcasecmp(Tokens[0],"REGIONS") )
+     else if ( !StrCaseCmp(Tokens[0],"REGIONS") )
       { 
         if (IsObject)
          { ErrMsg=strdupEC("REGIONS keyword may not be used in OBJECT...ENDOBJECT sections");
@@ -156,7 +156,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         else
          ErrMsg=strdupEC("REGIONS keyword requires one or two arguments");
       }
-     else if ( !strcasecmp(Tokens[0],"DISPLACED") || !strcasecmp(Tokens[0],"ROTATED") )
+     else if ( !StrCaseCmp(Tokens[0],"DISPLACED") || !StrCaseCmp(Tokens[0],"ROTATED") )
       { 
         // try to parse the line as a geometrical transformation.
         // note that OTGT is used as a running GTransformation that may
@@ -191,7 +191,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
            return;
          };
       }
-     else if ( !strcasecmp(Tokens[0],"SURFACE_CONDUCTIVITY") )
+     else if ( !StrCaseCmp(Tokens[0],"SURFACE_CONDUCTIVITY") )
       { 
         if (NumTokens<2)
          { ErrMsg=strdupEC("no argument specified for SURFACE_CONDUCTIVITY");
@@ -218,7 +218,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         cevaluator_set_var_index(SurfaceSigma, "z", 3);
 
       }
-     else if (   !strcasecmp(Tokens[0],"ENDOBJECT") || !strcasecmp(Tokens[0],"ENDSURFACE") )
+     else if (   !StrCaseCmp(Tokens[0],"ENDOBJECT") || !StrCaseCmp(Tokens[0],"ENDSURFACE") )
       { 
         ReachedTheEnd=1;
       }
@@ -309,9 +309,9 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   char *p=GetFileExtension(MeshFileName);
   if (!p)
    ErrExit("file %s: invalid extension",MeshFileName);
-  else if (!strcasecmp(p,"msh"))
+  else if (!StrCaseCmp(p,"msh"))
    ReadGMSHFile(MeshFile,MeshFileName,OTGT,MeshTag);
-  else if (!strcasecmp(p,"mphtxt"))
+  else if (!StrCaseCmp(p,"mphtxt"))
    { if ( MeshTag != -1 )
       ErrExit("MESHTAG is not yet implemented for .mphtxt files");
      ReadComsolFile(MeshFile,MeshFileName,OTGT);

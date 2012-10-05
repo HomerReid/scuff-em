@@ -796,7 +796,6 @@ void GetMoments(SSData *SSD, char *MomentFile)
   /* open the file and write the frequency at the top of the line*/
   /***************************************************************/
   FILE *f=fopen(MomentFile,"a");
-  setlinebuf(f);
   if ( !f ) ErrExit("could not open file %s",MomentFile);
   
   /***************************************************************/
@@ -818,6 +817,7 @@ void GetMoments(SSData *SSD, char *MomentFile)
       fprintf(f,"%s ",CD2S(PM->GetEntry(6*ns + Mu),"%.8e %.8e "));
    };
   fprintf(f,"\n");
+  fflush(f);
 
   delete PM;
 

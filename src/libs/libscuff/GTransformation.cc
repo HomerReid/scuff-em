@@ -182,8 +182,8 @@ bool GTransformation::Parse(char **Tokens, int NumTokens,
     if (TokensConsumed) *TokensConsumed=0;
     return false;
   }
-  else if ( !strcasecmp(Tokens[0],"DISP") 
-	    || !strcasecmp(Tokens[0],"DISPLACED") )
+  else if ( !StrCaseCmp(Tokens[0],"DISP") 
+	    || !StrCaseCmp(Tokens[0],"DISPLACED") )
    { 
      /*--------------------------------------------------------------*/
      /*-- DISPLACED xx yy zz ----------------------------------------*/
@@ -205,7 +205,7 @@ bool GTransformation::Parse(char **Tokens, int NumTokens,
      if (TokensConsumed) *TokensConsumed=4;
      Displace(dx);
    }
-  else if ( !strcasecmp(Tokens[0],"ROT") || !strcasecmp(Tokens[0],"ROTATED") )
+  else if ( !StrCaseCmp(Tokens[0],"ROT") || !StrCaseCmp(Tokens[0],"ROTATED") )
    { 
      /*--------------------------------------------------------------*/
      /*-- ROTATED tt ABOUT xx yy zz ---------------------------------*/
@@ -215,7 +215,7 @@ bool GTransformation::Parse(char **Tokens, int NumTokens,
         return false;
       };
 
-     if ( strcasecmp(Tokens[2],"ABOUT") )
+     if ( StrCaseCmp(Tokens[2],"ABOUT") )
       {  if (ErrMsg) *ErrMsg=vstrdup("invalid syntax for %s statement",Tokens[0]);
          return false;
       };
@@ -378,7 +378,7 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
   char *ErrMsg;
   while( nt<NumTokens )
    { 
-     if ( !strcasecmp(Tokens[nt], "OBJECT") )
+     if ( !StrCaseCmp(Tokens[nt], "OBJECT") )
       { 
         if ( nt+1 == NumTokens )
          return strdupEC("syntax error");
@@ -393,8 +393,8 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
 
         nt+=2;
       }
-     else if (    !strcasecmp(Tokens[nt], "DISP") || !strcasecmp(Tokens[nt], "DISPLACED")
-               || !strcasecmp(Tokens[nt], "ROT")  || !strcasecmp(Tokens[nt], "ROTATED")
+     else if (    !StrCaseCmp(Tokens[nt], "DISP") || !StrCaseCmp(Tokens[nt], "DISPLACED")
+               || !StrCaseCmp(Tokens[nt], "ROT")  || !StrCaseCmp(Tokens[nt], "ROTATED")
              )
       { 
         if ( CurrentGT==0 )
@@ -461,7 +461,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
 
      // switch off to handle the various tokens that may be encountered
      // in a TRANSFORMATION...ENDTRANSFORMATION section
-     if ( !strcasecmp(Tokens[0],"OBJECT") )
+     if ( !StrCaseCmp(Tokens[0],"OBJECT") )
       { 
         /*--------------------------------------------------------------*/
         /*-- OBJECT MySurface--------------------------------------------*/
@@ -483,7 +483,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         // subsequent DISPLACEMENTs / ROTATIONs will augment this GTransformation
         CurrentGT=GTC->GT+nsa;
       }
-     else if ( !strcasecmp(Tokens[0],"ENDTRANSFORMATION") )
+     else if ( !StrCaseCmp(Tokens[0],"ENDTRANSFORMATION") )
       { 
         /*--------------------------------------------------------------*/
         /*-- ENDTRANSFORMATION  ----------------------------------------*/
@@ -567,12 +567,12 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
      // separately handle the two possible ways to specify complices:
      //  (a) TRANSFORMATION ... ENDTRANSFORMATION sections
      //  (b) single-line transformations (TRANS ... )
-     if ( !strcasecmp(Tokens[0], "TRANSFORMATION") )
+     if ( !StrCaseCmp(Tokens[0], "TRANSFORMATION") )
       { if (NumTokens!=2) 
          ErrExit("%s:%i: syntax error (no name specified for transformation",FileName,LineNum);
         ErrMsg=ParseTRANSFORMATIONSection(Tokens[1], f, &LineNum, &GTC);
       }
-     else if ( !strcasecmp(Tokens[0], "TRANS") )
+     else if ( !StrCaseCmp(Tokens[0], "TRANS") )
       { 
         ErrMsg=ParseTRANSLine(Tokens, NumTokens, &GTC);
       }

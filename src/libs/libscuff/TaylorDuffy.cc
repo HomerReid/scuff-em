@@ -28,7 +28,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
+
+#ifdef USE_PTHREAD
+#  include <pthread.h>
+#endif
 
 #include <complex>
 

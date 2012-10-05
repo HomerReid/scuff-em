@@ -33,7 +33,7 @@
 #include <libMatProp.h>
 #include <libMDInterp.h>
 #include <libhrutil.h>
-#include <google/dense_hash_map>
+#include <tr1/unordered_map>
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -84,7 +84,8 @@ typedef struct StaticSSIDataRecord
 /*- that stores pointers into the array in a way that allows   */
 /*- for efficient retrieval.                                   */
 /***************************************************************/
-typedef google::dense_hash_map <unsigned long, StaticSSIDataRecord*> StaticSSIDataMap;
+//typedef google::dense_hash_map <unsigned long, StaticSSIDataRecord*> StaticSSIDataMap;
+typedef std::tr1::unordered_map <unsigned long, StaticSSIDataRecord*> StaticSSIDataMap;
 typedef struct StaticSSIDataTable
  { 
     StaticSSIDataMap *Map;

@@ -589,9 +589,9 @@ int main(int argc, char *argv[])
    };
     
   /***************************************************************/
-  /* 5. write results to output file if we did an integration    */
+  /* 5. write results to output file if we did an integral or sum*/
   /***************************************************************/
-  if ( Xi==-1.0 && Q==-1.0 && XQListName==0 )
+  if ( (Xi==-1.0) || (Q==-1.0) || (T!=-1.0) )
    { 
      snprintf(OutFileName,200,"%s.out",GeoFileBase);
      nt=0;

@@ -328,7 +328,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
      /*- in a 'PORT...ENDPORT' section                              -*/
      /*--------------------------------------------------------------*/
      if ( !InPortSection ) 
-      { if ( !strcasecmp(Tokens[0],"PORT") )
+      { if ( !StrCaseCmp(Tokens[0],"PORT") )
          { InPortSection=1;
            NumPEdges=NumMEdges=0;
            PRefPointSpecified=MRefPointSpecified=0;
@@ -339,7 +339,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
       }
      else // !InPortSection
       {
-        if ( !strcasecmp(Tokens[0],"ENDPORT") )
+        if ( !StrCaseCmp(Tokens[0],"ENDPORT") )
          { 
            if (NumPEdges==0)
             ErrExit("%s:%i: no edges specified or detected for positive port",PortFileName,LineNum);
@@ -360,8 +360,8 @@ RWGPort **ParsePortFile(RWGGeometry *G,
            NumPorts++;
            InPortSection=0;
          }
-        else if (    !strcasecmp(Tokens[0],"POBJECT") || !strcasecmp(Tokens[0],"PSURFACE") 
-                  || !strcasecmp(Tokens[0],"MOBJECT") || !strcasecmp(Tokens[0],"MSURFACE") 
+        else if (    !StrCaseCmp(Tokens[0],"POBJECT") || !StrCaseCmp(Tokens[0],"PSURFACE") 
+                  || !StrCaseCmp(Tokens[0],"MOBJECT") || !StrCaseCmp(Tokens[0],"MSURFACE") 
                 )
          {
            /*--------------------------------------------------------------*/
@@ -381,7 +381,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
            else
             MSurface=WhichSurface;
          }
-        else if ( !strcasecmp(Tokens[0],"PEDGES") || !strcasecmp(Tokens[0],"MEDGES") )
+        else if ( !StrCaseCmp(Tokens[0],"PEDGES") || !StrCaseCmp(Tokens[0],"MEDGES") )
          { 
            /*--------------------------------------------------------------*/
            /*- PEDGES / MEDGES specifies a list of exterior edge indices   */
@@ -409,7 +409,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
               NumMEdges+=NumNewEdges;
             };
          }
-        else if ( !strcasecmp(Tokens[0],"PPOLYGON") || !strcasecmp(Tokens[0],"MPOLYGON") )
+        else if ( !StrCaseCmp(Tokens[0],"PPOLYGON") || !StrCaseCmp(Tokens[0],"MPOLYGON") )
          { 
            /*--------------------------------------------------------------*/
            /*- PPOLYGON/MPOLYGON specifies a list of polygon vertices;     */
@@ -452,7 +452,7 @@ RWGPort **ParsePortFile(RWGGeometry *G,
            for(int nne=0; nne<NumNewEdges; nne++)
             LogC("%i ",NewEdgeIndices[nne]);
          }
-        else if ( !strcasecmp(Tokens[0],"PREFPOINT") || !strcasecmp(Tokens[0],"MREFPOINT") )
+        else if ( !StrCaseCmp(Tokens[0],"PREFPOINT") || !StrCaseCmp(Tokens[0],"MREFPOINT") )
          {
            /*--------------------------------------------------------------*/
            /*- PREFPOINT/MREFPOINT specifies the cartesian coordinates of  */
