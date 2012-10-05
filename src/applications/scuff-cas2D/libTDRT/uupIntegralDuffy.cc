@@ -76,8 +76,7 @@ static void uupIDIntegrand(unsigned ndim, const double *ut, void *fdata,
   if ( fabs(X1) < 1.0e-8 || AuX1 > 50.0 )
    { K01 = K11oX1 = 0.0; }
   else
-   { 
-     HRBesselK(AuX1, 0, KArray);
+   { HRBesselK(AuX1, 0, KArray);
      K01=KArray[0];
      K11oX1=KArray[1]*Alpha*u;
    };
@@ -87,8 +86,6 @@ static void uupIDIntegrand(unsigned ndim, const double *ut, void *fdata,
    { K02 = K12oX2 = 0.0; }
   else
    { 
-     
-    
      HRBesselK(AuX2, 0, KArray);
      K02=KArray[0];
      K12oX2=KArray[1]*Alpha*u;
