@@ -140,6 +140,22 @@ TDRTGeometry::TDRTGeometry(const char *pGeoFileName)
         TotalBFs+=O->NumBFs;
         ObjectArray[NumObjects++]=O;
       }
+     else if ( !StrCaseCmp(Tokens[0],"MATERIAL") )
+       {
+	 /*--------------------------------------------------------------*/
+	 /* hand off to MatProp class constructor to parse this section  */
+	 /*--------------------------------------------------------------*/
+	 if ( nTokens==1 )
+	   ErrExit("%s:%i: no name given for MATERIAL ",GeoFileName,LineNum);
+	 else if ( nTokens>2 )
+	   ErrExit("%s:%i: syntax error",GeoFileName,LineNum);
+	 
+	 char *ErrMsg=AddMaterialToMatPropDataBase(f, GeoFileName, Tokens[1], &LineNum);
+	 if (ErrMsg)
+	   ErrExit("%s:%i: %s",GeoFileName,LineNum,ErrMsg);
+	 
+       }
+
      else 
       { /*--------------------------------------------------------------*/
         /*- unknown keyword.                                            */
