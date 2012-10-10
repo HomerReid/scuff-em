@@ -44,9 +44,10 @@ void Usage(const char *ErrMsg, ...)
   fprintf(stderr,"  --xforce                 \n");
   fprintf(stderr,"  --yforce                 \n");
   fprintf(stderr,"                           \n");
-  fprintf(stderr,"  --NumThreads xx             \n");
+  fprintf(stderr,"  --NumThreads xx          \n");
   fprintf(stderr,"  --TETM                   \n");
   fprintf(stderr,"  --WriteHDF5              \n");
+  fprintf(stderr,"  --ReadCache              \n");
   fprintf(stderr,"                           \n");
   fprintf(stderr,"  --VisualizeOnly          \n");
   fprintf(stderr,"                           \n");
@@ -164,6 +165,8 @@ void WriteFilePreamble(C2DWorkspace *W, FILE *f, int FileType,
   fprintf(f,"# Other options: ");
   if (W->WriteHDF5)
    fprintf(f," --WriteHDF5");
+  if (W->ReadCache)
+   fprintf(f," --ReadCache");
   if (W->TETM)
    fprintf(f," --TETM");
   fprintf(f,"\n#\n");
@@ -225,6 +228,7 @@ int main(int argc, char *argv[])
   int narg, NumThreads, WhichQuantities;
   int CubatureMethod, TETM, GroundPlane;
   int WriteHDF5;
+  int ReadCache;
   TDRTGeometry *G;
   double Xi, Q, T;
   double AbsTol, RelTol;
@@ -256,7 +260,7 @@ int main(int argc, char *argv[])
   Xi=Q=T=-1.0;
   NumThreads=0;
   WhichQuantities=0;
-  TETM=GroundPlane=WriteHDF5=0;
+  TETM=GroundPlane=WriteHDF5=ReadCache=0;
   XQListName=0;
   AbsTol=1.0e-8;
   RelTol=1.0e-3;
@@ -299,6 +303,10 @@ int main(int argc, char *argv[])
      else if ( !StrCaseCmp(argv[narg],"--WriteHDF5") )
       { WriteHDF5=1;
         printf("Exporting matrices to MATLAB files.\n");
+      }
+     else if ( !StrCaseCmp(argv[narg],"--ReadCache") )
+      { ReadCache=1;
+        printf("Will read integration cache file if it exists.\n");
       }
      else if ( !StrCaseCmp(argv[narg],"--Xi") )
       { if (narg+1>=argc)
@@ -435,7 +443,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   GeoFileBase=strdup(GetFileBase(G->GeoFileName));
   W=CreateC2DWorkspace(G, TransListName, WhichQuantities, Rectangle,
-                       NumThreads, TETM, GroundPlane, WriteHDF5, VisualizeOnly);
+                       NumThreads, TETM, GroundPlane, WriteHDF5, ReadCache, VisualizeOnly);
 
   if (VisualizeOnly)
    exit(1);

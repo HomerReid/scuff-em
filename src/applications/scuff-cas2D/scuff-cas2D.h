@@ -71,6 +71,7 @@ typedef struct C2DWorkspace
    char *ByXiFileName;
    char *CurrentTag;
    int WriteHDF5;
+   int ReadCache;
    double FixedXi, FixedQ;
 
 } C2DWorkspace;
@@ -81,7 +82,7 @@ typedef struct C2DWorkspace
 C2DWorkspace *CreateC2DWorkspace(TDRTGeometry *G, char *TransListName,
                                  int WhichQuantities, double *Rectangle,
                                  int nThread, int TETM, 
-                                 int GroundPlane, int WriteHDF5, 
+                                 int GroundPlane, int WriteHDF5, int ReadCache,
                                  int VisualizeOnly);
  
 void XQIntegrand(C2DWorkspace *EFW, double Xi, double q, double *EF);

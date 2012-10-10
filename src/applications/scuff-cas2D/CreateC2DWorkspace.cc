@@ -28,7 +28,8 @@ C2DWorkspace *CreateC2DWorkspace(TDRTGeometry *G, char *TransListName,
                                  int WhichQuantities, double *Rectangle, 
                                  int NumThreads, int TETM, 
                                  int GroundPlane,
-                                 int WriteHDF5, int VisualizeOnly)
+                                 int WriteHDF5, int ReadCache, 
+				 int VisualizeOnly)
 { 
   C2DWorkspace *W;
 
@@ -54,6 +55,7 @@ C2DWorkspace *CreateC2DWorkspace(TDRTGeometry *G, char *TransListName,
   W->TETM=TETM;
   W->GroundPlane=GroundPlane;
   W->WriteHDF5=WriteHDF5;
+  W->ReadCache=ReadCache;
   W->NumContributingIVs=0;
 
   if (NumThreads==0)

@@ -303,6 +303,8 @@ int CacheRead(C2DWorkspace *W, double Xi, double q, double *EF)
   double fXi, fq;
   int nt, ntnq, nRead, NumQuantitiesRead, FoundFirst;
 
+  if (!W->ReadCache) return 0;
+
   /*----------------------------------------------------------*/
   /* 0. try to open the cache file. --------------------------*/
   /*----------------------------------------------------------*/
