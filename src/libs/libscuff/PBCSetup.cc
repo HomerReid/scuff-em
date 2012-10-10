@@ -73,7 +73,7 @@ void RWGGeometry::GetRegionExtents(int nr, double RegionRMax[3], double RegionRM
 /***************************************************************/
 static int PointOnLine(double *X, double *L)
 { 
-   return ((float)(L[1]*X[0])) == ((float)(L[0]*X[1])) ? 1 : 0;
+   return ((float)(L[1]*X[0])) == ((float)(L[0]*X[1]));
 } 
 
 /***************************************************************/
