@@ -25,6 +25,7 @@ libscuff_la_SOURCES = \
  QDFIPPI.cc \
  QIFIPPICubature.cc \
  QIFIPPITaylorDuffy.cc \
+ QIFIPPITaylorDuffyV2P0.cc \
  RWGGeometry.cc \
  RWGSurface.cc \
  ReadComsolFile.cc \

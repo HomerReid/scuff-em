@@ -507,6 +507,7 @@ class RWGGeometry
    static double DeltaInterp;
    static bool UsePBCAcceleration;
    static bool UseHighKTaylorDuffy;
+   static bool UseTaylorDuffyV2P0;
 
  };
 

@@ -66,6 +66,11 @@ void ComputeQIFIPPIData_TaylorDuffy(double *V1, double *V2, double *V3,
                                     double *V2P, double *V3P, 
                                     QIFIPPIData *QIFD);
 
+void ComputeQIFIPPIData_TaylorDuffyV2P0(double *V1, double *V2, double *V3, 
+                                        double *V2P, double *V3P, 
+                                        QIFIPPIData *QIFD);
+
+
 /*--------------------------------------------------------------*/
 /*- integrand routine used for evaluating FIPPIs by cubature.  -*/
 /*- note: CFD = 'compute FIPPI data.'                          -*/
@@ -467,7 +472,12 @@ void ComputeQIFIPPIData(double **Va, double **Vb, int ncv, QIFIPPIData *QIFD)
   if (ncv==0)
    ComputeQIFIPPIData_Cubature(Va, Vb, QIFD);
   else
-   ComputeQIFIPPIData_TaylorDuffy(Va[0], Va[1], Va[2], Vb[1], Vb[2], QIFD);
+   { if (RWGGeometry::UseTaylorDuffyV2P0)
+      ComputeQIFIPPIData_TaylorDuffyV2P0(Va[0], Va[1], Va[2], Vb[1], Vb[2], QIFD);
+     else
+      ComputeQIFIPPIData_TaylorDuffy(Va[0], Va[1], Va[2], Vb[1], Vb[2], QIFD);
+   };
+
 }
 
 } // namespace scuff

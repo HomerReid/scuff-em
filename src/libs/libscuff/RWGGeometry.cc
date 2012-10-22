@@ -47,6 +47,7 @@ bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
 bool RWGGeometry::UsePBCAcceleration=false;
 double RWGGeometry::DeltaInterp=0.05;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
+bool RWGGeometry::UseTaylorDuffyV2P0=true;
 
 /***********************************************************************/
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
