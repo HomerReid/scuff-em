@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
 
                G->GetPanelSourceDensities(Omega, KN, PSD);
                sprintf(PSDFileName,"%s.%g.Before.PSD",GetFileBase(G->GeoFileName),Freq);
-               PSD->ExportToText(PSDFileName);
+               PSD->ExportToText(PSDFileName,"--separate");
              };
                 
             /*--------------------------------------------------------------*/
@@ -397,7 +397,7 @@ int main(int argc, char *argv[])
 
                G->GetPanelSourceDensities(Omega, KN, PSD);
                sprintf(PSDFileName,"%s.%g.After.PSD",GetFileBase(G->GeoFileName),Freq);
-               PSD->ExportToText(PSDFileName);
+               PSD->ExportToText(PSDFileName,"--separate");
              };
 
             Log("  computing port voltages");
