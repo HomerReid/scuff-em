@@ -290,13 +290,11 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   HVector *PM=0;
   FILE *MomentFile=0;
-  FILE *PSDFile=0;
   char PSDFileName[1000];
   HMatrix *PSD=0;
   if (Moments)
    { PM=new HVector(6*G->NumSurfaces, LHM_COMPLEX);
      MomentFile=vfopen("%s.moments","w",GetFileBase(G->GeoFileName));
-     PSDFile=vfopen("%s.psd","w",GetFileBase(G->GeoFileName));
      PSD=new HMatrix(G->TotalPanels, 12, LHM_COMPLEX);
    };
 
@@ -372,6 +370,7 @@ int main(int argc, char *argv[])
                G->PlotSurfaceCurrents(KN, Omega, "%s_Before.pp",GetFileBase(G->GeoFileName));
 
                G->GetPanelSourceDensities(Omega, KN, PSD);
+               AddPortContributionsToPSD(G, Ports, NumPorts, PortCurrents, Omega, PSD);
                sprintf(PSDFileName,"%s.%g.Before.PSD",GetFileBase(G->GeoFileName),Freq);
                PSD->ExportToText(PSDFileName,"--separate");
              };
@@ -396,6 +395,7 @@ int main(int argc, char *argv[])
                G->PlotSurfaceCurrents(KN, Omega, "%s_After.pp",GetFileBase(G->GeoFileName));
 
                G->GetPanelSourceDensities(Omega, KN, PSD);
+               AddPortContributionsToPSD(G, Ports, NumPorts, PortCurrents, Omega, PSD);
                sprintf(PSDFileName,"%s.%g.After.PSD",GetFileBase(G->GeoFileName),Freq);
                PSD->ExportToText(PSDFileName,"--separate");
              };

@@ -2,6 +2,7 @@ bin_PROGRAMS = scuff-rf
 
 scuff_rf_SOURCES =		\
  scuff-rf.cc			\
+ EdgePanelInteractions.cc	\
  GetPanelPotentials.cc		\
  GetPortVoltages.cc		\
  ProcessEPFile.cc		\

@@ -43,9 +43,6 @@
 #define FREQ2OMEGA (2.0*M_PI/300.0)
 #define II cdouble(0.0,1.0)
 
-FILE *BreakoutFile=0; 
-int SkipInterior=0, SkipExterior=0;
-
 using namespace scuff;
 
 /***************************************************************/
@@ -55,6 +52,9 @@ void GetPanelPotentials(RWGSurface *S, int np, int iQ, cdouble IK,
                         double *X, cdouble *PhiA);
 
 cdouble GetPanelPotential(RWGSurface *S, int np, cdouble IK, double *X);
+namespace scuff{
+cdouble GetEdgePanelInteraction(double **PV, double **EV, cdouble K);
+}
 
 /***************************************************************/
 /* integrand function used to evaluate the line integral       */
@@ -200,40 +200,14 @@ cdouble iwAIntegral(RWGGeometry *G, HVector *KN,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetPortVoltages(RWGGeometry *G, HVector *KN,
-                     RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
-                     cdouble Omega, cdouble *PortVoltages)
+void ComputePanelCharges(RWGGeometry *G, HVector *KN,
+                         RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
+                         cdouble Omega, cdouble *PanelCharges)
 {
-  cdouble IW = II*Omega;
-  cdouble IK = IW;
-
-  memset(PortVoltages,0,NumPorts*sizeof(cdouble)); 
-
-  /***************************************************************/
-  /* PanelCharges is a statically-maintained vector that stores  */
-  /* the total charge on each panel in the geometry.             */
-  /***************************************************************/
-  static int NumPanels=0;
-  static cdouble *PanelCharges=0;
-
-  if (NumPanels!=G->TotalPanels)
-   { NumPanels=G->TotalPanels;
-     if (PanelCharges==0) free(PanelCharges);
-     PanelCharges=(cdouble *)mallocEC(NumPanels * sizeof(cdouble));
-   };
-
-  /***************************************************************/
-  /* do a first pass through all interior edges and all driven   */
-  /* ports to compute the total charge on each panel.            */
-  /***************************************************************/
+  int NumPanels = G->TotalPanels;
   memset(PanelCharges, 0, NumPanels*sizeof(cdouble));
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-cdouble TotalVP, TotalVM;
-static cdouble *PortPanelCharges=0;
-if (PortPanelCharges==0)
- PortPanelCharges=(cdouble *)mallocEC(NumPanels * sizeof(cdouble));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  cdouble IW = II*Omega;
 
   /*--------------------------------------------------------------*/
   /*- contributions of interior edges  ---------------------------*/
@@ -274,24 +248,44 @@ if (PortPanelCharges==0)
       PanelCharges[PIOffset + Port->PPanelIndices[nPanel]] 
        -= Port->PLengths[nPanel]*PortCurrent/(IW*Port->PPerimeter);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
- PortPanelCharges[PIOffset + Port->PPanelIndices[nPanel]]
-  -= Port->PLengths[nPanel]*PortCurrent/(IW*Port->PPerimeter);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
      S=Ports[nPort]->MSurface;
      PIOffset=G->PanelIndexOffset[S->Index];
      for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
       PanelCharges[PIOffset + Port->MPanelIndices[nPanel]]
        += Port->MLengths[nPanel]*PortCurrent/(IW*Port->MPerimeter);
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
- PortPanelCharges[PIOffset + Port->MPanelIndices[nPanel]] 
-   += Port->MLengths[nPanel]*PortCurrent/(IW*Port->MPerimeter);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    };
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetPortVoltages(RWGGeometry *G, HVector *KN,
+                     RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
+                     cdouble Omega, cdouble *PortVoltages)
+{
+  cdouble IK = II*Omega;
+
+  memset(PortVoltages,0,NumPorts*sizeof(cdouble)); 
+
+  /***************************************************************/
+  /* PanelCharges is a statically-maintained vector that stores  */
+  /* the total charge on each panel in the geometry.             */
+  /***************************************************************/
+  static int NumPanels=0;
+  static cdouble *PanelCharges=0;
+
+  if (NumPanels!=G->TotalPanels)
+   { NumPanels=G->TotalPanels;
+     if (PanelCharges==0) free(PanelCharges);
+     PanelCharges=(cdouble *)mallocEC(NumPanels * sizeof(cdouble));
+   };
+
+  /***************************************************************/
+  /* do a first pass through all interior edges and all driven   */
+  /* ports to compute the total charge on each panel.            */
+  /***************************************************************/
+  ComputePanelCharges(G, KN, Ports, NumPorts, PortCurrents, Omega, PanelCharges);
 
   /***************************************************************/
   /* ok, now that we know the charge on all panels, go through   */
@@ -299,21 +293,78 @@ for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
   /* difference between the positive and negative sides of each  */
   /* port.                                                       */
   /***************************************************************/
-  memset(PortVoltages, 0, NumPorts*sizeof(cdouble) );
-  cdouble VP, VM;
-TotalVP=TotalVM=0.0;
-  Log("   scalar potential contribution");
-  for(ns=0; ns<G->NumSurfaces; ns++)
-   for(S=G->Surfaces[ns], nPanel=0; nPanel<S->NumPanels; nPanel++)
-    for(nPort=0; nPort<NumPorts; nPort++)
-     {
-       Port=Ports[nPort];
-       VP = GetPanelPotential(S, nPanel, IK, Port->PRefPoint);
-       VM = GetPanelPotential(S, nPanel, IK, Port->MRefPoint);
-       PortVoltages[nPort] += PanelCharges[G->PanelIndexOffset[ns] + nPanel] * (VP - VM);
-TotalVP+=PanelCharges[G->PanelIndexOffset[ns] + nPanel]*VP;
-TotalVM+=PanelCharges[G->PanelIndexOffset[ns] + nPanel]*VM;
-     };
+  bool UseAveragePotentials=true;
+  if( UseAveragePotentials )
+   {
+     cdouble VP, VM;
+     Log("   scalar potential contribution");
+     RWGPort *Port;
+     RWGSurface *DestSurface, *SourceSurface;
+     RWGPanel *DestPanel, *SourcePanel;
+     int iDestPanel, iSourcePanel, PIOffset;
+     int iQDest;
+     double *EV[2];  // edge vertices 
+     double *PV[3];  // panel vertices
+     for(int nPort=0; nPort<NumPorts; nPort++)
+      { 
+        Port=Ports[nPort];
+
+        /*--------------------------------------------------------------*/
+        /*- average the scalar potential over all positive port edges   */
+        /*--------------------------------------------------------------*/
+        VP=0.0;
+        DestSurface=Port->PSurface;
+        for(int npe=0; npe<Port->NumPEdges; npe++)
+         { iDestPanel = Port->PPanelIndices[npe];
+           DestPanel  = DestSurface->Panels[iDestPanel];
+           iQDest     = Port->PPaneliQs[npe];
+           EV[0]      = DestSurface->Vertices + 3*(DestPanel->VI[ (iQDest+1)%3 ]);
+           EV[1]      = DestSurface->Vertices + 3*(DestPanel->VI[ (iQDest+2)%3 ]);
+           for(int ns=0; ns<G->NumSurfaces; ns++)
+            for(SourceSurface=G->Surfaces[ns], PIOffset=G->PanelIndexOffset[ns], 
+                iSourcePanel=0; iSourcePanel<SourceSurface->NumPanels; iSourcePanel++)
+             {
+               SourcePanel = SourceSurface->Panels[iSourcePanel];
+               PV[0] = SourceSurface->Vertices + 3*(SourcePanel->VI[0]);
+               PV[1] = SourceSurface->Vertices + 3*(SourcePanel->VI[1]);
+               PV[2] = SourceSurface->Vertices + 3*(SourcePanel->VI[2]);
+               VP += 2.0*ZVAC*PanelCharges[ iSourcePanel + PIOffset ] 
+                      * GetEdgePanelInteraction(PV, EV, Omega);
+             };
+         };
+        VP /= (double)(Port->NumPEdges);
+
+        /*--------------------------------------------------------------*/
+        /*- average the scalar potential over all negative port edges   */
+        /*--------------------------------------------------------------*/
+        VM=0.0;
+        DestSurface=Port->MSurface;
+        for(int npe=0; npe<Port->NumMEdges; npe++)
+         { iDestPanel = Port->MPanelIndices[npe];
+           DestPanel  = DestSurface->Panels[iDestPanel];
+           iQDest     = Port->MPaneliQs[npe];
+           EV[0]      = DestSurface->Vertices + 3*(DestPanel->VI[ (iQDest+1)%3 ]);
+           EV[1]      = DestSurface->Vertices + 3*(DestPanel->VI[ (iQDest+2)%3 ]);
+           for(int ns=0; ns<G->NumSurfaces; ns++)
+            for(SourceSurface=G->Surfaces[ns], PIOffset=G->PanelIndexOffset[ns], 
+                iSourcePanel=0; iSourcePanel<SourceSurface->NumPanels; iSourcePanel++)
+             {
+               SourcePanel = SourceSurface->Panels[iSourcePanel];
+               PV[0] = SourceSurface->Vertices + 3*(SourcePanel->VI[0]);
+               PV[1] = SourceSurface->Vertices + 3*(SourcePanel->VI[1]);
+               PV[2] = SourceSurface->Vertices + 3*(SourcePanel->VI[2]);
+               VM += 2.0*ZVAC*PanelCharges[ iSourcePanel + PIOffset ]
+                      * GetEdgePanelInteraction(PV, EV, Omega);
+             };
+         };
+        VM /= (double)(Port->NumMEdges);
+
+        PortVoltages[nPort] = VP - VM;
+
+      }; // for(int nPort=0; nPort<NumPorts; nPort++)
+
+     // for(int nPort=0; nPort<NumPorts; nPort++)
+   }; //if( UseAveragePotentials==false )
 
   /***************************************************************/
   /* next get the contribution to the port voltage from the line */
@@ -321,22 +372,11 @@ TotalVM+=PanelCharges[G->PanelIndexOffset[ns] + nPanel]*VM;
   /***************************************************************/
   cdouble iwAI;
   Log("   vector potential contribution");
-  for(nPort=0; nPort<NumPorts; nPort++)
+  for(int nPort=0; nPort<NumPorts; nPort++)
    { iwAI=iwAIntegral(G, KN, Ports, NumPorts, PortCurrents, IK, 
                       Ports[nPort]->PRefPoint, Ports[nPort]->MRefPoint,
                       abs(PortVoltages[nPort]));
      PortVoltages[nPort] += iwAI;
    }; 
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (BreakoutFile)
- fprintf(BreakoutFile,"%s %e %e %e %e %e %e %e %e\n",
-         z2s(Omega/FREQ2OMEGA),
-         real(TotalVP),imag(TotalVP),
-         real(TotalVM),imag(TotalVM),
-         real(iwAI),imag(iwAI),
-         real(TotalVP-TotalVM+iwAI),imag(TotalVP-TotalVM+iwAI));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 
 }

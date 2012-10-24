@@ -71,12 +71,16 @@ void AddPortContributionsToRHS(RWGGeometry *G,
                                RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
                                cdouble Omega, HVector *KN);
 
+void AddPortContributionsToPSD(RWGGeometry *G,
+                               RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
+                               cdouble Omega, HMatrix *PSD);
+
 void GetPortVoltages(RWGGeometry *G, HVector *KN,
                      RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
                      cdouble Omega, cdouble *PortVoltages);
 
 void PlotPortsinGNUPLOT(const char *GPFileName, RWGPort **Ports, int NumPorts);
-void PlotPortsInGMSH(RWGPort **Ports, int NumPorts, char *format, ...);
+void PlotPortsInGMSH(RWGPort **Ports, int NumPorts, const char *format, ...);
 void DrawGMSHCircle(const char *PPFile, const char *Name,
                     double *X0, double Theta, double Phi, double Radius);
 
