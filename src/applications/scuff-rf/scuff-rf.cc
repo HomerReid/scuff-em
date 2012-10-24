@@ -46,10 +46,6 @@ using namespace scuff;
 #define MAXCACHE 10    // max number of cache files for preload
 #define MAXSTR   1000
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-extern int SkipInterior, SkipExterior;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -76,17 +72,17 @@ void HVConcat(HVector *V1, HVector *V2)
 /***************************************************************/  
 int main(int argc, char *argv[])
 {
-EnableAllCPUs();
   /***************************************************************/
   /** process command-line arguments *****************************/
   /***************************************************************/
-  char *MeshFile=0;
   char *GeoFile=0;
   char *PortFile=0;
   char *PCFile=0;
   char *EPFile=0;
+  int PlotPorts=0;
   int ZParameters=0; 
   int SParameters=0;
+  int Moments=0;
   double FrequencyValues[MAXFREQ];	int nFrequency;
   double MinFreq;			int nMinFreq;
   double MaxFreq;			int nMaxFreq;
@@ -98,10 +94,10 @@ EnableAllCPUs();
   char *WriteCache=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
-   { {"meshfile",       PA_STRING,  1, 1,       (void *)&MeshFile,   0,             "mesh file"},
-     {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+   { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
 //
      {"portfile",       PA_STRING,  1, 1,       (void *)&PortFile,   0,             "port file"},
+     {"PlotPorts",      PA_BOOL,    0, 1,       (void *)&PlotPorts,  0,             "generate port visualization file"},
 //
      {"frequency",      PA_DOUBLE,  1, MAXFREQ, (void *)FrequencyValues,  &nFrequency,   "frequency (GHz)"},
      {"minfreq",        PA_DOUBLE,  1, 1,       (void *)&MinFreq,    &nMinFreq,     "starting frequency"},
@@ -112,6 +108,7 @@ EnableAllCPUs();
 //
      {"ZParameters",    PA_BOOL,    0, 1,       (void *)&ZParameters, 0,            "output z parameters"},
      {"SParameters",    PA_BOOL,    0, 1,       (void *)&SParameters, 0,            "output s parameters"},
+     {"Moments",        PA_BOOL,    0, 1,       (void *)&Moments,     0,            "output dipole moments"},
 //
      {"portcurrentfile", PA_STRING,  1, 1,      (void *)&PCFile,     0,             "port current file"},
      {"EPFile",         PA_STRING,  1, 1,       (void *)&EPFile,     0,             "list of evaluation points"},
@@ -119,27 +116,10 @@ EnableAllCPUs();
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
-{"SkipInterior",       PA_INT,    1, 1,       (void *)&SkipInterior,   0,             "Skipinterior"},
-{"SkipExterior",       PA_INT,    1, 1,       (void *)&SkipExterior,   0,             "Skipexterior"},
 //
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
-
-  /***************************************************************/
-  /* handle the --meshfile option first **************************/
-  /***************************************************************/
-#if 0
-  if (MeshFile)
-   { 
-     RWGSurface *S=new RWGSurface(MeshFile);
-     S->WritePPMesh(GetFileBase(MeshFile), GetFileBase(MeshFile));
-     S->WritePPMeshLabels(GetFileBase(MeshFile),0,4);
-     fprintf(stderr,"Visualization file written to %s.pp.\n",GetFileBase(MeshFile));
-     fprintf(stderr,"Thank you for your support.\n");
-     exit(1);
-   };
-#endif
 
   /***************************************************************/
   /* create the log file *****************************************/
@@ -170,6 +150,22 @@ EnableAllCPUs();
 
   int NumPorts;
   RWGPort **Ports=ParsePortFile(G, PortFile, &NumPorts);
+
+  if (PlotPorts)
+   { 
+     fprintf(stderr,"--PlotPorts option was specified; plotting ports ONLY.\n");
+     for(int np=0; np<NumPorts; np++)
+      { fprintf(stderr," Port %2i, positive edge: %i edges (perimeter %e)\n", NumPorts, 
+                         Ports[np]->NumPEdges, Ports[np]->PPerimeter);
+        fprintf(stderr," Port %2i, negative edge: %i edges (perimeter %e)\n", NumPorts, 
+                         Ports[np]->NumMEdges, Ports[np]->MPerimeter);
+      };
+     
+     PlotPortsInGMSH(Ports, NumPorts, "%s.ports.pp", GetFileBase(G->GeoFileName));
+     fprintf(stderr,"RF ports plotted to file %s.ports.pp.\n",GetFileBase(G->GeoFileName));
+     fprintf(stderr,"Thank you for your support.\n");
+     exit(1);
+   };
 
   /***************************************************************/ 
   /* parse the port-current list if that was specified           */ 
@@ -290,6 +286,21 @@ EnableAllCPUs();
    };
 
   /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  HVector *PM=0;
+  FILE *MomentFile=0;
+  FILE *PSDFile=0;
+  char PSDFileName[1000];
+  HMatrix *PSD=0;
+  if (Moments)
+   { PM=new HVector(6*G->NumSurfaces, LHM_COMPLEX);
+     MomentFile=vfopen("%s.moments","w",GetFileBase(G->GeoFileName));
+     PSDFile=vfopen("%s.psd","w",GetFileBase(G->GeoFileName));
+     PSD=new HMatrix(G->TotalPanels, 12, LHM_COMPLEX);
+   };
+
+  /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
   /* may have specified                                              */
   /*******************************************************************/
@@ -302,7 +313,7 @@ EnableAllCPUs();
   if (Cache)
    PreloadCache( Cache );
 
-  /***************************************************************/
+  /***************************************************************/  
   /* sweep over frequencies                                      */
   /* note: Freq is measured in GHz, while Omega is measured in   */
   /* our natural unit for angular frequency, which is            */
@@ -347,8 +358,47 @@ EnableAllCPUs();
             KN->Zero();
             AddPortContributionsToRHS(G, Ports, NumPorts, PortCurrents, Omega, KN);
 
+            /*--------------------------------------------------------------*/
+            /*--------------------------------------------------------------*/
+            /*--------------------------------------------------------------*/
+            if (Moments)
+             { G->GetDipoleMoments(Omega, KN, PM);
+               SetDefaultCD2SFormat("%+.6e %+.6e");
+               for(int ns=0; ns<G->NumSurfaces; ns++)
+                fprintf(MomentFile,"%e %i BEFORE %s %s %s %s %s %s %s \n",
+                                    real(Omega),G->TotalPanels,G->Surfaces[ns]->Label,
+                                    CD2S(PM->GetEntry(6*ns+0)), CD2S(PM->GetEntry(6*ns+1)), CD2S(PM->GetEntry(6*ns+2)),
+                                    CD2S(PM->GetEntry(6*ns+3)), CD2S(PM->GetEntry(6*ns+4)), CD2S(PM->GetEntry(6*ns+5)));
+               G->PlotSurfaceCurrents(KN, Omega, "%s_Before.pp",GetFileBase(G->GeoFileName));
+
+               G->GetPanelSourceDensities(Omega, KN, PSD);
+               sprintf(PSDFileName,"%s.%g.Before.PSD",GetFileBase(G->GeoFileName),Freq);
+               PSD->ExportToText(PSDFileName);
+             };
+                
+            /*--------------------------------------------------------------*/
+            /*--------------------------------------------------------------*/
+            /*--------------------------------------------------------------*/
             Log("  solving the BEM system");
             M->LUSolve(KN);
+
+            /*--------------------------------------------------------------*/
+            /*--------------------------------------------------------------*/
+            /*--------------------------------------------------------------*/
+            if (Moments)
+             { G->GetDipoleMoments(Omega, KN, PM);
+               SetDefaultCD2SFormat("%+.6e %+.6e");
+               for(int ns=0; ns<G->NumSurfaces; ns++)
+                fprintf(MomentFile,"%e %i AFTER %s %s %s %s %s %s %s \n",
+                                    real(Omega),G->TotalPanels,G->Surfaces[ns]->Label,
+                                    CD2S(PM->GetEntry(6*ns+0)), CD2S(PM->GetEntry(6*ns+1)), CD2S(PM->GetEntry(6*ns+2)),
+                                    CD2S(PM->GetEntry(6*ns+3)), CD2S(PM->GetEntry(6*ns+4)), CD2S(PM->GetEntry(6*ns+5)));
+               G->PlotSurfaceCurrents(KN, Omega, "%s_After.pp",GetFileBase(G->GeoFileName));
+
+               G->GetPanelSourceDensities(Omega, KN, PSD);
+               sprintf(PSDFileName,"%s.%g.After.PSD",GetFileBase(G->GeoFileName),Freq);
+               PSD->ExportToText(PSDFileName);
+             };
 
             Log("  computing port voltages");
             GetPortVoltages(G, KN, Ports, NumPorts, PortCurrents, Omega, PortVoltages);
@@ -357,7 +407,7 @@ EnableAllCPUs();
             /* of the measured port voltage, because the Z-matrix is    */
             /* defined using the usual circuit theory convention in     */
             /* which all quantities have time dependence exp(+iwt),     */
-            /* whereas scuff-EMuses the opposite sign convention.       */
+            /* whereas scuff-EM uses the opposite sign convention.      */
             for(npp=0; npp<NumPorts; npp++)
              ZMatrix->SetEntry(np, npp, conj(PortVoltages[npp]));
           };
@@ -394,6 +444,7 @@ EnableAllCPUs();
       if (EPFile)
        { 
          Log(" Computing radiated fields..."); 
+
          /*--------------------------------------------------------------*/
          /* get the RHS vector corresponding to the user-specified port  */
          /* currents at this frequency                                   */
@@ -412,6 +463,7 @@ EnableAllCPUs();
          M->LUSolve(KN);
          Log("  evaluating fields at user-specified evaluation points");
          ProcessEPFile(G, KN, Omega, Ports, NumPorts, PortCurrents, EPFile);
+
        };
 
    }; // for (nf=0, Freq=FreqList->GetEntryD(0); nf<FreqList->N; Freq=FreqList->GetEntryD(++nf) )
@@ -427,5 +479,7 @@ EnableAllCPUs();
    { fclose(ZParFile);
      printf("S-parameters vs. frequency written to file %s\n",SParFileName);
    };
+  if (Moments)
+   fclose(MomentFile);
   printf("Thank you for your support.\n");
 }

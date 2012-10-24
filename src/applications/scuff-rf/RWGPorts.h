@@ -75,7 +75,8 @@ void GetPortVoltages(RWGGeometry *G, HVector *KN,
                      RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
                      cdouble Omega, cdouble *PortVoltages);
 
-void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts);
+void PlotPortsinGNUPLOT(const char *GPFileName, RWGPort **Ports, int NumPorts);
+void PlotPortsInGMSH(RWGPort **Ports, int NumPorts, char *format, ...);
 void DrawGMSHCircle(const char *PPFile, const char *Name,
                     double *X0, double Theta, double Phi, double Radius);
 

@@ -242,7 +242,6 @@ if (PortPanelCharges==0)
   RWGSurface *S;
   RWGEdge *E;
   int PIOffset;
-
   for(BFIndex=0, ns=0; ns<G->NumSurfaces; ns++)
    { 
      S=G->Surfaces[ns];
@@ -257,29 +256,12 @@ if (PortPanelCharges==0)
 
    };
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*! 20120701 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (SkipInterior)
- memset(PanelCharges, 0, NumPanels*sizeof(cdouble));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*! 20120701 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   /*--------------------------------------------------------------*/
   /*- contributions of driven ports ------------------------------*/
   /*--------------------------------------------------------------*/
   int nPort, nPanel;
   RWGPort *Port;
   cdouble PortCurrent;
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*! 20120701 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (SkipExterior==0)
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   for(nPort=0; nPort<NumPorts; nPort++)
    { 
      PortCurrent=PortCurrents[nPort];
@@ -333,36 +315,6 @@ TotalVP+=PanelCharges[G->PanelIndexOffset[ns] + nPanel]*VP;
 TotalVM+=PanelCharges[G->PanelIndexOffset[ns] + nPanel]*VM;
      };
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-{ int no, nop, np, npp;
-  RWGSurface *O, *OP;
-FILE *f=fopen("doom.out","a");
-cdouble V;
-double *X;
-for(no=0; no<G->NumSurfaces; no++)
- for(O=G->Surfaces[no], np=0; np<S->NumPanels; np++)
-  { 
-    X=S->Panels[np]->Centroid;
-
-    for(V=0.0, nop=0; nop<G->NumSurfaces; nop++)
-     for(OP=G->Surfaces[nop], npp=0; npp<OP->NumPanels; npp++)
-      V+=PanelCharges[G->PanelIndexOffset[nop] + npp]*GetPanelPotential(OP, npp, IK, X);
-
-    fprintf(f,"%e %e %e %e %e \n",X[0],X[1],X[2],real(V),imag(V));
-    if ( np+1 == S->NumPanels)  
-     fprintf(f,"\n\n");
-  };
-fclose(f);
-}
-#endif 
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   /***************************************************************/
   /* next get the contribution to the port voltage from the line */
   /* integral of iwA                                             */
@@ -379,7 +331,7 @@ fclose(f);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 if (BreakoutFile)
  fprintf(BreakoutFile,"%s %e %e %e %e %e %e %e %e\n",
-         z2s(Omega/FREQ2OMEGA), 
+         z2s(Omega/FREQ2OMEGA),
          real(TotalVP),imag(TotalVP),
          real(TotalVM),imag(TotalVM),
          real(iwAI),imag(iwAI),

@@ -384,6 +384,9 @@ class RWGGeometry
    cdouble GetScatteredPower(HVector *KN, cdouble Omega, int SurfaceIndex);
    cdouble GetScatteredPower(HVector *KN, cdouble Omega, char *SurfaceLabel);
 
+   /* routine for calculating charge and current densities at panel centroids */
+   HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
+
    /* routine for calculating electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
 

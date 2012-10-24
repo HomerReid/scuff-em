@@ -35,8 +35,8 @@
 #include <libscuff.h>
 #include <libSGJC.h>
 
-#define ABSTOL 1.0e-8
-#define RELTOL 1.0e-4
+#define ABSTOL 0.0
+#define RELTOL 1.0e-3
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 int WhichCase;
@@ -45,6 +45,23 @@ int WhichCase;
 #define II cdouble(0.0,1.0)
 
 using namespace scuff;
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int AICheck(const char *FileName, int LineNum, 
+            double *I, double *E, double AbsTol, double RelTol, int Length)
+{
+  int ViolationFound=0;
+
+  for (int n=0; n<Length; n++)
+   if ( (E[n] > AbsTol) && (E[n] > RelTol*fabs(I[n]) ) )
+    { ViolationFound=1;
+      Log("AI(%s:%i): (I,E)[%i]=(%.1e,%.1e)",FileName,LineNum,n,I[n],E[n]);
+    };
+
+  return ViolationFound;
+}
 
 /***************************************************************/
 /***************************************************************/
@@ -152,7 +169,9 @@ void GetPotentialsAtPanelVertex(double *V1, double *V2, double *V3,
   double Error[6];
 
   adapt_integrate(6, PAPVIntegrand, (void *)D, 1, &Lower, &Upper,
-		  0, ABSTOL, RELTOL, (double *)Integral, Error);
+		  1000, ABSTOL, RELTOL, (double *)Integral, Error);
+
+  AICheck(__FILE__,__LINE__,(double *)Integral,Error,ABSTOL,RELTOL,6);
   
   /***************************************************************/
   /* multiply the integrals by 2*A (A=panel area), the jacobian  */
@@ -333,7 +352,8 @@ WhichCase=0;
   double Upper[2]={1.0, 1.0};
   double Error[8];
   adapt_integrate(8, GPPIntegrand, (void *)GPPD, 2, Lower, Upper,
-		  0, ABSTOL, RELTOL, (double *)PhiA, Error);
+		  1000, ABSTOL, RELTOL, (double *)PhiA, Error);
+  AICheck(__FILE__,__LINE__,(double *)PhiA,Error,ABSTOL,RELTOL,8);
 
   PhiA[0] *= 2.0 * ZVAC * Length / (IK);
   PhiA[1] *= IK * ZVAC * Length;
@@ -474,7 +494,8 @@ void GetPanelPotentials2(RWGSurface *S, int np, int iQ,
   double Upper[2]={1.0, 1.0};
   cdouble Potentials[9], Error[9];
   adapt_integrate(18, GPP2Integrand, (void *)GPPD, 2, Lower, Upper,
-		   0, ABSTOL, RELTOL, (double *)Potentials, (double *)Error);
+		  1000, ABSTOL, RELTOL, (double *)Potentials, (double *)Error);
+  AICheck(__FILE__,__LINE__,(double *)Potentials,(double *)Error,ABSTOL,RELTOL,18);
 
   A[0] = Length * Potentials[0];
   A[1] = Length * Potentials[1];

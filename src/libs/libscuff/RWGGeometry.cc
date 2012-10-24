@@ -498,6 +498,15 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   SurfaceMoved=(int *)mallocEC(NumSurfaces*sizeof(int));
 
+  /***************************************************************/
+  /* 20121022 TAKE ME OUT ****************************************/
+  /***************************************************************/
+  if ( getenv("TAYLORDUFFY") )
+   { Log("Using V1P0 routines for taylor-duffy FIPPI computation");
+     UseTaylorDuffyV2P0=false;
+   };
+     
+
 }
 
 /***************************************************************/

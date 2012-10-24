@@ -343,10 +343,10 @@ RWGPort **ParsePortFile(RWGGeometry *G,
          { 
            if (NumPEdges==0)
             ErrExit("%s:%i: no edges specified or detected for positive port",PortFileName,LineNum);
-/*
+
            if (NumMEdges==0)
             ErrExit("%s:%i: no edges specified or detected for negative port",PortFileName,LineNum);
-*/
+
            
            PortArray = (RWGPort **)realloc( PortArray, (NumPorts+1)*sizeof(PortArray[0]) );
            PortArray[NumPorts] = CreatePort(PSurface, NumPEdges, PEIndices,
@@ -627,7 +627,7 @@ void AddPortContributionsToRHS(RWGGeometry *G,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts)
+void PlotPortsInGNUPLOT(const char *GPFileName, RWGPort **Ports, int NumPorts)
 {
   FILE *f=fopen(GPFileName,"w");
 
@@ -676,6 +676,76 @@ void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts)
 
    };
 
+  fclose(f);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void PlotPortsInGMSH(RWGPort **Ports, int NumPorts, char *format, ...)
+{
+  /***************************************************************/
+  /* open the file ***********************************************/
+  /***************************************************************/
+  va_list ap;
+  char FileName[1000];
+  va_start(ap,format);
+  vsnprintfEC(FileName,997,format,ap);
+  va_end(ap);
+
+  FILE *f=fopen(FileName,"w");
+  fprintf(f,"View \"%s\" {\n","Ports");
+
+  /***************************************************************/
+  /* loop over all ports on all surfaces *************************/
+  /***************************************************************/
+  RWGSurface *S;
+  RWGPort *Port;
+  int nPort, nPanel, PanelIndex, PaneliQ;
+  double *V1, *V2;
+  for(nPort=0; nPort<NumPorts; nPort++)
+   { 
+     Port=Ports[nPort];
+
+     /*--------------------------------------------------------------*/
+     /*- plot scalar points for the positive and negative ref points-*/
+     /*--------------------------------------------------------------*/
+     fprintf(f,"SP(%e,%e,%e) {%i};\n",
+                Port->PRefPoint[0],Port->PRefPoint[1],Port->PRefPoint[2],nPort+1);
+     fprintf(f,"SP(%e,%e,%e) {-%i};\n",
+                Port->MRefPoint[0],Port->MRefPoint[1],Port->MRefPoint[2],nPort+1);
+
+     /*--------------------------------------------------------------*/
+     /*- plot scalar lines for the positive and negative port edges  */
+     /*--------------------------------------------------------------*/
+     S=Port->PSurface;
+     for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
+      { 
+        PanelIndex = Port->PPanelIndices[nPanel]; 
+        PaneliQ    = Port->PPaneliQs[nPanel]; 
+        V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
+        V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
+        fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {%i,%i};\n",
+                   V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],nPort+1,nPort+1);
+        fprintf(f,"\n\n");
+      };
+
+     S=Port->MSurface;
+     for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
+      { 
+        PanelIndex = Port->MPanelIndices[nPanel]; 
+        PaneliQ    = Port->MPaneliQs[nPanel]; 
+        V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
+        V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
+        fprintf(f,"\n\n");
+        fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {-%i,-%i};\n",
+                   V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],nPort+1,nPort+1);
+      };
+
+   };
+
+  fprintf(f,"};\n");
   fclose(f);
 
 }
