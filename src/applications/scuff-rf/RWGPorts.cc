@@ -261,6 +261,59 @@ int FindEdgesInPolygon(RWGSurface *S,
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void AutoSelectRefPoints(RWGPort *Port)
+{ 
+  RWGSurface *PS = Port->PSurface, *MS = Port->MSurface;
+  RWGPanel *PPanel, *MPanel;
+  int iPPanel, iMPanel;
+  int PiQ, MiQ;
+  double *V1P, *V2P, *V1M, *V2M, VMidP[3], VMidM[3];
+  double ThisDistance, MinDistance=0.0;
+
+  for(int nppe=0; nppe<Port->NumPEdges; nppe++)
+   { 
+     iPPanel = Port->PPanelIndices[nppe];
+     PPanel  = PS->Panels[iPPanel];
+     PiQ     = Port->PPaneliQs[nppe]; 
+     V1P     = PS->Vertices + 3*PPanel->VI[ (PiQ+1)%3 ];
+     V2P     = PS->Vertices + 3*PPanel->VI[ (PiQ+2)%3 ];
+     VMidP[0]  = 0.5*(V1P[0] + V2P[0]);
+     VMidP[1]  = 0.5*(V1P[1] + V2P[1]);
+     VMidP[2]  = 0.5*(V1P[2] + V2P[2]);
+
+     for(int nmpe=0; nmpe<Port->NumMEdges; nmpe++)
+      { 
+        iMPanel = Port->MPanelIndices[nmpe];
+        MPanel  = MS->Panels[iMPanel];
+        MiQ     = Port->MPaneliQs[nmpe]; 
+        V1M     = MS->Vertices + 3*MPanel->VI[ (MiQ+1)%3 ];
+        V2M     = MS->Vertices + 3*MPanel->VI[ (MiQ+2)%3 ];
+        VMidM[0]  = 0.5*(V1M[0] + V2M[0]);
+        VMidM[1]  = 0.5*(V1M[1] + V2M[1]);
+        VMidM[2]  = 0.5*(V1M[2] + V2M[2]);
+    
+        if (nppe==0 && nmpe==0)
+         { MinDistance = VecDistance(VMidP, VMidM);
+           memcpy(Port->PRefPoint, VMidP, 3*sizeof(double));
+           memcpy(Port->MRefPoint, VMidM, 3*sizeof(double));
+         }
+        else
+         { ThisDistance = VecDistance(VMidP, VMidM);
+           if (ThisDistance < MinDistance) 
+            { MinDistance = ThisDistance;
+              memcpy(Port->PRefPoint, VMidP, 3*sizeof(double));
+              memcpy(Port->MRefPoint, VMidM, 3*sizeof(double));
+            };
+         };
+      };
+
+    };
+
+} 
+
+/***************************************************************/
 /* port file syntax example                                    */
 /*  PORT                                                       */
 /*   POBJECT   FirstObjectLabel                                */
@@ -352,9 +405,12 @@ RWGPort **ParsePortFile(RWGGeometry *G,
            PortArray[NumPorts] = CreatePort(PSurface, NumPEdges, PEIndices,
                                             MSurface, NumMEdges, MEIndices);
 
+           AutoSelectRefPoints(PortArray[NumPorts]);
+
+
            if (PRefPointSpecified) 
             memcpy(PortArray[NumPorts]->PRefPoint, PRefPoint, 3*sizeof(double));
-           if (MRefPointSpecified) 
+           if (MRefPointSpecified)
             memcpy(PortArray[NumPorts]->MRefPoint, MRefPoint, 3*sizeof(double));
 
            NumPorts++;
