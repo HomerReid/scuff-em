@@ -464,7 +464,6 @@ void ComputeQIFIPPIData_Cubature(double **Va, double **Vb, QIFIPPIData *QIFD)
 /*--------------------------------------------------------------*/
 void ComputeQIFIPPIData(double **Va, double **Vb, int ncv, QIFIPPIData *QIFD)
 { 
-  
   /*--------------------------------------------------------------*/
   /*- if there are no common vertices, then use 4-dimensional    -*/
   /*- adaptive cubature over both triangles to compute the FIPPIs-*/
