@@ -44,6 +44,9 @@
 #define II cdouble(0.0,1.0)
 
 using namespace scuff;
+int AICheck(const char *FileName, int LineNum, 
+            double *I, double *E, double AbsTol, double RelTol, int Length);
+FILE *LogFile=0;
 
 /***************************************************************/
 /***************************************************************/
@@ -174,6 +177,8 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+if (LogFile)
+ fprintf(LogFile,"%e %e %e %e %e \n",X[0],X[1],X[2],real(iwAI),imag(iwAI));
   *(cdouble *)fval=iwAI;
 
 }
@@ -201,10 +206,19 @@ cdouble iwAIntegral(RWGGeometry *G, HVector *KN,
 
   double Lower=0.0;
   double Upper=1.0;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+LogFile=fopen("/tmp/doom.log","a");
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   adapt_integrate(2, iwaIntegrand, (void *)iwAID, 1, 
                   &Lower, &Upper,
-		  0, RELTOL*fabs(RefVal), RELTOL,
+		  1000, RELTOL*fabs(RefVal), RELTOL,
 		  (double *)&iwAI, (double *)&Error);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+fprintf(LogFile,"\n\n");
+fclose(LogFile);
+  AICheck(__FILE__,__LINE__, (double *)&iwAI, (double *)&Error, 
+          RELTOL*fabs(RefVal), RELTOL, 2);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   return iwAI;
 }
