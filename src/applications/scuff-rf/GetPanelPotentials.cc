@@ -55,7 +55,8 @@ int AICheck(const char *FileName, int LineNum,
   int ViolationFound=0;
 
   for (int n=0; n<Length; n++)
-   if ( (E[n] > AbsTol) && (E[n] > RelTol*fabs(I[n]) ) )
+   //if ( (E[n] > AbsTol) && (E[n] > RelTol*fabs(I[n]) ) )
+   if ( (E[n] > 0.1*fabs(I[n])) )
     { ViolationFound=1;
       Log("AI(%s:%i): (I,E)[%i]=(%.1e,%.1e)",FileName,LineNum,n,I[n],E[n]);
     };
