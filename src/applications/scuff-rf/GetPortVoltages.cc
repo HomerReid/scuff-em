@@ -46,6 +46,7 @@
 using namespace scuff;
 int AICheck(const char *FileName, int LineNum, 
             double *I, double *E, double AbsTol, double RelTol, int Length);
+int WriteLogFile=0;
 FILE *LogFile=0;
 
 /***************************************************************/
@@ -125,9 +126,9 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
          iwA[2] = PhiAP[3] - PhiAM[3];
        };
 
-      iwAI += KN->GetEntry(BFIndex) * (  (PhiAP[1]-PhiAM[1])*X2mX1[0]
-                                        +(PhiAP[2]-PhiAM[2])*X2mX1[1]
-                                        +(PhiAP[3]-PhiAM[3])*X2mX1[2]
+      iwAI += KN->GetEntry(BFIndex) * (  iwA[0]*X2mX1[0]
+                                        +iwA[1]*X2mX1[1]
+                                        +iwA[2]*X2mX1[2]
                                       );
     };
 
@@ -207,15 +208,22 @@ cdouble iwAIntegral(RWGGeometry *G, HVector *KN,
   double Lower=0.0;
   double Upper=1.0;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-LogFile=fopen("/tmp/doom.log","a");
+if (WriteLogFile)
+ LogFile=fopen("/tmp/doom.log","a");
+else
+ LogFile=0;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   adapt_integrate(2, iwaIntegrand, (void *)iwAID, 1, 
                   &Lower, &Upper,
 		  1000, RELTOL*fabs(RefVal), RELTOL,
 		  (double *)&iwAI, (double *)&Error);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-fprintf(LogFile,"\n\n");
-fclose(LogFile);
+if (LogFile)
+ { fprintf(LogFile,"\n\n");
+   fclose(LogFile);
+   LogFile=0;
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   AICheck(__FILE__,__LINE__, (double *)&iwAI, (double *)&Error, 
           RELTOL*fabs(RefVal), RELTOL, 2);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/

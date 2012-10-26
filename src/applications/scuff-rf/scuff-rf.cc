@@ -40,6 +40,10 @@
 #define FREQ2OMEGA (2.0*M_PI/300.0)
 #define II cdouble(0.0,1.0)
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+extern int WriteLogFile;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 using namespace scuff;
 
 #define MAXFREQ  10    // max number of frequencies 
@@ -116,6 +120,8 @@ int main(int argc, char *argv[])
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
+//
+     {"WriteLogFile",   PA_BOOL,    0, 1,       (void *)&WriteLogFile, 0,           "write new log file"},
 //
      {0,0,0,0,0,0,0}
    };
