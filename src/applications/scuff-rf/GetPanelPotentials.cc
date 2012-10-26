@@ -66,6 +66,52 @@ int AICheck(const char *FileName, int LineNum,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetEdgeiwA_Multipole(RWGSurface *S, int ne, cdouble IK, double X[3], cdouble iwA[3])
+{
+  RWGEdge *E = S->Edges[ne];
+
+  double *QP = S->Vertices + 3*(E->iQP);
+  double *V1 = S->Vertices + 3*(E->iV1);
+  double *V2 = S->Vertices + 3*(E->iV2);
+  double *QM = S->Vertices + 3*(E->iQM);
+
+  double R[3];
+  R[0] = X[0] - E->Centroid[0]; 
+  R[1] = X[1] - E->Centroid[1]; 
+  R[2] = X[2] - E->Centroid[2]; 
+  double r2 = R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
+  double r  = sqrt(r2);
+  
+  cdouble IKR = IK*r;
+  cdouble Phi = IK * ZVAC * E->Length * exp(IKR) / (4.0*M_PI*r);
+  cdouble Psi = (IKR - 1.0) * Phi / r2;
+
+  double Contraction1 
+   =   (QP[0]-QM[0])*R[0] 
+     + (QP[1]-QM[1])*R[1] 
+     + (QP[2]-QM[2])*R[2]; 
+
+  double Contraction2 
+   =  (V1[0] + V2[0] - 2.0*QP[0])*R[0]
+     +(V1[1] + V2[1] - 2.0*QP[1])*R[1]
+     +(V1[2] + V2[2] - 2.0*QP[2])*R[2];
+
+  double Contraction3 
+   =  (V1[0] + V2[0] - 2.0*QM[0])*R[0]
+     +(V1[1] + V2[1] - 2.0*QM[1])*R[1]
+     +(V1[2] + V2[2] - 2.0*QM[2])*R[2];
+
+  for(int i=0; i<3; i++)
+   iwA[i] =   Phi * (QM[i]-QP[i]) / 3.0
+            - Psi * (  (V1[i]+V2[i])*Contraction1
+                             + QP[i]*Contraction2
+                             - QM[i]*Contraction3
+                    ) / 24.0;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 typedef struct PAPVData
  { 
    double A[3];   // V2 - V1 

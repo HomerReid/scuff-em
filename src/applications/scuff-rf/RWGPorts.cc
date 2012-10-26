@@ -47,6 +47,10 @@
 #define MAXEDGES 100           // max # of edges in (each half of) a port
 #define MAXPOLYGONVERTICES 30
 
+#ifdef USE_OPENMP
+#  include <omp.h>
+#endif
+
 using namespace scuff;
 
 /***************************************************************/
@@ -584,6 +588,10 @@ void AddPortContributionsToRHS(RWGGeometry *G,
   /* fill in (actually augment) entries of the RHS vector one-by-*/
   /* one                                                         */
   /***************************************************************/
+  int NumThreads=GetNumThreads();
+//#ifdef USE_OPENMP
+//#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+//#endif
   for(BFIndex=0, ns=0; ns<G->NumSurfaces; ns++)
    { 
      DestSurface=G->Surfaces[ns];

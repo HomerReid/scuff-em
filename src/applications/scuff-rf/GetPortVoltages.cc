@@ -53,8 +53,11 @@ void GetPanelPotentials(RWGSurface *S, int np, int iQ, cdouble IK,
 
 cdouble GetPanelPotential(RWGSurface *S, int np, cdouble IK, double *X);
 namespace scuff{
+
 cdouble GetEdgePanelInteraction(double **PV, double **EV, cdouble K);
+
 }
+void GetEdgeiwA_Multipole(RWGSurface *S, int ne, cdouble IK, double X[3], cdouble iwA[3]);
 
 /***************************************************************/
 /* integrand function used to evaluate the line integral       */
@@ -100,7 +103,7 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
   /*- contributions of interior edges ----------------------------*/
   /*--------------------------------------------------------------*/
   int BFIndex, ns, ne;
-  cdouble PhiAP[4], PhiAM[4], iwAI;
+  cdouble PhiAP[4], PhiAM[4], iwA[3], iwAI;
   RWGSurface *S;
   RWGEdge *E;
   iwAI=0.0;
@@ -108,8 +111,17 @@ void iwaIntegrand(unsigned ndim, const double *x, void *params,
    for(S=G->Surfaces[ns], ne=0; ne<S->NumEdges; ne++, BFIndex++)
     { 
       E=S->Edges[ne];
-      GetPanelPotentials(S, E->iPPanel, E->PIndex, IK, X, PhiAP);
-      GetPanelPotentials(S, E->iMPanel, E->MIndex, IK, X, PhiAM);
+  
+      if ( VecDistance(X, E->Centroid) > 3.0*E->Radius )
+       GetEdgeiwA_Multipole(S, ne, IK, X, iwA);
+      else
+       { GetPanelPotentials(S, E->iPPanel, E->PIndex, IK, X, PhiAP);
+         GetPanelPotentials(S, E->iMPanel, E->MIndex, IK, X, PhiAM);
+         iwA[0] = PhiAP[1] - PhiAM[1];
+         iwA[1] = PhiAP[2] - PhiAM[2];
+         iwA[2] = PhiAP[3] - PhiAM[3];
+       };
+
       iwAI += KN->GetEntry(BFIndex) * (  (PhiAP[1]-PhiAM[1])*X2mX1[0]
                                         +(PhiAP[2]-PhiAM[2])*X2mX1[1]
                                         +(PhiAP[3]-PhiAM[3])*X2mX1[2]
