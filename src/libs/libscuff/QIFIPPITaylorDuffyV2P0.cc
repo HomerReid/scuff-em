@@ -132,8 +132,8 @@ void TaylorDuffySum_FIPPI(unsigned ndim, const double *yVector, void *parms,
   /*- prefetch values of the the Alpha, Beta, Gamma coefficients  */
   /*- for all subregions.                                         */
   /*--------------------------------------------------------------*/
-  double A[6], B[6], G[6];
-  GetAlphaBetaGamma_FIPPI(W, yVector, A, B, G);
+  double A[6], B[6], G2[6];
+  GetAlphaBetaGamma_FIPPI(W, yVector, A, B, G2);
 
   /*--------------------------------------------------------------*/
   /*- precompute the \mathcal{J} and \mathcal{L} functions for    */
@@ -163,7 +163,7 @@ void TaylorDuffySum_FIPPI(unsigned ndim, const double *yVector, void *parms,
   double IntQFP[4], IntyQFP[4];
   for(int d=0; d<NumRegions; d++)
    { 
-     GetQFPIntegrals_FIPPI(B[d], G[d], IntQFP, IntyQFP);
+     GetQFPIntegrals_FIPPI(B[d], G2[d], IntQFP, IntyQFP);
      A2=A[d]*A[d];
      A3=A2*A[d];
    
@@ -217,6 +217,8 @@ void TaylorDuffySum_FIPPI(unsigned ndim, const double *yVector, void *parms,
      for(int n=nMinXXEE; n<=nMaxXXEE; n++)
       f[nSum] += Jacobian*(  W->PXXEE[np][d][n][0]*Jrp[nk][d][n+nOffset] 
                            + W->PXXEE[np][d][n][1]*Lrp[nk][d][n+nOffset] );
+
+
 }
 
 /***************************************************************/
@@ -313,15 +315,15 @@ void ComputeQIFIPPIData_TaylorDuffyV2P0(double *V1, double *V2, double *V3,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void PQRtoABG(double P, double Q, double R, double *A, double *B, double *G)
+static void PQRtoABG2(double P, double Q, double R, double *A, double *B, double *G2)
 { 
   *A=sqrt(P);
   *B=Q/P;
-  *G=sqrt( R/P - (*B)*(*B) );
+  *G2 = R/P - (*B)*(*B);
 }
 
 void GetAlphaBetaGamma_FIPPI(TDWorkspaceFIPPI *W, const double *yVector,
-                             double *AVector, double *BVector, double *GVector)
+                             double *AVector, double *BVector, double *G2Vector)
 {
   if (W->WhichCase==TM_COMMONEDGE)
    { 
@@ -334,35 +336,35 @@ void GetAlphaBetaGamma_FIPPI(TDWorkspaceFIPPI *W, const double *yVector,
      double AdL  = W->AdL;
      double BPdL = W->BPdL;
 
-     PQRtoABG( (BP2 - 2.0*BPdL + L2)*y12, 
-               y1*(L2 + BPdL*(y1-1.0) - (AdL + L2-AdBP)*y1),
-               L2 - 2*AdL*y1 - 2*L2*y1 + A2*y12 + 2*AdL*y12 + L2*y12,
-               AVector+0, BVector+0, GVector+0);
+     PQRtoABG2( (BP2 - 2.0*BPdL + L2)*y12, 
+                y1*(L2 + BPdL*(y1-1.0) - (AdL + L2-AdBP)*y1),
+                L2 - 2*AdL*y1 - 2*L2*y1 + A2*y12 + 2*AdL*y12 + L2*y12,
+                AVector+0, BVector+0, G2Vector+0);
 
-     PQRtoABG( BP2*y12,
-               (BPdL + AdBP*y1 - BPdL*y1)*y1,
-               L2 + 2*AdL*y1 - 2*L2*y1 + (A2 - 2*AdL + L2)*y12,
-               AVector+1, BVector+1, GVector+1);
+     PQRtoABG2( BP2*y12,
+                (BPdL + AdBP*y1 - BPdL*y1)*y1,
+                L2 + 2*AdL*y1 - 2*L2*y1 + (A2 - 2*AdL + L2)*y12,
+                AVector+1, BVector+1, G2Vector+1);
 
-     PQRtoABG( (A2 + 2*AdBP + BP2)*y12, 
-               y1*(AdL*(-1 + y1) + BPdL*(-1 + y1) - (AdBP + BP2)*y1),
-               L2 + 2*BPdL*y1 - 2*L2*y1 + BP2*y12 - 2*BPdL*y12 + L2*y12,
-               AVector+2, BVector+2, GVector+2);
+     PQRtoABG2( (A2 + 2*AdBP + BP2)*y12, 
+                y1*(AdL*(-1 + y1) + BPdL*(-1 + y1) - (AdBP + BP2)*y1),
+                L2 + 2*BPdL*y1 - 2*L2*y1 + BP2*y12 - 2*BPdL*y12 + L2*y12,
+                AVector+2, BVector+2, G2Vector+2);
 
-     PQRtoABG( (A2 + 2*AdBP - 2*AdL + BP2 - 2*BPdL + L2)*y12,
-               y1*(AdL - L2 - (AdBP + BP2)*y1 + BPdL*(1 + y1)),
-               L2 - 2*BPdL*y1 + BP2*y12,
-               AVector+3, BVector+3, GVector+3);
+     PQRtoABG2( (A2 + 2*AdBP - 2*AdL + BP2 - 2*BPdL + L2)*y12,
+                y1*(AdL - L2 - (AdBP + BP2)*y1 + BPdL*(1 + y1)),
+                L2 - 2*BPdL*y1 + BP2*y12,
+                AVector+3, BVector+3, G2Vector+3);
 
-     PQRtoABG( A2*y12, 
-               (AdBP*y1-AdL)*y1, 
-               L2 - 2*BPdL*y1 + BP2*y12,
-               AVector+4, BVector+4, GVector+4);
+     PQRtoABG2( A2*y12, 
+                (AdBP*y1-AdL)*y1, 
+                L2 - 2*BPdL*y1 + BP2*y12,
+                AVector+4, BVector+4, G2Vector+4);
 
-     PQRtoABG( A2*y12,
-               y1*(AdL + AdBP*y1 - AdL*y1),
-               L2 + 2*BPdL*y1 - 2*L2*y1 + BP2*y12 - 2*BPdL*y12 + L2*y12,
-               AVector+5, BVector+5, GVector+5);
+     PQRtoABG2( A2*y12,
+                y1*(AdL + AdBP*y1 - AdL*y1),
+                L2 + 2*BPdL*y1 - 2*L2*y1 + BP2*y12 - 2*BPdL*y12 + L2*y12,
+                AVector+5, BVector+5, G2Vector+5);
    }
   else // (WhichCase==TM_COMMONVERTEX) 
    {
@@ -380,15 +382,15 @@ void GetAlphaBetaGamma_FIPPI(TDWorkspaceFIPPI *W, const double *yVector,
      double BdBP  = W->BdBP;
      double APdBP = W->APdBP;
 
-     PQRtoABG( BP2*y22, 
-               -AdBP*y2 -BdBP*y1*y2 +APdBP*y22,
-               A2 + B2*y1*y1 + AP2*y2*y2 + 2.0*AdB*y1 - 2.0*AdAP*y2 -2.0*BdAP*y1*y2,
-               AVector+0, BVector+0, GVector+0);
+     PQRtoABG2( BP2*y22, 
+                -AdBP*y2 -BdBP*y1*y2 +APdBP*y22,
+                A2 + B2*y1*y1 + AP2*y2*y2 + 2.0*AdB*y1 - 2.0*AdAP*y2 -2.0*BdAP*y1*y2,
+                AVector+0, BVector+0, G2Vector+0);
 
-     PQRtoABG( B2*y22,
-               AdB*y22 - BdAP*y2 - BdBP*y1*y2,
-               A2*y2*y2 + AP2 + BP2*y1*y1 - 2*AdAP*y2 - 2*AdBP*y2*y1 + 2*APdBP*y1,
-               AVector+1, BVector+1, GVector+1);
+     PQRtoABG2( B2*y22,
+                AdB*y22 - BdAP*y2 - BdBP*y1*y2,
+                A2*y2*y2 + AP2 + BP2*y1*y1 - 2*AdAP*y2 - 2*AdBP*y2*y1 + 2*APdBP*y1,
+                AVector+1, BVector+1, G2Vector+1);
 
    };
 
@@ -405,31 +407,55 @@ void GetAlphaBetaGamma_FIPPI(TDWorkspaceFIPPI *W, const double *yVector,
 /* IntyQFP[2] = \int_0^1 dy y [(y+P)^2 + Q^2]^(  1/2)          */
 /* IntyQFP[3] = \int_0^1 dy y [(y+P)^2 + Q^2]^(  2/2)          */
 /***************************************************************/
-void GetQFPIntegrals_FIPPI(double P, double Q, 
+void GetQFPIntegrals_FIPPI(double P, double Q2,
                            double IntQFP[4], double IntyQFP[4])
 {
   double P2     = P*P; 
   double PP1    = P+1.0;
-  double Q2     = Q*Q, Q4=Q2*Q2;
-  double S2     = P*P + Q*Q, S=sqrt(S2), S3=S*S2, S4=S2*S2;
-  double T2     = PP1*PP1 + Q*Q, T=sqrt(T2), T3=T*T2, T4=T2*T2;
-  double LogFac = log( (PP1+T) / (P+S) );
 
-  // p=-3
-  IntQFP[0]  = ( PP1/T - P/S ) / Q2;
-  IntyQFP[0] = -P*IntQFP[0] + 1.0/S - 1.0/T;
+  if ( fabs(Q2) < 1.0e-12 )
+   {
+     double SignP = P>0.0 ? 1.0 : -1.0;
 
-  // p=-1
-  IntQFP[1]  = LogFac;
-  IntyQFP[1] = -P*IntQFP[1] + (T-S);
+     // p=-3
+     IntQFP[0]  = SignP * (P+0.5) / ( P2*PP1*PP1 );
+     IntyQFP[0] = -P*IntQFP[0] + SignP/(P*PP1);
 
-  // p=+1
-  IntQFP[2]  = (T+P*(T-S) + Q2*LogFac) / 2.0;
-  IntyQFP[2] = -P*IntQFP[2] + (T3-S3)/3.0;
+     // p=-1
+     IntQFP[1]  = SignP*log( 1.0 + 1.0/P );
+     IntyQFP[1] = -P*IntQFP[1] + SignP*1.0;
 
-  // p=+2
-  IntQFP[3]  = (T2+S2)/2.0 - 1.0/6.0;
-  IntyQFP[3] = -P*IntQFP[3] + (T4-S4)/4.0;
+     // p=+1
+     IntQFP[2]  = SignP*(P+0.5);
+     IntyQFP[2] = -P*IntQFP[2] + SignP*(P*PP1 + 1.0/3.0); //+ (P<0.0) ? 2.0*P2*P/3.0 : 0.0;
+
+     // p=+3
+     IntQFP[3]  = P*PP1 + 1.0/3.0;
+     IntyQFP[3] = -P*IntQFP[3] + P*P2 + (3.0/2.0)*P2 + P + 0.25;
+   }  
+  else
+   { 
+     double Q4     = Q2*Q2;
+     double S2     = P*P + Q2,  S=sqrt(S2), S3=S*S2, S4=S2*S2;
+     double T2     = PP1*PP1 + Q2, T=sqrt(T2), T3=T*T2, T4=T2*T2;
+     double LogFac = log( (PP1+T) / (P+S) );
+   
+     // p=-3
+     IntQFP[0]  = ( PP1/T - P/S ) / Q2;
+     IntyQFP[0] = -P*IntQFP[0] + 1.0/S - 1.0/T;
+   
+     // p=-1
+     IntQFP[1]  = LogFac;
+     IntyQFP[1] = -P*IntQFP[1] + (T-S);
+   
+     // p=+1
+     IntQFP[2]  = (T+P*(T-S) + Q2*LogFac) / 2.0;
+     IntyQFP[2] = -P*IntQFP[2] + (T3-S3)/3.0;
+   
+     // p=+2
+     IntQFP[3]  = (T2+S2)/2.0 - 1.0/6.0;
+     IntyQFP[3] = -P*IntQFP[3] + (T4-S4)/4.0;
+   };
 
 }
 
