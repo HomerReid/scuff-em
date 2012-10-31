@@ -187,6 +187,7 @@ void TaylorDuffySum_FIPPI(unsigned ndim, const double *yVector, void *parms,
         Jrp[2][d][n] = A2*IntQFP[3] / (1.0 + n + 2.0);
         Lrp[2][d][n] = A2*IntyQFP[3] / (1.0 + n + 2.0);
       };
+
    };
 
   /*--------------------------------------------------------------*/
@@ -217,8 +218,6 @@ void TaylorDuffySum_FIPPI(unsigned ndim, const double *yVector, void *parms,
      for(int n=nMinXXEE; n<=nMaxXXEE; n++)
       f[nSum] += Jacobian*(  W->PXXEE[np][d][n][0]*Jrp[nk][d][n+nOffset] 
                            + W->PXXEE[np][d][n][1]*Lrp[nk][d][n+nOffset] );
-
-
 }
 
 /***************************************************************/
@@ -313,13 +312,34 @@ void ComputeQIFIPPIData_TaylorDuffyV2P0(double *V1, double *V2, double *V3,
 }
 
 /***************************************************************/
-/***************************************************************/
+/* convert a one-variable quadratic expression into a new form:*/
+/*                                                             */
+/*  Px^2 + 2Qx + R -> A^2 [ (x+B)^2 + G^2 ]                    */
+/*                                                             */
+/* note: the quantity G2 is G^2.                               */
+/*                                                             */
+/* 20121029 note: the test case for why we need the second     */
+/* clause for assigning values to B and G2 is the following    */
+/* common-edge triangle pair:                                  */
+/* V1  = -3.320000e+00 0.000000e+00 -4.166667e+01              */
+/* V2  = -2.347595e+00 2.347595e+00 -4.166667e+01              */
+/* V3  = -3.320000e+00 0.000000e+00 -4.500000e+01              */
+/* V3P = -3.320000e+00 0.000000e+00 -4.166667e+01              */
 /***************************************************************/
 static void PQRtoABG2(double P, double Q, double R, double *A, double *B, double *G2)
 { 
   *A=sqrt(P);
   *B=Q/P;
-  *G2 = R/P - (*B)*(*B);
+  //*G2 = R/P - (*B)*(*B);
+
+  double ROverP = R/P;
+  *G2 = ROverP - (*B)*(*B);
+
+  if ( fabs(*G2) < 1.0e-6*ROverP )
+   { *B=0.0;
+     *G2=ROverP;
+   };
+
 }
 
 void GetAlphaBetaGamma_FIPPI(TDWorkspaceFIPPI *W, const double *yVector,
@@ -347,7 +367,7 @@ void GetAlphaBetaGamma_FIPPI(TDWorkspaceFIPPI *W, const double *yVector,
                 AVector+1, BVector+1, G2Vector+1);
 
      PQRtoABG2( (A2 + 2*AdBP + BP2)*y12, 
-                y1*(AdL*(-1 + y1) + BPdL*(-1 + y1) - (AdBP + BP2)*y1),
+                y1*(AdL*(-1.0 + y1) + BPdL*(-1.0 + y1) - (AdBP + BP2)*y1),
                 L2 + 2*BPdL*y1 - 2*L2*y1 + BP2*y12 - 2*BPdL*y12 + L2*y12,
                 AVector+2, BVector+2, G2Vector+2);
 
@@ -413,7 +433,7 @@ void GetQFPIntegrals_FIPPI(double P, double Q2,
   double P2     = P*P; 
   double PP1    = P+1.0;
 
-  if ( fabs(Q2) < 1.0e-12 )
+  if ( fabs(Q2) < 1.0e-8 )
    {
      double SignP = P>0.0 ? 1.0 : -1.0;
 
@@ -427,9 +447,9 @@ void GetQFPIntegrals_FIPPI(double P, double Q2,
 
      // p=+1
      IntQFP[2]  = SignP*(P+0.5);
-     IntyQFP[2] = -P*IntQFP[2] + SignP*(P*PP1 + 1.0/3.0); //+ (P<0.0) ? 2.0*P2*P/3.0 : 0.0;
+     IntyQFP[2] = -P*IntQFP[2] + SignP*(P*PP1 + 1.0/3.0);
 
-     // p=+3
+     // p=+2
      IntQFP[3]  = P*PP1 + 1.0/3.0;
      IntyQFP[3] = -P*IntQFP[3] + P*P2 + (3.0/2.0)*P2 + P + 0.25;
    }  
@@ -456,7 +476,6 @@ void GetQFPIntegrals_FIPPI(double P, double Q2,
      IntQFP[3]  = (T2+S2)/2.0 - 1.0/6.0;
      IntyQFP[3] = -P*IntQFP[3] + (T4-S4)/4.0;
    };
-
 }
 
 /***************************************************************/
