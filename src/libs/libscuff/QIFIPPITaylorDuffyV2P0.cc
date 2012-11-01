@@ -455,7 +455,6 @@ void GetQFPIntegrals_FIPPI(double P, double Q2,
    }  
   else
    { 
-     double Q4     = Q2*Q2;
      double S2     = P*P + Q2,  S=sqrt(S2), S3=S*S2, S4=S2*S2;
      double T2     = PP1*PP1 + Q2, T=sqrt(T2), T3=T*T2, T4=T2*T2;
      double LogFac = log( (PP1+T) / (P+S) );

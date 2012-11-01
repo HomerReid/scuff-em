@@ -36,10 +36,6 @@
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-int ForceNCV=-1; /* 20120625 */
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 namespace scuff {
 
 #define II cdouble(0.0,1.0)
@@ -64,7 +60,9 @@ namespace scuff {
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- relative exponential routine -------------------------------*/
+/*- relative exponential routine. this is not the same routine -*/
+/*- as ExpRelV2P0 defined in TaylorDuffy(); the two computations*/
+/*- have different normalizations.                              */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 #define EXPRELTOL  1.0e-8
@@ -357,11 +355,6 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      ncv=AssessPanelPair(Va, Vb, rMax);
    };
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
- { H[0]=H[1]=0.0; return; } /*  20120625 */
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   /***************************************************************/
   /* if the panels are far apart then just use simple low-order  */
   /* non-desingularized cubature                                 */
@@ -394,8 +387,14 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
      TaylorDuffyArgStruct TDArgStruct, *TDArgs=&TDArgStruct;
      InitTaylorDuffyArgs(TDArgs);
 
+     int PIndex, KIndex;
+     cdouble Error;
+
      TDArgs->WhichCase=ncv;
-     TDArgs->GParam=k;
+     TDArgs->NumPKs=1;
+     TDArgs->PIndex=&PIndex;
+     TDArgs->KIndex=&KIndex;
+     TDArgs->KParam=&k;
      TDArgs->V1=Va[0];
      TDArgs->V2=Va[1];
      TDArgs->V3=Va[2];
@@ -403,23 +402,28 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
      TDArgs->V3P=Vb[2];
      TDArgs->Q=Qa;
      TDArgs->QP=Qb;
+     TDArgs->Error=&Error;
 
-     TDArgs->WhichG=TM_EIKR_OVER_R;
-     TDArgs->WhichH=TM_DOTPLUS;
+     PIndex=TM_DOTPLUS;
      if ( InSWRegime && RWGGeometry::UseHighKTaylorDuffy )
-      H[0]=HighKTaylorDuffy(TDArgs);
+      KIndex=TM_HIGHK_HELMHOLTZ;
      else
-      H[0]=TaylorDuffy(TDArgs);
+      KIndex=TM_HELMHOLTZ;
+     TDArgs->Result = H+0;
+     TaylorDuffy(TDArgs);
 
      if (ncv==3)
       H[1]=0.0; /* 'C' kernel integral vanishes for the common-triangle case */
      else
-      { TDArgs->WhichG=TM_GRADEIKR_OVER_R;
-        TDArgs->WhichH=TM_CROSS;
+      { 
+        PIndex=TM_CROSS;
         if ( InSWRegime && RWGGeometry::UseHighKTaylorDuffy )
-         H[1]=HighKTaylorDuffy(TDArgs);
+         KIndex=TM_HIGHK_GRADHELMHOLTZ;
         else
-         H[1]=TaylorDuffy(TDArgs);
+         KIndex=TM_HIGHK_HELMHOLTZ;
+
+        TDArgs->Result = H+1;
+        TaylorDuffy(TDArgs);
       };
 
      if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));
