@@ -40,13 +40,29 @@ namespace scuff {
 
 #define II cdouble(0.0,1.0)
 
-// the 'short-wavelength threshold:' we are in the short-wavelength
-// (high-frequency) regime if |k*PanelRadius| > SWTHRESHOLD
+/**********************************************************************/
+/* short-wavelength thresholds: we are in the 'short-wavelength'      */
+/* regime if |k*PanelRadius| > SWTHRESHOLD, and we are in the         */
+/* 'very-short-wavelength' regime if |k*PanelRadius|>VERYSWTHRESHOLD. */
+/*                                                                    */
+/* note:                                                              */
+/* (a) 'short-wavelength' means the low-k taylor-series-expansion     */
+/*     method (i.e. the desingularization method) doesn't work, in    */
+/*     which case, if there are any common vertices, we have to use   */
+/*     the taylor-duffy method for PPIs.                              */
+/*                                                                    */
+/* (b) 'very-short-wavelength' means that within the taylor-duffy     */
+/*     computation we can use the k->infty limit of the Helmholtz     */
+/*     kernel, which significantly accelerates that computation.      */
+/**********************************************************************/
 #define SWTHRESHOLD 1.0*M_PI
+#define VERYSWTHRESHOLD 10.0
 
-// the 'desingularization radius': if the relative distance  
-// between two panels is < this number, we evaluate the      
-// panel-panel integrals using desingularization.
+/**********************************************************************/
+// the 'desingularization radius': if the relative distance between   */
+// between two panels is < this number, we evaluate the PPIS using    */
+// the low-k taylor-series expansion (desingularization).             */
+/**********************************************************************/
 #define DESINGULARIZATION_RADIUS 4.0
 
 #define AA0 1.0
@@ -367,7 +383,9 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /***************************************************************/
   /* determine if we are in the short-wavelength regime          */
   /***************************************************************/
-  int InSWRegime = abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD;
+  double kR=abs(k*fmax(Pa->Radius, Pb->Radius));
+  int InSWRegime = kR > SWTHRESHOLD;
+  int InVerySWRegime = kR > VERYSWTHRESHOLD;
 
   /***************************************************************/
   /* if we are in the short-wavelength regime and there are no   */
@@ -379,8 +397,10 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
    };
 
   /***************************************************************/
-  /* figure out if we are in one of the situations in which      */
-  /* we want to switch off immediately to the taylor-duffy method*/
+  /* if we are in the short-wavelength regime and there are 1 or */
+  /* 2 common vertices, or if we are in any regime and there are */
+  /* 3 common vertices, or if the called explicitly requested it,*/
+  /* we use the Taylor-Duffy method                              */
   /***************************************************************/
   if ( ncv==3 || ( ncv>0 && (InSWRegime || Args->ForceTaylorDuffy) ) )
    { 
@@ -405,7 +425,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      TDArgs->Error=&Error;
 
      PIndex=TM_DOTPLUS;
-     if ( InSWRegime && RWGGeometry::UseHighKTaylorDuffy )
+     if ( InVerySWRegime && RWGGeometry::UseHighKTaylorDuffy )
       KIndex=TM_HIGHK_HELMHOLTZ;
      else
       KIndex=TM_HELMHOLTZ;

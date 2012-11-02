@@ -1246,7 +1246,7 @@ void GetScriptJL(int WhichK, cdouble KParam,
 /***************************************************************/
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL
-static cdouble ExpRelV2P0(int n, cdouble Z)
+cdouble ExpRelV2P0(int n, cdouble Z)
 {
   int m;
 

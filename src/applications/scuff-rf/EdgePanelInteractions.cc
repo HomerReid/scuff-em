@@ -250,9 +250,9 @@ nCalls++;
      R2=sqrt(R2);
      R3=sqrt(R3);
   
-     zfval[0] =        x*exp(IK*R1)*ExpRel(2,-IK*R1) / (8.0*M_PI*R1)
-                +(1.0-x)*exp(IK*R2)*ExpRel(2,-IK*R2) / (8.0*M_PI*R2)
-                      +x*exp(IK*R3)*ExpRel(2,-IK*R3) / (8.0*M_PI*R3);
+     zfval[0] =        x*exp(IK*R1)*ExpRelV2P0(2,-IK*R1) / (8.0*M_PI*R1)
+                +(1.0-x)*exp(IK*R2)*ExpRelV2P0(2,-IK*R2) / (8.0*M_PI*R2)
+                      +x*exp(IK*R3)*ExpRelV2P0(2,-IK*R3) / (8.0*M_PI*R3);
    }
   else
    { 
@@ -270,9 +270,9 @@ nCalls++;
      R2=sqrt(R2);
      R3=sqrt(R3);
   
-     zfval[0] = exp(IK*R1)*(2.0*ExpRel(1,-IK*R1) - 0.5*(y+1.0)*ExpRel(2,-IK*R1)) / (8.0*M_PI*R1)
-               +exp(IK*R2)*(2.0*ExpRel(1,-IK*R2) -             ExpRel(2,-IK*R2)) / (8.0*M_PI*R2)
-               +exp(IK*R3)*(2.0*ExpRel(1,-IK*R3) -             ExpRel(2,-IK*R3)) / (8.0*M_PI*R3);
+     zfval[0] = exp(IK*R1)*(2.0*ExpRelV2P0(1,-IK*R1) - 0.5*(y+1.0)*ExpRelV2P0(2,-IK*R1)) / (8.0*M_PI*R1)
+               +exp(IK*R2)*(2.0*ExpRelV2P0(1,-IK*R2) -             ExpRelV2P0(2,-IK*R2)) / (8.0*M_PI*R2)
+               +exp(IK*R3)*(2.0*ExpRelV2P0(1,-IK*R3) -             ExpRelV2P0(2,-IK*R3)) / (8.0*M_PI*R3);
    };
 }
 
