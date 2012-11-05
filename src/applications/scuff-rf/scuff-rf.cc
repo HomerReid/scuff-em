@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
+  char *ContribOnly=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
@@ -123,6 +124,8 @@ int main(int argc, char *argv[])
 //
      {"WriteLogFile",   PA_BOOL,    0, 1,       (void *)&WriteLogFile, 0,           "write new log file"},
 //
+     {"ContribOnly",    PA_STRING,  1, 1,       (void *)&ContribOnly,  0,           "select port voltage contributors"},
+//
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -136,6 +139,12 @@ int main(int argc, char *argv[])
   Log("%s ",argv[0]);
   for(narg=1; narg<argc; narg++) 
    LogC("%s ",argv[narg]);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (ContribOnly)
+   SetContribOnly(ContribOnly);
 
   /***************************************************************/
   /* create the geometry                                         */
