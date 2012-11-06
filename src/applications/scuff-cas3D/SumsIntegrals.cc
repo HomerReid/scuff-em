@@ -28,34 +28,339 @@
 
 #include "scuff-cas3D.h"
 #include "libscuffInternals.h"
+#include <libSGJC.h>
+
+#define XIMIN 0.001
 
 /***************************************************************/
-/* Evaluate the contribution of a single Xi, kBloch point to   */
-/* the Casimir quantities.                                     */
+/* CacheRead: attempt to bypass an entire GetXiIntegrand       */
+/* calculation by reading results from the .byXi file.         */
+/* Returns 1 if successful (which means the values of the      */
+/* energy/force/torque integrand for ALL transformations at    */
+/* this value of Xi were successfully read from the file) or 0 */
+/* on failure).                                                */
 /***************************************************************/
-void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
-{
+int CacheRead(const char *ByXiFileName, SC3Data *SC3D, double Xi, double *EFT)
+{ 
+  FILE *f;
+  double Q[4];
+  char Line[1000], fTag[1000];
+  double fXi;
+  int nt, ntnq, nRead, FoundFirst;
+
+  /*----------------------------------------------------------*/
+  /* 0. try to open the cache file. --------------------------*/
+  /*----------------------------------------------------------*/
+  if ( !(f=fopen(ByXiFileName,"r")) )
+   return 0;
+
+  /*----------------------------------------------------------*/
+  /*----------------------------------------------------------*/
+  /*----------------------------------------------------------*/
+  for(;;)
+   {
+     /*----------------------------------------------------------*/
+     /* 1. skip down through the cache file until we find a line */
+     /*    whose Xi and Tag values equal Xi and the first        */
+     /*    tag in the workspace structure.                       */
+     /*----------------------------------------------------------*/
+     FoundFirst=0;
+     while( !FoundFirst && fgets(Line,1000,f) )
+      { sscanf(Line,"%s %le",fTag,&fXi);
+        if ( fabs(fXi-Xi) < 1.0e-8*Xi && !strcmp(fTag,SC3D->GTCList[0]->Tag) )
+         FoundFirst=1;
+      };
+     if ( !FoundFirst ) 
+      { fclose(f); 
+        return 0;
+      };
+   
+     Log(" found (Tag,Xi)=(%s,%e) in cache file...",fTag,Xi);
+   
+     /*----------------------------------------------------------*/
+     /* 2. verify that the line we just read from the cache file */
+     /*    contains data for all the quantities we need          */
+     /*----------------------------------------------------------*/ 
+     nRead=sscanf(Line,"%s %le %le %le %le %le",fTag,&fXi,Q,Q+1,Q+2,Q+3); 
+     if ( nRead != SC3D->NumQuantities+2 )
+      { Log(" ...but number of quantities is wrong (skipping)");
+        continue;
+      };
+     memcpy(EFT,Q,SC3D->NumQuantities*sizeof(double));
+     ntnq=SC3D->NumQuantities;
+   
+     /*----------------------------------------------------------*/
+     /* 3. ok, since that worked, now keep going ----------------*/
+     /*----------------------------------------------------------*/
+     for(nt=1; nt<SC3D->NumTransformations; nt++)
+      { 
+        /* check for premature end of file */
+        if ( !fgets(Line,1000,f) )
+         { Log(" ...but data for some transforms were missing (skipping)");
+           break;
+         };
+   
+        nRead=sscanf(Line,"%s %le %le %le %le %le",fTag,&fXi,Q,Q+1,Q+2,Q+3);
+   
+        /* check for incorrect number of quantities */
+        if ( nRead != SC3D->NumQuantities+2 )
+         { Log(" ...but number of quantities is wrong (skipping)");
+           break;
+         };
+   
+        /* check for tag and/or Xi mismatch */
+        if ( fabs(fXi-Xi)>1.0e-8*Xi || strcmp(fTag,SC3D->GTCList[nt]->Tag) )
+         { Log(" ...but tag #%i did not match (%s != %s) (skipping)",
+               nt,fTag,SC3D->GTCList[nt]->Tag);
+           break;
+         };
+   
+        memcpy(EFT+ntnq,Q,SC3D->NumQuantities*sizeof(double));
+        ntnq+=SC3D->NumQuantities;
+      };
+   
+     if (ntnq==SC3D->NTNQ)
+      { Log(" ...and successfully read data for all quantities at all transforms");
+        fclose(f);
+        return 1;
+      };
+
+   };
+
 }
+
+/***************************************************************/
+/* wrapper around GetCasimirIntegrand with correct prototype   */
+/* prototype for adapt_integrate()                             */
+/***************************************************************/
+void GetCasimirIntegrand2(unsigned ndim, const double *x, void *params, 
+                          unsigned fdim, double *fval)
+{
+  (void) ndim; // unused
+  (void) fdim; // unused
+
+  SC3Data *SC3D = (SC3Data *)params;
+  double *EFT = fval;
+
+  double *L[3];
+  double kBloch[2];
+
+  L[0] = SC3D->G->LatticeBasisVectors[0];
+  L[1] = SC3D->G->LatticeBasisVectors[1];
+
+  kBloch[0] = x[0]*L[0][0] + x[1]*L[1][0];
+  kBloch[1] = x[0]*L[0][1] + x[1]*L[1][1];
+
+  GetCasimirIntegrand(SC3D, SC3D->Xi, kBloch, EFT);
+
+}
+
+
+/***************************************************************/
+/* get the contribution of a single imaginary angular frequency*/
+/* to the Casimir quantities. For periodic geometries, this    */
+/* means integrating over the Brillouin zone at the Xi value   */
+/* in question.                                                */
+/***************************************************************/
+void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
+{
+  /***************************************************************/
+  /* attempt to bypass calculation by reading data from .byXi file */
+  /***************************************************************/
+  if ( CacheRead(SC3D->ByXiFile, SC3D, Xi, EFT) )
+   return; 
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (SC3D->G->NumLatticeBasisVectors==0)
+   { 
+     GetCasimirIntegrand(SC3D, Xi, 0, EFT);
+   }
+  else if ( (SC3D->BZIMethod == BZIMETHOD_MP7) || (SC3D->BZIMethod == BZIMETHOD_MP15) )
+   {
+    
+   }
+  else if (SC3D->BZIMethod == BZIMETHOD_ADAPTIVE)
+   {
+     double Lower[2] = {0.0, 0.0};
+     double Upper[2] = {1.0, 1.0};
+     double *Error = new double[SC3D->NTNQ];
+
+     // technically we should use something other than SC3D->MaxXiPoints
+     // for the MaxEvals argument here 
+     SC3D->Xi = Xi;
+     adapt_integrate(SC3D->NTNQ, GetCasimirIntegrand2, (void *)SC3D, 2, Lower, Upper,
+                     SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol, EFT, Error);
+
+     delete[] Error;
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int ntnq=0;
+  FILE *f=fopen(SC3D->ByXiFile,"a");
+  for(int nt=0; nt<SC3D->NumTransformations; nt++)
+   { fprintf(f,"%s %e ",SC3D->GTCList[nt]->Tag,Xi);
+     for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
+      fprintf(f,"%.12e ",EFT[nq]);
+     fprintf(f,"\n");
+   };
+  fclose(f);
+
+}
+
+/***************************************************************/
+/* wrapper with correct prototype for adapt_integrate          */
+/***************************************************************/
+void GetXiIntegrand2(unsigned ndim, const double *x, void *params, 
+                     unsigned fdim, double *fval)
+{
+  (void) ndim; // unused
+  (void) fdim; // unused
+
+  double Xi = x[0]/(1.0-x[0]); 
+  double Jacobian = 1.0/( (1.0-x[0])*(1.0-x[0]) );
+  SC3Data *SC3D = (SC3Data *)params;
+  double *EFT = fval;
+
+  GetXiIntegrand(SC3D, Xi, EFT);
+
+  for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
+   EFT[ntnq]*=Jacobian;
+
+}
+
+/***************************************************************/
+/* Evaluate the Matsubara sum to get total Casimir quantities  */
+/* at temperature Temperature degrees Kelvin.                  */
+/*                                                             */
+/* how the temperature conversion works:                       */
+/*  a. temperature in eV = kT = 8.6173e-5 * (T in kelvin)      */
+/*  b. temperature in our internal energy units                */
+/*     = (kT in eV) / (0.1973 eV)                              */
+/*     = (8.6173e-5 / 0.1973 ) * (T in Kelvin)                 */
+/***************************************************************/
+#define BOLTZMANNK 4.36763e-4
+void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Error)
+{ 
+  int n, ntnq, NTNQ=SC3D->NTNQ;
+  double Xi, Weight;
+
+  double *dEFT = new double [NTNQ]; 
+  double *LastEFT = new double[NTNQ]; 
+  double RelDelta;
+  int AllConverged=0;
+  int *ConvergedIters = new int [NTNQ];
+
+  double kT = BOLTZMANNK * Temperature;
+
+  memset(EFT,0,NTNQ*sizeof(double));
+  memset(SC3D->Converged,0,NTNQ*sizeof(int));
+  memset(ConvergedIters,0,NTNQ*sizeof(int));
+
+  Log("Beginning Matsubara sum at T=%g kelvin...",Temperature);
+
+  for(n=0; n<SC3D->MaxXiPoints; n++)
+   { 
+     /***************************************************************/
+     /* compute the next matsubara frequency ************************/
+     /***************************************************************/
+     if (n==0)
+      { Weight=0.5;
+        // NOTE: we assume that the integrand is constant for Xi < XIMIN
+        Xi=XIMIN;
+      }
+     else
+      { Weight=1.0;
+        Xi=2.0*M_PI*kT*((double)n);
+      };
+
+     /***************************************************************/
+     /* evaluate the frequency integrand at this matsubara frequency*/
+     /***************************************************************/
+     GetXiIntegrand(SC3D, Xi, dEFT);
+
+     /***************************************************************/
+     /* accumulate contributions to the sum.                        */
+     /*                                                             */
+     /* how it works: the matsubara sum is                          */
+     /*  2\pi kT *  \sum_n^\prime F(\xi_n)                          */
+     /* where \xi_n is the nth matsubara frequency and F(\xi) is    */
+     /* the casimir integrand (and the primed sum means that the    */
+     /* n==0 term is weighted with a factor of 1/2.                 */
+     /*                                                             */
+     /* however, my GetXiIntegrand() routine returns the quantity   */
+     /* FI = F(\xi_n) / (2\pi). (this is so that the integral of FI */
+     /* over all \xi returns the correct casimir quantity with no   */
+     /* additional multiplicative prefactors.)                      */
+     /*                                                             */
+     /* thus the matsubara sum is                                   */
+     /*  4\pi^2 kT *  \sum_n^\prime FI(\xi_n)                       */
+     /*                                                             */
+     /* where FI is what is returned by GetXiIntegrand.             */
+     /***************************************************************/
+     memcpy(LastEFT,EFT,NTNQ*sizeof(double));
+     for(ntnq=0; ntnq<NTNQ; ntnq++)
+      EFT[ntnq] += Weight * 4.0*M_PI*M_PI* kT * dEFT[ntnq];
+
+     /*********************************************************************/
+     /* convergence analysis.                                             */
+     /* how it works: if the relative change in output quantity #ntnq is  */
+     /* less than EPSREL, we increment ConvergedIters[ntnq]; otherwise we */
+     /* set ConvergedIters[ntnq] to 0.                                    */
+     /* when ConvergedIters[ntnq] hits 2, we mark quantity #ntnq as       */
+     /* having converged.                                                 */
+     /* when all quantities have converged, we are done.                  */
+     /*********************************************************************/
+     for(AllConverged=1, ntnq=0; ntnq<NTNQ; ntnq++)
+      { 
+        if ( SC3D->Converged[ntnq] ) 
+         continue;
+
+        Error[ntnq] = fabs(EFT[ntnq] - LastEFT[ntnq]);
+        RelDelta = Error[ntnq] / fabs(EFT[ntnq]);
+        if ( RelDelta < 1.0e-6 )
+         ConvergedIters[ntnq]++;
+        else
+         ConvergedIters[ntnq]=0;
+
+        if ( ConvergedIters[ntnq]>=2 )
+         SC3D->Converged[ntnq]=1;
+        else  
+         AllConverged=0;
+      }; 
+
+     if (AllConverged==1)
+      break;
+
+   }; /* for (n=0 ... */
+
+  delete[] dEFT;   
+  delete[] LastEFT;
+  delete[] ConvergedIters;
+  
+  if (AllConverged==0)
+   { 
+     fprintf(stderr,"\n*\n* WARNING: Matsubara sum unconverged after %i frequency samples.\n*\n",n);
+     Log("Matsubara sum UNCONVERGED at n=%i samples",n); 
+   } 
+  else 
+   Log("Matsubara sum converged after summing n=%i frequency points.",n);
+    
+} 
 
 /***************************************************************/
 /* Integrate over the positive imaginary frequency axis to get */
 /* the total Casimir quantities at zero temperature.           */
 /***************************************************************/
-void GetXiIntegral(SC3Data *SC3D, double *EFT)
+void GetXiIntegral(SC3Data *SC3D, double *EFT, double *Error)
 {
+  double Lower[1] = {0.0}; 
+  double Upper[1] = {1.0};
+
+  adapt_integrate(SC3D->NTNQ, GetXiIntegrand2, (void *)SC3D, 1, Lower, Upper,
+	 	  SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol, EFT, Error);
+   
 }
-
-/***************************************************************/
-/* Evaluate the Matsubara sum to get the total Casimir         */
-/* quantities at temperature Temperature degrees Kelvin.       */
-/***************************************************************/
-void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT)
-{
-}
-
-  /***************************************************************/
-  /* attempt to bypass calculation by reading data from .byXi file */
-  /***************************************************************/
-  if ( W->pCC==0 && CacheRead(W->ByXiFileName, W, Xi, EFT) )
-   return; 
-

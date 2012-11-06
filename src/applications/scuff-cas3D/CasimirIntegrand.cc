@@ -17,11 +17,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-
 /*
- * FrequencyIntegrand.cc  -- evaluate the casimir energy, force, and/or torque
- *                        -- integrand at a single Xi point (or a single (Xi,kBloch)
- *                        -- point) 
+ * CasimirIntegrand.cc    -- evaluate the casimir energy, force, and/or torque
+ *                        -- integrand at a single Xi point or a single (Xi,kBloch)
+ *                        -- point.
  *
  * homer reid  -- 10/2008 -- 6/2010
  */
@@ -34,7 +33,6 @@
 #include <unistd.h>
 #include <ctype.h>
 
-#include "Casimir3D.h"
 #include "scuff-cas3D.h"
 #include "libscuffInternals.h"
 
@@ -42,174 +40,118 @@ extern "C" {
 int dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
 }
 
-/***************************************************************/
-/* CacheRead: attempt to bypass an entire FrequencyIntegrand   */
-/* calculation by reading results from the .byXi file.         */
-/* Returns 1 if successful (which means the values of the      */
-/* energy/force integrand for ALL transformations at this      */
-/* value of Xi were successfully read from the file) or 0      */
-/* on failure).                                                */
-/***************************************************************/
-int CacheRead(const char *ByXiFileName, SC3Data *SC3D, double Xi, double *EFT)
-{ 
-  FILE *f;
-  double Q[4];
-  char Line[1000], fTag[1000], *p;
-  double fXi;
-  int nt, ntnq, nRead, FoundFirst;
+using namespace scuff;
 
-  /*----------------------------------------------------------*/
-  /* 0. try to open the cache file. --------------------------*/
-  /*----------------------------------------------------------*/
-  if ( !(f=fopen(ByXiileName,"r")) )
-   return 0;
+#define II cdouble(0.0,1.0)
 
-  /*----------------------------------------------------------*/
-  /*----------------------------------------------------------*/
-  /*----------------------------------------------------------*/
-  for(;;)
-   {
-     /*----------------------------------------------------------*/
-     /* 1. skip down through the cache file until we find a line */
-     /*    whose Xi and Tag values equal Xi and the first        */
-     /*    tag in the workspace structure.                       */
-     /*----------------------------------------------------------*/
-     FoundFirst=0;
-     while( !FoundFirst && fgets(Line,1000,f) )
-      { sscanf(Line,"%s %le",fTag,&fXi);
-        if ( fabs(fXi-Xi) < 1.0e-8*Xi && !strcmp(fTag,SC3D->Tags[0]) )
-         FoundFirst=1;
-      };
-     if ( !FoundFirst ) 
-      { fclose(f); 
-        return 0;
-      };
-   
-     Log(" found (Tag,Xi)=(%s,%e) in cache file...",fTag,Xi);
-   
-     /*----------------------------------------------------------*/
-     /* 2. verify that the line we just read from the cache file */
-     /*    contains data for all the quantities we need          */
-     /*----------------------------------------------------------*/ 
-     nRead=sscanf(Line,"%s %le %le %le %le %le",fTag,&fXi,Q,Q+1,Q+2,Q+3); 
-     if ( nRead != SC3D->NumQuantities+2 )
-      { Log(" ...but number of quantities is wrong (skipping)");
-        continue;
-      };
-     memcpy(EFT,Q,SC3D->NumQuantities*sizeof(double));
-     ntnq=SC3D->NumQuantities;
-   
-     /*----------------------------------------------------------*/
-     /* 3. ok, since that worked, now keep going ----------------*/
-     /*----------------------------------------------------------*/
-     for(nt=1; nt<SC3D->NumTransforms; nt++)
-      { 
-        /* check for premature end of file */
-        if ( !fgets(Line,1000,f) )
-         { Log(" ...but data for some transforms were missing (skipping)");
-           break;
-         };
-   
-        nRead=sscanf(Line,"%s %le %le %le %le %le",fTag,&fXi,Q,Q+1,Q+2,Q+3);
-   
-        /* check for incorrect number of quantities */
-        if ( nRead != SC3D->NumQuantities+2 )
-         { Log(" ...but number of quantities is wrong (skipping)");
-           break;
-         };
-   
-        /* check for tag and/or Xi mismatch */
-        if ( fabs(fXi-Xi)>1.0e-8*Xi || strcmp(fTag,SC3D->Tags[nt]) )
-         { Log(" ...but tag #%i did not match (%s != %s) (skipping)",
-               nt,fTag,SC3D->Tags[nt]);
-           break;
-         };
-   
-        memcpy(EFT+ntnq,Q,SC3D->NumQuantities*sizeof(double));
-        ntnq+=SC3D->NumQuantities;
-      };
-   
-     if (ntnq==SC3D->NTNQ)
-      { Log(" ...and successfully read data for all quantities at all transforms");
-        fclose(f);
-        return 1;
-      };
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GCI2(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
+{
+  RWGGeometry *G          = SC3D->G;
+  HMatrix *M              = SC3D->M;
+  HVector *MInfLUDiagonal = SC3D->MInfLUDiagonal;
+
+  /*--------------------------------------------------------------*/ 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  cdouble Omega = cdouble(0,Xi);
+  G->AssembleBEMMatrix(Omega, kBloch, M);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int Offset;
+  HMatrix *T;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     Offset = G->BFIndexOffset[ns];
+     T = SC3D->TBlocks[ns];
+     SC3D->M->ExtractBlock(Offset, Offset, T);
+
+     T->LUFactorize();
+     for(int nr=0; nr<T->NR; nr++)
+      MInfLUDiagonal->SetEntry( Offset + nr, T->GetEntry(nr,nr) );
 
    };
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  M->LUFactorize();
+
+  double LNDet=0.0;
+  for(int n=0; n<G->TotalBFs; n++)
+   LNDet += log( fabs( MInfLUDiagonal->GetEntryD(n) / M->GetEntryD(n,n) ) );
+
+  EFT[0] = -LNDet/(2.0*M_PI);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (SC3D->ByXikBlochFile)
+   { 
+     int ntnq=0;
+     FILE *f=fopen(SC3D->ByXikBlochFile,"a");
+     for(int nt=0; nt<SC3D->NumTransformations; nt++)
+      { fprintf(f,"%s %e %e %e ",SC3D->GTCList[nt]->Tag,Xi,kBloch[0],kBloch[1]);
+        for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
+         fprintf(f,"%.12e ",EFT[nq]);
+        fprintf(f,"\n");
+      };
+     fclose(f);
+   };
+  
 }
 
 /***************************************************************/
-/* stamp T and U blocks into the BEM matrix, then LU-factorize */
-/* M.                                                          */
-/* returns 0 on failure (factorization failed), or 1 on        */
-/* success.                                                    */
+/* stamp T and U blocks into the BEM matrix, then LU-factorize.*/
 /***************************************************************/
-int Factorize(SC3Data *SC3D)
+void Factorize(SC3Data *SC3D)
 { 
-  RSC3DGGeometry *G;
-  HMatrix *M;
-
-  int ns, nsp, m, n;
-  int Offset, RowOffset, ColOffset;
-  double LNDet;
-  int info, idum;
+  RWGGeometry *G = SC3D->G;
+  HMatrix *M = SC3D->M;
 
   /***************************************************************/
-  /* unpack fields from workspace structure **********************/
-  /***************************************************************/
-  G=SC3D->G;
-  M=SC3D->M;
-
-  /***************************************************************/
-  /* stamp T and U blocks into R matrix. note we only fill in    */
-  /* the upper triangle of the matrix.                           */
-  /* 20100725 no! now we fill in the full matrix, because we are */
-  /* no longer using the packed-storage versions of the lapack   */
-  /* LU-factorization routines.                                  */
+  /* stamp blocks into M matrix                                  */
   /***************************************************************/
   /* T blocks */
-  for(ns=0; ns<G->NumSurfaces; ns++)
+  int Offset;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      Offset=G->BFIndexOffset[ns];
-     M->InsertBlock(SC3D->T[ns], Offset, Offset);
+     M->InsertBlock(SC3D->TBlocks[ns], Offset, Offset);
    };
 
   /* U blocks */
-  for(ns=0; ns<G->NumSurfaces; ns++)
-   for(nsp=ns+1; nsp<G->NumSurfaces; nsp++)
+  int nb=0;
+  int RowOffset, ColOffset;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   for(int nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
     { 
       RowOffset=G->BFIndexOffset[ns];
       ColOffset=G->BFIndexOffset[nsp];
-      M->InsertBlock(SC3D->Uab[ns][nsp], RowOffset, ColOffset);
-      M->InsertBlockTranspose(SC3D->Uab[ns][nsp], ColOffset, RowOffset);
+      M->InsertBlock(SC3D->UBlocks[nb], RowOffset, ColOffset);
+      M->InsertBlockTranspose(SC3D->UBlocks[nb], ColOffset, RowOffset);
     };
-
-  /***************************************************************/
-  /* write the BEM matrix to an hdf5 file if user requested it ***/
-  /***************************************************************/
-  if (SC3D->pCC)
-   M->ExportToMATLAB(SC3D->pCC,"M%s",SC3D->CurrentTag);
 
   /***************************************************************/
   /* LU factorize                                                */
   /***************************************************************/
-  info=M->LUFactorize();
-
-  if (info==0)
-   Log("...success!");
-
-  return (info==0) ? 1 : 0;
+  M->LUFactorize();
 
 } 
 
 /***************************************************************/
 /* evaluate the casimir energy, force, and/or torque integrand */
 /* at a single Xi point, or a single (Xi,kBloch) point for PBC */
-/* geometries, possibly under multiple spatial transformations).*/                                   */
+/* geometries, possibly under multiple spatial transformations.*/
+/*                                                             */
 /* the output vector 'EFT' stands for 'energy, force, and      */
 /* torque.' the output quantities are packed into this vector  */
 /* in the following order:                                     */
+/*                                                             */
 /*  energy  integrand (spatial transformation 1)               */
 /*  xforce  integrand (spatial transformation 1)               */
 /*  yforce  integrand (spatial transformation 1)               */
@@ -219,8 +161,10 @@ int Factorize(SC3Data *SC3D)
 /*  torque3 integrand (spatial transformation 1)               */
 /*  energy  integrand (spatial transformation 2)               */
 /* ...                                                         */
+/*                                                             */
 /* where only requested quantities are present, i.e. if the    */
 /* user requested only energy and yforce then we would have    */
+/*                                                             */
 /*  EFT[0] = energy integrand (spatial transformation 1)       */
 /*  EFT[1] = yforce integrand (spatial transformation 1)       */
 /*  EFT[2] = energy integrand (spatial transformation 2)       */
@@ -228,15 +172,15 @@ int Factorize(SC3Data *SC3D)
 /*  ...                                                        */
 /*  EFT[2*N-1] = yforce integrand (spatial transformation N)   */
 /***************************************************************/
-void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
+void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 { 
-  RSC3DGGeometry *G=SC3D->G;
-  int nbf, nbfp, NBF;
-  int ns, nsp, nt, nq, ntnq, AllConverged;
-  int Offset, MateOffset, info;
-  char *Tag;
-  FILE *ByXiFile;
-  int SurfaceNeverMoved[SC3D->G->NumSurfaces];
+  if (kBloch)
+   { GCI2(SC3D, Xi, kBloch, EFT);
+     return;
+   };
+  
+#if 0
+  RWGGeometry *G=SC3D->G;
 
   /***************************************************************/
   /* record the value of Xi in the internal storage slot within SC3D*/
@@ -248,8 +192,11 @@ void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   /* as long as surface #ns is not displaced or rotated by any   */
   /* geometrical transformation, but switches to 0 as soon as    */
   /* that surface is moved, and then remains at 0 for the rest   */
-  /* rest of the calculations done at this frequency             */
+  /* of the calculations done at this frequency                  */
   /***************************************************************/
+  static int *SurfaceNeverMoved=0;
+  if (SurfaceNeverMoved==0)
+   SurfaceNeverMoved=(int *)mallocSE(G->NumSurfaces*sizeof(int));
   for(ns=0; ns<G->NumSurfaces; ns++)
    SurfaceNeverMoved[ns]=1;
 
@@ -264,6 +211,7 @@ void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   /***************************************************************/
   /* assemble T matrices                                         */
   /***************************************************************/
+  int ns, nsp;
   for(ns=0; ns<G->NumSurfaces; ns++)
    { 
      /* skip if this surface is identical to a previous surface */
@@ -272,12 +220,12 @@ void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
         continue;
       };
 
-     Log("Assembling T%i at Xi=%e...",ns+1,Xi); 
+     Log("Assembling T%i at Xi=%e...",ns+1,Xi);
      Args->Sa = Args->Sb = G->Surfaces[ns];
-     Args->B = SC3D->T[ns];
+     Args->B = SC3D->TBlocks[ns];
      Args->Symmetric = 1;
      
-     //G->AssembleT(ns,Xi,IMAG_FREQ,SC3D->nThread,SC3D->T[ns]);
+     AssembleBEMMatrixBlock(&Args);
 
    }; // for(ns=0; ns<G->NumSurfaces; ns++)
 
@@ -289,8 +237,8 @@ void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   /***************************************************************/
   if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
    {
-     HVector *DRMInf=SC3D->DRMInf;
      HMatrix *M=SC3D->M;
+     HMatrix *V=SC3D->MInfLUDiagonal;
      for(ns=0; ns<G->NumSurfaces; ns++)
       { 
         Offset=G->BFIndexOffset[ns];
@@ -301,7 +249,7 @@ void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
            /* if this object has a mate, just copy the diagonals of the */
            /* mate's LU factor                                          */
            MateOffset=G->BFIndexOffset[nsp];
-           memcpy(DRMInf->DV+Offset,DRMInf->DV+MateOffset,NBF*sizeof(double));
+           memcpy(V->DV+Offset,V->DV+MateOffset,NBF*sizeof(double));
          }
         else
          { 
@@ -313,22 +261,18 @@ void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
            /* wrappers provided by libhmat                                 */
            for(nbf=0; nbf<NBF; nbf++)
             for(nbfp=0; nbfp<NBF; nbfp++)
-             M->DM[nbf + nbfp*NBF] = SC3D->T[ns]->GetEntryD(nbf,nbfp);
+             M->DM[nbf + nbfp*NBF] = SC3D->TBlocks[ns]->GetEntryD(nbf,nbfp);
 
            Log("LU-factorizing T%i at Xi=%g...",ns+1,Xi);
            dgetrf_(&NBF, &NBF, M->DM, &NBF, SC3D->ipiv, &info);
            if (info!=0)
             Log("...FAILED with info=%i (N=%i)",info,NBF);
+
+           /* copy the LU diagonals into DRMInf */
+           for(nbf=0; nbf<NBF; nbf++)
+            V->SetEntry(Offset+nbf, M->DM[nbf+nbf*NBF]);
          };
-
-        /* copy the LU diagonals into DRMInf */
-        for(nbf=0; nbf<NBF; nbf++)
-         DRMInf->SetEntry(Offset+nbf, M->DM[nbf+nbf*NBF]);
       };
-
-     if (SC3D->pCC)
-      DRMInf->ExportToMATLAB(SC3D->pCC,"DRMInf");
-
    };
      
   /***************************************************************/
@@ -366,7 +310,7 @@ void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
      /* apply the geometrical transform                                */
      /******************************************************************/
      Log("Applying transform %s...",Tag);
-     G->Transform( SC3D->TransLines[nt] );
+     G->Transform( GTCList[nt] );
      for(ns=0; ns<G->NumSurfaces; ns++)
       if (G->SurfaceMoved[ns]) SurfaceNeverMoved[ns]=0;
 
@@ -474,4 +418,5 @@ void FrequencyIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 
    }; // for(ntnq=nt=0; nt<SC3D->NumTransforms; nt++)
   fclose(ByXiFile);
+#endif
 }

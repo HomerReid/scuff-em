@@ -806,7 +806,8 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLATTICE]
 {
   if (NumLatticeBasisVectors!=2)
    ErrExit("%s:%i: not yet implemented",__FILE__,__LINE__);
-  Log("Assembling PBC BEM matrix at (Omega,Kx,Ky)=(%s,%g,%g) (Mem=%lu)",z2s(Omega),kBloch[0],kBloch[1],GetMemoryUsage()/1048576);
+  Log("Assembling PBC BEM matrix at (Omega,Kx,Ky)=(%s,%g,%g) (Mem=%lu)",
+       z2s(Omega),kBloch[0],kBloch[1],GetMemoryUsage()/1048576);
 
   /*--------------------------------------------------------------*/
   /*- (re)allocate the matrix as necessary -----------------------*/
