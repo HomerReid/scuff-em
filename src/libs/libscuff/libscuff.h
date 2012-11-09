@@ -344,7 +344,7 @@ class RWGGeometry
 
    // get the index of the region containing point X
    int GetRegionIndex(const double X[3]);
-   int PointInRegion(int RegionIndex, const double X[3]);
+   int PointInRegion(int RegionIndex, const double X[3]); 
 
    /* simplest routine for computing fields */
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X, cdouble *EH);
