@@ -450,9 +450,11 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         else if (PointInRegion(InteriorRegion,X))
          { VecScale(P->ZHat, -1.0);
            NumFlipped++;
-         }
+         };
+/*
         else
          ErrExit("%s:%i: internal error (%i,%i)",__FILE__,__LINE__,ns,np);
+*/
 
       };
    };
