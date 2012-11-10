@@ -27,14 +27,18 @@
  */
 
 #include "scuff-cas3D.h"
+#include <libhrutil.h>
 
 #define MAXSTR 1000
+
+using namespace scuff;
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
-                       char *ByXiFile, char *ByXikBlochFile)
+                       int WhichQuantities, int NumQuantities,
+                       int NumTorqueAxes, double TorqueAxes[9])
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
@@ -44,15 +48,9 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*--------------------------------------------------------------*/
   SC3D->WhichQuantities=WhichQuantities;
   SC3D->NumQuantities=NumQuantities;
-  SC3D->NumTorqueAxes=0;
-  if (NumQuantities & QUANTITY_TORQUE1)
-   SC3D->NumTorqueAxes++;
-  if (NumQuantities & QUANTITY_TORQUE2)
-   SC3D->NumTorqueAxes++;
-  if (NumQuantities & QUANTITY_TORQUE3)
-   SC3D->NumTorqueAxes++;
+  SC3D->NumTorqueAxes=NumTorqueAxes;
   if (SC3D->NumTorqueAxes)
-   memcpy(SC3D->TorqueAxes, TorqueArgs, 3*NumTorqueAxes*sizeof(cdouble));
+   memcpy(SC3D->TorqueAxes, TorqueAxes, 3*NumTorqueAxes*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
   /*- read the transformation file if one was specified and check */
@@ -66,6 +64,10 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
+  SC3D->NTNQ = SC3D->NumTransformations * SC3D->NumQuantities;
+
+  SC3D->Converged = (int *)mallocEC( (SC3D->NTNQ) * sizeof(int) );
+
   /*--------------------------------------------------------------*/
   /*- FIXME ------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -73,67 +75,47 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
    ErrExit("--TransFiles are not yet supported for PBC geometries");
 
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (ByXiFile)
-   SC3D->ByXiFile = ByOmegaFile;
-  else 
-   { SC3D->ByXiFile = vstrdup("%s.byXi",GetFileBase(GeoFile));
-     char MyFileName[MAXSTR];
-     FILE *f=CreateUniqueFile(SC3D->ByXiFile, 1, MyFileName);
-     fclose(f);
-     SC3D->ByXiFile=strdupEC(MyFileName);
-   };
-
-  if (ByXikBlochFile)
-   SC3D->ByXiFile = ByXikBlochFile;
-  else 
-   ByXikBlochFile=0;
-
-  /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse -*/
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations                                            -*/
   /*--------------------------------------------------------------*/
-  int no, nop, nb, NO=G->NumObjects, NBF, NBFp;
-
-  // SC3D->TSelf[no]   = contribution of object #no to (no,no) block of matrix 
-  // SC3D->TMedium[no] = contribution of external medium to (no,no) block of matrix 
-  SC3D->TSelf= (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
-  SC3D->TMedium= (HMatrix **)mallocEC(NO*sizeof(HMatrix *));
-  for(no=0; no<G->NumObjects; no++)
-   { NBF=G->Objects[no]->NumBFs;
-     SC3D->TSelf[no] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
-     SC3D->TMedium[no] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+  int ns, nsp, nb, NBF, NBFp;
+  int NS=G->NumSurfaces; 
+  SC3D->TBlocks  = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   { NBF=G->Surfaces[ns]->NumBFs;
+     SC3D->TBlocks[ns] = new HMatrix(NBF, NBF);
    };
 
-  // SC3D->UMedium[0]    = 0,1    block
-  // SC3D->UMedium[1]    = 0,2    block
+  SC3D->UBlocks  = (HMatrix **)mallocEC( (NS*(NS-1)/2) * sizeof(HMatrix *));
+  SC3D->dUBlocks = (HMatrix **)mallocEC( 3*(NS*(NS-1)/2) * sizeof(HMatrix *));
+
+  if (WhichQuantities & QUANTITY_ENERGY)
+   SC3D->MInfLUDiagonal = new HVector(G->TotalBFs);
+
+  // SC3D->UBlocks[0]    = 0,1    block
+  // SC3D->UBlocks[1]    = 0,2    block
   //             ...    = ...
-  // SC3D->UMedium[NO-1] = 0,NO-1 block
-  // SC3D->UMedium[NO]   = 1,2    block
+  // SC3D->UBlocks[NS-1] = 0,NS-1 block
+  // SC3D->UBlocks[NS]   = 1,2    block
   // etc.                                         
-  SC3D->UMedium = (HMatrix **)mallocEC( ( NO*(NO-1)/2)*sizeof(HMatrix *));
-  for(nb=0, no=0; no<NO; no++)
-   for(nop=no+1; nop<NO; nop++, nb++)
-    { NBF=G->Objects[no]->NumBFs;
-      NBFp=G->Objects[nop]->NumBFs;
-      SC3D->UMedium[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
+  SC3D->UBlocks = (HMatrix **)mallocEC( ( NS*(NS-1)/2)*sizeof(HMatrix *));
+  for(nb=0, ns=0; ns<NS; ns++)
+   for(nsp=ns+1; nsp<NS; nsp++, nb++)
+    { NBF=G->Surfaces[ns]->NumBFs;
+      NBFp=G->Surfaces[nsp]->NumBFs;
+      SC3D->UBlocks[nb] = new HMatrix(NBF, NBFp);
     };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  int N = SC3D->G->TotalBFs;
-  int N1 = SC3D->N1 = SC3D->G->Objects[0]->NumBFs;
-  int N2 = SC3D->N2 = N - N1;
-  SC3D->SymG1      = new HMatrix(N1, N1, LHM_COMPLEX );
-  SC3D->SymG2      = new HMatrix(N2, N2, LHM_COMPLEX );
-  SC3D->W          = new HMatrix(N,  N,  LHM_COMPLEX );
-  SC3D->W21        = new HMatrix(N2, N1, LHM_COMPLEX );
-  SC3D->W21SymG1   = new HMatrix(N2, N1, LHM_COMPLEX );
-  SC3D->W21DSymG2  = new HMatrix(N1, N2, LHM_COMPLEX );
-  SC3D->Scratch    = new HMatrix(N,  N1, LHM_COMPLEX );
+  int N  = SC3D->G->TotalBFs;
+  int N1 = SC3D->G->Surfaces[0]->NumBFs;
+  SC3D->M          = new HMatrix(N,  N);
+  SC3D->dM         = new HMatrix(N,  N1);
+
+  SC3D->ipiv = (int *)mallocEC(N*sizeof(double));
 
   return SC3D;
 

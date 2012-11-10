@@ -52,6 +52,29 @@ FILE *LogFile=0;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#define INTERIORPOTENTIAL 1
+#define PORTPOTENTIAL     2
+#define IWAINTEGRAL       3
+static int ContribOnly=0;
+void SetContribOnly(const char *ContribOnlyStr)
+{
+  if ( !strcasecmp(ContribOnlyStr,"interiorPotential") )
+   { Log("Retaining only interior potential contributions to port voltages.");
+     ContribOnly=INTERIORPOTENTIAL;
+   }
+  else if ( !strcasecmp(ContribOnlyStr,"portPotential") )
+   { Log("Retaining only port potential contributions to port voltages.");
+     ContribOnly=PORTPOTENTIAL;
+   }
+  else if ( !strcasecmp(ContribOnlyStr,"iwaIntegral") )
+   { Log("Retaining only iwaIntegral contributions to port voltages.");
+     ContribOnly=IWAINTEGRAL;
+   };
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void GetPanelPotentials(RWGSurface *S, int np, int iQ, cdouble IK,
                         double *X, cdouble *PhiA);
 
@@ -250,19 +273,19 @@ void ComputePanelCharges(RWGGeometry *G, HVector *KN,
   RWGSurface *S;
   RWGEdge *E;
   int PIOffset;
-  for(BFIndex=0, ns=0; ns<G->NumSurfaces; ns++)
-   { 
-     S=G->Surfaces[ns];
-     PIOffset=G->PanelIndexOffset[ns];
+  if ( ContribOnly==0 || ContribOnly==INTERIORPOTENTIAL )
+   for(BFIndex=0, ns=0; ns<G->NumSurfaces; ns++)
+    { 
+      S=G->Surfaces[ns];
+      PIOffset=G->PanelIndexOffset[ns];
 
-     for(ne=0; ne<S->NumEdges; ne++, BFIndex++)
-      { 
-        E=S->Edges[ne];
-        PanelCharges[PIOffset + E->iPPanel] += KN->GetEntry(BFIndex) * E->Length  / IW;
-        PanelCharges[PIOffset + E->iMPanel] -= KN->GetEntry(BFIndex) * E->Length  / IW;
-      };
-
-   };
+      for(ne=0; ne<S->NumEdges; ne++, BFIndex++)
+       { 
+         E=S->Edges[ne];
+         PanelCharges[PIOffset + E->iPPanel] += KN->GetEntry(BFIndex) * E->Length  / IW;
+         PanelCharges[PIOffset + E->iMPanel] -= KN->GetEntry(BFIndex) * E->Length  / IW;
+       };
+    };
 
   /*--------------------------------------------------------------*/
   /*- contributions of driven ports ------------------------------*/
@@ -270,25 +293,26 @@ void ComputePanelCharges(RWGGeometry *G, HVector *KN,
   int nPort, nPanel;
   RWGPort *Port;
   cdouble PortCurrent;
-  for(nPort=0; nPort<NumPorts; nPort++)
-   { 
-     PortCurrent=PortCurrents[nPort];
-     if (PortCurrent==0.0) continue;
-     Port=Ports[nPort];
-
-     S=Ports[nPort]->PSurface;
-     PIOffset=G->PanelIndexOffset[S->Index];
-     for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
-      PanelCharges[PIOffset + Port->PPanelIndices[nPanel]] 
-       -= Port->PLengths[nPanel]*PortCurrent/(IW*Port->PPerimeter);
-
-     S=Ports[nPort]->MSurface;
-     PIOffset=G->PanelIndexOffset[S->Index];
-     for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
-      PanelCharges[PIOffset + Port->MPanelIndices[nPanel]]
-       += Port->MLengths[nPanel]*PortCurrent/(IW*Port->MPerimeter);
-   };
-
+  if ( ContribOnly==0 || ContribOnly==PORTPOTENTIAL )
+   for(nPort=0; nPort<NumPorts; nPort++)
+    { 
+      PortCurrent=PortCurrents[nPort];
+      if (PortCurrent==0.0) continue;
+      Port=Ports[nPort];
+ 
+      S=Ports[nPort]->PSurface;
+      PIOffset=G->PanelIndexOffset[S->Index];
+      for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
+       PanelCharges[PIOffset + Port->PPanelIndices[nPanel]] 
+        -= Port->PLengths[nPanel]*PortCurrent/(IW*Port->PPerimeter);
+ 
+      S=Ports[nPort]->MSurface;
+      PIOffset=G->PanelIndexOffset[S->Index];
+      for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
+       PanelCharges[PIOffset + Port->MPanelIndices[nPanel]]
+        += Port->MLengths[nPanel]*PortCurrent/(IW*Port->MPerimeter);
+    };
+ 
 }
 
 /***************************************************************/
@@ -406,11 +430,12 @@ void GetPortVoltages(RWGGeometry *G, HVector *KN,
   /***************************************************************/
   cdouble iwAI;
   Log("   vector potential contribution");
-  for(int nPort=0; nPort<NumPorts; nPort++)
-   { iwAI=iwAIntegral(G, KN, Ports, NumPorts, PortCurrents, IK, 
-                      Ports[nPort]->PRefPoint, Ports[nPort]->MRefPoint,
-                      abs(PortVoltages[nPort]));
-     PortVoltages[nPort] += iwAI;
-   }; 
+  if ( ContribOnly==0 || ContribOnly==IWAINTEGRAL )
+   for(int nPort=0; nPort<NumPorts; nPort++)
+    { iwAI=iwAIntegral(G, KN, Ports, NumPorts, PortCurrents, IK,
+                       Ports[nPort]->PRefPoint, Ports[nPort]->MRefPoint,
+                       abs(PortVoltages[nPort]));
+      PortVoltages[nPort] += iwAI;
+    }; 
 
 }

@@ -358,8 +358,8 @@ void RWGSurface::WritePPMesh(const char *FileName, const char *Tag, int PlotNorm
 #define LS_EXTERIOREDGEINDICES 4
 #define LS_VERTEXINDICES       8
 void RWGSurface::WritePPMeshLabels(const char *FileName,
-                                  const char *Tag, 
-                                  int WhichLabels)
+                                   const char *Tag, 
+                                   int WhichLabels)
 { 
   FILE *f;
   RWGPanel *P;

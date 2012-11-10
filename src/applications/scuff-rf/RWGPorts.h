@@ -63,6 +63,13 @@ typedef struct RWGPort
  } RWGPort;
 
 /***************************************************************/
+/* this is a somewhat hacky feature implemented to allow a     */
+/* calling program to request that only certain contributions  */
+/* to the port voltages be included.                           */
+/***************************************************************/
+void SetContribOnly(const char *ContribOnly);
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 RWGPort **ParsePortFile(RWGGeometry *G, const char *PortFileName, int *NumPorts);

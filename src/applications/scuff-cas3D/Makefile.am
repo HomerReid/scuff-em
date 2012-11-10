@@ -1,8 +1,9 @@
 bin_PROGRAMS = scuff-cas3D
 
-scuff_heat_SOURCES = 		\
- FrequencyIntegrand.cc 		\
+scuff_cas3D_SOURCES = 		\
+ CasimirIntegrand.cc 		\
  CreateSC3Data.cc       	\
+ SumsIntegrals.cc       	\
  scuff-cas3D.cc         	\
  scuff-cas3D.h
 

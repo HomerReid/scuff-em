@@ -39,7 +39,7 @@ using namespace scuff;
 #define MAXSTR 1000
 
 /***************************************************************/
-/* subroutine to analyze a single RWG object *******************/
+/* subroutine to analyze a single RWG surface ******************/
 /***************************************************************/
 void AnalyzeSurface(RWGSurface *S, int WriteGPFiles, int WritePPFiles)
 {
@@ -180,6 +180,69 @@ void AnalyzeGeometry(RWGGeometry *G, int WriteGPFiles, int WritePPFiles)
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteGeometryLabels(RWGGeometry *G)
+{
+  int ns, np, ne, npOverall, nbfOverall;
+  double Val, *X, *Z;
+  RWGSurface *S;
+
+  FILE *f=vfopen("%s.pp","a",GetFileBase(G->GeoFileName));
+
+  /***************************************************************/
+  /* panel normals ***********************************************/
+  /***************************************************************/
+  fprintf(f,"View \"Panel normals\" {\n");
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], np=0; np<S->NumPanels; np++)
+    { 
+      //Val=fmax(VecNorm(P->Centroid), 2.0*P->Area);
+      Val=S->Panels[np]->Radius;
+      X=S->Panels[np]->Centroid;
+      Z=S->Panels[np]->ZHat;
+      fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",X[0],X[1],X[2],Val*Z[0],Val*Z[1],Val*Z[2]);
+    };
+  fprintf(f,"};\n");
+
+  /***************************************************************/
+  /* panel indices ***********************************************/
+  /***************************************************************/
+  fprintf(f,"View \"Panel indices\" {\n");
+  for(npOverall=ns=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], np=0; np<S->NumPanels; np++, npOverall++)
+    { X=S->Panels[np]->Centroid;
+      fprintf(f,"T3(%e,%e,%e,0.0) {\"%i\"};\n",X[0],X[1],X[2],npOverall);
+    };
+  fprintf(f,"};\n");
+  fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
+  fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+
+  /***************************************************************/
+  /* BF indices **************************************************/
+  /***************************************************************/
+  fprintf(f,"View \"Basis function indices\" {\n");
+  for(nbfOverall=ns=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], ne=0; ne<S->NumEdges; ne++)
+    { X=S->Edges[ne]->Centroid;
+      if (S->IsPEC)
+       { fprintf(f,"T3(%e,%e,%e,0.0) {\"%i\"};\n",X[0],X[1],X[2],nbfOverall);
+         nbfOverall+=1;
+       }
+      else
+       { fprintf(f,"T3(%e,%e,%e,0.0) {\"%i,%i\"};\n",X[0],X[1],X[2],nbfOverall,nbfOverall+1);
+         nbfOverall+=2;
+       };
+    };
+  fprintf(f,"};\n");
+  fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
+  fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+ 
+  fclose(f);
+  
+}
+
+/***************************************************************/
 /* main function   *********************************************/
 /***************************************************************/  
 int main(int argc, char *argv[])
@@ -189,10 +252,11 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   char *MeshFile=0;
+  int PhysicalRegion=-1;
   char *TransFile=0;
   int WriteGPFiles=0;
   int WritePPFiles=0;
-  int PhysicalRegion=-1;
+  int WriteLabels=0;
   /* name, type, # args, max # instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,        0, "geometry file"},
@@ -202,6 +266,7 @@ int main(int argc, char *argv[])
      {"transfile",          PA_STRING, 1, 1, (void *)&TransFile,      0, "list of transformations"},
      {"WriteGnuplotFiles",  PA_BOOL,   0, 1, (void *)&WriteGPFiles,   0, "write gnuplot visualization files"},
      {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles,   0, "write GMSH visualization files "},
+     {"WriteGMSHLabels",    PA_BOOL,   0, 1, (void *)&WriteLabels,    0, "write GMSH labels"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -223,6 +288,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   RWGSurface *S=0;
   RWGGeometry *G=0;
+  SetLogFileName("scuff-analyze.log");
   if (MeshFile)
    {
      S=new RWGSurface(MeshFile, PhysicalRegion);
@@ -231,6 +297,8 @@ int main(int argc, char *argv[])
   else
    { G=new RWGGeometry(GeoFile);
      AnalyzeGeometry(G, WriteGPFiles, WritePPFiles);
+     if (WriteLabels)
+      WriteGeometryLabels(G);
    };
 
   /***************************************************************/

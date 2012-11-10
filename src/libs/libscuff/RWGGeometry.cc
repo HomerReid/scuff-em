@@ -162,7 +162,7 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
 /***********************************************************************/
 void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
 {
-  int RegionID; 
+  int RegionID=0; 
 
   /*--------------------------------------------------------------*/
   /*- first check to see if the region label is 'Exterior', in   -*/
@@ -356,9 +356,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 
   /*******************************************************************/
   /* if a lattice is present, then we need to do some preliminary    */
-  /* setup:                                                          */
-  /*      internally stored fields that accelerate the computation   */
-  /*      of the BEM matrix in the presence of PBCs                  */
+  /* setup                                                           */
   /*******************************************************************/
   if (NumLatticeBasisVectors>0)
    InitPBCData();
@@ -422,6 +420,43 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       };
 
     }; // for(ns = 1 ...)
+
+  /*******************************************************************/
+  /* make sure that all panel normals point in the correct direction.*/
+  /*******************************************************************/
+  int NumFlipped=0;
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     S=Surfaces[ns];
+     int ExteriorRegion=S->RegionIndices[0]; 
+     int InteriorRegion=S->RegionIndices[1]; 
+     double X[3];
+     RWGPanel *P;
+     for(int np=0; np<S->NumPanels; np++)
+      { P=S->Panels[np];
+        /* how it works: if we start at the panel centroid */
+        /* and travel a short distance in the direction of */
+        /* the panel normal, then that should place us in  */
+        /* the exterior region (since the panel normal     */
+        /* should point into the exterior region). if,     */
+        /* instead, we wind up in the interior, then the   */
+        /* panel normal is backwards and must be flipped.  */
+        /* (if we wind up in neither the interior nor the  */
+        /* exterior then something more serious is wrong.) */
+        VecScaleAdd(P->Centroid, 0.5*P->Radius, P->ZHat, X);
+        if (PointInRegion(ExteriorRegion,X))
+         { ; // don't need to do anything
+         }
+        else if (PointInRegion(InteriorRegion,X))
+         { VecScale(P->ZHat, -1.0);
+           NumFlipped++;
+         }
+        else
+         ErrExit("%s:%i: internal error (%i,%i)",__FILE__,__LINE__,ns,np);
+
+      };
+   };
+  Log("Flipped %i panel normals to comport with region definitions.",NumFlipped);
  
   /*******************************************************************/
   /* compute average panel area for statistical bookkeeping purposes */
