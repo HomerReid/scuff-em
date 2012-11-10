@@ -193,6 +193,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdarg.h>
+#include <fenv.h>
 
 #include "scuff-scatter.h"
 
@@ -214,7 +215,8 @@
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-EnableAllCPUs();
+feenableexcept(FE_INVALID | FE_OVERFLOW);
+
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
