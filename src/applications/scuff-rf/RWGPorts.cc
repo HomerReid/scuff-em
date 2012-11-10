@@ -51,16 +51,6 @@
 #  include <omp.h>
 #endif
 
-// portable wrapper around StrCaseCmp
-int StrCaseCmp(const char *s1, const char *s2)
-{
-#if defined(_WIN32)
-  return _stricmp(s1,s2);
-#else
-  return strcasecmp(s1,s2);
-#endif
-}
-
 using namespace scuff;
 
 /***************************************************************/
