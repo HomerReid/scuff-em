@@ -38,6 +38,8 @@
 
 namespace scuff {
 
+int QIFIPPITaylorDuffyV1P0Calls;
+
 #define NUMGS 5
 #define NUMHS 9
 #define NUMFUNCS 42
@@ -60,7 +62,7 @@ typedef struct FIPPITDWorkspace
    double AdB, AdAP, AdBP, AdL;
    double BdAP, BdBP, APdBP, BPdL;
 
-   int Calls;
+   int nCalls;
 
  } FIPPITDWorkspace;
 
@@ -151,7 +153,7 @@ static void x1x2Integrand(unsigned ndim, const double *x, void *parms,
   double X, In[NUMGS][6], SCE[9][7][4], SCE_RM3[6][7][4];
 
   FIPPITDWorkspace *W=(FIPPITDWorkspace *)parms;
-W->Calls++;
+  W->nCalls++;
   
   GetSCE(x[0],x[1],SCE);
   GetSCE_RM3(W, x[0], x[1], SCE_RM3);
@@ -184,7 +186,7 @@ static void x1x2x3Integrand(unsigned ndim, const double *x, void *parms,
   double X, In[NUMGS][6], SCV[9][3][3], SCV_RM3[6][3][3];
 
   FIPPITDWorkspace *W=(FIPPITDWorkspace *)parms;
-W->Calls++;
+  W->nCalls++;
   
   GetSCV(x[0],x[1],x[2],SCV);
   GetSCV_RM3(W, x[0], x[1], x[2], SCV_RM3);
@@ -261,12 +263,16 @@ void ComputeQIFIPPIData_TaylorDuffy(double *V1, double *V2, double *V3,
   /***************************************************************/
   /* 2. evaluate the integral over x1x2 or x1x2x3                */
   /***************************************************************/
+  W->nCalls=0;
+
   if( VecEqualFloat(V2, V2P) ) // common-edge case 
    adapt_integrate(NUMFUNCS, x1x2Integrand, (void *)W, 2, Lower, Upper,
                    MAXFEVALS, ABSTOL, RELTOL, Result, Error);
   else // common-vertex case 
    adapt_integrate(NUMFUNCS, x1x2x3Integrand, (void *)W, 3, Lower, Upper,
                    MAXFEVALS, ABSTOL, RELTOL, Result, Error);
+
+  QIFIPPITaylorDuffyV1P0Calls=W->nCalls;
 
   /***************************************************************/
   /* 3. pack the integrals into the appropriate slots in the     */
@@ -400,30 +406,37 @@ void GetSCE(double x1, double x2, double SCE[9][7][4])
   SCE[3][6][1] = -x1*x2;
   SCE[3][6][2] = (2.0*x1*x2-1.0)/2.0;
   SCE[3][6][3] = 0.0;
+
   SCE[4][1][0] = 1.0/3.0;
   SCE[4][1][1] = -x1/2.0;
   SCE[4][1][2] = 0.0;
   SCE[4][1][3] = (3.0*x1-2.0)/6.0;
+
   SCE[4][2][0] = 1.0/3.0;
   SCE[4][2][1] = -x1/2.0;
   SCE[4][2][2] = 0.0;
   SCE[4][2][3] = (3.0*x1-2.0)/6.0;
+
   SCE[4][3][0] = 1.0/3.0;
   SCE[4][3][1] = -x1*x2/2.0;
   SCE[4][3][2] = 0.0;
   SCE[4][3][3] = (3.0*x1*x2-2.0)/6.0;
+
   SCE[4][4][0] = 1.0/3.0;
   SCE[4][4][1] = -x1*x2/2.0;
   SCE[4][4][2] = 0.0;
   SCE[4][4][3] = (3.0*x1*x2-2.0)/6.0;
+
   SCE[4][5][0] = 1.0/3.0;
   SCE[4][5][1] = -x1*x2/2.0;
   SCE[4][5][2] = 0.0;
   SCE[4][5][3] = (3.0*x1*x2-2.0)/6.0;
+
   SCE[4][6][0] = 1.0/3.0;
   SCE[4][6][1] = -x1*x2/2.0;
   SCE[4][6][2] = 0.0;
   SCE[4][6][3] = (3.0*x1*x2-2.0)/6.0;
+
   SCE[5][1][0] = 0.0;
   SCE[5][1][1] = -(x1-1.0)/2.0;
   SCE[5][1][2] = 0.0;
@@ -559,6 +572,7 @@ void GetSCE_RM3(FIPPITDWorkspace *W,
   SCE[0][6][1] = -A[0]*x1*x2-B[0]*x1-BP[0]+B[0];
   SCE[0][6][2] = (2.0*A[0]*x1*x2+2.0*B[0]*x1+2.0*BP[0]-2.0*B[0]+AP[0]-A[0])/2.0;
   SCE[0][6][3] = 0.0;
+
   SCE[1][1][1] = B[1]*x1*x2+(BP[1]-B[1]+AP[1])*x1-BP[1]+B[1];
   SCE[1][1][2] = -(2.0*B[1]*x1*x2+(2.0*BP[1]-2.0*B[1]+2.0*AP[1])*x1-2.0*BP[1]+2.0*B[1]-AP[1] +A[1]) /2.0;
   SCE[1][1][3] = 0.0;

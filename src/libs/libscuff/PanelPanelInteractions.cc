@@ -36,21 +36,33 @@
 #include "libscuffInternals.h"
 #include "TaylorDuffy.h"
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-int ForceNCV=-1; /* 20120625 */
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
 namespace scuff {
 
 #define II cdouble(0.0,1.0)
 
-// the 'short-wavelength threshold:' we are in the short-wavelength
-// (high-frequency) regime if |k*PanelRadius| > SWTHRESHOLD
+/**********************************************************************/
+/* short-wavelength thresholds: we are in the 'short-wavelength'      */
+/* regime if |k*PanelRadius| > SWTHRESHOLD, and we are in the         */
+/* 'very-short-wavelength' regime if |k*PanelRadius|>VERYSWTHRESHOLD. */
+/*                                                                    */
+/* note:                                                              */
+/* (a) 'short-wavelength' means the low-k taylor-series-expansion     */
+/*     method (i.e. the desingularization method) doesn't work, in    */
+/*     which case, if there are any common vertices, we have to use   */
+/*     the taylor-duffy method for PPIs.                              */
+/*                                                                    */
+/* (b) 'very-short-wavelength' means that within the taylor-duffy     */
+/*     computation we can use the k->infty limit of the Helmholtz     */
+/*     kernel, which significantly accelerates that computation.      */
+/**********************************************************************/
 #define SWTHRESHOLD 1.0*M_PI
+#define VERYSWTHRESHOLD 10.0
 
-// the 'desingularization radius': if the relative distance  
-// between two panels is < this number, we evaluate the      
-// panel-panel integrals using desingularization.
+/**********************************************************************/
+// the 'desingularization radius': if the relative distance between   */
+// between two panels is < this number, we evaluate the PPIS using    */
+// the low-k taylor-series expansion (desingularization).             */
+/**********************************************************************/
 #define DESINGULARIZATION_RADIUS 4.0
 
 #define AA0 1.0
@@ -64,7 +76,9 @@ namespace scuff {
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-/*- relative exponential routine -------------------------------*/
+/*- relative exponential routine. this is not the same routine -*/
+/*- as ExpRelV2P0 defined in TaylorDuffy(); the two computations*/
+/*- have different normalizations.                              */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 #define EXPRELTOL  1.0e-8
@@ -357,11 +371,6 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      ncv=AssessPanelPair(Va, Vb, rMax);
    };
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
- { H[0]=H[1]=0.0; return; } /*  20120625 */
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   /***************************************************************/
   /* if the panels are far apart then just use simple low-order  */
   /* non-desingularized cubature                                 */
@@ -374,7 +383,9 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
   /***************************************************************/
   /* determine if we are in the short-wavelength regime          */
   /***************************************************************/
-  int InSWRegime = abs(k*fmax(Pa->Radius, Pb->Radius)) > SWTHRESHOLD;
+  double kR=abs(k*fmax(Pa->Radius, Pb->Radius));
+  int InSWRegime = kR > SWTHRESHOLD;
+  int InVerySWRegime = kR > VERYSWTHRESHOLD;
 
   /***************************************************************/
   /* if we are in the short-wavelength regime and there are no   */
@@ -386,16 +397,24 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
    };
 
   /***************************************************************/
-  /* figure out if we are in one of the situations in which      */
-  /* we want to switch off immediately to the taylor-duffy method*/
+  /* if we are in the short-wavelength regime and there are 1 or */
+  /* 2 common vertices, or if we are in any regime and there are */
+  /* 3 common vertices, or if the called explicitly requested it,*/
+  /* we use the Taylor-Duffy method                              */
   /***************************************************************/
   if ( ncv==3 || ( ncv>0 && (InSWRegime || Args->ForceTaylorDuffy) ) )
    { 
      TaylorDuffyArgStruct TDArgStruct, *TDArgs=&TDArgStruct;
      InitTaylorDuffyArgs(TDArgs);
 
+     int PIndex, KIndex;
+     cdouble Error;
+
      TDArgs->WhichCase=ncv;
-     TDArgs->GParam=k;
+     TDArgs->NumPKs=1;
+     TDArgs->PIndex=&PIndex;
+     TDArgs->KIndex=&KIndex;
+     TDArgs->KParam=&k;
      TDArgs->V1=Va[0];
      TDArgs->V2=Va[1];
      TDArgs->V3=Va[2];
@@ -403,23 +422,28 @@ if (ForceNCV>-1 && ncv!=ForceNCV) /*  20120625 */
      TDArgs->V3P=Vb[2];
      TDArgs->Q=Qa;
      TDArgs->QP=Qb;
+     TDArgs->Error=&Error;
 
-     TDArgs->WhichG=TM_EIKR_OVER_R;
-     TDArgs->WhichH=TM_DOTPLUS;
-     if ( InSWRegime && RWGGeometry::UseHighKTaylorDuffy )
-      H[0]=HighKTaylorDuffy(TDArgs);
+     PIndex=TM_DOTPLUS;
+     if ( InVerySWRegime && RWGGeometry::UseHighKTaylorDuffy )
+      KIndex=TM_HIGHK_HELMHOLTZ;
      else
-      H[0]=TaylorDuffy(TDArgs);
+      KIndex=TM_HELMHOLTZ;
+     TDArgs->Result = H+0;
+     TaylorDuffy(TDArgs);
 
      if (ncv==3)
       H[1]=0.0; /* 'C' kernel integral vanishes for the common-triangle case */
      else
-      { TDArgs->WhichG=TM_GRADEIKR_OVER_R;
-        TDArgs->WhichH=TM_CROSS;
+      { 
+        PIndex=TM_CROSS;
         if ( InSWRegime && RWGGeometry::UseHighKTaylorDuffy )
-         H[1]=HighKTaylorDuffy(TDArgs);
+         KIndex=TM_HIGHK_GRADHELMHOLTZ;
         else
-         H[1]=TaylorDuffy(TDArgs);
+         KIndex=TM_HIGHK_HELMHOLTZ;
+
+        TDArgs->Result = H+1;
+        TaylorDuffy(TDArgs);
       };
 
      if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));

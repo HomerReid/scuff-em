@@ -47,6 +47,10 @@
 #define MAXEDGES 100           // max # of edges in (each half of) a port
 #define MAXPOLYGONVERTICES 30
 
+#ifdef USE_OPENMP
+#  include <omp.h>
+#endif
+
 using namespace scuff;
 
 /***************************************************************/
@@ -261,6 +265,59 @@ int FindEdgesInPolygon(RWGSurface *S,
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void AutoSelectRefPoints(RWGPort *Port)
+{ 
+  RWGSurface *PS = Port->PSurface, *MS = Port->MSurface;
+  RWGPanel *PPanel, *MPanel;
+  int iPPanel, iMPanel;
+  int PiQ, MiQ;
+  double *V1P, *V2P, *V1M, *V2M, VMidP[3], VMidM[3];
+  double ThisDistance, MinDistance=0.0;
+
+  for(int nppe=0; nppe<Port->NumPEdges; nppe++)
+   { 
+     iPPanel = Port->PPanelIndices[nppe];
+     PPanel  = PS->Panels[iPPanel];
+     PiQ     = Port->PPaneliQs[nppe]; 
+     V1P     = PS->Vertices + 3*PPanel->VI[ (PiQ+1)%3 ];
+     V2P     = PS->Vertices + 3*PPanel->VI[ (PiQ+2)%3 ];
+     VMidP[0]  = 0.5*(V1P[0] + V2P[0]);
+     VMidP[1]  = 0.5*(V1P[1] + V2P[1]);
+     VMidP[2]  = 0.5*(V1P[2] + V2P[2]);
+
+     for(int nmpe=0; nmpe<Port->NumMEdges; nmpe++)
+      { 
+        iMPanel = Port->MPanelIndices[nmpe];
+        MPanel  = MS->Panels[iMPanel];
+        MiQ     = Port->MPaneliQs[nmpe]; 
+        V1M     = MS->Vertices + 3*MPanel->VI[ (MiQ+1)%3 ];
+        V2M     = MS->Vertices + 3*MPanel->VI[ (MiQ+2)%3 ];
+        VMidM[0]  = 0.5*(V1M[0] + V2M[0]);
+        VMidM[1]  = 0.5*(V1M[1] + V2M[1]);
+        VMidM[2]  = 0.5*(V1M[2] + V2M[2]);
+    
+        if (nppe==0 && nmpe==0)
+         { MinDistance = VecDistance(VMidP, VMidM);
+           memcpy(Port->PRefPoint, VMidP, 3*sizeof(double));
+           memcpy(Port->MRefPoint, VMidM, 3*sizeof(double));
+         }
+        else
+         { ThisDistance = VecDistance(VMidP, VMidM);
+           if (ThisDistance < MinDistance) 
+            { MinDistance = ThisDistance;
+              memcpy(Port->PRefPoint, VMidP, 3*sizeof(double));
+              memcpy(Port->MRefPoint, VMidM, 3*sizeof(double));
+            };
+         };
+      };
+
+    };
+
+} 
+
+/***************************************************************/
 /* port file syntax example                                    */
 /*  PORT                                                       */
 /*   POBJECT   FirstObjectLabel                                */
@@ -343,18 +400,21 @@ RWGPort **ParsePortFile(RWGGeometry *G,
          { 
            if (NumPEdges==0)
             ErrExit("%s:%i: no edges specified or detected for positive port",PortFileName,LineNum);
-/*
+
            if (NumMEdges==0)
             ErrExit("%s:%i: no edges specified or detected for negative port",PortFileName,LineNum);
-*/
+
            
            PortArray = (RWGPort **)realloc( PortArray, (NumPorts+1)*sizeof(PortArray[0]) );
            PortArray[NumPorts] = CreatePort(PSurface, NumPEdges, PEIndices,
                                             MSurface, NumMEdges, MEIndices);
 
+           AutoSelectRefPoints(PortArray[NumPorts]);
+
+
            if (PRefPointSpecified) 
             memcpy(PortArray[NumPorts]->PRefPoint, PRefPoint, 3*sizeof(double));
-           if (MRefPointSpecified) 
+           if (MRefPointSpecified)
             memcpy(PortArray[NumPorts]->MRefPoint, MRefPoint, 3*sizeof(double));
 
            NumPorts++;
@@ -528,6 +588,10 @@ void AddPortContributionsToRHS(RWGGeometry *G,
   /* fill in (actually augment) entries of the RHS vector one-by-*/
   /* one                                                         */
   /***************************************************************/
+  int NumThreads=GetNumThreads();
+//#ifdef USE_OPENMP
+//#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+//#endif
   for(BFIndex=0, ns=0; ns<G->NumSurfaces; ns++)
    { 
      DestSurface=G->Surfaces[ns];
@@ -627,7 +691,93 @@ void AddPortContributionsToRHS(RWGGeometry *G,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts)
+void AddPortContributionsToPSD(RWGGeometry *G, 
+                               RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
+                               cdouble Omega, HMatrix *PSD)
+{ 
+  cdouble IW = II*Omega;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (PSD==0 || PSD->NR!=G->TotalPanels || PSD->NC!=12 || PSD->RealComplex!=LHM_COMPLEX)
+   { if (PSD) 
+      Warn("invalid PSD matrix passed to AddPortContributionsToPSD (skipping)");
+     return;
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  RWGPort *Port;
+  RWGSurface *S;
+  RWGPanel *Panel;
+  int PanelIndex, PaneliQ, PIOffset;
+  double Length;
+  double *Q, XmQ[3];
+  cdouble Weight, PreFac;
+  for(int nPort=0; nPort<NumPorts; nPort++)
+   { 
+     if (PortCurrents[nPort]==0.0) continue;
+     Port=Ports[nPort];
+
+     /*--------------------------------------------------------------*/
+     /*- contributions of positive port edges -----------------------*/
+     /*--------------------------------------------------------------*/
+     S=Port->PSurface;
+     PIOffset=G->PanelIndexOffset[S->Index]; 
+     Weight=PortCurrents[nPort]/(Port->PPerimeter);
+     for(int npe=0; npe<Port->NumPEdges; npe++) // npe = 'num port edge'
+      { 
+        PanelIndex = Port->PPanelIndices[npe];
+        PaneliQ    = Port->PPaneliQs[npe];
+        Length     = Port->PLengths[npe];
+
+        Panel      = S->Panels[PanelIndex];
+        Q          = S->Vertices + 3*PaneliQ;
+
+        // prefactor is *negative* for positive port edges 
+        PreFac     = -1.0*Length * Weight / (2.0*Panel->Area);
+        VecSub(Panel->Centroid, Q, XmQ);
+
+        PSD->AddEntry( PIOffset + PanelIndex,  4, 2.0*PreFac/ IW);  // rho 
+        PSD->AddEntry( PIOffset + PanelIndex,  5, PreFac*XmQ[0] );  // K_x
+        PSD->AddEntry( PIOffset + PanelIndex,  6, PreFac*XmQ[1] );  // K_y
+        PSD->AddEntry( PIOffset + PanelIndex,  7, PreFac*XmQ[2] );  // K_z
+      }; // for(npe=0; npe<Port->NumPEdges; npe++) // npe = 'num port edge'
+
+     /*--------------------------------------------------------------*/
+     /*- contributions of negative port edges -----------------------*/
+     /*--------------------------------------------------------------*/
+     S=Port->MSurface;
+     PIOffset=G->PanelIndexOffset[S->Index]; 
+     Weight=PortCurrents[nPort]/(Port->MPerimeter);
+     for(int npe=0; npe<Port->NumPEdges; npe++) // npe = 'num port edge'
+      { 
+        PanelIndex = Port->MPanelIndices[npe];
+        PaneliQ    = Port->MPaneliQs[npe];
+        Length     = Port->MLengths[npe];
+
+        Panel      = S->Panels[PanelIndex];
+        Q          = S->Vertices + 3*PaneliQ;
+
+        // prefactor is *positive* for negative port edges 
+        PreFac     = +1.0*Length * Weight / (2.0*Panel->Area);
+        VecSub(Panel->Centroid, Q, XmQ);
+
+        PSD->AddEntry( PIOffset + PanelIndex,  4, 2.0*PreFac/ IW);  // rho 
+        PSD->AddEntry( PIOffset + PanelIndex,  5, PreFac*XmQ[0] );  // K_x
+        PSD->AddEntry( PIOffset + PanelIndex,  6, PreFac*XmQ[1] );  // K_y
+        PSD->AddEntry( PIOffset + PanelIndex,  7, PreFac*XmQ[2] );  // K_z
+      }; // for(npe=0; npe<Port->NumMEdges; npe++) // npe = 'num port edge'
+
+   }; // for(int nPort=0; nPort<NumPorts; nPort++)
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void PlotPortsInGNUPLOT(const char *GPFileName, RWGPort **Ports, int NumPorts)
 {
   FILE *f=fopen(GPFileName,"w");
 
@@ -676,6 +826,76 @@ void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts)
 
    };
 
+  fclose(f);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void PlotPortsInGMSH(RWGPort **Ports, int NumPorts, const char *format, ...)
+{
+  /***************************************************************/
+  /* open the file ***********************************************/
+  /***************************************************************/
+  va_list ap;
+  char FileName[1000];
+  va_start(ap,format);
+  vsnprintfEC(FileName,997,format,ap);
+  va_end(ap);
+
+  FILE *f=fopen(FileName,"w");
+  fprintf(f,"View \"%s\" {\n","Ports");
+
+  /***************************************************************/
+  /* loop over all ports on all surfaces *************************/
+  /***************************************************************/
+  RWGSurface *S;
+  RWGPort *Port;
+  int nPort, nPanel, PanelIndex, PaneliQ;
+  double *V1, *V2;
+  for(nPort=0; nPort<NumPorts; nPort++)
+   { 
+     Port=Ports[nPort];
+
+     /*--------------------------------------------------------------*/
+     /*- plot scalar points for the positive and negative ref points-*/
+     /*--------------------------------------------------------------*/
+     fprintf(f,"SP(%e,%e,%e) {%i};\n",
+                Port->PRefPoint[0],Port->PRefPoint[1],Port->PRefPoint[2],nPort+1);
+     fprintf(f,"SP(%e,%e,%e) {-%i};\n",
+                Port->MRefPoint[0],Port->MRefPoint[1],Port->MRefPoint[2],nPort+1);
+
+     /*--------------------------------------------------------------*/
+     /*- plot scalar lines for the positive and negative port edges  */
+     /*--------------------------------------------------------------*/
+     S=Port->PSurface;
+     for(nPanel=0; nPanel<Port->NumPEdges; nPanel++)
+      { 
+        PanelIndex = Port->PPanelIndices[nPanel]; 
+        PaneliQ    = Port->PPaneliQs[nPanel]; 
+        V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
+        V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
+        fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {%i,%i};\n",
+                   V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],nPort+1,nPort+1);
+        fprintf(f,"\n\n");
+      };
+
+     S=Port->MSurface;
+     for(nPanel=0; nPanel<Port->NumMEdges; nPanel++)
+      { 
+        PanelIndex = Port->MPanelIndices[nPanel]; 
+        PaneliQ    = Port->MPaneliQs[nPanel]; 
+        V1 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+1)%3];
+        V2 = S->Vertices + 3*S->Panels[PanelIndex]->VI[(PaneliQ+2)%3];
+        fprintf(f,"\n\n");
+        fprintf(f,"SL(%e,%e,%e,%e,%e,%e) {-%i,-%i};\n",
+                   V1[0],V1[1],V1[2],V2[0],V2[1],V2[2],nPort+1,nPort+1);
+      };
+
+   };
+
+  fprintf(f,"};\n");
   fclose(f);
 
 }

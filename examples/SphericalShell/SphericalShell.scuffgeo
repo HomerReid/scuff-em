@@ -12,5 +12,4 @@ ENDOBJECT
 OBJECT InnerSphere
 	MESHFILE Sphere_R0P5.msh
 	MATERIAL Vacuum
-	INSIDE OuterSphere
 ENDOBJECT

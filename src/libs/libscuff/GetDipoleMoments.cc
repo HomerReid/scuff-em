@@ -44,7 +44,6 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
-
 /***************************************************************/
 /* get electric and magnetic dipole moments of a current       */
 /* distribution described by a set of RWG basis functions      */
@@ -132,6 +131,127 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
 PM->Scale(ZVAC); /* ? */ 
   return PM;
 
+}
+
+/***************************************************************/
+/* This routine computes the induced electric and magnetic     */
+/* surface charge and current densities at the centroid of     */
+/* each panel in an RWGGeometry.                               */
+/*                                                             */
+/* PSD is a complex-valued matrix with G->TotalPanels rows and */
+/* 12 columns.                                                 */
+/*                                                             */
+/* (If PSD is NULL on entry, or if it points to an HMatrix of  */
+/*  the wrong size, it is reallocated).                        */
+/*                                                             */
+/* On output, the columns of the nth row of PSD are filled in  */
+/* with data on the values of the induced source distributions */
+/* at the centroid of the nth panel in the geometry, as follows*/
+/*                                                             */
+/*  columns 0, 1, 2 : cartesian coords of nth panel centroid   */
+/*  column  3       : area of nth panel                        */
+/*  column  4       : electric charge density                  */
+/*  columns 5,6,7   : components of electric current density   */
+/*  column  8       : magnetic charge density                  */
+/*  columns 9,10,11 : components of magnetic current density   */
+/***************************************************************/
+HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD)
+
+{ 
+  cdouble iw = II*Omega;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (PSD==0 || PSD->NR!=TotalPanels || PSD->NC!=12 || PSD->RealComplex!=LHM_COMPLEX)
+   { if (PSD) 
+      Warn("invalid PSD matrix passed to GetPanelSourceDensities (reallocating)");
+     PSD=new HMatrix(TotalPanels, 11, LHM_COMPLEX);
+   };
+  PSD->Zero();
+
+  /***************************************************************/
+  /* loop over entries in the KN vector to add the               */
+  /* contributions of each basis function to the charge and      */
+  /* current densities at the centroids of its two panels        */
+  /***************************************************************/
+  RWGSurface *S;
+  RWGEdge *E;
+  RWGPanel *PPanel, *MPanel;
+  double *QP, *QM;
+  int ns, ne, Offset;
+  cdouble KWeight, NWeight, PreFac;
+  double XmQ[3];
+  int nbf=0;
+  for(ns=0; ns<NumSurfaces; ns++)
+   for(S=Surfaces[ns], Offset=PanelIndexOffset[ns], ne=0; ne<S->NumEdges; ne++)
+    { 
+  
+      E=S->Edges[ne];
+      PPanel = S->Panels[E->iPPanel];
+      MPanel = S->Panels[E->iMPanel];
+      QP=S->Vertices + 3*(E->iQP);
+      QM=S->Vertices + 3*(E->iQM);
+
+      /*--------------------------------------------------------------*/
+      /*- this code ensures that the panel centroid coordinates are   */
+      /*- filled in redundantly several times over, but i think this  */
+      /*- is faster than having a separate loop over panels.          */
+      /*--------------------------------------------------------------*/
+      PSD->SetEntry(PPanel->Index + Offset, 0, PPanel->Centroid[0]);
+      PSD->SetEntry(PPanel->Index + Offset, 1, PPanel->Centroid[1]);
+      PSD->SetEntry(PPanel->Index + Offset, 2, PPanel->Centroid[2]);
+      PSD->SetEntry(PPanel->Index + Offset, 3, PPanel->Area);
+      PSD->SetEntry(MPanel->Index + Offset, 0, MPanel->Centroid[0]);
+      PSD->SetEntry(MPanel->Index + Offset, 1, MPanel->Centroid[1]);
+      PSD->SetEntry(MPanel->Index + Offset, 2, MPanel->Centroid[2]);
+      PSD->SetEntry(MPanel->Index + Offset, 3, MPanel->Area);
+
+      /*--------------------------------------------------------------*/
+      /*- contributions of electric surface current associated with  -*/
+      /*- this edge                                                  -*/
+      /*--------------------------------------------------------------*/
+      KWeight = KN->GetEntry(nbf++);
+
+      PreFac  = E->Length * KWeight / (2.0*PPanel->Area);
+      VecSub(PPanel->Centroid, QP, XmQ);
+      PSD->AddEntry( PPanel->Index + Offset, 4, 2.0*PreFac/ iw);  // rho 
+      PSD->AddEntry( PPanel->Index + Offset, 5, PreFac*XmQ[0] );  // K_x
+      PSD->AddEntry( PPanel->Index + Offset, 6, PreFac*XmQ[1] );  // K_y
+      PSD->AddEntry( PPanel->Index + Offset, 7, PreFac*XmQ[2] );  // K_z
+
+      PreFac  = -1.0*E->Length * KWeight / (2.0*MPanel->Area);
+      VecSub(MPanel->Centroid, QM, XmQ);
+      PSD->AddEntry( MPanel->Index + Offset, 4, 2.0*PreFac/ iw);  // rho 
+      PSD->AddEntry( MPanel->Index + Offset, 5, PreFac*XmQ[0] );  // K_x
+      PSD->AddEntry( MPanel->Index + Offset, 6, PreFac*XmQ[1] );  // K_y
+      PSD->AddEntry( MPanel->Index + Offset, 7, PreFac*XmQ[2] );  // K_z
+
+      if (S->IsPEC) continue;
+
+      /*--------------------------------------------------------------*/
+      /*- contributions of magnetic surface current associated with  -*/
+      /*- this edge                                                  -*/
+      /*--------------------------------------------------------------*/
+      NWeight = -ZVAC*KN->GetEntry(nbf++);
+
+      PreFac  = E->Length * NWeight / (2.0*PPanel->Area);
+      VecSub(PPanel->Centroid, QP, XmQ);
+      PSD->AddEntry( PPanel->Index + Offset, 8,  2.0*PreFac/ iw);  // eta
+      PSD->AddEntry( PPanel->Index + Offset, 9,  PreFac*XmQ[0] );  // N_x
+      PSD->AddEntry( PPanel->Index + Offset, 10, PreFac*XmQ[1] );  // N_y
+      PSD->AddEntry( PPanel->Index + Offset, 11, PreFac*XmQ[2] );  // N_z
+
+      PreFac  = -1.0*E->Length * NWeight / (2.0*MPanel->Area);
+      VecSub(MPanel->Centroid, QM, XmQ);
+      PSD->AddEntry( MPanel->Index + Offset,  8, 2.0*PreFac/ iw);  // eta
+      PSD->AddEntry( MPanel->Index + Offset,  9, PreFac*XmQ[0] );  // N_x
+      PSD->AddEntry( MPanel->Index + Offset, 10, PreFac*XmQ[1] );  // N_y
+      PSD->AddEntry( MPanel->Index + Offset, 11, PreFac*XmQ[2] );  // N_z
+
+    }; // for (ns=0; ns<NumSurfaces; ns++) ... for(ne=0; ne<S->NumEdges; ne++)
+
+  return PSD;
 }
 
 } // namespace scuff

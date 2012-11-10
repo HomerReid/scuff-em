@@ -50,6 +50,24 @@
 
 namespace scuff {
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int AICheck(const char *FileName, int LineNum, 
+            double *I, double *E, double AbsTol, double RelTol, int Length)
+{
+  int ViolationFound=0;
+
+  for (int n=0; n<Length; n++)
+   //if ( (E[n] > AbsTol) && (E[n] > RelTol*fabs(I[n]) ) )
+   if ( (E[n] > 0.1*fabs(I[n])) )
+    { ViolationFound=1;
+      Log("AI(%s:%i): (I,E)[%i]=(%.1e,%.1e)",FileName,LineNum,n,I[n],E[n]);
+    };
+
+  return ViolationFound;
+}
+
 #define DEFABSTOL 0.0
 #define DEFRELTOL 1.0e-6
 #define MAXFEVALS 10000
@@ -540,15 +558,25 @@ cdouble HighKTaylorDuffy(TaylorDuffyArgStruct *Args)
 
      case TM_COMMONEDGE:
        adapt_integrate(2, HKTD_CommonEdgeIntegrand, (void *)TMW, 1, Lower, Upper,
-                       0, AbsTol, RelTol, (double *)&Result, (double *)&Error);
+                       10000, AbsTol, RelTol, (double *)&Result, (double *)&Error);
        break;
 
      case TM_COMMONVERTEX:
        adapt_integrate(2, HKTD_CommonVertexIntegrand, (void *)TMW, 2, Lower, Upper,
-                       0, AbsTol, RelTol, (double *)&Result, (double *)&Error);
-
+                       10000, AbsTol, RelTol, (double *)&Result, (double *)&Error);
        break;
    };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (AICheck(__FILE__, __LINE__, (double *)&Result, (double *)&Error, AbsTol, RelTol, 2))
+ { printf("Bawonkatage %i! \n",WhichCase);
+   printf("V1 =(%e,%e,%e)\n",Args->V1[0],Args->V1[1],Args->V1[2]);
+   printf("V2 =(%e,%e,%e)\n",Args->V2[0],Args->V2[1],Args->V2[2]);
+   printf("V2P=(%e,%e,%e)\n",Args->V2P[0],Args->V2P[1],Args->V2P[2]);
+   printf("V3 =(%e,%e,%e)\n",Args->V3[0],Args->V3[1],Args->V3[2]);
+   printf("V3P=(%e,%e,%e)\n",Args->V3P[0],Args->V3P[1],Args->V3P[2]);
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   return Result/(4.0*M_PI);
 

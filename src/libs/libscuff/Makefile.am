@@ -17,7 +17,6 @@ libscuff_la_SOURCES = \
  GTransformation.cc \
  GTransformation.h \
  InitEdgeList.cc \
- HighKTaylorDuffy.cc \
  Overlap.cc \
  PanelPanelInteractions.cc \
  PBCSetup.cc \
@@ -25,6 +24,7 @@ libscuff_la_SOURCES = \
  QDFIPPI.cc \
  QIFIPPICubature.cc \
  QIFIPPITaylorDuffy.cc \
+ QIFIPPITaylorDuffyV2P0.cc \
  RWGGeometry.cc \
  RWGSurface.cc \
  ReadComsolFile.cc \

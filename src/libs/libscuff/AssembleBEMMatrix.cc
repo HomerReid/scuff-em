@@ -51,6 +51,9 @@
 namespace scuff {
 
 #define II cdouble(0,1)
+#ifndef ISNAN
+#define ISNAN(x) ((x) != (x))
+#endif
 
 /***************************************************************/
 /* Given two surfaces, identify whether they bound zero, one,  */

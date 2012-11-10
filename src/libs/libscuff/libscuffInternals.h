@@ -46,27 +46,9 @@ namespace scuff {
 /***************************************************************/
 
 /*--------------------------------------------------------------*/
-/*- TaylorDuffy() ---------------------------------------------*/
+/*- TaylorDuffy() ----------------------------------------------*/
+/*- 20121101 this content has been moved to TaylorDuffy.h       */
 /*--------------------------------------------------------------*/
-typedef struct TaylorDuffyArgStruct
- { 
-    int WhichCase;
-    int WhichG;   
-    int WhichH;   
-
-    cdouble GParam;
-
-    double *V1, *V2, *V3;
-    double *V2P, *V3P;
-    double *Q, *QP;
-
-    double AbsTol, RelTol;
-
- } TaylorDuffyArgStruct;
-
-cdouble TaylorDuffy(TaylorDuffyArgStruct *Args);
-cdouble HighKTaylorDuffy(TaylorDuffyArgStruct *Args);
-void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args);
 
 /*--------------------------------------------------------------*/
 /*- GetPanelPanelInteractions() --------------------------------*/

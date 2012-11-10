@@ -36,18 +36,17 @@ namespace scuff {
 /* constants ***************************************************/
 /***************************************************************/
 //values for the WhichG parameter to the Taylor_xx routines 
-#define TM_RP                  0
-#define TM_EMKR_OVER_R         1
-#define TM_GRADEMKR_OVER_R     2
-#define TM_EIKR_OVER_R         3
-#define TM_GRADEIKR_OVER_R     4
+#define TM_RP                   0
+#define TM_HELMHOLTZ            1
+#define TM_GRADHELMHOLTZ        2
+#define TM_HIGHK_HELMHOLTZ      3
+#define TM_HIGHK_GRADHELMHOLTZ  4
 
-//values for the WhichH parameter to the Taylor_xx routines 
+//values for the WhichH parameter to the Taylor_xx routines
 #define TM_ONE                 0
 #define TM_DOT                 1
 #define TM_DOTPLUS             2
 #define TM_CROSS               3
-#define TM_ENORMAL             4
 
 // values for the WhichCase parameter. note the values correspond to
 // the numbers of common vertices in each case.
@@ -73,51 +72,47 @@ typedef struct TMWorkspace
    double V1xAdQmQP, V1xBdQmQP, V1xAPdQmQP, V1xBPdQmQP; 
    double AxBdQmQP, AxAPdQmQP, AxBPdQmQP, BxAPdQmQP, BxBPdQmQP;
 
-   double APdZHat, BPdZHat;
+   /* */
+   int WhichCase;
+   int NumPKs;
+   int *PIndex;
+   int *KIndex;
+   cdouble *KParam;
+   cdouble CurrentKParam;
+   int TwiceIntegrable;
 
-   /* a parameter whose significance depends on the       */
-   /* choice of 'G' function:                             */
-   /* g(r) = r^P             -->  __real__ GParam = P     */
-   /* g(r) = e^{ikr}/r       -->           GParam = k     */
-   cdouble GParam;
-
-   /* pointers to functions that evaluate the I_n functions and  */
-   /* C \times x sums for the various possible allowed choices   */
-   /* of the G and H functions in the original integrand         */
-   cdouble (*InFunc)(int n, cdouble Param, double X);
-   void (*SiAlphaFunc)(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                       int *AlphaMin, int *AlphaMax, cdouble SiAlpha[7][5]);
-
-   int WhichH;
-   int WhichG;
    int nCalls;
 
  } TMWorkspace;
 
-/***************************************************************/
-/* prototype for the In functions for the various types of     */
-/* kernels                                                     */
-/***************************************************************/
-cdouble In_RP(int n, cdouble GParam, double X);
-cdouble In_EMKROverR(int n, cdouble GParam, double X);
-cdouble In_GradEMKROverR(int n, cdouble GParam, double X);
-cdouble In_EIKROverR(int n, cdouble GParam, double X);
-cdouble In_GradEIKROverR(int n, cdouble GParam, double X);
 
-/***************************************************************/
-/* prototypes for the Si functions for the various types of    */
-/* h-functions                                                 */
-/***************************************************************/
-void SiAlpha_One(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                 int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
-void SiAlpha_Dot(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                 int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
-void SiAlpha_DotPlus(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                     int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
-void SiAlpha_Cross(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                   int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
-void SiAlpha_ENormal(const double *xVec, TMWorkspace *TMW, int WhichCase,
-                     int *AlphaMin, int *AlphaMax, cdouble Si[7][5]);
+/*--------------------------------------------------------------*/
+/*- TaylorDuffy() ---------------------------------------------*/
+/*--------------------------------------------------------------*/
+typedef struct TaylorDuffyArgStruct
+ { 
+    int WhichCase;
+
+    int NumPKs;
+    int *PIndex;
+    int *KIndex;
+    cdouble *KParam;
+
+    double *V1, *V2, *V3;
+    double *V2P, *V3P;
+    double *Q, *QP;
+
+    double AbsTol, RelTol;
+    int ForceOnceIntegrable;
+
+    int nCalls;
+
+    cdouble *Result, *Error;
+
+ } TaylorDuffyArgStruct;
+
+void TaylorDuffy(TaylorDuffyArgStruct *Args);
+void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args);
 
 } // namespace scuff
 

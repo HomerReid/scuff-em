@@ -47,6 +47,7 @@ bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
 bool RWGGeometry::UsePBCAcceleration=false;
 double RWGGeometry::DeltaInterp=0.05;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
+bool RWGGeometry::UseTaylorDuffyV2P0=true;
 
 /***********************************************************************/
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
@@ -496,6 +497,15 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* the transformation.                                         */
   /***************************************************************/
   SurfaceMoved=(int *)mallocEC(NumSurfaces*sizeof(int));
+
+  /***************************************************************/
+  /* 20121022 TAKE ME OUT ****************************************/
+  /***************************************************************/
+  if ( getenv("TAYLORDUFFY") )
+   { Log("Using V1P0 routines for taylor-duffy FIPPI computation");
+     UseTaylorDuffyV2P0=false;
+   };
+     
 
 }
 
