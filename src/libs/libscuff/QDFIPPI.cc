@@ -95,7 +95,7 @@ void GetQDFIPPIData(double **Va, double *Qa,
      ComputeQIFIPPIData(OVa, OVb, ncv, &MyQIFD);
      QIFD=&MyQIFD;
    };
-  
+
   /*--------------------------------------------------------------*/
   /*- now assemble the Q-dependent FIPPIs.                        */
   /*--------------------------------------------------------------*/

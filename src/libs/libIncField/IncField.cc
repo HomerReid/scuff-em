@@ -89,6 +89,9 @@ void IncField::SetFrequencyAndEpsMu(cdouble pOmega,
     };
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void IncField::SetkBloch(double *NewkBloch)
 { if (NewkBloch)
    memcpy(kBloch, NewkBloch, MAXLATTICE*sizeof(double));

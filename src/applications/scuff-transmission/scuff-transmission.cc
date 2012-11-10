@@ -122,7 +122,10 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   /***************************************************************/ 
   /* get scattered fields at all cubature points                 */ 
   /***************************************************************/ 
-  G->GetFields(IF, KN, Omega, kBloch, XMatrix, FMatrix);
+  //G->GetFields(IF, KN, Omega, kBloch, XMatrix, FMatrix);
+  // 20121102 actually, we don't want to include the incident field 
+  //          here, right?
+  G->GetFields(0, KN, Omega, kBloch, XMatrix, FMatrix);
 
   /***************************************************************/
   /* integrate poynting vector over upper and lower surfaces.    */
@@ -213,7 +216,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*- create the RWGGeometry                                        -*/
   /*******************************************************************/
-  SetLogFileName("%s.log",GetFileBase(GeoFileName));
+  SetLogFileName("scuff-transmission.log");
   RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   if (G->NumLatticeBasisVectors!=2)

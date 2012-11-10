@@ -63,6 +63,13 @@ typedef struct RWGPort
  } RWGPort;
 
 /***************************************************************/
+/* this is a somewhat hacky feature implemented to allow a     */
+/* calling program to request that only certain contributions  */
+/* to the port voltages be included.                           */
+/***************************************************************/
+void SetContribOnly(const char *ContribOnly);
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 RWGPort **ParsePortFile(RWGGeometry *G, const char *PortFileName, int *NumPorts);
@@ -71,11 +78,16 @@ void AddPortContributionsToRHS(RWGGeometry *G,
                                RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
                                cdouble Omega, HVector *KN);
 
+void AddPortContributionsToPSD(RWGGeometry *G,
+                               RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
+                               cdouble Omega, HMatrix *PSD);
+
 void GetPortVoltages(RWGGeometry *G, HVector *KN,
                      RWGPort **Ports, int NumPorts, cdouble *PortCurrents,
                      cdouble Omega, cdouble *PortVoltages);
 
-void PlotPorts(const char *GPFileName, RWGPort **Ports, int NumPorts);
+void PlotPortsinGNUPLOT(const char *GPFileName, RWGPort **Ports, int NumPorts);
+void PlotPortsInGMSH(RWGPort **Ports, int NumPorts, const char *format, ...);
 void DrawGMSHCircle(const char *PPFile, const char *Name,
                     double *X0, double Theta, double Phi, double Radius);
 

@@ -64,8 +64,10 @@ int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders,
 { 
   int no, nz, ierr, Type;
   double zr=real(z), zi=imag(z);
-  double fr[NumOrders], fi[NumOrders];
-  double cwrkr[NumOrders], cwrki[NumOrders];
+  double *fr=new double[NumOrders];
+  double *fi=new double[NumOrders];
+  double *cwrkr=new double[NumOrders];
+  double *cwrki=new double[NumOrders];
 
   int kode = Scale ? 2 : 1;
 
@@ -172,6 +174,11 @@ int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders,
    { for(no=0; no<NumOrders; no++)
       f[no] = cdouble( fr[no],fi[no] );
    };
+
+  delete[] fr;
+  delete[] fi;
+  delete[] cwrkr;
+  delete[] cwrki;
 
   return ierr;
 

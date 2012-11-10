@@ -37,50 +37,26 @@
 #define RELTOL 1.0e-8
 
 #define II cdouble(0,1)
-//#define EMPIO4 cdouble( 0.707106781186548, -0.707106781186548 )
-#define EMPIO4 1.0
 
 #define NSUM 8
 #define NFIRSTROUND 1
 #define NMAX 10000
 
+#include "Faddeeva.hh"
+
 namespace scuff{
 
-
-/***************************************************************/
-/* complex error function **************************************/
-/***************************************************************/
-extern "C" { 
- void wofz_(double *XI, double *YI, double *U, double *V, int *FLAG); 
+// compute exp(a) * erfc(b), being careful of overflow/underflow
+static cdouble erfc_s(cdouble a, cdouble b) {
+  double x = real(b), y = imag(b);
+  cdouble mb2((y - x) * (x + y), -2*x*y); // -b^2
+  if (x >= 0) // erfc(b) = exp(-b^2) erfcx(b) ==> exp(a-b^2) erfcx(b)
+    return exp(a + mb2) * Faddeeva::erfcx(b);
+  else // erfc(b) = 2 - exp(-b^2) erfcx(b) ==> 2*exp(a) - exp(a-b^2) erfcx(-b)
+    return 2.0*exp(a) - exp(a + mb2) * Faddeeva::erfcx(-b);
 }
 
-cdouble cerfc(cdouble z)
-{ 
-  double zr, zi, wr, wi;
-  int flag;
-
-  /* handle some special cases that can cause the wofz routine to barf */
-  if ( real(z)<-4.0 && fabs(imag(z))<1.0 )
-   return cdouble(2.0,0.0);
-
-  /* note the wofz_ function interprets its input as i*Z */
-  zr = -imag(z);
-  zi = real(z);
-
-  wofz_(&zr, &zi, &wr, &wi, &flag);
-
-  if (flag)
-   { fprintf(stderr,"** warning: wofz(%e,%e) barfed\n",zr,zi);
-     return 0.0;
-   };
-
-  return exp(-z*z) * cdouble(wr, wi);
-} 
-
-cdouble cerf(cdouble z)
-{ 
-  return cdouble(1.0,0.0) - cerfc(z);
-} 
+static bool cisnan(cdouble z) { return isnan(real(z)) || isnan(imag(z)); }
 
 /***************************************************************/
 /* 'EEF' = 'exp*erfc factor'  **********************************/
@@ -93,32 +69,22 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
   cdouble Arg, ExpFac, dExpFac, ErfcFac, dErfcFac;
   cdouble PlusTerm, dPlusTerm, MinusTerm, dMinusTerm;
 
-  cdouble EZeta = E*EMPIO4;
+  // PlusTerm  = exp(  kz*R[2] ) * erfc( 0.5*kz/E  + R[2]*E );
+  Arg       = 0.5*Q/E + z*E;
+  PlusTerm = erfc_s(Q*z, Arg);
+  dPlusTerm = Q*PlusTerm - (M_2_SQRTPI * E) * exp(Q*z - Arg*Arg);
 
-  // PlusTerm  = exp(  kz*R[2] ) * cerfc( 0.5*kz/E  + R[2]*E );
-  ExpFac    = exp( Q*z );
-  dExpFac   = Q*ExpFac;
-  Arg       = 0.5*Q/EZeta + z*EZeta;
-  ErfcFac   = cerfc( Arg );
-  dErfcFac  = -EZeta*exp( -Arg*Arg );
-  PlusTerm  = ExpFac*ErfcFac;
-  dPlusTerm = dExpFac*ErfcFac + ExpFac*dErfcFac;
-
-  // MinusTerm  = exp( -kz*R[2] ) * cerfc( 0.5*kz/E  - R[2]*E );
-  ExpFac     = exp( -Q*z );
-  dExpFac    = -Q*ExpFac;
-  Arg        = 0.5*Q/EZeta - z*EZeta;
-  ErfcFac    = cerfc( Arg );
-  dErfcFac   = +EZeta*exp( -Arg*Arg );
-  MinusTerm  = ExpFac*ErfcFac;
-  dMinusTerm = dExpFac*ErfcFac + ExpFac*dErfcFac;
+  // MinusTerm  = exp( -kz*R[2] ) * erfc( 0.5*kz/E  - R[2]*E );
+  Arg        = 0.5*Q/E - z*E;
+  MinusTerm = erfc_s(-Q*z, Arg);
+  dMinusTerm = -Q*MinusTerm + (M_2_SQRTPI * E) * exp(-Q*z - Arg*Arg);
   
   *EEF      = PlusTerm + MinusTerm;
   *EEFPrime = dPlusTerm + dMinusTerm;
 
-  if ( !isfinite(*EEF) )
+  if ( !isfinite(*EEF) || cisnan(*EEF) )
    *EEF=0.0;
-  if ( !isfinite(*EEFPrime) )
+  if ( !isfinite(*EEFPrime) || cisnan(*EEFPrime) )
    *EEFPrime=0.0;
 
 }
@@ -307,20 +273,19 @@ void AddG2Contribution(double *R, cdouble k, double *P,
   rpl6=rpl5*rpl;
   rpl7=rpl6*rpl;
 
-  cdouble EZeta = E*EMPIO4;
-  cdouble EZeta2 = EZeta*EZeta;
-  cdouble EZeta4 = EZeta2*EZeta2;
+  double E2 = E*E;
+  double E4 = E2*E2;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   g2p = exp( II*k*rpl );
-  g3p = cerfc( EZeta*rpl + II*k/(2.0*EZeta) );
+  g3p = Faddeeva::erfc( E*rpl + II*k/(2.0*E) );
 
   g2m = exp( -II*k*rpl );
-  g3m = cerfc( EZeta*rpl - II*k/(2.0*EZeta) );
+  g3m = Faddeeva::erfc( E*rpl - II*k/(2.0*E) );
 
-  g4 = -2.0*M_2_SQRTPI*EZeta*exp(-EZeta2*rpl2 + k*k/(4.0*EZeta2));
+  g4 = -2.0*M_2_SQRTPI*E*exp(-E2*rpl2 + k*k/(4.0*E2));
 
   ggPgg = g2p*g3p + g2m*g3m;
   ggMgg = g2p*g3p - g2m*g3m;
@@ -342,7 +307,7 @@ void AddG2Contribution(double *R, cdouble k, double *P,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  Term = 3.0*ggPgg/rpl5 - 3.0*(g4+II*k*ggMgg)/rpl4 - k*k*ggPgg/rpl3 - 2.0*EZeta2*g4/rpl2;
+  Term = 3.0*ggPgg/rpl5 - 3.0*(g4+II*k*ggMgg)/rpl4 - k*k*ggPgg/rpl3 - 2.0*E2*g4/rpl2;
 
   Sum[4] += PhaseFactor * RpL[0] * RpL[1] * Term;
   Sum[5] += PhaseFactor * RpL[0] * RpL[2] * Term;
@@ -352,8 +317,8 @@ void AddG2Contribution(double *R, cdouble k, double *P,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   Term = -15.0*ggPgg/rpl7 + 15.0*(g4+II*k*ggMgg)/rpl6 
-         + 6.0*k*k*ggPgg/rpl5 + 10.0*EZeta2*g4/rpl4
-         -k*k*(II*k*ggMgg + g4)/rpl4 + 4.0*EZeta4*g4/rpl2;
+         + 6.0*k*k*ggPgg/rpl5 + 10.0*E2*g4/rpl4
+         -k*k*(II*k*ggMgg + g4)/rpl4 + 4.0*E4*g4/rpl2;
 
   Sum[7] += PhaseFactor * RpL[0] * RpL[1] * RpL[2] * Term;
 
