@@ -156,6 +156,11 @@ bool VecEqualFloat(const double *a, const double *b)
           );
 }
 
+bool VecClose(const double *a, const double *b, double abstol)
+{
+  return fabs(a[0]-b[0]) + fabs(a[1]-b[1]) + fabs(a[2]-b[2]) <= 3*abstol;
+}   
+
 void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
                 const cdouble V2[6], cdouble V3[6])
 { 

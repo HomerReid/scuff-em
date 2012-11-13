@@ -132,6 +132,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3],
   V1T[0] = V1[0] + OtherBV[0]; V1T[1] = V1[1] + OtherBV[1]; V1T[2] = V1[2];
   V2T[0] = V2[0] + OtherBV[0]; V2T[1] = V2[1] + OtherBV[1]; V2T[2] = V2[2];
   double *V1P, *V2P; // 'V1,V2, primed'
+  const double tolvc = S->tolVecClose;
   for(int neip=0; neip<S->NumExteriorEdges; neip++)
    { 
      if (S->ExteriorEdges[neip]==0) 
@@ -139,8 +140,8 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3],
 
      V1P = S->Vertices + 3*(S->ExteriorEdges[neip]->iV1);
      V2P = S->Vertices + 3*(S->ExteriorEdges[neip]->iV2);
-     if (   (VecEqualFloat(V1T, V1P) && VecEqualFloat(V2T, V2P))
-         || (VecEqualFloat(V1T, V2P) && VecEqualFloat(V2T, V1P))
+     if (   (VecClose(V1T, V1P, tolvc) && VecClose(V2T, V2P, tolvc))
+         || (VecClose(V1T, V2P, tolvc) && VecClose(V2T, V1P, tolvc))
         )
       { 
         /*--------------------------------------------------------------*/

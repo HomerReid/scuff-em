@@ -38,17 +38,6 @@ namespace scuff {
 // the same if their distance is less than CVTHRESHOLD*the panel radius 
 #define CVTHRESHOLD 1.0e-6
 
-#if 0
-bool VecEqualFloat(const double *a, const double *b) 
-{
-   return (     float(a[0]) == float(b[0])
-            &&  float(a[1]) == float(b[1])
-            &&  float(a[2]) == float(b[2])
-          );
-}
-#endif
-
-
 /***************************************************************/
 /* look for vertices that are shared between panels.           */
 /* NOTE: in an earlier incarnation of this code, i looked for  */
@@ -65,10 +54,10 @@ int AssessPanelPair(double **Va, double **Vb, double Radius)
   int ncv=0;
   int CVIa[3], CVIb[3];
   int ia, ib;
-  double ThresholdDistance2=CVTHRESHOLD*CVTHRESHOLD*Radius*Radius;
+  double ThresholdDistance=fabs(CVTHRESHOLD*Radius);
   for(ia=0; ia<3; ia++)
    for(ib=0; ib<3; ib++)
-    { if ( VecDistance2(Va[ia],Vb[ib]) < ThresholdDistance2 )
+    { if ( VecClose(Va[ia],Vb[ib],ThresholdDistance) )
        { CVIa[ncv]=ia;    
          CVIb[ncv]=ib;
          ncv++;

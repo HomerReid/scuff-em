@@ -212,6 +212,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   Surfaces=0;
   AllSurfacesClosed=1;
   NumLatticeBasisVectors=0;
+  tolVecClose=0.0; // to be updated once mesh is read in
 
   // we always start with a single Region, for the exterior,
   // taken to be vacuum by default
@@ -354,6 +355,18 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 
    }; // while( fgets(Line,MAXSTR,f) )
 
+  /*******************************************************************/
+  /* Before doing any vector comparisons with VecClose (e.g.
+     in InitPBCData), initialize tolVecClose to 1e-3*(min edge len)  */
+  /*******************************************************************/
+  tolVecClose = 1./0.; // infinity
+  for(int ns=0; ns<NumSurfaces; ns++)
+    for(int ne=0; ne<Surfaces[ns]->NumEdges; ne++) 
+      tolVecClose = fmin(tolVecClose, Surfaces[ns]->Edges[ne]->Length);
+  tolVecClose *= 1e-3;
+  for(int ns=0; ns<NumSurfaces; ns++)
+    Surfaces[ns]->tolVecClose = tolVecClose;
+    
   /*******************************************************************/
   /* if a lattice is present, then we need to do some preliminary    */
   /* setup                                                           */

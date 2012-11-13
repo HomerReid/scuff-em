@@ -71,6 +71,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   MeshFileName=0;
   IsPEC=1;
   Label = strdupEC(pLabel);
+  tolVecClose=0.0; // to be updated once mesh is read in
 
   if ( !StrCaseCmp(Keyword, "OBJECT") )
    IsObject=1;
@@ -260,6 +261,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
   Label=strdup(MeshFile);
   SurfaceSigma=0;
   IsPEC=1;
+  tolVecClose=0.0; // to be updated once mesh is read in
   InitRWGSurface();
 }
 

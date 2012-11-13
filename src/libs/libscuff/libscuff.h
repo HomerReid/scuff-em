@@ -227,6 +227,8 @@ class RWGSurface
    int IsClosed;                   /* = 1 for a closed surface, 0 for an open surface */
    double RMax[3], RMin[3];        /* bounding box corners */
 
+   double tolVecClose; // absolute tolerance for VecClose
+
    int NumVertices;                /* number of vertices in mesh  */
    int NumInteriorVertices;        /* number of interior vertices */
    int NumRefPts;                  /* number of vertices used as reference points */
@@ -463,6 +465,7 @@ class RWGGeometry
    int TotalBFs;
    int TotalPanels;
    double AveragePanelArea;
+   double tolVecClose; // absolute tolerance for VecClose
 
    int Verbose;
 
@@ -548,6 +551,7 @@ double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
 bool EqualFloat(const double a, const double b);
 bool VecEqualFloat(const double *a, const double *b);
+bool VecClose(const double *a, const double *b, double abstol);
 
 void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
                 const cdouble V2[6], cdouble V3[6]);
