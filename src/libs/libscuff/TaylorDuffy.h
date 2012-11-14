@@ -103,6 +103,7 @@ typedef struct TaylorDuffyArgStruct
     double *Q, *QP;
 
     double AbsTol, RelTol;
+    int MaxEval;
     int ForceOnceIntegrable;
 
     int nCalls;

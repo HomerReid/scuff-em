@@ -56,7 +56,7 @@ namespace scuff {
 /*     kernel, which significantly accelerates that computation.      */
 /**********************************************************************/
 #define SWTHRESHOLD 1.0*M_PI
-#define VERYSWTHRESHOLD 10.0
+#define VERYSWTHRESHOLD 20.0
 
 /**********************************************************************/
 // the 'desingularization radius': if the relative distance between   */
@@ -437,11 +437,10 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      else
       { 
         PIndex=TM_CROSS;
-        if ( InSWRegime && RWGGeometry::UseHighKTaylorDuffy )
+        if ( InVerySWRegime && RWGGeometry::UseHighKTaylorDuffy )
          KIndex=TM_HIGHK_GRADHELMHOLTZ;
         else
-         KIndex=TM_HIGHK_HELMHOLTZ;
-
+         KIndex=TM_GRADHELMHOLTZ;
         TDArgs->Result = H+1;
         TaylorDuffy(TDArgs);
       };
