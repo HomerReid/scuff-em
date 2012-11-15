@@ -56,6 +56,7 @@ typedef struct SSData
 //void GetPower(SSData *SSD, char *PowerFile);
 //void GetForce(SSData *SSD, char *ForceFile);
 void WritePFTFile(SSData *SSD, char *PFTFile);
+void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);
 void CreateFluxPlot(SSData *SSData, char *MeshFileName);

@@ -166,7 +166,7 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatri
   if (PSD==0 || PSD->NR!=TotalPanels || PSD->NC!=12 || PSD->RealComplex!=LHM_COMPLEX)
    { if (PSD) 
       Warn("invalid PSD matrix passed to GetPanelSourceDensities (reallocating)");
-     PSD=new HMatrix(TotalPanels, 11, LHM_COMPLEX);
+     PSD=new HMatrix(TotalPanels, 12, LHM_COMPLEX);
    };
   PSD->Zero();
 

@@ -965,3 +965,33 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
   fclose(f);
 
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WritePSDFile(SSData *SSD, char *PSDFile)
+{
+  FILE *f=fopen(PSDFile,"a");
+  if (!f)
+   return;
+
+  Log("Computing panel source densities at Omega=%s...",z2s(SSD->Omega));
+
+  static HMatrix *PSDMatrix=0;
+  if (PSDMatrix==0)
+   PSDMatrix=SSD->G->GetPanelSourceDensities(SSD->Omega, SSD->KN, 0); 
+  else
+   SSD->G->GetPanelSourceDensities(SSD->Omega, SSD->KN, PSDMatrix); 
+
+  for(int nr=0; nr<PSDMatrix->NR; nr++)
+   { fprintf(f,"%s ",z2s(SSD->Omega));
+     for(int nc=0; nc<4; nc++)
+      fprintf(f,"%e ",real(PSDMatrix->GetEntry(nr,nc)));
+     for(int nc=4; nc<PSDMatrix->NC; nc++)
+      fprintf(f,"%e %e ",real(PSDMatrix->GetEntry(nr,nc)),
+                         imag(PSDMatrix->GetEntry(nr,nc)));
+     fprintf(f,"\n");
+   };
+  fclose(f);
+
+}

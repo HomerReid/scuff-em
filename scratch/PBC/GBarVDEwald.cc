@@ -30,7 +30,6 @@
 
 #include <libhrutil.h>
 #include <libMDInterp.h>
-#include "PBCGeometry.h"
 
 #define ABSTOL 0.0
 #define RELTOL 1.0e-8
@@ -42,6 +41,31 @@
 #define NSUM 8
 #define NFIRSTROUND 1
 #define NMAX 10000
+
+/***************************************************************/
+/* this is an alternative interface to GBarVDEwald that has the*/
+/* proper prototype for passage to my Interp3D class routines  */
+/***************************************************************/
+typedef struct GBarData 
+ { 
+   cdouble k;           // wavenumber 
+   double *BlochP;      // bloch vector 
+   double *LBV[2];      // lattice basis vectors 
+   double E;            // ewald separation parameter
+   bool ExcludeInner9;  
+ 
+ } GBarData;
+
+void GBarVDPhi3D(double X1, double X2, double X3, 
+                 void *UserData, double *PhiVD);
+
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool EqualFloat(const double a, const double b) 
+{ return ( float(a) == float(b) ); }
+
 
 namespace scuff{
 

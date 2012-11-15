@@ -16,7 +16,10 @@ FC = /usr/bin/gfortran
 #################################################################
 
 TE = tEwald.o GBarVDEwald.o GBarVDBF.o ACMTOMS680.o cerf.o
+TES = tEwald.o GBarVDEwald_SGJ.o GBarVDBF.o Faddeeva.o
 
+tEwald_SGJ:	$(TES)
+		$(CXX) $(LDFLAGS) -o $@ $(TES) $(LIBS)
 
 tEwald:	$(TE)
 	$(CXX) $(LDFLAGS) -o $@ $(TE) $(LIBS)

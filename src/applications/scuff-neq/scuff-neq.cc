@@ -51,7 +51,6 @@
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
-  EnableAllCPUs();
 
   /***************************************************************/
   /* process options *********************************************/
@@ -215,8 +214,8 @@ int main(int argc, char *argv[])
   /* process any temperature specifications **************************/
   /*******************************************************************/
   double TEnvironment=0.0;
-  double *TObjects=(double *)malloc(G->NumSurfaces*sizeof(double));
-  memset(TObjects, 0, G->NumSurfaces*sizeof(double));
+  double *TSurfaces=(double *)malloc(G->NumSurfaces*sizeof(double));
+  memset(TSurfaces, 0, G->NumSurfaces*sizeof(double));
   if (nTempStrings)
    { 
      RWGSurface *S;
@@ -227,7 +226,7 @@ int main(int argc, char *argv[])
       { S=G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface);
 
         if(WhichSurface==-2)
-         ErrExit("unknown object (%s) passed for --temperature option",TempStrings[2*nts]);
+         ErrExit("unknown surface (%s) passed for --temperature option",TempStrings[2*nts]);
         if ( 1!=sscanf(TempStrings[2*nts+1],"%le",&TTemp) )
          ErrExit("invalid temperature (%s) passed for --temperature option",TempStrings[2*nts+1]);
 
@@ -237,7 +236,7 @@ int main(int argc, char *argv[])
            printf("Setting environment temperature to %g kelvin.\n",TTemp);
          }
         else
-         { TObjects[WhichSurface]=TTemp;
+         { TSurfaces[WhichSurface]=TTemp;
            Log("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
            printf("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
          };
@@ -270,7 +269,7 @@ int main(int argc, char *argv[])
    { 
       double *E = new double[ OutputVectorLength ];
       EvaluateFrequencyIntegral(SNEQD, OmegaMin, OmegaMax,
-                                TObjects, TEnvironment, AbsTol, RelTol, I, E);
+                                TSurfaces, TEnvironment, AbsTol, RelTol, I, E);
       delete[] E;
    };
   delete[] I;

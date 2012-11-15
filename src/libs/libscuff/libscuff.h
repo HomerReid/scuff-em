@@ -101,12 +101,13 @@ namespace scuff {
 /***************************************************************/
 typedef struct RWGPanel
  { 
-   int VI[3];                   /* indices of vertices in Vertices array */
-   double Centroid[3];          /* panel centroid */
-   double ZHat[3];              /* normal vector */
-   double Radius;               /* radius of enclosing sphere */
-   double Area;                 /* panel area */
-   int Index;                   /* index of this panel within RWGSurface (0..NumPanelsP-1)*/
+   int VI[3];                /* indices of vertices in Vertices array */
+   double Centroid[3];       /* panel centroid */
+   double ZHat[3];           /* normal vector */
+   bool ZHatFlipped;         /* true / false ==> ZHat obeys right (left)-hand rule wrt VI*/
+   double Radius;            /* radius of enclosing sphere */
+   double Area;              /* panel area */
+   int Index;                /* index of this panel within RWGSurface (0..NumPanelsP-1)*/
 
 } RWGPanel;
 

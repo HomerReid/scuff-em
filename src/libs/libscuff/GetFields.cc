@@ -325,7 +325,7 @@ void *GetFields_Thread(void *data)
   int RegionIndex;
   cdouble EH[6], dEH[6];
   cdouble Eps, Mu;
-  double dA[3]={0.0, 0.0, 0.0};
+  double dA[3]={1.0, 0.0, 0.0};
   IncField *IF;
   Interp3D *GBarInterp;
 
