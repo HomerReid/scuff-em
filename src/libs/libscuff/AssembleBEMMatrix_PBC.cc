@@ -393,13 +393,13 @@ void *AOCC_Thread(void *data)
           if (neb==0) LogPercent(nea, Sa->NumEdges);
 
           // contribution from first medium if it is extended
-          if (Interpolator1)
+          if ( Interpolator1 && k1!=0.0 )
            { GetAB9EdgeEdgeInteractions(Sa, nea, Sb, neb, k1, Interpolator1, GC);
              AddMEs(M, Sa, nea, Sb, neb, RowOffset, ColOffset, PreFac1, GC);
            };
 
           // contribution from second medium if it is extended
-          if (Interpolator2)
+          if ( Interpolator2 && k2!=0.0 )
            { GetAB9EdgeEdgeInteractions(Sa, nea, Sb, neb, k2, Interpolator2, GC);
              AddMEs(M, Sa, nea, Sb, neb, RowOffset, ColOffset, PreFac2, GC);
            };
@@ -436,6 +436,8 @@ void RWGGeometry::AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *
       continue;
      Log("  Initializing interpolator for region %i (%s)...",nr,RegionLabels[nr]);
      GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*StoredOmega;
+     if ( GBD->k == 0.0 ) 
+      continue;
      GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
    };
   

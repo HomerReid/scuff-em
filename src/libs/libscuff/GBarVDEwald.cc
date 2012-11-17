@@ -481,6 +481,19 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
   if ( (LBV[0][1]!=0.0) || (LBV[1][0]!=0.0) )
    ErrExit("non-square lattices not yet supported");
 
+  /*--------------------------------------------------------------*/
+  /* the periodic green's function is well-defined at k==0, but   */
+  /* in that case the method of this file doesn't work; moreover, */
+  /* in practice the only situation in which this case arises in  */
+  /* SCUFF-EM is when we have 'zeroed out' the material properties*/
+  /* of a region in order to neglect its contributions to the BEM */
+  /* matrix, so we want to return zeros in this case.             */
+  /*--------------------------------------------------------------*/
+   if (k==0.0)
+    { memset(GBarVD, 0, 8*sizeof(cdouble));
+      return;
+    };
+
   /* E is the separation parameter, which we set to its  */
   /* optimal value if the user didn't specify it already */
   if (E==-1.0)
