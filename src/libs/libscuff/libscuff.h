@@ -377,6 +377,10 @@ class RWGGeometry
    HMatrix *GetFieldsGrid(SurfaceGrid &grid, const char *expr,
 			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL);
 
+   /* routine for computing dyadic green's functions */
+   void GetDyadicGFs(double X[3], cdouble Omega, HMatrix *M, HVector *KN,
+                     cdouble GE[3][3], cdouble GM[3][3]);
+
    /* routine for computing power, force, and torque on an object */
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, int SurfaceIndex, double PFT[8]);
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, char *SurfaceLabel, double PFT[8]);
