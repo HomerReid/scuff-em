@@ -225,7 +225,8 @@ AC_CONFIG_FILES([
  examples/TwoDimensionalCylinders/Makefile
  examples/ThinFilm/Makefile
  examples/WireAntenna/Makefile
- tests/Makefile
+ interactiveTests/Makefile
+ unitTests/Makefile
 ])
 AC_OUTPUT
 
