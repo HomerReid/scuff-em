@@ -552,6 +552,7 @@ double VecNorm(const double v[3]);
 double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
 bool EqualFloat(const double a, const double b);
+bool EqualFloat(const cdouble a, const cdouble b);
 bool VecEqualFloat(const double *a, const double *b);
 
 void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
