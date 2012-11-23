@@ -2,7 +2,8 @@ EXTRA_DIST = \
  UnitTestSphere.geo	\
  UnitTestSphere.msh  	\
  PECSphere.scuffgeo 	\
- SiSphere.scuffgeo  
+ SiSphere.scuffgeo  	\
+ TwoSpheres.scuffgeo  
 
 OBJ = $(SRC:.cc=.o)
 DAC = $(SRC:.cc=.dac)
@@ -22,14 +23,20 @@ AM_CPPFLAGS = -DSCUFF \
               -I$(top_srcdir)/src/libs/libTriInt     \
               -I$(top_srcdir)/src/libs/libhrutil
 
-noinst_PROGRAMS = \
+noinst_PROGRAMS = 		\
+ unit-test-compactMatrix	\
  unit-test-ppis
 
-check_PROGRAMS = \
+check_PROGRAMS = 		\
+ unit-test-compactMatrix	\
  unit-test-ppis
 
-TESTS = \
+TESTS = 			\
+ unit-test-compactMatrix	\
  unit-test-ppis
 
 unit_test_ppis_SOURCES = unit-test-ppis.cc
 unit_test_ppis_LDADD = $(LIBSCUFF)
+
+unit_test_compactmatrix_SOURCES = unit-test-compactMatrix.cc
+unit_test_compactmatrix_LDADD   = $(LIBSCUFF)
