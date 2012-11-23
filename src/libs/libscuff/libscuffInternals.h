@@ -70,6 +70,11 @@ typedef struct GetPPIArgStruct
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;
 
+   // if this field is nonzero, it points to an Interp3D object
+   // for the kernel function; otherwise the kernel function 
+   // is the usual Helmholtz kernel, possibly desingularized 
+   Interp3D *GInterp;
+
    // output fields filled in by routine
    // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
    // note: H[1] = HTimes

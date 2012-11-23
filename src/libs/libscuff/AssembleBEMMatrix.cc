@@ -103,7 +103,7 @@ typedef struct ThreadData
  } ThreadData;
 
 /***************************************************************/
-/* 'AssembleBMatrixBlockThread'                                */
+/* 'AssembleBEMMatrixBlockThread'                              */
 /***************************************************************/
 void *ABMBThread(void *data)
 { 
