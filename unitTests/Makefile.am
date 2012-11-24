@@ -38,5 +38,5 @@ TESTS = 			\
 unit_test_ppis_SOURCES = unit-test-ppis.cc
 unit_test_ppis_LDADD = $(LIBSCUFF)
 
-unit_test_compactmatrix_SOURCES = unit-test-compactMatrix.cc
-unit_test_compactmatrix_LDADD   = $(LIBSCUFF)
+unit_test_compactMatrix_SOURCES = unit-test-compactMatrix.cc
+unit_test_compactMatrix_LDADD   = $(LIBSCUFF)

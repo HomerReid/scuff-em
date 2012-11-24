@@ -61,8 +61,8 @@ int main(int argc, char *argv[])
   bool UseCache=0;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
-   { {"WriteFiles", PA_BOOL, 0, 1, (void *)WriteFiles,  0,  "write .hdf5 files"},
-     {"UseCache",   PA_BOOL, 0, 1, (void *)UseCache,    0,  ""},
+   { {"WriteFiles", PA_BOOL, 0, 1, (void *)&WriteFiles,  0,  "write .hdf5 files"},
+     {"UseCache",   PA_BOOL, 0, 1, (void *)&UseCache,    0,  "use cache file"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -72,26 +72,28 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   RWGGeometry *G = new RWGGeometry("TwoSpheres.scuffgeo");
   HMatrix *M = G->AllocateBEMMatrix();
+  double Elapsed;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if (WriteFiles)
    { 
-     void *pCC = HMatrix::CreateHDF5Context("TwoSpheres.hdf5");
+     void *pCC = HMatrix::OpenHDF5Context("TwoSpheres.hdf5");
    
      printf("Assembling BEM matrix at Omega = 0.05...\n");
      Tic();
-     M->AssembleBEMMatrix( cdouble(0.05, 0.0) );
+     G->AssembleBEMMatrix( cdouble(0.05, 0.0), M );
      Elapsed=Toc();
-     printf("...done in %.1 s; exporting to HDF5\n",Elapsed);
+     printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
      M->ExportToHDF5(pCC,"M0P05");
+     StoreCache("TwoSpheres.cache");
    
      printf("Assembling BEM matrix at Omega = 5+5I...\n");
      Tic();
-     M->AssembleBEMMatrix( cdouble(5.00, 5.00) );
+     G->AssembleBEMMatrix( cdouble(5.00, 5.00), M );
      Elapsed=Toc();
-     printf("...done in %.1 s; exporting to HDF5\n",Elapsed);
+     printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
      M->ExportToHDF5(pCC,"M5P5I");
 
      HMatrix::CloseHDF5Context(pCC);
@@ -101,28 +103,71 @@ int main(int argc, char *argv[])
    }
   else
    {
-     /***************************************************************/
-     /***************************************************************/
-     /***************************************************************/
-     MRef = new HMatrix("TwoSpheres.hdf5",LHM_HDF5,"M0P05");
-     if (MRef->ErrMsg)
-      ErrExit(MRef->ErrMsg);
-
      if (UseCache)
       PreloadCache("TwoSpheres.cache");
 
+     /***************************************************************/
+     /* assemble and compare at omega=0.05 **************************/
+     /***************************************************************/
+     HMatrix *MRef = new HMatrix("TwoSpheres.hdf5",LHM_HDF5,"M0P05");
+     if (MRef->ErrMsg)
+      ErrExit(MRef->ErrMsg);
+
      printf("Assembling BEM matrix at Omega = 0.05...\n");
      Tic();
-     M->AssembleBEMMatrix( cdouble(0.05, 0.0) );
+     G->AssembleBEMMatrix( cdouble(0.05, 0.0), M );
      Elapsed=Toc();
-     printf("...done in %.1 s);
+     printf("...done in %.0f s.\n",Elapsed);
 
      printf("Comparing to reference...");
-     int BadEntries=0;
+     int Mismatches=0;
      for(int nr=0; nr<M->NR; nr++)
-      for(int nc=0; nc<M->NC; nc++)
-       if ( !VecEqualFloat(
+      for(int nc=nr; nc<M->NC; nc++)
+       if ( !EqualFloat(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) )
+        { 
+          Mismatches++;
+          Warn("MISMATCH(%i,%i): (%.8e,%.8e)--(%.8e,%.8e) (%.1e)\n",nr,nc,
+                real(M->GetEntry(nr,nc)),    imag(M->GetEntry(nr,nc)),
+                real(MRef->GetEntry(nr,nc)), imag(MRef->GetEntry(nr,nc)), 
+                RD(M->GetEntry(nr,nc),MRef->GetEntry(nr,nc)));
+          if (Mismatches>10)
+           ErrExit("too many mismatches0(aborting)");
+        };
+      printf("...%i mismatches.\n",Mismatches);
+      printf("\n");
+      
 
-   };
+     /***************************************************************/
+     /* assemble and compare at Omega=5+5i **************************/
+     /***************************************************************/
+     MRef = new HMatrix("TwoSpheres.hdf5",LHM_HDF5,"M5P5I");
+     if (MRef->ErrMsg)
+      ErrExit(MRef->ErrMsg);
+
+     printf("Assembling BEM matrix at Omega = 5+5i...\n");
+     Tic();
+     G->AssembleBEMMatrix( cdouble(5.00, 5.00), M );
+     Elapsed=Toc();
+     printf("...done in %.0f s.\n",Elapsed);
+
+     printf("Comparing to reference...");
+     for(int nr=0; nr<M->NR; nr++)
+      for(int nc=nr; nc<M->NC; nc++)
+       if ( !EqualFloat(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) )
+        { 
+          Mismatches++;
+          Warn("MISMATCH(%i,%i): (%.8e,%.8e)--(%.8e,%.8e) (%.1e)\n",nr,nc,
+                real(M->GetEntry(nr,nc)),    imag(M->GetEntry(nr,nc)),
+                real(MRef->GetEntry(nr,nc)), imag(MRef->GetEntry(nr,nc)), 
+                RD(M->GetEntry(nr,nc),MRef->GetEntry(nr,nc)));
+          if (Mismatches>10)
+           ErrExit("too many mismatches0(aborting)");
+        };
+      printf("%i mismatches.\n",Mismatches);
+
+   }; // if (WriteFiles) ... else 
+
+  printf("All tests successfully passed.\n");
+  return 0;
 
 }
