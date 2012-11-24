@@ -1,0 +1,37 @@
+This directory contains programs and input files for running
+SCUFF-EM unit tests.
+
+**************************************************
+** .geo and .msh files 
+**************************************************
+
+In general, each .msh file is generated from the corresponding
+.geo file by running GMSH with the following options:
+
+ % gmsh -clscale 1.0 -2 Geometry.geo -o Geometry.msh
+
+The exception to this rule are meshes whose filenames include
+the suffix _Coarse; in this case the .msh files is generated
+from the .geo file by running GMSH with 2X larger lengthscale
+than above, i.e. 
+
+ % gmsh -clscale 2.0 -2 Geometry_Coarse.geo -o Geometry_Coarse.msh
+
+**************************************************
+** matrix unit tests
+**************************************************
+
+The two matrix unit-test programs are unit-test-compactMatrix
+and unit-test-PBCMatrix. In each case, the code must be run
+once with the --WriteFiles option to generate the .hdf5 data
+files which are subsequently used as comparisons to test
+the proper functionality.
+
+When either of these codes is run with the --WriteFiles option,
+it automatically generates an appropriately named .cache 
+file. On subsequent runs, the --UseCache option may be 
+specified to tell the code to read this .cache file. (If
+--UseCache is not specified, the code will not attempt to
+read the cache file even if it is present in the working
+directory.)
+ 

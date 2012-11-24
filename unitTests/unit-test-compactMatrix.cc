@@ -43,7 +43,7 @@ using namespace scuff;
 int main(int argc, char *argv[])
 { 
   SetLogFileName("scuff-unit-tests.log");
-  Log("SCUFF-EM compact matrix unit test running on %s",GetHostName);
+  Log("SCUFF-EM compact matrix unit test running on %s",GetHostName());
  
   /*--------------------------------------------------------------*/
   /*- use the --WriteFiles option to create the .hdf5 files that  */
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGGeometry *G = new RWGGeometry("TwoSpheres.scuffgeo");
+  RWGGeometry *G = new RWGGeometry("TwoSpheres_Coarse.scuffgeo");
   HMatrix *M = G->AllocateBEMMatrix();
   double Elapsed;
 
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   if (WriteFiles)
    { 
-     void *pCC = HMatrix::OpenHDF5Context("TwoSpheres.hdf5");
+     void *pCC = HMatrix::OpenHDF5Context("TwoSpheres_Coarse.hdf5");
    
      printf("Assembling BEM matrix at Omega = 0.05...\n");
      Tic();
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
      Elapsed=Toc();
      printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
      M->ExportToHDF5(pCC,"M0P05");
-     StoreCache("TwoSpheres.cache");
+     StoreCache("TwoSpheres_Coarse.cache");
    
      printf("Assembling BEM matrix at Omega = 5+5I...\n");
      Tic();
@@ -98,18 +98,18 @@ int main(int argc, char *argv[])
 
      HMatrix::CloseHDF5Context(pCC);
 
-     StoreCache("TwoSpheres.cache");
+     StoreCache("TwoSpheres_Coarse.cache");
 
    }
   else
    {
      if (UseCache)
-      PreloadCache("TwoSpheres.cache");
+      PreloadCache("TwoSpheres_Coarse.cache");
 
      /***************************************************************/
      /* assemble and compare at omega=0.05 **************************/
      /***************************************************************/
-     HMatrix *MRef = new HMatrix("TwoSpheres.hdf5",LHM_HDF5,"M0P05");
+     HMatrix *MRef = new HMatrix("TwoSpheres_Coarse.hdf5",LHM_HDF5,"M0P05");
      if (MRef->ErrMsg)
       ErrExit(MRef->ErrMsg);
 
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
                 real(MRef->GetEntry(nr,nc)), imag(MRef->GetEntry(nr,nc)), 
                 RD(M->GetEntry(nr,nc),MRef->GetEntry(nr,nc)));
           if (Mismatches>10)
-           ErrExit("too many mismatches0(aborting)");
+           ErrExit("too many mismatches");
         };
       printf("...%i mismatches.\n",Mismatches);
       printf("\n");
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
      /***************************************************************/
      /* assemble and compare at Omega=5+5i **************************/
      /***************************************************************/
-     MRef = new HMatrix("TwoSpheres.hdf5",LHM_HDF5,"M5P5I");
+     MRef = new HMatrix("TwoSpheres_Coarse.hdf5",LHM_HDF5,"M5P5I");
      if (MRef->ErrMsg)
       ErrExit(MRef->ErrMsg);
 
@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
                 real(MRef->GetEntry(nr,nc)), imag(MRef->GetEntry(nr,nc)), 
                 RD(M->GetEntry(nr,nc),MRef->GetEntry(nr,nc)));
           if (Mismatches>10)
-           ErrExit("too many mismatches0(aborting)");
+           ErrExit("too many mismatches");
         };
       printf("%i mismatches.\n",Mismatches);
 

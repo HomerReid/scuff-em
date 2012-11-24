@@ -1,18 +1,17 @@
-EXTRA_DIST = \
- UnitTestSphere.geo	\
- UnitTestSphere.msh  	\
- PECSphere.scuffgeo 	\
- SiSphere.scuffgeo  	\
- TwoSpheres.scuffgeo  
-
-OBJ = $(SRC:.cc=.o)
-DAC = $(SRC:.cc=.dac)
-DONE = $(SRC:.cc=.done)
-
-.SUFFIXES = .dac .done
+EXTRA_DIST = 					\
+ README						\
+ UnitTestSphere.geo				\
+ UnitTestSphere.msh  				\
+ UnitTestSphere_Coarse.msh  			\
+ Square.geo        				\
+ Square_Coarse.msh				\
+ PECSphere.scuffgeo 				\
+ SiSphere.scuffgeo 		 		\
+ TwoSpheres.scuffgeo 				\
+ TwoSpheres_Coarse.scuffgeo			\
+ SphereSubstrateArray_Coarse.scuffgeo
 
 LIBSCUFF = $(top_builddir)/src/libs/libscuff/libscuff.la
-
 AM_CPPFLAGS = -DSCUFF \
               -I$(top_srcdir)/src/libs/libscuff      \
               -I$(top_srcdir)/src/libs/libIncField   \
@@ -25,14 +24,17 @@ AM_CPPFLAGS = -DSCUFF \
 
 noinst_PROGRAMS = 		\
  unit-test-compactMatrix	\
+ unit-test-PBCMatrix     	\
  unit-test-ppis
 
 check_PROGRAMS = 		\
  unit-test-compactMatrix	\
+ unit-test-PBCMatrix     	\
  unit-test-ppis
 
 TESTS = 			\
  unit-test-compactMatrix	\
+ unit-test-PBCMatrix     	\
  unit-test-ppis
 
 unit_test_ppis_SOURCES = unit-test-ppis.cc
@@ -40,3 +42,6 @@ unit_test_ppis_LDADD = $(LIBSCUFF)
 
 unit_test_compactMatrix_SOURCES = unit-test-compactMatrix.cc
 unit_test_compactMatrix_LDADD   = $(LIBSCUFF)
+
+unit_test_PBCMatrix_SOURCES = unit-test-PBCMatrix.cc
+unit_test_PBCMatrix_LDADD   = $(LIBSCUFF)
