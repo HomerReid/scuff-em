@@ -56,7 +56,7 @@ static cdouble erfc_s(cdouble a, cdouble b) {
     return 2.0*exp(a) - exp(a + mb2) * Faddeeva::erfcx(-b);
 }
 
-static bool cisnan(cdouble z) { return isnan(real(z)) || isnan(imag(z)); }
+static bool cisnan(cdouble z) { return ISNAN(real(z)) || ISNAN(imag(z)); }
 
 /***************************************************************/
 /* 'EEF' = 'exp*erfc factor'  **********************************/

@@ -566,8 +566,8 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
   int SaveZeroed1=0, SaveZeroed2=0;
 
   int ns, nsp;
-  ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
-  InitABMBArgs(Args);
+  GetSSIArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
+  InitGetSSIArgs(Args);
   Args->G = this;
   Args->Omega = StoredOmega;
   Args->Symmetric=0;
@@ -615,7 +615,7 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
          RegionMPs[nr2]->Zero();
        };
 
-      AssembleBEMMatrixBlock(Args);
+      GetSurfaceSurfaceInteractions(Args);
 
       if ( Region1Contributes==false )
        RegionMPs[nr1]->Zeroed=SaveZeroed1;
@@ -667,7 +667,7 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
          RegionMPs[nr2]->Zero();
        };
 
-      AssembleBEMMatrixBlock(Args);
+      GetSurfaceSurfaceInteractions(Args);
 
       if ( Region1Contributes==false )
        RegionMPs[nr1]->Zeroed=SaveZeroed1;
@@ -720,7 +720,7 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
          RegionMPs[nr2]->Zero();
        };
 
-      AssembleBEMMatrixBlock(Args);
+      GetSurfaceSurfaceInteractions(Args);
 
       if ( Region1Contributes==false )
        RegionMPs[nr1]->Zeroed=SaveZeroed1;
@@ -734,8 +734,6 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
        M->AddEntry(nr, nc,       PFPZ *MScratch->GetEntry(nr, nc) +
                             conj(PFPZ)*MScratch->GetEntry(nc, nr) );
    };
-
-
 
 
   Log(" MZP block ...");
@@ -776,7 +774,7 @@ void RWGGeometry::AssembleInnerCellBlocks(double *kBloch, HMatrix *M)
          RegionMPs[nr2]->Zero();
        };
 
-      AssembleBEMMatrixBlock(Args);
+      GetSurfaceSurfaceInteractions(Args);
 
       if ( Region1Contributes==false )
        RegionMPs[nr1]->Zeroed=SaveZeroed1;

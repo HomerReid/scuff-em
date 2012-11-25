@@ -71,6 +71,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   RWGGeometry *G = new RWGGeometry("TwoSpheres_Coarse.scuffgeo");
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
   HMatrix *M = G->AllocateBEMMatrix();
   double Elapsed;
 
@@ -133,7 +134,7 @@ int main(int argc, char *argv[])
           if (Mismatches>10)
            ErrExit("too many mismatches");
         };
-      printf("...%i mismatches.\n",Mismatches);
+      printf("%i mismatches.\n",Mismatches);
       printf("\n");
       
 

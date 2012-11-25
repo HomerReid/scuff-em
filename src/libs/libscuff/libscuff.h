@@ -427,6 +427,10 @@ class RWGGeometry
    HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                       HMatrix *XMatrix, HMatrix *FMatrix=NULL, char *FuncString=NULL);
 
+   /* lower-level routine for assembling individual BEM matrix blocks */
+   void AssembleBEMMatrixBlock(int nsa, int nsb, int RowOffset, int ColOffset,
+                               cdouble Omega, double *kBloch, HMatrix *M, HMatrix **GradM);
+
    /*--------------------------------------------------------------------*/ 
    /*- class methods intended for internal use only, i.e. which          */ 
    /*- would be private if we cared about the public/private distinction */
@@ -442,8 +446,6 @@ class RWGGeometry
    // the following helper functions are only used for periodic boundary conditions
    void InitPBCData();
    void GetRegionExtents(int nr, double RMax[3], double RMin[3]);
-   void AssembleInnerCellBlocks(double *kBloch, HMatrix *M);
-   void AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *M);
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
                                       double kBloch[MAXLATTICE], HMatrix *XMatrix);
 

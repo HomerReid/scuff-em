@@ -63,11 +63,12 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   RWGEdge *Eb=Sb->Edges[neb];
 
   /***************************************************************/
-  /* since this code doesn't work at DC anyway, we don't bother  */
+  /* Since this code doesn't work at DC anyway, we don't bother  */
   /* to compute the edge--edge interactions at k==0, but instead */
-  /* just set them to zero; this is actually useful as it gives  */
-  /* an easy way to compute the contributions of individual      */
-  /* objects and/or the external medium to the BEM matrix.       */
+  /* just set them to zero. This is actually useful as it gives  */
+  /* an easy way to zero out the contributions of individual     */
+  /* regions and/or the external medium to the BEM matrix: just  */
+  /* set epsilon and/or mu for that region temporarily to 0.     */
   /***************************************************************/
   if ( real(k)==0.0 && imag(k)==0.0 )
    { memset(Args->GC, 0, 2*sizeof(cdouble));
@@ -141,6 +142,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgs->GammaMatrix            = Args->GammaMatrix;
   GetPPIArgs->opFC                   = Args->opFC;
   GetPPIArgs->Displacement           = Args->Displacement;
+  GetPPIArgs->GInterp                = Args->GInterp;
 
   /*--------------------------------------------------------------*/
   /*- positive-positive, positive-negative, etc. -----------------*/
@@ -148,23 +150,27 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgs->npa = Ea->iPPanel;     GetPPIArgs->iQa = Ea->PIndex;
   GetPPIArgs->npb = Eb->iPPanel;     GetPPIArgs->iQb = Eb->PIndex;
   GetPanelPanelInteractions(GetPPIArgs, HPP, GradHPP, dHdTPP);
+  Args->PPIAlgorithmCount[GetPPIArgs->WhichAlgorithm]++;
 
   if ( Eb->iMPanel!=-1 )
    { GetPPIArgs->npa = Ea->iPPanel;     GetPPIArgs->iQa = Ea->PIndex;
      GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
      GetPanelPanelInteractions(GetPPIArgs, HPM, GradHPM, dHdTPM);
+     Args->PPIAlgorithmCount[GetPPIArgs->WhichAlgorithm]++;
    };
 
   if ( Ea->iMPanel!=-1 )
    { GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
      GetPPIArgs->npb = Eb->iPPanel;     GetPPIArgs->iQb = Eb->PIndex;
      GetPanelPanelInteractions(GetPPIArgs, HMP, GradHMP, dHdTMP);
+     Args->PPIAlgorithmCount[GetPPIArgs->WhichAlgorithm]++;
    };
 
   if ( Ea->iMPanel!=-1 && Eb->iMPanel!=-1 )
    { GetPPIArgs->npa = Ea->iMPanel;     GetPPIArgs->iQa = Ea->MIndex;
      GetPPIArgs->npb = Eb->iMPanel;     GetPPIArgs->iQb = Eb->MIndex;
      GetPanelPanelInteractions(GetPPIArgs, HMM, GradHMM, dHdTMM);
+     Args->PPIAlgorithmCount[GetPPIArgs->WhichAlgorithm]++;
    };
 
   /*--------------------------------------------------------------*/
@@ -224,8 +230,7 @@ void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix)
   ct=MyTorqueAxis[2];
   st=sqrt(1.0-ct*ct);
   cp= ( st < 1.0e-8 ) ? 1.0 : MyTorqueAxis[0] / st;
-  sp= ( st < 1.0e-8 ) ? 0.0 : MyTorqueAxis[1] / st;
-
+  sp= ( st < 1.0e-8 ) ? 0.0 : MyTorqueAxis[1] / st; 
   Lambda[0][0]=ct*cp;  Lambda[0][1]=ct*sp;  Lambda[0][2]=-st;
   Lambda[1][0]=-sp;    Lambda[1][1]=cp;     Lambda[1][2]=0.0;
   Lambda[2][0]=st*cp;  Lambda[2][1]=st*sp;  Lambda[2][2]=ct;
@@ -277,6 +282,8 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->Displacement=0;
   Args->opFC=0;
   Args->Force=EEI_NOFORCE;
+  Args->GInterp=0;
+  memset(Args->PPIAlgorithmCount, 0, NUMPPIALGORITHMS*sizeof(unsigned));
 }
 
 } // namespace scuff
