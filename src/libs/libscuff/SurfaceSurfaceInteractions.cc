@@ -211,7 +211,7 @@ void *GSSIThread(void *data)
          B->AddEntry( X, Y, PreFac1A*GC[0] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          GradB[Mu]->AddEntry( X, Y, PreFac1A*GradGC[2*Mu+0]);
+          if (GradB[Mu]) GradB[Mu]->AddEntry( X, Y, PreFac1A*GradGC[2*Mu+0]);
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
           dBdTheta[Mu]->AddEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
@@ -225,7 +225,8 @@ void *GSSIThread(void *data)
          B->AddEntry( X, Y+1, PreFac2A*GC[1] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
+          { if (!GradB[Mu]) continue;
+            GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
             GradB[Mu]->AddEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
           };
 
@@ -243,7 +244,8 @@ void *GSSIThread(void *data)
          B->AddEntry( X+1, Y, PreFac2A*GC[1] );
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
+          { if (!GradB[Mu]) continue;
+            GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
             GradB[Mu]->AddEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
           };
 
@@ -265,6 +267,7 @@ void *GSSIThread(void *data)
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
           { 
+            if (!GradB[Mu]) continue;
             GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
             GradB[Mu]->AddEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
@@ -305,6 +308,7 @@ void *GSSIThread(void *data)
 
          for(Mu=0; Mu<NumGradientComponents; Mu++)
           { 
+            if (!GradB[Mu]) continue;
             GradB[Mu]->AddEntry( X, Y,   PreFac1B*GradGC[2*Mu+0]);
             GradB[Mu]->AddEntry( X, Y+1, PreFac2B*GradGC[2*Mu+1]);
             if ( !Symmetric || (nea!=neb) )
@@ -472,6 +476,22 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
    Args->GInterpA=Args->GInterpB=0;
 
   /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (Args->OmitRegion1)
+   { Args->EpsA=Args->MuA=Args->SignA=0.0;
+     Args->GInterpA=0;
+   };
+
+  if (Args->OmitRegion2)
+   { Args->EpsB=Args->MuB=Args->SignB=0.0;
+     Args->GInterpB=0;
+   };
+
+  if (Args->OmitRegion1 && Args->OmitRegion2)
+   return;
+
+  /***************************************************************/
   /* fire off threads ********************************************/
   /***************************************************************/
   GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
@@ -567,6 +587,8 @@ void InitGetSSIArgs(GetSSIArgStruct *Args)
   Args->Symmetric=0;
 
   Args->UseAB9Kernel=false;
+  Args->OmitRegion1=false;
+  Args->OmitRegion2=false;
 
   Args->Displacement = 0;
 

@@ -51,62 +51,56 @@
 namespace scuff {
 
 /***************************************************************/
-/* how kludgy am i? ********************************************/
 /***************************************************************/
-int ZeroRegionsAsNecessary(RWGGeometry *G, RWGSurface *Sa, RWGSurface *Sb, 
-                           int CommonRegionIndices[2], int SaveZeroed[2])
-                            
-                            
-{
-  // see NOTE above
-  int NumCommonRegions, CommonRegionIndices[2], nr1, nr2;
-  bool Region1Contributes, Region2Contributes;
-  int SaveZeroed1, SaveZeroed2;
-  double Signs[2];
-  NumCommonRegions=CountCommonRegions(Sa, Sb, CommonRegionIndices, Signs);
-  if (NumCommonRegions==0)
-   return true;
-
-  nr1=CommonRegionIndices[0]; 
-  Region1Contributes = (RegionIsExtended[MAXLATTICE*nr1+0] && RegionIsExtended[MAXLATTICE*nr1+1]);
-  if (NumCommonRegions==2)
-   { nr2=CommonRegionIndices[1];
-     Region2Contributes = (RegionIsExtended[MAXLATTICE*nr2+0] && RegionIsExtended[MAXLATTICE*nr2+1]);
-   }
-  else
-   Region2Contributes=false;
-
-  if ( Region1Contributes==false  && Region2Contributes==false )
-   return true;
-
-  if ( Region1Contributes==false )
-   { SaveZeroed1=RegionMPs[nr1]->Zeroed; 
-     RegionMPs[nr1]->Zero();
-   };
-  if ( NumCommonRegions==2 && Region2Contributes==false )
-   { SaveZeroed2=RegionMPs[nr2]->Zeroed; 
-     RegionMPs[nr2]->Zero();
-   };
-  ZeroRegionsAsNecessary();
-
+/***************************************************************/
+void StampInNeighborBlock(HMatrix *M, HMatrix *B, int RowOffset, int ColOffset,
+                          int NBFA, int NBFB, cdouble BPF)
+{ 
+  for(int nr=0; nr<NBFA; nr++)
+   for(int nc=0; nc<NBFB; nc++)
+    M->AddEntry(RowOffset + nr, ColOffset + nc,
+                BPF*B->GetEntry(nr, nc) + conj(BPF)*B->GetEntry(nc,nr));
 }
 
-void UnZeroRegionsAsNecessary(RWGGeometry *G, int NumCommonRegions, 
-                              int CommonRegionIndices[2], int SaveZeroed[2])
-{ 
+/***************************************************************/
+/* initialize GBarAB9 interpolation tables for all regions at  */
+/* the present frequency and bloch wavevector                  */
+/***************************************************************/
+void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
+{
+  /*--------------------------------------------------------------*/
+  /*- check to see if the region interpolators are already        */
+  /*- initialized for the given (Omega,kBloch) value              */
+  /*- note: instead of static variables within this method, we    */
+  /*-       should really use class variables for these FIXME     */
+  /*--------------------------------------------------------------*/
+  static cdouble LastOmega;
+  static double LastkBloch[2];
 
-  if ( Region1Contributes==false )
-   RegionMPs[nr1]->Zeroed=SaveZeroed1;
-  if ( NumCommonRegions==2 && Region2Contributes==false )
-   RegionMPs[nr2]->Zeroed=SaveZeroed2;
+  if ( LastOmega==Omega && kBloch[0]==LastkBloch[0] && kBloch[1]==LastkBloch[1] )
+   return;
+  LastOmega=Omega;
+  LastkBloch[0]=kBloch[0];
+  LastkBloch[1]=kBloch[1];
 
- // 20120924: the zeroing/unzeroing of MPs may have wreaked havoc 
- //           on the internally-stored Eps/Mu arrays, so i will 
- //           quickly restore them here. 
- //           it must be said that this zeroing/unzeroing          
- //           paradigm is fairly kludgy, and it would be nice to 
- //           redo it more elegantly at some point.
- UpdateCachedEpsMuValues(StoredOmega);
+  UpdateCachedEpsMuValues(Omega);
+
+  GBarData MyGBarData, *GBD=&MyGBarData;
+  GBD->kBloch = kBloch;
+  GBD->ExcludeInner9=true;
+  GBD->E=-1.0;
+  GBD->LBV[0]=LatticeBasisVectors[0];
+  GBD->LBV[1]=LatticeBasisVectors[1];
+  for(int nr=0; nr<NumRegions; nr++)
+   {
+     if (GBarAB9Interpolators[nr]==0) 
+      continue;
+     Log("  Initializing interpolator for region %i (%s)...",nr,RegionLabels[nr]);
+     GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
+     if ( GBD->k == 0.0 ) 
+      continue;
+     GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
+   };
 }
 
 /***************************************************************/
@@ -148,35 +142,142 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   if (NumLatticeBasisVectors==0) 
    return; 
 
-  /***************************************************************/
-  /* prepare for the next set of calls to GetSurfaceSurfaceInteractions*/
-  /***************************************************************/
-  Args->Symmetric 
+  /*********************************************************************/
+  /* STEP 2: prepare to make a series of calls to                      */
+  /* GetSurfaceSurfaceInteractions to get the contributions of the     */
+  /* innermost 8 neighboring lattice cells                             */
+  /*********************************************************************/
+  static HMatrix *B=0, *GradB[3]={0,0,0};
+  if (B==0)
+   { int MaxNR=Surfaces[0]->NumBFs; 
+     for(int ns=1; ns<NumSurfaces; ns++)
+      if (Surfaces[ns]->NumBFs > MaxNR) 
+       MaxNR=Surfaces[ns]->NumBFs;
+     B=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
+     if ( GradM && GradM[0] ) GradB[0]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
+     if ( GradM && GradM[1] ) GradB[1]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
+     if ( GradM && GradM[2] ) GradB[2]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
+   };
+
+  Args->Symmetric=false;
   Args->RowOffset=Args->ColOffset=0;
-  Args->B = ScratchBlock;
-  Args->GradB = GradScratchBlock;
-  
-  //ZeroRegionsAsNecessary(G, Sa, Sb);
+  Args->B = B;
+  Args->GradB = GradB;
+  Args->UseAB9Kernel = true;
+  Args->Accumulate = false;
+
+  int NumCommonRegions, CommonRegionIndices[2], nr1, nr2;
+  double Signs[2];
+  NumCommonRegions=CountCommonRegions(Args->Sa, Args->Sb, CommonRegionIndices, Signs);
+  if (NumCommonRegions==0) 
+   return;
+  nr1=CommonRegionIndices[0];
+  nr2=NumCommonRegions==2 ? CommonRegionIndices[1] : -1;
+
+  double Displacement[3];
+  Displacement[2]=0.0;
+  Args->Displacement=Displacement;
+
+  cdouble BPF; // bloch phase factor
+
+  int NBFA=Args->Sa->NumBFs, NBFB=Args->Sb->NumBFs;
+  double *LBV[2];
+  LBV[0] = LatticeBasisVectors[0];
+  LBV[1] = LatticeBasisVectors[1];
 
   /***************************************************************/
   /* STEP 2: compute the interaction of surface #nsa with the    */
   /* images of surface #nsb in the neighboring lattice cells.    */
   /***************************************************************/
-  double Displacement[3];
-  Displacement[3]=0.0;
   if (NumLatticeBasisVectors>=1)
-   { Log("MPZ block...");
+   { 
+     Log("MPZ block...");
      Displacement[0]=LatticeBasisVectors[0][0];
      Displacement[1]=LatticeBasisVectors[0][1];
      Args->Symmetric=0;
-   };
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
+     Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
+     GetSurfaceSurfaceInteractions(Args);
+     BPF=exp( II*(kBloch[0]*LBV[0][0] + kBloch[1]*LBV[0][1] ) );
+     StampInNeighborBlock(M, B, RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[0]) 
+      StampInNeighborBlock(GradM[0], GradB[0], RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[1]) 
+      StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[2]) 
+      StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
 
-  //UnZeroRegionsAsNecessary(G, Sa, Sb);
+   }
+
+  if (NumLatticeBasisVectors==2)
+   { 
+     Log("MPP block...");
+     Displacement[0]=LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
+     Displacement[1]=LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
+     Args->Symmetric=0;
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
+     Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
+     GetSurfaceSurfaceInteractions(Args);
+     BPF=exp( II*( kBloch[0]*(LBV[0][0]+LBV[1][0]) + kBloch[1]*(LBV[0][1]+LBV[1][1]) ) );
+     StampInNeighborBlock(M, B, RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[0]) 
+      StampInNeighborBlock(GradM[0], GradB[0], RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[1]) 
+      StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[2]) 
+      StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
+
+     Log("MPM block...");
+     Displacement[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
+     Displacement[1]=LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
+     Args->Symmetric=0;
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
+     Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
+     GetSurfaceSurfaceInteractions(Args);
+     BPF=exp( II*( kBloch[0]*(LBV[0][0]-LBV[1][0]) + kBloch[1]*(LBV[0][1]-LBV[1][1]) ) );
+     StampInNeighborBlock(M, B, RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[0]) 
+      StampInNeighborBlock(GradM[0], GradB[0], RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[1]) 
+      StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[2]) 
+      StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
+
+     Log("MZP block...");
+     Displacement[0]=LatticeBasisVectors[1][0];
+     Displacement[1]=LatticeBasisVectors[1][1];
+     Args->Symmetric=0;
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr2+0];
+     Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+0];
+     GetSurfaceSurfaceInteractions(Args);
+     BPF=exp( II*(kBloch[0]*LBV[1][0] + kBloch[1]*LBV[1][1]) ) ;
+     StampInNeighborBlock(M, B, RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[0]) 
+      StampInNeighborBlock(GradM[0], GradB[0], RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[1]) 
+      StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
+     if (GradB[2]) 
+      StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
+   };
 
   /***************************************************************/
   /* STEP 3: compute the interaction of surface #nsa with the    */
   /* images of surface #nsb in the outer lattice cells.          */
   /***************************************************************/
+  UpdateRegionInterpolators(Omega, kBloch);
+
+  Log("Outer cell contributions...");
+  Args->Displacement=0;
+  Args->Symmetric    = (nsa==nsb);
+  Args->OmitRegion1  = Args->OmitRegion2 = false;
+  Args->UseAB9Kernel = true;
+  Args->Accumulate   = true;
+  Args->B            = M;
+  Args->GradB        = GradM;
+  Args->RowOffset    = RowOffset;
+  Args->ColOffset    = ColOffset;
+
+  GetSurfaceSurfaceInteractions(Args);
   
 }
 

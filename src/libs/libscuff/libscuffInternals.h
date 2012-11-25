@@ -184,6 +184,11 @@ typedef struct GetSSIArgStruct
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;
 
+   // these flags allow the caller to request the omission of 
+   // contributions from one or both of the regions through which
+   // the surfaces interact
+   bool OmitRegion1, OmitRegion2;
+
    // if this field is true, the call to GetSurfaceSurfaceInteraction
    // augments (does not overwrite) the matrix entries
    bool Accumulate;

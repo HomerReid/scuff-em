@@ -448,6 +448,7 @@ class RWGGeometry
    void GetRegionExtents(int nr, double RMax[3], double RMin[3]);
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
                                       double kBloch[MAXLATTICE], HMatrix *XMatrix);
+   void UpdateRegionInterpolators(cdouble Omega, double *kBloch);
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
