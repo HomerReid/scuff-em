@@ -478,17 +478,13 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (Args->OmitRegion1)
-   { Args->EpsA=Args->MuA=Args->SignA=0.0;
-     Args->GInterpA=0;
-   };
+  if (Args->OmitRegion1 || (Args->UseAB9Kernel && Args->GInterpA==0) )
+   Args->EpsA=Args->MuA=Args->SignA=0.0;
 
-  if (Args->OmitRegion2)
-   { Args->EpsB=Args->MuB=Args->SignB=0.0;
-     Args->GInterpB=0;
-   };
+  if (Args->OmitRegion2 || (Args->UseAB9Kernel && Args->GInterpB==0) )
+   Args->EpsB=Args->MuB=Args->SignB=0.0;
 
-  if (Args->OmitRegion1 && Args->OmitRegion2)
+  if ( Args->EpsA==0.0 && Args->EpsB==0.0 )
    return;
 
   /***************************************************************/

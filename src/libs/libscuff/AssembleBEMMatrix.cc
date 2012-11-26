@@ -107,9 +107,9 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
-                                         int RowOffset, int ColOffset,
                                          cdouble Omega, double *kBloch,
-                                         HMatrix *M, HMatrix **GradM)
+                                         HMatrix *M, HMatrix **GradM,
+                                         int RowOffset, int ColOffset);
 {
   GetSSIArgStruct GetSSIArgs, *Args=&GetSSIArgs;
   InitGetSSIArgs(Args);
@@ -138,6 +138,10 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->ColOffset=ColOffset;
 
   GetSurfaceSurfaceInteractions(Args);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nsa==0 && nsb==1)
+ printf("ZZ: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   if (NumLatticeBasisVectors==0) 
    return; 
@@ -205,6 +209,12 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
      if (GradB[2]) 
       StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nsa==0 && nsb==1)
+ { printf("PZ: B(0,0) = %s \n",CD2S(B->GetEntry(0,0)));
+   printf("PZ: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    }
 
   if (NumLatticeBasisVectors==2)
@@ -223,6 +233,12 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
      if (GradB[2]) 
       StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nsa==0 && nsb==1)
+ { printf("PP: B(0,0) = %s \n",CD2S(B->GetEntry(0,0)));
+   printf("PP: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
+ }; 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      Log("MPM block...");
      Displacement[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
@@ -238,6 +254,12 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
      if (GradB[2]) 
       StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nsa==0 && nsb==1)
+ { printf("PM: B(0,0) = %s \n",CD2S(B->GetEntry(0,0)));
+   printf("PM: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      Log("MZP block...");
      Displacement[0]=LatticeBasisVectors[1][0];
@@ -253,6 +275,12 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
      if (GradB[2]) 
       StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nsa==0 && nsb==1)
+ { printf("ZP: B(0,0) = %s \n",CD2S(B->GetEntry(0,0)));
+   printf("ZP: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    };
 
   /***************************************************************/
@@ -312,9 +340,9 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
   /***************************************************************/
   for(int ns=0; ns<NumSurfaces; ns++)
    for(int nsp=ns; nsp<NumSurfaces; nsp++)
-    { AssembleBEMMatrixBlock(ns, nsp, BFIndexOffset[ns], BFIndexOffset[nsp],
-                             Omega, kBloch, M, 0 );
-    };
+    AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0,
+                           BFIndexOffset[ns], BFIndexOffset[nsp]);
+    
 
   /***************************************************************/
   /* if the matrix uses normal (not packed) storage, fill in its */

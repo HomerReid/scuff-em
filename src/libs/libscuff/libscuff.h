@@ -426,10 +426,12 @@ class RWGGeometry
                   double *X, cdouble *EH);
    HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                       HMatrix *XMatrix, HMatrix *FMatrix=NULL, char *FuncString=NULL);
+   void G->RegisterTransformationList(GTComplex **GTCList, int NumTransformations);
 
    /* lower-level routine for assembling individual BEM matrix blocks */
-   void AssembleBEMMatrixBlock(int nsa, int nsb, int RowOffset, int ColOffset,
-                               cdouble Omega, double *kBloch, HMatrix *M, HMatrix **GradM);
+   void AssembleBEMMatrixBlock(int nsa, int nsb, cdouble Omega, double *kBloch,
+                               HMatrix *M, HMatrix **GradM=0,
+                               int RowOffset=0, int ColOffset=0);
 
    /*--------------------------------------------------------------------*/ 
    /*- class methods intended for internal use only, i.e. which          */ 

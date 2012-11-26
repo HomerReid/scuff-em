@@ -441,4 +441,11 @@ void RWGGeometry::InitPBCData()
 
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::RegisterTransformationList(GTComplex **GTCList, int NumTransformations)
+{
+}
+
 } // namespace scuff
