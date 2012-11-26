@@ -51,7 +51,7 @@
 namespace scuff {
 
 /***************************************************************/
-/***************************************************************/
+/* BPF = 'bloch phase factor' **********************************/
 /***************************************************************/
 void StampInNeighborBlock(HMatrix *M, HMatrix *B, int RowOffset, int ColOffset,
                           int NBFA, int NBFB, cdouble BPF)
@@ -119,9 +119,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->Sb=Surfaces[nsb];
   Args->Omega=Omega;
 
-  Args->dBdTheta=0; // FIXME angular derivatives not implemented yet
-  Args->NumTorqueAxes=0; // angular derivatives not implemented yet
-  Args->GammaMatrix=0; // angular derivatives not implemented yet
+  Args->dBdTheta=0;      // FIXME angular derivatives not implemented yet
+  Args->NumTorqueAxes=0;
+  Args->GammaMatrix=0;
 
   /***************************************************************/
   /* STEP 1: compute the direct interaction of the two surfaces. */
@@ -159,11 +159,11 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
      if ( GradM && GradM[2] ) GradB[2]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
    };
 
-  Args->Symmetric=false;
+  Args->Symmetric=0;
   Args->RowOffset=Args->ColOffset=0;
   Args->B = B;
   Args->GradB = GradB;
-  Args->UseAB9Kernel = true;
+  Args->UseAB9Kernel = false;
   Args->Accumulate = false;
 
   int NumCommonRegions, CommonRegionIndices[2], nr1, nr2;
@@ -194,7 +194,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
      Log("MPZ block...");
      Displacement[0]=LatticeBasisVectors[0][0];
      Displacement[1]=LatticeBasisVectors[0][1];
-     Args->Symmetric=0;
      Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
      Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
      GetSurfaceSurfaceInteractions(Args);
@@ -206,7 +205,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
      if (GradB[2]) 
       StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
-
    }
 
   if (NumLatticeBasisVectors==2)
@@ -214,7 +212,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
      Log("MPP block...");
      Displacement[0]=LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
      Displacement[1]=LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
-     Args->Symmetric=0;
      Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
      Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
      GetSurfaceSurfaceInteractions(Args);
@@ -230,7 +227,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
      Log("MPM block...");
      Displacement[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
      Displacement[1]=LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
-     Args->Symmetric=0;
      Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
      Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
      GetSurfaceSurfaceInteractions(Args);
@@ -246,8 +242,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
      Log("MZP block...");
      Displacement[0]=LatticeBasisVectors[1][0];
      Displacement[1]=LatticeBasisVectors[1][1];
-     Args->Symmetric=0;
-     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr2+0];
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
      Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+0];
      GetSurfaceSurfaceInteractions(Args);
      BPF=exp( II*(kBloch[0]*LBV[1][0] + kBloch[1]*LBV[1][1]) ) ;
@@ -267,9 +262,10 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   UpdateRegionInterpolators(Omega, kBloch);
 
   Log("Outer cell contributions...");
-  Args->Displacement=0;
-  Args->Symmetric    = (nsa==nsb);
-  Args->OmitRegion1  = Args->OmitRegion2 = false;
+  Args->Displacement = 0;
+  Args->Symmetric    = (nsa==nsb) ? 1 : 0;
+  Args->OmitRegion1  = false;
+  Args->OmitRegion2  = false;
   Args->UseAB9Kernel = true;
   Args->Accumulate   = true;
   Args->B            = M;

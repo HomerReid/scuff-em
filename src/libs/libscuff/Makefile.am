@@ -7,7 +7,8 @@ libscuff_la_SOURCES = \
  CalcGC.cc \
  EdgeEdgeInteractions.cc \
  ExpandCurrentDistribution.cc \
- Faddeeva.cc Faddeeva.hh \
+ Faddeeva.cc \
+ Faddeeva.hh \
  FieldGrid.cc \
  FIPPICache.cc \
  GBarVDEwald.cc \
