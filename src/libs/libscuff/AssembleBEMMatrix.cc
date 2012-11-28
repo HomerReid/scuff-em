@@ -102,21 +102,46 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
 
   UpdateCachedEpsMuValues(Omega);
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   GBarData MyGBarData, *GBD=&MyGBarData;
   GBD->ExcludeInner9=true;
   GBD->E=-1.0;
-  GBD->LBV[0]=LatticeBasisVectors[0];
-  GBD->LBV[1]=LatticeBasisVectors[1];
   GBD->kBloch = kBloch;
   for(int nr=0; nr<NumRegions; nr++)
    {
      if (GBarAB9Interpolators[nr]==0) 
       continue;
+
+     /***************************************************************/
+     /* figure out whether this region has 1D or 2D periodicity     */
+     /***************************************************************/  
+     if ( RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] ) 
+      { GBD->LDim=2;
+        GBD->LBV[0]=LatticeBasisVectors[0];
+        GBD->LBV[1]=LatticeBasisVectors[1];
+      }
+     else if ( RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
+      { GBD->LDim=1; 
+        GBD->LBV[0]=LatticeBasisVectors[0];
+      }
+     else if ( !RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] )
+      { GBD->LDim=1; 
+        GBD->LBV[0]=LatticeBasisVectors[1];
+      }
+     else
+      continue; // region is compact; no interpolation table needed
+
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
      Log("  Initializing interpolator for region %i (%s)...",nr,RegionLabels[nr]);
      GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
      if ( GBD->k == 0.0 ) 
       continue;
      GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
+
    };
 }
 

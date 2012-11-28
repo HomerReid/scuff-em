@@ -547,17 +547,32 @@ void RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega,
 
 /***************************************************************/
 /* routine to initialize an interpolator object for the        */
-/* periodic green's function in a given region                 */
+/* periodic green's function in region #nr                     */
 /***************************************************************/
-Interp3D *RWGGeometry::CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
+Interp3D *RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega, 
                                                 double kBloch[MAXLATTICE],
                                                 HMatrix *XMatrix)
 {
-  // no interpolator needed if the region is compact 
-  if (    !RegionIsExtended[MAXLATTICE*RegionIndex+0] 
-       && !RegionIsExtended[MAXLATTICE*RegionIndex+1] 
-     )
-   return 0;
+  GBarData MyGBarData, *GBD=&MyGBarData;
+
+  /*--------------------------------------------------------------*/
+  /*- figure out if the region is 0D, 1D, or 2D extended.         */
+  /*--------------------------------------------------------------*/
+  if ( RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] ) 
+   { GBD->LDim=2;
+     GBD->LBV[0]=LatticeBasisVectors[0];
+     GBD->LBV[1]=LatticeBasisVectors[1];
+   }
+  else if ( RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
+   { GBD->LDim=1; 
+     GBD->LBV[0]=LatticeBasisVectors[0];
+   }
+  else if ( !RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] )
+   { GBD->LDim=1; 
+     GBD->LBV[0]=LatticeBasisVectors[1];
+   }
+  else
+   return 0; // region is compact; no interpolation table needed
 
   /*--------------------------------------------------------------*/
   /* get bounding box enclosing all eval points in this region    */
@@ -572,7 +587,7 @@ Interp3D *RWGGeometry::CreateRegionInterpolator(int RegionIndex, cdouble Omega,
      X[1] = XMatrix->GetEntryD(np,1);
      X[2] = XMatrix->GetEntryD(np,2);
 
-     if ( PointInRegion(RegionIndex, X ) )
+     if ( PointInRegion(nr, X ) )
       { 
         NumPointsInRegion++;
         EvalPointRMax[0] = fmax(EvalPointRMax[0], X[0] );
@@ -597,8 +612,8 @@ Interp3D *RWGGeometry::CreateRegionInterpolator(int RegionIndex, cdouble Omega,
   double *SurfaceRMax, *SurfaceRMin;  
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
-     if (    Surfaces[ns]->RegionIndices[0] == RegionIndex
-          || Surfaces[ns]->RegionIndices[1] == RegionIndex
+     if (    Surfaces[ns]->RegionIndices[0] == nr
+          || Surfaces[ns]->RegionIndices[1] == nr
         )
       { 
         SurfaceRMax = Surfaces[ns]->RMax;
@@ -624,16 +639,12 @@ Interp3D *RWGGeometry::CreateRegionInterpolator(int RegionIndex, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*- initialize the interpolator --------------------------------*/
   /*--------------------------------------------------------------*/
-  GBarData MyGBarData, *GBD=&MyGBarData;
-  GBD->k=csqrt2(EpsTF[RegionIndex]*MuTF[RegionIndex])*Omega;
-  GBD->kBloch = kBloch;
+  GBD->k=csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
   GBD->ExcludeInner9=false;
   GBD->E=-1.0;
-  GBD->LBV[0]=LatticeBasisVectors[0];
-  GBD->LBV[1]=LatticeBasisVectors[1];
-
+  GBD->kBloch = kBloch;
   Log("Region %i (%s): creating %ix%ix%i interpolation table",
-       RegionIndex,RegionLabels[RegionIndex], NPoints[0], NPoints[1], NPoints[2]);
+       nr,RegionLabels[nr], NPoints[0], NPoints[1], NPoints[2]);
 
   Interp3D *GBarInterp=new Interp3D( DeltaRMin[0], DeltaRMax[0], NPoints[0],
                                      DeltaRMin[1], DeltaRMax[1], NPoints[1],
