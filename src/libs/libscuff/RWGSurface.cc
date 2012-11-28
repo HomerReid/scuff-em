@@ -620,10 +620,17 @@ void InitRWGPanel(RWGPanel *P, double *Vertices)
    * around the triangle with the edges traversed in the order       
    * V[0]-->V[1], V[1]-->V[2], V[2]-->V[0], then our thumb points
    * in the direction of the panel normal.
+   * 
+   * 20121114 update: we may need to flip the sign of the panel 
+   * normal to ensure that it points into the exterior medium for 
+   * the surface in question.
+   *                  
    */ 
   VecSub(V[1],V[0],VA);
   VecSub(V[2],V[0],VB);
   VecCross(VA,VB,P->ZHat);
+  if (P->ZHatFlipped)
+   VecScale(P->ZHat, -1.0);
 
   P->Area=0.5*VecNormalize(P->ZHat);
 }
@@ -639,6 +646,8 @@ RWGPanel *NewRWGPanel(double *Vertices, int iV1, int iV2, int iV3)
   P->VI[0]=iV1;
   P->VI[1]=iV2;
   P->VI[2]=iV3;
+
+  P->ZHatFlipped=false;
 
   InitRWGPanel(P, Vertices);
 

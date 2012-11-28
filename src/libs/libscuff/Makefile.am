@@ -13,6 +13,7 @@ libscuff_la_SOURCES = \
  FIPPICache.cc \
  GBarVDEwald.cc \
  GetDipoleMoments.cc \
+ GetDyadicGFs.cc \
  GetFields.cc \
  GTransformation.cc \
  GTransformation.h \

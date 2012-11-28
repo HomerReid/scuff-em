@@ -110,7 +110,6 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   HVector *KN        = SCPD->KN;
   PolModel *PM       = SCPD->PM;
   HMatrix *EPList    = SCPD->EPList;
-  int nThread        = SCPD->nThread;
   FILE *ByXiFile     = SCPD->ByXiFile;
 
   /***************************************************************/ 
@@ -143,11 +142,8 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       R[0]=EPList->GetEntryD(nep, 0);
       R[1]=EPList->GetEntryD(nep, 1);
       R[2]=EPList->GetEntryD(nep, 2);
-      if (G) {
-	fprintf(stderr, "error: GetGij not implemented\n");
-	exit(1);
-	// G->GetGij(R, M, 0, KN, Xi, SCUFF_PUREIMAGFREQ, nThread, GE, GM);
-      }
+      if (G) 
+       G->GetDyadicGFs(R, cdouble(0,Xi), M, KN, GE, GM);
       else
        GetPECPlateDGF(R[2], Xi, GE);
 
@@ -156,7 +152,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
        for(j=0; j<3; j++)
         U[nep] += PREFAC * Xi * Xi * Alpha[i+3*j] * real(GE[j][i]);
       
-      fprintf(SCPD->ByXiFile,"%e %e %e %e %e\n",R[0],R[1],R[2],Xi,U[nep]);
+      fprintf(ByXiFile,"%e %e %e %e %e\n",R[0],R[1],R[2],Xi,U[nep]);
  
    }; 
 }

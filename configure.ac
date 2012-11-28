@@ -50,7 +50,7 @@ fi
 # threading library
 ##################################################
 
-AC_ARG_WITH(openmp, [AC_HELP_STRING([--without-openmp],[don't use OpenMP directives for parallelism])], with_openmp=$withval, with_openmp=yesdefault)
+AC_ARG_WITH(openmp, [AC_HELP_STRING([--without-openmp],[do not use OpenMP directives for parallelism])], with_openmp=$withval, with_openmp=yesdefault)
 
 AC_ARG_WITH(pthreads, [AC_HELP_STRING([--with-pthreads],[use POSIX threads for parallelism])], with_pthreads=$withval, with_pthreads=no)
 
@@ -72,6 +72,8 @@ if test "x$with_openmp" = xyes; then
    CXXFLAGS="$CXXFLAGS $OPENMP_CXXFLAGS"
    need_pthreads=yes # for pthread_rwlock
 fi
+
+AC_MSG_CHECKING([suppatage foryaf 3])
 
 if test $need_pthreads = yes; then
    AX_PTHREAD([], [AC_MSG_ERROR([Could not find pthreads library.])])
@@ -223,7 +225,8 @@ AC_CONFIG_FILES([
  examples/TwoDimensionalCylinders/Makefile
  examples/ThinFilm/Makefile
  examples/WireAntenna/Makefile
- tests/Makefile
+ interactiveTests/Makefile
+ unitTests/Makefile
 ])
 AC_OUTPUT
 

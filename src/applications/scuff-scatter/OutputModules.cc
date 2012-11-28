@@ -641,7 +641,10 @@ void GetPower_SGJ(SSData *SSD, double *pPAbs, double *pPScat)
   for(int nr=1; nr<G->NumRegions; nr++)
    G->RegionMPs[nr]->Zero();
 
-  G->AssembleBEMMatrix(SSD->Omega, M);
+  if ( G->NumLatticeBasisVectors==0 )
+   G->AssembleBEMMatrix(SSD->Omega, M);
+  else
+   G->AssembleBEMMatrix(SSD->Omega, SSD->kBloch, M);
 
   for(int nr=1; nr<G->NumRegions; nr++)
    G->RegionMPs[nr]->UnZero();
@@ -950,11 +953,14 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
      // get scattered power as difference between total and absorbed power.
      // if the difference between the quantities is less than 1% of their 
      // magnitude, recompute using the more accurate but slower SGJ formula.
- //    PScat=PFT[1] - PFT[0];
- //    if ( fabs(PScat) < 0.01*fabs(PFT[0]) )
- //     { 
- //       Log(" (PAbs,PTot) = (%.5e,%.5e); (PScatHR, PScatSGJ)=(%.5e,%.5e)\n",PFT[1]-PFT[0],PScat);
- //     };
+#if 0
+     PScat=PFT[1] - PFT[0];
+     if ( fabs(PScat) < 0.01*fabs(PFT[0]) )
+      { 
+        Log(" Computing PScat via SGJ method [(PAbs,PTot)=(%.3e,%.3e)]",PFT[0],PFT[1]);
+        GetPower_SGJ(SSD, 0, &PScat);
+      };
+#endif
      // put PScat in the 1 slot in the array 
 
      for(int nq=0; nq<8; nq++)
@@ -962,6 +968,36 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
      fprintf(f,"\n");
    };
 
+  fclose(f);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WritePSDFile(SSData *SSD, char *PSDFile)
+{
+  FILE *f=fopen(PSDFile,"a");
+  if (!f)
+   return;
+
+  Log("Computing panel source densities at Omega=%s...",z2s(SSD->Omega));
+
+  static HMatrix *PSDMatrix=0;
+  if (PSDMatrix==0)
+   PSDMatrix=SSD->G->GetPanelSourceDensities(SSD->Omega, SSD->KN, 0); 
+  else
+   SSD->G->GetPanelSourceDensities(SSD->Omega, SSD->KN, PSDMatrix); 
+
+  for(int nr=0; nr<PSDMatrix->NR; nr++)
+   { fprintf(f,"%s ",z2s(SSD->Omega));
+     for(int nc=0; nc<4; nc++)
+      fprintf(f,"%e ",real(PSDMatrix->GetEntry(nr,nc)));
+     for(int nc=4; nc<PSDMatrix->NC; nc++)
+      fprintf(f,"%e %e ",real(PSDMatrix->GetEntry(nr,nc)),
+                         imag(PSDMatrix->GetEntry(nr,nc)));
+     fprintf(f,"\n");
+   };
   fclose(f);
 
 }

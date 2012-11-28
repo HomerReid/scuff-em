@@ -89,11 +89,13 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   /* on the first invocation we allocate space for the matrices  */
   /* of evaluation points and fields.                            */
   /***************************************************************/
-  static HMatrix *XMatrix = 0;
-  static HMatrix *FMatrix = 0;
-  if (XMatrix==0)
-   { XMatrix = new HMatrix(2*NCP, 3 ); 
-     FMatrix = new HMatrix(2*NCP, 6, LHM_COMPLEX);
+  static HMatrix *XMatrixAbove = 0, *XMatrixBelow = 0;
+  static HMatrix *FMatrixAbove = 0, *FMatrixBelow = 0;
+  if (XMatrixAbove==0)
+   { XMatrixAbove = new HMatrix(NCP, 3 ); 
+     XMatrixBelow = new HMatrix(NCP, 3 ); 
+     FMatrixAbove = new HMatrix(NCP, 6, LHM_COMPLEX);
+     FMatrixBelow = new HMatrix(NCP, 6, LHM_COMPLEX);
    };
 
   /***************************************************************/ 
@@ -109,23 +111,21 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
      x=SCR[3*ncp+0];
      y=SCR[3*ncp+1];
 
-     XMatrix->SetEntry(    ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-     XMatrix->SetEntry(    ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-     XMatrix->SetEntry(    ncp, 2, ZAbove);
+     XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+     XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+     XMatrixAbove->SetEntry(ncp, 2, ZAbove);
 
-     XMatrix->SetEntry(NCP+ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-     XMatrix->SetEntry(NCP+ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-     XMatrix->SetEntry(NCP+ncp, 2, ZBelow);
+     XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+     XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+     XMatrixBelow->SetEntry(ncp, 2, ZBelow);
 
    };
 
   /***************************************************************/ 
   /* get scattered fields at all cubature points                 */ 
   /***************************************************************/ 
-  //G->GetFields(IF, KN, Omega, kBloch, XMatrix, FMatrix);
-  // 20121102 actually, we don't want to include the incident field 
-  //          here, right?
-  G->GetFields(0, KN, Omega, kBloch, XMatrix, FMatrix);
+  G->GetFields(0, KN, Omega, kBloch, XMatrixAbove, FMatrixAbove);
+  G->GetFields(0, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
 
   /***************************************************************/
   /* integrate poynting vector over upper and lower surfaces.    */
@@ -140,17 +140,16 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
    {
      w=SCR[3*ncp+2];  // cubature weight
 
-     E[0]=FMatrix->GetEntry(ncp, 0);
-     E[1]=FMatrix->GetEntry(ncp, 1);
-     H[0]=FMatrix->GetEntry(ncp, 3);
-     H[1]=FMatrix->GetEntry(ncp, 4);
+     E[0]=FMatrixAbove->GetEntry(ncp, 0);
+     E[1]=FMatrixAbove->GetEntry(ncp, 1);
+     H[0]=FMatrixAbove->GetEntry(ncp, 3);
+     H[1]=FMatrixAbove->GetEntry(ncp, 4);
      PTransmitted += 0.5*w*real( E[0]*conj(H[1]) - E[1]*conj(H[0]) );
 
-     E[0]=FMatrix->GetEntry(NCP+ncp, 0);
-     E[1]=FMatrix->GetEntry(NCP+ncp, 1);
-     H[0]=FMatrix->GetEntry(NCP+ncp, 3);
-     H[1]=FMatrix->GetEntry(NCP+ncp, 4);
-
+     E[0]=FMatrixBelow->GetEntry(ncp, 0);
+     E[1]=FMatrixBelow->GetEntry(ncp, 1);
+     H[0]=FMatrixBelow->GetEntry(ncp, 3);
+     H[1]=FMatrixBelow->GetEntry(ncp, 4);
      PReflected -= 0.5*w*real( E[0]*conj(H[1]) - E[1]*conj(H[0]) );
 
    };

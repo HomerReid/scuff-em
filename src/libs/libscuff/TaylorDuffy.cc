@@ -176,9 +176,10 @@ void TaylorDuffySum(unsigned ndim, const double *yVector, void *parms,
 void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args)
 {
   Args->Q=0;
-  Args->QP=0;
-  Args->AbsTol=0.0; // DEFABSTOL;
+  Args->QP=0;  
+  Args->AbsTol=0.0;     // DEFABSTOL;
   Args->RelTol=1.0e-10; // DEFRELTOL;
+  Args->MaxEval=10000;  // DEFRELTOL;
   Args->ForceOnceIntegrable=0;
 
 }
@@ -208,6 +209,7 @@ void TaylorDuffy(TaylorDuffyArgStruct *Args)
 
   double AbsTol    = Args->AbsTol;
   double RelTol    = Args->RelTol;
+  double MaxEval   = Args->MaxEval;
    
   /***************************************************************/
   /* the manual claims that certain parameters are not referenced*/
@@ -325,7 +327,7 @@ void TaylorDuffy(TaylorDuffyArgStruct *Args)
    TaylorDuffySum(0, 0, (void *)TMW, 0, dResult);
   else
    adapt_integrate(fDim, TaylorDuffySum, (void *)TMW, IntegralDimension, 
-                   Lower, Upper, 100000, AbsTol, RelTol, dResult, dError);
+                   Lower, Upper, MaxEval, AbsTol, RelTol, dResult, dError);
 
   Args->nCalls = TMW->nCalls;
 

@@ -446,7 +446,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      double X[3];
      RWGPanel *P;
      for(int np=0; np<S->NumPanels; np++)
-      { P=S->Panels[np];
+      {
         /* how it works: if we start at the panel centroid */
         /* and travel a short distance in the direction of */
         /* the panel normal, then that should place us in  */
@@ -456,16 +456,22 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         /* panel normal is backwards and must be flipped.  */
         /* (if we wind up in neither the interior nor the  */
         /* exterior then something more serious is wrong.) */
+        P=S->Panels[np];
         VecScaleAdd(P->Centroid, 0.5*P->Radius, P->ZHat, X);
         if (PointInRegion(ExteriorRegion,X))
-         { ; // don't need to do anything
+         { 
+           ; // don't need to do anything
          }
         else if (PointInRegion(InteriorRegion,X))
-         { VecScale(P->ZHat, -1.0);
+         { 
+           P->ZHatFlipped=true;
+           VecScale(P->ZHat, -1.0);
            NumFlipped++;
-         }
+         };
+/*
         else
          ErrExit("%s:%i: internal error (%i,%i)",__FILE__,__LINE__,ns,np);
+*/
 
       };
    };

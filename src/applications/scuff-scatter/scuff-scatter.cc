@@ -110,6 +110,11 @@
  *        the scattering objects from the incident field be written
  *        to the file MyPFTFile.
  * 
+ *     --PSDFile MyPSDFile
+ * 
+ *        Requests that panel source densities be written to the file 
+ *        MyPSDFile.
+ * 
  *     --FluxMesh  MyFluxMesh.msh
  *        
  *        This specification will cause field visualization data
@@ -234,6 +239,7 @@ feenableexcept(FE_INVALID | FE_OVERFLOW);
   char *OmegaFile;                   int nOmegaFiles;
   char *EPFiles[MAXEPF];             int nEPFiles;
   char *PFTFile=0;
+  char *PSDFile=0;
   char *MomentFile=0;
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
   int PlotSurfaceCurrents=0;
@@ -263,6 +269,7 @@ feenableexcept(FE_INVALID | FE_OVERFLOW);
 /**/
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
      {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power/force/torque output file"},
+     {"PSDFile",        PA_STRING,  1, 1,       (void *)&PSDFile,    0,             "name of panel source density file"},
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
      {"PlotSurfaceCurrents", PA_BOOL, 0, 1,     (void *)&PlotSurfaceCurrents,  0,     "generate surface current visualization files"},
@@ -491,16 +498,10 @@ feenableexcept(FE_INVALID | FE_OVERFLOW);
       WritePFTFile(SSD, PFTFile);
 
      /*--------------------------------------------------------------*/
-     /*- induced dipole moments       -------------------------------*/
+     /*- panel source densities -------------------------------------*/
      /*--------------------------------------------------------------*/
-     if (MomentFile)
-      GetMoments(SSD, MomentFile);
-
-     /*--------------------------------------------------------------*/
-     /*- surface currents -------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     if (PlotSurfaceCurrents)
-      G->PlotSurfaceCurrents(KN, Omega, "%s.%s.pp",GetFileBase(GeoFile),z2s(Omega));
+     if (PSDFile)
+      WritePSDFile(SSD, PSDFile);
  
      /*--------------------------------------------------------------*/
      /*- scattered fields at user-specified points ------------------*/
@@ -508,6 +509,18 @@ feenableexcept(FE_INVALID | FE_OVERFLOW);
      int nepf;
      for(nepf=0; nepf<nEPFiles; nepf++)
       ProcessEPFile(SSD, EPFiles[nepf]);
+
+     /*--------------------------------------------------------------*/
+     /*- induced dipole moments       -------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (MomentFile)
+      GetMoments(SSD, MomentFile);
+
+     /*--------------------------------------------------------------*/
+     /*- surface current visualization-------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (PlotSurfaceCurrents)
+      G->PlotSurfaceCurrents(KN, Omega, "%s.%s.pp",GetFileBase(GeoFile),z2s(Omega));
 
      /*--------------------------------------------------------------*/
      /*- flux meshes ------------------------------------------------*/

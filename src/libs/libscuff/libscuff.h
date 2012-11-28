@@ -101,12 +101,13 @@ namespace scuff {
 /***************************************************************/
 typedef struct RWGPanel
  { 
-   int VI[3];                   /* indices of vertices in Vertices array */
-   double Centroid[3];          /* panel centroid */
-   double ZHat[3];              /* normal vector */
-   double Radius;               /* radius of enclosing sphere */
-   double Area;                 /* panel area */
-   int Index;                   /* index of this panel within RWGSurface (0..NumPanelsP-1)*/
+   int VI[3];                /* indices of vertices in Vertices array */
+   double Centroid[3];       /* panel centroid */
+   double ZHat[3];           /* normal vector */
+   bool ZHatFlipped;         /* true / false ==> ZHat obeys right (left)-hand rule wrt VI*/
+   double Radius;            /* radius of enclosing sphere */
+   double Area;              /* panel area */
+   int Index;                /* index of this panel within RWGSurface (0..NumPanelsP-1)*/
 
 } RWGPanel;
 
@@ -378,6 +379,10 @@ class RWGGeometry
    HMatrix *GetFieldsGrid(SurfaceGrid &grid, const char *expr,
 			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL);
 
+   /* routine for computing dyadic green's functions */
+   void GetDyadicGFs(double X[3], cdouble Omega, HMatrix *M, HVector *KN,
+                     cdouble GE[3][3], cdouble GM[3][3]);
+
    /* routine for computing power, force, and torque on an object */
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, int SurfaceIndex, double PFT[8]);
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, char *SurfaceLabel, double PFT[8]);
@@ -550,6 +555,7 @@ double VecNorm(const double v[3]);
 double VecNorm2(const double v[3]);
 double VecNormalize(double v[3]);
 bool EqualFloat(const double a, const double b);
+bool EqualFloat(const cdouble a, const cdouble b);
 bool VecEqualFloat(const double *a, const double *b);
 bool VecClose(const double *a, const double *b, double abstol);
 

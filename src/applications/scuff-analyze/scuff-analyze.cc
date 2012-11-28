@@ -41,7 +41,7 @@ using namespace scuff;
 /***************************************************************/
 /* subroutine to analyze a single RWG surface ******************/
 /***************************************************************/
-void AnalyzeSurface(RWGSurface *S, int WriteGPFiles, int WritePPFiles)
+void AnalyzeSurface(RWGSurface *S)
 {
   double TotalArea, AvgArea;
   int np;
@@ -73,26 +73,33 @@ void AnalyzeSurface(RWGSurface *S, int WriteGPFiles, int WritePPFiles)
   printf(" Avg area: %9.7e // sqrt(Avg Area)=%9.7e\n",AvgArea,sqrt(AvgArea));
   printf(" \n");
 
-  if (WriteGPFiles)
-   { S->WriteGPMesh("%s.gp",GetFileBase(S->MeshFileName));
-     printf("Mesh visualization data written to GNUPLOT file %s.gp.\n\n",S->MeshFileName);
-   };
+}
 
-  if (WritePPFiles)
-   { char buffer[MAXSTR];
-     snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(S->MeshFileName));
-     unlink(buffer);
-     S->WritePPMesh(buffer,GetFileBase(S->MeshFileName),1);
-     S->WritePPMeshLabels(buffer,GetFileBase(S->MeshFileName));
-     printf("Mesh visualization data and panel normals written to GMSH file %s.\n\n",buffer);
-   };
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteMeshGPFiles(RWGSurface *S)
+{ S->WriteGPMesh("%s.gp",GetFileBase(S->MeshFileName));
+  printf("Mesh visualization data written to GNUPLOT file %s.gp.\n\n",S->MeshFileName);
+}
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteMeshPPFiles(RWGSurface *S)
+{
+  char PPFileName[MAXSTR];
+  snprintf(PPFileName,MAXSTR,"%s.pp",GetFileBase(S->MeshFileName));
+  unlink(PPFileName);
+  S->WritePPMesh(PPFileName,GetFileBase(S->MeshFileName),1);
+  S->WritePPMeshLabels(PPFileName,GetFileBase(S->MeshFileName));
+  printf("Mesh visualization data written to GMSH file %s.\n\n",PPFileName);
 }
 
 /***************************************************************/
 /* subroutine to analyze an RWGGeometry ************************/
 /***************************************************************/
-void AnalyzeGeometry(RWGGeometry *G, int WriteGPFiles, int WritePPFiles)
+void AnalyzeGeometry(RWGGeometry *G)
 { 
   /***************************************************************/
   /***************************************************************/
@@ -159,23 +166,58 @@ void AnalyzeGeometry(RWGGeometry *G, int WriteGPFiles, int WritePPFiles)
          printf("\n Interface between regions %i (%s) and %i (%s)\n\n",
               S->RegionIndices[0], G->RegionLabels[S->RegionIndices[0]],
               S->RegionIndices[1], G->RegionLabels[S->RegionIndices[1]]);
-        AnalyzeSurface(G->Surfaces[ns],0,0);
+        AnalyzeSurface(G->Surfaces[ns]);
       };
    };
+}
 
-  if (WriteGPFiles)
-   { G->WriteGPMesh("%s.gp",GetFileBase(G->GeoFileName));
-     printf("Geometry visualization data written to GNUPLOT file %s.gp.\n\n",
-             GetFileBase(G->GeoFileName));
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteGeometryGPFiles(RWGGeometry *G)
+{
+  G->WriteGPMesh("%s.gp",GetFileBase(G->GeoFileName));
+  printf("Geometry visualization data written to GNUPLOT file %s.gp.\n\n",
+          GetFileBase(G->GeoFileName));
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteGeometryPPFiles(RWGGeometry *G, int Neighbors)
+{
+  char PPFileName[MAXSTR];
+  snprintf(PPFileName,MAXSTR,"%s.pp",GetFileBase(G->GeoFileName));
+  unlink(PPFileName);
+
+  G->WritePPMesh(PPFileName,G->GeoFileName);
+
+  if (Neighbors)
+   { double DL[3];
+     char Tag[20];
+     for(int n1=-Neighbors; n1<=Neighbors; n1++)
+      for(int n2=-Neighbors; n2<=Neighbors; n2++)
+       { 
+         if (n1==0 && n2==0) 
+          continue;
+
+         DL[0] = n1*G->LatticeBasisVectors[0][0] + n2*G->LatticeBasisVectors[1][0];
+         DL[1] = n1*G->LatticeBasisVectors[0][1] + n2*G->LatticeBasisVectors[1][1];
+         DL[2] = n1*G->LatticeBasisVectors[0][2] + n2*G->LatticeBasisVectors[1][2];
+
+         for(int ns=0; ns<G->NumSurfaces; ns++)
+          G->Surfaces[ns]->Transform("DISPLACED %e %e %e \n",DL[0],DL[1],DL[2]);
+
+         snprintf(Tag,20,"(%i,%i)",n1,n2);
+         G->WritePPMesh(PPFileName,Tag);
+
+         for(int ns=0; ns<G->NumSurfaces; ns++)
+          G->Surfaces[ns]->UnTransform();
+      };
+            
    };
 
-  if (WritePPFiles)
-   { char buffer[MAXSTR];
-     snprintf(buffer,MAXSTR,"%s.pp",GetFileBase(G->GeoFileName));
-     unlink(buffer);
-     G->WritePPMesh(buffer,buffer);
-     printf("Geometry visualization data written to GMSH file %s.\n\n",buffer);
-   };
+  printf("Geometry visualization data written to GMSH file %s.\n\n",PPFileName);
 
 }
 
@@ -257,6 +299,7 @@ int main(int argc, char *argv[])
   int WriteGPFiles=0;
   int WritePPFiles=0;
   int WriteLabels=0;
+  int Neighbors=0;
   /* name, type, # args, max # instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,        0, "geometry file"},
@@ -267,6 +310,7 @@ int main(int argc, char *argv[])
      {"WriteGnuplotFiles",  PA_BOOL,   0, 1, (void *)&WriteGPFiles,   0, "write gnuplot visualization files"},
      {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles,   0, "write GMSH visualization files "},
      {"WriteGMSHLabels",    PA_BOOL,   0, 1, (void *)&WriteLabels,    0, "write GMSH labels"},
+     {"Neighbors",          PA_INT,    1, 1, (void *)&Neighbors,      0, "number of neighboring cells to plot"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -292,11 +336,31 @@ int main(int argc, char *argv[])
   if (MeshFile)
    {
      S=new RWGSurface(MeshFile, PhysicalRegion);
-     AnalyzeSurface(S, WriteGPFiles, WritePPFiles);
+     AnalyzeSurface(S);
+
+     if (WriteGPFiles)
+      WriteMeshGPFiles(S);
+
+     if (WritePPFiles)
+      WriteMeshPPFiles(S);
+
    }
   else
    { G=new RWGGeometry(GeoFile);
-     AnalyzeGeometry(G, WriteGPFiles, WritePPFiles);
+
+     AnalyzeGeometry(G);
+
+     if (Neighbors!=0 && G->NumLatticeBasisVectors==0 )
+      { Warn("--Neighbors option only makes sense for periodic geometries");
+        Neighbors=0;
+      }
+
+     if (WriteGPFiles)
+      WriteGeometryGPFiles(G);
+
+     if (WritePPFiles)
+      WriteGeometryPPFiles(G, Neighbors);
+
      if (WriteLabels)
       WriteGeometryLabels(G);
    };

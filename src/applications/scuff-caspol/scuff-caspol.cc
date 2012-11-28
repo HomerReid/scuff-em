@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 
   int nEvalPoints=EPList->NR;
   // storage for values of CP potential at eval points
-  double *U=(double *)malloc(nEvalPoints * sizeof(double)); 
+  double *U=(double *)mallocEC(nEvalPoints * sizeof(double)); 
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */

@@ -130,7 +130,7 @@ public:
    /*- about such things; these are helper routines for the public */
    /*- class methods                                               */
    /*--------------------------------------------------------------*/
-   void AddStraddlers(RWGObject *O, double **LBV, int *NumStraddlers);
+   void AddStraddlers(RWGSurface *O, double **LBV, int *NumStraddlers);
    void AssembleInnerCellBlocks();
    void AddOuterCellContributions(double *BlochP, HMatrix *M);
 
@@ -169,7 +169,7 @@ void GBarVDPhi3D(double X1, double X2, double X3,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetAB9EdgeEdgeInteractions(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
+void GetAB9EdgeEdgeInteractions(RWGSurface *Oa, int nea, RWGSurface *Ob, int neb,
                                 cdouble k, Interp3D *Interpolator, cdouble *GC);
 
 } // namespace scuff

@@ -148,6 +148,11 @@ double VecNormalize(double v[3])
 bool EqualFloat(const double a, const double b) 
 { return ( float(a) == float(b) ); }
 
+bool EqualFloat(const cdouble a, const cdouble b) 
+{ return      ( float(real(a)) == float(real(b)) )
+          &&  ( float(imag(a)) == float(imag(b)) );
+}
+
 bool VecEqualFloat(const double *a, const double *b) 
 {
    return (     float(a[0]) == float(b[0])
