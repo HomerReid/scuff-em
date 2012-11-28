@@ -51,15 +51,32 @@
 namespace scuff {
 
 /***************************************************************/
-/* BPF = 'bloch phase factor' **********************************/
+/* This routine adds the contents of matrix block B, which has */
+/* dimensions NRxNC, to the block of M whose upper-left corner */
+/* has indices (RowOffset, ColOffset).                         */
+/*                                                             */
+/* Each entry of B is scaled by BPF ('bloch phase factor')     */
+/* before being added to the corresponding entry of M.         */
+/*                                                             */
+/* If SameSurface is true, then the routine additionally adds  */
+/* the contents of B' times the complex conjugate of BPF to    */
+/* the destination block of M.                                 */
 /***************************************************************/
-void StampInNeighborBlock(HMatrix *M, HMatrix *B, int RowOffset, int ColOffset,
-                          int NBFA, int NBFB, cdouble BPF)
+void StampInNeighborBlock(HMatrix *B, int NR, int NC, 
+                          HMatrix *M, int RowOffset, int ColOffset,
+                          cdouble BPF, bool SameSurface)
 { 
-  for(int nr=0; nr<NBFA; nr++)
-   for(int nc=0; nc<NBFB; nc++)
-    M->AddEntry(RowOffset + nr, ColOffset + nc,
-                BPF*B->GetEntry(nr, nc) + conj(BPF)*B->GetEntry(nc,nr));
+  if (SameSurface)
+   { for(int nr=0; nr<NR; nr++)
+      for(int nc=0; nc<NC; nc++)
+       M->AddEntry(RowOffset + nr, ColOffset + nc,
+                   BPF*B->GetEntry(nr,nc) + conj(BPF)*B->GetEntry(nc,nr));
+   }
+  else
+   { for(int nr=0; nr<NR; nr++)
+      for(int nc=0; nc<NC; nc++)
+       M->AddEntry(RowOffset + nr, ColOffset + nc, BPF*B->GetEntry(nr,nc));
+   };
 }
 
 /***************************************************************/
@@ -86,11 +103,11 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
   UpdateCachedEpsMuValues(Omega);
 
   GBarData MyGBarData, *GBD=&MyGBarData;
-  GBD->kBloch = kBloch;
   GBD->ExcludeInner9=true;
   GBD->E=-1.0;
   GBD->LBV[0]=LatticeBasisVectors[0];
   GBD->LBV[1]=LatticeBasisVectors[1];
+  GBD->kBloch = kBloch;
   for(int nr=0; nr<NumRegions; nr++)
    {
      if (GBarAB9Interpolators[nr]==0) 
@@ -104,13 +121,24 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
 }
 
 /***************************************************************/
-/***************************************************************/
+/* This routine computes the block of the BEM matrix that      */
+/* describes the interaction between surfaces nsa and nsb.     */
+/* This block is stamped into M in such a way that the upper-  */ 
+/* left element of the block is at the (RowOffset, ColOffset)  */ 
+/* entry of M. If GradM is non-null and GradM[Mu] is non-null  */ 
+/* (Mu=0,1,2) then the X_{Mu} derivative of BEM matrix is      */ 
+/* similarly stamped into GradM[Mu].                           */ 
 /***************************************************************/
 void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
                                          cdouble Omega, double *kBloch,
                                          HMatrix *M, HMatrix **GradM,
-                                         int RowOffset, int ColOffset);
+                                         int RowOffset, int ColOffset)
 {
+  bool SameSurface = (nsa==nsb);
+
+  /***************************************************************/
+  /* pre-initialize arguments for GetSurfaceSurfaceInteractions **/
+  /***************************************************************/
   GetSSIArgStruct GetSSIArgs, *Args=&GetSSIArgs;
   InitGetSSIArgs(Args);
 
@@ -130,7 +158,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /***************************************************************/
   Args->Displacement=0;
   Args->UseAB9Kernel=false;
-  Args->Symmetric = (nsa==nsb) ? 1 : 0;
+  Args->Symmetric = SameSurface;
   Args->Accumulate = 0;
   Args->B=M;
   Args->GradB=GradM;
@@ -138,10 +166,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->ColOffset=ColOffset;
 
   GetSurfaceSurfaceInteractions(Args);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (nsa==0 && nsb==1)
- printf("ZZ: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   if (NumLatticeBasisVectors==0) 
    return; 
@@ -151,6 +175,12 @@ if (nsa==0 && nsb==1)
   /* GetSurfaceSurfaceInteractions to get the contributions of the     */
   /* innermost 8 neighboring lattice cells                             */
   /*********************************************************************/
+
+  // B and GradB are statically maintained matrix blocks used as 
+  // temporary storage within this routine; they need to be large
+  // enough to store the largest single subblock of the BEM matrix.
+  // FIXME these should be fields of the RWGGeometry class, not 
+  // static method variables.
   static HMatrix *B=0, *GradB[3]={0,0,0};
   if (B==0)
    { int MaxNR=Surfaces[0]->NumBFs; 
@@ -163,13 +193,6 @@ if (nsa==0 && nsb==1)
      if ( GradM && GradM[2] ) GradB[2]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
    };
 
-  Args->Symmetric=0;
-  Args->RowOffset=Args->ColOffset=0;
-  Args->B = B;
-  Args->GradB = GradB;
-  Args->UseAB9Kernel = false;
-  Args->Accumulate = false;
-
   int NumCommonRegions, CommonRegionIndices[2], nr1, nr2;
   double Signs[2];
   NumCommonRegions=CountCommonRegions(Args->Sa, Args->Sb, CommonRegionIndices, Signs);
@@ -178,16 +201,24 @@ if (nsa==0 && nsb==1)
   nr1=CommonRegionIndices[0];
   nr2=NumCommonRegions==2 ? CommonRegionIndices[1] : -1;
 
-  double Displacement[3];
-  Displacement[2]=0.0;
-  Args->Displacement=Displacement;
+  // L is the lattice vector through which surfaces are displaced into
+  // neighboring unit cells
+  double L[3];
+  L[2]=0.0;
 
   cdouble BPF; // bloch phase factor
 
-  int NBFA=Args->Sa->NumBFs, NBFB=Args->Sb->NumBFs;
-  double *LBV[2];
-  LBV[0] = LatticeBasisVectors[0];
-  LBV[1] = LatticeBasisVectors[1];
+  int NBFA=Args->Sa->NumBFs; 
+  int NBFB=Args->Sb->NumBFs;
+
+  Args->Symmetric=0;
+  Args->RowOffset=0;
+  Args->ColOffset=0;
+  Args->B = B;
+  Args->GradB = GradB;
+  Args->UseAB9Kernel = false;
+  Args->Accumulate = false;
+  Args->Displacement=L;
 
   /***************************************************************/
   /* STEP 2: compute the interaction of surface #nsa with the    */
@@ -196,91 +227,135 @@ if (nsa==0 && nsb==1)
   if (NumLatticeBasisVectors>=1)
    { 
      Log("MPZ block...");
-     Displacement[0]=LatticeBasisVectors[0][0];
-     Displacement[1]=LatticeBasisVectors[0][1];
+     L[0]=LatticeBasisVectors[0][0];
+     L[1]=LatticeBasisVectors[0][1];
      Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
      Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
      GetSurfaceSurfaceInteractions(Args);
-     BPF=exp( II*(kBloch[0]*LBV[0][0] + kBloch[1]*LBV[0][1] ) );
-     StampInNeighborBlock(M, B, RowOffset, ColOffset, NBFA, NBFB, BPF);
+     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[0]) 
-      StampInNeighborBlock(GradM[0], GradB[0], RowOffset, ColOffset, NBFA, NBFB, BPF);
+      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[1]) 
-      StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
+      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[2]) 
-      StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (nsa==0 && nsb==1)
- { printf("PZ: B(0,0) = %s \n",CD2S(B->GetEntry(0,0)));
-   printf("PZ: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+
+     if (!SameSurface)
+      { 
+        Log("MMZ block...");
+        L[0] = -LatticeBasisVectors[0][0];
+        L[1] = -LatticeBasisVectors[0][1];
+        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
+        Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
+        GetSurfaceSurfaceInteractions(Args);
+        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[0]) 
+         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[1]) 
+         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[2]) 
+         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+      };
    }
 
   if (NumLatticeBasisVectors==2)
    { 
      Log("MPP block...");
-     Displacement[0]=LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
-     Displacement[1]=LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
+     L[0]=LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
+     L[1]=LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
      Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
      Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
      GetSurfaceSurfaceInteractions(Args);
-     BPF=exp( II*( kBloch[0]*(LBV[0][0]+LBV[1][0]) + kBloch[1]*(LBV[0][1]+LBV[1][1]) ) );
-     StampInNeighborBlock(M, B, RowOffset, ColOffset, NBFA, NBFB, BPF);
+     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[0]) 
-      StampInNeighborBlock(GradM[0], GradB[0], RowOffset, ColOffset, NBFA, NBFB, BPF);
+      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[1]) 
-      StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
+      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[2]) 
-      StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (nsa==0 && nsb==1)
- { printf("PP: B(0,0) = %s \n",CD2S(B->GetEntry(0,0)));
-   printf("PP: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
- }; 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
 
      Log("MPM block...");
-     Displacement[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
-     Displacement[1]=LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
+     L[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
+     L[1]=LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
      Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
      Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
      GetSurfaceSurfaceInteractions(Args);
-     BPF=exp( II*( kBloch[0]*(LBV[0][0]-LBV[1][0]) + kBloch[1]*(LBV[0][1]-LBV[1][1]) ) );
-     StampInNeighborBlock(M, B, RowOffset, ColOffset, NBFA, NBFB, BPF);
+     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[0]) 
-      StampInNeighborBlock(GradM[0], GradB[0], RowOffset, ColOffset, NBFA, NBFB, BPF);
+      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[1]) 
-      StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
+      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[2]) 
-      StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (nsa==0 && nsb==1)
- { printf("PM: B(0,0) = %s \n",CD2S(B->GetEntry(0,0)));
-   printf("PM: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
 
      Log("MZP block...");
-     Displacement[0]=LatticeBasisVectors[1][0];
-     Displacement[1]=LatticeBasisVectors[1][1];
-     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
-     Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+0];
+     L[0]=LatticeBasisVectors[1][0];
+     L[1]=LatticeBasisVectors[1][1];
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+1];
+     Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+1];
      GetSurfaceSurfaceInteractions(Args);
-     BPF=exp( II*(kBloch[0]*LBV[1][0] + kBloch[1]*LBV[1][1]) ) ;
-     StampInNeighborBlock(M, B, RowOffset, ColOffset, NBFA, NBFB, BPF);
+     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[0]) 
-      StampInNeighborBlock(GradM[0], GradB[0], RowOffset, ColOffset, NBFA, NBFB, BPF);
+      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[1]) 
-      StampInNeighborBlock(GradM[1], GradB[1], RowOffset, ColOffset, NBFA, NBFB, BPF);
+      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
      if (GradB[2]) 
-      StampInNeighborBlock(GradM[2], GradB[2], RowOffset, ColOffset, NBFA, NBFB, BPF);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (nsa==0 && nsb==1)
- { printf("ZP: B(0,0) = %s \n",CD2S(B->GetEntry(0,0)));
-   printf("ZP: U(0,0) = %s \n",CD2S(M->GetEntry(0,126)));
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+
+     if (!SameSurface)
+      {
+        Log("MMM block...");
+        L[0] = -LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
+        L[1] = -LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
+        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
+        Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
+        GetSurfaceSurfaceInteractions(Args);
+        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[0]) 
+         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[1]) 
+         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[2]) 
+         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+   
+        Log("MMP block...");
+        L[0] = -LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
+        L[1] = -LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
+        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
+        Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
+        GetSurfaceSurfaceInteractions(Args);
+        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[0]) 
+         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[1]) 
+         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[2]) 
+         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+   
+        Log("MZM block...");
+        L[0] = -LatticeBasisVectors[1][0];
+        L[1] = -LatticeBasisVectors[1][1];
+        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+1];
+        Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+1];
+        GetSurfaceSurfaceInteractions(Args);
+        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[0]) 
+         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[1]) 
+         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[2]) 
+         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+   
+      }; // if (!SameSurface) ... 
+
    };
 
   /***************************************************************/
@@ -291,7 +366,7 @@ if (nsa==0 && nsb==1)
 
   Log("Outer cell contributions...");
   Args->Displacement = 0;
-  Args->Symmetric    = (nsa==nsb) ? 1 : 0;
+  Args->Symmetric    = SameSurface;
   Args->OmitRegion1  = false;
   Args->OmitRegion2  = false;
   Args->UseAB9Kernel = true;
@@ -319,7 +394,7 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if ( NumLatticeBasisVectors==0 && kBloch!=0 )
+  if ( NumLatticeBasisVectors==0 && kBloch!=0 && (kBloch[0]!=0.0 || kBloch[1]!=0.0) )
    ErrExit("%s:%i: Bloch wavevector is undefined for compact geometries");
   if ( NumLatticeBasisVectors!=0 && kBloch==0 )
    ErrExit("%s:%i: Bloch wavevector must be specified for PBC geometries");

@@ -361,16 +361,6 @@ void RWGGeometry::InitPBCData()
      TotalBFs+=S->NumBFs;
      TotalPanels+=S->NumPanels;
 
-/* 20120901 in the modern reorganization of this code, i don't 
-   need to do this step here because it comes later in the 
-   RWGGeometry class constructor  */
-#if 0
-     if ( ns+1 < NumSurfaces )
-      { BFIndexOffset[ns+1]=BFIndexOffset[ns] + S->NumBFs;
-        PanelIndexOffset[ns+1]=PanelIndexOffset[ns] + S->NumPanels;
-      };
-#endif
-
    };
 
   /*--------------------------------------------------------------*/

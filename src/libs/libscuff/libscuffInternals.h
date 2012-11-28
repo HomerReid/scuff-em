@@ -331,7 +331,8 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
 /* routine for computing the periodic green's function via     */
 /* ewald summation                                             */
 /***************************************************************/
-void GBarVDEwald(double *R, cdouble k, double *kBloch, double **LBV,
+void GBarVDEwald(double *R, cdouble k, int 
+                 LDim, double *kBloch, double **LBV,
                  double E, int ExcludeFirst9, cdouble *GBarVD);
 
 /***************************************************************/
@@ -341,6 +342,7 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch, double **LBV,
 typedef struct GBarData 
  { 
    cdouble k;           // wavenumber 
+   int LDim;            // dimension of lattice periodicity (either 1 or 2)
    double *kBloch;      // bloch vector 
    double *LBV[2];      // lattice basis vectors 
    double E;            // ewald separation parameter

@@ -91,13 +91,12 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   // SC3D->UBlocks[0]    = 0,1    block
   // SC3D->UBlocks[1]    = 0,2    block
   //             ...    = ...
-  // SC3D->UBlocks[NS-1] = 0,NS-1 block
+  // SC3D->UBlocks[NS-1] = 0,NS   block
   // SC3D->UBlocks[NS]   = 1,2    block
   // etc.                                         
-  SC3D->UBlocks = (HMatrix **)mallocEC( ( NS*(NS-1)/2)*sizeof(HMatrix *));
-  int NumBlocks= NS*(NS-1)/2; // number of above-diagonal blocks 
-  SC3D->UBlocks     = (HMatrix **)mallocEC( NumBlocks * sizeof(HMatrix *));
-  SC3D->dUBlocks    = (HMatrix **)mallocEC( 3*NumBlocks * sizeof(HMatrix **));
+  int NumBlocks   = NS*(NS-1)/2; // number of above-diagonal blocks 
+  SC3D->UBlocks   = (HMatrix **)mallocEC(   NumBlocks * sizeof(HMatrix *));
+  SC3D->dUBlocks  = (HMatrix **)mallocEC( 3*NumBlocks * sizeof(HMatrix *));
 
   for(nb=0, ns=0; ns<NS; ns++)
    for(nsp=ns+1; nsp<NS; nsp++, nb++)
@@ -105,15 +104,12 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
       NBFp=G->Surfaces[nsp]->NumBFs;
       SC3D->UBlocks[nb] = new HMatrix(NBF, NBFp);
       if (WhichQuantities & QUANTITY_XFORCE)
-       SC3D->dUBlocks[3*nb+0] = new HMatrix(NBF, NBFP);
+       SC3D->dUBlocks[3*nb+0] = new HMatrix(NBF, NBFp);
       if (WhichQuantities & QUANTITY_YFORCE)
-       SC3D->dUBlocks[3*nb+1] = new HMatrix(NBF, NBFP);
+       SC3D->dUBlocks[3*nb+1] = new HMatrix(NBF, NBFp);
       if (WhichQuantities & QUANTITY_YFORCE)
-       SC3D->dUBlocks[3*nb+2] = new HMatrix(NBF, NBFP);
+       SC3D->dUBlocks[3*nb+2] = new HMatrix(NBF, NBFp);
     };
-
-  if (WhichQuantities & QUANTITY_ENERGY)
-   SC3D->MInfLUDiagonal = new HVector(G->TotalBFs);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -123,7 +119,14 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->M          = new HMatrix(N,  N);
   SC3D->dM         = new HMatrix(N,  N1);
 
-  SC3D->ipiv = (int *)mallocEC(N*sizeof(double));
+  if (WhichQuantities & QUANTITY_ENERGY)
+   { SC3D->MInfLUDiagonal = new HVector(G->TotalBFs);
+     SC3D->ipiv = (int *)mallocEC(N*sizeof(int));
+   }
+  else
+   { SC3D->MInfLUDiagonal=0;
+     SC3D->ipiv=0;
+   };
 
   return SC3D;
 

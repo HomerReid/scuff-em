@@ -74,14 +74,15 @@ typedef struct SC3Data
 
    int *Converged;
 
+   double Xi;
+
    int BZIMethod;
    char *ByXiFile, *ByXikBlochFile;
    char *WriteCache;
 
+   // these quantities are used to set limits for adaptive frequency integrations
    int MaxXiPoints;
    double AbsTol, RelTol;
-
-   double Xi;
 
  } SC3Data;
 
