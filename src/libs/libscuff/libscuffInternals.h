@@ -33,6 +33,14 @@
 
 namespace scuff {
 
+// values for the WhichAlgorithm field in the PanelPanelInteractions structure
+// (straight-up cubature, taylor-duffy, high-k taylor-duffy, or desingularization)
+#define PPIALG_CUBATURE    0
+#define PPIALG_TD          1
+#define PPIALG_HKTD        2
+#define PPIALG_DESING      3
+#define NUMPPIALGORITHMS   4
+
 /***************************************************************/ 
 /* 1. argument structures for routines whose input/output      */
 /*    interface is so complicated that an ordinary C++         */
@@ -69,6 +77,11 @@ typedef struct GetPPIArgStruct
 
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;
+
+   // this field is filled in by the PanelPanelInteractions() routine
+   // to indicate which of the various computational algorithms was   
+   // used to compute the panel-panel integrals
+   int WhichAlgorithm;
 
    // if this field is nonzero, it points to an Interp3D object
    // for the kernel function; otherwise the kernel function 
@@ -111,6 +124,11 @@ typedef struct GetEEIArgStruct
    int NumGradientComponents;
    int NumTorqueAxes; 
    double *GammaMatrix;
+
+   // if this object is nonzero, it is used as an interpolation 
+   // table to compute values of the kernel (otherwise, the 
+   // usual Helmholtz kernel is used) 
+   Interp3D *GInterp;
    
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;
@@ -118,6 +136,11 @@ typedef struct GetEEIArgStruct
    void *opFC; // 'opaque pointer to FIPPI cache'
 
    int Force;
+   
+   // this field provides diagnostic information on 
+   // how many times the various panel-panel integral 
+   // algorithms were invoked 
+   unsigned PPIAlgorithmCount[NUMPPIALGORITHMS];
 
    // output fields filled in by routine
    // note: GC[0] = <f_a|G|f_b>
@@ -136,9 +159,9 @@ void InitGetEEIArgs(GetEEIArgStruct *Args);
 void GetEdgeEdgeInteractions(GetEEIArgStruct *Args);
 
 /*--------------------------------------------------------------*/
-/*- AssembleBEMMatrixBlock() -----------------------------------*/
+/*- GetSurfaceSurfaceInteractions() ----------------------------*/
 /*--------------------------------------------------------------*/
-typedef struct ABMBArgStruct
+typedef struct GetSSIArgStruct
  {
    // input fields to be filled in by caller
    RWGGeometry *G;
@@ -152,10 +175,21 @@ typedef struct ABMBArgStruct
 
    int Symmetric;
 
+   // if this flag is true, it means the caller wants the interaction 
+   // of the two surfaces as mediated by the periodic Green's function 
+   // with the innermost 9 cell contributions omitted (the 'all-but-9' 
+   // kernel). otherwise, we use the usual (direct) Helmholtz kernel.
+   bool UseAB9Kernel;
+
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;
 
-   // if this field is true, the call to AssembleBEMMatrixBlock 
+   // these flags allow the caller to request the omission of 
+   // contributions from one or both of the regions through which
+   // the surfaces interact
+   bool OmitRegion1, OmitRegion2;
+
+   // if this field is true, the call to GetSurfaceSurfaceInteraction
    // augments (does not overwrite) the matrix entries
    bool Accumulate;
 
@@ -167,15 +201,16 @@ typedef struct ABMBArgStruct
    // additional fields used internally that may be ignored by 
    // the caller both before and after the call
    double SignA, SignB;
-   cdouble EpsA, EpsB; 
+   cdouble EpsA, EpsB;
    cdouble MuA, MuB;
    int SaIsPEC, SbIsPEC;
+   Interp3D *GInterpA, *GInterpB;
 
- } ABMBArgStruct;
+ } GetSSIArgStruct;
 
-void InitABMBArgs(ABMBArgStruct *Args);
-void AssembleBEMMatrixBlock(ABMBArgStruct *Args);
-void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args);
+void InitGetSSIArgs(GetSSIArgStruct *Args);
+void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args);
+void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args);
 
 /***************************************************************/
 /* 2. definition of data structures and methods for working    */
@@ -296,7 +331,8 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
 /* routine for computing the periodic green's function via     */
 /* ewald summation                                             */
 /***************************************************************/
-void GBarVDEwald(double *R, cdouble k, double *kBloch, double **LBV,
+void GBarVDEwald(double *R, cdouble k, int 
+                 LDim, double *kBloch, double **LBV,
                  double E, int ExcludeFirst9, cdouble *GBarVD);
 
 /***************************************************************/
@@ -306,6 +342,7 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch, double **LBV,
 typedef struct GBarData 
  { 
    cdouble k;           // wavenumber 
+   int LDim;            // dimension of lattice periodicity (either 1 or 2)
    double *kBloch;      // bloch vector 
    double *LBV[2];      // lattice basis vectors 
    double E;            // ewald separation parameter

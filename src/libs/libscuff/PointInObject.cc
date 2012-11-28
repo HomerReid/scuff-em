@@ -312,7 +312,7 @@ static void kdtri_compute_bounds(kdtri t)
     }
   }
   else
-    t->bmax[0] = t->bmax[1] = t->bmax[2] =
+    t->bmin[0] = t->bmin[1] = t->bmin[2] =
       t->bmax[0] = t->bmax[1] = t->bmax[2] = 0;
 }
 

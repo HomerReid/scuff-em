@@ -2,13 +2,13 @@ lib_LTLIBRARIES = libscuff.la
 pkginclude_HEADERS = libscuff.h GTransformation.h FieldGrid.h
 libscuff_la_SOURCES = \
  AssembleBEMMatrix.cc \
- AssembleBEMMatrix_PBC.cc \
  AssembleRHSVector.cc \
  AssessPanelPair.cc \
  CalcGC.cc \
  EdgeEdgeInteractions.cc \
  ExpandCurrentDistribution.cc \
- Faddeeva.cc Faddeeva.hh \
+ Faddeeva.cc \
+ Faddeeva.hh \
  FieldGrid.cc \
  FIPPICache.cc \
  GBarVDEwald.cc \
@@ -20,6 +20,7 @@ libscuff_la_SOURCES = \
  InitEdgeList.cc \
  Overlap.cc \
  PanelPanelInteractions.cc \
+ SurfaceSurfaceInteractions.cc \
  PBCSetup.cc \
  PointInObject.cc \
  QDFIPPI.cc \

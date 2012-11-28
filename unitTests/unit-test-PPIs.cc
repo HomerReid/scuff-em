@@ -170,10 +170,11 @@ int ComparePPIs(int WhichCase, GetPPIArgStruct *Args)
 int main(int argc, char *argv[])
 { 
   SetLogFileName("scuff-unit-tests.log");
-  Log("SCUFF-EM PPI unit tests running on %s",GetHostName);
+  Log("SCUFF-EM PPI unit tests running on %s",GetHostName());
 
   int FailedCases=0;
   RWGGeometry *G = new RWGGeometry("PECSphere.scuffgeo");
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
 
   GetPPIArgStruct MyArgs, *Args=&MyArgs;
   InitGetPPIArgs(Args);
@@ -193,12 +194,6 @@ int main(int argc, char *argv[])
   Args->NumGradientComponents=3;
   GetPanelPanelInteractions(Args);
   FailedCases += ComparePPIs(NCLW, Args);
-  printf("NCLW: \n");
-  for(int n=0; n<2; n++)
-   printf("%s ,\n",CD2S(Args->H[n]));
-  printf("NCLW: \n");
-  for(int n=0; n<6; n++)
-   printf("%s ,\n",CD2S(Args->GradH[n]));
 
   /*--------------------------------------------------------------*/
   /*- no common vertices, moderate wavelength   ------------------*/

@@ -8,7 +8,7 @@
  * (at your option) any later version.
  *
  * SCUFF-EM is distributed in the hope that it will be useful,
- * but SC3DITHOUT ANY SC3DARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
@@ -45,65 +45,72 @@ using namespace scuff;
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
+/* compute \log \det \{ M^{-1} MInfinity \}                    */
 /***************************************************************/
-/***************************************************************/
-void GCI2(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
-{
-  RWGGeometry *G          = SC3D->G;
+double GetLNDetMInvMInf(SC3Data *SC3D)
+{ 
   HMatrix *M              = SC3D->M;
   HVector *MInfLUDiagonal = SC3D->MInfLUDiagonal;
+  int N                   = SC3D->N;
 
-  /*--------------------------------------------------------------*/ 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  cdouble Omega = cdouble(0,Xi);
-  G->AssembleBEMMatrix(Omega, kBloch, M);
+  int n;
+  double LNDet;
+  for(LNDet=0.0, n=0; n<N; n++)
+   LNDet+=log( fabs( MInfLUDiagonal->GetEntryD(n) / M->GetEntryD(n,n) ) );
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int Offset;
-  HMatrix *T;
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   { 
-     Offset = G->BFIndexOffset[ns];
-     T = SC3D->TBlocks[ns];
-     SC3D->M->ExtractBlock(Offset, Offset, T);
+  return -LNDet/(2.0*M_PI);
 
-     T->LUFactorize();
-     for(int nr=0; nr<T->NR; nr++)
-      MInfLUDiagonal->SetEntry( Offset + nr, T->GetEntry(nr,nr) );
+} 
 
+/***************************************************************/
+/* compute \trace \{ M^{-1} dMdAlpha\},                        */
+/* where Alpha=x, y, z                                         */
+/***************************************************************/
+double GetTraceMInvdM(SC3Data *SC3D, char XYZT)
+{ 
+  /***************************************************************/
+  /* unpack fields from workspace structure **********************/
+  /***************************************************************/
+  RWGGeometry *G     = SC3D->G;
+  HMatrix *M         = SC3D->M;
+  HMatrix *dM        = SC3D->dM;
+  HMatrix **dUBlocks = SC3D->dUBlocks;
+
+  int Mu;
+  switch(XYZT)
+   {  case 'X': Mu   = 0; break;
+      case 'Y': Mu   = 1; break;
+      case 'Z': Mu   = 2; break;
+#if 0
+      case '1': dU0b = SC3D->dU0bdTheta1; break; 
+      case '2': dU0b = SC3D->dU0bdTheta2; break; 
+      case '3': dU0b = SC3D->dU0bdTheta3; break; 
+#endif
    };
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  M->LUFactorize();
-
-  double LNDet=0.0;
-  for(int n=0; n<G->TotalBFs; n++)
-   LNDet += log( fabs( MInfLUDiagonal->GetEntryD(n) / M->GetEntryD(n,n) ) );
-
-  EFT[0] = -LNDet/(2.0*M_PI);
+  if ( '1'<=XYZT && XYZT<='3' )
+   Log("  Computing torque about axis #%c...",XYZT);
+  else
+   Log("  Computing %cForce...",XYZT);
 
   /***************************************************************/
+  /* stamp derivative blocks into dM matrix, compute M^{-1} dM,  */
+  /* then sum the diagonals of the upper matrix block            */
   /***************************************************************/
-  /***************************************************************/
-  if (SC3D->ByXikBlochFile)
-   { 
-     int ntnq=0;
-     FILE *f=fopen(SC3D->ByXikBlochFile,"a");
-     for(int nt=0; nt<SC3D->NumTransformations; nt++)
-      { fprintf(f,"%s %e %e %e ",SC3D->GTCList[nt]->Tag,Xi,kBloch[0],kBloch[1]);
-        for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
-         fprintf(f,"%.12e ",EFT[nq]);
-        fprintf(f,"\n");
-      };
-     fclose(f);
-   };
-  
-}
+  dM->Zero();
+  for(int ns=1; ns<G->NumSurfaces; ns++)
+   dM->InsertBlockTranspose(dUBlocks[ 3*(ns-1) + Mu ], G->BFIndexOffset[ns], 0);
+
+  M->LUSolve(dM);
+
+  double Trace=0.0;
+  for(int n=0; n<dM->NC; n++)
+   Trace+=dM->GetEntryD(n,n);
+  Trace*=2.0;
+
+  return -Trace/(2.0*M_PI);
+} 
+
 
 /***************************************************************/
 /* stamp T and U blocks into the BEM matrix, then LU-factorize.*/
@@ -111,7 +118,7 @@ void GCI2(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 void Factorize(SC3Data *SC3D)
 { 
   RWGGeometry *G = SC3D->G;
-  HMatrix *M = SC3D->M;
+  HMatrix *M     = SC3D->M;
 
   /***************************************************************/
   /* stamp blocks into M matrix                                  */
@@ -174,18 +181,7 @@ void Factorize(SC3Data *SC3D)
 /***************************************************************/
 void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 { 
-  if (kBloch)
-   { GCI2(SC3D, Xi, kBloch, EFT);
-     return;
-   };
-  
-#if 0
-  RWGGeometry *G=SC3D->G;
-
-  /***************************************************************/
-  /* record the value of Xi in the internal storage slot within SC3D*/
-  /***************************************************************/
-  SC3D->Xi=Xi;
+  RWGGeometry *G = SC3D->G;
 
   /***************************************************************/
   /* SurfaceNeverMoved[ns] is initialized to 1 and remains at 1  */
@@ -196,36 +192,25 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   /***************************************************************/
   static int *SurfaceNeverMoved=0;
   if (SurfaceNeverMoved==0)
-   SurfaceNeverMoved=(int *)mallocSE(G->NumSurfaces*sizeof(int));
-  for(ns=0; ns<G->NumSurfaces; ns++)
+   SurfaceNeverMoved=(int *)mallocEC(G->NumSurfaces*sizeof(int));
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    SurfaceNeverMoved[ns]=1;
-
-  /***************************************************************/
-  /* preallocate an argument structure for AssembleBEMMatrixBlock*/
-  /***************************************************************/
-  ABMBArgs MyArgs, *Args=&MyArgs;
-  InitABMBArgs(Args);
-  Args->G=G;
-  Args->Omega = II*Xi;
 
   /***************************************************************/
   /* assemble T matrices                                         */
   /***************************************************************/
-  int ns, nsp;
-  for(ns=0; ns<G->NumSurfaces; ns++)
+  cdouble Omega = cdouble(0.0, Xi);
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      /* skip if this surface is identical to a previous surface */
-     if ( (nsp=G->Mate[ns]) !=-1 )
+     int nsp = G->Mate[ns];
+     if ( nsp != -1 )
       { Log("Surface %i is identical to object %i (skipping)",ns,nsp);
         continue;
       };
 
      Log("Assembling T%i at Xi=%e...",ns+1,Xi);
-     Args->Sa = Args->Sb = G->Surfaces[ns];
-     Args->B = SC3D->TBlocks[ns];
-     Args->Symmetric = 1;
-     
-     AssembleBEMMatrixBlock(&Args);
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, SC3D->TBlocks[ns]);
 
    }; // for(ns=0; ns<G->NumSurfaces; ns++)
 
@@ -238,17 +223,18 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
    {
      HMatrix *M=SC3D->M;
-     HMatrix *V=SC3D->MInfLUDiagonal;
-     for(ns=0; ns<G->NumSurfaces; ns++)
+     HVector *V=SC3D->MInfLUDiagonal;
+     for(int ns=0; ns<G->NumSurfaces; ns++)
       { 
-        Offset=G->BFIndexOffset[ns];
-        NBF=G->Surfaces[ns]->NumBFs;
+        int Offset=G->BFIndexOffset[ns];
+        int NBF=G->Surfaces[ns]->NumBFs;
 
-        if ( (nsp=G->Mate[ns]) != -1 )
+        int nsp=G->Mate[ns];
+        if ( nsp != -1 )
          { 
            /* if this object has a mate, just copy the diagonals of the */
            /* mate's LU factor                                          */
-           MateOffset=G->BFIndexOffset[nsp];
+           int MateOffset=G->BFIndexOffset[nsp];
            memcpy(V->DV+Offset,V->DV+MateOffset,NBF*sizeof(double));
          }
         else
@@ -259,17 +245,18 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
            /* storage for the content of T; this means that we have to     */
            /* call the lapack routines directly instead of using the nice  */
            /* wrappers provided by libhmat                                 */
-           for(nbf=0; nbf<NBF; nbf++)
-            for(nbfp=0; nbfp<NBF; nbfp++)
+           for(int nbf=0; nbf<NBF; nbf++)
+            for(int nbfp=0; nbfp<NBF; nbfp++)
              M->DM[nbf + nbfp*NBF] = SC3D->TBlocks[ns]->GetEntryD(nbf,nbfp);
 
            Log("LU-factorizing T%i at Xi=%g...",ns+1,Xi);
+           int info;
            dgetrf_(&NBF, &NBF, M->DM, &NBF, SC3D->ipiv, &info);
            if (info!=0)
             Log("...FAILED with info=%i (N=%i)",info,NBF);
 
            /* copy the LU diagonals into DRMInf */
-           for(nbf=0; nbf<NBF; nbf++)
+           for(int nbf=0; nbf<NBF; nbf++)
             V->SetEntry(Offset+nbf, M->DM[nbf+nbf*NBF]);
          };
       };
@@ -279,29 +266,29 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   /* for each line in the TransFile, apply the specified         */
   /* transformation, then calculate all quantities requested.    */
   /***************************************************************/
-  ByXiFile=fopen(SC3D->ByXiFileName,"a");
-  setlinebuf(ByXiFile);
-  for(ntnq=nt=0; nt<SC3D->NumTransforms; nt++)
+  FILE *ByXiFile=fopen(SC3D->ByXiFile,"a");
+  for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
    { 
-     Tag=SC3D->CurrentTag=SC3D->Tags[nt];
+     char *Tag=SC3D->GTCList[nt]->Tag;
 
      /******************************************************************/
      /* skip if all quantities are already converged at this transform */
      /******************************************************************/
-     AllConverged=1;
-     for(nq=0; AllConverged==1 && nq<SC3D->NumQuantities; nq++)
+     int AllConverged=1;
+     for(int nq=0; AllConverged==1 && nq<SC3D->NumQuantities; nq++)
       if ( !SC3D->Converged[ ntnq + nq ] )
        AllConverged=0;
      if (AllConverged)
       { Log("All quantities already converged at Tag %s",Tag);
 
-        for(nq=0; nq<SC3D->NumQuantities; nq++)
+        for(int nq=0; nq<SC3D->NumQuantities; nq++)
          EFT[ntnq++]=0.0;
 
         fprintf(ByXiFile,"%s %.15e ",Tag,Xi);
-        for(nq=0; nq<SC3D->NumQuantities; nq++)
+        for(int nq=0; nq<SC3D->NumQuantities; nq++)
          fprintf(ByXiFile,"%.15e ",0.0);
         fprintf(ByXiFile,"\n");
+        fflush(ByXiFile);
 
         continue;
       };
@@ -310,19 +297,15 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
      /* apply the geometrical transform                                */
      /******************************************************************/
      Log("Applying transform %s...",Tag);
-     G->Transform( GTCList[nt] );
-     for(ns=0; ns<G->NumSurfaces; ns++)
+     G->Transform( SC3D->GTCList[nt] );
+     for(int ns=0; ns<G->NumSurfaces; ns++)
       if (G->SurfaceMoved[ns]) SurfaceNeverMoved[ns]=0;
 
      /***************************************************************/
      /* assemble U_{a,b} blocks and dUdXYZT_{0,b} blocks            */
      /***************************************************************/
-     Args->NumTorqueAxes = SC3D->NumTorqueAxes;
-     if (Args->NumTorqueAxes>0)
-      memcpy(Args->GammaMatrix, SC3D->GammaMatrix, NumTorqueAxes*9*sizeof(double));
-     Args->Symmetric=0;
-     for(ns=0; ns<G->NumSurfaces; ns++)
-      for(nsp=ns+1; nsp<G->NumSurfaces; nsp++)
+     for(int nb=0, ns=0; ns<G->NumSurfaces; ns++)
+      for(int nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
        { 
          /* if we already computed the interaction between objects ns  */
          /* and nsp once at this frequency, and if neither object has  */
@@ -331,92 +314,48 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
           continue;
 
          Log(" Assembling U(%i,%i)",ns,nsp);
-         Args->Sa    = G->Surfaces[ns];
-         Args->Sb    = G->Surfaces[nsp];
-         Args->B     = SC3D->Uab[ns][nsp],
-         Args->GradB = SC3D->Uab[ns][nsp],
-
          if (ns==0)
-          G->AssembleU(ns, nsp, Xi, IMAG_FREQ,
-                       SC3D->NumTorqueAxes, SC3D->GammaMatrix, SC3D->nThread,
-                       SC3D->dU0bdX[nsp], SC3D->dU0bdY[nsp], SC3D->dU0bdZ[nsp], 
-                       SC3D->dU0bdTheta1[nsp], SC3D->dU0bdTheta2[nsp], SC3D->dU0bdTheta3[nsp]);
+          G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch,
+                                    SC3D->UBlocks[nb], SC3D->dUBlocks + 3*nb);
          else
-          G->AssembleU(ns, nsp, Xi, IMAG_FREQ, 0, 0, SC3D->nThread, 
-                       SC3D->Uab[ns][nsp], 0, 0, 0, 0, 0, 0);
+          G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, SC3D->UBlocks[nb]);
 
-         if (ns==0 && SC3D->pCC)
-          { if (SC3D->dU0bdX[nsp]) 
-             SC3D->dU0bdX[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idX%s",nsp,SC3D->CurrentTag);
-            if (SC3D->dU0bdY[nsp]) 
-             SC3D->dU0bdY[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idY%s",nsp,SC3D->CurrentTag);
-            if (SC3D->dU0bdZ[nsp]) 
-             SC3D->dU0bdZ[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idZ%s",nsp,SC3D->CurrentTag);
-            if (SC3D->dU0bdTheta1[nsp]) 
-             SC3D->dU0bdTheta1[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idTheta1%s",nsp,SC3D->CurrentTag);
-            if (SC3D->dU0bdTheta2[nsp]) 
-             SC3D->dU0bdTheta2[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idTheta2%s",nsp,SC3D->CurrentTag);
-            if (SC3D->dU0bdTheta3[nsp]) 
-             SC3D->dU0bdTheta3[nsp]->ExportToMATLAB(SC3D->pCC,"dU0%idTheta3%s",nsp,SC3D->CurrentTag);
-          };
        };
 
-     /* factorize the M matrix, and, if successful, compute all quantities */
-     if ( Factorize(SC3D) ) 
-      {
-        if ( SC3D->SIMethod==SIMETHOD_SPECTRAL )
-         { 
-           /* compute all requested quantities using logdet/trace methods */
-           if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
-            EFT[ntnq++]=GetLNDetMInvMInf(SC3D);
-           if ( SC3D->WhichQuantities & QUANTITY_XFORCE )
-            EFT[ntnq++]=GetTraceMInvdM(SC3D,'X');
-           if ( SC3D->WhichQuantities & QUANTITY_YFORCE )
-            EFT[ntnq++]=GetTraceMInvdM(SC3D,'Y');
-           if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
-            EFT[ntnq++]=GetTraceMInvdM(SC3D,'Z');
-           if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
-            EFT[ntnq++]=GetTraceMInvdM(SC3D,'1');
-           if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
-            EFT[ntnq++]=GetTraceMInvdM(SC3D,'2');
-           if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
-            EFT[ntnq++]=GetTraceMInvdM(SC3D,'3');
-         }
-        else
-         { 
-           SpatialIntegral(SC3D,SC3D->TransLines[nt],EFT+ntnq, SC3D->Error + ntnq);
-           ntnq+=SC3D->NumQuantities;
-         };
-      }
-     else 
-      { 
-        /* matrix factorization failed */
-        memset(EFT+ntnq,0,SC3D->NumQuantities*sizeof(double));
-        ntnq+=SC3D->NumQuantities;
-      };
+     /* factorize the M matrix and compute casimir quantities */
+     Factorize(SC3D);
+     if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
+      EFT[ntnq++]=GetLNDetMInvMInf(SC3D);
+     if ( SC3D->WhichQuantities & QUANTITY_XFORCE )
+      EFT[ntnq++]=GetTraceMInvdM(SC3D,'X');
+     if ( SC3D->WhichQuantities & QUANTITY_YFORCE )
+      EFT[ntnq++]=GetTraceMInvdM(SC3D,'Y');
+     if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
+      EFT[ntnq++]=GetTraceMInvdM(SC3D,'Z');
+
+     /*
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
+      EFT[ntnq++]=GetTraceMInvdM(SC3D,'1');
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
+      EFT[ntnq++]=GetTraceMInvdM(SC3D,'2');
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
+      EFT[ntnq++]=GetTraceMInvdM(SC3D,'3');
+     */
 
      /******************************************************************/
      /* write results to .byXi file                                    */
      /******************************************************************/
      fprintf(ByXiFile,"%s %.15e ",Tag,Xi);
-     for(nq=SC3D->NumQuantities; nq>0; nq--)
+     for(int nq=SC3D->NumQuantities; nq>0; nq--)
       fprintf(ByXiFile,"%.15e ",EFT[ntnq-nq]);
-     if (SC3D->SIMethod!=SIMETHOD_SPECTRAL)
-      fprintf(ByXiFile,"%i ",SC3D->SIPoints);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-     if(SC3D->Error)
-      { for(nq=SC3D->NumQuantities; nq>0; nq--)
-         fprintf(ByXiFile,"%.15e ",SC3D->Error[ntnq-nq]);
-      };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      fprintf(ByXiFile,"\n");
+     fflush(ByXiFile);
 
      /******************************************************************/
      /* undo the geometrical transform                                 */
      /******************************************************************/
      G->UnTransform();
 
-   }; // for(ntnq=nt=0; nt<SC3D->NumTransforms; nt++)
+   }; // for(ntnq=nt=0; nt<SC3D->NumTransformations; nt++)
   fclose(ByXiFile);
-#endif
 }

@@ -20,8 +20,8 @@
 /*
  * unit-test-compactMatrix.cc -- SCUFF-EM unit test for the full BEM 
  *                               matrix of a geometry consisting of 
- *                               compact objects (two spheres in    
- *                               this case)
+ *                               extended objects (in this case, an array of 
+ *                               gold spheres atop a dielectric substrate)
  * 
  * homer reid        -- 11/2005 -- 10/2011
  *
@@ -43,7 +43,7 @@ using namespace scuff;
 int main(int argc, char *argv[])
 { 
   SetLogFileName("scuff-unit-tests.log");
-  Log("SCUFF-EM compact matrix unit test running on %s",GetHostName());
+  Log("SCUFF-EM PBC matrix unit test running on %s",GetHostName());
  
   /*--------------------------------------------------------------*/
   /*- use the --WriteFiles option to create the .hdf5 files that  */
@@ -70,61 +70,75 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGGeometry *G = new RWGGeometry("TwoSpheres_Coarse.scuffgeo");
+  RWGGeometry *G = new RWGGeometry("SphereSubstrateArray_Coarse.scuffgeo");
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   HMatrix *M = G->AllocateBEMMatrix();
   double Elapsed;
+  double AvgMag;
+  double kBloch[2];
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if (WriteFiles)
    { 
-     void *pCC = HMatrix::OpenHDF5Context("TwoSpheres_Coarse.hdf5");
+     void *pCC = HMatrix::OpenHDF5Context("SphereSubstrateArray_Coarse.hdf5");
    
-     printf("Assembling BEM matrix at Omega = 0.05...\n");
+     printf("Assembling BEM matrix at (Omega,kx,ky) = (0.05, 0.0, 0.0)...\n");
+     kBloch[0]=kBloch[1]=0.0;
      Tic();
-     G->AssembleBEMMatrix( cdouble(0.05, 0.0), M );
+     G->AssembleBEMMatrix( cdouble(0.05, 0.0), kBloch, M );
      Elapsed=Toc();
      printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
-     M->ExportToHDF5(pCC,"M0P05");
-     StoreCache("TwoSpheres_Coarse.cache");
+     M->ExportToHDF5(pCC,"M1");
+     StoreCache("SphereSubstrateArray_Coarse.cache");
    
-     printf("Assembling BEM matrix at Omega = 5+5I...\n");
+     printf("Assembling BEM matrix at (Omega,kx,ky) = (0.9,0.3,1.1)...\n");
+     kBloch[0]=0.3;
+     kBloch[1]=1.1;
      Tic();
-     G->AssembleBEMMatrix( cdouble(5.00, 5.00), M );
+     G->AssembleBEMMatrix( cdouble(0.9, 0.0), kBloch, M );
      Elapsed=Toc();
      printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
-     M->ExportToHDF5(pCC,"M5P5I");
+     M->ExportToHDF5(pCC,"M2");
 
      HMatrix::CloseHDF5Context(pCC);
 
-     StoreCache("TwoSpheres_Coarse.cache");
+     StoreCache("SphereSubstrateArray_Coarse.cache");
 
    }
   else
    {
      if (UseCache)
-      PreloadCache("TwoSpheres_Coarse.cache");
+      PreloadCache("SphereSubstrateArray_Coarse.cache");
 
      /***************************************************************/
-     /* assemble and compare at omega=0.05 **************************/
+     /* assemble and compare in first case   ***********************/
      /***************************************************************/
-     HMatrix *MRef = new HMatrix("TwoSpheres_Coarse.hdf5",LHM_HDF5,"M0P05");
+     HMatrix *MRef = new HMatrix("SphereSubstrateArray_Coarse.hdf5",LHM_HDF5,"M1");
      if (MRef->ErrMsg)
       ErrExit(MRef->ErrMsg);
 
      printf("Assembling BEM matrix at Omega = 0.05...\n");
+     kBloch[0]=kBloch[1]=0.0;
      Tic();
-     G->AssembleBEMMatrix( cdouble(0.05, 0.0), M );
+     G->AssembleBEMMatrix( cdouble(0.05, 0.0), kBloch, M );
      Elapsed=Toc();
      printf("...done in %.0f s.\n",Elapsed);
+
+     AvgMag = 0.0;
+     for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NC; nc++)
+       AvgMag += abs(M->GetEntry(nr,nc));
+     AvgMag /= ((double)(M->NR * M->NC) );
 
      printf("Comparing to reference...");
      int Mismatches=0;
      for(int nr=0; nr<M->NR; nr++)
       for(int nc=nr; nc<M->NC; nc++)
-       if ( !EqualFloat(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) )
+       if (    abs(M->GetEntry(nr,nc)) > (1.0e-6 * AvgMag)
+            && RD(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) > 1.0e-6 
+          )
         { 
           Mismatches++;
           Warn("MISMATCH(%i,%i): (%.8e,%.8e)--(%.8e,%.8e) (%.1e)\n",nr,nc,
@@ -134,27 +148,37 @@ int main(int argc, char *argv[])
           if (Mismatches>10)
            ErrExit("too many mismatches");
         };
-      printf("%i mismatches.\n",Mismatches);
+      printf("...%i mismatches.\n",Mismatches);
       printf("\n");
       
 
      /***************************************************************/
-     /* assemble and compare at Omega=5+5i **************************/
+     /* assemble and compare in second case *************************/
      /***************************************************************/
-     MRef = new HMatrix("TwoSpheres_Coarse.hdf5",LHM_HDF5,"M5P5I");
+     MRef = new HMatrix("SphereSubstrateArray_Coarse.hdf5",LHM_HDF5,"M2");
      if (MRef->ErrMsg)
       ErrExit(MRef->ErrMsg);
 
-     printf("Assembling BEM matrix at Omega = 5+5i...\n");
+     printf("Assembling BEM matrix at (Omega,kx,ky) = (0.9,0.3,1.1)...\n");
+     kBloch[0]=0.3;
+     kBloch[1]=1.1;
      Tic();
-     G->AssembleBEMMatrix( cdouble(5.00, 5.00), M );
+     G->AssembleBEMMatrix( cdouble(0.90, 0.00), kBloch, M );
      Elapsed=Toc();
      printf("...done in %.0f s.\n",Elapsed);
+
+     AvgMag = 0.0;
+     for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NC; nc++)
+       AvgMag += abs(M->GetEntry(nr,nc));
+     AvgMag /= ((double)(M->NR * M->NC) );
 
      printf("Comparing to reference...");
      for(int nr=0; nr<M->NR; nr++)
       for(int nc=nr; nc<M->NC; nc++)
-       if ( !EqualFloat(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) )
+       if (    abs(M->GetEntry(nr,nc)) > (1.0e-6 * AvgMag)
+            && RD(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) > 1.0e-6 
+          )
         { 
           Mismatches++;
           Warn("MISMATCH(%i,%i): (%.8e,%.8e)--(%.8e,%.8e) (%.1e)\n",nr,nc,

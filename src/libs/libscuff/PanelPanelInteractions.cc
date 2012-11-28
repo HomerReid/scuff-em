@@ -182,6 +182,8 @@ void AssembleInnerPPIIntegrand_Interp(double wp, cdouble k, double *R, double *F
 
    };
 
+  (void)dHdTInner; // currently unused
+  (void)GammaMatrix; // currently unused
   if (NumTorqueAxes>0)
    ErrExit("angular derivatives of matrix elements not yet implemented for PBC geometries");
 
@@ -250,7 +252,6 @@ void AssembleInnerPPIIntegrand_NoInterp(double wp, cdouble k, double *R, double 
 
 }
 
-
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -299,7 +300,7 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
    GradH = 0;
  
   cdouble *dHdT, dHdTBuffer[6];
-  int nta, NumTorqueAxes=Args->NumTorqueAxes;
+  int NumTorqueAxes=Args->NumTorqueAxes;
   double *GammaMatrix=Args->GammaMatrix;
   if (NumTorqueAxes>0 && GammaMatrix!=0 && Args->dHdT!=0)
    dHdT = dHdTBuffer;
@@ -331,7 +332,7 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
   /* outer loop **************************************************/
   /***************************************************************/
   int np, ncp, npp, ncpp;
-  int Mu, Nu;
+  int Mu;
   double u, v, w, up, vp, wp;
   double X[3], F[3], XP[3], FP[3], R[3];
   cdouble k = Args->k;
@@ -430,6 +431,11 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   cdouble *dHdT             = Args->dHdT;
 
   /***************************************************************/
+  /* assume that we will use the simple cubature algorithm *******/
+  /***************************************************************/
+  Args->WhichAlgorithm=PPIALG_CUBATURE;
+
+  /***************************************************************/
   /* extract panel vertices, detect common vertices, measure     */
   /* relative distance                                           */
   /***************************************************************/
@@ -470,10 +476,10 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
    };
 
   /***************************************************************/
-  /* if the panels are far apart then just use simple low-order  */
-  /* non-desingularized cubature                                 */
+  /* if the panels are far apart, or if we have an interpolator, */
+  /* then just use simple low-order non-desingularized cubature  */
   /***************************************************************/
-  if ( rRel > DESINGULARIZATION_RADIUS )
+  if ( Args->GInterp || (rRel > DESINGULARIZATION_RADIUS) )
    { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
      return;
    };
@@ -524,9 +530,13 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
 
      PIndex=TM_DOTPLUS;
      if ( InVerySWRegime && RWGGeometry::UseHighKTaylorDuffy )
-      KIndex=TM_HIGHK_HELMHOLTZ;
+      { Args->WhichAlgorithm=PPIALG_HKTD;
+        KIndex=TM_HIGHK_HELMHOLTZ;
+      }
      else
-      KIndex=TM_HELMHOLTZ;
+      { Args->WhichAlgorithm=PPIALG_TD;
+        KIndex=TM_HELMHOLTZ;
+      }
      TDArgs->Result = H+0;
      TaylorDuffy(TDArgs);
 
@@ -560,6 +570,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /* method below.                                                 */
   /*****************************************************************/
   cdouble GradHSave[6], dHdTSave[6];
+  Args->WhichAlgorithm=PPIALG_DESING;
   if ( NumGradientComponents>0 || NumTorqueAxes>0 )
    { GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
      memcpy(GradHSave, Args->GradH, 2*NumGradientComponents*sizeof(cdouble));
