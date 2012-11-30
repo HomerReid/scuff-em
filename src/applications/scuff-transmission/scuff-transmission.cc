@@ -338,12 +338,11 @@ int main(int argc, char *argv[])
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
     { 
-      Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)",real(Omega),Theta*RAD2DEG);
       Omega = OmegaVector->GetEntry(nOmega);
-
       Theta = ThetaVector->GetEntryD(nTheta);
       SinTheta=sin(Theta);
       CosTheta=cos(Theta);
+      Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)",real(Omega),Theta*RAD2DEG);
 
       // set bloch wavevector and assemble BEM matrix 
       G->RegionMPs[0]->GetEpsMu(Omega, &EpsExterior, &MuExterior);

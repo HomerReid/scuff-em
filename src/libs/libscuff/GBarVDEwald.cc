@@ -462,12 +462,13 @@ void ComputeGBFFirst9(double *R, cdouble k,
 /***************************************************************/
 /* evaluation of 1D periodic green's function                  */
 /***************************************************************/
+#if 0
 void GBarVD1D(double *R, cdouble k, double *kBloch, double *LBV,
               double E, int ExcludeFirst9, cdouble *GBarVD)
 {
-  memset(GBarVD, 0, 8*sizeof(cdouble));
- 
+  ErrExit("structures with 1D periodicity not yet implemented");
 }
+#endif
 
 
 /***************************************************************/
@@ -518,7 +519,8 @@ void GBarVDEwald(double *R, cdouble k,
     };
 
   if (LDim==1)
-   { GBarVD1D(R, k, kBloch, LBV[0], E, ExcludeFirst9, GBarVD);
+   { //GBarVD1D(R, k, kBloch, LBV[0], E, ExcludeFirst9, GBarVD);
+     ErrExit("structures with 1D periodicity not yet implemented");
      return;
    };
 
