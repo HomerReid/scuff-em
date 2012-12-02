@@ -114,8 +114,8 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  int N  = SC3D->G->TotalBFs;
-  int N1 = SC3D->G->Surfaces[0]->NumBFs;
+  int N  = SC3D->N  = SC3D->G->TotalBFs;
+  int N1 = SC3D->N1 = SC3D->G->Surfaces[0]->NumBFs;
   SC3D->M          = new HMatrix(N,  N);
   SC3D->dM         = new HMatrix(N,  N1);
 
