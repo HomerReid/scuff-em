@@ -145,11 +145,13 @@ void GetCasimirIntegrand2(unsigned ndim, const double *x, void *params,
   double *L[3];
   double kBloch[2];
 
-  L[0] = SC3D->G->LatticeBasisVectors[0];
-  L[1] = SC3D->G->LatticeBasisVectors[1];
+  if (    SC3D->G->NumLatticeBasisVectors!=2
+       || SC3D->G->LatticeBasisVectors[0][1]!=0.0
+       || SC3D->G->LatticeBasisVectors[1][0]!=0.0
+     ) ErrExit("only square lattices supported at present");
 
-  kBloch[0] = x[0]*L[0][0] + x[1]*L[1][0];
-  kBloch[1] = x[0]*L[0][1] + x[1]*L[1][1];
+  kBloch[0] = x[0]*(2.0*M_PI/SC3D->G->LatticeBasisVectors[0][0]);
+  kBloch[1] = x[1]*(2.0*M_PI/SC3D->G->LatticeBasisVectors[1][1]);
 
   GetCasimirIntegrand(SC3D, SC3D->Xi, kBloch, EFT);
 
