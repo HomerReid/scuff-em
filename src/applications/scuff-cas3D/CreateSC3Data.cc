@@ -84,8 +84,12 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   int NS=G->NumSurfaces; 
   SC3D->TBlocks  = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   for(ns=0; ns<G->NumSurfaces; ns++)
-   { NBF=G->Surfaces[ns]->NumBFs;
-     SC3D->TBlocks[ns] = new HMatrix(NBF, NBF);
+   { if ( (nsp=G->Mate[ns])!=-1 )
+      SC3D->TBlocks[ns] = SC3D->TBlocks[nsp];
+     else
+      { NBF=G->Surfaces[ns]->NumBFs;
+        SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_REAL, LHM_SYMMETRIC);
+      };
    };
 
   // SC3D->UBlocks[0]    = 0,1    block
@@ -107,7 +111,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
        SC3D->dUBlocks[3*nb+0] = new HMatrix(NBF, NBFp);
       if (WhichQuantities & QUANTITY_YFORCE)
        SC3D->dUBlocks[3*nb+1] = new HMatrix(NBF, NBFp);
-      if (WhichQuantities & QUANTITY_YFORCE)
+      if (WhichQuantities & QUANTITY_ZFORCE)
        SC3D->dUBlocks[3*nb+2] = new HMatrix(NBF, NBFp);
     };
 

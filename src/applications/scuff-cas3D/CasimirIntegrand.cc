@@ -53,9 +53,8 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
   HVector *MInfLUDiagonal = SC3D->MInfLUDiagonal;
   int N                   = SC3D->N;
 
-  int n;
-  double LNDet;
-  for(LNDet=0.0, n=0; n<N; n++)
+  double LNDet=0.0;
+  for(int n=0; n<N; n++)
    LNDet+=log( fabs( MInfLUDiagonal->GetEntryD(n) / M->GetEntryD(n,n) ) );
 
   return -LNDet/(2.0*M_PI);
@@ -132,9 +131,8 @@ void Factorize(SC3Data *SC3D)
    };
 
   /* U blocks */
-  int nb=0;
   int RowOffset, ColOffset;
-  for(int ns=0; ns<G->NumSurfaces; ns++)
+  for(int nb=0, ns=0; ns<G->NumSurfaces; ns++)
    for(int nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
     { 
       RowOffset=G->BFIndexOffset[ns];
@@ -266,7 +264,9 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   /* for each line in the TransFile, apply the specified         */
   /* transformation, then calculate all quantities requested.    */
   /***************************************************************/
-  FILE *ByXiFile=fopen(SC3D->ByXiFile,"a");
+  FILE *ByXikBlochFile=0;
+  if (SC3D->ByXikBlochFileName)
+   ByXikBlochFile=fopen(SC3D->ByXikBlochFileName,"a");
   for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
    { 
      char *Tag=SC3D->GTCList[nt]->Tag;
@@ -284,11 +284,13 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
         for(int nq=0; nq<SC3D->NumQuantities; nq++)
          EFT[ntnq++]=0.0;
 
-        fprintf(ByXiFile,"%s %.15e ",Tag,Xi);
-        for(int nq=0; nq<SC3D->NumQuantities; nq++)
-         fprintf(ByXiFile,"%.15e ",0.0);
-        fprintf(ByXiFile,"\n");
-        fflush(ByXiFile);
+        if (ByXikBlochFile)
+         { fprintf(ByXikBlochFile,"%s %.15e ",Tag,Xi);
+           for(int nq=0; nq<SC3D->NumQuantities; nq++)
+            fprintf(ByXikBlochFile,"%.15e ",0.0);
+           fprintf(ByXikBlochFile,"\n");
+           fflush(ByXikBlochFile);
+         };
 
         continue;
       };
@@ -343,13 +345,18 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
      */
 
      /******************************************************************/
-     /* write results to .byXi file                                    */
+     /* write results to .byXiK file if it is present                  */
      /******************************************************************/
-     fprintf(ByXiFile,"%s %.15e ",Tag,Xi);
-     for(int nq=SC3D->NumQuantities; nq>0; nq--)
-      fprintf(ByXiFile,"%.15e ",EFT[ntnq-nq]);
-     fprintf(ByXiFile,"\n");
-     fflush(ByXiFile);
+     if (ByXikBlochFile)
+      { if (G->NumLatticeBasisVectors==1)
+         fprintf(ByXikBlochFile,"%s %.6e %.6e ",Tag,Xi,kBloch[0]);
+        else
+         fprintf(ByXikBlochFile,"%s %.6e %.6e %.6e ",Tag,Xi,kBloch[0],kBloch[1]);
+        for(int nq=SC3D->NumQuantities; nq>0; nq--)
+         fprintf(ByXikBlochFile,"%.8e ",EFT[ntnq-nq]);
+        fprintf(ByXikBlochFile,"\n");
+        fflush(ByXikBlochFile);
+      };
 
      /******************************************************************/
      /* undo the geometrical transform                                 */
@@ -357,5 +364,6 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
      G->UnTransform();
 
    }; // for(ntnq=nt=0; nt<SC3D->NumTransformations; nt++)
-  fclose(ByXiFile);
+  if (ByXikBlochFile)
+   fclose(ByXikBlochFile);
 }

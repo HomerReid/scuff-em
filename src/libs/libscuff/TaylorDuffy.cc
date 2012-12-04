@@ -1333,7 +1333,8 @@ static void GetScriptK(int WhichK, cdouble KParam, double X,
   else if (WhichK==TM_GRADHELMHOLTZ)
    { cdouble IK = II*KParam, IKX = IK*X, eIKX = exp(IKX);
      cdouble ExpRelTable[10]; 
-     if ( (nMin-2) < 0 || (nMax-1) >=10) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+     if ( (nMin-2) < 0 || (nMax-1) >=10) 
+      ErrExit("%s:%i: internal error",__FILE__,__LINE__);
      // precompute ExpRel for all values we need; for better efficiency,
      // maybe implement a routine that computes these values all at once?
 

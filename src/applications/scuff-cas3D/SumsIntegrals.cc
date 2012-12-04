@@ -167,7 +167,7 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /* attempt to bypass calculation by reading data from .byXi file */
   /***************************************************************/
-  if ( CacheRead(SC3D->ByXiFile, SC3D, Xi, EFT) )
+  if ( CacheRead(SC3D->ByXiFileName, SC3D, Xi, EFT) )
    return; 
 
   /***************************************************************/
@@ -199,12 +199,11 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int ntnq=0;
-  FILE *f=fopen(SC3D->ByXiFile,"a");
-  for(int nt=0; nt<SC3D->NumTransformations; nt++)
-   { fprintf(f,"%s %e ",SC3D->GTCList[nt]->Tag,Xi);
+  FILE *f=fopen(SC3D->ByXiFileName,"a");
+  for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
+   { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
      for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
-      fprintf(f,"%.12e ",EFT[nq]);
+      fprintf(f,"%.8e ",EFT[ntnq]);
      fprintf(f,"\n");
    };
   fclose(f);

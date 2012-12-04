@@ -362,16 +362,21 @@ int main(int argc, char *argv[])
   SC3Data *SC3D=CreateSC3Data(G, TransFile, WhichQuantities, NumQuantities, 
                               nTorque, TorqueAxes);
 
-  SC3D->BZIMethod      = BZIMethod;
-  SC3D->ByXiFile       = ByXiFile; 
-  SC3D->ByXikBlochFile = ByXikBlochFile;
-  SC3D->WriteCache     = WriteCache;
-  SC3D->AbsTol         = AbsTol;
-  SC3D->RelTol         = RelTol;
-  SC3D->MaxXiPoints    = MaxXiPoints;
+  SC3D->BZIMethod          = BZIMethod;
+  SC3D->ByXiFileName       = ByXiFile; 
+  SC3D->ByXikBlochFileName = ByXikBlochFile;
+  SC3D->WriteCache         = WriteCache;
+  SC3D->AbsTol             = AbsTol;
+  SC3D->RelTol             = RelTol;
+  SC3D->MaxXiPoints        = MaxXiPoints;
 
-  if (SC3D->ByXiFile==0)
-   SC3D->ByXiFile=vstrdup("%s.byXi",GetFileBase(G->GeoFileName));
+  if (SC3D->ByXiFileName==0)
+   SC3D->ByXiFileName=vstrdup("%s.byXi",GetFileBase(G->GeoFileName));
+
+  if (G->NumLatticeBasisVectors==0 && SC3D->ByXikBlochFileName!=0)
+   { Warn("--byXikBlochFile option only makes sense for periodic geometries (disabling)"); 
+     SC3D->ByXikBlochFileName=0;
+   };
 
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */

@@ -441,7 +441,14 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if ( Args->Accumulate==false )
-   Args->B->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+   { Args->B->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+     if (Args->GradB && Args->GradB[0])
+      Args->GradB[0]->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+     if (Args->GradB && Args->GradB[1])
+      Args->GradB[1]->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+     if (Args->GradB && Args->GradB[2])
+      Args->GradB[2]->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+   };
 
   /***************************************************************/
   /* figure out if the two surfaces have 0, 1, or 2 regions in   */
