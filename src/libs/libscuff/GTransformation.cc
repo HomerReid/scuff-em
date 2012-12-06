@@ -378,7 +378,7 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
   char *ErrMsg;
   while( nt<NumTokens )
    { 
-     if ( !StrCaseCmp(Tokens[nt], "OBJECT") )
+     if ( !StrCaseCmp(Tokens[nt], "OBJECT") || !StrCaseCmp(Tokens[nt], "SURFACE") )
       { 
         if ( nt+1 == NumTokens )
          return strdupEC("syntax error");
@@ -398,7 +398,7 @@ char *ParseTRANSLine(char **Tokens, int NumTokens, GTComplex **pGTC)
              )
       { 
         if ( CurrentGT==0 )
-         return vstrdup("no OBJECT specified for %s",Tokens[nt]);
+         return vstrdup("no OBJECT or SURFACE specified for %s",Tokens[nt]);
 
 	CurrentGT->Parse(Tokens+nt, NumTokens-nt,
 			 &ErrMsg, &TokensConsumed);
@@ -461,13 +461,13 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
 
      // switch off to handle the various tokens that may be encountered
      // in a TRANSFORMATION...ENDTRANSFORMATION section
-     if ( !StrCaseCmp(Tokens[0],"OBJECT") )
+     if ( !StrCaseCmp(Tokens[0],"OBJECT") || !StrCaseCmp(Tokens[0],"SURFACE") )
       { 
         /*--------------------------------------------------------------*/
-        /*-- OBJECT MySurface--------------------------------------------*/
+        /*-- OBJECT MyObject or SURFACE MySurface -----------------------*/
         /*--------------------------------------------------------------*/
         if (NumTokens!=2) 
-         return strdupEC("OBJECT keyword requires one argument");
+         return strdupEC("OBJECT/SURFACE keyword requires one argument");
 
         // increment the list of objects that will be affected by this
         // complex of transformations; save the label of the affected  
@@ -496,7 +496,7 @@ char *ParseTRANSFORMATIONSection(char *Tag, FILE *f, int *pLineNum, GTComplex **
         /*-- try to process the line as DISPLACED ... or ROTATED ... ---*/
         /*--------------------------------------------------------------*/
         if (CurrentGT==0)
-         return vstrdup("no OBJECT specified for %s",Tokens[0]);
+         return vstrdup("no OBJECT/SURFACE specified for %s",Tokens[0]);
 
 	CurrentGT->Parse(Tokens, NumTokens, &ErrMsg, &TokensConsumed);
         if (ErrMsg)
