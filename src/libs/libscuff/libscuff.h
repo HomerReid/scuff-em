@@ -447,7 +447,7 @@ class RWGGeometry
 
    // the following helper functions are only used for periodic boundary conditions
    void InitPBCData();
-   void GetRegionExtents(int nr, double RMax[3], double RMin[3]);
+   void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
                                       double kBloch[MAXLATTICE], HMatrix *XMatrix);
    void UpdateRegionInterpolators(cdouble Omega, double *kBloch);

@@ -134,7 +134,31 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
       continue; // region is compact; no interpolation table needed
 
      /***************************************************************/
+     /* check whether or not the extents of the region have changed */
+     /* since we last allocated an interpolator for this region, and*/
+     /* re-allocate the interpolator if so                          */
      /***************************************************************/
+     double RMax[3], RMin[3], DeltaR[3];
+     int NPoints[3];
+     GetRegionExtents(nr, RMax, RMin, DeltaR, NPoints);
+     if (    GBarAB9Interpolators[nr]->X1Min !=  -DeltaR[0]
+          || GBarAB9Interpolators[nr]->X2Min !=  -DeltaR[1] 
+          || GBarAB9Interpolators[nr]->N1    !=  NPoints[0]
+          || GBarAB9Interpolators[nr]->N2    !=  NPoints[1]
+          || GBarAB9Interpolators[nr]->N3    != (1+NPoints[2]/2)
+        )
+      {
+        Log("Region %s extents have changed (reallocating interpolation table)",RegionLabels[nr]);
+        delete GBarAB9Interpolators[nr];
+        GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
+                                               -DeltaR[1], DeltaR[1], NPoints[1],
+                                                      0.0, DeltaR[2], 1 + NPoints[2]/2, 
+                                                       2);
+        
+      };
+
+     /***************************************************************/
+     /* initialize the interpolation table                          */
      /***************************************************************/
      Log("  Initializing interpolator for region %i (%s)...",nr,RegionLabels[nr]);
      GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;

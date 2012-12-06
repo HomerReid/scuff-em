@@ -38,7 +38,9 @@ namespace scuff{
 /* Get the maximum and minimum coordinates of all panel        */
 /* vertices on all surfaces bounding the region in question.   */
 /***************************************************************/
-void RWGGeometry::GetRegionExtents(int nr, double RegionRMax[3], double RegionRMin[3])
+void RWGGeometry::GetRegionExtents(int nr, 
+                                   double RegionRMax[3], double RegionRMin[3],
+                                   double *DeltaR, int *NPoints)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -61,6 +63,19 @@ void RWGGeometry::GetRegionExtents(int nr, double RegionRMax[3], double RegionRM
      RegionRMin[0] = fmin(RegionRMin[0], SurfaceRMin[0]);
      RegionRMin[1] = fmin(RegionRMin[1], SurfaceRMin[1]);
      RegionRMin[2] = fmin(RegionRMin[2], SurfaceRMin[2]);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( DeltaR==0 || NPoints==0 )
+   return;
+
+  for(int i=0; i<3; i++)
+   { DeltaR[i] = fmax( RegionRMax[i] - RegionRMin[i], RWGGeometry::DeltaInterp );
+     NPoints[i] = 1 + (2.0*DeltaR[i] / RWGGeometry::DeltaInterp );
+     if (NPoints[i] < 2)
+      NPoints[i]=2;
    };
 
 }
@@ -412,15 +427,7 @@ void RWGGeometry::InitPBCData()
      if ( !RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
       continue; // we do not need an interpolator for non-extended regions
 
-     GetRegionExtents(nr, RMax, RMin);
-
-     for(int i=0; i<3; i++)
-      {
-         DeltaR[i]   = fmax( RMax[i] - RMin[i], RWGGeometry::DeltaInterp );
-         NPoints[i]  = 1 + (2.0*DeltaR[i] / RWGGeometry::DeltaInterp );
-         if (NPoints[i] < 2)
-          NPoints[i]=2;
-      };
+     GetRegionExtents(nr, RMax, RMin, DeltaR, NPoints);
 
      Log("Creating %ix%ix%i i-table for region %i (%s)",NPoints[0],NPoints[1],NPoints[2],nr,RegionLabels[nr]);
      GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
@@ -429,13 +436,6 @@ void RWGGeometry::InitPBCData()
                                                      2);
    };
 
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void RWGGeometry::RegisterTransformationList(GTComplex **GTCList, int NumTransformations)
-{
 }
 
 } // namespace scuff

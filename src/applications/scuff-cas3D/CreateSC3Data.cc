@@ -64,9 +64,6 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
-  if (SC3D->NumTransformations>0 && G->NumLatticeBasisVectors>0)
-   G->RegisterTransformationList(SC3D->GTCList, SC3D->NumTransformations);
-
   SC3D->NTNQ = SC3D->NumTransformations * SC3D->NumQuantities;
 
   SC3D->Converged = (int *)mallocEC( (SC3D->NTNQ) * sizeof(int) );
