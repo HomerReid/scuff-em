@@ -79,11 +79,19 @@ double SCR9[]={
 /*                                                                 */
 /* Return values: TRFlux[0,1] = transmitted, reflected flux        */
 /*******************************************************************/
-void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega, 
+void GetTRFlux(RWGGeometry *G, HVector *KN, cdouble Omega, int NQPoints,
                double *kBloch, double ZAbove, double ZBelow, double *TRFlux)
 {
-  int NCP=17; // number of cubature points
   double *SCR=SCR9;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NCP; // number of cubature points
+  if (NQPoints==0)
+   NCP=17; 
+  else
+   NCP=NQPoints*NQPoints;
 
   /***************************************************************/
   /* on the first invocation we allocate space for the matrices  */
@@ -106,19 +114,38 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   double x, y, *LBV[2];
   LBV[0]=G->LatticeBasisVectors[0];
   LBV[1]=G->LatticeBasisVectors[1];
-  for(int ncp=0; ncp<NCP; ncp++)
-   { 
-     x=SCR[3*ncp+0];
-     y=SCR[3*ncp+1];
+  if (NQPoints==0)
+   { for(int ncp=0; ncp<NCP; ncp++)
+      { 
+        x=SCR[3*ncp+0];
+        y=SCR[3*ncp+1];
 
-     XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-     XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-     XMatrixAbove->SetEntry(ncp, 2, ZAbove);
+        XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+        XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+        XMatrixAbove->SetEntry(ncp, 2, ZAbove);
 
-     XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-     XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-     XMatrixBelow->SetEntry(ncp, 2, ZBelow);
+        XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+        XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+        XMatrixBelow->SetEntry(ncp, 2, ZBelow);
 
+      };
+   }
+  else
+   { double Delta = 1.0 / ( (double)NQPoints );
+     for(int nqpx=0, ncp=0; nqpx<NQPoints; nqpx++)
+      for(int nqpy=0; nqpy<NQPoints; nqpy++, ncp++)
+       { 
+         x = ((double)nqpx + 0.5)*Delta;
+         y = ((double)nqpy + 0.5)*Delta;
+
+         XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+         XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+         XMatrixAbove->SetEntry(ncp, 2, ZAbove);
+
+         XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+         XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+         XMatrixBelow->SetEntry(ncp, 2, ZBelow);
+       };
    };
 
   /***************************************************************/ 
@@ -138,7 +165,10 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   cdouble E[3], H[3];
   for(int ncp=0; ncp<NCP; ncp++)
    {
-     w=SCR[3*ncp+2];  // cubature weight
+     if (NQPoints==0) 
+      w=SCR[3*ncp+2];  // cubature weight
+     else
+      w=1.0/((double)(NCP));
 
      E[0]=FMatrixAbove->GetEntry(ncp, 0);
      E[1]=FMatrixAbove->GetEntry(ncp, 1);
@@ -182,6 +212,7 @@ int main(int argc, char *argv[])
   int ThetaPoints=25;
   double ZAbove=2.0;
   double ZBelow=-1.0;
+  int NQPoints=0;
   char *OutFileName=0;
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
@@ -200,6 +231,8 @@ int main(int argc, char *argv[])
 /**/
      {"ZAbove",      PA_DOUBLE,  1, 1,       (void *)&ZAbove,       0,       "Z-coordinate of upper integration plane"},
      {"ZBelow",      PA_DOUBLE,  1, 1,       (void *)&ZBelow,       0,       "Z-coordinate of lower integration plane"},
+/**/
+     {"NQPoints",    PA_INT,     1, 1,       (void *)&NQPoints,     0,       "number of quadrature points per dimension"},
 /**/
      {"OutFile",     PA_STRING,  1, 1,       (void *)&OutFileName,  0,       "output file name"},
 /**/
@@ -369,7 +402,7 @@ int main(int argc, char *argv[])
       PW.SetE0(E0);
       G->AssembleRHSVector(Omega, kBloch, &PW, KN);
       M->LUSolve(KN);
-      GetTRFlux(G, &PW, KN, Omega, kBloch, ZAbove, ZBelow, TRFluxPerp);
+      GetTRFlux(G, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPerp);
 
       // solve with E-field parallel to plane of incidence
       E0[0]=CosTheta;
@@ -378,7 +411,7 @@ int main(int argc, char *argv[])
       PW.SetE0(E0);
       G->AssembleRHSVector(Omega, kBloch, &PW, KN);
       M->LUSolve(KN);
-      GetTRFlux(G, &PW, KN, Omega, kBloch, ZAbove, ZBelow, TRFluxPar);
+      GetTRFlux(G, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPar);
    
       IncFlux = CosTheta/(2.0*ZVAC);
 
