@@ -77,7 +77,7 @@ typedef struct SC3Data
    double Xi;
 
    int BZIMethod;
-   char *ByXiFile, *ByXikBlochFile;
+   char *ByXiFileName, *ByXikBlochFileName;
    char *WriteCache;
 
    // these quantities are used to set limits for adaptive frequency integrations

@@ -179,7 +179,6 @@ int main(int argc, char *argv[])
   double *TVa[3], *Qa, *TVb[3], *Qb;
   int nTimes;
   double HRTime, TDTime;
-GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
   for(;;)
    { 
      /*--------------------------------------------------------------*/
@@ -338,6 +337,12 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
       imag(K)=0.0;
 
      /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     if ( !SameSurface && DZ!=0.0 )
+      Sb->Transform("DISP 0 0 %e",DZ);
+
+     /*--------------------------------------------------------------------*/
      /* print a little summary of the panel pair we will be considering    */
      /*--------------------------------------------------------------------*/
      Pa=Sa->Panels[npa];
@@ -368,12 +373,6 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      Args->NumTorqueAxes         = 0;
 
      /*--------------------------------------------------------------------*/
-     /*--------------------------------------------------------------------*/
-     /*--------------------------------------------------------------------*/
-     if ( !SameSurface && DZ!=0.0 )
-      Sb->Transform("DISP 0 0 %e",DZ);
-
-     /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by libscuff method                       */
      /*--------------------------------------------------------------------*/
      Tic();
@@ -394,12 +393,19 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
 
         double *OVa[3], *OVb[3];
         int Flipped=CanonicallyOrderVertices(TVa, TVb, ncv, OVa, OVb);
+        int PIndex, KIndex;
+        cdouble Result, Error;
 
         TaylorDuffyArgStruct MyTDArgStruct, *TDArgs=&MyTDArgStruct;
         InitTaylorDuffyArgs(TDArgs);
 
         TDArgs->WhichCase = ncv;
-        TDArgs->GParam    = K;
+        TDArgs->NumPKs    = 1;
+        TDArgs->KParam    = &K;
+        TDArgs->PIndex    = &PIndex;
+        TDArgs->KIndex    = &KIndex;
+        TDArgs->Result    = &Result;
+        TDArgs->Error     = &Error; 
         TDArgs->V1        = OVa[0];
         TDArgs->V2        = OVa[1];
         TDArgs->V3        = OVa[2];
@@ -411,15 +417,20 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
         Tic();
         for(nTimes=0; nTimes<TDTIMES; nTimes++)
          { 
-           TDArgs->WhichG=TM_EIKR_OVER_R;
-           TDArgs->WhichH=TM_DOTPLUS;
-           HTD[0]=TaylorDuffy(TDArgs);
-
-           TDArgs->WhichG=TM_GRADEIKR_OVER_R;
-           TDArgs->WhichH=TM_CROSS;
- //          TDArgs->AbsTol = RWGGeometry::SWPPITol*abs(HTD[0]);
-           TDArgs->AbsTol = 1.0e-8;
-           HTD[1]=TaylorDuffy(TDArgs);
+           PIndex=TM_DOTPLUS;
+           KIndex=TM_HELMHOLTZ;
+           TaylorDuffy(TDArgs);
+           HTD[0]=TDArgs->Result[0];
+          
+           if (ncv==3)
+            HTD[1]=0.0;
+           else
+            { PIndex=TM_CROSS;
+              KIndex=TM_GRADHELMHOLTZ;
+              TDArgs->AbsTol = 1.0e-8;
+              TaylorDuffy(TDArgs);
+              HTD[1]=TDArgs->Result[0];
+            };
          };
         TDTime=Toc() / TDTIMES;
 
@@ -428,7 +439,6 @@ GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by brute-force methods                   */
      /*--------------------------------------------------------------------*/
-printf("BFing...\n");
      GetPPIs_BruteForce(Args, PlotFits);
      memcpy(HBF, Args->H, 2*sizeof(cdouble));
      memcpy(GradHBF, Args->GradH, 6*sizeof(cdouble));

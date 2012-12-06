@@ -179,15 +179,6 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   HVector *DV        = SHD->DV;
   int PlotFlux       = SHD->PlotFlux;
 
-  /***************************************************************/
-  /* preinitialize an argument structure for the BEM matrix      */
-  /* block assembly routine                                      */
-  /***************************************************************/
-  ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
-  InitABMBArgs(Args);
-  Args->G         = SHD->G;
-  Args->Omega     = Omega;
-
   Log("Computing heat radiation/transfer at omega=%s...",z2s(Omega));
 
   /***************************************************************/
@@ -197,22 +188,16 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
   int ns, nsp, nb, nr, NS=G->NumSurfaces;
   for(ns=0; ns<G->NumSurfaces; ns++)
    { 
-     Args->Sa = Args->Sb = G->Surfaces[ns];
-
      Log(" Assembling self contributions to T(%i)...",ns);
      G->RegionMPs[0]->Zero();
-     Args->B = TSelf[ns];
-     Args->Symmetric=1;
-     AssembleBEMMatrixBlock(Args);
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, 0, TSelf[ns]);
      FillInLowerTriangle(TSelf[ns]);
      FlipSignOfMagneticColumns(TSelf[ns]);
      G->RegionMPs[0]->UnZero();
 
      Log(" Assembling medium contributions to T(%i)...",ns);
      G->RegionMPs[ns+1]->Zero();
-     Args->B = TMedium[ns];
-     Args->Symmetric=1;
-     AssembleBEMMatrixBlock(Args);
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, 0, TMedium[ns]);
      FillInLowerTriangle(TMedium[ns]);
      FlipSignOfMagneticColumns(TMedium[ns]);
      G->RegionMPs[ns+1]->UnZero();
@@ -258,16 +243,12 @@ void GetFrequencyIntegrand(SHData *SHD, cdouble Omega, double *FI)
      /* be recomputed for all transformations; this is what the 'if' */
      /* statement here is checking for.                              */
      /*--------------------------------------------------------------*/
-     Args->Symmetric=0;
      for(nb=0, ns=0; ns<NS; ns++)
       for(nsp=ns+1; nsp<NS; nsp++, nb++)
        if ( nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
         { 
           Log("  Assembling U(%i,%i)...",ns,nsp);
-          Args->Sa = G->Surfaces[ns];
-          Args->Sb = G->Surfaces[nsp];
-          Args->B  = UMedium[nb];
-          AssembleBEMMatrixBlock(Args);
+          G->AssembleBEMMatrixBlock(ns, nsp, Omega, 0, UMedium[nb]);
           FlipSignOfMagneticColumns(UMedium[nb]);
         };
 
