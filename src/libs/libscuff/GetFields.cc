@@ -421,6 +421,8 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
      FMatrix=new HMatrix(XMatrix->NR, NumFuncs, LHM_COMPLEX);
    };
 
+  Log("Computing fields at %i evaluation points...",XMatrix->NR);
+
   /***************************************************************/
   /* the incident fields will most likely have been updated at   */
   /* the current frequency already by an earlier call to         */

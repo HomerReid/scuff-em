@@ -118,6 +118,7 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   if (NQPoints==0)
    { for(int ncp=0; ncp<NCP; ncp++)
       { 
+printf("High howdage using cubature formula foryaf\n");
         x=SCR[3*ncp+0];
         y=SCR[3*ncp+1];
 
