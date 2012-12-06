@@ -141,15 +141,19 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
      double RMax[3], RMin[3], DeltaR[3];
      int NPoints[3];
      GetRegionExtents(nr, RMax, RMin, DeltaR, NPoints);
-     if (    GBarAB9Interpolators[nr]->X1Min !=  -DeltaR[0]
-          || GBarAB9Interpolators[nr]->X2Min !=  -DeltaR[1] 
+     if (    GBarAB9Interpolators[nr]==0
+          || GBarAB9Interpolators[nr]->X1Min !=  -DeltaR[0]
+          || GBarAB9Interpolators[nr]->X2Min !=  -DeltaR[1]
           || GBarAB9Interpolators[nr]->N1    !=  NPoints[0]
           || GBarAB9Interpolators[nr]->N2    !=  NPoints[1]
           || GBarAB9Interpolators[nr]->N3    != (1+NPoints[2]/2)
         )
       {
         Log("Region %s extents have changed (reallocating interpolation table)",RegionLabels[nr]);
-        delete GBarAB9Interpolators[nr];
+        if (GBarAB9Interpolators[nr])
+         { delete GBarAB9Interpolators[nr];
+           GBarAB9Interpolators[nr]=0;
+         };
         GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
                                                -DeltaR[1], DeltaR[1], NPoints[1],
                                                       0.0, DeltaR[2], 1 + NPoints[2]/2, 
@@ -426,6 +430,12 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->ColOffset    = ColOffset;
 
   GetSurfaceSurfaceInteractions(Args);
+
+  for(int nr=0; nr<NumRegions; nr++)
+   if (GBarAB9Interpolators[nr])
+    { delete GBarAB9Interpolators[nr];
+      GBarAB9Interpolators[nr]=0;
+    };
   
 }
 
