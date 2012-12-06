@@ -79,8 +79,9 @@ double SCR9[]={
 /*                                                                 */
 /* Return values: TRFlux[0,1] = transmitted, reflected flux        */
 /*******************************************************************/
-void GetTRFlux(RWGGeometry *G, HVector *KN, cdouble Omega, int NQPoints,
-               double *kBloch, double ZAbove, double ZBelow, double *TRFlux)
+void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega, 
+               int NQPoints, double *kBloch, 
+               double ZAbove, double ZBelow, double *TRFlux)
 {
   double *SCR=SCR9;
 
@@ -151,8 +152,8 @@ void GetTRFlux(RWGGeometry *G, HVector *KN, cdouble Omega, int NQPoints,
   /***************************************************************/ 
   /* get scattered fields at all cubature points                 */ 
   /***************************************************************/ 
-  G->GetFields(0, KN, Omega, kBloch, XMatrixAbove, FMatrixAbove);
-  G->GetFields(0, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
+  G->GetFields(IF, KN, Omega, kBloch, XMatrixAbove, FMatrixAbove);
+  G->GetFields(IF, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
 
   /***************************************************************/
   /* integrate poynting vector over upper and lower surfaces.    */
@@ -402,7 +403,7 @@ int main(int argc, char *argv[])
       PW.SetE0(E0);
       G->AssembleRHSVector(Omega, kBloch, &PW, KN);
       M->LUSolve(KN);
-      GetTRFlux(G, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPerp);
+      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPerp);
 
       // solve with E-field parallel to plane of incidence
       E0[0]=CosTheta;
@@ -411,7 +412,7 @@ int main(int argc, char *argv[])
       PW.SetE0(E0);
       G->AssembleRHSVector(Omega, kBloch, &PW, KN);
       M->LUSolve(KN);
-      GetTRFlux(G, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPar);
+      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPar);
    
       IncFlux = CosTheta/(2.0*ZVAC);
 

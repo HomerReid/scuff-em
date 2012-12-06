@@ -149,7 +149,7 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
           || GBarAB9Interpolators[nr]->N3    != (1+NPoints[2]/2)
         )
       {
-        Log("Region %s extents have changed (reallocating interpolation table)",RegionLabels[nr]);
+        Log("Region %s extents have changed (resizing interpolation table)",RegionLabels[nr]);
         if (GBarAB9Interpolators[nr])
          { delete GBarAB9Interpolators[nr];
            GBarAB9Interpolators[nr]=0;
@@ -431,12 +431,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
 
   GetSurfaceSurfaceInteractions(Args);
 
-  for(int nr=0; nr<NumRegions; nr++)
-   if (GBarAB9Interpolators[nr])
-    { delete GBarAB9Interpolators[nr];
-      GBarAB9Interpolators[nr]=0;
-    };
-  
 }
 
 /***************************************************************/
