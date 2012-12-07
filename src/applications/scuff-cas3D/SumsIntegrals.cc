@@ -32,6 +32,55 @@
 
 #define XIMIN 0.001
 
+/*****************************************************************/
+/* 3, 6, 10, 15-point monkhorst-pack grids for square-lattice BZ */
+/*****************************************************************/
+double MP3[]=
+ { 7.853982e-01, 7.853982e-01, 0.25,
+   7.853982e-01, 2.356194e+00, 0.5,
+   2.356194e-01, 2.356194e+00, 0.25
+ };
+
+double MP6[]=
+ { 5.235988e-01, 5.235988e-01, 0.111111111111,
+   5.235988e-01, 1.570796e-01, 0.222222222222,
+   5.235988e-01, 2.617994e-01, 0.222222222222,
+   1.570796e+00, 1.570796e+00, 0.111111111111,
+   1.570796e+00, 2.617994e+00, 0.222222222222,
+   2.617994e+00, 2.617994e+00, 0.111111111111
+ };
+
+double MP10[]=
+ { 3.926991e-01, 3.926991e-01, 0.0625,
+   3.926991e-01, 1.178097e+00, 0.1250, 
+   3.926991e-01, 1.963495e+00, 0.1250,
+   3.926991e-01, 2.748894e+00, 0.1250,
+   1.178097e+00, 1.178097e+00, 0.0625,
+   1.178097e+00, 1.963495e+00, 0.1250,
+   1.178097e+00, 2.748894e+00, 0.1250,
+   1.963495e+00, 1.963495e+00, 0.0625,
+   1.963495e+00, 2.748894e+00, 0.1250,
+   2.748894e+00, 2.748894e+00, 0.0625
+ };
+
+double MP15[]=
+ { 3.141593e-01, 3.141593e-01, 0.04,
+   3.141593e-01, 9.424778e-01, 0.08,
+   3.141593e-01, 1.570796e+00, 0.08,
+   3.141593e-01, 2.199115e+00, 0.08,
+   3.141593e-01, 2.827433e+00, 0.08,
+   9.424778e-01, 9.424778e-01, 0.04,
+   9.424778e-01, 1.570796e+00, 0.08,
+   9.424778e-01, 2.199115e+00, 0.08,
+   9.424778e-01, 2.827433e+00, 0.08,
+   1.570796e+00, 1.570796e+00, 0.04,
+   1.570796e+00, 2.199115e+00, 0.08,
+   1.570796e+00, 2.827433e+00, 0.08,
+   2.199115e+00, 2.199115e+00, 0.04,
+   2.199115e+00, 2.827433e+00, 0.08,
+   2.827433e+00, 2.827433e+00, 0.04
+ };
+
 /***************************************************************/
 /* CacheRead: attempt to bypass an entire GetXiIntegrand       */
 /* calculation by reading results from the .byXi file.         */
@@ -142,16 +191,10 @@ void GetCasimirIntegrand2(unsigned ndim, const double *x, void *params,
   SC3Data *SC3D = (SC3Data *)params;
   double *EFT = fval;
 
-  double *L[3];
   double kBloch[2];
 
-  if (    SC3D->G->NumLatticeBasisVectors!=2
-       || SC3D->G->LatticeBasisVectors[0][1]!=0.0
-       || SC3D->G->LatticeBasisVectors[1][0]!=0.0
-     ) ErrExit("only square lattices supported at present");
-
-  kBloch[0] = x[0]*(2.0*M_PI/SC3D->G->LatticeBasisVectors[0][0]);
-  kBloch[1] = x[1]*(2.0*M_PI/SC3D->G->LatticeBasisVectors[1][1]);
+  kBloch[0] = x[0]*SC3D->RLBasisVectors[0][0] + x[1]*SC3D->RLBasisVectors[1][0];
+  kBloch[1] = x[0]*SC3D->RLBasisVectors[0][1] + x[1]*SC3D->RLBasisVectors[1][1];
 
   GetCasimirIntegrand(SC3D, SC3D->Xi, kBloch, EFT);
 
@@ -179,10 +222,6 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
    { 
      GetCasimirIntegrand(SC3D, Xi, 0, EFT);
    }
-  else if ( (SC3D->BZIMethod == BZIMETHOD_MP7) || (SC3D->BZIMethod == BZIMETHOD_MP15) )
-   {
-    
-   }
   else if (SC3D->BZIMethod == BZIMETHOD_ADAPTIVE)
    {
      double Lower[2] = {0.0, 0.0};
@@ -196,6 +235,41 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
                      SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol, EFT, Error);
 
      delete[] Error;
+   }
+  else // use monkhorst-pack scheme
+   { 
+     RWGGeometry *G = SC3D->G;
+     if (    G->NumLatticeBasisVectors!=2 
+          || G->LatticeBasisVectors[0][1]!=0.0 
+          || G->LatticeBasisVectors[1][0]!=0.0
+        )
+      ErrExit("Monkhorst-Pack scheme only implemented for square lattices");
+
+     double *MP;
+     int NumPoints;
+     switch (SC3D->BZIMethod)
+      { case BZIMETHOD_MP3:  MP=MP3;  NumPoints=3;  break;
+        case BZIMETHOD_MP6:  MP=MP6;  NumPoints=6;  break;
+        case BZIMETHOD_MP10: MP=MP10; NumPoints=10; break;
+        case BZIMETHOD_MP15: MP=MP15; NumPoints=15; break;
+      };
+
+     int NTNQ=SC3D->NTNQ;
+     double kBloch[2], Weight;
+     double *dEFT = new double[NTNQ];
+     memset(EFT,0,NTNQ*sizeof(double));
+     for(int np=0; np<NumPoints; np++)
+      { 
+        kBloch[0] = MP[ 3*np + 0 ] / G->LatticeBasisVectors[0][0];
+        kBloch[1] = MP[ 3*np + 1 ] / G->LatticeBasisVectors[1][1];
+        Weight    = MP[ 3*np + 2 ];
+
+        GetCasimirIntegrand(SC3D, Xi, kBloch, dEFT);
+        for(int ntnq=0; ntnq<NTNQ; ntnq++)
+         EFT[ntnq] += Weight*dEFT[ntnq];
+      };
+    
+     delete[] dEFT;
    };
 
   /***************************************************************/
@@ -207,7 +281,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
       fprintf(f,"%.8e ",EFT[ntnq]);
      fprintf(f,"\n");
-   };
+
+  };
   fclose(f);
 
 }

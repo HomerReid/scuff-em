@@ -295,6 +295,8 @@ class RWGSurface
 
    void AddStraddlers(double LBV[MAXLATTICE][3], int NumLatticeVectors, 
                       int NumStraddlers[MAXLATTICE]);
+
+   void UpdateBoundingBox();
  
  };
 

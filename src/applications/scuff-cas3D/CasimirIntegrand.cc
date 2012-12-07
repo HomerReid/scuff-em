@@ -366,4 +366,13 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
    }; // for(ntnq=nt=0; nt<SC3D->NumTransformations; nt++)
   if (ByXikBlochFile)
    fclose(ByXikBlochFile);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (SC3D->WriteCache)
+   { StoreCache(SC3D->WriteCache); 
+     SC3D->WriteCache=0;
+   };
+
 }

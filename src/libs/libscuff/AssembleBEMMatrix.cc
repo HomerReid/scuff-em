@@ -85,21 +85,6 @@ void StampInNeighborBlock(HMatrix *B, int NR, int NC,
 /***************************************************************/
 void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
 {
-  /*--------------------------------------------------------------*/
-  /*- check to see if the region interpolators are already        */
-  /*- initialized for the given (Omega,kBloch) value              */
-  /*- note: instead of static variables within this method, we    */
-  /*-       should really use class variables for these FIXME     */
-  /*--------------------------------------------------------------*/
-  static cdouble LastOmega;
-  static double LastkBloch[2];
-
-  if ( LastOmega==Omega && kBloch[0]==LastkBloch[0] && kBloch[1]==LastkBloch[1] )
-   return;
-  LastOmega=Omega;
-  LastkBloch[0]=kBloch[0];
-  LastkBloch[1]=kBloch[1];
-
   UpdateCachedEpsMuValues(Omega);
 
   /*--------------------------------------------------------------*/

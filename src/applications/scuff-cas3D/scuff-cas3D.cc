@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   RWGGeometry *G = new RWGGeometry(GeoFile);
-  G->SetLogLevel(SCUFF_VERBOSELOGGING);
+  G->SetLogLevel(SCUFF_TERSELOGGING);
 
   /***************************************************************/
   /* process frequency- and kBloch-related options               */
@@ -307,9 +307,17 @@ int main(int argc, char *argv[])
   int BZIMethod=BZIMETHOD_DEFAULT;
   if ( BZIString )
    { if (G->NumLatticeBasisVectors==0) ErrExit("--BZIMethod option may only be used for periodic geometries");
-     if ( !strcasecmp(BZIString,"MP7") )
-      { Log("Using 7-point monkhorst-pack scheme for Brillouin zone integration.");
-        BZIMethod=BZIMETHOD_MP7;
+     if ( !strcasecmp(BZIString,"MP3") )
+      { Log("Using 3-point monkhorst-pack scheme for Brillouin zone integration.");
+        BZIMethod=BZIMETHOD_MP3;
+      }
+     else if ( !strcasecmp(BZIString,"MP6") )
+      { Log("Using 6-point monkhorst-pack scheme for Brillouin zone integration.");
+        BZIMethod=BZIMETHOD_MP6;
+      }
+     else if ( !strcasecmp(BZIString,"MP10") )
+      { Log("Using 10-point monkhorst-pack scheme for Brillouin zone integration.");
+        BZIMethod=BZIMETHOD_MP10;
       }
      else if ( !strcasecmp(BZIString,"MP15") )
       { Log("Using 15-point monkhorst-pack scheme for Brillouin zone integration.");

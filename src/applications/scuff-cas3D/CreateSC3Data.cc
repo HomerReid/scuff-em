@@ -69,6 +69,25 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->Converged = (int *)mallocEC( (SC3D->NTNQ) * sizeof(int) );
 
   /*--------------------------------------------------------------*/
+  /*- compute a basis for the reciprocal lattice -----------------*/
+  /*--------------------------------------------------------------*/
+  if (G->NumLatticeBasisVectors==1)
+   ErrExit("1D lattice periodicity not yet supported");
+  if (G->NumLatticeBasisVectors==2)
+   { 
+     double *L1 = G->LatticeBasisVectors[0];
+     double *L2 = G->LatticeBasisVectors[1];
+
+     double PreFac = 2.0*M_PI / fabs( L1[0]*L2[1] - L1[1]*L2[0]);
+
+     SC3D->RLBasisVectors[0][0] = PreFac*L2[1];
+     SC3D->RLBasisVectors[0][1] = -PreFac*L2[0];
+
+     SC3D->RLBasisVectors[1][0] = -PreFac*L1[1];
+     SC3D->RLBasisVectors[1][1] = PreFac*L1[0];
+   };
+
+  /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse  */
   /*- chunks of the BEM matrices for multiple geometrical         */
   /*- transformations.                                            */
