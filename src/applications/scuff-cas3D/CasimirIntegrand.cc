@@ -56,6 +56,11 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
   double LNDet=0.0;
   for(int n=0; n<N; n++)
    LNDet+=log( fabs( MInfLUDiagonal->GetEntryD(n) / M->GetEntryD(n,n) ) );
+  
+  // paraphrasing the physicists of the 1930s, 'just because
+  // something is infinite doesn't mean that it's zero.' and yet...
+  if (!isfinite(LNDet))
+   LNDet=0.0;
 
   return -LNDet/(2.0*M_PI);
 
@@ -106,6 +111,11 @@ double GetTraceMInvdM(SC3Data *SC3D, char XYZT)
   for(int n=0; n<dM->NC; n++)
    Trace+=dM->GetEntryD(n,n);
   Trace*=2.0;
+
+  // paraphrasing the physicists of the 1930s, 'just because
+  // something is infinite doesn't mean that it's zero.' and yet...
+  if (!isfinite(Trace))
+   Trace=0.0;
 
   return -Trace/(2.0*M_PI);
 } 
