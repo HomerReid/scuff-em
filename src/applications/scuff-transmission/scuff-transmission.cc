@@ -118,7 +118,6 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   if (NQPoints==0)
    { for(int ncp=0; ncp<NCP; ncp++)
       { 
-printf("High howdage using cubature formula foryaf\n");
         x=SCR[3*ncp+0];
         y=SCR[3*ncp+1];
 
@@ -197,6 +196,21 @@ printf("High howdage using cubature formula foryaf\n");
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetScatteringAmplitudes(HVector *RHS, HVector *KN, double SA[2])
+{
+  cdouble Dot, CDot;
+  for(int n=0; n<RHS->N; n++)
+   {  Dot += RHS->GetEntry(n) * KN->GetEntry(n);
+     CDot += conj(RHS->GetEntry(n)) * KN->GetEntry(n);
+   };
+  SA[0] = abs(Dot*Dot);
+  SA[1] = abs(CDot*CDot);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int main(int argc, char *argv[])
 {
   EnableAllCPUs();
@@ -255,8 +269,9 @@ int main(int argc, char *argv[])
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   if (G->NumLatticeBasisVectors!=2)
    ErrExit("%s: geometry must have two-dimensional lattice periodicity",GeoFileName);
-  HMatrix *M  = G->AllocateBEMMatrix();
-  HVector *KN = G->AllocateRHSVector();
+  HMatrix *M   = G->AllocateBEMMatrix();
+  HVector *RHS = G->AllocateRHSVector();
+  HVector *KN  = G->AllocateRHSVector();
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */
@@ -370,6 +385,7 @@ int main(int argc, char *argv[])
   double SinTheta, CosTheta;
   cdouble Omega;
   double TRFluxPerp[2], TRFluxPar[2], IncFlux;
+  double SAPerp[2], SAPar[2];
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
     { 
@@ -402,24 +418,30 @@ int main(int argc, char *argv[])
       E0[1]=1.0;
       E0[2]=0.0;
       PW.SetE0(E0);
-      G->AssembleRHSVector(Omega, kBloch, &PW, KN);
+      G->AssembleRHSVector(Omega, kBloch, &PW, RHS);
+      KN->Copy(RHS);
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPerp);
+      GetScatteringAmplitudes(RHS, KN, SAPerp);
 
       // solve with E-field parallel to plane of incidence
       E0[0]=CosTheta;
       E0[1]=0.0;
       E0[2]=-SinTheta;
       PW.SetE0(E0);
-      G->AssembleRHSVector(Omega, kBloch, &PW, KN);
+      G->AssembleRHSVector(Omega, kBloch, &PW, RHS);
+      KN->Copy(RHS);
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPar);
+      GetScatteringAmplitudes(RHS, KN, SAPar);
    
       IncFlux = CosTheta/(2.0*ZVAC);
 
-      fprintf(f,"%s %e %e %e %e %e\n",z2s(Omega),Theta*RAD2DEG,
+      fprintf(f,"%s %e %e %e %e %e %e %e %e %e\n",
+                            z2s(Omega), Theta*RAD2DEG,
                  TRFluxPerp[0]/IncFlux, TRFluxPerp[1]/IncFlux,
-                  TRFluxPar[0]/IncFlux,  TRFluxPar[1]/IncFlux);
+                  TRFluxPar[0]/IncFlux,  TRFluxPar[1]/IncFlux,
+                  SAPerp[0], SAPerp[1], SAPar[0], SAPar[1]);
       fflush(f);
 
    }; 
