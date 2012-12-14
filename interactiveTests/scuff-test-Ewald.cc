@@ -73,10 +73,56 @@ void AddGBFContribution(double R[3], cdouble k, double kBloch[2],
 }
 
 /***************************************************************/
+/* this is like the AddGBFContribution() routine in            */
+/* GBarVDEwald, but with a flag to turn off derivatives        */
+/***************************************************************/
+#define II cdouble(0.0,1.0)
+void AddGBFContribution2(double R[3], cdouble k, double kBloch[2],
+                         double Lx, double Ly, bool SkipDerivatives, 
+                         cdouble *Sum)
+{ 
+
+  double RpL[3];
+  double r2, r;
+  cdouble PhaseFactor, IKR, Phi, Psi, Zeta, Upsilon;
+   
+  PhaseFactor=exp( II*(Lx*kBloch[0] + Ly*kBloch[1]) );
+
+  RpL[0]=R[0] + Lx;
+  RpL[1]=R[1] + Ly;
+  RpL[2]=R[2];
+
+  r2=RpL[0]*RpL[0] + RpL[1]*RpL[1] + RpL[2]*RpL[2];
+  r=sqrt(r2);
+  if ( r < 1.0e-8 )
+   return;
+  IKR=II*k*r;
+  Phi=exp(IKR)/(4.0*M_PI*r);
+  Sum[0] += PhaseFactor * Phi;
+
+  if (SkipDerivatives) return;
+
+  Psi=(IKR-1.0)*Phi/r2;
+  Zeta=(3.0 + IKR*(-3.0 + IKR))*Phi/(r2*r2);
+  Upsilon=(-15.0 + IKR*(15.0 + IKR*(-6.0 + IKR)))*Phi/(r2*r2*r2);
+
+  Sum[1] += PhaseFactor * RpL[0] * Psi;
+  Sum[2] += PhaseFactor * RpL[1] * Psi;
+  Sum[3] += PhaseFactor * RpL[2] * Psi;
+  Sum[4] += PhaseFactor * RpL[0] * RpL[1] * Zeta;
+  Sum[5] += PhaseFactor * RpL[0] * RpL[2] * Zeta;
+  Sum[6] += PhaseFactor * RpL[1] * RpL[2] * Zeta;
+  Sum[7] += PhaseFactor * RpL[0] * RpL[1] * RpL[2] * Upsilon;
+ 
+}
+
+
+/***************************************************************/
 /* compute \sum_L e^{iK\dot L} G(r+L)                          */
 /* where G(r)=exp(i*Beta*|r|) / (4*pi*|r|)                     */
 /***************************************************************/
 void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
+                bool SkipDerivatives,
                 double AbsTol, double RelTol, int *pnCells, cdouble *Sum)
 { 
   int nx, ny;
@@ -88,6 +134,8 @@ void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
   int nCells=0;
   double *L1=LBV[0]; 
   double *L2=LBV[1];
+
+  int NSum=(SkipDerivatives ? 1 : NSUM);
 
   /***************************************************************/
   /***************************************************************/
@@ -101,16 +149,17 @@ void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
        continue; // skip the innermost 9 grid cells 
 #endif
 
-      AddGBFContribution(R, k, kBloch,
-                         nx*L1[0] + ny*L2[0],
-                         nx*L1[1] + ny*L2[1],
-                         Sum);
+      AddGBFContribution2(R, k, kBloch,
+                          nx*L1[0] + ny*L2[0],
+                          nx*L1[1] + ny*L2[1],
+                          SkipDerivatives,
+                          Sum);
     };
         
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  memcpy(LastSum,Sum,NSUM*sizeof(cdouble));
+  memcpy(LastSum,Sum,NSum*sizeof(cdouble));
   ConvergedIters=0;
   for(NN=NFIRSTROUND+1; ConvergedIters<3 && NN<=NMAX; NN++)
    {  
@@ -120,9 +169,10 @@ void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
          if ( (abs(nx)<NN) && (abs(ny)<NN) )
           continue;
 
-         AddGBFContribution(R, k, kBloch,
-                            nx*L1[0] + ny*L2[0],
-                            nx*L1[1] + ny*L2[1], Sum);
+         AddGBFContribution2(R, k, kBloch,
+                             nx*L1[0] + ny*L2[0],
+                             nx*L1[1] + ny*L2[1],
+                             SkipDerivatives, Sum);
 
          nCells++;
         };
@@ -131,7 +181,7 @@ void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
      /* convergence analysis ----------------------------------------*/
      /*--------------------------------------------------------------*/
      MaxAbsDelta=MaxRelDelta=0.0;
-     for(i=0; i<NSUM; i++)
+     for(i=0; i < NSum; i++ )
       { Delta=abs(Sum[i]-LastSum[i]);
         if ( Delta>MaxAbsDelta )
          MaxAbsDelta=Delta;
@@ -227,7 +277,9 @@ int main(int argc, char *argv[])
   double E;
   int RealSumTerms, RecipSumTerms, BFSumTerms;
   double RealSumTime, RecipSumTime, BFSumTime;
-  int SkipBF;
+  bool SkipBF;
+  bool SkipDerivatives;
+  double AbsTol, RelTol;
   int NumTimes=100;
   for(;;)
    { 
@@ -242,6 +294,7 @@ int main(int argc, char *argv[])
      printf("          --kBloch xx xx \n");
      printf("          --E      xx\n");
      printf("          --SkipBF\n");
+     printf("          --BFDerivatives\n");
      printf("          --quit\n");
      p=readline("enter options: ");
      if (!p) break;
@@ -257,7 +310,10 @@ int main(int argc, char *argv[])
      k = 1.0;
      kBloch[0] = kBloch[1] = 0.0;
      E = -1.0;
-     SkipBF=0;
+     SkipBF=false;
+     SkipDerivatives=true;
+     AbsTol=0.0;
+     RelTol=1.0e-1;
 
      /*--------------------------------------------------------------*/
      /* parse input string                                          -*/
@@ -285,7 +341,16 @@ int main(int argc, char *argv[])
        sscanf(Tokens[nt+1],"%le",&E);
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--SkipBF") )
-       SkipBF=1;
+       SkipBF=true;
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--BFDerivatives") )
+       SkipDerivatives=false;
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--AbsTol") )
+       sscanf(Tokens[nt+1],"%le",&AbsTol);
+     for(nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--RelTol") )
+       sscanf(Tokens[nt+1],"%le",&RelTol);
      for(nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--quit") )
        exit(1);
@@ -296,13 +361,33 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      if (E==-1.0)
-      E=sqrt( M_PI / (LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0]) );
+      { double EOpt1=sqrt( M_PI / (LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0]) );
+
+        if ( !(LBV[0][1]==0.0 && LBV[1][0]==0.0) )
+         ErrExit("non-square lattices not yet supported");
+        double Gamma1[2], Gamma2[2];
+        Gamma1[0] = 2.0*M_PI / LBV[0][0];
+        Gamma1[1] = 0.0;
+        Gamma2[0] = 0.0;
+        Gamma2[1] = 2.0*M_PI / LBV[1][1];
+        double G12 = Gamma1[0]*Gamma1[0] + Gamma1[1]*Gamma1[1];
+        double G22 = Gamma2[0]*Gamma2[0] + Gamma2[1]*Gamma2[1];
+        double EOpt2 = sqrt( norm(k) + G12 + G22 ) / 5.0; // H=10
+
+printf("k=%s, norm(k)=%e\n",z2s(k),norm(k));
+printf("EOpt2=%e\n",EOpt2);
+
+        E=fmax(EOpt1, EOpt2);
+        printf("E=%e\n",E);
+      };
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     printf("--x %g --y %g --z %g --k %s --kBloch %e %e --E %e \n",
+     printf("\n** Your options:\n\n");
+     printf("--x %g --y %g --z %g --k %s --kBloch %g %g --E %g \n",
               R[0],R[1],R[2],z2s(k),kBloch[0],kBloch[1],E);
+     printf("\n");
 
      /*--------------------------------------------------------------*/
      /*- do the computation using the ewald summation method         */
@@ -329,23 +414,25 @@ int main(int argc, char *argv[])
      for(int n=0; n<8; n++)
       GHR[n] = G1[n] + G2[n] - GF9[n];
 
-     printf("Reciprocal space sum: %10i terms (%.1f us, %.1f ns/term)\n",
+     printf("Reciprocal space sum: %10i terms (%10f us, %.1f ns/term)\n",
              RecipSumTerms,RecipSumTime*1e6,RecipSumTime*1e9/RecipSumTerms);
-     printf("Real space sum:       %10i terms (%.1f us, %.1f ns/term)\n",
+     printf("Real space sum:       %10i terms (%10f us, %.1f ns/term)\n",
              RealSumTerms,RealSumTime*1e6,RealSumTime*1e9/RealSumTerms);
 
      /*--------------------------------------------------------------*/
      /*- do the computation using the brute-force method ------------*/
      /*--------------------------------------------------------------*/
      cdouble GBF[8];
-     if (SkipBF==0)
+     if (SkipBF)
+      GBF[0]=0.0;
+     else
       { 
         Tic();
-        ComputeGBF(k, kBloch, LBVP, R, 1.0e-2, 1.0e-2, &BFSumTerms, GBF);
+        ComputeGBF(k, kBloch, LBVP, R, SkipDerivatives, AbsTol, RelTol, &BFSumTerms, GBF);
         BFSumTime=Toc();
-      }
-     else
-      GBF[0]=0.0;
+      };
+     printf("BF   space sum:       %10i terms (%10f us, %.1f ns/term)\n",
+             BFSumTerms,BFSumTime*1e6,BFSumTime*1e9/BFSumTerms);
 
      /*--------------------------------------------------------------*/
      /*- print results ----------------------------------------------*/

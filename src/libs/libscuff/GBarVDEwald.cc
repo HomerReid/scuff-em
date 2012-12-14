@@ -530,7 +530,22 @@ void GBarVDEwald(double *R, cdouble k,
   /* E is the separation parameter, which we set to its  */
   /* optimal value if the user didn't specify it already */
   if (E==-1.0)
-   E=sqrt( M_PI / (LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0]) );
+   { double EOpt1=sqrt( M_PI / (LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0]) );
+
+     if ( !(LBV[0][1]==0.0 && LBV[1][0]==0.0) )
+      ErrExit("non-square lattices not yet supported");
+     double Gamma1[2], Gamma2[2];
+     Gamma1[0] = 2.0*M_PI / LBV[0][0];
+     Gamma1[1] = 0.0;
+     Gamma2[0] = 0.0;
+     Gamma2[1] = 2.0*M_PI / LBV[1][1];
+     double G12 = Gamma1[0]*Gamma1[0] + Gamma1[1]*Gamma1[1];
+     double G22 = Gamma2[0]*Gamma2[0] + Gamma2[1]*Gamma2[1];
+     double EOpt2 = sqrt( norm(k) + G12 + G22 ) / 10.0; // H=10
+
+     E=fmax(EOpt1, EOpt2);
+//printf("E=%e\n",E);
+   };
 
   /***************************************************************/
   /* detect evaluation points at the origin or lattice-equivalent*/
