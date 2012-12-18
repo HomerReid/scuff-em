@@ -136,6 +136,10 @@ AC_CHECK_HEADERS([execinfo.h])
 AC_CHECK_FUNCS([backtrace])
 
 ##################################################
+# Checks for miscellaneous math functions
+AC_CHECK_FUNCS([isnan isinf erf erfc copysign])
+
+##################################################
 # Python SWIG wrappers
 ##################################################
 

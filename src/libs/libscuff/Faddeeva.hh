@@ -20,9 +20,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
  */
 
-/* Available at: http://ab-initio.mit.edu/Faddeeva_w
+/* Available at: http://ab-initio.mit.edu/Faddeeva
 
-   Header file for Faddeeva_w.cc; see that file for more information. */
+   Header file for Faddeeva.cc; see that file for more information. */
 
 #ifndef FADDEEVA_HH
 #define FADDEEVA_HH 1
