@@ -56,7 +56,7 @@ static cdouble erfc_s(cdouble a, cdouble b) {
     return 2.0*exp(a) - exp(a + mb2) * Faddeeva::erfcx(-b);
 }
 
-static bool cisnan(cdouble z) { return isnan(real(z)) || isnan(imag(z)); }
+static bool cisnan(cdouble z) { return ISNAN(real(z)) || ISNAN(imag(z)); }
 
 /***************************************************************/
 /* 'EEF' = 'exp*erfc factor'  **********************************/
@@ -122,7 +122,8 @@ void AddG1Contribution(double *R, cdouble k, double *P,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ComputeG1(double *R, cdouble k, double *P, double **LBV,
+void ComputeG1(double *R, cdouble k,
+               double *kBloch, double **LBV,
                double E, int *pnCells, cdouble *Sum)
 { 
   int n1, n2;
@@ -139,6 +140,7 @@ void ComputeG1(double *R, cdouble k, double *P, double **LBV,
   /*--------------------------------------------------------------*/  
   if ( !(LBV[0][1]==0.0 && LBV[1][0]==0.0) )
    ErrExit("non-square lattices not yet supported");
+
   Gamma1[0] = 2.0*M_PI / LBV[0][0];
   Gamma1[1] = 0.0;
   Gamma2[0] = 0.0;
@@ -155,13 +157,14 @@ void ComputeG1(double *R, cdouble k, double *P, double **LBV,
   /***************************************************************/
   for (n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
    for (n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
-    AddG1Contribution(R, k, P,
+    AddG1Contribution(R, k, kBloch,
                       n1*Gamma1[0] + n2*Gamma2[0],
                       n1*Gamma1[1] + n2*Gamma2[1],
                       E, Sum);
          
   /***************************************************************/
-  /***************************************************************/
+  /* each iteration of this loop sums the contributions of the   */
+  /* outer perimeter of an NNxNN square of grid cells.           */
   /***************************************************************/
   memcpy(LastSum,Sum,NSUM*sizeof(cdouble));
   ConvergedIters=0;
@@ -169,18 +172,15 @@ void ComputeG1(double *R, cdouble k, double *P, double **LBV,
    {  
      for(n1=-NN; n1<=NN; n1++)
       for(n2=-NN; n2<=NN; n2++)
-        { 
-          if ( (abs(n1)<NN) && (abs(n2)<NN) )
-           continue;
-
-          AddG1Contribution(R, k, P,
-                            n1*Gamma1[0] + n2*Gamma2[0],
-                            n1*Gamma1[1] + n2*Gamma2[1], 
-                            E, Sum);
-
-          nCells++;
-
-        };
+       { 
+         if ( (abs(n1)<NN) && (abs(n2)<NN) )
+          continue;
+         nCells++;
+         AddG1Contribution(R, k, kBloch,
+                           n1*Gamma1[0] + n2*Gamma2[0],
+                           n1*Gamma1[1] + n2*Gamma2[1], 
+                           E, Sum);
+       };
 
      /*--------------------------------------------------------------*/
      /* convergence analysis ----------------------------------------*/
@@ -221,7 +221,7 @@ void ComputeG1(double *R, cdouble k, double *P, double **LBV,
 /*                                                             */
 /* note: the summand is:                                       */
 /*                                                             */
-/*  exp(i P\dot L) * g_1 *( g_{2+} g_{3+} + g_{2-}g_{3-})      */  
+/*  exp(i kBloch\dot L) * g_1 *( g_{2+} g_{3+} + g_{2-}g_{3-}) */  
 /*                                                             */
 /* where:                                                      */
 /*  g_1       = 1/(8*pi*|R|)                                   */
@@ -244,7 +244,7 @@ void ComputeG1(double *R, cdouble k, double *P, double **LBV,
 /* where g4 = (-4E/sqrt(pi)) * exp( -E^2R^2 + k^2/(4E^2).      */
 /*                                                             */
 /***************************************************************/
-void AddG2Contribution(double *R, cdouble k, double *P,
+void AddG2Contribution(double *R, cdouble k, double *kBloch,
                        double Lx, double Ly, double E, cdouble *Sum)
 { 
   cdouble PhaseFactor; 
@@ -254,7 +254,7 @@ void AddG2Contribution(double *R, cdouble k, double *P,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  PhaseFactor=exp( II * (P[0]*Lx + P[1]*Ly) ) / (8.0*M_PI);
+  PhaseFactor=exp( II * (kBloch[0]*Lx + kBloch[1]*Ly) ) / (8.0*M_PI);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -327,7 +327,8 @@ void AddG2Contribution(double *R, cdouble k, double *P,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ComputeG2(double *R, cdouble k, double *P, double **LBV,
+void ComputeG2(double *R, cdouble k, 
+               double *kBloch, double **LBV,
                double E, int *pnCells, cdouble *Sum)
 { 
   int n1, n2;
@@ -348,7 +349,7 @@ void ComputeG2(double *R, cdouble k, double *P, double **LBV,
   /***************************************************************/
   for (n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
    for (n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
-    AddG2Contribution(R, k, P,
+    AddG2Contribution(R, k, kBloch,
                       n1*LBV[0][0] + n2*LBV[1][0],
                       n1*LBV[0][1] + n2*LBV[1][1],
                       E, Sum);
@@ -362,16 +363,15 @@ void ComputeG2(double *R, cdouble k, double *P, double **LBV,
    {  
      for(n1=-NN; n1<=NN; n1++)
       for(n2=-NN; n2<=NN; n2++)
-        { 
-          if ( (abs(n1)<NN) && (abs(n2)<NN) )
-           continue;
-
-          AddG2Contribution(R, k, P,
-                            n1*LBV[0][0] + n2*LBV[1][0],
-                            n1*LBV[0][1] + n2*LBV[1][1], 
-                            E, Sum);
-          nCells++;
-        };
+       { 
+         if ( (abs(n1)<NN) && (abs(n2)<NN) )
+          continue;
+         nCells++;
+         AddG2Contribution(R, k, kBloch,
+                           n1*LBV[0][0] + n2*LBV[1][0],
+                           n1*LBV[0][1] + n2*LBV[1][1], 
+                           E, Sum);
+       };
 
      /*--------------------------------------------------------------*/
      /* convergence analysis ----------------------------------------*/
@@ -402,7 +402,7 @@ void ComputeG2(double *R, cdouble k, double *P, double **LBV,
 /* get the contributions of a single real-space lattice cell to*/
 /* the full periodic green's function (no ewald decomposition) */
 /***************************************************************/
-void AddGBFContribution(double R[3], cdouble k, double P[2],
+void AddGBFContribution(double R[3], cdouble k, double kBloch[2],
                         double Lx, double Ly, cdouble *Sum)
 { 
 
@@ -410,7 +410,7 @@ void AddGBFContribution(double R[3], cdouble k, double P[2],
   double r2, r;
   cdouble PhaseFactor, IKR, Phi, Psi, Zeta, Upsilon;
    
-  PhaseFactor=exp( II*(Lx*P[0] + Ly*P[1]) );
+  PhaseFactor=exp( II*(Lx*kBloch[0] + Ly*kBloch[1]) );
 
   RpL[0]=R[0] + Lx;
   RpL[1]=R[1] + Ly;
@@ -440,16 +440,36 @@ void AddGBFContribution(double R[3], cdouble k, double P[2],
 /***************************************************************/
 /* sum the contributions to the innermost 9 real-space cells   */
 /***************************************************************/
-void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2], cdouble *Sum)
+void ComputeGBFFirst9(double *R, cdouble k, 
+                      int LDim, double *kBloch, double *LBV[2], 
+                      cdouble *Sum)
 { 
   memset(Sum,0,NSUM*sizeof(cdouble));
-  for (int n1=-1; n1<=1; n1++)
-   for (int n2=-1; n2<=1; n2++)
-    AddGBFContribution(R, k, P,
-                       n1*LBV[0][0] + n2*LBV[1][0],
-                       n1*LBV[0][1] + n2*LBV[1][1],
-                       Sum);
+  if (LDim==2)
+   { for (int n1=-1; n1<=1; n1++)
+      for (int n2=-1; n2<=1; n2++)
+       AddGBFContribution(R, k, kBloch,
+                          n1*LBV[0][0] + n2*LBV[1][0],
+                          n1*LBV[0][1] + n2*LBV[1][1],
+                          Sum);
+   }
+  else
+   { for (int n1=-1; n1<=1; n1++)
+      AddGBFContribution(R, k, kBloch, n1*LBV[0][0], n1*LBV[0][1], Sum);
+   };
 }
+
+/***************************************************************/
+/* evaluation of 1D periodic green's function                  */
+/***************************************************************/
+#if 0
+void GBarVD1D(double *R, cdouble k, double *kBloch, double *LBV,
+              double E, int ExcludeFirst9, cdouble *GBarVD)
+{
+  ErrExit("structures with 1D periodicity not yet implemented");
+}
+#endif
+
 
 /***************************************************************/
 /* 'GBar values and derivatives,' computed via Ewald's method  */
@@ -458,9 +478,15 @@ void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2], cdouble *
 /*                                                             */
 /*  R = 3D coordinate vector                                   */
 /*  k = photon wavenumber                                      */
-/*  P = 2D Bloch wavevector                                    */
+/*  LDim = lattice periodicity dimension                       */
+/*        (LDim=1 or 2 for 1D or 2D periodicity)               */
+/*                                                             */
+/*  kBloch[0,1]  = x,y components of bloch wavevector          */
 /*  LBV[0][0..1] = x,y coordinates of lattice basis vector 1   */
 /*  LBV[1][0..1] = x,y coordinates of lattice basis vector 2   */
+/*                                                             */
+/*  (Note kBloch[1] and LBV[1] are only referenced if LDim==2) */
+/*                                                             */
 /*  E = ewald separation parameter (set to -1.0 for automatic) */
 /*                                                             */
 /* outputs:                                                    */
@@ -475,12 +501,10 @@ void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2], cdouble *
 /*  GBarVD[7] = d^3GBar/dXdYdZ                                 */
 /*                                                             */
 /***************************************************************/
-void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
+void GBarVDEwald(double *R, cdouble k,
+                 int LDim, double *kBloch, double *LBV[2],
                  double E, int ExcludeFirst9, cdouble *GBarVD)
 { 
-  if ( (LBV[0][1]!=0.0) || (LBV[1][0]!=0.0) )
-   ErrExit("non-square lattices not yet supported");
-
   /*--------------------------------------------------------------*/
   /* the periodic green's function is well-defined at k==0, but   */
   /* in that case the method of this file doesn't work; moreover, */
@@ -494,10 +518,34 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
       return;
     };
 
+  if (LDim==1)
+   { //GBarVD1D(R, k, kBloch, LBV[0], E, ExcludeFirst9, GBarVD);
+     ErrExit("structures with 1D periodicity not yet implemented");
+     return;
+   };
+
+  if ( (LBV[0][1]!=0.0) || (LBV[1][0]!=0.0) ) 
+   ErrExit("non-square lattices not yet supported");
+
   /* E is the separation parameter, which we set to its  */
   /* optimal value if the user didn't specify it already */
   if (E==-1.0)
-   E=sqrt( M_PI / (LBV[0][0]*LBV[1][1]) );
+   { double EOpt1=sqrt( M_PI / (LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0]) );
+
+     if ( !(LBV[0][1]==0.0 && LBV[1][0]==0.0) )
+      ErrExit("non-square lattices not yet supported");
+     double Gamma1[2], Gamma2[2];
+     Gamma1[0] = 2.0*M_PI / LBV[0][0];
+     Gamma1[1] = 0.0;
+     Gamma2[0] = 0.0;
+     Gamma2[1] = 2.0*M_PI / LBV[1][1];
+     double G12 = Gamma1[0]*Gamma1[0] + Gamma1[1]*Gamma1[1];
+     double G22 = Gamma2[0]*Gamma2[0] + Gamma2[1]*Gamma2[1];
+     double EOpt2 = sqrt( norm(k) + G12 + G22 ) / 10.0; // H=10
+
+     E=fmax(EOpt1, EOpt2);
+//printf("E=%e\n",E);
+   };
 
   /***************************************************************/
   /* detect evaluation points at the origin or lattice-equivalent*/
@@ -542,11 +590,11 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
   /***************************************************************/
   cdouble G1[NSUM], G2[NSUM], GBFFirst9[NSUM];
 
-  ComputeG1(MyR, k, P, LBV, E, 0, G1);
-  ComputeG2(MyR, k, P, LBV, E, 0, G2);
+  ComputeG1(MyR, k, kBloch, LBV, E, 0, G1);
+  ComputeG2(MyR, k, kBloch, LBV, E, 0, G2);
 
   if (ExcludeFirst9)
-   ComputeGBFFirst9(MyR, k, P, LBV, GBFFirst9);
+   ComputeGBFFirst9(MyR, k, 2, kBloch, LBV, GBFFirst9);
   else
    memset(GBFFirst9,0,NSUM*sizeof(cdouble));
 
@@ -577,7 +625,7 @@ void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
   R[2]=X3;
 
   cdouble GBarVD[8];
-  GBarVDEwald(R, GBD->k, GBD->kBloch, GBD->LBV, GBD->E, 
+  GBarVDEwald(R, GBD->k, GBD->LDim, GBD->kBloch, GBD->LBV, GBD->E, 
               GBD->ExcludeInner9, GBarVD);
  
   PhiVD[ 0] = real(GBarVD[0]);

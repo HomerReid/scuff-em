@@ -74,6 +74,10 @@ int main(int argc, char *argv[])
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   HMatrix *M = G->AllocateBEMMatrix();
   double Elapsed;
+<<<<<<< HEAD
+=======
+  double AvgMag;
+>>>>>>> PBCV2P0
   double kBloch[2];
 
   /*--------------------------------------------------------------*/
@@ -125,11 +129,26 @@ int main(int argc, char *argv[])
      Elapsed=Toc();
      printf("...done in %.0f s.\n",Elapsed);
 
+<<<<<<< HEAD
+=======
+     AvgMag = 0.0;
+     for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NC; nc++)
+       AvgMag += abs(M->GetEntry(nr,nc));
+     AvgMag /= ((double)(M->NR * M->NC) );
+
+>>>>>>> PBCV2P0
      printf("Comparing to reference...");
      int Mismatches=0;
      for(int nr=0; nr<M->NR; nr++)
       for(int nc=nr; nc<M->NC; nc++)
+<<<<<<< HEAD
        if ( !EqualFloat(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) )
+=======
+       if (    abs(M->GetEntry(nr,nc)) > (1.0e-6 * AvgMag)
+            && RD(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) > 1.0e-6 
+          )
+>>>>>>> PBCV2P0
         { 
           Mismatches++;
           Warn("MISMATCH(%i,%i): (%.8e,%.8e)--(%.8e,%.8e) (%.1e)\n",nr,nc,
@@ -158,10 +177,25 @@ int main(int argc, char *argv[])
      Elapsed=Toc();
      printf("...done in %.0f s.\n",Elapsed);
 
+<<<<<<< HEAD
      printf("Comparing to reference...");
      for(int nr=0; nr<M->NR; nr++)
       for(int nc=nr; nc<M->NC; nc++)
        if ( !EqualFloat(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) )
+=======
+     AvgMag = 0.0;
+     for(int nr=0; nr<M->NR; nr++)
+      for(int nc=0; nc<M->NC; nc++)
+       AvgMag += abs(M->GetEntry(nr,nc));
+     AvgMag /= ((double)(M->NR * M->NC) );
+
+     printf("Comparing to reference...");
+     for(int nr=0; nr<M->NR; nr++)
+      for(int nc=nr; nc<M->NC; nc++)
+       if (    abs(M->GetEntry(nr,nc)) > (1.0e-6 * AvgMag)
+            && RD(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) > 1.0e-6 
+          )
+>>>>>>> PBCV2P0
         { 
           Mismatches++;
           Warn("MISMATCH(%i,%i): (%.8e,%.8e)--(%.8e,%.8e) (%.1e)\n",nr,nc,

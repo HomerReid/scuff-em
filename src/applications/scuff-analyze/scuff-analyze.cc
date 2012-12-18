@@ -192,23 +192,34 @@ void WriteGeometryPPFiles(RWGGeometry *G, int Neighbors)
 
   G->WritePPMesh(PPFileName,G->GeoFileName);
 
+  int LDim = G->NumLatticeBasisVectors;
+  int n2Mult = (LDim==1) ? 0 : 1;
+
   if (Neighbors)
    { double DL[3];
      char Tag[20];
      for(int n1=-Neighbors; n1<=Neighbors; n1++)
-      for(int n2=-Neighbors; n2<=Neighbors; n2++)
+      for(int n2=-Neighbors*n2Mult; n2<=Neighbors*n2Mult; n2++)
        { 
          if (n1==0 && n2==0) 
           continue;
-
-         DL[0] = n1*G->LatticeBasisVectors[0][0] + n2*G->LatticeBasisVectors[1][0];
-         DL[1] = n1*G->LatticeBasisVectors[0][1] + n2*G->LatticeBasisVectors[1][1];
-         DL[2] = n1*G->LatticeBasisVectors[0][2] + n2*G->LatticeBasisVectors[1][2];
+ 
+         if (LDim==1)
+          { DL[0] = n1*G->LatticeBasisVectors[0][0];
+            DL[1] = n1*G->LatticeBasisVectors[0][1];
+            DL[2] = n1*G->LatticeBasisVectors[0][2];
+            snprintf(Tag,20,"(%i)",n1);
+          }
+         else
+          { DL[0] = n1*G->LatticeBasisVectors[0][0] + n2*G->LatticeBasisVectors[1][0];
+            DL[1] = n1*G->LatticeBasisVectors[0][1] + n2*G->LatticeBasisVectors[1][1];
+            DL[2] = n1*G->LatticeBasisVectors[0][2] + n2*G->LatticeBasisVectors[1][2];
+            snprintf(Tag,20,"(%i,%i)",n1,n2);
+          }
 
          for(int ns=0; ns<G->NumSurfaces; ns++)
           G->Surfaces[ns]->Transform("DISPLACED %e %e %e \n",DL[0],DL[1],DL[2]);
 
-         snprintf(Tag,20,"(%i,%i)",n1,n2);
          G->WritePPMesh(PPFileName,Tag);
 
          for(int ns=0; ns<G->NumSurfaces; ns++)

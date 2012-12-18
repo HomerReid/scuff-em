@@ -174,6 +174,7 @@ int main(int argc, char *argv[])
 
   int FailedCases=0;
   RWGGeometry *G = new RWGGeometry("PECSphere.scuffgeo");
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
 
   GetPPIArgStruct MyArgs, *Args=&MyArgs;
   InitGetPPIArgs(Args);

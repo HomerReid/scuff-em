@@ -199,6 +199,15 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
 RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 { 
   /***************************************************************/
+  /* 20121210 FIXME **********************************************/
+  /***************************************************************/
+  char *DeltaStr;
+  if ( (DeltaStr=getenv("SCUFF_DELTAINTERP")) )
+   { sscanf(DeltaStr, "%le", &DeltaInterp);
+     Log("Setting DeltaInterp to %g...\n",DeltaInterp);
+   };
+
+  /***************************************************************/
   /* NOTE: i am not sure where to put this. put it here for now. */
   /***************************************************************/
   MatProp::SetLengthUnit(1.0e-6);

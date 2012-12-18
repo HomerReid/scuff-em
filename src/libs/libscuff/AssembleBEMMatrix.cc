@@ -18,15 +18,13 @@
  */
 
 /*
- * AssembleBEMMatrixBlock.cc -- libscuff routine for assembling a single 
- *                           -- block of the BEM matrix (i.e. the       
- *                           -- interactions of two objects in the geometry)
- *                           --
- *                           -- (cf. 'libscuff Implementation and Technical
- *                           --  Details', section 8.3, 'Structure of the BEM
- *                           --  Matrix.')
- *                           --
- * homer reid                -- 10/2006 -- 10/2011
+ * AssembleBEMMatrix.cc -- libscuff routines for assembling the BEM matrix.
+ *                      --
+ *                      -- (cf. 'libscuff Implementation and Technical
+ *                      --  Details', section 8.3, 'Structure of the BEM
+ *                      --  Matrix.')
+ *                      --
+ * homer reid           -- 10/2006 -- 10/2011
  */
 
 #include <stdio.h>
@@ -48,523 +46,397 @@
 #  include <omp.h>
 #endif
 
+#define II cdouble(0,1)
+
 namespace scuff {
 
-#define II cdouble(0,1)
-#ifndef ISNAN
-#define ISNAN(x) ((x) != (x))
-#endif
-
 /***************************************************************/
-/* Given two surfaces, identify whether they bound zero, one,  */
-/* or two common regions. If there are any common regions,     */
-/* identify their indices and the relative sign between the    */
-/* contributions of surface currents on the two surfaces to    */
-/* fields in those regions.                                    */
+/* This routine adds the contents of matrix block B, which has */
+/* dimensions NRxNC, to the block of M whose upper-left corner */
+/* has indices (RowOffset, ColOffset).                         */
+/*                                                             */
+/* Each entry of B is scaled by BPF ('bloch phase factor')     */
+/* before being added to the corresponding entry of M.         */
+/*                                                             */
+/* If SameSurface is true, then the routine additionally adds  */
+/* the contents of B' times the complex conjugate of BPF to    */
+/* the destination block of M.                                 */
 /***************************************************************/
-int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb, 
-                       int CommonRegionIndices[2], double Signs[2])
-{
-  int NumCommonRegions=0;
-
-  if ( Sa->RegionIndices[0] == Sb->RegionIndices[0] )
-   { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[0];
-     Signs[NumCommonRegions]=+1.0;
-     NumCommonRegions++;
-   }
-  else if ( Sa->RegionIndices[0] == Sb->RegionIndices[1] )
-   { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[0];
-     Signs[NumCommonRegions]=-1.0;
-     NumCommonRegions++;
-   }
-  if ( Sa->RegionIndices[1] == Sb->RegionIndices[0] )
-   { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[1];
-     Signs[NumCommonRegions]=-1.0;
-     NumCommonRegions++;
-   }
-  else if ( !Sa->IsPEC && !Sb->IsPEC && Sa->RegionIndices[1] == Sb->RegionIndices[1] )
-   { CommonRegionIndices[NumCommonRegions] = Sa->RegionIndices[1];
-     Signs[NumCommonRegions]=+1.0;
-     NumCommonRegions++;
-   };
-
-  return NumCommonRegions;
-
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-typedef struct ThreadData
- { 
-   ABMBArgStruct *Args;
-   int nt, NumTasks;
-
- } ThreadData;
-
-/***************************************************************/
-/* 'AssembleBMatrixBlockThread'                                */
-/***************************************************************/
-void *ABMBThread(void *data)
+void StampInNeighborBlock(HMatrix *B, int NR, int NC, 
+                          HMatrix *M, int RowOffset, int ColOffset,
+                          cdouble BPF, bool SameSurface)
 { 
-  /***************************************************************/
-  /* extract local copies of fields in argument structure */
-  /***************************************************************/
-  ThreadData *TD=(ThreadData *)data;
-  ABMBArgStruct *Args  = TD->Args;
-  RWGGeometry *G       = Args->G;
-  RWGSurface *Sa       = Args->Sa;
-  RWGSurface *Sb       = Args->Sb;
-  cdouble Omega        = Args->Omega;
-  int NumTorqueAxes    = Args->NumTorqueAxes;
-  double *GammaMatrix  = Args->GammaMatrix;
-  int RowOffset        = Args->RowOffset;
-  int ColOffset        = Args->ColOffset;
-  int Symmetric        = Args->Symmetric;
-  double *Displacement = Args->Displacement;
-  HMatrix *B           = Args->B;
-  HMatrix **GradB      = Args->GradB;
-  HMatrix **dBdTheta   = Args->dBdTheta;
-  cdouble EpsA         = Args->EpsA;
-  cdouble EpsB         = Args->EpsB;
-  cdouble MuA          = Args->MuA;
-  cdouble MuB          = Args->MuB;
-  double SignA         = Args->SignA;
-  double SignB         = Args->SignB;
-  int SaIsPEC          = Args->SaIsPEC;
-  int SbIsPEC          = Args->SbIsPEC;
-
-#ifdef USE_PTHREAD
-  SetCPUAffinity(TD->nt);
-#endif
-
-  /***************************************************************/
-  /* initialize an argument structure to be passed to            */
-  /* GetEdgeEdgeInteractions() below                             */
-  /***************************************************************/
-  GetEEIArgStruct MyGetEEIArgs, *GetEEIArgs=&MyGetEEIArgs;
-  InitGetEEIArgs(GetEEIArgs);
-
-  GetEEIArgs->Sa=Sa;
-  GetEEIArgs->Sb=Sb;
-  GetEEIArgs->NumGradientComponents = GradB ? 3 : 0;
-  GetEEIArgs->NumTorqueAxes=NumTorqueAxes;
-  GetEEIArgs->GammaMatrix=GammaMatrix;
-  GetEEIArgs->Displacement=Displacement;
-
-  /* pointers to arrays inside the structure */
-  cdouble *GC=GetEEIArgs->GC;
-  cdouble *GradGC=GetEEIArgs->GradGC;
-  cdouble *dGCdT=GetEEIArgs->dGCdT;
-
-  /***************************************************************/
-  /* precompute the constant prefactors that multiply the        */
-  /* integrals returned by GetEdgeEdgeInteractions()             */
-  /***************************************************************/
-  cdouble kA, PreFac1A, PreFac2A, PreFac3A;
-  cdouble kB, PreFac1B, PreFac2B, PreFac3B;
-
-  kA=csqrt2(EpsA*MuA)*Omega;
-  PreFac1A =  SignA*II*MuA*Omega;
-  PreFac2A = -SignA*II*kA;
-  PreFac3A = -SignA*II*EpsA*Omega;
-
-  if (EpsB!=0.0)
-   { 
-     kB=csqrt2(EpsB*MuB)*Omega;
-     PreFac1B =  SignB*II*MuB*Omega;
-     PreFac2B = -SignB*II*kB;
-     PreFac3B = -SignB*II*EpsB*Omega;
-   };
-
-  /***************************************************************/
-  /* loop over all internal edges on both objects.               */
-  /***************************************************************/
-  int nea, NEa=Sa->NumEdges;
-  int neb, NEb=Sb->NumEdges;
-  int X, Y, Mu, nt=0;
-  int NumGradientComponents = GradB ? 3 : 0;
-  for(nea=0; nea<NEa; nea++)
-   for(neb=Symmetric*nea; neb<NEb; neb++)
-    { 
-      nt++;
-      if (nt==TD->NumTasks) nt=0;
-      if (nt!=TD->nt) continue;
-
-      if (G->LogLevel>=SCUFF_VERBOSELOGGING)
-       for(int PerCent=0; PerCent<9; PerCent++)
-        if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
-         MutexLog("%i0 %% (%i/%i)...",PerCent,nea,NEa);
-
-      /*--------------------------------------------------------------*/
-      /*- contributions of first medium (EpsA, MuA)  -----------------*/
-      /*--------------------------------------------------------------*/
-      GetEEIArgs->nea  = nea;
-      GetEEIArgs->neb  = neb;
-      GetEEIArgs->k    = kA;
-      GetEdgeEdgeInteractions(GetEEIArgs);
-
-      if ( SaIsPEC && SbIsPEC )
-       { 
-         X=RowOffset + nea;
-         Y=ColOffset + neb;  
-
-         B->AddEntry( X, Y, PreFac1A*GC[0] );
-
-         for(Mu=0; Mu<NumGradientComponents; Mu++)
-          GradB[Mu]->AddEntry( X, Y, PreFac1A*GradGC[2*Mu+0]);
-
-         for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          dBdTheta[Mu]->AddEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
-       }
-      else if ( SaIsPEC && !SbIsPEC )
-       { 
-         X=RowOffset + nea;
-         Y=ColOffset + 2*neb;  
-
-         B->AddEntry( X, Y,   PreFac1A*GC[0] );
-         B->AddEntry( X, Y+1, PreFac2A*GC[1] );
-
-         for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
-            GradB[Mu]->AddEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
-          };
-
-         for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          { dBdTheta[Mu]->AddEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->AddEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
-          };
-       }
-      else if ( !SaIsPEC && SbIsPEC )
-       {
-         X=RowOffset + 2*nea;
-         Y=ColOffset + neb;  
-
-         B->AddEntry( X,   Y, PreFac1A*GC[0] );
-         B->AddEntry( X+1, Y, PreFac2A*GC[1] );
-
-         for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
-            GradB[Mu]->AddEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
-          };
-
-         for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          { dBdTheta[Mu]->AddEntry( X, Y,   PreFac1A*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->AddEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
-          };
-       }
-      else if ( !SaIsPEC && !SbIsPEC )
-       { 
-         X=RowOffset + 2*nea;
-         Y=ColOffset + 2*neb;  
-
-         B->AddEntry( X, Y,   PreFac1A*GC[0]);
-         B->AddEntry( X, Y+1, PreFac2A*GC[1]);
-         if ( !Symmetric || (nea!=neb) )
-          B->AddEntry( X+1, Y, PreFac2A*GC[1]);
-         B->AddEntry( X+1, Y+1, PreFac3A*GC[0]);
-
-         for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { 
-            GradB[Mu]->AddEntry( X, Y,   PreFac1A*GradGC[2*Mu+0]);
-            GradB[Mu]->AddEntry( X, Y+1, PreFac2A*GradGC[2*Mu+1]);
-            if ( !Symmetric || (nea!=neb) )
-             GradB[Mu]->AddEntry( X+1, Y, PreFac2A*GradGC[2*Mu+1]);
-            GradB[Mu]->AddEntry( X+1, Y+1, PreFac3A*GradGC[2*Mu+0]);
-          };
-
-         for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          { 
-            dBdTheta[Mu]->AddEntry( X, Y,   PreFac1A*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->AddEntry( X, Y+1, PreFac2A*dGCdT[2*Mu+1]);
-            if ( !Symmetric || (nea!=neb) )
-             dBdTheta[Mu]->AddEntry( X+1, Y, PreFac2A*dGCdT[2*Mu+1]);
-            dBdTheta[Mu]->AddEntry( X+1, Y+1, PreFac3A*dGCdT[2*Mu+0]);
-          };
-
-       }; // if ( OaIsPEC && ObIsPEC ) ... else ... 
-
-      /*--------------------------------------------------------------*/
-      /*- contributions of second medium if present.                  */
-      /*- note this case we already know we are in the fourth case    */
-      /*- of the above if...else statement.                           */
-      /*--------------------------------------------------------------*/
-      if (EpsB!=0.0)
-       { 
-         GetEEIArgs->k = kB;
-         GetEdgeEdgeInteractions(GetEEIArgs);
-
-         X=RowOffset + 2*nea;
-         Y=ColOffset + 2*neb;
-
-         B->AddEntry( X, Y,   PreFac1B*GC[0]);
-         B->AddEntry( X, Y+1, PreFac2B*GC[1]);
-         if ( !Symmetric || (nea!=neb) )
-          B->AddEntry( X+1, Y, PreFac2B*GC[1]);
-         B->AddEntry( X+1, Y+1, PreFac3B*GC[0]);
-
-         for(Mu=0; Mu<NumGradientComponents; Mu++)
-          { 
-            GradB[Mu]->AddEntry( X, Y,   PreFac1B*GradGC[2*Mu+0]);
-            GradB[Mu]->AddEntry( X, Y+1, PreFac2B*GradGC[2*Mu+1]);
-            if ( !Symmetric || (nea!=neb) )
-             GradB[Mu]->AddEntry( X+1, Y, PreFac2B*GradGC[2*Mu+1]);
-            GradB[Mu]->AddEntry( X+1, Y+1, PreFac3B*GradGC[2*Mu+0]);
-          };
-
-         for(Mu=0; Mu<NumTorqueAxes; Mu++)
-          { 
-            dBdTheta[Mu]->AddEntry( X, Y,   PreFac1B*dGCdT[2*Mu+0]);
-            dBdTheta[Mu]->AddEntry( X, Y+1, PreFac2B*dGCdT[2*Mu+1]);
-            if ( !Symmetric || (nea!=neb) )
-             dBdTheta[Mu]->AddEntry( X+1, Y, PreFac2B*dGCdT[2*Mu+1]);
-            dBdTheta[Mu]->AddEntry( X+1, Y+1, PreFac3B*dGCdT[2*Mu+0]);
-          };
-       }; // if (EpsB!=0.0)
-
-    }; // for(nea=0; nea<NEa; nea++), for(neb=Symmetric*nea; neb<NEb; neb++) ... 
-
-  return 0;
-
-}
-
-/***************************************************************/  
-/***************************************************************/  
-/***************************************************************/
-void AssembleBEMMatrixBlock(ABMBArgStruct *Args)
-{ 
-  RWGGeometry *G = Args->G;
-  cdouble Omega = Args->Omega;
-  RWGSurface  *Sa = Args->Sa;
-  RWGSurface  *Sb = Args->Sb;
-
-  /*--------------------------------------------------------------*/
-  /*- make sure the cached epsilon and mu values for all regions  */
-  /*- are up-to-date for the present frequency                    */
-  /*--------------------------------------------------------------*/
-  G->UpdateCachedEpsMuValues(Omega);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if ( Args->Accumulate==false )
-   Args->B->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
-
-  /***************************************************************/
-  /* figure out if the two surfaces have 0, 1, or 2 regions in   */
-  /* common.                                                     */
-  /***************************************************************/
-  double Signs[2];
-  int CommonRegions[2]; 
-  int NumCommonRegions=CountCommonRegions(Sa, Sb, CommonRegions, Signs);
-  if (NumCommonRegions==0)
-   return;
-
-  Args->EpsA  = G->EpsTF[ CommonRegions[0] ];
-  Args->MuA   = G->MuTF[  CommonRegions[0] ];
-  Args->SignA = Signs[0];
-  if ( NumCommonRegions==2 )
-   { Args->EpsB = G->EpsTF[ CommonRegions[1] ];
-     Args->MuB  = G->MuTF[  CommonRegions[1] ];
-     Args->SignB = Signs[1];
+  if (SameSurface)
+   { for(int nr=0; nr<NR; nr++)
+      for(int nc=0; nc<NC; nc++)
+       M->AddEntry(RowOffset + nr, ColOffset + nc,
+                   BPF*B->GetEntry(nr,nc) + conj(BPF)*B->GetEntry(nc,nr));
    }
   else
-   Args->EpsB = Args->MuB = Args->SignB = 0.0;
-
-  Args->SaIsPEC = Sa->IsPEC;
-  Args->SbIsPEC = Sb->IsPEC;
-
-  /***************************************************************/
-  /* fire off threads ********************************************/
-  /***************************************************************/
-  GlobalFIPPICache.Hits=GlobalFIPPICache.Misses=0;
-
-  int nt, NumTasks, NumThreads = GetNumThreads();
-
-#ifdef USE_PTHREAD
-  ThreadData *TDs = new ThreadData[NumThreads], *TD;
-  pthread_t *Threads = new pthread_t[NumThreads];
-  for(nt=0; nt<NumThreads; nt++)
-   { 
-     TD=&(TDs[nt]);
-     TD->nt=nt;
-     TD->NumTasks=NumThreads;
-     TD->Args=Args;
-     if (nt+1 == NumThreads)
-       ABMBThread((void *)TD);
-     else
-       pthread_create( &(Threads[nt]), 0, ABMBThread, (void *)TD);
-   }
-  for(nt=0; nt<NumThreads-1; nt++)
-   pthread_join(Threads[nt],0);
-  delete[] Threads;
-  delete[] TDs;
-
-#else 
-#ifndef USE_OPENMP
-  NumTasks=NumThreads=1;
-#else
-  NumTasks=NumThreads*100;
-#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
-#endif
-  for(nt=0; nt<NumTasks; nt++)
-   { 
-     ThreadData TD1;
-     TD1.nt=nt;
-     TD1.NumTasks=NumTasks;
-     TD1.Args=Args;
-     ABMBThread((void *)&TD1);
+   { for(int nr=0; nr<NR; nr++)
+      for(int nc=0; nc<NC; nc++)
+       M->AddEntry(RowOffset + nr, ColOffset + nc, BPF*B->GetEntry(nr,nc));
    };
-#endif
-
-  if (G->LogLevel>=SCUFF_VERBOSELOGGING)
-   Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
-
-  /***************************************************************/
-  /* 20120526 handle objects with finite surface conductivity    */
-  /***************************************************************/
-  if ( (Args->Sa == Args->Sb) && (Args->Sa->SurfaceSigma!=0) )
-   AddSurfaceSigmaContributionToBEMMatrix(Args);
-
 }
 
 /***************************************************************/
+/* initialize GBarAB9 interpolation tables for all regions at  */
+/* the present frequency and bloch wavevector                  */
 /***************************************************************/
-/***************************************************************/
-void AddSurfaceSigmaContributionToBEMMatrix(ABMBArgStruct *Args)
+void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
 {
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (Args->Sa != Args->Sb) return;
-  RWGSurface *S=Args->Sa;
-  if ( !(S->SurfaceSigma) ) return;
- 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
- // char *SSParmNames[4]={ (char *)"w", (char *)"x", (char *)"y", (char *)"z"};
-  char *SSParmNames[4]={ const_cast<char *>("w"), const_cast<char *>("x"), 
-                         const_cast<char *>("y"), const_cast<char *>("z") };
-  cdouble SSParmValues[4];
-  SSParmValues[0]=Args->Omega*MatProp::FreqUnit;
-
-  HMatrix *B    = Args->B;
-  int Offset    = Args->RowOffset;
-
-  if (Offset!=Args->ColOffset)
-   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+  UpdateCachedEpsMuValues(Omega);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  int neAlpha, neBeta;
-  RWGEdge *EAlpha, *EBeta;
-  RWGPanel *P;
-  cdouble GZ;
-  double Overlap;
-  for(neAlpha=0; neAlpha<S->NumEdges; neAlpha++)
-   for(neBeta=neAlpha; neBeta<S->NumEdges; neBeta++)
-    { 
-      Overlap=S->GetOverlap(neAlpha, neBeta);
-      if (Overlap==0.0) continue;
+  GBarData MyGBarData, *GBD=&MyGBarData;
+  GBD->ExcludeInner9=true;
+  GBD->E=-1.0;
+  GBD->kBloch = kBloch;
+  for(int nr=0; nr<NumRegions; nr++)
+   {
+     if (GBarAB9Interpolators[nr]==0) 
+      continue;
 
-      EAlpha=S->Edges[neAlpha];
-      EBeta=S->Edges[neBeta];
+     /***************************************************************/
+     /* figure out whether this region has 1D or 2D periodicity     */
+     /***************************************************************/  
+     if ( RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] ) 
+      { GBD->LDim=2;
+        GBD->LBV[0]=LatticeBasisVectors[0];
+        GBD->LBV[1]=LatticeBasisVectors[1];
+      }
+     else if ( RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
+      { GBD->LDim=1; 
+        GBD->LBV[0]=LatticeBasisVectors[0];
+      }
+     else if ( !RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] )
+      { GBD->LDim=1; 
+        GBD->LBV[0]=LatticeBasisVectors[1];
+      }
+     else
+      continue; // region is compact; no interpolation table needed
 
-      // if there was a nonzero overlap, get the value 
-      // of the surface conductivity at the centroid
-      // of the common panel (if there was only one common panel)
-      // or of the common edge if there were two common panels.
-      if (neAlpha==neBeta)
-       { SSParmValues[1] = EAlpha->Centroid[0];
-         SSParmValues[2] = EAlpha->Centroid[1];
-         SSParmValues[3] = EAlpha->Centroid[2];
-       }
-      else if ( EAlpha->iPPanel==EBeta->iPPanel || EAlpha->iPPanel==EBeta->iMPanel )
-       { P=S->Panels[EAlpha->iPPanel];
-         SSParmValues[1] = P->Centroid[0];
-         SSParmValues[2] = P->Centroid[1];
-         SSParmValues[3] = P->Centroid[2];
-       }
-      else if ( (EAlpha->iMPanel!=-1) && ( (EAlpha->iMPanel==EBeta->iPPanel) || (EAlpha->iMPanel==EBeta->iMPanel) ) ) 
-       { P=S->Panels[EAlpha->iMPanel];
-         SSParmValues[1] = P->Centroid[0];
-         SSParmValues[2] = P->Centroid[1];
-         SSParmValues[3] = P->Centroid[2];
-       };
+     /***************************************************************/
+     /* check whether or not the extents of the region have changed */
+     /* since we last allocated an interpolator for this region, and*/
+     /* re-allocate the interpolator if so                          */
+     /***************************************************************/
+     double RMax[3], RMin[3], DeltaR[3];
+     int NPoints[3];
+     GetRegionExtents(nr, RMax, RMin, DeltaR, NPoints);
+     if (    GBarAB9Interpolators[nr]==0
+          || GBarAB9Interpolators[nr]->X1Min !=  -DeltaR[0]
+          || GBarAB9Interpolators[nr]->X2Min !=  -DeltaR[1]
+          || GBarAB9Interpolators[nr]->N1    !=  NPoints[0]
+          || GBarAB9Interpolators[nr]->N2    !=  NPoints[1]
+          || GBarAB9Interpolators[nr]->N3    != (1+NPoints[2]/2)
+        )
+      {
+        Log("Region %s extents have changed (resizing interpolation table)",RegionLabels[nr]);
+        if (GBarAB9Interpolators[nr])
+         { delete GBarAB9Interpolators[nr];
+           GBarAB9Interpolators[nr]=0;
+         };
+        GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
+                                               -DeltaR[1], DeltaR[1], NPoints[1],
+                                                      0.0, DeltaR[2], 1 + NPoints[2]/2, 
+                                                       2);
+        
+      };
 
-      GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
+     /***************************************************************/
+     /* initialize the interpolation table                          */
+     /***************************************************************/
+     Log("  Initializing interpolator for region %i (%s)...",nr,RegionLabels[nr]);
+     GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
+     if ( GBD->k == 0.0 ) 
+      continue;
+     GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
 
-      GZ*=ZVAC;
-
-      if ( S->IsPEC )
-       { B->AddEntry(Offset+neAlpha, Offset+neBeta, -2.0*Overlap/GZ);
-         if (neAlpha!=neBeta)
-          B->AddEntry(Offset+neBeta, Offset+neAlpha, -2.0*Overlap/GZ);
-       }
-      else
-       { B->AddEntry(Offset + 2*neAlpha+1, Offset + 2*neBeta+1, +2.0*Overlap/GZ);
-         if (neAlpha!=neBeta)
-          B->AddEntry(Offset + 2*neBeta+1, Offset + 2*neAlpha+1, +2.0*Overlap/GZ);
-       }
-      
-    };
-
+   };
 }
 
 /***************************************************************/
-/* initialize an argument structure for AssembleBEMMatrixBlock.*/
-/*                                                             */
-/* note: what this routine does is to fill in default values   */
-/* for some of the lesser-used fields in the structure, while  */
-/* leaving several other fields uninitialized; any caller of   */
-/* AssembleBEMMatrixBlock must fill in those remaining fields  */
-/* before the call.                                            */
-/*                                                             */
-/* Note: If Accumulate is set to true before the call to       */
-/*       AssembleBEMMatrixBlock(), then the entries of the     */
-/*       HMatrix will be augmented, not replaced, by the new   */
-/*       matrix entries. As far as I know this is only ever    */
-/*       useful for accumulating the contributions of          */
-/*       neighboring lattice cells when assembling the BEM     */
-/*       matrix with periodic boundary conditions.             */
+/* This routine computes the block of the BEM matrix that      */
+/* describes the interaction between surfaces nsa and nsb.     */
+/* This block is stamped into M in such a way that the upper-  */ 
+/* left element of the block is at the (RowOffset, ColOffset)  */ 
+/* entry of M. If GradM is non-null and GradM[Mu] is non-null  */ 
+/* (Mu=0,1,2) then the X_{Mu} derivative of BEM matrix is      */ 
+/* similarly stamped into GradM[Mu].                           */ 
 /***************************************************************/
-void InitABMBArgs(ABMBArgStruct *Args)
+void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
+                                         cdouble Omega, double *kBloch,
+                                         HMatrix *M, HMatrix **GradM,
+                                         int RowOffset, int ColOffset)
 {
+  bool SameSurface = (nsa==nsb);
+
+  /***************************************************************/
+  /* pre-initialize arguments for GetSurfaceSurfaceInteractions **/
+  /***************************************************************/
+  GetSSIArgStruct GetSSIArgs, *Args=&GetSSIArgs;
+  InitGetSSIArgs(Args);
+
+  Args->G=this;
+  Args->Sa=Surfaces[nsa];
+  Args->Sb=Surfaces[nsb];
+  Args->Omega=Omega;
+
+  Args->dBdTheta=0;      // FIXME angular derivatives not implemented yet
   Args->NumTorqueAxes=0;
   Args->GammaMatrix=0;
-  
-  Args->RowOffset=0;
-  Args->ColOffset=0;
+
+  /***************************************************************/
+  /* STEP 1: compute the direct interaction of the two surfaces. */
+  /* This computation is always necessary, whether or not a      */
+  /* lattice is present.                                         */
+  /***************************************************************/
+  Args->Displacement=0;
+  Args->UseAB9Kernel=false;
+  Args->Symmetric = SameSurface;
+  Args->Accumulate = 0;
+  Args->B=M;
+  Args->GradB=GradM;
+  Args->RowOffset=RowOffset;
+  Args->ColOffset=ColOffset;
+
+  GetSurfaceSurfaceInteractions(Args);
+
+  if (NumLatticeBasisVectors==0) 
+   return; 
+
+  /*********************************************************************/
+  /* STEP 2: prepare to make a series of calls to                      */
+  /* GetSurfaceSurfaceInteractions to get the contributions of the     */
+  /* innermost 8 neighboring lattice cells                             */
+  /*********************************************************************/
+
+  // B and GradB are statically maintained matrix blocks used as 
+  // temporary storage within this routine; they need to be large
+  // enough to store the largest single subblock of the BEM matrix.
+  // FIXME these should be fields of the RWGGeometry class, not 
+  // static method variables.
+  static HMatrix *B=0, *GradB[3]={0,0,0};
+  if (B==0)
+   { int MaxNR=Surfaces[0]->NumBFs; 
+     for(int ns=1; ns<NumSurfaces; ns++)
+      if (Surfaces[ns]->NumBFs > MaxNR) 
+       MaxNR=Surfaces[ns]->NumBFs;
+     B=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
+     if ( GradM && GradM[0] ) GradB[0]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
+     if ( GradM && GradM[1] ) GradB[1]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
+     if ( GradM && GradM[2] ) GradB[2]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
+   };
+
+  int NumCommonRegions, CommonRegionIndices[2], nr1, nr2;
+  double Signs[2];
+  NumCommonRegions=CountCommonRegions(Args->Sa, Args->Sb, CommonRegionIndices, Signs);
+  if (NumCommonRegions==0) 
+   return;
+  nr1=CommonRegionIndices[0];
+  nr2=NumCommonRegions==2 ? CommonRegionIndices[1] : -1;
+
+  // L is the lattice vector through which surfaces are displaced into
+  // neighboring unit cells
+  double L[3];
+  L[2]=0.0;
+
+  cdouble BPF; // bloch phase factor
+
+  int NBFA=Args->Sa->NumBFs; 
+  int NBFB=Args->Sb->NumBFs;
 
   Args->Symmetric=0;
+  Args->RowOffset=0;
+  Args->ColOffset=0;
+  Args->B = B;
+  Args->GradB = GradB;
+  Args->UseAB9Kernel = false;
+  Args->Accumulate = false;
+  Args->Displacement=L;
 
+  /***************************************************************/
+  /* STEP 2: compute the interaction of surface #nsa with the    */
+  /* images of surface #nsb in the neighboring lattice cells.    */
+  /***************************************************************/
+  if (NumLatticeBasisVectors>=1)
+   { 
+     Log("MPZ block...");
+     L[0]=LatticeBasisVectors[0][0];
+     L[1]=LatticeBasisVectors[0][1];
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
+     Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
+     GetSurfaceSurfaceInteractions(Args);
+     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[0]) 
+      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[1]) 
+      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[2]) 
+      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+
+     if (!SameSurface)
+      { 
+        Log("MMZ block...");
+        L[0] = -LatticeBasisVectors[0][0];
+        L[1] = -LatticeBasisVectors[0][1];
+        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
+        Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
+        GetSurfaceSurfaceInteractions(Args);
+        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[0]) 
+         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[1]) 
+         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[2]) 
+         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+      };
+   }
+
+  if (NumLatticeBasisVectors==2)
+   { 
+     Log("MPP block...");
+     L[0]=LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
+     L[1]=LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
+     Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
+     GetSurfaceSurfaceInteractions(Args);
+     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[0]) 
+      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[1]) 
+      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[2]) 
+      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+
+     Log("MPM block...");
+     L[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
+     L[1]=LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
+     Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
+     GetSurfaceSurfaceInteractions(Args);
+     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[0]) 
+      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[1]) 
+      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[2]) 
+      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+
+     Log("MZP block...");
+     L[0]=LatticeBasisVectors[1][0];
+     L[1]=LatticeBasisVectors[1][1];
+     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+1];
+     Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+1];
+     GetSurfaceSurfaceInteractions(Args);
+     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[0]) 
+      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[1]) 
+      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+     if (GradB[2]) 
+      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+
+     if (!SameSurface)
+      {
+        Log("MMM block...");
+        L[0] = -LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
+        L[1] = -LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
+        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
+        Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
+        GetSurfaceSurfaceInteractions(Args);
+        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[0]) 
+         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[1]) 
+         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[2]) 
+         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+   
+        Log("MMP block...");
+        L[0] = -LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
+        L[1] = -LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
+        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
+        Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
+        GetSurfaceSurfaceInteractions(Args);
+        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[0]) 
+         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[1]) 
+         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[2]) 
+         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+   
+        Log("MZM block...");
+        L[0] = -LatticeBasisVectors[1][0];
+        L[1] = -LatticeBasisVectors[1][1];
+        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+1];
+        Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+1];
+        GetSurfaceSurfaceInteractions(Args);
+        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[0]) 
+         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[1]) 
+         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
+        if (GradB[2]) 
+         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+   
+      }; // if (!SameSurface) ... 
+
+   };
+
+  /***************************************************************/
+  /* STEP 3: compute the interaction of surface #nsa with the    */
+  /* images of surface #nsb in the outer lattice cells.          */
+  /***************************************************************/
+  UpdateRegionInterpolators(Omega, kBloch);
+
+  Log("Outer cell contributions...");
   Args->Displacement = 0;
+  Args->Symmetric    = SameSurface;
+  Args->OmitRegion1  = false;
+  Args->OmitRegion2  = false;
+  Args->UseAB9Kernel = true;
+  Args->Accumulate   = true;
+  Args->B            = M;
+  Args->GradB        = GradM;
+  Args->RowOffset    = RowOffset;
+  Args->ColOffset    = ColOffset;
 
-  Args->GradB=0;
-  Args->dBdTheta=0;
-
-  Args->Accumulate=false;
+  GetSurfaceSurfaceInteractions(Args);
 
 }
 
 /***************************************************************/
 /* this is the actual API-exposed routine for assembling the   */
 /* BEM matrix, which is pretty simple and really just calls    */
-/* the routine above to do all the dirty work.                 */
+/* AssembleBEMMatrixBlock() to do all the dirty work.          */
 /*                                                             */
 /* If the M matrix is NULL on entry, a new HMatrix of the      */
 /* appropriate size is allocated and returned. Otherwise, the  */
 /* return value is M.                                          */
-/*                                                             */
-/* Note: This version of AssembleBEMMatrix is used for compact */
-/* geometries (that is, geometries without periodic boundary   */
-/* conditions). The PBC version of the routine is in the file  */
-/* AssembleBEMMatrix_PBC.cc.                                   */
 /***************************************************************/
-HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
+HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *M)
 { 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( NumLatticeBasisVectors==0 && kBloch!=0 && (kBloch[0]!=0.0 || kBloch[1]!=0.0) )
+   ErrExit("%s:%i: Bloch wavevector is undefined for compact geometries");
+  if ( NumLatticeBasisVectors!=0 && kBloch==0 )
+   ErrExit("%s:%i: Bloch wavevector must be specified for PBC geometries");
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -576,40 +448,14 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
    };
 
   /***************************************************************/
-  /* preinitialize an argument structure for the matrix-block    */
-  /* assembly routine                                            */
-  /***************************************************************/
-  ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
-
-  InitABMBArgs(Args);
-  Args->G=this;
-  Args->Omega=Omega;
-  Args->B=M;
-
-  if (LogLevel>=SCUFF_TERSELOGGING)
-   Log(" Assembling the BEM matrix at Omega=%g+%gi...",real(Omega),imag(Omega));
-
-  /***************************************************************/
   /* loop over all pairs of objects to assemble the diagonal and */
   /* above-diagonal blocks of the matrix                         */
   /***************************************************************/
-  int ns, nsp;
-  for(ns=0; ns<NumSurfaces; ns++)
-   for(nsp=ns; nsp<NumSurfaces; nsp++)
-    { 
-      if (LogLevel>=SCUFF_VERBOSELOGGING)
-       Log("  ...(%i,%i) block...",ns,nsp);
-
-      Args->Sa=Surfaces[ns];
-      Args->RowOffset=BFIndexOffset[ns];
-
-      Args->Sb=Surfaces[nsp];
-      Args->ColOffset=BFIndexOffset[nsp];
-
-      Args->Symmetric = (ns==nsp) ? 1 : 0;
-
-      AssembleBEMMatrixBlock(Args);
-    };
+  for(int ns=0; ns<NumSurfaces; ns++)
+   for(int nsp=ns; nsp<NumSurfaces; nsp++)
+    AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0,
+                           BFIndexOffset[ns], BFIndexOffset[nsp]);
+    
 
   /***************************************************************/
   /* if the matrix uses normal (not packed) storage, fill in its */
@@ -624,8 +470,16 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
        M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
    };
 
- return M;
+  return M;
 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
+{
+  return AssembleBEMMatrix(Omega, 0, M); 
 }
 
 /***************************************************************/
@@ -642,4 +496,3 @@ HMatrix *RWGGeometry::AllocateBEMMatrix(bool PureImagFreq, bool Packed)
 }
 
 } // namespace scuff
-

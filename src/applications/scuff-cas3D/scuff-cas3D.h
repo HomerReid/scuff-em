@@ -34,10 +34,12 @@ using namespace scuff;
 /***************************************************************/
 /* brillouin zone integration schemes **************************/
 /***************************************************************/
-#define BZIMETHOD_MP7         1
-#define BZIMETHOD_MP15        2
-#define BZIMETHOD_ADAPTIVE    3
-#define BZIMETHOD_DEFAULT     3
+#define BZIMETHOD_ADAPTIVE	0
+#define BZIMETHOD_MP3		1
+#define BZIMETHOD_MP6		2
+#define BZIMETHOD_MP10		3
+#define BZIMETHOD_MP15		4
+#define BZIMETHOD_DEFAULT	BZIMETHOD_ADAPTIVE
 
 #define QUANTITY_ENERGY  1
 #define QUANTITY_XFORCE  2
@@ -67,6 +69,8 @@ typedef struct SC3Data
    int NumTorqueAxes;    // this number is in the range 0--3
    double TorqueAxes[9]; // [0,1,2] = x,y,z comps of 1st torque axis; [3,4,5] = 2nd axis, etc
 
+   double RLBasisVectors[2][2]; // reciprocal-lattice basis vectors
+
    GTComplex **GTCList;
    int NumTransformations;
 
@@ -74,14 +78,15 @@ typedef struct SC3Data
 
    int *Converged;
 
+   double Xi;
+
    int BZIMethod;
-   char *ByXiFile, *ByXikBlochFile;
+   char *ByXiFileName, *ByXikBlochFileName;
    char *WriteCache;
 
+   // these quantities are used to set limits for adaptive frequency integrations
    int MaxXiPoints;
    double AbsTol, RelTol;
-
-   double Xi;
 
  } SC3Data;
 

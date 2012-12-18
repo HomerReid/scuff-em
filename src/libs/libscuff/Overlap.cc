@@ -477,8 +477,8 @@ cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
   int NBF=S->NumBFs;
   HMatrix *M=new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
 
-  ABMBArgStruct MyArgs, *Args=&MyArgs;
-  InitABMBArgs(Args);
+  GetSSIArgStruct MyArgs, *Args=&MyArgs;
+  InitGetSSIArgs(Args);
 
   Args->G=this;
   Args->Sa = Args->Sb = S;
@@ -491,7 +491,7 @@ cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
   int InteriorRegionIndex = S->RegionIndices[1];
   int SaveZeroed = RegionMPs[InteriorRegionIndex]->Zeroed;
   RegionMPs[InteriorRegionIndex]->Zeroed = 1;
-  AssembleBEMMatrixBlock(Args);
+  GetSurfaceSurfaceInteractions(Args);
   RegionMPs[InteriorRegionIndex]->Zeroed = SaveZeroed;
 
   /*--------------------------------------------------------------*/

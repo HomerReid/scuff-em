@@ -25,20 +25,20 @@ AM_CPPFLAGS = -DSCUFF \
 noinst_PROGRAMS = 		\
  unit-test-compactMatrix	\
  unit-test-PBCMatrix     	\
- unit-test-ppis
+ unit-test-PPIs
 
 check_PROGRAMS = 		\
  unit-test-compactMatrix	\
  unit-test-PBCMatrix     	\
- unit-test-ppis
+ unit-test-PPIs
 
 TESTS = 			\
  unit-test-compactMatrix	\
  unit-test-PBCMatrix     	\
- unit-test-ppis
+ unit-test-PPIs
 
-unit_test_ppis_SOURCES = unit-test-ppis.cc
-unit_test_ppis_LDADD = $(LIBSCUFF)
+unit_test_PPIs_SOURCES = unit-test-PPIs.cc
+unit_test_PPIs_LDADD = $(LIBSCUFF)
 
 unit_test_compactMatrix_SOURCES = unit-test-compactMatrix.cc
 unit_test_compactMatrix_LDADD   = $(LIBSCUFF)
