@@ -374,9 +374,6 @@ int main(int argc, char *argv[])
         double G22 = Gamma2[0]*Gamma2[0] + Gamma2[1]*Gamma2[1];
         double EOpt2 = sqrt( norm(k) + G12 + G22 ) / 5.0; // H=10
 
-printf("k=%s, norm(k)=%e\n",z2s(k),norm(k));
-printf("EOpt2=%e\n",EOpt2);
-
         E=fmax(EOpt1, EOpt2);
         printf("E=%e\n",E);
       };
