@@ -94,8 +94,11 @@ static int PointOnLine(double *X, double *L)
 /* be added to turn the half-RWG basis function associated with*/
 /* edge #nei into a full RWG basis function.                   */
 /***************************************************************/
-static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3], 
-                           int NumLatticeVectors, int NumStraddlers[MAXLATTICE], 
+static int FindPartnerEdge(RWGSurface *S, int nei, 
+			   double LBV[MAXLATTICE][3], 
+			   double LBVi[3][3], 
+                           int NumLatticeVectors, 
+			   int NumStraddlers[MAXLATTICE], 
                            double *V)
 {
   if (NumLatticeVectors!=2)
@@ -104,6 +107,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3],
   RWGEdge *E = S->ExteriorEdges[nei];
   double *V1 = S->Vertices + 3*(E->iV1);
   double *V2 = S->Vertices + 3*(E->iV2);
+  const double tolvc = S->tolVecClose;
   
   /*--------------------------------------------------------------*/
   /*- determine whether or not the edge lies on the unit cell     */
@@ -111,12 +115,18 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3],
   /*--------------------------------------------------------------*/
   int WhichBV;
   double *ThisBV, *OtherBV;
-  if ( PointOnLine(V1, LBV[0]) && PointOnLine(V2, LBV[0]) )
+  // convert V1 and V2 to lattice basis
+  double V1L[2], V2L[2];
+  V1L[0] = LBVi[0][0]*V1[0] + LBVi[0][1]*V1[1] + LBVi[0][2]*V1[2];
+  V1L[1] = LBVi[1][0]*V1[0] + LBVi[1][1]*V1[1] + LBVi[1][2]*V1[2];
+  V2L[0] = LBVi[0][0]*V2[0] + LBVi[0][1]*V2[1] + LBVi[0][2]*V2[2];
+  V2L[1] = LBVi[1][0]*V2[0] + LBVi[1][1]*V2[1] + LBVi[1][2]*V2[2];
+  if ( fabs(V1L[1]) < tolvc && fabs(V2L[1]) < tolvc )
    { WhichBV=0;
      ThisBV=LBV[0]; 
      OtherBV=LBV[1];
    }
-  else if ( PointOnLine(V1, LBV[1]) && PointOnLine(V2, LBV[1]) )
+  else if ( fabs(V1L[0]) < tolvc && fabs(V2L[0]) < tolvc )
    { WhichBV=1;
      ThisBV=LBV[1]; 
      OtherBV=LBV[0];
@@ -132,7 +142,6 @@ static int FindPartnerEdge(RWGSurface *S, int nei, double LBV[MAXLATTICE][3],
   V1T[0] = V1[0] + OtherBV[0]; V1T[1] = V1[1] + OtherBV[1]; V1T[2] = V1[2];
   V2T[0] = V2[0] + OtherBV[0]; V2T[1] = V2[1] + OtherBV[1]; V2T[2] = V2[2];
   double *V1P, *V2P; // 'V1,V2, primed'
-  const double tolvc = S->tolVecClose;
   for(int neip=0; neip<S->NumExteriorEdges; neip++)
    { 
      if (S->ExteriorEdges[neip]==0) 
@@ -201,6 +210,27 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
 
   memset(NumStraddlers, 0, MAXLATTICE*sizeof(int));
 
+  // find the LBVi vectors, which satisfy dot(LBVi[k],LBV[j])
+  // = delta(j,k), and are used to convert points to the lattice basis.
+  double LBVi[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
+  if (NumLatticeVectors == 1) {
+    VecScale(LBV[0], 1./VecNorm(LBV[0]), LBVi[0]);
+  }
+  else if (NumLatticeVectors == 2) {
+    // LBVi[0] = (LBV[0] x LBV[1]) x LBV[1] / (LBV[0] * (... x ... x ...))
+    // LBVi[1] = (LBV[0] x LBV[1]) x LBV[0] / (LBV[1] * (... x ... x ...))
+    double perp[3];
+    VecCross(LBV[0], LBV[1], perp);
+    if (VecNorm(perp) < 1e-8 * VecNorm(LBV[0]) * VecNorm(LBV[1]))
+      ErrExit("Lattice vectors close to parallel.");
+    for (int i = 0; i < 2; ++i) {
+      VecCross(perp, LBV[1-i], LBVi[i]);
+      VecScale(LBVi[i], 1 / VecDot(LBV[i], LBVi[i]));
+    }
+  }
+  else if (NumLatticeVectors > 2)
+    ErrExit("%d lattice vectors unsupported\n", NumLatticeVectors);
+
   int nei, neip;
   for(nei=0; nei<NumExteriorEdges; nei++)
    { 
@@ -210,7 +240,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
       // see if this edge is a straddler, i.e. it lies on a face
       // of the unit cell and it has a partner (a translated 
       // version of itself) on the opposite side of the unit cell
-      neip=FindPartnerEdge(this, nei, LBV, NumLatticeVectors, NumStraddlers, V);
+      neip=FindPartnerEdge(this, nei, LBV, LBVi, NumLatticeVectors, NumStraddlers, V);
 
       // if so, add a new vertex, panel, and interior edge to the RWGSurface.
       if (neip!=-1)

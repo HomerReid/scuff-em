@@ -564,6 +564,8 @@ void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
 void SixVecPlusEquals(cdouble V1[6], const cdouble Alpha, const cdouble V2[6]);
 void SixVecPlusEquals(cdouble V1[6], const cdouble V2[6]);
 
+bool Matrix2x2_Inverse(double *a[2],double ainv[2][2]);
+
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 

@@ -122,7 +122,7 @@ void AddG1Contribution(double *R, cdouble k, double *P,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ComputeG1(double *R, cdouble k, double *P, double **LBV,
+void ComputeG1(double *R, cdouble k, double *P, double LBVinv[2][2],
                double E, int *pnCells, cdouble *Sum)
 { 
   int n1, n2;
@@ -137,13 +137,15 @@ void ComputeG1(double *R, cdouble k, double *P, double **LBV,
   /*--------------------------------------------------------------*/  
   /*--------------------------------------------------------------*/  
   /*--------------------------------------------------------------*/  
-  if ( !(LBV[0][1]==0.0 && LBV[1][0]==0.0) )
-   ErrExit("non-square lattices not yet supported");
-  Gamma1[0] = 2.0*M_PI / LBV[0][0];
-  Gamma1[1] = 0.0;
-  Gamma2[0] = 0.0;
-  Gamma2[1] = 2.0*M_PI / LBV[1][1];
-  AGamma    = 4.0*M_PI*M_PI/(LBV[0][0]*LBV[1][1]);
+  // compute the reciprocal lattice vectors Gamma1 and Gamma2:
+  // (Gamma1 Gamma2) matrix = 2*pi * inverse[transpose[(LBV[0] LBV[1])]]
+  //                        == 2*pi * inverse(LBV),
+  // where we denote a 2x2 matrix by (column1 column2)
+  Gamma1[0] = LBVinv[0][0] * (2*M_PI);
+  Gamma1[1] = LBVinv[1][0] * (2*M_PI);
+  Gamma2[0] = LBVinv[0][1] * (2*M_PI);
+  Gamma2[1] = LBVinv[1][1] * (2*M_PI);
+  AGamma = Gamma1[0]*Gamma2[1] - Gamma2[0]*Gamma1[1]; // det(Gamma1 Gamma2)
 
   /***************************************************************/
   /***************************************************************/
@@ -327,7 +329,7 @@ void AddG2Contribution(double *R, cdouble k, double *P,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ComputeG2(double *R, cdouble k, double *P, double **LBV,
+void ComputeG2(double *R, cdouble k, double *P, double *LBV[2],
                double E, int *pnCells, cdouble *Sum)
 { 
   int n1, n2;
@@ -478,9 +480,6 @@ void ComputeGBFFirst9(double *R, cdouble k, double *P, double *LBV[2], cdouble *
 void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
                  double E, int ExcludeFirst9, cdouble *GBarVD)
 { 
-  if ( (LBV[0][1]!=0.0) || (LBV[1][0]!=0.0) )
-   ErrExit("non-square lattices not yet supported");
-
   /*--------------------------------------------------------------*/
   /* the periodic green's function is well-defined at k==0, but   */
   /* in that case the method of this file doesn't work; moreover, */
@@ -497,35 +496,24 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
   /* E is the separation parameter, which we set to its  */
   /* optimal value if the user didn't specify it already */
   if (E==-1.0)
-   E=sqrt( M_PI / (LBV[0][0]*LBV[1][1]) );
+    E=sqrt( M_PI / fabs(LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0]) );
+
+  double LBVinv[2][2];
+  if (!Matrix2x2_Inverse(LBV, LBVinv)) ErrExit("lattice has empty unit cell");
 
   /***************************************************************/
   /* detect evaluation points at the origin or lattice-equivalent*/
   /* to the origin.                                              */
   /***************************************************************/
-  int ZeroCoordinate[3]={0, 0, 0};
-  double UnitCellCorners[4][2];
-  int nc, n1, n2;
-  for(nc=n1=0; n1<2; n1++)
-   for(n2=0; n2<2; n2++, nc++)
-    { UnitCellCorners[nc][0] = ((double)n1)*LBV[0][0] + ((double)n2)*LBV[1][0];
-      UnitCellCorners[nc][1] = ((double)n1)*LBV[0][1] + ((double)n2)*LBV[1][1];
-    };
-
-  if (    (fabs(R[0]) < 1.0e-8)
-       || EqualFloat( R[0], UnitCellCorners[1][0] )
-       || EqualFloat( R[0], UnitCellCorners[2][0] )
-       || EqualFloat( R[0], UnitCellCorners[3][0] )
-     ) 
-   ZeroCoordinate[0]=1;
-  if (    (fabs(R[1])< 1.0e-8)
-       || EqualFloat( R[1], UnitCellCorners[1][1] )
-       || EqualFloat( R[1], UnitCellCorners[2][1] )
-       || EqualFloat( R[1], UnitCellCorners[3][1] )
-     ) 
-   ZeroCoordinate[1]=1;
-  if ( fabs(R[2]) < 1.0e-8 ) 
-   ZeroCoordinate[2]=1;
+  // convert R to lattice basis:
+  double RL[2];
+  for (int i = 0; i < 2; ++i) // RL = inv(LBV') * R; note LBV is transposed
+    RL[i] = LBVinv[0][i] * R[0] + LBVinv[1][i] * R[1];
+  bool ZeroCoordinate[3]={false, false, false};
+  const double tol = 1e-8;
+  ZeroCoordinate[0] = fabs(RL[0]) < tol || fabs(RL[0] - 1) < tol;
+  ZeroCoordinate[1] = fabs(RL[1]) < tol || fabs(RL[1] - 1) < tol;
+  ZeroCoordinate[2] = fabs(R[2]) < tol;
 
   double MyR[3];
   MyR[0]=R[0]; MyR[1]=R[1]; MyR[2]=R[2];
@@ -542,7 +530,7 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
   /***************************************************************/
   cdouble G1[NSUM], G2[NSUM], GBFFirst9[NSUM];
 
-  ComputeG1(MyR, k, P, LBV, E, 0, G1);
+  ComputeG1(MyR, k, P, LBVinv, E, 0, G1);
   ComputeG2(MyR, k, P, LBV, E, 0, G2);
 
   if (ExcludeFirst9)
@@ -565,7 +553,7 @@ void GBarVDEwald(double *R, cdouble k, double *P, double *LBV[2],
 /***************************************************************/
 /* this is an entry point for GBarVD that has the proper       */
 /* prototype for passage to the Interp3D() initialization      */
-/* routine; the structure GBarData is defined in PBCGeometry.h.*/
+/* routine; the structure GBarData is defined in libscuffInternals.h.*/
 /***************************************************************/
 void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
 {

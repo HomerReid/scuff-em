@@ -183,4 +183,21 @@ void SixVecPlusEquals(cdouble V1[6], const cdouble Alpha,
 void SixVecPlusEquals(cdouble V1[6], const cdouble V2[6])
  { SixVecPlusEquals(V1, 1.0, V2); }
 
+
+bool Matrix2x2_Inverse(double *a[2], double ainv[2][2])
+{
+  double det = a[0][0]*a[1][1] - a[0][1]*a[1][0];
+  double detinv = 1 / det;
+  // store in local vars to work even if a == ainv
+  double ainv00 = detinv * a[1][1];
+  double ainv11 = detinv * a[0][0];
+  double ainv01 = -detinv * a[0][1];
+  double ainv10 = -detinv * a[1][0];
+  ainv[0][0] = ainv00;
+  ainv[1][1] = ainv11;
+  ainv[0][1] = ainv01;
+  ainv[1][0] = ainv10;
+  return det != 0.0;
+}
+
 } // namespace scuff

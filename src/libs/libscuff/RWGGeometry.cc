@@ -45,7 +45,7 @@ namespace scuff {
 int RWGGeometry::PBCCubatureOrder=4;
 bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
 bool RWGGeometry::UsePBCAcceleration=false;
-double RWGGeometry::DeltaInterp=0.05;
+double RWGGeometry::DeltaInterp=0.5;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
 
@@ -136,12 +136,13 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
       }
      else if ( !StrCaseCmp(Tokens[0],"ENDLATTICE") )
       { 
-        // if the user specified two basis vectors, test for orthogonality
+        // if the user specified two basis vectors, test for independence
         if (NumLatticeBasisVectors==2)
-         { double DotProd=VecDot(LatticeBasisVectors[0],LatticeBasisVectors[1]);
+	 { double cross[3];
+           double Area=VecNorm(VecCross(LatticeBasisVectors[0],LatticeBasisVectors[1],cross));
            double NormProd=VecNorm(LatticeBasisVectors[0])*VecNorm(LatticeBasisVectors[1]);
-           if ( DotProd > 1.0e-6*NormProd )
-            ErrExit("%s:%i: lattice basis vectors are not orthogonal",FileName,*LineNum);
+           if ( Area < 1.0e-6*NormProd )
+            ErrExit("%s:%i: lattice basis vectors are parallel",FileName,*LineNum);
          };
 
         return; 
