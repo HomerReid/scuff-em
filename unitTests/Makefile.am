@@ -9,6 +9,7 @@ EXTRA_DIST = 					\
  SiSphere.scuffgeo 		 		\
  TwoSpheres.scuffgeo 				\
  TwoSpheres_Coarse.scuffgeo			\
+ TwoSpheres_Coarse.hdf5    			\
  SphereSubstrateArray_Coarse.scuffgeo
 
 LIBSCUFF = $(top_builddir)/src/libs/libscuff/libscuff.la

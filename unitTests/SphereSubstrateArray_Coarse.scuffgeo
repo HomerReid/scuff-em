@@ -1,0 +1,38 @@
+# .scuffgeo file used for SCUFF-EM unit tests on a 
+# geometry consisting of an array of gold spheres atop 
+# a silicon substrate
+
+MATERIAL Silicon
+    epsf = 1.035;      # \epsilon_infinity
+    eps0 = 11.87;      # \epsilon_0 
+    wp = 6.6e15;       # \plasmon frequency
+    Eps(w) = epsf + (eps0-epsf)/(1-(w/wp)^2);
+ENDMATERIAL
+
+MATERIAL Gold
+    wp = 1.37e16; 
+    gamma = 5.32e13;
+    Eps(w) = 1 - wp^2 / (w * (w + i*gamma));
+ENDMATERIAL
+
+LATTICE 
+	VECTOR 2.4 0.0 0.0 
+	VECTOR 0.0 2.4 0.0
+ENDLATTICE 
+
+REGION UpperHalfSpace MATERIAL Vacuum
+REGION LowerHalfSpace MATERIAL Silicon
+REGION SphereInterior MATERIAL Gold
+
+
+SURFACE Sphere
+	MESHFILE UnitTestSphere_Coarse.msh
+	DISPLACED 1.2 1.2 1.85
+	REGIONS UpperHalfSpace SphereInterior
+ENDOBJECT
+
+
+SURFACE Substrate
+	MESHFILE Square.msh
+	REGIONS UpperHalfSpace LowerHalfSpace
+ENDOBJECT
