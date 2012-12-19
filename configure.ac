@@ -212,8 +212,6 @@ AC_CONFIG_FILES([
  src/applications/scuff-cas2D/libAmosBessel/Makefile
  src/applications/scuff-cas2D/Makefile
  src/applications/scuff-cas3D/Makefile
- src/applications/scuff-heat/Makefile
- src/applications/scuff-neq/Makefile
  src/applications/scuff-plotEpsMu/Makefile
  src/applications/scuff-rf/Makefile
  src/applications/scuff-scatter/Makefile

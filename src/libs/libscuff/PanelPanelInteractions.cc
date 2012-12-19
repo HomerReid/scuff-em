@@ -103,6 +103,155 @@ cdouble ExpRel(cdouble x, int n)
   return Sum;
 } 
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void AssembleInnerPPIIntegrand_Interp(double wp, cdouble k, double *R, double *F, double *FP,
+                                      Interp3D *GInterp, int NumTorqueAxes, double *GammaMatrix,
+                                      cdouble *HInner, cdouble *GradHInner, cdouble *dHdTInner)
+{ 
+  /*--------------------------------------------------------------*/
+  /*- use interpolation table to look up values of GBar          -*/
+  /*--------------------------------------------------------------*/
+  bool ZFlipped;
+  if ( R[2] < 0.0 )
+   { R[2] *= -1.0;
+     ZFlipped=true;
+   }
+  else
+   ZFlipped=false;
+
+  double PhiVD[20];
+  cdouble GBar, dGBar[3], ddGBar[3][3];
+
+  GInterp->EvaluatePlusPlus(R[0], R[1], R[2], PhiVD);
+
+  GBar         = cdouble(PhiVD[0],PhiVD[10+0]);
+  dGBar[0]     = cdouble(PhiVD[1],PhiVD[10+1]);
+  dGBar[1]     = cdouble(PhiVD[2],PhiVD[10+2]);
+  dGBar[2]     = cdouble(PhiVD[3],PhiVD[10+3]);
+  if (GradHInner)
+   { ddGBar[0][0] = cdouble(PhiVD[4],PhiVD[10+4]);
+     ddGBar[0][1] = cdouble(PhiVD[5],PhiVD[10+5]);
+     ddGBar[0][2] = cdouble(PhiVD[6],PhiVD[10+6]);
+     ddGBar[1][0] = ddGBar[0][1];
+     ddGBar[1][1] = cdouble(PhiVD[7],PhiVD[10+7]);
+     ddGBar[1][2] = cdouble(PhiVD[8],PhiVD[10+8]);
+     ddGBar[2][0] = ddGBar[0][2];
+     ddGBar[2][1] = ddGBar[1][2];
+     ddGBar[2][2] = cdouble(PhiVD[9],PhiVD[10+9]);
+   };
+
+  // flip the sign of any z derivatives as necessary
+  if (ZFlipped)
+   { dGBar[2]*=-1.0; 
+     ddGBar[0][2]*=-1.0; 
+     ddGBar[1][2]*=-1.0; 
+     ddGBar[2][0]*=-1.0; 
+     ddGBar[2][1]*=-1.0; 
+   };
+      
+  /*--------------------------------------------------------------*/
+  /*- compute h factors (note quadrature weight goes in here) ----*/
+  /*--------------------------------------------------------------*/
+  cdouble ik=II*k, ik2=ik*ik;
+  cdouble hPlus = wp*( VecDot(F,FP) + 4.0/ik2 );
+  double FxFP[3];
+  VecCross(F, FP, FxFP);
+  FxFP[0]*=wp;
+  FxFP[1]*=wp;
+  FxFP[2]*=wp;
+  
+  /*--------------------------------------------------------------*/
+  /*- assemble H components --------------------------------------*/
+  /*--------------------------------------------------------------*/
+  HInner[0] += hPlus * GBar;   
+  HInner[1] += FxFP[0]*dGBar[0] + FxFP[1]*dGBar[1] + FxFP[2]*dGBar[2];
+
+  if (GradHInner)
+   { 
+     // derivatives of the G integral
+     GradHInner[0] += hPlus * dGBar[0];
+     GradHInner[2] += hPlus * dGBar[1];
+     GradHInner[4] += hPlus * dGBar[2];
+
+     // derivatives of the C integral
+     GradHInner[1] += FxFP[0]*ddGBar[0][0] + FxFP[1]*ddGBar[0][1] + FxFP[2]*ddGBar[0][2];
+     GradHInner[3] += FxFP[0]*ddGBar[1][0] + FxFP[1]*ddGBar[1][1] + FxFP[2]*ddGBar[1][2];
+     GradHInner[5] += FxFP[0]*ddGBar[2][0] + FxFP[1]*ddGBar[2][1] + FxFP[2]*ddGBar[2][2];
+
+   };
+
+  (void)dHdTInner; // currently unused
+  (void)GammaMatrix; // currently unused
+  if (NumTorqueAxes>0)
+   ErrExit("angular derivatives of matrix elements not yet implemented for PBC geometries");
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void AssembleInnerPPIIntegrand_NoInterp(double wp, cdouble k, double *R, double *X, double *F, double *FP,
+                                        int DeSingularize, int NumTorqueAxes, double *GammaMatrix,
+                                        cdouble *HInner, cdouble *GradHInner, cdouble *dHdTInner)
+{ 
+  double r=VecNorm(R);
+  double r2=r*r;
+  cdouble ik=II*k, ik2=ik*ik;
+
+  /* compute h factors */
+  cdouble hPlus = VecDot(F,FP) + 4.0/ik2;
+  double FxFP[3];
+  VecCross(F, FP, FxFP);
+  double hTimes=VecDot(FxFP, R);
+
+  /* compute Phi, Psi, Zeta factors */
+  cdouble Phi, Psi, Zeta;
+  if (DeSingularize)
+   Phi = ExpRel(ik*r,4) / (4.0*M_PI*r);
+  else
+   Phi = exp(ik*r) / (4.0*M_PI*r);
+  if ( !isfinite(real(Phi)) ) Phi=0.0;
+   
+  // put the cubature weight into Phi since Phi is a factor in
+  // all integrand components
+  Phi*=wp; 
+  Psi = Phi * (ik - 1.0/r) / r;
+  Zeta = Phi * (ik2 - 3.0*ik/r + 3.0/r2) / r2;
+   
+  // combine h terms with kernel factors as necessary 
+  // for the various integrand components
+  HInner[0] += hPlus * Phi;
+  HInner[1] += hTimes * Psi;
+   
+  if ( GradHInner )
+   for(int Mu=0; Mu<3; Mu++)
+    { GradHInner[2*Mu + 0] += R[Mu]*hPlus*Psi;
+      GradHInner[2*Mu + 1] += R[Mu]*hTimes*Zeta + FxFP[Mu]*Psi;
+    };
+   
+  /* 3. d/dTheta L_{0,1,2} */
+  double dX[3], dF[3], Puv, dFxFP[3];
+  if ( NumTorqueAxes>0 && GammaMatrix!=0 )
+   for(int nta=0; nta<NumTorqueAxes; nta++)
+    { memset(dX,0,3*sizeof(double));
+      memset(dF,0,3*sizeof(double));
+      for(int Mu=0; Mu<3; Mu++)
+       for(int Nu=0; Nu<3; Nu++)
+        { dX[Mu]+=GammaMatrix[9*nta + Mu + 3*Nu]*X[Nu];
+          dF[Mu]+=GammaMatrix[9*nta + Mu + 3*Nu]*F[Nu];
+        };
+      Puv=VecDot(R,dX);
+      dHdTInner[2*nta + 0] += hPlus*Puv*Psi + VecDot(dF,FP)*Phi;
+      dHdTInner[2*nta + 1] += hTimes*Puv*Zeta 
+                               + (    VecDot(VecCross(dF,FP,dFxFP),R) 
+                                    + VecDot(FxFP,dX) 
+                                 )*Psi;
+    }; // for(nta= ... )
+
+}
+
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -142,11 +291,7 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
   VecSub(Vb[2], Vb[0], BP);
   QP=Qb;
 
-  cdouble ik=II*Args->k;
-  cdouble ik2=ik*ik;
-
   cdouble H[2]; 
-
   cdouble *GradH, GradHBuffer[6];
   int NumGradientComponents=Args->NumGradientComponents;
   if (NumGradientComponents>0 && Args->GradH!=0)
@@ -155,14 +300,16 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
    GradH = 0;
  
   cdouble *dHdT, dHdTBuffer[6];
-  int nta, NumTorqueAxes=Args->NumTorqueAxes;
+  int NumTorqueAxes=Args->NumTorqueAxes;
   double *GammaMatrix=Args->GammaMatrix;
   if (NumTorqueAxes>0 && GammaMatrix!=0 && Args->dHdT!=0)
    dHdT = dHdTBuffer;
   else
    dHdT = 0;
 
-  cdouble HInner[2], GradHInner[6], dHdTInner[6];
+  cdouble HInner[2], GradHInnerBuffer[6], dHdTInnerBuffer[6];
+  cdouble *GradHInner = GradH ? GradHInnerBuffer : 0;
+  cdouble *dHdTInner  = dHdT  ? dHdTInnerBuffer  : 0;
 
   /***************************************************************/
   /* choose order of quadrature scheme to use.                   */
@@ -184,15 +331,11 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
   /***************************************************************/
   /* outer loop **************************************************/
   /***************************************************************/
-  double hDot, hNabla=4.0, hTimes; // note hNabla is constant throughout
-  cdouble hPlus;
   int np, ncp, npp, ncpp;
-  int Mu, Nu;
+  int Mu;
   double u, v, w, up, vp, wp;
-  double X[3], F[3], XP[3], FP[3], R[3], FxFP[3];
-  double dX[3], dF[3], Puv, dFxFP[3];
-  double r, r2; 
-  cdouble Phi, Psi, Zeta;
+  double X[3], F[3], XP[3], FP[3], R[3];
+  cdouble k = Args->k;
   memset(H,0,2*sizeof(cdouble));
   if (GradH) memset(GradH,0,6*sizeof(cdouble));
   if (dHdT) memset(dHdT,0,2*NumTorqueAxes*sizeof(cdouble));
@@ -227,60 +370,16 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
            R[Mu] = X[Mu] - XP[Mu];
          };
       
-        /***************************************************************/
-        /* inner integrand  ********************************************/
-        /***************************************************************/
-        r=VecNorm(R);
-        r2=r*r;
-
-        /* compute h factors */
-        hDot=VecDot(F, FP);
-        hPlus=hDot + hNabla/ik2;
-        VecCross(F, FP, FxFP);
-        hTimes=VecDot(FxFP, R);
-   
-        /* compute Phi, Psi, Zeta factors */
-        if (DeSingularize)
-         Phi = ExpRel(ik*r,4) / (4.0*M_PI*r);
+        if ( Args->GInterp )
+         AssembleInnerPPIIntegrand_Interp(wp, k, R, F, FP, 
+                                          Args->GInterp, 
+                                          NumTorqueAxes, GammaMatrix, 
+                                          HInner, GradHInner, dHdTInner);
         else
-         Phi = exp(ik*r) / (4.0*M_PI*r);
-        if ( !isfinite(real(Phi)) ) Phi=0.0;
-
-        // put the cubature weight into Phi since Phi is a factor in
-        // all integrand components
-        Phi*=wp; 
-
-        Psi = Phi * (ik - 1.0/r) / r;
-        Zeta = Phi * (ik2 - 3.0*ik/r + 3.0/r2) / r2;
-
-        // combine h terms with kernel factors as necessary 
-        // for the various integrand components
-        HInner[0] += hPlus * Phi;
-        HInner[1] += hTimes * Psi;
-
-        if ( GradH )
-         for(Mu=0; Mu<3; Mu++)
-           { GradHInner[2*Mu + 0] += R[Mu]*hPlus*Psi;
-             GradHInner[2*Mu + 1] += R[Mu]*hTimes*Zeta + FxFP[Mu]*Psi;
-           };
-
-        /* 3. d/dTheta L_{0,1,2} */
-        if ( NumTorqueAxes>0 && GammaMatrix!=0 )
-         for(nta=0; nta<NumTorqueAxes; nta++)
-          { memset(dX,0,3*sizeof(double));
-            memset(dF,0,3*sizeof(double));
-            for(Mu=0; Mu<3; Mu++)
-             for(Nu=0; Nu<3; Nu++)
-              { dX[Mu]+=GammaMatrix[9*nta + Mu + 3*Nu]*X[Nu];
-                dF[Mu]+=GammaMatrix[9*nta + Mu + 3*Nu]*F[Nu];
-              };
-            Puv=VecDot(R,dX);
-            dHdTInner[2*nta + 0] += hPlus*Puv*Psi + VecDot(dF,FP)*Phi;
-            dHdTInner[2*nta + 1] += hTimes*Puv*Zeta 
-                                    + (  VecDot(VecCross(dF,FP,dFxFP),R) 
-                                       + VecDot(FxFP,dX) 
-                                      )*Psi;
-          }; // for(nta= ... )
+         AssembleInnerPPIIntegrand_NoInterp(wp, k, R, X, F, FP, 
+                                            DeSingularize,
+                                            NumTorqueAxes, GammaMatrix, 
+                                            HInner, GradHInner, dHdTInner);
 
       }; /* for(npp=ncpp=0; npp<NumPts; npp++) */
 
@@ -332,6 +431,11 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   cdouble *dHdT             = Args->dHdT;
 
   /***************************************************************/
+  /* assume that we will use the simple cubature algorithm *******/
+  /***************************************************************/
+  Args->WhichAlgorithm=PPIALG_CUBATURE;
+
+  /***************************************************************/
   /* extract panel vertices, detect common vertices, measure     */
   /* relative distance                                           */
   /***************************************************************/
@@ -372,10 +476,10 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
    };
 
   /***************************************************************/
-  /* if the panels are far apart then just use simple low-order  */
-  /* non-desingularized cubature                                 */
+  /* if the panels are far apart, or if we have an interpolator, */
+  /* then just use simple low-order non-desingularized cubature  */
   /***************************************************************/
-  if ( rRel > DESINGULARIZATION_RADIUS )
+  if ( Args->GInterp || (rRel > DESINGULARIZATION_RADIUS) )
    { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
      return;
    };
@@ -426,9 +530,13 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
 
      PIndex=TM_DOTPLUS;
      if ( InVerySWRegime && RWGGeometry::UseHighKTaylorDuffy )
-      KIndex=TM_HIGHK_HELMHOLTZ;
+      { Args->WhichAlgorithm=PPIALG_HKTD;
+        KIndex=TM_HIGHK_HELMHOLTZ;
+      }
      else
-      KIndex=TM_HELMHOLTZ;
+      { Args->WhichAlgorithm=PPIALG_TD;
+        KIndex=TM_HELMHOLTZ;
+      }
      TDArgs->Result = H+0;
      TaylorDuffy(TDArgs);
 
@@ -462,6 +570,7 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /* method below.                                                 */
   /*****************************************************************/
   cdouble GradHSave[6], dHdTSave[6];
+  Args->WhichAlgorithm=PPIALG_DESING;
   if ( NumGradientComponents>0 || NumTorqueAxes>0 )
    { GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
      memcpy(GradHSave, Args->GradH, 2*NumGradientComponents*sizeof(cdouble));
@@ -549,6 +658,7 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
   Args->GammaMatrix=0;
   Args->opFC=0;
   Args->Displacement=0;
+  Args->GInterp=0;
 }
 
 } // namespace scuff

@@ -297,6 +297,8 @@ class RWGSurface
 
    void AddStraddlers(double LBV[MAXLATTICE][3], int NumLatticeVectors, 
                       int NumStraddlers[MAXLATTICE]);
+
+   void UpdateBoundingBox();
  
  };
 
@@ -338,6 +340,11 @@ class RWGGeometry
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
    HMatrix *AssembleBEMMatrix(cdouble Omega, HMatrix *M = NULL);
+
+   /* lower-level routine for assembling individual BEM matrix blocks */
+   void AssembleBEMMatrixBlock(int nsa, int nsb, cdouble Omega, double *kBloch,
+                               HMatrix *M, HMatrix **GradM=0,
+                               int RowOffset=0, int ColOffset=0);
 
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(bool PureImagFreq = false );
@@ -428,6 +435,7 @@ class RWGGeometry
                   double *X, cdouble *EH);
    HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                       HMatrix *XMatrix, HMatrix *FMatrix=NULL, char *FuncString=NULL);
+   void RegisterTransformationList(GTComplex **GTCList, int NumTransformations);
 
    /*--------------------------------------------------------------------*/ 
    /*- class methods intended for internal use only, i.e. which          */ 
@@ -443,11 +451,10 @@ class RWGGeometry
 
    // the following helper functions are only used for periodic boundary conditions
    void InitPBCData();
-   void GetRegionExtents(int nr, double RMax[3], double RMin[3]);
-   void AssembleInnerCellBlocks(double *kBloch, HMatrix *M);
-   void AddOuterCellContributions(double kBloch[MAXLATTICE], HMatrix *M);
+   void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
                                       double kBloch[MAXLATTICE], HMatrix *XMatrix);
+   void UpdateRegionInterpolators(cdouble Omega, double *kBloch);
 
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 

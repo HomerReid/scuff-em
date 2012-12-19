@@ -44,8 +44,21 @@ namespace scuff {
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void GetBoundingBox(RWGSurface *S, double RMax[3], double RMin[3])
+void RWGSurface::UpdateBoundingBox()
 { 
+  RMax[0] = RMax[1] = RMax[2] = -1.0e89;
+  RMin[0] = RMin[1] = RMin[2] = +1.0e89;
+  double *V;
+  for(int np=0; np<NumPanels; np++)
+   for(int i=0; i<3; i++)
+    { V = Vertices + 3*(Panels[np]->VI[i]);
+      RMax[0] = fmax(RMax[0], V[0] );
+      RMax[1] = fmax(RMax[1], V[1] );
+      RMax[2] = fmax(RMax[2], V[2] );
+      RMin[0] = fmin(RMin[0], V[0] );
+      RMin[1] = fmin(RMin[1], V[1] );
+      RMin[2] = fmin(RMin[2], V[2] );
+    };
 }
 
 /*--------------------------------------------------------------*/
@@ -375,22 +388,7 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   NumBFs = IsPEC ? NumEdges : 2*NumEdges;
   IsClosed = (NumExteriorEdges == 0);
 
-  /*------------------------------------------------------------*/
-  /*- compute bounding box -------------------------------------*/
-  /*------------------------------------------------------------*/
-  RMax[0] = RMax[1] = RMax[2] = -1.0e89;
-  RMin[0] = RMin[1] = RMin[2] = +1.0e89;
-  double *V;
-  for(int np=0; np<NumPanels; np++)
-   for(int i=0; i<3; i++)
-    { V = Vertices + 3*(Panels[np]->VI[i]);
-      RMax[0] = fmax(RMax[0], V[0] );
-      RMax[1] = fmax(RMax[1], V[1] );
-      RMax[2] = fmax(RMax[2], V[2] );
-      RMin[0] = fmin(RMin[0], V[0] );
-      RMin[1] = fmin(RMin[1], V[1] );
-      RMin[2] = fmin(RMin[2], V[2] );
-    };
+  UpdateBoundingBox();
 
 } 
 
@@ -539,6 +537,8 @@ void RWGSurface::Transform(const GTransformation *DeltaGT)
   for(np=0; np<NumPanels; np++)
    InitRWGPanel(Panels[np], Vertices);
 
+  UpdateBoundingBox();
+
   /***************************************************************/
   /* update the internally stored GTransformation ****************/
   /***************************************************************/
@@ -586,10 +586,13 @@ void RWGSurface::UnTransform()
   for(np=0; np<NumPanels; np++)
    InitRWGPanel(Panels[np], Vertices);
 
+  UpdateBoundingBox();
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   GT->Reset();
+
 }
 
 /*-----------------------------------------------------------------*/

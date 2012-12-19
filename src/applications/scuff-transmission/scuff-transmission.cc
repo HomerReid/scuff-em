@@ -80,10 +80,19 @@ double SCR9[]={
 /* Return values: TRFlux[0,1] = transmitted, reflected flux        */
 /*******************************************************************/
 void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega, 
-               double *kBloch, double ZAbove, double ZBelow, double *TRFlux)
+               int NQPoints, double *kBloch, 
+               double ZAbove, double ZBelow, double *TRFlux)
 {
-  int NCP=17; // number of cubature points
   double *SCR=SCR9;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NCP; // number of cubature points
+  if (NQPoints==0)
+   NCP=17; 
+  else
+   NCP=NQPoints*NQPoints;
 
   /***************************************************************/
   /* on the first invocation we allocate space for the matrices  */
@@ -106,26 +115,45 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   double x, y, *LBV[2];
   LBV[0]=G->LatticeBasisVectors[0];
   LBV[1]=G->LatticeBasisVectors[1];
-  for(int ncp=0; ncp<NCP; ncp++)
-   { 
-     x=SCR[3*ncp+0];
-     y=SCR[3*ncp+1];
+  if (NQPoints==0)
+   { for(int ncp=0; ncp<NCP; ncp++)
+      { 
+        x=SCR[3*ncp+0];
+        y=SCR[3*ncp+1];
 
-     XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-     XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-     XMatrixAbove->SetEntry(ncp, 2, ZAbove);
+        XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+        XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+        XMatrixAbove->SetEntry(ncp, 2, ZAbove);
 
-     XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-     XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-     XMatrixBelow->SetEntry(ncp, 2, ZBelow);
+        XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+        XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+        XMatrixBelow->SetEntry(ncp, 2, ZBelow);
 
+      };
+   }
+  else
+   { double Delta = 1.0 / ( (double)NQPoints );
+     for(int nqpx=0, ncp=0; nqpx<NQPoints; nqpx++)
+      for(int nqpy=0; nqpy<NQPoints; nqpy++, ncp++)
+       { 
+         x = ((double)nqpx + 0.5)*Delta;
+         y = ((double)nqpy + 0.5)*Delta;
+
+         XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+         XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+         XMatrixAbove->SetEntry(ncp, 2, ZAbove);
+
+         XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+         XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+         XMatrixBelow->SetEntry(ncp, 2, ZBelow);
+       };
    };
 
   /***************************************************************/ 
   /* get scattered fields at all cubature points                 */ 
   /***************************************************************/ 
-  G->GetFields(0, KN, Omega, kBloch, XMatrixAbove, FMatrixAbove);
-  G->GetFields(0, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
+  G->GetFields(IF, KN, Omega, kBloch, XMatrixAbove, FMatrixAbove);
+  G->GetFields(IF, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
 
   /***************************************************************/
   /* integrate poynting vector over upper and lower surfaces.    */
@@ -138,7 +166,10 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   cdouble E[3], H[3];
   for(int ncp=0; ncp<NCP; ncp++)
    {
-     w=SCR[3*ncp+2];  // cubature weight
+     if (NQPoints==0) 
+      w=SCR[3*ncp+2];  // cubature weight
+     else
+      w=1.0/((double)(NCP));
 
      E[0]=FMatrixAbove->GetEntry(ncp, 0);
      E[1]=FMatrixAbove->GetEntry(ncp, 1);
@@ -165,6 +196,21 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetScatteringAmplitudes(HVector *RHS, HVector *KN, double SA[2])
+{
+  cdouble Dot, CDot;
+  for(int n=0; n<RHS->N; n++)
+   {  Dot += RHS->GetEntry(n) * KN->GetEntry(n);
+     CDot += conj(RHS->GetEntry(n)) * KN->GetEntry(n);
+   };
+  SA[0] = abs(Dot*Dot);
+  SA[1] = abs(CDot*CDot);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int main(int argc, char *argv[])
 {
   EnableAllCPUs();
@@ -182,6 +228,7 @@ int main(int argc, char *argv[])
   int ThetaPoints=25;
   double ZAbove=2.0;
   double ZBelow=-1.0;
+  int NQPoints=0;
   char *OutFileName=0;
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
@@ -200,6 +247,8 @@ int main(int argc, char *argv[])
 /**/
      {"ZAbove",      PA_DOUBLE,  1, 1,       (void *)&ZAbove,       0,       "Z-coordinate of upper integration plane"},
      {"ZBelow",      PA_DOUBLE,  1, 1,       (void *)&ZBelow,       0,       "Z-coordinate of lower integration plane"},
+/**/
+     {"NQPoints",    PA_INT,     1, 1,       (void *)&NQPoints,     0,       "number of quadrature points per dimension"},
 /**/
      {"OutFile",     PA_STRING,  1, 1,       (void *)&OutFileName,  0,       "output file name"},
 /**/
@@ -220,8 +269,9 @@ int main(int argc, char *argv[])
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   if (G->NumLatticeBasisVectors!=2)
    ErrExit("%s: geometry must have two-dimensional lattice periodicity",GeoFileName);
-  HMatrix *M  = G->AllocateBEMMatrix();
-  HVector *KN = G->AllocateRHSVector();
+  HMatrix *M   = G->AllocateBEMMatrix();
+  HVector *RHS = G->AllocateRHSVector();
+  HVector *KN  = G->AllocateRHSVector();
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */
@@ -335,15 +385,15 @@ int main(int argc, char *argv[])
   double SinTheta, CosTheta;
   cdouble Omega;
   double TRFluxPerp[2], TRFluxPar[2], IncFlux;
+  double SAPerp[2], SAPar[2];
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
     { 
-      Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)",real(Omega),Theta*RAD2DEG);
       Omega = OmegaVector->GetEntry(nOmega);
-
       Theta = ThetaVector->GetEntryD(nTheta);
       SinTheta=sin(Theta);
       CosTheta=cos(Theta);
+      Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)",real(Omega),Theta*RAD2DEG);
 
       // set bloch wavevector and assemble BEM matrix 
       G->RegionMPs[0]->GetEpsMu(Omega, &EpsExterior, &MuExterior);
@@ -368,24 +418,30 @@ int main(int argc, char *argv[])
       E0[1]=1.0;
       E0[2]=0.0;
       PW.SetE0(E0);
-      G->AssembleRHSVector(Omega, kBloch, &PW, KN);
+      G->AssembleRHSVector(Omega, kBloch, &PW, RHS);
+      KN->Copy(RHS);
       M->LUSolve(KN);
-      GetTRFlux(G, &PW, KN, Omega, kBloch, ZAbove, ZBelow, TRFluxPerp);
+      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPerp);
+      GetScatteringAmplitudes(RHS, KN, SAPerp);
 
       // solve with E-field parallel to plane of incidence
       E0[0]=CosTheta;
       E0[1]=0.0;
       E0[2]=-SinTheta;
       PW.SetE0(E0);
-      G->AssembleRHSVector(Omega, kBloch, &PW, KN);
+      G->AssembleRHSVector(Omega, kBloch, &PW, RHS);
+      KN->Copy(RHS);
       M->LUSolve(KN);
-      GetTRFlux(G, &PW, KN, Omega, kBloch, ZAbove, ZBelow, TRFluxPar);
+      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPar);
+      GetScatteringAmplitudes(RHS, KN, SAPar);
    
       IncFlux = CosTheta/(2.0*ZVAC);
 
-      fprintf(f,"%s %e %e %e %e %e\n",z2s(Omega),Theta*RAD2DEG,
+      fprintf(f,"%s %e %e %e %e %e %e %e %e %e\n",
+                            z2s(Omega), Theta*RAD2DEG,
                  TRFluxPerp[0]/IncFlux, TRFluxPerp[1]/IncFlux,
-                  TRFluxPar[0]/IncFlux,  TRFluxPar[1]/IncFlux);
+                  TRFluxPar[0]/IncFlux,  TRFluxPar[1]/IncFlux,
+                  SAPerp[0], SAPerp[1], SAPar[0], SAPar[1]);
       fflush(f);
 
    }; 
