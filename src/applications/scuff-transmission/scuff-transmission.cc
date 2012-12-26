@@ -196,15 +196,35 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetScatteringAmplitudes(HVector *RHS, HVector *KN, double SA[2])
+void GetScatteringAmplitude(RWGGeometry *G, HVector *RHS, HVector *KN, cdouble SA[2])
 {
-  cdouble Dot, CDot;
-  for(int n=0; n<RHS->N; n++)
-   {  Dot += RHS->GetEntry(n) * KN->GetEntry(n);
-     CDot += conj(RHS->GetEntry(n)) * KN->GetEntry(n);
+  cdouble Dot=0.0, CDot=0.0;
+  for(int nbf=0, ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     RWGSurface *S = G->Surfaces[ns];
+     if (S->IsPEC)
+      for(int ne=0; ne<S->NumEdges; ne++)
+       {  Dot  += RHS->GetEntry(nbf) * KN->GetEntry(nbf);
+          CDot += conj(RHS->GetEntry(nbf)) * KN->GetEntry(nbf);
+          nbf++;
+       }
+     else
+      for(int ne=0; ne<S->NumEdges; ne++)
+       {  Dot  += RHS->GetEntry(nbf) * KN->GetEntry(nbf);
+                  - RHS->GetEntry(nbf+1) * KN->GetEntry(nbf+1);
+          CDot += conj(RHS->GetEntry(nbf)) * KN->GetEntry(nbf);
+                   - conj(RHS->GetEntry(nbf+1)) * KN->GetEntry(nbf+1);
+          nbf+=2;
+       };
    };
-  SA[0] = abs(Dot*Dot);
-  SA[1] = abs(CDot*CDot);
+   
+  Dot *= -1.0*ZVAC;
+  CDot *= -1.0*ZVAC;
+  
+  //SA[0] = abs(Dot*Dot);
+  //SA[1] = abs(CDot*CDot);
+  SA[0] = Dot;
+  SA[1] = CDot;
 
 }
 
@@ -385,7 +405,7 @@ int main(int argc, char *argv[])
   double SinTheta, CosTheta;
   cdouble Omega;
   double TRFluxPerp[2], TRFluxPar[2], IncFlux;
-  double SAPerp[2], SAPar[2];
+  cdouble SAPerp[2], SAPar[2];
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
     { 
@@ -422,7 +442,7 @@ int main(int argc, char *argv[])
       KN->Copy(RHS);
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPerp);
-      GetScatteringAmplitudes(RHS, KN, SAPerp);
+      GetScatteringAmplitude(G, RHS, KN, SAPerp);
 
       // solve with E-field parallel to plane of incidence
       E0[0]=CosTheta;
@@ -433,15 +453,18 @@ int main(int argc, char *argv[])
       KN->Copy(RHS);
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPar);
-      GetScatteringAmplitudes(RHS, KN, SAPar);
+      GetScatteringAmplitude(G, RHS, KN, SAPar);
    
       IncFlux = CosTheta/(2.0*ZVAC);
 
-      fprintf(f,"%s %e %e %e %e %e %e %e %e %e\n",
-                            z2s(Omega), Theta*RAD2DEG,
-                 TRFluxPerp[0]/IncFlux, TRFluxPerp[1]/IncFlux,
-                  TRFluxPar[0]/IncFlux,  TRFluxPar[1]/IncFlux,
-                  SAPerp[0], SAPerp[1], SAPar[0], SAPar[1]);
+      fprintf(f,"%s %e ", z2s(Omega), Theta*RAD2DEG);
+      fprintf(f,"%e %e ", TRFluxPerp[0]/IncFlux, TRFluxPerp[1]/IncFlux);
+      fprintf(f,"%e %e ", TRFluxPar[0]/IncFlux, TRFluxPar[1]/IncFlux);
+      fprintf(f,"%e %e ", real(SAPerp[0]), imag(SAPerp[0]));
+      fprintf(f,"%e %e ", real(SAPerp[1]), imag(SAPerp[1]));
+      fprintf(f,"%e %e ", real(SAPar[0]), imag(SAPar[0]));
+      fprintf(f,"%e %e ", real(SAPar[0]), imag(SAPar[0]));
+      fprintf(f,"\n");
       fflush(f);
 
    }; 
