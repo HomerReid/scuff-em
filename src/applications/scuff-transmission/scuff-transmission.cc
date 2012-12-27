@@ -463,7 +463,7 @@ int main(int argc, char *argv[])
       fprintf(f,"%e %e ", real(SAPerp[0]), imag(SAPerp[0]));
       fprintf(f,"%e %e ", real(SAPerp[1]), imag(SAPerp[1]));
       fprintf(f,"%e %e ", real(SAPar[0]), imag(SAPar[0]));
-      fprintf(f,"%e %e ", real(SAPar[0]), imag(SAPar[0]));
+      fprintf(f,"%e %e ", real(SAPar[1]), imag(SAPar[1]));
       fprintf(f,"\n");
       fflush(f);
 
