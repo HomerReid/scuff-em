@@ -216,8 +216,8 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   /* preinitialize an argument structure for the BEM matrix      */
   /* block assembly routine                                      */
   /***************************************************************/
-  ABMBArgStruct MyABMBArgStruct, *Args=&MyABMBArgStruct;
-  InitABMBArgs(Args);
+  GetSSIArgStruct MyGSSIArgStruct, *Args=&MyGSSIArgStruct;
+  InitGetSSIArgs(Args);
   Args->G         = G;
   Args->Omega     = Omega;
 
@@ -240,7 +240,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
      Args->Sa = Args->Sb = G->Surfaces[ns];
      Args->B = T[ns];
      Args->Symmetric=1;
-     AssembleBEMMatrixBlock(Args);
+     GetSurfaceSurfaceInteractions(Args);
    };
        
 
@@ -277,7 +277,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
           Args->Sb = G->Surfaces[nsp];
           Args->B  = U[nb];
           Args->Symmetric=0;
-          AssembleBEMMatrixBlock(Args);
+          GetSurfaceSurfaceInteractions(Args);
         };
 
      /*--------------------------------------------------------------*/
