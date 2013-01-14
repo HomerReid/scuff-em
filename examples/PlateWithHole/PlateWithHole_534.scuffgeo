@@ -1,0 +1,4 @@
+OBJECT PlateWithHole
+	MESHFILE PlateWithHole_534.msh
+	MATERIAL PEC
+ENDOBJECT

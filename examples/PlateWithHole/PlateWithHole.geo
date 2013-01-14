@@ -10,7 +10,7 @@
 
 ROuter = 10;      // outer plate radius
 RInner =  1;      // inner plate radius
-T      =  1;      // thickness
+T      =  0;      // thickness
 
 lOuter = ROuter/4; // meshing fineness near outer circumference
 lInner = RInner/4; // meshing fineness near hole
