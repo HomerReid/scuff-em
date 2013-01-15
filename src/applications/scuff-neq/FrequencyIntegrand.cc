@@ -58,9 +58,7 @@ void SpyPlot(HMatrix *M, char *Title, char *FileName)
   fprintf(f,"set xlabel 'Rows'\n");
   fprintf(f,"set ylabel 'Columns'\n");
   fprintf(f,"plot '%s' w p pt 7 ps 1\n",FileName);
-printf("george jetson\n");
  // pclose(f);
-printf("doomatage\n");
   
 }
 
@@ -119,12 +117,6 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
 
   cdouble FMPTrace=0.0; //'four-matrix-product trace'
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-FILE *f=vfopen("/tmp/Matrix%i.dat","w",QIndex);
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   for(p=0; p<OMatrix1->NR; p++)
    { 
      nnzq=OMatrix1->GetRow(p, qValues, O1Entries);
@@ -140,40 +132,9 @@ FILE *f=vfopen("/tmp/Matrix%i.dat","w",QIndex);
                       *O2Entries[ns]
                       *conj( W->GetEntry( Offset1+p, Offset2+s ));
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-if (p==0 || p==(OMatrix1->NR-1))
-for(nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
- for(ns=0, s=sValues[0]; ns<nnzs; s=sValues[++ns] )
- { fprintf(f,"%4i | %4i | %4i | %4i | (%+5.2e,%+5.2e) | (%+5.2e,%+5.2e) | (%+5.2e,%+5.2e) | (%+5.2e,%+5.2e) | (%+5.2e,%+5.2e) | (%+5.2e,%+5.2e) \n",
-               Offset1+p,Offset1+q,Offset2+r,Offset2+s,
-               real(O1Entries[nq]), 
-               imag(O1Entries[nq]), 
-               real(W->GetEntry( Offset1+q, Offset2+r )),
-               imag(W->GetEntry( Offset1+q, Offset2+r )), 
-               real(O2Entries[ns]), 
-               imag(O2Entries[ns]), 
-               real(conj( W->GetEntry( Offset1+p, Offset2+s ))),
-               imag(conj( W->GetEntry( Offset1+p, Offset2+s ))),
-               real(O1Entries[nq]*W->GetEntry( Offset1+q, Offset2+r )*O2Entries[ns]*conj( W->GetEntry( Offset1+p, Offset2+s ))),
-               imag(O1Entries[nq]*W->GetEntry( Offset1+q, Offset2+r )*O2Entries[ns]*conj( W->GetEntry( Offset1+p, Offset2+s ))),
-               real(FMPTrace),
-               imag(FMPTrace));
-
- };
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
       }; // for (r=0...
    }; // for (p=0... 
   FMPTrace *= (-1.0/16.0);
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-fclose(f);
-if (QIndex==QINDEX_ZFORCE) exit(1);
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /***************************************************************/
@@ -222,14 +183,6 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   Args->Omega     = Omega;
 
   /***************************************************************/
-  /* also before entering the loop over transformations, we      */
-  /* pause to assemble the overlap matrices.                     */
-  /***************************************************************/
-  int ns, nsp, nb, NS=G->NumSurfaces;
-  for(ns=0; ns<NS; ns++)
-   G->Surfaces[ns]->GetOverlapMatrices(NeedMatrix, SArray[ns], Omega, G->RegionMPs[0]);
-
-  /***************************************************************/
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
@@ -242,8 +195,15 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
      Args->Symmetric=1;
      GetSurfaceSurfaceInteractions(Args);
    };
-       
 
+  /***************************************************************/
+  /* also before entering the loop over transformations, we      */
+  /* pause to assemble the overlap matrices.                     */
+  /***************************************************************/
+  int ns, nsp, nb, NS=G->NumSurfaces;
+  for(ns=0; ns<NS; ns++)
+   G->Surfaces[ns]->GetOverlapMatrices(NeedMatrix, SArray[ns], Omega, G->RegionMPs[0]);
+       
   /***************************************************************/
   /* now loop over transformations.                              */
   /* note: 'gtc' stands for 'geometrical transformation complex' */
