@@ -186,6 +186,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
+  int ns, nsp, nb, NS=G->NumSurfaces;
   for(ns=0; ns<NS; ns++)
    { 
      Log(" Assembling self contributions to T(%i)...",ns);
@@ -200,7 +201,6 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   /* also before entering the loop over transformations, we      */
   /* pause to assemble the overlap matrices.                     */
   /***************************************************************/
-  int ns, nsp, nb, NS=G->NumSurfaces;
   for(ns=0; ns<NS; ns++)
    G->Surfaces[ns]->GetOverlapMatrices(NeedMatrix, SArray[ns], Omega, G->RegionMPs[0]);
        
