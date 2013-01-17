@@ -1,0 +1,211 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\newcommand\supsstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {PFT and Non-Equilibrium Formulas in {\sc scuff-em}}
+\author {Homer Reid}
+\date {March 18, 2012}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: PFT and NEQ formulas in {\sc scuff-em}}
+\maketitle
+
+%\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The {\sc scuff-em} versions of the BEM system}
+
+The usual PMCHW equation reads, in continuous form, 
+\numeq{PMCHWContinuous}
+{  \left(\begin{array}{cc} 
+      \BG\supt{EE} & \BG\supt{EM} \\
+      \BG\supt{ME} & \BG\supt{MM}
+    \end{array}\right)
+   *
+  \left(\begin{array}{c} \vb K \\ \vb N \end{array}\right)
+  =
+  -\left(\begin{array}{c} \vb E \\ \vb H \end{array}\right)\sups{inc}_{\parallel}
+}
+or, in discretized form,
+%====================================================================%
+\numeq{PMCHWDiscrete}
+{
+  \underbrace{
+    \left(\begin{array}{cc} 
+      \vb M\supt{EE} & \vb M\supt{EM} \\
+      \vb M\supt{ME} & \vb M\supt{MM}
+    \end{array}\right)
+             }_{\vb M}
+  \underbrace{
+  \left(\begin{array}{c} \vb k \\ \vb n \end{array}\right)
+             }_{\vb c}
+  =
+  -
+  \underbrace{
+   \left(\begin{array}{c} \vb v\supt{E} \\ \vb v\supt{H} \end{array}\right)
+             }_{\vb v}
+}
+%====================================================================%
+where e.g.
+%====================================================================%
+$$ M\supt{EE}_{mn} = \VMV{\vb b_m}{\BG\supt{EE}}{\vb b_n}.$$
+%====================================================================%
+
+\noindent
+On the other hand, the {\sc scuff-em} version of (\ref{PMCHWDiscrete})
+reads 
+%====================================================================%
+
+\numeq{SCUFFDiscrete}
+{
+  \underbrace{
+    \left(\begin{array}{cc} 
+      \displaystyle{ \frac{1}{Z_0} \vb M\supt{EE}} 
+     &\displaystyle{ -\vb M\supt{EM}}
+    \\[10pt]
+      \displaystyle{ \vb M\supt{ME} }
+     &\displaystyle{ \vphantom{\frac{1}{Z_0}} -Z_0 \vb M\supt{MM}}
+    \end{array}\right)
+             }_{\vb{\hat M}}
+  \,\,
+  \underbrace{
+  \left(\begin{array}{c}
+     \displaystyle{\vphantom{\frac{1}{Z_0}} \vb k} \\[10pt]
+     \displaystyle{-\frac{1}{Z_0}} \vb n 
+  \end{array}\right)
+             }_{\vb{\hat  c}}
+  =
+  -
+  \underbrace{
+   \left(\begin{array}{c} 
+     \displaystyle{\frac{1}{Z_0} \vb v\supt{E}}  \\[10pt] 
+     \displaystyle{\vphantom{\frac{1}{Z_0}} \vb v\supt{H} }
+         \end{array}\right)
+             }_{\vb{\hat  v}}
+}
+%====================================================================%
+
+\noindent The various vectors and matrices in (\ref{SCUFFDiscrete}) are 
+related to their counterparts in (\ref{PMCHWDiscrete}) according to
+\begin{align*}
+\hat{\vb M}
+&=
+    \left(\begin{array}{cc} 
+      \displaystyle{\frac{1}{Z_0} \vb M\supt{EE}} &  -\vb M\supt{EM} \\[10pt]
+                                   \vb M\supt{ME} & -Z_0 \vb M\supt{MM}
+    \end{array}\right)
+\\[10pt]
+&= \underbrace{
+    \left(\begin{array}{cc} 
+                    \frac{1}{Z_0} & 0 \\[5pt] 
+                                 0 & 1 
+    \end{array}\right)
+              }_{\equiv \vb A} 
+%  
+    \,\,
+%  
+    \underbrace{
+    \left(\begin{array}{cc} 
+      \vb M\supt{EE} &  \vb M\supt{EM} \\[5pt]
+      \vb M\supt{ME} &  \vb M\supt{MM}
+    \end{array}\right)
+               }_{\vb M}
+%  
+    \,\,
+%  
+    \underbrace{
+    \left(\begin{array}{cc} 
+      1 & 0 \\[5pt] 
+      0 & -Z_0
+    \end{array}\right)
+               }_{\equiv \vb B}
+\end{align*}
+and similarly 
+$$ \hat{\vb c}=\vb B^{-1} \vb c, \qquad 
+   \hat{\vb v}=\vb A      \vb v.
+$$
+Thus (\ref{SCUFFDiscrete}) is obtained from 
+(\ref{PMCHWDiscrete}) by \textbf{(i)} left-multiplying
+each side by $\vb A$, and \textbf{(ii)} inserting
+$\vb B \vb B^{-1}$:
+$$ \underbrace{\vb A \vb M \vb B}_{\hat{\vb M}}
+   \underbrace{\vb B^{-1} \vb c}_{\hat{\vb c}}
+   =
+   \underbrace{\vb A      \vb v}_{\hat{\vb v}}.
+$$
+Since the correspondence between BEM matrices in the ordinary and 
+{\sc scuff-em} formulations is 
+$$ \hat{\vb M} = \vb A \vb M \vb B $$
+the correspondence between \textit{inverse} BEM matrices reads
+$$ \hat{\vb W} = \vb B^{-1} \vb W \vb A^{-1}. $$
+
+\section{Transformations of compact PFT Formulas}
+
+The compact expressions for power, force, and torque in 
+BEM scattering computations generally take the form
+%
+$$ Q = \vb c^\dagger \vb O \vb c $$ 
+%
+where $Q$ is a power, force, or torque, and $\vb O$ is an
+overlap matrix.
+
+Using $\vb c=\vb B \hat{\vb c}$, we can express $Q$ 
+in terms of the {\sc scuff-em} surface-current vector
+as follows:
+%====================================================================%
+\begin{align*}
+ Q &= \hat{\vb c}^\dagger \Big(\vb B^\dagger \vb O \vb B\Big) \hat{\vb c }
+\end{align*}
+%====================================================================%
+The matrix that enters this equation is 
+\begin{align*}
+ \vb B^\dagger \vb O \vb B
+&=
+ \left(\begin{array}{cc}
+   1 & 0 \\
+   0 & -Z_0
+ \end{array}\right)
+ \left(\begin{array}{cc}
+   \vb O\supt{EE} & \vb O\supt{EM} \\
+   \vb O\supt{ME} & \vb O\supt{MM} \\
+ \end{array}\right)
+ \left(\begin{array}{cc}
+   1 & 0 \\
+   0 & -Z_0
+ \end{array}\right)
+\\[5pt]
+%--------------------------------------------------------------------%
+&=
+ \left(\begin{array}{rr}
+        \vb O\supt{EE}      & -Z_0 \vb O\supt{EM} \\[5pt]
+   -Z_0 \vb O\supt{ME} & Z_0^2 \vb O\supt{MM} \\
+ \end{array}\right).
+\end{align*}
+ 
+
+\end{document}
