@@ -393,7 +393,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
      M11 = Z*(Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2); 
      M12 = +2.0*Overlaps[OVERLAP_XTIMESNABLA]/ (II*Omega);
      M21 = -2.0*Overlaps[OVERLAP_XTIMESNABLA]/ (II*Omega);
-     M11 = (Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2) / Z;
+     M22 = (Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2) / Z;
      PFT[2] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
@@ -403,7 +403,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
      M11 = Z*(Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2); 
      M12 = +2.0*Overlaps[OVERLAP_YTIMESNABLA]/ (II*Omega);
      M21 = -2.0*Overlaps[OVERLAP_YTIMESNABLA]/ (II*Omega);
-     M11 = (Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2) / Z;
+     M22 = (Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2) / Z;
      PFT[3] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
@@ -413,7 +413,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
      M11 = Z*(Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2); 
      M12 = +2.0*Overlaps[OVERLAP_ZTIMESNABLA]/ (II*Omega);
      M21 = -2.0*Overlaps[OVERLAP_ZTIMESNABLA]/ (II*Omega);
-     M11 = (Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2) / Z;
+     M22 = (Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2) / Z;
      PFT[4] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
