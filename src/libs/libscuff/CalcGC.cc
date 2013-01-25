@@ -57,8 +57,7 @@ static double LeviCivita[3][3][3]=
 /* inputs:                                                     */
 /*                                                             */
 /*  R[0..2]    ... cartesian components of evaluation point    */
-/*  Frequency  ... either \omega or \xi                        */
-/*  RealFreq   ... 1 for real frequency, 0 for imag frequency  */
+/*  Omega      ... angular frequency                           */
 /*  Eps        ... relative permittivity of medium             */
 /*  Mu         ... relative permeability of medium             */
 /*                                                             */
@@ -79,13 +78,13 @@ static double LeviCivita[3][3][3]=
 /*  C_\mu\nu(R) = \LeviCivita_{\mu\nu\sigma}                   */
 /*                 * R_\sigma * f4(r) * f5(r)                  */
 /***************************************************************/
-void CalcGC(double R[3], double Frequency, int RealFreq,
-            double EpsR, double MuR,
+void CalcGC(double R[3], cdouble Omega,
+            cdouble EpsR, cdouble MuR,
             cdouble GMuNu[3][3], cdouble CMuNu[3][3],
             cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3])
 { 
   int Mu, Nu, Rho, Sigma;
-  double k;
+  cdouble k;
   double r, r2;
   cdouble ik, ikr, ikr2, ikr3, ExpFac;
   cdouble f1, f2, f3, f4, f5, f1p, f2p, f3p, f4p, f5p;
@@ -97,11 +96,8 @@ void CalcGC(double R[3], double Frequency, int RealFreq,
 
   r=sqrt(r2);
 
-  k=sqrt(EpsR*MuR)*Frequency;
-  if(RealFreq)
-   ik=II*k;
-  else
-   ik=-1.0*k;
+  k=csqrt2(EpsR*MuR)*Omega;
+  ik=II*k;
   ExpFac=exp(ik*r);
   ikr=ik*r;
   ikr2=ikr*ikr;
@@ -169,8 +165,8 @@ void CalcGC(double R[3], double Frequency, int RealFreq,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void CalcGC(double R1[3], double R2[3], double Frequency, int RealFreq,
-            double EpsR, double MuR, cdouble GMuNu[3][3], cdouble CMuNu[3][3],
+void CalcGC(double R1[3], double R2[3], cdouble Omega, cdouble EpsR, cdouble MuR, 
+            cdouble GMuNu[3][3], cdouble CMuNu[3][3],
             cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3])
 { 
   double R[3];
@@ -179,7 +175,7 @@ void CalcGC(double R1[3], double R2[3], double Frequency, int RealFreq,
   R[1]=R1[1]-R2[1];
   R[2]=R1[2]-R2[2];
 
-  CalcGC(R,Frequency,RealFreq,EpsR,MuR,GMuNu,CMuNu,GMuNuRho,CMuNuRho);
+  CalcGC(R,Omega,EpsR,MuR,GMuNu,CMuNu,GMuNuRho,CMuNuRho);
 }
 
 } // namespace scuff
