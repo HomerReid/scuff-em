@@ -123,7 +123,7 @@ class PointSource: public IncField
    void SetType(int pType);
 
    void GetFields(const double X[3], cdouble EH[6]);
-   bool GetSourcePoint(double X[3]);
+   bool GetSourcePoint(double X[3]) const;
  };
 
 /**********************************************************************/

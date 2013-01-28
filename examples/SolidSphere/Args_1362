@@ -1,7 +1,6 @@
 geometry  Sphere_1362.scuffgeo
 cache     Sphere_1362.scuffcache
-PowerFile Sphere_1362.power.R100 
-PowerRadius 100.0
+PFTFile   Sphere_1362.PFT
 OmegaFile OmegaList
 pwDirection 0 0 1 
 pwPolarization 1 0 0 

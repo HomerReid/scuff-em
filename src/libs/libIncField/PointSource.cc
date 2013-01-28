@@ -54,7 +54,7 @@ void PointSource::SetType(int pType)   { Type=pType; }
 /* coordinates of the source point to determine automatically which   */
 /* (if any) object contains the source point.                         */
 /**********************************************************************/
-bool PointSource::GetSourcePoint(double X[3]) 
+bool PointSource::GetSourcePoint(double X[3]) const
 { 
   memcpy(X, X0, 3*sizeof(double)); 
   return true;
