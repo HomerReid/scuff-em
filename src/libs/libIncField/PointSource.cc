@@ -90,7 +90,7 @@ void PointSource::GetFields(const double X[3], cdouble EH[6])
   cdouble k      = Omega*sqrt(Eps*Mu);
   cdouble ikr    = II*k*R;
   cdouble ikr2   = ikr*ikr;
-  cdouble ExpFac = k*k*exp(ikr) / (4.0*M_PI*R);
+  cdouble ExpFac = k*k*exp(ikr) / (4.0*M_PI*Eps*R);
 
   cdouble Z      = ZVAC*sqrt(Mu/Eps);
 
