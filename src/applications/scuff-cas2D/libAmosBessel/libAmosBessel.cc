@@ -156,7 +156,7 @@ int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders,
         break;
 
      default:
-       fprintf(stderr,"%s:%i: internal error (WhichFunction=%c)",
+       fprintf(stderr,"%s:%i: internal error (WhichFunction=%c)\n",
                        __FILE__,__LINE__,WhichFunction);
        exit(1);
    };
@@ -222,7 +222,7 @@ int AmosAiry(char WhichFunction, cdouble z, int Scale, cdouble *f)
         break;
 
      default:
-       fprintf(stderr,"%s:%i: internal error (WhichFunction=%c)",
+       fprintf(stderr,"%s:%i: internal error (WhichFunction=%c)\n",
                        __FILE__,__LINE__,WhichFunction);
        exit(1);
    };

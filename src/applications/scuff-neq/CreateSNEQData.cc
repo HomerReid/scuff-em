@@ -117,7 +117,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*-                                                            -*/
   /*--------------------------------------------------------------*/
   bool *NeedMatrix=SNEQD->NeedMatrix;
-  memset(NeedMatrix, 0, SCUFF_NUM_OMATRICES*sizeof(int));
+  memset(NeedMatrix, 0, SCUFF_NUM_OMATRICES*sizeof(bool));
   NeedMatrix[SCUFF_OMATRIX_OVERLAP] = 0;
   NeedMatrix[SCUFF_OMATRIX_POWER  ] = QuantityFlags && QFLAG_POWER;
   NeedMatrix[SCUFF_OMATRIX_XFORCE ] = QuantityFlags && QFLAG_XFORCE;

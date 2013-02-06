@@ -90,7 +90,7 @@ void PointSource::GetFields(const double X[3], cdouble EH[6])
   cdouble k      = Omega*sqrt(Eps*Mu);
   cdouble ikr    = II*k*R;
   cdouble ikr2   = ikr*ikr;
-  cdouble ExpFac = k*k*exp(ikr) / (4.0*M_PI*Eps*R);
+  cdouble ExpFac = k*k*exp(ikr) / (4.0*M_PI*R);
 
   cdouble Z      = ZVAC*sqrt(Mu/Eps);
 
@@ -102,6 +102,8 @@ void PointSource::GetFields(const double X[3], cdouble EH[6])
   /* now assemble everything based on source type */
   if ( Type == LIF_ELECTRIC_DIPOLE )
    { 
+     ExpFac /= Eps;
+
      EH[0]=ExpFac*( Term1*P[0] + Term2*RHat[0] );
      EH[1]=ExpFac*( Term1*P[1] + Term2*RHat[1] );
      EH[2]=ExpFac*( Term1*P[2] + Term2*RHat[2] );
@@ -112,6 +114,8 @@ void PointSource::GetFields(const double X[3], cdouble EH[6])
    }
   else // ( Type == LIF_TYPE_PSMC )
    { 
+     ExpFac /= Mu;
+
      EH[0]=-1.0*ExpFac*Term3*RCrossP[0] / Z;
      EH[1]=-1.0*ExpFac*Term3*RCrossP[1] / Z;
      EH[2]=-1.0*ExpFac*Term3*RCrossP[2] / Z;

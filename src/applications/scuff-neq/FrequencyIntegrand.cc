@@ -170,7 +170,7 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   HMatrix **T         = SNEQD->T;
   HMatrix **U         = SNEQD->U;
   int QuantityFlags   = SNEQD->QuantityFlags;
-  bool *NeedMatrix     = SNEQD->NeedMatrix;
+  bool *NeedMatrix    = SNEQD->NeedMatrix;
   SMatrix ***SArray   = SNEQD->SArray;
 
   /***************************************************************/
