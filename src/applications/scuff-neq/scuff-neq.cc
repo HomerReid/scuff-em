@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
 
   double AbsTol=0.0;
   double RelTol=5.0e-2;
+  int Intervals=25;
 
   char *OutputFile=0;
   char *LogFile=0;
@@ -109,6 +110,7 @@ int main(int argc, char *argv[])
 /**/     
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,     0,             "absolute tolerance for frequency quadrature"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for frequency quadrature"},
+     {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,  0,             "number of intervals for frequency quadrature"},
 /**/     
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -268,8 +270,13 @@ int main(int argc, char *argv[])
   else
    { 
       double *E = new double[ OutputVectorLength ];
+/*
       EvaluateFrequencyIntegral(SNEQD, OmegaMin, OmegaMax,
                                 TSurfaces, TEnvironment, AbsTol, RelTol, I, E);
+*/
+      EvaluateFrequencyIntegral2(SNEQD, OmegaMin, OmegaMax, 
+                                 TSurfaces, TEnvironment, 
+                                 Intervals, I, E);
       delete[] E;
    };
   delete[] I;

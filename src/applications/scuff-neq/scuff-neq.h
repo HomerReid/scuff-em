@@ -99,4 +99,9 @@ void EvaluateFrequencyIntegral(SNEQData *SNEQD,
                                double AbsTol, double RelTol,
                                double *I, double *E);
 
+void EvaluateFrequencyIntegral2(SNEQData *SNEQD,
+                                double OmegaMin, double OmegaMax,
+                                double *TObjects, double TEnvironment,
+                                int Intervals, double *I, double *E);
+
 #endif
