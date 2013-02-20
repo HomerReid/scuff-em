@@ -255,7 +255,9 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
          };
       };
      UndoSCUFFMatrixTransformation(W);
+     Log("LU factorizing...");
      W->LUFactorize();
+     Log("LU inverting...");
      W->LUInvert();
 
      /*--------------------------------------------------------------*/
