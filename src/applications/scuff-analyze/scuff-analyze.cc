@@ -105,7 +105,7 @@ void AnalyzeGeometry(RWGGeometry *G)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  unsigned RAM = G->TotalBFs * G->TotalBFs * sizeof(cdouble);
+  double RAM = G->TotalBFs * G->TotalBFs * sizeof(cdouble);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -115,7 +115,7 @@ void AnalyzeGeometry(RWGGeometry *G)
   printf("***********************************************\n");
   printf(" %6i surfaces\n",G->NumSurfaces);
   printf(" %6i total basis functions\n",G->TotalBFs);
-  printf(" Size of BEM matrix: %.2f GB\n",((double)RAM)/1.0e9);
+  printf(" Size of BEM matrix: %.2f GB\n",RAM/1.0e9);
   printf("\n");
 
   /*--------------------------------------------------------------*/
