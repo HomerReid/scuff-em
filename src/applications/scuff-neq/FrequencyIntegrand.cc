@@ -33,6 +33,18 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void LUInvert2(HMatrix *W, HMatrix *Scratch)
+{ 
+  Scratch->Zero();
+  for(int n=0; n<W->NR; n++)
+   Scratch->SetEntry(n,n,1.0);
+  W->LUSolve(Scratch);
+  W->Copy(Scratch);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void SpyPlot(HMatrix *M, char *Title, char *FileName)
 {
   if (!FileName)
@@ -257,8 +269,14 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
      UndoSCUFFMatrixTransformation(W);
      Log("LU factorizing...");
      W->LUFactorize();
-     Log("LU inverting...");
-     W->LUInvert();
+     if (SNEQD->AltInvert)
+      { Log("Inverting using alternative method...");
+        LUInvert2(W,SNEQD->Scratch);
+      }
+     else
+      { Log("LU inverting...");
+        W->LUInvert();
+      };
 
      /*--------------------------------------------------------------*/
      /*- compute the requested quantities for all objects -----------*/

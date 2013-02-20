@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
 
-  int nThread=0;
+  bool AltInvert=false;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
@@ -116,16 +116,13 @@ int main(int argc, char *argv[])
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
 /**/     
-     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
+     {"AltInvert",      PA_BOOL,    0, 1,       (void *)&AltInvert,  0,             "use alternative matrix inversion"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
 
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
-
-  if (nThread!=0)
-   SetNumThreads(nThread);
 
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
@@ -209,7 +206,7 @@ int main(int argc, char *argv[])
   /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux);
+  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux, AltInvert);
   RWGGeometry *G=SNEQD->G;
 
   /*******************************************************************/

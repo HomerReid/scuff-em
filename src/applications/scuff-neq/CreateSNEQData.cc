@@ -33,14 +33,15 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
-                         int QuantityFlags, int PlotFlux)
+SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, 
+                         int QuantityFlags, int PlotFlux, bool AltInvert)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
 
   SNEQD->WriteCache=0;
   SNEQD->PlotFlux=PlotFlux;
+  SNEQD->AltInvert=AltInvert;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/
@@ -103,6 +104,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- allocate BEM matrix ----------------------------------------*/
   /*--------------------------------------------------------------*/
   SNEQD->W = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+
+  SNEQD->Scratch=0;
+  if (SNEQD->AltInvert)
+   SNEQD->Scratch = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
 
   /*--------------------------------------------------------------*/
   /*- allocate sparse matrices to store the various overlap      -*/
