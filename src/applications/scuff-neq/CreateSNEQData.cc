@@ -91,19 +91,25 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   int nb, nq, NS=G->NumSurfaces, NBF, NBFp;
   SNEQD->T = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NS*(NS-1))/2)*sizeof(HMatrix *));
+  Log("Before T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   for(nb=ns=0; ns<G->NumSurfaces; ns++)
    { NBF=G->Surfaces[ns]->NumBFs;
-     SNEQD->T[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+     if (G->Mate[ns]==-1)
+      SNEQD->T[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+     else
+      SNEQD->T[ns] = SNEQD->T[ G->Mate[ns] ];
      for(nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
       { NBFp=G->Surfaces[nsp]->NumBFs;
         SNEQD->U[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
       };
    };
+  Log("After T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   /*--------------------------------------------------------------*/
   /*- allocate BEM matrix ----------------------------------------*/
   /*--------------------------------------------------------------*/
   SNEQD->W = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  Log("After W: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   SNEQD->Scratch=0;
   if (SNEQD->AltInvert)
@@ -178,6 +184,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
 
    }; //if (WriteByOmegaFiles)
 
+  Log("After CreateSNEQData: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   return SNEQD;
 
 }

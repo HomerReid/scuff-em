@@ -201,7 +201,10 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
   int ns, nsp, nb, NS=G->NumSurfaces;
   for(ns=0; ns<NS; ns++)
    { 
-     Log(" Assembling self contributions to T(%i)...",ns);
+     if (G->Mate[ns]!=-1)
+      Log(" Block %i is identical to %i (reusing T matrix)",ns,G->Mate[ns]);
+     else
+      Log(" Assembling self contributions to T(%i)...",ns);
 
      Args->Sa = Args->Sb = G->Surfaces[ns];
      Args->B = T[ns];
