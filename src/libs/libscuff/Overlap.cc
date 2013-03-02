@@ -520,6 +520,7 @@ cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
 
 /***************************************************************/
 /***************************************************************/
+/***************************************************************/
 cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
                                        char *SurfaceLabel)
 {

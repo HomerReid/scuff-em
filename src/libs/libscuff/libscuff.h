@@ -389,6 +389,10 @@ class RWGGeometry
    /* routine for computing dyadic green's functions */
    void GetDyadicGFs(double X[3], cdouble Omega, HMatrix *M, HVector *KN,
                      cdouble GE[3][3], cdouble GM[3][3]);
+   void GetDyadicGFs(double XEval[3], double XSource[3], 
+                     cdouble Omega, HMatrix *M, HVector *KN,
+                     cdouble GEScat[3][3], cdouble GMScat[3][3],
+                     cdouble GETot[3][3], cdouble GMTot[3][3]);
 
    /* routine for computing power, force, and torque on an object */
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, int SurfaceIndex, double PFT[8]);

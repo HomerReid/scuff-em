@@ -125,5 +125,68 @@ void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, HMatrix *M, HVector *
    };
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3], 
+                               cdouble Omega, HMatrix *M, HVector *KN,
+                               cdouble GEScat[3][3], cdouble GMScat[3][3],
+                               cdouble GETot[3][3], cdouble GMTot[3][3])
+{
+  if (M==0 || M->NR != TotalBFs || M->NC!=M->NR )
+   ErrExit("%s:%i: invalid M matrix passed to GetDyadicGFs()",__FILE__,__LINE__);
+
+  if (KN==0 || KN->N != TotalBFs )
+   ErrExit("%s:%i: invalid K vector passed to GetDyadicGFs()",__FILE__,__LINE__);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  cdouble P[3]={1.0, 0.0, 0.0};
+  PointSource PS(XSource, P);
+  cdouble EH[6];
+
+  cdouble Eps, Mu;
+  int nr=GetRegionIndex(XSource);
+  RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
+  cdouble IKZ = II*Omega*Mu*ZVAC;
+
+  for(int i=0; i<3; i++)
+   { 
+     // set point source to point in the ith direction
+     memset(P, 0, 3*sizeof(cdouble));
+     P[i]=1.0;
+     PS.SetP(P);
+
+     // solve the scattering problem for an electric point source 
+     PS.SetType(LIF_ELECTRIC_DIPOLE);
+     AssembleRHSVector(Omega, &PS, KN);
+     M->LUSolve(KN);
+     GetFields(0, KN, Omega, XEval, EH);
+     GEScat[0][i]=EH[0] / IKZ;
+     GEScat[1][i]=EH[1] / IKZ;
+     GEScat[2][i]=EH[2] / IKZ;
+
+     PS.GetFields(XEval, EH);
+     GETot[0][i]=GEScat[0][i] + EH[0] / IKZ;
+     GETot[1][i]=GEScat[1][i] + EH[1] / IKZ;
+     GETot[2][i]=GEScat[2][i] + EH[2] / IKZ;
+
+     // solve the scattering problem for a magnetic point source 
+     PS.SetType(LIF_MAGNETIC_DIPOLE);
+     AssembleRHSVector(Omega, &PS, KN);
+     M->LUSolve(KN);
+     GetFields(0, KN, Omega, XEval, EH);
+     GMScat[0][i]=EH[3];
+     GMScat[1][i]=EH[4];
+     GMScat[2][i]=EH[5];
+
+     PS.GetFields(XEval, EH);
+     GMTot[0][i]=GMScat[0][i] + EH[3];
+     GMTot[1][i]=GMScat[1][i] + EH[4];
+     GMTot[2][i]=GMScat[2][i] + EH[5];
+
+   };
+}
 
 } // namespace scuff

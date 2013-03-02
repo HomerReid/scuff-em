@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
 
-  bool AltInvert=true;
+  bool AltInvert=false;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
