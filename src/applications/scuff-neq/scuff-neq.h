@@ -88,14 +88,15 @@ typedef struct SNEQData
    // (here 5 = SCUFF_NUM_OMATRICES)
    SMatrix ***SArray;
 
-   // frequency-resolved output files for each surface
-   char **ByOmegaFileNames;
+   // frequency-resolved output files
+   char **FluxFileNames;
+   char *IntegrandFileName;
 
  } SNEQData;
 
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int WhichQuantities, int PlotFlux, bool AltInvert);
 
-void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI);
+void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI);
 
 void EvaluateFrequencyIntegral(SNEQData *SNEQD,
                                double OmegaMin, double OmegaMax,

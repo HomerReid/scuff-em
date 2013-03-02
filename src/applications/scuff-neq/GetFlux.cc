@@ -18,10 +18,11 @@
  */
 
 /*
- * FrequencyIntegrand.cc -- evaluate spectral density of power/momentum 
- *                       -- transfer at a single frequency
+ * GetFlux.cc  -- evaluate the four-matrix-trace formulas that give
+ *             -- the spectral density of power/momentum flux at a 
+ *             -- single frequency
  *
- * homer reid            -- 2/2012
+ * homer reid  -- 2/2012
  *
  */
 
@@ -110,7 +111,7 @@ void UndoSCUFFMatrixTransformation(HMatrix *M)
 /***************************************************************/
 double GetTrace(SNEQData *SNEQD, int QIndex, 
                 int SourceSurface, int DestSurface, 
-                FILE *ByOmegaFile)
+                FILE *FluxFile)
 {
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
@@ -151,8 +152,8 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (ByOmegaFile)
-   fprintf(ByOmegaFile,"%e ",real(FMPTrace));
+  if (FluxFile)
+   fprintf(FluxFile,"%e ",real(FMPTrace));
 
  return real(FMPTrace);
 
@@ -170,7 +171,7 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
 /*  where  NSNQ = number of surface * NQ                       */
 /*  where NS2NQ = (number of surfaces)^2* NQ                   */
 /***************************************************************/
-void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
+void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
 {
   Log("Computing neq quantities at omega=%s...",z2s(Omega));
 
@@ -288,8 +289,8 @@ void GetFrequencyIntegrand(SNEQData *SNEQD, cdouble Omega, double *FI)
      for(ns=0; ns<NS; ns++)
       for(nsp=0; nsp<NS; nsp++)
        {
-         if (SNEQD->ByOmegaFileNames)
-          { f=fopen(SNEQD->ByOmegaFileNames[ns*NS+nsp],"a");
+         if (SNEQD->FluxFileNames)
+          { f=fopen(SNEQD->FluxFileNames[ns*NS+nsp],"a");
             fprintf(f,"%e %s ",real(Omega),Tag);
           };
 

@@ -149,22 +149,25 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- create frequency-resolved output files for each object in  -*/
   /*- the geometry and write a file header to each file.         -*/
   /*--------------------------------------------------------------*/
-  SNEQD->ByOmegaFileNames=0;
+  SNEQD->FluxFileNames=0;
   int WriteByOmegaFiles=1;
   if (WriteByOmegaFiles)
    { 
-     SNEQD->ByOmegaFileNames=(char **)mallocEC(NS*NS*sizeof(char *));
+     SNEQD->IntegrandFileName=vstrdup("%s.Integrand",GetFileBase(G->GeoFileName));
+
+     SNEQD->FluxFileNames=(char **)mallocEC(NS*NS*sizeof(char *));
      FILE *f;
      for(ns=0; ns<NS; ns++)
       for(nsp=0; nsp<NS; nsp++)
        { 
-         SNEQD->ByOmegaFileNames[ns*NS+nsp] = vstrdup("From%sTo%s.byOmega",
-                                                       G->Surfaces[ns]->Label,
-                                                       G->Surfaces[nsp]->Label);
+         SNEQD->FluxFileNames[ns*NS+nsp] = vstrdup("From%sTo%s.flux",
+                                                   G->Surfaces[ns]->Label,
+                                                   G->Surfaces[nsp]->Label);
    
-         f=fopen(SNEQD->ByOmegaFileNames[ns*NS+nsp],"a");
+         f=fopen(SNEQD->FluxFileNames[ns*NS+nsp],"a");
          if (!f)
-          ErrExit("could not create file %s",SNEQD->ByOmegaFileNames[ns]);
+          ErrExit("could not create file %s",SNEQD->FluxFileNames[ns]);
+         fprintf(f,"\n\n");
          fprintf(f,"# data file columns: \n");
          fprintf(f,"# 1: angular frequency in units of 3e14 rad/sec \n");
          fprintf(f,"# 2: transformation tag \n");

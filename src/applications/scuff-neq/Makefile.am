@@ -1,7 +1,7 @@
 bin_PROGRAMS = scuff-neq
 
 scuff_neq_SOURCES = 		\
- FrequencyIntegrand.cc 		\
+ GetFlux.cc             	\
  CreateSNEQData.cc       	\
  Quadrature.cc         		\
  scuff-neq.cc         		\

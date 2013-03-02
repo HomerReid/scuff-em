@@ -19,9 +19,10 @@
 
 /*
  * scuff-caspol.cc   -- a standalone code within the scuff-EM suite for 
- *                   -- computing casimir-polder and van-der-Waals 
+ *                   -- computing dyadic green's functions of material
+ *                   -- bodies, as well as casimir-polder and van-der-Waals 
  *                   -- potentials for polarizable molecules in the 
- *                   -- vicinity of material bodies
+ *                   -- vicinity of those bodies
  *
  * documentation at: 
  *  http://homerreid.com/scuff-em/scuff-caspol

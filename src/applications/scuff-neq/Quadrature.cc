@@ -78,6 +78,25 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
        for(nq=0; nq<NQ; nq++)
         FluxVector[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ] *= DeltaTheta/M_PI;
    };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (SNEQD->IntegrandFileName)
+   { 
+     FILE *f=fopen(SNEQD->IntegrandFileName,"a");
+     for(nt=0; nt<NT; nt++)
+      for(ns=0; ns<NS; ns++)
+       for(nsp=0; nsp<NS; nsp++)
+        { 
+          fprintf(f,"%s %e %i%i ",SNEQD->GTCList[nt]->Tag,Omega,ns,nsp);
+          for(nq=0; nq<NQ; nq++)
+           fprintf(f,"%.8e ",FluxVector[nt*NS2NQ + ns*NSNQ + nsp*NQ + nq]);
+          fprintf(f,"\n");
+        };
+     fclose(f);
+   };
+
 }
 
 /***************************************************************/
@@ -123,7 +142,7 @@ void SGJCIntegrand(unsigned ndim, const double *x, void *params,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  GetFrequencyIntegrand(SNEQD, Omega, fval);
+  GetFlux(SNEQD, Omega, fval);
   for(unsigned int nf=0; nf<fdim; nf++)
    fval[nf]*=Jacobian;
   PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fval);
@@ -261,12 +280,12 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMa
   if (UseVariableTransformation) 
    { Omega = OmegaMin + uMin / (1.0-uMin);
      Jacobian = 1.0/( (1.0-uMin)*(1.0-uMin) );
-     GetFrequencyIntegrand(SNEQD, Omega, fLeft);
+     GetFlux(SNEQD, Omega, fLeft);
      for(int n=0; n<fdim; n++) fLeft[n]*=Jacobian;
    }
   else
    { Omega=uMin;
-     GetFrequencyIntegrand(SNEQD, Omega, fLeft);
+     GetFlux(SNEQD, Omega, fLeft);
    };
   PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fLeft);
 
@@ -285,12 +304,12 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMa
      if (UseVariableTransformation) 
       { Omega = OmegaMin + u/ (1.0-u);
         Jacobian = 1.0/( (1.0-u)*(1.0-u) );
-        GetFrequencyIntegrand(SNEQD, Omega, fMid);
+        GetFlux(SNEQD, Omega, fMid);
         for(int n=0; n<fdim; n++) fMid[n]*=Jacobian;
       }
      else
       { Omega=u;
-        GetFrequencyIntegrand(SNEQD, Omega, fMid);
+        GetFlux(SNEQD, Omega, fMid);
       };
      PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fMid);
 
@@ -301,12 +320,12 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMa
      if (UseVariableTransformation) 
       { Omega = OmegaMin + u/ (1.0-u);
         Jacobian = 1.0/( (1.0-u)*(1.0-u) );
-        GetFrequencyIntegrand(SNEQD, Omega, fRight);
+        GetFlux(SNEQD, Omega, fRight);
         for(int n=0; n<fdim; n++) fRight[n]*=Jacobian;
       }
      else
       { Omega=u;
-        GetFrequencyIntegrand(SNEQD, Omega, fRight);
+        GetFlux(SNEQD, Omega, fRight);
       };
      PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fRight);
 

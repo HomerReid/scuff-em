@@ -217,12 +217,12 @@ int main(int argc, char *argv[])
   memset(TSurfaces, 0, G->NumSurfaces*sizeof(double));
   if (nTempStrings)
    { 
-     RWGSurface *S;
      int WhichSurface;
      double TTemp;
 
      for(int nts=0; nts<nTempStrings; nts++)
-      { S=G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface);
+      { 
+        G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface);
 
         if(WhichSurface==-2)
          ErrExit("unknown surface (%s) passed for --temperature option",TempStrings[2*nts]);
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
   double *I = new double[ OutputVectorLength ];
   if (NumFreqs>0)
    { for (nFreq=0; nFreq<NumFreqs; nFreq++)
-      GetFrequencyIntegrand(SNEQD, OmegaList->GetEntry(nFreq), I);
+      GetFlux(SNEQD, OmegaList->GetEntry(nFreq), I);
    }
   else
    { 
