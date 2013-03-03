@@ -45,6 +45,62 @@
 
 #define MAXSTR   1000
 
+#define II cdouble(0.0,1.0)
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void SpeedTest(char *Greeting)
+{
+  double Elapsed;
+  int Dim=1500;
+
+  char *str=getenv("DIMDIM");
+  if (str) sscanf(str,"%i",&Dim);
+  printf("\n** %s: Dim=%i: \n",Greeting,Dim);
+
+  HMatrix *Z1=new HMatrix(Dim,Dim,LHM_COMPLEX);
+  HMatrix *Z2=new HMatrix(Dim,Dim,LHM_COMPLEX);
+
+  srand48(time(0));
+  for(int nr=0; nr<Dim; nr++)
+   for(int nc=0; nc<Dim; nc++)
+    Z1->SetEntry(nr,nc, drand48()+II*drand48() );
+
+  Z2->Zero();
+  for(int nr=0; nr<Dim; nr++)
+   Z2->SetEntry(nr,nr,1.0);
+
+  printf("** LU Factorize: ");
+  Tic(); Z1->LUFactorize(); Elapsed=Toc(); 
+  printf(" %.3g s\n",Elapsed);
+
+  printf("** LU Invert (2): ");
+  Tic(); Z1->LUSolve(Z2); Elapsed=Toc(); 
+  printf(" %.3g s\n",Elapsed);
+
+  printf("** LU Invert (1): ");
+  Tic(); Z1->LUInvert(); Elapsed=Toc(); 
+  printf(" %.3g s\n",Elapsed);
+
+  double Norm=0.0, DNorm=0.0;
+  cdouble z1, z2;
+
+  for(int nr=0; nr<Dim; nr++)
+   for(int nc=0; nc<Dim; nc++)
+    { z1=Z1->GetEntry(nr,nc);
+      z2=Z2->GetEntry(nr,nc);
+      Norm+=abs(z1);
+      DNorm+=abs(z1-z2);
+    };
+  printf("** Norm, DNorm, Ratio = %e, %e, %e\n",Norm,DNorm,DNorm/Norm);
+  printf("\n\n");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -206,6 +262,7 @@ int main(int argc, char *argv[])
   /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
+SpeedTest("First");
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux, AltInvert);
   RWGGeometry *G=SNEQD->G;
 
@@ -271,6 +328,7 @@ int main(int argc, char *argv[])
       EvaluateFrequencyIntegral(SNEQD, OmegaMin, OmegaMax,
                                 TSurfaces, TEnvironment, AbsTol, RelTol, I, E);
 */
+SpeedTest("Next");
       EvaluateFrequencyIntegral2(SNEQD, OmegaMin, OmegaMax, 
                                  TSurfaces, TEnvironment, 
                                  Intervals, I, E);

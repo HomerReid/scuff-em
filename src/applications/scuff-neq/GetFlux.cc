@@ -224,6 +224,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   /* now loop over transformations.                              */
   /* note: 'gtc' stands for 'geometrical transformation complex' */
   /***************************************************************/
+SpeedTest("Next");
   int nt;
   char *Tag;
   int RowOffset, ColOffset;

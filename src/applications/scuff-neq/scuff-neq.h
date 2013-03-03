@@ -109,4 +109,5 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD,
                                 double *TObjects, double TEnvironment,
                                 int Intervals, double *I, double *E);
 
+void SpeedTest(char *Greeting);
 #endif
