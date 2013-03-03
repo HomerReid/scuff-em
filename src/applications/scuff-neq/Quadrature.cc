@@ -50,7 +50,7 @@ double Theta(double Omega, double T)
 { 
   if (T==0.0)
    return 0.0;
-  return Omega / ( exp( (Omega/BOLTZMANNK*T) ) - 1.0 );
+  return Omega / ( exp( Omega/(BOLTZMANNK*T) ) - 1.0 );
 }
 
 /***************************************************************/
@@ -316,7 +316,9 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMa
      // evaluate integrand at right end of interval 
      u += 0.5*Delta;
      if (UseVariableTransformation && nIntervals==NumIntervals-1) 
-      memset(fRight,0,fdim*sizeof(double));
+      { Omega=0.0;
+        memset(fRight,0,fdim*sizeof(double)) ;
+      }
      if (UseVariableTransformation) 
       { Omega = OmegaMin + u/ (1.0-u);
         Jacobian = 1.0/( (1.0-u)*(1.0-u) );
