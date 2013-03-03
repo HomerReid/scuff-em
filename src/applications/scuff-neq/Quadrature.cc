@@ -247,6 +247,7 @@ void EvaluateFrequencyIntegral(SNEQData *SNEQD,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMax,
                                 double *TSurfaces, double TEnvironment, int NumIntervals,
                                 double *I, double *E)
@@ -329,6 +330,101 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMa
       { Omega=u;
         GetFlux(SNEQD, Omega, fRight);
       };
+     PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fRight);
+
+     // compute the simpson's rule and trapezoidal rule
+     // estimates of the integral over this interval  
+     // and take their difference as the error
+     for(int nf=0; nf<fdim; nf++)
+      { ISimp[nf] = (fLeft[nf] + 4.0*fMid[nf] + fRight[nf])*Delta/6.0;
+        ITrap[nf] = (fLeft[nf] + 2.0*fMid[nf] + fRight[nf])*Delta/4.0;
+        I[nf] += ISimp[nf];
+        E[nf] += fabs(ISimp[nf] - ITrap[nf]);
+      };
+
+     // prepare for next iteration
+     memcpy(fLeft, fRight, fdim*sizeof(double));
+
+   };
+  delete[] fLeft;
+  delete[] fMid;
+  delete[] fRight;
+  delete[] ISimp;
+  delete[] ITrap;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  WriteDataToOutputFile(SNEQD, I, E);
+
+}
+#endif
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMax,
+                                double *TSurfaces, double TEnvironment, int NumIntervals,
+                                double *I, double *E)
+{ 
+  int NS = SNEQD->G->NumSurfaces;
+  int NT = SNEQD->NumTransformations;
+  int NQ = SNEQD->NQ;
+  int fdim = NT*NS*NS*NQ;
+  double *fLeft  = new double[fdim];
+  double *fMid   = new double[fdim];
+  double *fRight = new double[fdim];
+  double Omega;
+
+  if ( OmegaMax == -1.0 )
+   { 
+     // if the user didn't specify an upper frequency bound, we choose 
+     // OmegaMax to be the frequency at which Theta(OmegaMax, TMax) has 
+     // decayed to 10^{-10} of the value of Theta(0,TMax), where TMax 
+     // is the largest temperature of any object. 
+     // note: the function x/(exp(x)-1) falls below 10^{10} at x=26.3.
+
+     double TMax=TEnvironment;
+     for (int ns=0; ns<NS; ns++)
+      if ( TSurfaces[ns]>=0.0 && TSurfaces[ns]>TMax ) 
+       TMax=TSurfaces[ns];
+
+     if (TMax==0.0) // all temperatures are zero; no point in doing the calculation
+      { memset(I,0,fdim*sizeof(double));
+        memset(E,0,fdim*sizeof(double));
+        return;
+      };  
+
+     OmegaMax = 26.3*BOLTZMANNK*TMax;
+     Log("Integrating to a maximum frequency of k=%e um^{-1} (w=%e rad/sec)\n",OmegaMax,OmegaMax*3.0e14);
+
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- evaluate integrand at leftmost point -----------------------*/
+  /*--------------------------------------------------------------*/
+  Omega=OmegaMin;
+  GetFlux(SNEQD, Omega, fLeft);
+  PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fLeft);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double Delta = (OmegaMax - OmegaMin) / NumIntervals;
+  double *ISimp  = new double[fdim];
+  double *ITrap  = new double[fdim];
+  memset(I, 0, fdim*sizeof(double));
+  memset(E, 0, fdim*sizeof(double));
+  for(int nIntervals=0; nIntervals<NumIntervals; nIntervals++)
+   { 
+     // evaluate integrand at midpoint of interval 
+     Omega += 0.5*Delta;
+     GetFlux(SNEQD, Omega, fMid);
+     PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fMid);
+
+     // evaluate integrand at right end of interval 
+     Omega += 0.5*Delta;
+     GetFlux(SNEQD, Omega, fRight);
      PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fRight);
 
      // compute the simpson's rule and trapezoidal rule
