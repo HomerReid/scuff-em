@@ -89,6 +89,27 @@ void UndoSCUFFMatrixTransformation(HMatrix *M)
 }
 
 /***************************************************************/
+/* the GetFlux() routine computes a large number of quantities.*/
+/* each quantity is characterized by values of four indices:   */
+/*                                                             */
+/*  (a) nt, the geometrical transform                          */
+/*  (b) nss the source surface (object)                        */
+/*  (c) nsd, the destination surface (object)                  */
+/*  (d) nq, the physical quantity (i.e. power, xforce, etc.)   */
+/*                                                             */
+/* Given values for quantities (a)--(d), this routine computes */
+/* a unique index into a big vector storing all the quantities.*/
+/***************************************************************/
+int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
+{
+  int NS = SNEQD->G->NumSurfaces;
+  int NQ = SNEQD->NQ;
+  int NSNQ = NS*NQ;
+  int NS2NQ = NS*NS*NQ;
+  return nt*NS2NQ + nss*NSNQ + nsd*NQ + nq; 
+}
+
+/***************************************************************/
 /* evaluate the four-matrix trace formula for the contribution */
 /* of fluctuations within SourceSurface to the flux of quantity */
 /* QIndex into DestSurface.                                     */
@@ -199,11 +220,13 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
-  int ns, nsp, nb, NS=G->NumSurfaces;
-  for(ns=0; ns<NS; ns++)
+  int NS=G->NumSurfaces;
+  for(int ns=0; ns<NS; ns++)
    { 
      if (G->Mate[ns]!=-1)
-      Log(" Block %i is identical to %i (reusing T matrix)",ns,G->Mate[ns]);
+      { Log(" Block %i is identical to %i (reusing T matrix)",ns,G->Mate[ns]);
+        continue;
+      }
      else
       Log(" Assembling self contributions to T(%i)...",ns);
 
@@ -217,19 +240,16 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   /* also before entering the loop over transformations, we      */
   /* pause to assemble the overlap matrices.                     */
   /***************************************************************/
-  for(ns=0; ns<NS; ns++)
+  for(int ns=0; ns<NS; ns++)
    G->Surfaces[ns]->GetOverlapMatrices(NeedMatrix, SArray[ns], Omega, G->RegionMPs[0]);
        
   /***************************************************************/
   /* now loop over transformations.                              */
   /* note: 'gtc' stands for 'geometrical transformation complex' */
   /***************************************************************/
-SpeedTest("Next");
-  int nt;
   char *Tag;
   int RowOffset, ColOffset;
-  int nfi=0;
-  for(nt=0; nt<SNEQD->NumTransformations; nt++)
+  for(int nt=0; nt<SNEQD->NumTransformations; nt++)
    { 
      /*--------------------------------------------------------------*/
      /*- transform the geometry -------------------------------------*/
@@ -245,8 +265,8 @@ SpeedTest("Next");
      /* statement here is checking for.                              */
      /*--------------------------------------------------------------*/
      Args->Symmetric=0;
-     for(nb=0, ns=0; ns<NS; ns++)
-      for(nsp=ns+1; nsp<NS; nsp++, nb++)
+     for(int nb=0, ns=0; ns<NS; ns++)
+      for(int nsp=ns+1; nsp<NS; nsp++, nb++)
        if ( nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
         { 
           Log("  Assembling U(%i,%i)...",ns,nsp);
@@ -260,15 +280,15 @@ SpeedTest("Next");
      /*--------------------------------------------------------------*/
      /*- stamp all blocks into the BEM matrix and invert it         -*/
      /*--------------------------------------------------------------*/
-     for(nb=0, ns=0; ns<NS; ns++)
+     for(int nb=0, ns=0; ns<NS; ns++)
       { 
         RowOffset=G->BFIndexOffset[ns];
         W->InsertBlock(T[ns], RowOffset, RowOffset);
 
-        for(nsp=ns+1; nsp<NS; nsp++, nb++)
+        for(int nsp=ns+1; nsp<NS; nsp++, nb++)
          { ColOffset=G->BFIndexOffset[nsp];
            W->InsertBlock(U[nb], RowOffset, ColOffset);
-           W->InsertBlockTranspose(U[nb], ColOffset, RowOffset);
+           W->InsertBlockAdjoint(U[nb], ColOffset, RowOffset);
          };
       };
      UndoSCUFFMatrixTransformation(W);
@@ -285,24 +305,34 @@ SpeedTest("Next");
 
      /*--------------------------------------------------------------*/
      /*- compute the requested quantities for all objects -----------*/
+     /*- note: nss = 'num surface, source'                          -*/
+     /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/
      FILE *f=0;
-     for(ns=0; ns<NS; ns++)
-      for(nsp=0; nsp<NS; nsp++)
+     for(int nss=0; nss<NS; nss++)
+      for(int nsd=0; nsd<NS; nsd++)
        {
          if (SNEQD->FluxFileNames)
-          { f=fopen(SNEQD->FluxFileNames[ns*NS+nsp],"a");
+          { f=fopen(SNEQD->FluxFileNames[nss*NS+nsd],"a");
             fprintf(f,"%e %s ",real(Omega),Tag);
           };
 
          if ( QuantityFlags & QFLAG_POWER )
-          FI[nfi++] = GetTrace(SNEQD, QINDEX_POWER,  ns, nsp, f);
+          { int i= GetIndex(SNEQD, nt, nss, nsd, QINDEX_POWER);
+            FI[i] = GetTrace(SNEQD, QINDEX_POWER, nss, nsd, f);
+          };
          if ( QuantityFlags & QFLAG_XFORCE )
-          FI[nfi++] = GetTrace(SNEQD, QINDEX_XFORCE, ns, nsp, f);
+          { int i= GetIndex(SNEQD, nt, nss, nsd, QINDEX_XFORCE);
+            FI[i] = GetTrace(SNEQD, QINDEX_XFORCE, nss, nsd, f);
+          }
          if ( QuantityFlags & QFLAG_YFORCE )
-          FI[nfi++] = GetTrace(SNEQD, QINDEX_YFORCE, ns, nsp, f);
+          { int i= GetIndex(SNEQD, nt, nss, nsd, QINDEX_YFORCE);
+            FI[i] = GetTrace(SNEQD, QINDEX_YFORCE, nss, nsd, f);
+          }
          if ( QuantityFlags & QFLAG_ZFORCE )
-          FI[nfi++] = GetTrace(SNEQD, QINDEX_ZFORCE, ns, nsp, f);
+          { int i= GetIndex(SNEQD, nt, nss, nsd, QINDEX_ZFORCE);
+            FI[i] = GetTrace(SNEQD, QINDEX_ZFORCE, nss, nsd, f);
+          };
 
          if (f)
           { fprintf(f,"\n");

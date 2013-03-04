@@ -61,22 +61,20 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
                        double *FluxVector)
 {
   /*--------------------------------------------------------------*/
-  /*- quantities arising from sources inside object nsp are       */
-  /*- weighted by a factor [Theta(T) - Theta(TEnv)]                */
+  /*- quantities arising from sources inside object nss are       */
+  /*- weighted by a factor [Theta(T) - Theta(TEnv)]               */
+  /*- note: nss = 'num surface, source'                           */
+  /*-       nsd = 'num surface, destination'                      */
   /*--------------------------------------------------------------*/
-  int nt, nq, ns, nsp;
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
   int NQ = SNEQD->NQ;
-  int NSNQ = NS*NQ;
-  int NS2NQ = NS*NS*NQ;
-  double DeltaTheta;
-  for(nsp=0; nsp<NS; nsp++)
-   { DeltaTheta = Theta(Omega, TSurfaces[nsp]) - Theta(Omega, TEnvironment);
-     for(nt=0; nt<NT; nt++)
-      for(ns=0; ns<NS; ns++)
-       for(nq=0; nq<NQ; nq++)
-        FluxVector[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ] *= DeltaTheta/M_PI;
+  for(int nss=0; nss<NS; nss++)
+   { double DeltaTheta = Theta(Omega, TSurfaces[nss]) - Theta(Omega, TEnvironment);
+     for(int nt=0; nt<NT; nt++)
+      for(int nsd=0; nsd<NS; nsd++)
+       for(int nq=0; nq<NQ; nq++)
+        FluxVector[ GetIndex(SNEQD, nt, nss, nsd, nq) ]*= DeltaTheta/M_PI;
    };
 
   /*--------------------------------------------------------------*/
@@ -85,13 +83,13 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
   if (SNEQD->IntegrandFileName)
    { 
      FILE *f=fopen(SNEQD->IntegrandFileName,"a");
-     for(nt=0; nt<NT; nt++)
-      for(ns=0; ns<NS; ns++)
-       for(nsp=0; nsp<NS; nsp++)
+     for(int nt=0; nt<NT; nt++)
+      for(int nss=0; nss<NS; nss++)
+       for(int nsd=0; nsd<NS; nsd++)
         { 
-          fprintf(f,"%s %e %i%i ",SNEQD->GTCList[nt]->Tag,Omega,ns,nsp);
-          for(nq=0; nq<NQ; nq++)
-           fprintf(f,"%.8e ",FluxVector[nt*NS2NQ + ns*NSNQ + nsp*NQ + nq]);
+          fprintf(f,"%s %e %i%i ",SNEQD->GTCList[nt]->Tag,Omega,nss,nsd);
+          for(int nq=0; nq<NQ; nq++)
+           fprintf(f,"%.8e ",FluxVector[ GetIndex(SNEQD, nt, nss, nsd, nq) ] );
           fprintf(f,"\n");
         };
      fclose(f);
@@ -174,25 +172,23 @@ void SGJCIntegrand(unsigned ndim, const double *x, void *params,
 /***************************************************************/
 void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E)
 {
-  int nt, nq, ns, nsp;
-  int NS = SNEQD->G->NumSurfaces;
-  int NT = SNEQD->NumTransformations;
-  int NQ = SNEQD->NQ;
-  int NSNQ = NS*NQ;
-  int NS2NQ = NS*NS*NQ;
   FILE *f;
   char FileName[1000];
   RWGSurface **SArray=SNEQD->G->Surfaces;
-  for(ns=0; ns<NS; ns++)
-   for(nsp=0; nsp<NS; nsp++)
+  int NS = SNEQD->G->NumSurfaces;
+  int NT = SNEQD->NumTransformations;
+  int NQ = SNEQD->NQ;
+  for(int nss=0; nss<NS; nss++)
+   for(int nsd=0; nsd<NS; nsd++)
     { 
-      snprintf(FileName,1000,"From%sTo%s.out",SArray[ns]->Label,SArray[nsp]->Label);
+      snprintf(FileName,1000,"From%sTo%s.out",SArray[nss]->Label,SArray[nsd]->Label);
       f=CreateUniqueFile(FileName,1);
-      for(nt=0; nt<NT; nt++)
+      for(int nt=0; nt<NT; nt++)
        { fprintf(f,"%s ",SNEQD->GTCList[nt]->Tag);
-         for(nq=0; nq<NQ; nq++)
-          fprintf(f,"%e %e ", I[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ],
-                              E[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ] );
+         for(int nq=0; nq<NQ; nq++)
+          { int i = GetIndex(SNEQD, nt, nss, nsd, nq);
+            fprintf(f,"%+16.8e %+16.8e ", I[i], E[i] );
+          };
          fprintf(f,"\n");
        };
       fclose(f);
@@ -382,14 +378,14 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMa
      // OmegaMax to be the frequency at which Theta(OmegaMax, TMax) has 
      // decayed to 10^{-10} of the value of Theta(0,TMax), where TMax 
      // is the largest temperature of any object. 
-     // note: the function x/(exp(x)-1) falls below 10^{10} at x=26.3.
+     // note: the function x/(exp(x)-1) falls below 10^{-10} at x=26.3.
 
      double TMax=TEnvironment;
      for (int ns=0; ns<NS; ns++)
       if ( TSurfaces[ns]>=0.0 && TSurfaces[ns]>TMax ) 
        TMax=TSurfaces[ns];
 
-     if (TMax==0.0) // all temperatures are zero; no point in doing the calculation
+     if (TMax==0.0) // all temperatures are zero; no point in calculating
       { memset(I,0,fdim*sizeof(double));
         memset(E,0,fdim*sizeof(double));
         return;

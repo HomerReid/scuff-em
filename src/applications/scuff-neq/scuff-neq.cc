@@ -262,7 +262,6 @@ int main(int argc, char *argv[])
   /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-SpeedTest("First");
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux, AltInvert);
   RWGGeometry *G=SNEQD->G;
 
@@ -328,7 +327,6 @@ SpeedTest("First");
       EvaluateFrequencyIntegral(SNEQD, OmegaMin, OmegaMax,
                                 TSurfaces, TEnvironment, AbsTol, RelTol, I, E);
 */
-SpeedTest("Next");
       EvaluateFrequencyIntegral2(SNEQD, OmegaMin, OmegaMax, 
                                  TSurfaces, TEnvironment, 
                                  Intervals, I, E);

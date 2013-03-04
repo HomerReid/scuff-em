@@ -542,7 +542,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       { SP=Surfaces[nsp];
         int nr1p=SP->RegionIndices[0];
         int nr2p=SP->RegionIndices[1];
-        if (    ( !strcmp(S->MeshFileName, SP->MeshFileName)           )
+        if (    ( !strcmp(S->MeshFileName, SP->MeshFileName) )
              && ( S->MeshTag == SP->MeshTag )
              && ( !strcmp(RegionMPs[nr1]->Name, RegionMPs[nr1p]->Name) )
              && (   (S->IsPEC && SP->IsPEC)
@@ -550,6 +550,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
                 )
            ) 
          Mate[ns]=nsp;
+         Log("Noting that surface %i (%s) is a duplicate of surface %i (%s)...",ns,S->Label,nsp,SP->Label);
       };
    };
 
