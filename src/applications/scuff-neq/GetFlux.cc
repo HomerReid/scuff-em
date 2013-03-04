@@ -302,6 +302,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
       { Log("LU inverting...");
         W->LUInvert();
       };
+     Log("Done with linear algebra...");
 
      /*--------------------------------------------------------------*/
      /*- compute the requested quantities for all objects -----------*/
@@ -317,20 +318,21 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
             fprintf(f,"%e %s ",real(Omega),Tag);
           };
 
+         int nq=0;
          if ( QuantityFlags & QFLAG_POWER )
-          { int i= GetIndex(SNEQD, nt, nss, nsd, QINDEX_POWER);
+          { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace(SNEQD, QINDEX_POWER, nss, nsd, f);
           };
          if ( QuantityFlags & QFLAG_XFORCE )
-          { int i= GetIndex(SNEQD, nt, nss, nsd, QINDEX_XFORCE);
+          { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace(SNEQD, QINDEX_XFORCE, nss, nsd, f);
           }
          if ( QuantityFlags & QFLAG_YFORCE )
-          { int i= GetIndex(SNEQD, nt, nss, nsd, QINDEX_YFORCE);
+          { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace(SNEQD, QINDEX_YFORCE, nss, nsd, f);
           }
          if ( QuantityFlags & QFLAG_ZFORCE )
-          { int i= GetIndex(SNEQD, nt, nss, nsd, QINDEX_ZFORCE);
+          { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace(SNEQD, QINDEX_ZFORCE, nss, nsd, f);
           };
 

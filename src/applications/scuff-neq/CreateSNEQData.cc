@@ -130,10 +130,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   bool *NeedMatrix=SNEQD->NeedMatrix;
   memset(NeedMatrix, 0, SCUFF_NUM_OMATRICES*sizeof(bool));
   NeedMatrix[SCUFF_OMATRIX_OVERLAP] = 0;
-  NeedMatrix[SCUFF_OMATRIX_POWER  ] = QuantityFlags && QFLAG_POWER;
-  NeedMatrix[SCUFF_OMATRIX_XFORCE ] = QuantityFlags && QFLAG_XFORCE;
-  NeedMatrix[SCUFF_OMATRIX_YFORCE ] = QuantityFlags && QFLAG_YFORCE;
-  NeedMatrix[SCUFF_OMATRIX_ZFORCE ] = QuantityFlags && QFLAG_ZFORCE;
+  NeedMatrix[SCUFF_OMATRIX_POWER  ] = QuantityFlags & QFLAG_POWER;
+  NeedMatrix[SCUFF_OMATRIX_XFORCE ] = QuantityFlags & QFLAG_XFORCE;
+  NeedMatrix[SCUFF_OMATRIX_YFORCE ] = QuantityFlags & QFLAG_YFORCE;
+  NeedMatrix[SCUFF_OMATRIX_ZFORCE ] = QuantityFlags & QFLAG_ZFORCE;
 
   SNEQD->SArray=(SMatrix ***)mallocEC(NS*sizeof(SMatrix **));
   for(ns=0; ns<NS; ns++)

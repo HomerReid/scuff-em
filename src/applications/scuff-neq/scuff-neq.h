@@ -96,7 +96,7 @@ typedef struct SNEQData
 
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int WhichQuantities, int PlotFlux, bool AltInvert);
 
-int GetIndex(SNEQData *SNEQD, int nt, int ns, int nsp, int nq);
+int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI);
 
 void EvaluateFrequencyIntegral(SNEQData *SNEQD,
