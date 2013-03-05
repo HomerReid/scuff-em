@@ -287,6 +287,16 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
        }
       else
        {
+
+double Sign=1.0;
+char *str=getenv("SCUFFSIGN");
+if (str && str[0]=='M')
+ Sign=-1.0;
+if (str)
+ printf("STR was %s, SIGN=%e\n",str,Sign);
+else
+printf("SIGN=%e\n",Sign);
+
          if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
           { SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+0, 2*neBeta+0, Overlaps[OVERLAP_OVERLAP]);
             SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+1, 2*neBeta+1, Overlaps[OVERLAP_OVERLAP]);
@@ -301,21 +311,21 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
          if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
           { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*XForce1);
             SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XForce2);
-            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -XForce2);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*XForce2);
             SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XForce1/Z);
           };
 
          if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
           { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*YForce1);
             SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YForce2);
-            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -YForce2);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*YForce2);
             SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YForce1/Z);
           };
 
          if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
           { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*ZForce1);
             SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZForce2);
-            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -ZForce2);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*ZForce2);
             SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZForce1/Z);
           };
 
