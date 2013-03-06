@@ -142,7 +142,7 @@ void RWGSurface::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
   RWGPanel *PAlphaM = (EAlpha->iMPanel == -1) ? 0 : Panels[EAlpha->iMPanel];
   int iQPAlpha = EAlpha->PIndex;
   int iQMAlpha = EAlpha->MIndex;
-  int  iQPBeta  = EBeta->PIndex;
+  int iQPBeta  = EBeta->PIndex;
   int iQMBeta  = EBeta->MIndex;
 
   double LL = EAlpha->Length * EBeta->Length;
@@ -288,15 +288,6 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
       else
        {
 
-double Sign=1.0;
-char *str=getenv("SCUFFSIGN");
-if (str && str[0]=='M')
- Sign=-1.0;
-if (str)
- printf("STR was %s, SIGN=%e\n",str,Sign);
-else
-printf("SIGN=%e\n",Sign);
-
          if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
           { SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+0, 2*neBeta+0, Overlaps[OVERLAP_OVERLAP]);
             SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+1, 2*neBeta+1, Overlaps[OVERLAP_OVERLAP]);
@@ -311,21 +302,21 @@ printf("SIGN=%e\n",Sign);
          if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
           { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*XForce1);
             SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XForce2);
-            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*XForce2);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, XForce2);
             SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XForce1/Z);
           };
 
          if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
           { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*YForce1);
             SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YForce2);
-            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*YForce2);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, YForce2);
             SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YForce1/Z);
           };
 
          if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
           { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*ZForce1);
             SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZForce2);
-            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*ZForce2);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, ZForce2);
             SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZForce1/Z);
           };
 
@@ -404,7 +395,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
      M11 = Z*(Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2); 
      M12 = +2.0*Overlaps[OVERLAP_XTIMESNABLA]/ (II*Omega);
      M21 = -2.0*Overlaps[OVERLAP_XTIMESNABLA]/ (II*Omega);
-     M22 = (Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2) / Z;
+     M22 = (Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2)/Z;
      PFT[2] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
@@ -414,7 +405,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
      M11 = Z*(Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2); 
      M12 = +2.0*Overlaps[OVERLAP_YTIMESNABLA]/ (II*Omega);
      M21 = -2.0*Overlaps[OVERLAP_YTIMESNABLA]/ (II*Omega);
-     M22 = (Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2) / Z;
+     M22 = (Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2)/Z;
      PFT[3] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
@@ -424,7 +415,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
      M11 = Z*(Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2); 
      M12 = +2.0*Overlaps[OVERLAP_ZTIMESNABLA]/ (II*Omega);
      M21 = -2.0*Overlaps[OVERLAP_ZTIMESNABLA]/ (II*Omega);
-     M22 = (Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2) / Z;
+     M22 = (Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2)/Z;
      PFT[4] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
@@ -546,6 +537,163 @@ cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
    { Warn("unknown surface label %s passed to GetScatteredPower",SurfaceLabel);
      return 0.0;
    };
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGSurface::GetOverlapMatrices2(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
+                                     SMatrix *SArray[SCUFF_NUM_OMATRICES],
+                                     cdouble Omega,
+                                     MatProp *ExteriorMP, 
+                                     int TermOnly)
+{
+  int NR  = NumBFs;
+
+  /*--------------------------------------------------------------*/
+  /*- the number of nonzero entries per row of the overlap matrix */
+  /*- is fixed by the definition of the RWG basis function; each  */
+  /*- RWG function overlaps with at most 5 RWG functions          */
+  /*- (including itself), which gives 10 if we have both electric */
+  /*- and magnetic currents.                                      */
+  /*--------------------------------------------------------------*/
+  int nnz = IsPEC ? 5 : 10;
+
+  /*--------------------------------------------------------------*/
+  /*- make sure each necessary slot of SArray points to an SMatrix*/  
+  /*- of the appropriate size                                     */  
+  /*--------------------------------------------------------------*/
+  for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
+   { 
+     if ( NeedMatrix[n] ) 
+      { 
+        if (     SArray[n] 
+             && ( (SArray[n]->NR != NR) || (SArray[n]->NC != NR) )
+           )
+         { Warn("wrong-sized matrix passed to GetOverlapMatrices (reallocating)...");
+           SArray[n]=0;
+         };
+
+        if (SArray[n]==0)
+         SArray[n]=new SMatrix(NR, NR, LHM_COMPLEX);
+
+	// TODO: avoid reallocation if shape is okay?
+        SArray[n]->BeginAssembly(nnz*NR);
+
+      };   
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  cdouble Z=ZVAC, K2=Omega*Omega;
+  if (ExteriorMP)
+   { 
+     cdouble Eps, Mu;
+     ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
+     K2 *= Eps*Mu;
+     Z *= sqrt(Mu/Eps);
+   };
+ 
+  /*--------------------------------------------------------------*/
+  /*- sadly we use an N^2 algorithm for computing the O(N) matrix */
+  /*- elements; this could be corrected at the expense of adding  */
+  /*- some bookkeeping data (namely, a list within each RWGEdge   */
+  /*- structure of the edges with which it overlaps), but for now */ 
+  /*- the cost of this operation is negligible anyway so i don't  */
+  /*- bother.                                                     */
+  /*--------------------------------------------------------------*/
+  int neAlpha, neBeta;
+  double Overlaps[NUMOVERLAPS];
+  cdouble XForceEEA=0.0, XForceEEB=0.0, XForceEM=0.0, XForceME=0.0, XForceMMA=0.0, XForceMMB=0.0;
+  cdouble YForceEEA=0.0, YForceEEB=0.0, YForceEM=0.0, YForceME=0.0, YForceMMA=0.0, YForceMMB=0.0;
+  cdouble ZForceEEA=0.0, ZForceEEB=0.0, ZForceEM=0.0, ZForceME=0.0, ZForceMMA=0.0, ZForceMMB=0.0;
+  for(neAlpha=0; neAlpha<NumEdges; neAlpha++)
+   for(neBeta=0; neBeta<NumEdges; neBeta++)
+    { 
+      GetOverlaps(neAlpha, neBeta, Overlaps);
+      if (Overlaps[0]==0.0) continue; 
+
+      if (TermOnly==-1 || TermOnly==0) XForceEEA = Z*Overlaps[OVERLAP_XBULLET];
+      if (TermOnly==-1 || TermOnly==1) XForceEEB = -Z*Overlaps[OVERLAP_XNABLANABLA]/K2;
+      if (TermOnly==-1 || TermOnly==2) XForceEM  = 2.0*Overlaps[OVERLAP_XTIMESNABLA] / (II*Omega);
+      if (TermOnly==-1 || TermOnly==3) XForceME  = 2.0*Overlaps[OVERLAP_XTIMESNABLA] / (II*Omega);
+      if (TermOnly==-1 || TermOnly==4) XForceMMA = Overlaps[OVERLAP_XBULLET]/Z;
+      if (TermOnly==-1 || TermOnly==5) XForceMMB = -Overlaps[OVERLAP_XNABLANABLA]/(Z*K2);
+
+      if (TermOnly==-1 || TermOnly==0) YForceEEA = Z*Overlaps[OVERLAP_YBULLET];
+      if (TermOnly==-1 || TermOnly==1) YForceEEB = -Z*Overlaps[OVERLAP_YNABLANABLA]/K2;
+      if (TermOnly==-1 || TermOnly==2) YForceEM  = 2.0*Overlaps[OVERLAP_YTIMESNABLA] / (II*Omega);
+      if (TermOnly==-1 || TermOnly==3) YForceME  = 2.0*Overlaps[OVERLAP_YTIMESNABLA] / (II*Omega);
+      if (TermOnly==-1 || TermOnly==4) YForceMMA = Overlaps[OVERLAP_YBULLET]/Z;
+      if (TermOnly==-1 || TermOnly==5) YForceMMB = -Overlaps[OVERLAP_YNABLANABLA]/(Z*K2);
+
+      if (TermOnly==-1 || TermOnly==0) ZForceEEA = Z*Overlaps[OVERLAP_ZBULLET];
+      if (TermOnly==-1 || TermOnly==1) ZForceEEB = -Z*Overlaps[OVERLAP_ZNABLANABLA]/K2;
+      if (TermOnly==-1 || TermOnly==2) ZForceEM  = 2.0*Overlaps[OVERLAP_ZTIMESNABLA] / (II*Omega);
+      if (TermOnly==-1 || TermOnly==3) ZForceME  = 2.0*Overlaps[OVERLAP_ZTIMESNABLA] / (II*Omega);
+      if (TermOnly==-1 || TermOnly==4) ZForceMMA = Overlaps[OVERLAP_ZBULLET]/Z;
+      if (TermOnly==-1 || TermOnly==5) ZForceMMB = -Overlaps[OVERLAP_ZNABLANABLA]/(Z*K2);
+      
+      if (IsPEC)
+       { 
+         if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
+          SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(neAlpha, neBeta, Overlaps[OVERLAP_OVERLAP]);
+
+         // note in this case there is no entry in the power matrix 
+
+#if 0
+         if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
+          SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(neAlpha, neBeta, Z*XForce1);
+         if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
+          SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(neAlpha, neBeta, Z*YForce1);
+         if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
+          SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(neAlpha, neBeta, Z*ZForce1);
+#endif
+       }
+      else
+       {
+
+         if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
+          { SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+0, 2*neBeta+0, Overlaps[OVERLAP_OVERLAP]);
+            SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+1, 2*neBeta+1, Overlaps[OVERLAP_OVERLAP]);
+          };
+
+         // EXPLAIN ME 
+         if ( NeedMatrix[SCUFF_OMATRIX_POWER] )
+          { SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+0, 2*neBeta+1, -Overlaps[OVERLAP_CROSS]);
+            SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+1, 2*neBeta+0, Overlaps[OVERLAP_CROSS]);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
+          { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, XForceEEA + XForceEEB);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XForceEM);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, XForceME);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XForceMMA + XForceMMB);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
+          { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, YForceEEA + YForceEEB);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YForceEM);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, YForceME);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YForceMMA + YForceMMB);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
+          { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZForceEEA + ZForceEEB);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZForceEM);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, ZForceME);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZForceMMA + ZForceMMB);
+          };
+
+       }; // if (IsPEC) ... else ... 
+         
+   }; // for(neAlpha...) ... for (neBeta...)
+
+  for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
+   if ( NeedMatrix[n] ) 
+    SArray[n]->EndAssembly();
+
 }
 
 }// namespace scuff

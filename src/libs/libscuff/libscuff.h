@@ -194,6 +194,12 @@ class RWGSurface
 			   SMatrix *SArray[SCUFF_NUM_OMATRICES], 
                            cdouble Omega=1.0, MatProp *ExteriorMP=NULL);
 
+   void GetOverlapMatrices2(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
+                            SMatrix *SArray[SCUFF_NUM_OMATRICES],
+                            cdouble Omega,
+                            MatProp *ExteriorMP, 
+                            int TermOnly);
+
    /* apply a general transformation (rotation+displacement) to the surface */
    void Transform(const GTransformation *GT);
    void Transform(char *format, ...);
