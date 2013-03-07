@@ -129,9 +129,7 @@ int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 /* the nonzero values of q and s) and then evaluate the        */
 /* contribution to the sum of (p,q,r,s).                       */
 /***************************************************************/
-double GetTrace(SNEQData *SNEQD, int QIndex, 
-                int SourceSurface, int DestSurface, 
-                FILE *FluxFile)
+double GetTrace(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
 {
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
@@ -168,12 +166,6 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
       }; // for (r=0...
    }; // for (p=0... 
   FMPTrace *= (-1.0/16.0);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (FluxFile)
-   fprintf(FluxFile,"%e ",real(FMPTrace));
 
  return real(FMPTrace);
 
@@ -308,38 +300,43 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
      /*- note: nss = 'num surface, source'                          -*/
      /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/
-     FILE *f=0;
+     FILE *f=fopen(SNEQD->FluxFileName,"a");
      for(int nss=0; nss<NS; nss++)
       for(int nsd=0; nsd<NS; nsd++)
        {
+#if 0
          if (SNEQD->FluxFileNames)
           { f=fopen(SNEQD->FluxFileNames[nss*NS+nsd],"a");
             fprintf(f,"%e %s ",real(Omega),Tag);
           };
+#endif
+         fprintf(f,"%e %s %i%i ",real(Omega),Tag,nss,nsd);
 
          int nq=0;
          if ( QuantityFlags & QFLAG_POWER )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace(SNEQD, QINDEX_POWER, nss, nsd, f);
+            fprintf(f,"%.8e ",FI[i]);
           };
          if ( QuantityFlags & QFLAG_XFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace(SNEQD, QINDEX_XFORCE, nss, nsd, f);
+            fprintf(f,"%.8e ",FI[i]);
           }
          if ( QuantityFlags & QFLAG_YFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace(SNEQD, QINDEX_YFORCE, nss, nsd, f);
+            fprintf(f,"%.8e ",FI[i]);
           }
          if ( QuantityFlags & QFLAG_ZFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace(SNEQD, QINDEX_ZFORCE, nss, nsd, f);
+            fprintf(f,"%.8e ",FI[i]);
           };
 
-         if (f)
-          { fprintf(f,"\n");
-            fclose(f);
-          };
+         fprintf(f,"\n");
       };
+     fclose(f);
 
      /*--------------------------------------------------------------*/
      /* and untransform the geometry                                 */

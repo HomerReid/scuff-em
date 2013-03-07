@@ -397,11 +397,34 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMa
    };
 
   /*--------------------------------------------------------------*/
-  /*- evaluate integrand at leftmost point -----------------------*/
+  /*- evaluate integrand at leftmost point.  ---------------------*/
+  /*- If the leftmost point is less than OMEGAMIN (the smallest  -*/
+  /*- frequency at which we can do reliable calculations) then   -*/
+  /*- we estimate the integral from OmegaMin to OMEGAMIN by      -*/
+  /*- a rectangular rule with integrand values computed at       -*/
+  /*- OMEGAMIN.                                                  -*/
   /*--------------------------------------------------------------*/
-  Omega=OmegaMin;
-  GetFlux(SNEQD, Omega, fLeft);
-  PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fLeft);
+  #define OMEGAMIN 0.01
+  if (OmegaMin < OMEGAMIN)
+   { 
+     Omega=OMEGAMIN;
+     GetFlux(SNEQD, Omega, fLeft);
+     PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fLeft);
+     for(int nf=0; nf<fdim; nf++)
+      { I[nf] = fLeft[nf] * (OMEGAMIN-OmegaMin);
+        E[nf] = 0.0;
+      };
+     OmegaMin=OMEGAMIN;
+   }
+  else
+   { 
+     Omega=OmegaMin;
+     GetFlux(SNEQD, Omega, fLeft);
+     PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fLeft);
+     memset(I, 0, fdim*sizeof(double));
+     memset(E, 0, fdim*sizeof(double));
+   };
+
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -409,8 +432,6 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD, double OmegaMin, double OmegaMa
   double Delta = (OmegaMax - OmegaMin) / NumIntervals;
   double *ISimp  = new double[fdim];
   double *ITrap  = new double[fdim];
-  memset(I, 0, fdim*sizeof(double));
-  memset(E, 0, fdim*sizeof(double));
   for(int nIntervals=0; nIntervals<NumIntervals; nIntervals++)
    { 
      // evaluate integrand at midpoint of interval 

@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
-  double OmegaMin=0.001;             int nOmegaMin;
+  double OmegaMin=0.00;              int nOmegaMin;
   double OmegaMax=-1.0;              int nOmegaMax;
 
   char *TempStrings[2*MAXTEMPS];     int nTempStrings;

@@ -90,6 +90,7 @@ typedef struct SNEQData
 
    // frequency-resolved output files
    char **FluxFileNames;
+   char *FluxFileName;
    char *IntegrandFileName;
 
  } SNEQData;

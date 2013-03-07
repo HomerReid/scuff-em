@@ -153,8 +153,11 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   int WriteByOmegaFiles=1;
   if (WriteByOmegaFiles)
    { 
+     SNEQD->FluxFileName=vstrdup("%s.flux",GetFileBase(G->GeoFileName));
+
      SNEQD->IntegrandFileName=vstrdup("%s.Integrand",GetFileBase(G->GeoFileName));
 
+#if 0
      SNEQD->FluxFileNames=(char **)mallocEC(NS*NS*sizeof(char *));
      FILE *f;
      for(ns=0; ns<NS; ns++)
@@ -184,6 +187,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
    
          fclose(f);
        }; // for ( ns = ...) for (nsp = ...)
+#endif
 
    }; //if (WriteByOmegaFiles)
 
