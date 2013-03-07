@@ -111,8 +111,8 @@ int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 
 /***************************************************************/
 /* evaluate the four-matrix trace formula for the contribution */
-/* of fluctuations within SourceSurface to the flux of quantity */
-/* QIndex into DestSurface.                                     */
+/* of fluctuations within SourceSurface to the flux of quantity*/
+/* QIndex into DestSurface.                                    */
 /*                                                             */
 /* QIndex      = 0,1,2,3 for power, {x,y,z} momentum           */
 /*                                                             */
@@ -128,7 +128,6 @@ int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 /* list of nonzero column indices in each row (that is,        */
 /* the nonzero values of q and s) and then evaluate the        */
 /* contribution to the sum of (p,q,r,s).                       */
-/*                                                             */
 /***************************************************************/
 double GetTrace(SNEQData *SNEQD, int QIndex, 
                 int SourceSurface, int DestSurface, 
@@ -146,18 +145,18 @@ double GetTrace(SNEQData *SNEQD, int QIndex,
 
   int p, q, r, s; 
   int nnzq, nq, nnzs, ns;
-  int qValues[11], sValues[11];
-  cdouble O1Entries[10], O2Entries[10];
+  int *qValues, *sValues;
+  cdouble *O1Entries, *O2Entries;
 
   cdouble FMPTrace=0.0; //'four-matrix-product trace'
 
   for(p=0; p<OMatrix1->NR; p++)
    { 
-     nnzq=OMatrix1->GetRow(p, qValues, O1Entries);
+     nnzq=OMatrix1->GetRow(p, &qValues, (void **)&O1Entries);
 
      for(r=0; r<OMatrix2->NR; r++)
       { 
-        nnzs=OMatrix2->GetRow(r, sValues, O2Entries);
+        nnzs=OMatrix2->GetRow(r, &sValues, (void **)&O2Entries);
 
         for(nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
          for(ns=0, s=sValues[0]; ns<nnzs; s=sValues[++ns] )
