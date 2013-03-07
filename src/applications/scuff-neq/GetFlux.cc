@@ -133,6 +133,7 @@ double GetTrace(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
 {
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
+  int NN              = W->NR;
   SMatrix ***SArray   = SNEQD->SArray;
 
   int Offset1       = G->BFIndexOffset[DestSurface];
@@ -159,9 +160,15 @@ double GetTrace(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
         for(nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
          for(ns=0, s=sValues[0]; ns<nnzs; s=sValues[++ns] )
           FMPTrace +=  O1Entries[nq]
+                      *W->ZM[ (Offset1+q) + NN*(Offset2+r) ]
+                      *O2Entries[ns]
+                      *conj( W->ZM[ (Offset1+p) + NN*(Offset2+s) ] );
+#if 0
+          FMPTrace +=  O1Entries[nq]
                       *W->GetEntry( Offset1+q, Offset2+r )
                       *O2Entries[ns]
                       *conj( W->GetEntry( Offset1+p, Offset2+s ));
+#endif
 
       }; // for (r=0...
    }; // for (p=0... 
