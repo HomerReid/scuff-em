@@ -206,8 +206,8 @@ double GetTrace2(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface
   HMatrix *SMG = SymG0[SourceSurface];
   for(int nr=0; nr<SMG->NR; nr++)
    for(int nc=0; nc<SMG->NR; nc++)
-    SMG->SetEntry(Offset2+nr, Offset2+nc, 
-                  0.5*(SMG->GetEntry(nr,nc) + conj(SMG->GetEntry(nc,nr)) ) );
+    S2->SetEntry(Offset2+nr, Offset2+nc, 
+                 0.5*(SMG->GetEntry(nr,nc) + conj(SMG->GetEntry(nc,nr)) ) );
   W->Adjoint();
   W->Multiply(S2, S1);
   W->Adjoint();
@@ -306,7 +306,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
 
      Args->Sa = Args->Sb = G->Surfaces[ns];
      Args->B = SymG0[ns];
-     Args->Symmetric=1;
+     Args->Symmetric=0;
      GetSurfaceSurfaceInteractions(Args);
      UndoSCUFFMatrixTransformation(SymG0[ns]);
    };
@@ -394,22 +394,22 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
          int nq=0;
          if ( QuantityFlags & QFLAG_POWER )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
-            FI[i] = GetTrace(SNEQD, QINDEX_POWER, nss, nsd);
+            FI[i] = GetTrace2(SNEQD, QINDEX_POWER, nss, nsd);
             fprintf(f,"%.8e ",FI[i]);
           };
          if ( QuantityFlags & QFLAG_XFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
-            FI[i] = GetTrace(SNEQD, QINDEX_XFORCE, nss, nsd);
+            FI[i] = GetTrace2(SNEQD, QINDEX_XFORCE, nss, nsd);
             fprintf(f,"%.8e ",FI[i]);
           }
          if ( QuantityFlags & QFLAG_YFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
-            FI[i] = GetTrace(SNEQD, QINDEX_YFORCE, nss, nsd);
+            FI[i] = GetTrace2(SNEQD, QINDEX_YFORCE, nss, nsd);
             fprintf(f,"%.8e ",FI[i]);
           }
          if ( QuantityFlags & QFLAG_ZFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
-            FI[i] = GetTrace(SNEQD, QINDEX_ZFORCE, nss, nsd);
+            FI[i] = GetTrace2(SNEQD, QINDEX_ZFORCE, nss, nsd);
             fprintf(f,"%.8e ",FI[i]);
           };
 

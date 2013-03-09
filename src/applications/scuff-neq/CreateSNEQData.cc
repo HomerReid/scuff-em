@@ -102,7 +102,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
       SNEQD->T[ns] = SNEQD->T[ G->Mate[ns] ];
 
      if (G->Mate[ns]==-1)
-      SNEQD->SymG0[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+      SNEQD->SymG0[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
      else
       SNEQD->SymG0[ns] = SNEQD->SymG0[ G->Mate[ns] ];
 
