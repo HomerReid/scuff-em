@@ -290,7 +290,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  for(int nr=1; nr<G->NumRegions; nr++)
+  for(int nr=0; nr<G->NumRegions; nr++)
    G->RegionMPs[nr]->Zero();
   for(int ns=0; ns<NS; ns++)
    {
@@ -304,10 +304,12 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
      Args->Sa = Args->Sb = G->Surfaces[ns];
      Args->B = SymG0[ns];
      Args->Symmetric=0;
+     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
      GetSurfaceSurfaceInteractions(Args);
+     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
      UndoSCUFFMatrixTransformation(SymG0[ns]);
    };
-  for(int nr=1; nr<G->NumRegions; nr++)
+  for(int nr=0; nr<G->NumRegions; nr++)
    G->RegionMPs[nr]->UnZero();
        
   /***************************************************************/
