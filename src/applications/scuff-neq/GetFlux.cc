@@ -179,6 +179,54 @@ double GetTrace(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
 } 
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+double GetTrace2(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
+{
+  RWGGeometry *G      = SNEQD->G;
+  HMatrix *W          = SNEQD->W;
+  HMatrix **SymG0     = SNEQD->SymG0;
+  HMatrix *S1         = SNEQD->S1;
+  HMatrix *S2         = SNEQD->S2;
+  SMatrix ***SArray   = SNEQD->SArray;
+
+  SMatrix *OMatrix  = SArray[DestSurface][ 1 + QIndex ];
+
+  int Offset2       = G->BFIndexOffset[SourceSurface];
+
+  int p, q;
+  int nnzq, nq;
+  int *qValues;
+  cdouble *O1Entries;
+
+  cdouble FMPTrace=0.0; //'four-matrix-product trace'
+
+  // set S2 = W' * Sym(G0) * W
+  S2->Zero();
+  HMatrix *SMG = SymG0[SourceSurface];
+  for(int nr=0; nr<SMG->NR; nr++)
+   for(int nc=0; nc<SMG->NR; nc++)
+    SMG->SetEntry(Offset2+nr, Offset2+nc, 
+                  0.5*(SMG->GetEntry(nr,nc) + conj(SMG->GetEntry(nc,nr)) ) );
+  W->Adjoint();
+  W->Multiply(S2, S1);
+  W->Adjoint();
+  S1->Multiply(W, S2);
+
+  // compute tr(O*S2)
+  for(p=0; p<OMatrix->NR; p++)
+   { 
+     nnzq=OMatrix->GetRow(p, &qValues, (void **)&O1Entries);
+     for(nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
+      FMPTrace +=  O1Entries[nq] * S2->GetEntry(Offset2+q, Offset2+p);
+   }; // for (p=0... 
+  FMPTrace *= (-1.0/16.0);
+
+ return real(FMPTrace);
+
+} 
+
+/***************************************************************/
 /* the computed quantities are ordered in the output vector    */
 /* like this:                                                  */
 /*                                                             */
@@ -200,6 +248,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
   HMatrix **T         = SNEQD->T;
+  HMatrix **SymG0     = SNEQD->SymG0;
   HMatrix **U         = SNEQD->U;
   int QuantityFlags   = SNEQD->QuantityFlags;
   bool *NeedMatrix    = SNEQD->NeedMatrix;
@@ -240,6 +289,29 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   /***************************************************************/
   for(int ns=0; ns<NS; ns++)
    G->Surfaces[ns]->GetOverlapMatrices(NeedMatrix, SArray[ns], Omega, G->RegionMPs[0]);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  for(int nr=1; nr<G->NumRegions; nr++)
+   G->RegionMPs[nr]->Zero();
+  for(int ns=0; ns<NS; ns++)
+   {
+     if (G->Mate[ns]!=-1)
+      { Log(" Block %i is identical to %i (reusing M0 matrix)",ns,G->Mate[ns]);
+        continue;
+      }
+     else
+      Log(" Assembling self contributions to M0(%i)...",ns);
+
+     Args->Sa = Args->Sb = G->Surfaces[ns];
+     Args->B = SymG0[ns];
+     Args->Symmetric=1;
+     GetSurfaceSurfaceInteractions(Args);
+     UndoSCUFFMatrixTransformation(SymG0[ns]);
+   };
+  for(int nr=1; nr<G->NumRegions; nr++)
+   G->RegionMPs[nr]->UnZero();
        
   /***************************************************************/
   /* now loop over transformations.                              */

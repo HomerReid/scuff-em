@@ -88,16 +88,24 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations.                                           -*/
   /*--------------------------------------------------------------*/
-  int nb, nq, NS=G->NumSurfaces, NBF, NBFp;
+  int nb, NS=G->NumSurfaces, NBF, NBFp;
   SNEQD->T = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  SNEQD->SymG0 = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NS*(NS-1))/2)*sizeof(HMatrix *));
   Log("Before T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   for(nb=ns=0; ns<G->NumSurfaces; ns++)
    { NBF=G->Surfaces[ns]->NumBFs;
+
      if (G->Mate[ns]==-1)
       SNEQD->T[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
      else
       SNEQD->T[ns] = SNEQD->T[ G->Mate[ns] ];
+
+     if (G->Mate[ns]==-1)
+      SNEQD->SymG0[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+     else
+      SNEQD->SymG0[ns] = SNEQD->SymG0[ G->Mate[ns] ];
+
      for(nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
       { NBFp=G->Surfaces[nsp]->NumBFs;
         SNEQD->U[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
@@ -114,6 +122,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   SNEQD->Scratch=0;
   if (SNEQD->AltInvert)
    SNEQD->Scratch = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+
+  SNEQD->S1 = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  SNEQD->S2 = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
 
   /*--------------------------------------------------------------*/
   /*- allocate sparse matrices to store the various overlap      -*/
