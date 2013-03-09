@@ -34,14 +34,13 @@
 /***************************************************************/
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, 
-                         int QuantityFlags, int PlotFlux, bool AltInvert)
+                         int QuantityFlags, int PlotFlux)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
 
   SNEQD->WriteCache=0;
   SNEQD->PlotFlux=PlotFlux;
-  SNEQD->AltInvert=AltInvert;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/
@@ -118,10 +117,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   SNEQD->W = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   Log("After W: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
-
-  SNEQD->Scratch=0;
-  if (SNEQD->AltInvert)
-   SNEQD->Scratch = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
 
   SNEQD->S1 = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   SNEQD->S2 = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );

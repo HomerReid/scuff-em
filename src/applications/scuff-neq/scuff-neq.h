@@ -62,10 +62,6 @@ typedef struct SNEQData
 
    int PlotFlux;
 
-   // explain me
-   bool AltInvert;
-   HMatrix *Scratch;
-
    GTComplex **GTCList;
    int NumTransformations;
 
@@ -97,7 +93,7 @@ typedef struct SNEQData
 
  } SNEQData;
 
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int WhichQuantities, int PlotFlux, bool AltInvert);
+SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int WhichQuantities, int PlotFlux);
 
 int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI);

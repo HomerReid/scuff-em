@@ -190,16 +190,10 @@ double GetTrace2(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface
   HMatrix *S2         = SNEQD->S2;
   SMatrix ***SArray   = SNEQD->SArray;
 
-  SMatrix *OMatrix  = SArray[DestSurface][ 1 + QIndex ];
+  int Offset1         = G->BFIndexOffset[DestSurface];
+  SMatrix *OMatrix    = SArray[DestSurface][ 1 + QIndex ];
 
-  int Offset2       = G->BFIndexOffset[SourceSurface];
-
-  int p, q;
-  int nnzq, nq;
-  int *qValues;
-  cdouble *O1Entries;
-
-  cdouble FMPTrace=0.0; //'four-matrix-product trace'
+  int Offset2         = G->BFIndexOffset[SourceSurface];
 
   // set S2 = W' * Sym(G0) * W
   S2->Zero();
@@ -214,11 +208,14 @@ double GetTrace2(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface
   S1->Multiply(W, S2);
 
   // compute tr(O*S2)
-  for(p=0; p<OMatrix->NR; p++)
+  int *qValues;
+  cdouble *O1Entries;
+  cdouble FMPTrace=0.0; //'four-matrix-product trace'
+  for(int p=0; p<OMatrix->NR; p++)
    { 
-     nnzq=OMatrix->GetRow(p, &qValues, (void **)&O1Entries);
-     for(nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
-      FMPTrace +=  O1Entries[nq] * S2->GetEntry(Offset2+q, Offset2+p);
+     int nnzq=OMatrix->GetRow(p, &qValues, (void **)&O1Entries);
+     for(int nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
+      FMPTrace +=  O1Entries[nq] * S2->GetEntry(Offset1+q, Offset1+p);
    }; // for (p=0... 
   FMPTrace *= (-1.0/16.0);
 
@@ -298,11 +295,11 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   for(int ns=0; ns<NS; ns++)
    {
      if (G->Mate[ns]!=-1)
-      { Log(" Block %i is identical to %i (reusing M0 matrix)",ns,G->Mate[ns]);
+      { Log(" Block %i is identical to %i (reusing SymG0 matrix)",ns,G->Mate[ns]);
         continue;
       }
      else
-      Log(" Assembling self contributions to M0(%i)...",ns);
+      Log(" Assembling self contributions to SymG0(%i)...",ns);
 
      Args->Sa = Args->Sb = G->Surfaces[ns];
      Args->B = SymG0[ns];
@@ -362,16 +359,9 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
          };
       };
      UndoSCUFFMatrixTransformation(W);
-     Log("LU factorizing...");
+     Log("LU factorizing/inverting...");
      W->LUFactorize();
-     if (SNEQD->AltInvert)
-      { Log("Inverting using alternative method...");
-        LUInvert2(W,SNEQD->Scratch);
-      }
-     else
-      { Log("LU inverting...");
-        W->LUInvert();
-      };
+     W->LUInvert();
      Log("Done with linear algebra...");
 
      /*--------------------------------------------------------------*/
