@@ -357,7 +357,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
          { ColOffset=G->BFIndexOffset[nsp];
            W->InsertBlock(U[nb], RowOffset, ColOffset);
-           W->InsertBlockAdjoint(U[nb], ColOffset, RowOffset);
+           W->InsertBlockTranspose(U[nb], ColOffset, RowOffset);
          };
       };
      UndoSCUFFMatrixTransformation(W);
