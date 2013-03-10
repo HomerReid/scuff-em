@@ -74,8 +74,8 @@ typedef struct SNEQData
    HMatrix *W;        // BEM matrix 
    HMatrix **T;       // T[ns] = T-matrix block for surface #ns
    HMatrix **U;       // U[ns*NS + nsp] = // U-matrix block for surfaces #ns, #nsp
-   HMatrix **SymG0;
-   HMatrix *S1,*S2;
+   HMatrix **SymG;
+   void *Buffer[3];
 
    // the NMth slot in this array of flags is 1 iff we will need
    // to compute the NMth type of overlap matrix

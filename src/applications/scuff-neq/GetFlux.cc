@@ -185,40 +185,53 @@ double GetTrace2(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface
 {
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
-  HMatrix **SymG0     = SNEQD->SymG0;
-  HMatrix *S1         = SNEQD->S1;
-  HMatrix *S2         = SNEQD->S2;
+  HMatrix **SymG      = SNEQD->SymG;
   SMatrix ***SArray   = SNEQD->SArray;
 
-  int Offset1         = G->BFIndexOffset[DestSurface];
+  int OffsetS         = G->BFIndexOffset[DestSurface];
   SMatrix *OMatrix    = SArray[DestSurface][ 1 + QIndex ];
 
-  int Offset2         = G->BFIndexOffset[SourceSurface];
+  int OffsetD         = G->BFIndexOffset[SourceSurface];
+   
+  int NS = G->Surfaces[SourceSurface]->NumBFs;
+  int ND = G->Surfaces[DestSurface]->NumBFs;
 
-  // set S2 = W' * Sym(G0) * W
-  S2->Zero();
-  HMatrix *SMG = SymG0[SourceSurface];
-  for(int nr=0; nr<SMG->NR; nr++)
-   for(int nc=0; nc<SMG->NR; nc++)
-    S2->SetEntry(Offset2+nr, Offset2+nc, 
-                 0.5*(SMG->GetEntry(nr,nc) + conj(SMG->GetEntry(nc,nr)) ) );
-  W->Adjoint();
-  W->Multiply(S2, S1);
-  W->Adjoint();
-  S1->Multiply(W, S2);
 
-  // compute tr(O*S2)
+  // set S1 = Sym(G_S)
+  HMatrix *S1=new HMatrix(NS, NS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
+  S1->Zero();
+  HMatrix *Gs = SymG[SourceSurface];
+  for(int nr=0; nr<NS; nr++)
+   for(int nc=0; nc<NS; nc++)
+    S1->SetEntry(nr, nc, 0.5*(Gs->GetEntry(nr,nc) + conj(Gs->GetEntry(nc,nr)) ) ); 
+
+  // set S2 = Sym(G_S) * W_{SD}
+  HMatrix *WSD = new HMatrix(NS, ND, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
+  W->ExtractBlock(OffsetS, OffsetD, WSD);
+  HMatrix *S2 = new HMatrix(NS, NS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  S1->Multiply(WSD, S2);
+  delete S1;
+
+  // set S1 = W_{SD}^\dagger Sym(G_S) * W_{SD}
+  S1=new HMatrix(ND, ND, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
+  WSD->Adjoint();
+  WSD->Multiply(S2, S1);
+
+  // compute tr(O*S1)
   int *qValues;
   cdouble *O1Entries;
   cdouble FMPTrace=0.0; //'four-matrix-product trace'
-  for(int p=0; p<OMatrix->NR; p++)
+  for(int p=0; p<ND; p++)
    { 
      int nnzq=OMatrix->GetRow(p, &qValues, (void **)&O1Entries);
      for(int nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
-      FMPTrace +=  O1Entries[nq] * S2->GetEntry(Offset1+q, Offset1+p);
+      FMPTrace +=  O1Entries[nq] * S1->GetEntry(q, p);
    }; // for (p=0... 
   FMPTrace *= (-1.0/16.0);
 
+ delete S1;
+ delete S2;
+ delete WSD;
  return real(FMPTrace);
 
 } 
@@ -245,7 +258,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
   HMatrix **T         = SNEQD->T;
-  HMatrix **SymG0     = SNEQD->SymG0;
+  HMatrix **SymG      = SNEQD->SymG;
   HMatrix **U         = SNEQD->U;
   int QuantityFlags   = SNEQD->QuantityFlags;
   bool *NeedMatrix    = SNEQD->NeedMatrix;
@@ -295,19 +308,19 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   for(int ns=0; ns<NS; ns++)
    {
      if (G->Mate[ns]!=-1)
-      { Log(" Block %i is identical to %i (reusing SymG0 matrix)",ns,G->Mate[ns]);
+      { Log(" Block %i is identical to %i (reusing SymG matrix)",ns,G->Mate[ns]);
         continue;
       }
      else
-      Log(" Assembling self contributions to SymG0(%i)...",ns);
+      Log(" Assembling self contributions to SymG(%i)...",ns);
 
      Args->Sa = Args->Sb = G->Surfaces[ns];
-     Args->B = SymG0[ns];
+     Args->B = SymG[ns];
      Args->Symmetric=0;
      G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
      GetSurfaceSurfaceInteractions(Args);
      G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
-     UndoSCUFFMatrixTransformation(SymG0[ns]);
+     UndoSCUFFMatrixTransformation(SymG[ns]);
    };
   for(int nr=0; nr<G->NumRegions; nr++)
    G->RegionMPs[nr]->UnZero();

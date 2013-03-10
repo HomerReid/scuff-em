@@ -89,7 +89,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   int nb, NS=G->NumSurfaces, NBF, NBFp;
   SNEQD->T = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
-  SNEQD->SymG0 = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  SNEQD->SymG = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NS*(NS-1))/2)*sizeof(HMatrix *));
   Log("Before T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   for(nb=ns=0; ns<G->NumSurfaces; ns++)
@@ -101,9 +101,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
       SNEQD->T[ns] = SNEQD->T[ G->Mate[ns] ];
 
      if (G->Mate[ns]==-1)
-      SNEQD->SymG0[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+      SNEQD->SymG[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
      else
-      SNEQD->SymG0[ns] = SNEQD->SymG0[ G->Mate[ns] ];
+      SNEQD->SymG[ns] = SNEQD->SymG[ G->Mate[ns] ];
 
      for(nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
       { NBFp=G->Surfaces[nsp]->NumBFs;
@@ -118,8 +118,14 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   SNEQD->W = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   Log("After W: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
-  SNEQD->S1 = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
-  SNEQD->S2 = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  int MaxBFs=G->Surfaces[0]->NumBFs;
+  for(ns=1; ns<G->NumSurfaces; ns++)
+   if (G->Surfaces[0]->NumBFs > MaxBFs) 
+    MaxBFs = G->Surfaces[0]->NumBFs;
+  
+  SNEQD->Buffer[0] = malloc(MaxBFs*MaxBFs*sizeof(cdouble));
+  SNEQD->Buffer[1] = malloc(MaxBFs*MaxBFs*sizeof(cdouble));
+  SNEQD->Buffer[2] = malloc(MaxBFs*MaxBFs*sizeof(cdouble));
 
   /*--------------------------------------------------------------*/
   /*- allocate sparse matrices to store the various overlap      -*/
