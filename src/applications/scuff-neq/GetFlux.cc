@@ -196,7 +196,6 @@ double GetTrace2(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface
   int NS = G->Surfaces[SourceSurface]->NumBFs;
   int ND = G->Surfaces[DestSurface]->NumBFs;
 
-
   // set S1 = Sym(G_S)
   HMatrix *S1=new HMatrix(NS, NS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
   S1->Zero();
@@ -233,6 +232,69 @@ double GetTrace2(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface
  delete S2;
  delete WSD;
  return real(FMPTrace);
+
+} 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetSelfForces(SNEQData *SNEQD, int ns, double *SelfForce)
+{
+  RWGGeometry *G      = SNEQD->G;
+  HMatrix **SymG      = SNEQD->SymG;
+  SMatrix ***SArray   = SNEQD->SArray;
+
+  int N = G->Surfaces[ns]->NumBFs;
+
+  /*--------------------------------------------------------------*/
+  /*- this code snippet sets S1 = W_0^\dagger Sym(G_S) W_0        */
+  /*--------------------------------------------------------------*/
+  // set S1 = Sym(G_S)
+  HMatrix *S1=new HMatrix(N, N, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
+  S1->Zero();
+  HMatrix *Gs = SymG[ns];
+  for(int nr=0; nr<N; nr++)
+   for(int nc=0; nc<N; nc++)
+    S1->SetEntry(nr, nc, 0.5*(Gs->GetEntry(nr,nc) + conj(Gs->GetEntry(nc,nr)) ) ); 
+
+  // set S2 = Sym(G_S) * W_0
+  HMatrix *W0 = new HMatrix(N, N, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
+  W0->Copy(SNEQD->T[ns]);
+  W0->LUFactorize();
+  W0->LUInvert();
+  HMatrix *S2 = new HMatrix(N, N, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  S1->Multiply(W0, S2);
+
+  // set S1 = W_0^\dagger Sym(G_S) * W_0
+  W0->Adjoint();
+  W0->Multiply(S2, S1);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  for(int nf=0; nf<3; nf++)
+   { if (SNEQD->NeedMatrix[2+nf] == false) 
+      SelfForce[nf]=0.0;
+     else 
+      { SMatrix *OMatrix    = SArray[ns][ 2 + nf ];
+
+        // compute tr(O*S1)
+        int *qValues;
+        cdouble *O1Entries;
+        cdouble FMPTrace=0.0; //'four-matrix-product trace'
+        for(int p=0; p<N; p++)
+         { 
+          int nnzq=OMatrix->GetRow(p, &qValues, (void **)&O1Entries);
+          for(int nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
+           FMPTrace +=  O1Entries[nq] * S1->GetEntry(q, p);
+         }; // for (p=0... 
+        SelfForce[nf] = real(FMPTrace) * (-1.0/16.0);
+      };
+   };
+
+ delete S1;
+ delete S2; 
+ delete W0; 
 
 } 
 
@@ -324,6 +386,20 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
    };
   for(int nr=0; nr<G->NumRegions; nr++)
    G->RegionMPs[nr]->UnZero();
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (NS>50) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+  double SelfForce[50][3];
+  for(int ns=0; ns<NS; ns++)
+   if ( G->Mate[ns]!=-1 )
+    memcpy(SelfForce[ns], SelfForce[G->Mate[ns]], 3*sizeof(double));
+   else
+    { GetSelfForces(SNEQD, ns, SelfForce[ns]);
+      Log("SelfForce(%e,%i)=(%e,%e,%e)",real(Omega),ns,
+           SelfForce[ns][0],SelfForce[ns][1],SelfForce[ns][2]);
+    };
        
   /***************************************************************/
   /* now loop over transformations.                              */
@@ -405,16 +481,19 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
          if ( QuantityFlags & QFLAG_XFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace2(SNEQD, QINDEX_XFORCE, nss, nsd);
+            if (nss==nsd) FI[i] -= SelfForce[nss][0];
             fprintf(f,"%.8e ",FI[i]);
           }
          if ( QuantityFlags & QFLAG_YFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace2(SNEQD, QINDEX_YFORCE, nss, nsd);
+            if (nss==nsd) FI[i] -= SelfForce[nss][1];
             fprintf(f,"%.8e ",FI[i]);
           }
          if ( QuantityFlags & QFLAG_ZFORCE )
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
             FI[i] = GetTrace2(SNEQD, QINDEX_ZFORCE, nss, nsd);
+            if (nss==nsd) FI[i] -= SelfForce[nss][2];
             fprintf(f,"%.8e ",FI[i]);
           };
 
