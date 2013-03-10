@@ -260,6 +260,7 @@ void GetSelfForces(SNEQData *SNEQD, int ns, double *SelfForce)
   // set S2 = Sym(G_S) * W_0
   HMatrix *W0 = new HMatrix(N, N, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
   W0->Copy(SNEQD->T[ns]);
+  UndoSCUFFMatrixTransformation(W0);
   W0->LUFactorize();
   W0->LUInvert();
   HMatrix *S2 = new HMatrix(N, N, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
