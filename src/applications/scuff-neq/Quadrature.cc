@@ -80,7 +80,7 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  FILE *f=vfopen("%s.integrand",SNEQD->FileBase,"a");
+  FILE *f=vfopen("%s.integrand","a",SNEQD->FileBase);
   for(int nt=0; nt<NT; nt++)
    for(int nss=0; nss<NS; nss++)
     for(int nsd=0; nsd<NS; nsd++)
