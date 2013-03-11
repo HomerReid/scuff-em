@@ -1,6 +1,6 @@
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
- * This file is part of SCUFF-EM.
+ * This fMAXQUANTITIESile is part of SCUFF-EM.
  *
  * SCUFF-EM is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -461,17 +461,11 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
      /*- note: nss = 'num surface, source'                          -*/
      /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/
-     FILE *f=fopen(SNEQD->FluxFileName,"a");
+     FILE *f=vfopen("%s.flux","a",SNEQD->FileBase);
      for(int nss=0; nss<NS; nss++)
       for(int nsd=0; nsd<NS; nsd++)
        {
-#if 0
-         if (SNEQD->FluxFileNames)
-          { f=fopen(SNEQD->FluxFileNames[nss*NS+nsd],"a");
-            fprintf(f,"%e %s ",real(Omega),Tag);
-          };
-#endif
-         fprintf(f,"%e %s %i%i ",real(Omega),Tag,nss,nsd);
+         fprintf(f,"%e %s %i%i ",real(Omega),Tag,nss+1,nsd+1);
 
          int nq=0;
          if ( QuantityFlags & QFLAG_POWER )

@@ -130,8 +130,7 @@ int main(int argc, char *argv[])
   double RelTol=5.0e-2;
   int Intervals=25;
 
-  char *OutputFile=0;
-  char *LogFile=0;
+  char *FileBase=0;
 
   int PlotFlux=0;
 
@@ -157,8 +156,7 @@ int main(int argc, char *argv[])
 /**/     
      {"Temperature",    PA_STRING,  2, MAXTEMPS, (void *)TempStrings, &nTempStrings,  "set object xx temperature to xx"},
 /**/     
-     {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile, 0,             "name of frequency-integrated output file"},
-     {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,    0,             "name of log file"},
+     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "prefix for names of .log, .flux, .out files"},
 /**/     
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
 /**/     
@@ -180,8 +178,8 @@ int main(int argc, char *argv[])
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
 
-  if (LogFile)
-   SetLogFileName(LogFile);
+  if (FileBase)
+   SetLogFileName("%s.log",FileBase);
   else
    SetLogFileName("scuff-neq.log");
 
@@ -259,7 +257,7 @@ int main(int argc, char *argv[])
   /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux);
+  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux, FileBase);
   RWGGeometry *G=SNEQD->G;
 
   /*******************************************************************/
@@ -320,10 +318,6 @@ int main(int argc, char *argv[])
   else
    { 
       double *E = new double[ OutputVectorLength ];
-/*
-      EvaluateFrequencyIntegral(SNEQD, OmegaMin, OmegaMax,
-                                TSurfaces, TEnvironment, AbsTol, RelTol, I, E);
-*/
       EvaluateFrequencyIntegral2(SNEQD, OmegaMin, OmegaMax, 
                                  TSurfaces, TEnvironment, 
                                  Intervals, I, E);

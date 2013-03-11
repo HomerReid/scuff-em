@@ -34,7 +34,7 @@
 /***************************************************************/
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, 
-                         int QuantityFlags, int PlotFlux)
+                         int QuantityFlags, int PlotFlux, char *pFileBase)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
@@ -48,6 +48,11 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   RWGGeometry *G=new RWGGeometry(GeoFile);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   SNEQD->G=G;
+  
+  if (pFileBase)
+   SNEQD->FileBase = strdup(pFileBase);
+  else
+   SNEQD->FileBase = strdup(GetFileBase(G->GeoFileName));
 
   /*--------------------------------------------------------------*/
   /*- this code does not make sense if any of the objects are PEC */
@@ -158,50 +163,31 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
    };
 
   /*--------------------------------------------------------------*/
-  /*- create frequency-resolved output files for each object in  -*/
-  /*- the geometry and write a file header to each file.         -*/
   /*--------------------------------------------------------------*/
-  SNEQD->FluxFileNames=0;
-  int WriteByOmegaFiles=1;
-  if (WriteByOmegaFiles)
-   { 
-     SNEQD->FluxFileName=vstrdup("%s.flux",GetFileBase(G->GeoFileName));
-
-     SNEQD->IntegrandFileName=vstrdup("%s.Integrand",GetFileBase(G->GeoFileName));
-
-#if 0
-     SNEQD->FluxFileNames=(char **)mallocEC(NS*NS*sizeof(char *));
-     FILE *f;
-     for(ns=0; ns<NS; ns++)
-      for(nsp=0; nsp<NS; nsp++)
-       { 
-         SNEQD->FluxFileNames[ns*NS+nsp] = vstrdup("From%sTo%s.flux",
-                                                   G->Surfaces[ns]->Label,
-                                                   G->Surfaces[nsp]->Label);
-   
-         f=fopen(SNEQD->FluxFileNames[ns*NS+nsp],"a");
-         if (!f)
-          ErrExit("could not create file %s",SNEQD->FluxFileNames[ns]);
-         fprintf(f,"\n\n");
-         fprintf(f,"# data file columns: \n");
-         fprintf(f,"# 1: angular frequency in units of 3e14 rad/sec \n");
-         fprintf(f,"# 2: transformation tag \n");
-        
-         nq=3;
-         if (QuantityFlags && QFLAG_POWER)
-          fprintf(f,"# %i: spectral density of power flux \n",nq++);
-         if (QuantityFlags && QFLAG_XFORCE)
-          fprintf(f,"# %i: spectral density of x-momentum flux\n",nq++);
-         if (QuantityFlags && QFLAG_YFORCE)
-          fprintf(f,"# %i: spectral density of y-momentum flux\n",nq++);
-         if (QuantityFlags && QFLAG_ZFORCE)
-          fprintf(f,"# %i: spectral density of z-momentum flux\n",nq++);
-   
-         fclose(f);
-       }; // for ( ns = ...) for (nsp = ...)
-#endif
-
-   }; //if (WriteByOmegaFiles)
+  /*--------------------------------------------------------------*/
+  time_t MyTime;
+  struct tm *MyTm;
+  char TimeString[30];
+  MyTm=localtime(&MyTime);
+  strftime(TimeString,30,"%D::%T",MyTm);
+  FILE *f=vfopen("%s.flux","a",SNEQD->FileBase);
+  fprintf(f,"\n");
+  fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),TimeString);
+  fprintf(f,"# data file columns: \n");
+  fprintf(f,"# 1 omega \n");
+  fprintf(f,"# 2 transform tag\n");
+  fprintf(f,"# 3 (sourceObject,destObject) \n");
+  int nq=4;
+  if (SNEQD->QuantityFlags & QFLAG_POWER) 
+   fprintf(f,"# %i power flux spectral density\n",nq++);
+  if (SNEQD->QuantityFlags & QFLAG_XFORCE) 
+   fprintf(f,"# %i x-force flux spectral density\n",nq++);
+  if (SNEQD->QuantityFlags & QFLAG_YFORCE) 
+   fprintf(f,"# %i y-force flux spectral density\n",nq++);
+  if (SNEQD->QuantityFlags & QFLAG_ZFORCE) 
+   fprintf(f,"# %i z-force flux spectral density\n",nq++);
+  fclose(f);
+  
 
   Log("After CreateSNEQData: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   return SNEQD;
