@@ -207,6 +207,7 @@ void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E)
             TotalQuantity[nq] += I[i];
             TotalError[nq] += E[i];
           };
+         fprintf(f,"\n");
        };
 
       fprintf(f,"%s 0%i ",SNEQD->GTCList[nt]->Tag,nsd+1);

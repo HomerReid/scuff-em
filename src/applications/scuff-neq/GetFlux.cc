@@ -1,6 +1,6 @@
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
- * This fMAXQUANTITIESile is part of SCUFF-EM.
+ * This fileis part of SCUFF-EM.
  *
  * SCUFF-EM is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -300,6 +300,82 @@ void GetSelfForces(SNEQData *SNEQD, int ns, double *SelfForce)
 } 
 
 /***************************************************************/
+/* return false on failure *************************************/
+/***************************************************************/
+bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *FI)
+{
+  FILE *f=vfopen("%s.flux","r",SNEQD->FileBase);
+  if (!f) return false;
+  Log("Attempting to cache-read flux data for Omega=%e...",Omega);
+
+  int NT=SNEQD->NumTransformations;
+  int NS=SNEQD->G->NumSurfaces;
+  int NQ=SNEQD->NQ;
+  int nt, nss, nsd, nq;
+  GTComplex **GTCList=SNEQD->GTCList;
+  char *FirstTag = GTCList[0]->Tag;
+  int ErrorCode, LineNum=0;
+  double FileOmega, rOmega=real(Omega);
+
+  char Line[1000];
+  char *Tokens[50];
+  int NumTokens, MaxTokens=50;
+  bool FoundFirstTag=false;
+  while( FoundFirstTag==false && fgets(Line,1000,f) )
+   { 
+     LineNum++;
+     NumTokens=Tokenize(Line, Tokens, MaxTokens, " ");
+     if (NumTokens<4) continue;
+     if (strcmp(Tokens[1],FirstTag)) continue;
+     sscanf(Tokens[0],"%lf",&FileOmega);
+     if ( fabs(FileOmega - rOmega) > 1.0e-6*rOmega ) continue;
+     FoundFirstTag=true;
+   
+   };
+  if(FoundFirstTag==false)
+   { ErrorCode=1; goto fail;}
+
+  for(nt=0; nt<NT; nt++)
+   for(nss=0; nss<NS; nss++)
+    for(nsd=0; nsd<NS; nsd++)
+     { 
+       if ( !(nt==0 && nss==0 && nsd==0) )
+        { if ( !fgets(Line,1000,f) )
+           { ErrorCode=2; goto fail; }
+          LineNum++;
+          NumTokens=Tokenize(Line, Tokens, MaxTokens, " ");
+          if ( strcmp(Tokens[1],GTCList[nt]->Tag) )
+           { ErrorCode=3; goto fail; }
+          sscanf(Tokens[0],"%lf",&FileOmega);
+          if ( fabs(FileOmega - rOmega) > 1.0e-6*rOmega )
+           { ErrorCode=4; goto fail; }
+        };
+
+       if ( NumTokens < 3+NQ ) 
+        { ErrorCode=5; goto fail; }
+       for(nq=0; nq<NQ; nq++)
+        sscanf(Tokens[3+nq],"%le", FI+GetIndex(SNEQD, nt, nss, nsd, nq) );
+     };
+
+  // success:
+   Log("...success!");
+   fclose(f); 
+   return true;
+
+  fail:
+   switch(ErrorCode)
+    { case 1: Log("could not find first tag (fail)"); break;
+      case 2: Log("line %i: unexpected end of file (fail)",LineNum); break;
+      case 3: Log("line %i: wrong tag (fail)",LineNum); break;
+      case 4: Log("line %i: wrong frequency (fail)",LineNum); break;
+      case 5: Log("line %i: too few quantities (fail)",LineNum); break;
+    };
+   fclose(f); 
+   return false;
+
+}
+
+/***************************************************************/
 /* the computed quantities are ordered in the output vector    */
 /* like this:                                                  */
 /*                                                             */
@@ -313,6 +389,9 @@ void GetSelfForces(SNEQData *SNEQD, int ns, double *SelfForce)
 /***************************************************************/
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
 {
+  if ( CacheRead(SNEQD, Omega, FI) )
+   return;
+
   Log("Computing neq quantities at omega=%s...",z2s(Omega));
 
   /***************************************************************/
