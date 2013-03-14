@@ -80,20 +80,17 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (SNEQD->IntegrandFileName)
-   { 
-     FILE *f=fopen(SNEQD->IntegrandFileName,"a");
-     for(int nt=0; nt<NT; nt++)
-      for(int nss=0; nss<NS; nss++)
-       for(int nsd=0; nsd<NS; nsd++)
-        { 
-          fprintf(f,"%s %e %i%i ",SNEQD->GTCList[nt]->Tag,Omega,nss,nsd);
-          for(int nq=0; nq<NQ; nq++)
-           fprintf(f,"%.8e ",FluxVector[ GetIndex(SNEQD, nt, nss, nsd, nq) ] );
-          fprintf(f,"\n");
-        };
-     fclose(f);
-   };
+  FILE *f=vfopen("%s.integrand","a",SNEQD->FileBase);
+  for(int nt=0; nt<NT; nt++)
+   for(int nss=0; nss<NS; nss++)
+    for(int nsd=0; nsd<NS; nsd++)
+     { 
+       fprintf(f,"%s %e %i%i ",SNEQD->GTCList[nt]->Tag,Omega,nss+1,nsd+1);
+       for(int nq=0; nq<NQ; nq++)
+        fprintf(f,"%.8e ",FluxVector[ GetIndex(SNEQD, nt, nss, nsd, nq) ] );
+       fprintf(f,"\n");
+     };
+  fclose(f);
 
 }
 
@@ -172,26 +169,52 @@ void SGJCIntegrand(unsigned ndim, const double *x, void *params,
 /***************************************************************/
 void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E)
 {
-  FILE *f;
-  char FileName[1000];
-  RWGSurface **SArray=SNEQD->G->Surfaces;
+  time_t MyTime;
+  struct tm *MyTm;
+  char TimeString[30];
+  MyTm=localtime(&MyTime);
+  strftime(TimeString,30,"%D::%T",MyTm);
+  FILE *f=vfopen("%s.out","a",SNEQD->FileBase);
+  fprintf(f,"\n");
+  fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),TimeString);
+  fprintf(f,"# data file columns: \n");
+  fprintf(f,"# 1 transform tag\n");
+  fprintf(f,"# 2 (sourceObject, destObject) \n");
+  int nq=3;
+  if (SNEQD->QuantityFlags & QFLAG_POWER) 
+   fprintf(f,"# (%i,%i) power (value,error)\n",nq++,nq++);
+  if (SNEQD->QuantityFlags & QFLAG_XFORCE) 
+   fprintf(f,"# (%i,%i) x-force (value,error)\n",nq++,nq++);
+  if (SNEQD->QuantityFlags & QFLAG_YFORCE) 
+   fprintf(f,"# (%i,%i) y-force (value,error)\n",nq++,nq++);
+  if (SNEQD->QuantityFlags & QFLAG_ZFORCE) 
+   fprintf(f,"# (%i,%i) z-force (value,error)\n",nq++,nq++);
+
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
   int NQ = SNEQD->NQ;
-  for(int nss=0; nss<NS; nss++)
+  double TotalQuantity[MAXQUANTITIES], TotalError[MAXQUANTITIES];
+  for(int nt=0; nt<NT; nt++)
    for(int nsd=0; nsd<NS; nsd++)
     { 
-      snprintf(FileName,1000,"From%sTo%s.out",SArray[nss]->Label,SArray[nsd]->Label);
-      f=CreateUniqueFile(FileName,1);
-      for(int nt=0; nt<NT; nt++)
-       { fprintf(f,"%s ",SNEQD->GTCList[nt]->Tag);
-         for(int nq=0; nq<NQ; nq++)
+      memset(TotalQuantity,0,NQ*sizeof(double));
+      memset(TotalError,   0,NQ*sizeof(double));
+      for(int nss=0; nss<NS; nss++)
+       { fprintf(f,"%s %i%i ",SNEQD->GTCList[nt]->Tag,nss+1,nsd+1);
+         for(nq=0; nq<NQ; nq++)
           { int i = GetIndex(SNEQD, nt, nss, nsd, nq);
             fprintf(f,"%+16.8e %+16.8e ", I[i], E[i] );
+            TotalQuantity[nq] += I[i];
+            TotalError[nq] += E[i];
           };
          fprintf(f,"\n");
        };
-      fclose(f);
+
+      fprintf(f,"%s 0%i ",SNEQD->GTCList[nt]->Tag,nsd+1);
+      for(nq=0; nq<NQ; nq++)
+       fprintf(f,"%e %e ",TotalQuantity[nq],TotalError[nq]);
+      fprintf(f,"\n");
+
     };
 }
 

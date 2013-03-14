@@ -552,10 +552,10 @@ GTComplex **ReadTransFile(char *FileName, int *NumGTComplices)
   int NumGTCs=0;
 
   char Line[MAXSTR];
-  int LineNum;
   int NumTokens;
   char *Tokens[MAXTOK];
   char *ErrMsg=0;
+  int LineNum=0;
   while(fgets(Line, MAXSTR, f))
    { 
      // read line, break it up into tokens, skip blank lines and comments
