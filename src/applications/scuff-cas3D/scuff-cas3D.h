@@ -117,6 +117,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
 void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT);
 void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT);
 void GetXiIntegral(SC3Data *SC3D, double *EFT, double *Error);
+void GetXiIntegral2(SC3Data *SC3D, int NumIntervals, double *I, double *E);
 void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Error);
 
 #endif // #define SCUFFCAS3D_H

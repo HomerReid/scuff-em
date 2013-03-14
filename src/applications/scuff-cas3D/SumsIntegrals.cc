@@ -30,7 +30,8 @@
 #include "libscuffInternals.h"
 #include <libSGJC.h>
 
-#define XIMIN 0.001
+#define XIMIN  0.001
+#define XIMAX 10.000
 
 /*****************************************************************/
 /* 3, 6, 10, 15-point monkhorst-pack grids for square-lattice BZ */
@@ -245,8 +246,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
         )
       ErrExit("Monkhorst-Pack scheme only implemented for square lattices");
 
-     double *MP;
-     int NumPoints;
+     double *MP=0;
+     int NumPoints=0;
      switch (SC3D->BZIMethod)
       { case BZIMETHOD_MP3:  MP=MP3;  NumPoints=3;  break;
         case BZIMETHOD_MP6:  MP=MP6;  NumPoints=6;  break;
@@ -439,4 +440,64 @@ void GetXiIntegral(SC3Data *SC3D, double *EFT, double *Error)
   adapt_integrate(SC3D->NTNQ, GetXiIntegrand2, (void *)SC3D, 1, Lower, Upper,
 	 	  SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol, EFT, Error);
    
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetXiIntegral2(SC3Data *SC3D, int NumIntervals, double *I, double *E)
+{ 
+  int fdim = SC3D->NTNQ;
+  double *fLeft  = new double[fdim];
+  double *fMid   = new double[fdim];
+  double *fRight = new double[fdim];
+  double Xi;
+
+  /*--------------------------------------------------------------*/
+  /*- evaluate integrand at leftmost frequency point and estimate */
+  /*- the integral from 0 to XIMIN by assuming that the integrand */
+  /*- is constant in that range IN by assuming that the integrand */
+  /*--------------------------------------------------------------*/
+  Xi=XIMIN;
+  GetXiIntegrand(SC3D, Xi, fLeft);
+  for(int nf=0; nf<fdim; nf++)
+   I[nf] = fLeft[nf] * XIMIN;
+  memset(E,0,SC3D->NTNQ*sizeof(double));
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double Delta = (XIMAX - XIMIN ) / NumIntervals;
+  double *ISimp  = new double[fdim];
+  double *ITrap  = new double[fdim];
+  for(int nIntervals=0; nIntervals<NumIntervals; nIntervals++)
+   { 
+     // evaluate integrand at midpoint of interval 
+     Xi += 0.5*Delta;
+     GetXiIntegrand(SC3D, Xi, fMid);
+
+     // evaluate integrand at right end of interval 
+     Xi += 0.5*Delta;
+     GetXiIntegrand(SC3D, Xi, fRight);
+
+     // compute the simpson's rule and trapezoidal rule
+     // estimates of the integral over this interval  
+     // and take their difference as the error
+     for(int nf=0; nf<fdim; nf++)
+      { ISimp[nf] = (fLeft[nf] + 4.0*fMid[nf] + fRight[nf])*Delta/6.0;
+        ITrap[nf] = (fLeft[nf] + 2.0*fMid[nf] + fRight[nf])*Delta/4.0;
+        I[nf] += ISimp[nf];
+        E[nf] += fabs(ISimp[nf] - ITrap[nf]);
+      };
+
+     // prepare for next iteration
+     memcpy(fLeft, fRight, fdim*sizeof(double));
+
+   };
+  delete[] fLeft;
+  delete[] fMid;
+  delete[] fRight;
+  delete[] ISimp;
+  delete[] ITrap;
+
 }

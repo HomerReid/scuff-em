@@ -209,6 +209,7 @@ int main(int argc, char *argv[])
   int MaxXiPoints=10000;
   double AbsTol=0.0;
   double RelTol=1.0e-2;
+  int Intervals=50;
 //
   char *OutputFile=0;
   char *ByXiFile=0;
@@ -229,7 +230,7 @@ int main(int argc, char *argv[])
      {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,        0,             "compute y-directed Casimir force"},
      {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,        0,             "compute z-directed Casimir force"},
      {"Torque",         PA_DOUBLE,  3, 3,       (void *)TorqueAxes,     &nTorque,      "compute Casimir torque about a given axis"},
-     {"AllTorque",      PA_BOOL,    0, 1,       (void *)AllTorque,      0,             "compute all three Casimir torque components"},
+     {"AllTorque",      PA_BOOL,    0, 1,       (void *)&AllTorque,     0,             "compute all three Casimir torque components"},
 //
      {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature,   &nTemperature, "temperature in Kelvin"},
      {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,         &nXiVals,      "imaginary frequency"},
@@ -245,6 +246,7 @@ int main(int argc, char *argv[])
      {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations "},
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
+     {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,     0,             "number of subintervals for frequency quadrature"},
 //
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,         0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,      &nReadCache,   "read cache"},
@@ -416,7 +418,7 @@ int main(int argc, char *argv[])
   else
    { 
      Error = new double[SC3D->NTNQ];
-     GetXiIntegral(SC3D, EFT, Error);
+     GetXiIntegral2(SC3D, Intervals, EFT, Error);
    };
 
   /***************************************************************/
