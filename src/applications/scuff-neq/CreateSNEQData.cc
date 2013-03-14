@@ -123,10 +123,16 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   SNEQD->W = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   Log("After W: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
+  /*--------------------------------------------------------------*/
+  /*- Buffer[0..2] are data storage buffers with enough room to  -*/
+  /*- hold MaxBFs^2 cdoubles, where MaxBFs is the maximum number -*/
+  /*- of basis functions on any object, i.e. the max dimension   -*/
+  /*- of any BEM matrix subblock.                                -*/
+  /*--------------------------------------------------------------*/
   int MaxBFs=G->Surfaces[0]->NumBFs;
   for(ns=1; ns<G->NumSurfaces; ns++)
-   if (G->Surfaces[0]->NumBFs > MaxBFs) 
-    MaxBFs = G->Surfaces[0]->NumBFs;
+   if (G->Surfaces[ns]->NumBFs > MaxBFs) 
+    MaxBFs = G->Surfaces[ns]->NumBFs;
   
   SNEQD->Buffer[0] = malloc(MaxBFs*MaxBFs*sizeof(cdouble));
   SNEQD->Buffer[1] = malloc(MaxBFs*MaxBFs*sizeof(cdouble));

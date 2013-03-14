@@ -73,8 +73,8 @@ typedef struct SNEQData
    // HMatrix structures for the BEM matrix and its subblocks
    HMatrix *W;        // BEM matrix 
    HMatrix **T;       // T[ns] = T-matrix block for surface #ns
+   HMatrix **SymG;    // T[ns] = T-matrix block for surface #ns
    HMatrix **U;       // U[ns*NS + nsp] = // U-matrix block for surfaces #ns, #nsp
-   HMatrix **SymG;
    void *Buffer[3];
 
    // the NMth slot in this array of flags is 1 iff we will need
@@ -94,7 +94,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          int WhichQuantities, int PlotFlux, char *FileBase);
 
 int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
-void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI);
+void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux);
 
 void EvaluateFrequencyIntegral(SNEQData *SNEQD,
                                double OmegaMin, double OmegaMax,

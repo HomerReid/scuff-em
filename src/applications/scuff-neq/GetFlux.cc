@@ -34,18 +34,6 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void LUInvert2(HMatrix *W, HMatrix *Scratch)
-{ 
-  Scratch->Zero();
-  for(int n=0; n<W->NR; n++)
-   Scratch->SetEntry(n,n,1.0);
-  W->LUSolve(Scratch);
-  W->Copy(Scratch);
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void SpyPlot(HMatrix *M, char *Title, char *FileName)
 {
   if (!FileName)
@@ -129,6 +117,7 @@ int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 /* the nonzero values of q and s) and then evaluate the        */
 /* contribution to the sum of (p,q,r,s).                       */
 /***************************************************************/
+#if 0
 double GetTrace(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
 {
   RWGGeometry *G      = SNEQD->G;
@@ -177,132 +166,98 @@ double GetTrace(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
  return real(FMPTrace);
 
 } 
+#endif
 
 /***************************************************************/
+/* compute the four-matrix-trace formula for the contribution  */
+/* of sources inside SourceSurface to the fluxes of power      */
+/* and/or momentum through DestSurface.                        */
+/* If SourceSurface==DestSurface and SelfTerm==true, then the  */
+/* calculation is performed as if the surface were in          */
+/* isolation (no other objects in the geometry).               */
 /***************************************************************/
-/***************************************************************/
-double GetTrace2(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
+void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
+              double *Results, bool SelfTerm=false)
 {
   RWGGeometry *G      = SNEQD->G;
-  HMatrix *W          = SNEQD->W;
-  HMatrix **SymG      = SNEQD->SymG;
-  SMatrix ***SArray   = SNEQD->SArray;
 
-  int OffsetS         = G->BFIndexOffset[DestSurface];
-  SMatrix *OMatrix    = SArray[DestSurface][ 1 + QIndex ];
+  int DimD            = G->Surfaces[DestSurface]->NumBFs;
+  int OffsetD         = G->BFIndexOffset[DestSurface];
 
-  int OffsetD         = G->BFIndexOffset[SourceSurface];
+  int DimS            = G->Surfaces[SourceSurface]->NumBFs;
+  int OffsetS         = G->BFIndexOffset[SourceSurface];
    
-  int NS = G->Surfaces[SourceSurface]->NumBFs;
-  int ND = G->Surfaces[DestSurface]->NumBFs;
+  /*--------------------------------------------------------------*/
+  /*- Set W_{SD} = S,D subblock of W matrix (SelfTerm==false)     */
+  /*-            = inverse T matrix of object S (SelfTerm==true)  */
+  /*--------------------------------------------------------------*/
+  HMatrix *WSD = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
+  if (SelfTerm)
+   { WSD->Copy(SNEQD->T[SourceSurface]);
+     UndoSCUFFMatrixTransformation(WSD);
+     WSD->LUFactorize();
+     WSD->LUInvert();
+   }
+  else
+   SNEQD->W->ExtractBlock(OffsetS, OffsetD, WSD);
 
-  // set S1 = Sym(G_S)
-  HMatrix *S1=new HMatrix(NS, NS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
-  S1->Zero();
-  HMatrix *Gs = SymG[SourceSurface];
-  for(int nr=0; nr<NS; nr++)
-   for(int nc=0; nc<NS; nc++)
-    S1->SetEntry(nr, nc, 0.5*(Gs->GetEntry(nr,nc) + conj(Gs->GetEntry(nc,nr)) ) ); 
+  /*--------------------------------------------------------------*/
+  /*- set WDOW = W_{SD}^\dagger  * O_S * W_{SD}                  -*/
+  /*--------------------------------------------------------------*/
+#if 0
+  SMatrix *OMatrixS   = SNEQD->SArray[SourceSurface][ 1 + QINDEX_POWER ];
+  HMatrix *OW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
+  HMatrix *WDOW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  OMatrixS->Apply(WSD, OW);
+  WSD->Multiply(OW, WDOW, "--transA C");
+#else
+  HMatrix *WDOW = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  for(int nr=0; nr<DimS; nr++)
+   for(int nc=0; nc<DimS; nc++)
+    WDOW->SetEntry(nr, nc, 0.5*(      SNEQD->SymG[SourceSurface]->GetEntry(nr,nc)
+                                +conj(SNEQD->SymG[SourceSurface]->GetEntry(nc,nr))
+                               ));
 
-  // set S2 = Sym(G_S) * W_{SD}
-  HMatrix *WSD = new HMatrix(NS, ND, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  W->ExtractBlock(OffsetS, OffsetD, WSD);
-  HMatrix *S2 = new HMatrix(NS, NS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
-  S1->Multiply(WSD, S2);
-  delete S1;
+  HMatrix *OW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
+  WDOW->Multiply(WSD, OW);
+  delete WDOW; 
+  WDOW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  WSD->Multiply(OW, WDOW, "--transA C");
+#endif
+  delete WSD;
+  delete OW;
 
-  // set S1 = W_{SD}^\dagger Sym(G_S) * W_{SD}
-  S1=new HMatrix(ND, ND, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
-  WSD->Adjoint();
-  WSD->Multiply(S2, S1);
-
-  // compute tr(O*S1)
-  int *qValues;
-  cdouble *O1Entries;
-  cdouble FMPTrace=0.0; //'four-matrix-product trace'
-  for(int p=0; p<ND; p++)
+  /*--------------------------------------------------------------*/
+  /*- for each quantity requested, compute trace(O*WDOW) where    */
+  /*- O is the overlap matrix for the quantity in question        */
+  /*--------------------------------------------------------------*/
+  int *CIndices;       // column indices
+  cdouble *Entries;    // column entries   
+  for(int nq=0, QIndex=0; QIndex<MAXQUANTITIES; QIndex++)
    { 
-     int nnzq=OMatrix->GetRow(p, &qValues, (void **)&O1Entries);
-     for(int nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
-      FMPTrace +=  O1Entries[nq] * S1->GetEntry(q, p);
-   }; // for (p=0... 
-  FMPTrace *= (-1.0/16.0);
+      int QFlag = 1<<QIndex;
+      if ( !(SNEQD->QuantityFlags & QFlag) )
+       continue;
 
- delete S1;
- delete S2;
- delete WSD;
- return real(FMPTrace);
-
-} 
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetSelfForces(SNEQData *SNEQD, int ns, double *SelfForce)
-{
-  RWGGeometry *G      = SNEQD->G;
-  HMatrix **SymG      = SNEQD->SymG;
-  SMatrix ***SArray   = SNEQD->SArray;
-
-  int N = G->Surfaces[ns]->NumBFs;
-
-  /*--------------------------------------------------------------*/
-  /*- this code snippet sets S1 = W_0^\dagger Sym(G_S) W_0        */
-  /*--------------------------------------------------------------*/
-  // set S1 = Sym(G_S)
-  HMatrix *S1=new HMatrix(N, N, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
-  S1->Zero();
-  HMatrix *Gs = SymG[ns];
-  for(int nr=0; nr<N; nr++)
-   for(int nc=0; nc<N; nc++)
-    S1->SetEntry(nr, nc, 0.5*(Gs->GetEntry(nr,nc) + conj(Gs->GetEntry(nc,nr)) ) ); 
-
-  // set S2 = Sym(G_S) * W_0
-  HMatrix *W0 = new HMatrix(N, N, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  W0->Copy(SNEQD->T[ns]);
-  UndoSCUFFMatrixTransformation(W0);
-  W0->LUFactorize();
-  W0->LUInvert();
-  HMatrix *S2 = new HMatrix(N, N, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
-  S1->Multiply(W0, S2);
-
-  // set S1 = W_0^\dagger Sym(G_S) * W_0
-  W0->Adjoint();
-  W0->Multiply(S2, S1);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  for(int nf=0; nf<3; nf++)
-   { if (SNEQD->NeedMatrix[2+nf] == false) 
-      SelfForce[nf]=0.0;
-     else 
-      { SMatrix *OMatrix    = SArray[ns][ 2 + nf ];
-
-        // compute tr(O*S1)
-        int *qValues;
-        cdouble *O1Entries;
-        cdouble FMPTrace=0.0; //'four-matrix-product trace'
-        for(int p=0; p<N; p++)
-         { 
-          int nnzq=OMatrix->GetRow(p, &qValues, (void **)&O1Entries);
-          for(int nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
-           FMPTrace +=  O1Entries[nq] * S1->GetEntry(q, p);
-         }; // for (p=0... 
-        SelfForce[nf] = real(FMPTrace) * (-1.0/16.0);
-      };
+      SMatrix *OMatrixD = SNEQD->SArray[DestSurface][ 1 + QIndex ];
+      double FMPTrace=0.0; //'four-matrix-product trace'
+      for(int ri=0; ri<DimD; ri++) // 'row index'
+       { 
+         int nnz=OMatrixD->GetRow(ri, &CIndices, (void **)&Entries);
+         for(int nci=0; nci<nnz; nci++)
+          FMPTrace += real( Entries[nci] * WDOW->GetEntry(CIndices[nci], ri) );
+       };
+      Results[nq++] = (-1.0/16.0) * FMPTrace;
    };
 
- delete S1;
- delete S2; 
- delete W0; 
+ delete WDOW;
 
 } 
 
 /***************************************************************/
 /* return false on failure *************************************/
 /***************************************************************/
-bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *FI)
+bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *Flux)
 {
   FILE *f=vfopen("%s.flux","r",SNEQD->FileBase);
   if (!f) return false;
@@ -354,7 +309,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *FI)
        if ( NumTokens < 3+NQ ) 
         { ErrorCode=5; goto fail; }
        for(nq=0; nq<NQ; nq++)
-        sscanf(Tokens[3+nq],"%le", FI+GetIndex(SNEQD, nt, nss, nsd, nq) );
+        sscanf(Tokens[3+nq],"%le", Flux+GetIndex(SNEQD, nt, nss, nsd, nq) );
      };
 
   // success:
@@ -379,7 +334,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *FI)
 /* the computed quantities are ordered in the output vector    */
 /* like this:                                                  */
 /*                                                             */
-/*  FI[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ]                     */
+/*  Flux[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ]                   */
 /*   = contribution of sources inside surface #nsp to flux of  */
 /*     quantity #nq into surface #ns, all at transformation #nt*/
 /*                                                             */
@@ -387,9 +342,9 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *FI)
 /*  where  NSNQ = number of surface * NQ                       */
 /*  where NS2NQ = (number of surfaces)^2* NQ                   */
 /***************************************************************/
-void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
+void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
 {
-  if ( CacheRead(SNEQD, Omega, FI) )
+  if ( CacheRead(SNEQD, Omega, Flux) )
    return;
 
   Log("Computing neq quantities at omega=%s...",z2s(Omega));
@@ -402,7 +357,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   HMatrix **T         = SNEQD->T;
   HMatrix **SymG      = SNEQD->SymG;
   HMatrix **U         = SNEQD->U;
-  int QuantityFlags   = SNEQD->QuantityFlags;
+  int NQ              = SNEQD->NQ;
   bool *NeedMatrix    = SNEQD->NeedMatrix;
   SMatrix ***SArray   = SNEQD->SArray;
 
@@ -471,15 +426,18 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
   /***************************************************************/
   /***************************************************************/
   if (NS>50) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-  double SelfForce[50][3];
+  double SelfContributions[50][MAXQUANTITIES];
   for(int ns=0; ns<NS; ns++)
-   if ( G->Mate[ns]!=-1 )
-    memcpy(SelfForce[ns], SelfForce[G->Mate[ns]], 3*sizeof(double));
+   if ( G->Mate[ns]==-1 )
+{
+    GetTrace(SNEQD, ns, ns, SelfContributions[ns], true);
+Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e)",ns,real(Omega),
+SelfContributions[0], SelfContributions[1], 
+SelfContributions[2], SelfContributions[3]);
+}
    else
-    { GetSelfForces(SNEQD, ns, SelfForce[ns]);
-      Log("SelfForce(%e,%i)=(%e,%e,%e)",real(Omega),ns,
-           SelfForce[ns][0],SelfForce[ns][1],SelfForce[ns][2]);
-    };
+    memcpy(SelfContributions[ns], SelfContributions[G->Mate[ns]], 
+           MAXQUANTITIES*sizeof(double));
        
   /***************************************************************/
   /* now loop over transformations.                              */
@@ -541,38 +499,19 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *FI)
      /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/
      FILE *f=vfopen("%s.flux","a",SNEQD->FileBase);
+     double Quantities[4];
      for(int nss=0; nss<NS; nss++)
       for(int nsd=0; nsd<NS; nsd++)
-       {
+       { 
          fprintf(f,"%e %s %i%i ",real(Omega),Tag,nss+1,nsd+1);
-
-         int nq=0;
-         if ( QuantityFlags & QFLAG_POWER )
-          { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
-            FI[i] = GetTrace2(SNEQD, QINDEX_POWER, nss, nsd);
-            fprintf(f,"%.8e ",FI[i]);
+         GetTrace(SNEQD, nss, nsd, Quantities, false);
+         for(int nq=0; nq<NQ; nq++)
+          { Flux[nq] = Quantities[nq]; 
+            if (nss==nsd) Flux[nq] -= SelfContributions[nsd][nq]; 
+            fprintf(f,"%.8e ",Flux[nq]);
           };
-         if ( QuantityFlags & QFLAG_XFORCE )
-          { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
-            FI[i] = GetTrace2(SNEQD, QINDEX_XFORCE, nss, nsd);
-            if (nss==nsd) FI[i] -= SelfForce[nss][0];
-            fprintf(f,"%.8e ",FI[i]);
-          }
-         if ( QuantityFlags & QFLAG_YFORCE )
-          { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
-            FI[i] = GetTrace2(SNEQD, QINDEX_YFORCE, nss, nsd);
-            if (nss==nsd) FI[i] -= SelfForce[nss][1];
-            fprintf(f,"%.8e ",FI[i]);
-          }
-         if ( QuantityFlags & QFLAG_ZFORCE )
-          { int i = GetIndex(SNEQD, nt, nss, nsd, nq++);
-            FI[i] = GetTrace2(SNEQD, QINDEX_ZFORCE, nss, nsd);
-            if (nss==nsd) FI[i] -= SelfForce[nss][2];
-            fprintf(f,"%.8e ",FI[i]);
-          };
-
          fprintf(f,"\n");
-      };
+       };
      fclose(f);
 
      /*--------------------------------------------------------------*/
