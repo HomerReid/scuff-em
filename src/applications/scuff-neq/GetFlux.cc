@@ -261,7 +261,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *Flux)
 {
   FILE *f=vfopen("%s.flux","r",SNEQD->FileBase);
   if (!f) return false;
-  Log("Attempting to cache-read flux data for Omega=%e...",Omega);
+  Log("Attempting to cache-read flux data for Omega=%e...",real(Omega));
 
   int NT=SNEQD->NumTransformations;
   int NS=SNEQD->G->NumSurfaces;
