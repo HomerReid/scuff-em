@@ -500,15 +500,17 @@ SelfContributions[2], SelfContributions[3]);
      /*--------------------------------------------------------------*/
      FILE *f=vfopen("%s.flux","a",SNEQD->FileBase);
      double Quantities[4];
+     int nfc=0;
      for(int nss=0; nss<NS; nss++)
       for(int nsd=0; nsd<NS; nsd++)
        { 
          fprintf(f,"%e %s %i%i ",real(Omega),Tag,nss+1,nsd+1);
          GetTrace(SNEQD, nss, nsd, Quantities, false);
          for(int nq=0; nq<NQ; nq++)
-          { Flux[nq] = Quantities[nq]; 
-            if (nss==nsd) Flux[nq] -= SelfContributions[nsd][nq]; 
-            fprintf(f,"%.8e ",Flux[nq]);
+          { Flux[nfc] = Quantities[nq]; 
+            if (nss==nsd) Flux[nfc] -= SelfContributions[nsd][nq]; 
+            fprintf(f,"%.8e ",Flux[nfc]);
+            nfc++;
           };
          fprintf(f,"\n");
        };
