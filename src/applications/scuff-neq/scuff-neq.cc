@@ -138,6 +138,8 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
 
+  bool UseSGJFormalism=false;
+
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
@@ -163,6 +165,8 @@ int main(int argc, char *argv[])
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,     0,             "absolute tolerance for frequency quadrature"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for frequency quadrature"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,  0,             "number of intervals for frequency quadrature"},
+/**/     
+     {"UseSGJFormalism", PA_BOOL,   0, 1,       (void *)&UseSGJFormalism,   0,      "use Sym(G) instead of overlap matrix"},
 /**/     
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -257,7 +261,8 @@ int main(int argc, char *argv[])
   /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, PlotFlux, FileBase);
+  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, 
+                                 PlotFlux, FileBase, UseSGJFormalism);
   RWGGeometry *G=SNEQD->G;
 
   /*******************************************************************/

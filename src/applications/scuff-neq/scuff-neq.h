@@ -73,7 +73,7 @@ typedef struct SNEQData
    // HMatrix structures for the BEM matrix and its subblocks
    HMatrix *W;        // BEM matrix 
    HMatrix **T;       // T[ns] = T-matrix block for surface #ns
-   HMatrix **SymG;    // T[ns] = T-matrix block for surface #ns
+   HMatrix **TSelf;   //
    HMatrix **U;       // U[ns*NS + nsp] = // U-matrix block for surfaces #ns, #nsp
    void *Buffer[3];
 
@@ -85,13 +85,16 @@ typedef struct SNEQData
    // SArray[ ns*5 + nm ] = overlap matrix of type #nm for surface #ns 
    // (here 5 = SCUFF_NUM_OMATRICES)
    SMatrix ***SArray;
+   
+   bool UseSGJFormalism;
 
    char *FileBase;
 
  } SNEQData;
 
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, 
-                         int WhichQuantities, int PlotFlux, char *FileBase);
+                         int WhichQuantities, int PlotFlux, 
+                         char *FileBase, bool UseSGJFormalism);
 
 int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux);

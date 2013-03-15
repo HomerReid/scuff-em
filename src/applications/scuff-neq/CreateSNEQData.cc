@@ -33,14 +33,15 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, 
-                         int QuantityFlags, int PlotFlux, char *pFileBase)
+SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags, 
+                         int PlotFlux, char *pFileBase, bool UseSGJFormalism)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
 
   SNEQD->WriteCache=0;
   SNEQD->PlotFlux=PlotFlux;
+  SNEQD->UseSGJFormalism=UseSGJFormalism;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/
@@ -94,7 +95,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   int nb, NS=G->NumSurfaces, NBF, NBFp;
   SNEQD->T = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
-  SNEQD->SymG = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  SNEQD->TSelf = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NS*(NS-1))/2)*sizeof(HMatrix *));
   Log("Before T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   for(nb=ns=0; ns<G->NumSurfaces; ns++)
@@ -106,9 +107,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
       SNEQD->T[ns] = SNEQD->T[ G->Mate[ns] ];
 
      if (G->Mate[ns]==-1)
-      SNEQD->SymG[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+      SNEQD->TSelf[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
      else
-      SNEQD->SymG[ns] = SNEQD->SymG[ G->Mate[ns] ];
+      SNEQD->TSelf[ns] = SNEQD->TSelf[ G->Mate[ns] ];
 
      for(nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
       { NBFp=G->Surfaces[nsp]->NumBFs;

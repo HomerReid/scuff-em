@@ -204,26 +204,25 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   /*--------------------------------------------------------------*/
   /*- set WDOW = W_{SD}^\dagger  * O_S * W_{SD}                  -*/
   /*--------------------------------------------------------------*/
-#if 0
-  SMatrix *OMatrixS   = SNEQD->SArray[SourceSurface][ 1 + QINDEX_POWER ];
   HMatrix *OW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  HMatrix *WDOW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
-  OMatrixS->Apply(WSD, OW);
+  if (SNEQD->UseSGJFormalism)
+   { 
+     HMatrix *SymG = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+     for(int nr=0; nr<DimS; nr++)
+      for(int nc=0; nc<DimS; nc++)
+       SymG->SetEntry(nr, nc, 0.5*(       SNEQD->TSelf[SourceSurface]->GetEntry(nr,nc)
+                                    +conj(SNEQD->TSelf[SourceSurface]->GetEntry(nc,nr))
+                                  ));
+     SymG->Multiply(WSD, OW);
+     delete SymG; 
+   }
+  else
+   { 
+     SMatrix *OMatrixS   = SNEQD->SArray[SourceSurface][ 1 + QINDEX_POWER ];
+     OMatrixS->Apply(WSD, OW);
+   };
+  HMatrix *WDOW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
   WSD->Multiply(OW, WDOW, "--transA C");
-#else
-  HMatrix *WDOW = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
-  for(int nr=0; nr<DimS; nr++)
-   for(int nc=0; nc<DimS; nc++)
-    WDOW->SetEntry(nr, nc, 0.5*(      SNEQD->SymG[SourceSurface]->GetEntry(nr,nc)
-                                +conj(SNEQD->SymG[SourceSurface]->GetEntry(nc,nr))
-                               ));
-
-  HMatrix *OW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  WDOW->Multiply(WSD, OW);
-  delete WDOW; 
-  WDOW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
-  WSD->Multiply(OW, WDOW, "--transA C");
-#endif
   delete WSD;
   delete OW;
 
@@ -355,7 +354,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
   HMatrix **T         = SNEQD->T;
-  HMatrix **SymG      = SNEQD->SymG;
+  HMatrix **TSelf     = SNEQD->TSelf;
   HMatrix **U         = SNEQD->U;
   int NQ              = SNEQD->NQ;
   bool *NeedMatrix    = SNEQD->NeedMatrix;
@@ -400,27 +399,29 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  for(int nr=0; nr<G->NumRegions; nr++)
-   G->RegionMPs[nr]->Zero();
-  for(int ns=0; ns<NS; ns++)
-   {
-     if (G->Mate[ns]!=-1)
-      { Log(" Block %i is identical to %i (reusing SymG matrix)",ns,G->Mate[ns]);
-        continue;
-      }
-     else
-      Log(" Assembling self contributions to SymG(%i)...",ns);
-
-     Args->Sa = Args->Sb = G->Surfaces[ns];
-     Args->B = SymG[ns];
-     Args->Symmetric=0;
-     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
-     GetSurfaceSurfaceInteractions(Args);
-     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
-     UndoSCUFFMatrixTransformation(SymG[ns]);
+  if (SNEQD->UseSGJFormalism)
+   { for(int nr=0; nr<G->NumRegions; nr++)
+      G->RegionMPs[nr]->Zero();
+     for(int ns=0; ns<NS; ns++)
+      {
+        if (G->Mate[ns]!=-1)
+         { Log(" Block %i is identical to %i (reusing TSelf matrix)",ns,G->Mate[ns]);
+           continue;
+         }
+        else
+         Log(" Assembling self contributions to TSelf(%i)...",ns);
+   
+        Args->Sa = Args->Sb = G->Surfaces[ns];
+        Args->B = TSelf[ns];
+        Args->Symmetric=0;
+        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
+        GetSurfaceSurfaceInteractions(Args);
+        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
+        UndoSCUFFMatrixTransformation(TSelf[ns]);
+      };
+     for(int nr=0; nr<G->NumRegions; nr++)
+      G->RegionMPs[nr]->UnZero();
    };
-  for(int nr=0; nr<G->NumRegions; nr++)
-   G->RegionMPs[nr]->UnZero();
 
   /***************************************************************/
   /***************************************************************/
@@ -429,12 +430,11 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
   double SelfContributions[50][MAXQUANTITIES];
   for(int ns=0; ns<NS; ns++)
    if ( G->Mate[ns]==-1 )
-{
-    GetTrace(SNEQD, ns, ns, SelfContributions[ns], true);
-Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e)",ns,real(Omega),
-SelfContributions[0], SelfContributions[1], 
-SelfContributions[2], SelfContributions[3]);
-}
+    {
+       GetTrace(SNEQD, ns, ns, SelfContributions[ns], true);
+       Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e)",ns,real(Omega),
+            SelfContributions[0], SelfContributions[1], SelfContributions[2], SelfContributions[3]);
+    }
    else
     memcpy(SelfContributions[ns], SelfContributions[G->Mate[ns]], 
            MAXQUANTITIES*sizeof(double));
