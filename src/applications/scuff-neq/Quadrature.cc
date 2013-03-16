@@ -172,6 +172,8 @@ void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E)
   time_t MyTime;
   struct tm *MyTm;
   char TimeString[30];
+  
+  MyTime=time(0);
   MyTm=localtime(&MyTime);
   strftime(TimeString,30,"%D::%T",MyTm);
   FILE *f=vfopen("%s.out","a",SNEQD->FileBase);
@@ -216,6 +218,7 @@ void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E)
       fprintf(f,"\n");
 
     };
+  fclose(f);   
 }
 
 /***************************************************************/
