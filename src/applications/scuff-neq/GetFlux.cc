@@ -429,15 +429,10 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
   if (NS>50) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
   double SelfContributions[50][MAXQUANTITIES];
   for(int ns=0; ns<NS; ns++)
-   if ( G->Mate[ns]==-1 )
-    {
-       GetTrace(SNEQD, ns, ns, SelfContributions[ns], true);
-       Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e)",ns,real(Omega),
-            SelfContributions[0], SelfContributions[1], SelfContributions[2], SelfContributions[3]);
-    }
-   else
-    memcpy(SelfContributions[ns], SelfContributions[G->Mate[ns]], 
-           MAXQUANTITIES*sizeof(double));
+   { GetTrace(SNEQD, ns, ns, SelfContributions[ns], true);
+     Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e)",ns,real(Omega),
+          SelfContributions[0], SelfContributions[1], SelfContributions[2], SelfContributions[3]);
+   };
        
   /***************************************************************/
   /* now loop over transformations.                              */
