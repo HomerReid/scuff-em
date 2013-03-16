@@ -509,7 +509,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
           { int Index=GetIndex(SNEQD, nt, nss, nsd, nq);
             Flux[Index] = Quantities[nq]; 
             if (nss==nsd) Flux[Index] -= SelfContributions[nsd][nq]; 
-            fprintf(f,"%.8e ",Flux[Inex]);
+            fprintf(f,"%.8e ",Flux[Index]);
           };
          fprintf(f,"\n");
        };
