@@ -548,9 +548,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
              && (   (S->IsPEC && SP->IsPEC)
                  || (!S->IsPEC && !SP->IsPEC && !strcmp(RegionMPs[nr2]->Name, RegionMPs[nr2p]->Name) )
                 )
-           ) 
-         Mate[ns]=nsp;
-         Log("Noting that surface %i (%s) is a duplicate of surface %i (%s)...",ns,S->Label,nsp,SP->Label);
+           ) { Mate[ns]=nsp;
+               Log("Noting that surface %i (%s) is a duplicate of surface %i (%s)...",ns,S->Label,nsp,SP->Label);
+             };
       };
    };
 

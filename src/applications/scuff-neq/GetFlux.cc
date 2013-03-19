@@ -503,10 +503,12 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
          for(int nq=0; nq<NQ; nq++)
           { int Index=GetIndex(SNEQD, nt, nss, nsd, nq);
             Flux[Index] = Quantities[nq]; 
-            if (nss==nsd) Flux[Index] -= SelfContributions[nsd][nq]; 
+            if ( nss==nsd && nq==0 && (SNEQD->QuantityFlags & QFLAG_POWER) ) 
+             Flux[Index] -= SelfContributions[nsd][nq]; 
             fprintf(f,"%.8e ",Flux[Index]);
           };
          fprintf(f,"\n");
+    
        };
      fclose(f);
 
