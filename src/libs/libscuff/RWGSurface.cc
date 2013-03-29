@@ -216,10 +216,13 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         char *SigmaString=Line; 
         while (strchr(" \t\n",*SigmaString)) // skip forward to the start of the 
          SigmaString++;                        //  actual expression
-        SigmaString+=strlen("SURFACE_CONDUCTIVITY"); 
+        SigmaString+=strlen("SURFACE_CONDUCTIVITY");
+        int SSLength=strlen(SigmaString);
+        if (SSLength>=1 && SigmaString[SSLength-1]=='\n') 
+         SigmaString[SSLength-1]=0;
         SurfaceSigma=cevaluator_create(SigmaString);
         if (SurfaceSigma==0)
-         { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification");
+         { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification (%s)",SigmaString);
            return;
          };
 

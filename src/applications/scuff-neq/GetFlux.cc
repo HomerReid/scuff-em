@@ -238,6 +238,12 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
       if ( !(SNEQD->QuantityFlags & QFlag) )
        continue;
 
+      // we want to set the self-term for the power to 0
+      if ( QFlag==QFLAG_POWER && SelfTerm==true )
+       { Results[nq++]=0.0;
+         continue;
+       };
+ 
       SMatrix *OMatrixD = SNEQD->SArray[DestSurface][ 1 + QIndex ];
       double FMPTrace=0.0; //'four-matrix-product trace'
       for(int ri=0; ri<DimD; ri++) // 'row index'
@@ -247,6 +253,7 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
           FMPTrace += real( Entries[nci] * WDOW->GetEntry(CIndices[nci], ri) );
        };
       Results[nq++] = (-1.0/16.0) * FMPTrace;
+
    };
 
  delete WDOW;
@@ -503,7 +510,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
          for(int nq=0; nq<NQ; nq++)
           { int Index=GetIndex(SNEQD, nt, nss, nsd, nq);
             Flux[Index] = Quantities[nq]; 
-            if ( nss==nsd && nq==0 && (SNEQD->QuantityFlags & QFLAG_POWER) ) 
+            if ( nss==nsd )
              Flux[Index] -= SelfContributions[nsd][nq]; 
             fprintf(f,"%.8e ",Flux[Index]);
           };
