@@ -118,6 +118,9 @@ int main(int argc, char *argv[])
   int XForce=0;
   int YForce=0;
   int ZForce=0;
+  int XTorque=0;
+  int YTorque=0;
+  int ZTorque=0;
 
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
@@ -147,9 +150,12 @@ int main(int argc, char *argv[])
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
 /**/     
      {"Power",          PA_BOOL,    0, 1,       (void *)&Power,      0,             "compute power transfer"},
-     {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,     0,             "compute X-momentum transfer"},
-     {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,     0,             "compute Y-momentum transfer"},
-     {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,     0,             "compute Z-momentum transfer"},
+     {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,     0,             "compute X-force"},
+     {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,     0,             "compute Y-force"},
+     {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,     0,             "compute Z-force"},
+     {"XTorque",        PA_BOOL,    0, 1,       (void *)&XTorque,    0,             "compute X-torque"},
+     {"YTorque",        PA_BOOL,    0, 1,       (void *)&YTorque,    0,             "compute Y-torque"},
+     {"ZTorque",        PA_BOOL,    0, 1,       (void *)&ZTorque,    0,             "compute Z-torque"},
 /**/     
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
@@ -197,6 +203,9 @@ int main(int argc, char *argv[])
   if (XForce) QuantityFlags|=QFLAG_XFORCE;
   if (YForce) QuantityFlags|=QFLAG_YFORCE;
   if (ZForce) QuantityFlags|=QFLAG_ZFORCE;
+  if (XTorque) QuantityFlags|=QFLAG_XTORQUE;
+  if (YTorque) QuantityFlags|=QFLAG_YTORQUE;
+  if (ZTorque) QuantityFlags|=QFLAG_ZTORQUE;
   if (QuantityFlags==0)
    ErrExit("you must specify at least one quantity to compute");
 

@@ -147,17 +147,20 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   /*- SArray[ns] is an array of SCUFF_NUM_OMATRICES pointers to  -*/
   /*- SMatrix structures for object #ns. SArray[ns][nom] is only -*/
   /*- non-NULL if we need the nomth type of overlap matrix. (Here-*/ 
-  /*- nom=1,2,3,4 for power, x-force, y-force, z-force, as defined*/ 
-  /*- in libscuff.h).                                             */ 
+  /*- nom=1..7 for power, xyz-force, xyz-torque, as defined in    */ 
+  /*- libscuff.h).                                                */ 
   /*-                                                            -*/
   /*--------------------------------------------------------------*/
   bool *NeedMatrix=SNEQD->NeedMatrix;
   memset(NeedMatrix, 0, SCUFF_NUM_OMATRICES*sizeof(bool));
-  NeedMatrix[SCUFF_OMATRIX_OVERLAP] = 0;
-  NeedMatrix[SCUFF_OMATRIX_POWER  ] = true;
-  NeedMatrix[SCUFF_OMATRIX_XFORCE ] = QuantityFlags & QFLAG_XFORCE;
-  NeedMatrix[SCUFF_OMATRIX_YFORCE ] = QuantityFlags & QFLAG_YFORCE;
-  NeedMatrix[SCUFF_OMATRIX_ZFORCE ] = QuantityFlags & QFLAG_ZFORCE;
+  NeedMatrix[SCUFF_OMATRIX_OVERLAP]  = 0;
+  NeedMatrix[SCUFF_OMATRIX_POWER  ]  = true;
+  NeedMatrix[SCUFF_OMATRIX_XFORCE ]  = QuantityFlags & QFLAG_XFORCE;
+  NeedMatrix[SCUFF_OMATRIX_YFORCE ]  = QuantityFlags & QFLAG_YFORCE;
+  NeedMatrix[SCUFF_OMATRIX_ZFORCE ]  = QuantityFlags & QFLAG_ZFORCE;
+  NeedMatrix[SCUFF_OMATRIX_XTORQUE ] = QuantityFlags & QFLAG_XTORQUE;
+  NeedMatrix[SCUFF_OMATRIX_YTORQUE ] = QuantityFlags & QFLAG_YTORQUE;
+  NeedMatrix[SCUFF_OMATRIX_ZTORQUE ] = QuantityFlags & QFLAG_ZTORQUE;
 
   SNEQD->SArray=(SMatrix ***)mallocEC(NS*sizeof(SMatrix **));
   for(ns=0; ns<NS; ns++)
@@ -194,6 +197,12 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
    fprintf(f,"# %i y-force flux spectral density\n",nq++);
   if (SNEQD->QuantityFlags & QFLAG_ZFORCE) 
    fprintf(f,"# %i z-force flux spectral density\n",nq++);
+  if (SNEQD->QuantityFlags & QFLAG_XTORQUE) 
+   fprintf(f,"# %i x-torque flux spectral density\n",nq++);
+  if (SNEQD->QuantityFlags & QFLAG_YTORQUE) 
+   fprintf(f,"# %i y-torque flux spectral density\n",nq++);
+  if (SNEQD->QuantityFlags & QFLAG_ZTORQUE) 
+   fprintf(f,"# %i z-torque flux spectral density\n",nq++);
   fclose(f);
   
 

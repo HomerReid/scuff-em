@@ -39,17 +39,23 @@ using namespace scuff;
 // differentiate the various quantities that may be computed
 // (power flux and i-directed momentum flux for i=x,y,z)
 
-#define QFLAG_POWER  1
-#define QFLAG_XFORCE 2
-#define QFLAG_YFORCE 4
-#define QFLAG_ZFORCE 8
+#define QFLAG_POWER    1
+#define QFLAG_XFORCE   2
+#define QFLAG_YFORCE   4
+#define QFLAG_ZFORCE   8
+#define QFLAG_XTORQUE 16
+#define QFLAG_YTORQUE 32
+#define QFLAG_ZTORQUE 64
 
-#define QINDEX_POWER  0
-#define QINDEX_XFORCE 1
-#define QINDEX_YFORCE 2
-#define QINDEX_ZFORCE 3
+#define QINDEX_POWER   0
+#define QINDEX_XFORCE  1
+#define QINDEX_YFORCE  2
+#define QINDEX_ZFORCE  3
+#define QINDEX_XTORQUE 4
+#define QINDEX_YTORQUE 5
+#define QINDEX_ZTORQUE 6
 
-#define MAXQUANTITIES 4
+#define MAXQUANTITIES 7
 
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
@@ -82,8 +88,8 @@ typedef struct SNEQData
    bool NeedMatrix[SCUFF_NUM_OMATRICES]; 
 
    // SMatrix structures for overlap matrices.
-   // SArray[ ns*5 + nm ] = overlap matrix of type #nm for surface #ns 
-   // (here 5 = SCUFF_NUM_OMATRICES)
+   // SArray[ ns*8 + nm ] = overlap matrix of type #nm for surface #ns 
+   // (here 8 = SCUFF_NUM_OMATRICES)
    SMatrix ***SArray;
    
    bool UseSGJFormalism;

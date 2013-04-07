@@ -627,9 +627,15 @@ void InitRWGPanel(RWGPanel *P, double *Vertices)
    * V[0]-->V[1], V[1]-->V[2], V[2]-->V[0], then our thumb points
    * in the direction of the panel normal.
    * 
-   * 20121114 update: we may need to flip the sign of the panel 
-   * normal to ensure that it points into the exterior medium for 
-   * the surface in question.
+   * 20121114 update: we may subsequently need to flip the sign of 
+   * the panel normal to ensure that it points into the exterior 
+   * medium for the surface in question, and by that time it 
+   * will be too late to reorder the panel vertices (because, 
+   * among other things, RWGEdge structures that depend on them
+   * will have been defined) which means that the right-hand-rule
+   * convention for the panel normal may not be preserved and must 
+   * not be relied upon.
+   * TODO: FIXME
    *                  
    */ 
   VecSub(V[1],V[0],VA);

@@ -66,7 +66,10 @@ namespace scuff {
 #define SCUFF_OMATRIX_XFORCE     2
 #define SCUFF_OMATRIX_YFORCE     3
 #define SCUFF_OMATRIX_ZFORCE     4
-#define SCUFF_NUM_OMATRICES      5
+#define SCUFF_OMATRIX_XTORQUE    5
+#define SCUFF_OMATRIX_YTORQUE    6
+#define SCUFF_OMATRIX_ZTORQUE    7
+#define SCUFF_NUM_OMATRICES      8
 
 // maximum number of lattice basis vectors
 #ifndef MAXLATTICE

@@ -49,19 +49,28 @@ namespace scuff {
 /* matrices are linear combinations of various types of overlap*/
 /* integrals.)                                                 */
 /***************************************************************/
-#define OVERLAP_OVERLAP     0
-#define OVERLAP_CROSS       1
-#define OVERLAP_XBULLET     2  
-#define OVERLAP_XNABLANABLA 3
-#define OVERLAP_XTIMESNABLA 4
-#define OVERLAP_YBULLET     5  
-#define OVERLAP_YNABLANABLA 6
-#define OVERLAP_YTIMESNABLA 7
-#define OVERLAP_ZBULLET     8  
-#define OVERLAP_ZNABLANABLA 9
-#define OVERLAP_ZTIMESNABLA 10
+#define OVERLAP_OVERLAP           0
+#define OVERLAP_CROSS             1
+#define OVERLAP_BULLET_X          2    
+#define OVERLAP_NABLANABLA_X      3
+#define OVERLAP_TIMESNABLA_X      4
+#define OVERLAP_BULLET_Y          5  
+#define OVERLAP_NABLANABLA_Y      6
+#define OVERLAP_TIMESNABLA_Y      7
+#define OVERLAP_BULLET_Z          8  
+#define OVERLAP_NABLANABLA_Z      9
+#define OVERLAP_TIMESNABLA_Z     10
+#define OVERLAP_RXBULLET_X       11    
+#define OVERLAP_RXNABLANABLA_X   12
+#define OVERLAP_RXTIMESNABLA_X   13
+#define OVERLAP_RXBULLET_Y       14  
+#define OVERLAP_RXNABLANABLA_Y   15
+#define OVERLAP_RXTIMESNABLA_Y   16
+#define OVERLAP_RXBULLET_Z       17  
+#define OVERLAP_RXNABLANABLA_Z   18
+#define OVERLAP_RXTIMESNABLA_Z   19
 
-#define NUMOVERLAPS 11
+#define NUMOVERLAPS 19
 
 /***************************************************************/
 /* this is a helper function for GetOverlaps that computes the */
@@ -132,6 +141,19 @@ void AddOverlapContributions(RWGSurface *S, RWGPanel *P, int iQa, int iQb,
 /*                                                             */
 /*  [5,6,7]  = like [2,3,4] but with x-->y                     */
 /*  [8,9,10] = like [2,3,4] but with x-->z                     */
+/*                                                             */
+/*  [11-19]: like [2...10] but with an extra factor of         */
+/*           (rHat x ) thrown in for torque purposes.          */
+/*                                                             */
+/* note: for now, the origin about which torque is computed    */
+/* coincides with the origin of the coordinate system in which */
+/* the surface mesh was defined (i.e. the point with coords    */
+/* (0,0,0) in the mesh file, as transformed by any             */
+/* GTransformations that have been applied since the mesh file */
+/* was read in.) if you want to compute the torque about a     */
+/* different origin, a quick-and-dirty procedure is to         */
+/* apply a GTransformation to the surface, compute the         */
+/* overlaps, then undo the GTransformation.                    */
 /***************************************************************/
 void RWGSurface::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
 {
@@ -173,9 +195,9 @@ double RWGSurface::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 }
 
 /*****************************************************************/
-/* on entry, NeedMatrix is an array of 5 boolean flags, with     */
+/* on entry, NeedMatrix is an array of 8 boolean flags, with     */
 /* NeedMatrix[n] = 1 if the user wants overlap matrix #n.        */
-/* (here 5 = SCUFF_NUM_OMATRICES).                               */
+/* (here 8 = SCUFF_NUM_OMATRICES).                               */
 /*                                                               */
 /* If NeedMatrix[n] = 1, then SArray must have at least n slots. */
 /*                                                               */
@@ -236,13 +258,13 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  cdouble Z=ZVAC, K2=Omega*Omega;
+  cdouble ZZ=ZVAC, K2=Omega*Omega;
   if (ExteriorMP)
    { 
      cdouble Eps, Mu;
      ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
      K2 *= Eps*Mu;
-     Z *= sqrt(Mu/Eps);
+     ZZ *= sqrt(Mu/Eps);
    };
  
   /*--------------------------------------------------------------*/
@@ -256,20 +278,30 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
   int neAlpha, neBeta;
   double Overlaps[NUMOVERLAPS];
   cdouble XForce1, XForce2, YForce1, YForce2, ZForce1, ZForce2;
+  cdouble XTorque1, XTorque2, YTorque1, YTorque2, ZTorque1, ZTorque2;
   for(neAlpha=0; neAlpha<NumEdges; neAlpha++)
    for(neBeta=0; neBeta<NumEdges; neBeta++)
     { 
       GetOverlaps(neAlpha, neBeta, Overlaps);
       if (Overlaps[0]==0.0) continue; 
 
-      XForce1 = Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2;
-      XForce2 = 2.0*Overlaps[OVERLAP_XTIMESNABLA] / (II*Omega);
+      XForce1 = Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2;
+      XForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_X] / (II*Omega);
 
-      YForce1 = Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2;
-      YForce2 = 2.0*Overlaps[OVERLAP_YTIMESNABLA] / (II*Omega);
+      YForce1 = Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_YX]/K2;
+      YForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_Y] / (II*Omega);
 
-      ZForce1 = Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2;
-      ZForce2 = 2.0*Overlaps[OVERLAP_ZTIMESNABLA] / (II*Omega);
+      ZForce1 = Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_ZX]/K2;
+      ZForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_Z] / (II*Omega);
+
+      XTorque1 = Overlaps[OVERLAP_RXBULLET_X] - Overlaps[OVERLAP_RXNABLANABLA_X]/K2;
+      XTorque2 = 2.0*Overlaps[OVERLAP_RxTIMESNABLA_X] / (II*Omega);
+
+      YTorque1 = Overlaps[OVERLAP_RXBULLET_Y] - Overlaps[OVERLAP_RXNABLANABLA_Y]/K2;
+      YTorque2 = 2.0*Overlaps[OVERLAP_RxTIMESNABLA_Y] / (II*Omega);
+
+      ZTorque1 = Overlaps[OVERLAP_RXBULLET_Z] - Overlaps[OVERLAP_RXNABLANABLA_Z]/K2;
+      ZTorque2 = 2.0*Overlaps[OVERLAP_RxTIMESNABLA_Z] / (II*Omega);
 
       if (IsPEC)
        { 
@@ -279,11 +311,11 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
          // note in this case there is no entry in the power matrix 
 
          if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
-          SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(neAlpha, neBeta, Z*XForce1);
+          SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(neAlpha, neBeta, ZZ*XForce1);
          if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
-          SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(neAlpha, neBeta, Z*YForce1);
+          SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(neAlpha, neBeta, ZZ*YForce1);
          if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
-          SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(neAlpha, neBeta, Z*ZForce1);
+          SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(neAlpha, neBeta, ZZ*ZForce1);
        }
       else
        {
@@ -300,24 +332,45 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
           };
 
          if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
-          { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*XForce1);
+          { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*XForce1);
             SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XForce2);
             SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -XForce2);
-            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XForce1/Z);
+            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XForce1/ZZ);
           };
 
          if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
-          { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*YForce1);
+          { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*YForce1);
             SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YForce2);
             SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -YForce2);
-            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YForce1/Z);
+            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YForce1/ZZ);
           };
 
          if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
-          { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, Z*ZForce1);
+          { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*ZForce1);
             SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZForce2);
             SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -ZForce2);
-            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZForce1/Z);
+            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZForce1/ZZ);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_XTORQUE] )
+          { SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*XTorque1);
+            SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XTorque2);
+            SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -XTorque2);
+            SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XTorque1/ZZ);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_YTORQUE] )
+          { SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*YTorque1);
+            SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YTorque2);
+            SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -YTorque2);
+            SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YTorque1/ZZ);
+          };
+
+         if ( NeedMatrix[SCUFF_OMATRIX_ZTORQUE] )
+          { SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*ZTorque1);
+            SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZTorque2);
+            SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -ZTorque2);
+            SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZTorque1/ZZ);
           };
 
        }; // if (IsPEC) ... else ... 
@@ -331,8 +384,47 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
 }
 
 /***************************************************************/
-/* get power, force, and torque on a surface                   */
+/* get power, force, and torque on a surface.                  */
+/*                                                             */
+/* return values:                                              */
+/*  PFT[0]    = absorbed power                                 */
+/*  PFT[1]    = total (absorbed + scattered) power (extinction)*/
+/*  PFT[2..4] = x, y, z force                                  */
+/*  PFT[5..7] = x, y, z torque                                 */
 /***************************************************************/
+void RWGGeometry::GetPFT2(HVector *KN, HVector *RHS, cdouble Omega,
+                          int SurfaceIndex, double PFT[8])
+{
+  if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
+   { memset(PFT,0,8*sizeof(double));
+     Warn("GetPFT called for unknown surface #i",SurfaceIndex);
+     return;  
+   };
+  RWGSurface *S=G->Surfaces[SurfaceIndex];
+
+  bool NeedMatrix[SCUFF_NUM_OMATRICES];
+  SMatrix *OMatrix[SCUFF_NUM_OMATRICES];
+
+  for(int nm=0; nm<SCUFF_NUM_OMATRICES; nm++)
+   { NeedMatrix[nm]=true;
+     OMatrix[nm] = 0; 
+   };
+   
+  S->GetOverlapMatrices(NeedMatrix, SArray, Omega, RegionMPs[0]);
+
+/*
+  PFT[0] = OMatrix[1]->BilinearProduct(KN,KN);
+  PFT[1] = 
+*/
+
+  for(int nm=0; nm<SCUFF_NUM_OMATRICES; nm++)
+   delete OMatrix[nm];
+
+}
+
+// old implementation of GetPFT that avoided allocating
+// memory for the 8 sparse matrices; possibly resurrect
+// later if memory becomes an issue
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
                          int SurfaceIndex, double PFT[8])
 {
@@ -392,30 +484,30 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
       PFT[1] += 0.5*real( conj(KAlpha)*vEAlpha + conj(NAlpha)*vHAlpha );
 
      /*- X force */
-     M11 = Z*(Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2); 
-     M12 = +2.0*Overlaps[OVERLAP_XTIMESNABLA]/ (II*Omega);
-     M21 = -2.0*Overlaps[OVERLAP_XTIMESNABLA]/ (II*Omega);
-     M22 = (Overlaps[OVERLAP_XBULLET] - Overlaps[OVERLAP_XNABLANABLA]/K2)/Z;
+     M11 = Z*(Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2); 
+     M12 = +2.0*Overlaps[OVERLAP_TIMESNABLA_X]/ (II*Omega);
+     M21 = -2.0*Overlaps[OVERLAP_TIMESNABLA_X]/ (II*Omega);
+     M22 = (Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2)/Z;
      PFT[2] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
                           + conj(NAlpha)*M22*NBeta );
 
      /*- Y force */
-     M11 = Z*(Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2); 
-     M12 = +2.0*Overlaps[OVERLAP_YTIMESNABLA]/ (II*Omega);
-     M21 = -2.0*Overlaps[OVERLAP_YTIMESNABLA]/ (II*Omega);
-     M22 = (Overlaps[OVERLAP_YBULLET] - Overlaps[OVERLAP_YNABLANABLA]/K2)/Z;
+     M11 = Z*(Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_YX]/K2); 
+     M12 = +2.0*Overlaps[OVERLAP_TIMESNABLA_Y]/ (II*Omega);
+     M21 = -2.0*Overlaps[OVERLAP_TIMESNABLA_Y]/ (II*Omega);
+     M22 = (Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_YX]/K2)/Z;
      PFT[3] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
                           + conj(NAlpha)*M22*NBeta );
 
      /*- Z force */
-     M11 = Z*(Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2); 
-     M12 = +2.0*Overlaps[OVERLAP_ZTIMESNABLA]/ (II*Omega);
-     M21 = -2.0*Overlaps[OVERLAP_ZTIMESNABLA]/ (II*Omega);
-     M22 = (Overlaps[OVERLAP_ZBULLET] - Overlaps[OVERLAP_ZNABLANABLA]/K2)/Z;
+     M11 = Z*(Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_ZX]/K2); 
+     M12 = +2.0*Overlaps[OVERLAP_TIMESNABLA_Z]/ (II*Omega);
+     M21 = -2.0*Overlaps[OVERLAP_TIMESNABLA_Z]/ (II*Omega);
+     M22 = (Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_ZX]/K2)/Z;
      PFT[4] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
@@ -433,6 +525,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
   PFT[4]*=3.0;
 
 }
+#endif
 
 /***************************************************************/
 /* alternative interface to GetPFT in which the caller         */
@@ -537,163 +630,6 @@ cdouble RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
    { Warn("unknown surface label %s passed to GetScatteredPower",SurfaceLabel);
      return 0.0;
    };
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void RWGSurface::GetOverlapMatrices2(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
-                                     SMatrix *SArray[SCUFF_NUM_OMATRICES],
-                                     cdouble Omega,
-                                     MatProp *ExteriorMP, 
-                                     int TermOnly)
-{
-  int NR  = NumBFs;
-
-  /*--------------------------------------------------------------*/
-  /*- the number of nonzero entries per row of the overlap matrix */
-  /*- is fixed by the definition of the RWG basis function; each  */
-  /*- RWG function overlaps with at most 5 RWG functions          */
-  /*- (including itself), which gives 10 if we have both electric */
-  /*- and magnetic currents.                                      */
-  /*--------------------------------------------------------------*/
-  int nnz = IsPEC ? 5 : 10;
-
-  /*--------------------------------------------------------------*/
-  /*- make sure each necessary slot of SArray points to an SMatrix*/  
-  /*- of the appropriate size                                     */  
-  /*--------------------------------------------------------------*/
-  for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
-   { 
-     if ( NeedMatrix[n] ) 
-      { 
-        if (     SArray[n] 
-             && ( (SArray[n]->NR != NR) || (SArray[n]->NC != NR) )
-           )
-         { Warn("wrong-sized matrix passed to GetOverlapMatrices (reallocating)...");
-           SArray[n]=0;
-         };
-
-        if (SArray[n]==0)
-         SArray[n]=new SMatrix(NR, NR, LHM_COMPLEX);
-
-	// TODO: avoid reallocation if shape is okay?
-        SArray[n]->BeginAssembly(nnz*NR);
-
-      };   
-   };
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  cdouble Z=ZVAC, K2=Omega*Omega;
-  if (ExteriorMP)
-   { 
-     cdouble Eps, Mu;
-     ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
-     K2 *= Eps*Mu;
-     Z *= sqrt(Mu/Eps);
-   };
- 
-  /*--------------------------------------------------------------*/
-  /*- sadly we use an N^2 algorithm for computing the O(N) matrix */
-  /*- elements; this could be corrected at the expense of adding  */
-  /*- some bookkeeping data (namely, a list within each RWGEdge   */
-  /*- structure of the edges with which it overlaps), but for now */ 
-  /*- the cost of this operation is negligible anyway so i don't  */
-  /*- bother.                                                     */
-  /*--------------------------------------------------------------*/
-  int neAlpha, neBeta;
-  double Overlaps[NUMOVERLAPS];
-  cdouble XForceEEA=0.0, XForceEEB=0.0, XForceEM=0.0, XForceME=0.0, XForceMMA=0.0, XForceMMB=0.0;
-  cdouble YForceEEA=0.0, YForceEEB=0.0, YForceEM=0.0, YForceME=0.0, YForceMMA=0.0, YForceMMB=0.0;
-  cdouble ZForceEEA=0.0, ZForceEEB=0.0, ZForceEM=0.0, ZForceME=0.0, ZForceMMA=0.0, ZForceMMB=0.0;
-  for(neAlpha=0; neAlpha<NumEdges; neAlpha++)
-   for(neBeta=0; neBeta<NumEdges; neBeta++)
-    { 
-      GetOverlaps(neAlpha, neBeta, Overlaps);
-      if (Overlaps[0]==0.0) continue; 
-
-      if (TermOnly==-1 || TermOnly==0) XForceEEA = Z*Overlaps[OVERLAP_XBULLET];
-      if (TermOnly==-1 || TermOnly==1) XForceEEB = -Z*Overlaps[OVERLAP_XNABLANABLA]/K2;
-      if (TermOnly==-1 || TermOnly==2) XForceEM  = 2.0*Overlaps[OVERLAP_XTIMESNABLA] / (II*Omega);
-      if (TermOnly==-1 || TermOnly==3) XForceME  = -2.0*Overlaps[OVERLAP_XTIMESNABLA] / (II*Omega);
-      if (TermOnly==-1 || TermOnly==4) XForceMMA = Overlaps[OVERLAP_XBULLET]/Z;
-      if (TermOnly==-1 || TermOnly==5) XForceMMB = -Overlaps[OVERLAP_XNABLANABLA]/(Z*K2);
-
-      if (TermOnly==-1 || TermOnly==0) YForceEEA = Z*Overlaps[OVERLAP_YBULLET];
-      if (TermOnly==-1 || TermOnly==1) YForceEEB = -Z*Overlaps[OVERLAP_YNABLANABLA]/K2;
-      if (TermOnly==-1 || TermOnly==2) YForceEM  = 2.0*Overlaps[OVERLAP_YTIMESNABLA] / (II*Omega);
-      if (TermOnly==-1 || TermOnly==3) YForceME  = -2.0*Overlaps[OVERLAP_YTIMESNABLA] / (II*Omega);
-      if (TermOnly==-1 || TermOnly==4) YForceMMA = Overlaps[OVERLAP_YBULLET]/Z;
-      if (TermOnly==-1 || TermOnly==5) YForceMMB = -Overlaps[OVERLAP_YNABLANABLA]/(Z*K2);
-
-      if (TermOnly==-1 || TermOnly==0) ZForceEEA = Z*Overlaps[OVERLAP_ZBULLET];
-      if (TermOnly==-1 || TermOnly==1) ZForceEEB = -Z*Overlaps[OVERLAP_ZNABLANABLA]/K2;
-      if (TermOnly==-1 || TermOnly==2) ZForceEM  = 2.0*Overlaps[OVERLAP_ZTIMESNABLA] / (II*Omega);
-      if (TermOnly==-1 || TermOnly==3) ZForceME  = -2.0*Overlaps[OVERLAP_ZTIMESNABLA] / (II*Omega);
-      if (TermOnly==-1 || TermOnly==4) ZForceMMA = Overlaps[OVERLAP_ZBULLET]/Z;
-      if (TermOnly==-1 || TermOnly==5) ZForceMMB = -Overlaps[OVERLAP_ZNABLANABLA]/(Z*K2);
-      
-      if (IsPEC)
-       { 
-         if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
-          SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(neAlpha, neBeta, Overlaps[OVERLAP_OVERLAP]);
-
-         // note in this case there is no entry in the power matrix 
-
-#if 0
-         if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
-          SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(neAlpha, neBeta, Z*XForce1);
-         if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
-          SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(neAlpha, neBeta, Z*YForce1);
-         if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
-          SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(neAlpha, neBeta, Z*ZForce1);
-#endif
-       }
-      else
-       {
-
-         if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
-          { SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+0, 2*neBeta+0, Overlaps[OVERLAP_OVERLAP]);
-            SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+1, 2*neBeta+1, Overlaps[OVERLAP_OVERLAP]);
-          };
-
-         // EXPLAIN ME 
-         if ( NeedMatrix[SCUFF_OMATRIX_POWER] )
-          { SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+0, 2*neBeta+1, -Overlaps[OVERLAP_CROSS]);
-            SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+1, 2*neBeta+0, Overlaps[OVERLAP_CROSS]);
-          };
-
-         if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
-          { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, XForceEEA + XForceEEB);
-            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XForceEM);
-            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, XForceME);
-            SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XForceMMA + XForceMMB);
-          };
-
-         if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
-          { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, YForceEEA + YForceEEB);
-            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YForceEM);
-            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, YForceME);
-            SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YForceMMA + YForceMMB);
-          };
-
-         if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
-          { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZForceEEA + ZForceEEB);
-            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZForceEM);
-            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, ZForceME);
-            SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZForceMMA + ZForceMMB);
-          };
-
-       }; // if (IsPEC) ... else ... 
-         
-   }; // for(neAlpha...) ... for (neBeta...)
-
-  for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
-   if ( NeedMatrix[n] ) 
-    SArray[n]->EndAssembly();
-
 }
 
 }// namespace scuff

@@ -98,77 +98,6 @@ int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 }
 
 /***************************************************************/
-/* evaluate the four-matrix trace formula for the contribution */
-/* of fluctuations within SourceSurface to the flux of quantity*/
-/* QIndex into DestSurface.                                    */
-/*                                                             */
-/* QIndex      = 0,1,2,3 for power, {x,y,z} momentum           */
-/*                                                             */
-/* Note: the four-matrix trace is (WD=W^\dagger)               */
-/*                                                             */
-/*  FMT = tr (O1 * W * O2 * WD )                               */
-/*      = \sum_{pqrs} O1_{pq} W_{qr} O2_{rs} WD_{sp}           */
-/*      = \sum_{pqrs} O1_{pq} W_{qr} O2_{rs} (W_{ps})^*        */
-/*                                                             */
-/* because O1 and O2 are sparse, we evaluate the sum by        */
-/* looping over the rows of O1 and O2 (which we index by       */
-/* p and r respectively). for each row, we extract the         */
-/* list of nonzero column indices in each row (that is,        */
-/* the nonzero values of q and s) and then evaluate the        */
-/* contribution to the sum of (p,q,r,s).                       */
-/***************************************************************/
-#if 0
-double GetTrace(SNEQData *SNEQD, int QIndex, int SourceSurface, int DestSurface)
-{
-  RWGGeometry *G      = SNEQD->G;
-  HMatrix *W          = SNEQD->W;
-  int NN              = W->NR;
-  SMatrix ***SArray   = SNEQD->SArray;
-
-  int Offset1       = G->BFIndexOffset[DestSurface];
-  SMatrix *OMatrix1 = SArray[DestSurface][ 1 + QIndex ];
-
-  int Offset2       = G->BFIndexOffset[SourceSurface];
-  SMatrix *OMatrix2 = SArray[SourceSurface][ 1 + QINDEX_POWER];
-
-  int p, q, r, s; 
-  int nnzq, nq, nnzs, ns;
-  int *qValues, *sValues;
-  cdouble *O1Entries, *O2Entries;
-
-  cdouble FMPTrace=0.0; //'four-matrix-product trace'
-
-  for(p=0; p<OMatrix1->NR; p++)
-   { 
-     nnzq=OMatrix1->GetRow(p, &qValues, (void **)&O1Entries);
-
-     for(r=0; r<OMatrix2->NR; r++)
-      { 
-        nnzs=OMatrix2->GetRow(r, &sValues, (void **)&O2Entries);
-
-        for(nq=0, q=qValues[0]; nq<nnzq; q=qValues[++nq] )
-         for(ns=0, s=sValues[0]; ns<nnzs; s=sValues[++ns] )
-          FMPTrace +=  O1Entries[nq]
-                      *W->ZM[ (Offset1+q) + NN*(Offset2+r) ]
-                      *O2Entries[ns]
-                      *conj( W->ZM[ (Offset1+p) + NN*(Offset2+s) ] );
-#if 0
-          FMPTrace +=  O1Entries[nq]
-                      *W->GetEntry( Offset1+q, Offset2+r )
-                      *O2Entries[ns]
-                      *conj( W->GetEntry( Offset1+p, Offset2+s ));
-#endif
-
-      }; // for (r=0...
-   }; // for (p=0... 
-  FMPTrace *= (-1.0/16.0);
-
- return real(FMPTrace);
-
-} 
-#endif
-
-/***************************************************************/
 /* compute the four-matrix-trace formula for the contribution  */
 /* of sources inside SourceSurface to the fluxes of power      */
 /* and/or momentum through DestSurface.                        */
@@ -501,7 +430,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
      /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/
      FILE *f=vfopen("%s.flux","a",SNEQD->FileBase);
-     double Quantities[4];
+     double Quantities[7];
      for(int nss=0; nss<NS; nss++)
       for(int nsd=0; nsd<NS; nsd++)
        { 

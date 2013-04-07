@@ -191,6 +191,12 @@ void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E)
    fprintf(f,"# (%i,%i) y-force (value,error)\n",nq++,nq++);
   if (SNEQD->QuantityFlags & QFLAG_ZFORCE) 
    fprintf(f,"# (%i,%i) z-force (value,error)\n",nq++,nq++);
+  if (SNEQD->QuantityFlags & QFLAG_XTORQUE) 
+   fprintf(f,"# (%i,%i) x-torque (value,error)\n",nq++,nq++);
+  if (SNEQD->QuantityFlags & QFLAG_YTORQUE) 
+   fprintf(f,"# (%i,%i) y-torque (value,error)\n",nq++,nq++);
+  if (SNEQD->QuantityFlags & QFLAG_ZTORQUE) 
+   fprintf(f,"# (%i,%i) z-torque (value,error)\n",nq++,nq++);
 
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
