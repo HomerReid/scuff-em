@@ -1,0 +1,122 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------$
+\newcommand{\FSV}{\boldsymbol{\mathcal{F}}}   % field six-vector
+\newcommand{\CSV}{\boldsymbol{\mathcal{C}}}   % current six-vector
+\newcommand{\BSV}{\boldsymbol{\mathcal{B}}}   % basis-function six-vector
+\newcommand{\SSV}{\boldsymbol{\mathcal{S}}}   % source six-vector
+
+\newcommand{\NM}{\boldsymbol{\mathcal{N}}}
+\newcommand{\SVDGF}{\boldsymbol{\mathcal{G}}} % six-vector DGF
+
+\newcommand{\SVChi}{\boldsymbol{\chi}}        % six-vector susceptibility
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {SIE-BEM Formulations in {\sc scuff-em}}
+\author {Homer Reid}
+\date {March 29, 2013}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: SIE-BEM Formulations in {\sc scuff-em}}
+\maketitle
+
+\tableofcontents
+
+Consider a single dielectric object in a medium.   
+I define $\vbhat{n}$ to be the outward pointing normal vector
+and $\{\vb K, \vb N\}=
+\{\vbhat{n}\times \vb H\sups{tot}, -\vbhat{n}\times\vb E\sups{tot}\}$
+to be the surface currents seen from the exterior medium.
+The quantities $\vbhat{n}, \vb{K}, \vb{N}$ all suffer a sign flip
+when reckoned from the interior medium; I will not define
+separate notation for the sign-flipped version of these
+quantities.
+
+Six-vector notation for fields, surface currents, and dyadic Green's
+functions:
+$$ \FSV=\left(\begin{array}{c} \vb E \\ \vb H \end{array}\right), \qquad
+   \CSV=\left(\begin{array}{c} \vb K \\ \vb N \end{array}\right), \qquad
+   \SVDGF=\left(\begin{array}{cc} 
+      \BG\supt{EE} & \BG\supt{EM}  \\
+      \BG\supt{ME} & \BG\supt{MM} 
+          \end{array}\right).
+$$
+The total fields in the exterior and interior regions are related
+to the surface currents and the incident fields (which we assume
+to arise from sources in the exterior medium) according to
+\begin{subequations}
+\begin{align}
+ \FSV\subs{ext}\sups{tot} &= \SVDGF\subs{ext} * \CSV + \FSV\sups{inc} \\
+ \FSV\subs{int}\sups{tot} &= -\SVDGF\subs{int} * \CSV
+\end{align}
+\label{FGC}
+\end{subequations}
+On the other hand, the surface currents are related to the 
+total fields in the two regions according to
+\begin{subequations}
+\begin{align}
+ \CSV &=  \NM\FSV\sups{tot}\subs{ext}
+\\
+ \CSV &= -\NM\FSV\sups{tot}\subs{int}
+\\
+ where 
+ \NM &=
+   \left(\begin{array}{cc} 
+   0               & \vbhat{n}\times \\
+  -\vbhat{n}\times & 0
+   \end{array} \right).
+\end{align}
+\label{CNF}
+\end{subequations}
+%
+Combining (\ref{CNF}) with (\ref{FGC}) yields 
+two distinct six-vector integral equations
+relating $\CSV$ to $\FSV\sups{inc}$:
+\begin{subequations}
+\begin{align}
+\end{align}
+\end{subequations}
+
+
+\footnote{This way of understanding the PMCHW and n-Muller
+formulations follows P. Yla-Oijala and M. Taskinen,
+``Well-conditioned Muller formulation for electromagnetic 
+scattering by dielectric objects,'' \textit{IEEE Transactions 
+on Antennas and Propagation}, \textbf{53} 3316 (2005).}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\end{document}
+
+@ARTICLE{Helsinki2005,
+author={Yla-Oijala, P. and Taskinen, M.}, 
+journal={Antennas and Propagation, IEEE Transactions on}, 
+title={Well-conditioned Muller formulation for electromagnetic scattering by dielectric objects}, 
+year={2005}, 
+volume={53}, 
+number={10}, 
+pages={3316-3323}, 
+keywords={Galerkin method;dielectric bodies;electric breakdown;electric field integral equations;electromagnetic wave scattering;iterative methods;magnetic field integral equations;matrix algebra;method of moments;surface electromagnetic waves;Galerkin method;MoM;N-Muller;RWG basis function;Rao-Wilton-Glisson;electromagnetic scattering;electrostatic integral equation;homogeneous dielectric object;iterative solution;low-frequency breakdown;magnetostatic integral equation;method of moments;surface integral equation;well-conditioned Muller formulation;well-conditioned matrix equation;Dielectric breakdown;Electric breakdown;Electromagnetic scattering;Electrostatics;Helium;Integral equations;Iterative methods;Magnetostatic waves;Microwave frequencies;Moment methods;Dielectric object;MÜller formulation;electromagnetic scattering;low frequency;method of moments (MoM);surface integral equation}, 
+doi={10.1109/TAP.2005.856313}, 
+ISSN={0018-926X},}

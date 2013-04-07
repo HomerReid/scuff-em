@@ -99,7 +99,10 @@ void AddOverlapContributions(RWGSurface *S, RWGPanel *P, int iQa, int iQb,
 
   double Bullet=0.0, Times=0.0;
   for(int Mu=0; Mu<3; Mu++)
-   { Bullet += A[Mu]*(A[Mu]/4.0 + B[Mu]/4.0 + DQ[Mu]/3.0) + B[Mu]*(B[Mu]/12.0 + DQ[Mu]/6.0);
+   { 
+
+     Bullet += A[Mu]*(A[Mu]/4.0 + B[Mu]/4.0 + DQ[Mu]/3.0) 
+             + B[Mu]*(B[Mu]/12.0 + DQ[Mu]/6.0);
      Times  += (A[Mu]+0.5*B[Mu])*ZxDQ[Mu]/3.0;
    };
 
@@ -117,6 +120,18 @@ void AddOverlapContributions(RWGSurface *S, RWGPanel *P, int iQa, int iQb,
   Overlaps[8]  += PreFac * ZHat[2] * Bullet;
   Overlaps[9]  += PreFac * ZHat[2] * 2.0;
   Overlaps[10] += PreFac * (ZxA[2]/3.0 + ZxB[2]/6.0) * 2.0;
+
+  Overlaps[11] += PreFac * RxZHat[0] * Bullet;
+  Overlaps[12] += PreFac * RxZHat[0] * 2.0;
+  Overlaps[13] += PreFac * (RxZxA[0]/3.0 + RxZxB[0]/6.0) * 2.0;
+
+  Overlaps[14] += PreFac * RxZHat[1] * Bullet;
+  Overlaps[15] += PreFac * RxZHat[1] * 2.0;
+  Overlaps[16] += PreFac * (RxZxA[1]/3.0 + RxZxB[1]/6.0) * 2.0;
+
+  Overlaps[17] += PreFac * RxZHat[2] * Bullet;
+  Overlaps[18] += PreFac * RxZHat[2] * 2.0;
+  Overlaps[19] += PreFac * (RxZxA[2]/3.0 + RxZxB[2]/6.0) * 2.0;
 
 }
 
