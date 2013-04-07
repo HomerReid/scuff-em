@@ -46,6 +46,7 @@ typedef struct SSData
    double *kBloch;
    IncField *IF;
    double PowerRadius;
+   bool OldPFT;
  } SSData;
  
 

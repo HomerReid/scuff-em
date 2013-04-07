@@ -946,7 +946,10 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
    { 
      fprintf(f,"%s ",G->Surfaces[ns]->Label);
 
-     G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
+     if (SSD->OldPFT)
+      G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
+     else
+      G->GetPFT2(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
      GetPower_SGJ(SSD, 0, &PScat);
      PFT[1]=PScat;
 

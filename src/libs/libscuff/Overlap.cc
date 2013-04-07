@@ -85,53 +85,59 @@ void AddOverlapContributions(RWGSurface *S, RWGPanel *P, int iQa, int iQb,
   double *Qb   = S->Vertices + 3*P->VI[ iQb ];
   double *ZHat = P->ZHat;
 
-  double A[3], B[3], DQ[3];
-  VecSub(QaP1, Qa, A);
-  VecSub(QaP2, QaP1, B);
+  double L1[3], L2[3], DQ[3];
+  VecSub(QaP1, Qa, L1);
+  VecSub(QaP2, QaP1, L2);
   VecSub(Qa, Qb, DQ);
 
-  double ZxA[3], ZxB[3], ZxDQ[3];
-  VecCross(ZHat, A, ZxA);
-  VecCross(ZHat, B, ZxB);
+  double ZxL1[3], ZxL2[3], ZxDQ[3];
+  VecCross(ZHat, L1, ZxL1);
+  VecCross(ZHat, L2, ZxL2);
   VecCross(ZHat, DQ, ZxDQ);
 
   double PreFac = Sign * LL / (2.0*P->Area);
 
-  double Bullet=0.0, Times=0.0;
-  for(int Mu=0; Mu<3; Mu++)
-   { 
+  double L1dL1 = L1[0]*L1[0] + L1[1]*L1[1] + L1[2]*L1[2];
+  double L1dL2 = L1[0]*L2[0] + L1[1]*L2[1] + L1[2]*L2[2];
+  double L1dDQ = L1[0]*DQ[0] + L1[1]*DQ[1] + L1[2]*DQ[2];
+  double L2dL2 = L2[0]*L2[0] + L2[1]*L2[1] + L2[2]*L2[2];
+  double L2dDQ = L2[0]*DQ[0] + L2[1]*DQ[1] + L2[2]*DQ[2];
 
-     Bullet += A[Mu]*(A[Mu]/4.0 + B[Mu]/4.0 + DQ[Mu]/3.0) 
-             + B[Mu]*(B[Mu]/12.0 + DQ[Mu]/6.0);
-     Times  += (A[Mu]+0.5*B[Mu])*ZxDQ[Mu]/3.0;
-   };
+  double TimesFactor = (  (2.0*L1[0]+L2[0])*ZxDQ[0]  
+                        + (2.0*L1[1]+L2[1])*ZxDQ[1] 
+                        + (2.0*L1[2]+L2[2])*ZxDQ[2]  ) / 6.0;
 
-  Overlaps[0]  += PreFac*Bullet;
-  Overlaps[1]  += PreFac*Times;
+  double BulletFactor1 =  (L1dL1 + L1dL2)/4.0 + L1dDQ/3.0 + L2dL2/12.0 + L2dDQ/6.0;
+  double BulletFactor2 =  (L1dL1 + L1dL2)/5.0 + L1dDQ/4.0 + L2dL2/15.0 + L2dDQ/8.0;
+  double BulletFactor3 =  L1dL1/10.0 + 2.0*L1dL2/15.0 + L1dDQ/8.0 + L2dL2/20.0 + L2dDQ/12.0;
+  double NablaCrossFactor =  (L1dL1 + L1dL2)/2.0 + L2dL2/6.0;
 
-  Overlaps[2]  += PreFac * ZHat[0] * Bullet;
+  Overlaps[0]  += PreFac * BulletFactor1;
+  Overlaps[1]  += PreFac * TimesFactor;
+
+  Overlaps[2]  += PreFac * ZHat[0] * BulletFactor1;
   Overlaps[3]  += PreFac * ZHat[0] * 2.0;
-  Overlaps[4]  += PreFac * (ZxA[0]/3.0 + ZxB[0]/6.0) * 2.0;
+  Overlaps[4]  += PreFac * (2.0*ZxL1[0] + ZxL2[0]) / 3.0;
 
-  Overlaps[5]  += PreFac * ZHat[1] * Bullet;
+  Overlaps[5]  += PreFac * ZHat[1] * BulletFactor1;
   Overlaps[6]  += PreFac * ZHat[1] * 2.0;
-  Overlaps[7]  += PreFac * (ZxA[1]/3.0 + ZxB[1]/6.0) * 2.0;
+  Overlaps[7]  += PreFac * (2.0*ZxL1[1] + ZxL2[1]) / 3.0;
 
-  Overlaps[8]  += PreFac * ZHat[2] * Bullet;
+  Overlaps[8]  += PreFac * ZHat[2] * BulletFactor1;
   Overlaps[9]  += PreFac * ZHat[2] * 2.0;
-  Overlaps[10] += PreFac * (ZxA[2]/3.0 + ZxB[2]/6.0) * 2.0;
+  Overlaps[10] += PreFac * (2.0*ZxL1[2] + ZxL2[2]) / 3.0;
 
-  Overlaps[11] += PreFac * RxZHat[0] * Bullet;
-  Overlaps[12] += PreFac * RxZHat[0] * 2.0;
-  Overlaps[13] += PreFac * (RxZxA[0]/3.0 + RxZxB[0]/6.0) * 2.0;
+  Overlaps[11] += PreFac * (-ZxL1[0]*BulletFactor2 - ZxL2[0]*BulletFactor3);
+  Overlaps[12] += PreFac * (-4.0*ZxL1[0] - 2.0*ZxL2[0]) / 3.0;
+  Overlaps[13] += PreFac * ZHat[0] * NablaCrossFactor;
 
-  Overlaps[14] += PreFac * RxZHat[1] * Bullet;
-  Overlaps[15] += PreFac * RxZHat[1] * 2.0;
-  Overlaps[16] += PreFac * (RxZxA[1]/3.0 + RxZxB[1]/6.0) * 2.0;
+  Overlaps[14] += PreFac * (-ZxL1[1]*BulletFactor2 - ZxL2[1]*BulletFactor3);
+  Overlaps[15] += PreFac * (-4.0*ZxL1[1] - 2.0*ZxL2[1]) / 3.0;
+  Overlaps[16] += PreFac * ZHat[1] * NablaCrossFactor;
 
-  Overlaps[17] += PreFac * RxZHat[2] * Bullet;
-  Overlaps[18] += PreFac * RxZHat[2] * 2.0;
-  Overlaps[19] += PreFac * (RxZxA[2]/3.0 + RxZxB[2]/6.0) * 2.0;
+  Overlaps[17] += PreFac * (-ZxL1[2]*BulletFactor2 - ZxL2[2]*BulletFactor3);
+  Overlaps[18] += PreFac * (-4.0*ZxL1[2] - 2.0*ZxL2[2]) / 3.0;
+  Overlaps[19] += PreFac * ZHat[2] * NablaCrossFactor;
 
 }
 
@@ -303,20 +309,20 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
       XForce1 = Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2;
       XForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_X] / (II*Omega);
 
-      YForce1 = Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_YX]/K2;
+      YForce1 = Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_Y]/K2;
       YForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_Y] / (II*Omega);
 
-      ZForce1 = Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_ZX]/K2;
+      ZForce1 = Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_Z]/K2;
       ZForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_Z] / (II*Omega);
 
       XTorque1 = Overlaps[OVERLAP_RXBULLET_X] - Overlaps[OVERLAP_RXNABLANABLA_X]/K2;
-      XTorque2 = 2.0*Overlaps[OVERLAP_RxTIMESNABLA_X] / (II*Omega);
+      XTorque2 = 2.0*Overlaps[OVERLAP_RXTIMESNABLA_X] / (II*Omega);
 
       YTorque1 = Overlaps[OVERLAP_RXBULLET_Y] - Overlaps[OVERLAP_RXNABLANABLA_Y]/K2;
-      YTorque2 = 2.0*Overlaps[OVERLAP_RxTIMESNABLA_Y] / (II*Omega);
+      YTorque2 = 2.0*Overlaps[OVERLAP_RXTIMESNABLA_Y] / (II*Omega);
 
       ZTorque1 = Overlaps[OVERLAP_RXBULLET_Z] - Overlaps[OVERLAP_RXNABLANABLA_Z]/K2;
-      ZTorque2 = 2.0*Overlaps[OVERLAP_RxTIMESNABLA_Z] / (II*Omega);
+      ZTorque2 = 2.0*Overlaps[OVERLAP_RXTIMESNABLA_Z] / (II*Omega);
 
       if (IsPEC)
        { 
@@ -415,31 +421,96 @@ void RWGGeometry::GetPFT2(HVector *KN, HVector *RHS, cdouble Omega,
      Warn("GetPFT called for unknown surface #i",SurfaceIndex);
      return;  
    };
-  RWGSurface *S=G->Surfaces[SurfaceIndex];
+  RWGSurface *S=Surfaces[SurfaceIndex];
 
+  /***************************************************************/
+  /* compute overlap matrices.                                   */
+  /* TODO: allow caller to pass caller-allocated storage for     */
+  /* these matrices and for the KNTS vector below to avoid       */
+  /* allocating on the fly                                       */
+  /***************************************************************/
   bool NeedMatrix[SCUFF_NUM_OMATRICES];
-  SMatrix *OMatrix[SCUFF_NUM_OMATRICES];
-
+  SMatrix *OMatrices[SCUFF_NUM_OMATRICES];
   for(int nm=0; nm<SCUFF_NUM_OMATRICES; nm++)
    { NeedMatrix[nm]=true;
-     OMatrix[nm] = 0; 
+     OMatrices[nm] = 0; 
    };
-   
-  S->GetOverlapMatrices(NeedMatrix, SArray, Omega, RegionMPs[0]);
+  S->GetOverlapMatrices(NeedMatrix, OMatrices, Omega, RegionMPs[0]);
 
-/*
-  PFT[0] = OMatrix[1]->BilinearProduct(KN,KN);
-  PFT[1] = 
-*/
+  /***************************************************************/
+  /* extract the chunk of the KN vector that is relevant for this*/
+  /* surface and in the process (1) undo the SCUFF normalization */
+  /* of the magnetic currents and (2) compute the total power    */
+  /***************************************************************/
+  int N = S->NumBFs;
+  int Offset = BFIndexOffset[SurfaceIndex];
+  HVector *KNTS=new HVector(N,LHM_COMPLEX); // 'KN, this surface'
+  cdouble KAlpha, NAlpha, vEAlpha, vHAlpha;
+  PFT[1]=0.0;
+  if (S->IsPEC)
+   { for(int ne=0; ne<S->NumEdges; ne++)
+      { 
+        KAlpha  = KN->GetEntry(Offset + ne);
+        vEAlpha = RHS ? -ZVAC*RHS->GetEntry( Offset + ne ) : 0.0;
 
+        PFT[1] += real( conj(KAlpha)*vEAlpha );
+
+        KNTS->SetEntry(ne,  KAlpha );
+      }
+   }
+  else //non-PEC
+   { for(int ne=0; ne<S->NumEdges; ne++)
+      { 
+        KAlpha =       KN->GetEntry(Offset + 2*ne + 0);
+        NAlpha = -ZVAC*KN->GetEntry(Offset + 2*ne + 1);
+
+        vEAlpha = RHS ? -ZVAC*RHS->GetEntry( Offset + 2*ne + 0 ) : 0.0;
+        vHAlpha = RHS ?  -1.0*RHS->GetEntry( Offset + 2*ne + 1 ) : 0.0;
+
+        KNTS->SetEntry( 2*ne + 0,  KAlpha );
+        KNTS->SetEntry( 2*ne + 1,  NAlpha );
+
+        PFT[1] += real( conj(KAlpha)*vEAlpha + conj(NAlpha)*vHAlpha );
+      };
+   }
+  PFT[1] *= 0.25;
+
+  PFT[0] = 0.25*OMatrices[SCUFF_OMATRIX_POWER]->BilinearProductD(KNTS,KNTS);
+
+  PFT[2] = 0.25*OMatrices[SCUFF_OMATRIX_XFORCE]->BilinearProductD(KNTS,KNTS);
+  PFT[3] = 0.25*OMatrices[SCUFF_OMATRIX_YFORCE]->BilinearProductD(KNTS,KNTS);
+  PFT[4] = 0.25*OMatrices[SCUFF_OMATRIX_ZFORCE]->BilinearProductD(KNTS,KNTS);
+
+  PFT[5] = 0.25*OMatrices[SCUFF_OMATRIX_XTORQUE]->BilinearProductD(KNTS,KNTS);
+  PFT[6] = 0.25*OMatrices[SCUFF_OMATRIX_YTORQUE]->BilinearProductD(KNTS,KNTS);
+  PFT[7] = 0.25*OMatrices[SCUFF_OMATRIX_ZTORQUE]->BilinearProductD(KNTS,KNTS);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  // insert prefactors to get units right.
+  // how it works: the force quantity that we just computed 
+  // has units of 1 watt / c = (1 joule/s) * (1 s/nm) / 3  
+  //                         = (1 nanoNewton / 3 )
+  // so we multiply it by 3 to get a force in nanonewtons.
+  // similarly for the torque: multiplying by 3 gives the torque
+  // in nanoNewtons*microns (assuming the incident field was 
+  // measured in units of volts / micron)
+  for(int n=2; n<=7; n++)
+   PFT[n] *= 3.0;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  delete KNTS;
   for(int nm=0; nm<SCUFF_NUM_OMATRICES; nm++)
-   delete OMatrix[nm];
+   delete OMatrices[nm];
 
 }
 
-// old implementation of GetPFT that avoided allocating
-// memory for the 8 sparse matrices; possibly resurrect
-// later if memory becomes an issue
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
                          int SurfaceIndex, double PFT[8])
 {
@@ -509,20 +580,20 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
                           + conj(NAlpha)*M22*NBeta );
 
      /*- Y force */
-     M11 = Z*(Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_YX]/K2); 
+     M11 = Z*(Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_Y]/K2); 
      M12 = +2.0*Overlaps[OVERLAP_TIMESNABLA_Y]/ (II*Omega);
      M21 = -2.0*Overlaps[OVERLAP_TIMESNABLA_Y]/ (II*Omega);
-     M22 = (Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_YX]/K2)/Z;
+     M22 = (Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_Y]/K2)/Z;
      PFT[3] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
                           + conj(NAlpha)*M22*NBeta );
 
      /*- Z force */
-     M11 = Z*(Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_ZX]/K2); 
+     M11 = Z*(Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_Z]/K2); 
      M12 = +2.0*Overlaps[OVERLAP_TIMESNABLA_Z]/ (II*Omega);
      M21 = -2.0*Overlaps[OVERLAP_TIMESNABLA_Z]/ (II*Omega);
-     M22 = (Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_ZX]/K2)/Z;
+     M22 = (Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_Z]/K2)/Z;
      PFT[4] += 0.25*real(   conj(KAlpha)*M11*KBeta 
                           + conj(KAlpha)*M12*NBeta
                           + conj(NAlpha)*M21*KBeta 
@@ -540,7 +611,6 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
   PFT[4]*=3.0;
 
 }
-#endif
 
 /***************************************************************/
 /* alternative interface to GetPFT in which the caller         */
