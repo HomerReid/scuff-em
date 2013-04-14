@@ -87,3 +87,26 @@
 \newcommand{\INP}[2]{ \Big\langle #1 \Big| #2 \Big\rangle}
 \newcommand{\vmv}[3]{ \big\langle #1 \big| #2 \big| #3 \big\rangle}
 \newcommand{\VMV}[3]{ \Big\langle #1 \Big| #2 \Big| #3 \Big\rangle}
+
+%------------------------------------------------------------
+%- shaded box for source code inclusions 
+%------------------------------------------------------------
+\definecolor{lightgrey}{rgb}{0.85,0.85,0.85}
+%\newcommand{\SourceBox}[1]
+% { \begin{mdframed}[backgroundcolor=lightgrey, linewidth=2pt,
+%                    tikzsetting={draw=black, line width=2pt,
+%                                 dashed, dash pattern= on 5pt off 5pt}] %
+%  \begin{verbatim} #1 \end{verbatim} \end{mdframed} \medskip
+%}
+\IfFileExists{mdframed.sty}
+ { \usepackage{mdframed}
+   \surroundwithmdframed[backgroundcolor=lightgrey, linewidth=2pt,
+                      framemethod=tikz,
+                      skipabove=10pt,
+                      skipbelow=10pt,
+                      tikzsetting={draw=black, line width=2pt,
+                                   dashed, dash pattern= on 5pt off 5pt}
+                     ]{verbatim}
+ }
+ {
+ }

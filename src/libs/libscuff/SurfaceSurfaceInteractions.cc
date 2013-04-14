@@ -407,14 +407,14 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
       GZ*=ZVAC;
 
       if ( S->IsPEC )
-       { B->AddEntry(Offset+neAlpha, Offset+neBeta, -2.0*Overlap/GZ);
+       { B->AddEntry(Offset+neAlpha, Offset+neBeta, -1.0*Overlap/GZ);
          if (neAlpha!=neBeta)
-          B->AddEntry(Offset+neBeta, Offset+neAlpha, -2.0*Overlap/GZ);
+          B->AddEntry(Offset+neBeta, Offset+neAlpha, -1.0*Overlap/GZ);
        }
       else
-       { B->AddEntry(Offset + 2*neAlpha+1, Offset + 2*neBeta+1, +2.0*Overlap/GZ);
+       { B->AddEntry(Offset + 2*neAlpha+1, Offset + 2*neBeta+1, +GZ*Overlap);
          if (neAlpha!=neBeta)
-          B->AddEntry(Offset + 2*neBeta+1, Offset + 2*neAlpha+1, +2.0*Overlap/GZ);
+          B->AddEntry(Offset + 2*neBeta+1, Offset + 2*neAlpha+1, +GZ*Overlap);
        }
       
     };

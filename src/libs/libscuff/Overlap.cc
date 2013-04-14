@@ -35,6 +35,8 @@
 #include "libscuff.h"
 #include "libscuffInternals.h"
 
+#include "cmatheval.h"
+
 #define II cdouble(0.0,1.0)
 
 namespace scuff {
@@ -520,6 +522,11 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
      return;
    };
 
+  char *SSParmNames[4]={ const_cast<char *>("w"), const_cast<char *>("x"), 
+                         const_cast<char *>("y"), const_cast<char *>("z") };
+  cdouble SSParmValues[4];
+  SSParmValues[0]=Omega*(MatProp::FreqUnit);
+
   RWGSurface *S=Surfaces[SurfaceIndex];
   int Offset=BFIndexOffset[SurfaceIndex];
 
@@ -563,7 +570,17 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
        };
   
      /*- absorbed power */
-     PFT[0] += 0.5*real( conj(KAlpha)*NBeta * Overlaps[OVERLAP_CROSS] );
+     if ( S->IsPEC && S->SurfaceSigma && Overlaps[OVERLAP_OVERLAP]!=0.0 )
+      { 
+        SSParmValues[1] = S->Edges[neAlpha]->Centroid[0];
+        SSParmValues[2] = S->Edges[neAlpha]->Centroid[1];
+        SSParmValues[3] = S->Edges[neAlpha]->Centroid[2];
+        cdouble GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
+        GZ*=ZVAC;
+        PFT[0] += 0.5*real( conj(KAlpha)*KBeta * Overlaps[OVERLAP_OVERLAP] / GZ);
+      }
+     else
+      PFT[0] += 0.5*real( conj(KAlpha)*NBeta * Overlaps[OVERLAP_CROSS] );
 
      /*- total power */
      if (neAlpha==neBeta)

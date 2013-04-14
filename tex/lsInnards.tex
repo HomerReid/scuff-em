@@ -37,69 +37,196 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Scattering Geometries in \lss}
+\section{Geometries in \lss}
 
-\begin{itemize}
+\lss thinks of a geometry as consisting of a collection
+of ``regions,'' bounded by ``surfaces.'' 
 
-\item
-\lss thinks of a scattering geometry as consisting of a collection
-of ``objects.'' Each object $\mathcal{O}_\alpha$ is a region of
-space throughout which the permittivity and permeability are constant,
-$$ \epsilon(\vb x, \omega) \equiv \epsilon_\alpha(\omega), \qquad
-   \mu(\vb x, \omega)      \equiv \mu_\alpha(\omega)
+Each region $\mathcal{R}^r$ is a contiguous volume
+throughout which the permittivity and permeability are 
+spatially constant,
+$$ \epsilon(\vb x, \omega) \equiv \epsilon^r(\omega), \qquad
+   \mu(\vb x, \omega)      \equiv \mu^r(\omega)
 $$
-where $\epsilon_\alpha(\omega)$ and $\mu_\alpha(\omega)$ may
+where $\epsilon^r(\omega)$ and $\mu^r(\omega)$ may
 be arbitrary user-specified functions of frequency. 
 (Only isotropic $\epsilon$ and $\mu$ are supported).
+The region with index $r=0$ is known as the 
+``exterior'' medium of the \lss geometry; it is 
+always present in every \lss geometry and has by 
+default the permittivity and permeability of vacuum. 
+The user may define the exterior medium to have 
+alternative material properties.
 
-All objects have finite volume and are geometrically characterized 
-in \lss by a surface mesh consisting of a union of flat triangular
-panels. The surface of object $\mathcal{O}_\alpha$ is labeled 
-$\mathcal{S}_\alpha$.
+Each surface lies at the interface between precisely two 
+regions. We identify one of these two regions as 
+the ``exterior'' region for the surface in question,
+and the other region is the ``interior.'' The normal 
+vector to the surface is always defined to point into 
+the ``exterior'' region.\footnote{This requires that 
+surfaces be \textit{orientable}; Klein bottles are thus 
+explicitly forbidden in \lss geometries, although PEC 
+M\"obius strips are allowed.} (This is true even for 
+open surfaces; in this case the terminology ``exterior'' 
+and ``interior'' doesn't quite make sense, but we can 
+certainly still pick one of the two regions between
+which a surface lies and decide that the normal vector
+will point into that region.)
 
-Objects may be \textit{nested}, i.e. one object may be 
-fully contained inside another object. 
 
-In addition, all objects are understood to be embedded within an 
-infinite homogeneous medium (the ``external medium'') with 
-arbitrary user-specified material properties 
-$\epsilon_e(\omega)$ and $\mu_e(\omega)$. (In what follows it
-will occasionally be convenient to think of the external
-medium as an object $\mathcal{O}_e$ with a surface $\mathcal{S}_e$
-at infinity.)
+Each surface is described by a surface mesh consisting of 
+a union of flat triangular panels. 
 
-\item
-\lss recognizes two broad categories of material bodies:
-``PEC'' (perfectly-electrically-conducting) bodies and
-``dielectric'' bodies. 
-The term ``dielectric'' in \lss parlance really just means
-``not perfectly conducting.'' An object described as a ``dielectric''
-for the purposes of \lss may be a good but imperfect conductor,
-a magnetic material, or any other type of material that we wouldn't
-typically think of as a ``dielectric.''
+The regions and surfaces that define \lss\, geometries are 
+specified in \textit{geometry files,} conventionally given the 
+file extension \texttt{.scuffgeo}.
 
-\item
-\lss decomposes the total electric and magnetic fields into 
-``incident'' and ``scattered'' contributions. The ``incident'' 
-fields, $\vb E\sups{inc}$ and $\vb H\sups{inc}$, 
-are arbitrary user-specified functions of space.
-The ``scattered'' fields $\vb E\sups{scat}$ and 
-$\vb H\sups{scat}$ are the fields due to currents
-flowing on the surfaces of all objects in the \lss geometry.
-Generally speaking, the incident fields are the fields that
-would be present if the scattering geometry were 
-empty (all objects and the external medium have
-$\epsilon=\mu=1$) and the scattered fields are the difference
-between these incident fields and the actual fields that
-exist in the presence of the non-empty scattering geometry. 
+\subsection*{Simple geometries: \texttt{OBJECT} specifications}
 
-\end{itemize}
+The simplest type of \lss geometry consists of one or more
+compact homogeneous objects embedded in an external 
+medium. In this case, each object is described by a 
+\textit{closed} surface mesh (specified to \lss
+as a mesh file in one of the supported mesh file 
+formats) together with an material designation.
+For example
+
+\begin{verbatim}
+OBJECT TheSphere
+        MESHFILE Sphere_480.msh
+        MATERIAL Gold
+ENDOBJECT
+\end{verbatim}
+
+In the language of regions and surfaces discussed above,
+each \texttt{OBJECT} statement adds one new region and 
+one new surface to a geometry. The newly added region 
+is always taken to be the interior region associated
+with the newly added surface, and the 
+volume inside the object; the new surface exists at 
+the interface between this region and the exterior
+medium.
+
+We said above that surface meshes for compact objects 
+should be \textit{closed} surfaces. The exception to 
+this statement is that PEC (perfectly electrically
+conducting) or IPEC (imperfectly electrically 
+conducting) bodies may be described by open surfaces.
+(An IPEC body is a PEC body with finite surface 
+conductivity). For both PEC and IPEC bodies the
+interior fields vanish identically, and there
+is no need for such bodies to have finite
+interior volume.
+
+\subsection*{Simple geometries: Nested objects} 
+
+It is possible for an object defined by an
+\texttt{OBJECT} declaration to be fully 
+contained inside another \texttt{OBJECT}. 
+The nesting inclusion relationship is automatically 
+detected by \ls. 
+
+\subsection*{More complicated geometries: \texttt{REGION}
+             and \texttt{SURFACE} statements}
+
+Some geometries are too complicated to be defined 
+as collections of compact objects bounded by closed 
+surfaces. One example is a composite sphere in which 
+the upper and lower hemispheres consist of different 
+materials. Another example is a metallic nanoparticle 
+(say, a disc) lying atop a dielectric substrate. The 
+common feature of these two examples that prevents 
+description in terms of simple closed objects is the 
+presence of \textit{multi-material junctions}; these
+are one-dimensional subspaces at which three
+or more material regions meet. 
+For the composite sphere, the multi-material junction 
+would be the equator; for the disc on the substrate, 
+it would be the lower circumference of the disc.
+
+Geometries like this are described in \lss
+using \texttt{REGION} and \texttt{SURFACE}
+statements. For example, the composite sphere
+above may be specified like this:
+%
+\begin{verbatim} 
+REGION Exterior        MATERIAL VACUUM
+REGION UpperHemisphere MATERIAL Gold
+REGION LowerHemisphere MATERIAL Silicon
+
+SURFACE LowerHemisphereSurface 
+        MESHFILE UpperHemisphere.msh
+        REGIONS Exterior LowerHemisphere
+ENDSURFACE
+
+SURFACE UpperHemisphereSurface 
+        MESHFILE LowerHemisphere.msh
+        REGIONS Exterior UpperHemisphere
+ENDSURFACE
+
+SURFACE EquatorialPlane
+        MESHFILE EquatorialPlane.msh
+        REGIONS  UpperHemisphere LowerHemisphere
+ENDSURFACE
+\end{verbatim} 
+%
+\subsection*{Extended geometries: \texttt{LATTICE}
+             statements}
+
+Extended geometries are described using \texttt{LATTICE}
+statements in the \texttt{scuffgeo} file.
+For example, here's an infinite square-lattice array 
+of gold spheres:
+%
+\begin{verbatim}
+LATTICE
+        VECTOR 1 0 
+        VECTOR 0 1 
+ENDLATTICE
+
+OBJECT TheSphere
+        MESHFILE Sphere_480.msh
+        MATERIAL Gold
+ENDOBJECT
+\end{verbatim}
+%
+
+It is also possible for surfaces to straddle 
+the lattice-cell boundaries. This will be the 
+case, for example, if you are describing an
+infinite planar surface (possibly with
+holes). In this case, the surface mesh must
+be \textit{compatible} with the lattice specification,
+in the sense that every triangle edge that 
+lies on the unit-cell boundary must have an
+image edge lying one lattice-translate away.
+
+\subsection*{Extended geometries in which the exterior medium
+             is non-contiguous}
+
+In some extended geometries, it may be possible for the 
+exterior medium to be non-contiguous. For example,
+consider a thin film described by two planar surfaces  
+(the upper and lower surfaces of the film) with a
+\texttt{LATTICE} statement indicating the surfaces
+are infinitely extended (comprised of an infinite
+2D lattice of the unit-cell surfaces).
+In this case, you probably think of the region above the 
+upper surface and the region below the lower surface as 
+both belonging to the same region, but as far as 
+\lss is concerned they are two different regions.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \section{Representation of Surface Currents in \ls}
+
+\lss uses RWG basis functions to describe electric and 
+magnetic surface currents flowing on the surfaces in a 
+geometry.
+
+\subsection*{RWG Basis Functions}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -112,12 +239,9 @@ Before proceeding, we must pause briefly to establish our
 conventions and notation for homogeneous dyadic Green's
 functions.
 
-Consider a homogeneous medium characterized by spatially uniform 
-relative permittivity and permeability $\epsilon_\alpha$ and 
-$\mu_\alpha$. (The $\alpha$ subscript serves to identify one of 
-several piecewise-constant homogeneous regions in a \lss scattering 
-geometry.) 
-If we have
+Consider a spatial region characterized by spatially uniform 
+relative permittivity and permeability $\epsilon^r$ and 
+$\mu^r$. If we have
 known distributions of electric and magnetic current
 $\vb J(\vb x)$ and $\vb M(\vb x),$
 we can compute the electric and magnetic fields in terms
@@ -130,10 +254,10 @@ the dyadic Green's functions (DGFs):
 &= 
    \int
     \Big\{
-     \Gamma\supt{EE}_{ij}(\epsilon_\alpha, \mu_\alpha; \omega; \vb x, \vb x^\prime) 
+     \Gamma\supt{EE}_{ij}(\epsilon^r, \mu^r; \omega; \vb x, \vb x^\prime) 
      J_j(\vb x^\prime)
      +
-     \Gamma\supt{EM}_{ij}(\epsilon_\alpha, \mu_\alpha; \omega; \vb x, \vb x^\prime) 
+     \Gamma\supt{EM}_{ij}(\epsilon^r, \mu^r; \omega; \vb x, \vb x^\prime) 
      M_j(\vb x^\prime)
     \Big\}
     \, d\vb x^\prime
@@ -142,10 +266,10 @@ the dyadic Green's functions (DGFs):
 &= 
    \int
     \Big\{
-     \Gamma\supt{ME}_{ij}(\epsilon_\alpha, \mu_\alpha; \omega; \vb x, \vb x^\prime) 
+     \Gamma\supt{ME}_{ij}(\epsilon^r, \mu^r; \omega; \vb x, \vb x^\prime) 
      J_j(\vb x^\prime)
      +
-     \Gamma\supt{MM}_{ij}(\epsilon_\alpha, \mu_\alpha; \omega; \vb x, \vb x^\prime) 
+     \Gamma\supt{MM}_{ij}(\epsilon^r, \mu^r; \omega; \vb x, \vb x^\prime) 
      M_j(\vb x^\prime)
     \Big\}
     \, d\vb x^\prime.
@@ -155,30 +279,30 @@ the dyadic Green's functions (DGFs):
 Explicit expressions for the DGFs are 
 %====================================================================%
 \begin{align*}
-\BG\supt{EE}(\epsilon_\alpha, \mu_\alpha, \omega, \vb x, \vb x^\prime)
+\BG\supt{EE}(\epsilon^r, \mu^r, \omega, \vb x, \vb x^\prime)
 &=
- iZ_0 Z^\alpha k^\alpha \, \vb G(k^\alpha, \vb x-\vb x^\prime)
+ iZ_0 Z^r k^r \, \vb G(k^r, \vb x-\vb x^\prime)
 \\[8pt]
 %--------------------------------------------------------------------%
-\BG\supt{ME}(\epsilon_\alpha, \mu_\alpha, \omega, \vb x, \vb x^\prime)
+\BG\supt{ME}(\epsilon^r, \mu^r, \omega, \vb x, \vb x^\prime)
 &=
- -ik^\alpha \vb C(k^\alpha, \vb x-\vb x^\prime)
+ -ik^r \vb C(k^r, \vb x-\vb x^\prime)
 \\[8pt]
 %--------------------------------------------------------------------%
-\BG\supt{EM}(\epsilon_\alpha, \mu_\alpha, \omega, \vb x, \vb x^\prime)
+\BG\supt{EM}(\epsilon^r, \mu^r, \omega, \vb x, \vb x^\prime)
 &=
- ik^\alpha \, \vb C(k^\alpha, \vb x-\vb x^\prime)
+ ik^r \, \vb C(k^r, \vb x-\vb x^\prime)
 \\[8pt]
 %--------------------------------------------------------------------%
-\BG\supt{MM}(\epsilon_\alpha, \mu_\alpha, \omega, \vb x, \vb x^\prime)
-&= \frac{ik^\alpha}{Z_0 Z^\alpha} \vb G(k^\alpha, \vb x-\vb x^\prime)
+\BG\supt{MM}(\epsilon^r, \mu^r, \omega, \vb x, \vb x^\prime)
+&= \frac{ik^r}{Z_0 Z^r} \vb G(k^r, \vb x-\vb x^\prime)
 \end{align*}
 %====================================================================%
 $$\bigg(Z_0=\sqrt\frac{\mu_0}{\epsilon_0},
         \qquad
-        Z^\alpha=\sqrt\frac{\mu^\alpha}{\epsilon^\alpha}, 
+        Z^r=\sqrt\frac{\mu^r}{\epsilon^r}, 
          \qquad
-        k^\alpha=\sqrt{\mu_0 \mu^\alpha \epsilon_0 \epsilon^\alpha}\cdot \omega
+        k^r=\sqrt{\mu_0 \mu^r \epsilon_0 \epsilon^r}\cdot \omega
   \bigg)
 $$
 %====================================================================%
@@ -258,7 +382,7 @@ is suggestive but vague; the precise meaning of (\ref{DyadicGFC}) is
 
 $$ E_i(\vb x, \omega) = 
    \int_{\mathcal S} 
-     \Gamma\supt{EE}_{ij}(\epsilon_\alpha, \mu_\alpha; \omega; 
+     \Gamma\supt{EE}_{ij}(\epsilon^r, \mu^r; \omega; 
                           \vb x, \vb x^\prime) 
      K_j(\vb x^\prime)
     \, d\vb x^\prime
@@ -266,76 +390,70 @@ $$
 will often be abbreviated to read 
 $$ \vb E(\vb x) = 
     \int_{\mathcal S} 
-      \BG\supt{EE}(\alpha, \vb x, \vb x^\prime) 
+      \BG\supt{EE}(\mathcal{R}^r, \vb x, \vb x^\prime) 
          \cdot \vb K(\vb x^\prime) 
     \, d\vb x^\prime
 $$
 (with $\omega$ arguments suppressed and the dependence 
-on $\epsilon_\alpha, \mu_\alpha$ condensed into a dependence
-on the region index $\alpha$), or even abbreviated further
+on $\epsilon^r, \mu^r$ condensed into a dependence
+on the region $\mathcal{R}^r$), or even abbreviated further
 to read
-$$ \vb E = \BG\supt{EE}(\alpha) * \vb K $$
+$$ \vb E = \BG\supt{EE}(\mathcal{R}^r) * \vb K $$
 where $*$ denotes a convolution operation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Computation of the Scattered Fields in \ls}
+\section{Computation of the fields in \lss geometries}
 
-Consider a point $\vb x$ in space. As illustrated in 
-Figure \ref{FieldContributionsFigure}, suppose this point 
-is contained inside an object $\mathcal{O}_\alpha$ (which
-may be the external medium $\mathcal{O}_e$), and suppose
-that there are additional objects 
-$\mathcal{O}_\beta$ (PEC) and $\mathcal{O}_\gamma$ (dielectric) 
-also contained inside $\mathcal{O}_\alpha$. 
-Then the surfaces $\mathcal{S}_\beta$ and $\mathcal{S}_\gamma$,
-together with $\mathcal{S}_\alpha$, constitute the boundary of 
-the volume containing $\vb x$, and the scattered $E$-field at 
-$\vb x$ is
+Consider a point $\vb x$ in some region $\mathcal{R}$
+of a \lss geometry. In general, $\mathcal{R}$
+will be bounded by some collection of surfaces
+$\{\mathcal{S}^s\}$. Let's subdivide the set of 
+surfaces bounding $\mathcal{R}$ into two groups:
+a first set $\{\mathcal{S}^\alpha\}$ for which
+$\mathcal{R}$ is the \textit{exterior} surface,
+and a second set $\{\mathcal{S}^\beta\}$ for which
+$\mathcal{R}$ is the \textit{interior} surface.
+Then the electric field at $\vb x$ is
 %====================================================================%
 \begin{align} 
 E_i(\vb x) 
-    = &-\int_{\mathcal{S}_\alpha} 
-           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime) 
+    = &-\sum_\alpha \int_{\mathcal{S}^\alpha} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\mathcal{R}; \vb x, \vb x^\prime) 
                    K_j(\vb x^\prime)
                   \,+\,
-                   \Gamma_{ij}\supt{EM}(\alpha; \vb x, \vb x^\prime) 
+                   \Gamma_{ij}\supt{EM}(\mathcal{R}; \vb x, \vb x^\prime) 
                    N_j(\vb x^\prime)
            \Big\} \, d\vb x^\prime
 \nn
-     &+\int_{\mathcal{S}_\beta} 
-           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime)
-                   K_j(\vb x^\prime)
-           \Big\} \, d\vb x^\prime
-\nn
-     &+\int_{\mathcal{S}_\gamma} 
-           \Big\{ \Gamma_{ij}\supt{EE}(\alpha; \vb x, \vb x^\prime) 
+     &+\sum_\beta \int_{\mathcal{S}^\beta} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\mathcal{R}; \vb x, \vb x^\prime) 
                    K_j(\vb x^\prime)
                   \,+\,
-                   \Gamma_{ij}\supt{EM}(\alpha; \vb x, \vb x^\prime) 
+                   \Gamma_{ij}\supt{EM}(\mathcal{R}; \vb x, \vb x^\prime) 
                    N_j(\vb x^\prime)
            \Big\} \, d\vb x^\prime
 \nn
-     &+\chi_\alpha\sups{inc} E\sups{inc}_i(\vb x).
+     &+E^{\text{\scriptsize inc},r}_i(\vb x).
 \label{FieldContributionsEquation}
 \end{align}
 %====================================================================%
+In this equation, 
+$\vb E^{\text{\scriptsize inc},r}$ is the field due to any 
+incident field sources that lie inside the region $\mathcal{R}^r.$
 (The $\vb H$ fields are given by identical relations with 
-$\{ \Gamma\supt{EE}, \Gamma\supt{EM}\}  \to 
- \{ \Gamma\supt{ME}, \Gamma\supt{MM}\}$.) 
+$\{ \Gamma\supt{EE}, \Gamma\supt{EM}, E^{\text{\scriptsize inc},r}\}  \to 
+ \{ \Gamma\supt{ME}, \Gamma\supt{MM}, H^{\text{\scriptsize inc},r}\}$.)
 
 Note the following points with respect to equation
 (\ref{FieldContributionsEquation}):
 \begin{itemize}
-  \item If $\vb x$ is contained inside an object 
-        $\mathcal{O}_\alpha$, sources on $\mathcal{S}_\alpha$
+  \item Sources on surfaces $\mathcal{S}_\alpha$ for which
+        $\mathcal{R}$ is the exterior medium  
         contribute to the fields at $\vb x$ 
-        \textit{with a minus sign} (first line of 
-        (\ref{FieldContributionsEquation})). 
-        (If $\mathcal{O}_\alpha=\mathcal{O}_e$, 
-         the external medium, then this contribution vanishes.) 
+        with a positive sign.
         Sources on the surfaces of objects contained within 
         $\mathcal{O}_\alpha$ contribute with a plus sign.
 
@@ -343,47 +461,9 @@ Note the following points with respect to equation
         (i.e. regardless of the surface over which we are 
         integrating) the Green's functions used to compute
         the fields at $\vb x$ are the Green's functions for
-        object $\mathcal{O}_\alpha$ (i.e. the Green's functions
-        corresponding to material properties 
-        $\{\epsilon_\alpha,\mu_\alpha\}$.) The material properties
-        of objects $\mathcal{O}_\beta$ and $\mathcal{O}_\gamma$
+        the homogeneous region $\mathcal{R}$ containing $\vb x$.
+        The material properties of other regions are not
         are not referenced.
-
-  \item We have considered the case in which $\mathcal{O}_\alpha$
-        contains just one PEC object $\mathcal{O}_\beta$ 
-        and one dielectric object $\mathcal{O}_\gamma$, but 
-        the case of multiple PEC and/or dielectric objects contained
-        within $\mathcal{O}_\alpha$ is easily accommodated simply 
-        by replicating the second and/or third lines on the RHS of 
-        (\ref{FieldContributionsEquation}).
-
-  \item Object $\mathcal{O}_\gamma$ might also contain one
-        or more objects $\mathcal{O}_\delta$, and there
-        may be additional objects $\mathcal{O}_\lambda$ not 
-        contained within $\mathcal{O}_\alpha$ 
-        (indeed, $\mathcal{O}_\alpha$ may itself be contained within
-        an object), but these objects make no contribution
-        to the scattered field at $\vb x$, because their surfaces are 
-        not part of the surface bounding the volume containing $\vb x$.
-
-  \item The last line of (\ref{FieldContributionsEquation}) describes
-        the contribution of the incident field to the total field at 
-        $\vb x$.  This contribution is only present if the incident 
-        field sources lie inside $\mathcal{O}_\alpha$, a dependence
-        which is characterized by the \textit{indicator function}
-        $\chi\sups{inc}_\alpha$:
-
-        $$
-         \chi\sups{inc}_\alpha
-         =\begin{cases} 
-            1, \qquad &\text{if the incident field sources lie inside 
-                              $\mathcal{O}_\alpha$} \\
-            0, \qquad &\text{otherwise.}
-          \end{cases} 
-        $$
-        
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \end{itemize}
 
 %####################################################################%
@@ -630,7 +710,7 @@ equation (\ref{PECEquation1}) is modified to read
 \numeq{PECEquationZS}
 { \vbhat{n}\times \vb E\sups{total} (\vb x) 
   = 
-  \frac{2}{G_s(\vb x)} \vbhat{n}\times \vb K(\vb x)
+  \frac{1}{G_s(\vb x)} \vbhat{n}\times \vb K(\vb x)
 }
 where $\vb K(\vb x)$ is the (unknown) electric surface current
 at $\vb x$. 
@@ -655,9 +735,9 @@ continuity equation is modified to read
  \Big[ \vb H\sups{total}(\vb x + \eta\vbhat{n})
       -\vb H\sups{total}(\vb x - \eta\vbhat{n})
  \Big] 
-&= \frac{2}{G(\vb x)} \vb E\sups{total}(\vb x)
+&= G(\vb x) \vb E\sups{total}(\vb x)
 \\
-&= -\frac{2}{G(\vb x)} \vbhat{n} \times \vb{N}(\vb x)
+&= -G(\vb x) \vbhat{n} \times \vb{N}(\vb x)
 \label{DielectricEquationZS}
 \end{align}
 \end{subequations}
