@@ -40,7 +40,8 @@
 \section{Geometries in \lss}
 
 \lss thinks of a geometry as consisting of a collection
-of ``regions,'' bounded by ``surfaces.'' 
+of three-dimensional \textit{regions}, bounded by 
+two-dimensional \textit{surfaces.}
 
 Each region $\mathcal{R}^r$ is a contiguous volume
 throughout which the permittivity and permeability are 
@@ -50,14 +51,16 @@ $$ \epsilon(\vb x, \omega) \equiv \epsilon^r(\omega), \qquad
 $$
 where $\epsilon^r(\omega)$ and $\mu^r(\omega)$ may
 be arbitrary user-specified functions of frequency. 
-(Only isotropic $\epsilon$ and $\mu$ are supported).
+(Only linear, isotropic $\epsilon$ and $\mu$ are supported.)
 The region with index $r=0$ is known as the 
 ``exterior'' medium of the \lss geometry; it is 
 always present in every \lss geometry and has by 
 default the permittivity and permeability of vacuum. 
-The user may define the exterior medium to have 
-alternative material properties.
+The user may redefine the material properties of the 
+exterior medium as desired.
 
+Each surface is described by a surface mesh consisting of 
+a union of flat triangular panels. 
 Each surface lies at the interface between precisely two 
 regions. We identify one of these two regions as 
 the ``exterior'' region for the surface in question,
@@ -71,16 +74,29 @@ open surfaces; in this case the terminology ``exterior''
 and ``interior'' doesn't quite make sense, but we can 
 certainly still pick one of the two regions between
 which a surface lies and decide that the normal vector
-will point into that region.)
-
-
-Each surface is described by a surface mesh consisting of 
-a union of flat triangular panels. 
+will point into that region, and we call that region
+the ``exterior'' region for the open surface.
 
 The regions and surfaces that define \lss\, geometries are 
 specified in \textit{geometry files,} conventionally given the 
-file extension \texttt{.scuffgeo}.
+file extension \texttt{.scuffgeo}. The \texttt{.scuffgeo}
+file is parsed to create an instance of a {\sc c++} 
+class named \texttt{RWGGeometry.} This is a big class 
+containing lots of data fields and methods, but 
+for the purposes of this section the most important 
+fields are the following:
+%
+\begin{verbatim}
+  class RWGGeometry
+   {
+      int NumRegions;
+      char **RegionLabels;
 
+      int NumSurfaces;
+      RWGSurface **Surfaces;
+   };
+\end{verbatim}
+%
 \subsection*{Simple geometries: \texttt{OBJECT} specifications}
 
 The simplest type of \lss geometry consists of one or more
@@ -89,14 +105,16 @@ medium. In this case, each object is described by a
 \textit{closed} surface mesh (specified to \lss
 as a mesh file in one of the supported mesh file 
 formats) together with an material designation.
-For example
-
-\begin{verbatim}
-OBJECT TheSphere
-        MESHFILE Sphere_480.msh
-        MATERIAL Gold
-ENDOBJECT
-\end{verbatim}
+Here's an example:
+%####################################################################%
+\begin{figure}[H]
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{RWGGeometryDataFields1.pdf}}
+\caption{A simple \texttt{.scuffgeo} file and some fields in the 
+         corresponding \texttt{RWGGeometry} structure.}
+\end{center}
+\end{figure}
+%####################################################################%
 
 In the language of regions and surfaces discussed above,
 each \texttt{OBJECT} statement adds one new region and 
@@ -148,28 +166,15 @@ Geometries like this are described in \lss
 using \texttt{REGION} and \texttt{SURFACE}
 statements. For example, the composite sphere
 above may be specified like this:
-%
-\begin{verbatim} 
-REGION Exterior        MATERIAL VACUUM
-REGION UpperHemisphere MATERIAL Gold
-REGION LowerHemisphere MATERIAL Silicon
-
-SURFACE LowerHemisphereSurface 
-        MESHFILE UpperHemisphere.msh
-        REGIONS Exterior LowerHemisphere
-ENDSURFACE
-
-SURFACE UpperHemisphereSurface 
-        MESHFILE LowerHemisphere.msh
-        REGIONS Exterior UpperHemisphere
-ENDSURFACE
-
-SURFACE EquatorialPlane
-        MESHFILE EquatorialPlane.msh
-        REGIONS  UpperHemisphere LowerHemisphere
-ENDSURFACE
-\end{verbatim} 
-%
+%####################################################################%
+\begin{figure}[H]
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{RWGGeometryDataFields2.pdf}}
+\caption{A more complex \texttt{.scuffgeo} file and some fields in the 
+         corresponding \texttt{RWGGeometry} structure.}
+\end{center}
+\end{figure}
+%####################################################################%
 \subsection*{Extended geometries: \texttt{LATTICE}
              statements}
 
@@ -390,7 +395,7 @@ $$
 will often be abbreviated to read 
 $$ \vb E(\vb x) = 
     \int_{\mathcal S} 
-      \BG\supt{EE}(\mathcal{R}^r, \vb x, \vb x^\prime) 
+      \BG\supt{EE}(\mathcal{R}^r; \vb x, \vb x^\prime) 
          \cdot \vb K(\vb x^\prime) 
     \, d\vb x^\prime
 $$
@@ -420,7 +425,7 @@ Then the electric field at $\vb x$ is
 %====================================================================%
 \begin{align} 
 E_i(\vb x) 
-    = &-\sum_\alpha \int_{\mathcal{S}^\alpha} 
+    = &\hphantom{-} \sum_\alpha \int_{\mathcal{S}^\alpha} 
            \Big\{ \Gamma_{ij}\supt{EE}(\mathcal{R}; \vb x, \vb x^\prime) 
                    K_j(\vb x^\prime)
                   \,+\,
@@ -428,7 +433,7 @@ E_i(\vb x)
                    N_j(\vb x^\prime)
            \Big\} \, d\vb x^\prime
 \nn
-     &+\sum_\beta \int_{\mathcal{S}^\beta} 
+     &-\sum_\beta \int_{\mathcal{S}^\beta} 
            \Big\{ \Gamma_{ij}\supt{EE}(\mathcal{R}; \vb x, \vb x^\prime) 
                    K_j(\vb x^\prime)
                   \,+\,
@@ -454,8 +459,10 @@ Note the following points with respect to equation
         $\mathcal{R}$ is the exterior medium  
         contribute to the fields at $\vb x$ 
         with a positive sign.
-        Sources on the surfaces of objects contained within 
-        $\mathcal{O}_\alpha$ contribute with a plus sign.
+        Sources on surfaces $\mathcal{S}_\beta$ for which
+        $\mathcal{R}$ is the interior medium  
+        contribute to the fields at $\vb x$ 
+        with a negative sign.
 
   \item In each line of (\ref{FieldContributionsEquation}), 
         (i.e. regardless of the surface over which we are 
@@ -463,7 +470,7 @@ Note the following points with respect to equation
         the fields at $\vb x$ are the Green's functions for
         the homogeneous region $\mathcal{R}$ containing $\vb x$.
         The material properties of other regions are not
-        are not referenced.
+        referenced.
 \end{itemize}
 
 %####################################################################%

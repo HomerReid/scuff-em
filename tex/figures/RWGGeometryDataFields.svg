@@ -1,0 +1,788 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   sodipodi:docname="RWGGeometryDataFields.svg"
+   inkscape:version="0.48.3.1 r9886"
+   version="1.1"
+   id="svg2"
+   height="987.28558"
+   width="1906.9946">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.5"
+     inkscape:cx="1609.4947"
+     inkscape:cy="629.84632"
+     inkscape:document-units="px"
+     inkscape:current-layer="svg2"
+     showgrid="true"
+     inkscape:window-width="1843"
+     inkscape:window-height="1063"
+     inkscape:window-x="54"
+     inkscape:window-y="19"
+     inkscape:window-maximized="0"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     showguides="true"
+     inkscape:guide-bbox="true">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4208"
+       empspacing="5"
+       visible="true"
+       enabled="true"
+       snapvisiblegridlinesonly="true"
+       originx="-14.990917px"
+       originy="481.98561px" />
+  </sodipodi:namedview>
+  <defs
+     id="defs4">
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect13356"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect12968"
+       is_visible="true" />
+    <inkscape:path-effect
+       is_visible="true"
+       id="path-effect12964"
+       effect="spiro" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect12935"
+       is_visible="true" />
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Lend">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;marker-start:none"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 z"
+         id="path9251"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Mend"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow1Mend">
+      <path
+         transform="matrix(-0.4,0,0,-0.4,-4,0)"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;marker-start:none"
+         d="M 0,0 5,-5 -12.5,0 5,5 0,0 z"
+         id="path9257"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <inkscape:path-effect
+       is_visible="true"
+       id="path-effect11346"
+       effect="spiro" />
+    <marker
+       inkscape:stockid="Arrow2Lstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Lstart"
+       style="overflow:visible">
+      <path
+         id="path9266"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(1.1,0,0,1.1,1.1,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Mstart"
+       style="overflow:visible">
+      <path
+         id="path9272"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="scale(0.6,0.6)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Mend"
+       style="overflow:visible">
+      <path
+         id="path9275"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="scale(-0.6,-0.6)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Lend"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Lend"
+       style="overflow:visible">
+      <path
+         id="path9269"
+         style="font-size:12px;fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-1.1,0,0,-1.1,-1.1,0)"
+         inkscape:connector-curvature="0" />
+    </marker>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect4192"
+       is_visible="true" />
+    <inkscape:path-effect
+       is_visible="true"
+       id="path-effect4188"
+       effect="spiro" />
+  </defs>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(213.10095,425.93774)"
+     style="display:none" />
+  <g
+     transform="translate(213.10095,425.93774)"
+     id="g4915"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 2" />
+  <text
+     xml:space="preserve"
+     style="font-size:70px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:LMSans12"
+     x="598.47418"
+     y="210.05344"
+     id="text10850"
+     sodipodi:linespacing="125%"><tspan
+       sodipodi:role="line"
+       id="tspan10852"
+       x="598.47418"
+       y="210.05344" /></text>
+  <rect
+     style="opacity:0.98999999;color:#000000;fill:#000000;fill-opacity:0.09803922;stroke:#000000;stroke-width:3.90625;stroke-linejoin:miter;stroke-opacity:1;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+     id="rect11922"
+     width="726.57404"
+     height="125.97659"
+     x="1078.4351"
+     y="376.77432" />
+  <rect
+     style="opacity:0.98999999;color:#000000;fill:none;stroke:#000000;stroke-width:5.30352831;stroke-opacity:1;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+     id="rect12869"
+     width="407.88629"
+     height="151.04907"
+     x="1077.1228"
+     y="154.25089"
+     rx="1.0490782"
+     ry="1.0490782" />
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1073.228"
+     y="139.39371"
+     id="text12895"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       x="1073.228"
+       y="139.39371"
+       id="tspan3270">RegionLabels</tspan></text>
+  <path
+     style="fill:none;stroke:#000000;stroke-width:3.90625;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+     d="m 1075.1699,203.07903 409.8392,0"
+     id="path12899"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cc" />
+  <text
+     sodipodi:linespacing="125%"
+     id="text13358"
+     y="366.79996"
+     x="1072.4075"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="366.79996"
+       x="1072.4075"
+       id="tspan13360"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">RWGSurface</tspan></text>
+  <rect
+     style="opacity:0.38584475;color:#000000;fill:#000000;fill-opacity:0.09803922;stroke:#000000;stroke-width:3.97127533;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+     id="rect13503"
+     width="849.37048"
+     height="940"
+     x="1055.6385"
+     y="45.299931" />
+  <text
+     sodipodi:linespacing="125%"
+     id="text13505"
+     y="30.995266"
+     x="1054.6732"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="30.995266"
+       x="1054.6732"
+       id="tspan13507"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">RWGGeometry</tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text3266"
+     y="88.612457"
+     x="1073.228"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="88.612457"
+       x="1073.228"
+       id="tspan3268"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">NumRegions=3</tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text3274"
+     y="190.17496"
+     x="1129.6342"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       id="tspan3276"
+       y="190.17496"
+       x="1129.6342"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">EXTERIOR</tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text3282"
+     y="240.95621"
+     x="1127.9155"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       id="tspan3284"
+       y="240.95621"
+       x="1127.9155"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">UpperHemisphere</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:40px;font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:LMRoman10;-inkscape-font-specification:Sans Italic"
+     x="797.17175"
+     y="-42.202717"
+     id="text3292"
+     sodipodi:linespacing="125%"><tspan
+       sodipodi:role="line"
+       id="tspan3294"
+       x="797.17175"
+       y="-42.202717" /></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text4118"
+     y="139.39371"
+     x="1073.228"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       id="tspan4120"
+       y="139.39371"
+       x="1073.228"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">RegionLabels</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1084.9467"
+     y="194.08122"
+     id="text4196"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       x="1084.9467"
+       y="194.08122"
+       id="tspan4198">0</tspan></text>
+  <path
+     sodipodi:nodetypes="cc"
+     inkscape:connector-curvature="0"
+     id="path4200"
+     d="m 1115.2089,305.29996 0,-150.07249"
+     style="fill:none;stroke:#000000;stroke-width:3.90625;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+  <text
+     sodipodi:linespacing="125%"
+     id="text4204"
+     y="244.86246"
+     x="1084.9467"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       id="tspan4206"
+       y="244.86246"
+       x="1084.9467"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">1</tspan></text>
+  <rect
+     style="fill:#d45500;fill-opacity:1;stroke:#0000ff;stroke-width:2;stroke-linecap:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+     id="rect4246"
+     width="0"
+     height="0"
+     x="-14.990916"
+     y="35.333107" />
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1096.8215"
+     y="421.48746"
+     id="text4406"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       id="tspan4408"
+       x="1096.8215"
+       y="421.48746">MeshFile=&quot;UpperHemisphere.msh&quot;</tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text4410"
+     y="472.26874"
+     x="1096.8215"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="472.26874"
+       x="1096.8215"
+       id="tspan4412"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">RegionIndices={0,1}</tspan></text>
+  <rect
+     y="45.299961"
+     x="5.0090828"
+     height="920"
+     width="1020"
+     id="rect4783"
+     style="color:#000000;fill:#000000;fill-opacity:0.19607843;stroke:#000000;stroke-width:10.01816559;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="288.10553"
+     y="30.881027"
+     id="text4785"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       id="tspan4787"
+       x="288.10553"
+       y="30.881027">BiHemisphere.scuffgeo:</tspan><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       x="288.10553"
+       y="79.709152"
+       id="tspan4789" /></text>
+  <text
+     xml:space="preserve"
+     style="font-size:42.96875px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans10;-inkscape-font-specification:LMSans10"
+     x="11.965327"
+     y="30.335938"
+     id="text4791"
+     sodipodi:linespacing="125%"><tspan
+       sodipodi:role="line"
+       id="tspan4793"
+       x="11.965327"
+       y="30.335938"
+       style="font-size:42.96875px">Content of file </tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text4795"
+     y="98.193108"
+     x="20.514759"
+     style="font-size:20px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="98.193108"
+       x="20.514759"
+       sodipodi:role="line"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       id="tspan4807" /><tspan
+       y="123.1931"
+       x="20.514759"
+       sodipodi:role="line"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       id="tspan4917" /><tspan
+       y="148.1931"
+       x="20.514759"
+       sodipodi:role="line"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       id="tspan4801" /><tspan
+       id="tspan4799"
+       y="173.1931"
+       x="20.514759"
+       sodipodi:role="line"
+       style="font-size:20px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold" /></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text4809"
+     y="33.157139"
+     x="1325.1697"
+     style="font-size:42.96875px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans10;-inkscape-font-specification:LMSans10"
+     xml:space="preserve"><tspan
+       style="font-size:42.96875px"
+       y="33.157139"
+       x="1325.1697"
+       id="tspan4811"
+       sodipodi:role="line">data structure: </tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Courier New;-inkscape-font-specification:Courier New"
+     x="29.762253"
+     y="91.422623"
+     id="text5041"
+     sodipodi:linespacing="125%"><tspan
+       sodipodi:role="line"
+       id="tspan5043"
+       x="29.762253"
+       y="91.422623">REGION Exterior        MATERIAL VACUUM</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="141.42262"
+       id="tspan5045">REGION UpperHemisphere MATERIAL Gold</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="191.42262"
+       id="tspan5047">REGION LowerHemisphere MATERIAL Silicon</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="241.42262"
+       id="tspan5049" /><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="291.42264"
+       id="tspan5051">SURFACE UpperHemisphereSurface</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="341.42261"
+       id="tspan5053"> MESHFILE UpperHemisphere.msh</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="391.42261"
+       id="tspan5055"> REGIONS  Exterior UpperHemisphere</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="441.42261"
+       id="tspan5057">ENDSURFACE</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="491.42261"
+       id="tspan5059" /><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="541.42261"
+       id="tspan5061">SURFACE LowerHemisphereSurface</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="591.42261"
+       id="tspan5063"> MESHFILE LowerHemisphere.msh</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="641.42261"
+       id="tspan5065"> REGIONS  Exterior LowerHemisphere</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="691.42261"
+       id="tspan5067">ENDSURFACE</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="741.42261"
+       id="tspan5069" /><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="791.42261"
+       id="tspan5071">SURFACE EquatorialPlane</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="841.42261"
+       id="tspan5073"> MESHFILE EquatorialPlane.msh</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="891.42261"
+       id="tspan5075"> REGIONS  UpperHemisphere LowerHemisphere</tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="941.42261"
+       id="tspan5089">ENDSURFACE                                                   </tspan><tspan
+       sodipodi:role="line"
+       x="29.762253"
+       y="991.42261"
+       id="tspan5091" /></text>
+  <path
+     sodipodi:nodetypes="cc"
+     inkscape:connector-curvature="0"
+     id="path5121"
+     d="m 1075.1699,255.07903 409.8392,0"
+     style="fill:none;stroke:#000000;stroke-width:3.90625;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+  <text
+     xml:space="preserve"
+     style="font-size:40px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans10;-inkscape-font-specification:LMSans10"
+     x="649.46021"
+     y="1187.9432"
+     id="text5125"
+     sodipodi:linespacing="125%"><tspan
+       sodipodi:role="line"
+       id="tspan5127"
+       x="649.46021"
+       y="1187.9432" /></text>
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1085.0092"
+     y="291.29996"
+     id="text5129"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       x="1085.0092"
+       y="291.29996"
+       id="tspan5131">2</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1127.9155"
+     y="290.95621"
+     id="text5133"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       x="1127.9155"
+       y="290.95621"
+       id="tspan5135">LowerHemisphere</tspan></text>
+  <rect
+     ry="1.0490782"
+     rx="1.0490782"
+     y="154.25089"
+     x="1557.1228"
+     height="151.04907"
+     width="187.88631"
+     id="rect5137"
+     style="opacity:0.98999999;color:#000000;fill:none;stroke:#000000;stroke-width:5.30352831;stroke-opacity:1;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+  <path
+     sodipodi:nodetypes="cc"
+     inkscape:connector-curvature="0"
+     id="path5143"
+     d="m 1555.1699,203.07903 189.8392,0"
+     style="fill:none;stroke:#000000;stroke-width:3.90625;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1553.228"
+     y="88.612457"
+     id="text5145"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       id="tspan5147"
+       x="1553.228"
+       y="88.612457">NumSurfaces=3</tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text5161"
+     y="194.08122"
+     x="1564.9467"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       id="tspan5163"
+       y="194.08122"
+       x="1564.9467"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">0</tspan></text>
+  <path
+     style="fill:none;stroke:#000000;stroke-width:3.90625;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+     d="m 1595.2089,305.29996 0,-150.07249"
+     id="path5165"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cc" />
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1564.9467"
+     y="244.86246"
+     id="text5167"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       x="1564.9467"
+       y="244.86246"
+       id="tspan5169">1</tspan></text>
+  <path
+     style="fill:none;stroke:#000000;stroke-width:3.90625;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+     d="m 1555.1699,255.07903 189.8392,0"
+     id="path5171"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cc" />
+  <text
+     sodipodi:linespacing="125%"
+     id="text5173"
+     y="291.29996"
+     x="1565.0092"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       id="tspan5175"
+       y="291.29996"
+       x="1565.0092"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">2</tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text5181"
+     y="138.61246"
+     x="1553.228"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="138.61246"
+       x="1553.228"
+       id="tspan5183"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">Surfaces</tspan></text>
+  <rect
+     y="576.77435"
+     x="1078.4351"
+     height="125.97659"
+     width="726.57404"
+     id="rect5185"
+     style="opacity:0.98999999;color:#000000;fill:#000000;fill-opacity:0.09803922;stroke:#000000;stroke-width:3.90625;stroke-linejoin:miter;stroke-opacity:1;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1072.4075"
+     y="566.79999"
+     id="text5187"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       id="tspan5189"
+       x="1072.4075"
+       y="566.79999">RWGSurface</tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text5191"
+     y="621.48749"
+     x="1096.8215"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="621.48749"
+       x="1096.8215"
+       id="tspan5193"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">MeshFile=&quot;LowerHemisphere.msh&quot;</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1096.8215"
+     y="672.26874"
+     id="text5195"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       id="tspan5197"
+       x="1096.8215"
+       y="672.26874">RegionIndices={0,2}</tspan></text>
+  <rect
+     style="opacity:0.98999999;color:#000000;fill:#000000;fill-opacity:0.09803922;stroke:#000000;stroke-width:3.90625;stroke-linejoin:miter;stroke-opacity:1;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+     id="rect5199"
+     width="726.57404"
+     height="125.97659"
+     x="1078.4351"
+     y="776.77435" />
+  <text
+     sodipodi:linespacing="125%"
+     id="text5201"
+     y="766.79999"
+     x="1072.4075"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="766.79999"
+       x="1072.4075"
+       id="tspan5203"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">RWGSurface</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     x="1096.8215"
+     y="821.48749"
+     id="text5205"
+     sodipodi:linespacing="125%"><tspan
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold"
+       sodipodi:role="line"
+       id="tspan5207"
+       x="1096.8215"
+       y="821.48749">MeshFile=&quot;EquatorialPlane.msh&quot;</tspan></text>
+  <text
+     sodipodi:linespacing="125%"
+     id="text5209"
+     y="872.26874"
+     x="1096.8215"
+     style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:LMSans12;-inkscape-font-specification:Courier Bold"
+     xml:space="preserve"><tspan
+       y="872.26874"
+       x="1096.8215"
+       id="tspan5211"
+       sodipodi:role="line"
+       style="font-size:39.0625px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Courier;-inkscape-font-specification:Courier Bold">RegionIndices={1,2}</tspan></text>
+  <path
+     style="fill:none;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow2Lend)"
+     d="m 1633.0091,179.29996 150,0 0,0 0,190"
+     id="path5213"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cccc" />
+  <path
+     sodipodi:nodetypes="cccc"
+     inkscape:connector-curvature="0"
+     id="path5407"
+     d="m 1635.0091,229.29996 208,0 0,0 2,416"
+     style="fill:none;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:none" />
+  <path
+     sodipodi:nodetypes="ccc"
+     inkscape:connector-curvature="0"
+     id="path5601"
+     d="m 1845.0091,645.29996 0,0 -40,0"
+     style="fill:none;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow2Lend)" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:none"
+     d="m 1635.0091,281.29996 248,0 0,0 2,564"
+     id="path5603"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cccc" />
+  <path
+     style="fill:none;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow2Lend)"
+     d="m 1845.0091,845.29996 40,0 -80,0"
+     id="path5605"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="ccc" />
+</svg>
