@@ -262,3 +262,75 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
    }; // if (ncv==0 ... else)
 
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetEEIs_BruteForce(GetEEIArgStruct *EEIArgs) 
+{
+  GetPPIArgStruct MyPPIArgs, *PPIArgs=&MyPPIArgs;
+  InitGetPPIArgs(PPIArgs);
+
+  PPIArgs->Sa = EEIArgs->Sa;
+  PPIArgs->Sb = EEIArgs->Sb;
+  PPIArgs->k  = EEIArgs->k;
+
+  RWGEdge *Ea = EEIArgs->Sa->Edges[EEIArgs->nea];
+  RWGEdge *Eb = EEIArgs->Sb->Edges[EEIArgs->neb];
+
+  PPIArgs->npa = Ea->iPPanel;
+  PPIArgs->iQa = Ea->PIndex;
+  PPIArgs->npb = Eb->iPPanel;
+  PPIArgs->iQb = Eb->PIndex;
+  GetPPIs_BruteForce(PPIArgs, 0);
+  EEIArgs->GC[0]     = PPIArgs->H[0];
+  EEIArgs->GC[1]     = PPIArgs->H[1];
+  EEIArgs->GradGC[0] = PPIArgs->GradH[0];
+  EEIArgs->GradGC[1] = PPIArgs->GradH[1];
+  EEIArgs->GradGC[2] = PPIArgs->GradH[2];
+  EEIArgs->GradGC[3] = PPIArgs->GradH[3];
+  EEIArgs->GradGC[4] = PPIArgs->GradH[4];
+  EEIArgs->GradGC[5] = PPIArgs->GradH[5];
+
+  PPIArgs->npa = Ea->iPPanel;
+  PPIArgs->iQa = Ea->PIndex;
+  PPIArgs->npb = Eb->iMPanel;
+  PPIArgs->iQb = Eb->MIndex;
+  GetPPIs_BruteForce(PPIArgs, 0);
+  EEIArgs->GC[0]     -= PPIArgs->H[0];
+  EEIArgs->GC[1]     -= PPIArgs->H[1];
+  EEIArgs->GradGC[0] -= PPIArgs->GradH[0];
+  EEIArgs->GradGC[1] -= PPIArgs->GradH[1];
+  EEIArgs->GradGC[2] -= PPIArgs->GradH[2];
+  EEIArgs->GradGC[3] -= PPIArgs->GradH[3];
+  EEIArgs->GradGC[4] -= PPIArgs->GradH[4];
+  EEIArgs->GradGC[5] -= PPIArgs->GradH[5];
+
+  PPIArgs->npa = Ea->iMPanel;
+  PPIArgs->iQa = Ea->MIndex;
+  PPIArgs->npb = Eb->iPPanel;
+  PPIArgs->iQb = Eb->PIndex;
+  GetPPIs_BruteForce(PPIArgs, 0);
+  EEIArgs->GC[0]     -= PPIArgs->H[0];
+  EEIArgs->GC[1]     -= PPIArgs->H[1];
+  EEIArgs->GradGC[0] -= PPIArgs->GradH[0];
+  EEIArgs->GradGC[1] -= PPIArgs->GradH[1];
+  EEIArgs->GradGC[2] -= PPIArgs->GradH[2];
+  EEIArgs->GradGC[3] -= PPIArgs->GradH[3];
+  EEIArgs->GradGC[4] -= PPIArgs->GradH[4];
+  EEIArgs->GradGC[5] -= PPIArgs->GradH[5];
+
+  PPIArgs->npa = Ea->iMPanel;
+  PPIArgs->iQa = Ea->MIndex;
+  PPIArgs->npb = Eb->iMPanel;
+  PPIArgs->iQb = Eb->MIndex;
+  GetPPIs_BruteForce(PPIArgs, 0);
+  EEIArgs->GC[0]     += PPIArgs->H[0];
+  EEIArgs->GC[1]     += PPIArgs->H[1];
+  EEIArgs->GradGC[0] += PPIArgs->GradH[0];
+  EEIArgs->GradGC[1] += PPIArgs->GradH[1];
+  EEIArgs->GradGC[2] += PPIArgs->GradH[2];
+  EEIArgs->GradGC[3] += PPIArgs->GradH[3];
+  EEIArgs->GradGC[4] += PPIArgs->GradH[4];
+  EEIArgs->GradGC[5] += PPIArgs->GradH[5];
+}
