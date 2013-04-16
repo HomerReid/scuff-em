@@ -188,10 +188,8 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
      /* if there are no common vertices then we can just use naive   */
      /* cubature                                                     */
      /*--------------------------------------------------------------*/
- //    adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
- //                    0, ABSTOL, RELTOL, Result, Error);
-       adapt_integrate_log(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
-                           0, ABSTOL, RELTOL, Result, Error, "SGJC.log", 15);
+     adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
+                     0, ABSTOL, RELTOL, Result, Error);
 
      Args->H[0] = cdouble(Result[0], Result[1]);
      Args->H[1] = cdouble(Result[2], Result[3]);
@@ -224,10 +222,8 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
         VecScaleAdd(Vb[0], Z[nz], ZHat, PPIBFD->V0P);
         VecScaleAdd(Qb,    Z[nz], ZHat, PPIBFD->QP);
 
- //       adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
- //                       0, ABSTOL, RELTOL, Result, Error);
-       adapt_integrate_log(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
-                           100000, ABSTOL, RELTOL, Result, Error, "SGJC.log", 15);
+        adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
+                        0, ABSTOL, RELTOL, Result, Error);
 
         GR[nz]=Result[0];
         GI[nz]=Result[1];
@@ -274,6 +270,7 @@ void GetEEIs_BruteForce(GetEEIArgStruct *EEIArgs)
   PPIArgs->Sa = EEIArgs->Sa;
   PPIArgs->Sb = EEIArgs->Sb;
   PPIArgs->k  = EEIArgs->k;
+  PPIArgs->NumGradientComponents = 3;
 
   RWGEdge *Ea = EEIArgs->Sa->Edges[EEIArgs->nea];
   RWGEdge *Eb = EEIArgs->Sb->Edges[EEIArgs->neb];
@@ -333,4 +330,15 @@ void GetEEIs_BruteForce(GetEEIArgStruct *EEIArgs)
   EEIArgs->GradGC[3] += PPIArgs->GradH[3];
   EEIArgs->GradGC[4] += PPIArgs->GradH[4];
   EEIArgs->GradGC[5] += PPIArgs->GradH[5];
+ 
+  double GPreFac = Ea->Length * Eb->Length;
+  cdouble CPreFac = GPreFac / (II*(EEIArgs->k));
+  EEIArgs->GC[0] *= GPreFac;
+  EEIArgs->GC[1] *= CPreFac;
+  EEIArgs->GradGC[0] *= GPreFac;
+  EEIArgs->GradGC[1] *= CPreFac;
+  EEIArgs->GradGC[2] *= GPreFac;
+  EEIArgs->GradGC[3] *= CPreFac;
+  EEIArgs->GradGC[4] *= GPreFac;
+  EEIArgs->GradGC[5] *= CPreFac;
 }
