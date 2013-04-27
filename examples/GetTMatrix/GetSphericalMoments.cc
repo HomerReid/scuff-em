@@ -137,18 +137,18 @@ void GMNPIntegrand(double *X, void *parms, double *f)
 /* M-type spherical wave with spherical wave indices l,m       */
 /* such that Alpha=l^2 + l + m.                                */
 /***************************************************************/
-void GetMNProjections(RWGObject *O, int ne, cdouble k, int lMax,
+void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
                       cdouble *Workspace, 
                       cdouble *MProjection, cdouble *NProjection)
 {
   /* extract edge vertices */
-  RWGEdge *E=O->Edges[ne];
-  double *QP = O->Vertices + 3*(E->iQP);
-  double *V1 = O->Vertices + 3*(E->iV1);
-  double *V2 = O->Vertices + 3*(E->iV2);
-  double *QM = O->Vertices + 3*(E->iQM);
-  double PArea = O->Panels[E->iPPanel]->Area;
-  double MArea = O->Panels[E->iMPanel]->Area;
+  RWGEdge *E=S->Edges[ne];
+  double *QP = S->Vertices + 3*(E->iQP);
+  double *V1 = S->Vertices + 3*(E->iV1);
+  double *V2 = S->Vertices + 3*(E->iV2);
+  double *QM = S->Vertices + 3*(E->iQM);
+  double PArea = S->Panels[E->iPPanel]->Area;
+  double MArea = S->Panels[E->iMPanel]->Area;
 
   /* set up data structure passed to GMNPIntegrand.           */
   GMNPData MyData, *Data=&MyData;
@@ -198,7 +198,7 @@ typedef struct ThreadData
  { 
    int nt, NumTasks;
 
-   RWGObject *O;
+   RWGSurface *S;
    cdouble k;
    int lMax;
 
@@ -215,7 +215,7 @@ typedef struct ThreadData
 void *GSM_Thread(void *data)
 { 
   ThreadData *TD          = (ThreadData *)data;
-  RWGObject *O            = TD->O;
+  RWGSurface *S           = TD->S;
   cdouble k               = TD->k;
   int lMax                = TD->lMax;
   HVector *KN             = TD->KN; 
@@ -238,26 +238,26 @@ void *GSM_Thread(void *data)
   cdouble *MProjection = Workspace + 0;
   cdouble *NProjection = Workspace + 2*NumLMs; 
   int nt=0, nbf, ne;
-  Log("Computing induced spherical moments on object %s...",O->Label);
-  for(nbf=BFIndexOffset, ne=0; ne<O->NumEdges; ne++)
+  Log("Computing induced spherical moments on object %s...",S->Label);
+  for(nbf=BFIndexOffset, ne=0; ne<S->NumEdges; ne++)
     { 
       nt++;
       if (nt==TD->NumTasks) nt=0;
       if (nt!=TD->nt) continue;
 
-      LogPercent(ne, O->NumEdges);
+      LogPercent(ne, S->NumEdges);
 
       /***************************************************************/
       /* get the projections of the basis function onto the M and N  */
       /* spherical waves                                             */
       /***************************************************************/
-      GetMNProjections(O, ne, k, lMax, Workspace, MProjection, NProjection);
+      GetMNProjections(S, ne, k, lMax, Workspace, MProjection, NProjection);
 
       /***************************************************************/
       /* add the contributions of the electric and magnetic currents */
       /* described by this basis function to the a^{M,E} moments     */
       /***************************************************************/
-      if ( O->IsPEC )
+      if ( S->IsPEC )
        { 
          KAlpha = KN->GetEntry( BFIndexOffset + ne );
          NAlpha = 0.0;
@@ -288,7 +288,7 @@ void *GSM_Thread(void *data)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HVector *GetSphericalMoments(RWGObject *O, cdouble k, int lMax,
+HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
                              HVector *KN, int BFIndexOffset, 
                              HVector *AVector)
 { 
@@ -321,7 +321,7 @@ HVector *GetSphericalMoments(RWGObject *O, cdouble k, int lMax,
   for(nt=0; nt<NumThreads; nt++)
    { TDs[nt].nt             = nt;
      TDs[nt].NumTasks       = NumThreads;
-     TDs[nt].O              = O;
+     TDs[nt].S              = S;
      TDs[nt].k              = k;
      TDs[nt].lMax           = lMax;
      TDs[nt].KN             = KN;
@@ -403,9 +403,9 @@ HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
   HVector *Scratch=new HVector(NumMoments, LHM_COMPLEX);
 
   AVector->Zero();
-  for(int no=0; no<G->NumObjects; no++)
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     GetSphericalMoments(G->Objects[no], k, lMax, KN, G->BFIndexOffset[no], Scratch);
+     GetSphericalMoments(G->Surfaces[ns], k, lMax, KN, G->BFIndexOffset[ns], Scratch);
 
      for(int nm=0; nm<NumMoments; nm++)
       AVector->AddEntry(nm, Scratch->GetEntry(nm));

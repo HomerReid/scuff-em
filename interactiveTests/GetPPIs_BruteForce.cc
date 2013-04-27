@@ -188,10 +188,8 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
      /* if there are no common vertices then we can just use naive   */
      /* cubature                                                     */
      /*--------------------------------------------------------------*/
- //    adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
- //                    0, ABSTOL, RELTOL, Result, Error);
-       adapt_integrate_log(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
-                           0, ABSTOL, RELTOL, Result, Error, "SGJC.log", 15);
+     adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
+                     0, ABSTOL, RELTOL, Result, Error);
 
      Args->H[0] = cdouble(Result[0], Result[1]);
      Args->H[1] = cdouble(Result[2], Result[3]);
@@ -224,10 +222,8 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
         VecScaleAdd(Vb[0], Z[nz], ZHat, PPIBFD->V0P);
         VecScaleAdd(Qb,    Z[nz], ZHat, PPIBFD->QP);
 
- //       adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
- //                       0, ABSTOL, RELTOL, Result, Error);
-       adapt_integrate_log(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
-                           100000, ABSTOL, RELTOL, Result, Error, "SGJC.log", 15);
+        adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
+                        0, ABSTOL, RELTOL, Result, Error);
 
         GR[nz]=Result[0];
         GI[nz]=Result[1];

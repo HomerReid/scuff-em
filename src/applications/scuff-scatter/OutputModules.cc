@@ -614,9 +614,12 @@ void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
 
 /***************************************************************/
 /* get the scattered and absorbed power using the SGJ formulas */
-/* involving vector-matrix-vector products                     */
+/* involving vector-matrix-vector products.                    */
+/* On return,                                                  */
+/* PAbs[ns], PScat[ns] store the absorbed, scattered power for */
+/* surface #ns.                                                */
 /***************************************************************/
-void GetPower_SGJ(SSData *SSD, double *pPAbs, double *pPScat)
+void GetPower_SGJ(SSData *SSD, double *PAbs, double *PScat)
 {
   RWGGeometry *G = SSD->G;
   HMatrix *M     = SSD->M;
@@ -628,8 +631,8 @@ void GetPower_SGJ(SSData *SSD, double *pPAbs, double *pPScat)
   /***************************************************************/
   cdouble *ZM=M->ZM, *ZRHS=RHS->ZV, *ZKN=KN->ZV;
   if (ZM==0 || ZRHS==0 || ZKN==0)
-   { if (*pPAbs) *pPAbs=0.0;
-     if (*pPScat) *pPScat=0.0;
+   { memset(PAbs, 0, G->NumSurfaces*sizeof(double));
+     memset(PScat, 0, G->NumSurfaces*sizeof(double));
      return;
    };
 
@@ -655,27 +658,24 @@ void GetPower_SGJ(SSData *SSD, double *pPAbs, double *pPScat)
   /* power                                                       */
   /***************************************************************/
   // nr runs over rows, nc over columns, ne over matrix entries
-  int nr, nc, ne, N=G->TotalBFs;
-  double PTot, PAbs, PScat, Sign;
-  for(PTot=PScat=0.0, Sign=1.0, ne=nc=0; nc<N; nc++)
-   for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
-    { 
-      if (nr==nc) 
-       PTot += Sign*real( conj(ZKN[nr]) * (-1.0*ZRHS[nr]) );
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     int nr, nc, ne, N=G->TotalBFs;
+     double PTot, Sign;
+     for(PTot=PScat[ns]=0.0, Sign=1.0, ne=nc=0; nc<N; nc++)
+      for(nr=0; nr<N; nr++, ne++, Sign*=-1.0)
+       { 
+         if (nr==nc) 
+          PTot += Sign*real( conj(ZKN[nr]) * (-1.0*ZRHS[nr]) );
 
-      PScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
-    };
+         PScat[ns] -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
+       };
     
-  PTot  *= 0.5 * ZVAC;
-  PScat *= 0.5 * ZVAC;
+     PTot  *= 0.5 * ZVAC;
+     PScat[ns] *= 0.5 * ZVAC;
 
-  PAbs  = PTot - PScat;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (pPAbs) *pPAbs=PAbs;
-  if (pPScat) *pPScat=PScat;
+     PAbs[ns]  = PTot - PScat[ns];
+   };
 
 }
 
@@ -950,8 +950,10 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
       G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
      else
       G->GetPFT2(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
-     GetPower_SGJ(SSD, 0, &PScat);
+/*
+     GetPower_SGJ(SSD, ns, 0, &PScat);
      PFT[1]=PScat;
+*/
 
      // get scattered power as difference between total and absorbed power.
      // if the difference between the quantities is less than 1% of their 

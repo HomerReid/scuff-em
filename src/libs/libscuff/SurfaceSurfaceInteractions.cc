@@ -342,7 +342,7 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if ( (Args->Sa != Args->Sb)    ) return;
-  if ( !(Args->Sa->SurfaceSigma) ) return;
+  if ( !(Args->Sa->SurfaceSigma) && !(Args->Sa->SurfaceSigmaMP) ) return;
   if ( Args->Displacement        ) return;
   if ( Args->UseAB9Kernel        ) return;
 
@@ -364,18 +364,32 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   /*--------------------------------------------------------------*/
+  /*- evaluate the surface conductivity for this surface at this -*/
+  /*- frequency                                                  -*/
+  /*--------------------------------------------------------------*/
+  cdouble GZ=Args->Sa->SurfaceSigmaMP->GetEps(Args->Omega);
+  Log("Surface conductivity for surface %s is (%e,%e) at Omega=%e",
+       Args->Sa->Label,real(GZ),imag(GZ),real(Args->Omega));
+  GZ*=ZVAC;
+
+  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   int neAlpha, neBeta;
   RWGEdge *EAlpha, *EBeta;
   RWGPanel *P;
-  cdouble GZ;
   double Overlap;
   for(neAlpha=0; neAlpha<S->NumEdges; neAlpha++)
    for(neBeta=neAlpha; neBeta<S->NumEdges; neBeta++)
     { 
       Overlap=S->GetOverlap(neAlpha, neBeta);
       if (Overlap==0.0) continue;
+
+#if 0
+#20130426 this code figures out the centroid of the panel in 
+          question so we can evaluate the surface conductivity there;
+          not needed for the time being as we are using spatially-
+          constant surface conductivity. 
 
       EAlpha=S->Edges[neAlpha];
       EBeta=S->Edges[neBeta];
@@ -403,8 +417,7 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
        };
 
       GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
-
-      GZ*=ZVAC;
+#endif
 
       if ( S->IsPEC )
        { B->AddEntry(Offset+neAlpha, Offset+neBeta, -1.0*Overlap/GZ);
@@ -556,7 +569,7 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   /***************************************************************/
   /* 20120526 handle objects with finite surface conductivity    */
   /***************************************************************/
-  if ( (Args->Sa == Args->Sb) && (Args->Sa->SurfaceSigma!=0) )
+  if ( (Args->Sa == Args->Sb) && (Args->Sa->SurfaceSigma!=0 || Args->Sa->SurfaceSigmaMP!=0) )
    AddSurfaceSigmaContributionToBEMMatrix(Args);
 
 }

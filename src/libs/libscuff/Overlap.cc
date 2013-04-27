@@ -570,12 +570,19 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
        };
   
      /*- absorbed power */
-     if ( S->IsPEC && S->SurfaceSigma && Overlaps[OVERLAP_OVERLAP]!=0.0 )
+     if ( S->IsPEC && (S->SurfaceSigma || S->SurfaceSigmaMP) && Overlaps[OVERLAP_OVERLAP]!=0.0 )
       { 
-        SSParmValues[1] = S->Edges[neAlpha]->Centroid[0];
-        SSParmValues[2] = S->Edges[neAlpha]->Centroid[1];
-        SSParmValues[3] = S->Edges[neAlpha]->Centroid[2];
-        cdouble GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
+        cdouble GZ;
+        if (S->SurfaceSigmaMP)
+         { GZ=S->SurfaceSigmaMP->GetEps(Omega);
+Log("Running Surface-Conductivity power calculation (GZ=%s)",CD2S(GZ));
+         }
+        else if ( S->SurfaceSigma )
+         { SSParmValues[1] = S->Edges[neAlpha]->Centroid[0];
+           SSParmValues[2] = S->Edges[neAlpha]->Centroid[1];
+           SSParmValues[3] = S->Edges[neAlpha]->Centroid[2];
+           cdouble GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
+         };
         GZ*=ZVAC;
         PFT[0] += 0.5*real( conj(KAlpha)*KBeta * Overlaps[OVERLAP_OVERLAP] / GZ);
       }

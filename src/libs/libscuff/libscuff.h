@@ -280,6 +280,7 @@ class RWGSurface
    /* user-specified function of frequency and position (w,x,y,z) */
    /* describing surface conductivity                             */
    void *SurfaceSigma;
+   MatProp *SurfaceSigmaMP;
 
    // the following fields are used to pass some data items up to the 
    // higher-level routine that calls the RWGSurface constructor
