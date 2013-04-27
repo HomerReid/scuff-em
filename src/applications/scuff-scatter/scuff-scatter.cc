@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
-  bool OldPFT=false;
+  bool OldPFT=true, NewPFT=false;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
 /**/
-     {"OldPFT",         PA_BOOL,    0, 1,       (void *)&OldPFT,     0,             "use old PFT calculation"},
+     {"NewPFT",         PA_BOOL,    0, 1,       (void *)&NewPFT,     0,             "use new PFT calculation"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -291,6 +291,9 @@ int main(int argc, char *argv[])
 
   if (nThread!=0)
    SetNumThreads(nThread);
+
+  if (NewPFT)
+   OldPFT=false;
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */

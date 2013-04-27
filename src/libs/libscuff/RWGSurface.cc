@@ -80,6 +80,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 { 
   ErrMsg=0;
   SurfaceSigma=0;
+  SurfaceSigmaMP=0;
   MeshTag=-1;
   MeshFileName=0;
   IsPEC=1;
@@ -211,7 +212,24 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
          { ErrMsg=strdupEC("no argument specified for SURFACE_CONDUCTIVITY");
            return;
          };
+
+        /* 20130426 TEMPORARY HACK: try to parse surface conductivities */
+        /*          as MatProps for the time being.                     */
+        /* first see if user's surface conductivity specification matches  */
+        /* a MATERIAL definition                                           */
+        MatProp *SigmaMP=0;
+        if ( NumTokens==2 )
+         { SigmaMP=new MatProp(Tokens[1]);
+           if (SigmaMP->ErrMsg)
+            { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification %s (%s)",
+                              Tokens[1],SigmaMP->ErrMsg);
+              return;
+            };
+           Log("Registered surface conductivity material %s for surface %s",Tokens[1],Label);
+           SurfaceSigmaMP = SigmaMP;
+         };
 ;
+#if 0
         /* try to create a cevaluator for the user's function */
         char *SigmaString=Line; 
         while (strchr(" \t\n",*SigmaString)) // skip forward to the start of the 
@@ -233,6 +251,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
         cevaluator_set_var_index(SurfaceSigma, "x", 1);
         cevaluator_set_var_index(SurfaceSigma, "y", 2);
         cevaluator_set_var_index(SurfaceSigma, "z", 3);
+#endif
 
       }
      else if (   !StrCaseCmp(Tokens[0],"ENDOBJECT") || !StrCaseCmp(Tokens[0],"ENDSURFACE") )
