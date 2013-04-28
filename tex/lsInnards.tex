@@ -75,12 +75,12 @@ and ``interior'' doesn't quite make sense, but we can
 certainly still pick one of the two regions between
 which a surface lies and decide that the normal vector
 will point into that region, and we call that region
-the ``exterior'' region for the open surface.
+the ``exterior'' region for the open surface.)
 
 The regions and surfaces that define \lss\, geometries are 
 specified in \textit{geometry files,} conventionally given the 
 file extension \texttt{.scuffgeo}. The \texttt{.scuffgeo}
-file is parsed to create an instance of a {\sc c++} 
+file is parsed to create an instance of a \texttt{C++} 
 class named \texttt{RWGGeometry.} This is a big class 
 containing lots of data fields and methods, but 
 for the purposes of this section the most important 
@@ -120,7 +120,7 @@ In the language of regions and surfaces discussed above,
 each \texttt{OBJECT} statement adds one new region and 
 one new surface to a geometry. The newly added region 
 is always taken to be the interior region associated
-with the newly added surface, and the 
+with the newly added surface, and corresponds to the
 volume inside the object; the new surface exists at 
 the interface between this region and the exterior
 medium.
@@ -134,7 +134,9 @@ conducting) bodies may be described by open surfaces.
 conductivity). For both PEC and IPEC bodies the
 interior fields vanish identically, and there
 is no need for such bodies to have finite
-interior volume.
+interior volume. An \texttt{OBJECT} statement 
+declaring a new PEC or IPEC object adds one new surface
+but \textit{not} one new region to the geometry.
 
 \subsection*{Simple geometries: Nested objects} 
 
@@ -219,7 +221,30 @@ are infinitely extended (comprised of an infinite
 In this case, you probably think of the region above the 
 upper surface and the region below the lower surface as 
 both belonging to the same region, but as far as 
-\lss is concerned they are two different regions.
+\lss is concerned they must be two different regions.
+
+The reason for this is the following: Suppose both
+the upper half-space and the lower half-space were
+the same region (say \texttt{Exterior}). Then the upper 
+and lower surfaces of the slab would both have 
+\texttt{Exterior} as one of the two regions 
+at whose interface they lie, and thus surface currents
+on both the upper and lower surfaces would contribute 
+to the scattered fields at all points in \texttt{Exterior}.
+But this would be incorrect: Points in the upper half-space
+receive scattered-field contributions only from currents
+on the upper surface, while points in the lower half-space 
+receive contributions only from the lower surface. 
+
+The situation would be different if the upper and lower 
+half-spaces were \textit{contiguous}---which would be
+the case, for example, if the thin-film slab had a hole
+in it. In this case, the upper and lower film surfaces
+(as well as the hole sidewall surfaces) all form 
+part of a single bounding surface separating the 
+film interior from \texttt{Exterior}, and hence surface
+currents on all of these surfaces contribute to the
+scattered fields at points in \texttt{Exterior}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
