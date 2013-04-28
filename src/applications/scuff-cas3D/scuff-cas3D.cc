@@ -220,6 +220,8 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];                int nReadCache;
   char *WriteCache=0;
 //
+  bool NewEnergyMethod = false;
+//
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,       0,             "geometry file"},
@@ -251,6 +253,8 @@ int main(int argc, char *argv[])
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,         0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,      &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache,    0,             "write cache"},
+//
+     {"NewEnergyMethod", PA_BOOL,   0, 1,       (void *)&NewEnergyMethod, 0,           "use alternative method for energy calculation"},
 //
      {0,0,0,0,0,0,0}
    };
@@ -370,7 +374,7 @@ int main(int argc, char *argv[])
   /* point to the Casimir quantities                                 */
   /*******************************************************************/
   SC3Data *SC3D=CreateSC3Data(G, TransFile, WhichQuantities, NumQuantities, 
-                              nTorque, TorqueAxes);
+                              nTorque, TorqueAxes, NewEnergyMethod);
 
   SC3D->BZIMethod          = BZIMethod;
   SC3D->ByXiFileName       = ByXiFile; 

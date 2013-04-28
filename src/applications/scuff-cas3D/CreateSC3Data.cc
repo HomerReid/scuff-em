@@ -38,7 +38,8 @@ using namespace scuff;
 /***************************************************************/
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
-                       int NumTorqueAxes, double TorqueAxes[9])
+                       int NumTorqueAxes, double TorqueAxes[9],
+                       bool NewEnergyMethod)
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
@@ -147,6 +148,16 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
    { SC3D->MInfLUDiagonal=0;
      SC3D->ipiv=0;
    };
+
+  /*--------------------------------------------------------------*/
+  /*- 20130427 for the 'new energy method' we need to allocate   -*/
+  /*- storage for an extra full-size BEM matrix.                 -*/
+  /*--------------------------------------------------------------*/
+  SC3D->NewEnergyMethod = NewEnergyMethod;
+  if (NewEnergyMethod && (WhichQuantities & QUANTITY_ENERGY) )
+   SC3D->MM1MInf = new HMatrix(N, N);
+  else
+   SC3D->MM1MInf = 0;
 
   return SC3D;
 

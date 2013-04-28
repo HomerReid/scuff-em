@@ -50,18 +50,43 @@ using namespace scuff;
 double GetLNDetMInvMInf(SC3Data *SC3D)
 { 
   HMatrix *M              = SC3D->M;
-  HVector *MInfLUDiagonal = SC3D->MInfLUDiagonal;
   int N                   = SC3D->N;
 
   double LNDet=0.0;
-  for(int n=0; n<N; n++)
-   LNDet+=log( fabs( MInfLUDiagonal->GetEntryD(n) / M->GetEntryD(n,n) ) );
-  
+  if (SC3D->NewEnergyMethod==false) 
+   {  
+     /*--------------------------------------------------------------*/
+     /*- calculation method 1  --------------------------------------*/
+     /*--------------------------------------------------------------*/
+     HVector *MInfLUDiagonal = SC3D->MInfLUDiagonal;
+
+     for(int n=0; n<N; n++)
+      LNDet+=log( fabs( MInfLUDiagonal->GetEntryD(n) / M->GetEntryD(n,n) ) );
+   }
+  else
+   {
+     /*--------------------------------------------------------------*/
+     /*- calculation method 2 ---------------------------------------*/
+     /*--------------------------------------------------------------*/
+     RWGGeometry *G = SC3D->G;
+     HMatrix *MM1MInf = SC3D->MM1MInf;
+     MM1MInf->Zero();
+     for(int ns=0; ns<G->NumSurfaces; ns++)
+      MM1MInf->InsertBlock(SC3D->TBlocks[ns], G->BFIndexOffset[ns], G->BFIndexOffset[ns]);
+     M->LUSolve(MM1MInf); 
+
+     for(int n=0; n<N; n++)
+      LNDet+=log( fabs( MM1MInf->GetEntryD(n,n) ) );
+
+   }
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   // paraphrasing the physicists of the 1930s, 'just because
   // something is infinite doesn't mean that it's zero.' and yet...
   if (!isfinite(LNDet))
    LNDet=0.0;
-
   return -LNDet/(2.0*M_PI);
 
 } 

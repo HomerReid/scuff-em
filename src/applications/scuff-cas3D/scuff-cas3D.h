@@ -88,11 +88,16 @@ typedef struct SC3Data
    int MaxXiPoints;
    double AbsTol, RelTol;
 
+   // 20130427 alternative energy calculation
+   bool NewEnergyMethod;
+   HMatrix *MM1MInf;
+
  } SC3Data;
 
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
-                       int NumTorqueAxes, double TorqueAxes[9]);
+                       int NumTorqueAxes, double TorqueAxes[9],
+                       bool NewEnergyMethod);
 
 /***************************************************************/
 /* The total Casimir energy (or force, or torque) is an        */
