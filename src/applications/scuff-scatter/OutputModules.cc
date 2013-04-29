@@ -945,7 +945,6 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
   FILE *f=fopen(PFTFile,"a");
   if (!f)
    return;
-  fprintf(f,"%s ",z2s(SSD->Omega));
 
   Log("Computing power, force, torque at Omega=%s...",z2s(SSD->Omega));
 
@@ -963,7 +962,7 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
   /***************************************************************/
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     fprintf(f,"%s ",G->Surfaces[ns]->Label);
+     fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
 
      if (SSD->OldPFT)
       G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
