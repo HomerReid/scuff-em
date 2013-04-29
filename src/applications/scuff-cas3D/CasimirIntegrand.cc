@@ -77,7 +77,6 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
 
      for(int n=0; n<N; n++)
       LNDet+=log( fabs( MM1MInf->GetEntryD(n,n) ) );
-
    }
 
   /*--------------------------------------------------------------*/

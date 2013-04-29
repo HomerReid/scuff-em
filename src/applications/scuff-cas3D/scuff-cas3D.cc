@@ -193,12 +193,12 @@ int main(int argc, char *argv[])
   char *GeoFile=0;
   char *TransFile=0;
 //
-  int Energy=0;
-  int XForce=0;
-  int YForce=0;
-  int ZForce=0;
+  bool Energy=false;
+  bool XForce=false;
+  bool YForce=false;
+  bool ZForce=false;
   double TorqueAxes[9];                     int nTorque;
-  int AllTorque=0;
+  bool AllTorque=false;
 //
   double Temperature=0.0;                   int nTemperature;
   double XiVals[MAXFREQ];	            int nXiVals;
