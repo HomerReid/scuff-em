@@ -222,6 +222,42 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
 }
 
 /***************************************************************/
+/* evaluate the induced dipole moments                         */
+/***************************************************************/
+void GetMoments(SSData *SSD, char *MomentFile)
+{
+  /***************************************************************/
+  /* open the file and write the frequency at the top of the line*/
+  /***************************************************************/
+  FILE *f=fopen(MomentFile,"a");
+  if ( !f ) ErrExit("could not open file %s",MomentFile);
+  
+  /***************************************************************/
+  /* get dipole moments ******************************************/
+  /***************************************************************/
+  RWGGeometry *G = SSD->G;
+  HVector *KN    = SSD->KN;
+  cdouble Omega  = SSD->Omega;
+
+  HVector *PM  = G->GetDipoleMoments(Omega, KN);
+
+  /***************************************************************/
+  /* print to file ***********************************************/
+  /***************************************************************/
+  fprintf(f,"%s ",z2s(Omega));
+  for (int ns=0; ns<G->NumSurfaces; ns++)
+   { fprintf(f,"%s ",G->Surfaces[ns]->Label);
+     for(int Mu=0; Mu<6; Mu++)
+      fprintf(f,"%s ",CD2S(PM->GetEntry(6*ns + Mu),"%.8e %.8e "));
+   };
+  fprintf(f,"\n");
+  fflush(f);
+
+  delete PM;
+
+}
+
+/***************************************************************/
 /* generate plots of poynting flux and field-strength arrows   */
 /* on a user-supplied surface mesh                             */
 /***************************************************************/
@@ -554,7 +590,7 @@ void GetPower_BF_Integrand(unsigned ndim, const double *x, void *params,
   cdouble *HScat = EHS+3;
   cdouble *ETot  = EHT;
   cdouble *HTot  = EHT+3;
-  double PVScat[3], PVTot[3]; 
+  double PVScat[3], PVTot[3];
 
   PVScat[0] = 0.5*real( EScat[1] * conj(HScat[2]) - EScat[2] * conj(HScat[1]) );
   PVScat[1] = 0.5*real( EScat[2] * conj(HScat[0]) - EScat[0] * conj(HScat[2]) );
@@ -613,13 +649,9 @@ void GetPower_BF(SSData *SSD, double R, double *PBF, double *EBF)
 }
 
 /***************************************************************/
-/* get the scattered and absorbed power using the SGJ formulas */
-/* involving vector-matrix-vector products.                    */
-/* On return,                                                  */
-/* PAbs[ns], PScat[ns] store the absorbed, scattered power for */
-/* surface #ns.                                                */
+/* get scattered power using the SGJ formula                   */
 /***************************************************************/
-void GetPower_SGJ(SSData *SSD, double *PAbs, double *PScat)
+void GetPScat_SGJ(SSData *SSD, double *PScat)
 {
   RWGGeometry *G = SSD->G;
   HMatrix *M     = SSD->M;
@@ -631,8 +663,7 @@ void GetPower_SGJ(SSData *SSD, double *PAbs, double *PScat)
   /***************************************************************/
   cdouble *ZM=M->ZM, *ZRHS=RHS->ZV, *ZKN=KN->ZV;
   if (ZM==0 || ZRHS==0 || ZKN==0)
-   { memset(PAbs, 0, G->NumSurfaces*sizeof(double));
-     memset(PScat, 0, G->NumSurfaces*sizeof(double));
+   { memset(PScat, 0, G->NumSurfaces*sizeof(double));
      return;
    };
 
@@ -657,9 +688,21 @@ void GetPower_SGJ(SSData *SSD, double *PAbs, double *PScat)
   /* that enter into the formulas for the scattered and absorbed */
   /* power                                                       */
   /***************************************************************/
-  // nr runs over rows, nc over columns, ne over matrix entries
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
+     RWGSurface *S = G->Surfaces[ns];
+     int Offset    = G->BFIndexOffset[ns];
+     int NBF       = S->NumBFs;
+
+     double SignFlip = S->IsPEC ? 1.0 : -1.0;
+     double Sign=1.0;
+     for(int nr=Offset; nr<Offset+NBF; nr++)
+      for(int nc=Offset; nc<Offset+NBF; nc++, Sign*=SignFlip)
+       PScat[ns] -= Sign * real(conj(ZKN[nr]) * M->GetEntry(nr,nc) * ZKN[nc]);
+     PScat[ns] *= 0.5 * ZVAC;
+
+#if 0
+20130428 old code delete me 
      int nr, nc, ne, N=G->TotalBFs;
      double PTot, Sign;
      for(PTot=PScat[ns]=0.0, Sign=1.0, ne=nc=0; nc<N; nc++)
@@ -670,11 +713,10 @@ void GetPower_SGJ(SSData *SSD, double *PAbs, double *PScat)
 
          PScat[ns] -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
        };
-    
      PTot  *= 0.5 * ZVAC;
      PScat[ns] *= 0.5 * ZVAC;
+#endif
 
-     PAbs[ns]  = PTot - PScat[ns];
    };
 
 }
@@ -683,6 +725,9 @@ void GetPower_SGJ(SSData *SSD, double *PAbs, double *PScat)
 /* evaluate the scattered and absorbed powers using the        */
 /* concise BEM vector-matrix-vector product expressions        */
 /***************************************************************/
+#if 0
+20130428 old GetPower and GetForce routines, now obsolete as 
+         replaced by GetPFT DELETEME 
 void GetPower(SSData *SSD, char *PowerFile)
 {
   RWGGeometry *G = SSD->G;
@@ -791,42 +836,6 @@ void GetPower(SSData *SSD, char *PowerFile)
 }
 
 /***************************************************************/
-/* evaluate the induced dipole moments                         */
-/***************************************************************/
-void GetMoments(SSData *SSD, char *MomentFile)
-{
-  /***************************************************************/
-  /* open the file and write the frequency at the top of the line*/
-  /***************************************************************/
-  FILE *f=fopen(MomentFile,"a");
-  if ( !f ) ErrExit("could not open file %s",MomentFile);
-  
-  /***************************************************************/
-  /* get dipole moments ******************************************/
-  /***************************************************************/
-  RWGGeometry *G = SSD->G;
-  HVector *KN    = SSD->KN;
-  cdouble Omega  = SSD->Omega;
-
-  HVector *PM  = G->GetDipoleMoments(Omega, KN);
-
-  /***************************************************************/
-  /* print to file ***********************************************/
-  /***************************************************************/
-  fprintf(f,"%s ",z2s(Omega));
-  for (int ns=0; ns<G->NumSurfaces; ns++)
-   { fprintf(f,"%s ",G->Surfaces[ns]->Label);
-     for(int Mu=0; Mu<6; Mu++)
-      fprintf(f,"%s ",CD2S(PM->GetEntry(6*ns + Mu),"%.8e %.8e "));
-   };
-  fprintf(f,"\n");
-  fflush(f);
-
-  delete PM;
-
-}
-
-/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 #define OVERLAP_OVERLAP     0
@@ -926,6 +935,7 @@ void GetForce(SSData *SSD, char *ForceFile)
   fclose(f);
 
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/
@@ -939,9 +949,18 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
 
   Log("Computing power, force, torque at Omega=%s...",z2s(SSD->Omega));
 
-  double PFT[8]; 
-  double PScat;
   RWGGeometry *G=SSD->G;
+  double PFT[8]; 
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double *PScatSGJ = new double[G->NumSurfaces];
+  GetPScat_SGJ(SSD, PScatSGJ);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      fprintf(f,"%s ",G->Surfaces[ns]->Label);
@@ -950,10 +969,6 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
       G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
      else
       G->GetPFT2(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
-/*
-     GetPower_SGJ(SSD, ns, 0, &PScat);
-     PFT[1]=PScat;
-*/
 
      // get scattered power as difference between total and absorbed power.
      // if the difference between the quantities is less than 1% of their 
@@ -967,6 +982,7 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
       };
 #endif
      // put PScat in the 1 slot in the array 
+     PFT[1] = PScatSGJ[ns];
 
      for(int nq=0; nq<8; nq++)
       fprintf(f,"%e ",PFT[nq]);
@@ -974,6 +990,7 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
    };
 
   fclose(f);
+  delete[] PScatSGJ;
 
 }
 
