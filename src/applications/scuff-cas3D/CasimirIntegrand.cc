@@ -68,12 +68,14 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
      /*--------------------------------------------------------------*/
      /*- calculation method 2 ---------------------------------------*/
      /*--------------------------------------------------------------*/
+     Log("Computing Casimir energy by new method...");
      RWGGeometry *G = SC3D->G;
      HMatrix *MM1MInf = SC3D->MM1MInf;
      MM1MInf->Zero();
      for(int ns=0; ns<G->NumSurfaces; ns++)
       MM1MInf->InsertBlock(SC3D->TBlocks[ns], G->BFIndexOffset[ns], G->BFIndexOffset[ns]);
      M->LUSolve(MM1MInf); 
+     MM1MInf->LUFactorize();
 
      for(int n=0; n<N; n++)
       LNDet+=log( fabs( MM1MInf->GetEntryD(n,n) ) );
