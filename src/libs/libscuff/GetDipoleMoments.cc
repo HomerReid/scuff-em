@@ -136,10 +136,14 @@ PM->Scale(ZVAC); /* ? */
 /***************************************************************/
 /* This routine computes the induced electric and magnetic     */
 /* surface charge and current densities at the centroid of     */
-/* each panel in an RWGGeometry.                               */
+/* each panel in an RWGGeometry. As an added bonus, it         */
+/* computes the normally-directed poynting flux into the       */
+/* surface. (This is the flux, i.e. the power per unit area;   */
+/* to get the total power delivered to the object through this */
+/* panel you multiply the flux by the panel area).             */
 /*                                                             */
 /* PSD is a complex-valued matrix with G->TotalPanels rows and */
-/* 12 columns.                                                 */
+/* 13 columns.                                                 */
 /*                                                             */
 /* (If PSD is NULL on entry, or if it points to an HMatrix of  */
 /*  the wrong size, it is reallocated).                        */
@@ -154,8 +158,13 @@ PM->Scale(ZVAC); /* ? */
 /*  columns 5,6,7   : components of electric current density   */
 /*  column  8       : magnetic charge density                  */
 /*  columns 9,10,11 : components of magnetic current density   */
+/*  column  12      : normally-directed poynting flux INTO the */
+/*                    surface                                  */
 /***************************************************************/
-HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD)
+#define PSD_MATRIX_WIDTH 13
+HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, 
+                                              HVector *KN, 
+                                              HMatrix *PSD)
 
 { 
   cdouble iw = II*Omega;
@@ -163,10 +172,14 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatri
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (PSD==0 || PSD->NR!=TotalPanels || PSD->NC!=12 || PSD->RealComplex!=LHM_COMPLEX)
+  if (    PSD==0 
+       || PSD->NR!=TotalPanels 
+       || PSD->NC!=PSD_MATRIX_WIDTH 
+       || PSD->RealComplex!=LHM_COMPLEX
+     )
    { if (PSD) 
       Warn("invalid PSD matrix passed to GetPanelSourceDensities (reallocating)");
-     PSD=new HMatrix(TotalPanels, 12, LHM_COMPLEX);
+     PSD=new HMatrix(TotalPanels, 13, LHM_COMPLEX);
    };
   PSD->Zero();
 
@@ -248,6 +261,11 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatri
       PSD->AddEntry( MPanel->Index + Offset,  9, PreFac*XmQ[0] );  // N_x
       PSD->AddEntry( MPanel->Index + Offset, 10, PreFac*XmQ[1] );  // N_y
       PSD->AddEntry( MPanel->Index + Offset, 11, PreFac*XmQ[2] );  // N_z
+
+      /*--------------------------------------------------------------*/
+      /*- contribution to normally-directed poynting flux associated -*/
+      /*- with this edge                                             -*/
+      /*--------------------------------------------------------------*/
 
     }; // for (ns=0; ns<NumSurfaces; ns++) ... for(ne=0; ne<S->NumEdges; ne++)
 
