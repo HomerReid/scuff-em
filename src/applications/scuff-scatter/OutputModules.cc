@@ -173,7 +173,7 @@ void CreateFluxPlot(SSData *SSD, char *MeshFileName)
    };
 
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /*- get the total fields at the panel vertices                 -*/
   /*--------------------------------------------------------------*/
   HMatrix *FMatrix=SSD->G->GetFields(SSD->IF, SSD->KN, SSD->Omega, SSD->kBloch, 
                                      XMatrix, 0, FieldFuncs);

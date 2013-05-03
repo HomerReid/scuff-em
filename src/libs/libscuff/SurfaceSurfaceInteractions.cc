@@ -559,8 +559,9 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
 
   if (G->LogLevel>=SCUFF_VERBOSELOGGING)
    { Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
-     Log("  PPIs: C(%u), TD(%u), HK(%u), D(%u)", 
-            PPIAlgorithmCount[PPIALG_CUBATURE],
+     Log("  PPIs: LOC(%u), HOC(%u), TD(%u), HK(%u), D(%u)",
+            PPIAlgorithmCount[PPIALG_LOCUBATURE],
+            PPIAlgorithmCount[PPIALG_HOCUBATURE],
             PPIAlgorithmCount[PPIALG_TD],
             PPIAlgorithmCount[PPIALG_HKTD],
             PPIAlgorithmCount[PPIALG_DESING]);

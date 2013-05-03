@@ -287,7 +287,8 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 }
 
 /*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
+/*- This construct creates an RWGSurface that does not belong  -*/
+/*- to any RWGGeometry. Useful for flux meshes, etc.           -*/
 /*--------------------------------------------------------------*/
 RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
 {
@@ -295,6 +296,8 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
   MeshTag=pMeshTag;
   Label=strdup(MeshFile);
   SurfaceSigma=0;
+  MaterialName=0;
+  RegionLabels[0]=RegionLabels[1]=0;
   IsPEC=1;
   tolVecClose=0.0; // to be updated once mesh is read in
   InitRWGSurface();
@@ -308,7 +311,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
 /*-                                                             */
 /*- This routine assumes that the following internal class      */
 /*- fields have been initialized: MeshFileName, MeshTag,        */
-/*- Label, SurfaceSigma, and IsPEC.                             */
+/*- Label, SurfaceSigma, RegionLabels, IsPEC.                   */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 void RWGSurface::InitRWGSurface(const GTransformation *OTGT)

@@ -34,12 +34,14 @@
 namespace scuff {
 
 // values for the WhichAlgorithm field in the PanelPanelInteractions structure
-// (straight-up cubature, taylor-duffy, high-k taylor-duffy, or desingularization)
-#define PPIALG_CUBATURE    0
-#define PPIALG_TD          1
-#define PPIALG_HKTD        2
-#define PPIALG_DESING      3
-#define NUMPPIALGORITHMS   4
+// (low-order cubature, high-order cubature, taylor-duffy, high-k taylor-duffy, 
+//  or desingularization)
+#define PPIALG_LOCUBATURE    0
+#define PPIALG_HOCUBATURE    1
+#define PPIALG_TD            2
+#define PPIALG_HKTD          3
+#define PPIALG_DESING        4
+#define NUMPPIALGORITHMS     5
 
 /***************************************************************/ 
 /* 1. argument structures for routines whose input/output      */

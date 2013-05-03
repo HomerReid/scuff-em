@@ -431,11 +431,6 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   cdouble *dHdT             = Args->dHdT;
 
   /***************************************************************/
-  /* assume that we will use the simple cubature algorithm *******/
-  /***************************************************************/
-  Args->WhichAlgorithm=PPIALG_CUBATURE;
-
-  /***************************************************************/
   /* extract panel vertices, detect common vertices, measure     */
   /* relative distance                                           */
   /***************************************************************/
@@ -480,7 +475,8 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /* then just use simple low-order non-desingularized cubature  */
   /***************************************************************/
   if ( Args->GInterp || (rRel > DESINGULARIZATION_RADIUS) )
-   { GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
+   { Args->WhichAlgorithm=PPIALG_LOCUBATURE;
+     GetPPIs_Cubature(Args, 0, 0, Va, Qa, Vb, Qb);
      return;
    };
 
@@ -496,7 +492,8 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
   /* common vertices then we use high-order non-adaptive cubature*/
   /***************************************************************/
   if ( InSWRegime && ncv==0 )
-   { GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
+   { Args->WhichAlgorithm=PPIALG_HOCUBATURE;
+     GetPPIs_Cubature(Args, 0, 1, Va, Qa, Vb, Qb);
      return; 
    };
 
