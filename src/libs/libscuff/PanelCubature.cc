@@ -18,10 +18,10 @@
  */
 
 /*
- * PanelQuadrature .cc -- libscuff routines for computing numerical 
- *                     -- cubatures over panels or over pairs of panels
+ * PanelCubature .cc -- libscuff routines for computing numerical 
+ *                   -- cubatures over panels or over pairs of panels
  * 
- * homer reid          -- 11/2005 -- 4/2013
+ * homer reid        -- 11/2005 -- 4/2013
  *
  */
 #include <stdio.h>
@@ -43,11 +43,11 @@ namespace scuff {
 /**********************************************************************/
 /*a 'panel-panel cubature' function accepts input parameters giving  */
 /**********************************************************************/
-typedef void PCFunction(double *x, double *f, 
+typedef void PCFunction(double *x, double *b, double Divb,
                         void *UserData, double *Result);
 
-typedef void PPCFunction(double *x, double *f, 
-                         double *xp, double *fp,
+typedef void PPCFunction(double *x, double *b, double Divb,
+                         double *xp, double *bp, double Divbp,
 		   	 void *UserData, double *Result);
 
 /**********************************************************************/
@@ -110,8 +110,9 @@ void PCIntegrand(unsigned ndim, const double *x, void *params,
 /* evaluate a numerical cubature over a single panel.                 */
 /**********************************************************************/
 void GetPanelCubature(RWGSurface *S, int np, int iQ,
-                      PCFunction *Integrand, void *UserData,
-                      int Order, int IntegrandLength, double *Result)
+                      PCFunction *Integrand, void *UserData, int IDim,
+                      int Order, double RelTol, double AbsTol, 
+                      double *Result);
 {
   /*--------------------------------------------------------------*/
   /*- unpack panel data ------------------------------------------*/
