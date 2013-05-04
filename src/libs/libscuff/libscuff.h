@@ -105,6 +105,7 @@ namespace scuff {
 typedef struct RWGPanel
  { 
    int VI[3];                /* indices of vertices in Vertices array */
+   int EI[3];                /* indices of edges in Edges array */
    double Centroid[3];       /* panel centroid */
    double ZHat[3];           /* normal vector */
    bool ZHatFlipped;         /* true / false ==> ZHat obeys right (left)-hand rule wrt VI*/

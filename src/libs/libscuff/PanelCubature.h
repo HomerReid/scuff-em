@@ -1,0 +1,95 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
+ * PanelCubature.h -- header file for PanelCubature and PanelPanelCubature
+ *                 -- routines for integrating over panels in libscuff
+ *                 -- geometries.
+ *
+ * homer reid      -- 5/2013
+ */
+#ifndef PANELCUBATURE_H
+#define PANELCUBATURE_H
+
+#include <libscuff.h>
+
+namespace scuff{
+
+/***************************************************************/
+/* PCData is the data structure passed to the user's PCFunction*/
+/* routine; it contains data on the panel and (optionally) the */
+/* surface-current distribution on the panel.                  */
+/***************************************************************/
+typedef struct PCData
+ { 
+   double *nHat; // panel normal
+   cdouble *K, *N;   // surface currents at eval point
+
+ } PCData;
+
+/***************************************************************/
+/* This is the prototype for the integrand routine to be       */
+/* written by the user and passed as a parameter to            */
+/* GetPanelCubature.                                           */
+/***************************************************************/
+typedef void (*PCFunction)(double *x, PCData *PCD,
+                           void *UserData, double *Result);
+
+/***************************************************************/
+/* Routine to evaluate a two-dimensional numerical integral    */
+/* over a single panel.                                        */
+/***************************************************************/
+void GetPanelCubature(RWGGeometry *G, int ns, int np,
+                      PCFunction Integrand, void *UserData, int IDim,
+                      int MaxEvals, double RelTol, double AbsTol,
+                      cdouble Omega, HVector *KN,
+                      double *Result);
+
+/***************************************************************/
+/* PPCData is the structure passed to the user's PPCFunction   */
+/* routine; it contains data on the two panels and (optionally)*/
+/* the surface-current distributions on the two panels.        */
+/***************************************************************/
+typedef struct PPCData
+ { 
+   double *nHat1, *nHat2;       // panel normals
+   cdouble *K1, *N1, *K2, *N2;  // surface currents at eval points
+ } PPCData;
+
+/***************************************************************/
+/* This is the prototype for the integrand routine to be       */
+/* written by the user and passed as a parameter to            */
+/* GetPanelPanelCubature.                                      */
+/***************************************************************/
+typedef void (*PPCFunction)(double *x, double *xp, PPCData *PPCD,
+                            void *UserData, double *Result);
+
+/***************************************************************/
+/* Routine to evaluate a four-dimensional numerical cubature   */
+/* over a pair of panels.                                      */
+/***************************************************************/
+void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
+                           PCFunction Integrand, void *UserData, int IDim,
+                           int MaxEvals, double RelTol, double AbsTol,
+                           cdouble Omega, HVector *KN,
+                           double *Result);
+
+}
+
+#endif // #ifndef PANELCUBATURE_H

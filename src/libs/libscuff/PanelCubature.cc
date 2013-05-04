@@ -34,213 +34,183 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
-#include "TaylorDuffy.h"
+#include "libSGJC.h"
+#include "PanelCubature.h"
 
 namespace scuff {
 
-#define II cdouble(0.0,1.0)
-
-/**********************************************************************/
-/*a 'panel-panel cubature' function accepts input parameters giving  */
-/**********************************************************************/
-typedef void PCFunction(double *x, double *b, double Divb,
-                        void *UserData, double *Result);
-
-typedef void PPCFunction(double *x, double *b, double Divb,
-                         double *xp, double *bp, double Divbp,
-		   	 void *UserData, double *Result);
-
-/**********************************************************************/
-/**********************************************************************/
-/**********************************************************************/
-typedef struct PCIData 
- {
-   double *V0, double A[3], double B[3], double *Q;
-   double PreFac;
+/***************************************************************/
+/* data structure passed to GPCIntegrand ***********************/
+/***************************************************************/
+typedef struct GPCIData
+ { 
    PCFunction Integrand;
    void *UserData;
 
- } PCIData;
+   double *V0, A[3], B[3];
 
-void PCIntegrand(unsigned ndim, const double *x, void *params,
-                 unsigned fdim, double *fval)
-{ 
-  (void *)ndim; // unused
+   double Area;
+   double *nHat;
 
-  /*--------------------------------------------------------------*/
-  /*- unpack fields from input data structure --------------------*/
-  /*--------------------------------------------------------------*/
-  PCIData *Data         = (PCIData *)params;
-  double *V0            = Data->V0;
-  double *A             = Data->A;
-  double *B             = Data->B;
-  double *Q             = Data->Q;
-  double *PreFac        = Data->PreFac;
-  PCFunction *Integrand = Data->Integrand;
-  void *UserData        = Data->UserData;
+   HVector *KN;
+   bool IsPEC;
+   int Offset;
+   int EdgeIndices[3];
+   double *Q[3];
+   double RWGPreFac[3];
+ 
+ } GPCIData;
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double u=x[0];
-  double v=u*x[1];
-  double Jacobian=u;
+/***************************************************************/
+/* integrand passed to adaptive cubature routine for cubature  */
+/* over a single panel                                         */
+/***************************************************************/
+void GPCIntegrand(unsigned ndim, const double *uv, void *params,
+                  unsigned fdim, double *fval)
+{
+   /*--------------------------------------------------------------*/
+   /*- unpack fields from GPCIData --------------------------------*/
+   /*--------------------------------------------------------------*/
+   GPCIData *Data = (GPCIData *)params;
+   double *V0     = Data->V0;
+   double *A      = Data->A;
+   double *B      = Data->B;
+   double Area    = Data->Area;
 
-  double x[3], double f[3];
+   /*--------------------------------------------------------------*/
+   /*- get the evaluation point from the standard-triangle coords  */
+   /*--------------------------------------------------------------*/
+   double u = uv[0];
+   double v = u*uv[1];
+   double Jacobian= 2.0 * Area * u;
 
-  x[0] = V0[0] + u*A[0] + v*B[0];
-  x[1] = V0[1] + u*A[1] + v*B[1];
-  x[2] = V0[2] + u*A[2] + v*B[2];
+   double X[3];
+   X[0] = V0[0] + u*A[0] + v*B[0];
+   X[1] = V0[1] + u*A[1] + v*B[1];
+   X[2] = V0[2] + u*A[2] + v*B[2];
 
-  f[0] = PreFac*(x[0] - Q[0]);
-  f[1] = PreFac*(x[1] - Q[1]);
-  f[2] = PreFac*(x[2] - Q[2]);
+   /*--------------------------------------------------------------*/
+   /*- get the surface currents at the evaluation point           -*/
+   /*--------------------------------------------------------------*/
+   cdouble K[3], N[3];
+   K[0]=K[1]=K[2]=N[0]=N[1]=N[2]=0.0;
+   HVector *KN = Data->KN;
+   if (KN)
+    { int IsPEC  = Data->IsPEC;
+      int Offset = Data->Offset;
+      for(int nce=0; nce<3; nce++)
+       {  
+         int ne           = Data->EdgeIndices[nce];
+         if (ne<0) continue; // this happens if the edge is an exterior edge
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  Integrand(x, f, UserData, fVal);
+         double *Q        = Data->Q[nce];
+         double RWGPreFac = Data->RWGPreFac[nce];
 
-  for(int nf=0; nf<fdim; nf++)
-   fVal[nf] *= Jacobian;
+         cdouble KAlpha = (IsPEC ? KN->GetEntry(Offset + ne) : KN->GetEntry(Offset + 2*ne) );
+         cdouble NAlpha = (IsPEC ? 0.0 : -1.0*ZVAC*KN->GetEntry(Offset + 2*ne+1) );
 
+         K[0] += KAlpha * RWGPreFac * (X[0]-Q[0]);
+         K[1] += KAlpha * RWGPreFac * (X[1]-Q[1]);
+         K[2] += KAlpha * RWGPreFac * (X[2]-Q[2]);
+         N[0] += NAlpha * RWGPreFac * (X[0]-Q[0]);
+         N[1] += NAlpha * RWGPreFac * (X[1]-Q[1]);
+         N[2] += NAlpha * RWGPreFac * (X[2]-Q[2]);
+       };
+    };
+
+   /*--------------------------------------------------------------*/
+   /*- fill in the PCData structure passed to the user's function, */
+   /*- then call user's function                                   */
+   /*--------------------------------------------------------------*/
+   PCData MyPCData, *PCD=&MyPCData;
+   PCD->nHat = Data->nHat; 
+   PCD->K    = K;
+   PCD->N    = N;
+
+   Data->Integrand(X, PCD, Data->UserData, fval);
+
+   /*--------------------------------------------------------------*/
+   /*- put in Jacobian factors ------------------------------------*/
+   /*--------------------------------------------------------------*/
+   for(int n=0; n<ndim; n++)
+    fval[n]*=Jacobian;
 }
 
-/**********************************************************************/
-/* evaluate a numerical cubature over a single panel.                 */
-/**********************************************************************/
-void GetPanelCubature(RWGSurface *S, int np, int iQ,
-                      PCFunction *Integrand, void *UserData, int IDim,
-                      int Order, double RelTol, double AbsTol, 
-                      double *Result);
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetPanelCubature(RWGGeometry *G, int ns, int np,
+                      PCFunction Integrand, void *UserData, int IDim,
+                      int MaxEvals, double RelTol, double AbsTol,
+                      cdouble Omega, HVector *KN,
+                      double *Result)
 {
   /*--------------------------------------------------------------*/
-  /*- unpack panel data ------------------------------------------*/
   /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S = G->Surfaces[ns];
   RWGPanel *P   = S->Panels[np];
-  double *V0    = S->Vertices + 3*(P->VI[ (iQ+0) % 3 ]);
-  double *V1    = S->Vertices + 3*(P->VI[ (iQ+1) % 3 ]);
-  double *V2    = S->Vertices + 3*(P->VI[ (iQ+2) % 3 ]);
-  double Length = VecDistance(V2,V1);
-  double Area   = P->Area;
+  double *V0    = S->Vertices + 3*(P->VI[0]);
+  double *V1    = S->Vertices + 3*(P->VI[1]);
+  double *V2    = S->Vertices + 3*(P->VI[2]);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (Order==0)
-   { PCIData MyPCIData, *Data=&MyPCIData;
+  struct GPCIData MyGPCIData, *Data=&MyGPCIData;
+  Data->V0 = V0;
+  VecSub(V1, V0, Data->A);
+  VecSub(V2, V1, Data->B);
 
-     Data->V0        = S->Vertices + 3*P->VI[0];
-     Data->A         = S->Vertices + 3*P->VI[0];
-     Data->B         = S->Vertices + 3*P->VI[0];
-     Data->Q         = S->Vertices + 3*P->VI[0];
-     Data->RWGPreFac = Length / (2.0*Area);
-     Data->Integrand = Integrand;
-     Data->UserData  = UserData;
+  Data->nHat      = P->ZHat;
+  Data->Area      = P->Area;
 
-     double Lower[2]={0.0,0.0};
-     double Lower[2]={1.0,1.0};
-     adapt_integrate
+  Data->Integrand = Integrand;
+  Data->UserData  = UserData;
 
-   }
-
-  VecSub(Va[1], Va[0], A);
-  VecSub(Va[2], Va[0], B);
-  Q=Qa;
-
-  double *V0P, AP[3], BP[3], *QP;
-  V0P=Vb[0];
-  VecSub(Vb[1], Vb[0], AP);
-  VecSub(Vb[2], Vb[0], BP);
-  QP=Qb;
-
-  /***************************************************************/
-  /***************************************************************/
-  double *TCR;
-  int NumPts;
-  switch(Order)
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  Data->KN = KN;
+  if (KN)
    { 
-     case 4:   TCR=GetTCR(4, &NumPts);
-     case 20:  TCR=GetTCR(20, &NumPts);
-     default:  TCR=0;
-   };
-
-  /***************************************************************/
-  /* outer loop **************************************************/
-  /***************************************************************/
-  int np, ncp, npp, ncpp;
-  int Mu;
-  double u, v, w, up, vp, wp;
-  double X[3], F[3], XP[3], FP[3], R[3];
-  cdouble k = Args->k;
-  memset(H,0,2*sizeof(cdouble));
-  if (GradH) memset(GradH,0,6*sizeof(cdouble));
-  if (dHdT) memset(dHdT,0,2*NumTorqueAxes*sizeof(cdouble));
-  for(np=ncp=0; np<NumPts; np++) 
-   { 
-     u=TCR[ncp++]; v=TCR[ncp++]; w=TCR[ncp++];
-
-     /***************************************************************/
-     /* set X and F=X-Q *********************************************/
-     /***************************************************************/
-     for(Mu=0; Mu<3; Mu++)
-      { X[Mu] = V0[Mu] + u*A[Mu] + v*B[Mu];
-        F[Mu] = X[Mu] - Q[Mu];
-      };
-
-     /***************************************************************/
-     /* inner loop to calculate value of inner integrand ************/
-     /***************************************************************/
-     memset(HInner,0,2*sizeof(cdouble));
-     if (GradH) memset(GradHInner,0,6*sizeof(cdouble));
-     if (dHdT) memset(dHdTInner,0,2*NumTorqueAxes*sizeof(cdouble));
-     for(npp=ncpp=0; npp<NumPts; npp++)
+     Data->IsPEC  = S->IsPEC;
+     Data->Offset = G->BFIndexOffset[ns];
+     for(int nce=0; nce<3; nce++)
       { 
-        up=TCR[ncpp++]; vp=TCR[ncpp++]; wp=TCR[ncpp++];
+        int ne = P->EI[nce];
+        Data->EdgeIndices[nce] = ne;
+        if (ne<0) continue; // this happens if the edge is an exterior edge
 
-        /***************************************************************/ 
-        /* set XP and FP=XP-QP *****************************************/
-        /***************************************************************/
-        for(Mu=0; Mu<3; Mu++)
-         { XP[Mu] = V0P[Mu] + up*AP[Mu] + vp*BP[Mu];
-           FP[Mu] = XP[Mu] - QP[Mu];
-           R[Mu] = X[Mu] - XP[Mu];
-         };
-      
-        if ( Args->GInterp )
-         AssembleInnerPPIIntegrand_Interp(wp, k, R, F, FP, 
-                                          Args->GInterp, 
-                                          NumTorqueAxes, GammaMatrix, 
-                                          HInner, GradHInner, dHdTInner);
-        else
-         AssembleInnerPPIIntegrand_NoInterp(wp, k, R, X, F, FP, 
-                                            DeSingularize,
-                                            NumTorqueAxes, GammaMatrix, 
-                                            HInner, GradHInner, dHdTInner);
+        Data->Q[nce] = S->Vertices + 3*(P->VI[nce]);
 
-      }; /* for(npp=ncpp=0; npp<NumPts; npp++) */
+        RWGEdge *E = S->Edges[ne];
+        double Sign = ( np == E->iMPanel ? -1.0 : 1.0 );
+        Data->RWGPreFac[nce] = Sign * E->Length / (2.0*P->Area);
+      };
+   };
+ 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double *Error  = new double[IDim];
+  double Lower[2]={0.0, 0.0};
+  double Upper[2]={1.0, 1.0};
+  adapt_integrate(IDim, GPCIntegrand, (void *)Data,
+		  2, Lower, Upper, MaxEvals, AbsTol, RelTol, Result, Error);
 
-     /*--------------------------------------------------------------*/
-     /*- accumulate contributions to outer integral                  */
-     /*--------------------------------------------------------------*/
-     H[0]+=w*HInner[0];
-     H[1]+=w*HInner[1];
-     if (GradH)
-      for(Mu=0; Mu<6; Mu++)
-       GradH[Mu]+=w*GradHInner[Mu];
-     if (dHdT)
-      for(Mu=0; Mu<2*NumTorqueAxes; Mu++)
-       dHdT[Mu]+=w*dHdTInner[Mu];
+  delete[] Error;
+}
 
-   }; // for(np=ncp=0; np<nPts; np++) 
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  memcpy(Args->H, H, 2*sizeof(cdouble));
-  if (GradH) memcpy(Args->GradH, GradH, 6*sizeof(cdouble));
-  if (dHdT) memcpy(Args->dHdT, dHdT, 2*NumTorqueAxes*sizeof(cdouble));
-
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
+                           PCFunction *Integrand, void *UserData, int IDim,
+                           int Order, double RelTol, double AbsTol,
+                           cdouble Omega, HVector *KN,
+                           double *Result)
+{
 }
 
 } // namespace scuff

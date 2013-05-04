@@ -478,6 +478,19 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   NumBFs = IsPEC ? NumEdges : 2*NumEdges;
 
   /*------------------------------------------------------------*/
+  /*- now that we have put the edges into a list, we can go    -*/
+  /*- back and fill in the EdgeIndices field in each RWGPanel. -*/
+  /*- Note: EdgeIndices[i] = index of panel edge #i within the -*/
+  /*- Edges[] list for the parent RWGSurface. Panel edge #i is -*/
+  /*- edge opposite vertex #i.                                 -*/
+  /*------------------------------------------------------------*/
+  for(int ne=0; ne<NumEdges; ne++)
+   { RWGEdge *E = Edges[ne];
+     Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
+     Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
+   };
+
+  /*------------------------------------------------------------*/
   /*- compute bounding box -------------------------------------*/
   /*------------------------------------------------------------*/
   RMax[0] = RMax[1] = RMax[2] = -1.0e89;
