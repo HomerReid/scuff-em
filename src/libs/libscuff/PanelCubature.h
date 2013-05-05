@@ -38,8 +38,9 @@ namespace scuff{
 /***************************************************************/
 typedef struct PCData
  { 
-   double *nHat; // panel normal
-   cdouble *K, *N;   // surface currents at eval point
+   double *nHat;       // panel normal
+   cdouble *K, *N;     // surface currents at eval point
+   cdouble DivK, DivN; // divergences of surface currents
 
  } PCData;
 
@@ -62,6 +63,17 @@ void GetPanelCubature(RWGGeometry *G, int ns, int np,
                       double *Result);
 
 /***************************************************************/
+/* Similar to GetPanelCubature, except the integral is taken   */
+/* over the support of an RWG basis function, which amounts to */
+/* computing two panel cubatures.                              */
+/***************************************************************/
+void GetBFCubature(RWGGeometry *G, int ns, int ne,
+                   PCFunction Integrand, void *UserData, int IDim,
+                   int MaxEvals, double RelTol, double AbsTol,
+                   cdouble Omega, HVector *KN,
+                   double *Result);
+
+/***************************************************************/
 /* PPCData is the structure passed to the user's PPCFunction   */
 /* routine; it contains data on the two panels and (optionally)*/
 /* the surface-current distributions on the two panels.        */
@@ -70,6 +82,8 @@ typedef struct PPCData
  { 
    double *nHat1, *nHat2;       // panel normals
    cdouble *K1, *N1, *K2, *N2;  // surface currents at eval points
+   cdouble DivK1, DivN1, DivK2, DivN2; // divergences of surface currents
+
  } PPCData;
 
 /***************************************************************/
@@ -85,10 +99,23 @@ typedef void (*PPCFunction)(double *x, double *xp, PPCData *PPCD,
 /* over a pair of panels.                                      */
 /***************************************************************/
 void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
-                           PCFunction Integrand, void *UserData, int IDim,
+                           double *Displacement,
+                           PPCFunction Integrand, void *UserData, int IDim,
                            int MaxEvals, double RelTol, double AbsTol,
                            cdouble Omega, HVector *KN,
                            double *Result);
+
+/***************************************************************/
+/* Similar to GetPanelPanelCubature, except the integral is    */
+/* over the supports of two RWG basis functions, which amounts */
+/* to computing four panel-panel cubatures.                    */
+/***************************************************************/
+void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
+                     double *Displacement,
+                     PPCFunction Integrand, void *UserData, int IDim,
+                     int MaxEvals, double RelTol, double AbsTol,
+                     cdouble Omega, HVector *KN,
+                     double *Result);
 
 }
 
