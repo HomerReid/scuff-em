@@ -405,6 +405,19 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
    };
 
   /*------------------------------------------------------------*/
+  /*- now that we have put the edges into a list, we can go    -*/
+  /*- back and fill in the EdgeIndices field in each RWGPanel. -*/
+  /*- Note: EdgeIndices[i] = index of panel edge #i within the -*/
+  /*- Edges[] list for the parent RWGSurface. Panel edge #i is -*/
+  /*- edge opposite vertex #i.                                 -*/
+  /*------------------------------------------------------------*/
+  for(int ne=0; ne<NumEdges; ne++)
+   { RWGEdge *E = Edges[ne];
+     Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
+     Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
+   };
+
+  /*------------------------------------------------------------*/
   /*- the number of basis functions that this object takes up   */
   /*- in the full BEM system is the number of internal edges    */
   /*- if it is a perfect electrical conductor, or 2 times the   */

@@ -53,10 +53,10 @@ typedef struct GPCIData
    double Area;
    double *nHat;
 
-   HVector *KN;
-   bool IsPEC;
-   int Offset;
-   int EdgeIndices[3];
+   cdouble Omega;
+
+   int NumContributingEdges;
+   cdouble KAlpha[3], NAlpha[3];
    double *Q[3];
    double RWGPreFac[3];
  
@@ -72,11 +72,12 @@ void GPCIntegrand(unsigned ndim, const double *uv, void *params,
    /*--------------------------------------------------------------*/
    /*- unpack fields from GPCIData --------------------------------*/
    /*--------------------------------------------------------------*/
-   GPCIData *Data = (GPCIData *)params;
-   double *V0     = Data->V0;
-   double *A      = Data->A;
-   double *B      = Data->B;
-   double Area    = Data->Area;
+   GPCIData *Data           = (GPCIData *)params;
+   double *V0               = Data->V0;
+   double *A                = Data->A;
+   double *B                = Data->B;
+   double Area              = Data->Area;
+   int NumContributingEdges = Data->NumContributingEdges;
 
    /*--------------------------------------------------------------*/
    /*- get the evaluation point from the standard-triangle coords  */
@@ -95,30 +96,21 @@ void GPCIntegrand(unsigned ndim, const double *uv, void *params,
    /*--------------------------------------------------------------*/
    cdouble K[3], DivK, N[3], DivN;
    K[0]=K[1]=K[2]=DivK=N[0]=N[1]=N[2]=DivN=0.0;
-   HVector *KN = Data->KN;
-   if (KN)
-    { int IsPEC  = Data->IsPEC;
-      int Offset = Data->Offset;
-      for(int nce=0; nce<3; nce++)
-       {  
-         int ne           = Data->EdgeIndices[nce];
-         if (ne<0) continue; // this happens if the edge is an exterior edge
+   for(int nce=0; nce<NumContributingEdges; nce++)
+    { 
+      cdouble KAlpha   = Data->KAlpha[nce];
+      cdouble NAlpha   = Data->NAlpha[nce];
+      double *Q        = Data->Q[nce];
+      double RWGPreFac = Data->RWGPreFac[nce];
 
-         double *Q        = Data->Q[nce];
-         double RWGPreFac = Data->RWGPreFac[nce];
-
-         cdouble KAlpha = (IsPEC ? KN->GetEntry(Offset + ne) : KN->GetEntry(Offset + 2*ne) );
-         cdouble NAlpha = (IsPEC ? 0.0 : -1.0*ZVAC*KN->GetEntry(Offset + 2*ne+1) );
-
-         K[0] += KAlpha * RWGPreFac * (X[0]-Q[0]);
-         K[1] += KAlpha * RWGPreFac * (X[1]-Q[1]);
-         K[2] += KAlpha * RWGPreFac * (X[2]-Q[2]);
-         DivK += 2.0*KAlpha * RWGPreFac;
-         N[0] += NAlpha * RWGPreFac * (X[0]-Q[0]);
-         N[1] += NAlpha * RWGPreFac * (X[1]-Q[1]);
-         N[2] += NAlpha * RWGPreFac * (X[2]-Q[2]);
-         DivN += 2.0*NAlpha * RWGPreFac;
-       };
+      K[0] += KAlpha * RWGPreFac * (X[0]-Q[0]);
+      K[1] += KAlpha * RWGPreFac * (X[1]-Q[1]);
+      K[2] += KAlpha * RWGPreFac * (X[2]-Q[2]);
+      DivK += 2.0*KAlpha * RWGPreFac;
+      N[0] += NAlpha * RWGPreFac * (X[0]-Q[0]);
+      N[1] += NAlpha * RWGPreFac * (X[1]-Q[1]);
+      N[2] += NAlpha * RWGPreFac * (X[2]-Q[2]);
+      DivN += 2.0*NAlpha * RWGPreFac;
     };
 
    /*--------------------------------------------------------------*/
@@ -126,11 +118,12 @@ void GPCIntegrand(unsigned ndim, const double *uv, void *params,
    /*- then call user's function                                   */
    /*--------------------------------------------------------------*/
    PCData MyPCData, *PCD=&MyPCData;
-   PCD->nHat = Data->nHat; 
-   PCD->K    = K;
-   PCD->DivK = DivK;
-   PCD->N    = N;
-   PCD->DivN = DivN;
+   PCD->nHat  = Data->nHat; 
+   PCD->Omega = Data->Omega;
+   PCD->K     = K;
+   PCD->DivK  = DivK;
+   PCD->N     = N;
+   PCD->DivN  = DivN;
 
    Data->Integrand(X, PCD, Data->UserData, fval);
 
@@ -147,7 +140,7 @@ void GPCIntegrand(unsigned ndim, const double *uv, void *params,
 void GetPanelCubature(RWGGeometry *G, int ns, int np,
                       PCFunction Integrand, void *UserData, int IDim,
                       int MaxEvals, double RelTol, double AbsTol,
-                      cdouble Omega, HVector *KN,
+                      cdouble Omega, HVector *KN, int iQ, double BFSign,
                       double *Result)
 {
   /*--------------------------------------------------------------*/
@@ -167,6 +160,7 @@ void GetPanelCubature(RWGGeometry *G, int ns, int np,
   VecSub(V1, V0, Data->A);
   VecSub(V2, V1, Data->B);
 
+  Data->Omega     = Omega;
   Data->nHat      = P->ZHat;
   Data->Area      = P->Area;
 
@@ -174,24 +168,46 @@ void GetPanelCubature(RWGGeometry *G, int ns, int np,
   Data->UserData  = UserData;
 
   /*--------------------------------------------------------------*/
+  /*- set up the calculation that the GPCIntegrand routine will  -*/
+  /*- perform to compute the surface currents at each integration-*/
+  /*- point.                                                     -*/
+  /*- If the user gave us a non-NULL KN vector, then the surface -*/
+  /*- current is computed by summing the contributions of up to  -*/
+  /*- 3 RWG basis functions. Otherwise, if KN==NULL but the user -*/
+  /*- specified a reasonable value for iQ, then the surface      -*/
+  /*- current is taken to be that of the RWG basis function      -*/
+  /*- assocated to edge #iQ, populated with unit strength, and   -*/
+  /*- signed with sign BFSign.                                   -*/
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  Data->KN = KN;
-  if (KN)
+  bool IsPEC = S->IsPEC;
+  int Offset = G->BFIndexOffset[ns];
+  double Sign;
+  Data->NumContributingEdges = 0;
+  if (!KN && (0<=iQ && iQ<=2) ) // single unit-strength basis function contributes
+   { Sign=BFSign;
+     Data->KAlpha[0]    = 1.0; 
+     Data->NAlpha[0]    = 0.0;
+     Data->Q[0]         = S->Vertices + 3*(P->VI[iQ]);
+     Data->RWGPreFac[0] = Sign*S->Edges[P->EI[iQ]]->Length / (2.0*P->Area);
+     Data->NumContributingEdges++;
+   }
+  else // up to three basis functions contribute 
    { 
-     Data->IsPEC  = S->IsPEC;
-     Data->Offset = G->BFIndexOffset[ns];
      for(int nce=0; nce<3; nce++)
       { 
         int ne = P->EI[nce];
-        Data->EdgeIndices[nce] = ne;
-        if (ne<0) continue; // this happens if the edge is an exterior edge
-
-        Data->Q[nce] = S->Vertices + 3*(P->VI[nce]);
+        if (ne<0 || ne>=S->NumEdges)
+         continue; // this can happen for exterior edges
 
         RWGEdge *E = S->Edges[ne];
-        double Sign = ( np == E->iMPanel ? -1.0 : 1.0 );
-        Data->RWGPreFac[nce] = Sign * E->Length / (2.0*P->Area);
+        Sign = ( np == E->iMPanel ? -1.0 : 1.0 );
+
+        int dnce = Data->NumContributingEdges;
+        Data->KAlpha[dnce]    = IsPEC ? KN->GetEntry( Offset + ne ) : KN->GetEntry(Offset+2*ne);
+        Data->NAlpha[dnce]    = IsPEC ? 0.0 : -ZVAC*KN->GetEntry(Offset+2*ne+1);
+        Data->Q[dnce]         = S->Vertices + 3*(P->VI[nce]);
+        Data->RWGPreFac[dnce] = Sign * E->Length / (2.0*P->Area);
+        Data->NumContributingEdges++;
       };
    };
  
@@ -223,17 +239,17 @@ void GetBFCubature(RWGGeometry *G, int ns, int ne,
 
   GetPanelCubature(G, ns, E->iPPanel, Integrand, UserData, 
                    IDim, MaxEvals, RelTol, AbsTol, Omega, KN, 
-                   ResultP);
+                   E->PIndex, +1.0, ResultP);
 
   GetPanelCubature(G, ns, E->iMPanel, Integrand, UserData, 
-                   IDim, MaxEvals, RelTol, AbsTol, Omega, KN, 
-                   ResultM);
+                   IDim, MaxEvals, RelTol, AbsTol, Omega, KN,
+                   E->MIndex, +1.0, ResultM);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   for(int n=0; n<IDim; n++)
-   Result[n] = ResultP[n] - ResultM[n];
+   Result[n] = ResultP[n] + ResultM[n];
 
   delete[] ResultP;
   delete[] ResultM;
@@ -253,6 +269,7 @@ typedef struct GPPCIData
    double Area1, Area2;
    double *nHat1, *nHat2;
 
+   cdouble Omega;
    HVector *KN;
    bool IsPEC1, IsPEC2;
    int Offset1, Offset2;
@@ -369,6 +386,7 @@ void GPPCIntegrand(unsigned ndim, const double *uv, void *params,
    /*- then call user's function                                   */
    /*--------------------------------------------------------------*/
    PPCData MyPPCData, *PPCD=&MyPPCData;
+   PPCD->Omega = Data->Omega;
    PPCD->nHat1 = Data->nHat1; 
    PPCD->nHat2 = Data->nHat2;
    PPCD->K1    = K1;
@@ -422,13 +440,15 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
   VecSub(V11, V01, Data->A1);
   VecSub(V21, V11, Data->B1);
 
+  Data->Omega     = Omega;
+
   Data->nHat1     = P1->ZHat;
   Data->Area1     = P1->Area;
 
   if (Displacement)
    { Data->V02[0] = V02[0] + Displacement[0];
-     Data->V02[1] = V02[1] + Displacement[0];
-     Data->V02[2] = V02[2] + Displacement[0];
+     Data->V02[1] = V02[1] + Displacement[1];
+     Data->V02[2] = V02[2] + Displacement[2];
    }
   else 
    { Data->V02[0] = V02[0];
@@ -541,7 +561,7 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
                         IDim, MaxEvals, RelTol, AbsTol, Omega, KN, 
                         ResultMP);
   np1 = E1->iMPanel;
-  np2 = E2->iPPanel;
+  np2 = E2->iMPanel;
   GetPanelPanelCubature(G, ns1, np1, ns2, np2, Displacement,
                         Integrand, UserData, 
                         IDim, MaxEvals, RelTol, AbsTol, Omega, KN, 
@@ -551,7 +571,7 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   for(int n=0; n<IDim; n++)
-   Result[n] = ResultPP[n] - ResultPM[n] - ResultMP[n] + ResultMM[n];
+   Result[n] = ResultPP[n] + ResultPM[n] + ResultMP[n] + ResultMM[n];
 
   delete[] ResultPP;
   delete[] ResultPM;

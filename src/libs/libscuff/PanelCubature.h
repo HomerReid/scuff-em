@@ -39,6 +39,7 @@ namespace scuff{
 typedef struct PCData
  { 
    double *nHat;       // panel normal
+   cdouble Omega;      // angular frequency
    cdouble *K, *N;     // surface currents at eval point
    cdouble DivK, DivN; // divergences of surface currents
 
@@ -59,7 +60,7 @@ typedef void (*PCFunction)(double *x, PCData *PCD,
 void GetPanelCubature(RWGGeometry *G, int ns, int np,
                       PCFunction Integrand, void *UserData, int IDim,
                       int MaxEvals, double RelTol, double AbsTol,
-                      cdouble Omega, HVector *KN,
+                      cdouble Omega, HVector *KN, int iQ, double BFSign,
                       double *Result);
 
 /***************************************************************/
@@ -81,6 +82,7 @@ void GetBFCubature(RWGGeometry *G, int ns, int ne,
 typedef struct PPCData
  { 
    double *nHat1, *nHat2;       // panel normals
+   cdouble Omega;               // angular frequency
    cdouble *K1, *N1, *K2, *N2;  // surface currents at eval points
    cdouble DivK1, DivN1, DivK2, DivN2; // divergences of surface currents
 
