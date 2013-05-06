@@ -427,8 +427,8 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
 
   if (Displacement)
    { Data->V02[0] = V02[0] + Displacement[0];
-     Data->V02[1] = V02[1] + Displacement[0];
-     Data->V02[2] = V02[2] + Displacement[0];
+     Data->V02[1] = V02[1] + Displacement[1];
+     Data->V02[2] = V02[2] + Displacement[2];
    }
   else 
    { Data->V02[0] = V02[0];
@@ -541,7 +541,7 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
                         IDim, MaxEvals, RelTol, AbsTol, Omega, KN, 
                         ResultMP);
   np1 = E1->iMPanel;
-  np2 = E2->iPPanel;
+  np2 = E2->iMPanel;
   GetPanelPanelCubature(G, ns1, np1, ns2, np2, Displacement,
                         Integrand, UserData, 
                         IDim, MaxEvals, RelTol, AbsTol, Omega, KN, 
