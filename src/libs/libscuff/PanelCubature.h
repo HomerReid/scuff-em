@@ -104,7 +104,8 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
                            double *Displacement,
                            PPCFunction Integrand, void *UserData, int IDim,
                            int MaxEvals, double RelTol, double AbsTol,
-                           cdouble Omega, HVector *KN,
+                           cdouble Omega, HVector *KN, 
+                           int iQ1, double BFSign1, int iQ2, double BFSign2,
                            double *Result);
 
 /***************************************************************/
@@ -116,7 +117,7 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
                      double *Displacement,
                      PPCFunction Integrand, void *UserData, int IDim,
                      int MaxEvals, double RelTol, double AbsTol,
-                     cdouble Omega, HVector *KN,
+                     cdouble Omega, HVector *KN, 
                      double *Result);
 
 }

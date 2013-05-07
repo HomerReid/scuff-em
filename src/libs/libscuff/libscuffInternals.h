@@ -137,6 +137,8 @@ typedef struct GetEEIArgStruct
 
    void *opFC; // 'opaque pointer to FIPPI cache'
 
+   // this is used to force the code to use a specific
+   // panel-integration algorithm; for diagnostic purposes only
    int Force;
    
    // this field provides diagnostic information on 

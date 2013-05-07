@@ -34,23 +34,67 @@
 #include <sys/types.h>
 
 #include <libhrutil.h>
+#include <PanelCubature.h>
 
 #include "scuff-test-EEIs.h"
 
 /***************************************************************/
-/* get edge-edge interactions by brute force                  **/
+/* integrand for brute-force edge-edge integration            **/
 /***************************************************************/
-void GetEEIs_BruteForce(GetEEIArgStruct *Args)
-{
-  GetPPIArgStruct *GetPPIArgs;
+void Integrand(double *X, double *XP, PPCData *PPCD,
+               void *UserData, double *Result)
+{ 
+  cdouble *F1    = PPCD->K1;    // RWG basis function 1 
+  cdouble DivF1  = PPCD->DivF1;
+  cdouble *F2    = PPCD->K2;    // RWG basis function 2
+  cdouble DivF2  = PPCD->DivF2;
 
-  GetPPIs_BruteForce(GetPPIArgs, 0);
+  double R[3];
+  VecSub(X, XP, R);
+  double r2=(R[0]*R[0] + R[1]*R[1] + R[2]*R[2]);
+  double r=sqrt(r2);
+
+  double DotProduct    = real(F1[0]*F2[0] + F1[1]*F2[1] + F1[2]*F2[2]);
+  double ScalarProduct = real(DivF1 * DivF2);
+  double TripleProduct =  F1[0] * (R[1]*F2[2]-R[2]*F2[1])
+                         +F1[1] * (R[2]*F2[0]-R[0]*F2[2])
+                         +F1[2] * (R[0]*F2[1]-R[1]*F2[0]);
+
+  cdouble ik  = II * PPCD->Omega;
+  cdouble ikr = ik*r;
+  cdouble Phi = exp(ikr)/(4.0*M_PI*r);
+  cdouble Psi = (ikr-1.0)*Phi/r2;
+
+  cdouble *zf = (cdouble *)Result;
+  zf[0] = ( DotProduct + ScalarProduct/(ik*ik) ) * Phi;
+  zf[1] = TripleProduct * Psi;
+
+}
+
+/***************************************************************/
+/* compute edge-edge integrals by brute force                  */
+/***************************************************************/
+void GetEEIs_BruteForce(RWGGeometry *G, GetEEIArgStruct *Args)
+{
+  GetBFBFCubature(G, Args->Sa->Index, Args->nea,
+                  Args->Sb->Index, Args->neb,
+                  Args->Displacement,
+                  Integrand, 0, 4, 0, 1.0e-10, 0.0,
+                  Args->k, 0, (cdouble *)Args->GC);
   
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetEEIs_CartesianMultipole(GetEEIArgStruct *Args)
+{
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#if 0
 int AssessEdgePair(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
                    double *rRel)
 {
@@ -85,6 +129,135 @@ int AssessEdgePair(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
   return ncv;
  
 } 
+#endif
+
+/***************************************************************/
+/* print a console prompt, then get an parse a command         */
+/***************************************************************/
+typedef struct Request
+ {
+   int nsa, nea, nsb, neb;
+   cdouble k;
+   bool Gradient;
+   double DX[3];
+ } Request;
+
+void GetRequest(RWGGeometry *G, Request *R)
+{
+  static int init=0;
+
+  if (init==0)
+   { init=1;
+     using_history();
+     read_history(0);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- print prompt and get input string --------------------------*/
+  /*--------------------------------------------------------------*/
+  printf("\n");
+  printf(" options: --nsa  xx \n");
+  printf("          --nea  xx \n");
+  printf("          --nsb  xx \n");
+  printf("          --neb  xx \n");
+  printf("          --rRel xx \n");
+  printf("          --DX   xx xx xx \n");
+  printf("          --k       \n");
+  printf("          --gradient\n");
+  printf("          --quit\n");
+  char *p;
+  do
+   { 
+     p=readline("enter options: "); 
+   } while(!p);
+  add_history(p);
+  write_history(0);
+
+  /*--------------------------------------------------------------*/
+  /*- parse input string to construct a Request structure        -*/
+  /*--------------------------------------------------------------*/
+  int nt, NumTokens;
+  char *Tokens[50];
+
+  R->nsa=R->nsb=0;
+  R->nea=R->neb=-1;
+  double rRel=-1.0;
+  R->DX[0]=R->DX[1]=R->DX[2]=0.0;
+  R->Gradient=true;
+  R->k=0.1;
+
+  NumTokens=Tokenize(p,Tokens,50);
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--nsa") )
+    sscanf(Tokens[nt+1],"%i",&(R->nsa));
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--nea") )
+    sscanf(Tokens[nt+1],"%i",&(R->nea));
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--nsb") )
+    sscanf(Tokens[nt+1],"%i",&(R->nsb));
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--neb") )
+    sscanf(Tokens[nt+1],"%i",&(R->neb));
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--rRel") )
+    sscanf(Tokens[nt+1],"%le",&rRel);
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--k") )
+    S2CD(Tokens[nt+1],&(R->k));
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--dx") )
+    { sscanf(Tokens[nt+1],"%le",(R->DX)+0); 
+      sscanf(Tokens[nt+1],"%le",(R->DX)+1); 
+      sscanf(Tokens[nt+1],"%le",(R->DX)+2);
+    };
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--quit") )
+    exit(1);
+
+  free(p);
+
+  /*--------------------------------------------------------------*/
+  /*- if the user didn't specify anything about the panels then --*/
+  /*- choose a random pair of panels                            --*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *Sa = G->Surfaces[R->nsa], *Sb = G->Surfaces[R->nsb];
+  if (R->nea==-1) R->nea=lrand48() % Sa->NumEdges;
+  if (R->neb==-1) R->neb=lrand48() % Sb->NumEdges;
+
+  /*--------------------------------------------------------------*/
+  /* if the user specified a relative distance then try to replace*/
+  /* neb with an edge whose relative distance to nea is within    */
+  /* 20% of that request                                          */
+  /*--------------------------------------------------------------*/
+  RWGEdge *Ea=G->Surfaces[R->nsa]->Edges[R->nea];
+  if( rRel != -1.0 )
+   { 
+     while(int neb=0; int neb<Sb->NumEdges; int neb++)
+      { RWGEdge *Eb=G->Surfaces[R->nsb]->Edges[R->neb];
+        double MaxRadius=fmax(Ea->Radius, Eb->Radius);
+        double ThisrRel = VecDistance(Ea->Centroid, Eb->Centroid) / MaxRadius;
+        if ( (0.8*rRel <= ThisrRel) && (ThisrRel <= 1.2*rRel) ) 
+         { R->neb=neb;
+           break;
+         }l
+      };
+   };
+
+#if 0
+  if ( 0<=ncv && ncv<=3 )
+   { R->nsb=R->nsa;
+     R->npa=lrand48() % Sa->NumPanels;
+     do
+      { npb=lrand48() % Sa->NumPanels;
+      } while( NumCommonVertices(Sa,R->npa,Sa,R->npb)!=ncv );
+     R->iQa=lrand48() % 3;
+     R->iQb=lrand48() % 3;
+   };
+#endif
+
+}
+
 
 /***************************************************************/
 /***************************************************************/
@@ -98,7 +271,6 @@ int main(int argc, char *argv[])
   int Visualize=0;
   ArgStruct ASArray[]=
    { {"geometry",  PA_STRING, (void *)&GeoFileName, 0, ".rwggeo file"},
-     {"visualize", PA_BOOL,   (void *)&Visualize,   0, "write visualization files"},
      {0,0,0,0,0}
    };
   ProcessArguments(argc, argv, ASArray);
@@ -112,21 +284,6 @@ int main(int argc, char *argv[])
   /* create the geometry *****************************************/
   /***************************************************************/
   RWGGeometry *G = new RWGGeometry(GeoFileName);
-  RWGObject *Oa=G->Objects[0];
-  RWGObject *Ob=G->NumObjects>1 ? G->Objects[1] : Oa;
-
-  /***************************************************************/
-  /*- write visualization files if requested ---------------------*/
-  /***************************************************************/
-  if (Visualize)
-   { char buffer[1000];
-     char *Base=GetFileBase(G->GeoFileName);
-     snprintf(buffer,1000,"%s.Visualization",Base);
-     mkdir(buffer,0755);
-     snprintf(buffer,1000,"%s.Visualization/%s.pp",Base,Base);
-     G->WritePPMesh(buffer,"Geometry");
-     G->WriteGPMeshPlus(buffer);
-   };
 
   /***************************************************************/
   /* preinitialize an argument structure for the edge-edge       */
@@ -137,137 +294,24 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* enter command loop ******************************************/
   /***************************************************************/
-  using_history();
-  read_history(0);
-  int nt, NumTokens;
-  char *Tokens[50];
-  char *p;
-  int nea, neb, SameObject, Gradient, ncv;
-  double rRel, rRelRequest, DZ;
-  cdouble K;
-  cdouble GCPP[2], GradGCPP[6]; // G,C integrals by panel-panel integration
-  cdouble GCSM[2], GradGCSM[6]; // G,C integrals by spherical multipole method 
+  Request MyRequest, *R=&MyRequest;
+  cdouble GCLS[2], GradGCLS[6]; // G,C integrals by libscuff method
+  cdouble GCCM[2], GradGCCM[6]; // G,C integrals by cartesian multipole
   cdouble GCBF[2], GradGCBF[6]; // G,C integrals by brute force
+  double LSTime, CMTime;
   for(;;)
-   { 
-     /*--------------------------------------------------------------*/
-     /*- print prompt and get input string --------------------------*/
-     /*--------------------------------------------------------------*/
-     printf(" options: --nea xx \n");
-     printf("          --neb xx \n");
-     printf("          --rRel xx \n");
-     printf("          --same | --ns \n");
-     printf("          --DZ \n");
-     printf("          --kr     \n");
-     printf("          --ki     \n");
-     printf("          --gradient\n");
-     p=readline("enter options: ");
-     if (!p) break;
-     add_history(p);
-     write_history(0);
-
-     /*--------------------------------------------------------------*/
-     /* parse input string                                          -*/
-     /*--------------------------------------------------------------*/
-     NumTokens=Tokenize(p,Tokens,50);
-     nea=neb=SameObject=-1;
-     Gradient=0;
-     DZ=rRelRequest=0.0;
-     real(K) = imag(K) = INFINITY;
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--nea") )
-       sscanf(Tokens[nt+1],"%i",&nea);
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--neb") )
-       sscanf(Tokens[nt+1],"%i",&neb);
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--kr") )
-       sscanf(Tokens[nt+1],"%le",&(real(K)));
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--ki") )
-       sscanf(Tokens[nt+1],"%le",&(imag(K)));
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--same") )
-       SameObject=1;
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--DZ") )
-       sscanf(Tokens[nt+1],"%le",&DZ);
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--rRel") )
-       sscanf(Tokens[nt+1],"%le",&rRelRequest);
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--ns") )
-       SameObject=0;
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--Gradient") )
-       Gradient=1;
-     free(p);
-  
-     /*--------------------------------------------------------------*/
-     /*- if the user specified a value for rRel then try to find an -*/
-     /*- edge pair whose relative distance is within 10% of rRel    -*/
-     /*--------------------------------------------------------------*/
-     if ( rRelRequest!=0.0 )
-      { 
-        nea=lrand48() % Oa->NumEdges;
-
-        /*--------------------------------------------------------------*/
-        /*- first look on same object ----------------------------------*/
-        /*--------------------------------------------------------------*/
-        SameObject=1;
-        for(neb=0; neb<Oa->NumEdges; neb++)
-         { AssessEdgePair(Oa,nea,Oa,neb,&rRel);
-           if ( 0.9*rRelRequest<rRel && rRel<1.1*rRelRequest )
-            break;
-         };
-
-        /*--------------------------------------------------------------*/
-        /*- look on second object if that didn't work ------------------*/
-        /*--------------------------------------------------------------*/
-        if (neb==Oa->NumEdges)
-         { SameObject=0;
-           for(neb=0; neb<Ob->NumEdges; neb++)
-           { AssessEdgePair(Oa,nea,Ob,neb,&rRel);
-             if ( 0.9*rRelRequest<rRel && rRel<1.1*rRelRequest )
-              break;
-           };
-          if (neb==Ob->NumEdges)
-           { printf("\n**\n** warning: could not find an edge pair with rRel=%e\n",rRelRequest);
-             continue;
-           };
-         };
-      };
-
-     /*--------------------------------------------------------------*/
-     /* choose random values for any quantities left unspecified     */
-     /*--------------------------------------------------------------*/
-     if (SameObject==-1) SameObject=lrand48()%2;
-     if (nea==-1) nea=lrand48() % Oa->NumEdges;
-     if (neb==-1) neb=lrand48() % (SameObject ? Oa->NumEdges: Ob->NumEdges);
-
-     /*--------------------------------------------------------------*/
-     /*- if the user specified only the real or imag part of k then -*/
-     /*- assume he meant that the other part should be zero; OTOH if-*/
-     /*- he didn't specify either part then choose random values for-*/
-     /*- both parts                                                  */
-     /*--------------------------------------------------------------*/
-     if ( isinf(real(K)) && isinf(imag(K)) )
-      K=cdouble( drand48(), drand48());
-     else if ( isinf(real(K)) )
-      real(K)=0.0;
-     else if ( isinf(imag(K)) )
-      imag(K)=0.0;
+   {
+     GetRequest(R);
 
      /*--------------------------------------------------------------------*/
      /* print a little summary of the edge pair we will be considering     */
      /*--------------------------------------------------------------------*/
-     ncv=AssessEdgePair(Oa, nea, Ob, neb, &rRel);
+     //ncv=AssessEdgePair(Sa, nea, Ob, neb, &rRel);
      printf("*\n");
-     printf("* --nea %i --neb %i %s\n",
-            nea, neb, SameObject ? "--same" : "--ns");
-     printf("*  common vertices:   %i\n",ncv);
-     printf("*  relative distance: %+7.3e (DBFThreshold=10.0)\n",rRel);
-     printf("*  wavevector:        %s\n",CD2S(K));
+     printf("* --nsa %i --nea %i ",R->nsa, R->nea);
+     printf("* --nsb %i --neb %i ",R->nsb, R->neb);
+     printf("* --k %s",CD2S(R->k));
+     printf("* relative distance: %+7.3e (DBFThreshold=10.0)\n",rRel);
      if (DZ!=0.0)
       printf("*  DZ:                %e\n",DZ);
      printf("*\n\n");
@@ -275,35 +319,35 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-     Args->Oa=Oa;
-     Args->Ob=(SameObject) ? Oa : Ob;
-     Args->nea=nea;
-     Args->neb=neb;
-     Args->k=K;
-     Args->NumGradientComponents = Gradient ? 3 : 0;
+     Args->Sa                    = G->Surfaces[R->nsa];
+     Args->Sb                    = G->Surfaces[R->nsb];
+     Args->nea                   = R->nea;
+     Args->neb                   = R->neb;
+     Args->k                     = R->k;
+     Args->Displacement          = R->DX;
+     Args->NumGradientComponents = R->Gradient ? 3 : 0;
      Args->NumTorqueAxes         = 0;
 
      /*--------------------------------------------------------------------*/
+     /* get edge-edge interactions by libscuff methods                     */
      /*--------------------------------------------------------------------*/
-     /*--------------------------------------------------------------------*/
-     if ( !SameObject && DZ!=0.0 )
-      Ob->Transform("DISP 0 0 %e",DZ);
+     Tic();
+     for(int Times=0; Times<NUMTIMES; Times++)
+      GetEdgeEdgeInteractions(Args);
+     LSTime=Toc() / NUMTIMES;
+     memcpy(GCLS, Args->GC, 2*sizeof(cdouble));
+     memcpy(GradGCLS, Args->GradGC, 6*sizeof(cdouble));
 
      /*--------------------------------------------------------------------*/
-     /* get edge-edge interactions by panel-panel integration method       */
+     /* get edge-edge interactions by cartesian multipole method           */
      /*--------------------------------------------------------------------*/
-     Args->Force=EEI_FORCE_PP;
-     GetEdgeEdgeInteractions(Args);
-     memcpy(GCPP, Args->GC, 2*sizeof(cdouble));
-     memcpy(GradGCPP, Args->GradGC, 6*sizeof(cdouble));
-
-     /*--------------------------------------------------------------------*/
-     /* get edge-edge interactions by spherical multipole method           */
-     /*--------------------------------------------------------------------*/
-     Args->Force=EEI_FORCE_SM;
-     GetEdgeEdgeInteractions(Args);
-     memcpy(GCSM, Args->GC, 2*sizeof(cdouble));
-     memcpy(GradGCSM, Args->GradGC, 6*sizeof(cdouble));
+     Tic();
+     for(int Times=0; Times<NUMTIMES; Times++)
+      GetEEIs_CartesianMultipole(Args);
+     Toc();
+     CMTime=Toc() / NUMTIMES;
+     memcpy(GCCM, Args->GC, 2*sizeof(cdouble));
+     memcpy(GradGCCM, Args->GradGC, 6*sizeof(cdouble));
 
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by brute-force methods                   */
@@ -312,32 +356,37 @@ int main(int argc, char *argv[])
      memcpy(GCBF, Args->GC, 2*sizeof(cdouble));
      memcpy(GradGCBF, Args->GradGC, 6*sizeof(cdouble));
 
-     /*--------------------------------------------------------------------*/
-     /*--------------------------------------------------------------------*/
-     /*--------------------------------------------------------------------*/
-     if ( !SameObject && DZ!=0.0 )
-      Ob->UnTransform();
 
      /*--------------------------------------------------------------------*/
      /*- print results ----------------------------------------------------*/
      /*--------------------------------------------------------------------*/
+     printf("libscuff:  %e us\n",LSTime*1.0e6);
+     printf("Cartesian: %e us\n",CMTime*1.0e6);
      printf("Quantity          | %23s | %23s | %23s |%s|%s\n",
-            "     panel-panel       ", "     S multipole       ",
-            "     brute force       ", "rdPP","rdSM");
+            "     libscuff          ",
+            "     C multipole       ",
+            "     brute force       ", 
+            "rdLS",
+            "rdCM");
      printf("------------------|-%23s-|-%23s-|-%23s-|%s|%s\n", 
             "-----------------------", "-----------------------",
             "-----------------------", "----","----");
-     printf("<fa|G|fb>         | %s | %s | %s |%4.1e|%4.1e\n", CD2S(GCPP[0]), CD2S(GCSM[0]), CD2S(GCBF[0]), RD(GCPP[0],GCBF[0]), RD(GCSM[0],GCBF[0]));
-     printf("<fa|C|fb>         | %s | %s | %s |%4.1e|%4.1e\n", CD2S(GCPP[1]), CD2S(GCSM[1]), CD2S(GCBF[1]), RD(GCPP[1],GCBF[1]), RD(GCSM[1],GCBF[1]));
+     printf("<fa|G|fb>         | %s | %s | %s |%4.1e|%4.1e\n", 
+             CD2S(GCLS[0]), CD2S(GCCM[0]), CD2S(GCBF[0]), 
+             RD(GCLS[0],GCBF[0]), RD(GCCM[0],GCBF[0]));
+     printf("<fa|C|fb>         | %s | %s | %s |%4.1e|%4.1e\n", 
+             CD2S(GCLS[1]), CD2S(GCCM[1]), CD2S(GCBF[1]), 
+             RD(GCLS[1],GCBF[1]), RD(GCCM[1],GCBF[1]));
+
      if (Gradient)
       { 
          printf("\n");
-         printf("(d/dx) <fa|G|fb>  | %s | %s | %s |%4.1e|%4.1e\n", CD2S(GradGCPP[0]), CD2S(GradGCSM[0]), CD2S(GradGCBF[0]), RD(GradGCPP[0],GradGCBF[0]), RD(GradGCSM[0],GradGCBF[0]));
-         printf("(d/dy) <fa|G|fb>  | %s | %s | %s |%4.1e|%4.1e\n", CD2S(GradGCPP[2]), CD2S(GradGCSM[2]), CD2S(GradGCBF[2]), RD(GradGCPP[2],GradGCBF[2]), RD(GradGCSM[2],GradGCBF[2]));
-         printf("(d/dz) <fa|G|fb>  | %s | %s | %s |%4.1e|%4.1e\n", CD2S(GradGCPP[4]), CD2S(GradGCSM[4]), CD2S(GradGCBF[4]), RD(GradGCPP[4],GradGCBF[4]), RD(GradGCSM[4],GradGCBF[4]));
-         printf("(d/dx) <fa|C|fb>  | %s | %s | %s |%4.1e|%4.1e\n", CD2S(GradGCPP[1]), CD2S(GradGCSM[1]), CD2S(GradGCBF[1]), RD(GradGCPP[1],GradGCBF[1]), RD(GradGCSM[1],GradGCBF[1]));
-         printf("(d/dy) <fa|C|fb>  | %s | %s | %s |%4.1e|%4.1e\n", CD2S(GradGCPP[3]), CD2S(GradGCSM[3]), CD2S(GradGCBF[3]), RD(GradGCPP[3],GradGCBF[3]), RD(GradGCSM[3],GradGCBF[3]));
-         printf("(d/dz) <fa|C|fb>  | %s | %s | %s |%4.1e|%4.1e\n", CD2S(GradGCPP[5]), CD2S(GradGCSM[5]), CD2S(GradGCBF[5]), RD(GradGCPP[5],GradGCBF[5]), RD(GradGCSM[5],GradGCBF[5]));
+         printf("(d/dx) <fa|G|fb>  | %s | %s | %s |%4.1e|%4.1e\n", 
+                 CD2S(GradGCLS[0]), CD2S(GradGCCM[0]), CD2S(GradGCBF[0]), 
+                 RD(GradGCLS[0],GradGCBF[0]), RD(GradGCCM[0],GradGCBF[0]));
+         printf("(d/dx) <fa|C|fb>  | %s | %s | %s |%4.1e|%4.1e\n", 
+                 CD2S(GradGCLS[1]), CD2S(GradGCCM[1]), CD2S(GradGCBF[1]), 
+                 RD(GradGCLS[1],GradGCBF[1]), RD(GradGCCM[1],GradGCBF[1]));
       };
      printf("\n");
 
