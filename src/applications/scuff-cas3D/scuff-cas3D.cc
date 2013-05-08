@@ -272,7 +272,8 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   RWGGeometry *G = new RWGGeometry(GeoFile);
-  G->SetLogLevel(SCUFF_TERSELOGGING);
+  //G->SetLogLevel(SCUFF_TERSELOGGING);
+  G->SetLogLevel(SCUFF_VERBOSELOGGING);
 
   /***************************************************************/
   /* process frequency- and kBloch-related options               */
