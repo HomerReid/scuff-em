@@ -1014,9 +1014,28 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
    { fprintf(f,"%s ",z2s(SSD->Omega));
      for(int nc=0; nc<4; nc++)
       fprintf(f,"%e ",real(PSDMatrix->GetEntry(nr,nc)));
-     for(int nc=4; nc<PSDMatrix->NC; nc++)
+     for(int nc=4; nc<=11; nc++)
       fprintf(f,"%e %e ",real(PSDMatrix->GetEntry(nr,nc)),
                          imag(PSDMatrix->GetEntry(nr,nc)));
+     for(int nc=12; nc<=12; nc++)
+      fprintf(f,"%e ",real(PSDMatrix->GetEntry(nr,nc)));
+     fprintf(f,"\n");
+   };
+  fclose(f);
+
+
+  SSD->G->GetPanelSourceDensities2(SSD->Omega, SSD->KN, PSDMatrix); 
+
+  f=vfopen("%s.Take0","w",PSDFile);
+  for(int nr=0; nr<PSDMatrix->NR; nr++)
+   { fprintf(f,"%s ",z2s(SSD->Omega));
+     for(int nc=0; nc<4; nc++)
+      fprintf(f,"%e ",real(PSDMatrix->GetEntry(nr,nc)));
+     for(int nc=4; nc<=11; nc++)
+      fprintf(f,"%e %e ",real(PSDMatrix->GetEntry(nr,nc)),
+                         imag(PSDMatrix->GetEntry(nr,nc)));
+     for(int nc=12; nc<=12; nc++)
+      fprintf(f,"%e ",real(PSDMatrix->GetEntry(nr,nc)));
      fprintf(f,"\n");
    };
   fclose(f);

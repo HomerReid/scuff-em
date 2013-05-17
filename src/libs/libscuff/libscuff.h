@@ -346,6 +346,7 @@ class RWGGeometry
    void WriteGPMesh(const char *format, ...);
    void WriteGPMeshPlus(const char *format, ...);
    void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
+   void PlotSurfaceCurrents2(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
    void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
 
    /* routines for allocating, and then filling in, the BEM matrix */
@@ -416,6 +417,7 @@ class RWGGeometry
    cdouble GetScatteredPower(HVector *KN, cdouble Omega, char *SurfaceLabel);
 
    /* routine for calculating charge and current densities at panel centroids */
+   HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
 
    /* routine for calculating electric and magnetic dipole moments */

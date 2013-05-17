@@ -85,23 +85,39 @@ Let $\vb x$ be a point in a region $\mc R_r$. The electrostatic potential
 and field at $\vb x$ are obtained by summing contributions from
 surface charges on all surfaces bounding $\mc R_r$: 
 %====================================================================%
-\begin{align*}
+\begin{subequations}
+\begin{align}
 \phi(\vb x) 
-&= \frac{1}{4\pi\epsilon_0} 
-   \oint_{\partial \mc R_r} 
+&= \phi_r\sups{ext}(\vb x) 
+  +\frac{1}{4\pi\epsilon_0} 
+   \oint
    \frac{1}{|\vb x - \vb x^\prime|}
            \,\sigma(\vb x^\prime) \, d\vb x^\prime
 \\
 %--------------------------------------------------------------------%
 \vb E(\vb x) 
-&= \frac{1}{4\pi\epsilon_0}
-   \oint_{\partial \mc R_r} 
+&= \vb E_r\sups{ext}(\vb x)
+  +\frac{1}{4\pi\epsilon_0}
+   \oint
    \frac{(\vb x-\vb x^\prime)}
         {|\vb x - \vb x^\prime|^3}
         \,\sigma(\vb x^\prime)\,d\vb x^\prime
-\end{align*}
+\end{align}
+\label{ContinuousEquations1}
+\end{subequations}
 %====================================================================%
-where the sum is over all panels $n$ that bound the region $r$.
+where the integrals are over all surfaces in the problem\footnote{Note
+that the integrals in (\ref{ContinuousEquations1}) are over 
+\textit{all} surfaces in the problem, not just the surfaces bounding 
+the region in which the evaluation point lies. This is in contrast
+to the full-wave case, in which the corresponding surface integrals
+range only over the surfaces bounding the medium in question.}
+and where $\phi_r\sups{ext},\vb E_r\sups{ext}$ are the potential
+and field arising from external field sources lying inside
+region $\mc R_r.$\footnote{In a BEM scattering problem these 
+would be the ``incident'' fields, but in an electrostatic problem 
+the word ``incident'' doesn't quite make sense, so we call them 
+the ``external'' fields instead.}
 
 %====================================================================%
 %====================================================================%
@@ -109,8 +125,12 @@ where the sum is over all panels $n$ that bound the region $r$.
 \subsection*{Surface charge density expansion}
 
 Now imagine approximating all surfaces as unions 
-of triangular panels, 
+of flat triangular panels, 
 $$ \mc S_{s} = \cup \, \mc P_{sn}$$
+Let $P_{sn}$ have area $A_{sn}$ and surface normal
+$\vbhat{n}_{sn}$. (We will worry about the direction
+of $\vbhat{n}_{sn}$ later.)
+
 To panel $\mc P_{sn}$ we assign a scalar-valued 
 ``pulse'' basis function $b_{sn}(\vb x)$ that is 
 1 on the panel and 0 elsewhere:
@@ -122,9 +142,15 @@ $$ b_{sn}(\vb x) =
 $$
 We approximate the surface charge density on $\mc S_s$
 as an expansion in the $b_{sn}$ functions:
-$$ \sigma(\vb x) \approx \sum_n \sigma_{sn} b_{sn}(\vb x)
+$$ \frac{\sigma(\vb x)}{\epsilon_0} 
+   \approx \sum_n \sigma_{sn} b_{sn}(\vb x)
    \qquad 
    \text{for }\vb x\in \mc S_s.
+$$
+Note that my $\sigma_{sn}$ unknowns have the dimensions
+of 
+$$\frac{\text{surface charge density}}{\text{permittivity}}=
+  \frac{\text{volts}}{\text{length}}.
 $$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -135,18 +161,25 @@ $$
 
 The electrostatic potential and field at $\vb x$ are 
 %====================================================================%
-\begin{align*}
+\begin{subequations}
+\begin{align}
 \phi(\vb x) 
-&= \frac{1}{4\pi\epsilon_0} \sum_{n} \sigma_n 
-   \int_{\mc P_n} \frac{d\vb x^\prime}{|\vb x - \vb x^\prime|}
+&= \phi_r\sups{ext}(\vb x)
+   +
+   \sum_{n} \sigma_n 
+   \int_{\mc P_n} \frac{d\vb x^\prime}{4\pi |\vb x - \vb x^\prime|}
 \\
 %--------------------------------------------------------------------%
 \vb E(\vb x) 
-&= \frac{1}{4\pi\epsilon_0} \sum_{n} \sigma_n 
+&= \vb E_r\sups{ext}(\vb x)
+   +
+   \sum_{n} \sigma_n 
    \int_{\mc P_n} \frac{(\vb x-\vb x^\prime)d\vb x^\prime}
-                       {|\vb x - \vb x^\prime|^3}
-\end{align*}
-where the sum is over all panels $n$ that bound the region $r$.
+                       {4\pi |\vb x - \vb x^\prime|^3}
+\end{align}
+\label{DiscreteEquations1}
+\end{subequations}
+where the sum is over all panels on all surfaces in the problem.
 %====================================================================%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -154,23 +187,38 @@ where the sum is over all panels $n$ that bound the region $r$.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection*{Conditions on potentials and fields}
 
-At PEC panels we impose the condition that the electrostatic
+\subsubsection*{Conditions at PEC surfaces}
+
+At PEC surfaces we impose the condition that the electrostatic
 potential equal the specified potential for that conductor:
 %====================================================================%
-\begin{align*}
+\begin{align}
  \phi(\vb x) &= V_s, \qquad \text{for } \vb x \in \mc S_s.
+\nonumber
 \intertext{Galerkin-testing with the expansion functions for 
            surface $\mc S_s$, we find }
- \frac{1}{A_{sm}}
- \int_{\mc P_{sm}} \phi(\vb x) d\vb x &= V_s,
+ \int_{\mc P_{sm}} \phi(\vb x) d\vb x &= A_{sm} V_s,
  \qquad \text{for all panels $\mc P_{sm}$ on surface }\mc S_m.
-\end{align*}
-Here $A_{sm}$ is the area of $\mc P_{sm}$.
+\nonumber
+ \intertext{Inserting (\ref{DiscreteEquations1}a), this reads }
+ \sum_{n} \mathcal{I}\supt{(1)}_{mn} \sigma_n
+ &= A_{sm} V_s - \int_{\mc P_m} \phi\sups{ext}(\vb x)d\vb x
+\label{PECPanelEquation}
+\end{align}
+where
+$$ \mathcal{I}\supt{(1)}_{mn} 
+   \equiv 
+   \int_{\mc P_m} \int_{\mc P_n} 
+   \frac{1}{4\pi|\vb x - \vb x^\prime|} \, d\vb x^\prime \,d\vb x.
+$$ 
 %====================================================================%
-At non-PEC panels we impose the condition that the normal 
-electric field experience the requisite discontinuity. 
+
+\subsubsection*{Conditions at dielectric surfaces}
+
+At non-PEC surfaces we impose the condition that the normal 
+electric field exhibit the requisite discontinuity. 
 If $\vb x$ is a point on a surface $\mc S_s$ lying between
-regions $\mc R_a$ and $\mc R_b$, 
+regions $\mc R_a$ and $\mc R_b$, the condition is 
 \numeq{EFieldDiscontinuity}
 {
  \epsilon_a \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^+}
@@ -202,7 +250,7 @@ on $\mc S_s$, we find the following dichotomy:
    \left[ \frac{\sigma_m}{2} 
           + \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
             \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
-                 { |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+                 { 4\pi |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
           + \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
    \right]
 \\
@@ -211,19 +259,64 @@ on $\mc S_s$, we find the following dichotomy:
    \left[  -\frac{\sigma_m}{2} 
           + \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
             \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
-                 { |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+                 { 4\pi |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
           + \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
    \right]
 \end{align*}
 or 
-$$ \sigma_m 
+\numeq{DielectricCondition}
+{ \sigma_m 
   + \Delta_{ab}
     \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
     \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
-         { |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+         { 4\pi |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
    = -\Delta_{ab}\vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
+}
+with
+$$\Delta_{ab} = 2\frac{\epsilon_a-\epsilon_b}{\epsilon_a + \epsilon_b}.$$
+Now Galerkin-test (\ref{DielectricCondition}) with the pulse basis
+function associated with panel $m$:
+\numeq{DielectricPanelEquation}
+{
+   A_{m} \sigma_m 
+   + \Delta_{ab} \sum_{n\ne m} \mathcal{I}\sups{(2)}_{mn} \sigma_n
+   = -\Delta_{ab} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) d\vb x
+}
+where 
+$$ \mathcal{I}\supt{(2)}_{mn} 
+   \equiv 
+   \int_{\mc P_m} \int_{\mc P_n} 
+   \frac{\vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
+        {4\pi|\vb x - \vb x^\prime|^3} \, d\vb x^\prime \,d\vb x.
 $$ 
-$$\Delta_{ab} = \frac{\epsilon_a-\epsilon_b}{\epsilon_a + \epsilon_b}.$$
+
+\subsubsection*{BEM system}
+
+Assembling equations (\ref{PECPanelEquation}) for all PEC panels
+and (\ref{DielectricPanelEquation}) for all dielectric panels 
+into a big linear system, we have 
+%====================================================================%
+\numeq{BEMSystem}{ \vb M \boldsymbol{\sigma} = \vb v }
+%====================================================================%
+where the $m$th entry of the unknown vector $\sigma$ is the 
+surface charge density (divided by $\epsilon_0$) on the $m$th
+panel, and where the elements of the BEM matrix and the RHS vector are
+%====================================================================%
+\paragraph{If panel $m$ is PEC:}
+$$ M_{mn} = \mathcal{I}\sups{(1)}_{mn}, 
+   \qquad 
+   v_m = A_{m} V_s - \int_{\mc P_m} \phi\sups{ext}(\vb x) \, d\vb x
+$$
+\paragraph{If panel $m$ is dielectric:}
+$$ M_{mn} = 
+   \begin{cases} 
+     A_m, \qquad &m=n \\
+     \Delta_{ab} \mathcal{I}\sups{(2)}_{mn}, \qquad &m\ne n
+   \end{cases} 
+   \qquad 
+   v_m = -\Delta_{ab} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) \, d\vb x.
+$$
+%====================================================================%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

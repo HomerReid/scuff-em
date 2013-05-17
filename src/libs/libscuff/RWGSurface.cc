@@ -414,7 +414,8 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   for(int ne=0; ne<NumEdges; ne++)
    { RWGEdge *E = Edges[ne];
      Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
-     Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
+     if ( E->iMPanel>=0 )
+      Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
    };
 
   /*------------------------------------------------------------*/
@@ -500,7 +501,8 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   for(int ne=0; ne<NumEdges; ne++)
    { RWGEdge *E = Edges[ne];
      Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
-     Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
+     if ( E->iMPanel>=0 )
+      Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
    };
 
   /*------------------------------------------------------------*/

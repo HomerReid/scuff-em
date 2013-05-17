@@ -561,9 +561,9 @@ void RWGSurface::WriteGPMesh(const char *format, ...)
 /* distribution described by a single vector of surface-current*/
 /* expansion coefficients.                                     */
 /***************************************************************/
-void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
-                                      HVector *KN, cdouble Omega, 
-                                      const char *format, ...)
+void RWGGeometry::PlotSurfaceCurrents2(const char *SurfaceLabel,
+                                       HVector *KN, cdouble Omega, 
+                                       const char *format, ...)
 { 
   int ns, np, ne;
   FILE *f;
@@ -785,8 +785,201 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
 }
 
 /***************************************************************/
+/* Emit GMSH postprocessing code for visualizing the current   */
+/* distribution described by a single vector of surface-current*/
+/* expansion coefficients.                                     */
+/***************************************************************/
+void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
+                                      HVector *KN, cdouble Omega, 
+                                      const char *format, ...)
+{ 
+ 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  va_list ap;
+  char FileName[MAXSTR];
+  va_start(ap,format);
+  vsnprintfEC(FileName,MAXSTR,format,ap);
+  va_end(ap);
+  FILE *f=fopen(FileName,"w");
+  if (!f) return;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  static HMatrix *PSD=0 ; 
+  if (PSD==0)
+   PSD=GetPanelSourceDensities(Omega, KN, 0);
+  else
+   PSD=GetPanelSourceDensities(Omega, KN, PSD);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  RWGSurface *WhichSurface=NULL;
+  if (SurfaceLabel)
+   WhichSurface=GetSurfaceByLabel(SurfaceLabel);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","Electric Charge Density");
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     RWGSurface *S=Surfaces[ns];
+     int Offset = PanelIndexOffset[ns];
+     if (WhichSurface && S!=WhichSurface)
+      continue;
+
+     for(int np=0; np<S->NumPanels; np++)
+      { 
+        RWGPanel *P=S->Panels[np];
+        double *PV[3];
+        PV[0]=S->Vertices + 3*P->VI[0];
+        PV[1]=S->Vertices + 3*P->VI[1];
+        PV[2]=S->Vertices + 3*P->VI[2];
+        cdouble Sigma=PSD->GetEntry( Offset + np, 7);
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   PV[0][0], PV[0][1], PV[0][2],
+                   PV[1][0], PV[1][1], PV[1][2],
+                   PV[2][0], PV[2][1], PV[2][2],
+                   real(Sigma),real(Sigma),real(Sigma));
+      };
+   }; 
+  fprintf(f,"};\n");
+
+  /***************************************************************/
+  /* plot electric current densities at centroids of all panels  */
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","Electric Current");
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     RWGSurface *S=Surfaces[ns];
+     int Offset = PanelIndexOffset[ns];
+     if (WhichSurface && S!=WhichSurface) 
+      continue;
+
+     for(int np=0; np<S->NumPanels; np++)
+      { RWGPanel *P=S->Panels[np];
+        cdouble Kx = PSD->GetEntry(Offset + np, 4);
+        cdouble Ky = PSD->GetEntry(Offset + np, 5);
+        cdouble Kz = PSD->GetEntry(Offset + np, 6);
+        fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
+                   P->Centroid[0],P->Centroid[1],P->Centroid[2],
+                   real(Kx), real(Ky), real(Kz));
+      };
+   };
+  fprintf(f,"};\n");
+
+  /***************************************************************/
+  /* we only need magnetic charge/current displays iff any       */
+  /* object is non-PEC                                           */
+  /***************************************************************/
+  bool NeedMagnetic=false;
+  for(int ns=0; !NeedMagnetic && ns<NumSurfaces; ns++)
+   { 
+     RWGSurface *S=Surfaces[ns];
+     if (WhichSurface && S!=WhichSurface)
+      continue;
+     if ( S->IsPEC )
+      continue;
+     NeedMagnetic=true;
+   };
+
+  if (!NeedMagnetic)
+   { fclose(f); 
+     return;
+   };
+
+  /***************************************************************/
+  /* plot magnetic charge densities at centroids of all panels   */
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","Magnetic Charge Density");
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     RWGSurface *S=Surfaces[ns];
+     int Offset = PanelIndexOffset[ns];
+     if (WhichSurface && S!=WhichSurface)
+      continue;
+
+     for(int np=0; np<S->NumPanels; np++)
+      { 
+        RWGPanel *P=S->Panels[np];
+        double *PV[3];
+        PV[0]=S->Vertices + 3*P->VI[0];
+        PV[1]=S->Vertices + 3*P->VI[1];
+        PV[2]=S->Vertices + 3*P->VI[2];
+        cdouble Eta=PSD->GetEntry( Offset + np, 11);
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   PV[0][0], PV[0][1], PV[0][2],
+                   PV[1][0], PV[1][1], PV[1][2],
+                   PV[2][0], PV[2][1], PV[2][2],
+                   real(Eta),real(Eta),real(Eta));
+      };
+   }; 
+  fprintf(f,"};\n");
+
+  /***************************************************************/
+  /* plot magnetic current densities at centroids of all panels  */
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","Magnetic Current");
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     RWGSurface *S=Surfaces[ns];
+     int Offset = PanelIndexOffset[ns];
+     if (WhichSurface && S!=WhichSurface) 
+      continue;
+
+     for(int np=0; np<S->NumPanels; np++)
+      { RWGPanel *P=S->Panels[np];
+        cdouble Nx = PSD->GetEntry(Offset + np,  8);
+        cdouble Ny = PSD->GetEntry(Offset + np,  9);
+        cdouble Nz = PSD->GetEntry(Offset + np, 10);
+        fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
+                   P->Centroid[0],P->Centroid[1],P->Centroid[2],
+                   real(Nx), real(Ny), real(Nz));
+      };
+   };
+  fprintf(f,"};\n");
+
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","Normal Poynting Flux");
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     RWGSurface *S=Surfaces[ns];
+     int Offset = PanelIndexOffset[ns];
+     if (WhichSurface && S!=WhichSurface)
+      continue;
+
+     for(int np=0; np<S->NumPanels; np++)
+      { 
+        RWGPanel *P=S->Panels[np];
+        double *PV[3];
+        PV[0]=S->Vertices + 3*P->VI[0];
+        PV[1]=S->Vertices + 3*P->VI[1];
+        PV[2]=S->Vertices + 3*P->VI[2];
+        double IDNPF=PSD->GetEntryD( Offset + np, 12);
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   PV[0][0], PV[0][1], PV[0][2],
+                   PV[1][0], PV[1][1], PV[1][2],
+                   PV[2][0], PV[2][1], PV[2][2],
+                   IDNPF,IDNPF,IDNPF);
+      };
+   }; 
+  fprintf(f,"};\n");
+
+
+  fclose(f);
+
+}
+
+/***************************************************************/
 /* an alternative entry point to PlotSurfaceCurrents in which  */
-/* the called doesn't specify a surface label; in this case    */
+/* the caller doesn't specify a surface label; in this case    */
 /* currents on all surfaces are plotted.                       */
 /***************************************************************/
 void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, 

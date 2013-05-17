@@ -72,7 +72,7 @@ namespace scuff {
 #define OVERLAP_RXNABLANABLA_Z   18
 #define OVERLAP_RXTIMESNABLA_Z   19
 
-#define NUMOVERLAPS 19
+#define NUMOVERLAPS 20
 
 /***************************************************************/
 /* this is a helper function for GetOverlaps that computes the */
@@ -575,13 +575,14 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
         cdouble GZ;
         if (S->SurfaceSigmaMP)
          { GZ=S->SurfaceSigmaMP->GetEps(Omega);
-Log("Running Surface-Conductivity power calculation (GZ=%s)",CD2S(GZ));
+           if (neAlpha==0 && neBeta==0) 
+            Log("Running Surface-Conductivity power calculation (GZ=%s)",CD2S(GZ));
          }
         else if ( S->SurfaceSigma )
          { SSParmValues[1] = S->Edges[neAlpha]->Centroid[0];
            SSParmValues[2] = S->Edges[neAlpha]->Centroid[1];
            SSParmValues[3] = S->Edges[neAlpha]->Centroid[2];
-           cdouble GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
+           GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
          };
         GZ*=ZVAC;
         PFT[0] += 0.5*real( conj(KAlpha)*KBeta * Overlaps[OVERLAP_OVERLAP] / GZ);
