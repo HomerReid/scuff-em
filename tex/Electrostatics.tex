@@ -1,0 +1,233 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Pure Electrostatics in \ls}
+\author {Homer Reid}
+\date {May 17, 2013}
+
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Electrostatics in \ls}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Theory}
+
+As in the usual \ls, we imagine geometries to consist
+of homogeneous regions $\{\mc R_r\}$. Homogeneous region 
+$\{\mc R_r\}$ has relative dielectric permittivity 
+$\epsilon_r.$ 
+
+The boundary of $\mc R_r$ is denoted $\partial \mc R_r$; 
+it may consist of a single closed surface or a union of
+surfaces, each of which may be individually open.
+Thus we write 
+%====================================================================%
+\numeq{RrSs} { \partial \mc R_r = \cup \, \mathcal{S}_s }
+%====================================================================%
+Each surface $\mc S_s$ bounds precisely two regions; 
+thus $\mc S_s$ appears on the RHS of equation (\ref{RrSs})
+for two different values of $r$. 
+
+On each surface lives a surface charge density 
+$\sigma(\vb x)$.
+
+Surface $\mc S_s$ may optionally be PEC, in which case it
+must be assigned a fixed potential $V_s$ before the problem
+can be solved. Physically, a PEC surface corresponds to
+an infinitesimally thin conducting layer at the interface
+between two dielectric regions, and the surface charge
+on such a surface represents free charges supplied to the
+surface by whatever batteries initially charged them up to
+their specified  potentials $V_s.$
+
+On the other hand, a non-PEC surface simply desribes the 
+interface between two dielectric regions, and the 
+surface charge on such a surface represents the divergence
+of the bound volume polarization density in the dielectric  
+region. Among other things, this means that the total
+surface charge integrated over the boundary of a dielectric
+region must vanish. There is no such constraint on 
+the total surface charge on PEC surfaces.
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\subsection*{Potentials and fields from charge densities: 
+             continuous forms} 
+
+Let $\vb x$ be a point in a region $\mc R_r$. The electrostatic potential 
+and field at $\vb x$ are obtained by summing contributions from
+surface charges on all surfaces bounding $\mc R_r$: 
+%====================================================================%
+\begin{align*}
+\phi(\vb x) 
+&= \frac{1}{4\pi\epsilon_0} 
+   \oint_{\partial \mc R_r} 
+   \frac{1}{|\vb x - \vb x^\prime|}
+           \,\sigma(\vb x^\prime) \, d\vb x^\prime
+\\
+%--------------------------------------------------------------------%
+\vb E(\vb x) 
+&= \frac{1}{4\pi\epsilon_0}
+   \oint_{\partial \mc R_r} 
+   \frac{(\vb x-\vb x^\prime)}
+        {|\vb x - \vb x^\prime|^3}
+        \,\sigma(\vb x^\prime)\,d\vb x^\prime
+\end{align*}
+%====================================================================%
+where the sum is over all panels $n$ that bound the region $r$.
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\subsection*{Surface charge density expansion}
+
+Now imagine approximating all surfaces as unions 
+of triangular panels, 
+$$ \mc S_{s} = \cup \, \mc P_{sn}$$
+To panel $\mc P_{sn}$ we assign a scalar-valued 
+``pulse'' basis function $b_{sn}(\vb x)$ that is 
+1 on the panel and 0 elsewhere:
+$$ b_{sn}(\vb x) = 
+   \begin{cases}
+    1, \qquad &\vb x \in \mc P_{sn} \\
+    0, \qquad &\text{otherwise}.
+  \end{cases}
+$$
+We approximate the surface charge density on $\mc S_s$
+as an expansion in the $b_{sn}$ functions:
+$$ \sigma(\vb x) \approx \sum_n \sigma_{sn} b_{sn}(\vb x)
+   \qquad 
+   \text{for }\vb x\in \mc S_s.
+$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Potentials and fields from charge densities: 
+             discretized forms} 
+
+The electrostatic potential and field at $\vb x$ are 
+%====================================================================%
+\begin{align*}
+\phi(\vb x) 
+&= \frac{1}{4\pi\epsilon_0} \sum_{n} \sigma_n 
+   \int_{\mc P_n} \frac{d\vb x^\prime}{|\vb x - \vb x^\prime|}
+\\
+%--------------------------------------------------------------------%
+\vb E(\vb x) 
+&= \frac{1}{4\pi\epsilon_0} \sum_{n} \sigma_n 
+   \int_{\mc P_n} \frac{(\vb x-\vb x^\prime)d\vb x^\prime}
+                       {|\vb x - \vb x^\prime|^3}
+\end{align*}
+where the sum is over all panels $n$ that bound the region $r$.
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Conditions on potentials and fields}
+
+At PEC panels we impose the condition that the electrostatic
+potential equal the specified potential for that conductor:
+%====================================================================%
+\begin{align*}
+ \phi(\vb x) &= V_s, \qquad \text{for } \vb x \in \mc S_s.
+\intertext{Galerkin-testing with the expansion functions for 
+           surface $\mc S_s$, we find }
+ \frac{1}{A_{sm}}
+ \int_{\mc P_{sm}} \phi(\vb x) d\vb x &= V_s,
+ \qquad \text{for all panels $\mc P_{sm}$ on surface }\mc S_m.
+\end{align*}
+Here $A_{sm}$ is the area of $\mc P_{sm}$.
+%====================================================================%
+At non-PEC panels we impose the condition that the normal 
+electric field experience the requisite discontinuity. 
+If $\vb x$ is a point on a surface $\mc S_s$ lying between
+regions $\mc R_a$ and $\mc R_b$, 
+\numeq{EFieldDiscontinuity}
+{
+ \epsilon_a \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^+}
+=
+ \epsilon_b \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^-}
+}
+where $\vbhat{n}$ is the surface normal pointing 
+away from $\mc R_b$ into $\mc R_a$, and 
+where $x^+$ and $x^-$ are points lying
+infinitesimally displaced from $\vb x$ along
+$\vbhat{n}$ into $\mc R_a$ and $\mc R_b$.
+
+When we seek to enforce condition (\ref{EFieldDiscontinuity}) 
+at a point $\vb x$ lying within a panel $\mc P_{sm}$
+on $\mc S_s$, we find the following dichotomy:
+%====================================================================%
+\begin{enumerate}
+  \item Surface charges on $\mc P_{sm}$ contribute to 
+        the two sides of (\ref{EFieldDiscontinuity})
+        with \textit{opposite} signs.
+  \item Surface charges on all other panels, as well as the 
+        external field soures, contribute
+        to the two sides of (\ref{EFieldDiscontinuity})
+        with the \textit{same} sign.
+\end{enumerate}
+%====================================================================%
+\begin{align*}
+&\epsilon_a 
+   \left[ \frac{\sigma_m}{2} 
+          + \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
+            \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
+                 { |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+          + \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
+   \right]
+\\
+&\qquad
+=\epsilon_b 
+   \left[  -\frac{\sigma_m}{2} 
+          + \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
+            \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
+                 { |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+          + \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
+   \right]
+\end{align*}
+or 
+$$ \sigma_m 
+  + \Delta_{ab}
+    \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
+    \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
+         { |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+   = -\Delta_{ab}\vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
+$$ 
+$$\Delta_{ab} = \frac{\epsilon_a-\epsilon_b}{\epsilon_a + \epsilon_b}.$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\end{document}
