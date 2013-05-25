@@ -301,11 +301,13 @@ void GPPCIntegrand(unsigned ndim, const double *uv, void *params,
    double *A1     = Data->A1;
    double *B1     = Data->B1;
    double Area1   = Data->Area1;
+   int NumContributingEdges1 = Data->NumContributingEdges1;
 
    double *V02    = Data->V02;
    double *A2     = Data->A2;
    double *B2     = Data->B2;
    double Area2   = Data->Area2;
+   int NumContributingEdges2 = Data->NumContributingEdges2;
 
    /*--------------------------------------------------------------*/
    /*- get the evaluation points from the standard-triangle coords */
@@ -521,7 +523,6 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
         Data->NumContributingEdges2++;
       };
    };
- 
  
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

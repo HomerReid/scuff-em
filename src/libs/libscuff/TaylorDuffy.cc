@@ -155,6 +155,7 @@ void TaylorDuffySum(unsigned ndim, const double *yVector, void *parms,
 
      // add contributions of all subregions and all n-values 
      Sum[npk]=0.0;
+
      if (TwiceIntegrable)
       for(int n=nMin; n<=nMax; n++)
        for(int d=0; d<NumRegions; d++)
@@ -1031,7 +1032,7 @@ void GetScriptP(TMWorkspace *TMW, int WhichP, const double *yVector,
       case TM_DOTPLUS: ScriptP_DotPlus(yVector, TMW, nMin, nMax, P); break;
       case TM_CROSS:   ScriptP_Cross(yVector, TMW, nMin, nMax, P); break;
     };
-  
+
 }
 
 /***************************************************************/
