@@ -301,11 +301,13 @@ void GPPCIntegrand(unsigned ndim, const double *uv, void *params,
    double *A1     = Data->A1;
    double *B1     = Data->B1;
    double Area1   = Data->Area1;
+   int NumContributingEdges1 = Data->NumContributingEdges1;
 
    double *V02    = Data->V02;
    double *A2     = Data->A2;
    double *B2     = Data->B2;
    double Area2   = Data->Area2;
+   int NumContributingEdges2 = Data->NumContributingEdges2;
 
    /*--------------------------------------------------------------*/
    /*- get the evaluation points from the standard-triangle coords */
@@ -459,12 +461,13 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
   double Sign;
   Data->NumContributingEdges1 = 0;
   if (!KN && (0<=iQ1 && iQ1<=2) ) // single unit-strength basis function contributes
-   { Sign=BFSign1;
-     Data->KAlpha1[0]    = 1.0; 
-     Data->NAlpha1[0]    = 0.0;
-     Data->Q1[0]         = S1->Vertices + 3*(P1->VI[iQ1]);
-     Data->RWGPreFac1[0] = Sign*S1->Edges[P1->EI[iQ1]]->Length / (2.0*P1->Area);
-     Data->NumContributingEdges1++;
+   { 
+     Sign=BFSign1;
+     Data->NumContributingEdges1 = 1;
+     Data->KAlpha1[0]            = 1.0; 
+     Data->NAlpha1[0]            = 0.0;
+     Data->Q1[0]                 = S1->Vertices + 3*(P1->VI[iQ1]);
+     Data->RWGPreFac1[0]         = Sign*S1->Edges[P1->EI[iQ1]]->Length / (2.0*P1->Area);
    }
   else // up to three basis functions contribute 
    { 
@@ -495,12 +498,13 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
   Offset = G->BFIndexOffset[ns2];
   Data->NumContributingEdges2 = 0;
   if (!KN && (0<=iQ2 && iQ2<=2) ) // single unit-strength basis function contributes
-   { Sign=BFSign2;
-     Data->KAlpha2[0]    = 1.0; 
-     Data->NAlpha2[0]    = 0.0;
-     Data->Q2[0]         = S2->Vertices + 3*(P2->VI[iQ1]);
-     Data->RWGPreFac2[0] = Sign*S2->Edges[P2->EI[iQ1]]->Length / (2.0*P2->Area);
-     Data->NumContributingEdges2++;
+   {
+     Sign=BFSign2;
+     Data->NumContributingEdges2 = 1;
+     Data->KAlpha2[0]            = 1.0; 
+     Data->NAlpha2[0]            = 0.0;
+     Data->Q2[0]                 = S2->Vertices + 3*(P2->VI[iQ2]);
+     Data->RWGPreFac2[0]         = Sign*S2->Edges[P2->EI[iQ2]]->Length / (2.0*P2->Area);
    }
   else // up to three basis functions contribute 
    { 
@@ -521,7 +525,6 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
         Data->NumContributingEdges2++;
       };
    };
- 
  
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

@@ -1042,7 +1042,7 @@ void GetScriptP(TMWorkspace *TMW, int WhichP, const double *yVector,
       case TM_DOTPLUS: ScriptP_DotPlus(yVector, TMW, nMin, nMax, P); break;
       case TM_CROSS:   ScriptP_Cross(yVector, TMW, nMin, nMax, P); break;
     };
-  
+
 }
 
 /***************************************************************/

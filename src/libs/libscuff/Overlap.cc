@@ -143,7 +143,6 @@ void AddOverlapContributions(RWGSurface *S, RWGPanel *P, int iQa, int iQb,
 
 }
 
-
 /***************************************************************/
 /* entries of output array:                                    */
 /*                                                             */
