@@ -117,41 +117,50 @@ and field arising from external field sources lying inside
 region $\mc R_r.$\footnote{In a BEM scattering problem these 
 would be the ``incident'' fields, but in an electrostatic problem 
 the word ``incident'' doesn't quite make sense, so we call them 
-the ``external'' fields instead.}
+the ``external'' fields instead.} 
+
+Note that equations (\ref{ContinuousEquations1}) do \textit{not}
+involve the dielectric constants of the various regions. Instead,
+surface charges on all surfaces contribute to the potential as
+they would in vacuum.
 
 %====================================================================%
 %====================================================================%
 %====================================================================%
 \subsection*{Surface charge density expansion}
 
-Now imagine approximating all surfaces as unions 
-of flat triangular panels, 
-$$ \mc S_{s} = \cup \, \mc P_{sn}$$
-Let $P_{sn}$ have area $A_{sn}$ and surface normal
-$\vbhat{n}_{sn}$. (We will worry about the direction
-of $\vbhat{n}_{sn}$ later.)
+Now imagine approximating surface $\mc S_s$ as the union
+of $N_s\supt{P}$ flat triangular panels, 
+$$ \mc S_{s} = \cup \, \mc P_{sa}$$
+where $a=1,\cdots,N_s\supt{P}$.
+Let $P_{sa}$ have area $A_{sa}$ and surface normal
+$\vbhat{n}_{sa}$. (We will worry about the direction
+of $\vbhat{n}_{sa}$ later.)
 
-To panel $\mc P_{sn}$ we assign a scalar-valued 
-``pulse'' basis function $b_{sn}(\vb x)$ that is 
+To panel $\mc P_{sa}$ we assign a scalar-valued 
+``pulse'' basis function $b_{sa}(\vb x)$ that is 
 1 on the panel and 0 elsewhere:
-$$ b_{sn}(\vb x) = 
+$$ b_{sa}(\vb x) = 
    \begin{cases}
-    1, \qquad &\vb x \in \mc P_{sn} \\
+    1, \qquad &\vb x \in \mc P_{sa} \\
     0, \qquad &\text{otherwise}.
   \end{cases}
 $$
 We approximate the surface charge density on $\mc S_s$
-as an expansion in the $b_{sn}$ functions:
+as an expansion in the $b_{sa}$ functions:
 $$ \frac{\sigma(\vb x)}{\epsilon_0} 
-   \approx \sum_n \sigma_{sn} b_{sn}(\vb x)
+   \approx \sum_{a=1}^{N_s\supt{P}} \sigma_{sa} b_{sa}(\vb x)
    \qquad 
    \text{for }\vb x\in \mc S_s.
 $$
-Note that my $\sigma_{sn}$ unknowns have the dimensions
+Note that my $\sigma_{sa}$ unknowns have the dimensions
 of 
 $$\frac{\text{surface charge density}}{\text{permittivity}}=
   \frac{\text{volts}}{\text{length}}.
 $$
+In what follows, I will frequently use the collective
+subscript $n=(sa)$ with $\sum_n=\sum_s \sum_a$, i.e.
+a sum over $n$ runs over all panels on all surfaces.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -197,15 +206,16 @@ potential equal the specified potential for that conductor:
 \nonumber
 \intertext{Galerkin-testing with the expansion functions for 
            surface $\mc S_s$, we find }
- \int_{\mc P_{sm}} \phi(\vb x) d\vb x &= A_{sm} V_s,
- \qquad \text{for all panels $\mc P_{sm}$ on surface }\mc S_m.
+ \int_{\mc P_{sa}} \phi(\vb x) d\vb x &= A_{sa} V_s,
+ \qquad \text{for all panels $\mc P_{sa}$ on surface }\mc S_s.
 \nonumber
  \intertext{Inserting (\ref{DiscreteEquations1}a), this reads }
  \sum_{n} \mathcal{I}\supt{(1)}_{mn} \sigma_n
- &= A_{sm} V_s - \int_{\mc P_m} \phi\sups{ext}(\vb x)d\vb x
+ &= A_{m} V_m - \int_{\mc P_m} \phi\sups{ext}(\vb x)d\vb x
 \label{PECPanelEquation}
 \end{align}
-where
+where $V_m$ is the potential at which the conducting surface
+containing panel $\mc P_m$ is held and
 $$ \mathcal{I}\supt{(1)}_{mn} 
    \equiv 
    \int_{\mc P_m} \int_{\mc P_n} 
@@ -218,25 +228,25 @@ $$
 At non-PEC surfaces we impose the condition that the normal 
 electric field exhibit the requisite discontinuity. 
 If $\vb x$ is a point on a surface $\mc S_s$ lying between
-regions $\mc R_a$ and $\mc R_b$, the condition is 
+regions $\mc R_r$ and $\mc R_{r^\prime}$, the condition is 
 \numeq{EFieldDiscontinuity}
 {
- \epsilon_a \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^+}
+ \epsilon_r \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^+}
 =
- \epsilon_b \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^-}
+ \epsilon_{r^\prime} \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^-}
 }
 where $\vbhat{n}$ is the surface normal pointing 
-away from $\mc R_b$ into $\mc R_a$, and 
+away from $\mc R_r$ into $\mc R_{r^\prime}$, and
 where $x^+$ and $x^-$ are points lying
 infinitesimally displaced from $\vb x$ along
-$\vbhat{n}$ into $\mc R_a$ and $\mc R_b$.
+$\vbhat{n}$ into $\mc R_r$ and $\mc R_{r^\prime}$.
 
 When we seek to enforce condition (\ref{EFieldDiscontinuity}) 
-at a point $\vb x$ lying within a panel $\mc P_{sm}$
+at a point $\vb x$ lying within a panel $\mc P_{sa}$
 on $\mc S_s$, we find the following dichotomy:
 %====================================================================%
 \begin{enumerate}
-  \item Surface charges on $\mc P_{sm}$ contribute to 
+  \item Surface charges on $\mc P_{sa}$ contribute to 
         the two sides of (\ref{EFieldDiscontinuity})
         with \textit{opposite} signs.
   \item Surface charges on all other panels, as well as the 
@@ -244,9 +254,11 @@ on $\mc S_s$, we find the following dichotomy:
         to the two sides of (\ref{EFieldDiscontinuity})
         with the \textit{same} sign.
 \end{enumerate}
+Equation (\ref{EFieldDiscontinuity}) thus reads, for a 
+point $\vb x$ on $\mc P_m$,
 %====================================================================%
 \begin{align*}
-&\epsilon_a 
+&\epsilon_r 
    \left[ \frac{\sigma_m}{2} 
           + \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
             \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
@@ -255,7 +267,7 @@ on $\mc S_s$, we find the following dichotomy:
    \right]
 \\
 &\qquad
-=\epsilon_b 
+=\epsilon_{r^\prime}
    \left[  -\frac{\sigma_m}{2} 
           + \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
             \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
@@ -266,21 +278,22 @@ on $\mc S_s$, we find the following dichotomy:
 or 
 \numeq{DielectricCondition}
 { \sigma_m 
-  + \Delta_{ab}
+  + \Delta_{rr^\prime}
     \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
     \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
          { 4\pi |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
-   = -\Delta_{ab}\vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
+   = -\Delta_{rr^\prime}\vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
 }
 with
-$$\Delta_{ab} = 2\frac{\epsilon_a-\epsilon_b}{\epsilon_a + \epsilon_b}.$$
+\numeq{DeltaDef}
+{\Delta_{rr^\prime} = 2\frac{\epsilon_r-\epsilon_r^\prime}{\epsilon_r + \epsilon_r^\prime}.}
 Now Galerkin-test (\ref{DielectricCondition}) with the pulse basis
 function associated with panel $m$:
 \numeq{DielectricPanelEquation}
 {
    A_{m} \sigma_m 
-   + \Delta_{ab} \sum_{n\ne m} \mathcal{I}\sups{(2)}_{mn} \sigma_n
-   = -\Delta_{ab} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) d\vb x
+   + \Delta_{rr^\prime} \sum_{n\ne m} \mathcal{I}\sups{(2)}_{mn} \sigma_n
+   = -\Delta_{rr^\prime} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) d\vb x
 }
 where 
 $$ \mathcal{I}\supt{(2)}_{mn} 
@@ -303,20 +316,30 @@ surface charge density (divided by $\epsilon_0$) on the $m$th
 panel, and where the elements of the BEM matrix and the RHS vector are
 %====================================================================%
 \paragraph{If panel $m$ is PEC:}
-$$ M_{mn} = \mathcal{I}\sups{(1)}_{mn}, 
-   \qquad 
-   v_m = A_{m} V_s - \int_{\mc P_m} \phi\sups{ext}(\vb x) \, d\vb x
+$$
+  M_{mn} = \mathcal{I}\sups{(1)}_{mn}, 
+   \hspace{1.2in}
+   v_m = A_{m} V_m - \int_{\mc P_m} \phi\sups{ext}(\vb x) \, d\vb x
 $$
 \paragraph{If panel $m$ is dielectric:}
 $$ M_{mn} = 
    \begin{cases} 
      A_m, \qquad &m=n \\
-     \Delta_{ab} \mathcal{I}\sups{(2)}_{mn}, \qquad &m\ne n
+     \Delta_{rr^\prime} \mathcal{I}\sups{(2)}_{mn}, \qquad &m\ne n
    \end{cases} 
    \qquad 
-   v_m = -\Delta_{ab} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) \, d\vb x.
+   v_m = -\Delta_{rr^\prime} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) \, d\vb x.
 $$
 %====================================================================%
+In these equations, 
+\begin{itemize}
+ \item $V_m$ denotes the potential at which the conducting surface
+       containing panel $\mc P_m$ is held.
+ \item $\Delta_{rr^\prime}$ is quantity (\ref{DeltaDef}) with $\epsilon_r$
+       and $\epsilon_{r^\prime}$ the permittivities of the regions 
+       \textit{exterior} and \textit{interior} to the surface containing
+       $\mc P_m,$ respectively.
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
