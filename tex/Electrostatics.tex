@@ -321,6 +321,71 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Fields of individual panels}
 
+\begin{align*}
+ \phi(\vb x) &= \sum_n \sigma_n \mathbb{P}_n(\vb x) \\
+ \vb E(\vb x) &= \sum_n \sigma_n \mathbb{E}_n(\vb x) \\
+\end{align*}
+
+$$ \vb x^\prime = V_0 + u\vb A + v\vb B $$
+%====================================================================%
+$$ \vb x - \vb x^\prime = u\vb A + v\vb B + (\vb V_0 - \vb x) $$
+%====================================================================%
+$$ |\vb x - \vb x^\prime|^2 = 
+    C_{20} u^2 + C_{11} uv + C_{02} v^2 + 
+    C_{10} u + C_{01} v + C_{00}
+$$
+%====================================================================%
+$$
+\begin{array}{cclcccl}
+  C_{20} &=& |\vb A|^2 
+  &\qquad &
+  C_{02} &=& |\vb B|^2 
+\\
+  C_{11} &=& 2\vb A \cdot \vb B
+  &\qquad &
+  C_{10} &=& 2\vb A \cdot (\vb V_0-\vb x)
+\\
+  C_{01} &=& 2\vb B \cdot (\vb V_0-\vb x)
+  &\qquad &
+  C_{00} &=& |\vb V_0-\vb x|^2
+\end{array}
+$$
+%====================================================================%
+It is convenient to write the distance between points in the form
+$$ |\vb x - \vb x^\prime|^2 =
+    C_{02} \Big[ (v+v_0)^2 + \xi^2 \Big]
+$$
+where
+$$ v_0=\frac{1}{2}\big(C_{11}^\prime u + C_{01}^\prime\big), 
+   \qquad
+   \xi^2 = \Big[ C_{20}^\prime - \frac{1}{4}C_{11}^{\prime 2} \Big]u^2
+          +\Big[ C_{10}^\prime - \frac{1}{2}C_{11}^{\prime}C_{01}^\prime\Big]u
+          +\Big[ C_{00}^\prime - \frac{1}{4}C_{01}^{\prime 2}\Big]
+$$
+with the shorthand
+$$C_{ij}^\prime = \frac{C_{ij}}{C_{02}}.$$
+Then we have
+%====================================================================%
+%====================================================================%
+\begin{align*}
+ \mathbb{P}_n(\vb x) &= 
+ \int_{\mc P_n} \frac{d\vb x^\prime}{|\vb x-\vb x^\prime|}
+\\
+&=
+ \int_0^1 du \, \int_0^u \, dv 
+    \frac{1}
+         {\sqrt{ C_{20}u^2 + C_{11}uv + C_{02}v^2 + C_{10}u + C_{01}v + C_{00}}}
+\intertext{Substitute $v=u\alpha, dv=ud\alpha:$}
+&=
+ \int_0^1 du \, \int_0^1 \, d\alpha
+    \frac{u}
+         {\sqrt{  \Big(C_{20}+C_{11}\alpha+C_{02}\alpha^2\Big)u^2
+                 +\Big(C_{10}+C_{01}\alpha\Big)u + C_{00}}} 
+\intertext{Evaluate the $u$ integral:}
+ \int_0^1 du \, \int_0^u \, dv 
+\end{align*}
+%====================================================================%
 
 \end{document}
