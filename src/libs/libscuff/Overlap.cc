@@ -583,7 +583,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
            SSParmValues[3] = S->Edges[neAlpha]->Centroid[2];
            GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
          };
-        GZ*=ZVAC;
+        //GZ*=ZVAC;
         PFT[0] += 0.5*real( conj(KAlpha)*KBeta * Overlaps[OVERLAP_OVERLAP] / GZ);
       }
      else
