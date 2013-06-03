@@ -46,7 +46,6 @@ typedef struct SSData
    double *kBloch;
    IncField *IF;
    double PowerRadius;
-   bool OldPFT;
  } SSData;
  
 
@@ -54,8 +53,6 @@ typedef struct SSData
 /* these are the 'output modules' that compute and process the */
 /* scattered fields in various ways.                           */
 /***************************************************************/
-//void GetPower(SSData *SSD, char *PowerFile);
-//void GetForce(SSData *SSD, char *ForceFile);
 void WritePFTFile(SSData *SSD, char *PFTFile);
 void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);

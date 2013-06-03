@@ -114,12 +114,11 @@ EpsSiC[w_]:=Module[
 
 EpsConst[w_] := 10+10*I;
 
-
 (***********************************************************************)
 (* main body of the mathematica script *********************************)
 (***********************************************************************)
-F=OpenWrite["SiC.mie", PageWidth->Infinity, FormatType->OutputForm];
-Eps[w_]:=EpsSiC[w];
+F=OpenWrite["Gold.mie", PageWidth->Infinity, FormatType->OutputForm];
+Eps[w_]:=EpsGold[w];
 
 DX=Exp[Log[10]/20.0];
 For[

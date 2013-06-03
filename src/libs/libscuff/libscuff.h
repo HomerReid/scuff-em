@@ -410,11 +410,9 @@ class RWGGeometry
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, int SurfaceIndex, double PFT[8]);
    void GetPFT(HVector *KN, HVector *RHS, cdouble Omega, char *SurfaceLabel, double PFT[8]);
 
-   void GetPFT2(HVector *KN, HVector *RHS, cdouble Omega, int SurfaceIndex, double PFT[8]);
-
    /* routine for computing scattered power */
-   cdouble GetScatteredPower(HVector *KN, cdouble Omega, int SurfaceIndex);
-   cdouble GetScatteredPower(HVector *KN, cdouble Omega, char *SurfaceLabel);
+   double GetScatteredPower(HVector *KN, cdouble Omega, int SurfaceIndex);
+   double GetScatteredPower(HVector *KN, cdouble Omega, char *SurfaceLabel);
 
    /* routine for calculating charge and current densities at panel centroids */
    HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);
