@@ -155,6 +155,7 @@ void TaylorDuffySum(unsigned ndim, const double *yVector, void *parms,
 
      // add contributions of all subregions and all n-values 
      Sum[npk]=0.0;
+#if 0
      if (TwiceIntegrable)
       for(int n=nMin; n<=nMax; n++)
        for(int d=0; d<NumRegions; d++)
@@ -162,6 +163,16 @@ void TaylorDuffySum(unsigned ndim, const double *yVector, void *parms,
      else // once integrable
       for(int n=nMin; n<=nMax; n++)
        for(int d=0; d<NumRegions; d++)
+        Sum[npk] += (P[d][n][0] + y*P[d][n][1]) * K[d][n+nOffset];
+#endif
+int dmin=0, dmax=0;
+     if (TwiceIntegrable)
+      for(int n=nMin; n<=nMax; n++)
+       for(int d=dmin; d<=dmax; d++)
+        Sum[npk] += P[d][n][0]*J[d][n+nOffset] + P[d][n][1]*L[d][n+nOffset];
+     else // once integrable
+      for(int n=nMin; n<=nMax; n++)
+       for(int d=dmin; d<=dmax; d++)
         Sum[npk] += (P[d][n][0] + y*P[d][n][1]) * K[d][n+nOffset];
 
      Sum[npk] *= Jacobian/(4.0*M_PI);
