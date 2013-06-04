@@ -29,6 +29,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <config.h>
 
 #ifdef HAVE_READLINE
  #include <readline/readline.h>
@@ -61,9 +62,14 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#define NUMOVERLAPS 20
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 typedef struct GOBFData 
  {
-   double *V0, *V1, *V2, *QP, *ZHat;
+   double *V0, *V1, *V2, *QBeta, *ZHat;
    double PreFac;
  } GOBFData;
 
@@ -74,57 +80,79 @@ void GetOverlapBFIntegrand(unsigned ndim, const double *x, void *params,
   (void) fdim;
 
   GOBFData *GOBFD = (GOBFData *)params;
-  double u=x[0], v=u*x[1];
+  double u=x[0], v=u*x[1], Jacobian=u;
 
-  double *V0   = GOBFD->V0;
-  double *V1   = GOBFD->V1;
-  double *V2   = GOBFD->V2;
-  double *QP   = GOBFD->QP;
-  double *ZHat = GOBFD->ZHat;
+  double *V0    = GOBFD->V0;
+  double *V1    = GOBFD->V1;
+  double *V2    = GOBFD->V2;
+  double *QBeta = GOBFD->QBeta;
+  double *ZHat  = GOBFD->ZHat;
   double PreFac = GOBFD->PreFac;
 
-  double X[3], fA[3], fB[3]; 
+  double X[3], bAlpha[3], bBeta[3]; 
 
   int Mu;
   for(Mu=0; Mu<3; Mu++)
-   { X[Mu]  = V0[Mu] + u*(V1[Mu]-V0[Mu]) + v*(V2[Mu]-V1[Mu]);
-     fA[Mu] = X[Mu] - V0[Mu];
-     fB[Mu] = X[Mu] - QP[Mu];
+   { X[Mu]      = V0[Mu] + u*(V1[Mu]-V0[Mu]) + v*(V2[Mu]-V1[Mu]);
+     bAlpha[Mu] = X[Mu] - V0[Mu];
+     bBeta[Mu]  = X[Mu] - QBeta[Mu];
    };
 
-  double nxfA[3];
-  nxfA[0] = ZHat[1]*fA[2] - ZHat[2]*fA[1];
-  nxfA[1] = ZHat[2]*fA[0] - ZHat[0]*fA[2];
-  nxfA[2] = ZHat[0]*fA[1] - ZHat[1]*fA[0];
+  double nxbAlpha[3];
+  nxbAlpha[0] = ZHat[1]*bAlpha[2] - ZHat[2]*bAlpha[1];
+  nxbAlpha[1] = ZHat[2]*bAlpha[0] - ZHat[0]*bAlpha[2];
+  nxbAlpha[2] = ZHat[0]*bAlpha[1] - ZHat[1]*bAlpha[0];
 
-  double nxfB[3];
-  nxfB[0] = ZHat[1]*fB[2] - ZHat[2]*fB[1];
-  nxfB[1] = ZHat[2]*fB[0] - ZHat[0]*fB[2];
-  nxfB[2] = ZHat[0]*fB[1] - ZHat[1]*fB[0];
+  double nxbBeta[3];
+  nxbBeta[0] = ZHat[1]*bBeta[2] - ZHat[2]*bBeta[1];
+  nxbBeta[1] = ZHat[2]*bBeta[0] - ZHat[0]*bBeta[2];
+  nxbBeta[2] = ZHat[0]*bBeta[1] - ZHat[1]*bBeta[0];
 
-  double DotProd = (fA[0]*fB[0] + fA[1]*fB[1] + fA[2]*fB[2]);
+  double DotProd = (bAlpha[0]*bBeta[0] + bAlpha[1]*bBeta[1] + bAlpha[2]*bBeta[2]);
 
-  fval[0] = u*PreFac*DotProd;
-  fval[1] = u*PreFac*(fA[0]*nxfB[0] + fA[1]*nxfB[1] + fA[2]*nxfB[2]);
+  double RxN[3];
+  RxN[0] = X[1]*ZHat[2] - X[2]*ZHat[1];
+  RxN[1] = X[2]*ZHat[0] - X[0]*ZHat[2];
+  RxN[2] = X[0]*ZHat[1] - X[1]*ZHat[0];
 
-  fval[2] = u*ZHat[0]*PreFac*DotProd;
-  fval[3] = u*ZHat[0]*PreFac*4.0;
-  fval[4] = u*nxfA[0]*PreFac*2.0;
+  double RxNxbAlpha[3];
+  RxNxbAlpha[0] = X[1]*nxbAlpha[2] - X[2]*nxbAlpha[1];
+  RxNxbAlpha[1] = X[2]*nxbAlpha[0] - X[0]*nxbAlpha[2];
+  RxNxbAlpha[2] = X[0]*nxbAlpha[1] - X[1]*nxbAlpha[0];
 
-  fval[5] = u*ZHat[1]*PreFac*DotProd;
-  fval[6] = u*ZHat[1]*PreFac*4.0;
-  fval[7] = u*nxfA[1]*PreFac*2.0;
+  fval[0] = Jacobian*PreFac*DotProd;
+  fval[1] = Jacobian*PreFac*(bAlpha[0]*nxbBeta[0] + bAlpha[1]*nxbBeta[1] + bAlpha[2]*nxbBeta[2]);
 
-  fval[8]  = u*ZHat[2]*PreFac*DotProd;
-  fval[9]  = u*ZHat[2]*PreFac*4.0;
-  fval[10] = u*nxfA[2]*PreFac*2.0;
+  fval[2] =     Jacobian*PreFac*ZHat[0]*DotProd;
+  fval[3] =     Jacobian*PreFac*ZHat[0]*4.0;
+  fval[4] = Jacobian*PreFac*nxbAlpha[0]*2.0;
+
+  fval[5] =     Jacobian*PreFac*ZHat[1]*DotProd;
+  fval[6] =     Jacobian*PreFac*ZHat[1]*4.0;
+  fval[7] = Jacobian*PreFac*nxbAlpha[1]*2.0;
+
+  fval[8] =     Jacobian*PreFac*ZHat[2]*DotProd;
+  fval[9] =     Jacobian*PreFac*ZHat[2]*4.0;
+  fval[10]= Jacobian*PreFac*nxbAlpha[2]*2.0;
+
+  fval[11] =        Jacobian*PreFac*RxN[0]*DotProd;
+  fval[12] =        Jacobian*PreFac*RxN[0]*4.0;
+  fval[13] = Jacobian*PreFac*RxNxbAlpha[0]*2.0;
+
+  fval[14] =        Jacobian*PreFac*RxN[1]*DotProd;
+  fval[15] =        Jacobian*PreFac*RxN[1]*4.0;
+  fval[16] = Jacobian*PreFac*RxNxbAlpha[1]*2.0;
+
+  fval[17] =        Jacobian*PreFac*RxN[2]*DotProd;
+  fval[18] =        Jacobian*PreFac*RxN[2]*4.0;
+  fval[19] = Jacobian*PreFac*RxNxbAlpha[2]*2.0;
 
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetOverlapBF(RWGSurface *S, int nea, int neb, double OValues[11])
+void GetOverlapBF(RWGSurface *S, int nea, int neb, double OValues[NUMOVERLAPS])
 {
   RWGEdge *Ea=S->Edges[nea], *Eb=S->Edges[neb];
 
@@ -148,37 +176,37 @@ void GetOverlapBF(RWGSurface *S, int nea, int neb, double OValues[11])
 
   double Lower[2]={0.0, 0.0};
   double Upper[2]={1.0, 1.0};
-  double I[11], E[11];
+  double I[NUMOVERLAPS], E[NUMOVERLAPS];
 
   int n;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  memset(OValues,0,11*sizeof(double));
+  memset(OValues,0,NUMOVERLAPS*sizeof(double));
   if ( Ea->iPPanel == Eb->iPPanel )
    { 
      GOBFD->V0     = QP; 
-     GOBFD->QP     = QPP;
+     GOBFD->QBeta  = QPP;
      GOBFD->ZHat   = PP->ZHat;
      GOBFD->PreFac = (Ea->Length * Eb->Length)/(2.0*PArea);
 
-     adapt_integrate(11, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
+     adapt_integrate(NUMOVERLAPS, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
 		     Lower, Upper, MAXEVAL, ABSTOL, RELTOL, I, E);
-     for(n=0; n<11; n++)
+     for(n=0; n<NUMOVERLAPS; n++)
       OValues[n] += I[n];
    };
 
   if ( Ea->iPPanel == Eb->iMPanel )
    { 
      GOBFD->V0     = QP; 
-     GOBFD->QP     = QMP;
+     GOBFD->QBeta  = QMP;
      GOBFD->ZHat   = PP->ZHat;
      GOBFD->PreFac = (Ea->Length * Eb->Length)/(2.0*PArea);
 
-     adapt_integrate(11, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
+     adapt_integrate(NUMOVERLAPS, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
 		     Lower, Upper, MAXEVAL, ABSTOL, RELTOL, I, E);
-     for(n=0; n<11; n++)
+     for(n=0; n<NUMOVERLAPS; n++)
       OValues[n] -= I[n];
 
    };
@@ -186,13 +214,13 @@ void GetOverlapBF(RWGSurface *S, int nea, int neb, double OValues[11])
   if ( Ea->iMPanel == Eb->iPPanel )
    { 
      GOBFD->V0     = QM; 
-     GOBFD->QP     = QPP;
+     GOBFD->QBeta  = QPP;
      GOBFD->ZHat   = PM->ZHat;
      GOBFD->PreFac = (Ea->Length * Eb->Length)/(2.0*MArea);
 
-     adapt_integrate(11, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
+     adapt_integrate(NUMOVERLAPS, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
 		     Lower, Upper, MAXEVAL, ABSTOL, RELTOL, I, E);
-     for(n=0; n<11; n++)
+     for(n=0; n<NUMOVERLAPS; n++)
       OValues[n] -= I[n];
 
    };
@@ -200,91 +228,98 @@ void GetOverlapBF(RWGSurface *S, int nea, int neb, double OValues[11])
   if ( Ea->iMPanel == Eb->iMPanel )
    { 
      GOBFD->V0     = QM; 
-     GOBFD->QP     = QMP;
+     GOBFD->QBeta  = QMP;
      GOBFD->ZHat   = PM->ZHat;
      GOBFD->PreFac = (Ea->Length * Eb->Length)/(2.0*MArea);
 
-     adapt_integrate(11, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
+     adapt_integrate(NUMOVERLAPS, GetOverlapBFIntegrand, (void *)GOBFD, 2, 
 		     Lower, Upper, MAXEVAL, ABSTOL, RELTOL, I, E);
-     for(n=0; n<11; n++)
+     for(n=0; n<NUMOVERLAPS; n++)
       OValues[n] += I[n];
-
    };
 
 }
 
 /***************************************************************/
-/* Compute the overlap integral between the RWG basis functions*/
-/* associated with two edges in an RWG object. (This is the    */
-/* older libRWG version of the current GetOverlap function in  */
-/* libscuff.)                                                  */
+/* print a console prompt, then get and parse a line of        */
+/* input data                                                  */
 /***************************************************************/
-#if 0
-double GetOverlapOld(RWGSurface *S, int neAlpha, int neBeta)
-{ 
-  RWGEdge *EAlpha=S->Edges[neAlpha], *EBeta=S->Edges[neBeta];
-  double *V1, *V2, *QAlpha, *QBeta;
-  double PreFac, Area, Term, Sum;
-  int mu;
+typedef struct Request
+ {
+   int ne1, ne2;
+ } Request;
 
-  V1=S->Vertices + 3*(EAlpha->iV1);
-  V2=S->Vertices + 3*(EAlpha->iV2);
-  PreFac=EAlpha->Length * EBeta->Length / (24.0);
+void GetRequest(RWGGeometry *G, Request *R)
+{
+  static int init=0;
 
-  Sum=0.0;
-  if ( EAlpha->iPPanel == EBeta->iPPanel )
-   {  
-      QAlpha=S->Vertices + 3*(EAlpha->iQP);
-      QBeta =S->Vertices + 3*(EBeta->iQP);
-      Area=S->Panels[EAlpha->iPPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum += PreFac * Term / Area;
-   };
-  if ( EAlpha->iPPanel == EBeta->iMPanel )
-   {  
-      QAlpha=S->Vertices + 3*(EAlpha->iQP);
-      QBeta =S->Vertices + 3*(EBeta->iQM);
-      Area=S->Panels[EAlpha->iPPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum -= PreFac * Term / Area;
-   };
-  if ( EAlpha->iMPanel == EBeta->iPPanel )
-   {  
-      QAlpha=S->Vertices + 3*(EAlpha->iQM);
-      QBeta =S->Vertices + 3*(EBeta->iQP);
-      Area=S->Panels[EAlpha->iMPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum -= PreFac * Term / Area;
-   };
-  if ( EAlpha->iMPanel == EBeta->iMPanel )
-   {  
-      QAlpha=S->Vertices + 3*(EAlpha->iQM);
-      QBeta =S->Vertices + 3*(EBeta->iQM);
-      Area=S->Panels[EAlpha->iMPanel]->Area;
-
-      for(Term=0.0, mu=0; mu<3; mu++)
-       Term+= ( V1[mu] - QAlpha[mu] ) * ( V1[mu] + V2[mu] - 2.0*QBeta[mu] )
-             +( V2[mu] - QAlpha[mu] ) * ( V2[mu] + QAlpha[mu] - 2.0*QBeta[mu] );
-
-      Sum += PreFac * Term / Area;
+  if (init==0)
+   { init=1;
+     using_history();
+     read_history(0);
    };
 
-  return Sum;
+  /*--------------------------------------------------------------*/
+  /*- print prompt and get input string --------------------------*/
+  /*--------------------------------------------------------------*/
+  printf("\n");
+  printf(" options: --ne1 xx \n");
+  printf("          --ne2 xx \n");
+  char *p;
+  do
+   { 
+     p=readline("enter options: "); 
+   } while(!p);
+  add_history(p);
+  write_history(0);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int nt, NumTokens;
+  int ncv;
+  char *Tokens[50];
+
+  R->ne1   =  0;
+  R->ne2   =  0;
+  ncv      = -1;
+
+  NumTokens=Tokenize(p,Tokens,50);
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--ne1") )
+    sscanf(Tokens[nt+1],"%i",&(R->ne1));
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--ne2") )
+    sscanf(Tokens[nt+1],"%i",&(R->ne2));
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--ncv") )
+    sscanf(Tokens[nt+1],"%i",&ncv);
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--quit") )
+    exit(1);
+
+  free(p);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S = G->Surfaces[0];
+
+  if (R->ne1==-1)
+   R->ne1 = lrand48() % (S->NumEdges);
+  if (R->ne2==-1)
+   R->ne2 = lrand48() % (S->NumEdges);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (ncv!=-1)
+   { for(R->ne2=0; R->ne2 < (S->NumEdges-1); R->ne2++)
+      if ( ncv == NumCommonBFVertices(S, R->ne1, S, R->ne2) )
+       break;     
+   };
 
 }
-#endif
 
 /***************************************************************/
 /***************************************************************/
@@ -295,76 +330,54 @@ int main(int argc, char *argv[])
   /* process command-line arguments                              */
   /***************************************************************/
   char *GeoFileName;
-  ArgStruct ASArray[]=
-   { {"geometry",     PA_STRING, (void *)&GeoFileName,   0,     ".scuffgeo file" },
-     {0,0,0,0,0}
+  cdouble Omega=1.0;
+  /* name        type    #args  max_instances  storage    count  description*/
+  OptStruct OSArray[]=
+   { 
+     {"geometry", PA_STRING,  1, 1, (void *)&GeoFileName,  0,  ".scuffgeo file"},
+     {"Omega",    PA_CDOUBLE, 3, 3, (void *)&Omega,        0,  "angular frequency"},
+     {0,0,0,0,0,0,0}
    };
-  ProcessArguments(argc, argv, ASArray);
+  ProcessOptions(argc, argv, OSArray);
   if (GeoFileName==0)
+   OSUsage(argv[0],OSArray,"--geometry option is mandatory");
 
-   ASUsage(argv[0],ASArray,"--Geometry option is mandatory");
-
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   RWGSurface *S=G->Surfaces[0];
 
   /***************************************************************/
   /* enter command loop ******************************************/
   /***************************************************************/
-  using_history();
-  read_history(0);
-  int nt, NumTokens;
-  char *Tokens[50];
-  char *p;
-  int nea, neb, n;
-  double OBF[11], OHR[11];
-  srand48(time(0));
   for(;;)
    { 
-     /*--------------------------------------------------------------*/
-     /*- print prompt and get input string --------------------------*/
-     /*--------------------------------------------------------------*/
-     printf(" options: --nea xx");
-     p=readline("enter options: ");
-     if (!p) break;
-     add_history(p);
-     write_history(0);
+     Request MyRequest, *R=&MyRequest;
+     GetRequest(G,R);
+     int ne1 = R->ne1;
+     int ne2 = R->ne2;
 
-     /*--------------------------------------------------------------*/
-     /* parse input string                                          -*/
-     /*--------------------------------------------------------------*/
-     NumTokens=Tokenize(p,Tokens,50);
-     nea=-1;
-     for(nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--nea") )
-       sscanf(Tokens[nt+1],"%i",&nea);
-     free(p);
+     /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     double OverlapBF[NUMOVERLAPS];
+     GetOverlapBF(S, ne1, ne2, OverlapBF);
 
-     if (nea==-1)
-      nea = lrand48() % S->NumEdges;
+     /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     double OverlapHR[NUMOVERLAPS];
+     S->GetOverlaps(ne1, ne2, OverlapHR);
 
-     double ReferenceArea = S->Panels[S->Edges[nea]->iPPanel]->Area;
+     /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     printf("\n*\n* --ne1 %i --ne2 %i \n",ne1,ne2);
+     for(int no=0; no<NUMOVERLAPS; no++)
+      printf("%2i | %+12.5e | %+12.5e | %.1e\n",no, OverlapHR[no], OverlapBF[no],
+              RD(OverlapHR[no],OverlapBF[no]));
 
-     printf(" ** for nea=%i: \n",nea);
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     for(neb=0; neb<S->NumEdges; neb++)
-      {
-        GetOverlapBF(S, nea, neb, OBF);
-        S->GetOverlaps(nea, neb, OHR);
- //       OOld[0]=S->GetOverlapOld(nea, neb, OOld+1);
-
-        if ( fabs(OBF[0])<1.0e-2*ReferenceArea ) 
-         continue;
-
-        printf("**neb=%i: \n",neb);
-        for(n=0; n<11; n++)
-         printf(" %2i:  %+12.4e | %+12.4e | %+.2e\n",n,OBF[n],OHR[n],RD(OBF[n],OHR[n]));
-        printf(" \n");
-         
-      };
-
-   }; // for(;;)
+   };
 
 }

@@ -188,12 +188,40 @@ int AssessPanelPair(RWGSurface *Sa, int npa,
 /* this routine simply counts the number of common vertices    */
 /* without reordering the vertices                             */
 /***************************************************************/
-int NumCommonVertices(RWGSurface *Sa, int npa, 
-                      RWGSurface *Sb, int npb)
+int NumCommonVertices(RWGSurface *Sa, int npa, RWGSurface *Sb, int npb)
 { 
   double rRel;
   double *Va[3], *Vb[3];
   return AssessPanelPair(Sa, npa, Sb, npb, &rRel, Va, Vb);
+} 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int NumCommonBFVertices(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb)
+{ 
+  if (Sa!=Sb) return 0;
+
+  int iVa[4], iVb[4]; 
+
+  RWGEdge *Ea = Sa->Edges[nea];
+  iVa[0] = Ea->iQP;
+  iVa[1] = Ea->iV1;
+  iVa[2] = Ea->iV2;
+  iVa[3] = Ea->iQM;
+
+  RWGEdge *Eb = Sb->Edges[neb];
+  iVb[0] = Eb->iQP;
+  iVb[1] = Eb->iV1;
+  iVb[2] = Eb->iV2;
+  iVb[3] = Eb->iQM;
+
+  int ncv=0;
+  for(int nea=0; nea<4; nea++)
+   for(int neb=0; neb<4; neb++)
+    if ( iVa[nea]==iVb[neb] ) ncv++;
+  return ncv;
+  
 } 
 
 /***************************************************************/

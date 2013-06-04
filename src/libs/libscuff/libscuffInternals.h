@@ -325,8 +325,9 @@ int AssessPanelPair(RWGSurface *Sa, int npa,
                     RWGSurface *Sb, int npb,
                     double *rRel);
 
-int NumCommonVertices(RWGSurface *Sa, int npa, 
-                      RWGSurface *Sb, int npb);
+int NumCommonVertices(RWGSurface *Sa, int npa, RWGSurface *Sb, int npb);
+
+int NumCommonBFVertices(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb);
 
 int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
                              double **OVa, double **OVb);
