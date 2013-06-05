@@ -92,10 +92,13 @@ void AddOverlapContributions(RWGSurface *S, RWGPanel *P, int iQa, int iQb,
   VecSub(QaP2, QaP1, L2);
   VecSub(Qa, Qb, DQ);
 
-  double ZxL1[3], ZxL2[3], ZxDQ[3];
-  VecCross(ZHat, L1, ZxL1);
-  VecCross(ZHat, L2, ZxL2);
-  VecCross(ZHat, DQ, ZxDQ);
+  double ZxL1[3], ZxL2[3], ZxDQ[3], ZxQa[3], QaxZxL1[3], QaxZxL2[3];
+  VecCross(ZHat,   L1,     ZxL1);
+  VecCross(ZHat,   L2,     ZxL2);
+  VecCross(ZHat,   DQ,     ZxDQ);
+  VecCross(ZHat,   Qa,     ZxQa);
+  VecCross(Qa,   ZxL1,  QaxZxL1);
+  VecCross(Qa,   ZxL2,  QaxZxL2);
 
   double PreFac = Sign * LL / (2.0*P->Area);
 
@@ -129,17 +132,17 @@ void AddOverlapContributions(RWGSurface *S, RWGPanel *P, int iQa, int iQb,
   Overlaps[9]  += PreFac * ZHat[2] * 2.0;
   Overlaps[10] += PreFac * (2.0*ZxL1[2] + ZxL2[2]) / 3.0;
 
-  Overlaps[11] += PreFac * (-ZxL1[0]*BulletFactor2 - ZxL2[0]*BulletFactor3);
-  Overlaps[12] += PreFac * (-4.0*ZxL1[0] - 2.0*ZxL2[0]) / 3.0;
-  Overlaps[13] += PreFac * ZHat[0] * NablaCrossFactor;
+  Overlaps[11] -= PreFac * (ZxQa[0]*BulletFactor1 + ZxL1[0]*BulletFactor2 + ZxL2[0]*BulletFactor3);
+  Overlaps[12] -= PreFac * (2.0*ZxQa[0] + 4.0*ZxL1[0]/3.0 + 2.0*ZxL2[0]/3.0);
+  Overlaps[13] += PreFac * (ZHat[0]*NablaCrossFactor + 2.0*QaxZxL1[0]/3.0 + QaxZxL2[0]/3.0);
 
-  Overlaps[14] += PreFac * (-ZxL1[1]*BulletFactor2 - ZxL2[1]*BulletFactor3);
-  Overlaps[15] += PreFac * (-4.0*ZxL1[1] - 2.0*ZxL2[1]) / 3.0;
-  Overlaps[16] += PreFac * ZHat[1] * NablaCrossFactor;
+  Overlaps[14] -= PreFac * (ZxQa[1]*BulletFactor1 + ZxL1[1]*BulletFactor2 + ZxL2[1]*BulletFactor3);
+  Overlaps[15] -= PreFac * (2.0*ZxQa[1] + 4.0*ZxL1[1]/3.0 + 2.0*ZxL2[1]/3.0);
+  Overlaps[16] += PreFac * (ZHat[1]*NablaCrossFactor + 2.0*QaxZxL1[1]/3.0 + QaxZxL2[1]/3.0);
 
-  Overlaps[17] += PreFac * (-ZxL1[2]*BulletFactor2 - ZxL2[2]*BulletFactor3);
-  Overlaps[18] += PreFac * (-4.0*ZxL1[2] - 2.0*ZxL2[2]) / 3.0;
-  Overlaps[19] += PreFac * ZHat[2] * NablaCrossFactor;
+  Overlaps[17] -= PreFac * (ZxQa[2]*BulletFactor1 + ZxL1[2]*BulletFactor2 + ZxL2[2]*BulletFactor3);
+  Overlaps[18] -= PreFac * (2.0*ZxQa[2] + 4.0*ZxL1[2]/3.0 + 2.0*ZxL2[2]/3.0);
+  Overlaps[19] += PreFac * (ZHat[2]*NablaCrossFactor + 2.0*QaxZxL1[2]/3.0 + QaxZxL2[2]/3.0);
 
 }
 

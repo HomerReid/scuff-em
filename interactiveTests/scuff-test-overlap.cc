@@ -281,8 +281,8 @@ void GetRequest(RWGGeometry *G, Request *R)
   int ncv;
   char *Tokens[50];
 
-  R->ne1   =  0;
-  R->ne2   =  0;
+  R->ne1   =  -1;
+  R->ne2   =  -1;
   ncv      = -1;
 
   NumTokens=Tokenize(p,Tokens,50);
@@ -306,10 +306,10 @@ void GetRequest(RWGGeometry *G, Request *R)
   /*--------------------------------------------------------------*/
   RWGSurface *S = G->Surfaces[0];
 
-  if (R->ne1==-1)
-   R->ne1 = lrand48() % (S->NumEdges);
-  if (R->ne2==-1)
-   R->ne2 = lrand48() % (S->NumEdges);
+  if ( R->ne1==-1 && R->ne2==-1 && ncv==-1) 
+   { R->ne1=lrand48() % S->NumEdges;
+     ncv = (drand48() > 0.5) ? 3 : 4;
+   };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-     printf("\n*\n* --ne1 %i --ne2 %i \n",ne1,ne2);
+     printf("\n*\n* --ne1 %i --ne2 %i (--ncv %i) \n",ne1,ne2,NumCommonBFVertices(S, ne1, S, ne2)); 
      for(int no=0; no<NUMOVERLAPS; no++)
       printf("%2i | %+12.5e | %+12.5e | %.1e %.5e\n",no, OverlapHR[no], OverlapBF[no],
               RD(OverlapHR[no],OverlapBF[no]), OverlapHR[no]/OverlapBF[no] );
