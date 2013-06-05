@@ -257,6 +257,7 @@ void GetRequest(RWGGeometry *G, Request *R)
    { init=1;
      using_history();
      read_history(0);
+     srand48(time(0));
    };
 
   /*--------------------------------------------------------------*/
@@ -375,8 +376,8 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      printf("\n*\n* --ne1 %i --ne2 %i \n",ne1,ne2);
      for(int no=0; no<NUMOVERLAPS; no++)
-      printf("%2i | %+12.5e | %+12.5e | %.1e\n",no, OverlapHR[no], OverlapBF[no],
-              RD(OverlapHR[no],OverlapBF[no]));
+      printf("%2i | %+12.5e | %+12.5e | %.1e %.5e\n",no, OverlapHR[no], OverlapBF[no],
+              RD(OverlapHR[no],OverlapBF[no]), OverlapHR[no]/OverlapBF[no] );
 
    };
 
