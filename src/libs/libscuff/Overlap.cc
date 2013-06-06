@@ -247,13 +247,6 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
 {
   int NR  = NumBFs;
 
-  double Sign = +1.0; 
-
-  if( getenv("SCUFF_MINUS_SIGN") )
-   { Sign = -1.0;
-     Log("Using minus sign in overlap matrices.");
-   };
-
   /*--------------------------------------------------------------*/
   /*- the number of nonzero entries per row of the overlap matrix */
   /*- is fixed by the definition of the RWG basis function; each  */
@@ -412,49 +405,49 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
             if ( NeedMatrix[SCUFF_OMATRIX_POWER] )
              { 
                SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+0, 2*neBeta+0, TOS*Overlaps[OVERLAP_OVERLAP]);
-               SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+0, 2*neBeta+1, Sign*Overlaps[OVERLAP_CROSS]);
-               SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+1, 2*neBeta+0, Overlaps[OVERLAP_CROSS]);
+               SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+0, 2*neBeta+1, Overlaps[OVERLAP_CROSS]);
+               SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+1, 2*neBeta+0, -1.0*Overlaps[OVERLAP_CROSS]);
              };
 
             if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
              { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*XForce1);
                SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XForce2);
-               SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*XForce2);
+               SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -1.0*XForce2);
                SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XForce1/ZZ);
              };
 
             if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
              { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*YForce1);
                SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YForce2);
-               SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*YForce2);
+               SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -1.0*YForce2);
                SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YForce1/ZZ);
              };
 
             if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
              { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*ZForce1);
                SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZForce2);
-               SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*ZForce2);
+               SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -1.0*ZForce2);
                SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZForce1/ZZ);
              };
 
             if ( NeedMatrix[SCUFF_OMATRIX_XTORQUE] )
              { SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*XTorque1);
                SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, XTorque2);
-               SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*XTorque2);
+               SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -1.0*XTorque2);
                SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, XTorque1/ZZ);
              };
 
             if ( NeedMatrix[SCUFF_OMATRIX_YTORQUE] )
              { SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*YTorque1);
                SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, YTorque2);
-               SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*YTorque2);
+               SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -1.0*YTorque2);
                SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, YTorque1/ZZ);
              };
 
             if ( NeedMatrix[SCUFF_OMATRIX_ZTORQUE] )
              { SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, ZZ*ZTorque1);
                SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, ZTorque2);
-               SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, Sign*ZTorque2);
+               SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0, -1.0*ZTorque2);
                SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, ZTorque1/ZZ);
              };
 

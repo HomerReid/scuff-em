@@ -271,6 +271,7 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
      // get scattered power as difference between total and absorbed power.
      // if the difference between the quantities is less than 10% of their 
      // magnitude, recompute using the more accurate but slower SGJ formula.
+#if 0
      double PScat=PFT[1] - PFT[0];
      if ( fabs(PScat) < 0.1*fabs(PFT[1]) )
       { 
@@ -279,9 +280,10 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
       };
      // put PScat in the 1 slot in the array 
      PFT[1] = PScat;
-
+#endif
      for(int nq=0; nq<8; nq++)
       fprintf(f,"%e ",PFT[nq]);
+     fprintf(f,"%e ",G->GetScatteredPower(SSD->KN, SSD->Omega, ns));
      fprintf(f,"\n");
    };
 
