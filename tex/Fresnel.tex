@@ -184,19 +184,20 @@ $$ k_0\sin\theta = k_1 \sin \theta^\prime. $$
 %
 Incident wave:
 %
-\begin{align*}
+\begin{align}
 \vb E\sups{inc}(\vb x) 
- &= E_0 e^{ik_0[y\sin\theta y - z\cos\theta ]} \, \vbhat{x} 
+ &= E_0 e^{ik_0[y\sin\theta - z\cos\theta ]} \, \vbhat{x} 
 \\
 \vb H\sups{inc}(\vb x) 
  &= \frac{E_0}{Z_0} 
     e^{ik_0[y\sin\theta  - z\cos\theta]} 
     \Big( -\cos\theta\,\vbhat{y} - \sin\theta\,\vbhat{z}\Big)
-\end{align*}
+\label{NonNormalIncidentEPerp}
+\end{align}
 %
 Reflected wave:
 %
-\begin{align*}
+\begin{align}
 \vb E\sups{refl}(\vb x)
  &= rE_0 e^{ik_0[y\sin\theta  + z\cos\theta]} \, \vbhat{x} 
 \\
@@ -204,7 +205,8 @@ Reflected wave:
  &= \frac{rE_0}{Z_0} 
     e^{ik_0[y\sin\theta  + z\cos\theta ]}
     \Big( +\cos\theta\,\vbhat{y} - \sin\theta\,\vbhat{z}\Big)
-\end{align*}
+\label{NonNormalReflectedEPerp}
+\end{align}
 %
 Transmitted wave:
 %
@@ -216,6 +218,7 @@ Transmitted wave:
  &= \frac{tE_0}{Z_1} 
     e^{ik_1[y\sin\theta^\prime  + z\cos\theta^\prime]}
     \Big( -\cos\theta^\prime\,\vbhat{y} - \sin\theta^\prime\,\vbhat{z}\Big)
+\label{NonNormalTransmittedEPerp}
 \end{align*}
 
 \subsection*{Surface currents}
@@ -1011,4 +1014,134 @@ sum is
 So eliminating these terms from the sum would result in an answer
 that is off by a factor of $\frac{3}{4}$, not $\frac{1}{2}$ as I seem
 to observe in practice.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Comparison of Force Formulas}
+
+\subsection*{Exact force for $\vb E-$field perpendicular to plane}
+
+In general, the time average of the $i$-directed force per unit 
+area at a point ($\vb x$) on a surface is related to the Maxwell 
+stress tensor at $\vb x$ according to 
+\begin{align}
+ F_i 
+&= -\frac{1}{2}\text{Re }T_{ij}(\vb x) \hat n_j (\vb x)
+\nonumber
+\intertext{(where $\vbhat{n}$ is the \textit{outward}-pointing 
+            surface normal)} 
+&= -\frac{1}{2}\text{Re }\bigg\{ 
+     \epsilon E_i^* \big[\vb E \cdot \vbhat{n}\big] 
+    +\mu      H_i^* \big[\vb H \cdot \vbhat{n}\big] 
+    -\frac{\hat n_i}{2}\Big[ \epsilon|\vb E|^2 + \mu|\vb H|^2\Big]
+   \bigg\}.
+\label{Fi}
+\end{align}
+For the particular case of the non-normally-incident 
+plane wave of (\ref{NonNormalIncidentEPerp}), we have
+$\vbhat{n}=+\vbhat{z}$ and the fields at $z=0$ are 
+$$ 
+   \left(\begin{array}{c}
+   E_x \\ E_y \\ E_z \\ H_x \\ H_y \\ H_z
+   \end{array}\right)
+   =
+   E_0 e^{ik_0 y\sin\theta}
+   \left(\begin{array}{c}
+   (1+r) \\ 0 \\ 0 \\ 0 \\ -\frac{1}{Z_0}(1-r)\cos\theta \\ -\frac{1}{Z_0}(1+r)\sin\theta
+   \end{array}\right)
+$$
+with
+$$ \vb E\cdot \vbhat{n}=0, 
+   \qquad 
+   \vb H\cdot \vbhat{n}=-\frac{E_0}{Z_0}(1+r)\sin\theta e^{ik_0 y\sin\theta}, 
+$$
+$$
+   |\vb E|^2=|E_0|^2 |1+r|^2, 
+   \qquad 
+   |\vb H|^2=\frac{|E_0|^2}{Z_0^2}\Big[ |1-r|^2 \cos^2\theta + |1+r|^2 \sin^2 \theta\Big]
+$$
+so from (\ref{Fi}) we find
+\begin{align*}
+ F_x &= 0
+\\
+ F_y &= -\frac{\epsilon_0 |E_0|^2}{2}(1-|r|^2)\cos\theta\sin\theta
+\\
+ F_z &= -\frac{\epsilon_0 |E_0|^2}{2}\text{Re }
+         \bigg\{   |1+r|^2\sin^2\theta 
+                 - \frac{1}{2}|1+r|^2 
+                 - \frac{1}{2}\Big[|1-r|^2 \cos^2 \theta + |1+r|^2 \sin^2\theta\Big]
+         \bigg\}
+\\
+&= -\frac{\epsilon_0 |E_0|^2}{4}\cos^2 \theta \, \text{Re }\Big[ |1+r|^2 - |1-r|^2\Big]
+\\
+&= -\epsilon_0 |E_0|^2\cos^2 \theta \cdot\Big(\text{Re }r\Big).
+\end{align*}
+The force is proportional to the real part of the reflection coefficient,
+and it vanishes for an incident field propagating in the direction parallel
+to the interface.
+
+\subsection*{FSC Force for $\vb E$-field perpendicular to plane}
+
+The formula for the normally-directed stress tensor in terms of
+the surface currents is 
+%====================================================================%
+\begin{align}
+ T_{ij}n_j 
+&= \frac{1}{i\omega}
+   \bigg\{ (\vbhat{n} \times \vb N^*)_i(\nabla \cdot \vb K)
+           +
+           (\vbhat{n} \times \vb K^*)_i(\nabla \cdot \vb N)
+   \bigg\}
+\nn
+&\qquad
+ -\frac{\hat{n}_i}{2}
+  \bigg\{      \mu\Big[ |\vb K|^2 - \frac{|\nabla \cdot \vb K|^2}{k^2}\Big]
+         +\epsilon\Big[ |\vb N|^2 - \frac{|\nabla \cdot \vb N|^2}{k^2}\Big]
+  \bigg\}
+\label{TijNjKN}
+\end{align}
+%====================================================================%
+In this case we have 
+$$ K_x = \frac{E_0}{Z_0}(1-r)\cos\theta e^{ik_0 y \sin \theta},
+   \qquad
+   N_y = E_0(1+r)e^{ik_0 y \sin \theta}
+$$ 
+with all other components of the surface currents vanishing.
+Also, 
+$$ \nabla \cdot \vb K =0, 
+   \qquad 
+   |\vb K|^2 = \frac{|E_0|^2}{Z_0^2}|1-r|^2\cos^2\theta, 
+$$
+$$
+   \nabla \cdot \vb N = ik_0 \sin\theta E_0 (1+r)e^{ik_0 y\sin\theta}, 
+   \qquad 
+   |\vb N|^2 = |E_0|^2|1+r|^2.
+$$
+The components of equation (\ref{TijNjKN}) then read
+\begin{align*}
+ T_{xj} n_{j}
+&=0
+\\
+ T_{yj} n_{j}
+&=\frac{1}{i\omega}\bigg\{ \Big[\frac{E_0^*}{Z_0}(1-r)^* \cos\theta \Big]
+                           \Big[ik_0 E_0(1+r) \sin\theta\Big]\bigg\}
+\\
+&=\epsilon_0 |E_0|^2 (1-r)^*(1+r) \cos\theta\sin\theta
+\\
+ T_{zj} n_{j}
+&=-\frac{\epsilon_0 |E_0|^2}{2}
+   \Big\{  |1-r|^2 \cos^2\theta
+          +|1+r|^2 
+          -|1+r|^2 \sin^2\theta \Big\}
+\\
+&=-\frac{\epsilon_0 |E_0|^2}{2}\cos^2\theta 
+   \Big\{  |1-r|^2 + 
+          +|1+r|^2 
+          -|1+r|^2 \sin^2\theta 
+   \Big\}
+\end{align*}
+ 
 \end{document}
