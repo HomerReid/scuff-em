@@ -534,7 +534,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
         PFT[1] += real( conj(KAlpha)*vEAlpha + conj(NAlpha)*vHAlpha );
       };
    }
-  PFT[1] *= 0.25;
+  PFT[1] *= 0.5;
 
   PFT[0] = 0.25*OMatrices[SCUFF_OMATRIX_POWER]->BilinearProductD(KNTS,KNTS);
 
@@ -612,7 +612,7 @@ double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
   /*--------------------------------------------------------------*/
   RWGSurface *S=Surfaces[SurfaceIndex];
   int NBF=S->NumBFs;
-  HMatrix *M=new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+  HMatrix *M=new HMatrix(NBF, NBF, LHM_COMPLEX);
 
   GetSSIArgStruct MyArgs, *Args=&MyArgs;
   InitGetSSIArgs(Args);
