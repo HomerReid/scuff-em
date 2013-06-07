@@ -218,18 +218,20 @@ int main(int argc, char *argv[])
       ErrExit("--MinFreq, --MaxFreq, --NumFreqs must be all present or all absent");
      FV3 = LogFreq ? LogSpace(MinFreq, MaxFreq, NumFreqs) : LinSpace(MinFreq, MaxFreq, NumFreqs);
    };
-  if ( (FV1 || FV2 || FV3) && PCFile!=0 )
-   ErrExit("--portcurrentfile may not be combined with a frequency specification"); 
-  FreqList = new HVector(0);
-  HVConcat(FreqList, FV1);
-  HVConcat(FreqList, FV2);
-  HVConcat(FreqList, FV3);
-  NumFreqs=FreqList->N;
+  if ( (FV1 || FV2 || FV3) )
+   { if (PCFile!=0 )
+      ErrExit("--portcurrentfile may not be combined with a frequency specification"); 
+     FreqList = new HVector(0);
+     HVConcat(FreqList, FV1);
+     HVConcat(FreqList, FV2);
+     HVConcat(FreqList, FV3);
+     NumFreqs=FreqList->N;
+   };
 
   /***************************************************************/
   /* sanity check input arguments ********************************/
   /***************************************************************/
-  if ( NumFreqs!=0 && (ZParameters==0 && SParameters==0) )
+  if ( PCFile==0 && NumFreqs!=0 && (ZParameters==0 && SParameters==0) )
    OSUsage(argv[0],OSArray,"--zparameters and/or --sparameters must be specified if a frequency specification is present");
   if (PCFile!=0 && (ZParameters!=0 || SParameters!=0) )
    OSUsage(argv[0],OSArray,"--zparameters and --sparameters may not be used with --portcurrentfile");
