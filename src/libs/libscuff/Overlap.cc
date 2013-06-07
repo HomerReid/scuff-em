@@ -533,7 +533,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
 
         PFT[1] += real( conj(KAlpha)*vEAlpha + conj(NAlpha)*vHAlpha );
       };
-   }
+   };
   PFT[1] *= 0.5;
 
   PFT[0] = 0.25*OMatrices[SCUFF_OMATRIX_POWER]->BilinearProductD(KNTS,KNTS);
