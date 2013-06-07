@@ -281,9 +281,10 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
      // put PScat in the 1 slot in the array 
      PFT[1] = PScat;
 #endif
+     PFT[1] = G->GetScatteredPower(SSD->KN, SSD->Omega, ns);
      for(int nq=0; nq<8; nq++)
       fprintf(f,"%e ",PFT[nq]);
-     fprintf(f,"%e ",G->GetScatteredPower(SSD->KN, SSD->Omega, ns));
+     //fprintf(f,"%e ",G->GetScatteredPower(SSD->KN, SSD->Omega, ns));
      fprintf(f,"\n");
    };
 

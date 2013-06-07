@@ -573,6 +573,16 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   if ( (Args->Sa == Args->Sb) && (Args->Sa->SurfaceSigma!=0 || Args->Sa->SurfaceSigmaMP!=0) )
    AddSurfaceSigmaContributionToBEMMatrix(Args);
 
+  /***************************************************************/
+  /* 20130607 explain me *****************************************/
+  /***************************************************************/
+  if ( Args->Symmetric && (Args->B->StorageType==LHM_NORMAL) )
+   { int N=Args->B->NR;
+     for(int nr=1; nr<N; nr++)
+      for(int nc=0; nc<N; nc++)
+       Args->B->SetEntry(nr,nc,Args->B->GetEntry(nc,nr));
+   };
+
 }
 
 /***************************************************************/

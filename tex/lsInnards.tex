@@ -258,6 +258,8 @@ geometry.
 
 \subsection*{RWG Basis Functions}
 
+\subsection*{Half-RWG Basis Functions}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1218,10 +1220,11 @@ Thus, for a geometry consisting of object $\mathcal{O}_1$ (PEC)
 with $M$ interior edges in its surface discretization
 and object $\mathcal{O}_2$ (dielectric) with $N$ interior edges
 in its surface discretization, the $\vb{KN}$ vector has dimension
-$2N+M$ and looks like
+$M+2N$ and looks like
 %====================================================================%
 $$ \vb{KN}=\left(\begin{array}{c}
    K_{11} \\ 
+   K_{12} \\ 
    \vdots \\
    K_{1M} \\ 
    K_{21} \\ 
@@ -1290,6 +1293,50 @@ into zero-based indices for use in \texttt{C++} code.)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Structure of the RHS vector}
+
+The structure of the RHS vector mirrors the structure of 
+the coefficient vector: 
+
+\begin{itemize}
+ \item If the $n$th element of the coefficient vector is a $K$ 
+       coefficient (i.e. the electric surface-current expansion 
+       coefficient associated with some RWG basis function $\vb b$), 
+       then the $n$th element of the RHS vector is minus the 
+       inner product of the incident electric field with $\vb b$,
+       divided by $Z_0$.
+ \item If the $n$th element of the coefficient vector is an $N$ 
+       coefficient (i.e. the magnetic surface-current expansion 
+       coefficient associated with some RWG basis function $\vb b$),
+       then the $n$th element of the RHS vector is minus the 
+       inner product of the incident magnetic field with $\vb b$.
+\end{itemize}
+
+For the example considered above, consisting of a PEC surface
+with $M$ interior edges and a dielectric surface with $N$ 
+interior edges, the elements of the RHS vector would be 
+
+%====================================================================%
+\setlength{\extrarowheight}{3pt}
+$$ \vb{RHS}=-\left(\begin{array}{l}
+   \langle\vb E\sups{inc}, \vb b_{11} \rangle  / Z_0  
+\\
+   \langle\vb E\sups{inc}, \vb b_{12} \rangle  / Z_0 
+\\
+   \vdots 
+\\
+   \langle\vb E\sups{inc}, \vb b_{1M} \rangle  / Z_0 
+\\
+   \langle\vb E\sups{inc}, \vb b_{21} \rangle  / Z_0 
+\\
+   \langle\vb H\sups{inc}, \vb b_{21} \rangle 
+\\
+   \langle\vb E\sups{inc}, \vb b_{22} \rangle / Z_0 
+\\
+   \vdots
+\\
+   \langle\vb H\sups{inc}, \vb b_{2N} \rangle
+   \end{array}\right).
+$$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2761,6 +2808,8 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \section{Fields due to individual basis functions}
+
+\subsection*{Reduced potentials}
 
 To compute the electric and magnetic fields at a point $\vb x$ 
 arising from the current carried by a single RWG or

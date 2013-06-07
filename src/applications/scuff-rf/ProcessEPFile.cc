@@ -156,7 +156,7 @@ void ProcessEPFile(RWGGeometry *G, HVector *KN, cdouble Omega,
      X[0]=XMatrix->GetEntryD(np, 0);
      X[1]=XMatrix->GetEntryD(np, 1);
      X[2]=XMatrix->GetEntryD(np, 2);
-     fprintf(FieldFile,"%e %e %e",X[0],X[1],X[2]);
+     fprintf(FieldFile,"%e %e %e ",X[0],X[1],X[2]);
 
      GetFieldOfDrivenPorts(Ports, NumPorts, PortCurrents, Omega, X, EH);
 
