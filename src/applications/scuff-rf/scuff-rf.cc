@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
      printf("Z-parameters vs. frequency written to file %s\n",ZParFileName);
    };
   if (SParameters)
-   { fclose(ZParFile);
+   { fclose(SParFile);
      printf("S-parameters vs. frequency written to file %s\n",SParFileName);
    };
   if (Moments)
