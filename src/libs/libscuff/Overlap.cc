@@ -644,8 +644,9 @@ double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
   cdouble *ZKN=KN->ZV + BFIndexOffset[SurfaceIndex];
   // nr runs over rows, nc over columns, ne over matrix entries
   int nr, nc, ne;
+  double SignMultiplier=S->IsPEC ? 1.0 : -1.0;
   for(PScat=0.0, Sign=1.0, ne=nc=0; nc<NBF; nc++)
-   for(nr=0; nr<NBF; nr++, ne++, Sign*=-1.0)
+   for(nr=0; nr<NBF; nr++, ne++, Sign*=SignMultiplier)
     PScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
  
   PScat *= 0.5*ZVAC;
