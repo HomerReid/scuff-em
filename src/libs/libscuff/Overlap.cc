@@ -474,6 +474,7 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
 /*  PFT[2..4] = x, y, z force                                  */
 /*  PFT[5..7] = x, y, z torque                                 */
 /***************************************************************/
+#if 0
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
                           int SurfaceIndex, double PFT[8])
 {
@@ -587,11 +588,11 @@ else if (QuadrantOnly==-1)
    delete OMatrices[nm];
 
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#if 0
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
                           int SurfaceIndex, double PFT[8])
 {
@@ -687,7 +688,6 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
    delete OMatrices[nm];
 
 }
-#endif
 
 /***************************************************************/
 /* alternative interface to GetPFT in which the caller         */

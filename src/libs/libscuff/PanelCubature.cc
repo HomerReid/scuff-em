@@ -244,7 +244,7 @@ void GetBFCubature(RWGGeometry *G, int ns, int ne,
 
   GetPanelCubature(G, ns, E->iMPanel, Integrand, UserData, 
                    IDim, MaxEvals, RelTol, AbsTol, Omega, KN,
-                   E->MIndex, +1.0, ResultM);
+                   E->MIndex, -1.0, ResultM);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
