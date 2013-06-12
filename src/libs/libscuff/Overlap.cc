@@ -1,4 +1,3 @@
-int QuadrantOnly=-1;
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -465,132 +464,6 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
 }
 
 /***************************************************************/
-/* old routine for computing power, force, and torque on a     */
-/* surface.                                                    */
-/*                                                             */
-/* return values:                                              */
-/*  PFT[0]    = absorbed power                                 */
-/*  PFT[1]    = total (absorbed + scattered) power (extinction)*/
-/*  PFT[2..4] = x, y, z force                                  */
-/*  PFT[5..7] = x, y, z torque                                 */
-/***************************************************************/
-#if 0
-void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                          int SurfaceIndex, double PFT[8])
-{
-
-  if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
-   { memset(PFT,0,8*sizeof(double));
-     Warn("GetPFT called for unknown surface #i",SurfaceIndex);
-     return;  
-   };
-  RWGSurface *S=Surfaces[SurfaceIndex];
-
-  /***************************************************************/
-  /* compute overlap matrices.                                   */
-  /* TODO: allow caller to pass caller-allocated storage for     */
-  /* these matrices and for the KNTS vector below to avoid       */
-  /* allocating on the fly                                       */
-  /***************************************************************/
-  bool NeedMatrix[SCUFF_NUM_OMATRICES];
-  SMatrix *OMatrices[SCUFF_NUM_OMATRICES];
-  for(int nm=0; nm<SCUFF_NUM_OMATRICES; nm++)
-   { NeedMatrix[nm]=true;
-     OMatrices[nm] = 0; 
-   };
-  S->GetOverlapMatrices(NeedMatrix, OMatrices, Omega, RegionMPs[0]);
-
-  /***************************************************************/
-  /* extract the chunk of the KN vector that is relevant for this*/
-  /* surface and in the process (1) undo the SCUFF normalization */
-  /* of the magnetic currents and (2) compute the total power    */
-  /***************************************************************/
-  int N = S->NumBFs;
-  int Offset = BFIndexOffset[SurfaceIndex];
-  HVector *KNTSUpper=new HVector(N,LHM_COMPLEX); // 'KN, this surface'
-  HVector *KNTSLower=new HVector(N,LHM_COMPLEX); // 'KN, this surface'
-  KNTSUpper->Zero();
-  KNTSLower->Zero();
-  cdouble KAlpha, NAlpha, vEAlpha, vHAlpha;
-  PFT[1]=0.0;
-  if (S->IsPEC)
-   { for(int ne=0; ne<S->NumEdges; ne++)
-      { 
-        KAlpha  = KN->GetEntry(Offset + ne);
-        vEAlpha = RHS ? -ZVAC*RHS->GetEntry( Offset + ne ) : 0.0;
-
-        PFT[1] += real( conj(KAlpha)*vEAlpha );
-
-        KNTSUpper->SetEntry(ne,  KAlpha);
-      }
-   }
-  else //non-PEC
-   { for(int ne=0; ne<S->NumEdges; ne++)
-      { 
-        KAlpha =       KN->GetEntry(Offset + 2*ne + 0);
-        NAlpha = -ZVAC*KN->GetEntry(Offset + 2*ne + 1);
-
-        vEAlpha = RHS ? -ZVAC*RHS->GetEntry( Offset + 2*ne + 0 ) : 0.0;
-        vHAlpha = RHS ?  -1.0*RHS->GetEntry( Offset + 2*ne + 1 ) : 0.0;
-
-        KNTSUpper->SetEntry( 2*ne + 0,  KAlpha );
-        KNTSLower->SetEntry( 2*ne + 1,  NAlpha );
-
-if (QuadrantOnly==1)
- PFT[1] += real( conj(KAlpha)*vEAlpha );
-else if (QuadrantOnly==4)
- PFT[1] += real( conj(NAlpha)*vHAlpha );
-else if (QuadrantOnly==-1)
- PFT[1] += real( conj(KAlpha)*vEAlpha + conj(NAlpha)*vHAlpha );
-
-      };
-   };
-  PFT[1] *= 0.5;
-
-  HVector *KNTSL, *KNTSR;
-  switch(QuadrantOnly)
-   { case 1: KNTSL=KNTSR=KNTSUpper;            break;
-     case 2: KNTSL=KNTSUpper; KNTSR=KNTSLower; break;
-     case 3: KNTSL=KNTSLower; KNTSR=KNTSUpper; break;
-     case 4: KNTSL=KNTSR=KNTSLower;            break;
-   };
-
-  PFT[0] = 0.25*OMatrices[SCUFF_OMATRIX_POWER]->BilinearProductD(KNTSL,KNTSR);
-
-  PFT[2] = 0.25*OMatrices[SCUFF_OMATRIX_XFORCE]->BilinearProductD(KNTSL,KNTSR);
-  PFT[3] = 0.25*OMatrices[SCUFF_OMATRIX_YFORCE]->BilinearProductD(KNTSL,KNTSR);
-  PFT[4] = 0.25*OMatrices[SCUFF_OMATRIX_ZFORCE]->BilinearProductD(KNTSL,KNTSR);
-
-  PFT[5] = 0.25*OMatrices[SCUFF_OMATRIX_XTORQUE]->BilinearProductD(KNTSL,KNTSR);
-  PFT[6] = 0.25*OMatrices[SCUFF_OMATRIX_YTORQUE]->BilinearProductD(KNTSL,KNTSR);
-  PFT[7] = 0.25*OMatrices[SCUFF_OMATRIX_ZTORQUE]->BilinearProductD(KNTSL,KNTSR);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  // insert prefactors to get units right.
-  // how it works: the force quantity that we just computed 
-  // has units of 1 watt / c = (1 joule/s) * (1 s/nm) / 3  
-  //                         = (1 nanoNewton / 3 )
-  // so we multiply it by 3 to get a force in nanonewtons.
-  // similarly for the torque: multiplying by 3 gives the torque
-  // in nanoNewtons*microns (assuming the incident field was 
-  // measured in units of volts / micron)
-  for(int n=2; n<=7; n++)
-   PFT[n] *= 3.0;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  delete KNTSUpper;
-  delete KNTSLower;
-  for(int nm=0; nm<SCUFF_NUM_OMATRICES; nm++)
-   delete OMatrices[nm];
-
-}
-#endif
-
-/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
@@ -765,20 +638,9 @@ double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
   // nr runs over rows, nc over columns, ne over matrix entries
   int nr, nc, ne;
   double SignMultiplier=S->IsPEC ? 1.0 : -1.0;
-#if 0
   for(PScat=0.0, Sign=1.0, ne=nc=0; nc<NBF; nc++)
    for(nr=0; nr<NBF; nr++, ne++, Sign*=SignMultiplier)
     PScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
-#else
-  for(PScat=0.0, Sign=1.0, ne=nc=0; nc<NBF; nc++)
-   for(nr=0; nr<NBF; nr++, ne++, Sign*=SignMultiplier)
-    { if ( QuadrantOnly==1 && ( nr%2 !=0  || nc%2 != 0 ) ) continue;
-      if ( QuadrantOnly==2 && ( nr%2 !=0  || nc%2 != 1 ) ) continue;
-      if ( QuadrantOnly==3 && ( nr%2 !=1  || nc%2 != 0 ) ) continue;
-      if ( QuadrantOnly==4 && ( nr%2 !=1  || nc%2 != 1 ) ) continue;
-      PScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
-    }
-#endif
   
   PScat *= 0.5*ZVAC;
 

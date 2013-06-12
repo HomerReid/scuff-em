@@ -248,7 +248,6 @@ void GetMoments(SSData *SSD, char *MomentFile)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-extern int QuadrantOnly;
 void WritePFTFile(SSData *SSD, char *PFTFile)
 {
   FILE *f=fopen(PFTFile,"a");
@@ -263,7 +262,6 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-for(QuadrantOnly=1; QuadrantOnly<=4; QuadrantOnly++)
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
@@ -287,7 +285,6 @@ for(QuadrantOnly=1; QuadrantOnly<=4; QuadrantOnly++)
      for(int nq=0; nq<8; nq++)
       fprintf(f,"%e ",PFT[nq]);
      fprintf(f,"%e ",G->GetScatteredPower(SSD->KN, SSD->Omega, ns));
-     if (QuadrantOnly==4) fprintf(f,"\n");
    };
 
   fclose(f);
