@@ -298,7 +298,9 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
 {
   FILE *f=fopen(PSDFile,"a");
   if (!f)
-   return;
+   { Warn("could not open file %s for writing (skipping PSD output)",PSDFile);
+     return;
+   };
 
   Log("Computing panel source densities at Omega=%s...",z2s(SSD->Omega));
 
@@ -320,7 +322,6 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
      fprintf(f,"\n");
    };
   fclose(f);
-
 
   SSD->G->GetPanelSourceDensities2(SSD->Omega, SSD->KN, PSDMatrix); 
 

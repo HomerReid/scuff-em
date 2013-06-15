@@ -464,7 +464,7 @@ int main(int argc, char *argv[])
      /* just wanted to export the matrix to a binary file), don't      **/
      /* bother LU-factorizing the matrix or assembling the RHS vector. **/
      /*******************************************************************/
-     if ( PFTFile==0 && MomentFile==0 && nEPFiles==0 && nFluxMeshes==0 && PlotSurfaceCurrents==0 )
+     if ( PFTFile==0 && PSDFile==0 && MomentFile==0 && nEPFiles==0 && nFluxMeshes==0 && PlotSurfaceCurrents==0 )
       continue;
 
      /*******************************************************************/
