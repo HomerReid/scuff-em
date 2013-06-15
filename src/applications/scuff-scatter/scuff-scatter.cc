@@ -521,7 +521,10 @@ int main(int argc, char *argv[])
      /*- surface current visualization-------------------------------*/
      /*--------------------------------------------------------------*/
      if (PlotSurfaceCurrents)
+{
       G->PlotSurfaceCurrents(KN, Omega, "%s.%s.pp",GetFileBase(GeoFile),z2s(Omega));
+      G->PlotSurfaceCurrents(SSD->RHS, Omega, "%s.%s.RHS.pp",GetFileBase(GeoFile),z2s(Omega));
+};
 
      /*--------------------------------------------------------------*/
      /*- flux meshes ------------------------------------------------*/

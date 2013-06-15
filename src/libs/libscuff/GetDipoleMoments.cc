@@ -288,17 +288,16 @@ HMatrix *RWGGeometry::GetPanelSourceDensities2(cdouble Omega,
 /*                                                             */
 /*  columns 0, 1, 2 : cartesian coords of nth panel centroid   */
 /*  column  3       : area of nth panel                        */
-/*  column  4       : electric charge density                  */
-/*  columns 5,6,7   : components of electric current density   */
-/*  column  8       : magnetic charge density                  */
-/*  columns 9,10,11 : components of magnetic current density   */
+/*  columns 4,5,6   : components of electric current density   */
+/*  column  7       : electric charge density                  */
+/*  columns 8,9,10  : components of magnetic current density   */
+/*  column  11      : magnetic charge density                  */
 /*  column  12      : normally-directed poynting flux INTO the */
 /*                    surface                                  */
 /***************************************************************/
 HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, 
                                               HVector *KN, 
                                               HMatrix *PSD)
-
 { 
   cdouble iw = II*Omega;
 

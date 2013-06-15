@@ -582,7 +582,7 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   if ( Args->Symmetric && (Args->B->StorageType==LHM_NORMAL) )
    { int N=Args->B->NR;
      for(int nr=1; nr<N; nr++)
-      for(int nc=0; nc<N; nc++)
+      for(int nc=0; nc<nr; nc++)
        Args->B->SetEntry(nr,nc,Args->B->GetEntry(nc,nr));
    };
 

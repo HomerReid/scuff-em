@@ -464,9 +464,9 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
   /* to the above-diagonals, not to their complex conjugates.    */
   /***************************************************************/
   if (M->StorageType==LHM_NORMAL)
-   { int nr, nc;
-     for(nr=1; nr<TotalBFs; nr++)
-      for(nc=0; nc<nr; nc++)
+   { 
+     for(int nr=1; nr<TotalBFs; nr++)
+      for(int nc=0; nc<nr; nc++)
        M->SetEntry(nr, nc, M->GetEntry(nc, nr) );
    };
 

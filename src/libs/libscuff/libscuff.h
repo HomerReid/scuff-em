@@ -346,7 +346,6 @@ class RWGGeometry
    void WriteGPMesh(const char *format, ...);
    void WriteGPMeshPlus(const char *format, ...);
    void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
-   void PlotSurfaceCurrents2(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
    void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
 
    /* routines for allocating, and then filling in, the BEM matrix */
