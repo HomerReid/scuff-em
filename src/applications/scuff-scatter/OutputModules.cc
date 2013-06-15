@@ -285,6 +285,7 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
      for(int nq=0; nq<8; nq++)
       fprintf(f,"%e ",PFT[nq]);
      fprintf(f,"%e ",G->GetScatteredPower(SSD->KN, SSD->Omega, ns));
+     fprintf(f,"\n");
    };
 
   fclose(f);
