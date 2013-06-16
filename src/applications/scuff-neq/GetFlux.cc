@@ -152,6 +152,7 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
    };
   HMatrix *WDOW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
   WSD->Multiply(OW, WDOW, "--transA C");
+
   delete WSD;
   delete OW;
 
