@@ -38,6 +38,9 @@
 
 #include "scuff-test-EEIs.h"
 
+#define II cdouble(0.0,1.0)
+#define NUMTIMES 10
+
 /***************************************************************/
 /* integrand for brute-force edge-edge integration            **/
 /***************************************************************/
@@ -45,20 +48,20 @@ void Integrand(double *X, double *XP, PPCData *PPCD,
                void *UserData, double *Result)
 { 
   cdouble *F1    = PPCD->K1;    // RWG basis function 1 
-  cdouble DivF1  = PPCD->DivF1;
+  cdouble DivF1  = PPCD->DivK1;
   cdouble *F2    = PPCD->K2;    // RWG basis function 2
-  cdouble DivF2  = PPCD->DivF2;
+  cdouble DivF2  = PPCD->DivK2;
 
   double R[3];
   VecSub(X, XP, R);
   double r2=(R[0]*R[0] + R[1]*R[1] + R[2]*R[2]);
   double r=sqrt(r2);
 
-  double DotProduct    = real(F1[0]*F2[0] + F1[1]*F2[1] + F1[2]*F2[2]);
-  double ScalarProduct = real(DivF1 * DivF2);
-  double TripleProduct =  F1[0] * (R[1]*F2[2]-R[2]*F2[1])
-                         +F1[1] * (R[2]*F2[0]-R[0]*F2[2])
-                         +F1[2] * (R[0]*F2[1]-R[1]*F2[0]);
+  cdouble DotProduct    = F1[0]*F2[0] + F1[1]*F2[1] + F1[2]*F2[2];
+  cdouble ScalarProduct = DivF1 * DivF2;
+  cdouble TripleProduct =  F1[0] * (R[1]*F2[2]-R[2]*F2[1])
+                          +F1[1] * (R[2]*F2[0]-R[0]*F2[2])
+                          +F1[2] * (R[0]*F2[1]-R[1]*F2[0]);
 
   cdouble ik  = II * PPCD->Omega;
   cdouble ikr = ik*r;
@@ -79,9 +82,8 @@ void GetEEIs_BruteForce(RWGGeometry *G, GetEEIArgStruct *Args)
   GetBFBFCubature(G, Args->Sa->Index, Args->nea,
                   Args->Sb->Index, Args->neb,
                   Args->Displacement,
-                  Integrand, 0, 4, 0, 1.0e-10, 0.0,
-                  Args->k, 0, (cdouble *)Args->GC);
-  
+                  Integrand, 0, 4, 100000, 1.0e-10, 0.0,
+                  Args->k, 0, (double *)Args->GC);
 }
 
 /***************************************************************/
@@ -233,14 +235,14 @@ void GetRequest(RWGGeometry *G, Request *R)
   RWGEdge *Ea=G->Surfaces[R->nsa]->Edges[R->nea];
   if( rRel != -1.0 )
    { 
-     while(int neb=0; int neb<Sb->NumEdges; int neb++)
+     for(int neb=0; neb<Sb->NumEdges; neb++)
       { RWGEdge *Eb=G->Surfaces[R->nsb]->Edges[R->neb];
         double MaxRadius=fmax(Ea->Radius, Eb->Radius);
         double ThisrRel = VecDistance(Ea->Centroid, Eb->Centroid) / MaxRadius;
         if ( (0.8*rRel <= ThisrRel) && (ThisrRel <= 1.2*rRel) ) 
          { R->neb=neb;
            break;
-         }l
+         };
       };
    };
 
@@ -294,14 +296,10 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* enter command loop ******************************************/
   /***************************************************************/
-  Request MyRequest, *R=&MyRequest;
-  cdouble GCLS[2], GradGCLS[6]; // G,C integrals by libscuff method
-  cdouble GCCM[2], GradGCCM[6]; // G,C integrals by cartesian multipole
-  cdouble GCBF[2], GradGCBF[6]; // G,C integrals by brute force
-  double LSTime, CMTime;
   for(;;)
    {
-     GetRequest(R);
+     Request MyRequest, *R=&MyRequest;
+     GetRequest(G,R);
 
      /*--------------------------------------------------------------------*/
      /* print a little summary of the edge pair we will be considering     */
@@ -311,9 +309,9 @@ int main(int argc, char *argv[])
      printf("* --nsa %i --nea %i ",R->nsa, R->nea);
      printf("* --nsb %i --neb %i ",R->nsb, R->neb);
      printf("* --k %s",CD2S(R->k));
-     printf("* relative distance: %+7.3e (DBFThreshold=10.0)\n",rRel);
-     if (DZ!=0.0)
-      printf("*  DZ:                %e\n",DZ);
+     //printf("* relative distance: %+7.3e (DBFThreshold=10.0)\n",rRel);
+//     if (DZ!=0.0)
+ //     printf("*  DZ:                %e\n",DZ);
      printf("*\n\n");
 
      /*--------------------------------------------------------------------*/
@@ -331,31 +329,33 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /* get edge-edge interactions by libscuff methods                     */
      /*--------------------------------------------------------------------*/
+     cdouble GCLS[2], GradGCLS[6]; // G,C integrals by libscuff method
      Tic();
      for(int Times=0; Times<NUMTIMES; Times++)
       GetEdgeEdgeInteractions(Args);
-     LSTime=Toc() / NUMTIMES;
+     double LSTime=Toc() / NUMTIMES;
      memcpy(GCLS, Args->GC, 2*sizeof(cdouble));
      memcpy(GradGCLS, Args->GradGC, 6*sizeof(cdouble));
 
      /*--------------------------------------------------------------------*/
      /* get edge-edge interactions by cartesian multipole method           */
      /*--------------------------------------------------------------------*/
+     cdouble GCCM[2], GradGCCM[6]; // G,C integrals by cartesian multipole
      Tic();
      for(int Times=0; Times<NUMTIMES; Times++)
       GetEEIs_CartesianMultipole(Args);
      Toc();
-     CMTime=Toc() / NUMTIMES;
+     double CMTime=Toc() / NUMTIMES;
      memcpy(GCCM, Args->GC, 2*sizeof(cdouble));
      memcpy(GradGCCM, Args->GradGC, 6*sizeof(cdouble));
 
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by brute-force methods                   */
      /*--------------------------------------------------------------------*/
-     GetEEIs_BruteForce(Args);
+     cdouble GCBF[2], GradGCBF[6]; // G,C integrals by brute force
+     GetEEIs_BruteForce(G, Args);
      memcpy(GCBF, Args->GC, 2*sizeof(cdouble));
      memcpy(GradGCBF, Args->GradGC, 6*sizeof(cdouble));
-
 
      /*--------------------------------------------------------------------*/
      /*- print results ----------------------------------------------------*/
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
              CD2S(GCLS[1]), CD2S(GCCM[1]), CD2S(GCBF[1]), 
              RD(GCLS[1],GCBF[1]), RD(GCCM[1],GCBF[1]));
 
-     if (Gradient)
+     if (R->Gradient)
       { 
          printf("\n");
          printf("(d/dx) <fa|G|fb>  | %s | %s | %s |%4.1e|%4.1e\n", 

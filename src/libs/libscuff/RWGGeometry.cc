@@ -388,7 +388,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* Autodetect nesting relationships & topologically sort           */
   /* (so that if A contains B, then B comes after A).                */
   /* Note that the Contains() function and the autodetection of      */
-  /* containership relations is only applicable to CLOSED            */
+  /* containership relations are only applicable to CLOSED           */
   /* surfaces; for OPEN surfaces there is no autodetection, and      */
   /* we rely instead on the user to specify explicitly which         */
   /* surfaces bound which regions.                                   */

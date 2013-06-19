@@ -1,11 +1,18 @@
-bin_PROGRAMS = \
- scuff-test-overlap
+bin_PROGRAMS = 		\
+ scuff-test-overlap	\
+ scuff-test-EEIs
 
 scuff_test_overlap_SOURCES =	\
  readlineReplacement.h          \
  scuff-test-overlap.cc
 
 scuff_test_overlap_LDADD     = $(top_builddir)/src/libs/libscuff/libscuff.la
+
+scuff_test_EEIs_SOURCES = \
+ readlineReplacement.h    \
+ scuff-test-EEIs.cc
+
+scuff_test_EEIs_LDADD     = $(top_builddir)/src/libs/libscuff/libscuff.la
 
 #scuff_test_EPIs_SOURCES =	\
 # readlineReplacement.h          \
