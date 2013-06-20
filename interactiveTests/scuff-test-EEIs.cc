@@ -36,6 +36,8 @@
 #include <libhrutil.h>
 #include <PanelCubature.h>
 
+#include <libPolyFit.h>
+
 #include "scuff-test-EEIs.h"
 
 #define II cdouble(0.0,1.0)
@@ -47,6 +49,12 @@
 void Integrand(double *X, double *XP, PPCData *PPCD,
                void *UserData, double *Result)
 { 
+  double Eta;
+  if (UserData)
+   Eta = *((double *)UserData);
+  else
+   Eta = 0.0;
+
   cdouble *F1    = PPCD->K1;    // RWG basis function 1 
   cdouble DivF1  = PPCD->DivK1;
   cdouble *F2    = PPCD->K2;    // RWG basis function 2
@@ -55,7 +63,9 @@ void Integrand(double *X, double *XP, PPCData *PPCD,
   double R[3];
   VecSub(X, XP, R);
   double r2=(R[0]*R[0] + R[1]*R[1] + R[2]*R[2]);
+  double rE2=r2+Eta*Eta;
   double r=sqrt(r2);
+  double rE=sqrt(rE2);
 
   cdouble DotProduct    = F1[0]*F2[0] + F1[1]*F2[1] + F1[2]*F2[2];
   cdouble ScalarProduct = DivF1 * DivF2;
@@ -65,8 +75,8 @@ void Integrand(double *X, double *XP, PPCData *PPCD,
 
   cdouble ik  = II * PPCD->Omega;
   cdouble ikr = ik*r;
-  cdouble Phi = exp(ikr)/(4.0*M_PI*r);
-  cdouble Psi = (ikr-1.0)*Phi/r2;
+  cdouble Phi = exp(ikr)/(4.0*M_PI*rE);
+  cdouble Psi = (ikr-1.0)*Phi/rE2;
 
   cdouble *zf = (cdouble *)Result;
   zf[0] = ( DotProduct + ScalarProduct/(ik*ik) ) * Phi;
@@ -79,11 +89,63 @@ void Integrand(double *X, double *XP, PPCData *PPCD,
 /***************************************************************/
 void GetEEIs_BruteForce(RWGGeometry *G, GetEEIArgStruct *Args)
 {
-  GetBFBFCubature(G, Args->Sa->Index, Args->nea,
-                  Args->Sb->Index, Args->neb,
-                  Args->Displacement,
-                  Integrand, 0, 4, 100000, 1.0e-10, 0.0,
-                  Args->k, 0, (double *)Args->GC);
+  int nea = Args->nea;
+  int neb = Args->neb;
+
+  int ncv = NumCommonBFVertices(Args->Sa,nea,Args->Sb,neb);
+
+  if (ncv==0)
+   { 
+     GetBFBFCubature(G, 
+                     Args->Sa->Index, Args->nea,
+                     Args->Sb->Index, Args->neb,
+                     Args->Displacement,
+                     Integrand, 0, 4, 100000, 1.0e-10, 0.0,
+                     Args->k, 0, (double *)Args->GC);
+   }
+  else
+   {
+     #define NUMETAS 5
+     double EtaValues[NUMETAS]={0.002,0.004,0.006,0.008,0.01};
+     double R1Values[NUMETAS], I1Values[NUMETAS], R2Values[NUMETAS], I2Values[NUMETAS];
+
+     for(int neta=0; neta<NUMETAS; neta++)
+      { 
+        double Eta = EtaValues[neta];
+        double Result[4];
+        GetBFBFCubature(G, Args->Sa->Index, Args->nea, 
+                           Args->Sb->Index, Args->neb, 
+                           0, Integrand, (void *)&Eta, 4, 
+                           1000000, 1.0e-10, 0.0, Args->k, 0, Result);
+        R1Values[neta] = Result[0];
+        I1Values[neta] = Result[1];
+        R2Values[neta] = Result[2];
+        I2Values[neta] = Result[3];
+      };
+
+     PolyFit *PF;
+     PF = new PolyFit(EtaValues, R1Values, NUMETAS, 2);
+     real(Args->GC[0]) = PF->f(0.0);
+     PF->PlotFit(EtaValues, R1Values, NUMETAS);
+     delete PF;
+
+     PF = new PolyFit(EtaValues, I1Values, NUMETAS, 2);
+     imag(Args->GC[0]) = PF->f(0.0);
+     PF->PlotFit(EtaValues, I1Values, NUMETAS);
+     delete PF;
+
+     PF = new PolyFit(EtaValues, R2Values, NUMETAS, 2);
+     real(Args->GC[1]) = PF->f(0.0);
+     PF->PlotFit(EtaValues, R2Values, NUMETAS);
+     delete PF;
+
+     PF = new PolyFit(EtaValues, I2Values, NUMETAS, 2);
+     imag(Args->GC[1]) = PF->f(0.0);
+     PF->PlotFit(EtaValues, I2Values, NUMETAS);
+     delete PF;
+
+   };
+
 }
 
 /***************************************************************/
@@ -92,46 +154,6 @@ void GetEEIs_BruteForce(RWGGeometry *G, GetEEIArgStruct *Args)
 void GetEEIs_CartesianMultipole(GetEEIArgStruct *Args)
 {
 }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-int AssessEdgePair(RWGObject *Oa, int nea, RWGObject *Ob, int neb,
-                   double *rRel)
-{
-  /***************************************************************/
-  /* get relative distance ***************************************/
-  /***************************************************************/
-  RWGEdge *Ea=Oa->Edges[nea];
-  RWGEdge *Eb=Ob->Edges[neb];
-  *rRel=VecDistance(Ea->Centroid, Eb->Centroid) / fmax(Ea->Radius, Eb->Radius);
-
-  /***************************************************************/
-  /* count common vertices ***************************************/
-  /***************************************************************/
-  double *Va[4], *Vb[4];
-
-  Va[0] = Oa->Vertices + 3*(Ea->iQP);
-  Va[1] = Oa->Vertices + 3*(Ea->iV1);
-  Va[2] = Oa->Vertices + 3*(Ea->iV2);
-  Va[3] = Oa->Vertices + 3*(Ea->iQM);
-
-  Vb[0] = Ob->Vertices + 3*(Eb->iQP);
-  Vb[1] = Ob->Vertices + 3*(Eb->iV1);
-  Vb[2] = Ob->Vertices + 3*(Eb->iV2);
-  Vb[3] = Ob->Vertices + 3*(Eb->iQM);
-
-  int i, j, ncv;
-  ncv=0;
-  for(i=0; i<4; i++)
-   for(j=0; j<4; j++)
-    if (Va[i]==Vb[j]) ncv++;
-
-  return ncv;
- 
-} 
-#endif
 
 /***************************************************************/
 /* print a console prompt, then get an parse a command         */
@@ -184,6 +206,7 @@ void GetRequest(RWGGeometry *G, Request *R)
   R->nsa=R->nsb=0;
   R->nea=R->neb=-1;
   double rRel=-1.0;
+  int ncv=-1;
   R->DX[0]=R->DX[1]=R->DX[2]=0.0;
   R->Gradient=true;
   R->k=0.1;
@@ -201,6 +224,9 @@ void GetRequest(RWGGeometry *G, Request *R)
   for(nt=0; nt<NumTokens; nt++)
    if ( !strcasecmp(Tokens[nt],"--neb") )
     sscanf(Tokens[nt+1],"%i",&(R->neb));
+  for(nt=0; nt<NumTokens; nt++)
+   if ( !strcasecmp(Tokens[nt],"--ncv") )
+    sscanf(Tokens[nt+1],"%i",&ncv);
   for(nt=0; nt<NumTokens; nt++)
    if ( !strcasecmp(Tokens[nt],"--rRel") )
     sscanf(Tokens[nt+1],"%le",&rRel);
@@ -246,17 +272,16 @@ void GetRequest(RWGGeometry *G, Request *R)
       };
    };
 
-#if 0
-  if ( 0<=ncv && ncv<=3 )
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if ( 0<=ncv && ncv<=4 )
    { R->nsb=R->nsa;
-     R->npa=lrand48() % Sa->NumPanels;
+     R->nea=lrand48() % Sa->NumEdges;
      do
-      { npb=lrand48() % Sa->NumPanels;
-      } while( NumCommonVertices(Sa,R->npa,Sa,R->npb)!=ncv );
-     R->iQa=lrand48() % 3;
-     R->iQb=lrand48() % 3;
+      { R->neb=lrand48() % Sa->NumEdges;
+      } while( NumCommonBFVertices(Sa,R->nea,Sa,R->neb)!=ncv );
    };
-#endif
 
 }
 
@@ -292,6 +317,7 @@ int main(int argc, char *argv[])
   /* interaction routines                                        */
   /***************************************************************/
   GetEEIArgStruct MyArgs, *Args=&MyArgs;
+  InitGetEEIArgs(Args);
 
   /***************************************************************/
   /* enter command loop ******************************************/
@@ -309,9 +335,10 @@ int main(int argc, char *argv[])
      printf("* --nsa %i --nea %i ",R->nsa, R->nea);
      printf("* --nsb %i --neb %i ",R->nsb, R->neb);
      printf("* --k %s",CD2S(R->k));
+     printf("* --ncv %i",NumCommonBFVertices(G->Surfaces[R->nsa], R->nea, G->Surfaces[R->nsb], R->neb));
      //printf("* relative distance: %+7.3e (DBFThreshold=10.0)\n",rRel);
-//     if (DZ!=0.0)
- //     printf("*  DZ:                %e\n",DZ);
+//    if (DZ!=0.0)
+//     printf("*  DZ:                %e\n",DZ);
      printf("*\n\n");
 
      /*--------------------------------------------------------------------*/

@@ -189,7 +189,7 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
      /* cubature                                                     */
      /*--------------------------------------------------------------*/
      adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
-                     0, ABSTOL, RELTOL, Result, Error);
+                     100000, ABSTOL, RELTOL, Result, Error);
 
      Args->H[0] = cdouble(Result[0], Result[1]);
      Args->H[1] = cdouble(Result[2], Result[3]);
@@ -223,7 +223,7 @@ void GetPPIs_BruteForce(GetPPIArgStruct *Args, int PlotFits)
         VecScaleAdd(Qb,    Z[nz], ZHat, PPIBFD->QP);
 
         adapt_integrate(fDim, PPIBFIntegrand, (void *)PPIBFD, 4, Lower, Upper,
-                        0, ABSTOL, RELTOL, Result, Error);
+                        100000, ABSTOL, RELTOL, Result, Error);
 
         GR[nz]=Result[0];
         GI[nz]=Result[1];
