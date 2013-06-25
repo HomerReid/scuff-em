@@ -184,19 +184,19 @@ void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E)
   fprintf(f,"# 2 (sourceObject, destObject) \n");
   int nq=3;
   if (SNEQD->QuantityFlags & QFLAG_POWER) 
-   fprintf(f,"# (%i,%i) power (value,error)\n",nq++,nq++);
+   { fprintf(f,"# (%i,%i) power (value,error)\n",nq,nq+1); nq+=2; }
   if (SNEQD->QuantityFlags & QFLAG_XFORCE) 
-   fprintf(f,"# (%i,%i) x-force (value,error)\n",nq++,nq++);
+   { fprintf(f,"# (%i,%i) x-force (value,error)\n",nq, nq+1); nq+=2; }
   if (SNEQD->QuantityFlags & QFLAG_YFORCE) 
-   fprintf(f,"# (%i,%i) y-force (value,error)\n",nq++,nq++);
+   { fprintf(f,"# (%i,%i) y-force (value,error)\n",nq, nq+1); nq+=2; }
   if (SNEQD->QuantityFlags & QFLAG_ZFORCE) 
-   fprintf(f,"# (%i,%i) z-force (value,error)\n",nq++,nq++);
+   { fprintf(f,"# (%i,%i) z-force (value,error)\n",nq, nq+1); nq+=2; }
   if (SNEQD->QuantityFlags & QFLAG_XTORQUE) 
-   fprintf(f,"# (%i,%i) x-torque (value,error)\n",nq++,nq++);
+   { fprintf(f,"# (%i,%i) x-torque (value,error)\n",nq, nq+1); nq+=2; }
   if (SNEQD->QuantityFlags & QFLAG_YTORQUE) 
-   fprintf(f,"# (%i,%i) y-torque (value,error)\n",nq++,nq++);
+   { fprintf(f,"# (%i,%i) y-torque (value,error)\n",nq, nq+1); nq+=2; }
   if (SNEQD->QuantityFlags & QFLAG_ZTORQUE) 
-   fprintf(f,"# (%i,%i) z-torque (value,error)\n",nq++,nq++);
+   { fprintf(f,"# (%i,%i) z-torque (value,error)\n",nq, nq+1); nq+=2; }
 
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;

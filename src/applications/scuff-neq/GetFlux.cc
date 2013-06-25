@@ -110,11 +110,11 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
 {
   RWGGeometry *G      = SNEQD->G;
 
-  int DimD            = G->Surfaces[DestSurface]->NumBFs;
-  int OffsetD         = G->BFIndexOffset[DestSurface];
-
   int DimS            = G->Surfaces[SourceSurface]->NumBFs;
   int OffsetS         = G->BFIndexOffset[SourceSurface];
+
+  int DimD            = G->Surfaces[DestSurface]->NumBFs;
+  int OffsetD         = G->BFIndexOffset[DestSurface];
    
   /*--------------------------------------------------------------*/
   /*- Set W_{SD} = S,D subblock of W matrix (SelfTerm==false)     */
@@ -134,7 +134,7 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   /*- set WDOW = W_{SD}^\dagger  * O_S * W_{SD}                  -*/
   /*--------------------------------------------------------------*/
   HMatrix *OW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  if (SNEQD->UseSGJFormalism)
+  if (SNEQD->SymGSource)
    { 
      HMatrix *SymG = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
      for(int nr=0; nr<DimS; nr++)
@@ -173,6 +173,20 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
        { Results[nq++]=0.0;
          continue;
        };
+
+      //
+      if ( QFlag==QFLAG_POWER && SNEQD->SymGDest )
+       {
+         HMatrix *T=SNEQD->TSelf[DestSurface];
+         double FMPTrace=0.0; //'four-matrix-product trace'
+         for(int nr=0; nr<DimD; nr++)
+          for(int nc=0; nc<DimD; nc++)
+           { cdouble SymG = 0.5 * (T->GetEntry(nr,nc) + conj(T->GetEntry(nc,nr)) );
+             FMPTrace += real(SymG * WDOW->GetEntry(nc,nr));
+           };
+         Results[nq++] = (1.0/8.0) * FMPTrace;
+         continue;
+       };
  
       SMatrix *OMatrixD = SNEQD->SArray[DestSurface][ 1 + QIndex ];
       double FMPTrace=0.0; //'four-matrix-product trace'
@@ -195,6 +209,9 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
 /***************************************************************/
 bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *Flux)
 {
+  if (SNEQD->UseExistingData==false)
+   return false;
+
   FILE *f=vfopen("%s.flux","r",SNEQD->FileBase);
   if (!f) return false;
   Log("Attempting to cache-read flux data for Omega=%e...",real(Omega));
@@ -336,7 +353,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (SNEQD->UseSGJFormalism)
+  if (SNEQD->SymGSource || SNEQD->SymGDest)
    { for(int nr=0; nr<G->NumRegions; nr++)
       G->RegionMPs[nr]->Zero();
      for(int ns=0; ns<NS; ns++)
@@ -350,7 +367,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
    
         Args->Sa = Args->Sb = G->Surfaces[ns];
         Args->B = TSelf[ns];
-        Args->Symmetric=0;
+        Args->Symmetric=1;
         G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
         GetSurfaceSurfaceInteractions(Args);
         G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();

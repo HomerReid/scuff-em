@@ -92,7 +92,10 @@ typedef struct SNEQData
    // (here 8 = SCUFF_NUM_OMATRICES)
    SMatrix ***SArray;
    
-   bool UseSGJFormalism;
+   bool SymGSource;
+   bool SymGDest;
+
+   bool UseExistingData;
 
    char *FileBase;
 
@@ -100,7 +103,8 @@ typedef struct SNEQData
 
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, 
                          int WhichQuantities, int PlotFlux, 
-                         char *FileBase, bool UseSGJFormalism);
+                         char *FileBase, 
+                         bool SymGSource, bool SymGDest);
 
 int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux);

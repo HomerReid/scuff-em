@@ -401,6 +401,9 @@ int main(int argc, char *argv[])
   double *Error=0; 
   if ( XikBlochPoints )
    { 
+     if (SC3D->ByXikBlochFileName==0)
+      SC3D->ByXikBlochFileName=vstrdup("%s.byXikBloch",GetFileBase(G->GeoFileName));
+
      double Xi, kBloch[2];
      for(int nr=0; nr<XikBlochPoints->NR; nr++)
       { 

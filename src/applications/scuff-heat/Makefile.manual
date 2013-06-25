@@ -26,9 +26,9 @@ CFLAGS+=$(DEBUG)
 CPPFLAGS+=$(DEBUG)
 LDFLAGS+=$(DEBUG)
 
-CPPFLAGS+=-I../../libs/libscuff -I../../libs/libhmat 
-CPPFLAGS+=-I../../libs/libhrutil 
-CPPFLAGS+=-I$(HOME)/include
+CPPFLAGS+=-I../../libs/libscuff -I../../libs/libhmat
+CPPFLAGS+=-I../../libs/libhrutil -I../../libs/libIncField
+CPPFLAGS+=-I$(HOME)/include -I/home/homer/work/scuff-em
 CPPFLAGS+=-DHAVE_CONFIG_H
 
 LDFLAGS+=-L. -L../../libs/libscuff -L../../libs/libhmat 

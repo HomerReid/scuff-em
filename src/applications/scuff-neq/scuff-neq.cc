@@ -141,7 +141,10 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
 
-  bool UseSGJFormalism=false;
+  bool SymGSource=false;
+  bool SymGDest=false;
+
+  bool UseExistingData=false;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
@@ -171,9 +174,12 @@ int main(int argc, char *argv[])
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,     0,             "absolute tolerance for frequency quadrature"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for frequency quadrature"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,  0,             "number of intervals for frequency quadrature"},
-/**/     
-     {"UseSGJFormalism", PA_BOOL,   0, 1,       (void *)&UseSGJFormalism,   0,      "use Sym(G) instead of overlap matrix"},
-/**/     
+/**/
+     {"SymGSource",     PA_BOOL,    0, 1,       (void *)&SymGSource, 0,             "use Sym(G) instead of overlap matrix for source object"},
+     {"SymGDest",       PA_BOOL,    0, 1,       (void *)&SymGDest,   0,             "use Sym(G) instead of overlap matrix for dest object"},
+/**/
+     {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
+/**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
@@ -271,8 +277,9 @@ int main(int argc, char *argv[])
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, 
-                                 PlotFlux, FileBase, UseSGJFormalism);
+                                 PlotFlux, FileBase, SymGSource, SymGDest);
   RWGGeometry *G=SNEQD->G;
+  SNEQD->UseExistingData = UseExistingData;
 
   /*******************************************************************/
   /* process any temperature specifications **************************/
