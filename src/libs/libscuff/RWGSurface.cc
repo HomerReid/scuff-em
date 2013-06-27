@@ -96,7 +96,6 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   /* read lines from the file one at a time **********************/
   /***************************************************************/
   char Line[MAXSTR], LineCopy[MAXSTR];
-  char Region1[MAXSTR], Region2[MAXSTR];
   int NumTokens, TokensConsumed;
   char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
@@ -320,9 +319,19 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   kdPanels = NULL;
 
   /*------------------------------------------------------------*/
-  /*- try to open the mesh file.                                */
+  /*- try to open the mesh file. we look in two places:         */
+  /*- (a) the current working directory                         */
+  /*- (b) the directory specified by the SCUFFMESHPATH          */
+  /*-     environment variable.                                 */
   /*------------------------------------------------------------*/
   FILE *MeshFile=fopen(MeshFileName,"r");
+  if (!MeshFile)
+   { char *MeshPath=getenv("SCUFFMESHPATH");
+     if (MeshPath)
+      MeshFile=vfopen("%s/%s","r",MeshPath,MeshFileName);
+     if (MeshFile)
+      Log("found mesh file %s in directory %s",MeshFile,MeshPath);
+   }
   if (!MeshFile)
    ErrExit("could not open file %s",MeshFileName);
    
@@ -440,8 +449,6 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
 RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
                        int *PanelVertices, int pNumPanels)
 { 
-  int np;
-
   ErrMsg=0;
   kdPanels = NULL;
 
@@ -466,7 +473,7 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   /*- add the panels -------------------------------------------*/
   /*------------------------------------------------------------*/
   Panels=(RWGPanel **)mallocEC(NumPanels*sizeof(RWGPanel *));
-  for(np=0; np<NumPanels; np++)
+  for(int np=0; np<NumPanels; np++)
    { Panels[np]=NewRWGPanel(Vertices,
                             PanelVertices[3*np+0],
                             PanelVertices[3*np+1],

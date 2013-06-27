@@ -92,6 +92,8 @@ typedef struct SC3Data
    bool NewEnergyMethod;
    HMatrix *MM1MInf;
 
+   bool UseExistingData;
+
  } SC3Data;
 
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,

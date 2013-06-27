@@ -130,6 +130,12 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   else
    SNEQD->W->ExtractBlock(OffsetS, OffsetD, WSD);
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+void *pCC=0;
+if (SourceSurface==0 && DestSurface==1) pCC = HMatrix::OpenHDF5Context("SD12.hdf5");
+if (SourceSurface==1 && DestSurface==0) pCC = HMatrix::OpenHDF5Context("SD21.hdf5");
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   /*--------------------------------------------------------------*/
   /*- set WDOW = W_{SD}^\dagger  * O_S * W_{SD}                  -*/
   /*--------------------------------------------------------------*/
@@ -143,6 +149,9 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
                                     +conj(SNEQD->TSelf[SourceSurface]->GetEntry(nc,nr))
                                   ));
      SymG->Multiply(WSD, OW);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (pCC) SymG->ExportToHDF5(pCC,"SymGSource");
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      delete SymG; 
    }
   else
@@ -152,6 +161,13 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
    };
   HMatrix *WDOW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
   WSD->Multiply(OW, WDOW, "--transA C");
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (pCC)
+ { WSD->ExportToHDF5(pCC,"WSD");
+   WDOW->ExportToHDF5(pCC,"WDOW");
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   delete WSD;
   delete OW;
@@ -178,6 +194,12 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
       if ( QFlag==QFLAG_POWER && SNEQD->SymGDest )
        {
          HMatrix *T=SNEQD->TSelf[DestSurface];
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (pCC)
+ { T->ExportToHDF5(pCC,"TDest");
+   HMatrix::CloseHDF5Context(pCC);
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
          double FMPTrace=0.0; //'four-matrix-product trace'
          for(int nr=0; nr<DimD; nr++)
           for(int nc=0; nc<DimD; nc++)

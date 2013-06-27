@@ -220,6 +220,8 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];                int nReadCache;
   char *WriteCache=0;
 //
+  bool UseExistingData=false;
+//
   bool NewEnergyMethod = false;
 //
   /* name               type    #args  max_instances  storage           count         description*/
@@ -253,6 +255,8 @@ int main(int argc, char *argv[])
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,         0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,      &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache,    0,             "write cache"},
+//
+     {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,           "use alternative method for energy calculation"},
 //
      {"NewEnergyMethod", PA_BOOL,   0, 1,       (void *)&NewEnergyMethod, 0,           "use alternative method for energy calculation"},
 //
@@ -384,6 +388,7 @@ int main(int argc, char *argv[])
   SC3D->AbsTol             = AbsTol;
   SC3D->RelTol             = RelTol;
   SC3D->MaxXiPoints        = MaxXiPoints;
+  SC3D->UseExistingData    = UseExistingData;
 
   if (SC3D->ByXiFileName==0)
    SC3D->ByXiFileName=vstrdup("%s.byXi",GetFileBase(G->GeoFileName));

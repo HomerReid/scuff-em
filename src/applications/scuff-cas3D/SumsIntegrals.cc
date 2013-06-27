@@ -92,6 +92,9 @@ double MP15[]=
 /***************************************************************/
 int CacheRead(const char *ByXiFileName, SC3Data *SC3D, double Xi, double *EFT)
 { 
+  if (SC3D->UseExistingData==false)
+   return 0;
+
   FILE *f;
   double Q[4];
   char Line[1000], fTag[1000];
@@ -282,7 +285,6 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
       fprintf(f,"%.8e ",EFT[ntnq]);
      fprintf(f,"\n");
-
   };
   fclose(f);
 
@@ -366,7 +368,7 @@ void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Err
      /*  2\pi kT *  \sum_n^\prime F(\xi_n)                          */
      /* where \xi_n is the nth matsubara frequency and F(\xi) is    */
      /* the casimir integrand (and the primed sum means that the    */
-     /* n==0 term is weighted with a factor of 1/2.                 */
+     /* n==0 term is weighted with a factor of 1/2).                */
      /*                                                             */
      /* however, my GetXiIntegrand() routine returns the quantity   */
      /* FI = F(\xi_n) / (2\pi). (this is so that the integral of FI */
@@ -456,7 +458,7 @@ void GetXiIntegral2(SC3Data *SC3D, int NumIntervals, double *I, double *E)
   /*--------------------------------------------------------------*/
   /*- evaluate integrand at leftmost frequency point and estimate */
   /*- the integral from 0 to XIMIN by assuming that the integrand */
-  /*- is constant in that range IN by assuming that the integrand */
+  /*- is constant in that range                                   */
   /*--------------------------------------------------------------*/
   Xi=XIMIN;
   GetXiIntegrand(SC3D, Xi, fLeft);
