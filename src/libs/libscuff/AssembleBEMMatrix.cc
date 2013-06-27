@@ -461,6 +461,7 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
        { int ThisOffset = BFIndexOffset[ns];
          int MateOffset = BFIndexOffset[nsm];
          int Dim = Surfaces[ns]->NumBFs;
+         Log("Block(%i,%i) is identical to block (%i,%i) (reusing)",ns,ns,nsm,nsm);
          M->InsertBlock(M, ThisOffset, ThisOffset, Dim, Dim, MateOffset, MateOffset);
        }
       else
