@@ -330,7 +330,7 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
      if (MeshPath)
       MeshFile=vfopen("%s/%s","r",MeshPath,MeshFileName);
      if (MeshFile)
-      Log("found mesh file %s in directory %s",MeshFile,MeshPath);
+      Log("found mesh file %s in directory %s",MeshFileName,MeshPath);
    }
   if (!MeshFile)
    ErrExit("could not open file %s",MeshFileName);
