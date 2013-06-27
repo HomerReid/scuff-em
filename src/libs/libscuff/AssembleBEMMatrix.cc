@@ -451,11 +451,22 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
   /* loop over all pairs of objects to assemble the diagonal and */
   /* above-diagonal blocks of the matrix                         */
   /***************************************************************/
+  /***************************************************************/
+  int nsm; // 'number of surface mate'
   for(int ns=0; ns<NumSurfaces; ns++)
    for(int nsp=ns; nsp<NumSurfaces; nsp++)
-    AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0,
-                           BFIndexOffset[ns], BFIndexOffset[nsp]);
-    
+    { 
+      // attempt to reuse the diagonal block of an identical previous object
+      if (ns==nsp && (nsm=Mate[ns])!=-1)
+       { int ThisOffset = BFIndexOffset[ns];
+         int MateOffset = BFIndexOffset[nsm];
+         int Dim = Surfaces[ns]->NumBFs;
+         M->InsertBlock(M, ThisOffset, ThisOffset, Dim, Dim, MateOffset, MateOffset);
+       }
+      else
+       AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0,
+                              BFIndexOffset[ns], BFIndexOffset[nsp]);
+    };
 
   /***************************************************************/
   /* if the matrix uses normal (not packed) storage, fill in its */
