@@ -132,8 +132,12 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 void *pCC=0;
-if (SourceSurface==0 && DestSurface==1) pCC = HMatrix::OpenHDF5Context("SD12.hdf5");
-if (SourceSurface==1 && DestSurface==0) pCC = HMatrix::OpenHDF5Context("SD21.hdf5");
+bool ExportMatrices=false;
+char *str=getenv("SCUFF_EXPORT_MATRICES");
+if (str)
+ ExportMatrices=true;
+if (ExportMatrices==true && SourceSurface==0 && DestSurface==1) pCC = HMatrix::OpenHDF5Context("SD12.hdf5");
+if (ExportMatrices==true && SourceSurface==1 && DestSurface==0) pCC = HMatrix::OpenHDF5Context("SD21.hdf5");
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /*--------------------------------------------------------------*/

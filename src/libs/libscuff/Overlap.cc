@@ -587,7 +587,7 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega, 
-                                       int SurfaceIndex)
+                                      int SurfaceIndex)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
