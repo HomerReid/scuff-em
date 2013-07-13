@@ -86,6 +86,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   if ( QuantityFlags & QFLAG_XFORCE ) SNEQD->NQ++;
   if ( QuantityFlags & QFLAG_YFORCE ) SNEQD->NQ++;
   if ( QuantityFlags & QFLAG_ZFORCE ) SNEQD->NQ++;
+  if ( QuantityFlags & QFLAG_XTORQUE ) SNEQD->NQ++;
+  if ( QuantityFlags & QFLAG_YTORQUE ) SNEQD->NQ++;
+  if ( QuantityFlags & QFLAG_ZTORQUE ) SNEQD->NQ++;
 
   SNEQD->NSNQ = G->NumSurfaces * SNEQD->NQ; 
   SNEQD->NTNSNQ = SNEQD->NumTransformations * SNEQD->NSNQ;
