@@ -355,7 +355,9 @@ class RWGGeometry
    /* lower-level routine for assembling individual BEM matrix blocks */
    void AssembleBEMMatrixBlock(int nsa, int nsb, cdouble Omega, double *kBloch,
                                HMatrix *M, HMatrix **GradM=0,
-                               int RowOffset=0, int ColOffset=0);
+                               int RowOffset=0, int ColOffset=0,
+                               int NumTorqueAxes=0, HMatrix **dMdT=0,
+                               double *GammaMatrix=0);
 
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(bool PureImagFreq = false );

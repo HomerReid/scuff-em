@@ -27,6 +27,8 @@
  */
 
 #include "scuff-cas3D.h"
+#include <time.h>
+#include <sys/time.h>
 #include <libhrutil.h>
 
 #define MAXSTR 1000
@@ -95,7 +97,9 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*-                                                             */
   /*- TBlocks[ns]       = (ns,ns) (diagonal) block                */
   /*- UBlocks[nb]       = nbth above-diagonal block               */
-  /*- dUBlocks[3*nb+Mu] = Mu derivative of nbth above-diagonal blk*/
+  /*- dUBlocks[6*nb+Mu] = Mu derivative of nbth above-diagonal blk*/
+  /*-                     where Mu=0,1,2, for x,y,z-displacement  */
+  /*-                           Mu=3,4,5, for axis 1,2,3 rotation */
   /*--------------------------------------------------------------*/
   int ns, nsp, nb, NBF, NBFp;
   int NS=G->NumSurfaces; 
@@ -117,7 +121,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   // etc.                                         
   int NumBlocks   = NS*(NS-1)/2; // number of above-diagonal blocks 
   SC3D->UBlocks   = (HMatrix **)mallocEC(   NumBlocks * sizeof(HMatrix *));
-  SC3D->dUBlocks  = (HMatrix **)mallocEC( 3*NumBlocks * sizeof(HMatrix *));
+  SC3D->dUBlocks  = (HMatrix **)mallocEC( 6*NumBlocks * sizeof(HMatrix *));
 
   for(nb=0, ns=0; ns<NS; ns++)
    for(nsp=ns+1; nsp<NS; nsp++, nb++)
@@ -125,11 +129,17 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
       NBFp=G->Surfaces[nsp]->NumBFs;
       SC3D->UBlocks[nb] = new HMatrix(NBF, NBFp);
       if (WhichQuantities & QUANTITY_XFORCE)
-       SC3D->dUBlocks[3*nb+0] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+0] = new HMatrix(NBF, NBFp);
       if (WhichQuantities & QUANTITY_YFORCE)
-       SC3D->dUBlocks[3*nb+1] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+1] = new HMatrix(NBF, NBFp);
       if (WhichQuantities & QUANTITY_ZFORCE)
-       SC3D->dUBlocks[3*nb+2] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+2] = new HMatrix(NBF, NBFp);
+      if (WhichQuantities & QUANTITY_TORQUE1)
+       SC3D->dUBlocks[6*nb+3] = new HMatrix(NBF, NBFp);
+      if (WhichQuantities & QUANTITY_TORQUE2)
+       SC3D->dUBlocks[6*nb+4] = new HMatrix(NBF, NBFp);
+      if (WhichQuantities & QUANTITY_TORQUE3)
+       SC3D->dUBlocks[6*nb+5] = new HMatrix(NBF, NBFp);
     };
 
   /*--------------------------------------------------------------*/
@@ -160,5 +170,82 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
    SC3D->MM1MInf = 0;
 
   return SC3D;
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteFilePreamble(FILE *f, SC3Data *SC3D, int PreambleType)
+{
+  if (f==0) return;
+
+  char DateStr[40];
+  time_t MyTime = time(0);
+  struct tm *MyTm=localtime(&MyTime);
+  strftime(DateStr,30,"%D::%T",MyTm);
+  fprintf(f,"# scuff-cas3D run on %s at %s",GetHostName(),DateStr);
+  fprintf(f,"# data file columns: \n");
+
+  int nc=1;
+
+  fprintf(f,"%i: transform tag\n",nc++);
+
+  if ( PreambleType==PREAMBLE_BYXI || PreambleType==PREAMBLE_BYXIK) 
+   fprintf(f,"%i: imaginary angular frequency\n",nc++);
+
+  if ( PreambleType==PREAMBLE_BYXIK )
+   { fprintf(f,"%i,%i: bloch wavevector k_x,k_y\n",nc,nc+1);
+     nc+=2;
+   };
+  
+  if (PreambleType == PREAMBLE_OUT) 
+   {
+     if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
+      { fprintf(f,"#%i: energy \n",nc++);
+        fprintf(f,"#%i: energy error \n",nc++);
+      };
+     if ( SC3D->WhichQuantities & QUANTITY_XFORCE )
+      { fprintf(f,"#%i: x-force \n",nc++);
+        fprintf(f,"#%i: x-force error \n",nc++);
+      };
+     if ( SC3D->WhichQuantities & QUANTITY_YFORCE )
+      { fprintf(f,"#%i: y-force \n",nc++);
+        fprintf(f,"#%i: y-force error \n",nc++);
+      };
+     if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
+      { fprintf(f,"#%i: z-force \n",nc++);
+        fprintf(f,"#%i: z-force error \n",nc++);
+      };
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
+      { fprintf(f,"#%i: 1-torque \n",nc++);
+        fprintf(f,"#%i: 1-torque error \n",nc++);
+      };
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
+      { fprintf(f,"#%i: 2-torque \n",nc++);
+        fprintf(f,"#%i: 2-torque error \n",nc++);
+      };
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
+      { fprintf(f,"#%i: 3-torque \n",nc++);
+        fprintf(f,"#%i: 3-torque error \n",nc++);
+      };
+   }
+  else
+   {
+     if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
+      fprintf(f,"#%i: energy integrand \n",nc++);
+     if ( SC3D->WhichQuantities & QUANTITY_XFORCE )
+      fprintf(f,"#%i: x-force integrand \n",nc++);
+     if ( SC3D->WhichQuantities & QUANTITY_YFORCE )
+      fprintf(f,"#%i: y-force integrand \n",nc++);
+     if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
+      fprintf(f,"#%i: z-force integrand \n",nc++);
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
+      fprintf(f,"#%i: 1-torque integrand \n",nc++);
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
+      fprintf(f,"#%i: 2-torque integrand \n",nc++);
+     if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
+      fprintf(f,"#%i: 3-torque integrand \n",nc++);
+   };
 
 }

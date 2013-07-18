@@ -49,6 +49,10 @@ using namespace scuff;
 #define QUANTITY_TORQUE2 32
 #define QUANTITY_TORQUE3 64
 
+#define PREAMBLE_OUT   0
+#define PREAMBLE_BYXI  1
+#define PREAMBLE_BYXIK 2
+
 /******************************************************************/
 /* SC3Data ('scuff-cas3D data') is a structure that contains all  */
 /* information needed to compute the contribution of a single     */
@@ -100,6 +104,8 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
                        int NumTorqueAxes, double TorqueAxes[9],
                        bool NewEnergyMethod);
+
+void WriteFilePreamble(FILE *f, SC3Data *SC3D, int PreambleType);
 
 /***************************************************************/
 /* The total Casimir energy (or force, or torque) is an        */

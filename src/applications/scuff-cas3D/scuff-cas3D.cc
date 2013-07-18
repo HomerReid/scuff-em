@@ -391,11 +391,23 @@ int main(int argc, char *argv[])
   SC3D->UseExistingData    = UseExistingData;
 
   if (SC3D->ByXiFileName==0)
-   SC3D->ByXiFileName=vstrdup("%s.byXi",GetFileBase(G->GeoFileName));
+   { SC3D->ByXiFileName=vstrdup("%s.byXi",GetFileBase(G->GeoFileName));
+     FILE *f=fopen(SC3D->ByXiFileName,"a"); 
+     if (!f) ErrExit("could not open file %s",SC3D->ByXiFileName);
+     WriteFilePreamble(f, SC3D, PREAMBLE_BYXI);
+     fclose(f);
+   };
 
   if (G->NumLatticeBasisVectors==0 && SC3D->ByXikBlochFileName!=0)
    { Warn("--byXikBlochFile option only makes sense for periodic geometries (disabling)"); 
      SC3D->ByXikBlochFileName=0;
+   };
+
+  if (SC3D->ByXikBlochFileName)
+   { FILE *f=fopen(SC3D->ByXikBlochFileName,"a"); 
+     if (!f) ErrExit("could not open file %s",SC3D->ByXikBlochFileName);
+     WriteFilePreamble(f, SC3D, PREAMBLE_BYXIK);
+     fclose(f);
    };
 
   /*******************************************************************/
@@ -441,6 +453,7 @@ int main(int argc, char *argv[])
    { if (!OutputFile)
       OutputFile=vstrdup("%s.out",GetFileBase(G->GeoFileName));
      FILE *OutFile=CreateUniqueFile(OutputFile,1);
+     WriteFilePreamble(OutFile, SC3D, PREAMBLE_OUT);
      int ntnq=0;
      for(int nt=0; nt<SC3D->NumTransformations; nt++)
       { fprintf(OutFile,"%s ",SC3D->GTCList[nt]->Tag);

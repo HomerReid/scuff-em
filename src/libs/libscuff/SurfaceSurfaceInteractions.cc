@@ -351,12 +351,6 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
- // char *SSParmNames[4]={ (char *)"w", (char *)"x", (char *)"y", (char *)"z"};
-  char *SSParmNames[4]={ const_cast<char *>("w"), const_cast<char *>("x"), 
-                         const_cast<char *>("y"), const_cast<char *>("z") };
-  cdouble SSParmValues[4];
-  SSParmValues[0]=Args->Omega*MatProp::FreqUnit;
-
   HMatrix *B    = Args->B;
   int Offset    = Args->RowOffset;
 
@@ -376,8 +370,6 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   int neAlpha, neBeta;
-  RWGEdge *EAlpha, *EBeta;
-  RWGPanel *P;
   double Overlap;
   for(neAlpha=0; neAlpha<S->NumEdges; neAlpha++)
    for(neBeta=neAlpha; neBeta<S->NumEdges; neBeta++)
@@ -390,6 +382,11 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
           question so we can evaluate the surface conductivity there;
           not needed for the time being as we are using spatially-
           constant surface conductivity. 
+
+      char *SSParmNames[4]={ const_cast<char *>("w"), const_cast<char *>("x"), 
+                         const_cast<char *>("y"), const_cast<char *>("z") };
+      cdouble SSParmValues[4];
+      SSParmValues[0]=Args->Omega*MatProp::FreqUnit;
 
       EAlpha=S->Edges[neAlpha];
       EBeta=S->Edges[neBeta];
@@ -461,6 +458,12 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
       Args->GradB[1]->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
      if (Args->GradB && Args->GradB[2])
       Args->GradB[2]->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+     if (Args->dBdTheta && Args->dBdTheta[0])
+      Args->dBdTheta[0]->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+     if (Args->dBdTheta && Args->dBdTheta[1])
+      Args->dBdTheta[1]->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
+     if (Args->dBdTheta && Args->dBdTheta[2])
+      Args->dBdTheta[2]->ZeroBlock(Args->RowOffset, Sa->NumBFs, Args->ColOffset, Sb->NumBFs);
    };
 
   /***************************************************************/

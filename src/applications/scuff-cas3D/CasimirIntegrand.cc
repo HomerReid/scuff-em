@@ -111,11 +111,9 @@ double GetTraceMInvdM(SC3Data *SC3D, char XYZT)
    {  case 'X': Mu   = 0; break;
       case 'Y': Mu   = 1; break;
       case 'Z': Mu   = 2; break;
-#if 0
-      case '1': dU0b = SC3D->dU0bdTheta1; break; 
-      case '2': dU0b = SC3D->dU0bdTheta2; break; 
-      case '3': dU0b = SC3D->dU0bdTheta3; break; 
-#endif
+      case '1': Mu   = 3; break; 
+      case '2': Mu   = 4; break; 
+      case '3': Mu   = 5; break; 
    };
 
   if ( '1'<=XYZT && XYZT<='3' )
@@ -129,7 +127,7 @@ double GetTraceMInvdM(SC3Data *SC3D, char XYZT)
   /***************************************************************/
   dM->Zero();
   for(int ns=1; ns<G->NumSurfaces; ns++)
-   dM->InsertBlockTranspose(dUBlocks[ 3*(ns-1) + Mu ], G->BFIndexOffset[ns], 0);
+   dM->InsertBlockTranspose(dUBlocks[ 6*(ns-1) + Mu ], G->BFIndexOffset[ns], 0);
 
   M->LUSolve(dM);
 
@@ -321,7 +319,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
          EFT[ntnq++]=0.0;
 
         if (ByXikBlochFile)
-         { fprintf(ByXikBlochFile,"%s %.15e ",Tag,Xi);
+         { fprintf(ByXikBlochFile,"%s %.15e %e %e ",Tag,Xi,kBloch[0],kBloch[1]);
            for(int nq=0; nq<SC3D->NumQuantities; nq++)
             fprintf(ByXikBlochFile,"%.15e ",0.0);
            fprintf(ByXikBlochFile,"\n");
@@ -354,7 +352,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
          Log(" Assembling U(%i,%i)",ns,nsp);
          if (ns==0)
           G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch,
-                                    SC3D->UBlocks[nb], SC3D->dUBlocks + 3*nb);
+                                    SC3D->UBlocks[nb], SC3D->dUBlocks + 6*nb);
          else
           G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, SC3D->UBlocks[nb]);
 
@@ -370,21 +368,19 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
       EFT[ntnq++]=GetTraceMInvdM(SC3D,'Y');
      if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
       EFT[ntnq++]=GetTraceMInvdM(SC3D,'Z');
-
-     /*
      if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
       EFT[ntnq++]=GetTraceMInvdM(SC3D,'1');
      if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
       EFT[ntnq++]=GetTraceMInvdM(SC3D,'2');
      if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
       EFT[ntnq++]=GetTraceMInvdM(SC3D,'3');
-     */
 
      /******************************************************************/
      /* write results to .byXiK file if it is present                  */
      /******************************************************************/
      if (ByXikBlochFile)
-      { if (G->NumLatticeBasisVectors==1)
+      { 
+        if (G->NumLatticeBasisVectors==1)
          fprintf(ByXikBlochFile,"%s %.6e %.6e ",Tag,Xi,kBloch[0]);
         else
          fprintf(ByXikBlochFile,"%s %.6e %.6e %.6e ",Tag,Xi,kBloch[0],kBloch[1]);

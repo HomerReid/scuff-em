@@ -165,12 +165,18 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
 /* left element of the block is at the (RowOffset, ColOffset)  */ 
 /* entry of M. If GradM is non-null and GradM[Mu] is non-null  */ 
 /* (Mu=0,1,2) then the X_{Mu} derivative of BEM matrix is      */ 
-/* similarly stamped into GradM[Mu].                           */ 
+/* similarly stamped into GradM[Mu]. If NumTorqueAxes>0 and    */ 
+/* dMdT and GammaMatrix are non-null, then the derivative of   */ 
+/* M with respect to rotation angle Theta about the Muth torque*/ 
+/* axis described by GammaMatrix (Mu=0,...,NumTorqueAxes-1) is */ 
+/* similarly stamped into dMdT[Mu].                             */ 
 /***************************************************************/
 void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
                                          cdouble Omega, double *kBloch,
                                          HMatrix *M, HMatrix **GradM,
-                                         int RowOffset, int ColOffset)
+                                         int RowOffset, int ColOffset,
+                                         int NumTorqueAxes, HMatrix **dMdT,
+                                         double *GammaMatrix)
 {
   bool SameSurface = (nsa==nsb);
 
@@ -185,9 +191,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->Sb=Surfaces[nsb];
   Args->Omega=Omega;
 
-  Args->dBdTheta=0;      // FIXME angular derivatives not implemented yet
-  Args->NumTorqueAxes=0;
-  Args->GammaMatrix=0;
 
   /***************************************************************/
   /* STEP 1: compute the direct interaction of the two surfaces. */
@@ -202,6 +205,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->GradB=GradM;
   Args->RowOffset=RowOffset;
   Args->ColOffset=ColOffset;
+  Args->dBdTheta=dMdT;
+  Args->NumTorqueAxes=NumTorqueAxes;
+  Args->GammaMatrix=GammaMatrix;
 
   GetSurfaceSurfaceInteractions(Args);
 
@@ -213,6 +219,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /* GetSurfaceSurfaceInteractions to get the contributions of the     */
   /* innermost 8 neighboring lattice cells                             */
   /*********************************************************************/
+
+  if (NumTorqueAxes!=0)
+   ErrExit("angular derivatives of BEM matrix not supported for periodic geometries");
 
   // B and GradB are statically maintained matrix blocks used as 
   // temporary storage within this routine; they need to be large
