@@ -346,6 +346,16 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
       else
        NumOverlappingEdges = 3;
 
+      // Note: the prefactor of 3 in the force and torque factors 
+      // below arises as follows: the force quantity that we would compute
+      // without it has units of 
+      // 1 watt / c = (1 joule/s) * (10-8 m/s) / 3
+      //            = (1 nanoNewton / 3 )
+      // so we multiply it by 3 to get a force in nanonewtons.
+      // similarly for the torque: multiplying by 3 gives the torque
+      // in nanoNewtons*microns (assuming the incident field was 
+      // measured in units of volts / microns)
+
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
@@ -355,23 +365,23 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
          double Overlaps[NUMOVERLAPS];
          GetOverlaps(neAlpha, neBeta, Overlaps);
 
-         cdouble XForce1 = Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2;
-         cdouble XForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_X] / (II*Omega);
+         cdouble XForce1 = 3.0*(Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2);
+         cdouble XForce2 = 3.0*2.0*Overlaps[OVERLAP_TIMESNABLA_X] / (II*Omega);
 
-         cdouble YForce1 = Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_Y]/K2;
-         cdouble YForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_Y] / (II*Omega);
+         cdouble YForce1 = 3.0*(Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_Y]/K2);
+         cdouble YForce2 = 3.0*2.0*Overlaps[OVERLAP_TIMESNABLA_Y] / (II*Omega);
 
-         cdouble ZForce1 = Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_Z]/K2;
-         cdouble ZForce2 = 2.0*Overlaps[OVERLAP_TIMESNABLA_Z] / (II*Omega);
+         cdouble ZForce1 = 3.0*(Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_Z]/K2);
+         cdouble ZForce2 = 3.0*2.0*Overlaps[OVERLAP_TIMESNABLA_Z] / (II*Omega);
 
-         cdouble XTorque1 = Overlaps[OVERLAP_RXBULLET_X] - Overlaps[OVERLAP_RXNABLANABLA_X]/K2;
-         cdouble XTorque2 = 2.0*Overlaps[OVERLAP_RXTIMESNABLA_X] / (II*Omega);
+         cdouble XTorque1 = 3.0*(Overlaps[OVERLAP_RXBULLET_X] - Overlaps[OVERLAP_RXNABLANABLA_X]/K2);
+         cdouble XTorque2 = 3.0*2.0*Overlaps[OVERLAP_RXTIMESNABLA_X] / (II*Omega);
 
-         cdouble YTorque1 = Overlaps[OVERLAP_RXBULLET_Y] - Overlaps[OVERLAP_RXNABLANABLA_Y]/K2;
-         cdouble YTorque2 = 2.0*Overlaps[OVERLAP_RXTIMESNABLA_Y] / (II*Omega);
+         cdouble YTorque1 = 3.0*(Overlaps[OVERLAP_RXBULLET_Y] - Overlaps[OVERLAP_RXNABLANABLA_Y]/K2);
+         cdouble YTorque2 = 3.0*2.0*Overlaps[OVERLAP_RXTIMESNABLA_Y] / (II*Omega);
 
-         cdouble ZTorque1 = Overlaps[OVERLAP_RXBULLET_Z] - Overlaps[OVERLAP_RXNABLANABLA_Z]/K2;
-         cdouble ZTorque2 = 2.0*Overlaps[OVERLAP_RXTIMESNABLA_Z] / (II*Omega);
+         cdouble ZTorque1 = 3.0*(Overlaps[OVERLAP_RXBULLET_Z] - Overlaps[OVERLAP_RXNABLANABLA_Z]/K2);
+         cdouble ZTorque2 = 3.0*2.0*Overlaps[OVERLAP_RXTIMESNABLA_Z] / (II*Omega);
 
          if (IsPEC)
           { 
@@ -538,20 +548,6 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
   PFT[5] = 0.25*OMatrices[SCUFF_OMATRIX_XTORQUE]->BilinearProductD(KNTS,KNTS);
   PFT[6] = 0.25*OMatrices[SCUFF_OMATRIX_YTORQUE]->BilinearProductD(KNTS,KNTS);
   PFT[7] = 0.25*OMatrices[SCUFF_OMATRIX_ZTORQUE]->BilinearProductD(KNTS,KNTS);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  // insert prefactors to get units right.
-  // how it works: the force quantity that we just computed 
-  // has units of 1 watt / c = (1 joule/s) * (1 s/nm) / 3  
-  //                         = (1 nanoNewton / 3 )
-  // so we multiply it by 3 to get a force in nanonewtons.
-  // similarly for the torque: multiplying by 3 gives the torque
-  // in nanoNewtons*microns (assuming the incident field was 
-  // measured in units of volts / micron)
-  for(int n=2; n<=7; n++)
-   PFT[n] *= 3.0;
 
   /***************************************************************/
   /***************************************************************/
