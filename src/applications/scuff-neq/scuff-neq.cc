@@ -145,6 +145,7 @@ int main(int argc, char *argv[])
   bool SymGDest=false;
 
   bool UseExistingData=false;
+  bool SubtractSelfTerms=false;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
@@ -179,6 +180,7 @@ int main(int argc, char *argv[])
      {"SymGDest",       PA_BOOL,    0, 1,       (void *)&SymGDest,   0,             "use Sym(G) instead of overlap matrix for dest object"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
+     {"SubtractSelfTerms", PA_BOOL, 0, 1,       (void *)&SubtractSelfTerms, 0,      "subtract self terms"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -280,6 +282,7 @@ int main(int argc, char *argv[])
                                  PlotFlux, FileBase, SymGSource, SymGDest);
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData = UseExistingData;
+  SNEQD->SubtractSelfTerms = SubtractSelfTerms;
 
   /*******************************************************************/
   /* process any temperature specifications **************************/

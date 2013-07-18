@@ -409,9 +409,14 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
   if (NS>50) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
   double SelfContributions[50][MAXQUANTITIES];
   for(int ns=0; ns<NS; ns++)
-   { GetTrace(SNEQD, ns, ns, SelfContributions[ns], true);
-     Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e)",ns,real(Omega),
-          SelfContributions[0], SelfContributions[1], SelfContributions[2], SelfContributions[3]);
+   { if (SNEQD->SubtractSelfTerms)
+      { GetTrace(SNEQD, ns, ns, SelfContributions[ns], true);
+        Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e,%e,%e,%e)",ns,real(Omega),
+             SelfContributions[1], SelfContributions[2], SelfContributions[3],
+             SelfContributions[4], SelfContributions[5], SelfContributions[6]);
+      }
+     else
+      memset(SelfContributions[ns],0,MAXQUANTITIES*sizeof(double));
    };
        
   /***************************************************************/

@@ -189,13 +189,13 @@ void WriteFilePreamble(FILE *f, SC3Data *SC3D, int PreambleType)
 
   int nc=1;
 
-  fprintf(f,"%i: transform tag\n",nc++);
+  fprintf(f,"#%i: transform tag\n",nc++);
 
   if ( PreambleType==PREAMBLE_BYXI || PreambleType==PREAMBLE_BYXIK) 
-   fprintf(f,"%i: imaginary angular frequency\n",nc++);
+   fprintf(f,"#%i: imaginary angular frequency\n",nc++);
 
   if ( PreambleType==PREAMBLE_BYXIK )
-   { fprintf(f,"%i,%i: bloch wavevector k_x,k_y\n",nc,nc+1);
+   { fprintf(f,"#%i,%i: bloch wavevector k_x,k_y\n",nc,nc+1);
      nc+=2;
    };
   
