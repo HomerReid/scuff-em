@@ -1,0 +1,173 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Homogeneous Dyadic Green's Functions}
+\label{DyadicGreensFunctionsSection}
+
+Before proceeding, we must pause briefly to establish our 
+conventions and notation for homogeneous dyadic Green's
+functions.
+
+Consider a spatial region characterized by spatially uniform 
+relative permittivity and permeability $\epsilon^r$ and 
+$\mu^r$. If we have
+known distributions of electric and magnetic current
+$\vb J(\vb x)$ and $\vb M(\vb x),$
+we can compute the electric and magnetic fields in terms
+of these currents and the properties of the medium, and  
+the relevant convolution kernels in this procedure are
+the dyadic Green's functions (DGFs):
+%====================================================================%
+\begin{align*}
+ E_i(\vb x, \omega) 
+&= 
+   \int
+    \Big\{
+     \Gamma\supt{EE}_{ij}(\epsilon^r, \mu^r; \omega; \vb x, \vb x^\prime) 
+     J_j(\vb x^\prime)
+     +
+     \Gamma\supt{EM}_{ij}(\epsilon^r, \mu^r; \omega; \vb x, \vb x^\prime) 
+     M_j(\vb x^\prime)
+    \Big\}
+    \, d\vb x^\prime
+\\
+ H_i(\vb x, \omega) 
+&= 
+   \int
+    \Big\{
+     \Gamma\supt{ME}_{ij}(\epsilon^r, \mu^r; \omega; \vb x, \vb x^\prime) 
+     J_j(\vb x^\prime)
+     +
+     \Gamma\supt{MM}_{ij}(\epsilon^r, \mu^r; \omega; \vb x, \vb x^\prime) 
+     M_j(\vb x^\prime)
+    \Big\}
+    \, d\vb x^\prime.
+\end{align*}
+%====================================================================%
+
+Explicit expressions for the DGFs are 
+%====================================================================%
+\begin{align*}
+\BG\supt{EE}(\epsilon^r, \mu^r, \omega, \vb x, \vb x^\prime)
+&=
+ iZ_0 Z^r k^r \, \vb G(k^r, \vb x-\vb x^\prime)
+\\[8pt]
+%--------------------------------------------------------------------%
+\BG\supt{ME}(\epsilon^r, \mu^r, \omega, \vb x, \vb x^\prime)
+&=
+ -ik^r \vb C(k^r, \vb x-\vb x^\prime)
+\\[8pt]
+%--------------------------------------------------------------------%
+\BG\supt{EM}(\epsilon^r, \mu^r, \omega, \vb x, \vb x^\prime)
+&=
+ ik^r \, \vb C(k^r, \vb x-\vb x^\prime)
+\\[8pt]
+%--------------------------------------------------------------------%
+\BG\supt{MM}(\epsilon^r, \mu^r, \omega, \vb x, \vb x^\prime)
+&= \frac{ik^r}{Z_0 Z^r} \vb G(k^r, \vb x-\vb x^\prime)
+\end{align*}
+%====================================================================%
+$$\bigg(Z_0=\sqrt\frac{\mu_0}{\epsilon_0},
+        \qquad
+        Z^r=\sqrt\frac{\mu^r}{\epsilon^r}, 
+         \qquad
+        k^r=\sqrt{\mu_0 \mu^r \epsilon_0 \epsilon^r}\cdot \omega
+  \bigg)
+$$
+%====================================================================%
+where $\vb G$, the ``photon Green's function,''
+is the solution to the equation
+\begin{equation}
+ \Big[\nabla \times \nabla\times - \,\,k^2 \Big]\vb G(k; \vb r)
+ =\delta(\vb r)\vb{1};
+ \label{DyadicGFG}
+\end{equation}
+and $\vb C$ is defined by  
+\begin{equation}
+  \vb C(k, \vb r) = -\frac{1}{ik} \nabla \times \vb G(k, \vb r).
+ \label{DyadicGFC}
+\end{equation}
+%
+(Note that the $\BG$ dyadics depend separately on $\epsilon,\mu,$ 
+and $\omega$, while $\vb G$ and $\vb C$ depend only on the 
+combination $k=\sqrt{\epsilon\mu}\cdot \omega.$)
+
+Explicit expressions for the components of $\vb G$ and $\vb C$ are 
+\begin{align*}
+G_{ij}(k,\vb r) 
+ &= \frac{e^{ikr}}{4\pi (ik)^2 r^3}
+    \bigg[ \Big(1-ikr + (ikr)^2 \Big)\delta_{ij}
+          +\Big(-3 + 3ikr - (ikr)^2 \Big)\frac{r_i r_j}{r^2}
+    \bigg]
+\\
+C_{ij}(k,\vb r) 
+ &= \frac{e^{ikr}}{4\pi (ik) r^3} \varepsilon_{ijk} r_k 
+    \Big(-1+ikr\Big)
+\end{align*}
+These may also be written in the form
+
+\begin{equation}
+G_{ij}(k,\vb r) =
+  \Big[\delta_{\mu\nu} +\frac{1}{k} \partial_i \partial_j \Big]
+  G_0(k, \vb r), \qquad
+  C_{ij}(k, \vb r) = +\frac{1}{i\kappa} \varepsilon_{ijl} 
+                          \partial_l G_0(k, \vb r)
+\label{GCfromG0}
+\end{equation}
+where $G_0$ is the scalar Green's function for the Helmholtz equation,
+\numeq{ScalarGF}
+{G_0(k; \vb r)
+   =
+  \frac{e^{ik|\vb r|}}{4\pi|\vb r|}
+}
+which satisfies
+$$ \Big[ \nabla^2 + k^2 \Big] G_0(k; \vb r)
+   =\delta(\vb r).
+$$
+With these expressions, we can verify that equation (\ref{DyadicGFC}) 
+is actually just the first half of a pair of reciprocal curl identities 
+relating $\vb G$ and $\vb C:$
+\numeq{ReciprocalCurlIdentities}
+{
+  \frac{1}{ik} \nabla \times \vb G=-\vb C, 
+\qquad
+  \frac{1}{ik} \nabla \times \vb C=\vb G.
+}
+(As usual with tensors and dyadics, the vector notation here
+is suggestive but vague; the precise meaning of (\ref{DyadicGFC}) is 
+\numeq{ReciprocalCurlIdentities2}
+{
+   \frac{1}{ik} \varepsilon_{iAB} \partial_A G_{Bj} = -C_{ij},
+   \qquad
+   \frac{1}{ik} \varepsilon_{iAB} \partial_A C_{Bj} = G_{ij}.)
+}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\paragraph{Shorthand} In what follows, an equation like 
+
+$$ E_i(\vb x, \omega) = 
+   \int_{\mathcal S} 
+     \Gamma\supt{EE}_{ij}(\epsilon^r, \mu^r; \omega; 
+                          \vb x, \vb x^\prime) 
+     K_j(\vb x^\prime)
+    \, d\vb x^\prime
+$$
+will often be abbreviated to read 
+$$ \vb E(\vb x) = 
+    \int_{\mathcal S} 
+      \BG\supt{EE}(\mathcal{R}^r; \vb x, \vb x^\prime) 
+         \cdot \vb K(\vb x^\prime) 
+    \, d\vb x^\prime
+$$
+(with $\omega$ arguments suppressed and the dependence 
+on $\epsilon^r, \mu^r$ condensed into a dependence
+on the region $\mathcal{R}^r$), or even abbreviated further
+to read
+$$ \vb E = \BG\supt{EE}(\mathcal{R}^r) \star \vb K $$
+where $\star$ denotes a convolution operation.
+

@@ -1,0 +1,168 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Spherical Multipole Moments}
+
+\subsection*{Definition of the Spherical Multipole Moments}
+
+Following Jackson and other authors, I define the 
+electric and magnetic spherical multipole moments of a localized source 
+distribution to be the coefficients in a spherical-wave
+expansion of the fields away from the source regions:
+\begin{subequations}
+\begin{align}
+ \vb E(\vb r) &= \sum_{\ell m} \Big\{  a\supt{M}_{\ell,m} \MMExt_{\ell m}(\vb r)
+                                      +a\supt{E}_{\ell,m} \NNExt_{\ell m}(\vb r)
+                               \Big\}
+\\
+ \vb H(\vb r) &= \frac{1}{Z}
+                 \sum_{\ell m} \Big\{ -a\supt{M}_{\ell,m} \NNExt_{\ell m}(\vb r)
+                                      +a\supt{N}_{\ell,m} \MMExt_{\ell m}(\vb r)
+                               \Big\}
+\end{align}
+\label{SphericalMultipoleDefinitions}
+\end{subequations}
+where $Z$ is the wave impedance of the medium ($Z=377\,\Omega$ for vacuum).
+Note that my $a\supt{M}_{\ell,m}, a\supt{E}_{\ell,m}$ coefficients
+are not normalized in quite the same way as Jackson's
+$a\subt{$M$}(l,m), a\subt{$E$}(l,m)$ coefficients; 
+the relationship is 
+$$ a\supt{M}_{\ell,m} = Z_0 a\subt{$M$}(l,m), \qquad 
+   a\supt{E}_{\ell,m} = Z_0 \frac{i}{k} a\subt{$E$}(l,m)
+$$
+Jackson gives expressions (equations 9.167-8) for computing 
+the $a$ coefficients for given source distributions; however, 
+these expressions are not convenient for our 
+purposes.\footnote{In particular, applying Jackson's expressions
+directly would require evaluating integrals over the quantity 
+$\nabla\cdot \big[\vb r \times \vb f\supt{RWG}(\vb r)\big]$,
+which vanishes in the \textit{interior} of an RWG panel but makes
+nonzero contributions at the \textit{edges}. This complication
+makes Jackson's expressions somewhat unwieldy in our case, 
+whereas the approach outlined above is computationally 
+straightforward.} Instead, in the following sections I outline
+an alternative approach for recovering the $a$ coefficients
+from known source distributions.
+
+\subsection*{Expansion of the Dyadic Green's Functions in Spherical Helmholtz Solutions}
+
+This approach is based on the well-known spherical-wave expansion 
+of the dyadic Green's functions of Section \ref{DyadicGreensFunctionsSection}.
+[In the following expression, the $\rho$ and $\sigma$ subscripts run over
+spherical vector components ($r,\theta,\phi$.)]
+
+\begin{subequations}
+\begin{align}
+  G_{\rho\sigma} (k; \vb r-\vb r^\prime)
+&=\hspace{0.09in} ik
+  \sum_{\ell m} 
+  \Big\{ 
+     \MMExt_{\ell m \rho}( k, \vb r_>)
+     \MMInt^*_{\ell m \sigma}( k, \vb r_<) 
+   + \NNExt_{\ell m \rho}( k, \vb r_>)
+     \NNInt^*_{\ell m \sigma}( k, \vb r_>) 
+  \Big\}
+\\
+  C_{\rho\sigma} (k; \vb r-\vb r^\prime)
+&=ik
+  \sum_{\ell m} 
+  \Big\{ 
+     \NNExt_{\ell m \rho}( k, \vb r_>)
+     \MMInt^*_{\ell m \sigma}( k, \vb r_<) 
+   - \MMExt_{\ell m \rho}( k, \vb r_>)
+     \NNInt^*_{\ell m \sigma}( k, \vb r_>) 
+  \Big\}
+\end{align}
+\label{GCExpansions}
+\end{subequations}
+(Note: The expansion for $\vb C$ here assumes that 
+$|\vb r|>|\vb r^\prime|.$ In the opposite case in 
+which 
+$|\vb r|<|\vb r^\prime|,$ the above expression for $\vb C$
+acquires a minus sign.)
+
+\subsection*{Fields due to localized current distributions}
+
+Now consider the fields arising from localized surface electric
+and magnetic current distributions $\vb K(\vb x)$ and $\vb N(\vb x):$
+\begin{align*}
+ \vb E(\vb r) 
+&= 
+   ik\int \Big\{ Z\vb G(k, \vb r-\vb r^\prime) \cdot \vb K(\vb r^\prime)
+                 +\vb C(k, \vb r-\vb r^\prime) \cdot \vb N(\vb r^\prime)
+          \Big\} \, d\vb r^\prime
+\\
+ \vb H(\vb r) 
+&= 
+   ik\int \Big\{ -\vb C(k, \vb r-\vb r^\prime) \cdot \vb K(\vb r^\prime)
+                 +\frac{1}{Z}\vb G(k, \vb r-\vb r^\prime) \cdot \vb N(\vb r^\prime)
+          \Big\}\,d\vb r^\prime.
+\end{align*}
+Insert the expansions (\ref{GCExpansions}) and assume that the 
+field evaluation point will always be further from the origin than
+the source current point: 
+\begin{subequations}
+\begin{align*}
+ \vb E(\vb r) 
+&= 
+ -k^2 \sum_{\ell m} 
+       \Bigg\{ \BMMExt_{\ell m}(\vb r) \cdot 
+               \bigg[   \INP{ \BMMInt_{\ell m} }{Z \vb K}
+                      - \INP{ \BNNInt_{\ell m} }{\vb N}
+               \bigg]
+\\
+&\hspace{1.0in}
+             + \BNNExt_{\ell m}(\vb r) \cdot 
+               \bigg[   \INP{ \BNNInt_{\ell m} }{Z \vb K}
+                      + \INP{ \BMMInt_{\ell m} }{\vb N}
+               \bigg]
+       \Bigg\}
+\\[8pt]
+ \vb H(\vb r) 
+&= -\frac{k^2}{Z_0} \sum_{\ell m} 
+       \Bigg\{ \BMMExt_{\ell m}(\vb r) \cdot 
+               \bigg[   \INP{ \BNNInt_{\ell m} }{Z\vb K}
+                      + \INP{ \BMMInt_{\ell m} }{\vb N}
+               \bigg]
+\\
+&\hspace{1.0in}
+             + \BNNExt_{\ell m}(\vb r) \cdot 
+               \bigg[ - \INP{ \BMMInt_{\ell m} }{Z\vb K}
+                      + \INP{ \BNNInt_{\ell m} }{\vb N}
+               \bigg]
+       \Bigg\}
+\end{align*}
+\label{SphericalFieldExpansions}
+\end{subequations}
+
+Comparing (\ref{SphericalFieldExpansions}) with the definitions
+(\ref{SphericalMultipoleDefinitions}) now allows us to read off
+the expressions for $a\sups{E,M}$ in terms of the source
+distributions $\vb K$ and $\vb N$: 
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\begin{subequations}
+\begin{align}
+a\sups{M}_{\ell,m}
+ &= -k^2\bigg[ \INP{ \BMMInt_{\ell m} }{Z\vb K}
+              -\INP{ \BNNInt_{\ell m} }{\vb N}
+        \bigg]
+\\
+a\sups{E}_{\ell,m}
+ &= -k^2\bigg[  \INP{ \BNNInt_{\ell m} }{Z\vb K}
+               +\INP{ \BMMInt_{\ell m} }{\vb N}
+        \bigg]
+\end{align}
+\label{SphericalMultipolesFromKN}
+\end{subequations}
+%====================================================================%
+%====================================================================%
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage

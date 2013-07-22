@@ -1,0 +1,54 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Fields due to individual basis functions}
+
+\subsection*{Reduced potentials}
+
+To compute the electric and magnetic fields at a point $\vb x$ 
+arising from the current carried by a single RWG or
+half-RWG basis function $\vb f_\alpha(\vb x)$, we first define the
+``reduced potentials'' of $\vb f_\alpha$. These are basically just 
+the usual vector and scalar potentials due to a current 
+distribution, but without the proper dimensionful prefactors:
+$$ \vb a_\alpha(\vb x) =
+   \int_{\sup \vb f_\alpha} 
+     G(k; \vb x - \vb x^\prime) \vb f_\alpha(\vb x^\prime) \, d\vb x^\prime,
+   \qquad
+   p(\vb x) =
+   \int_{\sup \vb f_\alpha} G(k; \vb x - \vb x^\prime) 
+                     \Big[\nabla \cdot \vb f_\alpha(\vb x^\prime)\Big] \, d\vb x^\prime.
+$$
+(Here $G(k; \vb r)=e^{ik|\vb r|}/{(4\pi|\vb r|)}$,
+with $k=\sqrt{\epsilon\mu}\cdot \omega$ the wavenumber in the medium 
+of interest.)
+
+Now suppose we have electric and magnetic current distributions
+described by basis function $\vb f_\alpha$ populated with strengths $K_\alpha$
+and $N_\alpha$, respectively. Then the electric and magnetic fields at
+$\vb x$ are 
+\begin{align*}
+ \vb E (\vb x) 
+&= 
+  Z_0 K_\alpha \Big[ i\omega \mu \vb a_\alpha(\vb x) 
+                     - \frac{1}{i\omega \epsilon}\nabla p(\vb x)
+               \Big]
+ - N_\alpha \nabla \times \vb a(\vb x)
+\\[5pt]
+ \vb H(\vb x) 
+&=
+  K_\alpha \nabla \times \vb a(\vb x)
+ +\frac{1}{Z_0}
+  N_\alpha \Big[   i\omega \epsilon \vb a(\vb x) 
+                 - \frac{1}{i\omega \mu }\nabla p(\vb x)
+               \Big]
+\end{align*}
+(Note that $\epsilon$ and $\mu$ here are the \textit{relative}
+permeability and permittivity of the medium in question; $Z_0$ 
+is the impedance of free space.)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage

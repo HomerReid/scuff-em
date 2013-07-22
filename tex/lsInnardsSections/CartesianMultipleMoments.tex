@@ -1,0 +1,185 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Cartesian Multipole Moments}
+
+\subsection{Electric Dipole Moment of an RWG Electric Current}
+The electric dipole moment of an electric current distribution $\vb J(\vb x)$ is 
+$$\vb p= \int_{\sup \vb J}  \vb x\, \rho(\vb x) d\vb x $$
+where $\rho(\vb x)\equiv \frac{1}{i\omega}\nabla \cdot \vb J$ is the charge 
+density associated with $\vb J$. For an RWG function populated with unit 
+strength we have 
+\begin{align} 
+ \rho_\alpha(\vb x) 
+ &=\frac{1}{i\omega}\nabla \cdot \vb f_\alpha(\vb x) \nn
+ &=\frac{1}{i\omega}
+   \begin{cases} 
+    +\displaystyle{\frac{l_\alpha}{A^+_\alpha}}, 
+     \qquad &\vb x \in \mathcal{P}_\alpha^+ \\\\
+    -\displaystyle{\frac{l_\alpha}{A^-_\alpha}}, 
+      \qquad &\vb x \in \mathcal{P}_\alpha^-.
+   \end{cases} \label{rhoRWG}
+\end{align} 
+Then the electric dipole moment of an electric current distribution 
+described by an RWG function populated with unit strength is 
+\begin{align*}
+  \vb p_\alpha 
+&= \frac{2l_\alpha}{i\omega}
+   \left\{ 
+   \frac{1}{2A^+_\alpha} \int_{\pan_\alpha^+} \vb x \,d\vb x  
+   \,\,- \,\,
+   \frac{1}{2A^-_\alpha} \int_{\pan_\alpha^-} \vb x \, d\vb x 
+   \right\}  \\
+&= \frac{2l_\alpha}{i\omega}
+   \left\{ 
+            \int_0^1 \,du\,\int_0^u \, dv 
+            \Big[ \vb Q^+ + u(\vb V_1-\vb Q^+) + v(\vb V_2 - \vb V_1)  \Big]
+   \right. \\
+&  \qquad \qquad- 
+   \left. 
+            \int_0^1 \,du\,\int_0^u \, dv 
+            \Big[ \vb Q^- + u(\vb V_1-\vb Q^-) + v(\vb V_2 - \vb V_1)  \Big]
+   \right\} \\
+&= \frac{l_\alpha}{3 i\omega}\Big(\vb Q^+_\alpha - \vb Q^-_\alpha\Big).
+\end{align*}
+
+\subsection{Magnetic Dipole Moment of an RWG Electric Current}
+
+The magnetic dipole moment of an electric current distribution $\vb J(\vb x)$ is 
+$$\vb m= \frac{1}{2} \int_{\sup \vb J}  \vb x \times \vb J(\vb x) \,d\vb x. $$
+Then the magnetic dipole moment of an electric current distribution 
+described by an RWG function populated with unit strength is 
+\begin{align*}
+  \vb m_\alpha 
+&= \frac{l_\alpha}{2}
+   \left\{ 
+   \frac{1}{2A^+_\alpha} \int_{\pan_\alpha^+} 
+                         \vb x \times \Big(\vb x-\vb Q^+\Big) 
+                         \,d\vb x  
+   \,\,- \,\,
+   \frac{1}{2A^-_\alpha} \int_{\pan_\alpha^-} 
+                         \vb x \times \Big(\vb x-\vb Q^-\Big) 
+                         \,d\vb x  
+   \right\}  \\
+&= \frac{l_\alpha}{2}
+   \left\{ 
+   \frac{1}{2A^+_\alpha} 
+     \left[\vb Q^+ \times \int_{\pan_\alpha^+} \vb x \,d\vb x  \right]
+   \,\,- \,\,
+   \frac{1}{2A^-_\alpha} 
+     \left[ \vb Q^- \times \int_{\pan_\alpha^-} \vb x \,d\vb x \right]
+   \right\}\\
+&= \frac{l_\alpha}{2}
+   \left\{ 
+            \int_0^1 \,du\,\int_0^u \, dv 
+            \Big[  u(\vb Q^+ \times \vb V_1) 
+                  +v(\vb Q^+ \times (\vb V_2 - \vb V_1)) 
+            \Big]
+   \right. \\
+&  \qquad \qquad- 
+   \left. 
+            \int_0^1 \,du\,\int_0^u \, dv 
+            \Big[  u(\vb Q^- \times \vb V_1) 
+                  +v(\vb Q^- \times (\vb V_2 - \vb V_1)) 
+            \Big]
+   \right\} \\
+&= \frac{l_\alpha}{12}
+   \Big(\vb Q^+_\alpha - \vb Q^-_\alpha\Big) \times 
+   \Big(\vb V_{1\alpha} + \vb V_{2\alpha}\Big).
+\end{align*}
+
+\subsection{Dipole Moments of RWG Magnetic Currents}
+
+In a non-PEC scattering problem we must account for the 
+contributions of the magnetic currents to the electric
+and magnetic dipole moments. To ferret out what these
+are, we need to recall how dipole moments are defined
+in the first place. We begin by considering a 
+vector-valued function $\vb K(\vb x^\prime)$ 
+confined to a region near the origin of spatial extent 
+much smaller than the distance to some evaluation point 
+$\vb x$. In this case it is just a mathematical fact that 
+the convolutions of $\vb K$ with the $\vb G$ and $\vb C$
+kernels approach 
+
+\newcommand{\moment}[2]{#1^{\text{\tiny{($\mathbf{#2}$)}}}}
+\begin{align*}
+\oint \vb G(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) d\vb x^\prime
+ &\quad\to\quad   A_{ij}(\vb x) \moment{p_j}{K}
+                + B_{ij}(\vb x) \moment{m_j}{K}
+\\
+\oint \vb C(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) d\vb x^\prime
+ &\quad\to\quad  -B_{ij}(\vb x) \moment{p_j}{K}
+                + A_{ij}(\vb x) \moment{m_j}{K}
+\end{align*}
+where $\{A,B\}_{ij}(\vb x)$ are certain functions whose precise
+form we will not need, and where 
+$\moment{\vb p}{K}$
+and 
+$\moment{\vb m}{K}$
+are certain constants associated with the $\vb K$ 
+distribution:
+$$ \moment{\vb p}{K}
+    =\frac{1}{i\omega} \int \Big(\nabla \cdot \vb K\Big)d\vb x, 
+   \qquad
+   \moment{\vb m}{K}
+    =\frac{1}{2} \int \vb x \times \vb K(\vb x) d\vb x.
+$$ 
+Using these, the fields at distant points are
+%====================================================================%
+\begin{align*}
+ \vb E\big[\vb K; \vb x\big]
+ &= ikZ \oint \vb G(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) d\vb x^\prime
+\\
+ &\to ikZ \Big[   A_{ij} \moment{p}{K} + B_{ij} \moment{m}{K} \Big]
+\\
+ \vb H\big[\vb K; \vb x\big]
+ &=  -ik\oint \vb C(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) d\vb x^\prime
+\\
+ &\to -ik\Big[  -B_{ij} \moment{p}{K}
+               + A_{ij} \moment{m}{K}
+         \Big]
+\end{align*}
+%====================================================================%
+Now we consider the effect of adding magnetic currents 
+$\vb N$ into the mix. The fields become
+%====================================================================%
+\begin{align*}
+ \vb E\big[\vb K, \vb N; \vb x\big]
+ &=  ikZ \oint \vb G(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) d\vb x^\prime
+     + ik\oint \vb C(\vb x, \vb x^\prime) \cdot \vb N(\vb x^\prime) d\vb x^\prime
+\\[5pt]
+ &\to ikZ \Big[   A_{ij} \moment{p_j}{K} + B_{ij} \moment{m_j}{K} \Big] 
+       +ik\Big[  -B_{ij} \moment{p_j}{N} + A_{ij} \moment{m_j}{N} \Big]
+\\[5pt]
+ &\to ikZ \bigg[   A_{ij} 
+                  \underbrace{\Big\{ \moment{p_j}{K} + \frac{1}{Z}\moment{m_j}{N} \Big\}}
+                             _{\moment{p_j}{K,N}}
+                  +B_{ij} 
+                  \underbrace{\Big\{ \moment{m_j}{K} - \frac{1}{Z}\moment{p_j}{N} \Big\}}
+                             _{\moment{m_j}{K,N}}
+          \bigg]
+\\[10pt]
+ \vb H\big[\vb K, \vb N; \vb x\big]
+ &=  -ik\oint \vb C(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime) d\vb x^\prime
+   +\frac{ik}{Z} \oint \vb G(\vb x, \vb x^\prime) \cdot \vb N(\vb x^\prime) d\vb x^\prime
+\\[5pt]
+ &\to       -ik\Big[  -B_{ij} \moment{p_j}{K} + A_{ij} \moment{m_j}{K} \Big]
+  +\frac{ik}{Z}\Big[   A_{ij} \moment{p_j}{N} + B_{ij} \moment{m_j}{N} \Big].
+\\[5pt]
+ &\to      -ik\bigg[  -B_{ij} 
+                      \underbrace{\Big\{\moment{p_j}{K} + \frac{1}{Z}\moment{m_j}{N}\Big\}}
+                                _{\moment{p_j}{K,N}}
+                      +A_{ij} 
+                      \underbrace{\Big\{\moment{m_j}{K} - \frac{1}{Z}\moment{m_j}{N}\Big\}}
+                                _{\moment{m_j}{K,N}}
+              \bigg].
+\end{align*}
+So the effective electric and magnetic dipole moments of a combined
+distribution of electric and magnetic currents are 
+$$ \moment{\vb p}{K,N} \equiv \moment{\vb p}{K} + \frac{1}{Z}\moment{\vb m}{N},
+   \qquad
+   \moment{\vb m}{K,N} \equiv \moment{\vb m}{K} - \frac{1}{Z}\moment{\vb p}{N}.
+$$
+Note that these depend on $Z$.

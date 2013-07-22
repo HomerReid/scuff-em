@@ -1,0 +1,37 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Periodic Boundary Conditions}
+
+\subsection{Periodic DGFs}
+
+To avoid confusion with the free-space photon wavenumber, 
+I use the symbol $\vb p$ to denote a two-dimensional 
+Bloch wavevector.
+
+I use an overbar notation to denote the 
+\textit{periodic Green's function}, which contains contributions
+from all lattice cells appropriately weighted by Bloch phases.
+$$
+  \GBar(\vb p; k; \vb r, \vb r^\prime)
+= \sum_{\vb L} e^{i \vb p \cdot \vb L} G(k; \vb r, \vb r^\prime+\vb L)
+\qquad 
+ \bigg( G(k; \vb r, \vb r^\prime) 
+ = \frac{e^{ik|\vb r-\vb r^\prime|}}{4\pi|\vb r-\vb r^\prime|}
+ \bigg)
+$$
+
+I will also need to define a version of this function that 
+excludes the contributions of the innermost 9 lattice cells.
+I will call this version 
+$\GBar_{\texttt{AB9}}$
+%$\GBar_{\text{\scriptsize{AB9}}}$, 
+where the subscript stands for 
+stands for ``all but 9.''
+
+\subsection{Assembling the BEM matrix}
+
+\begin{align*}
+M_{\alpha\beta}
+\end{align*}

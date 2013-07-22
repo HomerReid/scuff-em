@@ -1,0 +1,338 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Evaluation of Frequency-Independent Panel-Panel Integrals}
+
+The frequency-independent panel-panel integrals (FIPPIs) are
+\numeq{FIPPIs}
+{ \iint h_\bullet r^p,
+  \qquad
+  \iint h_\nabla r^p,
+  \qquad
+  \iint h_\times r^p
+}
+where $\iint$ denotes the four-dimensional integration over
+the pair of triangles as in the previous section.
+
+%The general strategy pursued by \lss is to evaluate the
+%FIPPIs once for each pair of panels and then store and 
+%reuse the results as often as possible. 
+
+\subsubsection*{Evaluation of $\iint h_\bullet r^p$}
+
+In terms of the $u,v,u^\prime,v^\prime$ variables of equation
+(\ref{uvDefinition}), we have
+\numeq{HBulletUVUPVP}
+{ h_{\bullet}(u,v,u^\prime,v^\prime)
+=\Big[ \big( \vb V_1-\vb Q\big) + u \vb A + v\vb B\Big]\cdot  
+  \Big[ \big( \vb V_1^\prime-\vb Q^\prime\big) + u^\prime \vb A^\prime 
+        + v^\prime\vb B^\prime\Big]
+}
+and 
+$$
+r(u,v,u^\prime,v^\prime)
+ =\Big| \vb V_1 - \vb V_1^\prime
+       + u\vb A+ v\vb B - u^\prime\vb A^\prime - v^\prime\vb B^\prime
+  \Big|.
+$$
+Expanding the product (\ref{HBulletUVUPVP}) yields a sum of nine terms:
+\begin{align}
+\iint h_{\bullet} r^p 
+ = \big (\vb V_1-\vb Q\big ) \cdot 
+         \big (\vb V_1^\prime - \vb Q^\prime\big)
+   \cdot &\iint r^p
+\nn
+ +\vb A \cdot \big (\vb V_1^\prime -\vb Q^\prime\big )
+  &\iint u r^p
+\nn
+ +\vb B \cdot \big (\vb V_1^\prime -\vb Q^\prime\big )
+  &\iint v r^p
+\nn
+  +  &\cdots
+\nn
+ +\vb B \cdot \vb B^\prime
+  &\iint v v^\prime r^p. \label{HBulletExpansion}
+\end{align}
+%====================================================================%
+It is important to notice that the integrals in (\ref{HBulletExpansion}) 
+are independent of $\vb Q$ and $\vb Q^\prime$. This suggests that, to
+compute $\iint h_\bullet r^p$,  I first compute the quantities
+\numeq{QIFIPPIs}
+{
+   \iint \left\{ \begin{array}{c} 
+   1 \\ u \\ v \\ u^\prime \\ uu^\prime \\ vu^\prime \\
+   v^\prime \\ uv^\prime \\ vv^\prime
+   \end{array}\right\} r^p
+}
+and then use (\ref{HBulletExpansion}) to compute $\iint h_\bullet r^p$.
+The point of this step is that the quantities (\ref{QIFIPPIs}) need 
+only be evaluated and stored once for each pair of panels, after which 
+the results may be used in (\ref{HBulletExpansion}) to compute the 
+nine separate quantities $\iint h_\bullet r^p$ that result 
+different choices of the current source/sink vertices 
+$\vb Q, \vb Q^\prime$.
+
+The integrals (\ref{HBulletExpansion}) are 
+known in \lss as the ``$\vb Q$-independent FIPPIs,''
+while (\ref{FIPPIs}) are the ``$\vb Q$-dependent FIPPIs.''
+
+\subsubsection*{Evaluation of $\iint h_\nabla r^p$}
+
+Once we have evaluated the $\vb Q$-independent FIPPIs
+for a pair of panels, we get $\iint h_\nabla r^p$ for 
+free, since it is just the first entry in 
+equation (\ref{QIFIPPIs}) times 4.
+
+\subsubsection*{Evaluation of $\iint h_\times r^p$}
+
+For $p>-3$, I proceed in analogy to equation (\ref{HBulletExpansion})
+by writing $h_\times$ as a sum of nine terms,
+$$ h_\times 
+   = 
+   \sum_{abcd} u^a v^b u^{\prime c} v^{\prime d} h_\times^{abcd},
+$$
+whereupon $\iint h_\times r^p$ may be reconstructed from 
+the QIFIPPIs (\ref{QIFIPPIs}) according to
+\numeq{HTimesRP}
+{
+ \iint h_\times r^p 
+   = 
+   \sum_{abcd} h_\times^{abcd} 
+               \iint \Big[u^a v^b u^{\prime c} v^{\prime d}\Big] r^p.
+}
+The nonzero values of $h_\times^{abcd}$ are
+%--------------------------------------------------------------------%
+\begin{align*} 
+h_\times^{0000} 
+&=  (\vb Q_a\times \vb Q_b) \cdot (\vb V_0 - \vb V_0^\prime)
+   +(\vb Q_a   -   \vb Q_b) \cdot (\vb V_0 \times\vb V_0^\prime) 
+\\ 
+%--------------------------------------------------------------------%
+h_\times^{1000} 
+&=   (\vb Q_a\times \vb Q_b) \cdot \vb A 
+   + (\vb Q_a   -   \vb Q_b) \cdot (\vb A \times \vb V_0^\prime) 
+\\
+%--------------------------------------------------------------------%
+h_\times^{0100} 
+&= 
+   (\vb Q_a\times \vb Q_b) \cdot \vb B 
+  +(\vb Q_a   -   \vb Q_b) \cdot (\vb B \times \vb V_0^\prime) 
+\\ 
+%--------------------------------------------------------------------%
+h_\times^{0010} 
+&= -(\vb Q_a\times \vb Q_b) \cdot \vb A^\prime 
+   +(\vb Q_a   -   \vb Q_b) \cdot (\vb V_0 \times \vb A^\prime) 
+\\ 
+%--------------------------------------------------------------------%
+h_\times^{0001} 
+&=  -(\vb Q_a\times \vb Q_b) \cdot \vb B^\prime 
+    +(\vb Q_a   -   \vb Q_b) \cdot (\vb V_0 \times \vb B^\prime) 
+\\ 
+%--------------------------------------------------------------------%
+h_\times^{1010} 
+&=   (\vb Q_a   -   \vb Q_b) \cdot (\vb A \times \vb A^\prime)
+\\
+%--------------------------------------------------------------------%
+h_\times^{1001}
+&=   (\vb Q_a   -   \vb Q_b) \cdot (\vb A \times \vb B^\prime)
+\\
+%--------------------------------------------------------------------%
+ h_\times^{0110}
+&=   (\vb Q_a   -   \vb Q_b) \cdot (\vb B \times \vb A^\prime)
+\\
+%--------------------------------------------------------------------%
+ h_\times^{0101}
+&=   (\vb Q_a   -   \vb Q_b) \cdot (\vb B \times \vb B^\prime).
+\end{align*}
+%--------------------------------------------------------------------%
+%
+For the particular case $p=-3$, the above procedure is ill-behaved,
+and instead I write
+\numeq{HTimesRM3}
+{
+   \iint h_\times r^{-3}=
+   (\vb Q_a \times \vb Q_b) 
+   \cdot 
+   \iint (\vb x_a - \vb x_b) r^{-3} 
+   +
+   (\vb Q_a -\vb Q_b) 
+   \cdot 
+   \iint (\vb x_a \times \vb x_b) r^{-3}
+}
+where now
+\numeq{QIFIPPIsSupplement}
+{
+   \iint (\vb x_a-\vb x_b)r^{-3}, \qquad
+    \iint (\vb x_a \times \vb x_b)r^{-3}
+}
+are to be included among the list of $\vb Q-$independent 
+FIPPIs that must be calculated for each panel pair.
+
+On first glance, it might seem that equations
+(\ref{QIFIPPIs}) and (\ref{QIFIPPIsSupplement})
+are redundant, since knowing the former should allow
+reconstruction of the latter. This appearance is 
+deceptive, because for panel pairs with common vertices 
+some of the individual FIPPIs (\ref{QIFIPPIs}) are 
+divergent for $p=-3$, while (\ref{QIFIPPIsSupplement}) 
+are convergent. [For panel pairs with no common
+vertices, the integrals (\ref{QIFIPPIs}) are convergent
+but much more expensive to calculate than 
+(\ref{QIFIPPIsSupplement}).] Of course, for $p=-3$
+the $\vb Q-$independent FIPPIs defined by 
+(\ref{QIFIPPIsSupplement}) are the only ones we 
+\textit{need} 
+(because for $p=-3$ the only $\vb Q$-dependent FIPPI 
+we need is $\iint h_\times r^{p}$), while 
+for $p>-3$ equation (\ref{QIFIPPIsSupplement}) 
+does not suffice and we need instead the full
+set (\ref{QIFIPPIs}). Thus a reasonable 
+compromise seems to be to compute only 
+(\ref{QIFIPPIsSupplement}) for the case $p=-3$, 
+and to compute the full set (\ref{QIFIPPIs}) for
+$p>-3$.
+
+\subsubsection*{Evaluation of $\vb Q$-independent FIPPIs}
+
+The $\vb Q$-independent FIPPIs, equation (\ref{QIFIPPIs}),
+are nominally four-dimensional integrals, but we have the 
+following simplifications:
+
+\begin{enumerate}
+  \item For $p=0$ the integral may be done analytically
+        in closed form. (Actually, the same is true for $p=2$,
+        but the result is too cumbersome to be useful.)
+  \item If the panels have one or more common vertices, we may use
+        the Taylor-Duffy method (Appendix \ref{TaylorDuffyAppendix})
+        to perform one or more of the four integrals analytically.
+  \item Even when the panels have no common vertices, we can 
+        always evaluate one of the four integrals analytically,
+        which accelerates numerical evaluation.
+\end{enumerate}
+
+We now address each of these points in turn. 
+
+\paragraph{1. FIPPIs for $p=0$.} 
+
+In this case all the FIPPIs are linear combinations of the 
+basic integral
+$$ \iint u^a v^b (u^\prime)^c (v^\prime)^d 
+   = 
+   \frac{1}{(2+a+b)(1+b)(2+c+d)(1+d)}.
+$$
+We have
+$$
+   \iint \left\{ \begin{array}{c} 
+   1 \\ u \\ v \\ u^\prime \\ uu^\prime \\ vu^\prime \\
+   v^\prime \\ uv^\prime \\ vv^\prime
+   \end{array}\right\} r^0
+   =
+   \left\{ \begin{array}{c} 
+           1/4 \\ 1/6 \\ 1/12 \\ 
+           1/6 \\ 1/9 \\ 1/18 \\ 
+           1/12 \\ 1/18 \\ 1/36
+           \end{array}
+   \right\}.
+$$
+
+\paragraph{2. FIPPIs for panels with common vertices.} 
+
+As noted above, for panels with common vertices the Taylor-Duffy
+method of Appendix (\ref{TaylorDuffyAppendix}) is available.
+
+\paragraph{3. FIPPIs for panels with no common vertices.} 
+
+As noted above, even when the panels have no common vertices
+we can always evaluate one of the four integrals 
+analytically to yield a three-dimensional integral.
+We arbitrarily choose the integral we evaluate to be
+the $v^\prime$ integral, and to facilitate its evaluation we 
+write
+\begin{align*}
+r(u,v,u^\prime,v^\prime)
+&=\Big| \vb V_1 - \vb V_1^\prime
+       + u\vb A + v\vb B - u^\prime\vb A^\prime - v^\prime\vb B^\prime
+  \Big|   
+\\
+&=a \sqrt{ (v^\prime + v_0^\prime)^2 + b^2 },
+\end{align*}
+%====================================================================%
+$$
+a = |\vb B^\prime|, 
+\qquad
+v_0^\prime = -\frac{1}{a^2} \vb B^\prime \cdot \vb Y,
+\qquad
+b^2=\frac{1}{a^2}|\vb Y|^2 - v_0^{\prime 2},
+$$
+$$
+\vb Y=    \vb V_1 - \vb V_1^\prime  
+       + u\vb A+ v\vb B - u^\prime\vb A^\prime.
+$$
+%====================================================================%
+The integrals we need are now
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \int_{v_0^\prime}^{v_0^\prime + u^\prime} 
+  \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+  \Big[v^{\prime 2} + b^2\Big]^{-3/2}d v^\prime
+&= \frac{1}{a^3} 
+   \left\{ \begin{array}{c}
+    \frac{(u^\prime + v_0^\prime)}{b^2 S_2} - \frac{v_0^\prime}{b^2 S_1} 
+    \\[5pt]
+    \frac{1}{S_1} - \frac{1}{S_2}
+   \end{array}\right\}
+\\[5pt]
+%--------------------------------------------------------------------%
+ \int_{v_0^\prime}^{v_0^\prime + u^\prime} 
+  \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+  \Big[v^{\prime 2} + b^2\Big]^{-1/2}d v^\prime
+&= \frac{1}{a} 
+   \left\{ \begin{array}{c}
+    \log \frac{ S_2 + (u^\prime+v_0^\prime) }
+              { S_1 + v_0^\prime }
+    \\[5pt]
+    S_2 - S_1
+   \end{array}\right\}
+\\[8pt]
+%--------------------------------------------------------------------%
+ \int_{v_0^\prime}^{v_0^\prime + u^\prime} 
+  \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+  \Big[v^{\prime 2} + b^2\Big]^{1/2} d v^\prime
+&= a
+   \left\{ \begin{array}{c}
+   \frac{b^2}{2} \log \frac{ S_2 + (u^\prime+v_0^\prime) }
+                           { S_1 + v_0^\prime }
+   +\frac{1}{2}\big[(u^\prime + v_0^\prime)S_2 - v_0^\prime S_1\big]
+   \\[5pt]
+   \frac{1}{3}(S_2^3 - S_1^3)
+   \end{array}\right\}
+\\[8pt]
+%--------------------------------------------------------------------%
+ \int_{v_0^\prime}^{v_0^\prime + u^\prime} 
+  \left\{ \begin{array}{c}  1 \\ v^\prime \end{array} \right\}
+  \Big[v^{\prime 2} + b^2\Big]d v^\prime
+&= a^2
+   \left\{ \begin{array}{c}
+    \\[5pt]
+   \end{array}\right\}
+\end{align}
+\label{vPrimeIntegrals}
+\end{subequations}
+$$ S_1\equiv\sqrt{b^2 + v_0^{\prime 2}}, 
+   \qquad
+   S_2\equiv\sqrt{b + (v_0^{\prime} + u^\prime)^2}, \qquad
+$$
+%====================================================================%
+To make use of these results in evaluating the FIPPIs 
+(\ref{QIFIPPIs}), we eliminate the $v^\prime$ integrals
+and replace all factors of $\{1, v^\prime\}$ with
+their counterparts on the RHS of (\ref{vPrimeIntegrals}),
+leaving behind three-dimensional integrals that succumb
+readily to numerical cubature.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage

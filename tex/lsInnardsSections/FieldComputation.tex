@@ -1,0 +1,84 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Computation of the fields in \lss geometries}
+
+Consider a point $\vb x$ in some region $\mathcal{R}$
+of a \lss geometry. In general, $\mathcal{R}$
+will be bounded by some collection of surfaces
+$\{\mathcal{S}^s\}$. Let's subdivide the set of 
+surfaces bounding $\mathcal{R}$ into two groups:
+a first set $\{\mathcal{S}^\alpha\}$ for which
+$\mathcal{R}$ is the \textit{exterior} surface,
+and a second set $\{\mathcal{S}^\beta\}$ for which
+$\mathcal{R}$ is the \textit{interior} surface.
+Then the electric field at $\vb x$ is
+%====================================================================%
+\begin{align} 
+E_i(\vb x) 
+    = &\hphantom{-} \sum_\alpha \int_{\mathcal{S}^\alpha} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\mathcal{R}; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\mathcal{R}; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime
+\nn
+     &-\sum_\beta \int_{\mathcal{S}^\beta} 
+           \Big\{ \Gamma_{ij}\supt{EE}(\mathcal{R}; \vb x, \vb x^\prime) 
+                   K_j(\vb x^\prime)
+                  \,+\,
+                   \Gamma_{ij}\supt{EM}(\mathcal{R}; \vb x, \vb x^\prime) 
+                   N_j(\vb x^\prime)
+           \Big\} \, d\vb x^\prime
+\nn
+     &+E^{\text{\scriptsize inc},r}_i(\vb x).
+\label{FieldContributionsEquation}
+\end{align}
+%====================================================================%
+In this equation, $\vb E\incr$ is the field due to any 
+incident field sources that lie inside the region $\mathcal{R}^r.$
+(The $\vb H$ fields are given by identical relations with 
+$\{ \Gamma\supt{EE}, \Gamma\supt{EM}, E\incr\} \to 
+ \{ \Gamma\supt{ME}, \Gamma\supt{MM}, H\incr\}$.)
+
+Note the following points with respect to equation
+(\ref{FieldContributionsEquation}):
+\begin{itemize}
+  \item Sources on surfaces $\mathcal{S}_\alpha$ for which
+        $\mathcal{R}$ is the exterior medium  
+        contribute to the fields at $\vb x$ 
+        with a positive sign.
+        Sources on surfaces $\mathcal{S}_\beta$ for which
+        $\mathcal{R}$ is the interior medium  
+        contribute to the fields at $\vb x$ 
+        with a negative sign.
+
+  \item In each line of (\ref{FieldContributionsEquation}), 
+        (i.e. regardless of the surface over which we are 
+        integrating) the Green's functions used to compute
+        the fields at $\vb x$ are the Green's functions for
+        the homogeneous region $\mathcal{R}$ containing $\vb x$.
+        The material properties of other regions are not
+        referenced.
+\end{itemize}
+
+%####################################################################%
+%####################################################################%
+%####################################################################%
+\begin{figure}
+\begin{center}
+%\includegraphics{FieldContributionsFigure}
+\caption{Contributions of objects to the scattered fields at 
+         an arbitrary point $\vb x$. Objects $\mathcal{O}_\beta$
+         and $\mathcal{O}_\gamma$ contribute
+         to the field at $\vb x$ ``with a plus sign'' 
+         (cf. equation \ref{FieldContributionsEquation}).
+         Object $\mathcal{O}_\alpha$ 
+         contributes to the field at $\vb x$ ``with a minus
+         sign.'' Objects $\mathcal{O}_\delta$ and $\mathcal{O}_\lambda$
+         do not contribute to the field at $\vb x$.}
+\label{FieldContributionsFigure}
+\end{center}
+\end{figure}

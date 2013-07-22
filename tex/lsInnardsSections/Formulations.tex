@@ -1,0 +1,1140 @@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{BEM Formulations in \ls}
+
+In previous sections we discussed how \lss represents
+surface currents and how \lss uses surface currents to 
+compute scattered fields. In this section we discuss
+how \lss actually computes the surface currents for a 
+given incident field. To this end, \lss employs a 
+variety of BEM formulations, some of which may coexist
+in a single problem.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Continuous forms of the integral equations
+            solved by \lss}
+
+\subsubsection{The equation imposed at points on PEC surfaces}
+
+For PEC surfaces, \lss imposes the \textit{electric field
+integral equation} (EFIE). This means that at each point 
+$\vb x$ on a PEC surface $\mc S$ we require that the tangential 
+components of the total (incident + scattered) field vanish:
+%====================================================================%
+\numeq{PECEquation1}
+{ \vbhat{n}\times \vb E\sups{total} (\vb x)=0, \qquad
+  \vb x \in \mc S 
+}
+%====================================================================%
+where $\vbhat{n}$ is the normal to the object surface
+at $\vb x$. 
+
+To obtain an integral equation from (\ref{PECEquation1}), 
+suppose that $\mc S$ is embedded in a homogeneous 
+material region $\mc R$. 
+%[$\mc S$ may be an open
+%or closed; in the latter case the region interior to
+%$\mc S$ is irrelevant and does not enter the problem
+%formulation.] 
+Then the total field in (\ref{PECEquation1})
+is a sum of scattered and incident contributions; 
+the former involve convolutions of the surface-current
+distributions on all surfaces bounding $\mc R$
+(including $\mc S$ plus any other surfaces that 
+may be part of the boundary of $\mc R$), while the 
+latter involve only those incident-field sources
+lying interior to $\mc R$. Equation (\ref{PECEquation1})
+then reads
+\numeq{EFIE}
+{  \sum_{\mathcal{S}_s \subset \partial \mc R}
+   \text{sgn}\big(\mc S_s,R\big)
+   \left(\begin{array}{cc}
+   \BG\supt{EE}(\mc R) & \BG\supt{EM}(\mc R)  \\
+   \BG\supt{ME}(\mc R) & \BG\supt{MM}(\mc R)  \\
+   \end{array}\right)
+   \star \left(\begin{array}{cc} \vb K \\ \vb N \end{array}\right)
+   dA
+   =
+  -
+   \left(\begin{array}{c} \vb E\incr \\ \vb H\incr \end{array}\right)
+}
+where the sum is over all surfaces $\mc S_s$ that 
+constitute the boundary $\partial \mc R$ of the region $\mc R$,
+including $\mathcal S$, 
+and 
+$$\text{sgn}\big(\mc S,\mc R\big)\equiv
+   \begin{cases} 
+   +1  \qquad &\text{if $\mc R$ is the ``exterior'' 
+                     region for $\mc S$}
+   \\
+   -1  \qquad &\text{if $\mc R$ is the ``interior'' 
+                     region for $\mc S$.}
+   \end{cases}
+$$
+As discussed in Section \ref{GeometriesSection},
+the notions of ``exterior'' and ``interior'' are
+defined even when $\mc S$ is an open surface; in
+that case its ``exterior'' region is the region
+into which its surface normal points.
+
+Note that any PEC surfaces in the sum in (\ref{EFIE}), 
+including $\mc S$ itself, have $\vb N=0$ identically.
+
+Note that equation (\ref{EFIE}) may be written using
+a shorthand notation:
+\numeq{EFIEShorthand}
+{  \sum_{\mc S_s \subset \partial \mc R}
+   \int_{\mc S_s}
+   \text{sgn}\big(\mc S_s,\mc R\big)
+   \Big[ \bmc G(\mc R) \star \bmc C\Big] dA 
+    = 
+    -\bmc F\incr
+}
+where $\bmc C$, $\bmc F$, and $\bmc G$ denote
+six-vector surface currents, six-vector fields, and
+$6\times 6$ dyadic Green's functions:
+$$ \bmc C 
+   \equiv
+   \left(\begin{array}{c} \vb K \\ \vb N \end{array}\right),
+   \qquad
+   %--------------------------------------------------------------------%
+   \bmc F
+   \equiv
+   \left(\begin{array}{c} \vb E \\ \vb H \end{array}\right), 
+   \qquad
+   %--------------------------------------------------------------------%
+   \bmc G(\mathcal{R})\equiv
+   \left(\begin{array}{cc}
+   \BG\supt{EE}(\mathcal{R}) & \BG\supt{EM}(\mathcal{R})  \\
+   \BG\supt{ME}(\mathcal{R}) & \BG\supt{MM}(\mathcal{R})  \\
+   \end{array}\right).
+$$
+We will use this 6-vector shorthand notation frequently
+in what follows.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{The equation imposed at points on 
+               dielectric object surfaces: PMCHWT formulation}
+
+By default, \lss adopts the PMCHWT formulation of the 
+BEM for dielectric surfaces $\mc S$. 
+(Alternative formulations may be selected by setting
+internal \lss variables; see below.) In the PMCHWT formulation, 
+we require that, at each point $\vb x\in\mc S,$ the 
+tangential components of the total $\vb E$ and $\vb H$ 
+fields be continuous as we pass through $\mc S$:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \lim_{\eta \to 0}
+ \Big[ \vb E\sups{total}(\vb x + \eta\vbhat{n})
+      -\vb E\sups{total}(\vb x - \eta\vbhat{n})
+ \Big]_{\parallel} 
+&= 0 
+\\
+ \lim_{\eta \to 0}
+ \Big[ \vb H\sups{total}(\vb x + \eta\vbhat{n})
+      -\vb H\sups{total}(\vb x - \eta\vbhat{n})
+ \Big]_{\parallel} 
+&= 0.
+\label{PMCHWTConditions}
+\end{align}
+\end{subequations}
+%====================================================================%
+where the subscript ${\parallel}$ extracts the 
+vector components tangential to $\mc S$ at $\vb x$.
+
+To write an integral-equation version of this, analogous to
+(\ref{EFIEShorthand}), let $\mc R_1$ and $\mc R_2$ be
+the two regions at whose interface $\mc S$ lies, with 
+the surface normal to $\mc S$ taken to point away from
+$\mc R_2$ and into $\mc R_1$. (Thus, if $\mc S$ is closed,
+$\mc R_1$ is its exterior region and $\mc R_2$ is its
+interior region; if $\mc S$ is not closed then everything
+else goes through in the same way, just without the 
+classification of $\mathcal{R}_{1,2}$ as interior or
+exterior). Then the integral-equation version of 
+(\ref{PMCHWTConditions}) reads
+%====================================================================%
+\begin{align}
+& \sum_{\mc S_s \subset \partial \mc R_1}
+   \text{sgn}\big(\mc S_s,\mc R_1\big)
+   \int_{\mc S_s}
+   \Big[ \bmc G(\mc R_1) \star \bmc C\Big]_{\parallel} dA 
+\nn
+&\qquad
+ -\sum_{\mc S_s \subset \partial \mc R_2} 
+   \text{sgn}\big(\mc S_s,\mc R_2\big)
+   \int_{\mc S_s}
+   \Big[ \bmc G(\mc R_2) \star \bmc C\Big]_{\parallel} dA 
+=
+  \Big[-\bmc F\incro + \bmc F\incrt \Big]_{\parallel}
+\label{PMCHWT}
+\end{align}
+%====================================================================%
+The RHS of (\ref{PMCHWT}) describes the fields contributed
+by sources inside $\mc R_2$ minus the fields contributed by 
+sources inside $\mc R_1$.
+
+Note that, when we consider the contribution made by 
+surface $\mc S$ itself to the sums on the LHS,
+we have 
+$\text{sgn}\big(\mc S, \mc R_1\big))=
+ -\text{sgn}\big(\mc S, \mc R_2\big)$,
+so two terms on the LHS wind up \textit{adding}, not
+subtracting, for that surface.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{The equation imposed at points on 
+               dielectric object surfaces: N-M\"uller formulation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Modifications for nonzero surface impedance}
+
+\medskip
+
+\subsubsection*{PEC bodies} 
+
+In the presence of a nonzero surface impedance $Z_s(\vb x)>0$
+(corresponding to a finite surface conductivity
+ $G_s(\vb x) = \frac{1}{Z_s(\vb x)} < \infty$),
+equation (\ref{PECEquation1}) is modified to read 
+
+\numeq{PECEquationZS}
+{ \vbhat{n}\times \vb E\sups{total} (\vb x) 
+  = 
+  \frac{1}{G_s(\vb x)} \vbhat{n}\times \vb K(\vb x)
+}
+where $\vb K(\vb x)$ is the (unknown) electric surface current
+at $\vb x$. 
+
+Note that we use the symbol $G$, not $\sigma$, for surface
+conductivity, because this quantity has the dimensions of a 
+conductance (current/voltage), not the dimensions of a conductivity
+[current/(voltage $\cdot $length)].
+
+\subsubsection*{General bodies} 
+
+In the presence of a nonvanishing surface impedance $Z_s(\vb x)$
+(corresponding to a finite surface conductivity, 
+ $G_s(\vb x) = \frac{1}{Z_s(\vb x)} < \infty$),
+the $\vb E$-field continuity equation [the first of equations
+(\ref{PMCHWT})] is unchanged, while the $\vb H$-field
+continuity equation is modified to read
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \lim_{\eta \to 0} \vbhat{n}\times 
+ \Big[ \vb H\sups{total}(\vb x + \eta\vbhat{n})
+      -\vb H\sups{total}(\vb x - \eta\vbhat{n})
+ \Big] 
+&= G(\vb x) \vb E\sups{total}(\vb x)
+\\
+&= -G(\vb x) \vbhat{n} \times \vb{N}(\vb x)
+\label{DielectricEquationZS}
+\end{align}
+\end{subequations}
+is the (unknown) magnetic surface current at $\vb x$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Introduction of the $-Z_0$ Prefactor in the 
+         Magnetic Current Expansion} 
+
+In rough schematic form, the equations derived in the 
+previous section take the form 
+%====================================================================%
+$$ \left( \begin{array}{cc}
+   \BG\supt{EE} & \BG\supt{EM} \\
+   \BG\supt{ME} & \BG\supt{MM} \\
+   \end{array} \right)
+   *
+   \left( \begin{array}{c} \vb K \\  \vb N\end{array}\right)
+   = 
+   -
+   \left( \begin{array}{c}
+   \vb E\sups{inc} \\
+   \vb H\sups{inc} \\
+   \end{array}\right)
+$$
+%====================================================================%
+where $*$ denotes a convolution operation.
+
+The matrix kernel on the LHS is not symmetric because 
+$\BG\supt{EM} = -\BG\supt{ME}$. To remedy this, I 
+\textbf{(a)} scale the magnetic current by $-1/Z_0$, and then
+\textbf{(b)} divide the upper row of the system by $Z_0$ to obtain
+the following symmetric 
+system\footnote{L.~N. Medgyesi-Mitschang, J.~M. Putnam, and M.~B. Gedera, ``Generalized method
+  of moments for three-dimensional penetrable scatterers,'' \emph{J. Opt. Soc.
+  Am. A}, vol.~11, no.~4, pp. 1383--1398, Apr 1994.}:
+%====================================================================%
+\renewcommand{\arraystretch}{2.0}
+\numeq{lsSystem}
+{ \left( \begin{array}{cc}
+   \displaystyle{ \frac{1}{Z_0} \BG\supt{EE}} 
+   & 
+   \displaystyle{-\BG\supt{EM}}
+   \\
+   \displaystyle{\BG\supt{ME}}
+   & 
+   \displaystyle{-Z_0\BG\supt{MM}} \\
+   \end{array} \right)
+   *
+   \left( \begin{array}{c} 
+      \displaystyle{\vb K} 
+      \\
+      \displaystyle{-\frac{1}{Z_0}\vb N}
+   \end{array}\right)
+   = 
+   -
+   \left( \begin{array}{c}
+   \displaystyle{\frac{1}{Z_0} \vb E\sups{inc}} 
+   \\
+   \displaystyle{\vb H\sups{inc}}
+   \end{array}\right)
+}
+\renewcommand{\arraystretch}{1.0}
+Equation (\ref{lsSystem}) is the actual linear system
+solved by \ls. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{The Equations Solved by \ls: Discrete Forms}
+
+\subsubsection*{Discretization Procedure} 
+
+\lss uses a two-step procedure to discretize the integral equations 
+derived in the previous sections. 
+Briefly, we approximate the $\vb K$ and $\vb N$ surface-current 
+distributions as expansions in RWG basis functions, then 
+Galerkin-test the resulting equations again with the RWG basis
+functions. 
+
+In more detail,
+
+\begin{enumerate}
+ \item First, \lss approximates surface currents as expansions 
+       in RWG basis functions.
+
+       For electric currents on the surfaces of PEC objects, 
+       we have the expansion
+       \begin{subequations}
+       %====================================================================%
+       \begin{equation}
+         \vb K(\vb x) \approx \sum K_{\alpha n} \vb f_{\alpha n}(\vb x)
+       \end{equation}
+       %====================================================================%
+       where $\alpha$ runs over all PEC objects in the geometry
+       and $n$ runs over all RWG basis functions on object 
+       $\mathcal{O}_\alpha$.
+
+       For electric and magnetic currents on the surfaces of 
+       dielectric objects, we have the expansions
+       %====================================================================%
+       \begin{equation}
+           \vb K(\vb x) \approx \sum K_{\beta n} \vb f_{\beta n}(\vb x), 
+           \qquad 
+           \vb N(\vb x) \approx -Z_0 \sum N_{\beta n} \vb f_{\beta n}(\vb x)
+       \end{equation}
+       %====================================================================%
+       \label{KNExpansions}
+       \end{subequations}
+       \noindent where $\beta $ runs over all PEC objects in the geometry
+       and $n$ runs over all RWG basis functions on object
+       $\mathcal{O}_\beta$. (The rationale for the prefactor $-Z_0$ 
+       was explained in the previous section).
+
+ \item Second, \lss obtains one equation for each of the unknown
+       $K$ and $N$ coefficients in (\ref{KNExpansions}) by proceeding
+       as follows.
+
+       First, we take the inner product of equation
+       (\ref{PECEquationBreakdown})
+       with each RWG basis function $\vb f_{\alpha n}$ defined on 
+       the surface of each PEC object. This gives us one equation
+       for each of the $K_{\alpha n}$ coefficients in 
+       (\ref{KNExpansions}a).
+
+       Second, we take the inner product of equation
+       (\ref{DielectricEquationBreakdown})
+       with each RWG basis function $\vb f_{\beta n}$ defined on 
+       the surface of each dielectric object. We associate the 
+       resulting equation with the coefficient $K_{\beta n}$ in
+       (\ref{KNExpansions}b). Then, we take the inner product of 
+       the magnetic analogue of 
+       (\ref{DielectricEquationBreakdown}) (which, as stated above,
+       is identical to (\ref{DielectricEquationBreakdown}) with
+       the replacements $\{\BG\supt{EE}, \BG\supt{EM}\} \to 
+       \{\BG\supt{ME}, \BG\supt{MM}\}$) with $\vb f_{\beta n})$
+       and associate the resulting equation with the coefficient
+       $N_{\beta n}$ in (\ref{KNExpansions}b).
+\end{enumerate}
+
+\subsubsection*{Discretized Version of Equation 
+                (\ref{PECEquationBreakdown})}
+
+We consider again the setting of Figure \ref{EmbeddedObjects}:
+We have a PEC object $\mathcal{O}_\beta$, embedded in an object
+$\mathcal{O}_\alpha$ (which may be the environment 
+$\mathcal{O}_e$); also embedded in $\mathcal{O}_\alpha$ are
+additional PEC object(s) $\mathcal{O}_{\beta^\prime}$ and dielectric 
+object(s) $\mathcal{O}_\gamma.$ 
+Inserting expansions (\ref{KNExpansions}) 
+into (\ref{PECEquationBreakdown})
+and Galerkin-testing with a basis function $\vb f_{\beta m}$ on 
+the surface of $\mathcal{O}_\beta$ yields 
+(after dividing both 
+sides of the equation by $Z_0$ as per equation (\ref{lsSystem}):
+%====================================================================%
+\begin{align}
+&\sum_{n=1}^{\texttt{NEdges}(\beta)} 
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \frac{1}{Z_0} \BG\supt{EE}(\alpha) \Big|
+         \vb f_{\beta n}
+   \Big\rangle 
+         K_{\beta n}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\beta^\prime)} 
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \frac{1}{Z_0} \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\beta^\prime n}
+   \Big\rangle 
+         K_{\beta^\prime n}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\gamma)} \bigg\{
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \frac{1}{Z_0} \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\gamma n}
+   \Big\rangle 
+         K_{\gamma n}
+   \,-
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EM}(\alpha) \Big| 
+         \vb f_{\gamma n}
+   \Big\rangle 
+         N_{\gamma n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+-&\sum_{n=1}^{\texttt{NEdges}(\alpha)} \bigg\{
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \frac{1}{Z_0} \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         K_{\alpha n}
+   \,-
+   \Big\langle 
+         \vb f_{\beta m} 
+   \Big| \BG\supt{EM}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         N_{\alpha n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+&=-\frac{1}{Z_0} \chi_\alpha\sups{inc} 
+   \Big\langle \vb f_{\beta m} \Big| \vb E\sups{inc} \Big\rangle.
+ \label{DiscretizedPECEquation}
+\end{align}
+%====================================================================%
+
+\subsubsection*{Discretized Version of Equation
+                (\ref{DielectricEquationBreakdown}) and its 
+                Magnetic Analogue}
+
+Again in the setting of Figure \ref{EmbeddedObjects}, we 
+Galerkin-test equation (\ref{DielectricEquationBreakdown}) 
+with a basis function $\vb f_{\gamma m}$ on the surface
+of object $\mathcal{O}_\gamma$ to find (again, dividing through
+by $Z_0$ as per (\ref{lsSystem})):
+%====================================================================%
+\begin{subequations}
+\begin{align}
+&\sum_{n=1}^{\texttt{NEdges}(\gamma)}  \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \frac{1}{Z_0} \BG\supt{EE}(\alpha) + \frac{1}{Z_0} \BG\supt{EE}(\gamma) \Big|
+         \vb f_{\gamma n}
+   \Big\rangle 
+         K_{\gamma n}
+   -
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EM}(\alpha) + \BG\supt{EM}(\gamma) \Big|
+         \vb f_{\gamma n}
+   \Big\rangle 
+         N_{\gamma n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+&\sum_{n=1}^{\texttt{NEdges}(\gamma^\prime)}  \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \frac{1}{Z_0}\BG\supt{EE}(\alpha) \Big|
+         \vb f_{\gamma^\prime n}
+   \Big\rangle 
+         K_{\gamma^\prime n}
+   -
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EM}(\alpha) \Big|
+         \vb f_{\gamma^\prime n}
+   \Big\rangle 
+         N_{\gamma^\prime n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\beta)} 
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \frac{1}{Z_0} \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\beta n}
+   \Big\rangle 
+         K_{\beta n}
+\nn
+%--------------------------------------------------------------------%
+-&\sum_{n=1}^{\texttt{NEdges}(\alpha)} \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \frac{1}{Z_0} \BG\supt{EE}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         K_{\alpha n}
+   \,-
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EM}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         N_{\alpha n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+-&\sum_{n=1}^{\texttt{NEdges}(\delta)} \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \frac{1}{Z_0} \BG\supt{EE}(\gamma) \Big| 
+         \vb f_{\delta n}
+   \Big\rangle 
+         K_{\delta n}
+   \,-
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{EM}(\gamma) \Big| 
+         \vb f_{\delta n}
+   \Big\rangle 
+         N_{\delta n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+&=\frac{1}{Z_0} \Big[\chi_\gamma\sups{inc} - \chi_\alpha\sups{inc}\Big] 
+   \Big\langle \vb f_{\gamma m} \Big| \vb E\sups{inc} \Big\rangle.
+\end{align}
+
+\subsubsection*{Discretized Version of the Magnetic Analogue of 
+                Equation (\ref{DielectricEquationBreakdown})}
+
+Finally,, we Galerkin-test the magnetic-field analogue of 
+(\ref{DielectricEquationBreakdown}) to find
+\begin{align}
+&\sum_{n=1}^{\texttt{NEdges}(\gamma)}  \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{ME}(\alpha) + \BG\supt{ME}(\gamma) \Big|
+         \vb f_{\gamma n}
+   \Big\rangle 
+         K_{\gamma n}
+   -
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| Z_0\BG\supt{MM}(\alpha) + Z_0\BG\supt{MM}(\gamma) \Big|
+         \vb f_{\gamma n}
+   \Big\rangle 
+         N_{\gamma n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+&\sum_{n=1}^{\texttt{NEdges}(\gamma^\prime)}  \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{ME}(\alpha) \Big|
+         \vb f_{\gamma^\prime n}
+   \Big\rangle 
+         K_{\gamma^\prime n}
+   -
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| Z_0\BG\supt{MM}(\alpha) \Big|
+         \vb f_{\gamma^\prime n}
+   \Big\rangle 
+         N_{\gamma^\prime n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
++&\sum_{n=1}^{\texttt{NEdges}(\beta)} 
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{ME}(\alpha) \Big| 
+         \vb f_{\beta n}
+   \Big\rangle 
+         K_{\beta n}
+\nn
+%--------------------------------------------------------------------%
+-&\sum_{n=1}^{\texttt{NEdges}(\alpha)} \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{ME}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         K_{\alpha n}
+   \,-
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| Z_0 \BG\supt{MM}(\alpha) \Big| 
+         \vb f_{\alpha n}
+   \Big\rangle 
+         N_{\alpha n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+-&\sum_{n=1}^{\texttt{NEdges}(\delta)} \bigg\{
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| \BG\supt{ME}(\gamma) \Big| 
+         \vb f_{\delta n}
+   \Big\rangle 
+         K_{\delta n}
+   \,-
+   \Big\langle 
+         \vb f_{\gamma m} 
+   \Big| Z_0 \BG\supt{MM}(\gamma) \Big| 
+         \vb f_{\delta n}
+   \Big\rangle 
+         N_{\delta n}
+  \bigg\}
+\nn
+%--------------------------------------------------------------------%
+&=\Big[\chi_\gamma\sups{inc} - \chi_\alpha\sups{inc}\Big] 
+   \Big\langle \vb f_{\gamma m} \Big| \vb H\sups{inc} \Big\rangle.
+\end{align}
+\label{DiscretizedDielectricEquation}
+\end{subequations}
+%====================================================================%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Structure of the BEM System}
+
+The discretization procedure of the previous section results in a 
+linear system of the form
+\numeq{BEMSystem}
+{ \Big[ \vb M \Big]  \cdot \Big[ \vb{KN} \Big] = \Big[ \vb{RHS} \Big ] }
+where the vector $\big[\vb{KN}\big]$ contains the unknown 
+$K$ and $N$ coefficients from equation (\ref{KNExpansions}),
+the matrix $\big[\vb M\big]$ is the ``BEM matrix,''
+and the right-hand-side vector $\big[\vb{RHS}\big]$ 
+depends on the incident fields.
+
+In the remainder of this section we will describe the structure
+of each of the entities in equation (\ref{BEMSystem}). 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Structure of the coefficient vector}
+
+The $\vb{KN}$ vector contains the $K$ and $N$ coefficients
+in (\ref{KNExpansions}), ordered as follows:
+
+\begin{enumerate}
+ \item All coefficients for object $\mathcal{O}_1$ come first, 
+       followed by all coefficients for object $\mathcal{O}_2$, etc.
+
+       (Object indices correspond with the order in which the 
+        objects were specified in the \texttt{.rwggeo} file 
+        used as input to \ls.)
+       
+ \item Within the portion of the vector corresponding to a 
+       dielectric object, the electric and magnetic coefficients
+       for the first RWG basis function come first, followed
+       by the electric and magnetic coefficients
+       for the second RWG basis function, etc.
+
+\end{enumerate}
+
+Thus, for a geometry consisting of object $\mathcal{O}_1$ (PEC)
+with $M$ interior edges in its surface discretization
+and object $\mathcal{O}_2$ (dielectric) with $N$ interior edges
+in its surface discretization, the $\vb{KN}$ vector has dimension
+$M+2N$ and looks like
+%====================================================================%
+$$ \vb{KN}=\left(\begin{array}{c}
+   K_{11} \\ 
+   K_{12} \\ 
+   \vdots \\
+   K_{1M} \\ 
+   K_{21} \\ 
+   N_{21} \\ 
+   \vdots \\
+   K_{2N} \\ 
+   N_{2N}
+   \end{array}\right).
+$$
+%====================================================================%
+
+To compute the index of any given coefficient $K_{\alpha n}$ 
+or $N_{\alpha n}$ within the $\vb{KN}$ vector,
+it is useful first to define functions \texttt{NBF}($\alpha$) 
+and \texttt{BFIndexOffset}($\alpha$). The former of these 
+is just the number of basis functions on object $\alpha$,
+i.e.
+$$ \texttt{NBF}(\alpha) = 
+   \begin{cases}
+   \texttt{NEdges}(\alpha), \qquad &\text{if object $\mathcal{O}_\alpha$
+                                          is PEC} \\
+   2\cdot \tt{NEdges}(\alpha), 
+                        \qquad &\text{if object $\mathcal{O}_\alpha$
+                                      is dielectric.} \\
+   \end{cases}
+$$
+(Here \texttt{NEdges}($\alpha$) is the number of interior edges 
+in the surface discretization of object $\mathcal{O}_\alpha$.)
+
+The function \texttt{BFIndexOffset}($\alpha$) is the index
+within the $\vb{KN}$ vector of the first coefficient corresponding
+to object $\mathcal{O}_\alpha$; thus 
+\begin{align*}
+ \texttt{BFIndexOffset}(1) &= 1 \\
+ \texttt{BFIndexOffset}(2) &= 1 + \tt{NBF}(1) \\
+ \texttt{BFIndexOffset}(3) &= 1 + \tt{NBF}(1) + \tt{NBF}(2)
+\end{align*}
+et cetera.
+
+Then I can write the following relations for the indices 
+with the $\vb{KN}$ vector of individual $K, N$ coefficients.
+(Note that these are one-based indices, which must be translated
+into zero-based indices for use in \texttt{C++} code.)
+%====================================================================%
+\begin{align*}
+\mathcal{I}(K, \alpha, n)
+&\equiv \text{Index of coefficient $K_{\alpha n}$
+              within the $\vb{KN}$ vector}
+\\
+&=\begin{cases}
+   \texttt{BFIndexOffset}(\alpha) + n-1, 
+   \qquad &\text{if $\mathcal{O}_\alpha$ is PEC} \\
+   \texttt{BFIndexOffset}(\alpha) + 2(n-1),
+   \qquad &\text{if $\mathcal{O}_\alpha$ is dielectric}
+  \end{cases}
+\\[5pt]
+\mathcal{I}(N, \alpha, n)
+&\equiv \text{Index of coefficient $N_{\alpha n}$ 
+              within the $\vb{KN}$ vector}
+\\
+&=\texttt{BFIndexOffset}(\alpha) + 2(n-1)+1.
+\end{align*}
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Structure of the RHS vector}
+
+The structure of the RHS vector mirrors the structure of 
+the coefficient vector: 
+
+\begin{itemize}
+ \item If the $n$th element of the coefficient vector is a $K$ 
+       coefficient (i.e. the electric surface-current expansion 
+       coefficient associated with some RWG basis function $\vb b$), 
+       then the $n$th element of the RHS vector is minus the 
+       inner product of the incident electric field with $\vb b$,
+       divided by $Z_0$.
+ \item If the $n$th element of the coefficient vector is an $N$ 
+       coefficient (i.e. the magnetic surface-current expansion 
+       coefficient associated with some RWG basis function $\vb b$),
+       then the $n$th element of the RHS vector is minus the 
+       inner product of the incident magnetic field with $\vb b$.
+\end{itemize}
+
+For the example considered above, consisting of a PEC surface
+with $M$ interior edges and a dielectric surface with $N$ 
+interior edges, the elements of the RHS vector would be 
+
+%====================================================================%
+\setlength{\extrarowheight}{3pt}
+$$ \vb{RHS}=-\left(\begin{array}{l}
+   \langle\vb E\sups{inc}, \vb b_{11} \rangle  / Z_0  
+\\
+   \langle\vb E\sups{inc}, \vb b_{12} \rangle  / Z_0 
+\\
+   \vdots 
+\\
+   \langle\vb E\sups{inc}, \vb b_{1M} \rangle  / Z_0 
+\\
+   \langle\vb E\sups{inc}, \vb b_{21} \rangle  / Z_0 
+\\
+   \langle\vb H\sups{inc}, \vb b_{21} \rangle 
+\\
+   \langle\vb E\sups{inc}, \vb b_{22} \rangle / Z_0 
+\\
+   \vdots
+\\
+   \langle\vb H\sups{inc}, \vb b_{2N} \rangle
+   \end{array}\right).
+$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Structure of the BEM matrix}
+
+Consider two basis functions: $\vb f_{\alpha m}$, corresponding
+to the $m$th interior edge of object $\mathcal{O}_\alpha$,
+and $\vb f_{\beta n}$, corresponding to the $n$th interior edge
+of object $\mathcal{O}_\beta.$ 
+
+Let $\vb A$ be the index of the medium through which the 
+objects interact. (If we have $\texttt{NObj}$ objects in 
+our geometry, then either $1\le \vb A \le \texttt{NObj}$ 
+or else $\vb A=e$ for the external medium.) Thus,
+
+\begin{itemize}
+ \item If $\mathcal{O}_\alpha$ is contained in $\mathcal{O}_\beta$, 
+       then $\vb A=\beta$.
+ \item If $\mathcal{O}_\beta$ is contained in $\mathcal{O}_\alpha$, 
+       then $\vb A=\alpha$.
+ \item If $\mathcal{O}_\alpha$ and $\mathcal{O}_\alpha$ are both
+       contained in the same object $\mathcal{O}_\gamma$ (which may
+       be the external medium $\mathcal{O}_e$), then  
+       then $\vb A=\gamma$.
+ \item If none of the above are true, then the two objects do not
+       interact and the corresponding block of the BEM matrix is
+       zero.
+\end{itemize}
+
+Define a symbol $\texttt{Sign}$ to have value $-1$ in the first
+two cases (i.e. when one of $\mathcal{O}_\alpha$, $\mathcal{O}_\beta$
+is contained inside the other), while $\texttt{Sign}=+1$ otherwise.
+
+Then the two basis elements contribute a 
+$1\times 1$, $1\times 2$, $2\times 1$, or $2\times 2$
+block of matrix elements to the BEM matrix, which may be determined
+by looking at equations 
+(\ref{DiscretizedPECEquation}) 
+and 
+(\ref{DiscretizedDielectricEquation}) 
+as follows:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{enumerate}
+%====================================================================%
+\item \textbf{Both objects are PEC:}
+%====================================================================%
+$$\begin{array}{lclcl}
+   M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &=&
+  \displaystyle{ \frac{1}{Z_0} 
+                 \Big\langle 
+                 \vb f_{\alpha m} 
+                 \Big| \BG\supt{EE}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{
+  ik\supt{A} Z\supt{A}
+                \Big\langle 
+                \vb f_{\alpha m} 
+                \Big| \vb G(k\supt{A}) \Big|
+                \vb f_{\beta n} 
+                \Big\rangle
+               }
+\end{array}$$
+%====================================================================%
+\item \textbf{ $\mathcal{O}_\alpha$ is PEC, 
+               $\mathcal{O}_\beta$ is dielectric:}
+%====================================================================%
+$$\begin{array}{lclcl}
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &=& 
+  \displaystyle{ \frac{\texttt{Sign}}{Z_0} 
+                 \Big\langle \vb f_{\alpha m} 
+                 \Big| \BG\supt{EE}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{ \texttt{Sign}\cdot ik\supt{A} Z\supt{A}
+                 \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb G(k\supt{A}) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+\\[10pt]
+%--------------------------------------------------------------------%
+%--------------------------------------------------------------------%
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &=&
+  \displaystyle{ -\texttt{Sign}\cdot
+                 \Big\langle 
+                 \vb f_{\alpha m} 
+                 \Big| \BG\supt{EM}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{ -\texttt{Sign}\cdot ik\supt{A}
+                  \Big\langle 
+                  \vb f_{\alpha m} 
+                  \Big| \vb C(k\supt{A})\Big|
+                  \vb f_{\beta n} 
+                  \Big\rangle
+               }
+\end{array}$$
+%====================================================================%
+\item \textbf{ $\mathcal{O}_\alpha$ is dielectric, 
+               $\mathcal{O}_\beta$ is PEC:}
+%====================================================================%
+$$\begin{array}{lclcl}
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &=& 
+  \displaystyle{ \frac{\texttt{Sign}}{Z_0} 
+                 \Big\langle \vb f_{\alpha m} 
+                 \Big| \BG\supt{EE}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{ \texttt{Sign}\cdot ik\supt{A} Z\supt{A}
+                 \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb G(k\supt{A}) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+\\[10pt]
+%--------------------------------------------------------------------%
+%--------------------------------------------------------------------%
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &=&
+  \displaystyle{ \texttt{Sign}\cdot
+                 \Big\langle 
+                 \vb f_{\alpha m} 
+                 \Big| \BG\supt{ME}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{ -\texttt{Sign}\cdot ik\supt{A}
+                  \Big\langle 
+                  \vb f_{\alpha m} 
+                  \Big| \vb C(k\supt{A})\Big|
+                  \vb f_{\beta n} 
+                  \Big\rangle
+               }
+\end{array}$$
+%====================================================================%
+\item \textbf{ $\mathcal{O}_\alpha, \mathcal{O}_\beta$ are both
+               dielectric and $\mathcal{O}_\alpha \ne \mathcal{O}_\beta$:}
+%====================================================================
+$$\begin{array}{lclcl}
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &=& 
+  \displaystyle{ \frac{\texttt{Sign}}{Z_0} 
+                 \Big\langle \vb f_{\alpha m} 
+                 \Big| \BG\supt{EE}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{ \texttt{Sign}\cdot ik\supt{A} Z\supt{A}
+                 \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb G(k\supt{A}) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+\\[10pt]
+%--------------------------------------------------------------------%
+%--------------------------------------------------------------------%
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &=&
+  \displaystyle{ -\texttt{Sign}\cdot
+                 \Big\langle 
+                 \vb f_{\alpha m} 
+                 \Big|\BG\supt{EM}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{ -\texttt{Sign}\cdot ik\supt{A}
+                  \Big\langle 
+                  \vb f_{\alpha m} 
+                  \Big| \vb C(k\supt{A})\Big|
+                  \vb f_{\beta n} 
+                  \Big\rangle
+               }
+\\[10pt]
+%--------------------------------------------------------------------%
+%--------------------------------------------------------------------%
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+  &=&
+  \displaystyle{ \texttt{Sign}\cdot
+                 \Big\langle 
+                 \vb f_{\alpha m} 
+                 \Big|\BG\supt{ME}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{ -\texttt{Sign}\cdot ik\supt{A}
+                  \Big\langle 
+                  \vb f_{\alpha m} 
+                  \Big| \vb C(k\supt{A})\Big|
+                  \vb f_{\beta n} 
+                  \Big\rangle
+               }
+\\[10pt]
+%--------------------------------------------------------------------%
+%--------------------------------------------------------------------%
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+  &=&
+  \displaystyle{ -\texttt{Sign}\cdot Z_0 
+                 \Big\langle 
+                 \vb f_{\alpha m} 
+                 \Big|\BG\supt{MM}(\vb A) \Big|
+                 \vb f_{\beta n} 
+                 \Big\rangle
+               }
+%--------------------------------------------------------------------%
+  &=&
+  \displaystyle{ -\frac{\texttt{Sign}\cdot ik\supt{A}}{Z\supt{A}}
+                  \Big\langle 
+                  \vb f_{\alpha m} 
+                  \Big| \vb G(k\supt{A})\Big|
+                  \vb f_{\beta n} 
+                  \Big\rangle
+               }
+\end{array}$$
+%====================================================================%
+\item \textbf{ $\mathcal{O}_\alpha, \mathcal{O}_\beta$ are both
+               dielectric and $\mathcal{O}_\alpha = \mathcal{O}_\beta$:}
+
+%====================================================================%
+This case is identical to the previous case, but now the matrix elements
+are augmented by additional contributions describing the basis functions
+interacting through the medium inside the object. Let the index
+of this medium be $\vb B$. (We have $\vb B=\alpha=\beta$.) Then
+the matrix elements are 
+%====================================================================
+\begin{align*}
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+ &= \frac{1}{Z_0}
+    \Big\langle \vb f_{\alpha m} 
+    \Big| \BG\supt{EE}(\vb A) + \BG\supt{EE}(\vb B) \Big|
+                \vb f_{\beta n} 
+    \Big\rangle
+\\[5pt]
+ &= ik\supt{A} Z\supt{A}
+    \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb G(k\supt{A}) \Big|
+                 \vb f_{\beta n} 
+    \Big\rangle
+    +
+    ik\supt{B} Z\supt{B}
+    \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb G(k\supt{B}) \Big|
+                 \vb f_{\beta n} 
+    \Big\rangle
+\\[10pt]
+%--------------------------------------------------------------------%
+ M\Big( \mathcal{I}^K_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+ &= -\Big\langle \vb f_{\alpha m} 
+    \Big| \BG\supt{EM}(\vb A) + \BG\supt{EM}(\vb B) \Big|
+                \vb f_{\beta n} 
+    \Big\rangle
+\\[5pt]
+ &= -ik\supt{A}
+    \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb C(k\supt{A}) \Big|
+                 \vb f_{\beta n} 
+    \Big\rangle
+    -ik\supt{B}
+    \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb C(k\supt{B}) \Big|
+                 \vb f_{\beta n} 
+    \Big\rangle
+\\[10pt]
+%--------------------------------------------------------------------%
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^K_{\beta n} \Big) 
+ &= \Big\langle \vb f_{\alpha m} 
+    \Big| \BG\supt{ME}(\vb A) + \BG\supt{ME}(\vb B) \Big|
+                \vb f_{\beta n} 
+    \Big\rangle
+\\[5pt]
+ &= -ik\supt{A}
+    \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb C(k\supt{A}) \Big|
+                 \vb f_{\beta n} 
+    \Big\rangle
+    -ik\supt{B}
+    \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb C(k\supt{B}) \Big|
+                 \vb f_{\beta n} 
+    \Big\rangle
+\\[10pt]
+%--------------------------------------------------------------------%
+ M\Big( \mathcal{I}^N_{\alpha m}, \mathcal{I}^N_{\beta n} \Big) 
+ &= -\Big\langle \vb f_{\alpha m} 
+    \Big| \BG\supt{MM}(\vb A) + \BG\supt{MM}(\vb B) \Big|
+                \vb f_{\beta n} 
+    \Big\rangle
+\\[5pt]
+ &= -\frac{ik\supt{A}}{Z\supt{A}}
+    \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb G(k\supt{A}) \Big|
+                 \vb f_{\beta n} 
+    \Big\rangle
+    -
+    \frac{ik\supt{B}}{Z\supt{B}}
+    \Big\langle \vb f_{\alpha m} 
+                 \Big| \vb G(k\supt{B}) \Big|
+                 \vb f_{\beta n}
+    \Big\rangle.
+\\[10pt]
+\end{align*}
+%====================================================================%
+\end{enumerate}
+

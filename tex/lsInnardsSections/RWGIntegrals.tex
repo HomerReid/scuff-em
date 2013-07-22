@@ -1,0 +1,439 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Evaluation of Integrals over RWG Basis Functions}
+
+As demonstrated in the previous section, the elements of the 
+BEM matrix involve integrals over pairs of RWG basis functions 
+of the form
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
+&\equiv 
+  \int_{\sup \vb f_a} d\vb x_a \, 
+  \int_{\sup \vb f_b} d\vb x_b\,
+  \vb f_a(\vb x_a) \cdot 
+  \vb G(k, \vb x_a-\vb x_b) \cdot 
+  \vb f_b(\vb x_b)
+\\
+ \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
+&\equiv 
+  \int_{\sup \vb f_a} d\vb x_a \, 
+  \int_{\sup \vb f_b} d\vb x_b \,
+  \vb f_a(\vb x_a) \cdot 
+  \vb C(k, \vb x_a-\vb x_b) \cdot 
+  \vb f_b(\vb x_b).
+\end{align}
+\label{MatrixElementIntegrals}
+\end{subequations}
+%====================================================================%
+\lss computes these integrals using one of two strategies depending
+on how far apart the basis functions are from one another. To 
+quantify this, let $d_{ab}$ be the distance between the centroids
+of basis functions $\vb f_a$ and $\vb f_b$, and let 
+$R\subs{max}=\texttt{max}(R_a, R_b)$ be the larger of the radii
+of the two basis functions. (The ``radius'' of a compact source distribution
+is the radius of the smallest sphere in which the source distribution
+may be enclosed. For RWG basis functions, we take the centroid to be
+the midpoint of the common edge shared by the two triangle that define
+the basis function; then the radius is the greatest distance from the 
+centroid to any of the four panel vertices 
+(Figure \ref{RWGMidPointRadius}).)
+
+Then the computation of the integrals (\ref{MatrixElementIntegrals})
+proceeds as follows. 
+
+\begin{enumerate}
+ \item
+ When $d_{ab} > \texttt{DBFTHRESHOLD}\cdot R\subs{max}$,
+ we approximate (\ref{MatrixElementIntegrals}) using a 
+ spherical-multipole expansion. 
+ (Here \texttt{DBFThreshold}, the ``distant basis-function threshold,''
+ is a dimensionless number that must be tuned to yield 
+ optimal accuracy and performance; in \lss its value is set to 8.3.)
+ \item
+ Otherwise, we compute (\ref{MatrixElementIntegrals}) as a sum
+ of four numerically-evaluated integrals over pairs of triangular
+ panels.
+\end{enumerate}
+
+Each of these methods is described in the following sections.
+
+\subsection{Matrix elements between distant basis functions: 
+            spherical multipole method}
+\label{SphericalMultipoleMatrixElementSection}
+
+The spherical multipole method is based on the spherical-multipole
+expansion of the $\vb G$ and $\vb C$ dyadics:
+
+\begin{align*}
+ \vb G(\vb x, \vb x^\prime)
+ &= -ik\sum_{\alpha} 
+      \left\{   \MInt_{\alpha}(\xInt)\MExt^*(\xExt)
+              - \NInt_{\alpha}(\xInt)\NExt^*(\xExt)
+      \right\} 
+\\
+ \vb C(\vb x, \vb x^\prime)
+ &= -ik\sum_{\alpha} 
+      \left\{   \MInt_{\alpha}(\xInt)\NExt^*(\xExt) 
+              + \NInt_{\alpha}(\xInt)\MExt^*(\xExt)
+      \right\} 
+\end{align*}
+where $\xInt (\xExt)$ denote whichever of $\vb x, \vb x^\prime$
+is closer to (further from) the origin.
+(My notation and conventions for spherical multipole functions
+are summarized in Appendix \ref{SphericalHelmoltzAppendix}; 
+briefly, the $\wedge$ adornment means ``interior,'' 
+while $\vee$ means ``exterior,'' and the mnemonic is to 
+think of $\vee$ as indicating radiation outward to infinity,
+as is appropriate for exterior solutions).
+
+Inserting into (\ref{MatrixElementIntegrals}), we have 
+%====================================================================%
+\begin{align*}
+ \big\langle \vb f_a \big| \vb G \big| \vb f_b \big\rangle
+&=-ik\sum_{\alpha} 
+    \Big\{  \big\langle \vb f_a \big| \MInt_\alpha \big\rangle
+            \big\langle \vb \MExt^*_\alpha \big| \vb f_b \big\rangle
+           -\big\langle \vb f_a \big| \NInt_\alpha \big\rangle
+            \big\langle \vb \NExt^*_\alpha \big| \vb f_b \big\rangle
+    \Big\}\\
+%--------------------------------------------------------------------%
+ \big\langle \vb f_a \big| \vb C \big| \vb f_b \big\rangle
+&=-ik\sum_{\alpha} 
+    \Big\{  \big\langle \vb f_a \big| \MInt_\alpha \big\rangle
+            \big\langle \vb \NExt^*_\alpha \big| \vb f_b \big\rangle
+           +\big\langle \vb f_a \big| \NInt_\alpha \big\rangle
+            \big\langle \vb \MExt^*_\alpha \big| \vb f_b \big\rangle
+    \Big\}
+%--------------------------------------------------------------------%
+\end{align*}
+
+Now use the translation matrices 
+[Appendix \ref{SphericalHelmoltzAppendix}, 
+ equation (\ref{TranslationMatrixDefinition})]
+to rewrite inner products involving exterior functions in terms
+of inner products involving interior functions:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \big\langle \vb f_a \big| \vb G \big| \vb f_b \big\rangle
+&=-ik\sum_{\alpha\beta} 
+   \left(\begin{array}{c}
+     \mathcal{M}_{a\alpha}  \\ \mathcal{N}_{a\alpha}
+   \end{array}\right)^T
+   \left(\begin{array}{cc}
+   A_{\alpha\beta} & B_{\alpha\beta} \\
+   B_{\alpha\beta} & -A_{\alpha\beta}
+   \end{array}\right)
+   \left(\begin{array}{c}
+     \mathcal{M}_{b\alpha}  \\ \mathcal{N}_{b\alpha}
+   \end{array}\right)
+\\
+%--------------------------------------------------------------------%
+ \big\langle \vb f_a \big| \vb C \big| \vb f_b \big\rangle
+&=-ik\sum_{\alpha\beta} 
+   \left(\begin{array}{c}
+     \mathcal{M}_{a\alpha}  \\ \mathcal{N}_{a\alpha}
+   \end{array}\right)^T
+   \left(\begin{array}{cc}
+  -B_{\alpha\beta} & A_{\alpha\beta} \\
+   A_{\alpha\beta} & B_{\alpha\beta}
+   \end{array}\right)
+   \left(\begin{array}{c}
+     \mathcal{M}_{b\alpha}  \\ \mathcal{N}_{b\alpha}
+   \end{array}\right)
+\end{align}
+\label{SphericalMultipoleMatrixElements}
+\end{subequations}
+%====================================================================%
+where $\{ \mathcal{M}, \mathcal{N}\}$ are the spherical multipole moments
+of the RWG basis functions:
+\numeq{RWGSphericalMultipoleMoments}
+{
+   \mathcal{M}_{a\alpha}
+   =
+   \int_{\sup \vb f_a} \vb f_a(\vb x) \cdot \MInt_\alpha(\vb x)\, d\vb x,
+   \qquad
+   \mathcal{N}_{a\alpha}
+   =
+   \int_{\sup \vb f_a} \vb f_a(\vb x) \cdot \NInt_\alpha(\vb x)\, d\vb x.
+}
+The point of this decomposition is that computing the integrals
+(\ref{RWGSphericalMultipoleMoments}) at a given frequency
+requires $O(\texttt{NBF})$ numerical cubatures, in contrast to 
+the $O(\texttt{NBF}^2)$ numerical cubatures that would na\"ively 
+be required to evaluate (\ref{MatrixElementIntegrals}) for 
+all pairs of basis functions.
+
+%====================================================================%
+
+\subsection{Matrix elements between nearby basis functions: 
+            panel-panel integration method}
+
+When the supports of the basis functions $\vb f_a$ and $\vb f_b$ 
+are relatively close to each other, we evaluate each of the 
+integrals in (\ref{MatrixElementIntegrals}) as a sum of four
+integrals over pairs of triangular panels: 
+%====================================================================%
+\begin{subequations}
+\begin{align}
+&\hspace{-0.1in}
+ \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
+\nn
+&=
+  l_a l_b 
+  \sum_{\sigma, \tau=-}^+ 
+  \frac{\sigma\tau}{4A^\sigma_a A^\tau_b}
+  \int_{\pan_a^\sigma}  d\vb x_a \,
+  \int_{\pan_b^\tau}  d\vb x_b \,
+   \Big[                 h_{\bullet}(\vb x_a, \vb x_b)
+         - \frac{1}{k^2} h_{\nabla}(\vb x_a, \vb x_b)
+   \Big]
+   \phi\big(k, |\vb x_a - \vb x_b|\big)
+\\[5pt]
+%--------------------------------------------------------------------%
+&\hspace{-0.1in}
+ \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
+\nn
+&=
+  \frac{l_a l_b}{ik}
+  \sum_{\sigma, \tau=-}^+ 
+  \frac{\sigma \tau}{4A^\sigma_a A^\tau_b}
+  \int_{\pan_a^\sigma}  d\vb x_a \,
+  \int_{\pan_b^\tau}  d\vb x_b \,
+   h_{\times}(\vb x_a, \vb x_b)
+   \psi\big(k, |\vb x_a - \vb x_b|\big)
+\end{align}
+\label{PanelPanelIntegrals}
+\end{subequations}
+%====================================================================%
+where\footnote{\textit{Warning:} My notation for the $h$ functions
+hides the fact that $h_\bullet$ and $h_\times$ depend on the current 
+source/sink nodes $\vb Q_{ab}^\pm$ within the two triangles.}
+%====================================================================%
+\begin{align*}
+h_{\bullet}(\vb x_a, \vb x_b)
+&= (\vb x_a - \vb Q_a) \cdot (\vb x_b - \vb Q_b) 
+\\
+%--------------------------------------------------------------------%
+h_{\nabla}(\vb x_a, \vb x_b)
+&= 4
+\\
+%--------------------------------------------------------------------%
+h_{\times}(\vb x_a, \vb x_b)
+&=
+\Big[ (\vb x_a - \vb Q_a) \times (\vb x_b - \vb Q_b) \Big]
+      \cdot (\vb x_a - \vb x_b)
+\\
+&=
+      (\vb x_a \times \vb x_b) \cdot (\vb Q_a - \vb Q_b)
+    + (\vb Q_a \times \vb Q_b) \cdot (\vb x_a - \vb x_b)
+\\
+%--------------------------------------------------------------------%
+\phi(k, r)&=\frac{e^{ikr}}{4\pi r}, 
+\\
+%--------------------------------------------------------------------%
+\psi(k, r)&=(ikr-1)\frac{e^{ikr}}{4\pi r^3}.
+\end{align*}
+%====================================================================%
+[Note that $\psi$ is defined such that 
+$\nabla \phi(k, |\vb r|) = \vb r \psi(k, |\vb r|)$].
+%====================================================================%
+
+The point of this notation is that it expresses the 
+integrands of the panel-panel integrals in (\ref{PanelPanelIntegrals}) 
+as products of benign polynomials in $\vb x_a, \vb x_b$
+(the $h$ functions) times kernel functions that depend only 
+on the distance $\vb x_a-\vb x_b$ and have singularities 
+when this distance vanishes (the $\phi, \psi$ kernels).
+This decomposition facilitates the desingularization procedure
+described below.
+
+In some cases I will write (\ref{PanelPanelIntegrals}) 
+using the notation
+\begin{subequations}
+\begin{align}
+ \Big\langle \vb f_a \Big| \vb G(k) \Big | \vb f_b \Big \rangle
+&=
+  l_a l_b 
+  \sum_{\sigma, \tau=-}^+ 
+  \sigma\tau
+  \left\{               \texttt{PPI}\Big(\pan_a^\sigma, \pan_b^\tau, h_\bullet, \phi\Big) 
+         -\frac{1}{k^2} \texttt{PPI}\Big(\pan_a^\sigma, \pan_b^\tau, h_\nabla,  \phi\Big) 
+  \right\}
+\\
+%--------------------------------------------------------------------%
+ \Big\langle \vb f_a \Big| \vb C(k) \Big | \vb f_b \Big \rangle
+&=
+  \frac{l_a l_b }{ik}
+  \sum_{\sigma, \tau=-}^+ \sigma \tau \cdot 
+   \texttt{PPI}\Big(\pan_a^\sigma, \pan_b^\tau, h_\times, \psi\Big) 
+\end{align}
+\label{PPIs}
+\end{subequations}
+with the ``panel-panel integral'' functions defined by 
+\numeq{PPIDefinition}
+{
+   \texttt{PPI}\Big(\pan, \pan^\prime, h, g\Big)
+   \equiv 
+   \frac{1}{4A A^\prime}
+   \int_{\pan} d\vb x \, 
+   \int_{\pan^\prime} d\vb x^\prime \, 
+   h(\vb x, \vb x^\prime) \, g(|\vb x-\vb x^\prime|).
+}
+%Sometimes I will use the alternative notation
+%$$
+%   H_{\bullet, \nabla, \times} \Big(\pan_a, \pan_b, g\Big)
+%   \equiv 
+%   \int_{\pan_a} d\vb x_a \, 
+%   \int_{\pan_b} d\vb x_b \, 
+%   h_{\bullet, \nabla, \times}(\vb x_a, \vb x_b) \, 
+%   g(|\vb x_a-\vb x_b|)
+%$$
+%as well as 
+%$$ H_{+}\Big(\pan_a, \pan_b, g\Big) \equiv 
+%   H_{\bullet}\Big(\pan_a, \pan_b, g\Big)
+%   -\frac{1}{k^2} H_{\nabla }\Big(\pan_a, \pan_b, g\Big).
+%$$
+The quantities (\ref{PPIDefinition}) are what are computed 
+by the \texttt{GetPanelPanelInteractions()} routine in \ls. 
+The responsibility of assembling these quantities together with
+the requisite prefactors to obtain the full inner products
+(\ref{PPIs}) is handled by the routine 
+\texttt{GetEdgeEdgeInteractions()}.
+
+\subsubsection*{Evaluation of distant panel-panel integrals: Cubature}
+
+When the panels $\pan, \pan^\prime$ in 
+(\ref{PPIDefinition}) are relative far away from each other, we
+evaluate the four-dimensional integral using numerical cubature.
+For this purpose it is convenient to parameterize points in the
+triangles using the prescription (Figure \ref{uvDefinitionFigure})
+\numeq{uvDefinition}
+{\begin{array}{cclll}
+ \vb x &=&\vb V_1 + u\vb A + v\vb B, 
+ \qquad &0\le u \le 1, 
+ \qquad &0 \le v \le u 
+\\[5pt]
+ \vb x^\prime &=& \vb V_1^\prime 
+                 + u^\prime\vb A^\prime 
+                 + v^\prime\vb B^\prime
+ \qquad &0\le u^\prime \le 1, 
+ \qquad &0 \le v^\prime \le u^\prime.
+ \end{array}
+}
+The integral (\ref{PPIDefinition}) becomes 
+\numeq{uvIntegral}
+{
+   \texttt{PPI}\Big(\pan, \pan^\prime, h, g\Big)
+   =
+   \int_0^1 du \, \int_0^u dv \, 
+   \int_0^1 du^\prime \, \int_0^{u^\prime} dv^\prime \, 
+   h(u, v, u^\prime, v^\prime)
+   g(u, v, u^\prime, v^\prime)
+}
+where the prefactor $\frac{1}{4AA^\prime}$ is cancelled
+by the Jacobian of the variable transformation (\ref{uvDefinition}),
+and where I put
+$$ h(u,v,u^\prime,v^\prime) = 
+   h\Big( \vb x(u,v), \vb x^\prime(u^\prime,v^\prime) \Big), 
+   \qquad
+   g(u,v,u^\prime,v^\prime) = 
+   g\Big( \big|\vb x(u,v) - \vb x^\prime(u^\prime,v^\prime) \big|\Big).
+$$
+The integral (\ref{uvIntegral}) may be evaluated numerically in 
+one of two ways:
+\begin{enumerate}
+ \item by nesting two cubature rules for the standard triangle 
+       with vertices $\{(0,0), (0,1), (1,0)\}$, or
+ \item by mapping the domain of integration to the four-dimensional 
+       hypercube $[0,1] \times [0,1] \times [0,1] \times [0,1]$
+       and using a four-dimensional cubature rule for this hypercube.
+       (The variable transformation that enables this mapping is
+       $$v=ut, \qquad dv=udt, \qquad \int_0^u f(v) dv = \int_0^1 u f(ut) dt$$
+       and similarly $v^\prime=u^\prime t^\prime.$)
+\end{enumerate}
+The former of these two strategies is slightly more efficient, but
+the latter has the advantage of allowing the use of standard codes
+for adaptive cubature over 
+hypercubes.\footnote{\texttt{http://ab-initio.mit.edu/cubature}}
+Both strategies are used in \ls.
+
+\subsubsection*{Evaluation of nearby panel-panel integrals: Desingularization}
+
+When the panels in (\ref{PPIDefinition}) have one or more common
+vertices, the integrand becomes singular at one or more points in 
+the domain of integration. Although these are \textit{integrable}
+singularities, their existence precludes application of the na\"ive
+numerical cubature scheme discussed above, and instead we must
+resort to more complicated, and more costly, numerical methods.
+
+On the other hand, when the panels have no common vertices but are
+nearby one another, the integrand in (\ref{PPIDefinition}) is
+nonsingular but rapidly varying over the domain of integration, 
+and evaluation of the integral by numerical cubature is technically 
+possible but expensive due to the large number of cubature points 
+required to obtain decent accuracy.
+
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \iint h \phi
+&=
+ \iint h \phi\supt{DS}
++\sum_{n=0}^3 \frac{(ik)^n}{4\pi} A_n  
+ \iint h r^{n-1}
+\\
+%--------------------------------------------------------------------%
+ \iint h\psi
+&=
+ \iint h\psi\supt{DS}
++\sum_{n=0}^4 \frac{(ik)^n}{4\pi} B_n 
+ \iint h r^{n-3}
+\end{align}
+\label{DesingularizedPPIs}
+\end{subequations}
+%====================================================================%
+Here we are using a shorthand in which 
+\begin{itemize}
+ \item $h$ is any of the functions $\{h_\bullet, h_\nabla, h_\times\}$,
+ \item $\iint$ is shorthand for 
+       $\int_{\pan_a} \, d\vb x_a \, \int_{\pan_b} \, d\vb x_b, $
+ \item $\iint h r^p$ is shorthand for 
+       $\int_{\pan_a} \, d\vb x_a \, \int_{\pan_b} \, d\vb x_b\,
+        \big\{h(\vb x_a, \vb x_b) |\vb x_a - \vb x_b|^p\big\},$
+ \item the $A$ coefficients in (\ref{DesingularizedPPIs}a) are 
+       $$A_n=\frac{1}{n!}$$
+ \item the $B$ coefficients in (\ref{DesingularizedPPIs}b) are 
+       $$ B_0 = -1, \qquad B_1 = 0, \qquad B_2 = \frac{1}{2}, \qquad
+          B_3 = \frac{1}{3}, \qquad B_4 = \frac{1}{6}
+       $$
+ \item the desingularized kernels are 
+\begin{subequations}
+\begin{align}
+\phi\supt{DS}(k, r) 
+ &=
+\frac{e^{ikr} - 1 - ikr - \frac{1}{2}(ikr)^2 - \frac{1}{6}(ikr)^3 }
+     {4\pi r}, 
+\nonumber \\
+&\equiv\frac{\texttt{ExpRel}(ikr, 4)}{4\pi r}
+\\
+\intertext{and similarly}
+%--------------------------------------------------------------------%
+\psi\supt{DS}(k, r)&\equiv(ikr-1)\frac{\texttt{ExpRel}(ikr, 4)}{4\pi r^3}.
+\end{align}
+\label{PhiDSPsiDS}
+\end{subequations}
+%====================================================================%
+\end{itemize}
+When computing the ``relative exponential'' functions 
+$\texttt{ExpRel}(x,n)$ in (\ref{PhiDSPsiDS}) it is 
+important that we \textit{not} simply compute 
+$\texttt{exp(x)}$ and then subtract off the first $n$ terms
+in its Taylor series, as doing so could lead to catastrophic loss
+of numerical precision. Instead, a better-behaved procedure is 
+simply to sum the Taylor series for the exponential starting 
+with its $(n+1)$th term.
