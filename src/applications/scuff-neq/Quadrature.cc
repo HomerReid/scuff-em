@@ -25,6 +25,7 @@
  *
  */
 
+#include <stdlib.h>
 #include <libSGJC.h>
 #include "scuff-neq.h"
 
