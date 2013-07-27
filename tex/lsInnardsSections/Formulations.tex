@@ -50,23 +50,41 @@ may be part of the boundary of $\mc R$), while the
 latter involve only those incident-field sources
 lying interior to $\mc R$. Equation (\ref{PECEquation1})
 then reads
-\numeq{EFIE}
-{  \sum_{\mathcal{S}_s \subset \partial \mc R}
+\begin{align}
+   \sum_{\mathcal{S}_s \subset \partial \mc R}
    \text{sgn}\big(\mc S_s,R\big)
+   \oint_{\mc S_s}
    \left(\begin{array}{cc}
    \BG\supt{EE}(\mc R) & \BG\supt{EM}(\mc R)  \\
    \BG\supt{ME}(\mc R) & \BG\supt{MM}(\mc R)  \\
    \end{array}\right)
-   \star \left(\begin{array}{cc} \vb K \\ \vb N \end{array}\right)
+   \left(\begin{array}{cc} \vb K \\ \vb N \end{array}\right)
    dA
-   =
+  &=
   -
    \left(\begin{array}{c} \vb E\incr \\ \vb H\incr \end{array}\right)
-}
+\\
+\intertext{or, in convenient shorthand,}
+   \sum_{\mathcal{S}_s \subset \partial \mc R}
+   \text{sgn}\big(\mc S_s,R\big)
+   \left[ 
+         \left(\begin{array}{cc}
+         \BG\supt{EE}(\mc R) & \BG\supt{EM}(\mc R)  \\
+         \BG\supt{ME}(\mc R) & \BG\supt{MM}(\mc R)  \\
+         \end{array}\right) 
+   \star 
+   \left(\begin{array}{cc} \vb K_s \\ \vb N_s \end{array}\right)
+   \right]
+  &=
+  -
+   \left(\begin{array}{c} \vb E\incr \\ \vb H\incr \end{array}\right)
+\label{EFIE}
+\end{align}
 where the sum is over all surfaces $\mc S_s$ that 
-constitute the boundary $\partial \mc R$ of the region $\mc R$,
-including $\mathcal S$, 
-and 
+constitute the boundary $\partial \mc R$ of the region $\mc R$
+(including $\mathcal S$), $\star$ denotes convolution,
+the $s$ subscript on $\vb K,\vb N$ indicates the restriction
+of the current distributions to $\mathcal {S}_s$, and 
 $$\text{sgn}\big(\mc S,\mc R\big)\equiv
    \begin{cases} 
    +1  \qquad &\text{if $\mc R$ is the ``exterior'' 
@@ -89,9 +107,8 @@ Note that equation (\ref{EFIE}) may be written using
 a shorthand notation:
 \numeq{EFIEShorthand}
 {  \sum_{\mc S_s \subset \partial \mc R}
-   \int_{\mc S_s}
    \text{sgn}\big(\mc S_s,\mc R\big)
-   \Big[ \bmc G(\mc R) \star \bmc C\Big] dA 
+   \Big[ \bmc G(\mc R) \star \bmc C_s\Big]
     = 
     -\bmc F\incr
 }
@@ -166,14 +183,12 @@ exterior). Then the integral-equation version of
 \begin{align}
 & \sum_{\mc S_s \subset \partial \mc R_1}
    \text{sgn}\big(\mc S_s,\mc R_1\big)
-   \int_{\mc S_s}
-   \Big[ \bmc G(\mc R_1) \star \bmc C\Big]_{\parallel} dA 
-\nn
-&\qquad
+   \Big[ \bmc G(\mc R_1) \star \bmc C_s\Big]_{\parallel}
  -\sum_{\mc S_s \subset \partial \mc R_2} 
    \text{sgn}\big(\mc S_s,\mc R_2\big)
-   \int_{\mc S_s}
-   \Big[ \bmc G(\mc R_2) \star \bmc C\Big]_{\parallel} dA 
+   \Big[ \bmc G(\mc R_2) \star \bmc C_s\Big]_{\parallel}
+\nn
+&\qquad
 =
   \Big[-\bmc F\incro + \bmc F\incrt \Big]_{\parallel}
 \label{PMCHWT}
@@ -186,16 +201,60 @@ sources inside $\mc R_1$.
 Note that, when we consider the contribution made by 
 surface $\mc S$ itself to the sums on the LHS,
 we have 
-$\text{sgn}\big(\mc S, \mc R_1\big))=
+$\text{sgn}\big(\mc S, \mc R_1\big)=
  -\text{sgn}\big(\mc S, \mc R_2\big)$,
-so two terms on the LHS wind up \textit{adding}, not
-subtracting, for that surface.
+so the two terms on the LHS wind up \textit{adding}, 
+not subtracting, for that surface.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{The equation imposed at points on 
                dielectric object surfaces: N-M\"uller formulation}
+
+The N-M\"uller formulation is an alternative to the PMCHWT
+approach that yields a different set of integral equations
+whose discretization exhibits different numerical 
+behavior.\footnote{
+P. Yla-Oijala and M. Taskinen, ``Well-conditioned 
+M\"uller formulation for electromagnetic scattering by 
+dielectric objects,'' \textit{IEEE Transactions on Antennas
+and Propagation}, \textbf{53} 3316 (2005)} To derive 
+the equations of this formulation, consider a surface $\mc S$
+at the interface of two regions $\mc R_{1,2}$, and let
+$\vbhat n$ be the normal to $\mc S$ pointing into 
+$\mc R_1$ and away from $\mc R_2$. The surface currenst
+total fields in $\mc R_1$ and taking the limit
+\begin{align*}
+  \left(\begin{array}{c}
+   \vb K(\vb x) \\[3pt] 
+   \vb N(\vb x) 
+  \end{array}\right)
+ &=
+  \lim_{\eta \to 0}
+  \left(\begin{array}{c}
+  +\vbhat{n} \times \vb H\sups{tot}\big(\vb x + \eta\vbhat{n}\big) 
+   \\[3pt]
+  -\vbhat{n} \times \vb E\sups{tot}\big(\vb x + \eta\vbhat{n}\big)
+  \end{array}\right)
+\intertext{or, using the 6-vector notation introduced above,}
+  \bmc C 
+ &=
+  \lim_{\eta \to 0}
+  \bmc N \bmc F\big( \vb x + \eta\vbhat{n} \big)
+\\
+ &=
+  \lim_{\eta \to 0}
+  \bmc N \Big[ \bmc F\incro\big( \vb x + \eta\vbhat{n} \big)
+               \,\, + \,\, \bmc G(\mc R_1) \star \bmc C
+         \Big]
+\end{align*}
+where 
+$$\bmc N = \left(\begin{array}{cc}
+  0 & \vbhat{n}\times \\ 
+ -\vbhat{n}\times & 0 \\ 
+ \end{array}\right).
+$$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
