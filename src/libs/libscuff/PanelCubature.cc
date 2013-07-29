@@ -322,11 +322,11 @@ void GPPCIntegrand(unsigned ndim, const double *XiEta, void *params,
       Jacobian= 4.0 * Area1 * Area2 * Xi1 * Xi2;
     }
    else
-    { Xi1  = uv[0];
-      Eta1 = uv[1];
-      Xi2  = uv[2];
-      Eta2 = uv[3];
-      Jacobian=1.0;
+    { Xi1  = XiEta[0];
+      Eta1 = XiEta[1];
+      Xi2  = XiEta[2];
+      Eta2 = XiEta[3];
+      Jacobian = 4.0 * Area1 * Area2;
     };
 
    double X1[3];
@@ -400,9 +400,8 @@ void GPPCIntegrand(unsigned ndim, const double *XiEta, void *params,
    /*--------------------------------------------------------------*/
    /*- put in Jacobian factors ------------------------------------*/
    /*--------------------------------------------------------------*/
-   if ( Jacobian != 1.0 )
-    for(int n=0; n<fdim; n++)
-     fval[n]*=Jacobian;
+   for(int n=0; n<fdim; n++)
+    fval[n]*=Jacobian;
 }
 
 /***************************************************************/
@@ -547,15 +546,17 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
      int NumPts, Order = (MaxEvals==36) ? 4 : 9;
      double uv[4], *TCR=GetTCR(Order,&NumPts);
      memset(Result, 0, IDim*sizeof(double));
+     double *DeltaResult=new double[IDim];
      for(int np=0; np<NumPts; np++)
       for(int npp=0; npp<NumPts; npp++)
        { double u1=TCR[3*np+0];  double v1=TCR[3*np+1];  double w=TCR[3*np+2];
          double u2=TCR[3*npp+0]; double v2=TCR[3*npp+1]; double wp=TCR[3*npp+2];
          uv[0] = u1+v1; uv[1] = v1; uv[2] = u2+v2; uv[3] = v2;
-         GPPCIntegrand(4, uv, (void *)Data, 4, Delta);
+         GPPCIntegrand(4, uv, (void *)Data, 4, DeltaResult);
          for(int n=0; n<IDim; n++)
-          Result[n] += w*wp*Delta;
+          Result[n] += w*wp*DeltaResult[n];
        };
+     delete DeltaResult;
    }
   else
    { Data->UseSquareMapping=true;

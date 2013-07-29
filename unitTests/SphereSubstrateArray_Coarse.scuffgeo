@@ -26,7 +26,7 @@ REGION SphereInterior MATERIAL Gold
 
 
 SURFACE Sphere
-	MESHFILE UnitTestSphere_Coarse.msh
+	MESHFILE UnitTestSphere_414.msh
 	DISPLACED 1.2 1.2 1.85
 	REGIONS UpperHalfSpace SphereInterior
 ENDOBJECT

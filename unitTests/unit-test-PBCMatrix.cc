@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGGeometry *G = new RWGGeometry("SphereSubstrateArray_Coarse.scuffgeo");
+  RWGGeometry *G = new RWGGeometry("SphereSubstrateArray_414.scuffgeo");
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   HMatrix *M = G->AllocateBEMMatrix();
   double Elapsed;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   if (WriteFiles)
    { 
-     void *pCC = HMatrix::OpenHDF5Context("SphereSubstrateArray_Coarse.hdf5");
+     void *pCC = HMatrix::OpenHDF5Context("SphereSubstrateArray_414.hdf5");
    
      printf("Assembling BEM matrix at (Omega,kx,ky) = (0.05, 0.0, 0.0)...\n");
      kBloch[0]=kBloch[1]=0.0;
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
      Elapsed=Toc();
      printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
      M->ExportToHDF5(pCC,"M1");
-     StoreCache("SphereSubstrateArray_Coarse.cache");
+     StoreCache("SphereSubstrateArray_414.cache");
    
      printf("Assembling BEM matrix at (Omega,kx,ky) = (0.9,0.3,1.1)...\n");
      kBloch[0]=0.3;
@@ -104,18 +104,18 @@ int main(int argc, char *argv[])
 
      HMatrix::CloseHDF5Context(pCC);
 
-     StoreCache("SphereSubstrateArray_Coarse.cache");
+     StoreCache("SphereSubstrateArray_414.cache");
 
    }
   else
    {
      if (UseCache)
-      PreloadCache("SphereSubstrateArray_Coarse.cache");
+      PreloadCache("SphereSubstrateArray_414.cache");
 
      /***************************************************************/
      /* assemble and compare in first case   ***********************/
      /***************************************************************/
-     HMatrix *MRef = new HMatrix("SphereSubstrateArray_Coarse.hdf5",LHM_HDF5,"M1");
+     HMatrix *MRef = new HMatrix("SphereSubstrateArray_414.hdf5",LHM_HDF5,"M1");
      if (MRef->ErrMsg)
       ErrExit(MRef->ErrMsg);
 
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
      /***************************************************************/
      /* assemble and compare in second case *************************/
      /***************************************************************/
-     MRef = new HMatrix("SphereSubstrateArray_Coarse.hdf5",LHM_HDF5,"M2");
+     MRef = new HMatrix("SphereSubstrateArray_414.hdf5",LHM_HDF5,"M2");
      if (MRef->ErrMsg)
       ErrExit(MRef->ErrMsg);
 

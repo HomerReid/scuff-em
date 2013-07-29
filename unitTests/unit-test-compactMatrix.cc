@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGGeometry *G = new RWGGeometry("TwoSpheres_Coarse.scuffgeo");
+  RWGGeometry *G = new RWGGeometry("TwoSpheres_414.scuffgeo");
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   HMatrix *M = G->AllocateBEMMatrix();
   double Elapsed;
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   if (WriteFiles)
    { 
-     void *pCC = HMatrix::OpenHDF5Context("TwoSpheres_Coarse.hdf5");
+     void *pCC = HMatrix::OpenHDF5Context("TwoSpheres_414.hdf5");
    
      printf("Assembling BEM matrix at Omega = 0.05...\n");
      Tic();
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
      Elapsed=Toc();
      printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
      M->ExportToHDF5(pCC,"M0P05");
-     StoreCache("TwoSpheres_Coarse.cache");
+     StoreCache("TwoSpheres_414.cache");
    
      printf("Assembling BEM matrix at Omega = 5+5I...\n");
      Tic();
@@ -99,18 +99,18 @@ int main(int argc, char *argv[])
 
      HMatrix::CloseHDF5Context(pCC);
 
-     StoreCache("TwoSpheres_Coarse.cache");
+     StoreCache("TwoSpheres_414.cache");
 
    }
   else
    {
      if (UseCache)
-      PreloadCache("TwoSpheres_Coarse.cache");
+      PreloadCache("TwoSpheres_414.cache");
 
      /***************************************************************/
      /* assemble and compare at omega=0.05 **************************/
      /***************************************************************/
-     HMatrix *MRef = new HMatrix("TwoSpheres_Coarse.hdf5",LHM_HDF5,"M0P05");
+     HMatrix *MRef = new HMatrix("TwoSpheres_414.hdf5",LHM_HDF5,"M0P05");
      if (MRef->ErrMsg)
       ErrExit(MRef->ErrMsg);
 
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
      /***************************************************************/
      /* assemble and compare at Omega=5+5i **************************/
      /***************************************************************/
-     MRef = new HMatrix("TwoSpheres_Coarse.hdf5",LHM_HDF5,"M5P5I");
+     MRef = new HMatrix("TwoSpheres_414.hdf5",LHM_HDF5,"M5P5I");
      if (MRef->ErrMsg)
       ErrExit(MRef->ErrMsg);
 
