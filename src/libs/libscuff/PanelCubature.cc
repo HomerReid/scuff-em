@@ -270,6 +270,8 @@ typedef struct GPPCIData
    double Area1, Area2;
    double *nHat1, *nHat2;
 
+   bool UseSquareMapping;
+
    cdouble Omega;
 
    int NumContributingEdges1;
@@ -281,7 +283,6 @@ typedef struct GPPCIData
    cdouble KAlpha2[3], NAlpha2[3];
    double *Q2[3];
    double RWGPreFac2[3];
- 
 
 } GPPCIData;
 
@@ -289,7 +290,7 @@ typedef struct GPPCIData
 /* integrand passed to adaptive cubature routine for cubature  */
 /* over a pair of panels                                       */
 /***************************************************************/
-void GPPCIntegrand(unsigned ndim, const double *uv, void *params,
+void GPPCIntegrand(unsigned ndim, const double *XiEta, void *params,
                    unsigned fdim, double *fval)
 {
    /*--------------------------------------------------------------*/
@@ -312,21 +313,31 @@ void GPPCIntegrand(unsigned ndim, const double *uv, void *params,
    /*--------------------------------------------------------------*/
    /*- get the evaluation points from the standard-triangle coords */
    /*--------------------------------------------------------------*/
-   double u1 = uv[0];
-   double v1 = u1*uv[1];
-   double u2 = uv[2];
-   double v2 = u2*uv[3];
-   double Jacobian= 4.0 * Area1 * Area2 * u1 * u2;
+   double Xi1, Eta1, Xi2, Eta2, Jacobian;
+   if (Data->UseSquareMapping)
+    { Xi1  = XiEta[0];
+      Eta1 = Xi1*XiEta[1];
+      Xi2  = XiEta[2];
+      Eta2 = Xi2*XiEta[3];
+      Jacobian= 4.0 * Area1 * Area2 * Xi1 * Xi2;
+    }
+   else
+    { Xi1  = uv[0];
+      Eta1 = uv[1];
+      Xi2  = uv[2];
+      Eta2 = uv[3];
+      Jacobian=1.0;
+    };
 
    double X1[3];
-   X1[0] = V01[0] + u1*A1[0] + v1*B1[0];
-   X1[1] = V01[1] + u1*A1[1] + v1*B1[1];
-   X1[2] = V01[2] + u1*A1[2] + v1*B1[2];
+   X1[0] = V01[0] + Xi1*A1[0] + Xi2*B1[0];
+   X1[1] = V01[1] + Xi1*A1[1] + Xi2*B1[1];
+   X1[2] = V01[2] + Xi1*A1[2] + Xi2*B1[2];
 
    double X2[3];
-   X2[0] = V02[0] + u2*A2[0] + v2*B2[0];
-   X2[1] = V02[1] + u2*A2[1] + v2*B2[1];
-   X2[2] = V02[2] + u2*A2[2] + v2*B2[2];
+   X2[0] = V02[0] + Eta1*A2[0] + Eta2*B2[0];
+   X2[1] = V02[1] + Eta1*A2[1] + Eta2*B2[1];
+   X2[2] = V02[2] + Eta1*A2[2] + Eta2*B2[2];
 
    /*--------------------------------------------------------------*/
    /*- get the surface currents at the evaluation point           -*/
@@ -389,8 +400,9 @@ void GPPCIntegrand(unsigned ndim, const double *uv, void *params,
    /*--------------------------------------------------------------*/
    /*- put in Jacobian factors ------------------------------------*/
    /*--------------------------------------------------------------*/
-   for(int n=0; n<fdim; n++)
-    fval[n]*=Jacobian;
+   if ( Jacobian != 1.0 )
+    for(int n=0; n<fdim; n++)
+     fval[n]*=Jacobian;
 }
 
 /***************************************************************/
@@ -527,15 +539,33 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
    };
  
   /*--------------------------------------------------------------*/
+  /* evaluate the four-dimensional integral by fixed-order        */
+  /* cubature or by adaptive cubature                             */
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double *Error  = new double[IDim];
-  double Lower[4]={0.0, 0.0, 0.0, 0.0};
-  double Upper[4]={1.0, 1.0, 1.0, 1.0};
-  adapt_integrate(IDim, GPPCIntegrand, (void *)Data,
-		  4, Lower, Upper, MaxEvals, AbsTol, RelTol, Result, Error);
-
-  delete[] Error;
+  if (MaxEvals==36 || MaxEvals==441)
+   { Data->UseSquareMapping=false;
+     int NumPts, Order = (MaxEvals==36) ? 4 : 9;
+     double uv[4], *TCR=GetTCR(Order,&NumPts);
+     memset(Result, 0, IDim*sizeof(double));
+     for(int np=0; np<NumPts; np++)
+      for(int npp=0; npp<NumPts; npp++)
+       { double u1=TCR[3*np+0];  double v1=TCR[3*np+1];  double w=TCR[3*np+2];
+         double u2=TCR[3*npp+0]; double v2=TCR[3*npp+1]; double wp=TCR[3*npp+2];
+         uv[0] = u1+v1; uv[1] = v1; uv[2] = u2+v2; uv[3] = v2;
+         GPPCIntegrand(4, uv, (void *)Data, 4, Delta);
+         for(int n=0; n<IDim; n++)
+          Result[n] += w*wp*Delta;
+       };
+   }
+  else
+   { Data->UseSquareMapping=true;
+     double *Error  = new double[IDim];
+     double Lower[4]={0.0, 0.0, 0.0, 0.0};
+     double Upper[4]={1.0, 1.0, 1.0, 1.0};
+     adapt_integrate(IDim, GPPCIntegrand, (void *)Data,
+                     4, Lower, Upper, MaxEvals, AbsTol, RelTol, Result, Error);
+     delete[] Error;
+   };
 }
 
 /***************************************************************/
