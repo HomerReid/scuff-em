@@ -223,9 +223,18 @@ and Propagation}, \textbf{53} 3316 (2005)} To derive
 the equations of this formulation, consider a surface $\mc S$
 at the interface of two regions $\mc R_{1,2}$, and let
 $\vbhat n$ be the normal to $\mc S$ pointing into 
-$\mc R_1$ and away from $\mc R_2$. The surface currenst
-total fields in $\mc R_1$ and taking the limit
-\begin{align*}
+$\mc R_1$ and away from $\mc R_2$.\footnote{In contrast to
+other derivations, such as that of the previous footnote, 
+I do \textit{not} use two different symbols to denote 
+the two opposite orientations of the surface normal
+vector. Throughout this derivation my $\vbhat{n}$ vector 
+points always in the \textit{same} direction, namely, out
+of $\mc R_2$ into $\mc R_1$. Similarly, there are not two
+different $\bmc N$ matrices; there is only one $\bmc N$ 
+matrix.} One way to express the 
+surface currents is to compute the total fields in $\mc R_1$ 
+at points approaching the surface from within $\mc R_1$:
+\begin{align}
   \left(\begin{array}{c}
    \vb K(\vb x) \\[3pt] 
    \vb N(\vb x) 
@@ -234,26 +243,165 @@ total fields in $\mc R_1$ and taking the limit
   \lim_{\eta \to 0}
   \left(\begin{array}{c}
   +\vbhat{n} \times \vb H\sups{tot}\big(\vb x + \eta\vbhat{n}\big) 
-   \\[3pt]
+   \nn[3pt]
   -\vbhat{n} \times \vb E\sups{tot}\big(\vb x + \eta\vbhat{n}\big)
   \end{array}\right)
+\nonumber
 \intertext{or, using the 6-vector notation introduced above,}
   \bmc C 
  &=
   \lim_{\eta \to 0}
   \bmc N \bmc F\big( \vb x + \eta\vbhat{n} \big)
-\\
+\nn
  &=
   \lim_{\eta \to 0}
   \bmc N \Big[ \bmc F\incro\big( \vb x + \eta\vbhat{n} \big)
                \,\, + \,\, \bmc G(\mc R_1) \star \bmc C
          \Big]
-\end{align*}
+\label{NMuller1}
+\end{align}
 where 
 $$\bmc N = \left(\begin{array}{cc}
   0 & \vbhat{n}\times \\ 
  -\vbhat{n}\times & 0 \\ 
- \end{array}\right).
+ \end{array}\right)
+$$
+and again $\bmc F\incro$ are the incident fields arising
+only from those field sources inside $\mc R_1$.
+
+On the other hand, another way to derive the same 
+surface currents is to compute the total fields in $\mc R_2$ 
+at points approaching the surface from within $\mc R_2$:
+\numeq{NMuller2}
+{\bmc C =
+    \bmc N \Big[ \bmc F\incrt\big( \vb x - \eta\vbhat{n} \big)
+                  \,\, - \,\, \bmc G(\mc R_2) \star \bmc C
+           \Big]
+}
+Equation (\ref{NMuller1}) and (\ref{NMuller2}) 
+are two distinct equations that must hold simultaneously.
+If we subtract equation (\ref{NMuller2}) from (\ref{NMuller1})
+and operate on both sides with $-\bmc N$, we recover the
+PMCHWT equation (\ref{PMCHWT}). On the other hand, 
+if we multiply 
+(\ref{NMuller1}) by $\vbchi_1$ and 
+(\ref{NMuller1}) by $\vbchi_2$---where 
+$\vbchi_r$ is the $6\times 6$ constant diagonal matrix 
+$$ \vbchi_r 
+   = 
+   \left(\begin{array}{cc} 
+      \mu_r & 0 \\ 
+      0 & -\epsilon_r \end{array}\right)
+$$
+with $\epsilon_r,\mu_r$ the relative material properties of
+region $\mc R$---and \textit{add} the two equations instead of
+subtracting, we obtain
+%====================================================================%
+\renewcommand{\arraystretch}{1.5}
+$$
+ \Big(\vbchi_1 + \vbchi_2\Big)\bmc C
+=    \vbchi_1 \bmc N \bmc F\incro 
+   + \vbchi_2 \bmc N \bmc F\incrt 
+   + \Big[    \vbchi_1 \bmc N \bmc G_1 
+            - \vbchi_2 \bmc N \bmc G_2
+     \Big]\star \bmc C
+$$
+%--------------------------------------------------------------------%
+or, breaking out the 3x3 block components,
+%--------------------------------------------------------------------%
+\begin{align}
+&
+\left(\begin{array}{c}
+  \!\!\!\!
+  (\mu_1      + \mu_2) \vb K
+  \!\!\!\!
+  \\
+  \!\!\!\!
+ -(\epsilon_1 + \epsilon_2) \vb N
+  \!\!\!\! 
+\end{array}\right)
+-
+\left(\begin{array}{cc}
+  \vbhat{n}\times 
+   \big[\mu_1 \BG\supt{ME}_1 - \mu_2 \BG\supt{ME}_2 \big]
+&
+  \vbhat{n}\times 
+   \big[\mu_1 \BG\supt{MM}_1 - \mu_2 \BG\supt{MM}_2 \big]
+\\
+  \vbhat{n}\times 
+   \big[\epsilon_1 \BG\supt{EE}_1 - \epsilon_2 \BG\supt{EE}_2 \big]
+  \!\!\!\!
+&
+  \vbhat{n}\times 
+   \big[\epsilon_1 \BG\supt{EM}_1 - \epsilon_2 \BG\supt{EM}_2 \big]
+  \!\!\!\!
+\end{array}\right) 
+ \!\! \star \!\!
+\left(\begin{array}{c}
+  \!\!
+  \vb K 
+  \!\! 
+  \\
+  \!\!
+  \vb N 
+  \!\!
+\end{array}\right)
+\nn
+%--------------------------------------------------------------------%
+&\qquad=
+\left(\begin{array}{c}
+  \vbhat{n}\times \big[\mu_1 \vb H\incro + \mu_2 \vb H\incrt\big] \\
+  \vbhat{n}\times \big[\epsilon_1 \vb E\incro + \epsilon_2 \vb E\incrt\big]
+\end{array}\right).
+\label{NMuller0}
+\end{align}
+\renewcommand{\arraystretch}{1.0}
+
+There is a subtlety in equation (\ref{NMuller0})
+that is not present in (\ref{PMCHWT}):
+In evaluating the convolutions on the LHS of (\ref{NMuller0}),
+we must account for the $\delta-$function singularities in 
+$\BG\supt{ME}$ and $\BG\supt{EM}$. [These terms 
+\textit{cancel} out of (\ref{PMCHWT}), which is why we
+didn't need to consider them above]. I think the easiest
+way to work out what these are is to consider the 
+magnetic field due to an infinite constant sheet 
+of $\vb x$-directed electric surface current 
+$\vb K$ confined to the $xy$ plane. Then, by a simple 
+application of the right-hand rule, the magnetic 
+field in the \textit{upper} half space points in the 
+\textit{negative} $y$-direction, 
+while the magnetic field in the \textit{lower} half 
+space points in the \textit{positive} $y$-direction.
+Let the upper (lower) half-space
+be $\mc R_1$ $(\mc R_2)$. Then we have 
+%====================================================================%
+$$ \vbhat{n} = K \vbhat{z}, \qquad \vb K= K \vbhat{x}. $$
+%====================================================================%
+The magnetic field in the upper half-space is
+$$ \BG\supt{ME}_1 \star \vb K 
+   = -\frac{1}{2}K \vbhat{y}, \qquad  z\ge 0.
+$$
+In the lower half-space, we find instead
+$$ \BG\supt{ME}_2 \star \vb K 
+   = +\frac{1}{2}K \vbhat{y}, \qquad  z\le 0.
+$$
+%====================================================================%
+Thus, at $z=0$, we find
+\begin{align*}
+ \vbhat{n}\times
+   \big[\mu_1 \BG\supt{ME}_1 - \mu_2 \BG\supt{ME}_2 \big]\star \vb K
+   &=-\frac{(\mu_1 + \mu_2)K}{2}\vbhat{z} \times \vbhat{y}
+\\
+   &=+\frac{(\mu_1 + \mu_2)K}{2}\vbhat{x}
+\\
+   &=\frac{(\mu_1 + \mu_2)}{2}\vb K.
+\end{align*}
+By analogous arguments we find 
+$$
+ \vbhat{n}\times
+   \big[\epsilon_1 \BG\supt{EM}_1 - \epsilon_2 \BG\supt{EM}_2 \big]\star \vb N
+   =-\frac{(\epsilon_1 + \epsilon_2)}{2}\vb N.
 $$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -281,9 +429,9 @@ at $\vb x$.
 Note that we use the symbol $G$, not $\sigma$, for surface
 conductivity, because this quantity has the dimensions of a 
 conductance (current/voltage), not the dimensions of a conductivity
-[current/(voltage $\cdot $length)].
+[current/(voltage$\cdot$length)].
 
-\subsubsection*{General bodies} 
+\subsubsection*{Dielectric bodies, PMCHWT Formulation} 
 
 In the presence of a nonvanishing surface impedance $Z_s(\vb x)$
 (corresponding to a finite surface conductivity, 
@@ -342,7 +490,7 @@ system\footnote{L.~N. Medgyesi-Mitschang, J.~M. Putnam, and M.~B. Gedera, ``Gene
   Am. A}, vol.~11, no.~4, pp. 1383--1398, Apr 1994.}:
 %====================================================================%
 \renewcommand{\arraystretch}{2.0}
-\numeq{lsSystem}
+\numeq{PMCHWTSystem}
 { \left( \begin{array}{cc}
    \displaystyle{ \frac{1}{Z_0} \BG\supt{EE}} 
    & 
@@ -367,7 +515,7 @@ system\footnote{L.~N. Medgyesi-Mitschang, J.~M. Putnam, and M.~B. Gedera, ``Gene
    \end{array}\right)
 }
 \renewcommand{\arraystretch}{1.0}
-Equation (\ref{lsSystem}) is the actual linear system
+Equation (\ref{PMCHWTSystem}) is the actual linear system
 solved by \ls. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -459,7 +607,7 @@ into (\ref{PECEquationBreakdown})
 and Galerkin-testing with a basis function $\vb f_{\beta m}$ on 
 the surface of $\mathcal{O}_\beta$ yields 
 (after dividing both 
-sides of the equation by $Z_0$ as per equation (\ref{lsSystem}):
+sides of the equation by $Z_0$ as per equation (\ref{PMCHWTSystem}):
 %====================================================================%
 \begin{align}
 &\sum_{n=1}^{\texttt{NEdges}(\beta)} 
@@ -528,7 +676,7 @@ Again in the setting of Figure \ref{EmbeddedObjects}, we
 Galerkin-test equation (\ref{DielectricEquationBreakdown}) 
 with a basis function $\vb f_{\gamma m}$ on the surface
 of object $\mathcal{O}_\gamma$ to find (again, dividing through
-by $Z_0$ as per (\ref{lsSystem})):
+by $Z_0$ as per (\ref{PMCHWTSystem})):
 %====================================================================%
 \begin{subequations}
 \begin{align}
