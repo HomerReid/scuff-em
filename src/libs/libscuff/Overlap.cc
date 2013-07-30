@@ -480,7 +480,7 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                          int SurfaceIndex, double PFT[8])
+                         int SurfaceIndex, double PFT[8])
 {
 
   if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)

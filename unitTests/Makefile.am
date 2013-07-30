@@ -4,10 +4,10 @@ EXTRA_DIST = 					\
  UnitTestSphere_414.msh  			\
  Square.geo        				\
  Square_Coarse.msh				\
- PECSphere.scuffgeo 				\
- SiCSphere.scuffgeo				\
- GoldSphere.scuffgeo				\
- SiSphere.scuffgeo 		 		\
+ PECSphere_414.scuffgeo 			\
+ SiCSphere_414.scuffgeo				\
+ GoldSphere_414.scuffgeo			\
+ SiSphere_414.scuffgeo 		 		\
  TwoSpheres.scuffgeo 				\
  TwoSpheres_Coarse.scuffgeo			\
  TwoSpheres_Coarse.hdf5    			\
@@ -27,19 +27,20 @@ AM_CPPFLAGS = -DSCUFF \
 noinst_PROGRAMS = 		\
  unit-test-compactMatrix	\
  unit-test-PBCMatrix     	\
- unit-test-PPIs
+ unit-test-PPIs			\
+ unit-test-PFT 
 
 check_PROGRAMS = 		\
  unit-test-compactMatrix	\
  unit-test-PBCMatrix     	\
  unit-test-PPIs			\
- unit-test-PFTs			\
+ unit-test-PFT
 
 TESTS = 			\
  unit-test-compactMatrix	\
  unit-test-PBCMatrix     	\
  unit-test-PPIs			\
- unit-test-PFTs
+ unit-test-PFT
 
 unit_test_compactMatrix_SOURCES = unit-test-compactMatrix.cc
 unit_test_compactMatrix_LDADD   = $(LIBSCUFF)
@@ -50,5 +51,5 @@ unit_test_PBCMatrix_LDADD   = $(LIBSCUFF)
 unit_test_PPIs_SOURCES = unit-test-PPIs.cc
 unit_test_PPIs_LDADD = $(LIBSCUFF)
 
-unit_test_PFTs_SOURCES = unit-test-PFTs.cc
-unit_test_PFTs_LDADD = $(LIBSCUFF)
+unit_test_PFT_SOURCES = unit-test-PFT.cc
+unit_test_PFT_LDADD = $(LIBSCUFF)
