@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-2011 M. T. Homer Reid
+/ *Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
  *
@@ -77,7 +77,7 @@ namespace scuff {
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*- relative exponential routine. this is not the same routine -*/
-/*- as ExpRelV2P0 defined in TaylorDuffy(); the two computations*/
+/*- as ExpRelV3P0 defined in TaylorDuffy(); the two computations*/
 /*- have different normalizations.                              */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

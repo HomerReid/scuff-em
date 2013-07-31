@@ -805,7 +805,7 @@ void GetScriptJL(int WhichK, cdouble KParam,
 /***************************************************************/
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL
-cdouble ExpRel(int n, cdouble Z)
+cdouble ExpRelV3P0(int n, cdouble Z)
 {
   int m;
 
@@ -885,7 +885,7 @@ static void GetScriptK(int WhichK, cdouble KParam, double X,
   else if (WhichK==TD_HELMHOLTZ)
    { cdouble IK = II*KParam, IKX = IK*X, eIKX = exp(IKX);
      for(int n=nMin; n<=nMax; n++)
-      KVector[n] = eIKX * ExpRel(n,-IKX) / (n*X);
+      KVector[n] = eIKX * ExpRelV3P0(n,-IKX) / (n*X);
    }
   else if (WhichK==TD_GRADHELMHOLTZ)
    { cdouble IK = II*KParam, IKX = IK*X, eIKX = exp(IKX);
@@ -896,7 +896,7 @@ static void GetScriptK(int WhichK, cdouble KParam, double X,
      // maybe implement a routine that computes these values all at once?
 
      for(int n=nMin-2; n<=nMax-1; n++)
-      ExpRelTable[n] = ExpRel(n,-IKX);
+      ExpRelTable[n] = ExpRelV3P0(n,-IKX);
 
      for(int n=nMin; n<=nMax; n++)
       KVector[n] = eIKX * ( IK*ExpRelTable[n-1] / ((double)n-1.0)
