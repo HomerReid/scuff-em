@@ -508,14 +508,16 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      TaylorDuffyArgStruct TDArgStruct, *TDArgs=&TDArgStruct;
      InitTaylorDuffyArgs(TDArgs);
 
-     int PIndex, KIndex;
-     cdouble Error;
+     int PIndex[3]={TD_UNITY, TD_PMCHWG1, TD_PMCHWC};
+     int KIndex[3]={TD_HELMHOLTZ, TD_HELMHOLTZ, TD_GRADHELMHOLTZ};
+     cdouble KParam[3]={k,k,k};
+     cdouble Result[3], Error[3];
 
      TDArgs->WhichCase=ncv;
-     TDArgs->NumPKs=1;
-     TDArgs->PIndex=&PIndex;
-     TDArgs->KIndex=&KIndex;
-     TDArgs->KParam=&k;
+     TDArgs->NumPKs = (ncv==3) ? 2 : 3;
+     TDArgs->PIndex=PIndex;
+     TDArgs->KIndex=KIndex;
+     TDArgs->KParam=KParam;
      TDArgs->V1=Va[0];
      TDArgs->V2=Va[1];
      TDArgs->V3=Va[2];
@@ -523,32 +525,22 @@ void GetPanelPanelInteractions(GetPPIArgStruct *Args)
      TDArgs->V3P=Vb[2];
      TDArgs->Q=Qa;
      TDArgs->QP=Qb;
-     TDArgs->Error=&Error;
+     TDArgs->Result=Result;
+     TDArgs->Error=Error;
 
-     PIndex=TM_DOTPLUS;
      if ( InVerySWRegime && RWGGeometry::UseHighKTaylorDuffy )
       { Args->WhichAlgorithm=PPIALG_HKTD;
-        KIndex=TM_HIGHK_HELMHOLTZ;
+        KIndex[0]=TD_HIGHK_HELMHOLTZ;
+        KIndex[1]=TD_HIGHK_HELMHOLTZ;
+        KIndex[2]=TD_HIGHK_GRADHELMHOLTZ;
       }
      else
-      { Args->WhichAlgorithm=PPIALG_TD;
-        KIndex=TM_HELMHOLTZ;
-      }
-     TDArgs->Result = H+0;
+      Args->WhichAlgorithm=PPIALG_TD;
+
      TaylorDuffy(TDArgs);
 
-     if (ncv==3)
-      H[1]=0.0; /* 'C' kernel integral vanishes for the common-triangle case */
-     else
-      { 
-        PIndex=TM_CROSS;
-        if ( InVerySWRegime && RWGGeometry::UseHighKTaylorDuffy )
-         KIndex=TM_HIGHK_GRADHELMHOLTZ;
-        else
-         KIndex=TM_GRADHELMHOLTZ;
-        TDArgs->Result = H+1;
-        TaylorDuffy(TDArgs);
-      };
+     H[0] = Result[1] - 4.0*Result[0]/(k*k);
+     H[1] = (ncv==3) ? 0.0 : Result[2];
 
      if (GradH) memset(GradH, 0, 2*NumGradientComponents*sizeof(cdouble));
      if (dHdT)  memset(dHdT,  0, 2*NumTorqueAxes*sizeof(cdouble));

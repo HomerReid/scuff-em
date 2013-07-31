@@ -1,0 +1,20 @@
+FC=gfortran
+SCUFFEM = /home/homer/work/scuff-em-installation
+CPPFLAGS += -I$(SCUFFEM)/include/scuff-em -I$(HOME)/include -I. -fopenmp
+CXXFLAGS += -fopenmp
+#CXXFLAGS += -O0
+LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
+LDFLAGS += -L$(HOME)/codes/lib -L$(HOME)/lib
+
+HR_LIBS=-lAmosBessel -lscuff
+OTHER_LIBS = -lhdf5_hl -lhdf5 -llapack -lopenblas -lgomp -lgfortran -lreadline -lncurses
+
+LIBS = $(HR_LIBS) $(OTHER_LIBS)
+
+MPF   = MiePowerForce.o MieSurfaceCurrents.o libAmosBessel.o zbsubs.o machcon.o
+
+MiePowerForce:	$(MPF)
+		$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+clean:
+		/bin/rm *.o *.a

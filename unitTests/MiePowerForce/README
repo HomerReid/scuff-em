@@ -1,0 +1,8 @@
+This is a Mie scattering code that computes the cross-sections
+for absorption, scattering, extinction, and radiation force on
+a spherical particle illuminated by a linearly-polarized plane 
+wave.
+
+Its only role within scuff-EM is to generate comparison data
+for testing scuff-EM's PFT functionality. It uses a technique
+which is overly complicated for the purpose at hand.

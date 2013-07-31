@@ -109,7 +109,7 @@ void TaylorDuffySum_FIPPI(unsigned ndim, const double *yVector, void *parms,
   int NumRegions, nOffset;
   int nMinCross, nMaxCross, nMinXXEE, nMaxXXEE;
   double Jacobian;
-  if (WhichCase==TM_COMMONEDGE)
+  if (WhichCase==TD_COMMONEDGE)
    { NumRegions=6;
      nOffset=2;
      Jacobian=yVector[0];
@@ -118,7 +118,7 @@ void TaylorDuffySum_FIPPI(unsigned ndim, const double *yVector, void *parms,
      nMinXXEE=0;
      nMaxXXEE=3;
    }
-  else // (WhichCase==TM_COMMONVERTEX)
+  else // (WhichCase==TD_COMMONVERTEX)
    { NumRegions=2;
      nOffset=3;
      Jacobian=yVector[1];
@@ -193,7 +193,7 @@ void TaylorDuffySum_FIPPI(unsigned ndim, const double *yVector, void *parms,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (WhichCase==TM_COMMONEDGE)
+  if (WhichCase==TD_COMMONEDGE)
    GetScriptP_CommonEdge(W, yVector[0], W->PCross, W->PXXEE);
   else
    GetScriptP_CommonVertex(W, yVector[0], yVector[1], W->PCross, W->PXXEE);
@@ -283,11 +283,11 @@ void ComputeQIFIPPIData_TaylorDuffyV2P0(double *V1, double *V2, double *V3,
   /***************************************************************/
   int IntegralDimension;
   if( VecEqualFloat(V2, V2P) ) // common-edge case 
-   { W->WhichCase=TM_COMMONEDGE;
+   { W->WhichCase=TD_COMMONEDGE;
      IntegralDimension=1;
    }
   else
-   { W->WhichCase=TM_COMMONVERTEX;
+   { W->WhichCase=TD_COMMONVERTEX;
      IntegralDimension=2;
    };
  
@@ -345,7 +345,7 @@ static void PQRtoABG2(double P, double Q, double R, double *A, double *B, double
 void GetAlphaBetaGamma_FIPPI(TDWorkspaceFIPPI *W, const double *yVector,
                              double *AVector, double *BVector, double *G2Vector)
 {
-  if (W->WhichCase==TM_COMMONEDGE)
+  if (W->WhichCase==TD_COMMONEDGE)
    { 
      double y1 = yVector[0], y12=y1*y1;
 
@@ -386,7 +386,7 @@ void GetAlphaBetaGamma_FIPPI(TDWorkspaceFIPPI *W, const double *yVector,
                 L2 + 2*BPdL*y1 - 2*L2*y1 + BP2*y12 - 2*BPdL*y12 + L2*y12,
                 AVector+5, BVector+5, G2Vector+5);
    }
-  else // (WhichCase==TM_COMMONVERTEX) 
+  else // (WhichCase==TD_COMMONVERTEX) 
    {
      double y1 = yVector[0];
      double y2 = yVector[1], y22=y2*y2;

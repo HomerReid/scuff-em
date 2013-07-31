@@ -376,7 +376,7 @@ space points in the \textit{positive} $y$-direction.
 Let the upper (lower) half-space
 be $\mc R_1$ $(\mc R_2)$. Then we have 
 %====================================================================%
-$$ \vbhat{n} = K \vbhat{z}, \qquad \vb K= K \vbhat{x}. $$
+$$ \vbhat{n} = \vbhat{z}, \qquad \vb K= K \vbhat{x}. $$
 %====================================================================%
 The magnetic field in the upper half-space is
 $$ \BG\supt{ME}_1 \star \vb K 
@@ -388,23 +388,117 @@ $$ \BG\supt{ME}_2 \star \vb K
 $$
 %====================================================================%
 Thus, at $z=0$, we find
-\begin{align*}
+\begin{subequations}
+\begin{align}
  \vbhat{n}\times
    \big[\mu_1 \BG\supt{ME}_1 - \mu_2 \BG\supt{ME}_2 \big]\star \vb K
    &=-\frac{(\mu_1 + \mu_2)K}{2}\vbhat{z} \times \vbhat{y}
-\\
+\nn
    &=+\frac{(\mu_1 + \mu_2)K}{2}\vbhat{x}
-\\
+\nn
    &=\frac{(\mu_1 + \mu_2)}{2}\vb K.
-\end{align*}
-By analogous arguments we find 
-$$
+\intertext{and by analogous arguments we find}
  \vbhat{n}\times
    \big[\epsilon_1 \BG\supt{EM}_1 - \epsilon_2 \BG\supt{EM}_2 \big]\star \vb N
-   =-\frac{(\epsilon_1 + \epsilon_2)}{2}\vb N.
+   &=-\frac{(\epsilon_1 + \epsilon_2)}{2}\vb N.
+\end{align}
+\label{KNDiscontinuity}
+\end{subequations}
+Using equations (\ref{KNDiscontinuity}), we can rewrite
+the N-M\"uller system (\ref{NMuller0}) in a way that involves
+only the non-singular parts of the dyadic Green's functions:
+%====================================================================%
+\renewcommand{\arraystretch}{1.5}
+\begin{align}
+&
+ \frac{1}{2}
+\left(\begin{array}{c}
+  \!\!\!\!
+  (\mu_1      + \mu_2) \vb K
+  \!\!\!\!
+  \\
+  \!\!\!\!
+ -(\epsilon_1 + \epsilon_2) \vb N
+  \!\!\!\! 
+\end{array}\right)
+-
+\left(\begin{array}{cc}
+  \vbhat{n}\times 
+   \big[   \mu_1  \overline{\BG}\supt{ME}_1 
+         - \mu_2  \overline{\BG}\supt{ME}_2 \big]
+&
+  \vbhat{n}\times 
+   \big[\mu_1 \BG\supt{MM}_1 - \mu_2 \BG\supt{MM}_2 \big]
+\\
+  \vbhat{n}\times 
+   \big[\epsilon_1 \BG\supt{EE}_1 - \epsilon_2 \BG\supt{EE}_2 \big]
+  \!\!\!\!
+&
+  \vbhat{n}\times 
+   \big[   \epsilon_1 \overline{\BG}\supt{EM}_1 
+         - \epsilon_2 \overline{\BG}\supt{EM}_2 \big]
+  \!\!\!\!
+\end{array}\right) 
+ \!\! \star \!\!
+\left(\begin{array}{c}
+  \!\!
+  \vb K 
+  \!\! 
+  \\
+  \!\!
+  \vb N 
+  \!\!
+\end{array}\right)
+\nn
+%--------------------------------------------------------------------%
+&\qquad=
+\left(\begin{array}{c}
+  \vbhat{n}\times \big[\mu_1 \vb H\incro + \mu_2 \vb H\incrt\big] \\
+  \vbhat{n}\times \big[\epsilon_1 \vb E\incro + \epsilon_2 \vb E\incrt\big]
+\end{array}\right).
+\label{NMuller}
+\end{align}
+\renewcommand{\arraystretch}{1.0}
+%====================================================================%
+where $\overline{\BG}\supt{ME}, \overline{\BG}\supt{EM}$ denote
+the relevant DGFs with the singular term neglected; in particular,
+the diagonal of the second term on the LHS vanishes.
+
+\paragraph{Discretization}
+
+\begin{align*}
+  \vb M \vb c = \vb v
+\end{align*}
+
+$$ \vb M = \vb M^{(1)} - \vb M^{(2)} $$
+$$ M^{(1)}_{\alpha\beta}
+= \frac{1}{2}
+  \left(\begin{array}{cc}
+  (\mu_1 + \mu_2) \langle \vb b_\alpha, \vb b_\beta\rangle 
+  & 0 
+  \\
+  0 
+  & (\epsilon_1 + \epsilon_2) 
+    \langle \vb b_\alpha, \vb b_\beta\rangle 
+  \end{array}\right)
+$$
+$$ M^{(2)}_{\alpha\beta} =
+  \left(\begin{array}{cc}
+  -i k_1 \mu_1 \langle \vb b_\alpha, \vbhat{n}\times \vb C_1 \vb b_\beta \rangle
+  +i k_2 \mu_2 \langle \vb b_\alpha, \vbhat{n}\times \vb C_2 \vb b_\beta \rangle
+  &
+   i \frac{\mu_1 k_1}{Z_0 Z_1} \langle \vb b_\alpha, \vbhat{n}\times \vb G_1 \vb b_\beta \rangle
+  -i \frac{\mu_2 k_2}{Z_0 Z_2} \langle \vb b_\alpha, \vbhat{n}\times \vb G_2 \vb b_\beta \rangle
+\\
+   i k_1 Z_0 Z_1 \epsilon_1 \langle \vb b_\alpha, \vbhat{n}\times \vb G_1 \vb b_\beta \rangle
+  -i k_2 Z_0 Z_2 \epsilon_2 \langle \vb b_\alpha, \vbhat{n}\times \vb G_1 \vb b_\beta \rangle
+  &
+  +i k_1 \mu_1 \langle \vb b_\alpha, \vbhat{n}\times \vb C_1 \vb b_\beta \rangle
+  -i k_2 \mu_2 \langle \vb b_\alpha, \vbhat{n}\times \vb C_2 \vb b_\beta \rangle
+  \end{array}\right)
 $$
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Modifications for nonzero surface impedance}

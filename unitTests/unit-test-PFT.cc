@@ -36,6 +36,7 @@
 using namespace scuff;
 
 #define II cdouble (0.0,1.0)
+#define TENTHIRDS 3.33333333333333333334
 
 /***************************************************************/
 /* tables of power and force data for spheres of radius R=1um  */
@@ -63,7 +64,7 @@ using namespace scuff;
 double OmegaList[] = { 1.0e-3, 1.0e-2, 1.0e-1, 1.0 };
 
 double GoldPFT[] =
-   { 1.0e-3, 2.841416e-12, 7.066437e-04, 7.066437e-04, 
+   { 1.0e-3, 2.841416e-12, 7.066437e-04, 7.066437e-04,
      1.0e-2, 3.111826e-08, 3.293537e-03, 3.293579e-03,
      1.0e-1, 3.244591e-04, 8.972653e-03, 9.419389e-03,
      1.0e-0, 2.125119e+00, 1.983620e-02, 2.509075e+00
@@ -72,15 +73,15 @@ double GoldPFT[] =
 double PECPFT[] =
    { 1.0e-3, 3.216470e-12, 0.0, 4.427315e-12,
      1.0e-2, 3.320868e-08, 0.0, 4.641536e-08,
-     1.0e-1, 5.980295e+00, 0.0, 6.020093e+00, 
+     1.0e-1, 5.980295e+00, 0.0, 6.020131e+00,
      1.0e-0, 6.012197e+00, 0.0, 5.880804e+00
    };
 
 double SiCPFT[] =
-   { 1.0e-3, 1.503808e-12, 3.345234e-09, 3.346738e-09, 
+   { 1.0e-3, 1.503808e-12, 3.345234e-09, 3.346738e-09,
      1.0e-2, 1.504039e-08, 3.348068e-07, 3.498465e-07,
-     1.0e-1, 1.504039e-08, 3.348068e-07, 3.498465e-07,
-     1.0e-0, 1.465431e+00, 4.180791e-03, 8.951046e-01
+     1.0e-1, 1.527705e-04, 3.648611e-05, 1.885546e-04,
+     1.0e-0, 1.465431e+00, 4.180791e-03, 8.951046e-01 
    };
 
 /***************************************************************/
@@ -94,7 +95,7 @@ int main(int argc, char *argv[])
   /***************************************************************/ 
   /* set up incident field ***************************************/ 
   /***************************************************************/ 
-  const cdouble E0[3]   = { 1.0, 0.0, 0.0 };
+  const cdouble E0[3]  = { 1.0, 0.0, 0.0 };
   const double nHat[3] = { 0.0, 0.0, 1.0 };
   PlaneWave *PW = new PlaneWave(E0, nHat);
   double IncFlux = 1.0/(2.0*ZVAC);
@@ -103,9 +104,9 @@ int main(int argc, char *argv[])
   /* loop over all three material geometries *********************/ 
   /***************************************************************/ 
   #define NUMCASES 3
-  const char *GeoFileNames[NUMCASES] = { "PECSphere_414.scuffgeo", 
-                                         "GoldSphere_414.scuffgeo",
-                                         "SiCSphere_414.scuffgeo"
+  const char *GeoFileNames[NUMCASES] = { "PECSphere_474.scuffgeo", 
+                                         "GoldSphere_474.scuffgeo",
+                                         "SiCSphere_474.scuffgeo"
                                        };
   double *ExactData[NUMCASES] = { PECPFT, GoldPFT, SiCPFT };
   int NumTests = NUMCASES * NUMOMEGAS;
@@ -137,7 +138,7 @@ int main(int argc, char *argv[])
         double Denom = M_PI*IncFlux;
         double QScatScuff  = G->GetScatteredPower(KN, Omega, 0) / Denom;
         double QAbsScuff   = PFT[0] / Denom;
-        double QForceScuff = PFT[5] / Denom;
+        double QForceScuff = PFT[5] / (TENTHIRDS*Denom);
 
         double QScatExact  = ExactData[nCase][4*nOmega + 1];
         double QAbsExact   = ExactData[nCase][4*nOmega + 2];
@@ -158,12 +159,13 @@ int main(int argc, char *argv[])
           PassedTests++;
 
         if (DataLogFile)
-         fprintf(DataLogFile,"%e  %e %e (%e) %e %e (%e) %e %e (%e)\n",
-                 Omega,
-                 QScatScuff,  QScatExact, RD(QScatScuff,  QScatExact),
-                 QAbsScuff,   QAbsExact,  RD(QAbsScuff,  QAbsExact),
-                 QForceScuff,   QForceExact,  RD(QForceScuff,  QForceExact));
-
+         { fprintf(DataLogFile,"%e  %e %e (%e) %e %e (%e) %e %e (%e)\n",
+                   Omega,
+                   QScatScuff,  QScatExact, RD(QScatScuff,  QScatExact), 
+                   QAbsScuff,   QAbsExact,  RD(QAbsScuff,  QAbsExact),
+                   QForceScuff,   QForceExact,  RD(QForceScuff,  QForceExact));
+           fflush(DataLogFile);
+         };
 
       }; // for (int n=0; n<NUMOMEGAS; n++)
 

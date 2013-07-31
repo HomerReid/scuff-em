@@ -1,5 +1,5 @@
 # .scuffgeo file used for SCUFF-EM unit tests on a single PEC sphere
 
 OBJECT TheSphere
-	MESHFILE UnitTestSphere_414.msh
+	MESHFILE UnitTestSphere_R0P75_414.msh
 ENDOBJECT

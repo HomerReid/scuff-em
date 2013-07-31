@@ -19,11 +19,10 @@
 
 /*
  * TaylorDuffy.cc:  implementation of the Taylor-Duffy method for 
- *                  evaluating panel-panel integrals over pairs
- *                  of panels with common vertices
+ *                      evaluating panel-panel integrals over pairs
+ *                      of panels with common vertices
  *
- * homer reid       10/2012
- *
+ * homer reid           10/2012
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,66 +51,148 @@ namespace scuff {
 
 #define II cdouble(0,1)
 
+// ordering of monomials 
+#define Y1TERM        1
+#define Y12TERM       2
+#define Y2TERM        3
+#define Y1Y2TERM      4
+#define Y22TERM       5
+#define Y13TERM       6
+#define Y12Y2TERM     7
+#define Y1Y22TERM     8
+#define Y23TERM       9
+#define Y12Y22TERM    10 
+#define Y13Y2TERM     11 
+#define Y13Y22TERM    12 
+
+#define Y3TERM        13
+#define Y1Y3TERM      14
+#define Y2Y3TERM      15
+#define Y12Y3TERM     16
+#define Y1Y2Y3TERM    17
+#define Y22Y3TERM     18
+#define Y12Y2Y3TERM   19
+
+#define Y1Y22Y32TERM  20
+#define Y22Y32TERM    21 
+
+#define NUMMONOMIALS  22
+
+// the maximum number of subregions is 6
+#define NUMREGIONS 6
+
+// the maximum power of w is actually p=4, so including the 
+// p=0 term that's 5 possible powers
+#define NUMWPOWERS  5
+
+//
+//
+#define NUMYPOWERS  3
+
+/***************************************************************/
+/* Data structure containing various data passed back and      */
+/* forth among taylor-duffy routines.                          */
+/***************************************************************/
+typedef struct TDWorkspace
+ {
+   /* */
+   int WhichCase;
+   int NumPKs;
+   int *PIndex;
+   int *KIndex;
+   cdouble *KParam;
+   int TwiceIntegrable;
+
+   /* geometric data on triangles needed to compute X functions */
+   double A2, B2, AP2, BP2, L2;
+   double AdB, AdAP, AdBP, AdL;
+   double BdAP, BdBP, APdBP, BPdL;
+
+   /* coefficients of powers of y in script P functions */
+   double Upsilon[NUMPS][NUMREGIONS][NUMWPOWERS][NUMMONOMIALS];
+   int nMin[NUMPS], nMax[NUMPS], MaxMonomial[NUMPS];
+
+   /* */
+   bool NeedP[NUMPS];
+   bool NeedK[NUMKS];
+
+   int nCalls;
+
+ } TDWorkspace;
+
 /********************************************************************/
 /* nitty-gritty subroutines, implemented at the bottom of this file */
 /********************************************************************/
-static void GetAlphaBetaGamma2(TMWorkspace *TMW, const double *y, 
+static void GetAlphaBetaGamma2(TDWorkspace *TDW, const double *y, 
                                double *A, double *B, double *G2);
 
-static void GetX(TMWorkspace *TMW, const double *yVector, double *X);
+static void GetX(TDWorkspace *TDW, const double *yVector, double *X);
 
-static void GetScriptP(TMWorkspace *TMW, int WhichP, const double *yVector, 
-                       int *nMin, int *nMax, cdouble P[7][5][2]);
+static void GetScriptP(TDWorkspace *TDW, int WhichP, const double *yVector, 
+                       double P[NUMREGIONS][NUMWPOWERS][NUMYPOWERS]);
 
 static void GetScriptJL(int WhichK, cdouble KParam,
                         double Alpha, double Beta, double Gamma,
-                        int nMin, int nMax, cdouble JVector[7], cdouble LVector[7]);
+                        int nMin, int nMax, 
+                        cdouble JVector[NUMREGIONS], cdouble LVector[NUMREGIONS]);
 
 static void GetScriptK(int WhichK, cdouble KParam, double X,
-                       int nMin, int nMax, cdouble KVector[7]);
+                       int nMin, int nMax, cdouble KVector[NUMREGIONS]);
+
+void CMVStoUpsilon(int WhichCase, 
+                   double *C, double *M, double *V, double S, 
+                   double Upsilon[NUMREGIONS][NUMWPOWERS][NUMMONOMIALS]);
+
+void ComputeGeometricParameters(TaylorDuffyArgStruct *Args, 
+                                TDWorkspace *TDW);
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void TaylorDuffySum(unsigned ndim, const double *yVector, void *parms, 
-                    unsigned nfun, double *f)
+int TaylorDuffySum(unsigned ndim, const double *yVector, void *parms, 
+                       unsigned nfun, double *f)
 {
-  (void) ndim;
-  (void) nfun;
+  (void) nfun; // unused
 
-  TMWorkspace *TMW = (TMWorkspace *)parms;
-
-  int WhichCase       = TMW->WhichCase;
-  int TwiceIntegrable = TMW->TwiceIntegrable;
-  int NumPKs          = TMW->NumPKs;
-  int *PIndex         = TMW->PIndex;
-  int *KIndex         = TMW->KIndex;
-  cdouble *KParam     = TMW->KParam;
-
-  TMW->nCalls++;
+  /*--------------------------------------------------------------*/
+  /*- extract parameters from data structure ---------------------*/
+  /*--------------------------------------------------------------*/
+  TDWorkspace *TDW = (TDWorkspace *)parms;
+  int WhichCase       = TDW->WhichCase;
+  int TwiceIntegrable = TDW->TwiceIntegrable;
+  int NumPKs          = TDW->NumPKs;
+  int *PIndex         = TDW->PIndex;
+  int *KIndex         = TDW->KIndex;
+  cdouble *KParam     = TDW->KParam;
+  TDW->nCalls++;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   int NumRegions, nOffset;
   double y, Jacobian;
-  if (WhichCase==TM_COMMONTRIANGLE)
+  if (WhichCase==TD_COMMONTRIANGLE)
    { NumRegions=3;
      nOffset=1;
      y = (TwiceIntegrable ? 0.0 : yVector[0]);
      Jacobian=1.0;
    }
-  else if (WhichCase==TM_COMMONEDGE)
+  else if (WhichCase==TD_COMMONEDGE)
    { NumRegions=6;
      nOffset=2;
      y = yVector[1];
      Jacobian=yVector[0];
    }
-  else // (WhichCase==TM_COMMONVERTEX)
+  else // (WhichCase==TD_COMMONVERTEX)
    { NumRegions=2;
      nOffset=3;
      y = yVector[2];
      Jacobian=yVector[1];
+   };
+
+  if (Jacobian==0.0)
+   { memset(f,0,nfun*sizeof(double));
+     return 0;
    };
 
   /*--------------------------------------------------------------*/
@@ -119,64 +200,57 @@ void TaylorDuffySum(unsigned ndim, const double *yVector, void *parms,
   /*- the Alpha, Beta, Gamma coefficients (twice-integrable case) */
   /*- for all subregions.                                         */
   /*--------------------------------------------------------------*/
-  double X[6], A[6], B[6], G2[6];
+  double X[NUMREGIONS], A[NUMREGIONS], B[NUMREGIONS], G2[NUMREGIONS];
   if (TwiceIntegrable)
-   GetAlphaBetaGamma2(TMW, yVector, A, B, G2);
+   GetAlphaBetaGamma2(TDW, yVector, A, B, G2);
   else
-   GetX(TMW, yVector, X);
+   GetX(TDW, yVector, X);
 
   /*--------------------------------------------------------------*/
-  /*- loop over all Ps/Ks                                        -*/
+  /*- prefetch values of the scriptP vector for all P functions  -*/
+  /*- we will need                                               -*/
   /*--------------------------------------------------------------*/
-  cdouble P[6][5][2], J[6][7], L[6][7], K[6][7];
-  int nMin, nMax;
+  double P[NUMPS][NUMREGIONS][NUMWPOWERS][NUMYPOWERS];
+  for(int np=0; np<NUMPS; np++)
+   if (TDW->NeedP[np])
+    GetScriptP(TDW, np, yVector, P[np]);
+
+  /*--------------------------------------------------------------*/
+  /*- assemble the integrand vector by adding all subregions and  */
+  /*- all n-values                                                */
+  /*--------------------------------------------------------------*/
+  cdouble J[NUMREGIONS][7], L[NUMREGIONS][7], K[NUMREGIONS][7];
   cdouble *Sum=(cdouble *)f;
   for(int npk=0; npk<NumPKs; npk++)
    { 
-     TMW->CurrentKParam=TMW->KParam[npk]; // this is poor programming style
- 
-     // get the \mathcal{P} coefficients for this P polynomial
-     GetScriptP(TMW, PIndex[npk], yVector, &nMin, &nMax, P);
-  
-     // get the first or second integrals (the \mathcal{K} or
-     // \mathcal{J,L} functions) for this kernel. (Note we only need 
-     // to recompute if the kernel has changed since the last loop iteration).
-     // 20121031 whoops! the values of nMin and nMax may have changed
-     // even though the kernel itself hasn't changed.
-     if ( 1 ) //npk==0 || KIndex[npk]!=KIndex[npk-1] || KParam[npk]!=KParam[npk-1] )
-      { if (TwiceIntegrable)
-         for(int d=0; d<NumRegions; d++)
-          GetScriptJL( KIndex[npk], KParam[npk], A[d], B[d], G2[d], 
-                       nMin+nOffset, nMax+nOffset, J[d], L[d]);
-        else // once integrable
-         for(int d=0; d<NumRegions; d++)
-          GetScriptK( KIndex[npk], KParam[npk], X[d], nMin+nOffset, nMax+nOffset, K[d]);
-      };
+     int np = PIndex[npk];
+     int nMin = TDW->nMin[ np ];
+     int nMax = TDW->nMax[ np ];
 
-     // add contributions of all subregions and all n-values 
+     if (TwiceIntegrable)
+      for(int d=0; d<NumRegions; d++)
+       GetScriptJL( KIndex[npk], KParam[npk], A[d], B[d], G2[d], 
+                    nMin+nOffset, nMax+nOffset, J[d], L[d]);
+     else // once integrable
+      for(int d=0; d<NumRegions; d++)
+       GetScriptK( KIndex[npk], KParam[npk], X[d], 
+                   nMin+nOffset, nMax+nOffset, K[d]);
+
      Sum[npk]=0.0;
      if (TwiceIntegrable)
       for(int n=nMin; n<=nMax; n++)
        for(int d=0; d<NumRegions; d++)
-        Sum[npk] += P[d][n][0]*J[d][n+nOffset] + P[d][n][1]*L[d][n+nOffset];
+        Sum[npk] += P[np][d][n][0]*J[d][n+nOffset] + P[np][d][n][1]*L[d][n+nOffset];
      else // once integrable
       for(int n=nMin; n<=nMax; n++)
        for(int d=0; d<NumRegions; d++)
-        Sum[npk] += (P[d][n][0] + y*P[d][n][1]) * K[d][n+nOffset];
-#if 0
-     if (TwiceIntegrable)
-      for(int n=nMin; n<=nMax; n++)
-       for(int d=dmin; d<=dmax; d++)
-        Sum[npk] += P[d][n][0]*J[d][n+nOffset] + P[d][n][1]*L[d][n+nOffset];
-     else // once integrable
-      for(int n=nMin; n<=nMax; n++)
-       for(int d=dmin; d<=dmax; d++)
-        Sum[npk] += (P[d][n][0] + y*P[d][n][1]) * K[d][n+nOffset];
-#endif
+        Sum[npk] += (P[np][d][n][0] + y*P[np][d][n][1]) * K[d][n+nOffset];
 
      Sum[npk] *= Jacobian/(4.0*M_PI);
 
    };
+
+  return 0;
 
 }
 
@@ -187,11 +261,11 @@ void InitTaylorDuffyArgs(TaylorDuffyArgStruct *Args)
 {
   Args->Q=0;
   Args->QP=0;  
+  Args->nHat=0;
   Args->AbsTol=0.0;     // DEFABSTOL;
   Args->RelTol=1.0e-10; // DEFRELTOL;
-  Args->MaxEval=10000;  // DEFRELTOL;
+  Args->MaxEval=1000;  // DEFRELTOL;
   Args->ForceOnceIntegrable=0;
-
 }
 
 /***************************************************************/
@@ -209,116 +283,42 @@ void TaylorDuffy(TaylorDuffyArgStruct *Args)
   int *KIndex      = Args->KIndex;
   cdouble *KParam  = Args->KParam;
 
-  double *V1       = Args->V1;
-  double *V2       = Args->V2;
-  double *V3       = Args->V3;
-  double *V2P      = Args->V2P;
-  double *V3P      = Args->V3P;
-  double *Q        = Args->Q;
-  double *QP       = Args->QP;
-
   double AbsTol    = Args->AbsTol;
   double RelTol    = Args->RelTol;
   double MaxEval   = Args->MaxEval;
-   
-  /***************************************************************/
-  /* the manual claims that certain parameters are not referenced*/
-  /* in certain cases, which means the users might pass NULL for */
-  /* those parameters, which could cause core dumps unless we do */
-  /* the ollowing                                                */
-  /***************************************************************/
-  if (WhichCase==TM_COMMONTRIANGLE)
-   { V2P=V2; V3P=V3; } 
-  else if (WhichCase==TM_COMMONEDGE)
-   V2P=V2;
 
   /***************************************************************/
-  /* initialize TMW structure to pass data to integrand routines */
+  /* initialize TDW structure to pass data to integrand routines */
   /***************************************************************/
-  TMWorkspace MyTMW, *TMW=&MyTMW;
-  TMW->WhichCase = WhichCase;
-  TMW->NumPKs    = NumPKs;
-  TMW->PIndex    = PIndex;
-  TMW->KIndex    = KIndex;
-  TMW->KParam    = KParam;
+  TDWorkspace MyTDW, *TDW=&MyTDW;
+  TDW->WhichCase = WhichCase;
+  TDW->NumPKs    = NumPKs;
+  TDW->PIndex    = PIndex;
+  TDW->KIndex    = KIndex;
+  TDW->KParam    = KParam;
 
-  /***************************************************************/
-  /* compute geometric parameters                                */
-  /***************************************************************/
-  double A[3], AP[3], B[3], BP[3], L[3], D[3], DP[3], QmQP[3], QxQP[3], TV[3];
-
-  VecSub(V2,V1,A);
-  VecSub(V3,V2,B);
-  VecSub(V2P,V1,AP);
-  VecSub(V3P,V2P,BP);
-  VecSub(BP,B,L);
-
-  TMW->A2    = VecDot(A,A);
-  TMW->B2    = VecDot(B,B);
-  TMW->AP2   = VecDot(AP,AP);
-  TMW->BP2   = VecDot(BP,BP);
-  TMW->L2    = VecDot(L,L);
-  TMW->AdB   = VecDot(A,B);
-  TMW->AdAP  = VecDot(A,AP);
-  TMW->AdBP  = VecDot(A,BP);
-  TMW->AdL   = VecDot(A,L);
-  TMW->BdAP  = VecDot(B,AP);
-  TMW->BdBP  = VecDot(B,BP);
-  TMW->APdBP = VecDot(AP,BP);
-  TMW->BPdL  = VecDot(BP,L);
-
-  int npk;
-  int NeedDot=0;
-  for(NeedDot=0, npk=0; NeedDot==0 && npk<NumPKs; npk++)
-   if ( PIndex[npk]==TM_DOT || PIndex[npk]==TM_DOTPLUS )
-    NeedDot=1;
-  if (NeedDot)
-   {
-     VecSub(V1,Q,D);
-     VecSub(V1,QP,DP);
-     TMW->AdD   = VecDot(A,D);
-     TMW->AdDP  = VecDot(A,DP);
-     TMW->BdDP  = VecDot(B,DP);
-     TMW->APdD  = VecDot(AP,D);
-     TMW->BPdD  = VecDot(BP,D);
-     TMW->DdDP  = VecDot(D,DP);
+  memset(TDW->NeedP, 0, NUMPS*sizeof(bool));
+  memset(TDW->NeedK, 0, NUMKS*sizeof(bool));
+  for(int npk=0; npk<NumPKs; npk++)
+   { if ( PIndex[npk]<0 || PIndex[npk]>=NUMPS )
+      ErrExit("invalid PIndex (%i) in TaylorDuffy",PIndex[npk]);
+     if ( KIndex[npk]<0 || KIndex[npk]>=NUMKS )
+      ErrExit("invalid KIndex (%i) in TaylorDuffy",KIndex[npk]);
+     TDW->NeedP[PIndex[npk]] = true;
+     TDW->NeedK[KIndex[npk]] = true;
    };
 
-  int NeedCross=0;
-  for(NeedCross=0, npk=0; NeedCross==0 && npk<NumPKs; npk++)
-   if ( PIndex[npk]==TM_CROSS )
-    NeedCross=1;
-  if (NeedCross)
-   { 
-     VecSub(Q,QP,QmQP);
-     VecCross(Q,QP,QxQP);
-
-     TMW->AdQxQP     = VecDot(A,  QxQP );
-     TMW->APdQxQP    = VecDot(AP, QxQP );
-     TMW->BdQxQP     = VecDot(B,  QxQP );
-     TMW->BPdQxQP    = VecDot(BP, QxQP );
-     TMW->LdQxQP     = VecDot(L,  QxQP );
-     TMW->V1xAdQmQP  = VecDot( VecCross(V1,A,TV),  QmQP );
-     TMW->V1xAPdQmQP = VecDot( VecCross(V1,AP,TV), QmQP );
-     TMW->V1xBdQmQP  = VecDot( VecCross(V1,B,TV),  QmQP );
-     TMW->V1xBPdQmQP = VecDot( VecCross(V1,BP,TV), QmQP );
-     TMW->AxAPdQmQP  = VecDot( VecCross(A,AP,TV),  QmQP );
-     TMW->AxBdQmQP   = VecDot( VecCross(A,B,TV),   QmQP );
-     TMW->AxBPdQmQP  = VecDot( VecCross(A,BP,TV),  QmQP );
-     TMW->BxAPdQmQP  = VecDot( VecCross(B,AP,TV),  QmQP );
-     TMW->BxBPdQmQP  = VecDot( VecCross(B,BP,TV),  QmQP );
-
-   };
-
+  ComputeGeometricParameters(Args,TDW);
+  
   /***************************************************************/
   /* assume we are twice integrable and check for otherwise      */
   /***************************************************************/
   int TwiceIntegrable=1;
   if (Args->ForceOnceIntegrable) TwiceIntegrable=0;
-  for(npk=0; TwiceIntegrable==1 && npk<NumPKs; npk++)
-   if (KIndex[npk]==TM_HELMHOLTZ || KIndex[npk]==TM_GRADHELMHOLTZ)
+  for(int npk=0; TwiceIntegrable==1 && npk<NumPKs; npk++)
+   if (KIndex[npk]==TD_HELMHOLTZ || KIndex[npk]==TD_GRADHELMHOLTZ)
     TwiceIntegrable=0;
-  TMW->TwiceIntegrable=TwiceIntegrable;
+  TDW->TwiceIntegrable=TwiceIntegrable;
 
   /***************************************************************/
   /* evaluate the 1-, 2-, or 3- dimensional cubature (for once-  */
@@ -330,16 +330,17 @@ void TaylorDuffy(TaylorDuffyArgStruct *Args)
   int fDim=2*NumPKs;
   double *dResult=(double *)(Args->Result);
   double *dError=(double *)(Args->Error);
-  TMW->nCalls=0;
+  TDW->nCalls=0;
   int IntegralDimension = 4 - WhichCase - TwiceIntegrable;
 
   if (IntegralDimension==0)
-   TaylorDuffySum(0, 0, (void *)TMW, 0, dResult);
+   TaylorDuffySum(0, 0, (void *)TDW, 0, dResult);
   else
-   adapt_integrate(fDim, TaylorDuffySum, (void *)TMW, IntegralDimension, 
-                   Lower, Upper, MaxEval, AbsTol, RelTol, dResult, dError);
+   pcubature(fDim, TaylorDuffySum, (void *)TDW, IntegralDimension, 
+             Lower, Upper, MaxEval, AbsTol, RelTol, 
+             ERROR_INDIVIDUAL, dResult, dError);
 
-  Args->nCalls = TMW->nCalls;
+  Args->nCalls = TDW->nCalls;
 
 }
 
@@ -367,14 +368,14 @@ static void PQRtoABG2(double P, double Q, double R, double *A, double *B, double
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void GetAlphaBetaGamma2(TMWorkspace *TMW, const double *yVector,
+static void GetAlphaBetaGamma2(TDWorkspace *TDW, const double *yVector,
                                double *AVector, double *BVector, double *G2Vector)
 {
-  if (TMW->WhichCase==TM_COMMONTRIANGLE) 
+  if (TDW->WhichCase==TD_COMMONTRIANGLE) 
    { 
-     double A2  = TMW->A2; 
-     double AdB = TMW->AdB;
-     double B2  = TMW->B2; 
+     double A2  = TDW->A2; 
+     double AdB = TDW->AdB;
+     double B2  = TDW->B2; 
 
      double C2 = A2 + B2 + 2.0*AdB;
      double CdB = AdB + B2;
@@ -391,16 +392,16 @@ static void GetAlphaBetaGamma2(TMWorkspace *TMW, const double *yVector,
      G2Vector[1] = B2/C2 - (CdB*CdB)/(C2*C2);
      G2Vector[2] = B2/A2 - (AdB*AdB)/(A2*A2);
    }
-  else if (TMW->WhichCase==TM_COMMONEDGE) 
+  else if (TDW->WhichCase==TD_COMMONEDGE) 
    { 
      double y1 = yVector[0], y12=y1*y1;
 
-     double A2   = TMW->A2;
-     double BP2  = TMW->BP2;
-     double L2   = TMW->L2;
-     double AdBP = TMW->AdBP;
-     double AdL  = TMW->AdL;
-     double BPdL = TMW->BPdL;
+     double A2   = TDW->A2;
+     double BP2  = TDW->BP2;
+     double L2   = TDW->L2;
+     double AdBP = TDW->AdBP;
+     double AdL  = TDW->AdL;
+     double BPdL = TDW->BPdL;
 
      PQRtoABG2( (BP2 - 2.0*BPdL + L2)*y12, 
                 y1*(L2 + BPdL*(y1-1.0) - (AdL + L2-AdBP)*y1),
@@ -432,21 +433,21 @@ static void GetAlphaBetaGamma2(TMWorkspace *TMW, const double *yVector,
                 L2 + 2*BPdL*y1 - 2*L2*y1 + BP2*y12 - 2*BPdL*y12 + L2*y12,
                 AVector+5, BVector+5, G2Vector+5);
    }
-  else // (WhichCase==TM_COMMONVERTEX) 
+  else // (WhichCase==TD_COMMONVERTEX) 
    {
      double y1 = yVector[0];
      double y2 = yVector[1], y22=y2*y2;
 
-     double A2    = TMW->A2;
-     double B2    = TMW->B2;
-     double AP2   = TMW->AP2;
-     double BP2   = TMW->BP2;
-     double AdB   = TMW->AdB;
-     double AdAP  = TMW->AdAP;
-     double AdBP  = TMW->AdBP;
-     double BdAP  = TMW->BdAP;
-     double BdBP  = TMW->BdBP;
-     double APdBP = TMW->APdBP;
+     double A2    = TDW->A2;
+     double B2    = TDW->B2;
+     double AP2   = TDW->AP2;
+     double BP2   = TDW->BP2;
+     double AdB   = TDW->AdB;
+     double AdAP  = TDW->AdAP;
+     double AdBP  = TDW->AdBP;
+     double BdAP  = TDW->BdAP;
+     double BdBP  = TDW->BdBP;
+     double APdBP = TDW->APdBP;
 
      PQRtoABG2( BP2*y22, 
                 -AdBP*y2 -BdBP*y1*y2 +APdBP*y22,
@@ -465,59 +466,59 @@ static void GetAlphaBetaGamma2(TMWorkspace *TMW, const double *yVector,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void GetX(TMWorkspace *TMW, const double *yVector, double *X)
+static void GetX(TDWorkspace *TDW, const double *yVector, double *X)
 {
-  if (TMW->WhichCase==TM_COMMONTRIANGLE)
+  if (TDW->WhichCase==TD_COMMONTRIANGLE)
    { double y=yVector[0], u1, u2;
-     u1=1.0; u2=y;     X[0]=sqrt( TMW->A2*u1*u1 + 2.0*TMW->AdB*u1*u2 + TMW->B2*u2*u2);
-     u1=y;   u2=(y-1); X[1]=sqrt( TMW->A2*u1*u1 + 2.0*TMW->AdB*u1*u2 + TMW->B2*u2*u2);
-     u1=y;   u2=1.0;   X[2]=sqrt( TMW->A2*u1*u1 + 2.0*TMW->AdB*u1*u2 + TMW->B2*u2*u2);
+     u1=1.0; u2=y;     X[0]=sqrt( TDW->A2*u1*u1 + 2.0*TDW->AdB*u1*u2 + TDW->B2*u2*u2);
+     u1=y;   u2=(y-1); X[1]=sqrt( TDW->A2*u1*u1 + 2.0*TDW->AdB*u1*u2 + TDW->B2*u2*u2);
+     u1=y;   u2=1.0;   X[2]=sqrt( TDW->A2*u1*u1 + 2.0*TDW->AdB*u1*u2 + TDW->B2*u2*u2);
    }
-  else if (TMW->WhichCase==TM_COMMONEDGE)
+  else if (TDW->WhichCase==TD_COMMONEDGE)
    { 
      double y1=yVector[0], y2=yVector[1], u1, u2, xi2;
      u1=-y1;    u2=-y1*y2;       xi2=(1.0-y1+y1*y2);
-     X[0]=sqrt(       u1*u1*TMW->A2 + u2*u2*TMW->BP2 + xi2*xi2*TMW->L2 
-                + 2.0*(u1*(u2*TMW->AdBP + xi2*TMW->AdL) + u2*xi2*TMW->BPdL) );
+     X[0]=sqrt(       u1*u1*TDW->A2 + u2*u2*TDW->BP2 + xi2*xi2*TDW->L2 
+                + 2.0*(u1*(u2*TDW->AdBP + xi2*TDW->AdL) + u2*xi2*TDW->BPdL) );
 
      u1=y1;     u2=y1*y2;        xi2=(1.0-y1);
-     X[1]=sqrt(       u1*u1*TMW->A2 + u2*u2*TMW->BP2 + xi2*xi2*TMW->L2 
-                + 2.0*(u1*(u2*TMW->AdBP + xi2*TMW->AdL) + u2*xi2*TMW->BPdL) );
+     X[1]=sqrt(       u1*u1*TDW->A2 + u2*u2*TDW->BP2 + xi2*xi2*TDW->L2 
+                + 2.0*(u1*(u2*TDW->AdBP + xi2*TDW->AdL) + u2*xi2*TDW->BPdL) );
 
      u1=-y1*y2; u2=y1*(1.0-y2);  xi2=(1.0-y1);
-     X[2]=sqrt(       u1*u1*TMW->A2 + u2*u2*TMW->BP2 + xi2*xi2*TMW->L2 
-                + 2.0*(u1*(u2*TMW->AdBP + xi2*TMW->AdL) + u2*xi2*TMW->BPdL) );
+     X[2]=sqrt(       u1*u1*TDW->A2 + u2*u2*TDW->BP2 + xi2*xi2*TDW->L2 
+                + 2.0*(u1*(u2*TDW->AdBP + xi2*TDW->AdL) + u2*xi2*TDW->BPdL) );
 
      u1=y1*y2;  u2=-y1*(1.0-y2); xi2=(1.0-y1*y2);
-     X[3]=sqrt(       u1*u1*TMW->A2 + u2*u2*TMW->BP2 + xi2*xi2*TMW->L2 
-                + 2.0*(u1*(u2*TMW->AdBP + xi2*TMW->AdL) + u2*xi2*TMW->BPdL) );
+     X[3]=sqrt(       u1*u1*TDW->A2 + u2*u2*TDW->BP2 + xi2*xi2*TDW->L2 
+                + 2.0*(u1*(u2*TDW->AdBP + xi2*TDW->AdL) + u2*xi2*TDW->BPdL) );
 
      u1=-y1*y2; u2=-y1;          xi2=1.0;
-     X[4]=sqrt(       u1*u1*TMW->A2 + u2*u2*TMW->BP2 + xi2*xi2*TMW->L2 
-                + 2.0*(u1*(u2*TMW->AdBP + xi2*TMW->AdL) + u2*xi2*TMW->BPdL) );
+     X[4]=sqrt(       u1*u1*TDW->A2 + u2*u2*TDW->BP2 + xi2*xi2*TDW->L2 
+                + 2.0*(u1*(u2*TDW->AdBP + xi2*TDW->AdL) + u2*xi2*TDW->BPdL) );
 
      u1=y1*y2;  u2=y1;           xi2=(1.0-y1);
-     X[5]=sqrt(       u1*u1*TMW->A2 + u2*u2*TMW->BP2 + xi2*xi2*TMW->L2 
-                + 2.0*(u1*(u2*TMW->AdBP + xi2*TMW->AdL) + u2*xi2*TMW->BPdL) );
+     X[5]=sqrt(       u1*u1*TDW->A2 + u2*u2*TDW->BP2 + xi2*xi2*TDW->L2 
+                + 2.0*(u1*(u2*TDW->AdBP + xi2*TDW->AdL) + u2*xi2*TDW->BPdL) );
 
    }
-  else // (TMW->WhichCase==TM_COMMONVERTEX)
+  else // (TDW->WhichCase==TD_COMMONVERTEX)
    { double y1=yVector[0], y2=yVector[1], y3=yVector[2], xi1, xi2, eta1, eta2;
 
      xi1=1.0; xi2=y1; eta1=y2; eta2=y2*y3;
-     X[0] = sqrt(     xi1*xi1*TMW->A2    +   xi2*xi2*TMW->B2 
-                    + eta1*eta1*TMW->AP2   + eta2*eta2*TMW->BP2
-                    + 2.0*xi1*(xi2*TMW->AdB - eta1*TMW->AdAP - eta2*TMW->AdBP)
-                    - 2.0*xi2*(eta1*TMW->BdAP + eta2*TMW->BdBP) 
-                    + 2.0*eta1*eta2*TMW->APdBP
+     X[0] = sqrt(     xi1*xi1*TDW->A2    +   xi2*xi2*TDW->B2 
+                    + eta1*eta1*TDW->AP2   + eta2*eta2*TDW->BP2
+                    + 2.0*xi1*(xi2*TDW->AdB - eta1*TDW->AdAP - eta2*TDW->AdBP)
+                    - 2.0*xi2*(eta1*TDW->BdAP + eta2*TDW->BdBP) 
+                    + 2.0*eta1*eta2*TDW->APdBP
                  );
 
      xi1=y2; xi2=y2*y3; eta1=1.0; eta2=y1;
-     X[1] = sqrt(     xi1*xi1*TMW->A2    +   xi2*xi2*TMW->B2 
-                    + eta1*eta1*TMW->AP2   + eta2*eta2*TMW->BP2
-                    + 2.0*xi1*(xi2*TMW->AdB - eta1*TMW->AdAP - eta2*TMW->AdBP)
-                    - 2.0*xi2*(eta1*TMW->BdAP + eta2*TMW->BdBP) 
-                    + 2.0*eta1*eta2*TMW->APdBP
+     X[1] = sqrt(     xi1*xi1*TDW->A2    +   xi2*xi2*TDW->B2 
+                    + eta1*eta1*TDW->AP2   + eta2*eta2*TDW->BP2
+                    + 2.0*xi1*(xi2*TDW->AdB - eta1*TDW->AdAP - eta2*TDW->AdBP)
+                    - 2.0*xi2*(eta1*TDW->BdAP + eta2*TDW->BdBP) 
+                    + 2.0*eta1*eta2*TDW->APdBP
                  );
 
    };
@@ -526,522 +527,68 @@ static void GetX(TMWorkspace *TMW, const double *yVector, double *X)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ScriptP_One(const double *yVec, TMWorkspace *TMW,
-                 int *nMin, int *nMax, cdouble P[7][5][2])
-{ 
-  (void) yVec; // unused
+void GetScriptP(TDWorkspace *TDW, int WhichP, const double *yVector, 
+                double P[NUMREGIONS][NUMWPOWERS][NUMYPOWERS])
+{
+  int nMin = TDW->nMin[WhichP]; 
+  int nMax = TDW->nMax[WhichP]; 
+  int MaxMonomial = TDW->MaxMonomial[WhichP];
 
-  switch(TMW->WhichCase)
+  if ( TDW->WhichCase == TD_COMMONTRIANGLE)
    { 
-     case TM_COMMONTRIANGLE: 
-       *nMin=0;
-       *nMax=2; 
-       P[0][0][0]=P[1][0][0]=P[2][0][0]=1.0;
-       P[0][0][1]=P[1][0][1]=P[3][0][1]=0.0;
-
-       P[0][1][0]=P[1][1][0]=P[2][1][0]=-2.0;
-       P[0][1][1]=P[1][1][1]=P[2][1][1]=0.0;
-
-       P[0][2][0]=P[1][2][0]=P[2][2][0]=1.0;
-       P[0][2][1]=P[1][2][1]=P[2][2][1]=0.0;
-       return; 
-
-     case TM_COMMONEDGE: 
-       *nMin=0;
-       *nMax=1; 
-       P[0][0][0]=P[1][0][0]=P[2][0][0]=P[3][0][0]=P[4][0][0]=P[5][0][0]=1.0;
-       P[0][0][1]=P[1][0][1]=P[2][0][1]=P[3][0][1]=P[4][0][1]=P[5][0][1]=0.0;
-
-       P[0][1][0]=P[1][1][0]=P[2][1][0]=P[3][1][0]=P[4][1][0]=P[5][1][0]=-1.0;
-       P[0][1][1]=P[1][1][1]=P[2][1][1]=P[3][1][1]=P[4][1][1]=P[5][1][1]=0.0;
-       return;
-
-     case TM_COMMONVERTEX: 
-       *nMin=0;
-       *nMax=0; 
-       P[0][0][0]=P[1][0][0]=1.0;
-       return;
-   };
-
-} 
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void ScriptP_Dot(const double *yVec, TMWorkspace *TMW,
-                 int *nMin, int *nMax, cdouble P[7][5][2])
-{
-  double y1, y1_2, y2;
-  double A2, B2, AdAP, AdB, AdBP, AdD, BdD, AdDP, APdD, BdAP, BdBP, BdDP, BPdD, DdDP;
-
-  switch(TMW->WhichCase)
+     for(int d=0; d<3; d++)
+      for(int n=nMin; n<=nMax; n++)
+       { P[d][n][0] = TDW->Upsilon[WhichP][d][n][0];
+         P[d][n][1] = TDW->Upsilon[WhichP][d][n][Y1TERM];
+         P[d][n][2] = TDW->Upsilon[WhichP][d][n][Y12TERM];
+       };
+   }
+  else if ( TDW->WhichCase == TD_COMMONEDGE )
    { 
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     case TM_COMMONTRIANGLE: 
-       *nMin=0;
-       *nMax=4; 
+     double y1=yVector[0], y12=y1*y1;
+     for(int d=0; d<6; d++)
+      for(int n=nMin; n<=nMax; n++)
+       { 
+         P[d][n][0]=  TDW->Upsilon[WhichP][d][n][0]
+                    + TDW->Upsilon[WhichP][d][n][Y1TERM]     * y1
+                    + TDW->Upsilon[WhichP][d][n][Y12TERM]    * y12;
 
-       A2=TMW->A2;
-       B2=TMW->B2;
-       AdB=TMW->AdB;
-       AdD=TMW->APdD;
-       AdDP=TMW->AdDP;
-       BdD=TMW->BPdD;
-       BdDP=TMW->BdDP;
-       DdDP=TMW->DdDP;
+         P[d][n][1]=  TDW->Upsilon[WhichP][d][n][Y2TERM]     
+                    + TDW->Upsilon[WhichP][d][n][Y1Y2TERM]   * y1
+                    + TDW->Upsilon[WhichP][d][n][Y12Y2TERM]  * y12;
 
-       P[0][0][0] = (B2+3*A2+6*DdDP+2*BdDP+2*BdD+4*AdDP+4*AdD+3*AdB)/6.0;
-       P[0][0][1] = 0.0;
-
-       P[0][1][0] = (-4*B2-8*A2-12*DdDP-6*BdDP-6*BdD-9*AdDP -9*AdD-10*AdB)/6.0;
-       P[0][1][1] = (2*B2+3*BdDP+3*BdD+4*AdB)/6.0;
-
-       P[0][2][0] = B2+A2+DdDP+BdDP+BdD+AdDP+AdD+2*AdB;
-       P[0][2][1] = (-B2-BdDP-BdD-2*AdB);
-
-       P[0][3][0] = (-4*B2-2*BdDP-2*BdD-AdDP-AdD-6*AdB)/6.0;
-       P[0][3][1] = (6*B2+3*BdDP+3*BdD+12*AdB)/6.0;
-
-       P[0][4][0] = -(-B2+A2-AdB)/6.0;
-       P[0][4][1] = -(2*B2+4*AdB)/6.0;
-       
-       P[1][0][0] = (B2+3*A2+6*DdDP+2*BdDP+2*BdD+4*AdDP+4*AdD+3*AdB)/6.0;
-       P[1][0][1] = 0.0;
- 
-       P[1][1][0] = -(+2*B2+4*A2+12*DdDP+3*BdDP+3*BdD+6*AdDP+6*AdD+4*AdB)/6.0;
-       P[1][1][1] = -((2*B2+4*A2+3*BdDP+3*BdD+3*AdDP+3*AdD+6*AdB))/6.0;
-
-       P[1][2][0] = DdDP;
-       P[1][2][1] = (B2+A2+BdDP+BdD+AdDP+AdD+2*AdB);
-
-       P[1][3][0] = -(-2*B2-BdDP-BdD-2*AdDP-2*AdD)/6.0;
-       P[1][3][1] = -((6*B2+3*BdDP+3*BdD+3*AdDP+3*AdD+6*AdB))/6.0;
-
-       P[1][4][0] = (-B2+A2+AdB)/6;
-       P[1][4][1] = (2*B2-2*A2)/6;
-       
-       P[2][0][0] = (B2+3*A2+6*DdDP+2*BdDP+2*BdD+4*AdDP+4*AdD+3*AdB)/6;
-       P[2][0][1] = 0.0;
-
-       P[2][1][0] = -( +2*B2+4*A2+12*DdDP+3*BdDP+3*BdD+6*AdDP+6*AdD+4*AdB )/6.0;
-       P[2][1][1] = -(4*A2+3*AdDP+3*AdD+2*AdB)/6.0;
-
-       P[2][2][0] = DdDP;
-       P[2][2][1] = (A2+AdDP+AdD);
-
-       P[2][3][0] = -(-2*B2-BdDP-BdD-2*AdDP-2*AdD)/6.0;
-       P[2][3][1] = -((3*AdDP+3*AdD-6*AdB))/6.0;
-
-       P[2][4][0] = -(B2-A2-AdB)/6.0;
-       P[2][4][1] = -(2*A2+4*AdB)/6.0;
-
-       return;
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     case TM_COMMONEDGE: 
-       *nMin=0;
-       *nMax=3; 
-
-       y1=yVec[0];
-       y1_2=y1*y1;
-
-       A2=TMW->A2;
-       AdB=TMW->AdB;
-       AdBP=TMW->AdBP;
-       AdD=TMW->AdD;
-       AdDP=TMW->AdDP;
-       BdBP=TMW->BdBP;
-       BdDP=TMW->BdDP;
-       BPdD=TMW->BPdD;
-       DdDP=TMW->DdDP;
-
-       P[0][0][0] = (2*A2+6*DdDP+3*AdDP+3*AdD)/6;
-       P[0][0][1] = 0.0;
-
-       P[0][1][0] = ((-A2-2*BdDP-2*BPdD-2*AdD-AdBP-AdB)*y1
-                      -2*DdDP+2*BdDP+2*BPdD+AdBP+AdB)/2;
-       P[0][1][1] = (2*BdDP+AdB)*y1/2.0;
-
-       P[0][2][0] = -((-2*BdBP-2*AdB)*y1_2+(-2*BdDP+4*BdBP-2*BPdD-2*AdD+2*AdB)*y1
-                      +2*BdDP -2*BdBP+2*BPdD+AdDP+AdD)/2;
-       P[0][2][1] = -((2*BdBP+2*AdB)*y1_2+(2*BdDP-2*BdBP)*y1)/2;
-
-       P[0][3][0] = ((-6*BdBP-6*AdB)*y1_2+(3*A2+12*BdBP+3*AdBP+9*AdB)*y1
-                     -2*A2-6*BdBP -3*AdBP-3*AdB)/6;
-       P[0][3][1] = (((6*BdBP+6*AdB)*y1_2+(-6*BdBP-3*AdB)*y1))/6.0;
-        
-       P[1][0][0] = (2*A2+6*DdDP+3*AdDP+3*AdD)/6;
-       P[1][0][1] = 0.0;
-
-       P[1][1][0] = ((-A2-2*BdDP-2*BPdD-2*AdDP-AdBP-AdB)*y1
-                      -2*DdDP+2*BdDP+2*BPdD+AdBP+AdB)/2;
-       P[1][1][1] = (2.0*BPdD+AdBP)*y1/2.0;
-
-       P[1][2][0] = -((-2*BdBP-2*AdBP)*y1_2+(-2*BdDP+4*BdBP-2*BPdD-2*AdDP
-                       +2*AdBP)*y1+2*BdDP-2*BdBP+2*BPdD+AdDP+AdD)/2;
-       P[1][2][1] = -((2*BdBP+2*AdBP)*y1_2+(-2*BdBP+2*BPdD)*y1)/2;
-
-       P[1][3][0] = ((-6*BdBP-6*AdBP)*y1_2+(3*A2+12*BdBP+9*AdBP+3*AdB)*y1
-                     -2*A2-6*BdBP-3*AdBP-3*AdB)/6;
-       P[1][3][1] = (((6*BdBP+6*AdBP)*y1_2+(-6*BdBP-3*AdBP)*y1))/6.0;
-        
-        
-       P[2][0][0] = (2*A2+6*DdDP+3*AdDP+3*AdD)/6;
-       P[2][0][1] = 0.0;
-
-       P[2][1][0] = -((2*BdDP+AdB)*y1+2*DdDP -2*BdDP-2*BPdD -AdBP-AdB)/2;
-       P[2][1][1] = -((A2+2*BPdD+2*AdD+AdBP)*y1)/2;
-
-       P[2][2][0] = ((2*BdDP-2*BdBP)*y1-2*BdDP+2*BdBP-2*BPdD-AdDP-AdD)/2;
-       P[2][2][1] = ((2*BdBP+2*AdB)*y1_2+(-2*BdBP+2*BPdD+2*AdD-2*AdB)*y1)/2.0;
-
-       P[2][3][0] = -((-6*BdBP-3*AdB)*y1+2*A2+6*BdBP+3*AdBP+3*AdB)/6;
-       P[2][3][1] = -((6*BdBP+6*AdB)*y1_2+(-3*A2-6*BdBP-3*AdBP-6*AdB)*y1)/6.0;
-        
-       P[3][0][0] = (2*A2+6*DdDP+3*AdDP+3*AdD)/6;
-       P[3][0][1] = 0.0;
-
-       P[3][1][0] = -((2*BPdD+AdBP)*y1+2*DdDP-2*BdDP-2*BPdD-AdBP-AdB)/2;
-       P[3][1][1] = -((A2+2*BdDP+2*AdDP+AdB)*y1)/2.0;
-
-       P[3][2][0] = (+(-2*BdBP+2*BPdD)*y1-2*BdDP+2*BdBP-2*BPdD-AdDP-AdD)/2;
-       P[3][2][1] = ((2*BdBP+2*AdBP)*y1_2+(2*BdDP-2*BdBP+2*AdDP-2*AdBP)*y1)/2.0;
-
-       P[3][3][0] = -((-6*BdBP-3*AdBP)*y1+2*A2+6*BdBP+3*AdBP+3*AdB)/6;
-       P[3][3][1] = -((6*BdBP+6*AdBP)*y1_2+(-3*A2-6*BdBP-6*AdBP-3*AdB)*y1)/6.0;
-        
-        
-       P[4][0][0] = (2*A2+6*DdDP+3*AdDP+3*AdD)/6;
-       P[4][0][1] = 0.0;
-
-       P[4][1][0] = -((2*BPdD+AdBP)*y1+2*DdDP-2*BdDP-2*BPdD -AdBP-AdB)/2;
-       P[4][1][1] = -(A2+2*AdD)*y1/2;
-
-       P[4][2][0] = ((-2*BdBP+2*BPdD)*y1-2*BdDP+2*BdBP -2*BPdD-AdDP-AdD)/2; 
-       P[4][2][1] = (2*AdD-2*AdB)*y1/2;
-
-       P[4][3][0] = ((6*BdBP+3*AdBP)*y1-2*A2-6*BdBP-3*AdBP -3*AdB)/6;
-       P[4][3][1] = (3*A2+6*AdB)*y1/6.0;
-       
-       
-       P[5][0][0] = (2*A2+6*DdDP+3*AdDP+3*AdD)/6;
-       P[5][0][1] = 0.0;
-
-       P[5][1][0] = -((2*BdDP+AdB)*y1+2*DdDP-2*BdDP-2*BPdD-AdBP-AdB)/2;
-       P[5][1][1] = -(A2+2*AdDP)*y1/2;
-
-       P[5][2][0] = ((2*BdDP-2*BdBP)*y1-2*BdDP+2*BdBP -2*BPdD -AdDP-AdD)/2;
-       P[5][2][1] = (2*AdDP-2*AdBP)*y1/2.0;
-
-       P[5][3][0] = ((6*BdBP+3*AdB)*y1-2*A2-6*BdBP-3*AdBP -3*AdB)/6;
-       P[5][3][1] = (3*A2+6*AdBP)*y1/6.0;
-       
-       return;
-        
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     case TM_COMMONVERTEX: 
-       *nMin=0;
-       *nMax=2;
-
-       y1=yVec[0];
-       y2=yVec[1];
-
-       A2=TMW->A2;
-       AdAP=TMW->AdAP;
-       AdB=TMW->AdB;
-       AdBP=TMW->AdBP;
-       AdD=TMW->AdD;
-       AdDP=TMW->AdDP;
-       BdAP=TMW->BdAP;
-       BdBP=TMW->BdBP;
-       BdDP=TMW->BdDP;
-       BPdD=TMW->BPdD;
-       APdD=TMW->APdD;
-       BPdD=TMW->BPdD;
-       DdDP=TMW->DdDP;
-
-       P[0][0][0] = DdDP;
-       P[0][0][1] = 0.0;
-
-       P[0][1][0] = APdD*y2+BdDP*y1+AdDP;
-       P[0][1][1] = BPdD*y2;
-
-       P[0][2][0] = (BdAP*y1+AdAP)*y2;
-       P[0][2][1] = (BdBP*y1+AdBP)*y2;
-
-       P[1][0][0] = DdDP;
-       P[1][0][1] = 0.0;
-
-       P[1][1][0] = AdDP*y2+BPdD*y1+APdD;
-       P[1][1][1] = BdDP*y2;
-
-       P[1][2][0] = (AdBP*y1+AdAP)*y2;
-       P[1][2][1] = (BdBP*y1+BdAP)*y2;
-              
-       return;
-
-   }; // switch(WhichCase)
-}
-
-/***************************************************************/
-/* this is equivalent to 'Dot' - 4/(K*K) * 'One'               */
-/* where K is the parameter that enters into the kernela       */
-/* e^{i*K*r}/(4*pi*r)                                          */
-/***************************************************************/
-void ScriptP_DotPlus(const double *yVec, TMWorkspace *TMW,
-                     int *nMin, int *nMax, cdouble P[7][5][2])
-{
-
-   /***************************************************************/
-   /* get the 'Dot' contributions *********************************/
-   /***************************************************************/
-   ScriptP_Dot(yVec, TMW, nMin, nMax, P);
-
-   /***************************************************************/
-   /* add in the 'One' contributions ******************************/
-   /***************************************************************/
-   cdouble Factor = -4.0/(TMW->CurrentKParam*TMW->CurrentKParam);
-   switch(TMW->WhichCase)
-     { 
-       case TM_COMMONTRIANGLE: 
-         P[0][0][0] += Factor;
-         P[1][0][0] += Factor;
-         P[2][0][0] += Factor;
-
-         P[0][1][0] += -2.0*Factor;
-         P[1][1][0] += -2.0*Factor;
-         P[2][1][0] += -2.0*Factor;
-
-         P[0][2][0] += Factor;
-         P[1][2][0] += Factor;
-         P[2][2][0] += Factor;
-         break;
-
-       case TM_COMMONEDGE: 
-         P[0][0][0] += Factor;
-         P[1][0][0] += Factor;
-         P[2][0][0] += Factor;
-         P[3][0][0] += Factor;
-         P[4][0][0] += Factor;
-         P[5][0][0] += Factor;
-
-         P[0][1][0] -= Factor;
-         P[1][1][0] -= Factor;
-         P[2][1][0] -= Factor;
-         P[3][1][0] -= Factor;
-         P[4][1][0] -= Factor;
-         P[5][1][0] -= Factor;
-         break;
-
-       case TM_COMMONVERTEX: 
-         P[0][0][0] += Factor;
-         P[1][0][0] += Factor;
-         break;
-
-     }; //switch(WhichCase)
-
-}
-               
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void ScriptP_Cross(const double *yVec, TMWorkspace *TMW,
-                   int *nMin, int *nMax, cdouble P[7][5][2])
-{
-  double y1, y1_2, y2;
-
-  double AdQxQP, APdQxQP, BdQxQP, BPdQxQP, LdQxQP; 
-  double V1xAdQmQP, V1xBdQmQP, V1xAPdQmQP, V1xBPdQmQP; 
-  double AxAPdQmQP, BxAPdQmQP, AxBdQmQP, AxBPdQmQP, BxBPdQmQP;
-
-  switch(TMW->WhichCase)
+         P[d][n][2]=  TDW->Upsilon[WhichP][d][n][Y22TERM]
+                    + TDW->Upsilon[WhichP][d][n][Y1Y22TERM]  * y1
+                    + TDW->Upsilon[WhichP][d][n][Y12Y22TERM] * y12;
+       };
+   }
+  else // ( TDW->WhichCase == TD_COMMONVERTEX )
    { 
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     case TM_COMMONTRIANGLE: 
-       *nMin=0; 
-       *nMax=-1;
-       return;
+     double y1=yVector[0], y12=y1*y1;
+     double y2=yVector[1], y22=y2*y2;
 
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     case TM_COMMONEDGE: 
-       *nMin=1; 
-       *nMax=3;
+     for(int d=0; d<2; d++)
+      for(int n=nMin; n<=nMax; n++)
+       { 
+         P[d][n][0] = TDW->Upsilon[WhichP][d][n][0]
+                     +TDW->Upsilon[WhichP][d][n][Y1TERM]    * y1
+                     +TDW->Upsilon[WhichP][d][n][Y2TERM]    * y2
+                     +TDW->Upsilon[WhichP][d][n][Y12TERM]   * y12
+                     +TDW->Upsilon[WhichP][d][n][Y1Y2TERM]  * y1*y2
+                     +TDW->Upsilon[WhichP][d][n][Y22TERM]   * y22
+                     +TDW->Upsilon[WhichP][d][n][Y12Y2TERM] * y12*y2
+                     +TDW->Upsilon[WhichP][d][n][Y1Y22TERM] * y1*y22;
 
-       y1=yVec[0];
-       y1_2=y1*y1;
+         P[d][n][1] = TDW->Upsilon[WhichP][d][n][Y2Y3TERM]    * y2
+                     +TDW->Upsilon[WhichP][d][n][Y1Y2Y3TERM]  * y1*y2
+                     +TDW->Upsilon[WhichP][d][n][Y22Y3TERM]   * y22
+                     +TDW->Upsilon[WhichP][d][n][Y12Y2Y3TERM] * y12*y2;
 
-       AdQxQP     = TMW->AdQxQP;
-       BPdQxQP    = TMW->BPdQxQP;
-       LdQxQP     = TMW->LdQxQP;
-       V1xAdQmQP  = TMW->V1xAdQmQP;
-       V1xBdQmQP  = TMW->V1xBdQmQP;
-       V1xBPdQmQP = TMW->V1xBPdQmQP;
-       AxBdQmQP   = TMW->AxBdQmQP;
-       AxBPdQmQP  = TMW->AxBPdQmQP;
-       BxBPdQmQP  = TMW->BxBPdQmQP;
-
-       P[0][1][0] = -((-2*V1xBdQmQP+2*V1xBPdQmQP+2*V1xAdQmQP-2*LdQxQP-AxBdQmQP
-                      +AxBPdQmQP-2*AdQxQP)*y1+2*V1xBdQmQP-2*V1xBPdQmQP
-                      +2*LdQxQP+AxBdQmQP-AxBPdQmQP)/2;
-
-       P[0][1][1] = -((2*V1xBdQmQP+2*LdQxQP-2*BPdQxQP+AxBdQmQP)*y1)/2.0;
-
-       P[0][2][0] = +(BxBPdQmQP-AxBdQmQP)*y1_2
-                    +(-V1xBdQmQP+V1xBPdQmQP+V1xAdQmQP-LdQxQP-2*BxBPdQmQP+AxBdQmQP-AdQxQP)*y1
-                    +V1xBdQmQP-V1xBPdQmQP+LdQxQP+BxBPdQmQP;
-
-       P[0][2][1] = (-BxBPdQmQP+AxBdQmQP)*y1_2+(V1xBdQmQP+LdQxQP+BxBPdQmQP-BPdQxQP)*y1;
-
-       P[0][3][0] = ((-2*BxBPdQmQP+2*AxBdQmQP)*y1_2+
-                     (4*BxBPdQmQP-3*AxBdQmQP+AxBPdQmQP)*y1
-                     -2*BxBPdQmQP+AxBdQmQP-AxBPdQmQP)/2;
-
-       P[0][3][1] = ((2*BxBPdQmQP-2*AxBdQmQP)*y1_2+(-2*BxBPdQmQP+AxBdQmQP)*y1)/2.0;
-       
-       P[1][1][0] = (+(2*V1xBdQmQP-2*V1xBPdQmQP+2*V1xAdQmQP+2*LdQxQP+AxBdQmQP-AxBPdQmQP
-                      -2*AdQxQP)*y1
-                     -2*V1xBdQmQP+2*V1xBPdQmQP-2*LdQxQP-AxBdQmQP+AxBPdQmQP)/2;
-
-       P[1][1][1] = (2*V1xBPdQmQP-2*BPdQxQP+AxBPdQmQP)*y1/2.0;
-
-       P[1][2][0] = +(BxBPdQmQP+AxBPdQmQP)*y1_2
-                    +(-V1xBdQmQP+V1xBPdQmQP-V1xAdQmQP-LdQxQP-2*BxBPdQmQP-AxBPdQmQP+AdQxQP)*y1
-                    +V1xBdQmQP-V1xBPdQmQP+LdQxQP+BxBPdQmQP;
-
-       P[1][2][1] = ((-BxBPdQmQP-AxBPdQmQP)*y1_2+(-V1xBPdQmQP+BxBPdQmQP+BPdQxQP)*y1);
-
-
-       P[1][3][0] = ((-2*BxBPdQmQP-2*AxBPdQmQP)*y1_2+(4*BxBPdQmQP-AxBdQmQP+3*AxBPdQmQP)*y1
-                      -2*BxBPdQmQP+AxBdQmQP-AxBPdQmQP)/2;
-       P[1][3][1] = ((2*BxBPdQmQP+2*AxBPdQmQP)*y1_2+(-2*BxBPdQmQP-AxBPdQmQP)*y1)/2.0;
-       
-       P[2][1][0] = -((-2*V1xBdQmQP-2*LdQxQP+2*BPdQxQP-AxBdQmQP)*y1+2*V1xBdQmQP
-                       -2*V1xBPdQmQP+2*LdQxQP+AxBdQmQP-AxBPdQmQP)/2;
-
-       P[2][1][1] = -(2*V1xBPdQmQP+2*V1xAdQmQP-2*BPdQxQP+AxBPdQmQP-2*AdQxQP)*y1/2.0;
-
-
-       P[2][2][0] = +(-V1xBdQmQP-LdQxQP-BxBPdQmQP+BPdQxQP)*y1
-                    +V1xBdQmQP-V1xBPdQmQP+LdQxQP +BxBPdQmQP;
-
-       P[2][2][1] = (BxBPdQmQP-AxBdQmQP)*y1_2
-                     +(V1xBPdQmQP+V1xAdQmQP-BxBPdQmQP-BPdQxQP +AxBdQmQP-AdQxQP)*y1;
-
-       P[2][3][0] = -((-2*BxBPdQmQP+AxBdQmQP)*y1+2*BxBPdQmQP-AxBdQmQP+AxBPdQmQP)/2;
-
-       P[2][3][1] = -(((2*BxBPdQmQP-2*AxBdQmQP)*y1_2
-                    +(-2*BxBPdQmQP+2*AxBdQmQP-AxBPdQmQP)*y1))/2;
-
-       
-       P[3][1][0] = (+(-2*V1xBPdQmQP+2*BPdQxQP-AxBPdQmQP)*y1-2*V1xBdQmQP+2*V1xBPdQmQP
-                   -2*LdQxQP-AxBdQmQP+AxBPdQmQP)/2;
-
-       P[3][1][1] = ((2*V1xBdQmQP+2*V1xAdQmQP+2*LdQxQP-2*BPdQxQP+AxBdQmQP-2*AdQxQP)*y1)/2.0;
-
-
-       P[3][2][0] = +(V1xBPdQmQP-BxBPdQmQP-BPdQxQP)*y1
-                    +V1xBdQmQP-V1xBPdQmQP+LdQxQP+BxBPdQmQP;
-
-       P[3][2][1] = (BxBPdQmQP+AxBPdQmQP)*y1_2
-                   +(-V1xBdQmQP-V1xAdQmQP-LdQxQP-BxBPdQmQP+BPdQxQP-AxBPdQmQP+AdQxQP)*y1;
-
-       P[3][3][0] = -((-2*BxBPdQmQP-AxBPdQmQP)*y1+2*BxBPdQmQP-AxBdQmQP+AxBPdQmQP)/2;
-
-       P[3][3][1] = -( (  (2*BxBPdQmQP+2*AxBPdQmQP)*y1_2
-                         +(-2*BxBPdQmQP+AxBdQmQP-2*AxBPdQmQP)*y1))/2.0;
-
-       P[4][1][0] = -((2*V1xBPdQmQP-2*BPdQxQP+AxBPdQmQP)*y1
-                      +2*V1xBdQmQP-2*V1xBPdQmQP+2*LdQxQP+AxBdQmQP-AxBPdQmQP)/2;
-       P[4][1][1] = -(2*V1xAdQmQP-2*AdQxQP)*y1/2.0;
-
-       P[4][2][0] = +(V1xBPdQmQP-BxBPdQmQP-BPdQxQP)*y1
-                     +V1xBdQmQP-V1xBPdQmQP+LdQxQP+BxBPdQmQP;
-       P[4][2][1] = (V1xAdQmQP+AxBdQmQP-AdQxQP)*y1;
-
-       P[4][3][0] = -((-2*BxBPdQmQP-AxBPdQmQP)*y1+2*BxBPdQmQP-AxBdQmQP+AxBPdQmQP)/2;
-       P[4][3][1] = -AxBdQmQP*y1;
-       
-       P[5][1][0] = ( (2*V1xBdQmQP+2*LdQxQP-2*BPdQxQP +AxBdQmQP)*y1
-                      -2*V1xBdQmQP+2*V1xBPdQmQP-2*LdQxQP -AxBdQmQP+AxBPdQmQP)/2;
-       P[5][1][1] = (2*V1xAdQmQP-2*AdQxQP)*y1/2.0;
-
-       P[5][2][0] = +(-V1xBdQmQP-LdQxQP-BxBPdQmQP+BPdQxQP)*y1
-                    +V1xBdQmQP-V1xBPdQmQP+LdQxQP+BxBPdQmQP;
-
-       P[5][2][1] = (-V1xAdQmQP-AxBPdQmQP+AdQxQP)*y1;
-
-       P[5][3][0] = ((2*BxBPdQmQP-AxBdQmQP)*y1-2*BxBPdQmQP+AxBdQmQP -AxBPdQmQP)/2;
-
-       P[5][3][1] = AxBPdQmQP*y1;
-
-       return;
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     case TM_COMMONVERTEX: 
-
-       *nMin=1; 
-       *nMax=2;
-
-       y1=yVec[0];
-       y2=yVec[1];
-
-       AdQxQP     = TMW->AdQxQP;
-       APdQxQP    = TMW->APdQxQP;
-       BdQxQP     = TMW->BdQxQP;
-       BPdQxQP    = TMW->BPdQxQP;
-       V1xAdQmQP  = TMW->V1xAdQmQP;
-       V1xAPdQmQP = TMW->V1xAPdQmQP;
-       V1xBdQmQP  = TMW->V1xBdQmQP;
-       V1xBPdQmQP = TMW->V1xBPdQmQP;
-       AxAPdQmQP  = TMW->AxAPdQmQP;
-       AxBPdQmQP  = TMW->AxBPdQmQP;
-       BxAPdQmQP  = TMW->BxAPdQmQP;
-       BxBPdQmQP  = TMW->BxBPdQmQP;
-
-       P[0][1][0] = +(V1xAPdQmQP-APdQxQP)*y2
-                    +(-V1xBdQmQP+BdQxQP)*y1-V1xAdQmQP+AdQxQP;
-
-       P[0][1][1] = (V1xBPdQmQP-BPdQxQP)*y2;
-
-       P[0][2][0] = (BxAPdQmQP*y1+AxAPdQmQP)*y2;
-       P[0][2][1] = (BxBPdQmQP*y1+AxBPdQmQP)*y2;
-
-       P[1][1][0] = +(-V1xAdQmQP+AdQxQP)*y2 +(V1xBPdQmQP-BPdQxQP)*y1+V1xAPdQmQP-APdQxQP;
-       P[1][1][1] = (-V1xBdQmQP+BdQxQP)*y2;
-
-       P[1][2][0] = (AxBPdQmQP*y1+AxAPdQmQP)*y2;
-       P[1][2][1] = (BxBPdQmQP*y1+BxAPdQmQP)*y2;
-
-       return;
-
-   };
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetScriptP(TMWorkspace *TMW, int WhichP, const double *yVector, 
-                int *nMin, int *nMax, cdouble P[7][5][2])
-{
-   switch(WhichP)
-    { case TM_ONE:     ScriptP_One(yVector, TMW, nMin, nMax, P); break;
-      case TM_DOT:     ScriptP_Dot(yVector, TMW, nMin, nMax, P); break;
-      case TM_DOTPLUS: ScriptP_DotPlus(yVector, TMW, nMin, nMax, P); break;
-      case TM_CROSS:   ScriptP_Cross(yVector, TMW, nMin, nMax, P); break;
-    };
-
+         P[d][n][2] = TDW->Upsilon[WhichP][d][n][Y22Y32TERM]   * y22
+                     +TDW->Upsilon[WhichP][d][n][Y1Y22Y32TERM] * y1*y22;
+       };
+   }
+  
 }
 
 /***************************************************************/
@@ -1214,7 +761,7 @@ void GetScriptJL(int WhichK, cdouble KParam,
 { 
   double IntQFP, IntyQFP;
 
-  if (WhichK==TM_RP)
+  if (WhichK==TD_RP)
    { 
      double p=real(KParam);
      double AlphaP=pow(Alpha, p);
@@ -1227,7 +774,7 @@ void GetScriptJL(int WhichK, cdouble KParam,
         LVector[n] = AlphaP*IntyQFP / (1.0 + n + p);
       };
    }
-  else if (WhichK==TM_HIGHK_HELMHOLTZ)
+  else if (WhichK==TD_HIGHK_HELMHOLTZ)
    { 
      for(int n=nMin; n<=nMax; n++)
       { cdouble ikAlphaMN=pow(-II*KParam*Alpha, -(double)n);
@@ -1236,7 +783,7 @@ void GetScriptJL(int WhichK, cdouble KParam,
         LVector[n] = FactorialTable[n-1]*ikAlphaMN*IntyQFP/Alpha;
       };
    }
-  else if (WhichK==TM_HIGHK_GRADHELMHOLTZ)
+  else if (WhichK==TD_HIGHK_GRADHELMHOLTZ)
    { double Alpha3=Alpha*Alpha*Alpha;
      for(int n=nMin; n<=nMax; n++)
       { cdouble ikAlphaMNM2=pow(-II*KParam*Alpha, -(double)(n-2));
@@ -1258,7 +805,7 @@ void GetScriptJL(int WhichK, cdouble KParam,
 /***************************************************************/
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL
-cdouble ExpRelV2P0(int n, cdouble Z)
+cdouble ExpRel(int n, cdouble Z)
 {
   int m;
 
@@ -1328,19 +875,19 @@ cdouble ExpRelV2P0(int n, cdouble Z)
 static void GetScriptK(int WhichK, cdouble KParam, double X,
                        int nMin, int nMax, cdouble KVector[7])
 {
-  if (WhichK==TM_RP)
+  if (WhichK==TD_RP)
    { 
      double P=real(KParam);
      double XP=pow(X,P);
      for(int n=nMin; n<=nMax; n++)
       KVector[n] = XP / ( 1.0 + P + (double)n );
    }
-  else if (WhichK==TM_HELMHOLTZ)
+  else if (WhichK==TD_HELMHOLTZ)
    { cdouble IK = II*KParam, IKX = IK*X, eIKX = exp(IKX);
      for(int n=nMin; n<=nMax; n++)
-      KVector[n] = eIKX * ExpRelV2P0(n,-IKX) / (n*X);
+      KVector[n] = eIKX * ExpRel(n,-IKX) / (n*X);
    }
-  else if (WhichK==TM_GRADHELMHOLTZ)
+  else if (WhichK==TD_GRADHELMHOLTZ)
    { cdouble IK = II*KParam, IKX = IK*X, eIKX = exp(IKX);
      cdouble ExpRelTable[10]; 
      if ( (nMin-2) < 0 || (nMax-1) >=10) 
@@ -1349,7 +896,7 @@ static void GetScriptK(int WhichK, cdouble KParam, double X,
      // maybe implement a routine that computes these values all at once?
 
      for(int n=nMin-2; n<=nMax-1; n++)
-      ExpRelTable[n] = ExpRelV2P0(n,-IKX);
+      ExpRelTable[n] = ExpRel(n,-IKX);
 
      for(int n=nMin; n<=nMax; n++)
       KVector[n] = eIKX * ( IK*ExpRelTable[n-1] / ((double)n-1.0)
@@ -1358,5 +905,529 @@ static void GetScriptK(int WhichK, cdouble KParam, double X,
    };
   
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void CMVStoUpsilon(int WhichCase,
+                   double *C, double *M, double *V, double S,
+                   double Upsilon[NUMREGIONS][NUMWPOWERS][NUMMONOMIALS])
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  for(int nr=0; nr<NUMREGIONS; nr++)
+   for(int nwp=0; nwp<NUMWPOWERS; nwp++)
+    memset(Upsilon[nr][nwp],0,NUMMONOMIALS*sizeof(double));
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double C2010 = C[0], C2001 = C[1], C0210 = C[2], C0201 = C[3];
+  double M11 = M[0 + 4*0], M12 = M[0 + 4*1], M13 = M[0 + 4*2], M14 = M[0 + 4*3];
+  double                   M22 = M[1 + 4*1], M23 = M[1 + 4*2], M24 = M[1 + 4*3];
+  double                                     M33 = M[2 + 4*2], M34 = M[2 + 4*3];
+  double                                                       M44 = M[3 + 4*3];
+  double V1=V[0], V2=V[1], V3=V[2], V4=V[3];
+
+  if (WhichCase == TD_COMMONTRIANGLE)
+   { 
+      Upsilon[0][0][0]       =  M11/4 + M12/4 + M13/2 + M14/4 + M22/12 + M23/4 + M24/6 + M33/4
+                               +M34/4 + M44/12 +  (2*V1)/3 + V2/3 + (2*V3)/3 + V4/3 + S;
+
+      Upsilon[0][1][Y1TERM]  =  M12/3 + M14/3 + M22/6 + M23/3 + M24/3 + M34/3 + M44/6 + V2/2 + V4/2;
+      Upsilon[0][1][0]       = -(2*M11)/3 - (5*M12)/6 - (4*M13)/3 - (5*M14)/6 - M22/3 - (5*M23)/6
+                               -(2*M24)/3 - (2*M33)/3 - (5*M34)/6 - M44/3 - (3*V1)/2 - V2 -(3*V3)/2 
+                               - V4 - 2*S;
+
+      Upsilon[0][2][Y12TERM] =  M22/4 + M44/4;
+      Upsilon[0][2][Y1TERM]  = -M12/2 - M14 - M22/2 - M23 - M24 - M34/2 - M44/2 - V2 - V4;
+      Upsilon[0][2][0]       =  (3*M11)/4 + M12 + M13 + M14 + M22/2 + M23 + M24 
+                               +(3*M33)/4 + M34 + M44/2 + V1 + V2 + V3 + V4 + S;
+
+      Upsilon[0][3][Y12TERM] = -M22/2 - M44/2; 
+      Upsilon[0][3][Y1TERM]  =  M14 + M22/2 + M23 + M24 + M44/2 + V2/2 + V4/2;
+      Upsilon[0][3][0]       = -M11/2 - M12/2 - M14/2 - M22/3 - M23/2 - (2*M24)/3 
+                               -M33/2 - M34/2 - M44/3 - V1/6 - V2/3 - V3/6 - V4/3;
+
+      Upsilon[0][4][Y12TERM] =  M22/4 + M44/4;
+      Upsilon[0][4][Y1TERM]  =  M12/6 - M14/3 - M22/6 - M23/3 - M24/3 + M34/6 - M44/6;
+      Upsilon[0][4][0]       =  M11/6 + M12/12 - M13/6 + M14/12 + M22/12 + M23/12 + M24/6 
+                               +M33/6 + M34/12 + M44/12;
+
+      Upsilon[1][0][0]       =  M11/4 + M12/4 + M13/2 + M14/4 + M22/12 + M23/4 + M24/6 + M33/4
+                               +M34/4 + M44/12 +  (2*V1)/3 + V2/3 + (2*V3)/3 + V4/3 + S;
+
+      Upsilon[1][1][Y1TERM]  = -M11/3 - M12/2 - (2*M13)/3 - M14/2 - M22/6 - M23/2 - M24/3 - M33/3
+                               -M34/2 - M44/6 - V1/2 - V2/2 - V3/2 - V4/2;
+      Upsilon[1][1][0]       = -M11/3 - M12/3 - (2*M13)/3 - M14/3 - M22/6 - M23/3 - M24/3 - M33/3 
+                               -M34/3 - M44/6 - 2*S - V1 - V2/2 - V3 - V4/2;
+
+      Upsilon[1][2][Y12TERM] =  M11/4 + M12/2 + M22/4 + M33/4 + M34/2 + M44/4;
+      Upsilon[1][2][Y1TERM]  =  M11/2 + M12/2 + M13 + M14 + M23 + M24 + M33/2 + M34/2 
+                               +V1 + V2 + V3 + V4;
+      Upsilon[1][2][0]       =  M22/4 + M44/4 + S;
+
+      Upsilon[1][3][Y12TERM] = -M11/2 - M12 - M22/2 - M33/2 - M34 - M44/2;
+      Upsilon[1][3][Y1TERM]  =  M12/2 - M14/2 + M22/2 - M23/2 - M24 + M34/2 + M44/2
+                               -V1/2 - V2/2 - V3/2 - V4/2;
+      Upsilon[1][3][0]       = -M22/3 + M24/3 - M44/3 + V1/3 + V2/6 + V3/3 + V4/6;
+
+      Upsilon[1][4][Y12TERM] =  M11/4 + M12/2 + M22/4 + M33/4 + M34/2 + M44/4;
+      Upsilon[1][4][Y1TERM]  = -M11/6 - M12/2 - M13/3 - M22/3 + M24/3 - M33/6 - M34/2 - M44/3;
+      Upsilon[1][4][0]       =  M11/12 + M12/12 + M13/6 + M14/12 + M22/6 + M23/12 - M24/6 
+                               +M33/12 + M34/12 + M44/6;
+
+      Upsilon[2][0][0]       =  M11/4 + M12/4 + M13/2 + M14/4 + M22/12 + M23/4 + M24/6 + M33/4
+                               +M34/4 + M44/12 + S + (2*V1)/3 + V2/3 + (2*V3)/3 + V4/3;
+
+      Upsilon[2][1][Y1TERM]  = -M11/3 - M12/6 - (2*M13)/3 - M14/6 - M23/6 - M33/3 - M34/6 - V1/2 - V3/2;
+      Upsilon[2][1][0]       = -M11/3 - M12/3 - (2*M13)/3 - M14/3 - M22/6 - M23/3 - M24/3 
+                               -M33/3 - M34/3 - M44/6 - 2*S - V1 - V2/2 - V3 - V4/2;
+
+      Upsilon[2][2][Y12TERM] =  M11/4 + M33/4;
+      Upsilon[2][2][Y1TERM]  =  M11/2 + M12/2 + M13 + M33/2 + M34/2 + V1 + V3;
+      Upsilon[2][2][0]       =  M22/4 + M44/4 + S;
+
+      Upsilon[2][3][Y12TERM] = -M11/2 - M33/2; 
+      Upsilon[2][3][Y1TERM]  = -M12/2 + M14/2 + M23/2 - M34/2 - V1/2 - V3/2;
+      Upsilon[2][3][0]       = -M22/3 + M24/3 - M44/3 + V1/3 + V2/6 + V3/3 + V4/6;
+
+      Upsilon[2][4][Y12TERM] =  M11/4 + M33/4;
+      Upsilon[2][4][Y1TERM]  = -M11/6 + M12/6 - M13/3 - M14/3 - M23/3 - M33/6 + M34/6;
+      Upsilon[2][4][0]       =  M11/12 + M12/12 + M13/6 + M14/12 + M22/6 + M23/12 - M24/6 
+                               +M33/12 + M34/12 + M44/6;
+
+   }
+  else if (WhichCase == TD_COMMONEDGE)
+   {
+      Upsilon[0][0][0]          = C2010/4 + M11/6 + M13/3 + M33/6 + S + V1/2 + V3/2;
+     
+      Upsilon[0][1][Y1Y2TERM]   = M12/2 + M23/2 + V2;
+      Upsilon[0][1][Y1TERM]     = -C2001/3 - C2010/3 - M12/2 - M13/2 - M14/2 - M23/2 - M33/2 - M34/2 - V2 - V3 - V4;
+      Upsilon[0][1][0]          = C2001/3 + M12/2 + M14/2 + M23/2 + M34/2 - S + V2 + V4;
+    
+      Upsilon[0][2][Y12Y22TERM] = C0210/2 + M22/2;
+      Upsilon[0][2][Y12Y2TERM]  = -C0210 - M22 - M23 - M24;
+      Upsilon[0][2][Y12TERM]    = C0210/2 + M22/2 + M23 + M24 + M33/2 + M34 + M44/2;
+      Upsilon[0][2][Y1Y2TERM]   = C0210 + M22 + M24 - V2;
+      Upsilon[0][2][Y1TERM]     = -C0210 - M22 - M23 - 2*M24 - M34 - M44 + V2 + V3 + V4;
+      Upsilon[0][2][0]          = C0210/2 + M22/2 + M24 + M44/2 - V1/2 - V2 - V3/2 - V4;
+    
+      Upsilon[0][3][Y13Y22TERM] = -C0201 - C0210;
+      Upsilon[0][3][Y13Y2TERM]  = 2*C0201 + 2*C0210;
+      Upsilon[0][3][Y13TERM]    = -C0201 - C0210;
+      Upsilon[0][3][Y12Y22TERM] = C0201 - M22/2;
+      Upsilon[0][3][Y12Y2TERM]  = -4*C0201 - 2*C0210 + M22 + M23 + M24;
+      Upsilon[0][3][Y12TERM]    = 3*C0201 + 2*C0210 - M22/2 - M23 - M24 - M33/2 - M34 - M44/2;
+      Upsilon[0][3][Y1Y2TERM]   = 2*C0201 - M12/2 - M22 - M23/2 - M24;
+      Upsilon[0][3][Y1TERM]     = -3*C0201 - C0210 + M12/2 + M13/2 + M14/2 + M22 + (3*M23)/2 + 2*M24 + M33/2 + (3*M34)/2 + M44;
+      Upsilon[0][3][0]          = C0201 - M11/6 - M12/2 - M13/3 - M14/2 - M22/2 - M23/2 - M24 - M33/6 - M34/2 - M44/2;
+    
+      Upsilon[0][4][Y13Y22TERM] = C0201 + C0210;
+      Upsilon[0][4][Y13Y2TERM]  = -2*C0201 - 2*C0210;
+      Upsilon[0][4][Y13TERM]    = C0201 + C0210;
+      Upsilon[0][4][Y12Y22TERM] = -C0201 - C0210/2;
+      Upsilon[0][4][Y12Y2TERM]  = 4*C0201 + 3*C0210;
+      Upsilon[0][4][Y12TERM]    = -3*C0201 - (5*C0210)/2;
+      Upsilon[0][4][Y1Y2TERM]   = -2*C0201 - C0210;
+      Upsilon[0][4][Y1TERM]     = 3*C0201 + 2*C0210 + C2001/3 + C2010/3;
+      Upsilon[0][4][0]          = -C0201 - C0210/2 - C2001/3 - C2010/4;
+
+      Upsilon[1][0][0]          = C2010/4 + M11/6 + M13/3 + M33/6 + S + V1/2 + V3/2;
+    
+      Upsilon[1][1][Y1Y2TERM]   = C2001/3 + M14/2 + M34/2 + V4;
+      Upsilon[1][1][Y1TERM]     = -C2001/3 - (2*C2010)/3 - M11/2 - M12/2 - M13/2 - M14/2 - M23/2 - M34/2 - V1 - V2 - V4;
+      Upsilon[1][1][0]          = C2001/3 + M12/2 + M14/2 + M23/2 + M34/2 - S + V2 + V4;
+    
+      Upsilon[1][2][Y12Y22TERM] = M44/2;
+      Upsilon[1][2][Y12Y2TERM]  = -C2001 - M14 - M24 - M44;
+      Upsilon[1][2][Y12TERM]    = C0210/2 + C2001 + C2010/2 + M11/2 + M12 + M14 + M22/2 + M24 + M44/2;
+      Upsilon[1][2][Y1Y2TERM]   = M24 + M44 - V4;
+      Upsilon[1][2][Y1TERM]     = -C0210 - C2001 - M12 - M14 - M22 - 2*M24 - M44 + V1 + V2 + V4;
+      Upsilon[1][2][0]          = C0210/2 + M22/2 + M24 + M44/2 - V1/2 - V2 - V3/2 - V4;
+    
+      Upsilon[1][3][Y13Y2TERM]  = C0201 + C2001;
+      Upsilon[1][3][Y13TERM]    = -C0201 - C2001;
+      Upsilon[1][3][Y12Y22TERM] = -M44/2;
+      Upsilon[1][3][Y12Y2TERM]  = -2*C0201 + M14 + M24 + M44;
+      Upsilon[1][3][Y12TERM]    = 3*C0201 + C2001 - M11/2 - M12 - M14 - M22/2 - M24 - M44/2;
+      Upsilon[1][3][Y1Y2TERM]   = C0201 - M14/2 - M24 - M34/2 - M44;
+      Upsilon[1][3][Y1TERM]     = -3*C0201 + M11/2 + (3*M12)/2 + M13/2 + (3*M14)/2 + M22 + M23/2 + 2*M24 + M34/2 + M44;
+      Upsilon[1][3][0]          = C0201 - M11/6 - M12/2 - M13/3 - M14/2 - M22/2 - M23/2 - M24 - M33/6 - M34/2 - M44/2;
+    
+      Upsilon[1][4][Y13Y2TERM]  = -C0201 - C2001;
+      Upsilon[1][4][Y13TERM]    = C0201 + C2001;
+      Upsilon[1][4][Y12Y2TERM]  = 2*C0201 + C2001;
+      Upsilon[1][4][Y12TERM]    = -3*C0201 - C0210/2 - 2*C2001 - C2010/2;
+      Upsilon[1][4][Y1Y2TERM]   = -C0201 - C2001/3;
+      Upsilon[1][4][Y1TERM]     = 3*C0201 + C0210 + (4*C2001)/3 + (2*C2010)/3;
+      Upsilon[1][4][0]          = -C0201 - C0210/2 - C2001/3 - C2010/4;
+
+      Upsilon[2][0][0]          = C2010/4 + M11/6 + M13/3 + M33/6 + S + V1/2 + V3/2;
+     
+      Upsilon[2][1][Y1Y2TERM]   = -C2001/3 - C2010/3 - M13/2 - M14/2 - M33/2 - M34/2 - V3 - V4;
+      Upsilon[2][1][Y1TERM]     = -M12/2 - M23/2 - V2;
+      Upsilon[2][1][0]          = C2001/3 + M12/2 + M14/2 + M23/2 + M34/2 - S + V2 + V4;
+     
+      Upsilon[2][2][Y12Y22TERM] = M33/2 + M34 + M44/2;
+      Upsilon[2][2][Y12Y2TERM]  = M23 + M24;
+      Upsilon[2][2][Y12TERM]    = C0210/2 + M22/2;
+      Upsilon[2][2][Y1Y2TERM]   = -M23 - M24 - M34 - M44 + V3 + V4;
+      Upsilon[2][2][Y1TERM]     = -C0210 - M22 - M24 + V2;
+      Upsilon[2][2][0]          = C0210/2 + M22/2 + M24 + M44/2 - V1/2 - V2 - V3/2 - V4;
+     
+      Upsilon[2][3][Y13Y2TERM]  = -C0201 - C0210;
+      Upsilon[2][3][Y12Y22TERM] = -M33/2 - M34 - M44/2;
+      Upsilon[2][3][Y12Y2TERM]  = 2*C0201 + 2*C0210 - M23 - M24;
+      Upsilon[2][3][Y12TERM]    = C0201 - M22/2;
+      Upsilon[2][3][Y1Y2TERM]   = -C0201 - C0210 + M13/2 + M14/2 + M23 + M24 + M33/2 + (3*M34)/2
+                                  +M44;
+      Upsilon[2][3][Y1TERM]     = -2*C0201 + M12/2 + M22 + M23/2 + M24;
+      Upsilon[2][3][0]          = C0201 - M11/6 - M12/2 - M13/3 - M14/2 - M22/2 - M23/2 - M24
+                                  -M33/6 - M34/2 - M44/2;
+    
+      Upsilon[2][4][Y13Y2TERM]  = C0201 + C0210;
+      Upsilon[2][4][Y12Y2TERM]  = -2*C0201 - 2*C0210;
+      Upsilon[2][4][Y12TERM]    = -C0201 - C0210/2;
+      Upsilon[2][4][Y1Y2TERM]   = C0201 + C0210 + C2001/3 + C2010/3;
+      Upsilon[2][4][Y1TERM]     = 2*C0201 + C0210;
+      Upsilon[2][4][0]          = -C0201 - C0210/2 - C2001/3 - C2010/4;
+
+
+
+      Upsilon[3][0][0]          = C2010/4 + M11/6 + M13/3 + M33/6 + S + V1/2 + V3/2;
+     
+      Upsilon[3][1][Y1Y2TERM]   = (-2*C2010)/3 - M11/2 - M12/2 - M13/2 - M23/2 - V1 - V2;
+      Upsilon[3][1][Y1TERM]     = -C2001/3 - M14/2 - M34/2 - V4;
+      Upsilon[3][1][0]          = C2001/3 + M12/2 + M14/2 + M23/2 + M34/2 - S + V2 + V4;
+     
+      Upsilon[3][2][Y12Y22TERM] = C0210/2 + C2010/2 + M11/2 + M12 + M22/2;
+      Upsilon[3][2][Y12Y2TERM]  = C2001 + M14 + M24;
+      Upsilon[3][2][Y12TERM]    = M44/2;
+      Upsilon[3][2][Y1Y2TERM]   = -C0210 - C2001 - M12 - M14 - M22 - M24 + V1 + V2;
+      Upsilon[3][2][Y1TERM]     = -M24 - M44 + V4;
+      Upsilon[3][2][0]          = C0210/2 + M22/2 + M24 + M44/2 - V1/2 - V2 - V3/2 - V4;
+    
+      Upsilon[3][3][Y13Y22TERM] = -C0201 - C2001;
+      Upsilon[3][3][Y12Y22TERM] = C0201 + C2001 - M11/2 - M12 - M22/2;
+      Upsilon[3][3][Y12Y2TERM]  = 2*C0201 - M14 - M24;
+      Upsilon[3][3][Y12TERM]    = -M44/2;
+      Upsilon[3][3][Y1Y2TERM]   = -2*C0201 + M11/2 + (3*M12)/2 + M13/2 + M14 + M22 + M23/2 + M24;
+      Upsilon[3][3][Y1TERM]     = -C0201 + M14/2 + M24 + M34/2 + M44;
+      Upsilon[3][3][0]          = C0201 - M11/6 - M12/2 - M13/3 - M14/2 - M22/2 - M23/2 - M24
+                                   -M33/6 - M34/2 - M44/2;
+    
+      Upsilon[3][4][Y13Y22TERM] = C0201 + C2001;
+      Upsilon[3][4][Y12Y22TERM] = -C0201 - C0210/2 - C2001 - C2010/2;
+      Upsilon[3][4][Y12Y2TERM]  = -2*C0201 - C2001;
+      Upsilon[3][4][Y1Y2TERM]   = 2*C0201 + C0210 + C2001 + (2*C2010)/3;
+      Upsilon[3][4][Y1TERM]     = C0201 + C2001/3;
+      Upsilon[3][4][0]          = -C0201 - C0210/2 - C2001/3 - C2010/4;
+
+
+      Upsilon[4][0][0]          = C2010/4 + M11/6 + M13/3 + M33/6 + S + V1/2 + V3/2;
+    
+      Upsilon[4][1][Y1Y2TERM]   = -C2010/3 - M13/2 - M33/2 - V3;
+      Upsilon[4][1][Y1TERM]     = -C2001/3 - M14/2 - M34/2 - V4;
+      Upsilon[4][1][0]          = C2001/3 + M12/2 + M14/2 + M23/2 + M34/2 - S + V2 + V4;
+    
+      Upsilon[4][2][Y12Y22TERM] = M33/2;
+      Upsilon[4][2][Y12Y2TERM]  = M34;
+      Upsilon[4][2][Y12TERM]    = M44/2;
+      Upsilon[4][2][Y1Y2TERM]   = -M23 - M34 + V3;
+      Upsilon[4][2][Y1TERM]     = -M24 - M44 + V4;
+      Upsilon[4][2][0]          = C0210/2 + M22/2 + M24 + M44/2 - V1/2 - V2 - V3/2 - V4;
+    
+      Upsilon[4][3][Y12Y22TERM] = -M33/2;
+      Upsilon[4][3][Y12Y2TERM]  = -M34;
+      Upsilon[4][3][Y12TERM]    = -M44/2;
+      Upsilon[4][3][Y1Y2TERM]   = -C0210 + M13/2 + M23 + M33/2 + M34;
+      Upsilon[4][3][Y1TERM]     = -C0201 + M14/2 + M24 + M34/2 + M44;
+      Upsilon[4][3][0]          = C0201 - M11/6 - M12/2 - M13/3 - M14/2 - M22/2 - M23/2 - M24 - M33/6 - M34/2 - M44/2;
+    
+      Upsilon[4][4][Y1Y2TERM]   = C0210 + C2010/3;
+      Upsilon[4][4][Y1TERM]     = C0201 + C2001/3;
+      Upsilon[4][4][0]          = -C0201 - C0210/2 - C2001/3 - C2010/4;
+
+
+      Upsilon[5][0][0]          = C2010/4 + M11/6 + M13/3 + M33/6 + S + V1/2 + V3/2;
+    
+      Upsilon[5][1][Y1Y2TERM]   = (-2*C2010)/3 - M11/2 - M13/2 - V1;
+      Upsilon[5][1][Y1TERM]     = -M12/2 - M23/2 - V2;
+      Upsilon[5][1][0]          = C2001/3 + M12/2 + M14/2 + M23/2 + M34/2 - S + V2 + V4;
+    
+      Upsilon[5][2][Y12Y22TERM] = C2010/2 + M11/2;
+      Upsilon[5][2][Y12Y2TERM]  = M12;
+      Upsilon[5][2][Y12TERM]    = C0210/2 + M22/2;
+      Upsilon[5][2][Y1Y2TERM]   = -C2001 - M12 - M14 + V1;
+      Upsilon[5][2][Y1TERM]     = -C0210 - M22 - M24 + V2;
+      Upsilon[5][2][0]          = C0210/2 + M22/2 + M24 + M44/2 - V1/2 - V2 - V3/2 - V4;
+    
+      Upsilon[5][3][Y12Y22TERM] = C2001 - M11/2;
+      Upsilon[5][3][Y12Y2TERM]  = -M12;
+      Upsilon[5][3][Y12TERM]    = C0201 - M22/2;
+      Upsilon[5][3][Y1Y2TERM]   = M11/2 + M12 + M13/2 + M14;
+      Upsilon[5][3][Y1TERM]     = -2*C0201 + M12/2 + M22 + M23/2 + M24;
+      Upsilon[5][3][0]          = C0201 - M11/6 - M12/2 - M13/3 - M14/2 - M22/2 - M23/2 - M24 - M33/6 - M34/2 - M44/2;
+    
+      Upsilon[5][4][Y12Y22TERM] = -C2001 - C2010/2;
+      Upsilon[5][4][Y12TERM]    = -C0201 - C0210/2;
+      Upsilon[5][4][Y1Y2TERM]   = C2001 + (2*C2010)/3;
+      Upsilon[5][4][Y1TERM]     = 2*C0201 + C0210;
+      Upsilon[5][4][0]          = -C0201 - C0210/2 - C2001/3 - C2010/4;
+
+   }
+  else //if (WhichCase == TD_COMMONVERTEX)
+   {
+     // d=1
+     Upsilon[0][0][0] = S;
+
+     Upsilon[0][1][0]           = V1; 
+     Upsilon[0][1][Y1TERM]      = V2; 
+     Upsilon[0][1][Y2TERM]      = V3; 
+     Upsilon[0][1][Y2Y3TERM]    = V4; 
+
+     Upsilon[0][2][0]           = M11/2.0;
+     Upsilon[0][2][Y1TERM]      = M12;
+     Upsilon[0][2][Y12TERM]     = M22/2.0;
+     Upsilon[0][2][Y2TERM]      = M13;
+     Upsilon[0][2][Y1Y2TERM]    = M23;
+     Upsilon[0][2][Y22TERM]     = M33/2.0;
+     Upsilon[0][2][Y2Y3TERM]    = M14;
+     Upsilon[0][2][Y1Y2Y3TERM]  = M24;
+     Upsilon[0][2][Y22Y3TERM]   = M34;
+     Upsilon[0][2][Y22Y32TERM]  = M44/2.0;
+
+     Upsilon[0][3][Y2TERM]      = C2010;
+     Upsilon[0][3][Y12Y2TERM]   = C0210;
+     Upsilon[0][3][Y2Y3TERM]    = C2001;
+     Upsilon[0][3][Y12Y2Y3TERM] = C0201;
+
+     // d=2
+     Upsilon[1][0][0]           = S;
+
+     Upsilon[1][1][0]           = V3;
+     Upsilon[1][1][Y1TERM]      = V4;
+     Upsilon[1][1][Y2TERM]      = V1;
+     Upsilon[1][1][Y2Y3TERM]    = V2;
+
+     Upsilon[1][2][0]           = M33/2.0;
+     Upsilon[1][2][Y1TERM]      = M34;
+     Upsilon[1][2][Y12TERM]     = M44/2.0;
+     Upsilon[1][2][Y2TERM]      = M13;
+     Upsilon[1][2][Y1Y2TERM]    = M14;
+     Upsilon[1][2][Y22TERM]     = M11/2.0;
+     Upsilon[1][2][Y2Y3TERM]    = M23;
+     Upsilon[1][2][Y1Y2Y3TERM]  = M24;
+     Upsilon[1][2][Y22Y3TERM]   = M12;
+     Upsilon[1][2][Y22Y32TERM]  = M22/2.0;
+
+     Upsilon[1][3][Y22TERM]      = C2010;
+     Upsilon[1][3][Y1Y22TERM]    = C2001;
+     Upsilon[1][3][Y22Y32TERM]   = C0210;
+     Upsilon[1][3][Y1Y22Y32TERM] = C0201;
+   };
+
+} // CMVStoUpsilon
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void ComputeGeometricParameters(TaylorDuffyArgStruct *Args, 
+                                TDWorkspace *TDW)
+{ 
+  double *V1       = Args->V1;
+  double *V2       = Args->V2;
+  double *V3       = Args->V3;
+  double *V2P      = Args->V2P;
+  double *V3P      = Args->V3P;
+  double *Q        = Args->Q;
+  double *QP       = Args->QP;
+  double *nHat     = Args->nHat;
+   
+  /***************************************************************/
+  /* the manual claims that certain parameters are not referenced*/
+  /* in certain cases, which means the users might pass NULL for */
+  /* those parameters, which could cause core dumps unless we do */
+  /* the following                                               */
+  /***************************************************************/
+  if (Args->WhichCase==TD_COMMONTRIANGLE)
+   { V2P=V2; V3P=V3; } 
+  else if (Args->WhichCase==TD_COMMONEDGE)
+   V2P=V2;
+
+  double A[3], B[3], AP[3], BP[3], L[3];
+  VecSub(V2,V1,A);
+  VecSub(V3,V2,B);
+  VecSub(V2P,V1,AP);
+  VecSub(V3P,V2P,BP);
+
+  TDW->A2    = VecDot(A,A);
+  TDW->AdB   = VecDot(A,B);
+  TDW->B2    = VecDot(B,B);
+
+  if ( Args->WhichCase == TD_COMMONEDGE )
+   { 
+     VecSub(BP,B,L);
+     TDW->BP2   = VecDot(BP,BP);
+     TDW->AdBP  = VecDot(A,BP);
+     TDW->L2    = VecDot(L,L);
+     TDW->AdBP  = VecDot(A,BP);
+     TDW->AdL   = VecDot(A,L);
+     TDW->BPdL  = VecDot(BP,L);
+   }
+  else if ( Args->WhichCase == TD_COMMONVERTEX)
+   {
+     TDW->AP2   = VecDot(AP,AP);
+     TDW->BP2   = VecDot(BP,BP);
+     TDW->AdAP  = VecDot(A,AP);
+     TDW->AdBP  = VecDot(A,BP);
+     TDW->BdAP  = VecDot(B,AP);
+     TDW->BdBP  = VecDot(B,BP);
+     TDW->APdBP = VecDot(AP,BP);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NumRegions;
+  switch(Args->WhichCase)
+   { case TD_COMMONVERTEX:   NumRegions=2;  break;
+     case TD_COMMONEDGE:     NumRegions=6;  break;
+     case TD_COMMONTRIANGLE: NumRegions=3;  break;
+   };
+   
+  /***************************************************************/
+  /* compute the C, M, V, S parameters and convert to Upsilon    */
+  /* vectors for each P polynomial we need.                      */
+  /***************************************************************/
+  double D[3], DP[3], DeltaD[3], AT[3], BT[3], DT[3], Scratch[3];
+  if ( Q && QP) 
+   { VecSub(V1,Q,D);
+     VecSub(V1,QP,DP);
+     VecSub(QP, Q, DeltaD);
+   };
+  if(nHat)
+   { VecCross(nHat, A, AT);
+     VecCross(nHat, B, BT);
+     VecCross(nHat, D, DT);
+   };
+
+  for(int np=0; np<NUMPS; np++)
+   { 
+     if ( TDW->NeedP[np] == false )
+      continue;
+   
+     double C[4], M[16], V[4], S;
+     memset(C, 0,  4*sizeof(double));
+     memset(M, 0, 16*sizeof(double));
+     memset(V, 0,  4*sizeof(double));
+     S=0.0;
+     switch(np)
+      { 
+        case TD_UNITY: 
+          S=1; 
+          break;
+   
+        case TD_RNORMAL:
+          V[0] =  VecDot(nHat, A);
+          V[1] =  VecDot(nHat, B);
+          V[2] = -VecDot(nHat, AP);
+          V[3] = -VecDot(nHat, BP);
+          break;
+   
+        case TD_PMCHWG1:
+          M[ 0 + 2*4 ] = VecDot(A,AP); 
+          M[ 0 + 3*4 ] = VecDot(A,BP);
+          M[ 1 + 2*4 ] = VecDot(B,AP);
+          M[ 1 + 3*4 ] = VecDot(B,BP);
+          V[0] =  VecDot(A, DP);
+          V[1] =  VecDot(B, DP);
+          V[2] =  VecDot(D, AP);
+          V[3] =  VecDot(D, BP);
+          S    =  VecDot(D, DP); // + 4.0/(IK*IK);
+          break;
+   
+        case TD_PMCHWC:
+          M[ 0 + 2*4 ] = -VecDot(VecCross(A,AP,Scratch), DeltaD);
+          M[ 0 + 3*4 ] = -VecDot(VecCross(A,BP,Scratch), DeltaD);
+          M[ 1 + 2*4 ] = -VecDot(VecCross(B,AP,Scratch), DeltaD);
+          M[ 1 + 3*4 ] = -VecDot(VecCross(B,BP,Scratch), DeltaD);
+          V[0] = -VecDot(A, VecCross(DP,D,Scratch) );
+          V[1] = -VecDot(B, VecCross(DP,D,Scratch) );
+          V[2] =  VecDot(AP, VecCross(DP,D,Scratch) );
+          V[3] =  VecDot(BP, VecCross(DP,D,Scratch) );
+          break;
+   
+        case TD_NMULLERG1:
+          M[ 0 + 2*4 ] = VecDot(AT, AP);
+          M[ 0 + 3*4 ] = VecDot(AT, BP);
+          M[ 1 + 2*4 ] = VecDot(BT, AP);
+          M[ 1 + 3*4 ] = VecDot(BT, BP);
+          V[0] =  VecDot(AT, DP);
+          V[1] =  VecDot(BT, DP);
+          V[2] =  VecDot(DT, AP);
+          V[3] =  VecDot(DT, BP);
+          S = VecDot(DT, DP);
+          break;
+   
+        case TD_NMULLERG2:
+          M[ 0 + 0*4 ] = -4.0*VecDot(AT, A);
+          M[ 1 + 1*4 ] = -4.0*VecDot(BT, B);
+          M[ 0 + 2*4 ] = 2.0*VecDot(AT, AP);
+          M[ 0 + 3*4 ] = 2.0*VecDot(AT, BP);
+          M[ 1 + 2*4 ] = 2.0*VecDot(BT, AP);
+          M[ 1 + 3*4 ] = 2.0*VecDot(BT, BP);
+          V[0] =  0.0;
+          V[1] =  0.0;
+          V[2] =  2.0*VecDot(DT,AP);
+          V[3] =  2.0*VecDot(DT,BP);
+          break;
+   
+        case TD_NMULLERC:
+          C[0] = VecDot(AT, VecCross(A, AP, Scratch) );
+          C[1] = VecDot(AT, VecCross(A, BP, Scratch) );
+          C[2] = VecDot(BT, VecCross(B, AP, Scratch) );
+          C[3] = VecDot(BT, VecCross(B, AP, Scratch) );
+          M[ 0 + 0*4 ] =  VecDot(AT, VecCross(A,  DP, Scratch) );
+          M[ 0 + 2*4 ] = -VecDot(AT, VecCross(AP, DP, Scratch) );
+          M[ 0 + 3*4 ] = -VecDot(AT, VecCross(BP, DP, Scratch) );
+          M[ 1 + 1*4 ] =  VecDot(BT, VecCross(B,  DP, Scratch) );
+          M[ 1 + 2*4 ] = -VecDot(BT, VecCross(AP, DP, Scratch) );
+          M[ 1 + 3*4 ] = -VecDot(BT, VecCross(BP, DP, Scratch) );
+          V[0] =   VecDot(DT, VecCross(A,  DP, Scratch) );
+          V[1] =   VecDot(DT, VecCross(B,  DP, Scratch) );
+          V[2] =  -VecDot(DT, VecCross(AP, DP, Scratch) );
+          V[3] =  -VecDot(DT, VecCross(BP, DP, Scratch) );
+          break;
+      };
+   
+     /***************************************************************/
+     /* convert C, M, V, S into Upsilon coefficients, then          */
+     /* determine the lower and upper limits of the sum over n,     */
+     /* and the number of nonzero monomial coefficients in the      */
+     /* Upsilon vector                                              */
+     /***************************************************************/
+     CMVStoUpsilon(Args->WhichCase, C, M, V, S, TDW->Upsilon[np]);
+   
+     int nMin=NUMWPOWERS-1;
+     int nMax=-1;
+     int MaxMonomial=-1;
+     for(int n=0; n<NUMWPOWERS; n++)
+      for(int nr=0; nr<NumRegions; nr++)
+       for(int nm=0; nm<NUMMONOMIALS; nm++)
+        if ( TDW->Upsilon[np][nr][n][nm] != 0.0 )
+         { if (n<nMin) nMin=n;
+           if (n>nMax) nMax=n;
+           if (nm>MaxMonomial) MaxMonomial=nm;
+         };
+     TDW->nMin[np]=nMin;
+     TDW->nMax[np]=nMax;
+     TDW->MaxMonomial[np]=MaxMonomial;
+
+   }; // for(int np=0; np<NumPS; np++)
+
+} // GetGeometricParameters routine
 
 } // namespace scuff

@@ -18,7 +18,7 @@
  */
 
 /*
- * unit-test-ppis.cc -- SCUFF-EM unit tests for panel-panel integrals 
+ * unit-test-PPIs.cc -- SCUFF-EM unit tests for panel-panel integrals 
  * 
  * homer reid        -- 11/2005 -- 10/2011
  *
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
   Log("SCUFF-EM PPI unit tests running on %s",GetHostName());
 
   int FailedCases=0;
-  RWGGeometry *G = new RWGGeometry("PECSphere.scuffgeo");
+  RWGGeometry *G = new RWGGeometry("PECSphere_R0P75_414.scuffgeo");
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
 
   GetPPIArgStruct MyArgs, *Args=&MyArgs;
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 
   Args->Sa = Args->Sb = G->Surfaces[0];
 
-  SetDefaultCD2SFormat("(%+.3e,%+.3e)");
+  SetDefaultCD2SFormat("(%+.8e,%+.8e)");
 
   /*--------------------------------------------------------------*/
   /*- no common vertices, long wavelength   ----------------------*/
