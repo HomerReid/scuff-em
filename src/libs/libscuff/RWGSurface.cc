@@ -319,10 +319,12 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   kdPanels = NULL;
 
   /*------------------------------------------------------------*/
-  /*- try to open the mesh file. we look in two places:         */
+  /*- try to open the mesh file. we look in several places:     */
   /*- (a) the current working directory                         */
   /*- (b) the directory specified by the SCUFFMESHPATH          */
-  /*-     environment variable.                                 */
+  /*-     environment variable                                  */
+  /*- (c) any directories that may have been specified by       */
+  /*-     MESHPATH statements in .scuffgeo files                */
   /*------------------------------------------------------------*/
   FILE *MeshFile=fopen(MeshFileName,"r");
   if (!MeshFile)
@@ -332,6 +334,10 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
      if (MeshFile)
       Log("found mesh file %s in directory %s",MeshFileName,MeshPath);
    }
+  if (!MeshFile)
+   { for(int nmd=0; MeshFile==0 && nmd<RWGGeometry::NumMeshDirs; nmd++)
+      MeshFile=vfopen("%s/%s","r",RWGGeometry::MeshDirs[nmd],MeshFileName);
+   };
   if (!MeshFile)
    ErrExit("could not open file %s",MeshFileName);
    

@@ -48,6 +48,8 @@ bool RWGGeometry::UsePBCAcceleration=false;
 double RWGGeometry::DeltaInterp=0.5;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
+int RWGGeometry::NumMeshDirs=0;
+char **RWGGeometry::MeshDirs=0;
 
 /***********************************************************************/
 /* subroutine to parse the MEDIUM...ENDMEDIUM section in a .scuffgeo   */
@@ -264,6 +266,14 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      if ( !StrCaseCmp(Tokens[0],"MEDIUM") )
       { 
         ProcessMEDIUMSection(f,GeoFileName,&LineNum);
+      }
+     if ( !StrCaseCmp(Tokens[0],"MESHPATH") )
+      { 
+        if ( nTokens!=2 )
+         ErrExit("%s:%i: invalid MESHPATH specification",GeoFileName,LineNum);
+        NumMeshDirs++;
+        MeshDirs=(char **)realloc(MeshDirs,NumMeshDirs*sizeof(char *));
+        MeshDirs[NumMeshDirs-1]=strdup(Tokens[1]);
       }
      else if ( !StrCaseCmp(Tokens[0],"LATTICE") )
       { 

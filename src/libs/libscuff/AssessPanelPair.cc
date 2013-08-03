@@ -217,9 +217,9 @@ int NumCommonBFVertices(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb)
   iVb[3] = Eb->iQM;
 
   int ncv=0;
-  for(int nea=0; nea<4; nea++)
-   for(int neb=0; neb<4; neb++)
-    if ( iVa[nea]==iVb[neb] ) ncv++;
+  for(int nva=0; nva<4; nva++)
+   for(int nvb=0; nvb<4; nvb++)
+    if ( iVa[nva]==iVb[nvb] ) ncv++;
   return ncv;
   
 } 
@@ -324,7 +324,7 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
                              double **OVa, double **OVb)
 {
   int iMina, iMeda, iMaxa;
-  int iMinb, iMedb, iMaxb;
+  int iMinb, /*iMedb,*/ iMaxb;
 
   /***************************************************************/
   /***************************************************************/
@@ -414,11 +414,11 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
       { iMinb=1; iMaxb=0; }
 
      if ( VLT(Vb[2], Vb[iMinb]) )
-      { iMedb=iMinb; iMinb=2; }
+      { /*iMedb=iMinb;*/ iMinb=2; }
      else if ( VLT(Vb[2], Vb[iMaxb]) )
-      { iMedb=2; }
+      { /*iMedb=2;*/ }
      else
-      { iMedb=iMaxb; iMaxb=2; }
+      { /*iMedb=iMaxb;*/ iMaxb=2; }
 
      if ( VLT(Va[iMina], Va[iMinb]) )
       { OVa[0] = Va[iMina]; OVa[1] = Va[iMeda]; OVa[2] = Va[iMaxa]; 

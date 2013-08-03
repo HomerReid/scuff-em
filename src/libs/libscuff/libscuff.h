@@ -474,6 +474,10 @@ class RWGGeometry
                                       double kBloch[MAXLATTICE], HMatrix *XMatrix);
    void UpdateRegionInterpolators(cdouble Omega, double *kBloch);
 
+   // directories within which to search for mesh files
+   static int NumMeshDirs;
+   static char **MeshDirs;
+
    /*--------------------------------------------------------------*/ 
    /*- private data fields  ---------------------------------------*/ 
    /*--------------------------------------------------------------*/ 

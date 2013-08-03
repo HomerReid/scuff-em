@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         double QForceExact = ExactData[nCase][4*nOmega + 3];
   
         if (    RD( QScatScuff , QScatExact ) > 0.05
-             || RD( QAbsScuff  , QScatExact ) > 0.05
+             || RD( QAbsScuff  , QAbsExact )  > 0.05
              || RD( QForceScuff, QForceExact) > 0.05
            )
           { Log("PFT test failed for %s at Omega=%e: ",
@@ -161,9 +161,9 @@ int main(int argc, char *argv[])
         if (DataLogFile)
          { fprintf(DataLogFile,"%e  %e %e (%e) %e %e (%e) %e %e (%e)\n",
                    Omega,
-                   QScatScuff,  QScatExact, RD(QScatScuff,  QScatExact), 
-                   QAbsScuff,   QAbsExact,  RD(QAbsScuff,  QAbsExact),
-                   QForceScuff,   QForceExact,  RD(QForceScuff,  QForceExact));
+                   QScatScuff,  QScatExact,  RD(QScatScuff,  QScatExact), 
+                   QAbsScuff,   QAbsExact,   RD(QAbsScuff,   QAbsExact),
+                   QForceScuff, QForceExact, RD(QForceScuff, QForceExact));
            fflush(DataLogFile);
          };
 
