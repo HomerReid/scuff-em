@@ -267,7 +267,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       { 
         ProcessMEDIUMSection(f,GeoFileName,&LineNum);
       }
-     if ( !StrCaseCmp(Tokens[0],"MESHPATH") )
+     else if ( !StrCaseCmp(Tokens[0],"MESHPATH") )
       { 
         if ( nTokens!=2 )
          ErrExit("%s:%i: invalid MESHPATH specification",GeoFileName,LineNum);
