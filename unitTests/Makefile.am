@@ -1,16 +1,15 @@
 EXTRA_DIST = 					\
  README						\
  UnitTestSphere.geo				\
- UnitTestSphere_414.msh  			\
+ UnitTestSphere_474.msh  			\
  Square.geo        				\
- Square_Coarse.msh				\
- PECSphere_414.scuffgeo 			\
- SiCSphere_414.scuffgeo				\
- GoldSphere_414.scuffgeo			\
- SiSphere_414.scuffgeo 		 		\
+ Square_14.msh    				\
+ PECSphere_474.scuffgeo 			\
+ SiCSphere_474.scuffgeo				\
+ GoldSphere_474.scuffgeo			\
+ SiSphere_474.scuffgeo 		 		\
  TwoSpheres.scuffgeo 				\
- TwoSpheres_Coarse.scuffgeo			\
- TwoSpheres_Coarse.hdf5    			\
+ TwoSpheres_414.scuffgeo			\
  SphereSubstrateArray_Coarse.scuffgeo
 
 LIBSCUFF = $(top_builddir)/src/libs/libscuff/libscuff.la
