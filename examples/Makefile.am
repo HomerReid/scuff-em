@@ -1,5 +1,6 @@
 SUBDIRS =            \
  ApertureDiffraction \
+ CubeTorus           \
  GetTMatrix          \
  PlateWithHole       \
  PerforatedThinFilm  \

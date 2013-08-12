@@ -216,6 +216,7 @@ AC_CONFIG_FILES([
  src/applications/scuff-transmission/Makefile
  examples/Makefile
  examples/ApertureDiffraction/Makefile
+ examples/CubeTorus/Makefile
  examples/GetTMatrix/Makefile
  examples/PlateWithHole/Makefile
  examples/PerforatedThinFilm/Makefile
