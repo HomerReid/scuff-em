@@ -1,0 +1,36 @@
+MATERIAL TEFLON
+    cIR = 0.239;
+    cUV = 0.665;
+    wIR = 2.356e14;
+    wUV = 0.518e16;
+    Eps(w) = 1 + cIR/(1-(w/wIR)^2) + cUV/(1-(w/wUV)^2);
+ENDMATERIAL
+
+MATERIAL ETHANOL
+    cIR = 23.84;
+    cUV = 0.852;
+    wIR = 6.6e14;
+    wUV = 1.14e16;
+    Eps(w) = 1 + cIR/(1-(w/wIR)^2) + cUV/(1-(w/wUV)^2);
+ENDMATERIAL
+
+MATERIAL SILICON
+    epsf = 1.035;
+    eps0 = 11.87;
+    wp = 6.6e15;
+    Eps(w) = epsf + (eps0-epsf)/(1-(w/wp)^2);
+ENDMATERIAL
+
+MEDIUM 
+	MATERIAL Ethanol
+ENDMEDIUM
+
+OBJECT UpperCube
+ 	MESHFILE Cube.msh 
+	MATERIAL Teflon
+ENDOBJECT
+
+OBJECT LowerTorus
+	MESHFILE Torus.msh 
+	MATERIAL Silicon
+ENDOBJECT

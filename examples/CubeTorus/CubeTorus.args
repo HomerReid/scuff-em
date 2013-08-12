@@ -1,0 +1,4 @@
+geometry    CubeTorus.scuffgeo
+transFile   CubeTorus.trans
+zforce
+torque 0 1 0

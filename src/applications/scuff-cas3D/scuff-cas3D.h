@@ -70,8 +70,9 @@ typedef struct SC3Data
    int WhichQuantities;
    int NumQuantities;
 
-   int NumTorqueAxes;    // this number is in the range 0--3
-   double TorqueAxes[9]; // [0,1,2] = x,y,z comps of 1st torque axis; [3,4,5] = 2nd axis, etc
+   int NumTorqueAxes;      // this number is in the range 0--3
+   double TorqueAxes[9];   // [0,1,2] = x,y,z comps of 1st torque axis; [3,4,5] = 2nd axis, etc
+   double GammaMatrix[27];
 
    double RLBasisVectors[2][2]; // reciprocal-lattice basis vectors
 

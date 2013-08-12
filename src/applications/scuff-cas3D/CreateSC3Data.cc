@@ -53,7 +53,10 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->NumQuantities=NumQuantities;
   SC3D->NumTorqueAxes=NumTorqueAxes;
   if (SC3D->NumTorqueAxes)
-   memcpy(SC3D->TorqueAxes, TorqueAxes, 3*NumTorqueAxes*sizeof(cdouble));
+   { memcpy(SC3D->TorqueAxes, TorqueAxes, 3*NumTorqueAxes*sizeof(cdouble));
+     for(int nta=0; nta<NumTorqueAxes; nta++)
+      CreateGammaMatrix(TorqueAxes+3*nta, SC3D->GammaMatrix+9*nta);
+   };
 
   /*--------------------------------------------------------------*/
   /*- read the transformation file if one was specified and check */

@@ -352,7 +352,9 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
          Log(" Assembling U(%i,%i)",ns,nsp);
          if (ns==0)
           G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch,
-                                    SC3D->UBlocks[nb], SC3D->dUBlocks + 6*nb);
+                                    SC3D->UBlocks[nb], SC3D->dUBlocks + 6*nb,
+                                    0, 0, SC3D->NumTorqueAxes, 
+                                    SC3D->dUBlocks + 6*nb + 3, SC3D->GammaMatrix);
          else
           G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, SC3D->UBlocks[nb]);
 
