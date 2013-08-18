@@ -46,7 +46,7 @@ libscuff_la_SOURCES = \
 libscuff_la_LIBADD = ../libhrutil/libhrutil.la ../libhmat/libhmat.la	\
 ../libSGJC/libSGJC.la ../libIncField/libIncField.la			\
 ../libMDInterp/libMDInterp.la ../libMatProp/libMatProp.la		\
-../libTriInt/libTriInt.la
+../libTriInt/libTriInt.la ../libSpherical/libSpherical.la
 
 # set the shared-library version number (DIFFERENT from human version #)
 libscuff_la_LDFLAGS = -version-info @SHARED_VERSION_INFO@
@@ -58,5 +58,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
               -I$(top_srcdir)/src/libs/libSGJC      \
               -I$(top_srcdir)/src/libs/libIncField  \
               -I$(top_srcdir)/src/libs/libMDInterp  \
+              -I$(top_srcdir)/src/libs/libSpherical \
               -I$(top_srcdir)/src/libs/libTriInt    \
               -I$(top_builddir) # for config.h

@@ -196,6 +196,7 @@ AC_CONFIG_FILES([
  src/Makefile
  src/libs/Makefile
  src/libs/libIncField/Makefile
+ src/libs/libSpherical/Makefile
  src/libs/libMDInterp/Makefile
  src/libs/libMatProp/Makefile
  src/libs/libMatProp/cmatheval/Makefile
