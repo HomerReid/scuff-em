@@ -71,7 +71,35 @@ void WriteFilePreamble(FILE *f, int argc, char *argv[], int FileType)
    }
   else
    fprintf(f,"#4: casimir-polder potential at (X, Y, Z)\n");
-  
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void Usage(char *ProgramName, OptStruct *OSArray, char *ErrMsg)
+{
+  fprintf(stderr, "error: %s (aborting)\n",ErrMsg);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "usage: %s [options] \n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "options: \n");
+  fprintf(stderr, " --geoFile  MyFile.scuffgeo         specify geometry file\n");
+  fprintf(stderr, " --PECPlate                         use PEC plate\n");
+  fprintf(stderr, " --EPFile   MyEvalPointFile         file specifying evaluation points\n");
+  fprintf(stderr, " --atom     Rubidium                type of atom\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "atoms supported: \n");
+  fprintf(stderr, " --atom Hydrogen   [--atom H]  \n");
+  fprintf(stderr, " --atom Lithium    [--atom Li] \n");
+  fprintf(stderr, " --atom Sodium     [--atom Na] \n");
+  fprintf(stderr, " --atom Potassium  [--atom K]  \n");
+  fprintf(stderr, " --atom Rubidium   [--atom Rb] \n");
+  fprintf(stderr, " --atom Cesium     [--atom Cs] \n");
+  fprintf(stderr, " --atom Francium   [--atom Fr] \n");
+  fprintf(stderr, "\n");
+  exit(1);
+
 }
 
 /***************************************************************/
@@ -84,39 +112,25 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   int PECPlate=0;
-  char *PolFile=0;
+  char *Atom=0;
   char *EPFile=0;
-  double XiValues[MAXXI];	int nXiValues;
-  char *XiFile=0;
-  double Temperature=0.0;
-  double AbsTol=ABSTOL; 
-  double RelTol=RELTOL; 
-  double XiMin=XIMIN;
-  int nThread=0;
   OptStruct OSArray[]=
    { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,  0,          ".scuffgeo file"},
      {"PECPlate",       PA_BOOL,    0, 1,       (void *)&PECPlate, 0,          "use PEC plate"},
-     {"PolFile",        PA_STRING,  1, 1,       (void *)&PolFile,  0,          "polarizability file"},
+     {"Atom",           PA_STRING,  1, 1,       (void *)&Atom,     0,          "type of atom"},
      {"EPFile",         PA_STRING,  1, 1,       (void *)&EPFile,   0,          "list of evaluation points"},
-     {"Xi",             PA_DOUBLE,  1, MAXXI,   (void *)XiValues,  &nXiValues, "imaginary frequency"},
-     {"XiList",         PA_DOUBLE,  1, 1,       (void *)&XiFile,   0,          "list of imaginary frequencies"},
-     {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature, 0,       "temperature in kelvin"},
-     {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,   0,          "absolute tolerance for summation/integration"},
-     {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,   0,          "relative tolerance for summation/integration"},
-     {"XiMin",          PA_DOUBLE,  1, 1,       (void *)&XiMin,    0,          "minimum frequency"},
-     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,  0,          "number of CPU threads to use"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
 
   if (GeoFile==0 && PECPlate==0)
-   OSUsage(argv[0], OSArray,"either --geometry or --PECPlate must be specified");
+   Usage(argv[0], OSArray,"either --geometry or --PECPlate must be specified");
   if (GeoFile!=0 && PECPlate!=0)
    ErrExit("geometry and --PECPlate are mutually exclusive");
+  if (Atom==0)
+   Usage(argv[0], OSArray,"--Atom option is mandatory");
   if (EPFile==0)
-   OSUsage(argv[0], OSArray,"--EPfile option is mandatory");
-  if (nThread==0)
-   nThread=GetNumThreads();
+   Usage(argv[0], OSArray,"--EPFile option is mandatory");
 
   /*******************************************************************/
   /* create the RWGGeometry, allocate BEM matrix and RHS vector, and */
@@ -135,61 +149,25 @@ int main(int argc, char *argv[])
      SCPD->KN = 0;
    };
 
-  SCPD->nThread=nThread;
-  SCPD->AbsTol=AbsTol;
-  SCPD->RelTol=RelTol;
-  SCPD->XiMin=XiMin;
-
   SetLogFileName("scuff-caspol.log");
 
   /*******************************************************************/
-  /* create the PolModel structure using the user-specified file     */
   /*******************************************************************/
-  SCPD->PM = new PolModel(PolFile);
+  /*******************************************************************/
+  SCPD->PM = new PolModel(Atom);
+  if (SCPD->PM->ErrMsg)
+   Usage(argv[0], SCPD->PM->ErrMsg);
 
   /*******************************************************************/
   /* process list of evaluation points *******************************/
   /*******************************************************************/
-  HMatrix *EPList=SCPD->EPList=new HMatrix(EPFile,LHM_TEXT,"--ncol 3");
-  if (EPList->ErrMsg)
-   ErrExit(EPList->ErrMsg);
+  HMatrix *EPMatrix = SCPD->EPMatrix = new HMatrix(EPFile,LHM_TEXT,"--ncol 3");
+  if (EPMatrix->ErrMsg)
+   ErrExit(EPMatrix->ErrMsg);
 
-  int nEvalPoints=EPList->NR;
+  int nEvalPoints=EPMatrix->NR;
   // storage for values of CP potential at eval points
   double *U=(double *)mallocEC(nEvalPoints * sizeof(double)); 
-
-  /*******************************************************************/
-  /* process frequency-related options to construct a list of        */
-  /* frequencies at which to run simulations                         */
-  /*******************************************************************/
-  HVector *XiList=0;
-  int nXi, NumFreqs=0;
-  // first process --XiFile option if present
-  if (XiFile) 
-   { XiList = new HVector(XiFile,LHM_TEXT);
-     if (XiList->ErrMsg)
-      ErrExit(XiList->ErrMsg);
-     NumFreqs=XiList->N;
-   };
-
-  // now add any individually specified --Xi options
-  if (nXiValues>0)
-   { 
-     NumFreqs += nXiValues;
-
-     HVector *XiList0=XiList;
-     XiList=new HVector(NumFreqs);
-
-     if (XiList0)
-      { for(nXi=0; nXi<XiList0->N; nXi++)
-         XiList->SetEntry(nXi, XiList0->GetEntryD(nXi));
-        delete XiList0;
-      };
-
-     int nxv;
-     for(nxv=0; nxv<nXiValues; nxv++)
-      XiList->SetEntry(nXi+nxv, XiValues[nxv]);
-   };
 
   /*******************************************************************/
   /*******************************************************************/
@@ -199,7 +177,7 @@ int main(int argc, char *argv[])
    strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
   else
    sprintf(GeoFileBase,"PECPlate");
-  snprintf(ByXiFileName, MAXSTR, "%s.byXi",GeoFileBase);
+  snprintf(ByXiFileName, MAXSTR, "%s.%s.byXi",GeoFileBase,Atom);
   SCPD->ByXiFile=CreateUniqueFile(ByXiFileName,1,ByXiFileName);
   WriteFilePreamble(SCPD->ByXiFile, argc, argv, FILETYPE_BYXI);
 

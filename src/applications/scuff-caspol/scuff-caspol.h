@@ -35,14 +35,7 @@
 #include <libMDInterp.h>
 #include <libscuff.h>
 
-//using namespace scuff;
-
-// default tolerances for numerical summation and integration
-#define ABSTOL 1.0e-8
-#define RELTOL 1.0e-3
-
-// the minimum frequency at which we do calculations
-#define XIMIN 1.0e-6
+using namespace scuff;
 
 /***************************************************************/
 /* PolModel is a simple class used to describe the frequency-  */
@@ -50,22 +43,27 @@
 /* just a single class method, GetPolarizability(), which takes*/
 /* an imaginary frequency as an input and computes values of   */
 /* the polarizability tensor at that frequency.                */
+/*                                                             */
+/* for the time being, the only available polarizabilities     */
+/* are built-in models for a few atomic species. this could    */
+/* eventually be generalized to arbitrary user-specified       */
+/* polarizability data.                                        */
 /***************************************************************/
 class PolModel
  {
 public:
-   // constructor (the parameter is a filename)
-   PolModel(const char *PolFile);
+   // constructor for built-in models
+   PolModel(const char *Atom);
 
    // routine to compute the polarizability 
    void GetPolarizability(double Xi, double *Alpha);
 
    // implementation-dependent data
+   int NumPoints;
+   double *XiPoints, *PolPoints;
    Interp1D *PolInterp;
 
  };
-
-using namespace scuff;
 
 /***************************************************************/
 /* SCPData ('scuff-caspol-data') is the basic structure passed */
@@ -80,12 +78,11 @@ typedef struct SCPData
 
    PolModel *PM;
 
-   HMatrix *EPList;
+   HMatrix *EPMatrix;
 
-   int nThread;
-   double AbsTol, RelTol;
-   double XiMin;
    FILE *ByXiFile;
+
+   char *ErrMsg;
 
  } SCPData; 
 
@@ -93,7 +90,6 @@ typedef struct SCPData
 /***************************************************************/
 /***************************************************************/
 void GetCPIntegrand(SCPData *SCP, double Xi, double *U);
-void EvaluateMatsubaraSum(SCPData *SCP, double Temperature, double *U);
 void EvaluateFrequencyIntegral(SCPData *SCP, double *U);
 
 #endif
