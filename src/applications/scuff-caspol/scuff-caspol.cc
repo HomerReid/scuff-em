@@ -71,10 +71,10 @@ void WriteFilePreamble(const char *FileName, int argc, char *argv[],
   fprintf(f,"#3: Z (um) \n");
   
   int nc=4;
-  char *ExtraString=0;
+  const char *ExtraString=0;
   if (FileType==FILETYPE_BYXI)
    { fprintf(f,"#4: Xi (imaginary frequency) (3e14 rad/sec)\n");
-     ExtraString="per unit frequency ";
+     ExtraString = "per unit frequency ";
      nc++;
    };
 
@@ -86,11 +86,13 @@ void WriteFilePreamble(const char *FileName, int argc, char *argv[],
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void Usage(char *ProgramName, OptStruct *OSArray, char *ErrMsg)
+void Usage(const char *ProgramName, OptStruct *OSArray, const char *ErrMsg)
 {
+  (void) OSArray; // unused
+
   fprintf(stderr, "error: %s (aborting)\n",ErrMsg);
   fprintf(stderr, "\n");
-  fprintf(stderr, "usage: %s [options] \n");
+  fprintf(stderr, "usage: %s [options] \n",ProgramName);
   fprintf(stderr, "\n");
   fprintf(stderr, "options: \n");
   fprintf(stderr, " --geoFile     MyFile.scuffgeo   specify geometry file\n");
@@ -129,7 +131,7 @@ int main(int argc, char *argv[])
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFile,     0,          ".scuffgeo file"},
      {"PECPlate",    PA_BOOL,    0, 1,       (void *)&PECPlate,    0,          "use PEC plate"},
-     {"Atom",        PA_STRING,  1, 10,      (void *)Atoms,        NumAtoms,   "type of atom"},
+     {"Atom",        PA_STRING,  1, 10,      (void *)Atoms,        &NumAtoms,  "type of atom"},
      {"EPFile",      PA_STRING,  1, 1,       (void *)&EPFile,      0,          "list of evaluation points"},
      {"Temperature", PA_DOUBLE,  1, 1,       (void *)&Temperature, 0,          "temperature in Kelvin"},
      {0,0,0,0,0,0,0}
@@ -169,11 +171,13 @@ int main(int argc, char *argv[])
   /* create polarizability models for all specified atoms            */
   /*******************************************************************/
   SCPD->PolModels = (PolModel **)malloc(NumAtoms * sizeof(PolModel *));
+  SCPD->Alphas    = (HMatrix **) malloc(NumAtoms * sizeof(HMatrix *) );
   SCPD->NumAtoms  = NumAtoms;
   for(int na=0; na<NumAtoms; na++)
    { SCPD->PolModels[na] = new PolModel(Atoms[na]);
      if (SCPD->PolModels[na]->ErrMsg)
-      Usage(argv[0], SCPD->PolModels[na]->ErrMsg);
+      Usage(argv[0], OSArray, SCPD->PolModels[na]->ErrMsg);
+     SCPD->Alphas[na] = new HMatrix(3,3);
    };
 
   /*******************************************************************/
@@ -217,7 +221,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   if (XiList)
    {
-     for(nXi=0; nXi<XiList->N; nXi++)
+     for(int nXi=0; nXi<XiList->N; nXi++)
       GetCPIntegrand(SCPD, XiList->GetEntryD(nXi), U);
    }
   else if ( Temperature != 0.0 )
@@ -238,14 +242,14 @@ int main(int argc, char *argv[])
   WriteFilePreamble(OutFileName, argc, argv, FILETYPE_OUT, SCPD);
 
   FILE *f=fopen(OutFileName,"a");
-  for(int nep=0; nep<EPList->NR; nep++)
-   { fprintf(f,"%e %e %e ", EPList->GetEntryD(nep,0),
-                            EPList->GetEntryD(nep,1),
-                            EPList->GetEntryD(nep,2) );
+  for(int nep=0; nep<EPMatrix->NR; nep++)
+   { fprintf(f,"%e %e %e ", EPMatrix->GetEntryD(nep,0),
+                            EPMatrix->GetEntryD(nep,1),
+                            EPMatrix->GetEntryD(nep,2) );
      for(int na=0; na<NumAtoms; na++)
       fprintf(f,"%e ", U[nep*NumAtoms + na]);
 
-     fprintf(,"\n");
+     fprintf(f,"\n");
    };
   fclose(f);
 

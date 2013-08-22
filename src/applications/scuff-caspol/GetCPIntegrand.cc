@@ -57,6 +57,10 @@
 //     = (8.6173e-5 / 0.1973 ) * (T in Kelvin)
 #define BOLTZMANNK 4.36763e-4
 
+#define ABSTOL 1.0e-8
+#define RELTOL 1.0e-3
+#define XIMIN  0.001  
+
 /***************************************************************/
 /* compute the dyadic green's function at a distance Z above a */
 /* PEC plate using the method of images.                       */
@@ -104,13 +108,14 @@ void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
 /***************************************************************/
 void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
 {
-  RWGGeometry *G      = SCPD->G;
-  HMatrix *M          = SCPD->M;
-  HVector *KN         = SCPD->KN;
-  int NumAtoms        = SCPD->NumAtoms;
-  PolModel *PolModels = SCPD->PolModels;
-  HMatrix *EPMatrix   = SCPD->EPMatrix;
-  FILE *ByXiFileName  = SCPD->ByXiFileName;
+  RWGGeometry *G       = SCPD->G;
+  HMatrix *M           = SCPD->M;
+  HVector *KN          = SCPD->KN;
+  int NumAtoms         = SCPD->NumAtoms;
+  PolModel **PolModels = SCPD->PolModels;
+  HMatrix **Alphas     = SCPD->Alphas;   
+  HMatrix *EPMatrix    = SCPD->EPMatrix;
+  char *ByXiFileName   = SCPD->ByXiFileName;
 
   /***************************************************************/ 
   /* assemble and factorize the BEM matrix at this frequency,    */ 
@@ -136,12 +141,13 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   /***************************************************************/ 
   double R[3];
   cdouble GE[3][3], GM[3][3];
-  for(int nep=0; nep<EPList->NR; nep++)
+  FILE *f=fopen(ByXiFileName,"a");
+  for(int nep=0; nep<EPMatrix->NR; nep++)
    { 
       /* get the dyadic GF at this eval point */
-      R[0]=EPList->GetEntryD(nep, 0);
-      R[1]=EPList->GetEntryD(nep, 1);
-      R[2]=EPList->GetEntryD(nep, 2);
+      R[0]=EPMatrix->GetEntryD(nep, 0);
+      R[1]=EPMatrix->GetEntryD(nep, 1);
+      R[2]=EPMatrix->GetEntryD(nep, 2);
 
       Log("Computing DGF at (%e,%e,%e)\n",R[0],R[1],R[2]);
       if (G) 
@@ -149,7 +155,6 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       else
        GetPECPlateDGF(R[2], Xi, GE);
 
-      FILE *f=fopen(ByXiFileName,"a");
       fprintf(f,"%e %e %e %e ",R[0],R[1],R[2],Xi);
       for(int na=0; na<NumAtoms; na++)
        { 
@@ -157,14 +162,14 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
          double UValue=0.0;
          for(int i=0; i<3; i++)
           for(int j=0; j<3; j++)
-           UValue += PREFAC * Xi * Xi * Alpha->GetEntry(i,j) * real(GE[j][i]);
+           UValue += PREFAC * Xi * Xi * Alpha->GetEntryD(i,j) * real(GE[j][i]);
 
-         U[na] = UValue;
+         U[nep*NumAtoms + na] = UValue;
          fprintf(f,"%e ",UValue);
        };
-      fclose(f);
  
    }; 
+  fclose(f);
 
 }
 
@@ -182,12 +187,13 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
   double *dU = new double[NU], *LastU = new double[NU];
   memset(U,0,NU*sizeof(double));
 
-  int *ConvergedIters = new int[NEP], AllConverged;
+  int *ConvergedIters = new int[NU], AllConverged;
   memset(ConvergedIters,0,NU*sizeof(int));
 
   Log("Beginning Matsubara sum at T=%g kelvin...",Temperature);
 
-  for(int nXi=0; nXi<100000; nXi++)
+  int nXi;
+  for(nXi=0; nXi<100000; nXi++)
    { 
      /***************************************************************/
      /* compute the next matsubara frequency ************************/
@@ -263,18 +269,21 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
 /* integrand routine used to evaluate imaginary frequency      */
 /* integral by adaptive quadrature                             */
 /***************************************************************/
-void SGJCIntegrand(unsigned ndim, const double *x, void *params,
-                   unsigned fdim, double *fval)
+int SGJCIntegrand(unsigned ndim, const double *x, void *params,
+                  unsigned fdim, double *fval)
 {
   double Xi = x[0] / (1.0-x[0]);
 
   SCPData *SCPD = (SCPData *)params;
   GetCPIntegrand(SCPD, Xi, fval);
 
-  int nf;
+  unsigned nf;
   double J  = 1.0 / ((1.0-x[0])*(1.0-x[0])); // jacobian
   for(nf=0; nf<fdim; nf++)
    fval[nf]*=J;
+
+  return 0;
+
 }
   
   
@@ -282,13 +291,12 @@ void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
 {
   double Lower=0.0;
   double Upper=1.0;
-
-  int fdim=SCPD->EPList->NR; // dimension of integrand vector 
+  int fdim = (SCPD->EPMatrix->NR * SCPD->NumAtoms);
   double *Error = new double[fdim];
 
-  adapt_integrate_log(fdim, SGJCIntegrand, (void *)SCPD, 1, 
-                      &Lower, &Upper, 0, SCPD->AbsTol, SCPD->RelTol,
-                      U, Error, "scuff-caspol.cubaturelog", 15);
+  pcubature(fdim, SGJCIntegrand, (void *)SCPD, 1, 
+            &Lower, &Upper, 0, ABSTOL, RELTOL,
+            ERROR_INDIVIDUAL, U, Error);
 
   delete[] Error;
 }

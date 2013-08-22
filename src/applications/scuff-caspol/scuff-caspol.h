@@ -56,8 +56,8 @@ public:
    // constructor for built-in models
    PolModel(const char *Atom);
 
-   // routine to compute the polarizability 
-   void GetPolarizability(double Xi, double *Alpha);
+   // routine to compute the polarizability tensor
+   void GetPolarizability(double Xi, HMatrix *Alpha);
 
    // implementation-dependent data
    char *Name;
@@ -97,5 +97,6 @@ typedef struct SCPData
 /***************************************************************/
 void GetCPIntegrand(SCPData *SCP, double Xi, double *U);
 void EvaluateFrequencyIntegral(SCPData *SCP, double *U);
+void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U);
 
 #endif
