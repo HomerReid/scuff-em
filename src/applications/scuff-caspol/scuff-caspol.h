@@ -52,6 +52,7 @@ using namespace scuff;
 class PolModel
  {
 public:
+
    // constructor for built-in models
    PolModel(const char *Atom);
 
@@ -59,6 +60,9 @@ public:
    void GetPolarizability(double Xi, double *Alpha);
 
    // implementation-dependent data
+   char *Name;
+   char *ErrMsg;
+
    int NumPoints;
    double *XiPoints, *PolPoints;
    Interp1D *PolInterp;
@@ -76,11 +80,13 @@ typedef struct SCPData
    HMatrix *M;
    HVector *KN;
 
-   PolModel *PM;
+   int NumAtoms;
+   PolModel **PolModels;
+   HMatrix **Alphas;
 
    HMatrix *EPMatrix;
 
-   FILE *ByXiFile;
+   char *ByXiFileName;
 
    char *ErrMsg;
 

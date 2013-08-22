@@ -47,7 +47,6 @@
 // energy in units of ev.                         
 #define PREFAC 2.9237e-14
 
-
 // factor that converts temperature from degrees
 // kelvin to my internal energy units 
 // (in which '1' == 0.1973 ev.)
@@ -105,56 +104,68 @@ void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
 /***************************************************************/
 void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
 {
-  RWGGeometry *G     = SCPD->G;
-  HMatrix *M         = SCPD->M;
-  HVector *KN        = SCPD->KN;
-  PolModel *PM       = SCPD->PM;
-  HMatrix *EPList    = SCPD->EPList;
-  FILE *ByXiFile     = SCPD->ByXiFile;
+  RWGGeometry *G      = SCPD->G;
+  HMatrix *M          = SCPD->M;
+  HVector *KN         = SCPD->KN;
+  int NumAtoms        = SCPD->NumAtoms;
+  PolModel *PolModels = SCPD->PolModels;
+  HMatrix *EPMatrix   = SCPD->EPMatrix;
+  FILE *ByXiFileName  = SCPD->ByXiFileName;
 
   /***************************************************************/ 
-  /* assemble and factorize the BEM matrix at this frequency     */ 
-  /* (unless we are doing the PEC plate case...)                 */ 
+  /* assemble and factorize the BEM matrix at this frequency,    */ 
+  /* unless we are doing the PEC plate case.                     */ 
   /***************************************************************/
   if (G)
    { Log("Assembling BEM matrix at Xi=%g\n",Xi);
      G->AssembleBEMMatrix(cdouble(0,Xi), M);
+     Log("LU-factorizing...");
      M->LUFactorize();
    };
 
   /***************************************************************/ 
-  /* get polarizability values at this frequency                 */ 
+  /* look up the polarizability tensor for each atomic species   */ 
+  /* at this frequency                                           */ 
   /***************************************************************/ 
-  double Alpha[9];
-  memset(Alpha, 0, 9*sizeof(double));
-  PM->GetPolarizability(Xi, Alpha);
+  for(int na=0; na<NumAtoms; na++)
+   PolModels[na]->GetPolarizability(Xi, Alphas[na]);
 
   /***************************************************************/ 
-  /* loop over all evaluation points to get the contribution  of */ 
+  /* loop over all evaluation points to get the contribution of  */ 
   /* this frequency to the CP potential at each point            */
   /***************************************************************/ 
-  int i, j, nep;
   double R[3];
   cdouble GE[3][3], GM[3][3];
-  for(nep=0; nep<EPList->NR; nep++)
+  for(int nep=0; nep<EPList->NR; nep++)
    { 
       /* get the dyadic GF at this eval point */
       R[0]=EPList->GetEntryD(nep, 0);
       R[1]=EPList->GetEntryD(nep, 1);
       R[2]=EPList->GetEntryD(nep, 2);
+
+      Log("Computing DGF at (%e,%e,%e)\n",R[0],R[1],R[2]);
       if (G) 
        G->GetDyadicGFs(R, cdouble(0,Xi), M, KN, GE, GM);
       else
        GetPECPlateDGF(R[2], Xi, GE);
 
-      /* compute the trace of Alpha \cdot G */
-      for(U[nep]=0.0, i=0; i<3; i++)
-       for(j=0; j<3; j++)
-        U[nep] += PREFAC * Xi * Xi * Alpha[i+3*j] * real(GE[j][i]);
-      
-      fprintf(ByXiFile,"%e %e %e %e %e\n",R[0],R[1],R[2],Xi,U[nep]);
+      FILE *f=fopen(ByXiFileName,"a");
+      fprintf(f,"%e %e %e %e ",R[0],R[1],R[2],Xi);
+      for(int na=0; na<NumAtoms; na++)
+       { 
+         HMatrix *Alpha = Alphas[na];
+         double UValue=0.0;
+         for(int i=0; i<3; i++)
+          for(int j=0; j<3; j++)
+           UValue += PREFAC * Xi * Xi * Alpha->GetEntry(i,j) * real(GE[j][i]);
+
+         U[na] = UValue;
+         fprintf(f,"%e ",UValue);
+       };
+      fclose(f);
  
    }; 
+
 }
 
 /***************************************************************/
@@ -162,26 +173,30 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
 /***************************************************************/
 void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
 { 
-  int nXi, NEP=SCPD->EPList->NR;  // 'number of evaluation points' 
-  double Xi, Weight, Delta;
-  double *dU = new double[NEP], *LastU = new double[NEP]; 
-  int *ConvergedIters = new int[NEP], AllConverged;
   double kT=Temperature*BOLTZMANNK;
 
-  memset(U,0,NEP*sizeof(double));
-  memset(ConvergedIters,0,NEP*sizeof(int));
+  int NEP=SCPD->EPMatrix->NR;  // 'number of evaluation points'
+  int NA=SCPD->NumAtoms;
+  int NU=NA*NEP;
+
+  double *dU = new double[NU], *LastU = new double[NU];
+  memset(U,0,NU*sizeof(double));
+
+  int *ConvergedIters = new int[NEP], AllConverged;
+  memset(ConvergedIters,0,NU*sizeof(int));
 
   Log("Beginning Matsubara sum at T=%g kelvin...",Temperature);
 
-  for(nXi=0; nXi<100000; nXi++)
+  for(int nXi=0; nXi<100000; nXi++)
    { 
      /***************************************************************/
      /* compute the next matsubara frequency ************************/
      /***************************************************************/
+     double Xi, Weight, Delta;
      if (nXi==0)
       { Weight=0.5;
         // NOTE: we assume that the integrand is constant for Xi < XIMIN
-        Xi=SCPD->XiMin;
+        Xi=XIMIN;
       }
      else
       { Weight=1.0;
@@ -202,35 +217,34 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
      /* he n==0 term is weighted                                    */
      /* with a factor of 1/2.                                       */
      /***************************************************************/
-     memcpy(LastU,U,NEP*sizeof(double));
-     int nep;
-     for(nep=0; nep<NEP; nep++)
-      U[nep] += Weight * 2.0*M_PI*kT * dU[nep];
+     memcpy(LastU,U,NU*sizeof(double));
+     for(int nu=0; nu<NU; nu++)
+      U[nu] += Weight * 2.0*M_PI*kT * dU[nu];
 
      /*********************************************************************/
      /* convergence analysis.                                             */
      /* how it works: if the absolute or relative change in the potential */
-     /* at point #nep is within our tolerances, we increment              */
-     /* ConvergedIters[nep]; otherwise we set ConvergedIters[nep] to 0.   */
+     /* at point #nu is within our tolerances, we increment               */
+     /* ConvergedIters[nu]; otherwise we set ConvergedIters[nu] to 0.    */
      /* when ConvergedIters[nep] hits 3, we mark quantity #nep as         */
      /* having converged.                                                 */
      /* when all quantities have converged, we are done.                  */
      /*********************************************************************/
-     for(AllConverged=1, nep=0; nep<NEP; nep++)
+     AllConverged=1;
+     for(int nu=0; nu<NU; nu++)
       { 
-        Delta = fabs( (U[nep]-LastU[nep]) );
-        if ( Delta < SCPD->AbsTol || Delta < SCPD->RelTol*fabs(U[nep]) )
-         ConvergedIters[nep]++;
+        Delta = fabs( (U[nu]-LastU[nu]) );
+        if ( Delta < ABSTOL || Delta < RELTOL*fabs(U[nu]) )
+         ConvergedIters[nu]++;
         else
-         ConvergedIters[nep]=0;
+         ConvergedIters[nu]=0;
    
-        if (ConvergedIters[nep]<3) AllConverged=0;
+        if (ConvergedIters[nu]<3) AllConverged=0;
       }; 
-
      if (AllConverged==1)
       break;
 
-   }; /* for (n=0 ... */
+   }; /* for (nXi=0 ... */
   
   if (AllConverged==0)
    { 

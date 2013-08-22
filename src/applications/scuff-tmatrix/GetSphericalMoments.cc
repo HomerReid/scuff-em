@@ -1,4 +1,3 @@
-
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.

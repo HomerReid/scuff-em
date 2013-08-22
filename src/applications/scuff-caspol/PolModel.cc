@@ -36,6 +36,8 @@ PolModel::PolModel(const char *Atom)
 {
   ErrMsg=0;
 
+  Name=strdup(Atom);
+
   NumPoints = NUMPOINTS_DPB;
 
   XiPoints = XiPoints_DPB;
@@ -71,19 +73,12 @@ PolModel::PolModel(const char *Atom)
 /* on input, Xi is the imaginary frequency in units of         */
 /* 3e14 rad/sec.                                               */
 /*                                                             */
-/* Alpha points to a vector of size 9 that the routine must    */
-/* fill in with the components of the polarizability tensor,   */
-/* as follows:                                                 */
+/* Alpha points to a preallocated 3x3 real-valued HMatrix.     */
 /*                                                             */
-/*  Alpha[0] = Alpha_{xx}                                      */
-/*  Alpha[1] = Alpha_{xy}                                      */
-/*  Alpha[2] = Alpha_{xz}                                      */
-/*  Alpha[3] = Alpha_{yx}                                      */
-/*  ...                                                        */
-/*                                                             */
-/* etc. (in general: Alpha[ i + 3*j ] = Alpha_{ij} )           */
+/* On return, Alpha is filled in with the components of the    */
+/* polarizability at this imaginary frequency.                 */
 /***************************************************************/
-void PolModel::GetPolarizability(double Xi, double *Alpha) 
+void PolModel::GetPolarizability(double Xi, HMatrix *Alpha)
  {
    // the constant here convertes Xi from my units, 
    // in which '1' == 3e14 rad/sec, to atomic units, 
@@ -91,8 +86,10 @@ void PolModel::GetPolarizability(double Xi, double *Alpha)
    double AlphaDiag;
    PolInterp->Evaluate(0.00115493*Xi , &AlphaDiag);
 
-   // note we only have to fill in the nonzero entries of Alpha
-   Alpha[0]=Alpha[4]=Alpha[8]=AlphaDiag;
+   Alpha->Zero();
+   Alpha->SetEntry(0,0,AlphaDiag);
+   Alpha->SetEntry(1,1,AlphaDiag);
+   Alpha->SetEntry(2,2,AlphaDiag);
 
  }
 

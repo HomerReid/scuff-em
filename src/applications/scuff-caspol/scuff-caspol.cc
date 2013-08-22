@@ -18,16 +18,15 @@
  */
 
 /*
- * scuff-caspol.cc   -- a standalone code within the scuff-EM suite for 
- *                   -- computing dyadic green's functions of material
- *                   -- bodies, as well as casimir-polder and van-der-Waals 
- *                   -- potentials for polarizable molecules in the 
- *                   -- vicinity of those bodies
+ * scuff-caspol.cc   -- a standalone code within the scuff-EM suite for
+ *                   -- computing casimir-polder potentials for
+ *                   -- polarizable molecules in the vicinity of material
+ *                   -- bodies
  *
  * documentation at: 
  *  http://homerreid.com/scuff-em/scuff-caspol
  *
- * homer reid        -- 10/2006 -- 2/2012
+ * homer reid        -- 10/2006 -- 8/2013
  *
  */
 #include "scuff-caspol.h"
@@ -39,14 +38,19 @@
 /***************************************************************/
 #define MAXSTR  1000
 #define MAXXI   10
+#define MAXATOM 10
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 #define FILETYPE_BYXI 0
 #define FILETYPE_OUT  1
-void WriteFilePreamble(FILE *f, int argc, char *argv[], int FileType)
+void WriteFilePreamble(const char *FileName, int argc, char *argv[], 
+                       int FileType, SCPData *SCPD)
 { 
+
+  FILE *f = fopen(FileName, "a");
+  if (!f) return;
 
   time_t MyTime=time(0);
   struct tm *MyTm=localtime(&MyTime);
@@ -62,16 +66,21 @@ void WriteFilePreamble(FILE *f, int argc, char *argv[], int FileType)
   fprintf(f,"\n");
   fprintf(f,"#\n");
   fprintf(f,"# data columns:\n");
-  fprintf(f,"#1: X \n");
-  fprintf(f,"#2: Y \n");
-  fprintf(f,"#3: Z \n");
+  fprintf(f,"#1: X (um) \n");
+  fprintf(f,"#2: Y (um) \n");
+  fprintf(f,"#3: Z (um) \n");
+  
+  int nc=4;
+  char *ExtraString=0;
   if (FileType==FILETYPE_BYXI)
-   { fprintf(f,"#4: Xi \n");
-     fprintf(f,"#5: casimir-polder potential per unit frequency at (X, Y, Z, Xi)\n");
-   }
-  else
-   fprintf(f,"#4: casimir-polder potential at (X, Y, Z)\n");
+   { fprintf(f,"#4: Xi (imaginary frequency) (3e14 rad/sec)\n");
+     ExtraString="per unit frequency ";
+     nc++;
+   };
 
+  for(int na=0; na<SCPD->NumAtoms; na++)
+   fprintf(f,"#%ii: Casimir-polder potential %sfor %s (eV)\n",
+              nc,ExtraString,SCPD->PolModels[na]->Name);
 }
 
 /***************************************************************/
@@ -84,10 +93,11 @@ void Usage(char *ProgramName, OptStruct *OSArray, char *ErrMsg)
   fprintf(stderr, "usage: %s [options] \n");
   fprintf(stderr, "\n");
   fprintf(stderr, "options: \n");
-  fprintf(stderr, " --geoFile  MyFile.scuffgeo         specify geometry file\n");
-  fprintf(stderr, " --PECPlate                         use PEC plate\n");
-  fprintf(stderr, " --EPFile   MyEvalPointFile         file specifying evaluation points\n");
-  fprintf(stderr, " --atom     Rubidium                type of atom\n");
+  fprintf(stderr, " --geoFile     MyFile.scuffgeo   specify geometry file\n");
+  fprintf(stderr, " --PECPlate                      use PEC plate\n");
+  fprintf(stderr, " --EPFile      MyEvalPointFile   file specifying evaluation points\n");
+  fprintf(stderr, " --atom        Rubidium          type of atom\n");
+  fprintf(stderr, " --temperature xx                compute at T=xx kelvin\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "atoms supported: \n");
   fprintf(stderr, " --atom Hydrogen   [--atom H]  \n");
@@ -111,14 +121,17 @@ int main(int argc, char *argv[])
   /* process options *********************************************/
   /***************************************************************/
   char *GeoFile=0;
-  int PECPlate=0;
-  char *Atom=0;
+  bool PECPlate=false;
+  char *Atoms[MAXATOM];    int NumAtoms;
   char *EPFile=0;
+  double Temperature = 0.0;
+  /* name           type  #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
-   { {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,  0,          ".scuffgeo file"},
-     {"PECPlate",       PA_BOOL,    0, 1,       (void *)&PECPlate, 0,          "use PEC plate"},
-     {"Atom",           PA_STRING,  1, 1,       (void *)&Atom,     0,          "type of atom"},
-     {"EPFile",         PA_STRING,  1, 1,       (void *)&EPFile,   0,          "list of evaluation points"},
+   { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFile,     0,          ".scuffgeo file"},
+     {"PECPlate",    PA_BOOL,    0, 1,       (void *)&PECPlate,    0,          "use PEC plate"},
+     {"Atom",        PA_STRING,  1, 10,      (void *)Atoms,        NumAtoms,   "type of atom"},
+     {"EPFile",      PA_STRING,  1, 1,       (void *)&EPFile,      0,          "list of evaluation points"},
+     {"Temperature", PA_DOUBLE,  1, 1,       (void *)&Temperature, 0,          "temperature in Kelvin"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -127,8 +140,8 @@ int main(int argc, char *argv[])
    Usage(argv[0], OSArray,"either --geometry or --PECPlate must be specified");
   if (GeoFile!=0 && PECPlate!=0)
    ErrExit("geometry and --PECPlate are mutually exclusive");
-  if (Atom==0)
-   Usage(argv[0], OSArray,"--Atom option is mandatory");
+  if (NumAtoms==0)
+   Usage(argv[0], OSArray,"you must specify at least one --atom");
   if (EPFile==0)
    Usage(argv[0], OSArray,"--EPFile option is mandatory");
 
@@ -147,16 +160,21 @@ int main(int argc, char *argv[])
    { SCPD->G  = 0; // in this case we take the 
      SCPD->M  = 0; // geometry to be a PEC plate in the xy plane
      SCPD->KN = 0;
+     GeoFile = strdup("PECPlate");
    };
 
   SetLogFileName("scuff-caspol.log");
 
   /*******************************************************************/
+  /* create polarizability models for all specified atoms            */
   /*******************************************************************/
-  /*******************************************************************/
-  SCPD->PM = new PolModel(Atom);
-  if (SCPD->PM->ErrMsg)
-   Usage(argv[0], SCPD->PM->ErrMsg);
+  SCPD->PolModels = (PolModel **)malloc(NumAtoms * sizeof(PolModel *));
+  SCPD->NumAtoms  = NumAtoms;
+  for(int na=0; na<NumAtoms; na++)
+   { SCPD->PolModels[na] = new PolModel(Atoms[na]);
+     if (SCPD->PolModels[na]->ErrMsg)
+      Usage(argv[0], SCPD->PolModels[na]->ErrMsg);
+   };
 
   /*******************************************************************/
   /* process list of evaluation points *******************************/
@@ -165,21 +183,21 @@ int main(int argc, char *argv[])
   if (EPMatrix->ErrMsg)
    ErrExit(EPMatrix->ErrMsg);
 
-  int nEvalPoints=EPMatrix->NR;
+  int NumEvalPoints=EPMatrix->NR;
   // storage for values of CP potential at eval points
-  double *U=(double *)mallocEC(nEvalPoints * sizeof(double)); 
+  double *U=(double *)mallocEC(NumEvalPoints * NumAtoms * sizeof(double));
 
   /*******************************************************************/
+  /* create the .byXi file ***********************************************/
   /*******************************************************************/
+  SCPD->ByXiFileName=vstrdup("%s.byXi",GetFileBase(GeoFile));
+  WriteFilePreamble(SCPD->ByXiFileName, argc, argv, FILETYPE_BYXI, SCPD);
+
   /*******************************************************************/
-  char GeoFileBase[MAXSTR], ByXiFileName[MAXSTR]; 
-  if (GeoFile)
-   strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
-  else
-   sprintf(GeoFileBase,"PECPlate");
-  snprintf(ByXiFileName, MAXSTR, "%s.%s.byXi",GeoFileBase,Atom);
-  SCPD->ByXiFile=CreateUniqueFile(ByXiFileName,1,ByXiFileName);
-  WriteFilePreamble(SCPD->ByXiFile, argc, argv, FILETYPE_BYXI);
+  /* insert here code to process a list of --Xi values and/or        */
+  /* --XiFile specifications                                         */
+  /*******************************************************************/
+  HVector *XiList = 0;
 
   /*******************************************************************/
   /* main program body:                                              */
@@ -210,35 +228,36 @@ int main(int argc, char *argv[])
    { 
      EvaluateFrequencyIntegral(SCPD, U);
    };
-  fclose(SCPD->ByXiFile);
 
   /***************************************************************/
-  /* write frequency-integrated or matsubara-summed results to   */
-  /* output file if that was requested                           */
+  /* write frequency-integrated or Matsubara-summed results to   */
+  /* output file                                                 */
   /***************************************************************/
-  if (!XiList)
-   {
-     char OutFileName[MAXSTR];
-     snprintf(OutFileName, MAXSTR, "%s.out",GeoFileBase);
-     FILE *OutFile=CreateUniqueFile(OutFileName,1,OutFileName);
-     WriteFilePreamble(OutFile, argc, argv, FILETYPE_OUT);
-     int nep;
-     for(nep=0; nep<EPList->NR; nep++)
-      fprintf(OutFile,"%e %e %e %e \n", EPList->GetEntryD(nep,0),
-                                        EPList->GetEntryD(nep,1),
-                                        EPList->GetEntryD(nep,2),
-                                        U[nep]);
-     fclose(OutFile);
-     if (Temperature>0.0)
-      printf("Matsubara-summed data written to file %s.\n",OutFileName);
-     else
-      printf("Frequency-integrated data written to file %s.\n",OutFileName);
+  char OutFileName[MAXSTR];
+  snprintf(OutFileName, MAXSTR, "%s.out",GetFileBase(GeoFile));
+  WriteFilePreamble(OutFileName, argc, argv, FILETYPE_OUT, SCPD);
+
+  FILE *f=fopen(OutFileName,"a");
+  for(int nep=0; nep<EPList->NR; nep++)
+   { fprintf(f,"%e %e %e ", EPList->GetEntryD(nep,0),
+                            EPList->GetEntryD(nep,1),
+                            EPList->GetEntryD(nep,2) );
+     for(int na=0; na<NumAtoms; na++)
+      fprintf(f,"%e ", U[nep*NumAtoms + na]);
+
+     fprintf(,"\n");
    };
+  fclose(f);
+
+  if (Temperature>0.0)
+   printf("Matsubara-summed data written to file %s.\n",OutFileName);
+  else
+   printf("Frequency-integrated data written to file %s.\n",OutFileName);
 
   /***************************************************************/
   /***************************************************************/  
   /***************************************************************/
-  printf("Frequency-resolved data written to file %s.\n",ByXiFileName);
+  printf("Frequency-resolved data written to file %s.\n",SCPD->ByXiFileName);
   printf("Thank you for your support.\n");
 
 }
