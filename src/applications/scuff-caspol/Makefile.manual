@@ -1,0 +1,34 @@
+##################################################
+##################################################
+##################################################
+SCUFFEM  = /home/homer/work/scuff-em-installation
+LIBSCUFF = /home/homer/work/scuff-em/src/libs/libscuff
+LIBDIR = /home/homer/work/scuff-em-installation/lib
+#LIBDIR = /home/homer/work/scuff-em/src/libs/libscuff/.libs
+
+##################################################
+##################################################
+##################################################
+CPPFLAGS += -I$(SCUFFEM)/include/scuff-em -I$(HOME)/include -I. -fopenmp
+CPPFLAGS += -I$(LIBSCUFF)
+LDFLAGS += -L$(LIBDIR) -Wl,-rpath,$(LIBDIR)
+LDFLAGS += -L$(HOME)/codes/lib -L$(HOME)/lib 
+
+CXXFLAGS += -O3
+#CXXFLAGS = -ggdb -O0
+
+HR_LIBS=-lscuff -lPolyFit
+OTHER_LIBS = -lhdf5_hl -lhdf5 -llapack -lopenblas -lgomp -lgfortran -lreadline -lncurses
+
+LIBS = $(HR_LIBS) $(OTHER_LIBS)
+
+##################################################
+##################################################
+##################################################
+TPM = tPolModel.o PolModel.o
+
+tPolModel:	$(TPM)
+		$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+clean:
+		/bin/rm *.o *.a
