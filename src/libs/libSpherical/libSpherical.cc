@@ -220,18 +220,27 @@ void GetPlm(int lMax, int m, double x, double *Plm, double *PlmPrime)
 /*--------------------------------------------------------------*/
 cdouble GetYlm(int l, int m, double Theta, double Phi)
 {  
-  if ( abs(m)==1 && fabs(Theta)<1.0e-6 || fabs(Theta-M_PI)<1.0e-6 )
-   return 0.0 + 0.0fi;
+  if ( abs(m)==1 && (fabs(Theta)<1.0e-6 || fabs(Theta-M_PI)<1.0e-6) )
+   return 0.0; 
 
   if (abs(m)>l) 
    ErrExit("%s:%i: abs(m)>l in GetYlm",__FILE__,__LINE__);
 
-  double Plm[l], PlmPrime[l], mPhi=m*Phi;
+  double *Plm      = new double[l]; 
+  double *PlmPrime = new double[l];
+  double mPhi=m*Phi;
+  cdouble RetVal;
+
   GetPlm(l, abs(m), cos(Theta), Plm, PlmPrime);
   if (m<0)
-   return ((m%1) ? -1.0 : 1.0) * Plm[l-abs(m)] * exp(-1.0*II*mPhi);
+   RetVal = ((m%1) ? -1.0 : 1.0) * Plm[l-abs(m)] * exp(-1.0*II*mPhi);
   else
-   return Plm[l-m]*exp(II*mPhi);
+   RetVal = Plm[l-m]*exp(II*mPhi);
+
+  delete[] Plm;
+  delete[] PlmPrime;
+
+  return RetVal;
 
 }  
 
@@ -270,9 +279,19 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
                       cdouble *Ylm, cdouble *dYlmdTheta)
 {
   int l, m, mm, Alpha;
-  double dm;
-  double Plm[lMax+1][lMax+1], PlmPrime[lMax+1][lMax+1];
-  double CosMP[lMax+1], SinMP[lMax+1];
+
+  /* whoops! this doesn't work in C++. for now i will  */
+  /* hard-code the value of LMAX...FIXME               */
+  // double **Plm      = new double[lMax+1][lMax+1];
+  // double **PlmPrime = new double[lMax+1][lMax+1];
+
+  #define LMAXMAX 30
+  if (lMax>LMAXMAX) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+  double Plm[LMAXMAX+1][LMAXMAX+1];
+  double PlmPrime[LMAXMAX+1][LMAXMAX+1];
+
+  double *CosMP     = new double[lMax+1];
+  double *SinMP     = new double[lMax+1];
   double CT, ST;
   cdouble PhiFac;
 
@@ -309,7 +328,6 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
    for(m=-l; m<=l; m++, Alpha++)
     { 
       mm=abs(m);
-      dm=(double)m;
 
       if (m>=0)
        PhiFac=cdouble( CosMP[mm],  SinMP[mm] );
@@ -320,6 +338,11 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
       if (dYlmdTheta)
        dYlmdTheta[Alpha] =  -1.0*ST*PlmPrime[mm][l] * PhiFac;
     };
+
+  //delete[] Plm;
+  //delete[] PlmPrime;
+  delete[] CosMP;
+  delete[] SinMP;
 }
 
 /**********************************************************************/
@@ -396,7 +419,7 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
   for(l=0; l<=lMax; l++)
    { 
      if (r==0.0) 
-      dRdr[l]=0.0 + 0.0fi;
+      dRdr[l]=0.0;
      else
       dRdr[l] = k*( ((double) l)*R[l]/kr + Sign*R[l+1] );
    };
@@ -409,7 +432,8 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
 void GetRadialFunction(int l, cdouble k, double r, int WaveType, 
                        cdouble *Rl, cdouble *dRldr, cdouble *RlSlash)
 { 
-  cdouble R[l+2], dRdr[l+2];
+  cdouble *R    = new cdouble[l+2];
+  cdouble *dRdr = new cdouble[l+2];
   
   GetRadialFunctions(l, k, r, WaveType, R, dRdr); 
 
@@ -420,6 +444,9 @@ void GetRadialFunction(int l, cdouble k, double r, int WaveType,
 
   if (RlSlash) 
    *RlSlash = R[l]/(k*r) + dRdr[l]/k;
+
+  delete[] R;
+  delete[] dRdr;
 
 }
 
@@ -450,8 +477,9 @@ void GetScalarHelmholtzSolutions(int lMax, cdouble k,
 {  
   int NAlpha=(lMax+1)*(lMax+1);
   int Alpha, l, m;
-  cdouble R[lMax+2];
-  cdouble Ylm[NAlpha];
+
+  cdouble *R   = new cdouble[lMax+2];
+  cdouble *Ylm = new cdouble[NAlpha];
 
   /***************************************************************/
   /* get radial functions ****************************************/
@@ -473,6 +501,10 @@ void GetScalarHelmholtzSolutions(int lMax, cdouble k,
   for (Alpha=l=0; l<=lMax; l++)
    for (m=-l; m<=l; m++, Alpha++)
     Psi[Alpha]=R[l]*Ylm[Alpha];
+
+  delete[] R;
+  delete[] Ylm;
+
 }
 
 /***************************************************************/  
@@ -483,11 +515,6 @@ void GetScalarHelmholtzSolutions(int lMax, cdouble k,
 /***************************************************************/
 void GetXlm(int l, int m, double Theta, double Phi, cdouble X[3])
 {  
-  int NAlpha=(l+1)*(l+1);
-  int Alpha;
-  cdouble Ylm[NAlpha], dYlmdTheta[NAlpha];
-  double NormFac, SinTheta;
-
   if (l==0)
    { memset(X,0,3*sizeof(cdouble));
      return;
@@ -497,17 +524,22 @@ void GetXlm(int l, int m, double Theta, double Phi, cdouble X[3])
    Theta=1.0e-6;
   if ( fabs(Theta-M_PI) < 1.0e-6 )
    Theta=M_PI-1.0e-6;
-  SinTheta=sin(Theta);
+  double SinTheta=sin(Theta);
 
+  int NAlpha=(l+1)*(l+1);
+  cdouble *Ylm        = new cdouble[NAlpha]; 
+  cdouble *dYlmdTheta = new cdouble[NAlpha];
   GetYlmDerivArray(l, Theta, Phi, Ylm, dYlmdTheta);
 
-  Alpha = l*(l+1) + m;
-
-  NormFac=1.0/sqrt( (double)(l*(l+1)) ) ;
+  int Alpha = l*(l+1) + m;
+  double NormFac=1.0/sqrt( (double)(l*(l+1)) ) ;
 
   X[0]=0.0;
   X[1]= -m*NormFac*Ylm[Alpha]/SinTheta;
   X[2]= -II*NormFac*dYlmdTheta[Alpha];
+
+  delete[] Ylm;
+  delete[] dYlmdTheta;
 
 }
 
@@ -526,7 +558,8 @@ void GetXlm(int l, int m, double Theta, double Phi, cdouble X[3])
 void GetXlmArray(int lMax, double Theta, double Phi, cdouble *X)
 {  
   int l, m, Alpha, NAlpha=(lMax+1)*(lMax+1);
-  cdouble Ylm[NAlpha], dYlmdTheta[NAlpha];
+  cdouble *Ylm = new cdouble[NAlpha];
+  cdouble *dYlmdTheta = new cdouble[NAlpha];
   double NormFac, SinTheta;
   
   if ( fabs(Theta)<1.0e-6 )
@@ -537,7 +570,7 @@ void GetXlmArray(int lMax, double Theta, double Phi, cdouble *X)
 
   GetYlmDerivArray(lMax, Theta, Phi, Ylm, dYlmdTheta);
 
-  X[0]=X[1]=X[2]=0.0 + 0.0fi;
+  X[0]=X[1]=X[2]=0.0;
 
   for(Alpha=l=1; l<=lMax; l++)
    { 
@@ -550,6 +583,9 @@ void GetXlmArray(int lMax, double Theta, double Phi, cdouble *X)
       };
 
    };
+
+  delete[] Ylm;
+  delete[] dYlmdTheta;
 
 }
 
@@ -599,8 +635,11 @@ void GetMNlmArray(int lMax, cdouble k,
   int Alpha, l, m;
   double SinTheta, dl, dm;
   cdouble nik, PreFac;
-  cdouble R[lMax+2], dRdr[lMax+2], ROverR;
-  cdouble Ylm[NAlpha], dYlmdTheta[NAlpha];
+  cdouble ROverR;
+  cdouble *R          = new cdouble[lMax+2]; 
+  cdouble *dRdr       = new cdouble[lMax+2];
+  cdouble *Ylm        = new cdouble[NAlpha];
+  cdouble *dYlmdTheta = new cdouble[NAlpha];
 
   /***************************************************************/
   /* get radial functions ****************************************/
@@ -646,6 +685,11 @@ void GetMNlmArray(int lMax, cdouble k,
        N[3*Alpha + 2]= -dm*PreFac*(ROverR + dRdr[l])*Ylm[Alpha]/SinTheta;
 
     };
+
+  delete[] R;
+  delete[] dRdr;
+  delete[] Ylm;
+  delete[] dYlmdTheta;
   
 }
 
@@ -656,7 +700,8 @@ void GetMlm(int l, int m, cdouble k, double r, double Theta, double Phi,
             int WaveType, cdouble M[3], cdouble N[3])
 {
   int NAlpha = (l+1)*(l+1);
-  cdouble MArray[3*NAlpha], NArray[3*NAlpha];
+  cdouble *MArray = new cdouble[3*NAlpha]; 
+  cdouble *NArray = new cdouble[3*NAlpha];
 
   GetMNlmArray(l, k, r, Theta, Phi, WaveType, MArray, NArray);
 
@@ -667,6 +712,9 @@ void GetMlm(int l, int m, cdouble k, double r, double Theta, double Phi,
   N[0] = NArray[ 3*Alpha + 0 ];
   N[1] = NArray[ 3*Alpha + 1 ];
   N[2] = NArray[ 3*Alpha + 2 ];
+
+  delete[] MArray;
+  delete[] NArray;
 
 }
  
@@ -686,12 +734,9 @@ void GetCurl(double r, double Theta, double Phi,
 #ifdef METHOD1
 {
   cdouble F0[3], FP[3], FM[3], dFdr[3], dFdTheta[3], dFdPhi[3];
-  double Delta, DeltaR, DeltaT, DeltaP;
+  double Delta;
   double CT, ST;
   int Mu;
-
-  DeltaT = (Theta==0.0) ? 1.0e-4 : 1.0e-4*fabs(Theta);
-  DeltaP = (Phi==0.0)   ? 1.0e-4 : 1.0e-4*fabs(Phi);
 
   CT=cos(Theta);
   ST=sin(Theta);
