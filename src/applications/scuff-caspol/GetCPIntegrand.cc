@@ -301,9 +301,9 @@ void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
   int fdim = (SCPD->EPMatrix->NR * SCPD->NumAtoms);
   double *Error = new double[fdim];
 
-  pcubature(fdim, SGJCIntegrand, (void *)SCPD, 1, 
-            &Lower, &Upper, 0, ABSTOL, SCPD->RelTol,
-            ERROR_INDIVIDUAL, U, Error);
+  pcubature_log(fdim, SGJCIntegrand, (void *)SCPD, 1, 
+                &Lower, &Upper, 0, ABSTOL, SCPD->RelTol,
+                ERROR_INDIVIDUAL, U, Error, "pcubature.log");
 
   delete[] Error;
 }
