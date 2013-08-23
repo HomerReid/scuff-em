@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
   SCPData MySCPData, *SCPD=&MySCPData;
 
   if (GeoFile)
-   { SCPD->G  = new RWGGeometry(GeoFile); 
+   { SCPD->G  = new RWGGeometry(GeoFile, SCUFF_TERSELOGGING);
      SCPD->M  = SCPD->G->AllocateBEMMatrix(SCUFF_PUREIMAGFREQ);
      SCPD->KN = SCPD->G->AllocateRHSVector(SCUFF_PUREIMAGFREQ);
    }

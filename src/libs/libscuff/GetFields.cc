@@ -413,15 +413,15 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /***************************************************************/
   if ( XMatrix==0 || XMatrix->NC!=3 || XMatrix->NR==0 )
    ErrExit("wrong-size XMatrix (%ix%i) passed to GetFields",XMatrix->NR,XMatrix->NC);
-
-  if (FMatrix==0) 
+if (FMatrix==0) 
    FMatrix=new HMatrix(XMatrix->NR, NumFuncs, LHM_COMPLEX);
   else if ( (FMatrix->NR != XMatrix->NR) || (FMatrix->NC!=NumFuncs) ) 
    { Warn(" ** warning: wrong-size FMatrix passed to GetFields(); allocating new matrix");
      FMatrix=new HMatrix(XMatrix->NR, NumFuncs, LHM_COMPLEX);
    };
 
-  Log("Computing fields at %i evaluation points...",XMatrix->NR);
+  if (LogLevel >= SCUFF_VERBOSELOGGING)
+   Log("Computing fields at %i evaluation points...",XMatrix->NR);
 
   /***************************************************************/
   /* the incident fields will most likely have been updated at   */

@@ -152,7 +152,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       R[1]=EPMatrix->GetEntryD(nep, 1);
       R[2]=EPMatrix->GetEntryD(nep, 2);
 
-      Log("Computing DGF at (%e,%e,%e)\n",R[0],R[1],R[2]);
+      Log("Computing DGF at (%e,%e,%e)...",R[0],R[1],R[2]);
       if (G) 
        G->GetDyadicGFs(R, cdouble(0,Xi), M, KN, GE, GM);
       else
@@ -170,6 +170,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
          U[nep*NumAtoms + na] = UValue;
          fprintf(f,"%e ",UValue);
        };
+      fprintf(f,"\n");
  
    }; 
   fclose(f);
