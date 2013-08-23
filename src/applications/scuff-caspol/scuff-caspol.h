@@ -66,6 +66,7 @@ public:
    int NumPoints;
    double *XiPoints, *PolPoints;
    Interp1D *PolInterp;
+   double LargeXiCoefficient;
 
  };
 

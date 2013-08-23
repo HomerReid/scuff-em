@@ -5,9 +5,8 @@ scuff_caspol_SOURCES = 		\
  scuff-caspol.cc          	\
  GetCPIntegrand.cc 		\
  PolModel.cc
-scuff_caspol_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 
-EXTRA_DIST = PolData.dat
+scuff_caspol_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libscuff        \
               -I$(top_srcdir)/src/libs/libIncField   \

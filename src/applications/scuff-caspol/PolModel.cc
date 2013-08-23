@@ -26,6 +26,8 @@
  *
  */
 
+#define SCUFF2ATOMIC (1.0/0.00115493)
+
 #include "scuff-caspol.h"
 #include <libhmat.h>
 
@@ -100,6 +102,7 @@ double PolPoints_DPB_Hydrogen[NUMPOINTS_DPB] =
   4.9534e-3, 3.2418e-3, 2.0123e-3, 1.1674e-3, 6.1937e-4, 
   2.9045e-4, 1.1357e-4, 3.3079e-5, 5.4925e-6, 1.9816e-7 
  };
+double LargeXiCoefficient_DPB_Hydrogen = 1.33367e-06;
 
 double PolPoints_DPB_Lithium[NUMPOINTS_DPB] = 
 { 164.0, 
@@ -114,6 +117,7 @@ double PolPoints_DPB_Lithium[NUMPOINTS_DPB] =
   1.3686e-2, 9.1389e-3, 5.7691e-3, 3.3923e-3, 1.8183e-3, 
   8.5884e-4, 3.3735e-4, 9.8504e-5, 1.6372e-5, 5.9081e-7 
 };
+double LargeXiCoefficient_DPB_Lithium = 3.96234e-06;
 
 double PolPoints_DPB_Sodium[NUMPOINTS_DPB] = 
 { 162.6, 
@@ -128,6 +132,7 @@ double PolPoints_DPB_Sodium[NUMPOINTS_DPB] =
   4.0389e-2, 2.7483e-2, 1.7703e-2, 1.0652e-2, 5.8682e-3, 
   2.8645e-3, 1.1666e-3, 3.5183e-4, 5.9695e-5, 2.1693e-6 
 };
+double LargeXiCoefficient_DPB_Sodium = 1.37391e-05;
 
 double PolPoints_DPB_Potassium[NUMPOINTS_DPB] = 
 { 290.2, 
@@ -142,6 +147,7 @@ double PolPoints_DPB_Potassium[NUMPOINTS_DPB] =
   5.6563e-2, 3.9715e-2, 2.6512e-2, 1.6525e-2, 9.3754e-3, 
   4.6648e-3, 1.919e-3, 5.8509e-4, 1.012e-4, 3.7292e-6
 };
+double LargeXiCoefficient_DPB_Potassium = 2.26217e-05;
 
 double PolPoints_DPB_Rubidium[NUMPOINTS_DPB] = 
 { 318.6, 
@@ -156,6 +162,7 @@ double PolPoints_DPB_Rubidium[NUMPOINTS_DPB] =
   9.0954e-2, 6.4885e-2, 4.3891e-2, 2.7695e-2, 1.5939e-2, 
   8.0975e-3, 3.4329e-3, 1.0815e-3, 1.9126e-4, 7.2051e-6
 };
+double LargeXiCoefficient_DPB_Rubidium = 4.05829e-05;
 
 double PolPoints_DPB_Cesium[NUMPOINTS_DPB] = 
 { 399.8, 
@@ -170,6 +177,7 @@ double PolPoints_DPB_Cesium[NUMPOINTS_DPB] =
   1.1779e-1, 8.2549e-2, 5.5437e-2, 3.5233e-2, 2.0733e-2, 
   1.0867e-2, 4.7421e-3, 1.5266e-3, 2.7665e-4, 1.0596e-5
 };
+double LargeXiCoefficient_DPB_Cesium = 5.61692e-05;
 
 double PolPoints_DPB_Francium[NUMPOINTS_DPB] = 
 { 317.8, 
@@ -184,6 +192,7 @@ double PolPoints_DPB_Francium[NUMPOINTS_DPB] =
   1.5452e-1, 1.1023e-1, 7.5407e-2, 4.8728e-2, 2.9029e-2, 
   1.535e-2, 6.7792e-3, 2.2355e-3, 4.1737e-4, 1.6446e-5
 };
+double LargeXiCoefficient_DPB_Francium =  8.04767e-5;
 
 /***************************************************************/
 /* PolModel class constructor                                  */
@@ -199,19 +208,39 @@ PolModel::PolModel(const char *Atom)
   XiPoints = XiPoints_DPB;
 
   if ( !strcasecmp(Atom,"H")  || !strcasecmp(Atom,"Hydrogen") )
-   PolPoints = PolPoints_DPB_Hydrogen;
+   { PolPoints = PolPoints_DPB_Hydrogen;
+     LargeXiCoefficient = LargeXiCoefficient_DPB_Hydrogen;
+   }
   else if ( !strcasecmp(Atom,"Li") || !strcasecmp(Atom,"Lithium") )
-   PolPoints = PolPoints_DPB_Lithium;
+   {
+     PolPoints = PolPoints_DPB_Lithium;
+     LargeXiCoefficient = LargeXiCoefficient_DPB_Lithium;
+   }
   else if ( !strcasecmp(Atom,"Na") || !strcasecmp(Atom,"Sodium") )
-   PolPoints = PolPoints_DPB_Sodium;
+   {
+     PolPoints = PolPoints_DPB_Sodium;
+     LargeXiCoefficient = LargeXiCoefficient_DPB_Sodium;
+   }
   else if ( !strcasecmp(Atom,"K")  || !strcasecmp(Atom,"Potassium") )
-   PolPoints = PolPoints_DPB_Potassium;
+   {
+     PolPoints = PolPoints_DPB_Potassium;
+     LargeXiCoefficient = LargeXiCoefficient_DPB_Potassium;
+   }
   else if ( !strcasecmp(Atom,"Rb") || !strcasecmp(Atom,"Rubidium") )
-   PolPoints = PolPoints_DPB_Rubidium;
+   {
+     PolPoints = PolPoints_DPB_Rubidium;
+     LargeXiCoefficient = LargeXiCoefficient_DPB_Rubidium;
+   }
   else if ( !strcasecmp(Atom,"Cs") || !strcasecmp(Atom,"Cesium") )
-   PolPoints = PolPoints_DPB_Cesium;
+   {
+     PolPoints = PolPoints_DPB_Cesium;
+     LargeXiCoefficient = LargeXiCoefficient_DPB_Cesium;
+   }
   else if ( !strcasecmp(Atom,"Fr") || !strcasecmp(Atom,"Francium") )
-   PolPoints = PolPoints_DPB_Francium;
+   {
+     PolPoints = PolPoints_DPB_Francium;
+     LargeXiCoefficient = LargeXiCoefficient_DPB_Francium;
+   }
   else
    { ErrMsg=vstrdup("unknown atom type %s",Atom);
      return;
@@ -219,6 +248,7 @@ PolModel::PolModel(const char *Atom)
 
    // initialize the interpolator
    PolInterp = new Interp1D(XiPoints, PolPoints, NumPoints, 1);
+
 }
 
 /***************************************************************/
@@ -236,7 +266,15 @@ PolModel::PolModel(const char *Atom)
 void PolModel::GetPolarizability(double Xi, HMatrix *Alpha)
  {
    double AlphaDiag;
-   PolInterp->Evaluate(Xi, &AlphaDiag);
+
+   // the interpolation is poorly behaved for large 
+   // frequencies, so in that regime we use Alpha = C / Xi^2
+   // where C is an atom-dependent coefficient
+   if (Xi>0.1)
+    AlphaDiag=LargeXiCoefficient / (Xi*Xi);
+   else
+    PolInterp->Evaluate(Xi, &AlphaDiag);
+
    Alpha->Zero();
    Alpha->SetEntry(0,0,AlphaDiag);
    Alpha->SetEntry(1,1,AlphaDiag);

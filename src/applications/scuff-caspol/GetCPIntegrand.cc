@@ -57,9 +57,9 @@
 //     = (8.6173e-5 / 0.1973 ) * (T in Kelvin)
 #define BOLTZMANNK 4.36763e-4
 
-#define ABSTOL 1.0e-8
+#define ABSTOL 0.0
 #define RELTOL 1.0e-3
-#define XIMIN  0.001  
+#define XIMIN  1.0e-6
 
 /***************************************************************/
 /* compute the dyadic green's function at a distance Z above a */
@@ -116,6 +116,9 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   HMatrix **Alphas     = SCPD->Alphas;   
   HMatrix *EPMatrix    = SCPD->EPMatrix;
   char *ByXiFileName   = SCPD->ByXiFileName;
+
+  if (Xi==0.0)
+   Xi=1.0e-6;
 
   /***************************************************************/ 
   /* assemble and factorize the BEM matrix at this frequency,    */ 
@@ -272,6 +275,11 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
 int SGJCIntegrand(unsigned ndim, const double *x, void *params,
                   unsigned fdim, double *fval)
 {
+  if (x[0]==1.0)
+   { memset(fval, 0, fdim*sizeof(double));  
+     return 0;
+   };
+
   double Xi = x[0] / (1.0-x[0]);
 
   SCPData *SCPD = (SCPData *)params;
@@ -285,7 +293,6 @@ int SGJCIntegrand(unsigned ndim, const double *x, void *params,
   return 0;
 
 }
-  
   
 void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
 {

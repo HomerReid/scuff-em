@@ -48,7 +48,6 @@
 void WriteFilePreamble(const char *FileName, int argc, char *argv[], 
                        int FileType, SCPData *SCPD)
 { 
-
   FILE *f = fopen(FileName, "a");
   if (!f) return;
 
@@ -81,6 +80,8 @@ void WriteFilePreamble(const char *FileName, int argc, char *argv[],
   for(int na=0; na<SCPD->NumAtoms; na++)
    fprintf(f,"#%ii: Casimir-polder potential %sfor %s (eV)\n",
               nc,ExtraString,SCPD->PolModels[na]->Name);
+
+  fclose(f);
 }
 
 /***************************************************************/
@@ -95,6 +96,7 @@ void Usage(const char *ProgramName, OptStruct *OSArray, const char *ErrMsg)
   fprintf(stderr, "usage: %s [options] \n",ProgramName);
   fprintf(stderr, "\n");
   fprintf(stderr, "options: \n");
+  fprintf(stderr, "\n");
   fprintf(stderr, " --geoFile     MyFile.scuffgeo   specify geometry file\n");
   fprintf(stderr, " --PECPlate                      use PEC plate\n");
   fprintf(stderr, " --EPFile      MyEvalPointFile   file specifying evaluation points\n");
@@ -102,10 +104,11 @@ void Usage(const char *ProgramName, OptStruct *OSArray, const char *ErrMsg)
   fprintf(stderr, " --temperature xx                compute at T=xx kelvin\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "atoms supported: \n");
-  fprintf(stderr, " --atom Hydrogen   [--atom H]  \n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, " --atom Hydrogen   [--atom H ] \n");
   fprintf(stderr, " --atom Lithium    [--atom Li] \n");
   fprintf(stderr, " --atom Sodium     [--atom Na] \n");
-  fprintf(stderr, " --atom Potassium  [--atom K]  \n");
+  fprintf(stderr, " --atom Potassium  [--atom K ] \n");
   fprintf(stderr, " --atom Rubidium   [--atom Rb] \n");
   fprintf(stderr, " --atom Cesium     [--atom Cs] \n");
   fprintf(stderr, " --atom Francium   [--atom Fr] \n");
