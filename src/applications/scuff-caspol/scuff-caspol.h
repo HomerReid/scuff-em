@@ -37,6 +37,9 @@
 
 using namespace scuff;
 
+// default error tolerance for frequency sums/integrals
+#define DEF_RELTOL 1.0e-2 
+
 /***************************************************************/
 /* PolModel is a simple class used to describe the frequency-  */
 /* dependent polarizability of atoms and molecules. it exports */
@@ -87,8 +90,9 @@ typedef struct SCPData
 
    HMatrix *EPMatrix;
 
-   char *ByXiFileName;
+   double RelTol;
 
+   char *ByXiFileName;
    char *ErrMsg;
 
  } SCPData; 

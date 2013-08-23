@@ -102,6 +102,7 @@ void Usage(const char *ProgramName, OptStruct *OSArray, const char *ErrMsg)
   fprintf(stderr, " --EPFile      MyEvalPointFile   file specifying evaluation points\n");
   fprintf(stderr, " --atom        Rubidium          type of atom\n");
   fprintf(stderr, " --temperature xx                compute at T=xx kelvin\n");
+  fprintf(stderr, " --reltol      xx                relative error tolerance for frequency sums/integrals\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "atoms supported: \n");
   fprintf(stderr, "\n");
@@ -130,6 +131,7 @@ int main(int argc, char *argv[])
   char *Atoms[MAXATOM];    int NumAtoms;
   char *EPFile=0;
   double Temperature = 0.0;
+  double RelTol = DEF_RELTOL;
   /* name           type  #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFile,     0,          ".scuffgeo file"},
@@ -137,6 +139,7 @@ int main(int argc, char *argv[])
      {"Atom",        PA_STRING,  1, 10,      (void *)Atoms,        &NumAtoms,  "type of atom"},
      {"EPFile",      PA_STRING,  1, 1,       (void *)&EPFile,      0,          "list of evaluation points"},
      {"Temperature", PA_DOUBLE,  1, 1,       (void *)&Temperature, 0,          "temperature in Kelvin"},
+     {"RelTol",      PA_DOUBLE,  1, 1,       (void *)&RelTol,      0,          "relative error tolerance"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -167,6 +170,8 @@ int main(int argc, char *argv[])
      SCPD->KN = 0;
      GeoFile = strdup("PECPlate");
    };
+
+  SCPD->RelTol = RelTol;
 
   SetLogFileName("scuff-caspol.log");
 

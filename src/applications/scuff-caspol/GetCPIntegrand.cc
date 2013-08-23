@@ -58,7 +58,6 @@
 #define BOLTZMANNK 4.36763e-4
 
 #define ABSTOL 0.0
-#define RELTOL 1.0e-3
 #define XIMIN  1.0e-6
 
 /***************************************************************/
@@ -244,7 +243,7 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
      for(int nu=0; nu<NU; nu++)
       { 
         Delta = fabs( (U[nu]-LastU[nu]) );
-        if ( Delta < ABSTOL || Delta < RELTOL*fabs(U[nu]) )
+        if ( Delta < ABSTOL || Delta < (SCPD->RelTol)*fabs(U[nu]) )
          ConvergedIters[nu]++;
         else
          ConvergedIters[nu]=0;
@@ -303,7 +302,7 @@ void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
   double *Error = new double[fdim];
 
   pcubature(fdim, SGJCIntegrand, (void *)SCPD, 1, 
-            &Lower, &Upper, 0, ABSTOL, RELTOL,
+            &Lower, &Upper, 0, ABSTOL, SCPD->RelTol,
             ERROR_INDIVIDUAL, U, Error);
 
   delete[] Error;
