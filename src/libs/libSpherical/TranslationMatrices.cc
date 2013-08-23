@@ -100,13 +100,15 @@ double ThreeJSymbol(double L1, double L2, double L3,
   double M2Max = L2 > L3-M1     ?  L2 :   L3-M1;
   double M2Min = -L2 > -(L3+M1) ? -L2 : -(L3+M1);
   int Length = (int)(M2Max - M2Min) + 1;
-  double Result[Length];
+  double *Result = new double[Length];
   int ier;
   drc3jm_(&L1, &L2, &L3, &M1, &M2Min, &M2Max, Result, &Length, &ier);
+  double RetVal=0.0;
   for(int im2=M2Min; im2<=M2Max; im2++)
    if ( im2==(int)M2 )
-    return Result[im2-((int)M2Min)];
-  return 0.0;
+    RetVal = Result[im2-((int)M2Min)];
+  delete[] Result;
+  return RetVal;
 }   
 
 /***************************************************************/
@@ -146,8 +148,8 @@ void GetTranslationMatrices(double Xij[3], cdouble k,
   cdouble ik, Factor, AA, BB, CC, F1, F2, F3;
 
   int lPPMax=2*lMax;
-  cdouble R[lPPMax+2];
-  cdouble Ylm[(lPPMax+1)*(lPPMax+1)];
+  cdouble *R = new cdouble[lPPMax+2];
+  cdouble *Ylm = new cdouble[(lPPMax+1)*(lPPMax+1)];
 
   /***************************************************************/
   /* get all spherical bessel functions and spherical harmonics **/
@@ -210,5 +212,8 @@ void GetTranslationMatrices(double Xij[3], cdouble k,
 
         C->SetEntry(Alpha, AlphaP, CC / ((double)(2*lP*(lP+1))));
       };
+
+  delete[] R;
+  delete[] Ylm;
 
 }
