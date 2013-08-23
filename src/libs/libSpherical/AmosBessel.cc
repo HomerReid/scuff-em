@@ -81,15 +81,6 @@ extern "C" {
 int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders, 
                int Scale, cdouble *f)
 { 
-  int no, nz, ierr, Type;
-  double zr=real(z), zi=imag(z);
-  double fr[NumOrders], fi[NumOrders];
-  double cwrkr[NumOrders], cwrki[NumOrders];
-
-  int kode = Scale ? 2 : 1;
-
-  int Spherical=0;
-
   /***************************************************************/
   /* special treatment for j_n(0) and i_n(0)                     */
   /***************************************************************/
@@ -99,6 +90,20 @@ int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders,
       f[0]=cdouble(1.0,0.0);
      return 0;
    };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int no, nz, ierr, Type;
+  double zr=real(z), zi=imag(z);
+  double *fr = new double[NumOrders];
+  double *fi = new double[NumOrders];
+  double *cwrkr = new double[NumOrders]; 
+  double *cwrki = new double[NumOrders]; 
+
+  int kode = Scale ? 2 : 1;
+
+  int Spherical=0;
   
   switch(WhichFunction)
    { 
@@ -191,6 +196,11 @@ int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders,
    { for(no=0; no<NumOrders; no++)
       f[no] = cdouble( fr[no],fi[no] );
    };
+
+  delete[] fr;
+  delete[] fi;
+  delete[] cwrkr;
+  delete[] cwrki;
 
   return ierr;
 
