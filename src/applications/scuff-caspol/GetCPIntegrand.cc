@@ -124,7 +124,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   /* unless we are doing the PEC plate case.                     */ 
   /***************************************************************/
   if (G)
-   { Log("Assembling BEM matrix at Xi=%g\n",Xi);
+   { Log("Assembling BEM matrix at Xi=%g",Xi);
      G->AssembleBEMMatrix(cdouble(0,Xi), M);
      Log("LU-factorizing...");
      M->LUFactorize();
@@ -144,6 +144,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   double R[3];
   cdouble GE[3][3], GM[3][3];
   FILE *f=fopen(ByXiFileName,"a");
+  Log("Computing CP potential at %i eval points...",EPMatrix->NR);
   for(int nep=0; nep<EPMatrix->NR; nep++)
    { 
       /* get the dyadic GF at this eval point */
@@ -151,7 +152,6 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       R[1]=EPMatrix->GetEntryD(nep, 1);
       R[2]=EPMatrix->GetEntryD(nep, 2);
 
-      Log("Computing DGF at (%e,%e,%e)...",R[0],R[1],R[2]);
       if (G) 
        G->GetDyadicGFs(R, cdouble(0,Xi), M, KN, GE, GM);
       else
