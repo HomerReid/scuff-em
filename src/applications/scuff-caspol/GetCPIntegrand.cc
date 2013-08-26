@@ -41,11 +41,14 @@
 //  -- \alpha has units of a0^3 (bohr radius)
 //  -- G has units of 1/um 
 // thus if we put 
-//  PF = (\hbar c / 1um) * (a0 / 1um)^3
-//     = (0.1973 ev) * (0.529177e-4)^3
+//  PF = (\hbar * 3e14 s^{-1}) * (a0 / 1um)^3 / (2*pi)
+//     = (6.6e-16 ev s) * (3e14 s^{-1} * (0.529177e-4)^3 / (2*pi)
 // then the result of our calculation will be an 
-// energy in units of ev.                         
-#define PREFAC 2.9237e-14
+// energy in units of ev.
+// #define PREFAC 4.657040e-15
+// update 20130825: let's report potentials in nanoelectronvolts,
+// so we'll up that prefactor by 1e-9
+#define PREFAC 4.657040e-6
 
 // factor that converts temperature from degrees
 // kelvin to my internal energy units 
@@ -95,7 +98,7 @@ void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
   // of electric field / surface current, to the 
   // usual normalization in which the DGF has units 
   // of inverse length 
-  double Factor = -ZVAC*Xi;
+  double Factor = -Xi*Xi;
   int i, j;
   for(i=0; i<3; i++)
    for(j=0; j<3; j++)

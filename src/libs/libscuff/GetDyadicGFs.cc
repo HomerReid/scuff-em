@@ -96,7 +96,9 @@ void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, HMatrix *M, HVector *
   cdouble Eps, Mu;
   int nr=GetRegionIndex(X);
   RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
-  cdouble IKZ = II*Omega*Mu*ZVAC;
+  //cdouble IKZ = II*Omega*Mu*ZVAC;
+  cdouble k2 = Eps*Mu*Omega*Omega;
+  cdouble Z2 = ZVAC*ZVAC*Mu/Eps;
 
   for(int i=0; i<3; i++)
    { 
@@ -110,18 +112,18 @@ void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, HMatrix *M, HVector *
      AssembleRHSVector(Omega, &PS, KN);
      M->LUSolve(KN);
      GetFields(0, KN, Omega, X, EH);
-     GE[0][i]=EH[0] / IKZ;
-     GE[1][i]=EH[1] / IKZ;
-     GE[2][i]=EH[2] / IKZ;
+     GE[0][i]=EH[0] / k2;
+     GE[1][i]=EH[1] / k2;
+     GE[2][i]=EH[2] / k2;
 
      // solve the scattering problem for a magnetic point source 
      PS.SetType(LIF_MAGNETIC_DIPOLE);
      AssembleRHSVector(Omega, &PS, KN);
      M->LUSolve(KN);
      GetFields(0, KN, Omega, X, EH);
-     GM[0][i]=EH[3];
-     GM[1][i]=EH[4];
-     GM[2][i]=EH[5];
+     GM[0][i]=EH[3] * Z2/k2;
+     GM[1][i]=EH[4] * Z2/k2;
+     GM[2][i]=EH[5] * Z2/k2;
    };
 }
 
@@ -149,7 +151,8 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   cdouble Eps, Mu;
   int nr=GetRegionIndex(XSource);
   RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
-  cdouble IKZ = II*Omega*Mu*ZVAC;
+  cdouble Z2 = ZVAC*ZVAC*Mu/Eps;
+  cdouble k2 = Eps*Mu*Omega*Omega;
 
   for(int i=0; i<3; i++)
    { 
@@ -163,28 +166,28 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
      AssembleRHSVector(Omega, &PS, KN);
      M->LUSolve(KN);
      GetFields(0, KN, Omega, XEval, EH);
-     GEScat[0][i]=EH[0] / IKZ;
-     GEScat[1][i]=EH[1] / IKZ;
-     GEScat[2][i]=EH[2] / IKZ;
+     GEScat[0][i]=EH[0] / k2;
+     GEScat[1][i]=EH[1] / k2;
+     GEScat[2][i]=EH[2] / k2;
 
      PS.GetFields(XEval, EH);
-     GETot[0][i]=GEScat[0][i] + EH[0] / IKZ;
-     GETot[1][i]=GEScat[1][i] + EH[1] / IKZ;
-     GETot[2][i]=GEScat[2][i] + EH[2] / IKZ;
+     GETot[0][i]=GEScat[0][i] + EH[0] / k2;
+     GETot[1][i]=GEScat[1][i] + EH[1] / k2;
+     GETot[2][i]=GEScat[2][i] + EH[2] / k2;
 
      // solve the scattering problem for a magnetic point source 
      PS.SetType(LIF_MAGNETIC_DIPOLE);
      AssembleRHSVector(Omega, &PS, KN);
      M->LUSolve(KN);
      GetFields(0, KN, Omega, XEval, EH);
-     GMScat[0][i]=EH[3];
-     GMScat[1][i]=EH[4];
-     GMScat[2][i]=EH[5];
+     GMScat[0][i]=EH[3] * Z2/k2;
+     GMScat[1][i]=EH[4] * Z2/k2;
+     GMScat[2][i]=EH[5] * Z2/k2;
 
      PS.GetFields(XEval, EH);
-     GMTot[0][i]=GMScat[0][i] + EH[3];
-     GMTot[1][i]=GMScat[1][i] + EH[4];
-     GMTot[2][i]=GMScat[2][i] + EH[5];
+     GMTot[0][i]=GMScat[0][i] + EH[3] * Z2/k2;
+     GMTot[1][i]=GMScat[1][i] + EH[4] * Z2/k2;
+     GMTot[2][i]=GMScat[2][i] + EH[5] * Z2/k2;
 
    };
 }
