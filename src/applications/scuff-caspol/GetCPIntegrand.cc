@@ -34,15 +34,16 @@
 
 // prefactor that enters into the calculation of the 
 // casimir-polder potential.
-// below, we obtain the casimir-polder potential as the quantity
-//  PF * \int d\xi * \xi^2 * Tr(\alpha * G) 
+// The CP potential is 
+//  (\hbar / 2\pi) \int d\xi \xi^2 Tr(\alpha*G)
 // where 
 //  -- \xi has units of 3e14 rad/sec 
 //  -- \alpha has units of a0^3 (bohr radius)
-//  -- G has units of 1/um 
+//  -- G has units of 1/um.
 // thus if we put 
 //  PF = (\hbar * 3e14 s^{-1}) * (a0 / 1um)^3 / (2*pi)
-//     = (6.6e-16 ev s) * (3e14 s^{-1} * (0.529177e-4)^3 / (2*pi)
+//     = (6.582119-16 ev s) * (3e14 s^{-1} * (0.529177e-4)^3 / (2*pi)
+//     = 
 // then the result of our calculation will be an 
 // energy in units of ev.
 // #define PREFAC 4.657040e-15

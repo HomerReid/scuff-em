@@ -2,7 +2,7 @@
 // radial sinusoidal corrugations on the upper surface
 // homer reid 8/2013
 
-R=20.0;  // disc radius
+R=10.0;  // disc radius
 T=3.0;   // disc thickness
 C=T;     // sidewall curvature radius
 

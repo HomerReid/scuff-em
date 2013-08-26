@@ -26,8 +26,6 @@
  *
  */
 
-#define SCUFF2ATOMIC (1.0/0.00115493)
-
 #include "scuff-caspol.h"
 #include <libhmat.h>
 
@@ -58,21 +56,21 @@ double XiPoints_DPB[NUMPOINTS_DPB] =
 #endif
 
 // table from DPB paper with frequencies in SCUFF units.
-// note: in SCUFF units, Xi==1  <--> Xi=3e14 rad /sec
-//       in atomic units, Xi==1 <--> Xi=2.598e+17 rad/sec
-// the conversion factor is 0.00115493.
+// note: in SCUFF units, 'Xi==1'  <--> Xi=3e14 rad /sec
+//       in atomic units, 'Xi==1' <--> Xi=6.57969e15 rad/sec
+// the conversion factor is 21.9323....
 double XiPoints_DPB[NUMPOINTS_DPB] =
-{ 0.0,  
-  2.05653e-6,  1.0827e-5,   2.65712e-5,  4.92358e-5,  7.87451e-5, 
-  0.00011501,  0.000157934, 0.000207428, 0.000263406, 0.000325814,
-  0.000394623, 0.000469852, 0.00055157,  0.000639914, 0.000735099, 
-  0.000837429, 0.000947314, 0.00106529,  0.00119203,  0.00132837,
-  0.00147534,  0.00163424,  0.0018066 ,  0.00199432,  0.00219969,
-  0.00242554,  0.00267533,  0.00295331,  0.00326479,  0.00361641,
-  0.00401657,  0.00447597,  0.00500847,  0.00563219,  0.00637123,
-  0.00725813,  0.00833775,  0.00967321,  0.0113556,   0.0135203,
-  0.0163758,   0.0202556,   0.025722,    0.0337826,   0.0463912,
-  0.0677559,   0.108365,    0.200798,    0.49279,     2.5944
+{ 0.0,
+  0.0390375, 0.205522, 0.504383, 0.934608,  1.49476,
+  2.18315,    2.99795,  3.93745,  5.00005,  6.18469,
+  7.49085,    8.91886,  10.4701,   12.147,  13.9539,
+  15.8963,    17.9822,  20.2216,  22.6274,  25.2154,
+  28.0054,    31.0215,  34.2934,  37.8568,  41.7551,
+  46.0422,    50.7838,  56.0605,  61.9732,  68.6477,
+  76.2436,     84.964,  95.0721,  106.912,   120.94, 
+  137.776,     158.27,   183.62,  215.555,  256.646,
+  310.849,    384.498,  488.263,  641.271,  880.611,
+  1286.16,    2057.02,  3811.61,  9354.28,  49247.6 
 };
 
 double wPoints_DPB[NUMPOINTS_DPB] =
@@ -267,13 +265,7 @@ void PolModel::GetPolarizability(double Xi, HMatrix *Alpha)
  {
    double AlphaDiag;
 
-   // the interpolation is poorly behaved for large 
-   // frequencies, so in that regime we use Alpha = C / Xi^2
-   // where C is an atom-dependent coefficient
-   if (Xi>0.1)
-    AlphaDiag=LargeXiCoefficient / (Xi*Xi);
-   else
-    PolInterp->Evaluate(Xi, &AlphaDiag);
+   PolInterp->Evaluate(Xi, &AlphaDiag);
 
    Alpha->Zero();
    Alpha->SetEntry(0,0,AlphaDiag);

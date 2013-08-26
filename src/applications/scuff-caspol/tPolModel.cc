@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   FILE *f=fopen("tPolModel.out","w");
-  for( double Xi = 1.0e-6; Xi<=10.0; Xi*=exp(0.1*log(10.0)) )
+  for( double Xi = 1.0e-6; Xi<=1000.0; Xi*=exp(0.1*log(10.0)) )
    { 
      fprintf(f,"%e ",Xi);
      for(int na=0; na<NumAtoms; na++)
