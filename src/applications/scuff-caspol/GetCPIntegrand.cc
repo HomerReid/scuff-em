@@ -187,7 +187,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
            UValue += PREFAC * Xi * Xi * Alpha->GetEntryD(i,j) * real(GE[j][i]);
 
          U[nep*NumAtoms + na] = UValue;
-         fprintf(f,"%e ",UValue);
+         fprintf(f,"%e %e ",Alpha->GetEntryD(0,0),UValue);
        };
       fprintf(f,"\n");
  
