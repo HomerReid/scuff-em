@@ -78,7 +78,7 @@ void WriteFilePreamble(const char *FileName, int argc, char *argv[],
    };
 
   for(int na=0; na<SCPD->NumAtoms; na++)
-   fprintf(f,"#%i: Casimir-polder potential %sfor %s (eV)\n",
+   fprintf(f,"#%i: Casimir-polder potential %sfor %s (neV)\n",
               nc++,ExtraString,SCPD->PolModels[na]->Name);
 
   fclose(f);
