@@ -188,6 +188,18 @@ int main(int argc, char *argv[])
      SCPD->Alphas[na] = new HMatrix(3,3);
    };
 
+#if 0
+{FILE *f=fopen("/tmp/doomatage","w");
+ HMatrix *A=new HMatrix(3,3);
+ for(double Xi=1.0e-6; Xi<1.0e2; Xi*=exp(0.1*log(10.0)) )
+  { SCPD->PolModels[0]->GetPolarizability(Xi, A);
+    fprintf(f,"%e %e \n",Xi,A->GetEntryD(0,0));
+  };
+ fclose(f);
+ exit(1);
+}
+#endif
+
   /*******************************************************************/
   /* process list of evaluation points *******************************/
   /*******************************************************************/
