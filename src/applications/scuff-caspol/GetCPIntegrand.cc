@@ -120,8 +120,8 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   HMatrix *EPMatrix    = SCPD->EPMatrix;
   char *ByXiFileName   = SCPD->ByXiFileName;
 
-  if (Xi==0.0)
-   Xi=1.0e-6;
+  if (Xi<=XIMIN)
+   Xi=XIMIN;
 
   /***************************************************************/ 
   /* assemble and factorize the BEM matrix at this frequency,    */ 
@@ -134,14 +134,28 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
      M->LUFactorize();
    };
 
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
+  /*! FIXME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
+  static double FudgeFactor=0.0;
+  if( FudgeFactor==0.0 )
+   { FudgeFactor=81.0;
+     char *str=getenv("SCUFF_CASPOL_FF");
+     if (str)
+      { sscanf(str,"%le",&FudgeFactor);
+        Log("Setting frequency-scaling fudge factor to %e.\n",FudgeFactor);
+      };
+   };
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
+
   /***************************************************************/ 
   /* look up the polarizability tensor for each atomic species   */ 
   /* at this frequency                                           */ 
   /***************************************************************/ 
-//#define FF 1.0/(21.9323)
-#define FF 1.0
   for(int na=0; na<NumAtoms; na++)
-   PolModels[na]->GetPolarizability(FF*Xi, Alphas[na]);
+   PolModels[na]->GetPolarizability(Xi/FudgeFactor, Alphas[na]);
 
   /***************************************************************/ 
   /* loop over all evaluation points to get the contribution of  */ 
@@ -163,7 +177,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       else
        GetPECPlateDGF(R[2], Xi, GE);
 
-      fprintf(f,"%e %e %e %e %e ",R[0],R[1],R[2],Xi,Alphas[0]->GetEntryD(0,0));
+      fprintf(f,"%e %e %e %e ",R[0],R[1],R[2],Xi);
       for(int na=0; na<NumAtoms; na++)
        { 
          HMatrix *Alpha = Alphas[na];
@@ -173,7 +187,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
            UValue += PREFAC * Xi * Xi * Alpha->GetEntryD(i,j) * real(GE[j][i]);
 
          U[nep*NumAtoms + na] = UValue;
-         fprintf(f,"%e ",UValue);
+         fprintf(f,"%e %e ",Alpha->GetEntryD(0,0),UValue);
        };
       fprintf(f,"\n");
  
@@ -193,8 +207,11 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
   int NA=SCPD->NumAtoms;
   int NU=NA*NEP;
 
-  double *dU = new double[NU], *LastU = new double[NU];
+  double *dU = new double[NU];
+  double *LastU = new double[NU];
+  double *MaxdU= new double[NU];
   memset(U,0,NU*sizeof(double));
+  memset(MaxdU,0,NU*sizeof(double));
 
   int *ConvergedIters = new int[NU], AllConverged;
   memset(ConvergedIters,0,NU*sizeof(int));
@@ -226,11 +243,10 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
      /***************************************************************/
      /* accumulate contributions to the matsubara sum,              */
      /* how it works: the matsubara sum is                          */
-     /*  2\pi kT *  \sum_n^\prime F(\xi_n)                          */
+     /*  2\pi kT * \sum_n^\prime F(\xi_n)                           */
      /* where \xi_n is the nth matsubara frequency and F(\xi) is    */
      /* the frequency integrand, and where the primed sum means     */
-     /* he n==0 term is weighted                                    */
-     /* with a factor of 1/2.                                       */
+     /* the n==0 term is weighted with a factor of 1/2.             */
      /***************************************************************/
      memcpy(LastU,U,NU*sizeof(double));
      for(int nu=0; nu<NU; nu++)
@@ -253,6 +269,21 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
          ConvergedIters[nu]++;
         else
          ConvergedIters[nu]=0;
+        
+        // 20130827 second convergence test. for small temperatures, 
+        // each incremental addition to the integral can be small
+        // even though the integral is far from converged, whereupon 
+        // the preceding test can detect false convergence.
+        // to correct for this, we will additionally require that 
+        // the increment to the integral be less than RELTOL*its
+        // maximum value at any previous frequency.
+        // This prevents false detection of convergence in 
+        // stretches where we are making a large number of 
+        // small constant contributions to the integral.
+        if ( fabs(dU[nu]) > MaxdU[nu] )
+         MaxdU[nu] = fabs(dU[nu]);
+        if ( fabs(dU[nu]) > (SCPD->RelTol)*MaxdU[nu] )
+         ConvergedIters[nu]=0;
    
         if (ConvergedIters[nu]<3) AllConverged=0;
       }; 
@@ -270,6 +301,7 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
    Log("Matsubara sum converged after summing n=%i frequency points.",nXi);
 
   delete[] ConvergedIters;
+  delete[] MaxdU;
   delete[] LastU;
   delete[] dU;
 } 
@@ -281,6 +313,8 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
 int SGJCIntegrand(unsigned ndim, const double *x, void *params,
                   unsigned fdim, double *fval)
 {
+  (void) ndim; // unused
+
   if (x[0]==1.0)
    { memset(fval, 0, fdim*sizeof(double));  
      return 0;

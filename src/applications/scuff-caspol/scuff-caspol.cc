@@ -70,16 +70,24 @@ void WriteFilePreamble(const char *FileName, int argc, char *argv[],
   fprintf(f,"#3: Z (um) \n");
   
   int nc=4;
-  const char *ExtraString="";
   if (FileType==FILETYPE_BYXI)
-   { fprintf(f,"#4: Xi (imaginary frequency) (3e14 rad/sec)\n");
-     ExtraString = "per unit frequency ";
-     nc++;
-   };
+   { 
+     fprintf(f,"#%i: Xi (imaginary frequency) (3e14 rad/sec)\n",nc++);
 
-  for(int na=0; na<SCPD->NumAtoms; na++)
-   fprintf(f,"#%i: Casimir-polder potential %sfor %s (eV)\n",
-              nc++,ExtraString,SCPD->PolModels[na]->Name);
+     for(int na=0; na<SCPD->NumAtoms; na++)
+      { fprintf(f,"#%i: polarizability of %s (a_0^3)\n",
+                   nc++,SCPD->PolModels[na]->Name);
+        fprintf(f,"#%i: CP potential per unit frequency for %s (neV/3e14 rad/sec)\n",
+                   nc++,SCPD->PolModels[na]->Name);
+      };
+
+   }
+  else
+   {
+     for(int na=0; na<SCPD->NumAtoms; na++)
+      fprintf(f,"#%i: Casimir-polder potential for %s (neV)\n",
+                nc++,SCPD->PolModels[na]->Name);
+   };
 
   fclose(f);
 }
