@@ -138,8 +138,10 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   /* look up the polarizability tensor for each atomic species   */ 
   /* at this frequency                                           */ 
   /***************************************************************/ 
+//#define FF 1.0/(21.9323)
+#define FF 1.0
   for(int na=0; na<NumAtoms; na++)
-   PolModels[na]->GetPolarizability(Xi, Alphas[na]);
+   PolModels[na]->GetPolarizability(FF*Xi, Alphas[na]);
 
   /***************************************************************/ 
   /* loop over all evaluation points to get the contribution of  */ 
@@ -161,7 +163,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       else
        GetPECPlateDGF(R[2], Xi, GE);
 
-      fprintf(f,"%e %e %e %e ",R[0],R[1],R[2],Xi);
+      fprintf(f,"%e %e %e %e %e ",R[0],R[1],R[2],Xi,Alphas[0]->GetEntryD(0,0));
       for(int na=0; na<NumAtoms; na++)
        { 
          HMatrix *Alpha = Alphas[na];
