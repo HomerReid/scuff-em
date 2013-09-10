@@ -6,12 +6,12 @@ R=10.0;  // disc radius
 T=3.0;   // disc thickness
 C=T;     // sidewall curvature radius
 
-H=0.75;  // corrugation amplitude
-//H=0.00;  // corrugation amplitude
+//H=0.75;  // corrugation amplitude
+H=0.00;  // corrugation amplitude
 SF=3;    // "spatial frequency" 
          //  (SF = number of ripples between 0 and R)
 
-lf = 10/5;  // fine   meshing fineness
+lf = 10/5;  // fine meshing fineness
 lc = 10/2;  // coarse meshing fineness
 lm = (lf+lc)/2.0;
 

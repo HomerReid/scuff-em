@@ -159,6 +159,70 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#define TBCOP_READ  0
+#define TBCOP_WRITE 1
+bool TBlockCacheOp(int Op, RWGGeometry *G, int ns, cdouble Omega,
+                   HMatrix *M, int RowOffset, int ColOffset)
+{
+  char *Dir = getenv("SCUFF_TBLOCK_PATH");
+  if (!Dir) return false;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  char *FileBase = GetFileBase(G->Surfaces[ns]->MeshFileName); 
+  char FileName[200];
+  if ( imag(Omega)==0.0 )
+   snprintf(FileName,200,"%s/%s_%.6e.hdf5",Dir,FileBase,real(Omega));
+  else if ( real(Omega)==0.0 )
+   snprintf(FileName,200,"%s/%s_%.6eI.hdf5",Dir,FileBase,imag(Omega));
+  else
+   snprintf(FileName,200,"%s/%s_%.6e+%.6eI.hdf5",Dir,FileBase,real(Omega),imag(Omega));
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NBFs = G->Surfaces[ns]->NumBFs;
+  if (Op==TBCOP_READ)	
+   { Log("Attempting to read T-block (%s,%s) from file %s...",FileBase,z2s(Omega),FileName);
+     HMatrix *MFile = new HMatrix(FileName, LHM_HDF5, "T");
+     bool Success;
+     if (MFile->ErrMsg)
+      { Log("...could not read file");
+        Success=false;
+      }
+     else if ( (MFile->NR != NBFs) || (MFile->NC!= NBFs) )
+      { Log("...matrix had incorrect dimension"); 
+        Success=false;
+      }
+     else
+      { M->InsertBlock(MFile, RowOffset, ColOffset);
+        Log("...success!");
+        Success=true;
+      };
+     delete MFile;
+     return Success;
+   }
+  else if (Op==TBCOP_WRITE)
+   { 
+      HMatrix *MFile = new HMatrix(NBFs, NBFs, M->RealComplex);
+      M->ExtractBlock(RowOffset, ColOffset, MFile);
+      MFile->ExportToHDF5(FileName,"T");
+      Log("Writing T-block (%s,%s) to file %s...",FileBase,z2s(Omega),FileName);
+      if (MFile->ErrMsg)
+       Log("...failed! %s",MFile->ErrMsg);
+      delete MFile;
+      return true;
+   };
+
+  return false; // never get here 
+
+}
+
+
+/***************************************************************/
 /* This routine computes the block of the BEM matrix that      */
 /* describes the interaction between surfaces nsa and nsb.     */
 /* This block is stamped into M in such a way that the upper-  */ 
@@ -179,6 +243,14 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
                                          double *GammaMatrix)
 {
   bool SameSurface = (nsa==nsb);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (    nsa==nsb 
+       && NumLatticeBasisVectors==0
+       && TBlockCacheOp(TBCOP_READ,this,nsa,Omega, M,RowOffset,ColOffset)
+     ) return;
 
   /***************************************************************/
   /* pre-initialize arguments for GetSurfaceSurfaceInteractions **/
@@ -210,6 +282,12 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->GammaMatrix=GammaMatrix;
 
   GetSurfaceSurfaceInteractions(Args);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( nsa==nsb && NumLatticeBasisVectors==0 )
+   TBlockCacheOp(TBCOP_WRITE,this,nsa,Omega,M,RowOffset,ColOffset);
 
   if (NumLatticeBasisVectors==0) 
    return; 

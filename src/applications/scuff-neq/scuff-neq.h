@@ -96,6 +96,7 @@ typedef struct SNEQData
    bool SymGDest;
    bool UseExistingData;
    bool SubtractSelfTerms;
+   bool Visualize;
 
    char *FileBase;
 

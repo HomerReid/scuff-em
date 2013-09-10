@@ -321,14 +321,14 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   /*------------------------------------------------------------*/
   /*- try to open the mesh file. we look in several places:     */
   /*- (a) the current working directory                         */
-  /*- (b) the directory specified by the SCUFFMESHPATH          */
+  /*- (b) the directory specified by the SCUFF_MESH_PATH        */
   /*-     environment variable                                  */
   /*- (c) any directories that may have been specified by       */
   /*-     MESHPATH statements in .scuffgeo files                */
   /*------------------------------------------------------------*/
   FILE *MeshFile=fopen(MeshFileName,"r");
   if (!MeshFile)
-   { char *MeshPath=getenv("SCUFFMESHPATH");
+   { char *MeshPath=getenv("SCUFF_MESH_PATH");
      if (MeshPath)
       MeshFile=vfopen("%s/%s","r",MeshPath,MeshFileName);
      if (MeshFile)

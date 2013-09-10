@@ -1,5 +1,6 @@
 SUBDIRS =            \
  ApertureDiffraction \
+ CorrugatedDisc      \
  CubeTorus           \
  GetTMatrix          \
  PlateWithHole       \

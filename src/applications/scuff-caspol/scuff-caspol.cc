@@ -57,8 +57,9 @@ void WriteFilePreamble(const char *FileName, int argc, char *argv[],
   strftime(TimeString,30,"%D::%T",MyTm);
 
   fprintf(f,"# scuff-caspol running on %s (%s)\n",getenv("HOST"),TimeString);
-  fprintf(f,"#");
+  fprintf(f,"#\n");
   fprintf(f,"# command line:\n");
+  fprintf(f,"#\n");
   fprintf(f,"# scuff-caspol ");
   for(int narg=0; narg<(argc-1); narg++)
    fprintf(f," %s%s",argv[narg+1],(narg%4)==3 ? "\n# " : " ");

@@ -1,0 +1,3 @@
+OBJECT ThePlate
+	MESHFILE Plate_105.msh
+ENDOBJECT

@@ -1,0 +1,18 @@
+MATERIAL Sapphire
+
+ A1  = 1.5039759;
+ A2  = 0.55069141;
+ A3  = 6.5927379;
+ 
+ w12 = 1.64221251416675e+31;
+ w22 = 6.08131608351107e+30;
+ w32 = 2.23383186132738e+26;
+
+ Eps(w) = 1 + A1/(1-w*w/w12) + A2/(1-w*w/w22) + A3/(1-w*w/w32);
+
+ENDMATERIAL 
+
+OBJECT TheDisc
+	MESHFILE CorrugatedDisc_2634.msh
+	MATERIAL Sapphire
+ENDOBJECT

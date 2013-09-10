@@ -146,6 +146,7 @@ int main(int argc, char *argv[])
 
   bool UseExistingData=false;
   bool SubtractSelfTerms=false;
+  bool Visualize=false;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
@@ -181,6 +182,7 @@ int main(int argc, char *argv[])
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
      {"SubtractSelfTerms", PA_BOOL, 0, 1,       (void *)&SubtractSelfTerms, 0,      "subtract self terms"},
+     {"Visualize",      PA_BOOL,    0, 1,       (void *)&Visualize,  0,             "visualize flux profiles"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -281,8 +283,9 @@ int main(int argc, char *argv[])
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, 
                                  PlotFlux, FileBase, SymGSource, SymGDest);
   RWGGeometry *G=SNEQD->G;
-  SNEQD->UseExistingData = UseExistingData;
+  SNEQD->UseExistingData   = UseExistingData;
   SNEQD->SubtractSelfTerms = SubtractSelfTerms;
+  SNEQD->Visualize         = Visualize;
 
   /*******************************************************************/
   /* process any temperature specifications **************************/
