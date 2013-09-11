@@ -9,17 +9,9 @@ MATERIAL SiliconCarbide
 
 ENDMATERIAL
 
-MATERIAL MyGraphene
-   a0     = -3.32377e28;
-   a1     = +8.93329e11; 
-   b0     = -2.21677e28;
-   b1     = 8.93329e11;
-   Eps(w) = EpsInf * (a0 + i*a1*w + w*w) / ( b0 + i*b1*w + w*w);
-ENDMATERIAL MyGraphene
-
 OBJECT TheSphere
 	MESHFILE Sphere.msh
-	SURFACE_CONDUCTIVITY CONST_EPS_10+10i
+	MATERIAL CONST_EPS_10+10i
 ENDOBJECT
 
 
