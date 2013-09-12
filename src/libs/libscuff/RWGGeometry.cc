@@ -225,6 +225,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   AllSurfacesClosed=1;
   NumLatticeBasisVectors=0;
   tolVecClose=0.0; // to be updated once mesh is read in
+  TBlockCacheNameAddendum=0;
 
   // we always start with a single Region, for the exterior,
   // taken to be vacuum by default

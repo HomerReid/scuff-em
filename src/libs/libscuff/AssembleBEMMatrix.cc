@@ -173,13 +173,15 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   char *FileBase = GetFileBase(G->Surfaces[ns]->MeshFileName); 
+  const char *Addendum = G->TBlockCacheNameAddendum;
+  if (Addendum==0) Addendum="";
   char FileName[200];
   if ( imag(Omega)==0.0 )
-   snprintf(FileName,200,"%s/%s_%.6e.hdf5",Dir,FileBase,real(Omega));
+   snprintf(FileName,200,"%s/%s%s_%.6e.hdf5",Dir,FileBase,Addendum,real(Omega));
   else if ( real(Omega)==0.0 )
-   snprintf(FileName,200,"%s/%s_%.6eI.hdf5",Dir,FileBase,imag(Omega));
+   snprintf(FileName,200,"%s/%s%s_%.6eI.hdf5",Dir,FileBase,Addendum,imag(Omega));
   else
-   snprintf(FileName,200,"%s/%s_%.6e+%.6eI.hdf5",Dir,FileBase,real(Omega),imag(Omega));
+   snprintf(FileName,200,"%s/%s%s_%.6e+%.6eI.hdf5",Dir,FileBase,Addendum,real(Omega),imag(Omega));
 
   /***************************************************************/
   /***************************************************************/

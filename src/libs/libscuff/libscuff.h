@@ -541,6 +541,7 @@ class RWGGeometry
    int *SurfaceMoved;
   
    int LogLevel; 
+   const char *TBlockCacheNameAddendum;
    
    static bool AssignBasisFunctionsToExteriorEdges;
    static int PBCCubatureOrder;
