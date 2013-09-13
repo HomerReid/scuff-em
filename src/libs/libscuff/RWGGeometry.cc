@@ -236,6 +236,22 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   RegionMPs[0] = new MatProp("VACUUM");
 
   /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( NumMeshDirs==0 && getenv("SCUFF_MESH_PATH") )
+   { char MeshPathCopy[1000];
+     strncpy(MeshPathCopy, getenv("SCUFF_MESH_PATH"), 1000);
+     char *Tokens[10];
+     int NumTokens=Tokenize(MeshPathCopy, Tokens, 10, ":");
+     NumMeshDirs=NumTokens;
+     MeshDirs = (char **)malloc(NumTokens * sizeof(char *));
+     for(int nt=0; nt<NumTokens; nt++)
+      { MeshDirs[nt] = strdup(Tokens[nt]);
+        Log("Added %s to mesh search path.",MeshDirs[nt]);
+      };
+   };
+
+  /***************************************************************/
   /* try to open input file **************************************/
   /***************************************************************/
   FILE *f=fopen(GeoFileName,"r");
