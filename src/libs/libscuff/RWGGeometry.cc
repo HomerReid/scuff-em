@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <math.h>
 #include <ctype.h>
+#include <fenv.h>
 
 #include <libhrutil.h>
 
@@ -249,6 +250,14 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       { MeshDirs[nt] = strdup(Tokens[nt]);
         Log("Added %s to mesh search path.",MeshDirs[nt]);
       };
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( getenv("SCUFF_ABORT_ON_FPE") )
+   { feenableexcept(FE_INVALID | FE_OVERFLOW);
+     Log("Enabling abort-on-floating-point-exception.");
    };
 
   /***************************************************************/
