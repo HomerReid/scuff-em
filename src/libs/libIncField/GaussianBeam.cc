@@ -94,6 +94,7 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
   // this has the advantage that the field can be analytically calculated
   // and exactly solves Maxwell's equations everywhere in space
   double z0 = k*W0*W0/2;
+  double kz0 = k*z0;
   dVec Xrel = dVec(X) - dVec(X0);
 
   // the field has NO cylindrical symmetry! this means that for
@@ -108,12 +109,30 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
   // this is from libVec.h
   GetLocalCylinderCoordinates(Xrel, zHat, rho, z);
 
+  // HR 20130915 the cos, sin below can overflow if kR has large 
+  // imaginary part, so in that case we use the 'rescaled' versions 
+  // of f and g, defined as f,g divided by exp(kz0). x
+  bool UseRescaledFG = false;
+
   cdouble zc = z - IU*z0;
   cdouble Rsq  = rho*rho + zc*zc, R = sqrt(Rsq), kR = k*R, kRsq = kR*kR, kR3 = kRsq*kR;
   cdouble f,g,fmgbRsq;
   // we have to be careful: R can go to zero, leading to numerical problems
-  if (std::abs(kR)>1.e-4) {
-    cdouble coskR = cos(kR), sinkR = sin(kR);
+  if (std::abs(kR)>1.e-4) 
+   {
+    cdouble coskR, sinkR;
+    if ( fabs(imag(kR))>30.0 )
+     { UseRescaledFG = true;
+       cdouble ExpI     = exp( IU*real(kR) );
+       cdouble ExpPlus  = exp( imag(kR) - kz0 );
+       cdouble ExpMinus = exp( -(imag(kR) + kz0) );
+       coskR = 0.5*( ExpI*ExpMinus + conj(ExpI)*ExpPlus);
+       sinkR = -0.5*IU*( ExpI*ExpMinus - conj(ExpI)*ExpPlus);
+     }
+    else
+     { coskR = cos(kR); 
+       sinkR = sin(kR);
+     };
     f   = -3.  *            (coskR/kRsq - sinkR/kR3);
     //g =  1.5 * (sinkR/kR + coskR/kRsq - sinkR/kR3)
     g   =  1.5 *  sinkR/kR - 0.5 * f;
@@ -176,8 +195,13 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
   // the field as calculated above is not normalized, so we get the field strength at the origin
   // (for E0 == 1)
   // this can be simplified very much by using that for x=y=z=0, R = sqrt((-i z0)**2) = i z0
-  double kz0 = k*z0;
-  double Eorig = 3./(2*kz0*kz0*kz0) * (exp(kz0)*kz0*(kz0-1) + sinh(kz0));
+
+  // 20130915 HR see comments above; note sinh(kz0)/exp(kz0) = 0.5(1-exp(-2*kz0)) 
+  double Eorig; 
+  if (UseRescaledFG)
+   Eorig = 3./(2*kz0*kz0*kz0) * (kz0*(kz0-1) + 0.5*(1.0-exp(-2.0*kz0)) );
+  else
+   Eorig = 3./(2*kz0*kz0*kz0) * (exp(kz0)*kz0*(kz0-1) + sinh(kz0));
   
   // now scale the fields to have E(0,0,0) = E0
   E /= Eorig;
