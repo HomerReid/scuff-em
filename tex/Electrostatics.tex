@@ -122,7 +122,7 @@ the ``external'' fields instead.}
 Note that equations (\ref{ContinuousEquations1}) do \textit{not}
 involve the dielectric constants of the various regions. Instead,
 surface charges on all surfaces contribute to the potential as
-they would in vacuum.
+they would in vacuum. 
 
 %====================================================================%
 %====================================================================%
@@ -303,10 +303,23 @@ $$ \mathcal{I}\supt{(2)}_{mn}
         {4\pi|\vb x - \vb x^\prime|^3} \, d\vb x^\prime \,d\vb x.
 $$ 
 
+\subsubsection*{Conditions at Robin surfaces}
+
+As a generalization of the usual electrostatics
+for PEC and dielectric bodies, {\sc scuff-static} 
+also supports Robin boundary conditions.
+The Robin boundary condition at a point $\vb x$
+on a surface of Robin parameter $\lambda$ is 
+$$  \left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^+} 
+   -\left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^-} 
+   =\lambda \phi(\vb x).
+$$
+
 \subsubsection*{BEM system}
 
-Assembling equations (\ref{PECPanelEquation}) for all PEC panels
-and (\ref{DielectricPanelEquation}) for all dielectric panels 
+Assembling equations (\ref{PECPanelEquation}) for PEC panels,
+(\ref{DielectricPanelEquation}) for all dielectric panels,
+and (\ref{RobinEquation}) for all Robin panels 
 into a big linear system, we have 
 %====================================================================%
 \numeq{BEMSystem}{ \vb M \boldsymbol{\sigma} = \vb v }
@@ -330,6 +343,13 @@ $$ M_{mn} =
    \qquad 
    v_m = -\Delta_{rr^\prime} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) \, d\vb x.
 $$
+\paragraph{If panel $m$ is Robin:}
+$$ M_{mn} = 
+     A_{m}\delta_{mn} - \lambda \mathcal{I}\sups{(1)}_{mn},
+   \qquad 
+   v_m = 0.
+$$
+
 %====================================================================%
 In these equations, 
 \begin{itemize}
