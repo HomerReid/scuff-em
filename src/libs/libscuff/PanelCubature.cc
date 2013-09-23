@@ -330,14 +330,14 @@ void GPPCIntegrand(unsigned ndim, const double *XiEta, void *params,
     };
 
    double X1[3];
-   X1[0] = V01[0] + Xi1*A1[0] + Xi2*B1[0];
-   X1[1] = V01[1] + Xi1*A1[1] + Xi2*B1[1];
-   X1[2] = V01[2] + Xi1*A1[2] + Xi2*B1[2];
+   X1[0] = V01[0] + Xi1*A1[0] + Eta1*B1[0];
+   X1[1] = V01[1] + Xi1*A1[1] + Eta1*B1[1];
+   X1[2] = V01[2] + Xi1*A1[2] + Eta1*B1[2];
 
    double X2[3];
-   X2[0] = V02[0] + Eta1*A2[0] + Eta2*B2[0];
-   X2[1] = V02[1] + Eta1*A2[1] + Eta2*B2[1];
-   X2[2] = V02[2] + Eta1*A2[2] + Eta2*B2[2];
+   X2[0] = V02[0] + Xi2*A2[0] + Eta2*B2[0];
+   X2[1] = V02[1] + Xi2*A2[1] + Eta2*B2[1];
+   X2[2] = V02[2] + Xi2*A2[2] + Eta2*B2[2];
 
    /*--------------------------------------------------------------*/
    /*- get the surface currents at the evaluation point           -*/
