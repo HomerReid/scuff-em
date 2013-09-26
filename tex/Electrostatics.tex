@@ -303,23 +303,30 @@ $$ \mathcal{I}\supt{(2)}_{mn}
         {4\pi|\vb x - \vb x^\prime|^3} \, d\vb x^\prime \,d\vb x.
 $$ 
 
-\subsubsection*{Conditions at Robin surfaces}
+\subsubsection*{Conditions at $\lambda-$ surfaces}
 
 As a generalization of the usual electrostatics
 for PEC and dielectric bodies, {\sc scuff-static} 
-also supports Robin boundary conditions.
-The Robin boundary condition at a point $\vb x$
-on a surface of Robin parameter $\lambda$ is 
-$$  \left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^+} 
+also supports a modified type of boundary conditions
+that we will call $\lambda$-\textit{conditions}.
+The $\lambda$ boundary condition is defined by
+\numeq{LambdaCondition}
+{
+    \left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^+} 
    -\left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^-} 
    =\lambda \phi(\vb x).
-$$
+}
+Surfaces satisfying $\lambda$ conditions will be 
+known as $\lambda$-\textit{surfaces}. We may think 
+of $\lambda$-surfaces as a type of semiconducting
+surface on which reside a surface charge density
+proportional to the local electrostatic potential.
 
 \subsubsection*{BEM system}
 
 Assembling equations (\ref{PECPanelEquation}) for PEC panels,
 (\ref{DielectricPanelEquation}) for all dielectric panels,
-and (\ref{RobinEquation}) for all Robin panels 
+and (\ref{LambdaCondition}) for all Robin panels 
 into a big linear system, we have 
 %====================================================================%
 \numeq{BEMSystem}{ \vb M \boldsymbol{\sigma} = \vb v }
@@ -328,13 +335,13 @@ where the $m$th entry of the unknown vector $\sigma$ is the
 surface charge density (divided by $\epsilon_0$) on the $m$th
 panel, and where the elements of the BEM matrix and the RHS vector are
 %====================================================================%
-\paragraph{If panel $m$ is PEC:}
+\paragraph{If panel $m$ is on a PEC surface:}
 $$
   M_{mn} = \mathcal{I}\sups{(1)}_{mn}, 
    \hspace{1.2in}
    v_m = A_{m} V_m - \int_{\mc P_m} \phi\sups{ext}(\vb x) \, d\vb x
 $$
-\paragraph{If panel $m$ is dielectric:}
+\paragraph{If panel $m$ is on a dielectric surface:}
 $$ M_{mn} = 
    \begin{cases} 
      A_m, \qquad &m=n \\
@@ -343,7 +350,7 @@ $$ M_{mn} =
    \qquad 
    v_m = -\Delta_{rr^\prime} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) \, d\vb x.
 $$
-\paragraph{If panel $m$ is Robin:}
+\paragraph{If panel $m$ is on a $\lambda$-surface:}
 $$ M_{mn} = 
      A_{m}\delta_{mn} - \lambda \mathcal{I}\sups{(1)}_{mn},
    \qquad 
