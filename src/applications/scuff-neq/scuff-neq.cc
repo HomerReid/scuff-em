@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
 
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
+  char *OmegaKFile;
   double OmegaMin=0.00;              int nOmegaMin;
   double OmegaMax=-1.0;              int nOmegaMax;
 
@@ -166,6 +167,8 @@ int main(int argc, char *argv[])
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
      {"OmegaMin",       PA_DOUBLE,  1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
      {"OmegaMax",       PA_DOUBLE,  1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
+/**/     
+     {"OmegaKFile",     PA_STRING,  1, 1,       (void *)&OmegaKFile, 0,             "list of (Omega, kx, ky) points"},
 /**/     
      {"Temperature",    PA_STRING,  2, MAXTEMPS, (void *)TempStrings, &nTempStrings,  "set object xx temperature to xx"},
 /**/     
@@ -220,17 +223,27 @@ int main(int argc, char *argv[])
    ErrExit("you must specify at least one quantity to compute");
 
   /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  HMatrix *OmegaKPoints=0; 
+  if (OmegaKFile)
+   { OmegaKPoints = new HMatrix(OmegaKFile,LHM_TEXT,"--ncol 3");
+     if (OmegaKPoints->ErrMsg)
+      ErrExit(OmegaKPoints->ErrMsg);
+   };
+
+  /*******************************************************************/
   /* process frequency-related options to construct a list of        */
   /* frequencies at which to run simulations                         */
   /*******************************************************************/
-  HVector *OmegaList=0, *OmegaList0;
+  HVector *OmegaPoints=0, *OmegaPoints0;
   int nFreq, nOV, NumFreqs=0;
   if (nOmegaFiles==1) // first process --OmegaFile option if present
    { 
-     OmegaList=new HVector(OmegaFile,LHM_TEXT);
-     if (OmegaList->ErrMsg)
-      ErrExit(OmegaList->ErrMsg);
-     NumFreqs=OmegaList->N;
+     OmegaPoints=new HVector(OmegaFile,LHM_TEXT);
+     if (OmegaPoints->ErrMsg)
+      ErrExit(OmegaPoints->ErrMsg);
+     NumFreqs=OmegaPoints->N;
      Log("Read %i frequencies from file %s.",NumFreqs,OmegaFile);
    };
 
@@ -238,16 +251,16 @@ int main(int argc, char *argv[])
   if (nOmegaVals>0)
    { 
      NumFreqs += nOmegaVals;
-     OmegaList0=OmegaList;
-     OmegaList=new HVector(NumFreqs, LHM_COMPLEX);
+     OmegaPoints0=OmegaPoints;
+     OmegaPoints=new HVector(NumFreqs, LHM_COMPLEX);
      nFreq=0;
-     if (OmegaList0)
-      { for(nFreq=0; nFreq<OmegaList0->N; nFreq++)
-         OmegaList->SetEntry(nFreq, OmegaList0->GetEntry(nFreq));
-        delete OmegaList0;
+     if (OmegaPoints0)
+      { for(nFreq=0; nFreq<OmegaPoints0->N; nFreq++)
+         OmegaPoints->SetEntry(nFreq, OmegaPoints0->GetEntry(nFreq));
+        delete OmegaPoints0;
       };
      for(nOV=0; nOV<nOmegaVals; nOV++)
-      OmegaList->SetEntry(nFreq+nOV, OmegaVals[nOV]);
+      OmegaPoints->SetEntry(nFreq+nOV, OmegaVals[nOV]);
      Log("Read %i frequencies from command line.",nOmegaVals);
    };
 
@@ -256,14 +269,14 @@ int main(int argc, char *argv[])
   /* of frequencies and a frequency range over which to integrate;   */
   /* if a range was specified check that it makes sense              */
   /*******************************************************************/
-  if ( NumFreqs>0 ) 
+  if ( OmegaKPoints || OmegaPoints ) 
    { if ( nOmegaMin>0 || nOmegaMax>0 )
       ErrExit("--OmegaMin/--OmegaMax options may not be used with --Omega/--OmegaFile");
      if ( nTempStrings>0 )
       ErrExit("--Temperature option may not be used with --Omega/--OmegaFile");
      Log("Computing spectral density at %i frequencies.",NumFreqs);
    }
-  else if (NumFreqs==0)
+  else
    { 
      if ( nOmegaMin==1 && OmegaMin<0.0 )
       ErrExit("invalid value specified for --OmegaMin");
@@ -338,9 +351,20 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   int OutputVectorLength = SNEQD->NumTransformations * G->NumSurfaces * G->NumSurfaces * SNEQD->NQ;
   double *I = new double[ OutputVectorLength ];
-  if (NumFreqs>0)
+  if (OmegaKPoints)
+   { for (int nok=0; nok<OmegaKPoints->NR; nok++)
+      {  
+        cdouble Omega; 
+        double kBloch[2];
+        Omega     = OmegaKPoints->GetEntryD(nok, 0);
+        kBloch[0] = OmegaKPoints->GetEntryD(nok, 1);
+        kBloch[1] = OmegaKPoints->GetEntryD(nok, 2);
+        GetFlux(SNEQD, Omega, kBloch, I);
+      };
+   }
+  else if (NumFreqs>0)
    { for (nFreq=0; nFreq<NumFreqs; nFreq++)
-      GetFlux(SNEQD, OmegaList->GetEntry(nFreq), I);
+      GetFlux(SNEQD, OmegaPoints->GetEntry(nFreq), I);
    }
   else
    { 

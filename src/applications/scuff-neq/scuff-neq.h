@@ -108,6 +108,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          bool SymGSource, bool SymGDest);
 
 int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
+void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux);
 
 void EvaluateFrequencyIntegral(SNEQData *SNEQD,

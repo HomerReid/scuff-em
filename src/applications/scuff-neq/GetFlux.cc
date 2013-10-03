@@ -321,7 +321,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *Flux)
 /*  where  NSNQ = number of surface * NQ                       */
 /*  where NS2NQ = (number of surfaces)^2* NQ                   */
 /***************************************************************/
-void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
+void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
   if ( CacheRead(SNEQD, Omega, Flux) )
    return;
@@ -363,10 +363,13 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
      else
       Log(" Assembling self contributions to T(%i)...",ns);
 
+#if 0
      Args->Sa = Args->Sb = G->Surfaces[ns];
      Args->B = T[ns];
      Args->Symmetric=1;
      GetSurfaceSurfaceInteractions(Args);
+#endif
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, T[ns]);
    };
 
   /***************************************************************/
@@ -391,13 +394,20 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
         else
          Log(" Assembling self contributions to TSelf(%i)...",ns);
    
+#if 0
         Args->Sa = Args->Sb = G->Surfaces[ns];
         Args->B = TSelf[ns];
         Args->Symmetric=1;
         G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
         GetSurfaceSurfaceInteractions(Args);
         G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
+#endif
+        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
+        G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TSelf[ns]);
+        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
+
         UndoSCUFFMatrixTransformation(TSelf[ns]);
+
       };
      for(int nr=0; nr<G->NumRegions; nr++)
       G->RegionMPs[nr]->UnZero();
@@ -445,12 +455,15 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
       for(int nsp=ns+1; nsp<NS; nsp++, nb++)
        if ( nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
         { 
+#if 0
           Log("  Assembling U(%i,%i)...",ns,nsp);
           Args->Sa = G->Surfaces[ns];
           Args->Sb = G->Surfaces[nsp];
           Args->B  = U[nb];
           Args->Symmetric=0;
           GetSurfaceSurfaceInteractions(Args);
+#endif
+          G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, U[nb]);
         };
 
      /*--------------------------------------------------------------*/
@@ -517,3 +530,9 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
 
 
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux)
+ { GetFlux(SNEQD, Omega, 0, Flux); }
