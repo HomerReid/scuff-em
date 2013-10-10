@@ -1,0 +1,23 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Evaluation of 2D Integrals over RWG Basis Functions}
+
+The $\vb E$ and $\vb H$ fields due to an electric current distribution
+described by a single unit-strength RWG basis function $\vb f_a(\vb x)$ 
+are 
+%--------------------------------------------------------------------%
+\begin{align}
+  \vb E(\vb x) &= ikZ \INP{\vb G(\vb x, \vb x^\prime)}{\vb f_a(\vb x^\prime)}\\
+  \vb H(\vb x) &= -ik \INP{\vb C(\vb x, \vb x^\prime)}{\vb f_a(\vb x^\prime)}.
+\end{align}
+%--------------------------------------------------------------------%
+The fields of a \textit{magnetic} current distribution
+described by the same basis function are 
+%--------------------------------------------------------------------%
+\begin{align}
+  \vb E(\vb x) &= +ik \INP{\vb C(\vb x, \vb x^\prime)}{\vb f_a(\vb x^\prime)}\\
+  \vb H(\vb x) &= \frac{ik}{Z} \INP{\vb C(\vb x, \vb x^\prime)}{\vb f_a(\vb x^\prime)}.
+\end{align}
+%--------------------------------------------------------------------%
