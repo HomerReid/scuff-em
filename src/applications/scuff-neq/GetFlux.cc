@@ -233,7 +233,7 @@ if (pCC)
 /***************************************************************/
 /* return false on failure *************************************/
 /***************************************************************/
-bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *Flux)
+bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
   if (SNEQD->UseExistingData==false)
    return false;
@@ -323,7 +323,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *Flux)
 /***************************************************************/
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
-  if ( CacheRead(SNEQD, Omega, Flux) )
+  if ( CacheRead(SNEQD, Omega, kBloch, Flux) )
    return;
 
   Log("Computing neq quantities at omega=%s...",z2s(Omega));
@@ -496,7 +496,9 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      for(int nss=0; nss<NS; nss++)
       for(int nsd=0; nsd<NS; nsd++)
        { 
-         fprintf(f,"%e %s %i%i ",real(Omega),Tag,nss+1,nsd+1);
+         fprintf(f,"%e %s ",real(Omega),Tag);
+         if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
+         fprintf(f,"%i%i ",nss+1,nsd+1);
          GetTrace(SNEQD, nss, nsd, Quantities, false);
          for(int nq=0; nq<NQ; nq++)
           { int Index=GetIndex(SNEQD, nt, nss, nsd, nq);

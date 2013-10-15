@@ -314,7 +314,7 @@ The $\lambda$ boundary condition is defined by
 {
     \left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^+} 
    -\left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^-} 
-   =\lambda \phi(\vb x).
+   =\frac{1}{\lambda} \phi(\vb x).
 }
 Surfaces satisfying $\lambda$ conditions will be 
 known as $\lambda$-\textit{surfaces}. We may think 
@@ -352,9 +352,9 @@ $$ M_{mn} =
 $$
 \paragraph{If panel $m$ is on a $\lambda$-surface:}
 $$ M_{mn} = 
-     A_{m}\delta_{mn} - \lambda \mathcal{I}\sups{(1)}_{mn},
+     \lambda A_{m}\delta_{mn} - \mathcal{I}\sups{(1)}_{mn},
    \qquad 
-   v_m = 0.
+   v_m = \int_{\mc P_m} \phi\sups{ext}(\vb x) \, d\vb x
 $$
 
 %====================================================================%

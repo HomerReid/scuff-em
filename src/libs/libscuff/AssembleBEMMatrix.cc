@@ -276,7 +276,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /***************************************************************/
   Args->Displacement=0;
   Args->UseAB9Kernel=false;
-  Args->Symmetric = SameSurface;
+  // 20131013 FIXME 
+  Args->Symmetric = false; //SameSurface;
   Args->Accumulate = 0;
   Args->B=M;
   Args->GradB=GradM;
@@ -496,7 +497,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
 
   Log("Outer cell contributions...");
   Args->Displacement = 0;
-  Args->Symmetric    = SameSurface;
+  // 20131013 FIXME
+  Args->Symmetric    = false; //SameSurface;
   Args->OmitRegion1  = false;
   Args->OmitRegion2  = false;
   Args->UseAB9Kernel = true;

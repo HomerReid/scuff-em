@@ -60,7 +60,7 @@
 /* and this macro returns the index in the list for a given    */
 /* pair (l,m).                                                 */
 /***************************************************************/
-#define LM2ALPHA(l,m) ( l*(l+1) + m )
+#define LM2ALPHA(l,m) ( l*(l+1) + (m) )
 
 /***************************************************************/
 /* conversion routines                                         */
@@ -81,6 +81,7 @@ void VectorS2C(double Theta, double Phi, double VS[3], double VC[3]);
 /***************************************************************/
 cdouble GetYlm(int l, int m, double Theta, double Phi);
 void GetYlmArray(int lMax, double Theta, double Phi, cdouble *Ylm);
+void GetRealYlmArray(int lMax, double Theta, double Phi, double *Ylm);
 void GetYlmDerivArray(int lMax, double Theta, double Phi, 
                       cdouble *Ylm, cdouble *dYlmdTheta);
 

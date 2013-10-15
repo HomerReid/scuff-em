@@ -271,6 +271,36 @@ void GetYlmArray(int lMax, double Theta, double Phi, cdouble *Ylm)
 }
 
 /*--------------------------------------------------------------*/
+/*- same as GetYlmArray except that we use real-valued Ylms    -*/
+/*-  which are defined like the usual Ylms but with complex    -*/
+/*-  exponentials replaced by real-valued sinusoids, i.e.      -*/
+/*-   exp(imPhi) -> cos(imPhi) (m>0)                           -*/
+/*-   exp(imPhi) -> sin(imPhi) (m<0)                           -*/
+/*--------------------------------------------------------------*/
+void GetRealYlmArray(int lMax, double Theta, double Phi, double *RealYlm)
+{
+  int NAlpha=(lMax+1)*(lMax+1);
+  cdouble *Ylm = new cdouble[NAlpha];
+  GetYlmDerivArray(lMax, Theta, Phi, Ylm, 0);
+  for(int l=0; l<=lMax; l++)
+   { 
+     int Alpha = LM2ALPHA(l,0); 
+     RealYlm[ Alpha ] = real( Ylm[Alpha] );
+
+     for(int m=1; m<=l; m++)
+      { 
+        int AlphaP = LM2ALPHA(l,m); 
+        int AlphaM = LM2ALPHA(l,-m); 
+        RealYlm[AlphaP] = 0.5*real( Ylm[AlphaP] + Ylm[AlphaM]);
+        RealYlm[AlphaM] = 0.5*imag( Ylm[AlphaP] - Ylm[AlphaM]);
+      };
+
+   };
+
+  delete[] Ylm;
+}
+
+/*--------------------------------------------------------------*/
 /*- same as GetYlmArray except that the theta derivatives of   -*/
 /*- the Ylms are also computed and returned in dYlmdTheta (if  -*/
 /*- dYlmdTheta is non-null)                                    -*/

@@ -308,6 +308,19 @@ void TaylorDuffy(TaylorDuffyArgStruct *Args)
      TDW->NeedK[KIndex[npk]] = true;
    };
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  bool NeednHat =    TDW->NeedP[TD_RNORMAL] 
+                  || TDW->NeedP[TD_NMULLERG1]
+                  || TDW->NeedP[TD_NMULLERG2]
+                  || TDW->NeedP[TD_NMULLERC];
+  if ( NeednHat && (Args->nHat)==0 )
+   ErrExit("TaylorDuffy() called with nHat unspecified"); 
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   ComputeGeometricParameters(Args,TDW);
   
   /***************************************************************/
