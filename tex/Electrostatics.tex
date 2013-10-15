@@ -326,7 +326,7 @@ proportional to the local electrostatic potential.
 
 Assembling equations (\ref{PECPanelEquation}) for PEC panels,
 (\ref{DielectricPanelEquation}) for all dielectric panels,
-and (\ref{LambdaCondition}) for all Robin panels 
+and (\ref{LambdaCondition}) for all $\lambda$ panels 
 into a big linear system, we have 
 %====================================================================%
 \numeq{BEMSystem}{ \vb M \boldsymbol{\sigma} = \vb v }
@@ -354,7 +354,9 @@ $$
 $$ M_{mn} = 
      A_{m}\delta_{mn} - \lambda \mathcal{I}\sups{(1)}_{mn},
    \qquad 
-   v_m = 0.
+   v_m = \lambda\left[   A_{m} V_m 
+                       - \int_{\mc P_m} \phi\sups{ext}(\vb x) \, d\vb x
+                \right].
 $$
 
 %====================================================================%
