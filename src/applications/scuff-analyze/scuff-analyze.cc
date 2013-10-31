@@ -44,13 +44,15 @@ using namespace scuff;
 /***************************************************************/
 void AnalyzeSurface(RWGSurface *S)
 {
-  double TotalArea, AvgArea;
-  int np;
-  for(TotalArea=AvgArea=0.0, np=0; np<S->NumPanels; np++)
+  double TotalArea=0.0, AvgArea=0.0, AvgArea2=0.0;
+  for(int np=0; np<S->NumPanels; np++)
    { TotalArea+=S->Panels[np]->Area;
      AvgArea+=S->Panels[np]->Area;
+     AvgArea2+=(S->Panels[np]->Area)*(S->Panels[np]->Area);
    };
   AvgArea/=((double)S->NumPanels);
+  AvgArea2/=((double)S->NumPanels);
+  double StdDevArea = AvgArea2 - AvgArea*AvgArea;
   
   printf(" Meshfile: %s \n",S->MeshFileName);
   printf(" %i panels\n",S->NumPanels);
@@ -72,6 +74,7 @@ void AnalyzeSurface(RWGSurface *S)
 
   printf(" Total area: %9.7e \n",TotalArea);
   printf(" Avg area: %9.7e // sqrt(Avg Area)=%9.7e\n",AvgArea,sqrt(AvgArea));
+  printf(" Standard deviation of panel areas: %9.7e\n",StdDevArea);
   printf(" \n");
 
 }
