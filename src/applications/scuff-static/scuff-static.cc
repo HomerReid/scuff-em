@@ -44,201 +44,52 @@ using namespace scuff;
 #define MAXSTR   1000
 
 /***************************************************************/
-/* in this case *UserData is a integer: 0, 1, 2 for x,y,z ******/
+/* routines in OutputModules.cc ********************************/
 /***************************************************************/
-void ConstantField(double *x, void *UserData, double PhiE[4])
-{ 
-  int WhichDirection = *(int *)UserData;
-  memset(PhiE,0,4*sizeof(double));
-  PhiE[0] = -1.0*x[WhichDirection];
-  PhiE[1+WhichDirection] = 1.0;
-}
+void GetPolarizabilities(SSSolver *SSS, HMatrix *M,
+                         HVector *Sigma, char *FileName);
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-typedef struct USFData 
- {
-   void *PhiEvaluator;
-   void *EEvaluator[3];
- } USFData;
+void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
+                          HVector *Sigma, char *FileName);
 
-// 2.0e-20
-//#define DELTA 9.5367431640625e-7
-#define DELTA 1.0e-6
-void UserStaticField(double *x, void *UserData, double PhiE[4])
-{
-  USFData *SFD = (USFData *)UserData;
+void GetCMatrix(SSSolver *SSS, HMatrix *M,
+                HVector *Sigma, char *FileName);
 
-  static const char *VariableNames[3] = { "x", "y", "z" };
-  cdouble VariableValues[3];
-  VariableValues[0] = cdouble(x[0], 0.0 );
-  VariableValues[1] = cdouble(x[1], 0.0 );
-  VariableValues[2] = cdouble(x[2], 0.0 );
-
-  memset(PhiE, 0, 4*sizeof(double));
-  if ( SFD==0 || SFD->PhiEvaluator==0 ) return;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  PhiE[0] = real( cevaluator_evaluate(SFD->PhiEvaluator, 3, 
-                                      const_cast<char **>(VariableNames), 
-                                      VariableValues) );
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  for(int Mu=0; Mu<3; Mu++)
-   { if (SFD->EEvaluator[Mu])
-      { PhiE[1+Mu] = real( cevaluator_evaluate(SFD->EEvaluator[Mu], 3, 
-                                               const_cast<char **>(VariableNames), 
-                                               VariableValues) 
-                         );
-      }
-     else
-      { VariableValues[Mu] *= (1.0 + DELTA);
-        double Temp = real( cevaluator_evaluate(SFD->PhiEvaluator, 3,
-                                                const_cast<char **>(VariableNames), 
-                                                VariableValues) 
-                          );
-        VariableValues[Mu] /= (1.0 + DELTA);
-        PhiE[1+Mu] = -(Temp - PhiE[0]) / DELTA; 
-      };
-   };
-   
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void PhiEConstant(double *x, void *UserData, double PhiE[4])
-{ 
-  memset(PhiE, 0, 4.0*sizeof(double));
-  int Direction = *((int *)UserData);
-  PhiE[0]             = -x[Direction];
-  PhiE[1 + Direction] = 1.0;
- 
-} 
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileName)
-{
-  RWGGeometry *G = SSS->G;
-  int NS = G->NumSurfaces;
-
-  HMatrix *PolMatrix = new HMatrix(NS, 3);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  HMatrix *QP        = new HMatrix(NS, 4);
-  for(int Mu=0; Mu<3; Mu++)
-   { 
-     SSS->AssembleRHSVector(0, PhiEConstant, (void *)(&Mu), Sigma);
-     M->LUSolve(Sigma);
-     SSS->GetCartesianMoments(Sigma, QP);
-     for(int ns=0; ns<NS; ns++)
-      PolMatrix->SetEntry(ns, Mu, QP->GetEntryD(ns,Mu+1));
-   };
-  delete QP;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  FILE *f=fopen(FileName,"w");
-  for(int ns=0; ns<NS; ns++)
-   fprintf(f,"%s %e %e %e \n",G->Surfaces[ns]->Label,
-              PolMatrix->GetEntryD(ns,0),
-              PolMatrix->GetEntryD(ns,1),
-              PolMatrix->GetEntryD(ns,2));
-
-  delete PolMatrix;
-
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-HMatrix *GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, HMatrix *C)
-{
-
-  RWGGeometry *G = SSS->G;
-  int NS = G->NumSurfaces;
-  double *Potentials = new double[NS];
-
-  /*--------------------------------------------------------------*/
-  /*- (re)allocate matrix as necessary ---------------------------*/
-  /*--------------------------------------------------------------*/
-  if (C)
-   { if ( C->NR!=NS || C->NC!=NS )
-      Warn("%s:%i: incorrect matrix passed to GetCapacitanceMatrix (reallocating)...",__FILE__,__LINE__);
-      delete C;
-      C=0;
-   };
-  if (!C)
-   C=new HMatrix(NS, NS);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  HMatrix *QP = new HMatrix(NS, 4);
-  for(int ns=0; ns<NS; ns++)
-   { 
-     memset(Potentials, 0, NS*sizeof(double));
-     Potentials[ns]=1.0;
-     SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
-     M->LUSolve(Sigma);
-     SSS->GetCartesianMoments(Sigma, QP);
-     for(int nsp=0; nsp<NS; nsp++)
-      C->SetEntry(nsp, ns, QP->GetEntry(nsp,0));
-   };
-  delete QP;
-
-  return C;
-  
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetCapacitanceMatrices(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileName)
-{ 
-  HMatrix *QP = GetCapacitanceMatrix(SSS, M, Sigma, 0);
-  QP->ExportToText(FileName);
-  delete QP;
-}
+void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+                        char *PotFile, char *PhiExt, int ConstFieldDirection,
+                        char *PlotFile, char **EPFiles, int nEPFiles);
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-  /***************************************************************/  
+  /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
   InstallHRSignalHandler();
-  char *GeoFile = 0;
-  char *PolFile = 0;
-  char *CapFile = 0;
-  char *PotFile = 0;
-  char *PhiExt  = 0;
+  char *GeoFile     = 0;
+  char *PolFile     = 0;
+  char *CapFile     = 0;
+  char *CMatrixFile = 0;
+  char *PotFile     = 0;
+  char *PhiExt      = 0;
   char *EPFiles[MAXEPF];             int nEPFiles;
-  char *PlotFile = 0;
-  char *Cache=0;
+  char *PlotFile    = 0;
+  char *Cache       = 0;
   char *ReadCache[MAXCACHE];         int nReadCache;
-  char *WriteCache=0;
-  char *ConstField=0;
+  char *WriteCache  = 0;
+  char *ConstField  = 0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
-     {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+     {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
 /**/
-     {"polfile",        PA_STRING,  1, 1,       (void *)&PolFile,    0,             "polarizability output file"},
+     {"PolFile",        PA_STRING,  1, 1,       (void *)&PolFile,    0,             "polarizability output file"},
 /**/
-     {"capfile",        PA_STRING,  1, 1,       (void *)&CapFile,    0,             "capacitance output file"},
+     {"CapFile",        PA_STRING,  1, 1,       (void *)&CapFile,    0,             "capacitance output file"},
+/**/
+     {"CMatrixFile",    PA_STRING,  1, 1,       (void *)&CMatrixFile, 0,            "c-matrix file"},
 /**/
      {"PotentialFile",  PA_STRING,  1, 1,       (void *)&PotFile,    0,             "list of conductor potentials"},
 /**/
@@ -262,9 +113,9 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /* sanity check on input arguments *********************************/
   /*******************************************************************/
-  if ( (PolFile || CapFile) && (nEPFiles>0 || PotFile!=0 || PhiExt!=0 ) )
+  if ( (PolFile || CapFile || CMatrixFile) && (nEPFiles>0 || PotFile!=0 || PhiExt!=0 ) )
    ErrExit("(--EPFile,--PotFile,--PhiExternal) may not be used with (--polfile, --capfile)");
-  if ( nEPFiles==0 && !PolFile && !CapFile && !PlotFile )
+  if ( nEPFiles==0 && !PolFile && !CapFile && !CMatrixFile && !PlotFile )
    OSUsage(argv[0], OSArray, "you have not selected any type of calculation");
 
   /*******************************************************************/
@@ -314,83 +165,19 @@ int main(int argc, char *argv[])
   M->LUFactorize();
 
   /*******************************************************************/
-  /* now switch off depending on what the user requested             */
+  /* now switch off depending on the type of calculation the user    */
+  /* requested                                                       */
   /*******************************************************************/
   if (PolFile)
    GetPolarizabilities(SSS, M, Sigma, PolFile);
   if (CapFile)
-   GetCapacitanceMatrices(SSS, M, Sigma, CapFile);
-  if ( nEPFiles>0 || PlotFile )
-   { 
-     /***************************************************************/
-     /* process user's conductor potential file if present          */
-     /***************************************************************/
-     double *Potentials = new double[G->NumSurfaces];
-     if (PotFile)
-      { 
-        ErrExit("--potfile option not yet supported");
-      }
-     else
-      memset( Potentials, 0.0, G->NumSurfaces * sizeof(double) );
-
-     /***************************************************************/
-     /* process user's external-field specification if present      */
-     /***************************************************************/
-     if (PhiExt)
-      { 
-        ErrExit("--phiexternal option not yet supported");
-        /*
-        USFData MyData, *D = &MyData;
-        D->PhiEvaluator = cevaluator_create(PhiExt);
-        D->EEvaluator[0] = D->EEvaluator[1] = D->EEvaluator[2] = 0;
-        SSS->AssembleRHSVector(Potentials, UserStaticField, (void *)D, Sigma);
-        */
-      }
-     else if ( ConstFieldDirection!=1 )
-      SSS->AssembleRHSVector(Potentials, ConstantField, &ConstFieldDirection, Sigma);
-     else
-      SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
-
-     SSS->PlotChargeDensity(Sigma, "%s.RHS", PlotFile);
-
-     /***************************************************************/
-     /* solve the problem *******************************************/
-     /***************************************************************/
-     M->LUSolve(Sigma);
-
-     /***************************************************************/
-     /***************************************************************/
-     /***************************************************************/ 
-     if (PlotFile)
-      SSS->PlotChargeDensity(Sigma, PlotFile, 0);
-
-     /***************************************************************/
-     /***************************************************************/
-     /***************************************************************/
-     for(int nepf=0; nepf<nEPFiles; nepf++)
-      {
-         HMatrix *X = new HMatrix(EPFiles[nepf]);
-         if (X->ErrMsg)
-          ErrExit(X->ErrMsg);
-
-         HMatrix *PhiE;
-         if (PhiExt)
-          ErrExit("%s:%i: internal error ",__FILE__,__LINE__);
-         if ( ConstFieldDirection!=1 )
-          PhiE = SSS->GetFields(ConstantField, &ConstFieldDirection, Sigma, X, 0);
-         else
-          PhiE = SSS->GetFields(0, 0, Sigma, X, 0);
-
-         FILE *f=vfopen("%s.out","w",GetFileBase(EPFiles[nepf]));
-         for(int nr=0; nr<X->NR; nr++)
-          fprintf(f,"%e %e %e %e %e %e %e\n",
-                     X->GetEntryD(nr,0), X->GetEntryD(nr,1), X->GetEntryD(nr,2),
-                     PhiE->GetEntryD(nr,0), PhiE->GetEntryD(nr,1), 
-                     PhiE->GetEntryD(nr,2), PhiE->GetEntryD(nr,3));
-         fclose(f);
-      };
-
-   };
+   GetCapacitanceMatrix(SSS, M, Sigma, CapFile);
+  if (CMatrixFile)
+   GetCMatrix(SSS, M, Sigma, CMatrixFile);
+  if (nEPFiles>0 || PlotFile )
+   DoFieldCalculation(SSS, M, Sigma, 
+                      PotFile, PhiExt, ConstFieldDirection, 
+                      PlotFile, EPFiles, nEPFiles);
 
   /*******************************************************************/
   /*******************************************************************/

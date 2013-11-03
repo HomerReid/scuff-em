@@ -1,9 +1,23 @@
+#
+# NOTE: the three source files 'SSSolver.cc', 'GetPPI.cc', and
+# 'GetPhiE.cc' together constitute the full implementation
+# of the SSSolver class. The files 'scuff-static.cc' and 
+# 'OutputModules.cc' are just one particular instance of a 
+# driver program that uses this class. In principle the 
+# former three files should be compiled into the form of a 
+# library, which is then linked by the scuff-static 
+# executable but could be linked by other executables too.
+# But here for convenience we just throw them all into one 
+# big executable.
+# 
+
 bin_PROGRAMS = scuff-static
 
 scuff_static_SOURCES = 		\
  GetPhiE.cc			\
  GetPPI.cc			\
  SSSolver.cc			\
+ OutputModules.cc		\
  scuff-static.cc		\
  scuff-static.h
 
