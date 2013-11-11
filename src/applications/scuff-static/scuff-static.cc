@@ -53,7 +53,7 @@ void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
                           HVector *Sigma, char *FileName);
 
 void GetCMatrix(SSSolver *SSS, HMatrix *M,
-                HVector *Sigma, char *FileName);
+                HVector *Sigma, int lMax, char *FileName);
 
 void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
                         char *PotFile, char *PhiExt, int ConstFieldDirection,
@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
   char *PolFile     = 0;
   char *CapFile     = 0;
   char *CMatrixFile = 0;
+  int lMax          = 2;             int nlMax;
   char *PotFile     = 0;
   char *PhiExt      = 0;
   char *EPFiles[MAXEPF];             int nEPFiles;
@@ -87,9 +88,10 @@ int main(int argc, char *argv[])
 /**/
      {"PolFile",        PA_STRING,  1, 1,       (void *)&PolFile,    0,             "polarizability output file"},
 /**/
-     {"CapFile",        PA_STRING,  1, 1,       (void *)&CapFile,    0,             "capacitance output file"},
+     {"CapFile",        PA_STRING,  1, 1,       (void *)&CapFile,    0,             "capacitance matrix output file"},
 /**/
-     {"CMatrixFile",    PA_STRING,  1, 1,       (void *)&CMatrixFile, 0,            "c-matrix file"},
+     {"CMatrixFile",    PA_STRING,  1, 1,       (void *)&CMatrixFile, 0,            "C-matrix file"},
+     {"lMax",           PA_INT,     1, 1,       (void *)&lMax,       &nlMax,        "maximum l-value of spherical harmonic in C-matrix "},
 /**/
      {"PotentialFile",  PA_STRING,  1, 1,       (void *)&PotFile,    0,             "list of conductor potentials"},
 /**/
@@ -109,6 +111,9 @@ int main(int argc, char *argv[])
 
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+
+  if (nlMax && CMatrixFile==0)
+   ErrExit("--lMax option can only be used with --CMatrixFile");
 
   /*******************************************************************/
   /* sanity check on input arguments *********************************/
@@ -141,7 +146,6 @@ int main(int argc, char *argv[])
   /* create the ScuffStaticGeometry **********************************/
   /*******************************************************************/
   SSSolver *SSS   = new SSSolver(GeoFile);
-  RWGGeometry *G  = SSS->G;
   HMatrix *M      = SSS->AllocateBEMMatrix();
   HVector *Sigma  = SSS->AllocateRHSVector();
 
@@ -173,7 +177,7 @@ int main(int argc, char *argv[])
   if (CapFile)
    GetCapacitanceMatrix(SSS, M, Sigma, CapFile);
   if (CMatrixFile)
-   GetCMatrix(SSS, M, Sigma, CMatrixFile);
+   GetCMatrix(SSS, M, Sigma, lMax, CMatrixFile);
   if (nEPFiles>0 || PlotFile )
    DoFieldCalculation(SSS, M, Sigma, 
                       PotFile, PhiExt, ConstFieldDirection, 

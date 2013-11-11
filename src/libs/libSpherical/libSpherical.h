@@ -79,9 +79,10 @@ void VectorS2C(double Theta, double Phi, double VS[3], double VC[3]);
 /***************************************************************/
 /* spherical harmonics                                         */
 /***************************************************************/
-cdouble GetYlm(int l, int m, double Theta, double Phi);
 void GetYlmArray(int lMax, double Theta, double Phi, cdouble *Ylm);
+cdouble GetYlm(int l, int m, double Theta, double Phi);
 void GetRealYlmArray(int lMax, double Theta, double Phi, double *Ylm);
+double GetRealYlm(int l, int m, double Theta, double Phi);
 void GetYlmDerivArray(int lMax, double Theta, double Phi, 
                       cdouble *Ylm, cdouble *dYlmdTheta);
 

@@ -301,7 +301,8 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
      IntegralType IntType;
      double Delta=0.0, Lambda=0.0, PotentialPreFactor=0.0, IntegralPreFactor=0.0;
      if (S->IsPEC)
-      { PotentialPreFactor =  1.0;
+      { // PEC surface
+        PotentialPreFactor =  1.0;
         IntegralPreFactor  = -1.0;
         IntType = PHIINTEGRAL;
       }
@@ -310,13 +311,15 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
         cdouble EpsRP = G->RegionMPs[ S->RegionIndices[1] ] -> GetEps(0.0);
    
         if ( real(EpsRP)==0.0 && imag(EpsRP)<=0.0 )
-         { Lambda  = -imag(EpsRP);
+         { // \lambda-surface
+           Lambda  = -imag(EpsRP);
            PotentialPreFactor = 0.0;
            IntegralPreFactor  = 1.0;
            IntType = PHIINTEGRAL;
          }
         else
-         { Delta = 2.0*(EpsR - real(EpsRP)) / (EpsR + real(EpsRP));
+         { // dielectric surface
+           Delta = 2.0*(EpsR - real(EpsRP)) / (EpsR + real(EpsRP));
            IntegralPreFactor = -Delta;
            IntType = ENORMALINTEGRAL;
          };

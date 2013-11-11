@@ -95,7 +95,8 @@ void PhiESpherical(double *x, void *UserData, double PhiE[4])
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, HMatrix *C)
+HMatrix *GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+                    int lMax, HMatrix *C)
 {
   PESData PESDBuffer, *PESD = &PESDBuffer;
 

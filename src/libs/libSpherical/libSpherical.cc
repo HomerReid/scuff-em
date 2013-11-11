@@ -35,6 +35,7 @@
 #include "AmosBessel.h"
 
 #define II cdouble(0.0,1.0)
+#define ROOT2 1.41421356237309504880
 
 /***************************************************************/
 /* convert cartesian coordinates to spherical coordinates      */
@@ -291,13 +292,25 @@ void GetRealYlmArray(int lMax, double Theta, double Phi, double *RealYlm)
       { 
         int AlphaP = LM2ALPHA(l,m); 
         int AlphaM = LM2ALPHA(l,-m); 
-        RealYlm[AlphaP] = 0.5*real( Ylm[AlphaP] + Ylm[AlphaM]);
-        RealYlm[AlphaM] = 0.5*imag( Ylm[AlphaP] - Ylm[AlphaM]);
+        double Sign = (m%2) ? 1.0 : -1.0;
+        RealYlm[AlphaP] = real( Ylm[AlphaP] + Sign*Ylm[AlphaM]) / ROOT2;
+        RealYlm[AlphaM] = imag( Ylm[AlphaP] - Sign*Ylm[AlphaM]) / ROOT2; 
       };
 
    };
 
   delete[] Ylm;
+}
+
+double GetRealYlm(int l, int m, double Theta, double Phi)
+{
+  int Alpha = LM2ALPHA(l,m);
+  int NAlpha = (l+1)*(l+1);
+  double *RealYlm = new double[NAlpha];
+  GetRealYlmArray(l, Theta, Phi, RealYlm);
+  double RetVal = RealYlm[Alpha];
+  delete[] RealYlm;
+  return RetVal;
 }
 
 /*--------------------------------------------------------------*/
