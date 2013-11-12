@@ -396,7 +396,7 @@ HMatrix *SSSolver::GetCartesianMoments(HVector *Sigma, HMatrix *Moments)
 }
 
 /***************************************************************/
-/***************************************************************/
+/* get the spherical moments of an individual surface **********/
 /***************************************************************/
 HVector *SSSolver::GetSphericalMoments(HVector *Sigma, int WhichSurface, 
                                        int lMax, HVector *Moments)
@@ -435,6 +435,41 @@ HVector *SSSolver::GetSphericalMoments(HVector *Sigma, int WhichSurface,
    };
   delete[] Ylm;
   
+}
+
+/***************************************************************/
+/* get spherical moments of entire geometry                    */
+/***************************************************************/
+HVector *SSSolver::GetSphericalMoments(HVector *Sigma, 
+                                       int lMax, 
+                                       HVector *Moments)
+{
+  int NAlpha = (lMax+1)*(lMax+1);
+
+  /*--------------------------------------------------------------*/
+  /*- (re)allocate output vector as necessary --------------------*/
+  /*--------------------------------------------------------------*/
+  if (Moments && Moments->N != NAlpha)
+   { Warn("incorrect Moments matrix passed to GetSphericalMoments (reallocating...)");
+     delete Moments;
+     Moments=0;
+   };
+  if (!Moments)
+   Moments=new HVector(NAlpha);
+  Moments->Zero();
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  HVector *PartialMoments = new HVector(NAlpha);
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { GetSphericalMoments(Sigma, ns, lMax, PartialMoments);
+     for(int Alpha=0; Alpha<NAlpha; Alpha++)
+      Moments->AddEntry(Alpha,PartialMoments->GetEntry(Alpha));
+   };
+
+  delete PartialMoments;
+  return Moments;
 }
 
 /***********************************************************************/

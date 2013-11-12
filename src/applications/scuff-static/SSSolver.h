@@ -84,6 +84,7 @@ class SSSolver
 
    /* routine for calculating electric dipole moment */
    HMatrix *GetCartesianMoments(HVector *Sigma, HMatrix *Moments);
+   HVector *GetSphericalMoments(HVector *Sigma, int lMax, HVector *Moments);
    HVector *GetSphericalMoments(HVector *Sigma, int WhichSurface, 
                                 int lMax, HVector *Moments);
 

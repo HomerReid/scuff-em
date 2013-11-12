@@ -252,7 +252,7 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, int lMax, char *FileN
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
-      SSS->GetSphericalMoments(Sigma, -1, lMax, Moments);
+      SSS->GetSphericalMoments(Sigma, lMax, Moments);
       for(int lp=0, AlphaP=0; lp<=lMax; lp++)
        for(int mp=-lp; mp<=lp; mp++, AlphaP++)
         CMatrix->SetEntry(AlphaP,Alpha,Moments->GetEntry(AlphaP));
