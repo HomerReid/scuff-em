@@ -263,7 +263,14 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, int lMax, char *FileN
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-      
+  FILE *f=fopen(FileName,"w");
+  for(int l=0, Alpha=0; l<=lMax; l++)
+   for(int m=-l; m<=l; m++, Alpha++)
+    for(int lp=0, AlphaP=0; lp<=lMax; lp++)
+     for(int mp=-lp; mp<=lp; mp++, AlphaP++)
+      fprintf(f,"%e ",CMatrix->GetEntryD(Alpha,AlphaP));
+  fprintf(f,"\n");
+  fclose(f);
 }
 
 /***************************************************************/

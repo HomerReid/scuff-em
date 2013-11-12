@@ -413,6 +413,7 @@ HVector *SSSolver::GetSphericalMoments(HVector *Sigma, int WhichSurface,
    };
   if (!Moments)
    Moments=new HVector(NAlpha);
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -431,7 +432,7 @@ HVector *SSSolver::GetSphericalMoments(HVector *Sigma, int WhichSurface,
 
      for(int Alpha=0; Alpha<NAlpha; Alpha++)
       Moments->AddEntry(Alpha, Charge*Ylm[Alpha]);
-   }; 
+   };
   delete[] Ylm;
   
 }
