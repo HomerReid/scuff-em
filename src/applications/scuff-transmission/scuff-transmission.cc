@@ -37,6 +37,9 @@ using namespace scuff;
 #define MAXFREQ 10
 #define MAXCACHE 10    // max number of cache files for preload
 
+#define POLARIZATION_TE 0
+#define POLARIZATION_TM 0
+
 /*******************************************************************/
 /* this is a 9th-order, 17-point cubature rule for the unit square */
 /* with corners {(0,0) (1,0) (1,1) (1,0)}.                         */
@@ -66,6 +69,61 @@ double SCR9[]={
   +4.6189583590369143e-01, +9.2630786466683113e-01, +6.7262834409945196e-02,
   +4.6189583590369143e-01, +7.3692135333168873e-02, +6.7262834409945196e-02 
 };
+
+/*******************************************************************/
+/* fill in lists of surfaces that bound the uppermost and lowermost*/
+/* regions in an RWGGeometry.                                      */
+/*                                                                 */
+/* on entry, the two boolean arrays in the parameter list must be  */
+/* allocated to hold enough space for NS booleans each, where NS   */
+/* is the number of surfaces in the RWGGeometry.                   */
+/*                                                                 */
+/* on return, SurfaceBoundsUppermostRegion[ns] = true if surface   */
+/* #ns bounds the uppermost region in the geometry.                */
+/*                                                                 */
+/* algorithm:                                                      */
+/*                                                                 */
+/*  (a) find the vertices VMax and VMin that have the highest and  */
+/*      lowest Z-coordinate values of all vertices on all surfaces.*/
+/*      Label the corresponding surfaces SMax and SMin.            */
+/*                                                                 */
+/*  (b) All surfaces whose ''outer region'' coincides with the     */
+/*      ''outer'' region of SMax (SMin) are deemed to bound the    */
+/*      uppermost (lowermost) region.                              */
+/*******************************************************************/
+void GetUpperAndLowerRegionBoundingSurfaces(RWGGeometry *G,
+                                            bool *SurfaceBoundsUppermostRegion,
+                                            bool *SurfaceBoundsLowermostRegion)
+{
+  int NS = G->NumSurfaces;
+
+  // first pass to identify uppermost and lowermost surfaces 
+  int nsMax=0, nsMin=0;
+  double ZMax=G->Surfaces[0]->Vertices[3*0 + 2], ZMin=ZMax;
+  for(int ns=0; ns<NS; ns++)
+   for(int nv=0; nv<G->Surfaces[ns]->NumVertices; nv++)
+    {
+      double ZValue = G->Surfaces[ns]->Vertices[3*nv + 2];
+      if (ZValue > ZMax) ZMax = ZValue, nsMax=ns;
+      if (ZValue < ZMin) ZMin = ZValue, nsMin=ns;
+    };
+
+  // second pass to identify surfaces that share the same outer
+  // region as the uppermost and lowermost surfaces
+  memset(SurfaceBoundsUppermostRegion, 0, NS*sizeof(bool));
+  int UppermostRegion = G->Surfaces[nsMax]->RegionIndices[0];
+  int LowermostRegion = G->Surfaces[nsMin]->RegionIndices[1];
+  for(int ns=0; ns<NS; ns++)
+   { 
+     SurfaceBoundsUppermostRegion[ns] 
+       = (G->Surfaces[ns]->RegionIndices[0] == UppermostRegion);
+
+     SurfaceBoundsLowermostRegion[ns] 
+       = (G->Surfaces[ns]->RegionIndices[0] == LowermostRegion);
+
+   };
+
+}
 
 /*******************************************************************/
 /* get the transmitted and reflected flux by integrating the       */
@@ -153,14 +211,14 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   /* get scattered fields at all cubature points                 */ 
   /***************************************************************/ 
   G->GetFields(IF, KN, Omega, kBloch, XMatrixAbove, FMatrixAbove);
-  G->GetFields(IF, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
+  G->GetFields(0, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
 
   /***************************************************************/
   /* integrate poynting vector over upper and lower surfaces.    */
-  /* Note: The jacobian in this cubature should be the area of   */
-  /*       the unit cell, so omitting that factor is equivalent  */
-  /*       to dividing the integrated power by the unit-cell     */
-  /*       area, which is what we want to do anyway.             */
+  /* Note: The jacobian in this cubature is the area of the unit */
+  /*       cell, so omitting that factor is equivalent to        */
+  /*       dividing the integrated power by the unit-cell area,  */
+  /*       which is what we want to do anyway.                   */
   /***************************************************************/
   double w, PTransmitted=0.0, PReflected=0.0;
   cdouble E[3], H[3];
@@ -194,37 +252,90 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
 }
 
 /***************************************************************/
+/* Get the amplitudes for forward scattering into the uppermost*/
+/* region and the amplitude for backward scattering into the   */
+/* lowermost region.                                           */
+/* SA[0, 1] = forward, backward amplitudes                     */
 /***************************************************************/
-/***************************************************************/
-void GetScatteringAmplitude(RWGGeometry *G, HVector *RHS, HVector *KN, cdouble SA[2])
+void GetScatteringAmplitudes(RWGGeometry *G, HVector *KN, cdouble Omega,
+                             double Theta, int Polarization, 
+                             cdouble SA[2])
 {
-  cdouble Dot=0.0, CDot=0.0;
-  for(int nbf=0, ns=0; ns<G->NumSurfaces; ns++)
-   { 
-     RWGSurface *S = G->Surfaces[ns];
-     if (S->IsPEC)
-      for(int ne=0; ne<S->NumEdges; ne++)
-       {  Dot  += RHS->GetEntry(nbf) * KN->GetEntry(nbf);
-          CDot += conj(RHS->GetEntry(nbf)) * KN->GetEntry(nbf);
-          nbf++;
-       }
-     else
-      for(int ne=0; ne<S->NumEdges; ne++)
-       {  Dot  += RHS->GetEntry(nbf) * KN->GetEntry(nbf);
-                  - RHS->GetEntry(nbf+1) * KN->GetEntry(nbf+1);
-          CDot += conj(RHS->GetEntry(nbf)) * KN->GetEntry(nbf);
-                   - conj(RHS->GetEntry(nbf+1)) * KN->GetEntry(nbf+1);
-          nbf+=2;
-       };
+  /***************************************************************/
+  /* identify uppermost and lowermost regions                    */
+  /***************************************************************/
+  int NS = G->NumSurfaces;
+  int nsMax=0, nsMin=0;
+  double ZMax=G->Surfaces[0]->Vertices[3*0 + 2], ZMin=ZMax;
+  for(int ns=0; ns<NS; ns++)
+   for(int nv=0; nv<G->Surfaces[ns]->NumVertices; nv++)
+    {
+      double ZValue = G->Surfaces[ns]->Vertices[3*nv + 2];
+      if (ZValue > ZMax) ZMax = ZValue, nsMax=ns;
+      if (ZValue < ZMin) ZMin = ZValue, nsMin=ns;
+    };
+  int UppermostRegion = G->Surfaces[nsMax]->RegionIndices[0];
+  int LowermostRegion = G->Surfaces[nsMin]->RegionIndices[0];
+
+  /***************************************************************/
+  /* construct a forward-traveling plane wave in the uppermost   */
+  /* region and a backward-traveling plane wave in the lowermost */
+  /* region.                                                     */
+  /***************************************************************/
+  char *UppermostRegionLabel = G->RegionLabels[UppermostRegion];
+  char *LowermostRegionLabel = G->RegionLabels[LowermostRegion];
+
+  double SinTheta = sin(Theta); 
+  double CosTheta = cos(Theta); 
+
+  double nHatUpper[3]; 
+  nHatUpper[0] = SinTheta;
+  nHatUpper[1] = 0.0;
+  nHatUpper[2] = CosTheta;
+
+  double nHatLower[3];
+  nHatLower[0] = SinTheta;
+  nHatLower[1] = 0.0;
+  nHatLower[2] = -CosTheta;
+
+  cdouble E0Upper[3], E0Lower[3];
+  if (Polarization == POLARIZATION_TE)
+   { E0Upper[0] = E0Lower[0] = 0.0;
+     E0Upper[1] = E0Lower[1] = 1.0;
+     E0Upper[2] = E0Lower[2] = 0.0;
+   }
+  else // Polarization = POLARIZATION_TM
+   { E0Upper[0] = CosTheta;
+     E0Upper[1] = 0.0;
+     E0Upper[2] = -SinTheta;
+
+     E0Lower[0] = CosTheta;
+     E0Lower[1] = 0.0;
+     E0Lower[2] = -SinTheta;
+
    };
-   
-  Dot *= -1.0*ZVAC;
-  CDot *= -1.0*ZVAC;
-  
-  //SA[0] = abs(Dot*Dot);
-  //SA[1] = abs(CDot*CDot);
-  SA[0] = Dot;
-  SA[1] = CDot;
+  PlaneWave UpperPW(E0Upper, nHatUpper, UppermostRegionLabel);
+  PlaneWave LowerPW(E0Lower, nHatLower, LowermostRegionLabel);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int Dim = G->TotalBFs;
+  static HVector *RHS=0;
+  if (RHS==0 || RHS->N!=Dim)
+   { if (RHS) delete RHS;
+     RHS=new HVector(Dim, LHM_COMPLEX);
+   };
+
+  G->AssembleRHSVector(Omega, &UpperPW, RHS);
+  SA[0] = 0.0;
+  for(int n=0; n<Dim; n++)
+   SA[0] += conj(RHS->GetEntry(n)) * KN->GetEntry(n);
+
+  G->AssembleRHSVector(Omega, &LowerPW, RHS);
+  SA[1] = 0.0;
+  for(int n=0; n<Dim; n++)
+   SA[1] += conj(RHS->GetEntry(n)) * KN->GetEntry(n);
 
 }
 
@@ -404,8 +515,8 @@ int main(int argc, char *argv[])
   double kBloch[2];
   double SinTheta, CosTheta;
   cdouble Omega;
-  double TRFluxPerp[2], TRFluxPar[2], IncFlux;
-  cdouble SAPerp[2], SAPar[2];
+  double FluxTE[2], FluxTM[2], IncFlux;
+  cdouble SATE[2], SATM[2];
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
     { 
@@ -433,7 +544,7 @@ int main(int argc, char *argv[])
       nHat[2] = CosTheta;
       PW.SetnHat(nHat);
 
-      // solve with E-field perpendicular to plane of incidence 
+      // solve with E-field perpendicular to plane of incidence  (TE)
       E0[0]=0.0;
       E0[1]=1.0;
       E0[2]=0.0;
@@ -441,10 +552,10 @@ int main(int argc, char *argv[])
       G->AssembleRHSVector(Omega, kBloch, &PW, RHS);
       KN->Copy(RHS);
       M->LUSolve(KN);
-      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPerp);
-      GetScatteringAmplitude(G, RHS, KN, SAPerp);
+      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTE);
+      GetScatteringAmplitudes(G, KN, Omega, Theta, POLARIZATION_TE, SATE);
 
-      // solve with E-field parallel to plane of incidence
+      // solve with E-field parallel to plane of incidence (TM)
       E0[0]=CosTheta;
       E0[1]=0.0;
       E0[2]=-SinTheta;
@@ -452,18 +563,18 @@ int main(int argc, char *argv[])
       G->AssembleRHSVector(Omega, kBloch, &PW, RHS);
       KN->Copy(RHS);
       M->LUSolve(KN);
-      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, TRFluxPar);
-      GetScatteringAmplitude(G, RHS, KN, SAPar);
+      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTM);
+      GetScatteringAmplitudes(G, KN, Omega, Theta, POLARIZATION_TM, SATM);
    
       IncFlux = CosTheta/(2.0*ZVAC);
 
       fprintf(f,"%s %e ", z2s(Omega), Theta*RAD2DEG);
-      fprintf(f,"%e %e ", TRFluxPerp[0]/IncFlux, TRFluxPerp[1]/IncFlux);
-      fprintf(f,"%e %e ", TRFluxPar[0]/IncFlux, TRFluxPar[1]/IncFlux);
-      fprintf(f,"%e %e ", real(SAPerp[0]), imag(SAPerp[0]));
-      fprintf(f,"%e %e ", real(SAPerp[1]), imag(SAPerp[1]));
-      fprintf(f,"%e %e ", real(SAPar[0]), imag(SAPar[0]));
-      fprintf(f,"%e %e ", real(SAPar[1]), imag(SAPar[1]));
+      fprintf(f,"%e %e ", FluxTE[0]/IncFlux, FluxTE[1]/IncFlux);
+      fprintf(f,"%e %e ", FluxTM[0]/IncFlux, FluxTM[1]/IncFlux);
+      fprintf(f,"%e %e ", norm(SATE[0]), arg(SATE[0]));
+      fprintf(f,"%e %e ", norm(SATE[1]), arg(SATE[1]));
+      fprintf(f,"%e %e ", norm(SATM[0]), arg(SATM[0]));
+      fprintf(f,"%e %e ", norm(SATM[1]), arg(SATM[1]));
       fprintf(f,"\n");
       fflush(f);
 

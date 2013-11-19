@@ -161,7 +161,7 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /* where G(x,y) is the scalar green's function and f(y) is the */
 /* vector-valued RWG current at y.                             */
 /***************************************************************/
-void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K, 
+void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
                                       Interp3D *GBarInterp,
                                       cdouble *a, cdouble *Curla, cdouble *Gradp)
 {
