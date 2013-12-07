@@ -1,5 +1,5 @@
 /* Copyright (C) 2005-2011 M. T. Homer Reid
- G
+ *
  * This file is part of SCUFF-EM.
  *
  * SCUFF-EM is free software; you can redistribute it and/or modify
