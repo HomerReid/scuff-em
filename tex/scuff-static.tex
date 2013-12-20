@@ -11,6 +11,8 @@
 %------------------------------------------------------------
 \newcommand{\vbsigma}{\boldsymbol{\sigma}}
 \newcommand{\YY}{\mc Y}
+\newcommand{\BE}{\begin{equation}}
+\newcommand{\EE}{\end{equation}}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -576,10 +578,11 @@ for computing full-wave T-matrices for objects of arbitrary
 shapes and materials:\url{http://homerreid.com/scuff-EM/scuff-tmatrix}.}
 The rows and columns of the $C$-matrix are indexed by 
 spherical harmonic indices $(\ell m)$. In brief, the matrix entry 
-$C_{\ell^\prime m^\prime, \ell m}$ is the $(\ell^\prime m^\prime)$
-spherical multipole moment of the induced charge density on an 
-object when it is subject to an $(\ell^\prime, m^\prime)$
-external field.
+$C_{\ell^\prime m^\prime, \ell m}$ is the coefficient
+of the $(\ell^\prime m^\prime)$ spherical multipole term
+in the ``scattered'' or ``outgoing'' electrostatic potential 
+due to an object exposed to an ``incoming'' 
+$(\ell, m)-$spherical multipole field.
 
 \subsubsection*{Real-valued spherical harmonics}
 {\sc scuff-static} works in a basis of \textit{real-valued}
@@ -592,7 +595,8 @@ and a $\sin m\phi$ factor for negative $m$
 the new functions are orthonormal).
 More specifically, we put
 %====================================================================%
-$$ \YY_{\ell, m} \equiv
+\numeq{YYDefinition}
+{  \YY_{\ell, m} \equiv
    \begin{cases}
      %--------------------------------------------------------------------%
      \frac{1}{\sqrt{2}}\Big[ Y_{\ell,m} + (-1)^{m} Y_{\ell,-m} \Big], \qquad 
@@ -606,7 +610,7 @@ $$ \YY_{\ell, m} \equiv
      \frac{1}{i\sqrt{2}}\Big[ Y_{\ell,m} - (-1)^m Y_{\ell,-m} \Big], \qquad
      &m<0.
    \end{cases}
-$$
+}
 The $\YY$ functions satisfy the orthogonality relation
 $$ \int \YY_{\ell m}(\theta, \phi)                 \,
         \YY_{\ell^\prime m^\prime}(\theta, \phi)   \,
@@ -630,7 +634,6 @@ $$\begin{array}{|c|c|l|}\hline
 1      & (   1,-1) & -\sqrt{\frac{3}{4\pi}} \sin\theta\sin\phi  \\\hline
 2      & (   1, 0) & +\sqrt\frac{3}{4\pi} \cos\theta          \\\hline
 3      & (   1,+1) & -\sqrt{\frac{3}{4\pi}} \sin\theta\cos\phi  \\\hline
-%--------------------------------------------------------------------%
 4      & (   2,-2) & -\sqrt\frac{15}{16\pi} \sin^2\theta \sin 2\phi \\ \hline
 5      & (   2,-1) & -\sqrt\frac{15}{16\pi} \cos\theta \sin\theta \sin\phi \\ \hline
 6      & (   2, 0) & +\sqrt\frac{5}{16\pi}(1+3\cos 2\theta) \\ \hline
@@ -640,7 +643,93 @@ $$\begin{array}{|c|c|l|}\hline
 \renewcommand{\arraystretch}{1.0}
 %====================================================================%
 
-\subsubsection*{Computation of $C$-matrix}
+\subsubsection*{Definition of $C$-matrix}
+
+The entries of the $C$-matrix are defined as the coefficients
+in a spherical-wave expansion of the ``outgoing'' or 
+``scattered'' potential due to a given ``incident'' or
+``external'' spherical-wave potential. More generally,
+we consider an object subject to a given external potential 
+$\phi\sups{ext}(\vb x)$. The total potential is the sum
+of the external potential plus a ``scattered'' contribution
+arising from the induced charge density on the object:
+%====================================================================%
+\begin{equation}
+\phi(\vb x) = \phi\sups{ext}(\vb x) + \phi\sups{scat}(\vb x).
+\end{equation}
+%====================================================================%
+To define the $C$-matrix, we take the external potential 
+to be a unit-strength ``incoming'' $(\ell, m)$ spherical wave:
+%====================================================================%
+\begin{equation}
+\phi\sups{ext}(\vb x)=r^{\ell} \YY_{\ell m}(\theta, \phi).
+\end{equation}
+%====================================================================%
+Then the ``scattered'' potential can quite generally be 
+represented as a sum of ``outgoing'' spherical waves, and the 
+coefficients in this expansion are the elements of the 
+$C$-matrix:
+%====================================================================%
+\numeq{CMatrixDefinition}
+{\phi\sups{scat}(\vb x) 
+   = \sum_{\ell^\prime, m^\prime}
+     C_{\ell^\prime m^\prime, \ell m} 
+           \frac{\YY_{\ell^\prime m^\prime}(\theta, \phi)}
+                {r^{\ell^\prime + 1 }}.
+}
+%====================================================================%
+
+\subsubsection*{$C$-matrix elements from charge-density projections}
+The elements of the $C$-matrix may be computed from the induced
+surface charge density $\sigma(\vb x)$ on the surfaces of 
+the objects in a scattering problem. To do so, first note that
+the ``scattered'' potential may be obtained from $\sigma$ 
+in the form of a surface integral:
+%====================================================================%
+\begin{align}
+ \phi\sups{scat}(\vb x) 
+&= 
+ \int G(\vb x-\vb x^\prime) \sigma(\vb x^\prime) d\vb x^\prime
+\intertext{where $G(\vb r)=\frac{1}{4\pi |\vb r|}$ is the 
+usual electrostatic Green's function. Now insert the 
+spherical-wave expansion of $G$:}
+&=\int \bigg\{
+   \sum_{l^\prime m^\prime}
+   \frac{1}{(2l^\prime + 1)} 
+   \frac{ (r^\prime)^{\ell^\prime} }
+        { r^{\ell^\prime+1} }
+   \YY_{\ell^\prime m^\prime}(\theta,\phi)
+   \YY_{\ell^\prime m^\prime}(\theta^\prime,\phi^\prime)
+      \bigg\}
+      \sigma(\vb x^\prime)d\vb x^\prime
+\\[5pt]
+&= \sum_{l^\prime m^\prime}
+   \bigg[\underbrace{\frac{1}{(2l^\prime + 1)}
+               \int (r^\prime)^{\ell^\prime}
+                    \YY_{\ell^\prime m^\prime}
+                        (\theta^\prime,\phi^\prime)
+                    \sigma(\vb x^\prime)
+                    d\vb x^\prime
+              }_{=C_{\ell^\prime m^\prime, \ell m}}
+   \bigg]
+   \frac{ \YY_{\ell^\prime m^\prime}(\theta,\phi) }
+        { r^{\ell^\prime+1} }.
+\end{align}
+Comparing to (\ref{CMatrixDefinition}), we have the relation
+between the $C$-matrix coefficients and the charge density
+induced by the incoming $(\ell,m)-$wave potential: 
+%====================================================================%
+\numeq{CFromSigma}
+{ C_{\ell^\prime m^\prime, \ell m}
+  = \frac{1}{(2l^\prime + 1)}
+    \int (r^\prime)^{\ell^\prime}
+         \YY_{\ell^\prime m^\prime}(\theta^\prime,\phi^\prime)
+         \sigma(\vb x^\prime) d\vb x^\prime.
+}
+
+%====================================================================%
+
+\subsubsection*{Computation of $C$-matrix in {\sc scuff-static}}
 
 The computation of the $C$-matrix now proceeds in analogy
 to the capacitance calculation outlined above:
@@ -650,20 +739,21 @@ to the capacitance calculation outlined above:
        with the RHS vector corresponding to an $(\ell, m)$
        external field:
        %====================================================================%      
-       $$ \phi\sups{ext}(\vb x) = r^\ell \YY_{\ell m}(\theta, \phi).$$
+       \numeq{PhiExtCMatrix} 
+         { \phi\sups{ext}(\vb x) = r^\ell \YY_{\ell m}(\theta, \phi).}
        %====================================================================%      
  \item Then, for each $(\ell^\prime, m^\prime),$ we compute
-       the $(\ell^\prime, m^\prime)$ spherical multipole
+       the $(\ell^\prime, m^\prime)$ spherical-multipole
        moment of the induced charge distribution:
        %====================================================================%      
        \begin{align*}
         C_{\ell^\prime m^\prime, \ell m} 
-         &=\oint d\vb x \, \YY_{\ell^\prime m^\prime}(\vbhat{x}) \, \sigma(\vb x) 
+         &=\frac{1}{2l+1}\oint d\vb x \, r^{\ell^\prime} \YY_{\ell^\prime m^\prime}(\vbhat{x}) \, \sigma(\vb x)
          \intertext{where the surface integral ranges over all surfaces in the problem.
                     We evaluate the integral approximately via a one-point cubature
                     that pretends the integrand is constant over the surface of 
                     each panel and equal to its value at the panel centroid:}
-         &\approx \sum_p A_p \sigma_p \YY_{\ell^\prime m^\prime} (\vbhat{x}_p)
+         &\approx \sum_p A_p \sigma_p |\vb x_p|^{\ell^\prime} \YY_{\ell^\prime m^\prime} (\vbhat{x}_p)
        \end{align*}
        where the sum is over all panels on all object surfaces and
        $\vb x_p$ is the centroid of panel $\mc P_p$.
@@ -675,6 +765,120 @@ geometry including all objects).
 
 %====================================================================%
 
+\subsubsection*{Comparison to the usual $C$-matrix} 
+ 
+How do the elements of our $C$-matrix, defined in terms
+of real-valued spherical harmonics, compare with the 
+usual definition in terms of the usual complex-valued
+spherical harmonics? (We will use the notation 
+$\overline{C}_{\ell^\prime m^\prime, \ell m}$ to 
+indicate the matrix elements as defined by this usual 
+definition.) In the usual definition, we take 
+the ``incident'' field to be
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{UsualPhiExt}
+{ \phi\sups{ext}(\vb x) =  r^\ell Y_{\ell m}(\theta, \phi) }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+and then define the $\overline{C}$-matrix entries according to
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{UsualCMatrixDefinition}
+{\phi\sups{scat}(\vb x) 
+   = \sum_{\ell^\prime, m^\prime}
+     \overline{C}_{\ell^\prime m^\prime, \ell m} 
+           \frac{Y_{\ell^\prime m^\prime}(\theta, \phi)}
+                {r^{\ell^\prime + 1 }}.
+}
+Here we are using the symbol $\overline{C}$ for the 
+entries of the $C$-matrix.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+To obtain the relation between the $\vb C$ and $\overline{\vb C}$
+matrices, consider an external field consisting of a superposition
+of incoming real-valued spherical waves:
+%====================================================================%
+\begin{align}
+ \phi\sups{ext} 
+  &= \sum_{\ell, m} a_{\ell, m} r^\ell \mc Y_{\ell,m}(\theta,\phi)
+\intertext{and write the external field as a superposition
+of outgoing real-valued spherical waves:}
+ \phi\sups{scat}
+  &= \sum_{\ell, m} b_{\ell, m} \frac{\mc Y_{\ell,m}(\theta,\phi)}{r^{\ell+1}}.
+\end{align}
+%====================================================================%
+Then the $a_{\ell,m}$ and $b_{\ell,m}$ coefficients are related
+according to 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{MyBCA} { \vb b=\vb C\vb a }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\vb a,\vb b$ are vectors of $a$ and $b$ coefficients
+and $\vb C$ is the $C$-matrix as defined above with real-valued
+spherical harmonics.
+
+On the other hand, we could just as easily have expressed
+the \textit{same} external and scattered fields in terms of 
+complex-valued spherical harmonics,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{equation}
+ \phi\sups{ext} 
+  = \sum_{\ell, m} \overline{a}_{\ell, m} r^\ell Y_{\ell,m}(\theta,\phi), 
+ \qquad  
+ \phi\sups{scat}
+  = \sum_{\ell, m} \overline{b}_{\ell, m} r^\ell Y_{\ell,m}(\theta,\phi)
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+in which case the vectors of $\overline{b}$ and $\overline{a}$
+coefficients would be related by the conventionally-defined
+$C$-matrix,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{UsualBCA}
+ {\overline{\vb b}=\overline{\vb C} \overline{\vb a}.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Finally, the $a$ and $b$ coefficients may be related to
+the $\overline{a}$ and $\overline{b}$ coefficients using
+the definition (\ref{YYDefinition}), which reads
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$
+  \boldsymbol{\Gamma}\overline{\vb a}=\vb a,
+  \qquad
+  \boldsymbol{\Gamma}\overline{\vb b}=\vb b
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where the elements of the $\boldsymbol{\Gamma}$ matrix are 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\BE
+ \Gamma_{\ell m, \ell^\prime m^\prime}
+  = \begin{cases}
+    \frac{ \delta_{\ell\ell^\prime} } { \sqrt{2} }
+    \big[ \delta_{m^\prime,m} + \delta_{m^\prime,-m}\big], 
+    \qquad &m>0 
+    \\[5pt]
+    \delta_{\ell\ell^\prime}\delta_{m^\prime 0},
+    \qquad &m=0 
+    \\[5pt]
+    \frac{ \delta_{\ell\ell^\prime} } { i\sqrt{2} }
+    \big[ \delta_{m^\prime,m} - \delta_{m^\prime,-m}\big], 
+    \qquad &m<0.
+    \end{cases}
+\EE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Using these equations, I can rewrite (\ref{MyBCA}) in the form
+\begin{align}
+ \boldsymbol{\Gamma}\overline{\vb b} 
+&= \vb C \boldsymbol{\Gamma}\overline{\vb a}
+\nonumber\intertext{or}
+ \overline{\vb b} 
+&= \boldsymbol{\Gamma}^{-1} \vb C \boldsymbol{\Gamma}\overline{\vb a}.
+\label{NewBCA}
+\end{align}
+(Note that $\boldsymbol \Gamma$ is unitary, 
+$\boldsymbol{\Gamma}^\dagger=\boldsymbol{\Gamma}^{-1}$.)
+Comparing (\ref{NewBCA}) to (\ref{UsualBCA}) yields the 
+transformation matrix from the real-valued spherical-wave
+$C$ matrix to the conventionally-normalized $\overline{C}$-matrix:
+$$ \overline{\vb C} 
+   =
+   \boldsymbol{\Gamma}^{\dagger} \vb C \boldsymbol{\Gamma}.
+$$
 \end{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
