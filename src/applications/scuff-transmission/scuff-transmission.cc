@@ -38,7 +38,7 @@ using namespace scuff;
 #define MAXCACHE 10    // max number of cache files for preload
 
 #define POLARIZATION_TE 0
-#define POLARIZATION_TM 0
+#define POLARIZATION_TM 1
 
 /*******************************************************************/
 /* this is a 9th-order, 17-point cubature rule for the unit square */
