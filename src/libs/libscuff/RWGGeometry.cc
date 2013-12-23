@@ -76,6 +76,7 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
       {
         if (NumTokens!=2)
          ErrExit("%s:%i: syntax error",FileName,*LineNum);
+        if (RegionMPs[0]) delete RegionMPs[0];
         RegionMPs[0] = new MatProp(Tokens[1]); 
         if (RegionMPs[0]->ErrMsg)
          ErrExit("%s:%i: %s",FileName,*LineNum,RegionMPs[0]->ErrMsg);

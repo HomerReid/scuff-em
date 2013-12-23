@@ -53,7 +53,8 @@ void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
                           HVector *Sigma, char *FileName);
 
 void GetCMatrix(SSSolver *SSS, HMatrix *M,
-                HVector *Sigma, int lMax, char *FileName);
+                HVector *Sigma, int lMax,
+                char *TextFileName, char *HDF5FileName);
 
 void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
                         char *PotFile, char *PhiExt, int ConstFieldDirection,
@@ -72,6 +73,7 @@ int main(int argc, char *argv[])
   char *PolFile     = 0;
   char *CapFile     = 0;
   char *CMatrixFile = 0;
+  char *CMatrixHDF5File = 0;
   int lMax          = 2;             int nlMax;
   char *PotFile     = 0;
   char *PhiExt      = 0;
@@ -90,7 +92,8 @@ int main(int argc, char *argv[])
 /**/
      {"CapFile",        PA_STRING,  1, 1,       (void *)&CapFile,    0,             "capacitance matrix output file"},
 /**/
-     {"CMatrixFile",    PA_STRING,  1, 1,       (void *)&CMatrixFile, 0,            "C-matrix file"},
+     {"CMatrixFile",    PA_STRING,  1, 1,       (void *)&CMatrixFile, 0,            "C-matrix text output file"},
+     {"CMatrixHDF5File", PA_STRING, 1, 1,       (void *)&CMatrixHDF5File, 0,        "C-matrix HDF5 output file"},
      {"lMax",           PA_INT,     1, 1,       (void *)&lMax,       &nlMax,        "maximum l-value of spherical harmonic in C-matrix "},
 /**/
      {"PotentialFile",  PA_STRING,  1, 1,       (void *)&PotFile,    0,             "list of conductor potentials"},
@@ -112,15 +115,15 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
-  if (nlMax && CMatrixFile==0)
-   ErrExit("--lMax option can only be used with --CMatrixFile");
+  if (nlMax && (CMatrixFile==0 || CMatrixHDF5File) )
+   ErrExit("--lMax option can only be used with --CMatrixFile or --CMatrixHDF5File");
 
   /*******************************************************************/
   /* sanity check on input arguments *********************************/
   /*******************************************************************/
-  if ( (PolFile || CapFile || CMatrixFile) && (nEPFiles>0 || PotFile!=0 || PhiExt!=0 ) )
+  if ( (PolFile || CapFile || CMatrixFile || CMatrixHDF5File) && (nEPFiles>0 || PotFile!=0 || PhiExt!=0 ) )
    ErrExit("(--EPFile,--PotFile,--PhiExternal) may not be used with (--polfile, --capfile)");
-  if ( nEPFiles==0 && !PolFile && !CapFile && !CMatrixFile && !PlotFile )
+  if ( nEPFiles==0 && !PolFile && !CapFile && !CMatrixFile && !CMatrixHDF5File && !PlotFile )
    OSUsage(argv[0], OSArray, "you have not selected any type of calculation");
 
   /*******************************************************************/
@@ -177,7 +180,7 @@ int main(int argc, char *argv[])
   if (CapFile)
    GetCapacitanceMatrix(SSS, M, Sigma, CapFile);
   if (CMatrixFile)
-   GetCMatrix(SSS, M, Sigma, lMax, CMatrixFile);
+   GetCMatrix(SSS, M, Sigma, lMax, CMatrixFile, CMatrixHDF5File);
   if (nEPFiles>0 || PlotFile )
    DoFieldCalculation(SSS, M, Sigma, 
                       PotFile, PhiExt, ConstFieldDirection, 

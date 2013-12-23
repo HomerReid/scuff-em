@@ -68,7 +68,7 @@ void SphericalWave::GetFields(const double X[3], cdouble EHC[6])
   
   // set the spherical components of E and H to the 
   // proper linear combinations of the M and N functions
-  cdouble EHS[3]; // 'E,H spherical'
+  cdouble EHS[6]; // 'E,H spherical'
   if (Type==SW_MAGNETIC)
    { 
      EHS[0] = MVec[0];

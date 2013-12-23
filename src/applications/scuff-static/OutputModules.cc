@@ -1,5 +1,5 @@
 /* Copyright (C) 2005-2011 M. T. Homer Reid
- G
+ *
  * This file is part of SCUFF-EM.
  *
  * SCUFF-EM is free software; you can redistribute it and/or modify
@@ -228,7 +228,8 @@ void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileN
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, int lMax, char *FileName)
+void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, 
+                int lMax, char *TextFileName, char *HDF5FileName)
 {
   /***************************************************************/
   /***************************************************************/
@@ -261,16 +262,81 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, int lMax, char *FileN
   delete Moments;
 
   /***************************************************************/
+  /* 20131219 there is unquestionably a very much more efficient */
+  /* way to do this...                                           */
   /***************************************************************/
-  /***************************************************************/
-  FILE *f=fopen(FileName,"w");
+  HMatrix *Gamma=new HMatrix(NAlpha, NAlpha, LHM_COMPLEX);
+  Gamma->Zero();
+  cdouble OORT2(0.7071067811865475, 0.0);
+  cdouble OORT2I(0.0,-0.7071067811865475);
   for(int l=0, Alpha=0; l<=lMax; l++)
    for(int m=-l; m<=l; m++, Alpha++)
-    for(int lp=0, AlphaP=0; lp<=lMax; lp++)
-     for(int mp=-lp; mp<=lp; mp++, AlphaP++)
-      fprintf(f,"%e ",CMatrix->GetEntryD(Alpha,AlphaP));
-  fprintf(f,"\n");
-  fclose(f);
+    { 
+      if (m>0) 
+       { Gamma->SetEntry( Alpha, LM2ALPHA(l,  m), OORT2);
+         Gamma->SetEntry( Alpha, LM2ALPHA(l, -m), OORT2);
+       }
+      else if (m<0) 
+       { Gamma->SetEntry( Alpha, LM2ALPHA(l,  m),  OORT2I);
+         Gamma->SetEntry( Alpha, LM2ALPHA(l, -m), -OORT2I);
+       }
+      else
+       Gamma->SetEntry( Alpha, Alpha, 1.0 );
+    };
+
+  HMatrix *CBarMatrix=new HMatrix(NAlpha, NAlpha, LHM_COMPLEX);
+  for(int Alpha=0; Alpha<NAlpha; Alpha++)
+   for(int AlphaP=0; AlphaP<NAlpha; AlphaP++)
+    { cdouble Sum=0.0;
+      for(int Beta=0; Beta<NAlpha; Beta++)
+       for(int BetaP=0; BetaP<NAlpha; BetaP++)
+        Sum +=  conj(Gamma->GetEntry(Beta,Alpha))
+               *CMatrix->GetEntry(Beta,BetaP)
+               *Gamma->GetEntry(BetaP,AlphaP);
+      CBarMatrix->SetEntry(Alpha, AlphaP, Sum);
+    };
+    
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (TextFileName)
+   { FILE *f=fopen(TextFileName,"w");
+     for(int l=0, Alpha=0; l<=lMax; l++)
+      for(int m=-l; m<=l; m++, Alpha++)
+       for(int lp=0, AlphaP=0; lp<=lMax; lp++)
+        for(int mp=-lp; mp<=lp; mp++, AlphaP++)
+         fprintf(f,"%e %e ", real(CBarMatrix->GetEntry(Alpha,AlphaP)),
+                             imag(CBarMatrix->GetEntry(Alpha,AlphaP)));
+     fprintf(f,"\n");
+     fclose(f);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (HDF5FileName)
+   { 
+     void *pHC = HMatrix::OpenHDF5Context(HDF5FileName);
+
+     for(int Alpha=0; Alpha<NAlpha; Alpha++)
+      for(int AlphaP=0; AlphaP<NAlpha; AlphaP++)
+       CMatrix->SetEntry(Alpha, AlphaP, 
+                          real(CBarMatrix->GetEntry(Alpha, AlphaP)));
+     CMatrix->ExportToHDF5(pHC,"CReal");
+
+     for(int Alpha=0; Alpha<NAlpha; Alpha++)
+      for(int AlphaP=0; AlphaP<NAlpha; AlphaP++)
+       CMatrix->SetEntry(Alpha, AlphaP, 
+                          imag(CBarMatrix->GetEntry(Alpha, AlphaP)));
+     CMatrix->ExportToHDF5(pHC,"CImag");
+
+     HMatrix::CloseHDF5Context(pHC);
+   };
+
+  delete CMatrix;
+  delete CBarMatrix;
+  delete Gamma;
+
 }
 
 /***************************************************************/

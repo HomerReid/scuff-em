@@ -138,19 +138,16 @@ void SSSolver::AssembleBEMMatrixBlock(int nsa, int nsb,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int nt, NumTasks, NumThreads = GetNumThreads();
-#ifndef USE_OPENMP
-  NumTasks=NumThreads=1;
-#else
-  NumTasks=NumThreads*100;
-  Log("OpenMP multithreading (%i/%i threads/tasks)",NumThreads,NumTasks);
+#ifdef USE_OPENMP
+  int NumThreads = GetNumThreads();
+  Log("OpenMP multithreading (%i threads)",NumThreads);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int npa=0; npa<Sa->NumPanels; npa++)
    for(int npb=0; npb<Sb->NumPanels; npb++)
     { 
       if (npb==0) LogPercent(npa, Sa->NumPanels);
-      double MatrixEntry;
+      double MatrixEntry=0.0;
       switch(SurfaceType)
        {
          case PEC:
@@ -207,7 +204,7 @@ double GetRHSIntegral(RWGSurface *S, int np,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   double Result=0.0;
-  for(int np=0, ncp=0; np<NumPts; np++)
+  for(int n=0, ncp=0; n<NumPts; n++)
    { 
      double u=TCR[ncp++]; 
      double v=TCR[ncp++]; 
@@ -283,11 +280,8 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
   /* add contributions of external field if present **************/
   /***************************************************************/
   Log(" ...adding external field contributions to RHS vector...");
-  int NumTasks, NumThreads = GetNumThreads();
-#ifndef USE_OPENMP
-  NumTasks=NumThreads=1;
-#else
-  NumTasks=NumThreads*100;
+#ifdef USE_OPENMP
+  int NumThreads = GetNumThreads();
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int ns=0; ns<G->NumSurfaces; ns++)
@@ -299,7 +293,7 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
      /*- get prefactor for this surface -----------------------------*/
      /*--------------------------------------------------------------*/
      IntegralType IntType;
-     double Delta=0.0, Lambda=0.0, PotentialPreFactor=0.0, IntegralPreFactor=0.0;
+     double Delta=0.0, PotentialPreFactor=0.0, IntegralPreFactor=0.0;
      if (S->IsPEC)
       { // PEC surface
         PotentialPreFactor =  1.0;
@@ -312,7 +306,6 @@ HVector *SSSolver::AssembleRHSVector(double *Potentials,
    
         if ( real(EpsRP)==0.0 && imag(EpsRP)<=0.0 )
          { // \lambda-surface
-           Lambda  = -imag(EpsRP);
            PotentialPreFactor = 0.0;
            IntegralPreFactor  = 1.0;
            IntType = PHIINTEGRAL;
@@ -420,6 +413,7 @@ HVector *SSSolver::GetSphericalMoments(HVector *Sigma, int WhichSurface,
   RWGSurface *S=G->Surfaces[WhichSurface];
   int Offset = G->PanelIndexOffset[WhichSurface];
   double *Ylm = new double[NAlpha];
+  double *rlArray= new double[NAlpha];
   Moments->Zero();
   for(int np=0; np<S->NumPanels; np++)
    { 
@@ -430,10 +424,18 @@ HVector *SSSolver::GetSphericalMoments(HVector *Sigma, int WhichSurface,
      CoordinateC2S(X0, &r, &Theta, &Phi);
      GetRealYlmArray(lMax, Theta, Phi, Ylm);
 
+     double rl=1.0;
+     for(int l=0, Alpha=0; l<=lMax; l++, rl*=r)
+      for(int m=-l; m<=l; m++, Alpha++)
+       rlArray[Alpha] = rl / (2.0*l+1.0);
+
      for(int Alpha=0; Alpha<NAlpha; Alpha++)
-      Moments->AddEntry(Alpha, Charge*Ylm[Alpha]);
+      Moments->AddEntry(Alpha, Charge*rlArray[Alpha]*Ylm[Alpha]);
    };
   delete[] Ylm;
+  delete[] rlArray;
+
+  return Moments;
   
 }
 
@@ -512,7 +514,7 @@ void SSSolver::PlotChargeDensity(HVector *Sigma, const char *format, ...)
   fprintf(f,"};\n");
   fclose(f);
  
-};
+}
 
 /***********************************************************************/
 /***********************************************************************/
@@ -537,11 +539,8 @@ HMatrix *SSSolver::GetFields(StaticField *SF, void *UserData, HVector *Sigma, HM
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   PhiE->Zero();
-  int NumTasks, NumThreads = GetNumThreads();
-#ifndef USE_OPENMP
-  NumTasks=NumThreads=1;
-#else
-  NumTasks=NumThreads*100;
+#ifdef USE_OPENMP
+  int NumThreads = GetNumThreads();
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int nx=0; nx<NX; nx++)
