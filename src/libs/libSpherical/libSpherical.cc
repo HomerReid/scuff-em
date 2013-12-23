@@ -452,7 +452,7 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
   /*  d/dx f_L(x) = (L/x) f_L(x) + f_{L+1}(x)                      */
   /* ?? is this correct? somebody other than me please check and   */
   /* verify.                                                       */
-  /* 20100519 yes, this is correct by eq 10.2.21 of abramowitz+stegun */
+  /* 20100519 yes, this is correct by eq 10.2.21 of abramowitz+stegun */ 
   /*  (page 444)                                                   */
   if ( real(k)==0.0 && WaveType==LS_REGULAR )
    Sign=1.0;
