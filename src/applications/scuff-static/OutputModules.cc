@@ -281,7 +281,7 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
          Gamma->SetEntry( Alpha, LM2ALPHA(l, -m), -OORT2I);
        }
       else
-       Gamma->SetEntry( Alpha, LM2ALPHA(l,m), 1.0 );
+       Gamma->SetEntry( Alpha, Alpha, 1.0 );
     };
 
   HMatrix *CBarMatrix=new HMatrix(NAlpha, NAlpha, LHM_COMPLEX);
@@ -305,8 +305,8 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
       for(int m=-l; m<=l; m++, Alpha++)
        for(int lp=0, AlphaP=0; lp<=lMax; lp++)
         for(int mp=-lp; mp<=lp; mp++, AlphaP++)
-         fprintf(f,"%e %e ", real(CMatrix->GetEntry(Alpha,AlphaP)),
-                             imag(CMatrix->GetEntry(Alpha,AlphaP)));
+         fprintf(f,"%e %e ", real(CBarMatrix->GetEntry(Alpha,AlphaP)),
+                             imag(CBarMatrix->GetEntry(Alpha,AlphaP)));
      fprintf(f,"\n");
      fclose(f);
    };

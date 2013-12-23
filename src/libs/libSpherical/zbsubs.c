@@ -36,6 +36,7 @@ typedef int ftnlen;
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define ABS(x) fabs(x)
+double fabs(double x);
 #define s_cmp(s1, s2, len1, len2) strncmp(s1, s2, MIN(len1, len2))
 #define s_copy(s1, s2, len1, len2) strcpy(s1, s2)
 #define TRUE_ 1
@@ -478,7 +479,9 @@ L120:
 	bb = cyi[i__];
 	atol = 1.;
 /* Computing MAX */
-	d__1 = abs(aa), d__2 = abs(bb);
+        // HR 20131223
+	/* d__1 = abs(aa), d__2 = abs(bb); */
+	d__1 = fabs(aa), d__2 = fabs(bb);
 	if (MAX(d__1,d__2) > ascle) {
 	    goto L135;
 	}
@@ -827,7 +830,9 @@ L40:
 	bb = cyi[i__];
 	atol = 1.;
 /* Computing MAX */
-	d__1 = abs(aa), d__2 = abs(bb);
+	/* HR 20131223 */
+	/* d__1 = abs(aa), d__2 = abs(bb); */
+	d__1 = fabs(aa), d__2 = fabs(bb);
 	if (MAX(d__1,d__2) > ascle) {
 	    goto L55;
 	}
@@ -1165,7 +1170,9 @@ L50:
 	bb = cyi[i__];
 	atol = 1.;
 /* Computing MAX */
-	d__1 = abs(aa), d__2 = abs(bb);
+        /* HR 20131223 */
+	/*d__1 = abs(aa), d__2 = abs(bb);*/
+	d__1 = fabs(aa), d__2 = fabs(bb);
 	if (MAX(d__1,d__2) > ascle) {
 	    goto L55;
 	}
@@ -1867,7 +1874,9 @@ L60:
 /* ----------------------------------------------------------------------- */
     elim = ((doublereal) ( k) * d1m5 - 3.) * 2.303;
     ey = 0.;
-    tay = (d__1 = *zi + *zi, abs(d__1));
+    // HR 20131223
+    //tay = (d__1 = *zi + *zi, abs(d__1));
+    tay = (d__1 = *zi + *zi, fabs(d__1));
     if (tay < elim) {
 	ey = exp(-tay);
     }
@@ -1888,7 +1897,9 @@ L60:
 	zvi = cwrki[i__];
 	atol = 1.;
 /* Computing MAX */
-	d__1 = abs(zvr), d__2 = abs(zvi);
+	// HR 20131223
+	// d__1 = abs(zvr), d__2 = abs(zvi);
+	d__1 = fabs(zvr), d__2 = fabs(zvi);
 	if (MAX(d__1,d__2) > ascle) {
 	    goto L75;
 	}
@@ -1903,7 +1914,8 @@ L75:
 	zui = cyi[i__];
 	atol = 1.;
 /* Computing MAX */
-	d__1 = abs(zur), d__2 = abs(zui);
+	// HR20131223
+	d__1 = fabs(zur), d__2 = fabs(zui);
 	if (MAX(d__1,d__2) > ascle) {
 	    goto L85;
 	}
@@ -2288,7 +2300,8 @@ L70:
 	goto L80;
     }
     bk = ztar;
-    ck = -abs(bk);
+    // HR20131223
+    ck = -fabs(bk);
     ztar = ck;
     ztai = ak;
 L80:
@@ -2693,7 +2706,8 @@ L40:
     ztar = tth * (*zr * str - *zi * sti);
     ztai = tth * (*zr * sti + *zi * str);
     aa = ztar;
-    aa = -abs(aa);
+    // HR20131223
+    aa = -fabs(aa);
     eaa = exp(aa);
     *bir *= eaa;
     *bii *= eaa;
@@ -2717,7 +2731,8 @@ L60:
     ztar = tth * (*zr * str - *zi * sti);
     ztai = tth * (*zr * sti + *zi * str);
     aa = ztar;
-    aa = -abs(aa);
+    // HR20131223
+    aa = -fabs(aa);
     eaa = exp(aa);
     *bir *= eaa;
     *bii *= eaa;
@@ -2780,7 +2795,8 @@ L70:
 	goto L80;
     }
     bk = ztar;
-    ck = -abs(bk);
+    // HR20131223
+    ck = -fabs(bk);
     ztar = ck;
     ztai = ak;
 L80:
@@ -2797,7 +2813,8 @@ L90:
 /* ----------------------------------------------------------------------- */
 /*     OVERFLOW TEST */
 /* ----------------------------------------------------------------------- */
-    bb = abs(aa);
+    // HR20131223
+    bb = fabs(aa);
     if (bb < alim) {
 	goto L100;
     }
@@ -2986,7 +3003,8 @@ L20:
 	goto L30;
     }
     *br = 0.;
-    *bi = sqrt((abs(*ar)));
+    // HR20131223
+    *bi = sqrt((fabs(*ar)));
     return 0;
 L30:
     *br = sqrt(*ar);
@@ -3079,7 +3097,8 @@ L10:
 	goto L60;
     }
     *bi = dhpi;
-    *br = log((abs(*ai)));
+    // HR20131223
+    *br = log((fabs(*ai)));
     if (*ai < 0.) {
 	*bi = -(*bi);
     }
@@ -3088,7 +3107,8 @@ L20:
     if (*ar > 0.) {
 	goto L30;
     }
-    *br = log((abs(*ar)));
+    // HR20131223
+    *br = log((fabs(*ar)));
     *bi = dpi;
     return 0;
 L30:
@@ -3128,8 +3148,9 @@ doublereal zabs_(doublereal *zr, doublereal *zi)
 
 /* ***ROUTINES CALLED  (NONE) */
 /* ***END PROLOGUE  ZABS */
-    u = abs(*zr);
-    v = abs(*zi);
+    // HR20131223
+    u = fabs(*zr);
+    v = fabs(*zi);
     s = u + v;
 /* ----------------------------------------------------------------------- */
 /*     S*1.0D0 MAKES AN UNNORMALIZED UNDERFLOW ON CDC MACHINES INTO A */
@@ -3269,11 +3290,13 @@ L20:
     rzi = (sti + sti) * rcaz;
     inu = (integer) ( (*fnu + .5));
     dnu = *fnu - (doublereal) ( inu);
-    if (abs(dnu) == .5) {
+    // HR20131223
+    if (fabs(dnu) == .5) {
 	goto L110;
     }
     dnu2 = 0.;
-    if (abs(dnu) > *tol) {
+    // HR20131223
+    if (fabs(dnu) > *tol) {
 	dnu2 = dnu * dnu;
     }
     if (caz > r1) {
@@ -3301,7 +3324,8 @@ L10:
 /* ----------------------------------------------------------------------- */
     t2 = exp(-dgamln_(&a2, &idum));
     t1 = 1. / (t2 * fc);
-    if (abs(dnu) > .1) {
+    // HR20131223
+    if (fabs(dnu) > .1) {
 	goto L40;
     }
 /* ----------------------------------------------------------------------- */
@@ -3313,7 +3337,8 @@ L10:
 	ak *= dnu2;
 	tm = cc[k - 1] * ak;
 	s += tm;
-	if (abs(tm) < *tol) {
+        // HR20131223
+	if (fabs(tm) < *tol) {
 	    goto L30;
 	}
 /* L20: */
@@ -3424,7 +3449,8 @@ L90:
 L100:
     kflag = 2;
     a1 = *fnu + 1.;
-    ak = a1 * abs(smur);
+    //HR20131223
+    ak = a1 * fabs(smur);
     if (ak > *alim) {
 	kflag = 3;
     }
@@ -3463,18 +3489,21 @@ L110:
     str *= cos(*zi);
     zmlt_(&coefr, &coefi, &str, &sti, &coefr, &coefi);
 L120:
-    if (abs(dnu) == .5) {
+    // HR20131223
+    if (fabs(dnu) == .5) {
 	goto L300;
     }
 /* ----------------------------------------------------------------------- */
 /*     MILLER ALGORITHM FOR CABS(Z).GT.R1 */
 /* ----------------------------------------------------------------------- */
     ak = cos(dpi * dnu);
-    ak = abs(ak);
+    // HR20131223
+    ak = fabs(ak);
     if (ak == czeror) {
 	goto L300;
     }
-    fhs = (d__1 = .25 - dnu2, abs(d__1));
+    // HR20131223
+    fhs = (d__1 = .25 - dnu2, fabs(d__1));
     if (fhs == czeror) {
 	goto L300;
     }
@@ -3496,7 +3525,8 @@ L120:
     goto L140;
 L130:
     t1 = atan(*zi / *zr);
-    t1 = abs(t1);
+    // HR20131223
+    t1 = fabs(t1);
 L140:
     if (t2 > caz) {
 	goto L170;
@@ -3524,7 +3554,8 @@ L140:
 	fks = fks + fk + fk + ctwor;
 	fhs = fhs + fk + fk;
 	fk += coner;
-	str = abs(p2r) * fk;
+        // HR20131223
+	str = fabs(p2r) * fk;
 	if (etest < str) {
 	    goto L160;
 	}
@@ -3533,7 +3564,8 @@ L140:
     goto L310;
 L160:
     fk += spi * t1 * sqrt(t2 / caz);
-    fhs = (d__1 = .25 - dnu2, abs(d__1));
+    // HR20131223
+    fhs = (d__1 = .25 - dnu2, fabs(d__1));
     goto L180;
 L170:
 /* ----------------------------------------------------------------------- */
@@ -3663,8 +3695,9 @@ L225:
 	}
 	p2r = s2r * p1r;
 	p2i = s2i * p1r;
-	str = abs(p2r);
-	sti = abs(p2i);
+        // HR20131223
+	str = fabs(p2r);
+	sti = fabs(p2i);
 	p2m =MAX(str,sti);
 	if (p2m <= ascle) {
 	    goto L230;
@@ -3726,8 +3759,9 @@ L250:
 	if (kflag >= 3) {
 	    goto L260;
 	}
-	str = abs(p2r);
-	sti = abs(p2i);
+        // HR20131223
+	str = fabs(p2r);
+	sti = fabs(p2i);
 	p2m =MAX(str,sti);
 	if (p2m <= ascle) {
 	    goto L260;
@@ -4382,8 +4416,9 @@ L10:
 
     /* Function Body */
     *nz = 0;
-    ax = abs(*zr) * 1.7321;
-    ay = abs(*zi);
+    // HR20131223
+    ax = fabs(*zr) * 1.7321;
+    ay = fabs(*zi);
     if (ay > ax) {
 	goto L10;
     }
@@ -5178,12 +5213,14 @@ L190:
     czr = zeror;
     czi = *zi;
 L10:
-    if (abs(czr) > *elim) {
+    // HR20131223
+    if (fabs(czr) > *elim) {
 	goto L100;
     }
     dnu2 = dfnu + dfnu;
     koded = 1;
-    if (abs(czr) > *alim && *n > 2) {
+    // HR20131223
+    if (fabs(czr) > *alim && *n > 2) {
 	goto L20;
     }
     koded = 0;
@@ -5232,7 +5269,8 @@ L30:
     i__1 = il;
     for (k = 1; k <= i__1; ++k) {
 	sqk = fdn - 1.;
-	atol = s * abs(sqk);
+        // HR20131223
+	atol = s * fabs(sqk);
 	sgn = 1.;
 	cs1r = coner;
 	cs1i = conei;
@@ -5257,7 +5295,8 @@ L30:
 	    cs1i += cki * sgn;
 	    dkr += ezr;
 	    dki += ezi;
-	    aa = aa * abs(sqk) / bb;
+            // HR20131223
+	    aa = aa * fabs(sqk) / bb;
 	    bb += aez;
 	    ak += 8.;
 	    sqk -= ak;
@@ -5421,8 +5460,9 @@ L110:
 L10:
     zbr = zrr;
     zbi = zri;
-    ax = abs(*zr) * 1.7321;
-    ay = abs(*zi);
+    // HR20131223
+    ax = fabs(*zr) * 1.7321;
+    ay = fabs(*zi);
     iform = 1;
     if (ay > ax) {
 	iform = 2;
@@ -5873,8 +5913,9 @@ L70:
 	if (kflag >= 3) {
 	    goto L80;
 	}
-	ptr = abs(c1r);
-	pti = abs(c1i);
+        // HR20131223
+	ptr = fabs(c1r);
+	pti = fabs(c1i);
 	c1m =MAX(ptr,pti);
 	if (c1m <= bscle) {
 	    goto L80;
@@ -6249,7 +6290,8 @@ L20:
     for (k = 2; k <= 22; ++k) {
 	zp *= zsq;
 	trm = cf[k - 1] * zp;
-	if (abs(trm) < tst) {
+        // HR20131223
+	if (fabs(trm) < tst) {
 	    goto L40;
 	}
 	s += trm;
@@ -6457,8 +6499,9 @@ L80:
 
 /*     COMPLEX Y */
     *nz = 0;
-    wr = abs(*yr);
-    wi = abs(*yi);
+    // HR20131223
+    wr = fabs(*yr);
+    wi = fabs(*yi);
     st =MIN(wr,wi);
     if (st > *ascle) {
 	return 0;
@@ -6585,10 +6628,12 @@ L80:
 /* ----------------------------------------------------------------------- */
     test = d1mach_(&c__1) * 1e3;
     ac = *fnu * test;
-    if (abs(*zrr) > ac || abs(*zri) > ac) {
+    // HR20131223
+    if (fabs(*zrr) > ac || fabs(*zri) > ac) {
 	goto L15;
     }
-    *zeta1r = (d__1 = log(test), abs(d__1)) * 2. + *fnu;
+    // HR20131223
+    *zeta1r = (d__1 = log(test), fabs(d__1)) * 2. + *fnu;
     *zeta1i = 0.;
     *zeta2r = *fnu;
     *zeta2i = 0.;
@@ -6642,7 +6687,8 @@ L15:
 	cwrkr[k] = crfnr * sr - crfni * si;
 	cwrki[k] = crfnr * si + crfni * sr;
 	ac *= rfn;
-	test = (d__1 = cwrkr[k], abs(d__1)) + (d__2 = cwrki[k], abs(d__2));
+        // HR20131223
+	test = (d__1 = cwrkr[k], fabs(d__1)) + (d__2 = cwrki[k], fabs(d__2));
 	if (ac < *tol && test < *tol) {
 	    goto L30;
 	}
@@ -7038,10 +7084,11 @@ L60:
 /* ----------------------------------------------------------------------- */
     test = d1mach_(&c__1) * 1e3;
     ac = *fnu * test;
-    if (abs(*zr) > ac || abs(*zi) > ac) {
+    // HR20131223
+    if (fabs(*zr) > ac || fabs(*zi) > ac) {
 	goto L15;
     }
-    *zeta1r = (d__1 = log(test), abs(d__1)) * 2. + *fnu;
+    *zeta1r = (d__1 = log(test), fabs(d__1)) * 2. + *fnu;
     *zeta1i = 0.;
     *zeta2r = *fnu;
     *zeta2i = 0.;
@@ -7129,7 +7176,8 @@ L20:
     *bsumi = sumbi;
     l1 = 0;
     l2 = 30;
-    btol = *tol * (abs(*bsumr) + abs(*bsumi));
+    // HR20131223
+    btol = *tol * (fabs(*bsumr) + fabs(*bsumi));
     atol = *tol;
     pp = 1.;
     ias = 0;
@@ -7296,7 +7344,8 @@ L140:
     upr[0] = coner;
     upi[0] = conei;
     pp = 1.;
-    btol = *tol * (abs(*bsumr) + abs(*bsumi));
+    // HR 20131223
+    btol = *tol * (fabs(*bsumr) + fabs(*bsumi));
     ks = 0;
     kp1 = 2;
     l = 3;
@@ -7355,7 +7404,8 @@ L140:
 	}
 	*asumr += sumar;
 	*asumi += sumai;
-	test = abs(sumar) + abs(sumai);
+        // HR 20131223
+	test = fabs(sumar) + fabs(sumai);
 	if (pp < *tol && test < *tol) {
 	    ias = 1;
 	}
@@ -7377,7 +7427,8 @@ L180:
 	}
 	*bsumr += sumbr;
 	*bsumi += sumbi;
-	test = abs(sumbr) + abs(sumbi);
+        // HR 20131223
+	test = fabs(sumbr) + fabs(sumbi);
 	if (pp < btol && test < btol) {
 	    ibs = 1;
 	}
@@ -7530,13 +7581,15 @@ L30:
 /* ----------------------------------------------------------------------- */
 /*     TEST FOR UNDERFLOW AND OVERFLOW */
 /* ----------------------------------------------------------------------- */
-	if (abs(rs1) > *elim) {
+        // HR 20131223
+	if (fabs(rs1) > *elim) {
 	    goto L60;
 	}
 	if (kdflg == 1) {
 	    kflag = 2;
 	}
-	if (abs(rs1) < *alim) {
+        // HR 20131223
+	if (fabs(rs1) < *alim) {
 	    goto L40;
 	}
 /* ----------------------------------------------------------------------- */
@@ -7544,7 +7597,8 @@ L30:
 /* ----------------------------------------------------------------------- */
 	aphi = zabs_(&phir[j - 1], &phii[j - 1]);
 	rs1 += log(aphi);
-	if (abs(rs1) > *elim) {
+        // HR20131223
+	if (fabs(rs1) > *elim) {
 	    goto L60;
 	}
 	if (kdflg == 1) {
@@ -7654,10 +7708,12 @@ L80:
     s1i = zet1di - zet2di;
 L90:
     rs1 = s1r;
-    if (abs(rs1) > *elim) {
+    // HR 20131223
+    if (fabs(rs1) > *elim) {
 	goto L95;
     }
-    if (abs(rs1) < *alim) {
+    // HR 20131223
+    if (fabs(rs1) < *alim) {
 	goto L100;
     }
 /* ---------------------------------------------------------------------------- */
@@ -7665,11 +7721,13 @@ L90:
 /* ------------------------------------------------------------------------- */
     aphi = zabs_(&phidr, &phidi);
     rs1 += log(aphi);
-    if (abs(rs1) < *elim) {
+    // HR 20131223
+    if (fabs(rs1) < *elim) {
 	goto L100;
     }
 L95:
-    if (abs(rs1) > 0.) {
+    // HR 20131223
+    if (fabs(rs1) > 0.) {
 	goto L300;
     }
 /* ----------------------------------------------------------------------- */
@@ -7713,8 +7771,10 @@ L100:
 	if (kflag >= 3) {
 	    goto L120;
 	}
-	str = abs(c2r);
-	sti = abs(c2i);
+        // HR 20131223
+	str = fabs(c2r);
+        // HR 20131223
+	sti = fabs(c2i);
 	c2m =MAX(str,sti);
 	if (c2m <= ascle) {
 	    goto L120;
@@ -7820,13 +7880,15 @@ L210:
 /*     TEST FOR UNDERFLOW AND OVERFLOW */
 /* ----------------------------------------------------------------------- */
 	rs1 = s1r;
-	if (abs(rs1) > *elim) {
+        // HR 20131223
+	if (fabs(rs1) > *elim) {
 	    goto L260;
 	}
 	if (kdflg == 1) {
 	    iflag = 2;
 	}
-	if (abs(rs1) < *alim) {
+        // HR 20131223
+	if (fabs(rs1) < *alim) {
 	    goto L220;
 	}
 /* ----------------------------------------------------------------------- */
@@ -7834,7 +7896,8 @@ L210:
 /* ----------------------------------------------------------------------- */
 	aphi = zabs_(&phidr, &phidi);
 	rs1 += log(aphi);
-	if (abs(rs1) > *elim) {
+        // HR 20131223
+	if (fabs(rs1) > *elim) {
 	    goto L260;
 	}
 	if (kdflg == 1) {
@@ -7957,8 +8020,9 @@ L280:
 	if (iflag >= 3) {
 	    goto L290;
 	}
-	c2r = abs(ckr);
-	c2i = abs(cki);
+        // HR 20131223
+	c2r = fabs(ckr);
+	c2i = fabs(cki);
 	c2m =MAX(c2r,c2i);
 	if (c2m <= ascle) {
 	    goto L290;
@@ -8159,13 +8223,15 @@ L40:
 /*     TEST FOR UNDERFLOW AND OVERFLOW */
 /* ----------------------------------------------------------------------- */
 	rs1 = s1r;
-	if (abs(rs1) > *elim) {
+        // HR 20131223
+	if (fabs(rs1) > *elim) {
 	    goto L70;
 	}
 	if (kdflg == 1) {
 	    kflag = 2;
 	}
-	if (abs(rs1) < *alim) {
+        // HR 20131223
+	if (fabs(rs1) < *alim) {
 	    goto L50;
 	}
 /* ----------------------------------------------------------------------- */
@@ -8174,7 +8240,8 @@ L40:
 	aphi = zabs_(&phir[j - 1], &phii[j - 1]);
 	aarg = zabs_(&argr[j - 1], &argi[j - 1]);
 	rs1 = rs1 + log(aphi) - log(aarg) * .25 - aic;
-	if (abs(rs1) > *elim) {
+        // HR 20131223
+	if (fabs(rs1) > *elim) {
 	    goto L70;
 	}
 	if (kdflg == 1) {
@@ -8304,10 +8371,12 @@ L90:
     s1i = zet1di - zet2di;
 L100:
     rs1 = s1r;
-    if (abs(rs1) > *elim) {
+    // HR 20131223
+    if (fabs(rs1) > *elim) {
 	goto L105;
     }
-    if (abs(rs1) < *alim) {
+    // HR 20131223
+    if (fabs(rs1) < *alim) {
 	goto L120;
     }
 /* ---------------------------------------------------------------------------- */
@@ -8315,7 +8384,8 @@ L100:
 /* ------------------------------------------------------------------------- */
     aphi = zabs_(&phidr, &phidi);
     rs1 += log(aphi);
-    if (abs(rs1) < *elim) {
+    // HR 20131223
+    if (fabs(rs1) < *elim) {
 	goto L120;
     }
 L105:
@@ -8360,8 +8430,9 @@ L120:
 	if (kflag >= 3) {
 	    goto L130;
 	}
-	str = abs(c2r);
-	sti = abs(c2i);
+        // HR 20131223
+	str = fabs(c2r);
+	sti = fabs(c2i);
 	c2m =MAX(str,sti);
 	if (c2m <= ascle) {
 	    goto L130;
@@ -8482,13 +8553,15 @@ L230:
 /*     TEST FOR UNDERFLOW AND OVERFLOW */
 /* ----------------------------------------------------------------------- */
 	rs1 = s1r;
-	if (abs(rs1) > *elim) {
+        // HR 20131223
+	if (fabs(rs1) > *elim) {
 	    goto L280;
 	}
 	if (kdflg == 1) {
 	    iflag = 2;
 	}
-	if (abs(rs1) < *alim) {
+        // HR 20131223
+	if (fabs(rs1) < *alim) {
 	    goto L240;
 	}
 /* ----------------------------------------------------------------------- */
@@ -8497,7 +8570,8 @@ L230:
 	aphi = zabs_(&phidr, &phidi);
 	aarg = zabs_(&argdr, &argdi);
 	rs1 = rs1 + log(aphi) - log(aarg) * .25 - aic;
-	if (abs(rs1) > *elim) {
+        // HR 20131223
+	if (fabs(rs1) > *elim) {
 	    goto L280;
 	}
 	if (kdflg == 1) {
@@ -8632,8 +8706,9 @@ L300:
 	if (iflag >= 3) {
 	    goto L310;
 	}
-	c2r = abs(ckr);
-	c2i = abs(cki);
+        // HR 20131223
+	c2r = fabs(ckr);
+	c2i = fabs(cki);
 	c2m =MAX(c2r,c2i);
 	if (c2m <= ascle) {
 	    goto L310;
@@ -8703,8 +8778,9 @@ L320:
 
     /* Function Body */
     *nz = 0;
-    ax = abs(*zr) * 1.7321;
-    ay = abs(*zi);
+    // HR 20131223 
+    ax = fabs(*zr) * 1.7321;
+    ay = fabs(*zi);
     iform = 1;
     if (ay > ax) {
 	iform = 2;
@@ -8789,8 +8865,9 @@ L25:
 	}
 	str = s2r * cscrr;
 	sti = s2i * cscrr;
-	c1r = abs(str);
-	c1i = abs(sti);
+        // HR20131223
+	c1r = fabs(str);
+	c1i = fabs(sti);
 	c1m =MAX(c1r,c1i);
 	if (c1m <= ascle) {
 	    goto L30;
@@ -8835,8 +8912,9 @@ L30:
 	if (iflag >= 3) {
 	    goto L40;
 	}
-	c1r = abs(str);
-	c1i = abs(sti);
+        // HR20131223
+	c1r = fabs(str);
+	c1i = fabs(sti);
 	c1m =MAX(c1r,c1i);
 	if (c1m <= ascle) {
 	    goto L40;
@@ -8999,7 +9077,8 @@ L10:
     s1i = -zeta1i + zeta2i;
 L20:
     rs1 = s1r;
-    if (abs(rs1) > *elim) {
+    // HR20131223
+    if (fabs(rs1) > *elim) {
 	goto L130;
     }
 L30:
@@ -9029,13 +9108,15 @@ L50:
 /*     TEST FOR UNDERFLOW AND OVERFLOW */
 /* ----------------------------------------------------------------------- */
 	rs1 = s1r;
-	if (abs(rs1) > *elim) {
+        // HR20131223
+	if (fabs(rs1) > *elim) {
 	    goto L110;
 	}
 	if (i__ == 1) {
 	    iflag = 2;
 	}
-	if (abs(rs1) < *alim) {
+        // HR20131223
+	if (fabs(rs1) < *alim) {
 	    goto L60;
 	}
 /* ----------------------------------------------------------------------- */
@@ -9043,7 +9124,8 @@ L50:
 /* ----------------------------------------------------------------------- */
 	aphi = zabs_(&phir, &phii);
 	rs1 += log(aphi);
-	if (abs(rs1) > *elim) {
+        // HR20131223
+	if (fabs(rs1) > *elim) {
 	    goto L110;
 	}
 	if (i__ == 1) {
@@ -9117,8 +9199,9 @@ L70:
 	if (iflag >= 3) {
 	    goto L90;
 	}
-	str = abs(c2r);
-	sti = abs(c2i);
+        // HR20131223
+	str = fabs(c2r);
+	sti = fabs(c2i);
 	c2m =MAX(str,sti);
 	if (c2m <= ascle) {
 	    goto L90;
@@ -9349,7 +9432,8 @@ L40:
 	str = str * rast * rast;
 	sti = -sti * rast * rast;
 	s1r = -zeta1r + str;
-	s1i = -zeta1i + sti + abs(*zi);
+        // HR20131223
+	s1i = -zeta1i + sti + fabs(*zi);
 	goto L60;
 L50:
 	s1r = -zeta1r + zeta2r;
@@ -9359,13 +9443,15 @@ L60:
 /*     TEST FOR UNDERFLOW AND OVERFLOW */
 /* ----------------------------------------------------------------------- */
 	rs1 = s1r;
-	if (abs(rs1) > *elim) {
+        // HR20131223
+	if (fabs(rs1) > *elim) {
 	    goto L120;
 	}
 	if (i__ == 1) {
 	    iflag = 2;
 	}
-	if (abs(rs1) < *alim) {
+        // HR20131223
+	if (fabs(rs1) < *alim) {
 	    goto L70;
 	}
 /* ----------------------------------------------------------------------- */
@@ -9375,7 +9461,8 @@ L60:
 	aphi = zabs_(&phir, &phii);
 	aarg = zabs_(&argr, &argi);
 	rs1 = rs1 + log(aphi) - log(aarg) * .25 - aic;
-	if (abs(rs1) > *elim) {
+        // HR20131223
+	if (fabs(rs1) > *elim) {
 	    goto L120;
 	}
 	if (i__ == 1) {
@@ -9465,8 +9552,9 @@ L80:
 	if (iflag >= 3) {
 	    goto L100;
 	}
-	str = abs(c2r);
-	sti = abs(c2i);
+        // HR20131223
+	str = fabs(c2r);
+	sti = fabs(c2i);
 	c2m =MAX(str,sti);
 	if (c2m <= ascle) {
 	    goto L100;
