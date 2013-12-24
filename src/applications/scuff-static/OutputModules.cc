@@ -272,13 +272,14 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
   for(int l=0, Alpha=0; l<=lMax; l++)
    for(int m=-l; m<=l; m++, Alpha++)
     { 
+      double Sign = (m%2) ? -1.0 : 1.0;
       if (m>0) 
        { Gamma->SetEntry( Alpha, LM2ALPHA(l,  m), OORT2);
-         Gamma->SetEntry( Alpha, LM2ALPHA(l, -m), OORT2);
+         Gamma->SetEntry( Alpha, LM2ALPHA(l, -m), Sign*OORT2);
        }
       else if (m<0) 
        { Gamma->SetEntry( Alpha, LM2ALPHA(l,  m),  OORT2I);
-         Gamma->SetEntry( Alpha, LM2ALPHA(l, -m), -OORT2I);
+         Gamma->SetEntry( Alpha, LM2ALPHA(l, -m), -Sign*OORT2I);
        }
       else
        Gamma->SetEntry( Alpha, Alpha, 1.0 );
@@ -290,9 +291,9 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
     { cdouble Sum=0.0;
       for(int Beta=0; Beta<NAlpha; Beta++)
        for(int BetaP=0; BetaP<NAlpha; BetaP++)
-        Sum +=  conj(Gamma->GetEntry(Beta,Alpha))
+        Sum +=  Gamma->GetEntry(Alpha,Beta)
                *CMatrix->GetEntry(Beta,BetaP)
-               *Gamma->GetEntry(BetaP,AlphaP);
+               *conj(Gamma->GetEntry(AlphaP,BetaP));
       CBarMatrix->SetEntry(Alpha, AlphaP, Sum);
     };
     

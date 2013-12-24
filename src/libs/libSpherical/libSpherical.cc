@@ -739,9 +739,54 @@ void GetMNlmArray(int lMax, cdouble k,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetMlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Phi, 
+                     int WaveType, cdouble M[3], cdouble N[3])
+{ 
+  cdouble kr = k*r, ikr=II*k*r, ikr2=ikr*ikr, ikr3=ikr2*ikr;
+  cdouble ExpFac =   (WaveType == LS_OUTGOING) ? exp( ikr)
+                   : (WaveType == LS_INCOMING) ? exp(-ikr) : cos(kr);
+  cdouble NumFac = (l==1) ? sqrt(3.0/(16.0*M_PI)) : sqrt(5.0/(16.0*M_PI));
+  cdouble MPreFac = NumFac * ExpFac * exp(II*m*Phi);
+  cdouble NPreFac = MPreFac / kr;
+  cdouble P1=(1.0-ikr);
+  cdouble P2=(1.0 - ikr + ikr2);
+  cdouble P3=(6.0 - 6.0*ikr + 3.0*ikr2 - ikr3);
+  M[0]=M[1]=M[2]=N[0]=N[1]=N[2]=0.0;
+  double Sign = m > 0 ? 1.0 : -1.0;
+  double CT = cos(Theta), ST = sin(Theta);
+  if (l==1 && abs(m)==1 )
+   {  M[1] = MPreFac * (-II*P1);
+      M[2] = MPreFac * Sign * P1 * CT;
+      N[0] = NPreFac * -2.0 * Sign * II * P1 * ST;
+      N[1] = NPreFac * II * P2 * CT;
+      N[2] = NPreFac * -1.0*P2*ST;
+   }
+  else if (l==1 && m==0 )
+   {  M[2] = 2.0 * MPreFac * P1 * ST;
+      N[0] = 2.0 * NPreFac * 2.0 * II * P1 * CT;
+      N[1] = 2.0 * NPreFac * II * P2 * ST;
+   }
+  else if (l==2 && abs(m)==2 )
+   { 
+   }
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void GetMlm(int l, int m, cdouble k, double r, double Theta, double Phi, 
             int WaveType, cdouble M[3], cdouble N[3])
 {
+  if (l==0)
+   { memset(M,0,3*sizeof(double));
+     memset(N,0,3*sizeof(double));
+     return; 
+   }
+  else if ( l==1 || l==2 )
+   { GetMlmHardCoded(l, m, k, r, Theta, Phi, WaveType, M, N);
+     return;
+   };
+
   int NAlpha = (l+1)*(l+1);
   cdouble *MArray = new cdouble[3*NAlpha]; 
   cdouble *NArray = new cdouble[3*NAlpha];

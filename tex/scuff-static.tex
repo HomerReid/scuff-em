@@ -480,7 +480,7 @@ in the dielectric case discussed above. The Galerkin
 test of the RHS proceeds similarly to our discussion
 of the PEC case above. We obtain
 %====================================================================%
-$$ \lambda A_m \sigma_m - \sum_{mn} \mc{I}_{mn}^{(2)} \sigma_{n}
+$$ \lambda A_m \sigma_m - \sum_{mn} \mc{I}_{mn}^{(1)} \sigma_{n}
    =\int_{\mc P_m} \phi\sups{ext}(\vb x)\,d\vb x.
 $$
 %====================================================================%
@@ -748,7 +748,7 @@ to the capacitance calculation outlined above:
        %====================================================================%      
        \begin{align*}
         C_{\ell^\prime m^\prime, \ell m} 
-         &=\frac{1}{2l+1}\oint d\vb x \, r^{\ell^\prime} \YY_{\ell^\prime m^\prime}(\vbhat{x}) \, \sigma(\vb x)
+         &=\frac{1}{2l^\prime+1}\oint d\vb x \, r^{\ell^\prime} \YY_{\ell^\prime m^\prime}(\vbhat{x}) \, \sigma(\vb x)
          \intertext{where the surface integral ranges over all surfaces in the problem.
                     We evaluate the integral approximately via a one-point cubature
                     that pretends the integrand is constant over the surface of 
@@ -823,7 +823,8 @@ complex-valued spherical harmonics,
   = \sum_{\ell, m} \overline{a}_{\ell, m} r^\ell Y_{\ell,m}(\theta,\phi), 
  \qquad  
  \phi\sups{scat}
-  = \sum_{\ell, m} \overline{b}_{\ell, m} r^\ell Y_{\ell,m}(\theta,\phi)
+  = \sum_{\ell, m} \overline{b}_{\ell, m} 
+                   \frac{Y_{\ell,m}(\theta,\phi)}{r^{\ell+1}}
 \end{equation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 in which case the vectors of $\overline{b}$ and $\overline{a}$
@@ -838,9 +839,9 @@ the $\overline{a}$ and $\overline{b}$ coefficients using
 the definition (\ref{YYDefinition}), which reads
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$
-  \boldsymbol{\Gamma}\overline{\vb a}=\vb a,
+  \boldsymbol{\Gamma}\vb a=\overline{\vb a},
   \qquad
-  \boldsymbol{\Gamma}\overline{\vb b}=\vb b
+  \boldsymbol{\Gamma}\vb b=\overline{\vb b}
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 where the elements of the $\boldsymbol{\Gamma}$ matrix are 
@@ -849,36 +850,37 @@ where the elements of the $\boldsymbol{\Gamma}$ matrix are
  \Gamma_{\ell m, \ell^\prime m^\prime}
   = \begin{cases}
     \frac{ \delta_{\ell\ell^\prime} } { \sqrt{2} }
-    \big[ \delta_{m^\prime,m} + \delta_{m^\prime,-m}\big], 
-    \qquad &m>0 
+    \big[ \delta_{m,m^\prime} + (-1)^m\delta_{m,-m^\prime}\big], 
+    \qquad &m^\prime>0 
     \\[5pt]
-    \delta_{\ell\ell^\prime}\delta_{m^\prime 0},
-    \qquad &m=0 
+    \delta_{\ell\ell^\prime}\delta_{m0},
+    \qquad &m^\prime=0 
     \\[5pt]
     \frac{ \delta_{\ell\ell^\prime} } { i\sqrt{2} }
-    \big[ \delta_{m^\prime,m} - \delta_{m^\prime,-m}\big], 
-    \qquad &m<0.
+    \big[ \delta_{m,m^\prime} - (-1)^m\delta_{m,-m^\prime}\big], 
+    \qquad &m^\prime<0.
     \end{cases}
 \EE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Using these equations, I can rewrite (\ref{MyBCA}) in the form
-\begin{align}
- \boldsymbol{\Gamma}\overline{\vb b} 
-&= \vb C \boldsymbol{\Gamma}\overline{\vb a}
-\nonumber\intertext{or}
- \overline{\vb b} 
-&= \boldsymbol{\Gamma}^{-1} \vb C \boldsymbol{\Gamma}\overline{\vb a}.
-\label{NewBCA}
-\end{align}
 (Note that $\boldsymbol \Gamma$ is unitary, 
 $\boldsymbol{\Gamma}^\dagger=\boldsymbol{\Gamma}^{-1}$.)
+Using these equations, I can rewrite (\ref{MyBCA}) in the form
+\begin{align}
+ \boldsymbol{\Gamma}^\dagger \overline{\vb b} 
+&= \vb C \boldsymbol{\Gamma}^\dagger \overline{\vb a}
+\nonumber\intertext{or}
+ \overline{\vb b} 
+&= \boldsymbol{\Gamma} \vb C \boldsymbol{\Gamma}^\dagger \overline{\vb a}.
+\label{NewBCA}
+\end{align}
 Comparing (\ref{NewBCA}) to (\ref{UsualBCA}) yields the 
 transformation matrix from the real-valued spherical-wave
 $C$ matrix to the conventionally-normalized $\overline{C}$-matrix:
-$$ \overline{\vb C} 
+\BE 
+   \overline{\vb C} 
    =
-   \boldsymbol{\Gamma}^{\dagger} \vb C \boldsymbol{\Gamma}.
-$$
+   \boldsymbol{\Gamma} \vb C \boldsymbol{\Gamma}^\dagger.
+\EE
 \end{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
