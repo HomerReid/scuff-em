@@ -288,16 +288,20 @@ void AddG2Contribution(double *R, cdouble k, double *kBloch,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  g2p = exp( II*k*rpl );
-  g3p = Faddeeva::erfc( E*rpl + II*k/(2.0*E) );
+  //g2p = exp( II*k*rpl );
+  //g3p = Faddeeva::erfc( E*rpl + II*k/(2.0*E) );
+  cdouble g2pTg3p = erfc_s( II*k*rpl, E*rpl + II*k/(2.0*E) );
 
-  g2m = exp( -II*k*rpl );
-  g3m = Faddeeva::erfc( E*rpl - II*k/(2.0*E) );
+  //g2m = exp( -II*k*rpl );
+  //g3m = Faddeeva::erfc( E*rpl - II*k/(2.0*E) );
+  cdouble g2mTg3m = erfc_s( -II*k*rpl, E*rpl - II*k/(2.0*E) );
+
+  //ggPgg = g2p*g3p + g2m*g3m;
+  //ggMgg = g2p*g3p - g2m*g3m;
+  ggPgg = g2pTg3p + g2mTg3m;
+  ggMgg = g2pTg3p - g2mTg3m;
 
   g4 = -2.0*M_2_SQRTPI*E*exp(-E2*rpl2 + k*k/(4.0*E2));
-
-  ggPgg = g2p*g3p + g2m*g3m;
-  ggMgg = g2p*g3p - g2m*g3m;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

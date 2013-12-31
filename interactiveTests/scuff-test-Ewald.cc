@@ -31,6 +31,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <config.h>
+
 #define HAVE_READLINE
 #ifdef HAVE_READLINE
  #include <readline/readline.h>
@@ -47,7 +49,7 @@
 #include <libscuffInternals.h>
 
 #define NSUM 8
-#define NFIRSTROUND 1
+#define NFIRSTROUND 10
 #define NMAX 10000
 
 using namespace scuff;
@@ -156,8 +158,14 @@ void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
   /***************************************************************/
   memcpy(LastSum,Sum,NSum*sizeof(cdouble));
   ConvergedIters=0;
-  for(NN=NFIRSTROUND+1; ConvergedIters<3 && NN<=NMAX; NN++)
+  for(NN=NFIRSTROUND+1; ConvergedIters<3 && NN<=NMAX; NN+=1)
    {  
+/*
+#ifdef USE_OPENMP
+int NumThreads=GetNumThreads();
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+#endif
+*/
      for(nx=-NN; nx<=NN; nx++)
       for(ny=-NN; ny<=NN; ny++)
        { 
