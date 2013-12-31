@@ -71,61 +71,6 @@ double SCR9[]={
 };
 
 /*******************************************************************/
-/* fill in lists of surfaces that bound the uppermost and lowermost*/
-/* regions in an RWGGeometry.                                      */
-/*                                                                 */
-/* on entry, the two boolean arrays in the parameter list must be  */
-/* allocated to hold enough space for NS booleans each, where NS   */
-/* is the number of surfaces in the RWGGeometry.                   */
-/*                                                                 */
-/* on return, SurfaceBoundsUppermostRegion[ns] = true if surface   */
-/* #ns bounds the uppermost region in the geometry.                */
-/*                                                                 */
-/* algorithm:                                                      */
-/*                                                                 */
-/*  (a) find the vertices VMax and VMin that have the highest and  */
-/*      lowest Z-coordinate values of all vertices on all surfaces.*/
-/*      Label the corresponding surfaces SMax and SMin.            */
-/*                                                                 */
-/*  (b) All surfaces whose ''outer region'' coincides with the     */
-/*      ''outer'' region of SMax (SMin) are deemed to bound the    */
-/*      uppermost (lowermost) region.                              */
-/*******************************************************************/
-void GetUpperAndLowerRegionBoundingSurfaces(RWGGeometry *G,
-                                            bool *SurfaceBoundsUppermostRegion,
-                                            bool *SurfaceBoundsLowermostRegion)
-{
-  int NS = G->NumSurfaces;
-
-  // first pass to identify uppermost and lowermost surfaces 
-  int nsMax=0, nsMin=0;
-  double ZMax=G->Surfaces[0]->Vertices[3*0 + 2], ZMin=ZMax;
-  for(int ns=0; ns<NS; ns++)
-   for(int nv=0; nv<G->Surfaces[ns]->NumVertices; nv++)
-    {
-      double ZValue = G->Surfaces[ns]->Vertices[3*nv + 2];
-      if (ZValue > ZMax) ZMax = ZValue, nsMax=ns;
-      if (ZValue < ZMin) ZMin = ZValue, nsMin=ns;
-    };
-
-  // second pass to identify surfaces that share the same outer
-  // region as the uppermost and lowermost surfaces
-  memset(SurfaceBoundsUppermostRegion, 0, NS*sizeof(bool));
-  int UppermostRegion = G->Surfaces[nsMax]->RegionIndices[0];
-  int LowermostRegion = G->Surfaces[nsMin]->RegionIndices[1];
-  for(int ns=0; ns<NS; ns++)
-   { 
-     SurfaceBoundsUppermostRegion[ns] 
-       = (G->Surfaces[ns]->RegionIndices[0] == UppermostRegion);
-
-     SurfaceBoundsLowermostRegion[ns] 
-       = (G->Surfaces[ns]->RegionIndices[0] == LowermostRegion);
-
-   };
-
-}
-
-/*******************************************************************/
 /* get the transmitted and reflected flux by integrating the       */
 /* scattered poynting vector over the area of the unit cell.       */
 /*                                                                 */
@@ -309,10 +254,9 @@ void GetScatteringAmplitudes(RWGGeometry *G, HVector *KN, cdouble Omega,
      E0Upper[1] = 0.0;
      E0Upper[2] = -SinTheta;
 
-     E0Lower[0] = CosTheta;
+     E0Lower[0] = -CosTheta;
      E0Lower[1] = 0.0;
      E0Lower[2] = -SinTheta;
-
    };
   PlaneWave UpperPW(E0Upper, nHatUpper, UppermostRegionLabel);
   PlaneWave LowerPW(E0Lower, nHatLower, LowermostRegionLabel);
@@ -327,16 +271,28 @@ void GetScatteringAmplitudes(RWGGeometry *G, HVector *KN, cdouble Omega,
      RHS=new HVector(Dim, LHM_COMPLEX);
    };
 
-  G->AssembleRHSVector(Omega, &UpperPW, RHS);
-  SA[0] = 0.0;
-  for(int n=0; n<Dim; n++)
-   SA[0] += conj(RHS->GetEntry(n)) * KN->GetEntry(n);
-
-  G->AssembleRHSVector(Omega, &LowerPW, RHS);
-  SA[1] = 0.0;
-  for(int n=0; n<Dim; n++)
-   SA[1] += conj(RHS->GetEntry(n)) * KN->GetEntry(n);
-
+  for(int Which=0; Which<=1; Which++)
+   { SA[Which] = 0.0;
+     G->AssembleRHSVector(Omega, (Which==0) ? &UpperPW : &LowerPW, RHS);
+     for(int ns=0; ns<G->NumSurfaces; ns++)
+      { RWGSurface *S=G->Surfaces[ns];
+        int BFOffset = G->BFIndexOffset[ns];
+        if (S->IsPEC)
+         {
+           for(int ne=0; ne<S->NumEdges; ne++)
+            SA[Which] 
+             += conj(RHS->GetEntry(BFOffset+ne))*KN->GetEntry(BFOffset+ne);
+         }
+        else
+         {
+           for(int ne=0; ne<S->NumEdges; ne++)
+            SA[Which] 
+             += conj(RHS->GetEntry(BFOffset+2*ne+0))*KN->GetEntry(BFOffset+2*ne+0)
+               -conj(RHS->GetEntry(BFOffset+2*ne+1))*KN->GetEntry(BFOffset+2*ne+1);
+         };
+      };
+     SA[Which]/=2.0;
+   };
 }
 
 /***************************************************************/
@@ -499,12 +455,16 @@ int main(int argc, char *argv[])
      OutFileName=strdup(buffer);
    };
   fprintf(f,"# data file columns: \n");
-  fprintf(f,"# 1: omega \n");
-  fprintf(f,"# 2: theta (incident angle) (theta=0 --> normal incidence)\n");
-  fprintf(f,"# 3: transmitted flux / incident flux (perpendicular polarization)\n");
-  fprintf(f,"# 4: reflected flux   / incident flux (perpendicular polarization)\n");
-  fprintf(f,"# 5: transmitted flux / incident flux (parallel polarization)\n");
-  fprintf(f,"# 6: reflected flux   / incident flux (parallel polarization)\n");
+  fprintf(f,"# 1:     omega \n");
+  fprintf(f,"# 2:     theta (incident angle) (theta=0 --> normal incidence)\n");
+  fprintf(f,"# 3:     ktransmitted flux / incident flux (perpendicular polarization)\n");
+  fprintf(f,"# 4:     reflected flux   / incident flux (perpendicular polarization)\n");
+  fprintf(f,"# 5:     transmitted flux / incident flux (parallel polarization)\n");
+  fprintf(f,"# 6:     reflected flux   / incident flux (parallel polarization)\n");
+  fprintf(f,"# 7,8:   mag2, phase tPerp\n");
+  fprintf(f,"# 9,10:  mag2, phase rPerp\n");
+  fprintf(f,"# 11,12: mag2, phase tPar\n");
+  fprintf(f,"# 13,14: mag2, phase rPar\n");
   fflush(f);
 
   cdouble EpsExterior, MuExterior, kExterior;

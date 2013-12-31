@@ -17,9 +17,9 @@ scuff_static_SOURCES = 		\
  GetPhiE.cc			\
  GetPPI.cc			\
  SSSolver.cc			\
+ SSSolver.h			\
  OutputModules.cc		\
- scuff-static.cc		\
- scuff-static.h
+ scuff-static.cc
 
 scuff_static_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 

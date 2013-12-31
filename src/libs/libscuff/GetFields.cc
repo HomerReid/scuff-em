@@ -343,11 +343,15 @@ void *GetFields_Thread(void *data)
      X[1]=XMatrix->GetEntryD(nr, 1);
      X[2]=XMatrix->GetEntryD(nr, 2);
 
+     memset(EH, 0, 6*sizeof(cdouble));
+
      RegionIndex = G->GetRegionIndex(X);
+     if (G->RegionMPs[RegionIndex]->IsPEC())
+      continue;
+
      Eps = G->EpsTF[RegionIndex];
      Mu  = G->MuTF[RegionIndex];
      GBarInterp = RegionInterpolators ? RegionInterpolators[RegionIndex] : 0;
-     memset(EH, 0, 6*sizeof(cdouble));
     
      /*--------------------------------------------------------------*/
      /*- get scattered fields at X                                   */
@@ -443,7 +447,8 @@ if (FMatrix==0)
   if (KN && NumLatticeBasisVectors>0)
    { RegionInterpolators=(Interp3D **)mallocEC(NumRegions*sizeof(Interp3D *));
      for(int nr=0; nr<NumRegions; nr++)
-      RegionInterpolators[nr]=CreateRegionInterpolator(nr, Omega, kBloch, XMatrix);
+      if ( ! ( RegionMPs[nr]->IsPEC() ) )
+       RegionInterpolators[nr]=CreateRegionInterpolator(nr, Omega, kBloch, XMatrix);
    };
 
   /***************************************************************/

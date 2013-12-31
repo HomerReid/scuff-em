@@ -743,10 +743,10 @@ void GetMlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Phi
                      int WaveType, cdouble M[3], cdouble N[3])
 { 
   cdouble kr = k*r, ikr=II*k*r, ikr2=ikr*ikr, ikr3=ikr2*ikr;
-  cdouble ExpFac =   (WaveType == LS_OUTGOING) ? exp( ikr)
-                   : (WaveType == LS_INCOMING) ? exp(-ikr) : cos(kr);
-  cdouble NumFac = (l==1) ? sqrt(3.0/(16.0*M_PI)) : sqrt(5.0/(16.0*M_PI));
-  cdouble MPreFac = NumFac * ExpFac * exp(II*m*Phi);
+  cdouble ExpFac = (WaveType == LS_OUTGOING) ? exp( ikr) :
+                   (WaveType == LS_INCOMING) ? exp(-ikr) : cos(kr);
+  double NumFac = (l==1) ? sqrt(3.0/(16.0*M_PI)) : sqrt(5.0/(16.0*M_PI));
+  cdouble MPreFac = NumFac * ExpFac * exp(II*((double) m)*Phi);
   cdouble NPreFac = MPreFac / kr;
   cdouble P1=(1.0-ikr);
   cdouble P2=(1.0 - ikr + ikr2);

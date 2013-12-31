@@ -56,20 +56,16 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 namespace scuff{
-void ComputeG1(double *R, cdouble k,
-               double *kBloch, double **LBV,
+
+void ComputeG1(double *R, cdouble k, double *kBloch, double LBVinv[2][2],
                double E, int *pnCells, cdouble *Sum);
 
-void ComputeG2(double *R, cdouble k,
-               double *kBloch, double **LBV,
+void ComputeG2(double *R, cdouble k, double *kBloch, double *LBV[2],
                double E, int *pnCells, cdouble *Sum);
 
 void ComputeGBFFirst9(double *R, cdouble k, 
                       int LDim, double *kBloch, double *LBV[2], 
                       cdouble *Sum);
-
-void AddGBFContribution(double R[3], cdouble k, double kBloch[2],
-                        double Lx, double Ly, cdouble *Sum);
 }
 
 /***************************************************************/
@@ -126,7 +122,6 @@ void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
                 double AbsTol, double RelTol, int *pnCells, cdouble *Sum)
 { 
   int nx, ny;
-  double RelDelta, AbsDelta;
   cdouble LastSum[NSUM];
   double MaxRelDelta, MaxAbsDelta;
   double Delta, AbsSum;
@@ -144,7 +139,7 @@ void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
   for (nx=-NFIRSTROUND; nx<=NFIRSTROUND; nx++)
    for (ny=-NFIRSTROUND; ny<=NFIRSTROUND; ny++, nCells++)
     { 
-#if 1
+#if 0
       if ( (abs(nx)<=1) && (abs(ny)<=1) )
        continue; // skip the innermost 9 grid cells 
 #endif
@@ -267,7 +262,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   using_history();
   read_history(0);
-  int nt, NumTokens;
+  int NumTokens;
   char *Tokens[50];
   char *p;
 
@@ -313,45 +308,45 @@ int main(int argc, char *argv[])
      SkipBF=false;
      SkipDerivatives=true;
      AbsTol=0.0;
-     RelTol=1.0e-1;
+     RelTol=1.0e-2;
 
      /*--------------------------------------------------------------*/
      /* parse input string                                          -*/
      /*--------------------------------------------------------------*/
      NumTokens=Tokenize(p,Tokens,50);
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--x") )
        sscanf(Tokens[nt+1],"%le",R+0);
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--y") )
        sscanf(Tokens[nt+1],"%le",R+1);
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--z") )
        sscanf(Tokens[nt+1],"%le",R+2);
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--k") )
        S2CD(Tokens[nt+1],&k);
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--kBloch") )
        { sscanf(Tokens[nt+1],"%le",kBloch+0);
          sscanf(Tokens[nt+2],"%le",kBloch+1);
        };
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--E") )
        sscanf(Tokens[nt+1],"%le",&E);
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--SkipBF") )
        SkipBF=true;
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--BFDerivatives") )
        SkipDerivatives=false;
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--AbsTol") )
        sscanf(Tokens[nt+1],"%le",&AbsTol);
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--RelTol") )
        sscanf(Tokens[nt+1],"%le",&RelTol);
-     for(nt=0; nt<NumTokens; nt++)
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--quit") )
        exit(1);
        
@@ -393,7 +388,7 @@ int main(int argc, char *argv[])
      cdouble G1[8], G2[8], GF9[8], GHR[8];
      Tic();
      for(int nt=0; nt<NumTimes; nt++)
-      { ComputeG1(R, k, kBloch, LBVP, E, &RecipSumTerms, G1);
+      { ComputeG1(R, k, kBloch, LBV, E, &RecipSumTerms, G1);
         Sum += G1[0];
       };
      RecipSumTime = Toc() / NumTimes;
@@ -406,10 +401,8 @@ int main(int argc, char *argv[])
       };
      RealSumTime = Toc() / NumTimes;
 
-     ComputeGBFFirst9(R, k, 2, kBloch, LBVP, GF9);
-
      for(int n=0; n<8; n++)
-      GHR[n] = G1[n] + G2[n] - GF9[n];
+      GHR[n] = G1[n] + G2[n];
 
      printf("Reciprocal space sum: %10i terms (%10f us, %.1f ns/term)\n",
              RecipSumTerms,RecipSumTime*1e6,RecipSumTime*1e9/RecipSumTerms);
@@ -448,7 +441,6 @@ int main(int argc, char *argv[])
 
      printf("\n");
      printf("**RD: %e \n",RD(GBF[0],GHR[0]));
-
 
    }; // for(;;)
 
