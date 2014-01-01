@@ -752,9 +752,10 @@ void GetMNlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Ph
   cdouble ExpFac = (WaveType == LS_OUTGOING) ? exp( ikr) :
                    (WaveType == LS_INCOMING) ? exp(-ikr) : cos(kr);
   ExpFac *= exp(II*((double) m)*Phi);
-  cdouble P1=(1.0-ikr);
-  cdouble P2=(1.0 - ikr + ikr2);
-  cdouble P3=(6.0 - 6.0*ikr + 3.0*ikr2 - ikr3);
+  cdouble Q1=(1.0-ikr);
+  cdouble Q2A=(1.0 - ikr + ikr2);
+  cdouble Q2B=(3.0 - 3.0*ikr + ikr2);
+  cdouble Q3=(6.0 - 6.0*ikr + 3.0*ikr2 - ikr3);
   M[0]=M[1]=M[2]=N[0]=N[1]=N[2]=0.0;
   double Sign = m > 0 ? 1.0 : -1.0;
   double CT = cos(Theta), ST = sin(Theta);
@@ -762,43 +763,43 @@ void GetMNlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Ph
   if (l==1 && abs(m)==1 )
    {  cdouble MPreFac = sqrt(3.0/(16.0*M_PI)) * ExpFac / kr2;
       cdouble NPreFac = MPreFac / kr;
-      M[1] = MPreFac * (-II*P1);
-      M[2] = MPreFac * Sign * P1 * CT;
-      N[0] = NPreFac * -2.0 * Sign * II * P1 * ST;
-      N[1] = NPreFac * II * P2 * CT;
-      N[2] = NPreFac * -1.0 * P2 * ST;
+      M[1] = MPreFac * -II * Q1;
+      M[2] = MPreFac * Sign * Q1 * CT;
+      N[0] = NPreFac * Sign * -2.0 * II * Q1 * ST;
+      N[1] = NPreFac * Sign * II * Q2A * CT;
+      N[2] = NPreFac * -1.0 * Q2A;
    }
   else if (l==1 && m==0 )
-   {  cdouble MPreFac = sqrt(3.0/(4.0*M_PI)) * ExpFac / kr2;
+   {  cdouble MPreFac = sqrt(3.0/(8.0*M_PI)) * ExpFac / kr2;
       cdouble NPreFac = MPreFac / kr;
-      M[2] = 2.0 * MPreFac * P1 * ST;
-      N[0] = 2.0 * NPreFac * 2.0 * II * P1 * CT;
-      N[1] = 2.0 * NPreFac * II * P2 * ST;
+      M[2] = MPreFac * Q1 * ST;
+      N[0] = NPreFac * 2.0 * II * Q1 * CT;
+      N[1] = NPreFac * II * Q2A * ST;
    }
   else if (l==2 && abs(m)==2 )
    {  cdouble MPreFac = sqrt(5.0/(16.0*M_PI)) * ExpFac / kr3;
       cdouble NPreFac = MPreFac / kr;
-      M[1] = MPreFac * Sign * 3.0 * II * P2 * ST;
-      M[2] = MPreFac * -3.0 * P2 * CT * ST;
-      N[0] = NPreFac * 9.0 * II * P2 * ST * ST;
-      N[1] = NPreFac * -1.0 * II * P3 * CT * ST;
-      N[2] = NPreFac * Sign * P3 * ST;
+      M[1] = MPreFac * Sign * II * Q2B * ST;
+      M[2] = MPreFac * -1.0 * Q2B * CT * ST;
+      N[0] = NPreFac * 3.0 * II * Q2B * ST * ST;
+      N[1] = NPreFac * -1.0 * II * Q3 * CT * ST;
+      N[2] = NPreFac * Sign * Q3 * ST;
    }
   else if (l==2 && abs(m)==1 )
    {  cdouble MPreFac = sqrt(5.0/(16.0*M_PI)) * ExpFac / kr3;
       cdouble NPreFac = MPreFac / kr;
-      M[1] = MPreFac * -3.0 * II * P2 * CT;
-      M[2] = MPreFac * Sign * 3.0 * P2 * C2T;
-      N[0] = NPreFac * Sign * -9.0 * II * P2 * S2T;
-      N[1] = NPreFac * Sign * II * P3 * C2T;
-      N[2] = NPreFac * -1.0 * P3 * CT;
+      M[1] = MPreFac * -1.0 * II * Q2B * CT;
+      M[2] = MPreFac * Sign * Q2B * C2T;
+      N[0] = NPreFac * Sign * -3.0 * II * Q2B * S2T;
+      N[1] = NPreFac * Sign * II * Q3 * C2T;
+      N[2] = NPreFac * -1.0 * Q3 * CT;
    }
   else if (l==2 && m==0 )
    {  cdouble MPreFac = sqrt(15.0/(8.0*M_PI)) * ExpFac / kr3;
       cdouble NPreFac = MPreFac / kr;
-      M[2] = MPreFac * -3.0 * P2 * CT * ST;
-      N[0] = NPreFac * 3.0 * II * P2 * (3.0*CT*CT-1.0);
-      N[1] = NPreFac * II * P3 * CT * ST;
+      M[2] = MPreFac * Q2B * CT * ST;
+      N[0] = NPreFac * II * Q2B * (3.0*CT*CT-1.0);
+      N[1] = NPreFac * II * Q3 * CT * ST;
    };
 }
 
