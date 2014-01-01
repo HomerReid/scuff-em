@@ -751,7 +751,7 @@ void GetMNlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Ph
   cdouble ikr=II*k*r, ikr2=ikr*ikr, ikr3=ikr2*ikr;
   cdouble ExpFac = (WaveType == LS_OUTGOING) ? exp( ikr) :
                    (WaveType == LS_INCOMING) ? exp(-ikr) : cos(kr);
-  ExpFac *= exp(II*((double) m)*Phi)
+  ExpFac *= exp(II*((double) m)*Phi);
   cdouble P1=(1.0-ikr);
   cdouble P2=(1.0 - ikr + ikr2);
   cdouble P3=(6.0 - 6.0*ikr + 3.0*ikr2 - ikr3);
@@ -778,27 +778,27 @@ void GetMNlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Ph
   else if (l==2 && abs(m)==2 )
    {  cdouble MPreFac = sqrt(5.0/(16.0*M_PI)) * ExpFac / kr3;
       cdouble NPreFac = MPreFac / kr;
-      M[1] = MPrefac * Sign * 3.0 * II * P2 * ST;
-      M[2] = MPrefac * -3.0 * P2 * CT * ST;
-      N[0] = NPrefac * 9.0 * II * P2 * ST * ST;
-      N[1] = NPrefac * -1.0 * II * P3 * CT * ST;
-      N[2] = NPrefac * Sign * P3 * ST;
+      M[1] = MPreFac * Sign * 3.0 * II * P2 * ST;
+      M[2] = MPreFac * -3.0 * P2 * CT * ST;
+      N[0] = NPreFac * 9.0 * II * P2 * ST * ST;
+      N[1] = NPreFac * -1.0 * II * P3 * CT * ST;
+      N[2] = NPreFac * Sign * P3 * ST;
    }
   else if (l==2 && abs(m)==1 )
    {  cdouble MPreFac = sqrt(5.0/(16.0*M_PI)) * ExpFac / kr3;
       cdouble NPreFac = MPreFac / kr;
-      M[1] = MPrefac * -3.0 * II * P2 * CT;
-      M[2] = MPrefac * Sign * 3.0 * P2 * C2T;
-      N[0] = NPrefac * Sign * -9.0 * II * P2 * S2T;
-      N[1] = NPrefac * Sign * II * P3 * C2T;
-      N[2] = NPrefac * -1.0 * P3 * CT;
+      M[1] = MPreFac * -3.0 * II * P2 * CT;
+      M[2] = MPreFac * Sign * 3.0 * P2 * C2T;
+      N[0] = NPreFac * Sign * -9.0 * II * P2 * S2T;
+      N[1] = NPreFac * Sign * II * P3 * C2T;
+      N[2] = NPreFac * -1.0 * P3 * CT;
    }
   else if (l==2 && m==0 )
    {  cdouble MPreFac = sqrt(15.0/(8.0*M_PI)) * ExpFac / kr3;
       cdouble NPreFac = MPreFac / kr;
-      M[2] = MPrefac * -3.0 * P2 * CT * ST;
-      N[0] = NPrefac * 3.0 * II * P2 * (3.0*CT*CT-1.0);
-      N[1] = NPrefac * II * P3 * CT * ST;
+      M[2] = MPreFac * -3.0 * P2 * CT * ST;
+      N[0] = NPreFac * 3.0 * II * P2 * (3.0*CT*CT-1.0);
+      N[1] = NPreFac * II * P3 * CT * ST;
    };
 }
 

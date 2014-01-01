@@ -64,7 +64,7 @@ void SphericalWave::GetFields(const double X[3], cdouble EHC[6])
 
   // get the M and N vector spherical harmonics 
   cdouble MVec[3], NVec[3];
-  GetMlm(L, M, K, r, Theta, Phi, LS_REGULAR, MVec, NVec);
+  GetMNlm(L, M, K, r, Theta, Phi, LS_REGULAR, MVec, NVec);
   
   // set the spherical components of E and H to the 
   // proper linear combinations of the M and N functions
