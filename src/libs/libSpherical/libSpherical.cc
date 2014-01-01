@@ -739,8 +739,8 @@ void GetMNlmArray(int lMax, cdouble k,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetMlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Phi, 
-                     int WaveType, cdouble M[3], cdouble N[3])
+void GetMNlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Phi, 
+                      int WaveType, cdouble M[3], cdouble N[3])
 { 
   if (l==0)
    { M[0]=M[1]=M[2]=N[0]=N[1]=N[2]=0.0;
@@ -805,11 +805,11 @@ void GetMlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Phi
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetMlm(int l, int m, cdouble k, double r, double Theta, double Phi, 
-            int WaveType, cdouble M[3], cdouble N[3])
+void GetMNlm(int l, int m, cdouble k, double r, double Theta, double Phi, 
+             int WaveType, cdouble M[3], cdouble N[3])
 {
   if ( l<=2 )
-   { GetMlmHardCoded(l, m, k, r, Theta, Phi, WaveType, M, N);
+   { GetMNlmHardCoded(l, m, k, r, Theta, Phi, WaveType, M, N);
      return;
    };
 
