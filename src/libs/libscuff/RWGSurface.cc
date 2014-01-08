@@ -427,6 +427,13 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
      if ( E->iMPanel>=0 )
       Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
    };
+  if ( !(RWGGeometry::AssignBasisFunctionsToExteriorEdges) )
+   { 
+     for(int ne=0; ne<NumExteriorEdges; ne++)
+      { RWGEdge *E=ExteriorEdges[ne];
+        Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
+      };
+   };
 
   /*------------------------------------------------------------*/
   /*- the number of basis functions that this object takes up   */
@@ -511,6 +518,13 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
      Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
      if ( E->iMPanel>=0 )
       Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
+   };
+  if ( !(RWGGeometry::AssignBasisFunctionsToExteriorEdges) )
+   { 
+     for(int ne=0; ne<NumExteriorEdges; ne++)
+      { RWGEdge *E=ExteriorEdges[ne];
+        Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
+      };
    };
 
   /*------------------------------------------------------------*/

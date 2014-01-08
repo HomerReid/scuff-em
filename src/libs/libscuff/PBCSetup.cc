@@ -304,6 +304,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
           P->VI[0] = E->iV1;
           P->VI[1] = E->iV2;
           P->VI[2] = E->iQM;
+          P->EI[0] = P->EI[1] = P->EI[2] = -1;
           P->Index = NumPanels + NumNew;
           NewPanels[NumNew] = P;
   
@@ -352,6 +353,25 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
  
   NumTotalEdges=NumEdges + NumExteriorEdges;
   NumBFs = ( IsPEC ? NumEdges : 2*NumEdges );
+
+  /*------------------------------------------------------------*/
+  /*- repeat the calculation to initialize the EI arrays in each*/
+  /*- RWGPanel structure (this was originally done back in      */
+  /*- the RWGSurface class constructor).                        */
+  /*- Note: EI[i] = index of panel edge #i within the Edges[]   */
+  /*- list for the parent RWGSurface. Panel edge #i is the      */
+  /*- edge opposite vertex #i.                                  */
+  /*------------------------------------------------------------*/
+  for(int ne=0; ne<NumEdges; ne++)
+   { RWGEdge *E = Edges[ne];
+     Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
+     if ( E->iMPanel>=0 )
+      Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
+   };
+  for(int ne=0; ne<NumExteriorEdges; ne++)
+   { RWGEdge *E=ExteriorEdges[ne];
+     Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
+   };
 
   if (NumStraddlers)
    Log(" Detected (%i,%i) straddlers for surface %s", NumStraddlers[0],NumStraddlers[1],Label);

@@ -325,7 +325,7 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
 
       /*--------------------------------------------------------------*/
       /*- populate an array whose entries are the indices of the edges*/
-      /*- whose RWG basis functions have nonzero overlap with neAlpha */
+      /*- whose RWG basis functions have nonzero overlap with neAlpha.*/
       /*--------------------------------------------------------------*/
       RWGEdge *E = Edges[neAlpha];
       int OverlappingEdgeIndices[5];
@@ -333,20 +333,23 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
 
       RWGPanel *P = Panels[E->iPPanel];
       int iQ      = E->PIndex;
+
       OverlappingEdgeIndices[0] = P->EI[  iQ      ]; // =neAlpha
-      OverlappingEdgeIndices[1] = P->EI[ (iQ+1)%3 ];
-      OverlappingEdgeIndices[2] = P->EI[ (iQ+2)%3 ];
+      NumOverlappingEdges=1;
+      if ( P->EI[ (iQ+1)%3 ] >= 0 )
+       OverlappingEdgeIndices[NumOverlappingEdges++] = P->EI[ (iQ+1)%3 ];
+      if ( P->EI[ (iQ+2)%3 ] >= 0 )
+       OverlappingEdgeIndices[NumOverlappingEdges++] = P->EI[ (iQ+2)%3 ];
 
       if (E->iMPanel!=-1)
        { 
          P  = Panels[E->iMPanel];
          iQ = E->MIndex;
-         OverlappingEdgeIndices[3] = P->EI[ (iQ+1)%3 ];
-         OverlappingEdgeIndices[4] = P->EI[ (iQ+2)%3 ];
-         NumOverlappingEdges = 5;
-       }
-      else
-       NumOverlappingEdges = 3;
+         if ( P->EI[ (iQ+1)%3 ] >= 0 )
+          OverlappingEdgeIndices[NumOverlappingEdges++] = P->EI[ (iQ+1)%3 ];
+         if ( P->EI[ (iQ+2)%3 ] >= 0 )
+          OverlappingEdgeIndices[NumOverlappingEdges++] = P->EI[ (iQ+2)%3 ];
+       };
 
       // Note: the prefactor of (10/3) in the force and torque factors 
       // below arises as follows: the force quantity that we would compute
