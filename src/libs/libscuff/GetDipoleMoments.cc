@@ -332,7 +332,7 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
       /*--------------------------------------------------------------*/
       cdouble K[3], Sigma, N[3], Eta;
       K[0]=K[1]=K[2]=Sigma=N[0]=N[1]=N[2]=Eta=0.0;
-      for(int nce=0; nce<3; nce++) // 'number of contributing edge'
+      for(int nce=0; nce<3; nce++) // 'number of contributing edges'
        { 
          int ne = P->EI[nce];
          if (ne < 0) continue; // panel edge #nce is an exterior edge

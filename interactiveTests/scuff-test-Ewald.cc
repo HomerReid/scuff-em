@@ -33,7 +33,6 @@
 
 #include <config.h>
 
-#define HAVE_READLINE
 #ifdef HAVE_READLINE
  #include <readline/readline.h>
  #include <readline/history.h>

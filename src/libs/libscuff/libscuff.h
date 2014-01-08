@@ -510,7 +510,7 @@ class RWGGeometry
    int NumLatticeBasisVectors;
    double LatticeBasisVectors[MAXLATTICE][3];
    int *NumStraddlers;
-   int *RegionIsExtended;
+   bool *RegionIsExtended;
    HMatrix *MPP, *MPM, *MPZ, *MZP, *MZZ;
    Interp3D **GBarAB9Interpolators;
 

@@ -380,14 +380,14 @@ void RWGGeometry::InitPBCData()
   /*                                    the unit cell boundary    */
   /*                                    normal to basis vector #i */
   /*                                                              */
-  /* Also, RegionIsExtended[MAXLATTICE*nr + i] = 1 if region nr   */
+  /* Also, RegionIsExtended[MAXLATTICE*nr + i] = true if region nr*/
   /* is extended (as opposed to compact) in the direction of      */
-  /* lattice basis vector i; =0 otherwise.                        */
+  /* lattice basis vector i; =false otherwise.                    */
   /*--------------------------------------------------------------*/
   TotalBFs=TotalPanels=0;
   NumStraddlers=(int *)mallocEC(NumSurfaces*MAXLATTICE*sizeof(int)); 
-  RegionIsExtended=(int *)mallocEC(NumRegions*MAXLATTICE*sizeof(int));
-  RegionIsExtended[0]=RegionIsExtended[1]=1; // exterior medium is extended
+  RegionIsExtended=(bool *)mallocEC(NumRegions*MAXLATTICE*sizeof(bool));
+  RegionIsExtended[0]=RegionIsExtended[1]=true; // exterior medium is extended
   int nr1, nr2;
   Log(" Mem before straddlers: %lu",GetMemoryUsage()/ONEMEG);
   for(int ns=0; ns<NumSurfaces; ns++)
@@ -400,8 +400,8 @@ void RWGGeometry::InitPBCData()
      nr2=S->RegionIndices[1];
      for(int i=0; i<2; i++)
       if ( NumStraddlers[ MAXLATTICE*ns + i] > 0 )
-       { RegionIsExtended[ MAXLATTICE*nr1 + i]=1;
-         if (nr2!=-1) RegionIsExtended[ MAXLATTICE*nr2 + i ]=1;
+       { RegionIsExtended[ MAXLATTICE*nr1 + i]=true;
+         if (nr2!=-1) RegionIsExtended[ MAXLATTICE*nr2 + i ]=true;
        };
 
      TotalBFs+=S->NumBFs;

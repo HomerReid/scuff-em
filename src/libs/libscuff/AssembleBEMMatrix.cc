@@ -497,7 +497,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
 
   Log("Outer cell contributions...");
   Args->Displacement = 0;
-  // 20131013 FIXME
+  // 20131013 CHECK THIS
   Args->Symmetric    = false; //SameSurface;
   Args->OmitRegion1  = false;
   Args->OmitRegion2  = false;
