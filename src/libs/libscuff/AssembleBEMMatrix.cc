@@ -1,3 +1,6 @@
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+int QuitAfter=-1;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -248,6 +251,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
                                          double *GammaMatrix)
 {
   bool SameSurface = (nsa==nsb);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+SameSurface=false;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /***************************************************************/
@@ -268,7 +274,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->Sb=Surfaces[nsb];
   Args->Omega=Omega;
 
-
   /***************************************************************/
   /* STEP 1: compute the direct interaction of the two surfaces. */
   /* This computation is always necessary, whether or not a      */
@@ -288,6 +293,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->GammaMatrix=GammaMatrix;
 
   GetSurfaceSurfaceInteractions(Args);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (QuitAfter==0) return;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /***************************************************************/
@@ -390,6 +398,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
          StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
       };
    }
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (QuitAfter==1) return;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   if (NumLatticeBasisVectors==2)
    { 
@@ -488,6 +499,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       }; // if (!SameSurface) ... 
 
    };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (QuitAfter==2) return;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /* STEP 3: compute the interaction of surface #nsa with the    */

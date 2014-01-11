@@ -105,20 +105,18 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
 int InsideTriangle(const double *X, const double *V1, const double *V2, const double *V3)
 {
   double V1mX[3], V2mX[3], V3mX[3];
-  double Length1, Length2, Length3;
-  double Angle1, Angle2, Angle3;
 
   VecSub(V1,X,V1mX);
   VecSub(V2,X,V2mX);
   VecSub(V3,X,V3mX);
 
-  Length1=VecNorm(V1mX);
-  Length2=VecNorm(V2mX);
-  Length3=VecNorm(V3mX);
+  double Length1=VecNorm(V1mX);
+  double Length2=VecNorm(V2mX);
+  double Length3=VecNorm(V3mX);
 
-  Angle1=acos( VecDot(V1mX, V2mX) / (Length1*Length2) );
-  Angle2=acos( VecDot(V2mX, V3mX) / (Length2*Length3) );
-  Angle3=acos( VecDot(V3mX, V1mX) / (Length3*Length1) );
+  double Angle1=acos( ((float)VecDot(V1mX, V2mX)) / ((float)(Length1*Length2)) );
+  double Angle2=acos( ((float)VecDot(V2mX, V3mX)) / ((float)(Length2*Length3)) );
+  double Angle3=acos( ((float)VecDot(V3mX, V1mX)) / ((float)(Length3*Length1)) );
 
   if ( fabs(Angle1+Angle2+Angle3 - 2.0*M_PI) < 1.0e-6 )
    return 1;
