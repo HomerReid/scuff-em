@@ -291,6 +291,7 @@ void GetRealYlmArray(int lMax, double Theta, double Phi, double *RealYlm)
      for(int m=1; m<=l; m++)
       { 
         int AlphaP = LM2ALPHA(l,m); 
+
         int AlphaM = LM2ALPHA(l,-m); 
         double Sign = (m%2) ? -1.0 : 1.0;
         RealYlm[AlphaP] = real( Ylm[AlphaP] + Sign*Ylm[AlphaM]) / ROOT2;

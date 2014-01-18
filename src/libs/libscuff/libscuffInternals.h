@@ -177,7 +177,11 @@ typedef struct GetSSIArgStruct
 
    int RowOffset, ColOffset;
 
-   int Symmetric;
+   // if this flag is true, then the routine only
+   // computes the upper triangle of the matrix, then
+   // fills in the lower triangle assuming the matrix
+   // block is symmetric
+   bool Symmetric;
 
    // if this flag is true, it means the caller wants the interaction 
    // of the two surfaces as mediated by the periodic Green's function 
@@ -189,11 +193,11 @@ typedef struct GetSSIArgStruct
    double *Displacement;
 
    // these flags allow the caller to request the omission of 
-   // contributions from one or both of the regions through which
+   // contributions from one of the regions through which
    // the surfaces interact
    bool OmitRegion1, OmitRegion2;
 
-   // if this field is true, the call to GetSurfaceSurfaceInteraction
+   // if this flag is true, the call to GetSurfaceSurfaceInteraction
    // augments (does not overwrite) the matrix entries
    bool Accumulate;
 

@@ -1,6 +1,4 @@
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 int QuitAfter=-1;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -62,26 +60,53 @@ namespace scuff {
 /* has indices (RowOffset, ColOffset).                         */
 /*                                                             */
 /* Each entry of B is scaled by BPF ('bloch phase factor')     */
-/* before being added to the corresponding entry of M.         */
+/* before being added to the corresponding entry of M.         */ 
 /*                                                             */
-/* If SameSurface is true, then the routine additionally adds  */
+/* If UseSymmetry is true, then the routine additionally adds  */
 /* the contents of B' times the complex conjugate of BPF to    */
 /* the destination block of M.                                 */
+/*                                                             */
+/* If GradB[Mu] (Mu=0,1,2) is non-null, the same stamping      */
+/* operation is used to stamp GradB[Mu] into GradM[Mu].        */
 /***************************************************************/
-void StampInNeighborBlock(HMatrix *B, int NR, int NC, 
-                          HMatrix *M, int RowOffset, int ColOffset,
-                          cdouble BPF, bool SameSurface)
+void StampInNeighborBlock(HMatrix *B, HMatrix **GradB, 
+                          int NR, int NC, 
+                          HMatrix *M, HMatrix **GradM,
+                          int RowOffset, int ColOffset,
+                          cdouble BPF, bool UseSymmetry)
 { 
-  if (SameSurface)
-   { for(int nr=0; nr<NR; nr++)
-      for(int nc=0; nc<NC; nc++)
-       M->AddEntry(RowOffset + nr, ColOffset + nc,
-                   BPF*B->GetEntry(nr,nc) + conj(BPF)*B->GetEntry(nc,nr));
-   }
-  else
-   { for(int nr=0; nr<NR; nr++)
-      for(int nc=0; nc<NC; nc++)
-       M->AddEntry(RowOffset + nr, ColOffset + nc, BPF*B->GetEntry(nr,nc));
+  HMatrix *BList[4];
+  HMatrix *MList[4];
+
+  BList[0] = B;
+  BList[1] = GradB ? GradB[0] : 0;
+  BList[2] = GradB ? GradB[1] : 0;
+  BList[3] = GradB ? GradB[2] : 0;
+
+  MList[0] = M;
+  MList[1] = GradM ? GradM[0] : 0;
+  MList[2] = GradM ? GradM[1] : 0;
+  MList[3] = GradM ? GradM[2] : 0;
+  
+  for(int n=0; n<4; n++)
+   { 
+     HMatrix *BB = BList[n]; 
+     HMatrix *MM = MList[n]; 
+     if ( !BList[n] || !MList[n] )
+      continue;
+     
+     if (UseSymmetry)
+      { for(int nr=0; nr<NR; nr++)
+         for(int nc=0; nc<NC; nc++)
+          MM->AddEntry(RowOffset + nr, ColOffset + nc,
+                       BPF*BB->GetEntry(nr,nc) + conj(BPF)*BB->GetEntry(nc,nr));
+      }
+     else
+      { for(int nr=0; nr<NR; nr++)
+         for(int nc=0; nc<NC; nc++)
+          MM->AddEntry(RowOffset + nr, ColOffset + nc, 
+                       BPF*BB->GetEntry(nr,nc));
+      };
    };
 }
 
@@ -250,11 +275,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
                                          int NumTorqueAxes, HMatrix **dMdT,
                                          double *GammaMatrix)
 {
-  bool SameSurface = (nsa==nsb);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-SameSurface=false;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -281,8 +301,7 @@ SameSurface=false;
   /***************************************************************/
   Args->Displacement=0;
   Args->UseAB9Kernel=false;
-  // 20131013 FIXME 
-  Args->Symmetric = false; //SameSurface;
+  Args->Symmetric = (nsa==nsb);
   Args->Accumulate = 0;
   Args->B=M;
   Args->GradB=GradM;
@@ -293,9 +312,6 @@ SameSurface=false;
   Args->GammaMatrix=GammaMatrix;
 
   GetSurfaceSurfaceInteractions(Args);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (QuitAfter==0) return;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /***************************************************************/
@@ -340,6 +356,10 @@ if (QuitAfter==0) return;
   nr1=CommonRegionIndices[0];
   nr2=NumCommonRegions==2 ? CommonRegionIndices[1] : -1;
 
+  // the BEM matrix block is symmetric if (a) the two surfaces 
+  // are the same, and (b) the bloch wavevector is zero.
+  bool UseSymmetry = (nsa==nsb) && ( !kBloch || (kBloch[0]==0.0 && kBloch[1]==0.0) );
+
   // L is the lattice vector through which surfaces are displaced into
   // neighboring unit cells
   double L[3];
@@ -350,7 +370,7 @@ if (QuitAfter==0) return;
   int NBFA=Args->Sa->NumBFs; 
   int NBFB=Args->Sb->NumBFs;
 
-  Args->Symmetric=0;
+  Args->Symmetric=false;
   Args->RowOffset=0;
   Args->ColOffset=0;
   Args->B = B;
@@ -372,15 +392,9 @@ if (QuitAfter==0) return;
      Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
      GetSurfaceSurfaceInteractions(Args);
      BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[0]) 
-      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[1]) 
-      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[2]) 
-      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+     StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, UseSymmetry);
 
-     if (!SameSurface)
+     if (!UseSymmetry)
       { 
         Log("MMZ block...");
         L[0] = -LatticeBasisVectors[0][0];
@@ -389,18 +403,9 @@ if (QuitAfter==0) return;
         Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
         GetSurfaceSurfaceInteractions(Args);
         BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[0]) 
-         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[1]) 
-         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[2]) 
-         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+        StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, false);
       };
    }
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (QuitAfter==1) return;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   if (NumLatticeBasisVectors==2)
    { 
@@ -411,13 +416,7 @@ if (QuitAfter==1) return;
      Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
      GetSurfaceSurfaceInteractions(Args);
      BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[0]) 
-      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[1]) 
-      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[2]) 
-      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+     StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, UseSymmetry);
 
      Log("MPM block...");
      L[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
@@ -426,13 +425,7 @@ if (QuitAfter==1) return;
      Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
      GetSurfaceSurfaceInteractions(Args);
      BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[0]) 
-      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[1]) 
-      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[2]) 
-      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+     StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, UseSymmetry);
 
      Log("MZP block...");
      L[0]=LatticeBasisVectors[1][0];
@@ -441,15 +434,9 @@ if (QuitAfter==1) return;
      Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+1];
      GetSurfaceSurfaceInteractions(Args);
      BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-     StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[0]) 
-      StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[1]) 
-      StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
-     if (GradB[2]) 
-      StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+     StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, UseSymmetry);
 
-     if (!SameSurface)
+     if (!UseSymmetry)
       {
         Log("MMM block...");
         L[0] = -LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
@@ -458,13 +445,7 @@ if (QuitAfter==1) return;
         Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
         GetSurfaceSurfaceInteractions(Args);
         BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[0]) 
-         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[1]) 
-         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[2]) 
-         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+        StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, false);
    
         Log("MMP block...");
         L[0] = -LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
@@ -473,13 +454,7 @@ if (QuitAfter==1) return;
         Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
         GetSurfaceSurfaceInteractions(Args);
         BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[0]) 
-         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[1]) 
-         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[2]) 
-         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+        StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, false);
    
         Log("MZM block...");
         L[0] = -LatticeBasisVectors[1][0];
@@ -488,20 +463,13 @@ if (QuitAfter==1) return;
         Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+1];
         GetSurfaceSurfaceInteractions(Args);
         BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-        StampInNeighborBlock(B, NBFA, NBFB, M, RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[0]) 
-         StampInNeighborBlock(GradB[0], NBFA, NBFB, GradM[0], RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[1]) 
-         StampInNeighborBlock(GradB[1], NBFA, NBFB, GradM[1], RowOffset, ColOffset, BPF, SameSurface);
-        if (GradB[2]) 
-         StampInNeighborBlock(GradB[2], NBFA, NBFB, GradM[2], RowOffset, ColOffset, BPF, SameSurface);
+        StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, false);
    
-      }; // if (!SameSurface) ... 
+      }; // if (!UseSymmetry) ... 
 
    };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 if (QuitAfter==2) return;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (QuitAfter==3) M->Zero();
 
   /***************************************************************/
   /* STEP 3: compute the interaction of surface #nsa with the    */
@@ -511,8 +479,7 @@ if (QuitAfter==2) return;
 
   Log("Outer cell contributions...");
   Args->Displacement = 0;
-  // 20131013 FIXME
-  Args->Symmetric    = false; //SameSurface;
+  Args->Symmetric    = false;
   Args->OmitRegion1  = false;
   Args->OmitRegion2  = false;
   Args->UseAB9Kernel = true;
@@ -555,14 +522,18 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
      M=AllocateBEMMatrix();
    };
 
+  // the overall BEM matrix is symmetric as long as we 
+  // don't have a nonzero bloch wavevector.
+  bool MatrixIsSymmetric = ( !kBloch || (kBloch[0]==0.0 && kBloch[1]==0.0) );
+
   /***************************************************************/
   /* loop over all pairs of objects to assemble the diagonal and */
   /* above-diagonal blocks of the matrix                         */
   /***************************************************************/
-  /***************************************************************/
   int nsm; // 'number of surface mate'
+  int nspStart = MatrixIsSymmetric ? 1 : 0;
   for(int ns=0; ns<NumSurfaces; ns++)
-   for(int nsp=ns; nsp<NumSurfaces; nsp++)
+   for(int nsp=nspStart*ns; nsp<NumSurfaces; nsp++)
     { 
       // attempt to reuse the diagonal block of an identical previous object
       if (ns==nsp && (nsm=Mate[ns])!=-1)
@@ -573,17 +544,21 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
          M->InsertBlock(M, ThisOffset, ThisOffset, Dim, Dim, MateOffset, MateOffset);
        }
       else
-       AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0,
+       AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0, 
                               BFIndexOffset[ns], BFIndexOffset[nsp]);
     };
 
   /***************************************************************/
-  /* if the matrix uses normal (not packed) storage, fill in its */
-  /* below-diagonal blocks. note that the BEM matrix is complex  */
-  /* symmetric, not hermitian, so the below-diagonals are equal  */
-  /* to the above-diagonals, not to their complex conjugates.    */
+  /* if the matrix is symmetric, then the computations above have*/
+  /* only filled in its upper triangle, so we need to go back and*/
+  /* fill in the lower triangle. (The exception is if the matrix */
+  /* is defined to use packed storage, in which case only the    */
+  /* upper triangle is needed anyway.)                           */
+  /* Note: Technically the lower-triangular parts of the diagonal*/
+  /* blocks should already have been filled in, so this code is  */
+  /* slightly redundant because it re-fills-in those entries.    */
   /***************************************************************/
-  if (M->StorageType==LHM_NORMAL)
+  if (MatrixIsSymmetric && M->StorageType==LHM_NORMAL)
    { 
      for(int nr=1; nr<TotalBFs; nr++)
       for(int nc=0; nc<nr; nc++)

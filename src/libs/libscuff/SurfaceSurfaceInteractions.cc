@@ -109,7 +109,7 @@ void *GSSIThread(void *data)
   /* extract local copies of fields in argument structure */
   /***************************************************************/
   ThreadData *TD=(ThreadData *)data;
-  GetSSIArgStruct *Args  = TD->Args;
+  GetSSIArgStruct *Args= TD->Args;
   RWGGeometry *G       = Args->G;
   RWGSurface *Sa       = Args->Sa;
   RWGSurface *Sb       = Args->Sb;
@@ -118,7 +118,7 @@ void *GSSIThread(void *data)
   double *GammaMatrix  = Args->GammaMatrix;
   int RowOffset        = Args->RowOffset;
   int ColOffset        = Args->ColOffset;
-  int Symmetric        = Args->Symmetric;
+  bool Symmetric       = Args->Symmetric;
   double *Displacement = Args->Displacement;
   HMatrix *B           = Args->B;
   HMatrix **GradB      = Args->GradB;
@@ -182,8 +182,9 @@ void *GSSIThread(void *data)
   int neb, NEb=Sb->NumEdges;
   int X, Y, Mu, nt=0;
   int NumGradientComponents = GradB ? 3 : 0;
+  int nebStart = Symmetric ? 1 : 0;
   for(nea=0; nea<NEa; nea++)
-   for(neb=Symmetric*nea; neb<NEb; neb++)
+   for(neb=nebStart*nea; neb<NEb; neb++)
     { 
       nt++;
       if (nt==TD->NumTasks) nt=0;
@@ -191,7 +192,7 @@ void *GSSIThread(void *data)
 
       if (G->LogLevel>=SCUFF_VERBOSELOGGING)
        for(int PerCent=0; PerCent<9; PerCent++)
-        if ( neb==Symmetric*nea &&  (nea == (PerCent*NEa)/10) )
+        if ( neb==nebStart*nea &&  (nea == (PerCent*NEa)/10) )
          MutexLog("%i0 %% (%i/%i)...",PerCent,nea,NEa);
 
       /*--------------------------------------------------------------*/
@@ -326,7 +327,7 @@ void *GSSIThread(void *data)
           };
        }; // if (EpsB!=0.0)
 
-    }; // for(nea=0; nea<NEa; nea++), for(neb=Symmetric*nea; neb<NEb; neb++) ... 
+    }; // for(nea=0; nea<NEa; nea++), for(neb=nebStart*nea; neb<NEb; neb++) ... 
 
   memcpy(TD->PPIAlgorithmCount, GetEEIArgs->PPIAlgorithmCount, NUMPPIALGORITHMS*sizeof(unsigned));
   return 0;
@@ -580,7 +581,11 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
    AddSurfaceSigmaContributionToBEMMatrix(Args);
 
   /***************************************************************/
-  /* 20130607 explain me *****************************************/
+  /* if the caller specified the matrix as symmetric, then so far*/
+  /* we have only computed the upper triangle, so now we need to */
+  /* fill in the lower triangle. The exception is if the matrix  */
+  /* uses packed storage, in which case only the upper triangle  */
+  /* is stored anyway.                                           */
   /***************************************************************/
   if ( Args->Symmetric && (Args->B->StorageType==LHM_NORMAL) )
    { int N=Args->B->NR;
@@ -617,9 +622,11 @@ void InitGetSSIArgs(GetSSIArgStruct *Args)
   Args->RowOffset=0;
   Args->ColOffset=0;
 
-  Args->Symmetric=0;
+  Args->Symmetric=false;
 
   Args->UseAB9Kernel=false;
+  Args->GInterpA=0;
+  Args->GInterpB=0;
   Args->OmitRegion1=false;
   Args->OmitRegion2=false;
 
