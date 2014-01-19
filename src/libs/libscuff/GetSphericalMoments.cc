@@ -43,90 +43,13 @@
 
 using namespace scuff;
 
-#define II cdouble(0,1)
-
-/***************************************************************/
-/* cubature integrand for the GetMNProjections routine         */
-/***************************************************************/
-typedef struct GMNPData
- {
-   cdouble k; 
-   int lMax;
-   double *Q;
-   double RWGPreFac;
-   cdouble *MArray;
-   cdouble *NArray;
-  
- } GMNPData;
-
-void GMNPIntegrand(double *X, void *parms, double *f)
-{
-  /*--------------------------------------------------------------*/
-  /*- extract parameters from data structure.                     */
-  /*- note: the MArray and NArray fields must point to caller-    */
-  /*- allocated buffers with enough room for 3*(lMax+1)*(lMax+1)  */
-  /*- cdoubles each.                                              */
-  /*--------------------------------------------------------------*/
-  GMNPData *Data    = (GMNPData *)parms;
-  cdouble k         = Data->k;
-  int lMax          = Data->lMax;
-  double *Q         = Data->Q;
-  double RWGPreFac  = Data->RWGPreFac;
-  cdouble *MArray   = Data->MArray;
-  cdouble *NArray   = Data->NArray;
-
-  /*--------------------------------------------------------------*/
-  /*- convert the eval point to spherical coordinates, then get   */
-  /*- the M, N vector helmholtz solutions at this eval point.     */
-  /*--------------------------------------------------------------*/
-  double r, Theta, Phi;
-  CoordinateC2S(X, &r, &Theta, &Phi);
-  GetMNlmArray(lMax, k, r, Theta, Phi, LS_REGULAR, MArray, NArray);
-
-  /*--------------------------------------------------------------*/
-  /*- get the vector-valued RWG basis function at this eval point */
-  /*--------------------------------------------------------------*/
-  double fRWG[3];
-  fRWG[0] = RWGPreFac*(X[0] - Q[0]); 
-  fRWG[1] = RWGPreFac*(X[1] - Q[1]); 
-  fRWG[2] = RWGPreFac*(X[2] - Q[2]); 
-
-  /*--------------------------------------------------------------*/
-  /*- and convert it to spherical components                      */
-  /*--------------------------------------------------------------*/
-  double fRWGS[3];
-  VectorC2S(Theta, Phi, fRWG, fRWGS);
-
-  /*--------------------------------------------------------------*/
-  /*- loop over all elements in the M, N array to compute the     */
-  /*- elements of the integrand vector                            */
-  /*--------------------------------------------------------------*/
-  cdouble MDotF, NDotF;
-  int nf=0;
-  int NumLMs=(lMax+1)*(lMax+1);
-  for(int nLM=0; nLM<NumLMs; nLM++)
-   { 
-     MDotF = MArray[3*nLM + 0]*fRWGS[0] + MArray[3*nLM + 1]*fRWGS[1] + MArray[3*nLM + 2]*fRWGS[2];
-     NDotF = NArray[3*nLM + 0]*fRWGS[0] + NArray[3*nLM + 1]*fRWGS[1] + NArray[3*nLM + 2]*fRWGS[2];
-
-     // note: what we really want is the dot product with the complex conjugate
-     // of M and N; since fRWG is real-valued we can just take the complex 
-     // conjugate of the dot project with M and N. 
-     f[nf++] = real( MDotF );
-     f[nf++] = -imag( MDotF );
-     f[nf++] = real( NDotF );
-     f[nf++] = -imag( NDotF );
-
-   };
-
-}
-
 /***************************************************************/
 /* get the projections of a single RWG basis function onto the */
 /* M and N spherical waves, up to a maximum l-value of lMax.   */
 /*                                                             */
-/* Workspace is a caller-allocated workspace with enough room  */
-/* to store at least 10*(lMax+1)*(lMax+1) cdoubles.            */
+/* MArray and NArray are caller-allocated workspace arrays with*/
+/* enough room to store at least 3*(lMax+1)*(lMax+1) cdoubles  */
+/* each.                                                       */
 /*                                                             */
 /* The MProjection and NProjection output buffers are caller-  */
 /* allocated arrays which each must have enough room to store  */
@@ -136,61 +59,102 @@ void GMNPIntegrand(double *X, void *parms, double *f)
 /* such that Alpha=l^2 + l + m.                                */
 /***************************************************************/
 void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
-                      cdouble *Workspace, 
-                      cdouble *MProjection, cdouble *NProjection)
+                      cdouble *MArray, cdouble *NArray,
+                      cdouble *MProjections, cdouble *NProjections)
 {
-  /* extract edge vertices */
-  RWGEdge *E   = S->Edges[ne];
+  int NAlpha = (lMax+1)*(lMax+1);
 
-  double *QP   = S->Vertices + 3*(E->iQP);
-  double *V1   = S->Vertices + 3*(E->iV1);
-  double *V2   = S->Vertices + 3*(E->iV2);
-  double *QM   = (E->iQM == -1) ? 0 : S->Vertices + 3*(E->iQM);
+  /***************************************************************/
+  /* choose triangle cubature rule (order fixed at 20 for now)   */
+  /***************************************************************/
+  int NumPts;
+  double *TCR = GetTCR(20, &NumPts);
 
-  double PArea = S->Panels[E->iPPanel]->Area;
-  double MArea = (E->iQM == -1) ? 0.0 : S->Panels[E->iMPanel]->Area;
+  /***************************************************************/
+  /* preliminary geometry setup **********************************/
+  /***************************************************************/
+  RWGEdge *E    = S->Edges[ne];
+  double Length = E->Length;
+  double *QP    = S->Vertices + 3*(E->iQP);
+  double *V1    = S->Vertices + 3*(E->iV1);
+  double *V2    = S->Vertices + 3*(E->iV2);
+  double *QM    = (E->iQM == -1) ? 0 : S->Vertices + 3*(E->iQM);
 
-  /* set up data structure passed to GMNPIntegrand.           */
-  GMNPData MyData, *Data=&MyData;
-  Data->k=k;
-  Data->lMax=lMax;
+  double AP[3], BP[3], AM[3], BM[3];
+  for(int Mu=0; Mu<3; Mu++)
+   { AP[Mu] = V1[Mu] - QP[Mu];
+     BP[Mu] = V2[Mu] - QP[Mu];
+     AM[Mu] = V1[Mu] - QM[Mu];
+     BM[Mu] = V2[Mu] - QM[Mu];
+   };
 
-  // the Workspace field is used as follows:
-  // first 3*NumLMs cdoubles: passed as the MArray scratch buffer 
-  //                          required by the GMNPIntegrand routine
-  //  next 3*NumLMs cdoubles: passed as the NArray scratch buffer 
-  //                          required by the GMNPIntegrand routine
-  //  next 2*NumLMs cdoubles: store the integrand vector resulting 
-  //                          from the call to GMNPIntegrand for the 
-  //                          positive triangle 
-  //  next 2*NumLMs cdoubles: store the integrand vector resulting 
-  //                          from the call to GMNPIntegrand for the 
-  //                          negative triangle 
-  // (obviously if memory were tight some of the above could be 
-  //  consolidated to cut down on memory requirements)
-  int NumLMs = (lMax+1)*(lMax+1);
-  Data->MArray = Workspace + 0 ;
-  Data->NArray = Workspace + 3*NumLMs;
-  cdouble *IP  = Workspace + 6*NumLMs;
-  cdouble *IM  = Workspace + 8*NumLMs;
+  /***************************************************************/
+  /* loop over quadrature points *********************************/
+  /***************************************************************/
+  for(int np=0, ncp=0; np<NumPts; np++)
+   { 
+     double u=TCR[ncp++];
+     double v=TCR[ncp++];
+     double w=TCR[ncp++];
 
-  /* contribution of positive panel */
-  Data->Q=QP;
-  Data->RWGPreFac = E->Length / (2.0*PArea);
-  TriIntFixed(GMNPIntegrand, 4*NumLMs, (void *)Data, QP, V1, V2, 25, (double *)IP);
+     double XmQ[3], X[3], FS[3];
+     double r, Theta, Phi;
 
-  /* contribution of negative panel if present */
-  if (QM)
-   { Data->Q=QM;
-     Data->RWGPreFac = E->Length / (2.0*MArea);
-     TriIntFixed(GMNPIntegrand, 4*NumLMs, (void *)Data, V1, V2, QM, 25, (double *)IM);
-   } 
-  else
-   memset(IM, 0, 2*NumLMs*sizeof(cdouble));
+     /*--------------------------------------------------------------*/
+     /*- contribution of positive panel -----------------------------*/
+     /*--------------------------------------------------------------*/
+     for(int Mu=0; Mu<3; Mu++)
+      { XmQ[Mu] = u*AP[Mu] + v*BP[Mu];
+          X[Mu] = XmQ[Mu] + QP[Mu];
+      };
+     CoordinateC2S(X,&r,&Theta,&Phi);
+     VectorC2S(Theta,Phi,XmQ,FS);
+     GetMNlmArray(lMax, k, r, Theta, Phi, LS_REGULAR, MArray, NArray);
+     for(int Alpha=0; Alpha<NAlpha; Alpha++)
+      { MProjections[Alpha] += w*(  FS[0]*MArray[3*Alpha+0] 
+                                   +FS[1]*MArray[3*Alpha+1]
+                                   +FS[2]*MArray[3*Alpha+2]
+                                 );
+        NProjections[Alpha] += w*(  FS[0]*NArray[3*Alpha+0] 
+                                   +FS[1]*NArray[3*Alpha+1]
+                                   +FS[2]*NArray[3*Alpha+2]
+                                 );
+      };
 
-  for(int nLM=0; nLM<NumLMs; nLM++)
-   { MProjection[nLM] = IP[2*nLM+0] - IM[2*nLM+0];
-     NProjection[nLM] = IP[2*nLM+1] - IM[2*nLM+1];
+     if (QM==0) continue;
+
+     /*--------------------------------------------------------------*/
+     /*- contribution of negative panel -----------------------------*/
+     /*--------------------------------------------------------------*/
+     for(int Mu=0; Mu<3; Mu++)
+      { XmQ[Mu] = u*AM[Mu] + v*BM[Mu];
+          X[Mu] = XmQ[Mu] + QM[Mu];
+      };
+     CoordinateC2S(X,&r,&Theta,&Phi);
+     VectorC2S(Theta,Phi,XmQ,FS);
+     GetMNlmArray(lMax, k, r, Theta, Phi, LS_OUTGOING, MArray, NArray);
+     for(int Alpha=0; Alpha<NAlpha; Alpha++)
+      { MProjections[Alpha] -= w*(  FS[0]*MArray[3*Alpha+0] 
+                                   +FS[1]*MArray[3*Alpha+1]
+                                   +FS[2]*MArray[3*Alpha+2]
+                                    );
+        NProjections[Alpha] -= w*(  FS[0]*NArray[3*Alpha+0] 
+                                   +FS[1]*NArray[3*Alpha+1]
+                                   +FS[2]*NArray[3*Alpha+2]
+                                 );
+      };
+
+   }; //for(int np=ncp=0; np<NumPts; np++)
+  
+  /***************************************************************/
+  /* note: what we really want is the dot product with the       */
+  /* complex conjugate of M and N; since fRWG is real-valued we  */
+  /* can just take the complex conjugate of the dot project with */
+  /* M and N.                                                    */
+  /***************************************************************/
+  for(int Alpha=0; Alpha<NAlpha; Alpha++)
+   { MProjections[Alpha] = Length * conj(MProjections[Alpha]);
+     NProjections[Alpha] = Length * conj(NProjections[Alpha]);
    };
 
 }
@@ -201,33 +165,28 @@ void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
 typedef struct ThreadData
  { 
    int nt, NumTasks;
-
    RWGSurface *S;
    cdouble k;
    int lMax;
-
    HVector *KN;
    int BFIndexOffset;
-
    cdouble *Workspace;
-
-   cdouble *PartialAVector;
+   cdouble *PartialMomentVector;
    double Sign;
 
  } ThreadData;
 
-
 void *GSM_Thread(void *data)
 { 
-  ThreadData *TD          = (ThreadData *)data;
-  RWGSurface *S           = TD->S;
-  cdouble k               = TD->k;
-  int lMax                = TD->lMax;
-  HVector *KN             = TD->KN; 
-  int BFIndexOffset       = TD->BFIndexOffset;
-  cdouble *Workspace      = TD->Workspace;
-  cdouble *PartialAVector = TD->PartialAVector;
-  double Sign             = TD->Sign;
+  ThreadData *TD               = (ThreadData *)data;
+  RWGSurface *S                = TD->S;
+  cdouble k                    = TD->k;
+  int lMax                     = TD->lMax;
+  HVector *KN                  = TD->KN; 
+  int BFIndexOffset            = TD->BFIndexOffset;
+  cdouble *Workspace           = TD->Workspace;
+  cdouble *PartialMomentVector = TD->PartialMomentVector;
+  double Sign                  = TD->Sign;
   
 #ifdef USE_PTHREAD
   SetCPUAffinity(TD->nt);
@@ -236,14 +195,19 @@ void *GSM_Thread(void *data)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  cdouble KAlpha, NAlpha;
-  int NumLMs = (lMax+1)*(lMax+1); 
+  int NumLMs = (lMax+1)*(lMax+1);
+  cdouble *MArray       = Workspace + 0*NumLMs;
+  cdouble *NArray       = Workspace + 3*NumLMs;
+  cdouble *MProjections = Workspace + 6*NumLMs;
+  cdouble *NProjections = Workspace + 7*NumLMs;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int nt=0;
   int NumMoments=2*NumLMs;
-  cdouble *MProjection = Workspace + 0;
-  cdouble *NProjection = Workspace + 2*NumLMs; 
-  int nt=0, nbf, ne;
-  memset(PartialAVector, 0, NumMoments * sizeof(cdouble));
-  for(nbf=BFIndexOffset, ne=0; ne<S->NumEdges; ne++)
+  memset(PartialMomentVector, 0, NumMoments * sizeof(cdouble));
+  for(int ne=0; ne<S->NumEdges; ne++)
     { 
       nt++;
       if (nt==TD->NumTasks) nt=0;
@@ -255,12 +219,13 @@ void *GSM_Thread(void *data)
       /* get the projections of the basis function onto the M and N  */
       /* spherical waves                                             */
       /***************************************************************/
-      GetMNProjections(S, ne, k, lMax, Workspace, MProjection, NProjection);
+      GetMNProjections(S, ne, k, lMax, MArray, NArray, MProjections, NProjections);
 
       /***************************************************************/
-      /* add the contributions of the electric and magnetic currents */
-      /* described by this basis function to the a^{M,E} moments     */
+      /* add contributions of this RWG function to the M-type and    */
+      /* N-type moments                                              */
       /***************************************************************/
+      cdouble KAlpha, NAlpha;
       if ( S->IsPEC )
        { 
          KAlpha = Sign*KN->GetEntry( BFIndexOffset + ne );
@@ -273,16 +238,15 @@ void *GSM_Thread(void *data)
 
       for(int nLM=0; nLM<NumLMs; nLM++)
        { 
-         // contributions to a^M moment 
-         PartialAVector[2*nLM + 0] += -k*k*( ZVAC*MProjection[nLM]*KAlpha
-                                                 -NProjection[nLM]*NAlpha
+         // contributions to M-type moment
+         PartialMomentVector[2*nLM + 0] += -k*k*( ZVAC*MProjections[nLM]*KAlpha
+                                                      -NProjections[nLM]*NAlpha
                                            );
 
-         // contributions to a^E moment
-         PartialAVector[2*nLM + 1] += -k*k*( ZVAC*NProjection[nLM]*KAlpha
-                                                 +MProjection[nLM]*NAlpha 
+         // contributions to N-type moment
+         PartialMomentVector[2*nLM + 1] += -k*k*( ZVAC*NProjections[nLM]*KAlpha
+                                                      +MProjections[nLM]*NAlpha
                                            );
-
        };
  
     };
@@ -294,21 +258,21 @@ void *GSM_Thread(void *data)
 /***************************************************************/
 HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
                              HVector *KN, int BFIndexOffset, 
-                             HVector *AVector)
+                             HVector *MomentVector)
 { 
   
   /***************************************************************/
-  /* (re)allocate the AVector as necessary ***********************/
+  /* (re)allocate the MomentVector as necessary ***********************/
   /***************************************************************/
   int NumLMs = (lMax+1)*(lMax+1);
-  int NumMoments = 2*NumLMs; // a^E and a^M moments for each l,m
-  if ( AVector && AVector->N != NumMoments )
-   { Warn("wrong-size AVector passed to GetSphericalMoments (reallocating...)");
-     AVector=0;
+  int NumMoments = 2*NumLMs; // M-type and N-type moments for each l,m
+  if ( MomentVector && MomentVector->N != NumMoments )
+   { Warn("wrong-size MomentVector passed to GetSphericalMoments (reallocating...)");
+     MomentVector=0;
    };
-  if ( AVector==0 )
-   AVector=new HVector(NumMoments, LHM_COMPLEX);
-  AVector->Zero();
+  if ( MomentVector==0 )
+   MomentVector=new HVector(NumMoments, LHM_COMPLEX);
+  MomentVector->Zero();
 
   /***************************************************************/
   /***************************************************************/
@@ -319,48 +283,47 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
   else if (S->RegionIndices[1]==0)
    Sign=-1.0;
   else 
-   return AVector; // currents on this surface do not contribute
+   return MomentVector; // currents on this surface do not contribute
 
   Log("Computing induced spherical moments on surface %s...",S->Label);
 
   /***************************************************************/
-  /* set up thread data ******************************************/
+  /* allocate data structures for individual calls to ************/
   /***************************************************************/
   int NumThreads=GetNumThreads();
   
-  int WorkspaceSize = 10*NumLMs;
-  int PartialAVectorSize = 2*NumLMs;
+  int WorkspaceSize = 8*NumLMs;
+  int PartialMomentVectorSize = 2*NumLMs;
   cdouble *WorkspaceBuffer = (cdouble *)mallocEC(NumThreads*WorkspaceSize*sizeof(cdouble));
-  cdouble *PartialAVectorBuffer = (cdouble *)mallocEC(NumThreads*PartialAVectorSize*sizeof(cdouble));
+  cdouble *PartialMomentVectorBuffer = (cdouble *)mallocEC(NumThreads*PartialMomentVectorSize*sizeof(cdouble));
 
   ThreadData *TDs = new ThreadData[NumThreads];
-  int nt;
-  for(nt=0; nt<NumThreads; nt++)
-   { TDs[nt].nt             = nt;
-     TDs[nt].NumTasks       = NumThreads;
-     TDs[nt].S              = S;
-     TDs[nt].k              = k;
-     TDs[nt].lMax           = lMax;
-     TDs[nt].KN             = KN;
-     TDs[nt].BFIndexOffset  = BFIndexOffset;
-     TDs[nt].Workspace      = WorkspaceBuffer + nt*WorkspaceSize;
-     TDs[nt].PartialAVector = PartialAVectorBuffer + nt*PartialAVectorSize;
-     TDs[nt].Sign           = Sign;
-   };
+  for(int nt=0; nt<NumThreads; nt++)
+   { TDs[nt].nt                  = nt;
+     TDs[nt].NumTasks            = NumThreads;
+     TDs[nt].S                   = S;
+     TDs[nt].k                   = k;
+     TDs[nt].lMax                = lMax;
+     TDs[nt].KN                  = KN;
+     TDs[nt].BFIndexOffset       = BFIndexOffset;
+     TDs[nt].Workspace           = WorkspaceBuffer + nt*WorkspaceSize;
+     TDs[nt].PartialMomentVector = PartialMomentVectorBuffer + nt*PartialMomentVectorSize;
+     TDs[nt].Sign                = Sign;
+   }; 
 
   /***************************************************************/
   /* fire off the threads ****************************************/
   /***************************************************************/
 #ifdef USE_PTHREAD
   pthread_t *Threads = new pthread_t[NumThreads];
-  for(nt=0; nt<NumThreads; nt++)
+  for(int nt=0; nt<NumThreads; nt++)
    { 
      if (nt+1 == NumThreads)
       GSM_Thread((void *) &(TDs[nt]) );
      else
       pthread_create( &(Threads[nt]), 0, GSM_Thread, (void *)(&(TDs[nt])));
    };
-  for(nt=0; nt<NumThreads-1; nt++)
+  for(int nt=0; nt<NumThreads-1; nt++)
    pthread_join(Threads[nt],0);
   delete[] Threads;
 #else
@@ -369,19 +332,19 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
 #else
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
-  for(nt=0; nt<NumThreads; nt++)
+  for(int nt=0; nt<NumThreads; nt++)
    GSM_Thread((void *)&(TDs[nt]));
 #endif
 
   /***************************************************************/
-  /* accumulate contributions of all threads to the A vector     */
+  /* accumulate contributions of all threads                     */
   /***************************************************************/
-  AVector->Zero();
-  cdouble *PAV;
-  for(nt=0; nt<NumThreads; nt++)
-   { PAV=PartialAVectorBuffer + nt*PartialAVectorSize;
+  MomentVector->Zero();
+  cdouble *PMV;
+  for(int nt=0; nt<NumThreads; nt++)
+   { PMV=PartialMomentVectorBuffer + nt*PartialMomentVectorSize;
      for(int nMoment=0; nMoment<NumMoments; nMoment++)
-      AVector->AddEntry(nMoment, PAV[nMoment]);
+      MomentVector->AddEntry(nMoment, PMV[nMoment]);
    };
 
   /***************************************************************/
@@ -389,43 +352,44 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
   /***************************************************************/
   delete[] TDs;
   free(WorkspaceBuffer);
-  free(PartialAVectorBuffer);
+  free(PartialMomentVectorBuffer);
 
-  return AVector;
+  return MomentVector;
 
 }
 
 /***************************************************************/
-/***************************************************************/
+/* get the spherical moments for an entire geometry by summing */
+/* the moments for each individual surface                     */
 /***************************************************************/
 HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
-                             HVector *KN, HVector *AVector)
+                             HVector *KN, HVector *MomentVector)
 { 
   /***************************************************************/
-  /* (re)allocate the AVector as necessary ***********************/
+  /* (re)allocate the MomentVector as necessary ***********************/
   /***************************************************************/
   int NumLMs = (lMax+1)*(lMax+1);
-  int NumMoments = 2*NumLMs; // a^E and a^M moments for each l,m
-  if ( AVector && AVector->N != NumMoments )
-   { Warn("wrong-size AVector passed to GetSphericalMoments (reallocating...)");
-     AVector=0;
+  int NumMoments = 2*NumLMs; // M-type and N-type moments for each l,m
+  if ( MomentVector && MomentVector->N != NumMoments )
+   { Warn("wrong-size MomentVector passed to GetSphericalMoments (reallocating...)");
+     MomentVector=0;
    };
-  if ( AVector==0 )
-   AVector=new HVector(NumMoments, LHM_COMPLEX);
-  AVector->Zero();
+  if ( MomentVector==0 )
+   MomentVector=new HVector(NumMoments, LHM_COMPLEX);
+  MomentVector->Zero();
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   HVector *Scratch=new HVector(NumMoments, LHM_COMPLEX);
 
-  AVector->Zero();
+  MomentVector->Zero();
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      GetSphericalMoments(G->Surfaces[ns], k, lMax, KN, G->BFIndexOffset[ns], Scratch);
 
      for(int nm=0; nm<NumMoments; nm++)
-      AVector->AddEntry(nm, Scratch->GetEntry(nm));
+      MomentVector->AddEntry(nm, Scratch->GetEntry(nm));
    };
 
   /***************************************************************/

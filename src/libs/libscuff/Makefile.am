@@ -15,6 +15,7 @@ libscuff_la_SOURCES = \
  GetDipoleMoments.cc \
  GetDyadicGFs.cc \
  GetFields.cc \
+ GetSphericalMoments.cc \
  GTransformation.cc \
  GTransformation.h \
  InitEdgeList.cc \
@@ -42,11 +43,7 @@ libscuff_la_SOURCES = \
 
 # bitrotted: AssembleDMDVMatrix.cc BORTObject.cc GetSphericalMoments.cc ParseGeoFiles.cc SphericalMoments.cc
 
-# combine all of the auxiliary libraries into a single library
-libscuff_la_LIBADD = ../libhrutil/libhrutil.la ../libhmat/libhmat.la	\
-../libSGJC/libSGJC.la ../libIncField/libIncField.la			\
-../libMDInterp/libMDInterp.la ../libMatProp/libMatProp.la		\
-../libTriInt/libTriInt.la ../libSpherical/libSpherical.la
+# combine all of the auxiliary libraries into a single library libscuff_la_LIBADD = ../libhrutil/libhrutil.la ../libhmat/libhmat.la	\ ../libSGJC/libSGJC.la ../libIncField/libIncField.la			\ ../libMDInterp/libMDInterp.la ../libMatProp/libMatProp.la		\ ../libTriInt/libTriInt.la ../libSpherical/libSpherical.la
 
 # set the shared-library version number (DIFFERENT from human version #)
 libscuff_la_LDFLAGS = -version-info @SHARED_VERSION_INFO@

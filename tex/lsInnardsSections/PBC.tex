@@ -4,6 +4,50 @@
 \newpage
 \section{Periodic Boundary Conditions}
 
+\lss supports Bloch-periodic boundary conditions for
+periodically repeated geometries. In this case,
+
+\begin{itemize}
+ \item The \texttt{.scuffgeo} file will contain
+       a \texttt{LATTICE...ENDLATTICE} section defining 
+       between one and three lattice basis vectors 
+       $\vb L_1, \vb L_2, \vb L_3.$ (In the present 
+       discussion we will consider the common case
+       of two-dimensional periodicity, so we have two
+       lattice basis vectors $\vb L_1, \vb L_2$.) 
+       We assume that $\vb L_1, \vb L_2$ have no 
+       component in the $z$ direction.
+ \item The only portion of the geometry that is
+       meshed is that contained with the ``unit cell.''
+ \item We will refer to the lattice cell obtained by 
+       displacing the unit cell through displacement 
+       vector $\vb L=n_1 \vb L_1 + n_y \vb L_2$ as 
+       ``lattice cell $(n_1, n_2)$'' or sometimes
+       ``lattice cell $\vb L$''.
+ \item All currents and fields in lattice cell $(n_1,n_2)$
+       are understood to be equal to the corresponding
+       currents and fields in lattice cell $(0,0)$ times
+       a Bloch phase factor $e^{i\vb p\cdot \vb L}$ where
+       $\vb p$ is the Bloch wavevector.
+\end{itemize}
+
+\subsection{Straddlers}
+
+\subsection{Evaluation of surface currents within the unit cell}
+
+When evaluating the $\vb K$ and $\vb N$ surface-current 
+distributions at panels that border the upper or right edges 
+of the unit-cell mesh, we have to be careful to account for the 
+contribution of straddlers. 
+
+For example, consider evaluating the electric surface current at 
+points $\vb x$ inside panel $\mc P_9$ in Figure \ref{Mesh3x3}.
+There are three RWG basis functions that contribute to the current
+at this point: $\vb b_7$, $\vb b_9,$ and the periodic image of 
+$\vb b_2$:
+
+\subsection{PBC Versions of Integral Equations: Continuous form}
+
 \subsection{Periodic DGFs}
 
 To avoid confusion with the free-space photon wavenumber, 

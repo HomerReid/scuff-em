@@ -225,7 +225,6 @@ void *GSM_Thread(void *data)
 #ifdef USE_PTHREAD
   SetCPUAffinity(TD->nt);
 #endif
-
  
   /***************************************************************/
   /***************************************************************/
@@ -382,7 +381,6 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
 HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
                              HVector *KN, HVector *AVector)
 { 
-  
   /***************************************************************/
   /* (re)allocate the AVector as necessary ***********************/
   /***************************************************************/
