@@ -138,7 +138,7 @@ void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
       };
      CoordinateC2S(X,&r,&Theta,&Phi);
      VectorC2S(Theta,Phi,XmQ,FS);
-     GetMNlmArray(lMax, k, r, Theta, Phi, LS_OUTGOING, MArray, NArray, Workspace);
+     GetMNlmArray(lMax, k, r, Theta, Phi, LS_REGULAR, MArray, NArray, Workspace);
      for(int Alpha=0; Alpha<NAlpha; Alpha++)
       { MProjections[Alpha] -= w*(  FS[0]*MArray[3*Alpha+0] 
                                    +FS[1]*MArray[3*Alpha+1]
