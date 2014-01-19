@@ -99,7 +99,7 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
 /* extra slot to compute derivatives via recurrence relations. */
 /***************************************************************/
 void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
-                        cdouble *R, cdouble *dRdr);
+                        cdouble *R, cdouble *dRdr, double *Workspace=0);
 
 void GetRadialFunction(int l, cdouble k, double r, int WaveType,
                        cdouble *R, cdouble *dRdr, cdouble *RlSlash=0);
@@ -124,7 +124,8 @@ void GetMNlm(int l, int m, cdouble k, double r, double Theta, double Phi,
              int WaveType, cdouble M[3], cdouble N[3]);
 void GetMNlmArray(int lMax, cdouble k,
                   double r, double Theta, double Phi,
-                  int WaveType, cdouble *M, cdouble *N);
+                  int WaveType, cdouble *M, cdouble *N, 
+                  double *Workspace=0);
 
 /***************************************************************/
 /***************************************************************/

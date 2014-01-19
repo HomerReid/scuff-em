@@ -405,9 +405,14 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
 /* lMax+1 return quantities. the reason is that we need the extra slot*/
 /* because we need to compute one extra R function to get derivatives */
 /* using recurrence relations.                                        */
+/*                                                                    */
+/* Workspace points to an optional user-allocated workspace buffer.   */
+/* Workspace may be NULL, in which case work space will be allocated  */
+/* dynamically; if it is non-NULL it must point to a buffer of length */
+/* at least 4*(lMax+2).                                               */
 /**********************************************************************/
 void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType, 
-                        cdouble *R, cdouble *dRdr)
+                        cdouble *R, cdouble *dRdr, double *Workspace)
 {
   int l;
   cdouble kr;
@@ -428,18 +433,18 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
    { 
      kr=imag(k)*r;
      if ( WaveType == LS_REGULAR )
-      AmosBessel('i',kr,0.0,lMax+2,0,R);
+      AmosBessel('i',kr,0.0,lMax+2,0,R,Workspace);
      else // no distinction between incoming/outgoing in this case, right?
-      AmosBessel('k',kr,0.0,lMax+2,0,R);
+      AmosBessel('k',kr,0.0,lMax+2,0,R,Workspace);
    }
   else
    { kr=k*r;
      if ( WaveType == LS_REGULAR )
-      AmosBessel('j',kr,0.0,lMax+2,0,R);
+      AmosBessel('j',kr,0.0,lMax+2,0,R,Workspace);
      else if ( WaveType == LS_OUTGOING ) 
-      AmosBessel('o',kr,0.0,lMax+2,0,R);
+      AmosBessel('o',kr,0.0,lMax+2,0,R,Workspace);
      else  // ( WaveType == LS_INCOMING ) 
-      AmosBessel('t',kr,0.0,lMax+2,0,R);
+      AmosBessel('t',kr,0.0,lMax+2,0,R,Workspace);
    };
 
   if (dRdr==0) 
@@ -670,10 +675,16 @@ void GetXlmArray(int lMax, double Theta, double Phi, cdouble *X)
 /* are the                                                     */ 
 /* (spherical) coordinates of M_{lm} and N_{lm}, where         */
 /* Alpha= l*(l+1) + m.                                         */
+/*                                                             */
+/* Workspace points to an optional user-allocated workspace    */
+/* buffer. Workspace may be NULL, in which case work space will*/
+/* be allocated dynamically; if it is non-NULL it must point   */
+/* to a buffer of length at least 4*(lMax+2).                  */
 /***************************************************************/
 void GetMNlmArray(int lMax, cdouble k,
                   double r, double Theta, double Phi,
-                  int WaveType, cdouble *M, cdouble *N)
+                  int WaveType, cdouble *M, cdouble *N,
+                  double *Workspace)
 {  
   int NAlpha=(lMax+1)*(lMax+1);
   int Alpha, l, m;
@@ -688,7 +699,7 @@ void GetMNlmArray(int lMax, cdouble k,
   /***************************************************************/
   /* get radial functions ****************************************/
   /***************************************************************/
-  GetRadialFunctions(lMax, k, r, WaveType, R, dRdr);
+  GetRadialFunctions(lMax, k, r, WaveType, R, dRdr, Workspace);
   
   /***************************************************************/
   /* get angular functions ***************************************/

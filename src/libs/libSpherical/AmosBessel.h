@@ -149,7 +149,7 @@
 
 int AmosBessel(char WhichFunction, cdouble z, 
                double MinOrder, int NumOrders, 
-               int Scale, cdouble *f);
+               int Scale, cdouble *f, double *Workspace=0);
 
 int AmosAiry(char WhichFunction, cdouble z, int Scale, cdouble *f);
 

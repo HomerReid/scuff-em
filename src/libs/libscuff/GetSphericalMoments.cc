@@ -51,6 +51,9 @@ using namespace scuff;
 /* enough room to store at least 3*(lMax+1)*(lMax+1) cdoubles  */
 /* each.                                                       */
 /*                                                             */
+/* Workspace is a caller-allocated array with enough space to  */
+/* store at least 4*(lMax+2) doubles.                          */
+/*                                                             */
 /* The MProjection and NProjection output buffers are caller-  */
 /* allocated arrays which each must have enough room to store  */
 /* (lMax+1)*(lMax+1) cdoubles. On return, MProjection[Alpha]   */
@@ -59,10 +62,13 @@ using namespace scuff;
 /* such that Alpha=l^2 + l + m.                                */
 /***************************************************************/
 void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
-                      cdouble *MArray, cdouble *NArray,
+                      cdouble *MArray, cdouble *NArray, 
+                      double *Workspace,
                       cdouble *MProjections, cdouble *NProjections)
 {
   int NAlpha = (lMax+1)*(lMax+1);
+  memset(MProjections, 0, NAlpha*sizeof(cdouble));
+  memset(NProjections, 0, NAlpha*sizeof(cdouble));
 
   /***************************************************************/
   /* choose triangle cubature rule (order fixed at 20 for now)   */
@@ -109,7 +115,7 @@ void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
       };
      CoordinateC2S(X,&r,&Theta,&Phi);
      VectorC2S(Theta,Phi,XmQ,FS);
-     GetMNlmArray(lMax, k, r, Theta, Phi, LS_REGULAR, MArray, NArray);
+     GetMNlmArray(lMax, k, r, Theta, Phi, LS_REGULAR, MArray, NArray, Workspace);
      for(int Alpha=0; Alpha<NAlpha; Alpha++)
       { MProjections[Alpha] += w*(  FS[0]*MArray[3*Alpha+0] 
                                    +FS[1]*MArray[3*Alpha+1]
@@ -132,12 +138,12 @@ void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
       };
      CoordinateC2S(X,&r,&Theta,&Phi);
      VectorC2S(Theta,Phi,XmQ,FS);
-     GetMNlmArray(lMax, k, r, Theta, Phi, LS_OUTGOING, MArray, NArray);
+     GetMNlmArray(lMax, k, r, Theta, Phi, LS_OUTGOING, MArray, NArray, Workspace);
      for(int Alpha=0; Alpha<NAlpha; Alpha++)
       { MProjections[Alpha] -= w*(  FS[0]*MArray[3*Alpha+0] 
                                    +FS[1]*MArray[3*Alpha+1]
                                    +FS[2]*MArray[3*Alpha+2]
-                                    );
+                                 );
         NProjections[Alpha] -= w*(  FS[0]*NArray[3*Alpha+0] 
                                    +FS[1]*NArray[3*Alpha+1]
                                    +FS[2]*NArray[3*Alpha+2]
@@ -170,7 +176,8 @@ typedef struct ThreadData
    int lMax;
    HVector *KN;
    int BFIndexOffset;
-   cdouble *Workspace;
+   cdouble *Workspace1;
+   double *Workspace2;
    cdouble *PartialMomentVector;
    double Sign;
 
@@ -184,7 +191,8 @@ void *GSM_Thread(void *data)
   int lMax                     = TD->lMax;
   HVector *KN                  = TD->KN; 
   int BFIndexOffset            = TD->BFIndexOffset;
-  cdouble *Workspace           = TD->Workspace;
+  cdouble *Workspace1          = TD->Workspace1;
+  double *Workspace2           = TD->Workspace2;
   cdouble *PartialMomentVector = TD->PartialMomentVector;
   double Sign                  = TD->Sign;
   
@@ -196,10 +204,10 @@ void *GSM_Thread(void *data)
   /***************************************************************/
   /***************************************************************/
   int NumLMs = (lMax+1)*(lMax+1);
-  cdouble *MArray       = Workspace + 0*NumLMs;
-  cdouble *NArray       = Workspace + 3*NumLMs;
-  cdouble *MProjections = Workspace + 6*NumLMs;
-  cdouble *NProjections = Workspace + 7*NumLMs;
+  cdouble *MArray       = Workspace1 + 0*NumLMs;
+  cdouble *NArray       = Workspace1 + 3*NumLMs;
+  cdouble *MProjections = Workspace1 + 6*NumLMs;
+  cdouble *NProjections = Workspace1 + 7*NumLMs;
 
   /***************************************************************/
   /***************************************************************/
@@ -219,7 +227,8 @@ void *GSM_Thread(void *data)
       /* get the projections of the basis function onto the M and N  */
       /* spherical waves                                             */
       /***************************************************************/
-      GetMNProjections(S, ne, k, lMax, MArray, NArray, MProjections, NProjections);
+      GetMNProjections(S, ne, k, lMax, MArray, NArray, Workspace2, 
+                       MProjections, NProjections);
 
       /***************************************************************/
       /* add contributions of this RWG function to the M-type and    */
@@ -291,10 +300,19 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
   /* allocate data structures for individual calls to ************/
   /***************************************************************/
   int NumThreads=GetNumThreads();
+
+/***************************************************************/
+/* 20140119 I have to disable multithreading due to what I     */
+/* believe to be a bug in the f2c-translated version of the    */
+/* AmosBessel routines                                         */
+/***************************************************************/
+NumThreads=1;
   
-  int WorkspaceSize = 8*NumLMs;
-  int PartialMomentVectorSize = 2*NumLMs;
-  cdouble *WorkspaceBuffer = (cdouble *)mallocEC(NumThreads*WorkspaceSize*sizeof(cdouble));
+  int Workspace1Size = 8*NumLMs;
+  int Workspace2Size = 4*(lMax+2);
+  int PartialMomentVectorSize = NumMoments;
+  cdouble *Workspace1Buffer = (cdouble *)mallocEC(NumThreads*Workspace1Size*sizeof(cdouble));
+  double *Workspace2Buffer  = (double *)mallocEC(NumThreads*Workspace2Size*sizeof(double));
   cdouble *PartialMomentVectorBuffer = (cdouble *)mallocEC(NumThreads*PartialMomentVectorSize*sizeof(cdouble));
 
   ThreadData *TDs = new ThreadData[NumThreads];
@@ -306,7 +324,8 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
      TDs[nt].lMax                = lMax;
      TDs[nt].KN                  = KN;
      TDs[nt].BFIndexOffset       = BFIndexOffset;
-     TDs[nt].Workspace           = WorkspaceBuffer + nt*WorkspaceSize;
+     TDs[nt].Workspace1          = Workspace1Buffer + nt*Workspace1Size;
+     TDs[nt].Workspace2          = Workspace2Buffer + nt*Workspace2Size;
      TDs[nt].PartialMomentVector = PartialMomentVectorBuffer + nt*PartialMomentVectorSize;
      TDs[nt].Sign                = Sign;
    }; 
@@ -351,7 +370,8 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
   /***************************************************************/
   /***************************************************************/
   delete[] TDs;
-  free(WorkspaceBuffer);
+  free(Workspace1Buffer);
+  free(Workspace2Buffer);
   free(PartialMomentVectorBuffer);
 
   return MomentVector;
@@ -396,5 +416,6 @@ HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
   /***************************************************************/
   /***************************************************************/
   delete Scratch;
+  return MomentVector;
    
 }

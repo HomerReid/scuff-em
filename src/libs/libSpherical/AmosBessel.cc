@@ -77,9 +77,15 @@ extern "C" {
 /*  'k': modified irregular cylindrical bessel k_n             */
 /*  'o': type-1 spherical hankel function h^{(1)}_n            */
 /*  't': type-2 spherical hankel function h^{(2)}_n            */
+/*                                                             */
+/* Workspace is an an optionally user-supplied workspace       */
+/* buffer. It may be NULL, but if it is non-null it must       */
+/* contain enough space to hold 4*NumOrders doubles.           */
 /***************************************************************/
-int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders, 
-               int Scale, cdouble *f)
+int AmosBessel(char WhichFunction, cdouble z, 
+               double MinOrder, int NumOrders, 
+               int Scale, cdouble *f,
+               double *Workspace)
 { 
   /***************************************************************/
   /* special treatment for j_n(0) and i_n(0)                     */
@@ -94,15 +100,31 @@ int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  double *fr, *fi, *cwrkr, *cwrki;
+  if (Workspace)
+   { fr    = Workspace + 0*NumOrders;
+     fi    = Workspace + 1*NumOrders;
+     cwrkr = Workspace + 2*NumOrders;
+     cwrki = Workspace + 3*NumOrders;
+   }
+  else
+   { 
+     fr    = new double[4*NumOrders];
+     fi    = fr + 1*NumOrders;
+     cwrkr = fr + 2*NumOrders;
+     cwrki = fr + 3*NumOrders;
+   };
+  memset(fr,    0, (NumOrders)*sizeof(double));
+  memset(fi,    0, (NumOrders)*sizeof(double));
+  memset(cwrkr, 0, (NumOrders)*sizeof(double));
+  memset(cwrki, 0, (NumOrders)*sizeof(double));
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   int no, nz, ierr, Type;
   double zr=real(z), zi=imag(z);
-  double *fr = new double[NumOrders];
-  double *fi = new double[NumOrders];
-  double *cwrkr = new double[NumOrders]; 
-  double *cwrki = new double[NumOrders]; 
-
   int kode = Scale ? 2 : 1;
-
   int Spherical=0;
   
   switch(WhichFunction)
@@ -197,10 +219,8 @@ int AmosBessel(char WhichFunction, cdouble z, double MinOrder, int NumOrders,
       f[no] = cdouble( fr[no],fi[no] );
    };
 
-  delete[] fr;
-  delete[] fi;
-  delete[] cwrkr;
-  delete[] cwrki;
+  if (!Workspace)
+   delete[] fr;
 
   return ierr;
 
