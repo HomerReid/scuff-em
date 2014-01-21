@@ -356,10 +356,10 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
   /* where P_l^m is the associated legendre function with the     */
   /* correct prefactor for use in spherical harmonics.            */
   /*--------------------------------------------------------------*/
-  if ( Theta < 1.0e-6 )
-   Theta=1.0e-6;
-  if ( fabs(M_PI-Theta) < 1.0e-6 ) 
-   Theta=M_PI-1.0e-6;
+  if ( Theta < 1.0e-8 )
+   Theta=1.0e-8;
+  if ( fabs(M_PI-Theta) < 1.0e-8 ) 
+   Theta=M_PI-1.0e-8;
   ST=sin(Theta);
   CT=cos(Theta);
   for(m=0; m<=lMax; m++)
