@@ -474,7 +474,7 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
    }  // for(neAlpha...) ... for (neBeta...)
 
   for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
-   if ( NeedMatrix[n] ) 
+   if ( NeedMatrix[n] )  
     SArray[n]->EndAssembly();
 
 }

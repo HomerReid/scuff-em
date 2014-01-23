@@ -9,6 +9,7 @@
 %- Special commands for this document -----------------------
 %------------------------------------------------------------
 %------------------------------------------------------------
+\newcommand{\vbEps}{\boldsymbol{\epsilon}}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -96,19 +97,22 @@ may be written in the form
 \begin{subequations}
 \begin{align}
   \vb E\sups{inc}(\vb x)
-&=\vb E_0 e^{ i (k_x x + k_z z)}
+&=E_0 \vbEps_0 e^{ i (k_x x + k_z z)}
 \\
    \vb E\sups{refl}(\vb x)
-&=r\vb E_0\sups{refl} e^{ i (k_x x - k_z z)}
+&=rE_0 \vbEps_0\sups{refl} e^{ i (k_x x - k_z z)}
 \\
   \vb E\sups{trans}(\vb x)
-&=t\vb E_0\sups{trans} e^{ i (k_x x + k_z^\prime z)}
+&=tE_0\vbEps_0\sups{trans} e^{ i (k_x x + k_z^\prime z)}
 \end{align}
 \label{trDef}
 \end{subequations}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-which equations define the reflection and transmission 
-coefficients $r$ and $t$. Also,
+where $E_0$ is the incident field magnitude and 
+$\vbEps_0$ is a polarization vector.
+Equations (\ref{trDef}b) and (\ref{trDef}c)
+define the reflection and transmission coefficients 
+$r$ and $t$. Also, the components of the propagation
+vector in the lower medium are 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$ k_x = k_0\sin\theta, \qquad k_z=k_0\cos\theta$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -121,6 +125,22 @@ where
 $$ k_0^\prime = \sqrt{\epsilon^\prime \mu^\prime}\cdot k_0$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 is the wavenumber in the upper medium.
+
+\subsubsection*{TE and TM Polarizations} 
+
+For the TE polarization, the polarization vectors in 
+(\ref{trDef}) are all equal:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \text{TE:} 
+   \qquad \vbEps_0&=\vbEps_0\sups{refl}=\vbEps_0\sups{trans}=\vbhat{y}.
+\\
+ \text{TM:} 
+   \qquad \vbEps_0&=\cos\theta\,\vbhat{x} + \sin\theta\,\vbhat{z} \\
+ \vbEps\sups{refl}&=\cos\theta\,\vbhat{x} - \sin\theta\,\vbhat{z} \\
+\vbEps\sups{trans}&=??
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Bloch periodicity} 
 
@@ -190,8 +210,8 @@ just the lattice unit cell:
 =ik_0^\prime \int_{U} 
   \Big\{
   Z_0 Z^\prime 
-   \overline{\vb G}(\vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime)
-  +\overline{\vb C}(\vb x, \vb x^\prime) \cdot \vb N(\vb x^\prime)
+   \overline{\vb G}(k_0^\prime; \vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime)
+  +\overline{\vb C}(k_0^\prime; \vb x, \vb x^\prime) \cdot \vb N(\vb x^\prime)
   \Big\}\,d\vb x^\prime
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -262,14 +282,16 @@ $q_z=\sqrt{k^{\prime 2}-|\vb q|^2}$, and
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Inserting (\ref{SpectralGFs}) into (\ref{PeriodicGFs}), I 
 obtain, for the periodic version of e.g. the $\vb G$ kernel,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
-\overline{\vb G}(\vb k_0^\prime, \vbrho, z; \vbrho^\prime, z)
+\overline{\vb G}(k_0^\prime; \vbrho, z; \vbrho^\prime, z)
 &=\frac{i}{2\pi}\int \frac{d\vb q}{(2\pi)^2 q_z}
   \vbhat{G}(\vb q) e^{i\vb q \cdot (\vbrho - \vbrho^\prime)}
    e^{iq_z(z-z^\prime)}
   \underbrace{\sum_{\vb L} e^{i(\vb k - \vb q) \cdot \vb L}}
              _{\mc V^{-1} \delta(\vb k-\vb q)}
 \end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The sum over lattice vectors $\vb L$ yields a two-dimensional
 $\delta$ function whose prefactor is $\mc V$, the volume
 of the lattice unit cell.\footnote{A more precise statement
@@ -288,9 +310,9 @@ integrals in (\ref{SpectralGFs}) yields
 %====================================================================%
 \numeq{OverlineGC}
 { \left\{ \begin{array}{c} 
-    \overline{\vb G}(\vb k_0^\prime, \vbrho, z; \vbrho^\prime, z)
+    \overline{\vb G}(k_0^\prime; \vbrho, z; \vbrho^\prime, z)
     \\[5pt]
-    \overline{\vb C}(\vb k_0^\prime, \vbrho, z; \vbrho^\prime, z)
+    \overline{\vb C}(k_0^\prime; \vbrho, z; \vbrho^\prime, z)
     \end{array}\right\}
   =\frac{i}{2\pi \mc V k^\prime_z}
    \left\{ \begin{array}{c}
@@ -320,6 +342,94 @@ the scattered field above the surface takes the form
                 +\vbhat{C}(\vb k)\cdot \vb N(\vb x^\prime)
         \right] \, d\vb x^\prime
         \right\}
+\label{ETransSurfaceIntegral}
 \end{align}
 %====================================================================%
+
+\subsection*{Transmission coefficients for TE and TM polarizations}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ t\sups{TE}
+&=-\frac{k_0^\prime}{2\pi \mc V k_z^\prime}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
+        \left[ Z_0 Z^\prime 
+               (\vbEps_0\sups{trans})^\dagger \cdot 
+               \vbhat{G}(\vb k) \cdot \vb K(\vb x^\prime)
+               +(\vbEps_0\sups{trans})^\dagger \cdot 
+               \vbhat{C}(\vb k)\cdot \vb N(\vb x^\prime) 
+        \right] \, d\vb x^\prime
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We have 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+&\hspace{-0.05in}
+ (\vbEps_0\sups{trans})^\dagger \cdot
+ \vbhat{G}(\vb k) \cdot \vb K(\vb x^\prime)
+\\
+&=
+ \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
+ \left[ \left(\begin{array}{ccc}
+               1 & 0 & 0 \\ 
+               0 & 1 & 0 \\ 
+               0 & 0 & 1
+              \end{array}\right)
+       -\frac{1}{k_0^{\prime 2}}
+        \left(\begin{array}{ccc}
+               k_x^2   & k_x k_y & k_x k_z \\
+               k_yk_x  & k_y^2   & k_y k_z \\
+               k_z k_x & k_z k_y & k_z^2
+              \end{array}
+        \right)
+ \right]
+ \left(\begin{array}{c}K_x \\ K_y \\ K_z\end{array}\right)
+\\
+&=
+ \frac{1}{k_0^{\prime 2}}
+ \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
+ \left(\begin{array}{c} -k_y k_x K_x \\ (k_0^{\prime 2}-k_y^2)K_y \\ k_y k_z K_z
+       \end{array}\right)
+\\
+&= K_y
+\end{align*}
+since, in our setup, the $y$ component of the Bloch 
+wavevector is $k_y=0.$
+
+Similarly, 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+&\hspace{-0.05in}
+ (\vbEps_0\sups{trans})^\dagger \cdot
+ \vbhat{C}(\vb k) \cdot \vb N(\vb x^\prime)
+\\
+&=
+ \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
+ \left[ \frac{1}{k_0^{\prime}}
+        \left(\begin{array}{ccc}
+               0       & k_z     & -k_y    \\
+               -k_z    & 0       & k_x     \\
+               k_y     & -k_x    & 0
+              \end{array}
+        \right)
+ \right]
+ \left(\begin{array}{c}N_x \\ N_y \\ N_z\end{array}\right)
+\\
+&=
+ \frac{1}{k_0^\prime}
+ \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
+ \left(\begin{array}{c} \cdots \\ -k_z N_x + k_x N_z \\ \cdots
+       \end{array}\right)
+\\
+&=-\cos\theta^\prime N_x + \sin\theta^\prime N_z
+\end{align*}
+
+%
+%\subsection*{Sanity check: Fresnel Scattering}
+%
+%As an immediate sanity check of formula (\ref{ETransSurfaceIntegral}),
+%let's use it to double-check that it gives us the right answer
+%in the simple case of Fresnel scattering. We will take the 
+%incident field to be TE-polarized.
+%
 \end{document} 
