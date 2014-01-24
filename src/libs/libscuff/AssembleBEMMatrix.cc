@@ -1,4 +1,3 @@
-int QuitAfter=-1;
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -468,8 +467,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       }; // if (!UseSymmetry) ... 
 
    };
-if (QuitAfter==2) return;
-if (QuitAfter==3) M->Zero();
 
   /***************************************************************/
   /* STEP 3: compute the interaction of surface #nsa with the    */

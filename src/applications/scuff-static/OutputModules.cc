@@ -134,7 +134,7 @@ void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileNa
   RWGGeometry *G = SSS->G;
   int NS = G->NumSurfaces;
 
-  HMatrix *PolMatrix = new HMatrix(NS, 3);
+  HMatrix *PolMatrix = new HMatrix(NS, 9);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -146,7 +146,10 @@ void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileNa
      M->LUSolve(Sigma);
      SSS->GetCartesianMoments(Sigma, QP);
      for(int ns=0; ns<NS; ns++)
-      PolMatrix->SetEntry(ns, Mu, QP->GetEntryD(ns,Mu+1));
+      { PolMatrix->SetEntry(ns, 0*3+Mu, QP->GetEntryD(ns,1));
+        PolMatrix->SetEntry(ns, 1*3+Mu, QP->GetEntryD(ns,2));
+        PolMatrix->SetEntry(ns, 2*3+Mu, QP->GetEntryD(ns,3));
+      };
    };
   delete QP;
 
@@ -155,13 +158,19 @@ void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileNa
   /*--------------------------------------------------------------*/
   FILE *f=fopen(FileName,"w");
   for(int ns=0; ns<NS; ns++)
-   fprintf(f,"%s %e %e %e \n",G->Surfaces[ns]->Label,
+   fprintf(f,"%s %e %e %e %e %e %e %e %e %e \n",G->Surfaces[ns]->Label,
               PolMatrix->GetEntryD(ns,0),
               PolMatrix->GetEntryD(ns,1),
-              PolMatrix->GetEntryD(ns,2));
+              PolMatrix->GetEntryD(ns,2),
+              PolMatrix->GetEntryD(ns,3),
+              PolMatrix->GetEntryD(ns,4),
+              PolMatrix->GetEntryD(ns,5),
+              PolMatrix->GetEntryD(ns,6),
+              PolMatrix->GetEntryD(ns,7),
+              PolMatrix->GetEntryD(ns,8));
 
   delete PolMatrix;
-
+ 	
 }
 
 /***************************************************************/

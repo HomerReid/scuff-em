@@ -91,7 +91,14 @@ of the surface-current distribution in the unit cell of the structure.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection*{Definition of scattering coefficients}
 
-The incident, reflected, and transmitted electric fields 
+For definiteness, I suppose that the structure is infinitely 
+extended in the $x$ and $y$ directions with finite extent in
+the $z$ direction, and I suppose the structure is illuminated 
+from below by a plane wave with propagation vector confined
+to the $xz$ plane. More general situations could easily be 
+handled by extending the methods of this section.
+
+The incident, reflected, and transmitted electric fields
 may be written in the form
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{subequations}
@@ -136,10 +143,14 @@ For the TE polarization, the polarization vectors in
    \qquad \vbEps_0&=\vbEps_0\sups{refl}=\vbEps_0\sups{trans}=\vbhat{y}.
 \\
  \text{TM:} 
-   \qquad \vbEps_0&=\cos\theta\,\vbhat{x} + \sin\theta\,\vbhat{z} \\
- \vbEps\sups{refl}&=\cos\theta\,\vbhat{x} - \sin\theta\,\vbhat{z} \\
-\vbEps\sups{trans}&=??
+   \qquad \vbEps_0&=\cos\theta\,\vbhat{x} - \sin\theta\,\vbhat{z} \\
+ \vbEps\sups{refl}&=\cos\theta\,\vbhat{x} + \sin\theta\,\vbhat{z} \\
+\vbEps\sups{trans}&=\cos\theta^\prime \, \vbhat{x} - \sin\theta^\prime\vbhat{z}
 \end{align*}
+where 
+$$\sin\theta^\prime = \sqrt\frac{1}{\epsilon^\prime \mu^\prime} 
+  \sin\theta.
+$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Bloch periodicity} 
@@ -231,12 +242,12 @@ where the periodic Green's functions are
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 I now invoke the following representation of the dyadic 
-Green's functions (Chew, 19xx): for $z>z^\prime$,
+Green's functions (Chew, 1995): for $z>z^\prime$,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{subequations}
 \begin{align}
  \vb G(k_0^\prime; \vbrho, z; \vbrho^\prime, z^\prime)
-&=\frac{i}{2\pi} 
+&=\frac{i}{2} 
   \, 
   \int \frac{d\vb q}{(2\pi)^2 q_z}
   \, 
@@ -244,7 +255,7 @@ Green's functions (Chew, 19xx): for $z>z^\prime$,
                    e^{iq_z(z-z^\prime)}
 \\
  \vb C(k_0^\prime; \vbrho, z; \vbrho^\prime, z^\prime)
-&=\frac{i}{2\pi} 
+&=\frac{i}{2} 
   \, 
   \int \frac{d\vb q}{(2\pi)^2 q_z}
   \, 
@@ -255,7 +266,7 @@ Green's functions (Chew, 19xx): for $z>z^\prime$,
 \end{subequations}
 where $\vb q=(q_x,q_y)$ is a two-dimensional Fourier wavevector,
 $d\vb q=dq_x dq_y$,
-$q_z=\sqrt{k^{\prime 2}-|\vb q|^2}$, and 
+$q_z=\sqrt{k_0^{\prime 2}-|\vb q|^2}$, and 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
  \vbhat{G}(\vb q)
@@ -285,7 +296,7 @@ obtain, for the periodic version of e.g. the $\vb G$ kernel,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
 \overline{\vb G}(k_0^\prime; \vbrho, z; \vbrho^\prime, z)
-&=\frac{i}{2\pi}\int \frac{d\vb q}{(2\pi)^2 q_z}
+&=\frac{i}{2}\int \frac{d\vb q}{(2\pi)^2 q_z}
   \vbhat{G}(\vb q) e^{i\vb q \cdot (\vbrho - \vbrho^\prime)}
    e^{iq_z(z-z^\prime)}
   \underbrace{\sum_{\vb L} e^{i(\vb k - \vb q) \cdot \vb L}}
@@ -314,7 +325,7 @@ integrals in (\ref{SpectralGFs}) yields
     \\[5pt]
     \overline{\vb C}(k_0^\prime; \vbrho, z; \vbrho^\prime, z)
     \end{array}\right\}
-  =\frac{i}{2\pi \mc V k^\prime_z}
+  =\frac{i}{2 \mc V k^\prime_z}
    \left\{ \begin{array}{c}
      \vbhat{G}(\vb k) \\[5pt] \vbhat{C}(\vb k)
    \end{array}\right\}
@@ -336,7 +347,7 @@ the scattered field above the surface takes the form
 \nn
 &=
  e^{i(k_x x + k_z^\prime z)}
-        \left\{ -\frac{k_0^\prime}{2\pi \mc V k_z^\prime}
+        \left\{ -\frac{k_0^\prime}{2\mc V k_z^\prime}
         \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
         \left[ Z_0 Z^\prime \vbhat{G}(\vb k)\cdot \vb K(\vb x^\prime)
                 +\vbhat{C}(\vb k)\cdot \vb N(\vb x^\prime)
@@ -346,12 +357,12 @@ the scattered field above the surface takes the form
 \end{align}
 %====================================================================%
 
-\subsection*{Transmission coefficients for TE and TM polarizations}
+\subsection*{Transmission coefficient for TE polarization}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
- t\sups{TE}
-&=-\frac{k_0^\prime}{2\pi \mc V k_z^\prime}
+ t\supt{TE}
+&=-\frac{k_0^\prime}{2 \mc V k_z^\prime}
    \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
         \left[ Z_0 Z^\prime 
                (\vbEps_0\sups{trans})^\dagger \cdot 
@@ -388,7 +399,7 @@ We have
 &=
  \frac{1}{k_0^{\prime 2}}
  \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
- \left(\begin{array}{c} -k_y k_x K_x \\ (k_0^{\prime 2}-k_y^2)K_y \\ k_y k_z K_z
+ \left(\begin{array}{c} -k_y k_x K_x \\ (k_0^{\prime 2}-k_y^2)K_y \\ -k_y k_z K_z
        \end{array}\right)
 \\
 &= K_y
@@ -421,15 +432,186 @@ Similarly,
  \left(\begin{array}{c} \cdots \\ -k_z N_x + k_x N_z \\ \cdots
        \end{array}\right)
 \\
-&=-\cos\theta^\prime N_x + \sin\theta^\prime N_z
+&=-\cos\theta^\prime N_x + \sin\theta^\prime N_z.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Putting it all together, 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ t\supt{TE}
+&=-\frac{k_0^\prime}{2\mc V k_z^\prime}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
+        \Big[ Z_0 Z^\prime K_y(\vb x^\prime)
+               -\cos\theta^\prime N_x(\vb x^\prime)
+               +\sin\theta^\prime N_z(\vb x^\prime)
+        \Big] \, d\vb x^\prime
+\\
+&=-\frac{1}{2\mc V}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
+        \Big[ Z_0 Z^\prime 
+              \frac{ K_y(\vb x^\prime)}{\cos\theta^\prime}
+                    -N_x(\vb x^\prime)
+                    +\tan\theta^\prime N_z(\vb x^\prime)
+        \Big] \, d\vb x^\prime....
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Transmission coefficient for TM polarization}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ t\supt{TM}
+&=-\frac{k_0^\prime}{2 \mc V k_z^\prime}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
+        \left[ Z_0 Z^\prime 
+               (\vbEps_0\sups{trans})^\dagger \cdot 
+               \vbhat{G}(\vb k) \cdot \vb K(\vb x^\prime)
+               +(\vbEps_0\sups{trans})^\dagger \cdot 
+               \vbhat{C}(\vb k)\cdot \vb N(\vb x^\prime) 
+        \right] \, d\vb x^\prime
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We have 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+&\hspace{-0.05in}
+ (\vbEps_0\sups{trans})^\dagger \cdot
+ \vbhat{G}(\vb k) \cdot \vb K(\vb x^\prime)
+\\
+\\&=
+ \left(\begin{array}{c}\cos\theta^\prime \\ 0 \\-\sin\theta^\prime \end{array}\right)^\dagger
+ \left[ \left(\begin{array}{ccc}
+               1 & 0 & 0 \\ 
+               0 & 1 & 0 \\ 
+               0 & 0 & 1
+              \end{array}\right)
+       -\frac{1}{k_0^{\prime 2}}
+        \left(\begin{array}{ccc}
+               k_x^2   & k_x k_y & k_x k_z \\
+               k_yk_x  & k_y^2   & k_y k_z \\
+               k_z k_x & k_z k_y & k_z^2
+              \end{array}
+        \right)
+ \right]
+ \left(\begin{array}{c}K_x \\ K_y \\ K_z\end{array}\right)
+\intertext{Use $\cos\theta^\prime=k_z/k_0^\prime$, 
+               $\sin\theta^\prime=k_x/k_0^\prime$:}
+&=
+ \cos\theta^\prime K_x - \sin\theta^\prime K_z
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+&\hspace{-0.05in}
+ (\vbEps_0\sups{trans})^\dagger \cdot
+ \vbhat{C}(\vb k) \cdot \vb N(\vb x^\prime)
+\\
+&=
+ \left(\begin{array}{c}\cos\theta^\prime \\ 0 \\-\sin\theta^\prime \end{array}\right)^\dagger
+ \left[ \frac{1}{k_0^{\prime}}
+        \left(\begin{array}{ccc}
+               0       & k_z     & -k_y    \\
+               -k_z    & 0       & k_x     \\
+               k_y     & -k_x    & 0
+              \end{array}
+        \right)
+ \right]
+ \left(\begin{array}{c}N_x \\ N_y \\ N_z\end{array}\right)
+\\
+&=
+ N_y.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Putting it all together, 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ t\supt{TM}
+&=-\frac{1}{2\mc V}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
+        \Big[  Z_0 Z^\prime K_x(\vb x^\prime)
+              -\tan\theta^\prime Z_0 Z^\prime K_z(\vb x^\prime)
+              +\cos\theta^\prime N_y(\vb x^\prime)
+        \Big] \, d\vb x^\prime.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\subsection*{Transmission coefficients from surface-current coefficients}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \vb K(\vb x)=\sum k_\alpha \vb b_\alpha(\vb x), \qquad 
+   \vb N(\vb x)=-Z_0 \sum n_\alpha \vb b_\alpha(\vb x)
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ t\supt{TE}
+&=-\frac{Z_0}{2\mc V} \sum_{\alpha}
+   \Big[ k_\alpha \frac{Z^\prime}{\cos\theta^\prime} B_{\alpha y}
+        +n_\alpha B_{\alpha x} - n_\alpha \tan\theta^\prime B_{\alpha z}.
+   \Big]
+\\
+ t\supt{TM}
+&=-\frac{Z_0}{2\mc V} \sum_{\alpha}
+   \Big[ k_\alpha Z^\prime B_{\alpha x}
+        -k_\alpha Z^\prime \tan\theta^\prime B_{\alpha z}
+        -n_\alpha \cos\theta^\prime B_{\alpha y}
+   \Big]
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\vb B_\alpha$ describes an integral over basis functions:
+$$ \vb B_\alpha
+   \equiv 
+   \int_{\sup \vb b_\alpha}
+   e^{-i\vb k \cdot \vb x} \, \vb b_\alpha(\vb x)d\vb x.
+$$
+For RWG functions this integral may be evaluated in closed form:
+\begin{align*}
+ \vb B_\alpha
+&=\ell_\alpha
+  \int_0^1 \, du \int_0^u \, dv \,
+  \bigg\{
+  e^{-i\vb k\cdot [\vb Q^+ + u \vb A^+ + v\vb B]}
+  \Big(u\vb A^+ + v\vb B\Big)
+\\ 
+  &\hspace{1.5in}
+  - 
+  e^{-i\vb k\cdot [\vb Q^- + u \vb A^- + v\vb B]}
+  \Big(u\vb A^- + v\vb B\Big)
+  \bigg\}
+\\
+&=\ell_\alpha\bigg\{ 
+  e^{-i\vb k \cdot \vb Q^+} 
+  \Big[ f_1\big(\vb k\cdot \vb A^+, \vb k\cdot \vb B\Big) \vb A^+
+       +f_2\big(\vb k\cdot \vb A^+, \vb k\cdot \vb B\Big) \vb B
+  \Big]
+\\
+&\qquad \qquad\qquad\qquad\qquad
+  -
+  e^{-i\vb k \cdot \vb Q^-} 
+  \Big[ f_1\big(\vb k\cdot \vb A^-, \vb k\cdot \vb B\Big) \vb A^-
+       +f_2\big(\vb k\cdot \vb A^-, \vb k\cdot \vb B\Big) \vb B
+  \Big]\bigg\}
+\\
+\end{align*}
+where
+\begin{align*}
+ f_1(x, y)&=\int_0^1 \, \int_0^u \, u e^{-i (ux + vy)} \,dv\,du  
+\\
+ f_2(x, y)&=\int_0^1 \, \int_0^u \, v e^{-i (ux + vy)} \,dv\,du  
 \end{align*}
 
-%
-%\subsection*{Sanity check: Fresnel Scattering}
-%
-%As an immediate sanity check of formula (\ref{ETransSurfaceIntegral}),
-%let's use it to double-check that it gives us the right answer
-%in the simple case of Fresnel scattering. We will take the 
-%incident field to be TE-polarized.
-%
+\newpage
+
+%####################################################################%
+\begin{figure}[H]
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{/home/homer/work/scuff-em-sandbox/TransmissionAmplitudes/scuffFresnel.pdf}}
+\caption{Transmission amplitudes vs. incident angle 
+         for Fresnel scattering (plane-wave transmission) 
+         into a dielectric half-space with $\epsilon^\prime=100.$
+        }
+\label{PendulumFigure}
+\end{center}
+\end{figure}
+%####################################################################%
+
 \end{document} 
