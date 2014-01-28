@@ -641,34 +641,35 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetSIPFT(RWGGeometry *G, IncFeld *IF, cdouble *KN, cdouble Omega,
-              int R, int NumPoints, double SIPFT[NUMSIPFT])
+void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN, 
+              cdouble Omega, RWGSurface *BS, int R, int NumPoints,
+              double SIPFT[NUMSIPFT])
 {
   Log("Computing SIPFT (R,NPts)=(%e,%i)", R, NumPoints);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  HMatrix *CRMatrix  = GetCRMatrix(0, R, NumPoints);
+  HMatrix *CRMatrix  = GetCRMatrix(BS, R, NumPoints);
 
   // we assume that all cubature points lie in the same region 
   // of the scuff geometry, so we use the first point in the rule
   // to determine which region that is and look up its eps/mu
   double X[3];
-  X[0]=CRMatrix->GetEntry(0,1);
-  X[1]=CRMatrix->GetEntry(0,2);
-  X[2]=CRMatrix->GetEntry(0,3);
-  int RegionIndex=GetRegionIndex(X);
+  X[0]=CRMatrix->GetEntryD(0,1);
+  X[1]=CRMatrix->GetEntryD(0,2);
+  X[2]=CRMatrix->GetEntryD(0,3);
+  int RegionIndex=G->GetRegionIndex(X);
   cdouble EpsRel, MuRel;
   G->RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
-  double EpsAbs = TENTHIRDS * real(Eps) / ZVAC;
-  double  MuAbs = TENTHIRDS * real(Mu) * ZVAC;
+  double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
+  double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   //HMatrix XMatrix = CRMatrix->GetEntries(":","1:3");
-  HMatrix XMatrix = new HMatrix(CRMatrix->NR, 3);
+  HMatrix *XMatrix = new HMatrix(CRMatrix->NR, 3);
   for(int nr=0; nr<XMatrix->NR; nr++)
    { XMatrix->SetEntry(nr, 0, CRMatrix->GetEntryD(nr,1));
      XMatrix->SetEntry(nr, 1, CRMatrix->GetEntryD(nr,2));
