@@ -18,16 +18,29 @@
  * 
  */
 
-/*
- * zbsubs.c -- f2c translation of ZBSUBS.F fortran code file
- * from Donald Amos' implementation of bessel functions and other
- * special functions found in the public-domain SLATEC package
- */
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+
+/* zbsubs.f -- translated by f2c (version 20100827).
+   You must link the resulting object file with libf2c:
+	on Microsoft Windows system, link with libf2c.lib;
+	on Linux or Unix systems, link with .../path/to/libf2c.a -lm
+	or, if you install libf2c.a in a standard place, with -lf2c -lm
+	-- in that order, at the end of the command line, as in
+		cc *.o -lf2c -lm
+	Source for libf2c is in /netlib/f2c/libf2c.zip, e.g.,
+
+		http://www.netlib.org/f2c/libf2c.zip
+*/
 
 /* Definitions so that we don't need -lf2c or f2c.h: */
+//#include "f2c.h"
 
 #include <stdlib.h>
+#include <math.h>
 
+typedef float real;
 typedef double doublereal;
 typedef int integer;
 typedef int logical;
@@ -35,7 +48,6 @@ typedef int ftnlen;
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define ABS(x) fabs(x)
 double fabs(double x);
 #define s_cmp(s1, s2, len1, len2) strncmp(s1, s2, MIN(len1, len2))
 #define s_copy(s1, s2, len1, len2) strcpy(s1, s2)
@@ -78,25 +90,25 @@ static integer c__0 = 0;
 	    *), cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer i__, k, k1, k2;
-    static doublereal aa, bb, fn;
-    static integer mm;
-    static doublereal az;
-    static integer ir, nn;
-    static doublereal rl;
-    static integer mr, nw;
-    static doublereal dig, arg, aln, fmm, r1m5, ufl, sgn;
-    static integer nuf, inu;
-    static doublereal tol, sti, zni, zti, str, znr, alim, elim;
+    integer i__, k, k1, k2;
+    doublereal aa, bb, fn;
+    integer mm;
+    doublereal az;
+    integer ir, nn;
+    doublereal rl;
+    integer mr, nw;
+    doublereal dig, arg, aln, fmm, r1m5, ufl, sgn;
+    integer nuf, inu;
+    doublereal tol, sti, zni, zti, str, znr, alim, elim;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal atol, rhpi;
-    static integer inuh;
-    static doublereal fnul, rtol, ascle, csgni;
+    doublereal atol, rhpi;
+    integer inuh;
+    doublereal fnul, rtol, ascle, csgni;
     extern /* Subroutine */ int zacon_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, integer *, doublereal *, doublereal *, 
 	    integer *, doublereal *, doublereal *, doublereal *, doublereal *,
 	     doublereal *);
-    static doublereal csgnr;
+    doublereal csgnr;
     extern /* Subroutine */ int zbknu_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, doublereal *), zbunk_(doublereal *, 
@@ -309,26 +321,26 @@ static integer c__0 = 0;
 /* ----------------------------------------------------------------------- */
 /* Computing MAX */
     d__1 = d1mach_(&c__4);
-    tol =MAX(d__1,1e-18);
+    tol = MAX(d__1,1e-18);
     k1 = i1mach_(&c__15);
     k2 = i1mach_(&c__16);
     r1m5 = d1mach_(&c__5);
 /* Computing MIN */
     i__1 = abs(k1), i__2 = abs(k2);
     k = MIN(i__1,i__2);
-    elim = ( (doublereal)(k) * r1m5 - 3.) * 2.303;
+    elim = ((doublereal) ((real) k) * r1m5 - 3.) * 2.303;
     k1 = i1mach_(&c__14) - 1;
-    aa = r1m5 * (doublereal) (k1);
-    dig =MIN(aa,18.);
+    aa = r1m5 * (doublereal) ((real) k1);
+    dig = MIN(aa,18.);
     aa *= 2.303;
 /* Computing MAX */
     d__1 = -aa;
-    alim = elim +MAX(d__1,-41.45);
+    alim = elim + MAX(d__1,-41.45);
     fnul = (dig - 3.) * 6. + 10.;
     rl = dig * 1.2 + 3.;
-    fn = *fnu + (doublereal) ( (nn - 1));
+    fn = *fnu + (doublereal) ((real) (nn - 1));
     mm = 3 - *m - *m;
-    fmm = (doublereal) (mm);
+    fmm = (doublereal) ((real) mm);
     znr = fmm * *zi;
     zni = -fmm * *zr;
 /* ----------------------------------------------------------------------- */
@@ -336,8 +348,8 @@ static integer c__0 = 0;
 /* ----------------------------------------------------------------------- */
     az = zabs_(zr, zi);
     aa = .5 / tol;
-    bb = (doublereal) (i1mach_(&c__9)) * .5;
-    aa =MIN(aa,bb);
+    bb = (doublereal) ((real) i1mach_(&c__9)) * .5;
+    aa = MIN(aa,bb);
     if (az > aa) {
 	goto L260;
     }
@@ -447,10 +459,10 @@ L110:
 /*     CALCULATE EXP(FNU*HPI*I) TO MINIMIZE LOSSES OF SIGNIFICANCE */
 /*     WHEN FNU IS LARGE */
 /* ----------------------------------------------------------------------- */
-    inu = (integer) ( (*fnu));
+    inu = (integer) ((real) (*fnu));
     inuh = inu / 2;
     ir = inu - (inuh << 1);
-    arg = (*fnu - (doublereal) ( (inu - ir))) * sgn;
+    arg = (*fnu - (doublereal) ((real) (inu - ir))) * sgn;
     rhpi = 1. / sgn;
 /*     ZNI = RHPI*DCOS(ARG) */
 /*     ZNR = -RHPI*DSIN(ARG) */
@@ -539,14 +551,14 @@ L260:
     double sqrt(doublereal), cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer i__, k, k1, k2;
-    static doublereal aa, bb, fn, az;
-    static integer nn;
-    static doublereal rl, dig, arg, r1m5;
-    static integer inu;
-    static doublereal tol, sti, zni, str, znr, alim, elim;
+    integer i__, k, k1, k2;
+    doublereal aa, bb, fn, az;
+    integer nn;
+    doublereal rl, dig, arg, r1m5;
+    integer inu;
+    doublereal tol, sti, zni, str, znr, alim, elim;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal atol, fnul, rtol, ascle, csgni, csgnr;
+    doublereal atol, fnul, rtol, ascle, csgni, csgnr;
     extern /* Subroutine */ int zbinu_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
@@ -740,31 +752,31 @@ L260:
 /* ----------------------------------------------------------------------- */
 /* Computing MAX */
     d__1 = d1mach_(&c__4);
-    tol =MAX(d__1,1e-18);
+    tol = MAX(d__1,1e-18);
     k1 = i1mach_(&c__15);
     k2 = i1mach_(&c__16);
     r1m5 = d1mach_(&c__5);
 /* Computing MIN */
     i__1 = abs(k1), i__2 = abs(k2);
-    k =MIN(i__1,i__2);
-    elim = ((doublereal) (k) * r1m5 - 3.) * 2.303;
+    k = MIN(i__1,i__2);
+    elim = ((doublereal) ((real) k) * r1m5 - 3.) * 2.303;
     k1 = i1mach_(&c__14) - 1;
-    aa = r1m5 * (doublereal) (k1);
-    dig =MIN(aa,18.);
+    aa = r1m5 * (doublereal) ((real) k1);
+    dig = MIN(aa,18.);
     aa *= 2.303;
 /* Computing MAX */
     d__1 = -aa;
-    alim = elim +MAX(d__1,-41.45);
+    alim = elim + MAX(d__1,-41.45);
     rl = dig * 1.2 + 3.;
     fnul = (dig - 3.) * 6. + 10.;
 /* ----------------------------------------------------------------------------- */
 /*     TEST FOR PROPER RANGE */
 /* ----------------------------------------------------------------------- */
     az = zabs_(zr, zi);
-    fn = *fnu + (doublereal) ((*n - 1));
+    fn = *fnu + (doublereal) ((real) (*n - 1));
     aa = .5 / tol;
-    bb = (doublereal) (i1mach_(&c__9)) * .5;
-    aa =MIN(aa,bb);
+    bb = (doublereal) ((real) i1mach_(&c__9)) * .5;
+    aa = MIN(aa,bb);
     if (az > aa) {
 	goto L260;
     }
@@ -791,8 +803,8 @@ L260:
 /*     CALCULATE CSGN=EXP(FNU*PI*I) TO MINIMIZE LOSSES OF SIGNIFICANCE */
 /*     WHEN FNU IS LARGE */
 /* ----------------------------------------------------------------------- */
-    inu = (integer) ((*fnu));
-    arg = (*fnu - (doublereal) (inu)) * pi;
+    inu = (integer) ((real) (*fnu));
+    arg = (*fnu - (doublereal) ((real) inu)) * pi;
     if (*zi < 0.) {
 	arg = -arg;
     }
@@ -882,18 +894,18 @@ L260:
     double sqrt(doublereal), cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer i__, k, k1, k2;
-    static doublereal aa, bb, fn;
-    static integer nl;
-    static doublereal az;
-    static integer ir;
-    static doublereal rl, dig, cii, arg, r1m5;
-    static integer inu;
-    static doublereal tol, sti, zni, str, znr, alim, elim;
+    integer i__, k, k1, k2;
+    doublereal aa, bb, fn;
+    integer nl;
+    doublereal az;
+    integer ir;
+    doublereal rl, dig, cii, arg, r1m5;
+    integer inu;
+    doublereal tol, sti, zni, str, znr, alim, elim;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal atol;
-    static integer inuh;
-    static doublereal fnul, rtol, ascle, csgni, csgnr;
+    doublereal atol;
+    integer inuh;
+    doublereal fnul, rtol, ascle, csgni, csgnr;
     extern /* Subroutine */ int zbinu_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
@@ -1082,31 +1094,31 @@ L260:
 /* ----------------------------------------------------------------------- */
 /* Computing MAX */
     d__1 = d1mach_(&c__4);
-    tol =MAX(d__1,1e-18);
+    tol = MAX(d__1,1e-18);
     k1 = i1mach_(&c__15);
     k2 = i1mach_(&c__16);
     r1m5 = d1mach_(&c__5);
 /* Computing MIN */
     i__1 = abs(k1), i__2 = abs(k2);
-    k =MIN(i__1,i__2);
-    elim = ((doublereal) (k) * r1m5 - 3.) * 2.303;
+    k = MIN(i__1,i__2);
+    elim = ((doublereal) ((real) k) * r1m5 - 3.) * 2.303;
     k1 = i1mach_(&c__14) - 1;
-    aa = r1m5 * (doublereal) (k1);
-    dig =MIN(aa,18.);
+    aa = r1m5 * (doublereal) ((real) k1);
+    dig = MIN(aa,18.);
     aa *= 2.303;
 /* Computing MAX */
     d__1 = -aa;
-    alim = elim +MAX(d__1,-41.45);
+    alim = elim + MAX(d__1,-41.45);
     rl = dig * 1.2 + 3.;
     fnul = (dig - 3.) * 6. + 10.;
 /* ----------------------------------------------------------------------- */
 /*     TEST FOR PROPER RANGE */
 /* ----------------------------------------------------------------------- */
     az = zabs_(zr, zi);
-    fn = *fnu + (doublereal) ((*n - 1));
+    fn = *fnu + (doublereal) ((real) (*n - 1));
     aa = .5 / tol;
-    bb = (doublereal) (i1mach_(&c__9)) * .5;
-    aa =MIN(aa,bb);
+    bb = (doublereal) ((real) i1mach_(&c__9)) * .5;
+    aa = MIN(aa,bb);
     if (az > aa) {
 	goto L260;
     }
@@ -1125,10 +1137,10 @@ L260:
 /*     WHEN FNU IS LARGE */
 /* ----------------------------------------------------------------------- */
     cii = 1.;
-    inu = (integer) ((*fnu));
+    inu = (integer) ((real) (*fnu));
     inuh = inu / 2;
     ir = inu - (inuh << 1);
-    arg = (*fnu - (doublereal) ( (inu - ir))) * hpi;
+    arg = (*fnu - (doublereal) ((real) (inu - ir))) * hpi;
     csgnr = cos(arg);
     csgni = sin(arg);
     if (inuh % 2 == 0) {
@@ -1219,16 +1231,16 @@ L260:
     double sqrt(doublereal), log(doublereal);
 
     /* Local variables */
-    static integer k, k1, k2;
-    static doublereal aa, bb, fn, az;
-    static integer nn;
-    static doublereal rl;
-    static integer mr, nw;
-    static doublereal dig, arg, aln, r1m5, ufl;
-    static integer nuf;
-    static doublereal tol, alim, elim;
+    integer k, k1, k2;
+    doublereal aa, bb, fn, az;
+    integer nn;
+    doublereal rl;
+    integer mr, nw;
+    doublereal dig, arg, aln, r1m5, ufl;
+    integer nuf;
+    doublereal tol, alim, elim;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal fnul;
+    doublereal fnul;
     extern /* Subroutine */ int zacon_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, integer *, doublereal *, doublereal *, 
 	    integer *, doublereal *, doublereal *, doublereal *, doublereal *,
@@ -1434,31 +1446,31 @@ L260:
 /* ----------------------------------------------------------------------- */
 /* Computing MAX */
     d__1 = d1mach_(&c__4);
-    tol =MAX(d__1,1e-18);
+    tol = MAX(d__1,1e-18);
     k1 = i1mach_(&c__15);
     k2 = i1mach_(&c__16);
     r1m5 = d1mach_(&c__5);
 /* Computing MIN */
     i__1 = abs(k1), i__2 = abs(k2);
-    k =MIN(i__1,i__2);
-    elim = ((doublereal) ( k) * r1m5 - 3.) * 2.303;
+    k = MIN(i__1,i__2);
+    elim = ((doublereal) ((real) k) * r1m5 - 3.) * 2.303;
     k1 = i1mach_(&c__14) - 1;
-    aa = r1m5 * (doublereal) ( k1);
-    dig =MIN(aa,18.);
+    aa = r1m5 * (doublereal) ((real) k1);
+    dig = MIN(aa,18.);
     aa *= 2.303;
 /* Computing MAX */
     d__1 = -aa;
-    alim = elim +MAX(d__1,-41.45);
+    alim = elim + MAX(d__1,-41.45);
     fnul = (dig - 3.) * 6. + 10.;
     rl = dig * 1.2 + 3.;
 /* ----------------------------------------------------------------------------- */
 /*     TEST FOR PROPER RANGE */
 /* ----------------------------------------------------------------------- */
     az = zabs_(zr, zi);
-    fn = *fnu + (doublereal) ( (nn - 1));
+    fn = *fnu + (doublereal) ((real) (nn - 1));
     aa = .5 / tol;
-    bb = (doublereal) ( i1mach_(&c__9)) * .5;
-    aa =MIN(aa,bb);
+    bb = (doublereal) ((real) i1mach_(&c__9)) * .5;
+    aa = MIN(aa,bb);
     if (az > aa) {
 	goto L260;
     }
@@ -1605,19 +1617,19 @@ L260:
     double cos(doublereal), sin(doublereal), exp(doublereal);
 
     /* Local variables */
-    static integer i__, k, k1, i4, k2;
-    static doublereal ey;
-    static integer nz1, nz2;
-    static doublereal d1m5, arg, exi, exr, sti, tay, tol, zni, zui, str, znr, 
-	    zvi, zzi, zur, zvr, zzr, elim, ffnu, atol, rhpi;
-    static integer ifnu;
-    static doublereal rtol, ascle, csgni, csgnr, cspni;
+    integer i__, k, k1, i4, k2;
+    doublereal ey;
+    integer nz1, nz2;
+    doublereal d1m5, arg, exi, exr, sti, tay, tol, zni, zui, str, znr, zvi, 
+	    zzi, zur, zvr, zzr, elim, ffnu, atol, rhpi;
+    integer ifnu;
+    doublereal rtol, ascle, csgni, csgnr, cspni;
     extern /* Subroutine */ int zbesi_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    integer *), zbesk_(doublereal *, doublereal *, doublereal *, 
 	    integer *, integer *, doublereal *, doublereal *, integer *, 
 	    integer *);
-    static doublereal cspnr;
+    doublereal cspnr;
     extern doublereal d1mach_(integer *);
     extern integer i1mach_(integer *);
 
@@ -1813,9 +1825,9 @@ L260:
     if (*ierr != 0 && *ierr != 3) {
 	goto L90;
     }
-    *nz =MIN(nz1,nz2);
-    ifnu = (integer) ( (*fnu));
-    ffnu = *fnu - (doublereal) ( ifnu);
+    *nz = MIN(nz1,nz2);
+    ifnu = (integer) ((real) (*fnu));
+    ffnu = *fnu - (doublereal) ((real) ifnu);
     arg = hpi * ffnu;
     csgnr = cos(arg);
     csgni = sin(arg);
@@ -1862,17 +1874,17 @@ L60:
     exi = sin(*zr);
 /* Computing MAX */
     d__1 = d1mach_(&c__4);
-    tol =MAX(d__1,1e-18);
+    tol = MAX(d__1,1e-18);
     k1 = i1mach_(&c__15);
     k2 = i1mach_(&c__16);
 /* Computing MIN */
     i__1 = abs(k1), i__2 = abs(k2);
-    k =MIN(i__1,i__2);
+    k = MIN(i__1,i__2);
     d1m5 = d1mach_(&c__5);
 /* ----------------------------------------------------------------------- */
 /*     ELIM IS THE APPROXIMATE EXPONENTIAL UNDER- AND OVERFLOW LIMIT */
 /* ----------------------------------------------------------------------- */
-    elim = ((doublereal) ( k) * d1m5 - 3.) * 2.303;
+    elim = ((doublereal) ((real) k) * d1m5 - 3.) * 2.303;
     ey = 0.;
     // HR 20131223
     //tay = (d__1 = *zi + *zi, abs(d__1));
@@ -1914,7 +1926,8 @@ L75:
 	zui = cyi[i__];
 	atol = 1.;
 /* Computing MAX */
-	// HR20131223
+	// HR 20131223
+	//d__1 = abs(zur), d__2 = abs(zui);
 	d__1 = fabs(zur), d__2 = fabs(zui);
 	if (MAX(d__1,d__2) > ascle) {
 	    goto L85;
@@ -1972,21 +1985,21 @@ L90:
 	    doublereal);
 
     /* Local variables */
-    static integer k;
-    static doublereal d1, d2;
-    static integer k1, k2;
-    static doublereal aa, bb, ad, cc, ak, bk, ck, dk, az;
-    static integer nn;
-    static doublereal rl;
-    static integer mr;
-    static doublereal s1i, az3, s2i, s1r, s2r, z3i, z3r, dig, fid, cyi[1], 
-	    r1m5, fnu, cyr[1], tol, sti, ptr, str, sfac, alim, elim, alaz;
+    integer k;
+    doublereal d1, d2;
+    integer k1, k2;
+    doublereal aa, bb, ad, cc, ak, bk, ck, dk, az;
+    integer nn;
+    doublereal rl;
+    integer mr;
+    doublereal s1i, az3, s2i, s1r, s2r, z3i, z3r, dig, fid, cyi[1], r1m5, fnu,
+	     cyr[1], tol, sti, ptr, str, sfac, alim, elim, alaz;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal csqi, atrm, ztai, csqr, ztar;
+    doublereal csqi, atrm, ztai, csqr, ztar;
     extern /* Subroutine */ int zexp_(doublereal *, doublereal *, doublereal *
 	    , doublereal *);
-    static doublereal trm1i, trm2i, trm1r, trm2r;
-    static integer iflag;
+    doublereal trm1i, trm2i, trm1r, trm2r;
+    integer iflag;
     extern /* Subroutine */ int zacai_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, integer *, doublereal *, doublereal *, 
 	    integer *, doublereal *, doublereal *, doublereal *, doublereal *)
@@ -2142,8 +2155,8 @@ L90:
     az = zabs_(zr, zi);
 /* Computing MAX */
     d__1 = d1mach_(&c__4);
-    tol =MAX(d__1,1e-18);
-    fid = (doublereal) ( (*id));
+    tol = MAX(d__1,1e-18);
+    fid = (doublereal) ((real) (*id));
     if (az > 1.) {
 	goto L70;
     }
@@ -2177,7 +2190,7 @@ L90:
     dk = fid + 3. + fid;
     d1 = ak * dk;
     d2 = bk * ck;
-    ad =MIN(d1,d2);
+    ad = MIN(d1,d2);
     ak = fid * 9. + 24.;
     bk = 30. - fid * 9.;
     for (k = 1; k <= 25; ++k) {
@@ -2194,7 +2207,7 @@ L90:
 	atrm = atrm * az3 / ad;
 	d1 += ak;
 	d2 += bk;
-	ad =MIN(d1,d2);
+	ad = MIN(d1,d2);
 	if (atrm < tol * ad) {
 	    goto L40;
 	}
@@ -2262,23 +2275,23 @@ L70:
     r1m5 = d1mach_(&c__5);
 /* Computing MIN */
     i__1 = abs(k1), i__2 = abs(k2);
-    k =MIN(i__1,i__2);
-    elim = ((doublereal) ( k) * r1m5 - 3.) * 2.303;
+    k = MIN(i__1,i__2);
+    elim = ((doublereal) ((real) k) * r1m5 - 3.) * 2.303;
     k1 = i1mach_(&c__14) - 1;
-    aa = r1m5 * (doublereal) ( k1);
-    dig =MIN(aa,18.);
+    aa = r1m5 * (doublereal) ((real) k1);
+    dig = MIN(aa,18.);
     aa *= 2.303;
 /* Computing MAX */
     d__1 = -aa;
-    alim = elim +MAX(d__1,-41.45);
+    alim = elim + MAX(d__1,-41.45);
     rl = dig * 1.2 + 3.;
     alaz = log(az);
 /* -------------------------------------------------------------------------- */
 /*     TEST FOR PROPER RANGE */
 /* ----------------------------------------------------------------------- */
     aa = .5 / tol;
-    bb = (doublereal) ( i1mach_(&c__9)) * .5;
-    aa =MIN(aa,bb);
+    bb = (doublereal) ((real) i1mach_(&c__9)) * .5;
+    aa = MIN(aa,bb);
     aa = pow_dd(&aa, &tth);
     if (az > aa) {
 	goto L260;
@@ -2300,7 +2313,7 @@ L70:
 	goto L80;
     }
     bk = ztar;
-    // HR20131223
+    // HR 20131223
     ck = -fabs(bk);
     ztar = ck;
     ztai = ak;
@@ -2474,18 +2487,18 @@ L260:
 	    doublereal), log(doublereal), cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer k;
-    static doublereal d1, d2;
-    static integer k1, k2;
-    static doublereal aa, bb, ad, cc, ak, bk, ck, dk, az, rl;
-    static integer nz;
-    static doublereal s1i, az3, s2i, s1r, s2r, z3i, z3r, eaa, fid, dig, cyi[2]
-	    , fmr, r1m5, fnu, cyr[2], tol, sti, str, sfac, alim, elim;
+    integer k;
+    doublereal d1, d2;
+    integer k1, k2;
+    doublereal aa, bb, ad, cc, ak, bk, ck, dk, az, rl;
+    integer nz;
+    doublereal s1i, az3, s2i, s1r, s2r, z3i, z3r, eaa, fid, dig, cyi[2], fmr, 
+	    r1m5, fnu, cyr[2], tol, sti, str, sfac, alim, elim;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal csqi, atrm, fnul, ztai, csqr;
+    doublereal csqi, atrm, fnul, ztai, csqr;
     extern /* Subroutine */ int zdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    static doublereal ztar, trm1i, trm2i, trm1r, trm2r;
+    doublereal ztar, trm1i, trm2i, trm1r, trm2r;
     extern /* Subroutine */ int zbinu_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
@@ -2633,8 +2646,8 @@ L260:
     az = zabs_(zr, zi);
 /* Computing MAX */
     d__1 = d1mach_(&c__4);
-    tol =MAX(d__1,1e-18);
-    fid = (doublereal) ( (*id));
+    tol = MAX(d__1,1e-18);
+    fid = (doublereal) ((real) (*id));
     if (az > 1.f) {
 	goto L70;
     }
@@ -2668,7 +2681,7 @@ L260:
     dk = fid + 3. + fid;
     d1 = ak * dk;
     d2 = bk * ck;
-    ad =MIN(d1,d2);
+    ad = MIN(d1,d2);
     ak = fid * 9. + 24.;
     bk = 30. - fid * 9.;
     for (k = 1; k <= 25; ++k) {
@@ -2685,7 +2698,7 @@ L260:
 	atrm = atrm * az3 / ad;
 	d1 += ak;
 	d2 += bk;
-	ad =MIN(d1,d2);
+	ad = MIN(d1,d2);
 	if (atrm < tol * ad) {
 	    goto L40;
 	}
@@ -2706,7 +2719,7 @@ L40:
     ztar = tth * (*zr * str - *zi * sti);
     ztai = tth * (*zr * sti + *zi * str);
     aa = ztar;
-    // HR20131223
+    // HR 20131223
     aa = -fabs(aa);
     eaa = exp(aa);
     *bir *= eaa;
@@ -2731,7 +2744,7 @@ L60:
     ztar = tth * (*zr * str - *zi * sti);
     ztai = tth * (*zr * sti + *zi * str);
     aa = ztar;
-    // HR20131223
+    // HR 20131223
     aa = -fabs(aa);
     eaa = exp(aa);
     *bir *= eaa;
@@ -2758,23 +2771,23 @@ L70:
     r1m5 = d1mach_(&c__5);
 /* Computing MIN */
     i__1 = abs(k1), i__2 = abs(k2);
-    k =MIN(i__1,i__2);
-    elim = ((doublereal) ( k) * r1m5 - 3.) * 2.303;
+    k = MIN(i__1,i__2);
+    elim = ((doublereal) ((real) k) * r1m5 - 3.) * 2.303;
     k1 = i1mach_(&c__14) - 1;
-    aa = r1m5 * (doublereal) ( k1);
-    dig =MIN(aa,18.);
+    aa = r1m5 * (doublereal) ((real) k1);
+    dig = MIN(aa,18.);
     aa *= 2.303;
 /* Computing MAX */
     d__1 = -aa;
-    alim = elim +MAX(d__1,-41.45);
+    alim = elim + MAX(d__1,-41.45);
     rl = dig * 1.2 + 3.;
     fnul = (dig - 3.) * 6. + 10.;
 /* ----------------------------------------------------------------------- */
 /*     TEST FOR RANGE */
 /* ----------------------------------------------------------------------- */
     aa = .5 / tol;
-    bb = (doublereal) ( i1mach_(&c__9)) * .5;
-    aa =MIN(aa,bb);
+    bb = (doublereal) ((real) i1mach_(&c__9)) * .5;
+    aa = MIN(aa,bb);
     aa = pow_dd(&aa, &tth);
     if (az > aa) {
 	goto L260;
@@ -2795,7 +2808,7 @@ L70:
 	goto L80;
     }
     bk = ztar;
-    // HR20131223
+    // HR 20131223
     ck = -fabs(bk);
     ztar = ck;
     ztai = ak;
@@ -2813,7 +2826,7 @@ L90:
 /* ----------------------------------------------------------------------- */
 /*     OVERFLOW TEST */
 /* ----------------------------------------------------------------------- */
-    // HR20131223
+    // HR 20131223
     bb = fabs(aa);
     if (bb < alim) {
 	goto L100;
@@ -2909,7 +2922,7 @@ L260:
 /* Subroutine */ int zmlt_(doublereal *ar, doublereal *ai, doublereal *br, 
 	doublereal *bi, doublereal *cr, doublereal *ci)
 {
-    static doublereal ca, cb;
+    doublereal ca, cb;
 
 /* ***BEGIN PROLOGUE  ZMLT */
 /* ***REFER TO  ZBESH,ZBESI,ZBESJ,ZBESK,ZBESY,ZAIRY,ZBIRY */
@@ -2928,7 +2941,7 @@ L260:
 /* Subroutine */ int zdiv_(doublereal *ar, doublereal *ai, doublereal *br, 
 	doublereal *bi, doublereal *cr, doublereal *ci)
 {
-    static doublereal ca, cb, cc, cd, bm;
+    doublereal ca, cb, cc, cd, bm;
     extern doublereal zabs_(doublereal *, doublereal *);
 
 /* ***BEGIN PROLOGUE  ZDIV */
@@ -2961,9 +2974,9 @@ L260:
 	    doublereal);
 
     /* Local variables */
-    static doublereal zm;
+    doublereal zm;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal dtheta;
+    doublereal dtheta;
 
 /* ***BEGIN PROLOGUE  ZSQRT */
 /* ***REFER TO  ZBESH,ZBESI,ZBESJ,ZBESK,ZBESY,ZAIRY,ZBIRY */
@@ -3003,7 +3016,7 @@ L20:
 	goto L30;
     }
     *br = 0.;
-    // HR20131223
+    // HR 20131223
     *bi = sqrt((fabs(*ar)));
     return 0;
 L30:
@@ -3036,7 +3049,7 @@ L70:
     double exp(doublereal), cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static doublereal ca, cb, zm;
+    doublereal ca, cb, zm;
 
 /* ***BEGIN PROLOGUE  ZEXP */
 /* ***REFER TO  ZBESH,ZBESI,ZBESJ,ZBESK,ZBESY,ZAIRY,ZBIRY */
@@ -3065,9 +3078,9 @@ L70:
     double atan(doublereal), log(doublereal);
 
     /* Local variables */
-    static doublereal zm;
+    doublereal zm;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal dtheta;
+    doublereal dtheta;
 
 /* ***BEGIN PROLOGUE  ZLOG */
 /* ***REFER TO  ZBESH,ZBESI,ZBESJ,ZBESK,ZBESY,ZAIRY,ZBIRY */
@@ -3097,7 +3110,7 @@ L10:
 	goto L60;
     }
     *bi = dhpi;
-    // HR20131223
+    // HR 20131223
     *br = log((fabs(*ai)));
     if (*ai < 0.) {
 	*bi = -(*bi);
@@ -3107,7 +3120,7 @@ L20:
     if (*ar > 0.) {
 	goto L30;
     }
-    // HR20131223
+    // HR 20131223
     *br = log((fabs(*ar)));
     *bi = dpi;
     return 0;
@@ -3138,7 +3151,7 @@ doublereal zabs_(doublereal *zr, doublereal *zi)
     double sqrt(doublereal);
 
     /* Local variables */
-    static doublereal q, s, u, v;
+    doublereal q, s, u, v;
 
 /* ***BEGIN PROLOGUE  ZABS */
 /* ***REFER TO  ZBESH,ZBESI,ZBESJ,ZBESK,ZBESY,ZAIRY,ZBIRY */
@@ -3148,7 +3161,7 @@ doublereal zabs_(doublereal *zr, doublereal *zi)
 
 /* ***ROUTINES CALLED  (NONE) */
 /* ***END PROLOGUE  ZABS */
-    // HR20131223
+    // HR 20131223
     u = fabs(*zr);
     v = fabs(*zi);
     s = u + v;
@@ -3208,37 +3221,37 @@ L20:
 	    , sqrt(doublereal), log(doublereal);
 
     /* Local variables */
-    static integer i__, j, k;
-    static doublereal s, a1, a2, g1, g2, t1, t2, aa, bb, fc, ak, bk;
-    static integer ic;
-    static doublereal fi, fk, as;
-    static integer kk;
-    static doublereal fr, pi, qi, tm, pr, qr;
-    static integer nw;
-    static doublereal p1i, p2i, s1i, s2i, p2m, p1r, p2r, s1r, s2r, cbi, cbr, 
-	    cki, caz, csi, ckr, fhs, fks, rak, czi, dnu, csr, elm, zdi, bry[3]
-	    , pti, czr, sti, zdr, cyr[2], rzi, ptr, cyi[2];
-    static integer inu;
-    static doublereal str, rzr, dnu2, cchi, cchr, alas, cshi;
-    static integer inub, idum;
+    integer i__, j, k;
+    doublereal s, a1, a2, g1, g2, t1, t2, aa, bb, fc, ak, bk;
+    integer ic;
+    doublereal fi, fk, as;
+    integer kk;
+    doublereal fr, pi, qi, tm, pr, qr;
+    integer nw;
+    doublereal p1i, p2i, s1i, s2i, p2m, p1r, p2r, s1r, s2r, cbi, cbr, cki, 
+	    caz, csi, ckr, fhs, fks, rak, czi, dnu, csr, elm, zdi, bry[3], 
+	    pti, czr, sti, zdr, cyr[2], rzi, ptr, cyi[2];
+    integer inu;
+    doublereal str, rzr, dnu2, cchi, cchr, alas, cshi;
+    integer inub, idum;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal cshr, fmui, rcaz, csrr[3], cssr[3], fmur;
+    doublereal cshr, fmui, rcaz, csrr[3], cssr[3], fmur;
     extern /* Subroutine */ int zlog_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, integer *);
-    static doublereal smui;
+    doublereal smui;
     extern /* Subroutine */ int zdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    static doublereal smur;
+    doublereal smur;
     extern /* Subroutine */ int zexp_(doublereal *, doublereal *, doublereal *
 	    , doublereal *), zmlt_(doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *);
-    static integer iflag, kflag;
-    static doublereal coefi;
-    static integer koded;
-    static doublereal ascle, coefr, helim, celmr, csclr, crscr;
+    integer iflag, kflag;
+    doublereal coefi;
+    integer koded;
+    doublereal ascle, coefr, helim, celmr, csclr, crscr;
     extern /* Subroutine */ int zshch_(doublereal *, doublereal *, doublereal 
 	    *, doublereal *, doublereal *, doublereal *);
-    static doublereal etest;
+    doublereal etest;
     extern /* Subroutine */ int zuchk_(doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *), zkscl_(doublereal *, doublereal *, 
 	    doublereal *, integer *, doublereal *, doublereal *, integer *, 
@@ -3288,14 +3301,14 @@ L20:
     sti = -(*zi) * rcaz;
     rzr = (str + str) * rcaz;
     rzi = (sti + sti) * rcaz;
-    inu = (integer) ( (*fnu + .5));
-    dnu = *fnu - (doublereal) ( inu);
-    // HR20131223
+    inu = (integer) ((real) (*fnu + .5));
+    dnu = *fnu - (doublereal) ((real) inu);
+    // HR 20131223
     if (fabs(dnu) == .5) {
 	goto L110;
     }
     dnu2 = 0.;
-    // HR20131223
+    // HR 20131223
     if (fabs(dnu) > *tol) {
 	dnu2 = dnu * dnu;
     }
@@ -3324,7 +3337,7 @@ L10:
 /* ----------------------------------------------------------------------- */
     t2 = exp(-dgamln_(&a2, &idum));
     t1 = 1. / (t2 * fc);
-    // HR20131223
+    // HR 20131223
     if (fabs(dnu) > .1) {
 	goto L40;
     }
@@ -3337,7 +3350,7 @@ L10:
 	ak *= dnu2;
 	tm = cc[k - 1] * ak;
 	s += tm;
-        // HR20131223
+        // HR 20131223
 	if (fabs(tm) < *tol) {
 	    goto L30;
 	}
@@ -3449,7 +3462,7 @@ L90:
 L100:
     kflag = 2;
     a1 = *fnu + 1.;
-    //HR20131223
+    // HR 20131223
     ak = a1 * fabs(smur);
     if (ak > *alim) {
 	kflag = 3;
@@ -3489,7 +3502,7 @@ L110:
     str *= cos(*zi);
     zmlt_(&coefr, &coefi, &str, &sti, &coefr, &coefi);
 L120:
-    // HR20131223
+    // HR 20131223
     if (fabs(dnu) == .5) {
 	goto L300;
     }
@@ -3497,12 +3510,12 @@ L120:
 /*     MILLER ALGORITHM FOR CABS(Z).GT.R1 */
 /* ----------------------------------------------------------------------- */
     ak = cos(dpi * dnu);
-    // HR20131223
+    // HR 20131223
     ak = fabs(ak);
     if (ak == czeror) {
 	goto L300;
     }
-    // HR20131223
+    // HR 20131223
     fhs = (d__1 = .25 - dnu2, fabs(d__1));
     if (fhs == czeror) {
 	goto L300;
@@ -3513,10 +3526,10 @@ L120:
 /*     12.LE.E.LE.60. E IS COMPUTED FROM 2**(-E)=B**(1-I1MACH(14))= */
 /*     TOL WHERE B IS THE BASE OF THE ARITHMETIC. */
 /* ----------------------------------------------------------------------- */
-    t1 = (doublereal) ( (i1mach_(&c__14) - 1));
+    t1 = (doublereal) ((real) (i1mach_(&c__14) - 1));
     t1 = t1 * d1mach_(&c__5) * 3.321928094;
-    t1 =MAX(t1,12.);
-    t1 =MIN(t1,60.);
+    t1 = MAX(t1,12.);
+    t1 = MIN(t1,60.);
     t2 = tth * t1 - 6.;
     if (*zr != 0.) {
 	goto L130;
@@ -3525,7 +3538,7 @@ L120:
     goto L140;
 L130:
     t1 = atan(*zi / *zr);
-    // HR20131223
+    // HR 20131223
     t1 = fabs(t1);
 L140:
     if (t2 > caz) {
@@ -3554,7 +3567,7 @@ L140:
 	fks = fks + fk + fk + ctwor;
 	fhs = fhs + fk + fk;
 	fk += coner;
-        // HR20131223
+        // HR 20131223
 	str = fabs(p2r) * fk;
 	if (etest < str) {
 	    goto L160;
@@ -3564,7 +3577,7 @@ L140:
     goto L310;
 L160:
     fk += spi * t1 * sqrt(t2 / caz);
-    // HR20131223
+    // HR 20131223
     fhs = (d__1 = .25 - dnu2, fabs(d__1));
     goto L180;
 L170:
@@ -3581,8 +3594,8 @@ L180:
 /* ----------------------------------------------------------------------- */
 /*     BACKWARD RECURRENCE LOOP FOR MILLER ALGORITHM */
 /* ----------------------------------------------------------------------- */
-    k = (integer) ( fk);
-    fk = (doublereal) ( k);
+    k = (integer) ((real) fk);
+    fk = (doublereal) ((real) k);
     fks = fk * fk;
     p1r = czeror;
     p1i = czeroi;
@@ -3695,10 +3708,10 @@ L225:
 	}
 	p2r = s2r * p1r;
 	p2i = s2i * p1r;
-        // HR20131223
+        // HR 20131223
 	str = fabs(p2r);
 	sti = fabs(p2i);
-	p2m =MAX(str,sti);
+	p2m = MAX(str,sti);
 	if (p2m <= ascle) {
 	    goto L230;
 	}
@@ -3759,10 +3772,10 @@ L250:
 	if (kflag >= 3) {
 	    goto L260;
 	}
-        // HR20131223
+        // HR 20131223
 	str = fabs(p2r);
 	sti = fabs(p2i);
-	p2m =MAX(str,sti);
+	p2m = MAX(str,sti);
 	if (p2m <= ascle) {
 	    goto L260;
 	}
@@ -3895,7 +3908,7 @@ L280:
     if (inu == 2) {
 	return 0;
     }
-    t2 = *fnu + (doublereal) ( (kk - 1));
+    t2 = *fnu + (doublereal) ((real) (kk - 1));
     ckr = t2 * rzr;
     cki = t2 * rzi;
     kflag = 1;
@@ -3941,16 +3954,16 @@ L310:
     double log(doublereal), exp(doublereal), cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer i__, ic;
-    static doublereal as, fn;
-    static integer kk, nn, nw;
-    static doublereal s1i, s2i, s1r, s2r, acs, cki, elm, csi, ckr, cyi[2], 
-	    zdi, csr, cyr[2], zdr, str, alas;
-    static integer idum;
+    integer i__, ic;
+    doublereal as, fn;
+    integer kk, nn, nw;
+    doublereal s1i, s2i, s1r, s2r, acs, cki, elm, csi, ckr, cyi[2], zdi, csr, 
+	    cyr[2], zdr, str, alas;
+    integer idum;
     extern doublereal zabs_(doublereal *, doublereal *);
     extern /* Subroutine */ int zlog_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, integer *);
-    static doublereal helim, celmr;
+    doublereal helim, celmr;
     extern /* Subroutine */ int zuchk_(doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *);
 
@@ -3972,7 +3985,7 @@ L310:
 
     *nz = 0;
     ic = 0;
-    nn =MIN(2,*n);
+    nn = MIN(2,*n);
     i__1 = nn;
     for (i__ = 1; i__ <= i__1; ++i__) {
 	s1r = yr[i__];
@@ -4111,7 +4124,7 @@ L45:
 	    doublereal);
 
     /* Local variables */
-    static doublereal ch, cn, sh, sn;
+    doublereal ch, cn, sh, sn;
 
 /* ***BEGIN PROLOGUE  ZSHCH */
 /* ***REFER TO  ZBESK,ZBESH */
@@ -4152,22 +4165,21 @@ L45:
     double sqrt(doublereal);
 
     /* Local variables */
-    static integer i__, k;
-    static doublereal ak;
-    static integer id, kk;
-    static doublereal az, ap1, ap2, p1i, p2i, t1i, p1r, p2r, t1r, arg, rak, 
-	    rho;
-    static integer inu;
-    static doublereal pti, tti, rzi, ptr, ttr, rzr, rap1, flam, dfnu, fdnu;
-    static integer magz;
+    integer i__, k;
+    doublereal ak;
+    integer id, kk;
+    doublereal az, ap1, ap2, p1i, p2i, t1i, p1r, p2r, t1r, arg, rak, rho;
+    integer inu;
+    doublereal pti, tti, rzi, ptr, ttr, rzr, rap1, flam, dfnu, fdnu;
+    integer magz;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static integer idnu;
-    static doublereal fnup;
+    integer idnu;
+    doublereal fnup;
     extern /* Subroutine */ int zdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *);
-    static doublereal test, test1, amagz;
-    static integer itime;
-    static doublereal cdfnui, cdfnur;
+    doublereal test, test1, amagz;
+    integer itime;
+    doublereal cdfnui, cdfnur;
 
 /* ***BEGIN PROLOGUE  ZRATI */
 /* ***REFER TO  ZBESI,ZBESK,ZBESH */
@@ -4188,12 +4200,12 @@ L45:
 
     /* Function Body */
     az = zabs_(zr, zi);
-    inu = (integer) ( (*fnu));
+    inu = (integer) ((real) (*fnu));
     idnu = inu + *n - 1;
-    magz = (integer) ( az);
-    amagz = (doublereal) ( (magz + 1));
-    fdnu = (doublereal) ( idnu);
-    fnup =MAX(amagz,fdnu);
+    magz = (integer) ((real) az);
+    amagz = (doublereal) ((real) (magz + 1));
+    fdnu = (doublereal) ((real) idnu);
+    fnup = MAX(amagz,fdnu);
     id = idnu - magz - 1;
     itime = 1;
     k = 1;
@@ -4250,16 +4262,16 @@ L10:
     flam = ak + sqrt(ak * ak - 1.);
 /* Computing MIN */
     d__1 = ap2 / ap1;
-    rho =MIN(d__1,flam);
+    rho = MIN(d__1,flam);
     test = test1 * sqrt(rho / (rho * rho - 1.));
     itime = 2;
     goto L10;
 L20:
     kk = k + 1 - id;
-    ak = (doublereal) ( kk);
+    ak = (doublereal) ((real) kk);
     t1r = ak;
     t1i = czeroi;
-    dfnu = *fnu + (doublereal) ( (*n - 1));
+    dfnu = *fnu + (doublereal) ((real) (*n - 1));
     p1r = 1. / ap2;
     p1i = czeroi;
     p2r = czeror;
@@ -4289,7 +4301,7 @@ L40:
 	return 0;
     }
     k = *n - 1;
-    ak = (doublereal) ( k);
+    ak = (doublereal) ((real) k);
     t1r = ak;
     t1i = czeroi;
     cdfnur = *fnu * rzr;
@@ -4329,8 +4341,8 @@ L50:
     double log(doublereal);
 
     /* Local variables */
-    static doublereal aa, c1i, as1, as2, c1r, aln, s1di, s1dr;
-    static integer idum;
+    doublereal aa, c1i, as1, as2, c1r, aln, s1di, s1dr;
+    integer idum;
     extern doublereal zabs_(doublereal *, doublereal *);
     extern /* Subroutine */ int zlog_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, integer *), zexp_(doublereal *, doublereal *, 
@@ -4375,7 +4387,7 @@ L50:
     as1 = zabs_(s1r, s1i);
     ++(*iuf);
 L10:
-    aa =MAX(as1,as2);
+    aa = MAX(as1,as2);
     if (aa > *ascle) {
 	return 0;
     }
@@ -4392,7 +4404,7 @@ L10:
 	integer *kode, integer *mr, integer *n, doublereal *yr, doublereal *
 	yi, integer *nz, doublereal *tol, doublereal *elim, doublereal *alim)
 {
-    static doublereal ax, ay;
+    doublereal ax, ay;
     extern /* Subroutine */ int zunk1_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, integer *, doublereal *, doublereal *, 
 	    integer *, doublereal *, doublereal *, doublereal *), zunk2_(
@@ -4416,7 +4428,7 @@ L10:
 
     /* Function Body */
     *nz = 0;
-    // HR20131223
+    // HR 20131223
     ax = fabs(*zr) * 1.7321;
     ay = fabs(*zi);
     if (ay > ax) {
@@ -4458,27 +4470,27 @@ L20:
     double sqrt(doublereal), exp(doublereal);
 
     /* Local variables */
-    static integer i__, k, m;
-    static doublereal ak, bk, ap, at;
-    static integer kk, km;
-    static doublereal az, p1i, p2i, p1r, p2r, ack, cki, fnf, fkk, ckr;
-    static integer iaz;
-    static doublereal rho;
-    static integer inu;
-    static doublereal pti, raz, sti, rzi, ptr, str, tst, rzr, rho2, flam, 
-	    fkap, scle, tfnf;
-    static integer idum;
+    integer i__, k, m;
+    doublereal ak, bk, ap, at;
+    integer kk, km;
+    doublereal az, p1i, p2i, p1r, p2r, ack, cki, fnf, fkk, ckr;
+    integer iaz;
+    doublereal rho;
+    integer inu;
+    doublereal pti, raz, sti, rzi, ptr, str, tst, rzr, rho2, flam, fkap, scle,
+	     tfnf;
+    integer idum;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static integer ifnu;
+    integer ifnu;
     extern /* Subroutine */ int zlog_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, integer *);
-    static doublereal sumi, sumr;
+    doublereal sumi, sumr;
     extern /* Subroutine */ int zexp_(doublereal *, doublereal *, doublereal *
 	    , doublereal *), zmlt_(doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *);
-    static integer itime;
+    integer itime;
     extern doublereal d1mach_(integer *), dgamln_(doublereal *, integer *);
-    static doublereal cnormi, cnormr;
+    doublereal cnormi, cnormr;
 
 /* ***BEGIN PROLOGUE  ZMLRI */
 /* ***REFER TO  ZBESI,ZBESK */
@@ -4497,10 +4509,10 @@ L20:
     scle = d1mach_(&c__1) / *tol;
     *nz = 0;
     az = zabs_(zr, zi);
-    iaz = (integer) ( az);
-    ifnu = (integer) ( (*fnu));
+    iaz = (integer) ((real) az);
+    ifnu = (integer) ((real) (*fnu));
     inu = ifnu + *n - 1;
-    at = (doublereal) ( iaz) + 1.;
+    at = (doublereal) ((real) iaz) + 1.;
     raz = 1. / az;
     str = *zr * raz;
     sti = -(*zi) * raz;
@@ -4551,7 +4563,7 @@ L20:
     p1i = zeroi;
     p2r = coner;
     p2i = conei;
-    at = (doublereal) ( inu) + 1.;
+    at = (doublereal) ((real) inu) + 1.;
     str = *zr * raz;
     sti = -(*zi) * raz;
     ckr = str * at * raz;
@@ -4578,7 +4590,7 @@ L20:
 	ack = zabs_(&ckr, &cki);
 	flam = ack + sqrt(ack * ack - 1.);
 	fkap = ap / zabs_(&p1r, &p1i);
-	rho =MIN(flam,fkap);
+	rho = MIN(flam,fkap);
 	tst *= sqrt(rho / (rho * rho - 1.));
 	itime = 2;
 L30:
@@ -4592,8 +4604,8 @@ L40:
     ++k;
 /* Computing MAX */
     i__1 = i__ + iaz, i__2 = k + inu;
-    kk =MAX(i__1,i__2);
-    fkk = (doublereal) ( kk);
+    kk = MAX(i__1,i__2);
+    fkk = (doublereal) ((real) kk);
     p1r = zeror;
     p1i = zeroi;
 /* ----------------------------------------------------------------------- */
@@ -4601,7 +4613,7 @@ L40:
 /* ----------------------------------------------------------------------- */
     p2r = scle;
     p2i = zeroi;
-    fnf = *fnu - (doublereal) ( ifnu);
+    fnf = *fnu - (doublereal) ((real) ifnu);
     tfnf = fnf + fnf;
     d__1 = fkk + tfnf + 1.;
     d__2 = fkk + 1.;
@@ -4724,11 +4736,11 @@ L110:
     double cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer i__, nw;
-    static doublereal c1i, c2i, c1r, c2r, act, acw, cti, ctr, pti, sti, ptr, 
-	    str, ract;
+    integer i__, nw;
+    doublereal c1i, c2i, c1r, c2r, act, acw, cti, ctr, pti, sti, ptr, str, 
+	    ract;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal ascle, csclr, cinui, cinur;
+    doublereal ascle, csclr, cinui, cinur;
     extern /* Subroutine */ int zbknu_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, doublereal *), zrati_(doublereal *, 
@@ -4865,27 +4877,27 @@ L50:
 	    ;
 
     /* Local variables */
-    static integer i__, k, l, m;
-    static doublereal s, aa;
-    static integer ib;
-    static doublereal ak;
-    static integer il;
-    static doublereal az;
-    static integer nn;
-    static doublereal wi[2], rs, ss;
-    static integer nw;
-    static doublereal wr[2], s1i, s2i, s1r, s2r, cki, acz, arm, ckr, czi, hzi,
-	     raz, czr, sti, hzr, rzi, str, rzr, ak1i, ak1r, rtr1, dfnu;
-    static integer idum;
+    integer i__, k, l, m;
+    doublereal s, aa;
+    integer ib;
+    doublereal ak;
+    integer il;
+    doublereal az;
+    integer nn;
+    doublereal wi[2], rs, ss;
+    integer nw;
+    doublereal wr[2], s1i, s2i, s1r, s2r, cki, acz, arm, ckr, czi, hzi, raz, 
+	    czr, sti, hzr, rzi, str, rzr, ak1i, ak1r, rtr1, dfnu;
+    integer idum;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal atol, fnup;
+    doublereal atol, fnup;
     extern /* Subroutine */ int zlog_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, integer *), zdiv_(doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *), zmlt_(
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *);
-    static integer iflag;
-    static doublereal coefi, ascle, coefr, crscr;
+    integer iflag;
+    doublereal coefi, ascle, coefr, crscr;
     extern /* Subroutine */ int zuchk_(doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *);
     extern doublereal d1mach_(integer *), dgamln_(doublereal *, integer *);
@@ -4935,7 +4947,7 @@ L10:
     nn = *n;
     zlog_(&hzr, &hzi, &ckr, &cki, &idum);
 L20:
-    dfnu = *fnu + (doublereal) ( (nn - 1));
+    dfnu = *fnu + (doublereal) ((real) (nn - 1));
     fnup = dfnu + 1.;
 /* ----------------------------------------------------------------------- */
 /*     UNDERFLOW TEST */
@@ -4978,10 +4990,10 @@ L50:
     coefr = aa * cos(ak1i);
     coefi = aa * sin(ak1i);
     atol = *tol * acz / fnup;
-    il =MIN(2,nn);
+    il = MIN(2,nn);
     i__1 = il;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	dfnu = *fnu + (doublereal) ( (nn - i__));
+	dfnu = *fnu + (doublereal) ((real) (nn - i__));
 	fnup = dfnu + 1.;
 	s1r = coner;
 	s1i = conei;
@@ -5036,7 +5048,7 @@ L90:
 	return 0;
     }
     k = nn - 2;
-    ak = (doublereal) ( k);
+    ak = (doublereal) ((real) k);
     raz = 1. / az;
     str = *zr * raz;
     sti = -(*zi) * raz;
@@ -5149,26 +5161,26 @@ L190:
     double sqrt(doublereal), sin(doublereal), cos(doublereal);
 
     /* Local variables */
-    static integer i__, j, k, m;
-    static doublereal s, aa, bb;
-    static integer ib;
-    static doublereal ak, bk;
-    static integer il, jl;
-    static doublereal az;
-    static integer nn;
-    static doublereal p1i, s2i, p1r, s2r, cki, dki, fdn, arg, aez, arm, ckr, 
-	    dkr, czi, ezi, sgn;
-    static integer inu;
-    static doublereal raz, czr, ezr, sqk, sti, rzi, tzi, str, rzr, tzr, ak1i, 
-	    ak1r, cs1i, cs2i, cs1r, cs2r, dnu2, rtr1, dfnu;
+    integer i__, j, k, m;
+    doublereal s, aa, bb;
+    integer ib;
+    doublereal ak, bk;
+    integer il, jl;
+    doublereal az;
+    integer nn;
+    doublereal p1i, s2i, p1r, s2r, cki, dki, fdn, arg, aez, arm, ckr, dkr, 
+	    czi, ezi, sgn;
+    integer inu;
+    doublereal raz, czr, ezr, sqk, sti, rzi, tzi, str, rzr, tzr, ak1i, ak1r, 
+	    cs1i, cs2i, cs1r, cs2r, dnu2, rtr1, dfnu;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal atol;
+    doublereal atol;
     extern /* Subroutine */ int zdiv_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, doublereal *, doublereal *), zexp_(doublereal *, 
 	    doublereal *, doublereal *, doublereal *), zmlt_(doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *);
-    static integer koded;
+    integer koded;
     extern doublereal d1mach_(integer *);
     extern /* Subroutine */ int zsqrt_(doublereal *, doublereal *, doublereal 
 	    *, doublereal *);
@@ -5194,8 +5206,8 @@ L190:
     az = zabs_(zr, zi);
     arm = d1mach_(&c__1) * 1e3;
     rtr1 = sqrt(arm);
-    il =MIN(2,*n);
-    dfnu = *fnu + (doublereal) ( (*n - il));
+    il = MIN(2,*n);
+    dfnu = *fnu + (doublereal) ((real) (*n - il));
 /* ----------------------------------------------------------------------- */
 /*     OVERFLOW TEST */
 /* ----------------------------------------------------------------------- */
@@ -5213,13 +5225,13 @@ L190:
     czr = zeror;
     czi = *zi;
 L10:
-    // HR20131223
+    // HR 20131223
     if (fabs(czr) > *elim) {
 	goto L100;
     }
     dnu2 = dfnu + dfnu;
     koded = 1;
-    // HR20131223
+    // HR 20131223
     if (fabs(czr) > *alim && *n > 2) {
 	goto L20;
     }
@@ -5240,7 +5252,7 @@ L20:
 /* ----------------------------------------------------------------------- */
     aez = az * 8.;
     s = *tol / aez;
-    jl = (integer) ( (*rl + *rl)) + 2;
+    jl = (integer) ((real) (*rl + *rl)) + 2;
     p1r = zeror;
     p1i = zeroi;
     if (*zi == 0.) {
@@ -5250,8 +5262,8 @@ L20:
 /*     CALCULATE EXP(PI*(0.5+FNU+N-IL)*I) TO MINIMIZE LOSSES OF */
 /*     SIGNIFICANCE WHEN FNU OR N IS LARGE */
 /* ----------------------------------------------------------------------- */
-    inu = (integer) ( (*fnu));
-    arg = (*fnu - (doublereal) ( inu)) * pi;
+    inu = (integer) ((real) (*fnu));
+    arg = (*fnu - (doublereal) ((real) inu)) * pi;
     inu = inu + *n - il;
     ak = -sin(arg);
     bk = cos(arg);
@@ -5269,7 +5281,7 @@ L30:
     i__1 = il;
     for (k = 1; k <= i__1; ++k) {
 	sqk = fdn - 1.;
-        // HR20131223
+        // HR 20131223
 	atol = s * fabs(sqk);
 	sgn = 1.;
 	cs1r = coner;
@@ -5295,7 +5307,7 @@ L30:
 	    cs1i += cki * sgn;
 	    dkr += ezr;
 	    dki += ezi;
-            // HR20131223
+            // HR 20131223
 	    aa = aa * fabs(sqk) / bb;
 	    bb += aez;
 	    ak += 8.;
@@ -5335,7 +5347,7 @@ L60:
     }
     nn = *n;
     k = nn - 2;
-    ak = (doublereal) ( k);
+    ak = (doublereal) ((real) k);
     str = *zr * raz;
     sti = -(*zi) * raz;
     rzr = (str + str) * raz;
@@ -5387,23 +5399,23 @@ L110:
     double log(doublereal), exp(doublereal), cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer i__;
-    static doublereal ax, ay;
-    static integer nn, nw;
-    static doublereal fnn, gnn, zbi, czi, gnu, zbr, czr, rcz, sti, zni, zri, 
-	    str, znr, zrr, aarg, aphi, argi, phii, argr;
-    static integer idum;
+    integer i__;
+    doublereal ax, ay;
+    integer nn, nw;
+    doublereal fnn, gnn, zbi, czi, gnu, zbr, czr, rcz, sti, zni, zri, str, 
+	    znr, zrr, aarg, aphi, argi, phii, argr;
+    integer idum;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal phir;
-    static integer init;
+    doublereal phir;
+    integer init;
     extern /* Subroutine */ int zlog_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, integer *);
-    static doublereal sumi, sumr, ascle;
-    static integer iform;
-    static doublereal asumi, bsumi, cwrki[16];
+    doublereal sumi, sumr, ascle;
+    integer iform;
+    doublereal asumi, bsumi, cwrki[16];
     extern /* Subroutine */ int zuchk_(doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *);
-    static doublereal asumr, bsumr, cwrkr[16];
+    doublereal asumr, bsumr, cwrkr[16];
     extern doublereal d1mach_(integer *);
     extern /* Subroutine */ int zunhj_(doublereal *, doublereal *, doublereal 
 	    *, integer *, doublereal *, doublereal *, doublereal *, 
@@ -5414,7 +5426,7 @@ L110:
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *);
-    static doublereal zeta1i, zeta2i, zeta1r, zeta2r;
+    doublereal zeta1i, zeta2i, zeta1r, zeta2r;
 
 /* ***BEGIN PROLOGUE  ZUOIK */
 /* ***REFER TO  ZBESI,ZBESK,ZBESH */
@@ -5460,20 +5472,20 @@ L110:
 L10:
     zbr = zrr;
     zbi = zri;
-    // HR20131223
+    // HR 20131223
     ax = fabs(*zr) * 1.7321;
     ay = fabs(*zi);
     iform = 1;
     if (ay > ax) {
 	iform = 2;
     }
-    gnu =MAX(*fnu,1.);
+    gnu = MAX(*fnu,1.);
     if (*ikflg == 1) {
 	goto L20;
     }
-    fnn = (doublereal) ( nn);
+    fnn = (doublereal) ((real) nn);
     gnn = *fnu + fnn - 1.;
-    gnu =MAX(gnn,fnn);
+    gnu = MAX(gnn,fnn);
 L20:
 /* ----------------------------------------------------------------------- */
 /*     ONLY THE MAGNITUDE OF ARG AND PHI ARE NEEDED ALONG WITH THE */
@@ -5591,7 +5603,7 @@ L130:
 /*     SET UNDERFLOWS ON I SEQUENCE */
 /* ----------------------------------------------------------------------- */
 L140:
-    gnu = *fnu + (doublereal) ( (nn - 1));
+    gnu = *fnu + (doublereal) ((real) (nn - 1));
     if (iform == 2) {
 	goto L150;
     }
@@ -5683,25 +5695,25 @@ L210:
 	    doublereal);
 
     /* Local variables */
-    static integer i__;
-    static doublereal fn;
-    static integer nn, nw;
-    static doublereal yy, c1i, c2i, c1m, as2, c1r, c2r, s1i, s2i, s1r, s2r, 
-	    cki, arg, ckr, cpn;
-    static integer iuf;
-    static doublereal cyi[2], fmr, csr, azn, sgn;
-    static integer inu;
-    static doublereal bry[3], cyr[2], pti, spn, sti, zni, rzi, ptr, str, znr, 
-	    rzr, sc1i, sc2i, sc1r, sc2r, cscl, cscr;
+    integer i__;
+    doublereal fn;
+    integer nn, nw;
+    doublereal yy, c1i, c2i, c1m, as2, c1r, c2r, s1i, s2i, s1r, s2r, cki, arg,
+	     ckr, cpn;
+    integer iuf;
+    doublereal cyi[2], fmr, csr, azn, sgn;
+    integer inu;
+    doublereal bry[3], cyr[2], pti, spn, sti, zni, rzi, ptr, str, znr, rzr, 
+	    sc1i, sc2i, sc1r, sc2r, cscl, cscr;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal csrr[3], cssr[3], razn;
+    doublereal csrr[3], cssr[3], razn;
     extern /* Subroutine */ int zs1s2_(doublereal *, doublereal *, doublereal 
 	    *, doublereal *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, integer *), zmlt_(doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *);
-    static integer kflag;
-    static doublereal ascle, bscle, csgni, csgnr, cspni, cspnr;
+    integer kflag;
+    doublereal ascle, bscle, csgni, csgnr, cspni, cspnr;
     extern /* Subroutine */ int zbinu_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
@@ -5742,14 +5754,14 @@ L210:
 /* ----------------------------------------------------------------------- */
 /*     ANALYTIC CONTINUATION TO THE LEFT HALF PLANE FOR THE K FUNCTION */
 /* ----------------------------------------------------------------------- */
-    nn =MIN(2,*n);
+    nn = MIN(2,*n);
     zbknu_(&znr, &zni, fnu, kode, &nn, cyr, cyi, &nw, tol, elim, alim);
     if (nw != 0) {
 	goto L90;
     }
     s1r = cyr[0];
     s1i = cyi[0];
-    fmr = (doublereal) ( (*mr));
+    fmr = (doublereal) ((real) (*mr));
     sgn = -d_sign(&pi, &fmr);
     csgnr = zeror;
     csgni = sgn;
@@ -5765,8 +5777,8 @@ L10:
 /*     CALCULATE CSPN=EXP(FNU*PI*I) TO MINIMIZE LOSSES OF SIGNIFICANCE */
 /*     WHEN FNU IS LARGE */
 /* ----------------------------------------------------------------------- */
-    inu = (integer) ( (*fnu));
-    arg = (*fnu - (doublereal) ( inu)) * sgn;
+    inu = (integer) ((real) (*fnu));
+    arg = (*fnu - (doublereal) ((real) inu)) * sgn;
     cpn = cos(arg);
     spn = sin(arg);
     cspnr = cpn;
@@ -5913,10 +5925,10 @@ L70:
 	if (kflag >= 3) {
 	    goto L80;
 	}
-        // HR20131223
+        // HR 20131223
 	ptr = fabs(c1r);
 	pti = fabs(c1i);
-	c1m =MAX(ptr,pti);
+	c1m = MAX(ptr,pti);
 	if (c1m <= bscle) {
 	    goto L80;
 	}
@@ -5957,14 +5969,14 @@ L90:
     integer i__1;
 
     /* Local variables */
-    static integer i__;
-    static doublereal az;
-    static integer nn, nw;
-    static doublereal cwi[2], cwr[2];
-    static integer nui, inw;
-    static doublereal dfnu;
+    integer i__;
+    doublereal az;
+    integer nn, nw;
+    doublereal cwi[2], cwr[2];
+    integer nui, inw;
+    doublereal dfnu;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static integer nlast;
+    integer nlast;
     extern /* Subroutine */ int zbuni_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
@@ -5998,7 +6010,7 @@ L90:
     *nz = 0;
     az = zabs_(zr, zi);
     nn = *n;
-    dfnu = *fnu + (doublereal) ( (*n - 1));
+    dfnu = *fnu + (doublereal) ((real) (*n - 1));
     if (az <= 2.) {
 	goto L10;
     }
@@ -6019,7 +6031,7 @@ L10:
     if (nw >= 0) {
 	goto L120;
     }
-    dfnu = *fnu + (doublereal) ( (nn - 1));
+    dfnu = *fnu + (doublereal) ((real) (nn - 1));
 L20:
     if (az < *rl) {
 	goto L40;
@@ -6058,7 +6070,7 @@ L50:
     if (nn == 0) {
 	return 0;
     }
-    dfnu = *fnu + (doublereal) ( (nn - 1));
+    dfnu = *fnu + (doublereal) ((real) (nn - 1));
     if (dfnu > *fnul) {
 	goto L110;
     }
@@ -6111,8 +6123,8 @@ L110:
 /* ----------------------------------------------------------------------- */
 /*     INCREMENT FNU+NN-1 UP TO FNUL, COMPUTE AND RECUR BACKWARD */
 /* ----------------------------------------------------------------------- */
-    nui = (integer) ( (*fnul - dfnu)) + 1;
-    nui =MAX(nui,0);
+    nui = (integer) ((real) (*fnul - dfnu)) + 1;
+    nui = MAX(nui,0);
     zbuni_(zr, zi, fnu, kode, &nn, &cyr[1], &cyi[1], &nw, &nui, &nlast, fnul, 
 	    tol, elim, alim);
     if (nw < 0) {
@@ -6191,12 +6203,12 @@ doublereal dgamln_(doublereal *z__, integer *ierr)
     double log(doublereal);
 
     /* Local variables */
-    static integer i__, k;
-    static doublereal s, t1, fz, zm;
-    static integer mz, nz;
-    static doublereal zp;
-    static integer i1m;
-    static doublereal fln, tlg, rln, trm, tst, zsq, zinc, zmin, zdmy, wdtol;
+    integer i__, k;
+    doublereal s, t1, fz, zm;
+    integer mz, nz;
+    doublereal zp;
+    integer i1m;
+    doublereal fln, tlg, rln, trm, tst, zsq, zinc, zmin, zdmy, wdtol;
     extern doublereal d1mach_(integer *);
     extern integer i1mach_(integer *);
 
@@ -6250,8 +6262,8 @@ doublereal dgamln_(doublereal *z__, integer *ierr)
     if (*z__ > 101.) {
 	goto L10;
     }
-    nz = (integer) ( (*z__));
-    fz = *z__ -  nz;
+    nz = (integer) ((real) (*z__));
+    fz = *z__ - (real) nz;
     if (fz > 0.) {
 	goto L10;
     }
@@ -6262,21 +6274,21 @@ doublereal dgamln_(doublereal *z__, integer *ierr)
     return ret_val;
 L10:
     wdtol = d1mach_(&c__4);
-    wdtol =MAX(wdtol,5e-19);
+    wdtol = MAX(wdtol,5e-19);
     i1m = i1mach_(&c__14);
-    rln = d1mach_(&c__5) *  i1m;
-    fln =MIN(rln,20.);
-    fln =MAX(fln,3.);
+    rln = d1mach_(&c__5) * (real) i1m;
+    fln = MIN(rln,20.);
+    fln = MAX(fln,3.);
     fln += -3.;
     zm = fln * .3875 + 1.8;
-    mz = (integer) (( zm) + 1);
-    zmin =  mz;
+    mz = (integer) ((real) zm) + 1;
+    zmin = (real) mz;
     zdmy = *z__;
     zinc = 0.;
     if (*z__ >= zmin) {
 	goto L20;
     }
-    zinc = zmin -  nz;
+    zinc = zmin - (real) nz;
     zdmy = *z__ + zinc;
 L20:
     zp = 1. / zdmy;
@@ -6290,7 +6302,7 @@ L20:
     for (k = 2; k <= 22; ++k) {
 	zp *= zsq;
 	trm = cf[k - 1] * zp;
-        // HR20131223
+        // HR 20131223
 	if (fabs(trm) < tst) {
 	    goto L40;
 	}
@@ -6306,10 +6318,10 @@ L40:
     return ret_val;
 L50:
     zp = 1.;
-    nz = (integer) ( zinc);
+    nz = (integer) ((real) zinc);
     i__1 = nz;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	zp *= *z__ +  (i__ - 1);
+	zp *= *z__ + (real) (i__ - 1);
 /* L60: */
     }
     tlg = log(zdmy);
@@ -6336,18 +6348,18 @@ L70:
 	    doublereal);
 
     /* Local variables */
-    static doublereal az;
-    static integer nn, nw;
-    static doublereal yy, c1i, c2i, c1r, c2r, arg;
-    static integer iuf;
-    static doublereal cyi[2], fmr, sgn;
-    static integer inu;
-    static doublereal cyr[2], zni, znr, dfnu;
+    doublereal az;
+    integer nn, nw;
+    doublereal yy, c1i, c2i, c1r, c2r, arg;
+    integer iuf;
+    doublereal cyi[2], fmr, sgn;
+    integer inu;
+    doublereal cyr[2], zni, znr, dfnu;
     extern doublereal zabs_(doublereal *, doublereal *);
     extern /* Subroutine */ int zs1s2_(doublereal *, doublereal *, doublereal 
 	    *, doublereal *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, integer *);
-    static doublereal ascle, csgni, csgnr, cspni, cspnr;
+    doublereal ascle, csgni, csgnr, cspni, cspnr;
     extern /* Subroutine */ int zbknu_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, doublereal *), zseri_(doublereal *, 
@@ -6388,7 +6400,7 @@ L70:
     zni = -(*zi);
     az = zabs_(zr, zi);
     nn = *n;
-    dfnu = *fnu + (doublereal) ( (*n - 1));
+    dfnu = *fnu + (doublereal) ((real) (*n - 1));
     if (az <= 2.) {
 	goto L10;
     }
@@ -6430,7 +6442,7 @@ L40:
     if (nw != 0) {
 	goto L80;
     }
-    fmr = (doublereal) ( (*mr));
+    fmr = (doublereal) ((real) (*mr));
     sgn = -d_sign(&pi, &fmr);
     csgnr = 0.;
     csgni = sgn;
@@ -6445,8 +6457,8 @@ L50:
 /*     CALCULATE CSPN=EXP(FNU*PI*I) TO MINIMIZE LOSSES OF SIGNIFICANCE */
 /*     WHEN FNU IS LARGE */
 /* ----------------------------------------------------------------------- */
-    inu = (integer) ( (*fnu));
-    arg = (*fnu - (doublereal) ( inu)) * sgn;
+    inu = (integer) ((real) (*fnu));
+    arg = (*fnu - (doublereal) ((real) inu)) * sgn;
     cspnr = cos(arg);
     cspni = sin(arg);
     if (inu % 2 == 0) {
@@ -6481,7 +6493,7 @@ L80:
 /* Subroutine */ int zuchk_(doublereal *yr, doublereal *yi, integer *nz, 
 	doublereal *ascle, doublereal *tol)
 {
-    static doublereal wi, ss, st, wr;
+    doublereal wi, ss, st, wr;
 
 /* ***BEGIN PROLOGUE  ZUCHK */
 /* ***REFER TO ZSERI,ZUOIK,ZUNK1,ZUNK2,ZUNI1,ZUNI2,ZKSCL */
@@ -6499,14 +6511,14 @@ L80:
 
 /*     COMPLEX Y */
     *nz = 0;
-    // HR20131223
+    // HR 20131223
     wr = fabs(*yr);
     wi = fabs(*yi);
-    st =MIN(wr,wi);
+    st = MIN(wr,wi);
     if (st > *ascle) {
 	return 0;
     }
-    ss =MAX(wr,wi);
+    ss = MAX(wr,wi);
     st /= *tol;
     if (ss < st) {
 	*nz = 1;
@@ -6576,14 +6588,14 @@ L80:
     double log(doublereal);
 
     /* Local variables */
-    static integer i__, j, k, l;
-    static doublereal ac, si, ti, sr, tr, t2i, t2r, rfn, sri, sti, zni, srr, 
-	    str, znr;
-    static integer idum;
+    integer i__, j, k, l;
+    doublereal ac, si, ti, sr, tr, t2i, t2r, rfn, sri, sti, zni, srr, str, 
+	    znr;
+    integer idum;
     extern /* Subroutine */ int zlog_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, integer *), zdiv_(doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *);
-    static doublereal test, crfni, crfnr;
+    doublereal test, crfni, crfnr;
     extern doublereal d1mach_(integer *);
     extern /* Subroutine */ int zsqrt_(doublereal *, doublereal *, doublereal 
 	    *, doublereal *);
@@ -6628,11 +6640,11 @@ L80:
 /* ----------------------------------------------------------------------- */
     test = d1mach_(&c__1) * 1e3;
     ac = *fnu * test;
-    // HR20131223
+    // HR 20131223
     if (fabs(*zrr) > ac || fabs(*zri) > ac) {
 	goto L15;
     }
-    // HR20131223
+    // HR 20131223
     *zeta1r = (d__1 = log(test), fabs(d__1)) * 2. + *fnu;
     *zeta1i = 0.;
     *zeta2r = *fnu;
@@ -6687,7 +6699,7 @@ L15:
 	cwrkr[k] = crfnr * sr - crfni * si;
 	cwrki[k] = crfnr * si + crfni * sr;
 	ac *= rfn;
-        // HR20131223
+        // HR 20131223
 	test = (d__1 = cwrkr[k], fabs(d__1)) + (d__2 = cwrki[k], fabs(d__2));
 	if (ac < *tol && test < *tol) {
 	    goto L30;
@@ -7012,36 +7024,36 @@ L60:
 	    doublereal), cos(doublereal), sin(doublereal), sqrt(doublereal);
 
     /* Local variables */
-    static integer j, k, l, m, l1, l2;
-    static doublereal ac, ap[30], pi[30];
-    static integer is, jr, ks, ju;
-    static doublereal pp, wi, pr[30];
-    static integer lr;
-    static doublereal wr, aw2;
-    static integer kp1;
-    static doublereal t2i, w2i, t2r, w2r, ang, fn13, fn23;
-    static integer ias;
-    static doublereal cri[14], dri[14];
-    static integer ibs;
-    static doublereal zai, zbi, zci, crr[14], drr[14], raw, zar, upi[14], sti,
-	     zbr, zcr, upr[14], str, raw2;
-    static integer lrp1;
-    static doublereal rfn13;
-    static integer idum;
+    integer j, k, l, m, l1, l2;
+    doublereal ac, ap[30], pi[30];
+    integer is, jr, ks, ju;
+    doublereal pp, wi, pr[30];
+    integer lr;
+    doublereal wr, aw2;
+    integer kp1;
+    doublereal t2i, w2i, t2r, w2r, ang, fn13, fn23;
+    integer ias;
+    doublereal cri[14], dri[14];
+    integer ibs;
+    doublereal zai, zbi, zci, crr[14], drr[14], raw, zar, upi[14], sti, zbr, 
+	    zcr, upr[14], str, raw2;
+    integer lrp1;
+    doublereal rfn13;
+    integer idum;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal atol, btol, tfni;
-    static integer kmax;
-    static doublereal azth, tzai, tfnr, rfnu;
+    doublereal atol, btol, tfni;
+    integer kmax;
+    doublereal azth, tzai, tfnr, rfnu;
     extern /* Subroutine */ int zlog_(doublereal *, doublereal *, doublereal *
 	    , doublereal *, integer *), zdiv_(doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *);
-    static doublereal zthi, test, tzar, zthr, rfnu2, zetai, ptfni, sumai, 
-	    sumbi, zetar, ptfnr, razth, sumar, sumbr, rzthi;
+    doublereal zthi, test, tzar, zthr, rfnu2, zetai, ptfni, sumai, sumbi, 
+	    zetar, ptfnr, razth, sumar, sumbr, rzthi;
     extern doublereal d1mach_(integer *);
-    static doublereal rzthr, rtzti;
+    doublereal rzthr, rtzti;
     extern /* Subroutine */ int zsqrt_(doublereal *, doublereal *, doublereal 
 	    *, doublereal *);
-    static doublereal rtztr, przthi, przthr;
+    doublereal rtztr, przthi, przthr;
 
 /* ***BEGIN PROLOGUE  ZUNHJ */
 /* ***REFER TO  ZBESI,ZBESK */
@@ -7084,11 +7096,11 @@ L60:
 /* ----------------------------------------------------------------------- */
     test = d1mach_(&c__1) * 1e3;
     ac = *fnu * test;
-    // HR20131223
+    // HR 20131223
     if (fabs(*zr) > ac || fabs(*zi) > ac) {
 	goto L15;
     }
-    *zeta1r = (d__1 = log(test), fabs(d__1)) * 2. + *fnu;
+    *zeta1r = (d__1 = log(test), abs(d__1)) * 2. + *fnu;
     *zeta1i = 0.;
     *zeta2r = *fnu;
     *zeta2i = 0.;
@@ -7176,7 +7188,7 @@ L20:
     *bsumi = sumbi;
     l1 = 0;
     l2 = 30;
-    // HR20131223
+    // HR 20131223
     btol = *tol * (fabs(*bsumr) + fabs(*bsumi));
     atol = *tol;
     pp = 1.;
@@ -7465,45 +7477,45 @@ L220:
 	     d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static integer i__, j, k, m, ib, ic;
-    static doublereal fn;
-    static integer il, kk, nw;
-    static doublereal c1i, c2i, c2m, c1r, c2r, s1i, s2i, rs1, s1r, s2r, ang, 
-	    asc, cki, fnf;
-    static integer ifn;
-    static doublereal ckr;
-    static integer iuf;
-    static doublereal cyi[2], fmr, csr, sgn;
-    static integer inu;
-    static doublereal bry[3], cyr[2], sti, rzi, zri, str, rzr, zrr, aphi, 
-	    cscl, phii[2], crsc;
+    integer i__, j, k, m, ib, ic;
+    doublereal fn;
+    integer il, kk, nw;
+    doublereal c1i, c2i, c2m, c1r, c2r, s1i, s2i, rs1, s1r, s2r, ang, asc, 
+	    cki, fnf;
+    integer ifn;
+    doublereal ckr;
+    integer iuf;
+    doublereal cyi[2], fmr, csr, sgn;
+    integer inu;
+    doublereal bry[3], cyr[2], sti, rzi, zri, str, rzr, zrr, aphi, cscl, phii[
+	    2], crsc;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal phir[2];
-    static integer init[2];
-    static doublereal csrr[3], cssr[3], rast, sumi[2], razr;
+    doublereal phir[2];
+    integer init[2];
+    doublereal csrr[3], cssr[3], rast, sumi[2], razr;
     extern /* Subroutine */ int zs1s2_(doublereal *, doublereal *, doublereal 
 	    *, doublereal *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, integer *);
-    static doublereal sumr[2];
-    static integer iflag, kflag;
-    static doublereal ascle;
-    static integer kdflg;
-    static doublereal phidi;
-    static integer ipard;
-    static doublereal csgni, phidr;
-    static integer initd;
-    static doublereal cspni, cwrki[48]	/* was [16][3] */, sumdi;
+    doublereal sumr[2];
+    integer iflag, kflag;
+    doublereal ascle;
+    integer kdflg;
+    doublereal phidi;
+    integer ipard;
+    doublereal csgni, phidr;
+    integer initd;
+    doublereal cspni, cwrki[48]	/* was [16][3] */, sumdi;
     extern /* Subroutine */ int zuchk_(doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *);
-    static doublereal cspnr, cwrkr[48]	/* was [16][3] */, sumdr;
+    doublereal cspnr, cwrkr[48]	/* was [16][3] */, sumdr;
     extern doublereal d1mach_(integer *);
     extern /* Subroutine */ int zunik_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, integer *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *, 
 	    doublereal *);
-    static doublereal zeta1i[2], zeta2i[2], zet1di, zet2di, zeta1r[2], zeta2r[
-	    2], zet1dr, zet2dr;
+    doublereal zeta1i[2], zeta2i[2], zet1di, zet2di, zeta1r[2], zeta2r[2], 
+	    zet1dr, zet2dr;
 
 /* ***BEGIN PROLOGUE  ZUNK1 */
 /* ***REFER TO  ZBESK */
@@ -7556,7 +7568,7 @@ L10:
 /*     J FLIP FLOPS BETWEEN 1 AND 2 IN J = 3 - J */
 /* ----------------------------------------------------------------------- */
 	j = 3 - j;
-	fn = *fnu + (doublereal) ( (i__ - 1));
+	fn = *fnu + (doublereal) ((real) (i__ - 1));
 	init[j - 1] = 0;
 	zunik_(&zrr, &zri, &fn, &c__2, &c__0, tol, &init[j - 1], &phir[j - 1],
 		 &phii[j - 1], &zeta1r[j - 1], &zeta1i[j - 1], &zeta2r[j - 1],
@@ -7597,7 +7609,7 @@ L30:
 /* ----------------------------------------------------------------------- */
 	aphi = zabs_(&phir[j - 1], &phii[j - 1]);
 	rs1 += log(aphi);
-        // HR20131223
+        // HR 20131223
 	if (fabs(rs1) > *elim) {
 	    goto L60;
 	}
@@ -7683,7 +7695,7 @@ L75:
 /*     TEST LAST MEMBER FOR UNDERFLOW AND OVERFLOW. SET SEQUENCE TO ZERO */
 /*     ON UNDERFLOW. */
 /* ----------------------------------------------------------------------- */
-    fn = *fnu + (doublereal) ( (*n - 1));
+    fn = *fnu + (doublereal) ((real) (*n - 1));
     ipard = 1;
     if (*mr != 0) {
 	ipard = 0;
@@ -7773,9 +7785,8 @@ L100:
 	}
         // HR 20131223
 	str = fabs(c2r);
-        // HR 20131223
 	sti = fabs(c2i);
-	c2m =MAX(str,sti);
+	c2m = MAX(str,sti);
 	if (c2m <= ascle) {
 	    goto L120;
 	}
@@ -7801,14 +7812,14 @@ L160:
 /*     ANALYTIC CONTINUATION FOR RE(Z).LT.0.0D0 */
 /* ----------------------------------------------------------------------- */
     *nz = 0;
-    fmr = (doublereal) ( (*mr));
+    fmr = (doublereal) ((real) (*mr));
     sgn = -d_sign(&pi, &fmr);
 /* ----------------------------------------------------------------------- */
 /*     CSPN AND CSGN ARE COEFF OF K AND I FUNCTIONS RESP. */
 /* ----------------------------------------------------------------------- */
     csgni = sgn;
-    inu = (integer) ( (*fnu));
-    fnf = *fnu - (doublereal) ( inu);
+    inu = (integer) ((real) (*fnu));
+    fnf = *fnu - (doublereal) ((real) inu);
     ifn = inu + *n - 1;
     ang = fnf * sgn;
     cspnr = cos(ang);
@@ -7827,7 +7838,7 @@ L170:
     ic = ib - 1;
     i__1 = *n;
     for (k = 1; k <= i__1; ++k) {
-	fn = *fnu + (doublereal) ( (kk - 1));
+	fn = *fnu + (doublereal) ((real) (kk - 1));
 /* ----------------------------------------------------------------------- */
 /*     LOGIC TO SORT OUT CASES WHOSE PARAMETERS WERE SET FOR THE K */
 /*     FUNCTION ABOVE */
@@ -7990,7 +8001,7 @@ L275:
     s2i = cyi[1];
     csr = csrr[iflag - 1];
     ascle = bry[iflag - 1];
-    fn = (doublereal) ( (inu + il));
+    fn = (doublereal) ((real) (inu + il));
     i__1 = il;
     for (i__ = 1; i__ <= i__1; ++i__) {
 	c2r = s2r;
@@ -8023,7 +8034,7 @@ L280:
         // HR 20131223
 	c2r = fabs(ckr);
 	c2i = fabs(cki);
-	c2m =MAX(c2r,c2i);
+	c2m = MAX(c2r,c2i);
 	if (c2m <= ascle) {
 	    goto L290;
 	}
@@ -8074,37 +8085,37 @@ L300:
 	     d_sign(doublereal *, doublereal *);
 
     /* Local variables */
-    static integer i__, j, k, ib, ic;
-    static doublereal fn;
-    static integer il, kk, in, nw;
-    static doublereal yy, c1i, c2i, c2m, c1r, c2r, s1i, s2i, rs1, s1r, s2r, 
-	    aii, ang, asc, car, cki, fnf;
-    static integer nai;
-    static doublereal air;
-    static integer ifn;
-    static doublereal csi, ckr;
-    static integer iuf;
-    static doublereal cyi[2], fmr, sar, csr, sgn, zbi;
-    static integer inu;
-    static doublereal bry[3], cyr[2], pti, sti, zbr, zni, rzi, ptr, zri, str, 
-	    znr, rzr, zrr, daii, aarg;
-    static integer ndai;
-    static doublereal dair, aphi, argi[2], cscl, phii[2], crsc, argr[2];
-    static integer idum;
+    integer i__, j, k, ib, ic;
+    doublereal fn;
+    integer il, kk, in, nw;
+    doublereal yy, c1i, c2i, c2m, c1r, c2r, s1i, s2i, rs1, s1r, s2r, aii, ang,
+	     asc, car, cki, fnf;
+    integer nai;
+    doublereal air;
+    integer ifn;
+    doublereal csi, ckr;
+    integer iuf;
+    doublereal cyi[2], fmr, sar, csr, sgn, zbi;
+    integer inu;
+    doublereal bry[3], cyr[2], pti, sti, zbr, zni, rzi, ptr, zri, str, znr, 
+	    rzr, zrr, daii, aarg;
+    integer ndai;
+    doublereal dair, aphi, argi[2], cscl, phii[2], crsc, argr[2];
+    integer idum;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal phir[2], csrr[3], cssr[3], rast, razr;
+    doublereal phir[2], csrr[3], cssr[3], rast, razr;
     extern /* Subroutine */ int zs1s2_(doublereal *, doublereal *, doublereal 
 	    *, doublereal *, doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *, integer *);
-    static integer iflag, kflag;
-    static doublereal argdi, ascle;
-    static integer kdflg;
-    static doublereal phidi, argdr;
-    static integer ipard;
-    static doublereal csgni, phidr, cspni, asumi[2], bsumi[2];
+    integer iflag, kflag;
+    doublereal argdi, ascle;
+    integer kdflg;
+    doublereal phidi, argdr;
+    integer ipard;
+    doublereal csgni, phidr, cspni, asumi[2], bsumi[2];
     extern /* Subroutine */ int zuchk_(doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *);
-    static doublereal cspnr, asumr[2], bsumr[2];
+    doublereal cspnr, asumr[2], bsumr[2];
     extern doublereal d1mach_(integer *);
     extern /* Subroutine */ int zunhj_(doublereal *, doublereal *, doublereal 
 	    *, integer *, doublereal *, doublereal *, doublereal *, 
@@ -8113,8 +8124,8 @@ L300:
 	    doublereal *, doublereal *), zairy_(doublereal *, doublereal *, 
 	    integer *, integer *, doublereal *, doublereal *, integer *, 
 	    integer *);
-    static doublereal zeta1i[2], zeta2i[2], zet1di, zet2di, zeta1r[2], zeta2r[
-	    2], zet1dr, zet2dr, asumdi, bsumdi, asumdr, bsumdr;
+    doublereal zeta1i[2], zeta2i[2], zet1di, zet2di, zeta1r[2], zeta2r[2], 
+	    zet1dr, zet2dr, asumdi, bsumdi, asumdr, bsumdr;
 
 /* ***BEGIN PROLOGUE  ZUNK2 */
 /* ***REFER TO  ZBESK */
@@ -8169,8 +8180,8 @@ L10:
     zni = -zrr;
     zbr = zrr;
     zbi = zri;
-    inu = (integer) ( (*fnu));
-    fnf = *fnu - (doublereal) ( inu);
+    inu = (integer) ((real) (*fnu));
+    fnf = *fnu - (doublereal) ((real) inu);
     ang = -hpi * fnf;
     car = cos(ang);
     sar = sin(ang);
@@ -8199,7 +8210,7 @@ L20:
 /*     J FLIP FLOPS BETWEEN 1 AND 2 IN J = 3 - J */
 /* ----------------------------------------------------------------------- */
 	j = 3 - j;
-	fn = *fnu + (doublereal) ( (i__ - 1));
+	fn = *fnu + (doublereal) ((real) (i__ - 1));
 	zunhj_(&znr, &zni, &fn, &c__0, tol, &phir[j - 1], &phii[j - 1], &argr[
 		j - 1], &argi[j - 1], &zeta1r[j - 1], &zeta1i[j - 1], &zeta2r[
 		j - 1], &zeta2i[j - 1], &asumr[j - 1], &asumi[j - 1], &bsumr[
@@ -8347,7 +8358,7 @@ L85:
 /*     TEST LAST MEMBER FOR UNDERFLOW AND OVERFLOW. SET SEQUENCE TO ZERO */
 /*     ON UNDERFLOW. */
 /* ----------------------------------------------------------------------- */
-    fn = *fnu + (doublereal) ( (*n - 1));
+    fn = *fnu + (doublereal) ((real) (*n - 1));
     ipard = 1;
     if (*mr != 0) {
 	ipard = 0;
@@ -8372,10 +8383,12 @@ L90:
 L100:
     rs1 = s1r;
     // HR 20131223
+    //if (abs(rs1) > *elim) {
     if (fabs(rs1) > *elim) {
 	goto L105;
     }
     // HR 20131223
+    //if (abs(rs1) < *alim) {
     if (fabs(rs1) < *alim) {
 	goto L120;
     }
@@ -8385,6 +8398,7 @@ L100:
     aphi = zabs_(&phidr, &phidi);
     rs1 += log(aphi);
     // HR 20131223
+    //if (abs(rs1) < *elim) {
     if (fabs(rs1) < *elim) {
 	goto L120;
     }
@@ -8433,7 +8447,7 @@ L120:
         // HR 20131223
 	str = fabs(c2r);
 	sti = fabs(c2i);
-	c2m =MAX(str,sti);
+	c2m = MAX(str,sti);
 	if (c2m <= ascle) {
 	    goto L130;
 	}
@@ -8459,7 +8473,7 @@ L180:
 /*     ANALYTIC CONTINUATION FOR RE(Z).LT.0.0D0 */
 /* ----------------------------------------------------------------------- */
     *nz = 0;
-    fmr = (doublereal) ( (*mr));
+    fmr = (doublereal) ((real) (*mr));
     sgn = -d_sign(&pi, &fmr);
 /* ----------------------------------------------------------------------- */
 /*     CSPN AND CSGN ARE COEFF OF K AND I FUNCIONS RESP. */
@@ -8500,7 +8514,7 @@ L190:
     ic = ib - 1;
     i__1 = *n;
     for (k = 1; k <= i__1; ++k) {
-	fn = *fnu + (doublereal) ( (kk - 1));
+	fn = *fnu + (doublereal) ((real) (kk - 1));
 /* ----------------------------------------------------------------------- */
 /*     LOGIC TO SORT OUT CASES WHOSE PARAMETERS WERE SET FOR THE K */
 /*     FUNCTION ABOVE */
@@ -8554,6 +8568,7 @@ L230:
 /* ----------------------------------------------------------------------- */
 	rs1 = s1r;
         // HR 20131223
+	//if (abs(rs1) > *elim) {
 	if (fabs(rs1) > *elim) {
 	    goto L280;
 	}
@@ -8561,6 +8576,7 @@ L230:
 	    iflag = 2;
 	}
         // HR 20131223
+	//if (abs(rs1) < *alim) {
 	if (fabs(rs1) < *alim) {
 	    goto L240;
 	}
@@ -8571,6 +8587,7 @@ L230:
 	aarg = zabs_(&argdr, &argdi);
 	rs1 = rs1 + log(aphi) - log(aarg) * .25 - aic;
         // HR 20131223
+	//if (abs(rs1) > *elim) {
 	if (fabs(rs1) > *elim) {
 	    goto L280;
 	}
@@ -8676,7 +8693,7 @@ L295:
     s2i = cyi[1];
     csr = csrr[iflag - 1];
     ascle = bry[iflag - 1];
-    fn = (doublereal) ( (inu + il));
+    fn = (doublereal) ((real) (inu + il));
     i__1 = il;
     for (i__ = 1; i__ <= i__1; ++i__) {
 	c2r = s2r;
@@ -8706,10 +8723,10 @@ L300:
 	if (iflag >= 3) {
 	    goto L310;
 	}
-        // HR 20131223
+        // HR 20131223 
 	c2r = fabs(ckr);
 	c2i = fabs(cki);
-	c2m =MAX(c2r,c2i);
+	c2m = MAX(c2r,c2i);
 	if (c2m <= ascle) {
 	    goto L310;
 	}
@@ -8742,22 +8759,22 @@ L320:
     integer i__1;
 
     /* Local variables */
-    static integer i__, k;
-    static doublereal ax, ay;
-    static integer nl, nw;
-    static doublereal c1i, c1m, c1r, s1i, s2i, s1r, s2r, cyi[2], gnu, raz, 
-	    cyr[2], sti, bry[3], rzi, str, rzr, dfnu;
+    integer i__, k;
+    doublereal ax, ay;
+    integer nl, nw;
+    doublereal c1i, c1m, c1r, s1i, s2i, s1r, s2r, cyi[2], gnu, raz, cyr[2], 
+	    sti, bry[3], rzi, str, rzr, dfnu;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal fnui;
+    doublereal fnui;
     extern /* Subroutine */ int zuni1_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, doublereal *, integer *, 
 	    integer *, doublereal *, doublereal *, doublereal *, doublereal *)
 	    , zuni2_(doublereal *, doublereal *, doublereal *, integer *, 
 	    integer *, doublereal *, doublereal *, integer *, integer *, 
 	    doublereal *, doublereal *, doublereal *, doublereal *);
-    static integer iflag;
-    static doublereal ascle, csclr, cscrr;
-    static integer iform;
+    integer iflag;
+    doublereal ascle, csclr, cscrr;
+    integer iform;
     extern doublereal d1mach_(integer *);
 
 /* ***BEGIN PROLOGUE  ZBUNI */
@@ -8778,7 +8795,7 @@ L320:
 
     /* Function Body */
     *nz = 0;
-    // HR 20131223 
+    // HR 20131223
     ax = fabs(*zr) * 1.7321;
     ay = fabs(*zi);
     iform = 1;
@@ -8788,8 +8805,8 @@ L320:
     if (*nui == 0) {
 	goto L60;
     }
-    fnui = (doublereal) ( (*nui));
-    dfnu = *fnu + (doublereal) ( (*n - 1));
+    fnui = (doublereal) ((real) (*nui));
+    dfnu = *fnu + (doublereal) ((real) (*n - 1));
     gnu = dfnu + fnui;
     if (iform == 2) {
 	goto L10;
@@ -8865,10 +8882,10 @@ L25:
 	}
 	str = s2r * cscrr;
 	sti = s2i * cscrr;
-        // HR20131223
+        // HR 20131223
 	c1r = fabs(str);
 	c1i = fabs(sti);
-	c1m =MAX(c1r,c1i);
+	c1m = MAX(c1r,c1i);
 	if (c1m <= ascle) {
 	    goto L30;
 	}
@@ -8893,7 +8910,7 @@ L30:
 	return 0;
     }
     nl = *n - 1;
-    fnui = (doublereal) ( nl);
+    fnui = (doublereal) ((real) nl);
     k = nl;
     i__1 = nl;
     for (i__ = 1; i__ <= i__1; ++i__) {
@@ -8912,10 +8929,10 @@ L30:
 	if (iflag >= 3) {
 	    goto L40;
 	}
-        // HR20131223
+        // HR 20131223
 	c1r = fabs(str);
 	c1i = fabs(sti);
-	c1m =MAX(c1r,c1i);
+	c1m = MAX(c1r,c1i);
 	if (c1m <= ascle) {
 	    goto L40;
 	}
@@ -8989,22 +9006,21 @@ L90:
     double log(doublereal), exp(doublereal), cos(doublereal), sin(doublereal);
 
     /* Local variables */
-    static integer i__, k, m, nd;
-    static doublereal fn;
-    static integer nn, nw;
-    static doublereal c2i, c2m, c1r, c2r, s1i, s2i, rs1, s1r, s2r, cyi[2];
-    static integer nuf;
-    static doublereal bry[3], cyr[2], sti, rzi, str, rzr, aphi, cscl, phii, 
-	    crsc;
+    integer i__, k, m, nd;
+    doublereal fn;
+    integer nn, nw;
+    doublereal c2i, c2m, c1r, c2r, s1i, s2i, rs1, s1r, s2r, cyi[2];
+    integer nuf;
+    doublereal bry[3], cyr[2], sti, rzi, str, rzr, aphi, cscl, phii, crsc;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal phir;
-    static integer init;
-    static doublereal csrr[3], cssr[3], rast, sumi, sumr;
-    static integer iflag;
-    static doublereal ascle, cwrki[16];
+    doublereal phir;
+    integer init;
+    doublereal csrr[3], cssr[3], rast, sumi, sumr;
+    integer iflag;
+    doublereal ascle, cwrki[16];
     extern /* Subroutine */ int zuchk_(doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *);
-    static doublereal cwrkr[16];
+    doublereal cwrkr[16];
     extern doublereal d1mach_(integer *);
     extern /* Subroutine */ int zunik_(doublereal *, doublereal *, doublereal 
 	    *, integer *, integer *, doublereal *, integer *, doublereal *, 
@@ -9013,7 +9029,7 @@ L90:
 	    doublereal *), zuoik_(doublereal *, doublereal *, doublereal *, 
 	    integer *, integer *, integer *, doublereal *, doublereal *, 
 	    integer *, doublereal *, doublereal *, doublereal *);
-    static doublereal zeta1i, zeta2i, zeta1r, zeta2r;
+    doublereal zeta1i, zeta2i, zeta1r, zeta2r;
 
 /* ***BEGIN PROLOGUE  ZUNI1 */
 /* ***REFER TO  ZBESI,ZBESK */
@@ -9057,7 +9073,7 @@ L90:
 /* ----------------------------------------------------------------------- */
 /*     CHECK FOR UNDERFLOW AND OVERFLOW ON FIRST MEMBER */
 /* ----------------------------------------------------------------------- */
-    fn =MAX(*fnu,1.);
+    fn = MAX(*fnu,1.);
     init = 0;
     zunik_(zr, zi, &fn, &c__1, &c__1, tol, &init, &phir, &phii, &zeta1r, &
 	    zeta1i, &zeta2r, &zeta2i, &sumr, &sumi, cwrkr, cwrki);
@@ -9077,15 +9093,16 @@ L10:
     s1i = -zeta1i + zeta2i;
 L20:
     rs1 = s1r;
-    // HR20131223
+    // HR 20131223
+    //if (abs(rs1) > *elim) {
     if (fabs(rs1) > *elim) {
 	goto L130;
     }
 L30:
-    nn =MIN(2,nd);
+    nn = MIN(2,nd);
     i__1 = nn;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	fn = *fnu + (doublereal) ( (nd - i__));
+	fn = *fnu + (doublereal) ((real) (nd - i__));
 	init = 0;
 	zunik_(zr, zi, &fn, &c__1, &c__0, tol, &init, &phir, &phii, &zeta1r, &
 		zeta1i, &zeta2r, &zeta2i, &sumr, &sumi, cwrkr, cwrki);
@@ -9108,14 +9125,16 @@ L50:
 /*     TEST FOR UNDERFLOW AND OVERFLOW */
 /* ----------------------------------------------------------------------- */
 	rs1 = s1r;
-        // HR20131223
+        // HR 20131223
+	//if (abs(rs1) > *elim) {
 	if (fabs(rs1) > *elim) {
 	    goto L110;
 	}
 	if (i__ == 1) {
 	    iflag = 2;
 	}
-        // HR20131223
+        // HR 20131223
+	//if (abs(rs1) < *alim) {
 	if (fabs(rs1) < *alim) {
 	    goto L60;
 	}
@@ -9124,7 +9143,8 @@ L50:
 /* ----------------------------------------------------------------------- */
 	aphi = zabs_(&phir, &phii);
 	rs1 += log(aphi);
-        // HR20131223
+        // HR 20131223
+	//if (abs(rs1) > *elim) {
 	if (fabs(rs1) > *elim) {
 	    goto L110;
 	}
@@ -9181,7 +9201,7 @@ L70:
     c1r = csrr[iflag - 1];
     ascle = bry[iflag - 1];
     k = nd - 2;
-    fn = (doublereal) ( k);
+    fn = (doublereal) ((real) k);
     i__1 = nd;
     for (i__ = 3; i__ <= i__1; ++i__) {
 	c2r = s2r;
@@ -9199,10 +9219,10 @@ L70:
 	if (iflag >= 3) {
 	    goto L90;
 	}
-        // HR20131223
-	str = fabs(c2r);
+        // HR 20131223
 	sti = fabs(c2i);
-	c2m =MAX(str,sti);
+	sti = fabs(c2i);
+	c2m = MAX(str,sti);
 	if (c2m <= ascle) {
 	    goto L90;
 	}
@@ -9246,7 +9266,7 @@ L110:
     if (nd == 0) {
 	goto L100;
     }
-    fn = *fnu + (doublereal) ( (nd - 1));
+    fn = *fnu + (doublereal) ((real) (nd - 1));
     if (fn >= *fnul) {
 	goto L30;
     }
@@ -9291,26 +9311,25 @@ L130:
     double cos(doublereal), sin(doublereal), log(doublereal), exp(doublereal);
 
     /* Local variables */
-    static integer i__, j, k, nd;
-    static doublereal fn;
-    static integer in, nn, nw;
-    static doublereal c2i, c2m, c1r, c2r, s1i, s2i, rs1, s1r, s2r, aii, ang, 
-	    car;
-    static integer nai;
-    static doublereal air, zbi, cyi[2], sar;
-    static integer nuf, inu;
-    static doublereal bry[3], raz, sti, zbr, zni, cyr[2], rzi, str, znr, rzr, 
-	    daii, cidi, aarg;
-    static integer ndai;
-    static doublereal dair, aphi, argi, cscl, phii, crsc, argr;
-    static integer idum;
+    integer i__, j, k, nd;
+    doublereal fn;
+    integer in, nn, nw;
+    doublereal c2i, c2m, c1r, c2r, s1i, s2i, rs1, s1r, s2r, aii, ang, car;
+    integer nai;
+    doublereal air, zbi, cyi[2], sar;
+    integer nuf, inu;
+    doublereal bry[3], raz, sti, zbr, zni, cyr[2], rzi, str, znr, rzr, daii, 
+	    cidi, aarg;
+    integer ndai;
+    doublereal dair, aphi, argi, cscl, phii, crsc, argr;
+    integer idum;
     extern doublereal zabs_(doublereal *, doublereal *);
-    static doublereal phir, csrr[3], cssr[3], rast;
-    static integer iflag;
-    static doublereal ascle, asumi, bsumi;
+    doublereal phir, csrr[3], cssr[3], rast;
+    integer iflag;
+    doublereal ascle, asumi, bsumi;
     extern /* Subroutine */ int zuchk_(doublereal *, doublereal *, integer *, 
 	    doublereal *, doublereal *);
-    static doublereal asumr, bsumr;
+    doublereal asumr, bsumr;
     extern doublereal d1mach_(integer *);
     extern /* Subroutine */ int zunhj_(doublereal *, doublereal *, doublereal 
 	    *, integer *, doublereal *, doublereal *, doublereal *, 
@@ -9321,7 +9340,7 @@ L130:
 	    integer *), zuoik_(doublereal *, doublereal *, doublereal *, 
 	    integer *, integer *, integer *, doublereal *, doublereal *, 
 	    integer *, doublereal *, doublereal *, doublereal *);
-    static doublereal zeta1i, zeta2i, zeta1r, zeta2r;
+    doublereal zeta1i, zeta2i, zeta1r, zeta2r;
 
 /* ***BEGIN PROLOGUE  ZUNI2 */
 /* ***REFER TO  ZBESI,ZBESK */
@@ -9371,8 +9390,8 @@ L130:
     zbr = *zr;
     zbi = *zi;
     cidi = -coner;
-    inu = (integer) ( (*fnu));
-    ang = hpi * (*fnu - (doublereal) ( inu));
+    inu = (integer) ((real) (*fnu));
+    ang = hpi * (*fnu - (doublereal) ((real) inu));
     c2r = cos(ang);
     c2i = sin(ang);
     car = c2r;
@@ -9393,7 +9412,7 @@ L10:
 /* ----------------------------------------------------------------------- */
 /*     CHECK FOR UNDERFLOW AND OVERFLOW ON FIRST MEMBER */
 /* ----------------------------------------------------------------------- */
-    fn =MAX(*fnu,1.);
+    fn = MAX(*fnu,1.);
     zunhj_(&znr, &zni, &fn, &c__1, tol, &phir, &phii, &argr, &argi, &zeta1r, &
 	    zeta1i, &zeta2r, &zeta2i, &asumr, &asumi, &bsumr, &bsumi);
     if (*kode == 1) {
@@ -9412,14 +9431,16 @@ L20:
     s1i = -zeta1i + zeta2i;
 L30:
     rs1 = s1r;
-    if (abs(rs1) > *elim) {
+    // HR 20131223
+    //if (abs(rs1) > *elim) {
+    if (fabs(rs1) > *elim) {
 	goto L150;
     }
 L40:
-    nn =MIN(2,nd);
+    nn = MIN(2,nd);
     i__1 = nn;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	fn = *fnu + (doublereal) ( (nd - i__));
+	fn = *fnu + (doublereal) ((real) (nd - i__));
 	zunhj_(&znr, &zni, &fn, &c__0, tol, &phir, &phii, &argr, &argi, &
 		zeta1r, &zeta1i, &zeta2r, &zeta2i, &asumr, &asumi, &bsumr, &
 		bsumi);
@@ -9432,7 +9453,7 @@ L40:
 	str = str * rast * rast;
 	sti = -sti * rast * rast;
 	s1r = -zeta1r + str;
-        // HR20131223
+        // HR 20131223
 	s1i = -zeta1i + sti + fabs(*zi);
 	goto L60;
 L50:
@@ -9443,14 +9464,14 @@ L60:
 /*     TEST FOR UNDERFLOW AND OVERFLOW */
 /* ----------------------------------------------------------------------- */
 	rs1 = s1r;
-        // HR20131223
-	if (fabs(rs1) > *elim) {
+	if (abs(rs1) > *elim) {
 	    goto L120;
 	}
 	if (i__ == 1) {
 	    iflag = 2;
 	}
-        // HR20131223
+        // HR 20131223
+	//if (abs(rs1) < *alim) {
 	if (fabs(rs1) < *alim) {
 	    goto L70;
 	}
@@ -9461,7 +9482,8 @@ L60:
 	aphi = zabs_(&phir, &phii);
 	aarg = zabs_(&argr, &argi);
 	rs1 = rs1 + log(aphi) - log(aarg) * .25 - aic;
-        // HR20131223
+        // HR 20131223
+	//if (abs(rs1) > *elim) {
 	if (fabs(rs1) > *elim) {
 	    goto L120;
 	}
@@ -9534,7 +9556,7 @@ L80:
     c1r = csrr[iflag - 1];
     ascle = bry[iflag - 1];
     k = nd - 2;
-    fn = (doublereal) ( k);
+    fn = (doublereal) ((real) k);
     i__1 = nd;
     for (i__ = 3; i__ <= i__1; ++i__) {
 	c2r = s2r;
@@ -9552,10 +9574,10 @@ L80:
 	if (iflag >= 3) {
 	    goto L100;
 	}
-        // HR20131223
+        // HR 20131223
 	str = fabs(c2r);
 	sti = fabs(c2i);
-	c2m =MAX(str,sti);
+	c2m = MAX(str,sti);
 	if (c2m <= ascle) {
 	    goto L100;
 	}
@@ -9599,7 +9621,7 @@ L120:
     if (nd == 0) {
 	goto L110;
     }
-    fn = *fnu + (doublereal) ( (nd - 1));
+    fn = *fnu + (doublereal) ((real) (nd - 1));
     if (fn < *fnul) {
 	goto L130;
     }
@@ -9641,6 +9663,7 @@ L150:
 } /* zuni2_ */
 
 #if 0
+#HR20140127
 /* Subroutine */ int xerror_(char *mess, integer *nmess, integer *l1, integer 
 	*l2, ftnlen mess_len)
 {
@@ -9655,7 +9678,7 @@ L150:
 	    , integer *, char *, ftnlen), e_wsle(void);
 
     /* Local variables */
-    static integer i__, k, nn, nr, kmin;
+    integer i__, k, nn, nr, kmin;
 
     /* Fortran I/O blocks */
     static cilist io___1271 = { 0, 6, 0, fmt_900, 0 };
@@ -9681,7 +9704,7 @@ L150:
     for (i__ = 1; i__ <= i__1; ++i__) {
 /* Computing MIN */
 	i__2 = k + 69;
-	kmin =MIN(i__2,*nmess);
+	kmin = MIN(i__2,*nmess);
 	s_wsle(&io___1274);
 	do_lio(&c__9, &c__1, mess + (k - 1), kmin - (k - 1));
 	e_wsle();
@@ -9692,5 +9715,5 @@ L150:
     e_wsfe();
     return 0;
 } /* xerror_ */
-#endif
 
+#endif
