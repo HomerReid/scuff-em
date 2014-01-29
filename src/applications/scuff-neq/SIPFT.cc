@@ -344,7 +344,7 @@ static double LeviCivita[3][3][3]=
   { { 0.0,  0.0, -1.0 }, {  0.0, 0.0,  0.0 }, { +1.0, +0.0, +0.0 }  },
   { { 0.0, +1.0,  0.0 }, { -1.0, 0.0,  0.0 }, {  0.0,  0.0,  0.0 }  }
 };
-void GetNMatrices(double *nHat, double X[3], double XTorque[3],
+void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
                   double NMatrix[NUMSIPFT][3][3])
 {
   /***************************************************************/
@@ -424,8 +424,8 @@ void GetSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
   /***************************************************************/
   /***************************************************************/
   cdouble Z = sqrt(Mu/Eps);
-  cdouble EpsAbs = TENTHIRDS * 1.0/(ZVAC*Z);
-  cdouble MuAbs  = TENTHIRDS * ZVAC*Z;
+  cdouble EpsAbs = TENTHIRDS * Eps / ZVAC;
+  cdouble MuAbs  = TENTHIRDS * Mu * ZVAC;
 
   int NE = S->NumEdges;
   int NC = CRMatrix->NR;
@@ -527,6 +527,9 @@ void GetSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
       }; //for(int nSIFT=0; nSIFT<NUMSIPFT-1; nSIFT++)
    }; //for (int nc=0; nc<NC; nc++)
 
+  // put in the factors of 1/4
+  for(int nSIPFT=0; nSIPFT<4*NUMSIPFT; nSIPFT++)
+   SEntries[nSIPFT] *= 0.25;
 
 }
 
