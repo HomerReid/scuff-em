@@ -370,14 +370,14 @@ void GetNMatrices(double *nHat, double X[3], double XTorque[3],
   NMatrix[SIYFORCE][2][2]                           = -nHat[1];
   NMatrix[SIYFORCE][0][1] = NMatrix[SIYFORCE][1][0] =  nHat[0];
   NMatrix[SIYFORCE][1][2] = NMatrix[SIYFORCE][2][1] =  nHat[2];
-  NMatrix[SIXFORCE][0][2] = NMatrix[SIXFORCE][2][0] =  0.0;
+  NMatrix[SIYFORCE][0][2] = NMatrix[SIYFORCE][2][0] =  0.0;
 
   NMatrix[SIZFORCE][0][0]                           = -nHat[2]; 
   NMatrix[SIZFORCE][1][1]                           =  nHat[2];
   NMatrix[SIZFORCE][2][2]                           = -nHat[2];
   NMatrix[SIZFORCE][0][2] = NMatrix[SIZFORCE][2][0] =  nHat[0];
   NMatrix[SIZFORCE][1][2] = NMatrix[SIZFORCE][2][1] =  nHat[1];
-  NMatrix[SIXFORCE][0][1] = NMatrix[SIXFORCE][1][0] =  0.0;
+  NMatrix[SIZFORCE][0][1] = NMatrix[SIZFORCE][1][0] =  0.0;
 
   /***************************************************************/
   /* last three matrices are the torque matrices                 */
@@ -642,7 +642,7 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 /***************************************************************/
 /***************************************************************/
 void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN, 
-              cdouble Omega, RWGSurface *BS, int R, int NumPoints,
+              cdouble Omega, RWGSurface *BS, double R, int NumPoints,
               double SIPFT[NUMSIPFT])
 {
   Log("Computing SIPFT (R,NPts)=(%e,%i)", R, NumPoints);
@@ -706,11 +706,14 @@ void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN,
      H[1] = FMatrix->GetEntry(nr, 4);
      H[2] = FMatrix->GetEntry(nr, 5);
 
-     SIPFT[SIPOWER] += 0.5 * HVMVP(E, NMatrix[SIPOWER], H);
+     SIPFT[SIPOWER] += 0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
+                                    -HVMVP(H, NMatrix[SIPOWER], E)  
+                                  );
+
      for(int n=SIXFORCE; n<=SIZTORQUE; n++)
-      SIPFT[n] += 0.25*( EpsAbs*HVMVP(E, NMatrix[n], H)
-                         +MuAbs*HVMVP(H, NMatrix[n], H)
-                       );
+      SIPFT[n] += 0.25 * w * ( EpsAbs*HVMVP(E, NMatrix[n], E)
+                               +MuAbs*HVMVP(H, NMatrix[n], H)
+                             );
    };
 
   delete FMatrix; 
