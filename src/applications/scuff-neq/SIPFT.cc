@@ -363,7 +363,7 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
   NMatrix[SIXFORCE][2][2]                           = -nHat[0];
   NMatrix[SIXFORCE][0][1] = NMatrix[SIXFORCE][1][0] =  nHat[1];
   NMatrix[SIXFORCE][0][2] = NMatrix[SIXFORCE][2][0] =  nHat[2];
-  NMatrix[SIXFORCE][1][2] = NMatrix[SIXFORCE][2][0] =  0.0;
+  NMatrix[SIXFORCE][1][2] = NMatrix[SIXFORCE][2][1] =  0.0;
 
   NMatrix[SIYFORCE][0][0]                           = -nHat[1]; 
   NMatrix[SIYFORCE][1][1]                           =  nHat[1];
@@ -373,8 +373,8 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
   NMatrix[SIYFORCE][0][2] = NMatrix[SIYFORCE][2][0] =  0.0;
 
   NMatrix[SIZFORCE][0][0]                           = -nHat[2]; 
-  NMatrix[SIZFORCE][1][1]                           =  nHat[2];
-  NMatrix[SIZFORCE][2][2]                           = -nHat[2];
+  NMatrix[SIZFORCE][1][1]                           = -nHat[2];
+  NMatrix[SIZFORCE][2][2]                           =  nHat[2];
   NMatrix[SIZFORCE][0][2] = NMatrix[SIZFORCE][2][0] =  nHat[0];
   NMatrix[SIZFORCE][1][2] = NMatrix[SIZFORCE][2][1] =  nHat[1];
   NMatrix[SIZFORCE][0][1] = NMatrix[SIZFORCE][1][0] =  0.0;
