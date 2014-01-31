@@ -274,6 +274,10 @@ int main(int argc, char *argv[])
      {"PSDFile",        PA_STRING,  1, 1,       (void *)&PSDFile,    0,             "name of panel source density file"},
      {"PlotSurfaceCurrents", PA_BOOL, 0, 1,     (void *)&PlotSurfaceCurrents,  0,   "generate surface current visualization files"},
 /**/
+     {"SIPFTFile",      PA_STRING,  1, 1,       (void *)&SIPFTFile,  0,             "name of surface-integral PFT output file"},
+     {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
+     {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
+/**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
