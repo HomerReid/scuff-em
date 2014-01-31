@@ -3,6 +3,7 @@ bin_PROGRAMS = scuff-neq
 scuff_neq_SOURCES = 		\
  GetFlux.cc             	\
  CreateSNEQData.cc       	\
+ SIPFT.cc              		\
  Quadrature.cc         		\
  scuff-neq.cc         		\
  scuff-neq.h

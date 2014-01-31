@@ -21,8 +21,19 @@
 /* SIPFT.cc -- SCUFF-EM code for computing                     */
 /*          -- surface-integral power, force, and torque       */
 /*                                                             */
-/* There are two                                               */
+/* There are two routines here:                                */
 /*                                                             */
+/* (a) GetSIPFT inputs a vector of surface-current coefficients*/
+/*     and information about a bounding surface and returns    */
+/*     the power, force, and torque obtained by integrating    */
+/*     the Poynting vector (PV) or Maxwell stress tensor (MST) */
+/*     over that bounding surface.                             */
+/*                                                             */
+/* (a) GetSIPFTMatrices inputs only information about a        */
+/*     bounding surface, and returns matrices that may be      */
+/*     sandwiched between vectors of surface-current           */
+/*     coefficients to yield the power, force and torque       */
+/*     equivalent to the result of GetSIPFT.                   */
 /*                                                             */
 /* Homer Reid -- 1/2014                                        */
 /***************************************************************/

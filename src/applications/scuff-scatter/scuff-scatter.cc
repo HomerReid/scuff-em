@@ -238,6 +238,9 @@ int main(int argc, char *argv[])
   char *OmegaFile;                   int nOmegaFiles;
   char *EPFiles[MAXEPF];             int nEPFiles;
   char *PFTFile=0;
+  char *SIPFTFile=0;
+  double SIRadius = 100.0;
+  int SIPoints = 11;
   char *PSDFile=0;
   char *MomentFile=0;
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
@@ -276,7 +279,7 @@ int main(int argc, char *argv[])
 /**/
      {"SIPFTFile",      PA_STRING,  1, 1,       (void *)&SIPFTFile,  0,             "name of surface-integral PFT output file"},
      {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
-     {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
+     {"SIPoints",       PA_INT,     1, 1,       (void *)&SIPoints,   0,             "number of quadrature points for surface-integral PFT"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -361,7 +364,13 @@ int main(int argc, char *argv[])
   /* sanity check to make sure the user specified an incident field  */
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
-  if ( (MomentFile!=0 || PFTFile!=0 || nEPFiles>0 || nFluxMeshes>0 || PlotSurfaceCurrents) && IFDList==0 )
+  bool NeedIncidentField = (    MomentFile!=0 
+                             || PFTFile!=0 
+                             || SIPFTFile!=0 
+                             || nEPFiles>0 
+                             || nFluxMeshes>0 
+                             || PlotSurfaceCurrents);
+  if ( NeedIncidentField || IFDList==0 )
    ErrExit("you must specify at least one incident field source");
 
   /*******************************************************************/
@@ -468,7 +477,7 @@ int main(int argc, char *argv[])
      /* just wanted to export the matrix to a binary file), don't      **/
      /* bother LU-factorizing the matrix or assembling the RHS vector. **/
      /*******************************************************************/
-     if ( PFTFile==0 && PSDFile==0 && MomentFile==0 && nEPFiles==0 && nFluxMeshes==0 && PlotSurfaceCurrents==0 )
+     if ( !NeedIncidentField )
       continue;
 
      /*******************************************************************/
@@ -501,6 +510,12 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      if (PFTFile)
       WritePFTFile(SSD, PFTFile);
+
+     /*--------------------------------------------------------------*/
+     /*- scattered and absorbed power -------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (SIPFTFile)
+      WriteSIPFTFile(SSD, SIPFTFile, SIRadius, SIPoints);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

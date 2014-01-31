@@ -130,61 +130,37 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   else
    SNEQD->W->ExtractBlock(OffsetS, OffsetD, WSD);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-void *pCC=0;
-bool ExportMatrices=false;
-char *str=getenv("SCUFF_EXPORT_MATRICES");
-if (str)
- ExportMatrices=true;
-if (ExportMatrices==true && SourceSurface==0 && DestSurface==1) pCC = HMatrix::OpenHDF5Context("SD12.hdf5");
-if (ExportMatrices==true && SourceSurface==1 && DestSurface==0) pCC = HMatrix::OpenHDF5Context("SD21.hdf5");
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   /*--------------------------------------------------------------*/
-  /*- set WDOW = W_{SD}^\dagger  * O_S * W_{SD}                  -*/
+  /*- set   GW = G_S * W_{SD}                                    -*/
+  /*- and WDGW = W_{SD}^\dagger  * G_S * W_{SD}                  -*/
+  /*- where G_S = (Sym G)_{source}                               -*/
   /*--------------------------------------------------------------*/
-  HMatrix *OW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  if (SNEQD->SymGSource)
-   { 
-     HMatrix *SymG = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
-     for(int nr=0; nr<DimS; nr++)
-      for(int nc=0; nc<DimS; nc++)
-       SymG->SetEntry(nr, nc, 0.5*(       SNEQD->TSelf[SourceSurface]->GetEntry(nr,nc)
-                                    +conj(SNEQD->TSelf[SourceSurface]->GetEntry(nc,nr))
-                                  ));
-     SymG->Multiply(WSD, OW);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (pCC) SymG->ExportToHDF5(pCC,"SymGSource");
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-     delete SymG; 
-   }
-  else
-   { 
-     SMatrix *OMatrixS   = SNEQD->SArray[SourceSurface][ 1 + QINDEX_POWER ];
-     OMatrixS->Apply(WSD, OW);
-   };
-  HMatrix *WDOW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
-  WSD->Multiply(OW, WDOW, "--transA C");
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (pCC)
- { WSD->ExportToHDF5(pCC,"WSD");
-   WDOW->ExportToHDF5(pCC,"WDOW");
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  HMatrix *GW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
+  HMatrix *SymG = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  for(int nr=0; nr<DimS; nr++)
+   for(int nc=0; nc<DimS; nc++)
+    SymG->SetEntry(nr, nc, 0.5*(      SNEQD->TSelf[SourceSurface]->GetEntry(nr,nc)
+                                +conj(SNEQD->TSelf[SourceSurface]->GetEntry(nc,nr))
+                               ));
+  SymG->Multiply(WSD, OW);
+  delete SymG; 
+  HMatrix *WDGW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  WSD->Multiply(GW, WDGW, "--transA C");
 
   delete WSD;
-  delete OW;
+  delete GW;
 
   /*--------------------------------------------------------------*/
-  /*- for each quantity requested, compute trace(O*WDOW) where    */
-  /*- O is the overlap matrix for the quantity in question        */
+  /*- for each quantity requested, compute trace(M*WDGW) where    */
+  /*- M is the OPFT or SIPFT matrix for the quantity in question  */
   /*--------------------------------------------------------------*/
   int *CIndices;       // column indices
   cdouble *Entries;    // column entries   
   for(int nq=0, QIndex=0; QIndex<MAXQUANTITIES; QIndex++)
    { 
       int QFlag = 1<<QIndex;
+
+      // skip if the user didn't request this quantity
       if ( !(SNEQD->QuantityFlags & QFlag) )
        continue;
 
@@ -194,23 +170,29 @@ if (pCC)
          continue;
        };
 
-      //
+      // for 
       if ( QFlag==QFLAG_POWER && SNEQD->SymGDest )
        {
          HMatrix *T=SNEQD->TSelf[DestSurface];
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (pCC)
- { T->ExportToHDF5(pCC,"TDest");
-   HMatrix::CloseHDF5Context(pCC);
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
          double FMPTrace=0.0; //'four-matrix-product trace'
          for(int nr=0; nr<DimD; nr++)
           for(int nc=0; nc<DimD; nc++)
            { cdouble SymG = 0.5 * (T->GetEntry(nr,nc) + conj(T->GetEntry(nc,nr)) );
-             FMPTrace += real(SymG * WDOW->GetEntry(nc,nr));
+             FMPTrace += real(SymG * WDGW->GetEntry(nc,nr));
            };
          Results[nq++] = (1.0/8.0) * FMPTrace;
+         continue;
+       };
+
+      // for 
+      if ( SourceSurface==DestSurface )
+       {
+         HMatrix *M=SNEQD->MSIPFT[QIndex][DestSurface];
+         double FMPTrace=0.0; //'four-matrix-product trace'
+         for(int nr=0; nr<DimD; nr++)
+          for(int nc=0; nc<DimD; nc++)
+           FMPTrace += real( M->GetEntry(nr,nc) * WDGW->GetEntry(nc,nr));
+         Results[nq++] = (1.0/4.0) * FMPTrace;
          continue;
        };
  

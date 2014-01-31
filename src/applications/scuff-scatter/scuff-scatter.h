@@ -54,6 +54,7 @@ typedef struct SSData
 /* scattered fields in various ways.                           */
 /***************************************************************/
 void WritePFTFile(SSData *SSD, char *PFTFile);
+void WriteSIPFTFile(SSData *SSD, char *SIPFTFile, double SIRadius, int SIPoints);
 void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);

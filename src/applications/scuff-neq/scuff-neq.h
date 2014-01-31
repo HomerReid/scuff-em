@@ -122,5 +122,9 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD,
                                 double *TObjects, double TEnvironment,
                                 int Intervals, double *I, double *E);
 
-void SpeedTest(char *Greeting);
+void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
+                      RWGSurface *BS, int R, int NumPoints,
+                      cdouble Omega, bool NeedMatrix[NUMSIPFT],
+                      HMatrix *MSIPFT[NUMSIPFT]);
+
 #endif

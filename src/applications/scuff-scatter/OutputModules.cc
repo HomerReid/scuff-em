@@ -35,8 +35,15 @@
 #define RELTOL   5.0e-2
 #define MAXEVALS 20000
 
-
 #define II cdouble(0.0,1.0)
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#define NUMSIPFT 7
+void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN, 
+              cdouble Omega, RWGSurface *BS, double R, int NumPoints,
+              double SIPFT[NUMSIPFT]);
 
 /***************************************************************/
 /* compute scattered and total fields at a user-specified list */
@@ -288,6 +295,51 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
      fprintf(f,"\n");
    };
 
+  fclose(f);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteSIPFTFile(SSData *SSD, char *SIPFTFile, double SIRadius, int SIPoints)
+{
+  /*--------------------------------------------------------------*/
+  /*- write file preamble only if file does not already exist ----*/
+  /*--------------------------------------------------------------*/
+  FILE *f=fopen(SIPFTFile,"r");
+  if (!f)
+   { f=fopen(SIPFTFile,"w");
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 1 omega \n");
+     fprintf(f,"# 2 absorbed power\n");
+     fprintf(f,"# 3 x-force \n");
+     fprintf(f,"# 4 y-force \n");
+     fprintf(f,"# 5 z-force \n");
+     fprintf(f,"# 6 x-torque \n");
+     fprintf(f,"# 7 y-torque \n");
+     fprintf(f,"# 8 z-torque \n");
+   };
+  fclose(f);
+
+  f=fopen(SIPFTFile,"a");
+  if (!f)
+   return;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  Log("Computing surface-integral power, force, torque at Omega=%s...",z2s(SSD->Omega));
+
+  RWGGeometry *G=SSD->G;
+  double SIPFT[NUMSIPFT]; 
+
+  GetSIPFT(G, SSD->IF, SSD->KN, SSD->Omega, 0, SIRadius, SIPoints, SIPFT);
+
+  fprintf(f,"%s ",z2s(SSD->Omega));
+  for(int nq=0; nq<NUMSIPFT; nq++)
+   fprintf(f,"%e ",SIPFT[nq]);
+  fprintf(f,"\n");
   fclose(f);
 
 }
