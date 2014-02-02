@@ -101,12 +101,45 @@ int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 /* compute the four-matrix-trace formula for the contribution  */
 /* of sources inside SourceSurface to the fluxes of power      */
 /* and/or momentum through DestSurface.                        */
-/* If SourceSurface==DestSurface and SelfTerm==true, then the  */
-/* calculation is performed as if the surface were in          */
-/* isolation (no other objects in the geometry).               */
+/*                                                             */
+/* The quantity we compute is                                  */
+/*                                                             */
+/*  trace[ MDest * (W^\dagger) * (SymGSource) * W ]            */         
+/*                                                             */
+/*  where:                                                     */
+/*                                                             */
+/*   SymGSource = "Sym G" matrix for the source surface        */
+/*                                                             */
+/*        MDest = "O" matrix (overlap PFT matrix) for the      */
+/*                destination surface if SourceSurface!=       */
+/*                DestSurface, or                              */
+/*                "S" matrix (surface-integral PFT matrix) for */
+/*                the destination surface if SourceSurface==   */
+/*                DestSurface                                  */
+/*                                                             */
+/*            W = (Source, Dest) subblock of inverse BEM       */
+/*                unless SelfTerm==true and Source==Dest, in   */
+/*                which case W=T^{-1}, where T is the          */
+/*                on-diagonal block of the BEM matrix          */
+/*                describing the self-interactions of the      */
+/*                surface in question                          */
+/*                                                             */
+/* This routine makes use of the Buffer field of the SNEQD     */
+/* data structure, as follows:                                 */
+/*                                                             */
+/*  (A) Buffer[0] is used throughout to store the matrix       */
+/*      (W^\dagger) * SymGSource * W.                          */
+/*                                                             */
+/*  (B) Buffer[1] and Buffer[2] are used in the first part     */
+/*      of the routine to store intermediate matrices used     */
+/*      in the computation of item (A) above.                  */
+/*                                                             */
+/*  (C) Buffer[1...NumQuantities+1] are used in the second     */
+/*      part of the routine (only if Source==Dest) to store    */
+/*      the SIPFT matrices for the quantities required.        */
 /***************************************************************/
 void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
-              double *Results, bool SelfTerm=false)
+              cdouble Omega, double *Results, bool SelfTerm=false)
 {
   RWGGeometry *G      = SNEQD->G;
 
@@ -120,8 +153,8 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   /*- Set W_{SD} = S,D subblock of W matrix (SelfTerm==false)     */
   /*-            = inverse T matrix of object S (SelfTerm==true)  */
   /*--------------------------------------------------------------*/
-  HMatrix *WSD = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
-  if (SelfTerm)
+  HMatrix *WSD = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
+  if (SourceSurface==DestSurface && SelfTerm)
    { WSD->Copy(SNEQD->T[SourceSurface]);
      UndoSCUFFMatrixTransformation(WSD);
      WSD->LUFactorize();
@@ -133,22 +166,52 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   /*--------------------------------------------------------------*/
   /*- set   GW = G_S * W_{SD}                                    -*/
   /*- and WDGW = W_{SD}^\dagger  * G_S * W_{SD}                  -*/
-  /*- where G_S = (Sym G)_{source}                               -*/
+  /*- where G_S = (Sym G)_{source}.                              -*/
   /*--------------------------------------------------------------*/
-  HMatrix *GW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  HMatrix *SymG = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  HMatrix *GW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  HMatrix *SymG = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
   for(int nr=0; nr<DimS; nr++)
    for(int nc=0; nc<DimS; nc++)
     SymG->SetEntry(nr, nc, 0.5*(      SNEQD->TSelf[SourceSurface]->GetEntry(nr,nc)
                                 +conj(SNEQD->TSelf[SourceSurface]->GetEntry(nc,nr))
-                               ));
-  SymG->Multiply(WSD, OW);
+                               )); 
+  SymG->Multiply(WSD, GW);
   delete SymG; 
-  HMatrix *WDGW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
+  HMatrix *WDGW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
   WSD->Multiply(GW, WDGW, "--transA C");
 
   delete WSD;
   delete GW;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  HMatrix *MSIPFT[MAXQUANTITIES];
+  if ( SourceSurface==DestSurface )
+   { 
+    /*--------------------------------------------------------------*/
+    /*- first determine which SIPFT matrices we need                */
+    /*--------------------------------------------------------------*/
+    bool NeedMatrix[NUMSIPFT];
+    
+    for(int nq=0, QIndex=0, nBuffer=1; QIndex<MAXQUANTITIES; QIndex++)
+     { 
+       int QFlag = 1<<QIndex;
+       if ( !(SNEQD->QuantityFlags & QFlag) )
+        { NeedMatrix[nq]=false;
+          MSIPFT[nq]=0;
+        }
+       else
+        { NeedMatrix[nq]=true;
+          MSIPFT[nq]=new HMatrix(DimD, DimD, LHM_COMPLEX, 
+                                 LHM_NORMAL, SNEQD->Buffer[nBuffer++]);
+        };
+
+       GetSIPFTMatrices(G, SourceSurface, 0, 
+                        SNEQD->SIRadius, SNEQD->SINumPoints,
+                        Omega, NeedMatrix, MSIPFT);
+     };
+   };
 
   /*--------------------------------------------------------------*/
   /*- for each quantity requested, compute trace(M*WDGW) where    */
@@ -170,7 +233,7 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
          continue;
        };
 
-      // for 
+      // 
       if ( QFlag==QFLAG_POWER && SNEQD->SymGDest )
        {
          HMatrix *T=SNEQD->TSelf[DestSurface];
@@ -184,31 +247,38 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
          continue;
        };
 
-      // for 
+      //
       if ( SourceSurface==DestSurface )
        {
-         HMatrix *M=SNEQD->MSIPFT[QIndex][DestSurface];
+         HMatrix *M=MSIPFT[DestSurface];
          double FMPTrace=0.0; //'four-matrix-product trace'
          for(int nr=0; nr<DimD; nr++)
           for(int nc=0; nc<DimD; nc++)
-           FMPTrace += real( M->GetEntry(nr,nc) * WDGW->GetEntry(nc,nr));
+           FMPTrace += real( M->GetEntry(nr,nc) * WDGW->GetEntry(nc,nr) );
          Results[nq++] = (1.0/4.0) * FMPTrace;
          continue;
        };
  
+      //
       SMatrix *OMatrixD = SNEQD->SArray[DestSurface][ 1 + QIndex ];
       double FMPTrace=0.0; //'four-matrix-product trace'
       for(int ri=0; ri<DimD; ri++) // 'row index'
        { 
          int nnz=OMatrixD->GetRow(ri, &CIndices, (void **)&Entries);
          for(int nci=0; nci<nnz; nci++)
-          FMPTrace += real( Entries[nci] * WDOW->GetEntry(CIndices[nci], ri) );
+          FMPTrace += real( Entries[nci] * WDGW->GetEntry(CIndices[nci], ri) );
        };
       Results[nq++] = (-1.0/16.0) * FMPTrace;
 
    };
 
- delete WDOW;
+ /*--------------------------------------------------------------*/
+ /*- deallocate temporary storage -------------------------------*/
+ /*--------------------------------------------------------------*/
+ delete WDGW;
+ if ( SourceSurface==DestSurface )
+  for(int nq=0; nq<SNEQD->NQ; nq++)
+   if (MSIPFT[nq]) delete MSIPFT[nq];
 
 } 
 
@@ -402,7 +472,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   double SelfContributions[50][MAXQUANTITIES];
   for(int ns=0; ns<NS; ns++)
    { if (SNEQD->SubtractSelfTerms)
-      { GetTrace(SNEQD, ns, ns, SelfContributions[ns], true);
+      { GetTrace(SNEQD, ns, ns, Omega, SelfContributions[ns], true);
         Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e,%e,%e,%e)",ns,real(Omega),
              SelfContributions[1], SelfContributions[2], SelfContributions[3],
              SelfContributions[4], SelfContributions[5], SelfContributions[6]);
@@ -481,7 +551,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
          fprintf(f,"%e %s ",real(Omega),Tag);
          if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
          fprintf(f,"%i%i ",nss+1,nsd+1);
-         GetTrace(SNEQD, nss, nsd, Quantities, false);
+         GetTrace(SNEQD, nss, nsd, Omega, Quantities, false);
          for(int nq=0; nq<NQ; nq++)
           { int Index=GetIndex(SNEQD, nt, nss, nsd, nq);
             Flux[Index] = Quantities[nq]; 

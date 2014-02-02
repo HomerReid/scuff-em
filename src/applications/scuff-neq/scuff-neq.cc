@@ -148,6 +148,9 @@ int main(int argc, char *argv[])
   bool UseExistingData=false;
   bool SubtractSelfTerms=false;
   bool Visualize=false;
+   
+  double SIRadius    = 100.0;
+  double SINumPoints = 31;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
@@ -180,8 +183,10 @@ int main(int argc, char *argv[])
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for frequency quadrature"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,  0,             "number of intervals for frequency quadrature"},
 /**/
-     {"SymGSource",     PA_BOOL,    0, 1,       (void *)&SymGSource, 0,             "use Sym(G) instead of overlap matrix for source object"},
      {"SymGDest",       PA_BOOL,    0, 1,       (void *)&SymGDest,   0,             "use Sym(G) instead of overlap matrix for dest object"},
+/**/
+     {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "bounding-sphere radius for SIPFT"},
+     {"SINumPoints",    PA_INT,     1, 1,       (void *)&SINumPoints,0,             "number of quadrature points for SIPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
      {"SubtractSelfTerms", PA_BOOL, 0, 1,       (void *)&SubtractSelfTerms, 0,      "subtract self terms"},
@@ -299,6 +304,8 @@ int main(int argc, char *argv[])
   SNEQD->UseExistingData   = UseExistingData;
   SNEQD->SubtractSelfTerms = SubtractSelfTerms;
   SNEQD->Visualize         = Visualize;
+  SNEQD->SIRadius          = SIRadius;  
+  SNEQD->SINumPoints       = SINumPoints;
 
   /*******************************************************************/
   /* process any temperature specifications **************************/

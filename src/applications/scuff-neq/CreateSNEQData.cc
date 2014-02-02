@@ -133,19 +133,22 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   Log("After W: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   /*--------------------------------------------------------------*/
-  /*- Buffer[0..2] are data storage buffers with enough room to  -*/
-  /*- hold MaxBFs^2 cdoubles, where MaxBFs is the maximum number -*/
-  /*- of basis functions on any object, i.e. the max dimension   -*/
-  /*- of any BEM matrix subblock.                                -*/
+  /*- Buffer[0..nBuffer-1] are data storage buffers with enough  -*/
+  /*- room to hold MaxBFs^2 cdoubles, where MaxBFs is the maximum-*/
+  /*- number of basis functions on any object, i.e. the max      -*/
+  /*- dimension of any BEM matrix subblock.                      -*/
   /*--------------------------------------------------------------*/
   int MaxBFs=G->Surfaces[0]->NumBFs;
   for(ns=1; ns<G->NumSurfaces; ns++)
    if (G->Surfaces[ns]->NumBFs > MaxBFs) 
     MaxBFs = G->Surfaces[ns]->NumBFs;
   
-  SNEQD->Buffer[0] = malloc(MaxBFs*MaxBFs*sizeof(cdouble));
-  SNEQD->Buffer[1] = malloc(MaxBFs*MaxBFs*sizeof(cdouble));
-  SNEQD->Buffer[2] = malloc(MaxBFs*MaxBFs*sizeof(cdouble));
+  int nBuffer = 1 + SNEQD->NQ;
+  if (nBuffer<3) nBuffer=3;
+  int BufSize = MaxBFs * MaxBFs * sizeof(cdouble);
+  SNEQD->Buffer[0] = mallocEC(nBuffer*BufSize);
+  for(int nb=1; nb<nBuffer; nb++)
+   SNEQD->Buffer[nb] = SNEQD->Buffer[nb-1] + BufSize;
 
   /*--------------------------------------------------------------*/
   /*- allocate sparse matrices to store the various overlap      -*/

@@ -57,6 +57,8 @@ using namespace scuff;
 
 #define MAXQUANTITIES 7
 
+#define NUMSIPFT MAXQUANTITIES
+
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
 /* information needed to run computations a given frequency.    */
@@ -81,7 +83,10 @@ typedef struct SNEQData
    HMatrix **T;       // T[ns] = T-matrix block for surface #ns
    HMatrix **TSelf;   //
    HMatrix **U;       // U[ns*NS + nsp] = // U-matrix block for surfaces #ns, #nsp
-   void *Buffer[3];
+
+   // Buffer[0..N] are pointers into an internally-allocated
+   // chunk of memory used as a workspace in the GetTrace() routine.
+   void *Buffer[MAXQUANTITIES+1];
 
    // the NMth slot in this array of flags is 1 iff we will need
    // to compute the NMth type of overlap matrix
@@ -91,6 +96,11 @@ typedef struct SNEQData
    // SArray[ ns*8 + nm ] = overlap matrix of type #nm for surface #ns 
    // (here 8 = SCUFF_NUM_OMATRICES)
    SMatrix ***SArray;
+
+   // radius and number of quadrature points per dimension
+   // for surface-integral PFT
+   double SIRadius;
+   int SINumPoints;
    
    bool SymGSource;
    bool SymGDest;
