@@ -216,17 +216,17 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   RWGGeometry *G = SC3D->G;
 
   /***************************************************************/
-  /* SurfaceNeverMoved[ns] is initialized to 1 and remains at 1  */
+  /* SurfaceNeverMoved[ns] is initialized true and remains true  */
   /* as long as surface #ns is not displaced or rotated by any   */
-  /* geometrical transformation, but switches to 0 as soon as    */
-  /* that surface is moved, and then remains at 0 for the rest   */
+  /* geometrical transformation, but switches to false as soon as*/
+  /* that surface is moved, and then remains false for the rest  */
   /* of the calculations done at this frequency                  */
   /***************************************************************/
-  static int *SurfaceNeverMoved=0;
+  static bool *SurfaceNeverMoved=0;
   if (SurfaceNeverMoved==0)
-   SurfaceNeverMoved=(int *)mallocEC(G->NumSurfaces*sizeof(int));
+   SurfaceNeverMoved=(bool *)mallocEC(G->NumSurfaces*sizeof(bool));
   for(int ns=0; ns<G->NumSurfaces; ns++)
-   SurfaceNeverMoved[ns]=1;
+   SurfaceNeverMoved[ns]=true;
 
   /***************************************************************/
   /* assemble T matrices                                         */
@@ -335,7 +335,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
      Log("Applying transform %s...",Tag);
      G->Transform( SC3D->GTCList[nt] );
      for(int ns=0; ns<G->NumSurfaces; ns++)
-      if (G->SurfaceMoved[ns]) SurfaceNeverMoved[ns]=0;
+      if (G->SurfaceMoved[ns]) SurfaceNeverMoved[ns]=false;
 
      /***************************************************************/
      /* assemble U_{a,b} blocks and dUdXYZT_{0,b} blocks            */
