@@ -369,8 +369,9 @@ int main(int argc, char *argv[])
                              || SIPFTFile!=0 
                              || nEPFiles>0 
                              || nFluxMeshes>0 
-                             || PlotSurfaceCurrents);
-  if ( NeedIncidentField || IFDList==0 )
+                             || PlotSurfaceCurrents
+                           );
+  if ( NeedIncidentField && IFDList==0 )
    ErrExit("you must specify at least one incident field source");
 
   /*******************************************************************/
