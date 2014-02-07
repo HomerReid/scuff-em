@@ -34,15 +34,13 @@
 /***************************************************************/
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags, 
-                         int PlotFlux, char *pFileBase, 
-                         bool SymGSource, bool SymGDest)
+                         int PlotFlux, char *pFileBase, bool SymGDest)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
 
   SNEQD->WriteCache=0;
   SNEQD->PlotFlux=PlotFlux;
-  SNEQD->SymGSource=SymGSource;
   SNEQD->SymGDest=SymGDest;
 
   /*--------------------------------------------------------------*/
@@ -117,12 +115,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
         SNEQD->U[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
       };
 
-     if ( SNEQD->SymGSource || SNEQD->SymGDest )
-      { if (G->Mate[ns]==-1)
-         SNEQD->TSelf[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);//, LHM_SYMMETRIC);
-        else
-         SNEQD->TSelf[ns] = SNEQD->TSelf[ G->Mate[ns] ];
-      };
+     if (G->Mate[ns]==-1)
+      SNEQD->TSelf[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);//, LHM_SYMMETRIC);
+     else
+      SNEQD->TSelf[ns] = SNEQD->TSelf[ G->Mate[ns] ];
    };
   Log("After T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 

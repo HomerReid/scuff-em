@@ -432,38 +432,27 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
    G->Surfaces[ns]->GetOverlapMatrices(NeedMatrix, SArray[ns], Omega, G->RegionMPs[0]);
 
   /***************************************************************/
+  /* assemble the TSelf matrices *********************************/
   /***************************************************************/
-  /***************************************************************/
-  if (SNEQD->SymGSource || SNEQD->SymGDest)
-   { for(int nr=0; nr<G->NumRegions; nr++)
-      G->RegionMPs[nr]->Zero();
-     for(int ns=0; ns<NS; ns++)
-      {
-        if (G->Mate[ns]!=-1)
-         { Log(" Block %i is identical to %i (reusing TSelf matrix)",ns,G->Mate[ns]);
-           continue;
-         }
-        else
-         Log(" Assembling self contributions to TSelf(%i)...",ns);
-   
-#if 0
-        Args->Sa = Args->Sb = G->Surfaces[ns];
-        Args->B = TSelf[ns];
-        Args->Symmetric=1;
-        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
-        GetSurfaceSurfaceInteractions(Args);
-        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
-#endif
-        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
-        G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TSelf[ns]);
-        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
+  for(int nr=0; nr<G->NumRegions; nr++)
+   G->RegionMPs[nr]->Zero();
+  for(int ns=0; ns<NS; ns++)
+   {
+     if (G->Mate[ns]!=-1)
+      { Log(" Block %i is identical to %i (reusing TSelf matrix)",ns,G->Mate[ns]);
+        continue;
+      }
+     else
+      Log(" Assembling self contributions to TSelf(%i)...",ns);
 
-        UndoSCUFFMatrixTransformation(TSelf[ns]);
+     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TSelf[ns]);
+     UndoSCUFFMatrixTransformation(TSelf[ns]);
+     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
 
-      };
-     for(int nr=0; nr<G->NumRegions; nr++)
-      G->RegionMPs[nr]->UnZero();
-   };
+   }; // for(int ns=0; ns<NS; ns++)
+  for(int nr=0; nr<G->NumRegions; nr++)
+   G->RegionMPs[nr]->UnZero();
 
   /***************************************************************/
   /***************************************************************/

@@ -1,5 +1,6 @@
-geometry TwoSpheres_327.scuffgeo
-cache Sphere_327.scuffcache
+geometry TwoSSpheres_255.scuffgeo
+TransFile TwoSpheres.trans
+temperature UpperSphere 300
 power
 xforce
 yforce

@@ -142,7 +142,6 @@ int main(int argc, char *argv[])
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
 
-  bool SymGSource=false;
   bool SymGDest=false;
 
   bool UseExistingData=false;
@@ -299,7 +298,7 @@ int main(int argc, char *argv[])
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, 
-                                 PlotFlux, FileBase, SymGSource, SymGDest);
+                                 PlotFlux, FileBase, SymGDest);
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData   = UseExistingData;
   SNEQD->SubtractSelfTerms = SubtractSelfTerms;
