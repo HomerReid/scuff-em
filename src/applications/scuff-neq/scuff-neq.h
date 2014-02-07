@@ -131,7 +131,7 @@ void EvaluateFrequencyIntegral2(SNEQData *SNEQD,
                                 int Intervals, double *I, double *E);
 
 void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
-                      RWGSurface *BS, int R, int NumPoints,
+                      RWGSurface *BS, double R, int NumPoints,
                       cdouble Omega, bool NeedMatrix[NUMSIPFT],
                       HMatrix *MSIPFT[NUMSIPFT]);
 
