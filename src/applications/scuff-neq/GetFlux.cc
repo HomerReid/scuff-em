@@ -250,7 +250,7 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
       //
       if ( SourceSurface==DestSurface )
        {
-         HMatrix *M=MSIPFT[DestSurface];
+         HMatrix *M=MSIPFT[nq];
          double FMPTrace=0.0; //'four-matrix-product trace'
          for(int nr=0; nr<DimD; nr++)
           for(int nc=0; nc<DimD; nc++)
