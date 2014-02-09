@@ -194,16 +194,16 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
     /*--------------------------------------------------------------*/
     bool NeedMatrix[NUMSIPFT];
     
-    for(int nq=0, QIndex=0, nBuffer=1; QIndex<MAXQUANTITIES; QIndex++)
+    for(int QIndex=0, nBuffer=1; QIndex<MAXQUANTITIES; QIndex++)
      { 
        int QFlag = 1<<QIndex;
        if ( !(SNEQD->QuantityFlags & QFlag) )
-        { NeedMatrix[nq]=false;
-          MSIPFT[nq]=0;
+        { NeedMatrix[QIndex]=false;
+          MSIPFT[QIndex]=0;
         }
        else
-        { NeedMatrix[nq]=true;
-          MSIPFT[nq]=new HMatrix(DimD, DimD, LHM_COMPLEX, 
+        { NeedMatrix[QIndex]=true;
+          MSIPFT[QIndex]=new HMatrix(DimD, DimD, LHM_COMPLEX, 
                                  LHM_NORMAL, SNEQD->Buffer[nBuffer++]);
         };
 
@@ -240,8 +240,8 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
          double FMPTrace=0.0; //'four-matrix-product trace'
          for(int nr=0; nr<DimD; nr++)
           for(int nc=0; nc<DimD; nc++)
-           { cdouble SymG = 0.5 * (T->GetEntry(nr,nc) + conj(T->GetEntry(nc,nr)) );
-             FMPTrace += real(SymG * WDGW->GetEntry(nc,nr));
+           { cdouble SymGEntry = 0.5 * (T->GetEntry(nr,nc) + conj(T->GetEntry(nc,nr)) );
+             FMPTrace += real(SymGEntry * WDGW->GetEntry(nc,nr));
            };
          Results[nq++] = (1.0/8.0) * FMPTrace;
          continue;
