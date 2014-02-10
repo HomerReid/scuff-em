@@ -206,11 +206,11 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
           MSIPFT[QIndex]=new HMatrix(DimD, DimD, LHM_COMPLEX, 
                                  LHM_NORMAL, SNEQD->Buffer[nBuffer++]);
         };
-
-       GetSIPFTMatrices(G, SourceSurface, 0,
-                        SNEQD->SIRadius, SNEQD->SINumPoints,
-                        Omega, NeedMatrix, MSIPFT);
      };
+
+    GetSIPFTMatrices(G, SourceSurface, 0,
+                     SNEQD->SIRadius, SNEQD->SINumPoints,
+                     Omega, NeedMatrix, MSIPFT);
    };
 
   /*--------------------------------------------------------------*/
@@ -547,8 +547,10 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
             if ( nss==nsd )
              Flux[Index] -= SelfContributions[nsd][nq]; 
             fprintf(f,"%.8e ",Flux[Index]);
+            fflush(f);
           };
          fprintf(f,"\n");
+         fflush(f);
     
        };
      fclose(f);
