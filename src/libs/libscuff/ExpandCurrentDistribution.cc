@@ -102,62 +102,76 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
 }
 
 /********************************************************************/
-/* return 1 if X lies inside the triangle with vertices V1, V2, V3. */
-/* return 0 otherwise.                                              */
+/* return true if X lies inside the triangle with the given         */
+/* vertices, or false otherwise.                                    */
+/*                                                                  */
+/* Points on edges or vertices are considered to lie inside the     */
+/* triangle.                                                        */
+/*                                                                  */
 /* X is assumed to lie in the plane of the triangle.                */
-/* If L is nonnull, then all panel vertices are translated through L. */
+/*                                                                  */
+/* If L is nonnull, then the triangle is translated through L       */
+/* (actually X is translated through -L).                           */
 /********************************************************************/
-int InsideTriangle(const double *X,
-                   const double *V1, const double *V2, const double *V3,
-                   const double *L=0)
-                   
+bool InsideTriangle(const double *X,
+                    const double *V1, const double *V2, const double *V3,
+                    const double *L=0)
 {
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  const double *VV1, *VV2, *VV3;
-  double VV1Buffer[3], VV2Buffer[3], VV3Buffer[3];
+  const double *XX; 
+  double XXBuffer[3];
   if (L==0)
-   { VV1 = V1;
-     VV2 = V2;
-     VV3 = V3;
-   } 
+   XX=X;
   else
-   { VV1Buffer[0] = V1[0]+L[0];
-     VV1Buffer[1] = V1[1]+L[1];
-     VV1Buffer[2] = V1[2]+L[2];
-     VV1=VV1Buffer;
-
-     VV2Buffer[0] = V2[0]+L[0];
-     VV2Buffer[1] = V2[1]+L[1];
-     VV2Buffer[2] = V2[2]+L[2];
-     VV2=VV2Buffer;
-
-     VV3Buffer[0] = V3[0]+L[0];
-     VV3Buffer[1] = V3[1]+L[1];
-     VV3Buffer[2] = V3[2]+L[2];
-     VV3=VV3Buffer;
+   { XXBuffer[0] = X[0]-L[0];
+     XXBuffer[1] = X[1]-L[1];
+     XXBuffer[2] = X[2]-L[2];
+     XX=XXBuffer;
    };
   
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   double V1mX[3], V2mX[3], V3mX[3];
-  VecSub(VV1,X,V1mX);
-  VecSub(VV2,X,V2mX);
-  VecSub(VV3,X,V3mX);
+  VecSub(V1,XX,V1mX);
+  VecSub(V2,XX,V2mX);
+  VecSub(V3,XX,V3mX);
 
   double Length1=VecNorm(V1mX);
   double Length2=VecNorm(V2mX);
   double Length3=VecNorm(V3mX);
 
+  /***************************************************************/
+  /* detect point on vertex. FIXME: the comparison here should be*/
+  /* relative to an appropriate lengthscale, probably the minimum*/
+  /* edge length.                                                */
+  /***************************************************************/
+  if ( Length1<=1.0e-6 || Length2<=1.0e-6 || Length3<=1.0e-6 )
+   return true;
+
+  /***************************************************************/
+  /* compute angles subtended at vertex pairs ********************/
+  /***************************************************************/
   double Angle1=acos( ((float)VecDot(V1mX, V2mX)) / ((float)(Length1*Length2)) );
   double Angle2=acos( ((float)VecDot(V2mX, V3mX)) / ((float)(Length2*Length3)) );
   double Angle3=acos( ((float)VecDot(V3mX, V1mX)) / ((float)(Length3*Length1)) );
 
+  /***************************************************************/
+  /* detect point on edge  ***************************************/
+  /***************************************************************/
+  if ( EqualFloat(Angle1, M_PI ) ) return true;
+  if ( EqualFloat(Angle2, M_PI ) ) return true;
+  if ( EqualFloat(Angle3, M_PI ) ) return true;
+
+  /***************************************************************/
+  /* detect point in interior ************************************/
+  /***************************************************************/
   if ( fabs(Angle1+Angle2+Angle3 - 2.0*M_PI) < 1.0e-6 )
-   return 1;
-  return 0;
+   return true;
+
+  return false;
 
 }
 
@@ -230,9 +244,9 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
       double *QM= (E->iQM==-1) ? 0 : S->Vertices + 3*E->iQM;
 
       double *Q, QBuffer[3];
-      if ( InsideTriangle(X,QP,V1,V2) )
+      if ( InsideTriangle(EvalPoint,QP,V1,V2) )
        Q=QP;
-      else if ( QM && InsideTriangle(X,QM,V1,V2) )
+      else if ( QM && InsideTriangle(EvalPoint,QM,V1,V2) )
        Q=QM;
       else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[0]) )
        { 
@@ -257,7 +271,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
       double Area = (Q==QP) ? S->Panels[E->iPPanel]->Area : S->Panels[E->iMPanel]->Area;
    
       double fRWG[3];
-      VecSub(X,Q,fRWG);
+      VecSub(EvalPoint,Q,fRWG);
       VecScale(fRWG, E->Length / (2.0*Area) );
 
       cdouble KAlpha, NAlpha;
