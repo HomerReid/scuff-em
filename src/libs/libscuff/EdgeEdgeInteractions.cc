@@ -87,17 +87,19 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   /* // FIXME to take into account the possibility of nonzero    */
   /* displacement when figuring the distance between edge centroids */
   /***************************************************************/
-  int UseSMMethod=0;
+#if 0
+  bool UseSMMethod=false;
   if (Args->Force==EEI_FORCE_SM)
-   UseSMMethod=1;
+   UseSMMethod=true;
   else if (Args->Force==EEI_FORCE_PP)
-   UseSMMethod=0;
+   UseSMMethod=false;
   else
    { 
      double RMax=fmax(Ea->Radius, Eb->Radius);
      if (VecDistance(Ea->Centroid, Eb->Centroid) > DBFTHRESHOLD*RMax )
-      UseSMMethod=1;
+      UseSMMethod=true;
    };
+#endif
 
   /***************************************************************/
   /* get edge-edge interactions by spherical multipole method if */

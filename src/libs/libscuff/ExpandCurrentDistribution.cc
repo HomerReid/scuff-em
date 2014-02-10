@@ -41,6 +41,8 @@
 #  include <pthread.h>
 #endif
 
+#define II cdouble(0.0,1.0)
+
 namespace scuff {
 
 /***************************************************************/
@@ -99,16 +101,51 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
 
 }
 
+/********************************************************************/
 /* return 1 if X lies inside the triangle with vertices V1, V2, V3. */
 /* return 0 otherwise.                                              */
 /* X is assumed to lie in the plane of the triangle.                */
-int InsideTriangle(const double *X, const double *V1, const double *V2, const double *V3)
+/* If L is nonnull, then all panel vertices are translated through L. */
+/********************************************************************/
+int InsideTriangle(const double *X,
+                   const double *V1, const double *V2, const double *V3,
+                   const double *L=0)
+                   
 {
-  double V1mX[3], V2mX[3], V3mX[3];
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  const double *VV1, *VV2, *VV3;
+  double VV1Buffer[3], VV2Buffer[3], VV3Buffer[3];
+  if (L==0)
+   { VV1 = V1;
+     VV2 = V2;
+     VV3 = V3;
+   } 
+  else
+   { VV1Buffer[0] = V1[0]+L[0];
+     VV1Buffer[1] = V1[1]+L[1];
+     VV1Buffer[2] = V1[2]+L[2];
+     VV1=VV1Buffer;
 
-  VecSub(V1,X,V1mX);
-  VecSub(V2,X,V2mX);
-  VecSub(V3,X,V3mX);
+     VV2Buffer[0] = V2[0]+L[0];
+     VV2Buffer[1] = V2[1]+L[1];
+     VV2Buffer[2] = V2[2]+L[2];
+     VV2=VV2Buffer;
+
+     VV3Buffer[0] = V3[0]+L[0];
+     VV3Buffer[1] = V3[1]+L[1];
+     VV3Buffer[2] = V3[2]+L[2];
+     VV3=VV3Buffer;
+   };
+  
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double V1mX[3], V2mX[3], V3mX[3];
+  VecSub(VV1,X,V1mX);
+  VecSub(VV2,X,V2mX);
+  VecSub(VV3,X,V3mX);
 
   double Length1=VecNorm(V1mX);
   double Length2=VecNorm(V2mX);
@@ -127,39 +164,103 @@ int InsideTriangle(const double *X, const double *V1, const double *V2, const do
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6])
+void RWGGeometry::EvalCurrentDistribution(const double X[3], 
+                                          HVector *KNVec, 
+                                          double *kBloch,
+                                          cdouble KN[6])
 { 
-  int ne, Offset;
-  RWGSurface *S;
-  RWGEdge *E;
-  double fRWG[3];
-  double *QP, *V1, *V2, *QM, *Q;
-  double Area, Sign;
-  cdouble KAlpha, NAlpha;
+  bool PBC = NumLatticeBasisVectors > 0;
+  if (PBC && !kBloch)
+   ErrExit("%s:%i: null KBloch in PBC geometry",__FILE__,__LINE__);
+  if (!PBC && kBloch)
+   ErrExit("%s:%i: non-null KBloch in non-PBC geometry",__FILE__,__LINE__);
 
+  /***************************************************************/
+  /* If a lattice is present, translate the evaluation point into*/
+  /* the unit cell and compute the corresponding Bloch factor.   */
+  /***************************************************************/
+  double EvalPoint[3];
+  EvalPoint[0] = X[0];
+  EvalPoint[1] = X[1];
+  EvalPoint[2] = X[2];
+  cdouble BlochPhase=1.0;
+  double *LBV[2]={0,0};
+  if ( PBC )
+   { 
+     if (NumLatticeBasisVectors!=2)
+      ErrExit("%s:%i: only 2D lattices supported");
+     if (    LatticeBasisVectors[0][1] != 0.0 
+          || LatticeBasisVectors[1][0] != 0.0 
+        ) 
+      ErrExit("%s:%i: only square lattices supported");
+
+     LBV[0] = LatticeBasisVectors[0];
+     LBV[1] = LatticeBasisVectors[1];
+
+     double L[2];
+
+     int n1 = floor( X[0] / LBV[0][0] );
+     L[0] = n1*LBV[0][0];
+     EvalPoint[0] = X[0] - L[0];
+
+     int n2 = floor( X[1] / LBV[1][1] );
+     L[1] = n2*LBV[1][1];
+     EvalPoint[1] = X[1] - L[1];
+     
+     BlochPhase = exp( II * (kBloch[0]*L[0] + kBloch[1]*L[1]) );
+
+   };
+ 
+  /***************************************************************/
+  /* Note: If the evaluation point lies inside the translate of  */
+  /* the negative panel of a straddler edge, we need to include  */
+  /* a Bloch phase factor and translate the QM vertex.           */
+  /***************************************************************/
   memset(KN,0,6*sizeof(cdouble));
+  RWGSurface *S; 
+  int Offset, ne;
+  cdouble StraddlerPhase=1.0;
   for(int ns=0; ns<NumSurfaces; ns++)
    for(S=Surfaces[ns], Offset=BFIndexOffset[ns], ne=0; ne<S->NumEdges; ne++)
     { 
-      E=S->Edges[ne];
-      QP=S->Vertices + 3*E->iQP;
-      V1=S->Vertices + 3*E->iV1;
-      V2=S->Vertices + 3*E->iV2;
-      QM= (E->iQM==-1) ? 0 : S->Vertices + 3*E->iQM;
+      RWGEdge *E=S->Edges[ne];
+      double *QP=S->Vertices + 3*E->iQP;
+      double *V1=S->Vertices + 3*E->iV1;
+      double *V2=S->Vertices + 3*E->iV2;
+      double *QM= (E->iQM==-1) ? 0 : S->Vertices + 3*E->iQM;
 
+      double *Q, QBuffer[3];
       if ( InsideTriangle(X,QP,V1,V2) )
        Q=QP;
       else if ( QM && InsideTriangle(X,QM,V1,V2) )
        Q=QM;
+      else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[0]) )
+       { 
+         QBuffer[0] = QM[0] + LBV[0][0];
+         QBuffer[1] = QM[1] + LBV[0][1];
+         QBuffer[2] = QM[2] + LBV[0][2];
+         Q = QBuffer;
+         StraddlerPhase = exp( II * ( kBloch[0]*LBV[0][0] + kBloch[1]*LBV[0][1]) );
+       }
+      else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[1]) )
+       { 
+         QBuffer[0] = QM[0] + LBV[1][0];
+         QBuffer[1] = QM[1] + LBV[1][1];
+         QBuffer[2] = QM[2] + LBV[1][2];
+         Q = QBuffer;
+         StraddlerPhase = exp( II * ( kBloch[0]*LBV[1][0] + kBloch[1]*LBV[1][1]) );
+       }
       else
        continue;
 
-      Sign = (Q==QP) ? +1.0 : -1.0;
-      Area = (Q==QP) ? S->Panels[E->iPPanel]->Area : S->Panels[E->iMPanel]->Area;
+      double Sign = (Q==QP) ? +1.0 : -1.0;
+      double Area = (Q==QP) ? S->Panels[E->iPPanel]->Area : S->Panels[E->iMPanel]->Area;
    
+      double fRWG[3];
       VecSub(X,Q,fRWG);
       VecScale(fRWG, E->Length / (2.0*Area) );
 
+      cdouble KAlpha, NAlpha;
       if ( S->IsPEC )
        { KAlpha = KNVec->GetEntry( Offset + ne );
          NAlpha = 0.0;
@@ -168,6 +269,8 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdo
        { KAlpha = KNVec->GetEntry( Offset + 2*ne);
          NAlpha = -1.0*ZVAC*KNVec->GetEntry( Offset + 2*ne+1);
        };
+      KAlpha *= BlochPhase * StraddlerPhase;
+      NAlpha *= BlochPhase * StraddlerPhase;
 
       KN[0] += Sign * KAlpha * fRWG[0]; 
       KN[1] += Sign * KAlpha * fRWG[1]; 
@@ -178,5 +281,15 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3], HVector *KNVec, cdo
 
    }; // for(ns=0; ... for(ne=0 ... 
 }  
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::EvalCurrentDistribution(const double X[3], 
+                                          HVector *KNVec, 
+                                          cdouble KN[6])
+{
+  EvalCurrentDistribution(X, KNVec, 0, KN);
+}
 
 } // namespace scuff

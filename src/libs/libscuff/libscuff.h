@@ -428,6 +428,7 @@ class RWGGeometry
 
    /* evaluate the surface currents at a given point X on an object */
    /* surface, given a vector of RWG expansion coefficients         */
+   void EvalCurrentDistribution(const double X[3], HVector *KNVec, double *kBloch, cdouble KN[6]);
    void EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6]);
 
    /* routine for setting logging verbosity */
