@@ -357,6 +357,7 @@ void RWGSurface::WritePPMesh(const char *FileName, const char *Tag, int PlotNorm
 #define LS_INTERIOREDGEINDICES 2
 #define LS_EXTERIOREDGEINDICES 4
 #define LS_VERTEXINDICES       8
+#define LS_BFDIRECTIONS        16
 void RWGSurface::WritePPMeshLabels(const char *FileName,
                                    const char *Tag, 
                                    int WhichLabels)
@@ -449,15 +450,47 @@ void RWGSurface::WritePPMeshLabels(const char *FileName,
      fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
    };
 
+  /***************************************************************/
+  /* basis-function directions ***********************************/
+  /***************************************************************/
+  if (WhichLabels & LS_BFDIRECTIONS)
+   {
+     if (Tag)
+      fprintf(f,"View \"%s.BFDirections\" {\n",Tag);
+     else
+      fprintf(f,"View \"BFDirections\" {\n");
+     for(ne=0, E=Edges[0]; ne<NumEdges; E=Edges[++ne])
+      { 
+        double *PCentroid, *MCentroid;
+        PCentroid = Panels[E->iPPanel]->Centroid;
+        if (E->iMPanel==-1)
+         MCentroid = E->Centroid;
+        else
+         MCentroid = Panels[E->iMPanel]->Centroid;
+
+        double Dir[3]; 
+        Dir[0] = MCentroid[0] - PCentroid[0];
+        Dir[1] = MCentroid[1] - PCentroid[1];
+        Dir[2] = MCentroid[2] - PCentroid[2];
+        fprintf(f,"VP(%e,%e,%e) {%e, %e, %e};\n",
+                 E->Centroid[0],E->Centroid[1],E->Centroid[2],
+                 Dir[0],Dir[1],Dir[2]);
+      };
+     fprintf(f,"};\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
+     fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+   };
 
   fclose(f);
 }
 
 void RWGSurface::WritePPMeshLabels(const char *FileName, const char *Tag)
-{ WritePPMeshLabels(FileName, Tag,   LS_PANELINDICES 
+{ WritePPMeshLabels(FileName, Tag,   LS_PANELINDICES
                                    | LS_INTERIOREDGEINDICES
                                    | LS_EXTERIOREDGEINDICES
-                                   | LS_VERTEXINDICES );
+                                   | LS_VERTEXINDICES
+                                   | LS_BFDIRECTIONS
+                   );
 }
 
 /***************************************************************/

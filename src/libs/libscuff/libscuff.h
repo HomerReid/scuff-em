@@ -424,7 +424,7 @@ class RWGGeometry
 
    /* routine for computing the expansion coefficients in the RWG basis */
    /* of an arbitrary user-supplied surface-tangential vector field;    */
-   void ExpandCurrentDistribution(IncField *IF, HVector *KN);
+   void ExpandCurrentDistribution(IncField *IF, HVector *KN, cdouble Omega=1.0);
 
    /* evaluate the surface currents at a given point X on an object */
    /* surface, given a vector of RWG expansion coefficients         */

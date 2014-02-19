@@ -46,7 +46,7 @@ namespace scuff {
 int RWGGeometry::PBCCubatureOrder=4;
 bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
 bool RWGGeometry::UsePBCAcceleration=false;
-double RWGGeometry::DeltaInterp=0.5;
+double RWGGeometry::DeltaInterp=0.05;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
 int RWGGeometry::NumMeshDirs=0;

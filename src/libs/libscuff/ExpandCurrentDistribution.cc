@@ -48,7 +48,7 @@ namespace scuff {
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
+void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec, cdouble Omega)
 { 
   int n, ne, nep;
   RWGSurface *S;
@@ -61,7 +61,9 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
   S=Surfaces[0];
 
   Log("ExpandCD: Assembling RHS");
-  AssembleRHSVector(1.0, IF, KNVec);
+  AssembleRHSVector(Omega, IF, KNVec);
+  // undo the factors of -1/ZVAC and ZVAC that AssembleRHSVector
+  // automatically puts into the the KNVector
   if (KNVec->RealComplex==LHM_COMPLEX)
    { for(n=0; n<(KNVec->N)/2; n++)
       { KNVec->ZV[2*n] *= -1.0*ZVAC;
@@ -102,8 +104,8 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
 }
 
 /********************************************************************/
-/* return true if X lies inside the triangle with the given         */
-/* vertices, or false otherwise.                                    */
+/* return 0 if X lies outside the triangle with the given vertices, */
+/* or a positive integer otherwise.                                 */
 /*                                                                  */
 /* Points on edges or vertices are considered to lie inside the     */
 /* triangle.                                                        */
@@ -113,9 +115,13 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec)
 /* If L is nonnull, then the triangle is translated through L       */
 /* (actually X is translated through -L).                           */
 /********************************************************************/
-bool InsideTriangle(const double *X,
-                    const double *V1, const double *V2, const double *V3,
-                    const double *L=0)
+#define IT_EXTERIOR 0
+#define IT_ONVERTEX 1
+#define IT_ONEDGE   2
+#define IT_INTERIOR 3
+int InsideTriangle(const double *X,
+                   const double *V1, const double *V2, const double *V3,
+                   const double *L=0)
 {
   /***************************************************************/
   /***************************************************************/
@@ -149,7 +155,7 @@ bool InsideTriangle(const double *X,
   /* edge length.                                                */
   /***************************************************************/
   if ( Length1<=1.0e-6 || Length2<=1.0e-6 || Length3<=1.0e-6 )
-   return true;
+   return IT_ONVERTEX;
 
   /***************************************************************/
   /* compute angles subtended at vertex pairs ********************/
@@ -161,17 +167,17 @@ bool InsideTriangle(const double *X,
   /***************************************************************/
   /* detect point on edge  ***************************************/
   /***************************************************************/
-  if ( EqualFloat(Angle1, M_PI ) ) return true;
-  if ( EqualFloat(Angle2, M_PI ) ) return true;
-  if ( EqualFloat(Angle3, M_PI ) ) return true;
+  if ( EqualFloat(Angle1, M_PI ) ) return IT_ONEDGE;
+  if ( EqualFloat(Angle2, M_PI ) ) return IT_ONEDGE;
+  if ( EqualFloat(Angle3, M_PI ) ) return IT_ONEDGE;
 
   /***************************************************************/
   /* detect point in interior ************************************/
   /***************************************************************/
   if ( fabs(Angle1+Angle2+Angle3 - 2.0*M_PI) < 1.0e-6 )
-   return true;
+   return IT_INTERIOR;
 
-  return false;
+  return IT_EXTERIOR;
 
 }
 
@@ -243,12 +249,18 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
       double *V2=S->Vertices + 3*E->iV2;
       double *QM= (E->iQM==-1) ? 0 : S->Vertices + 3*E->iQM;
 
+      /***************************************************************/
+      /* Note: If the point lies on an RWG edge, it will be deemed   */
+      /* to lie 'inside' both the positive and negative triangles    */
+      /* for that edge. To avoid double-counting, for on-edge points */
+      /* we only add the contribution of the positive panel.         */
+      /***************************************************************/
       double *Q, QBuffer[3];
       if ( InsideTriangle(EvalPoint,QP,V1,V2) )
        Q=QP;
-      else if ( QM && InsideTriangle(EvalPoint,QM,V1,V2) )
+      else if ( QM && InsideTriangle(EvalPoint,QM,V1,V2)==IT_INTERIOR )
        Q=QM;
-      else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[0]) )
+      else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[0])==IT_INTERIOR )
        { 
          QBuffer[0] = QM[0] + LBV[0][0];
          QBuffer[1] = QM[1] + LBV[0][1];
@@ -256,7 +268,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
          Q = QBuffer;
          StraddlerPhase = exp( II * ( kBloch[0]*LBV[0][0] + kBloch[1]*LBV[0][1]) );
        }
-      else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[1]) )
+      else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[1])==IT_INTERIOR )
        { 
          QBuffer[0] = QM[0] + LBV[1][0];
          QBuffer[1] = QM[1] + LBV[1][1];

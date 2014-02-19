@@ -296,6 +296,33 @@ void WriteGeometryLabels(RWGGeometry *G)
   fprintf(f,"};\n");
   fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
   fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
+
+  /***************************************************************/
+  /* BF directions ***********************************************/
+  /***************************************************************/
+  fprintf(f,"View \"BFDirections\" {\n");
+  for(ns=0; ns<G->NumSurfaces; ns++)
+   for(S=G->Surfaces[ns], ne=0; ne<S->NumEdges; ne++)
+    { 
+      RWGEdge *E = S->Edges[ne];
+      double *PCentroid, *MCentroid;
+      PCentroid = S->Panels[E->iPPanel]->Centroid;
+      if (E->iMPanel==-1)
+        MCentroid = E->Centroid;
+      else
+        MCentroid = S->Panels[E->iMPanel]->Centroid;
+
+      double Dir[3]; 
+      Dir[0] = MCentroid[0] - PCentroid[0];
+      Dir[1] = MCentroid[1] - PCentroid[1];
+      Dir[2] = MCentroid[2] - PCentroid[2];
+      fprintf(f,"VP(%e,%e,%e) {%e, %e, %e};\n",
+                 E->Centroid[0],E->Centroid[1],E->Centroid[2],
+                 Dir[0],Dir[1],Dir[2]);
+    };
+  fprintf(f,"};\n");
+  fprintf(f,"View[PostProcessing.NbViews-1].ShowElement=0;\n");
+  fprintf(f,"View[PostProcessing.NbViews-1].ShowScale=0;\n");
  
   fclose(f);
   
