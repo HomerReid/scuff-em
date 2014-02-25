@@ -580,15 +580,36 @@ void GBarVDEwald(double *R, cdouble k,
    };
 
   /***************************************************************/
+  /* Note: The algorithm we use is designed to compute the sum   */
+  /*                                                             */
+  /*  GPlus(k, r) = \sum_{L} e^{i K.L } G_0( r + L )     (1)     */
+  /*                                                             */
+  /* In particular, the subroutines above (ComputeG1, ComputeG2, */
+  /* &c) are designed according to this convention.              */
+  /*                                                             */
+  /* However, the sum we actually want to compute for SCUFF      */
+  /* purposes is                                                 */
+  /*                                                             */
+  /*  GMinus(k,r) = \sum_{L} e^{i K.L } G_0( r - L ).    (2)     */
+  /*                                                             */
+  /* In what follows we exploit the relationship                 */
+  /*                                                             */
+  /*  GMinus(k,r) = GPlus(-k,r)                                  */
+  /*                                                             */
+  /* by running our algorithm of GPlus with a Bloch vector equal */
+  /* to minus the caller's requested Bloch vector.               */
   /***************************************************************/
-  /***************************************************************/
-  cdouble G1[NSUM], G2[NSUM], GBFFirst9[NSUM];
+  double MkBloch[3];
+  MkBloch[0] = -1.0*kBloch[0];
+  MkBloch[1] = -1.0*kBloch[1];
+  MkBloch[2] = -1.0*kBloch[2];
 
-  ComputeG1(MyR, k, kBloch, LBVinv, E, 0, G1);
-  ComputeG2(MyR, k, kBloch, LBV, E, 0, G2);
+  cdouble G1[NSUM], G2[NSUM], GBFFirst9[NSUM];
+  ComputeG1(MyR, k, MkBloch, LBVinv, E, 0, G1);
+  ComputeG2(MyR, k, MkBloch, LBV, E, 0, G2);
 
   if (ExcludeFirst9)
-   ComputeGBFFirst9(MyR, k, 2, kBloch, LBV, GBFFirst9);
+   ComputeGBFFirst9(MyR, k, 2, MkBloch, LBV, GBFFirst9);
   else
    memset(GBFFirst9,0,NSUM*sizeof(cdouble));
 
