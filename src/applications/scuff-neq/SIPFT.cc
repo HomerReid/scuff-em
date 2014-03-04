@@ -49,7 +49,7 @@
 #include <libTriInt.h>
 #include <config.h>
 
-#include "CCRules.cc"
+#include "CCRules.h"
  
 using namespace scuff;
 

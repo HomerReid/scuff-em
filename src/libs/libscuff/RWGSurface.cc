@@ -623,7 +623,7 @@ void RWGSurface::Transform(const GTransformation *DeltaGT)
     GT->Transform(DeltaGT);
 }
 
-void RWGSurface::Transform(char *format,...)
+void RWGSurface::Transform(const char *format,...)
 {
   va_list ap;
   char buffer[MAXSTR];

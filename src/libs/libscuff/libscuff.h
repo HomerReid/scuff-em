@@ -206,7 +206,7 @@ class RWGSurface
 
    /* apply a general transformation (rotation+displacement) to the surface */
    void Transform(const GTransformation *GT);
-   void Transform(char *format, ...);
+   void Transform(const char *format, ...);
    void UnTransform();
 
    /* fast inclusion tests */
