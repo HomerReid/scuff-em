@@ -20,7 +20,6 @@
 \author {Homer Reid}
 \date {January 22, 2014}
 
-
 %------------------------------------------------------------
 %------------------------------------------------------------
 %- Start of actual document
@@ -94,29 +93,52 @@ of the surface-current distribution in the unit cell of the structure.
 For definiteness, I suppose that the structure is infinitely 
 extended in the $x$ and $y$ directions with finite extent in
 the $z$ direction, and I suppose the structure is illuminated 
-from below by a plane wave with propagation vector confined
-to the $xz$ plane. More general situations could easily be 
+from below by a plane wave with propagation vector $\vb k$ 
+confined to the $xz$ plane. More general situations could easily be 
 handled by extending the methods of this section.
 
-The incident, reflected, and transmitted electric fields
+The incident, reflected, and transmitted fields
 may be written in the form
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{subequations}
-\begin{align}
-  \vb E\sups{inc}(\vb x)
-&=E_0 \vbEps_0 e^{ i (k_x x + k_z z)}
-\\
-   \vb E\sups{refl}(\vb x)
-&=rE_0 \vbEps_0\sups{refl} e^{ i (k_x x - k_z z)}
-\\
-  \vb E\sups{trans}(\vb x)
-&=tE_0\vbEps_0\sups{trans} e^{ i (k_x x + k_z^\prime z)}
-\end{align}
-\label{trDef}
-\end{subequations}
-where $E_0$ is the incident field magnitude and 
-$\vbEps_0$ is a polarization vector.
-Equations (\ref{trDef}b) and (\ref{trDef}c)
+\numeq{trDef}
+{ \begin{array}{lclclcl}
+%--------------------------------------------------------------------%
+  \displaystyle{ \vb E\sups{inc}(\vb x) }
+& =
+& \displaystyle{ E_0 \vbEps_0 e^{ i (k_x x + k_z z) } }
+& \qquad 
+& \displaystyle{ \vb H\sups{inc}(\vb x) }
+& =
+& \displaystyle { H_0 \overline{\vbEps}_0 e^{ i (k_x x + k_z z) } }
+\\[5pt]
+%--------------------------------------------------------------------%
+  \displaystyle{ \vb E\sups{refl}(\vb x) }
+& =
+& \displaystyle{ r E_0 \vbEps_0\sups{refl} e^{ i (k_x x - k_z z)} }
+& \qquad 
+& \displaystyle{ \vb H\sups{refl}(\vb x) }
+& =
+& \displaystyle{r H_0 \overline{\vbEps}_0\sups{refl} e^{ i (k_x x + k_z z) }}
+\\[5pt]
+%--------------------------------------------------------------------%
+  \displaystyle{ \vb E\sups{trans}(\vb x) }
+& =
+& \displaystyle{ tE_0\vbEps_0\sups{trans} e^{ i (k_x x + k_z^\prime z)} }
+& \qquad 
+& \displaystyle{ \vb H\sups{trans}(\vb x) }
+& =
+& \displaystyle{ \frac{tH_0}{Z^\prime} \overline{\vbEps}_0\sups{trans} e^{ i (k_x x + k_z^\prime z) } }
+\end{array}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $E_0$ is the incident field magnitude, $\vbEps_0$ is the
+incident-field polarization vector, and 
+$$H_0\equiv \frac{i|\vb k|E_0}{Z_0}, 
+  \qquad 
+  \overline{\vbEps} = \vbhat{k} \times \vbEps,
+  \qquad 
+  Z^\prime = \sqrt{\frac{\mu^\prime}{\epsilon^\prime}}
+$$
+Equations (\ref{trDef})
 define the reflection and transmission coefficients 
 $r$ and $t$. Also, the components of the propagation
 vector in the lower medium are 
@@ -124,33 +146,62 @@ vector in the lower medium are
 $$ k_x = k_0\sin\theta, \qquad k_z=k_0\cos\theta$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 (where $\theta$ is the incident angle of the illuminating
-radiation) and 
+radiation). The components of the propagation vector
+in the upper medium are 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\numeq{kzPrime1}{k_z^\prime = \sqrt{ k_0^{\prime 2} - k_x^2}}
-where 
+\begin{align}
+ k_x^\prime &= k_x  \\
+            &= k_0^\prime \sin\theta^\prime
+\\
+ k_z^\prime &= \sqrt{ k_0^{\prime 2} - k_x^2}
+\label{kzPrime1}
+ &= k_0^\prime \cos\theta^\prime 
+\end{align}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ k_0^\prime = \sqrt{\epsilon^\prime \mu^\prime}\cdot k_0$$
+where
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ k_0^\prime = \sqrt{\epsilon^\prime \mu^\prime}\cdot k_0, \qquad
+   \sin\theta^\prime = \sqrt\frac{1}{\epsilon^\prime \mu^\prime} 
+   \sin\theta.
+$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 is the wavenumber in the upper medium.
 
-\subsubsection*{TE and TM Polarizations} 
+\subsubsection*{Polarization vectors for TE and TM polarizations} 
 
-For the TE polarization, the polarization vectors in 
-(\ref{trDef}) are all equal:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- \text{TE:} 
-   \qquad \vbEps_0&=\vbEps_0\sups{refl}=\vbEps_0\sups{trans}=\vbhat{y}.
-\\
- \text{TM:} 
-   \qquad \vbEps_0&=\cos\theta\,\vbhat{x} - \sin\theta\,\vbhat{z} \\
- \vbEps\sups{refl}&=\cos\theta\,\vbhat{x} + \sin\theta\,\vbhat{z} \\
-\vbEps\sups{trans}&=\cos\theta^\prime \, \vbhat{x} - \sin\theta^\prime\vbhat{z}
-\end{align*}
-where 
-$$\sin\theta^\prime = \sqrt\frac{1}{\epsilon^\prime \mu^\prime} 
-  \sin\theta.
-$$
+\paragraph{TE:}
+\numeq{TEPolVectors}
+{ \begin{array}{lclclcl}
+   \vbEps_0&=&\vbhat{y} &\qquad 
+   &\overline{\vbEps}_0&=& -\cos\theta \,\vbhat{i}+ \sin\theta\,\vbhat{z} 
+\\[5pt]
+   \vbEps_0\sups{refl}&=&\vbhat{y} &\qquad 
+   &\overline{\vbEps}_0\sups{refl}&=& -\cos\theta^\prime \,\vbhat{i}+ \sin\theta\,\vbhat{z}
+\\[5pt]
+   \vbEps_0\sups{trans}&=&\vbhat{y} &\qquad 
+   &\overline{\vbEps}_0\sups{trans}&=& -\cos\theta \,\vbhat{i}+ \sin\theta\,\vbhat{z}
+  \end{array}
+}
+\paragraph{TM:}
+\numeq{TMPolVectors}
+{ \begin{array}{lclclcl}
+   \vbEps_0&=&\cos\theta\,\vbhat{x} - \sin\theta\,\vbhat{z} &\qquad 
+   &\overline{\vbEps}_0&=& \vbhat{y}
+\\[5pt]
+   \vbEps_0&=&\cos\theta^\prime\,\vbhat{x} - \sin\theta\,\vbhat{z} &\qquad 
+   &\overline{\vbEps}_0&=& \vbhat{y}
+\\[5pt]
+   \vbEps_0&=&\cos\theta\,\vbhat{x} - \sin\theta\,\vbhat{z} &\qquad 
+   &\overline{\vbEps}_0&=& \vbhat{y}.
+  \end{array}
+}
+%
+% \text{TM:} 
+%   \qquad \vbEps_0&=\cos\theta\,\vbhat{x} - \sin\theta\,\vbhat{z} \\
+% \vbEps\sups{refl}&=\cos\theta\,\vbhat{x} + \sin\theta\,\vbhat{z} \\
+%\vbEps\sups{trans}&=\cos\theta^\prime \, \vbhat{x} - \sin\theta^\prime\vbhat{z}
+%\end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Bloch periodicity} 
@@ -356,13 +407,14 @@ the scattered field above the surface takes the form
 \label{ETransSurfaceIntegral}
 \end{align}
 %====================================================================%
-
-\subsection*{Transmission coefficient for TE polarization}
-
+Comparing this to (\ref{trDef}c), we see that the quantity in
+curly braces is to be identified as $t E_0 \vbEps_0\sups{trans},$
+and thus we can extract the transmission coefficient $t$ in the form
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- t\supt{TE}
-&=-\frac{k_0^\prime}{2 \mc V k_z^\prime}
+\numeq{tExpression}
+{
+ t
+ =-\frac{k_0^\prime}{2 \mc V k_z^\prime E_0}
    \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
         \left[ Z_0 Z^\prime 
                (\vbEps_0\sups{trans})^\dagger \cdot 
@@ -370,15 +422,21 @@ the scattered field above the surface takes the form
                +(\vbEps_0\sups{trans})^\dagger \cdot 
                \vbhat{C}(\vb k)\cdot \vb N(\vb x^\prime) 
         \right] \, d\vb x^\prime
-\end{align*}
+}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-We have 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Transmission coefficient for TE polarization}
+
+In this case we have 
+%====================================================================%
+\begin{align}
 &\hspace{-0.05in}
  (\vbEps_0\sups{trans})^\dagger \cdot
  \vbhat{G}(\vb k) \cdot \vb K(\vb x^\prime)
-\\
+\nn
 &=
  \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
  \left[ \left(\begin{array}{ccc}
@@ -395,25 +453,27 @@ We have
         \right)
  \right]
  \left(\begin{array}{c}K_x \\ K_y \\ K_z\end{array}\right)
-\\
+\nn
 &=
  \frac{1}{k_0^{\prime 2}}
  \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
  \left(\begin{array}{c} -k_y k_x K_x \\ (k_0^{\prime 2}-k_y^2)K_y \\ -k_y k_z K_z
        \end{array}\right)
-\\
+\nn
 &= K_y
-\end{align*}
+\label{ECN1}
+\end{align}
+%====================================================================%
 since, in our setup, the $y$ component of the Bloch 
 wavevector is $k_y=0.$
 
 Similarly, 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
+%====================================================================%
+\begin{align}
 &\hspace{-0.05in}
  (\vbEps_0\sups{trans})^\dagger \cdot
  \vbhat{C}(\vb k) \cdot \vb N(\vb x^\prime)
-\\
+\nn
 &=
  \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
  \left[ \frac{1}{k_0^{\prime}}
@@ -425,34 +485,55 @@ Similarly,
         \right)
  \right]
  \left(\begin{array}{c}N_x \\ N_y \\ N_z\end{array}\right)
-\\
+\nn
 &=
  \frac{1}{k_0^\prime}
  \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
  \left(\begin{array}{c} \cdots \\ -k_z N_x + k_x N_z \\ \cdots
        \end{array}\right)
-\\
+\nn
 &=-\cos\theta^\prime N_x + \sin\theta^\prime N_z.
-\end{align*}
+\label{ECN2}
+\end{align}
+%====================================================================%
+Comparing (\ref{ECN1}) and (\ref{ECN2}) to (\ref{TEPolVectors}),
+we see that the 
+vector-matrix-vector sandwiches that enter the definition of 
+the transmission coefficient (\ref{tExpression}) wind up 
+computing simply the inner products of the $\vb K$ and $\vb N$
+surface currents with the field polarization vectors: 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ (\vbEps_0\sups{trans})^\dagger
+    \cdot
+    \vbhat{G}(\vb k)
+    \cdot
+    \vb K(\vb x^\prime)
+   = \vbEps_0\sups{trans} \cdot \vb K, 
+   \qquad
+   (\vbEps_0\sups{trans})^\dagger
+    \cdot
+    \vbhat{C}(\vb k)
+    \cdot
+    \vb N(\vb x^\prime)
+   = \overline{\vbEps_0}\sups{trans} \cdot \vb N
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Putting it all together, 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
  t\supt{TE}
-&=-\frac{k_0^\prime}{2\mc V k_z^\prime}
+&=-\frac{k_0^\prime}{2\mc V k_z^\prime E_0}
    \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
-        \Big[ Z_0 Z^\prime K_y(\vb x^\prime)
-               -\cos\theta^\prime N_x(\vb x^\prime)
-               +\sin\theta^\prime N_z(\vb x^\prime)
+        \Big[ Z_0 Z^\prime \vbEps_0\sups{trans} \cdot \vb K(\vb x^\prime)
+                +\overline{\vbEps}_0\sups{trans} \cdot \vb N(\vb x^\prime)
         \Big] \, d\vb x^\prime
 \\
-&=-\frac{1}{2\mc V}
-   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
-        \Big[ Z_0 Z^\prime 
-              \frac{ K_y(\vb x^\prime)}{\cos\theta^\prime}
-                    -N_x(\vb x^\prime)
-                    +\tan\theta^\prime N_z(\vb x^\prime)
-        \Big] \, d\vb x^\prime....
+&=-\frac{Z_0 Z^\prime k_0^\prime}{2\mc V k_z^\prime E_0^2}
+   \int_U \Big(  \vb E^{\text{\scriptsize{inc}}*}\cdot \vb K
+                +\vb H^{\text{\scriptsize{inc}}*}\cdot \vb N
+          \Big) \, d\vb x^\prime.
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -601,17 +682,5 @@ where
 
 \newpage
 
-%####################################################################%
-\begin{figure}[H]
-\begin{center}
-\resizebox{\textwidth}{!}{\includegraphics{/home/homer/work/scuff-em-sandbox/TransmissionAmplitudes/scuffFresnel.pdf}}
-\caption{Transmission amplitudes vs. incident angle 
-         for Fresnel scattering (plane-wave transmission) 
-         into a dielectric half-space with $\epsilon^\prime=100.$
-        }
-\label{PendulumFigure}
-\end{center}
-\end{figure}
-%####################################################################%
 
 \end{document} 

@@ -548,7 +548,7 @@ void GetSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
 /***************************************************************/
 /***************************************************************/
 void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
-                      RWGSurface *BS, double R, int NumPoints,
+                      RWGSurface *BS, int R, int NumPoints,
                       cdouble Omega, bool NeedMatrix[NUMSIPFT],
                       HMatrix *MSIPFT[NUMSIPFT])
 {
