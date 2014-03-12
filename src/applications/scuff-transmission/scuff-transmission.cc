@@ -197,102 +197,213 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
 }
 
 /***************************************************************/
-/* Get the amplitudes for forward scattering into the uppermost*/
-/* region and the amplitude for backward scattering into the   */
-/* lowermost region.                                           */
-/* SA[0, 1] = forward, backward amplitudes                     */
+/* f1 = \int_0^1 \int_0^u u*e^{-i(uX+vY)} dv du                */
+/* f2 = \int_0^1 \int_0^u v*e^{-i(uX+vY)} dv du                */
 /***************************************************************/
-void GetScatteringAmplitudes(RWGGeometry *G, HVector *KN, cdouble Omega,
-                             double Theta, int Polarization, 
-                             cdouble SA[2])
+void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
 {
-  /***************************************************************/
-  /* identify uppermost and lowermost regions                    */
-  /***************************************************************/
-  int NS = G->NumSurfaces;
-  int nsMax=0, nsMin=0;
-  double ZMax=G->Surfaces[0]->Vertices[3*0 + 2], ZMin=ZMax;
-  for(int ns=0; ns<NS; ns++)
-   for(int nv=0; nv<G->Surfaces[ns]->NumVertices; nv++)
-    {
-      double ZValue = G->Surfaces[ns]->Vertices[3*nv + 2];
-      if (ZValue > ZMax) ZMax = ZValue, nsMax=ns;
-      if (ZValue < ZMin) ZMin = ZValue, nsMin=ns;
-    };
-  int UppermostRegion = G->Surfaces[nsMax]->RegionIndices[0];
-  int LowermostRegion = G->Surfaces[nsMin]->RegionIndices[0];
+  cdouble ExpIX=exp(II*X);
+  cdouble ExpIY=exp(II*Y);
+  double X2=X*X; 
+  double X3=X2*X;
+  double Y2=Y*Y;
+  double Y3=Y2*Y;
+  double XPY2=(X+Y)*(X+Y);
 
-  /***************************************************************/
-  /* construct a forward-traveling plane wave in the uppermost   */
-  /* region and a backward-traveling plane wave in the lowermost */
-  /* region.                                                     */
-  /***************************************************************/
-  char *UppermostRegionLabel = G->RegionLabels[UppermostRegion];
-  char *LowermostRegionLabel = G->RegionLabels[LowermostRegion];
-
-  double SinTheta = sin(Theta); 
-  double CosTheta = cos(Theta); 
-
-  double nHatUpper[3]; 
-  nHatUpper[0] = SinTheta;
-  nHatUpper[1] = 0.0;
-  nHatUpper[2] = CosTheta;
-
-  double nHatLower[3];
-  nHatLower[0] = SinTheta;
-  nHatLower[1] = 0.0;
-  nHatLower[2] = -CosTheta;
-
-  cdouble E0Upper[3], E0Lower[3];
-  if (Polarization == POLARIZATION_TE)
-   { E0Upper[0] = E0Lower[0] = 0.0;
-     E0Upper[1] = E0Lower[1] = 1.0;
-     E0Upper[2] = E0Lower[2] = 0.0;
+  if (X==0.0 && Y==0.0)
+   { *f1=1.0/3.0;
+     *f2=1.0/6.0;
    }
-  else // Polarization = POLARIZATION_TM
-   { E0Upper[0] = CosTheta;
-     E0Upper[1] = 0.0;
-     E0Upper[2] = -SinTheta;
+  else if (X==0.0 && Y!=0.0)
+   { 
+     *f1 = ((II/2.0)*(-2.0 + (2.0 + (2.0*II)*Y)/ExpIY - Y2))/Y3;
+     *f2 = -(2.0*II + Y + (-2.0*II + Y)/ExpIY)/Y3;
+   }
+  else if (Y==0.0 && X!=0.0)
+   { *f1= (2.0*II + (-2.0*II + (2.0 + II*X)*X)/ExpIX)/X3;
+     *f2= (2.0*II + (-2.0*II + (2.0 + II*X)*X)/ExpIX)/(2.0*X3);
+   }
+  else if ( fabs(XPY2)<1.0e-20 )
+   { *f1 = ((II/2.0)*(-2.0 + (2.0 + (2.0*II)*X)/ExpIX - X2))/X3;
+     *f2 = ((-II/2.0)*(-2.0 + 2.0/ExpIX + X*(2.0*II + X)))/X3;
+   }
+  else
+   {
+     *f1=((-II)*(-1.0 + (1.0 + II*X)/ExpIX))/(X2*Y) + 
+         (II*(-1.0 + (II*(-II + X + Y))/ ExpIX*ExpIY))/(Y*XPY2);
 
-     E0Lower[0] = -CosTheta;
-     E0Lower[1] = 0.0;
-     E0Lower[2] = -SinTheta;
+     *f2 = (-(X*(X*(-II + Y) + Y*(-2.0*II + Y))) - II*ExpIY*(-(ExpIX*Y2) + (XPY2)))/
+            (ExpIX*ExpIY*X*Y2*XPY2);
    };
-  PlaneWave UpperPW(E0Upper, nHatUpper, UppermostRegionLabel);
-  PlaneWave LowerPW(E0Lower, nHatLower, LowermostRegionLabel);
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int Dim = G->TotalBFs;
-  static HVector *RHS=0;
-  if (RHS==0 || RHS->N!=Dim)
-   { if (RHS) delete RHS;
-     RHS=new HVector(Dim, LHM_COMPLEX);
+}
+
+/***************************************************************/
+/* compute the vector-valued integral                          */
+/*  \int Exp[-i*(K \cdot X)] b[X] dX                           */
+/***************************************************************/
+void GetEMiKXRWGIntegral(RWGSurface *S, int ne, double K[3], cdouble Integral[3])
+{
+  RWGEdge *E    = S->Edges[ne];
+  double *QP    = S->Vertices + 3*E->iQP;
+  double *V1    = S->Vertices + 3*E->iV1;
+  double *V2    = S->Vertices + 3*E->iV2;
+  double *QM    = S->Vertices + 3*E->iQM;
+  double Length = E->Length;
+
+  double AP[3], AM[3], B[3]; 
+  double KQP=0.0, KAP=0.0, KQM=0.0, KAM=0.0, KB=0.0;
+  for(int Mu=0; Mu<3; Mu++)
+   { AP[Mu] = V1[Mu] - QP[Mu];
+     AM[Mu] = V1[Mu] - QM[Mu];
+      B[Mu] = V2[Mu] - V1[Mu];
+       KQP += K[Mu]*QP[Mu];
+       KAP += K[Mu]*AP[Mu];
+       KQM += K[Mu]*QM[Mu];
+       KAM += K[Mu]*AM[Mu];
+        KB += K[Mu]*B[Mu];
    };
 
-  for(int Which=0; Which<=1; Which++)
-   { SA[Which] = 0.0;
-     G->AssembleRHSVector(Omega, (Which==0) ? &UpperPW : &LowerPW, RHS);
-     for(int ns=0; ns<G->NumSurfaces; ns++)
-      { RWGSurface *S=G->Surfaces[ns];
-        int BFOffset = G->BFIndexOffset[ns];
-        if (S->IsPEC)
-         {
-           for(int ne=0; ne<S->NumEdges; ne++)
-            SA[Which] 
-             += conj(RHS->GetEntry(BFOffset+ne))*KN->GetEntry(BFOffset+ne);
-         }
-        else
-         {
-           for(int ne=0; ne<S->NumEdges; ne++)
-            SA[Which] 
-             += conj(RHS->GetEntry(BFOffset+2*ne+0))*KN->GetEntry(BFOffset+2*ne+0)
-               -conj(RHS->GetEntry(BFOffset+2*ne+1))*KN->GetEntry(BFOffset+2*ne+1);
-         };
+  cdouble ExpFac, f1, f2;
+
+  f1f2(KAP, KB, &f1, &f2);
+  ExpFac = exp(-II*KQP);
+  Integral[0] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
+  Integral[1] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
+  Integral[2] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
+
+  f1f2(KAM, KB, &f1, &f2);
+  ExpFac = exp(-II*KQM);
+  Integral[0] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
+  Integral[1] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
+  Integral[2] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
+  
+}
+
+/***************************************************************/
+/* This routine computes the contributions of currents on a    */
+/* single surface to the transmission amplitude.               */
+/***************************************************************/
+void GetTransmissionAmplitudes(RWGGeometry *G, HVector *KN,
+                               int WhichSurface, cdouble EpsPrime,
+                               cdouble Omega, double Theta,
+                               cdouble *ptTE, cdouble *ptTM)
+{
+  double nn = real(sqrt(EpsPrime));
+  cdouble ZPrime = 1.0/nn;
+  double SinThetaPrime = sin(Theta)/nn;
+  double CosThetaPrime = sqrt(1.0-SinThetaPrime*SinThetaPrime);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double K[3];
+  K[0] = nn*real(Omega)*SinThetaPrime;
+  K[1] = 0.0;
+  K[2] = nn*real(Omega)*CosThetaPrime;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double EpsTE[3], EpsBarTE[3], EpsTM[3], EpsBarTM[3];
+  EpsTE[0]=0.0;     EpsBarTE[0] = -CosThetaPrime;
+  EpsTE[1]=1.0;     EpsBarTE[1] = 0.0;
+  EpsTE[2]=0.0;     EpsBarTE[2] = +SinThetaPrime;
+
+  EpsTM[0]=+CosThetaPrime;  EpsBarTM[0]=0.0;
+  EpsTM[1]=0.0;             EpsBarTM[1]=1.0;
+  EpsTM[2]=-SinThetaPrime;  EpsBarTM[2]=0.0;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S = G->Surfaces[WhichSurface];
+  int BFIndexOffset = G->BFIndexOffset[WhichSurface];
+
+  cdouble tTE=0.0, tTM=0.0;
+  cdouble KAlpha, NAlpha=0.0;
+  for(int ne=0; ne<S->NumEdges; ne++)
+   { 
+     if (S->IsPEC)
+      { 
+        KAlpha=KN->GetEntry( BFIndexOffset + ne );
+      }
+     else
+      { KAlpha=KN->GetEntry( BFIndexOffset + 2*ne + 0 );
+        NAlpha=-ZVAC*KN->GetEntry( BFIndexOffset + 2*ne + 1 );
       };
-     SA[Which]/=2.0;
+
+     cdouble EMiQXBAlpha[3]; 
+     GetEMiKXRWGIntegral(S, ne, K, EMiQXBAlpha);
+     
+     tTE += KAlpha*(   EpsTE[0]*EMiQXBAlpha[0]
+                     + EpsTE[1]*EMiQXBAlpha[1]
+                     + EpsTE[2]*EMiQXBAlpha[2] 
+                   )
+           +NAlpha*(   EpsBarTE[0]*EMiQXBAlpha[0]
+                     + EpsBarTE[1]*EMiQXBAlpha[1]
+                     + EpsBarTE[2]*EMiQXBAlpha[2] 
+                   );
+     
+     tTM += KAlpha*(   EpsTM[0]*EMiQXBAlpha[0]
+                     + EpsTM[1]*EMiQXBAlpha[1]
+                     + EpsTM[2]*EMiQXBAlpha[2] 
+                   )
+           +NAlpha*(   EpsBarTM[0]*EMiQXBAlpha[0]
+                     + EpsBarTM[1]*EMiQXBAlpha[1]
+                     + EpsBarTM[2]*EMiQXBAlpha[2] 
+                   );
+
    };
+
+  if (G->NumLatticeBasisVectors!=2)
+   ErrExit("%s: %i: internal error",__FILE__,__LINE__);
+  double *L1 = G->LatticeBasisVectors[0];
+  double *L2 = G->LatticeBasisVectors[1];
+  double UnitCellVolume = L1[0]*L2[1]-L1[1]*L2[0];
+
+  tTE *= ZVAC*ZPrime / (2.0*UnitCellVolume*CosThetaPrime);
+  tTM *= ZVAC*ZPrime / (2.0*UnitCellVolume*CosThetaPrime);
+
+  if (ptTE) *ptTE = tTE;
+  if (ptTM) *ptTM = tTM;
+}
+
+/***************************************************************/
+/* This routine computes the contributions of currents on ALL  */
+/* surfaces bounding the uppermost region to the transmission  */
+/* amplitude.                                                  */
+/***************************************************************/
+void GetTransmissionAmplitudes(RWGGeometry *G, HVector *KN,
+                               int UppermostRegionIndex,
+                               cdouble Omega, double Theta,
+                               cdouble *ptTE, cdouble *ptTM)
+{
+  double EpsPrime 
+   = real( G->RegionMPs[UppermostRegionIndex]->GetEps(Omega) );
+
+  cdouble tTE=0.0, tTM=0.0;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     double Sign;
+
+     if (G->Surfaces[ns]->RegionIndices[0]==UppermostRegionIndex)
+      Sign=1.0;
+     else if (G->Surfaces[ns]->RegionIndices[1]==UppermostRegionIndex)
+      Sign=-1.0;
+     else
+      continue;
+
+     cdouble tTEPartial, tTMPartial;
+     GetTransmissionAmplitudes(G, KN, ns, EpsPrime, Omega, Theta,
+                               &tTEPartial, &tTMPartial);
+
+     tTE += Sign*tTEPartial;
+     tTM += Sign*tTMPartial;
+   };
+
+  if (ptTE) *ptTE = tTE;
+  if (ptTM) *ptTM = tTM;
 }
 
 /***************************************************************/
@@ -320,6 +431,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
+char *UpperRegion;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFileName,  0,       ".scuffgeo file"},
@@ -328,12 +440,14 @@ int main(int argc, char *argv[])
      {"OmegaFile",   PA_STRING,  1, 1,       (void *)&OmegaFile,    0,       "list of (angular) frequencies"},
 /**/
      {"Theta",       PA_DOUBLE,  1, 1,       (void *)&Theta,        0,       "incident angle in degrees"},
-     {"ThetaMin",    PA_DOUBLE,  1, 1,       (void *)&ThetaMin,     0,       "minimum incident angle in degrees"},
+     {"ThetaMin",    PA_DOUBLE,  1, 1,       (void *)&ThetaMin,     0,       "minimum incident angle in degrees"}, 
      {"ThetaMax",    PA_DOUBLE,  1, 1,       (void *)&ThetaMax,     0,       "maximum incident angle in degrees"},
      {"ThetaPoints", PA_INT,     1, 1,       (void *)&ThetaPoints,  0,       "number of incident angles"},
 /**/
      {"ZAbove",      PA_DOUBLE,  1, 1,       (void *)&ZAbove,       0,       "Z-coordinate of upper integration plane"},
      {"ZBelow",      PA_DOUBLE,  1, 1,       (void *)&ZBelow,       0,       "Z-coordinate of lower integration plane"},
+/**/
+     {"UpperRegion", PA_STRING,  1, 1,       (void *)&UpperRegion,  0,       "delete me please"},
 /**/
      {"NQPoints",    PA_INT,     1, 1,       (void *)&NQPoints,     0,       "number of quadrature points per dimension"},
 /**/
@@ -359,6 +473,14 @@ int main(int argc, char *argv[])
   HMatrix *M   = G->AllocateBEMMatrix();
   HVector *RHS = G->AllocateRHSVector();
   HVector *KN  = G->AllocateRHSVector();
+
+int UpperRegionIndex;
+for(UpperRegionIndex=0; UpperRegionIndex<G->NumRegions; UpperRegionIndex++)
+ if (!strcasecmp(UpperRegion,G->RegionLabels[UpperRegionIndex]))
+  break;
+if (UpperRegionIndex==G->NumRegions)
+ ErrExit("unknown upper region %s",UpperRegion);
+printf("Identified uppermost region %s as region # %i.\n",UpperRegion,UpperRegionIndex);
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */
@@ -476,7 +598,7 @@ int main(int argc, char *argv[])
   double SinTheta, CosTheta;
   cdouble Omega;
   double FluxTE[2], FluxTM[2], IncFlux;
-  cdouble SATE[2], SATM[2];
+  cdouble tTETE, tTETM, tTMTE, tTMTM;
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
     { 
@@ -513,7 +635,8 @@ int main(int argc, char *argv[])
       KN->Copy(RHS);
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTE);
-      GetScatteringAmplitudes(G, KN, Omega, Theta, POLARIZATION_TE, SATE);
+      GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta, 
+                                &tTETE, &tTMTE);
 
       // solve with E-field parallel to plane of incidence (TM)
       E0[0]=CosTheta;
@@ -524,17 +647,18 @@ int main(int argc, char *argv[])
       KN->Copy(RHS);
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTM);
-      GetScatteringAmplitudes(G, KN, Omega, Theta, POLARIZATION_TM, SATM);
+      GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
+                                &tTETM, &tTMTM);
    
       IncFlux = CosTheta/(2.0*ZVAC);
 
       fprintf(f,"%s %e ", z2s(Omega), Theta*RAD2DEG);
       fprintf(f,"%e %e ", FluxTE[0]/IncFlux, FluxTE[1]/IncFlux);
       fprintf(f,"%e %e ", FluxTM[0]/IncFlux, FluxTM[1]/IncFlux);
-      fprintf(f,"%e %e ", norm(SATE[0]), arg(SATE[0]));
-      fprintf(f,"%e %e ", norm(SATE[1]), arg(SATE[1]));
-      fprintf(f,"%e %e ", norm(SATM[0]), arg(SATM[0]));
-      fprintf(f,"%e %e ", norm(SATM[1]), arg(SATM[1]));
+      fprintf(f,"%e %e ", norm(tTETE), arg(tTETE));
+      fprintf(f,"%e %e ", norm(tTMTE), arg(tTMTE));
+      fprintf(f,"%e %e ", norm(tTETM), arg(tTMTM));
+      fprintf(f,"%e %e ", norm(tTMTM), arg(tTMTM));
       fprintf(f,"\n");
       fflush(f);
 

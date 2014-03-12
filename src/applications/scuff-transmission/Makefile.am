@@ -1,4 +1,4 @@
-bin_PROGRAMS = scuff-transmission
+bin_PROGRAMS = scuff-transmission 
 
 scuff_transmission_SOURCES = scuff-transmission.cc
 scuff_transmission_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la

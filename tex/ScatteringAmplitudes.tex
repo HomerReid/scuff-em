@@ -503,7 +503,9 @@ the transmission coefficient (\ref{tExpression}) wind up
 computing simply the inner products of the $\vb K$ and $\vb N$
 surface currents with the field polarization vectors: 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ (\vbEps_0\sups{trans})^\dagger
+\numeq{EGKAndECN}
+{
+(\vbEps_0\sups{trans})^\dagger
     \cdot
     \vbhat{G}(\vb k)
     \cdot
@@ -516,25 +518,41 @@ $$ (\vbEps_0\sups{trans})^\dagger
     \cdot
     \vb N(\vb x^\prime)
    = \overline{\vbEps_0}\sups{trans} \cdot \vb N
-$$
+}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Putting it all together, 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- t\supt{TE}
+\begin{align}
+ t
 &=-\frac{k_0^\prime}{2\mc V k_z^\prime E_0}
-   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z^\prime z^\prime)}
         \Big[ Z_0 Z^\prime \vbEps_0\sups{trans} \cdot \vb K(\vb x^\prime)
                 +\overline{\vbEps}_0\sups{trans} \cdot \vb N(\vb x^\prime)
         \Big] \, d\vb x^\prime
 \\
-&=-\frac{Z_0 Z^\prime k_0^\prime}{2\mc V k_z^\prime E_0^2}
-   \int_U \Big(  \vb E^{\text{\scriptsize{inc}}*}\cdot \vb K
-                +\vb H^{\text{\scriptsize{inc}}*}\cdot \vb N
+&=-\frac{Z_0 Z^\prime}{2E_0 \cos \theta^\prime}
+   \cdot \frac{1}{\mc V}
+   \int_U \Big(  \vb E^{\text{\scriptsize{ref}}*}\cdot \vb K
+                +\vb H^{\text{\scriptsize{ref}}*}\cdot \vb N
           \Big) \, d\vb x^\prime.
-\end{align*}
+\label{TFromKN}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Here $\{\vb E,\vb H\}\sups{ref}$ are the fields of a 
+``reference'' plane wave with $E$-field magnitude $\vb E_0$
+traveling in the upper medium. If the upper medium is the
+same as the lower medium (for example, in a thin-film geometry
+where both the upper and lower media are vacuum) then
+the reference fields are just the same as the incident
+fields. 
+If the upper medium is a different medium than the lower medium
+(for example, in a Fresnel scattering problem) then the 
+reference fields are similar to the incident fields
+but with propagation and polarization vectors modified 
+appropriately.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection*{Transmission coefficient for TM polarization}
@@ -554,12 +572,12 @@ Putting it all together,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 We have 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
+\begin{align}
 &\hspace{-0.05in}
  (\vbEps_0\sups{trans})^\dagger \cdot
  \vbhat{G}(\vb k) \cdot \vb K(\vb x^\prime)
-\\
-\\&=
+\nn
+&=
  \left(\begin{array}{c}\cos\theta^\prime \\ 0 \\-\sin\theta^\prime \end{array}\right)^\dagger
  \left[ \left(\begin{array}{ccc}
                1 & 0 & 0 \\ 
@@ -579,13 +597,14 @@ We have
                $\sin\theta^\prime=k_x/k_0^\prime$:}
 &=
  \cos\theta^\prime K_x - \sin\theta^\prime K_z
-\end{align*}
+\label{EGK2}
+\end{align}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
+\begin{align}
 &\hspace{-0.05in}
  (\vbEps_0\sups{trans})^\dagger \cdot
  \vbhat{C}(\vb k) \cdot \vb N(\vb x^\prime)
-\\
+\nn
 &=
  \left(\begin{array}{c}\cos\theta^\prime \\ 0 \\-\sin\theta^\prime \end{array}\right)^\dagger
  \left[ \frac{1}{k_0^{\prime}}
@@ -597,90 +616,84 @@ We have
         \right)
  \right]
  \left(\begin{array}{c}N_x \\ N_y \\ N_z\end{array}\right)
-\\
+\nn
 &=
  N_y.
-\end{align*}
+\label{ECN2}
+\end{align}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Putting it all together, 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- t\supt{TM}
-&=-\frac{1}{2\mc V}
-   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
-        \Big[  Z_0 Z^\prime K_x(\vb x^\prime)
-              -\tan\theta^\prime Z_0 Z^\prime K_z(\vb x^\prime)
-              +\cos\theta^\prime N_y(\vb x^\prime)
-        \Big] \, d\vb x^\prime.
-\end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Comparing (\ref{EGN2}) and (\ref{ECN2}) to (\ref{TMPolVectors})
+we see that once again equation (\ref{EGKandECN}) holds
+and we simply recover equation (\ref{TFromKN}) for the 
+TM polarization as well.
 
-
-\subsection*{Transmission coefficients from surface-current coefficients}
-
+\newpage
+\subsection*{Transmission coefficients from surface-current coefficients} 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$ \vb K(\vb x)=\sum k_\alpha \vb b_\alpha(\vb x), \qquad 
    \vb N(\vb x)=-Z_0 \sum n_\alpha \vb b_\alpha(\vb x)
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ t=-\frac{Z_0 Z^\prime}{2E_0 \cos \theta^\prime \mc V}
+      \sum_\alpha 
+        \bigg( k_\alpha \INP{\vb E\sups{ref}}{\vb b_\alpha}
+             -Z_0 n_\alpha \INP{\vb H\sups{ref}}{\vb b_\alpha}
+        \bigg)
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
- t\supt{TE}
-&=-\frac{Z_0}{2\mc V} \sum_{\alpha}
-   \Big[ k_\alpha \frac{Z^\prime}{\cos\theta^\prime} B_{\alpha y}
-        +n_\alpha B_{\alpha x} - n_\alpha \tan\theta^\prime B_{\alpha z}.
-   \Big]
-\\
- t\supt{TM}
-&=-\frac{Z_0}{2\mc V} \sum_{\alpha}
-   \Big[ k_\alpha Z^\prime B_{\alpha x}
-        -k_\alpha Z^\prime \tan\theta^\prime B_{\alpha z}
-        -n_\alpha \cos\theta^\prime B_{\alpha y}
-   \Big]
+ \INP{\vb E\sups{ref}}{\vb b_\alpha}
+&=\int_{\text{sup } \vb b_\alpha}
+  \vbEps \cdot \vb b_\alpha(\vb x)e^{-i\vb q \cdot \vb x}
+  \, d\vb x
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where $\vb B_\alpha$ describes an integral over basis functions:
-$$ \vb B_\alpha
-   \equiv 
-   \int_{\sup \vb b_\alpha}
-   e^{-i\vb k \cdot \vb x} \, \vb b_\alpha(\vb x)d\vb x.
-$$
+
 For RWG functions this integral may be evaluated in closed form:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
- \vb B_\alpha
-&=\ell_\alpha
+&\!\!
+\int_{\text{sup } \vb b_\alpha}
+  \vbEps \cdot \vb b_\alpha(\vb x)e^{-i\vb q \cdot \vb x}
+\\
+&=\ell_\alpha\vbEps \cdot 
   \int_0^1 \, du \int_0^u \, dv \,
   \bigg\{
-  e^{-i\vb k\cdot [\vb Q^+ + u \vb A^+ + v\vb B]}
+  e^{-i\vb q\cdot [\vb Q^+ + u \vb A^+ + v\vb B]}
   \Big(u\vb A^+ + v\vb B\Big)
 \\ 
   &\hspace{1.5in}
   - 
-  e^{-i\vb k\cdot [\vb Q^- + u \vb A^- + v\vb B]}
+  e^{-i\vb q\cdot [\vb Q^- + u \vb A^- + v\vb B]}
   \Big(u\vb A^- + v\vb B\Big)
   \bigg\}
 \\
 &=\ell_\alpha\bigg\{ 
-  e^{-i\vb k \cdot \vb Q^+} 
-  \Big[ f_1\big(\vb k\cdot \vb A^+, \vb k\cdot \vb B\Big) \vb A^+
-       +f_2\big(\vb k\cdot \vb A^+, \vb k\cdot \vb B\Big) \vb B
+  e^{-i\vb q \cdot \vb Q^+} 
+  \Big[ f_1\big(\vb q\cdot \vb A^+, \vb q\cdot \vb B\Big) 
+           \vbEps \cdot \vb A^+
+       +f_2\big(\vb q\cdot \vb A^+, \vb q\cdot \vb B\Big)
+           \vbEps \cdot \vb B
   \Big]
 \\
-&\qquad \qquad\qquad\qquad\qquad
+&\qquad\qquad
   -
-  e^{-i\vb k \cdot \vb Q^-} 
-  \Big[ f_1\big(\vb k\cdot \vb A^-, \vb k\cdot \vb B\Big) \vb A^-
-       +f_2\big(\vb k\cdot \vb A^-, \vb k\cdot \vb B\Big) \vb B
+  e^{-i\vb q \cdot \vb Q^-} 
+  \Big[ f_1\big(\vb q\cdot \vb A^-, \vb q\cdot \vb B\Big)
+           \vbEps \cdot \vb A^-
+       +f_2\big(\vb q\cdot \vb A^-, \vb q\cdot \vb B\Big)
+           \vbEps \cdot \vb B
   \Big]\bigg\}
 \\
 \end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 where
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
  f_1(x, y)&=\int_0^1 \, \int_0^u \, u e^{-i (ux + vy)} \,dv\,du  
 \\
  f_2(x, y)&=\int_0^1 \, \int_0^u \, v e^{-i (ux + vy)} \,dv\,du  
 \end{align*}
-
-\newpage
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \end{document} 
