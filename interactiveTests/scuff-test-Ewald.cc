@@ -155,10 +155,12 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+#ifndef __APPLE__
   if ( getenv("SCUFF_ABORT_ON_FPE") )
    { feenableexcept(FE_INVALID | FE_OVERFLOW);
      Log("Enabling abort-on-floating-point-exception.");
    };
+#endif
 
   /***************************************************************/
   /* process command-line arguments ******************************/

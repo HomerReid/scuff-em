@@ -246,10 +246,12 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+#ifndef __APPLE__
   if ( getenv("SCUFF_ABORT_ON_FPE") )
    { feenableexcept(FE_INVALID | FE_OVERFLOW);
      Log("Enabling abort-on-floating-point-exception.");
    };
+#endif
 
   if ( getenv("SCUFF_GETFIELDSV2P0") )
    UseGetFieldsV2P0=true;
