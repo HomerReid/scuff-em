@@ -1,8 +1,80 @@
+\documentclass[letterpaper]{article}
+
+\input{../scufftex}
+
+\graphicspath{{figures/}}
+\newcommand{\GBar}{\overline{G}}
+\newcommand{\KB}{\vb K\supt{B}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \section{Periodic Boundary Conditions}
+
+\subsection{Continuous BEM formulations with PBCs}
+
+Consider the electric field integral equation for
+the unknown surface-current density $\vb K(\vb x)$ on 
+an infinite surface $\mc S_\infty$:
+%====================================================================%
+\numeq{InfiniteEFIE}
+{
+  \vb E\sups{scat}(\vb x)\equiv 
+  \int_{\mc S_\infty} 
+   \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
+   \cdot 
+   \vb K(\vb x^\prime)d\vb x^\prime
+  =-\vb E_{\parallel}\sups{inc}(\vb x)
+}
+%====================================================================%
+If we now suppose that 
+%====================================================================%
+\begin{itemize}
+ \item the surface $\mc S_\infty$ consists of an infinite lattice
+       of copies of a unit-cell surface $\mc S_0$ translated through
+       two-dimensional lattice vectors of the form 
+       \numeq{LatticeVectors}{\vb L=n_1 \vb L_1 + n_2\vb L_2}
+       and
+ \item the incident field respects this periodicity in the sense that 
+       $$ \vb E\sups{inc}(\vb x+\vb L)
+          = e^{i\KB \cdot \vb L} \vb E\sups{inc}(\vb x)
+       $$
+       for some Bloch vector $\KB$
+\end{itemize}
+%====================================================================%
+then we can assume the surface current $\vb K(\vb x)$ will satisfy
+the same Bloch periodicity condition, i.e.
+%====================================================================%
+$$ \vb K(\vb x+\vb L)
+   = e^{i\KB \cdot \vb L} \vb K(\vb x)
+$$
+%====================================================================%
+whereupon we can rewrite the LHS of (\ref{InfiniteEFIE}) in the form
+%====================================================================%
+\begin{align}
+   \vb E\sups{scat}(\vb x)
+&= \sum_{\vb L}
+   \int_{\mc S_0}
+   \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime+\vb L)
+   \cdot 
+   \vb K(\vb x^\prime + \vb L )d\vb x^\prime
+\\
+&= 
+\end{align}
+%====================================================================%
+
+\subsection{Discretized PBC-BEM formulation using RWG functions}
+
+\subsubsection{PBC geometries in {\sc scuff-em}}
 
 \lss supports Bloch-periodic boundary conditions for
 periodically repeated geometries. In this case,
@@ -31,8 +103,13 @@ periodically repeated geometries. In this case,
        $\vb p$ is the Bloch wavevector.
 \end{itemize}
 
+\subsubsection{PBC geometries in {\sc scuff-em}}
+
 \subsection{Straddlers}
 
+Consider the
+
+\subsubsection{PBC geometries in {\sc scuff-em}}
 \subsection{Evaluation of surface currents within the unit cell}
 
 When evaluating the $\vb K$ and $\vb N$ surface-current 
@@ -41,12 +118,10 @@ of the unit-cell mesh, we have to be careful to account for the
 contribution of straddlers. 
 
 For example, consider evaluating the electric surface current at 
-points $\vb x$ inside panel $\mc P_9$ in Figure \ref{Mesh3x3}.
+points $\vb x$ inside panel $\mc P_9$ in Figure (??) %\ref{Mesh3x3}.
 There are three RWG basis functions that contribute to the current
 at this point: $\vb b_7$, $\vb b_9,$ and the periodic image of 
 $\vb b_2$:
-
-\subsection{PBC Versions of Integral Equations: Continuous form}
 
 \subsection{Periodic DGFs}
 
@@ -79,3 +154,9 @@ stands for ``all but 9.''
 \begin{align*}
 M_{\alpha\beta}
 \end{align*}
+
+\subsubsection{Relations between BEM matrix elements}
+
+Let $\vb L$ be a lattice 
+
+\end{document}
