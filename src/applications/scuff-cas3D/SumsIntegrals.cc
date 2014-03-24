@@ -232,11 +232,9 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      double Upper[2] = {1.0, 1.0};
      double *Error = new double[SC3D->NTNQ];
 
-     // technically we should use something other than SC3D->MaxXiPoints
-     // for the MaxEvals argument here 
      SC3D->Xi = Xi;
      adapt_integrate(SC3D->NTNQ, GetCasimirIntegrand2, (void *)SC3D, 2, Lower, Upper,
-                     SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol, EFT, Error);
+                     SC3D->MaxkBlochPoints, SC3D->AbsTol, SC3D->RelTol, EFT, Error);
 
      delete[] Error;
    }
@@ -285,6 +283,7 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
       fprintf(f,"%.8e ",EFT[ntnq]);
      fprintf(f,"\n");
+     fflush(f);
   };
   fclose(f);
 

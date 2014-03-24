@@ -90,7 +90,7 @@ typedef struct SC3Data
    char *WriteCache;
 
    // these quantities are used to set limits for adaptive frequency integrations
-   int MaxXiPoints;
+   int MaxXiPoints, MaxkBlochPoints;
    double AbsTol, RelTol;
 
    // 20130427 alternative energy calculation

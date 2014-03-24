@@ -335,7 +335,7 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
       for(int nce=0; nce<3; nce++) // 'number of contributing edges'
        { 
          int ne = P->EI[nce];
-         if (ne < 0) continue; // panel edge #nce is an exterior edge
+         if (ne < 0) continue; // panel edge #nce is an exterior edgezz
 
          // get the value of the RWG basis function associated with panel edge #nce
          // at the panel centroid
@@ -385,8 +385,6 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
 
       /*--------------------------------------------------------------*/
       /*- fill in the rows of the matrix corresponding to this panel  */
-      /*- filled in redundantly several times over, but i think this  */
-      /*- is faster than having a separate loop over panels.          */
       /*--------------------------------------------------------------*/
       PSD->SetEntry(POffset + np,  0, P->Centroid[0]);
       PSD->SetEntry(POffset + np,  1, P->Centroid[1]);
@@ -402,7 +400,7 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
       PSD->SetEntry(POffset + np, 11, Eta);
       PSD->SetEntry(POffset + np, 12, IDNPF);
 
-    }; // for (ns=0; ns<NumSurfaces; ns++) ... for(ne=0; ne<S->NumEdges; ne++)
+    }; // for (ns=0; ns<NumSurfaces; ns++) ... for(np=0; np<S->NumPanels; np++)
 
   return PSD;
 }

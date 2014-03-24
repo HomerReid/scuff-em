@@ -207,6 +207,7 @@ int main(int argc, char *argv[])
   char *BZIString=0;
 //
   int MaxXiPoints=10000;
+  int MaxkBlochPoints=1000;
   double AbsTol=0.0;
   double RelTol=1.0e-2;
   int Intervals=50;
@@ -248,6 +249,7 @@ int main(int argc, char *argv[])
      {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,       0,             "name of log file"},
 //
      {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations "},
+     {"MaxkBlochPoints",PA_INT,     1, 1,       (void *)&MaxkBlochPoints, 0,             "maximum number of Brillouin-zone integrand evaluations"},
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,     0,             "number of subintervals for frequency quadrature"},
@@ -388,6 +390,7 @@ int main(int argc, char *argv[])
   SC3D->AbsTol             = AbsTol;
   SC3D->RelTol             = RelTol;
   SC3D->MaxXiPoints        = MaxXiPoints;
+  SC3D->MaxkBlochPoints    = MaxkBlochPoints;
   SC3D->UseExistingData    = UseExistingData;
 
   if (SC3D->ByXiFileName==0)
