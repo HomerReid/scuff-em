@@ -339,7 +339,8 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   /*------------------------------------------------------------*/
   /*- initialize simple fields ---------------------------------*/
   /*------------------------------------------------------------*/
-  NumEdges=NumPanels=NumVertices=NumRefPts=0;
+  NumEdges=NumPanels=NumVertices=NumRefPts=TotalStraddlers=0;
+  PhasedBFCs=0;
 
   /*------------------------------------------------------------*/
   /*- note: the 'OTGT' parameter to this function is distinct   */
@@ -703,7 +704,7 @@ void InitRWGPanel(RWGPanel *P, double *Vertices)
    * the panel normal to ensure that it points into the exterior 
    * medium for the surface in question, and by that time it 
    * will be too late to reorder the panel vertices (because, 
-   * among other things, RWGEdge structures that depend on them
+   * among other things, RWGEdge structures that depend on them 
    * will have been defined) which means that the right-hand-rule
    * convention for the panel normal may not be preserved and must 
    * not be relied upon.

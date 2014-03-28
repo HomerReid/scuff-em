@@ -144,7 +144,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   int BufSize = MaxBFs * MaxBFs * sizeof(cdouble);
   SNEQD->Buffer[0] = mallocEC(nBuffer*BufSize);
   for(int nb=1; nb<nBuffer; nb++)
-   SNEQD->Buffer[nb] = SNEQD->Buffer[nb-1] + BufSize;
+   SNEQD->Buffer[nb] = (void *)( (char *)SNEQD->Buffer[nb-1] + BufSize);
 
   /*--------------------------------------------------------------*/
   /*- allocate sparse matrices to store the various overlap      -*/

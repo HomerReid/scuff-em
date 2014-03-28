@@ -238,7 +238,7 @@ class RWGSurface
    int IsClosed;                   /* = 1 for a closed surface, 0 for an open surface */
    double RMax[3], RMin[3];        /* bounding box corners */
 
-   double tolVecClose; // absolute tolerance for VecClose
+   double tolVecClose;             /* absolute tolerance for VecClose */
 
    int NumVertices;                /* number of vertices in mesh  */
    int NumInteriorVertices;        /* number of interior vertices */
@@ -288,6 +288,10 @@ class RWGSurface
    char *ErrMsg;                   /* used to indicate to a calling routine that an error has occurred */
    int MaterialRegionsLineNum;     /* line of .scuffgeo file on which MATERIAL or REGIONS keyword appeared */
    char *MaterialName;             /* name of material in OBJECT...ENDOBJECT section */
+
+   // 20140327 explain me
+   int TotalStraddlers;
+   int *PhasedBFCs; // 'phased basis-function contributions'
 
    /*--------------------------------------------------------------*/ 
    /*- private class methods --------------------------------------*/ 
@@ -418,6 +422,7 @@ class RWGGeometry
    /* routine for calculating charge and current densities at panel centroids */
    HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
+   HMatrix *GetPBCPanelSourceDensities(cdouble Omega, double *kBloch, HVector *KN, HMatrix *PSD=0);
 
    /* routine for calculating electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);

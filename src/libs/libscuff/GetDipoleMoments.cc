@@ -295,9 +295,10 @@ HMatrix *RWGGeometry::GetPanelSourceDensities2(cdouble Omega,
 /*  column  12      : normally-directed poynting flux INTO the */
 /*                    surface                                  */
 /***************************************************************/
-HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, 
-                                              HVector *KN, 
-                                              HMatrix *PSD)
+HMatrix *RWGGeometry::GetPBCPanelSourceDensities(cdouble Omega,
+                                                 double *kBloch,
+                                                 HVector *KN,
+                                                 HMatrix *PSD)
 { 
   cdouble iw = II*Omega;
 
@@ -335,7 +336,7 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
       for(int nce=0; nce<3; nce++) // 'number of contributing edges'
        { 
          int ne = P->EI[nce];
-         if (ne < 0) continue; // panel edge #nce is an exterior edgezz
+         if (ne < 0) continue; // panel edge #nce is an exterior edge
 
          // get the value of the RWG basis function associated with panel edge #nce
          // at the panel centroid
@@ -371,7 +372,61 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
          N[1]  += NAlpha * fRWG[1];
          N[2]  += NAlpha * fRWG[2];
          Eta   += 2.0*NAlpha*PreFac / iw;
-         
+       };
+
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      if (kBloch)
+       { 
+         for(int nst=0; nst<S->TotalStraddlers; nst++)
+          if ( S->PhasedBFCs[3*nst + 0] == np )
+           { int ne      = S->PhasedBFCs[3*nst + 1];
+             int WhichBV = S->PhasedBFCs[3*nst + 2];
+   
+             RWGEdge *E  = S->Edges[ne];
+             double *L   = LatticeBasisVectors[WhichBV];
+  
+             double Q[3];
+             Q[0] = S->Vertices[3*(E->iQM)+0] + L[0];
+             Q[1] = S->Vertices[3*(E->iQM)+1] + L[1];
+             Q[2] = S->Vertices[3*(E->iQM)+2] + L[2];
+  
+             double Sign = -1.0;
+             double PreFac = Sign * E->Length / (2.0*P->Area);
+  
+             double fRWG[3];
+             fRWG[0] = PreFac * (P->Centroid[0] - Q[0]);
+             fRWG[1] = PreFac * (P->Centroid[1] - Q[1]);
+             fRWG[2] = PreFac * (P->Centroid[2] - Q[2]);
+  
+             cdouble BlochPhase = exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+  
+             cdouble KAlpha, NAlpha;
+             if (S->IsPEC)
+              { KAlpha = KN->GetEntry(BFOffset + ne);
+                NAlpha = 0.0;
+              }
+             else
+              { KAlpha =       KN->GetEntry(BFOffset + 2*ne + 0);
+                NAlpha = -ZVAC*KN->GetEntry(BFOffset + 2*ne + 1);
+              };
+             KAlpha*=BlochPhase;
+             NAlpha*=BlochPhase;
+
+             // add the contributions of this RWG basis function to 
+             // the source densities at the panel centroid
+             K[0]  += KAlpha * fRWG[0];
+             K[1]  += KAlpha * fRWG[1];
+             K[2]  += KAlpha * fRWG[2];
+             Sigma += 2.0*KAlpha*PreFac / iw;
+             N[0]  += NAlpha * fRWG[0];
+             N[1]  += NAlpha * fRWG[1];
+             N[2]  += NAlpha * fRWG[2];
+             Eta   += 2.0*NAlpha*PreFac / iw;
+
+         }; // for(int ns=0; ns<S->NumStraddlers; ns++)
+
        };
 
       /*--------------------------------------------------------------*/
@@ -404,5 +459,11 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
 
   return PSD;
 }
+
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD)
+{ return GetPBCPanelSourceDensities(Omega, 0, KN, PSD); }
 
 } // namespace scuff

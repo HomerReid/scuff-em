@@ -108,12 +108,17 @@ static int PointOnLine(double *X, double *L)
 /* with the cartesian coordinates of the new vertex that must  */
 /* be added to turn the half-RWG basis function associated with*/
 /* edge #nei into a full RWG basis function.                   */
+/*                                                             */
+/* if a partner edge is found, then on return *pWhichBV is set */
+/* to 0 or 1 depending on whether the translation happened     */
+/* through LBV[0] or LBV[1].                                   */
 /***************************************************************/
 static int FindPartnerEdge(RWGSurface *S, int nei, 
 			   double LBV[MAXLATTICE][3], 
 			   double LBVi[3][3], 
                            int NumLatticeVectors, 
 			   int NumStraddlers[MAXLATTICE], 
+			   int *pWhichBV,
                            double *V)
 {
   if (NumLatticeVectors!=2)
@@ -137,12 +142,12 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
   V2L[0] = LBVi[0][0]*V2[0] + LBVi[0][1]*V2[1] + LBVi[0][2]*V2[2];
   V2L[1] = LBVi[1][0]*V2[0] + LBVi[1][1]*V2[1] + LBVi[1][2]*V2[2];
   if ( fabs(V1L[1]) < tolvc && fabs(V2L[1]) < tolvc )
-   { WhichBV=0;
+   { WhichBV = *pWhichBV = 0;
      ThisBV=LBV[0]; 
      OtherBV=LBV[1];
    }
   else if ( fabs(V1L[0]) < tolvc && fabs(V2L[0]) < tolvc )
-   { WhichBV=1;
+   { WhichBV = *pWhichBV = 1;
      ThisBV=LBV[1]; 
      OtherBV=LBV[0];
    }
@@ -246,8 +251,10 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
   else if (NumLatticeVectors > 2)
     ErrExit("%d lattice vectors unsupported\n", NumLatticeVectors);
 
-  int nei, neip;
-  for(nei=0; nei<NumExteriorEdges; nei++)
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  for(int nei=0; nei<NumExteriorEdges; nei++)
    { 
       if ( ExteriorEdges[nei]==0 )
        continue;
@@ -255,7 +262,9 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
       // see if this edge is a straddler, i.e. it lies on a face
       // of the unit cell and it has a partner (a translated 
       // version of itself) on the opposite side of the unit cell
-      neip=FindPartnerEdge(this, nei, LBV, LBVi, NumLatticeVectors, NumStraddlers, V);
+      int WhichBV;
+      int neip=FindPartnerEdge(this, nei, LBV, LBVi, 
+                               NumLatticeVectors, NumStraddlers, &WhichBV, V);
 
       // if so, add a new vertex, panel, and interior edge to the RWGSurface.
       if (neip!=-1)
@@ -266,6 +275,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
              NewVertices = (double *)reallocEC(NewVertices, 3*NumAllocated*sizeof(double));
              NewPanels   = (RWGPanel **)reallocEC(NewPanels, NumAllocated*sizeof(RWGPanel *));
              NewEdges    = (RWGEdge **)reallocEC(NewEdges, NumAllocated*sizeof(RWGEdge *));
+             PhasedBFCs  = (int *)reallocEC(PhasedBFCs, 3*NumAllocated*sizeof(int ));
            };
 
           // add a new vertex
@@ -307,12 +317,25 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
           P->EI[0] = P->EI[1] = P->EI[2] = -1;
           P->Index = NumPanels + NumNew;
           NewPanels[NumNew] = P;
+
+          // update our list of 'phased basis-function contributions'
+          // to make a note of the fact that the newly-added edge
+          // will make a phased contribution to a panel on the
+          // opposite side of the unit cell
+          //PhasedBFCs[NumNew].WhichPanel = Panels[neip]->iPPanel;
+          //PhasedBFCs[NumNew].WhichEdge  = NumEdges + NumNew;
+          //PhasedBFCs[NumNew].WhichBV    = WhichBV;
+          PhasedBFCs[3*NumNew + 0] = Edges[neip]->iPPanel;
+          PhasedBFCs[3*NumNew + 1] = NumEdges + NumNew;
+          PhasedBFCs[3*NumNew + 2] = WhichBV;
   
           NumNew++;
 
        };
      
    }; // for(nei=0; nei<NumExteriorEdges; nei++)
+
+  TotalStraddlers=NumNew;
 
   if (NumNew==0)
    return;
@@ -340,7 +363,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
   /*--------------------------------------------------------------*/
   int NewNumExteriorEdges=NumExteriorEdges-NumNew;
   RWGEdge **NewExteriorEdges=(RWGEdge **)mallocEC(NewNumExteriorEdges*sizeof(RWGEdge *));
-  for(nei=neip=0; nei<NumExteriorEdges; nei++)
+  for(int nei=0, neip=0; nei<NumExteriorEdges; nei++)
    if (ExteriorEdges[nei]!=0)
     { NewExteriorEdges[neip]=ExteriorEdges[nei];
       NewExteriorEdges[neip]->Index=neip;
@@ -363,13 +386,13 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
   /*- edge opposite vertex #i.                                  */
   /*------------------------------------------------------------*/
   for(int ne=0; ne<NumEdges; ne++)
-   { RWGEdge *E = Edges[ne];
+   { E = Edges[ne];
      Panels[ E->iPPanel ] -> EI[ E->PIndex ] = ne;
      if ( E->iMPanel>=0 )
       Panels[ E->iMPanel ] -> EI[ E->MIndex ] = ne;
    };
   for(int ne=0; ne<NumExteriorEdges; ne++)
-   { RWGEdge *E=ExteriorEdges[ne];
+   { E=ExteriorEdges[ne];
      Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
    };
 

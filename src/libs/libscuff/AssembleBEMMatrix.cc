@@ -355,9 +355,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   nr1=CommonRegionIndices[0];
   nr2=NumCommonRegions==2 ? CommonRegionIndices[1] : -1;
 
-  // the BEM matrix block is symmetric if (a) the two surfaces 
-  // are the same, and (b) the bloch wavevector is zero.
-  bool UseSymmetry = (nsa==nsb) && ( !kBloch || (kBloch[0]==0.0 && kBloch[1]==0.0) );
+  // 
+  // 
+  bool UseSymmetry = (nsa==nsb);
 
   // L is the lattice vector through which surfaces are displaced into
   // neighboring unit cells
