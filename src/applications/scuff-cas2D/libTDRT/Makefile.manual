@@ -1,0 +1,11 @@
+CPPFLAGS += -I../../../libs/libhrutil
+CPPFLAGS += -I../../../libs/libhmat
+CPPFLAGS += -I../../../libs/libMatProp
+CPPFLAGS += -I../../../libs/libMDInterp
+CPPFLAGS += -I../../../libs/libSGJC
+CPPFLAGS += -I../libAmosBessel
+
+OBJS = Assemble.o HRBesselK.o LFunctions.o ReadComsolFile.o ReadGMSHFile.o SCR.o StaticSSIDataMap.o StaticSSIDataRecord.o StaticSSIDataRecordDuffy.o TDRTGeometry.o TDRTMisc.o TDRTObject.o uupIntegralCubature.o uupIntegralDuffy.o uupIntegralSameSegment.o Visualize.o TValues.o G1G2Values.o
+
+libTDRT.a:	$(OBJS)
+		ar r $@ $^

@@ -1,0 +1,11 @@
+CPPFLAGS = -I../../../libs/libhrutil
+CPPFLAGS = -I../../../libs/libhmat
+CPPFLAGS = -I../../../libs/libMatProp
+CPPFLAGS = -I../../../libs/libMDInterp
+
+FC = gfortran
+
+OBJS = libAmosBessel.o machcon.o zbsubs.o
+
+libAmosBessel.a:	$(OBJS)
+			ar r $@ $^
