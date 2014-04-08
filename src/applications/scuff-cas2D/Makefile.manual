@@ -14,7 +14,7 @@ LDFLAGS += -L../../libs/libSGJC/.libs
 LDFLAGS += -L./libTDRT
 LDFLAGS += -L./libAmosBessel
 
-export LB_LIBS=-llapack -lblas -lgfortran -lpthread
+export LB_LIBS=-llapack -lblas -lgfortran -lgomp
 export HDF5_LIBS=-lhdf5 -lhdf5_hl
 
 HR_LIBS= -lTDRT -lMatProp -lMDInterp -lAmosBessel -lhmat -lSGJC -lhrutil
@@ -22,11 +22,11 @@ LIBS = $(HR_LIBS) $(HDF5_LIBS) $(LB_LIBS) -lm
 
 OBJS = CreateC2DWorkspace.o CubatureMethods.o ImageObjects.o scuff-cas2D.o XQIntegrand.o
 
-OBJS=	Casimir2D.o          \
+OBJS=	scuff-cas2D.o        \
         CreateC2DWorkspace.o \
 	CubatureMethods.o    \
 	ImageObjects.o       \
         XQIntegrand.o        \
 
 scuff-cas2D:	$(OBJS)
-		$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+		$(CXX) $(LDFLAGS) -o $@ $^ $(LIBS)
