@@ -195,11 +195,12 @@ void WriteFilePreamble(C2DWorkspace *W, FILE *f, int FileType,
   else if (FileType==-4) 
    { fprintf(f,"# data file columns: \n");
      fprintf(f,"# 1: quantity (E=energy, X=xforce, Y=yforce)\n");
-     fprintf(f,"# 2: Xi \n");
-     fprintf(f,"# 3: Q \n");
-     fprintf(f,"# 4: vertex index \n");
-     fprintf(f,"# 5: TE contribution \n");
-     fprintf(f,"# 6: TM contribution \n");
+     fprintf(f,"# 2: transform tag\n");
+     fprintf(f,"# 3: Xi \n");
+     fprintf(f,"# 4: Q \n");
+     fprintf(f,"# 5: vertex index \n");
+     fprintf(f,"# 6: TE contribution \n");
+     fprintf(f,"# 7: TM contribution \n");
      nc=3;
    };
 

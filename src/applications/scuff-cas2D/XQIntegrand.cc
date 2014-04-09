@@ -59,7 +59,7 @@ void *mypCC;
 /* entries in each 4-entry block) correspond to TM modes.      */
 /***************************************************************/
 void GetLNDetMInvMInf(C2DWorkspace *W,
-                      double Xi, double q,
+                      char *Tag, double Xi, double q,
                       double **ResultPtr)
 { 
   HMatrix *M; 
@@ -87,7 +87,7 @@ void GetLNDetMInvMInf(C2DWorkspace *W,
         LNDetTM +=  TMTerm;
 
         if (ProfileFile)
-         fprintf(ProfileFile,"E %e %e %i %e %e \n",Xi,q,n,TETerm,TMTerm);
+         fprintf(ProfileFile,"E %s %e %e %i %e %e \n",Tag,Xi,q,n,TETerm,TMTerm);
       };
 
    }
@@ -104,7 +104,7 @@ void GetLNDetMInvMInf(C2DWorkspace *W,
         LNDetTM += TMTerm; 
 
         if (ProfileFile)
-         fprintf(ProfileFile,"E %e %e %i %e %e \n",Xi,q,n,TETerm,TMTerm);
+         fprintf(ProfileFile,"E %s %e %e %i %e %e \n",Tag,Xi,q,n,TETerm,TMTerm);
 
       };
    };
@@ -133,7 +133,7 @@ void GetLNDetMInvMInf(C2DWorkspace *W,
 /* see comments to previous routine for details of calling     */
 /* convention                                                  */
 /***************************************************************/
-void GetTraceMInvdM(C2DWorkspace *W, char XY, double Xi, double q, double **ResultPtr)
+void GetTraceMInvdM(C2DWorkspace *W, char XY, char *Tag, double Xi, double q, double **ResultPtr)
 {
   TDRTGeometry *G;
   HMatrix *M, *dM, **dU0b;
@@ -202,7 +202,7 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, double Xi, double q, double **Resu
            TraceTM += TMTerm;
 
            if (ProfileFile)
-            fprintf(ProfileFile,"%c %e %e %i %e %e \n",XY,Xi,q,n,TETerm,TMTerm);
+            fprintf(ProfileFile,"%c %s %e %e %i %e %e \n",XY,Tag,Xi,q,n,TETerm,TMTerm);
          };
       }
      else
@@ -217,7 +217,7 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, double Xi, double q, double **Resu
            TraceTM +=  TMTerm;
 
            if (ProfileFile)
-            fprintf(ProfileFile,"%c %e %e %i %e %e \n",XY,Xi,q,n,TETerm,TMTerm);
+            fprintf(ProfileFile,"%c %s %e %e %i %e %e \n",XY,Tag,Xi,q,n,TETerm,TMTerm);
          };
       };
    }
@@ -232,7 +232,7 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, double Xi, double q, double **Resu
            TraceTE += TETerm;
            TraceTM += TMTerm;
            if (ProfileFile)
-            fprintf(ProfileFile,"%c %e %e %i %e %e \n",XY,Xi,q,n,TETerm,TMTerm);
+            fprintf(ProfileFile,"%c %s %e %e %i %e %e \n",XY,Tag,Xi,q,n,TETerm,TMTerm);
          };
       }
      else
@@ -243,7 +243,7 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, double Xi, double q, double **Resu
            TraceTE += TETerm;
            TraceTM += TMTerm;
            if (ProfileFile)
-            fprintf(ProfileFile,"%c %e %e %i %e %e \n",XY,Xi,q,n,TETerm,TMTerm);
+            fprintf(ProfileFile,"%c %s %e %e %i %e %e \n",XY,Tag,Xi,q,n,TETerm,TMTerm);
          };
       };
    };
@@ -748,11 +748,11 @@ void XQIntegrand(C2DWorkspace *W, double Xi, double q, double *EF)
      if ( Factorize(W) )
       { 
         if ( W->WhichQuantities & QUANTITY_ENERGY )
-         GetLNDetMInvMInf(W,Xi,q,&EFPtr);
+         GetLNDetMInvMInf(W,Tag,Xi,q,&EFPtr);
         if ( W->WhichQuantities & QUANTITY_XFORCE )
-         GetTraceMInvdM(W,'X',Xi,q,&EFPtr);
+         GetTraceMInvdM(W,'X',Tag,Xi,q,&EFPtr);
         if ( W->WhichQuantities & QUANTITY_YFORCE )
-         GetTraceMInvdM(W,'Y',Xi,q,&EFPtr);
+         GetTraceMInvdM(W,'Y',Tag,Xi,q,&EFPtr);
       }
      else
       { memset(EFPtr,0,W->NumQuantities*sizeof(double));
