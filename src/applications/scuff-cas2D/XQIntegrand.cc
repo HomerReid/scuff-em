@@ -58,13 +58,19 @@ void *mypCC;
 /* currents and parallel-type magnetic currents (2nd and 3rd   */
 /* entries in each 4-entry block) correspond to TM modes.      */
 /***************************************************************/
-void GetLNDetMInvMInf(C2DWorkspace *W, double **ResultPtr)
+void GetLNDetMInvMInf(C2DWorkspace *W,
+                      double Xi, double q,
+                      double **ResultPtr)
 { 
   HMatrix *M; 
   double *DRMInf;
   int n, N;
   double LNDetTE, LNDetTM;
   double *p;
+
+  FILE *ProfileFile=0;
+  if (W->ProfileFileName) 
+   ProfileFile=fopen(W->ProfileFileName,"a");
 
   M=W->M;
   DRMInf=W->DRMInf;
@@ -74,17 +80,32 @@ void GetLNDetMInvMInf(C2DWorkspace *W, double **ResultPtr)
   if (W->G->AllPEC)
    { 
      for(n=0; n<N/2; n++)
-      { LNDetTE +=  log( DRMInf[2*n+0] / abs(M->GetEntry(2*n+0,2*n+0)) );
-        LNDetTM +=  log( DRMInf[2*n+1] / abs(M->GetEntry(2*n+1,2*n+1)) );
+      { 
+        double TETerm = log( DRMInf[2*n+0] / abs(M->GetEntry(2*n+0,2*n+0)) );
+        double TMTerm = log( DRMInf[2*n+1] / abs(M->GetEntry(2*n+1,2*n+1)) );
+        LNDetTE +=  TETerm;
+        LNDetTM +=  TMTerm;
+
+        if (ProfileFile)
+         fprintf(ProfileFile,"E %e %e %i %e %e \n",Xi,q,n,TETerm,TMTerm);
       };
+
    }
   else
    { 
      for(n=0; n<N/4; n++) 
-      { LNDetTE +=  log( DRMInf[4*n+0] / abs(M->GetEntry(4*n+0,4*n+0)) )
-                   +log( DRMInf[4*n+3] / abs(M->GetEntry(4*n+3,4*n+3)) );
-        LNDetTM +=  log( DRMInf[4*n+1] / abs(M->GetEntry(4*n+1,4*n+1)) )
-                   +log( DRMInf[4*n+2] / abs(M->GetEntry(4*n+2,4*n+2)) );
+      { double TETerm= log( DRMInf[4*n+0] / abs(M->GetEntry(4*n+0,4*n+0)) )
+                      +log( DRMInf[4*n+3] / abs(M->GetEntry(4*n+3,4*n+3)) );
+
+        double TMTerm= log( DRMInf[4*n+1] / abs(M->GetEntry(4*n+1,4*n+1)) )
+                      +log( DRMInf[4*n+2] / abs(M->GetEntry(4*n+2,4*n+2)) );
+ 
+        LNDetTE += TETerm;
+        LNDetTM += TMTerm; 
+
+        if (ProfileFile)
+         fprintf(ProfileFile,"E %e %e %i %e %e \n",Xi,q,n,TETerm,TMTerm);
+
       };
    };
 
@@ -100,6 +121,11 @@ void GetLNDetMInvMInf(C2DWorkspace *W, double **ResultPtr)
     (*p++) = (LNDetTE + LNDetTM);
   *ResultPtr=p;
 
+  if (ProfileFile) 
+   { fprintf(ProfileFile,"\n\n");
+     fclose(ProfileFile);
+   };
+
 } 
 
 /***************************************************************/
@@ -107,7 +133,7 @@ void GetLNDetMInvMInf(C2DWorkspace *W, double **ResultPtr)
 /* see comments to previous routine for details of calling     */
 /* convention                                                  */
 /***************************************************************/
-void GetTraceMInvdM(C2DWorkspace *W, char XY, double **ResultPtr)
+void GetTraceMInvdM(C2DWorkspace *W, char XY, double Xi, double q, double **ResultPtr)
 {
   TDRTGeometry *G;
   HMatrix *M, *dM, **dU0b;
@@ -152,6 +178,13 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, double **ResultPtr)
    dM->ExportToMATLAB(mypCC,"dMd%c%s",XY,W->CurrentTag);
 
   /***************************************************************/
+  /* open profile file if applicable *****************************/
+  /***************************************************************/
+  FILE *ProfileFile=0;
+  if (W->ProfileFileName) 
+   ProfileFile=fopen(W->ProfileFileName,"a");
+
+  /***************************************************************/
   /* compute the trace of the upper-leftmost block of dMdZ.      */
   /***************************************************************/
   TraceTE=TraceTM=0.0;
@@ -161,16 +194,30 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, double **ResultPtr)
       { 
         for(niv=0; niv<W->NumContributingIVs; niv++)
          { n=W->ContributingIVIndices[niv];
-           TraceTE +=  dM->GetEntryD(2*n, 2*n);
-           TraceTM +=  dM->GetEntryD(2*n+1, 2*n+1);
+
+           double TETerm = dM->GetEntryD(2*n, 2*n);
+           TraceTE += TETerm;
+
+           double TMTerm = dM->GetEntryD(2*n+1, 2*n+1);
+           TraceTM += TMTerm;
+
+           if (ProfileFile)
+            fprintf(ProfileFile,"%c %e %e %i %e %e \n",XY,Xi,q,n,TETerm,TMTerm);
          };
       }
      else
       { 
         for(niv=0; niv<W->NumContributingIVs; niv++)
          { n=W->ContributingIVIndices[niv];
-           TraceTE +=  dM->GetEntryD(4*n, 4*n) + dM->GetEntryD(4*n+3, 4*n+3);
-           TraceTM +=  dM->GetEntryD(4*n+1, 4*n+1) + dM->GetEntryD(4*n+2,4*n+2);
+
+           double TETerm = dM->GetEntryD(4*n, 4*n) + dM->GetEntryD(4*n+3, 4*n+3);
+           double TMTerm = dM->GetEntryD(4*n+1, 4*n+1) + dM->GetEntryD(4*n+2,4*n+2);
+
+           TraceTE +=  TETerm;
+           TraceTM +=  TMTerm;
+
+           if (ProfileFile)
+            fprintf(ProfileFile,"%c %e %e %i %e %e \n",XY,Xi,q,n,TETerm,TMTerm);
          };
       };
    }
@@ -180,15 +227,23 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, double **ResultPtr)
      if (W->G->AllPEC)
       { 
         for(n=0; n<N1/2; n++)
-         { TraceTE +=  dM->GetEntryD(2*n, 2*n);
-           TraceTM +=  dM->GetEntryD(2*n+1, 2*n+1);
+         { double TETerm = dM->GetEntryD(2*n, 2*n);
+           double TMTerm =  dM->GetEntryD(2*n+1, 2*n+1);
+           TraceTE += TETerm;
+           TraceTM += TMTerm;
+           if (ProfileFile)
+            fprintf(ProfileFile,"%c %e %e %i %e %e \n",XY,Xi,q,n,TETerm,TMTerm);
          };
       }
      else
       { 
         for(n=0; n<N1/4; n++) 
-         { TraceTE +=  dM->GetEntryD(4*n, 4*n) + dM->GetEntryD(4*n+3, 4*n+3);
-           TraceTM +=  dM->GetEntryD(4*n+1, 4*n+1) + dM->GetEntryD(4*n+2,4*n+2);
+         { double TETerm =  dM->GetEntryD(4*n, 4*n) + dM->GetEntryD(4*n+3, 4*n+3);
+           double TMTerm =  dM->GetEntryD(4*n+1, 4*n+1) + dM->GetEntryD(4*n+2,4*n+2);
+           TraceTE += TETerm;
+           TraceTM += TMTerm;
+           if (ProfileFile)
+            fprintf(ProfileFile,"%c %e %e %i %e %e \n",XY,Xi,q,n,TETerm,TMTerm);
          };
       };
    };
@@ -206,6 +261,11 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, double **ResultPtr)
   else
    (*p++)=TraceTE + TraceTM;
   *ResultPtr=p;
+
+  if (ProfileFile)
+   { fprintf(ProfileFile,"\n\n");
+     fclose(ProfileFile);
+   };
 }
 
 /***************************************************************/
@@ -442,7 +502,6 @@ void XQIntegrand(C2DWorkspace *W, double Xi, double q, double *EF)
   int no, nop, NO;
   int nbf, nbfp, NBF;
   int nt, nq, ntnq;
-  int N;
   int AllConverged;
   int info;
   int Offset, MateOffset;
@@ -455,7 +514,6 @@ void XQIntegrand(C2DWorkspace *W, double Xi, double q, double *EF)
   FILE *f;
 
   G=W->G;
-  N=G->TotalBFs;
   NO=G->NumObjects;
 
   if (W->WriteHDF5)
@@ -690,11 +748,11 @@ void XQIntegrand(C2DWorkspace *W, double Xi, double q, double *EF)
      if ( Factorize(W) )
       { 
         if ( W->WhichQuantities & QUANTITY_ENERGY )
-         GetLNDetMInvMInf(W,&EFPtr);
+         GetLNDetMInvMInf(W,Xi,q,&EFPtr);
         if ( W->WhichQuantities & QUANTITY_XFORCE )
-         GetTraceMInvdM(W,'X',&EFPtr);
+         GetTraceMInvdM(W,'X',Xi,q,&EFPtr);
         if ( W->WhichQuantities & QUANTITY_YFORCE )
-         GetTraceMInvdM(W,'Y',&EFPtr);
+         GetTraceMInvdM(W,'Y',Xi,q,&EFPtr);
       }
      else
       { memset(EFPtr,0,W->NumQuantities*sizeof(double));

@@ -69,6 +69,7 @@ typedef struct C2DWorkspace
    int *Converged;
    char *ByXQFileName;
    char *ByXiFileName;
+   char *ProfileFileName;
    char *CurrentTag;
    int WriteHDF5;
    int IntCache;

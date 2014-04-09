@@ -84,6 +84,7 @@ void Usage(const char *ErrMsg, ...)
 /* FileType==1:  the file is the .byXQ output file             */
 /* FileType==2:  the file is the .byXi output file             */
 /* FileType==3:  the file is the .out output file              */
+/* FileType==-4: the file is the energy/force profile file     */
 /***************************************************************/
 void WriteFilePreamble(C2DWorkspace *W, FILE *f, int FileType, 
                        double Xi, double q, double T, char *XQListName)
@@ -190,6 +191,16 @@ void WriteFilePreamble(C2DWorkspace *W, FILE *f, int FileType,
      fprintf(f,"# 1: transform tag \n");
      fprintf(f,"# 2: temperature\n");
      nc=3;
+   }
+  else if (FileType==-4) 
+   { fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 1: quantity (E=energy, X=xforce, Y=yforce)\n");
+     fprintf(f,"# 2: Xi \n");
+     fprintf(f,"# 3: Q \n");
+     fprintf(f,"# 4: vertex index \n");
+     fprintf(f,"# 5: TE contribution \n");
+     fprintf(f,"# 6: TM contribution \n");
+     nc=3;
    };
 
   if (FileType>0)
@@ -235,7 +246,7 @@ int main(int argc, char *argv[])
   double LengthUnit;
   double RectangleBuffer[4], *Rectangle;
 
-  char *GeoFileBase, *TransListName, *XQListName;
+  char *GeoFileBase, *TransListName, *XQListName, *ProfileFile;
   char OutFileName[200];
   int nt, nq, ntnq, NTNQ;
   int VisualizeOnly;
@@ -267,6 +278,7 @@ int main(int argc, char *argv[])
   VisualizeOnly=0;
   LengthUnit=0.0;
   Rectangle=0;
+  ProfileFile=0;
   for(narg=1; narg<argc; narg++)
    { 
      if ( !StrCaseCmp(argv[narg],"--geometry") )
@@ -327,6 +339,13 @@ int main(int argc, char *argv[])
         if ( !(f=fopen(XQListName,"r")) )
          ErrExit("could not open file %s",XQListName);
         fclose(f);
+      } 
+     else if ( !StrCaseCmp(argv[narg],"--ProfileFile") )
+      { if (narg+1>=argc)
+         ErrExit("--ProfileFile option requires an argument");
+        ProfileFile=argv[++narg];
+        printf("Writing energy/force profile information to file %s.\n",
+                ProfileFile);
       } 
      else if ( !StrCaseCmp(argv[narg],"--T") )
       { if (narg+1>=argc)
@@ -443,7 +462,8 @@ int main(int argc, char *argv[])
   /***************************************************************/
   GeoFileBase=strdup(GetFileBase(G->GeoFileName));
   W=CreateC2DWorkspace(G, TransListName, WhichQuantities, Rectangle,
-                       NumThreads, TETM, GroundPlane, WriteHDF5, IntCache, VisualizeOnly);
+                       NumThreads, TETM, GroundPlane, WriteHDF5, 
+                       IntCache, VisualizeOnly);
 
   if (VisualizeOnly)
    exit(1);
@@ -468,6 +488,13 @@ int main(int argc, char *argv[])
    { 
      f=fopen(W->ByXiFileName,"a");
      WriteFilePreamble(W, f, 2, Xi, Q, T, XQListName);
+     fclose(f);
+   };
+
+  if (ProfileFile)
+   { W->ProfileFileName = ProfileFile;
+     f=fopen(W->ProfileFileName,"a");
+     WriteFilePreamble(W, f, -4, Xi, Q, T, XQListName);
      fclose(f);
    };
 

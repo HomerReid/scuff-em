@@ -57,6 +57,7 @@ C2DWorkspace *CreateC2DWorkspace(TDRTGeometry *G, char *TransListName,
   W->WriteHDF5=WriteHDF5;
   W->IntCache=IntCache;
   W->NumContributingIVs=0;
+  W->ProfileFileName=0;
 
   if (NumThreads==0)
    NumThreads=GetNumThreads();
