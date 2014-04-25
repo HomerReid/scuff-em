@@ -1,30 +1,3 @@
-/* Copyright (C) 2005-2011 M. T. Homer Reid
- *
- * This file is part of SCUFF-EM.
- *
- * SCUFF-EM is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * SCUFF-EM is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-/*
- * GBarVDEwald.cc -- routines for computing the periodic Green's function
- *                   and its derivatives using Ewald summation
- *
- * homer reid     -- 7/2011 -- 7/2012
- *
- */
-
 #include <stdlib.h>
 #include <math.h>
 
@@ -44,19 +17,43 @@
 
 #include "Faddeeva.hh"
 
+using namespace Faddeeva;
 namespace scuff{
 
-// compute exp(a) * erfc(b), being careful of overflow/underflow
-static cdouble erfc_s(cdouble a, cdouble b) {
-  double x = real(b), y = imag(b);
-  cdouble mb2((y - x) * (x + y), -2*x*y); // -b^2
-  if (x >= 0) // erfc(b) = exp(-b^2) erfcx(b) ==> exp(a-b^2) erfcx(b)
-    return exp(a + mb2) * Faddeeva::erfcx(b);
-  else // erfc(b) = 2 - exp(-b^2) erfcx(b) ==> 2*exp(a) - exp(a-b^2) erfcx(-b)
-    return 2.0*exp(a) - exp(a + mb2) * Faddeeva::erfcx(-b);
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+static void GetReciprocalBasis(double LBVinv[2][2], 
+			       double Gamma1[2], double Gamma2[2])
+{
+  // compute the reciprocal lattice vectors Gamma1 and Gamma2:
+  // (Gamma1 Gamma2) matrix = 2*pi * inverse[transpose[(LBV[0] LBV[1])]]
+  //                        == 2*pi * inverse(LBV),
+  // where we denote a 2x2 matrix by (column1 column2)
+  Gamma1[0] = LBVinv[0][0] * (2*M_PI);
+  Gamma1[1] = LBVinv[1][0] * (2*M_PI);
+  Gamma2[0] = LBVinv[0][1] * (2*M_PI);
+  Gamma2[1] = LBVinv[1][1] * (2*M_PI);
 }
 
-static bool cisnan(cdouble z) { return ISNAN(real(z)) || ISNAN(imag(z)); }
+/***************************************************************/
+/* compute exp(a)*erfc(b), being careful of overflow/underflow */
+/***************************************************************/
+static cdouble erfc_s(cdouble a, cdouble b) 
+{
+  double x = real(b); 
+  double y = imag(b);
+
+  cdouble mb2( (y - x) * (x + y), -2*x*y); // -b^2
+
+  if (x >= 0) // erfc(b) = exp(-b^2) erfcx(b) ==> exp(a-b^2) erfcx(b)
+   return exp(a + mb2) * Faddeeva::erfcx(b);
+  else        // erfc(b) = 2 - exp(-b^2) erfcx(b) ==> 2*exp(a) - exp(a-b^2) erfcx(-b)
+   return 2.0*exp(a) - exp(a + mb2) * Faddeeva::erfcx(-b);
+}
+
+static bool cisnan(cdouble z) 
+ { return ISNAN(real(z)) || ISNAN(imag(z)); }
 
 /***************************************************************/
 /* 'EEF' = 'exp*erfc factor'  **********************************/
@@ -90,56 +87,42 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
 }
 
 /***************************************************************/
+/* add the contribution of a single reciprocal-lattice vector  */
+/* to the Fourier-space sum that defines GBarDistant           */
 /***************************************************************/
-/***************************************************************/
-void AddG1Contribution(double *R, cdouble k, double *P,
-                       double GammaX, double GammaY,
-                       double E, cdouble *GBarVD)
+void AddGLong(double *R, cdouble k, double *P,
+              double GammaX, double GammaY,
+              double E, cdouble *GBarVD)
 { 
-  double GmP[2];
+  double PmG[2];
   cdouble PreFactor, Q, EEF, EEFPrime;
 
-  GmP[0] = GammaX - P[0];
-  GmP[1] = GammaY - P[1];
+  PmG[0] = P[0] - GammaX;
+  PmG[1] = P[1] - GammaY;
 
-  Q = sqrt ( GmP[0]*GmP[0] + GmP[1]*GmP[1] - k*k );
+  Q = sqrt ( PmG[0]*PmG[0] + PmG[1]*PmG[1] - k*k );
 
-  PreFactor = exp( II * (GmP[0]*R[0] + GmP[1]*R[1]) ) / Q;
+  PreFactor = exp( II * (PmG[0]*R[0] + PmG[1]*R[1]) ) / Q;
 
   GetEEF(R[2], E, Q, &EEF, &EEFPrime);
 
   GBarVD[0] += PreFactor * EEF;
-  GBarVD[1] += II*GmP[0]*PreFactor*EEF;
-  GBarVD[2] += II*GmP[1]*PreFactor*EEF;
+  GBarVD[1] += II*PmG[0]*PreFactor*EEF;
+  GBarVD[2] += II*PmG[1]*PreFactor*EEF;
   GBarVD[3] += PreFactor*EEFPrime;
-  GBarVD[4] += -GmP[0]*GmP[1]*PreFactor*EEF;
-  GBarVD[5] += II*GmP[0]*PreFactor*EEFPrime;
-  GBarVD[6] += II*GmP[1]*PreFactor*EEFPrime;
-  GBarVD[7] += -GmP[0]*GmP[1]*PreFactor*EEFPrime;
+  GBarVD[4] += -PmG[0]*PmG[1]*PreFactor*EEF;
+  GBarVD[5] += II*PmG[0]*PreFactor*EEFPrime;
+  GBarVD[6] += II*PmG[1]*PreFactor*EEFPrime;
+  GBarVD[7] += -PmG[0]*PmG[1]*PreFactor*EEFPrime;
 
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void GetReciprocalBasis(double LBVinv[2][2], 
-			       double Gamma1[2], double Gamma2[2])
-{
-  // compute the reciprocal lattice vectors Gamma1 and Gamma2:
-  // (Gamma1 Gamma2) matrix = 2*pi * inverse[transpose[(LBV[0] LBV[1])]]
-  //                        == 2*pi * inverse(LBV),
-  // where we denote a 2x2 matrix by (column1 column2)
-  Gamma1[0] = LBVinv[0][0] * (2*M_PI);
-  Gamma1[1] = LBVinv[1][0] * (2*M_PI);
-  Gamma2[0] = LBVinv[0][1] * (2*M_PI);
-  Gamma2[1] = LBVinv[1][1] * (2*M_PI);
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void ComputeG1(double *R, cdouble k, double *kBloch, double LBVinv[2][2],
-               double E, int *pnCells, cdouble *Sum)
+void GetGBarDistant( double *R, cdouble k, double *kBloch,
+                     double LBVinv[2][2],
+                     double E, int *pnCells, cdouble *Sum)
 { 
   int n1, n2;
   cdouble LastSum[NSUM];
@@ -166,10 +149,10 @@ void ComputeG1(double *R, cdouble k, double *kBloch, double LBVinv[2][2],
   /***************************************************************/
   for (n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
    for (n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
-    AddG1Contribution(R, k, kBloch,
-                      n1*Gamma1[0] + n2*Gamma2[0],
-                      n1*Gamma1[1] + n2*Gamma2[1],
-                      E, Sum);
+    AddGLong(R, k, kBloch,
+             n1*Gamma1[0] + n2*Gamma2[0],
+             n1*Gamma1[1] + n2*Gamma2[1],
+             E, Sum);
          
   /***************************************************************/
   /* each iteration of this loop sums the contributions of the   */
@@ -185,10 +168,10 @@ void ComputeG1(double *R, cdouble k, double *kBloch, double LBVinv[2][2],
          if ( (abs(n1)<NN) && (abs(n2)<NN) )
           continue;
          nCells++;
-         AddG1Contribution(R, k, kBloch,
-                           n1*Gamma1[0] + n2*Gamma2[0],
-                           n1*Gamma1[1] + n2*Gamma2[1], 
-                           E, Sum);
+         AddGLong(R, k, kBloch,
+                  n1*Gamma1[0] + n2*Gamma2[0],
+                  n1*Gamma1[1] + n2*Gamma2[1], 
+                  E, Sum);
        };
 
      /*--------------------------------------------------------------*/
@@ -230,15 +213,17 @@ void ComputeG1(double *R, cdouble k, double *kBloch, double LBVinv[2][2],
 /*                                                             */
 /* note: the summand is:                                       */
 /*                                                             */
-/*  exp(i kBloch\dot L) * g_1 *( g_{2+} g_{3+} + g_{2-}g_{3-}) */  
+/*  exp(i kBloch\dot L) * g_1*( g_{2+} g_{3+} + g_{2-}g_{3-} ) */  
 /*                                                             */
 /* where:                                                      */
+/*                                                             */
 /*  g_1       = 1/(8*pi*|R|)                                   */
 /*  g_{2+}    = exp(i*k*|R|)                                   */
-/*  g_{3+}    = erfc( E*R + i*k/(2*E) )                        */
+/*  g_{3+}    = erfc(  E*R + i*k/(2*E) )                       */
 /*  g_{2-}    = exp(-i*k*|R|)                                  */
-/*  g_{3-}    = erfc( E*R - i*k/(2*E) )                        */
-/* (here |R| = |r+L|.)                                         */
+/*  g_{3-}    = erfc(  E*R - i*k/(2*E)  )                      */
+/*                                                             */
+/* with |R| = |r-L|.                                           */ 
 /*                                                             */
 /* if we define the following combinations:                    */
 /*                                                             */
@@ -250,14 +235,14 @@ void ComputeG1(double *R, cdouble k, double *kBloch, double LBVinv[2][2],
 /* d/dR (ggPgg) = i*k*ggMgg + g4                               */
 /* d/dR (ggMgg) = i*k*ggPgg                                    */
 /*                                                             */
-/* where g4 = (-4E/sqrt(pi)) * exp( -E^2R^2 + k^2/(4E^2).      */
+/* where g4 = (-4E/sqrt(pi)) * exp( -(E)^2R^2 + k^2/(4(E)^2).  */
 /*                                                             */
 /***************************************************************/
-void AddG2Contribution(double *R, cdouble k, double *kBloch,
-                       double Lx, double Ly, double E, cdouble *Sum)
+void AddGShort(double *R, cdouble k, double *kBloch,
+               double Lx, double Ly, double E, cdouble *Sum)
 { 
   cdouble PhaseFactor; 
-  double RpL[3], rpl2, rpl, rpl3, rpl4, rpl5, rpl6, rpl7;
+  double RmL[3], rml2, rml, rml3, rml4, rml5, rml6, rml7;
   cdouble g2p, g3p, g2m, g3m, g4, ggPgg, ggMgg, Term;
 
   /*--------------------------------------------------------------*/
@@ -268,19 +253,19 @@ void AddG2Contribution(double *R, cdouble k, double *kBloch,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RpL[0] = (R[0]+Lx);
-  RpL[1] = (R[1]+Ly);
-  RpL[2] =  R[2];
+  RmL[0] = (R[0]-Lx);
+  RmL[1] = (R[1]-Ly);
+  RmL[2] =  R[2];
 
-  rpl2=RpL[0]*RpL[0] + RpL[1]*RpL[1] + RpL[2]*RpL[2];
-  rpl=sqrt(rpl2);
-  if ( rpl < 1.0e-6 ) 
+  rml2=RmL[0]*RmL[0] + RmL[1]*RmL[1] + RmL[2]*RmL[2];
+  rml=sqrt(rml2);
+  if ( rml < 1.0e-6 ) 
    return;
-  rpl3=rpl2*rpl;
-  rpl4=rpl3*rpl;
-  rpl5=rpl4*rpl;
-  rpl6=rpl5*rpl;
-  rpl7=rpl6*rpl;
+  rml3=rml2*rml;
+  rml4=rml3*rml;
+  rml5=rml4*rml;
+  rml6=rml5*rml;
+  rml7=rml6*rml;
 
   double E2 = E*E;
   double E4 = E2*E2;
@@ -288,60 +273,62 @@ void AddG2Contribution(double *R, cdouble k, double *kBloch,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  //g2p = exp( II*k*rpl );
-  //g3p = Faddeeva::erfc( E*rpl + II*k/(2.0*E) );
-  cdouble g2pTg3p = erfc_s( II*k*rpl, E*rpl + II*k/(2.0*E) );
+  //g2p = exp( II*k*rml );
+  //g3p = Faddeeva::erfc( E*rml + II*k/(2.0*E) );
+  cdouble g2pTg3p = erfc_s( II*k*rml, E*rml + II*k/(2.0*E) );
 
-  //g2m = exp( -II*k*rpl );
-  //g3m = Faddeeva::erfc( E*rpl - II*k/(2.0*E) );
-  cdouble g2mTg3m = erfc_s( -II*k*rpl, E*rpl - II*k/(2.0*E) );
+  //g2m = exp( -II*k*rml );
+  //g3m = Faddeeva::erfc( E*rml - II*k/(2.0*E) );
+  cdouble g2mTg3m = erfc_s( -II*k*rml, E*rml - II*k/(2.0*E) );
 
   //ggPgg = g2p*g3p + g2m*g3m;
   //ggMgg = g2p*g3p - g2m*g3m;
   ggPgg = g2pTg3p + g2mTg3m;
   ggMgg = g2pTg3p - g2mTg3m;
 
-  g4 = -2.0*M_2_SQRTPI*E*exp(-E2*rpl2 + k*k/(4.0*E2));
+  g4 = -2.0*M_2_SQRTPI*E*exp(-E2*rml2 + k*k/(4.0*E2));
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  Sum[0] += PhaseFactor * ggPgg / rpl;
+  Sum[0] += PhaseFactor * ggPgg / rml;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  Term = -ggPgg/rpl3 + (g4 + II*k*ggMgg)/rpl2;
+  Term = -ggPgg/rml3 + (g4 + II*k*ggMgg)/rml2;
 
-  Sum[1] += PhaseFactor * RpL[0] * Term;
-  Sum[2] += PhaseFactor * RpL[1] * Term;
-  Sum[3] += PhaseFactor * RpL[2] * Term;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  Term = 3.0*ggPgg/rpl5 - 3.0*(g4+II*k*ggMgg)/rpl4 - k*k*ggPgg/rpl3 - 2.0*E2*g4/rpl2;
-
-  Sum[4] += PhaseFactor * RpL[0] * RpL[1] * Term;
-  Sum[5] += PhaseFactor * RpL[0] * RpL[2] * Term;
-  Sum[6] += PhaseFactor * RpL[1] * RpL[2] * Term;
+  Sum[1] += PhaseFactor * RmL[0] * Term;
+  Sum[2] += PhaseFactor * RmL[1] * Term;
+  Sum[3] += PhaseFactor * RmL[2] * Term;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  Term = -15.0*ggPgg/rpl7 + 15.0*(g4+II*k*ggMgg)/rpl6 
-         + 6.0*k*k*ggPgg/rpl5 + 10.0*E2*g4/rpl4
-         -k*k*(II*k*ggMgg + g4)/rpl4 + 4.0*E4*g4/rpl2;
+  Term = 3.0*ggPgg/rml5 - 3.0*(g4+II*k*ggMgg)/rml4 
+           - k*k*ggPgg/rml3 - 2.0*E2*g4/rml2;
 
-  Sum[7] += PhaseFactor * RpL[0] * RpL[1] * RpL[2] * Term;
+  Sum[4] += PhaseFactor * RmL[0] * RmL[1] * Term;
+  Sum[5] += PhaseFactor * RmL[0] * RmL[2] * Term;
+  Sum[6] += PhaseFactor * RmL[1] * RmL[2] * Term;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  Term = -15.0*ggPgg/rml7 + 15.0*(g4+II*k*ggMgg)/rml6 
+         + 6.0*k*k*ggPgg/rml5 + 10.0*E2*g4/rml4
+         -k*k*(II*k*ggMgg + g4)/rml4 + 4.0*E4*g4/rml2;
+
+  Sum[7] += PhaseFactor * RmL[0] * RmL[1] * RmL[2] * Term;
 
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ComputeG2(double *R, cdouble k, double *kBloch, double *LBV[2],
-               double E, int *pnCells, cdouble *Sum)
+void GetGBarNearby(double *R, cdouble k, double *kBloch,
+                   double *LBV[2], double E, bool ExcludeInnerCells,
+                   int *pnCells, cdouble *Sum)
 { 
   int n1, n2;
   cdouble LastSum[NSUM];
@@ -361,10 +348,11 @@ void ComputeG2(double *R, cdouble k, double *kBloch, double *LBV[2],
   /***************************************************************/
   for (n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
    for (n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
-    AddG2Contribution(R, k, kBloch,
-                      n1*LBV[0][0] + n2*LBV[1][0],
-                      n1*LBV[0][1] + n2*LBV[1][1],
-                      E, Sum);
+    if ( !ExcludeInnerCells || abs(n1)>1 || abs(n2)>1 )
+     AddGShort(R, k, kBloch,
+               n1*LBV[0][0] + n2*LBV[1][0],
+               n1*LBV[0][1] + n2*LBV[1][1],
+               E, Sum);
          
   /***************************************************************/
   /***************************************************************/
@@ -379,10 +367,10 @@ void ComputeG2(double *R, cdouble k, double *kBloch, double *LBV[2],
          if ( (abs(n1)<NN) && (abs(n2)<NN) )
           continue;
          nCells++;
-         AddG2Contribution(R, k, kBloch,
-                           n1*LBV[0][0] + n2*LBV[1][0],
-                           n1*LBV[0][1] + n2*LBV[1][1], 
-                           E, Sum);
+         AddGShort(R, k, kBloch,
+                   n1*LBV[0][0] + n2*LBV[1][0],
+                   n1*LBV[0][1] + n2*LBV[1][1], 
+                   E, Sum);
        };
 
      /*--------------------------------------------------------------*/
@@ -414,21 +402,21 @@ void ComputeG2(double *R, cdouble k, double *kBloch, double *LBV[2],
 /* get the contributions of a single real-space lattice cell to*/
 /* the full periodic green's function (no ewald decomposition) */
 /***************************************************************/
-void AddGBFContribution(double R[3], cdouble k, double kBloch[2],
-                        double Lx, double Ly, cdouble *Sum)
+void AddGFull(double R[3], cdouble k, double kBloch[2],
+              double Lx, double Ly, cdouble *Sum)
 { 
 
-  double RpL[3];
+  double RmL[3];
   double r2, r;
   cdouble PhaseFactor, IKR, Phi, Psi, Zeta, Upsilon;
    
   PhaseFactor=exp( II*(Lx*kBloch[0] + Ly*kBloch[1]) );
 
-  RpL[0]=R[0] + Lx;
-  RpL[1]=R[1] + Ly;
-  RpL[2]=R[2];
+  RmL[0]=R[0] - Lx;
+  RmL[1]=R[1] - Ly;
+  RmL[2]=R[2];
 
-  r2=RpL[0]*RpL[0] + RpL[1]*RpL[1] + RpL[2]*RpL[2];
+  r2=RmL[0]*RmL[0] + RmL[1]*RmL[1] + RmL[2]*RmL[2];
   r=sqrt(r2);
   if ( r < 1.0e-8 )
    return;
@@ -439,49 +427,81 @@ void AddGBFContribution(double R[3], cdouble k, double kBloch[2],
   Upsilon=(-15.0 + IKR*(15.0 + IKR*(-6.0 + IKR)))*Phi/(r2*r2*r2);
 
   Sum[0] += PhaseFactor * Phi;
-  Sum[1] += PhaseFactor * RpL[0] * Psi;
-  Sum[2] += PhaseFactor * RpL[1] * Psi;
-  Sum[3] += PhaseFactor * RpL[2] * Psi;
-  Sum[4] += PhaseFactor * RpL[0] * RpL[1] * Zeta;
-  Sum[5] += PhaseFactor * RpL[0] * RpL[2] * Zeta;
-  Sum[6] += PhaseFactor * RpL[1] * RpL[2] * Zeta;
-  Sum[7] += PhaseFactor * RpL[0] * RpL[1] * RpL[2] * Upsilon;
+  Sum[1] += PhaseFactor * RmL[0] * Psi;
+  Sum[2] += PhaseFactor * RmL[1] * Psi;
+  Sum[3] += PhaseFactor * RmL[2] * Psi;
+  Sum[4] += PhaseFactor * RmL[0] * RmL[1] * Zeta;
+  Sum[5] += PhaseFactor * RmL[0] * RmL[2] * Zeta;
+  Sum[6] += PhaseFactor * RmL[1] * RmL[2] * Zeta;
+  Sum[7] += PhaseFactor * RmL[0] * RmL[1] * RmL[2] * Upsilon;
  
 }
 
 /***************************************************************/
-/* sum the contributions to the innermost 9 real-space cells   */
 /***************************************************************/
-void ComputeGBFFirst9(double *R, cdouble k, 
-                      int LDim, double *kBloch, double *LBV[2], 
-                      cdouble *Sum)
-{ 
-  memset(Sum,0,NSUM*sizeof(cdouble));
-  if (LDim==2)
-   { for (int n1=-1; n1<=1; n1++)
-      for (int n2=-1; n2<=1; n2++)
-       AddGBFContribution(R, k, kBloch,
-                          n1*LBV[0][0] + n2*LBV[1][0],
-                          n1*LBV[0][1] + n2*LBV[1][1],
-                          Sum);
-   }
-  else
-   { for (int n1=-1; n1<=1; n1++)
-      AddGBFContribution(R, k, kBloch, n1*LBV[0][0], n1*LBV[0][1], Sum);
-   };
-}
-
 /***************************************************************/
-/* evaluation of 1D periodic green's function                  */
-/***************************************************************/
-#if 0
-void GBarVD1D(double *R, cdouble k, double *kBloch, double *LBV,
-              double E, int ExcludeFirst9, cdouble *GBarVD)
+#define PI32 5.5683279968317078453 // pi^{3/2}
+void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
+                       double Lx, double Ly, double E, cdouble *Sum)
 {
-  ErrExit("structures with 1D periodicity not yet implemented");
-}
-#endif
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double RmL[3];
+  RmL[0] = (R[0]-Lx);
+  RmL[1] = (R[1]-Ly);
+  RmL[2] =  R[2];
 
+  double rml2=RmL[0]*RmL[0] + RmL[1]*RmL[1] + RmL[2]*RmL[2];
+  double rml=sqrt(rml2);
+  bool Smallr = ( rml*E < 0.5 ) && ( rml*abs(k) < 1.0 );
+
+  if ( Smallr ) // use small-r expansion derived in memo
+   { 
+     cdouble k2  = k*k;
+     cdouble k3  = k2*k;
+     cdouble E2  = E*E;
+     cdouble ErfFac = 1.0 + erf(0.5*II*k/E);
+     cdouble ExpFac = exp(0.25*k2/E2);
+     cdouble C0  = E*ExpFac/(2.0*PI32) + II*k*ErfFac/(4.0*M_PI);
+     cdouble C2  = -ExpFac*E*(2.0*E2+k2)/(12.0*PI32) 
+                    -II*k3*ErfFac/(24.0*M_PI);
+     cdouble C4  = ExpFac*E*(12.0*E2*E2 + 2.0*E2*k2 + k2*k2)/(240.0*PI32)
+                    +II*k3*k2*ErfFac/(480.0*M_PI);
+
+     cdouble PhaseFactor=exp( II * (kBloch[0]*Lx + kBloch[1]*Ly) );
+
+     Sum[0] += PhaseFactor*(C0 + C2*rml2 + C4*rml2*rml2);
+     Sum[1] += PhaseFactor * (2.0*C2*RmL[0] + 4.0*C4*rml2*RmL[0]);
+     Sum[2] += PhaseFactor * (2.0*C2*RmL[1] + 4.0*C4*rml2*RmL[1]);
+     Sum[3] += PhaseFactor * (2.0*C2*RmL[2] + 4.0*C4*rml2*RmL[2]);
+     Sum[4] += PhaseFactor * (8.0*C4*RmL[0]*RmL[1]);
+     Sum[5] += PhaseFactor * (8.0*C4*RmL[0]*RmL[2]);
+     Sum[6] += PhaseFactor * (8.0*C4*RmL[1]*RmL[2]);
+     Sum[7] += 0.0; // third mixed partial vanishes in this approximation
+   }
+  else // set GLong = GFull - GShort
+   { 
+     cdouble GFull[NSUM];
+     memset(GFull,0,NSUM*sizeof(cdouble));
+     AddGFull(R, k, kBloch, Lx, Ly, GFull);
+
+     cdouble GShort[NSUM];
+     memset(GShort,0,NSUM*sizeof(cdouble));
+     AddGShort(R, k, kBloch, Lx, Ly, E, GShort);
+
+     for(int ns=0; ns<NSUM; ns++)
+      { 
+        cdouble GLong = GFull[ns] - GShort[ns];
+        Sum[ns] += GLong;
+
+        if ( ns==0 && abs(GLong) < 1.0e-6*(abs(GFull[ns]) + abs(GShort[ns])) )
+         Warn("loss of precision (r=%e) ( %.8e - %.8e = %.1e ) in GLongRealSpace",
+               rml,abs(GFull[ns]),abs(GShort[ns]),abs(GLong));
+      };
+   };
+ 
+}
 
 /***************************************************************/
 /* 'GBar values and derivatives,' computed via Ewald's method  */
@@ -513,9 +533,9 @@ void GBarVD1D(double *R, cdouble k, double *kBloch, double *LBV,
 /*  GBarVD[7] = d^3GBar/dXdYdZ                                 */
 /*                                                             */
 /***************************************************************/
-void GBarVDEwald(double *R, cdouble k,
-                 int LDim, double *kBloch, double *LBV[2],
-                 double E, int ExcludeFirst9, cdouble *GBarVD)
+void GBarVDEwald(double *R, cdouble k, int LDim, double *kBloch,
+                 double *LBV[2], double E, bool ExcludeInnerCells, 
+                 cdouble *GBarVD)
 { 
   /*--------------------------------------------------------------*/
   /* the periodic green's function is well-defined at k==0, but   */
@@ -531,16 +551,19 @@ void GBarVDEwald(double *R, cdouble k,
     };
 
   if (LDim==1)
-   { //GBarVD1D(R, k, kBloch, LBV[0], E, ExcludeFirst9, GBarVD);
+   { //GBarVD1D(R, k, kBloch, LBV[0], E, ExcludeInnerCells, GBarVD);
      ErrExit("structures with 1D periodicity not yet implemented");
      return;
    };
 
   double LBVinv[2][2];
-  if (!Matrix2x2_Inverse(LBV, LBVinv)) ErrExit("lattice has empty unit cell");
+  if (!Matrix2x2_Inverse(LBV, LBVinv)) 
+   ErrExit("lattice has empty unit cell");
 
-  /* E is the separation parameter, which we set to its  */
-  /* optimal value if the user didn't specify it already */
+  /***************************************************************/
+  /* E is the separation parameter, which we set to its optimal  */
+  /* value if the user didn't specify it already                 */
+  /***************************************************************/
   if (E==-1.0)
    { double EOpt1=sqrt( M_PI 
 			/ fabs(LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0]) );
@@ -552,69 +575,54 @@ void GBarVDEwald(double *R, cdouble k,
      double EOpt2 = sqrt( norm(k) + G12 + G22 ) / 10.0; // H=10
 
      E=fmax(EOpt1, EOpt2);
-//printf("E=%e\n",E);
+   };
+
+  /***************************************************************/
+  /* evaluate 'nearby' and 'distant' sums                        */
+  /***************************************************************/
+  cdouble GBarNearby[NSUM], GBarDistant[NSUM];
+  GetGBarNearby(R, k, kBloch, LBV, E, ExcludeInnerCells, 0, GBarNearby);
+  GetGBarDistant(R, k, kBloch, LBVinv, E, 0, GBarDistant);
+   
+  for(int ns=0; ns<NSUM; ns++)
+   GBarVD[ns] = GBarNearby[ns] + GBarDistant[ns];
+
+  /***************************************************************/
+  /* subtract off the contributions to the 'distant' sum coming  */
+  /* from the inner grid cells in real space                     */
+  /***************************************************************/
+  if (ExcludeInnerCells)
+   { 
+     cdouble GLongInner[NSUM];
+
+     memset(GLongInner,0,NSUM*sizeof(cdouble));
+     for(int n1=-1; n1<=1; n1++)
+      for(int n2=-1; n2<=1; n2++)
+       AddGLongRealSpace(R, k, kBloch,
+                         n1*LBV[0][0] + n2*LBV[1][0],
+                         n1*LBV[0][1] + n2*LBV[1][1],
+                         E, GLongInner);
+
+     for(int ns=0; ns<NSUM; ns++)
+      GBarVD[ns] -= GLongInner[ns];
    };
 
   /***************************************************************/
   /* detect evaluation points at the origin or lattice-equivalent*/
-  /* to the origin.                                              */
+  /* to the origin so that we can explicitly zero out the        */
+  /* appropriate derivatives in this case. NOTE 20140425: This   */
+  /* step is perhaps not needed now that we have the improved    */
+  /* treatment of evaluation points on lattice sites.            */
   /***************************************************************/
   // convert R to lattice basis:
   double RL[2];
   for (int i = 0; i < 2; ++i) // RL = inv(LBV') * R; note LBV is transposed
-    RL[i] = LBVinv[0][i] * R[0] + LBVinv[1][i] * R[1];
+   RL[i] = LBVinv[0][i] * R[0] + LBVinv[1][i] * R[1];
   bool ZeroCoordinate[3]={false, false, false};
   const double tol = 1e-8;
-  ZeroCoordinate[0] = fabs(RL[0]) < tol || fabs(RL[0] - 1) < tol;
-  ZeroCoordinate[1] = fabs(RL[1]) < tol || fabs(RL[1] - 1) < tol;
+  ZeroCoordinate[0] = fabs(RL[0]) < tol || fabs( (fabs(RL[0]) - 1.0) ) < tol;
+  ZeroCoordinate[1] = fabs(RL[1]) < tol || fabs( (fabs(RL[1]) - 1.0) ) < tol;
   ZeroCoordinate[2] = fabs(R[2]) < tol;
-
-  double MyR[3];
-  MyR[0]=R[0]; MyR[1]=R[1]; MyR[2]=R[2];
-  if ( ZeroCoordinate[0] && ZeroCoordinate[1] && ZeroCoordinate[2] )
-   { 
- //    E=0.1;
-     MyR[0] += 1.0e-5;
-     MyR[1] += 1.0e-5;
-     MyR[2] += 1.0e-5;
-   };
-
-  /***************************************************************/
-  /* Note: The algorithm we use is designed to compute the sum   */
-  /*                                                             */
-  /*  GPlus(k, r) = \sum_{L} e^{i K.L } G_0( r + L )     (1)     */
-  /*                                                             */
-  /* In particular, the subroutines above (ComputeG1, ComputeG2, */
-  /* &c) are designed according to this convention.              */
-  /*                                                             */
-  /* However, the sum we actually want to compute for SCUFF      */
-  /* purposes is                                                 */
-  /*                                                             */
-  /*  GMinus(k,r) = \sum_{L} e^{i K.L } G_0( r - L ).    (2)     */
-  /*                                                             */
-  /* In what follows we exploit the relationship                 */
-  /*                                                             */
-  /*  GMinus(k,r) = GPlus(-k,r)                                  */
-  /*                                                             */
-  /* by running our algorithm of GPlus with a Bloch vector equal */
-  /* to minus the caller's requested Bloch vector.               */
-  /***************************************************************/
-  double MkBloch[3];
-  MkBloch[0] = -1.0*kBloch[0];
-  MkBloch[1] = -1.0*kBloch[1];
-  MkBloch[2] = -1.0*kBloch[2];
-
-  cdouble G1[NSUM], G2[NSUM], GBFFirst9[NSUM];
-  ComputeG1(MyR, k, MkBloch, LBVinv, E, 0, G1);
-  ComputeG2(MyR, k, MkBloch, LBV, E, 0, G2);
-
-  if (ExcludeFirst9)
-   ComputeGBFFirst9(MyR, k, 2, MkBloch, LBV, GBFFirst9);
-  else
-   memset(GBFFirst9,0,NSUM*sizeof(cdouble));
-
-  for(int ns=0; ns<NSUM; ns++)
-   GBarVD[ns] = G1[ns] + G2[ns] - GBFFirst9[ns];
 
   if ( ZeroCoordinate[0] )
    GBarVD[1]=GBarVD[4]=GBarVD[5]=GBarVD[7]=0.0;
@@ -623,43 +631,6 @@ void GBarVDEwald(double *R, cdouble k,
   if ( ZeroCoordinate[2] )
    GBarVD[3]=GBarVD[5]=GBarVD[6]=GBarVD[7]=0.0;
 
+
+} // namespace scuff{
 } 
-
-/***************************************************************/
-/* this is an entry point for GBarVD that has the proper       */
-/* prototype for passage to the Interp3D() initialization      */
-/* routine; the structure GBarData is defined in libscuffInternals.h.*/
-/***************************************************************/
-void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
-{
-  GBarData *GBD = (GBarData *)UserData;
-
-  double R[3];
-  R[0]=X1;
-  R[1]=X2;
-  R[2]=X3;
-
-  cdouble GBarVD[8];
-  GBarVDEwald(R, GBD->k, GBD->LDim, GBD->kBloch, GBD->LBV, GBD->E, 
-              GBD->ExcludeInner9, GBarVD);
- 
-  PhiVD[ 0] = real(GBarVD[0]);
-  PhiVD[ 1] = real(GBarVD[1]);
-  PhiVD[ 2] = real(GBarVD[2]);
-  PhiVD[ 3] = real(GBarVD[3]);
-  PhiVD[ 4] = real(GBarVD[4]);
-  PhiVD[ 5] = real(GBarVD[5]);
-  PhiVD[ 6] = real(GBarVD[6]);
-  PhiVD[ 7] = real(GBarVD[7]);
-  PhiVD[ 8] = imag(GBarVD[0]);
-  PhiVD[ 9] = imag(GBarVD[1]);
-  PhiVD[10] = imag(GBarVD[2]);
-  PhiVD[11] = imag(GBarVD[3]);
-  PhiVD[12] = imag(GBarVD[4]);
-  PhiVD[13] = imag(GBarVD[5]);
-  PhiVD[14] = imag(GBarVD[6]);
-  PhiVD[15] = imag(GBarVD[7]);
-
-} 
-
-} // namespace scuff

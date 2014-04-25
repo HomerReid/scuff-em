@@ -33,7 +33,7 @@
 
 #include <config.h>
 
-#ifdef HAVE_READLINE
+#ifdef HAVE_LIBREADLINE
  #include <readline/readline.h>
  #include <readline/history.h>
 #else
@@ -117,6 +117,10 @@ void AddGBFContribution2(double R[3], cdouble k, double kBloch[2],
 /***************************************************************/
 /* compute \sum_L e^{iK\dot L} G(r+L)                          */
 /* where G(r)=exp(i*Beta*|r|) / (4*pi*|r|)                     */
+/*                                                             */
+/* Note: this version attempts to sum until we have converged  */
+/* to given tolerances. The next version (ComputeGBF2) just    */
+/* sums a given number of grid cells.                          */
 /***************************************************************/
 void ComputeGBF(cdouble k, double *kBloch, double **LBV, double *R,
                 bool SkipDerivatives,
@@ -206,6 +210,36 @@ int NumThreads=GetNumThreads();
 
 /***************************************************************/
 /***************************************************************/
+void ComputeGBF2(cdouble k, double *kBloch, double **LBV, double *R,
+                 bool SkipDerivatives, bool ExcludeInnerCells, 
+                 int nMax, cdouble *Sum)
+{ 
+  double *L1=LBV[0]; 
+  double *L2=LBV[1];
+
+  int NSum=(SkipDerivatives ? 1 : NSUM);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  memset(Sum,0,NSUM*sizeof(cdouble));
+  for (int nx=-nMax; nx<=nMax; nx++)
+   for (int ny=-nMax; ny<=nMax; ny++)
+    { 
+      if ( ExcludeInnerCells && ( abs(nx)<=1 && abs(ny)<=1 ) )
+       continue; // skip the innermost 9 grid cells 
+
+      AddGBFContribution2(R, k, kBloch,
+                          nx*L1[0] + ny*L2[0],
+                          nx*L1[1] + ny*L2[1],
+                          SkipDerivatives,
+                          Sum);
+    };
+
+}
+
+/***************************************************************/
+/***************************************************************/
 /***************************************************************/
 int main(int argc, char *argv[]) 
 { 
@@ -281,7 +315,7 @@ int main(int argc, char *argv[])
   double RealSumTime, RecipSumTime, BFSumTime;
   bool SkipBF;
   bool SkipDerivatives;
-  double AbsTol, RelTol;
+  int nMax=100;
   int NumTimes=100;
   for(;;)
    { 
@@ -314,8 +348,6 @@ int main(int argc, char *argv[])
      E = -1.0;
      SkipBF=false;
      SkipDerivatives=true;
-     AbsTol=0.0;
-     RelTol=1.0e-2;
 
      /*--------------------------------------------------------------*/
      /* parse input string                                          -*/
@@ -342,17 +374,14 @@ int main(int argc, char *argv[])
       if ( !strcasecmp(Tokens[nt],"--E") )
        sscanf(Tokens[nt+1],"%le",&E);
      for(int nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--nMax") )
+       sscanf(Tokens[nt+1],"%i",&nMax);
+     for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--SkipBF") )
        SkipBF=true;
      for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--BFDerivatives") )
        SkipDerivatives=false;
-     for(int nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--AbsTol") )
-       sscanf(Tokens[nt+1],"%le",&AbsTol);
-     for(int nt=0; nt<NumTokens; nt++)
-      if ( !strcasecmp(Tokens[nt],"--RelTol") )
-       sscanf(Tokens[nt+1],"%le",&RelTol);
      for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--quit") )
        exit(1);
@@ -384,8 +413,8 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      printf("\n** Your options:\n\n");
-     printf("--x %g --y %g --z %g --k %s --kBloch %g %g --E %g \n",
-              R[0],R[1],R[2],z2s(k),kBloch[0],kBloch[1],E);
+     printf("--x %g --y %g --z %g --k %s --kBloch %g %g --E %g --nMax %i\n",
+              R[0],R[1],R[2],z2s(k),kBloch[0],kBloch[1],E,nMax);
      printf("\n");
 
      /*--------------------------------------------------------------*/
@@ -408,8 +437,18 @@ int main(int argc, char *argv[])
       };
      RealSumTime = Toc() / NumTimes;
 
+     memset(GF9,0,NSUM*sizeof(cdouble));
+     for(int nx=-1; nx<=1; nx++)
+      for(int ny=-1; ny<=1; ny++)
+       AddGBFContribution2(R, k, kBloch,
+                           nx*LBV[0][0] + ny*LBV[1][0],
+                           nx*LBV[0][1] + ny*LBV[1][1],
+                           false, GF9);
+
+     
+
      for(int n=0; n<8; n++)
-      GHR[n] = G1[n] + G2[n];
+      GHR[n] = G1[n] + G2[n] - GF9[n];
 
      printf("Reciprocal space sum: %10i terms (%10f us, %.1f ns/term)\n",
              RecipSumTerms,RecipSumTime*1e6,RecipSumTime*1e9/RecipSumTerms);
@@ -425,11 +464,18 @@ int main(int argc, char *argv[])
      else
       { 
         Tic();
-        ComputeGBF(k, kBloch, LBVP, R, SkipDerivatives, AbsTol, RelTol, &BFSumTerms, GBF);
+        ComputeGBF2(k, kBloch, LBVP, R, SkipDerivatives, true, nMax, GBF);
         BFSumTime=Toc();
       };
      printf("BF   space sum:       %10i terms (%10f us, %.1f ns/term)\n",
-             BFSumTerms,BFSumTime*1e6,BFSumTime*1e9/BFSumTerms);
+             BFSumTerms,BFSumTime*1e6,BFSumTime*1e9/(nMax*nMax) );
+
+     /*--------------------------------------------------------------*/
+     /*- do the computation using the libscuff method    ------------*/
+     /*--------------------------------------------------------------*/
+     cdouble GSCUFF[NSUM];
+     GBarVDEwald(R, k, 2, kBloch, LBVP, E, true, GSCUFF);
+    
 
      /*--------------------------------------------------------------*/
      /*- print results ----------------------------------------------*/
@@ -445,6 +491,9 @@ int main(int argc, char *argv[])
 
      printf("**BF sum: \n");
      printf("     = %s \n",CD2S(GBF[0]));
+
+     printf("**SCUFF:  \n");
+     printf("     = %s \n",CD2S(GSCUFF[0]));
 
      printf("\n");
      printf("**RD: %e \n",RD(GBF[0],GHR[0]));
