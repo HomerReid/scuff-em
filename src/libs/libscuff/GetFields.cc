@@ -647,7 +647,7 @@ Interp3D *RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
   /*- initialize the interpolator --------------------------------*/
   /*--------------------------------------------------------------*/
   GBD->k=csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
-  GBD->ExcludeInner9=false;
+  GBD->ExcludeInnerCells=false;
   GBD->E=-1.0;
   GBD->kBloch = kBloch;
   Log("Region %i (%s): creating %ix%ix%i interpolation table",

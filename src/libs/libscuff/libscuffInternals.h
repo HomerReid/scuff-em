@@ -355,7 +355,7 @@ typedef struct GBarData
    double *kBloch;      // bloch vector 
    double *LBV[2];      // lattice basis vectors 
    double E;            // ewald separation parameter
-   bool ExcludeInner9;  
+   bool ExcludeInnerCells;
  
  } GBarData;
 

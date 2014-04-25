@@ -58,15 +58,13 @@ using namespace scuff;
 /***************************************************************/
 namespace scuff{
 
-void ComputeG1(double *R, cdouble k, double *kBloch, double LBVinv[2][2],
-               double E, int *pnCells, cdouble *Sum);
+void GetGBarDistant(double *R, cdouble k, double *kBloch,
+                    double LBVinv[2][2],
+                    double E, int *pnCells, cdouble *Sum);
 
-void ComputeG2(double *R, cdouble k, double *kBloch, double *LBV[2],
-               double E, int *pnCells, cdouble *Sum);
-
-void ComputeGBFFirst9(double *R, cdouble k, 
-                      int LDim, double *kBloch, double *LBV[2], 
-                      cdouble *Sum);
+void GetGBarNearby(double *R, cdouble k, double *kBloch, double *LBV[2],
+                   double E, bool ExcludeInnerCells, 
+                   int *pnCells, cdouble *Sum);
 }
 
 /***************************************************************/

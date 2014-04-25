@@ -121,7 +121,7 @@ void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   GBarData MyGBarData, *GBD=&MyGBarData;
-  GBD->ExcludeInner9=true;
+  GBD->ExcludeInnerCells=true;
   GBD->E=-1.0;
   GBD->kBloch = kBloch;
   for(int nr=0; nr<NumRegions; nr++)
