@@ -112,7 +112,7 @@ void RWGGeometry::ExpandCurrentDistribution(IncField *IF, HVector *KNVec, cdoubl
 /*                                                                  */
 /* X is assumed to lie in the plane of the triangle.                */
 /*                                                                  */
-/* If L is nonnull, then the triangle is translated through L       */
+/* If L is nonnull, then the triangle is translated through +L      */
 /* (actually X is translated through -L).                           */
 /********************************************************************/
 #define IT_EXTERIOR 0
@@ -227,6 +227,11 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
      L[1] = n2*LBV[1][1];
      EvalPoint[1] = X[1] - L[1];
      
+     // how this works: we just found the lattice vector L such
+     // that X = X_0 + L (with X_0 living in the unit cell)
+     // whereupon currents and fields at X are related to
+     // those at X_0 according to
+     //  F(X) = F(X_0 + L ) = e^{ i k\cdot L } F(X_0)
      BlochPhase = exp( II * (kBloch[0]*L[0] + kBloch[1]*L[1]) );
 
    };
@@ -260,7 +265,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
        Q=QP;
       else if ( QM && InsideTriangle(EvalPoint,QM,V1,V2)==IT_INTERIOR )
        Q=QM;
-      else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[0])==IT_INTERIOR )
+      else if ( QM && PBC && InsideTriangle(EvalPoint,QM,V1,V2,LBV[0])==IT_INTERIOR )
        { 
          QBuffer[0] = QM[0] + LBV[0][0];
          QBuffer[1] = QM[1] + LBV[0][1];
@@ -268,7 +273,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
          Q = QBuffer;
          StraddlerPhase = exp( II * ( kBloch[0]*LBV[0][0] + kBloch[1]*LBV[0][1]) );
        }
-      else if ( QM && PBC && InsideTriangle(X,QM,V1,V2,LBV[1])==IT_INTERIOR )
+      else if ( QM && PBC && InsideTriangle(EvalPoint,QM,V1,V2,LBV[1])==IT_INTERIOR )
        { 
          QBuffer[0] = QM[0] + LBV[1][0];
          QBuffer[1] = QM[1] + LBV[1][1];

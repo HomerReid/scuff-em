@@ -324,10 +324,10 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
           // opposite side of the unit cell
           //PhasedBFCs[NumNew].WhichPanel = Panels[neip]->iPPanel;
           //PhasedBFCs[NumNew].WhichEdge  = NumEdges + NumNew;
-          //PhasedBFCs[NumNew].WhichBV    = WhichBV;
+          //PhasedBFCs[NumNew].WhichBV;
           PhasedBFCs[3*NumNew + 0] = ExteriorEdges[neip]->iPPanel;
           PhasedBFCs[3*NumNew + 1] = NumEdges + NumNew;
-          PhasedBFCs[3*NumNew + 2] = WhichBV;
+          PhasedBFCs[3*NumNew + 2] = 1-WhichBV;
   
           NumNew++;
 
