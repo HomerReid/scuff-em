@@ -206,6 +206,7 @@ void RWGSurface::GetOverlaps(int neAlpha, int neBeta, double *Overlaps)
    AddOverlapContributions(this, PAlphaM, iQMAlpha, iQPBeta, -1.0, LL, Overlaps);
   if ( (EAlpha->iMPanel!=-1) && (EAlpha->iMPanel == EBeta->iMPanel ) )
    AddOverlapContributions(this, PAlphaM, iQMAlpha, iQMBeta,  1.0, LL, Overlaps);
+  
 }
 
 /*****************************************************************/
