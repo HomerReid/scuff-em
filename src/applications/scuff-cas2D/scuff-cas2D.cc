@@ -1,6 +1,6 @@
 /*
- * Casimir2D.cc -- compute Casimir energy and/or force for a given 2D 
- *              -- geometry under a sequence of geometrical transformations
+ * scuff-cas2D.cc -- compute Casimir energy and/or force for a given 2D 
+ *                -- geometry under a sequence of geometrical transformations
  * 
  * homer reid -- 11/2008 -- 10/2010
  */
@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
 {
 
   int narg, NumThreads, WhichQuantities;
-  int CubatureMethod, TETM, GroundPlane;
+  int TETM, GroundPlane;
   int WriteHDF5;
   int IntCache;
   TDRTGeometry *G;
@@ -266,7 +266,6 @@ int main(int argc, char *argv[])
   /* 1. process command-line arguments ***************************/
   /***************************************************************/
   /***************************************************************/
-  CubatureMethod=CMETHOD_DC;
   G=0;
   TransListName=0;
   Xi=Q=T=-1.0;
@@ -578,7 +577,6 @@ int main(int argc, char *argv[])
   else
    { 
      EvaluateXQIntegral(W,I,E);
-
    }; // if .. else 
 
   /***************************************************************/

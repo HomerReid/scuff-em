@@ -25,7 +25,6 @@ extern "C" {
 void *mypCC;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
-
 /***************************************************************/
 /* compute \log \det \{ M^{-1} MInfinity \}                    */
 /*                                                             */
@@ -109,8 +108,8 @@ void GetLNDetMInvMInf(C2DWorkspace *W,
       };
    };
 
-  LNDetTE *= -1.0/(2.0*M_PI*M_PI);
-  LNDetTM *= -1.0/(2.0*M_PI*M_PI);
+  LNDetTE *= -1.0/(2.0*M_PI*M_PI*M_PI*M_PI);
+  LNDetTM *= -1.0/(2.0*M_PI*M_PI*M_PI*M_PI);
 
   p=*ResultPtr;
   if (W->TETM)
@@ -250,8 +249,8 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, char *Tag, double Xi, double q, do
   TraceTE *= 2.0;  /* because the contribution of the first N1 entries */
   TraceTM *= 2.0;  /* gives us exactly 1/2 the full trace              */
 
-  TraceTE *= -1.0/(2.0*M_PI*M_PI);
-  TraceTM *= -1.0/(2.0*M_PI*M_PI);
+  TraceTE *= -1.0/(2.0*M_PI*M_PI*M_PI*M_PI);
+  TraceTM *= -1.0/(2.0*M_PI*M_PI*M_PI*M_PI);
 
   p=*ResultPtr;
   if (W->TETM)

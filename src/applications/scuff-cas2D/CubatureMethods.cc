@@ -13,8 +13,8 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void XiIntegrand(unsigned ndim, const double *x, void *params, 
-                 unsigned fdim, double *fval)
+int XiIntegrand(unsigned ndim, const double *x, void *params, 
+                unsigned fdim, double *fval)
 { 
   (void) ndim; // unused 
 
@@ -22,6 +22,11 @@ void XiIntegrand(unsigned ndim, const double *x, void *params,
   double Xi, Jacobian;
   unsigned ntnq;
 
+  if (x[0]==1.0)
+   { memset(fval, 0, fdim*sizeof(double));
+     return 0; 
+   };
+   
   Xi = XQMIN + x[0] / (1.0-x[0]);
   Jacobian=1.0 / ((1.0-x[0])*(1.0-x[0]));
   
@@ -29,6 +34,8 @@ void XiIntegrand(unsigned ndim, const double *x, void *params,
  
   for(ntnq=0; ntnq<fdim; ntnq++)
    fval[ntnq]*=Jacobian;
+
+  return 0;
 
 }  
 
@@ -56,8 +63,8 @@ void EvaluateXiIntegral(C2DWorkspace *W, double Q, double *I, double *E)
   double Lower=0.0;
   double Upper=1.0;
   W->FixedQ=Q;
-  adapt_integrate(W->NTNQ, XiIntegrand, (void *)W, 1, &Lower, &Upper,
-                  0, W->AbsTol, W->RelTol, I2, E);
+  pcubature(W->NTNQ, XiIntegrand, (void *)W, 1, &Lower, &Upper,
+            0, W->AbsTol, W->RelTol, ERROR_INDIVIDUAL, I2, E);
 
   for(ntnq=0; ntnq<W->NTNQ; ntnq++)
    I[ntnq] = I1[ntnq] + I2[ntnq];
@@ -70,7 +77,7 @@ void EvaluateXiIntegral(C2DWorkspace *W, double Q, double *I, double *E)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void QIntegrand(unsigned ndim, const double *x, void *params, 
+int QIntegrand(unsigned ndim, const double *x, void *params, 
                 unsigned fdim, double *fval)
 { 
   (void) ndim; // unsigned 
@@ -78,6 +85,11 @@ void QIntegrand(unsigned ndim, const double *x, void *params,
   double Q, Jacobian;
   unsigned ntnq;
 
+  if (x[0]==1.0)
+   { memset(fval, 0, fdim*sizeof(double));
+     return 0;
+   };
+   
   Q=x[0] / (1.0-x[0]);
   Jacobian=1.0 / ((1.0-x[0])*(1.0-x[0]));
   
@@ -85,6 +97,8 @@ void QIntegrand(unsigned ndim, const double *x, void *params,
  
   for(ntnq=0; ntnq<fdim; ntnq++)
    fval[ntnq]*=Jacobian;
+
+  return 0;
 
 }  
 
@@ -109,8 +123,9 @@ void EvaluateQIntegral(C2DWorkspace *W, double Xi, double *EF, double *Error)
   double Lower=0.0;
   double Upper=1.0;
   W->FixedXi=Xi;
-  adapt_integrate_log(W->NTNQ, QIntegrand, (void *)W, 1, &Lower, &Upper,
-                  0, W->AbsTol, W->RelTol, EF, Error,"QIntegral.log",15);
+  pcubature_log(W->NTNQ, QIntegrand, (void *)W, 1, &Lower, &Upper,
+                0, W->AbsTol, W->RelTol, ERROR_INDIVIDUAL, 
+                EF, Error,"QIntegral.log");
 
   /***************************************************************/
   /* and write the results to the .byXi file                     */
@@ -142,14 +157,40 @@ void EvaluateQIntegral(C2DWorkspace *W, double Xi, double *EF, double *Error)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void DCIntegrand(unsigned ndim, const double *x, void *params, 
+int RXQIntegrand(unsigned ndim, const double *x, void *params, 
                  unsigned fdim, double *fval)
+{
+  (void )ndim; //unused 
+
+  if (x[0]==1.0)
+   { memset(fval, 0, fdim*sizeof(double));
+     return 0;
+   };
+   
+  double RXQ = XQMIN + x[0] / (1.0 - x[0]);
+  double Jacobian= 0.5 * M_PI * RXQ / ((1.0-x[0])*(1.0-x[0]));
+
+  XQIntegrand((C2DWorkspace *)params, RXQ, 0, fval);
+
+  for(unsigned ntnq=0; ntnq<fdim; ntnq++)
+   fval[ntnq]*=Jacobian;
+
+  return 0;
+}
+
+int XQIntegrand(unsigned ndim, const double *x, void *params, 
+                unsigned fdim, double *fval)
 {
   (void )ndim; //unused 
   double Xi, q, Jacobian;
   unsigned ntnq;
 
-  Xi = x[0] / (1.0 - x[0]);
+  if ( x[0]==1.0 || x[1]==1.0 )
+   { memset(fval, 0, fdim*sizeof(double));
+     return 0;
+   };
+   
+  Xi = XQMIN + x[0] / (1.0 - x[0]);
    q = x[1] / (1.0 - x[1]);
   Jacobian= 1.0 / ((1.0-x[0])*(1.0-x[0])*(1.0-x[1])*(1.0-x[1]));
 
@@ -157,13 +198,29 @@ void DCIntegrand(unsigned ndim, const double *x, void *params,
 
   for(ntnq=0; ntnq<fdim; ntnq++)
    fval[ntnq]*=Jacobian;
+
+  return 0;
 }
 
 void EvaluateXQIntegral(C2DWorkspace *W, double *I, double *E)
 {
-  double Lower[2] = {0,0}, Upper[2] = {1.0, 1.0};
-  adapt_integrate_log(W->NTNQ, DCIntegrand, (void *)W, 2, Lower, Upper, 
-                      0,W->AbsTol,W->RelTol,I,E,"XQIntegral.log",15);
+  if (W->G->AllPEC)
+   { 
+     double Lower[1] = {0.0};
+     double Upper[1] = {1.0};
+     pcubature_log(W->NTNQ, RXQIntegrand, (void *)W, 1, Lower, Upper, 
+                   0,W->AbsTol,W->RelTol,ERROR_INDIVIDUAL,
+                   I,E,"RXQIntegral.log");
+   }
+  else
+   { 
+     double Lower[2] = {0.0, 0.0}; 
+     double Upper[2] = {1.0, 1.0};
+     pcubature_log(W->NTNQ, XQIntegrand, (void *)W, 2, Lower, Upper, 
+                   0,W->AbsTol,W->RelTol,ERROR_INDIVIDUAL,
+                   I,E,"XQIntegral.log");
+   };
+
 }
 
 /***************************************************************/
