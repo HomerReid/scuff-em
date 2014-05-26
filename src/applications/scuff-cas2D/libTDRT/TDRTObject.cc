@@ -51,13 +51,23 @@ void TDRTObject::InitTDRTObject(const char *pMeshFileName, const char *pLabel,
   /*- we look in a couple different places:                     */
   /*-  1. current working directory                             */
   /*-  2. $(HOME)/geomsh/filename                               */
+  /*-  3. SCUFF_MESH_PATH environment variable                  */
   /*------------------------------------------------------------*/
   MeshFileName=strdup(pMeshFileName);
-  if ( !(f=fopen(MeshFileName,"r")) )
+  f=fopen(MeshFileName,"r");
+  if ( !f );
    { sprintf(FullPath,"%s/geomsh/%s",getenv("HOME"),MeshFileName);
-     if ( !(f=fopen(FullPath,"r")) )
-      ErrExit("could not find file %s",MeshFileName);
+     f=fopen(FullPath,"r");
    };
+  if ( !f )
+   { char *str=getenv("SCUFF_MESH_PATH");
+     if (str) 
+      { sprintf(FullPath,"%s/%s",str,MeshFileName);
+        f=fopen(FullPath,"r");
+      };
+   };
+  if ( !f )
+   ErrExit("could not find file %s",MeshFileName);
    
   if (pLabel)
    Label=strdup(pLabel);
