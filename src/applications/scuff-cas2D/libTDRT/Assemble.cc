@@ -276,9 +276,11 @@ void AssembleU(TDRTObject *Oa, TDRTObject *Ob, double Xi, double q,
   else
    ErrExit("mixed PEC / dielectric geometries not supported");
 
+  Log("Assembling U(%s,%s) at (Xi,q)=(%e,%e)",Oa->Label,Ob->Label,Xi,q);
 #ifdef USE_PTHREAD
   ThreadData *TDs = new ThreadData[NumThreads], *TD;
   pthread_t *Threads = new pthread_t[NumThreads];
+  Log(" POSIX multithreading (%i threads)",NumThreads);
   for(int nt=0; nt<NumThreads; nt++)
    { 
      TD=&(TDs[nt]);
@@ -314,6 +316,7 @@ void AssembleU(TDRTObject *Oa, TDRTObject *Ob, double Xi, double q,
   int NumTasks=NumThreads=1;
 #else
   int NumTasks=NumThreads*100;
+  Log(" OpenMP multithreading (%i/%i threads/tasks)",NumThreads/NumTasks);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int nt=0; nt<NumTasks; nt++)
@@ -535,8 +538,10 @@ void AssembleT(TDRTObject *O, double Xi, double q,
      EpsIn = real(zEps);
      MuIn  = real(zMu);
    };
+  Log("Assembling T(%s) at (Xi,q)=(%e,%e)",O->Label,Xi,q);
 
 #ifdef USE_PTHREAD
+  Log(" POSIX multithreading (%i threads)",NumThreads);
   ThreadData *TDs = new ThreadData[NumThreads], *TD;
   pthread_t *Threads = new pthread_t[NumThreads];
   for(int nt=0; nt<NumThreads; nt++)
@@ -572,6 +577,7 @@ void AssembleT(TDRTObject *O, double Xi, double q,
   int NumTasks=NumThreads=1;
 #else
   int NumTasks=NumThreads*100;
+  Log(" OpenMP multithreading (%i/%i threads/tasks)",NumThreads/NumTasks);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int nt=0; nt<NumTasks; nt++)
