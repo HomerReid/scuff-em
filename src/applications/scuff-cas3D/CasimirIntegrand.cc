@@ -38,6 +38,7 @@
 
 extern "C" {
 int dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
+int zgetrf_(int *m, int *n, cdouble *a, int *lda, int *ipiv, int *info);
 }
 
 using namespace scuff;
@@ -127,7 +128,7 @@ double GetTraceMInvdM(SC3Data *SC3D, char XYZT)
   /***************************************************************/
   dM->Zero();
   for(int ns=1; ns<G->NumSurfaces; ns++)
-   dM->InsertBlockTranspose(dUBlocks[ 6*(ns-1) + Mu ], G->BFIndexOffset[ns], 0);
+   dM->InsertBlockAdjoint(dUBlocks[ 6*(ns-1) + Mu ], G->BFIndexOffset[ns], 0);
 
   M->LUSolve(dM);
 
@@ -172,7 +173,7 @@ void Factorize(SC3Data *SC3D)
       RowOffset=G->BFIndexOffset[ns];
       ColOffset=G->BFIndexOffset[nsp];
       M->InsertBlock(SC3D->UBlocks[nb], RowOffset, ColOffset);
-      M->InsertBlockTranspose(SC3D->UBlocks[nb], ColOffset, RowOffset);
+      M->InsertBlockAdjoint(SC3D->UBlocks[nb], ColOffset, RowOffset);
     };
 
   /***************************************************************/
@@ -214,6 +215,7 @@ void Factorize(SC3Data *SC3D)
 void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 { 
   RWGGeometry *G = SC3D->G;
+  bool PBC = G->NumLatticeBasisVectors > 0;
 
   /***************************************************************/
   /* SurfaceNeverMoved[ns] is initialized true and remains true  */
@@ -276,20 +278,27 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
            /* KIND OF HACKY: we use the data buffer inside M as temporary  */
            /* storage for the content of T; this means that we have to     */
            /* call the lapack routines directly instead of using the nice  */
-           /* wrappers provided by libhmat                                 */
-           for(int nbf=0; nbf<NBF; nbf++)
-            for(int nbfp=0; nbfp<NBF; nbfp++)
-             M->DM[nbf + nbfp*NBF] = SC3D->TBlocks[ns]->GetEntryD(nbf,nbfp);
-
+           /* wrappers provided by libhmat.                                */
            Log("LU-factorizing T%i at Xi=%g...",ns+1,Xi);
            int info;
-           dgetrf_(&NBF, &NBF, M->DM, &NBF, SC3D->ipiv, &info);
+           if (PBC)
+            { for(int nbf=0; nbf<NBF; nbf++)
+               for(int nbfp=0; nbfp<NBF; nbfp++)
+                M->ZM[nbf + nbfp*NBF] = SC3D->TBlocks[ns]->GetEntry(nbf,nbfp);
+              zgetrf_(&NBF, &NBF, M->ZM, &NBF, SC3D->ipiv, &info);
+              for(int nbf=0; nbf<NBF; nbf++)
+               V->SetEntry(Offset+nbf, abs(M->ZM[nbf+nbf*NBF]) );
+            }
+           else
+            { for(int nbf=0; nbf<NBF; nbf++)
+               for(int nbfp=0; nbfp<NBF; nbfp++)
+                M->DM[nbf + nbfp*NBF] = SC3D->TBlocks[ns]->GetEntryD(nbf,nbfp);
+              dgetrf_(&NBF, &NBF, M->DM, &NBF, SC3D->ipiv, &info);
+              for(int nbf=0; nbf<NBF; nbf++)
+               V->SetEntry(Offset+nbf, M->DM[nbf+nbf*NBF]);
+            };
            if (info!=0)
             Log("...FAILED with info=%i (N=%i)",info,NBF);
-
-           /* copy the LU diagonals into DRMInf */
-           for(int nbf=0; nbf<NBF; nbf++)
-            V->SetEntry(Offset+nbf, M->DM[nbf+nbf*NBF]);
          };
       };
    };

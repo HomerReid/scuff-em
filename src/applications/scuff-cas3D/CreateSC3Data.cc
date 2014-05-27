@@ -45,6 +45,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
+  bool PBC = G->NumLatticeBasisVectors > 0 ;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -112,7 +113,10 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
       SC3D->TBlocks[ns] = SC3D->TBlocks[nsp];
      else
       { NBF=G->Surfaces[ns]->NumBFs;
-        SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_REAL, LHM_SYMMETRIC);
+        if (PBC)
+         SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+        else
+         SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_REAL, LHM_SYMMETRIC);
       };
    };
 
@@ -126,23 +130,24 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->UBlocks   = (HMatrix **)mallocEC(   NumBlocks * sizeof(HMatrix *));
   SC3D->dUBlocks  = (HMatrix **)mallocEC( 6*NumBlocks * sizeof(HMatrix *));
 
+  int RealComplex = PBC ? LHM_COMPLEX : LHM_REAL;
   for(nb=0, ns=0; ns<NS; ns++)
    for(nsp=ns+1; nsp<NS; nsp++, nb++)
     { NBF=G->Surfaces[ns]->NumBFs;
       NBFp=G->Surfaces[nsp]->NumBFs;
-      SC3D->UBlocks[nb] = new HMatrix(NBF, NBFp);
+      SC3D->UBlocks[nb] = new HMatrix(NBF, NBFp, RealComplex);
       if (WhichQuantities & QUANTITY_XFORCE)
-       SC3D->dUBlocks[6*nb+0] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+0] = new HMatrix(NBF, NBFp, RealComplex);
       if (WhichQuantities & QUANTITY_YFORCE)
-       SC3D->dUBlocks[6*nb+1] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+1] = new HMatrix(NBF, NBFp, RealComplex);
       if (WhichQuantities & QUANTITY_ZFORCE)
-       SC3D->dUBlocks[6*nb+2] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+2] = new HMatrix(NBF, NBFp, RealComplex);
       if (WhichQuantities & QUANTITY_TORQUE1)
-       SC3D->dUBlocks[6*nb+3] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+3] = new HMatrix(NBF, NBFp, RealComplex);
       if (WhichQuantities & QUANTITY_TORQUE2)
-       SC3D->dUBlocks[6*nb+4] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+4] = new HMatrix(NBF, NBFp, RealComplex);
       if (WhichQuantities & QUANTITY_TORQUE3)
-       SC3D->dUBlocks[6*nb+5] = new HMatrix(NBF, NBFp);
+       SC3D->dUBlocks[6*nb+5] = new HMatrix(NBF, NBFp, RealComplex);
     };
 
   /*--------------------------------------------------------------*/
@@ -150,8 +155,8 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*--------------------------------------------------------------*/
   int N  = SC3D->N  = SC3D->G->TotalBFs;
   int N1 = SC3D->N1 = SC3D->G->Surfaces[0]->NumBFs;
-  SC3D->M          = new HMatrix(N,  N);
-  SC3D->dM         = new HMatrix(N,  N1);
+  SC3D->M          = new HMatrix(N,  N,  RealComplex);
+  SC3D->dM         = new HMatrix(N,  N1, RealComplex);
 
   if (WhichQuantities & QUANTITY_ENERGY)
    { SC3D->MInfLUDiagonal = new HVector(G->TotalBFs);
@@ -168,7 +173,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*--------------------------------------------------------------*/
   SC3D->NewEnergyMethod = NewEnergyMethod;
   if (NewEnergyMethod && (WhichQuantities & QUANTITY_ENERGY) )
-   SC3D->MM1MInf = new HMatrix(N, N);
+   SC3D->MM1MInf = new HMatrix(N, N, RealComplex);
   else
    SC3D->MM1MInf = 0;
 
