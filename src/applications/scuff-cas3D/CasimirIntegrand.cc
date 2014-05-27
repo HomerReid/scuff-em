@@ -62,7 +62,7 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
      HVector *MInfLUDiagonal = SC3D->MInfLUDiagonal;
 
      for(int n=0; n<N; n++)
-      LNDet+=log( fabs( MInfLUDiagonal->GetEntryD(n) / M->GetEntryD(n,n) ) );
+      LNDet+=log( abs( MInfLUDiagonal->GetEntryD(n) / M->GetEntry(n,n) ) );
    }
   else
    {
@@ -79,7 +79,7 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
      MM1MInf->LUFactorize();
 
      for(int n=0; n<N; n++)
-      LNDet+=log( fabs( MM1MInf->GetEntryD(n,n) ) );
+      LNDet+=log( abs( MM1MInf->GetEntryD(n,n) ) );
    }
 
   /*--------------------------------------------------------------*/
