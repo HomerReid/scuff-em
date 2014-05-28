@@ -44,8 +44,8 @@ double MP3[]=
 
 double MP6[]=
  { 5.235988e-01, 5.235988e-01, 0.111111111111,
-   5.235988e-01, 1.570796e-01, 0.222222222222,
-   5.235988e-01, 2.617994e-01, 0.222222222222,
+   5.235988e-01, 1.570796e+00, 0.222222222222,
+   5.235988e-01, 2.617994e+00, 0.222222222222,
    1.570796e+00, 1.570796e+00, 0.111111111111,
    1.570796e+00, 2.617994e+00, 0.222222222222,
    2.617994e+00, 2.617994e+00, 0.111111111111
@@ -186,8 +186,8 @@ int CacheRead(const char *ByXiFileName, SC3Data *SC3D, double Xi, double *EFT)
 /* wrapper around GetCasimirIntegrand with correct prototype   */
 /* prototype for adapt_integrate()                             */
 /***************************************************************/
-void GetCasimirIntegrand2(unsigned ndim, const double *x, void *params, 
-                          unsigned fdim, double *fval)
+int GetCasimirIntegrand2(unsigned ndim, const double *x, void *params,
+                         unsigned fdim, double *fval)
 {
   (void) ndim; // unused
   (void) fdim; // unused
@@ -201,6 +201,8 @@ void GetCasimirIntegrand2(unsigned ndim, const double *x, void *params,
   kBloch[1] = x[0]*SC3D->RLBasisVectors[0][1] + x[1]*SC3D->RLBasisVectors[1][1];
 
   GetCasimirIntegrand(SC3D, SC3D->Xi, kBloch, EFT);
+
+  return 0;
 
 }
 
@@ -233,48 +235,26 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      double *Error = new double[SC3D->NTNQ];
 
      SC3D->Xi = Xi;
-     adapt_integrate(SC3D->NTNQ, GetCasimirIntegrand2, (void *)SC3D, 2, Lower, Upper,
-                     SC3D->MaxkBlochPoints, SC3D->AbsTol, SC3D->RelTol, EFT, Error);
+     pcubature(SC3D->NTNQ, GetCasimirIntegrand2, (void *)SC3D, 2, Lower, Upper,
+               SC3D->MaxkBlochPoints, SC3D->AbsTol, SC3D->RelTol, ERROR_INDIVIDUAL,
+               EFT, Error);
 
+     for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
+      { EFT[ntnq] *= SC3D->BZVolume;
+        Error[ntnq] *= SC3D->BZVolume;
+
+        if (    (Error[ntnq] > 10.0*SC3D->AbsTol) 
+             || (Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]))
+           )
+         Warn("potentially large errors (Q%i: %.1e %%) in BZ integration",
+               ntnq,Error[ntnq]/fabs(EFT[ntnq]));
+      };
+     
      delete[] Error;
    }
-  else // use monkhorst-pack scheme
+  else if (SC3D->BZIMethod == BZIMETHOD_CC5917 )
    { 
-     RWGGeometry *G = SC3D->G;
-     if (    G->NumLatticeBasisVectors!=2
-          || G->LatticeBasisVectors[0][1]!=0.0
-          || G->LatticeBasisVectors[1][0]!=0.0
-        )
-      ErrExit("Monkhorst-Pack scheme only implemented for square lattices");
-
-     double *MP=0;
-     int NumPoints=0;
-     switch (SC3D->BZIMethod)
-      { case BZIMETHOD_MP3:  MP=MP3;  NumPoints=3;  break;
-        case BZIMETHOD_MP6:  MP=MP6;  NumPoints=6;  break;
-        case BZIMETHOD_MP10: MP=MP10; NumPoints=10; break;
-        case BZIMETHOD_MP15: MP=MP15; NumPoints=15; break;
-      };
-
-     int NTNQ=SC3D->NTNQ;
-     double kBloch[2], Weight;
-     double *dEFT = new double[NTNQ];
-     double L1 = G->LatticeBasisVectors[0][0];
-     double L2 = G->LatticeBasisVectors[1][1];
-     double BZVolume =  4.0*M_PI*M_PI / (L1*L2);
-     memset(EFT,0,NTNQ*sizeof(double));
-     for(int np=0; np<NumPoints; np++)
-      { 
-        kBloch[0] = MP[ 3*np + 0 ] / L1;
-        kBloch[1] = MP[ 3*np + 1 ] / L2;
-        Weight    = MP[ 3*np + 2 ] * BZVolume;
-
-        GetCasimirIntegrand(SC3D, Xi, kBloch, dEFT);
-        for(int ntnq=0; ntnq<NTNQ; ntnq++)
-         EFT[ntnq] += Weight*dEFT[ntnq];
-      };
-    
-     delete[] dEFT;
+      ErrExit("CC5917 not yet implemented");
    };
 
   /***************************************************************/
@@ -295,8 +275,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
 /***************************************************************/
 /* wrapper with correct prototype for adapt_integrate          */
 /***************************************************************/
-void GetXiIntegrand2(unsigned ndim, const double *x, void *params, 
-                     unsigned fdim, double *fval)
+int GetXiIntegrand2(unsigned ndim, const double *x, void *params, 
+                    unsigned fdim, double *fval)
 {
   (void) ndim; // unused
   (void) fdim; // unused
@@ -310,6 +290,8 @@ void GetXiIntegrand2(unsigned ndim, const double *x, void *params,
 
   for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
    EFT[ntnq]*=Jacobian;
+
+  return 0;
 
 }
 
@@ -441,8 +423,9 @@ void GetXiIntegral(SC3Data *SC3D, double *EFT, double *Error)
   double Lower[1] = {0.0}; 
   double Upper[1] = {1.0};
 
-  adapt_integrate(SC3D->NTNQ, GetXiIntegrand2, (void *)SC3D, 1, Lower, Upper,
-	 	  SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol, EFT, Error);
+  pcubature(SC3D->NTNQ, GetXiIntegrand2, (void *)SC3D, 1, Lower, Upper,
+            SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol,
+            ERROR_INDIVIDUAL, EFT, Error);
    
 }
 

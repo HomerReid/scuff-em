@@ -320,25 +320,13 @@ int main(int argc, char *argv[])
   int BZIMethod=BZIMETHOD_DEFAULT;
   if ( BZIString )
    { if (G->NumLatticeBasisVectors==0) ErrExit("--BZIMethod option may only be used for periodic geometries");
-     if ( !strcasecmp(BZIString,"MP3") )
-      { Log("Using 3-point monkhorst-pack scheme for Brillouin zone integration.");
-        BZIMethod=BZIMETHOD_MP3;
-      }
-     else if ( !strcasecmp(BZIString,"MP6") )
-      { Log("Using 6-point monkhorst-pack scheme for Brillouin zone integration.");
-        BZIMethod=BZIMETHOD_MP6;
-      }
-     else if ( !strcasecmp(BZIString,"MP10") )
-      { Log("Using 10-point monkhorst-pack scheme for Brillouin zone integration.");
-        BZIMethod=BZIMETHOD_MP10;
-      }
-     else if ( !strcasecmp(BZIString,"MP15") )
-      { Log("Using 15-point monkhorst-pack scheme for Brillouin zone integration.");
-        BZIMethod=BZIMETHOD_MP15;
-      }
-     else if ( !strcasecmp(BZIString,"adaptive") )
+     if ( !strcasecmp(BZIString,"adaptive") )
       { Log("Using adaptive cubature scheme for Brillouin zone integration.");
         BZIMethod=BZIMETHOD_ADAPTIVE;
+      }
+     else if ( !strcasecmp(BZIString,"CC5917") )
+      { Log("Using CC5917 cubature scheme for Brillouin zone integration.");
+        BZIMethod=BZIMETHOD_CC5917;
       };
    };
 

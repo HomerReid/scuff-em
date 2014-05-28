@@ -92,6 +92,9 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
 
      SC3D->RLBasisVectors[1][0] = -PreFac*L1[1];
      SC3D->RLBasisVectors[1][1] = PreFac*L1[0];
+
+     SC3D->BZVolume = SC3D->RLBasisVectors[0][0] * SC3D->RLBasisVectors[1][1] 
+                       - SC3D->RLBasisVectors[0][1] * SC3D->RLBasisVectors[1][0];
    };
 
   /*--------------------------------------------------------------*/

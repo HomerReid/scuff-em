@@ -35,10 +35,7 @@ using namespace scuff;
 /* brillouin zone integration schemes **************************/
 /***************************************************************/
 #define BZIMETHOD_ADAPTIVE	0
-#define BZIMETHOD_MP3		1
-#define BZIMETHOD_MP6		2
-#define BZIMETHOD_MP10		3
-#define BZIMETHOD_MP15		4
+#define BZIMETHOD_CC5917        1
 #define BZIMETHOD_DEFAULT	BZIMETHOD_ADAPTIVE
 
 #define QUANTITY_ENERGY  1
@@ -75,6 +72,7 @@ typedef struct SC3Data
    double GammaMatrix[27];
 
    double RLBasisVectors[2][2]; // reciprocal-lattice basis vectors
+   double BZVolume;             // volume (really area) of the brillouin zone
 
    GTComplex **GTCList;
    int NumTransformations;
