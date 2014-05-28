@@ -241,8 +241,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   else // use monkhorst-pack scheme
    { 
      RWGGeometry *G = SC3D->G;
-     if (    G->NumLatticeBasisVectors!=2 
-          || G->LatticeBasisVectors[0][1]!=0.0 
+     if (    G->NumLatticeBasisVectors!=2
+          || G->LatticeBasisVectors[0][1]!=0.0
           || G->LatticeBasisVectors[1][0]!=0.0
         )
       ErrExit("Monkhorst-Pack scheme only implemented for square lattices");
@@ -259,12 +259,15 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      int NTNQ=SC3D->NTNQ;
      double kBloch[2], Weight;
      double *dEFT = new double[NTNQ];
+     double L1 = G->LatticeBasisVectors[0][0];
+     double L2 = G->LatticeBasisVectors[1][1];
+     double BZVolume =  4.0*M_PI*M_PI / (L1*L2);
      memset(EFT,0,NTNQ*sizeof(double));
      for(int np=0; np<NumPoints; np++)
       { 
-        kBloch[0] = MP[ 3*np + 0 ] / G->LatticeBasisVectors[0][0];
-        kBloch[1] = MP[ 3*np + 1 ] / G->LatticeBasisVectors[1][1];
-        Weight    = MP[ 3*np + 2 ];
+        kBloch[0] = MP[ 3*np + 0 ] / L1;
+        kBloch[1] = MP[ 3*np + 1 ] / L2;
+        Weight    = MP[ 3*np + 2 ] * BZVolume;
 
         GetCasimirIntegrand(SC3D, Xi, kBloch, dEFT);
         for(int ntnq=0; ntnq<NTNQ; ntnq++)
