@@ -231,7 +231,7 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   else if (SC3D->BZIMethod == BZIMETHOD_ADAPTIVE)
    {
      double Lower[2] = {0.0, 0.0};
-     double Upper[2] = {1.0, 1.0};
+     double Upper[2] = {0.5, 0.5};
      double *Error = new double[SC3D->NTNQ];
 
      SC3D->Xi = Xi;
@@ -240,8 +240,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
                EFT, Error);
 
      for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
-      { EFT[ntnq] *= SC3D->BZVolume;
-        Error[ntnq] *= SC3D->BZVolume;
+      { EFT[ntnq] *= 4.0*SC3D->BZVolume;
+        Error[ntnq] *= 4.0*SC3D->BZVolume;
 
         if (    (Error[ntnq] > 10.0*SC3D->AbsTol) 
              || (Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]))
