@@ -54,7 +54,7 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
   int N                   = SC3D->N;
 
   double LNDet=0.0;
-  if (SC3D->NewEnergyMethod==false) 
+  if (SC3D->NewEnergyMethod==false)
    {  
      /*--------------------------------------------------------------*/
      /*- calculation method 1  --------------------------------------*/
@@ -79,7 +79,7 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
      MM1MInf->LUFactorize();
 
      for(int n=0; n<N; n++)
-      LNDet+=log( abs( MM1MInf->GetEntryD(n,n) ) );
+      LNDet+=log( abs( MM1MInf->GetEntry(n,n) ) );
    }
 
   /*--------------------------------------------------------------*/
@@ -396,7 +396,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
         else
          fprintf(ByXikBlochFile,"%s %.6e %.6e %.6e ",Tag,Xi,kBloch[0],kBloch[1]);
         for(int nq=SC3D->NumQuantities; nq>0; nq--)
-         fprintf(ByXikBlochFile,"%.8e ",EFT[ntnq-nq]);
+         fprintf(ByXikBlochFile,"%.8e ",4.0*EFT[ntnq-nq]);
         fprintf(ByXikBlochFile,"\n");
         fflush(ByXikBlochFile);
       };

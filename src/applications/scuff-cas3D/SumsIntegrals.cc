@@ -186,8 +186,8 @@ int CacheRead(const char *ByXiFileName, SC3Data *SC3D, double Xi, double *EFT)
 /* wrapper around GetCasimirIntegrand with correct prototype   */
 /* prototype for adapt_integrate()                             */
 /***************************************************************/
-int GetCasimirIntegrand2(unsigned ndim, const double *x, void *params,
-                         unsigned fdim, double *fval)
+int kBlochIntegrand(unsigned ndim, const double *x, void *params,
+                    unsigned fdim, double *fval)
 {
   (void) ndim; // unused
   (void) fdim; // unused
@@ -235,12 +235,13 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      double *Error = new double[SC3D->NTNQ];
 
      SC3D->Xi = Xi;
-     pcubature(SC3D->NTNQ, GetCasimirIntegrand2, (void *)SC3D, 2, Lower, Upper,
+     pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 2, Lower, Upper,
                SC3D->MaxkBlochPoints, SC3D->AbsTol, SC3D->RelTol, ERROR_INDIVIDUAL,
                EFT, Error);
 
      for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
-      { EFT[ntnq] *= 4.0*SC3D->BZVolume;
+      { 
+        EFT[ntnq] *= 4.0*SC3D->BZVolume;
         Error[ntnq] *= 4.0*SC3D->BZVolume;
 
         if (    (Error[ntnq] > 10.0*SC3D->AbsTol) 
