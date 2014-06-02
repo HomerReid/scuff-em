@@ -396,7 +396,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
         else
          fprintf(ByXikBlochFile,"%s %.6e %.6e %.6e ",Tag,Xi,kBloch[0],kBloch[1]);
         for(int nq=SC3D->NumQuantities; nq>0; nq--)
-         fprintf(ByXikBlochFile,"%.8e ",4.0*EFT[ntnq-nq]);
+         fprintf(ByXikBlochFile,"%.8e ",EFT[ntnq-nq]);
         fprintf(ByXikBlochFile,"\n");
         fflush(ByXikBlochFile);
       };
