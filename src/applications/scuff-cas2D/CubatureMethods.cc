@@ -8,8 +8,6 @@
 #include "libTDRT.h"
 #include "scuff-cas2D.h"
 
-#define XQMIN 0.001
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -27,7 +25,7 @@ int XiIntegrand(unsigned ndim, const double *x, void *params,
      return 0; 
    };
    
-  Xi = XQMIN + x[0] / (1.0-x[0]);
+  Xi = W->XQMin + x[0] / (1.0-x[0]);
   Jacobian=1.0 / ((1.0-x[0])*(1.0-x[0]));
   
   XQIntegrand(W, Xi, W->FixedQ, fval);
@@ -52,9 +50,9 @@ void EvaluateXiIntegral(C2DWorkspace *W, double Q, double *I, double *E)
   /*- estimate the integral over the range Xi=[0,XQMIN] by       -*/
   /*- assuming that the integrand is constant over that range    -*/
   /*--------------------------------------------------------------*/
-  XQIntegrand(W, XQMIN, Q, I1);
+  XQIntegrand(W, W->XQMin, Q, I1);
   for(ntnq=0; ntnq<W->NTNQ; ntnq++)
-   I1[ntnq]*=XQMIN;
+   I1[ntnq]*=(W->XQMin);
 
   /*--------------------------------------------------------------*/
   /*- now use quadrature to integrate over the range             -*/
@@ -167,10 +165,12 @@ int RXQIntegrand(unsigned ndim, const double *x, void *params,
      return 0;
    };
    
-  double RXQ = XQMIN + x[0] / (1.0 - x[0]);
+  C2DWorkspace *W = (C2DWorkspace *)params;
+
+  double RXQ = W->XQMin + x[0] / (1.0 - x[0]);
   double Jacobian= 0.5 * M_PI * RXQ / ((1.0-x[0])*(1.0-x[0]));
 
-  XQIntegrand((C2DWorkspace *)params, RXQ, 0, fval);
+  XQIntegrand(W, RXQ, 0, fval);
 
   for(unsigned ntnq=0; ntnq<fdim; ntnq++)
    fval[ntnq]*=Jacobian;
@@ -190,11 +190,12 @@ int XQIntegrand(unsigned ndim, const double *x, void *params,
      return 0;
    };
    
-  Xi = XQMIN + x[0] / (1.0 - x[0]);
+  C2DWorkspace *W = (C2DWorkspace *)params;
+  Xi = W->XQMin + x[0] / (1.0 - x[0]);
    q = x[1] / (1.0 - x[1]);
   Jacobian= 1.0 / ((1.0-x[0])*(1.0-x[0])*(1.0-x[1])*(1.0-x[1]));
 
-  XQIntegrand((C2DWorkspace *)params, Xi, q, fval);
+  XQIntegrand(W, Xi, q, fval);
 
   for(ntnq=0; ntnq<fdim; ntnq++)
    fval[ntnq]*=Jacobian;
@@ -206,11 +207,28 @@ void EvaluateXQIntegral(C2DWorkspace *W, double *I, double *E)
 {
   if (W->G->AllPEC)
    { 
+     /***************************************************************/
+     /* assume that the integrand is constant for Xi < XQMIN        */
+     /***************************************************************/
+     double Xi = W->XQMin;
+     RXQIntegrand(1, &Xi, (void *)W, W->NTNQ, I);
+     for(int ntnq=0; ntnq<W->NTNQ; ntnq++)
+      I[ntnq] *= W->XQMin;
+
+     /***************************************************************/
+     /* now get the integral from XQMIN to infinity *****************/
+     /***************************************************************/
      double Lower[1] = {0.0};
      double Upper[1] = {1.0};
+     double *DeltaI = new double [W->NTNQ];
      pcubature_log(W->NTNQ, RXQIntegrand, (void *)W, 1, Lower, Upper, 
                    0,W->AbsTol,W->RelTol,ERROR_INDIVIDUAL,
-                   I,E,"RXQIntegral.log");
+                   DeltaI,E,"RXQIntegral.log");
+
+     for(int ntnq=0; ntnq<W->NTNQ; ntnq++)
+      I[ntnq] += DeltaI[ntnq];
+
+     free(DeltaI);
    }
   else
    { 
@@ -260,7 +278,7 @@ void EvaluateMatsubaraSum(C2DWorkspace *W, double T, double *I, double *E)
      if (n==0)
       { Weight=0.5;
         // NOTE: we assume that the integrand is constant for Xi < XQMIN
-        Xi=XQMIN;
+        Xi = W->XQMin;
       }
      else
       { Weight=1.0;

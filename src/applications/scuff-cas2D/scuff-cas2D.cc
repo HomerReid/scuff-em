@@ -66,6 +66,7 @@ void Usage(const char *ErrMsg, ...)
   fprintf(stderr," Cubature options:         \n");
   fprintf(stderr,"  --abstol xx              \n");
   fprintf(stderr,"  --reltol xx              \n");
+  fprintf(stderr,"  --XQMin  xx              \n");
   fprintf(stderr,"                           \n");
   fprintf(stderr," Logging options:          \n");
   fprintf(stderr,"  --loglevel 0  (no logging)\n");
@@ -243,7 +244,7 @@ int main(int argc, char *argv[])
   int IntCache;
   TDRTGeometry *G;
   double Xi, Q, T;
-  double AbsTol, RelTol;
+  double AbsTol, RelTol, XQMin;
   double LengthUnit;
   double RectangleBuffer[4], *Rectangle;
 
@@ -274,8 +275,9 @@ int main(int argc, char *argv[])
   WhichQuantities=0;
   TETM=GroundPlane=WriteHDF5=IntCache=0;
   XQListName=0;
-  AbsTol=1.0e-8;
-  RelTol=1.0e-3;
+  AbsTol=1.0;
+  RelTol=1.0e-2;
+  XQMin=1.0e-3;
   VisualizeOnly=0;
   LengthUnit=0.0;
   Rectangle=0;
@@ -390,6 +392,12 @@ int main(int argc, char *argv[])
         if (    1!=sscanf(argv[++narg],"%le",&RelTol) )
          ErrExit("invalid RelTol value %s",argv[narg]);
       }
+     else if ( !StrCaseCmp(argv[narg],"--XQMin") )
+      { if (narg+1>=argc)
+         ErrExit("--XQMin option requires one argument");
+        if (    1!=sscanf(argv[++narg],"%le",&XQMin) )
+         ErrExit("invalid XQMin value %s",argv[narg]);
+      }
      else if ( !StrCaseCmp(argv[narg],"--VisualizeOnly") )
       { 
         VisualizeOnly=1;
@@ -471,6 +479,7 @@ int main(int argc, char *argv[])
 
   W->AbsTol=AbsTol;
   W->RelTol=RelTol;
+  W->XQMin=XQMin;
   
   NTNQ=W->NTNQ;
 
