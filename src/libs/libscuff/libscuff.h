@@ -615,7 +615,6 @@ cdouble ExpRelV2P0(int n, cdouble Z);
 /*--------------------------------------------------------------*/
 void PreloadCache(const char *FileName);
 void StoreCache(const char *FileName);
-void PurgeCache();
 
 } // namespace scuff
 

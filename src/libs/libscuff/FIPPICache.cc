@@ -415,11 +415,6 @@ void StoreCache(const char *FileName)
   GlobalFIPPICache.Store(FileName);
 }
 
-void PurgeCache()
-{ 
-  GlobalFIPPICache.Store(FileName);
-}
-
 
 } // namespace scuff
 
