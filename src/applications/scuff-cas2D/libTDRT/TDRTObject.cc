@@ -55,7 +55,7 @@ void TDRTObject::InitTDRTObject(const char *pMeshFileName, const char *pLabel,
   /*------------------------------------------------------------*/
   MeshFileName=strdup(pMeshFileName);
   f=fopen(MeshFileName,"r");
-  if ( !f );
+  if ( !f )
    { sprintf(FullPath,"%s/geomsh/%s",getenv("HOME"),MeshFileName);
      f=fopen(FullPath,"r");
    };
