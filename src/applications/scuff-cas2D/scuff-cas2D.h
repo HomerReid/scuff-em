@@ -62,7 +62,7 @@ typedef struct C2DWorkspace
    StaticSSIDataTable ***USSSIDataTables;
 
    /* integration tolerances */
-   double AbsTol, RelTol;
+   double AbsTol, RelTol, XQMin;
 
    /* miscellaneous stuff */
    int NumThreads;
