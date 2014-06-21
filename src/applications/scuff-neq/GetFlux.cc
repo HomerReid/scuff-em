@@ -454,12 +454,10 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
          fprintf(f,"%e %s ",real(Omega),Tag);
          if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
          fprintf(f,"%i%i ",nss+1,nsd+1);
-         GetTrace(SNEQD, nss, nsd, Omega, Quantities, false);
+         GetTrace(SNEQD, nss, nsd, Omega, Quantities);
          for(int nq=0; nq<NQ; nq++)
           { int Index=GetIndex(SNEQD, nt, nss, nsd, nq);
             Flux[Index] = Quantities[nq]; 
-            if ( nss==nsd )
-             Flux[Index] -= SelfContributions[nsd][nq]; 
             fprintf(f,"%.8e ",Flux[Index]);
             fflush(f);
           };
