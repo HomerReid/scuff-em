@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,      &nReadCache,   "read cache"},
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache,    0,             "write cache"},
 //
-     {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,           "use alternative method for energy calculation"},
+     {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,           "reuse data from existing .byXi files"},
 //
      {"NewEnergyMethod", PA_BOOL,   0, 1,       (void *)&NewEnergyMethod, 0,           "use alternative method for energy calculation"},
 //

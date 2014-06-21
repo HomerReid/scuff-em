@@ -342,7 +342,7 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
 /***************************************************************/
 void GBarVDEwald(double *R, cdouble k, int 
                  LDim, double *kBloch, double **LBV,
-                 double E, int ExcludeFirst9, cdouble *GBarVD);
+                 double E, bool ExcludeFirst9, cdouble *GBarVD);
 
 /***************************************************************/
 /* this is an alternative interface to GBarVDEwald that has the*/

@@ -58,8 +58,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   /*--------------------------------------------------------------*/
   /*- this code does not make sense if any of the objects are PEC */
   /*--------------------------------------------------------------*/
-  int ns, nsp;
-  for(ns=0; ns<G->NumSurfaces; ns++)
+  for(int ns=0; ns<G->NumSurfaces; ns++)
    if ( G->Surfaces[ns]->IsPEC ) 
     ErrExit("%s: object %s: PEC objects are not allowed in scuff-neq", G->GeoFileName,G->Surfaces[ns]->Label);
 
@@ -96,29 +95,28 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations.                                           -*/
   /*--------------------------------------------------------------*/
-  int nb, NS=G->NumSurfaces, NBF, NBFp;
+  int NS=G->NumSurfaces;
   SNEQD->T = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->TSelf = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NS*(NS-1))/2)*sizeof(HMatrix *));
   Log("Before T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
-  for(nb=ns=0; ns<G->NumSurfaces; ns++)
+  for(int nb=0, ns=0; ns<NS; ns++)
    { 
-     NBF=G->Surfaces[ns]->NumBFs;
+     int NBF=G->Surfaces[ns]->NumBFs;
 
      if (G->Mate[ns]==-1)
-      SNEQD->T[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX, LHM_SYMMETRIC);
+      { SNEQD->T[ns]     = new HMatrix(NBF, NBF, LHM_COMPLEX);
+        SNEQD->TSelf[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+      }
      else
-      SNEQD->T[ns] = SNEQD->T[ G->Mate[ns] ];
-
-     for(nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
-      { NBFp=G->Surfaces[nsp]->NumBFs;
-        SNEQD->U[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
+      { SNEQD->T[ns]     = SNEQD->T[ G->Mate[ns] ];
+        SNEQD->TSelf[ns] = SNEQD->TSelf[ G->Mate[ns] ];
       };
 
-     if (G->Mate[ns]==-1)
-      SNEQD->TSelf[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);//, LHM_SYMMETRIC);
-     else
-      SNEQD->TSelf[ns] = SNEQD->TSelf[ G->Mate[ns] ];
+     for(int nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
+      { int NBFp=G->Surfaces[nsp]->NumBFs;
+        SNEQD->U[nb] = new HMatrix(NBF, NBFp, LHM_COMPLEX);
+      };
    };
   Log("After T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
@@ -135,7 +133,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   /*- dimension of any BEM matrix subblock.                      -*/
   /*--------------------------------------------------------------*/
   int MaxBFs=G->Surfaces[0]->NumBFs;
-  for(ns=1; ns<G->NumSurfaces; ns++)
+  for(int ns=1; ns<G->NumSurfaces; ns++)
    if (G->Surfaces[ns]->NumBFs > MaxBFs) 
     MaxBFs = G->Surfaces[ns]->NumBFs;
   
@@ -170,7 +168,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   NeedMatrix[SCUFF_OMATRIX_ZTORQUE ] = QuantityFlags & QFLAG_ZTORQUE;
 
   SNEQD->SArray=(SMatrix ***)mallocEC(NS*sizeof(SMatrix **));
-  for(ns=0; ns<NS; ns++)
+  for(int ns=0; ns<NS; ns++)
    { 
      SNEQD->SArray[ns]=(SMatrix **)mallocEC(SCUFF_NUM_OMATRICES*sizeof(SMatrix *));
 
@@ -194,8 +192,14 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   fprintf(f,"# data file columns: \n");
   fprintf(f,"# 1 omega \n");
   fprintf(f,"# 2 transform tag\n");
-  fprintf(f,"# 3 (sourceObject,destObject) \n");
-  int nq=4;
+  int nq=3;
+  if (G->NumLatticeBasisVectors==1)
+   fprintf(f,"# %i kBloch_x \n",nq++);
+  else if (G->NumLatticeBasisVectors==2)
+   { fprintf(f,"# %i kBloch_x \n",nq++);
+     fprintf(f,"# %i kBloch_x \n",nq++);
+   };
+  fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
   if (SNEQD->QuantityFlags & QFLAG_POWER) 
    fprintf(f,"# %i power flux spectral density\n",nq++);
   if (SNEQD->QuantityFlags & QFLAG_XFORCE) 
@@ -211,7 +215,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   if (SNEQD->QuantityFlags & QFLAG_ZTORQUE) 
    fprintf(f,"# %i z-torque flux spectral density\n",nq++);
   fclose(f);
-  
 
   Log("After CreateSNEQData: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   return SNEQD;

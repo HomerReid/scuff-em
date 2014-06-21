@@ -34,38 +34,6 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void SpyPlot(HMatrix *M, char *Title, char *FileName)
-{
-  if (!FileName)
-   FileName=const_cast<char *>("/tmp/.spyplot.dat");
-   
-  FILE *f=fopen(FileName,"w");
-  if (!f) return;
-
-  cdouble ME;
-  for(int nr=0; nr<M->NR; nr++)
-   for(int nc=0; nc<M->NC; nc++)
-    { ME=M->GetEntry(nr,nc);
-      if ( abs(ME) != 0.0 )
-       fprintf(f,"%i %i %e %e \n",nr,nc,real(ME),imag(ME));
-    };
-
-  fclose(f);
-
-  f=popen("gnuplot -persist","w");
-  if (!f) return;
-  if (Title)
-   fprintf(f,"set title '%s'\n",Title);
-  fprintf(f,"set xlabel 'Rows'\n");
-  fprintf(f,"set ylabel 'Columns'\n");
-  fprintf(f,"plot '%s' w p pt 7 ps 1\n",FileName);
- // pclose(f);
-  
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void UndoSCUFFMatrixTransformation(HMatrix *M)
 { 
   for (int nr=0; nr<M->NR; nr+=2)
@@ -118,11 +86,6 @@ int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 /*                DestSurface                                  */
 /*                                                             */
 /*            W = (Source, Dest) subblock of inverse BEM       */
-/*                unless SelfTerm==true and Source==Dest, in   */
-/*                which case W=T^{-1}, where T is the          */
-/*                on-diagonal block of the BEM matrix          */
-/*                describing the self-interactions of the      */
-/*                surface in question                          */
 /*                                                             */
 /* This routine makes use of the Buffer field of the SNEQD     */
 /* data structure, as follows:                                 */
@@ -139,7 +102,7 @@ int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 /*      the SIPFT matrices for the quantities required.        */
 /***************************************************************/
 void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
-              cdouble Omega, double *Results, bool SelfTerm=false)
+              cdouble Omega, double *Results)
 {
   RWGGeometry *G      = SNEQD->G;
 
@@ -150,18 +113,10 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   int OffsetD         = G->BFIndexOffset[DestSurface];
    
   /*--------------------------------------------------------------*/
-  /*- Set W_{SD} = S,D subblock of W matrix (SelfTerm==false)     */
-  /*-            = inverse T matrix of object S (SelfTerm==true)  */
+  /*- Set W_{SD} = S,D subblock of W matrix                       */
   /*--------------------------------------------------------------*/
   HMatrix *WSD = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  if (SourceSurface==DestSurface && SelfTerm)
-   { WSD->Copy(SNEQD->T[SourceSurface]);
-     UndoSCUFFMatrixTransformation(WSD);
-     WSD->LUFactorize();
-     WSD->LUInvert();
-   }
-  else
-   SNEQD->W->ExtractBlock(OffsetS, OffsetD, WSD);
+  SNEQD->W->ExtractBlock(OffsetS, OffsetD, WSD);
 
   /*--------------------------------------------------------------*/
   /*- set   GW = G_S * W_{SD}                                    -*/
@@ -179,12 +134,11 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   delete SymG; 
   HMatrix *WDGW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
   WSD->Multiply(GW, WDGW, "--transA C");
-
   delete WSD;
   delete GW;
 
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /*- assemble SIPFT matrices as necessary -----------------------*/
   /*--------------------------------------------------------------*/
   HMatrix *MSIPFT[MAXQUANTITIES];
   if ( SourceSurface==DestSurface )
@@ -193,7 +147,6 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
     /*- first determine which SIPFT matrices we need                */
     /*--------------------------------------------------------------*/
     bool NeedMatrix[NUMSIPFT];
-    
     for(int QIndex=0, nBuffer=1; QIndex<MAXQUANTITIES; QIndex++)
      { 
        int QFlag = 1<<QIndex;
@@ -227,13 +180,6 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
       if ( !(SNEQD->QuantityFlags & QFlag) )
        continue;
 
-      // we want to set the self-term for the power to 0
-      if ( QFlag==QFLAG_POWER && SelfTerm==true )
-       { Results[nq++]=0.0;
-         continue;
-       };
-
-      // 
       if ( QFlag==QFLAG_POWER && SNEQD->SymGDest )
        {
          HMatrix *T=SNEQD->TSelf[DestSurface];
@@ -272,13 +218,13 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
 
    };
 
- /*--------------------------------------------------------------*/
- /*- deallocate temporary storage -------------------------------*/
- /*--------------------------------------------------------------*/
- delete WDGW;
- if ( SourceSurface==DestSurface )
-  for(int nq=0; nq<SNEQD->NQ; nq++)
-   if (MSIPFT[nq]) delete MSIPFT[nq];
+  /*--------------------------------------------------------------*/
+  /*- deallocate temporary storage -------------------------------*/
+  /*--------------------------------------------------------------*/
+  delete WDGW;
+  if ( SourceSurface==DestSurface )
+   for(int nq=0; nq<SNEQD->NQ; nq++)
+    if (MSIPFT[nq]) delete MSIPFT[nq];
 
 } 
 
@@ -415,12 +361,6 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      else
       Log(" Assembling self contributions to T(%i)...",ns);
 
-#if 0
-     Args->Sa = Args->Sb = G->Surfaces[ns];
-     Args->B = T[ns];
-     Args->Symmetric=1;
-     GetSurfaceSurfaceInteractions(Args);
-#endif
      G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, T[ns]);
    };
 
@@ -455,22 +395,6 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
    G->RegionMPs[nr]->UnZero();
 
   /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (NS>50) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-  double SelfContributions[50][MAXQUANTITIES];
-  for(int ns=0; ns<NS; ns++)
-   { if (SNEQD->SubtractSelfTerms)
-      { GetTrace(SNEQD, ns, ns, Omega, SelfContributions[ns], true);
-        Log("ns=%i, Omega=%e: self contributions = (%e,%e,%e,%e,%e,%e,%e)",ns,real(Omega),
-             SelfContributions[1], SelfContributions[2], SelfContributions[3],
-             SelfContributions[4], SelfContributions[5], SelfContributions[6]);
-      }
-     else
-      memset(SelfContributions[ns],0,MAXQUANTITIES*sizeof(double));
-   };
-       
-  /***************************************************************/
   /* now loop over transformations.                              */
   /* note: 'gtc' stands for 'geometrical transformation complex' */
   /***************************************************************/
@@ -495,17 +419,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      for(int nb=0, ns=0; ns<NS; ns++)
       for(int nsp=ns+1; nsp<NS; nsp++, nb++)
        if ( nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
-        { 
-#if 0
-          Log("  Assembling U(%i,%i)...",ns,nsp);
-          Args->Sa = G->Surfaces[ns];
-          Args->Sb = G->Surfaces[nsp];
-          Args->B  = U[nb];
-          Args->Symmetric=0;
-          GetSurfaceSurfaceInteractions(Args);
-#endif
-          G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, U[nb]);
-        };
+        G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, U[nb]);
 
      /*--------------------------------------------------------------*/
      /*- stamp all blocks into the BEM matrix and invert it         -*/
@@ -528,7 +442,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      Log("Done with linear algebra...");
 
      /*--------------------------------------------------------------*/
-     /*- compute the requested quantities for all objects -----------*/
+     /*- compute the requested quantities for all objects           -*/
      /*- note: nss = 'num surface, source'                          -*/
      /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/

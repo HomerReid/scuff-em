@@ -50,60 +50,6 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void SpeedTest(char *Greeting)
-{
-  double Elapsed;
-  int Dim=1500;
-
-  char *str=getenv("DIMDIM");
-  if (str) sscanf(str,"%i",&Dim);
-  printf("\n** %s: Dim=%i: \n",Greeting,Dim);
-
-  HMatrix *Z1=new HMatrix(Dim,Dim,LHM_COMPLEX);
-  HMatrix *Z2=new HMatrix(Dim,Dim,LHM_COMPLEX);
-
-  srand48(time(0));
-  for(int nr=0; nr<Dim; nr++)
-   for(int nc=0; nc<Dim; nc++)
-    Z1->SetEntry(nr,nc, drand48()+II*drand48() );
-
-  Z2->Zero();
-  for(int nr=0; nr<Dim; nr++)
-   Z2->SetEntry(nr,nr,1.0);
-
-  printf("** LU Factorize: ");
-  Tic(); Z1->LUFactorize(); Elapsed=Toc(); 
-  printf(" %.3g s\n",Elapsed);
-
-  printf("** LU Invert (2): ");
-  Tic(); Z1->LUSolve(Z2); Elapsed=Toc(); 
-  printf(" %.3g s\n",Elapsed);
-
-  printf("** LU Invert (1): ");
-  Tic(); Z1->LUInvert(); Elapsed=Toc(); 
-  printf(" %.3g s\n",Elapsed);
-
-  double Norm=0.0, DNorm=0.0;
-  cdouble z1, z2;
-
-  for(int nr=0; nr<Dim; nr++)
-   for(int nc=0; nc<Dim; nc++)
-    { z1=Z1->GetEntry(nr,nc);
-      z2=Z2->GetEntry(nr,nc);
-      Norm+=abs(z1);
-      DNorm+=abs(z1-z2);
-    };
-  printf("** Norm, DNorm, Ratio = %e, %e, %e\n",Norm,DNorm,DNorm/Norm);
-  printf("\n\n");
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
@@ -114,6 +60,7 @@ int main(int argc, char *argv[])
   char *GeoFile=0;
   char *TransFile=0;
 
+  /*--------------------------------------------------------------*/
   int Power=0;
   int XForce=0;
   int YForce=0;
@@ -122,32 +69,41 @@ int main(int argc, char *argv[])
   int YTorque=0;
   int ZTorque=0;
 
+  /*--------------------------------------------------------------*/
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *OmegaKFile=0;
   double OmegaMin=0.00;              int nOmegaMin;
   double OmegaMax=-1.0;              int nOmegaMax;
 
+  /*--------------------------------------------------------------*/
   char *TempStrings[2*MAXTEMPS];     int nTempStrings;
 
+  /*--------------------------------------------------------------*/
   double AbsTol=0.0;
   double RelTol=5.0e-2;
   int Intervals=25;
 
+  /*--------------------------------------------------------------*/
   char *FileBase=0;
 
+  /*--------------------------------------------------------------*/
   int PlotFlux=0;
 
+  /*--------------------------------------------------------------*/
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
 
+  /*--------------------------------------------------------------*/
   bool SymGDest=false;
 
+  /*--------------------------------------------------------------*/
   bool UseExistingData=false;
   bool SubtractSelfTerms=false;
   bool Visualize=false;
    
+  /*--------------------------------------------------------------*/
   double SIRadius    = 100.0;
   double SINumPoints = 31;
 
@@ -241,7 +197,7 @@ int main(int argc, char *argv[])
   /* frequencies at which to run simulations                         */
   /*******************************************************************/
   HVector *OmegaPoints=0, *OmegaPoints0;
-  int nFreq, nOV, NumFreqs=0;
+  int NumFreqs=0;
   if (nOmegaFiles==1) // first process --OmegaFile option if present
    { 
      OmegaPoints=new HVector(OmegaFile,LHM_TEXT);
@@ -257,19 +213,19 @@ int main(int argc, char *argv[])
      NumFreqs += nOmegaVals;
      OmegaPoints0=OmegaPoints;
      OmegaPoints=new HVector(NumFreqs, LHM_COMPLEX);
-     nFreq=0;
+     int nFreq=0;
      if (OmegaPoints0)
       { for(nFreq=0; nFreq<OmegaPoints0->N; nFreq++)
          OmegaPoints->SetEntry(nFreq, OmegaPoints0->GetEntry(nFreq));
         delete OmegaPoints0;
       };
-     for(nOV=0; nOV<nOmegaVals; nOV++)
+     for(int nOV=0; nOV<nOmegaVals; nOV++)
       OmegaPoints->SetEntry(nFreq+nOV, OmegaVals[nOV]);
      Log("Read %i frequencies from command line.",nOmegaVals);
    };
 
   /*******************************************************************/
-  /* check that the user didn't simultaneously ask for a discret set */
+  /* check that the user didn't simultaneously ask for a discrete set*/
   /* of frequencies and a frequency range over which to integrate;   */
   /* if a range was specified check that it makes sense              */
   /*******************************************************************/
@@ -305,6 +261,11 @@ int main(int argc, char *argv[])
   SNEQD->Visualize         = Visualize;
   SNEQD->SIRadius          = SIRadius;  
   SNEQD->SINumPoints       = SINumPoints;
+
+  if (OmegaKPoints && G->NumLatticeBasisVectors==0)
+   ErrExit("--OmegaKPoints may only be used with extended geometries");
+  else if (G->NumLatticeBasisVectors!=0 && OmegaKPoints==0)
+   ErrExit("--OmegaKPoints is required for extended geometries");
 
   /*******************************************************************/
   /* process any temperature specifications **************************/
@@ -369,7 +330,7 @@ int main(int argc, char *argv[])
       };
    }
   else if (NumFreqs>0)
-   { for (nFreq=0; nFreq<NumFreqs; nFreq++)
+   { for (int nFreq=0; nFreq<NumFreqs; nFreq++)
       GetFlux(SNEQD, OmegaPoints->GetEntry(nFreq), I);
    }
   else
