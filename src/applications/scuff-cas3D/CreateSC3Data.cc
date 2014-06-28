@@ -19,10 +19,10 @@
 
 /*
  * CreateSC3Data.cc -- a utility function to initialize a 
- *                 -- scuff-cas3D data structure for a given
- *                 -- run of the code
+ *                  -- scuff-cas3D data structure for a given
+ *                  -- run of the code
  *
- * homer reid      -- 2/2012
+ * homer reid       -- 2/2012
  *
  */
 
@@ -41,7 +41,8 @@ using namespace scuff;
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
                        int NumTorqueAxes, double TorqueAxes[9],
-                       bool NewEnergyMethod, char *BZIMethod)
+                       bool NewEnergyMethod, char *BZIMethod, 
+                       char *FileBase)
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
@@ -79,8 +80,11 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*- compute a basis for the reciprocal lattice -----------------*/
   /*--------------------------------------------------------------*/
   if (G->NumLatticeBasisVectors==1)
-   ErrExit("1D lattice periodicity not yet supported");
-  if (G->NumLatticeBasisVectors==2)
+   { 
+     SC3D->RLBasisVectors[0][0] = 2.0*M_PI/G->LatticeBasisVectors[0][0];
+     SC3D->BZVolume = SC3D->RLBasisVectors[0][0];
+   }
+  else if (G->NumLatticeBasisVectors==2)
    { 
      double *L1 = G->LatticeBasisVectors[0];
      double *L2 = G->LatticeBasisVectors[1];
@@ -161,54 +165,67 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   int N1 = SC3D->N1 = SC3D->G->Surfaces[0]->NumBFs;
   SC3D->M          = new HMatrix(N,  N,  RealComplex);
   SC3D->dM         = new HMatrix(N,  N1, RealComplex);
+  SC3D->NewEnergyMethod  = NewEnergyMethod;
 
   if (WhichQuantities & QUANTITY_ENERGY)
    { SC3D->MInfLUDiagonal = new HVector(G->TotalBFs);
      SC3D->ipiv = (int *)mallocEC(N*sizeof(int));
+     if (NewEnergyMethod)
+     SC3D->MM1MInf = new HMatrix(N, N, RealComplex);
    }
   else
    { SC3D->MInfLUDiagonal=0;
      SC3D->ipiv=0;
+     SC3D->MM1MInf = 0;
    };
 
   /*--------------------------------------------------------------*/
-  /*- 20130427 for the 'new energy method' we need to allocate   -*/
-  /*- storage for an extra full-size BEM matrix.                 -*/
-  /*--------------------------------------------------------------*/
-  SC3D->NewEnergyMethod = NewEnergyMethod;
-  if (NewEnergyMethod && (WhichQuantities & QUANTITY_ENERGY) )
-   SC3D->MM1MInf = new HMatrix(N, N, RealComplex);
-  else
-   SC3D->MM1MInf = 0;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /*- 20140628 parse BZ integration method, which is either      -*/
+  /*-  ECCp (p=2,...7)                                           -*/
+  /*- or                                                         -*/
+  /*-  adaptive                                                  -*/
   /*--------------------------------------------------------------*/
   SC3D->BZIValues=0;
   if (BZIMethod)
-   { if ( !strcasecmp(BZIMethod,"ECC2") )
-      SC3D->BZIOrder=2;
-     else if ( !strcasecmp(BZIMethod,"ECC3") )
-      SC3D->BZIOrder=3;
-     else if ( !strcasecmp(BZIMethod,"ECC4") )
-      SC3D->BZIOrder=4;
-     else if ( !strcasecmp(BZIMethod,"ECC5") )
-      SC3D->BZIOrder=5;
-     else if ( !strcasecmp(BZIMethod,"ECC6") )
-      SC3D->BZIOrder=6;
-     else if ( !strcasecmp(BZIMethod,"ECC7") )
-      SC3D->BZIOrder=7;
+   { if ( !strncasecmp(BZIMethod,"ECC",3) )
+      { 
+        if (strlen(BZIMethod)!=4) 
+         ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
+
+        SC3D->BZIOrder = BZIMethod[3] - '0';
+        if ( SC3D->BZIOrder<2 || SC3D->BZIOrder>7 ) 
+         ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
+
+        Log("Using embedded Clenshaw-Curtis cubature (order %i)"
+            "for Brillouin-zone integration.",SC3D->BZIOrder);
+      }
      else if ( !strcasecmp(BZIMethod,"adaptive") )
-      SC3D->BZIOrder=0;
-     else
+      { SC3D->BZIOrder=0; 
+        Log("Using adaptive cubature for Brillouin-zone integration.");
+      }
+     else 
       ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
-     
-     if ( SC3D->BZIOrder != 0)
-      { int N = 1<<(SC3D->BZIOrder) + 1;
-        SC3D->BZIValues = (double *)malloc( (SC3D->NTNQ)*N*N*sizeof(double) );
-      };
-       
    };
+  if ( SC3D->BZIOrder != 0)
+   { int NP = (1<<(SC3D->BZIOrder)) + 1;
+     SC3D->BZIValues = (double *)malloc( (SC3D->NTNQ)*NP*NP*sizeof(double) );
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (!FileBase)
+   FileBase = strdup(GetFileBase(G->GeoFileName));
+
+  SC3D->OutFileName=vstrdup("%s.out",FileBase);
+
+  SC3D->ByXiFileName=vstrdup("%s.byXi",FileBase);
+  WriteFilePreamble(SC3D, PREAMBLE_BYXI);
+
+  if (G->NumLatticeBasisVectors>0)
+   { SC3D->ByXiKFileName=vstrdup("%s.byXikBloch",FileBase);
+     WriteFilePreamble(SC3D, PREAMBLE_BYXIK);
+   }
 
   return SC3D;
 
@@ -217,76 +234,101 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteFilePreamble(FILE *f, SC3Data *SC3D, int PreambleType)
+void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
 {
-  if (f==0) return;
+  char *FileName=0;
+  switch(PreambleType)
+   { case PREAMBLE_OUT:   FileName=SC3D->OutFileName;   break;
+     case PREAMBLE_BYXI:  FileName=SC3D->ByXiFileName;  break;
+     case PREAMBLE_BYXIK: FileName=SC3D->ByXiKFileName; break;
+     default: ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+   };
 
+  FILE *f=fopen(FileName,"a");
+  if (f==0) 
+   ErrExit("could not open file %s",FileName);
+
+  /*--------------------------------------------------------------*/
+  /*- write some common basic header information -----------------*/
+  /*--------------------------------------------------------------*/
   char DateStr[40];
   time_t MyTime = time(0);
   struct tm *MyTm=localtime(&MyTime);
   strftime(DateStr,30,"%D::%T",MyTm);
   fprintf(f,"# scuff-cas3D run on %s at %s",GetHostName(),DateStr);
   fprintf(f,"# data file columns: \n");
+  fprintf(f,"#1: transform tag\n");
 
-  int nc=1;
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  const char *ErrorString;
+  const char *IntegrandString;
+  int nc=2;
 
-  fprintf(f,"#%i: transform tag\n",nc++);
+  if (PreambleType == PREAMBLE_OUT)
+   { 
+     IntegrandString="";
+     ErrorString="error due to numerical Xi integration";
+   }
+  else if (PreambleType == PREAMBLE_BYXI )
+   { 
+     fprintf(f,"#%i: imaginary angular frequency\n",nc++);
 
-  if ( PreambleType==PREAMBLE_BYXI || PreambleType==PREAMBLE_BYXIK) 
-   fprintf(f,"#%i: imaginary angular frequency\n",nc++);
+     IntegrandString="Xi integrand";
+     ErrorString = (SC3D->G->NumLatticeBasisVectors==0) ? 0 :
+                   "error due to numerical Brillouin-zone integration";
 
-  if ( PreambleType==PREAMBLE_BYXIK )
-   { fprintf(f,"#%i,%i: bloch wavevector k_x,k_y\n",nc,nc+1);
-     nc+=2;
+   }
+  else  // PREAMBLE_BYXIK
+   { 
+     fprintf(f,"#%i: imaginary angular frequency\n",nc++);
+     fprintf(f,"#%i: bloch wavevector kx \n",nc++);
+     if (SC3D->G->NumLatticeBasisVectors==2)
+      fprintf(f,"#%i: bloch wavevector ky \n",nc++);
+
+     IntegrandString="Brillouin-zone integrand";
+     ErrorString=0;
    };
   
-  if (PreambleType == PREAMBLE_OUT) 
-   {
-     if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
-      { fprintf(f,"#%i: energy \n",nc++);
-        fprintf(f,"#%i: energy error \n",nc++);
-      };
-     if ( SC3D->WhichQuantities & QUANTITY_XFORCE )
-      { fprintf(f,"#%i: x-force \n",nc++);
-        fprintf(f,"#%i: x-force error \n",nc++);
-      };
-     if ( SC3D->WhichQuantities & QUANTITY_YFORCE )
-      { fprintf(f,"#%i: y-force \n",nc++);
-        fprintf(f,"#%i: y-force error \n",nc++);
-      };
-     if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
-      { fprintf(f,"#%i: z-force \n",nc++);
-        fprintf(f,"#%i: z-force error \n",nc++);
-      };
-     if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
-      { fprintf(f,"#%i: 1-torque \n",nc++);
-        fprintf(f,"#%i: 1-torque error \n",nc++);
-      };
-     if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
-      { fprintf(f,"#%i: 2-torque \n",nc++);
-        fprintf(f,"#%i: 2-torque error \n",nc++);
-      };
-     if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
-      { fprintf(f,"#%i: 3-torque \n",nc++);
-        fprintf(f,"#%i: 3-torque error \n",nc++);
-      };
-   }
-  else
-   {
-     if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
-      fprintf(f,"#%i: energy integrand \n",nc++);
-     if ( SC3D->WhichQuantities & QUANTITY_XFORCE )
-      fprintf(f,"#%i: x-force integrand \n",nc++);
-     if ( SC3D->WhichQuantities & QUANTITY_YFORCE )
-      fprintf(f,"#%i: y-force integrand \n",nc++);
-     if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
-      fprintf(f,"#%i: z-force integrand \n",nc++);
-     if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
-      fprintf(f,"#%i: 1-torque integrand \n",nc++);
-     if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
-      fprintf(f,"#%i: 2-torque integrand \n",nc++);
-     if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
-      fprintf(f,"#%i: 3-torque integrand \n",nc++);
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if ( SC3D->WhichQuantities & QUANTITY_ENERGY )
+   { fprintf(f,"#%i: energy %s\n",nc++,IntegrandString);
+     if (ErrorString) fprintf(f,"#%i: energy %s \n",nc++,ErrorString);
    };
+
+  if ( SC3D->WhichQuantities & QUANTITY_XFORCE )
+   { fprintf(f,"#%i: x-force %s\n",nc++,IntegrandString);
+     if (ErrorString) fprintf(f,"#%i: x-force %s \n",nc++,ErrorString);
+   };
+
+  if ( SC3D->WhichQuantities & QUANTITY_YFORCE )
+   { fprintf(f,"#%i: y-force %s\n",nc++,IntegrandString);
+     if (ErrorString) fprintf(f,"#%i: y-force %s \n",nc++,ErrorString);
+   };
+
+  if ( SC3D->WhichQuantities & QUANTITY_ZFORCE )
+   { fprintf(f,"#%i: z-force %s\n",nc++,IntegrandString);
+     if (ErrorString) fprintf(f,"#%i: z-force %s \n",nc++,ErrorString);
+   };
+
+  if ( SC3D->WhichQuantities & QUANTITY_TORQUE1 )
+   { fprintf(f,"#%i: x-torque %s\n",nc++,IntegrandString);
+     if (ErrorString) fprintf(f,"#%i: x-torque %s \n",nc++,ErrorString);
+   };
+
+  if ( SC3D->WhichQuantities & QUANTITY_TORQUE2 )
+   { fprintf(f,"#%i: y-torque %s\n",nc++,IntegrandString);
+     if (ErrorString) fprintf(f,"#%i: y-torque %s \n",nc++,ErrorString);
+   };
+
+  if ( SC3D->WhichQuantities & QUANTITY_TORQUE3 )
+   { fprintf(f,"#%i: z-torque %s\n",nc++,IntegrandString);
+     if (ErrorString) fprintf(f,"#%i: z-torque %s \n",nc++,ErrorString);
+   };
+
+  fclose(f);
 
 }
