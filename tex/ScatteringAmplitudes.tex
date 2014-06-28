@@ -60,19 +60,26 @@ On the other hand, we also have the usual expression
 for the scattered electric field in terms of the surface
 currents,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
+\begin{align}
  \vb E\sups{scat}(\vb x)
 &=\oint \Big\{ \BG\supt{EE}(\vb x,\vb x^\prime)\cdot \vb K(\vb x^\prime)
               +\BG\supt{EM}(\vb x,\vb x^\prime)\cdot \vb N(\vb x^\prime)
         \Big\}d\vb x^\prime
-\\
+\nn
 &=ik_0\oint \Big\{ Z_0 Z^r\vb G(\vb x,\vb x^\prime)\cdot \vb K(\vb x^\prime)
                  +\vb C(\vb x,\vb x^\prime)\cdot \vb N(\vb x^\prime)
         \Big\}d\vb x^\prime
-\end{align*}
+\label{EScat}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 where $k_0$ and $Z^r$ are the wavenumber and relative wave impedance 
 of the exterior medium.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+To make equation (\ref{EScat}) look like (\ref{FDef}), we use
+the asymptotic expressions for the $\vb G$ and $\vb C$ dyadics:
+$$ \vb G(\vb x-\vb x^\prime) \to
+$$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

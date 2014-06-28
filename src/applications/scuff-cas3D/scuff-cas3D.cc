@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
   // options affecting kBloch integration or sampling
   //
   char *XikBlochFile=0;
-  char *BZIMethod=0;
+  char *BZIMethod="ECC3";
   double BZICutoff=0;
   bool BZSymmetry=false;
   int MaxkBlochPoints=1000;
