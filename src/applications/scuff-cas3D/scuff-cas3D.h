@@ -31,13 +31,6 @@
 
 using namespace scuff;
 
-/***************************************************************/
-/* brillouin zone integration schemes **************************/
-/***************************************************************/
-#define BZIMETHOD_ADAPTIVE	0
-#define BZIMETHOD_CC5917        1
-#define BZIMETHOD_DEFAULT	BZIMETHOD_ADAPTIVE
-
 #define QUANTITY_ENERGY  1
 #define QUANTITY_XFORCE  2
 #define QUANTITY_YFORCE  4
@@ -83,9 +76,12 @@ typedef struct SC3Data
 
    double Xi;
 
-   int BZIMethod;
+   int BZIOrder;
+   double BZICutoff;
+   bool BZSymmetry;
    char *ByXiFileName, *ByXikBlochFileName;
    char *WriteCache;
+   double *BZIValues;
 
    // these quantities are used to set limits for adaptive frequency integrations
    int MaxXiPoints, MaxkBlochPoints;
@@ -102,7 +98,7 @@ typedef struct SC3Data
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
                        int NumTorqueAxes, double TorqueAxes[9],
-                       bool NewEnergyMethod);
+                       bool NewEnergyMethod, char *BZIMethod);
 
 void WriteFilePreamble(FILE *f, SC3Data *SC3D, int PreambleType);
 

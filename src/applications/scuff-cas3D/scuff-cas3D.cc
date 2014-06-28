@@ -23,147 +23,6 @@
  *                 -- torque for a collection of interacting objects
  *
  * homer reid     -- 3/2007 -- 3/2012
- *
- * --------------------------------------------------------------
- *
- * this program has a large number of command-line options, which
- * subdivide into a number of categories as described below.
- *
- * in addition to the command line, options may also be specified
- * in an input file, piped into standard input with one option-value
- * pair per line; thus, if --option1 and --option2 are command-line 
- * options as described below, then you may create an input file 
- * (call it 'myOptions') with the content 
- *                  
- *   ...
- *   option1 value1
- *   option2 value2
- *   ...
- * 
- * and then running 
- * 
- *  scuff-cas3D < myOptions 
- * 
- * is equivalent to 
- * 
- *  scuff-cas3D --option1 value1 --option value2.
- * 
- * (if any options are specified both on standard input and 
- *  on the command line, the values given on the command line take
- *  precedence.)
- * 
- *       -------------------------------------------------
- * 
- * a. options describing the geometry and the (optional)
- *    list of geometrical transformations applied to it
- * 
- *     --geometry  MyGeometry.scuffgeo
- *     --transfile MyGeometry.trans
- * 
- *       -------------------------------------------------
- * 
- * b. options describing the quantities to compute
- * 
- *     --energy 
- *     --xforce 
- *     --yforce 
- *     --zforce 
- *     --torque ABOUT nx ny nz 
- * 
- *       -------------------------------------------------
- * 
- * c. options specifying frequency behavior
- * 
- *     --Xi xx
- *
- *         Specify a single imaginary frequency at which to
- *         evaluate the spectral density of contributions
- *         to the requested Casimir quantities.
- *
- *         Note that --Xi may be specified more than once.
- * 
- *     --XiFile MyXiFile
- * 
- *         Specify a file containing a list of --Xi values.
- * 
- *     --XikBlochFile MyXikBlochFile
- * 
- *         Specify a file containing a list of --Xi and --kBloch
- *         values (see below)
- * 
- *     --Temperature T
- * 
- *         Specify a temperature (in Kelvin) at which to  
- *         evaluate the Matsubara sum for the requested Casimir
- *         quantities.
- * 
- *     Note: if no frequency options are specified, the 
- *           default behavior is to integrate over the  
- *           entire positive imaginary frequency axis to compute
- *           the full zero-temperature Casimir quantities.
- * 
- *       -------------------------------------------------
- * 
- * d. options specifying output file names 
- * 
- *     --ByXiFile MyFileName.byXi
- * 
- *         Set the name of the frequency-resolved output  
- *         file. If this option is not specified, the 
- *         frequency-resolved output file will be called
- *         Geometry.byXi, where Geometry.scuffgeo is the
- *         geometry file specified using the --geometry option.
- * 
- *     --ByXikBlochFile MyFileName.byXikBloch
- * 
- *         Set the name of the frequency- and Bloch-vector-resolved 
- *         output file. (For periodic geometries only.) If this option 
- *         is not specified, this output file will not be created.
- * 
- *     --OutputFile MyFile.Out
- * 
- *         Set the name of the output file. (This file is only generated 
- *         if your command-line options call for scuff-cas3D to
- *         evaluate a frequency integral or Matsubara sum.)
- *         If this option is not specified, the output file will 
- *         be called Geometry.out, where Geometry.scuffgeo is the
- *         geometry file specified using the --geometry option.
- * 
- *     --LogFile MyFile.log
- * 
- *         Set the name of the log file. If this option is not
- *         specified, the log file will be named scuff-cas3D.log.
- * 
- *       -------------------------------------------------
- * 
- * f. options specifying scuff caches 
- * 
- *     -- ReadCache MyReadCache.scuffcache
- * 
- *         Specify a scuff cache file to be preloaded.
- *         This option may be specified more than once. 
- * 
- *     -- WriteCache MyWriteCache.scuffcache
- * 
- *         Specify the name of a scuff cache file to which
- *         scuff-cas3D will dump the contents of its cache
- *         after completing all computations.
- * 
- *     -- Cache MyCache.scuffcache
- * 
- *         Specify a cache file that scuff-cas3D will both
- *         (a) preload before starting its computations, and
- *         (b) overwrite after completing its computations.
- *         Specifying this option is equivalent to setting
- *         --ReadCache and --WriteCache both to MyCache.scuffcache.
- * 
- * g. other options 
- * 
- *     --BZIMethod xx 
- * 
- *       Use method xx for integrating over the Brillouin zone.
- * 
- *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -192,37 +51,50 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   char *TransFile=0;
-//
+  //
+  // options specifying quantities computed
+  //
   bool Energy=false;
   bool XForce=false;
   bool YForce=false;
   bool ZForce=false;
   double TorqueAxes[9];                     int nTorque;
   bool AllTorque=false;
-//
+  //
+  // options affecting frequency integration or sampling
+  //
   double Temperature=0.0;                   int nTemperature;
   double XiVals[MAXFREQ];	            int nXiVals;
   char *XiFile=0;
-  char *XikBlochFile=0;
-  char *BZIString=0;
-//
   int MaxXiPoints=10000;
-  int MaxkBlochPoints=1000;
+  int Intervals=50;
   double AbsTol=0.0;
   double RelTol=1.0e-2;
-  int Intervals=50;
-//
+  //
+  // options affecting kBloch integration or sampling
+  //
+  char *XikBlochFile=0;
+  char *BZIMethod=0;
+  double BZICutoff=0;
+  bool BZSymmetry=false;
+  int MaxkBlochPoints=1000;
+  //
+  // options allowing user to override default output file names 
+  //
   char *OutputFile=0;
   char *ByXiFile=0;
   char *ByXikBlochFile=0;
   char *LogFile=0;
-//
+  //
+  // 
+  //
   char *Cache=0;
   char *ReadCache[MAXCACHE];                int nReadCache;
   char *WriteCache=0;
-//
+  //
+  // other miscellaneous flags
+  //
   bool UseExistingData=false;
-//
   bool NewEnergyMethod = false;
 //
   /* name               type    #args  max_instances  storage           count         description*/
@@ -239,20 +111,22 @@ int main(int argc, char *argv[])
 //
      {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature,   &nTemperature, "temperature in Kelvin"},
      {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,         &nXiVals,      "imaginary frequency"},
-     {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,        0,             "list of --Xi values"},
-     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XikBlochFile,  0,             "list of (--Xi, --kBloch) values"},
-     {"BZIMethod",      PA_STRING,  1, 1,       (void *)&BZIString,     0,             "Brillouin-zone integration method"},
+     {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,        0,             "file containing Xi values"},
+     {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations "},
+     {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,     0,             "number of subintervals for frequency quadrature"},
+     {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
+     {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
+//
+     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XikBlochFile,  0,             "file containing (Xi, kx, ky) values"},
+     {"BZIMethod",      PA_STRING,  1, 1,       (void *)&BZIMethod,     0,             "Brillouin-zone integration method"},
+     {"BZICutoff",      PA_DOUBLE,  1, 1,       (void *)&BZICutoff,     0,             "Brillouin-zone integration cutoff"},
+     {"BZSymmetry",     PA_BOOL,    0, 1,       (void *)&BZSymmetry,    0,             "assume symmetric BZ: f(kx,ky) = f(ky,kx)"},
+     {"MaxkBlochPoints",PA_INT,     1, 1,       (void *)&MaxkBlochPoints, 0,           "maximum number of Brillouin-zone integrand evaluations"},
 //
      {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile,    0,             "name of frequency-integrated output file"},
      {"ByXiFile",       PA_STRING,  1, 1,       (void *)&ByXiFile,      0,             "name of frequency-resolved output file"},
      {"ByXikBlochFile", PA_STRING,  1, 1,       (void *)&ByXikBlochFile, 0,            "name of frequency- and kBloch-resolved output file"},
      {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,       0,             "name of log file"},
-//
-     {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations "},
-     {"MaxkBlochPoints",PA_INT,     1, 1,       (void *)&MaxkBlochPoints, 0,             "maximum number of Brillouin-zone integrand evaluations"},
-     {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
-     {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
-     {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,     0,             "number of subintervals for frequency quadrature"},
 //
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,         0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,      &nReadCache,   "read cache"},
@@ -317,18 +191,8 @@ int main(int argc, char *argv[])
   else
    Log("Computing full zero-temperature Casimir quantities.");
 
-  int BZIMethod=BZIMETHOD_DEFAULT;
-  if ( BZIString )
-   { if (G->NumLatticeBasisVectors==0) ErrExit("--BZIMethod option may only be used for periodic geometries");
-     if ( !strcasecmp(BZIString,"adaptive") )
-      { Log("Using adaptive cubature scheme for Brillouin zone integration.");
-        BZIMethod=BZIMETHOD_ADAPTIVE;
-      }
-     else if ( !strcasecmp(BZIString,"CC5917") )
-      { Log("Using CC5917 cubature scheme for Brillouin zone integration.");
-        BZIMethod=BZIMETHOD_CC5917;
-      };
-   };
+  if ( BZIMethod && G->NumLatticeBasisVectors==0) 
+   ErrExit("--BZIMethod option may only be used for periodic geometries");
 
   /*******************************************************************/
   /* figure out which quantities to compute **************************/
@@ -369,9 +233,10 @@ int main(int argc, char *argv[])
   /* point to the Casimir quantities                                 */
   /*******************************************************************/
   SC3Data *SC3D=CreateSC3Data(G, TransFile, WhichQuantities, NumQuantities, 
-                              nTorque, TorqueAxes, NewEnergyMethod);
+                              nTorque, TorqueAxes, NewEnergyMethod, BZIMethod);
 
-  SC3D->BZIMethod          = BZIMethod;
+  SC3D->BZICutoff          = BZICutoff;
+  SC3D->BZSymmetry         = BZSymmetry;
   SC3D->ByXiFileName       = ByXiFile; 
   SC3D->ByXikBlochFileName = ByXikBlochFile;
   SC3D->WriteCache         = WriteCache;

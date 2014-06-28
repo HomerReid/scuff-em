@@ -249,9 +249,10 @@ int main(int argc, char *argv[])
   double LBV2[2]; 		int nLBV2=0;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
-   { {"geometry", PA_STRING,  1, 1, (void *)&GeoFileName,   0,  ".scuffgeo file"},
-     {"LBV1",     PA_DOUBLE,  2, 1, (void *)LBV1,      &nLBV1,  "lattice basis vector 1"},
-     {"LBV2",     PA_DOUBLE,  2, 1, (void *)LBV2,      &nLBV2,  "lattice basis vector 2"},
+   { {"geometry",          PA_STRING,  1, 1, (void *)&GeoFileName,   0,  ".scuffgeo file"},
+     {"LBV1",              PA_DOUBLE,  2, 1, (void *)LBV1,      &nLBV1,  "lattice basis vector 1"},
+     {"LBV2",              PA_DOUBLE,  2, 1, (void *)LBV2,      &nLBV2,  "lattice basis vector 2"},
+     {"IncludeInnerCells", PA_BOOL, 0, 1, (void *)&IncludeInnerCells, 0, "include contributions of inner lattice cells"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -387,7 +388,7 @@ int main(int argc, char *argv[])
      free(p);
 
      /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
+     /*- choose optimal value of E parameter ------------------------*/
      /*--------------------------------------------------------------*/
      if (E==-1.0)
       { double EOpt1=sqrt( M_PI / (LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0]) );
@@ -442,7 +443,6 @@ int main(int argc, char *argv[])
                            nx*LBV[0][0] + ny*LBV[1][0],
                            nx*LBV[0][1] + ny*LBV[1][1],
                            false, GF9);
-
      
 
      for(int n=0; n<8; n++)

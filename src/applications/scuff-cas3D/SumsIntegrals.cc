@@ -29,6 +29,7 @@
 #include "scuff-cas3D.h"
 #include "libscuffInternals.h"
 #include <libSGJC.h>
+#include <libTriInt.h>
 
 #define XIMIN  0.001
 #define XIMAX 10.000
@@ -157,7 +158,6 @@ int kBlochIntegrand(unsigned ndim, const double *x, void *params,
 
 }
 
-
 /***************************************************************/
 /* get the contribution of a single imaginary angular frequency*/
 /* to the Casimir quantities. For periodic geometries, this    */
@@ -179,54 +179,53 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
    { 
      GetCasimirIntegrand(SC3D, Xi, 0, EFT);
    }
-  /***************************************************************/
-  /* \int_{BZ} f( \vec k ) d^2 k                                 */
-  /*                                                             */
-  /* --> (kx)   ( Gamma_{xx} Gamma_{xy} ) (u1)                   */
-  /* --> (  ) = (                       ) (  )                   */
-  /* --> (ky) = ( Gamma_{yx} Gamma_{yy} ) (u2)                   */
-  /*                                                             */
-  /* Jacobian: d^2 k = J du1 du2                                 */
-  /*                                                             */
-  /* where J = (det Gamma) = V_{BZ}.                             */
-  /*                                                             */
-  /* and thus the integral reads                                 */
-  /*                                                             */
-  /* \int_{BZ} f( \vec k ) d^2 k                                 */
-  /*                                                             */
-  /*  =  V_{BZ} \int_0^1     du \int_0^1     dv f( \vec k(u,v) ) */
-  /*                                                             */
-  /*  = 4V_{BZ} \int_0^{1/2} du \int_0^{1/2} dv f( \vec k(u,v) ) */
-  /*                                                             */
-  /***************************************************************/
-  else if (SC3D->BZIMethod == BZIMETHOD_ADAPTIVE)
-   {
+  else
+   { 
+     /************************************************************/
+     /* perform brillouin-zone integration.                      */
+     /*                                                          */
+     /* \int_{BZ} f( \vec k ) d^2 k                              */
+     /*  = J*\int_0^1 du \int_0^1 dv f(\vec k(u,v)) du dv        */
+     /*  =4J*\int_0^{1/2} du \int_0^{1/2} dv f(\vec k(u,v)) du dv*/
+     /*                                                          */
+     /* where \vec k(u,v) = u*\Gamma_1 + v*\Gamma_2              */
+     /* Jacobian: d^2 k = J du dv                                */
+     /* where J = (det Gamma) = V_{BZ}.                          */
+     /* and thus the integral reads                              */
+     /***************************************************************/
      double Lower[2] = {0.0, 0.0};
      double Upper[2] = {0.5, 0.5};
-     double *Error = new double[SC3D->NTNQ];
-
+     if (SC3D->BZICutoff!=0.0)
+      { Upper[0]*=SC3D->BZICutoff;
+        Upper[1]*=SC3D->BZICutoff;
+      };
+     
      SC3D->Xi = Xi;
-     pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 2, Lower, Upper,
-               SC3D->MaxkBlochPoints, SC3D->AbsTol, SC3D->RelTol, ERROR_INDIVIDUAL,
-               EFT, Error);
+     double *Error = new double[SC3D->NTNQ];
+     if (SC3D->BZIOrder == 0)
+      { 
+        pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 2, Lower, Upper,
+                  SC3D->MaxkBlochPoints, SC3D->AbsTol, SC3D->RelTol, ERROR_INDIVIDUAL,
+                  EFT, Error);
+      }
+     else
+      { 
+        ECC2D(SC3D->BZIOrder, Lower, Upper, kBlochIntegrand, (void *)SC3D,
+              SC3D->NTNQ, SC3D->BZSymmetry, SC3D->BZIValues, 0,
+              EFT, Error);
+      };
 
      for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
       { 
         EFT[ntnq] *= 4.0*SC3D->BZVolume;
         Error[ntnq] *= 4.0*SC3D->BZVolume;
 
-        if (    (Error[ntnq] > 10.0*SC3D->AbsTol) 
-             || (Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]))
-           )
+        if ( Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]) )
          Warn("potentially large errors (Q%i: %.1e %%) in BZ integration",
                ntnq,Error[ntnq]/fabs(EFT[ntnq]));
       };
      
      delete[] Error;
-   }
-  else if (SC3D->BZIMethod == BZIMETHOD_CC5917 )
-   { 
-      ErrExit("CC5917 not yet implemented");
    };
 
   /***************************************************************/

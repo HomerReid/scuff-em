@@ -41,7 +41,7 @@ using namespace scuff;
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
                        int NumTorqueAxes, double TorqueAxes[9],
-                       bool NewEnergyMethod)
+                       bool NewEnergyMethod, char *BZIMethod)
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
@@ -180,6 +180,35 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
    SC3D->MM1MInf = new HMatrix(N, N, RealComplex);
   else
    SC3D->MM1MInf = 0;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  SC3D->BZIValues=0;
+  if (BZIMethod)
+   { if ( !strcasecmp(BZIMethod,"ECC2") )
+      SC3D->BZIOrder=2;
+     else if ( !strcasecmp(BZIMethod,"ECC3") )
+      SC3D->BZIOrder=3;
+     else if ( !strcasecmp(BZIMethod,"ECC4") )
+      SC3D->BZIOrder=4;
+     else if ( !strcasecmp(BZIMethod,"ECC5") )
+      SC3D->BZIOrder=5;
+     else if ( !strcasecmp(BZIMethod,"ECC6") )
+      SC3D->BZIOrder=6;
+     else if ( !strcasecmp(BZIMethod,"ECC7") )
+      SC3D->BZIOrder=7;
+     else if ( !strcasecmp(BZIMethod,"adaptive") )
+      SC3D->BZIOrder=0;
+     else
+      ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
+     
+     if ( SC3D->BZIOrder != 0)
+      { int N = 1<<(SC3D->BZIOrder) + 1;
+        SC3D->BZIValues = (double *)malloc( (SC3D->NTNQ)*N*N*sizeof(double) );
+      };
+       
+   };
 
   return SC3D;
 
