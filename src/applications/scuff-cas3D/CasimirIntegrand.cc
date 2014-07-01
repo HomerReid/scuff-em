@@ -420,6 +420,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 
      for(int nq=SC3D->NumQuantities; nq>0; nq--)
       fprintf(f,"%.8e ",EFT[ntnq-nq]);
+     fprintf(f,"\n");
      fclose(f);
 
      /******************************************************************/
