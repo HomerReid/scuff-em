@@ -62,7 +62,7 @@ bool LineMatches(char *Line, char *Tag, double *Keys, int NumKeys,
    return false;
 
   for(int nk=0; nk<NumKeys; nk++)
-   if ( !EqualFloat(Numbers[nk],Keys[nk]) )
+   if ( fabs(Numbers[nk]-Keys[nk]) > 1.0e-6*fabs(Keys[nk]) )
     return false;
 
   *NumValues = nRead - 1 - NumKeys;
