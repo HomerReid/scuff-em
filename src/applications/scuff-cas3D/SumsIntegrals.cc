@@ -248,8 +248,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
         Error[ntnq] *= 4.0*SC3D->BZVolume;
 
         if ( Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]) )
-         Warn("potentially large errors (Q%i: %.1e %%) in BZ integration",
-               ntnq,100.0*Error[ntnq]/fabs(EFT[ntnq]));
+         Warn("potentially large errors (Q%i: %i %%) in BZ integration",
+               ntnq,ceil(100.0*Error[ntnq]/fabs(EFT[ntnq])));
       };
      
      /***************************************************************/
