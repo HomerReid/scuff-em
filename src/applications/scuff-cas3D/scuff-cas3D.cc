@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
   // options affecting kBloch integration or sampling
   //
   char *XiKFile=0;
-  char *BZIMethod="ECC3";
+  char *BZIMethod=0;
   double BZICutoff=0;
   bool BZSymmetry=false;
   int MaxkBlochPoints=1000;
@@ -187,6 +187,8 @@ int main(int argc, char *argv[])
 
   if ( BZIMethod && G->NumLatticeBasisVectors==0) 
    ErrExit("--BZIMethod option may only be used for periodic geometries");
+  if ( !BZIMethod && G->NumLatticeBasisVectors!=0 ) 
+   BZIMethod=strdup("ECC3");
 
   /*******************************************************************/
   /* figure out which quantities to compute **************************/
