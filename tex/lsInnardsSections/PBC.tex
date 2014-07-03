@@ -170,7 +170,7 @@ particular, we write
 \nonumber
 \intertext{Relabel the summation variable according to $\vb L \to -\vb L$:}
  &=\sum_{\vb L} e^{-i\KB \cdot \vb L}G_{ji}(\vb x^\prime-\vb x-\vb L)
-\nonumber
+\nn
  &=\GBar_{ji}(-\KB; \vb x^\prime, \vb x)
 \intertext{and similarly}
   \CBar_{ij}(\KB; \vb x, \vb x^\prime)
@@ -276,14 +276,16 @@ implies its satisfaction everywhere.
 %=================================================
 \subsection{Symmetries of the PBC BEM matrix}
 
+For a PEC structure, the $\alpha,\beta$ element of 
+the BEM matrix is 
 %--------------------------------------------------------------------%
 \begin{align*}
  M_{\alpha\beta}(\KB)
-&= \Big \langle \vb b_\alpha \Big|
+&= ik\Big \langle \vb b_\alpha \Big|
     \VBGBar(\KB)
    \Big| \vb b_\beta \Big\rangle
 \\
-&= \int 
+&= ik\int 
    \Big\{ 
    b_{\alpha i}(\vb x_\alpha) 
    \underbrace{\GBar_{ij}(\KB; \vb x_\alpha , \vb x_\beta)}
@@ -291,13 +293,31 @@ implies its satisfaction everywhere.
    b_{\beta j}(\vb x_\beta) 
    \Big\}\, d\vb x_\alpha d\vb x_\beta
 \\
-&= \Big \langle \vb b_\beta\Big|
+&= ik\Big \langle \vb b_\beta\Big|
     \VBGBar(-\KB)
    \Big| \vb b_\alpha\Big\rangle
 \\
-&=M_{\beta\alpha}(-\KB).
+&=M_{\beta\alpha}(-\KB)
 \end{align*}
 %--------------------------------------------------------------------%
+where we used equation (\ref{TranspositionSymmetries}a). 
+For a dielectric structure, the matrix elements also involve
+inner products with $\VBCBar$ dyadics, but since $\VBCBar$ satisfies
+the same symmetry as $\VBGBar$ (\ref{TranpositionSymmetry}b), 
+a similar equation holds in that case.
+
+Thus in general for both PEC and non-PEC BEM matrices we have
+\numeq{PBCMatrixTranspose}
+{\vb M(\KB) = \Big[ \vb M(-\KB) \Big]^T}
+where $T$ denotes the \textit{non-conjugate} transpose.
+
+\subsubsection*{Symmetries in the imaginary frequency case}
+
+For equilibrium Casimir computations we need elements
+of the BEM matrix at imaginary frequencies. 
+%====================================================================%
+$$ \vb M(i\xi, \KB) = \vb M(i\xi, \KB)^\dagger $$
+%====================================================================%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -493,24 +513,117 @@ $$ \vb M(\KB)
   \end{array}\right)
 $$
 %====================================================================%
+where $\vb U_{mn}$ describes the interaction of surfaces $m$
+and $n$ and $\vb T_m$ describes the self-interaction of
+surface $m$.
+
+\subsubsection*{Off-diagonal blocks}
+
+The off-diagonal blocks have the structure
 
 %--------------------------------------------------------------------%
-\begin{align*}
-\vb U(\KB)
- =   &\vb U\supt{00}(\KB) 
-\\
-   & + e^{ i \KB \cdot \vb L_1} \vb U^{+0}(\KB)
-     + e^{-i \KB \cdot \vb L_1} \vb U^{-0}(\KB) 
-\\
-   & + e^{ i \KB \cdot \vb L_2} \vb U^{0+}(\KB)
-     + e^{-i \KB \cdot \vb L_2} \vb U^{0-}(\KB) 
-\\
-   & + e^{ i \KB \cdot (\vb L_1+\vb L_2)} \vb U^{++}(\KB)
-     + e^{-i \KB \cdot (\vb L_1+\vb L_2)} \vb U^{--}(\KB)
-\\
-   & + e^{ i \KB \cdot (\vb L_1-\vb L_2)} \vb U^{+-}(\KB)
-     + e^{-i \KB \cdot (\vb L_1-\vb L_2)} \vb U^{-+}(\KB)
-\\
-   & + \vb U\supt{AB9}(\KB)
-\end{align*}
+\begin{align}
+\vb U_{mn}(\KB)
+ =   &\vb U_{mn}\supt{00}
+\label{UmnDecomposition}\\
+   & + e^{ i \KB \cdot \vb L_1} \vb U_{mn}^{+0}
+     + e^{-i \KB \cdot \vb L_1} \vb U_{mn}^{-0}
+\nn
+   & + e^{ i \KB \cdot \vb L_2} \vb U_{mn}^{0+}
+     + e^{-i \KB \cdot \vb L_2} \vb U_{mn}^{0-}
+\nn
+   & + e^{ i \KB \cdot (\vb L_1+\vb L_2)} \vb U_{mn}^{++}
+     + e^{-i \KB \cdot (\vb L_1+\vb L_2)} \vb U_{mn}^{--}
+\nn
+   & + e^{ i \KB \cdot (\vb L_1-\vb L_2)} \vb U_{mn}^{+-}
+     + e^{-i \KB \cdot (\vb L_1-\vb L_2)} \vb U_{mn}^{-+}
+\nn
+   & + \vb U_{mn}\supt{AB9}(\KB).
+\nonumber
+\end{align}
 %--------------------------------------------------------------------%
+In this equation, $\vb U_{mn}^{\sigma \sigma^\prime}$ is the usual 
+(non-periodic) matrix describing the interaction of surface $m$ 
+with a \textit{displaced} copy of surface $n$; the displacement 
+is through displacement vector $\sigma \vb L_1 + \sigma^\prime \vb L_2$
+where $\sigma,\sigma^\prime \in \{-1,0,1\}.$ 
+On the other hand, $\vb U_{mn}\supt{AB9}$ represents the interaction
+of surface $m$ with the infinite set of Bloch-phased 
+and displaced copies of surface $n$ \textit{excluding} the contribution
+of the innermost 9 grid cells (``AB9'' stands for ``all but 9.'')
+
+The point of the decomposition (\ref{UmnDecomposition}) is that 
+the matrix blocks $\vb U_{mn}^{\sigma\sigma^\prime}$ are 
+\textit{independent of $\KB$} and hence need only be computed 
+once at a given angular frequency, after which they may be reused
+for any number of calculations at different points in the Brillouin
+zone. 
+
+In {\sc scuff-em}, the $\KB$-independent matrix blocks 
+$\vb U_{mn}^{\sigma\sigma^\prime}$ are computed using the ordinary
+algorithm for assembling the blocks of the BEM matrix 
+for ordinary (non-periodic) geometries. An advantage of this
+is that singular integrals involving the interaction
+of basis functions with 
+
+
+\subsubsection*{Transposes of off-diagonal blocks}
+
+Once we have computed the 
+$\vb U_{mn}^{\sigma\sigma^\prime}$ blocks for the $mn$ block of 
+the BEM, we may re-use them to compute the $nm$ block, as follows 
+based on equation (\ref{PBCMatrixTranspose}):
+%--------------------------------------------------------------------%
+\begin{align}
+\vb U_{nm}(\KB) 
+=  &\Big[\vb U_{mn}(-\KB)\Big]^T 
+\\
+=  &\Big[\vb U_{mn}\supt{00}]^T
+\\
+   & + e^{ -i \KB \cdot \vb L_1} \Big[\vb U_{mn}^{+0}\Big]^T
+     + e^{  i \KB \cdot \vb L_1} \Big[\vb U_{mn}^{-0}\Big]^T
+\nn
+   & + e^{ -i \KB \cdot \vb L_2} \Big[\vb U_{mn}^{0+}\Big]^T
+     + e^{ +i \KB \cdot \vb L_2} \Big[\vb U_{mn}^{0-}\Big]^T
+\nn
+   & + e^{ -i \KB \cdot (\vb L_1+\vb L_2)} \Big[\vb U_{mn}^{++}\Big]^T
+     + e^{ +i \KB \cdot (\vb L_1+\vb L_2)} \Big[\vb U_{mn}^{--}\Big]^T
+\nn
+   & + e^{ -i \KB \cdot (\vb L_1-\vb L_2)} \Big[\vb U_{mn}^{+-}\Big]^T
+     + e^{ +i \KB \cdot (\vb L_1-\vb L_2)} \Big[\vb U_{mn}^{-+}\Big]^T
+\nn
+   & + \vb U_{nm}\supt{AB9}(\KB).
+\nonumber
+\end{align}
+%--------------------------------------------------------------------%
+
+\subsubsection*{Diagonal blocks}
+
+For the diagonal blocks there are additional symmetries, e.g.
+$ \vb T_{m}^{--} = \Big[\vb T_{m}^{++}\Big]^T, $
+and hence the equivalent of (\ref{UmnDecomposition}) reads 
+%--------------------------------------------------------------------%
+\begin{align}
+\vb T_{m}(\KB)
+ =   &\vb T_{m}\supt{00}
+\label{TmDecomposition}\\
+   & + e^{ i \KB \cdot \vb L_1} \vb T_{m}^{+0}
+     + e^{-i \KB \cdot \vb L_1} \Big[\vb T_{m}^{+0}\Big]^T
+\nn
+   & + e^{ i \KB \cdot \vb L_2} \vb T_{m}^{0+}
+     + e^{-i \KB \cdot \vb L_2} \Big[\vb T_{m}^{0+}\Big]^T
+\nn
+   & + e^{ i \KB \cdot (\vb L_1+\vb L_2)} \vb T_{m}^{++}
+     + e^{-i \KB \cdot (\vb L_1+\vb L_2)} \Big[ \vb T_{m}^{++}\Big]^T
+\nn
+   & + e^{ i \KB \cdot (\vb L_1-\vb L_2)} \vb T_{m}^{+-}
+     + e^{-i \KB \cdot (\vb L_1-\vb L_2)} \Big[ \vb T_{m}^{+-}\Big]^T
+\nn
+   & + \vb T_{m}\supt{AB9}(\KB).
+\nonumber
+\end{align}
+%--------------------------------------------------------------------%
+Hence to assemble $\vb T(\KB)$ we need only compute and
+store 5 $\KB$-independent blocks $\vb T^{\sigma \sigma^\prime}$
+instead of the 9 $\KB$-independent blocks required to assemble
+$\vb U(\KB)$.

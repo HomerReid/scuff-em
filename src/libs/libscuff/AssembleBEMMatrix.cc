@@ -326,7 +326,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /* GetSurfaceSurfaceInteractions to get the contributions of the     */
   /* innermost 8 neighboring lattice cells                             */
   /*********************************************************************/
-
   if (NumTorqueAxes!=0)
    ErrExit("angular derivatives of BEM matrix not supported for periodic geometries");
 
