@@ -360,8 +360,12 @@ class RWGGeometry
    void AssembleBEMMatrixBlock(int nsa, int nsb, cdouble Omega, double *kBloch,
                                HMatrix *M, HMatrix **GradM=0,
                                int RowOffset=0, int ColOffset=0,
+                               void *ABMBCache=0, bool CacheTranspose=false,
                                int NumTorqueAxes=0, HMatrix **dMdT=0,
                                double *GammaMatrix=0);
+   void *CreateABMBAccelerator(int nsa, int nsb, bool PureImagFreq=false,
+                               bool NeedZDerivative=false);
+   void DestroyABMBAccelerator(void *Accelerator);
 
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(bool PureImagFreq = false );

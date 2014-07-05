@@ -251,7 +251,8 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
       };
 
      Log("Assembling T%i at Xi=%e...",ns+1,Xi);
-     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, SC3D->TBlocks[ns]);
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, SC3D->TBlocks[ns], 0,
+                               0, 0, SC3D->TAccelerators[ns], false);
 
    }; // for(ns=0; ns<G->NumSurfaces; ns++)
 
@@ -366,13 +367,15 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
           continue;
 
          Log(" Assembling U(%i,%i)",ns,nsp);
+         void *Accelerator = PBC ? SC3D->UAccelerators[nt][nb] : 0;
          if (ns==0)
           G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch,
                                     SC3D->UBlocks[nb], SC3D->dUBlocks + 6*nb,
-                                    0, 0, SC3D->NumTorqueAxes, 
-                                    SC3D->dUBlocks + 6*nb + 3, SC3D->GammaMatrix);
+                                    0, 0, Accelerator, false, 
+                                    SC3D->NumTorqueAxes, SC3D->dUBlocks + 6*nb + 3, SC3D->GammaMatrix);
          else
-          G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, SC3D->UBlocks[nb]);
+          G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, SC3D->UBlocks[nb], 0,
+                                    0, 0, Accelerator, false);
 
        };
 

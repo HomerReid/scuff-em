@@ -113,16 +113,20 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*-                     where Mu=0,1,2, for x,y,z-displacement  */
   /*-                           Mu=3,4,5, for axis 1,2,3 rotation */
   /*--------------------------------------------------------------*/
-  int ns, nsp, nb, NBF, NBFp;
-  int NS=G->NumSurfaces; 
+  int NS=G->NumSurfaces;
+  bool NeedDMDZ = (WhichQuantities & QUANTITY_ZFORCE);
   SC3D->TBlocks  = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
-  for(ns=0; ns<G->NumSurfaces; ns++)
-   { if ( (nsp=G->Mate[ns])!=-1 )
+  SC3D->TAccelerators = PBC ? (void **)mallocEC(NS*sizeof(void *)) : 0;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { int nsp = G->Mate[ns];
+     if ( nsp!=-1 )
       SC3D->TBlocks[ns] = SC3D->TBlocks[nsp];
      else
-      { NBF=G->Surfaces[ns]->NumBFs;
+      { int NBF=G->Surfaces[ns]->NumBFs;
         if (PBC)
-         SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+         { SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+           SC3D->TAccelerators[ns] = G->CreateABMBAccelerator(ns, ns, true, NeedDMDZ);
+         }
         else
          SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_REAL, LHM_SYMMETRIC);
       };
@@ -134,15 +138,14 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   // SC3D->UBlocks[NS-1] = 0,NS   block
   // SC3D->UBlocks[NS]   = 1,2    block
   // etc.                                         
-  int NumBlocks   = NS*(NS-1)/2; // number of above-diagonal blocks 
-  SC3D->UBlocks   = (HMatrix **)mallocEC(   NumBlocks * sizeof(HMatrix *));
-  SC3D->dUBlocks  = (HMatrix **)mallocEC( 6*NumBlocks * sizeof(HMatrix *));
-
-  int RealComplex = PBC ? LHM_COMPLEX : LHM_REAL;
-  for(nb=0, ns=0; ns<NS; ns++)
-   for(nsp=ns+1; nsp<NS; nsp++, nb++)
-    { NBF=G->Surfaces[ns]->NumBFs;
-      NBFp=G->Surfaces[nsp]->NumBFs;
+  int NumBlocks       = NS*(NS-1)/2; // number of above-diagonal blocks
+  SC3D->UBlocks       = (HMatrix **)mallocEC(   NumBlocks * sizeof(HMatrix *));
+  SC3D->dUBlocks      = (HMatrix **)mallocEC( 6*NumBlocks * sizeof(HMatrix *));
+  int RealComplex     = PBC ? LHM_COMPLEX : LHM_REAL;
+  for(int ns=0, nb=0; ns<NS; ns++)
+   for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+    { int NBF=G->Surfaces[ns]->NumBFs;
+      int NBFp=G->Surfaces[nsp]->NumBFs;
       SC3D->UBlocks[nb] = new HMatrix(NBF, NBFp, RealComplex);
       if (WhichQuantities & QUANTITY_XFORCE)
        SC3D->dUBlocks[6*nb+0] = new HMatrix(NBF, NBFp, RealComplex);
@@ -163,8 +166,8 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*--------------------------------------------------------------*/
   int N  = SC3D->N  = SC3D->G->TotalBFs;
   int N1 = SC3D->N1 = SC3D->G->Surfaces[0]->NumBFs;
-  SC3D->M          = new HMatrix(N,  N,  RealComplex);
-  SC3D->dM         = new HMatrix(N,  N1, RealComplex);
+  SC3D->M           = new HMatrix(N,  N,  RealComplex);
+  SC3D->dM          = new HMatrix(N,  N1, RealComplex);
   SC3D->NewEnergyMethod  = NewEnergyMethod;
 
   if (WhichQuantities & QUANTITY_ENERGY)
@@ -226,6 +229,22 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
    { SC3D->ByXiKFileName=vstrdup("%s.byXikBloch",FileBase);
      WriteFilePreamble(SC3D, PREAMBLE_BYXIK);
    }
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  SC3D->UAccelerators = 0;
+  if (PBC)
+   { int NT = SC3D->NumTransformations;
+     SC3D->UAccelerators = (void ***)mallocEC(NT*sizeof(void *));
+     for(int nt=0; nt<NT; nt++)
+      { SC3D->UAccelerators[nt] = (void **)mallocEC(NumBlocks*sizeof(void *));
+        for(int ns=0, nb=0; ns<NS; ns++)
+         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+          SC3D->UAccelerators[nt][nb] 
+           = G->CreateABMBAccelerator(ns, nsp, true, NeedDMDZ && ns==0);
+      };
+   };
 
   return SC3D;
 

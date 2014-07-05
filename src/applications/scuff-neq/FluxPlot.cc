@@ -90,5 +90,4 @@ void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag)
   fprintf(f,"};\n\n");
   fclose(f);
 
-
 }

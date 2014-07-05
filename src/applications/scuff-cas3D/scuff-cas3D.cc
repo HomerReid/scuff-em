@@ -193,6 +193,11 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /* figure out which quantities to compute **************************/
   /*******************************************************************/
+  if (G->NumLatticeBasisVectors>0)
+   { if ( XForce || YForce || nTorque>0 || AllTorque)
+      ErrExit("only --energy and --zforce are available for extended geometries");
+   };
+
   int WhichQuantities=0, NumQuantities=0;
   if (Energy)    { NumQuantities++; WhichQuantities |= QUANTITY_ENERGY; };
   if (XForce)    { NumQuantities++; WhichQuantities |= QUANTITY_XFORCE; };

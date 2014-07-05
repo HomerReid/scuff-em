@@ -62,6 +62,9 @@ typedef struct SC3Data
    int *ipiv;
    HVector *MInfLUDiagonal;
 
+   // matrix-block-assembly accelerators for PBC geometries
+   void **TAccelerators, ***UAccelerators;
+
    // storage for 3x3 gamma matrices describing rotation
    // information for torque calculations
    int NumTorqueAxes;      // this number is in the range 0--3
