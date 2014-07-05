@@ -474,8 +474,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       L[1] = n1*LBV[0][1] + n2*LBV[1][1];
  
       if (HaveCache)
-       { Args->B        = Cache->B[ nb ];
-         Args->GradB[2] = Cache->dBdZ[ nb ];
+       { Args->B = Cache->B[ nb ];
+         if (Args->GradB) Args->GradB[2] = Cache->dBdZ[ nb ];
          nb++;
        };
 
