@@ -1,13 +1,14 @@
 bin_PROGRAMS = scuff-neq
 
 scuff_neq_SOURCES = 		\
- GetFlux.cc             	\
+ scuff-neq.cc         		\
+ scuff-neq.h			\
  CreateSNEQData.cc       	\
  CCRules.h             		\
+ FluxPlot.cc            	\
+ GetFlux.cc             	\
  SIPFT.cc              		\
- Quadrature.cc         		\
- scuff-neq.cc         		\
- scuff-neq.h
+ Quadrature.cc
 
 scuff_neq_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 

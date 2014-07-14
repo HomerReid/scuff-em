@@ -330,7 +330,8 @@ int main(int argc, char *argv[])
       };
    }
   else if (NumFreqs>0)
-   { for (int nFreq=0; nFreq<NumFreqs; nFreq++)
+   { 
+     for (int nFreq=0; nFreq<NumFreqs; nFreq++)
       GetFlux(SNEQD, OmegaPoints->GetEntry(nFreq), I);
    }
   else

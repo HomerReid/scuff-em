@@ -135,4 +135,9 @@ void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
                       cdouble Omega, bool NeedMatrix[NUMSIPFT],
                       HMatrix *MSIPFT[NUMSIPFT]);
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag);
+
 #endif
