@@ -180,7 +180,7 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
    }
   else if ( !StrCaseCmp(RegionLabel,"PEC") )
    { 
-     ErrExit("%s:%i: REGIONS cannot be PEC (use an OBJECT instead)",GeoFileName,LineNum);
+     ErrExit("%s:%i: REGIONs cannot be PEC (use an OBJECT instead)",GeoFileName,LineNum);
    }
   else
    { 

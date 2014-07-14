@@ -1,0 +1,382 @@
+\documentclass[letterpaper]{article}
+\usepackage[square,sort,comma,numbers]{natbib}
+\newcommand{\citeasnoun}[1]{Ref.~\citenum{#1}}
+
+\input{scufftex}
+
+\newcommand\supsstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand{\IF}{^{i\text{\scriptsize F}}}
+\newcommand{\IFFlux}{^{i\text{\tiny FFLUX}}}
+\newcommand{\IT}{^{i\text{\scriptsize T}}}
+\newcommand{\ITFlux}{^{i\text{\tiny TFLUX}}}
+\newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
+\newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
+\newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {{\sc scuff-neq} Technical Reference}
+\author {Homer Reid}
+\date {July 6, 2014}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: {\sc scuff-neq} Technical Reference}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Theoretical background}
+
+{\sc scuff-neq} implements the ``fluctuating-surface-current''
+(FSC) approach to computational fluctuation physics. The 
+FSC method was originally developed for equilibrium Casimir
+computations~\cite{Reid2009, Reid2011, Reid2013B} and later
+extended to non-equilibrium phenomena in 
+Refs.~\citenum{Rodriguez2012C} and \citenum{Rodriguez2013B}.
+Here we present a quick summary of the key equations in this
+approach.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Fields from surface currents}
+
+Recall that in the surface-integral-equation (SIE) approach to
+electromagnetism problems, we solve for tangential
+\textit{surface currents} (both electric currents $\vb K$ 
+and magnetic currents $\vb N$) flowing on the surfaces of 
+homogeneous material bodies. In numerical solvers, we 
+approximate these as finite expansions in a discrete set
+of $N\subt{B}$ basis functions; using a convenient 6-vector notation 
+in which $\bmc C\equiv {\vb K \choose \vb N}$, we put
+%--------------------------------------------------------------------%
+$$ \bmc C(\vb x)=\sum_{\alpha=1}^{N\subt{B}} 
+   c_\alpha \bmc B_\alpha(\vb x) 
+$$ 
+%--------------------------------------------------------------------%
+where $\{\bmc B_\alpha\}$ is a set of 6-vector basis functions
+and $\{c_\alpha\}$ are scalar expansion coefficients.
+(We work at a fixed frequency $\omega$ and suppress a factor of
+$e^{-i\omega t}$ in all fields and currents.)
+
+The electric and magnetic fields produced by these currents
+are linear functions of the $\{c_\alpha\}$ coefficients.
+In 6-vector notation with $\bmc F\equiv {\vb E \choose \vb H}$, we have
+%--------------------------------------------------------------------%
+\numeq{FFromC}
+{ \bmc F(\vb x)=
+   \sum_{\alpha} c_\alpha \bmc F_\alpha(\vb x)
+}
+%--------------------------------------------------------------------%
+where $\bmc F_\alpha={\vb E_\alpha \choose \vb H_\alpha}$ 
+is the six-vector of fields produced by basis function $\bmc B_\alpha$ 
+populated with unit strength. These may be calculated numerically
+as convolutions over basis functions,
+%--------------------------------------------------------------------%
+$$ \bmc F_\alpha(\vb x)
+   =\int_{\sup \bmc B_\alpha} \bmc{G}(\vb x, \vb x^\prime)
+    \bmc B_\alpha(\vb x^\prime) \, d\vb x^\prime
+$$
+%--------------------------------------------------------------------%
+where $\bmc{G}$ is an appropriate $6\times 6$ dyadic Green's
+function.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Energy and momentum flux from field bilinears}
+
+The Poynting flux and Maxwell stress tensor are quadratic functions
+of the field components and may be conveniently written in the form
+of 6-dimensional vector-matrix-vector products. 
+In particular, the power flux in the direction of a unit vector 
+$\vbhat{n}$ is
+%====================================================================%
+\begin{align}
+ \vb P(\vb x) \cdot \vbhat{n}
+   &=\frac{1}{2}\text{ Re }\varepsilon_{ijk}\vbhat{n}_i E^*_j(\vb x) H_k(\vb x)
+\nn
+   &=\frac{1}{4}\bmc{F}^\dagger(\vb x) \, \bmc{N}\supt{P}(\vbhat{n}) \, \bmc{F}(\vb x)
+\label{PVMVP}
+\end{align}
+%====================================================================%
+with
+%====================================================================%
+$$
+   \bmc N\supt{P}=
+   \left(\begin{array}{cc}
+   0       & \vb N\supt{P}   \\ [3pt]
+  -\vb N\supt{P} & 0
+   \end{array}\right), 
+\qquad 
+   \vb N\supt{P}
+   =
+   \left(\begin{array}{ccc}
+   0          &  \hat{n}_z & -\hat{n_y} \\
+  -\hat{n}_z  &  0         & +\hat{n_x} \\
+   \hat{n}_y  & -\hat{n}_x & 0
+   \end{array}\right).
+$$
+%====================================================================%
+Similarly, the flux of $i$-directed linear momentum is
+%--------------------------------------------------------------------%
+\begin{align}
+ \vb T_{i}(\vb x) \cdot \vbhat{n} 
+&=\frac{1}{2}\text{ Re }
+  \left[ \epsilon E^*_i(\vb x) E_j(\vb x) 
+             +\mu H^*_i(\vb x) H_j(\vb x) 
+       -\frac{\delta_{ij}}{2}
+         \Big( \epsilon |\vb E|^2
+              +\mu      |\vb H|^2
+         \Big)
+ \right] \hat {n}_j
+\nn
+&= \frac{1}{4}\bmc{F}^\dagger(\vb x) 
+   \, \bmc{N}\IF \, \bmc{F}(\vb x)
+\label{IFVMVP}
+\end{align}
+with
+%--------------------------------------------------------------------%
+$$
+   \bmc N\IF=
+   \left(\begin{array}{cc}
+   \epsilon \vb N\IF & 0 \\
+            0        & \mu \vb N\IF 
+   \end{array}\right)
+$$
+%--------------------------------------------------------------------%
+where the $3\times 3$ matrix $N\IF$ has entries
+%--------------------------------------------------------------------%
+$$ N\IF_{ab} = 
+   \delta_{ai} \hat{n}_b + \delta_{bi} \hat{n}_a
+  - \hat{n}_i \delta_{ab}.
+$$
+%====================================================================%
+For example, if we are computing the $x$-force ($i=x$)
+we have 
+%====================================================================%
+$$ \vb N^{x\text{\tiny F}}=\left(\begin{array}{ccc}
+   \hat{n}_x & \hat n_y   & \hat n_z \\
+   \hat{n}_y & -\hat{n}_x & 0 \\
+   \hat{n}_z & 0          & -\hat{n}_x
+  \end{array}\right).
+$$
+The flux of $i$-directed \textit{angular} momentum, useful
+for computations of torque about an origin $\vb x_0$,
+%====================================================================%
+\begin{align}
+ \vb t_{i}(\vb x) \cdot \vbhat{n}
+&=\frac{1}{2}
+  \text{ Re }
+  \varepsilon_{ijk}(\vb x-\vb x_0)_j T_{k\ell}(\vb x) \hat{n}_\ell
+\\
+&= \frac{1}{4}\bmc{F}^\dagger(\vb x) 
+   \, \bmc{N}\IT \, \bmc{F}(\vb x)
+\label{ITVMVP}
+\end{align}
+%====================================================================%
+with 
+%--------------------------------------------------------------------%
+$$
+   \bmc N\IT=
+   \left(\begin{array}{cc}
+   \epsilon \vb N\IT & 0 \\
+            0        & \mu \vb N\IT 
+   \end{array}\right)
+$$
+%--------------------------------------------------------------------%
+where the $3\times 3$ matrix $N\IT$ has entries ($\vb D=\vb x-\vb x_0$)
+%--------------------------------------------------------------------%
+$$ N\IT_{ab}=
+   \varepsilon_{ija}D_j \hat{n}_b
+  +\varepsilon_{ijb}D_j \hat{n}_a
+  -\delta_{ab} \varepsilon_{ijk} D_j \hat{n}_k.
+$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Energy and momentum flux from surface-current bilinears}
+
+Equations (\ref{PVMVP}), (\ref{IFVMVP}), and (\ref{ITVMVP}) express
+the flux of power or momentum as bilinear products of the field
+six-vectors $\bmc F$. Using (\ref{FFromC}), we can turn these into
+bilinear products involving the surface-current expansion vectors
+$\vb c$. For example, the power flux (\ref{PVMVP}) becomes 
+%--------------------------------------------------------------------%
+\begin{align}
+ \vb P(\vb x) \cdot \vbhat{n}
+&=\frac{1}{4}\bmc F^\dagger(\vb x) \bmc N\supt{P}(\vbhat{n}) \bmc F(\vb x)
+\nn
+&=\frac{1}{4}\sum_{\alpha \beta} 
+  c_\alpha^* 
+  \Big[ \bmc F^\dagger_\alpha(\vb x)
+        \,
+        \bmc N\supt{P}(\vbhat{n})
+        \,
+        \bmc F_\beta(\vb x)
+  \Big]
+  c_\beta 
+\nn
+&= \vb c^\dagger \vb M\supt{PFLUX}(\vb x, \vbhat{n}) \vb c 
+\label{PFluxVMVP}
+\end{align}
+%--------------------------------------------------------------------%
+where $\vb M\supt{PFLUX}(\vb x,\vbhat{n})$ is a matrix 
+appropriate for $\vbhat{n}$-directed power flux in at $\vb x$.
+The fluxes of $i$-directed linear and angular momentum read
+similarly
+%--------------------------------------------------------------------%
+\begin{align}
+\vb T_i(\vb x) \cdot \vbhat{n}
+&= \frac{1}{4} \vb c^\dagger \vb M\IFFlux(\vb x, \vbhat{n}) \vb c 
+\label{IFFluxVMVP}
+\\
+\vb t_i(\vb x) \cdot \vbhat{n}
+&= \frac{1}{4} \vb c^\dagger \vb M\ITFlux(\vb x, \vbhat{n}) \vb c 
+\label{ITFluxVMVP}
+\end{align}
+%--------------------------------------------------------------------%
+The $\vb M$ matrices in (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}), and 
+(\ref{ITFluxVMVP}) are $N\subt{B}\times N\subt{B}$ matrices
+whose entries are themselves 6-dimensional matrix-vector products:
+\begin{align*}
+M_{\alpha\beta}\supt{PFLUX}(\vb x, \vbhat{n}) 
+ &= \frac{1}{4} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \bmc N\supt{P}(\vbhat{n})
+    \bmc F_\beta(\vb x) 
+\\
+M_{\alpha\beta}\IFFlux(\vb x, \vbhat{n})
+ &= \frac{1}{4} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \bmc N\supt{iF}(\vbhat{n})
+    \bmc F_\beta(\vb x) 
+\\
+M_{\alpha\beta}\ITFlux(\vb x, \vbhat{n})
+ &= \frac{1}{4} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \bmc N\supt{iT}(\vbhat{n})
+    \bmc F_\beta(\vb x).
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Energy and momentum transfer from surface-current bilinears}
+
+Noting that the $\vb x$ and $\vbhat{n}$ dependence of
+the flux expressions (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}),
+and (\ref{ITFluxVMVP}) is entirely contained in the $\vb M$
+matrices, it is easy to integrate those expressions over
+closed surfaces to obtain surface-current bilinears
+expressing the total power or momentum transferred to 
+bodies.
+For example, the total power absorbed by material bodies
+contained within a closed surface $\mc S$
+is given by integrating the LHS of (\ref{PFluxVMVP})
+over $\mc S$:
+%====================================================================%
+\begin{align}
+  P_{\mc S}\sups{abs}&=\int_{\mc S} \vb P(\vb x) \cdot \vbhat{n} \, d\vb x
+\intertext{with $\vbhat{n}$ taken to be the inward-pointing surface
+           normal. Insert the RHS of (\ref{PFluxVMVP}) and pull 
+           $\vb c^\dagger, \vb c$ outside the integral:}
+             &=\vb c^\dagger \vb M\PS \vb c
+\label{PTotVMVP}
+\end{align}
+where the elements of 
+$\vb M\PS$
+involve integrals over $\mc S$:
+%====================================================================%
+\numeq{MPSEntries}
+{ M_{\alpha\beta}\PS
+  = \frac{1}{4} \int_{\mc S} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \bmc N\supt{P}(\vbhat{n})
+    \bmc F_\beta(\vb x) 
+     \, d\vb x.
+}
+%====================================================================%
+Similarly, the time-average $i$-directed force and torque on 
+material bodies contained in $\mc S$ are
+%====================================================================%
+\begin{align}
+ F_{i\mc S} &=\vb c^\dagger \vb M\IFS \vb c
+\label{FTotVMVP}
+\\
+ \mc T_{i\mc S} &=\vb c^\dagger \vb M\ITS \vb c
+\label{TTotVMVP}
+\end{align}
+%====================================================================%
+where the entries of $\vb M\IFS$ and $\vb M\ITS$ are similar
+to (\ref{MPSEntries}) with $\bmc N\supt{P} \to \bmc N\IF, \bmc N\IT.$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Sparse alternatives to dense matrices}
+
+For some quantities of interest it is possible to write alternative
+surface-current bilinears that compute the same quantities as 
+(\ref{PTotVMVP}), (\ref{FTotVMVP}), and (\ref{TTotVMVP})
+but which involve \textit{sparse} matrices instead of dense
+matrices. In particular, the power, force, or torque on a body 
+may be written as a bilinear function of the surface currents
+on that body alone in the form
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Statistical averages of surface-current bilinears}
+
+The heart of the FSC approach is a concise formula for the 
+statistical average of surface-current bilinears. 
+Suppose $Q(\vb c, \omega)=\vb c^\dagger \vb Q(\omega) \vb c$ is a
+bilinear function of the classical (deterministic) surface currents
+involving a frequency-dependent matrix $\vb Q(\omega)$.
+Then the statistical average of the contribution made by the sources 
+in a body $b$ to $Q$---where the averaging is over quantum and thermal 
+fluctuations of sources in the body---is given simply by
+%--------------------------------------------------------------------%
+\begin{align*}
+ \big\langle Q\big\rangle
+  &= \int_0^\infty \, \Theta(\omega) \Phi(\omega)\,d\omega 
+\\
+\Phi
+  &= \Tr\left\{ \vb Q \vb W \overline{\vb G}_b \vb W^\dagger\right\}.
+\end{align*}
+%--------------------------------------------------------------------%
+Here $\vb W$ is the inverse of the BEM matrix for entire system
+and $\overline{\vb G}_b$ is a symmetrized version of a portion of the
+BEM matrix for body $b$ alone.
+
+%====================================================================%
+\newpage
+\bibliographystyle{ieeetr}
+\bibliography{scuff-neq}
+
+\end{document}

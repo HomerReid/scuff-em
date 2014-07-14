@@ -105,7 +105,6 @@ int main(int argc, char *argv[])
      HMatrix::CloseHDF5Context(pCC);
 
      StoreCache("SphereSubstrateArray_414.cache");
-
    }
   else
    {

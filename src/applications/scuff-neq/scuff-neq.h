@@ -102,7 +102,7 @@ typedef struct SNEQData
    double SIRadius;
    int SINumPoints;
    
-   bool SymGDest;
+   bool SymGPower;
    bool UseExistingData;
    bool SubtractSelfTerms;
    bool Visualize;
@@ -113,7 +113,7 @@ typedef struct SNEQData
 
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, 
                          int WhichQuantities, int PlotFlux, 
-                         char *FileBase, bool SymGDest);
+                         char *FileBase, bool SymGPower);
 
 int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux);

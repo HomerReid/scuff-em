@@ -468,7 +468,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
    for(int n2=+1; n2>=-1; n2--)
     { 
       if ( OneDLattice && n2!=0 ) continue;
-      if ( UseSymmetry && (n1+n2)<0 ) continue;
 
       L[0] = n1*LBV[0][0] + n2*LBV[1][0];
       L[1] = n1*LBV[0][1] + n2*LBV[1][1];
@@ -494,6 +493,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
       StampInNeighborBlock(Args->B, Args->GradB, NBFA, NBFB,
                            M, GradM, RowOffset, ColOffset, L, kBloch, 
                            UseSymmetry && !(n1==0 && n2==0) );
+
+      if ( UseSymmetry && (n1==0 && n2==0) )
+       break;
     };
 
   /***************************************************************/

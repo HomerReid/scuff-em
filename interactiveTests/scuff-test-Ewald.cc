@@ -296,6 +296,12 @@ int main(int argc, char *argv[])
 
   srand48(time(0));
   SetDefaultCD2SFormat("(%15.8e,%15.8e)");
+  printf("Considering a %i-d lattice with ", LatticeDimension);
+  if (LatticeDimension==1)
+   printf(" L=(%g,%g)\n",LBV[0][0],LBV[0][1]);
+  else 
+   printf(" L1=(%g,%g), L2=(%g,%g)\n",
+            LBV[0][0],LBV[0][1],LBV[1][0],LBV[1][1]);
 
   /***************************************************************/
   /* enter command loop ******************************************/

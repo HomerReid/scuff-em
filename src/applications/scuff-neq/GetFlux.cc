@@ -180,7 +180,7 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
       if ( !(SNEQD->QuantityFlags & QFlag) )
        continue;
 
-      if ( QFlag==QFLAG_POWER && SNEQD->SymGDest )
+      if ( QFlag==QFLAG_POWER && SNEQD->SymGPower )
        {
          HMatrix *T=SNEQD->TSelf[DestSurface];
          double FMPTrace=0.0; //'four-matrix-product trace'
