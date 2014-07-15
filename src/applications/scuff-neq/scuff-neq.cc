@@ -252,14 +252,15 @@ int main(int argc, char *argv[])
   /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, 
-                                 PlotFlux, FileBase, SymGPower);
+  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, FileBase);
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData   = UseExistingData;
   SNEQD->SubtractSelfTerms = SubtractSelfTerms;
   SNEQD->Visualize         = Visualize;
-  SNEQD->SIRadius          = SIRadius;  
+  SNEQD->SIRadius          = SIRadius;
   SNEQD->SINumPoints       = SINumPoints;
+  SNEQD->PlotFlux          = PlotFlux;
+  SNEQD->SymGPower         = SymGPower;
 
   if (OmegaKPoints && G->NumLatticeBasisVectors==0)
    ErrExit("--OmegaKPoints may only be used with extended geometries");

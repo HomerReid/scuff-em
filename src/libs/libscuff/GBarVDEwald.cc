@@ -21,6 +21,56 @@ using namespace Faddeeva;
 namespace scuff{
 
 /***************************************************************/
+/* Given a 1D or 2D basis for a direct lattice, compute a      */
+/* basis for the reciprocal lattice and the 1D or 2D "volume"  */
+/* (i.e. length or area) of the Brillouin zone.                */
+/* If EOpt is non-null, then the optimal value of the Ewald    */
+/* separation parameter Eta is also computed and returned in   */
+/* EOpt. (The photon wavenumber k is used in this computation.)*/
+/***************************************************************/
+void GetRLBasis(double **L, int LDim,
+                double Gamma[2][2], double *BZVolume, 
+                cdouble k, double *EOpt)
+{
+  /*--------------------------------------------------------------*/
+  /*- get a basis for the reciprocal lattice and choose the      -*/
+  /*- separation parameter eta if the user didn't choose it      -*/
+  /*--------------------------------------------------------------*/
+  if (LDim==1)
+   { 
+     double Length = sqrt( L[0][0]*L[0][0] + L[0][1]*L[0][1]) ;
+     Gamma[0][0] = (2.0*M_PI/Length) * L[0][0];
+     Gamma[0][1] = (2.0*M_PI/Length) * L[0][1];
+     Gamma[1][0] = Gamma[1][1] = 0.0;
+
+     if (BZVolume) *BZVolume = Length;
+     if (EOpt) *EOpt = sqrt(M_PI) / Length;
+   }
+  else if (LDim==2)
+   { 
+     double Area= L[0][0]*L[1][1] - L[0][1]*L[1][0];
+     if (Area==0.0)
+      ErrExit("%s:%i: lattice has empty unit cell",__FILE__,__LINE__);
+     Gamma[0][0] =  2.0*M_PI*L[1][1] / Area;
+     Gamma[0][1] = -2.0*M_PI*L[0][1] / Area;
+     Gamma[1][0] = -2.0*M_PI*L[1][0] / Area;
+     Gamma[1][1] =  2.0*M_PI*L[0][0] / Area;
+
+     if (BZVolume) *BZVolume = Area;
+
+     if (EOpt)
+      { double EOpt1 = sqrt(M_PI / Area);
+        double G12 = Gamma[0][0]*Gamma[0][0] + Gamma[0][1]*Gamma[0][1];
+        double G22 = Gamma[1][0]*Gamma[1][0] + Gamma[1][1]*Gamma[1][1];
+        double EOpt2 = sqrt( norm(k) + G12 + G22 ) / 10.0; // H=10
+        *EOpt = fmax(EOpt1, EOpt2);
+      };
+   }
+  else
+   ErrExit("only 1D or 2D periodicity implemented in GBarVDEwald");
+}
+
+/***************************************************************/
 /* compute exp(a)*erfc(b), being careful of overflow/underflow */
 /***************************************************************/
 static cdouble erfc_s(cdouble a, cdouble b) 
@@ -76,12 +126,17 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
 /* that defines GBarDistant.                                   */
 /***************************************************************/
 void AddGLong(double R[3], cdouble k, double P[2],
-              int n1, int n2, double *Gamma[2], int LDim,
+              int n1, int n2, double Gamma[2][2], int LDim,
               double E, cdouble *GBarVD)
 { 
   double PmG[2];
   cdouble PreFactor, Q, EEF, EEFPrime;
    
+  if (LDim==1)
+   { memset(GBarVD, 0, 8*sizeof(cdouble));
+     return;
+   };
+
   PmG[0] = P[0] - n1*Gamma[0][0] - n2*Gamma[1][0];
   PmG[1] = P[1] - n1*Gamma[1][0] - n2*Gamma[1][1];
 
@@ -106,7 +161,7 @@ void AddGLong(double R[3], cdouble k, double P[2],
 /***************************************************************/
 /***************************************************************/
 void GetGBarDistant(double *R, cdouble k, double *kBloch,
-                    double *Gamma[2], int LDim,
+                    double Gamma[2][2], int LDim,
                     double E, int *pnCells, cdouble *Sum)
 { 
   /***************************************************************/
@@ -114,11 +169,16 @@ void GetGBarDistant(double *R, cdouble k, double *kBloch,
   /* of cells near the origin                                    */
   /***************************************************************/
   memset(Sum,0,NSUM*sizeof(cdouble));
-  int n2Mult = (LDim==2) ? 1 : 0;
   int nCells=0;
-  for (int n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
-   for (int n2=-NFIRSTROUND*n2Mult; n2<=NFIRSTROUND*n2Mult; n2++, nCells++)
-    AddGLong(R, k, kBloch, n1, n2, Gamma, LDim, E, Sum);
+  if (LDim==1)
+   { for (int n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
+       AddGLong(R, k, kBloch, n1, 0.0, Gamma, LDim, E, Sum);
+   }
+  else // LDim==2
+   { for (int n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
+      for (int n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
+       AddGLong(R, k, kBloch, n1, n2, Gamma, LDim, E, Sum);
+   };
 
   /***************************************************************/
   /* continue to add contributions of outer cells until converged*/
@@ -136,8 +196,8 @@ void GetGBarDistant(double *R, cdouble k, double *kBloch,
      else // LDim==2
       { 
         /*--------------------------------------------------------------*/
-        /* sum the contributions of the outer perimeter of an           */
-        /* NNxNN square of grid cells.                                  */
+        /* sum the contributions of the outer perimeter of the innermost*/
+        /* NNxNN square of grid cells                                   */
         /*--------------------------------------------------------------*/
         for(int n=-NN; n<NN; n++)
          { AddGLong(R, k, kBloch,   n,  NN, Gamma, LDim, E, Sum);
@@ -172,14 +232,14 @@ void GetGBarDistant(double *R, cdouble k, double *kBloch,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  double VGamma;
+  double PreFactor;
   if (LDim==1)
-   VGamma = sqrt(Gamma[0][0]*Gamma[0][0] + Gamma[0][1]*Gamma[0][1]);
+   PreFactor = sqrt(Gamma[0][0]*Gamma[0][0] + Gamma[0][1]*Gamma[0][1]) / (4.0*M_PI);
   else
-   VGamma = Gamma[0][0]*Gamma[1][1] - Gamma[0][1]*Gamma[1][0];
+   PreFactor = (Gamma[0][0]*Gamma[1][1] - Gamma[0][1]*Gamma[1][0])/(16.0*M_PI*M_PI);
 
   for(int ns=0; ns<NSUM; ns++)
-   Sum[ns] *= VGamma / (16.0*M_PI*M_PI);
+   Sum[ns] *= PreFactor;
 
   if (pnCells) 
    *pnCells=nCells;
@@ -356,8 +416,8 @@ void GetGBarNearby(double *R, cdouble k, double *kBloch,
      else // LDim==2
       { 
         /*--------------------------------------------------------------*/
-        /* sum the contributions of the outer perimeter of an */
-        /* NNxNN square of grid cells.                        */
+        /* sum the contributions of the outer perimeter of the innermost*/
+        /* NNxNN square of grid cells.                                  */
         /*--------------------------------------------------------------*/
         for(int n=-NN; n<NN; n++)
          { AddGShort(R, k, kBloch,   n,  NN, LBV, LDim, E, Sum);
@@ -395,10 +455,12 @@ void GetGBarNearby(double *R, cdouble k, double *kBloch,
 
 /***************************************************************/
 /* get the contributions of a single real-space lattice cell to*/
-/* the full periodic green's function (no ewald decomposition) */
+/* the full periodic green's function (no ewald decomposition).*/
+/* If ValueOnly==true, derivative calculation is skipped.      */
 /***************************************************************/
 void AddGFull(double R[3], cdouble k, double kBloch[2],
-              double Lx, double Ly, cdouble *Sum)
+              double Lx, double Ly, cdouble *Sum, 
+              bool ValueOnly=false)
 { 
 
   double RmL[3];
@@ -417,11 +479,14 @@ void AddGFull(double R[3], cdouble k, double kBloch[2],
    return;
   IKR=II*k*r;
   Phi=exp(IKR)/(4.0*M_PI*r);
+  Sum[0] += PhaseFactor * Phi;
+
+  if (ValueOnly) return;
+
   Psi=(IKR-1.0)*Phi/r2;
   Zeta=(3.0 + IKR*(-3.0 + IKR))*Phi/(r2*r2);
   Upsilon=(-15.0 + IKR*(15.0 + IKR*(-6.0 + IKR)))*Phi/(r2*r2*r2);
 
-  Sum[0] += PhaseFactor * Phi;
   Sum[1] += PhaseFactor * RmL[0] * Psi;
   Sum[2] += PhaseFactor * RmL[1] * Psi;
   Sum[3] += PhaseFactor * RmL[2] * Psi;
@@ -557,45 +622,13 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
     { memset(GBarVD, 0, 8*sizeof(cdouble));
       return;
     };
- 
-  /*--------------------------------------------------------------*/
-  /*- get a basis for the reciprocal lattice and choose the      -*/
-  /*- separation parameter eta if the user didn't choose it      -*/
-  /*--------------------------------------------------------------*/
-  double Gamma1[2], Gamma2[2];
-  double *Gamma[2];
-  Gamma[0]=Gamma1;
-  Gamma[1]=Gamma2;
-  if (LDim==1)
-   { 
-     double Length = sqrt( LBV[0][0]*LBV[0][0] + LBV[0][1]*LBV[0][1]) ;
-     Gamma[0][0] = (2.0*M_PI/Length) * LBV[0][0];
-     Gamma[0][1] = (2.0*M_PI/Length) * LBV[0][1];
-     Gamma[1][0] = Gamma[1][1] = 0.0;
 
-     if (E==-1.0)
-      E = sqrt(M_PI) / Length;
-   }
-  else if (LDim==2)
-   { 
-     double Area= LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0];
-     if (Area==0.0)
-      ErrExit("%s:%i: lattice has empty unit cell",__FILE__,__LINE__);
-     Gamma[0][0] =  2.0*M_PI*LBV[1][1] / Area;
-     Gamma[0][1] = -2.0*M_PI*LBV[0][1] / Area;
-     Gamma[1][0] = -2.0*M_PI*LBV[1][0] / Area;
-     Gamma[1][1] =  2.0*M_PI*LBV[0][0] / Area;
-
-     if (E==-1.0)
-      { double EOpt1 = sqrt(M_PI / Area);
-        double G12 = Gamma[0][0]*Gamma[0][0] + Gamma[0][1]*Gamma[0][1];
-        double G22 = Gamma[1][0]*Gamma[1][0] + Gamma[1][1]*Gamma[1][1];
-        double EOpt2 = sqrt( norm(k) + G12 + G22 );
-        E = fmax(EOpt1, EOpt2);
-      };
-   }
-  else
-   ErrExit("only 1D or 2D periodicity implemented in GBarVDEwald");
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double Gamma[2][2], BZVolume, EOpt;
+  GetRLBasis(LBV, LDim, Gamma, &BZVolume, k, &EOpt);
+  if (E==-1.0) E=EOpt;
 
   /***************************************************************/
   /* evaluate 'nearby' and 'distant' sums                        */

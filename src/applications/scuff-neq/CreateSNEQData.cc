@@ -33,15 +33,13 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags, 
-                         int PlotFlux, char *pFileBase, bool SymGDest)
+SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
+                         char *pFileBase)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
 
   SNEQD->WriteCache=0;
-  SNEQD->PlotFlux=PlotFlux;
-  SNEQD->SymGDest=SymGDest;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/
