@@ -15,10 +15,105 @@
 #define NFIRSTROUND 1
 #define NMAX 10000
 
+#define EULERGAMMA 0.57721566490153286
+
 #include "Faddeeva.hh"
 
 using namespace Faddeeva;
 namespace scuff{
+
+/*****************************************************/
+/* Continued fraction for ExpIntegral[1,z] using     */
+/* modified Lentz's method.                          */
+/*****************************************************/
+#define TINY 1.0e-15
+cdouble ExpInt_CF(cdouble z, double RelTol, int *nIters)
+{
+  // initialization
+  cdouble aj=0.0, bj=0.0;
+  cdouble fjm1, fj = TINY;
+  cdouble Cjm1, Cj = fj;
+  cdouble Djm1, Dj = 0.0;
+  int ConvergedIters=0;
+  cdouble Delta;
+  int j;
+  for(j=1; j<1000; j++)
+   {   
+     if (j==1)
+      { aj=exp(-z); bj=z; }
+     else
+      { aj = j/2; bj = (j%2) ? z : 1.0; }
+
+     Djm1 = Dj;
+     Dj = bj + aj*Djm1; 
+     if (Dj==0.0) Dj = TINY;
+
+     Cjm1 = Cj;
+     Cj = bj + aj/Cjm1;
+     if (Cj==0.0) Cj = TINY;
+
+     Dj = 1.0/Dj;
+     Delta = Cj*Dj;
+
+     fjm1 = fj;
+     fj = fjm1*Delta;
+
+     if ( abs(Delta-1.0) < RelTol )
+      ConvergedIters++;
+     else
+      ConvergedIters=0;
+     if (ConvergedIters==5)
+      break;
+   };
+  if (ConvergedIters!=5)
+   Warn("potentially large error in ExpInt_CF [%.1e %%]",
+         100.0*abs(Delta-1.0));
+
+  if (nIters) *nIters=j;
+  return fj;
+
+}
+
+/*****************************************************/
+/* power series for ExpIntegralE[1,z] ****************/
+/*****************************************************/
+cdouble ExpInt_PS(cdouble z, double RelTol=1.0e-8, int *pnTerms=0)
+{ 
+  cdouble Result = -EULERGAMMA - log(z);
+
+  double nFact=1.0;
+  cdouble zPower=1.0;
+  cdouble LastResult;
+  int n;
+  for(n=1; n<=100; n++)
+   { 
+     nFact *= n;
+     zPower *= -z;
+     LastResult = Result;
+     Result -= zPower/(nFact*n);
+     if ( abs(Result-LastResult) < RelTol*abs(Result) )
+      break;
+   };
+  if (n==100)
+   Warn("potentially large error in ExpInt_PS(%s) [%.1e %%]",
+         CD2S(z), 100.0*abs(Result-LastResult)/abs(Result));
+
+  if (pnTerms) *pnTerms=n;
+
+  return Result;
+  
+}
+
+/***************************************************************/
+/* power series for ExpIntegralE[1,x] ****************/
+/***************************************************************/
+cdouble ExpInt(cdouble z)
+{
+  if ( abs(z) < 5.0 )
+   return ExpInt_PS(z, 1.0e-8, 0); 
+  else
+   return ExpInt_CF(z, 1.0e-8, 0);
+}
 
 /***************************************************************/
 /* Given a 1D or 2D basis for a direct lattice, compute a      */
@@ -27,10 +122,13 @@ namespace scuff{
 /* If EOpt is non-null, then the optimal value of the Ewald    */
 /* separation parameter Eta is also computed and returned in   */
 /* EOpt. (The photon wavenumber k is used in this computation.)*/
+/*                                                             */
+/* In the 1D case, Rho2 is additionally computed as the square */
+/* of the orthogonal distance from R to the line defined by the*/
+/* lattice vector.                                             */
 /***************************************************************/
-void GetRLBasis(double **L, int LDim,
-                double Gamma[2][2], double *BZVolume, 
-                cdouble k, double *EOpt)
+void GetRLBasis(double **L, int LDim, double Gamma[2][2],
+                cdouble k, double *EOpt, double R[3], double *Rho2)
 {
   /*--------------------------------------------------------------*/
   /*- get a basis for the reciprocal lattice and choose the      -*/
@@ -38,13 +136,29 @@ void GetRLBasis(double **L, int LDim,
   /*--------------------------------------------------------------*/
   if (LDim==1)
    { 
-     double Length = sqrt( L[0][0]*L[0][0] + L[0][1]*L[0][1]) ;
-     Gamma[0][0] = (2.0*M_PI/Length) * L[0][0];
-     Gamma[0][1] = (2.0*M_PI/Length) * L[0][1];
+     double L2 = L[0][0]*L[0][0] + L[0][1]*L[0][1];
+     Gamma[0][0] = (2.0*M_PI/L2) * L[0][0];
+     Gamma[0][1] = (2.0*M_PI/L2) * L[0][1];
      Gamma[1][0] = Gamma[1][1] = 0.0;
+     
+     double Factor = (R[0]*L[0][0] + R[1]*L[0][1]) / L2;
+     double Rho2D[2];
+     Rho2D[0] = R[0] - Factor*L[0][0];
+     Rho2D[1] = R[1] - Factor*L[0][1];
+     *Rho2 = Rho2D[0]*Rho2D[0] + Rho2D[1]*Rho2D[1] + R[2]*R[2];
 
-     if (BZVolume) *BZVolume = Length;
-     if (EOpt) *EOpt = sqrt(M_PI) / Length;
+     /***************************************************************/
+     /* choose optimal E parameter following the discussion of      */
+     /* Valerio et al, IEEE TAP *55* 1630 (2007)                    */
+     /***************************************************************/
+     double E  = sqrt(M_PI / L2);
+     double E1 = abs(k) / 20.0; // H=10
+     double E2 = (*Rho2==0.0) ? 1.0e100 : 1.2 / sqrt(*Rho2);
+     if ( E < E1 ) 
+      E=E1;
+     else if ( E > E2 )
+      E=E2;
+     *EOpt = E;
    }
   else if (LDim==2)
    { 
@@ -55,8 +169,6 @@ void GetRLBasis(double **L, int LDim,
      Gamma[0][1] = -2.0*M_PI*L[0][1] / Area;
      Gamma[1][0] = -2.0*M_PI*L[1][0] / Area;
      Gamma[1][1] =  2.0*M_PI*L[0][0] / Area;
-
-     if (BZVolume) *BZVolume = Area;
 
      if (EOpt)
       { double EOpt1 = sqrt(M_PI / Area);
@@ -123,20 +235,15 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
 /***************************************************************/
 /* add the contribution of a single reciprocal-lattice vector  */
 /* G = n1*Gamma1 + n2*Gamma2 to the reciprocal-lattice sum     */
-/* that defines GBarDistant.                                   */
+/* that defines GBarDistant in the 2D case.                    */
 /***************************************************************/
-void AddGLong(double R[3], cdouble k, double P[2],
-              int n1, int n2, double Gamma[2][2], int LDim,
-              double E, cdouble *GBarVD)
+void AddGLong2D(double R[3], cdouble k, double P[2],
+                int n1, int n2, double Gamma[2][2],
+                double E, cdouble *GBarVD)
 { 
   double PmG[2];
   cdouble PreFactor, Q, EEF, EEFPrime;
    
-  if (LDim==1)
-   { memset(GBarVD, 0, 8*sizeof(cdouble));
-     return;
-   };
-
   PmG[0] = P[0] - n1*Gamma[0][0] - n2*Gamma[1][0];
   PmG[1] = P[1] - n1*Gamma[1][0] - n2*Gamma[1][1];
 
@@ -157,10 +264,69 @@ void AddGLong(double R[3], cdouble k, double P[2],
 
 }
 
+/*****************************************************/
+/* Compute the 1D Fourier transform of GLong.        */
+/*****************************************************/
+cdouble GetGLongTwiddle1D(double kx, double Rho2, cdouble k, double E)
+{
+  cdouble kt2      = kx*kx - k*k;
+  double E2        = E*E;
+  cdouble Arg      = kt2 / (4.0*E2);
+  cdouble ExpFac   = exp(-Arg);
+  cdouble Eqp1     = ExpInt(Arg);
+  double Rho2E2    = Rho2*E2;
+  double PreFactor = 1.0;
+  cdouble Sum      = Eqp1;
+  int ConvergedIters=0;
+  for(int q=1; q<1000; q++)
+   {
+     // use recurrence to get ExpIntegral_{q+1}
+     Eqp1 = (ExpFac - Arg*Eqp1) / ((double)q);
+
+     PreFactor *= -1.0*Rho2E2 / q;
+
+     cdouble Term = PreFactor*Eqp1;
+     Sum += Term;
+     if ( abs(Term/Sum) < 1.0e-8 )
+      ConvergedIters++;
+     else
+      ConvergedIters=0;
+     if (ConvergedIters==2) break;
+
+
+   };
+  if (ConvergedIters!=2)
+   Warn("potential nonconvergence in GLongTwiddle1D(%g,%g,%s,%e)",
+         kx, Rho2, z2s(k), E);
+
+  return Sum / (8.0*M_PI*M_PI);
+}
+
+/***************************************************************/
+/* add the contribution of a single reciprocal-lattice vector  */
+/* G = n1*Gamma1 to the reciprocal-lattice sum that defines    */
+/* GBarDistant in the 1D case.                                 */
+/***************************************************************/
+void AddGLong1D(double R[3], double Rho2, cdouble k, double P[2],
+                int m, double Gamma[2][2], double E, cdouble *GBarVD)
+{ 
+  double PmG[2], PmGMag;
+  PmG[0] = P[0] - m*Gamma[0][0];
+  PmG[1] = P[1] - m*Gamma[0][1];
+  PmGMag = sqrt(PmG[0]*PmG[0] + PmG[1]*PmG[1]);
+
+  cdouble ExpFac = exp( II * ( PmG[0]*R[0] + PmG[1]*R[1]) );
+
+  cdouble GT=GetGLongTwiddle1D(PmGMag, Rho2, k, E);
+
+  GBarVD[0] = ExpFac * GT;
+
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetGBarDistant(double *R, cdouble k, double *kBloch,
+void GetGBarDistant(double *R, double Rho2, cdouble k, double *kBloch,
                     double Gamma[2][2], int LDim,
                     double E, int *pnCells, cdouble *Sum)
 { 
@@ -171,13 +337,13 @@ void GetGBarDistant(double *R, cdouble k, double *kBloch,
   memset(Sum,0,NSUM*sizeof(cdouble));
   int nCells=0;
   if (LDim==1)
-   { for (int n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
-       AddGLong(R, k, kBloch, n1, 0.0, Gamma, LDim, E, Sum);
+   { for (int m=-NFIRSTROUND; m<=NFIRSTROUND; m++)
+       AddGLong1D(R, Rho2, k, kBloch, m, Gamma, E, Sum);
    }
   else // LDim==2
-   { for (int n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)
-      for (int n2=-NFIRSTROUND; n2<=NFIRSTROUND; n2++, nCells++)
-       AddGLong(R, k, kBloch, n1, n2, Gamma, LDim, E, Sum);
+   { for (int m1=-NFIRSTROUND; m1<=NFIRSTROUND; m1++)
+      for (int m2=-NFIRSTROUND; m2<=NFIRSTROUND; m2++, nCells++)
+       AddGLong2D(R, k, kBloch, m1, m2, Gamma, E, Sum);
    };
 
   /***************************************************************/
@@ -189,8 +355,8 @@ void GetGBarDistant(double *R, cdouble k, double *kBloch,
   for(int NN=NFIRSTROUND+1; ConvergedIters<3 && NN<=NMAX; NN++)
    {  
      if (LDim==1)
-      { AddGLong(R, k, kBloch,  NN, 0, Gamma, LDim, E, Sum);
-        AddGLong(R, k, kBloch, -NN, 0, Gamma, LDim, E, Sum);
+      { AddGLong1D(R, Rho2, k, kBloch,  NN, Gamma, E, Sum);
+        AddGLong1D(R, Rho2, k, kBloch, -NN, Gamma, E, Sum);
         nCells+=2;
       }
      else // LDim==2
@@ -199,11 +365,11 @@ void GetGBarDistant(double *R, cdouble k, double *kBloch,
         /* sum the contributions of the outer perimeter of the innermost*/
         /* NNxNN square of grid cells                                   */
         /*--------------------------------------------------------------*/
-        for(int n=-NN; n<NN; n++)
-         { AddGLong(R, k, kBloch,   n,  NN, Gamma, LDim, E, Sum);
-           AddGLong(R, k, kBloch,  NN,  -n, Gamma, LDim, E, Sum);
-           AddGLong(R, k, kBloch,  -n, -NN, Gamma, LDim, E, Sum);
-           AddGLong(R, k, kBloch, -NN,   n, Gamma, LDim, E, Sum);
+        for(int m=-NN; m<NN; m++)
+         { AddGLong2D(R, k, kBloch,   m,  NN, Gamma, E, Sum);
+           AddGLong2D(R, k, kBloch,  NN,  -m, Gamma, E, Sum);
+           AddGLong2D(R, k, kBloch,  -m, -NN, Gamma, E, Sum);
+           AddGLong2D(R, k, kBloch, -NN,   m, Gamma, E, Sum);
            nCells+=4;
          };
       };
@@ -234,7 +400,7 @@ void GetGBarDistant(double *R, cdouble k, double *kBloch,
   /*--------------------------------------------------------------*/
   double PreFactor;
   if (LDim==1)
-   PreFactor = sqrt(Gamma[0][0]*Gamma[0][0] + Gamma[0][1]*Gamma[0][1]) / (4.0*M_PI);
+   PreFactor = sqrt(Gamma[0][0]*Gamma[0][0] + Gamma[0][1]*Gamma[0][1]);
   else
    PreFactor = (Gamma[0][0]*Gamma[1][1] - Gamma[0][1]*Gamma[1][0])/(16.0*M_PI*M_PI);
 
@@ -626,8 +792,8 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double Gamma[2][2], BZVolume, EOpt;
-  GetRLBasis(LBV, LDim, Gamma, &BZVolume, k, &EOpt);
+  double Gamma[2][2], EOpt, Rho2;
+  GetRLBasis(LBV, LDim, Gamma, k, &EOpt, R, &Rho2);
   if (E==-1.0) E=EOpt;
 
   /***************************************************************/
@@ -636,7 +802,7 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
   cdouble GBarNearby[NSUM], GBarDistant[NSUM];
   GetGBarNearby(R, k, kBloch, LBV, LDim,
                 E, ExcludeInnerCells, 0, GBarNearby);
-  GetGBarDistant(R, k, kBloch, Gamma, LDim, E, 0, GBarDistant);
+  GetGBarDistant(R, Rho2, k, kBloch, Gamma, LDim, E, 0, GBarDistant);
    
   for(int ns=0; ns<NSUM; ns++)
    GBarVD[ns] = GBarNearby[ns] + GBarDistant[ns];

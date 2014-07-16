@@ -13,7 +13,11 @@
 \newcommand{\GB}{\overline{G}}
 \newcommand{\vbGB}{\overline{\vb G}}
 %\newcommand{\BG}{\boldsymbol{\Gamma}}
-\newcommand{\erfc}{\text{Erfc }}
+\newcommand{\erfc}{\text{erfc}}
+\newcommand{\erf}{\text{erf}}
+\newcommand{\wt}{\widetilde}
+\newcommand{\vbGamma}{\boldsymbol{\Gamma}}
+\newcommand{\kbar}{\overline{k}}
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -22,7 +26,8 @@
 %------------------------------------------------------------
 \title {Implementation of Ewald Summation in {\sc scuff-em}}
 \author {Homer Reid}
-\date {June 12, 2012}
+\date {April 16, 2014}
+
 
 %------------------------------------------------------------
 %------------------------------------------------------------
@@ -44,200 +49,613 @@
 
 \section{The Periodic Dyadic Green's Function}
 
-Consider a two-dimensional lattice consisting of a set of 
-lattice vectors $\{\vb L=(L_x, L_y)\}.$
-We use the symbol $\vb p=(p_x, p_y)$ to denote a two-dimensional
+Consider a 1D or 2D lattice consisting of a set of
+lattice vectors $\{\vb L\}$.
+We use the symbol $\vb p$ to denote a two-dimensional
 Bloch wavevector.
 
 The Bloch-periodic version of the scalar Helmholtz Green's function is
 %====================================================================%
 \numeq{PGF}
-{ \GB(k; \vb p; \vb x) 
+{ \GB(\vb p; \vb x) 
   \equiv 
-  \sum_{\vb L} e^{i\vb p \cdot \vb L} 
-               \frac{ e^{ i k |\vb x + \vb L|}}
-                    { 4\pi|\vb x + \vb L|}
+  \sum_{\vb L} e^{i\vb p \cdot \vb L} G\Big( \big |\vb x-\vb L \big| \Big)
 }
+where the sum ranges over all lattice vectors $\vb L$ and
+%====================================================================%
+\numeq{HelmholtzKernel}
+{ G(r)
+  \equiv \frac{ e^{ i k r} } { 4\pi r} .
+}
+Note that my notation here hides the dependence of $\GB$ and $G$ 
+on the photon wavenumber $k$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Decompose kernel into short-range and long-range contributions}
+
+The kernel (\ref{HelmholtzKernel}) exhibits two pathologies
+which, together, make it unwieldy to work with:
+\textbf{(a)} It decays slowly as $r\to\infty$, which 
+ensures that the real-space sum (\ref{PGF}) is slowly 
+convergent. This suggests using the Poisson summation
+formula to rewrite the real-space sum as a Fourier-space
+sum.
+However, upon doing this we are stymied by the 
+second pathology of (\ref{HelmholtzKernel}), namely,
+\textbf{(b)} It is singular at $r=0$, which makes it 
+long-ranged in Fourier space and thus prevents na\"ive 
+application of Poisson summation.
+
+To address this difficulty, we split the bare kernel (\ref{HelmholtzKernel}) 
+into a ``short-ranged'' component which avoids 
+pathology \textbf{(a)}, plus a ``long-ranged'' component
+which avoids pathology \textbf{(b)}:
+%====================================================================%
+\begin{align}
+G(r)
+&= G\sups{short}(r) + G\sups{long}(r)
+\\
+%--------------------------------------------------------------------%
+ G\sups{short}(r)
+&\equiv
+ \frac{1}{2\pi^{3/2}} \int_{\mc C_2}
+  e^{ -u^2 r^2 + k^2/(4u^2)} \, du
+\label{GShort}
+\\
+%--------------------------------------------------------------------%
+ G\sups{long}(r)
+&\equiv
+ \frac{1}{2\pi^{3/2}} \int_{\mc C_1}
+  e^{ -u^2 r^2 + k^2/(4u^2)} \, du
+\label{GLong}
+\end{align}
+%====================================================================%
+where $\{\mc C_1,\mc C_2\}$ are two branches of 
+a certain contour in the complex plane (see Appendix).
+The periodic DGF naturally decomposes into a contribution
+arising primarily from nearby lattice cells plus a contribution
+arising primarily from distant lattice cells
+(where ``nearby'' and ``distant'' are reckoned relative to
+the evaluation point $\vb x$:
+%====================================================================%
+\begin{align}
+\GB(\vb p; \vb x) 
+&=\GB\sups{nearby}(\vb p; \vb x) + \GB\sups{distant}(\vb p; \vb x)
+\label{GBDecomposition} \\
+\GB\sups{nearby}(\vb p; \vb x) 
+ &= \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+    G\sups{short}\Big( \big |\vb x-\vb L \big| \Big)
+\label{GNearby} \\
+\GB\sups{distant}(\vb p; \vb x) 
+ &= \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+    G\sups{long}\Big( \big |\vb x-\vb L \big| \Big).
+\label{GDistant}
+\end{align}
 %====================================================================%
 
-\section{Evaluation by Ewald Summation: The JRS Method}
+%=================================================
+%=================================================
+%=================================================
+\subsection{Evaluate $\GB\sups{nearby}$ in real space}
 
-To evaluate the sum in (\ref{PGF}) efficiently, we use a method 
-outlined by Jordan, Richter, and Sheng (JRS)\footnote{K. E. Jordan, G. R. Richter, 
-and P. Sheng, "An Efficient Numerical Evaluation of the Green's 
-Function for the Helmholtz Operator on Periodic Structures," 
-\textit{Journal of Computational Physics} \textbf{63} 222 (1986).
-\texttt{http://dx.doi.org/10.1016/0021-9991(86)90093-8}}
-based on the original ideas of Ewald\footnote{}. For completeness,
-I will briefly recapitulate the key ideas of this approach.
-
-The starting point is the identity
-$$ \frac{e^{ikr}}{4\pi r} 
-   \equiv 
-   \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
-   \int_{\mathcal C} e^{ -z^2 r^2 + \frac{k^2}{4z^2}} dz
-$$ 
-where $\mathcal{C}$ is a contour in the complex plane running from
-the origin to $\infty$ and satisfying certain conditions depending
-on $k$. One choice of $\mathcal{C}$ 
-that suffices for $k$ in the upper-right quadrant is a straight line
-running from the origin to infinity at an angle of $-\pi/4$ from
-the positive real axis, i.e. 
-$$ z=\zeta s, \qquad 0\le s \le \infty, \qquad \zeta=e^{-i\pi/4}$$
-in terms of which our identity becomes
-$$ \frac{e^{ikr}}{4\pi r} 
-   \equiv 
-   \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
-   \cdot \zeta \cdot 
-   \int_{0}^\infty e^{ + i s^2 r^2 + \frac{ik^2}{4s^2}} ds.
-$$ 
-
-\subsection*{Split the sum into direct-lattice-local and reciprocal-lattice-local
-             contributions}
-
+The sum defining $\GB\sups{nearby}$ is now rapidly convergent
+and may be evaluated directly via simple code. To this end
+it is convenient to invoke the identity (\ref{PHDefinition})
+to write
+%====================================================================%
 \begin{align}
-\GB(k; \vb p; \vb x) 
- &= \GB^{(1)}(k; \vb p; \vb x) 
-   +\GB^{(2)}(k; \vb p; \vb x) 
-\label{GBDecomposition}
-\\
-\GB^{(1)}(k; \vb p; \vb x) 
-&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}\cdot \zeta\cdot
-   \sum_{\vb L} e^{i\vb p \cdot \vb L} 
-                \int_0^E e^{is^2 |\vb x+\vb L|^2 + \frac{ik^2}{4s^2}} ds
-\label{GB1Sum}
-\\
-\GB^{(2)}(k; \vb p; \vb x) 
-&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}\cdot\zeta\cdot
-   \sum_{\vb L} e^{i\vb p \cdot \vb L} 
-                \int_E^\infty e^{is^2 |\vb x + \vb L|^2 + \frac{ik^2}{4s^2}} ds
-\label{GB2Sum}
+  G\sups{short}(r)
+&= \frac{1}{8\pi r}
+     \Bigg\{ e^{ ikr} \erfc\left[  \eta r
+                                 +i\frac{k}{2\eta}\right]
+            +e^{-ikr} \erfc\left[ \eta r
+                                 -i\frac{k}{2\eta}\right]
+     \Bigg\}
+\label{GShortConvenient} \\
+&\equiv \texttt{PH}(\eta, r, k)
 \end{align}
-
-\subsection*{Evaluate $\GB^{(2)}$ in real space} 
-
-The first step is to tackle the sum in (\ref{GB2Sum}) head-on. 
-The integral in that equation may be evaluated in closed form in terms of
-the complex error function:
-\numeq{ErfInt}
+%====================================================================%
+where the last line defines a convenient shorthand notation
+for the function of the first line (``\texttt{PH}'' stands
+for ``partial Helmholtz'').
+Evaluation of $\GB\sups{nearby}$ now proceeds by straightforward
+numerical summation of equation (\ref{GNearby}) using
+(\ref{GShortConvenient}) to compute summand values: 
+\numeq{GNearbySum}
 {
- \frac{2}{\sqrt\pi} \cdot \zeta \int_E^\infty e^{is^2 R^2 + \frac{ik^2}{4s^2}} ds
- = \frac{1}{2R}\bigg\{ e^{ikR} \,\erfc\Big[ RE\zeta + \frac{ik}{2E\zeta}\Big]
-                     +e^{-ikR} \,\erfc\Big[ RE\zeta - \frac{ik}{2E\zeta}\Big]
-               \bigg\}
+ \GB\sups{nearby}(\vb p; \vb x) = \sum_{\vb L} e^{i\vb p\cdot \vb L}
+   \, \texttt{PH}\Big(\eta, |\vb r - \vb L|, k\Big).
 }
-Plugging into (\ref{GB2Sum}), the real-space sum is 
-\begin{align*}
-\GB^{(2)}(k; \vb p; \vb x) 
-&= \frac{1}{8\pi}
-   \sum_{\vb L} 
-   \frac{e^{i\vb p \cdot \vb L}}{|\vb x + \vb L|}
-    \bigg\{ e^{ik|\vb x + \vb L|}
-            \erfc\Big[R|\vb x + \vb L| + \frac{ik}{2E} \Big]
-\\
-&\hspace{1.5in}
- +          e^{-ik|\vb x + \vb L|}
-    \erfc\Big[R|\vb x + \vb L| - \frac{ik}{2E} \Big]
-    \bigg\}
-\end{align*}
-This sum converges very rapidly in real space. Indeed, as soon as 
-$|\vb r + \vb L|$ is greater than a few times $E$, the $\erfc$\!\!
-factors begin to bite down \textit{doubly exponentially} on the
-summand, and the contribution of distant lattice sites becomes 
-utterly negligible. In practice, for a 2D lattice we achieve 8 
-or more digits of accuracy by retaining only $\approx$ terms in the sum.
-Thus we consider this term done, and move on to $\GB^{(1)}.$ 
+Note that the form of this equation is the same for the 
+1D and 2D cases; only the dimension of the summation 
+changes.
 
-\subsection*{Evaluate $\GB^{(1)}$ in reciprocal space} 
+Typically
+the partial sum converges to 10 or more decimal places after
+summing $\sim 10$ terms (in the 1D case) or $\sim 100$ terms
+(in the 2D case).
 
-We would next like to do for $\GB^{(1)}$ what we just did for $\GB^{(2)}$,
-but this requires a little more work. 
+%=================================================
+%=================================================
+%=================================================
+\subsection{Evaluate $\GB\sups{distant}$ in Fourier space}
 
-First, the integral in (\ref{GB2Sum}) involves the lower range of the 
-$s$ integral (from $s=0$ to $E$), but the nice closed-form
-expression we have, equation (\ref{ErfInt}), is for the upper range 
-of the integral ($s=E$ to $\infty$). This difficulty was circumvented 
-by Ewald in an ingenious way by appealing to the properties of the 
-classical \textit{Jacobi theta function}, which is defined as 
-\numeq{ThetaFunction}{\theta(s)=\sum_{n=-\infty}^\infty e^{-n^2 \pi s}}
-and which satisfies the amazing and bizarre functional identity 
-\numeq{ThetaIdentity}
-{ \theta(s)=\sqrt\frac{1}{s} \cdot \theta\left(\frac{1}{s}\right).}
-We will need a slightly more complicated version of this identity,
-obtained by generalizing (\ref{ThetaFunction}) in two ways: 
-\textbf{(a)} we consider a more general summand in which the exponent
-contains a term linear in $n$ besides the quadratic term 
-in (\ref{ThetaFunction}), and 
-\textbf{(b)} instead of summing over all integers $n$ (which we may 
-think of as a sum over a one-dimensional lattice) we instead sum 
-over a \textit{two-dimensional} lattice.
-The result is that the sum over lattice vectors $\vb L$ that enters into
-our equation (\ref{GB1Sum}) is converted into a sum over
-\textit{reciprocal lattice} vectors $\BG$:
+On the other hand, the real-space sum defining $\GB\sups{distant}$ 
+is slowly convergent, but the non-singular behavior of $G\sups{long}$
+allows the use of Poisson summation to recast the sum (\ref{GDistant}) 
+as a rapidly convergent sum in reciprocal space. This sum takes
+slightly different forms in the 1D and 2D cases.
+
+\subsubsection{The 1D case}
+
+We first consider the case in which the fundamental lattice
+vector is aligned with the $\vbhat{x}$ direction, i.e. 
+$\vb L_0=L_{0x} \vbhat{x}.$ The extension to an arbitrary
+two-dimensional lattice vector 
+$\vb L_0=L_{0x}\vbhat{x} + L_{0y}\vbhat{y}$ is then immediate.
+
+For a 1D lattice with basis vectors 
+$\{\vb L = n_x L_{0x} \vbhat{x}\}$ (for all $n_x \in \mathbb{Z})$ we have 
+%====================================================================%
 \begin{align}
-&\hspace{-0.5in}
- \frac{1}{4\pi} \cdot \frac{2}{\sqrt\pi} \sum_{\vb L} e^{i \vb p \cdot \vb L}
- e^{-s^2|\vb x + \vb L|^2 + \frac{k^2}{4s^2}}
+\GB\sups{distant}(\vb p; \vb x) 
+ &= \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+    G\sups{long}\Big( \big |\vb x-\vb L \big| \Big)
 \nn
-&=\frac{1}{s^2} \cdot \frac{A_{\BG}}{8\pi^{5/2}}
- \sum_{\BG} e^{i(\BG-\vb p) \cdot \vb x} 
-            e^{-\frac{1}{4s^2}[|\BG - \vb p|^2 - k^2] - z^2 s^2}
-\label{DirectToReciprocal}
+ &= \sum_{n=-\infty}^\infty e^{ i n p_x L_{0x}}
+    G\sups{long}\Big( \sqrt{ (x-n L_{0x})^2 + \rho^2} \Big)
+\nonumber
+\intertext{with $\rho^2 = y^2 + z^2.$ Introduce shorthand:}
+ &\equiv \sum_{n=-\infty}^\infty f(n )
+\label{RealSpaceSum1D} \\
+\intertext{Now just use Poisson summation:}
+ &= 2\pi
+    \sum_{m=-\infty}^\infty 
+    \wt f\left( 2\pi m\right)
+\label{Poisson1D}
 \end{align}
-Here the sum is over all vectors $\BG$ that satisfy 
-$\BG \cdot \vb L=2\pi$ for some lattice vector $\vb L,$
-and $A_{\BG}$ is the area of Brillouin zone of the 
-reciprocal lattice.\footnote{For a simple rectangular 
-lattice with basis vectors 
-$$\vb L_1=L_x\vbhat{x}, \qquad \vb L_2=L_y\vbhat{y},$$
-a basis for the reciprocal lattice is 
-$$\BG_1=\frac{2\pi}{L_x}\vbhat{x},\qquad \BG_2=\frac{2\pi}{L_y}\vbhat{y}$$
-and we have $A_{\BG}=\frac{4\pi^2}{L_x L_y}$.\\
-For a hexagonal lattice with basis vectors 
-$$ \vb L_1=L\vbhat{x}, \qquad 
-   \vb L_2=\frac{L}{2}\vbhat{x} + \frac{L\sqrt{3}}{2}\vbhat{y}
+%====================================================================%
+where $\wt f(\nu)$ is the Fourier transform of $f(n)$ with respect
+to $n$. To figure out what this is, introduce the
+Fourier-synthesis representation of $G\sups{long}$
+[Appendix A]:
+%====================================================================%
+\begin{align*}
+ f(n) 
+&= e^{in p_x L_{0x}} G\sups{long}\Big( \sqrt{ (x-n L_{0x})^2 + \rho^2}\Big)\\
+\\
+&= e^{in p_x L_{0x}} \int_{-\infty}^\infty 
+ \wt{G\sups{long}}(k_x; \rho) e^{ik_x(x-n L_{0x})} \, dk_x 
+\\
+&= 
+ \int_{-\infty}^\infty 
+ e^{ik_x x}
+ \wt{G\sups{long}}(k_x; \rho) e^{i(p_x-k_x) n_x L_{0x}} \, dk_x 
+\intertext{Change integration variables to $\nu =-(k_x-p_x) L_{0x}$:}
+&= 
+ \int_{-\infty}^\infty
+ \underbrace{ \frac{1}{L_{0x}} 
+              e^{i (p_x - \frac{\nu}{L_{0x}}) x}
+              \wt{G\sups{long}}\left(p_x - \frac{\nu}{L_{0x}}; \rho\right) 
+            }_{\wt f(\nu)}
+ e^{i\nu n_x} \, d\nu 
+\end{align*}
+%====================================================================%
+This identifies the Fourier transform of the function $f(n)$ 
+that enters (\ref{RealSpaceSum1D}) as
+\begin{align*}
+   \wt f(\nu) 
+ &= \frac{1}{L_{0x}} e^{i(p_x-\frac{\nu}{L_{0x}}) x}
+                   \wt{G\sups{long}}\Big(p_x-\frac{\nu}{L_{0x}}; \rho\Big)
+\end{align*}
+and hence the sum that defines the distant contribution
+to the periodic GF, equation (\ref{Poisson1D}), reads
+%====================================================================%
+$$\overline{G}\sups{distant}(\vb p, \vb x) 
+  =\frac{2\pi}{L_{0x}} \sum_{m} e^{i(p_x - \frac{2\pi m}{L_{0x}})x}
+   \wt{G\sups{long}}\Big( p_x - \frac{2\pi m}{L_{0x}}; \rho\Big).
 $$
-a basis for the reciprocal lattice is 
-$$ \BG_1=\frac{2\pi}{L}\vbhat{x} + \frac{2\pi}{L\sqrt{3}}\vbhat{y},
-   \qquad 
-   \BG_2=\frac{4\pi}{\sqrt{3} L}\vbhat{y}
-$$
-and we have $A_{\BG}=\frac{8\pi^2}{L^2 \sqrt{3}}$.
+%====================================================================%
+This derivation assumed that the fundamental lattice vector was aligned 
+with the positive $x$-direction, i.e. I had $\vb L_0=L_{0x}\vbhat{x}$.
+A more general form which is valid for any lattice vector $\vb L$
+is 
+%====================================================================%
+\numeq{GDistant}
+{
+  \overline{G}\sups{distant}(\vb p, \vb x)
+  =\mc{V}\subt{BZ}
+   \sum_{m} e^{i(\vb p - m\vbGamma_0)\cdot \vb x}
+          \wt{G\sups{long}}\Big( \big|\vb p - m\vbGamma_0\big|; \rho\Big)
 }
-Inserting (\ref{DirectToReciprocal}) in (\ref{GB1Sum}), we have 
+%====================================================================%
+where $\vbGamma_0=\frac{2\pi}{|\vb L_0|^2}\vb L_0$ 
+is the fundamental lattice vector of the 1-dimensional
+Brillouin zone and 
+$\mc V\subt{BZ}=|\vbGamma|$ is its volume; in (\ref{GDistant}) 
+the quantity $\rho$ must now be interpreted as the 
+$\left| \vb x - \frac{(\vb x \cdot \vb L)}{|\vb L|^2}\vb L\right|.$
+
+%=================================================
+%=================================================
+%=================================================
+\subsubsection{The 2D case}
+
+For a square 2D lattice with basis vectors 
+$\vb L = n_x L_{0x} \vbhat{x} + n_y L_{0y} \vbhat{y} $ 
+(for all $n_x,n_y \in \mathbb{Z})$ we have 
+%====================================================================%
 \begin{align}
-\GB^{(1)}(k; \vb p; \vb x) 
-&=\frac{\zeta A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
-    e^{i(\BG-\vb p) \cdot \vb x} 
-    \int_{0}^E 
-    \frac{ds}{s^2} 
-    e^{\frac{i}{4s^2}[|\BG - \vb p|^2 - k^2] + iz^2 s^2}
+\GB\sups{distant}(\vb p; \vb x) 
+ &= \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+    G\sups{long}\Big( \big |\vb x-\vb L \big| \Big)
+\nn
+ &= \sum_{n_x, n_y=-\infty}^\infty e^{ i (n_x p_x L_{0x} + n_y p_y L_{0y})}
+    G\sups{long}\Big( \sqrt{ (x-n_x L_{0x})^2 + (y-n_y L_{0y})^2 + z^2} \Big)
 \nonumber
-\intertext{Change integration variables according to $s\to\frac{1}{2s}$:}
-&=\frac{\zeta A_{\BG}}{4\pi^{5/2}} \sum_{\BG} 
-    e^{i(\BG-\vb p) \cdot \vb x} 
-    \int_{\frac{1}{2E}}^\infty
-    ds
-    e^{is^2[|\BG - \vb p|^2 - k^2] + \frac{iz^2}{4s^2}}
-\nonumber
-\intertext{Evaluate the integral using (\ref{ErfInt}):}
-&=\frac{A_{\BG}}{16\pi^2} \sum_{\BG}
-   \frac{e^{i(\BG-\vb p) \cdot \vb x}}{Q(\BG, \vb p, k)} 
-   \bigg\{  e^{+Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E\zeta} + E\zeta z \Big]
-\label{GB1Sum2}\\
-&\hspace{2in}
-          +e^{-Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E\zeta} - E\zeta z \Big]
-   \bigg\}
-\nonumber
+\intertext{Again introduce shorthand:}
+ &\equiv \sum_{n_x, n_y=-\infty}^\infty f(n_x, n_y)
+\label{RealSpaceSum2D} \\
+\intertext{and again use Poisson summation:}
+ &= (2\pi)^2 \sum_{m_x,m_y=-\infty}^\infty \wt f(2\pi m_x, 2\pi m_y)
+\label{Poisson2D}
 \end{align}
-where we put
-$$
-Q(\BG, \vb p, k)  = \sqrt{ (\BG-\vb p)^2 - k^2 }.
-$$
+%====================================================================%
+where $\wt f(\nu_x, \nu_y)$ is the two-dimensional Fourier transform of 
+$f(n_x,n_y)$ with respect to $n_x,n_y$. To figure out what this is, 
+introduce the Fourier-synthesis representation of $G\sups{long}$
+[Appendix A]:
+%====================================================================%
+\begin{align*}
+ f(n_x, n_y)
+&= e^{i (n_x p_x L_{0x} + n_y p_y L_{0y})} 
+   G\sups{long}\Big( \sqrt{ (x-n_x L_{0x})^2 + (y-n_y L_{0y})^2 + z^2}\Big)\\
+\\
+&= e^{i (n_x p_x L_{0x} + n_y p_y L_{0y})}
+  \int
+  \wt{G\sups{long}}(\vb k; z) 
+  e^{ik_x(x-n_x L_{0x}) + ik_y(y-n_y L_{0y})}
+   \, d\vb k
+\intertext{Change integration variables to $\nu_i = (p_i-k_i)L_i$:}
+&= 
+ \int
+ \underbrace{ \frac{1}{L_{0x} L_{0y}}
+              e^{i(p_x-\frac{\nu_x}{L_{0x}})x + i(p_y-\frac{\nu_y}{L_{0y}})y}
+              \wt{G\sups{long}}(p_x -\frac{\nu_x}{L_{0x}}, p_y -\frac{\nu_y}{L_{0y}}; z) 
+            }_{\wt f(\nu_x, \nu_y)}
+ e^{i(\nu_x n_x + \nu_y n_y)} \, d\boldsymbol{\nu}
+\end{align*}
+%====================================================================%
+This identifies the Fourier transform of the function $f(n_x,n_y)$ 
+that enters (\ref{RealSpaceSum2D}) as 
+%====================================================================%
+\begin{align*}
+ \wt f(\nu_x, \nu_y)
+ &=
+ \frac{1}{L_{0x} L_{0y}}
+ e^{i(p_x- \frac{\nu_x}{L_{0x}})x + i(p_y-\frac{\nu_y}{L_{0y}})y}
+ \wt{G\sups{long}}(p_x-\frac{\nu_x}{L_{0x}}, p_y-\frac{\nu_y}{L_{0y}}; z) 
+\\
+ &=
+ \frac{1}{2\pi L_{0x} L_{0y}}
+ e^{i(p_x- \frac{\nu_x}{L_{0x}})x + i(p_y-\frac{\nu_y}{L_{0y}})y}
+ \texttt{PH}\Big( \frac{1}{2\eta}, 
+                  \sqrt{k^2 - (p_x-\frac{\nu_x}{L_{0x}})^2
+                            - (p_y-\frac{\nu_y}{L_{0y}})^2 
+                       },
+                  \frac{z}{2}
+            \Big)
+\end{align*}
+%====================================================================%
+and hence the sum that defines the distant contribution to the
+2D periodic Green's function, equation (\ref{Poisson2D}), 
+reads
+%====================================================================%
+\begin{align*}
+&\hspace{-0.1in}\GB\sups{distant}(\vb p; \vb x) 
+\\
+&=\frac{2\pi}{L_{0x} L_{0y}} \sum_{m_x, m_y}
+    e^{i (p_x - m_x\Gamma_{0x}) x + (p_y-m_y \Gamma_{0y}) y}
+    \texttt{PH}\left( \frac{1}{2\eta}, 
+                      \sqrt{k^2 + (p_x-m_x \Gamma_{0x})^2 + (p_y-m_y\Gamma_{0y})^2},
+                      \frac{z}{2}
+               \right)
+\end{align*}
+%====================================================================%
+where $\{\Gamma_{0x}, \Gamma_{0y}\}=\left\{\frac{2\pi}{L_{0x}}, \frac{2\pi}{L_{0y}}\right\}$.
+I could alternatively write this equation as a sum over all 
+2D reciprocal lattice vectors $\vbGamma$:
+\numeq{GBDistant2D}
+{
+   \GB\sups{distant}(\vb p; \vb x) 
+   =\frac{1}{2\pi}\mc V_{BZ} \sum_{\vbGamma} 
+    e^{i (\vb p - \vbGamma) \cdot \vb x} \,
+    \texttt{PH}\left( \frac{1}{2\eta}, 
+                      \sqrt{k^2 + |\vb p - \vbGamma|^2},
+                      \frac{z}{2}
+               \right)
+}
+where $\mc V_{BZ}$ is the volume (really the area since we 
+are in two dimensions) of the Brillouin zone.
 
-\section*{The 1D Case}
+Although we derived it above for the case of a square lattice,
+the result in the form (\ref{GBDistant2D}) holds for any 
+shape of lattice.
 
-In the 1D case, equations (\ref{GB1Sum}) and (\ref{GB2Sum}) take
-the form 
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\appendix 
+
+\section{Fourier Transforms of $G\sups{long}$ in 1 and 2 Dimensions}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{1D}
+
+The Fourier-synthesized form of $G\sups{long}(r)$ at 
+a point $r=\sqrt{x^2+\rho^2}$ (with $\rho^2=y^2+z^2$) is
+%====================================================================%
+\begin{align*}
+ G\sups{long}(r)
+   &=G\sups{long}\Big( \sqrt{x^2 + \rho^2} \Big)
+\\
+   &=\int_{-\infty}^\infty \wt{G\sups{long}}(k_x; \rho) e^{ik_x x} \, dk_x
+\end{align*}
+%====================================================================%
+where
+%====================================================================%
+\begin{align*}
+ \wt{G\sups{long}}(k_x; \rho)
+   &=\frac{1}{2\pi} \int_{-\infty}^\infty 
+     G\sups{long}\Big( \sqrt{x^2 + \rho^2} \Big) e^{-ik_x x} \, dx.
+\intertext{Insert (\ref{GLong}):}
+   &=\frac{1}{4\pi^{5/2}}
+     \int_{\mc C_1}\, du \, e^{-u^2\rho^2 + \frac{k^2}{4u^2}}
+    \underbrace{\int_{-\infty}^\infty e^{-u^2 x^2 - ik_x x} \, dx}
+              _{\sqrt{\pi} \cdot u^{-1} \cdot e^{-k_x^2 / 4u^2 }}
+\intertext{Deform the contour down to the positive real axis:}
+   &=\frac{1}{4\pi^2}
+     \int_{\eta}^\infty \, \frac{du}{u} \, e^{-u^2 \rho^2 + (k^2-k_x^2)/(4u^2)}
+\intertext{Now put $k_t^2=k_x^2-k^2$ and change variables to 
+           $t=\eta/u^2$, $dt=-2t du/u$:}
+   &=\frac{1}{8\pi^2}
+     \int_{1}^\infty \, \frac{dv}{v} \, 
+      e^{-\frac{k_t^2}{4\eta^2} - \frac{ \rho^2 \eta^2}{4t} }
+\intertext{Series-expand the quantity $e^{-(\rho^2 \eta^2)/4t}:$}
+   &=\frac{1}{8\pi^2} \sum_{q=0}^\infty \frac{1}{q!}
+     \left(-\frac{\rho^2 \eta^2}{4}\right)^{q}
+    \underbrace{\int_1^\infty \, \frac{dt}{t^{1+q}} \, e^{-\frac{k_t^2}{4\eta^2}}}
+              _{\text{E}_{1+q}\pf{k_t^2}{4\eta^2}}
+\\
+   &=\frac{1}{8\pi^2} \sum_{q=0}^\infty \frac{1}{q!}
+     \left( -\frac{\rho^2 \eta^2}{4} \right)^{q}
+     \text{E}_{1+q}\pf{k_t^2}{4\eta^2}
+\end{align*}
+where $\text{E}_{1+q}$ is the exponential integral function
+of order $1+q$.
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{2D}
+
+The Fourier-synthesized form of $G\sups{long}(r)$ at
+a point $r=\sqrt{x^2+y^2+z^2}$ is
+%====================================================================%
+\begin{align*}
+ G\sups{long}(r)
+   &=G\sups{long}\Big( \sqrt{x^2 + y^2 + z^2} \Big)
+\\
+   &=\int_{-\infty}^\infty \wt{G\sups{long}}(\vb k; z) e^{i\vb k \cdot \vb x} \, d\vb k
+\end{align*}
+%$$====================================================================%
+where $\vb x=(x,y)$, $\vb k=(k_x, k_y)$, and 
+%
+%%====================================================================%
+%\begin{align*}
+% \wt{G\sups{long}}(\vb k; z)
+%   &=\frac{1}{(2\pi)^2} \int
+%     G\sups{long}\Big( \sqrt{x^2 + y^2 + z^2} \Big) e^{-i\vb k \cdot \vb x} 
+%     \, d\vb x.
+%\intertext{Insert (\ref{GLong}):}
+%   &=\frac{1}{8\pi^{7/2}}
+%     \int_{\mc C_1} \, du \, e^{-u^2 z^2 + \frac{k^2}{4u^2}}
+%     \underbrace{
+%     \Big[\int_{-\infty}^\infty e^{-u^2 x^2 - ik_x x} \, dx\Big]
+%                }
+%              _{\sqrt{\pi} \cdot \zeta^{-1} \cdot u^{-1} \cdot e^{-ik_x^2 / 4u^2 }}
+%     \underbrace{
+%     \Big[\int_{-\infty}^\infty e^{iu^2 y^2 - ik_x y} \, dy\Big]
+%                }
+%              _{\sqrt{\pi} \cdot \zeta^{-1} \cdot u^{-1} \cdot e^{-ik_y^2 / 4u^2 }}
+%\\
+%&=\frac{\zeta^{-1}}{8\pi^{5/2}} \int_0^\eta \frac{du}{u^2} 
+%        e^{iu^2 z^2 + i(k^2 - k_x^2 - k_y^2)/(4u^2)}
+%\intertext{Change variables to $s=1/(2u)$:}
+%&=\frac{\zeta^{-1}}{4\pi^{5/2}} \int_{ 1/(2\eta) }^\infty 
+%   e^{i(k^2 - k_x^2 - k_y^2)s^2 + iz^2/(4s^2)} \, ds
+%\\[5pt]
+%&=\frac{i}{2\pi} 
+%  \cdot \texttt{PH}\left( \frac{1}{2\eta}, \sqrt{k^2 - |\vb k|^2}, \frac{z}{2}\right).
+%\end{align*}
+%%====================================================================%
+
+%\subsection{Alternate derivation}
+
+\begin{align*}
+ \wt{G\sups{long}}(\vb k; z) 
+  &=\frac{1}{(2\pi)^2} 
+    \int G\sups{long}\Big(\sqrt{x^2 + y^2 + z^2}\Big) e^{-i\vb k \cdot \vb x}
+         d\vb x
+\\
+  &=\frac{1}{(2\pi)^2} 
+    \int_0^\infty \, \rho\, d\rho \,
+    \int_0^{2\pi} \, d\theta \,
+    G\sups{long}\Big(\sqrt{\rho^2 + z^2}\Big) e^{-i|\vb k|\rho \cos\theta}
+\\
+  &=\frac{1}{2\pi} 
+    \int_0^\infty 
+    \, 
+    \rho J_0(|\vb k|\rho) G\sups{long}\Big(\sqrt{\rho^2 + z^2}\Big) \, d\rho
+\\
+  &=\frac{1}{4\pi^{5/2}}
+    \int_{\mc C_1} \, du \, e^{-u^2 z^2 + k^2/(4u^2)} \,
+    \underbrace{ \int_0^\infty \,
+                 \rho J_0(|\vb k|\rho) e^{-u^2 \rho^2} \, d\rho
+               }_{\frac{1}{2u^2}e^{-|\vb k|^2/(4u^2)}}
+\\
+  &=\frac{1}{8\pi^{5/2}}\int_{\mc C_1} \, \frac{du}{u^2} \, 
+     e^{-u^2 z^2 + (k^2 - |\vb k|^2)/(4u^2)}
+\intertext{Change variables to $s=1/(2u)$:}
+  &= \frac{1}{4\pi^{5/2}}\int_{\mc C_2}
+     e^{-(k^2 - |\vb k|^2)s^2 + z^2/(4s^2)}\,ds
+\\
+  &= \frac{1}{2\pi} 
+     \texttt{PH}\Big(\frac{1}{2\eta}, i\sqrt{k^2-|\vb k|^2}, \frac{z}{2}\Big).
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Short-distance behavior of $G\sups{long}$ in real space}
+
+For computations of the ``all-but-3'' or ``all-but-9'' kernels
+we need to compute the contributions of the innermost 3 or 9 
+lattice cells to $\GB\sups{distant}$ (so that we may subtract
+these real-space contributions from the Fourier-space sum 
+that computes the sum over all real-space lattice cells).
+This involves evaluating the kernel $G\sups{long}$ in real space.
+Unfortunately, it seems there is no formula equivalent
+to (\ref{GShortConvenient}) for convenient evaluation of 
+$G\sups{long}$ in real space. Instead, we compute $G\sups{long}(r)$
+as follows:
+
+\begin{enumerate}
+
+\item
+For $r$ not close to zero, we simply set
+%====================================================================%
+\numeq{GLongCheat}
+{G\sups{long}(r) = \frac{e^{ikr}}{4\pi r} - G\sups{short}(r)}
+%====================================================================%
+with $G\sups{short}$ computed by equation (\ref{GShortConvenient}).
+
+\item
+In the limit $r\to 0$, both terms in (\ref{GLongCheat}) 
+diverge, but the difference tends to a finite constant---that
+is to say, $G\sups{long}(r=0)$ is nonzero and finite. With a little
+work one obtains the following small-$r$ expansion:
+
+\begin{align*}
+  G\sups{long}(r)
+&= C_0 + C_2 r^2 + C_4r^4 + O(r^6)
+\\[10pt]
+C_0 &= \frac{\eta}{2\pi^{3/2}} e^{k^2/(4\eta^2)}
+       + \frac{ik}{4\pi}
+         \left[1 + \erf\left( \frac{ik}{2\eta}\right) \right]
+\\[10pt]
+C_2 &= -\frac{\eta (2\eta^2 + k^2)}{12\pi^{3/2}}
+            e^{k^2/(4\eta^2)}
+       -\frac{ik^3}{24\pi}
+         \left[1 + \erf\left( \frac{ik}{2\eta}\right) \right]
+\\
+C_4 &= \frac{\eta (12\eta^4 + 2\eta^2 k^2 + k^4)}{240\pi^{3/2}}
+            e^{k^2/(4\eta^2)}
+       +\frac{ik^5}{480\pi}
+         \left[1 + \erf\left( \frac{ik}{2\eta}\right) \right]
+\end{align*}
+where again $\zeta=e^{-i\pi/4}.$
+
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Reference identities}
+
+\subsection*{Contour-integral expression for the Helmholtz kernel}
+
+%====================================================================%
+\numeq{HelmholtzDecomposition}
+{
+ \frac{e^{ikr}}{4\pi r}
+\equiv 
+ \frac{1}{2\pi^{3/2}} \int_{\mc C}
+  e^{-r^2u^2 + k^2/(4u^2)} \, du
+}
+%====================================================================%
+where $\mc C$ is a contour like that pictured
+in Figure \ref{ContourFigure}; the key features 
+of this contour are the following:
+%====================================================================%
+\begin{itemize}
+ \item
+ Over the interval $[0,\eta]$ on the real axis,
+ the contour dips down into the lower half-plane
+ \item
+ Over the interval $[\eta,\infty]$ on the real axis,
+ the contour pokes up into the lower half-plane
+ \item
+ The slope at the origin, $\gamma$, lies in the range
+ $ 0 \le \gamma \le \left(\frac{\pi}{4} - \text{arg }\epsilon\right)$
+ where $\text{arg }\epsilon$ is the phase angle of
+ the complex permittivity.
+\end{itemize}
+%====================================================================%
+
+One example of such a contour is 
+%====================================================================%
+$$ \mc C 
+    = \{ \text{Re } z, \text{Im } z\}
+    = \left\{ t, -\gamma \sin\left(4\, \atan \frac{t}{\eta}\right)\right\},
+      \qquad 0\le t \le \infty
+$$
+%====================================================================%
+
+\subsection*{Short-ranged Helmholtz kernel}
+
+\begin{align}
+  \texttt{PH}(\eta,r,k)
+  &\equiv
+  \frac{1}{2\pi^{3/2}}
+  \int_{\mc C_2} e^{ ir^2 u^2 + i\frac{k^2}{4u^2}}\, du
+\nn
+  &=
+   \frac{1}{8\pi r}
+     \Bigg\{ e^{ ikr} \erfc\left[  \eta r
+                                 +i\frac{k}{2\eta}\right]
+            +e^{-ikr} \erfc\left[  \eta r 
+                                 -i\frac{k}{2\eta}\right]
+     \Bigg\}
+  \label{PHDefinition}
+\end{align}
+(Here $\mc C_2$ is the portion of the contour that 
+covers the real-axis interval $[\eta,\infty]$.)
+I call this function the ``partial Helmholtz'' function 
+because $\texttt{PH}(\eta, r, k)$ is a sort of partial
+version of the Helmholtz kernel $e^{ikr}/(4\pi r).$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Derivatives}
+
+\subsection{Derivatives of $\GB\sups{nearby}$}
+
+%====================================================================%
+\begin{align*}
+ \frac{d}{dx_i} \GB\sups{nearby}(\vb p; \vb x)
+& = \frac{x_i}{r} \sum_{\vb L} 
+    e^{i \vb p \cdot \vb L}
+    \left. \pard{}{r} \texttt{PH}\big(\eta, r, k\big)
+    \right|_{r=|\vb r - \vb L|}
+\\
+\end{align*}
+%====================================================================%
 
 \end{document}

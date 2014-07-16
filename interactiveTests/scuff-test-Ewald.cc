@@ -58,7 +58,7 @@ using namespace scuff;
 /***************************************************************/
 namespace scuff{
 
-void GetGBarDistant(double *R, cdouble k, double *kBloch,
+void GetGBarDistant(double *R, double Rho2, cdouble k, double *kBloch,
                     double Gamma[2][2], int LDim,
                     double E, int *pnCells, cdouble *Sum);
 
@@ -71,8 +71,8 @@ void AddGFull(double R[3], cdouble k, double kBloch[2],
               double Lx, double Ly, cdouble *Sum, 
               bool ValueOnly=false);
 
-void GetRLBasis(double *L[2], int LDim, double Gamma[2][2],
-                double *BZVolume, cdouble k, double *EOpt);
+void GetRLBasis(double **L, int LDim, double Gamma[2][2],
+                cdouble k, double *EOpt, double R[3], double *Rho2);
 
 void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
                        int n1, int n2, double *LBV[2], int LDim, 
@@ -300,8 +300,8 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     double Gamma[2][2], BZVolume, EOpt;
-     GetRLBasis(LBVP, LDim, Gamma, &BZVolume, k, &EOpt);
+     double Gamma[2][2], EOpt, Rho2;
+     GetRLBasis(LBVP, LDim, Gamma, k, &EOpt, R, &Rho2);
      if (E==-1.0) E=EOpt;
 
      /*--------------------------------------------------------------*/
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
      Tic();
      GetGBarNearby(R, k, kBloch, LBVP, LDim,
                    E, ExcludeInnerCells, &NearbyCells, GBarNearby);
-     GetGBarDistant(R, k, kBloch, Gamma, LDim, 
+     GetGBarDistant(R, Rho2, k, kBloch, Gamma, LDim, 
                     E, &DistantCells, GBarDistant);
      for(int ns=0; ns<NSUM; ns++)
       GBarEwald[ns] = GBarNearby[ns] + GBarDistant[ns];
