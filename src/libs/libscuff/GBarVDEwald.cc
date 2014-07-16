@@ -185,7 +185,7 @@ void GetRLBasis(double **L, int LDim, double Gamma[2][2],
      /***************************************************************/
      double E  = sqrt(M_PI / L2);
      double E1 = abs(k) / 20.0; // H=10
-     double E2 = (*Rho2==0.0) ? 1.0e100 : 1.2 / sqrt(*Rho2);
+     double E2 = (*Rho2==0.0) ? 1.0e100 : 5.0 / sqrt(*Rho2);
      if ( E < E1 ) 
       E=E1;
      else if ( E > E2 )

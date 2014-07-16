@@ -252,11 +252,13 @@ int main(int argc, char *argv[])
      /*- set default variable values --------------------------------*/
      /*--------------------------------------------------------------*/
      double R[3];
-     R[0] = -1.0 + 2.0*drand48();
-     R[1] = -1.0 + 2.0*drand48();
-     R[2] = -1.0 + 2.0*drand48();
-     cdouble k = cdouble( 2.0*drand48(), 2.0*drand48() );
-     double kBloch[2] = { M_PI*drand48(), M_PI*drand48() };
+     R[0] = -5.0 + 10.0*drand48();
+     R[1] = -5.0 + 10.0*drand48();
+     R[2] = -5.0 + 10.0*drand48();
+     cdouble k = cdouble( 5.0*drand48(), 5.0*drand48() );
+     double kBloch[2] = { M_PI*drand48(), 0.0 };
+     if (LDim==2)
+      kBloch[1] = M_PI*drand48();
      double E = -1.0;
      bool ExcludeInnerCells=true;
      bool SkipBF=false;
