@@ -26,7 +26,7 @@ namespace scuff{
 /* Continued fraction for ExpIntegral[1,z] using     */
 /* modified Lentz's method.                          */
 /*****************************************************/
-#define TINY 1.0e-15
+#define TINY 1.0e-30
 cdouble ExpInt_CF(cdouble z, double RelTol, int *nIters)
 {
   // initialization
@@ -104,15 +104,47 @@ cdouble ExpInt_PS(cdouble z, double RelTol=1.0e-8, int *pnTerms=0)
   
 }
 
+/*****************************************************/
+/* large-z power series for ExpIntegralE[1,z] ********/
+/*****************************************************/
+cdouble ExpInt_Asymptotic(cdouble z, double RelTol=1.0e-8, int *pnTerms=0)
+{ 
+  if ( abs(z)>100.0 ) 
+   return 0.0;
+
+  cdouble Sum  = 1.0;
+  cdouble Term = 1.0;
+  int n;
+  for(n=1; n<=100; n++)
+   { 
+     Term *= -((double)n) / z;
+     Sum += Term;
+     if ( abs(Term) < RelTol*abs(Sum) )
+      break;
+   };
+  if (n==100)
+   Warn("potentially large error in ExpInt_PS(%s) [%.1e %%]",
+         CD2S(z), 100.0*abs(Term)/abs(Sum));
+
+  if (pnTerms) *pnTerms=n;
+
+  return Sum * exp(-z) / z;
+  
+}
+
 /***************************************************************/
-/* power series for ExpIntegralE[1,x] ****************/
+/* exponential integral E[1,x]                                 */
 /***************************************************************/
 cdouble ExpInt(cdouble z)
 {
-  if ( abs(z) < 5.0 )
+  double absz = abs(z); 
+
+  if ( absz < 5.0 )
    return ExpInt_PS(z, 1.0e-8, 0); 
-  else
+  else if ( absz < 30.0 )
    return ExpInt_CF(z, 1.0e-8, 0);
+  else 
+   return ExpInt_Asymptotic(z, 1.0e-8, 0);
 }
 
 /***************************************************************/
@@ -319,7 +351,7 @@ void AddGLong1D(double R[3], double Rho2, cdouble k, double P[2],
 
   cdouble GT=GetGLongTwiddle1D(PmGMag, Rho2, k, E);
 
-  GBarVD[0] = ExpFac * GT;
+  GBarVD[0] += ExpFac * GT;
 
 }
 

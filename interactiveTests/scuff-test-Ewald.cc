@@ -30,6 +30,7 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <fenv.h>
 
 #include <config.h>
 
@@ -151,6 +152,14 @@ void GBarVDBF(double R[3], cdouble k, double *kBloch,
 /***************************************************************/
 int main(int argc, char *argv[]) 
 { 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( getenv("SCUFF_ABORT_ON_FPE") )
+   { feenableexcept(FE_INVALID | FE_OVERFLOW);
+     Log("Enabling abort-on-floating-point-exception.");
+   };
+
   /***************************************************************/
   /* process command-line arguments ******************************/
   /***************************************************************/
@@ -343,6 +352,11 @@ int main(int argc, char *argv[])
 
         for(int ns=0; ns<NSUM; ns++)
          GBarEwald[ns] -= GLongInner[ns];
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+GBarNearby[0] -= GLongInner[0];
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
       };
      EwaldTime+=Toc();
      printf(" Ewald:   %s (%.0g us)\n",CD2S(GBarEwald[0]),EwaldTime*1e6);
@@ -356,6 +370,12 @@ int main(int argc, char *argv[])
         GBarVDBF(R, k, kBloch, LBVP, LDim, 
                  ExcludeInnerCells, Derivatives, nMax, GBarBF);
         printf(" BF:      %s \n",CD2S(GBarBF[0]));
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+printf("BF-Nearby = %s \n",CD2S(GBarBF[0] - GBarNearby[0]));
+printf("BF-Nearby / Distant = %s \n",
+        CD2S( (GBarBF[0] - GBarNearby[0]) / (GBarDistant[0]) ));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
       };
 
