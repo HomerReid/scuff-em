@@ -306,6 +306,7 @@ cdouble GetGLongTwiddle1D(double kx, double Rho2, cdouble k, double E)
   cdouble Arg      = kt2 / (4.0*E2);
   cdouble ExpFac   = exp(-Arg);
   cdouble Eqp1     = ExpInt(Arg);
+  if (Eqp1==0.0) return 0.0;
   double Rho2E2    = Rho2*E2;
   double PreFactor = 1.0;
   cdouble Sum      = Eqp1;
