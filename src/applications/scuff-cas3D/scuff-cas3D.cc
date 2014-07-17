@@ -73,20 +73,17 @@ int main(int argc, char *argv[])
   //
   // options affecting kBloch integration or sampling
   //
-  char *XikBlochFile=0;
-  char *BZIMethod="ECC3";
+  char *XiKFile=0;
+  char *BZIMethod=0;
   double BZICutoff=0;
   bool BZSymmetry=false;
   int MaxkBlochPoints=1000;
   //
-  // options allowing user to override default output file names 
+  // option allowing user to override default output file names
   //
-  char *OutputFile=0;
-  char *ByXiFile=0;
-  char *ByXikBlochFile=0;
-  char *LogFile=0;
+  char *FileBase=0;
   //
-  // 
+  // cache options
   //
   char *Cache=0;
   char *ReadCache[MAXCACHE];                int nReadCache;
@@ -117,16 +114,13 @@ int main(int argc, char *argv[])
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
 //
-     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XikBlochFile,  0,             "file containing (Xi, kx, ky) values"},
+     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XiKFile,       0,             "file containing (Xi, kx, ky) values"},
      {"BZIMethod",      PA_STRING,  1, 1,       (void *)&BZIMethod,     0,             "Brillouin-zone integration method"},
      {"BZICutoff",      PA_DOUBLE,  1, 1,       (void *)&BZICutoff,     0,             "Brillouin-zone integration cutoff"},
      {"BZSymmetry",     PA_BOOL,    0, 1,       (void *)&BZSymmetry,    0,             "assume symmetric BZ: f(kx,ky) = f(ky,kx)"},
      {"MaxkBlochPoints",PA_INT,     1, 1,       (void *)&MaxkBlochPoints, 0,           "maximum number of Brillouin-zone integrand evaluations"},
 //
-     {"OutputFile",     PA_STRING,  1, 1,       (void *)&OutputFile,    0,             "name of frequency-integrated output file"},
-     {"ByXiFile",       PA_STRING,  1, 1,       (void *)&ByXiFile,      0,             "name of frequency-resolved output file"},
-     {"ByXikBlochFile", PA_STRING,  1, 1,       (void *)&ByXikBlochFile, 0,            "name of frequency- and kBloch-resolved output file"},
-     {"LogFile",        PA_STRING,  1, 1,       (void *)&LogFile,       0,             "name of log file"},
+     {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,      0,             "base filename for output files"},
 //
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,         0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,      &nReadCache,   "read cache"},
@@ -140,8 +134,8 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
 
-  if (LogFile)
-   SetLogFileName(LogFile);
+  if (FileBase)
+   SetLogFileName("%s.log",FileBase);
   else
    SetLogFileName("scuff-cas3D.log");
   Log("scuff-cas3D running on %s",GetHostName());
@@ -158,18 +152,18 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /* process frequency- and kBloch-related options               */
   /***************************************************************/
-  HMatrix *XikBlochPoints=0;
   HMatrix *XiPoints=0;
+  HMatrix *XiKPoints=0;
 
-  if ( XikBlochFile )
-   { if (XiFile)       ErrExit("--XikBlochFile and --XiFile options are mutually exclusive");
-     if (nXiVals>0)    ErrExit("--XikBlochFile and --Xi options are mutually exclusive");
-     if (nTemperature) ErrExit("--XikBlochFile and --Temperature options are mutually exclusive");
-     if (G->NumLatticeBasisVectors==0) ErrExit("--XikBlochFile may only be used for periodic geometries");
-     XikBlochPoints=new HMatrix(XikBlochFile,LHM_TEXT,"--nc 3 --strict");
-     if (XikBlochPoints->ErrMsg)
-      ErrExit(XikBlochPoints->ErrMsg);
-     Log("Read %i (Xi, kBloch) points from file %s.",XikBlochPoints->NR, XikBlochFile);
+  if ( XiKFile )
+   { if (XiFile)       ErrExit("--XiKFile and --XiFile options are mutually exclusive");
+     if (nXiVals>0)    ErrExit("--XiKFile and --Xi options are mutually exclusive");
+     if (nTemperature) ErrExit("--XiKFile and --Temperature options are mutually exclusive");
+     if (G->NumLatticeBasisVectors==0) ErrExit("--XiKFile may only be used for periodic geometries");
+     XiKPoints=new HMatrix(XiKFile,LHM_TEXT,"--nc 3 --strict");
+     if (XiKPoints->ErrMsg)
+      ErrExit(XiKPoints->ErrMsg);
+     Log("Read %i (Xi, kBloch) points from file %s.",XiKPoints->NR, XiKFile);
    }
   else if ( XiFile )
    { if (nXiVals>0)    ErrExit("--XiFile and --Xi options are mutually exclusive");
@@ -193,6 +187,8 @@ int main(int argc, char *argv[])
 
   if ( BZIMethod && G->NumLatticeBasisVectors==0) 
    ErrExit("--BZIMethod option may only be used for periodic geometries");
+  if ( !BZIMethod && G->NumLatticeBasisVectors!=0 ) 
+   BZIMethod=strdup("ECC3");
 
   /*******************************************************************/
   /* figure out which quantities to compute **************************/
@@ -233,12 +229,11 @@ int main(int argc, char *argv[])
   /* point to the Casimir quantities                                 */
   /*******************************************************************/
   SC3Data *SC3D=CreateSC3Data(G, TransFile, WhichQuantities, NumQuantities, 
-                              nTorque, TorqueAxes, NewEnergyMethod, BZIMethod);
+                              nTorque, TorqueAxes, NewEnergyMethod, 
+                              BZIMethod, FileBase);
 
   SC3D->BZICutoff          = BZICutoff;
   SC3D->BZSymmetry         = BZSymmetry;
-  SC3D->ByXiFileName       = ByXiFile; 
-  SC3D->ByXikBlochFileName = ByXikBlochFile;
   SC3D->WriteCache         = WriteCache;
   SC3D->AbsTol             = AbsTol;
   SC3D->RelTol             = RelTol;
@@ -246,43 +241,20 @@ int main(int argc, char *argv[])
   SC3D->MaxkBlochPoints    = MaxkBlochPoints;
   SC3D->UseExistingData    = UseExistingData;
 
-  if (SC3D->ByXiFileName==0)
-   { SC3D->ByXiFileName=vstrdup("%s.byXi",GetFileBase(G->GeoFileName));
-     FILE *f=fopen(SC3D->ByXiFileName,"a"); 
-     if (!f) ErrExit("could not open file %s",SC3D->ByXiFileName);
-     WriteFilePreamble(f, SC3D, PREAMBLE_BYXI);
-     fclose(f);
-   };
-
-  if (G->NumLatticeBasisVectors==0 && SC3D->ByXikBlochFileName!=0)
-   { Warn("--byXikBlochFile option only makes sense for periodic geometries (disabling)"); 
-     SC3D->ByXikBlochFileName=0;
-   };
-
-  if (SC3D->ByXikBlochFileName)
-   { FILE *f=fopen(SC3D->ByXikBlochFileName,"a"); 
-     if (!f) ErrExit("could not open file %s",SC3D->ByXikBlochFileName);
-     WriteFilePreamble(f, SC3D, PREAMBLE_BYXIK);
-     fclose(f);
-   };
-
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
   /* perform the actual calculations                                 */
   /*******************************************************************/
   double *EFT = new double[SC3D->NTNQ];
   double *Error=0; 
-  if ( XikBlochPoints )
+  if ( XiKPoints )
    { 
-     if (SC3D->ByXikBlochFileName==0)
-      SC3D->ByXikBlochFileName=vstrdup("%s.byXikBloch",GetFileBase(G->GeoFileName));
-
      double Xi, kBloch[2];
-     for(int nr=0; nr<XikBlochPoints->NR; nr++)
+     for(int nr=0; nr<XiKPoints->NR; nr++)
       { 
-        Xi        = XikBlochPoints->GetEntryD(nr, 0);
-        kBloch[0] = XikBlochPoints->GetEntryD(nr, 1);
-        kBloch[1] = XikBlochPoints->GetEntryD(nr, 2);
+        Xi        = XiKPoints->GetEntryD(nr, 0);
+        kBloch[0] = XiKPoints->GetEntryD(nr, 1);
+        kBloch[1] = XiKPoints->GetEntryD(nr, 2);
         GetCasimirIntegrand(SC3D, Xi, kBloch, EFT);
       };
    }
@@ -306,10 +278,9 @@ int main(int argc, char *argv[])
   /* write output file if we computed summed or integrated quantities */
   /***************************************************************/
   if (Error)
-   { if (!OutputFile)
-      OutputFile=vstrdup("%s.out",GetFileBase(G->GeoFileName));
-     FILE *OutFile=CreateUniqueFile(OutputFile,1);
-     WriteFilePreamble(OutFile, SC3D, PREAMBLE_OUT);
+   { 
+     WriteFilePreamble(SC3D, PREAMBLE_OUT);
+     FILE *OutFile=fopen(SC3D->OutFileName,"a");
      int ntnq=0;
      for(int nt=0; nt<SC3D->NumTransformations; nt++)
       { fprintf(OutFile,"%s ",SC3D->GTCList[nt]->Tag);

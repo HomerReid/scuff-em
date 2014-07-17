@@ -35,102 +35,134 @@
 #define XIMAX 10.000
 
 /***************************************************************/
-/* CacheRead: attempt to bypass an entire GetXiIntegrand       */
-/* calculation by reading results from the .byXi file.         */
-/* Returns 1 if successful (which means the values of the      */
-/* energy/force/torque integrand for ALL transformations at    */
-/* this value of Xi were successfully read from the file) or 0 */
-/* on failure).                                                */
+/* helper routine for CacheRead that, given a line of text     */
+/* from a cache file, does the following:                      */
+/*  1. checks that the first token on the line matches Tag     */
+/*     and that the next NumbersToMatch tokens match the       */
+/*     corresponding entries of Numbers                        */ 
+/*  2. if (1) failed, returns false                            */
+/*  3. otherwise, fills in Values with the remaining numbers   */
+/*     on the line (up to 4) and returns the number of those   */
+/*     numbers that were successfully read as *NumValues       */
 /***************************************************************/
-int CacheRead(const char *ByXiFileName, SC3Data *SC3D, double Xi, double *EFT)
+bool LineMatches(char *Line, char *Tag, double *Keys, int NumKeys,
+                 double *Values, int *NumValues)
+{
+  char MyTag[1000];
+  double Numbers[7];
+  int nRead=sscanf(Line,"%s %le %le %le %le %le %le %le",
+                         MyTag, Numbers+0, Numbers+1,
+                         Numbers+2, Numbers+3, Numbers+4,
+                         Numbers+5, Numbers+6);
+  
+  if ( nRead < (NumKeys+2) )
+   return false;
+
+  if ( strcasecmp(Tag, MyTag) ) 
+   return false;
+
+  for(int nk=0; nk<NumKeys; nk++)
+   if ( fabs(Numbers[nk]-Keys[nk]) > 1.0e-6*fabs(Keys[nk]) )
+    return false;
+
+  *NumValues = nRead - 1 - NumKeys;
+  for(int nv=0; nv < (*NumValues); nv++)
+   Values[nv] = Numbers[NumKeys + nv];
+
+  return true;
+
+}
+
+/***************************************************************/
+/* CacheRead: attempt to bypass an entire GetXiIntegrand       */
+/* calculation by reading results from the .byXi or .byXikbloch*/
+/* file. Returns true if successful (which means the values of */
+/* the energy/force/torque integrand for ALL transformations   */
+/* at this value of Xi were successfully read from the file)   */
+/* or false on failure.                                        */
+/***************************************************************/
+bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 { 
   if (SC3D->UseExistingData==false)
-   return 0;
+   return false;
 
-  FILE *f;
-  double Q[4];
-  char Line[1000], fTag[1000];
-  double fXi;
-  int nt, ntnq, nRead, FoundFirst;
+  if (    (kBloch==0 && SC3D->G->NumLatticeBasisVectors>0)
+       || (kBloch!=0 && SC3D->G->NumLatticeBasisVectors==0)
+     ) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+
+  /*----------------------------------------------------------*/
+  /*----------------------------------------------------------*/
+  /*----------------------------------------------------------*/
+  int NumKeys = 1 + SC3D->G->NumLatticeBasisVectors;
+  double Keys[3];
+  Keys[0]=Xi;
+  if(NumKeys>=2) Keys[1]=kBloch[0];
+  if(NumKeys>=3) Keys[2]=kBloch[1];
 
   /*----------------------------------------------------------*/
   /* 0. try to open the cache file. --------------------------*/
   /*----------------------------------------------------------*/
-  if ( !(f=fopen(ByXiFileName,"r")) )
-   return 0;
+  FILE *f;
+  if (kBloch)
+   f=fopen(SC3D->ByXiKFileName,"r");
+  else
+   f=fopen(SC3D->ByXiFileName,"r");
+  if (f==0) return false;
 
   /*----------------------------------------------------------*/
+  /* 1. skip down through the cache file until we find a line */
+  /*    whose...                                              */
   /*----------------------------------------------------------*/
-  /*----------------------------------------------------------*/
-  for(;;)
-   {
-     /*----------------------------------------------------------*/
-     /* 1. skip down through the cache file until we find a line */
-     /*    whose Xi and Tag values equal Xi and the first        */
-     /*    tag in the workspace structure.                       */
-     /*----------------------------------------------------------*/
-     FoundFirst=0;
-     while( !FoundFirst && fgets(Line,1000,f) )
-      { sscanf(Line,"%s %le",fTag,&fXi);
-        if ( fabs(fXi-Xi) < 1.0e-8*Xi && !strcmp(fTag,SC3D->GTCList[0]->Tag) )
-         FoundFirst=1;
-      };
-     if ( !FoundFirst ) 
-      { fclose(f); 
-        return 0;
-      };
-   
-     Log(" found (Tag,Xi)=(%s,%e) in cache file...",fTag,Xi);
-   
-     /*----------------------------------------------------------*/
-     /* 2. verify that the line we just read from the cache file */
-     /*    contains data for all the quantities we need          */
-     /*----------------------------------------------------------*/ 
-     nRead=sscanf(Line,"%s %le %le %le %le %le",fTag,&fXi,Q,Q+1,Q+2,Q+3); 
-     if ( nRead != SC3D->NumQuantities+2 )
-      { Log(" ...but number of quantities is wrong (skipping)");
+  double Values[7];
+  int NumValues;
+  int LineNum=0;
+  char Line[1000];
+  char *Tag = SC3D->GTCList[0]->Tag;
+  bool FoundFirst=false;
+  int NQ = SC3D->NumQuantities;
+  while( !FoundFirst && fgets(Line,1000,f) )
+   { LineNum++;
+     if ( !LineMatches(Line,Tag,Keys,NumKeys,Values,&NumValues) )
+      continue;
+     if ( NumValues != NQ )
+      { Log(" found matching (Tag,freqs) on line %i of cache file"
+            " but number of quantities is wrong (%i, %i)",
+            LineNum,NumValues,NQ);
         continue;
       };
-     memcpy(EFT,Q,SC3D->NumQuantities*sizeof(double));
-     ntnq=SC3D->NumQuantities;
+     FoundFirst=true;
+   };
+  if (!FoundFirst)
+   { fclose(f);
+     return false;
+   };
+
+  Log("...found matching dataset on line %i...",LineNum);
+  memcpy(EFT,Values,NQ*sizeof(double));
    
-     /*----------------------------------------------------------*/
-     /* 3. ok, since that worked, now keep going ----------------*/
-     /*----------------------------------------------------------*/
-     for(nt=1; nt<SC3D->NumTransformations; nt++)
-      { 
-        /* check for premature end of file */
-        if ( !fgets(Line,1000,f) )
-         { Log(" ...but data for some transforms were missing (skipping)");
-           break;
-         };
-   
-        nRead=sscanf(Line,"%s %le %le %le %le %le",fTag,&fXi,Q,Q+1,Q+2,Q+3);
-   
-        /* check for incorrect number of quantities */
-        if ( nRead != SC3D->NumQuantities+2 )
-         { Log(" ...but number of quantities is wrong (skipping)");
-           break;
-         };
-   
-        /* check for tag and/or Xi mismatch */
-        if ( fabs(fXi-Xi)>1.0e-8*Xi || strcmp(fTag,SC3D->GTCList[nt]->Tag) )
-         { Log(" ...but tag #%i did not match (%s != %s) (skipping)",
-               nt,fTag,SC3D->GTCList[nt]->Tag);
-           break;
-         };
-   
-        memcpy(EFT+ntnq,Q,SC3D->NumQuantities*sizeof(double));
-        ntnq+=SC3D->NumQuantities;
-      };
-   
-     if (ntnq==SC3D->NTNQ)
-      { Log(" ...and successfully read data for all quantities at all transforms");
+  /*----------------------------------------------------------*/
+  /* 3. ok, since that worked, now keep going ----------------*/
+  /*----------------------------------------------------------*/
+  for(int nt=1; nt<SC3D->NumTransformations; nt++)
+   { 
+     LineNum++;
+     Tag = SC3D->GTCList[nt]->Tag;
+
+     if (    !fgets(Line,1000,f)  
+          || !LineMatches(Line,Tag,Keys,NumKeys,Values,&NumValues) 
+          || (NumValues!=NQ)
+        )
+      { Log(" ...but data for some transforms were missing (line %i) (aborting)",LineNum);
         fclose(f);
-        return 1;
+        return false;
       };
 
+     memcpy(EFT + nt*NQ,Values,NQ*sizeof(double));
    };
+   
+  fclose(f);
+  Log(" ...and successfully read data for all quantities at all transforms");
+  return true;
 
 }
 
@@ -160,18 +192,13 @@ int kBlochIntegrand(unsigned ndim, const double *x, void *params,
 
 /***************************************************************/
 /* get the contribution of a single imaginary angular frequency*/
-/* to the Casimir quantities. For periodic geometries, this    */
-/* means integrating over the Brillouin zone at the Xi value   */
-/* in question.                                                */
+/* to the Casimir quantities. For non-periodic geometries, this*/
+/* involves making a single call to GetCasimirIntegrand. For   */
+/* periodic geometries, this means integrating over the        */
+/* Brillouin zone at the Xi value in question.                 */
 /***************************************************************/
 void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT) 
 {
-  /***************************************************************/
-  /* attempt to bypass calculation by reading data from .byXi file */
-  /***************************************************************/
-  if ( CacheRead(SC3D->ByXiFileName, SC3D, Xi, EFT) )
-   return; 
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -195,13 +222,13 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      /***************************************************************/
      double Lower[2] = {0.0, 0.0};
      double Upper[2] = {0.5, 0.5};
+     double *Error = new double[SC3D->NTNQ];
      if (SC3D->BZICutoff!=0.0)
       { Upper[0]*=SC3D->BZICutoff;
         Upper[1]*=SC3D->BZICutoff;
       };
      
      SC3D->Xi = Xi;
-     double *Error = new double[SC3D->NTNQ];
      if (SC3D->BZIOrder == 0)
       { 
         pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 2, Lower, Upper,
@@ -221,25 +248,25 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
         Error[ntnq] *= 4.0*SC3D->BZVolume;
 
         if ( Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]) )
-         Warn("potentially large errors (Q%i: %.1e %%) in BZ integration",
-               ntnq,Error[ntnq]/fabs(EFT[ntnq]));
+         Warn("potentially large errors (Q%i: %i %%) in BZ integration",
+               ntnq,ceil(100.0*Error[ntnq]/fabs(EFT[ntnq])));
       };
      
+     /***************************************************************/
+     /* write data to .byXi file                                    */
+     /***************************************************************/
+     FILE *f=fopen(SC3D->ByXiFileName,"a");
+     for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
+      { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
+        for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
+         fprintf(f,"%.8e %.8e ",EFT[ntnq],Error[ntnq]);
+        fprintf(f,"\n");
+        fflush(f);
+     };
+     fclose(f);
+
      delete[] Error;
    };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  FILE *f=fopen(SC3D->ByXiFileName,"a");
-  for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
-   { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
-     for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
-      fprintf(f,"%.8e ",EFT[ntnq]);
-     fprintf(f,"\n");
-     fflush(f);
-  };
-  fclose(f);
 
 }
 

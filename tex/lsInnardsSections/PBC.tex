@@ -1,21 +1,19 @@
+\newcommand{\GammaBar}{\overline{\BG}}
+\newcommand{\GBar}{\overline{G}}
+\newcommand{\CBar}{\overline{C}}
 \newcommand{\VBGBar}{\overline{\vb G}}
+\newcommand{\VBCBar}{\overline{\vb C}}
 \newcommand{\KB}{\vb k\subt{B}}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{Periodic Boundary Conditions}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{PBC BEM formulations}
+\section{BEM formulations for PBC bodies}
 
 %=================================================
 %=================================================
 %=================================================
-\subsubsection{Scattered field of an infinite PEC surface}
+\subsection{Scattered field of an infinite PEC surface}
 
 Consider the scattered field produced by an 
 induced surface-current density $\vb K(\vb x)$ on
@@ -50,9 +48,10 @@ If we now suppose that
        and
  \item the surface current respects this periodicity in the 
        Bloch sense, i.e. we have
-       $$ \vb K\sups{inc}(\vb x+\vb L)
-          = e^{i\KB \cdot \vb L} \, \vb K\sups{inc}(\vb x)
-       $$
+       \numeq{KPeriodicity}
+       {\vb K(\vb x+\vb L)
+          = e^{i\KB \cdot \vb L} \, \vb K(\vb x)
+       }
        for some Bloch vector $\KB$
 \end{itemize}
 %====================================================================%
@@ -93,16 +92,20 @@ whose properties we now discuss.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Periodic Green's functions}
+\subsection{Periodic Green's functions}
+
 The dyadic periodic Green's function introduced in 
 (\ref{EScatPBC}) is 
 %====================================================================%
 \begin{align*}
  \VBGBar(\vb x, \vb x^\prime)
 &=\sum_{\vb L} e^{i\KB \cdot \vb L}\vb G(\vb x, \vb x^\prime+\vb L)
+\\
+ \VBGBar(\vb x, \vb x^\prime)
+&=\sum_{\vb L} e^{i\KB \cdot \vb L}\vb G(\vb x-\vb x^\prime-\vb L)
 \intertext{with cartesian components}
  \GBar_{ij}(\vb x, \vb x^\prime)
-&=\sum_{\vb L} e^{i\KB \cdot \vb L}G_{ij}(\vb x, \vb x^\prime+\vb L)
+&=\sum_{\vb L} e^{i\KB \cdot \vb L}G_{ij}(\vb x-\vb x^\prime-\vb L)
 \\
 &=\sum_{\vb L} 
    e^{i\KB \cdot \vb L} 
@@ -127,7 +130,60 @@ summation together with an interpolation-table method
 discussed below.)
 %====================================================================%
 
-\paragraph{Symmetries of $\VBGBar$}
+I will also need the periodic version of the $\vb C$ dyadic
+(or ``MFIE kernel''),
+%====================================================================%
+\begin{align*}
+  \VBCBar(\vb x, \vb x^\prime)
+ &=\sum_{\vb L} e^{i\KB \cdot \vb L}\vb C(\vb x-\vb x^\prime-\vb L)
+\intertext{with components}
+  \CBar_{ij}(\vb x, \vb x^\prime)
+ &=\sum_{\vb L} e^{i\KB \cdot \vb L}C_{ij}(\vb x-\vb x^\prime-\vb L)
+\\
+ &=\frac{1}{ik}\epsilon_{ij\ell} \partial_\ell 
+   \sum_{\vb L} e^{i\KB \cdot \vb L}G_0(\vb x-\vb x^\prime-\vb L).
+\end{align*}
+%====================================================================%
+
+\paragraph{Transpositional symmetries of periodic Green's functions}
+
+The non-periodic $\vb G$ and $\vb C$ dyadics are invariant 
+under simultaneous transposition of indices and inversion of 
+argument:
+%--------------------------------------------------------------------%
+\numeq{GCTranspose}
+{
+  G_{ij}(\vb r) = G_{ji}(-\vb r), \qquad 
+  C_{ij}(\vb r) = C_{ji}(-\vb r).
+}
+%--------------------------------------------------------------------%
+Now consider the implications of this for the periodic dyadics. In
+particular, we write
+%--------------------------------------------------------------------%
+\begin{subequations}
+\begin{align}
+  \GBar_{ij}(\KB; \vb x, \vb x^\prime)
+ &=\sum_{\vb L} e^{i\KB \cdot \vb L}G_{ij}(\vb x-\vb x^\prime-\vb L)
+\nonumber
+\intertext{Use (\ref{GCTranspose}):}
+ &=\sum_{\vb L} e^{i\KB \cdot \vb L}G_{ji}(\vb x^\prime-\vb x^\prime+\vb L)
+\nonumber
+\intertext{Relabel the summation variable according to $\vb L \to -\vb L$:}
+ &=\sum_{\vb L} e^{-i\KB \cdot \vb L}G_{ji}(\vb x^\prime-\vb x-\vb L)
+\nn
+ &=\GBar_{ji}(-\KB; \vb x^\prime, \vb x)
+\intertext{and similarly}
+  \CBar_{ij}(\KB; \vb x, \vb x^\prime)
+&=\CBar_{ji}(-\KB; \vb x^\prime, \vb x).
+\end{align}
+\label{TranspositionSymmetries}
+\end{subequations}
+%--------------------------------------------------------------------%
+Thus the periodic $\vb G$ and $\vb C$ dyadics are invariant
+under simultaneous transposition of indices, interchange of 
+$\vb x,\vb x^\prime$, and inversion of the Bloch vector.
+
+\paragraph{Translational symmetries of periodic Green's functions}
 
 Suppose the lattice basis vectors are $\vb L_1, \vb L_2$.
 Then we can write the sum that defines the scalar periodic Green's
@@ -166,7 +222,7 @@ $$
 %=================================================
 %=================================================
 %=================================================
-\subsubsection{Discretized EFIE formulation}
+\subsection{Discretized EFIE formulation}
 
 Now consider solving for $\vb K(\vb x)$ in the presence
 of illumination by an external Bloch-periodic 
@@ -203,7 +259,9 @@ $\{\vb b_\alpha\}$ yields a discretized PBC EFIE:
 %====================================================================%
 In other words, we obtain a formulation that looks exactly
 like the formulation for compact objects, with the only
-difference being 
+difference being that the elements of the BEM matrix
+involve the $\VBGBar$ kernel in place of the usual 
+$\vb G$ dyadic Green's function.
 
 Note that the testing procedure that leads to 
 (\ref{PBCEFIE}) is only testing the satisfaction
@@ -216,7 +274,60 @@ implies its satisfaction everywhere.
 %=================================================
 %=================================================
 %=================================================
-\subsection{PBC geometries in {\sc scuff-em}}
+\subsection{Symmetries of the PBC BEM matrix}
+
+For a PEC structure, the $\alpha,\beta$ element of 
+the BEM matrix is 
+%--------------------------------------------------------------------%
+\begin{align*}
+ M_{\alpha\beta}(\KB)
+&= ik\Big \langle \vb b_\alpha \Big|
+    \VBGBar(\KB)
+   \Big| \vb b_\beta \Big\rangle
+\\
+&= ik\int 
+   \Big\{ 
+   b_{\alpha i}(\vb x_\alpha) 
+   \underbrace{\GBar_{ij}(\KB; \vb x_\alpha , \vb x_\beta)}
+             _{=\GBar_{ji}(-\KB; \vb x_\beta , \vb x_\alpha )}
+   b_{\beta j}(\vb x_\beta) 
+   \Big\}\, d\vb x_\alpha d\vb x_\beta
+\\
+&= ik\Big \langle \vb b_\beta\Big|
+    \VBGBar(-\KB)
+   \Big| \vb b_\alpha\Big\rangle
+\\
+&=M_{\beta\alpha}(-\KB)
+\end{align*}
+%--------------------------------------------------------------------%
+where we used equation (\ref{TranspositionSymmetries}a). 
+For a dielectric structure, the matrix elements also involve
+inner products with $\VBCBar$ dyadics, but since $\VBCBar$ satisfies
+the same symmetry as $\VBGBar$ (\ref{TranpositionSymmetry}b), 
+a similar equation holds in that case.
+
+Thus in general for both PEC and non-PEC BEM matrices we have
+\numeq{PBCMatrixTranspose}
+{\vb M(\KB) = \Big[ \vb M(-\KB) \Big]^T}
+where $T$ denotes the \textit{non-conjugate} transpose.
+
+\subsubsection*{Symmetries in the imaginary frequency case}
+
+For equilibrium Casimir computations we need elements
+of the BEM matrix at imaginary frequencies. 
+%====================================================================%
+$$ \vb M(i\xi, \KB) = \vb M(i\xi, \KB)^\dagger $$
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{PBC geometries in {\sc scuff-em}}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Overview}
 
 \lss supports Bloch-periodic boundary conditions for
 periodically repeated geometries. In this case,
@@ -245,7 +356,10 @@ periodically repeated geometries. In this case,
        $\KB$ is the Bloch wavevector.
 \end{itemize}
 
-\subsubsection{Straddlers}
+%=================================================
+%=================================================
+%=================================================
+\subsection{Straddlers}
 
 Suppose we are trying to mesh the unit cell
 of a square-lattice geometry.
@@ -302,7 +416,10 @@ This is illustrated in Figure \ref{StraddlerFigure}.
 \end{figure}
 %####################################################################%
 
-\subsubsection{Evaluation of surface currents within the unit cell}
+%=================================================
+%=================================================
+%=================================================
+\subsection{Evaluation of surface currents within the unit cell}
 
 When evaluating the $\vb K$ and $\vb N$ surface-current 
 distributions at panels that border the upper or right edges 
@@ -310,12 +427,25 @@ of the unit-cell mesh, we have to be careful to account for the
 contribution of straddlers. 
 
 For example, consider evaluating the electric surface current at 
-points $\vb x$ inside panel $\mc P_9$ in Figure (??) %\ref{Mesh3x3}.
+oints $\vb x$ inside panel $\mc P_{24}$ in Figure \ref{StraddlerFigure}.
 There are three RWG basis functions that contribute to the current
-at this point: $\vb b_7$, $\vb b_9,$ and the periodic image of 
-$\vb b_2$:
+at this point: the functions associated with edges 29 and 42,
+and the periodic image of the function associated with edge 40.
+Thus we compute
+%====================================================================%
+$$ \vb K(\vb x) 
+   =   k_{29} \vb b_{29}(\vb x) + k_{42} \vb b_{42}(\vb x) 
+     + e^{i \KB \cdot \vb L_1} k_{40} \vb b_{40}(\vb x-\vb L_1)
+$$
+%====================================================================%
+where $\vb L_1$ is the lattice basis vector through which we
+translate points in panel 32 to yield points in panel 24.
+[In this case we have $\vb L_1=(1,0).$]
 
-\subsubsection{Relations between BEM matrix elements}
+%=================================================
+%=================================================
+%=================================================
+\subsection{Relations between BEM matrix elements}
 
 Looking at Figure \ref{StraddlerFigure}, it seems 
 obvious that BEM matrix elements between the pair of 
@@ -327,29 +457,173 @@ true even if we \textit{weren't} talking about
 periodic geometries.)
 
 Slightly less obvious is that matrix elements between
-the pair $\{\vb b_6, \vb b_18\}$ will \textit{also}
+the pair $\{\vb b_6, \vb b_{18}\}$ will \textit{also}
 be related to matrix elements between the above two
 pairs---in fact, the elements will be \textit{identical}
 for $\KB=0$ and will differ by only a phase factor
 for $\KB\ne 0$. Let's now derive this relationship.
 
-Let $\vb L$ be a lattice vector and suppose
-$\{\vb b_\alpha, \vb b_\beta\}$ and
-$\{\vb b_{\alpha^\prime}, \vb b_{\beta^\prime}\}$
-are two RWG basis functions that are identical except 
-for translation through $\vb L$, i.e. we have
-%====================================================================%
-\numeq{DisplacedRWG}
- { \vb b_\beta(\vb x) = \vb b_\beta^\prime(\vb x - \vb L).
- }
-%====================================================================%
-Examples of basis-function pairs in the mesh of Figure 
-\ref{StraddlerFigure}, for which this condition is satisfied 
-include
-$$\begin{array}{lclclcl}
-  \beta&=&2, \qquad \beta^\prime
+Let $\vb L$ be a lattice vector and 
+let 
+$\{\vb b_{\alpha}, \vb b_{\beta}\}$
+and 
+$\{\vb b_{\alpha^\prime}, \vb b_{\beta^\prime}\}$ 
+be two pairs of RWG basis functions for which the 
+displacement between centroids differs by $\vb L$.
+That is, we have 
+$$ \vb x_{0\beta}-\vb x_{0\alpha}
+   =
+   \vb x_{0\beta^\prime}-\vb x_{0\alpha^\prime} + \vb L
+$$
+where e.g. $\vb x_{0\beta}$ denotes the centroid of 
+the support of $\vb b_\beta$.
+Examples of basis-function pairs in the mesh of 
+Figure \ref{StraddlerFigure} for which this condition
+is satisfied include
+$$\begin{array}{lclclclclcl}
+  (\alpha,\beta)&=&(4,27),  
+  &\qquad
+  (\alpha^\prime,\beta^\prime)&=&(6,18), 
+  &\qquad
+  \vb L &=& (0,1)
+\\[5pt]
+  (\alpha,\beta)&=&(0,32),
+  &\qquad
+  (\alpha^\prime,\beta^\prime)&=&(7,2), 
+  &\qquad
+  \vb L &=& (1,0).
   \end{array}
 $$
 
-\begin{align*}
-\end{align*}
+%=================================================
+%=================================================
+%=================================================
+\subsection{Assembly of BEM matrix blocks}
+
+For a geometry in which the unit cell contains $N$ 
+surfaces, the BEM matrix at Bloch wavevector $\KB$ 
+has the structure
+%====================================================================%
+$$ \vb M(\KB)
+ =\left(\begin{array}{cccc}
+  \vb T_1(\KB)    & \vb U_{12}(\KB) & \cdots & \vb U_{1N}(\KB) \\[3pt]
+  \vb U_{21}(\KB) & \vb T_2(\KB)    & \cdots & \vb U_{2N}(\KB) \\[3pt]
+  \vdots          & \vdots          & \ddots & \vdots      \\[3pt]
+  \vb U_{N1}(\KB) & \vb U_{N2}(\KB) & \cdots & \vb T_{N}(\KB)
+  \end{array}\right)
+$$
+%====================================================================%
+where $\vb U_{mn}$ describes the interaction of surfaces $m$
+and $n$ and $\vb T_m$ describes the self-interaction of
+surface $m$.
+
+\subsubsection*{Off-diagonal blocks}
+
+The off-diagonal blocks have the structure
+
+%--------------------------------------------------------------------%
+\begin{align}
+\vb U_{mn}(\KB)
+ =   &\vb U_{mn}\supt{00}
+\label{UmnDecomposition}\\
+   & + e^{ i \KB \cdot \vb L_1} \vb U_{mn}^{+0}
+     + e^{-i \KB \cdot \vb L_1} \vb U_{mn}^{-0}
+\nn
+   & + e^{ i \KB \cdot \vb L_2} \vb U_{mn}^{0+}
+     + e^{-i \KB \cdot \vb L_2} \vb U_{mn}^{0-}
+\nn
+   & + e^{ i \KB \cdot (\vb L_1+\vb L_2)} \vb U_{mn}^{++}
+     + e^{-i \KB \cdot (\vb L_1+\vb L_2)} \vb U_{mn}^{--}
+\nn
+   & + e^{ i \KB \cdot (\vb L_1-\vb L_2)} \vb U_{mn}^{+-}
+     + e^{-i \KB \cdot (\vb L_1-\vb L_2)} \vb U_{mn}^{-+}
+\nn
+   & + \vb U_{mn}\supt{AB9}(\KB).
+\nonumber
+\end{align}
+%--------------------------------------------------------------------%
+In this equation, $\vb U_{mn}^{\sigma \sigma^\prime}$ is the usual 
+(non-periodic) matrix describing the interaction of surface $m$ 
+with a \textit{displaced} copy of surface $n$; the displacement 
+is through displacement vector $\sigma \vb L_1 + \sigma^\prime \vb L_2$
+where $\sigma,\sigma^\prime \in \{-1,0,1\}.$ 
+On the other hand, $\vb U_{mn}\supt{AB9}$ represents the interaction
+of surface $m$ with the infinite set of Bloch-phased 
+and displaced copies of surface $n$ \textit{excluding} the contribution
+of the innermost 9 grid cells (``AB9'' stands for ``all but 9.'')
+
+The point of the decomposition (\ref{UmnDecomposition}) is that 
+the matrix blocks $\vb U_{mn}^{\sigma\sigma^\prime}$ are 
+\textit{independent of $\KB$} and hence need only be computed 
+once at a given angular frequency, after which they may be reused
+for any number of calculations at different points in the Brillouin
+zone. 
+
+In {\sc scuff-em}, the $\KB$-independent matrix blocks 
+$\vb U_{mn}^{\sigma\sigma^\prime}$ are computed using the ordinary
+algorithm for assembling the blocks of the BEM matrix 
+for ordinary (non-periodic) geometries. An advantage of this
+is that singular integrals involving the interaction
+of basis functions with 
+
+
+\subsubsection*{Transposes of off-diagonal blocks}
+
+Once we have computed the 
+$\vb U_{mn}^{\sigma\sigma^\prime}$ blocks for the $mn$ block of 
+the BEM, we may re-use them to compute the $nm$ block, as follows 
+based on equation (\ref{PBCMatrixTranspose}):
+%--------------------------------------------------------------------%
+\begin{align}
+\vb U_{nm}(\KB) 
+=  &\Big[\vb U_{mn}(-\KB)\Big]^T 
+\\
+=  &\Big[\vb U_{mn}\supt{00}]^T
+\\
+   & + e^{ -i \KB \cdot \vb L_1} \Big[\vb U_{mn}^{+0}\Big]^T
+     + e^{  i \KB \cdot \vb L_1} \Big[\vb U_{mn}^{-0}\Big]^T
+\nn
+   & + e^{ -i \KB \cdot \vb L_2} \Big[\vb U_{mn}^{0+}\Big]^T
+     + e^{ +i \KB \cdot \vb L_2} \Big[\vb U_{mn}^{0-}\Big]^T
+\nn
+   & + e^{ -i \KB \cdot (\vb L_1+\vb L_2)} \Big[\vb U_{mn}^{++}\Big]^T
+     + e^{ +i \KB \cdot (\vb L_1+\vb L_2)} \Big[\vb U_{mn}^{--}\Big]^T
+\nn
+   & + e^{ -i \KB \cdot (\vb L_1-\vb L_2)} \Big[\vb U_{mn}^{+-}\Big]^T
+     + e^{ +i \KB \cdot (\vb L_1-\vb L_2)} \Big[\vb U_{mn}^{-+}\Big]^T
+\nn
+   & + \vb U_{nm}\supt{AB9}(\KB).
+\nonumber
+\end{align}
+%--------------------------------------------------------------------%
+
+\subsubsection*{Diagonal blocks}
+
+For the diagonal blocks there are additional symmetries, e.g.
+$ \vb T_{m}^{--} = \Big[\vb T_{m}^{++}\Big]^T, $
+and hence the equivalent of (\ref{UmnDecomposition}) reads 
+%--------------------------------------------------------------------%
+\begin{align}
+\vb T_{m}(\KB)
+ =   &\vb T_{m}\supt{00}
+\label{TmDecomposition}\\
+   & + e^{ i \KB \cdot \vb L_1} \vb T_{m}^{+0}
+     + e^{-i \KB \cdot \vb L_1} \Big[\vb T_{m}^{+0}\Big]^T
+\nn
+   & + e^{ i \KB \cdot \vb L_2} \vb T_{m}^{0+}
+     + e^{-i \KB \cdot \vb L_2} \Big[\vb T_{m}^{0+}\Big]^T
+\nn
+   & + e^{ i \KB \cdot (\vb L_1+\vb L_2)} \vb T_{m}^{++}
+     + e^{-i \KB \cdot (\vb L_1+\vb L_2)} \Big[ \vb T_{m}^{++}\Big]^T
+\nn
+   & + e^{ i \KB \cdot (\vb L_1-\vb L_2)} \vb T_{m}^{+-}
+     + e^{-i \KB \cdot (\vb L_1-\vb L_2)} \Big[ \vb T_{m}^{+-}\Big]^T
+\nn
+   & + \vb T_{m}\supt{AB9}(\KB).
+\nonumber
+\end{align}
+%--------------------------------------------------------------------%
+Hence to assemble $\vb T(\KB)$ we need only compute and
+store 5 $\KB$-independent blocks $\vb T^{\sigma \sigma^\prime}$
+instead of the 9 $\KB$-independent blocks required to assemble
+$\vb U(\KB)$.

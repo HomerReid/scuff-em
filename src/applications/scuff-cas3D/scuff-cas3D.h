@@ -52,38 +52,41 @@ typedef struct SC3Data
  {
    RWGGeometry *G;
 
+   int WhichQuantities;
+   int NumQuantities;
+   int NTNQ;
+
+   // storage for BEM matrix blocks
    int N, N1;
    HMatrix **TBlocks, **UBlocks, **dUBlocks, *M, *dM;
    int *ipiv;
    HVector *MInfLUDiagonal;
 
-   int WhichQuantities;
-   int NumQuantities;
-
+   // storage for 3x3 gamma matrices describing rotation
+   // information for torque calculations
    int NumTorqueAxes;      // this number is in the range 0--3
    double TorqueAxes[9];   // [0,1,2] = x,y,z comps of 1st torque axis; [3,4,5] = 2nd axis, etc
    double GammaMatrix[27];
 
-   double RLBasisVectors[2][2]; // reciprocal-lattice basis vectors
-   double BZVolume;             // volume (really area) of the brillouin zone
-
+   // data on geometrical transformations
    GTComplex **GTCList;
    int NumTransformations;
 
-   int NTNQ;
+   // items relevant for extended (periodic) geometries
+   double RLBasisVectors[2][2]; // reciprocal-lattice basis vectors
+   double BZVolume;             // brillouin zone volume
+   int BZIOrder;
+   double BZICutoff;
+   bool BZSymmetry;
+   double *BZIValues;
 
    int *Converged;
 
    double Xi;
 
-   int BZIOrder;
-   double BZICutoff;
-   bool BZSymmetry;
-   char *ByXiFileName, *ByXikBlochFileName;
-   char *WriteCache;
-   double *BZIValues;
+   char *ByXiFileName, *ByXiKFileName, *OutFileName;
 
-   // these quantities are used to set limits for adaptive frequency integrations
+   // adaptive frequency integration limits
    int MaxXiPoints, MaxkBlochPoints;
    double AbsTol, RelTol;
 
@@ -91,16 +94,19 @@ typedef struct SC3Data
    bool NewEnergyMethod;
    HMatrix *MM1MInf;
 
+   // various other miscellaneous items
    bool UseExistingData;
+   char *WriteCache;
 
  } SC3Data;
 
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
                        int NumTorqueAxes, double TorqueAxes[9],
-                       bool NewEnergyMethod, char *BZIMethod);
+                       bool NewEnergyMethod, char *BZIMethod,
+                       char *FileBase);
 
-void WriteFilePreamble(FILE *f, SC3Data *SC3D, int PreambleType);
+void WriteFilePreamble(SC3Data *SC3D, int PreambleType);
 
 /***************************************************************/
 /* The total Casimir energy (or force, or torque) is an        */
@@ -127,5 +133,7 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT);
 void GetXiIntegral(SC3Data *SC3D, double *EFT, double *Error);
 void GetXiIntegral2(SC3Data *SC3D, int NumIntervals, double *I, double *E);
 void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Error);
+
+bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT);
 
 #endif // #define SCUFFCAS3D_H
