@@ -279,7 +279,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /***************************************************************/
   if (    nsa==nsb 
        && NumLatticeBasisVectors==0
-       && TBlockCacheOp(TBCOP_READ,this,nsa,Omega, M,RowOffset,ColOffset)
+       && TBlockCacheOp(TBCOP_READ,this,nsa,Omega,M,RowOffset,ColOffset)
      ) return;
 
   /***************************************************************/

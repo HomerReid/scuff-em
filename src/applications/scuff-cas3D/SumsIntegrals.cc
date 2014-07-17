@@ -322,22 +322,12 @@ void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Err
      /* how it works: the matsubara sum is                          */
      /*  2\pi kT *  \sum_n^\prime F(\xi_n)                          */
      /* where \xi_n is the nth matsubara frequency and F(\xi) is    */
-     /* the casimir integrand (and the primed sum means that the    */
-     /* n==0 term is weighted with a factor of 1/2).                */
-     /*                                                             */
-     /* however, my GetXiIntegrand() routine returns the quantity   */
-     /* FI = F(\xi_n) / (2\pi). (this is so that the integral of FI */
-     /* over all \xi returns the correct casimir quantity with no   */
-     /* additional multiplicative prefactors.)                      */
-     /*                                                             */
-     /* thus the matsubara sum is                                   */
-     /*  4\pi^2 kT *  \sum_n^\prime FI(\xi_n)                       */
-     /*                                                             */
-     /* where FI is what is returned by GetXiIntegrand.             */
+     /* the Casimir integrand, defined such that \int F(\xi) d\xi   */
+     /* gives full zero-temperature force with no extra prefactors. */
      /***************************************************************/
      memcpy(LastEFT,EFT,NTNQ*sizeof(double));
      for(ntnq=0; ntnq<NTNQ; ntnq++)
-      EFT[ntnq] += Weight * 4.0*M_PI*M_PI* kT * dEFT[ntnq];
+      EFT[ntnq] += Weight * 2.0*M_PI * kT * dEFT[ntnq];
 
      /*********************************************************************/
      /* convergence analysis.                                             */
