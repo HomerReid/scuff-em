@@ -18,12 +18,9 @@
  */
 
 /*
- * unit-test-compactMatrix.cc -- SCUFF-EM unit test for the full BEM 
- *                               matrix of a geometry consisting of 
- *                               compact objects (two spheres in    
- *                               this case)
+ * unit-test-BEMMatrix.cc -- SCUFF-EM unit test for the full BEM matrix
  * 
- * homer reid        -- 11/2005 -- 10/2011
+ * homer reid             -- 11/2005 -- 10/2011
  *
  */
 #include <stdio.h>
@@ -37,138 +34,252 @@
 
 using namespace scuff;
 
+#define HDF5_FILENAME "unit-test-BEMMatrix.hdf5"
+
+#define TESTNAME1  "PEC sphere, low real frequency"
+#define TESTNAME2  "PEC sphere, medium real frequency"
+#define TESTNAME3  "PEC sphere, imaginary frequency"
+#define TESTNAME4  "Dielectric sphere, low real frequency"
+#define TESTNAME5  "Dielectric sphere, medium real frequency"
+#define TESTNAME6  "Dielectric sphere, imaginary frequency"
+#define TESTNAME7  "Two dielectric spheres"
+#define TESTNAME8  "Extended PEC plate, kBloch=0"
+#define TESTNAME9  "Extended PEC plate, kBloch!=0"
+#define TESTNAME10 "Extended dielectric slab, kBloch=0"
+#define TESTNAME11 "Extended dielectric slab, kBloch!=0"
+#define TESTNAME12 "Sphere slab array"
+#define NUMTESTS   12 
+
+#define II cdouble(0.0,1.0)
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void CompareMatrices(HMatrix *M, HMatrix *MRef,
+                     double *AvgRelError, double *MismatchRate)
+{ 
+  int Mismatches=0;
+  double TotalRelError=0.0;
+  for(int nr=0; nr<M->NR; nr++)
+   for(int nc=nr; nc<M->NC; nc++)
+    {  
+      cdouble m      = M->GetEntry(nr,nc);
+      cdouble mRef   = MRef->GetEntry(nr,nc);
+      double Scale   = abs(mRef);
+      if (Scale==0.0) Scale=1.0;
+      TotalRelError  +=  abs(m-mRef) / Scale;
+      if ( !EqualFloat(m, mRef) ) Mismatches++;
+    };
+  int NumEntries = M->NR * M->NC;
+  *AvgRelError = TotalRelError / ((double)NumEntries);
+  *MismatchRate = ((double)Mismatches) / ((double)NumEntries);
+
+}
+ 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 int main(int argc, char *argv[])
 { 
-  SetLogFileName("scuff-unit-tests.log");
-  Log("SCUFF-EM compact matrix unit test running on %s",GetHostName());
+  SetLogFileName("scuff-test-BEMMatrix.log");
+  Log("SCUFF-EM BEM matrix unit test running on %s",GetHostName());
  
   /*--------------------------------------------------------------*/
-  /*- use the --WriteFiles option to create the .hdf5 files that  */
+  /*- Use the --WriteFiles option to create the .hdf5 files that  */
   /*- are used as the comparison for subsequent runs.             */
-  /*-                                                             */
-  /*- when --WriteFiles is specified, the code automatically      */
-  /*- writes out the scuff cache to a file named TwoSpheres.cache.*/
-  /*-                                                             */
-  /*- on subsequent runs, you can use the --UseCache option to    */
-  /*- tell the code to use the cache; if this option is absent,   */
-  /*- the code will not use the cache file even if it is present  */
-  /*- in the working directory.                                   */
   /*--------------------------------------------------------------*/
-  bool WriteFiles=0;
-  bool UseCache=0;
+  bool WriteFiles=false;
+  bool Test1=false, Test2=false,  Test3=false, Test4=false;
+  bool Test5=false, Test6=false,  Test7=false, Test8=false;
+  bool Test9=false, Test10=false, Test11=false, Test12=false;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
-   { {"WriteFiles", PA_BOOL, 0, 1, (void *)&WriteFiles,  0,  "write .hdf5 files"},
-     {"UseCache",   PA_BOOL, 0, 1, (void *)&UseCache,    0,  "use cache file"},
+   { 
+     {"Test1",     PA_BOOL, 0, 1, (void *)&Test1,     0, TESTNAME1},
+     {"Test2",     PA_BOOL, 0, 1, (void *)&Test2,     0, TESTNAME2},
+     {"Test3",     PA_BOOL, 0, 1, (void *)&Test3,     0, TESTNAME3},
+     {"Test4",     PA_BOOL, 0, 1, (void *)&Test4,     0, TESTNAME4},
+     {"Test5",     PA_BOOL, 0, 1, (void *)&Test5,     0, TESTNAME5},
+     {"Test6",     PA_BOOL, 0, 1, (void *)&Test6,     0, TESTNAME6},
+     {"Test7",     PA_BOOL, 0, 1, (void *)&Test7,     0, TESTNAME7},
+     {"Test8",     PA_BOOL, 0, 1, (void *)&Test8,     0, TESTNAME8},
+     {"Test9",     PA_BOOL, 0, 1, (void *)&Test9,     0, TESTNAME9},
+     {"Test10",    PA_BOOL, 0, 1, (void *)&Test10,    0, TESTNAME10},
+     {"Test11",    PA_BOOL, 0, 1, (void *)&Test11,    0, TESTNAME11},
+     {"Test12",    PA_BOOL, 0, 1, (void *)&Test12,    0, TESTNAME12},
+     {"Reference", PA_BOOL, 0, 1, (void *)&WriteFiles, 0, "write reference .hdf5 file"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGGeometry *G = new RWGGeometry("TwoSpheres_414.scuffgeo");
-  G->SetLogLevel(SCUFF_VERBOSELOGGING);
-  HMatrix *M = G->AllocateBEMMatrix();
-  double Elapsed;
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  bool AllTests = (argc==1);
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  const char *GeoFileNames[NUMTESTS];
+  cdouble Omega[NUMTESTS];
+  double kBloch[NUMTESTS][2];
+  const char *MNames[NUMTESTS];
+  const char *TestNames[NUMTESTS];
+  int NumTests=0;
+
+  if ( Test1 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "PECSphere_255.scuffgeo";
+     Omega[NumTests]        = 0.01;
+     MNames[NumTests]       = "M_PECSphere_w0P01";
+     TestNames[NumTests]    = TESTNAME1;
+     NumTests++;
+   };
+  if ( Test2 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "PECSphere_255.scuffgeo";
+     Omega[NumTests]        = 1.0;
+     MNames[NumTests]       = "M_PECSphere_w1P0";
+     TestNames[NumTests]    = TESTNAME2;
+     NumTests++;
+   };
+  if ( Test3 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "PECSphere_255.scuffgeo";
+     Omega[NumTests]        = 0.1*II;
+     MNames[NumTests]       = "M_PECSphere_w0P1I";
+     TestNames[NumTests]    = TESTNAME3;
+     NumTests++;
+   };
+  if ( Test4 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "SiSphere_255.scuffgeo";
+     Omega[NumTests]        = 0.01;
+     MNames[NumTests]       = "M_SiSphere_w0P01";
+     TestNames[NumTests]    = TESTNAME4;
+     NumTests++;
+   };
+  if ( Test5 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "SiSphere_255.scuffgeo";
+     Omega[NumTests]        = 1.0;
+     MNames[NumTests]       = "M_SiSphere_w1P0";
+     TestNames[NumTests]    = TESTNAME5;
+     NumTests++;
+   };
+  if ( Test6 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "SiSphere_255.scuffgeo";
+     Omega[NumTests]        = 0.1*II;
+     MNames[NumTests]       = "M_SiSphere_w0P1I";
+     TestNames[NumTests]    = TESTNAME6;
+     NumTests++;
+   };
+  if ( Test7 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "SiSpheres_255.scuffgeo";
+     Omega[NumTests]        = 0.1;
+     MNames[NumTests]       = "M_SiSpheres_w0P1";
+     TestNames[NumTests]    = TESTNAME7;
+     NumTests++;
+   };
+  if ( Test8 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "PECPlate_40.scuffgeo";
+     Omega[NumTests]        = 0.1;
+     kBloch[NumTests][0]    = 0.0;
+     kBloch[NumTests][1]    = 0.0;
+     MNames[NumTests]       = "M_PECPlate_w0P1_KZ";
+     TestNames[NumTests]    = TESTNAME8;
+     NumTests++;
+   };
+  if ( Test9 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "PECPlate_40.scuffgeo";
+     Omega[NumTests]        = 1.1;
+     kBloch[NumTests][0]    = 0.7;
+     kBloch[NumTests][1]    = 0.9;
+     MNames[NumTests]       = "M_PECPlate_w1P1_KNZ";
+     TestNames[NumTests]    = TESTNAME9;
+     NumTests++;
+   };
+  if ( Test10 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "SiSlab_40.scuffgeo";
+     Omega[NumTests]        = 0.1;
+     kBloch[NumTests][0]    = 0.0;
+     kBloch[NumTests][1]    = 0.0;
+     MNames[NumTests]       = "M_SiSlab_w0P1_KZ";
+     TestNames[NumTests]    = TESTNAME10;
+     NumTests++;
+   };
+  if ( Test11 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "SiSlab_40.scuffgeo";
+     Omega[NumTests]        = 1.1;
+     kBloch[NumTests][0]    = 0.7;
+     kBloch[NumTests][1]    = 0.9;
+     MNames[NumTests]       = "M_SiSlab_w1P1_KZ";
+     TestNames[NumTests]    = TESTNAME11;
+     NumTests++;
+   };
+  if ( Test12 || AllTests || WriteFiles)
+   { GeoFileNames[NumTests] = "SphereSlabArray.scuffgeo";
+     Omega[NumTests]        = 1.1;
+     kBloch[NumTests][0]    = 0.7;
+     kBloch[NumTests][1]    = 0.9;
+     MNames[NumTests]       = "M_SphereSlabArray";
+     TestNames[NumTests]    = TESTNAME12;
+     NumTests++;
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  void *pHC = 0;
   if (WriteFiles)
-   { 
-     void *pCC = HMatrix::OpenHDF5Context("TwoSpheres_414.hdf5");
-   
-     printf("Assembling BEM matrix at Omega = 0.05...\n");
-     Tic();
-     G->AssembleBEMMatrix( cdouble(0.05, 0.0), M );
-     Elapsed=Toc();
-     printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
-     M->ExportToHDF5(pCC,"M0P05");
-     StoreCache("TwoSpheres_414.cache");
-   
-     printf("Assembling BEM matrix at Omega = 5+5I...\n");
-     Tic();
-     G->AssembleBEMMatrix( cdouble(5.00, 5.00), M );
-     Elapsed=Toc();
-     printf("...done in %.1f s; exporting to HDF5\n",Elapsed);
-     M->ExportToHDF5(pCC,"M5P5I");
-
-     HMatrix::CloseHDF5Context(pCC);
-
-     StoreCache("TwoSpheres_414.cache");
-
+   { pHC = HMatrix::OpenHDF5Context(HDF5_FILENAME);
+     if (pHC==0)
+      ErrExit("could not open reference file %s",HDF5_FILENAME);
    }
   else
-   {
-     if (UseCache)
-      PreloadCache("TwoSpheres_414.cache");
+   { FILE *f=fopen(HDF5_FILENAME,"r");
+     if (f) 
+      fclose(f);
+     else
+      ErrExit("could not open reference file %s",HDF5_FILENAME);
+   };
 
-     /***************************************************************/
-     /* assemble and compare at omega=0.05 **************************/
-     /***************************************************************/
-     HMatrix *MRef = new HMatrix("TwoSpheres_414.hdf5",LHM_HDF5,"M0P05");
-     if (MRef->ErrMsg)
-      ErrExit(MRef->ErrMsg);
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  bool Success=true;
+  for(int nt=0; nt<NumTests; nt++)
+   { 
+     RWGGeometry *G = new RWGGeometry(GeoFileNames[nt]);
+     HMatrix *M = G->AllocateBEMMatrix();
+     printf("Test %i (%s): \n",nt,TestNames[nt]);
 
-     printf("Assembling BEM matrix at Omega = 0.05...\n");
-     Tic();
-     G->AssembleBEMMatrix( cdouble(0.05, 0.0), M );
-     Elapsed=Toc();
-     printf("...done in %.0f s.\n",Elapsed);
+     if (G->NumLatticeBasisVectors==0)
+      G->AssembleBEMMatrix(Omega[nt], M);
+     else
+      G->AssembleBEMMatrix(Omega[nt], kBloch[nt], M);
 
-     printf("Comparing to reference...");
-     int Mismatches=0;
-     for(int nr=0; nr<M->NR; nr++)
-      for(int nc=nr; nc<M->NC; nc++)
-       if ( !EqualFloat(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) )
-        { 
-          Mismatches++;
-          Warn("MISMATCH(%i,%i): (%.8e,%.8e)--(%.8e,%.8e) (%.1e)\n",nr,nc,
-                real(M->GetEntry(nr,nc)),    imag(M->GetEntry(nr,nc)),
-                real(MRef->GetEntry(nr,nc)), imag(MRef->GetEntry(nr,nc)), 
-                RD(M->GetEntry(nr,nc),MRef->GetEntry(nr,nc)));
-          if (Mismatches>10)
-           ErrExit("too many mismatches");
-        };
-      printf("%i mismatches.\n",Mismatches);
-      printf("\n");
-      
+     if (WriteFiles)
+      M->ExportToHDF5(pHC, MNames[nt]);
+     else
+      { HMatrix *MRef = G->AllocateBEMMatrix();
+        MRef->ImportFromHDF5(HDF5_FILENAME, MNames[nt]);
+        if (MRef->ErrMsg)
+         Warn("could not find matrix %s in %s (skipping test)",
+               MNames[nt],HDF5_FILENAME);
+        double AvgRelError, MismatchRate;
+        CompareMatrices(M, MRef, &AvgRelError, &MismatchRate);
+        if ( AvgRelError>1.0e-6 || MismatchRate>0.1 )
+         { Success=false;       
+           printf(" PASSED ");
+         }
+        else
+         printf(" FAILED ");
+        printf(" (AvgRelErr = %.1e, Mismatch rate = %.g %%)\n",
+                 AvgRelError, 100.0*MismatchRate);
+        delete MRef;
+      };
+     delete M;
+   };
 
-     /***************************************************************/
-     /* assemble and compare at Omega=5+5i **************************/
-     /***************************************************************/
-     MRef = new HMatrix("TwoSpheres_414.hdf5",LHM_HDF5,"M5P5I");
-     if (MRef->ErrMsg)
-      ErrExit(MRef->ErrMsg);
+  if (WriteFiles)
+   HMatrix::CloseHDF5Context(pHC);
 
-     printf("Assembling BEM matrix at Omega = 5+5i...\n");
-     Tic();
-     G->AssembleBEMMatrix( cdouble(5.00, 5.00), M );
-     Elapsed=Toc();
-     printf("...done in %.0f s.\n",Elapsed);
-
-     printf("Comparing to reference...");
-     for(int nr=0; nr<M->NR; nr++)
-      for(int nc=nr; nc<M->NC; nc++)
-       if ( !EqualFloat(M->GetEntry(nr,nc), MRef->GetEntry(nr,nc)) )
-        { 
-          Mismatches++;
-          Warn("MISMATCH(%i,%i): (%.8e,%.8e)--(%.8e,%.8e) (%.1e)\n",nr,nc,
-                real(M->GetEntry(nr,nc)),    imag(M->GetEntry(nr,nc)),
-                real(MRef->GetEntry(nr,nc)), imag(MRef->GetEntry(nr,nc)), 
-                RD(M->GetEntry(nr,nc),MRef->GetEntry(nr,nc)));
-          if (Mismatches>10)
-           ErrExit("too many mismatches");
-        };
-      printf("%i mismatches.\n",Mismatches);
-
-   }; // if (WriteFiles) ... else 
-
-  printf("All tests successfully passed.\n");
-  return 0;
+  if (Success) 
+   exit(0);
+  else
+   exit(1);
 
 }
