@@ -1,6 +1,7 @@
 bin_PROGRAMS = scuff-neq
 
 scuff_neq_SOURCES = 		\
+ PlotFlux.cc            	\
  GetFlux.cc             	\
  CreateSNEQData.cc       	\
  CCRules.h             		\

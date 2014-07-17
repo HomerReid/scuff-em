@@ -1,19 +1,29 @@
+#
+# intrinsic (undoped) silicon
+#
+MATERIAL SILICON
+    epsf = 1.035;      # \epsilon_infinity
+    eps0 = 11.87;      # \epsilon_0 
+    wp = 6.6e15;       # \plasmon frequency
+    Eps(w) = epsf + (eps0-epsf)/(1-(w/wp)^2);
+ENDMATERIAL
+
 LATTICE 
 	VECTOR 1 0 
 	VECTOR 0 1 
 ENDLATTICE
 
 REGION UpperHalfSpace MATERIAL Vacuum
-REGION Gap            MATERIAL GOLD
+REGION Slab           MATERIAL Silicon
 REGION LowerHalfSpace MATERIAL Vacuum
 
 SURFACE UpperSurface
 	MESHFILE Square_40.msh
 	DISPLACED 0 0 1
-	REGIONS UpperHalfSpace Gap
+	REGIONS UpperHalfSpace Slab
 ENDSURFACE
 
 SURFACE LowerSurface
 	MESHFILE Square_40.msh
-	REGIONS LowerHalfSpace Gap
+	REGIONS LowerHalfSpace Slab
 ENDSURFACE

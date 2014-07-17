@@ -17,11 +17,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "scuff-neq.h"
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag)
 { 
+#if 0
   RWGGeometry *G = SNEQD->G;
 
   /***************************************************************/
@@ -89,5 +92,11 @@ void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag)
     };
   fprintf(f,"};\n\n");
   fclose(f);
+
+  /***************************************************************/
+  /* deallocate temporary storage                                */
+  /***************************************************************/
+  free(PFV);
+#endif
 
 }

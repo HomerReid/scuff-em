@@ -34,7 +34,8 @@
 
 using namespace scuff;
 
-#define HDF5_FILENAME "unit-test-BEMMatrix.hdf5"
+#define REF_FILENAME "unit-test-BEMMatrix.reference.hdf5"
+#define FAIL_FILENAME "unit-test-BEMMatrix.failed.hdf5"
 
 #define TESTNAME1  "PEC sphere, low real frequency"
 #define TESTNAME2  "PEC sphere, medium real frequency"
@@ -224,16 +225,16 @@ int main(int argc, char *argv[])
   /***************************************************************/
   void *pHC = 0;
   if (WriteFiles)
-   { pHC = HMatrix::OpenHDF5Context(HDF5_FILENAME);
+   { pHC = HMatrix::OpenHDF5Context(REF_FILENAME);
      if (pHC==0)
-      ErrExit("could not open reference file %s",HDF5_FILENAME);
+      ErrExit("could not open reference file %s",REF_FILENAME);
    }
   else
-   { FILE *f=fopen(HDF5_FILENAME,"r");
+   { FILE *f=fopen(REF_FILENAME,"r");
      if (f) 
       fclose(f);
      else
-      ErrExit("could not open reference file %s",HDF5_FILENAME);
+      ErrExit("could not open reference file %s",REF_FILENAME);
    };
 
   /***************************************************************/
@@ -255,18 +256,20 @@ int main(int argc, char *argv[])
       M->ExportToHDF5(pHC, MNames[nt]);
      else
       { HMatrix *MRef = G->AllocateBEMMatrix();
-        MRef->ImportFromHDF5(HDF5_FILENAME, MNames[nt]);
+        MRef->ImportFromHDF5(REF_FILENAME, MNames[nt]);
         if (MRef->ErrMsg)
          Warn("could not find matrix %s in %s (skipping test)",
-               MNames[nt],HDF5_FILENAME);
+               MNames[nt],REF_FILENAME);
         double AvgRelError, MismatchRate;
         CompareMatrices(M, MRef, &AvgRelError, &MismatchRate);
         if ( AvgRelError>1.0e-6 || MismatchRate>0.1 )
          { Success=false;       
-           printf(" PASSED ");
+           printf(" FAILED ");
+           if (pHC==0) pHC = HMatrix::OpenHDF5Context(FAIL_FILENAME);
+           MRef->ExportToHDF5(pHC, MNames[nt]);
          }
         else
-         printf(" FAILED ");
+         printf(" PASSED ");
         printf(" (AvgRelErr = %.1e, Mismatch rate = %.g %%)\n",
                  AvgRelError, 100.0*MismatchRate);
         delete MRef;
@@ -274,8 +277,11 @@ int main(int argc, char *argv[])
      delete M;
    };
 
-  if (WriteFiles)
-   HMatrix::CloseHDF5Context(pHC);
+  if (pHC)
+   { HMatrix::CloseHDF5Context(pHC);
+     if (!WriteFiles)
+      printf(" Failed matrices written to file %s.\n",FAIL_FILENAME);
+   };
 
   if (Success) 
    exit(0);

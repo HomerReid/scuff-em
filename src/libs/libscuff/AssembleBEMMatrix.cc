@@ -479,11 +479,20 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
        };
 
       if ( !HaveCleanCache )
-       { Args->OmitRegion1 = Args->OmitRegion2 = true;
-         if ( n1!=0 && RegionIsExtended[MAXLATTICE*nr1 + 0] ) Args->OmitRegion1=false;
-         if ( n1!=0 && RegionIsExtended[MAXLATTICE*nr2 + 0] ) Args->OmitRegion2=false;
-         if ( n2!=0 && RegionIsExtended[MAXLATTICE*nr1 + 1] ) Args->OmitRegion1=false;
-         if ( n2!=0 && RegionIsExtended[MAXLATTICE*nr2 + 1] ) Args->OmitRegion2=false;
+       { 
+         // detect extendedness of regions and omit contributions of
+         // any regions that are not extended
+         if ( n1==0 && n2==0 )
+          { Args->OmitRegion1 = false;
+            Args->OmitRegion2 = (nr2==-1);
+          }
+         else 
+          { Args->OmitRegion1 = Args->OmitRegion2 = true;
+            if ( n1!=0 && RegionIsExtended[MAXLATTICE*nr1 + 0] ) Args->OmitRegion1=false;
+            if ( n1!=0 && RegionIsExtended[MAXLATTICE*nr2 + 0] ) Args->OmitRegion2=(nr2==-1);
+            if ( n2!=0 && RegionIsExtended[MAXLATTICE*nr1 + 1] ) Args->OmitRegion1=false;
+            if ( n2!=0 && RegionIsExtended[MAXLATTICE*nr2 + 1] ) Args->OmitRegion2=(nr2==-1);
+          };
  
          Log("  ...(%i,%i) block...",n1,n2);
          Args->Symmetric = (nsa==nsb && n1==0 && n2==0); 
@@ -495,8 +504,10 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
                            UseSymmetry && !(n1==0 && n2==0) );
 
       if ( UseSymmetry && (n1==0 && n2==0) )
-       break;
+       goto done; // want break, but need to break out of both loops
     };
+
+done: 
 
   /***************************************************************/
   /***************************************************************/
