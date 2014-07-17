@@ -1,0 +1,19 @@
+LATTICE 
+	VECTOR 1 0 
+	VECTOR 0 1 
+ENDLATTICE
+
+REGION UpperHalfSpace MATERIAL Vacuum
+REGION Gap            MATERIAL GOLD
+REGION LowerHalfSpace MATERIAL Vacuum
+
+SURFACE UpperSurface
+	MESHFILE Square_40.msh
+	DISPLACED 0 0 1
+	REGIONS UpperHalfSpace Gap
+ENDSURFACE
+
+SURFACE LowerSurface
+	MESHFILE Square_40.msh
+	REGIONS LowerHalfSpace Gap
+ENDSURFACE
