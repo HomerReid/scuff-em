@@ -461,7 +461,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /***************************************************************/
   /* Assemble and stamp in contributions of innermost grid cells.*/
   /***************************************************************/
-  M->Zero();
+  M->ZeroBlock(RowOffset, NBFA, ColOffset, NBFB);
   if (GradM && GradM[2]) GradM[2]->Zero();
   Log(" Step 1: Contributions of innermost grid cells...");
   for(int n1=+1, nb=0; n1>=-1; n1--)
@@ -514,7 +514,7 @@ done:
   /*--------------------------------------------------------------*/
   if (!HaveCache)
    { delete Args->B;
-     if (Args->GradB) delete Args->GradB;
+     if (Args->GradB) delete Args->GradB[2];
    };
 
   /***************************************************************/

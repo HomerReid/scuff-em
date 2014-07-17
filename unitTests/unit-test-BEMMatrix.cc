@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
          { Success=false;       
            printf(" FAILED ");
            if (pHC==0) pHC = HMatrix::OpenHDF5Context(FAIL_FILENAME);
-           MRef->ExportToHDF5(pHC, MNames[nt]);
+           M->ExportToHDF5(pHC, MNames[nt]);
          }
         else
          printf(" PASSED ");
