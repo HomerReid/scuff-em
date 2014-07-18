@@ -453,28 +453,6 @@ void RWGGeometry::InitPBCData()
    };
 
   /*--------------------------------------------------------------*/
-  /*- Step 2: allocate memory for the contributions of the       -*/
-  /*- innermost lattice cells to the BEM matrix.                 -*/
-  /*- Here P, M, Z stand for 'plus 1, minus 1, zero.'            -*/
-  /*- Mab is the BEM interaction matrix between the unit-cell    -*/
-  /*- geometry and a copy of itself translated through vector    -*/
-  /*- a*LBV[0] + b*LBV[1].                                       -*/
-  /*-                                                            -*/
-  /*- If PBCAcceleration is enabled, we allocate all 5 blocks.   -*/
-  /*- Otherwise, we allocate only a single block. (Ultimately    -*/
-  /*- even this extra memory allocation could be saved, but only -*/
-  /*- at the cost of significant programming hassle.)            -*/
-  /*--------------------------------------------------------------*/
-  Log(" Mem before image blocks: %lu",GetMemoryUsage()/ONEMEG);
-  MZZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX); // this one is always allocated 
-  if (UsePBCAcceleration)
-   { MPP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-     MPM=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-     MPZ=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-     MZP=new HMatrix(TotalBFs, TotalBFs, LHM_COMPLEX);
-   };
-
-  /*--------------------------------------------------------------*/
   /*- allocate interpolators for each extended region in the      */
   /*- geometry. (Here 'extended' means extended beyond the        */
   /*- confines of a single unit cell.)                            */
@@ -494,6 +472,12 @@ void RWGGeometry::InitPBCData()
   /*--------------------------------------------------------------*/
   Log(" Mem before interpolators: %lu",GetMemoryUsage()/ONEMEG);
   GBarAB9Interpolators = (Interp3D **)mallocEC(NumRegions * sizeof(Interp3D *));
+#if 0
+
+20140718 EXPERIMENTAL I am going to move to a scheme in 
+which I allocate and initialize interpolators separately
+for each call to AssembleBEMMatrixBlock().
+
   double RMax[3], RMin[3], DeltaR[3];
   int NPoints[3];
   for(int nr=0; nr<NumRegions; nr++)
@@ -509,6 +493,7 @@ void RWGGeometry::InitPBCData()
                                                    0.0, DeltaR[2], 1 + NPoints[2]/2, 
                                                      2);
    };
+#endif
 
 }
 

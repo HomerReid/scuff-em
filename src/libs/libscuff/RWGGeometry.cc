@@ -43,9 +43,7 @@ namespace scuff {
 /***************************************************************/
 /* initialization of static class variables                    */
 /***************************************************************/
-int RWGGeometry::PBCCubatureOrder=4;
 bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
-bool RWGGeometry::UsePBCAcceleration=false;
 double RWGGeometry::DeltaInterp=0.05;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
@@ -209,7 +207,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   char *DeltaStr;
   if ( (DeltaStr=getenv("SCUFF_DELTAINTERP")) )
    { sscanf(DeltaStr, "%le", &DeltaInterp);
-     Log("Setting DeltaInterp to %g...\n",DeltaInterp);
+     Log("Setting DeltaInterp to %g...",DeltaInterp);
    };
 
   /***************************************************************/

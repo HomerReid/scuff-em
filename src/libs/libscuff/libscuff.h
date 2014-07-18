@@ -482,7 +482,8 @@ class RWGGeometry
    void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
                                       double kBloch[MAXLATTICE], HMatrix *XMatrix);
-   void UpdateRegionInterpolators(cdouble Omega, double *kBloch);
+   void CreateRegionInterpolator(int nr, cdouble Omega,
+                                 double *kBloch, int nsa, int nsb);
 
    // directories within which to search for mesh files
    static int NumMeshDirs;
@@ -521,7 +522,6 @@ class RWGGeometry
    double LatticeBasisVectors[MAXLATTICE][3];
    int *NumStraddlers;
    bool *RegionIsExtended;
-   HMatrix *MPP, *MPM, *MPZ, *MZP, *MZZ;
    Interp3D **GBarAB9Interpolators;
 
    /* BFIndexOffset[n] is the index within the overall BEM          */
@@ -554,9 +554,7 @@ class RWGGeometry
    const char *TBlockCacheNameAddendum;
    
    static bool AssignBasisFunctionsToExteriorEdges;
-   static int PBCCubatureOrder;
    static double DeltaInterp;
-   static bool UsePBCAcceleration;
    static bool UseHighKTaylorDuffy;
    static bool UseTaylorDuffyV2P0;
 

@@ -113,82 +113,85 @@ void StampInNeighborBlock(HMatrix *B, HMatrix **GradB,
 }
 
 /***************************************************************/
-/* initialize GBarAB9 interpolation tables for all regions at  */
-/* the present frequency and bloch wavevector                  */
 /***************************************************************/
-void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
+/***************************************************************/
+void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
+                                           double *kBloch,
+                                           int ns1, int ns2)
 {
   UpdateCachedEpsMuValues(Omega);
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /***************************************************************/  
+  /* prepare an argument structure for the GBarVDPhi3D           */  
+  /***************************************************************/  
   GBarData MyGBarData, *GBD=&MyGBarData;
   GBD->ExcludeInnerCells=true;
   GBD->E=-1.0;
+  GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
+  if ( GBD->k == 0.0 ) 
+   return;
   GBD->kBloch = kBloch;
-  for(int nr=0; nr<NumRegions; nr++)
-   {
-     if (GBarAB9Interpolators[nr]==0) 
-      continue;
 
-     /***************************************************************/
-     /* figure out whether this region has 1D or 2D periodicity     */
-     /***************************************************************/  
-     if ( RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] ) 
-      { GBD->LDim=2;
-        GBD->LBV[0]=LatticeBasisVectors[0];
-        GBD->LBV[1]=LatticeBasisVectors[1];
-      }
-     else if ( RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
-      { GBD->LDim=1; 
-        GBD->LBV[0]=LatticeBasisVectors[0];
-      }
-     else if ( !RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] )
-      { GBD->LDim=1; 
-        GBD->LBV[0]=LatticeBasisVectors[1];
-      }
-     else
-      continue; // region is compact; no interpolation table needed
+  /***************************************************************/
+  /* figure out whether this region has 1D or 2D periodicity     */
+  /***************************************************************/  
+  if ( RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] ) 
+   { GBD->LDim=2;
+     GBD->LBV[0]=LatticeBasisVectors[0];
+     GBD->LBV[1]=LatticeBasisVectors[1];
+   }
+  else if ( RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
+   { GBD->LDim=1; 
+     GBD->LBV[0]=LatticeBasisVectors[0];
+   }
+  else if ( !RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] )
+   { GBD->LDim=1; 
+     GBD->LBV[0]=LatticeBasisVectors[1];
+   }
+  else
+   return;
 
-     /***************************************************************/
-     /* check whether or not the extents of the region have changed */
-     /* since we last allocated an interpolator for this region, and*/
-     /* re-allocate the interpolator if so                          */
-     /***************************************************************/
-     double RMax[3], RMin[3], DeltaR[3];
-     int NPoints[3];
-     GetRegionExtents(nr, RMax, RMin, DeltaR, NPoints);
-     if (    GBarAB9Interpolators[nr]==0
-          || GBarAB9Interpolators[nr]->X1Min !=  -DeltaR[0]
-          || GBarAB9Interpolators[nr]->X2Min !=  -DeltaR[1]
-          || GBarAB9Interpolators[nr]->N1    !=  NPoints[0]
-          || GBarAB9Interpolators[nr]->N2    !=  NPoints[1]
-          || GBarAB9Interpolators[nr]->N3    != (1+NPoints[2]/2)
-        )
-      {
-        Log("Region %s extents have changed (resizing interpolation table)",RegionLabels[nr]);
-        if (GBarAB9Interpolators[nr])
-         { delete GBarAB9Interpolators[nr];
-           GBarAB9Interpolators[nr]=0;
-         };
-        GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
-                                               -DeltaR[1], DeltaR[1], NPoints[1],
-                                                      0.0, DeltaR[2], 1 + NPoints[2]/2, 
-                                                       2);
-        
-      };
+  /***************************************************************/
+  /* get the extents of the interpolation table we need to handle*/
+  /* all possible arguments R=x1-x2 where x1 lives on surface 1  */
+  /* and x2 lives on surface 2                                   */
+  /***************************************************************/
+  double RMax[3], RMin[3];
+  VecSub(Surfaces[ns1]->RMax, Surfaces[ns2]->RMin, RMax);
+  VecSub(Surfaces[ns1]->RMin, Surfaces[ns2]->RMax, RMin);
 
-     /***************************************************************/
-     /* initialize the interpolation table                          */
-     /***************************************************************/
-     Log("  Initializing interpolator for region %i (%s)...",nr,RegionLabels[nr]);
-     GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
-     if ( GBD->k == 0.0 ) 
-      continue;
-     GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
-
+  double DeltaR[3];
+  int NPoints[3];
+  for(int i=0; i<3; i++)
+   { DeltaR[i] = fmax( RMax[i] - RMin[i], RWGGeometry::DeltaInterp );
+     NPoints[i] = 1 + (2.0*DeltaR[i] / RWGGeometry::DeltaInterp );
+     if (NPoints[i] < 2)
+      NPoints[i]=2;
    };
+
+  // we can get away with halving the size in the z direction
+  // by exploiting G(x,y,-z) = G(-x,-y,z)
+  NPoints[2] = 1 + NPoints[2]/2; 
+
+
+  // TODO: rather than deleting and reallocating every time, 
+  //       consider implementing an Interp3D->ReGrid() method
+  //       which will retain the internally-allocated storage
+  //       in the (common) case in which the new grid has the
+  //       same number of points as the old grid 
+  if (GBarAB9Interpolators[nr]==0)
+   delete GBarAB9Interpolators[nr];
+
+  GBarAB9Interpolators[nr]
+   =new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
+                  -DeltaR[1], DeltaR[1], NPoints[1],
+                         0.0, DeltaR[2], NPoints[2], 2);
+        
+
+  Log("  Initializing %ix%ix%i interpolator for region %i (%s)...",
+         NPoints[0],NPoints[1],2*(NPoints[2]-1),nr,RegionLabels[nr]);
+  GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
+
 }
 
 /***************************************************************/
@@ -521,11 +524,13 @@ done:
   /***************************************************************/
   /***************************************************************/
   Log(" Step 2: Contributions of outer grid cells...");
-  UpdateRegionInterpolators(Omega, kBloch);
+  //UpdateRegionInterpolators(Omega, kBloch);
+  CreateRegionInterpolator(nr1, Omega, kBloch, nsa, nsb);
+  if (nr2!=-1) CreateRegionInterpolator(nr2, Omega, kBloch, nsa, nsb);
   Args->Displacement = 0;
   Args->Symmetric    = false;
   Args->OmitRegion1  = false;
-  Args->OmitRegion2  = false;
+  Args->OmitRegion2  = (nr2==-1);
   Args->UseAB9Kernel = true;
   Args->Accumulate   = true;
   Args->B            = M;
