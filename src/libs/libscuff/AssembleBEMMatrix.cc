@@ -189,7 +189,7 @@ void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
         
 
   Log("  Initializing %ix%ix%i interpolator for region %i (%s)...",
-         NPoints[0],NPoints[1],2*(NPoints[2]-1),nr,RegionLabels[nr]);
+         NPoints[0],NPoints[1],NPoints[2],nr,RegionLabels[nr]);
   GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
 
 }

@@ -864,6 +864,7 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
   /* treatment of evaluation points on lattice sites.            */
   /***************************************************************/
   // convert R to lattice basis, RL = inv(LBV') * R; note LBV is transposed
+#if 0
   double RL[2];
   RL[0] = (Gamma[0][0]*R[0] + Gamma[1][0]*R[1]) / (2.0*M_PI);
   if (LDim==2)
@@ -883,6 +884,7 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
    GBarVD[2]=GBarVD[4]=GBarVD[6]=GBarVD[7]=0.0;
   if ( ZeroCoordinate[2] )
    GBarVD[3]=GBarVD[5]=GBarVD[6]=GBarVD[7]=0.0;
+#endif
 
 
 } 

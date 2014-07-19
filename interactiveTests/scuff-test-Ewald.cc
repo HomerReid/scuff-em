@@ -354,11 +354,6 @@ int main(int argc, char *argv[])
 
         for(int ns=0; ns<NSUM; ns++)
          GBarEwald[ns] -= GLongInner[ns];
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-GBarNearby[0] -= GLongInner[0];
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
       };
      EwaldTime+=Toc();
      printf(" Ewald:   %s (%.0g us)\n",CD2S(GBarEwald[0]),EwaldTime*1e6);
@@ -366,20 +361,18 @@ GBarNearby[0] -= GLongInner[0];
      /*--------------------------------------------------------------*/
      /*- do the computation using the BF method if that was requested*/
      /*--------------------------------------------------------------*/
+     cdouble GBarBF[8];
      if (!SkipBF)
       {
-        cdouble GBarBF[8];
         GBarVDBF(R, k, kBloch, LBVP, LDim, 
                  ExcludeInnerCells, Derivatives, nMax, GBarBF);
         printf(" BF:      %s \n",CD2S(GBarBF[0]));
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-printf("BF-Nearby = %s \n",CD2S(GBarBF[0] - GBarNearby[0]));
-printf("BF-Nearby / Distant = %s \n",
-        CD2S( (GBarBF[0] - GBarNearby[0]) / (GBarDistant[0]) ));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
       };
+
+    if (Derivatives)
+     for(int n=1; n<8; n++)
+      printf(" %i: %s | %s | %e \n",n, CD2S(GBarEwald[n]),CD2S(GBarBF[n]), RD( GBarEwald[n], GBarBF[n]));
 
    }; // for(;;)
 

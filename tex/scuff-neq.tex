@@ -65,7 +65,7 @@ approach.
 \subsection*{Fields from surface currents}
 
 Recall that in the surface-integral-equation (SIE) approach to
-electromagnetism problems, we solve for tangential
+classical electromagnetism problems, we solve for tangential
 \textit{surface currents} (both electric currents $\vb K$ 
 and magnetic currents $\vb N$) flowing on the surfaces of 
 homogeneous material bodies. In numerical solvers, we 
@@ -344,9 +344,10 @@ For some quantities of interest it is possible to write alternative
 surface-current bilinears that compute the same quantities as 
 (\ref{PTotVMVP}), (\ref{FTotVMVP}), and (\ref{TTotVMVP})
 but which involve \textit{sparse} matrices instead of dense
-matrices. In particular, the power, force, or torque on a body 
-may be written as a bilinear function of the surface currents
-on that body alone in the form
+matrices. In particular, the (classical, deterministic) 
+power, force, or torque on a body may be written as a bilinear 
+function of the surface currents on that body alone in the form
+\begin{align*} P=\frac{1}{4}vb c 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
