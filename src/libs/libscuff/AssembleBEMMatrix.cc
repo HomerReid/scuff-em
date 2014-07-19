@@ -119,6 +119,16 @@ void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
                                            double *kBloch,
                                            int ns1, int ns2)
 {
+  /***************************************************************/
+  /* TODO: rather than deleting and reallocating every time,     */
+  /*       consider implementing an Interp3D->ReGrid() method    */
+  /*       which will retain the internally-allocated storage    */
+  /*       in the (commonly encountered) case in which the new   */
+  /*       grid has the same number of points as the old grid    */
+  /***************************************************************/
+  if (GBarAB9Interpolators[nr]==0)
+   delete GBarAB9Interpolators[nr];
+
   UpdateCachedEpsMuValues(Omega);
 
   /***************************************************************/  
@@ -148,8 +158,10 @@ void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
    { GBD->LDim=1; 
      GBD->LBV[0]=LatticeBasisVectors[1];
    }
-  else
-   return;
+  else // region is not extended 
+   { GBarAB9Interpolators[nr]=0;
+     return;
+   };
 
   /***************************************************************/
   /* get the extents of the interpolation table we need to handle*/
@@ -157,40 +169,26 @@ void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
   /* and x2 lives on surface 2                                   */
   /***************************************************************/
   double RMax[3], RMin[3];
+  int NPoints[3];
   VecSub(Surfaces[ns1]->RMax, Surfaces[ns2]->RMin, RMax);
   VecSub(Surfaces[ns1]->RMin, Surfaces[ns2]->RMax, RMin);
-
-  double DeltaR[3];
-  int NPoints[3];
+  double Delta=RWGGeometry::DeltaInterp;
   for(int i=0; i<3; i++)
-   { DeltaR[i] = fmax( RMax[i] - RMin[i], RWGGeometry::DeltaInterp );
-     NPoints[i] = 1 + (2.0*DeltaR[i] / RWGGeometry::DeltaInterp );
-     if (NPoints[i] < 2)
-      NPoints[i]=2;
+   { 
+     if ( RMax[i] < (RMin[i] + Delta) )
+      RMax[i] = RMin[i] + Delta;
+
+     NPoints[i] = 1 + round( (RMax[i] - RMin[i]) / Delta );
+
    };
 
-  // we can get away with halving the size in the z direction
-  // by exploiting G(x,y,-z) = G(-x,-y,z)
-  NPoints[2] = 1 + NPoints[2]/2; 
-
-
-  // TODO: rather than deleting and reallocating every time, 
-  //       consider implementing an Interp3D->ReGrid() method
-  //       which will retain the internally-allocated storage
-  //       in the (common) case in which the new grid has the
-  //       same number of points as the old grid 
-  if (GBarAB9Interpolators[nr]==0)
-   delete GBarAB9Interpolators[nr];
-
-  GBarAB9Interpolators[nr]
-   =new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
-                  -DeltaR[1], DeltaR[1], NPoints[1],
-                         0.0, DeltaR[2], NPoints[2], 2);
-        
-
-  Log("  Initializing %ix%ix%i interpolator for region %i (%s)...",
+  Log("  Creating %ix%ix%i interpolator for region %i (%s)...",
          NPoints[0],NPoints[1],NPoints[2],nr,RegionLabels[nr]);
-  GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
+  GBarAB9Interpolators[nr]
+   =new Interp3D(  RMin[0], RMax[0], NPoints[0],
+                   RMin[1], RMax[1], NPoints[1],
+                   RMin[2], RMax[2], NPoints[2],
+                   2, GBarVDPhi3D, (void *)GBD);
 
 }
 
