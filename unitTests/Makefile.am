@@ -1,5 +1,6 @@
 EXTRA_DIST = 					\
  SSphere_255.msh				\
+ SSphere_R0P25_255.msh				\
  UnitTestSphere_R0P75_414.msh     		\
  Square_40.msh                    		\
  PECSphere_255.scuffgeo				\
