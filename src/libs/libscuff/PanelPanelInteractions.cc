@@ -238,7 +238,7 @@ void AssembleInnerPPIIntegrand_NoInterp(double wp, cdouble k, double *R, double 
    Phi = ExpRel(ik*r,4) / (4.0*M_PI*r);
   else
    Phi = exp(ik*r) / (4.0*M_PI*r);
-  if ( !isfinite(real(Phi)) ) Phi=0.0;
+  if ( !IsFinite(real(Phi)) ) Phi=0.0;
    
   // put the cubature weight into Phi since Phi is a factor in
   // all integrand components

@@ -87,7 +87,7 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
   /*--------------------------------------------------------------*/
   // paraphrasing the physicists of the 1930s, 'just because
   // something is infinite doesn't mean that it's zero.' and yet...
-  if (!isfinite(LNDet))
+  if (!IsFinite(LNDet))
    LNDet=0.0;
   return -LNDet/(2.0*M_PI);
 
@@ -139,7 +139,7 @@ double GetTraceMInvdM(SC3Data *SC3D, char XYZT)
 
   // paraphrasing the physicists of the 1930s, 'just because
   // something is infinite doesn't mean that it's zero.' and yet...
-  if (!isfinite(Trace))
+  if (!IsFinite(Trace))
    Trace=0.0;
 
   return -Trace/(2.0*M_PI);

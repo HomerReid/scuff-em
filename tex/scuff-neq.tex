@@ -347,18 +347,35 @@ but which involve \textit{sparse} matrices instead of dense
 matrices. In particular, the (classical, deterministic) 
 power, force, or torque on a body may be written as a bilinear 
 function of the surface currents on that body alone in the form
-\begin{align*} P=\frac{1}{4}vb c 
+\begin{align*} 
+ P &= \frac{1}{4}vb c
+\end{align*} 
+
+where the $\vb O$ matrices are sparse ``overlap'' matrices
+with nonzero entries only for pairs of basis functions
+whose supports overlap. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection*{Statistical averages of surface-current bilinears}
+\subsection{Statistical averages of surface-current bilinears}
 
-The heart of the FSC approach is a concise formula for the 
-statistical average of surface-current bilinears. 
-Suppose $Q(\vb c, \omega)=\vb c^\dagger \vb Q(\omega) \vb c$ is a
-bilinear function of the classical (deterministic) surface currents
-involving a frequency-dependent matrix $\vb Q(\omega)$.
+The previous section discussed several examples of physical
+quantities $Q$ which, in classical scattering problems with 
+deterministic sources and induced surface currents, may be 
+computed as bilinear functions of the surface currents,
+$ Q(\vb c)=\vb c^\dagger \vb Q \vb c$. The heart of the FSC 
+approach to nonequilibrium phenomena is a concise formula for 
+the \textit{statistical average} of such surface-current bilinears,
+where the averaging is performed over thermal and quantum-mechanical
+fluctuations of sources
+
+Suppose $Q(\vb c)=\vb c^\dagger \vb Q \vb c$ is a
+physical quantity which---in a classical, deterministic setting---is 
+computed as a bilinear function of the surface currents involving
+a matrix $\vb Q$ [many examples of such quantities $Q$ and the 
+corresponding matrices $\vb Q$ were discussed in the previous section.]
+
 Then the statistical average of the contribution made by the sources 
 in a body $b$ to $Q$---where the averaging is over quantum and thermal 
 fluctuations of sources in the body---is given simply by

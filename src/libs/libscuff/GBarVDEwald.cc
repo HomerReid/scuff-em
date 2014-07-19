@@ -257,9 +257,9 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
   *EEF      = PlusTerm + MinusTerm;
   *EEFPrime = dPlusTerm + dMinusTerm;
 
-  if ( !isfinite(*EEF) || cisnan(*EEF) )
+  if ( !IsFinite(*EEF) || cisnan(*EEF) )
    *EEF=0.0;
-  if ( !isfinite(*EEFPrime) || cisnan(*EEFPrime) )
+  if ( !IsFinite(*EEFPrime) || cisnan(*EEFPrime) )
    *EEFPrime=0.0;
 
 }
