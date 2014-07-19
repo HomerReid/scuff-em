@@ -334,7 +334,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   // enough to store the largest single subblock of the BEM matrix.
   // FIXME these should be fields of the RWGGeometry class, not 
   // static method variables.
-  static HMatrix *B=0, *GradB[3]={0,0,0};
+  HMatrix *B=0, *GradB[3]={0,0,0};
   if (B==0)
    { int MaxNR=Surfaces[0]->NumBFs; 
      for(int ns=1; ns<NumSurfaces; ns++)
@@ -486,6 +486,11 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->ColOffset    = ColOffset;
 
   GetSurfaceSurfaceInteractions(Args);
+
+  delete B;
+  if (GradB[0]) delete GradB[0];
+  if (GradB[1]) delete GradB[1];
+  if (GradB[2]) delete GradB[2];
 
 }
 
