@@ -340,8 +340,8 @@ cdouble GetGLongTwiddle1D(double kx, double Rho2, cdouble k, double E)
 /* G = n1*Gamma1 to the reciprocal-lattice sum that defines    */
 /* GBarDistant in the 1D case.                                 */
 /***************************************************************/
-void AddGLong1D(double R[3], double Rho2, cdouble k, double P[2],
-                int m, double Gamma[2][2], double E, cdouble *GBarVD)
+cdouble GetGLong1D(double R[3], double Rho2, cdouble k, double P[2],
+                   int m, double Gamma[2][2], double E)
 { 
   double PmG[2], PmGMag;
   PmG[0] = P[0] - m*Gamma[0][0];
@@ -352,7 +352,68 @@ void AddGLong1D(double R[3], double Rho2, cdouble k, double P[2],
 
   cdouble GT=GetGLongTwiddle1D(PmGMag, Rho2, k, E);
 
-  GBarVD[0] += ExpFac * GT;
+  //GBarVD[0] += ExpFac * GT;
+  return ExpFac * GT;
+
+}
+
+// note: I *think* this is the only place where I assume 
+// that the lattice vector is oriented along the x direction.
+void AddGLong1D(double R[3], double Rho2, cdouble k, double P[2],
+                int m, double Gamma[2][2], double E, cdouble *GBarVD)
+{
+  double Delta[3];
+  Delta[0] = (R[0]==0.0) ? 1.0e-4 : 1.0e-4*fabs(R[0]);
+  Delta[1] = (R[1]==0.0) ? 1.0e-4 : 1.0e-4*fabs(R[1]);
+  Delta[2] = (R[2]==0.0) ? 1.0e-4 : 1.0e-4*fabs(R[2]);
+
+  /***************************************************************/
+  /* GTweaked[i][j][k] =                                         */
+  /*  G( x + C_i Delta_x, y + C_j\Delta j , z + C_k\Delta k)     */
+  /* where     = -1 (i==0)                                       */
+  /*       C_i =  0 (i==1)                                       */
+  /*           =  1 (i==2)                                       */
+  /***************************************************************/
+  cdouble GT[3][3][3];
+  double C[3] = { -1.0, 0.0, 1.0};
+  for(int Mu=0; Mu<=2; Mu++)
+   for(int Nu=0; Nu<=2; Nu++)
+    for(int Rho=0; Rho<=2; Rho++)
+     { 
+       double RT[3];
+       RT[0] = R[0] + C[Mu]*Delta[0];
+       RT[1] = R[1] + C[Nu]*Delta[1];
+       RT[2] = R[2] + C[Rho]*Delta[2];
+
+       double RhoT=RT[1]*RT[1] + RT[2]*RT[2];
+
+       GT[Mu][Nu][Rho] = GetGLong1D(RT, RhoT, k, P, m, Gamma, E);
+     };
+
+  int iP=2;
+  int iZ=1;
+  int iM=0;
+
+  GBarVD[0] += GT[iZ][iZ][iZ];
+  
+  GBarVD[1] += ( GT[iP][iZ][iZ] - GT[iM][iZ][iZ] ) / (2.0*Delta[0]);
+  GBarVD[2] += ( GT[iZ][iP][iZ] - GT[iZ][iM][iZ] ) / (2.0*Delta[1]);
+  GBarVD[3] += ( GT[iZ][iZ][iP] - GT[iZ][iZ][iM] ) / (2.0*Delta[2]);
+
+  GBarVD[4] += ( GT[iP][iP][iZ] + GT[iM][iM][iZ] 
+                -GT[iP][iM][iZ] - GT[iM][iP][iZ] ) / (4.0*Delta[0]*Delta[1]);
+
+  GBarVD[5] += ( GT[iP][iZ][iP] + GT[iM][iZ][iM] 
+                -GT[iP][iZ][iM] - GT[iM][iZ][iP] ) / (4.0*Delta[0]*Delta[2]);
+
+  GBarVD[6] += ( GT[iZ][iP][iP] + GT[iZ][iM][iM] 
+                -GT[iZ][iP][iM] - GT[iZ][iM][iP] ) / (4.0*Delta[1]*Delta[2]);
+
+  GBarVD[7] += (  GT[iP][iP][iP] - GT[iP][iP][iM] 
+                 -GT[iP][iM][iP] + GT[iP][iM][iM]
+                 -GT[iM][iP][iP] + GT[iM][iP][iM] 
+                 +GT[iM][iM][iP] - GT[iM][iM][iM]
+               ) / (8.0*Delta[0]*Delta[1]*Delta[2]);
 
 }
 

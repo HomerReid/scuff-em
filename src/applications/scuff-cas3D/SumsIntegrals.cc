@@ -358,13 +358,13 @@ void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Err
      /* additional multiplicative prefactors.)                      */
      /*                                                             */
      /* thus the matsubara sum is                                   */
-     /*  4\pi^2 kT *  \sum_n^\prime FI(\xi_n)                       */
+     /*  2\pi kT *  \sum_n^\prime FI(\xi_n)                       */
      /*                                                             */
      /* where FI is what is returned by GetXiIntegrand.             */
      /***************************************************************/
      memcpy(LastEFT,EFT,NTNQ*sizeof(double));
      for(ntnq=0; ntnq<NTNQ; ntnq++)
-      EFT[ntnq] += Weight * 4.0*M_PI*M_PI* kT * dEFT[ntnq];
+      EFT[ntnq] += Weight * 2.0*M_PI* kT * dEFT[ntnq];
 
      /*********************************************************************/
      /* convergence analysis.                                             */

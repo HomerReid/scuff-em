@@ -126,7 +126,7 @@ void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
   /*       in the (commonly encountered) case in which the new   */
   /*       grid has the same number of points as the old grid    */
   /***************************************************************/
-  if (GBarAB9Interpolators[nr]==0)
+  if (GBarAB9Interpolators[nr]!=0)
    delete GBarAB9Interpolators[nr];
 
   UpdateCachedEpsMuValues(Omega);

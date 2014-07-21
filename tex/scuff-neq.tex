@@ -62,6 +62,34 @@ approach.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Physical quantities from surface-current bilinears}
+
+The FSC approach begins with the observation that, in a 
+classical, deterministic scattering problem involving the 
+fields of known external sources impinging upon a collection
+of material bodies, many quantities of physical interest 
+may be expressed as bilinear (quadratic) products of the 
+\textit{surface currents} induced on the body surfaces by 
+the external fields. The quantities that may be expressed
+in this way include both \textbf{(a)} spatially-resolved 
+fluxes of energy and momentum at individual points in space,
+and \textbf{(b)} total (spatially-integrated) power-transfer 
+rates, forces, and torques on individual bodies.
+
+In this subsection we derive several such surface-current 
+bilinear formulas in the context of (classical, deterministic)
+scattering theory. In the following subsection we explain how 
+the FSC approach converts these \textit{deterministic} 
+expressions---describing energy and momentum transfer
+from fixed external sources---into \textit{statistically averaged} 
+expressions, describing energy and momentum transfer
+due to thermal and quantum-mechanical fluctuations
+in material bodies in the \textit{absence} of external
+excitation.
+
+%=================================================
+%=================================================
+%=================================================
 \subsection*{Fields from surface currents}
 
 Recall that in the surface-integral-equation (SIE) approach to
@@ -77,7 +105,14 @@ $$ \bmc C(\vb x)=\sum_{\alpha=1}^{N\subt{B}}
    c_\alpha \bmc B_\alpha(\vb x) 
 $$ 
 %--------------------------------------------------------------------%
-where $\{\bmc B_\alpha\}$ is a set of 6-vector basis functions
+where $\{\bmc B_\alpha\}$ is a set of 6-vector basis 
+functions\footnote{In {\sc scuff-neq} these take the form
+$\bmc B_\alpha=$ 
+$\vb b_\alpha \choose 0$ 
+or 
+$0 \choose \vb b_\alpha$
+where $\vb b_\alpha$ is a three-vector RWG basis function.
+However, the FSC formalism is not specific to this choice.}
 and $\{c_\alpha\}$ are scalar expansion coefficients.
 (We work at a fixed frequency $\omega$ and suppress a factor of
 $e^{-i\omega t}$ in all fields and currents.)
@@ -185,7 +220,7 @@ $$ \vb N^{x\text{\tiny F}}=\left(\begin{array}{ccc}
   \end{array}\right).
 $$
 The flux of $i$-directed \textit{angular} momentum, useful
-for computations of torque about an origin $\vb x_0$,
+for computations of torque about an origin $\vb x_0$, is
 %====================================================================%
 \begin{align}
  \vb t_{i}(\vb x) \cdot \vbhat{n}
@@ -224,7 +259,7 @@ $$
 Equations (\ref{PVMVP}), (\ref{IFVMVP}), and (\ref{ITVMVP}) express
 the flux of power or momentum as bilinear products of the field
 six-vectors $\bmc F$. Using (\ref{FFromC}), we can turn these into
-bilinear products involving the surface-current expansion vectors
+bilinear products of the surface-current coefficient vectors
 $\vb c$. For example, the power flux (\ref{PVMVP}) becomes 
 %--------------------------------------------------------------------%
 \begin{align}
@@ -252,11 +287,11 @@ similarly
 %--------------------------------------------------------------------%
 \begin{align}
 \vb T_i(\vb x) \cdot \vbhat{n}
-&= \frac{1}{4} \vb c^\dagger \vb M\IFFlux(\vb x, \vbhat{n}) \vb c 
+&= \vb c^\dagger \vb M\IFFlux(\vb x, \vbhat{n}) \vb c 
 \label{IFFluxVMVP}
 \\
 \vb t_i(\vb x) \cdot \vbhat{n}
-&= \frac{1}{4} \vb c^\dagger \vb M\ITFlux(\vb x, \vbhat{n}) \vb c 
+&= \vb c^\dagger \vb M\ITFlux(\vb x, \vbhat{n}) \vb c 
 \label{ITFluxVMVP}
 \end{align}
 %--------------------------------------------------------------------%
@@ -286,7 +321,7 @@ M_{\alpha\beta}\ITFlux(\vb x, \vbhat{n})
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection*{Energy and momentum transfer from surface-current bilinears}
+\subsection*{Power, force, and torque from surface-current bilinears}
 
 Noting that the $\vb x$ and $\vbhat{n}$ dependence of
 the flux expressions (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}),
@@ -344,16 +379,19 @@ For some quantities of interest it is possible to write alternative
 surface-current bilinears that compute the same quantities as 
 (\ref{PTotVMVP}), (\ref{FTotVMVP}), and (\ref{TTotVMVP})
 but which involve \textit{sparse} matrices instead of dense
-matrices. In particular, the (classical, deterministic) 
+matrices~\cite{Reid2013a}. In particular, the (classical, deterministic) 
 power, force, or torque on a body may be written as a bilinear 
 function of the surface currents on that body alone in the form
-\begin{align*} 
- P &= \frac{1}{4}vb c
-\end{align*} 
-
+$$
+ P = \frac{1}{4}\vb c \vb O\supt{P} \vb c, 
+ \qquad
+ F_i = \frac{1}{4}\vb c \vb O\IF \vb c
+ \qquad
+ \mc T_i = \frac{1}{4}\vb c \vb O\IT \vb c
+$$
 where the $\vb O$ matrices are sparse ``overlap'' matrices
 with nonzero entries only for pairs of basis functions
-whose supports overlap. 
+with overlapping support.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -362,35 +400,83 @@ whose supports overlap.
 
 The previous section discussed several examples of physical
 quantities $Q$ which, in classical scattering problems with 
-deterministic sources and induced surface currents, may be 
-computed as bilinear functions of the surface currents,
-$ Q(\vb c)=\vb c^\dagger \vb Q \vb c$. The heart of the FSC 
+deterministic sources and deterministic induced surface 
+currents, may be computed as bilinear functions of the surface 
+currents, $ Q(\vb c)=\vb c^\dagger \vb Q \vb c$. 
+The heart of the FSC 
 approach to nonequilibrium phenomena is a concise formula for 
 the \textit{statistical average} of such surface-current bilinears,
 where the averaging is performed over thermal and quantum-mechanical
-fluctuations of sources
+fluctuations of sources inside material bodies at fixed temperatures.
+A precise statement of the FSC equivalence is as follows.
 
-Suppose $Q(\vb c)=\vb c^\dagger \vb Q \vb c$ is a
-physical quantity which---in a classical, deterministic setting---is 
-computed as a bilinear function of the surface currents involving
-a matrix $\vb Q$ [many examples of such quantities $Q$ and the 
-corresponding matrices $\vb Q$ were discussed in the previous section.]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
 
-Then the statistical average of the contribution made by the sources 
-in a body $b$ to $Q$---where the averaging is over quantum and thermal 
-fluctuations of sources in the body---is given simply by
+\item
+If $Q$ is a physical quantity which (in a classical, deterministic 
+setting) is expressed as a bilinear function of the surface currents 
+involving a matrix $\vb Q$, i.e.
+%====================================================================%
+\begin{subequations}
+\begin{equation}
+ \text{if} \qquad Q(\vb c)=\vb c^\dagger \vb Q \vb c
+\end{equation}
+%====================================================================%
+
+\item
+then the statistical \textit{average} of the quantity $Q$---where
+the averaging is over quantum and thermal fluctuations---is given by
+a sum over the contributions of sources in \textit{all} bodies:
 %--------------------------------------------------------------------%
-\begin{align*}
- \big\langle Q\big\rangle
-  &= \int_0^\infty \, \Theta(\omega) \Phi(\omega)\,d\omega 
-\\
-\Phi
-  &= \Tr\left\{ \vb Q \vb W \overline{\vb G}_b \vb W^\dagger\right\}.
-\end{align*}
+\begin{equation}
+ \text{then} \qquad \big\langle Q\big\rangle
+  = \sum_b \int_0^\infty \, \Theta_b(\omega) \Phi_b(\omega)\,d\omega 
+\end{equation}
+where 
+$\Theta_b(\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_b} - 1}$
+is the Bose-Einstein factor for the temperature $T_b$ of 
+body $b$, and where the ``generalized flux'' $\Phi_b$
+is the trace of a four-matrix product involving the $\vb Q$ matrix:
+\begin{equation}
+\Phi_b
+  = \Tr\left\{ \vb Q \vb W \overline{\vb G}_b \vb W^\dagger\right\}.
+\end{equation}
+\label{FSCEquivalence}
+\end{subequations}
 %--------------------------------------------------------------------%
-Here $\vb W$ is the inverse of the BEM matrix for entire system
-and $\overline{\vb G}_b$ is a symmetrized version of a portion of the
-BEM matrix for body $b$ alone.
+Here $\vb W$ is the inverse of the BEM matrix for the 
+\textit{entire} collection of bodies and $\overline{\vb G}_b$ 
+is a symmetrized version of a portion of the BEM matrix for body 
+$b$ alone.
+
+\end{itemize}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Spatially-resolved contributions to generalized fluxes}
+
+The diagonal of the four-matrix product in (\ref{FSCEquivalence}c) 
+is a vector of length $N\supt{B}$ whose entries describe the 
+contributions of individual basis functions to the generalized
+fluxes. If, as is true in {\sc scuff-neq}, we work in a basis
+of \textit{localized} functions, we can use this observation 
+to obtain spatially-resolved information on the various 
+contributions to the generalized fluxes.
+
+More specifically, since each triangular panel $\mc P$ 
+in a discretized {\sc scuff-neq} geometry receives contributions 
+from 6 basis functions (one electric-current and one magnetic-current
+function for each of the three edges) we can roughly define the
+contribution of panel $\mc P$ to the generalized flux $\phi_b$ 
+as a sum of 6 diagonal elements of the matrix in curly braces
+in (\ref{FSCEquivalence}c):
+$$ \phi_{b}^{\mc P} 
+   = 
+   \sum_{n=1}^6
+   \Big[\vb Q \vb W \overline{\vb G}_b \vb W^\dagger\Big]_{\alpha_n \alpha_n}
+$$
+where $\{\alpha_n\}, n=1\cdots 6,$ are the indices of the
+aforementioned 6 basis functions associated with $\mc P.$
 
 %====================================================================%
 \newpage

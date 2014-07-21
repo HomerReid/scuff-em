@@ -596,10 +596,10 @@ of this contour are the following:
 \begin{itemize}
  \item
  Over the interval $[0,\eta]$ on the real axis,
- the contour dips down into the lower half-plane
+ the contour dips down into the lower half-plane.
  \item
  Over the interval $[\eta,\infty]$ on the real axis,
- the contour pokes up into the lower half-plane
+ the contour pokes up into the upper half-plane.
  \item
  The slope at the origin, $\gamma$, lies in the range
  $ 0 \le \gamma \le \left(\frac{\pi}{4} - \text{arg }\epsilon\right)$
@@ -615,6 +615,25 @@ $$ \mc C
     = \left\{ t, -\gamma \sin\left(4\, \atan \frac{t}{\eta}\right)\right\},
       \qquad 0\le t \le \infty
 $$
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+ G\sups{long}(\vb r) 
+&=\frac{1}{2\pi^{3/2}} 
+  \int_0^\eta e^{-u^2(t) r^2 + k^2/(4u^2(t))}
+  \left[ 1 - i\frac{4 \gamma \eta \cos\left(4\, \atan \frac{t}{\eta}\right)}
+                   {t^2 + \eta^2}
+  \right] dt
+\\
+ G\sups{short}(\vb r) 
+&=\frac{1}{2\pi^{3/2}} 
+  \int_\eta^\infty e^{-u^2(t) r^2 + k^2/(4u^2(t))}
+  \left[ 1 - i\frac{4 \gamma \eta \cos\left(4\, \atan \frac{t}{\eta}\right)}
+                   {t^2 + \eta^2}
+  \right] dt
+\end{align*}
+where $u(t)=t-i\gamma\sin\left(4\,\atan\frac{t}{\eta}\right).$
 %====================================================================%
 
 \subsection*{Short-ranged Helmholtz kernel}
@@ -657,5 +676,29 @@ version of the Helmholtz kernel $e^{ikr}/(4\pi r).$
 \\
 \end{align*}
 %====================================================================%
+
+\subsection{Derivatives of $\GB\sups{distant}$: 1D}
+
+\begin{align*}
+ \vb f_{000} &= f \\
+ \vb f_{+00} &= f + \Delta_x f_x + \frac{1}{2}\Delta_x^2 f_{xx} + \cdots \\
+ \vb f_{0+0} &= f + \Delta_y f_y + \frac{1}{2}\Delta_y^2 f_{yy} + \cdots \\
+ \vb f_{00+} &= f + \Delta_z f_z + \frac{1}{2}\Delta_z^2 f_{zz} + \cdots \\
+ \vb f_{++0} &= f + \Delta_x f_x + \Delta_y f_y 
+                  + \frac{1}{2}\Delta_x^2 f_{xx} 
+                  + \frac{1}{2}\Delta_y^2 f_{yy} 
+                  + \Delta_x \Delta_y f_{xy} + \cdots 
+\\
+\end{align*}
+
+\begin{align*}
+ \left(\begin{array}{cccccccc}
+ \end{array}\right)
+ \left(\begin{array}{c}
+ f \\ f_x \\ f_y \\ f_z \\ f_{xy} \\ f_{xz} \\ f_{yz} \\ f_{xyz}
+ \end{array}\right)
+\end{align*}
+
+\subsection{Derivatives of $\GB\sups{distant}$: 2D}
 
 \end{document}

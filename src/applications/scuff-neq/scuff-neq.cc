@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
    
   /*--------------------------------------------------------------*/
   double SIRadius    = 100.0;
-  double SINumPoints = 31;
+  int SINumPoints    = 31;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
