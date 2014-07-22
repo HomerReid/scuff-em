@@ -76,7 +76,7 @@ static int PointOnLine(double *X, double *L)
 /***************************************************************/
 static int FindPartnerEdge(RWGSurface *S, int nei,
 			   double LBV[MAXLDIM][2], 
-                           double LBVi[MAXLDIM][2], 
+                           double LBVi[MAXLDIM][2],
                            int LDim,
 			   int NumStraddlers[MAXLDIM], 
 			   int *pWhichBV,
@@ -107,10 +107,10 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
    { 
      // convert V1 and V2 to lattice basis
      double V1L[2], V2L[2];
-     V1L[0] = LBVi[0][0]*V1[0] + LBVi[0][1]*V1[1] + LBVi[0][2]*V1[2];
-     V1L[1] = LBVi[1][0]*V1[0] + LBVi[1][1]*V1[1] + LBVi[1][2]*V1[2];
-     V2L[0] = LBVi[0][0]*V2[0] + LBVi[0][1]*V2[1] + LBVi[0][2]*V2[2];
-     V2L[1] = LBVi[1][0]*V2[0] + LBVi[1][1]*V2[1] + LBVi[1][2]*V2[2];
+     V1L[0] = LBVi[0][0]*V1[0] + LBVi[0][1]*V1[1];
+     V1L[1] = LBVi[1][0]*V1[0] + LBVi[1][1]*V1[1];
+     V2L[0] = LBVi[0][0]*V2[0] + LBVi[0][1]*V2[1];
+     V2L[1] = LBVi[1][0]*V2[0] + LBVi[1][1]*V2[1];
      if ( fabs(V1L[0]) < tolvc && fabs(V2L[0]) < tolvc )
       { WhichBV=*pWhichBV = 0;
         LTranslate=LBV[0];
@@ -158,8 +158,9 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  ErrExit("exterior edge %i of object %s has no image "
-          "on the opposite side of the unit cell",nei, S->Label);
+  if (LDim==2)
+   ErrExit("exterior edge %i of object %s has no image "
+           "on the opposite side of the unit cell", nei, S->Label);
 
   return -1; // i am indecisive about how to handle this error
 
@@ -406,12 +407,10 @@ void RWGGeometry::InitPBCData()
   /*--------------------------------------------------------------*/
   TotalBFs=TotalPanels=0;
   for(int nd=0; nd<LDim; nd++)
-   { NumStraddlers[nd]    = (int *)mallocEC(NumSurfaces*sizeof(int)); 
-     RegionIsExtended[nd] = (bool *)mallocEC(NumRegions*sizeof(bool)); 
+   { NumStraddlers[nd]       = (int *)mallocEC(NumSurfaces*sizeof(int));
+     RegionIsExtended[nd]    = (bool *)mallocEC(NumRegions*sizeof(bool));
+     RegionIsExtended[nd][0] = true; // exterior medium is always extended
    };
-  // exterior medium is always extended
-  RegionIsExtended[0][0] = RegionIsExtended[1][0] = true;
-  int nr1, nr2;
   Log(" Mem before straddlers: %lu",GetMemoryUsage()/ONEMEG);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
@@ -419,8 +418,8 @@ void RWGGeometry::InitPBCData()
      int NumStraddlersThisSurface[2];
      S->AddStraddlers(LBasis, LDim, NumStraddlersThisSurface);
 
-     nr1=S->RegionIndices[0];
-     nr2=S->RegionIndices[1];
+     int nr1=S->RegionIndices[0];
+     int nr2=S->RegionIndices[1];
      for(int nd=0; nd<LDim; nd++)
       { 
         NumStraddlers[nd][ns]=NumStraddlersThisSurface[nd];

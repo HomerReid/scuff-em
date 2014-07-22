@@ -1,3 +1,7 @@
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+bool InnerOnly=false;
+bool OuterOnly=false;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -160,7 +164,7 @@ void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
    }
   else if ( LDim==1 )
    { GBD->LDim=1; 
-     GBD->LBV[1]=LBasis[1];
+     GBD->LBV[0]=LBasis[0];
    }
   else // region is not extended 
    { GBarAB9Interpolators[nr]=0;
@@ -521,6 +525,11 @@ done:
    { delete Args->B;
      if (Args->GradB) delete Args->GradB[2];
    };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (InnerOnly) return;
+if (OuterOnly) M->Zero();
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /***************************************************************/
   /***************************************************************/
