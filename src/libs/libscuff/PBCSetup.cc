@@ -35,52 +35,6 @@
 namespace scuff{
 
 /***************************************************************/
-/* Get the maximum and minimum coordinates of all panel        */
-/* vertices on all surfaces bounding the region in question.   */
-/***************************************************************/
-void RWGGeometry::GetRegionExtents(int nr, 
-                                   double RegionRMax[3], double RegionRMin[3],
-                                   double *DeltaR, int *NPoints)
-{
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGSurface *S;
-  double *SurfaceRMax, *SurfaceRMin;
-  RegionRMax[0] = RegionRMax[1] = RegionRMax[2] = -1.0e89;
-  RegionRMin[0] = RegionRMin[1] = RegionRMin[2] = +1.0e89;
-  for(int ns=0; ns<NumSurfaces; ns++)
-   { 
-     S=Surfaces[ns];
-     if ( S->RegionIndices[0]!=nr && S->RegionIndices[1]!=nr )
-      continue;
-     SurfaceRMax = S->RMax;
-     SurfaceRMin = S->RMin;
-
-     RegionRMax[0] = fmax(RegionRMax[0], SurfaceRMax[0]);
-     RegionRMax[1] = fmax(RegionRMax[1], SurfaceRMax[1]);
-     RegionRMax[2] = fmax(RegionRMax[2], SurfaceRMax[2]);
-     RegionRMin[0] = fmin(RegionRMin[0], SurfaceRMin[0]);
-     RegionRMin[1] = fmin(RegionRMin[1], SurfaceRMin[1]);
-     RegionRMin[2] = fmin(RegionRMin[2], SurfaceRMin[2]);
-   };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if ( DeltaR==0 || NPoints==0 )
-   return;
-
-  for(int i=0; i<3; i++)
-   { DeltaR[i] = fmax( RegionRMax[i] - RegionRMin[i], RWGGeometry::DeltaInterp );
-     NPoints[i] = 1 + (2.0*DeltaR[i] / RWGGeometry::DeltaInterp );
-     if (NPoints[i] < 2)
-      NPoints[i]=2;
-   };
-
-}
-
-/***************************************************************/
 /* return 1 if the point with cartesian coordinates X lies on  */
 /* the line connecting the origin to point L.                  */
 /* Note that this routine is only looking at the first two     */
@@ -103,27 +57,31 @@ static int PointOnLine(double *X, double *L)
 /* ExteriorEdges array is returned. otherwise, -1 is returned. */
 /*                                                             */
 /* if a partner edge is found, then NumStraddlers[i] is        */
-/* incremented (where i=0 or 1 depending on which unit cell    */
-/* boundary the original edge lay on) and V[0..2] is filled in */
-/* with the cartesian coordinates of the new vertex that must  */
-/* be added to turn the half-RWG basis function associated with*/
-/* edge #nei into a full RWG basis function.                   */
+/* incremented (where i=0 or 1 depending on whether the        */
+/* translation happened through LBV[0] or LBV[1]) and V[0..2]  */
+/* is filled in with the cartesian coordinates of the new      */
+/* vertex that must be added to turn the half-RWG basis        */
+/* function associated with edge #nei into a full RWG basis    */
+/* function.                                                   */
 /*                                                             */
 /* if a partner edge is found, then on return *pWhichBV is set */
 /* to 0 or 1 depending on whether the translation happened     */
 /* through LBV[0] or LBV[1].                                   */
+/*                                                             */
+/* Update 20140721: For 1D-periodic geometries I don't think   */
+/* it's necessary to establish whether or not the edge lives   */
+/* on the unit-cell boundary; indeed, without the second       */
+/* lattice vector I'm not even sure the unit-cell boundary     */
+/* is well-defined.                                            */
 /***************************************************************/
-static int FindPartnerEdge(RWGSurface *S, int nei, 
-			   double LBV[MAXLATTICE][3], 
-			   double LBVi[3][3], 
-                           int NumLatticeVectors, 
-			   int NumStraddlers[MAXLATTICE], 
+static int FindPartnerEdge(RWGSurface *S, int nei,
+			   double LBV[MAXLDIM][2], 
+                           double LBVi[MAXLDIM][2], 
+                           int LDim,
+			   int NumStraddlers[MAXLDIM], 
 			   int *pWhichBV,
                            double *V)
 {
-  if (NumLatticeVectors!=2)
-   ErrExit("%s:%i: NumLatticeVectors != 2 not yet supported",__FILE__,__LINE__);
-
   RWGEdge *E = S->ExteriorEdges[nei];
   double *V1 = S->Vertices + 3*(E->iV1);
   double *V2 = S->Vertices + 3*(E->iV2);
@@ -132,35 +90,48 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
   /*--------------------------------------------------------------*/
   /*- determine whether or not the edge lies on the unit cell     */
   /*- boundary, and if so which face of that boundary it lies on. */
+  /*-                                                             */
+  /*- After this code snippet,                                    */
+  /*-  LTranslate = the basis vector through which we expect to   */
+  /*-               translate the given edge to find an image     */
+  /*-  *pWhich    = the index of LTranslate within LBV (0 or 1)   */
   /*--------------------------------------------------------------*/
+  double *LTranslate;
   int WhichBV;
-  double *ThisBV, *OtherBV;
-  // convert V1 and V2 to lattice basis
-  double V1L[2], V2L[2];
-  V1L[0] = LBVi[0][0]*V1[0] + LBVi[0][1]*V1[1] + LBVi[0][2]*V1[2];
-  V1L[1] = LBVi[1][0]*V1[0] + LBVi[1][1]*V1[1] + LBVi[1][2]*V1[2];
-  V2L[0] = LBVi[0][0]*V2[0] + LBVi[0][1]*V2[1] + LBVi[0][2]*V2[2];
-  V2L[1] = LBVi[1][0]*V2[0] + LBVi[1][1]*V2[1] + LBVi[1][2]*V2[2];
-  if ( fabs(V1L[1]) < tolvc && fabs(V2L[1]) < tolvc )
-   { WhichBV = *pWhichBV = 0;
-     ThisBV=LBV[0]; 
-     OtherBV=LBV[1];
+  if (LDim==1)
+   {
+     WhichBV=*pWhichBV=0;
+     LTranslate = LBV[0];
    }
-  else if ( fabs(V1L[0]) < tolvc && fabs(V2L[0]) < tolvc )
-   { WhichBV = *pWhichBV = 1;
-     ThisBV=LBV[1]; 
-     OtherBV=LBV[0];
+  else if (LDim==2)
+   { 
+     // convert V1 and V2 to lattice basis
+     double V1L[2], V2L[2];
+     V1L[0] = LBVi[0][0]*V1[0] + LBVi[0][1]*V1[1] + LBVi[0][2]*V1[2];
+     V1L[1] = LBVi[1][0]*V1[0] + LBVi[1][1]*V1[1] + LBVi[1][2]*V1[2];
+     V2L[0] = LBVi[0][0]*V2[0] + LBVi[0][1]*V2[1] + LBVi[0][2]*V2[2];
+     V2L[1] = LBVi[1][0]*V2[0] + LBVi[1][1]*V2[1] + LBVi[1][2]*V2[2];
+     if ( fabs(V1L[0]) < tolvc && fabs(V2L[0]) < tolvc )
+      { WhichBV=*pWhichBV = 0;
+        LTranslate=LBV[0];
+      }
+     else if ( fabs(V1L[1]) < tolvc && fabs(V2L[1]) < tolvc )
+      { WhichBV=*pWhichBV = 1;
+        LTranslate=LBV[1];
+      }
+     else
+      return -1; // edge does not lie on unit cell boundary
    }
   else
-   return -1; // edge does not lie on unit cell boundary 
+   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   /*--------------------------------------------------------------*/
   /* Look for an exterior edge that is the translate through      */
   /* OtherBV of the present exterior edge.                        */
   /*--------------------------------------------------------------*/
   double V1T[3], V2T[3]; // 'V12, translated'
-  V1T[0] = V1[0] + OtherBV[0]; V1T[1] = V1[1] + OtherBV[1]; V1T[2] = V1[2];
-  V2T[0] = V2[0] + OtherBV[0]; V2T[1] = V2[1] + OtherBV[1]; V2T[2] = V2[2];
+  V1T[0] = V1[0] + LTranslate[0]; V1T[1] = V1[1] + LTranslate[1]; V1T[2] = V1[2];
+  V2T[0] = V2[0] + LTranslate[0]; V2T[1] = V2[1] + LTranslate[1]; V2T[2] = V2[2];
   double *V1P, *V2P; // 'V1,V2, primed'
   for(int neip=0; neip<S->NumExteriorEdges; neip++)
    { 
@@ -177,8 +148,8 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
         /*- found a translate of the edge in question.                  */
         /*--------------------------------------------------------------*/
         memcpy(V, S->Vertices + 3*(S->ExteriorEdges[neip]->iQP), 3*sizeof(double));
-        V[0] -= OtherBV[0]; 
-        V[1] -= OtherBV[1]; 
+        V[0] -= LTranslate[0]; 
+        V[1] -= LTranslate[1]; 
         if (NumStraddlers) NumStraddlers[WhichBV]++;
         return neip;
       };
@@ -195,12 +166,12 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
 }
 
 /*--------------------------------------------------------------*/
-/* A 'straddler' is a panel edge that lies on a face of the unit*/
-/* cell and has a partner edge on the opposite face of the unit */
-/* cell. This routine goes through the list of exterior edges   */
+/* A 'straddler' is an external edge that has a partner ('image')*/
+/* edge translated by a lattice vector.                         */
+/* This routine goes through the list of exterior edges         */
 /* in the given RWGSurface and identifies all straddlers. For   */
 /* each straddler, the routine adds one new panel and one new   */
-/* vertex to the Surface. The new panel is the translate of the  */
+/* vertex to the Surface. The new panel is the translate of the */
 /* panel to which the partner edge is attached, while the new   */
 /* vertex is the vertex opposite the partner edge within that   */
 /* panel. Once we have added this new vertex and panel, we can  */
@@ -212,44 +183,50 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
 /*                                                              */
 /*  LBV[i][j] is the jth cartesian component of the ith lattice */
 /*  basis vector.                                               */
-/*  NumLatticeVectors is the length of the first dimension of   */
+/*  LDim is the length of the first dimension of                */
 /*  the LBV array.                                              */
 /*                                                              */
 /*  On return, NumStraddlers[i] is the number of straddlers     */
 /*  detected on the unit-cell boundary normal to LBV[i].        */
 /*--------------------------------------------------------------*/
 #define CHUNK 100
-void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3], 
-                               int NumLatticeVectors,
-                               int NumStraddlers[MAXLATTICE])
+void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
+                               int LDim,
+                               int NumStraddlers[MAXLDIM])
 { 
   int NumNew=0, NumAllocated=0;
   double V[3], *NewVertices=0;
   RWGPanel *P, **NewPanels=0;
   RWGEdge *E, **NewEdges=0;
 
-  memset(NumStraddlers, 0, MAXLATTICE*sizeof(int));
+  memset(NumStraddlers, 0, MAXLDIM*sizeof(int));
 
-  // find the LBVi vectors, which satisfy dot(LBVi[k],LBV[j])
-  // = delta(j,k), and are used to convert points to the lattice basis.
-  double LBVi[3][3] = {{0,0,0}, {0,0,0}, {0,0,0}};
-  if (NumLatticeVectors == 1) {
-    VecScale(LBV[0], 1./VecNorm(LBV[0]), LBVi[0]);
-  }
-  else if (NumLatticeVectors == 2) {
-    // LBVi[0] = (LBV[0] x LBV[1]) x LBV[1] / (LBV[0] * (... x ... x ...))
-    // LBVi[1] = (LBV[0] x LBV[1]) x LBV[0] / (LBV[1] * (... x ... x ...))
-    double perp[3];
-    VecCross(LBV[0], LBV[1], perp);
-    if (VecNorm(perp) < 1e-8 * VecNorm(LBV[0]) * VecNorm(LBV[1]))
+  /***************************************************************/
+  /* find the LBVi vectors, which satisfy dot(LBVi[k],LBV[j])    */
+  /* = delta(j,k), and are used to convert points to the lattice */
+  /* basis.                                                      */
+  /***************************************************************/
+  double LBVi[2][2] = {{0.0,0.0}, {0.0,0.0}};
+  if (LDim==1) 
+   {
+     VecScale(LBV[0], 1./VecNorm(LBV[0]), LBVi[0]);
+   }
+  else if (LDim==2) 
+   {
+     // LBVi[0] = (LBV[0] x LBV[1]) x LBV[1] / (LBV[0] * (... x ... x ...))
+     // LBVi[1] = (LBV[0] x LBV[1]) x LBV[0] / (LBV[1] * (... x ... x ...))
+     double perp[3];
+     VecCross(LBV[0], LBV[1], perp);
+     if (VecNorm(perp) < 1e-8 * VecNorm(LBV[0]) * VecNorm(LBV[1]))
       ErrExit("Lattice vectors close to parallel.");
-    for (int i = 0; i < 2; ++i) {
-      VecCross(perp, LBV[1-i], LBVi[i]);
-      VecScale(LBVi[i], 1 / VecDot(LBV[i], LBVi[i]));
-    }
-  }
-  else if (NumLatticeVectors > 2)
-    ErrExit("%d lattice vectors unsupported\n", NumLatticeVectors);
+     for (int i=0; i<2; ++i)
+      { 
+        VecCross(perp, LBV[1-i], LBVi[i]);
+        VecScale(LBVi[i], 1 / VecDot(LBV[i], LBVi[i]));
+      }
+   }
+  else // (LDim> 2)
+   ErrExit("%d lattice vectors unsupported\n", LDim);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -264,7 +241,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
       // version of itself) on the opposite side of the unit cell
       int WhichBV;
       int neip=FindPartnerEdge(this, nei, LBV, LBVi, 
-                               NumLatticeVectors, NumStraddlers, &WhichBV, V);
+                               LDim, NumStraddlers, &WhichBV, V);
 
       // if so, add a new vertex, panel, and interior edge to the RWGSurface.
       if (neip!=-1)
@@ -327,7 +304,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLATTICE][3],
           //PhasedBFCs[NumNew].WhichBV;
           PhasedBFCs[3*NumNew + 0] = ExteriorEdges[neip]->iPPanel;
           PhasedBFCs[3*NumNew + 1] = NumEdges + NumNew;
-          PhasedBFCs[3*NumNew + 2] = 1-WhichBV;
+          PhasedBFCs[3*NumNew + 2] = WhichBV;
   
           NumNew++;
 
@@ -418,35 +395,40 @@ void RWGGeometry::InitPBCData()
   /* Note: NumStraddlers is an array stored within RWGGeometry    */
   /* that tabulates how many straddlers each surface has in each  */
   /* possible direction.                                          */
-  /* NumStraddlers[MAXLATTICE*ns + i] = number of stradders for   */
+  /* NumStraddlers[MAXLDIM*ns + i] = number of stradders for   */
   /*                                    surface #ns that straddle */
   /*                                    the unit cell boundary    */
   /*                                    normal to basis vector #i */
   /*                                                              */
-  /* Also, RegionIsExtended[MAXLATTICE*nr + i] = true if region nr*/
+  /* Also, RegionIsExtended[MAXLDIM*nr + i] = true if region nr*/
   /* is extended (as opposed to compact) in the direction of      */
   /* lattice basis vector i; =false otherwise.                    */
   /*--------------------------------------------------------------*/
   TotalBFs=TotalPanels=0;
-  NumStraddlers=(int *)mallocEC(NumSurfaces*MAXLATTICE*sizeof(int)); 
-  RegionIsExtended=(bool *)mallocEC(NumRegions*MAXLATTICE*sizeof(bool));
-  RegionIsExtended[0]=RegionIsExtended[1]=true; // exterior medium is extended
+  for(int nd=0; nd<LDim; nd++)
+   { NumStraddlers[nd]    = (int *)mallocEC(NumSurfaces*sizeof(int)); 
+     RegionIsExtended[nd] = (bool *)mallocEC(NumSurfaces*sizeof(bool)); 
+   };
+  // exterior medium is always extended
+  RegionIsExtended[0][0] = RegionIsExtended[1][0] = true;
   int nr1, nr2;
   Log(" Mem before straddlers: %lu",GetMemoryUsage()/ONEMEG);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
-     S->AddStraddlers(LatticeBasisVectors, NumLatticeBasisVectors, 
-                      NumStraddlers + ns*MAXLATTICE);
+     int NumStraddlersThisSurface[2];
+     S->AddStraddlers(LBasis, LDim, NumStraddlersThisSurface);
 
      nr1=S->RegionIndices[0];
      nr2=S->RegionIndices[1];
-     for(int i=0; i<2; i++)
-      if ( NumStraddlers[ MAXLATTICE*ns + i] > 0 )
-       { RegionIsExtended[ MAXLATTICE*nr1 + i]=true;
-         if (nr2!=-1) RegionIsExtended[ MAXLATTICE*nr2 + i ]=true;
-       };
-
+     for(int nd=0; nd<LDim; nd++)
+      { 
+        NumStraddlers[nd][ns]=NumStraddlersThisSurface[nd];
+        if ( NumStraddlers[nd][ns] > 0 )
+         { RegionIsExtended[nd][nr1]=true;
+           if (nr2!=-1) RegionIsExtended[nd][nr2]=true;
+         };
+      };
      TotalBFs+=S->NumBFs;
      TotalPanels+=S->NumPanels;
 
@@ -472,28 +454,6 @@ void RWGGeometry::InitPBCData()
   /*--------------------------------------------------------------*/
   Log(" Mem before interpolators: %lu",GetMemoryUsage()/ONEMEG);
   GBarAB9Interpolators = (Interp3D **)mallocEC(NumRegions * sizeof(Interp3D *));
-#if 0
-
-20140718 EXPERIMENTAL I am going to move to a scheme in 
-which I allocate and initialize interpolators separately
-for each call to AssembleBEMMatrixBlock().
-
-  double RMax[3], RMin[3], DeltaR[3];
-  int NPoints[3];
-  for(int nr=0; nr<NumRegions; nr++)
-   { 
-     if ( !RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
-      continue; // we do not need an interpolator for non-extended regions
-
-     GetRegionExtents(nr, RMax, RMin, DeltaR, NPoints);
-
-     Log("Creating %ix%ix%i i-table for region %i (%s)",NPoints[0],NPoints[1],NPoints[2],nr,RegionLabels[nr]);
-     GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
-                                            -DeltaR[1], DeltaR[1], NPoints[1],
-                                                   0.0, DeltaR[2], 1 + NPoints[2]/2, 
-                                                     2);
-   };
-#endif
 
 }
 

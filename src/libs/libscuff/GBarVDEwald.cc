@@ -185,7 +185,7 @@ void GetRLBasis(double **L, int LDim, double Gamma[2][2],
      /***************************************************************/
      double E  = sqrt(M_PI / L2);
      double E1 = abs(k) / 20.0; // H=10
-     double E2 = (*Rho2==0.0) ? 1.0e100 : 5.0 / sqrt(*Rho2);
+     double E2 = (*Rho2==0.0) ? 1.0e100 : 1.2 / sqrt(*Rho2);
      if ( E < E1 ) 
       E=E1;
      else if ( E > E2 )
@@ -316,7 +316,7 @@ cdouble GetGLongTwiddle1D(double kx, double Rho2, cdouble k, double E)
      // use recurrence to get ExpIntegral_{q+1}
      Eqp1 = (ExpFac - Arg*Eqp1) / ((double)q);
 
-     PreFactor *= -1.0*Rho2E2 / q;
+     PreFactor *= -1.0*Rho2E2 / ((double)q);
 
      cdouble Term = PreFactor*Eqp1;
      Sum += Term;

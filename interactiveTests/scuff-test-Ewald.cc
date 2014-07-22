@@ -314,6 +314,11 @@ int main(int argc, char *argv[])
      double Gamma[2][2], EOpt, Rho2;
      GetRLBasis(LBVP, LDim, Gamma, k, &EOpt, R, &Rho2);
      if (E==-1.0) E=EOpt;
+     printf("Choice of optimal E: \n");
+      { printf("E0 = %e \n",sqrt(M_PI/LBVP[0][0]));
+        printf("E1 = %e \n",abs(k)/20.0);
+        printf("E2 = %e \n",1.2/sqrt(Rho2));
+      };
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/

@@ -222,7 +222,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
    return;
 
   RWGGeometry *G = SC3D->G;
-  bool PBC = G->NumLatticeBasisVectors > 0;
+  bool PBC = (G->LDim > 0);
 
   /***************************************************************/
   /* SurfaceNeverMoved[ns] is initialized true and remains true  */
@@ -406,15 +406,15 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
      /* calling hierarchy, in the GetXiIntegrand() routine.            */
      /******************************************************************/
      FILE *f=0;
-     if (G->NumLatticeBasisVectors==0)
+     if (G->LDim==0)
       { f = fopen(SC3D->ByXiFileName, "a");
         fprintf(f,"%s %.6e ",Tag,Xi);
       }
-     else if (G->NumLatticeBasisVectors==1)
+     else if (G->LDim==1)
       { f = fopen(SC3D->ByXiKFileName, "a");
         fprintf(f,"%s %.6e %.6e ",Tag,Xi,kBloch[0]);
       }
-     else if (G->NumLatticeBasisVectors==2)
+     else if (G->LDim==2)
       { f = fopen(SC3D->ByXiKFileName, "a");
         fprintf(f,"%s %.6e %.6e %.6e ",Tag,Xi,kBloch[0],kBloch[1]);
       }

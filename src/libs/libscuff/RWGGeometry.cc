@@ -114,35 +114,26 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
 
      if ( !StrCaseCmp(Tokens[0],"VECTOR") )
       {
-        if (NumLatticeBasisVectors==MAXLATTICE)
+        if (LDim==MAXLDIM)
          ErrExit("%s:%i: too many lattice vectors",FileName,*LineNum);
-        LBV=LatticeBasisVectors[NumLatticeBasisVectors++];
+        LBV=LBasis[LDim++];
 
-        if (NumTokens==4)
+        if (NumTokens==3)
          { sscanf(Tokens[1],"%le",LBV+0);
            sscanf(Tokens[2],"%le",LBV+1);
-           sscanf(Tokens[3],"%le",LBV+2);
-         }
-        else if (NumTokens==3)
-         { sscanf(Tokens[1],"%le",LBV+0);
-           sscanf(Tokens[2],"%le",LBV+1);
-           LBV[2]=0.0;
          }
         else
          ErrExit("%s:%i: syntax error",FileName,*LineNum);
 
-        if (LBV[2]!=0.0)
-         ErrExit("%s:%i: lattice vectors must have zero Z component",FileName,*LineNum);
-
-        Log("Adding lattice basis vector (%g,%g,%g).",LBV[0],LBV[1],LBV[2]);
+        Log("Adding lattice basis vector (%g,%g).",LBV[0],LBV[1]);
       }
      else if ( !StrCaseCmp(Tokens[0],"ENDLATTICE") )
       { 
         // if the user specified two basis vectors, test for independence
-        if (NumLatticeBasisVectors==2)
+        if (LDim==2)
 	 { double cross[3];
-           double Area=VecNorm(VecCross(LatticeBasisVectors[0],LatticeBasisVectors[1],cross));
-           double NormProd=VecNorm(LatticeBasisVectors[0])*VecNorm(LatticeBasisVectors[1]);
+           double Area=VecNorm(VecCross(LBasis[0],LBasis[1],cross));
+           double NormProd=VecNorm(LBasis[0])*VecNorm(LBasis[1]);
            if ( Area < 1.0e-6*NormProd )
             ErrExit("%s:%i: lattice basis vectors are parallel",FileName,*LineNum);
          };
@@ -223,7 +214,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   GeoFileName=strdupEC(pGeoFileName);
   Surfaces=0;
   AllSurfacesClosed=1;
-  NumLatticeBasisVectors=0;
+  LDim=0;
   tolVecClose=0.0; // to be updated once mesh is read in
   TBlockCacheNameAddendum=0;
 
@@ -416,7 +407,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* if a lattice is present, then we need to do some preliminary    */
   /* setup                                                           */
   /*******************************************************************/
-  if (NumLatticeBasisVectors>0)
+  if (LDim>0)
    InitPBCData();
 
   /*******************************************************************/

@@ -189,7 +189,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
                                           double *kBloch,
                                           cdouble KN[6])
 { 
-  bool PBC = NumLatticeBasisVectors > 0;
+  bool PBC = (LDim> 0);
   if (PBC && !kBloch)
    ErrExit("%s:%i: null KBloch in PBC geometry",__FILE__,__LINE__);
   if (!PBC && kBloch)
@@ -207,15 +207,15 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
   double *LBV[2]={0,0};
   if ( PBC )
    { 
-     if (NumLatticeBasisVectors!=2)
+     if (LDim!=2)
       ErrExit("%s:%i: only 2D lattices supported");
-     if (    LatticeBasisVectors[0][1] != 0.0 
-          || LatticeBasisVectors[1][0] != 0.0 
+     if (    LBasis[0][1] != 0.0 
+          || LBasis[1][0] != 0.0 
         ) 
       ErrExit("%s:%i: only square lattices supported");
 
-     LBV[0] = LatticeBasisVectors[0];
-     LBV[1] = LatticeBasisVectors[1];
+     LBV[0] = LBasis[0];
+     LBV[1] = LBasis[1];
 
      double L[2];
 

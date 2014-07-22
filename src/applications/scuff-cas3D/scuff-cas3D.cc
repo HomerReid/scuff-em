@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
    { if (XiFile)       ErrExit("--XiKFile and --XiFile options are mutually exclusive");
      if (nXiVals>0)    ErrExit("--XiKFile and --Xi options are mutually exclusive");
      if (nTemperature) ErrExit("--XiKFile and --Temperature options are mutually exclusive");
-     if (G->NumLatticeBasisVectors==0) ErrExit("--XiKFile may only be used for periodic geometries");
+     if (G->LDim==0)   ErrExit("--XiKFile may only be used for periodic geometries");
      XiKPoints=new HMatrix(XiKFile,LHM_TEXT,"--nc 3 --strict");
      if (XiKPoints->ErrMsg)
       ErrExit(XiKPoints->ErrMsg);
@@ -185,15 +185,15 @@ int main(int argc, char *argv[])
   else
    Log("Computing full zero-temperature Casimir quantities.");
 
-  if ( BZIMethod && G->NumLatticeBasisVectors==0) 
+  if ( BZIMethod && G->LDim==0) 
    ErrExit("--BZIMethod option may only be used for periodic geometries");
-  if ( !BZIMethod && G->NumLatticeBasisVectors!=0 ) 
+  if ( !BZIMethod && G->LDim!=0 ) 
    BZIMethod=strdup("ECC3");
 
   /*******************************************************************/
   /* figure out which quantities to compute **************************/
   /*******************************************************************/
-  if (G->NumLatticeBasisVectors>0)
+  if (G->LDim>0)
    { if ( XForce || YForce || nTorque>0 || AllTorque)
       ErrExit("only --energy and --zforce are available for extended geometries");
    };

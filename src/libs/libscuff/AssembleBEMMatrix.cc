@@ -145,18 +145,22 @@ void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
   /***************************************************************/
   /* figure out whether this region has 1D or 2D periodicity     */
   /***************************************************************/  
-  if ( RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] ) 
+  if ( LDim==2 && (RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
    { GBD->LDim=2;
-     GBD->LBV[0]=LatticeBasisVectors[0];
-     GBD->LBV[1]=LatticeBasisVectors[1];
+     GBD->LBV[0]=LBasis[0];
+     GBD->LBV[1]=LBasis[1];
    }
-  else if ( RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
+  else if ( LDim==2 && (RegionIsExtended[0][nr] && !RegionIsExtended[1][nr]) ) 
    { GBD->LDim=1; 
-     GBD->LBV[0]=LatticeBasisVectors[0];
+     GBD->LBV[0]=LBasis[0];
    }
-  else if ( !RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] )
+  else if ( LDim==2 && (!RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
    { GBD->LDim=1; 
-     GBD->LBV[0]=LatticeBasisVectors[1];
+     GBD->LBV[0]=LBasis[1];
+   }
+  else if ( LDim==1 )
+   { GBD->LDim=1; 
+     GBD->LBV[1]=LBasis[1];
    }
   else // region is not extended 
    { GBarAB9Interpolators[nr]=0;
@@ -275,13 +279,13 @@ void *RWGGeometry::CreateABMBAccelerator(int nsa, int nsb,
                                          bool PureImagFreq,
                                          bool NeedZDerivative)
 {
-  if (NumLatticeBasisVectors==0)
+  if (LDim==0)
    return 0;
 
   /*--------------------------------------------------------------*/
   /*- gather some information about the problem ------------------*/
   /*--------------------------------------------------------------*/
-  bool OneDLattice = (NumLatticeBasisVectors == 1);
+  bool OneDLattice = (LDim== 1);
   bool TwoDLattice = !OneDLattice;
   bool SameSurface = (nsa==nsb);
   int NR = Surfaces[nsa]->NumBFs;
@@ -373,7 +377,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /***************************************************************/
   /* handle the compact-object case first since it is so simple  */
   /***************************************************************/
-  if (NumLatticeBasisVectors==0)
+  if (LDim==0)
    {  
      GetSSIArgStruct GetSSIArgs, *Args=&GetSSIArgs;
      InitGetSSIArgs(Args);
@@ -409,7 +413,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   bool HaveCache = (Cache!=0);
   bool HaveCleanCache = HaveCache && EqualFloat(Cache->Omega, Omega);
   if (HaveCache) Cache->Omega=Omega;
-  bool OneDLattice = NumLatticeBasisVectors==1;
+  bool OneDLattice = (LDim==1);
 
   int NumCommonRegions, CRIndices[2];
   double Signs[2];
@@ -427,10 +431,10 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   double L[3]={0.0, 0.0, 0.0};
 
   double LBV[2][2];
-  LBV[0][0] = LatticeBasisVectors[0][0];
-  LBV[0][1] = LatticeBasisVectors[0][1];
-  LBV[1][0] = OneDLattice ? 0.0 : LatticeBasisVectors[1][0];
-  LBV[1][1] = OneDLattice ? 0.0 : LatticeBasisVectors[1][1];
+  LBV[0][0] = LBasis[0][0];
+  LBV[0][1] = LBasis[0][1];
+  LBV[1][0] = OneDLattice ? 0.0 : LBasis[1][0];
+  LBV[1][1] = OneDLattice ? 0.0 : LBasis[1][1];
 
   /***************************************************************/
   /* pre-initialize arguments for GetSurfaceSurfaceInteractions **/
@@ -489,10 +493,10 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
           }
          else 
           { Args->OmitRegion1 = Args->OmitRegion2 = true;
-            if ( n1!=0 && RegionIsExtended[MAXLATTICE*nr1 + 0] ) Args->OmitRegion1=false;
-            if ( n1!=0 && RegionIsExtended[MAXLATTICE*nr2 + 0] ) Args->OmitRegion2=(nr2==-1);
-            if ( n2!=0 && RegionIsExtended[MAXLATTICE*nr1 + 1] ) Args->OmitRegion1=false;
-            if ( n2!=0 && RegionIsExtended[MAXLATTICE*nr2 + 1] ) Args->OmitRegion2=(nr2==-1);
+            if ( n1!=0 && RegionIsExtended[0][nr1] ) Args->OmitRegion1=false;
+            if ( n1!=0 && RegionIsExtended[0][nr2] ) Args->OmitRegion2=(nr2==-1);
+            if ( n2!=0 && RegionIsExtended[1][nr1] ) Args->OmitRegion1=false;
+            if ( n2!=0 && RegionIsExtended[1][nr2] ) Args->OmitRegion2=(nr2==-1);
           };
  
          Log("  ...(%i,%i) block...",n1,n2);
@@ -554,9 +558,9 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if ( NumLatticeBasisVectors==0 && kBloch!=0 && (kBloch[0]!=0.0 || kBloch[1]!=0.0) )
+  if ( LDim==0 && kBloch!=0 && (kBloch[0]!=0.0 || kBloch[1]!=0.0) )
    ErrExit("%s:%i: Bloch wavevector is undefined for compact geometries");
-  if ( NumLatticeBasisVectors!=0 && kBloch==0 )
+  if ( LDim!=0 && kBloch==0 )
    ErrExit("%s:%i: Bloch wavevector must be specified for PBC geometries");
 
   /***************************************************************/

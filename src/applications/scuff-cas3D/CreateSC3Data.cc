@@ -46,7 +46,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
-  bool PBC = G->NumLatticeBasisVectors > 0 ;
+  bool PBC = (G->LDim> 0);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -79,15 +79,15 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*--------------------------------------------------------------*/
   /*- compute a basis for the reciprocal lattice -----------------*/
   /*--------------------------------------------------------------*/
-  if (G->NumLatticeBasisVectors==1)
+  if (G->LDim==1)
    { 
-     SC3D->RLBasisVectors[0][0] = 2.0*M_PI/G->LatticeBasisVectors[0][0];
+     SC3D->RLBasisVectors[0][0] = 2.0*M_PI/G->LBasis[0][0];
      SC3D->BZVolume = SC3D->RLBasisVectors[0][0];
    }
-  else if (G->NumLatticeBasisVectors==2)
+  else if (G->LDim==2)
    { 
-     double *L1 = G->LatticeBasisVectors[0];
-     double *L2 = G->LatticeBasisVectors[1];
+     double *L1 = G->LBasis[0];
+     double *L2 = G->LBasis[1];
 
      double PreFac = 2.0*M_PI / fabs( L1[0]*L2[1] - L1[1]*L2[0]);
 
@@ -225,7 +225,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->ByXiFileName=vstrdup("%s.byXi",FileBase);
   WriteFilePreamble(SC3D, PREAMBLE_BYXI);
 
-  if (G->NumLatticeBasisVectors>0)
+  if (G->LDim>0)
    { SC3D->ByXiKFileName=vstrdup("%s.byXikBloch",FileBase);
      WriteFilePreamble(SC3D, PREAMBLE_BYXIK);
    }
@@ -295,7 +295,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
      fprintf(f,"#%i: imaginary angular frequency\n",nc++);
 
      IntegrandString="Xi integrand";
-     ErrorString = (SC3D->G->NumLatticeBasisVectors==0) ? 0 :
+     ErrorString = (SC3D->G->LDim==0) ? 0 :
                    "error due to numerical Brillouin-zone integration";
 
    }
@@ -303,7 +303,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
    { 
      fprintf(f,"#%i: imaginary angular frequency\n",nc++);
      fprintf(f,"#%i: bloch wavevector kx \n",nc++);
-     if (SC3D->G->NumLatticeBasisVectors==2)
+     if (SC3D->G->LDim==2)
       fprintf(f,"#%i: bloch wavevector ky \n",nc++);
 
      IntegrandString="Brillouin-zone integrand";

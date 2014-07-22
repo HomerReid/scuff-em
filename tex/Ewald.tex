@@ -417,9 +417,10 @@ where
      \int_{\mc C_1}\, du \, e^{-u^2\rho^2 + \frac{k^2}{4u^2}}
     \underbrace{\int_{-\infty}^\infty e^{-u^2 x^2 - ik_x x} \, dx}
               _{\sqrt{\pi} \cdot u^{-1} \cdot e^{-k_x^2 / 4u^2 }}
-\intertext{Deform the contour down to the positive real axis:}
+\\
    &=\frac{1}{4\pi^2}
-     \int_{\eta}^\infty \, \frac{du}{u} \, e^{-u^2 \rho^2 + (k^2-k_x^2)/(4u^2)}
+     \int_{\mc C_1} \, \frac{du}{u} \, e^{-u^2 \rho^2 + (k^2-k_x^2)/(4u^2)}.
+\\
 \intertext{Now put $k_t^2=k_x^2-k^2$ and change variables to 
            $t=\eta/u^2$, $dt=-2t du/u$:}
    &=\frac{1}{8\pi^2}
@@ -605,6 +606,9 @@ of this contour are the following:
  $ 0 \le \gamma \le \left(\frac{\pi}{4} - \text{arg }\epsilon\right)$
  where $\text{arg }\epsilon$ is the phase angle of
  the complex permittivity.
+ \item
+ The variable substitution $z\to 1/z$ transforms integrals over 
+ $\mc C_1$ into integrals over $\mc C_2.$
 \end{itemize}
 %====================================================================%
 
@@ -616,6 +620,51 @@ $$ \mc C
       \qquad 0\le t \le \infty
 $$
 %====================================================================%
+where $\mc C_1$ and $\mc C_2$ corresponding to the parameter ranges
+$t\in [0,\eta]$ and $t\in[\eta,\infty]$. To demonstrate that this
+contour satisfies the last announced property above, go like this:
+%====================================================================%
+\begin{align*}
+\mathcal{I}=
+\int_{\mc C_1} f(z) dz
+ &=\int_{0}^\eta
+       f\Big[ z(t) \Big] 
+       z^\prime(t) \, dt
+\end{align*}
+where 
+$$ z(t)=t-i\gamma\sin\left(4\,\atan \frac{t}{\eta}\right), 
+   \qquad
+   z^\prime(t)
+   =
+   1 - i\frac{4\gamma\eta\cos\left(4\atan\frac{t}{\eta}\right)}
+                      {t^2 + \eta^2}.
+$$
+Now change variables to $s=\frac{\eta^2}{t}, -\frac{\eta^2}{s^2}ds=dt.$
+The integral becomes
+$$\mathcal{I} 
+  = 
+  \int_\eta^\infty f\Big[z(s)\Big] z^\prime(s) \frac{\eta^2}{s^2}ds.
+$$
+%====================================================================%
+First note that 
+$$ \atan\frac{t}{\eta} = \atan\frac{\eta}{s} 
+   = \frac{\pi}{2}-\atan\frac{s}{\eta}$$
+and hence
+$$
+ \sin\left(4\,\atan\frac{t}{\eta} \right)
+= - \sin\left(4\,\atan\frac{s}{\eta}\right), 
+\qquad 
+ \cos\left(4\,\atan\frac{t}{\eta} \right)
+= + \cos\left(4\,\atan\frac{s}{\eta}\right).
+$$
+%====================================================================%
+Thus 
+$$ z^\prime(s) 
+   = 
+   1 - \frac{\eta^2}{s} + i\gamma\left(4\,\atan\frac{s}{\eta}\right)
+$$
+Also,
+$$ z(t) = \frac{\eta^2}{s} + i\gamma\left(4\,\atan\frac{s}{\eta}\right)$$
 
 %====================================================================%
 \begin{align*}

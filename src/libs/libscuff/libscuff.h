@@ -72,8 +72,8 @@ namespace scuff {
 #define SCUFF_NUM_OMATRICES      8
 
 // maximum number of lattice basis vectors
-#ifndef MAXLATTICE
-#define MAXLATTICE 2
+#ifndef MAXLDIM
+#define MAXLDIM 2
 #endif
 
 /*--------------------------------------------------------------*/
@@ -310,8 +310,8 @@ class RWGSurface
    void GetReducedPotentials(int ne, const double *X, cdouble K, Interp3D *GBarInterp,
                              cdouble *a, cdouble *Curla, cdouble *Gradp);
 
-   void AddStraddlers(double LBV[MAXLATTICE][3], int NumLatticeVectors, 
-                      int NumStraddlers[MAXLATTICE]);
+   void AddStraddlers(double LBV[MAXLDIM][2], int LDim,
+                      int NumStraddlers[MAXLDIM]);
 
    void UpdateBoundingBox();
  
@@ -457,7 +457,7 @@ class RWGGeometry
    /* periodic-boundary-condition versions of API routines. */
    /* Note PBC routines are distinguished from their non-PBC counterparts      */
    /* by the kBloch argument, which always follows Omega in the argument list. */
-   HMatrix *AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLATTICE], HMatrix *M);
+   HMatrix *AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLDIM], HMatrix *M);
    HVector *AssembleRHSVector(cdouble Omega, double *kBloch, IncField *IF, HVector *RHS = NULL);
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                   double *X, cdouble *EH);
@@ -481,7 +481,7 @@ class RWGGeometry
    void InitPBCData();
    void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
-                                      double kBloch[MAXLATTICE], HMatrix *XMatrix);
+                                      double kBloch[MAXLDIM], HMatrix *XMatrix);
    void CreateRegionInterpolator(int nr, cdouble Omega,
                                  double *kBloch, int nsa, int nsb);
 
@@ -516,12 +516,18 @@ class RWGGeometry
 
    char *GeoFileName;
 
-   /* NumLatticeVectors>0 iff we have periodic boundary conditions. */
-   /* All other fields in this section are only used for PBCs.      */
-   int NumLatticeBasisVectors;
-   double LatticeBasisVectors[MAXLATTICE][3];
-   int *NumStraddlers;
-   bool *RegionIsExtended;
+   /* LDim>0 iff we have periodic boundary conditions.           */
+   /* All other fields in this section are only used for PBCs:   */
+   /* LBasis[nd][2] = (x,y) coordinates of ndth lattice vector   */
+   /* NumStraddlers[nd][ns] = number of straddlers in ndth       */
+   /*                         dimension for surface #ns          */
+   /* RegionIsExtended[nd][ns] = true if region #nr is extended  */
+   /*                            in dimension #nd                */
+   /* GBarAB9Interpolators[nr] = interpolator for region #nr     */
+   int LDim;
+   double LBasis[2][2];
+   int *NumStraddlers[2];
+   bool *RegionIsExtended[2];
    Interp3D **GBarAB9Interpolators;
 
    /* BFIndexOffset[n] is the index within the overall BEM          */
