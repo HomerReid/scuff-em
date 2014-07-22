@@ -494,9 +494,9 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
          else 
           { Args->OmitRegion1 = Args->OmitRegion2 = true;
             if ( n1!=0 && RegionIsExtended[0][nr1] ) Args->OmitRegion1=false;
-            if ( n1!=0 && RegionIsExtended[0][nr2] ) Args->OmitRegion2=(nr2==-1);
+            if ( n1!=0 && nr2!=-1 && RegionIsExtended[0][nr2] ) Args->OmitRegion2=false;
             if ( n2!=0 && RegionIsExtended[1][nr1] ) Args->OmitRegion1=false;
-            if ( n2!=0 && RegionIsExtended[1][nr2] ) Args->OmitRegion2=(nr2==-1);
+            if ( n2!=0 && nr2!=-1 && RegionIsExtended[1][nr2] ) Args->OmitRegion2=false;
           };
  
          Log("  ...(%i,%i) block...",n1,n2);

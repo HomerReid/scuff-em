@@ -116,8 +116,8 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
   /* NCP points are for the lower surface.                       */ 
   /***************************************************************/ 
   double x, y, *LBV[2];
-  LBV[0]=G->LatticeBasisVectors[0];
-  LBV[1]=G->LatticeBasisVectors[1];
+  LBV[0]=G->LBasis[0];
+  LBV[1]=G->LBasis[1];
   if (NQPoints==0)
    { for(int ncp=0; ncp<NCP; ncp++)
       { 
@@ -356,10 +356,10 @@ void GetTransmissionAmplitudes(RWGGeometry *G, HVector *KN,
 
    };
 
-  if (G->NumLatticeBasisVectors!=2)
+  if (G->LDim!=2)
    ErrExit("%s: %i: internal error",__FILE__,__LINE__);
-  double *L1 = G->LatticeBasisVectors[0];
-  double *L2 = G->LatticeBasisVectors[1];
+  double *L1 = G->LBasis[0];
+  double *L2 = G->LBasis[1];
   double UnitCellVolume = L1[0]*L2[1]-L1[1]*L2[0];
 
   tTE *= ZVAC*ZPrime / (2.0*UnitCellVolume*CosThetaPrime);
@@ -468,7 +468,7 @@ char *UpperRegion;
   SetLogFileName("scuff-transmission.log");
   RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
   RWGGeometry *G=new RWGGeometry(GeoFileName);
-  if (G->NumLatticeBasisVectors!=2)
+  if (G->LDim!=2)
    ErrExit("%s: geometry must have two-dimensional lattice periodicity",GeoFileName);
   HMatrix *M   = G->AllocateBEMMatrix();
   HVector *RHS = G->AllocateRHSVector();

@@ -127,7 +127,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
 
   /*--------------------------------------------------------------*/
   /* Look for an exterior edge that is the translate through      */
-  /* OtherBV of the present exterior edge.                        */
+  /* LTranslate of the present exterior edge.                     */
   /*--------------------------------------------------------------*/
   double V1T[3], V2T[3]; // 'V12, translated'
   V1T[0] = V1[0] + LTranslate[0]; V1T[1] = V1[1] + LTranslate[1]; V1T[2] = V1[2];
@@ -209,7 +209,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
   double LBVi[2][2] = {{0.0,0.0}, {0.0,0.0}};
   if (LDim==1) 
    {
-     VecScale(LBV[0], 1./VecNorm(LBV[0]), LBVi[0]);
+     VecScale(LBV[0], 1./VecNorm2(LBV[0]), LBVi[0]);
    }
   else if (LDim==2) 
    {
@@ -237,7 +237,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
        continue;
 
       // see if this edge is a straddler, i.e. it lies on a face
-      // of the unit cell and it has a partner (a translated 
+      // of the unit cell and it has an image (a translated 
       // version of itself) on the opposite side of the unit cell
       int WhichBV;
       int neip=FindPartnerEdge(this, nei, LBV, LBVi, 
@@ -407,7 +407,7 @@ void RWGGeometry::InitPBCData()
   TotalBFs=TotalPanels=0;
   for(int nd=0; nd<LDim; nd++)
    { NumStraddlers[nd]    = (int *)mallocEC(NumSurfaces*sizeof(int)); 
-     RegionIsExtended[nd] = (bool *)mallocEC(NumSurfaces*sizeof(bool)); 
+     RegionIsExtended[nd] = (bool *)mallocEC(NumRegions*sizeof(bool)); 
    };
   // exterior medium is always extended
   RegionIsExtended[0][0] = RegionIsExtended[1][0] = true;

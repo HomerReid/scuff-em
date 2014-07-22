@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
      HMatrix *M = G->AllocateBEMMatrix();
      printf("Test %i (%s): \n",nt,TestNames[nt]);
 
-     if (G->NumLatticeBasisVectors==0)
+     if (G->LDim==0)
       G->AssembleBEMMatrix(Omega[nt], M);
      else
       G->AssembleBEMMatrix(Omega[nt], kBloch[nt], M);

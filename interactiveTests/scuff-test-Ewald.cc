@@ -196,14 +196,14 @@ int main(int argc, char *argv[])
   else if (GeoFileName!=0)
    { 
      RWGGeometry *G = new RWGGeometry(GeoFileName);
-     LDim = G->NumLatticeBasisVectors;
+     LDim = G->LDim;
      if (LDim>=1)
-      { LBV[0][0] = G->LatticeBasisVectors[0][0];
-        LBV[0][1] = G->LatticeBasisVectors[0][1];
+      { LBV[0][0] = G->LBasis[0][0];
+        LBV[0][1] = G->LBasis[0][1];
       };
      if (LDim>=2)
-      { LBV[1][0] = G->LatticeBasisVectors[1][0];
-        LBV[1][1] = G->LatticeBasisVectors[1][1];
+      { LBV[1][0] = G->LBasis[1][0];
+        LBV[1][1] = G->LBasis[1][1];
       }
    }
   else // default to a square lattice with side length 1

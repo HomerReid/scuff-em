@@ -262,9 +262,9 @@ int main(int argc, char *argv[])
   SNEQD->PlotFlux          = PlotFlux;
   SNEQD->SymGPower         = SymGPower;
 
-  if (OmegaKPoints && G->NumLatticeBasisVectors==0)
+  if (OmegaKPoints && G->LDim==0)
    ErrExit("--OmegaKPoints may only be used with extended geometries");
-  else if (G->NumLatticeBasisVectors!=0 && OmegaKPoints==0)
+  else if (G->LDim!=0 && OmegaKPoints==0)
    ErrExit("--OmegaKPoints is required for extended geometries");
 
   /*******************************************************************/
