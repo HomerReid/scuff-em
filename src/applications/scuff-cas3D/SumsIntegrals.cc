@@ -168,21 +168,29 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 
 /***************************************************************/
 /* wrapper around GetCasimirIntegrand with correct prototype   */
-/* prototype for adapt_integrate()                             */
+/* prototype for passage to adapt_integrate() to use in        */
+/* integrations over the brillouin zone                        */
 /***************************************************************/
 int kBlochIntegrand(unsigned ndim, const double *x, void *params,
                     unsigned fdim, double *fval)
 {
-  (void) ndim; // unused
   (void) fdim; // unused
 
   SC3Data *SC3D = (SC3Data *)params;
   double *EFT = fval;
 
   double kBloch[2];
-
-  kBloch[0] = x[0]*SC3D->RLBasisVectors[0][0] + x[1]*SC3D->RLBasisVectors[1][0];
-  kBloch[1] = x[0]*SC3D->RLBasisVectors[0][1] + x[1]*SC3D->RLBasisVectors[1][1];
+  if (ndim==1)
+   { kBloch[0] = x[0]*SC3D->RLBasisVectors[0][0];
+     kBloch[1] = x[0]*SC3D->RLBasisVectors[0][1];
+   }
+  else if (ndim==2)
+   { 
+     kBloch[0] = x[0]*SC3D->RLBasisVectors[0][0] + x[1]*SC3D->RLBasisVectors[1][0];
+     kBloch[1] = x[0]*SC3D->RLBasisVectors[0][1] + x[1]*SC3D->RLBasisVectors[1][1];
+   }
+  else
+   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   GetCasimirIntegrand(SC3D, SC3D->Xi, kBloch, EFT);
 
@@ -202,7 +210,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (SC3D->G->LDim==0)
+  int LDim = SC3D->G->LDim;
+  if (LDim==0)
    { 
      GetCasimirIntegrand(SC3D, Xi, 0, EFT);
    }
@@ -211,15 +220,20 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      /************************************************************/
      /* perform brillouin-zone integration.                      */
      /*                                                          */
-     /* \int_{BZ} f( \vec k ) d^2 k                              */
-     /*  = J*\int_0^1 du \int_0^1 dv f(\vec k(u,v)) du dv        */
-     /*  =4J*\int_0^{1/2} du \int_0^{1/2} dv f(\vec k(u,v)) du dv*/
+     /* (1/V_{BZ}) \int_{BZ} f( \vec k ) d k                     */
+     /*  =   \int_0^1     f[ \vec k(u) ] du                      */
+     /*  = 2 \int_0^{1/2} f[ \vec k(u) ] du                      */
      /*                                                          */
-     /* where \vec k(u,v) = u*\Gamma_1 + v*\Gamma_2              */
-     /* Jacobian: d^2 k = J du dv                                */
-     /* where J = (det Gamma) = V_{BZ}.                          */
-     /* and thus the integral reads                              */
-     /***************************************************************/
+     /*    (in the 1D case, with k(u)  = u\Gamma_1)              */
+     /*                                                          */
+     /*  =   \int_0^1 \int_0^1         f[ \vec k(u,v) ] du dv    */
+     /*  = 4 \int_0^{1/2} \int_0^{1/2} f[ \vec k(u,v) ] du dv    */
+     /*                                                          */
+     /*    (in the 2D case, with k(u,v) = u\Gamma_1 + v\Gamma_2  */
+     /*                                                          */
+     /* note that the the 1/V_{BZ} prefactor is cancelled by the */
+     /* Jacobian of the variable transformation.                 */
+     /************************************************************/
      double Lower[2] = {0.0, 0.0};
      double Upper[2] = {0.5, 0.5};
      double *Error = new double[SC3D->NTNQ];
@@ -231,21 +245,31 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      SC3D->Xi = Xi;
      if (SC3D->BZIOrder == 0)
       { 
-        pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 2, Lower, Upper,
+        pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, LDim, Lower, Upper,
                   SC3D->MaxkBlochPoints, SC3D->AbsTol, SC3D->RelTol, ERROR_INDIVIDUAL,
                   EFT, Error);
       }
-     else
+     else if (LDim==2)
       { 
         ECC2D(SC3D->BZIOrder, Lower, Upper, kBlochIntegrand, (void *)SC3D,
               SC3D->NTNQ, SC3D->BZSymmetry, SC3D->BZIValues, 0,
               EFT, Error);
+      }
+     else
+      { 
+        ErrExit("embedded Clenshaw-Curtis quadrature not available for 1D Brillouin zone");
+#if 0
+        ECC(SC3D->BZIOrder, Lower, Upper, kBlochIntegrand, (void *)SC3D,
+            SC3D->NTNQ, SC3D->BZSymmetry, SC3D->BZIValues, 0,
+            EFT, Error);
+#endif
       };
-
+   
+     double PreFactor = (LDim==2) ? 4.0 : 2.0;
      for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
       { 
-        EFT[ntnq] *= 4.0*SC3D->BZVolume;
-        Error[ntnq] *= 4.0*SC3D->BZVolume;
+        EFT[ntnq] *= PreFactor;
+        Error[ntnq] *= PreFactor;
 
         if ( Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]) )
          Warn("potentially large errors (Q%i: %i %%) in BZ integration",

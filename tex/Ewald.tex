@@ -253,10 +253,12 @@ that enters (\ref{RealSpaceSum1D}) as
 and hence the sum that defines the distant contribution
 to the periodic GF, equation (\ref{Poisson1D}), reads
 %====================================================================%
-$$\overline{G}\sups{distant}(\vb p, \vb x) 
+\numeq{GDistantSum1}
+{
+  \overline{G}\sups{distant}(\vb p, \vb x) 
   =\frac{2\pi}{L_{0x}} \sum_{m} e^{i(p_x - \frac{2\pi m}{L_{0x}})x}
    \wt{G\sups{long}}\Big( p_x - \frac{2\pi m}{L_{0x}}; \rho\Big).
-$$
+}
 %====================================================================%
 This derivation assumed that the fundamental lattice vector was aligned 
 with the positive $x$-direction, i.e. I had $\vb L_0=L_{0x}\vbhat{x}$.
@@ -408,36 +410,58 @@ a point $r=\sqrt{x^2+\rho^2}$ (with $\rho^2=y^2+z^2$) is
 %====================================================================%
 where
 %====================================================================%
-\begin{align*}
+\begin{align}
  \wt{G\sups{long}}(k_x; \rho)
    &=\frac{1}{2\pi} \int_{-\infty}^\infty 
      G\sups{long}\Big( \sqrt{x^2 + \rho^2} \Big) e^{-ik_x x} \, dx.
+\nonumber
 \intertext{Insert (\ref{GLong}):}
    &=\frac{1}{4\pi^{5/2}}
      \int_{\mc C_1}\, du \, e^{-u^2\rho^2 + \frac{k^2}{4u^2}}
     \underbrace{\int_{-\infty}^\infty e^{-u^2 x^2 - ik_x x} \, dx}
               _{\sqrt{\pi} \cdot u^{-1} \cdot e^{-k_x^2 / 4u^2 }}
-\\
+\nonumber
    &=\frac{1}{4\pi^2}
      \int_{\mc C_1} \, \frac{du}{u} \, e^{-u^2 \rho^2 + (k^2-k_x^2)/(4u^2)}.
-\\
+\nonumber
 \intertext{Now put $k_t^2=k_x^2-k^2$ and change variables to 
            $t=\eta/u^2$, $dt=-2t du/u$:}
    &=\frac{1}{8\pi^2}
      \int_{1}^\infty \, \frac{dv}{v} \, 
       e^{-\frac{k_t^2}{4\eta^2} - \frac{ \rho^2 \eta^2}{4t} }
+\nonumber
 \intertext{Series-expand the quantity $e^{-(\rho^2 \eta^2)/4t}:$}
    &=\frac{1}{8\pi^2} \sum_{q=0}^\infty \frac{1}{q!}
      \left(-\frac{\rho^2 \eta^2}{4}\right)^{q}
     \underbrace{\int_1^\infty \, \frac{dt}{t^{1+q}} \, e^{-\frac{k_t^2}{4\eta^2}}}
               _{\text{E}_{1+q}\pf{k_t^2}{4\eta^2}}
-\\
+\nn
    &=\frac{1}{8\pi^2} \sum_{q=0}^\infty \frac{1}{q!}
      \left( -\frac{\rho^2 \eta^2}{4} \right)^{q}
      \text{E}_{1+q}\pf{k_t^2}{4\eta^2}
-\end{align*}
+\label{GLongTwiddle}
+\end{align}
 where $\text{E}_{1+q}$ is the exponential integral function
 of order $1+q$.
+%====================================================================%
+In what follows we will also need the first and second partial derivatives
+of $\wt{G\sups{long}}$ with respect to $\rho$. These wind up being given
+by almost the same sum as (\ref{GLongTwiddle}), but with extra
+factors inserted into the summand:
+%====================================================================%
+\begin{align*}
+ \partial_\rho \wt{G\sups{long}}(k_x, \rho)
+   &=\frac{1}{8\pi^2} \sum_{q=1}^\infty \frac{1}{q!}
+     \pf{2q}{\rho}
+     \left( -\frac{\rho^2 \eta^2}{4} \right)^{q}
+     \text{E}_{1+q}\pf{k_t^2}{4\eta^2}
+\\
+ \partial^2_\rho \wt{G\sups{long}}(k_x, \rho)
+   &=\frac{1}{8\pi^2} \sum_{q=1}^\infty \frac{1}{q!}
+     \pf{2q(2q-1)}{\rho^2}
+     \left( -\frac{\rho^2 \eta^2}{4} \right)^{q}
+     \text{E}_{1+q}\pf{k_t^2}{4\eta^2}
+\end{align*}
 %====================================================================%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -728,25 +752,57 @@ version of the Helmholtz kernel $e^{ikr}/(4\pi r).$
 
 \subsection{Derivatives of $\GB\sups{distant}$: 1D}
 
+In this section I assume the lattice basis vector points
+in the $\vbhat{x}$ direction so that $\GB\sups{distant}$ is 
+is defined by the sum (\ref{GDistantSum1}).
+%====================================================================%
 \begin{align*}
- \vb f_{000} &= f \\
- \vb f_{+00} &= f + \Delta_x f_x + \frac{1}{2}\Delta_x^2 f_{xx} + \cdots \\
- \vb f_{0+0} &= f + \Delta_y f_y + \frac{1}{2}\Delta_y^2 f_{yy} + \cdots \\
- \vb f_{00+} &= f + \Delta_z f_z + \frac{1}{2}\Delta_z^2 f_{zz} + \cdots \\
- \vb f_{++0} &= f + \Delta_x f_x + \Delta_y f_y 
-                  + \frac{1}{2}\Delta_x^2 f_{xx} 
-                  + \frac{1}{2}\Delta_y^2 f_{yy} 
-                  + \Delta_x \Delta_y f_{xy} + \cdots 
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+  =\frac{2\pi}{L_{0x}} \sum_{m} e^{i Q_m x}
+   \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\end{align*}
+where 
+$$Q_m \equiv p_x - \frac{2m\pi}{L_{0x}}, \qquad \rho=\sqrt{x^2 + y^2}.$$
+%====================================================================%
+\begin{align*}
+ \partial_x 
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \sum_{m} (iQ_m) e^{i Q_m x}
+   \wt{G\sups{long}}\Big( Q_m; \rho\Big)
 \\
+ \partial_y 
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \pf{y}{\rho} \sum_{m} e^{i Q_m x}
+   \partial_\rho \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\\
+ \partial_z 
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \pf{z}{\rho} \sum_{m} e^{i Q_m x}
+   \partial_\rho \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\\
+ \partial_x \partial_y
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \pf{y}{\rho} \sum_{m} (iQ_m) e^{i Q_m x}
+   \partial_\rho \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\\
+ \partial_x \partial_z
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \pf{z}{\rho} \sum_{m} (iQ_m) e^{i Q_m x}
+   \partial_\rho \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\\
+ \partial_y \partial_z
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \pf{yz}{\rho^2} \sum_{m} e^{i Q_m x}
+   \Big( \partial^2_{\rho\rho} -\frac{1}{\rho}\partial_\rho\Big)
+   \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\\
+ \partial_x \partial_y \partial_z
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \pf{yz}{\rho^2} \sum_{m} (iQ_m) e^{i Q_m x}
+   \Big( \partial^2_{\rho\rho} -\frac{1}{\rho}\partial_\rho\Big)
+   \wt{G\sups{long}}\Big( Q_m; \rho\Big)
 \end{align*}
-
-\begin{align*}
- \left(\begin{array}{cccccccc}
- \end{array}\right)
- \left(\begin{array}{c}
- f \\ f_x \\ f_y \\ f_z \\ f_{xy} \\ f_{xz} \\ f_{yz} \\ f_{xyz}
- \end{array}\right)
-\end{align*}
+where 
 
 \subsection{Derivatives of $\GB\sups{distant}$: 2D}
 
