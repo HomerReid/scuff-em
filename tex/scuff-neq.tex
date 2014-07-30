@@ -513,7 +513,7 @@ use a cubature rule:
     \bmc F_\beta(\vb x) 
      \, d\vb x
 \nn
- &\approx \frac{1}{4} \sum_{n=1}^{N\supt{C}} w_n 
+ &\approx \frac{1}{4} \sum_{n=1}^{N\subt{C}} w_n 
     \bmc F^\dagger_\alpha(\vb x_n) 
     \,
     \bmc N\supt{P}(\vbhat{n}_n)
@@ -522,15 +522,11 @@ use a cubature rule:
 \label{MPSCubature}
 \end{align}
 %====================================================================%
-where $\{w_n, \vb x_n\}$ is an $N\supt{C}$-point cubature rule 
+where $\{w_n, \vb x_n\}$ is an $N\subt{C}$-point cubature rule 
 for the surface $\mc S$ and $\vbhat{n}_n$ is the outward-pointing
 surface normal to $\mc S$ at $\vb x_n.$
  
-\subsection{Computation of field six-vectors}
-
-Equation (\ref{MPSCubature}) involves a sum
-each involving the field six-vectors $\bmc F$ at
-it would be wasteful
+\subsection{Precomputation of field six-vectors}
 
 %====================================================================%
 %====================================================================%
