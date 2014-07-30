@@ -28,7 +28,6 @@
 \author {Homer Reid}
 \date {April 16, 2014}
 
-
 %------------------------------------------------------------
 %------------------------------------------------------------
 %- Start of actual document
@@ -420,7 +419,7 @@ where
      \int_{\mc C_1}\, du \, e^{-u^2\rho^2 + \frac{k^2}{4u^2}}
     \underbrace{\int_{-\infty}^\infty e^{-u^2 x^2 - ik_x x} \, dx}
               _{\sqrt{\pi} \cdot u^{-1} \cdot e^{-k_x^2 / 4u^2 }}
-\nonumber
+\nn
    &=\frac{1}{4\pi^2}
      \int_{\mc C_1} \, \frac{du}{u} \, e^{-u^2 \rho^2 + (k^2-k_x^2)/(4u^2)}.
 \nonumber
@@ -463,6 +462,55 @@ factors inserted into the summand:
      \text{E}_{1+q}\pf{k_t^2}{4\eta^2}
 \end{align*}
 %====================================================================%
+
+\subsection*{Computation in the large-$\rho$ regime}
+
+The series (\ref{GLongTwiddle}) is poorly convergent for 
+large $\rho$ (where ``large'' means ``large compared to $1/\eta.$).
+However, this is the regime in which $G\sups{long}(r)$ 
+is nearly equal to the full Helmholtz Green's function
+$G\supt{full}(r)=\frac{e^{ikr}}{4\pi r},$ so we may 
+approximate $\wt{G\sups{long}}$ by the 1D Fourier transform
+of $G\sups{full}$:
+%====================================================================%
+\begin{align*}
+ \wt{G\sups{full}}(k_x; \rho)
+&=\frac{1}{2\pi}
+  \int_{-\infty}^\infty 
+  \frac{ e^{ik\sqrt{x^2 + \rho^2}}}{4\pi\sqrt{x^2 + \rho^2}}\,e^{-ik_x x} \,dx
+\intertext{Insert the Fourier representation
+           of $G\sups{full}$, which reads
+           $\frac{e^{ik|\vb r|}}{4\pi |\vb r|}=
+            \int \frac{d^3 \vb q}{(2\pi)^3}
+                          \frac{e^{i\vb q \cdot \vb r}}{|\vb q|^2-k^2}:
+           $
+          }
+&=\frac{1}{2\pi}
+  \int \, dx 
+  \int \frac{d\vb q}{(2\pi)^3}
+  \frac{ e^{i\vb q \cdot \vb r - ik_x x} } 
+       { \vb q^2 - k^2 } \\
+\\
+&= \int \frac{d\vb q}{(2\pi)^3} 
+   \frac{ e^{i (q_y y + q_z z)}} { \vb q^2 - k^2 }
+   \cdot 
+   \underbrace{ \frac{1}{2\pi}
+                \int \, dx \, e^{i(q_x - k_x)x}
+              }_{\delta(q_x-k_q)}
+\\
+&= \int \frac{d \vb q_\perp}{(2\pi)^3}
+   \frac{ e^{i \vb q_\perp \cdot \vbrho}} { k_x^2 + \vb q_\perp^2 - k^2 }
+\\
+&= \int_0^\infty \frac{q dq}{(2\pi)^3(k_x^2 + q^2 - k^2)}
+   \underbrace{\int_0^{2\pi} e^{iq\rho \cos\theta}\,d\theta}
+             _{2\pi J_0(q\rho)}
+\\
+&= \int_0^\infty \frac{q J_0(q\rho) dq}{(2\pi)^2 (k_x^2 + q^2 - k^2)}
+\\
+&= \frac{1}{4\pi^2} K_0\Big( [k_x^2-k^2]^{1/2} \rho \Big)
+\end{align*}
+%====================================================================%
+where $K_0$ is a Bessel function.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

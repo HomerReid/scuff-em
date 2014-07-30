@@ -117,7 +117,8 @@ void StampInNeighborBlock(HMatrix *B, HMatrix **GradB,
 /***************************************************************/
 void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
                                            double *kBloch,
-                                           int ns1, int ns2)
+                                           int ns1, int ns2,
+                                           double *UserDelta)
 {
   /***************************************************************/
   /* TODO: rather than deleting and reallocating every time,     */
@@ -176,9 +177,10 @@ void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
   int NPoints[3];
   VecSub(Surfaces[ns1]->RMax, Surfaces[ns2]->RMin, RMax);
   VecSub(Surfaces[ns1]->RMin, Surfaces[ns2]->RMax, RMin);
-  double Delta=RWGGeometry::DeltaInterp;
   for(int i=0; i<3; i++)
    { 
+     double Delta = UserDelta ? UserDelta[i] : RWGGeometry::DeltaInterp;
+
      if ( RMax[i] < (RMin[i] + Delta) )
       RMax[i] = RMin[i] + Delta;
 

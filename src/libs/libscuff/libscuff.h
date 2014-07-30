@@ -483,7 +483,8 @@ class RWGGeometry
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
                                       double kBloch[MAXLDIM], HMatrix *XMatrix);
    void CreateRegionInterpolator(int nr, cdouble Omega,
-                                 double *kBloch, int nsa, int nsb);
+                                 double *kBloch, int nsa, int nsb,
+                                 double *UserDelta=0);
 
    // directories within which to search for mesh files
    static int NumMeshDirs;

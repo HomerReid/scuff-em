@@ -63,6 +63,7 @@ approach.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Physical quantities from surface-current bilinears}
+\label{PQsFromSCBsSection}
 
 The FSC approach begins with the observation that, in a 
 classical, deterministic scattering problem involving the 
@@ -114,8 +115,8 @@ $0 \choose \vb b_\alpha$
 where $\vb b_\alpha$ is a three-vector RWG basis function.
 However, the FSC formalism is not specific to this choice.}
 and $\{c_\alpha\}$ are scalar expansion coefficients.
-(We work at a fixed frequency $\omega$ and suppress a factor of
-$e^{-i\omega t}$ in all fields and currents.)
+(We work at a fixed frequency $\omega$ and assume all fields
+and currents vary in time like $e^{-i\omega t}$.)
 
 The electric and magnetic fields produced by these currents
 are linear functions of the $\{c_\alpha\}$ coefficients.
@@ -438,10 +439,13 @@ $\Theta_b(\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_b} - 1}$
 is the Bose-Einstein factor for the temperature $T_b$ of 
 body $b$, and where the ``generalized flux'' $\Phi_b$
 is the trace of a four-matrix product involving the $\vb Q$ matrix:
+%====================================================================%
 \begin{equation}
 \Phi_b
-  = \Tr\left\{ \vb Q \vb W \overline{\vb G}_b \vb W^\dagger\right\}.
+  = \frac{2}{\pi} 
+    \Tr\left\{ \vb Q \vb W \overline{\vb G}_b \vb W^\dagger\right\}.
 \end{equation}
+%====================================================================%
 \label{FSCEquivalence}
 \end{subequations}
 %--------------------------------------------------------------------%
@@ -470,14 +474,66 @@ function for each of the three edges) we can roughly define the
 contribution of panel $\mc P$ to the generalized flux $\phi_b$ 
 as a sum of 6 diagonal elements of the matrix in curly braces
 in (\ref{FSCEquivalence}c):
+%====================================================================%
 $$ \phi_{b}^{\mc P} 
    = 
    \sum_{n=1}^6
    \Big[\vb Q \vb W \overline{\vb G}_b \vb W^\dagger\Big]_{\alpha_n \alpha_n}
 $$
+%====================================================================%
 where $\{\alpha_n\}, n=1\cdots 6,$ are the indices of the
 aforementioned 6 basis functions associated with $\mc P.$
 
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\appendix
+
+\section{Computation of dense PFT matrices}
+
+In Section \ref{PQsFromSCBsSection} we sketched expressions for
+matrices $\{\vb M\PS, \vb M\IFS, \vb M\ITS\}$ which, when sandwiched
+between surface-current vectors $\vb c$, yield the total
+\{power, force, torque\} on objects contained within a bounding
+surface $\mc S$. In this appendix we discuss the computation of 
+these matrices.
+
+\subsection{Numerical cubature}
+
+To estimate the elements of e.g. the matrix $\vb M\PS$, we
+use a cubature rule:
+%====================================================================%
+\begin{align}
+  M_{\alpha\beta}\PS
+ &= \frac{1}{4} \int_{\mc S} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \,
+    \bmc N\supt{P}(\vbhat{n})
+    \,
+    \bmc F_\beta(\vb x) 
+     \, d\vb x
+\nn
+ &\approx \frac{1}{4} \sum_{n=1}^{N\supt{C}} w_n 
+    \bmc F^\dagger_\alpha(\vb x_n) 
+    \,
+    \bmc N\supt{P}(\vbhat{n}_n)
+    \,
+    \bmc F_\beta(\vb x_n) 
+\label{MPSCubature}
+\end{align}
+%====================================================================%
+where $\{w_n, \vb x_n\}$ is an $N\supt{C}$-point cubature rule 
+for the surface $\mc S$ and $\vbhat{n}_n$ is the outward-pointing
+surface normal to $\mc S$ at $\vb x_n.$
+ 
+\subsection{Computation of field six-vectors}
+
+Equation (\ref{MPSCubature}) involves a sum
+each involving the field six-vectors $\bmc F$ at
+it would be wasteful
+
+%====================================================================%
+%====================================================================%
 %====================================================================%
 \newpage
 \bibliographystyle{ieeetr}
