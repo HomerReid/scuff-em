@@ -3,6 +3,7 @@
 
 #include <libhrutil.h>
 #include <libMDInterp.h>
+#include <AmosBessel.h>
 #include <libscuff.h>
 #include <libscuffInternals.h>
 
@@ -299,6 +300,27 @@ void AddGLong2D(double R[3], cdouble k, double P[2],
 }
 
 /*****************************************************/
+/* Compute the 1D Fourier transform of GFull (the    */
+/* full Helmholtz Green's function).                 */
+/*****************************************************/
+cdouble GFullTwiddle1D(double kx, double Rho, cdouble k,
+                       cdouble *dGdRho=0)
+{
+  cdouble kt2 = kx*kx - k*k;
+  cdouble kt = sqrt(kt2);
+  cdouble K[2];
+  AmosBessel('K',kt*Rho,0.0,3,0,K,0);
+  double Denom = 4.0*M_PI*M_PI;
+
+  if (dGdRho)
+   { dGdRho[0] = -kt*K[1] / Denom;
+     dGdRho[1] = kt2*(K[0] + K[2])/(2.0*Denom);
+  };
+  
+  return K[0] / Denom;
+}
+
+/*****************************************************/
 /* Compute the 1D Fourier transform of GLong.        */
 /* If dGdRho is non-null, then on return we have     */
 /* dGdRho[0] = dG   / dRho                           */
@@ -307,6 +329,9 @@ void AddGLong2D(double R[3], cdouble k, double P[2],
 cdouble GetGLongTwiddle1D(double kx, double Rho, cdouble k, double E,
                           cdouble *dGdRho=0)
 {
+  if ( Rho*E > 4.5 )
+   return GFullTwiddle1D(kx, Rho, k, dGdRho);
+
   if (dGdRho) 
    dGdRho[0]=dGdRho[1]=0.0;
 
@@ -349,7 +374,7 @@ cdouble GetGLongTwiddle1D(double kx, double Rho, cdouble k, double E,
      if (ConvergedIters==2) break;
 
    };
-  if (ConvergedIters!=2)
+  if (ConvergedIters!=2 && abs(Sum)>1.0e-8 )
    Warn("potential nonconvergence in GLongTwiddle1D(%g,%g,%s,%e)",
          kx, Rho, z2s(k), E);
 
@@ -802,7 +827,10 @@ void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
         cdouble GLong = GFull[ns] - GShort[ns];
         Sum[ns] += GLong;
 
-        if ( ns==0 && abs(GLong) < 1.0e-6*(abs(GFull[ns]) + abs(GShort[ns])) )
+        if (    (ns==0)
+             && (abs(GLong) < 1.0e-6*(abs(GFull[ns]) + abs(GShort[ns])))
+             && (abs(GLong) > 1.0e-8)
+           )
          Warn("loss of precision (r=%e) ( %.8e - %.8e = %.1e ) in GLongRealSpace",
                rml,abs(GFull[ns]),abs(GShort[ns]),abs(GLong));
       };

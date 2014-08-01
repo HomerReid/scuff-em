@@ -35,21 +35,21 @@
 // prefactor that enters into the calculation of the 
 // casimir-polder potential.
 // The CP potential is 
-//  (\hbar / 2\pi) \int d\xi \xi^2 Tr(\alpha*G)
+//  (2\hbar) \int d\xi \xi^2 Tr(\alpha*G)
 // where 
 //  -- \xi has units of 3e14 rad/sec 
 //  -- \alpha has units of a0^3 (bohr radius)
 //  -- G has units of 1/um.
 // thus if we put 
-//  PF = (\hbar * 3e14 s^{-1}) * (a0 / 1um)^3 / (2*pi)
-//     = (6.582119-16 ev s) * (3e14 s^{-1} * (0.529177e-4)^3 / (2*pi)
+//  PF = (2\hbar * 3e14 s^{-1}) * (a0 / 1um)^3
+//     = (2*6.582119e-16 ev s) * (3e14 s^{-1} * (0.529177e-4)^3
 //     = 
 // then the result of our calculation will be an 
 // energy in units of ev.
-// #define PREFAC 4.657040e-15
+// #define PREFAC 5.852209e-14
 // update 20130825: let's report potentials in nanoelectronvolts,
 // so we'll up that prefactor by 1e-9
-#define PREFAC 4.657040e-6
+#define PREFAC 5.852209e-5
 
 // factor that converts temperature from degrees
 // kelvin to my internal energy units 
@@ -134,28 +134,12 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
      M->LUFactorize();
    };
 
-  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
-  /*! FIXME !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
-  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
-  static double FudgeFactor=0.0;
-  if( FudgeFactor==0.0 )
-   { FudgeFactor=81.0;
-     char *str=getenv("SCUFF_CASPOL_FF");
-     if (str)
-      { sscanf(str,"%le",&FudgeFactor);
-        Log("Setting frequency-scaling fudge factor to %e.\n",FudgeFactor);
-      };
-   };
-  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
-  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
-  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/ 
-
   /***************************************************************/ 
   /* look up the polarizability tensor for each atomic species   */ 
   /* at this frequency                                           */ 
   /***************************************************************/ 
   for(int na=0; na<NumAtoms; na++)
-   PolModels[na]->GetPolarizability(Xi/FudgeFactor, Alphas[na]);
+   PolModels[na]->GetPolarizability(Xi, Alphas[na]);
 
   /***************************************************************/ 
   /* loop over all evaluation points to get the contribution of  */ 
