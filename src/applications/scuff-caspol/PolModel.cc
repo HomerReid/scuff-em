@@ -59,7 +59,7 @@ double XiPoints_DPB[NUMPOINTS_DPB] =
 // note: in SCUFF units, 'Xi==1'  <--> Xi=3e14 rad /sec
 //       in atomic units, 'Xi==1' <--> Xi=4.13393964448119e+16 rad/sec
 // the conversion factor is 137.79798814937303
-// 
+#define ATOMIC_TO_SCUFF 137.79798814937303
 // 20140731 note: many thanks to Tom Judd and Tino Sering for
 // helping to correct a mistake in this calculation!
 
@@ -203,16 +203,27 @@ double PolPoints_DPB_Francium[NUMPOINTS_DPB] =
 double LargeXiCoefficient_DPB_Francium =  8.04767e-5;
 
 /***************************************************************/
-/* PolModel class constructor                                  */
+/* PolModel class constructor entry point                      */
 /***************************************************************/
-PolModel::PolModel(const char *Atom)
+PolModel::PolModel(char *String, int Which)
+{
+  if (Which==PM_BUILTIN)
+   InitPolModel_BI(String);
+  else
+   InitPolModel_UD(String);
+   
+}
+
+/***************************************************************/
+/* PolModel class constructor for built-in polarizabilities.   */
+/***************************************************************/
+void PolModel::InitPolModel_BI(char *Atom)
 {
   ErrMsg=0;
 
-  Name=strdup(Atom);
+  Name  = strdup(Atom);
 
   NumPoints = NUMPOINTS_DPB;
-
   XiPoints = XiPoints_DPB;
 
   if ( !strcasecmp(Atom,"H")  || !strcasecmp(Atom,"Hydrogen") )
@@ -257,6 +268,32 @@ PolModel::PolModel(const char *Atom)
    // initialize the interpolator
    PolInterp = new Interp1D(XiPoints, PolPoints, NumPoints, 1);
 
+}
+
+/***************************************************************/
+/* PolModel class constructor for user-defined polarizabilities.*/
+/***************************************************************/
+void PolModel::InitPolModel_UD(char *FileName)
+{
+  ErrMsg=0;
+  Name = strdup(GetFileBase(FileName));
+  LargeXiCoefficient = 0.0;
+
+  HMatrix *PolData = new HMatrix(FileName,LHM_TEXT,"--ncol 2 --strict");
+  if (PolData->ErrMsg)
+   ErrExit(PolData->ErrMsg);
+
+  NumPoints = PolData->NR;
+  XiPoints  = (double *)malloc(NumPoints * sizeof(double));
+  PolPoints = (double *)malloc(NumPoints * sizeof(double));
+
+  for(int np=0; np<NumPoints; np++)
+   { XiPoints[np]  = ATOMIC_TO_SCUFF * PolData->GetEntryD(np,0);
+     PolPoints[np] = PolData->GetEntryD(np,1);
+   };
+
+  PolInterp = new Interp1D(XiPoints, PolPoints, NumPoints, 1);
+ 
 }
 
 /***************************************************************/

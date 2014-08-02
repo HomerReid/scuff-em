@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
   double Temperature=0.0;                   int nTemperature;
   double XiVals[MAXFREQ];	            int nXiVals;
   char *XiFile=0;
+  char *XiQuadrature=0;
   int MaxXiPoints=10000;
   int Intervals=50;
   double AbsTol=0.0;
@@ -74,8 +75,7 @@ int main(int argc, char *argv[])
   // options affecting kBloch integration or sampling
   //
   char *XiKFile=0;
-  char *BZIMethod=0;
-  double BZICutoff=0;
+  char *BZQuadrature=0;
   bool BZSymmetry=false;
   int MaxkBlochPoints=1000;
   //
@@ -109,14 +109,14 @@ int main(int argc, char *argv[])
      {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature,   &nTemperature, "temperature in Kelvin"},
      {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,         &nXiVals,      "imaginary frequency"},
      {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,        0,             "file containing Xi values"},
-     {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations "},
+     {"XiQuadrature",   PA_STRING,  1, 1,       (void *)&XiQuadrature,  0,             "quadrature method for Xi integration"},
+     {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,     0,             "number of subintervals for frequency quadrature"},
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
 //
      {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XiKFile,       0,             "file containing (Xi, kx, ky) values"},
-     {"BZIMethod",      PA_STRING,  1, 1,       (void *)&BZIMethod,     0,             "Brillouin-zone integration method"},
-     {"BZICutoff",      PA_DOUBLE,  1, 1,       (void *)&BZICutoff,     0,             "Brillouin-zone integration cutoff"},
+     {"BZQuadrature",   PA_STRING,  1, 1,       (void *)&BZQuadrature,  0,             "quadrature method for Brillouin-zone integration"},
      {"BZSymmetry",     PA_BOOL,    0, 1,       (void *)&BZSymmetry,    0,             "assume symmetric BZ: f(kx,ky) = f(ky,kx)"},
      {"MaxkBlochPoints",PA_INT,     1, 1,       (void *)&MaxkBlochPoints, 0,           "maximum number of Brillouin-zone integrand evaluations"},
 //
@@ -185,10 +185,52 @@ int main(int argc, char *argv[])
   else
    Log("Computing full zero-temperature Casimir quantities.");
 
-  if ( BZIMethod && G->LDim==0) 
-   ErrExit("--BZIMethod option may only be used for periodic geometries");
-  if ( !BZIMethod && G->LDim!=0 ) 
-   BZIMethod=strdup("ECC3");
+  /*******************************************************************/
+  /* process integration options *************************************/
+  /*******************************************************************/
+  if ( XiQuadrature && XiPoints )
+   ErrExit("--XiQuadrature is incompatible with --Xi or --XiFile");
+  if ( XiQuadrature && XiKPoints )
+   ErrExit("--XiQuadrature is incompatible with --XikBlochFile ");
+  if ( XiQuadrature && XiKPoints )
+   ErrExit("--XiQuadrature is incompatible with --Temperature ");
+
+  if ( BZQuadrature && G->LDim==0 )
+   ErrExit("--BZQuadrature may only be used for periodic geometries");
+  if ( BZQuadrature && XiKPoints )
+   ErrExit("--BZQuadrature is incompatible with --XikBlochFile");
+
+  int XiQMethod = QMETHOD_CLIFF;
+  if (XiQuadrature)
+   { if ( !strcasecmp(XiQuadrature,"CLIFF") )
+      { XiQMethod = QMETHOD_CLIFF;
+        Log("Using cliff integration method for Xi quadrature.");
+      }
+     if ( !strcasecmp(XiQuadrature,"TRAPSIMP") )
+      { XiQMethod = QMETHOD_TRAPSIMP;
+        Log("Using trap/simp integration method (%i intervals) for Xi quadrature.",Intervals);
+      }
+     else if ( !strcasecmp(XiQuadrature,"ADAPTIVE") )
+      { XiQMethod = QMETHOD_ADAPTIVE;
+        Log("Using adaptive integration method for Xi quadrature.");
+      }
+     else
+      ErrExit("unknown value %s specified for --XiQuadrature",XiQuadrature);
+   };
+
+  int BZQMethod = QMETHOD_CLIFF;
+  if (BZQuadrature)
+   { if ( !strcasecmp(BZQuadrature,"CLIFF") )
+      { BZQMethod = QMETHOD_CLIFF;
+        Log("Using cliff integration method for Brillouin-zone quadrature.");
+      }
+     else if ( !strcasecmp(BZQuadrature,"ADAPTIVE") )
+      { BZQMethod = QMETHOD_ADAPTIVE;
+        Log("Using adaptive integration method for Brillouin-zone quadrature.");
+      }
+     else 
+      ErrExit("unknown value %s specified for --BZQuadrature",BZQuadrature);
+   };
 
   /*******************************************************************/
   /* figure out which quantities to compute **************************/
@@ -233,18 +275,17 @@ int main(int argc, char *argv[])
   /* to evaluate the contributions of a single frequency and kBloch  */
   /* point to the Casimir quantities                                 */
   /*******************************************************************/
-  SC3Data *SC3D=CreateSC3Data(G, TransFile, WhichQuantities, NumQuantities, 
-                              nTorque, TorqueAxes, NewEnergyMethod, 
-                              BZIMethod, FileBase);
+  SC3Data *SC3D=CreateSC3Data(G, TransFile, WhichQuantities, NumQuantities,
+                              nTorque, TorqueAxes, NewEnergyMethod, FileBase);
 
-  SC3D->BZICutoff          = BZICutoff;
-  SC3D->BZSymmetry         = BZSymmetry;
   SC3D->WriteCache         = WriteCache;
   SC3D->AbsTol             = AbsTol;
   SC3D->RelTol             = RelTol;
+  SC3D->UseExistingData    = UseExistingData;
   SC3D->MaxXiPoints        = MaxXiPoints;
   SC3D->MaxkBlochPoints    = MaxkBlochPoints;
-  SC3D->UseExistingData    = UseExistingData;
+  SC3D->BZQMethod          = BZQMethod;
+  SC3D->BZSymmetry         = BZSymmetry;
 
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
@@ -273,10 +314,15 @@ int main(int argc, char *argv[])
      Error = new double[SC3D->NTNQ];
      GetMatsubaraSum(SC3D, Temperature, EFT, Error);
    }
-  else
+  else // full Xi integration for zero-temperature casimir quantities
    { 
      Error = new double[SC3D->NTNQ];
-     GetXiIntegral2(SC3D, Intervals, EFT, Error);
+     if (XiQMethod == QMETHOD_ADAPTIVE)
+      GetXiIntegral_Adaptive(SC3D, EFT, Error);
+     else if (XiQMethod == QMETHOD_TRAPSIMP)
+      GetXiIntegral_TrapSimp(SC3D, Intervals, EFT, Error);
+     else
+      GetXiIntegral_Cliff(SC3D, EFT, Error);
    };
 
   /***************************************************************/

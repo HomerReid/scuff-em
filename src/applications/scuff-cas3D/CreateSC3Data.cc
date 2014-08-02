@@ -41,8 +41,7 @@ using namespace scuff;
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
                        int NumTorqueAxes, double TorqueAxes[9],
-                       bool NewEnergyMethod, char *BZIMethod, 
-                       char *FileBase)
+                       bool NewEnergyMethod, char *FileBase)
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
@@ -174,7 +173,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
    { SC3D->MInfLUDiagonal = new HVector(G->TotalBFs);
      SC3D->ipiv = (int *)mallocEC(N*sizeof(int));
      if (NewEnergyMethod)
-     SC3D->MM1MInf = new HMatrix(N, N, RealComplex);
+      SC3D->MM1MInf = new HMatrix(N, N, RealComplex);
    }
   else
    { SC3D->MInfLUDiagonal=0;
@@ -183,42 +182,12 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
    };
 
   /*--------------------------------------------------------------*/
-  /*- 20140628 parse BZ integration method, which is either      -*/
-  /*-  ECCp (p=2,...7)                                           -*/
-  /*- or                                                         -*/
-  /*-  adaptive                                                  -*/
-  /*--------------------------------------------------------------*/
-  SC3D->BZIValues=0;
-  if (BZIMethod)
-   { if ( !strncasecmp(BZIMethod,"ECC",3) )
-      { 
-        if (strlen(BZIMethod)!=4) 
-         ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
-
-        SC3D->BZIOrder = BZIMethod[3] - '0';
-        if ( SC3D->BZIOrder<2 || SC3D->BZIOrder>7 ) 
-         ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
-
-        Log("Using embedded Clenshaw-Curtis cubature (order %i)"
-            "for Brillouin-zone integration.",SC3D->BZIOrder);
-      }
-     else if ( !strcasecmp(BZIMethod,"adaptive") )
-      { SC3D->BZIOrder=0; 
-        Log("Using adaptive cubature for Brillouin-zone integration.");
-      }
-     else 
-      ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
-   };
-  if ( SC3D->BZIOrder != 0)
-   { int NP = (1<<(SC3D->BZIOrder)) + 1;
-     SC3D->BZIValues = (double *)malloc( (SC3D->NTNQ)*NP*NP*sizeof(double) );
-   };
-
-  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if (!FileBase)
    FileBase = strdup(GetFileBase(G->GeoFileName));
+
+  SC3D->FileBase = strdup(FileBase);
 
   SC3D->OutFileName=vstrdup("%s.out",FileBase);
 

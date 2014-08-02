@@ -40,6 +40,15 @@ using namespace scuff;
 // default error tolerance for frequency sums/integrals
 #define DEF_RELTOL 1.0e-2 
 
+// values for the Which field of the PolModel constructor
+#define PM_BUILTIN 0 
+#define PM_FILE    1 
+
+// values for the Class field of the PolModel class
+#define PM_SCALAR   0
+#define PM_DIAGONAL 1
+#define PM_GENERAL  2
+
 /***************************************************************/
 /* PolModel is a simple class used to describe the frequency-  */
 /* dependent polarizability of atoms and molecules. it exports */
@@ -56,16 +65,21 @@ class PolModel
  {
 public:
 
-   // constructor for built-in models
-   PolModel(const char *Atom);
+   // constructor entry point
+   PolModel(char *Name, int Which=PM_FILE);
+
+   // constructors for built-in and user-defined models
+   void InitPolModel_BI(char *Atom);
+   void InitPolModel_UD(char *FileName);
 
    // routine to compute the polarizability tensor
    void GetPolarizability(double Xi, HMatrix *Alpha);
 
-   // implementation-dependent data
+   // fields used for all classes and implementations
    char *Name;
    char *ErrMsg;
 
+   // data that are present only for interpolated models
    int NumPoints;
    double *XiPoints, *PolPoints;
    Interp1D *PolInterp;
