@@ -6,8 +6,7 @@ scuff_neq_SOURCES = 		\
  GetFlux.cc             	\
  CreateSNEQData.cc       	\
  CCRules.h             		\
- FluxPlot.cc            	\
- GetFlux.cc             	\
+ PlotFlux.cc            	\
  SIPFT.cc              		\
  Quadrature.cc
 

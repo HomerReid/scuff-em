@@ -1,0 +1,60 @@
+#/bin/bash
+
+###################################################
+# Built-in rubidium model  
+# Analytical sapphire model
+# Single-frequency calculation
+###################################################
+
+ARGS=""
+ARGS="${ARGS} --geometry CorrugatedDisc_1143.scuffgeo"
+ARGS="${ARGS} --EPFile EPFile2"
+ARGS="${ARGS} --atom Rubidium"
+ARGS="${ARGS} --xi 0.1"
+ARGS="${ARGS} --xi 1.0"
+
+scuff-caspol ${ARGS}
+
+###################################################
+# User-defined rubidium model  
+# Analytical sapphire model
+# Single-frequency calculation
+###################################################
+
+ARGS=""
+ARGS="${ARGS} --geometry PECPlate_105.scuffgeo"
+ARGS="${ARGS} --EPFile EPFile2"
+ARGS="${ARGS} --particle Rubidium.dat"
+ARGS="${ARGS} --xi 0.1"
+ARGS="${ARGS} --xi 1.0"
+
+###################################################
+# Built-in rubidium model  
+# Tabulated-data sapphire model
+# Single-frequency calculation
+###################################################
+
+ARGS=""
+ARGS="${ARGS} --geometry CorrugatedDisc_Interpolated_1143.scuffgeo"
+ARGS="${ARGS} --EPFile EPFile2"
+ARGS="${ARGS} --atom Rubidium"
+ARGS="${ARGS} --xi 0.1"
+ARGS="${ARGS} --xi 1.0"
+
+scuff-caspol ${ARGS}
+
+###################################################
+# Built-in rubidium model  
+# Tabulated-data sapphire model
+# Frequency-integrated calculation 
+#  (i.e. for full zero-temperature CP potential)
+###################################################
+
+ARGS=""
+ARGS="${ARGS} --geometry CorrugatedDisc_Interpolated_1143.scuffgeo"
+ARGS="${ARGS} --EPFile EPFile2"
+ARGS="${ARGS} --atom Rubidium"
+ARGS="${ARGS} --xi 0.1"
+ARGS="${ARGS} --xi 1.0"
+
+scuff-caspol ${ARGS}
