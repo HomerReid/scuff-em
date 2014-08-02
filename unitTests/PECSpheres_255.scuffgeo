@@ -1,0 +1,9 @@
+OBJECT LowerSphere
+	MESHFILE SSphere_255.msh
+ENDOBJECT
+
+
+OBJECT UpperSphere
+	MESHFILE SSphere_255.msh
+	DISPLACED 0 0 3 
+ENDOBJECT

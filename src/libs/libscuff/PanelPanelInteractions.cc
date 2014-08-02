@@ -121,6 +121,32 @@ void AssembleInnerPPIIntegrand_Interp(double wp, cdouble k, double *R, double *F
   else
    ZFlipped=false;
 
+#if 0
+DELETEME 20140718
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  double XMin, XMax;
+
+  XMin = GInterp->X1Min;
+  XMax = XMin + ((double)(GInterp->N1-1)) * (GInterp->DX1);
+  if ( R[0]<XMin || R[0]>XMax )
+   Warn(" X=%e not in [%e, %e]\n",R[0],XMin,XMax);
+
+  XMin = GInterp->X2Min;
+  XMax = XMin + ((double)(GInterp->N2-1)) * (GInterp->DX2);
+  if ( R[1]<XMin || R[1]>XMax )
+   Warn(" Y=%e not in [%e, %e]\n",R[1],XMin,XMax);
+
+  XMin = GInterp->X2Min;
+  XMax = XMin + ((double)(GInterp->N2-1)) * (GInterp->DX3);
+  if ( R[2]<XMin || R[2]>XMax )
+   Warn(" Z=%e not in [%e, %e]\n",R[2],XMin,XMax);
+#endif
+
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   double PhiVD[20];
   cdouble GBar, dGBar[3], ddGBar[3][3];
 
@@ -212,7 +238,7 @@ void AssembleInnerPPIIntegrand_NoInterp(double wp, cdouble k, double *R, double 
    Phi = ExpRel(ik*r,4) / (4.0*M_PI*r);
   else
    Phi = exp(ik*r) / (4.0*M_PI*r);
-  if ( !isfinite(real(Phi)) ) Phi=0.0;
+  if ( !IsFinite(real(Phi)) ) Phi=0.0;
    
   // put the cubature weight into Phi since Phi is a factor in
   // all integrand components

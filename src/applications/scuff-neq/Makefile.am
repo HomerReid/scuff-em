@@ -3,6 +3,7 @@ bin_PROGRAMS = scuff-neq
 scuff_neq_SOURCES = 		\
  scuff-neq.cc         		\
  scuff-neq.h			\
+ GetFlux.cc             	\
  CreateSNEQData.cc       	\
  CCRules.h             		\
  FluxPlot.cc            	\

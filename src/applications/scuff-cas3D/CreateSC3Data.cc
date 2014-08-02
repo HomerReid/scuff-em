@@ -41,12 +41,11 @@ using namespace scuff;
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
                        int NumTorqueAxes, double TorqueAxes[9],
-                       bool NewEnergyMethod, char *BZIMethod, 
-                       char *FileBase)
+                       bool NewEnergyMethod, char *FileBase)
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
-  bool PBC = G->NumLatticeBasisVectors > 0 ;
+  bool PBC = (G->LDim> 0);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -79,15 +78,15 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*--------------------------------------------------------------*/
   /*- compute a basis for the reciprocal lattice -----------------*/
   /*--------------------------------------------------------------*/
-  if (G->NumLatticeBasisVectors==1)
+  if (G->LDim==1)
    { 
-     SC3D->RLBasisVectors[0][0] = 2.0*M_PI/G->LatticeBasisVectors[0][0];
+     SC3D->RLBasisVectors[0][0] = 2.0*M_PI/G->LBasis[0][0];
      SC3D->BZVolume = SC3D->RLBasisVectors[0][0];
    }
-  else if (G->NumLatticeBasisVectors==2)
+  else if (G->LDim==2)
    { 
-     double *L1 = G->LatticeBasisVectors[0];
-     double *L2 = G->LatticeBasisVectors[1];
+     double *L1 = G->LBasis[0];
+     double *L2 = G->LBasis[1];
 
      double PreFac = 2.0*M_PI / fabs( L1[0]*L2[1] - L1[1]*L2[0]);
 
@@ -113,16 +112,20 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*-                     where Mu=0,1,2, for x,y,z-displacement  */
   /*-                           Mu=3,4,5, for axis 1,2,3 rotation */
   /*--------------------------------------------------------------*/
-  int ns, nsp, nb, NBF, NBFp;
-  int NS=G->NumSurfaces; 
+  int NS=G->NumSurfaces;
+  bool NeedDMDZ = (WhichQuantities & QUANTITY_ZFORCE);
   SC3D->TBlocks  = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
-  for(ns=0; ns<G->NumSurfaces; ns++)
-   { if ( (nsp=G->Mate[ns])!=-1 )
+  SC3D->TAccelerators = PBC ? (void **)mallocEC(NS*sizeof(void *)) : 0;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { int nsp = G->Mate[ns];
+     if ( nsp!=-1 )
       SC3D->TBlocks[ns] = SC3D->TBlocks[nsp];
      else
-      { NBF=G->Surfaces[ns]->NumBFs;
+      { int NBF=G->Surfaces[ns]->NumBFs;
         if (PBC)
-         SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+         { SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+           SC3D->TAccelerators[ns] = G->CreateABMBAccelerator(ns, ns, true, NeedDMDZ);
+         }
         else
          SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_REAL, LHM_SYMMETRIC);
       };
@@ -134,15 +137,14 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   // SC3D->UBlocks[NS-1] = 0,NS   block
   // SC3D->UBlocks[NS]   = 1,2    block
   // etc.                                         
-  int NumBlocks   = NS*(NS-1)/2; // number of above-diagonal blocks 
-  SC3D->UBlocks   = (HMatrix **)mallocEC(   NumBlocks * sizeof(HMatrix *));
-  SC3D->dUBlocks  = (HMatrix **)mallocEC( 6*NumBlocks * sizeof(HMatrix *));
-
-  int RealComplex = PBC ? LHM_COMPLEX : LHM_REAL;
-  for(nb=0, ns=0; ns<NS; ns++)
-   for(nsp=ns+1; nsp<NS; nsp++, nb++)
-    { NBF=G->Surfaces[ns]->NumBFs;
-      NBFp=G->Surfaces[nsp]->NumBFs;
+  int NumBlocks       = NS*(NS-1)/2; // number of above-diagonal blocks
+  SC3D->UBlocks       = (HMatrix **)mallocEC(   NumBlocks * sizeof(HMatrix *));
+  SC3D->dUBlocks      = (HMatrix **)mallocEC( 6*NumBlocks * sizeof(HMatrix *));
+  int RealComplex     = PBC ? LHM_COMPLEX : LHM_REAL;
+  for(int ns=0, nb=0; ns<NS; ns++)
+   for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+    { int NBF=G->Surfaces[ns]->NumBFs;
+      int NBFp=G->Surfaces[nsp]->NumBFs;
       SC3D->UBlocks[nb] = new HMatrix(NBF, NBFp, RealComplex);
       if (WhichQuantities & QUANTITY_XFORCE)
        SC3D->dUBlocks[6*nb+0] = new HMatrix(NBF, NBFp, RealComplex);
@@ -163,15 +165,15 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   /*--------------------------------------------------------------*/
   int N  = SC3D->N  = SC3D->G->TotalBFs;
   int N1 = SC3D->N1 = SC3D->G->Surfaces[0]->NumBFs;
-  SC3D->M          = new HMatrix(N,  N,  RealComplex);
-  SC3D->dM         = new HMatrix(N,  N1, RealComplex);
+  SC3D->M           = new HMatrix(N,  N,  RealComplex);
+  SC3D->dM          = new HMatrix(N,  N1, RealComplex);
   SC3D->NewEnergyMethod  = NewEnergyMethod;
 
   if (WhichQuantities & QUANTITY_ENERGY)
    { SC3D->MInfLUDiagonal = new HVector(G->TotalBFs);
      SC3D->ipiv = (int *)mallocEC(N*sizeof(int));
      if (NewEnergyMethod)
-     SC3D->MM1MInf = new HMatrix(N, N, RealComplex);
+      SC3D->MM1MInf = new HMatrix(N, N, RealComplex);
    }
   else
    { SC3D->MInfLUDiagonal=0;
@@ -180,52 +182,38 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
    };
 
   /*--------------------------------------------------------------*/
-  /*- 20140628 parse BZ integration method, which is either      -*/
-  /*-  ECCp (p=2,...7)                                           -*/
-  /*- or                                                         -*/
-  /*-  adaptive                                                  -*/
-  /*--------------------------------------------------------------*/
-  SC3D->BZIValues=0;
-  if (BZIMethod)
-   { if ( !strncasecmp(BZIMethod,"ECC",3) )
-      { 
-        if (strlen(BZIMethod)!=4) 
-         ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
-
-        SC3D->BZIOrder = BZIMethod[3] - '0';
-        if ( SC3D->BZIOrder<2 || SC3D->BZIOrder>7 ) 
-         ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
-
-        Log("Using embedded Clenshaw-Curtis cubature (order %i)"
-            "for Brillouin-zone integration.",SC3D->BZIOrder);
-      }
-     else if ( !strcasecmp(BZIMethod,"adaptive") )
-      { SC3D->BZIOrder=0; 
-        Log("Using adaptive cubature for Brillouin-zone integration.");
-      }
-     else 
-      ErrExit("unknown brillouin-zone integration method %s",BZIMethod);
-   };
-  if ( SC3D->BZIOrder != 0)
-   { int NP = (1<<(SC3D->BZIOrder)) + 1;
-     SC3D->BZIValues = (double *)malloc( (SC3D->NTNQ)*NP*NP*sizeof(double) );
-   };
-
-  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if (!FileBase)
    FileBase = strdup(GetFileBase(G->GeoFileName));
+
+  SC3D->FileBase = strdup(FileBase);
 
   SC3D->OutFileName=vstrdup("%s.out",FileBase);
 
   SC3D->ByXiFileName=vstrdup("%s.byXi",FileBase);
   WriteFilePreamble(SC3D, PREAMBLE_BYXI);
 
-  if (G->NumLatticeBasisVectors>0)
+  if (G->LDim>0)
    { SC3D->ByXiKFileName=vstrdup("%s.byXikBloch",FileBase);
      WriteFilePreamble(SC3D, PREAMBLE_BYXIK);
    }
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  SC3D->UAccelerators = 0;
+  if (PBC)
+   { int NT = SC3D->NumTransformations;
+     SC3D->UAccelerators = (void ***)mallocEC(NT*sizeof(void *));
+     for(int nt=0; nt<NT; nt++)
+      { SC3D->UAccelerators[nt] = (void **)mallocEC(NumBlocks*sizeof(void *));
+        for(int ns=0, nb=0; ns<NS; ns++)
+         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+          SC3D->UAccelerators[nt][nb] 
+           = G->CreateABMBAccelerator(ns, nsp, true, NeedDMDZ && ns==0);
+      };
+   };
 
   return SC3D;
 
@@ -255,7 +243,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
   time_t MyTime = time(0);
   struct tm *MyTm=localtime(&MyTime);
   strftime(DateStr,30,"%D::%T",MyTm);
-  fprintf(f,"# scuff-cas3D run on %s at %s",GetHostName(),DateStr);
+  fprintf(f,"# scuff-cas3D run on %s at %s\n",GetHostName(),DateStr);
   fprintf(f,"# data file columns: \n");
   fprintf(f,"#1: transform tag\n");
 
@@ -276,7 +264,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
      fprintf(f,"#%i: imaginary angular frequency\n",nc++);
 
      IntegrandString="Xi integrand";
-     ErrorString = (SC3D->G->NumLatticeBasisVectors==0) ? 0 :
+     ErrorString = (SC3D->G->LDim==0) ? 0 :
                    "error due to numerical Brillouin-zone integration";
 
    }
@@ -284,7 +272,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
    { 
      fprintf(f,"#%i: imaginary angular frequency\n",nc++);
      fprintf(f,"#%i: bloch wavevector kx \n",nc++);
-     if (SC3D->G->NumLatticeBasisVectors==2)
+     if (SC3D->G->LDim==2)
       fprintf(f,"#%i: bloch wavevector ky \n",nc++);
 
      IntegrandString="Brillouin-zone integrand";

@@ -33,15 +33,13 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags, 
-                         int PlotFlux, char *pFileBase, bool SymGDest)
+SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
+                         char *pFileBase)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
 
   SNEQD->WriteCache=0;
-  SNEQD->PlotFlux=PlotFlux;
-  SNEQD->SymGDest=SymGDest;
 
   /*--------------------------------------------------------------*/
   /*-- try to create the RWGGeometry -----------------------------*/
@@ -193,9 +191,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   fprintf(f,"# 1 omega \n");
   fprintf(f,"# 2 transform tag\n");
   int nq=3;
-  if (G->NumLatticeBasisVectors==1)
+  if (G->LDim==1)
    fprintf(f,"# %i kBloch_x \n",nq++);
-  else if (G->NumLatticeBasisVectors==2)
+  else if (G->LDim==2)
    { fprintf(f,"# %i kBloch_x \n",nq++);
      fprintf(f,"# %i kBloch_x \n",nq++);
    };

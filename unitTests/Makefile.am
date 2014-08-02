@@ -1,16 +1,16 @@
 EXTRA_DIST = 					\
- README						\
- UnitTestSphere.geo				\
- UnitTestSphere_474.msh  			\
- Square.geo        				\
- Square_14.msh    				\
- PECSphere_474.scuffgeo 			\
- SiCSphere_474.scuffgeo				\
- GoldSphere_474.scuffgeo			\
- SiSphere_474.scuffgeo 		 		\
- TwoSpheres.scuffgeo 				\
- TwoSpheres_414.scuffgeo			\
- SphereSubstrateArray_Coarse.scuffgeo
+ SSphere_255.msh				\
+ SSphere_R0P25_255.msh				\
+ UnitTestSphere_R0P75_414.msh     		\
+ Square_40.msh                    		\
+ PECSphere_255.scuffgeo				\
+ PECSpheres_255.scuffgeo			\
+ SiSphere_255.scuffgeo				\
+ SiSpheres_255.scuffgeo				\
+ PECSphere_R0P75_414.scuffgeo			\
+ PECPlate_40.scuffgeo             		\
+ SiSlab_40.scuffgeo               		\
+ SphereSlabArray.scuffgeo
 
 LIBSCUFF = $(top_builddir)/src/libs/libscuff/libscuff.la
 AM_CPPFLAGS = -DSCUFF \
@@ -24,28 +24,22 @@ AM_CPPFLAGS = -DSCUFF \
               -I$(top_srcdir)/src/libs/libhrutil
 
 noinst_PROGRAMS = 		\
- unit-test-compactMatrix	\
- unit-test-PBCMatrix     	\
+ unit-test-BEMMatrix     	\
  unit-test-PPIs			\
  unit-test-PFT 
 
 check_PROGRAMS = 		\
- unit-test-compactMatrix	\
- unit-test-PBCMatrix     	\
+ unit-test-BEMMatrix     	\
  unit-test-PPIs			\
  unit-test-PFT
 
 TESTS = 			\
- unit-test-compactMatrix	\
- unit-test-PBCMatrix     	\
+ unit-test-BEMMatrix     	\
  unit-test-PPIs			\
  unit-test-PFT
 
-unit_test_compactMatrix_SOURCES = unit-test-compactMatrix.cc
-unit_test_compactMatrix_LDADD   = $(LIBSCUFF)
-
-unit_test_PBCMatrix_SOURCES = unit-test-PBCMatrix.cc
-unit_test_PBCMatrix_LDADD   = $(LIBSCUFF)
+unit_test_BEMMatrix_SOURCES = unit-test-BEMMatrix.cc
+unit_test_BEMMatrix_LDADD   = $(LIBSCUFF)
 
 unit_test_PPIs_SOURCES = unit-test-PPIs.cc
 unit_test_PPIs_LDADD = $(LIBSCUFF)

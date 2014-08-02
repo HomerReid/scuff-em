@@ -385,7 +385,7 @@ HMatrix *RWGGeometry::GetPBCPanelSourceDensities(cdouble Omega,
              int WhichBV = S->PhasedBFCs[3*nst + 2];
    
              RWGEdge *E  = S->Edges[ne];
-             double *L   = LatticeBasisVectors[WhichBV];
+             double *L   = LBasis[WhichBV];
   
              double Q[3];
              Q[0] = S->Vertices[3*(E->iQM)+0] + L[0];

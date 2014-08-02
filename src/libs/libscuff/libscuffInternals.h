@@ -340,9 +340,9 @@ int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
 /* routine for computing the periodic green's function via     */
 /* ewald summation                                             */
 /***************************************************************/
-void GBarVDEwald(double *R, cdouble k, int 
-                 LDim, double *kBloch, double **LBV,
-                 double E, bool ExcludeFirst9, cdouble *GBarVD);
+void GBarVDEwald(double *R, cdouble k, double *kBloch,
+                 double **LBV, int LDim,
+                 double E, bool ExcludeInnerCells, cdouble *GBarVD);
 
 /***************************************************************/
 /* this is an alternative interface to GBarVDEwald that has the*/

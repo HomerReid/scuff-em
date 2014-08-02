@@ -87,7 +87,7 @@ double GetLNDetMInvMInf(SC3Data *SC3D)
   /*--------------------------------------------------------------*/
   // paraphrasing the physicists of the 1930s, 'just because
   // something is infinite doesn't mean that it's zero.' and yet...
-  if (!isfinite(LNDet))
+  if (!IsFinite(LNDet))
    LNDet=0.0;
   return -LNDet/(2.0*M_PI);
 
@@ -139,7 +139,7 @@ double GetTraceMInvdM(SC3Data *SC3D, char XYZT)
 
   // paraphrasing the physicists of the 1930s, 'just because
   // something is infinite doesn't mean that it's zero.' and yet...
-  if (!isfinite(Trace))
+  if (!IsFinite(Trace))
    Trace=0.0;
 
   return -Trace/(2.0*M_PI);
@@ -222,7 +222,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
    return;
 
   RWGGeometry *G = SC3D->G;
-  bool PBC = G->NumLatticeBasisVectors > 0;
+  bool PBC = (G->LDim > 0);
 
   /***************************************************************/
   /* SurfaceNeverMoved[ns] is initialized true and remains true  */
@@ -251,7 +251,8 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
       };
 
      Log("Assembling T%i at Xi=%e...",ns+1,Xi);
-     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, SC3D->TBlocks[ns]);
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, SC3D->TBlocks[ns], 0,
+                               0, 0, SC3D->TAccelerators[ns], false);
 
    }; // for(ns=0; ns<G->NumSurfaces; ns++)
 
@@ -366,13 +367,15 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
           continue;
 
          Log(" Assembling U(%i,%i)",ns,nsp);
+         void *Accelerator = PBC ? SC3D->UAccelerators[nt][nb] : 0;
          if (ns==0)
           G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch,
                                     SC3D->UBlocks[nb], SC3D->dUBlocks + 6*nb,
-                                    0, 0, SC3D->NumTorqueAxes, 
-                                    SC3D->dUBlocks + 6*nb + 3, SC3D->GammaMatrix);
+                                    0, 0, Accelerator, false, 
+                                    SC3D->NumTorqueAxes, SC3D->dUBlocks + 6*nb + 3, SC3D->GammaMatrix);
          else
-          G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, SC3D->UBlocks[nb]);
+          G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, SC3D->UBlocks[nb], 0,
+                                    0, 0, Accelerator, false);
 
        };
 
@@ -403,15 +406,15 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
      /* calling hierarchy, in the GetXiIntegrand() routine.            */
      /******************************************************************/
      FILE *f=0;
-     if (G->NumLatticeBasisVectors==0)
+     if (G->LDim==0)
       { f = fopen(SC3D->ByXiFileName, "a");
         fprintf(f,"%s %.6e ",Tag,Xi);
       }
-     else if (G->NumLatticeBasisVectors==1)
+     else if (G->LDim==1)
       { f = fopen(SC3D->ByXiKFileName, "a");
         fprintf(f,"%s %.6e %.6e ",Tag,Xi,kBloch[0]);
       }
-     else if (G->NumLatticeBasisVectors==2)
+     else if (G->LDim==2)
       { f = fopen(SC3D->ByXiKFileName, "a");
         fprintf(f,"%s %.6e %.6e %.6e ",Tag,Xi,kBloch[0],kBloch[1]);
       }

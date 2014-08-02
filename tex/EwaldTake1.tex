@@ -1,0 +1,243 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+%\usepackage{hyperref}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\newcommand{\GB}{\overline{G}}
+\newcommand{\vbGB}{\overline{\vb G}}
+%\newcommand{\BG}{\boldsymbol{\Gamma}}
+\newcommand{\erfc}{\text{Erfc }}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Implementation of Ewald Summation in {\sc scuff-em}}
+\author {Homer Reid}
+\date {June 12, 2012}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Ewald Summation in {\sc scuff-em}}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+
+\section{The Periodic Dyadic Green's Function}
+
+Consider a two-dimensional lattice consisting of a set of 
+lattice vectors $\{\vb L=(L_x, L_y)\}.$
+We use the symbol $\vb p=(p_x, p_y)$ to denote a two-dimensional
+Bloch wavevector.
+
+The Bloch-periodic version of the scalar Helmholtz Green's function is
+%====================================================================%
+\numeq{PGF}
+{ \GB(k; \vb p; \vb x) 
+  \equiv 
+  \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+               \frac{ e^{ i k |\vb x + \vb L|}}
+                    { 4\pi|\vb x + \vb L|}
+}
+%====================================================================%
+
+\section{Evaluation by Ewald Summation: The JRS Method}
+
+To evaluate the sum in (\ref{PGF}) efficiently, we use a method 
+outlined by Jordan, Richter, and Sheng (JRS)\footnote{K. E. Jordan, G. R. Richter, 
+and P. Sheng, "An Efficient Numerical Evaluation of the Green's 
+Function for the Helmholtz Operator on Periodic Structures," 
+\textit{Journal of Computational Physics} \textbf{63} 222 (1986).
+\texttt{http://dx.doi.org/10.1016/0021-9991(86)90093-8}}
+based on the original ideas of Ewald\footnote{}. For completeness,
+I will briefly recapitulate the key ideas of this approach.
+
+The starting point is the identity
+$$ \frac{e^{ikr}}{4\pi r} 
+   \equiv 
+   \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
+   \int_{\mathcal C} e^{ -z^2 r^2 + \frac{k^2}{4z^2}} dz
+$$ 
+where $\mathcal{C}$ is a contour in the complex plane running from
+the origin to $\infty$ and satisfying certain conditions depending
+on $k$. One choice of $\mathcal{C}$ 
+that suffices for $k$ in the upper-right quadrant is a straight line
+running from the origin to infinity at an angle of $-\pi/4$ from
+the positive real axis, i.e. 
+$$ z=\zeta s, \qquad 0\le s \le \infty, \qquad \zeta=e^{-i\pi/4}$$
+in terms of which our identity becomes
+$$ \frac{e^{ikr}}{4\pi r} 
+   \equiv 
+   \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}
+   \cdot \zeta \cdot 
+   \int_{0}^\infty e^{ + i s^2 r^2 + \frac{ik^2}{4s^2}} ds.
+$$ 
+
+\subsection*{Split the sum into direct-lattice-local and reciprocal-lattice-local
+             contributions}
+
+\begin{align}
+\GB(k; \vb p; \vb x) 
+ &= \GB^{(1)}(k; \vb p; \vb x) 
+   +\GB^{(2)}(k; \vb p; \vb x) 
+\label{GBDecomposition}
+\\
+\GB^{(1)}(k; \vb p; \vb x) 
+&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}\cdot \zeta\cdot
+   \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+                \int_0^E e^{is^2 |\vb x+\vb L|^2 + \frac{ik^2}{4s^2}} ds
+\label{GB1Sum}
+\\
+\GB^{(2)}(k; \vb p; \vb x) 
+&= \frac{1}{4\pi} \cdot \frac{2}{\sqrt{\pi}}\cdot\zeta\cdot
+   \sum_{\vb L} e^{i\vb p \cdot \vb L} 
+                \int_E^\infty e^{is^2 |\vb x + \vb L|^2 + \frac{ik^2}{4s^2}} ds
+\label{GB2Sum}
+\end{align}
+
+\subsection*{Evaluate $\GB^{(2)}$ in real space} 
+
+The first step is to tackle the sum in (\ref{GB2Sum}) head-on. 
+The integral in that equation may be evaluated in closed form in terms of
+the complex error function:
+\numeq{ErfInt}
+{
+ \frac{2}{\sqrt\pi} \cdot \zeta \int_E^\infty e^{is^2 R^2 + \frac{ik^2}{4s^2}} ds
+ = \frac{1}{2R}\bigg\{ e^{ikR} \,\erfc\Big[ RE\zeta + \frac{ik}{2E\zeta}\Big]
+                     +e^{-ikR} \,\erfc\Big[ RE\zeta - \frac{ik}{2E\zeta}\Big]
+               \bigg\}
+}
+Plugging into (\ref{GB2Sum}), the real-space sum is 
+\begin{align*}
+\GB^{(2)}(k; \vb p; \vb x) 
+&= \frac{1}{8\pi}
+   \sum_{\vb L} 
+   \frac{e^{i\vb p \cdot \vb L}}{|\vb x + \vb L|}
+    \bigg\{ e^{ik|\vb x + \vb L|}
+            \erfc\Big[R|\vb x + \vb L| + \frac{ik}{2E} \Big]
+\\
+&\hspace{1.5in}
+ +          e^{-ik|\vb x + \vb L|}
+    \erfc\Big[R|\vb x + \vb L| - \frac{ik}{2E} \Big]
+    \bigg\}
+\end{align*}
+This sum converges very rapidly in real space. Indeed, as soon as 
+$|\vb r + \vb L|$ is greater than a few times $E$, the $\erfc$\!\!
+factors begin to bite down \textit{doubly exponentially} on the
+summand, and the contribution of distant lattice sites becomes 
+utterly negligible. In practice, for a 2D lattice we achieve 8 
+or more digits of accuracy by retaining only $\approx$ terms in the sum.
+Thus we consider this term done, and move on to $\GB^{(1)}.$ 
+
+\subsection*{Evaluate $\GB^{(1)}$ in reciprocal space} 
+
+We would next like to do for $\GB^{(1)}$ what we just did for $\GB^{(2)}$,
+but this requires a little more work. 
+
+First, the integral in (\ref{GB2Sum}) involves the lower range of the 
+$s$ integral (from $s=0$ to $E$), but the nice closed-form
+expression we have, equation (\ref{ErfInt}), is for the upper range 
+of the integral ($s=E$ to $\infty$). This difficulty was circumvented 
+by Ewald in an ingenious way by appealing to the properties of the 
+classical \textit{Jacobi theta function}, which is defined as 
+\numeq{ThetaFunction}{\theta(s)=\sum_{n=-\infty}^\infty e^{-n^2 \pi s}}
+and which satisfies the amazing and bizarre functional identity 
+\numeq{ThetaIdentity}
+{ \theta(s)=\sqrt\frac{1}{s} \cdot \theta\left(\frac{1}{s}\right).}
+We will need a slightly more complicated version of this identity,
+obtained by generalizing (\ref{ThetaFunction}) in two ways: 
+\textbf{(a)} we consider a more general summand in which the exponent
+contains a term linear in $n$ besides the quadratic term 
+in (\ref{ThetaFunction}), and 
+\textbf{(b)} instead of summing over all integers $n$ (which we may 
+think of as a sum over a one-dimensional lattice) we instead sum 
+over a \textit{two-dimensional} lattice.
+The result is that the sum over lattice vectors $\vb L$ that enters into
+our equation (\ref{GB1Sum}) is converted into a sum over
+\textit{reciprocal lattice} vectors $\BG$:
+\begin{align}
+&\hspace{-0.5in}
+ \frac{1}{4\pi} \cdot \frac{2}{\sqrt\pi} \sum_{\vb L} e^{i \vb p \cdot \vb L}
+ e^{-s^2|\vb x + \vb L|^2 + \frac{k^2}{4s^2}}
+\nn
+&=\frac{1}{s^2} \cdot \frac{A_{\BG}}{8\pi^{5/2}}
+ \sum_{\BG} e^{i(\BG-\vb p) \cdot \vb x} 
+            e^{-\frac{1}{4s^2}[|\BG - \vb p|^2 - k^2] - z^2 s^2}
+\label{DirectToReciprocal}
+\end{align}
+Here the sum is over all vectors $\BG$ that satisfy 
+$\BG \cdot \vb L=2\pi$ for some lattice vector $\vb L,$
+and $A_{\BG}$ is the area of Brillouin zone of the 
+reciprocal lattice.\footnote{For a simple rectangular 
+lattice with basis vectors 
+$$\vb L_1=L_x\vbhat{x}, \qquad \vb L_2=L_y\vbhat{y},$$
+a basis for the reciprocal lattice is 
+$$\BG_1=\frac{2\pi}{L_x}\vbhat{x},\qquad \BG_2=\frac{2\pi}{L_y}\vbhat{y}$$
+and we have $A_{\BG}=\frac{4\pi^2}{L_x L_y}$.\\
+For a hexagonal lattice with basis vectors 
+$$ \vb L_1=L\vbhat{x}, \qquad 
+   \vb L_2=\frac{L}{2}\vbhat{x} + \frac{L\sqrt{3}}{2}\vbhat{y}
+$$
+a basis for the reciprocal lattice is 
+$$ \BG_1=\frac{2\pi}{L}\vbhat{x} + \frac{2\pi}{L\sqrt{3}}\vbhat{y},
+   \qquad 
+   \BG_2=\frac{4\pi}{\sqrt{3} L}\vbhat{y}
+$$
+and we have $A_{\BG}=\frac{8\pi^2}{L^2 \sqrt{3}}$.
+}
+Inserting (\ref{DirectToReciprocal}) in (\ref{GB1Sum}), we have 
+\begin{align}
+\GB^{(1)}(k; \vb p; \vb x) 
+&=\frac{\zeta A_{\BG}}{8\pi^{5/2}} \sum_{\BG} 
+    e^{i(\BG-\vb p) \cdot \vb x} 
+    \int_{0}^E 
+    \frac{ds}{s^2} 
+    e^{\frac{i}{4s^2}[|\BG - \vb p|^2 - k^2] + iz^2 s^2}
+\nonumber
+\intertext{Change integration variables according to $s\to\frac{1}{2s}$:}
+&=\frac{\zeta A_{\BG}}{4\pi^{5/2}} \sum_{\BG} 
+    e^{i(\BG-\vb p) \cdot \vb x} 
+    \int_{\frac{1}{2E}}^\infty
+    ds
+    e^{is^2[|\BG - \vb p|^2 - k^2] + \frac{iz^2}{4s^2}}
+\nonumber
+\intertext{Evaluate the integral using (\ref{ErfInt}):}
+&=\frac{A_{\BG}}{16\pi^2} \sum_{\BG}
+   \frac{e^{i(\BG-\vb p) \cdot \vb x}}{Q(\BG, \vb p, k)} 
+   \bigg\{  e^{+Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E\zeta} + E\zeta z \Big]
+\label{GB1Sum2}\\
+&\hspace{2in}
+          +e^{-Qz}\erfc\Big[ \frac{Q(\BG, \vb p, k)}{2E\zeta} - E\zeta z \Big]
+   \bigg\}
+\nonumber
+\end{align}
+where we put
+$$
+Q(\BG, \vb p, k)  = \sqrt{ (\BG-\vb p)^2 - k^2 }.
+$$
+
+\section*{The 1D Case}
+
+In the 1D case, equations (\ref{GB1Sum}) and (\ref{GB2Sum}) take
+the form 
+
+\end{document}
