@@ -1,0 +1,10 @@
+# This .scuffgeo file describes the same object (a corrugated
+# sapphire disc) as the file CorrugatedDisc_1143.scuffgeo,
+# with the only distinction being that here the sapphire
+# dielectric function is described by a numerical data file
+# instead of a functional expression.
+
+OBJECT TheDisc
+	MESHFILE CorrugatedDisc_1143.msh
+	MATERIAL FILE_SapphireModel.dat
+ENDOBJECT
