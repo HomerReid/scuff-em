@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
   char *WriteCache=0;
 
   /*--------------------------------------------------------------*/
-  bool SymGDest=false;
+  bool SymGPower=false;
 
   /*--------------------------------------------------------------*/
   bool UseExistingData=false;
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
    
   /*--------------------------------------------------------------*/
   double SIRadius    = 100.0;
-  double SINumPoints = 31;
+  int SINumPoints    = 31;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
@@ -138,13 +138,12 @@ int main(int argc, char *argv[])
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for frequency quadrature"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,  0,             "number of intervals for frequency quadrature"},
 /**/
-     {"SymGDest",       PA_BOOL,    0, 1,       (void *)&SymGDest,   0,             "use Sym(G) instead of overlap matrix for dest object"},
+     {"SymGPower",      PA_BOOL,    0, 1,       (void *)&SymGPower,  0,             "use Sym(G) instead of overlap matrix for power computation"},
 /**/
      {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "bounding-sphere radius for SIPFT"},
      {"SINumPoints",    PA_INT,     1, 1,       (void *)&SINumPoints,0,             "number of quadrature points for SIPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
-     {"SubtractSelfTerms", PA_BOOL, 0, 1,       (void *)&SubtractSelfTerms, 0,      "subtract self terms"},
      {"Visualize",      PA_BOOL,    0, 1,       (void *)&Visualize,  0,             "visualize flux profiles"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
@@ -253,18 +252,19 @@ int main(int argc, char *argv[])
   /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, 
-                                 PlotFlux, FileBase, SymGDest);
+  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, FileBase);
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData   = UseExistingData;
   SNEQD->SubtractSelfTerms = SubtractSelfTerms;
   SNEQD->Visualize         = Visualize;
-  SNEQD->SIRadius          = SIRadius;  
+  SNEQD->SIRadius          = SIRadius;
   SNEQD->SINumPoints       = SINumPoints;
+  SNEQD->PlotFlux          = PlotFlux;
+  SNEQD->SymGPower         = SymGPower;
 
-  if (OmegaKPoints && G->NumLatticeBasisVectors==0)
+  if (OmegaKPoints && G->LDim==0)
    ErrExit("--OmegaKPoints may only be used with extended geometries");
-  else if (G->NumLatticeBasisVectors!=0 && OmegaKPoints==0)
+  else if (G->LDim!=0 && OmegaKPoints==0)
    ErrExit("--OmegaKPoints is required for extended geometries");
 
   /*******************************************************************/
@@ -273,31 +273,28 @@ int main(int argc, char *argv[])
   double TEnvironment=0.0;
   double *TSurfaces=(double *)malloc(G->NumSurfaces*sizeof(double));
   memset(TSurfaces, 0, G->NumSurfaces*sizeof(double));
-  if (nTempStrings)
+  for(int nts=0; nts<nTempStrings; nts++)
    { 
-     int WhichSurface;
      double TTemp;
+     int WhichSurface;
+     if ( 1!=sscanf(TempStrings[2*nts+1],"%le",&TTemp) )
+      ErrExit("invalid temperature (%s) passed for --temperature option",TempStrings[2*nts+1]);
 
-     for(int nts=0; nts<nTempStrings; nts++)
-      { 
-        G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface);
+     if (    !strcasecmp(TempStrings[2*nts],"MEDIUM")
+          || !strcasecmp(TempStrings[2*nts],"ENVIRONMENT")
+        )
+      { TEnvironment=TTemp;
+        Log("Setting environment temperature to %g kelvin.\n",TTemp);
+        printf("Setting environment temperature to %g kelvin.\n",TTemp);
+      }
+     else if ( G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface) )
+      { TSurfaces[WhichSurface]=TTemp;
+        Log("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
+        printf("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
+      }
+     else 
+      ErrExit("unknown surface/region %s in --temperature specification",TempStrings[2*nts]);
 
-        if(WhichSurface==-2)
-         ErrExit("unknown surface (%s) passed for --temperature option",TempStrings[2*nts]);
-        if ( 1!=sscanf(TempStrings[2*nts+1],"%le",&TTemp) )
-         ErrExit("invalid temperature (%s) passed for --temperature option",TempStrings[2*nts+1]);
-
-        if(WhichSurface==-1)
-         { TEnvironment=TTemp;
-           Log("Setting environment temperature to %g kelvin.\n",TTemp);
-           printf("Setting environment temperature to %g kelvin.\n",TTemp);
-         }
-        else
-         { TSurfaces[WhichSurface]=TTemp;
-           Log("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
-           printf("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
-         };
-      };
    };
          
   /*******************************************************************/
@@ -330,7 +327,8 @@ int main(int argc, char *argv[])
       };
    }
   else if (NumFreqs>0)
-   { for (int nFreq=0; nFreq<NumFreqs; nFreq++)
+   { 
+     for (int nFreq=0; nFreq<NumFreqs; nFreq++)
       GetFlux(SNEQD, OmegaPoints->GetEntry(nFreq), I);
    }
   else

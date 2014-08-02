@@ -37,7 +37,7 @@
 /***************************************************************/
 /***************************************************************/
 #define MAXSTR  1000
-#define MAXXI   10
+#define MAXFREQ 10
 #define MAXATOM 10
 
 /***************************************************************/
@@ -108,12 +108,21 @@ void Usage(const char *ProgramName, OptStruct *OSArray, const char *ErrMsg)
   fprintf(stderr, "\n");
   fprintf(stderr, " --geoFile     MyFile.scuffgeo   specify geometry file\n");
   fprintf(stderr, " --PECPlate                      use PEC plate\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, " --EPFile      MyEvalPointFile   file specifying evaluation points\n");
-  fprintf(stderr, " --atom        Rubidium          type of atom\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, " --Xi          2.17              imaginary angular frequency\n");
+  fprintf(stderr, " --XiFile      MyXiFile          list of imaginary angular frequencies\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, " --atom        Rubidium          atomic species (for built-in polarizability models)\n");
+  fprintf(stderr, " --particle    MyParticle.pol    particle species (for a user-defined polarizability model)\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, " --temperature xx                compute at T=xx kelvin\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, " --reltol      xx                relative error tolerance for frequency sums/integrals\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "atoms supported: \n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "built-in polarizability models: \n");
   fprintf(stderr, "\n");
   fprintf(stderr, " --atom Hydrogen   [--atom H ] \n");
   fprintf(stderr, " --atom Lithium    [--atom Li] \n");
@@ -137,37 +146,61 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   bool PECPlate=false;
-  char *Atoms[MAXATOM];    int NumAtoms;
+//
+  char *Atoms[MAXATOM];                     int NumBIAtoms;
+  char *Particles[MAXATOM];                 int NumParticles;
+//
   char *EPFile=0;
-  double Temperature = 0.0;
+//
+  double Temperature = 0.0;                 int nTemperature;
+  double XiVals[MAXFREQ];	            int nXiVals;
+  char *XiFile=0;
+//
   double RelTol = DEF_RELTOL;
   /* name           type  #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
-   { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFile,     0,          ".scuffgeo file"},
-     {"PECPlate",    PA_BOOL,    0, 1,       (void *)&PECPlate,    0,          "use PEC plate"},
-     {"Atom",        PA_STRING,  1, 10,      (void *)Atoms,        &NumAtoms,  "type of atom"},
-     {"EPFile",      PA_STRING,  1, 1,       (void *)&EPFile,      0,          "list of evaluation points"},
-     {"Temperature", PA_DOUBLE,  1, 1,       (void *)&Temperature, 0,          "temperature in Kelvin"},
-     {"RelTol",      PA_DOUBLE,  1, 1,       (void *)&RelTol,      0,          "relative error tolerance"},
+   { 
+     {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFile,     0,             ".scuffgeo file"},
+     {"PECPlate",    PA_BOOL,    0, 1,       (void *)&PECPlate,    0,             "use PEC plate"},
+//
+     {"Atom",        PA_STRING,  1, MAXATOM, (void *)Atoms,        &NumBIAtoms,   "atomic species (built-in polarizability models)"},
+     {"Particle",    PA_STRING,  1, MAXATOM, (void *)Particles,    &NumParticles, "particle species (user-defined polarizability models)"},
+//
+     {"EPFile",      PA_STRING,  1, 1,       (void *)&EPFile,      0,             "list of evaluation points"},
+//
+     {"Temperature", PA_DOUBLE,  1, 1,       (void *)&Temperature, &nTemperature, "temperature in Kelvin"},
+     {"Xi",          PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,       &nXiVals,      "imaginary frequency"},
+     {"XiFile",      PA_STRING,  1, 1,       (void *)&XiFile,      0,             "file containing Xi values"},
+//
+     {"RelTol",      PA_DOUBLE,  1, 1,       (void *)&RelTol,      0,             "relative error tolerance"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
 
+  /***************************************************************/
+  /* some sanity checks on input arguments ***********************/
+  /***************************************************************/
   if (GeoFile==0 && PECPlate==0)
    Usage(argv[0], OSArray,"either --geometry or --PECPlate must be specified");
   if (GeoFile!=0 && PECPlate!=0)
    ErrExit("geometry and --PECPlate are mutually exclusive");
-  if (NumAtoms==0)
-   Usage(argv[0], OSArray,"you must specify at least one --atom");
   if (EPFile==0)
    Usage(argv[0], OSArray,"--EPFile option is mandatory");
+  if ( XiFile && nXiVals )
+   ErrExit("--XiFile and --Xi are mutually exclusive");
+  if (nTemperature!=0 && (XiFile!=0 || nXiVals!=0) )
+   ErrExit("--Xi and --XiFile options are incompatible with --Temperature");
+  if (Temperature<0.0)
+   ErrExit("--temperature may not be negative");
+  int NumAtoms = NumBIAtoms + NumParticles;
+  if (NumAtoms == 0)
+   Usage(argv[0], OSArray,"you must specify at least one --atom or --particle");
 
   /*******************************************************************/
   /* create the RWGGeometry, allocate BEM matrix and RHS vector, and */
   /* set up the data structure passed to the computational routines  */
   /*******************************************************************/
   SCPData MySCPData, *SCPD=&MySCPData;
-
   if (GeoFile)
    { SCPD->G  = new RWGGeometry(GeoFile, SCUFF_TERSELOGGING);
      SCPD->M  = SCPD->G->AllocateBEMMatrix(SCUFF_PUREIMAGFREQ);
@@ -179,35 +212,30 @@ int main(int argc, char *argv[])
      SCPD->KN = 0;
      GeoFile = strdup("PECPlate");
    };
-
   SCPD->RelTol = RelTol;
-
-  SetLogFileName("scuff-caspol.log");
 
   /*******************************************************************/
   /* create polarizability models for all specified atoms            */
   /*******************************************************************/
-  SCPD->PolModels = (PolModel **)malloc(NumAtoms * sizeof(PolModel *));
-  SCPD->Alphas    = (HMatrix **) malloc(NumAtoms * sizeof(HMatrix *) );
-  SCPD->NumAtoms  = NumAtoms;
-  for(int na=0; na<NumAtoms; na++)
-   { SCPD->PolModels[na] = new PolModel(Atoms[na]);
+  SCPD->PolModels  = (PolModel **)malloc(NumAtoms * sizeof(PolModel *));
+  SCPD->Alphas     = (HMatrix **) malloc(NumAtoms * sizeof(HMatrix *) );
+  SCPD->NumAtoms   = NumAtoms;
+
+  int na=0;
+  for(int nbi=0; nbi<NumBIAtoms; nbi++)
+   { SCPD->PolModels[na] = new PolModel(Atoms[nbi], PM_BUILTIN);
      if (SCPD->PolModels[na]->ErrMsg)
       Usage(argv[0], OSArray, SCPD->PolModels[na]->ErrMsg);
      SCPD->Alphas[na] = new HMatrix(3,3);
+     na++;
    };
-
-#if 0
-{FILE *f=fopen("/tmp/doomatage","w");
- HMatrix *A=new HMatrix(3,3);
- for(double Xi=1.0e-6; Xi<1.0e2; Xi*=exp(0.1*log(10.0)) )
-  { SCPD->PolModels[0]->GetPolarizability(Xi, A);
-    fprintf(f,"%e %e \n",Xi,A->GetEntryD(0,0));
-  };
- fclose(f);
- exit(1);
-}
-#endif
+  for(int np=0; np<NumParticles; np++)
+   { SCPD->PolModels[na] = new PolModel(Particles[np], PM_FILE);
+     if (SCPD->PolModels[na]->ErrMsg)
+      Usage(argv[0], OSArray, SCPD->PolModels[na]->ErrMsg);
+     SCPD->Alphas[na] = new HMatrix(3,3);
+     na++;
+   };
 
   /*******************************************************************/
   /* process list of evaluation points *******************************/
@@ -221,16 +249,38 @@ int main(int argc, char *argv[])
   double *U=(double *)mallocEC(NumEvalPoints * NumAtoms * sizeof(double));
 
   /*******************************************************************/
-  /* create the .byXi file ***********************************************/
+  /* process --Xi or --XiFile options if present                     */
+  /*******************************************************************/
+  HVector *XiList=0;
+  if ( XiFile )
+   { XiList = new HVector(XiFile,LHM_TEXT,"--nc 1 --strict");
+     if (XiList->ErrMsg)
+      ErrExit(XiList->ErrMsg);
+     Log("Read %i Xi points from file %s.",XiList->N, XiFile);
+   }
+  else if ( nXiVals>0 )
+   { XiList = new HVector(nXiVals);
+     for(int n=0; n<nXiVals; n++)
+      XiList->SetEntry(n,XiVals[n]);
+   };
+
+  /*******************************************************************/
+  /* create the .byXi file *******************************************/
   /*******************************************************************/
   SCPD->ByXiFileName=vstrdup("%s.byXi",GetFileBase(GeoFile));
   WriteFilePreamble(SCPD->ByXiFileName, argc, argv, FILETYPE_BYXI, SCPD);
 
   /*******************************************************************/
-  /* insert here code to process a list of --Xi values and/or        */
-  /* --XiFile specifications                                         */
   /*******************************************************************/
-  HVector *XiList = 0;
+  /*******************************************************************/
+  SetLogFileName("scuff-caspol.log");
+  Log("scuff-caspol running on %s",GetHostName());
+  if ( XiList )
+   Log("Computing Casimir-Polder quantities at %i user-specified frequeny points.",XiList->N);
+  else if ( Temperature!=0.0 )
+   Log("Computing full Matsubara-summed Casimir quantities at T=%e Kelvin.",Temperature);
+  else
+   Log("Computing full zero-temperature Casimir quantities.");
 
   /*******************************************************************/
   /* main program body:                                              */
@@ -266,26 +316,29 @@ int main(int argc, char *argv[])
   /* write frequency-integrated or Matsubara-summed results to   */
   /* output file                                                 */
   /***************************************************************/
-  char OutFileName[MAXSTR];
-  snprintf(OutFileName, MAXSTR, "%s.out",GetFileBase(GeoFile));
-  WriteFilePreamble(OutFileName, argc, argv, FILETYPE_OUT, SCPD);
+  if (XiList==0)
+   { 
+     char OutFileName[MAXSTR];
+     snprintf(OutFileName, MAXSTR, "%s.out",GetFileBase(GeoFile));
+     WriteFilePreamble(OutFileName, argc, argv, FILETYPE_OUT, SCPD);
 
-  FILE *f=fopen(OutFileName,"a");
-  for(int nep=0; nep<EPMatrix->NR; nep++)
-   { fprintf(f,"%e %e %e ", EPMatrix->GetEntryD(nep,0),
-                            EPMatrix->GetEntryD(nep,1),
-                            EPMatrix->GetEntryD(nep,2) );
-     for(int na=0; na<NumAtoms; na++)
-      fprintf(f,"%e ", U[nep*NumAtoms + na]);
+     FILE *f=fopen(OutFileName,"a");
+     for(int nep=0; nep<EPMatrix->NR; nep++)
+      { fprintf(f,"%e %e %e ", EPMatrix->GetEntryD(nep,0),
+                               EPMatrix->GetEntryD(nep,1),
+                               EPMatrix->GetEntryD(nep,2) );
+        for(na=0; na<NumAtoms; na++)
+         fprintf(f,"%e ", U[nep*NumAtoms + na]);
 
-     fprintf(f,"\n");
+        fprintf(f,"\n");
+      };
+     fclose(f);
+
+     if (Temperature>0.0)
+      printf("Matsubara-summed data written to file %s.\n",OutFileName);
+     else
+      printf("Frequency-integrated data written to file %s.\n",OutFileName);
    };
-  fclose(f);
-
-  if (Temperature>0.0)
-   printf("Matsubara-summed data written to file %s.\n",OutFileName);
-  else
-   printf("Frequency-integrated data written to file %s.\n",OutFileName);
 
   /***************************************************************/
   /***************************************************************/  

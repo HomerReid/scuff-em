@@ -57,20 +57,30 @@ double XiPoints_DPB[NUMPOINTS_DPB] =
 
 // table from DPB paper with frequencies in SCUFF units.
 // note: in SCUFF units, 'Xi==1'  <--> Xi=3e14 rad /sec
-//       in atomic units, 'Xi==1' <--> Xi=6.57969e15 rad/sec
-// the conversion factor is 21.9323....
+//       in atomic units, 'Xi==1' <--> Xi=4.13393964448119e+16 rad/sec
+// the conversion factor is 137.79798814937303
+#define ATOMIC_TO_SCUFF 137.79798814937303
+// 20140731 note: many thanks to Tom Judd and Tino Sering for
+// helping to correct a mistake in this calculation!
+
 double XiPoints_DPB[NUMPOINTS_DPB] =
-{ 0.0,
-  0.0390375, 0.205522, 0.504383, 0.934608,  1.49476,
-  2.18315,    2.99795,  3.93745,  5.00005,  6.18469,
-  7.49085,    8.91886,  10.4701,   12.147,  13.9539,
-  15.8963,    17.9822,  20.2216,  22.6274,  25.2154,
-  28.0054,    31.0215,  34.2934,  37.8568,  41.7551,
-  46.0422,    50.7838,  56.0605,  61.9732,  68.6477,
-  76.2436,     84.964,  95.0721,  106.912,   120.94, 
-  137.776,     158.27,   183.62,  215.555,  256.646,
-  310.849,    384.498,  488.263,  641.271,  880.611,
-  1286.16,    2057.02,  3811.61,  9354.28,  49247.6 
+{ 0.00000000e+00,   2.45369988e-01,   1.29180515e+00,
+  3.17029075e+00,   5.87446603e+00,   9.39530109e+00,
+  1.37221579e+01,   1.88435993e+01,   2.47487943e+01,
+  3.14277250e+01,   3.88737770e+01,   4.70836434e+01,
+  5.60593909e+01,   6.58094254e+01,   7.63500069e+01,
+  8.77067659e+01,   9.99160810e+01,   1.13026733e+02,
+  1.27102384e+02,   1.42224060e+02,   1.58491112e+02,
+  1.76027284e+02,   1.94985531e+02,   2.15550503e+02,
+  2.37948188e+02,   2.62451426e+02,   2.89397823e+02,
+  3.19200772e+02,   3.52367369e+02,   3.89531487e+02,
+  4.31484084e+02,   4.79228331e+02,   5.34040237e+02,
+  5.97574755e+02,   6.71992559e+02,   7.60169492e+02,
+  8.65988701e+02,   9.94800882e+02,   1.15413807e+03,
+  1.35486840e+03,   1.61314593e+03,   1.95383767e+03,
+  2.41675624e+03,   3.06896789e+03,   4.03070139e+03,
+  5.53506959e+03,   8.08415323e+03,   1.29293785e+04,
+  2.39578338e+04,   5.87961968e+04,   3.09545267e+05
 };
 
 double wPoints_DPB[NUMPOINTS_DPB] =
@@ -193,16 +203,27 @@ double PolPoints_DPB_Francium[NUMPOINTS_DPB] =
 double LargeXiCoefficient_DPB_Francium =  8.04767e-5;
 
 /***************************************************************/
-/* PolModel class constructor                                  */
+/* PolModel class constructor entry point                      */
 /***************************************************************/
-PolModel::PolModel(const char *Atom)
+PolModel::PolModel(char *String, int Which)
+{
+  if (Which==PM_BUILTIN)
+   InitPolModel_BI(String);
+  else
+   InitPolModel_UD(String);
+   
+}
+
+/***************************************************************/
+/* PolModel class constructor for built-in polarizabilities.   */
+/***************************************************************/
+void PolModel::InitPolModel_BI(char *Atom)
 {
   ErrMsg=0;
 
-  Name=strdup(Atom);
+  Name  = strdup(Atom);
 
   NumPoints = NUMPOINTS_DPB;
-
   XiPoints = XiPoints_DPB;
 
   if ( !strcasecmp(Atom,"H")  || !strcasecmp(Atom,"Hydrogen") )
@@ -247,6 +268,32 @@ PolModel::PolModel(const char *Atom)
    // initialize the interpolator
    PolInterp = new Interp1D(XiPoints, PolPoints, NumPoints, 1);
 
+}
+
+/***************************************************************/
+/* PolModel class constructor for user-defined polarizabilities.*/
+/***************************************************************/
+void PolModel::InitPolModel_UD(char *FileName)
+{
+  ErrMsg=0;
+  Name = strdup(GetFileBase(FileName));
+  LargeXiCoefficient = 0.0;
+
+  HMatrix *PolData = new HMatrix(FileName,LHM_TEXT,"--ncol 2 --strict");
+  if (PolData->ErrMsg)
+   ErrExit(PolData->ErrMsg);
+
+  NumPoints = PolData->NR;
+  XiPoints  = (double *)malloc(NumPoints * sizeof(double));
+  PolPoints = (double *)malloc(NumPoints * sizeof(double));
+
+  for(int np=0; np<NumPoints; np++)
+   { XiPoints[np]  = ATOMIC_TO_SCUFF * PolData->GetEntryD(np,0);
+     PolPoints[np] = PolData->GetEntryD(np,1);
+   };
+
+  PolInterp = new Interp1D(XiPoints, PolPoints, NumPoints, 1);
+ 
 }
 
 /***************************************************************/

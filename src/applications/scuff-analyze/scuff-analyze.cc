@@ -198,7 +198,7 @@ void WriteGeometryPPFiles(RWGGeometry *G, int Neighbors)
 
   G->WritePPMesh(PPFileName,G->GeoFileName);
 
-  int LDim = G->NumLatticeBasisVectors;
+  int LDim = G->LDim;
   int n2Mult = (LDim==1) ? 0 : 1;
 
   if (Neighbors)
@@ -211,15 +211,15 @@ void WriteGeometryPPFiles(RWGGeometry *G, int Neighbors)
           continue;
  
          if (LDim==1)
-          { DL[0] = n1*G->LatticeBasisVectors[0][0];
-            DL[1] = n1*G->LatticeBasisVectors[0][1];
-            DL[2] = n1*G->LatticeBasisVectors[0][2];
+          { DL[0] = n1*G->LBasis[0][0];
+            DL[1] = n1*G->LBasis[0][1];
+            DL[2] = 0.0;
             snprintf(Tag,20,"(%i)",n1);
           }
          else
-          { DL[0] = n1*G->LatticeBasisVectors[0][0] + n2*G->LatticeBasisVectors[1][0];
-            DL[1] = n1*G->LatticeBasisVectors[0][1] + n2*G->LatticeBasisVectors[1][1];
-            DL[2] = n1*G->LatticeBasisVectors[0][2] + n2*G->LatticeBasisVectors[1][2];
+          { DL[0] = n1*G->LBasis[0][0] + n2*G->LBasis[1][0];
+            DL[1] = n1*G->LBasis[0][1] + n2*G->LBasis[1][1];
+            DL[2] = 0.0;
             snprintf(Tag,20,"(%i,%i)",n1,n2);
           }
 
@@ -395,7 +395,7 @@ int main(int argc, char *argv[])
 
      AnalyzeGeometry(G);
 
-     if (Neighbors!=0 && G->NumLatticeBasisVectors==0 )
+     if (Neighbors!=0 && G->LDim==0 )
       { Warn("--Neighbors option only makes sense for periodic geometries");
         Neighbors=0;
       }

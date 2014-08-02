@@ -68,14 +68,17 @@ namespace scuff {
 /* If GradB[Mu] (Mu=0,1,2) is non-null, the same stamping      */
 /* operation is used to stamp GradB[Mu] into GradM[Mu].        */
 /***************************************************************/
-void StampInNeighborBlock(HMatrix *B, HMatrix **GradB, 
-                          int NR, int NC, 
+void StampInNeighborBlock(HMatrix *B, HMatrix **GradB,
+                          int NR, int NC,
                           HMatrix *M, HMatrix **GradM,
                           int RowOffset, int ColOffset,
-                          cdouble BPF, bool UseSymmetry)
+                          double L[2], double kBloch[2], bool UseSymmetry)
 { 
   HMatrix *BList[4];
   HMatrix *MList[4];
+
+  // bloch phase factor 
+  cdouble BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
 
   BList[0] = B;
   BList[1] = GradB ? GradB[0] : 0;
@@ -110,86 +113,94 @@ void StampInNeighborBlock(HMatrix *B, HMatrix **GradB,
 }
 
 /***************************************************************/
-/* initialize GBarAB9 interpolation tables for all regions at  */
-/* the present frequency and bloch wavevector                  */
 /***************************************************************/
-void RWGGeometry::UpdateRegionInterpolators(cdouble Omega, double *kBloch)
+/***************************************************************/
+void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
+                                           double *kBloch,
+                                           int ns1, int ns2,
+                                           double *UserDelta)
 {
+  /***************************************************************/
+  /* TODO: rather than deleting and reallocating every time,     */
+  /*       consider implementing an Interp3D->ReGrid() method    */
+  /*       which will retain the internally-allocated storage    */
+  /*       in the (commonly encountered) case in which the new   */
+  /*       grid has the same number of points as the old grid    */
+  /***************************************************************/
+  if (GBarAB9Interpolators[nr]!=0)
+   delete GBarAB9Interpolators[nr];
+
   UpdateCachedEpsMuValues(Omega);
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /***************************************************************/  
+  /* prepare an argument structure for the GBarVDPhi3D           */  
+  /***************************************************************/  
   GBarData MyGBarData, *GBD=&MyGBarData;
   GBD->ExcludeInnerCells=true;
   GBD->E=-1.0;
+  GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
+  if ( GBD->k == 0.0 ) 
+   return;
   GBD->kBloch = kBloch;
-  for(int nr=0; nr<NumRegions; nr++)
-   {
-     if (GBarAB9Interpolators[nr]==0) 
-      continue;
 
-     /***************************************************************/
-     /* figure out whether this region has 1D or 2D periodicity     */
-     /***************************************************************/  
-     if ( RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] ) 
-      { GBD->LDim=2;
-        GBD->LBV[0]=LatticeBasisVectors[0];
-        GBD->LBV[1]=LatticeBasisVectors[1];
-      }
-     else if ( RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
-      { GBD->LDim=1; 
-        GBD->LBV[0]=LatticeBasisVectors[0];
-      }
-     else if ( !RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] )
-      { GBD->LDim=1; 
-        GBD->LBV[0]=LatticeBasisVectors[1];
-      }
-     else
-      continue; // region is compact; no interpolation table needed
+  /***************************************************************/
+  /* figure out whether this region has 1D or 2D periodicity     */
+  /***************************************************************/  
+  if ( LDim==2 && (RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
+   { GBD->LDim=2;
+     GBD->LBV[0]=LBasis[0];
+     GBD->LBV[1]=LBasis[1];
+   }
+  else if ( LDim==2 && (RegionIsExtended[0][nr] && !RegionIsExtended[1][nr]) ) 
+   { GBD->LDim=1; 
+     GBD->LBV[0]=LBasis[0];
+   }
+  else if ( LDim==2 && (!RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
+   { GBD->LDim=1; 
+     GBD->LBV[0]=LBasis[1];
+   }
+  else if ( LDim==1 )
+   { GBD->LDim=1; 
+     GBD->LBV[0]=LBasis[0];
+   }
+  else // region is not extended 
+   { GBarAB9Interpolators[nr]=0;
+     return;
+   };
 
-     /***************************************************************/
-     /* check whether or not the extents of the region have changed */
-     /* since we last allocated an interpolator for this region, and*/
-     /* re-allocate the interpolator if so                          */
-     /***************************************************************/
-     double RMax[3], RMin[3], DeltaR[3];
-     int NPoints[3];
-     GetRegionExtents(nr, RMax, RMin, DeltaR, NPoints);
-     if (    GBarAB9Interpolators[nr]==0
-          || GBarAB9Interpolators[nr]->X1Min !=  -DeltaR[0]
-          || GBarAB9Interpolators[nr]->X2Min !=  -DeltaR[1]
-          || GBarAB9Interpolators[nr]->N1    !=  NPoints[0]
-          || GBarAB9Interpolators[nr]->N2    !=  NPoints[1]
-          || GBarAB9Interpolators[nr]->N3    != (1+NPoints[2]/2)
-        )
-      {
-        Log("Region %s extents have changed (resizing interpolation table)",RegionLabels[nr]);
-        if (GBarAB9Interpolators[nr])
-         { delete GBarAB9Interpolators[nr];
-           GBarAB9Interpolators[nr]=0;
-         };
-        GBarAB9Interpolators[nr]=new Interp3D( -DeltaR[0], DeltaR[0], NPoints[0],
-                                               -DeltaR[1], DeltaR[1], NPoints[1],
-                                                      0.0, DeltaR[2], 1 + NPoints[2]/2, 
-                                                       2);
-        
-      };
+  /***************************************************************/
+  /* get the extents of the interpolation table we need to handle*/
+  /* all possible arguments R=x1-x2 where x1 lives on surface 1  */
+  /* and x2 lives on surface 2                                   */
+  /***************************************************************/
+  double RMax[3], RMin[3];
+  int NPoints[3];
+  VecSub(Surfaces[ns1]->RMax, Surfaces[ns2]->RMin, RMax);
+  VecSub(Surfaces[ns1]->RMin, Surfaces[ns2]->RMax, RMin);
+  for(int i=0; i<3; i++)
+   { 
+     double Delta = UserDelta ? UserDelta[i] : RWGGeometry::DeltaInterp;
 
-     /***************************************************************/
-     /* initialize the interpolation table                          */
-     /***************************************************************/
-     Log("  Initializing interpolator for region %i (%s)...",nr,RegionLabels[nr]);
-     GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
-     if ( GBD->k == 0.0 ) 
-      continue;
-     GBarAB9Interpolators[nr]->ReInitialize(GBarVDPhi3D, (void *)GBD);
+     if ( RMax[i] < (RMin[i] + Delta) )
+      RMax[i] = RMin[i] + Delta;
+
+     NPoints[i] = 1 + round( (RMax[i] - RMin[i]) / Delta );
 
    };
+
+  Log("  Creating %ix%ix%i interpolator for region %i (%s)...",
+         NPoints[0],NPoints[1],NPoints[2],nr,RegionLabels[nr]);
+  GBarAB9Interpolators[nr]
+   =new Interp3D(  RMin[0], RMax[0], NPoints[0],
+                   RMin[1], RMax[1], NPoints[1],
+                   RMin[2], RMax[2], NPoints[2],
+                   2, GBarVDPhi3D, (void *)GBD);
+
 }
 
 /***************************************************************/
-/***************************************************************/
+/* this is a simple quick-and-dirty mechanism for saving       */
+/* and retrieving diagonal T-matrix blocks to disk.            */
 /***************************************************************/
 #define TBCOP_READ  0
 #define TBCOP_WRITE 1
@@ -253,6 +264,94 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns, cdouble Omega,
 
 }
 
+/***************************************************************/
+/* KBIMBCache = 'kBloch-independent matrix-block cache.'       */
+/***************************************************************/
+typedef struct KBMIMBCache
+ {
+   cdouble Omega;
+   int NumMatrices;
+   bool NeedZDerivative;
+   void *Storage;
+   HMatrix *B[9], *dBdZ[9];
+
+ } KBIMBCache;
+
+void *RWGGeometry::CreateABMBAccelerator(int nsa, int nsb,
+                                         bool PureImagFreq,
+                                         bool NeedZDerivative)
+{
+  if (LDim==0)
+   return 0;
+
+  /*--------------------------------------------------------------*/
+  /*- gather some information about the problem ------------------*/
+  /*--------------------------------------------------------------*/
+  bool OneDLattice = (LDim== 1);
+  bool TwoDLattice = !OneDLattice;
+  bool SameSurface = (nsa==nsb);
+  int NR = Surfaces[nsa]->NumBFs;
+  int NC = Surfaces[nsb]->NumBFs;
+
+  size_t MatrixSize = PureImagFreq ? NR*NC*sizeof(double) : NR*NC*sizeof(cdouble);
+  int RC = PureImagFreq ? LHM_REAL : LHM_COMPLEX;
+
+  int NumMatrices;
+  if      (  OneDLattice &&  SameSurface ) NumMatrices=2;
+  else if (  OneDLattice && !SameSurface ) NumMatrices=3;
+  else if (  TwoDLattice &&  SameSurface ) NumMatrices=5;
+  else if (  TwoDLattice && !SameSurface ) NumMatrices=9;
+
+  /*--------------------------------------------------------------*/
+  /*- attempt to allocate enough storage for the full cache       */
+  /*--------------------------------------------------------------*/
+  Log("Trying to allocate accelerator for (%i,%i) matrix-block assembly...",nsa,nsb);
+  int MatricesNeeded = NeedZDerivative ? 2*NumMatrices : NumMatrices;
+  void *Storage = malloc( MatricesNeeded * MatrixSize );
+  if (Storage==0) 
+   { Log("...failed! not enough memory.");
+     return 0;
+   };
+  Log("...success!");
+
+  void *Buffers[18];
+  Buffers[0] = Storage;
+  for (int nb=1; nb<18; nb++)
+   Buffers[nb] = (void *)( (char *)Buffers[nb-1] + MatrixSize);
+
+  /*--------------------------------------------------------------*/
+  /*- only if that succeeded, proceed to allocate the actual cache*/
+  /*--------------------------------------------------------------*/
+  KBIMBCache *Cache = (KBIMBCache *)mallocEC( sizeof *Cache );
+  Cache->Omega           = -1.0;            // initially dirty
+  Cache->NumMatrices     = NumMatrices;
+  Cache->NeedZDerivative = NeedZDerivative;
+  Cache->Storage         = Storage;
+  for(int nm=0, nb=0; nm<NumMatrices; nm++)
+   { Cache->B[nm] = new HMatrix(NR, NC, RC, LHM_NORMAL, Buffers[nb++]);
+     if (NeedZDerivative)
+      Cache->dBdZ[nm] = new HMatrix(NR, NC, RC, LHM_NORMAL, Buffers[nb++]);
+   };
+
+  return (void *)Cache;
+ 
+}
+
+void RWGGeometry::DestroyABMBAccelerator(void *pCache)
+{
+  if (pCache==0) return;
+
+  KBIMBCache *Cache    = (KBIMBCache *)pCache;
+  int NumMatrices      = Cache->NumMatrices;
+  bool NeedZDerivative = Cache->NeedZDerivative;
+  for(int nm=0; nm<NumMatrices; nm++)
+   { delete Cache->B[nm];
+     if (NeedZDerivative) delete Cache->dBdZ[nm];
+   };
+  free(Cache->Storage);
+  free(Cache);
+
+}
 
 /***************************************************************/
 /* This routine computes the block of the BEM matrix that      */
@@ -271,16 +370,73 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
                                          cdouble Omega, double *kBloch,
                                          HMatrix *M, HMatrix **GradM,
                                          int RowOffset, int ColOffset,
+                                         void *Accelerator, bool TransposeAccelerator,
                                          int NumTorqueAxes, HMatrix **dMdT,
                                          double *GammaMatrix)
 {
+  Log("Assembling BEM matrix block (%i,%i)",nsa,nsb);
+
   /***************************************************************/
+  /* handle the compact-object case first since it is so simple  */
   /***************************************************************/
+  if (LDim==0)
+   {  
+     GetSSIArgStruct GetSSIArgs, *Args=&GetSSIArgs;
+     InitGetSSIArgs(Args);
+     Args->G=this;
+     Args->Sa=Surfaces[nsa];
+     Args->Sb=Surfaces[nsb];
+     Args->Omega=Omega;
+     Args->NumTorqueAxes=NumTorqueAxes;
+     Args->GammaMatrix=GammaMatrix;
+     Args->Symmetric = (nsa==nsb);
+     Args->B=M;
+     Args->GradB=GradM;
+     Args->dBdTheta=dMdT;
+     Args->RowOffset=RowOffset;
+     Args->ColOffset=ColOffset;
+     GetSurfaceSurfaceInteractions(Args);
+     return;
+   };
+
   /***************************************************************/
-  if (    nsa==nsb 
-       && NumLatticeBasisVectors==0
-       && TBlockCacheOp(TBCOP_READ,this,nsa,Omega,M,RowOffset,ColOffset)
-     ) return;
+  /* The remainder of this routine is now for the PBC case only, */ 
+  /* and it consists of two main steps: (a) assemble the kBloch- */
+  /* independent contributions of the innermost grid cells and   */
+  /* stamp them appropriately into the matrix; then (b) add the  */
+  /* contributions of outer grid cells.                          */
+  /***************************************************************/
+  if ( NumTorqueAxes>0 )
+   ErrExit("angular derivatives of BEM matrix not supported for periodic geometries");
+  if ( GradM && (GradM[0] || GradM[1]) )
+   ErrExit("x,y derivatives of BEM matrix not supported for periodic geometries");
+
+  KBIMBCache *Cache = (KBIMBCache *)Accelerator;
+  bool HaveCache = (Cache!=0);
+  bool HaveCleanCache = HaveCache && EqualFloat(Cache->Omega, Omega);
+  if (HaveCache) Cache->Omega=Omega;
+  bool OneDLattice = (LDim==1);
+
+  int NumCommonRegions, CRIndices[2];
+  double Signs[2];
+  NumCommonRegions=CountCommonRegions(Surfaces[nsa], Surfaces[nsb], CRIndices, Signs);
+  if (NumCommonRegions==0) 
+   return;
+  int nr1=CRIndices[0];
+  int nr2=NumCommonRegions==2 ? CRIndices[1] : -1;
+
+  int NBFA=Surfaces[nsa]->NumBFs;
+  int NBFB=Surfaces[nsb]->NumBFs;
+
+  bool UseSymmetry = (nsa==nsb);
+
+  double L[3]={0.0, 0.0, 0.0};
+
+  double LBV[2][2];
+  LBV[0][0] = LBasis[0][0];
+  LBV[0][1] = LBasis[0][1];
+  LBV[1][0] = OneDLattice ? 0.0 : LBasis[1][0];
+  LBV[1][1] = OneDLattice ? 0.0 : LBasis[1][1];
 
   /***************************************************************/
   /* pre-initialize arguments for GetSurfaceSurfaceInteractions **/
@@ -288,196 +444,97 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   GetSSIArgStruct GetSSIArgs, *Args=&GetSSIArgs;
   InitGetSSIArgs(Args);
 
-  Args->G=this;
-  Args->Sa=Surfaces[nsa];
-  Args->Sb=Surfaces[nsb];
-  Args->Omega=Omega;
-
-  /***************************************************************/
-  /* STEP 1: compute the direct interaction of the two surfaces. */
-  /* This computation is always necessary, whether or not a      */
-  /* lattice is present.                                         */
-  /***************************************************************/
-  Args->Displacement=0;
-  Args->UseAB9Kernel=false;
-  Args->Symmetric = (nsa==nsb);
-  Args->Accumulate = 0;
-  Args->B=M;
-  Args->GradB=GradM;
-  Args->RowOffset=RowOffset;
-  Args->ColOffset=ColOffset;
-  Args->dBdTheta=dMdT;
-  Args->NumTorqueAxes=NumTorqueAxes;
-  Args->GammaMatrix=GammaMatrix;
-
-  GetSurfaceSurfaceInteractions(Args);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if ( nsa==nsb && NumLatticeBasisVectors==0 )
-   TBlockCacheOp(TBCOP_WRITE,this,nsa,Omega,M,RowOffset,ColOffset);
-
-  if (NumLatticeBasisVectors==0) 
-   return; 
-
-  /*********************************************************************/
-  /* STEP 2: prepare to make a series of calls to                      */
-  /* GetSurfaceSurfaceInteractions to get the contributions of the     */
-  /* innermost 8 neighboring lattice cells                             */
-  /*********************************************************************/
-  if (NumTorqueAxes!=0)
-   ErrExit("angular derivatives of BEM matrix not supported for periodic geometries");
-
-  // B and GradB are statically maintained matrix blocks used as 
-  // temporary storage within this routine; they need to be large
-  // enough to store the largest single subblock of the BEM matrix.
-  // FIXME these should be fields of the RWGGeometry class, not 
-  // static method variables.
-  HMatrix *B=0, *GradB[3]={0,0,0};
-  if (B==0)
-   { int MaxNR=Surfaces[0]->NumBFs; 
-     for(int ns=1; ns<NumSurfaces; ns++)
-      if (Surfaces[ns]->NumBFs > MaxNR) 
-       MaxNR=Surfaces[ns]->NumBFs;
-     B=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
-     if ( GradM && GradM[0] ) GradB[0]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
-     if ( GradM && GradM[1] ) GradB[1]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
-     if ( GradM && GradM[2] ) GradB[2]=new HMatrix(MaxNR, MaxNR, LHM_COMPLEX);
-   };
-
-  int NumCommonRegions, CommonRegionIndices[2], nr1, nr2;
-  double Signs[2];
-  NumCommonRegions=CountCommonRegions(Args->Sa, Args->Sb, CommonRegionIndices, Signs);
-  if (NumCommonRegions==0) 
-   return;
-  nr1=CommonRegionIndices[0];
-  nr2=NumCommonRegions==2 ? CommonRegionIndices[1] : -1;
-
-  // 
-  // 
-  bool UseSymmetry = (nsa==nsb);
-
-  // L is the lattice vector through which surfaces are displaced into
-  // neighboring unit cells
-  double L[3];
-  L[2]=0.0;
-
-  cdouble BPF; // bloch phase factor
-
-  int NBFA=Args->Sa->NumBFs; 
-  int NBFB=Args->Sb->NumBFs;
-
-  Args->Symmetric=false;
-  Args->RowOffset=0;
-  Args->ColOffset=0;
-  Args->B = B;
-  Args->GradB = GradB;
+  Args->G            = this;
+  Args->Sa           = Surfaces[nsa];
+  Args->Sb           = Surfaces[nsb];
+  Args->Omega        = Omega;
   Args->UseAB9Kernel = false;
-  Args->Accumulate = false;
-  Args->Displacement=L;
+  Args->Accumulate   = false;
+  Args->Displacement = L;
 
-  /***************************************************************/
-  /* STEP 2: compute the interaction of surface #nsa with the    */
-  /* images of surface #nsb in the neighboring lattice cells.    */
-  /***************************************************************/
-  if (NumLatticeBasisVectors>=1)
+  /*--------------------------------------------------------------*/
+  /*- If the caller didn't provide a cache, we need temporary     */
+  /*- storage for the kBloch-independent matrix blocks.           */
+  /*--------------------------------------------------------------*/
+  HMatrix *GradBBuffer[3]={0, 0, 0};
+  Args->GradB = (GradM && GradM[2]) ? GradBBuffer : 0;
+  if (!HaveCache)
    { 
-     Log("MPZ block...");
-     L[0]=LatticeBasisVectors[0][0];
-     L[1]=LatticeBasisVectors[0][1];
-     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
-     Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
-     GetSurfaceSurfaceInteractions(Args);
-     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-     StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, UseSymmetry);
-
-     if (!UseSymmetry)
-      { 
-        Log("MMZ block...");
-        L[0] = -LatticeBasisVectors[0][0];
-        L[1] = -LatticeBasisVectors[0][1];
-        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0];
-        Args->OmitRegion2 = (nr2>-1) && (!RegionIsExtended[MAXLATTICE*nr2+0]);
-        GetSurfaceSurfaceInteractions(Args);
-        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-        StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, false);
-      };
-   }
-
-  if (NumLatticeBasisVectors==2)
-   { 
-     Log("MPP block...");
-     L[0]=LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
-     L[1]=LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
-     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
-     Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
-     GetSurfaceSurfaceInteractions(Args);
-     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-     StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, UseSymmetry);
-
-     Log("MPM block...");
-     L[0]=LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
-     L[1]=LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
-     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
-     Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
-     GetSurfaceSurfaceInteractions(Args);
-     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-     StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, UseSymmetry);
-
-     Log("MZP block...");
-     L[0]=LatticeBasisVectors[1][0];
-     L[1]=LatticeBasisVectors[1][1];
-     Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+1];
-     Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+1];
-     GetSurfaceSurfaceInteractions(Args);
-     BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-     StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, UseSymmetry);
-
-     if (!UseSymmetry)
-      {
-        Log("MMM block...");
-        L[0] = -LatticeBasisVectors[0][0] - LatticeBasisVectors[1][0];
-        L[1] = -LatticeBasisVectors[0][1] - LatticeBasisVectors[1][1];
-        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
-        Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
-        GetSurfaceSurfaceInteractions(Args);
-        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-        StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, false);
-   
-        Log("MMP block...");
-        L[0] = -LatticeBasisVectors[0][0] + LatticeBasisVectors[1][0];
-        L[1] = -LatticeBasisVectors[0][1] + LatticeBasisVectors[1][1];
-        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+0] || !RegionIsExtended[MAXLATTICE*nr1+1];
-        Args->OmitRegion2 = nr2>-1 && (!RegionIsExtended[MAXLATTICE*nr2+0] || !RegionIsExtended[MAXLATTICE*nr2+1]);
-        GetSurfaceSurfaceInteractions(Args);
-        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-        StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, false);
-   
-        Log("MZM block...");
-        L[0] = -LatticeBasisVectors[1][0];
-        L[1] = -LatticeBasisVectors[1][1];
-        Args->OmitRegion1 = !RegionIsExtended[MAXLATTICE*nr1+1];
-        Args->OmitRegion2 = nr2>-1 && !RegionIsExtended[MAXLATTICE*nr2+1];
-        GetSurfaceSurfaceInteractions(Args);
-        BPF=exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-        StampInNeighborBlock(B, GradB, NBFA, NBFB, M, GradM, RowOffset, ColOffset, BPF, false);
-   
-      }; // if (!UseSymmetry) ... 
-
+     Args->B = new HMatrix(NBFA, NBFB, LHM_COMPLEX);
+     if (Args->GradB)
+      Args->GradB[2] = new HMatrix(NBFA, NBFB, LHM_COMPLEX);
    };
 
   /***************************************************************/
-  /* STEP 3: compute the interaction of surface #nsa with the    */
-  /* images of surface #nsb in the outer lattice cells.          */
+  /* Assemble and stamp in contributions of innermost grid cells.*/
   /***************************************************************/
-  UpdateRegionInterpolators(Omega, kBloch);
+  M->ZeroBlock(RowOffset, NBFA, ColOffset, NBFB);
+  if (GradM && GradM[2]) GradM[2]->Zero();
+  Log(" Step 1: Contributions of innermost grid cells...");
+  for(int n1=+1, nb=0; n1>=-1; n1--)
+   for(int n2=+1; n2>=-1; n2--)
+    { 
+      if ( OneDLattice && n2!=0 ) continue;
 
-  Log("Outer cell contributions...");
+      L[0] = n1*LBV[0][0] + n2*LBV[1][0];
+      L[1] = n1*LBV[0][1] + n2*LBV[1][1];
+ 
+      if (HaveCache)
+       { Args->B = Cache->B[ nb ];
+         if (Args->GradB) Args->GradB[2] = Cache->dBdZ[ nb ];
+         nb++;
+       };
+
+      if ( !HaveCleanCache )
+       { 
+         // detect extendedness of regions and omit contributions of
+         // any regions that are not extended
+         if ( n1==0 && n2==0 )
+          { Args->OmitRegion1 = false;
+            Args->OmitRegion2 = (nr2==-1);
+          }
+         else 
+          { Args->OmitRegion1 = Args->OmitRegion2 = true;
+            if ( n1!=0 && RegionIsExtended[0][nr1] ) Args->OmitRegion1=false;
+            if ( n1!=0 && nr2!=-1 && RegionIsExtended[0][nr2] ) Args->OmitRegion2=false;
+            if ( n2!=0 && RegionIsExtended[1][nr1] ) Args->OmitRegion1=false;
+            if ( n2!=0 && nr2!=-1 && RegionIsExtended[1][nr2] ) Args->OmitRegion2=false;
+          };
+ 
+         Log("  ...(%i,%i) block...",n1,n2);
+         Args->Symmetric = (nsa==nsb && n1==0 && n2==0); 
+         GetSurfaceSurfaceInteractions(Args);
+       };
+
+      StampInNeighborBlock(Args->B, Args->GradB, NBFA, NBFB,
+                           M, GradM, RowOffset, ColOffset, L, kBloch, 
+                           UseSymmetry && !(n1==0 && n2==0) );
+
+      if ( UseSymmetry && (n1==0 && n2==0) )
+       goto done; // want break, but need to break out of both loops
+    };
+
+done: 
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (!HaveCache)
+   { delete Args->B;
+     if (Args->GradB) delete Args->GradB[2];
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  Log(" Step 2: Contributions of outer grid cells...");
+  //UpdateRegionInterpolators(Omega, kBloch);
+  CreateRegionInterpolator(nr1, Omega, kBloch, nsa, nsb);
+  if (nr2!=-1) CreateRegionInterpolator(nr2, Omega, kBloch, nsa, nsb);
   Args->Displacement = 0;
   Args->Symmetric    = false;
   Args->OmitRegion1  = false;
-  Args->OmitRegion2  = false;
+  Args->OmitRegion2  = (nr2==-1);
   Args->UseAB9Kernel = true;
   Args->Accumulate   = true;
   Args->B            = M;
@@ -487,17 +544,12 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
 
   GetSurfaceSurfaceInteractions(Args);
 
-  delete B;
-  if (GradB[0]) delete GradB[0];
-  if (GradB[1]) delete GradB[1];
-  if (GradB[2]) delete GradB[2];
-
 }
 
 /***************************************************************/
 /* this is the actual API-exposed routine for assembling the   */
 /* BEM matrix, which is pretty simple and really just calls    */
-/* AssembleBEMMatrixBlock() to do all the dirty work.          */
+/* ssembleBEMMatrixBlock() to do all the dirty work.          */
 /*                                                             */
 /* If the M matrix is NULL on entry, a new HMatrix of the      */
 /* appropriate size is allocated and returned. Otherwise, the  */
@@ -508,9 +560,9 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if ( NumLatticeBasisVectors==0 && kBloch!=0 && (kBloch[0]!=0.0 || kBloch[1]!=0.0) )
+  if ( LDim==0 && kBloch!=0 && (kBloch[0]!=0.0 || kBloch[1]!=0.0) )
    ErrExit("%s:%i: Bloch wavevector is undefined for compact geometries");
-  if ( NumLatticeBasisVectors!=0 && kBloch==0 )
+  if ( LDim!=0 && kBloch==0 )
    ErrExit("%s:%i: Bloch wavevector must be specified for PBC geometries");
 
   /***************************************************************/
@@ -545,7 +597,7 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
          M->InsertBlock(M, ThisOffset, ThisOffset, Dim, Dim, MateOffset, MateOffset);
        }
       else
-       AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0, 
+       AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, M, 0,
                               BFIndexOffset[ns], BFIndexOffset[nsp]);
     };
 

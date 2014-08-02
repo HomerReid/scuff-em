@@ -72,8 +72,8 @@ namespace scuff {
 #define SCUFF_NUM_OMATRICES      8
 
 // maximum number of lattice basis vectors
-#ifndef MAXLATTICE
-#define MAXLATTICE 2
+#ifndef MAXLDIM
+#define MAXLDIM 2
 #endif
 
 /*--------------------------------------------------------------*/
@@ -310,8 +310,8 @@ class RWGSurface
    void GetReducedPotentials(int ne, const double *X, cdouble K, Interp3D *GBarInterp,
                              cdouble *a, cdouble *Curla, cdouble *Gradp);
 
-   void AddStraddlers(double LBV[MAXLATTICE][3], int NumLatticeVectors, 
-                      int NumStraddlers[MAXLATTICE]);
+   void AddStraddlers(double LBV[MAXLDIM][2], int LDim,
+                      int NumStraddlers[MAXLDIM]);
 
    void UpdateBoundingBox();
  
@@ -360,8 +360,12 @@ class RWGGeometry
    void AssembleBEMMatrixBlock(int nsa, int nsb, cdouble Omega, double *kBloch,
                                HMatrix *M, HMatrix **GradM=0,
                                int RowOffset=0, int ColOffset=0,
+                               void *ABMBCache=0, bool CacheTranspose=false,
                                int NumTorqueAxes=0, HMatrix **dMdT=0,
                                double *GammaMatrix=0);
+   void *CreateABMBAccelerator(int nsa, int nsb, bool PureImagFreq=false,
+                               bool NeedZDerivative=false);
+   void DestroyABMBAccelerator(void *Accelerator);
 
    /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(bool PureImagFreq = false );
@@ -453,7 +457,7 @@ class RWGGeometry
    /* periodic-boundary-condition versions of API routines. */
    /* Note PBC routines are distinguished from their non-PBC counterparts      */
    /* by the kBloch argument, which always follows Omega in the argument list. */
-   HMatrix *AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLATTICE], HMatrix *M);
+   HMatrix *AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLDIM], HMatrix *M);
    HVector *AssembleRHSVector(cdouble Omega, double *kBloch, IncField *IF, HVector *RHS = NULL);
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                   double *X, cdouble *EH);
@@ -477,8 +481,10 @@ class RWGGeometry
    void InitPBCData();
    void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
    Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
-                                      double kBloch[MAXLATTICE], HMatrix *XMatrix);
-   void UpdateRegionInterpolators(cdouble Omega, double *kBloch);
+                                      double kBloch[MAXLDIM], HMatrix *XMatrix);
+   void CreateRegionInterpolator(int nr, cdouble Omega,
+                                 double *kBloch, int nsa, int nsb,
+                                 double *UserDelta=0);
 
    // directories within which to search for mesh files
    static int NumMeshDirs;
@@ -511,13 +517,18 @@ class RWGGeometry
 
    char *GeoFileName;
 
-   /* NumLatticeVectors>0 iff we have periodic boundary conditions. */
-   /* All other fields in this section are only used for PBCs.      */
-   int NumLatticeBasisVectors;
-   double LatticeBasisVectors[MAXLATTICE][3];
-   int *NumStraddlers;
-   bool *RegionIsExtended;
-   HMatrix *MPP, *MPM, *MPZ, *MZP, *MZZ;
+   /* LDim>0 iff we have periodic boundary conditions.           */
+   /* All other fields in this section are only used for PBCs:   */
+   /* LBasis[nd][2] = (x,y) coordinates of ndth lattice vector   */
+   /* NumStraddlers[nd][ns] = number of straddlers in ndth       */
+   /*                         dimension for surface #ns          */
+   /* RegionIsExtended[nd][ns] = true if region #nr is extended  */
+   /*                            in dimension #nd                */
+   /* GBarAB9Interpolators[nr] = interpolator for region #nr     */
+   int LDim;
+   double LBasis[2][2];
+   int *NumStraddlers[2];
+   bool *RegionIsExtended[2];
    Interp3D **GBarAB9Interpolators;
 
    /* BFIndexOffset[n] is the index within the overall BEM          */
@@ -550,9 +561,7 @@ class RWGGeometry
    const char *TBlockCacheNameAddendum;
    
    static bool AssignBasisFunctionsToExteriorEdges;
-   static int PBCCubatureOrder;
    static double DeltaInterp;
-   static bool UsePBCAcceleration;
    static bool UseHighKTaylorDuffy;
    static bool UseTaylorDuffyV2P0;
 

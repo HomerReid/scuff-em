@@ -43,6 +43,11 @@ using namespace scuff;
 #define PREAMBLE_BYXI  1
 #define PREAMBLE_BYXIK 2
 
+// quadrature methods 
+#define QMETHOD_CLIFF    0
+#define QMETHOD_ADAPTIVE 1
+#define QMETHOD_TRAPSIMP 2
+
 /******************************************************************/
 /* SC3Data ('scuff-cas3D data') is a structure that contains all  */
 /* information needed to compute the contribution of a single     */
@@ -62,6 +67,9 @@ typedef struct SC3Data
    int *ipiv;
    HVector *MInfLUDiagonal;
 
+   // matrix-block-assembly accelerators for PBC geometries
+   void **TAccelerators, ***UAccelerators;
+
    // storage for 3x3 gamma matrices describing rotation
    // information for torque calculations
    int NumTorqueAxes;      // this number is in the range 0--3
@@ -75,16 +83,15 @@ typedef struct SC3Data
    // items relevant for extended (periodic) geometries
    double RLBasisVectors[2][2]; // reciprocal-lattice basis vectors
    double BZVolume;             // brillouin zone volume
-   int BZIOrder;
-   double BZICutoff;
+   int BZQMethod;
    bool BZSymmetry;
-   double *BZIValues;
 
    int *Converged;
 
-   double Xi;
+   // storage of outer integration variables for nested quadratures
+   double Xi, ur;
 
-   char *ByXiFileName, *ByXiKFileName, *OutFileName;
+   char *FileBase, *ByXiFileName, *ByXiKFileName, *OutFileName;
 
    // adaptive frequency integration limits
    int MaxXiPoints, MaxkBlochPoints;
@@ -103,8 +110,7 @@ typedef struct SC3Data
 SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
                        int WhichQuantities, int NumQuantities,
                        int NumTorqueAxes, double TorqueAxes[9],
-                       bool NewEnergyMethod, char *BZIMethod,
-                       char *FileBase);
+                       bool NewEnergyMethod, char *FileBase);
 
 void WriteFilePreamble(SC3Data *SC3D, int PreambleType);
 
@@ -130,10 +136,10 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType);
 /***************************************************************/
 void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT);
 void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT);
-void GetXiIntegral(SC3Data *SC3D, double *EFT, double *Error);
-void GetXiIntegral2(SC3Data *SC3D, int NumIntervals, double *I, double *E);
+void GetXiIntegral_Adaptive(SC3Data *SC3D, double *EFT, double *Error);
+void GetXiIntegral_TrapSimp(SC3Data *SC3D, int NumIntervals, double *I, double *E);
+void GetXiIntegral_Cliff(SC3Data *SC3D, double *EFT, double *Error);
 void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Error);
-
 bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT);
 
 #endif // #define SCUFFCAS3D_H

@@ -1,3 +1,7 @@
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+bool ElectricOnly=false;
+bool MagneticOnly=false;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /* 
  * XQIntegrand.cc -- calculate casimir energy and/or force integrand at a
  *                -- single (xi,q) point 
@@ -227,7 +231,7 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, char *Tag, double Xi, double q, do
       { 
         for(n=0; n<N1/2; n++)
          { double TETerm = dM->GetEntryD(2*n, 2*n);
-           double TMTerm =  dM->GetEntryD(2*n+1, 2*n+1);
+           double TMTerm = dM->GetEntryD(2*n+1, 2*n+1);
            TraceTE += TETerm;
            TraceTM += TMTerm;
            if (ProfileFile)
@@ -237,8 +241,21 @@ void GetTraceMInvdM(C2DWorkspace *W, char XY, char *Tag, double Xi, double q, do
      else
       { 
         for(n=0; n<N1/4; n++) 
-         { double TETerm =  dM->GetEntryD(4*n, 4*n) + dM->GetEntryD(4*n+3, 4*n+3);
+         { 
+           double TETerm =  dM->GetEntryD(4*n, 4*n) + dM->GetEntryD(4*n+3, 4*n+3);
            double TMTerm =  dM->GetEntryD(4*n+1, 4*n+1) + dM->GetEntryD(4*n+2,4*n+2);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (ElectricOnly)
+ { TETerm = dM->GetEntryD(4*n,   4*n  );
+   TMTerm = dM->GetEntryD(4*n+2, 4*n+2);
+ };
+if (MagneticOnly)
+ { TETerm = dM->GetEntryD(4*n+3, 4*n+3);
+   TMTerm = dM->GetEntryD(4*n+1, 4*n+1);
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
            TraceTE += TETerm;
            TraceTM += TMTerm;
            if (ProfileFile)
@@ -519,6 +536,18 @@ void XQIntegrand(C2DWorkspace *W, double Xi, double q, double *EF)
    pCC=HMatrix::OpenMATLABContext("%s_%g_%g",GetFileBase(G->GeoFileName),Xi,q);
   else
    pCC=0;
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+char *s;
+if ( !ElectricOnly && (s=getenv("SCUFF_ELECTRIC_ONLY")) && s[0]=='1')
+ { ElectricOnly=true;
+   printf("Contributions of electric currents only.\n");
+ };
+if ( !MagneticOnly && (s=getenv("SCUFF_MAGNETIC_ONLY")) && s[0]=='1')
+ { MagneticOnly=true;
+   printf("Contributions of magnetic currents only.\n");
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 
   /***************************************************************/

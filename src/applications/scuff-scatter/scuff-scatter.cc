@@ -403,7 +403,7 @@ int main(int argc, char *argv[])
   /* is extracted from the plane wave direction                      */
   /*******************************************************************/
   double kBlochBuffer[3];
-  if (G->NumLatticeBasisVectors>0)
+  if (G->LDim>0)
    { if ( npwPol!=1 || ngbCenter!=0 || npsLoc!=0 )
       ErrExit("for extended geometries, the incident field must be a single plane wave");
      SSD->kBloch = kBlochBuffer;
@@ -439,7 +439,7 @@ int main(int argc, char *argv[])
      /*******************************************************************/
      /* assemble the BEM matrix at this frequency                       */
      /*******************************************************************/
-     if ( G->NumLatticeBasisVectors==0 )
+     if ( G->LDim==0 )
       G->AssembleBEMMatrix(Omega, M);
      else
       { cdouble EpsExterior, MuExterior;

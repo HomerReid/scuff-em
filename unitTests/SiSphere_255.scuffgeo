@@ -1,5 +1,3 @@
-# .scuffgeo file used for SCUFF-EM unit tests on a single silicon sphere
-
 #
 # intrinsic (undoped) silicon
 #
@@ -12,6 +10,6 @@ ENDMATERIAL
 
 
 OBJECT TheSphere
-	MESHFILE UnitTestSphere_474.msh
-	MATERIAL Silicon
+	MESHFILE SSphere_255.msh
+	MATERIAL SILICON
 ENDOBJECT

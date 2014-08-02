@@ -444,7 +444,7 @@ if (FMatrix==0)
   /***************************************************************/
   Interp3D **RegionInterpolators=0;
 
-  if (KN && NumLatticeBasisVectors>0)
+  if (KN && LDim>0)
    { RegionInterpolators=(Interp3D **)mallocEC(NumRegions*sizeof(Interp3D *));
      for(int nr=0; nr<NumRegions; nr++)
       if ( ! ( RegionMPs[nr]->IsPEC() ) )
@@ -518,7 +518,7 @@ if (FMatrix==0)
    delete PFFuncs[nf];
   delete[] PFFuncs;
 
-  if (KN && NumLatticeBasisVectors>0)
+  if (KN && LDim>0)
    { for(int nr=0; nr<NumRegions; nr++)
       if (RegionInterpolators[nr])
        delete RegionInterpolators[nr];
@@ -567,16 +567,16 @@ Interp3D *RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
   /*--------------------------------------------------------------*/
   if ( RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] ) 
    { GBD->LDim=2;
-     GBD->LBV[0]=LatticeBasisVectors[0];
-     GBD->LBV[1]=LatticeBasisVectors[1];
+     GBD->LBV[0]=LBasis[0];
+     GBD->LBV[1]=LBasis[1];
    }
   else if ( RegionIsExtended[MAXLATTICE*nr+0] && !RegionIsExtended[MAXLATTICE*nr+1] )
    { GBD->LDim=1; 
-     GBD->LBV[0]=LatticeBasisVectors[0];
+     GBD->LBV[0]=LBasis[0];
    }
   else if ( !RegionIsExtended[MAXLATTICE*nr+0] && RegionIsExtended[MAXLATTICE*nr+1] )
    { GBD->LDim=1; 
-     GBD->LBV[0]=LatticeBasisVectors[1];
+     GBD->LBV[0]=LBasis[1];
    }
   else
    return 0; // region is compact; no interpolation table needed

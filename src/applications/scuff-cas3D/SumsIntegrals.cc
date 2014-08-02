@@ -86,14 +86,14 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   if (SC3D->UseExistingData==false)
    return false;
 
-  if (    (kBloch==0 && SC3D->G->NumLatticeBasisVectors>0)
-       || (kBloch!=0 && SC3D->G->NumLatticeBasisVectors==0)
+  if (    (kBloch==0 && SC3D->G->LDim>0)
+       || (kBloch!=0 && SC3D->G->LDim==0)
      ) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   /*----------------------------------------------------------*/
   /*----------------------------------------------------------*/
   /*----------------------------------------------------------*/
-  int NumKeys = 1 + SC3D->G->NumLatticeBasisVectors;
+  int NumKeys = 1 + SC3D->G->LDim;
   double Keys[3];
   Keys[0]=Xi;
   if(NumKeys>=2) Keys[1]=kBloch[0];
@@ -168,26 +168,159 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 
 /***************************************************************/
 /* wrapper around GetCasimirIntegrand with correct prototype   */
-/* prototype for adapt_integrate()                             */
+/* prototype for passage to adapt_integrate() to use in        */
+/* integrations over the brillouin zone                        */
 /***************************************************************/
 int kBlochIntegrand(unsigned ndim, const double *x, void *params,
                     unsigned fdim, double *fval)
 {
-  (void) ndim; // unused
   (void) fdim; // unused
 
   SC3Data *SC3D = (SC3Data *)params;
   double *EFT = fval;
 
   double kBloch[2];
-
-  kBloch[0] = x[0]*SC3D->RLBasisVectors[0][0] + x[1]*SC3D->RLBasisVectors[1][0];
-  kBloch[1] = x[0]*SC3D->RLBasisVectors[0][1] + x[1]*SC3D->RLBasisVectors[1][1];
+  if (ndim==1)
+   { kBloch[0] = x[0]*SC3D->RLBasisVectors[0][0];
+     kBloch[1] = x[0]*SC3D->RLBasisVectors[0][1];
+   }
+  else if (ndim==2)
+   { 
+     kBloch[0] = x[0]*SC3D->RLBasisVectors[0][0] + x[1]*SC3D->RLBasisVectors[1][0];
+     kBloch[1] = x[0]*SC3D->RLBasisVectors[0][1] + x[1]*SC3D->RLBasisVectors[1][1];
+   }
+  else
+   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   GetCasimirIntegrand(SC3D, SC3D->Xi, kBloch, EFT);
 
   return 0;
 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int uThetaIntegrand(unsigned ndim, const double *x, void *params,
+                    unsigned fdim, double *fval)
+{
+  (void )ndim; // unused
+  (void )fdim; // unused
+
+  SC3Data *SC3D = (SC3Data*)params;
+  double Xi     = SC3D->Xi;
+  double ur     = SC3D->ur;
+
+  double uTheta = x[0];
+  double ux = ur * cos(uTheta);
+  double uy = ur * sin(uTheta);
+
+  double kBloch[2];
+  kBloch[0] =    ux * SC3D->RLBasisVectors[0][0] 
+               + uy * SC3D->RLBasisVectors[1][0];
+  kBloch[1] =    ux * SC3D->RLBasisVectors[0][1] 
+               + uy * SC3D->RLBasisVectors[1][1];
+
+  GetCasimirIntegrand(SC3D, Xi, kBloch, fval);
+
+  return 0;
+
+}
+
+/***************************************************************/
+/* Estimate the integral over the angular arc at radius ur     */
+/* in the (ux,uy) plane.                                       */
+/***************************************************************/
+void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
+{
+  int nFun = SC3D->NTNQ;
+
+  double *AllValues   = new double[129*nFun];
+  double *OuterValues = new double[65*nFun];
+  double *Error       = new double[nFun];
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double ThetaMin, ThetaMax;
+  if ( ur <= 0.5 )
+   { ThetaMin = 0.0;
+     ThetaMax = 0.5*M_PI;
+   }
+  else
+   { ThetaMin = acos( 0.5 / ur );
+     ThetaMax = 0.5*M_PI - ThetaMin;
+   };
+
+  if (SC3D->BZSymmetry)
+   ThetaMax=0.25*M_PI;
+
+  int pMin = (SC3D->BZSymmetry ? 2 : 3);
+  int pMax = 7;
+  bool Converged = false;
+  SC3D->ur = ur ;
+  for(int p=pMin; p<pMax && !Converged; p++)
+   { 
+     // estimate error using embedded clenshaw-curtis of order 2^(p+1)
+     ECC(p, ThetaMin, ThetaMax, uThetaIntegrand, (void *)SC3D, nFun,
+         AllValues, (p==pMin ? 0 : OuterValues ), Result, Error);
+
+     if (p<pMax)
+      memcpy(OuterValues, AllValues, 2*(1<<p)*nFun*sizeof(double));
+      
+     // determine whether or not that was sufficiently accurate
+     double MaxRelError = Error[0] / fabs(Result[0]);
+     for(int nf=1; nf<nFun; nf++)
+      MaxRelError = fmax(MaxRelError, Error[nf] / fabs(Result[nf]) );
+
+     if (MaxRelError < SC3D->RelTol) 
+      Converged=true;
+   };
+  
+  if (SC3D->BZSymmetry)
+   { for (int nf=0; nf<nFun; nf++)
+      Result[nf]*=2.0;
+   };
+
+  for(int nf=0; nf<nFun; nf++)
+   Result[nf] *= ur;
+
+  delete[] Error;
+  delete[] AllValues;
+  delete[] OuterValues;
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int urIntegrand(unsigned ndim, const double *x, void *params,
+                unsigned fdim, double *fval)
+{
+  (void) ndim; // unused
+  (void) fdim; // unused
+
+  SC3Data *SC3D = (SC3Data *)params;
+  double Xi     = SC3D->Xi;
+
+  if (SC3D->G->LDim==2)
+   { 
+     double ur=x[0];
+     if (ur==0.0 || ur==1.0)
+      memset(fval, 0, fdim*sizeof(double));
+     else
+      GetuThetaIntegral(ur, SC3D, fval);
+   }
+  else // LDim==1
+   { 
+     double u=x[0];
+     double kBloch[2];
+     kBloch[0] = u*SC3D->RLBasisVectors[0][0];
+     kBloch[1] = u*SC3D->RLBasisVectors[0][1];
+     GetCasimirIntegrand(SC3D, Xi, kBloch, fval);
+   };
+
+  return 0;
 }
 
 /***************************************************************/
@@ -202,7 +335,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (SC3D->G->NumLatticeBasisVectors==0)
+  int LDim = SC3D->G->LDim;
+  if (LDim==0)
    { 
      GetCasimirIntegrand(SC3D, Xi, 0, EFT);
    }
@@ -211,41 +345,44 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
      /************************************************************/
      /* perform brillouin-zone integration.                      */
      /*                                                          */
-     /* \int_{BZ} f( \vec k ) d^2 k                              */
-     /*  = J*\int_0^1 du \int_0^1 dv f(\vec k(u,v)) du dv        */
-     /*  =4J*\int_0^{1/2} du \int_0^{1/2} dv f(\vec k(u,v)) du dv*/
+     /* (1/V_{BZ}) \int_{BZ} f( \vec k ) d k                     */
+     /*  =   \int_0^1     f[ \vec k(u) ] du                      */
+     /*  = 2 \int_0^{1/2} f[ \vec k(u) ] du                      */
      /*                                                          */
-     /* where \vec k(u,v) = u*\Gamma_1 + v*\Gamma_2              */
-     /* Jacobian: d^2 k = J du dv                                */
-     /* where J = (det Gamma) = V_{BZ}.                          */
-     /* and thus the integral reads                              */
-     /***************************************************************/
+     /*    (in the 1D case, with k(u)  = u\Gamma_1)              */
+     /*                                                          */
+     /*  =   \int_0^1 \int_0^1         f[ \vec k(u,v) ] du dv    */
+     /*  = 4 \int_0^{1/2} \int_0^{1/2} f[ \vec k(u,v) ] du dv    */
+     /*                                                          */
+     /*    (in the 2D case, with k(u,v) = u\Gamma_1 + v\Gamma_2  */
+     /*                                                          */
+     /* note that the the 1/V_{BZ} prefactor is cancelled by the */
+     /* Jacobian of the variable transformation.                 */
+     /************************************************************/
      double Lower[2] = {0.0, 0.0};
      double Upper[2] = {0.5, 0.5};
      double *Error = new double[SC3D->NTNQ];
-     if (SC3D->BZICutoff!=0.0)
-      { Upper[0]*=SC3D->BZICutoff;
-        Upper[1]*=SC3D->BZICutoff;
-      };
      
      SC3D->Xi = Xi;
-     if (SC3D->BZIOrder == 0)
-      { 
-        pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 2, Lower, Upper,
-                  SC3D->MaxkBlochPoints, SC3D->AbsTol, SC3D->RelTol, ERROR_INDIVIDUAL,
-                  EFT, Error);
+     if ( SC3D->BZQMethod == QMETHOD_ADAPTIVE )
+      {
+        pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 
+                  LDim, Lower, Upper, SC3D->MaxkBlochPoints, 
+                  SC3D->AbsTol, SC3D->RelTol, 
+                  ERROR_INDIVIDUAL, EFT, Error);
       }
-     else
-      { 
-        ECC2D(SC3D->BZIOrder, Lower, Upper, kBlochIntegrand, (void *)SC3D,
-              SC3D->NTNQ, SC3D->BZSymmetry, SC3D->BZIValues, 0,
-              EFT, Error);
+     else // BZQMethod == QMETHOD_CLIFF 
+      {
+        IntegrateCliffFunction(urIntegrand, (void *)SC3D, 2,
+                               0.0, 0.5*sqrt(2.0), 0.0,
+                               SC3D->RelTol, EFT, Error);
       };
-
+   
+     double PreFactor = (LDim==2) ? 4.0 : 2.0;
      for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
       { 
-        EFT[ntnq] *= 4.0*SC3D->BZVolume;
-        Error[ntnq] *= 4.0*SC3D->BZVolume;
+        EFT[ntnq] *= PreFactor;
+        Error[ntnq] *= PreFactor;
 
         if ( Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]) )
          Warn("potentially large errors (Q%i: %i %%) in BZ integration",
@@ -271,7 +408,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
 }
 
 /***************************************************************/
-/* wrapper with correct prototype for adapt_integrate          */
+/* wrapper with correct prototype for pcubature (over an       */
+/* infinite interval)                                          */
 /***************************************************************/
 int GetXiIntegrand2(unsigned ndim, const double *x, void *params, 
                     unsigned fdim, double *fval)
@@ -291,6 +429,149 @@ int GetXiIntegrand2(unsigned ndim, const double *x, void *params,
 
   return 0;
 
+}
+
+/***************************************************************/
+/* wrapper with correct prototype for IntegrateCliffFunction   */
+/***************************************************************/
+int GetXiIntegrand3(unsigned ndim, const double *x, void *params, 
+                    unsigned fdim, double *fval)
+{
+  (void) ndim; // unused
+  (void) fdim; // unused
+
+  double Xi = x[0];
+  SC3Data *SC3D = (SC3Data *)params;
+  double *EFT = fval;
+
+  GetXiIntegrand(SC3D, Xi, EFT);
+
+  return 0;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetXiIntegral_TrapSimp(SC3Data *SC3D, int NumIntervals, double *I, double *E)
+{ 
+  int fdim = SC3D->NTNQ;
+  double *fLeft  = new double[fdim];
+  double *fMid   = new double[fdim];
+  double *fRight = new double[fdim];
+  double Xi;
+
+  /*--------------------------------------------------------------*/
+  /*- evaluate integrand at leftmost frequency point and estimate */
+  /*- the integral from 0 to XIMIN by assuming that the integrand */
+  /*- is constant in that range                                   */
+  /*--------------------------------------------------------------*/
+  Xi=XIMIN;
+  GetXiIntegrand(SC3D, Xi, fLeft);
+  for(int nf=0; nf<fdim; nf++)
+   I[nf] = fLeft[nf] * XIMIN;
+  memset(E,0,SC3D->NTNQ*sizeof(double));
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double Delta = (XIMAX - XIMIN ) / NumIntervals;
+  double *ISimp  = new double[fdim];
+  double *ITrap  = new double[fdim];
+  for(int nIntervals=0; nIntervals<NumIntervals; nIntervals++)
+   { 
+     // evaluate integrand at midpoint of interval 
+     Xi += 0.5*Delta;
+     GetXiIntegrand(SC3D, Xi, fMid);
+
+     // evaluate integrand at right end of interval 
+     Xi += 0.5*Delta;
+     GetXiIntegrand(SC3D, Xi, fRight);
+
+     // compute the simpson's rule and trapezoidal rule
+     // estimates of the integral over this interval  
+     // and take their difference as the error
+     for(int nf=0; nf<fdim; nf++)
+      { ISimp[nf] = (fLeft[nf] + 4.0*fMid[nf] + fRight[nf])*Delta/6.0;
+        ITrap[nf] = (fLeft[nf] + 2.0*fMid[nf] + fRight[nf])*Delta/4.0;
+        I[nf] += ISimp[nf];
+        E[nf] += fabs(ISimp[nf] - ITrap[nf]);
+      };
+
+     // prepare for next iteration
+     memcpy(fLeft, fRight, fdim*sizeof(double));
+
+   };
+  delete[] fLeft;
+  delete[] fMid;
+  delete[] fRight;
+  delete[] ISimp;
+  delete[] ITrap;
+
+}
+
+/***************************************************************/
+/* Integrate over the positive imaginary frequency axis to get */
+/* the total Casimir quantities at zero temperature.           */
+/***************************************************************/
+void GetXiIntegral_Adaptive(SC3Data *SC3D, double *EFT, double *Error)
+{
+  double Lower[1] = {0.0}; 
+  double Upper[1] = {1.0};
+
+  pcubature(SC3D->NTNQ, GetXiIntegrand2, (void *)SC3D, 1, Lower, Upper,
+            SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol,
+            ERROR_INDIVIDUAL, EFT, Error);
+   
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetXiIntegral_Cliff(SC3Data *SC3D, double *I, double *E)
+{
+  /***************************************************************/
+  /* estimate the position of the 'cliff' in the frequency       */
+  /* integrand to be 0.7 / dMin, where dMin is the shortest      */
+  /* distance between two points on any two distinct surfaces    */
+  /* under any transformation.                                   */
+  /***************************************************************/
+  double dMin=1.2345e89;
+  RWGGeometry *G = SC3D->G;
+  for(int nt=0; nt<SC3D->NumTransformations; nt++)
+   { 
+     G->Transform( SC3D->GTCList[nt] );
+
+     for(int ns=0; ns<G->NumSurfaces; ns++)
+      for(int nsp=1; nsp<G->NumSurfaces; nsp++)
+       for(int nv=0; nv<G->Surfaces[ns]->NumVertices; nv++)
+        for(int nvp=1; nvp<G->Surfaces[nsp]->NumVertices; nvp++)
+         dMin = fmin( dMin, 
+                      VecDistance(G->Surfaces[ns]->Vertices  + 3*nv,
+                                  G->Surfaces[nsp]->Vertices + 3*nvp
+                                 )
+                    );
+
+     G->UnTransform();
+   };
+  Log("Minimum distance between surface points=%e",dMin);
+
+  /***************************************************************/
+  /* For the Lifshitz formula giving the Casimir force between   */
+  /* infinite planar slabs separated by distance d, I have       */
+  /* verified that the Casimir integrand falls to half its       */
+  /* low-frequency value at a frequency roughly equal to         */
+  /* Xi=0.7/d, independent of the slab materials.                */
+  /***************************************************************/
+  double XiCliff = 0.7/dMin;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  char *ICFLogFile = vstrdup("%s.ICFLog",SC3D->FileBase);
+
+  IntegrateCliffFunction(GetXiIntegrand3, (void *)SC3D, SC3D->NTNQ,
+                         0.0, 0.0, XiCliff, SC3D->RelTol, I, E,
+                         ICFLogFile);
 }
 
 /***************************************************************/
@@ -349,12 +630,22 @@ void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Err
      /* how it works: the matsubara sum is                          */
      /*  2\pi kT *  \sum_n^\prime F(\xi_n)                          */
      /* where \xi_n is the nth matsubara frequency and F(\xi) is    */
-     /* the Casimir integrand, defined such that \int F(\xi) d\xi   */
-     /* gives full zero-temperature force with no extra prefactors. */
+     /* the casimir integrand (and the primed sum means that the    */
+     /* n==0 term is weighted with a factor of 1/2).                */
+     /*                                                             */
+     /* however, my GetXiIntegrand() routine returns the quantity   */
+     /* FI = F(\xi_n) / (2\pi). (this is so that the integral of FI */
+     /* over all \xi returns the correct casimir quantity with no   */
+     /* additional multiplicative prefactors.)                      */
+     /*                                                             */
+     /* thus the matsubara sum is                                   */
+     /*  2\pi kT *  \sum_n^\prime FI(\xi_n)                       */
+     /*                                                             */
+     /* where FI is what is returned by GetXiIntegrand.             */
      /***************************************************************/
      memcpy(LastEFT,EFT,NTNQ*sizeof(double));
      for(ntnq=0; ntnq<NTNQ; ntnq++)
-      EFT[ntnq] += Weight * 2.0*M_PI * kT * dEFT[ntnq];
+      EFT[ntnq] += Weight * 2.0*M_PI* kT * dEFT[ntnq];
 
      /*********************************************************************/
      /* convergence analysis.                                             */
@@ -401,78 +692,3 @@ void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Err
    Log("Matsubara sum converged after summing n=%i frequency points.",n);
     
 } 
-
-/***************************************************************/
-/* Integrate over the positive imaginary frequency axis to get */
-/* the total Casimir quantities at zero temperature.           */
-/***************************************************************/
-void GetXiIntegral(SC3Data *SC3D, double *EFT, double *Error)
-{
-  double Lower[1] = {0.0}; 
-  double Upper[1] = {1.0};
-
-  pcubature(SC3D->NTNQ, GetXiIntegrand2, (void *)SC3D, 1, Lower, Upper,
-            SC3D->MaxXiPoints, SC3D->AbsTol, SC3D->RelTol,
-            ERROR_INDIVIDUAL, EFT, Error);
-   
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetXiIntegral2(SC3Data *SC3D, int NumIntervals, double *I, double *E)
-{ 
-  int fdim = SC3D->NTNQ;
-  double *fLeft  = new double[fdim];
-  double *fMid   = new double[fdim];
-  double *fRight = new double[fdim];
-  double Xi;
-
-  /*--------------------------------------------------------------*/
-  /*- evaluate integrand at leftmost frequency point and estimate */
-  /*- the integral from 0 to XIMIN by assuming that the integrand */
-  /*- is constant in that range                                   */
-  /*--------------------------------------------------------------*/
-  Xi=XIMIN;
-  GetXiIntegrand(SC3D, Xi, fLeft);
-  for(int nf=0; nf<fdim; nf++)
-   I[nf] = fLeft[nf] * XIMIN;
-  memset(E,0,SC3D->NTNQ*sizeof(double));
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double Delta = (XIMAX - XIMIN ) / NumIntervals;
-  double *ISimp  = new double[fdim];
-  double *ITrap  = new double[fdim];
-  for(int nIntervals=0; nIntervals<NumIntervals; nIntervals++)
-   { 
-     // evaluate integrand at midpoint of interval 
-     Xi += 0.5*Delta;
-     GetXiIntegrand(SC3D, Xi, fMid);
-
-     // evaluate integrand at right end of interval 
-     Xi += 0.5*Delta;
-     GetXiIntegrand(SC3D, Xi, fRight);
-
-     // compute the simpson's rule and trapezoidal rule
-     // estimates of the integral over this interval  
-     // and take their difference as the error
-     for(int nf=0; nf<fdim; nf++)
-      { ISimp[nf] = (fLeft[nf] + 4.0*fMid[nf] + fRight[nf])*Delta/6.0;
-        ITrap[nf] = (fLeft[nf] + 2.0*fMid[nf] + fRight[nf])*Delta/4.0;
-        I[nf] += ISimp[nf];
-        E[nf] += fabs(ISimp[nf] - ITrap[nf]);
-      };
-
-     // prepare for next iteration
-     memcpy(fLeft, fRight, fdim*sizeof(double));
-
-   };
-  delete[] fLeft;
-  delete[] fMid;
-  delete[] fRight;
-  delete[] ISimp;
-  delete[] ITrap;
-
-}

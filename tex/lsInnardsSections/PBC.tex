@@ -504,14 +504,15 @@ For a geometry in which the unit cell contains $N$
 surfaces, the BEM matrix at Bloch wavevector $\KB$ 
 has the structure
 %====================================================================%
-$$ \vb M(\KB)
+\numeq{BlockMatrixStructure}
+{ \vb M(\KB)
  =\left(\begin{array}{cccc}
   \vb T_1(\KB)    & \vb U_{12}(\KB) & \cdots & \vb U_{1N}(\KB) \\[3pt]
   \vb U_{21}(\KB) & \vb T_2(\KB)    & \cdots & \vb U_{2N}(\KB) \\[3pt]
   \vdots          & \vdots          & \ddots & \vdots      \\[3pt]
   \vb U_{N1}(\KB) & \vb U_{N2}(\KB) & \cdots & \vb T_{N}(\KB)
   \end{array}\right)
-$$
+}
 %====================================================================%
 where $\vb U_{mn}$ describes the interaction of surfaces $m$
 and $n$ and $\vb T_m$ describes the self-interaction of
@@ -562,10 +563,14 @@ zone.
 In {\sc scuff-em}, the $\KB$-independent matrix blocks 
 $\vb U_{mn}^{\sigma\sigma^\prime}$ are computed using the ordinary
 algorithm for assembling the blocks of the BEM matrix 
-for ordinary (non-periodic) geometries. An advantage of this
-is that singular integrals involving the interaction
-of basis functions with 
-
+for compact (non-periodic) geometries. An advantage of this
+is that singular integrals involving pairs of panels in
+adjacent cells with common edges or vertices are handled
+correctly using singular-integral evaluation techniques
+present in {\sc scuff-em}.
+For example, in the mesh of Figure \ref{StraddlerFigure},
+panel 1 of the unit-cell mesh has a common edge 
+with panel 24 of the $(-1,0)$ mesh image.
 
 \subsubsection*{Transposes of off-diagonal blocks}
 
@@ -627,3 +632,19 @@ Hence to assemble $\vb T(\KB)$ we need only compute and
 store 5 $\KB$-independent blocks $\vb T^{\sigma \sigma^\prime}$
 instead of the 9 $\KB$-independent blocks required to assemble
 $\vb U(\KB)$.
+
+\subsubsection*{Assessing the connectivity of regions}
+
+An important subtlety in the BEM matrix assembly for dielectric
+geometries treated by the PMCHWT formulation concerns the question
+of the ``extendedness'' or connectivity of material regions.
+
+In general, the surfaces $m,n$ whose interaction is described
+by the $\vb T_m$ and $\vb U_{mn}$ blocks in (\ref{BlockMatrixStructure}) 
+will interact through one or two common \textit{regions} (material media).
+(More specifically, $\vb T$ blocks will typically involve two common
+regions, while $\vb U$ blocks will typically involve one common region.)
+
+The BEM matrix elements
+
+
