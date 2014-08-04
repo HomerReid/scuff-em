@@ -375,7 +375,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
       {
         IntegrateCliffFunction(urIntegrand, (void *)SC3D, 2,
                                0.0, 0.5*sqrt(2.0), 0.0,
-                               SC3D->RelTol, EFT, Error);
+                               SC3D->RelTol, EFT, Error, 
+                               "urIntegrand.ICFLog");
       };
    
      double PreFactor = (LDim==2) ? 4.0 : 2.0;
@@ -417,9 +418,10 @@ int GetXiIntegrand2(unsigned ndim, const double *x, void *params,
   (void) ndim; // unused
   (void) fdim; // unused
 
-  double Xi = x[0]/(1.0-x[0]); 
-  double Jacobian = 1.0/( (1.0-x[0])*(1.0-x[0]) );
   SC3Data *SC3D = (SC3Data *)params;
+
+  double Xi = SC3D->XiMin + x[0]/(1.0-x[0]); 
+  double Jacobian = 1.0/( (1.0-x[0])*(1.0-x[0]) );
   double *EFT = fval;
 
   GetXiIntegrand(SC3D, Xi, EFT);
@@ -465,10 +467,10 @@ void GetXiIntegral_TrapSimp(SC3Data *SC3D, int NumIntervals, double *I, double *
   /*- the integral from 0 to XIMIN by assuming that the integrand */
   /*- is constant in that range                                   */
   /*--------------------------------------------------------------*/
-  Xi=XIMIN;
+  Xi=SC3D->XiMin;
   GetXiIntegrand(SC3D, Xi, fLeft);
   for(int nf=0; nf<fdim; nf++)
-   I[nf] = fLeft[nf] * XIMIN;
+   I[nf] = fLeft[nf] * (SC3D->XiMin);
   memset(E,0,SC3D->NTNQ*sizeof(double));
 
   /*--------------------------------------------------------------*/
@@ -542,9 +544,9 @@ void GetXiIntegral_Cliff(SC3Data *SC3D, double *I, double *E)
      G->Transform( SC3D->GTCList[nt] );
 
      for(int ns=0; ns<G->NumSurfaces; ns++)
-      for(int nsp=1; nsp<G->NumSurfaces; nsp++)
+      for(int nsp=ns+1; nsp<G->NumSurfaces; nsp++)
        for(int nv=0; nv<G->Surfaces[ns]->NumVertices; nv++)
-        for(int nvp=1; nvp<G->Surfaces[nsp]->NumVertices; nvp++)
+        for(int nvp=0; nvp<G->Surfaces[nsp]->NumVertices; nvp++)
          dMin = fmin( dMin, 
                       VecDistance(G->Surfaces[ns]->Vertices  + 3*nv,
                                   G->Surfaces[nsp]->Vertices + 3*nvp
@@ -554,6 +556,7 @@ void GetXiIntegral_Cliff(SC3Data *SC3D, double *I, double *E)
      G->UnTransform();
    };
   Log("Minimum distance between surface points=%e",dMin);
+  if (dMin==0.0) dMin=1.0;
 
   /***************************************************************/
   /* For the Lifshitz formula giving the Casimir force between   */
@@ -568,9 +571,9 @@ void GetXiIntegral_Cliff(SC3Data *SC3D, double *I, double *E)
   /***************************************************************/
   /***************************************************************/
   char *ICFLogFile = vstrdup("%s.ICFLog",SC3D->FileBase);
-
+  double XiMin = SC3D->XiMin;
   IntegrateCliffFunction(GetXiIntegrand3, (void *)SC3D, SC3D->NTNQ,
-                         0.0, 0.0, XiCliff, SC3D->RelTol, I, E,
+                         XiMin, 0.0, XiCliff, SC3D->RelTol, I, E,
                          ICFLogFile);
 }
 

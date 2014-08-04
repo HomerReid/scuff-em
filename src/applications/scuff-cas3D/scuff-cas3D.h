@@ -94,6 +94,7 @@ typedef struct SC3Data
    char *FileBase, *ByXiFileName, *ByXiKFileName, *OutFileName;
 
    // adaptive frequency integration limits
+   double XiMin;
    int MaxXiPoints, MaxkBlochPoints;
    double AbsTol, RelTol;
 

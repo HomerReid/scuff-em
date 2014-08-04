@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
   double XiVals[MAXFREQ];	            int nXiVals;
   char *XiFile=0;
   char *XiQuadrature=0;
+  double XiMin=0.001;
   int MaxXiPoints=10000;
   int Intervals=50;
   double AbsTol=0.0;
@@ -110,6 +111,7 @@ int main(int argc, char *argv[])
      {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,         &nXiVals,      "imaginary frequency"},
      {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,        0,             "file containing Xi values"},
      {"XiQuadrature",   PA_STRING,  1, 1,       (void *)&XiQuadrature,  0,             "quadrature method for Xi integration"},
+     {"XiMin",          PA_DOUBLE,  1, 1,       (void *)&XiMin,         0,             "assume Xi integrand constant below this value"},
      {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,     0,             "number of subintervals for frequency quadrature"},
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
@@ -286,6 +288,7 @@ int main(int argc, char *argv[])
   SC3D->MaxkBlochPoints    = MaxkBlochPoints;
   SC3D->BZQMethod          = BZQMethod;
   SC3D->BZSymmetry         = BZSymmetry;
+  SC3D->XiMin              = XiMin;
 
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
