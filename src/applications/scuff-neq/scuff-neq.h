@@ -59,6 +59,10 @@ using namespace scuff;
 
 #define NUMSIPFT MAXQUANTITIES
 
+// quadrature methods 
+#define QMETHOD_ADAPTIVE 0
+#define QMETHOD_CLIFF    1
+
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
 /* information needed to run computations a given frequency.    */

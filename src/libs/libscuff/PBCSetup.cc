@@ -211,8 +211,8 @@ void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
   if (LDim==1) 
    {
      double L1Norm2 = LBV[0][0]*LBV[0][0] + LBV[0][1]*LBV[0][1];
-     LBVi[0][0] = LBV[0][0] ./ L1Norm2;
-     LBVi[0][1] = LBV[0][1] ./ L1Norm2;
+     LBVi[0][0] = LBV[0][0] / L1Norm2;
+     LBVi[0][1] = LBV[0][1] / L1Norm2;
    }
   else if (LDim==2) 
    {
@@ -223,7 +223,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
      double L1Norm2 = LBV[0][0]*LBV[0][0] + LBV[0][1]*LBV[0][1];
      double L2Norm2 = LBV[1][0]*LBV[1][0] + LBV[1][1]*LBV[1][1];
      double zPerp = LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0];
-     if ( VecNorm(zperp) < 1e-8 * sqrt(L1Norm2*L2Norm2) )
+     if ( fabs(zPerp) < 1e-8 * sqrt(L1Norm2*L2Norm2) )
       ErrExit("Lattice vectors close to parallel.");
      for (int i=0; i<2; ++i)
       { 

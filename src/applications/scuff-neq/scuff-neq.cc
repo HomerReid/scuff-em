@@ -125,6 +125,7 @@ int main(int argc, char *argv[])
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
      {"OmegaMin",       PA_DOUBLE,  1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
      {"OmegaMax",       PA_DOUBLE,  1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
+     {"OmegaQuadrature",PA_STRING,  1, 1,       (void *)&OQMethod,   0,             "quadrature method for omega integral"},
 /**/     
      {"OmegaKFile",     PA_STRING,  1, 1,       (void *)&OmegaKFile, 0,             "list of (Omega, kx, ky) points"},
 /**/     
@@ -248,6 +249,12 @@ int main(int argc, char *argv[])
       Log("Integrating over range Omega=(%g,%g).",OmegaMin,OmegaMax);
    };
 
+  int OQMethod = QMETHOD_CLIFF;
+  if ( OmegaQuadrature )
+   { if (OmegaPoints)
+      ErrExit("--OmegaQuadrature may not be used with --Omega or --OmegaFile");
+     if ( !strcasecomp(OQMethod,"`
+
   /*******************************************************************/
   /* create the SNEQData structure that contains all the info needed*/
   /* to evaluate the neq transfer at a single frequency              */
@@ -334,9 +341,17 @@ int main(int argc, char *argv[])
   else
    { 
       double *E = new double[ OutputVectorLength ];
-      EvaluateFrequencyIntegral2(SNEQD, OmegaMin, OmegaMax, 
-                                 TSurfaces, TEnvironment, 
-                                 Intervals, I, E);
+
+      switch(OQMethod) 
+       { case QMETHOD_ADAPTIVE:
+          EvaluateFrequencyIntegral_Adaptive(SNEQD, OmegaMin, OmegaMax, 
+                                             TSurfaces, TEnvironment, 
+                                             Intervals, I, E);
+         case QMETHOD_CLIFF:   
+          EvaluateFrequencyIntegral_Cliff(SNEQD, OmegaMin, OmegaMax, 
+                                          TSurfaces, TEnvironment, 
+                                          Intervals, I, E);
+       };
       delete[] E;
    };
   delete[] I;
