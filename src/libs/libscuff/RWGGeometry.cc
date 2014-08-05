@@ -122,8 +122,8 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
          { sscanf(Tokens[1],"%le",LBV+0);
            sscanf(Tokens[2],"%le",LBV+1);
          }
-        else
-         ErrExit("%s:%i: syntax error",FileName,*LineNum);
+        else 
+         ErrExit("%s:%i: lattice vectors must have exactly two components",FileName,*LineNum);
 
         Log("Adding lattice basis vector (%g,%g).",LBV[0],LBV[1]);
       }
@@ -131,10 +131,10 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
       { 
         // if the user specified two basis vectors, test for independence
         if (LDim==2)
-	 { double cross[3];
-           double Area=VecNorm(VecCross(LBasis[0],LBasis[1],cross));
-           double NormProd=VecNorm(LBasis[0])*VecNorm(LBasis[1]);
-           if ( Area < 1.0e-6*NormProd )
+	 { double Area = LBasis[0][0]*LBasis[1][1] - LBasis[0][1]*LBasis[1][0];
+           double Norm2L1 = LBasis[0][0]*LBasis[0][0] + LBasis[0][1]*LBasis[0][1];
+           double Norm2L2 = LBasis[1][0]*LBasis[1][0] + LBasis[1][1]*LBasis[1][1];
+           if ( Area < 1.0e-6*sqrt(Norm2L1*Norm2L2) )
             ErrExit("%s:%i: lattice basis vectors are parallel",FileName,*LineNum);
          };
 

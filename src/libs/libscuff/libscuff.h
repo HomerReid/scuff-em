@@ -525,6 +525,11 @@ class RWGGeometry
    /* RegionIsExtended[nd][ns] = true if region #nr is extended  */
    /*                            in dimension #nd                */
    /* GBarAB9Interpolators[nr] = interpolator for region #nr     */
+   /*                                                            */
+   /* (Note that lattice vectors must have zero z-component and  */
+   /* only the first two components (x and y components) are     */
+   /* stored, so the Vec... operations in scuffMisc cannot be    */
+   /* used on the LBasis vectors.)                               */
    int LDim;
    double LBasis[2][2];
    int *NumStraddlers[2];
