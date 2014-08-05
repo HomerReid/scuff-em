@@ -75,10 +75,10 @@ static int PointOnLine(double *X, double *L)
 /* is well-defined.                                            */
 /***************************************************************/
 static int FindPartnerEdge(RWGSurface *S, int nei,
-			   double LBV[MAXLDIM][2], 
+			   double LBV[MAXLDIM][2],
                            double LBVi[MAXLDIM][2],
                            int LDim,
-			   int NumStraddlers[MAXLDIM], 
+			   int NumStraddlers[MAXLDIM],
 			   int *pWhichBV,
                            double *V)
 {
@@ -210,20 +210,31 @@ void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
   double LBVi[2][2] = {{0.0,0.0}, {0.0,0.0}};
   if (LDim==1) 
    {
-     VecScale(LBV[0], 1./VecNorm2(LBV[0]), LBVi[0]);
+     double L1Norm2 = LBV[0][0]*LBV[0][0] + LBV[0][1]*LBV[0][1];
+     LBVi[0][0] = LBV[0][0] ./ L1Norm2;
+     LBVi[0][1] = LBV[0][1] ./ L1Norm2;
    }
   else if (LDim==2) 
    {
      // LBVi[0] = (LBV[0] x LBV[1]) x LBV[1] / (LBV[0] * (... x ... x ...))
      // LBVi[1] = (LBV[0] x LBV[1]) x LBV[0] / (LBV[1] * (... x ... x ...))
-     double perp[3];
-     VecCross(LBV[0], LBV[1], perp);
-     if (VecNorm(perp) < 1e-8 * VecNorm(LBV[0]) * VecNorm(LBV[1]))
+     //double perp[3];
+     //VecCross(LBV[0], LBV[1], perp);
+     double L1Norm2 = LBV[0][0]*LBV[0][0] + LBV[0][1]*LBV[0][1];
+     double L2Norm2 = LBV[1][0]*LBV[1][0] + LBV[1][1]*LBV[1][1];
+     double zPerp = LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0];
+     if ( VecNorm(zperp) < 1e-8 * sqrt(L1Norm2*L2Norm2) )
       ErrExit("Lattice vectors close to parallel.");
      for (int i=0; i<2; ++i)
       { 
-        VecCross(perp, LBV[1-i], LBVi[i]);
-        VecScale(LBVi[i], 1 / VecDot(LBV[i], LBVi[i]));
+        //VecCross(perp, LBV[1-i], LBVi[i]);
+        LBVi[i][0] = -zPerp * LBV[1-i][1];
+        LBVi[i][1] = +zPerp * LBV[1-i][0];
+
+        //VecScale(LBVi[i], 1 / VecDot(LBV[i], LBVi[i]));
+        double DotProd = LBV[i][0]*LBVi[i][0] + LBV[i][1]*LBVi[i][1];
+        LBVi[i][0] /= DotProd;
+        LBVi[i][1] /= DotProd;
       }
    }
   else // (LDim> 2)
