@@ -235,8 +235,13 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
 {
   int nFun = SC3D->NTNQ;
 
-  double *AllValues   = new double[129*nFun];
-  double *OuterValues = new double[65*nFun];
+  if (SC3D->UTIntegralBuffer[0]==0)
+   { SC3D->UTIntegralBuffer[0] = (double *)mallocEC(129*nFun*sizeof(double));
+     SC3D->UTIntegralBuffer[1] = (double *)mallocEC( 65*nFun*sizeof(double));
+   };
+
+  double *AllValues   = SC3D->UTIntegralBuffer[0];
+  double *OuterValues = SC3D->UTIntegralBuffer[1];
   double *Error       = new double[nFun];
 
   /***************************************************************/
@@ -259,7 +264,7 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
   int pMax = 7;
   bool Converged = false;
   SC3D->ur = ur ;
-  for(int p=pMin; p<pMax && !Converged; p++)
+  for(int p=pMin; p<=pMax && !Converged; p++)
    { 
      // estimate error using embedded clenshaw-curtis of order 2^(p+1)
      ECC(p, ThetaMin, ThetaMax, uThetaIntegrand, (void *)SC3D, nFun,
@@ -286,8 +291,6 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
    Result[nf] *= ur;
 
   delete[] Error;
-  delete[] AllValues;
-  delete[] OuterValues;
 
 }
 

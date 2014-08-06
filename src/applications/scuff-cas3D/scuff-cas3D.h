@@ -91,6 +91,9 @@ typedef struct SC3Data
    // storage of outer integration variables for nested quadratures
    double Xi, ur;
 
+   // storage of ... explain me
+   double *UTIntegralBuffer[2];
+
    char *FileBase, *ByXiFileName, *ByXiKFileName, *OutFileName;
 
    // adaptive frequency integration limits

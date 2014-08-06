@@ -319,4 +319,6 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
 
   fclose(f);
 
+  SC3D->UTIntegralBuffer[0]=SC3D->UTIntegralBuffer[1]=0;
+
 }
