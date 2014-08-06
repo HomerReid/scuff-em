@@ -391,9 +391,6 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
   Data->OmegaMin = OmegaMin;
   Data->Infinite = false;
 
-  if (OmegaMax==-1.0)
-   OmegaMax=OmegaMin;
-
   Data->TSurfaces=TSurfaces;
   Data->TEnvironment=TEnvironment;
 
@@ -401,6 +398,16 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
   /* this really needs to be estimated automatically FIXME       */
   /***************************************************************/
   double OmegaCliff = 1.0;
+
+  if (OmegaMax==-1.0)
+   OmegaMax=OmegaMin;
+  else if ( OmegaMax<=OmegaMin )
+   ErrExit("degenerate frequency window in GetOmegaIntegral_Cliff")
+  else
+   { if ( ! (OmegaMin<OmegaCliff && OmegaCliff<OmegaMax) )
+      OmegaCliff = 0.5*(OmegaMin + OmegaMax );
+   };
+
 
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
@@ -412,7 +419,7 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
   /***************************************************************/
   char *ICFLogFile = vstrdup("%s.ICFLog",SNEQD->FileBase);
   IntegrateCliffFunction(GetOmegaIntegrand, (void *)SNEQD, fdim,
-                         OmegaMin, 0.0, OmegaCliff, SNEQD->RelTol, I, E,
+                         OmegaMin, OmegaMax, OmegaCliff, SNEQD->RelTol, I, E,
                          ICFLogFile);
 
 }
