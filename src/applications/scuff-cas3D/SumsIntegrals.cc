@@ -301,7 +301,6 @@ int urIntegrand(unsigned ndim, const double *x, void *params,
                 unsigned fdim, double *fval)
 {
   (void) ndim; // unused
-  (void) fdim; // unused
 
   SC3Data *SC3D = (SC3Data *)params;
   double Xi     = SC3D->Xi;
@@ -376,7 +375,7 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
       }
      else // BZQMethod == QMETHOD_CLIFF 
       {
-        IntegrateCliffFunction(urIntegrand, (void *)SC3D, 2,
+        IntegrateCliffFunction(urIntegrand, (void *)SC3D, SC3D->NTNQ,
                                0.0, 0.5*sqrt(2.0), 0.0,
                                SC3D->RelTol, EFT, Error, 
                                "urIntegrand.ICFLog");
