@@ -75,6 +75,7 @@ int main(int argc, char *argv[])
   char *OmegaKFile=0;
   double OmegaMin=0.00;              int nOmegaMin;
   double OmegaMax=-1.0;              int nOmegaMax;
+  char *OQString=0;   
 
   /*--------------------------------------------------------------*/
   char *TempStrings[2*MAXTEMPS];     int nTempStrings;
@@ -82,7 +83,11 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   double AbsTol=0.0;
   double RelTol=5.0e-2;
-  int Intervals=25;
+  int Intervals=25.0;                int nIntervals=0;
+   
+  /*--------------------------------------------------------------*/
+  double SIRadius    = 100.0;
+  int SINumPoints    = 31;
 
   /*--------------------------------------------------------------*/
   char *FileBase=0;
@@ -97,15 +102,7 @@ int main(int argc, char *argv[])
 
   /*--------------------------------------------------------------*/
   bool SymGPower=false;
-
-  /*--------------------------------------------------------------*/
   bool UseExistingData=false;
-  bool SubtractSelfTerms=false;
-  bool Visualize=false;
-   
-  /*--------------------------------------------------------------*/
-  double SIRadius    = 100.0;
-  int SINumPoints    = 31;
 
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
@@ -121,31 +118,28 @@ int main(int argc, char *argv[])
      {"YTorque",        PA_BOOL,    0, 1,       (void *)&YTorque,    0,             "compute Y-torque"},
      {"ZTorque",        PA_BOOL,    0, 1,       (void *)&ZTorque,    0,             "compute Z-torque"},
 /**/     
+     {"SymGPower",      PA_BOOL,    0, 1,       (void *)&SymGPower,  0,             "use Sym(G) instead of overlap matrix for power computation"},
+/**/     
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
+     {"OmegaKFile",     PA_STRING,  1, 1,       (void *)&OmegaKFile, 0,             "list of (Omega, kx, ky) points"},
      {"OmegaMin",       PA_DOUBLE,  1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
      {"OmegaMax",       PA_DOUBLE,  1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
-     {"OmegaQuadrature",PA_STRING,  1, 1,       (void *)&OQMethod,   0,             "quadrature method for omega integral"},
-/**/     
-     {"OmegaKFile",     PA_STRING,  1, 1,       (void *)&OmegaKFile, 0,             "list of (Omega, kx, ky) points"},
-/**/     
+     {"OmegaQuadrature",PA_STRING,  1, 1,       (void *)&OQString,   0,             "quadrature method for omega integral"},
+     {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,     0,             "absolute tolerance for adaptive frequency quadrature"},
+     {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for adaptive/cliff frequency quadrature"},
+     {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,  &nIntervals,   "number of intervals for TrapSimp frequency quadrature"},
+/**/
      {"Temperature",    PA_STRING,  2, MAXTEMPS, (void *)TempStrings, &nTempStrings,  "set object xx temperature to xx"},
 /**/     
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,   0,             "prefix for names of .log, .flux, .out files"},
 /**/     
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
-/**/     
-     {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,     0,             "absolute tolerance for frequency quadrature"},
-     {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for frequency quadrature"},
-     {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,  0,             "number of intervals for frequency quadrature"},
-/**/
-     {"SymGPower",      PA_BOOL,    0, 1,       (void *)&SymGPower,  0,             "use Sym(G) instead of overlap matrix for power computation"},
 /**/
      {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "bounding-sphere radius for SIPFT"},
      {"SINumPoints",    PA_INT,     1, 1,       (void *)&SINumPoints,0,             "number of quadrature points for SIPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
-     {"Visualize",      PA_BOOL,    0, 1,       (void *)&Visualize,  0,             "visualize flux profiles"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -250,10 +244,20 @@ int main(int argc, char *argv[])
    };
 
   int OQMethod = QMETHOD_CLIFF;
-  if ( OmegaQuadrature )
+  if ( OQString )
    { if (OmegaPoints)
       ErrExit("--OmegaQuadrature may not be used with --Omega or --OmegaFile");
-     if ( !strcasecomp(OQMethod,"`
+     if ( !strcasecmp(OQString,"adaptive") )
+      OQMethod = QMETHOD_ADAPTIVE;
+     else if ( !strcasecmp(OQString,"cliff") )
+      OQMethod = QMETHOD_CLIFF;
+     else if ( !strcasecmp(OQString,"trapsimp") )
+      OQMethod = QMETHOD_TRAPSIMP;
+     else
+      ErrExit("unknown --OmegaQuadrature method %s",OQString);    
+   };
+  if ( nIntervals!=0 && OQMethod!=QMETHOD_TRAPSIMP )
+   ErrExit("--Intervals may only be used with --OmegaQuadrature TrapSimp");
 
   /*******************************************************************/
   /* create the SNEQData structure that contains all the info needed*/
@@ -262,12 +266,12 @@ int main(int argc, char *argv[])
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, FileBase);
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData   = UseExistingData;
-  SNEQD->SubtractSelfTerms = SubtractSelfTerms;
-  SNEQD->Visualize         = Visualize;
   SNEQD->SIRadius          = SIRadius;
   SNEQD->SINumPoints       = SINumPoints;
   SNEQD->PlotFlux          = PlotFlux;
   SNEQD->SymGPower         = SymGPower;
+  SNEQD->AbsTol            = AbsTol;
+  SNEQD->RelTol            = RelTol;
 
   if (OmegaKPoints && G->LDim==0)
    ErrExit("--OmegaKPoints may only be used with extended geometries");
@@ -320,7 +324,8 @@ int main(int argc, char *argv[])
   /* now switch off based on the requested frequency behavior to     */
   /* perform the actual calculations                                 */
   /*******************************************************************/
-  int OutputVectorLength = SNEQD->NumTransformations * G->NumSurfaces * G->NumSurfaces * SNEQD->NQ;
+  int OutputVectorLength 
+   = SNEQD->NumTransformations * G->NumSurfaces * G->NumSurfaces * SNEQD->NQ;
   double *I = new double[ OutputVectorLength ];
   if (OmegaKPoints)
    { for (int nok=0; nok<OmegaKPoints->NR; nok++)
@@ -344,14 +349,21 @@ int main(int argc, char *argv[])
 
       switch(OQMethod) 
        { case QMETHOD_ADAPTIVE:
-          EvaluateFrequencyIntegral_Adaptive(SNEQD, OmegaMin, OmegaMax, 
-                                             TSurfaces, TEnvironment, 
-                                             Intervals, I, E);
-         case QMETHOD_CLIFF:   
-          EvaluateFrequencyIntegral_Cliff(SNEQD, OmegaMin, OmegaMax, 
-                                          TSurfaces, TEnvironment, 
-                                          Intervals, I, E);
+          GetOmegaIntegral_Adaptive(SNEQD, OmegaMin, OmegaMax,
+                                    TSurfaces, TEnvironment, I, E);
+
+         case QMETHOD_TRAPSIMP:
+          GetOmegaIntegral_TrapSimp(SNEQD, OmegaMin, OmegaMax,
+                                    TSurfaces, TEnvironment,
+                                    Intervals, I, E);
+
+         case QMETHOD_CLIFF:
+          GetOmegaIntegral_Cliff(SNEQD, OmegaMin, OmegaMax,
+                                 TSurfaces, TEnvironment, I, E);
        };
+
+      WriteDataToOutputFile(SNEQD, I, E);
+
       delete[] E;
    };
   delete[] I;

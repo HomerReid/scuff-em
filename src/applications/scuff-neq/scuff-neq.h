@@ -62,6 +62,7 @@ using namespace scuff;
 // quadrature methods 
 #define QMETHOD_ADAPTIVE 0
 #define QMETHOD_CLIFF    1
+#define QMETHOD_TRAPSIMP 2
 
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
@@ -69,20 +70,27 @@ using namespace scuff;
 /****************************************************************/
 typedef struct SNEQData
  {
+   /*--------------------------------------------------------------*/
+   /*- information on the geometry and geometrical transforms     -*/
+   /*--------------------------------------------------------------*/
    RWGGeometry *G;
-   char *WriteCache;
-
-   int PlotFlux;
-
    GTComplex **GTCList;
    int NumTransformations;
+   char *WriteCache;
 
+   /*--------------------------------------------------------------*/
+   /*- information on the calculations requested by the user       */
+   /*--------------------------------------------------------------*/
    int QuantityFlags;
    int NQ;
    int NSNQ;
    int NTNSNQ;
+   int PlotFlux;
+   bool SymGPower;
 
-   // HMatrix structures for the BEM matrix and its subblocks
+   /*--------------------------------------------------------------*/
+   /* storage for the BEM matrix and its subblocks                 */
+   /*--------------------------------------------------------------*/
    HMatrix *W;        // BEM matrix 
    HMatrix **T;       // T[ns] = T-matrix block for surface #ns
    HMatrix **TSelf;   //
@@ -92,55 +100,73 @@ typedef struct SNEQData
    // chunk of memory used as a workspace in the GetTrace() routine.
    void *Buffer[MAXQUANTITIES+1];
 
-   // the NMth slot in this array of flags is 1 iff we will need
-   // to compute the NMth type of overlap matrix
+   /*--------------------------------------------------------------*/
+   /* storage for sparse PFT matrices                              */
+   /*--------------------------------------------------------------*/
+   // NeedMatrix[nm] = 1 if we need overlap matrix of type #nm
+   // SArray[ ns*8 + nm ] = overlap matrix of type #nm for
+   // surface #ns (note 8 = SCUFF_NUM_OMATRICES)
    bool NeedMatrix[SCUFF_NUM_OMATRICES]; 
-
-   // SMatrix structures for overlap matrices.
-   // SArray[ ns*8 + nm ] = overlap matrix of type #nm for surface #ns 
-   // (here 8 = SCUFF_NUM_OMATRICES)
    SMatrix ***SArray;
 
    // radius and number of quadrature points per dimension
    // for surface-integral PFT
    double SIRadius;
    int SINumPoints;
-   
-   bool SymGPower;
-   bool UseExistingData;
-   bool SubtractSelfTerms;
-   bool Visualize;
 
+   /*--------------------------------------------------------------*/
+   /*- miscellaneous other options                                -*/
+   /*--------------------------------------------------------------*/
+   double RelTol, AbsTol;  // integration tolerances
    char *FileBase;
+   bool UseExistingData;
 
  } SNEQData;
 
+/*--------------------------------------------------------------*/
+/*- in CreateSNEQData.cc ---------------------------------------*/
+/*--------------------------------------------------------------*/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          int QuantityFlags, char *FileBase);
 
+/*--------------------------------------------------------------*/
+/*- in GetFlux.cc ----------------------------------------------*/
+/*--------------------------------------------------------------*/
 int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux);
 
-void EvaluateFrequencyIntegral(SNEQData *SNEQD,
+/*--------------------------------------------------------------*/
+/*- in Quadrature.cc          ----------------------------------*/
+/*--------------------------------------------------------------*/
+void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E);
+
+void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
                                double OmegaMin, double OmegaMax,
                                double *TObjects, double TEnvironment,
-                               double AbsTol, double RelTol,
                                double *I, double *E);
 
-void EvaluateFrequencyIntegral2(SNEQData *SNEQD,
-                                double OmegaMin, double OmegaMax,
-                                double *TObjects, double TEnvironment,
-                                int Intervals, double *I, double *E);
+void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
+                               double OmegaMin, double OmegaMax,
+                               double *TObjects, double TEnvironment,
+                               int Intervals, double *I, double *E);
 
+void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
+                            double OmegaMin, double OmegaMax,
+                            double *TObjects, double TEnvironment,
+                            double *I, double *E);
+
+/*--------------------------------------------------------------*/
+/*- in SIPFT.cc ------------------------------------------------*/
+/*--------------------------------------------------------------*/
 void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
                       RWGSurface *BS, double R, int NumPoints,
                       cdouble Omega, bool NeedMatrix[NUMSIPFT],
                       HMatrix *MSIPFT[NUMSIPFT]);
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
+/*--------------------------------------------------------------*/
+/*- in PlotFlux.cc ---------------------------------------------*/
+/*--------------------------------------------------------------*/
 void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag);
 
 #endif
