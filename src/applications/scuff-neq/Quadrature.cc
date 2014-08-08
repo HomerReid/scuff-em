@@ -402,7 +402,7 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
   if (OmegaMax==-1.0)
    OmegaMax=OmegaMin;
   else if ( OmegaMax<=OmegaMin )
-   ErrExit("degenerate frequency window in GetOmegaIntegral_Cliff")
+   ErrExit("degenerate frequency window in GetOmegaIntegral_Cliff");
   else
    { if ( ! (OmegaMin<OmegaCliff && OmegaCliff<OmegaMax) )
       OmegaCliff = 0.5*(OmegaMin + OmegaMax );
