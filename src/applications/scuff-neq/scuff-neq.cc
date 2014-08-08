@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
   char *TempStrings[2*MAXTEMPS];     int nTempStrings;
 
   /*--------------------------------------------------------------*/
-  double AbsTol=0.0;
+  double AbsTol=1.0e-8;
   double RelTol=5.0e-2;
   int Intervals=25.0;                int nIntervals=0;
    
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
      {"OmegaMin",       PA_DOUBLE,  1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
      {"OmegaMax",       PA_DOUBLE,  1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
      {"OmegaQuadrature",PA_STRING,  1, 1,       (void *)&OQString,   0,             "quadrature method for omega integral"},
-     {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,     0,             "absolute tolerance for adaptive frequency quadrature"},
+     {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,     0,             "absolute tolerance for adaptive/cliff frequency quadrature"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,     0,             "relative tolerance for adaptive/cliff frequency quadrature"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,  &nIntervals,   "number of intervals for TrapSimp frequency quadrature"},
 /**/

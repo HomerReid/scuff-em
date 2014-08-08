@@ -209,6 +209,9 @@ int GetOmegaIntegrand(unsigned ndim, const double *x, void *params,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+#define MINOMEGA 1.0e-4
+  if (Omega<MINOMEGA)
+   Omega=MINOMEGA;
   GetFlux(SNEQD, Omega, fval);
   for(unsigned int nf=0; nf<fdim; nf++)
    fval[nf]*=Jacobian;
@@ -418,8 +421,9 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
   /***************************************************************/
   /***************************************************************/
   char *ICFLogFile = vstrdup("%s.ICFLog",SNEQD->FileBase);
-  IntegrateCliffFunction(GetOmegaIntegrand, (void *)SNEQD, fdim,
-                         OmegaMin, OmegaMax, OmegaCliff, SNEQD->RelTol, I, E,
+  IntegrateCliffFunction(GetOmegaIntegrand, (void *)Data, fdim,
+                         OmegaMin, OmegaMax, OmegaCliff, 
+                         SNEQD->AbsTol, SNEQD->RelTol, I, E,
                          ICFLogFile);
 
 }

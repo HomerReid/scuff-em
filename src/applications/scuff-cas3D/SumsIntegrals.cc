@@ -377,7 +377,8 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
       {
         IntegrateCliffFunction(urIntegrand, (void *)SC3D, SC3D->NTNQ,
                                0.0, 0.5*sqrt(2.0), 0.0,
-                               SC3D->RelTol, EFT, Error, 
+                               SC3D->AbsTol, SC3D->RelTol, 
+                               EFT, Error, 
                                "urIntegrand.ICFLog");
       };
    
@@ -575,7 +576,8 @@ void GetXiIntegral_Cliff(SC3Data *SC3D, double *I, double *E)
   char *ICFLogFile = vstrdup("%s.ICFLog",SC3D->FileBase);
   double XiMin = SC3D->XiMin;
   IntegrateCliffFunction(GetXiIntegrand3, (void *)SC3D, SC3D->NTNQ,
-                         XiMin, 0.0, XiCliff, SC3D->RelTol, I, E,
+                         XiMin, 0.0, XiCliff, 
+                         SC3D->AbsTol, SC3D->RelTol, I, E,
                          ICFLogFile);
 }
 
