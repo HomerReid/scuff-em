@@ -243,6 +243,8 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
   double *AllValues   = SC3D->UTIntegralBuffer[0];
   double *OuterValues = SC3D->UTIntegralBuffer[1];
   double *Error       = new double[nFun];
+  double AbsTol       = SC3D->AbsTol;
+  double RelTol       = SC3D->RelTol;
 
   /***************************************************************/
   /***************************************************************/
@@ -280,16 +282,23 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
       memcpy(OuterValues, AllValues, ( (1<<(p-1)) + 1 )*nFun*sizeof(double));
       
      // determine whether or not that was sufficiently accurate
-     double MaxRelError = Error[0] / fabs(Result[0]);
-     for(int nf=1; nf<nFun; nf++)
-      MaxRelError = fmax(MaxRelError, Error[nf] / fabs(Result[nf]) );
+     double MaxAbsError=0.0, MaxRelError=0.0; 
+     for(int nf=0; nf<nFun; nf++)
+      { 
+        MaxAbsError = fmax(MaxAbsError, Error[nf]);
 
-     if (MaxRelError < SC3D->RelTol) 
+        // entries whose absolute error is less than AbsTol
+        // are not considered in the competition for MaxRelError 
+        if ( Error[nf] > AbsTol )
+         MaxRelError = fmax(MaxRelError, Error[nf] / fabs(Result[nf]) );
+      };
+
+     if ( (MaxAbsError < AbsTol) || (MaxRelError < RelTol) )
       Converged=true;
 
      /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      if (LogFile)
-      { fprintf(LogFile,"-- p=%i: MRE=%e (Convhrged=%i)\n",p,MaxRelError,Converged ? 1 : 0);
+      { fprintf(LogFile,"-- p=%i: MAE=%e MRE=%e (Converged=%i)\n",p,MaxAbsError,MaxRelError,Converged ? 1 : 0);
         for(int nf=0; nf<nFun; nf++)
          fprintf(LogFile," %i %+e %e \n",nf,Result[nf],Error[nf]);
         fprintf(LogFile,"\n\n");
