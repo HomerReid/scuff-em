@@ -669,11 +669,11 @@ void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN,
   // we assume that all cubature points lie in the same region 
   // of the scuff geometry, so we use the first point in the rule
   // to determine which region that is and look up its eps/mu
-  double X[3];
-  X[0]=CRMatrix->GetEntryD(0,1);
-  X[1]=CRMatrix->GetEntryD(0,2);
-  X[2]=CRMatrix->GetEntryD(0,3);
-  int RegionIndex=G->GetRegionIndex(X);
+  double XX[3];
+  XX[0]=CRMatrix->GetEntryD(0,1);
+  XX[1]=CRMatrix->GetEntryD(0,2);
+  XX[2]=CRMatrix->GetEntryD(0,3);
+  int RegionIndex=G->GetRegionIndex(XX);
   cdouble EpsRel, MuRel;
   G->RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
   double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;

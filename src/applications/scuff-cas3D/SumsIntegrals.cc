@@ -260,6 +260,12 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
   if (SC3D->BZSymmetry)
    ThetaMax=0.25*M_PI;
 
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  FILE *LogFile=0;
+  LogFile = vfopen("%s.UTILog","w",SC3D->FileBase);
+  fprintf(LogFile,"\n\n*\n*Estimating uTheta integral at ur=%e\n*\n",ur);
+  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   int pMin = (SC3D->BZSymmetry ? 2 : 3);
   int pMax = 7;
   bool Converged = false;
@@ -280,7 +286,22 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
 
      if (MaxRelError < SC3D->RelTol) 
       Converged=true;
+
+     /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     if (LogFile)
+      { fprintf(LogFile,"-- p=%i: MRE=%e (Convhrged=%i)\n",p,MaxRelError,Converged ? 1 : 0);
+        for(int nf=0; nf<nFun; nf++)
+         fprintf(LogFile," %i %+e %e \n",nf,Result[nf],Error[nf]);
+        fprintf(LogFile,"\n\n");
+        fflush(LogFile);
+      };
+     /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
    };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (LogFile) 
+ fclose(LogFile);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   
   if (SC3D->BZSymmetry)
    { for (int nf=0; nf<nFun; nf++)
