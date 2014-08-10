@@ -264,7 +264,7 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
 
   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   FILE *LogFile=0;
-  LogFile = vfopen("%s.UTILog","w",SC3D->FileBase);
+  LogFile = vfopen("%s.GUTILog","a",SC3D->FileBase);
   fprintf(LogFile,"\n\n*\n*Estimating uTheta integral at ur=%e\n*\n",ur);
   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
@@ -355,6 +355,92 @@ int urIntegrand(unsigned ndim, const double *x, void *params,
   return 0;
 }
 
+/************************************************************/
+/* perform brillouin-zone integration.                      */
+/*                                                          */
+/* (1/V_{BZ}) \int_{BZ} f( \vec k ) d k                     */
+/*  =   \int_0^1     f[ \vec k(u) ] du                      */
+/*  = 2 \int_0^{1/2} f[ \vec k(u) ] du                      */
+/*                                                          */
+/*    (in the 1D case, with k(u)  = u\Gamma_1)              */
+/*                                                          */
+/*  =   \int_0^1 \int_0^1         f[ \vec k(u,v) ] du dv    */
+/*  = 4 \int_0^{1/2} \int_0^{1/2} f[ \vec k(u,v) ] du dv    */
+/*                                                          */
+/*    (in the 2D case, with k(u,v) = u\Gamma_1 + v\Gamma_2  */
+/*                                                          */
+/* note that the the 1/V_{BZ} prefactor is cancelled by the */
+/* Jacobian of the variable transformation.                 */
+/************************************************************/
+void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT) 
+{
+  int LDim = SC3D->G->LDim;
+
+  double *Error = new double[SC3D->NTNQ];
+     
+  SC3D->Xi = Xi;
+  if ( SC3D->BZQMethod == QMETHOD_ADAPTIVE )
+   {
+     double Lower[2] = {0.0, 0.0};
+     double Upper[2] = {0.5, 0.5};
+     pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 
+               LDim, Lower, Upper, SC3D->MaxkBlochPoints, 
+               SC3D->AbsTol, SC3D->RelTol, 
+               ERROR_INDIVIDUAL, EFT, Error);
+   }
+  else // BZQMethod == QMETHOD_CLIFF 
+   {
+     // Sample the integrand at the origin ('Gamma point')
+     // and at the point in the irreducible BZ lying
+     // maximally distant from the origin ('M point.')
+     // If the values are not too different, assume the
+     // integrand will be nonzero throughout an appreciable
+     // portion of the Brillouin zone and use ECC2 cubature.
+     // Otherwise assume the integrand is sharply peaked
+     // near the Gamma point and use Cliff quadrature.
+     //double *fGamma = EFT;
+     //double *fM     = Error;
+     //double xGamma[2] = {0.0, 0.0};
+     //double xM[2]     = {0.5, 0.5};
+     //kBlochIntegrand(LDim, xGamma, (void *)SC3D, SC3D->NTNQ, fGamma);
+     //kBlochIntegrand(LDim, xM,     (void *)SC3D, SC3D->NTNQ, fM);
+
+     double uMax = (LDim==1) ? 0.5 : 0.5*sqrt(2.0);
+     IntegrateCliffFunction(urIntegrand, (void *)SC3D, SC3D->NTNQ,
+                            0.0, uMax, 0.5*uMax,
+                            SC3D->AbsTol, SC3D->RelTol, EFT, Error,
+                            "urIntegrand.ICFLog");
+   };
+   
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double PreFactor = (LDim==2) ? 4.0 : 2.0;
+  for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
+   { 
+     EFT[ntnq] *= PreFactor;
+     Error[ntnq] *= PreFactor;
+
+     if ( Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]) )
+      Warn("potentially large errors (Q%i: %i %%) in BZ integration",
+            ntnq,ceil(100.0*Error[ntnq]/fabs(EFT[ntnq])));
+   };
+     
+  /***************************************************************/
+  /* write data to .byXi file                                    */
+  /***************************************************************/
+  FILE *f=fopen(SC3D->ByXiFileName,"a");
+  for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
+   { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
+     for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
+      fprintf(f,"%.8e %.8e ",EFT[ntnq],Error[ntnq]);
+     fprintf(f,"\n");
+   };
+  fclose(f);
+
+  delete[] Error;
+}
+
 /***************************************************************/
 /* get the contribution of a single imaginary angular frequency*/
 /* to the Casimir quantities. For non-periodic geometries, this*/
@@ -367,77 +453,10 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int LDim = SC3D->G->LDim;
-  if (LDim==0)
-   { 
-     GetCasimirIntegrand(SC3D, Xi, 0, EFT);
-   }
+  if (SC3D->G->LDim==0)
+   GetCasimirIntegrand(SC3D, Xi, 0, EFT);
   else
-   { 
-     /************************************************************/
-     /* perform brillouin-zone integration.                      */
-     /*                                                          */
-     /* (1/V_{BZ}) \int_{BZ} f( \vec k ) d k                     */
-     /*  =   \int_0^1     f[ \vec k(u) ] du                      */
-     /*  = 2 \int_0^{1/2} f[ \vec k(u) ] du                      */
-     /*                                                          */
-     /*    (in the 1D case, with k(u)  = u\Gamma_1)              */
-     /*                                                          */
-     /*  =   \int_0^1 \int_0^1         f[ \vec k(u,v) ] du dv    */
-     /*  = 4 \int_0^{1/2} \int_0^{1/2} f[ \vec k(u,v) ] du dv    */
-     /*                                                          */
-     /*    (in the 2D case, with k(u,v) = u\Gamma_1 + v\Gamma_2  */
-     /*                                                          */
-     /* note that the the 1/V_{BZ} prefactor is cancelled by the */
-     /* Jacobian of the variable transformation.                 */
-     /************************************************************/
-     double Lower[2] = {0.0, 0.0};
-     double Upper[2] = {0.5, 0.5};
-     double *Error = new double[SC3D->NTNQ];
-     
-     SC3D->Xi = Xi;
-     if ( SC3D->BZQMethod == QMETHOD_ADAPTIVE )
-      {
-        pcubature(SC3D->NTNQ, kBlochIntegrand, (void *)SC3D, 
-                  LDim, Lower, Upper, SC3D->MaxkBlochPoints, 
-                  SC3D->AbsTol, SC3D->RelTol, 
-                  ERROR_INDIVIDUAL, EFT, Error);
-      }
-     else // BZQMethod == QMETHOD_CLIFF 
-      {
-        IntegrateCliffFunction(urIntegrand, (void *)SC3D, SC3D->NTNQ,
-                               0.0, 0.5*sqrt(2.0), 0.0,
-                               SC3D->AbsTol, SC3D->RelTol, 
-                               EFT, Error, 
-                               "urIntegrand.ICFLog");
-      };
-   
-     double PreFactor = (LDim==2) ? 4.0 : 2.0;
-     for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
-      { 
-        EFT[ntnq] *= PreFactor;
-        Error[ntnq] *= PreFactor;
-
-        if ( Error[ntnq] > 10.0*SC3D->RelTol*fabs(EFT[ntnq]) )
-         Warn("potentially large errors (Q%i: %i %%) in BZ integration",
-               ntnq,ceil(100.0*Error[ntnq]/fabs(EFT[ntnq])));
-      };
-     
-     /***************************************************************/
-     /* write data to .byXi file                                    */
-     /***************************************************************/
-     FILE *f=fopen(SC3D->ByXiFileName,"a");
-     for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
-      { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
-        for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++) 
-         fprintf(f,"%.8e %.8e ",EFT[ntnq],Error[ntnq]);
-        fprintf(f,"\n");
-        fflush(f);
-     };
-     fclose(f);
-
-     delete[] Error;
-   };
+   GetBZIntegral(SC3D, Xi, EFT);
 
 }
 

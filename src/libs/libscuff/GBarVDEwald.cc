@@ -425,11 +425,13 @@ void GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
                     double Gamma[2][2], int LDim,
                     double E, int *pnCells, cdouble *Sum)
 { 
+  memset(Sum,0,NSUM*sizeof(cdouble));
+  if (E==0.0) return;
+
   /***************************************************************/
   /* start by summing the contributions of a ``first round''     */
   /* of cells near the origin                                    */
   /***************************************************************/
-  memset(Sum,0,NSUM*sizeof(cdouble));
   int nCells=0;
   if (LDim==1)
    { for (int m=-NFIRSTROUND; m<=NFIRSTROUND; m++)
@@ -508,6 +510,50 @@ void GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
 }
 
 /***************************************************************/
+/* get the contributions of a single real-space lattice cell to*/
+/* the FULL periodic green's function (no ewald decomposition).*/
+/* If ValueOnly==true, derivative calculation is skipped.      */
+/***************************************************************/
+void AddGFull(double R[3], cdouble k, double kBloch[2],
+              double Lx, double Ly, cdouble *Sum, 
+              bool ValueOnly=false)
+{ 
+
+  double RmL[3];
+  double r2, r;
+  cdouble PhaseFactor, IKR, Phi, Psi, Zeta, Upsilon;
+   
+  PhaseFactor=exp( II*(Lx*kBloch[0] + Ly*kBloch[1]) );
+
+  RmL[0]=R[0] - Lx;
+  RmL[1]=R[1] - Ly;
+  RmL[2]=R[2];
+
+  r2=RmL[0]*RmL[0] + RmL[1]*RmL[1] + RmL[2]*RmL[2];
+  r=sqrt(r2);
+  if ( r < 1.0e-8 )
+   return;
+  IKR=II*k*r;
+  Phi=exp(IKR)/(4.0*M_PI*r);
+  Sum[0] += PhaseFactor * Phi;
+
+  if (ValueOnly) return;
+
+  Psi=(IKR-1.0)*Phi/r2;
+  Zeta=(3.0 + IKR*(-3.0 + IKR))*Phi/(r2*r2);
+  Upsilon=(-15.0 + IKR*(15.0 + IKR*(-6.0 + IKR)))*Phi/(r2*r2*r2);
+
+  Sum[1] += PhaseFactor * RmL[0] * Psi;
+  Sum[2] += PhaseFactor * RmL[1] * Psi;
+  Sum[3] += PhaseFactor * RmL[2] * Psi;
+  Sum[4] += PhaseFactor * RmL[0] * RmL[1] * Zeta;
+  Sum[5] += PhaseFactor * RmL[0] * RmL[2] * Zeta;
+  Sum[6] += PhaseFactor * RmL[1] * RmL[2] * Zeta;
+  Sum[7] += PhaseFactor * RmL[0] * RmL[1] * RmL[2] * Upsilon;
+ 
+}
+
+/***************************************************************/
 /* add the contribution of a single direct lattice vector L    */
 /* to the direct-lattice sum, where L = n1*L1 + n2*L2.         */
 /*                                                             */
@@ -542,10 +588,6 @@ void AddGShort(double *R, cdouble k, double *kBloch,
                int n1, int n2, double *LBV[2], int LDim,
                double E, cdouble *Sum)
 { 
-  cdouble PhaseFactor; 
-  double RmL[3], rml2, rml, rml3, rml4, rml5, rml6, rml7;
-  cdouble g2p, g3p, g2m, g3m, g4, ggPgg, ggMgg, Term;
-
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -558,7 +600,19 @@ void AddGShort(double *R, cdouble k, double *kBloch,
    { L[0] = n1*LBV[0][0] + n2*LBV[1][0];
      L[1] = n1*LBV[0][1] + n2*LBV[1][1];
    };
-  PhaseFactor=exp( II * (kBloch[0]*L[0] + kBloch[1]*L[1]) ) / (8.0*M_PI);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (E==0.0)
+   { AddGFull(R, k, kBloch, L[0], L[1], Sum);
+     return;
+   };
+
+  cdouble PhaseFactor=exp( II * (kBloch[0]*L[0] + kBloch[1]*L[1]) ) / (8.0*M_PI);
+
+  double RmL[3], rml2, rml, rml3, rml4, rml5, rml6, rml7;
+  cdouble g2p, g3p, g2m, g3m, g4, ggPgg, ggMgg, Term;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -715,57 +769,15 @@ void GetGBarNearby(double *R, cdouble k, double *kBloch,
 }
 
 /***************************************************************/
-/* get the contributions of a single real-space lattice cell to*/
-/* the full periodic green's function (no ewald decomposition).*/
-/* If ValueOnly==true, derivative calculation is skipped.      */
-/***************************************************************/
-void AddGFull(double R[3], cdouble k, double kBloch[2],
-              double Lx, double Ly, cdouble *Sum, 
-              bool ValueOnly=false)
-{ 
-
-  double RmL[3];
-  double r2, r;
-  cdouble PhaseFactor, IKR, Phi, Psi, Zeta, Upsilon;
-   
-  PhaseFactor=exp( II*(Lx*kBloch[0] + Ly*kBloch[1]) );
-
-  RmL[0]=R[0] - Lx;
-  RmL[1]=R[1] - Ly;
-  RmL[2]=R[2];
-
-  r2=RmL[0]*RmL[0] + RmL[1]*RmL[1] + RmL[2]*RmL[2];
-  r=sqrt(r2);
-  if ( r < 1.0e-8 )
-   return;
-  IKR=II*k*r;
-  Phi=exp(IKR)/(4.0*M_PI*r);
-  Sum[0] += PhaseFactor * Phi;
-
-  if (ValueOnly) return;
-
-  Psi=(IKR-1.0)*Phi/r2;
-  Zeta=(3.0 + IKR*(-3.0 + IKR))*Phi/(r2*r2);
-  Upsilon=(-15.0 + IKR*(15.0 + IKR*(-6.0 + IKR)))*Phi/(r2*r2*r2);
-
-  Sum[1] += PhaseFactor * RmL[0] * Psi;
-  Sum[2] += PhaseFactor * RmL[1] * Psi;
-  Sum[3] += PhaseFactor * RmL[2] * Psi;
-  Sum[4] += PhaseFactor * RmL[0] * RmL[1] * Zeta;
-  Sum[5] += PhaseFactor * RmL[0] * RmL[2] * Zeta;
-  Sum[6] += PhaseFactor * RmL[1] * RmL[2] * Zeta;
-  Sum[7] += PhaseFactor * RmL[0] * RmL[1] * RmL[2] * Upsilon;
- 
-}
-
-/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 #define PI32 5.5683279968317078453 // pi^{3/2}
 void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
                        int n1, int n2, double *LBV[2], int LDim, 
                        double E, cdouble *Sum)
-{
+{  
+  if (E==0.0) return;
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
