@@ -279,7 +279,7 @@ void GetuThetaIntegral(double ur, SC3Data *SC3D, double *Result)
          AllValues, (p==pMin ? 0 : OuterValues ), Result, Error);
 
      if (p<pMax)
-      memcpy(OuterValues, AllValues, ( (1<<(p-1)) + 1 )*nFun*sizeof(double));
+      memcpy(OuterValues, AllValues, ( (1<<p) + 1 )*nFun*sizeof(double));
       
      // determine whether or not that was sufficiently accurate
      double MaxAbsError=0.0, MaxRelError=0.0; 
