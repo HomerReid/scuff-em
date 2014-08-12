@@ -86,7 +86,13 @@ typedef struct SC3Data
    int BZQMethod;
    bool BZSymmetry;
 
-   int *Converged;
+   // XiConverged[nf] means that the Xi integral or Matsubara
+   // sum for the nfth integrand component has already
+   // converged.
+   // BZConverged[nf] means that the Brillouin-zone integral
+   // for that quantity has already converged.
+   bool *XiConverged;
+   bool *BZConverged;
 
    // storage of outer integration variables for nested quadratures
    double Xi, ur;

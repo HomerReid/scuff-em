@@ -328,12 +328,13 @@ if (LogFile)
 /***************************************************************/
 /***************************************************************/
 int urIntegrand(unsigned ndim, const double *x, void *params,
-                unsigned fdim, double *fval)
+                unsigned fdim, const bool *Skip, double *fval)
 {
   (void) ndim; // unused
 
   SC3Data *SC3D = (SC3Data *)params;
   double Xi     = SC3D->Xi;
+  memcpy(SC3D->BZConverged, Skip, fdim*sizeof(bool));
 
   if (SC3D->G->LDim==2)
    { 
@@ -372,7 +373,7 @@ int urIntegrand(unsigned ndim, const double *x, void *params,
 /* note that the the 1/V_{BZ} prefactor is cancelled by the */
 /* Jacobian of the variable transformation.                 */
 /************************************************************/
-void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT) 
+void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
 {
   int LDim = SC3D->G->LDim;
 
@@ -390,26 +391,13 @@ void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
    }
   else // BZQMethod == QMETHOD_CLIFF 
    {
-     // Sample the integrand at the origin ('Gamma point')
-     // and at the point in the irreducible BZ lying
-     // maximally distant from the origin ('M point.')
-     // If the values are not too different, assume the
-     // integrand will be nonzero throughout an appreciable
-     // portion of the Brillouin zone and use ECC2 cubature.
-     // Otherwise assume the integrand is sharply peaked
-     // near the Gamma point and use Cliff quadrature.
-     //double *fGamma = EFT;
-     //double *fM     = Error;
-     //double xGamma[2] = {0.0, 0.0};
-     //double xM[2]     = {0.5, 0.5};
-     //kBlochIntegrand(LDim, xGamma, (void *)SC3D, SC3D->NTNQ, fGamma);
-     //kBlochIntegrand(LDim, xM,     (void *)SC3D, SC3D->NTNQ, fM);
-
+     char ICFLogFile[100]; 
+     snprintf(ICFLogFile, 100,"%s.urIntegralLog",SC3D->FileBase);
      double uMax = (LDim==1) ? 0.5 : 0.5*sqrt(2.0);
      IntegrateCliffFunction(urIntegrand, (void *)SC3D, SC3D->NTNQ,
                             0.0, uMax, 0.5*uMax,
                             SC3D->AbsTol, SC3D->RelTol, EFT, Error,
-                            "urIntegrand.ICFLog");
+                            ICFLogFile);
    };
    
   /***************************************************************/
@@ -448,7 +436,7 @@ void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
 /* periodic geometries, this means integrating over the        */
 /* Brillouin zone at the Xi value in question.                 */
 /***************************************************************/
-void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT) 
+void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
 {
   /***************************************************************/
   /***************************************************************/
@@ -489,7 +477,7 @@ int GetXiIntegrand2(unsigned ndim, const double *x, void *params,
 /* wrapper with correct prototype for IntegrateCliffFunction   */
 /***************************************************************/
 int GetXiIntegrand3(unsigned ndim, const double *x, void *params, 
-                    unsigned fdim, double *fval)
+                    unsigned fdim, const bool *Skip, double *fval)
 {
   (void) ndim; // unused
   (void) fdim; // unused
@@ -497,6 +485,7 @@ int GetXiIntegrand3(unsigned ndim, const double *x, void *params,
   double Xi = x[0];
   SC3Data *SC3D = (SC3Data *)params;
   double *EFT = fval;
+  memcpy(SC3D->XiConverged, Skip, fdim*sizeof(bool));
 
   GetXiIntegrand(SC3D, Xi, EFT);
 
@@ -622,7 +611,8 @@ void GetXiIntegral_Cliff(SC3Data *SC3D, double *I, double *E)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  char *ICFLogFile = vstrdup("%s.XiIntegralLog",SC3D->FileBase);
+  char ICFLogFile[100];
+  snprintf(ICFLogFile, 100, "%s.XiIntegralLog",SC3D->FileBase);
   double XiMin = SC3D->XiMin;
   IntegrateCliffFunction(GetXiIntegrand3, (void *)SC3D, SC3D->NTNQ,
                          XiMin, 0.0, XiCliff, 
@@ -655,8 +645,8 @@ void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Err
   double kT = BOLTZMANNK * Temperature;
 
   memset(EFT,0,NTNQ*sizeof(double));
-  memset(SC3D->Converged,0,NTNQ*sizeof(int));
   memset(ConvergedIters,0,NTNQ*sizeof(int));
+  memset(SC3D->XiConverged,0,NTNQ*sizeof(bool));
 
   Log("Beginning Matsubara sum at T=%g kelvin...",Temperature);
 
@@ -714,7 +704,7 @@ void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Err
      /*********************************************************************/
      for(AllConverged=1, ntnq=0; ntnq<NTNQ; ntnq++)
       { 
-        if ( SC3D->Converged[ntnq] ) 
+        if ( SC3D->XiConverged[ntnq] )
          continue;
 
         Error[ntnq] = fabs(EFT[ntnq] - LastEFT[ntnq]);
@@ -725,7 +715,7 @@ void GetMatsubaraSum(SC3Data *SC3D, double Temperature, double *EFT, double *Err
          ConvergedIters[ntnq]=0;
 
         if ( ConvergedIters[ntnq]>=2 )
-         SC3D->Converged[ntnq]=1;
+         SC3D->XiConverged[ntnq]=true;
         else  
          AllConverged=0;
       }; 

@@ -181,7 +181,7 @@ typedef struct GOIData
  } GOIData;
 
 int GetOmegaIntegrand(unsigned ndim, const double *x, void *params,
-                      unsigned fdim, double *fval)
+                      unsigned fdim, const bool *Skip, double *fval)
 {
   (void) ndim; // unused
 
@@ -192,6 +192,11 @@ int GetOmegaIntegrand(unsigned ndim, const double *x, void *params,
   bool Infinite       = Data->Infinite;
   double *TSurfaces   = Data->TSurfaces;
   double TEnvironment = Data->TEnvironment;
+
+  if (Skip)
+   memcpy(SNEQD->OmegaConverged, Skip, fdim*sizeof(bool));
+  else
+   memset(SNEQD->OmegaConverged, 0, fdim*sizeof(bool));
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -218,6 +223,12 @@ int GetOmegaIntegrand(unsigned ndim, const double *x, void *params,
   PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fval);
 
   return 0;
+}
+
+int GetOmegaIntegrand2(unsigned ndim, const double *x, void *params,
+                       unsigned fdim, double *fval)
+{
+  return GetOmegaIntegrand(ndim, x, params, fdim, 0, fval);
 }
 
 /***************************************************************/
@@ -258,7 +269,7 @@ void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
   int fdim = NT*NS*NS*NQ;
   double AbsTol = SNEQD->AbsTol;
   double RelTol = SNEQD->RelTol;
-  pcubature_log(fdim, GetOmegaIntegrand, (void *)Data, 1,
+  pcubature_log(fdim, GetOmegaIntegrand2, (void *)Data, 1,
                 &OmegaMin, &OmegaMax, 1000, 
                 AbsTol, RelTol, ERROR_INDIVIDUAL,
                 I, E, "scuff-neq.SGJClog");
@@ -410,7 +421,6 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
    { if ( ! (OmegaMin<OmegaCliff && OmegaCliff<OmegaMax) )
       OmegaCliff = 0.5*(OmegaMin + OmegaMax );
    };
-
 
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;

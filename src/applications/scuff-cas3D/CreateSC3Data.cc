@@ -73,7 +73,11 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
 
   SC3D->NTNQ = SC3D->NumTransformations * SC3D->NumQuantities;
 
-  SC3D->Converged = (int *)mallocEC( (SC3D->NTNQ) * sizeof(int) );
+  SC3D->XiConverged = (bool *)mallocEC( (SC3D->NTNQ) * sizeof(bool) );
+  if (G->LDim==0)
+   SC3D->BZConverged = 0;
+  else
+   SC3D->BZConverged = (bool *)mallocEC( (SC3D->NTNQ) * sizeof(bool) );
 
   /*--------------------------------------------------------------*/
   /*- compute a basis for the reciprocal lattice -----------------*/

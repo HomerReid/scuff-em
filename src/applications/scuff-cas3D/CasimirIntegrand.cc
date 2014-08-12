@@ -212,7 +212,8 @@ void Factorize(SC3Data *SC3D)
 /*  ...                                                        */
 /*  EFT[2*N-1] = yforce integrand (spatial transformation N)   */
 /***************************************************************/
-void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
+void GetCasimirIntegrand(SC3Data *SC3D, double Xi, 
+                         double *kBloch, double *EFT)
 { 
   /***************************************************************/
   /* attempt to bypass the calculation by reading data from a    */
@@ -325,10 +326,11 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
      /******************************************************************/
      /* skip if all quantities are already converged at this transform */
      /******************************************************************/
-     int AllConverged=1;
-     for(int nq=0; AllConverged==1 && nq<SC3D->NumQuantities; nq++)
-      if ( !SC3D->Converged[ ntnq + nq ] )
-       AllConverged=0;
+     bool AllConverged=true;
+     for(int nq=0; AllConverged && nq<SC3D->NumQuantities; nq++)
+      { AllConverged &= SC3D->XiConverged[ntnq+nq];
+        if (PBC) AllConverged &= SC3D->BZConverged[ntnq+nq];
+      };
      if (AllConverged)
       { Log("All quantities already converged at Tag %s",Tag);
 

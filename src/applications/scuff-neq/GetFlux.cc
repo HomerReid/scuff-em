@@ -403,6 +403,11 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   for(int nt=0; nt<SNEQD->NumTransformations; nt++)
    { 
      /*--------------------------------------------------------------*/
+     /*- insert here code to skip this transformation if the integral*/
+     /*- has already converged                                       */
+     /*--------------------------------------------------------------*/
+
+     /*--------------------------------------------------------------*/
      /*- transform the geometry -------------------------------------*/
      /*--------------------------------------------------------------*/
      Tag=SNEQD->GTCList[nt]->Tag;
