@@ -1,3 +1,22 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+#include <stdlib.h>
 #include <stdlib.h>
 #include <math.h>
 
@@ -932,37 +951,6 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
      for(int ns=0; ns<NSUM; ns++)
       GBarVD[ns] -= GLongInner[ns];
    };
-
-  /***************************************************************/
-  /* detect evaluation points at the origin or lattice-equivalent*/
-  /* to the origin so that we can explicitly zero out the        */
-  /* appropriate derivatives in this case. NOTE 20140425: This   */
-  /* step is perhaps not needed now that we have the improved    */
-  /* treatment of evaluation points on lattice sites.            */
-  /***************************************************************/
-  // convert R to lattice basis, RL = inv(LBV') * R; note LBV is transposed
-#if 0
-  double RL[2];
-  RL[0] = (Gamma[0][0]*R[0] + Gamma[1][0]*R[1]) / (2.0*M_PI);
-  if (LDim==2)
-   RL[1] = (Gamma[0][1]*R[0] + Gamma[1][1]*R[1]) / (2.0*M_PI);
-  else
-   RL[1] = 2.0;
-
-  bool ZeroCoordinate[3]={false, false, false};
-  const double tol = 1e-8;
-  ZeroCoordinate[0] = fabs(RL[0]) < tol || fabs( (fabs(RL[0]) - 1.0) ) < tol;
-  ZeroCoordinate[1] = fabs(RL[1]) < tol || fabs( (fabs(RL[1]) - 1.0) ) < tol;
-  ZeroCoordinate[2] = fabs(R[2]) < tol;
-
-  if ( ZeroCoordinate[0] )
-   GBarVD[1]=GBarVD[4]=GBarVD[5]=GBarVD[7]=0.0;
-  if ( ZeroCoordinate[1] )
-   GBarVD[2]=GBarVD[4]=GBarVD[6]=GBarVD[7]=0.0;
-  if ( ZeroCoordinate[2] )
-   GBarVD[3]=GBarVD[5]=GBarVD[6]=GBarVD[7]=0.0;
-#endif
-
 
 } 
 

@@ -121,29 +121,6 @@ void AssembleInnerPPIIntegrand_Interp(double wp, cdouble k, double *R, double *F
   else
    ZFlipped=false;
 
-#if 0
-DELETEME 20140718
-  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  double XMin, XMax;
-
-  XMin = GInterp->X1Min;
-  XMax = XMin + ((double)(GInterp->N1-1)) * (GInterp->DX1);
-  if ( R[0]<XMin || R[0]>XMax )
-   Warn(" X=%e not in [%e, %e]\n",R[0],XMin,XMax);
-
-  XMin = GInterp->X2Min;
-  XMax = XMin + ((double)(GInterp->N2-1)) * (GInterp->DX2);
-  if ( R[1]<XMin || R[1]>XMax )
-   Warn(" Y=%e not in [%e, %e]\n",R[1],XMin,XMax);
-
-  XMin = GInterp->X2Min;
-  XMax = XMin + ((double)(GInterp->N2-1)) * (GInterp->DX3);
-  if ( R[2]<XMin || R[2]>XMax )
-   Warn(" Z=%e not in [%e, %e]\n",R[2],XMin,XMax);
-#endif
-
   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
