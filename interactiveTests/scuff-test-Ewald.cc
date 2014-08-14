@@ -250,6 +250,7 @@ int main(int argc, char *argv[])
      printf("          --kBloch xx xx \n");
      printf("          --E      xx\n");
      printf("          --RetainInnerCells\n");
+     printf("          --DoFull\n");
      printf("          --SkipBF\n");
      printf("          --Derivatives\n");
      printf("          --nMax\n");
@@ -273,6 +274,7 @@ int main(int argc, char *argv[])
      double E = -1.0;
      bool ExcludeInnerCells=true;
      bool SkipBF=false;
+     bool DoFull=false;
      bool Derivatives=false;
      int nMax=100;
 
@@ -310,6 +312,9 @@ int main(int argc, char *argv[])
      for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--SkipBF") )
        SkipBF=true;
+     for(int nt=0; nt<NumTokens; nt++)
+      if ( !strcasecmp(Tokens[nt],"--DoFull") )
+       DoFull=true;
      for(int nt=0; nt<NumTokens; nt++)
       if ( !strcasecmp(Tokens[nt],"--Derivatives") )
        Derivatives=true;
@@ -373,6 +378,17 @@ int main(int argc, char *argv[])
       };
      EwaldTime+=Toc();
      printf(" Ewald:   %s (%.0g us)\n",CD2S(GBarEwald[0]),EwaldTime*1e6);
+
+     if (DoFull)
+      { 
+        cdouble GFull[NSUM];
+        Tic();
+        GetGBarNearby(R, k, kBloch, LBVP, LDim,
+                      0.0, ExcludeInnerCells, &NearbyCells, GFull);
+        double FullTime=Toc();
+
+        printf(" Full:    %s (%.0g us)\n",CD2S(GFull[0]),FullTime*1e6);
+      };
    
      /*--------------------------------------------------------------*/
      /*- do the computation using the BF method if that was requested*/
