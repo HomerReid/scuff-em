@@ -13,6 +13,7 @@
 \newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
 \newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
 \newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
+%\newcommand{\vbchi}{\boldsymbol{\chi}}
 
 \graphicspath{{figures/}}
 
@@ -324,13 +325,26 @@ M_{\alpha\beta}\ITFlux(\vb x, \vbhat{n})
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection*{Power, force, and torque from surface-current bilinears}
 
-Noting that the $\vb x$ and $\vbhat{n}$ dependence of
+The main quantities of interest in {\sc scuff-neq} are the
+power, force, or torque (PFT) on individual bodies in a geometry.
+There are actually three separate ways to derive surface-current 
+bilinear expressions for these quantities, which we here consider 
+in turn.
+
+\subsubsection*{Dense surface-integral PFT bilinears}
+
+The simplest way to obtain surface-current bilinears for the
+total PFT on one or more bodies is simply to integrate the 
+spatially-resolved fluxes of the previous section over a closed
+bounding surface $\mc S$ containing the bodies.
+Indeed, noting that the $\vb x$ and $\vbhat{n}$ dependence of
 the flux expressions (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}),
 and (\ref{ITFluxVMVP}) is entirely contained in the $\vb M$
 matrices, it is easy to integrate those expressions over
-closed surfaces to obtain surface-current bilinears
-expressing the total power or momentum transferred to 
-bodies.
+$\mc S$, then pull the surface-current vectors $\vb c$
+outside the integral to identify what we shall call
+the \textit{dense surface-integral PFT} (DSIPFT) matrices. 
+
 For example, the total power absorbed by material bodies
 contained within a closed surface $\mc S$
 is given by integrating the LHS of (\ref{PFluxVMVP})
@@ -374,7 +388,7 @@ to (\ref{MPSEntries}) with $\bmc N\supt{P} \to \bmc N\IF, \bmc N\IT.$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection*{Sparse alternatives to dense matrices}
+\subsubsection*{Sparse surface-integral PFT bilinears}
 
 For some quantities of interest it is possible to write alternative
 surface-current bilinears that compute the same quantities as 
@@ -393,6 +407,43 @@ $$
 where the $\vb O$ matrices are sparse ``overlap'' matrices
 with nonzero entries only for pairs of basis functions
 with overlapping support.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Volume-integral PFT bilinears}
+
+\begin{align*}
+P&=\text{Re }
+  \int_{\mc V} \bmc F^*(\vb x) \cdot \bmc J(\vb x) \, d\vb x
+\\
+&=
+  \int_{\mc V} \bmc F^*(\vb x) \vbchi(\vb x) \bmc F(\vb x)\, d\vb x
+\\
+&=\sum_{\alpha\beta} c_\alpha^*
+  \underbrace{
+  \Big[ \int_{\mc V} \bmc G_\alpha^*(\vb x) \vbchi(\vb x)
+                     \bmc G_\beta(\vb x) d\vb x
+  \Big] c_\beta
+             }_{\text{sym } \vb G}
+\\
+&= \vb c^\dagger \Big[ {\text{sym }\vb G} \Big] \vb c
+\intertext{Similarly,}
+F_i&=\frac{1}{\omega} \text{Im }
+  \int_{\mc V} \bmc F_i^*(\vb x) \cdot \bmc J(\vb x) \, d\vb x
+\\
+&= \vb c^\dagger 
+   \Big[ \frac{1}{\omega}{\text{sym }\partial_i \vb G} \Big] 
+   \vb c
+\\
+\intertext{Similarly,}
+\tau_i &= \frac{1}{\omega} \text{Im }
+  \int_{\mc V} \bmc F_\theta^*(\vb x) \cdot \bmc J(\vb x) \, d\vb x
+\\
+&= \vb c^\dagger 
+   \Big[ \frac{1}{\omega}{\text{sym }\partial_\theta \vb G} \Big] 
+   \vb c
+\end{align*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -489,9 +540,10 @@ aforementioned 6 basis functions associated with $\mc P.$
 %====================================================================%
 \appendix
 
-\section{Computation of dense PFT matrices}
+\section{Computation of DSIPFT PFT matrices}
 
 In Section \ref{PQsFromSCBsSection} we sketched expressions for
+the ``dense surface-integral PFT'' (DSIPFT)
 matrices $\{\vb M\PS, \vb M\IFS, \vb M\ITS\}$ which, when sandwiched
 between surface-current vectors $\vb c$, yield the total
 \{power, force, torque\} on objects contained within a bounding
@@ -527,6 +579,21 @@ for the surface $\mc S$ and $\vbhat{n}_n$ is the outward-pointing
 surface normal to $\mc S$ at $\vb x_n.$
  
 \subsection{Precomputation of field six-vectors}
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\section{Computation of VIPFT PFT matrices}
+
+\begin{align*}
+ \Big[\partial_i \vb G\Big]\supt{EE}_{\alpha \beta}
+&= \int\, d\vb x \, \int\, d\vb x^\prime \, 
+   b_{\alpha j}(\vb x) 
+   \,
+   \Gamma\supt{EE}_{ijk}(\vb x, \vb x^\prime)
+   \,
+   b_{\beta k}(\vb x^\prime)
+\end{align*}
 
 %====================================================================%
 %====================================================================%

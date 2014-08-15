@@ -43,17 +43,17 @@ void GBarVDPhi2D(double x, double Rho, void *UserData, double *PhiVD)
 
   cdouble GBarVD[8];
   GBarVDEwald(R, GBD->k, GBD->kBloch, GBD->LBV, GBD->LDim,
-              GBD->E, GBD->ExcludeInnerCells, GBarVD);
+              -1.0, GBD->ExcludeInnerCells, GBarVD);
  
   PhiVD[0] = real(GBarVD[0]); // real(G)
   PhiVD[1] = real(GBarVD[1]); // real(dGdX)
-  PhiVD[2] = real(GBarVD[2]); // real(dGdRho)
-  PhiVD[3] = real(GBarVD[4]); // real(dG2dXdRho)
+  PhiVD[2] = real(GBarVD[2]); // real(dGdY) = real(dGdRho)
+  PhiVD[3] = real(GBarVD[4]); // real(dG2dXdY) = real(dG2dXdRho)
 
-  PhiVD[4] = imag(GBarVD[0]); // real(G)
-  PhiVD[5] = imag(GBarVD[1]); // real(dGdX)
-  PhiVD[6] = imag(GBarVD[2]); // real(dGdRho)
-  PhiVD[7] = imag(GBarVD[4]); // real(dG2dXdRho)
+  PhiVD[4] = imag(GBarVD[0]); // imag(G)
+  PhiVD[5] = imag(GBarVD[1]); // imag(dGdX)
+  PhiVD[6] = imag(GBarVD[2]); // imag(dGdRho)
+  PhiVD[7] = imag(GBarVD[4]); // imag(dG2dXdRho)
 
 }
 
@@ -66,17 +66,36 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
 {
   GBarAccelerator *GBA = (void *)mallocEC(sizeof(*GBA));
 
+  GBA->k                 = k;
+  GBA->kBloch            = kBloch;
+  GBA->ExcludeInnerCells = ExcludeInnerCells;
+
+  GBA->LDim = LDim;
+  GBA->LBV1[0]=LBV[0][0];
+  GBA->LBV1[1]=LBV[0][1];
+  if (LDim==2)
+   { GBA->LBV2[0]=LBV[1][0];
+     GBA->LBV2[1]=LBV[1][1];
+   };
+  GBA->LBV[0] = GBA->LBV1;
+  GBA->LBV[1] = GBA->LBV2;
+
   if (LDim==1)
    {
       int nx; 
       int nRho;
 
-      GBA->I2D=new Interp2D(0.0, 0.5*LBV[0][0], nx,
-                            RhoMin, RhoMax,     nRho,
-                            2, GBarVDPhi2D, UserData);
+      GBA->I3D=0;
+      GBA->I2D=new Interp2D(0.0, LBV[0][0], nx,
+                            RhoMin, RhoMax, nRho,
+                            2, GBarVDPhi2D, (void *)GBA);
    }
   else // LDim==2
    {
+      GBA->I2D=0;
+      GBA->I3D=new Interp3D(0.0, LBV[0][0], nx,
+                            RhoMin, RhoMax, nRho,
+                            2, GBarVDPhi2D, (void *)GBA);
    };
 
   return GBA;
@@ -88,17 +107,43 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
 /***************************************************************/
 void GetGBarVD(double R[3], GBarAccelerator *GBA, cdouble GBarVD[4])
 {
+  int LDim               = GBA->LDim;
+  double **LBV           = GBA->LBV;
+  cdouble k              = GBA->k;
+  double *kBloch         = GBA->kBloch;
+  bool ExcludeInnerCells = GBA->ExcludeInnerCells;
  
   if (GBA->LDim==1)
    { 
+     // get xbar = unit-cell representative of x coordinate
+     double L0 = GBA->LBV[0][0];
+     int m = (int)(floor( R[0] / L0 ));
+     double xBar = R[0] - m*L0;
      double Rho = sqrt(R[1]*R[1] + R[2]*R[2]);
 
      double Phi[8];
      GBA->I2D->EvaluatePlus(xBar, Rho, Phi);
-
      cdouble G         = cdouble(Phi[0], Phi[4]);
      cdouble dGdx      = cdouble(Phi[1], Phi[5]);
      cdouble dGdRho    = cdouble(Phi[2], Phi[6]);
+
+     // correct for the fact that we may have needed to 
+     // translate the evaluation point into the unit cell
+     if (m!=0)
+      { 
+        cdouble PhaseFactor = exp( II*m*kBloch[0]*L0 );
+
+        if (ExcludeInnerCells)
+         { 
+           if (m==1) 
+   
+         };
+
+        G*=PhaseFactor;
+        dGdx*=PhaseFactor;
+        dGdRho*=PhaseFactor;
+        
+      };
 
      GBarVD[0] = G;
      GBarVD[1] = dGdx;

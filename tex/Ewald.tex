@@ -46,7 +46,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 
-\section{The Periodic Dyadic Green's Function}
+\section{The Periodic Green's Function}
 
 Consider a 1D or 2D lattice consisting of a set of
 lattice vectors $\{\vb L\}$.
@@ -69,9 +69,79 @@ where the sum ranges over all lattice vectors $\vb L$ and
 Note that my notation here hides the dependence of $\GB$ and $G$ 
 on the photon wavenumber $k$.
 
+\subsection*{The $\GB\sups{ABI}$ kernel}
+
+For computation of BEM matrix elements in {\sc scuff-em} we
+also need a version of $\GB$ in which the contribution
+of the innermost lattice cells are excluded. [Here the
+``innermost'' cells include the cell at the origin $(\vb L=0)$
+and all cells within one lattice vector of the origin
+in any direction.] I refer to this as the ``all but innermost''
+(ABI) periodic Green's function.
+
+For a one-dimensional lattice with lattice vector $\vb L_{0}$,
+$\GB\supt{ABI}$ is given by the sum (\ref{PGF}) with three
+terms excluded:
+%====================================================================%
+\numeq{GBABI1D}
+{ \GB\supt{ABI,1D}(\vb p; \vb x) 
+  \equiv 
+  \sum_{|n|>1} e^{i\vb p \cdot (n\vb L_0)} G\Big( \big |\vb x-n\vb L_0 \big| \Big)
+}
+%====================================================================%
+For a two-dimensional lattice with lattice vectors $\vb L_{01}, \vb L_{02}$,
+the sum excludes 9 terms:
+%====================================================================%
+\numeq{GBABI2D}
+{ \GB\supt{ABI,2D}(\vb p; \vb x) 
+  \equiv 
+  \sum_{|n_1|>1, |n_2>1|} 
+  e^{i\vb p \cdot (n_1\vb L_{01} + n_2 \vb L_{02})} 
+  G\Big( \big |\vb x-n_1\vb L_{01}-n_2\vb L_{02} \big| \Big)
+}
+%====================================================================%
+
+\subsection*{Symmetries of $\GB$ and $\GB\supt{ABI}$}
+
+\subsubsection*{The 1D case}
+
+Consider a 1D lattice with lattice vector $\vb L_0=L_{0}\vbhat{x}.$
+Consider a point $\vb x=(x,\vbrho)$ whose $x$ coordinate
+lies outside the unit cell. Write $x=mL_0 + \overline{x}$
+where $\overline{x}$ lies within the unit cell. Then we have
+%====================================================================%
+\begin{align*}
+ \GB\supt{1D}(\vb p; x, \rho)
+&= e^{i m \vb p \cdot \vb L_0} \GB\supt{1D}(\vb p; \overline{x}, \rho)
+\\
+ \GB\supt{ABI,1D}(\vb p; x, \rho)
+&= \sum_{|n|>1} e^{i n\vb p \cdot \vb L} G\big( \overline{x}+(m-n)L_0, \rho\big)
+\intertext{Change variables to $n^\prime = n-m$:}
+ \GB\supt{ABI,1D}(\vb p; x, \rho)
+&= e^{im\vb p \cdot \vb L}
+   \sum_{|n^\prime + m|>1}
+     e^{i n^\prime \vb p \cdot \vb L} G\big( \overline{x}-n^\prime L_0, \rho\big)
+\\
+&= e^{im\vb p \cdot \vb L}
+   \sum_{|n^\prime + m|>1} T_{n^\prime}
+\\
+\intertext{[where $T_{n}\equiv e^{in\vb p \cdot \vb L} G(\overline{x}-nL_0, \rho)$]. 
+           For the special case $m=1$ we have}
+&= e^{im\vb p \cdot \vb L}
+   \Big[ \GB\supt{1D} - T_{-2} - T_{-1} - T_0 \Big]
+\\
+&= e^{im\vb p \cdot \vb L}
+   \Big[ \GB\supt{ABI1D} + T_{1} - T_{-2} \Big].
+\intertext{For $m=-1$ we have instead}
+&= e^{im\vb p \cdot \vb L}
+   \Big[ \GB\supt{ABI1D} + T_{-1} - T_{2} \Big].
+\end{align*}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Ewald summation}
 \subsection{Decompose kernel into short-range and long-range contributions}
 
 The kernel (\ref{HelmholtzKernel}) exhibits two pathologies
