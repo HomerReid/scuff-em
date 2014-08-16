@@ -585,14 +585,150 @@ surface normal to $\mc S$ at $\vb x_n.$
 %====================================================================%
 \section{Computation of VIPFT PFT matrices}
 
+%====================================================================%
 \begin{align*}
- \Big[\partial_i \vb G\Big]\supt{EE}_{\alpha \beta}
-&= \int\, d\vb x \, \int\, d\vb x^\prime \, 
-   b_{\alpha j}(\vb x) 
-   \,
-   \Gamma\supt{EE}_{ijk}(\vb x, \vb x^\prime)
-   \,
-   b_{\beta k}(\vb x^\prime)
+ \Big[\partial_i \vb G\Big]\supt{PQ}_{\alpha \beta}
+&= \int\, d\vb x \, b_{\alpha j}(\vb x)
+                    \partial_i \mc F\supt{PQ}_{\beta j}(\vb x)
+\end{align*}
+%====================================================================%
+where $\mc{F}\supt{PQ}_{\beta j}$ is the $j$th cartesian component
+of the $P$-type field due to a $Q$-type current distribution
+described by basis function $\vb b_\alpha$ populated with
+unit strength (here \{P,Q\}$\in$\{electric, magnetic\}):
+%====================================================================%
+\numeq{FPQBeta}
+{ \mc {F}\supt{PQ}_{\beta i}(\vb r)
+  \equiv 
+  \int \Gamma\supt{PQ}_{ij}(\vb r-\vb r^\prime) b_{\beta j}(\vb r^\prime)
+  d\vb r^\prime
+}
+%====================================================================%
+The kernels here are 
+%====================================================================%
+\begin{align*}
+ \Gamma\supt{EE}_{ij}(\vb r)
+&= \frac{Z_0 Z^r}{4\pi ik r^3}
+   \left[ f_1(ikr)\delta_{ij} + f_2(ikr)\frac{r_i r_j}{r^2}\right] e^{ikr}
+\\
+ \Gamma\supt{EM}_{ij}(\vb r)
+&= \frac{1}{4\pi r^3} \varepsilon_{ijk} r_k f_3(ikr) e^{ikr}
+\\
+ \Gamma\supt{ME}_{ij}(\vb r)
+&= -\Gamma\supt{EM}_{ij}(\vb r)
+\\
+ \Gamma\supt{MM}_{ij}(\vb r)
+&= \frac{1}{(Z_0 Z_r)^2} \Gamma\supt{EE}_{ij}(\vb r)
+\end{align*}
+with 
+\begin{align*}
+ f_1(ikr) &= 1 -ikr + (ikr)^2 \\
+ f_2(ikr) &= -3 + 3ikr - (ikr)^2 \\
+ f_3(ikr) &= -1 + ikr.
+\end{align*}
+%====================================================================%
+For an RWG function, the integral (\ref{FPQBeta}) receives contributions
+from two panels:
+%====================================================================%
+\begin{align}
+  \mc {F}\supt{PQ}_{\beta i}(\vb r)
+&=  \mc {F}\supt{PQ}_{\mc P_\beta^+ i}(\vb r)
+   -\mc {F}\supt{PQ}_{\mc P_\beta^- i}(\vb r)
+\nonumber
+\intertext{where}
+\mc {F}\supt{PQ}_{\mc P i}(\vb r)
+&\equiv \int_{\mc P} 
+   \Gamma\supt{PQ}_{ij}(\vb r-\vb r^\prime) b_{\beta j}(\vb r^\prime)\,d\vb r^\prime
+\label{FPQP}
+\end{align}
+%====================================================================%
+
+\subsection*{Computation in the coordinate system of $\mc P$}
+
+To compute the integral over the single triangle $\mc P$ in (\ref{FPQP})
+is easiest to work in a coordinate system in which $\mc P$
+lives in the $xy$ plane with the $\vb Q$ vertex at the origin and 
+one edge aligned with the $\vbhat{x}$ axis
+%, as shown in Figure \ref{bBetaCoordinateSystemFigure}
+.
+%\begin{itemize}
+% \item
+% First consider $\mc F\sups{EE}(\vbrho, z)$ in the limit $z\to 0$.
+% In this case the $z$-component of the field is just the usual normal 
+% electric field above a sheet of surface charge density $\sigma(\vbrho)$,
+% which has opposite signs on the two sides of the sheet, i.e.
+%% \begin{align*}
+%%   \lim_{z\to 0^\pm} \mc F_z\sups{EE}(\vbrho, z) 
+%%     = \pm\frac{\sigma
+%% \end{align*}
+%\end{itemize}
+
+In this case the RWG basis function is simply 
+$\vb b(\vbrho)=\frac{\ell}{2A}\vbrho$
+(where $\ell$ is the edge length and $A$ is the panel area) and we find
+%====================================================================%
+\begin{align*}
+ \mc F\supt{EE}_{\mc P x}(\vbrho, z)
+&=\frac{Z_0 Z^r \ell }{4\pi ik } \int_0^1 \, du \int_0^u \, dv \,
+  \Big[ x^\prime f_1(ikr) +
+        (x-x^\prime) 
+        f_2(ikr) 
+        \frac{ (\vbrho-\vbrho^\prime)\cdot \vbrho^\prime }
+             { r^2 }
+  \Big] \frac{e^{ikr}}{r^3}
+\end{align*}
+where 
+$$ \vbrho^\prime(u,v)=\Big(x^\prime(u,v), y^\prime(u,v)\Big) 
+   = u\vb A + v\vb B,
+   \qquad r^2=|\vbrho-\vbrho^\prime|^2 + z^2.
+$$
+%====================================================================%
+
+\subsection*{Computation by Taylor-Duffy method}
+
+\begin{align*}
+ \Big[\partial_i \vb G\Big]\supt{PQ}_{\alpha \beta}
+&= \ell_\alpha \ell_\beta \sum \pm 
+  \underbrace{
+   \int_{\mc P_\alpha^\pm } \, d\vb x        \,
+   \int_{\mc P_\beta^\pm} \, d\vb x^\prime \,
+   (\vb x-\vb Q)_j (\vb x^\prime-\vb Q)_k
+   \partial_i\Gamma\supt{PQ}_{jk}(\vb r)
+             }_{\mc I\supt{PQ}(\mc P_\alpha, \mc P_\beta)}
+\end{align*}
+
+\begin{align*}
+ \partial_i\Gamma\supt{EE}_{jk}(\vb r)
+&=\frac{Z_0 Z^r}{ik}
+  \bigg\{ f_2(ikr)\Big[ r_i\delta_{jk} + r_j\delta_{ik} + r_k\delta_{ij} \Big]
+         +f_5(ikr) r_i \delta_{jk} 
+\\
+&\hspace{0.75in}
+         + f_4(ikr)\frac{r_i r_j r_k}{r^2}
+  \bigg\} \frac{e^{ikr}}{4\pi r^5}
+\\
+ \partial_i\Gamma\supt{EM}_{jk}(\vb r)
+&=\varepsilon_{jk\ell}
+  \bigg\{  f_3(ikr) \delta_{i\ell} 
+          -f_2(ikr) \frac{r_i r_\ell}{r^2} 
+  \bigg\} \frac{e^{ikr}}{4\pi r^3}
+\end{align*}
+%====================================================================%
+$$ f_4(x)=15-15x+6x^2 - x^3, \qquad f_5(x)=x^2(x-1)$$
+%====================================================================%
+\begin{align*}
+ \mathcal{I}\supt{EM}(\mc P_\alpha, \mc P_\beta)
+&=\iint \Big[  P_1(\vb x, \vb x^\prime) K_1(r)
+              +P_2(\vb x, \vb x^\prime) K_2(r)
+        \Big]\,d\vb x \, d\vb x^\prime
+\\
+P\supt{EM}_1 &= (\vb x-\vb Q) \times (\vb x^\prime - \vb Q^\prime) \\
+K\supt{EM}_1 &= f_3(ikr)\frac{e^{ikr}}{4\pi r^3}
+\\
+P\supt{EM}_2 &= -(\vb x - \vb x^\prime) \cdot 
+        \Big[ (\vb x-\vb Q)\times (\vb x^\prime-\vb Q^\prime) \Big]
+\\
+K\supt{EM}_2&= f_2(ikr)\frac{e^{ikr}}{4\pi r^5}
 \end{align*}
 
 %====================================================================%
