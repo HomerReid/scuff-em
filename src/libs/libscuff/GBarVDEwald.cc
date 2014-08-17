@@ -86,8 +86,8 @@ cdouble ExpInt_CF(cdouble z, double RelTol, int *nIters)
       break;
    };
   if (ConvergedIters!=5)
-   Warn("potentially large error in ExpInt_CF [%.1e %%]",
-         100.0*abs(Delta-1.0));
+   Warn("potentially large error in ExpInt_CF(%s) [%.1e %%]",
+         z2s(z), 100.0*abs(Delta-1.0));
 
   if (nIters) *nIters=j;
   return fj;
@@ -162,7 +162,11 @@ cdouble ExpInt(cdouble z)
   if ( absz < 5.0 )
    return ExpInt_PS(z, 1.0e-8, 0); 
   else if ( absz < 30.0 )
-   return ExpInt_CF(z, 1.0e-8, 0);
+   { if ( fabs( fabs(arg(z))-M_PI ) < 0.2 )
+      return ExpInt_PS(z, 1.0e-8, 0);
+     else
+      return ExpInt_CF(z, 1.0e-8, 0);
+   }
   else 
    return ExpInt_Asymptotic(z, 1.0e-8, 0);
 }

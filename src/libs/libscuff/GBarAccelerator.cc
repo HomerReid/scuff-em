@@ -70,10 +70,64 @@ void GBarVDPhi2D(double x, double Rho, void *UserData, double *PhiVD)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
+                             double RelTol, double OptimalDelta[2])
+{
+  double Delta[2];
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double L0 = GBA->LBV[0][0];
+  Delta[0] = L0 / 10.0;
+  Delta[1] = (GBA->RhoMax - GBA->RhoMin)/10.0;
+  if (Delta[1]<=0.0)
+   Delta[1] = Delta[0];
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  Interp2D *I2D=new Interp2D(x,   x+Delta[0],   2,
+                             Rho, Rho+Delta[1], 2,
+                             2, GBarVDPhi2D, (void *)GBA);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double Phi[8];
+  cdouble GExact, GInterp;
+  double RelError, ScaleFactor;
+
+  // estimate relative error in X direction
+  GBarVDPhi2D( x+0.5*Delta[0], Rho, (void *)GBA, Phi);
+  GExact=cdouble(Phi[0], Phi[4]);
+  I2D->Evaluate(x+0.5*Delta[0], Rho, Phi);
+  GInterp=cdouble(Phi[0], Phi[1]);
+  RelError = abs(GInterp-GExact) / abs(GExact);
+  OptimalDelta[0] = Delta[0] * pow( RelTol/RelError, 0.25 );
+
+  // estimate relative error in Rho direction
+  GBarVDPhi2D( x, Rho+0.5*Delta[1], (void *)GBA, Phi);
+  GExact=cdouble(Phi[0], Phi[4]);
+  I2D->Evaluate(x, Rho+0.5*Delta[1], Phi);
+  GInterp=cdouble(Phi[0], Phi[1]);
+  RelError = abs(GInterp-GExact) / abs(GExact);
+  OptimalDelta[1] = Delta[1] * pow( RelTol/RelError, 0.25 );
+
+  delete I2D;
+
+  Log("Optimal spacing at (%e,%e)=(%e,%e)",
+       x,Rho,OptimalDelta[0],OptimalDelta[1]);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
                                        double RhoMin, double RhoMax,
                                        cdouble k, double *kBloch,
-                                       bool ExcludeInnerCells)
+                                       double RelTol, bool ExcludeInnerCells)
 {
   /***************************************************************/
   /***************************************************************/
@@ -101,15 +155,40 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   /***************************************************************/
   if (LDim==1)
    {
-      int nx   = ceil( (LBV[0][0]    ) / (RWGGeometry::DeltaInterp) );
-      int nRho = ceil( (RhoMax-RhoMin) / (RWGGeometry::DeltaInterp) );
+      // estimate the optimal grid spacings at a few points
+      // in the domain of interest and take the smallest 
+      double L0 = LBV[0][0], MinDelta[2], Delta[2];
+      GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMin, RelTol, MinDelta);
+
+      GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMin, RelTol, Delta);
+      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
+      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
+
+      GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMin, RelTol, Delta);
+      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
+      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
+
+      GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMax, RelTol, MinDelta);
+      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
+      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
+
+      GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMax, RelTol, Delta);
+      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
+      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
+
+      GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMax, RelTol, Delta);
+      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
+      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
+
+      int nx   = ceil( L0 / MinDelta[0] );
+      int nRho = ceil( (RhoMax-RhoMin) / MinDelta[1] );
 
       if (nx<2) nx=2;
       if (nRho<2) nRho=2;
 
       printf("Creating %ix%i interpolation table...\n",nx,nRho);
       GBA->I3D=0;
-      GBA->I2D=new Interp2D(0.0, LBV[0][0], nx,
+      GBA->I2D=new Interp2D(0.0,    L0,     nx,
                             RhoMin, RhoMax, nRho,
                             2, GBarVDPhi2D, (void *)GBA);
    }
@@ -299,13 +378,22 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
    };
 
   if (ddGBar) 
-   { ddGBar[ 3*0 + 0 ] = d2Gdx2;
-     ddGBar[ 3*1 + 1 ] = dGdRho/Rho + (R[1]*R[1]/Rho2)*d2GdRho2;
-     ddGBar[ 3*2 + 2 ] = dGdRho/Rho + (R[2]*R[2]/Rho2)*d2GdRho2;
+   { 
+     ddGBar[ 3*0 + 0 ] = d2Gdx2;
+
+     if (Rho2==0.0)
+      { ddGBar[ 3*1 + 1 ] = ddGBar[3*2 + 2] = d2GdRho2;
+        ddGBar[ 3*1 + 2 ] = ddGBar[3*2 + 1] = 0.0;
+      }
+     else 
+      { double Rho3 = Rho*Rho2;
+        ddGBar[ 3*1 + 1 ] = (R[2]*R[2]*dGdRho + R[1]*R[1]*Rho*d2GdRho2)/Rho3;
+        ddGBar[ 3*2 + 2 ] = (R[1]*R[1]*dGdRho + R[2]*R[2]*Rho*d2GdRho2)/Rho3;
+        ddGBar[ 3*1 + 2 ] = ddGBar[ 3*2 + 1 ] = R[1]*R[2]*(-dGdRho + Rho*d2GdRho2)/Rho3;
+      };
 
      ddGBar[ 3*0 + 1 ] = ddGBar[ 3*1 + 0 ] = (R[1]/Rho) * d2GdxdRho;
      ddGBar[ 3*0 + 2 ] = ddGBar[ 3*2 + 0 ] = (R[2]/Rho) * d2GdxdRho;
-     ddGBar[ 3*1 + 2 ] = ddGBar[ 3*2 + 1 ] = (R[1]*R[2]/Rho2) * d2GdxdRho;
    };
 
   return G;
@@ -323,7 +411,7 @@ cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-cdouble GetGBar(double R[3], GBarAccelerator *GBA, 
+cdouble GetGBar(double R[3], GBarAccelerator *GBA,
                 cdouble *dGBar, cdouble *ddGBar)
              
 {

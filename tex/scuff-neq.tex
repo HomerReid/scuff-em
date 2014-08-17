@@ -683,30 +683,32 @@ $$ \vbrho^\prime(u,v)=\Big(x^\prime(u,v), y^\prime(u,v)\Big)
    \qquad r^2=|\vbrho-\vbrho^\prime|^2 + z^2.
 $$
 %====================================================================%
+\subsection*{Computation by generalized Taylor-Duffy method}
 
-\subsection*{Computation by Taylor-Duffy method}
-
+%====================================================================%
 \begin{align*}
  \Big[\partial_i \vb G\Big]\supt{PQ}_{\alpha \beta}
 &= \ell_\alpha \ell_\beta \sum \pm 
   \underbrace{
    \int_{\mc P_\alpha^\pm } \, d\vb x        \,
    \int_{\mc P_\beta^\pm} \, d\vb x^\prime \,
-   (\vb x-\vb Q)_j (\vb x^\prime-\vb Q)_k
+   (\vb x-\vb Q)_j (\vb x^\prime-\vb Q^\prime)_k
    \partial_i\Gamma\supt{PQ}_{jk}(\vb r)
              }_{\mc I\supt{PQ}(\mc P_\alpha, \mc P_\beta)}
 \end{align*}
-
+%====================================================================%
+The derivatives of the dyadic GFs are
+%====================================================================%
 \begin{align*}
  \partial_i\Gamma\supt{EE}_{jk}(\vb r)
 &=\frac{Z_0 Z^r}{ik}
   \bigg\{ f_2(ikr)\Big[ r_i\delta_{jk} + r_j\delta_{ik} + r_k\delta_{ij} \Big]
-         +f_5(ikr) r_i \delta_{jk} 
+         +(ikr)^2 f_3(ikr) r_i \delta_{jk}
 \\
 &\hspace{0.75in}
          + f_4(ikr)\frac{r_i r_j r_k}{r^2}
   \bigg\} \frac{e^{ikr}}{4\pi r^5}
-\\
+\intertext{[where $ f_4(x)=15-15x+6x^2 - x^3$]}
  \partial_i\Gamma\supt{EM}_{jk}(\vb r)
 &=\varepsilon_{jk\ell}
   \bigg\{  f_3(ikr) \delta_{i\ell} 
@@ -714,22 +716,78 @@ $$
   \bigg\} \frac{e^{ikr}}{4\pi r^3}
 \end{align*}
 %====================================================================%
-$$ f_4(x)=15-15x+6x^2 - x^3, \qquad f_5(x)=x^2(x-1)$$
+With these expressions we may write $\mathcal{I}\supt{PQ}$ in a
+form suitable for treatment by the generalized Taylor-Duffy method,
 %====================================================================%
 \begin{align*}
+ \mathcal{I}\supt{EE}(\mc P_\alpha, \mc P_\beta)
+&=\iint \Big[  P\supt{EE}_1(\vb x, \vb x^\prime) K\supt{EE}_1(r)
+             + P\supt{EE}_2(\vb x, \vb x^\prime) K\supt{EE}_2(r)
+             + P\supt{EE}_3(\vb x, \vb x^\prime) K\supt{EE}_3(r)
+        \Big]\,d\vb x\,d\vb x^\prime
+\\
  \mathcal{I}\supt{EM}(\mc P_\alpha, \mc P_\beta)
-&=\iint \Big[  P_1(\vb x, \vb x^\prime) K_1(r)
-              +P_2(\vb x, \vb x^\prime) K_2(r)
+&=\iint \Big[  P\supt{EM}_1(\vb x, \vb x^\prime) K\supt{EM}_1(r)
+              +P\supt{EM}_2(\vb x, \vb x^\prime) K\supt{EM}_2(r)
         \Big]\,d\vb x \, d\vb x^\prime
-\\
-P\supt{EM}_1 &= (\vb x-\vb Q) \times (\vb x^\prime - \vb Q^\prime) \\
-K\supt{EM}_1 &= f_3(ikr)\frac{e^{ikr}}{4\pi r^3}
-\\
-P\supt{EM}_2 &= -(\vb x - \vb x^\prime) \cdot 
-        \Big[ (\vb x-\vb Q)\times (\vb x^\prime-\vb Q^\prime) \Big]
-\\
-K\supt{EM}_2&= f_2(ikr)\frac{e^{ikr}}{4\pi r^5}
 \end{align*}
+%====================================================================%
+where the $P$s and $K$s are
+%====================================================================%
+\begin{align*}
+%--------------------------------------------------------------------%
+P\supt{EE}_1 
+ &= (\vb x - \vb x^\prime)_i 
+    \Big[ (\vb x-\vb Q) \cdot (\vb x^\prime-\vb Q^\prime)\Big] 
+\\
+ &\quad + (\vb x-\vb Q)_i 
+          \Big[ (\vb x - \vb x^\prime) \cdot (\vb x^\prime-\vb Q^\prime) \Big]
+        + (\vb x^\prime-\vb Q^\prime)_i 
+          \Big[ (\vb x - \vb x^\prime) \cdot (\vb x-\vb Q) \Big]
+\\
+%--------------------------------------------------------------------%
+K\supt{EE}_1 
+&= f_2(ikr)\frac{e^{ikr}}{4\pi r^5}
+\\[5pt]
+%--------------------------------------------------------------------%
+P\supt{EE}_2 
+&=(\vb x - \vb x^\prime)_i 
+   \Big[(\vb x-\vb Q) \cdot (\vb x^\prime-\vb Q^\prime)\Big]
+\\
+%--------------------------------------------------------------------%
+K\supt{EE}_2 
+&= -k^2 f_3(ikr)\frac{e^{ikr}}{4\pi r^3}
+\\[5pt]
+%--------------------------------------------------------------------%
+P\supt{EE}_3 
+&=(\vb x - \vb x^\prime)_i 
+   \Big[ (\vb x-\vb x^\prime) \cdot (\vb x-\vb Q)  \Big]
+   \Big[ (\vb x-\vb x^\prime) \cdot (\vb x^\prime-\vb Q^\prime)  \Big]
+\\
+%--------------------------------------------------------------------%
+K\supt{EE}_3 
+&= f_4(ikr)\frac{e^{ikr}}{4\pi r^7}
+\\[5pt]
+%--------------------------------------------------------------------%
+P\supt{EM}_1 
+&=\Big[(\vb x-\vb Q) \times (\vb x^\prime - \vb Q^\prime)\Big]_i
+\\
+%--------------------------------------------------------------------%
+K\supt{EM}_1 
+&= f_3(ikr)\frac{e^{ikr}}{4\pi r^3}
+\\[5pt]
+%--------------------------------------------------------------------%
+P\supt{EM}_2 
+ &= -(\vb x - \vb x^\prime)_i
+     \bigg\{ (\vb x - \vb x^\prime) \cdot 
+     \Big[ (\vb x-\vb Q)\times (\vb x^\prime-\vb Q^\prime) \Big]\bigg\}
+\\
+%--------------------------------------------------------------------%
+K\supt{EM}_2
+&= 
+f_2(ikr) \frac{e^{ikr}}{4\pi r^5}
+\end{align*}
+%====================================================================%
 
 %====================================================================%
 %====================================================================%
