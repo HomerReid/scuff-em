@@ -44,7 +44,6 @@ namespace scuff {
 /* initialization of static class variables                    */
 /***************************************************************/
 bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
-double RWGGeometry::DeltaInterp=0.05;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
 int RWGGeometry::NumMeshDirs=0;
@@ -192,15 +191,6 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
 /***********************************************************************/
 RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 { 
-  /***************************************************************/
-  /* 20121210 FIXME **********************************************/
-  /***************************************************************/
-  char *DeltaStr;
-  if ( (DeltaStr=getenv("SCUFF_DELTAINTERP")) )
-   { sscanf(DeltaStr, "%le", &DeltaInterp);
-     Log("Setting DeltaInterp to %g...",DeltaInterp);
-   };
-
   /***************************************************************/
   /* NOTE: i am not sure where to put this. put it here for now. */
   /***************************************************************/

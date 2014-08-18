@@ -30,6 +30,7 @@
 
 #include "libscuff.h"
 #include "rwlock.h"
+#include "GBarAccelerator.h"
 
 namespace scuff {
 
@@ -85,10 +86,9 @@ typedef struct GetPPIArgStruct
    // used to compute the panel-panel integrals
    int WhichAlgorithm;
 
-   // if this field is nonzero, it points to an Interp3D object
-   // for the kernel function; otherwise the kernel function 
-   // is the usual Helmholtz kernel, possibly desingularized 
-   Interp3D *GInterp;
+   // if this object is nonzero, it is used to compute the 
+   // periodic kernel; otherwise we use the usual Helmholtz kernel.
+   GBarAccelerator *GBA;
 
    // output fields filled in by routine
    // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
@@ -127,10 +127,9 @@ typedef struct GetEEIArgStruct
    int NumTorqueAxes; 
    double *GammaMatrix;
 
-   // if this object is nonzero, it is used as an interpolation 
-   // table to compute values of the kernel (otherwise, the 
-   // usual Helmholtz kernel is used) 
-   Interp3D *GInterp;
+   // if this object is nonzero, it is used to compute the 
+   // periodic kernel; otherwise we use the usual Helmholtz kernel.
+   GBarAccelerator *GBA;
    
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;
@@ -183,11 +182,10 @@ typedef struct GetSSIArgStruct
    // block is symmetric
    bool Symmetric;
 
-   // if this flag is true, it means the caller wants the interaction 
-   // of the two surfaces as mediated by the periodic Green's function 
-   // with the innermost 9 cell contributions omitted (the 'all-but-9' 
-   // kernel). otherwise, we use the usual (direct) Helmholtz kernel.
-   bool UseAB9Kernel;
+   // if these are nonzero, then the usual Helmholtz  
+   // Green's function is replaced with its periodic
+   // equivalent as computed using GBA1/2
+   GBarAccelerator *GBA1, *GBA2;
 
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;
@@ -335,32 +333,6 @@ int NumCommonBFVertices(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb);
 
 int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
                              double **OVa, double **OVb);
-
-/***************************************************************/
-/* routine for computing the periodic green's function via     */
-/* ewald summation                                             */
-/***************************************************************/
-void GBarVDEwald(double *R, cdouble k, double *kBloch,
-                 double **LBV, int LDim,
-                 double E, bool ExcludeInnerCells, cdouble *GBarVD);
-
-/***************************************************************/
-/* this is an alternative interface to GBarVDEwald that has the*/
-/* proper prototype for passage to my Interp3D class routines  */
-/***************************************************************/
-typedef struct GBarData 
- { 
-   cdouble k;           // wavenumber 
-   int LDim;            // dimension of lattice periodicity (either 1 or 2)
-   double *kBloch;      // bloch vector 
-   double *LBV[2];      // lattice basis vectors 
-   double E;            // ewald separation parameter
-   bool ExcludeInnerCells;
- 
- } GBarData;
-
-void GBarVDPhi3D(double X1, double X2, double X3, 
-                 void *UserData, double *PhiVD);
 
 } // namespace scuff
 

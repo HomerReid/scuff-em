@@ -334,6 +334,12 @@ int main(int argc, char *argv[])
       { printf("E0 = %e \n",sqrt(M_PI/LBVP[0][0]));
         printf("E1 = %e \n",abs(k)/20.0);
         printf("E2 = %e \n",1.2/sqrt(Rho2));
+
+        if (LDim==1)
+         { printf("EOptimal = %e\n",E);
+           printf("E*Rho    = %e \n",E*sqrt(Rho2));
+           printf("abs(k)/E = %e \n",abs(k)/E);
+         };
       };
 
      /*--------------------------------------------------------------*/

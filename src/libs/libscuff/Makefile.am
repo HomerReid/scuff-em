@@ -11,6 +11,8 @@ libscuff_la_SOURCES = \
  Faddeeva.hh \
  FieldGrid.cc \
  FIPPICache.cc \
+ GBarAccelerator.cc \
+ GBarAccelerator.h  \
  GBarVDEwald.cc \
  GetDipoleMoments.cc \
  GetDyadicGFs.cc \

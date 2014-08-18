@@ -196,10 +196,10 @@ void *GSSIThread(void *data)
       /*--------------------------------------------------------------*/
       /*- contributions of first medium (EpsA, MuA)  -----------------*/
       /*--------------------------------------------------------------*/
-      GetEEIArgs->nea     = nea;
-      GetEEIArgs->neb     = neb;
-      GetEEIArgs->k       = kA;
-      GetEEIArgs->GInterp = Args->GInterpA;
+      GetEEIArgs->nea  = nea;
+      GetEEIArgs->neb  = neb;
+      GetEEIArgs->k    = kA;
+      GetEEIArgs->GBA  = Args->GBA1;
       GetEdgeEdgeInteractions(GetEEIArgs);
 
       if ( SaIsPEC && SbIsPEC )
@@ -292,8 +292,8 @@ void *GSSIThread(void *data)
       /*--------------------------------------------------------------*/
       if (EpsB!=0.0)
        { 
-         GetEEIArgs->k       = kB;
-         GetEEIArgs->GInterp = Args->GInterpB;
+         GetEEIArgs->k   = kB;
+         GetEEIArgs->GBA = Args->GBA2;
          GetEdgeEdgeInteractions(GetEEIArgs);
 
          X=RowOffset + 2*nea;
@@ -343,7 +343,7 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
   if ( (Args->Sa != Args->Sb)    ) return;
   if ( !(Args->Sa->SurfaceSigma) && !(Args->Sa->SurfaceSigmaMP) ) return;
   if ( Args->Displacement        ) return;
-  if ( Args->UseAB9Kernel        ) return;
+  if ( Args->GBA1 || Args->GBA2  ) return;
 
   RWGSurface *S=Args->Sa;
  
@@ -489,21 +489,13 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   Args->SaIsPEC = Sa->IsPEC;
   Args->SbIsPEC = Sb->IsPEC;
 
-  if (Args->UseAB9Kernel)
-   { Args->GInterpA = G->GBarAB9Interpolators[CommonRegions[0]];
-     if (NumCommonRegions==2)
-      Args->GInterpB = G->GBarAB9Interpolators[CommonRegions[1]];
-   }
-  else
-   Args->GInterpA=Args->GInterpB=0;
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (Args->OmitRegion1 || (Args->UseAB9Kernel && Args->GInterpA==0) )
+  if (Args->OmitRegion1)
    Args->EpsA=Args->MuA=Args->SignA=0.0;
 
-  if (Args->OmitRegion2 || (Args->UseAB9Kernel && Args->GInterpB==0) )
+  if (Args->OmitRegion2)
    Args->EpsB=Args->MuB=Args->SignB=0.0;
 
   if ( Args->EpsA==0.0 && Args->EpsB==0.0 )
@@ -622,9 +614,8 @@ void InitGetSSIArgs(GetSSIArgStruct *Args)
 
   Args->Symmetric=false;
 
-  Args->UseAB9Kernel=false;
-  Args->GInterpA=0;
-  Args->GInterpB=0;
+  Args->GBA1=Args->GBA2=0;
+
   Args->OmitRegion1=false;
   Args->OmitRegion2=false;
 

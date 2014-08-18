@@ -113,92 +113,6 @@ void StampInNeighborBlock(HMatrix *B, HMatrix **GradB,
 }
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void RWGGeometry::CreateRegionInterpolator(int nr, cdouble Omega,
-                                           double *kBloch,
-                                           int ns1, int ns2,
-                                           double *UserDelta)
-{
-  /***************************************************************/
-  /* TODO: rather than deleting and reallocating every time,     */
-  /*       consider implementing an Interp3D->ReGrid() method    */
-  /*       which will retain the internally-allocated storage    */
-  /*       in the (commonly encountered) case in which the new   */
-  /*       grid has the same number of points as the old grid    */
-  /***************************************************************/
-  if (GBarAB9Interpolators[nr]!=0)
-   delete GBarAB9Interpolators[nr];
-
-  UpdateCachedEpsMuValues(Omega);
-
-  /***************************************************************/  
-  /* prepare an argument structure for the GBarVDPhi3D           */  
-  /***************************************************************/  
-  GBarData MyGBarData, *GBD=&MyGBarData;
-  GBD->ExcludeInnerCells=true;
-  GBD->E=-1.0;
-  GBD->k = csqrt2(EpsTF[nr]*MuTF[nr])*Omega;
-  if ( GBD->k == 0.0 ) 
-   return;
-  GBD->kBloch = kBloch;
-
-  /***************************************************************/
-  /* figure out whether this region has 1D or 2D periodicity     */
-  /***************************************************************/  
-  if ( LDim==2 && (RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
-   { GBD->LDim=2;
-     GBD->LBV[0]=LBasis[0];
-     GBD->LBV[1]=LBasis[1];
-   }
-  else if ( LDim==2 && (RegionIsExtended[0][nr] && !RegionIsExtended[1][nr]) ) 
-   { GBD->LDim=1; 
-     GBD->LBV[0]=LBasis[0];
-   }
-  else if ( LDim==2 && (!RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
-   { GBD->LDim=1; 
-     GBD->LBV[0]=LBasis[1];
-   }
-  else if ( LDim==1 )
-   { GBD->LDim=1; 
-     GBD->LBV[0]=LBasis[0];
-   }
-  else // region is not extended 
-   { GBarAB9Interpolators[nr]=0;
-     return;
-   };
-
-  /***************************************************************/
-  /* get the extents of the interpolation table we need to handle*/
-  /* all possible arguments R=x1-x2 where x1 lives on surface 1  */
-  /* and x2 lives on surface 2                                   */
-  /***************************************************************/
-  double RMax[3], RMin[3];
-  int NPoints[3];
-  VecSub(Surfaces[ns1]->RMax, Surfaces[ns2]->RMin, RMax);
-  VecSub(Surfaces[ns1]->RMin, Surfaces[ns2]->RMax, RMin);
-  for(int i=0; i<3; i++)
-   { 
-     double Delta = UserDelta ? UserDelta[i] : RWGGeometry::DeltaInterp;
-
-     if ( RMax[i] < (RMin[i] + Delta) )
-      RMax[i] = RMin[i] + Delta;
-
-     NPoints[i] = 1 + round( (RMax[i] - RMin[i]) / Delta );
-
-   };
-
-  Log("  Creating %ix%ix%i interpolator for region %i (%s)...",
-         NPoints[0],NPoints[1],NPoints[2],nr,RegionLabels[nr]);
-  GBarAB9Interpolators[nr]
-   =new Interp3D(  RMin[0], RMax[0], NPoints[0],
-                   RMin[1], RMax[1], NPoints[1],
-                   RMin[2], RMax[2], NPoints[2],
-                   2, GBarVDPhi3D, (void *)GBD);
-
-}
-
-/***************************************************************/
 /* this is a simple quick-and-dirty mechanism for saving       */
 /* and retrieving diagonal T-matrix blocks to disk.            */
 /***************************************************************/
@@ -448,7 +362,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->Sa           = Surfaces[nsa];
   Args->Sb           = Surfaces[nsb];
   Args->Omega        = Omega;
-  Args->UseAB9Kernel = false;
+  Args->GBA1         = false;
+  Args->GBA2         = false;
   Args->Accumulate   = false;
   Args->Displacement = L;
 
@@ -529,13 +444,16 @@ done:
   /***************************************************************/
   Log(" Step 2: Contributions of outer grid cells...");
   //UpdateRegionInterpolators(Omega, kBloch);
-  CreateRegionInterpolator(nr1, Omega, kBloch, nsa, nsb);
-  if (nr2!=-1) CreateRegionInterpolator(nr2, Omega, kBloch, nsa, nsb);
+  Args->GBA1=CreateRegionGBA(nr1, Omega, kBloch, nsa, nsb);
+  if (nr2!=-1) 
+   Args->GBA2=CreateRegionGBA(nr2, Omega, kBloch, nsa, nsb);
+  else
+   Args->GBA2=0;
+
   Args->Displacement = 0;
   Args->Symmetric    = false;
   Args->OmitRegion1  = false;
   Args->OmitRegion2  = (nr2==-1);
-  Args->UseAB9Kernel = true;
   Args->Accumulate   = true;
   Args->B            = M;
   Args->GradB        = GradM;
@@ -544,12 +462,15 @@ done:
 
   GetSurfaceSurfaceInteractions(Args);
 
+  DestroyGBarAccelerator(Args->GBA1);
+  if (Args->GBA2) DestroyGBarAccelerator(Args->GBA2);
+
 }
 
 /***************************************************************/
 /* this is the actual API-exposed routine for assembling the   */
 /* BEM matrix, which is pretty simple and really just calls    */
-/* ssembleBEMMatrixBlock() to do all the dirty work.          */
+/* AssembleBEMMatrixBlock() to do all the dirty work.          */
 /*                                                             */
 /* If the M matrix is NULL on entry, a new HMatrix of the      */
 /* appropriate size is allocated and returned. Otherwise, the  */

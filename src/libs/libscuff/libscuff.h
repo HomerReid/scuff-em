@@ -47,6 +47,7 @@
 
 #include "GTransformation.h"
 #include "FieldGrid.h"
+#include "GBarAccelerator.h"
 
 namespace scuff {
 
@@ -307,7 +308,7 @@ class RWGSurface
    /* calculate reduced potentials due to a single basis function */
    /* (this is a helper function used to implement the            */
    /*  GetInnerProducts() class method)                           */
-   void GetReducedPotentials(int ne, const double *X, cdouble K, Interp3D *GBarInterp,
+   void GetReducedPotentials(int ne, const double *X, cdouble K, GBarAccelerator *GBA,
                              cdouble *a, cdouble *Curla, cdouble *Gradp);
 
    void AddStraddlers(double LBV[MAXLDIM][2], int LDim,
@@ -457,7 +458,7 @@ class RWGGeometry
    /* periodic-boundary-condition versions of API routines. */
    /* Note PBC routines are distinguished from their non-PBC counterparts      */
    /* by the kBloch argument, which always follows Omega in the argument list. */
-   HMatrix *AssembleBEMMatrix(cdouble Omega, double kBloch[MAXLDIM], HMatrix *M);
+   HMatrix *AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *M);
    HVector *AssembleRHSVector(cdouble Omega, double *kBloch, IncField *IF, HVector *RHS = NULL);
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                   double *X, cdouble *EH);
@@ -477,14 +478,13 @@ class RWGGeometry
    // helper functions for AssembleBEMMatrix
    void UpdateCachedEpsMuValues(cdouble Omega);
 
-   // the following helper functions are only used for periodic boundary conditions
+   // the following helper functions are only used for periodic boundary conditions.
    void InitPBCData();
    void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
-   Interp3D *CreateRegionInterpolator(int RegionIndex, cdouble Omega, 
-                                      double kBloch[MAXLDIM], HMatrix *XMatrix);
-   void CreateRegionInterpolator(int nr, cdouble Omega,
-                                 double *kBloch, int nsa, int nsb,
-                                 double *UserDelta=0);
+   GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch, int ns1, int ns2);
+   GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix);
+   GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch,
+                                    double RMin[3], double RMax[3], bool ExcludeInnerCells);
 
    // directories within which to search for mesh files
    static int NumMeshDirs;
@@ -524,7 +524,6 @@ class RWGGeometry
    /*                         dimension for surface #ns          */
    /* RegionIsExtended[nd][ns] = true if region #nr is extended  */
    /*                            in dimension #nd                */
-   /* GBarAB9Interpolators[nr] = interpolator for region #nr     */
    /*                                                            */
    /* (Note that lattice vectors must have zero z-component and  */
    /* only the first two components (x and y components) are     */
@@ -534,7 +533,6 @@ class RWGGeometry
    double LBasis[2][2];
    int *NumStraddlers[2];
    bool *RegionIsExtended[2];
-   Interp3D **GBarAB9Interpolators;
 
    /* BFIndexOffset[n] is the index within the overall BEM          */
    /* system vector of the first basis function on surface #n. thus */
@@ -566,7 +564,6 @@ class RWGGeometry
    const char *TBlockCacheNameAddendum;
    
    static bool AssignBasisFunctionsToExteriorEdges;
-   static double DeltaInterp;
    static bool UseHighKTaylorDuffy;
    static bool UseTaylorDuffyV2P0;
 

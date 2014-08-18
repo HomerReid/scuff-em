@@ -144,7 +144,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgs->GammaMatrix            = Args->GammaMatrix;
   GetPPIArgs->opFC                   = Args->opFC;
   GetPPIArgs->Displacement           = Args->Displacement;
-  GetPPIArgs->GInterp                = Args->GInterp;
+  GetPPIArgs->GBA                    = Args->GBA;    
 
   /*--------------------------------------------------------------*/
   /*- positive-positive, positive-negative, etc. -----------------*/
@@ -284,7 +284,7 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->Displacement=0;
   Args->opFC=0;
   Args->Force=EEI_NOFORCE;
-  Args->GInterp=0;
+  Args->GBA=0;
   memset(Args->PPIAlgorithmCount, 0, NUMPPIALGORITHMS*sizeof(unsigned));
 }
 

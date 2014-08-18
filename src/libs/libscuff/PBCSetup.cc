@@ -444,27 +444,6 @@ void RWGGeometry::InitPBCData()
 
    };
 
-  /*--------------------------------------------------------------*/
-  /*- allocate interpolators for each extended region in the      */
-  /*- geometry. (Here 'extended' means extended beyond the        */
-  /*- confines of a single unit cell.)                            */
-  /*-                                                             */
-  /*- GBarAB9Interpolators[nr] = interpolator for region #nr      */
-  /*-                            (NULL if region #nr is compact)  */
-  /*-                                                             */
-  /*- Note: GBarAB9 stands for 'GBar, all but 9', where GBar is   */
-  /*- the periodic green's function; the 'all but 9' part refers  */
-  /*- to the fact that we exclude the contributions of the        */
-  /*- innermost 9 lattice cells.                                  */
-  /*-                                                             */
-  /*- Note: These interpolators are used to compute the BEM       */
-  /*- matrix. They are not to be confused with the separate set   */
-  /*- of interpolators for the various regions that are computed  */
-  /*- in the PBC version of GetFields().                          */
-  /*--------------------------------------------------------------*/
-  Log(" Mem before interpolators: %lu",GetMemoryUsage()/ONEMEG);
-  GBarAB9Interpolators = (Interp3D **)mallocEC(NumRegions * sizeof(Interp3D *));
-
 }
 
 } // namespace scuff

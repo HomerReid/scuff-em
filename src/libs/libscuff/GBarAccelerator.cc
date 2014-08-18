@@ -16,27 +16,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+
+/*
+ * GBarAccelerator.h -- 
+ */
+
 #include <stdlib.h>
 #include <math.h>
 
 #include <libhrutil.h>
-#include "/home/homer/work/scuff-em/src/libs/libMDInterp/libMDInterp.h"
+#include <libMDInterp.h>
+#include <libhmat.h>
 #include <libscuff.h>
-#include <libscuffInternals.h>
 
 #include "GBarAccelerator.h"
 
 #define II cdouble(0,1)
 
 namespace scuff{
-
-/***************************************************************/
-/* prototypes for routines in GBarVDEwald                      */
-/***************************************************************/
-void GBarVDEwald(double *R, cdouble k, double *kBloch,
-                 double *LBV[2], int LDim,
-                 double E, bool ExcludeInnerCells,
-                 cdouble *GBarVD);
 
 /***************************************************************/
 /* entry point for GBarVD that has the proper prototype for    */
@@ -68,10 +65,48 @@ void GBarVDPhi2D(double x, double Rho, void *UserData, double *PhiVD)
 }
 
 /***************************************************************/
+/* this is an entry point for GBarVD that has the proper       */
+/* prototype for passage to the Interp3D() initialization      */
+/* routine; the structure GBarData is defined in libscuffInternals.h.*/
+/***************************************************************/
+void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
+{
+  GBarAccelerator *GBA = (GBarAccelerator *)UserData;
+
+  double R[3];
+  R[0]=X1;
+  R[1]=X2;
+  R[2]=X3;
+
+  cdouble GBarVD[8];
+  GBarVDEwald(R, GBA->k, GBA->kBloch, GBA->LBV, GBA->LDim,
+              -1.0, GBA->ExcludeInnerCells, GBarVD);
+ 
+  PhiVD[ 0] = real(GBarVD[0]);
+  PhiVD[ 1] = real(GBarVD[1]);
+  PhiVD[ 2] = real(GBarVD[2]);
+  PhiVD[ 3] = real(GBarVD[3]);
+  PhiVD[ 4] = real(GBarVD[4]);
+  PhiVD[ 5] = real(GBarVD[5]);
+  PhiVD[ 6] = real(GBarVD[6]);
+  PhiVD[ 7] = real(GBarVD[7]);
+  PhiVD[ 8] = imag(GBarVD[0]);
+  PhiVD[ 9] = imag(GBarVD[1]);
+  PhiVD[10] = imag(GBarVD[2]);
+  PhiVD[11] = imag(GBarVD[3]);
+  PhiVD[12] = imag(GBarVD[4]);
+  PhiVD[13] = imag(GBarVD[5]);
+  PhiVD[14] = imag(GBarVD[6]);
+  PhiVD[15] = imag(GBarVD[7]);
+
+} 
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
-                             double RelTol, double OptimalDelta[2])
+                             double RelTol, double OptimalDelta[2], 
+                             double *MinDelta)
 {
   double Delta[2];
 
@@ -96,7 +131,7 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
   /***************************************************************/
   double Phi[8];
   cdouble GExact, GInterp;
-  double RelError, ScaleFactor;
+  double RelError;
 
   // estimate relative error in X direction
   GBarVDPhi2D( x+0.5*Delta[0], Rho, (void *)GBA, Phi);
@@ -118,6 +153,96 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
 
   Log("Optimal spacing at (%e,%e)=(%e,%e)",
        x,Rho,OptimalDelta[0],OptimalDelta[1]);
+
+  if (MinDelta)
+   { MinDelta[0] = fmin(MinDelta[0], OptimalDelta[0]);
+     MinDelta[1] = fmin(MinDelta[1], OptimalDelta[1]);
+   };
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
+                             double x, double y, double z,
+                             double RelTol, double OptimalDelta[3],
+                             double *MinDelta)
+{
+  double Delta[3];
+
+  if (GBA->LBV[0][1]!=0.0 || GBA->LBV[1][0]!=0.0)
+   ErrExit("%s:%i: non-square lattice not yet supported",__FILE__,__LINE__);
+  double L0x=GBA->LBV[0][0], L0y=GBA->LBV[1][1];
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  Delta[0] = L0x / 10.0;
+  Delta[1] = L0y / 10.0;
+  Delta[2] = (GBA->RhoMax - GBA->RhoMin)/10.0;
+  if (Delta[2]<=0.0)
+   Delta[2] = Delta[0];
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  Interp3D *I3D=new Interp3D(x, x+Delta[0],   2,
+                             y, y+Delta[1],   2,
+                             z, z+Delta[2],   2,
+                             2,   GBarVDPhi3D, (void *)GBA);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double R[3], Phi[16];
+  cdouble GExact, GInterp;
+  double RelError;
+
+  // estimate relative error in x direction
+  R[0] = x + 0.5*Delta[0];
+  R[1] = y;
+  R[2] = z;
+  GBarVDPhi3D( R[0], R[1], R[2], (void *)GBA, Phi);
+  GExact=cdouble(Phi[0], Phi[8]);
+  I3D->Evaluate(R[0], R[1], R[2], Phi);
+  GInterp=cdouble(Phi[0], Phi[1]);
+  RelError = abs(GInterp-GExact) / abs(GExact);
+  OptimalDelta[0] = Delta[0] * pow( RelTol/RelError, 0.25 );
+
+  // estimate relative error in uy direction
+  R[0] = x; 
+  R[1] = y + 0.5*Delta[1];
+  R[2] = z;
+  GBarVDPhi3D( R[0], R[1], R[2], (void *)GBA, Phi);
+  GExact=cdouble(Phi[0], Phi[8]);
+  I3D->Evaluate(R[0], R[1], R[2], Phi);
+  GInterp=cdouble(Phi[0], Phi[1]);
+  RelError = abs(GInterp-GExact) / abs(GExact);
+  OptimalDelta[1] = Delta[1] * pow( RelTol/RelError, 0.25 );
+
+  // estimate relative error in z direction
+  R[0] = x; 
+  R[1] = y;
+  R[2] = z + 0.5*Delta[2];
+  GBarVDPhi3D( R[0], R[1], R[2], (void *)GBA, Phi);
+  GExact=cdouble(Phi[0], Phi[8]);
+  I3D->Evaluate(R[0], R[1], R[2], Phi);
+  GInterp=cdouble(Phi[0], Phi[1]);
+  RelError = abs(GInterp-GExact) / abs(GExact);
+  OptimalDelta[2] = Delta[2] * pow( RelTol/RelError, 0.25 );
+
+  delete I3D;
+
+  Log("Optimal spacing at (%e,%e,%e)=(%e,%e,%e)",
+       x,y,z,OptimalDelta[0],OptimalDelta[1],OptimalDelta[2]);
+
+  if (MinDelta)
+   { MinDelta[0] = fmin(MinDelta[0], OptimalDelta[0]);
+     MinDelta[1] = fmin(MinDelta[1], OptimalDelta[1]);
+     MinDelta[2] = fmin(MinDelta[2], OptimalDelta[2]);
+   };
+
 
 }
 
@@ -158,27 +283,12 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       // estimate the optimal grid spacings at a few points
       // in the domain of interest and take the smallest 
       double L0 = LBV[0][0], MinDelta[2], Delta[2];
-      GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMin, RelTol, MinDelta);
-
-      GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMin, RelTol, Delta);
-      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
-      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
-
-      GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMin, RelTol, Delta);
-      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
-      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
-
-      GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMax, RelTol, MinDelta);
-      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
-      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
-
-      GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMax, RelTol, Delta);
-      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
-      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
-
-      GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMax, RelTol, Delta);
-      MinDelta[0]=fmin(MinDelta[0], Delta[0]);
-      MinDelta[1]=fmin(MinDelta[1], Delta[1]);
+      GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMin, RelTol, MinDelta, 0);
+      GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMax, RelTol, Delta, MinDelta);
 
       int nx   = ceil( L0 / MinDelta[0] );
       int nRho = ceil( (RhoMax-RhoMin) / MinDelta[1] );
@@ -194,36 +304,74 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
    }
   else // LDim==2
    {
+      double Lx = LBV[0][0], Ly=LBV[1][1];
+      if ( LBV[0][1]!=0.0 || LBV[1][0]!=0.0 )
+       ErrExit("%s:%i: non-square lattices not yet supported",__FILE__,__LINE__);
+
+      // estimate the optimal grid spacings at a few points
+      // in the domain of interest and take the smallest 
+      double MinDelta[3], Delta[3];
+      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.0*Ly, RhoMin, RelTol, MinDelta, 0);
+      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 1.0*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.0*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 1.0*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.0*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 1.0*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+
+      int nx   = ceil( Lx / MinDelta[0] );
+      int ny   = ceil( Ly / MinDelta[1] );
+      int nRho = ceil( (RhoMax-RhoMin) / MinDelta[2] );
+
+      if (nx<2) nx=2;
+      if (ny<2) ny=2;
+      if (nRho<2) nRho=2;
+
+      Log("Creating %ix%ix%i interpolation table...\n",nx,ny,nRho);
       GBA->I2D=0;
-#if 0
-      GBA->I3D=new Interp3D(0.0, LBV[0][0], nx,
-                            RhoMin, RhoMax, nRho,
-                            2, GBarVDPhi2D, (void *)GBA);
-#endif
-   };
+      GBA->I3D=new Interp3D(0.0, Lx, nx, 0.0, Ly, ny, RhoMin, RhoMax, nRho,
+                            2, GBarVDPhi3D, (void *)GBA); };
 
   return GBA;
    
 }
 
 /***************************************************************/
-/* Similar to AddGFull, but does not accumulate, and also      */
-/* computes unmixed second partials.                           */
-/* T[0] = GFull                                                */
-/* T[1] = d_{x} GFull                                          */
-/* T[2] = d_{y} GFull                                          */
-/* T[3] = d_{z} GFull                                          */
-/* T[4] = d_{xx} GFull                                         */
-/* T[5] = d_{xy} GFull                                         */
-/* T[6] = d_{xz} GFull                                         */
-/* T[7] = d_{yy} GFull                                         */
-/* T[8] = d_{yz} GFull                                         */
-/* T[9] = d_{zz} GFull                                         */
 /***************************************************************/
-void GetGFullTerm(double R[3], cdouble k, double kBloch[2],
+/***************************************************************/
+void DestroyGBarAccelerator(GBarAccelerator *GBA)
+{ 
+  if (GBA->I2D) delete GBA->I2D;
+  if (GBA->I3D) delete GBA->I3D;
+}
+
+/***************************************************************/
+/* Similar to AddGFull, but computes unmixed second partials.  */
+/* T[0] += GFull                                               */
+/* T[1] += d_{x} GFull                                         */
+/* T[2] += d_{y} GFull                                         */
+/* T[3] += d_{z} GFull                                         */
+/* T[4] += d_{xx} GFull                                        */
+/* T[5] += d_{xy} GFull                                        */
+/* T[6] += d_{xz} GFull                                        */
+/* T[7] += d_{yy} GFull                                        */
+/* T[8] += d_{yz} GFull                                        */
+/* T[9] += d_{zz} GFull                                        */
+/***************************************************************/
+void AddGFullTerm(double R[3], cdouble k, double kBloch[2],
                   double Lx, double Ly, cdouble T[10])
 {
-  memset(T, 0, 10*sizeof(cdouble));
   double RmL[3];
   double r2, r;
   cdouble PhaseFactor, IKR, Phi, Psi, Zeta, Upsilon;
@@ -240,7 +388,7 @@ void GetGFullTerm(double R[3], cdouble k, double kBloch[2],
    return;
   IKR=II*k*r;
   Phi=exp(IKR)/(4.0*M_PI*r);
-  T[0] = PhaseFactor * Phi;
+  T[0] += PhaseFactor * Phi;
 
   Psi=(IKR-1.0)*Phi/r2;
   Zeta=(3.0 + IKR*(-3.0 + IKR))*Phi/(r2*r2);
@@ -257,6 +405,11 @@ void GetGFullTerm(double R[3], cdouble k, double kBloch[2],
   T[9] += PhaseFactor * (Psi + RmL[2] * RmL[2] * Zeta);
  
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool InM101(int x) { return (-1<=x) && (x<=1); }
 
 /***************************************************************/
 /***************************************************************/
@@ -332,18 +485,18 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
      if (ExcludeInnerCells)
       { 
         cdouble TP[10], TM[10];
-        if (m==1) 
-         { 
-           GetGFullTerm(R, k, kBloch,  1.0*L0, 0.0, TP);   // T_{+1}
-           GetGFullTerm(R, k, kBloch, -2.0*L0, 0.0, TM);   // T_{+2}
-         }
-        else if (m==-1) 
-         { 
-           GetGFullTerm(R, k, kBloch, -1.0*L0, 0.0, TP);   // T_{+1}
-           GetGFullTerm(R, k, kBloch,  2.0*L0, 0.0, TM);   // T_{+2}
-         }
-        else 
-         ErrExit("evaluation point too far from origin in GetGBar");
+        memset(TP, 0, 10*sizeof(cdouble));
+        memset(TM, 0, 10*sizeof(cdouble));
+        double RBar[3];
+        RBar[0] = xBar;
+        RBar[1] = Rho;
+        RBar[2] = 0.0;
+        for(int n=-1; n<=1; n++)
+         { if ( !InM101(n+m) )
+            AddGFullTerm(RBar, k, kBloch, n*L0, 0.0, TP);
+           if ( !InM101(n-m) )
+            AddGFullTerm(RBar, k, kBloch, (n-m)*L0, 0.0, TM);
+         };
 
         G         += TP[0]-TM[0];
         dGdx      += TP[1]-TM[1];
@@ -403,9 +556,140 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA, 
+cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA,
                    cdouble *dGBar, cdouble *ddGBar)
 {
+  cdouble k              = GBA->k;
+  double *kBloch         = GBA->kBloch;
+  bool ExcludeInnerCells = GBA->ExcludeInnerCells;
+
+  /*--------------------------------------------------------------*/
+  /* if we have no interpolation grid, or we have one but the     */
+  /* transverse coordinate lies outside it, then we just do the   */
+  /* calculation directly                                         */
+  /*--------------------------------------------------------------*/
+  double Rho = fabs(R[2]);
+  if ( GBA->I3D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax )
+   { cdouble G[8];
+     GBarVDEwald(R, k, kBloch, GBA->LBV, 2, -1.0, ExcludeInnerCells, G);
+     if (dGBar) 
+      { dGBar[0]=G[1];
+        dGBar[1]=G[2];
+        dGBar[2]=G[3];
+      };
+     if (ddGBar)
+      memset(ddGBar, 0, 9*sizeof(cdouble));
+     return G[0];
+   };
+ 
+  /*--------------------------------------------------------------*/
+  /* get (xBar, yBar) = unit-cell representative of (x,y)         */
+  /*--------------------------------------------------------------*/
+  if (GBA->LBV[0][1]!=0.0 || GBA->LBV[1][0]!=0.0)
+   ErrExit("%s:%i: non-square lattice not yet supported",__FILE__,__LINE__);
+  
+  double L0x = GBA->LBV[0][0];
+  int mx = (int)(floor( R[0] / L0x ));
+  double xBar = R[0] - mx*L0x;
+
+  double L0y = GBA->LBV[1][1];
+  int my = (int)(floor( R[1] / L0y ));
+  double yBar = R[1] - my*L0y;
+
+  /*--------------------------------------------------------------*/
+  /* get GBar(RBar, Rho) and as many derivatives as necessary     */
+  /*--------------------------------------------------------------*/
+  cdouble GBar;
+  if (ddGBar)
+   { 
+     double Phi[20];
+     GBA->I3D->EvaluatePlusPlus(xBar, yBar, Rho, Phi);
+     GBar            = cdouble(Phi[0], Phi[10]);
+     dGBar[0]        = cdouble(Phi[1], Phi[11]);
+     dGBar[1]        = cdouble(Phi[2], Phi[12]);
+     dGBar[2]        = cdouble(Phi[3], Phi[13]);
+     ddGBar[3*0 + 0] = cdouble(Phi[4], Phi[14]);
+     ddGBar[3*0 + 1] = cdouble(Phi[5], Phi[15]);
+     ddGBar[3*0 + 2] = cdouble(Phi[6], Phi[16]);
+     ddGBar[3*1 + 1] = cdouble(Phi[7], Phi[17]);
+     ddGBar[3*1 + 2] = cdouble(Phi[8], Phi[18]);
+     ddGBar[3*2 + 2] = cdouble(Phi[9], Phi[19]);
+   }
+  else if (dGBar)
+   { 
+     double Phi[16];
+     GBA->I3D->EvaluatePlus(xBar, yBar, Rho, Phi);
+     GBar      = cdouble(Phi[0], Phi[8]);
+     dGBar[0]  = cdouble(Phi[1], Phi[9]);
+     dGBar[1]  = cdouble(Phi[2], Phi[10]);
+     dGBar[2]  = cdouble(Phi[3], Phi[11]);
+   }
+  else
+   GBA->I3D->Evaluate(xBar, yBar, Rho, (double *)&GBar);
+
+  /*--------------------------------------------------------------*/
+  /* correct for the fact that we may have needed to              */
+  /* translate the evaluation point into the unit cell            */
+  /*--------------------------------------------------------------*/
+  if (mx!=0 || my!=0)
+   { 
+     cdouble ExpArg = kBloch[0]*( mx*(GBA->LBV[0][0]) + my*(GBA->LBV[1][0]) )
+                     +kBloch[1]*( mx*(GBA->LBV[0][1]) + my*(GBA->LBV[1][1]) );
+     cdouble PhaseFactor = exp( II*ExpArg );
+
+     if (ExcludeInnerCells)
+      { cdouble TP[10], TM[10];
+        memset(TP, 0, 10*sizeof(cdouble));
+        memset(TM, 0, 10*sizeof(cdouble));
+        double RBar[3];
+        RBar[0] = xBar;
+        RBar[1] = yBar;
+        RBar[2] = Rho;
+        for(int nx=-1; nx<=1; nx++)
+         for(int ny=-1; ny<=1; ny++)
+         { if ( ! (InM101(nx+mx) && InM101(ny+my) ) )
+            AddGFullTerm(RBar, k, kBloch, nx*L0x, ny*L0y, TP);
+           if ( ! (InM101(nx-mx) && InM101(ny-my) ) )
+            AddGFullTerm(RBar, k, kBloch, (nx-mx)*L0x, (ny-my)*L0y, TM);
+         };
+        GBar += TP[0]-TM[0];
+        if (dGBar)
+         for(int Mu=0; Mu<3; Mu++) dGBar[Mu] += TP[Mu+1] - TM[Mu+1];
+        if (ddGBar)
+         { ddGBar[3*0 + 0] += TP[4] - TM[4];
+           ddGBar[3*0 + 1] += TP[5] - TM[5];
+           ddGBar[3*0 + 2] += TP[6] - TM[6];
+           ddGBar[3*1 + 1] += TP[7] - TM[7];
+           ddGBar[3*1 + 2] += TP[8] - TM[8];
+           ddGBar[3*2 + 2] += TP[9] - TM[9];
+         };
+
+      }; // if (ExcludeInnerCells)
+
+     GBar      *= PhaseFactor;
+     if (dGBar) for(int Mu=0; Mu<3; Mu++) dGBar[Mu]*=PhaseFactor;
+     if (ddGBar) for(int Mu=0; Mu<9; Mu++) ddGBar[Mu]*=PhaseFactor;
+        
+   }; // if (m!=0)
+
+  /*--------------------------------------------------------------*/
+  /*- convert derivatives from the (x,y,Rho) system to the (x,y,z) system  */
+  /*--------------------------------------------------------------*/
+  double Sign = R[2] > 0.0 ? 1.0 : -1.0;
+  if (dGBar)
+   dGBar[2] *= Sign;
+  if (ddGBar)
+   { 
+     ddGBar[3*0 + 2] *= Sign;
+     ddGBar[3*1 + 2] *= Sign;
+
+     ddGBar[3*1 + 0] = ddGBar[3*0 + 1];
+     ddGBar[3*2 + 0] = ddGBar[3*0 + 2];
+     ddGBar[3*2 + 1] = ddGBar[3*1 + 2];
+   };
+
+  return GBar;
+  
 }
 
 /***************************************************************/
@@ -419,6 +703,160 @@ cdouble GetGBar(double R[3], GBarAccelerator *GBA,
    return GetGBar_1D(R, GBA, dGBar, ddGBar);
   else
    return GetGBar_2D(R, GBA, dGBar, ddGBar);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch,
+                                              double RMin[3], double RMax[3],
+                                              bool ExcludeInnerCells)
+{
+  int GBA_LDim;
+  double *GBA_LBV[2];
+
+  /***************************************************************/
+  /* figure out whether this region has 1D or 2D periodicity     */
+  /***************************************************************/  
+  if ( LDim==2 && (RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
+   { GBA_LDim=2;
+     GBA_LBV[0]=LBasis[0];
+     GBA_LBV[1]=LBasis[1];
+   }
+  else if ( LDim==2 && (RegionIsExtended[0][nr] && !RegionIsExtended[1][nr]) ) 
+   { GBA_LDim=1; 
+     GBA_LBV[0]=LBasis[0];
+   }
+  else if ( LDim==2 && (!RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
+   { GBA_LDim=1; 
+     GBA_LBV[0]=LBasis[1];
+   }
+  else if ( LDim==1 )
+   { GBA_LDim=1;
+     GBA_LBV[0]=LBasis[0];
+   }
+  else // region is not extended
+   return 0;
+
+  /***************************************************************/
+  /* determine the minimum and maximum values of the transverse  */
+  /* coordinate Rho that our interpolation table will need to    */
+  /* support                                                     */
+  /***************************************************************/
+  for(int Mu=0; Mu<3; Mu++)
+   { if ( RMin[Mu]<0.0 )
+      { RMax[Mu] = fmax( fabs(RMax[Mu]), fabs(RMin[Mu]) );
+        RMin[Mu] = RMax[Mu] > 0.0 ? 0.0 : fmin( fabs(RMax[Mu]), fabs(RMin[Mu]) );
+      };
+   };
+ 
+  double RhoMin, RhoMax;
+  if (LDim==1)
+   { RhoMin = sqrt(RMin[1]*RMin[1] + RMin[2]*RMin[2]);
+     RhoMax = sqrt(RMax[1]*RMax[1] + RMax[2]*RMax[2]);
+   }
+  else
+   { RhoMin = fabs(RMin[2]);
+     RhoMax = fabs(RMax[2]);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  cdouble k = Omega * RegionMPs[nr]->GetRefractiveIndex(Omega);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double RelTol = 1.0e-4;
+  if ( char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE") )
+   { sscanf(str,"%le",&RelTol);
+     Log("Setting interpolation tolerance to %e.\n",RelTol);
+   };
+
+  return CreateGBarAccelerator(GBA_LDim, GBA_LBV, RhoMin, RhoMax,
+                               k, kBloch, RelTol, ExcludeInnerCells);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix)
+{
+  /*--------------------------------------------------------------*/
+  /* get bounding box enclosing all eval points in this region    */
+  /*--------------------------------------------------------------*/
+  int NumPointsInRegion=0;
+  double PointXMax[3]={-1.0e89, -1.0e89, -1.0e89};
+  double PointXMin[3]={+1.0e89, +1.0e89, +1.0e89}; 
+  for(int np=0; np<XMatrix->NR; np++)
+   { 
+     double X[3];
+     X[0] = XMatrix->GetEntryD(np,0);
+     X[1] = XMatrix->GetEntryD(np,1);
+     X[2] = XMatrix->GetEntryD(np,2);
+
+     if ( PointInRegion(nr, X ) )
+      { 
+        NumPointsInRegion++;
+        PointXMax[0] = fmax(PointXMax[0], X[0] );
+        PointXMax[1] = fmax(PointXMax[1], X[1] );
+        PointXMax[2] = fmax(PointXMax[2], X[2] );
+        PointXMin[0] = fmin(PointXMin[0], X[0] );
+        PointXMin[1] = fmin(PointXMin[1], X[1] );
+        PointXMin[2] = fmin(PointXMin[2], X[2] );
+      };
+   };
+
+  if (NumPointsInRegion==0) 
+   return 0;
+
+  /*--------------------------------------------------------------*/
+  // get the maximum and minimum values of X-Y where              */
+  /* X runs over all vertices on all surfaces bounding the region */
+  /* and Y runs over all evaluation points in the region          */
+  /*--------------------------------------------------------------*/
+  double RMax[3]={-1.0e89, -1.0e89, -1.0e89};
+  double RMin[3]={+1.0e89, +1.0e89, +1.0e89};
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { 
+     if (    Surfaces[ns]->RegionIndices[0] == nr
+          || Surfaces[ns]->RegionIndices[1] == nr
+        )
+      { 
+        double *SurfaceXMax = Surfaces[ns]->RMax;
+        double *SurfaceXMin = Surfaces[ns]->RMin;
+        RMax[0] = fmax(RMax[0], SurfaceXMax[0] - PointXMin[0] );
+        RMax[1] = fmax(RMax[1], SurfaceXMax[1] - PointXMin[1] );
+        RMax[2] = fmax(RMax[2], SurfaceXMax[2] - PointXMin[2] );
+        RMin[0] = fmin(RMin[0], SurfaceXMin[0] - PointXMax[0] );
+        RMin[1] = fmin(RMin[1], SurfaceXMin[1] - PointXMax[1] );
+        RMin[2] = fmin(RMin[2], SurfaceXMin[2] - PointXMax[2] );
+      };
+   };
+  if ( RMin[0]>RMax[0] || RMin[1]>RMax[1] || RMin[2]>RMax[2] )
+   ErrExit("%s:%i: internal error (%e,%e,%e) (%e,%e,%e)",
+           __FILE__,__LINE__,RMin[0],RMin[1],RMin[2],RMax[0],RMax[1],RMax[2]);
+
+  return CreateRegionGBA(nr, Omega, kBloch, RMin, RMax, false);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch, int ns1, int ns2)
+{
+  /***************************************************************/
+  /* get the maximum and minimum values of the cartesian         */
+  /* coordinates of R=x1-x2 as x1, x2 range over surfaces 1,2    */
+  /***************************************************************/
+  double RMax[3], RMin[3];
+  VecSub(Surfaces[ns1]->RMax, Surfaces[ns2]->RMin, RMax);
+  VecSub(Surfaces[ns1]->RMin, Surfaces[ns2]->RMax, RMin);
+
+  return CreateRegionGBA(nr, Omega, kBloch, RMin, RMax, true);
+
 }
 
 } // namespace scuff

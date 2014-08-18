@@ -958,41 +958,4 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
 
 } 
 
-/***************************************************************/
-/* this is an entry point for GBarVD that has the proper       */
-/* prototype for passage to the Interp3D() initialization      */
-/* routine; the structure GBarData is defined in libscuffInternals.h.*/
-/***************************************************************/
-void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
-{
-  GBarData *GBD = (GBarData *)UserData;
-
-  double R[3];
-  R[0]=X1;
-  R[1]=X2;
-  R[2]=X3;
-
-  cdouble GBarVD[8];
-  GBarVDEwald(R, GBD->k, GBD->kBloch, GBD->LBV, GBD->LDim,
-              GBD->E, GBD->ExcludeInnerCells, GBarVD);
- 
-  PhiVD[ 0] = real(GBarVD[0]);
-  PhiVD[ 1] = real(GBarVD[1]);
-  PhiVD[ 2] = real(GBarVD[2]);
-  PhiVD[ 3] = real(GBarVD[3]);
-  PhiVD[ 4] = real(GBarVD[4]);
-  PhiVD[ 5] = real(GBarVD[5]);
-  PhiVD[ 6] = real(GBarVD[6]);
-  PhiVD[ 7] = real(GBarVD[7]);
-  PhiVD[ 8] = imag(GBarVD[0]);
-  PhiVD[ 9] = imag(GBarVD[1]);
-  PhiVD[10] = imag(GBarVD[2]);
-  PhiVD[11] = imag(GBarVD[3]);
-  PhiVD[12] = imag(GBarVD[4]);
-  PhiVD[13] = imag(GBarVD[5]);
-  PhiVD[14] = imag(GBarVD[6]);
-  PhiVD[15] = imag(GBarVD[7]);
-
-} 
-
 } // namespace scuff
