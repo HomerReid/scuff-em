@@ -291,10 +291,17 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMax, RelTol, Delta, MinDelta);
 
       int nx   = ceil( L0 / MinDelta[0] );
-      int nRho = ceil( (RhoMax-RhoMin) / MinDelta[1] );
-
       if (nx<2) nx=2;
-      if (nRho<2) nRho=2;
+
+      int nRho; 
+      if (RhoMax<=RhoMin)
+       { RhoMax = RhoMin + MinDelta[0];
+         nRho=2;
+       }
+      else
+       { nRho = ceil( (RhoMax-RhoMin) / MinDelta[1] );
+         if (nRho<2) nRho=2;
+       };
 
       printf("Creating %ix%i interpolation table...\n",nx,nRho);
       GBA->I3D=0;
@@ -331,12 +338,20 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       GetOptimalGridSpacing2D(GBA, 1.0*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
 
       int nx   = ceil( Lx / MinDelta[0] );
-      int ny   = ceil( Ly / MinDelta[1] );
-      int nRho = ceil( (RhoMax-RhoMin) / MinDelta[2] );
-
       if (nx<2) nx=2;
+
+      int ny   = ceil( Ly / MinDelta[1] );
       if (ny<2) ny=2;
-      if (nRho<2) nRho=2;
+
+      int nRho; 
+      if (RhoMax<=RhoMin)
+       { RhoMax = RhoMin + MinDelta[0];
+         nRho=2;
+       }
+      else
+       { nRho = ceil( (RhoMax-RhoMin) / MinDelta[1] );
+         if (nRho<2) nRho=2;
+       };
 
       Log("Creating %ix%ix%i interpolation table...\n",nx,ny,nRho);
       GBA->I2D=0;
