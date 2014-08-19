@@ -220,8 +220,8 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
     GBarVDPhi3D( R[0], R[1], R[2], (void *)GBA, Phi);
     GExact     = cdouble(Phi[0], Phi[8]);
     dGExact[0] = cdouble(Phi[1], Phi[9]);
-    dGExact[2] = cdouble(Phi[2], Phi[10]);
-    dGExact[3] = cdouble(Phi[3], Phi[11]);
+    dGExact[1] = cdouble(Phi[2], Phi[10]);
+    dGExact[2] = cdouble(Phi[3], Phi[11]);
     I3D->EvaluatePlus(R[0], R[1], R[2], Phi);
     GInterp     = cdouble(Phi[0], Phi[8]);
     dGInterp[0] = cdouble(Phi[1], Phi[9]);
@@ -232,7 +232,7 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
     for(int Nu=0; Nu<3; Nu++)
      { if ( abs(dGExact[Nu]) < 1.0e-6*abs(GExact) ) continue;
        RelError = abs(dGInterp[Nu]-dGExact[Nu]) / abs(dGExact[Nu]);
-       double OptDeltaNu = Delta[0] * pow( RelTol/RelError, 0.33 );
+       double OptDeltaNu = Delta[Nu] * pow( RelTol/RelError, 0.33 );
        OptimalDelta[Nu] = fmin(OptimalDelta[Nu], OptDeltaNu);
      };
    };
@@ -360,7 +360,9 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
 
       Log("Creating %ix%ix%i interpolation table...\n",nx,ny,nRho);
       GBA->I2D=0;
-      GBA->I3D=new Interp3D(0.0, Lx, nx, 0.0, Ly, ny, RhoMin, RhoMax, nRho,
+      GBA->I3D=new Interp3D(0.0, Lx, nx, 
+                            0.0, Ly, ny, 
+                            RhoMin, RhoMax, nRho,
                             2, GBarVDPhi3D, (void *)GBA); };
 
   return GBA;
@@ -788,8 +790,9 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double RelTol = 1.0e-6;
-  if ( char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE") )
+  double RelTol = 1.0e-8;
+  char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE");
+  if ( str )
    { sscanf(str,"%le",&RelTol);
      Log("Setting interpolation tolerance to %e.\n",RelTol);
    };
