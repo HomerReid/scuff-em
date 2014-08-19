@@ -406,6 +406,25 @@ int main(int argc, char *argv[])
                  ExcludeInnerCells, Derivatives, nMax, GBarBF);
         printf(" BF:      %s \n",CD2S(GBarBF[0]));
 
+      }
+     else if (Derivatives)
+      {
+        for(int Mu=0; Mu<3; Mu++)
+         { 
+           double Rp[3];
+           memcpy(Rp,R,3*sizeof(double));
+           double Delta = 1.0e-4*fabs(R[Mu]);
+           if (Delta==0.0) Delta=1.0e-4;
+
+           cdouble Gp[8], Gm[8];
+           Rp[Mu]+=Delta;
+           GBarVDEwald(Rp, k, kBloch, LBVP, LDim, -1.0, ExcludeInnerCells, Gp);
+           Rp[Mu]-=2.0*Delta;
+           GBarVDEwald(Rp, k, kBloch, LBVP, LDim, -1.0, ExcludeInnerCells, Gm);
+
+           GBarBF[1+Mu] = (Gp[0] - Gm[0]) / (2.0*Delta);
+           
+         };
       };
 
     if (Derivatives)

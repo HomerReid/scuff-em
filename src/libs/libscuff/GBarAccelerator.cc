@@ -135,7 +135,7 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
   double RelError;
 
   // estimate relative error in Mu direction
-  for(int Mu=0; Mu<3; Mu++)
+  for(int Mu=0; Mu<2; Mu++)
    { 
      double R[2];
      R[0] = x;
@@ -790,7 +790,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double RelTol = 1.0e-8;
+  double RelTol = 1.0e-6;
   char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE");
   if ( str )
    { sscanf(str,"%le",&RelTol);
