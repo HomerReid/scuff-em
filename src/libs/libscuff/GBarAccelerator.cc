@@ -131,23 +131,33 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
   /***************************************************************/
   double Phi[8];
   cdouble GExact, GInterp;
+  cdouble dGExact[3], dGInterp[3];
   double RelError;
 
-  // estimate relative error in X direction
-  GBarVDPhi2D( x+0.5*Delta[0], Rho, (void *)GBA, Phi);
-  GExact=cdouble(Phi[0], Phi[4]);
-  I2D->Evaluate(x+0.5*Delta[0], Rho, Phi);
-  GInterp=cdouble(Phi[0], Phi[1]);
-  RelError = abs(GInterp-GExact) / abs(GExact);
-  OptimalDelta[0] = Delta[0] * pow( RelTol/RelError, 0.25 );
-
-  // estimate relative error in Rho direction
-  GBarVDPhi2D( x, Rho+0.5*Delta[1], (void *)GBA, Phi);
-  GExact=cdouble(Phi[0], Phi[4]);
-  I2D->Evaluate(x, Rho+0.5*Delta[1], Phi);
-  GInterp=cdouble(Phi[0], Phi[1]);
-  RelError = abs(GInterp-GExact) / abs(GExact);
-  OptimalDelta[1] = Delta[1] * pow( RelTol/RelError, 0.25 );
+  // estimate relative error in Mu direction
+  for(int Mu=0; Mu<3; Mu++)
+   { 
+     double R[2];
+     R[0] = x;
+     R[1] = Rho;
+     R[Mu] += 0.5*Delta[Mu];
+     GBarVDPhi2D( R[0], R[1], (void *)GBA, Phi);
+     GExact     = cdouble(Phi[0], Phi[4]);
+     dGExact[0] = cdouble(Phi[1], Phi[5]);
+     dGExact[1] = cdouble(Phi[2], Phi[6]);
+     I2D->EvaluatePlus(R[0], R[1], Phi);
+     GInterp     = cdouble(Phi[0], Phi[4]);
+     dGInterp[0] = cdouble(Phi[1], Phi[5]);
+     dGInterp[1] = cdouble(Phi[2], Phi[6]);
+     RelError = abs(GInterp-GExact) / abs(GExact);
+     OptimalDelta[Mu] = Delta[Mu] * pow( RelTol/RelError, 0.25 );
+     for(int Nu=0; Nu<2; Nu++)
+      { if ( abs(dGExact[Nu]) < 1.0e-6*abs(GExact) ) continue;
+        RelError = abs(dGInterp[Nu]-dGExact[Nu]) / abs(dGExact[Nu]);
+        double OptDeltaNu = Delta[Nu] * pow( RelTol/RelError, 0.33 );
+        OptimalDelta[Nu] = fmin(OptimalDelta[Nu], OptDeltaNu);
+      };
+   };
 
   delete I2D;
 
@@ -197,40 +207,35 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
   /***************************************************************/
   double R[3], Phi[16];
   cdouble GExact, GInterp;
+  cdouble dGExact[3], dGInterp[3];
   double RelError;
-
-  // estimate relative error in x direction
-  R[0] = x + 0.5*Delta[0];
-  R[1] = y;
-  R[2] = z;
-  GBarVDPhi3D( R[0], R[1], R[2], (void *)GBA, Phi);
-  GExact=cdouble(Phi[0], Phi[8]);
-  I3D->Evaluate(R[0], R[1], R[2], Phi);
-  GInterp=cdouble(Phi[0], Phi[1]);
-  RelError = abs(GInterp-GExact) / abs(GExact);
-  OptimalDelta[0] = Delta[0] * pow( RelTol/RelError, 0.25 );
-
-  // estimate relative error in uy direction
-  R[0] = x; 
-  R[1] = y + 0.5*Delta[1];
-  R[2] = z;
-  GBarVDPhi3D( R[0], R[1], R[2], (void *)GBA, Phi);
-  GExact=cdouble(Phi[0], Phi[8]);
-  I3D->Evaluate(R[0], R[1], R[2], Phi);
-  GInterp=cdouble(Phi[0], Phi[1]);
-  RelError = abs(GInterp-GExact) / abs(GExact);
-  OptimalDelta[1] = Delta[1] * pow( RelTol/RelError, 0.25 );
-
-  // estimate relative error in z direction
-  R[0] = x; 
-  R[1] = y;
-  R[2] = z + 0.5*Delta[2];
-  GBarVDPhi3D( R[0], R[1], R[2], (void *)GBA, Phi);
-  GExact=cdouble(Phi[0], Phi[8]);
-  I3D->Evaluate(R[0], R[1], R[2], Phi);
-  GInterp=cdouble(Phi[0], Phi[1]);
-  RelError = abs(GInterp-GExact) / abs(GExact);
-  OptimalDelta[2] = Delta[2] * pow( RelTol/RelError, 0.25 );
+  
+  for(int Mu=0; Mu<3; Mu++)
+   { 
+    // estimate relative error in Mu direction
+    R[0] = x;
+    R[1] = y;
+    R[2] = z;
+    R[Mu] += 0.5*Delta[Mu];
+    GBarVDPhi3D( R[0], R[1], R[2], (void *)GBA, Phi);
+    GExact     = cdouble(Phi[0], Phi[8]);
+    dGExact[0] = cdouble(Phi[1], Phi[9]);
+    dGExact[2] = cdouble(Phi[2], Phi[10]);
+    dGExact[3] = cdouble(Phi[3], Phi[11]);
+    I3D->EvaluatePlus(R[0], R[1], R[2], Phi);
+    GInterp     = cdouble(Phi[0], Phi[8]);
+    dGInterp[0] = cdouble(Phi[1], Phi[9]);
+    dGInterp[1] = cdouble(Phi[2], Phi[10]);
+    dGInterp[2] = cdouble(Phi[3], Phi[11]);
+    RelError = abs(GInterp-GExact) / abs(GExact);
+    OptimalDelta[Mu] = Delta[Mu] * pow( RelTol/RelError, 0.25 );
+    for(int Nu=0; Nu<3; Nu++)
+     { if ( abs(dGExact[Nu]) < 1.0e-6*abs(GExact) ) continue;
+       RelError = abs(dGInterp[Nu]-dGExact[Nu]) / abs(dGExact[Nu]);
+       double OptDeltaNu = Delta[0] * pow( RelTol/RelError, 0.33 );
+       OptimalDelta[Nu] = fmin(OptimalDelta[Nu], OptDeltaNu);
+     };
+   };
 
   delete I3D;
 
@@ -783,7 +788,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double RelTol = 1.0e-4;
+  double RelTol = 1.0e-6;
   if ( char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE") )
    { sscanf(str,"%le",&RelTol);
      Log("Setting interpolation tolerance to %e.\n",RelTol);
