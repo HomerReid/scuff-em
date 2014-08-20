@@ -821,7 +821,7 @@ void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
 
   double rml2=RmL[0]*RmL[0] + RmL[1]*RmL[1] + RmL[2]*RmL[2];
   double rml=sqrt(rml2);
-  bool Smallr = ( rml*E < 0.5 ) && ( rml*abs(k) < 1.0 );
+  bool Smallr = ( rml*E < 0.1 ) && ( rml*abs(k) < 1.0 );
 
   if ( Smallr ) // use small-r expansion derived in memo
    { 

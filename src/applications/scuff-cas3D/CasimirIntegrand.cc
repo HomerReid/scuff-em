@@ -328,8 +328,19 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
      /******************************************************************/
      bool AllConverged=true;
      for(int nq=0; AllConverged && nq<SC3D->NumQuantities; nq++)
-      { AllConverged &= SC3D->XiConverged[ntnq+nq];
-        if (PBC) AllConverged &= SC3D->BZConverged[ntnq+nq];
+      { 
+        bool ThisConverged;
+
+        if (SC3D->XiConverged[ntnq+nq]) 
+         ThisConverged=true;
+        else if (PBC && SC3D->BZConverged[ntnq+nq])
+         ThisConverged=true;
+        else if (PBC && SC3D->BZConverged[ntnq+nq])
+         ThisConverged=false;
+
+        if (ThisConverged==false) 
+         AllConverged=false;
+
       };
      if (AllConverged)
       { Log("All quantities already converged at Tag %s",Tag);
