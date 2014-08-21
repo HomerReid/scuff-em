@@ -252,8 +252,9 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
       };
 
      Log("Assembling T%i at Xi=%e...",ns+1,Xi);
+     void *Accelerator = PBC ? SC3D->TAccelerators[ns] : 0;
      G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, SC3D->TBlocks[ns], 0,
-                               0, 0, SC3D->TAccelerators[ns], false);
+                               0, 0, Accelerator, false);
 
    }; // for(ns=0; ns<G->NumSurfaces; ns++)
 
@@ -349,9 +350,9 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
          EFT[ntnq++]=0.0;
 
         if (ByXiKFile)
-         { fprintf(ByXiKFile,"%s %.15e %e %e ",Tag,Xi,kBloch[0],kBloch[1]);
+         { fprintf(ByXiKFile,"%s %6e %6e 6e ",Tag,Xi,kBloch[0],kBloch[1]);
            for(int nq=0; nq<SC3D->NumQuantities; nq++)
-            fprintf(ByXiKFile,"%.15e ",0.0);
+            fprintf(ByXiKFile,"%8e ",0.0);
            fprintf(ByXiKFile,"\n");
            fflush(ByXiKFile);
          };
