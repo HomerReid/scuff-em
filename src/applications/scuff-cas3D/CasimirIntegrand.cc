@@ -335,7 +335,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
          ThisConverged=true;
         else if (PBC && SC3D->BZConverged[ntnq+nq])
          ThisConverged=true;
-        else if (PBC && SC3D->BZConverged[ntnq+nq])
+        else
          ThisConverged=false;
 
         if (ThisConverged==false) 

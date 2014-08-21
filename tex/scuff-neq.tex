@@ -788,6 +788,15 @@ K\supt{EM}_2
 f_2(ikr) \frac{e^{ikr}}{4\pi r^5}
 \end{align*}
 %====================================================================%
+``First integrals'' of these kernels:
+\begin{align*}
+ \text{if  } K(r) &= (ikr)^p \frac{e^{ikr}}{4\pi r^q} 
+\\
+ \text{then  } \mc K_n(r) &\equiv\int_0^n w^n K(wX) \, dw
+\\
+ &=\frac{(ik)^p e^{ikX}}{4\pi(n+p+1-q)}\, X^{n+p-q} \,
+   \texttt{ExpRel}\Big[n+p+1-q, -ikX\Big]
+\end{align*}
 
 %====================================================================%
 %====================================================================%
