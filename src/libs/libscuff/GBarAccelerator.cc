@@ -122,8 +122,16 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  Interp2D *I2D=new Interp2D(x,   x+Delta[0],   2,
-                             Rho, Rho+Delta[1], 2,
+  double xMin = x, xMax=x+Delta[0];
+  if (EqualFloat(x,L0))
+   { xMin=x-Delta[0]; xMax=x; }
+  double RhoMin = Rho, RhoMax=Rho+Delta[1];
+  if (EqualFloat(Rho,GBA->RhoMax))
+   { RhoMin = Rho-Delta[1]; RhoMax=Rho;
+   }
+
+  Interp2D *I2D=new Interp2D(xMin,     xMax, 2,
+                             RhoMin, RhoMax, 2,
                              2, GBarVDPhi2D, (void *)GBA);
 
   /***************************************************************/
@@ -138,8 +146,8 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
   for(int Mu=0; Mu<2; Mu++)
    { 
      double R[2];
-     R[0] = x;
-     R[1] = Rho;
+     R[0] = xMin;
+     R[1] = RhoMin;
      R[Mu] += 0.5*Delta[Mu];
      GBarVDPhi2D( R[0], R[1], (void *)GBA, Phi);
      GExact     = cdouble(Phi[0], Phi[4]);
@@ -154,8 +162,8 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
      for(int Nu=0; Nu<2; Nu++)
       { if ( abs(dGExact[Nu]) < 1.0e-6*abs(GExact) ) continue;
         RelError = abs(dGInterp[Nu]-dGExact[Nu]) / abs(dGExact[Nu]);
-        double OptDeltaNu = Delta[Nu] * pow( RelTol/RelError, 0.33 );
-        OptimalDelta[Nu] = fmin(OptimalDelta[Nu], OptDeltaNu);
+        double OptDeltaNu = Delta[Mu] * pow( RelTol/RelError, 0.33 );
+        OptimalDelta[Mu] = fmin(OptimalDelta[Mu], OptDeltaNu);
       };
    };
 
@@ -232,8 +240,8 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
     for(int Nu=0; Nu<3; Nu++)
      { if ( abs(dGExact[Nu]) < 1.0e-6*abs(GExact) ) continue;
        RelError = abs(dGInterp[Nu]-dGExact[Nu]) / abs(dGExact[Nu]);
-       double OptDeltaNu = Delta[Nu] * pow( RelTol/RelError, 0.33 );
-       OptimalDelta[Nu] = fmin(OptimalDelta[Nu], OptDeltaNu);
+       double OptDeltaNu = Delta[Mu] * pow( RelTol/RelError, 0.33 );
+       OptimalDelta[Mu] = fmin(OptimalDelta[Mu], OptDeltaNu);
      };
    };
 
