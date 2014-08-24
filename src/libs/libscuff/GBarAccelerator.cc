@@ -101,6 +101,50 @@ void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
 
 } 
 
+#if 0
+void GetInterpolationError(GBarAccelerator *GBA,
+                           int n1, int n2, int n3,
+                           double MaxRDValue, 
+                           double MaxRDDeriv[3])
+{
+  if (GBA->LDim==1)
+   { 
+     double R[2];
+     double Delta[2]; 
+
+     Delta[0] = GBA->I2D->DX1;
+     Delta[1] = GBA->I2D->DX2;
+     R[0] = GBA->I2D->X1Min + n1*(GBA->I2D->DX1);
+     R[1] = GBA->I2D->X2Min + n2*(GBA->I2D->DX2);
+
+     for(int Mu=0; Mu<2; Mu++)
+      { R[Mu] += 0.5*Delta[Mu];
+
+        GBarVDPhi2D( R[0], R[1], (void *)GBA, Phi);
+        GExact     = cdouble(Phi[0], Phi[4]);
+        dGExact[0] = cdouble(Phi[1], Phi[5]);
+        dGExact[1] = cdouble(Phi[2], Phi[6]);
+
+        I2D->EvaluatePlus(R[0], R[1], Phi);
+        GInterp     = cdouble(Phi[0], Phi[4]);
+        dGInterp[0] = cdouble(Phi[1], Phi[5]);
+        dGInterp[1] = cdouble(Phi[2], Phi[6]);
+
+        RDValue = abs(GInterp-GExact) / abs(GExact);
+        for(int Nu=0; Nu<2; Nu++)
+         { if ( abs(dGExact[Nu]) < 1.0e-6*abs(GExact) ) continue;
+           RelError = abs(dGInterp[Nu]-dGExact[Nu]) / abs(dGExact[Nu]);
+           double OptDeltaNu = Delta[Mu] * pow( RelTol/RelError, 0.33 );
+        if (OptDeltaNu < OptimalDelta[Mu] )
+         { OptimalDelta[Mu] = OptDeltaNu;
+           Worst[Mu]=1+Nu;
+         };
+      };
+   };
+ 
+}
+#endif
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
