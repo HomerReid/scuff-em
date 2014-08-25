@@ -442,7 +442,6 @@ done:
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  Log(" Step 2: Contributions of outer grid cells...");
   //UpdateRegionInterpolators(Omega, kBloch);
   Args->GBA1=CreateRegionGBA(nr1, Omega, kBloch, nsa, nsb);
   if (nr2!=-1) 
@@ -450,6 +449,7 @@ done:
   else
    Args->GBA2=0;
 
+  Log(" Step 2: Contributions of outer grid cells...");
   Args->Displacement = 0;
   Args->Symmetric    = false;
   Args->OmitRegion1  = false;

@@ -235,6 +235,16 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  if (char *s = getenv("SCUFF_LOGLEVEL"  ) )
+   {      if ( !strcasecmp(s, "NONE"     ) ) LogLevel=SCUFF_NOLOGGING;
+     else if ( !strcasecmp(s, "TERSE"    ) ) LogLevel=SCUFF_TERSELOGGING;
+     else if ( !strcasecmp(s, "VERBOSE"  ) ) LogLevel=SCUFF_VERBOSELOGGING;
+     else if ( !strcasecmp(s, "VERBOSE2" ) ) LogLevel=SCUFF_VERBOSE2;
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   if ( getenv("SCUFF_ABORT_ON_FPE") )
    { feenableexcept(FE_INVALID | FE_OVERFLOW);
      Log("Enabling abort-on-floating-point-exception.");

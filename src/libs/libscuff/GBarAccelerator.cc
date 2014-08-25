@@ -218,10 +218,13 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
 
   delete I2D;
 
-  Log("Optimal spacing at (%e,%e)=(%e,%e) (worst: %s, %s)",
-       x,Rho,OptimalDelta[0],OptimalDelta[1],
-       Worst[0]==0 ? "value" : Worst[0]==1 ? "xDeriv" : "RhoDeriv",
-       Worst[1]==0 ? "value" : Worst[1]==1 ? "xDeriv" : "RhoDeriv");
+#if 0
+  if (RWGGeometry::LogLevel >= SCUFF_VERBOSE2)
+   Log("Optimal spacing at (%e,%e)=(%e,%e) (worst: %s, %s)",
+        x,Rho,OptimalDelta[0],OptimalDelta[1],
+        Worst[0]==0 ? "value" : Worst[0]==1 ? "xDeriv" : "RhoDeriv",
+        Worst[1]==0 ? "value" : Worst[1]==1 ? "xDeriv" : "RhoDeriv");
+#endif
 
   if (MinDelta)
    { MinDelta[0] = fmin(MinDelta[0], OptimalDelta[0]);
@@ -298,8 +301,11 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
 
   delete I3D;
 
-  Log("Optimal spacing at (%e,%e,%e)=(%e,%e,%e)",
-       x,y,z,OptimalDelta[0],OptimalDelta[1],OptimalDelta[2]);
+#if 0
+  if (RWGGeometry::LogLevel >= SCUFF_VERBOSE2)
+   Log("Optimal spacing at (%e,%e,%e)=(%e,%e,%e)",
+        x,y,z,OptimalDelta[0],OptimalDelta[1],OptimalDelta[2]);
+#endif
 
   if (MinDelta)
    { MinDelta[0] = fmin(MinDelta[0], OptimalDelta[0]);
@@ -379,19 +385,17 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
          RhoPoints[++nRho] = Rho + DeltaRho;
        };
 
-      Log("Creating %ix%i interpolation table: ",nx,nRho);
-Log(" X points at (");
-for(int n=0; n<nx; n++)
- LogC("%.2e, ",XPoints[n]);
-LogC(")");
-Log(" Rho points at (");
-for(int n=0; n<nRho; n++)
- LogC("%.2e, ",RhoPoints[n]);
-LogC(")");
+      Log("  Initializing %ix%i interpolation table with ",nx,nRho);
+      Log("  X points at [%g:%g:%g] ",0.0,DeltaX,L0);
+      Log("  Rho points at (");
+      for(int n=0; n<nRho; n++)
+       LogC("%.2e, ",RhoPoints[n]);
+      LogC(")");
 
       GBA->I3D=0;
       GBA->I2D=new Interp2D(XPoints, nx, RhoPoints, nRho,
                             2, GBarVDPhi2D, (void *)GBA);
+      Log("  ...interpolation table done");
 
       delete[] XPoints;
 
@@ -440,12 +444,14 @@ LogC(")");
          if (nRho<2) nRho=2;
        };
 
-      Log("Creating %ix%ix%i interpolation table...\n",nx,ny,nRho);
+      Log("  Initializing %ix%ix%i interpolation table...\n",nx,ny,nRho);
       GBA->I2D=0;
       GBA->I3D=new Interp3D(0.0, Lx, nx, 
                             0.0, Ly, ny, 
                             RhoMin, RhoMax, nRho,
-                            2, GBarVDPhi3D, (void *)GBA); };
+                            2, GBarVDPhi3D, (void *)GBA);
+      Log("  ...interpolation table done");
+   };
 
   return GBA;
    
@@ -888,6 +894,8 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 /***************************************************************/
 GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix)
 {
+  Log("Creating GBar accelerator for %i points in region %s...",XMatrix->NR,RegionLabels[nr]);
+
   /*--------------------------------------------------------------*/
   /* get bounding box enclosing all eval points in this region    */
   /*--------------------------------------------------------------*/
@@ -952,6 +960,9 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 /***************************************************************/
 GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch, int ns1, int ns2)
 {
+  Log("Creating GBar accelerator for region %s, surfaces %s,%s",
+       RegionLabels[nr],Surfaces[ns1]->Label,Surfaces[ns2]->Label);
+
   /***************************************************************/
   /* get the maximum and minimum values of the cartesian         */
   /* coordinates of R=x1-x2 as x1, x2 range over surfaces 1,2    */

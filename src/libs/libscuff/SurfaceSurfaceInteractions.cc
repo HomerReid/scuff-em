@@ -190,7 +190,7 @@ void *GSSIThread(void *data)
       if (nt==TD->NumTasks) nt=0;
       if (nt!=TD->nt) continue;
 
-      if (G->LogLevel>=SCUFF_VERBOSELOGGING && (neb==nebStart*nea) )
+      if (G->LogLevel>=SCUFF_VERBOSE2 && (neb==nebStart*nea) )
        LogPercent(nea, NEa);
 
       /*--------------------------------------------------------------*/

@@ -60,6 +60,7 @@ namespace scuff {
 #define SCUFF_NOLOGGING      0
 #define SCUFF_TERSELOGGING   1
 #define SCUFF_VERBOSELOGGING 2
+#define SCUFF_VERBOSE2       3
 
 // various types of overlap matrix
 #define SCUFF_OMATRIX_OVERLAP    0
