@@ -344,34 +344,57 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   /***************************************************************/
   if (LDim==1)
    {
-      // estimate the optimal grid spacings at a few points
-      // in the domain of interest and take the smallest 
+      // sample the optimal grid spacing at a few points
+      // in the domain of interest and take the smallest
       double L0 = LBV[0][0], MinDelta[2], Delta[2];
       GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMin, RelTol, MinDelta, 0);
       GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMin, RelTol, Delta, MinDelta);
       GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMax, RelTol, Delta, MinDelta);
 
-      int nx   = ceil( L0 / MinDelta[0] );
+      double DeltaX = MinDelta[0];
+      int nx = ceil( L0 / DeltaX );
       if (nx<2) nx=2;
+      DeltaX = L0 / ((double)(nx-1));
+      double *XPoints = new double[nx];
+      for(int n=0; n<nx; n++)
+       XPoints[n] = ((double)n)*DeltaX;
 
-      int nRho; 
-      if (RhoMax<=RhoMin)
-       { RhoMax = RhoMin + MinDelta[0];
-         nRho=2;
-       }
-      else
-       { nRho = ceil( (RhoMax-RhoMin) / MinDelta[1] );
-         if (nRho<2) nRho=2;
+      #define MAXRHOPOINTS 1000
+      double RhoPoints[MAXRHOPOINTS];
+      double MinDeltaRho = (RhoMax-RhoMin) / MAXRHOPOINTS;
+      RhoPoints[0]=RhoMin;
+      int nRho=0;
+      bool Done=false;
+      while(!Done)
+       { 
+         double Rho = RhoPoints[nRho];
+         GetOptimalGridSpacing1D(GBA, 0.0*L0, Rho, RelTol, MinDelta, 0);
+         GetOptimalGridSpacing1D(GBA, 0.5*L0, Rho, RelTol, Delta, MinDelta);
+         GetOptimalGridSpacing1D(GBA, 1.0*L0, Rho, RelTol, Delta, MinDelta);
+         double DeltaRho = fmax(MinDeltaRho,MinDelta[1]);
+         if (Rho + DeltaRho >= RhoMax)
+          { DeltaRho = RhoMax - Rho;
+            Done=true;
+          };
+         RhoPoints[++nRho] = Rho + DeltaRho;
        };
 
-      printf("Creating %ix%i interpolation table...\n",nx,nRho);
+      Log("Creating %ix%i interpolation table: ",nx,nRho);
+Log(" X points at (");
+for(int n=0; n<nx; n++)
+ LogC("%.2e, ",XPoints[n]);
+LogC(")");
+Log(" Rho points at (");
+for(int n=0; n<nRho; n++)
+ LogC("%.2e, ",RhoPoints[n]);
+LogC(")");
+
       GBA->I3D=0;
-      GBA->I2D=new Interp2D(0.0,    L0,     nx,
-                            RhoMin, RhoMax, nRho,
+      GBA->I2D=new Interp2D(XPoints, nx, RhoPoints, nRho,
                             2, GBarVDPhi2D, (void *)GBA);
+
+      delete[] XPoints;
+
    }
   else // LDim==2
    {
@@ -853,7 +876,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE");
   if ( str )
    { sscanf(str,"%le",&RelTol);
-     Log("Setting interpolation tolerance to %e.\n",RelTol);
+     Log("Setting interpolation tolerance to %e.",RelTol);
    };
 
   return CreateGBarAccelerator(GBA_LDim, GBA_LBV, RhoMin, RhoMax,
