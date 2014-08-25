@@ -119,6 +119,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   int NS=G->NumSurfaces;
   SC3D->TBlocks  = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SC3D->TAccelerators = PBC ? (void **)mallocEC(NS*sizeof(void *)) : 0;
+  bool NeedDMDZ = (WhichQuantities & QUANTITY_ZFORCE);
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { int nsp = G->Mate[ns];
      if ( nsp!=-1 )
@@ -127,7 +128,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
       { int NBF=G->Surfaces[ns]->NumBFs;
         if (PBC)
          { SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
-           SC3D->TAccelerators[ns] = G->CreateABMBAccelerator(ns, ns, false, false);
+           SC3D->TAccelerators[ns] = G->CreateABMBAccelerator(ns, ns, true, NeedDMDZ);
          }
         else
          SC3D->TBlocks[ns] = new HMatrix(NBF, NBF, LHM_REAL, LHM_SYMMETRIC);
@@ -144,7 +145,6 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->UBlocks       = (HMatrix **)mallocEC(   NumBlocks * sizeof(HMatrix *));
   SC3D->dUBlocks      = (HMatrix **)mallocEC( 6*NumBlocks * sizeof(HMatrix *));
   int RealComplex     = PBC ? LHM_COMPLEX : LHM_REAL;
-  bool NeedDMDZ = (WhichQuantities & QUANTITY_ZFORCE);
   for(int ns=0, nb=0; ns<NS; ns++)
    for(int nsp=ns+1; nsp<NS; nsp++, nb++)
     { int NBF=G->Surfaces[ns]->NumBFs;
@@ -215,7 +215,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
         for(int ns=0, nb=0; ns<NS; ns++)
          for(int nsp=ns+1; nsp<NS; nsp++, nb++)
           SC3D->UAccelerators[nt][nb] 
-           = G->CreateABMBAccelerator(ns, nsp, false, NeedDMDZ && ns==0);
+           = G->CreateABMBAccelerator(ns, nsp, true, NeedDMDZ && ns==0);
       };
    };
 
