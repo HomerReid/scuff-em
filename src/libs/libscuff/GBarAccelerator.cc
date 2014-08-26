@@ -384,13 +384,14 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
           };
          RhoPoints[++nRho] = Rho + DeltaRho;
        };
+      nRho++; 
 
       Log("  Initializing %ix%i interpolation table with ",nx,nRho);
       Log("  X points at [%g:%g:%g] ",0.0,DeltaX,L0);
       Log("  Rho points at (");
-      for(int n=0; n<nRho; n++)
+      for(int n=0; n<(nRho-1); n++)
        LogC("%.2e, ",RhoPoints[n]);
-      LogC(")");
+      LogC("%.2e)",RhoPoints[nRho-1]);
 
       GBA->I3D=0;
       GBA->I2D=new Interp2D(XPoints, nx, RhoPoints, nRho,
