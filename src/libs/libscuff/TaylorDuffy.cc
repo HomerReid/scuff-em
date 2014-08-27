@@ -1014,7 +1014,7 @@ void CMVStoUpsilon(int WhichCase,
    }
   else if (WhichCase == TD_COMMONEDGE)
    {
-      Upsilon[0][0][0]          = C2010/4 + M11/6 + M13/3 + M33/6 + S + V1/2 + V3/2;
+      Upsilon[0][0][0]          = C2010/4 + M11/6 + M13/3 + M33/6 + S + V1/2 + V3/2; 
      
       Upsilon[0][1][Y1Y2TERM]   = M12/2 + M23/2 + V2;
       Upsilon[0][1][Y1TERM]     = -C2001/3 - C2010/3 - M12/2 - M13/2 - M14/2 - M23/2 - M33/2 - M34/2 - V2 - V3 - V4;

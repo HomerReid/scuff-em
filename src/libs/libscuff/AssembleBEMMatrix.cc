@@ -362,8 +362,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   Args->Sa           = Surfaces[nsa];
   Args->Sb           = Surfaces[nsb];
   Args->Omega        = Omega;
-  Args->GBA1         = false;
-  Args->GBA2         = false;
+  Args->GBA1         = 0;
+  Args->GBA2         = 0;
   Args->Accumulate   = false;
   Args->Displacement = L;
 

@@ -209,8 +209,7 @@ typedef struct GetSSIArgStruct
    double SignA, SignB;
    cdouble EpsA, EpsB;
    cdouble MuA, MuB;
-   int SaIsPEC, SbIsPEC;
-   Interp3D *GInterpA, *GInterpB;
+   bool SaIsPEC, SbIsPEC;
 
  } GetSSIArgStruct;
 

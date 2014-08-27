@@ -137,6 +137,19 @@ void AssembleInnerPPIIntegrand(double wp, double *R, double *X,
                                            + FxFP[1]*ddG[3*Mu + 1] 
                                            + FxFP[2]*ddG[3*Mu + 2]);
          };
+#if 0
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+cdouble G2, dG2[3], ddG2[9];
+double RhoMinSave=GBA->RhoMin;
+GBA->RhoMin=1.0e34;
+G2=GetGBar(R, GBA, dG2, ddG2);
+GBA->RhoMin=RhoMinSave;
+double MyRD = RD(dG2[2], dG[2]);
+if ( MyRD > 1.0e-2 ) 
+ printf("Dude! (%e,%e,%e) %e (%e,%e) (%e,%e)\n",
+ R[0],R[1],R[2],MyRD,real(dG2[2]),imag(dG2[2]),real(dG[2]),imag(dG[2]));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#endif
       };
    }
   else

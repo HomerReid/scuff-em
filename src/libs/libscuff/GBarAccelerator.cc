@@ -172,7 +172,7 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
   double RhoMin = Rho, RhoMax=Rho+Delta[1];
   if (EqualFloat(Rho,GBA->RhoMax))
    { RhoMin = Rho-Delta[1]; RhoMax=Rho;
-   }
+   };
 
   Interp2D *I2D=new Interp2D(xMin,     xMax, 2,
                              RhoMin, RhoMax, 2,
@@ -465,6 +465,7 @@ void DestroyGBarAccelerator(GBarAccelerator *GBA)
 { 
   if (GBA->I2D) delete GBA->I2D;
   if (GBA->I3D) delete GBA->I3D;
+  free(GBA);
 }
 
 /***************************************************************/

@@ -129,8 +129,8 @@ void *GSSIThread(void *data)
   cdouble MuB          = Args->MuB;
   double SignA         = Args->SignA;
   double SignB         = Args->SignB;
-  int SaIsPEC          = Args->SaIsPEC;
-  int SbIsPEC          = Args->SbIsPEC;
+  bool SaIsPEC         = Args->SaIsPEC;
+  bool SbIsPEC         = Args->SbIsPEC;
 
 #ifdef USE_PTHREAD
   SetCPUAffinity(TD->nt);
@@ -214,6 +214,7 @@ void *GSSIThread(void *data)
 
          for(Mu=0; Mu<NumTorqueAxes; Mu++)
           dBdTheta[Mu]->AddEntry( X, Y, PreFac1A*dGCdT[2*Mu+0]);
+
        }
       else if ( SaIsPEC && !SbIsPEC )
        { 
@@ -486,8 +487,8 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   else
    Args->EpsB = Args->MuB = Args->SignB = 0.0;
 
-  Args->SaIsPEC = Sa->IsPEC;
-  Args->SbIsPEC = Sb->IsPEC;
+  Args->SaIsPEC = (Sa->IsPEC==1);
+  Args->SbIsPEC = (Sb->IsPEC==1);
 
   /***************************************************************/
   /***************************************************************/

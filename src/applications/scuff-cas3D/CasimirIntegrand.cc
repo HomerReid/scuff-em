@@ -394,7 +394,6 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
          else
           G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, SC3D->UBlocks[nb], 0,
                                     0, 0, Accelerator, false);
-
        };
 
      /***************************************************************/
