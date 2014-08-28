@@ -536,11 +536,14 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
 #else 
 #ifndef USE_OPENMP
   NumTasks=NumThreads=1;
-  Log(" no multithreading...");
+  if (G->LogLevel>=SCUFF_VERBOSE2)
+   Log(" no multithreading...");
 #else
   NumTasks=NumThreads*100;
-  if (NumTasks>Sa->NumEdges) NumTasks=Sa->NumEdges;
-  Log(" OpenMP multithreading (%i threads,%i tasks)...",NumThreads,NumTasks);
+  if (NumTasks>Sa->NumEdges) 
+   NumTasks=Sa->NumEdges;
+  if (G->LogLevel>=SCUFF_VERBOSE2)
+   Log(" OpenMP multithreading (%i threads,%i tasks)...",NumThreads,NumTasks);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(nt=0; nt<NumTasks; nt++)
@@ -555,7 +558,7 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
    };
 #endif
 
-  if (G->LogLevel>=SCUFF_VERBOSELOGGING)
+  if (G->LogLevel>=SCUFF_VERBOSE2)
    { Log("  %i/%i cache hits/misses",GlobalFIPPICache.Hits,GlobalFIPPICache.Misses);
      Log("  PPIs: LOC(%u), HOC(%u), TD(%u), HK(%u), D(%u)",
             PPIAlgorithmCount[PPIALG_LOCUBATURE],
