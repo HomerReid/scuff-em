@@ -225,6 +225,13 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
   RWGGeometry *G = SC3D->G;
   bool PBC = (G->LDim > 0);
 
+  if (G->LDim==0)
+   Log("Computing Casimir integrand at Xi=%g\n",Xi);
+  else if (G->LDim==1)
+   Log("Computing Casimir integrand at (Xi,kx)=(%g,%g)\n",Xi,kBloch[0]);
+  else // (G->LDim==2)
+   Log("Computing Casimir integrand at (Xi,kx,ky)=(%g,%g,%g)\n",Xi,kBloch[0],kBloch[1]);
+
   /***************************************************************/
   /* SurfaceNeverMoved[ns] is initialized true and remains true  */
   /* as long as surface #ns is not displaced or rotated by any   */
