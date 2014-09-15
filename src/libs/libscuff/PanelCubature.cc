@@ -556,7 +556,7 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
          for(int n=0; n<IDim; n++)
           Result[n] += w*wp*DeltaResult[n];
        };
-     delete DeltaResult;
+     delete[] DeltaResult;
    }
   else
    { Data->UseSquareMapping=true;

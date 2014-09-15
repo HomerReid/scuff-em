@@ -149,7 +149,7 @@ void GetInterpolationError(GBarAccelerator *GBA,
 /***************************************************************/
 /***************************************************************/
 void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
-                             double RelTol, double OptimalDelta[2], 
+                             double RelTol, double OptimalDelta[2],
                              double *MinDelta)
 {
   double Delta[2];
@@ -534,6 +534,10 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
   bool ExcludeInnerCells = GBA->ExcludeInnerCells;
 
   /*--------------------------------------------------------------*/
+  /* if the ------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+
+  /*--------------------------------------------------------------*/
   /* if we have no interpolation grid, or we have one but the     */
   /* transverse coordinate lies outside it, then we just do the   */
   /* calculation directly                                         */
@@ -554,10 +558,11 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
    };
  
   /*--------------------------------------------------------------*/
-  /* get xBar = unit-cell representative of x coordinate          */
+  /* get xBar, which is the periodic image of the x-coordinate    */
+  /* lying within the Wigner-Seitz cell of the 1D lattice         */
   /*--------------------------------------------------------------*/
   double L0 = GBA->LBV[0][0];
-  int m = (int)(floor( R[0] / L0 )); 
+  int m = (int)(round( R[0] / L0 ));
   double xBar = R[0] - m*L0;
 
   /*--------------------------------------------------------------*/
