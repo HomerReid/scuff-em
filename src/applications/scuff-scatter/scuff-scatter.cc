@@ -357,7 +357,7 @@ int main(int argc, char *argv[])
      /*- equivalence-principle PFT ----------------------------------*/
      /*--------------------------------------------------------------*/
      if (EPPFTFile)
-      WriteEPPFTFile(SSD, OPFTFile);
+      WriteEPPFTFile(SSD, EPPFTFile);
 
      /*--------------------------------------------------------------*/
      /*- surface-integral PFT           -----------------------------*/

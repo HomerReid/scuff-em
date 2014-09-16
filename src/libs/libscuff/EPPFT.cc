@@ -360,10 +360,10 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
   cdouble k = Omega * sqrt(Eps*Mu);
   cdouble ZRel = sqrt(Mu/Eps);
 
-  cdouble EEFac =  (10.0/3.0)*II*k*ZRel*ZVAC;
-  cdouble EMFac =  (10.0/3.0)*II*k;
-  cdouble MEFac = -(10.0/3.0)*II*k;
-  cdouble MMFac =  (10.0/3.0)*II*k/(ZRel*ZVAC);
+  cdouble EEFac =  II*k*ZRel*ZVAC;
+  cdouble EMFac =  II*k;
+  cdouble MEFac = -II*k;
+  cdouble MMFac =  II*k/(ZRel*ZVAC);
 
   int NE = S->NumEdges;
   int Offset = BFIndexOffset[ns];
@@ -407,13 +407,12 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
       Fx   += imag ( GFactor*dG[0] + CFactor*dC[0] );
       Fy   += imag ( GFactor*dG[1] + CFactor*dC[1] );
       Fz   += imag ( GFactor*dG[2] + CFactor*dC[2] );
-
     };
 
   EPPFT[0] = 0.5*PAbs;
-  EPPFT[1] = 0.5*Fx/real(Omega);
-  EPPFT[2] = 0.5*Fy/real(Omega);
-  EPPFT[3] = 0.5*Fz/real(Omega);
+  EPPFT[1] = 0.5*(10.0/3.0)*Fx/real(Omega);
+  EPPFT[2] = 0.5*(10.0/3.0)*Fy/real(Omega);
+  EPPFT[3] = 0.5*(10.0/3.0)*Fz/real(Omega);
   EPPFT[4] = 0.0;
   EPPFT[5] = 0.0;
   EPPFT[6] = 0.0;
