@@ -217,9 +217,12 @@ for(int Mu=0; Mu<3; Mu++)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   double PreFac = Ea->Length * Eb->Length;
+  cdouble MIK = -1.0*II*k;
+  GC[0]*=PreFac;
+  GC[1]*=PreFac / MIK;
   for(int Mu=0; Mu<6; Mu++)
    { dG[Mu] *= PreFac;
-     dC[Mu] *= PreFac;
+     dC[Mu] *= PreFac / MIK;
    };
    
 }
@@ -280,16 +283,17 @@ void GetdGME_Near(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
      /***************************************************************/
      /***************************************************************/
      /***************************************************************/
-     cdouble e[3], dePlus[3][3], deMinus[3][3], h[3], dhPlus[3][3], dhMinus[3][3];
-     GetReducedFields_Nearby(G, nsb, neb, XPlus, k, e, h, dePlus, dhPlus);
-     GetReducedFields_Nearby(G, nsb, neb, XMinus, k, e, h, deMinus, dhMinus);
+     cdouble ePlus[3], dePlus[3][3], eMinus[3], deMinus[3][3];
+     cdouble hPlus[3], dhPlus[3][3], hMinus[3], dhMinus[3][3];
+     GetReducedFields_Nearby(G, nsb, neb, XPlus, k, ePlus, hPlus, dePlus, dhPlus);
+     GetReducedFields_Nearby(G, nsb, neb, XMinus, k, eMinus, hMinus, deMinus, dhMinus);
 
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
        { 
          if (Mu==0)
-          { GC[0] += w*(FPlus[Nu]*e[Nu] - FMinus[Nu]*e[Nu]);
-            GC[1] += w*(FPlus[Nu]*h[Nu] - FMinus[Nu]*h[Nu]);
+          { GC[0] += w*(FPlus[Nu]*ePlus[Nu] - FMinus[Nu]*eMinus[Nu]);
+            GC[1] += w*(FPlus[Nu]*hPlus[Nu] - FMinus[Nu]*hMinus[Nu]);
           };
          dG[Mu] += w*(FPlus[Nu]*dePlus[Mu][Nu] - FMinus[Nu]*deMinus[Mu][Nu]);
          dC[Mu] += w*(FPlus[Nu]*dhPlus[Mu][Nu] - FMinus[Nu]*dhMinus[Mu][Nu]);
@@ -300,11 +304,12 @@ void GetdGME_Near(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  cdouble MIK = -1.0*II*k;
   GC[0] *= E->Length;
-  GC[1] *= E->Length;
+  GC[1] *= E->Length / MIK;
   for(int Mu=0; Mu<6; Mu++)
    { dG[Mu] *= E->Length;
-     dC[Mu] *= E->Length;
+     dC[Mu] *= E->Length / MIK;
    };
    
 }
