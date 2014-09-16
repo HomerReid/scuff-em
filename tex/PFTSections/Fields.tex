@@ -1,0 +1,56 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Fields from surface currents}
+
+To fix notation and ideas for the main text, in this section
+I review the procedure for computing the fields from the 
+surface currents in an SIE solver.
+
+In the surface-integral-equation (SIE) approach to
+classical electromagnetism problems, we solve for tangential
+\textit{equivalent surface currents} (both electric currents $\vb K$ 
+and magnetic currents $\vb N$) flowing on the surfaces of 
+homogeneous material bodies. In numerical solvers, we 
+approximate these as finite expansions in a discrete set
+of $N\subt{B}$ basis functions; using a convenient 6-vector notation 
+in which $\bmc C\equiv {\vb K \choose \vb N}$, we put
+%--------------------------------------------------------------------%
+$$ \bmc C(\vb x)=\sum_{\alpha=1}^{N\subt{B}} 
+   c_\alpha \bmc B_\alpha(\vb x) 
+$$ 
+%--------------------------------------------------------------------%
+where $\{\bmc B_\alpha\}$ is a set of 6-vector basis 
+functions\footnote{In {\sc scuff-neq} these take the form
+$\bmc B_\alpha=$ 
+$\vb b_\alpha \choose 0$ 
+or 
+$0 \choose \vb b_\alpha$
+where $\vb b_\alpha$ is a three-vector RWG basis function.
+However, the FSC formalism is not specific to this choice.}
+and $\{c_\alpha\}$ are scalar expansion coefficients.
+(We work at a fixed frequency $\omega$ and assume all fields
+and currents vary in time like $e^{-i\omega t}$.)
+
+The electric and magnetic fields produced by these currents
+are linear functions of the $\{c_\alpha\}$ coefficients.
+In 6-vector notation with $\bmc F\equiv {\vb E \choose \vb H}$, we have
+%--------------------------------------------------------------------%
+\numeq{FFromC}
+{ \bmc F(\vb x)=
+   \sum_{\alpha} c_\alpha \bmc F_\alpha(\vb x)
+}
+%--------------------------------------------------------------------%
+where $\bmc F_\alpha={\vb E_\alpha \choose \vb H_\alpha}$ 
+is the six-vector of fields produced by basis function $\bmc B_\alpha$ 
+populated with unit strength. These may be calculated numerically
+as convolutions over basis functions,
+%--------------------------------------------------------------------%
+$$ \bmc F_\alpha(\vb x)
+   =\int_{\sup \bmc B_\alpha} \bmc{G}(\vb x, \vb x^\prime)
+    \bmc B_\alpha(\vb x^\prime) \, d\vb x^\prime
+$$
+%--------------------------------------------------------------------%
+where $\bmc{G}$ is an appropriate $6\times 6$ dyadic Green's
+function.

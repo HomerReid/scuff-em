@@ -1,0 +1,248 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Displaced surface-integral PFT (DSIPFT)}
+
+Conceptually the simplest way to compute PFTs is simply to
+integrate the total time-average flux of energy (Poynting vector) 
+or momentum (Maxwell stress tensor) over a bounding surface 
+containing the body. In this section we review the surface-current 
+bilinear
+product formula obtained in this approach.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Energy and momentum flux from field bilinears}
+
+The Poynting flux and Maxwell stress tensor are quadratic functions
+of the field components and may be conveniently written in the form
+of 6-dimensional vector-matrix-vector products. 
+In particular, the time-average power flux in the direction of a 
+unit vector $\vbhat{n}$ is
+%====================================================================%
+\begin{align}
+ \vb P(\vb x) \cdot \vbhat{n}
+   &=\frac{1}{2}\text{ Re }\varepsilon_{ijk}\vbhat{n}_i E^*_j(\vb x) H_k(\vb x)
+\nn
+   &=\frac{1}{4}\bmc{F}^\dagger(\vb x) \, \bmc{N}\supt{P}(\vbhat{n}) \, \bmc{F}(\vb x)
+\label{PVMVP}
+\end{align}
+%====================================================================%
+with
+%====================================================================%
+$$
+   \bmc N\supt{P}=
+   \left(\begin{array}{cc}
+   0       & \vb N\supt{P}   \\ [3pt]
+  -\vb N\supt{P} & 0
+   \end{array}\right), 
+\qquad 
+   \vb N\supt{P}
+   =
+   \left(\begin{array}{ccc}
+   0          &  \hat{n}_z & -\hat{n_y} \\
+  -\hat{n}_z  &  0         & +\hat{n_x} \\
+   \hat{n}_y  & -\hat{n}_x & 0
+   \end{array}\right).
+$$
+%====================================================================%
+Similarly, the flux of $i$-directed linear momentum is
+%--------------------------------------------------------------------%
+\begin{align}
+ \vb T_{i}(\vb x) \cdot \vbhat{n} 
+&=\frac{1}{2}\text{ Re }
+  \left[ \epsilon E^*_i(\vb x) E_j(\vb x) 
+             +\mu H^*_i(\vb x) H_j(\vb x) 
+       -\frac{\delta_{ij}}{2}
+         \Big( \epsilon |\vb E|^2
+              +\mu      |\vb H|^2
+         \Big)
+ \right] \hat {n}_j
+\nn
+&= \frac{1}{4}\bmc{F}^\dagger(\vb x) 
+   \, \bmc{N}\IF \, \bmc{F}(\vb x)
+\label{IFVMVP}
+\end{align}
+with
+%--------------------------------------------------------------------%
+$$
+   \bmc N\IF=
+   \left(\begin{array}{cc}
+   \epsilon \vb N\IF & 0 \\
+            0        & \mu \vb N\IF 
+   \end{array}\right)
+$$
+%--------------------------------------------------------------------%
+where the $3\times 3$ matrix $N\IF$ has entries
+%--------------------------------------------------------------------%
+$$ N\IF_{ab} = 
+   \delta_{ai} \hat{n}_b + \delta_{bi} \hat{n}_a
+  - \hat{n}_i \delta_{ab}.
+$$
+%====================================================================%
+For example, if we are computing the $x$-force ($i=x$)
+we have 
+%====================================================================%
+$$ \vb N^{x\text{\tiny F}}=\left(\begin{array}{ccc}
+   \hat{n}_x & \hat n_y   & \hat n_z \\
+   \hat{n}_y & -\hat{n}_x & 0 \\
+   \hat{n}_z & 0          & -\hat{n}_x
+  \end{array}\right).
+$$
+The flux of $i$-directed \textit{angular} momentum, useful
+for computations of torque about an origin $\vb x_0$, is
+%====================================================================%
+\begin{align}
+ \vb t_{i}(\vb x) \cdot \vbhat{n}
+&=\frac{1}{2}
+  \text{ Re }
+  \varepsilon_{ijk}(\vb x-\vb x_0)_j T_{k\ell}(\vb x) \hat{n}_\ell
+\\
+&= \frac{1}{4}\bmc{F}^\dagger(\vb x) 
+   \, \bmc{N}\IT \, \bmc{F}(\vb x)
+\label{ITVMVP}
+\end{align}
+%====================================================================%
+with 
+%--------------------------------------------------------------------%
+$$
+   \bmc N\IT=
+   \left(\begin{array}{cc}
+   \epsilon \vb N\IT & 0 \\
+            0        & \mu \vb N\IT 
+   \end{array}\right)
+$$
+%--------------------------------------------------------------------%
+where the $3\times 3$ matrix $N\IT$ has entries ($\vb D=\vb x-\vb x_0$)
+%--------------------------------------------------------------------%
+$$ N\IT_{ab}=
+   \varepsilon_{ija}D_j \hat{n}_b
+  +\varepsilon_{ijb}D_j \hat{n}_a
+  -\delta_{ab} \varepsilon_{ijk} D_j \hat{n}_k.
+$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Energy and momentum flux from surface-current bilinears}
+
+Equations (\ref{PVMVP}), (\ref{IFVMVP}), and (\ref{ITVMVP}) express
+the flux of power or momentum as bilinear products of the field
+six-vectors $\bmc F$. Using (\ref{FFromC}), we can turn these into
+bilinear products of the surface-current coefficient vectors
+$\vb c$. For example, the power flux (\ref{PVMVP}) becomes 
+%--------------------------------------------------------------------%
+\begin{align}
+ \vb P(\vb x) \cdot \vbhat{n}
+&=\frac{1}{4}\bmc F^\dagger(\vb x) \bmc N\supt{P}(\vbhat{n}) \bmc F(\vb x)
+\nn
+&=\frac{1}{4}\sum_{\alpha \beta} 
+  c_\alpha^* 
+  \Big[ \bmc F^\dagger_\alpha(\vb x)
+        \,
+        \bmc N\supt{P}(\vbhat{n})
+        \,
+        \bmc F_\beta(\vb x)
+  \Big]
+  c_\beta 
+\nn
+&= \vb c^\dagger \vb M\supt{PFLUX}(\vb x, \vbhat{n}) \vb c 
+\label{PFluxVMVP}
+\end{align}
+%--------------------------------------------------------------------%
+where $\vb M\supt{PFLUX}(\vb x,\vbhat{n})$ is a matrix 
+appropriate for $\vbhat{n}$-directed power flux in at $\vb x$.
+The fluxes of $i$-directed linear and angular momentum read
+similarly
+%--------------------------------------------------------------------%
+\begin{align}
+\vb T_i(\vb x) \cdot \vbhat{n}
+&= \vb c^\dagger \vb M\IFFlux(\vb x, \vbhat{n}) \vb c 
+\label{IFFluxVMVP}
+\\
+\vb t_i(\vb x) \cdot \vbhat{n}
+&= \vb c^\dagger \vb M\ITFlux(\vb x, \vbhat{n}) \vb c 
+\label{ITFluxVMVP}
+\end{align}
+%--------------------------------------------------------------------%
+The $\vb M$ matrices in (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}), and 
+(\ref{ITFluxVMVP}) are $N\subt{B}\times N\subt{B}$ matrices
+whose entries are themselves 6-dimensional matrix-vector products:
+\begin{align*}
+M_{\alpha\beta}\supt{PFLUX}(\vb x, \vbhat{n}) 
+ &= \frac{1}{4} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \bmc N\supt{P}(\vbhat{n})
+    \bmc F_\beta(\vb x) 
+\\
+M_{\alpha\beta}\IFFlux(\vb x, \vbhat{n})
+ &= \frac{1}{4} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \bmc N\supt{iF}(\vbhat{n})
+    \bmc F_\beta(\vb x) 
+\\
+M_{\alpha\beta}\ITFlux(\vb x, \vbhat{n})
+ &= \frac{1}{4} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \bmc N\supt{iT}(\vbhat{n})
+    \bmc F_\beta(\vb x).
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Power, force, and torque from surface-current bilinears}
+
+The simplest way to obtain surface-current bilinears for the
+total PFT on one or more bodies is simply to integrate the 
+spatially-resolved fluxes of the previous section over a closed
+bounding surface $\mc S$ containing the bodies.
+Indeed, noting that the $\vb x$ and $\vbhat{n}$ dependence of
+the flux expressions (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}),
+and (\ref{ITFluxVMVP}) is entirely contained in the $\vb M$
+matrices, it is easy to integrate those expressions over
+$\mc S$, then pull the surface-current vectors $\vb c$
+outside the integral to identify what we shall call
+the \textit{dense surface-integral PFT} (DSIPFT) matrices. 
+
+For example, the total power absorbed by material bodies
+contained within a closed surface $\mc S$
+is given by integrating the LHS of (\ref{PFluxVMVP})
+over $\mc S$:
+%====================================================================%
+\begin{align}
+  P_{\mc S}\sups{abs}&=\int_{\mc S} \vb P(\vb x) \cdot \vbhat{n} \, d\vb x
+\intertext{with $\vbhat{n}$ taken to be the inward-pointing surface
+           normal. Insert the RHS of (\ref{PFluxVMVP}) and pull 
+           $\vb c^\dagger, \vb c$ outside the integral:}
+             &=\vb c^\dagger \vb M\PS \vb c
+\label{PTotVMVP}
+\end{align}
+where the elements of 
+$\vb M\PS$
+involve integrals over $\mc S$:
+%====================================================================%
+\numeq{MPSEntries}
+{ M_{\alpha\beta}\PS
+  = \frac{1}{4} \int_{\mc S} 
+    \bmc F^\dagger_\alpha(\vb x) 
+    \bmc N\supt{P}(\vbhat{n})
+    \bmc F_\beta(\vb x) 
+     \, d\vb x.
+}
+%====================================================================%
+Similarly, the time-average $i$-directed force and torque on 
+material bodies contained in $\mc S$ are
+%====================================================================%
+\begin{align}
+ F_{i\mc S} &=\vb c^\dagger \vb M\IFS \vb c
+\label{FTotVMVP}
+\\
+ \mc T_{i\mc S} &=\vb c^\dagger \vb M\ITS \vb c
+\label{TTotVMVP}
+\end{align}
+%====================================================================%
+where the entries of $\vb M\IFS$ and $\vb M\ITS$ are similar
+to (\ref{MPSEntries}) with $\bmc N\supt{P} \to \bmc N\IF, \bmc N\IT.$

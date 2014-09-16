@@ -1,0 +1,689 @@
+\documentclass[letterpaper]{article}
+\usepackage[square,sort,comma,numbers]{natbib}
+\newcommand{\citeasnoun}[1]{Ref.~\citenum{#1}}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\newcommand{\vbhatt}[1]{\boldsymbol{\hat #1}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Fields near RWG Panels}
+\author {Homer Reid}
+\date {August 27, 2014}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Fields near RWG panels}
+\maketitle
+
+In this note I discuss the evaluation of the
+$\vb E$ and $\vb H$ fields due to RWG currents
+on a single triangular source panel $\mc P$ in the case 
+where the evaluation point lies on or near the source 
+panel.
+My method is essentially that of
+Graglia\footnote{Graglia, \textit{IEEE Trans. Ant. Prop.} 
+\textbf{41} 1448 (1993); see also 
+Wilton et al., \textit{IEEE Trans. Ant. Prop.} \textbf{32} 
+276 (1984).}; this is a desingularization scheme in which  
+the first few terms in the low-frequency series expansion of the 
+Green's function are subtracted off and evaluated analytically.
+However, in {\sc scuff-em} I need also to compute the 
+\textit{derivatives} of the $\vb E$ and $\vb H$ fields,
+which requires an extension of Graglia's methods.
+
+The algorithm described here is implemented in the 
+file \texttt{GetNearFields.cc} in the {\sc scuff-em} source
+distribution. 
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Fields from reduced potentials} 
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Reduced vector and scalar potentials}
+
+Consider a triangular panel $\mc P$ on which we have a flow of RWG 
+surface current emanating from a source vertex $\vb Q$. I begin by 
+defining ``reduced'' vector and scalar potentials produced by this 
+current at a point $\vb x$:
+%====================================================================%
+$$ \vb a(\mc P;\vb x) = 
+   \int_{\mc P} (\vb x^\prime - \vb Q) G(\vb x, \vb x^\prime) \, d\vb x^\prime,
+   \qquad
+   p(\mc P; \vb x) = 
+   \int_{\mc P} G(\vb x- \vb x^\prime) \, d\vb x^\prime,
+  \qquad
+  G(\vb r)=\frac{e^{ik|\vb r|}}{4\pi |\vb r|}.
+$$
+%====================================================================%
+The full vector and scalar potentials at $\vb x$ due to an 
+electric\footnote{The full potentials due to a unit-strength
+\textit{magnetic} current on $\mc P$ are also proportional
+to $\vb a$ and $p$, just with different constant prefactors.}
+surface current distribution described by a single RWG basis
+function $\vb b$ populated with unit strength are given by 
+summing contributions from the two triangular panels $\mc P^\pm$
+on which $\vb b$ is supported:
+%====================================================================%
+$$
+ \vb A(\vb x) = \sum_{\pm} \pm \frac{\ell}{2A^\pm} \vb a(\mc{P}^\pm; \vb x)
+ \qquad 
+ \Phi(\vb x) = Z_0Z^r \sum_{\pm} \pm \frac{\ell}{ik A^\pm} p(\mc{P}^\pm; \vb x)
+$$
+%====================================================================%
+where $A^\pm$ are the areas of $\mc P^\pm$, $\ell$ is the length
+of their common edge, 
+$Z_0$ is the impedance of free space, and $k$ and $Z^r$ are the
+wavenumber and relative wave impedance of the material medium.
+
+To compute the $\vb E$ and $\vb H$ fields we need the first derivatives
+of the potentials: 
+%====================================================================%
+$$ \vb E = ikZ \vb A - \nabla \phi, \qquad \vb H = \nabla \times \vb A$$
+%====================================================================%
+In component notation, the fields due to $\mc P$ thus read
+%\begin{align*}
+% E_i(\mc P,
+%\begin{align*}
+%\sum_{\pm} \pm\frac{\ell}{2A^\pm}\vb e(\mc P^\pm; \vb x),
+%   \qquad
+%   \vb H = \sum_{\pm} \pm\frac{\ell}{2A^\pm}\vb h(\mc P^\pm; \vb x)
+%$$
+%where the components of the three-vectors $\vb e$ and $\vb h$ are 
+%$$ e_i(\mc P^\pm; \vb x)
+%   =a_i(\mc P^\pm; \vb x) + \frac{1}{k^2}\partial_i p(\mc P^\pm, \vb c), 
+%  \qquad
+%   h_i(\mc P^\pm; \vb x)
+%   =\varepsilon_{ijk} \partial_j a_k(\mc P^\pm; \vb x)
+%$$
+%====================================================================%
+To compute the first derivatives of $\vb E$ and $\vb H$ we also
+need the \textit{second} derivatives of $\vb a$ and $p$:
+%====================================================================%
+$$ \partial_i e_j(\mc P^\pm; \vb x)
+   =   \partial_i a_j(\mc P^\pm; \vb x) 
+     + \frac{1}{k^2}\partial_i \partial_j p(\mc P^\pm, \vb c),
+  \qquad
+   \partial_i h_j(\mc P^\pm; \vb x)
+   =\varepsilon_{jk\ell} \partial_i \partial_k a_\ell(\mc P^\pm; \vb x).
+$$
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Desingularized reduced potentials}
+
+To compute $\vb a$ and $p$ at evaluation points $\vb x$ 
+on or near the source panel $\mc P$ it is convenient 
+to invoke the expansion
+%====================================================================%
+\begin{align*}
+ G(r) &= \frac{e^{ikr}}{4\pi r} 
+       =  \frac{1}{4 \pi r} + (ik)\frac{1}{4 \pi}
+         +(ik)^2 \frac{r}{8 \pi}
+         +\frac{\texttt{ExpRelBar}(ikr,3)}{4\pi r}
+\end{align*}
+%====================================================================%
+where \texttt{ExpRelBar} is just the usual exponential minus the 
+first few terms in its series expansion:\footnote{\texttt{ExpRelBar}
+is similar to, but distinct from, the function named \texttt{ExpRel} 
+in the {\sc gnu scientific library.}}
+%====================================================================%
+$$ \texttt{ExpRelBar}(x,N) = e^{x}-\sum_{n=0}^{N-1}\frac{x^n}{n!}
+                           = \sum_{n=N}^{\infty}\frac{x^n}{n!}.
+$$
+%====================================================================%
+The reduced potentials are
+%====================================================================%
+\begin{align*}
+ p(\vb x) 
+   &= \sum_{n=-1}^1 \frac{(ik)^{n+1}}{4\pi} p^{(n)}(\vb x)
+      + p\supt{DS}(\vb x)
+\\
+ \vb a(\vb x) 
+   &= \sum_{n=-1}^1 \frac{(ik)^{n+1}}{4\pi} \vb a^{(n)}(\vb x)
+      + \vb a \supt{DS}(\vb x)
+\end{align*}
+%====================================================================%
+where\footnote{Two special cases that may be computed
+analytically are $p^{(0)}=A, \vb a^{(0)}=A(\vb x_c - \vb Q)$
+where $A$ is the panel area and $\vb x_c$ is its centroid.}
+%====================================================================%
+\begin{align}
+ p^{(n)}(\vb x) &= \int_{\mc P} r^n \, dA
+\label{pnDef} \\
+%--------------------------------------------------------------------%
+ \vb a^{(n)}(\vb x)
+&= \int_{\mc P} (\vb x^\prime - \vb Q)r^n \, dA.
+\label{anDef}
+%%--------------------------------------------------------------------%
+\intertext{(here $r=|\vb x^\prime - \vb x|$).
+           To write $\vb a^{(n)}$ in a more convenient form, let
+           $\overline{\vb x}$ be the projection of the evaluation point
+           into the plane of the panel and write $\vb a^{(n)}$ in the
+           form}
+%--------------------------------------------------------------------%
+&= \int_{\mc P}
+   \Big( \vb x^\prime - \overline{\vb x} + \overline{\vb x} - \vb Q \Big)
+   r^n \, dA
+\nn
+%--------------------------------------------------------------------%
+&= \int_{\mc P} 
+   \Big( \vb x^\prime - \overline{\vb x} \Big) r^n \, dA
+   -(\vb Q - \overline{\vb x}) \int_{\mc P} r^n dA.
+\nonumber
+\end{align}
+%====================================================================%
+To proceed I now define scalar and vector-valued functions according 
+to\footnote{Note that I use a $p$ superscript for $\mc I$ and $\bmc J$
+but an $(n)$ superscript for $\vb a$ and $p$. This is because the 
+indices $p$ and $n$ have different ranges: The $n$ values for which I 
+need $\vb a^{(n)}$ and $p^{(n)}$ and their derivatives are 
+$n={-1,0,1}$, but computing all of these quantities turns out to 
+require $\mc I^p$ and $\bmc J^p$ for $p={-5,-3,-1,1}.$}
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ I^p(\mc P, \vb x) &\equiv 
+ \int_{\mc P} r^p \, dA
+\\
+\bmc J^p(\mc P, \vb x)
+ &\equiv \int_{\mc P} \overline{\vb r} \cdot  r^p \, dA.
+\label{IJIntegralDefinition}
+\end{align}
+\end{subequations}
+%====================================================================%
+where $\overline{\vb r}=\vb x^\prime-\overline{\vb x}$ 
+is a vector that has nonzero components only in the plane of $\mc P$.
+%====================================================================%
+In terms of $\mc I$ and $\mc J$, the reduced potentials are
+%====================================================================%
+$$ p^{(n)}(\mc P; \vb x) = \mc I^n(\mc P; \vb x),
+   \qquad
+   \vb a^{(n)}(\mc P; \vb x) =
+   \bmc J^n(\mc P; \vb x)
+      - \big(\vb Q-\overline{\vb x}\big) \mc I^n(\mc P; \vb x)
+$$
+%====================================================================%
+Similarly, derivatives of $\vb a^{(n)}$ and $p^{(n)}$ are related to 
+derivatives of $\mc I^p$ and $\bmc J^p$:
+%====================================================================%
+\begin{align*}
+ \partial_i p^p (\vb x) &= d_i \mc I^p(\mc P, \vb x) 
+\\
+ \partial_i a^p_j (\vb x)
+&= \partial_i \mc J_j^p(\mc P, \vb x)
+  -(\vb Q - \overline{\vb x})_j \partial_i \mc I^p
+  -\delta_{ij} \mc I^p(\mc P, \vb x)
+\end{align*}
+%====================================================================%
+
+The two-dimensional integrals in the quantities $\mc I^p$
+and $\bmc J^p$ defined by Equation (\ref{IJIntegralDefinition}),
+as well as their derivatives, may be evaluated analytically in 
+closed form, as discussed in the following section.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Evaluation of $\mc I, \mc J$ integrals}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Modified coordinate system}
+
+Let the panel $\mc P$ have vertices
+$\{\vb V_1, \vb V_2, \vb V_3\}.$
+For convenience in what follows, we introduce a
+rotated and translated coordinate system with 
+cartesian coordinates
+$(u,v,w)$, in which $\mc P$ lies entirely in the $uv$
+plane (the panel normal $\vbhat{n}$ defines the $\vbhat{w}$ axis)
+and edge $\vb V_1 \vb V_2$ lies parallel to the 
+$\vbhat{u}$ axis. The unit vectors of this system 
+are 
+%====================================================================%
+$$ \vbhat{u}=\frac{\vb V_2 - \vb V_1}{|\vb V_2 - \vb V_1|},
+   \qquad
+   \vbhat{v}=\vbhat{w} \times \vbhat{u},
+   \qquad
+   \vbhat{w}=
+    \frac{ (\vb V_2 - \vb V_1)\times(\vb V_3 - \vb V_1)}
+         {|(\vb V_2 - \vb V_1)\times(\vb V_3 - \vb V_1)|}
+$$
+%====================================================================%
+In the modified coordinate system, the evaluation point has
+coordinates $\vb x = (\vbrho_0, w_0)$ with
+%====================================================================%
+$$ w_0 = (\vb x_0 - \vb x_c) \cdot \vbhat{w}, 
+   \qquad
+   \vbrho_0 = (\vb x_0 - \vb x_c) - w_0\vbhat{w}
+$$
+%====================================================================%
+(where $\vb x_c$ is the centroid of $\mc P$).
+It is convenient to choose the origin of the $(u,v)$ plane to be 
+the point $\vbrho_0$. The $(u,v,w)$ coordinates of the $i$th 
+panel vertex are then 
+$\overline{\vb V}_i = (u_i, v_i, 0)$ where
+%====================================================================%
+$$ u_i=(\vb V_i-\vb x_c) \cdot \vbhat{u}, \qquad 
+   v_i=(\vb V_i-\vb x_c) \cdot \vbhat{v}.
+$$
+%====================================================================%
+I also define a two-dimensional 
+unit vector $\vbhatt{\ell}_i$ pointing in the direction
+of the $i$th panel edge according to
+%====================================================================%
+$$ \vbhatt{\ell}_i= \frac{  \overline{\vb V}_{i+1}-\overline{\vb V}_{i} }
+                         { |\overline{\vb V}_{i+1}-\overline{\vb V}_{i}| }
+$$
+%====================================================================%
+and a two-dimensional unit vector $\vbhat{m}_i$ normal to the $i$th 
+panel edge according to 
+%====================================================================%
+$$ \vbhat{m}_i=\vbhat{w} \times \vbhatt{\ell}_i.$$
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Reduction of surface integrals to line integrals}
+
+I now convert the two-dimensional (surface) integrals 
+$\{\mc{I}, \bmc J\}^p$ defined by (\ref{IJIntegralDefinition})
+into one-dimensional (line) integrals by using Stokes' theorem in the forms
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \int_{\mc P} \nabla \cdot \vb f(\vbrho)\,dA
+ &=
+ \oint_{\partial \mc P} \vb f(\vbrho) \cdot \vbhat{m} \, d\ell
+\\
+ \int_{\mc P} \nabla f(\vbrho)\,dA
+ &=
+ \oint_{\partial \mc P} f(\vbrho) \, \vbhat{m} \, d\ell.
+\end{align}
+\label{Stokes}
+\end{subequations}
+%====================================================================%
+[Here $\vbrho=(u,v)$.]
+
+First consider the vector-valued function
+$$ \vb f(\vbrho)=
+   \frac{1}{p+2}
+   \frac{ [\rho^2 + w^2]^{(p+2)/2}}{\rho}\vbhatt{\rho} $$
+with divergence
+%====================================================================%
+$$
+   \nabla \cdot \vb f(\vbrho)=
+   \frac{1}{\rho}\pard{}{\rho}\Big(\rho f_\rho(\vbrho) \Big)
+   = [\rho^2 + w^2]^{p/2}.
+$$
+%====================================================================%
+Applying (\ref{Stokes}a) to this function yields
+%====================================================================%
+$$\mathcal{I}^p
+  \equiv \int_{\mc P} [\rho^2 + w^2]^{p/2} dA
+  =\frac{1}{(p+2)}\int_{\partial \mc P} 
+   \frac{ [\rho^2 + w^2]^{(p+2)/2} } { \rho } 
+   \vbhatt{\rho}\cdot\vbhat{m} \, d\ell.
+$$
+%====================================================================%
+Next consider the scalar function 
+%====================================================================%
+$$ f(\rho) = \frac{1}{p+2} [\rho^2 + w^2]^{ (p+2)/2} $$
+%====================================================================%
+with gradient
+%====================================================================%
+$$ \nabla f(\rho) = \vbrho [\rho^2 + w^2]^{p/2}.$$
+%====================================================================%
+Applying (\ref{Stokes}b) to this function yields
+%====================================================================%
+$$\bmc{J}^p
+  \equiv  \int_{\mc P} \vbrho \cdot r^p dA
+  =\frac{1}{(p+2)}\int_{\partial \mc P}
+   [\rho^2 + w^2]^{(p+2)/2}  \vbhat{m} \, d\ell.
+$$
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Evaluation of line integrals} 
+
+Line integrals are sums of integrals over line segments (edges).
+On edge $i$, we have 
+$$ \vbrho(s,t_i)=s\vbhatt{\ell}_i - t_i\vbhat{m}_i, 
+   \qquad 
+   \rho(s,t_i) = \sqrt{s^2 + t_i^2},
+   \qquad 
+   \vbhatt{\rho}\cdot \vbhat{m} = -\frac{t_i}{\rho}.
+$$
+Here $t_i$ is the perpendicular distance from edge 
+$\overline{\vb V}_{i}\overline{\vb V}_{i+1}$ to the origin
+and $s$ runs from $s_i^-$ to $s_i^+$, where
+%====================================================================%
+\begin{align*}
+ t_i   &= -\vb V_i \cdot \vbhat{m}_i = -\vb V_{i+1}\cdot \vbhat{m}_i
+\\
+ s_i^- &= \vb V_i \cdot \vbhatt{\ell}_i
+\\
+ s_i^+ &= \vb V_{i+1} \cdot \vbhatt{\ell}_i
+\end{align*}
+%====================================================================%
+Then we have
+\begin{align*}
+ \mathcal{I}^p
+&=\frac{1}{(p+2)} \int_{\partial \mc P} 
+   \frac{ [\rho^2 + w^2]^{(p+2)/2} } { \rho }
+   \vbhatt{\rho}\cdot \vbhat{m}\,d\ell
+\\
+&=-\frac{1}{(p+2)}
+   \sum_i \underbrace{t_i\int_{s_i^-}^{s_i^+} 
+                \frac{ (s^2 + t_i^2 + w^2)^{(p+2)/2}}{(s^2 + t_i^2)}ds}
+               _{I^p(s_i^-, s_i^+, t_i, w)}
+\\
+ \bmc {J}^p
+&= \frac{1}{(p+2)}
+   \int_{\partial \mc P} [\rho^2 + w^2]^{(p+2)/2}
+   \vbhat{m} \, d\vbhatt{\ell}
+\\
+&= \frac{1}{(p+2)} \sum_i \vbhat{m}_i 
+    \underbrace{ \int_{s_i^-}^{s_i^+} [s^2 + t_i^2 + w^2]^{(p+2)/2}ds}
+                 _{J^p(s_i^-, s_i^+, t_i,w)}.
+\end{align*}
+%====================================================================%
+The one-dimensional integrals defining $I^p$ and $J^p$ may be evaluated
+in closed form:
+%====================================================================%
+$$\begin{array}{|c|c|c|}\hline
+%--------------------------------------------------------------------%
+p 
+& 
+I^p(s^-, s^+, t, w)
+&
+J^p(s^-, s^+, t, w)
+\\\hline
+%--------------------------------------------------------------------%
+-5 
+&
+\frac{t}{w^2 X^2}\left( \frac{s^-}{R^-} - \frac{s^+}{R^+} \right)
++\frac{\zeta}{w^3} 
+&
+\frac{1}{X^2}\left( \frac{s^+}{R^+} - \frac{s^-}{R^-} \right)
+\\\hline
+%--------------------------------------------------------------------%
+-3 
+&
+\frac{\zeta}{w}
+&
+\Lambda
+\\\hline
+%--------------------------------------------------------------------%
+-1 
+&
+w\zeta + t\Lambda
+&
+\frac{1}{2}\Big(R^+ s^+ - R^- s^- + X^2 \Lambda\Big)
+\\\hline
+%--------------------------------------------------------------------%
++1 
+&
+\frac{t}{2}\Big[R^+ s^+ - R^- s^- + \Lambda(t^2 + 3w^2)\Big]
+ + w^3 \zeta
+&
+\parbox{0.4\textwidth}{$
+\frac{1}{8}\Big[2R^+ s^{+3} - 2R^- s^{-3} + 5X^2(R^+ s^+ - R^- s^-)
+ + 3\Lambda X^4\Big]$}
+\\\hline
+\end{array}$$
+%====================================================================%
+
+In this table, we have used the following shorthand:
+%====================================================================%
+\begin{align*}
+ X&=\sqrt{t^2 + w^2},
+ \qquad
+ R^+=\sqrt{s^{+2} + X^2},
+ \qquad
+ R^-=\sqrt{s^{-2} + X^2}
+\\
+ Z^+ &= R^+ + s^+ 
+\qquad 
+ Z^- = R^- + s^-
+\\
+ \Lambda &= \log\frac{Z^+}{Z^-}, \qquad 
+ \zeta   = \atan\pf{w s^+}{tR^+} - \atan\pf{w s^-}{tR^-}
+\end{align*}
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Derivatives of reduced potentials}
+
+\subsubsection{Derivatives of $\mc I,J$ integrals}
+
+(In what follows, subscripts $\mu,\nu$ refer to derivatives
+with respect to coordinates in the plane of the panel [$u,v$
+derivatives in the $(u,v,w)$ system], as distinct from 
+$w$ derivatives, which are directional derivatives in the 
+direction normal to the panel.)
+
+Derivatives of the $\mc I$ integrals, and the normal derivative
+of the $\mc J$ integrals, may be carried out at the level of surface
+integrals:
+
+%====================================================================%
+\begin{align*}
+%--------------------------------------------------------------------%
+ \partial_\mu \mc I^p(\vb x)
+&= \partial_\mu \int_{\mc P} [\rho^2 + w^2]^{p/2}\,dA
+ =-p \int_{\mc P} 
+   \rho_\mu [\rho^2 + w^2]^{(p-2)/2}\,dA
+\\
+%--------------------------------------------------------------------%
+&=-p\mc J_\mu^{p-2}(\vb x)
+\\[8pt]
+%--------------------------------------------------------------------%
+ \partial_w \mc I^p(\vb x)
+&= \partial_w \int_{\mc P} [\rho^2 + w^2]^{p/2}\,dA
+ =pw \partial_w \int_{\mc P} [\rho^2 + w^2]^{(p-2)/2}\,dA
+\\
+%--------------------------------------------------------------------%
+&=pw\mc I^{p-2}(\vb x)
+\intertext{and similarly}
+ \partial_w \bmc J^p(\vb x)
+&=pw \bmc J^{p-2}(\vb x)
+\end{align*}
+%====================================================================%
+
+In-plane derivatives of the $\mc J$ integrals are easiest to carry out at
+the level of line integrals:
+%====================================================================%
+\begin{align*}
+ \partial_\mu \mc J_\nu^p(\vb x)
+&=\frac{1}{(p+2)} \sum_i 
+  \left\{  \Big( \partial_\mu J^p \Big) \hat{m}_{i\nu}
+  \right\}
+\\
+%--------------------------------------------------------------------%
+  \partial_\mu J^p(s_i^-, s_i^+, t_i, w)
+&= \left[
+   \pard{J^p}{\vbhatt{\ell}_i} \vbhatt{\ell}_i
+  +\pard{J^p}{\vbhat{m}_i} \vbhat{m}_i
+   \right]
+\\
+   \pard{J^p}{\vbhatt{\ell}_i}
+&= -(s_i^{-2} + t_i^2 + w^2)^{(p+2)/2}
+   -(s_i^{+2} + t_i^2 + w^2)^{(p+2)/2}
+\\
+   \pard{J^p}{\vbhatt{m}_i}
+&= (p+2) t_i J^{p-2}
+\\
+\end{align*}
+%====================================================================%
+
+Second derivatives:
+\begin{align*}
+ \partial_\mu \partial_\nu \mathcal{I}^p
+&=-p\partial_\mu \mc J_{\nu}^{p-2}
+\\
+ \partial_w \partial_\nu \mathcal{I}^p
+&=-p\partial_w \mc J_\nu^{p-2}
+\\
+&=-p(p-2)w \mc J_\nu^{p-4}
+\\
+ \partial_w \partial_w \mathcal{I}^p
+&=pp\partial_w \mc I^{p-2}
+\\
+&=p(p-2)w \mc I^{p-4}
+\end{align*}
+
+\subsubsection{Derivatives of desingularized terms}
+
+We have
+%====================================================================%
+\begin{align*}
+ G\supt{DS}(r) &= \frac{\texttt{ExpRelBar}(ikr,3)}{4\pi r}
+\\
+\intertext{and thus}
+\partial_i 
+ G\supt{DS}(r) &= 
+       r_i  \Big[ ik\frac{\texttt{ExpRelBar}(ikr,2)}{4\pi r^2}
+                   -\frac{\texttt{ExpRelBar}(ikr,3)}{4\pi r^3}
+            \Big]
+\\
+\partial_i \partial_j
+ G\supt{DS}(r) &= 
+  \delta_{ij} \Big[ ik \frac{\texttt{ExpRelBar}(ikr,2)}{4\pi r^2}
+                   -\frac{\texttt{ExpRelBar}(ikr,3)}{4\pi r^3}
+              \Big]
+\\
+&\qquad 
+ +r_i r_j   \Big[ (ik)^2 \frac{\texttt{ExpRelBar}(ikr,1)}{4\pi r^3}
+                  -3ik\frac{\texttt{ExpRelBar}(ikr,2)}{4\pi r^4}
+                  +3\frac{\texttt{ExpRelBar}(ikr,3)}{4\pi r^5}
+            \Big]
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\newpage
+\section{Evaluation of $\partial \vb G$ matrix elements}
+
+%====================================================================%
+\begin{align*}
+ \vmv{\vb b_\alpha}{\partial_\mu \vb G}{\vb b_\beta}
+&=  F(\mc P_\alpha^+, \mc P_\beta^+)
+   -F(\mc P_\alpha^+, \mc P_\beta^-)
+   -F(\mc P_\alpha^-, \mc P_\beta^+)
+   +F(\mc P_\alpha^-, \mc P_\beta^-)
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+ F(\mc P, \mc P^\prime)
+&=\int_{\mc P} d\vb x \, (\vb x-\vb Q)_\nu
+  \cdot \Big[   \partial_\mu a_\nu(\mc P^\prime; \vb x)
+              + \frac{1}{k^2}\partial_\mu \partial_\nu p(\mc P^\prime; \vb x)
+        \Big]
+\\
+&= \sum_{n=-1}^{1} 
+   C_n F^{(n)}(\mc P, \mc P^\prime) 
+   + F\supt{DS}(\mc P, \mc P^\prime)
+\\
+F^{(n)}
+&=
+   \int_{\mc P} d\vb x \, (\vb x-\vb Q)
+   \cdot \Big[   \vb a^{(n)}(\mc P^\prime; \vb x) 
+              + \frac{1}{k^2}\nabla p^{(n)}(\mc P^\prime; \vb x)
+        \Big]
+\\ 
+F\supt{DS}
+&= \int_{\mc P} d\vb x \, (\vb x-\vb Q)
+   \cdot \Big[   \vb a\supt{DS}(\mc P^\prime; \vb x) 
+              + \frac{1}{k^2}\nabla p\supt{DS}(\mc P^\prime; \vb x)
+        \Big]
+\end{align*}
+%====================================================================%
+$$ \vb C_{-1} = \frac{1}{4\pi}, 
+   \qquad 
+   C_0=0
+   \qquad C_{+1}=\frac{(ik)^2}{8\pi}
+$$
+
+%====================================================================%
+\begin{align*}
+ \int_{\mc P} d\vb x (\vb x-\vb Q)
+ \int_{\mc P} d\vb x^\prime (\vb x^\prime-\vb Q^\prime)
+\end{align*}
+%====================================================================%
+
+\subsection*{Take 2}
+
+%====================================================================%
+\begin{align*}
+ \vmv{\vb b_\alpha}{\partial_\mu \vb G}{\vb b_\beta}
+&= \inp{\vb b_\alpha}{\partial_\mu \vb a_\beta}
+  +\frac{1}{k^2}
+   \inp{\vb b_\alpha}{\partial_\mu \nabla p_\beta}
+\\
+\inp{\vb b_\alpha}{\partial_\mu \vb a_\beta}
+&=
+ \iint (\vb x-\vb Q)_\nu (\vb x-\vb x^\prime)_\mu 
+       (\vb x^\prime-\vb Q^\prime)_\nu \psi
+\\
+\inp{\vb b_\alpha}{\partial_\mu \nabla p_\beta}
+&=
+ \iint (\vb x-\vb Q)_\nu 
+       \Big( \delta_{\mu\nu} \psi
+             +(\vb x-\vb x^\prime)_\mu
+              (\vb x-\vb x^\prime)_\nu \zeta
+       \Big)
+\\
+ \vmv{\vb b_\alpha}{\partial_\mu \vb C}{\vb b_\beta}
+&= \inp{\vb b_\alpha}{\partial_\mu \nabla \times \vb a_\beta}
+\\
+&= \inp{\vb b_\alpha}{\varepsilon_{\nu \rho \sigma}
+                      \partial_\mu \partial_\rho a_\sigma}
+\\
+&= \iint \varepsilon_{\nu\rho\sigma}
+         (\vb x - \vb Q)_\nu (\vb x^\prime-\vb Q^\prime)_\sigma
+         \Big[ \delta_{\mu\rho} \psi + 
+               (\vb x - \vb x^\prime)_\nu
+               (\vb x - \vb x^\prime)_\rho \zeta
+         \Big]
+\end{align*}
+%====================================================================%
+
+\end{document}

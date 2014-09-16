@@ -1,0 +1,105 @@
+\newpage
+\section{Derivation of volume integrals for the force and torque}
+\label{ForceFormulaAppendix}
+
+Consider a body throughout which exists a
+volume current distribution $\vb J(\vb x)$ and
+electric and magnetic fields $\{\vb E, \vb H\}(\vb x).$
+The time-average force experienced by the currents in 
+an infinitesimal volume $dV$ is
+%====================================================================%
+\begin{align}
+d\vb F &= \frac{1}{2}\text{Re }
+ \Big[ \rho^* \vb E + \mu_0 \vb J^* \times \vb H \Big] \, dV
+\nn
+\intertext{Use $\rho=\frac{1}{i\omega}(\nabla \cdot \vb J)$
+           and $\vb H=\frac{1}{i\omega\mu_0}\nabla \times \vb E$:}
+ &=
+ \frac{1}{2}\text{Re }\left\{
+ \frac{1}{i\omega}
+ \Big[ -(\nabla \cdot \vb J^*) \vb E 
+       + \vb J^* \times (\nabla \times \vb E) 
+ \Big] \,
+                      \right\} dV
+\nonumber
+\intertext{or}
+dF_i &= -\frac{1}{2\omega}\text{Im }
+ \Big[
+ (\partial_j J^*_j) E_i - 
+  \underbrace{ \varepsilon_{ijk}
+               \varepsilon_{k\ell m}
+             }_{\delta_{i\ell}\delta_{jm} - \delta_{im}\delta_{j\ell}}
+  J^*_j \partial_\ell E_m
+ \Big] \, dV
+\nn
+&= -\frac{1}{2\omega}\text{Im }
+ \Big[ (\partial_j J^*_j) E_i
+       - J^*_j \partial_i E_j
+       + J^*_j \partial_j E_i
+ \Big] \, dV.
+\label{dFi}
+\intertext{The total force is given by integrating over the volume:}
+F_i
+&= -\frac{1}{2\omega}\text{Im } \int_{\mc B_n}
+ \Big[ (\partial_j J^*_j) E_i
+       - J^*_j \partial_i E_j
+       + J^*_j \partial_j E_i
+ \Big] dV
+\label{Fi}
+\end{align}
+%====================================================================%
+The first and third terms here together read
+%====================================================================%
+\numeq{Argument}
+{
+ \int \partial_j \big(J_j^* E_i\big ) dV 
+ = \int \nabla \cdot (E_i \, \vb J^*) \, dV
+ = \oint E_i \vb J^* \cdot d\vb A = 0
+}
+%====================================================================%
+because $\vb J\cdot \vbhat{n}=0$ at the surface of the object 
+(no current flows from the body into space). 
+Thus only the middle term in (\ref{Fi}) is nonvanishing,
+and we find simply
+%====================================================================%
+\numeq{ForceVolumeIntegral}
+{ F_i = \frac{1}{2\omega}\text{Im } \int_{\mc B_n}
+         J^*_j \partial_i E_j \, dV 
+      = \frac{1}{2\omega}\text{Im } 
+         \int_{\mc B_n} \vb J^* \cdot \partial_i \vb E \, dV.
+}
+%====================================================================%
+
+\subsubsection*{Torque}
+
+The contribution of currents in $dV$ to the \textit{torque} 
+about an origin $\vb r_0$ is given by
+%====================================================================%
+\begin{align*} 
+ d\bmc T &= (\vb r - \vb r_0) \times d \vb F
+\intertext{or, in components,}
+ d\mc T_i &= \varepsilon_{ijk} (\vb r - \vb r_0)_j d \vb F_k.
+\intertext{Insert (\ref{dFi}):}
+&= -\frac{1}{2\omega}\text{Im}
+ \left\{
+ \varepsilon_{ijk} (\vb r - \vb r_0)_j
+ \Big[ (\partial_\ell J^*_\ell) E_k
+       - J^*_\ell \partial_k E_\ell
+       + J^*_\ell \partial_\ell E_k
+ \Big]\right\} \, dV.
+\end{align*} 
+The first and third terms here integrate to zero by an 
+argument similar to (\ref{Argument}), and we find
+%====================================================================%
+\numeq{TorqueVolumeIntegral}
+{  \mc T_i 
+ = \frac{1}{2\omega}\text{Im } \int_{\mc B_n}
+   \epsilon_{ijk} (\vb r-\vb r_0)_j J_\ell^* \partial_k E_\ell
+   \,dV
+ = \frac{1}{2\omega}\text{Im } \int_{\mc B_n}
+    \vb J^* \cdot \partial_\theta \vb E \, dV
+}
+where the symbol $\partial_\theta \vb E$ denotes the derivative
+of $\vb E(\vb r)$ with respect to an infinitesimal rotation of the
+point $\vb r$ about the $i$th coordinate axis with origin $\vb r_0.$
+

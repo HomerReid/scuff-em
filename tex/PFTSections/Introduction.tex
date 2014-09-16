@@ -1,0 +1,57 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Overview}
+
+The time-average power absorbed and scattered by, and the
+time-average force or torque on, material bodies in the presence
+of harmonically-varying electromagnetic radiation
+are common quantities of interest in computational electromagnetism.
+These quantities may be computed from knowledge of the
+electromagnetic fields $\bmc F={\vb E \choose \vb H}$ in the 
+presence of the bodies; more specifically, powers, forces,
+and torques (PFTs) depend quadratically (bilinearly) on $\mc F$.
+On the other hand, in the surface-integral-equation (SIE) approach 
+to electromagnetic scattering, one solves first for equivalent electric and 
+magnetic \textit{surface currents} $\bmc C={\vb K \choose \vb N}$
+flowing on the body surfaces; the fields are then obtained from
+the currents via linear convolution, $\bmc F=\bmc G \star \bmc C$
+(with $\bmc G$ a Green's dyadic). Since the PFTs are quadratic 
+in the fields, and the fields are linear in the currents, it follows 
+that the PFTs are quadratic in the currents, and thus that
+we may bypass the field-computation step and compute PFTs directly 
+as quadratic (bilinear) functions of the surface currents.
+
+There are (at least) three distinct ways to express these
+bilinear relationships, which originate from distinct
+starting points for evaluating PFTs from fields:
+
+%====================================================================%
+\begin{description}
+
+\item[1. DSIPFT:] By integrating the Poynting vector or Maxwell stress
+tensor over a bounding surface that encloses (but does not
+coincide with) the surface of the object. I will refer to this
+as the ``displaced surface-integral PFT'' (DSIPFT) approach, where the term
+``displaced'' indicates that that surface over which we integrate
+does not coincide with the object surface.
+
+\item[2. OPFT: ] By integrating the Poynting vector or Maxwell stress
+tensor over the surface of the object. I refer to this
+as the ``overlap PFT'' approach. A key distinction compared to
+the DSIPFT and EPPFT is that the matrix of the bilinear form it
+produces is \textit{sparse.}
+
+\item[3. EPPFT: ] By considering the work done on, and the momentum
+transferred to, the equivalent surface currents by the fields.
+I refer to this as the ``equivalence-principle PFT'' approach.
+
+\end{description}
+%====================================================================%
+
+All three of these methods are implemented in {\sc scuff-em}. In this
+note I first derive the three methods and discuss their implementation
+in the specific context of an SIE solver based on the PMCHWT formulation
+with RWG basis functions. Then I compare and contrast their
+relative strengths and weaknesses.

@@ -1,0 +1,65 @@
+\documentclass[letterpaper]{article}
+\usepackage[square,sort,comma,numbers]{natbib}
+\newcommand{\citeasnoun}[1]{Ref.~\citenum{#1}}
+
+\input{scufftex}
+
+\newcommand\supsstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand{\IF}{^{i\text{\scriptsize F}}}
+\newcommand{\IFFlux}{^{i\text{\tiny FFLUX}}}
+\newcommand{\IT}{^{i\text{\scriptsize T}}}
+\newcommand{\ITFlux}{^{i\text{\tiny TFLUX}}}
+\newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
+\newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
+\newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
+%\newcommand{\vbchi}{\boldsymbol{\chi}}
+
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Computation of power, force, and torque in {\sc scuff-em}}
+\author {Homer Reid}
+\date {September 10, 2014}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: PFT in {\sc scuff-em}}
+\maketitle
+
+\tableofcontents
+
+\input{PFTSections/Introduction.tex}
+\input{PFTSections/Fields.tex}
+\input{PFTSections/DSIPFT.tex}
+\input{PFTSections/OPFT.tex}
+\input{PFTSections/EPPFT.tex}
+
+\appendix
+\input{PFTSections/ForceIntegralAppendix.tex}
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\newpage
+\bibliographystyle{ieeetr}
+\bibliography{scuff-neq}
+
+\end{document}

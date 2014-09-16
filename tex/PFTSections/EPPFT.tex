@@ -1,0 +1,155 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Equivalence-principle PFT (EPPFT)}
+
+In the EPPFT approach, we compute the power or force 
+transfer
+
+in terms of the total work done,
+
+\subsection*{Work on a volume current distribution}
+
+To motivate these formulas, first recall that, if we had a
+\textit{volume} distribution of electric current $\vb J$ 
+throughout a body $\mc B$, we could compute the power absorbed
+by the body as the time-average work done on the volume currents
+inside it via Joule heating:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ P\sups{abs} 
+     &= \frac{1}{2}\text{ Re }
+      \int_{\mc B} \vb J^*(\vb x) \cdot \vb E(\vb x)
+      \,dV
+%--------------------------------------------------------------------%
+\intertext{Similarly, the $i$-directed force on the body follows
+           from considering the Lorentz force on the charges and
+           currents contained in an infinitesimal volume $dV:$}
+%--------------------------------------------------------------------%
+ F_i &= \frac{1}{2}\text{ Re }
+        \int_{\mc B} \bigg\{ \rho(\vb x) E_i(\vb x)
+                    +\frac{1}{\mu_0}
+                     \Big[\vb J(\vb x) \cdot \vb H(\vb x)\Big]_i
+             \bigg\} dV
+\intertext{With some effort (Appendix \ref{ForceFormulaAppendix}),
+           this formula may be rewritten in a form closely
+           analogous to that of (\ref{VolumePFT}a):}
+     &= \frac{1}{2\omega}\text{ Im }
+        \int_{\mc B} \vb J^*(\vb x) \cdot \partial_i \vb E(\vb x)
+                     dV.
+\intertext{Similarly (Appendix \ref{ForceFormulaAppendix}), the 
+           $i$-directed \textit{torque} on the body is}
+     &= \frac{1}{2\omega}\text{ Im }
+        \int_{\mc B} \vb J^*(\vb x) \cdot \partial_\theta \vb E(\vb x)
+                     dV
+\end{align}
+\label{VolumePFT}
+\end{subequations}
+where $\partial_\theta \vb E$ denotes differentiation 
+with respect to rotations about the $i$th
+coordinate axis.
+%====================================================================%
+
+\subsection*{Work on a surface current distribution}
+
+We now simply write down analogues of formulas (\ref{VolumePFT})
+for the case in which the volume electric current $\vb J$
+existing throughout the bulk of the body is replaced by 
+surface electric and magnetic currents $\{\vb K, \vb N\}$
+present only on the surface:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ P\sups{abs} 
+     &= \frac{1}{2}\text{ Re }
+      \int_{\partial \mc B} \Big[ \vb K^*(\vb x) \cdot \vb E(\vb x)
+                                 +\vb N^*(\vb x) \cdot \vb H(\vb x)
+                            \Big]
+      \,dA
+\nn
+    &= \frac{1}{2}\text{ Re }
+      \int_{\partial \mc B} \bmc C^*(\vb x) \cdot \bmc F(\vb x) \,dA
+\\
+ F_i
+     &= \frac{1}{2\omega}\text{ Im }
+      \int_{\partial \mc B} \Big[ \vb K^*(\vb x) \cdot \partial_i \vb E(\vb x)
+                                 +\vb N^*(\vb x) \cdot \partial_i \vb H(\vb x)
+                            \Big]
+      \,dA
+\nn
+    &= \frac{1}{2\omega }\text{ Im }
+      \int_{\partial \mc B} \bmc C^*(\vb x) \cdot \partial_i \bmc F(\vb x) \,dA
+\intertext{and similarly}
+ \tau_i
+    &= \frac{1}{2\omega}\text{ Im }
+      \int_{\partial \mc B} \bmc C^*(\vb x) \cdot \partial_\theta \bmc F(\vb x)
+      \,dA.
+\end{align}
+\label{EPPFT0}
+\end{subequations}
+%====================================================================%
+Note that these formulas only reference the tangential components
+of $\vb E$ and $\vb H$, which are continuous across the body 
+surface; thus it matters not whether we evaluate $\vb E$ and $\vb H$
+using the computational recipes for the fields inside or outside
+the surface (these recipes, of course, differ in SIE formulations).
+It is easiest to use the inside recipe, in which case the fields
+are a convolution over just the surface currents on the surface 
+of $\mc B$:
+%====================================================================%
+$$ \bmc F(\vb x) 
+   = \int_{\partial \mc B} \bmc G^{(\mc B)}(\vb x, \vb x^\prime) \cdot \bmc C(\vb x^\prime) 
+   d\vb x^\prime
+$$ 
+%====================================================================%
+where $\bmc G^{(\mc B)}$ is the $6\times 6$ dyadic Green's function
+for the material interior to $\mc B$. The PFT formulas (\ref{EPPFT0}) 
+then become double surface integrals,
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ P\sups{abs} 
+     &= \frac{1}{2}\text{ Re }
+      \iint_{\partial \mc B} 
+      \bmc C^*(\vb x) \bmc G^{(\mc B)}(\vb x, \vb x^\prime)
+      \bmc C(\vb x^\prime)
+      \,d\vb x\, d\vb x^\prime
+\\
+ F_i\sups{abs} 
+     &= \frac{1}{2\omega}\text{ Im }
+      \iint_{\partial \mc B}
+      \bmc C^*(\vb x) \partial_i \bmc G^{(\mc B)}(\vb x, \vb x^\prime)
+      \bmc C(\vb x^\prime)
+      \,d\vb x \,d\vb x^\prime
+\\
+ \tau_i\sups{abs} 
+     &= \frac{1}{2\omega}\text{ Im }
+      \iint_{\partial \mc B}
+      \bmc C^*(\vb x) \partial_\theta \bmc G^{(\mc B)}(\vb x, \vb x^\prime)
+      \bmc C(\vb x^\prime)
+      \,d\vb x\, d\vb x^\prime
+\end{align}
+\label{EPPFT1}
+\end{subequations}
+%====================================================================%
+or, upon discretization,
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ P\sups{abs} 
+     &= \frac{1}{2}\text{ Re }
+      \vb c^\dagger \vb M^{(\mc B)} \vb c
+\\
+ F_i\sups{abs} 
+     &= \frac{1}{2\omega}\text{ Im }
+      \vb c^\dagger \partial_i \vb M^{(\mc B)} \vb c
+\\
+ \tau_i\sups{abs} 
+     &= \frac{1}{2\omega}\text{ Im }
+      \vb c^\dagger \partial_\theta \vb M^{(\mc B)} \vb c.
+\end{align}
+\label{EPPFT}
+\end{subequations}
+%====================================================================%
