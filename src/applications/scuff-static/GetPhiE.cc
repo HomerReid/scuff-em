@@ -72,9 +72,9 @@ double EdgeInt(double x, double ya, double yb, double z, double smin)
 /* delimited by 0..2) while loop index n runs over polygon edges      */
 /* (and thus is delimited by 0..N-1).                                 */
 /***********************************************************************/
-double SSSolver::GetPhiE(int ns, int np, double *X, double PhiE[4])
+void SSSolver::GetPhiE(int ns, int np, double *X, double PhiE[4])
 { 
-  int N=3; // hardcoded here but could change in the future 
+  // int N=3; // hardcoded here but could change in the future 
 
   /***************************************************************/
   /* unpack panel vertices ***************************************/

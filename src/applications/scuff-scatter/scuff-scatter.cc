@@ -25,174 +25,7 @@
  *
  * homer reid        -- 10/2006 -- 1/2012
  *
- * --------------------------------------------------------------
- *
- * this program has a large number of command-line options, which
- * subdivide into a number of categories as described below.
- *
- * in addition to the command line, options may also be specified
- * in an input file, piped into standard input with one option-value
- * pair per line; thus, if --option1 and --option2 are command-line 
- * options as described below, then you may create an input file 
- * (call it 'myOptions') with the content 
- *                  
- *   ...
- *   option1 value1
- *   option2 value2
- *   ...
- * 
- * and then running 
- * 
- *  scuff-scatter < myOptions 
- * 
- * is equivalent to 
- * 
- *  scuff-scatter --option1 value1 --option value2.
- * 
- * (if any options are specified both on standard input and 
- *  on the command line, the values given on the command line take
- *  precedence.)
- * 
- *       -------------------------------------------------
- * 
- * a. options describing the scatterer
- * 
- *     --geometry MyGeometry.scuffgeo
- * 
- *       -------------------------------------------------
- * 
- * b. options specifying the incident field: 
- * 
- *     --pwPolarization Ex Ey Ez 
- *     --pwDirection    Nx Ny Nz 
- * 
- *          incident field is a plane wave with E-field 
- *          polarization (Ex,Ey,Ez) and propagating in the
- *          (Nx,Ny,Nz) direction.
- * 
- *     --gbCenter xx yy zz
- *     --gbDirection Nx Ny Nz
- *     --gbWaist W
- * 
- *          incident field is a gaussian beam, traveling in 
- *          the (Nx, Ny, Nz) direction, with beam center point
- *          (xx,yy,zz) and beam waist W. 
- * 
- *     --psLocation    xx yy zz
- *     --psStrength    Px Py Pz
- * 
- *          incident field is the field of a unit-strength point 
- *          electric dipole source at coordinates (xx,yy,zz) and
- *          strength (dipole moment) (Px,Py,Pz)
- *          
- *          (note that --psLocation and --psStrength may be 
- *           specified more than once (up to 10 times) to 
- *           represent multiple point sources.) 
- * 
- *       -------------------------------------------------
- * 
- * c. options specifying the output: 
- * 
- *     --EPFile MyEPFile
- * 
- *         a file containing a list of points at which the scattered 
- *         field is to be evaluated.
- * 
- *         each line of EPFile should contain 3 numbers, the cartesian
- *         components of the scattered field. (blank lines and comments,
- *         i.e. lines beginning with a '#', are skipped)
- * 
- *         (Note that --epfile may be specified more than once.)
- * 
- *     --PFTFile MyPFTFile
- * 
- *        Requests that the power, force, and torque delivered to 
- *        the scattering objects from the incident field be written
- *        to the file MyPFTFile.
- * 
- *     --PSDFile MyPSDFile
- * 
- *        Requests that panel source densities be written to the file 
- *        MyPSDFile.
- * 
- *     --FluxMesh  MyFluxMesh.msh
- *        
- *        This specification will cause field visualization data
- *        to be written to the file MyFluxMesh.pp.
- * 
- *     --MomentFile MyMoments.dat
- * 
- *        if the --MomentFile option is present, then the electric
- *        and magnetic dipole moments induced on each object in the 
- *        geometry will be computed and reported in the file MyMoments.dat. 
- * 
- *     --PlotSurfaceCurrents
- *
- *        If this flag is specified, scuff-scatter will generate 
- *        GMSH graphical data files that you can open in GMSH 
- *        to visualize the electric and magnetic surface currents 
- *        induced by the incident fields on the scattering objects.
- *
- *       -------------------------------------------------
- * 
- * d. options describing the frequency
- * 
- *     --Omega xx    
- *
- *         Specify the frequency at which to conduct the 
- *         simulation. 
- *
- *         The specified frequency may be complex, i.e.
- *         valid specifications include 
- *
- *           --Omega 3.4i
- *           --Omega 0.2e3-4.5e2I
- *
- *         Note that --Omega may be specified more than 
- *         once.
- * 
- *     --OmegaFile MyOmegaFile
- * 
- *         Specify a file containing a list of frequencies
- *         at which to conduct simulations.               
- * 
- *       -------------------------------------------------
- * 
- * e. other options 
- * 
- *     --nThread xx   (use xx computational threads)
- *     --ExportMatrix (export the BEM matrix to an .hdf5 data file)
- * 
- * --------------------------------------------------------------
- *
- * if this program terminates successfully, the following output 
- * will have been generated: 
- * 
- *  (a) if the --EPFile option was specified, you will have
- *      files named 'MyGeometry.scattered' and 'MyGeometry.total'
- *      (where MyGeometry.rwggeo was the option you passed to 
- *       --geometry) tabulating values of the scattered and total 
- *       E and H fields at each point specified in the MyEPFile 
- *      (where MyEPFile was the option you passed to --EPFile).
- *
- *      each of these files will contain one line for each line in 
- *      MyEPFile. each line will contain 15 numbers: the 3 coordinates
- *      of the evaluation point, the 3 cartesian components of the 
- *      E field at that point (real and imaginary components), and 
- *      the 3 cartesian components of the scattered H field at that 
- *      point (real and imaginary components.)
- * 
- *  (b) if one or more --FluxMesh options was specified, you will 
- *      have files named 'MyFluxMesh.pp,' 'MySecondFluxMesh.pp,'
- *      etc. that may be opened in GMSH.
- *      
- *      each of these files will contain several data sets:
- *      
- *       -- poynting flux (of both the scattered and total fields)
- *          plotted as a scalar field over the meshed surface
- *       -- scattered and total E and H fields (real and imag parts)
- *          plotted as normalized arrows at the centroid of each
- *          triangle in the meshed surface
+ * documentation at: http://homerreid.com/scuff-em/
  *
  */
 #include <stdio.h>
@@ -237,10 +70,12 @@ int main(int argc, char *argv[])
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *EPFiles[MAXEPF];             int nEPFiles;
-  char *PFTFile=0;
+  char *OPFTFile=0;
+  char *EPPFTFile=0;
   char *SIPFTFile=0;
   double SIRadius = 100.0;
   int SIPoints = 11;
+  char *SIMeshFile=0;
   char *PSDFile=0;
   char *MomentFile=0;
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
@@ -272,14 +107,19 @@ int main(int argc, char *argv[])
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
 /**/
-     {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power/force/torque output file"},
-     {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
-     {"PSDFile",        PA_STRING,  1, 1,       (void *)&PSDFile,    0,             "name of panel source density file"},
-     {"PlotSurfaceCurrents", PA_BOOL, 0, 1,     (void *)&PlotSurfaceCurrents,  0,   "generate surface current visualization files"},
+     {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
+/**/
+     {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT file"},
+     {"PFTFile",        PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of equivalence-principle PFT file"},
 /**/
      {"SIPFTFile",      PA_STRING,  1, 1,       (void *)&SIPFTFile,  0,             "name of surface-integral PFT output file"},
      {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
      {"SIPoints",       PA_INT,     1, 1,       (void *)&SIPoints,   0,             "number of quadrature points for surface-integral PFT"},
+     {"SIMesh",         PA_STRING,  1, 1,       (void *)&SIMeshFile, 0,             "mesh file for surface-integral PFT"},
+/**/
+     {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
+     {"PSDFile",        PA_STRING,  1, 1,       (void *)&PSDFile,    0,             "name of panel source density file"},
+     {"PlotSurfaceCurrents", PA_BOOL, 0, 1,     (void *)&PlotSurfaceCurrents,  0,   "generate surface current visualization files"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -364,11 +204,12 @@ int main(int argc, char *argv[])
   /* sanity check to make sure the user specified an incident field  */
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
-  bool NeedIncidentField = (    MomentFile!=0 
-                             || PFTFile!=0 
-                             || SIPFTFile!=0 
-                             || nEPFiles>0 
-                             || nFluxMeshes>0 
+  bool NeedIncidentField = (    MomentFile!=0
+                             || OPFTFile!=0
+                             || EPPFTFile!=0
+                             || SIPFTFile!=0
+                             || nEPFiles>0
+                             || nFluxMeshes>0
                              || PlotSurfaceCurrents
                            );
   if ( NeedIncidentField && IFDList==0 )
@@ -507,16 +348,22 @@ int main(int argc, char *argv[])
      SSD->Omega=Omega;
 
      /*--------------------------------------------------------------*/
-     /*- scattered and absorbed power -------------------------------*/
+     /*- overlap PFT ------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     if (PFTFile)
-      WritePFTFile(SSD, PFTFile);
+     if (OPFTFile)
+      WriteOPFTFile(SSD, OPFTFile);
 
      /*--------------------------------------------------------------*/
-     /*- scattered and absorbed power -------------------------------*/
+     /*- equivalence-principle PFT ----------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (EPPFTFile)
+      WriteEPPFTFile(SSD, OPFTFile);
+
+     /*--------------------------------------------------------------*/
+     /*- surface-integral PFT           -----------------------------*/
      /*--------------------------------------------------------------*/
      if (SIPFTFile)
-      WriteSIPFTFile(SSD, SIPFTFile, SIRadius, SIPoints);
+      WriteSIPFTFile(SSD, SIPFTFile, SIRadius, SIPoints, SIMeshFile);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

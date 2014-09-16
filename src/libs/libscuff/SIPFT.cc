@@ -48,10 +48,8 @@
 #include <libscuff.h>
 #include <libTriInt.h>
 #include <config.h>
-
-#include "CCRules.h"
  
-using namespace scuff;
+namespace scuff{
 
 #define II cdouble(0.0,1.0) 
 #define TENTHIRDS 3.33333333333333333333333
@@ -201,19 +199,18 @@ HMatrix *GetCRMatrix(RWGSurface *BS, double R, int NumPoints)
    }
   else 
    {
-     InitCCRules();
      int NumThetaPoints=NumPoints;
      int NumPhiPoints=2*(NumPoints+1);
      int TotalPoints = NumPhiPoints*(NumThetaPoints-2) + 2;
      CRMatrix = new HMatrix(TotalPoints, 7);
      double dPhi= 2.0*M_PI / NumPhiPoints;
-     double *CCRule = CCRules[NumThetaPoints];
+
+     double *CCRule = GetCCRule(NumThetaPoints);
      if (CCRule==0) ErrExit("invalid value of NumPoints in GetCRMatrix");
      for(int npTheta=0; npTheta<NumThetaPoints; npTheta++)
       { 
         double CosTheta = CCRule[2*npTheta+0];
         double w = CCRule[2*npTheta+1];
-        double Theta = acos(CosTheta);
         double SinTheta = sqrt(1.0-CosTheta*CosTheta);
 
         // north, south pole
@@ -393,7 +390,7 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
   /***************************************************************/
   /* last three matrices are the torque matrices                 */
   /***************************************************************/
-  double D[3], DxN[3], EpsD[3][3]; 
+  double D[3], DxN[3];
   D[0] = X[0]-XTorque[0];
   D[1] = X[1]-XTorque[1];
   D[2] = X[2]-XTorque[2];
@@ -427,16 +424,15 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
 /***************************************************************/
 void GetSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
                            HMatrix *CRMatrix, HMatrix *FSVMatrix,
-                           cdouble Omega, cdouble Eps, cdouble Mu,
+                           cdouble EpsRel, cdouble MuRel,
                            double *XTorque,
                            bool NeedMatrix[NUMSIPFT], cdouble *SEntries)
 {
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  cdouble Z = sqrt(Mu/Eps);
-  cdouble EpsAbs = TENTHIRDS * Eps / ZVAC;
-  cdouble MuAbs  = TENTHIRDS * Mu * ZVAC;
+  cdouble EpsAbs = TENTHIRDS * EpsRel / ZVAC;
+  cdouble MuAbs  = TENTHIRDS * MuRel * ZVAC;
 
   int NE = S->NumEdges;
   int NC = CRMatrix->NR;
@@ -547,15 +543,16 @@ void GetSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
-                      RWGSurface *BS, double R, int NumPoints,
-                      cdouble Omega, bool NeedMatrix[NUMSIPFT],
-                      HMatrix *MSIPFT[NUMSIPFT])
+void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
+                                   double R, int NumPoints,
+                                   cdouble Omega,
+                                   bool NeedMatrix[NUMSIPFT],
+                                   HMatrix *MSIPFT[NUMSIPFT])
 {
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  RWGSurface *S=G->Surfaces[WhichSurface];
+  RWGSurface *S=Surfaces[WhichSurface];
   if (BS)
    Log("Computing SIPFT matrix for surface %s, bounding surface %s...",
         S->MeshFileName, BS->MeshFileName);
@@ -573,7 +570,7 @@ void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
    ErrExit("GetSIPFTMatrices() not implemented for PEC bodies");
 
   cdouble Eps, Mu;
-  G->RegionMPs[ S->RegionIndices[0] ] -> GetEpsMu(Omega, &Eps, &Mu);
+  RegionMPs[ S->RegionIndices[0] ] -> GetEpsMu(Omega, &Eps, &Mu);
 
   double XTorque[3] = {0.0, 0.0, 0.0};
   if (S->GT)
@@ -586,7 +583,7 @@ void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
    { if (NeedMatrix[n]==false) continue;
 
      HMatrix *M = MSIPFT[n];
-     if ( M && M->NR!=NBF || M->NC!=NBF )
+     if ( M && (M->NR!=NBF || M->NC!=NBF) )
       { Warn("incorrect matrix passed to ComputeSMatrix (reallocating)...");
         delete MSIPFT[n];
         M=0;
@@ -621,7 +618,7 @@ void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
       cdouble Entries[NUMSIPFT*4];
 
       GetSIPFTMatrixEntries(S, Alpha, Beta, CRMatrix, FSVMatrix,
-                            Omega, Eps, Mu, XTorque, NeedMatrix, Entries);
+                            Eps, Mu, XTorque, NeedMatrix, Entries);
 
       for(int n=0; n<NUMSIPFT; n++)
        { if (NeedMatrix[n]==false) continue;
@@ -655,9 +652,10 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN, 
-              cdouble Omega, RWGSurface *BS, double R, int NumPoints,
-              double SIPFT[NUMSIPFT])
+void RWGGeometry::GetSIPFT(HVector *KN, IncField *IF,
+                           cdouble Omega, RWGSurface *BS,
+                           double R, int NumPoints,
+                           double SIPFT[NUMSIPFT])
 {
   Log("Computing SIPFT (R,NPts)=(%e,%i)", R, NumPoints);
 
@@ -669,13 +667,13 @@ void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN,
   // we assume that all cubature points lie in the same region 
   // of the scuff geometry, so we use the first point in the rule
   // to determine which region that is and look up its eps/mu
-  double XX[3];
-  XX[0]=CRMatrix->GetEntryD(0,1);
-  XX[1]=CRMatrix->GetEntryD(0,2);
-  XX[2]=CRMatrix->GetEntryD(0,3);
-  int RegionIndex=G->GetRegionIndex(XX);
+  double X0[3];
+  X0[0]=CRMatrix->GetEntryD(0,1);
+  X0[1]=CRMatrix->GetEntryD(0,2);
+  X0[2]=CRMatrix->GetEntryD(0,3);
+  int RegionIndex=GetRegionIndex(X0);
   cdouble EpsRel, MuRel;
-  G->RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
+  RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
   double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
   double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
 
@@ -689,7 +687,7 @@ void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN,
      XMatrix->SetEntry(nr, 1, CRMatrix->GetEntryD(nr,2));
      XMatrix->SetEntry(nr, 2, CRMatrix->GetEntryD(nr,3));
    };
-  HMatrix *FMatrix = G->GetFields(IF, KN, Omega, XMatrix);
+  HMatrix *FMatrix = GetFields(IF, KN, Omega, XMatrix);
 
   double XTorque[3] = {0.0, 0.0, 0.0};
 
@@ -734,4 +732,6 @@ void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN,
   delete XMatrix; 
   delete CRMatrix;
   
+}
+
 }

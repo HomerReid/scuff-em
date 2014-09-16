@@ -53,8 +53,9 @@ typedef struct SSData
 /* these are the 'output modules' that compute and process the */
 /* scattered fields in various ways.                           */
 /***************************************************************/
-void WritePFTFile(SSData *SSD, char *PFTFile);
-void WriteSIPFTFile(SSData *SSD, char *SIPFTFile, double SIRadius, int SIPoints);
+void WriteOPFTFile(SSData *SSD, char *FileName);
+void WriteEPPFTFile(SSData *SSD, char *FileName);
+void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, int SIPoints, char *MeshFileName);
 void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);

@@ -361,7 +361,7 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   if (!p)
    ErrExit("file %s: invalid extension",MeshFileName);
   else if (!StrCaseCmp(p,"msh"))
-   ReadGMSHFile(MeshFile,MeshFileName,OTGT,MeshTag);
+   ReadGMSHFile(MeshFile,MeshFileName,OTGT);
   else if (!StrCaseCmp(p,"mphtxt"))
    { if ( MeshTag != -1 )
       ErrExit("MESHTAG is not yet implemented for .mphtxt files");

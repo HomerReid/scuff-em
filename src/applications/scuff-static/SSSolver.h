@@ -99,7 +99,7 @@ class SSSolver
    /*- would be private if we cared about the public/private distinction */
    /*--------------------------------------------------------------------*/ 
    double GetPPI(RWGSurface *Sa, int npa, RWGSurface *Sb, int npb, int WhichIntegral);
-   double GetPhiE(int ns, int np, double *X, double PhiE[4]);
+   void GetPhiE(int ns, int np, double *X, double PhiE[4]);
 
    /*--------------------------------------------------------------------*/ 
    /*- class data fields intended for internal use only, i.e. which -----*/ 

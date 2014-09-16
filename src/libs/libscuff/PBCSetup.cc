@@ -96,8 +96,8 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
   /*-               translate the given edge to find an image     */
   /*-  *pWhich    = the index of LTranslate within LBV (0 or 1)   */
   /*--------------------------------------------------------------*/
-  double *LTranslate;
-  int WhichBV;
+  double *LTranslate=LBV[0];
+  int WhichBV=0;
   if (LDim==1)
    {
      WhichBV=*pWhichBV=0;
@@ -251,7 +251,7 @@ void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
       // see if this edge is a straddler, i.e. it lies on a face
       // of the unit cell and it has an image (a translated 
       // version of itself) on the opposite side of the unit cell
-      int WhichBV;
+      int WhichBV=0;
       int neip=FindPartnerEdge(this, nei, LBV, LBVi, 
                                LDim, NumStraddlers, &WhichBV, V);
 

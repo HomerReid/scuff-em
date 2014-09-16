@@ -483,13 +483,13 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                         int SurfaceIndex, double PFT[8])
+void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
+                          int SurfaceIndex, double OPFT[8])
 {
 
   if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
-   { memset(PFT,0,8*sizeof(double));
-     Warn("GetPFT called for unknown surface #i",SurfaceIndex);
+   { memset(OPFT,0,8*sizeof(double));
+     Warn("GetOPFT called for unknown surface #i",SurfaceIndex);
      return;  
    };
   RWGSurface *S=Surfaces[SurfaceIndex];
@@ -517,14 +517,14 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
   int Offset = BFIndexOffset[SurfaceIndex];
   HVector *KNTS=new HVector(N,LHM_COMPLEX); // 'KN, this surface'
   cdouble KAlpha, NAlpha, vEAlpha, vHAlpha;
-  PFT[1]=0.0;
+  OPFT[1]=0.0;
   if (S->IsPEC)
    { for(int ne=0; ne<S->NumEdges; ne++)
       { 
         KAlpha  = KN->GetEntry(Offset + ne);
         vEAlpha = RHS ? -ZVAC*RHS->GetEntry( Offset + ne ) : 0.0;
 
-        PFT[1] += real( conj(KAlpha)*vEAlpha );
+        OPFT[1] += real( conj(KAlpha)*vEAlpha );
 
         KNTS->SetEntry(ne,  KAlpha );
       }
@@ -541,20 +541,20 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
         KNTS->SetEntry( 2*ne + 0,  KAlpha );
         KNTS->SetEntry( 2*ne + 1,  NAlpha );
 
-        PFT[1] += real( conj(KAlpha)*vEAlpha + conj(NAlpha)*vHAlpha );
+        OPFT[1] += real( conj(KAlpha)*vEAlpha + conj(NAlpha)*vHAlpha );
       };
    };
-  PFT[1] *= 0.5;
+  OPFT[1] *= 0.5;
 
-  PFT[0] = 0.25*OMatrices[SCUFF_OMATRIX_POWER]->BilinearProductD(KNTS,KNTS);
+  OPFT[0] = 0.25*OMatrices[SCUFF_OMATRIX_POWER]->BilinearProductD(KNTS,KNTS);
 
-  PFT[2] = 0.25*OMatrices[SCUFF_OMATRIX_XFORCE]->BilinearProductD(KNTS,KNTS);
-  PFT[3] = 0.25*OMatrices[SCUFF_OMATRIX_YFORCE]->BilinearProductD(KNTS,KNTS);
-  PFT[4] = 0.25*OMatrices[SCUFF_OMATRIX_ZFORCE]->BilinearProductD(KNTS,KNTS);
+  OPFT[2] = 0.25*OMatrices[SCUFF_OMATRIX_XFORCE]->BilinearProductD(KNTS,KNTS);
+  OPFT[3] = 0.25*OMatrices[SCUFF_OMATRIX_YFORCE]->BilinearProductD(KNTS,KNTS);
+  OPFT[4] = 0.25*OMatrices[SCUFF_OMATRIX_ZFORCE]->BilinearProductD(KNTS,KNTS);
 
-  PFT[5] = 0.25*OMatrices[SCUFF_OMATRIX_XTORQUE]->BilinearProductD(KNTS,KNTS);
-  PFT[6] = 0.25*OMatrices[SCUFF_OMATRIX_YTORQUE]->BilinearProductD(KNTS,KNTS);
-  PFT[7] = 0.25*OMatrices[SCUFF_OMATRIX_ZTORQUE]->BilinearProductD(KNTS,KNTS);
+  OPFT[5] = 0.25*OMatrices[SCUFF_OMATRIX_XTORQUE]->BilinearProductD(KNTS,KNTS);
+  OPFT[6] = 0.25*OMatrices[SCUFF_OMATRIX_YTORQUE]->BilinearProductD(KNTS,KNTS);
+  OPFT[7] = 0.25*OMatrices[SCUFF_OMATRIX_ZTORQUE]->BilinearProductD(KNTS,KNTS);
 
   /***************************************************************/
   /***************************************************************/
@@ -566,11 +566,11 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
 }
 
 /***************************************************************/
-/* alternative interface to GetPFT in which the caller         */
+/* alternative interface to GetOPFT in which the caller        */
 /* specifies the label of the surface instead of the index     */
 /***************************************************************/
-void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                         char *SurfaceLabel, double PFT[8])
+void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
+                          char *SurfaceLabel, double OPFT[8])
 {
   /*--------------------------------------------------------------*/
   /*- find the surface in question -------------------------------*/
@@ -578,17 +578,18 @@ void RWGGeometry::GetPFT(HVector *KN, HVector *RHS, cdouble Omega,
   RWGSurface *S=GetSurfaceByLabel(SurfaceLabel);
   if (S)
    { 
-     GetPFT(KN, RHS, Omega, S->Index, PFT);
+     GetOPFT(KN, RHS, Omega, S->Index, OPFT);
    }
   else
-   { Warn("unknown surface label %s passed to GetPFT",SurfaceLabel);
-     memset(PFT, 0, 8*sizeof(double));
+   { Warn("unknown surface label %s passed to GetOPFT",SurfaceLabel);
+     memset(OPFT, 0, 8*sizeof(double));
    };
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega, 
                                       int SurfaceIndex)
 {
@@ -654,10 +655,12 @@ double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
   return PScat;
 
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
                                       char *SurfaceLabel)
 {
@@ -674,5 +677,6 @@ double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
      return 0.0;
    };
 }
+#endif
 
 }// namespace scuff

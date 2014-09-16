@@ -146,7 +146,7 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
     /*--------------------------------------------------------------*/
     /*- first determine which SIPFT matrices we need                */
     /*--------------------------------------------------------------*/
-    bool NeedMatrix[NUMSIPFT];
+    bool NeedMatrix[7];
     for(int QIndex=0, nBuffer=1; QIndex<MAXQUANTITIES; QIndex++)
      { 
        int QFlag = 1<<QIndex;
@@ -161,9 +161,8 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
         };
      };
 
-    GetSIPFTMatrices(G, SourceSurface, 0,
-                     SNEQD->SIRadius, SNEQD->SINumPoints,
-                     Omega, NeedMatrix, MSIPFT);
+    G->GetSIPFTMatrices(SourceSurface, 0, SNEQD->SIRadius, 
+                        SNEQD->SINumPoints, Omega, NeedMatrix, MSIPFT);
    };
 
   /*--------------------------------------------------------------*/

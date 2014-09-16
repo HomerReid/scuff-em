@@ -57,8 +57,6 @@ using namespace scuff;
 
 #define MAXQUANTITIES 7
 
-#define NUMSIPFT MAXQUANTITIES
-
 // quadrature methods 
 #define QMETHOD_ADAPTIVE 0
 #define QMETHOD_CLIFF    1
@@ -160,14 +158,6 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
                             double OmegaMin, double OmegaMax,
                             double *TObjects, double TEnvironment,
                             double *I, double *E);
-
-/*--------------------------------------------------------------*/
-/*- in SIPFT.cc ------------------------------------------------*/
-/*--------------------------------------------------------------*/
-void GetSIPFTMatrices(RWGGeometry *G, int WhichSurface,
-                      RWGSurface *BS, double R, int NumPoints,
-                      cdouble Omega, bool NeedMatrix[NUMSIPFT],
-                      HMatrix *MSIPFT[NUMSIPFT]);
 
 /*--------------------------------------------------------------*/
 /*- in PlotFlux.cc ---------------------------------------------*/

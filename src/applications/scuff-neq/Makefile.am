@@ -5,9 +5,7 @@ scuff_neq_SOURCES = 		\
  scuff-neq.h			\
  GetFlux.cc             	\
  CreateSNEQData.cc       	\
- CCRules.h             		\
  PlotFlux.cc            	\
- SIPFT.cc              		\
  Quadrature.cc
 
 scuff_neq_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la

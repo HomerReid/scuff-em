@@ -63,7 +63,7 @@ namespace scuff {
 /* are read.                                                 */
 /*************************************************************/
 void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName, 
-                             const GTransformation *OTGT, int MeshTag)
+                              const GTransformation *OTGT)
 {
   RWGPanel *P;
   char buffer[100];

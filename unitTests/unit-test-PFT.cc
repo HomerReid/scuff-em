@@ -133,10 +133,11 @@ int main(int argc, char *argv[])
         M->LUSolve(KN);
 
         double PFT[8];
-        G->GetPFT(KN, RHS, Omega, 0, PFT);
+        G->GetOPFT(KN, RHS, Omega, 0, PFT);
 
         double Denom = M_PI*IncFlux;
-        double QScatScuff  = G->GetScatteredPower(KN, Omega, 0) / Denom;
+        //double QScatScuff  = G->GetScatteredPower(KN, Omega, 0) / Denom;
+        double QScatScuff  = 0.0; // FIXME
         double QAbsScuff   = PFT[0] / Denom;
         double QForceScuff = PFT[5] / (TENTHIRDS*Denom);
 

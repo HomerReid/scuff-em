@@ -38,14 +38,6 @@
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#define NUMSIPFT 7
-void GetSIPFT(RWGGeometry *G, IncField *IF, HVector *KN, 
-              cdouble Omega, RWGSurface *BS, double R, int NumPoints,
-              double SIPFT[NUMSIPFT]);
-
-/***************************************************************/
 /* compute scattered and total fields at a user-specified list */
 /* of evaluation points                                        */
 /***************************************************************/
@@ -255,46 +247,47 @@ void GetMoments(SSData *SSD, char *MomentFile)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WritePFTFile(SSData *SSD, char *PFTFile)
+void WriteEPPFTFile(SSData *SSD, char *FileName)
 {
-  FILE *f=fopen(PFTFile,"a");
+  /*--------------------------------------------------------------*/
+  /*- write file preamble only if file does not already exist ----*/
+  /*--------------------------------------------------------------*/
+  FILE *f=fopen(FileName,"r");
   if (!f)
-   return;
+   { f=fopen(FileName,"w");
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 1 omega \n");
+     fprintf(f,"# 2 surface label \n");
+     fprintf(f,"# 3 absorbed power\n");
+     fprintf(f,"# 4 scattered power\n");
+     fprintf(f,"# 5 x-force \n");
+     fprintf(f,"# 6 y-force \n");
+     fprintf(f,"# 7 z-force \n");
+     fprintf(f,"# 8 x-torque \n");
+     fprintf(f,"# 9 y-torque \n");
+     fprintf(f,"# 10 z-torque \n");
+   };
+  fclose(f);
 
-  Log("Computing power, force, torque at Omega=%s...",z2s(SSD->Omega));
-
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  Log("Computing equivalence-principle power, force, torque at Omega=%s...",z2s(SSD->Omega));
+  f=fopen(FileName,"a");
+  if (!f) return;
   RWGGeometry *G=SSD->G;
-  double PFT[8]; 
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
 
-     G->GetPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, PFT);
+     double EPPFT[7];
+     G->GetEPPFT(ns, SSD->KN, SSD->Omega, EPPFT);
 
-     // get scattered power as difference between total and absorbed power.
-     // if the difference between the quantities is less than 10% of their 
-     // magnitude, recompute using the more accurate but slower SGJ formula.
-#if 0
-     double PScat=PFT[1] - PFT[0];
-     if ( fabs(PScat) < 0.1*fabs(PFT[1]) )
-      { 
-        Log(" Computing PScat via SGJ method [(PAbs,PTot)=(%.3e,%.3e)]",PFT[0],PFT[1]);
-        PScat=G->GetScatteredPower(SSD->KN, SSD->Omega, ns);
-      };
-     // put PScat in the 1 slot in the array 
-     PFT[1] = PScat;
-#endif
-     PFT[1] = G->GetScatteredPower(SSD->KN, SSD->Omega, ns);
-     for(int nq=0; nq<8; nq++)
-      fprintf(f,"%e ",PFT[nq]);
-     //fprintf(f,"%e ",G->GetScatteredPower(SSD->KN, SSD->Omega, ns));
+     fprintf(f,"%e 0.0 ",EPPFT[0]);
+     for(int nq=1; nq<7; nq++)
+      fprintf(f,"%e ",EPPFT[nq]);
      fprintf(f,"\n");
    };
-
   fclose(f);
 
 }
@@ -302,42 +295,111 @@ void WritePFTFile(SSData *SSD, char *PFTFile)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteSIPFTFile(SSData *SSD, char *SIPFTFile, double SIRadius, int SIPoints)
+void WriteOPFTFile(SSData *SSD, char *FileName)
 {
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
   /*--------------------------------------------------------------*/
-  FILE *f=fopen(SIPFTFile,"r");
+  FILE *f=fopen(FileName,"r");
   if (!f)
-   { f=fopen(SIPFTFile,"w");
+   { f=fopen(FileName,"w");
      fprintf(f,"# data file columns: \n");
      fprintf(f,"# 1 omega \n");
-     fprintf(f,"# 2 absorbed power\n");
-     fprintf(f,"# 3 x-force \n");
-     fprintf(f,"# 4 y-force \n");
-     fprintf(f,"# 5 z-force \n");
-     fprintf(f,"# 6 x-torque \n");
-     fprintf(f,"# 7 y-torque \n");
-     fprintf(f,"# 8 z-torque \n");
+     fprintf(f,"# 2 surface label \n");
+     fprintf(f,"# 3 absorbed power\n");
+     fprintf(f,"# 4 scattered power\n");
+     fprintf(f,"# 5 x-force \n");
+     fprintf(f,"# 6 y-force \n");
+     fprintf(f,"# 7 z-force \n");
+     fprintf(f,"# 8 x-torque \n");
+     fprintf(f,"# 9 y-torque \n");
+     fprintf(f,"# 10 z-torque \n");
    };
   fclose(f);
 
-  f=fopen(SIPFTFile,"a");
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  Log("Computing overlap power, force, torque at Omega=%s...",z2s(SSD->Omega));
+  RWGGeometry *G=SSD->G;
+  f=fopen(FileName,"a");
+  if (!f) return;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
+
+     double OPFT[8]; 
+     G->GetOPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, OPFT);
+
+     // get scattered power as difference between total and absorbed power
+     double PScat=OPFT[1] - OPFT[0];
+     if ( fabs(PScat) < 0.1*fabs(OPFT[1]) )
+      Warn("Overlap PFT computation of scattered power may be inaccurate; use EPPFT");
+     OPFT[1]=PScat;
+
+     for(int nq=0; nq<8; nq++)
+      fprintf(f,"%e ",OPFT[nq]);
+     fprintf(f,"\n");
+
+   };
+  fclose(f);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, int SIPoints, char *MeshFileName)
+{
+  /*--------------------------------------------------------------*/
+  /*- write file preamble only if file does not already exist ----*/
+  /*--------------------------------------------------------------*/
+  FILE *f=fopen(FileName,"r");
+  if (!f)
+   { f=fopen(FileName,"w");
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 1 omega \n");
+     fprintf(f,"# 2 absorbed power\n");
+     fprintf(f,"# 3 scattered power\n");
+     fprintf(f,"# 4 x-force \n");
+     fprintf(f,"# 5 y-force \n");
+     fprintf(f,"# 6 z-force \n");
+     fprintf(f,"# 7 x-torque \n");
+     fprintf(f,"# 8 y-torque \n");
+     fprintf(f,"# 9 z-torque \n");
+   };
+  fclose(f);
+
+  f=fopen(FileName,"a");
   if (!f)
    return;
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
   Log("Computing surface-integral power, force, torque at Omega=%s...",z2s(SSD->Omega));
 
+  /*--------------------------------------------------------------*/
+  /*- read bounding surface mesh from meshfile if specified       */
+  /*--------------------------------------------------------------*/
+  RWGSurface *BS=0;
+  if (MeshFileName)
+   { BS = new RWGSurface(MeshFileName);
+     if (BS->ErrMsg)
+      ErrExit(BS->ErrMsg);
+     Log("Surface-integrating over bounding mesh %s",MeshFileName);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   RWGGeometry *G=SSD->G;
-  double SIPFT[NUMSIPFT]; 
+  double SIPFT[7];
+  G->GetSIPFT(SSD->KN, SSD->IF, SSD->Omega, BS, SIRadius, SIPoints, SIPFT);
 
-  GetSIPFT(G, SSD->IF, SSD->KN, SSD->Omega, 0, SIRadius, SIPoints, SIPFT);
-
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   fprintf(f,"%s ",z2s(SSD->Omega));
-  for(int nq=0; nq<NUMSIPFT; nq++)
+  fprintf(f,"%e 0.0 ",SIPFT[0]);
+  for(int nq=1; nq<7; nq++)
    fprintf(f,"%e ",SIPFT[nq]);
   fprintf(f,"\n");
   fclose(f);
