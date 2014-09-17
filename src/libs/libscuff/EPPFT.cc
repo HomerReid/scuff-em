@@ -424,25 +424,26 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
   double PAbs=0.0;
   double Fx=0.0, Fy=0.0, Fz=0.0;
   double Taux=0.0, Tauy=0.0, Tauz=0.0;
-  int NumTasks, NumThreads;
+  int NumThreads;
 #ifndef USE_OPENMP
-  NumTasks=NumThreads=1;
+  NumThreads=1;
   if (LogLevel>=SCUFF_VERBOSE2)
    Log(" no multithreading...");
 #else
   NumThreads=GetNumThreads();
-  NumTasks=100*NumThreads;
-  if (NumTasks>S->NumEdges) 
-   NumTasks=S->NumEdges;
   if (LogLevel>=SCUFF_VERBOSE2)
-   Log(" OpenMP multithreading (%i threads,%i tasks)...",NumThreads,NumTasks);
+   Log(" OpenMP multithreading (%i threads)...",NumThreads);
 #pragma omp parallel for schedule(dynamic,1),      \
                          num_threads(NumThreads),  \
                          reduction(+:PAbs, Fx, Fy, Fz, Taux, Tauy, Tauz)
 #endif
-  for(int nea=0; nea<NE; nea++)
-   for(int neb=0; neb<NE; neb++)
+//  for(int nea=0; nea<NE; nea++)
+//   for(int neb=0; neb<NE; neb++)
+   for(int neab=0; neab<NE*NE; neab++)
     { 
+      int nea = neab/NE; 
+      int neb = neab%NE; 
+
       cdouble GC[2], dG[6], dC[6];
       double Overlap[3];
 
