@@ -66,60 +66,89 @@ distribution.
 %=================================================
 \subsection{Reduced vector and scalar potentials}
 
-Consider a triangular panel $\mc P$ on which we have a flow of RWG 
+Consider a triangular panel $\mc P$ on which we have a flow of RWG
 surface current emanating from a source vertex $\vb Q$. I begin by 
 defining ``reduced'' vector and scalar potentials produced by this 
 current at a point $\vb x$:
 %====================================================================%
-$$ \vb a(\mc P;\vb x) = 
+\numeq{ap}
+{ \vb a(\mc P; \vb Q; \vb x) =
    \int_{\mc P} (\vb x^\prime - \vb Q) G(\vb x, \vb x^\prime) \, d\vb x^\prime,
    \qquad
    p(\mc P; \vb x) = 
    \int_{\mc P} G(\vb x- \vb x^\prime) \, d\vb x^\prime,
-  \qquad
-  G(\vb r)=\frac{e^{ik|\vb r|}}{4\pi |\vb r|}.
-$$
+}
 %====================================================================%
-The full vector and scalar potentials at $\vb x$ due to an 
-electric\footnote{The full potentials due to a unit-strength
-\textit{magnetic} current on $\mc P$ are also proportional
-to $\vb a$ and $p$, just with different constant prefactors.}
-surface current distribution described by a single RWG basis
-function $\vb b$ populated with unit strength are given by 
-summing contributions from the two triangular panels $\mc P^\pm$
-on which $\vb b$ is supported:
+where
 %====================================================================%
-$$
- \vb A(\vb x) = \sum_{\pm} \pm \frac{\ell}{2A^\pm} \vb a(\mc{P}^\pm; \vb x)
+$$ G(\vb r)=\frac{e^{ik|\vb r|}}{4\pi |\vb r|} $$
+%====================================================================%
+is the scalar Helmholtz Green's function.
+
+Now consider an RWG basis function $\vb b_\alpha(\vb x)$ which is
+supported on two triangular panels $\mc P_{\alpha}^\pm$ with
+current source/sink vertices $\vb Q_\alpha^\pm$.
+The \textit{full} vector and scalar potentials at $\vb x$ due to
+an electric\footnote{The full potentials due to a unit-strength
+\textit{magnetic} current are also expressed in terms of
+$\vb a$ and $p$, just with different constant prefactors.}
+surface current distribution described by $\vb b_\alpha$ populated
+with unit strength are given by 
+summing contributions from the two panels:
+%====================================================================%
+\numeq{APhi}
+{
+ \vb A_\alpha(\vb x) 
+   = \sum_{\pm} \pm \frac{\ell_\alpha}{2A_\alpha^\pm} 
+      \vb a(\mc{P}_\alpha^\pm; \vb Q_\alpha^\pm; \vb x)
  \qquad 
- \Phi(\vb x) = Z_0Z^r \sum_{\pm} \pm \frac{\ell}{ik A^\pm} p(\mc{P}^\pm; \vb x)
-$$
+ \Phi_\alpha(\vb x) 
+   = Z_0Z^r \sum_{\pm} \pm \frac{\ell_\alpha}{ik A_\alpha^\pm} p(\mc{P}_\alpha^\pm; \vb x)
+}
 %====================================================================%
-where $A^\pm$ are the areas of $\mc P^\pm$, $\ell$ is the length
-of their common edge, 
+where $A_\alpha^\pm$ are the areas of $\mc P_\alpha^\pm$
+and $\ell_\alpha$ is the length
+of their common edge (the factor $\frac{\ell}{2A^\pm}$ comes from
+the conventional definition of the RWG basis function); also,
 $Z_0$ is the impedance of free space, and $k$ and $Z^r$ are the
 wavenumber and relative wave impedance of the material medium.
 
 To compute the $\vb E$ and $\vb H$ fields we need the first derivatives
 of the potentials: 
 %====================================================================%
-$$ \vb E = ikZ \vb A - \nabla \phi, \qquad \vb H = \nabla \times \vb A$$
+$$ \vb E = ikZ \vb A - \nabla \Phi, \qquad \vb H = \nabla \times \vb A$$
 %====================================================================%
-In component notation, the fields due to $\mc P$ thus read
-%\begin{align*}
-% E_i(\mc P,
-%\begin{align*}
-%\sum_{\pm} \pm\frac{\ell}{2A^\pm}\vb e(\mc P^\pm; \vb x),
-%   \qquad
-%   \vb H = \sum_{\pm} \pm\frac{\ell}{2A^\pm}\vb h(\mc P^\pm; \vb x)
-%$$
-%where the components of the three-vectors $\vb e$ and $\vb h$ are 
-%$$ e_i(\mc P^\pm; \vb x)
-%   =a_i(\mc P^\pm; \vb x) + \frac{1}{k^2}\partial_i p(\mc P^\pm, \vb c), 
-%  \qquad
-%   h_i(\mc P^\pm; \vb x)
-%   =\varepsilon_{ijk} \partial_j a_k(\mc P^\pm; \vb x)
-%$$
+(where $Z=Z_0Z^r$).
+Inserting (\ref{ap}) and (\ref{APhi}) and switching over to vector
+component notation, we may write the fields due to basis function
+$\vb b_\alpha$ in terms of the reduced potentials:
+%====================================================================%
+\begin{align*}
+ E_{\alpha i}(\vb x) &=
+   ikZ \sum_{\pm} \frac{\ell_\alpha}{2A_\alpha^\pm}
+       \Big[ a_i(\mc P_\alpha^\pm, \vb Q^\pm_\alpha, \vb x)
+             +\frac{4}{k^2} \partial_i p(\mc P_\alpha^\pm, \vb x)
+       \Big]
+\\
+ H_{\alpha i}(\vb x)
+  &= \sum_{\pm} \frac{\ell}{2A_\alpha^\pm} 
+     \varepsilon_{ijk} \partial_j a_k(\mc P_\alpha^\pm, \vb x).
+\end{align*}
+%====================================================================%
+It is convenient to identify the combinations of the reduced 
+potentials and their derivatives that appear in these equations
+as ``reduced fields'' associated with individual RWG panels:
+%\numeq{eh}
+% { \vb e_\alpha(\vb x) = 
+%   \sum_{\pm} \frac{\ell_\alpha}{2A_\alpha}^\pm 
+%              \Big[ \vb a(\mc P_\alpha^\pm; \vb Q_\alpha^\pm; \vb x) 
+%                   +\frac{4}{k^2} \nabla p(\mc P_\alpha^\pm; \vb x)
+%              \Big],
+%  \qquad 
+%  \vb h_\alpha(\vb x) &= 
+%   \sum_{\pm} \frac{\ell_\alpha}{2A_\alpha}^\pm 
+% } 
+
 %====================================================================%
 To compute the first derivatives of $\vb E$ and $\vb H$ we also
 need the \textit{second} derivatives of $\vb a$ and $p$:
@@ -171,7 +200,9 @@ The reduced potentials are
 %====================================================================%
 where\footnote{Two special cases that may be computed
 analytically are $p^{(0)}=A, \vb a^{(0)}=A(\vb x_c - \vb Q)$
-where $A$ is the panel area and $\vb x_c$ is its centroid.}
+where $A$ is the panel area and $\vb x_c$ is its centroid. These
+are independent of the evaluation point $\vb x$ and thus do not 
+contribute to derivatives.}
 %====================================================================%
 \begin{align}
  p^{(n)}(\vb x) &= \int_{\mc P} r^n \, dA
@@ -184,9 +215,9 @@ where $A$ is the panel area and $\vb x_c$ is its centroid.}
 \intertext{(here $r=|\vb x^\prime - \vb x|$).
            To write $\vb a^{(n)}$ in a more convenient form, let
            $\overline{\vb x}$ be the projection of the evaluation point
-           into the plane of the panel and write $\vb a^{(n)}$ in the
-           form}
+           into the plane of the panel and write}
 %--------------------------------------------------------------------%
+\vb a^{(n)}(\vb x)
 &= \int_{\mc P}
    \Big( \vb x^\prime - \overline{\vb x} + \overline{\vb x} - \vb Q \Big)
    r^n \, dA
@@ -222,12 +253,14 @@ is a vector that has nonzero components only in the plane of $\mc P$.
 %====================================================================%
 In terms of $\mc I$ and $\mc J$, the reduced potentials are
 %====================================================================%
-$$ p^{(n)}(\mc P; \vb x) = \mc I^n(\mc P; \vb x),
+\numeq{paFromIJ}
+{
+  p^{(n)}(\mc P; \vb x) = \mc I^n(\mc P; \vb x),
    \qquad
    \vb a^{(n)}(\mc P; \vb x) =
    \bmc J^n(\mc P; \vb x)
       - \big(\vb Q-\overline{\vb x}\big) \mc I^n(\mc P; \vb x)
-$$
+}
 %====================================================================%
 Similarly, derivatives of $\vb a^{(n)}$ and $p^{(n)}$ are related to 
 derivatives of $\mc I^p$ and $\bmc J^p$:
@@ -251,12 +284,27 @@ closed form, as discussed in the following section.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Evaluation of $\mc I, \mc J$ integrals}
+\section{Evaluation of $\mc I, \bmc J$ integrals}
 
 %=================================================
 %=================================================
 %=================================================
 \subsection{Modified coordinate system}
+%####################################################################%
+\begin{figure}
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{NearFieldUVWSystem.pdf}}
+\caption{Rotated and translated coordinate system 
+         ($\vbhat{u},\vbhat{v},\vbhat{w}$) for evaluation of 
+         $\mc I, \bmc J$ integrals. The panel lies in the $uv$ plane
+         with one edge parallel to the $\vbhat{u}$ axis. The origin
+         of the $uv$ plane is the projection of the evaluation point
+         into the plane of the panel. The perpendicular distance from
+         the plane of the panel to the evaluation point is $w_0$.}
+\label{UVWSystemFigure}
+\end{center}
+\end{figure}
+%####################################################################%
 
 Let the panel $\mc P$ have vertices
 $\{\vb V_1, \vb V_2, \vb V_3\}.$
@@ -266,7 +314,8 @@ cartesian coordinates
 $(u,v,w)$, in which $\mc P$ lies entirely in the $uv$
 plane (the panel normal $\vbhat{n}$ defines the $\vbhat{w}$ axis)
 and edge $\vb V_1 \vb V_2$ lies parallel to the 
-$\vbhat{u}$ axis. The unit vectors of this system 
+$\vbhat{u}$ axis (Figure \ref{UVWSystemFigure}).
+The unit vectors of this system 
 are 
 %====================================================================%
 $$ \vbhat{u}=\frac{\vb V_2 - \vb V_1}{|\vb V_2 - \vb V_1|},
@@ -487,6 +536,134 @@ In this table, we have used the following shorthand:
 %=================================================
 %=================================================
 \subsection{Derivatives of reduced potentials}
+
+\subsubsection{Potential derivatives from $\mc I,J$ derivatives}
+
+When computing derivatives it is easiest to work first
+in the $\vbhat{u},\vbhat{v},\vbhat{w}$ coordinate system 
+and later rotate back to the original coordinate system.
+In this case, in-plane derivatives (derivatives with respect
+to the $u,v$ coordinates) are distinguished from 
+normal derivatives (derivatives with respect to the $w$ 
+coordinate).
+To highlight this distinction, in what follows the subscripts 
+$\alpha,\beta,\gamma$ will refer only to the in-plane coordinates
+($u,v$ coordinates), so that e.g. $\partial_\alpha \mc I$ refers 
+to an in-plane derivative, while $\partial_w \mc I$ is a 
+normal derivative. Note that the vector potential $\vb a$, 
+like the quantities $\bmc J$ and $\vb Q$, has only
+in-plane components.
+
+The starting point is equation (\ref{paFromIJ}):
+$$ p^{(n)} = \mc I^n, 
+   \qquad 
+   a_\gamma^{(n)} = \mc J^n_\gamma - \overline{\vb Q}_\gamma \mc I^n
+$$
+Derivatives of $p$ are just derivatives of $\mc I$,
+computed as discussed below.
+
+First derivatives of $\vb a$ take the form
+%====================================================================%
+\begin{align*}
+ \partial_\beta a_\gamma^{(n)}
+&=   \partial_\beta \mc J^n_\gamma
+   + n\overline{\vb Q}_\gamma \mc J^{n-2}_\beta
+   + \delta_{\beta\gamma} \mc I^n
+\\
+ \partial_w a_\gamma^{(n)}
+&=   \partial_w \mc J^n_\gamma
+   - \overline{\vb Q}_\gamma \partial_w \mc I^n
+\\
+&=   nw\big[    \mc J^{n-2}_\gamma
+              - \overline{\vb Q}_\gamma \mc I^{n-2}
+       \big]
+\end{align*}
+%====================================================================%
+When computing second derivatives of $\vb a$, it turns
+out that the double normal derivative $\partial^2_w a_\gamma$
+and the mixed second partial $\partial_w \partial_\alpha \vb a_\gamma$
+are straightforward to compute in terms of $\mc I,\bmc J$
+and their first derivatives:
+%====================================================================%
+\begin{align*}
+ \partial_w \partial_\beta a_\gamma^{(n)}
+&= (n-2)w \Big[ \partial_\beta \bmc J_\gamma^{(n-2)}
+               +n\overline{\vb Q}_\gamma \mc J_\beta^{n-4}
+          \Big]
+   +nw \delta_{\beta\gamma} \mc I^{n-2}
+\\
+ \partial_w^2 a_\gamma^{(n)}
+&=   n\big[    \mc J^{n-2}_\gamma
+             - \overline{\vb Q}_\gamma \mc I^{n-2}
+      \big]
+\\
+&\qquad
+  +n(n-2) w^2 
+   \Big[ \mc J^{n-4}_\gamma -\overline{\vb Q}_\gamma \mc I^{n-4}\Big]
+\end{align*}
+%====================================================================%
+The double in-plane derivative $\partial_\alpha \partial_\beta a_\gamma$ 
+is more difficult to compute. However,
+it turns out we don't need to compute this quantity as long as 
+we are only interested in first derivatives of the 
+$\vb E$ and $\vb H$ fields. To see this, note that second 
+derivatives of $\vb a$ only enter in the computation of 
+first derivatives of $\vb H$, which involves differentiating
+the curl of $\vb a$. In the $(uvw)$ system, the curl of $\vb a$ 
+reads
+%====================================================================%
+\begin{align*}
+ \nabla\times \vb a
+ &= -\partial_w a_v \vbhat{u} 
+    +\partial_w a_u \vbhat{v} 
+    +(\partial_u a_v - \partial_v a_u) \vbhat{w}
+\end{align*}
+%====================================================================%
+The $w$ derivative of this is 
+%====================================================================%
+\begin{align*}
+ \partial_w (\nabla \times \vb a)
+  &= -\partial^2_w a_v \vbhat{u} 
+     +\partial^2_w a_u \vbhat{v} 
+    +(\partial_w \partial_u a_v - \partial_w \partial_v a_u) \vbhat{w}
+\end{align*}
+which does not require the double in-plane derivative.
+%====================================================================%
+The in-plane derivative of $\nabla \times a$ is
+%====================================================================%
+\begin{align*}
+ \partial_\alpha (\nabla \times \vb a)
+  &= -\partial_\alpha \partial_w a_v \vbhat{u}
+     +\partial_\alpha \partial_w a_u \vbhat{v} 
+    +(\partial_\alpha \partial_u a_v - \partial_\alpha \partial_v a_u) 
+     \vbhat{w}
+\end{align*}
+%====================================================================%
+To elucidate the structure of the $w$ component of this, I write
+%====================================================================%
+\newcommand{\xbar}{\big(\overline{\vb x}\big)}
+\newcommand{\Qbar}{\big(\overline{\vb Q}\big)}
+\newcommand{\xmQ}{\big(\overline{\vb x} - \overline{\vb Q}\big)}
+\begin{align*}
+ \partial_u a_v^{(n)} - \partial_v a_u^{(n)}
+&= -n\int
+    \underbrace{\Big[\xbar_u \xmQ_v - \xbar_v \xmQ_u\Big]} 
+              _{\Qbar_u \xbar_v - \Qbar_v \xbar_u} r^{n-2}  \, dA
+\\
+&= -n\Big[ \Qbar_u \int \xbar_v r^{n-2} \, dA
+          -\Qbar_v \int \xbar_u r^{n-2} \, dA
+     \Big]\\
+&= -n\Big[\Qbar_u \mc J_v^{n-2} - \Qbar_v \mc J_u^{n-2}\Big]
+\intertext{and thus}
+ \partial_\alpha(\nabla \times \vb a)_w
+&= -n\Big[    \Qbar_u \partial_\alpha \mc J_v^{n-2} 
+            - \Qbar_v \partial_\alpha \mc J_u^{n-2}
+     \Big].
+\end{align*}
+The upshot is that all quantities needed to compute
+first and second derivatives of the potentials may be 
+obtained from the $\mc I, J$ integrals and their 
+first derivatives.
 
 \subsubsection{Derivatives of $\mc I,J$ integrals}
 

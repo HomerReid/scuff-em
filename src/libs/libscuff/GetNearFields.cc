@@ -36,7 +36,7 @@
 #include <libhrutil.h>
 #include <libscuff.h>
 #include <libscuffInternals.h>
-#include <PanelCubature.h>
+#include <libTriInt.h>
 
 #define II cdouble(0.0,1.0)
 
@@ -296,7 +296,8 @@ void GetScriptIJ(double u[3], double v[3], double w0, double LengthScale,
 void GetStaticPanelIntegrals(RWGGeometry *G, int ns, int nPanel, int iQ,
                              double X0[3],
                              double pn[NUMNS], double an[NUMNS][3],
-                             double dpn[NUMNS][3], double dan[NUMNS][3][3])
+                             double dpn[NUMNS][3], double dan[NUMNS][3][3],
+                             double ddpn[NUMNS][3][3], double dcurlan[NUMNS][3][3])
 {
   /***************************************************************/
   /* unpack panel vertices ***************************************/
@@ -309,7 +310,6 @@ void GetStaticPanelIntegrals(RWGGeometry *G, int ns, int nPanel, int iQ,
   V[2] = S->Vertices + 3*(Pan->VI[2]);
   Q    = V[iQ];
   double *XC = Pan->Centroid;
-  double Radius = Pan->Radius;
 
   /***************************************************************/
   /* compute the uHat, vHat, wHat vectors that define the        */
@@ -379,7 +379,6 @@ void GetStaticPanelIntegrals(RWGGeometry *G, int ns, int nPanel, int iQ,
   /* equation (C...) in the memo.                                */
   /***************************************************************/
   double anMu[NUMNS][3], dpnMu[NUMNS][3], danMuNu[NUMNS][3][3];
-
   for(int NIndex=NINDEX_M1; NIndex<=NINDEX_P1; NIndex++)
    { 
      int PIndex = (NIndex==NINDEX_M1) ? PINDEX_M1 : PINDEX_P1;
@@ -411,25 +410,74 @@ void GetStaticPanelIntegrals(RWGGeometry *G, int ns, int nPanel, int iQ,
 
    };
 
-#if 0
-analytic second derivatives, only partially implemented
-and not exposed at the interface for now (20140910)
+  /***************************************************************/
+  /* second derivatives ******************************************/
+  /***************************************************************/
+  double ddpnMuNu[2][3][3], ddanMuNuRho[2][3][3][3];
   for(int NIndex=NINDEX_M1; NIndex<=NINDEX_P1; NIndex++)
    { 
      int PIndex = (NIndex==NINDEX_M1) ? PINDEX_M1 : PINDEX_P1;
      double P=PValues[PIndex];
+
      for(int Mu=0; Mu<2; Mu++)
       for(int Nu=0; Nu<2; Nu++)
-       ddpnMuNu[NIndex][Mu][Nu] = -P*dScriptJMuNu[PIndex-1][Mu][Nu];
+       ddpnMuNu[NIndex][Mu][Nu] 
+        = -P*dScriptJMuNu[PIndex-1][Mu][Nu];
 
      for(int Mu=0; Mu<3; Mu++)
-      ddpnMuNu[NIndex][2][Mu] = ddpnMuNu[NIndex][Mu][2] =
-       -P*(P-2.0)*w0*ScriptJMu[PIndex-2][Mu];
+      ddpnMuNu[NIndex][2][Mu]
+       = ddpnMuNu[NIndex][Mu][2]
+       = -P*(P-2.0)*w0*ScriptJMu[PIndex-2][Mu];
 
-     ddpnMuNu[NIndex][2][2] = P*(P-2.0)*w0*ScriptI[PIndex-2];
+     ddpnMuNu[NIndex][2][2]
+      = P*ScriptI[PIndex-1] + P*(P-2.0)*w0*w0*ScriptI[PIndex-2];
+
+     // equation C...
+     for(int A=0; A<2; A++)
+      {
+        ddanMuNuRho[NIndex][2][2][A]
+         =  P*( ScriptJMu[PIndex-1][A] - QBarMu[A]*ScriptI[PIndex-1])
+           +P*(P-2.0)*w0*w0*( ScriptJMu[PIndex-2][A] - QBarMu[A]*ScriptI[PIndex-2]);
+
+        for(int B=0; B<3; B++)
+          ddanMuNuRho[NIndex][2][A][B]
+           = ddanMuNuRho[NIndex][A][2][B]
+           = P*w0*(  dScriptJMuNu[PIndex-1][A][B]
+                    + ( (A==B) ? ScriptI[PIndex-1] : 0.0)
+                    + (P-2.0)*QBarMu[B]*ScriptJMu[PIndex-2][A]
+                  );
+      };
+     ddanMuNuRho[NIndex][2][2][2]=0.0;
       
    };
-#endif
+
+  double dcurlanMuNu[NUMNS][3][3];
+  for(int NIndex=NINDEX_M1; NIndex<=NINDEX_P1; NIndex++)
+   { 
+     int PIndex = (NIndex==NINDEX_M1) ? PINDEX_M1 : PINDEX_P1;
+     double P=PValues[PIndex];
+
+     dcurlanMuNu[NIndex][0][0] = -ddanMuNuRho[NIndex][0][2][1];
+     dcurlanMuNu[NIndex][0][1] = +ddanMuNuRho[NIndex][0][2][0];
+     dcurlanMuNu[NIndex][0][2] = P*( ScriptJMu[PIndex-1][1]
+                                     +QBarMu[1]*dScriptJMuNu[PIndex-1][0][0]
+                                     -QBarMu[0]*dScriptJMuNu[PIndex-1][0][1]
+                                   );
+
+     dcurlanMuNu[NIndex][1][0] = -ddanMuNuRho[NIndex][1][2][1];
+     dcurlanMuNu[NIndex][1][1] = +ddanMuNuRho[NIndex][1][2][0];
+     dcurlanMuNu[NIndex][1][2] = P*( -ScriptJMu[PIndex-1][0]
+                                     +QBarMu[1]*dScriptJMuNu[PIndex-1][1][0]
+                                     -QBarMu[0]*dScriptJMuNu[PIndex-1][1][1]
+                                   );
+
+ 
+     dcurlanMuNu[NIndex][2][0] = -ddanMuNuRho[NIndex][2][2][1];
+     dcurlanMuNu[NIndex][2][1] = +ddanMuNuRho[NIndex][2][2][0];
+     dcurlanMuNu[NIndex][2][2] =  ddanMuNuRho[NIndex][2][0][1] 
+                                  - ddanMuNuRho[NIndex][2][1][0];
+
+   };
 
   /***************************************************************/
   /* finally, convert vector and tensor components back to       */
@@ -462,28 +510,15 @@ and not exposed at the interface for now (20140910)
      for(int i=0; i<3; i++)
       for(int j=0; j<3; j++)
        { dan[nn][i][j] = 0.0;
-//       ddpn[nn][i][j] = 0.0;
+         ddpn[nn][i][j] = 0.0;
+         dcurlan[nn][i][j] = 0.0;
          for(int Mu=0; Mu<3; Mu++)
           for(int Nu=0; Nu<3; Nu++)
            { dan[nn][i][j] += M[Mu][i]*M[Nu][j]*danMuNu[nn][Mu][Nu];
-//           ddpn[nn][i][j] += M[Mu][i]*M[Nu][j]*ddpnMuNu[nn][Mu][Nu];
+             ddpn[nn][i][j] += M[Mu][i]*M[Nu][j]*ddpnMuNu[nn][Mu][Nu];
+             dcurlan[nn][i][j] += M[Mu][i]*M[Nu][j]*dcurlanMuNu[nn][Mu][Nu];
            };
        };
-
-     // three-index quantity
-#if 0 // this is not currently computed 
-     for(int i=0; i<3; i++)
-      for(int j=0; j<3; j++)
-       for(int k=0; k<3; k++)
-        { ddan[nn][i][j][k] = 0.0;
-          for(int Mu=0; Mu<3; Mu++)
-           for(int Nu=0; Nu<3; Nu++)
-            for(int Rho=0; Rho<3; Rho++)
-             ddan[nn][i][j][k] 
-              += M[Mu][i]*M[Nu][j]*M[Rho][k]*ddanMuNuRho[nn][Mu][Nu][Rho];
-        };
-#endif
-
     };
 
 }
@@ -563,47 +598,87 @@ cdouble GetGDS(double R[3], cdouble k, cdouble dG[3],
   return ERB3 / Denom;
 } 
 
+
 /*--------------------------------------------------------------*/
-/*- Result[0*4 + 0..3] = \mc A_\mu                              */
-/*- Result[1*4 + 0..3] = d_x \mc A_\mu                          */
-/*- Result[2*4 + 0..3] = d_y \mc A_\mu                          */
-/*- Result[3*4 + 0..3] = d_z \mc A_\mu                          */
+/* get desingularized contributions to reduced potentials       */
 /*--------------------------------------------------------------*/
-typedef struct GRPNData
- { 
-   double *X0, *Q;
-   cdouble k;
+void GetDSReducedPotentials(RWGGeometry *G, int ns, int np, int iQ,
+                            double X0[3],  cdouble k,
+                            cdouble *pDS, cdouble aDS[3],
+                            cdouble dpDS[3], cdouble daDS[3][3],
+                            cdouble ddpDS[3][3], cdouble dcurlaDS[3][3])
+{ 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S=G->Surfaces[ns];
+  RWGPanel *P=S->Panels[np];
+  double *Q  = S->Vertices + 3*P->VI[iQ];
+  double *V1 = S->Vertices + 3*P->VI[(iQ+1)%3];
+  double *V2 = S->Vertices + 3*P->VI[(iQ+2)%3];
+  double PreFactor = 2.0*P->Area;
 
- } GRPNData;
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double A[3], B[3];
+  VecSub(V1, Q, A);
+  VecSub(V2, V1, B);
 
-void GRPNIntegrand(double *X, PCData *PCD,
-                   void *UserData, double *Result)
-{
-  GRPNData *Data = (GRPNData *)UserData;
-  double *X0 = Data->X0;
-  double *Q  = Data->Q;
-  cdouble k  = Data->k;
-
-  cdouble AMu[4];
-  AMu[0] = 1.0;
-  AMu[1] = (X[0] - Q[0]);
-  AMu[2] = (X[1] - Q[1]);
-  AMu[3] = (X[2] - Q[2]);
-  
-  double R[3];
-  VecSub(X, X0, R);
-  cdouble G, dG[3], ddG[3][3];
-  G = GetGDS(R, k, dG, ddG, false);
-
-  cdouble *zf = (cdouble *)Result;
-
-  for(int Nu=0; Nu<4; Nu++)
-   { 
-     zf[ 0*4 + Nu ] = G * AMu[Nu];
-
-     for(int Mu=0; Mu<3; Mu++)
-      zf[ (Mu+1)*4 + Nu ] = -dG[Mu] * AMu[Nu];
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  *pDS=0;
+  for(int Mu=0; Mu<3; Mu++)
+   { aDS[Mu]=dpDS[Mu]=0.0;
+     for(int Nu=0; Nu<3; Nu++)
+      daDS[Mu][Nu]=ddpDS[Mu][Nu]=dcurlaDS[Mu][Nu]=0.0;
    };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int NumPts;
+  int Order=9;
+  double *TCR=GetTCR(Order, &NumPts);
+  for(int nPt=0, ncp=0; nPt<NumPts; nPt++)
+   { 
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
+     double u=TCR[ncp++];
+     double v=TCR[ncp++];
+     double w=TCR[ncp++] * PreFactor;
+     u+=v;
+
+     double X[3], F[3], R[3];
+     for(int Mu=0; Mu<3; Mu++)
+      { 
+        F[Mu] = u*A[Mu] + v*B[Mu];
+        X[Mu] = F[Mu] + Q[Mu];
+        R[Mu] = X0[Mu] - X[Mu];
+      };
+
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
+     cdouble dG[3], ddG[3][3];
+     cdouble GG=GetGDS(R, k, dG, ddG);
+     *pDS += w*GG;
+     for(int Mu=0; Mu<3; Mu++)
+      { dpDS[Mu] += w*dG[Mu];
+        aDS[Mu]  += w*GG*F[Mu];
+        for(int Nu=0; Nu<3; Nu++)
+         { daDS[Mu][Nu] += w*dG[Mu]*F[Nu];
+           ddpDS[Mu][Nu]+= w*ddG[Mu][Nu];
+           int NP1=(Nu+1)%3, NP2=(Nu+2)%3;
+           dcurlaDS[Mu][Nu] 
+            += w*(ddG[Mu][NP1]*F[NP2] - ddG[Mu][NP2]*F[NP1]);
+         };
+      };
+     
+   };
+
 }
 
 /*--------------------------------------------------------------*/
@@ -616,13 +691,27 @@ void GRPNIntegrand(double *X, PCData *PCD,
 void GetReducedPotentials_Nearby(RWGGeometry *G, int ns, int np, int iQ,
                                  double X0[3],  cdouble k,
                                  cdouble *p, cdouble a[3],
-                                 cdouble dp[3], cdouble da[3][3])
+                                 cdouble dp[3], cdouble da[3][3],
+                                 cdouble ddp[3][3], cdouble dcurla[3][3])
 {
    /*--------------------------------------------------------------*/
    /*- get singular contributions ---------------------------------*/
    /*--------------------------------------------------------------*/
-   double pn[NUMNS], an[NUMNS][3], dpn[NUMNS][3], dan[NUMNS][3][3];
-   GetStaticPanelIntegrals(G, ns, np, iQ, X0, pn, an, dpn, dan);
+   double pn[NUMNS], an[NUMNS][3];
+   double dpn[NUMNS][3], dan[NUMNS][3][3];
+   double ddpn[NUMNS][3][3], dcurlan[NUMNS][3][3];
+   GetStaticPanelIntegrals(G, ns, np, iQ, X0, 
+                           pn, an, dpn, dan, ddpn, dcurlan);
+   double pM1=pn[0],             pP1=pn[1];
+   double *aM1=an[0],            *aP1=an[1];
+   double *dpM1=dpn[0],          *dpP1=dpn[1];
+
+   double *daM1[3], *daP1[3], *ddpM1[3], *ddpP1[3], *dcurlaM1[3], *dcurlaP1[3];
+   for(int Mu=0; Mu<3; Mu++)
+    { daM1[Mu]=dan[0][Mu];           daP1[Mu]=dan[1][Mu];
+      ddpM1[Mu]=ddpn[0][Mu];         ddpP1[Mu]=ddpn[1][Mu];
+      dcurlaM1[Mu]=dcurlan[0][Mu];   dcurlaP1[Mu]=dcurlan[1][Mu];
+    };
    
    /*--------------------------------------------------------------*/
    /* get a^{(0)} and p^{(0)} contributions                        */
@@ -631,47 +720,41 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, int ns, int np, int iQ,
    RWGPanel *P   = S->Panels[np];
    double *Q     = S->Vertices + 3*P->VI[iQ];
    double *XC    = P->Centroid;
-   double pn0, an0[3];
-   pn0 = P->Area;
-   an0[0] = P->Area*(XC[0]-Q[0]);
-   an0[1] = P->Area*(XC[1]-Q[1]);
-   an0[2] = P->Area*(XC[2]-Q[2]);
+   double p0, a0[3];
+   p0 = P->Area;
+   a0[0] = P->Area*(XC[0]-Q[0]);
+   a0[1] = P->Area*(XC[1]-Q[1]);
+   a0[2] = P->Area*(XC[2]-Q[2]);
 
    /*--------------------------------------------------------------*/
-   /* get non-singular contributions                               */
+   /* get desingularized contributions                             */
    /*--------------------------------------------------------------*/
-   int nFun=32;
-   cdouble IDS[16];
-   GRPNData MyGRPNData, *Data = &MyGRPNData;
-   Data->X0 = X0;
-   Data->Q  = Q;
-   Data->k  = k;
-   GetPanelCubature(G, ns, np, GRPNIntegrand, Data, nFun,
-                    36, 0.0, 0.0, 1.0, 0, iQ, 1.0, (double *)IDS);
-   cdouble pds, ads[3], dpds[3], dads[3][3];
-   pds=IDS[0];
-   for(int Mu=0; Mu<3; Mu++)
-    { 
-      ads[Mu]  = IDS[      0*4 + (Mu+1) ];
-      dpds[Mu] = IDS[ (Mu+1)*4 +      0 ];
-      for(int Nu=0; Nu<3; Nu++)
-       dads[Mu][Nu] = IDS[ (Mu+1)*4 + (Nu+1) ];
-    };
-
-   /*--------------------------------------------------------------*/
+   cdouble pDS, aDS[3], dpDS[3], daDS[3][3], ddpDS[3][3], dcurlaDS[3][3];
+   GetDSReducedPotentials(G, ns, np, iQ, X0, k,
+                          &pDS, aDS, dpDS, daDS, ddpDS, dcurlaDS);
+   
+   /*--------------------------------------------------------------*/ 
    /* assemble the results                                         */
    /*--------------------------------------------------------------*/
    cdouble IK  = II*k;
-   cdouble HIK2 = 0.5*IK*IK;
-   *p = (pn[NINDEX_M1] + IK*pn0 + HIK2*pn[NINDEX_P1])/(4.0*M_PI) + pds;
+   cdouble CM1 = 1.0   / (4.0*M_PI);
+   cdouble C0  = IK    / (4.0*M_PI);
+   cdouble CP1 = IK*IK / (8.0*M_PI);
+   *p = CM1*pM1 + C0*p0 + CP1*pP1 + pDS;
    for(int Mu=0; Mu<3; Mu++)
-    { a[Mu] = (an[NINDEX_M1][Mu] + IK*an0[Mu] + HIK2*an[NINDEX_P1][Mu])/(4.0*M_PI) + ads[Mu];
+    { 
+      a[Mu] = CM1*aM1[Mu] + C0*a0[Mu] + CP1*aP1[Mu] + aDS[Mu];
 
-      dp[Mu] = (dpn[NINDEX_M1][Mu] + HIK2*dpn[NINDEX_P1][Mu])/(4.0*M_PI) + dpds[Mu];
+      dp[Mu] = CM1*dpM1[Mu] + CP1*dpP1[Mu] + dpDS[Mu];
 
       for(int Nu=0; Nu<3; Nu++)
-       da[Mu][Nu] = (dan[NINDEX_M1][Mu][Nu] + HIK2*dan[NINDEX_P1][Mu][Nu])/(4.0*M_PI) 
-                   + dads[Mu][Nu];
+       { 
+         da[Mu][Nu] = CM1*daM1[Mu][Nu] + CP1*daP1[Mu][Nu] + daDS[Mu][Nu];
+
+         ddp[Mu][Nu] = CM1*ddpM1[Mu][Nu] + CP1*ddpP1[Mu][Nu] + ddpDS[Mu][Nu];
+
+         dcurla[Mu][Nu] = CM1*dcurlaM1[Mu][Nu] + CP1*dcurlaP1[Mu][Nu] + dcurlaDS[Mu][Nu];
+       };
     };
 
    /*--------------------------------------------------------------*/
@@ -684,32 +767,41 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, int ns, int np, int iQ,
     { dp[Mu] *= pPrefac;
       a[Mu]  *= aPrefac;
       for(int Nu=0; Nu<3; Nu++)
-       da[Mu][Nu]  *= aPrefac;
+       { da[Mu][Nu]     *= aPrefac;
+         ddp[Mu][Nu]    *= pPrefac;
+         dcurla[Mu][Nu] *= aPrefac;
+       };
     };
-
 }
 
 /***************************************************************/
-/***************************************************************/
+/* get the reduced potentials of a full RWG basis function by  */
+/* summing contributions from the positive and negative panels */
 /***************************************************************/
 void GetReducedPotentials_Nearby(RWGGeometry *G, int ns, int ne,
                                  double X0[3],  cdouble k,
                                  cdouble *p, cdouble a[3],
-                                 cdouble dp[3], cdouble da[3][3])
+                                 cdouble dp[3], cdouble da[3][3],
+                                 cdouble ddp[3][3], cdouble dcurla[3][3])
 {
   RWGEdge *E = G->Surfaces[ns]->Edges[ne];
 
   GetReducedPotentials_Nearby(G, ns, E->iPPanel, E->PIndex, X0, k,
-                              p, a, dp, da);
+                              p, a, dp, da, ddp, dcurla);
 
-  cdouble pM, aM[3], dpM[3], daM[3][3];
+  cdouble pM, aM[3], dpM[3], daM[3][3], ddpM[3][3], dcurlaM[3][3];
   GetReducedPotentials_Nearby(G, ns, E->iMPanel, E->MIndex, X0, k,
-                              &pM, aM, dpM, daM);
+                              &pM, aM, dpM, daM, ddpM, dcurlaM);
 
   *p -= pM;
   for(int Mu=0; Mu<3; Mu++)
    { a[Mu]  -= aM[Mu];
      dp[Mu] -= dpM[Mu];
+     for(int Nu=0; Nu<3; Nu++)
+      { ddp[Mu][Nu]    -= ddpM[Mu][Nu];
+        da[Mu][Nu]     -= daM[Mu][Nu];
+        dcurla[Mu][Nu] -= dcurlaM[Mu][Nu];
+      };
    };
 
 }
@@ -720,61 +812,25 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, int ns, int ne,
 /***************************************************************/
 void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
                              double X0[3],  cdouble k,
-                             cdouble e[3], cdouble h[3])
-{
-  RWGEdge *EE = G->Surfaces[ns]->Edges[ne];
-
-  cdouble pP, aP[3], dpP[3], daP[3][3];
-  GetReducedPotentials_Nearby(G, ns, EE->iPPanel, EE->PIndex, X0, k,
-                              &pP, aP, dpP, daP);
-
-  cdouble pM, aM[3], dpM[3], daM[3][3];
-  GetReducedPotentials_Nearby(G, ns, EE->iMPanel, EE->MIndex, X0, k,
-                              &pM, aM, dpM, daM);
-
-  cdouble a[3], Gradp[3], Curla[3];
-  cdouble k2=k*k;
-  for(int Mu=0; Mu<3; Mu++)
-   { 
-     a[Mu]     = aP[Mu]  -  aM[Mu];
-     Gradp[Mu] = dpP[Mu] - dpM[Mu];
-     int MP1 = (Mu+1)%3, MP2=(Mu+2)%3;
-     Curla[Mu] =  (daP[MP1][MP2]-daP[MP2][MP1])
-                 -(daM[MP1][MP2]-daM[MP2][MP1]);
-  
-     e[Mu] = a[Mu] + Gradp[Mu]/k2;
-     h[Mu] = Curla[Mu];
-   };
-
-}
-
-/***************************************************************/
-/* GetReducedFields_Nearby with finite-difference derivatives. */
-/***************************************************************/
-void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
-                             double X0[3],  cdouble k,
                              cdouble e[3], cdouble h[3],
                              cdouble de[3][3], cdouble dh[3][3])
 {
-  GetReducedFields_Nearby(G, ns, ne, X0, k, e, h);
+  RWGEdge *EE = G->Surfaces[ns]->Edges[ne];
 
+  cdouble p, a[3], dp[3], da[3][3], ddp[3][3], dcurla[3][3];
+  GetReducedPotentials_Nearby(G, ns, ne, X0, k, &p, a, dp, da, ddp, dcurla);
+
+  cdouble k2=k*k;
   for(int Mu=0; Mu<3; Mu++)
    { 
-     cdouble eP[3], hP[3], eM[3], hM[3]; 
-     double X0Prime[3];
-     double Delta = (X0[Mu]==0.0 ? 1.0e-4 : 1.0e-4*X0[Mu]);
+     int MP1 = (Mu+1)%3, MP2=(Mu+2)%3;
 
-     memcpy(X0Prime, X0, 3*sizeof(double));
-     X0Prime[Mu] += Delta;
-     GetReducedFields_Nearby(G, ns, ne, X0Prime, k, eP, hP);
-
-     memcpy(X0Prime, X0, 3*sizeof(double));
-     X0Prime[Mu] -= Delta;
-     GetReducedFields_Nearby(G, ns, ne, X0Prime, k, eM, hM);
+     e[Mu] = a[Mu] + dp[Mu]/k2;
+     h[Mu] = da[MP1][MP2] - da[MP2][MP1];
 
      for(int Nu=0; Nu<3; Nu++)
-      { de[Mu][Nu] = (eP[Nu] - eM[Nu]) / (2.0*Delta);
-        dh[Mu][Nu] = (hP[Nu] - hM[Nu]) / (2.0*Delta);
+      { de[Mu][Nu] = da[Mu][Nu] + ddp[Mu][Nu]/k2;
+        dh[Mu][Nu] = dcurla[Mu][Nu];
       };
    };
 
