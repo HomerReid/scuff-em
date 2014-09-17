@@ -371,25 +371,26 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
 
   double PAbs=0.0;
   double Fx=0.0, Fy=0.0, Fz=0.0;
-  int NumTasks, NumThreads;
+  int NumThreads;
 #ifndef USE_OPENMP
-  NumTasks=NumThreads=1;
+  NumThreads=1;
   if (LogLevel>=SCUFF_VERBOSE2)
    Log(" no multithreading...");
 #else
   NumThreads=GetNumThreads();
-  NumTasks=100*NumThreads;
-  if (NumTasks>S->NumEdges) 
-   NumTasks=S->NumEdges;
   if (LogLevel>=SCUFF_VERBOSE2)
-   Log(" OpenMP multithreading (%i threads,%i tasks)...",NumThreads,NumTasks);
+   Log(" OpenMP multithreading (%i threads)...",NumThreads);
 #pragma omp parallel for schedule(dynamic,1),      \
                          num_threads(NumThreads),  \
                          reduction(+:PAbs, Fx, Fy, Fz)
 #endif
-  for(int nea=0; nea<NE; nea++)
-   for(int neb=0; neb<NE; neb++)
+//  for(int nea=0; nea<NE; nea++)
+//   for(int neb=0; neb<NE; neb++)
+   for(int neab=0; neab<NE*NE; neab++)
     { 
+      int nea = neab/NE; 
+      int neb = neab%NE; 
+
       cdouble GC[2], dG[6], dC[6];
 
       GetdGMatrixEntries(this, ns, ns, nea, neb, k, GC, dG, dC, 0, Order);
@@ -402,18 +403,10 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
       cdouble GFactor = EEFac*conj(kAlpha)*kBeta + MMFac*conj(nAlpha)*nBeta;
       cdouble CFactor = EMFac*conj(kAlpha)*nBeta + MEFac*conj(nAlpha)*kBeta;
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
       PAbs += real ( GFactor*GC[0] + CFactor*GC[1] );
       Fx   += imag ( GFactor*dG[0] + CFactor*dC[0] );
       Fy   += imag ( GFactor*dG[1] + CFactor*dC[1] );
       Fz   += imag ( GFactor*dG[2] + CFactor*dC[2] );
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-      PAbs += imag ( EEFac*conj(kAlpha)*kBeta * dG[2] );
-      Fx   += imag ( EMFac*conj(kAlpha)*nBeta * dC[2] );
-      Fy   += imag ( MEFac*conj(nAlpha)*kBeta * dC[2] );
-      Fz   += imag ( MMFac*conj(nAlpha)*nBeta * dG[2] );
     };
 
   EPPFT[0] = 0.5*PAbs;
@@ -423,13 +416,6 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
   EPPFT[4] = 0.0;
   EPPFT[5] = 0.0;
   EPPFT[6] = 0.0;
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-EPPFT[0] = 0.5*(10.0/3.0)*PAbs/(real(Omega));
-EPPFT[1] = 0.5*(10.0/3.0)*Fx/real(Omega);
-EPPFT[2] = 0.5*(10.0/3.0)*Fy/real(Omega);
-EPPFT[3] = 0.5*(10.0/3.0)*Fz/real(Omega);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
