@@ -342,6 +342,57 @@ void GetdGMatrixEntries(RWGGeometry *G, int nsa, int nsb, int nea, int neb,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetOverlapTerm(RWGGeometry *G,
+                    int nsa, int nsb, int nea, int neb,
+                    double Overlap[3])
+{
+  memset(Overlap, 0, 3*sizeof(double));
+  if (nsa!=nsb) return;
+  if (nea==neb) return;
+
+  RWGSurface *S=G->Surfaces[nsa];
+  RWGEdge *Ea = S->Edges[nea];
+  RWGEdge *Eb = S->Edges[neb];
+
+  bool PP=(Ea->iPPanel == Eb->iPPanel);
+  bool PM=(Ea->iPPanel == Eb->iMPanel);
+  bool MP=(Ea->iMPanel == Eb->iPPanel);
+  bool MM=(Ea->iMPanel == Eb->iMPanel);
+  
+  RWGPanel *P;
+  double *Qa, *Qb;
+  double Sign;
+  if ( PP || PM )
+   {
+     P = S->Panels[Ea->iPPanel];
+     Qa = S->Vertices + 3*P->VI[ Ea->PIndex ];
+     Sign = PP ? 1.0 : -1.0;
+     Qb = S->Vertices + 3*P->VI[ PP ? Eb->PIndex : Eb->MIndex ];
+   }
+  else if ( MP || MM )
+   {
+     P = S->Panels[Ea->iMPanel];
+     Qa = S->Vertices + 3*P->VI[ Ea->MIndex ];
+     Sign = MM ? 1.0 : -1.0;
+     Qb = S->Vertices + 3*P->VI[ MP ? Eb->PIndex : Eb->MIndex ];
+   }
+  else
+   return;
+
+  double DQ[3], XCmQa[3];
+  VecSub(Qa, Qb, DQ);
+  VecSub(P->Centroid, Qa, XCmQa);
+
+  double PreFac = Sign * (Ea->Length * Eb->Length) / (4.0*P->Area);
+  Overlap[0] = PreFac * (XCmQa[1]*DQ[2] - XCmQa[2]*DQ[1]);
+  Overlap[1] = PreFac * (XCmQa[2]*DQ[0] - XCmQa[0]*DQ[2]);
+  Overlap[2] = PreFac * (XCmQa[0]*DQ[1] - XCmQa[1]*DQ[0]);
+  
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
                            double EPPFT[7])
 {
@@ -358,12 +409,13 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
   cdouble Eps, Mu;
   RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
   cdouble k = Omega * sqrt(Eps*Mu);
+  cdouble IK = II*k;
   cdouble ZRel = sqrt(Mu/Eps);
 
-  cdouble EEFac =  II*k*ZRel*ZVAC;
-  cdouble EMFac =  II*k;
-  cdouble MEFac = -II*k;
-  cdouble MMFac =  II*k/(ZRel*ZVAC);
+  cdouble EEFac =  IK*ZRel*ZVAC;
+  cdouble EMFac =  IK;
+  cdouble MEFac = -IK;
+  cdouble MMFac =  IK/(ZRel*ZVAC);
 
   int NE = S->NumEdges;
   int Offset = BFIndexOffset[ns];
@@ -371,6 +423,7 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
 
   double PAbs=0.0;
   double Fx=0.0, Fy=0.0, Fz=0.0;
+  double Taux=0.0, Tauy=0.0, Tauz=0.0;
   int NumTasks, NumThreads;
 #ifndef USE_OPENMP
   NumTasks=NumThreads=1;
@@ -385,14 +438,16 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
    Log(" OpenMP multithreading (%i threads,%i tasks)...",NumThreads,NumTasks);
 #pragma omp parallel for schedule(dynamic,1),      \
                          num_threads(NumThreads),  \
-                         reduction(+:PAbs, Fx, Fy, Fz)
+                         reduction(+:PAbs, Fx, Fy, Fz, Taux, Tauy, Tauz)
 #endif
   for(int nea=0; nea<NE; nea++)
    for(int neb=0; neb<NE; neb++)
     { 
       cdouble GC[2], dG[6], dC[6];
+      double Overlap[3];
 
-      GetdGMatrixEntries(this, ns, ns, nea, neb, k, GC, dG, dC, 0, Order);
+      GetdGMatrixEntries(this, ns, ns, nea, neb, k,
+                         GC, dG, dC, 0, Order);
 
       cdouble kAlpha =       KN->GetEntry(Offset + 2*nea + 0);
       cdouble nAlpha = -ZVAC*KN->GetEntry(Offset + 2*nea + 1);
@@ -402,19 +457,29 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
       cdouble GFactor = EEFac*conj(kAlpha)*kBeta + MMFac*conj(nAlpha)*nBeta;
       cdouble CFactor = EMFac*conj(kAlpha)*nBeta + MEFac*conj(nAlpha)*kBeta;
 
+      GetOverlapTerm(this, ns, ns, nea, neb, Overlap);
+      
       PAbs += real ( GFactor*GC[0] + CFactor*GC[1] );
+/*
+      Fx   += imag ( GFactor*dG[0] + CFactor*(dC[0] - Overlap[0]/IK));
+      Fy   += imag ( GFactor*dG[1] + CFactor*(dC[1] - Overlap[1]/IK));
+      Fz   += imag ( GFactor*dG[2] + CFactor*(dC[2] - Overlap[2]/IK));
+*/
       Fx   += imag ( GFactor*dG[0] + CFactor*dC[0] );
       Fy   += imag ( GFactor*dG[1] + CFactor*dC[1] );
       Fz   += imag ( GFactor*dG[2] + CFactor*dC[2] );
+      Taux += imag ( CFactor*Overlap[0]/IK );
+      Tauy += imag ( CFactor*Overlap[1]/IK );
+      Tauz += imag ( CFactor*Overlap[2]/IK );
     };
 
   EPPFT[0] = 0.5*PAbs;
   EPPFT[1] = 0.5*(10.0/3.0)*Fx/real(Omega);
   EPPFT[2] = 0.5*(10.0/3.0)*Fy/real(Omega);
   EPPFT[3] = 0.5*(10.0/3.0)*Fz/real(Omega);
-  EPPFT[4] = 0.0;
-  EPPFT[5] = 0.0;
-  EPPFT[6] = 0.0;
+  EPPFT[4] = 0.5*(10.0/3.0)*Taux/real(Omega);
+  EPPFT[5] = 0.5*(10.0/3.0)*Tauy/real(Omega);
+  EPPFT[6] = 0.5*(10.0/3.0)*Tauz/real(Omega);
 
 }
 

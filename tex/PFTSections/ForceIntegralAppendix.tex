@@ -2,28 +2,50 @@
 \section{Derivation of volume integrals for the force and torque}
 \label{ForceFormulaAppendix}
 
-Consider a body throughout which exists a
-volume current distribution $\vb J(\vb x)$ and
-electric and magnetic fields $\{\vb E, \vb H\}(\vb x).$
-The time-average force experienced by the currents in 
-an infinitesimal volume $dV$ is
+Consider a body throughout which exist
+volume distributions of electric and magnetic currents
+$\{\vb J(\vb x), \vb M(\vb x)\}$ and
+electric and magnetic fields $\{\vb E(\vb x), \vb H(\vb x)\}.$
+The time-average force experienced by just the \textit{electric} 
+currents in an infinitesimal volume $dV$ is
 %====================================================================%
 \begin{align}
-d\vb F &= \frac{1}{2}\text{Re }
+d\vb F^{\vb J} &= \frac{1}{2}\text{Re }
  \Big[ \rho^* \vb E + \mu_0 \vb J^* \times \vb H \Big] \, dV
 \nn
 \intertext{Use $\rho=\frac{1}{i\omega}(\nabla \cdot \vb J)$
-           and $\vb H=\frac{1}{i\omega\mu_0}\nabla \times \vb E$:}
+           and\footnote{In the presence of magnetic currents,
+                        the usual Maxwell equation for the curl of 
+                        $\vb E$ is modified to read
+                        $\nabla \times \vb E=i\omega \mu_0 \vb H - \vb N.$}
+           $\vb H=\frac{1}{i\omega\mu_0}(\nabla \times \vb E - \vb M)$:}
  &=
  \frac{1}{2}\text{Re }\left\{
  \frac{1}{i\omega}
  \Big[ -(\nabla \cdot \vb J^*) \vb E 
        + \vb J^* \times (\nabla \times \vb E) 
- \Big] \,
+       -\vb J^* \times \vb M
+ \Big]\,dV \,
                       \right\} dV
-\nonumber
-\intertext{or}
-dF_i &= -\frac{1}{2\omega}\text{Im }
+\nn
+ &=
+ \underbrace{
+              \frac{1}{2\omega}\text{Im }
+              \Big[ -(\nabla \cdot \vb J^*) \vb E 
+             + \vb J^* \times (\nabla \times \vb E) 
+              \Big]\,dV
+            }_{d \vb F^{\vb J1}}
+-
+ \underbrace{
+   \frac{1}{2\omega}\text{Im }\Big[\vb J^* \times \vb M\Big]
+            }_{d \vb F^{\vb J2}}.
+\label{FJ1FJ1}
+\end{align}
+%====================================================================%
+In component notation, the first term here reads
+%====================================================================%
+\begin{align}
+dF^{\vb J1}_i &= -\frac{1}{2\omega}\text{Im }
  \Big[
  (\partial_j J^*_j) E_i - 
   \underbrace{ \varepsilon_{ijk}
@@ -39,7 +61,7 @@ dF_i &= -\frac{1}{2\omega}\text{Im }
  \Big] \, dV.
 \label{dFi}
 \intertext{The total force is given by integrating over the volume:}
-F_i
+F_i^{\vb J1}
 &= -\frac{1}{2\omega}\text{Im } \int_{\mc B_n}
  \Big[ (\partial_j J^*_j) E_i
        - J^*_j \partial_i E_j
@@ -62,11 +84,31 @@ because $\vb J\cdot \vbhat{n}=0$ at the surface of the object
 Thus only the middle term in (\ref{Fi}) is nonvanishing,
 and we find simply
 %====================================================================%
-\numeq{ForceVolumeIntegral}
-{ F_i = \frac{1}{2\omega}\text{Im } \int_{\mc B_n}
+$$
+  F^{\vb J1}_i = \frac{1}{2\omega}\text{Im } \int_{\mc B_n}
          J^*_j \partial_i E_j \, dV 
       = \frac{1}{2\omega}\text{Im } 
          \int_{\mc B_n} \vb J^* \cdot \partial_i \vb E \, dV.
+$$
+%====================================================================%
+Adding the contributions of the other term in (\ref{JF1JF2}), we 
+find
+%====================================================================%
+\numeq{FJVolumeIntegral}
+{ F_i^{\vb J} = \frac{1}{2\omega}\text{Im }
+  \int_{\mc B_n} \Big[         \vb J^* \cdot \partial_i \vb E 
+                       \, - \, (\vb J^*\times \vb M)_i
+                 \Big]\, dV.
+}
+%====================================================================%
+An analogous analysis for the force on the \textit{magnetic} currents
+yields
+%====================================================================%
+\numeq{FMVolumeIntegral}
+{ F_i^{\vb M} = \frac{1}{2\omega}\text{Im }
+  \int_{\mc B_n} \Big[         \vb M^* \cdot \partial_i \vb H 
+                       \, + \, (\vb M^*\times \vb J)_i
+                 \Big]\, dV.
 }
 %====================================================================%
 
