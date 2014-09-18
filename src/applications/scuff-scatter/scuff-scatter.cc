@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
   int PlotSurfaceCurrents=0;
   int nThread=0;
-  int ExportMatrix=0;
+  char *HDF5File=0;
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
 /**/
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
-     {"ExportMatrix",   PA_BOOL,    0, 1,       (void *)&ExportMatrix, 0,           "export BEM matrix to file"},
+     {"HDF5File",       PA_STRING,  0, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export"},
 /**/
      {0,0,0,0,0,0,0}
    };
@@ -266,6 +266,13 @@ int main(int argc, char *argv[])
    PreloadCache( Cache );
 
   /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  void *HDF5Context=0;
+  if (HDF5File)
+   HDF5Context=HMatrix::OpenHDF5Context(HDF5File);
+
+  /*******************************************************************/
   /* loop over frequencies *******************************************/
   /*******************************************************************/
   char OmegaStr[MAXSTR];
@@ -306,13 +313,10 @@ int main(int argc, char *argv[])
       };
 
      /*******************************************************************/
-     /* export BEM matrix to a binary file if that was requested        */
+     /* export BEM matrix to a binary .hdf5 file if that was requested  */
      /*******************************************************************/
-     if (ExportMatrix)
-      { void *pCC=HMatrix::OpenMATLABContext("%s_%s",GeoFileBase,OmegaStr);
-        M->ExportToMATLAB(pCC,"M");
-        HMatrix::CloseMATLABContext(pCC);
-      };
+     if (HDF5Context)
+      M->ExportToHDF5(HDF5Context,"M_%s",OmegaStr);
 
      /*******************************************************************/
      /* if the user requested no output options (for example, if she   **/
@@ -341,6 +345,11 @@ int main(int argc, char *argv[])
      /***************************************************************/
      Log("  Solving the BEM system...");
      M->LUSolve(KN);
+
+     if (HDF5Context)
+      { SSD->RHS->ExportToHDF5(HDF5Context,"RHS_%s",OmegaStr);
+        SSD->KN->ExportToHDF5(HDF5Context,"KN_%s",OmegaStr);
+      };
 
      /***************************************************************/
      /* now process all requested outputs                           */
@@ -402,6 +411,8 @@ int main(int argc, char *argv[])
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  if (HDF5Context)
+   HMatrix::CloseHDF5Context(HDF5Context);
   printf("Thank you for your support.\n");
 
 }
