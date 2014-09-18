@@ -459,22 +459,32 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
       cdouble CFactor = EMFac*conj(kAlpha)*nBeta + MEFac*conj(nAlpha)*kBeta;
 
       GetOverlapTerm(this, ns, ns, nea, neb, Overlap);
-      
-      PAbs += real ( GFactor*GC[0] + CFactor*GC[1] );
 /*
+      PAbs += real ( GFactor*GC[0] + CFactor*GC[1] );
       Fx   += imag ( GFactor*dG[0] + CFactor*(dC[0] - Overlap[0]/IK));
       Fy   += imag ( GFactor*dG[1] + CFactor*(dC[1] - Overlap[1]/IK));
       Fz   += imag ( GFactor*dG[2] + CFactor*(dC[2] - Overlap[2]/IK));
-*/
+/*
       Fx   += imag ( GFactor*dG[0] + CFactor*dC[0] );
       Fy   += imag ( GFactor*dG[1] + CFactor*dC[1] );
       Fz   += imag ( GFactor*dG[2] + CFactor*dC[2] );
-      Taux += imag ( CFactor*Overlap[0]/IK );
-      Tauy += imag ( CFactor*Overlap[1]/IK );
-      Tauz += imag ( CFactor*Overlap[2]/IK );
+*/
+      PAbs += imag( EEFac*conj(kAlpha)*kBeta*dG[2] );
+      Fx   += imag( EMFac*conj(kAlpha)*nBeta*dC[2] );
+      Fy   += imag( MEFac*conj(nAlpha)*kBeta*dC[2] );
+      Fz   += imag( MMFac*conj(nAlpha)*nBeta*dG[2] );
+
+/*
+      Taux += imag ( CFactor*Overlap[0] );
+      Tauy += imag ( CFactor*Overlap[1] );
+*/
+Taux += real( GFactor*GC[0] );
+Tauy += real( CFactor*GC[1] );
+      Tauz += imag ( CFactor*Overlap[2] );
     };
 
-  EPPFT[0] = 0.5*PAbs;
+ // EPPFT[0] = 0.5*PAbs;
+  EPPFT[0] = 0.5*(10.0/3.0)*PAbs/real(Omega);
   EPPFT[1] = 0.5*(10.0/3.0)*Fx/real(Omega);
   EPPFT[2] = 0.5*(10.0/3.0)*Fy/real(Omega);
   EPPFT[3] = 0.5*(10.0/3.0)*Fz/real(Omega);
