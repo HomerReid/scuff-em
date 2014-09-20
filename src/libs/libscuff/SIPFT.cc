@@ -214,7 +214,7 @@ HMatrix *GetCRMatrix(RWGSurface *BS, bool Lebedev, double R, int NumPoints)
      if (LRule==0) ErrExit("no Lebedev with %i points",NumPoints);
      CRMatrix = new HMatrix(NumPoints, 7);
      for(int np=0; np<NumPoints; np++)
-      { CRMatrix->SetEntry(np,0, LRule[4*np + 3]);
+      { CRMatrix->SetEntry(np,0, R*R*LRule[4*np + 3]);
         CRMatrix->SetEntry(np,1, R*LRule[4*np + 0]);
         CRMatrix->SetEntry(np,2, R*LRule[4*np + 1]);
         CRMatrix->SetEntry(np,3, R*LRule[4*np + 2]);
