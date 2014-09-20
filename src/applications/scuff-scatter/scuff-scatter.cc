@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
      {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
      {"SIPoints",       PA_INT,     1, 1,       (void *)&SIPoints,   0,             "number of quadrature points for surface-integral PFT"},
      {"SIMesh",         PA_STRING,  1, 1,       (void *)&SIMeshFile, 0,             "mesh file for surface-integral PFT"},
-     {"Lebedev",        PA_BOOL,    0, 1,       (void *)&Lebedev,    0,             "use Lebedev cubature for DSIPFT PFT"},
+     {"Lebedev",        PA_BOOL,    0, 1,       (void *)&Lebedev,    0,             "use Lebedev cubature for DSIPFT PFT (allowed values of --SiPoints: 6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
 /**/
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
      {"PSDFile",        PA_STRING,  1, 1,       (void *)&PSDFile,    0,             "name of panel source density file"},
