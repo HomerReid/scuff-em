@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
 /**/
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
-     {"HDF5File",       PA_STRING,  0, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export"},
+     {"HDF5File",       PA_STRING,  1, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export"},
 /**/
      {0,0,0,0,0,0,0}
    };
