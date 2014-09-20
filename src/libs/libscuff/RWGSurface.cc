@@ -86,6 +86,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   IsPEC=1;
   Label = strdupEC(pLabel);
   tolVecClose=0.0; // to be updated once mesh is read in
+  OTGT=GT=0;
 
   if ( !StrCaseCmp(Keyword, "OBJECT") )
    IsObject=1;
@@ -99,7 +100,6 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   int NumTokens, TokensConsumed;
   char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
-  GTransformation *OTGT=0; // 'one-time geometrical transformation'
   MaterialName=0;
   RegionLabels[0]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
@@ -281,7 +281,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
    };
 
   // ok, all checks passed, now on to the main body of the class constructor.
-  InitRWGSurface(OTGT);
+  InitRWGSurface();
   
 }
 
@@ -299,6 +299,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
   RegionLabels[0]=RegionLabels[1]=0;
   IsPEC=1;
   tolVecClose=0.0; // to be updated once mesh is read in
+  OTGT=0;
   InitRWGSurface();
 }
 
@@ -313,7 +314,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
 /*- Label, SurfaceSigma, RegionLabels, IsPEC.                   */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
+void RWGSurface::InitRWGSurface()
 { 
   ErrMsg=0;
   kdPanels = NULL;
@@ -345,10 +346,11 @@ void RWGSurface::InitRWGSurface(const GTransformation *OTGT)
   /*------------------------------------------------------------*/
   /*- note: the 'OTGT' parameter to this function is distinct   */
   /*- from the 'GT' field inside the class body. the former is  */
-  /*- an optional 'One-Time Geometrical Transformation' to be   */
-  /*- applied to the object once at its creation. the latter    */
-  /*- is designed to store a subsequent transformation that may */
-  /*- be applied to the surface , and is initialized to zero.   */
+  /*- an optional 'One-Time Geometrical Transformation' that is */
+  /*- applied to the object once at its creation and is never   */
+  /*- un-applied. the latter is designed to store a subsequent  */
+  /*- temporary transformation that may be applied and then un- */
+  /*- applied to the surface.                                   */
   /*------------------------------------------------------------*/
   GT=0;
 
@@ -631,10 +633,10 @@ void RWGSurface::Transform(const char *format,...)
   va_start(ap,format);
   vsnprintfEC(buffer,MAXSTR,format,ap);
 
-  GTransformation OTGT(buffer, &ErrMsg);
+  GTransformation MyGT(buffer, &ErrMsg);
   if (ErrMsg)
    ErrExit(ErrMsg);
-  Transform(&OTGT);
+  Transform(&MyGT);
 }
 
 void RWGSurface::UnTransform()

@@ -349,7 +349,8 @@ void WriteOPFTFile(SSData *SSD, char *FileName)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, int SIPoints, char *MeshFileName)
+void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, 
+                    int SIPoints, char *MeshFileName, bool Lebedev)
 {
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
@@ -359,14 +360,15 @@ void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, int SIPoints, 
    { f=fopen(FileName,"w");
      fprintf(f,"# data file columns: \n");
      fprintf(f,"# 1 omega \n");
-     fprintf(f,"# 2 absorbed power\n");
-     fprintf(f,"# 3 scattered power\n");
-     fprintf(f,"# 4 x-force \n");
-     fprintf(f,"# 5 y-force \n");
-     fprintf(f,"# 6 z-force \n");
-     fprintf(f,"# 7 x-torque \n");
-     fprintf(f,"# 8 y-torque \n");
-     fprintf(f,"# 9 z-torque \n");
+     fprintf(f,"# 2 cubature method \n");
+     fprintf(f,"# 3 absorbed power\n");
+     fprintf(f,"# 4 scattered power\n");
+     fprintf(f,"# 5 x-force \n");
+     fprintf(f,"# 6 y-force \n");
+     fprintf(f,"# 7 z-force \n");
+     fprintf(f,"# 8 x-torque \n");
+     fprintf(f,"# 9 y-torque \n");
+     fprintf(f,"# 10 z-torque \n");
    };
   fclose(f);
 
@@ -392,13 +394,17 @@ void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, int SIPoints, 
   /*--------------------------------------------------------------*/
   RWGGeometry *G=SSD->G;
   double SIPFT[7];
-  G->GetSIPFT(SSD->KN, SSD->IF, SSD->Omega, BS, SIRadius, SIPoints, SIPFT);
+  G->GetSIPFT(SSD->KN, SSD->IF, SSD->Omega, BS, Lebedev, SIRadius, SIPoints, SIPFT);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   fprintf(f,"%s ",z2s(SSD->Omega));
-  fprintf(f,"%e 0.0 ",SIPFT[0]);
+  if (MeshFileName)
+   fprintf(f,"%s ",MeshFileName);
+  else
+   fprintf(f,"%e_%i%s",SIRadius,SIPoints,Lebedev ? "(Lebedev)" : "");
+  fprintf(f,"%e 0.0",SIPFT[0]);
   for(int nq=1; nq<7; nq++)
    fprintf(f,"%e ",SIPFT[nq]);
   fprintf(f,"\n");

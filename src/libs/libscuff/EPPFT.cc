@@ -476,7 +476,6 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
       Tauz += imag ( CFactor*Overlap[2] );
     };
 
-  //EPPFT[0] = 0.5*PAbs;
   EPPFT[0] = 0.5*(10.0/3.0)*PAbs/real(Omega);
   EPPFT[1] = 0.5*(10.0/3.0)*Fx/real(Omega);
   EPPFT[2] = 0.5*(10.0/3.0)*Fy/real(Omega);

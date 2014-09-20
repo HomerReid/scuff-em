@@ -273,10 +273,13 @@ class RWGSurface
    kdtri kdPanels; /* kd-tree of panels */
    void InitkdPanels(bool reinit = false, int LogLevel = SCUFF_NOLOGGING);
 
-   /* GT encodes any transformation that has been carried out since */
-   /* the surface was read from its mesh file (not including a      */
-   /* possible one-time GTransformation that may have been specified*/
-   /* in the .scuffgeo file when the surface was first created.)    */
+   /* OTGT is a 'one-time geometry transformation' that is applied  */
+   /* once to the mesh upon the initial read in from the mesh file  */
+   /* and is not subsequently undone.                               */
+   /* GT encodes a subsequent transformation that may be applied    */
+   /* to the surface temporarily with the intention of eventually   */
+   /* undoing it.                                                   */
+   GTransformation *OTGT;
    GTransformation *GT;
 
    /* SurfaceSigma, if non-NULL, points to a cevaluator for a     */
@@ -299,7 +302,7 @@ class RWGSurface
    /*- private class methods --------------------------------------*/ 
    /*--------------------------------------------------------------*/ 
    /* the actual body of the class constructor */
-   void InitRWGSurface(const GTransformation *OTGT=0);
+   void InitRWGSurface();
 
    /* constructor subroutines */
    void InitEdgeList();
@@ -422,10 +425,12 @@ class RWGGeometry
    void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega, char *SurfaceLabel, double PFT[8]);
 
    void GetSIPFT(HVector *KN, IncField *IF, cdouble Omega, RWGSurface *BS,
-                 double R, int NumPoints, double SIPFT[7]);
-   void GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
+                 bool Lebedev, double R, int NumPoints, double SIPFT[7], 
+                 bool FarField=false, GTransformation *OTGT=0, GTransformation *GT=0);
+   void GetSIPFTMatrices(int WhichSurface, RWGSurface *BS, bool Lebedev,
                          double R, int NumPoints, cdouble Omega,
-                         bool NeedMatrix[7], HMatrix *MSIPFT[7]);
+                         bool NeedMatrix[7], HMatrix *MSIPFT[7],
+                         bool FarField=false);
 
    void GetEPPFT(int SurfaceIndex, HVector *KN, cdouble Omega, double EPPFT[7]);
 

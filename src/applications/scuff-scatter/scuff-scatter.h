@@ -55,7 +55,8 @@ typedef struct SSData
 /***************************************************************/
 void WriteOPFTFile(SSData *SSD, char *FileName);
 void WriteEPPFTFile(SSData *SSD, char *FileName);
-void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, int SIPoints, char *MeshFileName);
+void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, 
+                    int SIPoints, char *MeshFileName, bool Lebedev);
 void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);
