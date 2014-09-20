@@ -161,7 +161,7 @@ void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
         };
      };
 
-    G->GetSIPFTMatrices(SourceSurface, 0, SNEQD->SIRadius, 
+    G->GetSIPFTMatrices(SourceSurface, 0, false, SNEQD->SIRadius, 
                         SNEQD->SINumPoints, Omega, NeedMatrix, MSIPFT);
    };
 

@@ -11,7 +11,7 @@ are common quantities of interest in computational electromagnetism.
 These quantities may be computed from knowledge of the
 electromagnetic fields $\bmc F={\vb E \choose \vb H}$ in the 
 presence of the bodies; more specifically, powers, forces,
-and torques (PFTs) depend quadratically (bilinearly) on $\mc F$.
+and torques (PFTs) depend quadratically (bilinearly) on $\bmc F$.
 On the other hand, in the surface-integral-equation (SIE) approach 
 to electromagnetic scattering, one solves first for equivalent electric and 
 magnetic \textit{surface currents} $\bmc C={\vb K \choose \vb N}$
@@ -34,8 +34,9 @@ starting points for evaluating PFTs from fields:
 tensor over a bounding surface that encloses (but does not
 coincide with) the surface of the object. I will refer to this
 as the ``displaced surface-integral PFT'' (DSIPFT) approach, where the term
-``displaced'' indicates that that surface over which we integrate
-does not coincide with the object surface.
+``displaced'' indicates that that surface over which we integrate 
+does not coincide with the object surface. This method is conceptually
+straightforward but computationally expensive.
 
 \item[2. OPFT: ] By integrating the Poynting vector or Maxwell stress
 tensor over the surface of the object. I refer to this
@@ -46,6 +47,9 @@ produces is \textit{sparse.}
 \item[3. EPPFT: ] By considering the work done on, and the momentum
 transferred to, the equivalent surface currents by the fields.
 I refer to this as the ``equivalence-principle PFT'' approach.
+In contrast to the other two methods, this approach has the 
+feature of being able to distinguish surface-current distributions
+induced by soures inside and outside the body.
 
 \end{description}
 %====================================================================%

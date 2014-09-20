@@ -349,7 +349,8 @@ void WriteOPFTFile(SSData *SSD, char *FileName)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, int SIPoints, char *MeshFileName)
+void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, 
+                    int SIPoints, char *MeshFileName, bool Lebedev)
 {
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
@@ -392,7 +393,7 @@ void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, int SIPoints, 
   /*--------------------------------------------------------------*/
   RWGGeometry *G=SSD->G;
   double SIPFT[7];
-  G->GetSIPFT(SSD->KN, SSD->IF, SSD->Omega, BS, SIRadius, SIPoints, SIPFT);
+  G->GetSIPFT(SSD->KN, SSD->IF, SSD->Omega, BS, Lebedev, SIRadius, SIPoints, SIPFT);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

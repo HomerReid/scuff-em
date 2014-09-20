@@ -4,12 +4,12 @@
 \newpage
 \section{Equivalence-principle PFT (EPPFT)}
 
-In the EPPFT approach, we compute the power or force 
-transfer
+In the EPPFT approach, we compute the power, force and torque
+on a body by considering the work done on, and the force and 
+torque exerted on, the equivalent surface currents flowing on 
+the body surface.
 
-in terms of the total work done,
-
-\subsection*{Work on a volume current distribution}
+\subsection*{Work and force on a volume current distribution}
 
 To motivate these formulas, first recall that, if we had a
 \textit{volume} distribution of electric current $\vb J$ 
@@ -54,11 +54,20 @@ coordinate axis.
 
 \subsection*{Work on a surface current distribution}
 
-We now simply write down analogues of formulas (\ref{VolumePFT})
-for the case in which the volume electric current $\vb J$
-existing throughout the bulk of the body is replaced by 
-surface electric and magnetic currents $\{\vb K, \vb N\}$
-present only on the surface:
+For any volume electric current distribution $\vb J$ throughout
+the bulk of a compact body, there are equivalent electric and 
+magnetic surface current distributions $\{\vb K, \vb N\}$ confined
+to the surface of the body that produce the same fields as does
+$\vb J$ both inside and outside the body. By considering
+the work done and the force or torque exterted on these 
+equivalent currents, we obtain surface-integral analogues 
+of the volume-integral formulas (\ref{VolumePFT}). 
+
+One complication here that is not present in the volume-integral
+case is that the presence of magnetic currents complicates the
+situation by introducing new terms in the force and torque that 
+are not present in cases where only electric currents are present.
+
 %====================================================================%
 \begin{subequations}
 \begin{align}
@@ -74,21 +83,37 @@ present only on the surface:
 \\
  F_i
      &= \frac{1}{2\omega}\text{ Im }
-      \int_{\partial \mc B} \Big[ \vb K^*(\vb x) \cdot \partial_i \vb E(\vb x)
-                                 +\vb N^*(\vb x) \cdot \partial_i \vb H(\vb x)
-                            \Big]
-      \,dA
+      \int_{\partial \mc B} 
+       \bigg[  \vb K^*(\vb x) \cdot \partial_i \vb E(\vb x)
+              +\vb N^*(\vb x) \cdot \partial_i \vb H(\vb x)
 \nn
+&
+ \hspace{1.2in} +(\vb N^*\times \vb K)_i - (\vb K^*\times \vb N)_i
+       \bigg]
+      \,dA
+\\
     &= \frac{1}{2\omega }\text{ Im }
-      \int_{\partial \mc B} \bmc C^*(\vb x) \cdot \partial_i \bmc F(\vb x) \,dA
-\intertext{and similarly}
- \tau_i
-    &= \frac{1}{2\omega}\text{ Im }
-      \int_{\partial \mc B} \bmc C^*(\vb x) \cdot \partial_\theta \bmc F(\vb x)
-      \,dA.
+        \int_{\partial \mc B} \bmc C^*(\vb x) \cdot \partial_i \bmc F(\vb x) \,dA
+\nn
+&\hspace{1.0in}
+      -\frac{1}{2\omega }\text{ Im }
+        \int_{\partial \mc B} 
+        \bmc C^*(\vb x) 
+        \bmc{O}^{(\times)}(\vb x,\vb x^\prime) 
+        \bmc C(\vb x^\prime)
+        \,dA
 \end{align}
 \label{EPPFT0}
 \end{subequations}
+where 
+%====================================================================%
+$$ \bmc{O}^{(\times)}(\vb x,\vb x^\prime)
+  = \left(\begin{array}{cc}
+    0 & -\boldsymbol{\varepsilon}_{ijk} \\ 
+     \boldsymbol{\varepsilon}_{ijk} & 0
+   \end{array}\right)
+   \delta(\vb x-\vb x^\prime).
+$$
 %====================================================================%
 Note that these formulas only reference the tangential components
 of $\vb E$ and $\vb H$, which are continuous across the body 

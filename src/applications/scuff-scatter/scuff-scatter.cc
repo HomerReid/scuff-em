@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
   double SIRadius = 100.0;
   int SIPoints = 11;
   char *SIMeshFile=0;
+  bool Lebedev=false;
   char *PSDFile=0;
   char *MomentFile=0;
   char *FluxMeshes[MAXFM];           int nFluxMeshes;
@@ -112,10 +113,11 @@ int main(int argc, char *argv[])
      {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT file"},
      {"PFTFile",        PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of equivalence-principle PFT file"},
 /**/
-     {"SIPFTFile",      PA_STRING,  1, 1,       (void *)&SIPFTFile,  0,             "name of surface-integral PFT output file"},
+     {"SIPFTFile",      PA_STRING,  1, 1,       (void *)&SIPFTFile,  0,             "name of displaced surface-integral PFT output file"},
      {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
      {"SIPoints",       PA_INT,     1, 1,       (void *)&SIPoints,   0,             "number of quadrature points for surface-integral PFT"},
      {"SIMesh",         PA_STRING,  1, 1,       (void *)&SIMeshFile, 0,             "mesh file for surface-integral PFT"},
+     {"Lebedev",        PA_BOOL,    0, 1,       (void *)&Lebedev,    0,             "use Lebedev cubature for DSIPFT PFT"},
 /**/
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
      {"PSDFile",        PA_STRING,  1, 1,       (void *)&PSDFile,    0,             "name of panel source density file"},
@@ -126,7 +128,7 @@ int main(int argc, char *argv[])
      {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
 /**/
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
-     {"HDF5File",       PA_STRING,  0, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export"},
+     {"HDF5File",       PA_STRING,  1, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export"},
 /**/
      {0,0,0,0,0,0,0}
    };
@@ -372,7 +374,8 @@ int main(int argc, char *argv[])
      /*- surface-integral PFT           -----------------------------*/
      /*--------------------------------------------------------------*/
      if (SIPFTFile)
-      WriteSIPFTFile(SSD, SIPFTFile, SIRadius, SIPoints, SIMeshFile);
+      WriteSIPFTFile(SSD, SIPFTFile, 
+                     SIRadius, SIPoints, SIMeshFile, Lebedev);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

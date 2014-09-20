@@ -101,8 +101,8 @@ void CalcGCFarField(double R[3], cdouble k,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetFarFieldGCIntegrals(RWGSurface *S, int ne, 
-                            double *X, cdouble k, 
+void GetFarFieldGCIntegrals(RWGSurface *S, int ne,
+                            double *X, cdouble k,
                             cdouble GInt[3], cdouble CInt[3])
 {
   /***************************************************************/ 
@@ -130,13 +130,13 @@ void GetFarFieldGCIntegrals(RWGSurface *S, int ne,
   /***************************************************************/
   /***************************************************************/
   int NumPts;
-  double *TCR = GetTCR(25, &NumPts);
+  double *TCR = GetTCR(9, &NumPts);
   GInt[0]=GInt[1]=GInt[2]=CInt[0]=CInt[1]=CInt[2]=0.0;
-  for(int np=0, ncp=0; np<NumPts; np++) 
+  for(int np=0, ncp=0; np<NumPts; np++)
    { 
      double u=TCR[ncp++];
      double v=TCR[ncp++]; 
-     double w=Length * TCR[ncp++];
+     double w=TCR[ncp++] * Length;
 
      /***************************************************************/
      /* set X and F=X-Q *********************************************/
@@ -154,25 +154,37 @@ void GetFarFieldGCIntegrals(RWGSurface *S, int ne,
      /***************************************************************/
      /***************************************************************/
      /***************************************************************/
-     cdouble G[3][3], C[3][3];
-     CalcGCFarField(XmXP, k, G, C);
-     GInt[0] += w*( G[0][0]*XmQP[0] + G[0][1]*XmQP[1] + G[0][2]*XmQP[2] );
-     GInt[1] += w*( G[1][0]*XmQP[0] + G[1][1]*XmQP[1] + G[1][2]*XmQP[2] );
-     GInt[2] += w*( G[2][0]*XmQP[0] + G[2][1]*XmQP[1] + G[2][2]*XmQP[2] );
-     CInt[0] += w*( C[0][0]*XmQP[0] + C[0][1]*XmQP[1] + C[0][2]*XmQP[2] );
-     CInt[1] += w*( C[1][0]*XmQP[0] + C[1][1]*XmQP[1] + C[1][2]*XmQP[2] );
-     CInt[2] += w*( C[2][0]*XmQP[0] + C[2][1]*XmQP[1] + C[2][2]*XmQP[2] );
+     cdouble GP[3][3], CP[3][3], GM[3][3], CM[3][3];
+     CalcGCFarField(XmXP, k, GP, CP);
+     CalcGCFarField(XmXM, k, GM, CM);
+     GInt[0]=GInt[1]=GInt[2]=CInt[0]=CInt[1]=CInt[2]=0.0;
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       { GInt[Mu] += w*(   GP[Mu][Nu]*XmQP[Mu]
+                         - GM[Mu][Nu]*XmQM[Mu]
+                       );
 
-     CalcGCFarField(XmXM, k, G, C);
-     GInt[0] -= w*( G[0][0]*XmQM[0] + G[0][1]*XmQM[1] + G[0][2]*XmQM[2] );
-     GInt[1] -= w*( G[1][0]*XmQM[0] + G[1][1]*XmQM[1] + G[1][2]*XmQM[2] );
-     GInt[2] -= w*( G[2][0]*XmQM[0] + G[2][1]*XmQM[1] + G[2][2]*XmQM[2] );
-     CInt[0] -= w*( C[0][0]*XmQM[0] + C[0][1]*XmQM[1] + C[0][2]*XmQM[2] );
-     CInt[1] -= w*( C[1][0]*XmQM[0] + C[1][1]*XmQM[1] + C[1][2]*XmQM[2] );
-     CInt[2] -= w*( C[2][0]*XmQM[0] + C[2][1]*XmQM[1] + C[2][2]*XmQM[2] );
+         CInt[Mu] += w*(   CP[Mu][Nu]*XmQP[Mu]
+                         - CM[Mu][Nu]*XmQM[Mu]
+                       );
+       };
 
    };
 
+} 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
+                      cdouble Omega, HMatrix *XMatrix)
+{ 
+  (void)G;
+  (void)IF;
+  (void)KN;
+  (void)Omega;
+  (void)XMatrix;
+  return 0;
 }
 
 /***************************************************************/
@@ -182,7 +194,7 @@ void GetFarFieldGCIntegrals(RWGSurface *S, int ne,
 /* where w is the cubature weight, (x,y,z) is the cubature pt, */
 /* and nx_n, ny_n, nz_n is the outward-pointing surface normal.*/
 /***************************************************************/
-HMatrix *GetCRMatrix(RWGSurface *BS, double R, int NumPoints)
+HMatrix *GetCRMatrix(RWGSurface *BS, bool Lebedev, double R, int NumPoints)
 {
   HMatrix *CRMatrix;
   if (BS)
@@ -197,7 +209,21 @@ HMatrix *GetCRMatrix(RWGSurface *BS, double R, int NumPoints)
         CRMatrix->SetEntry(np, 6, BS->Panels[np]->ZHat[2]);
       };
    }
-  else 
+  else if (Lebedev)
+   { double *LRule = GetLebedevRule(NumPoints);
+     if (LRule==0) ErrExit("no Lebedev with %i points",NumPoints);
+     CRMatrix = new HMatrix(NumPoints, 7);
+     for(int np=0; np<NumPoints; np++)
+      { CRMatrix->SetEntry(np,0, LRule[4*np + 3]);
+        CRMatrix->SetEntry(np,1, R*LRule[4*np + 0]);
+        CRMatrix->SetEntry(np,2, R*LRule[4*np + 1]);
+        CRMatrix->SetEntry(np,3, R*LRule[4*np + 2]);
+        CRMatrix->SetEntry(np,4, LRule[4*np + 0]);
+        CRMatrix->SetEntry(np,5, LRule[4*np + 1]);
+        CRMatrix->SetEntry(np,6, LRule[4*np + 2]);
+      };
+   }
+  else
    {
      int NumThetaPoints=NumPoints;
      int NumPhiPoints=2*(NumPoints+1);
@@ -248,7 +274,8 @@ HMatrix *GetCRMatrix(RWGSurface *BS, double R, int NumPoints)
 /***************************************************************/
 /***************************************************************/
 HMatrix *GetFSVMatrix(RWGSurface *S, HMatrix *CRMatrix,
-                      cdouble Omega, cdouble Eps, cdouble Mu)
+                      cdouble Omega, cdouble Eps, cdouble Mu,
+                      bool FarField)
 { 
   int NE = S->NumEdges;
   int NC = CRMatrix->NR;
@@ -259,15 +286,6 @@ HMatrix *GetFSVMatrix(RWGSurface *S, HMatrix *CRMatrix,
   cdouble iwe = II*Omega*Eps;
   cdouble iwu = II*Omega*Mu;
   
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  bool FarField=false;
-  if (getenv("SCUFF_FARFIELD")) 
-   { FarField=true;
-     Log("Retaining only far-field contributions to FSV matrices.");
-   };
-
   /***************************************************************/
   /* Think of F as a matrix of dimension 6 x N where N is the    */
   /* number of surface-current basis functions (2x number of RWG */
@@ -296,6 +314,8 @@ HMatrix *GetFSVMatrix(RWGSurface *S, HMatrix *CRMatrix,
       X[0] = CRMatrix->GetEntryD(nc, 1);
       X[1] = CRMatrix->GetEntryD(nc, 2);
       X[2] = CRMatrix->GetEntryD(nc, 3);
+      if (S->OTGT) S->OTGT->Apply(X);
+      if (S->GT) S->GT->Apply(X);
 
       // get fields due to this basis function at this cubature point
       // FSVE = six-vector of fields due to electric current in bf #ne
@@ -453,9 +473,7 @@ void GetSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
   /***************************************************************/
   double DefaultXTorque[3]={0.0, 0.0, 0.0};
   if (XTorque==0)
-   { if (S->GT) S->GT->Transform(DefaultXTorque);
-     XTorque=DefaultXTorque;
-   };
+   XTorque=DefaultXTorque;
  
   /***************************************************************/
   /* nc loops over cubature points.                              */
@@ -472,6 +490,20 @@ void GetSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
      nHat[0] = CRMatrix->GetEntryD(nc, 4);
      nHat[1] = CRMatrix->GetEntryD(nc, 5);
      nHat[2] = CRMatrix->GetEntryD(nc, 6);
+
+     if (S->OTGT || S->GT)
+      { double XP[3];
+        XP[0] = X[0] + nHat[0];
+        XP[1] = X[1] + nHat[1];
+        XP[2] = X[2] + nHat[2];
+        if (S->OTGT) 
+         { S->OTGT->Apply(X); S->OTGT->Apply(XP); }
+        if (S->GT) 
+         { S->GT->Apply(X); S->GT->Apply(XP); }
+        nHat[0]=XP[0]-X[0];
+        nHat[1]=XP[0]-X[1];
+        nHat[2]=XP[0]-X[2];
+      };
 
      /***************************************************************/
      /* get 3x3 N matrices at this cubature point *******************/
@@ -541,13 +573,154 @@ void GetSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
 }
 
 /***************************************************************/
+/* 'hermitian vector/matrix/vector product'                    */
+/***************************************************************/
+double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
+{ 
+  double Sum=0.0;
+
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    Sum += real( conj(V1[Mu]) * M[Mu][Nu] * V2[Nu]);
+
+  return Sum;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::GetSIPFT(HVector *KN, IncField *IF,
+                           cdouble Omega,
+                           RWGSurface *BS, bool Lebedev,
+                           double R, int NumPoints,
+                           double SIPFT[NUMSIPFT],
+                           bool FarField,
+                           GTransformation *OTGT,
+                           GTransformation *GT)
+{
+  Log("Computing SIPFT (R,NPts)=(%e,%i)", R, NumPoints);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  HMatrix *CRMatrix  = GetCRMatrix(BS, Lebedev, R, NumPoints);
+
+  // we assume that all cubature points lie in the same region 
+  // of the scuff geometry, so we use the first point in the rule
+  // to determine which region that is and look up its eps/mu
+  double X0[3];
+  X0[0]=CRMatrix->GetEntryD(0,1);
+  X0[1]=CRMatrix->GetEntryD(0,2);
+  X0[2]=CRMatrix->GetEntryD(0,3);
+  int RegionIndex=GetRegionIndex(X0);
+  cdouble EpsRel, MuRel;
+  RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
+  double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
+  double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
+
+  /***************************************************************/
+  /* populate a matrix of field evaluation points with points    */
+  /* from the cubature rule, suitably transformed as necessary   */
+  /* to reflect any transformations that have been applied to    */
+  /* the surface since it was read in from the meshfile          */
+  /***************************************************************/
+  //HMatrix XMatrix = CRMatrix->GetEntries(":","1:3");
+  HMatrix *XMatrix = new HMatrix(CRMatrix->NR, 3);
+  for(int nr=0; nr<XMatrix->NR; nr++)
+   { 
+     double X[3];
+     //CRMatrix->GetEntries(nr,"1:3",X);
+     X[0]=CRMatrix->GetEntryD(nr,1);
+     X[1]=CRMatrix->GetEntryD(nr,2);
+     X[2]=CRMatrix->GetEntryD(nr,3);
+     if (OTGT) OTGT->Transform(X);
+     if (GT) GT->Transform(X);
+
+     XMatrix->SetEntry(nr, 0, X[0]);
+     XMatrix->SetEntry(nr, 1, X[1]);
+     XMatrix->SetEntry(nr, 2, X[2]);
+   };
+
+  /***************************************************************/
+  /* get the fields at the field evaluation points ***************/
+  /***************************************************************/
+  HMatrix *FMatrix;
+  if (FarField)
+   FMatrix = GetFarFields(this, IF, KN, Omega, XMatrix);
+  else
+   FMatrix = GetFields(IF, KN, Omega, XMatrix);
+
+  double XTorque[3] = {0.0, 0.0, 0.0};
+  if (OTGT) OTGT->Apply(XTorque);
+  if (GT) GT->Apply(XTorque);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  memset(SIPFT, 0, NUMSIPFT*sizeof(double));
+  for(int nr=0; nr<CRMatrix->NR; nr++)
+   { 
+     double w, X[3], nHat[3];
+           w = CRMatrix->GetEntryD(nr, 0);
+        X[0] = CRMatrix->GetEntryD(nr, 1);
+        X[1] = CRMatrix->GetEntryD(nr, 2);
+        X[2] = CRMatrix->GetEntryD(nr, 3);
+     nHat[0] = CRMatrix->GetEntryD(nr, 4);
+     nHat[1] = CRMatrix->GetEntryD(nr, 5);
+     nHat[2] = CRMatrix->GetEntryD(nr, 6);
+
+     if (OTGT || GT)
+      { double XP[3];
+        XP[0] = X[0] + nHat[0];
+        XP[1] = X[1] + nHat[1];
+        XP[2] = X[2] + nHat[2];
+        if (OTGT) 
+         { OTGT->Apply(X); OTGT->Apply(XP); }
+        if (GT) 
+         { GT->Apply(X); GT->Apply(XP); }
+        nHat[0]=XP[0]-X[0];
+        nHat[1]=XP[0]-X[1];
+        nHat[2]=XP[0]-X[2];
+      };
+
+     double NMatrix[NUMSIPFT][3][3];
+     GetNMatrices(nHat, X, XTorque, NMatrix);
+
+     cdouble E[3], H[3];
+     //FMatrix->GetEntries(nr, "0:2", E);
+     E[0] = FMatrix->GetEntry(nr, 0);
+     E[1] = FMatrix->GetEntry(nr, 1);
+     E[2] = FMatrix->GetEntry(nr, 2);
+     H[0] = FMatrix->GetEntry(nr, 3); 
+     H[1] = FMatrix->GetEntry(nr, 4);
+     H[2] = FMatrix->GetEntry(nr, 5);
+
+     SIPFT[SIPOWER] += 0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
+                                    -HVMVP(H, NMatrix[SIPOWER], E)
+                                  );
+
+     for(int n=SIXFORCE; n<=SIZTORQUE; n++)
+      SIPFT[n] += 0.25 * w * ( EpsAbs*HVMVP(E, NMatrix[n], E)
+                               +MuAbs*HVMVP(H, NMatrix[n], H)
+                             );
+   };
+
+  delete FMatrix; 
+  delete XMatrix; 
+  delete CRMatrix;
+  
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
-                                   double R, int NumPoints,
+                                   bool Lebedev, double R, int NumPoints,
                                    cdouble Omega,
                                    bool NeedMatrix[NUMSIPFT],
-                                   HMatrix *MSIPFT[NUMSIPFT])
+                                   HMatrix *MSIPFT[NUMSIPFT],
+                                   bool FarField)
+                                   
 {
   /***************************************************************/
   /***************************************************************/
@@ -573,8 +746,8 @@ void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
   RegionMPs[ S->RegionIndices[0] ] -> GetEpsMu(Omega, &Eps, &Mu);
 
   double XTorque[3] = {0.0, 0.0, 0.0};
-  if (S->GT)
-   S->GT->Transform(XTorque);
+  if (S->OTGT) S->OTGT->Transform(XTorque);
+  if (S->GT) S->GT->Transform(XTorque);
 
   /***************************************************************/
   /* (re)allocate SIPFT matrices as necessary *********************/
@@ -586,19 +759,21 @@ void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
      if ( M && (M->NR!=NBF || M->NC!=NBF) )
       { Warn("incorrect matrix passed to ComputeSMatrix (reallocating)...");
         delete MSIPFT[n];
-        M=0;
-      };
+      M=0;
+     };
+
      if (M==0)
       { M=new HMatrix(NBF, NBF, LHM_COMPLEX);
         MSIPFT[n] = M; 
       };
+
    };
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  HMatrix *CRMatrix  = GetCRMatrix(BS, R, NumPoints);
-  HMatrix *FSVMatrix = GetFSVMatrix(S, CRMatrix, Omega, Eps, Mu);
+  HMatrix *CRMatrix  = GetCRMatrix(BS, Lebedev, R, NumPoints);
+  HMatrix *FSVMatrix = GetFSVMatrix(S, CRMatrix, Omega, Eps, Mu, FarField);
 
   /***************************************************************/
   /***************************************************************/
@@ -620,7 +795,7 @@ void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
       GetSIPFTMatrixEntries(S, Alpha, Beta, CRMatrix, FSVMatrix,
                             Eps, Mu, XTorque, NeedMatrix, Entries);
 
-      for(int n=0; n<NUMSIPFT; n++)
+      for(int n=0; n<NUMSIPFT; n++)  
        { if (NeedMatrix[n]==false) continue;
          MSIPFT[n]->SetEntry( 2*Alpha+0, 2*Beta+0, Entries[4*n + 0] );
          MSIPFT[n]->SetEntry( 2*Alpha+0, 2*Beta+1, Entries[4*n + 1] );
@@ -631,105 +806,6 @@ void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
     };
 
   delete FSVMatrix;
-  delete CRMatrix;
-  
-}
-
-/***************************************************************/
-/* 'hermitian vector/matrix/vector product'                    */
-/***************************************************************/
-double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
-{ 
-  double Sum=0.0;
-
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    Sum += real( conj(V1[Mu]) * M[Mu][Nu] * V2[Nu]);
-
-  return Sum;
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void RWGGeometry::GetSIPFT(HVector *KN, IncField *IF,
-                           cdouble Omega, RWGSurface *BS,
-                           double R, int NumPoints,
-                           double SIPFT[NUMSIPFT])
-{
-  Log("Computing SIPFT (R,NPts)=(%e,%i)", R, NumPoints);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  HMatrix *CRMatrix  = GetCRMatrix(BS, R, NumPoints);
-
-  // we assume that all cubature points lie in the same region 
-  // of the scuff geometry, so we use the first point in the rule
-  // to determine which region that is and look up its eps/mu
-  double X0[3];
-  X0[0]=CRMatrix->GetEntryD(0,1);
-  X0[1]=CRMatrix->GetEntryD(0,2);
-  X0[2]=CRMatrix->GetEntryD(0,3);
-  int RegionIndex=GetRegionIndex(X0);
-  cdouble EpsRel, MuRel;
-  RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
-  double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
-  double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  //HMatrix XMatrix = CRMatrix->GetEntries(":","1:3");
-  HMatrix *XMatrix = new HMatrix(CRMatrix->NR, 3);
-  for(int nr=0; nr<XMatrix->NR; nr++)
-   { XMatrix->SetEntry(nr, 0, CRMatrix->GetEntryD(nr,1));
-     XMatrix->SetEntry(nr, 1, CRMatrix->GetEntryD(nr,2));
-     XMatrix->SetEntry(nr, 2, CRMatrix->GetEntryD(nr,3));
-   };
-  HMatrix *FMatrix = GetFields(IF, KN, Omega, XMatrix);
-
-  double XTorque[3] = {0.0, 0.0, 0.0};
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  memset(SIPFT, 0, NUMSIPFT*sizeof(double));
-  for(int nr=0; nr<CRMatrix->NR; nr++)
-   { 
-     double w, X[3], nHat[3];
-           w = CRMatrix->GetEntryD(nr, 0);
-        X[0] = CRMatrix->GetEntryD(nr, 1);
-        X[1] = CRMatrix->GetEntryD(nr, 2);
-        X[2] = CRMatrix->GetEntryD(nr, 3);
-     nHat[0] = CRMatrix->GetEntryD(nr, 4);
-     nHat[1] = CRMatrix->GetEntryD(nr, 5);
-     nHat[2] = CRMatrix->GetEntryD(nr, 6);
-
-     double NMatrix[NUMSIPFT][3][3];
-     GetNMatrices(nHat, X, XTorque, NMatrix);
-
-     cdouble E[3], H[3];
-     //FMatrix->GetEntries(nr, "0:2", E);
-     E[0] = FMatrix->GetEntry(nr, 0);
-     E[1] = FMatrix->GetEntry(nr, 1);
-     E[2] = FMatrix->GetEntry(nr, 2);
-     H[0] = FMatrix->GetEntry(nr, 3);
-     H[1] = FMatrix->GetEntry(nr, 4);
-     H[2] = FMatrix->GetEntry(nr, 5);
-
-     SIPFT[SIPOWER] += 0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
-                                    -HVMVP(H, NMatrix[SIPOWER], E)  
-                                  );
-
-     for(int n=SIXFORCE; n<=SIZTORQUE; n++)
-      SIPFT[n] += 0.25 * w * ( EpsAbs*HVMVP(E, NMatrix[n], E)
-                               +MuAbs*HVMVP(H, NMatrix[n], H)
-                             );
-   };
-
-  delete FMatrix; 
-  delete XMatrix; 
   delete CRMatrix;
   
 }

@@ -3,3 +3,41 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \section{Overlap PFT (OPFT)}
+
+In the DSIPFT approach, the field components needed to compute
+the Poynting vector (PV) or Maxwell stress tensor (MST) at a point
+$\vb x$ on a bounding surface are obtained from the surface
+currents by linear convolution. In fact, since the fields 
+enter these expressions quadratically, evaluating the PV
+or MST at a single point requires \textit{two} separate 
+convolutions. Thus, for example, equation
+(\ref{PFluxVMVP}) for the Poynting flux at $\vb x$ involves
+a double sum over surface-current expansion coefficients.
+This means that the DSIPFT approach is computationally
+costly.
+
+We achieve a considerable simplification by allowing the 
+bounding surface $\mc S$ to coincide with the body surface.
+In this case, computing the PV and MST requires only 
+knowledge of the fields at the object surface.
+But the fields at the object surface may be obtained
+\textit{directly} from the surface currents---with no
+convolution---simply by appealing to the definition
+of the surface currents:
+%====================================================================%
+$$
+ \vb E = \vbhat{n} \times \vb N 
+         + \frac{\nabla\cdot\vb K}{i\omega \epsilon}\vbhat{n}, 
+\qquad
+ \vb H = -\vbhat{n} \times \vb K
+         + \frac{\nabla\cdot\vb N}{i\omega \mu}\vbhat{n}.
+$$
+%====================================================================%
+Thus the double sum in e.g. equation (\ref{PFluxVMVP}) for the Poynting 
+flux at a point $\vb x$ on the body surface collapses to just a 
+few terms; indeed, only pairs of basis functions $(\alpha,\beta)$
+that are both nonvanishing at $\vb x$ contribute.
+(For the RWG basis there are just 8 such pairs for each point,
+independent of the total number of functions in the discretization.)
+
+(Insert OPFT formulas here)
