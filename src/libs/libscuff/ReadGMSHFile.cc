@@ -244,11 +244,17 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName,
         /***************************************************************/
         /* add new reference point to list of reference points *********/
         /***************************************************************/
+#if 0
+20140921 I am eliminating this, as we have no more use for 
+reference points in the msh file, and this code was causing 
+problems in mesh files that had large numbers of physical points
+defined
         case TYPE_POINT:
           if (NumRefPts==MAXREFPTS)
            ErrExit("%s:%i: too many reference points",FileName,LineNum); 
           RefPntIndices[NumRefPts++]=GMSH2HR[ VI[0] ];
           break;
+#endif
 
         /***************************************************************/
         /* add new triangle to list of panels                          */
