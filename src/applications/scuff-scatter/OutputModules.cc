@@ -281,7 +281,7 @@ void WriteEPPFTFile(SSData *SSD, char *FileName)
      fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
 
      double EPPFT[7];
-     G->GetEPPFT(ns, SSD->KN, SSD->Omega, EPPFT);
+     G->GetEPPFT(ns, SSD->KN, 0, SSD->Omega, EPPFT);
 
      fprintf(f,"%e 0.0 ",EPPFT[0]);
      for(int nq=1; nq<7; nq++)

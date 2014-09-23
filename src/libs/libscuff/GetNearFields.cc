@@ -815,8 +815,6 @@ void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
                              cdouble e[3], cdouble h[3],
                              cdouble de[3][3], cdouble dh[3][3])
 {
-  RWGEdge *EE = G->Surfaces[ns]->Edges[ne];
-
   cdouble p, a[3], dp[3], da[3][3], ddp[3][3], dcurla[3][3];
   GetReducedPotentials_Nearby(G, ns, ne, X0, k, &p, a, dp, da, ddp, dcurla);
 

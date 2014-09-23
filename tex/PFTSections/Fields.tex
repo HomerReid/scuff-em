@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Fields from surface currents}
+\section{Fields and surface currents}
 
 To fix notation and ideas for the main text, in this section
 I review the procedure for computing the fields from the 
@@ -33,6 +33,8 @@ and $\{c_\alpha\}$ are scalar expansion coefficients.
 (We work at a fixed frequency $\omega$ and assume all fields
 and currents vary in time like $e^{-i\omega t}$.)
 
+\paragraph{Scattered fields from surface currents}
+
 The electric and magnetic fields produced by these currents
 are linear functions of the $\{c_\alpha\}$ coefficients.
 In 6-vector notation with $\bmc F\equiv {\vb E \choose \vb H}$, we have
@@ -48,9 +50,44 @@ populated with unit strength. These may be calculated numerically
 as convolutions over basis functions,
 %--------------------------------------------------------------------%
 $$ \bmc F_\alpha(\vb x)
-   =\int_{\sup \bmc B_\alpha} \bmc{G}(\vb x, \vb x^\prime)
+   =\int_{\sup \bmc B_\alpha} \bmc{G}^{r}(\vb x, \vb x^\prime)
     \bmc B_\alpha(\vb x^\prime) \, d\vb x^\prime
 $$
 %--------------------------------------------------------------------%
-where $\bmc{G}$ is an appropriate $6\times 6$ dyadic Green's
-function.
+where $\bmc{G}^{r}$ is the $6\times 6$ dyadic Green's function
+for the material properties of the region $r$ in which $\vb x$ is located.
+
+\paragraph{Surface currents from incident fields}
+
+In the PMCHWT formulation of the SIE approach, the $\{c_\alpha\}$
+coefficients are determined by solving a linear equation of the form
+%====================================================================%
+\begin{align*}
+ \vb M \cdot \vb c &= \vb v
+\end{align*}
+%====================================================================%
+where the elements of the vector $\vb c$ are the surface-current 
+expansion coefficients $\{c_\alpha\}$ and the elements of $\vb v$
+are the (negatives of the) projections of the incident field
+onto the basis functions:
+$$ v_\alpha = -\inp{\bmc B_\alpha}{\bmc F\sups{inc}}$$
+Also, the $\alpha,\beta$ matrix element of the matrix $\vb M$ 
+is a sum of 0, 1, or 2 terms depending on the relative locations
+of basis functions $\vb b_\alpha, \vb b_\beta.$
+For the simplest sitation of compact objects in vacuum (with no
+nesting of object), we have simply
+%====================================================================%
+$$ M_{\alpha\beta} = \begin{cases}
+   \vmv{\bmc F_\alpha}{\bmc G\sups{vac}}{\bmc F_\beta}, 
+   \qquad &\text{if } \vb b_\alpha, \vb b_\beta
+   \text{ live on different surfaces}
+ \\
+   \vmv{\bmc F_\alpha}{\bmc G\sups{vac}}{\bmc F_\beta}
+   +
+   \vmv{\bmc F_\alpha}{\bmc G^{\bmc B}}{\bmc F_\beta}, 
+   \qquad &\text{if } \vb b_\alpha, \vb b_\beta
+   \text{ both live on the surface of body $\bmc B$}
+  \end{cases}
+$$
+%====================================================================%
+

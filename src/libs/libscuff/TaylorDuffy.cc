@@ -150,9 +150,10 @@ void ComputeGeometricParameters(TaylorDuffyArgStruct *Args,
 /***************************************************************/
 /***************************************************************/
 int TaylorDuffySum(unsigned ndim, const double *yVector, void *parms, 
-                       unsigned nfun, double *f)
+                   unsigned nfun, double *f)
 {
   (void) nfun; // unused
+  (void) ndim; // unused
 
   /*--------------------------------------------------------------*/
   /*- extract parameters from data structure ---------------------*/
@@ -545,7 +546,6 @@ void GetScriptP(TDWorkspace *TDW, int WhichP, const double *yVector,
 {
   int nMin = TDW->nMin[WhichP]; 
   int nMax = TDW->nMax[WhichP]; 
-  int MaxMonomial = TDW->MaxMonomial[WhichP];
 
   if ( TDW->WhichCase == TD_COMMONTRIANGLE)
    { 
@@ -1304,7 +1304,7 @@ void ComputeGeometricParameters(TaylorDuffyArgStruct *Args,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int NumRegions;
+  int NumRegions=0;
   switch(Args->WhichCase)
    { case TD_COMMONVERTEX:   NumRegions=2;  break;
      case TD_COMMONEDGE:     NumRegions=6;  break;

@@ -295,12 +295,12 @@ int main(int argc, char *argv[])
           || !strcasecmp(TempStrings[2*nts],"ENVIRONMENT")
         )
       { TEnvironment=TTemp;
-        Log("Setting environment temperature to %g kelvin.\n",TTemp);
+        Log("Setting environment temperature to %g kelvin.",TTemp);
         printf("Setting environment temperature to %g kelvin.\n",TTemp);
       }
      else if ( G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface) )
       { TSurfaces[WhichSurface]=TTemp;
-        Log("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
+        Log("Setting temperature of object %s to %g kelvin.",TempStrings[2*nts],TTemp);
         printf("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
       }
      else 

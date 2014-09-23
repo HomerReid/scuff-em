@@ -306,8 +306,8 @@ class RWGSurface
 
    /* constructor subroutines */
    void InitEdgeList();
-   void ReadGMSHFile(FILE *MeshFile, char *FileName, const GTransformation *GT);
-   void ReadComsolFile(FILE *MeshFile, char *FileName, const GTransformation *GT);
+   void ReadGMSHFile(FILE *MeshFile, char *FileName);
+   void ReadComsolFile(FILE *MeshFile, char *FileName);
 
    /* calculate reduced potentials due to a single basis function */
    /* (this is a helper function used to implement the            */
@@ -420,25 +420,21 @@ class RWGGeometry
                      cdouble GEScat[3][3], cdouble GMScat[3][3],
                      cdouble GETot[3][3], cdouble GMTot[3][3]);
 
-   /* routines for computing power, force, and torque on an object */
+   /* routines for computing power, force, and torque (PFT) */
    void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega, int SurfaceIndex, double PFT[8]);
    void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega, char *SurfaceLabel, double PFT[8]);
 
    void GetSIPFT(HVector *KN, IncField *IF, cdouble Omega, RWGSurface *BS,
                  bool Lebedev, double R, int NumPoints, double SIPFT[7], 
                  bool FarField=false, GTransformation *OTGT=0, GTransformation *GT=0);
+
+   void GetEPPFT(int SurfaceIndex, HVector *KNVector, HMatrix *SigmaMatrix,
+                 cdouble Omega, double EPPFT[7]);
+
    void GetSIPFTMatrices(int WhichSurface, RWGSurface *BS, bool Lebedev,
                          double R, int NumPoints, cdouble Omega,
                          bool NeedMatrix[7], HMatrix *MSIPFT[7],
                          bool FarField=false);
-
-   void GetEPPFT(int SurfaceIndex, HVector *KN, cdouble Omega, double EPPFT[7]);
-
-   /* routine for computing scattered power */
-#if 0
-   double GetScatteredPower(HVector *KN, cdouble Omega, int SurfaceIndex);
-   double GetScatteredPower(HVector *KN, cdouble Omega, char *SurfaceLabel);
-#endif
 
    /* routine for calculating charge and current densities at panel centroids */
    HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);

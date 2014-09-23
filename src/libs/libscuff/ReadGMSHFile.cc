@@ -62,8 +62,7 @@ namespace scuff {
 /* Otherwise, only panels on the specified physical region   */
 /* are read.                                                 */
 /*************************************************************/
-void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName, 
-                              const GTransformation *OTGT)
+void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
 {
   RWGPanel *P;
   char buffer[100];

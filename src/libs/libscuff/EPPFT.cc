@@ -392,10 +392,11 @@ bool GetOverlapTerm(RWGGeometry *G,
 }
 
 /***************************************************************/
+/* Note: Either KNVector or SigmaMatrix should be non-null.    */
 /***************************************************************/
-/***************************************************************/
-void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
-                           double EPPFT[7])
+void RWGGeometry::GetEPPFT(int ns,
+                           HVector *KNVector, HMatrix *SigmaMatrix,
+                           cdouble Omega, double EPPFT[7])
 {
   RWGSurface *S=Surfaces[ns];
   int nr = S->RegionIndices[1];
@@ -452,25 +453,32 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KN, cdouble Omega,
                          GC, dG, dC, 0, Order);
       GetOverlapTerm(this, ns, ns, nea, neb, Overlap);
 
-      cdouble kAlpha =       KN->GetEntry(Offset + 2*nea + 0);
-      cdouble nAlpha = -ZVAC*KN->GetEntry(Offset + 2*nea + 1);
-      cdouble kBeta  =       KN->GetEntry(Offset + 2*neb + 0);
-      cdouble nBeta  = -ZVAC*KN->GetEntry(Offset + 2*neb + 1);
+      cdouble KK, KN, NK, NN;
+      if (KNVector)
+       { cdouble kAlpha =       KNVector->GetEntry(Offset + 2*nea + 0);
+         cdouble nAlpha = -ZVAC*KNVector->GetEntry(Offset + 2*nea + 1);
+         cdouble kBeta  =       KNVector->GetEntry(Offset + 2*neb + 0);
+         cdouble nBeta  = -ZVAC*KNVector->GetEntry(Offset + 2*neb + 1);
 
-      cdouble GFactor = EEFac*conj(kAlpha)*kBeta + MMFac*conj(nAlpha)*nBeta;
-      cdouble CFactor = EMFac*conj(kAlpha)*nBeta + MEFac*conj(nAlpha)*kBeta;
+         KK = conj(kAlpha) * kBeta;
+         KN = conj(kAlpha) * nBeta;
+         NK = conj(nAlpha) * kBeta;
+         NK = conj(nAlpha) * nBeta;
+       }
+      else
+       { KK = SigmaMatrix->GetEntry(2*nea + 0, 2*neb+0);
+         KN = SigmaMatrix->GetEntry(2*nea + 0, 2*neb+1);
+         NK = SigmaMatrix->GetEntry(2*nea + 1, 2*neb+0);
+         NN = SigmaMatrix->GetEntry(2*nea + 1, 2*neb+1);
+       };
+ 
+      cdouble GFactor = EEFac*KK + MMFac*NN;
+      cdouble CFactor = EMFac*KN + MEFac*NK;
 
-#if 0
       PAbs += real ( GFactor*GC[0] + CFactor*GC[1] );
       Fx   += imag ( GFactor*dG[0] + CFactor*dC[0] );
       Fy   += imag ( GFactor*dG[1] + CFactor*dC[1] );
       Fz   += imag ( GFactor*dG[2] + CFactor*dC[2] );
-#endif
-      PAbs += imag ( EEFac*conj(kAlpha)*kBeta*dG[2] );
-      Fx   += imag ( EMFac*conj(kAlpha)*nBeta*dC[2] );
-      Fy   += imag ( MEFac*conj(nAlpha)*kBeta*dC[2] );
-      Fz   += imag ( MMFac*conj(nAlpha)*nBeta*dG[2] );
-
       Taux += imag ( CFactor*Overlap[0] );
       Tauy += imag ( CFactor*Overlap[1] );
       Tauz += imag ( CFactor*Overlap[2] );

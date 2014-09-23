@@ -29,12 +29,6 @@
 /*     the Poynting vector (PV) or Maxwell stress tensor (MST) */
 /*     over that bounding surface.                             */
 /*                                                             */
-/* (a) GetSIPFTMatrices inputs only information about a        */
-/*     bounding surface, and returns matrices that may be      */
-/*     sandwiched between vectors of surface-current           */
-/*     coefficients to yield the power, force and torque       */
-/*     equivalent to the result of GetSIPFT.                   */
-/*                                                             */
 /* Homer Reid -- 1/2014                                        */
 /***************************************************************/
 
@@ -598,21 +592,24 @@ void RWGGeometry::GetSIPFT(HVector *KN, IncField *IF,
                            GTransformation *OTGT,
                            GTransformation *GT)
 {
-  Log("Computing SIPFT (R,NPts)=(%e,%i)", R, NumPoints);
+  Log("Computing SIPFT %s(R,NPts)=(%e,%i)",
+       Lebedev ? "Lebedev" : "",R, NumPoints);
 
   /***************************************************************/
-  /***************************************************************/
+  /* get cubature-rule matrix ************************************/
   /***************************************************************/
   HMatrix *CRMatrix  = GetCRMatrix(BS, Lebedev, R, NumPoints);
 
-  // we assume that all cubature points lie in the same region 
-  // of the scuff geometry, so we use the first point in the rule
-  // to determine which region that is and look up its eps/mu
+  /***************************************************************/
+  /* we assume that all cubature points lie in the same region   */
+  /* of the scuff geometry, so we use the first point in the rule*/
+  /* to determine which region that is and look up its eps/mu    */
+  /***************************************************************/
   double X0[3];
   X0[0]=CRMatrix->GetEntryD(0,1);
   X0[1]=CRMatrix->GetEntryD(0,2);
   X0[2]=CRMatrix->GetEntryD(0,3);
-  int RegionIndex=GetRegionIndex(X0);
+  int RegionIndex=GetRegionIndex(X0); 
   cdouble EpsRel, MuRel;
   RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
   double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
@@ -655,7 +652,7 @@ void RWGGeometry::GetSIPFT(HVector *KN, IncField *IF,
   if (GT) GT->Apply(XTorque);
 
   /***************************************************************/
-  /***************************************************************/
+  /* loop over points in the cubature rule                       */
   /***************************************************************/
   memset(SIPFT, 0, NUMSIPFT*sizeof(double));
   for(int nr=0; nr<CRMatrix->NR; nr++)
@@ -789,7 +786,7 @@ void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
   for(int Alpha=0; Alpha<NE; Alpha++)
    for(int Beta=0; Beta<NE; Beta++)
     { 
-      if (Beta==0) LogPercent(Alpha,NE,5);
+      if (Beta==0) LogPercent(Alpha,NE,10);
       cdouble Entries[NUMSIPFT*4];
 
       GetSIPFTMatrixEntries(S, Alpha, Beta, CRMatrix, FSVMatrix,

@@ -18,7 +18,8 @@
  */
 
 /*
- * Overlap.cc  -- computation of overlap integrals between RWG basis functions
+ * OPFT.cc     -- computation of power, force, and torque using overlap
+ *             -- integrals between RWG basis functions
  *
  * homer reid  -- 5/2012
  */
@@ -575,8 +576,7 @@ void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*- find the surface in question -------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGSurface *S=GetSurfaceByLabel(SurfaceLabel);
-  if (S)
+  if (RWGSurface *S=GetSurfaceByLabel(SurfaceLabel))
    { 
      GetOPFT(KN, RHS, Omega, S->Index, OPFT);
    }
@@ -585,98 +585,5 @@ void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
      memset(OPFT, 0, 8*sizeof(double));
    };
 }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega, 
-                                      int SurfaceIndex)
-{
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
-   { Warn("invalid surface index %i passed to GetScatteredPower",SurfaceIndex);
-     return 0.0;
-   };
-
-  if (KN->RealComplex==LHM_REAL)
-   return 0.0;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGSurface *S=Surfaces[SurfaceIndex];
-  int NBF=S->NumBFs;
-  HMatrix *M=new HMatrix(NBF, NBF, LHM_COMPLEX);
-
-  GetSSIArgStruct MyArgs, *Args=&MyArgs;
-  InitGetSSIArgs(Args);
-
-  Args->G=this;
-  Args->Sa = Args->Sb = S;
-  Args->Omega=Omega;
-  Args->Symmetric=1;
-  Args->B=M;
-
-  Log("GetScatteredPower: Computing M0 matrix for surface %i (%s) ... ",SurfaceIndex,S->Label);
-  
-  int InteriorRegionIndex = S->RegionIndices[1];
-  int SaveZeroed;
-  if ( InteriorRegionIndex != -1 )
-   { SaveZeroed = RegionMPs[InteriorRegionIndex]->Zeroed;
-     RegionMPs[InteriorRegionIndex]->Zeroed = 1;
-   };
-  GetSurfaceSurfaceInteractions(Args);
-  if ( InteriorRegionIndex != -1 )
-   { RegionMPs[InteriorRegionIndex]->Zeroed = SaveZeroed; }
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double Sign;
-  double PScat=0.0;
-  cdouble *ZM=M->ZM;
-  cdouble *ZKN=KN->ZV + BFIndexOffset[SurfaceIndex];
-  // nr runs over rows, nc over columns, ne over matrix entries
-  int nr, nc, ne;
-  double SignMultiplier=S->IsPEC ? 1.0 : -1.0;
-  for(PScat=0.0, Sign=1.0, ne=nc=0; nc<NBF; nc++)
-   for(nr=0; nr<NBF; nr++, ne++, Sign*=SignMultiplier)
-    PScat -= Sign*real( conj(ZKN[nr]) * ZM[ne] * ZKN[nc] );
-  
-  PScat *= 0.5*ZVAC;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  delete M;
-  return PScat;
-
-}
-#endif
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-double RWGGeometry::GetScatteredPower(HVector *KN, cdouble Omega,
-                                      char *SurfaceLabel)
-{
-  /*--------------------------------------------------------------*/
-  /*- find the surface in question -------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGSurface *S=GetSurfaceByLabel(SurfaceLabel);
-  if (S)
-   { 
-     return GetScatteredPower(KN, Omega, S->Index);
-   }
-  else
-   { Warn("unknown surface label %s passed to GetScatteredPower",SurfaceLabel);
-     return 0.0;
-   };
-}
-#endif
 
 }// namespace scuff

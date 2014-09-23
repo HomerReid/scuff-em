@@ -363,11 +363,11 @@ void RWGSurface::InitRWGSurface()
   if (!p)
    ErrExit("file %s: invalid extension",MeshFileName);
   else if (!StrCaseCmp(p,"msh"))
-   ReadGMSHFile(MeshFile,MeshFileName,OTGT);
+   ReadGMSHFile(MeshFile,MeshFileName);
   else if (!StrCaseCmp(p,"mphtxt"))
    { if ( MeshTag != -1 )
       ErrExit("MESHTAG is not yet implemented for .mphtxt files");
-     ReadComsolFile(MeshFile,MeshFileName,OTGT);
+     ReadComsolFile(MeshFile,MeshFileName);
    }
   else
    ErrExit("file %s: unknown extension %s",MeshFileName,p);

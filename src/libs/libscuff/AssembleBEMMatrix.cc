@@ -288,6 +288,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
                                          int NumTorqueAxes, HMatrix **dMdT,
                                          double *GammaMatrix)
 {
+  (void) TransposeAccelerator; // unused for now 
+
   Log("Assembling BEM matrix block (%i,%i)",nsa,nsb);
 
   /***************************************************************/
