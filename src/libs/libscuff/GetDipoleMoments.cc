@@ -162,8 +162,8 @@ PM->Scale(ZVAC); /* ? */
 /*                    surface                                  */
 /***************************************************************/
 #define PSD_MATRIX_WIDTH 13
-HMatrix *RWGGeometry::GetPanelSourceDensities2(cdouble Omega, 
-                                               HVector *KN, 
+HMatrix *RWGGeometry::GetPanelSourceDensities2(cdouble Omega,
+                                               HVector *KN,
                                                HMatrix *PSD)
 
 { 
@@ -192,14 +192,13 @@ HMatrix *RWGGeometry::GetPanelSourceDensities2(cdouble Omega,
   RWGEdge *E;
   RWGPanel *PPanel, *MPanel;
   double *QP, *QM;
-  int ns, ne, Offset;
+  int ne, Offset;
   cdouble KWeight, NWeight, PreFac;
   double XmQ[3];
   int nbf=0;
-  for(ns=0; ns<NumSurfaces; ns++)
+  for(int ns=0; ns<NumSurfaces; ns++)
    for(S=Surfaces[ns], Offset=PanelIndexOffset[ns], ne=0; ne<S->NumEdges; ne++)
     { 
-  
       E=S->Edges[ne];
       PPanel = S->Panels[E->iPPanel];
       MPanel = S->Panels[E->iMPanel];
@@ -288,10 +287,10 @@ HMatrix *RWGGeometry::GetPanelSourceDensities2(cdouble Omega,
 /*                                                             */
 /*  columns 0, 1, 2 : cartesian coords of nth panel centroid   */
 /*  column  3       : area of nth panel                        */
-/*  columns 4,5,6   : components of electric current density   */
-/*  column  7       : electric charge density                  */
-/*  columns 8,9,10  : components of magnetic current density   */
-/*  column  11      : magnetic charge density                  */
+/*  column  4       : electric charge density                  */
+/*  columns 5,6,7   : components of electric current density   */
+/*  column  8       : magnetic charge density                  */
+/*  columns 9,10,11 : components of magnetic current density   */
 /*  column  12      : normally-directed poynting flux INTO the */
 /*                    surface                                  */
 /***************************************************************/
@@ -445,14 +444,14 @@ HMatrix *RWGGeometry::GetPBCPanelSourceDensities(cdouble Omega,
       PSD->SetEntry(POffset + np,  1, P->Centroid[1]);
       PSD->SetEntry(POffset + np,  2, P->Centroid[2]);
       PSD->SetEntry(POffset + np,  3, P->Area);
-      PSD->SetEntry(POffset + np,  4, K[0]);
-      PSD->SetEntry(POffset + np,  5, K[1]);
-      PSD->SetEntry(POffset + np,  6, K[2]);
-      PSD->SetEntry(POffset + np,  7, Sigma);
-      PSD->SetEntry(POffset + np,  8, N[0]);
-      PSD->SetEntry(POffset + np,  9, N[1]);
-      PSD->SetEntry(POffset + np, 10, N[2]);
-      PSD->SetEntry(POffset + np, 11, Eta);
+      PSD->SetEntry(POffset + np,  4, Sigma);
+      PSD->SetEntry(POffset + np,  5, K[0]);
+      PSD->SetEntry(POffset + np,  6, K[1]);
+      PSD->SetEntry(POffset + np,  7, K[2]);
+      PSD->SetEntry(POffset + np,  8, Eta);
+      PSD->SetEntry(POffset + np,  9, N[0]);
+      PSD->SetEntry(POffset + np, 10, N[1]);
+      PSD->SetEntry(POffset + np, 11, N[2]);
       PSD->SetEntry(POffset + np, 12, IDNPF);
 
     }; // for (ns=0; ns<NumSurfaces; ns++) ... for(np=0; np<S->NumPanels; np++)
