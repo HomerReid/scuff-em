@@ -750,9 +750,7 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, int ns, int np, int iQ,
       for(int Nu=0; Nu<3; Nu++)
        { 
          da[Mu][Nu] = CM1*daM1[Mu][Nu] + CP1*daP1[Mu][Nu] + daDS[Mu][Nu];
-
          ddp[Mu][Nu] = CM1*ddpM1[Mu][Nu] + CP1*ddpP1[Mu][Nu] + ddpDS[Mu][Nu];
-
          dcurla[Mu][Nu] = CM1*dcurlaM1[Mu][Nu] + CP1*dcurlaP1[Mu][Nu] + dcurlaDS[Mu][Nu];
        };
     };
@@ -798,8 +796,8 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, int ns, int ne,
    { a[Mu]  -= aM[Mu];
      dp[Mu] -= dpM[Mu];
      for(int Nu=0; Nu<3; Nu++)
-      { ddp[Mu][Nu]    -= ddpM[Mu][Nu];
-        da[Mu][Nu]     -= daM[Mu][Nu];
+      { da[Mu][Nu]     -= daM[Mu][Nu];
+        ddp[Mu][Nu]    -= ddpM[Mu][Nu];
         dcurla[Mu][Nu] -= dcurlaM[Mu][Nu];
       };
    };
@@ -807,8 +805,8 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, int ns, int ne,
 }
 
 /***************************************************************/
-/* E = ikZ * kAlpha*e + ik*nAlpha*h                            */
-/* H = -ik * kAlpha*h + (ik/Z)*nAlpha*e                        */
+/* E = ikZ * kAlpha*e - nAlpha*h                               */
+/* H =      +kAlpha*h + (ik/Z)*nAlpha*e                        */
 /***************************************************************/
 void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
                              double X0[3],  cdouble k,
@@ -832,6 +830,17 @@ void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
       };
    };
 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
+                             double X0[3],  cdouble k,
+                             cdouble e[3], cdouble h[3])
+{
+  cdouble de[3][3], dh[3][3];
+  GetReducedFields_Nearby(G, ns, ne, X0, k, e, h, de, dh);
 }
 
 } // namespace scuff

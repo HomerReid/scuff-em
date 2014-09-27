@@ -62,6 +62,10 @@ void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
                              cdouble e[3], cdouble h[3],
                              cdouble de[3][3], cdouble dh[3][3]);
 
+void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
+                             double X0[3],  cdouble k,
+                             cdouble e[3], cdouble h[3]);
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -315,87 +319,120 @@ void GetdGME_Near(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
 }
 
 /***************************************************************/
-/* dG[0..2] = <ba | d_i G | bb>                                */
-/* dG[3..5] = <ba | d_\theta_i G | bb>                         */
+/* Fetch the particular matrix elements between RWG functions  */
+/* that we need to compute the surface EPPFT.                  */
 /*                                                             */
-/* dC[0..2] = <ba | d_i C | bb>                                */
-/* dC[3..5] = <ba | d_\theta_i C | bb>                         */
+/* be[0]       = < b_\alpha | e_beta >                         */
+/* bh[0]       = < b_\alpha | h_beta >                         */
+/*                                                             */
+/* divbe[0..2] = < \div b_\alpha | e_beta_i >  (i=0,1,2)       */
+/* divbh[0..2] = < \div b_\alpha | h_beta_i >                  */
+/*                                                             */
+/* bxe[0..2]   = < b_\alpha \times e_beta >_i                  */
+/* bxh[0..2]   = < b_\alpha \times h_beta >_i                  */
+/*                                                             */
 /***************************************************************/
-void GetdGMatrixEntries(RWGGeometry *G, int nsa, int nsb, int nea, int neb,
-                        cdouble k, 
-                        cdouble GC[2], cdouble dG[6], cdouble dC[6],
-                        double *DX=0, int Order=4,
-                        bool ForceDistant=false,
-                        bool ForceNearby=false)
+void GetEPPFTMatrixElements(RWGGeometry *G,
+                            int nsa, int nsb, int nea, int neb, 
+                            cdouble k,
+                            cdouble be[1],    cdouble bh[1],
+                            cdouble divbe[3], cdouble divbh[3],
+                            cdouble bxe[3],   cdouble bxh[3],
+                            int Order=4)
 {
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+#if 0
   int ncv=NumCommonBFVertices(G->Surfaces[nsa],nea,G->Surfaces[nsb],neb);
   if ( (ncv==0 || ForceDistant) && (!ForceNearby) )
    GetdGME_Far(G, nsa, nea, nsb, neb, k, Order, DX, GC, dG, dC);
   else
    GetdGME_Near(G, nsa, nea, nsb, neb, k, Order, DX, GC, dG, dC);
+#endif
 
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-bool GetOverlapTerm(RWGGeometry *G,
-                    int nsa, int nsb, int nea, int neb,
-                    double Overlap[3])
-{
-  memset(Overlap, 0, 3*sizeof(double));
-  if (nsa!=nsb) return false;
-  if (nea==neb) return false;
-
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   RWGSurface *S=G->Surfaces[nsa];
-  RWGEdge *Ea = S->Edges[nea];
-  RWGEdge *Eb = S->Edges[neb];
+  RWGEdge *E=S->Edges[nea];
+  double *QP = S->Vertices + 3*E->iQP;
+  double *V1 = S->Vertices + 3*E->iV1;
+  double *V2 = S->Vertices + 3*E->iV2;
+  double *QM = S->Vertices + 3*E->iQM;
 
-  bool PP=(Ea->iPPanel == Eb->iPPanel);
-  bool PM=(Ea->iPPanel == Eb->iMPanel);
-  bool MP=(Ea->iMPanel == Eb->iPPanel);
-  bool MM=(Ea->iMPanel == Eb->iMPanel);
-  
-  RWGPanel *P;
-  double *Qa, *Qb;
-  double Sign;
-  if ( PP || PM )
-   {
-     P = S->Panels[Ea->iPPanel];
-     Qa = S->Vertices + 3*P->VI[ Ea->PIndex ];
-     Sign = PP ? 1.0 : -1.0;
-     Qb = S->Vertices + 3*P->VI[ PP ? Eb->PIndex : Eb->MIndex ];
-   }
-  else if ( MP || MM )
-   {
-     P = S->Panels[Ea->iMPanel];
-     Qa = S->Vertices + 3*P->VI[ Ea->MIndex ];
-     Sign = MM ? 1.0 : -1.0;
-     Qb = S->Vertices + 3*P->VI[ MP ? Eb->PIndex : Eb->MIndex ];
-   }
-  else
-   return false;
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double APlus[3], AMinus[3], B[3];
+  VecSub(V1, QP, APlus);
+  VecSub(V1, QM, AMinus);
+  VecSub(V2, V1, B);
 
-  double DQ[3], XCmQa[3];
-  VecSub(Qa, Qb, DQ);
-  VecSub(P->Centroid, Qa, XCmQa);
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int NumPts;
+  double *TCR=GetTCR(Order, &NumPts);
+  be[0]=bh[0]=0.0;
+  memset(divbe, 0, 3*sizeof(cdouble));
+  memset(divbh, 0, 3*sizeof(cdouble));
+  memset(bxe,   0, 3*sizeof(cdouble));
+  memset(bxh,   0, 3*sizeof(cdouble));
+  for(int np=0, ncp=0; np<NumPts; np++)
+   { 
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
+     double u=TCR[ncp++];
+     double v=TCR[ncp++];
+     double w=TCR[ncp++] * (E->Length);
+     u+=v;
 
-  double PreFac = Sign * (Ea->Length * Eb->Length) / (4.0*P->Area);
-  Overlap[0] = PreFac * (XCmQa[1]*DQ[2] - XCmQa[2]*DQ[1]);
-  Overlap[1] = PreFac * (XCmQa[2]*DQ[0] - XCmQa[0]*DQ[2]);
-  Overlap[2] = PreFac * (XCmQa[0]*DQ[1] - XCmQa[1]*DQ[0]);
-  
-  return true;
+     double XPlus[3], FPlus[3], XMinus[3], FMinus[3];
+     for(int Mu=0; Mu<3; Mu++)
+      { 
+        FPlus[Mu] = u*APlus[Mu] + v*B[Mu];
+        XPlus[Mu] = FPlus[Mu] + QP[Mu];
+
+        FMinus[Mu] = u*AMinus[Mu] + v*B[Mu];
+        XMinus[Mu] = FMinus[Mu] + QM[Mu];
+      };
+
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
+     cdouble ePlus[3], eMinus[3];
+     cdouble hPlus[3], hMinus[3];
+     GetReducedFields_Nearby(G, nsb, neb, XPlus, k, ePlus, hPlus);
+     GetReducedFields_Nearby(G, nsb, neb, XMinus, k, eMinus, hMinus);
+
+     for(int Mu=0; Mu<3; Mu++)
+       {
+         be[0] += w*(FPlus[Mu]*ePlus[Mu] - FMinus[Mu]*eMinus[Mu]); 
+         bh[0] += w*(FPlus[Mu]*hPlus[Mu] - FMinus[Mu]*hMinus[Mu]);
+
+         divbe[Mu] += 2.0*w*(ePlus[Mu] - eMinus[Mu]);
+         divbh[Mu] += 2.0*w*(hPlus[Mu] - hMinus[Mu]);
+
+         int MP1=(Mu+1)%3, MP2=(Mu+2)%3;
+         bxe[Mu] += w*( (FPlus[MP1]*ePlus[MP2]   - FPlus[MP2]*ePlus[MP1])
+                       -(FMinus[MP1]*eMinus[MP2] - FMinus[MP2]*eMinus[MP1])
+                      );
+
+         bxh[Mu] += w*( (FPlus[MP1]*hPlus[MP2]   - FPlus[MP2]*hPlus[MP1])
+                       -(FMinus[MP1]*hMinus[MP2] - FMinus[MP2]*hMinus[MP1])
+                      );
+       };
+
+   };
+
 }
 
 /***************************************************************/
 /* Note: Either KNVector or SigmaMatrix should be non-null.    */
 /***************************************************************/
-void RWGGeometry::GetEPPFT(int ns,
-                           HVector *KNVector, HMatrix *SigmaMatrix,
+void RWGGeometry::GetEPPFT(int ns, HVector *KNVector, HMatrix *SigmaMatrix,
                            cdouble Omega, double EPPFT[7])
 {
   RWGSurface *S=Surfaces[ns];
@@ -410,14 +447,11 @@ void RWGGeometry::GetEPPFT(int ns,
   /*--------------------------------------------------------------*/
   cdouble Eps, Mu;
   RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
+  double ReEps=real(Eps);
   cdouble k = Omega * sqrt(Eps*Mu);
-  cdouble IK = II*k;
   cdouble ZRel = sqrt(Mu/Eps);
-
-  cdouble EEFac =  IK*ZRel*ZVAC;
-  cdouble EMFac =  IK;
-  cdouble MEFac = -IK;
-  cdouble MMFac =  IK/(ZRel*ZVAC);
+  cdouble KZ  = k*ZVAC*ZRel;
+  cdouble KOZ = k/(ZVAC*ZRel);
 
   int NE = S->NumEdges;
   int Offset = BFIndexOffset[ns];
@@ -443,19 +477,38 @@ void RWGGeometry::GetEPPFT(int ns,
 //   for(int neb=0; neb<NE; neb++)
    for(int neab=0; neab<NE*NE; neab++)
     { 
-      int nea = neab/NE; 
-      int neb = neab%NE; 
+      int nea = neab/NE;
+      int neb = neab%NE;
 
-      cdouble GC[2], dG[6], dC[6];
-      double Overlap[3];
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      cdouble be, bh, divbe[3], divbh[3], bxe[3], bxh[3];
+      GetEPPFTMatrixElements(this, ns, ns, nea, neb, k, &be, &bh,
+                             divbe, divbh, bxe, bxh);
 
-      GetdGMatrixEntries(this, ns, ns, nea, neb, k,
-                         GC, dG, dC, 0, Order);
-      GetOverlapTerm(this, ns, ns, nea, neb, Overlap);
+      cdouble PEE, PEM, PME, PMM;
+      cdouble FEE1, FEE2, FEM1, FEM2, FME1, FME2, FMM1, FMM2;
+      PEE  = +II*KZ/2.0;
+      PEM  = -1.0/2.0;
+      PME  = +1.0/2.0;
+      PMM  = +II*KOZ/2.0;
+      FEE1 = -KZ/(2.0*Omega*ReEps);
+      FEE2 = ZVAC/2.0;
+      FEM1 = 1.0/(2.0*II*Omega*ReEps);
+      FEM2 = II*KOZ*ZVAC/2.0;
+      FME1 = -ReEps/(2.0*II*Omega);
+      FME2 = -II*KZ/(2.0*ZVAC);
+      FMM1 = -ReEps*KOZ/(2.0*Omega);
+      FMM2 = 1.0/(2.0*ZVAC);
 
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
       cdouble KK, KN, NK, NN;
       if (KNVector)
-       { cdouble kAlpha =       KNVector->GetEntry(Offset + 2*nea + 0);
+       { 
+         cdouble kAlpha =       KNVector->GetEntry(Offset + 2*nea + 0);
          cdouble nAlpha = -ZVAC*KNVector->GetEntry(Offset + 2*nea + 1);
          cdouble kBeta  =       KNVector->GetEntry(Offset + 2*neb + 0);
          cdouble nBeta  = -ZVAC*KNVector->GetEntry(Offset + 2*neb + 1);
@@ -463,7 +516,7 @@ void RWGGeometry::GetEPPFT(int ns,
          KK = conj(kAlpha) * kBeta;
          KN = conj(kAlpha) * nBeta;
          NK = conj(nAlpha) * kBeta;
-         NK = conj(nAlpha) * nBeta;
+         NN = conj(nAlpha) * nBeta;
        }
       else
        { KK = SigmaMatrix->GetEntry(2*nea + 0, 2*neb+0);
@@ -471,26 +524,39 @@ void RWGGeometry::GetEPPFT(int ns,
          NK = SigmaMatrix->GetEntry(2*nea + 1, 2*neb+0);
          NN = SigmaMatrix->GetEntry(2*nea + 1, 2*neb+1);
        };
- 
-      cdouble GFactor = EEFac*KK + MMFac*NN;
-      cdouble CFactor = EMFac*KN + MEFac*NK;
 
-      PAbs += real ( GFactor*GC[0] + CFactor*GC[1] );
-      Fx   += imag ( GFactor*dG[0] + CFactor*dC[0] );
-      Fy   += imag ( GFactor*dG[1] + CFactor*dC[1] );
-      Fz   += imag ( GFactor*dG[2] + CFactor*dC[2] );
-      Taux += imag ( CFactor*Overlap[0] );
-      Tauy += imag ( CFactor*Overlap[1] );
-      Tauz += imag ( CFactor*Overlap[2] );
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      PAbs += real( KK*PEE*be + KN*PEM*bh + NK*PME*bh + KK*PMM*be );
+
+      Fx   += real(  KK*(FEE1*divbe[0] + FEE2*bxh[0])
+                    +KN*(FEM1*divbh[0] + FEM2*bxe[0])
+                    +NK*(FME1*divbh[0] + FME2*bxe[0])
+                    +NN*(FMM1*divbe[0] + FMM2*bxh[0]) );
+
+      Fy   += real(  KK*(FEE1*divbe[1] + FEE2*bxh[1])
+                    +KN*(FEM1*divbh[1] + FEM2*bxe[1])
+                    +NK*(FME1*divbh[1] + FME2*bxe[1])
+                    +NN*(FMM1*divbe[1] + FMM2*bxh[1]) );
+
+      Fz   += real(  KK*(FEE1*divbe[2] + FEE2*bxh[2])
+                    +KN*(FEM1*divbh[2] + FEM2*bxe[2])
+                    +NK*(FME1*divbh[2] + FME2*bxe[2])
+                    +NN*(FMM1*divbe[2] + FMM2*bxh[2]) );
+ 
+      Taux += 0.0;
+      Tauy += 0.0;
+      Tauz += 0.0;
     };
 
-  EPPFT[0] = 0.5*(10.0/3.0)*PAbs/real(Omega);
-  EPPFT[1] = 0.5*(10.0/3.0)*Fx/real(Omega);
-  EPPFT[2] = 0.5*(10.0/3.0)*Fy/real(Omega);
-  EPPFT[3] = 0.5*(10.0/3.0)*Fz/real(Omega);
-  EPPFT[4] = 0.5*(10.0/3.0)*Taux/real(Omega);
-  EPPFT[5] = 0.5*(10.0/3.0)*Tauy/real(Omega);
-  EPPFT[6] = 0.5*(10.0/3.0)*Tauz/real(Omega);
+  EPPFT[0] = PAbs;
+  EPPFT[1] = (10.0/3.0)*Fx;
+  EPPFT[2] = (10.0/3.0)*Fy;
+  EPPFT[3] = (10.0/3.0)*Fz;
+  EPPFT[4] = (10.0/3.0)*Taux;
+  EPPFT[5] = (10.0/3.0)*Tauy;
+  EPPFT[6] = (10.0/3.0)*Tauz;
 
 }
 

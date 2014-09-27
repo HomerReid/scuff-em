@@ -17,14 +17,14 @@ d\vb F^{\vb J} &= \frac{1}{2}\text{Re }
            and\footnote{In the presence of magnetic currents,
                         the usual Maxwell equation for the curl of 
                         $\vb E$ is modified to read
-                        $\nabla \times \vb E=i\omega \mu_0 \vb H - \vb N.$}
-           $\vb H=\frac{1}{i\omega\mu_0}(\nabla \times \vb E - \vb M)$:}
+                        $\nabla \times \vb E=i\omega \mu_0 \vb H - \vb M.$}
+           $\vb H=\frac{1}{i\omega\mu_0}(\nabla \times \vb E + \vb M)$:}
  &=
  \frac{1}{2}\text{Re }\left\{
  \frac{1}{i\omega}
  \Big[ -(\nabla \cdot \vb J^*) \vb E 
        + \vb J^* \times (\nabla \times \vb E) 
-       -\vb J^* \times \vb M
+       +\vb J^* \times \vb M
  \Big]\,dV \,
                       \right\} dV
 \nn
@@ -35,11 +35,11 @@ d\vb F^{\vb J} &= \frac{1}{2}\text{Re }
              + \vb J^* \times (\nabla \times \vb E) 
               \Big]\,dV
             }_{d \vb F^{\vb J1}}
--
++
  \underbrace{
    \frac{1}{2\omega}\text{Im }\Big[\vb J^* \times \vb M\Big]
             }_{d \vb F^{\vb J2}}.
-\label{FJ1FJ1}
+\label{FJ1FJ2}
 \end{align}
 %====================================================================%
 In component notation, the first term here reads
@@ -91,20 +91,53 @@ $$
          \int_{\mc B_n} \vb J^* \cdot \partial_i \vb E \, dV.
 $$
 %====================================================================%
-Adding the contributions of the other term in (\ref{JF1JF2}), we 
+Adding the contributions of the other term in (\ref{FJ1FJ2}), we 
 find
 %====================================================================%
 \numeq{FJVolumeIntegral}
 { F_i^{\vb J} = \frac{1}{2\omega}\text{Im }
   \int_{\mc B_n} \Big[         \vb J^* \cdot \partial_i \vb E 
-                       \, - \, (\vb J^*\times \vb M)_i
+                       \, + \, (\vb J^*\times \vb M)_i
                  \Big]\, dV.
 }
 %====================================================================%
-An analogous analysis for the force on the \textit{magnetic} currents
-yields
+On the other hand, the force on the \textit{magnetic} currents in 
+$dV$ is 
 %====================================================================%
-\numeq{FMVolumeIntegral}
+\begin{align}
+d\vb F^{\vb M} &= \frac{1}{2}\text{Re }
+ \Big[ \eta^* \vb H - \epsilon \vb M^* \times \vb E \Big] \, dV
+\nn
+\intertext{Use $\eta=\frac{1}{i\omega}(\nabla \cdot \vb M)$
+           and
+           $\vb E=-\frac{1}{i\omega\epsilon}(\nabla \times \vb H - \vb J)$:}
+ &=
+ \frac{1}{2}\text{Re }\left\{
+ \frac{1}{i\omega}
+ \Big[ -(\nabla \cdot \vb M^*) \vb H 
+       + \vb M^* \times (\nabla \times \vb H) 
+       +\vb M^* \times \vb J
+ \Big]\,dV \,
+                      \right\} dV
+\nn
+ &=
+ \underbrace{
+              \frac{1}{2\omega}\text{Im }
+              \Big[ -(\nabla \cdot \vb M^*) \vb H 
+             + \vb M^* \times (\nabla \times \vb H) 
+              \Big]\,dV
+            }_{d \vb F^{\vb M1}}
++
+ \underbrace{
+   \frac{1}{2\omega}\text{Im }\Big[\vb M^* \times \vb J\Big]
+            }_{d \vb F^{\vb M2}}.
+\label{FM1FM2}
+\end{align}
+%====================================================================%
+Now playing the same games as above allows us to rewrite this in a 
+form analogous to that of (\ref{FJVolumeIntegral}):
+%====================================================================%
+\numeq{FJVolumeIntegral}
 { F_i^{\vb M} = \frac{1}{2\omega}\text{Im }
   \int_{\mc B_n} \Big[         \vb M^* \cdot \partial_i \vb H 
                        \, + \, (\vb M^*\times \vb J)_i

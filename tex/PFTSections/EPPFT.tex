@@ -9,172 +9,232 @@ on a body by considering the work done on, and the force and
 torque exerted on, the equivalent surface currents flowing on 
 the body surface.
 
-\subsection*{Work and force on a volume current distribution}
-
-To motivate these formulas, first recall that, if we had a
-\textit{volume} distribution of electric current $\vb J$ 
-throughout a body $\mc B$, we could compute the power absorbed
-by the body as the time-average work done on the volume currents
-inside it via Joule heating:
+The power may be computed as the Joule heating of the
+$\vb K$ and $\vb N$ currents by the $\vb E$ and $\vb H$ fields:
 %====================================================================%
 \begin{subequations}
-\begin{align}
+\begin{equation}
  P\sups{abs} 
-     &= \frac{1}{2}\text{ Re }
-      \int_{\mc B} \vb J^*(\vb x) \cdot \vb E(\vb x)
-      \,dV
-%--------------------------------------------------------------------%
-\intertext{Similarly, the $i$-directed force on the body follows
-           from considering the Lorentz force on the charges and
-           currents contained in an infinitesimal volume $dV:$}
-%--------------------------------------------------------------------%
- F_i &= \frac{1}{2}\text{ Re }
-        \int_{\mc B} \bigg\{ \rho(\vb x) E_i(\vb x)
-                    +\frac{1}{\mu_0}
-                     \Big[\vb J(\vb x) \cdot \vb H(\vb x)\Big]_i
-             \bigg\} dV
-\intertext{With some effort (Appendix \ref{ForceFormulaAppendix}),
-           this formula may be rewritten in a form closely
-           analogous to that of (\ref{VolumePFT}a):}
-     &= \frac{1}{2\omega}\text{ Im }
-        \int_{\mc B} \vb J^*(\vb x) \cdot \partial_i \vb E(\vb x)
-                     dV.
-\intertext{Similarly (Appendix \ref{ForceFormulaAppendix}), the 
-           $i$-directed \textit{torque} on the body is}
-     &= \frac{1}{2\omega}\text{ Im }
-        \int_{\mc B} \vb J^*(\vb x) \cdot \partial_\theta \vb E(\vb x)
-                     dV
-\end{align}
-\label{VolumePFT}
-\end{subequations}
-where $\partial_\theta \vb E$ denotes differentiation 
-with respect to rotations about the $i$th
-coordinate axis.
-%====================================================================%
-
-\subsection*{Work on a surface current distribution}
-
-For any volume electric current distribution $\vb J$ throughout
-the bulk of a compact body, there are equivalent electric and 
-magnetic surface current distributions $\{\vb K, \vb N\}$ confined
-to the surface of the body that produce the same fields as does
-$\vb J$ both inside and outside the body. By considering
-the work done and the force or torque exterted on these 
-equivalent currents, we obtain surface-integral analogues 
-of the volume-integral formulas (\ref{VolumePFT}). 
-
-One complication here that is not present in the volume-integral
-case is that the presence of magnetic currents complicates the
-situation by introducing new terms in the force and torque that 
-are not present in cases where only electric currents are present.
-
-%====================================================================%
-\begin{subequations}
-\begin{align}
- P\sups{abs} 
-     &= \frac{1}{2}\text{ Re }
+     = \frac{1}{2}\text{ Re }
       \int_{\partial \mc B} \Big[ \vb K^*(\vb x) \cdot \vb E(\vb x)
                                  +\vb N^*(\vb x) \cdot \vb H(\vb x)
-                            \Big]
-      \,dA
-\nn
-    &= \frac{1}{2}\text{ Re }
-      \int_{\partial \mc B} \bmc C^*(\vb x) \cdot \bmc F(\vb x) \,dA
-\\
- F_i
-     &= \frac{1}{2\omega}\text{ Im }
-      \int_{\partial \mc B} 
-       \bigg[  \vb K^*(\vb x) \cdot \partial_i \vb E(\vb x)
-              +\vb N^*(\vb x) \cdot \partial_i \vb H(\vb x)
-\nn
-&
- \hspace{1.2in} +(\vb N^*\times \vb K)_i - (\vb K^*\times \vb N)_i
-       \bigg]
-      \,dA
-\\
-    &= \frac{1}{2\omega }\text{ Im }
-        \int_{\partial \mc B} \bmc C^*(\vb x) \cdot \partial_i \bmc F(\vb x) \,dA
-\nn
-&\hspace{1.0in}
-      -\frac{1}{2\omega }\text{ Im }
-        \int_{\partial \mc B} 
-        \bmc C^*(\vb x) 
-        \bmc{O}^{(\times)}(\vb x,\vb x^\prime) 
-        \bmc C(\vb x^\prime)
-        \,dA
-\end{align}
-\label{EPPFT0}
-\end{subequations}
-where 
+                            \Big] \, dA
+\end{equation}
 %====================================================================%
-$$ \bmc{O}^{(\times)}(\vb x,\vb x^\prime)
-  = \left(\begin{array}{cc}
-    0 & -\boldsymbol{\varepsilon}_{ijk} \\ 
-     \boldsymbol{\varepsilon}_{ijk} & 0
-   \end{array}\right)
-   \delta(\vb x-\vb x^\prime).
+The force may be computed by summing the Lorentz forces on the charges 
+and currents in each infinitesimal surface patch $dA$:
+%====================================================================%
+\begin{equation}
+ F_i  = \frac{1}{2}\text{ Re }
+      \int_{\partial \mc B} 
+ \bigg\{   \sigma\subt{E}^*\, \vb E_i(\vb x)
+         +Z_0\big(\vb K^* \times \vb H\big)_{i}
+         +\sigma\subt{M}^*\, \vb H_i(\vb x)
+         -\frac{1}{Z_0}\big(\vb N^* \times \vb E\big)_{i}
+ \bigg\}
+\end{equation}
+\label{EPPFTContinuous}
+\end{subequations}
+where the electric and magnetic charge densities are
+%====================================================================%
+$$ \sigma\subt{E} \equiv \frac{\nabla \cdot \vb K}{i\omega \epsilon}, 
+   \qquad
+   \sigma\subt{M} \equiv \frac{\epsilon \nabla \cdot \vb N}{i\omega}.
 $$
 %====================================================================%
-Note that these formulas only reference the tangential components
-of $\vb E$ and $\vb H$, which are continuous across the body 
-surface; thus it matters not whether we evaluate $\vb E$ and $\vb H$
-using the computational recipes for the fields inside or outside
-the surface (these recipes, of course, differ in SIE formulations).
-It is easiest to use the inside recipe, in which case the fields
-are a convolution over just the surface currents on the surface 
-of $\mc B$:
+
+\subsection*{Implementation in {\sc scuff-em}}
+
+Recall that the $\vb E$ and $\vb H$ fields due to a set of
+RWG basis functions $\{\vb b_\alpha(\vb x)\}$ populated
+with electric and magnetic surface-current weights 
+$\vb k_\alpha, \vb n_\alpha$ are 
 %====================================================================%
-$$ \bmc F(\vb x) 
-   = \int_{\partial \mc B} \bmc G^{(\mc B)}(\vb x, \vb x^\prime) \cdot \bmc C(\vb x^\prime) 
-   d\vb x^\prime
-$$ 
+\begin{align*}
+\vb E(\vb x) 
+ &= \sum_{\alpha} \Big( ikZ k_\alpha \vb e_\alpha(\vb x)
+                        -n_\alpha \vb h_\alpha(\vb x)
+                  \Big)
+\\
+\vb H(\vb x) 
+ &= \sum_{\alpha} \Big( k_\alpha \vb h_\alpha(\vb x)
+                        +\frac{ik}{Z} n_\alpha \vb e_\alpha(\vb x)
+                  \Big)
+\end{align*}
 %====================================================================%
-where $\bmc G^{(\mc B)}$ is the $6\times 6$ dyadic Green's function
-for the material interior to $\mc B$. The PFT formulas (\ref{EPPFT0}) 
-then become double surface integrals,
+where $k=\sqrt{\epsilon \mu}\cdot \omega$ is the wavenumber in the relevant
+medium, $Z=Z_0Z^r$ with $Z^r=\sqrt{\mu/\epsilon}$ the relative wave impedance,
+and $\vb e_\alpha, \vb h_\alpha$ are the ``reduced fields'' of basis
+function $\vb b_\alpha:$
 %====================================================================%
-\begin{subequations}
-\begin{align}
+$$
+ \vb e_\alpha(\vb x) = \vb a_\alpha(\vb x) + \frac{1}{k^2}\nabla p_\alpha(\vb x),
+ \qquad
+ \vb h_\alpha(\vb x) = \nabla \times \vb a_\alpha(\vb x)
+$$
+with $\vb a$ and $p$ the ``reduced'' vector and scalar potentials
+of $\vb b_\alpha,$
+%====================================================================%
+$$
+ \vb a_\alpha(\vb x) 
+ = 
+ \int G(\vb x-\vb x^\prime) \vb b_\alpha(\vb x^\prime) d\vb x^\prime 
+\qquad
+ p_\alpha(\vb x) 
+ = 2\int G(\vb x-\vb x^\prime) d\vb x^\prime 
+$$
+%====================================================================%
+where the integrals are over the supports of $\vb b_\alpha$
+and $G(\vb r)=\frac{e^{ik|\vb r|}}{4\pi|\vb r|}$ is the 
+scalar Green's function in the medium.
+
+An important subtlety that affects the EPPFT calculation is
+that the fields in (\ref{EPPFTContinuous}) are evaluated
+on the surface of the body.
+
+In terms of the surface-current coefficients, the absorbed power
+reads 
+%====================================================================%
+\begin{align*}
  P\sups{abs} 
-     &= \frac{1}{2}\text{ Re }
-      \iint_{\partial \mc B} 
-      \bmc C^*(\vb x) \bmc G^{(\mc B)}(\vb x, \vb x^\prime)
-      \bmc C(\vb x^\prime)
-      \,d\vb x\, d\vb x^\prime
+&= \frac{1}{2}\text{Re }\sum_{\alpha\beta}
+   k^*_\alpha \Big[  ikZ  k_\beta\inp{\vb b_\alpha}{\vb e_\beta}
+                         -n_\beta\inp{\vb b_\alpha}{\vb h_\beta}
+              \Big]
++
+   n^*_\alpha \Big[   k_\beta\inp{\vb b_\alpha}{\vb h_\beta}
+                    + \frac{ik}{Z} n_\beta\inp{\vb b_\alpha}{\vb e_\beta}
+              \Big]
 \\
- F_i\sups{abs} 
-     &= \frac{1}{2\omega}\text{ Im }
-      \iint_{\partial \mc B}
-      \bmc C^*(\vb x) \partial_i \bmc G^{(\mc B)}(\vb x, \vb x^\prime)
-      \bmc C(\vb x^\prime)
-      \,d\vb x \,d\vb x^\prime
-\\
- \tau_i\sups{abs} 
-     &= \frac{1}{2\omega}\text{ Im }
-      \iint_{\partial \mc B}
-      \bmc C^*(\vb x) \partial_\theta \bmc G^{(\mc B)}(\vb x, \vb x^\prime)
-      \bmc C(\vb x^\prime)
-      \,d\vb x\, d\vb x^\prime
-\end{align}
-\label{EPPFT1}
-\end{subequations}
+ &= \text{Re }\sum_{\alpha\beta}
+    \left(
+     \begin{array}{c}
+      k_\alpha \\[5pt]
+      n_\alpha
+     \end{array}
+    \right) ^\dagger
+%--------------------------------------------------------------------%
+    \left(\begin{array}{cc}
+     P\supt{EE}_{\alpha\beta} & 
+     P\supt{EM}_{\alpha\beta} \\[5pt]
+     P\supt{ME}_{\alpha\beta} &
+     P\supt{MM}_{\alpha\beta}
+     \end{array}
+    \right)
+%--------------------------------------------------------------------%
+    \left(
+     \begin{array}{c}
+      k_\alpha \\[5pt]
+      n_\alpha
+     \end{array}
+    \right)
+\end{align*}
 %====================================================================%
-or, upon discretization,
+$$\begin{array}{lclclcl}
+ \displaystyle{
+ P\supt{EE}_{\alpha\beta}
+              }
+ &=&
+ \displaystyle{
+ \frac{ikZ}{2} \inp{\vb b_\alpha}{\vb e_\beta}
+              }
+%--------------------------------------------------------------------%
+ &\qquad&
+%--------------------------------------------------------------------%
+ \displaystyle{
+ P\supt{EM}_{\alpha\beta}
+              }
+ &=&
+%--------------------------------------------------------------------%
+ \displaystyle{
+ -\frac{1}{2}\inp{\vb b_\alpha}{\vb h_\beta}
+              }
+\\[8pt]
+%--------------------------------------------------------------------%
+ \displaystyle{
+ P\supt{EM}_{\beta\alpha}
+              }
+ &=&
+ \displaystyle{
+ +\frac{1}{2}\inp{\vb b_\alpha}{\vb h_\beta}
+              }
+%--------------------------------------------------------------------%
+ &\quad& 
+%--------------------------------------------------------------------%
+ P\supt{MM}_{\beta\alpha}
+ &=&
+ \displaystyle{
+ +\frac{ik}{2Z}\inp{\vb b_\alpha}{\vb e_\beta}
+              }
+\end{array}$$
 %====================================================================%
-\begin{subequations}
-\begin{align}
- P\sups{abs} 
-     &= \frac{1}{2}\text{ Re }
-      \vb c^\dagger \vb M^{(\mc B)} \vb c
+In terms of the surface-current coefficients, the $i$-directed force reads 
+\begin{align*}
+ F_i
+= \frac{1}{2}\text{Re }\sum_{\alpha\beta}
+ \bigg\{&
+   k^*_\alpha\pf{1}{i\omega \epsilon}^*
+    \Big[ ikZ k_\beta \inp{\nabla \cdot \vb b_\alpha}{\vb e_{\beta i}}
+             -n_\beta  \inp{\nabla \cdot \vb b_\alpha}{\vb h_{\beta i}}
+    \Big]
 \\
- F_i\sups{abs} 
-     &= \frac{1}{2\omega}\text{ Im }
-      \vb c^\dagger \partial_i \vb M^{(\mc B)} \vb c
+&+ Z_0 k^*_\alpha
+    \Big[ k_\beta \big\langle \vb b_\alpha \times \vb h_\beta\big\rangle_i
+         +\frac{ik}{Z} n_\beta \big\langle \vb b_\alpha \times \vb e_\beta\big\rangle_i
+    \Big]
 \\
- \tau_i\sups{abs} 
-     &= \frac{1}{2\omega}\text{ Im }
-      \vb c^\dagger \partial_\theta \vb M^{(\mc B)} \vb c.
-\end{align}
-\label{EPPFT}
-\end{subequations}
+&+
+   n^*_\alpha\pf{\epsilon}{i\omega}^*
+    \Big[ k_\beta \inp{\nabla \cdot \vb b_\alpha}{\vb h_{\beta i}}
+         +\frac{ik}{Z} +n_\beta \inp{\nabla \cdot \vb b_\alpha}{\vb e_{\beta i}}
+    \Big]
+\\
+&- \frac{1}{Z_0} n^*_\alpha
+    \Big[ ikZ k_\beta \big\langle \vb b_\alpha \times \vb e_\beta\big\rangle_i
+          -n_\beta \big\langle \vb b_\alpha \times \vb h_\beta\big\rangle_i
+    \Big] \bigg\}.
+\end{align*}
 %====================================================================%
+or 
+%====================================================================%
+$$
+ F_i
+  = \text{Re }\sum_{\alpha\beta}
+    \left(
+     \begin{array}{c}
+      k_\alpha \\[5pt]
+      n_\alpha
+     \end{array}
+    \right) ^\dagger
+%--------------------------------------------------------------------%
+    \left(\begin{array}{cc}
+     F\supt{EE}_{\alpha\beta} & 
+     F\supt{EM}_{\alpha\beta} \\[5pt]
+     F\supt{ME}_{\alpha\beta} &
+     F\supt{MM}_{\alpha\beta}
+     \end{array}
+    \right)
+%--------------------------------------------------------------------%
+    \left(
+     \begin{array}{c}
+      k_\alpha \\[5pt]
+      n_\alpha
+     \end{array}
+    \right)
+$$
+%====================================================================%
+\begin{align*}
+ F\supt{EE}_{\alpha\beta}
+ &=
+ -\pf{1}{2\omega \text{Re }\epsilon}
+  kZ \inp{\nabla \cdot b_\alpha}{\vb e_{\beta i}}
+               +Z_0  \big\langle \vb b_\alpha \times \vb h_\beta\big\rangle_i 
+\\
+%--------------------------------------------------------------------%
+ F\supt{EM}_{\alpha\beta}
+ &=
+ +\frac{1}{2\omega \text{Re }\epsilon}
+  \frac{kZ}{2\omega} \inp{\nabla \cdot b_\alpha}{\vb h_{\beta i}}
+               +Z_0  \big\langle \vb b_\alpha \times \vb h_\beta\big\rangle_i 
+\\
+\end{align*}
