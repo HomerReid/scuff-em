@@ -328,6 +328,8 @@ void GetdGMatrixEntries(RWGGeometry *G, int nsa, int nsb, int nea, int neb,
                         bool ForceDistant=false,
                         bool ForceNearby=false)
 {
+   GetdGME_Near(G, nsa, nea, nsb, neb, k, Order, DX, GC, dG, dC);
+return;
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -463,7 +465,7 @@ void RWGGeometry::GetEPPFT(int ns,
          KK = conj(kAlpha) * kBeta;
          KN = conj(kAlpha) * nBeta;
          NK = conj(nAlpha) * kBeta;
-         NK = conj(nAlpha) * nBeta;
+         NN = conj(nAlpha) * nBeta;
        }
       else
        { KK = SigmaMatrix->GetEntry(2*nea + 0, 2*neb+0);
@@ -484,7 +486,7 @@ void RWGGeometry::GetEPPFT(int ns,
       Tauz += imag ( CFactor*Overlap[2] );
     };
 
-  EPPFT[0] = 0.5*(10.0/3.0)*PAbs/real(Omega);
+  EPPFT[0] = 0.5*PAbs;
   EPPFT[1] = 0.5*(10.0/3.0)*Fx/real(Omega);
   EPPFT[2] = 0.5*(10.0/3.0)*Fy/real(Omega);
   EPPFT[3] = 0.5*(10.0/3.0)*Fz/real(Omega);
