@@ -350,6 +350,57 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
 }
 
 /***************************************************************/
+/* Parse a "potential" file to read a list of conductor        */
+/* potentials.                                                 */
+/* The file should look something like                         */
+/*                                                             */
+/*  BottomSurface 3.2                                          */
+/*  TopSurface    1.4                                          */
+/*                                                             */
+/* where the first string is the name of a PEC object/surface  */
+/* specified in the .scuffgeo file, and the second string is   */
+/* the potential in volts at which that object will be held    */
+/* in the scuff-static calculation.                            */
+/***************************************************************/
+void ParsePotentialFile(RWGGeometry *G, char *PotFile, double *Potentials)
+{ 
+  FILE *f=fopen(PotFile,"r");
+  if (!f)
+   ErrExit("could not open file %s",PotFile);
+
+  int LineNum=0;
+  char Line[100];
+  while (fgets(Line,100,f))
+   { 
+     LineNum++;
+
+     char *Tokens[3];
+     int NumTokens=Tokenize(Line, Tokens, 3," ");
+
+     if (NumTokens==0 || Tokens[0][0]=='#') 
+      continue; // skip blank lines and comments
+
+     if (NumTokens!=2) 
+      ErrExit("%s:%i: syntax error",PotFile,LineNum);
+
+     int ns;
+     if (G->GetSurfaceByLabel(Tokens[0],&ns)==0)
+      ErrExit("%s:%i: unknown surface",PotFile,LineNum,Tokens[0]);
+     if ( ! (G->Surfaces[ns]->IsPEC) )
+      ErrExit("%s:%i: attempt to assign potential to non-PEC surface %s",Tokens[0]);
+
+     double V;
+     if (1!=sscanf(Tokens[1],"%le",&V))
+      ErrExit("%s:%i: invalid potential specification",PotFile,LineNum);
+
+     Potentials[ns]=V;
+     Log("Setting potential of surface %s to %e volts.\n",Tokens[0],V);
+   }; 
+
+  fclose(f); 
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
@@ -361,12 +412,9 @@ void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
   /***************************************************************/
   RWGGeometry *G=SSS->G;
   double *Potentials = new double[G->NumSurfaces];
+  memset(Potentials, 0.0, G->NumSurfaces*sizeof(double));
   if (PotFile)
-   { 
-     ErrExit("--potfile option not yet supported");
-   }
-  else
-   memset( Potentials, 0.0, G->NumSurfaces * sizeof(double) );
+   ParsePotentialFile(G, PotFile, Potentials);
 
   /***************************************************************/
   /* process user's external-field specification if present      */

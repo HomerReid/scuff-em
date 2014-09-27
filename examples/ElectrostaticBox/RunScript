@@ -1,0 +1,12 @@
+#!/bin/bash
+
+CODE=scuff-static
+
+
+ARGS=""
+ARGS="${ARGS} --geometry ElectrostaticBox.scuffgeo"
+ARGS="${ARGS} --PotentialFile ElectrostaticBox.potentials"
+ARGS="${ARGS} --PlotFile ElectrostaticBox.pp"
+ARGS="${ARGS} --EPFile EvalPoints"
+
+${CODE} ${ARGS}
