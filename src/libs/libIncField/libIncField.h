@@ -37,10 +37,6 @@
 #define ZVAC 376.73031346177   // impedance of free space
 #endif
 
-#ifndef MAXLATTICE
-#define MAXLATTICE 2
-#endif
-
 /**********************************************************************/
 /* IncField is a general base class from which specific classes       */
 /* for various types of field are derived.                            */
@@ -52,7 +48,12 @@ class IncField
    cdouble Omega;
    cdouble Eps;
    cdouble Mu;
+
+   // bloch wavevector and lattice basis for Bloch-periodic case
+   int LDim;
+   double LBV1[2], LBV2[2], **LBV;
    double kBloch[2];
+
    IncField *Next;
 
    // label and/or index for the region within which the field sources 
@@ -67,7 +68,9 @@ class IncField
    void SetFrequency(cdouble Omega, bool Traverse=true);
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu, bool Traverse=true);
    void SetRegionLabel(const char *Label = 0);
-   void SetkBloch(double *NewkBloch);
+
+   void SetLattice(int LDim, double **LBV, bool Traverse=true);
+   void SetkBloch(double *NewkBloch, bool Traverse=true);
 
    // obsolete calling convention retained for backward compatibility
    void SetObjectLabel(const char *Label) { SetRegionLabel(Label); }

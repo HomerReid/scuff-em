@@ -528,7 +528,7 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KNVector, HMatrix *SigmaMatrix,
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
-      PAbs += real( KK*PEE*be + KN*PEM*bh + NK*PME*bh + KK*PMM*be );
+      PAbs += real( KK*PEE*be + KN*PEM*bh + NK*PME*bh + NN*PMM*be );
 
       Fx   += real(  KK*(FEE1*divbe[0] + FEE2*bxh[0])
                     +KN*(FEM1*divbh[0] + FEM2*bxe[0])

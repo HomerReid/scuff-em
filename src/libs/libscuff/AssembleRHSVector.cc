@@ -88,8 +88,7 @@ static void InnerProductIntegrand(double *X, void *opIPID, double *F)
   for(nif=0; nif<IPID->NNegativeIFs; nif++)
    { IPID->NegativeIFs[nif]->GetFields(X,dEH);
      for(n=0; n<6; n++) 
-      EH[n]-=dEH[n];
-   };
+      EH[n]-=dEH[n]; };
   
   /* compute dot products */
   cdouble *zF = (cdouble *)F;
@@ -352,11 +351,15 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
 
 /***************************************************************/
 /* Prepare a chain of IncField structures for computations in  */
-/* a given RWGGeometry at a given geometry:                    */
+/* a given RWGGeometry at a given frequency and (optionally)   */
+/* Bloch vector:                                               */
+/*                                                             */
 /*  (1) For each IncField in the chain, set the frequency to   */
-/*      Omega, and set Eps and Mu to the material properties   */
+/*      Omega, set Eps and Mu to the material properties       */
 /*      (at frequency Omega) of the region within which the    */
-/*      field sources are contained.                           */
+/*      field sources are contained, and (for PBC geometries)  */
+/*      set the Bloch vector and the lattice dimension.        */
+/*                                                             */
 /*  (2) Make sure the RegionIndex field in the IncField        */
 /*      structure matches the index of the object specified by */
 /*      the RegionLabel field (or, if the IncField implements  */
@@ -366,6 +369,9 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
 /***************************************************************/
 int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch)
 {
+  if ( (LDim==0 && kBloch!=0) || (LDim!=0 && kBloch==0) )
+   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+
   /*--------------------------------------------------------------*/
   /*- make sure the cached epsilon and mu values for all regions  */
   /*- are up-to-date for the present frequency                    */
@@ -402,7 +408,7 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch
      /*--------------------------------------------------------------*/
      IF->SetFrequencyAndEpsMu(Omega, EpsTF[ IF->RegionIndex ], MuTF[ IF->RegionIndex ] );
      if (kBloch)
-      IF->SetkBloch(kBloch);
+      IF->SetkBloch(kBloch, lDim);
 
    }; // for(NIF=0, IF=IFList ... 
 

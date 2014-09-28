@@ -1,0 +1,151 @@
+\documentclass[letterpaper]{article}
+\usepackage[square,sort,comma,numbers]{natbib}
+\newcommand{\citeasnoun}[1]{Ref.~\citenum{#1}}
+
+\input{scufftex}
+
+\newcommand\supsstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand{\IF}{^{i\text{\scriptsize F}}}
+\newcommand{\IFFlux}{^{i\text{\tiny FFLUX}}}
+\newcommand{\IT}{^{i\text{\scriptsize T}}}
+\newcommand{\ITFlux}{^{i\text{\tiny TFLUX}}}
+\newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
+\newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
+\newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
+%\newcommand{\vbchi}{\boldsymbol{\chi}}
+
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Computation of Green's Functions and LDOS in {\sc scuff-em}}
+\author {Homer Reid}
+\date {September 27, 2014}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Periodic GF computations in {\sc scuff-em}}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Green's functions and LDOS in the non-periodic case}
+
+The scattering parts of the dyadic Green's functions of a geometry
+are
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In {\sc scuff-em} this may be computed easily by solving a scattering
+problem in which the incident fields arise from a point dipole
+radiator at $\vb x_0$:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \vb E\sups{inc}(\vb x) &= \vb E\supt{PD}(\vb p, \vb x_0; \vb x)
+\\
+ \vb H\sups{inc}(\vb x) &= \vb H\supt{PD}(\vb p, \vb x_0; \vb x)
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where the fields of a point dipole are 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align*}
+\end{align*}
+\label{PDFields}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+(The ``PD'' superscript stands for ``point dipole'')
+
+To compute
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Extension to the periodic case}
+
+In the Bloch-periodic module of {\sc scuff-em}, \textit{all}
+fields and currents are assumed to be Bloch-periodic, i.e.
+if $Q(\vb x)$ denotes any field or current component at $\vb x$,
+then we have the built-in assumption
+%====================================================================%
+\numeq{BlochCondition}
+{Q(\vb x + \vb L) = e^{i\vb k\subt{B} \cdot \vb L}Q(\vb x)}
+%====================================================================%
+where $\vb L$ is any lattice vector and 
+$\vb k\subt{B}$ is the Bloch wavevector.
+
+The fields of a point dipole, equation (\ref{PDFields}), do \textit{not}
+satisfy (\ref{BlochCondition}), and hence may not be used in
+Bloch-periodic {\sc scuff-em} calculations. Instead, what we can 
+simulate in the periodic case are the fields of an infinite
+phased \textit{array} of point dipoles,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align*}
+ \vb E\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x)
+&=\sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}
+  \vb E\supt{PD}(\vb p, \vb x_0 + \vb L; \vb x)
+\\
+ \vb H\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x)
+&=\sum_{\vb L} e^{i\vb k\subt{B} \cdot \vb L}
+  \vb H\supt{PD}(\vb p, \vb x_0  + \vb L; \vb x)
+\end{align*}
+\label{EHPDA}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+(where ``PDA'' stands for ``point dipole array''). The quantity
+we can compute
+
+The inversion of equations (\ref{EHPDA}) recovers the fields
+of a point source as an integral over the Brillouin zone of the 
+lattice:\footnote{To derive these equations, multiply both sides
+of (\ref{EHPDA}) by $e^{-i\vb k\subt{B} \cdot \vb L^\prime}$,
+integrate both sides over the Brillouin zone, and use the
+condition 
+$$\int\subt{BZ} e^{i\vb k\subt{B}\cdot (\vb L-\vb L^\prime)}\,d\vb k
+  =\mc{V}\subt{BZ} \, \delta(\vb L,\vb L^\prime)
+$$
+where $\mc V\subt{BZ}$ is the Brillouin-zone volume [for example,
+a square lattice with basis vectors
+$\{\vb L_1, \vb L_2\}=\{L_x\vbhat{x}, L_y\vbhat{y}\}$ has
+$\mc V\subt{BZ}=4\pi^2/(L_x L_y)$].
+Setting $\vb L^\prime=0$ recovers (\ref{EHPDAInverse}).}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align}
+  \vb E\supt{PD}(\vb p, \vb x_0; \vb x)
+&=\frac{1}{\mc V\subt{BZ}} 
+   \int\subt{BZ} \vb E\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x) 
+   d\vb k\subt{B}
+\\
+  \vb H\supt{PD}(\vb p, \vb x_0; \vb x)
+&=\frac{1}{\mc V\subt{BZ}} 
+   \int\subt{BZ} \vb H\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x) 
+   d\vb k\subt{B}
+\end{align}
+\label{EHPDAInverse}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}
