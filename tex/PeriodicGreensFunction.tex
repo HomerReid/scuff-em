@@ -1,0 +1,238 @@
+\documentclass[letterpaper]{article}
+\usepackage[square,sort,comma,numbers]{natbib}
+\newcommand{\citeasnoun}[1]{Ref.~\citenum{#1}}
+
+\input{scufftex}
+
+\newcommand\supsstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand{\IF}{^{i\text{\scriptsize F}}}
+\newcommand{\IFFlux}{^{i\text{\tiny FFLUX}}}
+\newcommand{\IT}{^{i\text{\scriptsize T}}}
+\newcommand{\ITFlux}{^{i\text{\tiny TFLUX}}}
+\newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
+\newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
+\newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
+%\newcommand{\vbchi}{\boldsymbol{\chi}}
+
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Computation of Green's Functions and LDOS in {\sc scuff-em}}
+\author {Homer Reid}
+\date {September 27, 2014}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Periodic GF computations in {\sc scuff-em}}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Green's functions and LDOS in the non-periodic case}
+
+The scattering parts of the electric and magnetic
+dyadic Green's functions of a geometry are defined by
+%====================================================================%
+\begin{align*}
+ \mc G_{ij}\sups{E}(\omega; \vb x, \vb x^\prime)
+   \equiv
+   \frac{1}{ikZ_0 Z^r}
+  &\left( \parbox{0.65\textwidth}
+    { $i$-component of scattered $\vb E$-field at $\vb x$
+      due to a unit-strength $j$-directed point \textbf{electric} 
+      dipole radiator
+      at $\vb x^\prime$, all quantities having time dependence
+      $\sim e^{-i\omega t}$
+    }
+   \right)
+\\[5pt]
+%%--------------------------------------------------------------------%
+ \mc G_{ij}\sups{M}(\omega; \vb x, \vb x^\prime)
+   \equiv
+   \frac{1}{ik}
+  &\left( \parbox{0.65\textwidth}
+    { $i$-component of scattered $\vb H$-field at $\vb x$
+      due to a unit-strength $j$-directed point \textbf{magnetic}
+      dipole radiator
+      at $\vb x^\prime$, all quantities having time dependence
+      $\sim e^{-i\omega t}$
+    }
+   \right)
+\end{align*}
+%====================================================================%
+Here $k=\sqrt{\epsilon^r \mu^r }\cdot \omega$ and 
+$Z^r=\sqrt{\mu^r /\epsilon^r }$ are the wavenumber and 
+relative wave impedance of the material medium in which 
+point $\vb x$ resides ($\epsilon^r ,\mu^r$ are its relative 
+permittivity and permeability) and $Z_0\approx 377\,\Omega$  
+is the impedance of vacuum. The prefactors 
+$\frac{1}{ikZ_0Z^r}$ and $\frac{1}{ik}$ are inserted to 
+ensure that $\bmc G\supt{E,M}$ have dimensions of inverse
+length.
+%====================================================================%
+
+In {\sc scuff-em} the dyadic GFs may be computed easily by solving a
+scattering problem in which the incident fields arise from a point dipole
+radiator at $\vb x_0$. For example, to compute $\mc G\supt{E}$ we 
+take the incident fields to be
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \vb E\sups{inc}(\vb x) &= \vb E\supt{PD}(\vb p, \vb x_0; \vb x)
+\\
+ \vb H\sups{inc}(\vb x) &= \vb H\supt{PD}(\vb p, \vb x_0; \vb x)
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where the fields of a point electric dipole are
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align*}
+\end{align*}
+\label{PDFields}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+(The ``PD'' superscript stands for ``point dipole'')
+
+To compute
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Extension to the periodic case}
+
+In the Bloch-periodic module of {\sc scuff-em}, \textit{all}
+fields and currents are assumed to be Bloch-periodic, i.e.
+if $Q(\vb x)$ denotes any field or current component at $\vb x$,
+then we have the built-in assumption
+%====================================================================%
+\numeq{BlochCondition}
+{Q(\vb x + \vb L) = e^{i\vb k\subt{B} \cdot \vb L}Q(\vb x)}
+%====================================================================%
+where $\vb L$ is any lattice vector and 
+$\vb k\subt{B}$ is the Bloch wavevector.
+
+The fields of a point dipole, equation (\ref{PDFields}), do \textit{not}
+satisfy (\ref{BlochCondition}), and hence may not be used in
+Bloch-periodic {\sc scuff-em} calculations. Instead, what we can 
+simulate in the periodic case are the fields of an infinite
+phased \textit{array} of point dipoles,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align*}
+ \vb E\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x)
+&=\sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}
+  \vb E\supt{PD}(\vb p, \vb x_0 + \vb L; \vb x)
+\\
+ \vb H\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x)
+&=\sum_{\vb L} e^{i\vb k\subt{B} \cdot \vb L}
+  \vb H\supt{PD}(\vb p, \vb x_0  + \vb L; \vb x)
+\end{align*}
+\label{EHPDA}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+(where ``PDA'' stands for ``point dipole array''). The quantity
+we can compute
+
+The inversion of equations (\ref{EHPDA}) recovers the fields
+of a point source as an integral over the Brillouin zone of the 
+lattice:\footnote{To derive these equations, multiply both sides
+of (\ref{EHPDA}) by $e^{-i\vb k\subt{B} \cdot \vb L^\prime}$,
+integrate both sides over the Brillouin zone, and use the
+condition 
+$$\int\subt{BZ} e^{i\vb k\subt{B}\cdot (\vb L-\vb L^\prime)}\,d\vb k
+  =\mc{V}\subt{BZ} \, \delta(\vb L,\vb L^\prime)
+$$
+where $\mc V\subt{BZ}$ is the Brillouin-zone volume [for example,
+a square lattice with basis vectors
+$\{\vb L_1, \vb L_2\}=\{L_x\vbhat{x}, L_y\vbhat{y}\}$ has
+$\mc V\subt{BZ}=4\pi^2/(L_x L_y)$].
+Setting $\vb L^\prime=0$ recovers (\ref{EHPDAInverse}).}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align}
+  \vb E\supt{PD}(\vb p, \vb x_0; \vb x)
+&=\frac{1}{\mc V\subt{BZ}} 
+   \int\subt{BZ} \vb E\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x) 
+   d\vb k\subt{B}
+\\
+  \vb H\supt{PD}(\vb p, \vb x_0; \vb x)
+&=\frac{1}{\mc V\subt{BZ}} 
+   \int\subt{BZ} \vb H\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x) 
+   d\vb k\subt{B}
+\end{align}
+\label{EHPDAInverse}
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Technical implementation details}
+
+\subsection*{Computing the fields of a point dipole array}
+
+%The {\sc libincfield} module in {\sc scuff-em} contains a
+%built-in routine (in the \texttt{PointSource} class)
+%for computing the fields of a single point dipole, but
+
+First consider a single point dipole radiator (not an array) 
+at $\vb x_0$ with dipole moment $\vb p_0$ 
+(as usual suppressing time-dependence factors
+of $e^{-i\omega t}$). Thinking of this as an electric
+current distribution of the form
+%====================================================================%
+$$ \vb J(\vb x) = -i\omega \vb p \delta(\vb x-\vb x_0) $$
+%====================================================================%
+it is easy to compute the fields by convolution with the usual
+Green's functions relating currents to fields:
+%====================================================================%
+\begin{align*}
+ E_i(\vb x) 
+&= 
+ \int \Gamma_{ij}\supt{EE}(\vb x, \vb x^\prime) J_j(\vb x^\prime) d\vb x^\prime
+\\
+&=-i\omega \Gamma_{ij}\supt{EE}(\vb x, \vb x_0) p_j
+\\
+&=(-i\omega)(ikZ_0Z^r) G_{ij}(\vb x, \vb x_0) p_j
+\\[8pt]
+H_i(\vb x) 
+ &=
+\int \Gamma_{ij}\supt{ME}(\vb x, \vb x^\prime) J_j(\vb x^\prime) d\vb x^\prime
+\\
+&=-i\omega \Gamma_{ij}\supt{ME}(\vb x, \vb x_0) p_j
+\\
+&=(-i\omega)(ik) C_{ij}(\vb x, \vb x_0) p_j
+\end{align*}
+%====================================================================%
+where the $\vb G$ and $\vb C$ dyadics are related to the
+scalar Helmholtz Green's function according to
+%====================================================================%
+$$ G_{ij}(\vb r)
+   = \Big[ \delta_{ij} +\frac{1}{k^2} \partial_i \partial_j \Big] G_0(\vb r),
+\qquad
+   C_{ij}(\vb r)
+   = \frac{1}{ik}\varepsilon_{ijk} \partial_k G_0(\vb r).
+$$
+%====================================================================%
+\end{document}

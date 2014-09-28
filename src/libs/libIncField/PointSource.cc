@@ -20,6 +20,11 @@
 /*
  * PointSource.cc -- point source implementation of IncField
  *
+ *           Note:   Unlike the other IncField implementations,
+ *                   this one depends on libscuff because it
+ *                   requires Ewald summation in the periodic
+ *                   case.
+ *
  * homer reid     -- 11/2009 -- 2/2012
  */
 
@@ -28,6 +33,14 @@
 #include <string.h>
 
 #define II cdouble(0.0,1.0)
+
+namespace scuff {
+
+void GBarVDEwald(double *R, cdouble k, double *kBloch,
+                 double **LBV, int LDim,
+                 double E, bool ExcludeInnerCells, cdouble *GBarVD);
+
+                };
 
 /**********************************************************************/
 /**********************************************************************/
