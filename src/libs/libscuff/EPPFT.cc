@@ -340,8 +340,6 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
                             cdouble bxe[3],   cdouble bxh[3],
                             int Order=4)
 {
-   GetdGME_Near(G, nsa, nea, nsb, neb, k, Order, DX, GC, dG, dC);
-return;
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/

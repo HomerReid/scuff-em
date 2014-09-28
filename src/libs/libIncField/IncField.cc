@@ -95,7 +95,7 @@ void IncField::SetFrequencyAndEpsMu(cdouble pOmega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void IncField::SetLattice(int NewLDim, double **NewLBV, bool Traverse)
+void IncField::SetLattice(int NewLDim, double NewLBV[2][2], bool Traverse)
 {
   if (LDim<0 || LDim>2)
    ErrExit("%s: %i: periodic lattices must have dimension {0,1,2}",
