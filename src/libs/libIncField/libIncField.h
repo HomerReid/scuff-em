@@ -51,7 +51,7 @@ class IncField
 
    // bloch wavevector and lattice basis for Bloch-periodic case
    int LDim;
-   double LBV1[2], LBV2[2], **LBV;
+   double LBV1[2], LBV2[2], *LBV[2];
    double kBloch[2];
 
    IncField *Next;
@@ -69,7 +69,7 @@ class IncField
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu, bool Traverse=true);
    void SetRegionLabel(const char *Label = 0);
 
-   void SetLattice(int LDim, double **LBV, bool Traverse=true);
+   void SetLattice(int LDim, double LBasis[2][2], bool Traverse=true);
    void SetkBloch(double *NewkBloch, bool Traverse=true);
 
    // obsolete calling convention retained for backward compatibility
