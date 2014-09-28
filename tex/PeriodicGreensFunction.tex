@@ -51,15 +51,51 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Green's functions and LDOS in the non-periodic case}
 
-The scattering parts of the dyadic Green's functions of a geometry
-are
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The scattering parts of the electric and magnetic
+dyadic Green's functions of a geometry are defined by
+%====================================================================%
+\begin{align*}
+ \mc G_{ij}\sups{E}(\omega; \vb x, \vb x^\prime)
+   \equiv
+   \frac{1}{ikZ_0 Z^r}
+  &\left( \parbox{0.65\textwidth}
+    { $i$-component of scattered $\vb E$-field at $\vb x$
+      due to a unit-strength $j$-directed point \textbf{electric} 
+      dipole radiator
+      at $\vb x^\prime$, all quantities having time dependence
+      $\sim e^{-i\omega t}$
+    }
+   \right)
+\\[5pt]
+%%--------------------------------------------------------------------%
+ \mc G_{ij}\sups{M}(\omega; \vb x, \vb x^\prime)
+   \equiv
+   \frac{1}{ik}
+  &\left( \parbox{0.65\textwidth}
+    { $i$-component of scattered $\vb H$-field at $\vb x$
+      due to a unit-strength $j$-directed point \textbf{magnetic}
+      dipole radiator
+      at $\vb x^\prime$, all quantities having time dependence
+      $\sim e^{-i\omega t}$
+    }
+   \right)
+\end{align*}
+%====================================================================%
+Here $k=\sqrt{\epsilon^r \mu^r }\cdot \omega$ and 
+$Z^r=\sqrt{\mu^r /\epsilon^r }$ are the wavenumber and 
+relative wave impedance of the material medium in which 
+point $\vb x$ resides ($\epsilon^r ,\mu^r$ are its relative 
+permittivity and permeability) and $Z_0\approx 377\,\Omega$  
+is the impedance of vacuum. The prefactors 
+$\frac{1}{ikZ_0Z^r}$ and $\frac{1}{ik}$ are inserted to 
+ensure that $\bmc G\supt{E,M}$ have dimensions of inverse
+length.
+%====================================================================%
 
-In {\sc scuff-em} this may be computed easily by solving a scattering
-problem in which the incident fields arise from a point dipole
-radiator at $\vb x_0$:
+In {\sc scuff-em} the dyadic GFs may be computed easily by solving a
+scattering problem in which the incident fields arise from a point dipole
+radiator at $\vb x_0$. For example, to compute $\mc G\supt{E}$ we 
+take the incident fields to be
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
  \vb E\sups{inc}(\vb x) &= \vb E\supt{PD}(\vb p, \vb x_0; \vb x)
@@ -67,7 +103,7 @@ radiator at $\vb x_0$:
  \vb H\sups{inc}(\vb x) &= \vb H\supt{PD}(\vb p, \vb x_0; \vb x)
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where the fields of a point dipole are 
+where the fields of a point electric dipole are
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{subequations}
 \begin{align*}
@@ -148,4 +184,55 @@ Setting $\vb L^\prime=0$ recovers (\ref{EHPDAInverse}).}
 \end{subequations}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Technical implementation details}
+
+\subsection*{Computing the fields of a point dipole array}
+
+%The {\sc libincfield} module in {\sc scuff-em} contains a
+%built-in routine (in the \texttt{PointSource} class)
+%for computing the fields of a single point dipole, but
+
+First consider a single point dipole radiator (not an array) 
+at $\vb x_0$ with dipole moment $\vb p_0$ 
+(as usual suppressing time-dependence factors
+of $e^{-i\omega t}$). Thinking of this as an electric
+current distribution of the form
+%====================================================================%
+$$ \vb J(\vb x) = -i\omega \vb p \delta(\vb x-\vb x_0) $$
+%====================================================================%
+it is easy to compute the fields by convolution with the usual
+Green's functions relating currents to fields:
+%====================================================================%
+\begin{align*}
+ E_i(\vb x) 
+&= 
+ \int \Gamma_{ij}\supt{EE}(\vb x, \vb x^\prime) J_j(\vb x^\prime) d\vb x^\prime
+\\
+&=-i\omega \Gamma_{ij}\supt{EE}(\vb x, \vb x_0) p_j
+\\
+&=(-i\omega)(ikZ_0Z^r) G_{ij}(\vb x, \vb x_0) p_j
+\\[8pt]
+H_i(\vb x) 
+ &=
+\int \Gamma_{ij}\supt{ME}(\vb x, \vb x^\prime) J_j(\vb x^\prime) d\vb x^\prime
+\\
+&=-i\omega \Gamma_{ij}\supt{ME}(\vb x, \vb x_0) p_j
+\\
+&=(-i\omega)(ik) C_{ij}(\vb x, \vb x_0) p_j
+\end{align*}
+%====================================================================%
+where the $\vb G$ and $\vb C$ dyadics are related to the
+scalar Helmholtz Green's function according to
+%====================================================================%
+$$ G_{ij}(\vb r)
+   = \Big[ \delta_{ij} +\frac{1}{k^2} \partial_i \partial_j \Big] G_0(\vb r),
+\qquad
+   C_{ij}(\vb r)
+   = \frac{1}{ik}\varepsilon_{ijk} \partial_k G_0(\vb r).
+$$
+%====================================================================%
 \end{document}

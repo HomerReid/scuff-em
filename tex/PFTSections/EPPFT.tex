@@ -5,9 +5,9 @@
 \section{Equivalence-principle PFT (EPPFT)}
 
 In the EPPFT approach, we compute the power, force and torque
-on a body by considering the work done on, and the force and 
+on a body $\mc B$ by considering the work done on, and the force and 
 torque exerted on, the equivalent surface currents flowing on 
-the body surface.
+the body surface $\partial \mc B$.
 
 The power may be computed as the Joule heating of the
 $\vb K$ and $\vb N$ currents by the $\vb E$ and $\vb H$ fields:
@@ -37,11 +37,107 @@ and currents in each infinitesimal surface patch $dA$:
 \end{subequations}
 where the electric and magnetic charge densities are
 %====================================================================%
-$$ \sigma\subt{E} \equiv \frac{\nabla \cdot \vb K}{i\omega \epsilon}, 
+$$ \sigma\subt{E} \equiv \frac{\nabla \cdot \vb K}{i\omega},
    \qquad
-   \sigma\subt{M} \equiv \frac{\epsilon \nabla \cdot \vb N}{i\omega}.
+   \sigma\subt{M} \equiv \frac{\nabla \cdot \vb N}{i\omega}.
 $$
 %====================================================================%
+
+\subsection*{Interior vs. exterior fields}
+    
+Equations (\ref{EPPFTContinuous}) involve the fields at the surface
+of the body. In an SIE scattering problem involving incident-field 
+sources external to the body, we have a choice of two equivalent ways 
+to compute these fields:
+%====================================================================%
+\begin{itemize}
+\item We can use the formula for the fields outside the body, which
+involves contributions from surface currents on all bodies
+$\{\mc B^\prime\}$ in the scattering problem, plus a contribution 
+from the incident field:
+%====================================================================%
+\numeq{FOutExpansion} 
+ {  \bmc F\sups{out} 
+    =   2\sum_{\mc B^\prime} \bmc G\sups{out} \star \bmc C_{\mc B^\prime}
+       +\bmc F\sups{inc}
+ }
+%====================================================================%
+Here $\bmc G\sups{out}$ is the Green's function for the medium outside
+body $\mc B$, and the factor of $2$ arises from the fact, well known 
+in the SIE literature~\cite{Chen1989},
+that the convolution yields precisely one-half the full fields when
+the evaluation point lies on the surface.
+%====================================================================%
+\item Alternatively, we can use the formula for the fields
+      \textit{inside} the body, which references only the surface
+      currents on $\mc B$ and involves no surface-current contribution:
+%====================================================================%
+\numeq{FInExpansion} 
+ {  \bmc F\sups{in}
+     = -2\,\bmc G\sups{in} \star \bmc C_{\mc B}.
+ }
+%====================================================================%
+\end{itemize}
+%====================================================================%
+Evidently it is easier to use the interior expansion (\ref{FInExpansion}),
+but there is a subtlety here: Although the \textit{tangential} 
+components of the fields computed by the exterior and interior
+formulae agree, the \textit{normal} components differ; indeed,
+at the surface we have
+$    \epsilon\subs{out}(\vb E\sups{out}\cdot \vbhat{n})
+  = -\epsilon\subs{in}(\vb E\sups{in}\cdot \vbhat{n})
+$ (where we define $\vbhat{n}$ always to be the 
+\textit{outward-pointing} surface normal).
+For the purposes of evaluating (\ref{EPPFTContinuous}a) we want
+the the exterior normal fields, but from (\ref{FInExpansion}) we get
+the interior normal fields. [The distinction makes no difference
+for (\ref{EPPFTContinuous}a), which involves only tangential 
+components, but is relevant for (\ref{EPPFTContinuous}b), to
+which the normal components \textit{do} contribute.] To convert 
+interior to exterior fields we write
+%====================================================================%
+$$
+ \vb E\sups{out} 
+= \vb E\sups{out}_\parallel + E\sups{out}_{\vbhat n} \vbhat{n}
+= \vb E\sups{in}_\parallel - 
+   \frac{\epsilon\subs{in}}{\epsilon\subs{out}}
+   E\sups{in}_{\vbhat{n}}\vbhat{n}
+\\
+= \vb E\sups{in} - 
+   \left( \frac{\epsilon\subs{in}}{\epsilon\subs{out}} + 1 \right)
+   E\sups{in}_{\vbhat{n}}\vbhat{n}
+$$
+or 
+$$ \vb E\sups{out} = \vb E\sups{in} - \gamma\subs{E} E\sups{in}_{\vbhat n} 
+   \vbhat{n}
+$$
+where
+$$ \gamma\subs{E}=\frac{\epsilon\subs{in}}{\epsilon\subs{out}}+1.$$
+%====================================================================%
+\begin{align*}
+ \vb E\sups{out}(\vb x)
+&= \vb E_{\parallel}(\vb x) +
+       \underbrace{
+       \left(\frac{\epsilon\subs{in}}{\epsilon\subs{out}}-1\right)
+                  }_{\gamma\supt{E}}
+       \underbrace{
+       \Big(E\sups{in}_\perp \Big)\vbhat{n},
+                  }
+\\
+%&= \vb E_{\parallel}(\vb x) +
+%      \gamma_e 
+%       \left(\frac{\epsilon\sups{in}}{\epsilon\sups{out}}-1\right)
+%       \Big(E\sups{in}_\perp \Big)\vbhat{n},
+% \vb H\sups{out}(\vb x)
+%&= \vb H_{\parallel}(\vb x) +
+%       \left(\frac{\epsilon\sups{in}}{\epsilon\sups{out}}-1\right)
+%       \Big(H\sups{in}_\perp \Big)\vbhat{n}
+\end{align*}
+%====================================================================%
+The various terms in (\ref{EPPFTContinuous}b) read
+%====================================================================%
+\begin{align*}
+\end{align*}
 
 \subsection*{Implementation in {\sc scuff-em}}
 
