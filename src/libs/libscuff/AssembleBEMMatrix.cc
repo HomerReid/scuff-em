@@ -210,7 +210,7 @@ void *RWGGeometry::CreateABMBAccelerator(int nsa, int nsb,
   size_t MatrixSize = PureImagFreq ? NR*NC*sizeof(double) : NR*NC*sizeof(cdouble);
   int RC = PureImagFreq ? LHM_REAL : LHM_COMPLEX;
 
-  int NumMatrices;
+  int NumMatrices=0;
   if      (  OneDLattice &&  SameSurface ) NumMatrices=2;
   else if (  OneDLattice && !SameSurface ) NumMatrices=3;
   else if (  TwoDLattice &&  SameSurface ) NumMatrices=5;

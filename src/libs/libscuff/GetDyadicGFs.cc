@@ -77,8 +77,11 @@ namespace scuff {
 /*  i,j components of the electric and magnetic DGF tensors.   */
 /*                                                             */
 /***************************************************************/
-void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, HMatrix *M, HVector *KN,
-                               cdouble GE[3][3], cdouble GM[3][3])
+void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
+                               cdouble Omega, double *kBloch,
+                               HMatrix *M, HVector *KN,
+                               cdouble GEScat[3][3], cdouble GMScat[3][3],
+                               cdouble GETot[3][3], cdouble GMTot[3][3])
 {
   if (M==0 || M->NR != TotalBFs || M->NC!=M->NR )
    ErrExit("%s:%i: invalid M matrix passed to GetDyadicGFs()",__FILE__,__LINE__);
@@ -86,50 +89,85 @@ void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, HMatrix *M, HVector *
   if (KN==0 || KN->N != TotalBFs )
    ErrExit("%s:%i: invalid K vector passed to GetDyadicGFs()",__FILE__,__LINE__);
 
+  if ( (LDim>0 && kBloch==0) || (LDim==0 && kBloch!=0) )
+   ErrExit("%s:%i: incorrect kBloch specification",__FILE__,__LINE__);
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   cdouble P[3]={1.0, 0.0, 0.0};
-  PointSource PS(X, P);
+  PointSource PS(XSource, P);
+
   cdouble EH[6];
-
-  cdouble Eps, Mu;
-  int nr=GetRegionIndex(X);
-  RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
+  cdouble EpsRel, MuRel;
+  int nr=GetRegionIndex(XSource);
+  RegionMPs[nr]->GetEpsMu(Omega, &EpsRel, &MuRel);
   //cdouble IKZ = II*Omega*Mu*ZVAC;
-  cdouble k2 = Eps*Mu*Omega*Omega;
-  cdouble Z2 = ZVAC*ZVAC*Mu/Eps;
+  cdouble k2 = EpsRel*MuRel*Omega*Omega;
+  cdouble Z2 = ZVAC*ZVAC*MuRel/EpsRel;
 
-  for(int i=0; i<3; i++)
+  double r=VecDistance(XSource, XEval);
+
+  for(int Mu=0; Mu<3; Mu++)
    { 
      // set point source to point in the ith direction
      memset(P, 0, 3*sizeof(cdouble));
-     P[i]=1.0;
+     P[Mu]=1.0;
      PS.SetP(P);
 
      // solve the scattering problem for an electric point source 
      PS.SetType(LIF_ELECTRIC_DIPOLE);
-     AssembleRHSVector(Omega, &PS, KN);
+     AssembleRHSVector(Omega, kBloch, &PS, KN);
      M->LUSolve(KN);
-     GetFields(0, KN, Omega, X, EH);
-     GE[0][i]=EH[0] / k2;
-     GE[1][i]=EH[1] / k2;
-     GE[2][i]=EH[2] / k2;
+     GetFields(0, KN, Omega, kBloch, XEval, EH);
+     GEScat[0][Mu]=EH[0] / k2;
+     GEScat[1][Mu]=EH[1] / k2;
+     GEScat[2][Mu]=EH[2] / k2;
+     
+     // add the incident fields unless XSource=XEval
+     if (r>0.0)
+      { PS.GetFields(XEval, EH);
+        GETot[0][Mu] = GEScat[0][Mu] + EH[0]/k2;
+        GETot[1][Mu] = GEScat[1][Mu] + EH[1]/k2;
+        GETot[2][Mu] = GEScat[2][Mu] + EH[2]/k2;
+      };
 
      // solve the scattering problem for a magnetic point source 
      PS.SetType(LIF_MAGNETIC_DIPOLE);
-     AssembleRHSVector(Omega, &PS, KN);
+     AssembleRHSVector(Omega, kBloch, &PS, KN);
      M->LUSolve(KN);
-     GetFields(0, KN, Omega, X, EH);
-     GM[0][i]=EH[3] * Z2/k2;
-     GM[1][i]=EH[4] * Z2/k2;
-     GM[2][i]=EH[5] * Z2/k2;
+     GetFields(0, KN, Omega, kBloch, XEval, EH);
+     GMScat[0][Mu]=EH[3] * Z2/k2;
+     GMScat[1][Mu]=EH[4] * Z2/k2;
+     GMScat[2][Mu]=EH[5] * Z2/k2;
+
+     // add the incident fields unless XSource=XEval
+     if (r>0.0)
+      { PS.GetFields(XEval, EH);
+        GMTot[0][Mu] = GMScat[0][Mu] + EH[3]*Z2/k2;
+        GMTot[1][Mu] = GMScat[1][Mu] + EH[4]*Z2/k2;
+        GMTot[2][Mu] = GMScat[2][Mu] + EH[5]*Z2/k2;
+      };
    };
+}
+
+/***************************************************************/
+/* get just the scattering part of the DGFs at the source      */
+/* point; useful for LDOS computations and Casimir-Polder      */
+/* forces                                                      */
+/***************************************************************/
+void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, double *kBloch,
+                               HMatrix *M, HVector *KN,
+                               cdouble GEScat[3][3], cdouble GMScat[3][3])
+{
+  cdouble Dummy[3][3];
+  GetDyadicGFs(X, X, Omega, kBloch, M, KN, GEScat, GMScat, Dummy, Dummy);
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3], 
                                cdouble Omega, HMatrix *M, HVector *KN,
                                cdouble GEScat[3][3], cdouble GMScat[3][3],
@@ -191,5 +229,6 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
 
    };
 }
+#endif
 
 } // namespace scuff

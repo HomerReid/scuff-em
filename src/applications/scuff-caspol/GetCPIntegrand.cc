@@ -157,7 +157,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       R[2]=EPMatrix->GetEntryD(nep, 2);
 
       if (G) 
-       G->GetDyadicGFs(R, cdouble(0,Xi), M, KN, GE, GM);
+       G->GetDyadicGFs(R, cdouble(0,Xi), 0, M, KN, GE, GM);
       else
        GetPECPlateDGF(R[2], Xi, GE);
 
