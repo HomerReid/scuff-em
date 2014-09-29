@@ -5,9 +5,9 @@
 \section{Equivalence-principle PFT (EPPFT)}
 
 In the EPPFT approach, we compute the power, force and torque
-on a body $\mc B$ by considering the work done on, and the force and 
-torque exerted on, the equivalent surface currents flowing on 
-the body surface $\partial \mc B$.
+on a body $\mc B$ by considering the work done on, and the force and
+torque exerted on, the equivalent surface currents $\vb K, \vb N$
+flowing on the body surface $\partial \mc B$.
 
 The power may be computed as the Joule heating of the
 $\vb K$ and $\vb N$ currents by the $\vb E$ and $\vb H$ fields:
@@ -35,7 +35,7 @@ and currents in each infinitesimal surface patch $dA$:
 \end{equation}
 \label{EPPFTContinuous}
 \end{subequations}
-where the electric and magnetic charge densities are
+where the electric and magnetic surface charge densities are
 %====================================================================%
 $$ \sigma\subt{E} \equiv \frac{\nabla \cdot \vb K}{i\omega},
    \qquad
@@ -58,8 +58,8 @@ from the incident field:
 %====================================================================%
 \numeq{FOutExpansion} 
  {  \bmc F\sups{out} 
-    =   2\sum_{\mc B^\prime} \bmc G\sups{out} \star \bmc C_{\mc B^\prime}
-       +\bmc F\sups{inc}
+    =  2\Big[\sum_{\mc B^\prime} \bmc G\sups{out} \star \bmc C_{\mc B^\prime}
+             +\bmc F\sups{inc}\Big]
  }
 %====================================================================%
 Here $\bmc G\sups{out}$ is the Green's function for the medium outside
@@ -80,63 +80,73 @@ the evaluation point lies on the surface.
 \end{itemize}
 %====================================================================%
 Evidently it is easier to use the interior expansion (\ref{FInExpansion}),
-but there is a subtlety here: Although the \textit{tangential} 
-components of the fields computed by the exterior and interior
-formulae agree, the \textit{normal} components differ; indeed,
-at the surface we have
-$    \epsilon\subs{out}(\vb E\sups{out}\cdot \vbhat{n})
-  = -\epsilon\subs{in}(\vb E\sups{in}\cdot \vbhat{n})
-$ (where we define $\vbhat{n}$ always to be the 
-\textit{outward-pointing} surface normal).
-For the purposes of evaluating (\ref{EPPFTContinuous}a) we want
-the the exterior normal fields, but from (\ref{FInExpansion}) we get
-the interior normal fields. [The distinction makes no difference
-for (\ref{EPPFTContinuous}a), which involves only tangential 
-components, but is relevant for (\ref{EPPFTContinuous}b), to
-which the normal components \textit{do} contribute.] To convert 
-interior to exterior fields we write
+for which we need only the surface currents on $\mc B$. However,
+there is a subtlety here: The fields that act on the surface currents 
+in equations (\ref{EPPFTContinuous}) are the fields at the surface as 
+approached from \textit{outside} the body, but formula (\ref{FInExpansion}) 
+computes the fields at the surface as approached from the \textit{inside}.
+This distinction makes no difference for the tangential field
+components, which are continuous across the surface, but
+does affect the normal components. Equation (\ref{EPPFTContinuous}a) 
+for the absorbed power, which involves only tangential field
+components, is unaffected by this subtlety, but for 
+(\ref{EPPFTContinuous}b) there is a correction factor.
+To derive this, think of the $\vb E$ and $\vb H$ fields
+in (\ref{EPPFTContinuous}b) as the ``outer'' fields 
+$\{\vb E\sups{out}, \vb H\sups{out}\}$, and relate these to the 
+``inner'' fields
+$\{\vb E\sups{in}, \vb H\sups{in}\}$ according to
 %====================================================================%
-$$
+\begin{align}
  \vb E\sups{out} 
-= \vb E\sups{out}_\parallel + E\sups{out}_{\vbhat n} \vbhat{n}
-= \vb E\sups{in}_\parallel - 
+&=   \vb E\sups{out}_\parallel + E\sups{out}_{\vbhat n} \vbhat{n}
+ = \vb E\sups{in}_\parallel +
    \frac{\epsilon\subs{in}}{\epsilon\subs{out}}
    E\sups{in}_{\vbhat{n}}\vbhat{n}
-\\
-= \vb E\sups{in} - 
-   \left( \frac{\epsilon\subs{in}}{\epsilon\subs{out}} + 1 \right)
-   E\sups{in}_{\vbhat{n}}\vbhat{n}
-$$
-or 
-$$ \vb E\sups{out} = \vb E\sups{in} - \gamma\subs{E} E\sups{in}_{\vbhat n} 
-   \vbhat{n}
-$$
-where
-$$ \gamma\subs{E}=\frac{\epsilon\subs{in}}{\epsilon\subs{out}}+1.$$
+\nonumber\\[6pt]
+%--------------------------------------------------------------------%
+&= \vb E\sups{in} +
+   \gamma\subt{E} \sigma\subt{E} \vbhat{n},
+   \qquad
+   \gamma\supt{E} \equiv \frac{1}{\epsilon_0}
+            \Big( \frac{1}{\epsilon\supt{in}} -
+                  \frac{1}{\epsilon\supt{out}}
+            \Big)
+\label{EOutEIn}
+%--------------------------------------------------------------------%
+\intertext{where we used that the normal component of the interior 
+           field is $E\sups{in}_{\vbhat n}=
+                      \frac{\sigma\subt{E}}{\epsilon_0 \epsilon\supt{in}}$.
+           Similarly, for the $\vb H$ field we find}
+%--------------------------------------------------------------------%
+\vb H\sups{out}
+&= \vb H\sups{in} + \gamma\subt{M}\sigma\subt{M} \vbhat{n}, 
+\qquad
+   \gamma\supt{M} \equiv \frac{1}{\mu_0}
+            \Big( \frac{1}{\mu\supt{in}}   -
+                  \frac{1}{\mu\supt{out}}
+            \Big).
+\label{HOutHIn}
+\end{align}
+%====================================================================%
+Using (\ref{EOutEIn}) and (\ref{HOutHIn}) to substitute inner for
+outer fields in (\ref{EPPFTContinuous}b) yields
 %====================================================================%
 \begin{align*}
- \vb E\sups{out}(\vb x)
-&= \vb E_{\parallel}(\vb x) +
-       \underbrace{
-       \left(\frac{\epsilon\subs{in}}{\epsilon\subs{out}}-1\right)
-                  }_{\gamma\supt{E}}
-       \underbrace{
-       \Big(E\sups{in}_\perp \Big)\vbhat{n},
-                  }
+ F_i &= \frac{1}{2}\text{ Re }
+      \int_{\partial \mc B} 
+ \bigg\{   \sigma\subt{E}^*\, \vb E\sups{in}_i(\vb x)
+         +Z_0\big(\vb K^* \times \vb H\sups{in}\big)_{i}
+         +\sigma\subt{M}^*\, \vb H\sups{in}_i(\vb x)
+         -\frac{1}{Z_0}\big(\vb N^* \times \vb E\sups{in}\big)_{i}
 \\
-%&= \vb E_{\parallel}(\vb x) +
-%      \gamma_e 
-%       \left(\frac{\epsilon\sups{in}}{\epsilon\sups{out}}-1\right)
-%       \Big(E\sups{in}_\perp \Big)\vbhat{n},
-% \vb H\sups{out}(\vb x)
-%&= \vb H_{\parallel}(\vb x) +
-%       \left(\frac{\epsilon\sups{in}}{\epsilon\sups{out}}-1\right)
-%       \Big(H\sups{in}_\perp \Big)\vbhat{n}
-\end{align*}
-%====================================================================%
-The various terms in (\ref{EPPFTContinuous}b) read
-%====================================================================%
-\begin{align*}
+&\qquad\qquad + 
+  \Big( \gamma\subt{E} |\sigma\subt{E}^*| + \gamma\subt{M}|\sigma\subt{M}^*|
+  \Big)\vbhat{n}
+  +Z_0\gamma\subt{M}\sigma\subt{M}\Big(\vb K^* \times \vbhat{n}\Big)_i
+  -\frac{1}{Z_0}
+      \gamma\subt{E}\sigma\subt{E}\Big(\vb N^* \times \vbhat{n}\Big)_i
+ \bigg\}.
 \end{align*}
 
 \subsection*{Implementation in {\sc scuff-em}}
@@ -183,10 +193,6 @@ $$
 where the integrals are over the supports of $\vb b_\alpha$
 and $G(\vb r)=\frac{e^{ik|\vb r|}}{4\pi|\vb r|}$ is the 
 scalar Green's function in the medium.
-
-An important subtlety that affects the EPPFT calculation is
-that the fields in (\ref{EPPFTContinuous}) are evaluated
-on the surface of the body.
 
 In terms of the surface-current coefficients, the absorbed power
 reads 
@@ -269,7 +275,7 @@ In terms of the surface-current coefficients, the $i$-directed force reads
  F_i
 = \frac{1}{2}\text{Re }\sum_{\alpha\beta}
  \bigg\{&
-   k^*_\alpha\pf{1}{i\omega \epsilon}^*
+   k^*_\alpha\pf{1}{i\omega}^*
     \Big[ ikZ k_\beta \inp{\nabla \cdot \vb b_\alpha}{\vb e_{\beta i}}
              -n_\beta  \inp{\nabla \cdot \vb b_\alpha}{\vb h_{\beta i}}
     \Big]
@@ -280,7 +286,7 @@ In terms of the surface-current coefficients, the $i$-directed force reads
     \Big]
 \\
 &+
-   n^*_\alpha\pf{\epsilon}{i\omega}^*
+   n^*_\alpha\pf{1}{i\omega}^*
     \Big[ k_\beta \inp{\nabla \cdot \vb b_\alpha}{\vb h_{\beta i}}
          +\frac{ik}{Z} +n_\beta \inp{\nabla \cdot \vb b_\alpha}{\vb e_{\beta i}}
     \Big]
@@ -322,15 +328,14 @@ $$
 \begin{align*}
  F\supt{EE}_{\alpha\beta}
  &=
- -\pf{1}{2\omega \text{Re }\epsilon}
-  kZ \inp{\nabla \cdot b_\alpha}{\vb e_{\beta i}}
+ -\pf{1}{2\omega}
+  kZ \inp{\nabla \cdot \vb b_\alpha}{\vb e_{\beta i}}
                +Z_0  \big\langle \vb b_\alpha \times \vb h_\beta\big\rangle_i 
 \\
 %--------------------------------------------------------------------%
  F\supt{EM}_{\alpha\beta}
  &=
- +\frac{1}{2\omega \text{Re }\epsilon}
-  \frac{kZ}{2\omega} \inp{\nabla \cdot b_\alpha}{\vb h_{\beta i}}
+ +\frac{kZ}{2\omega} \inp{\nabla \cdot \vb b_\alpha}{\vb h_{\beta i}}
                +Z_0  \big\langle \vb b_\alpha \times \vb h_\beta\big\rangle_i 
 \\
 \end{align*}

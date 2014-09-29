@@ -59,9 +59,13 @@ namespace scuff {
 /*                                                             */
 /* Inputs:                                                     */
 /*                                                             */
-/*  X:     cartesian coordinates of evaluation point           */
+/*  XEval:  cartesian coordinates of evaluation point          */
+/*  XSource: cartesian coordinates of source points            */
 /*                                                             */
-/*  Omega: angular frequency                                   */
+/*  Omega:  angular frequency                                  */
+/*                                                             */
+/*  kBloch: 1D or 2D Bloch vector; set to NULL for             */
+/*          non-periodic geometries                            */
 /*                                                             */
 /*  M:     the LU-factorized BEM matrix. Note that the caller  */
 /*         is responsible for calling AssembleBEMMatrix() and  */
@@ -74,7 +78,9 @@ namespace scuff {
 /* Outputs:                                                    */
 /*                                                             */
 /*  On return, GE[i][j] and GM[i][j] are respectively the      */
-/*  i,j components of the electric and magnetic DGF tensors.   */
+/*  i,j components of the electric and magnetic DGF tensors,   */
+/*  with 'Scat' and 'Tot' indicating the scattering parts      */
+/*  and the full DGFs.                                         */
 /*                                                             */
 /***************************************************************/
 void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
@@ -152,9 +158,10 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
 }
 
 /***************************************************************/
-/* get just the scattering part of the DGFs at the source      */
-/* point; useful for LDOS computations and Casimir-Polder      */
-/* forces                                                      */
+/* get just the scattering part of the ``diagonal'' element of */
+/* the DGFs (in which the source and destination points        */
+/* coincide), working at a fixed frequency and Bloch vector.   */
+/* Useful for LDOS computations and Casimir-Polder forces.     */
 /***************************************************************/
 void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, double *kBloch,
                                HMatrix *M, HVector *KN,
@@ -165,68 +172,20 @@ void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, double *kBloch,
 }
 
 /***************************************************************/
-/***************************************************************/
+/* get the scattering part of the diagonal DGF elements,       */
+/* working at a specific frequency but not a specific kBloch.  */
+/* For non-periodic geometries this is just a single call to   */
+/* GetDyadicGFs() above, but for periodic geometries it        */
+/* involves an integral over the Brillouin zone.               */
 /***************************************************************/
 #if 0
-void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3], 
-                               cdouble Omega, HMatrix *M, HVector *KN,
-                               cdouble GEScat[3][3], cdouble GMScat[3][3],
-                               cdouble GETot[3][3], cdouble GMTot[3][3])
+void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega,
+                               HMatrix *M, HVector *KN,
+                               cdouble GEScat[3][3], cdouble GMScat[3][3])
 {
-  if (M==0 || M->NR != TotalBFs || M->NC!=M->NR )
-   ErrExit("%s:%i: invalid M matrix passed to GetDyadicGFs()",__FILE__,__LINE__);
-
-  if (KN==0 || KN->N != TotalBFs )
-   ErrExit("%s:%i: invalid K vector passed to GetDyadicGFs()",__FILE__,__LINE__);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  cdouble P[3]={1.0, 0.0, 0.0};
-  PointSource PS(XSource, P);
-  cdouble EH[6];
-
-  cdouble Eps, Mu;
-  int nr=GetRegionIndex(XSource);
-  RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
-  cdouble Z2 = ZVAC*ZVAC*Mu/Eps;
-  cdouble k2 = Eps*Mu*Omega*Omega;
-
-  for(int i=0; i<3; i++)
-   { 
-     // set point source to point in the ith direction
-     memset(P, 0, 3*sizeof(cdouble));
-     P[i]=1.0;
-     PS.SetP(P);
-
-     // solve the scattering problem for an electric point source 
-     PS.SetType(LIF_ELECTRIC_DIPOLE);
-     AssembleRHSVector(Omega, &PS, KN);
-     M->LUSolve(KN);
-     GetFields(0, KN, Omega, XEval, EH);
-     GEScat[0][i]=EH[0] / k2;
-     GEScat[1][i]=EH[1] / k2;
-     GEScat[2][i]=EH[2] / k2;
-
-     PS.GetFields(XEval, EH);
-     GETot[0][i]=GEScat[0][i] + EH[0] / k2;
-     GETot[1][i]=GEScat[1][i] + EH[1] / k2;
-     GETot[2][i]=GEScat[2][i] + EH[2] / k2;
-
-     // solve the scattering problem for a magnetic point source 
-     PS.SetType(LIF_MAGNETIC_DIPOLE);
-     AssembleRHSVector(Omega, &PS, KN);
-     M->LUSolve(KN);
-     GetFields(0, KN, Omega, XEval, EH);
-     GMScat[0][i]=EH[3] * Z2/k2;
-     GMScat[1][i]=EH[4] * Z2/k2;
-     GMScat[2][i]=EH[5] * Z2/k2;
-
-     PS.GetFields(XEval, EH);
-     GMTot[0][i]=GMScat[0][i] + EH[3] * Z2/k2;
-     GMTot[1][i]=GMScat[1][i] + EH[4] * Z2/k2;
-     GMTot[2][i]=GMScat[2][i] + EH[5] * Z2/k2;
-
+  if (LDim==0) // non-periodic case
+   { GetDyadicGFs(X, Omega, kBloch, M, KN, GEScat, GMScat);
+     return;
    };
 }
 #endif

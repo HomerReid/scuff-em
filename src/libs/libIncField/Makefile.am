@@ -6,4 +6,4 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil
 
 noinst_PROGRAMS = tPointSource
 tPointSource_SOURCES = tPointSource.cc
-tPointSource_LDADD = libIncField.la ../libhrutil/libhrutil.la
+tPointSource_LDADD = libIncField.la ../libhrutil/libhrutil.la ../libscuff/libscuff.la

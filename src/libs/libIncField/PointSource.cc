@@ -40,7 +40,7 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
                  double **LBV, int LDim,
                  double E, bool ExcludeInnerCells, cdouble *GBarVD);
 
-                };
+                }
 
 /**********************************************************************/
 /**********************************************************************/
@@ -84,6 +84,11 @@ bool PointSource::GetSourcePoint(double X[3]) const
 /**********************************************************************/
 void PointSource::GetFields(const double X[3], cdouble EH[6])
 {
+  if (LDim>0)
+   { GetFields_Periodic(X, EH);
+     return; 
+   };
+
   /* construct R, RHat, etc. */
   double RHat[3], R;
   RHat[0]=X[0] - X0[0];
@@ -137,5 +142,89 @@ void PointSource::GetFields(const double X[3], cdouble EH[6])
      EH[4]=ExpFac*( Term1*P[1] + Term2*RHat[1] ) / (Z*Z);
      EH[5]=ExpFac*( Term1*P[2] + Term2*RHat[2] ) / (Z*Z);
    };
+
+}
+
+/**********************************************************************/
+/**********************************************************************/
+/**********************************************************************/
+void PointSource::GetFields_Periodic(const double X[3], cdouble EH[6])
+{
+  cdouble k    = sqrt(Eps*Mu) * Omega;
+  cdouble k2   = k*k;
+  cdouble ZRel = sqrt(Mu/Eps);
+
+  double R[3];
+  R[0]= X[0]-X0[0];
+  R[1]= X[1]-X0[1];
+  R[2]= X[2]-X0[2];
+
+  /***************************************************************/
+  /* get the scalar green's function, its first derivatives, and */
+  /* its mixed second partials by Ewald summation.               */
+  /***************************************************************/
+  cdouble GArray[8];
+  scuff::GBarVDEwald(R, k, kBloch, LBV, LDim, -1.0, false, GArray);
+
+  cdouble G = GArray[0];
+
+  cdouble dG[3];
+  dG[0] = GArray[1];
+  dG[1] = GArray[2];
+  dG[2] = GArray[3];
+
+  cdouble ddG[3][3];
+  ddG[0][1] = ddG[1][0] = GArray[4];
+  ddG[0][2] = ddG[2][0] = GArray[5];
+  ddG[1][2] = ddG[2][1] = GArray[6];
+
+  /***************************************************************/
+  /* The Ewald routine only computes the mixed second partials,  */
+  /* so we do finite differencing to get unmixed second partials.*/
+  /***************************************************************/
+  for(int i=0; i<3; i++)
+   { 
+     double DeltaR = (R[i]==0.0 ? 1.0e-4 : 1.0e-4*fabs(R[i]) );
+     double RTweaked[3];
+
+     memcpy(RTweaked, R, 3*sizeof(double));
+     RTweaked[i]+=DeltaR;
+     cdouble GPArray[8];
+     scuff::GBarVDEwald(RTweaked, k, kBloch, LBV, LDim, -1.0, false, GPArray);
+     cdouble GP=GPArray[0];
+
+     memcpy(RTweaked, R, 3*sizeof(double));
+     RTweaked[i]-=DeltaR;
+     cdouble GMArray[8];
+     scuff::GBarVDEwald(RTweaked, k, kBloch, LBV, LDim, -1.0, false, GMArray);
+     cdouble GM=GMArray[0];
+
+     ddG[i][i] = (GP + GM - 2.0*G) / (DeltaR*DeltaR);
+   };
+
+  /***************************************************************/
+  /* now assemble the derivatives of G0 appropriately to form the*/
+  /* dyadic GFs and read off the E and H fields due to the source*/
+  /* note the scuff convention that dipole moment is measured    */
+  /* in units of volts/um^2 instead of coulomb*um; what this     */
+  /* means is that the numerical value of the dipole moment you  */
+  /* specify to scuff is the dipole moment in coulombs*microns   */
+  /* divided by 377 (the impedance of free space).               */
+  /***************************************************************/
+  //cdouble PreFac1 = Omega*k*ZVAC*ZRel;
+  //cdouble PreFac2 = -II*Omega;
+  cdouble PreFac1 = Omega*k*ZRel;
+  cdouble PreFac2 = II*Omega/ZVAC;
+
+  EH[0*3 + 0 ]
+   = PreFac1 * (G*P[0] + (ddG[0][0]*P[0]+ddG[0][1]*P[1]+ddG[0][2]*P[2])/k2 );
+  EH[0*3 + 1 ] 
+   = PreFac1 * (G*P[1] + (ddG[1][0]*P[0]+ddG[1][1]*P[1]+ddG[1][2]*P[2])/k2 );
+  EH[0*3 + 2 ] 
+   = PreFac1 * (G*P[2] + (ddG[2][0]*P[0]+ddG[2][1]*P[1]+ddG[2][2]*P[2])/k2 );
+
+  EH[1*3 + 0] = PreFac2 * (P[1]*dG[2] - P[2]*dG[1]);
+  EH[1*3 + 1] = PreFac2 * (P[2]*dG[0] - P[0]*dG[2]);
+  EH[1*3 + 2] = PreFac2 * (P[0]*dG[1] - P[1]*dG[0]);
 
 }
