@@ -376,6 +376,12 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch
    IFList->SetLattice(LDim, LBasis, true);
 
   /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (LDim)
+   IFList->SetLattice(LDim, LBasis, true);
+
+  /*--------------------------------------------------------------*/
   /*- make sure the cached epsilon and mu values for all regions  */
   /*- are up-to-date for the present frequency                    */
   /*--------------------------------------------------------------*/
