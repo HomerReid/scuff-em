@@ -34,7 +34,6 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
-#include "PanelCubature.h"
 
 #include "cmatheval.h"
 

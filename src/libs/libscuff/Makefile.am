@@ -39,7 +39,6 @@ libscuff_la_SOURCES = \
  ExpandCurrentDistribution.cc 	\
  AssembleRHSVector.cc 		\
  AssessPanelPair.cc 		\
- PanelCubature.cc   		\
  CalcGC.cc 			\
  rwlock.cc 			\
  rwlock.h 			\
