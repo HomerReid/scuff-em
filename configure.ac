@@ -205,7 +205,6 @@ AC_CONFIG_FILES([
  src/libs/libhmat/Makefile
  src/libs/libhrutil/Makefile
  src/libs/libscuff/Makefile
- src/libs/python/Makefile
  src/applications/Makefile
  src/applications/scuff-analyze/Makefile
  src/applications/scuff-caspol/Makefile

@@ -425,8 +425,9 @@ if (FMatrix==0)
 
   /***************************************************************/
   /* For the periodic-boundary-condition case, we need to        */
-  /* initialize interpolator objects for computing the periodic  */
-  /* Green's function in each extended region of the geometry.   */
+  /* initialize accelerator objects to accelerate computation of */
+  /* the periodic Green's function in each extended region of    */
+  /* the geometry.                                               */
   /***************************************************************/
   GBarAccelerator **RegionGBAs=0;
   if (KN && LDim>0)

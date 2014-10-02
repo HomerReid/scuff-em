@@ -369,6 +369,8 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
 /***************************************************************/
 int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch)
 {
+  if (IFList==0) return 0;
+
   if ( (LDim==0 && kBloch!=0) || (LDim!=0 && kBloch==0) )
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 

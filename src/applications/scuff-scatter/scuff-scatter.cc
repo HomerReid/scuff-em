@@ -108,12 +108,11 @@ int main(int argc, char *argv[])
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
      {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
 /**/
+     {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
-/**/
-     {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT file"},
-     {"PFTFile",        PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of equivalence-principle PFT file"},
-/**/
      {"SIPFTFile",      PA_STRING,  1, 1,       (void *)&SIPFTFile,  0,             "name of displaced surface-integral PFT output file"},
+     {"PFTFile",        PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "(synonym for --EPPFT)"},
+/**/
      {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
      {"SIPoints",       PA_INT,     1, 1,       (void *)&SIPoints,   0,             "number of quadrature points for surface-integral PFT"},
      {"SIMesh",         PA_STRING,  1, 1,       (void *)&SIMeshFile, 0,             "mesh file for surface-integral PFT"},

@@ -445,7 +445,6 @@ done:
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  //UpdateRegionInterpolators(Omega, kBloch);
   Args->GBA1=CreateRegionGBA(nr1, Omega, kBloch, nsa, nsb);
   if (nr2!=-1) 
    Args->GBA2=CreateRegionGBA(nr2, Omega, kBloch, nsa, nsb);

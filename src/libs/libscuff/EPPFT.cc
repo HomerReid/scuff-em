@@ -49,18 +49,9 @@
 #endif
 
 #define II cdouble(0,1)
+#define TENTHIRDS (10.0/3.0)
 
 namespace scuff {
-
-void CalcGC(double R[3], cdouble Omega,
-            cdouble EpsR, cdouble MuR,
-            cdouble GMuNu[3][3], cdouble CMuNu[3][3],
-            cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3]);
-
-void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
-                             double X0[3],  cdouble k,
-                             cdouble e[3], cdouble h[3],
-                             cdouble de[3][3], cdouble dh[3][3]);
 
 void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
                              double X0[3],  cdouble k,
@@ -90,17 +81,6 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
                             cdouble rxbxe[3],   cdouble rxbxh[3],
                             int Order=4)
 {
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-#if 0
-  int ncv=NumCommonBFVertices(G->Surfaces[nsa],nea,G->Surfaces[nsb],neb);
-  if ( (ncv==0 || ForceDistant) && (!ForceNearby) )
-   GetdGME_Far(G, nsa, nea, nsb, neb, k, Order, DX, GC, dG, dC);
-  else
-   GetdGME_Near(G, nsa, nea, nsb, neb, k, Order, DX, GC, dG, dC);
-#endif
-
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -221,9 +201,14 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
 /***************************************************************/
 /* Note: Either KNVector or SigmaMatrix should be non-null.    */
 /***************************************************************/
-void RWGGeometry::GetEPPFT(int ns, HVector *KNVector, HMatrix *SigmaMatrix,
-                           cdouble Omega, double EPPFT[7])
+void RWGGeometry::GetEPPFT(int ns,
+                           HVector *KNVector, HMatrix *SigmaMatrix,
+                           cdouble Omega, double EPPFT[7],
+                           double **ByEdge, bool Exterior)
 {
+  /*--------------------------------------------------------------*/
+  /*- get material parameters of interior and exterior regions    */
+  /*--------------------------------------------------------------*/
   RWGSurface *S=Surfaces[ns];
   int NE = S->NumEdges;
   int Offset = BFIndexOffset[ns];
@@ -234,44 +219,63 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KNVector, HMatrix *SigmaMatrix,
      return;
    };
 
-  /*--------------------------------------------------------------*/
-  /*- extract material parameters and define constant prefactors -*/
-  /*--------------------------------------------------------------*/
-  cdouble EpsIn, MuIn;
+  cdouble EpsOut, MuOut, EpsIn, MuIn;
+  RegionMPs[nrOut]->GetEpsMu(Omega, &EpsOut, &MuOut);
   RegionMPs[nrIn]->GetEpsMu(Omega, &EpsIn, &MuIn);
-  cdouble k = Omega * sqrt(EpsIn*MuIn);
-  cdouble ZRel = sqrt(MuIn/EpsIn);
+
+  cdouble k, ZRel, GammaE, GammaM;
+  if (Exterior)
+   { 
+     k = Omega * sqrt(EpsOut*MuOut);
+     ZRel = sqrt(MuOut/EpsOut);
+     GammaE=GammaM=0.0;
+   }
+  else
+   { 
+     k = Omega * sqrt(EpsIn*MuIn);
+     ZRel = sqrt(MuIn/EpsIn);
+     GammaE=(1.0/EpsIn - 1.0/EpsOut) * ZVAC;
+     GammaM=(1.0/MuIn  - 1.0/MuOut) / ZVAC;
+   }
+
+  /*--------------------------------------------------------------*/
+  /*- define the constant prefactors that enter the power, force -*/
+  /*- and torque formulas                                        -*/
+  /*--------------------------------------------------------------*/
   cdouble KZ  = k*ZVAC*ZRel;
   cdouble KOZ = k/(ZVAC*ZRel);
+  cdouble Omega2=Omega*Omega;
 
   cdouble PEE  = +II*KZ/2.0;
   cdouble PEM  = -1.0/2.0;
   cdouble PME  = +1.0/2.0;
   cdouble PMM  = +II*KOZ/2.0;
-  cdouble FEE1 = -KZ/(2.0*Omega);
-  cdouble FEE2 = +ZVAC/2.0;
-  cdouble FEM1 = +1.0/(2.0*II*Omega);
-  cdouble FEM2 = +II*KOZ*ZVAC/2.0;
-  cdouble FME1 = -1.0/(2.0*II*Omega);
-  cdouble FME2 = -II*KZ/(2.0*ZVAC);
-  cdouble FMM1 = -1.0*KOZ/(2.0*Omega);
-  cdouble FMM2 = +1.0/(2.0*ZVAC);
+
+  cdouble FEE1 = -TENTHIRDS*KZ/(2.0*Omega);
+  cdouble FEE2 = +TENTHIRDS*ZVAC/2.0;
+  cdouble FEM1 = +TENTHIRDS/(2.0*II*Omega);
+  cdouble FEM2 = +TENTHIRDS*II*KOZ*ZVAC/2.0;
+  cdouble FME1 = -TENTHIRDS/(2.0*II*Omega);
+  cdouble FME2 = -TENTHIRDS*II*KZ/(2.0*ZVAC);
+  cdouble FMM1 = -TENTHIRDS*KOZ/(2.0*Omega);
+  cdouble FMM2 = +TENTHIRDS/(2.0*ZVAC);
+  cdouble FEE3 = +0.25*TENTHIRDS*GammaE/Omega2;
+  cdouble FMM3 = +0.25*TENTHIRDS*GammaM/Omega2;
+  cdouble FEM3 = -0.25*TENTHIRDS*GammaM*ZVAC/(II*Omega);
+  cdouble FME3 = +0.25*TENTHIRDS*GammaE/(II*Omega*ZVAC);
 
   /*--------------------------------------------------------------*/
-  /*- these two lines assume the outer medium is vacuum ----------*/
   /*--------------------------------------------------------------*/
-  cdouble EpsOut, MuOut;
-  RegionMPs[nrOut]->GetEpsMu(Omega, &EpsOut, &MuOut);
-  cdouble GammaE=(1.0/EpsIn - 1.0/EpsOut) * ZVAC;
-  cdouble GammaM=(1.0/MuIn  - 1.0/MuOut) / ZVAC;
-  cdouble Omega2=Omega*Omega;
-  cdouble FEE3 = +0.25*GammaE/Omega2;
-  cdouble FMM3 = +0.25*GammaM/Omega2;
-  cdouble FEM3 = -0.25*ZVAC*GammaM/(II*Omega);
-  cdouble FME3 = +0.25*GammaE/(II*Omega*ZVAC);
+  /*--------------------------------------------------------------*/
+  if (ByEdge)
+   { for(int nq=0; nq<7; nq++)
+      if (ByEdge[nq])
+       memset(ByEdge[nq],0,NE*sizeof(double));
+   };
 
-  int Order=4; // increase for greater accuracy in overlap integrals
-
+  /*--------------------------------------------------------------*/
+  /*- loop over all pairs of edges -------------------------------*/
+  /*--------------------------------------------------------------*/
   double PAbs=0.0;
   double Fx=0.0, Fy=0.0, Fz=0.0;
   double Taux=0.0, Tauy=0.0, Tauz=0.0;
@@ -300,9 +304,11 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KNVector, HMatrix *SigmaMatrix,
       cdouble be, bh;
       cdouble divbe[3], divbh[3], bxe[3], bxh[3];
       cdouble divbrxe[3], divbrxh[3], rxbxe[3], rxbxh[3];
+      int Order=4; // increase for greater accuracy in overlap integrals
       GetEPPFTMatrixElements(this, ns, ns, nea, neb, k, &be, &bh,
                              divbe, divbh, bxe, bxh,
-                             divbrxe, divbrxh, rxbxe, rxbxh);
+                             divbrxe, divbrxh, rxbxe, rxbxh, 
+                             Order);
 
       /*--------------------------------------------------------------*/
       /*- Get various overlap integrals between basis function b_\alpha*/
@@ -327,7 +333,7 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KNVector, HMatrix *SigmaMatrix,
 
       /*--------------------------------------------------------------*/
       /*- extract the surface-current coefficient either from the KN -*/
-      /*- vector or the Sigma matrix.                                -*/
+      /*- vector or the Sigma matrix                                 -*/
       /*--------------------------------------------------------------*/
       cdouble KK, KN, NK, NN;
       if (KNVector)
@@ -343,151 +349,74 @@ void RWGGeometry::GetEPPFT(int ns, HVector *KNVector, HMatrix *SigmaMatrix,
          NN = conj(nAlpha) * nBeta;
        }
       else
-       { KK = SigmaMatrix->GetEntry(2*nea + 0, 2*neb+0);
-         KN = SigmaMatrix->GetEntry(2*nea + 0, 2*neb+1);
-         NK = SigmaMatrix->GetEntry(2*nea + 1, 2*neb+0);
-         NN = SigmaMatrix->GetEntry(2*nea + 1, 2*neb+1);
+       { KK = SigmaMatrix->GetEntry(Offset + 2*nea + 0, Offset + 2*neb+0);
+         KN = SigmaMatrix->GetEntry(Offset + 2*nea + 0, Offset + 2*neb+1);
+         NK = SigmaMatrix->GetEntry(Offset + 2*nea + 1, Offset + 2*neb+0);
+         NN = SigmaMatrix->GetEntry(Offset + 2*nea + 1, Offset + 2*neb+1);
        };
 
       /*--------------------------------------------------------------*/
-      /*- assemble the various quantities.                            */
+      /*- get the contributions of this edge pair to all quantities   */
       /*--------------------------------------------------------------*/
-      PAbs -= real( KK*PEE*be + KN*PEM*bh + NK*PME*bh + NN*PMM*be );
+      double dPAbs, dF[3], dTau[3];
 
-      Fx   -= real(   KK*(FEE1*divbe[0] + FEE2*bxh[0])
-                    + KN*(FEM1*divbh[0] + FEM2*bxe[0])
-                    + NK*(FME1*divbh[0] + FME2*bxe[0])
-                    + NN*(FMM1*divbe[0] + FMM2*bxh[0])
-                    + (FEE3*KK + FMM3*NN) * Divba_n_Divbb[0]
-                    + (FEM3*KN + FME3*NK) * nxba_Divbb[0]
-                  );
+      dPAbs = -real( KK*PEE*be + KN*PEM*bh + NK*PME*bh + NN*PMM*be );
 
-      Fy   -= real(   KK*(FEE1*divbe[1] + FEE2*bxh[1])
-                    + KN*(FEM1*divbh[1] + FEM2*bxe[1])
-                    + NK*(FME1*divbh[1] + FME2*bxe[1])
-                    + NN*(FMM1*divbe[1] + FMM2*bxh[1]) 
-                    + (FEE3*KK + FMM3*NN) * Divba_n_Divbb[1]
-                    + (FEM3*KN + FME3*NK) * nxba_Divbb[1] 
-                  );
+      for(int i=0; i<3; i++)
+       { dF[i] = -real(   KK*(FEE1*divbe[i] + FEE2*bxh[i])
+                        + KN*(FEM1*divbh[i] + FEM2*bxe[i])
+                        + NK*(FME1*divbh[i] + FME2*bxe[i])
+                        + NN*(FMM1*divbe[i] + FMM2*bxh[i])
+                        + (FEE3*KK + FMM3*NN) * Divba_n_Divbb[i]
+                        + (FEM3*KN + FME3*NK) * nxba_Divbb[i]
+                      );
+  
+         dTau[i] = -real(   KK*(FEE1*divbrxe[i] + FEE2*rxbxh[i])
+                          + KN*(FEM1*divbrxh[i] + FEM2*rxbxe[i])
+                          + NK*(FME1*divbrxh[i] + FME2*rxbxe[i])
+                          + NN*(FMM1*divbrxe[i] + FMM2*rxbxh[i])
+                          + (FEE3*KK + FMM3*NN) * Divba_rxn_Divbb[i]
+                          + (FEM3*KN + FME3*NK) * rxnxba_Divbb[i]
+                        );
+       };
 
-      Fz   -= real(   KK*(FEE1*divbe[2] + FEE2*bxh[2])
-                    + KN*(FEM1*divbh[2] + FEM2*bxe[2])
-                    + NK*(FME1*divbh[2] + FME2*bxe[2])
-                    + NN*(FMM1*divbe[2] + FMM2*bxh[2]) 
-                    + (FEE3*KK + FMM3*NN) * Divba_n_Divbb[2]
-                    + (FEM3*KN + FME3*NK) * nxba_Divbb[2] 
-                  );
+      /*--------------------------------------------------------------*/
+      /*- accumulate contributions to by-edge sums and total sums     */
+      /*--------------------------------------------------------------*/
+     if (ByEdge) 
+      {  
+        #pragma omp critical (ByEdge)
+         { if (ByEdge[0]) ByEdge[0][nea] += dPAbs;
+           if (ByEdge[1]) ByEdge[1][nea] += dF[0];
+           if (ByEdge[2]) ByEdge[2][nea] += dF[1];
+           if (ByEdge[3]) ByEdge[3][nea] += dF[2];
+           if (ByEdge[4]) ByEdge[4][nea] += dTau[0];
+           if (ByEdge[5]) ByEdge[5][nea] += dTau[1];
+           if (ByEdge[6]) ByEdge[6][nea] += dTau[2];
+         };
+      };
 
-      Taux -= real(   KK*(FEE1*divbrxe[0] + FEE2*rxbxh[0])
-                    + KN*(FEM1*divbrxh[0] + FEM2*rxbxe[0])
-                    + NK*(FME1*divbrxh[0] + FME2*rxbxe[0])
-                    + NN*(FMM1*divbrxe[0] + FMM2*rxbxh[0])
-                    + (FEE3*KK + FMM3*NN) * Divba_rxn_Divbb[0]
-                    + (FEM3*KN + FME3*NK) * rxnxba_Divbb[0]
-                  );
-
-      Tauy -= real(   KK*(FEE1*divbrxe[1] + FEE2*rxbxh[1])
-                    + KN*(FEM1*divbrxh[1] + FEM2*rxbxe[1])
-                    + NK*(FME1*divbrxh[1] + FME2*rxbxe[1])
-                    + NN*(FMM1*divbrxe[1] + FMM2*rxbxh[1])
-                    + (FEE3*KK + FMM3*NN) * Divba_rxn_Divbb[1]
-                    + (FEM3*KN + FME3*NK) * rxnxba_Divbb[1]
-                  );
-
-      Tauz -= real(   KK*(FEE1*divbrxe[2] + FEE2*rxbxh[2])
-                    + KN*(FEM1*divbrxh[2] + FEM2*rxbxe[2])
-                    + NK*(FME1*divbrxh[2] + FME2*rxbxe[2])
-                    + NN*(FMM1*divbrxe[2] + FMM2*rxbxh[2])
-                    + (FEE3*KK + FMM3*NN) * Divba_rxn_Divbb[2]
-                    + (FEM3*KN + FME3*NK) * rxnxba_Divbb[2]
-                  );
-
-#if 0
-      // corrections to account for interior/exterior normal fields
-      Taux -= 0.25*real( (GammaE*KK + GammaM*NN)/(Omega*Omega) )
-              * Divba_nHat_Divbb[2];
-
-      Tauy += 0.25*real( (ZVAC*GammaM*KN - GammaE*NK/ZVAC)/(II*Omega))
-              * nxba_Divbb[2];
-
-      Tauz += 0.0;
-#endif
+     PAbs += dPAbs;
+     Fx   += dF[0];
+     Fy   += dF[1];
+     Fz   += dF[2];
+     Taux += dTau[0];
+     Tauy += dTau[1];
+     Tauz += dTau[2];
 
     };
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   EPPFT[0] = PAbs;
-  EPPFT[1] = (10.0/3.0)*Fx;
-  EPPFT[2] = (10.0/3.0)*Fy;
-  EPPFT[3] = (10.0/3.0)*Fz;
-  EPPFT[4] = (10.0/3.0)*Taux;
-  EPPFT[5] = (10.0/3.0)*Tauy;
-  EPPFT[6] = (10.0/3.0)*Tauz;
+  EPPFT[1] = Fx;
+  EPPFT[2] = Fy;
+  EPPFT[3] = Fz;
+  EPPFT[4] = Taux;
+  EPPFT[5] = Tauy;
+  EPPFT[6] = Tauz;
 
 }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-void AssembledGMatrixBlock(RWGGeometry *G, int ns, cdouble Omega,
-                           HMatrix *dG[6])
-{
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  RWGSurface *S=G->Surfaces[ns];
-  int nr = S->RegionIndices[1];
-  if (nr==-1)
-   { Warn("AssembledGMatrixBlock called for PEC object (ignoring)")
-     return;
-   };
-  Log("Computing dG matrices for surface %i (%s)...",ns,S->Label);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  cdouble Eps, Mu;
-  G->RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
-  cdouble k = sqrt(Eps*Mu)*Omega;
-  cdouble Z = sqrt(Mu/Eps);
-  cdouble PreFac1 = II*k*Z;
-  cdouble PreFac2 = II*k;
-  cdouble PreFac3 = -II*k/Z;
-
-  /***************************************************************/
-  /* loop over pairs of basis functions to assemble the matrix   */
-  /***************************************************************/
-  int NE = S->NumEdges;
-  int nt, NumTasks, NumThreads = GetNumThreads();
-#ifndef USE_OPENMP
-  NumTasks=NumThreads=1;
-  if (G->LogLevel>=SCUFF_VERBOSE2)
-   Log(" no multithreading...");
-#else
-  NumTasks=NumThreads*100;
-  if (NumTasks>S->NumEdges) 
-  if (G->LogLevel>=SCUFF_VERBOSE2)
-   Log(" OpenMP multithreading (%i threads,%i tasks)...",NumThreads,NumTasks);
-#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
-#endif
-  for(int nea=0; nea<S->NumEdges; nea++)
-   for(int neb=nea; neb<S->NumEdges; neb++)
-    { 
-      if (nea==0 && G->LogLevel>SCUFF_VERBOSE2)
-       LogPercent(nea,NE);     
-
-      cdouble dGEntries[6], dCEntries[6];
-      GetdEdgeEdgeInteractions(S, nea, neb, k, dGEntries, dCEntries);
-      for(int Mu=0; Mu<6; Mu++)
-       if (dG[Mu])
-        { dG[Mu]->SetEntry(2*nea,   2*neb,   PreFac1*dGEntries[Mu]);
-          dG[Mu]->SetEntry(2*nea,   2*neb+1, PreFac2*dCEntries[Mu]);
-          dG[Mu]->SetEntry(2*nea+1, 2*neb,   PreFac2*dCEntries[Mu]);
-          dG[Mu]->SetEntry(2*nea+1, 2*neb+1, PreFac3*dGEntries[Mu]);
-        };
-    };
-
-}
-#endif
 
 } // namespace scuff

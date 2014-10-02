@@ -823,7 +823,11 @@ cdouble GetGBar(double R[3], GBarAccelerator *GBA,
 }
 
 /***************************************************************/
-/***************************************************************/
+/* Create a GBar accelerator suitable for computing GBar at    */
+/* points R in the three-dimensional box with corners RMin and */
+/* RMax.                                                       */
+/*                                                             */
+/* Actually, Bar accelerator suitable for computing GBar at    */
 /***************************************************************/
 GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch,
                                               double RMin[3], double RMax[3],
@@ -858,23 +862,34 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /***************************************************************/
   /* determine the minimum and maximum values of the transverse  */
   /* coordinate Rho that our interpolation table will need to    */
-  /* support                                                     */
+  /* support. This requires a little care if RMin < 0, because   */
+  /* we have to distinguish between cases in which the interval  */
+  /* [RMin, RMax] does or does not straddle the origin.          */
   /***************************************************************/
+  double AbsRMin[3], AbsRMax[3];
   for(int Mu=0; Mu<3; Mu++)
-   { if ( RMin[Mu]<0.0 )
-      { RMax[Mu] = fmax( fabs(RMax[Mu]), fabs(RMin[Mu]) );
-        RMin[Mu] = RMax[Mu] > 0.0 ? 0.0 : fmin( fabs(RMax[Mu]), fabs(RMin[Mu]) );
+   { if ( (RMin[Mu]>=0.0) )
+      { AbsRMin[Mu] = fabs(RMin[Mu]);
+        AbsRMax[Mu] = fabs(RMax[Mu]);
+      }
+     else if ( (RMin[Mu]<0.0) && (RMax[Mu]>0.0) )
+      { AbsRMin[Mu] = 0.0;
+        AbsRMax[Mu] = fmax( fabs(RMax[Mu]), fabs(RMin[Mu]) );
+      }
+     else // ( (RMin[Mu]<0.0) && (RMax[Mu]<0.0) )
+      { AbsRMin[Mu] = fabs(RMax[Mu]);
+        AbsRMax[Mu] = fabs(RMin[Mu]);
       };
    };
  
   double RhoMin, RhoMax;
   if (LDim==1)
-   { RhoMin = sqrt(RMin[1]*RMin[1] + RMin[2]*RMin[2]);
-     RhoMax = sqrt(RMax[1]*RMax[1] + RMax[2]*RMax[2]);
+   { RhoMin = sqrt(AbsRMin[1]*AbsRMin[1] + AbsRMin[2]*AbsRMin[2]);
+     RhoMax = sqrt(AbsRMax[1]*AbsRMax[1] + AbsRMax[2]*AbsRMax[2]);
    }
   else
-   { RhoMin = fabs(RMin[2]);
-     RhoMax = fabs(RMax[2]);
+   { RhoMin = AbsRMin[2];
+     RhoMax = AbsRMax[2];
    };
 
   /***************************************************************/
@@ -897,7 +912,10 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 }
 
 /***************************************************************/
-/***************************************************************/
+/* Create a GBarAccelerator object appropriate for computing   */
+/* the periodic contribution to the scattered fields at a list */
+/* the periodic contribution to the scattered fields at a list */
+/* of evaluation points.                                       */
 /***************************************************************/
 GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix)
 {
@@ -963,7 +981,9 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 }
 
 /***************************************************************/
-/***************************************************************/
+/* Create a GBarAccelerator object appropriate for computing   */
+/* the periodic contribution to the BEM matrix block for two   */
+/* RWG surfaces.                                               */
 /***************************************************************/
 GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch, int ns1, int ns2)
 {

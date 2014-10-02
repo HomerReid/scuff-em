@@ -13,6 +13,7 @@
 \newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
 \newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
 \newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
+\newcommand{\vbSigma}{\boldsymbol{\Sigma}}
 %\newcommand{\vbchi}{\boldsymbol{\chi}}
 
 \graphicspath{{figures/}}
@@ -479,34 +480,89 @@ involving a matrix $\vb Q$, i.e.
 \item
 then the statistical \textit{average} of the quantity $Q$---where
 the averaging is over quantum and thermal fluctuations---is given by
-a sum over the contributions of sources in \textit{all} bodies:
+a sum over the contributions of sources in all bodies:
 %--------------------------------------------------------------------%
 \begin{equation}
  \text{then} \qquad \big\langle Q\big\rangle
-  = \sum_b \int_0^\infty \, \Theta_b(\omega) \Phi_b(\omega)\,d\omega 
+  = \sum_s \int_0^\infty \, \Theta_s(\omega) \Phi_s(\omega)\,d\omega 
 \end{equation}
 where 
-$\Theta_b(\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_b} - 1}$
-is the Bose-Einstein factor for the temperature $T_b$ of 
-body $b$, and where the ``generalized flux'' $\Phi_b$
+$\Theta_s(\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_s} - 1}$
+is the Bose-Einstein factor for the temperature $T_s$ of 
+body $s$, and where the ``generalized flux'' $\Phi_s$
 is the trace of a four-matrix product involving the $\vb Q$ matrix:
 %====================================================================%
 \begin{equation}
 \Phi_b
   = \frac{2}{\pi} 
-    \Tr\left\{ \vb Q \vb W \overline{\vb G}_b \vb W^\dagger\right\}.
+    \Tr\left\{ \vb Q 
+               \underbrace{\vb W \overline{\vb G}_s \vb W^\dagger}
+                         _{\vbSigma_s}
+       \right\}.
 \end{equation}
 %====================================================================%
 \label{FSCEquivalence}
 \end{subequations}
 %--------------------------------------------------------------------%
 Here $\vb W$ is the inverse of the BEM matrix for the 
-\textit{entire} collection of bodies and $\overline{\vb G}_b$ 
+\textit{entire} collection of bodies and $\overline{\vb G}_s$ 
 is a symmetrized version of a portion of the BEM matrix for body 
-$b$ alone.
+$s$ alone.
 
 \end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The matrix $\vbSigma_s$ in (\ref{FSCEquivalence}) may be thought
+of as a weighted sum of
+
+\subsection*{Structure of $\vbSigma_s$}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+{\scriptsize
+\begin{align*}
+ \vbSigma_s &= \vb W \overline{\vb G}_s \vb W^\dagger
+\\
+%--------------------------------------------------------------------%
+&=\left(\begin{array}{cccc}
+  \vphantom{\vb W^\dagger_11} 
+  \vb W_{11} & \vb W_{12} & \cdots & \vb W_{1N} 
+\\ 
+  \vphantom{\vb W^\dagger_11} 
+  \vb W_{21} & \vb W_{22} & \cdots & \vb W_{2N} 
+\\ 
+  \vphantom{\vb W^\dagger_11} 
+  \vdots     & \vdots     & \ddots & \vdots     
+\\
+  \vphantom{\vb W^\dagger_11} 
+  \vb W_{N1} & \vb W_{N2} & \cdots & \vb W_{NN}
+  \end{array}\right)
+%--------------------------------------------------------------------%
+ \left(\begin{array}{cccc}
+  \vphantom{\vb W^\dagger_11} 
+  0          & 0          & \cdots &         0          
+  \\ 
+  \vphantom{\vb W^\dagger_11} 
+  0          & 0          & \cdots &         0          
+  \\ 
+  \vphantom{\vb W^\dagger_11} 
+  \vdots     & \vdots     & \overline{\vb G}_{s} &  \vdots     
+  \\
+  \vphantom{\vb W^\dagger_11} 
+  0          & 0          & \cdots &         0
+  \end{array}\right)
+%--------------------------------------------------------------------%
+  \left(\begin{array}{cccc}
+  \vb W_{11}^\dagger & \vb W_{21}^\dagger & \cdots & \vb W_{N1}^\dagger \\ 
+  \vb W_{12}^\dagger & \vb W_{22}^\dagger & \cdots & \vb W_{N2}^\dagger \\ 
+  \vdots     & \vdots     & \ddots & \vdots     \\
+  \vb W_{1N}^\dagger & \vb W_{2N}^\dagger & \cdots & \vb W_{NN}^\dagger
+  \end{array}\right)
+\end{align*}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
+The $a,b$ subblock of this matrix is
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
+$$ \vbSigma_{s; ab} = \vb W_{as} \overline{\vb G}_s \vb W_{bs}^\dagger. $$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
 
 \subsection*{Spatially-resolved contributions to generalized fluxes}
 

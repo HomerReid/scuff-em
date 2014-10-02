@@ -431,7 +431,6 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
-char *UpperRegion;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFileName,  0,       ".scuffgeo file"},
@@ -447,7 +446,6 @@ char *UpperRegion;
      {"ZAbove",      PA_DOUBLE,  1, 1,       (void *)&ZAbove,       0,       "Z-coordinate of upper integration plane"},
      {"ZBelow",      PA_DOUBLE,  1, 1,       (void *)&ZBelow,       0,       "Z-coordinate of lower integration plane"},
 /**/
-     {"UpperRegion", PA_STRING,  1, 1,       (void *)&UpperRegion,  0,       "delete me please"},
 /**/
      {"NQPoints",    PA_INT,     1, 1,       (void *)&NQPoints,     0,       "number of quadrature points per dimension"},
 /**/
@@ -474,13 +472,13 @@ char *UpperRegion;
   HVector *RHS = G->AllocateRHSVector();
   HVector *KN  = G->AllocateRHSVector();
 
-int UpperRegionIndex;
-for(UpperRegionIndex=0; UpperRegionIndex<G->NumRegions; UpperRegionIndex++)
- if (!strcasecmp(UpperRegion,G->RegionLabels[UpperRegionIndex]))
-  break;
-if (UpperRegionIndex==G->NumRegions)
- ErrExit("unknown upper region %s",UpperRegion);
-printf("Identified uppermost region %s as region # %i.\n",UpperRegion,UpperRegionIndex);
+  /*******************************************************************/
+  /* determine the index of the uppermost region in the geometry     */
+  /*******************************************************************/
+  double X[3]={0.0, 0.0, 1.0e6};
+  int UpperRegionIndex=G->GetRegionIndex(X);
+  printf("Identified uppermost region as region # %i (%s).\n",
+          UpperRegionIndex, G->RegionLabels[UpperRegionIndex]);
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */

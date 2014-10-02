@@ -221,6 +221,7 @@ class RWGSurface
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
+   void PlotScalarDensity(const char *FileName, const char *Tag, double *ByEdge);
 
 //  private:
 
@@ -431,8 +432,10 @@ class RWGGeometry
                  bool Lebedev, double R, int NumPoints, double SIPFT[7], 
                  bool FarField=false, GTransformation *OTGT=0, GTransformation *GT=0);
 
-   void GetEPPFT(int SurfaceIndex, HVector *KNVector, HMatrix *SigmaMatrix,
-                 cdouble Omega, double EPPFT[7]);
+   void GetEPPFT(int SurfaceIndex, 
+                 HVector *KNVector, HMatrix *SigmaMatrix,
+                 cdouble Omega, double EPPFT[7],
+                 double **ByEdge=0, bool Exterior=false);
 
    void GetSIPFTMatrices(int WhichSurface, RWGSurface *BS, bool Lebedev,
                          double R, int NumPoints, cdouble Omega,

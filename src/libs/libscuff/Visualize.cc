@@ -279,7 +279,6 @@ void RWGGeometry::WriteGPMeshPlus(const char *format, ...)
 
 }
 
-
 /***************************************************************/
 /* WritePPMesh routine for RWGSurfaces.                         */
 /***************************************************************/
@@ -585,6 +584,52 @@ void RWGSurface::WriteGPMesh(const char *format, ...)
   for(nv=0, V=Vertices; nv<NumVertices; nv++)
    fprintf(f,"set label %i \"%i\" at %e,%e,%e tc lt 3\n",LabelIndex++,
               nv,V[3*nv],V[3*nv+1],V[3*nv+2]);
+  fclose(f);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGSurface::PlotScalarDensity(const char *FileName, const char *Tag, double *ByEdge)
+{ 
+
+  /***************************************************************/
+  /* attempt to open .pp file ************************************/
+  /***************************************************************/
+  char buffer[MAXSTR], *p;
+  strncpy(buffer,FileName,996);
+  p=strrchr(buffer,'.');
+  if ( !p || strcmp(p,".pp") )
+   strcat(buffer,".pp");
+
+  FILE *f=fopen(buffer,"a");
+  if (!f) 
+   { fprintf(stderr,"warning: could not open file %s \n",FileName);
+     return;
+   };
+
+  /***************************************************************/
+  /* plot all panels on the surface. *****************************/
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n",Tag);
+  for(int np=0; np<NumPanels; np++)
+   { 
+     RWGPanel *P = Panels[np];
+     double *PV[3];
+     PV[0]=Vertices + 3*P->VI[0];
+     PV[1]=Vertices + 3*P->VI[1];
+     PV[2]=Vertices + 3*P->VI[2];
+
+     double Val=0.0;
+     for(int nei=0; nei<3; nei++)
+      if ( P->EI[nei] >= 0 )
+       Val = ByEdge[ P->EI[nei] ]; 
+     Val/=3.0;
+
+     WriteST(PV, Val, f);
+   };
+  fprintf(f,"};\n");
   fclose(f);
 
 }
