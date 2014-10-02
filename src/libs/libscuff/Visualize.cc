@@ -591,8 +591,14 @@ void RWGSurface::WriteGPMesh(const char *format, ...)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGSurface::PlotScalarDensity(const char *FileName, const char *Tag, double *ByEdge)
+void RWGSurface::PlotScalarDensity(double *ByEdge, const char *FileName, const char *Tag, ...)
 { 
+
+  va_list ap;
+  char TagString[MAXSTR];
+  va_start(ap,Tag);
+  vsnprintfEC(TagString,MAXSTR,Tag,ap);
+  va_end(ap);
 
   /***************************************************************/
   /* attempt to open .pp file ************************************/
@@ -612,7 +618,7 @@ void RWGSurface::PlotScalarDensity(const char *FileName, const char *Tag, double
   /***************************************************************/
   /* plot all panels on the surface. *****************************/
   /***************************************************************/
-  fprintf(f,"View \"%s\" {\n",Tag);
+  fprintf(f,"View \"%s\" {\n",TagString);
   for(int np=0; np<NumPanels; np++)
    { 
      RWGPanel *P = Panels[np];

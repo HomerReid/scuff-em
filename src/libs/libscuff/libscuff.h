@@ -221,7 +221,7 @@ class RWGSurface
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
-   void PlotScalarDensity(const char *FileName, const char *Tag, double *ByEdge);
+   void PlotScalarDensity(double *ByEdge, const char *FileName, const char *Tag, ...);
 
 //  private:
 
@@ -424,23 +424,40 @@ class RWGGeometry
                      HMatrix *M, HVector *KN,
                      cdouble GEScat[3][3], cdouble GMScat[3][3]);
 
-   /* routines for computing power, force, and torque (PFT) */
+   /*--------------------------------------------------------------*/
+   /* routines for computing power, force, and torque (PFT)        */
+   /*--------------------------------------------------------------*/
+
+   // PFT by overlap method
    void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega, int SurfaceIndex, double PFT[8]);
    void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega, char *SurfaceLabel, double PFT[8]);
 
+   // PFT by displaced-surface-integral method
    void GetSIPFT(HVector *KN, IncField *IF, cdouble Omega, RWGSurface *BS,
-                 bool Lebedev, double R, int NumPoints, double SIPFT[7], 
+                 bool Lebedev, double R, int NumPoints, double SIPFT[7],
                  bool FarField=false, GTransformation *OTGT=0, GTransformation *GT=0);
 
-   void GetEPPFT(int SurfaceIndex, 
-                 HVector *KNVector, HMatrix *SigmaMatrix,
+   // PFT by equivalence-principle method
+   void GetEPPFT(int SurfaceIndex, HVector *KNVector,
                  cdouble Omega, double EPPFT[7],
                  double **ByEdge=0, bool Exterior=false);
 
+   // trace-formula versions of PFT routines
+   void GetEPPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix,
+                      cdouble Omega, double PFT[7], double **ByEdge=0);
+
+   void GetSIPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix,
+                      cdouble Omega, double PFT[7], double **ByEdge=0);
+
+   void GetOPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix,
+                     cdouble Omega, double PFT[7], double **ByEdge=0);
+
+#if 0
    void GetSIPFTMatrices(int WhichSurface, RWGSurface *BS, bool Lebedev,
                          double R, int NumPoints, cdouble Omega,
                          bool NeedMatrix[7], HMatrix *MSIPFT[7],
                          bool FarField=false);
+#endif
 
    /* routine for calculating charge and current densities at panel centroids */
    HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);
@@ -473,21 +490,22 @@ class RWGGeometry
    int GetRegionByLabel(const char *Label);
    RWGSurface *GetSurfaceByLabel(const char *Label, int *pns=NULL);
 
-   /* periodic-boundary-condition versions of API routines. */
-   /* Note PBC routines are distinguished from their non-PBC counterparts      */
-   /* by the kBloch argument, which always follows Omega in the argument list. */
+   /*---------------------------------------------------------------------*/
+   /* periodic-boundary-condition versions of API routines.               */
+   /* Note PBC routines are distinguished from their non-PBC counterparts */
+   /* by the kBloch argument, which always follows Omega in the prototype.*/
+   /*---------------------------------------------------------------------*/
    HMatrix *AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *M);
    HVector *AssembleRHSVector(cdouble Omega, double *kBloch, IncField *IF, HVector *RHS = NULL);
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                   double *X, cdouble *EH);
    HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
                       HMatrix *XMatrix, HMatrix *FMatrix=NULL, char *FuncString=NULL);
-   void RegisterTransformationList(GTComplex **GTCList, int NumTransformations);
 
-   /*--------------------------------------------------------------------*/ 
-   /*- class methods intended for internal use only, i.e. which          */ 
+   /*--------------------------------------------------------------------*/
+   /*- class methods intended for internal use only, i.e. which          */
    /*- would be private if we cared about the public/private distinction */
-   /*--------------------------------------------------------------------*/ 
+   /*--------------------------------------------------------------------*/
    // constructor helper functions
    void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum);
    void ProcessLATTICESection(FILE *f, char *FileName, int *LineNum);
