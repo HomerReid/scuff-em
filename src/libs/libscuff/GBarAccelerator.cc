@@ -534,10 +534,6 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
   bool ExcludeInnerCells = GBA->ExcludeInnerCells;
 
   /*--------------------------------------------------------------*/
-  /* if the ------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-
-  /*--------------------------------------------------------------*/
   /* if we have no interpolation grid, or we have one but the     */
   /* transverse coordinate lies outside it, then we just do the   */
   /* calculation directly                                         */
@@ -914,11 +910,14 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 /***************************************************************/
 /* Create a GBarAccelerator object appropriate for computing   */
 /* the periodic contribution to the scattered fields at a list */
-/* the periodic contribution to the scattered fields at a list */
 /* of evaluation points.                                       */
 /***************************************************************/
 GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix)
 {
+  // don't bother if there are fewer than 5 points
+  if (XMatrix->NR<5)
+   return 0;
+
   Log("Creating GBar accelerator for %i points in region %s...",XMatrix->NR,RegionLabels[nr]);
 
   /*--------------------------------------------------------------*/

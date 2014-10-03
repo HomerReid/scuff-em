@@ -711,6 +711,7 @@ void RWGGeometry::GetSIPFT(HVector *KN, IncField *IF,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
                                    bool Lebedev, double R, int NumPoints,
                                    cdouble Omega,
@@ -765,6 +766,115 @@ void RWGGeometry::GetSIPFTMatrices(int WhichSurface, RWGSurface *BS,
       };
 
    };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  HMatrix *CRMatrix  = GetCRMatrix(BS, Lebedev, R, NumPoints);
+  HMatrix *FSVMatrix = GetFSVMatrix(S, CRMatrix, Omega, Eps, Mu, FarField);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NumThreads;
+#ifndef USE_OPENMP
+  NumThreads=1;
+#else
+  NumThreads=GetNumThreads();
+  Log("OpenMP multithreading (%i threads)",NumThreads);
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+#endif
+  for(int Alpha=0; Alpha<NE; Alpha++)
+   for(int Beta=0; Beta<NE; Beta++)
+    { 
+      if (Beta==0) LogPercent(Alpha,NE,10);
+      cdouble Entries[NUMSIPFT*4];
+
+      GetSIPFTMatrixEntries(S, Alpha, Beta, CRMatrix, FSVMatrix,
+                            Eps, Mu, XTorque, NeedMatrix, Entries);
+
+      for(int n=0; n<NUMSIPFT; n++)  
+       { if (NeedMatrix[n]==false) continue;
+         MSIPFT[n]->SetEntry( 2*Alpha+0, 2*Beta+0, Entries[4*n + 0] );
+         MSIPFT[n]->SetEntry( 2*Alpha+0, 2*Beta+1, Entries[4*n + 1] );
+         MSIPFT[n]->SetEntry( 2*Alpha+1, 2*Beta+0, Entries[4*n + 2] );
+         MSIPFT[n]->SetEntry( 2*Alpha+1, 2*Beta+1, Entries[4*n + 3] );
+       };
+
+    };
+
+  delete FSVMatrix;
+  delete CRMatrix;
+  
+}
+#endif
+
+/***************************************************************/
+/* available options:                                          */
+/*                                                             */
+/*  --FarField                                                 */
+/*  --Lebedev                                                  */
+/*  --R            xx                                          */
+/*  --NumPoints    NN                                          */
+/*  --BoundingMesh MyBoundingMesh.msh                          */
+/*                                                             */
+/***************************************************************/
+void RWGGeometry::GetSIPFTTrace(int WhichSurface, HMatrix *SigmaMatrix,
+                                cdouble Omega, double PFT[7], double **ByEdge=0,
+                                const char *Options, ...)
+{
+  /***************************************************************/
+  /* process options string **************************************/
+  /***************************************************************/
+  bool Lebedev=true;   // use lebedev cubature
+  bool FarField=false; // use only far-field contributions to fields
+  int NumPoints=302;   // number of cubature points
+  double R=100.0;      // radius of bounding sphere
+  char *BSMesh=0;      // .msh file for bounding surface mesh
+  /* name        type    #args  max_instances  storage    count  description*/
+  OptStruct OSArray[]=
+   { {"Lebedev",   PA_BOOL,    0, 1, (void *)&Lebedev,      0,  ""},
+     {"FarField",  PA_BOOL,    0, 1, (void *)&FarField,     0,  ""},
+     {"NumPoints", PA_INT,     1, 1, (void *)&NumPoints,    0,  ""},
+     {"R",         PA_DOUBLE,  1, 1, (void *)&R,            0,  ""},
+     {"BSMesh",    PA_FILE,    1, 1, (void *)&BSMesh,       0,  ""},
+     {0,0,0,0,0,0,0}
+   };
+  ProcessOptions(Options, OSArray);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  RWGSurface *BS=0;
+  if (BSMesh)
+   RWGSurface *BS=new RWGSurface(BSMesh);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  RWGSurface *S=Surfaces[WhichSurface];
+  if (BS)
+   Log("Computing SIPFT matrix for surface %s, bounding surface %s...",
+        S->MeshFileName, BS->MeshFileName);
+  else
+   Log("Computing SIPFT matrix for surface %s, (R,NPts)=(%e,%i)",
+        S->MeshFileName, R, NumPoints);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NE = S->NumEdges;
+  int NBF = S->NumBFs;
+
+  if (S->IsPEC) 
+   ErrExit("GetSIPFTMatrices() not implemented for PEC bodies");
+
+  cdouble Eps, Mu;
+  RegionMPs[ S->RegionIndices[0] ] -> GetEpsMu(Omega, &Eps, &Mu);
+
+  double XTorque[3] = {0.0, 0.0, 0.0};
+  if (S->OTGT) S->OTGT->Transform(XTorque);
+  if (S->GT) S->GT->Transform(XTorque);
 
   /***************************************************************/
   /***************************************************************/
