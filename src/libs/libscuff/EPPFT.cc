@@ -57,6 +57,10 @@ void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
                              double X0[3],  cdouble k,
                              cdouble e[3], cdouble h[3]);
 
+void GetReducedFarFields(RWGGeometry *G, int ns, int ne,
+                         double X0[3],  cdouble k,
+                         cdouble e[3], cdouble h[3]);
+
 /***************************************************************/
 /* Fetch the particular matrix elements between RWG functions  */
 /* that we need to compute the surface EPPFT.                  */
@@ -79,7 +83,7 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
                             cdouble bxe[3],     cdouble bxh[3],
                             cdouble divbrxe[3], cdouble divbrxh[3],
                             cdouble rxbxe[3],   cdouble rxbxh[3],
-                            int Order=4)
+                            int Order=4, bool FarField=true)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -146,10 +150,17 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
      /***************************************************************/
      /***************************************************************/
      /***************************************************************/
-     cdouble ePlus[3], eMinus[3];
-     cdouble hPlus[3], hMinus[3];
-     GetReducedFields_Nearby(G, nsb, neb, XPlus, k, ePlus, hPlus);
-     GetReducedFields_Nearby(G, nsb, neb, XMinus, k, eMinus, hMinus);
+     cdouble ePlus[3], eMinus[3], hPlus[3], hMinus[3];
+     if (FarField)
+      { 
+        GetReducedFarFields(G, nsb, neb, XPlus, k, ePlus, hPlus);
+        GetReducedFarFields(G, nsb, neb, XMinus, k, eMinus, hMinus);
+      }
+     else
+      { 
+        GetReducedFields_Nearby(G, nsb, neb, XPlus, k, ePlus, hPlus);
+        GetReducedFields_Nearby(G, nsb, neb, XMinus, k, eMinus, hMinus);
+      };
 
      cdouble XPmX0dote=0.0, XPmX0doth=0.0, XMmX0dote=0.0, XMmX0doth=0.0;
      for(int Mu=0; Mu<3; Mu++)
@@ -204,7 +215,7 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
 void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
                                 HVector *KNVector, HMatrix *SigmaMatrix,
                                 double PFT[NUMPFT], double **ByEdge,
-                                bool Exterior)
+                                bool Exterior, bool FarField)
 {
   /*--------------------------------------------------------------*/
   /*- get material parameters of interior and exterior regions    */
@@ -303,7 +314,8 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      int Order=4; // increase for greater accuracy in overlap integrals
      GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
                             k, &be, &bh, divbe, divbh, bxe, bxh,
-                            divbrxe, divbrxh, rxbxe, rxbxh, Order);
+                            divbrxe, divbrxh, rxbxe, rxbxh, 
+                            Order, FarField);
 
      /*--------------------------------------------------------------*/
      /*- Get various overlap integrals between basis function b_\alpha*/

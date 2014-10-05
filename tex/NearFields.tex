@@ -66,92 +66,71 @@ distribution.
 %=================================================
 \subsection{Reduced vector and scalar potentials}
 
-Consider a triangular panel $\mc P$ on which we have a flow of RWG
-surface current emanating from a source vertex $\vb Q$. I begin by 
+Consider a triangular panel $\mc P$ on which we have a flow of 
+surface current described by an RWG basis function
+$\vb b_\alpha(\vb x)$ with source vertex $\vb Q$. I begin by
 defining ``reduced'' vector and scalar potentials produced by this 
 current at a point $\vb x$:
 %====================================================================%
 \numeq{ap}
-{ \vb a(\mc P; \vb Q; \vb x) =
+{ \vb a(\mc P; \vb Q; \vb x) = \frac{\ell}{2A}
    \int_{\mc P} (\vb x^\prime - \vb Q) G(\vb x, \vb x^\prime) \, d\vb x^\prime,
    \qquad
-   p(\mc P; \vb x) = 
+   p(\mc P; \vb x) = 2\cdot\frac{\ell}{2A}
    \int_{\mc P} G(\vb x- \vb x^\prime) \, d\vb x^\prime,
 }
 %====================================================================%
-where
+where $\ell$ is the length of the edge associated with basis function
+$\vb b$, $A$ is the area of $\mc P$, and
 %====================================================================%
 $$ G(\vb r)=\frac{e^{ik|\vb r|}}{4\pi |\vb r|} $$
 %====================================================================%
 is the scalar Helmholtz Green's function.
 
-Now consider an RWG basis function $\vb b_\alpha(\vb x)$ which is
-supported on two triangular panels $\mc P_{\alpha}^\pm$ with
-current source/sink vertices $\vb Q_\alpha^\pm$.
-The \textit{full} vector and scalar potentials at $\vb x$ due to
-an electric\footnote{The full potentials due to a unit-strength
-\textit{magnetic} current are also expressed in terms of
-$\vb a$ and $p$, just with different constant prefactors.}
-surface current distribution described by $\vb b_\alpha$ populated
-with unit strength are given by 
-summing contributions from the two panels:
+The total reduced vector and scalar potentials of $\vb b_\alpha$
+involve contributions from two panels:
 %====================================================================%
-\numeq{APhi}
-{
- \vb A_\alpha(\vb x) 
-   = \sum_{\pm} \pm \frac{\ell_\alpha}{2A_\alpha^\pm} 
-      \vb a(\mc{P}_\alpha^\pm; \vb Q_\alpha^\pm; \vb x)
- \qquad 
- \Phi_\alpha(\vb x) 
-   = Z_0Z^r \sum_{\pm} \pm \frac{\ell_\alpha}{ik A_\alpha^\pm} p(\mc{P}_\alpha^\pm; \vb x)
-}
+$$ \vb a_\alpha(\vb x) = \vb a(\mc P^+, \vb Q^+, \vb x) - 
+                     \vb a(\mc P^-, \vb Q^-, \vb x), 
+   \qquad 
+   p_\alpha(\vb x) = p(\mc P^+, \vb Q^+, \vb x) - 
+                     p(\mc P^-, \vb Q^-, \vb x).
+$$
 %====================================================================%
-where $A_\alpha^\pm$ are the areas of $\mc P_\alpha^\pm$
-and $\ell_\alpha$ is the length
-of their common edge (the factor $\frac{\ell}{2A^\pm}$ comes from
-the conventional definition of the RWG basis function); also,
-$Z_0$ is the impedance of free space, and $k$ and $Z^r$ are the
-wavenumber and relative wave impedance of the material medium.
-
-To compute the $\vb E$ and $\vb H$ fields we need the first derivatives
-of the potentials: 
+In terms of $\vb a_\alpha$ and $p_\alpha$, I can define the 
+``reduced fields'' of basis function $\vb b_\alpha$ according to
 %====================================================================%
-$$ \vb E = ikZ \vb A - \nabla \Phi, \qquad \vb H = \nabla \times \vb A$$
+\numeq{eh}
+ { \vb e_\alpha(\vb x) 
+   = \vb a_\alpha(\vb x) + \frac{1}{k^2} \nabla p_\alpha(\vb x), 
+  \qquad 
+  \vb h_\alpha(\vb x) = 
+   \nabla \times \vb a_\alpha(\vb x)
+ } 
 %====================================================================%
-(where $Z=Z_0Z^r$).
-Inserting (\ref{ap}) and (\ref{APhi}) and switching over to vector
-component notation, we may write the fields due to basis function
-$\vb b_\alpha$ in terms of the reduced potentials:
+Given a set of RWG functions $\{\vb b_\alpha\}$ populated
+with electric and magnetic surface-current coefficients 
+$\{k_\alpha, n_\alpha\}$, the full $\vb E$ and $\vb H$ fields at
+$\vb x$ are 
 %====================================================================%
 \begin{align*}
- E_{\alpha i}(\vb x) &=
-   ikZ \sum_{\pm} \frac{\ell_\alpha}{2A_\alpha^\pm}
-       \Big[ a_i(\mc P_\alpha^\pm, \vb Q^\pm_\alpha, \vb x)
-             +\frac{4}{k^2} \partial_i p(\mc P_\alpha^\pm, \vb x)
-       \Big]
+ \vb E(\vb x) 
+&= \sum_\alpha\Big\{  ikZ k_\alpha \vb e_\alpha(\vb x)
+                     -n_\alpha \vb h_\alpha(\vb x)
+              \Big\},
 \\
- H_{\alpha i}(\vb x)
-  &= \sum_{\pm} \frac{\ell}{2A_\alpha^\pm} 
-     \varepsilon_{ijk} \partial_j a_k(\mc P_\alpha^\pm, \vb x).
+ \vb H(\vb x) 
+&= \sum_\alpha\Big\{  k_\alpha \vb h_\alpha(\vb x)
+                     +\frac{ik}{Z} n_\alpha \vb e_\alpha(\vb x)
+              \Big\}
 \end{align*}
 %====================================================================%
-It is convenient to identify the combinations of the reduced 
-potentials and their derivatives that appear in these equations
-as ``reduced fields'' associated with individual RWG panels:
-%\numeq{eh}
-% { \vb e_\alpha(\vb x) = 
-%   \sum_{\pm} \frac{\ell_\alpha}{2A_\alpha}^\pm 
-%              \Big[ \vb a(\mc P_\alpha^\pm; \vb Q_\alpha^\pm; \vb x) 
-%                   +\frac{4}{k^2} \nabla p(\mc P_\alpha^\pm; \vb x)
-%              \Big],
-%  \qquad 
-%  \vb h_\alpha(\vb x) &= 
-%   \sum_{\pm} \frac{\ell_\alpha}{2A_\alpha}^\pm 
-% } 
+where $k$ is the wavenumber in the material region containing 
+$\vb x$ and $Z=Z_0 Z^r$ with $Z_0$ the impedance of free space 
+and $Z^r$ the relative wave impedance of the material.
 
-%====================================================================%
-To compute the first derivatives of $\vb E$ and $\vb H$ we also
-need the \textit{second} derivatives of $\vb a$ and $p$:
+To compute the first derivatives of the reduced fields we 
+need the second derivatives of the reduced potentials:
 %====================================================================%
 $$ \partial_i e_j(\mc P^\pm; \vb x)
    =   \partial_i a_j(\mc P^\pm; \vb x) 
@@ -160,6 +139,7 @@ $$ \partial_i e_j(\mc P^\pm; \vb x)
    \partial_i h_j(\mc P^\pm; \vb x)
    =\varepsilon_{jk\ell} \partial_i \partial_k a_\ell(\mc P^\pm; \vb x).
 $$
+%====================================================================%
 
 %=================================================
 %=================================================
@@ -186,16 +166,20 @@ $$ \texttt{ExpRelBar}(x,N) = e^{x}-\sum_{n=0}^{N-1}\frac{x^n}{n!}
                            = \sum_{n=N}^{\infty}\frac{x^n}{n!}.
 $$
 %====================================================================%
-The reduced potentials are
+The reduced potentials due to $\mc P$ are
 %====================================================================%
 \begin{align*}
  p(\vb x) 
-   &= \sum_{n=-1}^1 \frac{(ik)^{n+1}}{4\pi} p^{(n)}(\vb x)
+   &= 2\frac{\ell}{2A} \left[
+\sum_{n=-1}^1 \frac{(ik)^{n+1}}{4\pi} p^{(n)}(\vb x)
       + p\supt{DS}(\vb x)
+                       \right]
 \\
  \vb a(\vb x) 
-   &= \sum_{n=-1}^1 \frac{(ik)^{n+1}}{4\pi} \vb a^{(n)}(\vb x)
+   &=  \frac{\ell}{2A} \left[
+      \sum_{n=-1}^1 \frac{(ik)^{n+1}}{4\pi} \vb a^{(n)}(\vb x)
       + \vb a \supt{DS}(\vb x)
+                       \right]
 \end{align*}
 %====================================================================%
 where\footnote{Two special cases that may be computed
@@ -752,6 +736,83 @@ We have
                   -3ik\frac{\texttt{ExpRelBar}(ikr,2)}{4\pi r^4}
                   +3\frac{\texttt{ExpRelBar}(ikr,3)}{4\pi r^5}
             \Big]
+\end{align*}
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Far fields at nearby points}
+
+The contribution of a single panel $\mc P$ to the 
+reduced fields may be written in an alternative way using the 
+dyadic Green's functions $\vb G(\vb r), \vb C(\vb r)$
+%====================================================================%
+$$
+ e_i(\vb x) =   \int G_{ij}(\vb x,\vb x^\prime) b_j(\vb x^\prime)d\vb x^\prime,
+\qquad
+ h_i(\vb x) = -ik\int C_{ij}(\vb x,\vb x^\prime) b_j(\vb x^\prime)d\vb x^\prime
+$$
+%====================================================================%
+Retaining only far-field contributions,
+$$ 
+ G_{ij}=\left( \delta_{ij} + \frac{r_i r_j}{r^2}\right) \frac{e^{ikr}}{4\pi r},
+\qquad 
+ -ikC_{ij}=-ik \varepsilon_{ijk} \frac{r_k}{r} \frac{e^{ikr}}{4\pi r} 
+$$
+%====================================================================%
+Separate $e_{i}$ into singular and non-singular
+contributions:
+%====================================================================%
+\begin{align*}
+ \vb e(\vb x) &= 
+ \frac{\ell}{8\pi A}\Big[ \vb e^{(-1)}(\vb x) + \vb e\supt{DS}(\vb x)\Big]
+\\
+ e_i^{(-1)}(\vb x) 
+ &=
+ \int \left( \frac{\delta_{ij}}{r} 
+             + \frac{r_i r_j}{r^3}
+      \right) (\vb x - \vb Q)_j \, d\vb r
+\\
+ e_i\supt{DS}(\vb x)
+&=
+ \int \left( \delta_{ij} + \frac{r_i r_j}{r^2}
+      \right) \frac{\texttt{ExpRelBar}(ikr,1)}{r}
+      (\vb x-\vb Q)_j \, d\vb r
+\end{align*}
+%====================================================================%
+The contributions to $\vb e^{(-1)}$ are easiest to work out
+in the coordinate system of $\mc P$. The first term is
+%====================================================================%
+\begin{align*}
+ e_\mu^{(-1)a}(\vb x)
+&=\int \frac{ (\vb x^\prime-\vb Q)_\mu}{r}\,dA
+\\
+&=a^{(-1)}_\mu
+\end{align*}
+%====================================================================%
+The second term is
+%====================================================================%
+\begin{align*}
+ e_\mu^{(-1)b}(\vb x)
+&= \int \frac { (\vb x^\prime-\vb x)_\mu 
+                (\vb x^\prime-\vb x)_\nu
+                (\vb x^\prime-\vb Q)_\nu
+              }{r^3} dA
+\\
+&= \int \frac { (\vb x^\prime-\vb x)_\mu }{r}\,dA
+  -\Qbar_\nu
+   \int \frac { (\vb x^\prime-\vb x)_\mu
+                (\vb x^\prime-\vb x)_\nu
+              } {r^3} dA
+\end{align*}
+The $w$ component of this is
+%====================================================================%
+\begin{align*}
+ e_w^{(-1)b}(\vb x)
+&= w \mathcal{I}^{-1}
+  -w \Qbar_\nu \mc J_\nu^{-3}
 \end{align*}
 %====================================================================%
 \end{document}

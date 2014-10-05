@@ -521,7 +521,9 @@ void GetStaticPanelIntegrals(RWGGeometry *G, int ns, int nPanel, int iQ,
 
 /*--------------------------------------------------------------*/
 /*- get the desingularized scalar green's function and its first*/
-/*- and second derivatives                                      */
+/*- and second derivatives. (The 'desingularized scalar green's */
+/*- function) is the usual Helmholtz kernel minus the first     */
+/*- three terms of its small-k expansion.)                      */
 /*--------------------------------------------------------------*/
 #define EXPRELTOL  1.0e-8
 #define EXPRELTOL2 EXPRELTOL*EXPRELTOL
@@ -837,6 +839,151 @@ void GetReducedFields_Nearby(RWGGeometry *G, int ns, int ne,
 {
   cdouble de[3][3], dh[3][3];
   GetReducedFields_Nearby(G, ns, ne, X0, k, e, h, de, dh);
+}
+
+/***************************************************************/
+/* 20141005 get desingularized contributions to far fields.    */
+/* TODO: merge me into one of the other very similar routines  */
+/* floating around libscuff.                                   */
+/***************************************************************/
+void GetDSFarFields(RWGGeometry *G, int ns, int np, int iQ,
+                    double X0[3],  cdouble k, bool Desingularize,
+                    cdouble eDS[3], cdouble hDS[3])
+{ 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S=G->Surfaces[ns];
+  RWGPanel *P=S->Panels[np];
+  double *Q  = S->Vertices + 3*P->VI[iQ];
+  double *V1 = S->Vertices + 3*P->VI[(iQ+1)%3];
+  double *V2 = S->Vertices + 3*P->VI[(iQ+2)%3];
+  double PreFactor = 2.0*P->Area;
+
+  double A[3], B[3];
+  VecSub(V1, Q, A);
+  VecSub(V2, V1, B);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int NumPts;
+  int Order=9;
+  double *TCR=GetTCR(Order, &NumPts);
+  eDS[0]=eDS[1]=eDS[2]=hDS[0]=hDS[1]=hDS[2]=0.0;
+  for(int nPt=0, ncp=0; nPt<NumPts; nPt++)
+   { 
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
+     double u=TCR[ncp++];
+     double v=TCR[ncp++];
+     double w=TCR[ncp++] * PreFactor;
+     u+=v;
+
+     double X[3], F[3], R[3], r2=0.0;
+     for(int Mu=0; Mu<3; Mu++)
+      { 
+        F[Mu] = u*A[Mu] + v*B[Mu];
+        X[Mu] = F[Mu] + Q[Mu];
+        R[Mu] = X0[Mu] - X[Mu];
+        r2   += R[Mu]*R[Mu];
+      };
+
+     double r=sqrt(r2);
+     cdouble ExpFac=exp(II*k*r) / (4.0*M_PI*r);
+     cdouble DSExpFac=ExpFac;
+     if (Desingularize)
+      DSExpFac = ExpRel(II*k*r, 1) / (4.0*M_PI*r);
+
+     cdouble GMuNu[3][3], CMuNu[3][3];
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       { 
+         GMuNu[Mu][Nu] = ( ( (Mu==Nu) ? 1.0 : 0.0)
+                           + R[Mu]*R[Nu]/r2
+                         ) * DSExpFac;
+       };
+
+     CMuNu[0][0]=CMuNu[1][1]=CMuNu[2][2] = 0.0;
+     CMuNu[0][1]= R[2]*ExpFac/r;
+     CMuNu[0][2]=-R[1]*ExpFac/r;
+     CMuNu[1][2]= R[0]*ExpFac/r;
+     CMuNu[1][0]=-R[2]*ExpFac/r;
+     CMuNu[2][0]= R[1]*ExpFac/r;
+     CMuNu[2][1]=-R[0]*ExpFac/r;
+     
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       { eDS[Mu] += w*GMuNu[Mu][Nu]*F[Nu];
+         hDS[Mu] += w*CMuNu[Mu][Nu]*F[Nu];
+       };
+   };
+
+}
+
+/***************************************************************/
+/* 20141005 get the reduced (e and h) fields, retaining only   */
+/* far-field contributions, but using desingularization to     */
+/* ensure that the calculation is accurate even when the       */
+/* evalution point lies on or near the panel.                  */
+/***************************************************************/
+void GetReducedFarFields(RWGGeometry *G, int ns, int np, int iQ,
+                         double X0[3],  cdouble k,
+                         cdouble e[3], cdouble h[3])
+{
+   /*--------------------------------------------------------------*/
+   /*- get singular contributions ---------------------------------*/
+   /*--------------------------------------------------------------*/
+   RWGSurface *S=G->Surfaces[ns];
+   RWGPanel *P = S->Panels[np];
+   bool DeSingularize = (VecDistance(X0,P->Centroid) < 5.0*P->Radius);
+
+   GetDSFarFields(G, ns, np, iQ, X0, k, DeSingularize, e, h);
+
+   if (DeSingularize)
+    { 
+      double pn[NUMNS], an[NUMNS][3];
+      double dpn[NUMNS][3], dan[NUMNS][3][3];
+      double ddpn[NUMNS][3][3], dcurlan[NUMNS][3][3];
+      GetStaticPanelIntegrals(G, ns, np, iQ, X0,
+                              pn, an, dpn, dan, ddpn, dcurlan);
+
+      for(int Mu=0; Mu<3; Mu++)
+       { e[Mu] += 2.0*(an[0][Mu] - dpn[1][Mu])/(4.0*M_PI);
+       };
+    };
+   
+   /*--------------------------------------------------------------*/
+   /*- put in the RWG basis function prefactors -------------------*/
+   /*--------------------------------------------------------------*/
+   double Prefac = S->Edges[P->EI[iQ]]->Length / (2.0*P->Area);
+   for(int Mu=0; Mu<3; Mu++)
+    { e[Mu] *= Prefac;
+      h[Mu] *= Prefac;
+    };
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetReducedFarFields(RWGGeometry *G, int ns, int ne,
+                         double X0[3],  cdouble k,
+                         cdouble e[3], cdouble h[3])
+{
+  RWGEdge *E = G->Surfaces[ns]->Edges[ne];
+  GetReducedFarFields(G, ns, E->iPPanel, E->PIndex, 
+                             X0, k, e, h);
+
+  cdouble eM[3], hM[3];
+  GetReducedFarFields(G, ns, E->iMPanel, E->MIndex, 
+                             X0, k, eM, hM);
+
+  for(int Mu=0; Mu<3; Mu++)
+   { e[Mu] -= eM[Mu];
+     h[Mu] -= hM[Mu];
+   };
+
 }
 
 } // namespace scuff
