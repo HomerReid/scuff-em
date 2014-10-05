@@ -281,7 +281,7 @@ void WriteEPPFTFile(SSData *SSD, char *FileName)
      fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
 
      double EPPFT[7];
-     G->GetEPPFT(ns, SSD->KN, 0, SSD->Omega, EPPFT);
+     G->GetEPPFTTrace(ns, SSD->Omega, SSD->KN, 0, EPPFT);
 
      fprintf(f,"%e 0.0 ",EPPFT[0]);
      for(int nq=1; nq<7; nq++)
@@ -340,7 +340,7 @@ void WriteOPFTFile(SSData *SSD, char *FileName)
      for(int nq=0; nq<8; nq++)
       fprintf(f,"%e ",OPFT[nq]);
      fprintf(f,"\n");
-
+ 
    };
   fclose(f);
 
@@ -349,8 +349,8 @@ void WriteOPFTFile(SSData *SSD, char *FileName)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius, 
-                    int SIPoints, char *MeshFileName, bool Lebedev)
+void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
+                     double DSIRadius, int DSIPoints, bool Lebedev)
 {
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
@@ -376,37 +376,26 @@ void WriteSIPFTFile(SSData *SSD, char *FileName, double SIRadius,
   if (!f)
    return;
 
-  Log("Computing surface-integral power, force, torque at Omega=%s...",z2s(SSD->Omega));
-
-  /*--------------------------------------------------------------*/
-  /*- read bounding surface mesh from meshfile if specified       */
-  /*--------------------------------------------------------------*/
-  RWGSurface *BS=0;
-  if (MeshFileName)
-   { BS = new RWGSurface(MeshFileName);
-     if (BS->ErrMsg)
-      ErrExit(BS->ErrMsg);
-     Log("Surface-integrating over bounding mesh %s",MeshFileName);
-   };
-
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   RWGGeometry *G=SSD->G;
-  double SIPFT[7];
-  G->GetSIPFT(SSD->KN, SSD->IF, SSD->Omega, BS, Lebedev, SIRadius, SIPoints, SIPFT);
+  double DSIPFT[7];
+  G->GetDSIPFT(SSD->KN, SSD->IF, SSD->Omega, DSIPFT,
+               DSIMesh, DSIRadius, DSIPoints, Lebedev);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   fprintf(f,"%s ",z2s(SSD->Omega));
-  if (MeshFileName)
-   fprintf(f,"%s ",MeshFileName);
+  if (DSIMesh)
+   fprintf(f,"%s ",DSIMesh);
   else
-   fprintf(f,"%e_%i%s",SIRadius,SIPoints,Lebedev ? "(Lebedev)" : "");
-  fprintf(f,"%e 0.0",SIPFT[0]);
+   fprintf(f,"%e_%i%s",DSIRadius,DSIPoints,
+                       Lebedev ? "(Lebedev)" : "");
+  fprintf(f,"%e 0.0",DSIPFT[0]);
   for(int nq=1; nq<7; nq++)
-   fprintf(f,"%e ",SIPFT[nq]);
+   fprintf(f,"%e ",DSIPFT[nq]);
   fprintf(f,"\n");
   fclose(f);
 

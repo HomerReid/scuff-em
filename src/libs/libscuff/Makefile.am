@@ -31,7 +31,7 @@ libscuff_la_SOURCES = \
  GetFields.cc 			\
  GetNearFields.cc 		\
  EPPFT.cc 			\
- SIPFT.cc 			\
+ DSIPFT.cc 			\
  OPFT.cc  			\
  GetDipoleMoments.cc 		\
  GetSphericalMoments.cc 	\

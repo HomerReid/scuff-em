@@ -427,37 +427,35 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
    /* routines for computing power, force, and torque (PFT)        */
    /*--------------------------------------------------------------*/
-
    // PFT by overlap method
-   void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega, int SurfaceIndex, double PFT[8]);
-   void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega, char *SurfaceLabel, double PFT[8]);
-
-   // PFT by displaced-surface-integral method
-   void GetSIPFT(HVector *KN, IncField *IF, cdouble Omega, RWGSurface *BS,
-                 bool Lebedev, double R, int NumPoints, double SIPFT[7],
-                 bool FarField=false, GTransformation *OTGT=0, GTransformation *GT=0);
+   void GetOPFTTrace(int SurfaceIndex, cdouble Omega,
+                     HVector *KNVector, HMatrix *SigmaMatrix,
+                     double PFT[7], double **ByEdge=0);
 
    // PFT by equivalence-principle method
-   void GetEPPFT(int SurfaceIndex, HVector *KNVector,
-                 cdouble Omega, double EPPFT[7],
-                 double **ByEdge=0, bool Exterior=false);
+   void GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
+                      HVector *KNVector, HMatrix *SigmaMatrix,
+                      double PFT[7], double **ByEdge=0,
+                      bool Exterior=false);
 
-   // trace-formula versions of PFT routines
-   void GetEPPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix, 
-                      cdouble Omega, double PFT[7], double **ByEdge=0);
+   // PFT by displaced-surface-integral method
+   void GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
+                       HVector *KNVector, HMatrix *SigmaMatrix,
+                       double PFT[7], double **ByEdge=0,
+                       char *BSMesh=0, double R=100.0,
+                       int NumPoints=31,
+                       bool Lebedev=false, bool FarField=false);
 
-   void GetSIPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix,
-                      cdouble Omega, double PFT[7], double **ByEdge=0);
+   // alternate versions of the PFT routines
+   void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
+                int SurfaceIndex, double PFT[8]);
 
-   void GetOPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix,
-                     cdouble Omega, double PFT[7], double **ByEdge=0);
-
-#if 0
-   void GetSIPFTMatrices(int WhichSurface, RWGSurface *BS, bool Lebedev,
-                         double R, int NumPoints, cdouble Omega,
-                         bool NeedMatrix[7], HMatrix *MSIPFT[7],
-                         bool FarField=false);
-#endif
+   // faster DSIPFT routine
+   void GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
+                  double PFT[7],
+                  char *BSMesh=0, double R=100.0, int NumPoints=31,
+                  bool Lebedev=false, bool FarField=false,
+                  GTransformation *OTGT=0, GTransformation *GT=0);
 
    /* routine for calculating charge and current densities at panel centroids */
    HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);

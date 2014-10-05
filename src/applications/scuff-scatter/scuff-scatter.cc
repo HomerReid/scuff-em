@@ -72,10 +72,10 @@ int main(int argc, char *argv[])
   char *EPFiles[MAXEPF];             int nEPFiles;
   char *OPFTFile=0;
   char *EPPFTFile=0;
-  char *SIPFTFile=0;
-  double SIRadius = 100.0;
-  int SIPoints = 11;
-  char *SIMeshFile=0;
+  char *DSIPFTFile=0;
+  double DSIRadius = 100.0;
+  int DSIPoints = 11;
+  char *DSIMesh=0;
   bool Lebedev=false;
   char *PSDFile=0;
   char *MomentFile=0;
@@ -110,12 +110,12 @@ int main(int argc, char *argv[])
 /**/
      {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
-     {"SIPFTFile",      PA_STRING,  1, 1,       (void *)&SIPFTFile,  0,             "name of displaced surface-integral PFT output file"},
+     {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
      {"PFTFile",        PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "(synonym for --EPPFT)"},
 /**/
-     {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "radius of bounding sphere for surface-integral PFT"},
-     {"SIPoints",       PA_INT,     1, 1,       (void *)&SIPoints,   0,             "number of quadrature points for surface-integral PFT"},
-     {"SIMesh",         PA_STRING,  1, 1,       (void *)&SIMeshFile, 0,             "mesh file for surface-integral PFT"},
+     {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
+     {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
+     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for surface-integral PFT"},
      {"Lebedev",        PA_BOOL,    0, 1,       (void *)&Lebedev,    0,             "use Lebedev cubature for DSIPFT PFT (allowed values of --SiPoints: 6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
 /**/
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
   bool NeedIncidentField = (    MomentFile!=0
                              || OPFTFile!=0
                              || EPPFTFile!=0
-                             || SIPFTFile!=0
+                             || DSIPFTFile!=0
                              || nEPFiles>0
                              || nFluxMeshes>0
                              || PlotSurfaceCurrents
@@ -372,9 +372,9 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*- surface-integral PFT           -----------------------------*/
      /*--------------------------------------------------------------*/
-     if (SIPFTFile)
-      WriteSIPFTFile(SSD, SIPFTFile, 
-                     SIRadius, SIPoints, SIMeshFile, Lebedev);
+     if (DSIPFTFile)
+      WriteDSIPFTFile(SSD, DSIPFTFile, DSIMesh, 
+                      DSIRadius, DSIPoints, Lebedev);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/
