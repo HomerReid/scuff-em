@@ -443,7 +443,7 @@ class RWGGeometry
                  double **ByEdge=0, bool Exterior=false);
 
    // trace-formula versions of PFT routines
-   void GetEPPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix,
+   void GetEPPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix, 
                       cdouble Omega, double PFT[7], double **ByEdge=0);
 
    void GetSIPFTTrace(int SurfaceIndex, HMatrix *SigmaMatrix,
