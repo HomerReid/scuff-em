@@ -570,6 +570,7 @@ void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
 /* alternative interface to GetOPFT in which the caller        */
 /* specifies the label of the surface instead of the index     */
 /***************************************************************/
+#if 0
 void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
                           char *SurfaceLabel, double OPFT[8])
 {
@@ -585,31 +586,21 @@ void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
      memset(OPFT, 0, 8*sizeof(double));
    };
 }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-void RWGGeometry::GetOPFTTrace(int SurfaceIndex, cdouble Omega,
-                               HVector *KN, HVector *RHS,
-                               HMatrix *Sigma,
-                               cdouble Omega, 
-                               double OPFT[8],
-                               double *FluxVector)
-{
-
-  if (FluxVector) memset(FluxVector, 0, 8*sizeof(double));
-  memse
-
-  RWGSurface *S=G->Surfaces[SurfaceIndex];
-  int NE=S->NE;
-  
-  for(int ne=0; ne<S->NE; ne++)
-   { 
-     for(int ne=0; ne<S->NE; ne++)
-   };
-
-}
 #endif
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGGeometry::GetOPFTTrace(int SurfaceIndex, cdouble Omega,
+                               HVector *KNVector, HMatrix *SigmaMatrix,
+                               double PFT[7], double **ByEdge)
+{
+  (void) SurfaceIndex;
+  (void) Omega;
+  (void) KNVector;
+  (void) SigmaMatrix;
+  (void) PFT; 
+  (void) ByEdge;
+}
 
 }// namespace scuff
