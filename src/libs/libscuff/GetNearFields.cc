@@ -900,8 +900,7 @@ void GetDSFarFields(RWGGeometry *G, int ns, int np, int iQ,
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
        { 
-         GMuNu[Mu][Nu] = ( ( (Mu==Nu) ? 1.0 : 0.0)
-                           + R[Mu]*R[Nu]/r2
+         GMuNu[Mu][Nu] = ( ( (Mu==Nu) ? 1.0 : 0.0) - R[Mu]*R[Nu]/r2
                          ) * DSExpFac;
        };
 
@@ -913,10 +912,11 @@ void GetDSFarFields(RWGGeometry *G, int ns, int np, int iQ,
      CMuNu[2][0]= R[1]*ExpFac/r;
      CMuNu[2][1]=-R[0]*ExpFac/r;
      
+     cdouble MIK=-II*k;
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
        { eDS[Mu] += w*GMuNu[Mu][Nu]*F[Nu];
-         hDS[Mu] += w*CMuNu[Mu][Nu]*F[Nu];
+         hDS[Mu] += w*MIK*CMuNu[Mu][Nu]*F[Nu];
        };
    };
 
@@ -950,8 +950,7 @@ void GetReducedFarFields(RWGGeometry *G, int ns, int np, int iQ,
                               pn, an, dpn, dan, ddpn, dcurlan);
 
       for(int Mu=0; Mu<3; Mu++)
-       { e[Mu] += 2.0*(an[0][Mu] - dpn[1][Mu])/(4.0*M_PI);
-       };
+       e[Mu] += 2.0*dpn[1][Mu]/(4.0*M_PI);
     };
    
    /*--------------------------------------------------------------*/

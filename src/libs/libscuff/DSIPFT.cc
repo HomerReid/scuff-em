@@ -38,6 +38,10 @@
  
 namespace scuff{
 
+void GetReducedFarFields(RWGGeometry *G, int ns, int ne,
+                         double X0[3],  cdouble k,
+                         cdouble e[3], cdouble h[3]);
+
 #define II cdouble(0.0,1.0) 
 #define TENTHIRDS 3.33333333333333333333333
 
@@ -172,6 +176,24 @@ HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
   (void)KN;
   (void)Omega;
   (void)XMatrix;
+#if 0
+  Log("Computing far fields at %i points...",XMatrix->NR);
+#ifdef USE_OPENMP
+  int NumThreads=GetNumThreads();
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
+#endif
+  for(int nenx=0; nenx<NE*NX; nenx++)
+   { 
+     int ne=nenx / NX;
+     int nx=nenx % NX;
+
+     GetFarFields(S, ne, X, k, GInt, CInt);
+
+     HMatrix *GetFSVMatrix(RWGSurface *S, HMatrix *CRMatrix,
+                      cdouble Omega, cdouble Eps, cdouble Mu,
+                      bool FarField)
+
+#endif
   return 0;
 }
 

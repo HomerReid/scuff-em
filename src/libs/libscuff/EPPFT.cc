@@ -237,6 +237,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
   RegionMPs[nrIn]->GetEpsMu(Omega, &EpsIn, &MuIn);
 
   cdouble k, ZRel, GammaE, GammaM;
+  bool Interior=!Exterior;
   if (Exterior)
    { 
      k = Omega * sqrt(EpsOut*MuOut);
@@ -318,27 +319,6 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
                             Order, FarField);
 
      /*--------------------------------------------------------------*/
-     /*- Get various overlap integrals between basis function b_\alpha*/
-     /*- and basis function b_\beta.                                 */
-     /*--------------------------------------------------------------*/
-     double Overlaps[20];
-     S->GetOverlaps(nea, neb, Overlaps);
-     double Divba_n_Divbb[3], nxba_Divbb[3]; 
-     double Divba_rxn_Divbb[3], rxnxba_Divbb[3];
-     Divba_n_Divbb[0]   = Overlaps[3];
-     Divba_n_Divbb[1]   = Overlaps[6];
-     Divba_n_Divbb[2]   = Overlaps[9];
-     nxba_Divbb[0]      = Overlaps[4];
-     nxba_Divbb[1]      = Overlaps[7];
-     nxba_Divbb[2]      = Overlaps[10];
-     Divba_rxn_Divbb[0] = Overlaps[12];
-     Divba_rxn_Divbb[1] = Overlaps[15];
-     Divba_rxn_Divbb[2] = Overlaps[18];
-     rxnxba_Divbb[0]    = Overlaps[13];
-     rxnxba_Divbb[1]    = Overlaps[16];
-     rxnxba_Divbb[2]    = Overlaps[19];
-
-     /*--------------------------------------------------------------*/
      /*- extract the surface-current coefficient either from the KN -*/
      /*- vector or the Sigma matrix                                 -*/
      /*--------------------------------------------------------------*/
@@ -374,17 +354,48 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
                        + KN*(FEM1*divbh[i] + FEM2*bxe[i])
                        + NK*(FME1*divbh[i] + FME2*bxe[i])
                        + NN*(FMM1*divbe[i] + FMM2*bxh[i])
-                       + (FEE3*KK + FMM3*NN) * Divba_n_Divbb[i]
-                       + (FEM3*KN + FME3*NK) * nxba_Divbb[i]
                      );
- 
+
         dTau[i] = -real(   KK*(FEE1*divbrxe[i] + FEE2*rxbxh[i])
                          + KN*(FEM1*divbrxh[i] + FEM2*rxbxe[i])
                          + NK*(FME1*divbrxh[i] + FME2*rxbxe[i])
                          + NN*(FMM1*divbrxe[i] + FMM2*rxbxh[i])
-                         + (FEE3*KK + FMM3*NN) * Divba_rxn_Divbb[i]
-                         + (FEM3*KN + FME3*NK) * rxnxba_Divbb[i]
                        );
+      };
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (Interior)
+      { double Overlaps[20];
+        S->GetOverlaps(nea, neb, Overlaps);
+
+        double Divba_n_Divbb[3], nxba_Divbb[3]; 
+        double Divba_rxn_Divbb[3], rxnxba_Divbb[3];
+        Divba_n_Divbb[0]   = Overlaps[3];
+        Divba_n_Divbb[1]   = Overlaps[6];
+        Divba_n_Divbb[2]   = Overlaps[9];
+        nxba_Divbb[0]      = Overlaps[4];
+        nxba_Divbb[1]      = Overlaps[7];
+        nxba_Divbb[2]      = Overlaps[10];
+        Divba_rxn_Divbb[0] = Overlaps[12];
+        Divba_rxn_Divbb[1] = Overlaps[15];
+        Divba_rxn_Divbb[2] = Overlaps[18];
+        rxnxba_Divbb[0]    = Overlaps[13];
+        rxnxba_Divbb[1]    = Overlaps[16];
+        rxnxba_Divbb[2]    = Overlaps[19];
+
+        for(int i=0; i<3; i++)
+         { 
+           dF[i]   -= real (   (FEE3*KK + FMM3*NN) * Divba_n_Divbb[i]
+                             + (FEM3*KN + FME3*NK) * nxba_Divbb[i]
+                           );
+
+           dTau[i] -= real (   (FEE3*KK + FMM3*NN) * Divba_rxn_Divbb[i]
+                             + (FEM3*KN + FME3*NK) * rxnxba_Divbb[i]
+                           );
+         };
+
       };
 
      /*--------------------------------------------------------------*/
