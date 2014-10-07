@@ -373,7 +373,8 @@ void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
          double Overlaps[NUMOVERLAPS];
          GetOverlaps(neAlpha, neBeta, Overlaps);
 
-         cdouble XForce1 = TENTHIRDS*(Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2);
+         cdouble XForce1 = 
+TENTHIRDS*(Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2);
          cdouble XForce2 = TENTHIRDS*2.0*Overlaps[OVERLAP_TIMESNABLA_X] / (II*Omega);
 
          cdouble YForce1 = TENTHIRDS*(Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_Y]/K2);
@@ -591,16 +592,191 @@ void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+int GetOverlappingEdgeIndices(RWGSurface *S, int nea, int nebArray[5])
+{
+  nebArray[0] = nea;
+
+  RWGEdge *E   = S->Edges[nea];
+  RWGPanel *PP = S->Panels[ E->iPPanel ]; 
+  int      iQP = E->PIndex;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nea!=PP->EI[iQP]) 
+ ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  nebArray[1] = PP->EI[ (iQP+1)%3 ];
+  nebArray[2] = PP->EI[ (iQP+2)%3 ];
+
+  if ( E->iMPanel == -1 )
+   return 3;
+
+  RWGPanel *PM = S->Panels[ E->iMPanel ];
+  int      iQM = E->MIndex;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nea!=PM->EI[iQM]) 
+ ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  nebArray[3] = PM->EI[ (iQM+1)%3 ];
+  nebArray[4] = PM->EI[ (iQM+2)%3 ];
+   
+  return 5;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void RWGGeometry::GetOPFTTrace(int SurfaceIndex, cdouble Omega,
                                HVector *KNVector, HMatrix *SigmaMatrix,
                                double PFT[7], double **ByEdge)
 {
-  (void) SurfaceIndex;
-  (void) Omega;
-  (void) KNVector;
-  (void) SigmaMatrix;
-  (void) PFT; 
-  (void) ByEdge;
-}
+  if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
+   { memset(PFT,0,7*sizeof(double));
+     Warn("GetOPFTTrace called for unknown surface #i",SurfaceIndex);
+     return;
+   };
+  RWGSurface *S=Surfaces[SurfaceIndex];
+  int Offset = BFIndexOffset[SurfaceIndex];
+  int NE=S->NumEdges;
+
+  /*--------------------------------------------------------------*/
+  /*- get material parameters of exterior medium -----------------*/
+  /*--------------------------------------------------------------*/
+  cdouble ZZ=ZVAC, k2=Omega*Omega;
+  cdouble Eps, Mu;
+  RegionMPs[S->RegionIndices[0]]->GetEpsMu(Omega, &Eps, &Mu);
+  k2 *= Eps*Mu;
+  ZZ *= sqrt(Mu/Eps);
+
+  /*--------------------------------------------------------------*/
+  /*- initialize edge-by-edge contributions to zero --------------*/
+  /*--------------------------------------------------------------*/
+  if (ByEdge)
+   { for(int nq=0; nq<7; nq++)
+      if (ByEdge[nq])
+       memset(ByEdge[nq],0,NE*sizeof(double));
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double PAbs=0.0, Fx=0.0, Fy=0.0, Fz=0.0, Taux=0.0, Tauy=0.0, Tauz=0.0;
+  for(int nea=0; nea<NE; nea++)
+   { 
+     /*--------------------------------------------------------------*/
+     /* populate an array whose indices are the 3 or 5 edges         */
+     /* that have nonzero overlaps with edge #nea, then loop over    */
+     /* those edges                                                  */
+     /*--------------------------------------------------------------*/
+     int nebArray[5];
+     int nebCount= GetOverlappingEdgeIndices(S, nea, nebArray);
+     for(int nneb=0; nneb<nebCount; nneb++)
+      { 
+        int neb=nebArray[nneb];
+
+        double Overlaps[20];
+        S->GetOverlaps(nea, neb, Overlaps);
+
+       /*--------------------------------------------------------------*/
+       /*--------------------------------------------------------------*/
+       /*--------------------------------------------------------------*/
+        cdouble KK, KN, NK, NN;
+        if (KNVector)
+         { 
+           cdouble kAlpha =       KNVector->GetEntry(Offset + 2*nea + 0);
+           cdouble nAlpha = -ZVAC*KNVector->GetEntry(Offset + 2*nea + 1);
+           cdouble kBeta  =       KNVector->GetEntry(Offset + 2*neb + 0);
+           cdouble nBeta  = -ZVAC*KNVector->GetEntry(Offset + 2*neb + 1);
+
+           KK = conj(kAlpha) * kBeta;
+           KN = conj(kAlpha) * nBeta;
+           NK = conj(nAlpha) * kBeta;
+           NN = conj(nAlpha) * nBeta;
+         }
+        else
+         { KK = SigmaMatrix->GetEntry(Offset+2*nea+0, Offset+2*neb+0);
+           KN = SigmaMatrix->GetEntry(Offset+2*nea+0, Offset+2*neb+1);
+           NK = SigmaMatrix->GetEntry(Offset+2*nea+1, Offset+2*neb+0);
+           NN = SigmaMatrix->GetEntry(Offset+2*nea+1, Offset+2*neb+1);
+         };
+
+       /*--------------------------------------------------------------*/
+       /*--------------------------------------------------------------*/
+       /*--------------------------------------------------------------*/
+       // power
+       double dPAbs = 0.25*real( (KN-NK) * Overlaps[OVERLAP_CROSS] );
+
+       // force, torque
+       double dF[3], dTau[3];
+       dF[0] = 0.25*TENTHIRDS*
+               real( -(KK*ZZ + NN/ZZ)*(Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/k2)
+                     +(NK-KN)*2.0*Overlaps[OVERLAP_TIMESNABLA_X] / (II*Omega)
+                   );
+
+       dF[1] = 0.25*TENTHIRDS*
+               real( -(KK*ZZ + NN/ZZ)*(Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_Y]/k2)
+                     +(NK-KN)*2.0*Overlaps[OVERLAP_TIMESNABLA_Y] / (II*Omega)
+                   );
+
+       dF[2] = 0.25*TENTHIRDS*
+               real( -(KK*ZZ + NN/ZZ)*(Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_Z]/k2)
+                     +(NK-KN)*2.0*Overlaps[OVERLAP_TIMESNABLA_Z] / (II*Omega)
+                   );
+
+       dTau[0] = 0.25*TENTHIRDS*
+                 real( -(KK*ZZ + NN/ZZ)*(Overlaps[OVERLAP_RXBULLET_X] - Overlaps[OVERLAP_RXNABLANABLA_X]/k2)
+                       +(NK-KN)*2.0*Overlaps[OVERLAP_RXTIMESNABLA_X] / (II*Omega)
+                     );
+
+       dTau[1] = 0.25*TENTHIRDS*
+                 real( -(KK*ZZ + NN/ZZ)*(Overlaps[OVERLAP_RXBULLET_Y] - Overlaps[OVERLAP_RXNABLANABLA_Y]/k2)
+                       +(NK-KN)*2.0*Overlaps[OVERLAP_RXTIMESNABLA_Y] / (II*Omega)
+                     );
+
+       dTau[2] = 0.25*TENTHIRDS*
+                 real( -(KK*ZZ + NN/ZZ)*(Overlaps[OVERLAP_RXBULLET_Z] - Overlaps[OVERLAP_RXNABLANABLA_Z]/k2)
+                       +(NK-KN)*2.0*Overlaps[OVERLAP_RXTIMESNABLA_Z] / (II*Omega)
+                     );
+
+
+       /*--------------------------------------------------------------*/
+       /*- accumulate contributions to full sums ----------------------*/
+       /*--------------------------------------------------------------*/
+       PAbs += dPAbs;
+       Fx   += dF[0];
+       Fy   += dF[1];
+       Fz   += dF[2];
+       Taux += dTau[0];
+       Tauy += dTau[1];
+       Tauz += dTau[2];
+
+       /*--------------------------------------------------------------*/
+       /*- accumulate contributions to by-edge sums -------------------*/
+       /*--------------------------------------------------------------*/
+       if (ByEdge) 
+        {  
+          if (ByEdge[0]) ByEdge[0][nea] += dPAbs;
+          if (ByEdge[1]) ByEdge[1][nea] += dF[0];
+          if (ByEdge[2]) ByEdge[2][nea] += dF[1];
+          if (ByEdge[3]) ByEdge[3][nea] += dF[2];
+          if (ByEdge[4]) ByEdge[4][nea] += dTau[0];
+          if (ByEdge[5]) ByEdge[5][nea] += dTau[1];
+          if (ByEdge[6]) ByEdge[6][nea] += dTau[2];
+        };
+
+      } // for (int nneb=... 
+
+   }; // for(int nea=0; nea<S->NE; nea++)
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  PFT[0] = PAbs;
+  PFT[1] = Fx;
+  PFT[2] = Fy;
+  PFT[3] = Fz;
+  PFT[4] = Taux;
+  PFT[5] = Tauy;
+  PFT[6] = Tauz;
+
+} // GetEPPFTTrace
 
 }// namespace scuff

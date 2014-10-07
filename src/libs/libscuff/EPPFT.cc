@@ -242,9 +242,9 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
   RegionMPs[nrOut]->GetEpsMu(Omega, &EpsOut, &MuOut);
   RegionMPs[nrIn]->GetEpsMu(Omega, &EpsIn, &MuIn);
 
-  cdouble k, ZRel, GammaE, GammaM; 
+  cdouble k, ZRel, GammaE, GammaM;
   double Sign;
-  bool Interior=!Exterior;
+  bool Interior = !Exterior;
   
   if (Exterior)
    { 
@@ -260,7 +260,10 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      ZRel = sqrt(MuIn/EpsIn);
      GammaE=(1.0/EpsIn - 1.0/EpsOut) * ZVAC;
      GammaM=(1.0/MuIn  - 1.0/MuOut) / ZVAC;
-   }
+   };
+
+  Log("Computing EPPFT for surface %i (Ext,FF)=(%i,%i) (ZRel=%s)",
+       SurfaceIndex,Exterior,FarField,z2s(ZRel));
 
   /*--------------------------------------------------------------*/
   /*- define the constant prefactors that enter the power, force -*/

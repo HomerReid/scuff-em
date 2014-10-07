@@ -55,6 +55,16 @@ void WriteST(double **VV, double Val, FILE *f)
              Val,Val,Val);
 }
 
+/* scalar triangle */
+void WriteST2(double **VV, double Val[3], FILE *f)
+{
+  fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+             VV[0][0], VV[0][1], VV[0][2],
+             VV[1][0], VV[1][1], VV[1][2],
+             VV[2][0], VV[2][1], VV[2][2], 
+             Val[0],Val[1],Val[2]);
+}
+
 /***************************************************************/
 /* WritePPMesh routine. Writes geometry to a .pp file suitable */
 /* for opening as a GMSH postprocessing file.                  */
@@ -591,7 +601,8 @@ void RWGSurface::WriteGPMesh(const char *format, ...)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGSurface::PlotScalarDensity(double *ByEdge, const char *FileName, const char *Tag, ...)
+void RWGSurface::PlotScalarDensity(double *ByEdge, const char *FileName,
+                                   const char *Tag, ...)
 { 
 
   va_list ap;
@@ -616,8 +627,12 @@ void RWGSurface::PlotScalarDensity(double *ByEdge, const char *FileName, const c
    };
 
   /***************************************************************/
-  /* plot all panels on the surface. *****************************/
+  /* first approach: for each panel, average the contributions   */
+  /* of the three edges that share that panel, then assign this  */
+  /* value to all three panel vertices. this works, but produces */
+  /* plots that are not very smooth looking.                     */
   /***************************************************************/
+#if 0
   fprintf(f,"View \"%s\" {\n",TagString);
   for(int np=0; np<NumPanels; np++)
    { 
@@ -636,8 +651,44 @@ void RWGSurface::PlotScalarDensity(double *ByEdge, const char *FileName, const c
      WriteST(PV, Val, f);
    };
   fprintf(f,"};\n");
-  fclose(f);
+#endif
 
+  /***************************************************************/
+  /* second approach: for each panel vertex, average the         */
+  /* contributions of all edges that share the vertex. This seems*/
+  /* to produce much nicer plots.                                */
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n",TagString);
+  for(int np=0; np<NumPanels; np++)
+   { 
+     RWGPanel *P = Panels[np];
+     double Area = P->Area;
+     double *PV[3];
+     PV[0]=Vertices + 3*P->VI[0];
+     PV[1]=Vertices + 3*P->VI[1];
+     PV[2]=Vertices + 3*P->VI[2];
+
+     double VVals[3]={0.0, 0.0, 0.0};
+     for(int i=0; i<3; i++)
+      { VVals[i]=0.0;
+        int nContrib=0;
+        for(int ne=0; ne<NumEdges; ne++)
+         { if (    (Edges[ne]->iQP == P->VI[i]) || (Edges[ne]->iQM == P->VI[i])
+                || (Edges[ne]->iV1 == P->VI[i]) || (Edges[ne]->iV2 == P->VI[i])
+              ) 
+            { nContrib++;
+              VVals[i]+=ByEdge[ne];
+            };
+         };
+        if (nContrib>0) VVals[i]/=(Area * (double)nContrib);
+      };
+
+     WriteST2(PV, VVals, f);
+   };
+  fprintf(f,"};\n");
+
+
+  fclose(f);
 }
 
 /***************************************************************/
