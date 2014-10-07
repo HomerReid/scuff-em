@@ -38,12 +38,12 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#define MAXPW    1     // max number of plane waves
+#define MAXPW    10    // max number of plane waves
 #define MAXGB    1     // max number of gaussian beams
 #define MAXPS    10    // max number of point sources
-#define MAXFREQ  10    // max number of frequencies 
+#define MAXFREQ  10    // max number of frequencies
 #define MAXEPF   10    // max number of evaluation-point files
-#define MAXFM    10    // max number of flux meshes
+#define MAXFVM   10    // max number of field visualization meshes
 #define MAXCACHE 10    // max number of cache files for preload
 
 #define MAXSTR   1000
@@ -77,9 +77,10 @@ int main(int argc, char *argv[])
   int DSIPoints = 11;
   char *DSIMesh=0;
   bool Lebedev=false;
+  bool PlotFlux=false;
   char *PSDFile=0;
   char *MomentFile=0;
-  char *FluxMeshes[MAXFM];           int nFluxMeshes;
+  char *FVMeshes[MAXFVM];            int nFVMeshes;
   int PlotSurfaceCurrents=0;
   int nThread=0;
   char *HDF5File=0;
@@ -106,12 +107,14 @@ int main(int argc, char *argv[])
      {"psStrength",     PA_CDOUBLE, 3, MAXPS,   (void *)psStrength,  &npsStrength,  "point source strength"},
 /**/
      {"EPFile",         PA_STRING,  1, MAXEPF,  (void *)EPFiles,     &nEPFiles,     "list of evaluation points"},
-     {"FluxMesh",       PA_STRING,  1, MAXFM,   (void *)FluxMeshes,  &nFluxMeshes,  "flux mesh"},
+/**/
+     {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
 /**/
      {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
      {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
      {"PFTFile",        PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "(synonym for --EPPFT)"},
+     {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "generate plots of spatially-resolved PFT flux"},
 /**/
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
@@ -210,7 +213,7 @@ int main(int argc, char *argv[])
                              || EPPFTFile!=0
                              || DSIPFTFile!=0
                              || nEPFiles>0
-                             || nFluxMeshes>0
+                             || nFVMeshes>0
                              || PlotSurfaceCurrents
                            );
   if ( NeedIncidentField && IFDList==0 )
@@ -361,13 +364,13 @@ int main(int argc, char *argv[])
      /*- overlap PFT ------------------------------------------------*/
      /*--------------------------------------------------------------*/
      if (OPFTFile)
-      WriteOPFTFile(SSD, OPFTFile);
+      WriteOPFTFile(SSD, OPFTFile, PlotFlux);
 
      /*--------------------------------------------------------------*/
      /*- equivalence-principle PFT ----------------------------------*/
      /*--------------------------------------------------------------*/
      if (EPPFTFile)
-      WriteEPPFTFile(SSD, EPPFTFile);
+      WriteEPPFTFile(SSD, EPPFTFile, PlotFlux);
 
      /*--------------------------------------------------------------*/
      /*- surface-integral PFT           -----------------------------*/
@@ -402,11 +405,11 @@ int main(int argc, char *argv[])
       G->PlotSurfaceCurrents(KN, Omega, "%s.%s.pp",GetFileBase(GeoFile),z2s(Omega));
 
      /*--------------------------------------------------------------*/
-     /*- flux meshes ------------------------------------------------*/
+     /*- field visualization meshes ---------------------------------*/
      /*--------------------------------------------------------------*/
      int nfm;
-     for(nfm=0; nfm<nFluxMeshes; nfm++)
-      CreateFluxPlot(SSD, FluxMeshes[nfm]);
+     for(nfm=0; nfm<nFVMeshes; nfm++)
+      VisualizeFields(SSD, FVMeshes[nfm]);
 
    }; //  for(nFreq=0; nFreq<NumFreqs; nFreqs++)
 

@@ -53,13 +53,13 @@ typedef struct SSData
 /* these are the 'output modules' that compute and process the */
 /* scattered fields in various ways.                           */
 /***************************************************************/
-void WriteOPFTFile(SSData *SSD, char *FileName);
-void WriteEPPFTFile(SSData *SSD, char *FileName);
-void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
+void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux);
+void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux);
+void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh, 
                      double DSIRadius, int DSIPoints, bool Lebedev);
 void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);
-void CreateFluxPlot(SSData *SSData, char *MeshFileName);
+void VisualizeFields(SSData *SSData, char *MeshFileName);
 
 #endif

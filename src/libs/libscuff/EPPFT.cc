@@ -211,6 +211,12 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
 
 /***************************************************************/
 /* Note: Either KNVector or SigmaMatrix should be non-null.    */
+/*                                                             */
+/* If ByEdge is non-null, it must be a 2D array of size        */
+/*  [7][NE], where NE is the number of interior edges in       */
+/*  surface #SurfaceIndex. In this case, if ByEdge[nq] is      */
+/*  non-null, then on return ByEdge[nq][ne] is the contribution*/
+/*  of edge #ne to quantity #nq.                               */
 /***************************************************************/
 void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
                                 HVector *KNVector, HMatrix *SigmaMatrix,
