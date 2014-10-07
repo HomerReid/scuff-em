@@ -83,7 +83,7 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
                             cdouble bxe[3],     cdouble bxh[3],
                             cdouble divbrxe[3], cdouble divbrxh[3],
                             cdouble rxbxe[3],   cdouble rxbxh[3],
-                            int Order=4, bool FarField=true)
+                            int Order=4, bool FarField=false)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -242,16 +242,20 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
   RegionMPs[nrOut]->GetEpsMu(Omega, &EpsOut, &MuOut);
   RegionMPs[nrIn]->GetEpsMu(Omega, &EpsIn, &MuIn);
 
-  cdouble k, ZRel, GammaE, GammaM;
+  cdouble k, ZRel, GammaE, GammaM; 
+  double Sign;
   bool Interior=!Exterior;
+  
   if (Exterior)
    { 
+     Sign = 1.0;
      k = Omega * sqrt(EpsOut*MuOut);
      ZRel = sqrt(MuOut/EpsOut);
      GammaE=GammaM=0.0;
    }
   else
    { 
+     Sign = -1.0;
      k = Omega * sqrt(EpsIn*MuIn);
      ZRel = sqrt(MuIn/EpsIn);
      GammaE=(1.0/EpsIn - 1.0/EpsOut) * ZVAC;
@@ -353,20 +357,20 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      /*--------------------------------------------------------------*/
      double dPAbs, dF[3], dTau[3];
 
-     dPAbs = -real( KK*PEE*be + KN*PEM*bh + NK*PME*bh + NN*PMM*be );
+     dPAbs = Sign*real( KK*PEE*be + KN*PEM*bh + NK*PME*bh + NN*PMM*be );
 
      for(int i=0; i<3; i++)
-      { dF[i] = -real(   KK*(FEE1*divbe[i] + FEE2*bxh[i])
-                       + KN*(FEM1*divbh[i] + FEM2*bxe[i])
-                       + NK*(FME1*divbh[i] + FME2*bxe[i])
-                       + NN*(FMM1*divbe[i] + FMM2*bxh[i])
-                     );
+      {   dF[i] = Sign*real(   KK*(FEE1*divbe[i] + FEE2*bxh[i])
+                             + KN*(FEM1*divbh[i] + FEM2*bxe[i])
+                             + NK*(FME1*divbh[i] + FME2*bxe[i])
+                             + NN*(FMM1*divbe[i] + FMM2*bxh[i])
+                           );
 
-        dTau[i] = -real(   KK*(FEE1*divbrxe[i] + FEE2*rxbxh[i])
-                         + KN*(FEM1*divbrxh[i] + FEM2*rxbxe[i])
-                         + NK*(FME1*divbrxh[i] + FME2*rxbxe[i])
-                         + NN*(FMM1*divbrxe[i] + FMM2*rxbxh[i])
-                       );
+        dTau[i] = Sign*real(   KK*(FEE1*divbrxe[i] + FEE2*rxbxh[i])
+                             + KN*(FEM1*divbrxh[i] + FEM2*rxbxe[i])
+                             + NK*(FME1*divbrxh[i] + FME2*rxbxe[i])
+                             + NN*(FMM1*divbrxe[i] + FMM2*rxbxh[i])
+                           );
       };
 
      /*--------------------------------------------------------------*/

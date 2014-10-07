@@ -630,7 +630,7 @@ void RWGSurface::PlotScalarDensity(double *ByEdge, const char *FileName, const c
      double Val=0.0;
      for(int nei=0; nei<3; nei++)
       if ( P->EI[nei] >= 0 )
-       Val = ByEdge[ P->EI[nei] ]; 
+       Val += ByEdge[ P->EI[nei] ]; 
      Val/=3.0;
 
      WriteST(PV, Val, f);

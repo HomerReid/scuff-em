@@ -437,9 +437,9 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
   if (DSIMesh)
    fprintf(f,"%s ",DSIMesh);
   else
-   fprintf(f,"%e_%i%s",DSIRadius,DSIPoints,
+   fprintf(f,"%e_%i%s ",DSIRadius,DSIPoints,
                        Lebedev ? "(Lebedev)" : "");
-  fprintf(f,"%e 0.0",DSIPFT[0]);
+  fprintf(f,"%e 0.0 ",DSIPFT[0]);
   for(int nq=1; nq<7; nq++)
    fprintf(f,"%e ",DSIPFT[nq]);
   fprintf(f,"\n");
