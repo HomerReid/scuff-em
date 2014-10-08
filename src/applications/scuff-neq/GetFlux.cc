@@ -216,7 +216,7 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   /*--------------------------------------------------------------*/
   for(int nq=0, nqq=0; nq<NUMPFT; nq++)
    if (SNEQD->NeedQuantity[nq])
-    SIFlux[nqq++]=AllFlux[nq]; 
+    SIFlux[nqq++] = -4.0*AllFlux[nq];
 
   /*--------------------------------------------------------------*/
   /*- generate panel-resolved flux plots if that was requested   -*/
@@ -355,6 +355,8 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 /***************************************************************/
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
+  SetLogFileName("scuff-neq.log");
+
   if ( CacheRead(SNEQD, Omega, kBloch, Flux) )
    return;
 

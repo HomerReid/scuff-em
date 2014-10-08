@@ -317,6 +317,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
    { 
      int nea = neab/NE;
      int neb = neab%NE;
+     if (neb<nea) continue;
 
      /*--------------------------------------------------------------*/
      /*- Get various overlap integrals between basis function b_\alpha*/
@@ -325,7 +326,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      cdouble be, bh;
      cdouble divbe[3], divbh[3], bxe[3], bxh[3];
      cdouble divbrxe[3], divbrxh[3], rxbxe[3], rxbxh[3];
-     int Order=4; // increase for greater accuracy in overlap integrals
+     int Order=9; // increase for greater accuracy in overlap integrals
      GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
                             k, &be, &bh, divbe, divbh, bxe, bxh,
                             divbrxe, divbrxh, rxbxe, rxbxh, 
@@ -414,13 +415,14 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      /*--------------------------------------------------------------*/
      /*- accumulate contributions to full sums ----------------------*/
      /*--------------------------------------------------------------*/
-     PAbs += dPAbs;
-     Fx   += dF[0];
-     Fy   += dF[1];
-     Fz   += dF[2];
-     Taux += dTau[0];
-     Tauy += dTau[1];
-     Tauz += dTau[2];
+     double Weight = (nea==neb) ? 1.0 : 2.0;
+     PAbs += Weight*dPAbs;
+     Fx   += Weight*dF[0];
+     Fy   += Weight*dF[1];
+     Fz   += Weight*dF[2];
+     Taux += Weight*dTau[0];
+     Tauy += Weight*dTau[1];
+     Tauz += Weight*dTau[2];
 
      /*--------------------------------------------------------------*/
      /*- accumulate contributions to by-edge sums                    */
@@ -428,13 +430,13 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      if (ByEdge) 
       {  
         #pragma omp critical (ByEdge)
-         { if (ByEdge[0]) ByEdge[0][nea] += dPAbs;
-           if (ByEdge[1]) ByEdge[1][nea] += dF[0];
-           if (ByEdge[2]) ByEdge[2][nea] += dF[1];
-           if (ByEdge[3]) ByEdge[3][nea] += dF[2];
-           if (ByEdge[4]) ByEdge[4][nea] += dTau[0];
-           if (ByEdge[5]) ByEdge[5][nea] += dTau[1];
-           if (ByEdge[6]) ByEdge[6][nea] += dTau[2];
+         { if (ByEdge[0]) ByEdge[0][nea] += Weight*dPAbs;
+           if (ByEdge[1]) ByEdge[1][nea] += Weight*dF[0];
+           if (ByEdge[2]) ByEdge[2][nea] += Weight*dF[1];
+           if (ByEdge[3]) ByEdge[3][nea] += Weight*dF[2];
+           if (ByEdge[4]) ByEdge[4][nea] += Weight*dTau[0];
+           if (ByEdge[5]) ByEdge[5][nea] += Weight*dTau[1];
+           if (ByEdge[6]) ByEdge[6][nea] += Weight*dTau[2];
          };
       };
 
