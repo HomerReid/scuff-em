@@ -601,7 +601,16 @@ void RWGSurface::WriteGPMesh(const char *format, ...)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGSurface::PlotScalarDensity(double *ByEdge, const char *FileName,
+double GetTriangleArea(double *V1, double *V2, double *V3)
+{ 
+  double A[3], B[3], AxB[3];
+  return 0.5*VecNorm(VecCross( VecSub(V2, V1, A), VecSub(V3, V1, B), AxB ));
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void RWGSurface::PlotScalarDensity(double *ValuePerEdge, const char *FileName,
                                    const char *Tag, ...)
 { 
 
@@ -651,42 +660,79 @@ void RWGSurface::PlotScalarDensity(double *ByEdge, const char *FileName,
      WriteST(PV, Val, f);
    };
   fprintf(f,"};\n");
-#endif
+#endif 
 
   /***************************************************************/
   /* second approach: for each panel vertex, average the         */
   /* contributions of all edges that share the vertex. This seems*/
-  /* to produce much nicer plots.                                */
+  /* to produce much nicer plots. Here AreaPerVertex[nv] is the  */
+  /* area of the surface lying closest to vertex #nv.            */
   /***************************************************************/
+  double *ValuePerVertex = new double [NumVertices];
+  double *AreaPerVertex  = new double [NumVertices];
+     int *NumPerVertex   = new int [NumVertices];
+  memset(ValuePerVertex, 0, NumVertices*sizeof(double));
+  memset(AreaPerVertex,  0, NumVertices*sizeof(double));
+  memset(NumPerVertex,   0, NumVertices*sizeof(int));
+  for(int ne=0; ne<NumEdges; ne++)
+   { 
+     RWGEdge *E = Edges[ne];
+     int iV1    = E->iV1;
+     int iV2    = E->iV2;
+     double *V1 = Vertices + 3*iV1;
+     double *V2 = Vertices + 3*iV2;
+     double *PCentroid = Panels[E->iPPanel]->Centroid;
+     double *MCentroid
+      = (E->iMPanel==-1) ? E->Centroid : Panels[E->iMPanel]->Centroid;
+
+     ValuePerVertex[iV1] += ValuePerEdge[ne];
+     ValuePerVertex[iV2] += ValuePerEdge[ne];
+     AreaPerVertex[iV1]  += GetTriangleArea(PCentroid, MCentroid, V1);
+     AreaPerVertex[iV2]  += GetTriangleArea(PCentroid, MCentroid, V2);
+      NumPerVertex[iV1]  += 1;
+      NumPerVertex[iV2]  += 1;
+   };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*! sanity check, delete me !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+double TotalArea1=0.0, TotalArea2=0.0;
+for(int np=0; np<NumPanels; np++)
+ TotalArea1 += Panels[np]->Area;
+for(int nv=0; nv<NumVertices; nv++)
+ TotalArea2 += AreaPerVertex[nv];
+printf("Howdatage! (Panel,Vertex area) = (%e, %e)\n",TotalArea1,TotalArea2);
+if ( !EqualFloat(TotalArea1, TotalArea2) )
+ Warn("Bawonkatage! Panel area = %e, Vertex area = %e",TotalArea1,TotalArea2);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+ 
   fprintf(f,"View \"%s\" {\n",TagString);
   for(int np=0; np<NumPanels; np++)
    { 
      RWGPanel *P = Panels[np];
-     double Area = P->Area;
-     double *PV[3];
-     PV[0]=Vertices + 3*P->VI[0];
-     PV[1]=Vertices + 3*P->VI[1];
-     PV[2]=Vertices + 3*P->VI[2];
+     int iV1 = P->VI[0];
+     int iV2 = P->VI[1];
+     int iV3 = P->VI[2];
 
-     double VVals[3]={0.0, 0.0, 0.0};
-     for(int i=0; i<3; i++)
-      { VVals[i]=0.0;
-        int nContrib=0;
-        for(int ne=0; ne<NumEdges; ne++)
-         { if (    (Edges[ne]->iQP == P->VI[i]) || (Edges[ne]->iQM == P->VI[i])
-                || (Edges[ne]->iV1 == P->VI[i]) || (Edges[ne]->iV2 == P->VI[i])
-              ) 
-            { nContrib++;
-              VVals[i]+=ByEdge[ne];
-            };
-         };
-        if (nContrib>0) VVals[i]/=(Area * (double)nContrib);
-      };
+     double *PV[3];
+     PV[0]=Vertices + 3*iV1;
+     PV[1]=Vertices + 3*iV2;
+     PV[2]=Vertices + 3*iV3;
+
+     double VVals[3];
+     VVals[0] = ValuePerVertex[iV1] / (AreaPerVertex[iV1]*NumPerVertex[iV1]);
+     VVals[1] = ValuePerVertex[iV2] / (AreaPerVertex[iV2]*NumPerVertex[iV2]);
+     VVals[2] = ValuePerVertex[iV3] / (AreaPerVertex[iV3]*NumPerVertex[iV3]);
 
      WriteST2(PV, VVals, f);
    };
   fprintf(f,"};\n");
 
+  delete[] ValuePerVertex;
+  delete[] AreaPerVertex;
+  delete[] NumPerVertex;
 
   fclose(f);
 }

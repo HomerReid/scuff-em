@@ -457,6 +457,10 @@ class RWGGeometry
                   bool Lebedev=false, bool FarField=false,
                   GTransformation *OTGT=0, GTransformation *GT=0);
 
+   HMatrix *GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
+                           HVector *KNVector, HMatrix *SigmaMatrix,
+                           HMatrix *FMatrix, bool FarField);
+
    /* routine for calculating charge and current densities at panel centroids */
    HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
