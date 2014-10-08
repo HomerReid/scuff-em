@@ -819,13 +819,15 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
   if (LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
 #pragma omp parallel for schedule(dynamic,1), 		\
                          num_threads(NumThreads)	\
-                         collapse(2)            	\
                          reduction(+:PAbs, Fx, Fy, Fz, Taux, Tauy, Tauz)
 #endif
-  for(int nea=0; nea<NE; nea++)
-   for(int neb=0; neb<NE; neb++)
+  for(int neaneb=0; neaneb<NE*NE; neaneb++)
     { 
-      if (neb==0) LogPercent(nea,NE,10);
+      int nea = neaneb / NE;
+      int neb = neaneb % NE;
+      if (neb<nea) continue;
+
+      if (neb==nea) LogPercent(nea,NE,10);
 
       /*--------------------------------------------------------------*/
       /*- get SIPFT contributions from this pair of basis functions---*/
@@ -862,10 +864,11 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
       /*- get the contributions of this edge pair to all quantities   */
       /*--------------------------------------------------------------*/
       double DeltaPFT[NUMPFT];
+      double Weight = (nea==neb) ? 1.0 : 2.0;
       for(int nq=0; nq<NUMPFT; nq++)
-       DeltaPFT[nq] = real(  KK*Entries[4*nq+0] + KN*Entries[4*nq+1]
-                            +NK*Entries[4*nq+2] + NN*Entries[4*nq+3]
-                          );
+       DeltaPFT[nq] = Weight * real(  KK*Entries[4*nq+0] + KN*Entries[4*nq+1]
+                                     +NK*Entries[4*nq+2] + NN*Entries[4*nq+3]
+                                   );
       
       /*--------------------------------------------------------------*/
       /*- accumulate contributions to full sums ----------------------*/
