@@ -33,12 +33,21 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
-                         char *pFileBase)
+const char *QuantityNames[NUMPFT]=
+ { "Power",
+   "XForce",  "YForce",  "ZForce",
+   "XTorque", "YTorque", "ZTorque"
+ };
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
+                         int QuantityFlags, char *EPFile,
+                         bool PlotFlux, char *pFileBase)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
-
   SNEQD->WriteCache=0;
 
   /*--------------------------------------------------------------*/
@@ -75,25 +84,50 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   /*--------------------------------------------------------------*/
   /*- figure out which quantities were specified                 -*/
   /*--------------------------------------------------------------*/
-  SNEQD->QuantityFlags=QuantityFlags;
-  SNEQD->NQ=0;
-  if ( QuantityFlags & QFLAG_POWER  ) SNEQD->NQ++;
-  if ( QuantityFlags & QFLAG_XFORCE ) SNEQD->NQ++;
-  if ( QuantityFlags & QFLAG_YFORCE ) SNEQD->NQ++;
-  if ( QuantityFlags & QFLAG_ZFORCE ) SNEQD->NQ++;
-  if ( QuantityFlags & QFLAG_XTORQUE ) SNEQD->NQ++;
-  if ( QuantityFlags & QFLAG_YTORQUE ) SNEQD->NQ++;
-  if ( QuantityFlags & QFLAG_ZTORQUE ) SNEQD->NQ++;
+  bool *NeedQuantity=SNEQD->NeedQuantity;
+  memset(NeedQuantity, 0, NUMPFT*sizeof(bool));
+  int NQ=0;
+  if ( QuantityFlags & QFLAG_POWER  ) 
+   { NeedQuantity[QINDEX_POWER]   = true; NQ++; };
+  if ( QuantityFlags & QFLAG_XFORCE ) 
+   { NeedQuantity[QINDEX_XFORCE]  = true; NQ++; };
+  if ( QuantityFlags & QFLAG_YFORCE ) 
+   { NeedQuantity[QINDEX_YFORCE]  = true; NQ++; };
+  if ( QuantityFlags & QFLAG_ZFORCE ) 
+   { NeedQuantity[QINDEX_ZFORCE]  = true; NQ++; };
+  if ( QuantityFlags & QFLAG_XTORQUE ) 
+   { NeedQuantity[QINDEX_XTORQUE] = true; NQ++; };
+  if ( QuantityFlags & QFLAG_YTORQUE ) 
+   { NeedQuantity[QINDEX_YTORQUE] = true; NQ++; };
+  if ( QuantityFlags & QFLAG_ZTORQUE ) 
+   { NeedQuantity[QINDEX_ZTORQUE] = true; NQ++; };
+  
+  SNEQD->NQ = NQ;
 
-  SNEQD->NSNQ = G->NumSurfaces * SNEQD->NQ; 
-  SNEQD->NTNSNQ = SNEQD->NumTransformations * SNEQD->NSNQ;
+  int NT = SNEQD->NumTransformations;
+  int NS = SNEQD->G->NumSurfaces;
+  SNEQD->NumSIQs = NT*NS*NS*NQ;
+
+  /*--------------------------------------------------------------*/
+  /*- read the list of evaluation points for spatially-resolved  -*/
+  /*- quantities                                                 -*/
+  /*--------------------------------------------------------------*/
+  SNEQD->XPoints = 0;
+  SNEQD->NX      = 0; 
+  if (EPFile)
+   { SNEQD->XPoints = new HMatrix(EPFile);
+     if (SNEQD->XPoints->ErrMsg)
+      ErrExit(SNEQD->XPoints->ErrMsg);
+     SNEQD->NX = SNEQD->XPoints->NR;
+     ErrExit("--EPFile option is not yet supported");
+   };
+  SNEQD->NumSRQs = NT*NS*(SNEQD->NX)*NQ;
 
   /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse -*/
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations.                                           -*/
   /*--------------------------------------------------------------*/
-  int NS=G->NumSurfaces;
   SNEQD->T = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->TSelf = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NS*(NS-1))/2)*sizeof(HMatrix *));
@@ -119,10 +153,11 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
   Log("After T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   /*--------------------------------------------------------------*/
-  /*- allocate BEM matrix ----------------------------------------*/
+  /*- allocate BEM matrix and Sigma matrix -----------------------*/
   /*--------------------------------------------------------------*/
-  SNEQD->W = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
-  Log("After W: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
+  SNEQD->W     = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  SNEQD->Sigma = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  Log("After W, Sigma: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   /*--------------------------------------------------------------*/
   /*- Buffer[0..nBuffer-1] are data storage buffers with enough  -*/
@@ -135,64 +170,43 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
    if (G->Surfaces[ns]->NumBFs > MaxBFs) 
     MaxBFs = G->Surfaces[ns]->NumBFs;
   
-  int nBuffer = 1 + SNEQD->NQ;
-  if (nBuffer<3) nBuffer=3;
+  int nBuffer = 3;
   int BufSize = MaxBFs * MaxBFs * sizeof(cdouble);
   SNEQD->Buffer[0] = mallocEC(nBuffer*BufSize);
   for(int nb=1; nb<nBuffer; nb++)
    SNEQD->Buffer[nb] = (void *)( (char *)SNEQD->Buffer[nb-1] + BufSize);
 
   /*--------------------------------------------------------------*/
-  /*- allocate sparse matrices to store the various overlap      -*/
-  /*- matrices. note that all overlap matrices have 10 nonzero   -*/
-  /*- entries per row.                                           -*/
-  /*-                                                            -*/
-  /*- SArray[ns] is an array of SCUFF_NUM_OMATRICES pointers to  -*/
-  /*- SMatrix structures for object #ns. SArray[ns][nom] is only -*/
-  /*- non-NULL if we need the nomth type of overlap matrix. (Here-*/ 
-  /*- nom=1..7 for power, xyz-force, xyz-torque, as defined in    */ 
-  /*- libscuff.h).                                                */ 
-  /*-                                                            -*/
   /*--------------------------------------------------------------*/
-  bool *NeedMatrix=SNEQD->NeedMatrix;
-  memset(NeedMatrix, 0, SCUFF_NUM_OMATRICES*sizeof(bool));
-  NeedMatrix[SCUFF_OMATRIX_OVERLAP]  = 0;
-  NeedMatrix[SCUFF_OMATRIX_POWER  ]  = true;
-  NeedMatrix[SCUFF_OMATRIX_XFORCE ]  = QuantityFlags & QFLAG_XFORCE;
-  NeedMatrix[SCUFF_OMATRIX_YFORCE ]  = QuantityFlags & QFLAG_YFORCE;
-  NeedMatrix[SCUFF_OMATRIX_ZFORCE ]  = QuantityFlags & QFLAG_ZFORCE;
-  NeedMatrix[SCUFF_OMATRIX_XTORQUE ] = QuantityFlags & QFLAG_XTORQUE;
-  NeedMatrix[SCUFF_OMATRIX_YTORQUE ] = QuantityFlags & QFLAG_YTORQUE;
-  NeedMatrix[SCUFF_OMATRIX_ZTORQUE ] = QuantityFlags & QFLAG_ZTORQUE;
+  /*--------------------------------------------------------------*/
+  int fdim = SNEQD->NumSIQs +  SNEQD->NumSRQs;
+  SNEQD->OmegaConverged = (bool *)mallocEC(fdim*sizeof(bool));
 
-  SNEQD->SArray=(SMatrix ***)mallocEC(NS*sizeof(SMatrix **));
-  for(int ns=0; ns<NS; ns++)
-   { 
-     SNEQD->SArray[ns]=(SMatrix **)mallocEC(SCUFF_NUM_OMATRICES*sizeof(SMatrix *));
-
-     for(int nom=0; nom<SCUFF_NUM_OMATRICES; nom++)
-      if (NeedMatrix[nom]) 
-       SNEQD->SArray[ns][nom] = new SMatrix(G->Surfaces[ns]->NumBFs,G->Surfaces[ns]->NumBFs,LHM_COMPLEX);
+  /*--------------------------------------------------------------*/
+  /*- ByEdge[nd][nq][ne] = contribution of edge #ne on surface   -*/
+  /*- #nd to the flux of quantity #nq. This is used to produce   -*/
+  /*- plots of spatially-resolved flux density.                  -*/
+  /*--------------------------------------------------------------*/
+  SNEQD->ByEdge=0;
+  if (PlotFlux)
+   { double ***ByEdge = (double ***)mallocEC(NS*sizeof(double **));
+     for(int nds=0; nds<NS; nds++)
+      { ByEdge[nds] = (double **)mallocEC(NUMPFT*sizeof(double **));
+        int NE=G->Surfaces[nds]->NumEdges;
+        for(int nq=0; nq<NUMPFT; nq++)
+         { if (NeedQuantity[nq])
+            ByEdge[nds][nq]=(double *)mallocEC(NE*sizeof(double));
+         };
+      };
+     SNEQD->ByEdge=ByEdge;
    };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  int fdim = NS * (SNEQD->NTNSNQ);
-  SNEQD->OmegaConverged = (bool *)mallocEC(fdim*sizeof(bool));
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  time_t MyTime;
-  struct tm *MyTm;
-  char TimeString[30];
-  MyTime=time(0);
-  MyTm=localtime(&MyTime);
-  strftime(TimeString,30,"%D::%T",MyTm);
-  FILE *f=vfopen("%s.flux","a",SNEQD->FileBase);
+  FILE *f=vfopen("%s.SIFlux","a",SNEQD->FileBase);
   fprintf(f,"\n");
-  fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),TimeString);
+  fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),GetTimeString());
   fprintf(f,"# data file columns: \n");
   fprintf(f,"# 1 omega \n");
   fprintf(f,"# 2 transform tag\n");
@@ -204,20 +218,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile, int QuantityFlags,
      fprintf(f,"# %i kBloch_x \n",nq++);
    };
   fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
-  if (SNEQD->QuantityFlags & QFLAG_POWER) 
-   fprintf(f,"# %i power flux spectral density\n",nq++);
-  if (SNEQD->QuantityFlags & QFLAG_XFORCE) 
-   fprintf(f,"# %i x-force flux spectral density\n",nq++);
-  if (SNEQD->QuantityFlags & QFLAG_YFORCE) 
-   fprintf(f,"# %i y-force flux spectral density\n",nq++);
-  if (SNEQD->QuantityFlags & QFLAG_ZFORCE) 
-   fprintf(f,"# %i z-force flux spectral density\n",nq++);
-  if (SNEQD->QuantityFlags & QFLAG_XTORQUE) 
-   fprintf(f,"# %i x-torque flux spectral density\n",nq++);
-  if (SNEQD->QuantityFlags & QFLAG_YTORQUE) 
-   fprintf(f,"# %i y-torque flux spectral density\n",nq++);
-  if (SNEQD->QuantityFlags & QFLAG_ZTORQUE) 
-   fprintf(f,"# %i z-torque flux spectral density\n",nq++);
+  for(int nPFT=0; nPFT<NUMPFT; nPFT++)
+   if (NeedQuantity[nPFT])
+    fprintf(f,"# %i %s flux spectral density\n",nq++,QuantityNames[nPFT]);
   fclose(f);
 
   Log("After CreateSNEQData: mem=%3.1f GB",GetMemoryUsage()/1.0e9);

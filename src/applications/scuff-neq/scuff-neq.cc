@@ -70,6 +70,9 @@ int main(int argc, char *argv[])
   int ZTorque=0;
 
   /*--------------------------------------------------------------*/
+  char *SRPointFile=0;
+
+  /*--------------------------------------------------------------*/
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *OmegaKFile=0;
@@ -86,14 +89,23 @@ int main(int argc, char *argv[])
   int Intervals=25.0;                int nIntervals=0;
    
   /*--------------------------------------------------------------*/
-  double SIRadius    = 100.0;
-  int SINumPoints    = 31;
+  char *DSIMesh    = 0;
+  double DSIRadius = 100.0;
+  int DSIPoints    = 31;
+  bool Lebedev     = false;
+  bool FarField    = false;
+
+  /*--------------------------------------------------------------*/
+  bool OmitSelfTerms = false;
+  bool DSISelf       = false;
+  bool DSIOther      = false;
+  bool EPOther       = false;
 
   /*--------------------------------------------------------------*/
   char *FileBase=0;
 
   /*--------------------------------------------------------------*/
-  int PlotFlux=0;
+  bool PlotFlux=false;
 
   /*--------------------------------------------------------------*/
   char *Cache=0;
@@ -101,7 +113,6 @@ int main(int argc, char *argv[])
   char *WriteCache=0;
 
   /*--------------------------------------------------------------*/
-  bool SymGPower=false;
   bool UseExistingData=false;
 
   /* name               type    #args  max_instances  storage           count         description*/
@@ -118,7 +129,7 @@ int main(int argc, char *argv[])
      {"YTorque",        PA_BOOL,    0, 1,       (void *)&YTorque,    0,             "compute Y-torque"},
      {"ZTorque",        PA_BOOL,    0, 1,       (void *)&ZTorque,    0,             "compute Z-torque"},
 /**/     
-     {"SymGPower",      PA_BOOL,    0, 1,       (void *)&SymGPower,  0,             "use Sym(G) instead of overlap matrix for power computation"},
+     {"SRPointFile",  PA_STRING,    1, 1,       (void *)&SRPointFile, 0,             "list of evaluation points for spatially-resolved flux"},
 /**/     
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
@@ -136,8 +147,16 @@ int main(int argc, char *argv[])
 /**/     
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
 /**/
-     {"SIRadius",       PA_DOUBLE,  1, 1,       (void *)&SIRadius,   0,             "bounding-sphere radius for SIPFT"},
-     {"SINumPoints",    PA_INT,     1, 1,       (void *)&SINumPoints,0,             "number of quadrature points for SIPFT"},
+     {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "bounding surface .msh file for DSIPFT"},
+     {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
+     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for DSIPFT"},
+     {"Lebedev",        PA_BOOL,    0, 1,       (void *)&Lebedev,    0,             "use lebedev cubature for DSIPFT"},
+     {"FarField",       PA_BOOL,    0, 1,       (void *)&FarField,   0,             "retain only far-field contributions to DSIPFT"},
+/**/
+     {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,             "omit the calculation of self terms"},
+     {"DSISelf",        PA_BOOL,    0, 1,       (void *)&DSISelf,    0,             "use DSIPFT instead of default EPPFT for self terms"},
+     {"DSIOther",       PA_BOOL,    0, 1,       (void *)&DSIOther,   0,             "use DSIPFT instead of default OPFT for non-self terms"},
+     {"EPOther",        PA_BOOL,    0, 1,       (void *)&EPOther,    0,             "use EPPFT instead of default OPFT for non-self terms"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
 /**/
@@ -154,11 +173,6 @@ int main(int argc, char *argv[])
 
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
-
-  if (FileBase)
-   SetLogFileName("%s.log",FileBase);
-  else
-   SetLogFileName("scuff-neq.log");
 
   Log("scuff-neq running on %s",GetHostName());
 
@@ -260,18 +274,28 @@ int main(int argc, char *argv[])
    ErrExit("--Intervals may only be used with --OmegaQuadrature TrapSimp");
 
   /*******************************************************************/
-  /* create the SNEQData structure that contains all the info needed*/
+  /* create the SNEQData structure that contains all the info needed */
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags, FileBase);
+  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags,
+                                 SRPointFile, PlotFlux, FileBase);
+
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData   = UseExistingData;
-  SNEQD->SIRadius          = SIRadius;
-  SNEQD->SINumPoints       = SINumPoints;
-  SNEQD->PlotFlux          = PlotFlux;
-  SNEQD->SymGPower         = SymGPower;
+  SNEQD->FarField          = FarField;
+  SNEQD->Lebedev           = Lebedev;
+  SNEQD->DSIMesh           = DSIMesh;
+  SNEQD->DSIRadius         = DSIRadius;
+  SNEQD->DSIPoints         = DSIPoints;
+  SNEQD->OmitSelfTerms     = OmitSelfTerms;
+  SNEQD->DSISelf           = DSISelf;
+  SNEQD->DSIOther          = DSIOther;
+  SNEQD->EPOther           = EPOther;
   SNEQD->AbsTol            = AbsTol;
   SNEQD->RelTol            = RelTol;
+
+  if (SNEQD->NumSIQs==0 && SNEQD->NumSRQs==0)
+   ErrExit("you must specify at least one quantity to compute");
 
   if (OmegaKPoints && G->LDim==0)
    ErrExit("--OmegaKPoints may only be used with extended geometries");
@@ -322,10 +346,9 @@ int main(int argc, char *argv[])
 
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
-  /* perform the actual calculations                                 */
+  /* perform the actual calculations.                                */
   /*******************************************************************/
-  int OutputVectorLength 
-   = SNEQD->NumTransformations * G->NumSurfaces * G->NumSurfaces * SNEQD->NQ;
+  int OutputVectorLength = SNEQD->NumSIQs + SNEQD->NumSRQs;
   double *I = new double[ OutputVectorLength ];
   if (OmegaKPoints)
    { for (int nok=0; nok<OmegaKPoints->NR; nok++)
@@ -362,7 +385,11 @@ int main(int argc, char *argv[])
                                  TSurfaces, TEnvironment, I, E);
        };
 
-      WriteDataToOutputFile(SNEQD, I, E);
+      if (SNEQD->NumSIQs > 0) 
+       WriteSIOutputFile(SNEQD, I, E);
+
+      if (SNEQD->NumSRQs > 0) 
+       WriteSROutputFile(SNEQD, I, E);
 
       delete[] E;
    };

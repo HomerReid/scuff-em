@@ -1,6 +1,6 @@
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
- * This fileis part of SCUFF-EM.
+ * This file is part of SCUFF-EM.
  *
  * SCUFF-EM is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,189 +45,206 @@ void UndoSCUFFMatrixTransformation(HMatrix *M)
 }
 
 /***************************************************************/
-/* the GetFlux() routine computes a large number of quantities.*/
-/* each quantity is characterized by values of four indices:   */
+/* the GetFlux() routine computes a large number of flux       */
+/* quantities, including both spatially-integrated (SI) and    */
+/* spatially-resolved (SR) quantities. these fluxes are stored */
+/* in big one-dimensional arrays for passage to numerical      */
+/* cubature codes. The following two routines compute unique   */
+/* indices into these vectors for individual quantities.       */
+/*                                                             */ 
+/* SI quantities are characterized by values of four indices:  */
 /*                                                             */
 /*  (a) nt, the geometrical transform                          */
-/*  (b) nss the source surface (object)                        */
+/*  (b) nss, the source surface (object)                       */
 /*  (c) nsd, the destination surface (object)                  */
 /*  (d) nq, the physical quantity (i.e. power, xforce, etc.)   */
 /*                                                             */
-/* Given values for quantities (a)--(d), this routine computes */
-/* a unique index into a big vector storing all the quantities.*/
+/* SR quantities are characterized by values of four indices:  */
+/*                                                             */
+/*  (a) nt, the geometrical transform                          */
+/*  (b) nss, the source surface (object)                       */
+/*  (c) nx, the index of the evaluation point in the EP file   */
+/*  (d) nq, the physical quantity (i.e. power, xforce, etc.)   */
 /***************************************************************/
-int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
+int GetSIQIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 {
   int NS = SNEQD->G->NumSurfaces;
   int NQ = SNEQD->NQ;
-  int NSNQ = NS*NQ;
-  int NS2NQ = NS*NS*NQ;
-  return nt*NS2NQ + nss*NSNQ + nsd*NQ + nq; 
+  return nt*(NS*NS*NQ) + nss*(NS*NQ) + nsd*NQ + nq;
+}
+
+int GetSRQIndex(SNEQData *SNEQD, int nt, int nss, int nx, int nq)
+{
+  int NumSIQs = SNEQD->NumSIQs;
+
+  int NS = SNEQD->G->NumSurfaces;
+  int NX = SNEQD->NX;
+  int NQ = SNEQD->NQ;
+
+  return NumSIQs + nt*(NS*NX*NQ) + nss*(NX*NQ) + nx*NQ + nq;
 }
 
 /***************************************************************/
-/* compute the four-matrix-trace formula for the contribution  */
-/* of sources inside SourceSurface to the fluxes of power      */
-/* and/or momentum through DestSurface.                        */
-/*                                                             */
-/* The quantity we compute is                                  */
-/*                                                             */
-/*  trace[ MDest * (W^\dagger) * (SymGSource) * W ]            */         
-/*                                                             */
-/*  where:                                                     */
-/*                                                             */
-/*   SymGSource = "Sym G" matrix for the source surface        */
-/*                                                             */
-/*        MDest = "O" matrix (overlap PFT matrix) for the      */
-/*                destination surface if SourceSurface!=       */
-/*                DestSurface, or                              */
-/*                "S" matrix (surface-integral PFT matrix) for */
-/*                the destination surface if SourceSurface==   */
-/*                DestSurface                                  */
-/*                                                             */
-/*            W = (Source, Dest) subblock of inverse BEM       */
-/*                                                             */
-/* This routine makes use of the Buffer field of the SNEQD     */
-/* data structure, as follows:                                 */
-/*                                                             */
-/*  (A) Buffer[0] is used throughout to store the matrix       */
-/*      (W^\dagger) * SymGSource * W.                          */
-/*                                                             */
-/*  (B) Buffer[1] and Buffer[2] are used in the first part     */
-/*      of the routine to store intermediate matrices used     */
-/*      in the computation of item (A) above.                  */
-/*                                                             */
-/*  (C) Buffer[1...NumQuantities+1] are used in the second     */
-/*      part of the routine (only if Source==Dest) to store    */
-/*      the SIPFT matrices for the quantities required.        */
+/* Compute the Sigma matrix for sources contained in body      */
+/* SourceSurface. The matrix is stored in the Sigma field of   */
+/* the SNEQD structure.                                        */
 /***************************************************************/
-void GetTrace(SNEQData *SNEQD, int SourceSurface, int DestSurface,
-              cdouble Omega, double *Results)
+void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
 {
-  RWGGeometry *G      = SNEQD->G;
+  RWGGeometry *G = SNEQD->G;
+  HMatrix *W     = SNEQD->W;
+  HMatrix *Sigma = SNEQD->Sigma;
+  void **Buffer  = SNEQD->Buffer;
 
-  int DimS            = G->Surfaces[SourceSurface]->NumBFs;
-  int OffsetS         = G->BFIndexOffset[SourceSurface];
+  int s=SourceSurface;
+  int NBFS = G->Surfaces[s]->NumBFs;
+  int OffsetS = G->BFIndexOffset[s];
 
-  int DimD            = G->Surfaces[DestSurface]->NumBFs;
-  int OffsetD         = G->BFIndexOffset[DestSurface];
-   
-  /*--------------------------------------------------------------*/
-  /*- Set W_{SD} = S,D subblock of W matrix                       */
-  /*--------------------------------------------------------------*/
-  HMatrix *WSD = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[1]);
-  SNEQD->W->ExtractBlock(OffsetS, OffsetD, WSD);
+  int NS=SNEQD->G->NumSurfaces;
+  for(int a=0; a<NS; a++)
+   for(int b=0; b<NS; b++)
+    {
+      // extract (a,s) and (b,s) subblocks of W
+      int NBFA    = G->Surfaces[a]->NumBFs;
+      int OffsetA = G->BFIndexOffset[a];
+  
+      int NBFB    = G->Surfaces[b]->NumBFs;
+      int OffsetB = G->BFIndexOffset[b];
+
+      // get a,s subblock of W 
+      HMatrix Was(NBFA, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[0]);
+      W->ExtractBlock(OffsetA, OffsetS, &Was);
+
+      // get Sym G_{s} / 4.
+      // (The factor of 0.5 here is present in the definition
+      //  of SymG, while the 0.25 prefactor appears in the 
+      //  definition of Sigma; we roll it into SymG for convenience.
+      HMatrix SymGs(NBFS, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
+      HMatrix *Ts=SNEQD->TSelf[SourceSurface];
+      for(int nr=0; nr<NBFS; nr++)
+       for(int nc=0; nc<NBFS; nc++)
+        SymGs.SetEntry(nr, nc, 0.25*0.5*(        Ts->GetEntry(nr,nc)
+                                          +conj( Ts->GetEntry(nc,nr) )
+                                        ) 
+                      ); 
+
+      // Temp1 <- W_{a,s}*SymG_{s}
+      HMatrix Temp1(NBFA, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[2]);
+ //     Was.Multiply(&SymGs, &Temp1);
+      Was.Multiply(&SymGs, &Temp1, "--TransA C");
+
+      // get b,s subblock of W 
+      HMatrix Wbs(NBFB, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[0]);
+      W->ExtractBlock(OffsetB, OffsetS, &Wbs);
+
+      // Temp2 <- W_{a,s}*SymG_{s}*(W_{b,s}^\dagger)
+      HMatrix Temp2(NBFA, NBFB, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
+ //     Temp1.Multiply(&Wbs, &Temp2, "--TransB C");
+      Temp1.Multiply(&Wbs, &Temp2);
+
+      Sigma->InsertBlock(&Temp2, OffsetA, OffsetB);
+    };
+
+}
+
+/***************************************************************/
+/* evaluate trace formulas for the contribution of sources     */
+/* inside SourceSurface to the fluxes of all spatially-        */
+/* integrated quantities.                                      */
+/*                                                             */
+/* somewhat confusing: the PFT routines in libscuff compute    */
+/* all 7 PFT quantities, but the SIFlux[] output vector needs  */
+/* to be filled in with just the number of *requested*         */
+/* quantities.                                                 */
+/***************************************************************/
+#define METHOD_DSIPFT 0
+#define METHOD_OPFT   1
+#define METHOD_EPPFT  2
+void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
+               cdouble Omega, double SIFlux[NUMPFT])
+{
+  if ( (SourceSurface==DestSurface) && SNEQD->OmitSelfTerms )
+   { memset(SIFlux, 0, NUMPFT*sizeof(double));
+     return;
+   };
+
+  RWGGeometry *G  = SNEQD->G;
+  HMatrix *Sigma  = SNEQD->Sigma;
+  bool DSISelf    = SNEQD->DSISelf;
+  bool DSIOther   = SNEQD->DSIOther;
+  bool EPOther    = SNEQD->EPOther;
+
+  double **ByEdge=0;
+  if (SNEQD->ByEdge)
+   ByEdge=SNEQD->ByEdge[DestSurface];
 
   /*--------------------------------------------------------------*/
-  /*- set   GW = G_S * W_{SD}                                    -*/
-  /*- and WDGW = W_{SD}^\dagger  * G_S * W_{SD}                  -*/
-  /*- where G_S = (Sym G)_{source}.                              -*/
   /*--------------------------------------------------------------*/
-  HMatrix *GW = new HMatrix(DimS, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[2]);
-  HMatrix *SymG = new HMatrix(DimS, DimS, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
-  for(int nr=0; nr<DimS; nr++)
-   for(int nc=0; nc<DimS; nc++)
-    SymG->SetEntry(nr, nc, 0.5*(      SNEQD->TSelf[SourceSurface]->GetEntry(nr,nc)
-                                +conj(SNEQD->TSelf[SourceSurface]->GetEntry(nc,nr))
-                               )); 
-  SymG->Multiply(WSD, GW);
-  delete SymG; 
-  HMatrix *WDGW = new HMatrix(DimD, DimD, LHM_COMPLEX, LHM_NORMAL, SNEQD->Buffer[0]);
-  WSD->Multiply(GW, WDGW, "--transA C");
-  delete WSD;
-  delete GW;
+  /*--------------------------------------------------------------*/
+  int Method;
+  if (SourceSurface==DestSurface)
+   Method = DSISelf ? METHOD_DSIPFT : METHOD_EPPFT;
+  else
+   Method = DSIOther ? METHOD_DSIPFT : ( EPOther ? METHOD_EPPFT : METHOD_OPFT );
 
   /*--------------------------------------------------------------*/
-  /*- assemble SIPFT matrices as necessary -----------------------*/
   /*--------------------------------------------------------------*/
-  HMatrix *MSIPFT[MAXQUANTITIES];
-  if ( SourceSurface==DestSurface )
+  /*--------------------------------------------------------------*/
+  double AllFlux[NUMPFT];
+  switch(Method)
    { 
-    /*--------------------------------------------------------------*/
-    /*- first determine which SIPFT matrices we need                */
-    /*--------------------------------------------------------------*/
-    bool NeedMatrix[7];
-    for(int QIndex=0, nBuffer=1; QIndex<MAXQUANTITIES; QIndex++)
-     { 
-       int QFlag = 1<<QIndex;
-       if ( !(SNEQD->QuantityFlags & QFlag) )
-        { NeedMatrix[QIndex]=false;
-          MSIPFT[QIndex]=0;
-        }
-       else
-        { NeedMatrix[QIndex]=true;
-          MSIPFT[QIndex]=new HMatrix(DimD, DimD, LHM_COMPLEX, 
-                                 LHM_NORMAL, SNEQD->Buffer[nBuffer++]);
-        };
-     };
+     case METHOD_DSIPFT:
+      G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
+                        SNEQD->DSIMesh, SNEQD->DSIRadius, SNEQD->DSIPoints,
+                        SNEQD->Lebedev, SNEQD->FarField);
+      break;
 
-/*
-    G->GetSIPFTMatrices(SourceSurface, 0, false, SNEQD->SIRadius, 
-                        SNEQD->SINumPoints, Omega, NeedMatrix, MSIPFT);
-*/
+     case METHOD_EPPFT:
+      G->GetEPPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
+                       (SourceSurface==DestSurface ? true : false));
+      break;
+
+     case METHOD_OPFT:
+      G->GetOPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge);
+      break;
+
    };
 
   /*--------------------------------------------------------------*/
-  /*- for each quantity requested, compute trace(M*WDGW) where    */
-  /*- M is the OPFT or SIPFT matrix for the quantity in question  */
+  /*- collapse the full vector of 7 PFTs to just the entries the -*/
+  /*- user requested                                             -*/
   /*--------------------------------------------------------------*/
-  int *CIndices;       // column indices
-  cdouble *Entries;    // column entries   
-  for(int nq=0, QIndex=0; QIndex<MAXQUANTITIES; QIndex++)
+  for(int nq=0, nqq=0; nq<NUMPFT; nq++)
+   if (SNEQD->NeedQuantity[nq])
+    SIFlux[nqq++]=AllFlux[nq]; 
+
+  /*--------------------------------------------------------------*/
+  /*- generate panel-resolved flux plots if that was requested   -*/
+  /*--------------------------------------------------------------*/
+  if (ByEdge)
    { 
-      int QFlag = 1<<QIndex;
+     char FileName[100];
+     snprintf(FileName,100,"%s.PFTFlux.pp",G->Surfaces[DestSurface]->Label);
 
-      // skip if the user didn't request this quantity
-      if ( !(SNEQD->QuantityFlags & QFlag) )
-       continue;
-
-      if ( QFlag==QFLAG_POWER && SNEQD->SymGPower )
-       {
-         HMatrix *T=SNEQD->TSelf[DestSurface];
-         double FMPTrace=0.0; //'four-matrix-product trace'
-         for(int nr=0; nr<DimD; nr++)
-          for(int nc=0; nc<DimD; nc++)
-           { cdouble SymGEntry = 0.5 * (T->GetEntry(nr,nc) + conj(T->GetEntry(nc,nr)) );
-             FMPTrace += real(SymGEntry * WDGW->GetEntry(nc,nr));
-           };
-         Results[nq++] = (1.0/8.0) * FMPTrace;
-         continue;
-       };
-
-      //
-      if ( SourceSurface==DestSurface )
-       {
-         HMatrix *M=MSIPFT[QIndex];
-         double FMPTrace=0.0; //'four-matrix-product trace'
-         for(int nr=0; nr<DimD; nr++)
-          for(int nc=0; nc<DimD; nc++)
-           FMPTrace += real( M->GetEntry(nr,nc) * WDGW->GetEntry(nc,nr) );
-         Results[nq++] = (1.0/4.0) * FMPTrace;
-         continue;
-       };
- 
-      //
-      SMatrix *OMatrixD = SNEQD->SArray[DestSurface][ 1 + QIndex ];
-      double FMPTrace=0.0; //'four-matrix-product trace'
-      for(int ri=0; ri<DimD; ri++) // 'row index'
-       { 
-         int nnz=OMatrixD->GetRow(ri, &CIndices, (void **)&Entries);
-         for(int nci=0; nci<nnz; nci++)
-          FMPTrace += real( Entries[nci] * WDGW->GetEntry(CIndices[nci], ri) );
-       };
-      Results[nq++] = (-1.0/16.0) * FMPTrace;
-
+     for(int nq=0; nq<NUMPFT; nq++)
+      if (ByEdge[nq])
+       G->Surfaces[DestSurface]->PlotScalarDensity(ByEdge[nq],
+                                                   FileName,
+                                                   "%s_%g",
+                                                   QuantityNames[nq],
+                                                   real(Omega));
    };
-
-  /*--------------------------------------------------------------*/
-  /*- deallocate temporary storage -------------------------------*/
-  /*--------------------------------------------------------------*/
-  delete WDGW;
-  if ( SourceSurface==DestSurface )
-   for(int nq=0; nq<SNEQD->NQ; nq++)
-    if (MSIPFT[nq]) delete MSIPFT[nq];
 
 } 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetSRFluxes(SNEQData *SNEQD, int SourceSurface, HMatrix *XMatrix,
+                 cdouble Omega, double *Results)
+{ 
+ // for(int nx=0; nx<
+}
 
 /***************************************************************/
 /* return false on failure *************************************/
@@ -237,7 +254,11 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   if (SNEQD->UseExistingData==false)
    return false;
 
-  FILE *f=vfopen("%s.flux","r",SNEQD->FileBase);
+  // i haven't yet implemented caching of spatially-resolved data
+  if (SNEQD->NumSRQs>0)
+   return false; 
+
+  FILE *f=vfopen("%s.SIFlux","r",SNEQD->FileBase);
   if (!f) return false;
   Log("Attempting to cache-read flux data for Omega=%e...",real(Omega));
 
@@ -287,7 +308,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
        if ( NumTokens < 3+NQ ) 
         { ErrorCode=5; goto fail; }
        for(nq=0; nq<NQ; nq++)
-        sscanf(Tokens[3+nq],"%le", Flux+GetIndex(SNEQD, nt, nss, nsd, nq) );
+        sscanf(Tokens[3+nq],"%le", Flux+GetSIQIndex(SNEQD, nt, nss, nsd, nq) );
      };
 
   // success:
@@ -309,35 +330,50 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 }
 
 /***************************************************************/
-/* the computed quantities are ordered in the output vector    */
-/* like this:                                                  */
+/* for spatially-integrated fluxes, the computed quantities    */
+/* are ordered in the output vector like this:                 */ 
 /*                                                             */
-/*  Flux[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ]                   */
+/*  SIFlux[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ]                 */
 /*   = contribution of sources inside surface #nsp to flux of  */
 /*     quantity #nq into surface #ns, all at transformation #nt*/
 /*                                                             */
-/*  where    NQ = number of quantities (1--4)                  */
+/*  where    NQ = number of quantities (1--7)                  */
 /*  where  NSNQ = number of surface * NQ                       */
 /*  where NS2NQ = (number of surfaces)^2* NQ                   */
+/*                                                             */
+/* for spatially-resolved fluxes, the computed quantities are  */
+/* ordered in the output vector like this:                     */
+/*                                                             */
+/*  SRFlux[ nt*NPNSNQ + np*NSNQ +  ns*NQ + nq ]                */
+/*   = contribution of sources inside surface #ns to flux of   */
+/*     quantity #nq at evaluation point np, all at             */
+/*     transformation NT                                       */
+/*                                                             */
+/*  where    NQ  = number of quantities (1--7)                 */
+/*  where  NSNQ  = number of surfaces * NQ                     */
+/*  where NPNSNQ = number of evaluation points * NPNSNQ        */
 /***************************************************************/
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
   if ( CacheRead(SNEQD, Omega, kBloch, Flux) )
    return;
 
-  Log("Computing neq quantities at omega=%s...",z2s(Omega));
-
   /***************************************************************/
-  /* extract fields from SNEQData structure ************************/
+  /* extract fields from SNEQData structure **********************/
   /***************************************************************/
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
   HMatrix **T         = SNEQD->T;
   HMatrix **TSelf     = SNEQD->TSelf;
   HMatrix **U         = SNEQD->U;
+  int NS              = SNEQD->G->NumSurfaces;
   int NQ              = SNEQD->NQ;
-  bool *NeedMatrix    = SNEQD->NeedMatrix;
-  SMatrix ***SArray   = SNEQD->SArray;
+  int NX              = SNEQD->NX;
+  int NumSIQs         = SNEQD->NumSIQs;
+  char *FileBase      = SNEQD->FileBase;
+  bool *NeedQuantity  = SNEQD->NeedQuantity;
+
+  Log("Computing neq quantities at omega=%s...",z2s(Omega));
 
   /***************************************************************/
   /* preinitialize an argument structure for the BEM matrix      */
@@ -352,7 +388,6 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
-  int NS=G->NumSurfaces;
   for(int ns=0; ns<NS; ns++)
    { 
      if (G->Mate[ns]!=-1)
@@ -364,13 +399,6 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 
      G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, T[ns]);
    };
-
-  /***************************************************************/
-  /* also before entering the loop over transformations, we      */
-  /* pause to assemble the overlap matrices.                     */
-  /***************************************************************/
-  for(int ns=0; ns<NS; ns++)
-   G->Surfaces[ns]->GetOverlapMatrices(NeedMatrix, SArray[ns], Omega, G->RegionMPs[0]);
 
   /***************************************************************/
   /* assemble the TSelf matrices *********************************/
@@ -399,8 +427,6 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   /* now loop over transformations.                              */
   /* note: 'gtc' stands for 'geometrical transformation complex' */
   /***************************************************************/
-  char *Tag;
-  int RowOffset, ColOffset;
   for(int nt=0; nt<SNEQD->NumTransformations; nt++)
    { 
      /*--------------------------------------------------------------*/
@@ -411,7 +437,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      /*--------------------------------------------------------------*/
      /*- transform the geometry -------------------------------------*/
      /*--------------------------------------------------------------*/
-     Tag=SNEQD->GTCList[nt]->Tag;
+     char *Tag=SNEQD->GTCList[nt]->Tag;
      G->Transform(SNEQD->GTCList[nt]);
      Log(" Computing quantities at geometrical transform %s",Tag);
 
@@ -432,11 +458,11 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      /*--------------------------------------------------------------*/
      for(int nb=0, ns=0; ns<NS; ns++)
       { 
-        RowOffset=G->BFIndexOffset[ns];
+        int RowOffset=G->BFIndexOffset[ns];
         W->InsertBlock(T[ns], RowOffset, RowOffset);
 
         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
-         { ColOffset=G->BFIndexOffset[nsp];
+         { int ColOffset=G->BFIndexOffset[nsp];
            W->InsertBlock(U[nb], RowOffset, ColOffset);
            W->InsertBlockTranspose(U[nb], ColOffset, RowOffset);
          };
@@ -452,34 +478,48 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      /*- note: nss = 'num surface, source'                          -*/
      /*-       nsd = 'num surface, destination'                     -*/
      /*--------------------------------------------------------------*/
-     FILE *f=vfopen("%s.flux","a",SNEQD->FileBase);
-     double Quantities[7];
      for(int nss=0; nss<NS; nss++)
-      for(int nsd=0; nsd<NS; nsd++)
-       { 
-         fprintf(f,"%e %s ",real(Omega),Tag);
-         if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
-         fprintf(f,"%i%i ",nss+1,nsd+1);
-         GetTrace(SNEQD, nss, nsd, Omega, Quantities);
-         for(int nq=0; nq<NQ; nq++)
-          { int Index=GetIndex(SNEQD, nt, nss, nsd, nq);
-            Flux[Index] = Quantities[nq]; 
-            fprintf(f,"%.8e ",Flux[Index]);
-            fflush(f);
-          };
-         fprintf(f,"\n");
-         fflush(f);
-    
-       };
-     fclose(f);
+      {
+        // compute the Sigma matrix for this source
+        ComputeSigmaMatrix(SNEQD, nss);
+
+        // compute spatially-integrated flux quantities for
+        // all destination objects
+        if (NumSIQs > 0)
+         { 
+           FILE *f=vfopen("%s.SIFlux","a",FileBase);
+           for(int nsd=0; nsd<NS; nsd++)
+            { 
+              double SIFlux[7];
+              GetSIFlux(SNEQD, nss, nsd, Omega, SIFlux);
+
+              fprintf(f,"%e %s ",real(Omega),Tag);
+              if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
+              fprintf(f,"%i%i ",nss+1,nsd+1);
+              for(int nq=0; nq<NQ; nq++)
+               { int Index= GetSIQIndex(SNEQD, nt, nss, nsd, nq);
+                 Flux[Index]=SIFlux[nq];
+                 fprintf(f,"%.8e ",Flux[Index]);
+               };
+              fprintf(f,"\n");
+            };
+           fclose(f);
+         };
+
+        // compute spatially-resolved flux quantities for
+        // all evaluation points
+        //if (NumSRQs > 0)
+        //  { GetSRFlux(
+        // };
+      };
 
      /*--------------------------------------------------------------*/
-     /* and untransform the geometry                                 */
+     /* untransform the geometry                                     */
      /*--------------------------------------------------------------*/
      G->UnTransform();
      Log(" ...done!");
 
-   }; // for (nt=0; nt<SNEQD->NumTransformations... )
+  }; // for (nt=0; nt<SNEQD->NumTransformations... )
 
   /*--------------------------------------------------------------*/
   /*- at the end of the first successful frequency calculation,  -*/

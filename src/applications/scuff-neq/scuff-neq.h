@@ -55,12 +55,14 @@ using namespace scuff;
 #define QINDEX_YTORQUE 5
 #define QINDEX_ZTORQUE 6
 
-#define MAXQUANTITIES 7
+#define NUMPFT 7
 
 // quadrature methods 
 #define QMETHOD_ADAPTIVE 0
 #define QMETHOD_CLIFF    1
 #define QMETHOD_TRAPSIMP 2
+
+extern const char *QuantityNames[NUMPFT];
 
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
@@ -68,7 +70,7 @@ using namespace scuff;
 /****************************************************************/
 typedef struct SNEQData
  {
-   /*--------------------------------------------------------------*/
+   /*--------------------------------------------------------------*/ 
    /*- information on the geometry and geometrical transforms     -*/
    /*--------------------------------------------------------------*/
    RWGGeometry *G;
@@ -79,38 +81,41 @@ typedef struct SNEQData
    /*--------------------------------------------------------------*/
    /*- information on the calculations requested by the user       */
    /*--------------------------------------------------------------*/
-   int QuantityFlags;
-   int NQ;
-   int NSNQ;
-   int NTNSNQ;
-   int PlotFlux;
-   bool SymGPower;
+   int NQ;        // number of PFT quantities requested (1--7)
+   bool NeedQuantity[NUMPFT]; // true if nqth PFT quantity was requested
+
+   HMatrix *XPoints; // evaluation points for spatially-resolved
+   int NX;           // fluxed
+
+   int NumSIQs;   // number of spatially-integrated quantities
+   int NumSRQs;   // number of spatially-resolved quantities
+
+   /*--------------------------------------------------------------*/
+   /*- choice of PFT methods --------------------------------------*/
+   /*--------------------------------------------------------------*/
+   bool OmitSelfTerms;   // set all self terms to zero
+   bool DSISelf;  // DSIPFT instead of default EPPFT for self terms
+   bool DSIOther; // DSIPFT instead of default OPFT for non-self terms
+   bool EPOther;  // EPPFT instead of default OPFT for non-self terms
+
+   /*--------------------------------------------------------------*/
+   /*- Edge-resolved data: ByEdge[ns][nq][ne] is the contribution -*/
+   /*- of edge #ne on surface #ns to quantity #nq.                -*/
+   /*--------------------------------------------------------------*/
+   double ***ByEdge;
 
    /*--------------------------------------------------------------*/
    /* storage for the BEM matrix and its subblocks                 */
    /*--------------------------------------------------------------*/
    HMatrix *W;        // BEM matrix 
+   HMatrix *Sigma;    // Sigma matrix for a given source body
    HMatrix **T;       // T[ns] = T-matrix block for surface #ns
    HMatrix **TSelf;   //
-   HMatrix **U;       // U[ns*NS + nsp] = // U-matrix block for surfaces #ns, #nsp
+   HMatrix **U;       // U[nb] = // off-diagonal U-matrix block #nb 
 
    // Buffer[0..N] are pointers into an internally-allocated
    // chunk of memory used as a workspace in the GetTrace() routine.
-   void *Buffer[MAXQUANTITIES+1];
-
-   /*--------------------------------------------------------------*/
-   /* storage for sparse PFT matrices                              */
-   /*--------------------------------------------------------------*/
-   // NeedMatrix[nm] = 1 if we need overlap matrix of type #nm
-   // SArray[ ns*8 + nm ] = overlap matrix of type #nm for
-   // surface #ns (note 8 = SCUFF_NUM_OMATRICES)
-   bool NeedMatrix[SCUFF_NUM_OMATRICES]; 
-   SMatrix ***SArray;
-
-   // radius and number of quadrature points per dimension
-   // for surface-integral PFT
-   double SIRadius;
-   int SINumPoints;
+   void *Buffer[3];
 
    /*--------------------------------------------------------------*/
    /*--------------------------------------------------------------*/
@@ -124,25 +129,34 @@ typedef struct SNEQData
    char *FileBase;
    bool UseExistingData;
 
+   char *DSIMesh;           // bounding surface mesh for DSIPFT
+   double DSIRadius;        // radius for DSIPFT
+   int DSIPoints;           // number of cubature points for DSIPFT
+   bool Lebedev;
+   bool FarField; 
+
  } SNEQData;
 
 /*--------------------------------------------------------------*/
 /*- in CreateSNEQData.cc ---------------------------------------*/
 /*--------------------------------------------------------------*/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
-                         int QuantityFlags, char *FileBase);
+                         int QuantityFlags, char *EPFile,
+                         bool PlotFlux, char *pFileBase);
 
 /*--------------------------------------------------------------*/
 /*- in GetFlux.cc ----------------------------------------------*/
 /*--------------------------------------------------------------*/
-int GetIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
+int GetSIQIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
+int GetSRQIndex(SNEQData *SNEQD, int nt, int nss, int nx, int nq);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux);
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux);
 
 /*--------------------------------------------------------------*/
 /*- in Quadrature.cc          ----------------------------------*/
 /*--------------------------------------------------------------*/
-void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E);
+void WriteSIOutputFile(SNEQData *SNEQD, double *I, double *E);
+void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E);
 
 void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
                                double OmegaMin, double OmegaMax,

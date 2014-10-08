@@ -18,10 +18,10 @@
  */
 
 /*
- * FrequencyIntegral.cc -- scuff-neq module for numerical quadrature 
- *                      -- over frequencies
+ * Quadrature.cc -- scuff-neq module for numerical quadrature
+ *               -- over frequencies
  *
- * homer reid           -- 5/2012
+ * homer reid    -- 5/2012
  *
  */
 
@@ -29,75 +29,6 @@
 #include <libSGJC.h>
 #include <libTriInt.h>
 #include "scuff-neq.h"
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void WriteDataToOutputFile(SNEQData *SNEQD, double *I, double *E)
-{
-  time_t MyTime;
-  struct tm *MyTm;
-  char TimeString[30];
-  
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  MyTime=time(0);
-  MyTm=localtime(&MyTime);
-  strftime(TimeString,30,"%D::%T",MyTm);
-  FILE *f=vfopen("%s.out","a",SNEQD->FileBase);
-  fprintf(f,"\n");
-  fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),TimeString);
-  fprintf(f,"# data file columns: \n");
-  fprintf(f,"# 1 transform tag\n");
-  fprintf(f,"# 2 (sourceObject, destObject) \n");
-  int nq=3;
-  if (SNEQD->QuantityFlags & QFLAG_POWER) 
-   { fprintf(f,"# (%i,%i) power (value,error)\n",nq,nq+1); nq+=2; }
-  if (SNEQD->QuantityFlags & QFLAG_XFORCE) 
-   { fprintf(f,"# (%i,%i) x-force (value,error)\n",nq, nq+1); nq+=2; }
-  if (SNEQD->QuantityFlags & QFLAG_YFORCE) 
-   { fprintf(f,"# (%i,%i) y-force (value,error)\n",nq, nq+1); nq+=2; }
-  if (SNEQD->QuantityFlags & QFLAG_ZFORCE) 
-   { fprintf(f,"# (%i,%i) z-force (value,error)\n",nq, nq+1); nq+=2; }
-  if (SNEQD->QuantityFlags & QFLAG_XTORQUE) 
-   { fprintf(f,"# (%i,%i) x-torque (value,error)\n",nq, nq+1); nq+=2; }
-  if (SNEQD->QuantityFlags & QFLAG_YTORQUE) 
-   { fprintf(f,"# (%i,%i) y-torque (value,error)\n",nq, nq+1); nq+=2; }
-  if (SNEQD->QuantityFlags & QFLAG_ZTORQUE) 
-   { fprintf(f,"# (%i,%i) z-torque (value,error)\n",nq, nq+1); nq+=2; }
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int NS = SNEQD->G->NumSurfaces;
-  int NT = SNEQD->NumTransformations;
-  int NQ = SNEQD->NQ;
-  double TotalQuantity[MAXQUANTITIES], TotalError[MAXQUANTITIES];
-  for(int nt=0; nt<NT; nt++)
-   for(int nsd=0; nsd<NS; nsd++)
-    { 
-      memset(TotalQuantity,0,NQ*sizeof(double));
-      memset(TotalError,   0,NQ*sizeof(double));
-      for(int nss=0; nss<NS; nss++)
-       { fprintf(f,"%s %i%i ",SNEQD->GTCList[nt]->Tag,nss+1,nsd+1);
-         for(nq=0; nq<NQ; nq++)
-          { int i = GetIndex(SNEQD, nt, nss, nsd, nq);
-            fprintf(f,"%+16.8e %+16.8e ", I[i], E[i] );
-            TotalQuantity[nq] += I[i];
-            TotalError[nq] += E[i];
-          };
-         fprintf(f,"\n");
-       };
-
-      fprintf(f,"%s 0%i ",SNEQD->GTCList[nt]->Tag,nsd+1);
-      for(nq=0; nq<NQ; nq++)
-       fprintf(f,"%e %e ",TotalQuantity[nq],TotalError[nq]);
-      fprintf(f,"\n");
-
-    };
-  fclose(f);   
-}
 
 // how this works: 
 //  a. temperature in eV = kT = 8.6173e-5 * (T in kelvin)
@@ -140,33 +71,67 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
   int NQ = SNEQD->NQ;
+  int NX = SNEQD->NX;
   for(int nss=0; nss<NS; nss++)
-   { double DeltaTheta 
+   { 
+     double DeltaTheta 
       = Theta(Omega, TSurfaces[nss]) - Theta(Omega, TEnvironment);
+
      for(int nt=0; nt<NT; nt++)
-      for(int nsd=0; nsd<NS; nsd++)
-       for(int nq=0; nq<NQ; nq++)
-        FluxVector[ GetIndex(SNEQD, nt, nss, nsd, nq) ]
-         *= DeltaTheta/M_PI;
+      for(int nq=0; nq<NQ; nq++)
+       { 
+         for(int nsd=0; nsd<NS; nsd++)
+          FluxVector[ GetSIQIndex(SNEQD, nt, nss, nsd, nq) ]
+           *= DeltaTheta/M_PI;
+
+         for(int nx=0; nx<NX; nx++)
+          FluxVector[ GetSRQIndex(SNEQD, nt, nss, nx, nq) ]
+           *= DeltaTheta/M_PI;
+       };
    };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  FILE *f=vfopen("%s.integrand","a",SNEQD->FileBase);
-  for(int nt=0; nt<NT; nt++)
-   for(int nss=0; nss<NS; nss++)
-    for(int nsd=0; nsd<NS; nsd++)
-     { 
-       fprintf(f,"%s %e %i%i ",SNEQD->GTCList[nt]->Tag,Omega,nss+1,nsd+1);
-       for(int nq=0; nq<NQ; nq++)
-        fprintf(f,"%.8e ",FluxVector[ GetIndex(SNEQD, nt, nss, nsd, nq) ] );
-       fprintf(f,"\n");
-     };
-  fclose(f);
+  if (SNEQD->NumSIQs>0)
+   { 
+     FILE *f=vfopen("%s.SIIntegrand","a",SNEQD->FileBase);
+     for(int nt=0; nt<NT; nt++)
+      for(int nss=0; nss<NS; nss++)
+       for(int nsd=0; nsd<NS; nsd++)
+        { 
+          fprintf(f,"%s %e %i%i ",SNEQD->GTCList[nt]->Tag,Omega,nss+1,nsd+1);
+          for(int nq=0; nq<NQ; nq++)
+           fprintf(f,"%.8e ",FluxVector[ GetSIQIndex(SNEQD, nt, nss, nsd, nq) ] );
+          fprintf(f,"\n");
+        };
+     fclose(f);
+   };
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (SNEQD->NumSRQs>0)
+   { 
+     FILE *f=vfopen("%s.SRIntegrand","a",SNEQD->FileBase);
+     for(int nt=0; nt<NT; nt++)
+      for(int nss=0; nss<NS; nss++)
+       for(int nx=0; nx<NX; nx++)
+        { 
+          double X[3];
+          SNEQD->XPoints->GetEntriesD(nx,"0:2",X);
+
+          fprintf(f,"%s %e %i ",SNEQD->GTCList[nt]->Tag,Omega,nss+1);
+          fprintf(f,"%e %e %e ",X[0],X[1],X[2]);
+          for(int nq=0; nq<NQ; nq++)
+           fprintf(f,"%.8e ",FluxVector[ GetSRQIndex(SNEQD, nt, nss, nx, nq) ] );
+          fprintf(f,"\n");
+        };
+     fclose(f);
+   };
+   
 }
-
+   
 /***************************************************************/
 /* data structure for GetOmegaIntegrand ************************/
 /***************************************************************/
@@ -263,14 +228,11 @@ void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
   /***************************************************************/
   /***************************************************************/
   RWGGeometry *G = SNEQD -> G;
-  int NS = G->NumSurfaces;
-  int NT = SNEQD->NumTransformations;
-  int NQ = SNEQD->NQ;
-  int fdim = NT*NS*NS*NQ;
-  double AbsTol = SNEQD->AbsTol;
-  double RelTol = SNEQD->RelTol;
+  int fdim       = SNEQD->NumSIQs + SNEQD->NumSRQs;
+  double AbsTol  = SNEQD->AbsTol;
+  double RelTol  = SNEQD->RelTol;
   pcubature_log(fdim, GetOmegaIntegrand2, (void *)Data, 1,
-                &OmegaMin, &OmegaMax, 1000, 
+                &OmegaMin, &OmegaMax, 1000,
                 AbsTol, RelTol, ERROR_INDIVIDUAL,
                 I, E, "scuff-neq.SGJClog");
 
@@ -301,10 +263,7 @@ void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
      uMax=OmegaMax;
    };
 
-  int NS = SNEQD->G->NumSurfaces;
-  int NT = SNEQD->NumTransformations;
-  int NQ = SNEQD->NQ;
-  int fdim = NT*NS*NS*NQ;
+  int fdim = SNEQD->NumSIQs + SNEQD->NumSRQs;
   double *fLeft  = new double[fdim];
   double *fMid   = new double[fdim];
   double *fRight = new double[fdim];
@@ -422,10 +381,7 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
       OmegaCliff = 0.5*(OmegaMin + OmegaMax );
    };
 
-  int NS = SNEQD->G->NumSurfaces;
-  int NT = SNEQD->NumTransformations;
-  int NQ = SNEQD->NQ;
-  int fdim = NT*NS*NS*NQ;
+  int fdim = SNEQD->NumSIQs + SNEQD->NumSRQs;
 
   /***************************************************************/
   /***************************************************************/
@@ -436,4 +392,121 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
                          SNEQD->AbsTol, SNEQD->RelTol, I, E,
                          ICFLogFile);
 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteSIOutputFile(SNEQData *SNEQD, double *I, double *E)
+{
+  /*--------------------------------------------------------------*/
+  /*- open file and write preamble -------------------------------*/
+  /*--------------------------------------------------------------*/
+  char *TimeString=GetTimeString();
+  FILE *f=vfopen("%s.NEQPFT","a",SNEQD->FileBase);
+  fprintf(f,"# scuff-neq completed at %s (%s)\n",GetHostName(),TimeString);
+  fprintf(f,"# data file columns: \n");
+  fprintf(f,"# 1 transform tag\n");
+  fprintf(f,"# 2 (sourceObject, destObject) \n");
+  int nc=3;
+  for (int nq=0; nq<NUMPFT; nq++)
+   if (SNEQD->NeedQuantity[nq])
+    { fprintf(f,"# (%i,%i) %s (value,error in frequency quadrature)\n",nc,nc+1,QuantityNames[nq]);
+      nc+=2; 
+    };
+
+  /*--------------------------------------------------------------*/
+  /*- as we report the power/momentum exchange between all pairs  */
+  /*- of bodies, we maintain running tallies of the total PFT for */
+  /*- each destination body.                                      */
+  /*--------------------------------------------------------------*/
+  int NS = SNEQD->G->NumSurfaces;
+  int NT = SNEQD->NumTransformations;
+  int NQ = SNEQD->NQ;
+  double TotalQuantity[NUMPFT], TotalError[NUMPFT];
+  for(int nt=0; nt<NT; nt++)
+   for(int nsd=0; nsd<NS; nsd++)
+    { 
+      memset(TotalQuantity,0,NQ*sizeof(double));
+      memset(TotalError,   0,NQ*sizeof(double));
+      for(int nss=0; nss<NS; nss++)
+       { fprintf(f,"%s %i%i ",SNEQD->GTCList[nt]->Tag,nss+1,nsd+1);
+         for(int nq=0; nq<NQ; nq++)
+          { int i = GetSIQIndex(SNEQD, nt, nss, nsd, nq);
+            fprintf(f,"%+16.8e %+16.8e ", I[i], E[i] );
+            TotalQuantity[nq] += I[i];
+            TotalError[nq] += E[i];
+          };
+         fprintf(f,"\n");
+       };
+
+      fprintf(f,"%s 0%i ",SNEQD->GTCList[nt]->Tag,nsd+1);
+      for(int nq=0; nq<NQ; nq++)
+       fprintf(f,"%e %e ",TotalQuantity[nq],TotalError[nq]);
+      fprintf(f,"\n");
+
+    };
+  fclose(f);   
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E)
+{
+  /*--------------------------------------------------------------*/
+  /*- open file and write preamble -------------------------------*/
+  /*--------------------------------------------------------------*/
+  char *TimeString=GetTimeString();
+  FILE *f=vfopen("%s.SR","a",SNEQD->FileBase);
+  fprintf(f,"# scuff-neq complete at %s (%s)\n",GetHostName(),TimeString);
+  fprintf(f,"# data file columns: \n");
+  fprintf(f,"# 1 transform tag \n");
+  fprintf(f,"# 2,3,4 (x,y,z) coordinates of evaluation point\n");
+  fprintf(f,"# 5 sourceObject \n");
+  int nc=6;
+  for (int nq=0; nq<NUMPFT; nq++)
+   if (SNEQD->NeedQuantity[nq])
+    { fprintf(f,"# (%i,%i) %s (value,error in frequency quadrature)\n",nc,nc+1,QuantityNames[nq]);
+      nc+=2; 
+    };
+
+  /*--------------------------------------------------------------*/
+  /*- as we report the contributions of each source body to the   */
+  /*- energy/momentum flux at each spatial point, we maintain a   */
+  /*- running tally of the total fluxes at each point.            */
+  /*--------------------------------------------------------------*/
+  int NS = SNEQD->G->NumSurfaces;
+  int NT = SNEQD->NumTransformations;
+  int NQ = SNEQD->NQ;
+  int NX = SNEQD->XPoints->NR;
+  double TotalQuantity[NUMPFT], TotalError[NUMPFT];
+  for(int nt=0; nt<NT; nt++)
+   for(int nx=0; nx<NS; nx++)
+    { 
+      double X[3];
+      SNEQD->XPoints->GetEntriesD(nx,"0:2",X);
+
+      memset(TotalQuantity,0,NQ*sizeof(double));
+      memset(TotalError,   0,NQ*sizeof(double));
+      for(int nss=0; nss<NS; nss++)
+       { fprintf(f,"%s %i ",SNEQD->GTCList[nt]->Tag,nss+1);
+         fprintf(f,"%e %e %e ",X[0],X[1],X[2]);
+         for(int nq=0; nq<NQ; nq++)
+          { int i = GetSRQIndex(SNEQD, nt, nss, nx, nq);
+            fprintf(f,"%+16.8e %+16.8e ", I[i], E[i] );
+            TotalQuantity[nq] += I[i];
+            TotalError[nq] += E[i];
+          };
+         fprintf(f,"\n");
+       };
+
+      fprintf(f,"%s 0 ",SNEQD->GTCList[nt]->Tag);
+      fprintf(f,"%e %e %e ",X[0],X[1],X[2]);
+      for(int nq=0; nq<NQ; nq++)
+       fprintf(f,"%e %e ",TotalQuantity[nq],TotalError[nq]);
+      fprintf(f,"\n");
+
+    };
+  fclose(f);   
 }
