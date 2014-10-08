@@ -427,8 +427,8 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
   /***************************************************************/
   cdouble EpsRel, MuRel;
   G->RegionMPs[0]->GetEpsMu(Omega, &EpsRel, &MuRel);
-  cdouble k    = Omega*sqrt(EpsRel*MuRel);
-  cdouble ZRel = sqrt(MuRel/EpsRel);
+  cdouble k     = Omega*sqrt(EpsRel*MuRel);
+  cdouble ZRel  = sqrt(MuRel/EpsRel);
   cdouble IKZ   = II*k*ZVAC*ZRel;
   cdouble IKOZ  = II*k/(ZVAC*ZRel);
   
@@ -439,7 +439,7 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
   Log("Precomputing FSV matrices (%i columns)",NBFNX);
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     if (SurfaceIndex>-1 && SurfaceIndex!=ns)
+     if (SurfaceIndex>=0 && SurfaceIndex!=ns)
       continue;
 
      RWGSurface *S = G->Surfaces[ns];
@@ -473,16 +473,16 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
         // unit strength as an electric or magnetic current
         for(int Mu=0; Mu<3; Mu++)
          { int nbf = Offset + ( (S->IsPEC) ? ne : 2*ne );
-           FSVMatrix->SetEntry( nx*NBF + nbf, 0+Mu, IKZ*e[Mu]);
-           FSVMatrix->SetEntry( nx*NBF + nbf, 3+Mu, h[Mu]);
+           FSVMatrix->SetEntry( nx*NBF + nbf + 0, 0+Mu, IKZ*e[Mu]);
+           FSVMatrix->SetEntry( nx*NBF + nbf + 0, 3+Mu, h[Mu]);
            if (S->IsPEC) continue;
-           FSVMatrix->SetEntry( nx*NBF + nbf, 0+Mu, -h[Mu]);
-           FSVMatrix->SetEntry( nx*NBF + nbf, 3+Mu, IKOZ*h[Mu]);
+           FSVMatrix->SetEntry( nx*NBF + nbf + 1, 0+Mu, -h[Mu]);
+           FSVMatrix->SetEntry( nx*NBF + nbf + 1, 3+Mu, IKOZ*h[Mu]);
          };
 
       }; // for (int nenx=0...)
 
-   }; // for(int ns=0, nbf=0; ns<G->NumSurfaces; ns++)
+   }; // for(int ns=0; ns<G->NumSurfaces; ns++)
 
   return FSVMatrix;
 }
@@ -807,8 +807,7 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
   /*- fetch cubature rule and precompute field six-vectors       -*/
   /*--------------------------------------------------------------*/
   HMatrix *CRMatrix  = GetCRMatrix(BSMesh, R, NumPoints, Lebedev, S->OTGT, S->GT);
-  HMatrix *FSVMatrix = GetFSVMatrix(this, SurfaceIndex,
-                                    CRMatrix, "1:3",
+  HMatrix *FSVMatrix = GetFSVMatrix(this, SurfaceIndex, CRMatrix, "1:3",
                                     Omega, FarField);
 
   /*--------------------------------------------------------------*/
@@ -822,12 +821,12 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
   if (LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
 #pragma omp parallel for schedule(dynamic,1), 		\
                          num_threads(NumThreads)	\
+                         collapse(2)            	\
                          reduction(+:PAbs, Fx, Fy, Fz, Taux, Tauy, Tauz)
 #endif
-  for(int neab=0; neab<NE*NE; neab++)
+  for(int nea=0; nea<NE; nea++)
+   for(int neb=0; neb<NE; neb++)
     { 
-      int nea = neab % NE;
-      int neb = neab / NE;
       if (neb==0) LogPercent(nea,NE,10);
 
       /*--------------------------------------------------------------*/
