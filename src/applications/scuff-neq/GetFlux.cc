@@ -130,8 +130,8 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
 
       // Temp1 <- W_{a,s}*SymG_{s}
       HMatrix Temp1(NBFA, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[2]);
- //     Was.Multiply(&SymGs, &Temp1);
-      Was.Multiply(&SymGs, &Temp1, "--TransA C");
+      Was.Multiply(&SymGs, &Temp1);
+  //    Was.Multiply(&SymGs, &Temp1, "--TransA C");
 
       // get b,s subblock of W 
       HMatrix Wbs(NBFB, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[0]);
@@ -139,8 +139,8 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
 
       // Temp2 <- W_{a,s}*SymG_{s}*(W_{b,s}^\dagger)
       HMatrix Temp2(NBFA, NBFB, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
- //     Temp1.Multiply(&Wbs, &Temp2, "--TransB C");
-      Temp1.Multiply(&Wbs, &Temp2);
+      Temp1.Multiply(&Wbs, &Temp2, "--TransB C");
+  //    Temp1.Multiply(&Wbs, &Temp2);
 
       Sigma->InsertBlock(&Temp2, OffsetA, OffsetB);
     };
