@@ -716,10 +716,10 @@ void GetDSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
      /***************************************************************/
      for(int m=0; m<3; m++)
       for(int n=0; n<3; n++)
-       { SEntries[ 0 ] += w * conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
-         SEntries[ 1 ] += w * conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
-         SEntries[ 2 ] += w * conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
-         SEntries[ 3 ] += w * conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
+       { SEntries[ 0 ] += 0.5*w*conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
+         SEntries[ 1 ] += 0.5*w*conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
+         SEntries[ 2 ] += 0.5*w*conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
+         SEntries[ 3 ] += 0.5*w*conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
        }; 
 
      /***************************************************************/
@@ -742,18 +742,14 @@ void GetDSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
             LowerVMVP[2] += conj(FSVNA[3+m]) * NMatrix[nSIPFT][m][n] * FSVKB[3+n];
             LowerVMVP[3] += conj(FSVNA[3+m]) * NMatrix[nSIPFT][m][n] * FSVNB[3+n];
           };
-        SEntries[ 4*nSIPFT + 0 ] += w*( EpsAbs*UpperVMVP[0] + MuAbs*LowerVMVP[0] );
-        SEntries[ 4*nSIPFT + 1 ] += w*( EpsAbs*UpperVMVP[1] + MuAbs*LowerVMVP[1] );
-        SEntries[ 4*nSIPFT + 2 ] += w*( EpsAbs*UpperVMVP[2] + MuAbs*LowerVMVP[2] );
-        SEntries[ 4*nSIPFT + 3 ] += w*( EpsAbs*UpperVMVP[3] + MuAbs*LowerVMVP[3] );
+        SEntries[ 4*nSIPFT + 0 ] += 0.25*w*( EpsAbs*UpperVMVP[0] + MuAbs*LowerVMVP[0] );
+        SEntries[ 4*nSIPFT + 1 ] += 0.25*w*( EpsAbs*UpperVMVP[1] + MuAbs*LowerVMVP[1] );
+        SEntries[ 4*nSIPFT + 2 ] += 0.25*w*( EpsAbs*UpperVMVP[2] + MuAbs*LowerVMVP[2] );
+        SEntries[ 4*nSIPFT + 3 ] += 0.25*w*( EpsAbs*UpperVMVP[3] + MuAbs*LowerVMVP[3] );
 
       }; //for(int nSIFT=0; nSIFT<NUMPFT-1; nSIFT++)
 
    }; //for (int nc=0; nc<NC; nc++)
-
-  // put in the factors of 1/4
-  for(int nSIPFT=0; nSIPFT<4*NUMPFT; nSIPFT++)
-   SEntries[nSIPFT] *= 0.25;
 
 }
 
