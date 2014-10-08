@@ -477,7 +477,7 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
            FSVMatrix->SetEntry( nx*NBF + nbf + 0, 3+Mu, h[Mu]);
            if (S->IsPEC) continue;
            FSVMatrix->SetEntry( nx*NBF + nbf + 1, 0+Mu, -h[Mu]);
-           FSVMatrix->SetEntry( nx*NBF + nbf + 1, 3+Mu, IKOZ*h[Mu]);
+           FSVMatrix->SetEntry( nx*NBF + nbf + 1, 3+Mu, IKOZ*e[Mu]);
          };
 
       }; // for (int nenx=0...)
