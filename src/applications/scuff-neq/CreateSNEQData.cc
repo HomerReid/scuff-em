@@ -54,7 +54,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*-- try to create the RWGGeometry -----------------------------*/
   /*--------------------------------------------------------------*/
   RWGGeometry *G=new RWGGeometry(GeoFile);
-  G->SetLogLevel(SCUFF_VERBOSELOGGING);
   SNEQD->G=G;
   
   if (pFileBase)

@@ -174,6 +174,7 @@ int main(int argc, char *argv[])
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
 
+  SetLogFileName("scuff-neq.log");
   Log("scuff-neq running on %s",GetHostName());
 
   /*******************************************************************/
