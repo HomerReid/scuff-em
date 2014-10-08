@@ -472,12 +472,14 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
         // full fields due to this edge, populated with 
         // unit strength as an electric or magnetic current
         for(int Mu=0; Mu<3; Mu++)
-         { int nbf = Offset + ( (S->IsPEC) ? ne : 2*ne );
-           FSVMatrix->SetEntry( nx*NBF + nbf + 0, 0+Mu, IKZ*e[Mu]);
-           FSVMatrix->SetEntry( nx*NBF + nbf + 0, 3+Mu, h[Mu]);
+         { 
+           int nbf = Offset + ( (S->IsPEC) ? ne : 2*ne );
+           int Column = nx*NBF + nbf;
+           FSVMatrix->SetEntry( 0+Mu, Column, IKZ*e[Mu]);
+           FSVMatrix->SetEntry( 3+Mu, Column,     h[Mu]);
            if (S->IsPEC) continue;
-           FSVMatrix->SetEntry( nx*NBF + nbf + 1, 0+Mu, -h[Mu]);
-           FSVMatrix->SetEntry( nx*NBF + nbf + 1, 3+Mu, IKOZ*e[Mu]);
+           FSVMatrix->SetEntry( 0+Mu, Column+1,     -h[Mu]);
+           FSVMatrix->SetEntry( 3+Mu, Column+1, IKOZ*e[Mu]);
          };
 
       }; // for (int nenx=0...)
@@ -716,8 +718,8 @@ void GetDSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
       for(int n=0; n<3; n++)
        { SEntries[ 0 ] += w * conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
          SEntries[ 1 ] += w * conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
-         SEntries[ 2 ] += w * conj(FSVNB[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
-         SEntries[ 3 ] += w * conj(FSVNB[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
+         SEntries[ 2 ] += w * conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
+         SEntries[ 3 ] += w * conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
        }; 
 
      /***************************************************************/
@@ -1010,16 +1012,20 @@ HMatrix *RWGGeometry::GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
        /* The H-field due to basis function Alpha is                   */
        /*  kAlpha*HKAlpha + nAlpha*HNAlpha.                            */
        /*--------------------------------------------------------------*/
+       int ColumnKA = nx*(2*NE) + (2*nea) + 0;
+       int ColumnNA = nx*(2*NE) + (2*nea) + 1;
+       int ColumnKB = nx*(2*NE) + (2*neb) + 0;
+       int ColumnNB = nx*(2*NE) + (2*neb) + 1;
        cdouble EKAlpha[3], HKAlpha[3], ENAlpha[3], HNAlpha[3];
        cdouble EKBeta[3], HKBeta[3], ENBeta[3], HNBeta[3];
-       FSVMatrix->GetEntries( nx*(2*NE) + 2*nea + 0, "0:2", EKAlpha);
-       FSVMatrix->GetEntries( nx*(2*NE) + 2*nea + 1, "0:2", ENAlpha);
-       FSVMatrix->GetEntries( nx*(2*NE) + 2*nea + 0, "3:5", HKAlpha);
-       FSVMatrix->GetEntries( nx*(2*NE) + 2*nea + 1, "3:5", HNAlpha);
-       FSVMatrix->GetEntries( nx*(2*NE) + 2*neb + 0, "0:2", EKBeta);
-       FSVMatrix->GetEntries( nx*(2*NE) + 2*neb + 1, "0:2", ENBeta);
-       FSVMatrix->GetEntries( nx*(2*NE) + 2*neb + 0, "3:5", HKBeta);
-       FSVMatrix->GetEntries( nx*(2*NE) + 2*neb + 1, "3:5", HNBeta);
+       FSVMatrix->GetEntries( "0:2", ColumnKA, EKAlpha);
+       FSVMatrix->GetEntries( "3:5", ColumnKA, HKAlpha);
+       FSVMatrix->GetEntries( "0:2", ColumnNA, ENAlpha);
+       FSVMatrix->GetEntries( "3:5", ColumnNA, HNAlpha);
+       FSVMatrix->GetEntries( "0:2", ColumnKB, EKBeta);
+       FSVMatrix->GetEntries( "3:5", ColumnKB, HKBeta);
+       FSVMatrix->GetEntries( "0:2", ColumnNB, ENBeta);
+       FSVMatrix->GetEntries( "3:5", ColumnNB, HNBeta);
 
        /*--------------------------------------------------------------*/
        /*- get the contributions of this edge pair to all quantities   */
