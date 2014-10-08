@@ -443,7 +443,7 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
       continue;
 
      RWGSurface *S = G->Surfaces[ns];
-     int Offset    = G->BFIndexOffset[ns];
+     int Offset    = (SurfaceIndex>=0) ? 0 : G->BFIndexOffset[ns];
      int NE        = S->NumEdges;
      int NENX      = NE*NX;
 
@@ -697,16 +697,16 @@ void GetDSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
      /***************************************************************/
      /* fetch 'F' six-vectors for this cubature point           *****/
      /***************************************************************/
-     int ColumnEA = nc*(2*NE) + (2*neA) + 0;
-     int ColumnMA = nc*(2*NE) + (2*neA) + 1;
-     int ColumnEB = nc*(2*NE) + (2*neB) + 0;
-     int ColumnMB = nc*(2*NE) + (2*neB) + 1;
-     cdouble FSVEA[6], FSVMA[6], FSVEB[6], FSVMB[6];
+     int ColumnKA = nc*(2*NE) + (2*neA) + 0;
+     int ColumnNA = nc*(2*NE) + (2*neA) + 1;
+     int ColumnKB = nc*(2*NE) + (2*neB) + 0;
+     int ColumnNB = nc*(2*NE) + (2*neB) + 1;
+     cdouble FSVKA[6], FSVNA[6], FSVKB[6], FSVNB[6];
      for(int n=0; n<6; n++)
-      { FSVEA[n] = FSVMatrix->GetEntry(n, ColumnEA);
-        FSVMA[n] = FSVMatrix->GetEntry(n, ColumnMA);
-        FSVEB[n] = FSVMatrix->GetEntry(n, ColumnEB);
-        FSVMB[n] = FSVMatrix->GetEntry(n, ColumnMB);
+      { FSVKA[n] = FSVMatrix->GetEntry(n, ColumnKA);
+        FSVNA[n] = FSVMatrix->GetEntry(n, ColumnNA);
+        FSVKB[n] = FSVMatrix->GetEntry(n, ColumnKB);
+        FSVNB[n] = FSVMatrix->GetEntry(n, ColumnNB);
       };
  
      /***************************************************************/
@@ -714,10 +714,10 @@ void GetDSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
      /***************************************************************/
      for(int m=0; m<3; m++)
       for(int n=0; n<3; n++)
-       { SEntries[ 0 ] += w * conj(FSVEA[m]) * NMatrix[SIPOWER][m][n] * FSVEB[3+n];
-         SEntries[ 1 ] += w * conj(FSVEA[m]) * NMatrix[SIPOWER][m][n] * FSVMB[3+n];
-         SEntries[ 2 ] += w * conj(FSVMB[m]) * NMatrix[SIPOWER][m][n] * FSVEB[3+n];
-         SEntries[ 3 ] += w * conj(FSVMB[m]) * NMatrix[SIPOWER][m][n] * FSVMB[3+n];
+       { SEntries[ 0 ] += w * conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
+         SEntries[ 1 ] += w * conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
+         SEntries[ 2 ] += w * conj(FSVNB[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
+         SEntries[ 3 ] += w * conj(FSVNB[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
        }; 
 
      /***************************************************************/
@@ -730,15 +730,15 @@ void GetDSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
         for(int m=0; m<3; m++)
          for(int n=0; n<3; n++)
           { 
-            UpperVMVP[0] += conj(FSVEA[m]) * NMatrix[nSIPFT][m][n] * FSVEB[n];
-            UpperVMVP[1] += conj(FSVEA[m]) * NMatrix[nSIPFT][m][n] * FSVMB[n];
-            UpperVMVP[2] += conj(FSVMA[m]) * NMatrix[nSIPFT][m][n] * FSVEB[n];
-            UpperVMVP[3] += conj(FSVMA[m]) * NMatrix[nSIPFT][m][n] * FSVMB[n];
+            UpperVMVP[0] += conj(FSVKA[m]) * NMatrix[nSIPFT][m][n] * FSVKB[n];
+            UpperVMVP[1] += conj(FSVKA[m]) * NMatrix[nSIPFT][m][n] * FSVNB[n];
+            UpperVMVP[2] += conj(FSVNA[m]) * NMatrix[nSIPFT][m][n] * FSVKB[n];
+            UpperVMVP[3] += conj(FSVNA[m]) * NMatrix[nSIPFT][m][n] * FSVNB[n];
 
-            LowerVMVP[0] += conj(FSVEA[3+m]) * NMatrix[nSIPFT][m][n] * FSVEB[3+n];
-            LowerVMVP[1] += conj(FSVEA[3+m]) * NMatrix[nSIPFT][m][n] * FSVMB[3+n];
-            LowerVMVP[2] += conj(FSVMA[3+m]) * NMatrix[nSIPFT][m][n] * FSVEB[3+n];
-            LowerVMVP[3] += conj(FSVMA[3+m]) * NMatrix[nSIPFT][m][n] * FSVMB[3+n];
+            LowerVMVP[0] += conj(FSVKA[3+m]) * NMatrix[nSIPFT][m][n] * FSVKB[3+n];
+            LowerVMVP[1] += conj(FSVKA[3+m]) * NMatrix[nSIPFT][m][n] * FSVNB[3+n];
+            LowerVMVP[2] += conj(FSVNA[3+m]) * NMatrix[nSIPFT][m][n] * FSVKB[3+n];
+            LowerVMVP[3] += conj(FSVNA[3+m]) * NMatrix[nSIPFT][m][n] * FSVNB[3+n];
           };
         SEntries[ 4*nSIPFT + 0 ] += w*( EpsAbs*UpperVMVP[0] + MuAbs*LowerVMVP[0] );
         SEntries[ 4*nSIPFT + 1 ] += w*( EpsAbs*UpperVMVP[1] + MuAbs*LowerVMVP[1] );
