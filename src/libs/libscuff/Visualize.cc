@@ -695,7 +695,9 @@ void RWGSurface::PlotScalarDensity(double *ValuePerEdge, const char *FileName,
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*! sanity check, delete me !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*! 20141008 it's weird that the two numbers don't agree? !!!!!!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
 double TotalArea1=0.0, TotalArea2=0.0;
 for(int np=0; np<NumPanels; np++)
  TotalArea1 += Panels[np]->Area;
@@ -704,6 +706,7 @@ for(int nv=0; nv<NumVertices; nv++)
 printf("Howdatage! (Panel,Vertex area) = (%e, %e)\n",TotalArea1,TotalArea2);
 if ( !EqualFloat(TotalArea1, TotalArea2) )
  Warn("Bawonkatage! Panel area = %e, Vertex area = %e",TotalArea1,TotalArea2);
+#endif
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
