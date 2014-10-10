@@ -326,7 +326,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      cdouble be, bh;
      cdouble divbe[3], divbh[3], bxe[3], bxh[3];
      cdouble divbrxe[3], divbrxh[3], rxbxe[3], rxbxh[3];
-     int Order=9; // increase for greater accuracy in overlap integrals
+     int Order=4; // increase for greater accuracy in overlap integrals 
      GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
                             k, &be, &bh, divbe, divbh, bxe, bxh,
                             divbrxe, divbrxh, rxbxe, rxbxh, 
