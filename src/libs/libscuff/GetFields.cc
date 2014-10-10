@@ -1,3 +1,6 @@
+bool ForceDistant=false;
+bool ForceNearby=false;
+bool FarFields=false;
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -46,6 +49,14 @@
 
 namespace scuff {
 
+void GetReducedFarFields(RWGGeometry *G, const int ns, const int ne,
+                         const double X0[3], const cdouble k,
+                         cdouble e[3], cdouble h[3]);
+
+void GetReducedFields_Nearby(RWGGeometry *G, const int ns, const int ne,
+                             const double X0[3], const cdouble k,
+                             cdouble e[3], cdouble h[3]);
+
 #define II cdouble(0,1)
 
 /*******************************************************************/
@@ -73,10 +84,10 @@ namespace scuff {
 /*******************************************************************/
 typedef struct GRPIntegrandData
  { 
-   double *Q;            // RWG basis function source/sink vertex  
-   double PreFac;        // RWG basis function prefactor 
-   const double *X0;     // field evaluation point 
-   cdouble K;            // \sqrt{Eps*Mu} * frequency
+   double *Q;            // RWG basis function source/sink vertex
+   double PreFac;        // RWG basis function prefactor
+   const double *X0;     // field evaluation point
+   cdouble k;            // \sqrt{Eps*Mu} * frequency
    GBarAccelerator *GBA; // optional accelerator for PBC geometries
  } GRPIData;
 
@@ -86,7 +97,7 @@ static void GRPIntegrand(double *X, void *parms, double *f)
   double *Q            = GRPID->Q;
   double PreFac        = GRPID->PreFac;
   const double *X0     = GRPID->X0;
-  cdouble K            = GRPID->K;
+  cdouble k            = GRPID->k;
   GBarAccelerator *GBA = GRPID->GBA;
 
   /* get the value of the RWG basis function at X */
@@ -107,8 +118,8 @@ static void GRPIntegrand(double *X, void *parms, double *f)
      double fxR[3];
      VecCross(fRWG,R,fxR);
      double r=VecNorm(R);
-     cdouble Phi = exp(II*K*r) / (4.0*M_PI*r);
-     cdouble Psi = (II*K - 1.0/r) * Phi / r;
+     cdouble Phi = exp(II*k*r) / (4.0*M_PI*r);
+     cdouble Psi = (II*k - 1.0/r) * Phi / r;
   
      /* assemble integrand components */
      zf[0]= fRWG[0] * Phi;
@@ -141,7 +152,7 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 } 
 
 /***************************************************************/
-/* Compute the 'reduced potentials' of a single RWG basis      */
+/* Compute the 'reduced fields' of a single RWG basis          */
 /* function.                                                   */
 /*                                                             */
 /* The 'reduced potentials' are dimensionless analogues of the */
@@ -153,34 +164,37 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /*                                                             */
 /* where G(x,y) is the scalar green's function and f(y) is the */
 /* vector-valued RWG current at y.                             */
+/*                                                             */
+/* The 'reduced fields' are                                    */
+/*  e = a + (\nabla p) / k^2                                   */
+/*  h = \nabla \times a                                        */
 /***************************************************************/
-void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
-                                      GBarAccelerator *GBA,
-                                      cdouble *a, cdouble *Curla, cdouble *Gradp)
+void RWGSurface::GetReducedFields(int ne, const double *X,
+                                  cdouble k, GBarAccelerator *GBA,
+                                  cdouble e[3], cdouble h[3])
 {
-  double *QP, *V1, *V2, *QM;
-  double PArea, MArea;
-  RWGEdge *E;
-  GRPIntegrandData MyGRPIData, *GRPID=&MyGRPIData;
-  cdouble IP[9], IM[9];
-
   /* get edge vertices */
-  E=Edges[ne];
+  RWGEdge *E   = Edges[ne];
+  double *QP, *V1, *V2, *QM=0;
   QP=Vertices + 3*(E->iQP);
   V1=Vertices + 3*(E->iV1);
   V2=Vertices + 3*(E->iV2);
-  PArea=Panels[E->iPPanel]->Area;
+  double PArea=Panels[E->iPPanel]->Area;
+  double MArea=0.0;
 
-  if (E->iQM == -1)
-   QM=0;
-  else
+  /***************************************************************/
+  /* get reduced potentials **************************************/
+  /***************************************************************/
+  if (E->iQM != -1)
    { QM=Vertices + 3*(E->iQM);
      MArea=Panels[E->iMPanel]->Area;
    };
 
   /* set up data structure passed to GRPIntegrand */
+  cdouble IP[9], IM[9];
+  GRPIntegrandData MyGRPIData, *GRPID=&MyGRPIData;
   GRPID->X0=X;
-  GRPID->K=K;
+  GRPID->k=k;
   GRPID->GBA = GBA;
 
   /* contribution of positive panel */
@@ -197,10 +211,19 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
   else
    memset(IM, 0, 9*sizeof(cdouble));
 
+  /***************************************************************/
+  /* assemble reduced fields  ************************************/
+  /***************************************************************/
+  cdouble a[3], Curla[3], Gradp[3];
+  cdouble k2=k*k;
   for(int Mu=0; Mu<3; Mu++) 
-   { a[Mu]     = IP[Mu]   - IM[Mu];
+   { 
+     a[Mu]     = IP[Mu]   - IM[Mu];
      Curla[Mu] = IP[Mu+3] - IM[Mu+3];
      Gradp[Mu] = IP[Mu+6] - IM[Mu+6];
+
+     e[Mu]     = a[Mu] + Gradp[Mu]/k2;
+     h[Mu]     = Curla[Mu];
    };
 
 }
@@ -214,53 +237,62 @@ void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex,
 { 
   memset(EHS, 0, 6*sizeof(cdouble));
 
-  cdouble Eps=G->EpsTF[RegionIndex];
-  cdouble Mu=G->MuTF[RegionIndex];
-  cdouble iwe=II*Omega*Eps;
-  cdouble iwu=II*Omega*Mu;
-  cdouble K=csqrt2(Eps*Mu)*Omega;
+  cdouble EpsRel = G->EpsTF[RegionIndex];
+  cdouble MuRel  = G->MuTF[RegionIndex];
+  cdouble k      = csqrt2(EpsRel*MuRel)*Omega;
+  cdouble ZRel   = csqrt2(MuRel/EpsRel);
+  cdouble IKZ    = II*k*ZRel*ZVAC;
+  cdouble IKOZ   = II*k/(ZRel*ZVAC);
 
-  RWGSurface *S;
-  int i, ne, Offset;
-  cdouble KAlpha, NAlpha, a[3], Curla[3], Gradp[3];
-  double Sign;
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     S=G->Surfaces[ns];
-     Offset=G->BFIndexOffset[ns];
+     RWGSurface *S=G->Surfaces[ns];
+     int Offset=G->BFIndexOffset[ns];
 
      /*****************************************************************/
      /* figure out the sign of the contribution of currents on this   */
      /* surface to the field at the evaluation point.                 */
      /*****************************************************************/
+     double Sign;
      if ( S->RegionIndices[0] == RegionIndex )
       Sign=+1.0;
      else if ( S->RegionIndices[1] == RegionIndex )
       Sign=-1.0;
      else
-      continue; // in this case S does not contribute to field at eval pt
+      continue; // in this case S does not contribute to field at eval pt 
 
      /***************************************************************/
      /* now loop over all basis functions on the surface to         */
-     /* get contributions to the field at the evaluation point.     */
+     /* get contributions to the field at the evaluation point.     */ 
      /***************************************************************/
-     for(ne=0; ne<S->NumEdges; ne++)
+     for(int ne=0; ne<S->NumEdges; ne++)
       { 
+        cdouble kAlpha, nAlpha;
         if ( S->IsPEC )
          { 
-           KAlpha = Sign*KN->GetEntry( Offset + ne );
-           NAlpha = 0.0;
+           kAlpha = Sign*KN->GetEntry( Offset + ne );
+           nAlpha = 0.0;
          }
         else
-         { KAlpha = Sign*KN->GetEntry( Offset + 2*ne + 0 );
-           NAlpha = Sign*KN->GetEntry( Offset + 2*ne + 1 );
+         { kAlpha = Sign*KN->GetEntry( Offset + 2*ne + 0 );
+           nAlpha = -ZVAC*Sign*KN->GetEntry( Offset + 2*ne + 1 );
          };
       
-        S->GetReducedPotentials(ne, X, K, GBA, a, Curla, Gradp);
+        RWGEdge *E=S->Edges[ne];
+        double rRel=VecDistance(X, E->Centroid)/E->Radius;
+        cdouble e[3], h[3];
+        if ( GBA || ForceDistant )
+         S->GetReducedFields(ne, X, k, GBA, e, h);
+        else if ( FarFields )
+         GetReducedFarFields(G, ns, ne, X, k, e, h);
+        else if ( (rRel < 5.0) || (ForceNearby) )
+         GetReducedFields_Nearby(G, ns, ne, X, k, e, h);
+        else 
+         S->GetReducedFields(ne, X, k, GBA, e, h);
 
-        for(i=0; i<3; i++)
-         { EHS[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );
-           EHS[i+3] += -1.0*NAlpha*(iwe*a[i] - Gradp[i]/iwu) + KAlpha*Curla[i];
+        for(int Mu=0; Mu<3; Mu++)
+         { EHS[Mu+0]  += IKZ*kAlpha*e[Mu]  - nAlpha*h[Mu];
+           EHS[Mu+3]  += kAlpha*h[Mu] + IKOZ*nAlpha*e[Mu];
          };
 
       }; // for (ne=0 ... 
@@ -377,6 +409,25 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
                                 HMatrix *XMatrix, HMatrix *FMatrix, char *FuncString)
 { 
   int NumThreads = GetNumThreads();
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (getenv("SCUFF_FORCEDISTANT"))
+ { Log("Forcing distant-field computation.");
+   ForceDistant=true;
+ };
+if (getenv("SCUFF_FORCENEARBY"))
+ { Log("Forcing nearby-field computation.");
+   ForceNearby=true;
+ };
+if (getenv("SCUFF_FARFIELDS"))
+ { Log("Forcing far-field computation.");
+   FarFields=true;
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
  
   /***************************************************************/
   /* preprocess the Functions string to count the number of      */

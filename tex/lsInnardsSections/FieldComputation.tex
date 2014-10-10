@@ -4,6 +4,89 @@
 \newpage
 \section{Computation of the fields in \lss geometries}
 
+Using the fields of individual basis functions as
+discussed in the previous section, we can compute the 
+total $\vb E$ and $\vb H$ fields at arbitrary points 
+in a {\sc scuff-em} geometry.
+
+
+\subsection{The simplest case}
+
+The simplest case to consider is that in which we have
+a single compact body $\mc B$ in vacuum; let the body surface
+be $\mc S=\partial \mc B$ and suppose the incident fields 
+arise from sources lying outside $\mc B$. Let the surface-current
+coefficients be $\{\vb k_\alpha, \vb n_\alpha\}$, so that 
+the electric and magnetic surface currents are
+%====================================================================%
+$$ \vb K(\vb x) = \sum_{\alpha} k_\alpha \vb b_\alpha(\vb x),
+   \qquad
+   \vb N(\vb x) = \sum_{\alpha} n_\alpha \vb b_\alpha(\vb x)
+$$
+%====================================================================%
+where $\{\vb b_\alpha\}$ is the set of RWG basis functions 
+on surface $\partial \mc B$. Then the fields at a point outside 
+$\mc B$ are
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \vb E(\vb x) 
+  &= \vb E\sups{inc}(\vb x) + 
+\sum_{\alpha} \Big\{ ik_0Z_0 k_\alpha \vb e_\alpha(k_0; \vb x)
+                             -n_\alpha \vb h_\alpha(k_0; \vb x)
+                   \Big\}
+\\
+ \vb H(\vb x) 
+  &= \vb H\sups{inc}(\vb x) + 
+     \sum_{\alpha} \Big\{     k_\alpha \vb h_\alpha(k_0; \vb x)
+                         +\frac{ik_0}{Z_0} n_\alpha \vb e_\alpha(k_0; \vb x)
+                   \Big\}.
+\end{align}
+\label{OutsideFields}
+\end{subequations}
+%====================================================================%
+The fields at a point inside $\mc B$ are 
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \vb E(\vb x)
+  &= -\sum_{\alpha} \Big\{ ik_1Z_1 k_\alpha \vb e_\alpha(k_1; \vb x)
+                                  -n_\alpha \vb h_\alpha(k_1; \vb x)
+                   \Big\}
+\\
+ \vb H(\vb x) 
+  &= -\sum_{\alpha} \Big\{     k_\alpha \vb h_\alpha(k_1; \vb x)
+                         +\frac{ik_1}{Z_1} n_\alpha \vb e_\alpha(k_1; \vb x)
+                   \Big\}.
+\end{align}
+\label{InsideFields}
+\end{subequations}
+%====================================================================%
+Note the following differences between (\ref{OutsideFields}) and
+(\ref{InsideFields}):
+\begin{itemize}
+ \item The incident fields contribute to (\ref{OutsideFields})
+       but not to (\ref{InsideFields}).
+ \item Equation (\ref{InsideFields}) involves a minus sign that 
+       is not present in (\ref{OutsideFields}).
+ \item Equation (\ref{OutsideFields}) involves the vacuum
+       wavenumber $k_0=\omega/c$ and the vacuum 
+       wave impedance $Z_0\approx 377 \, \Omega.$
+       Equation (\ref{InsideFields}) involves the wavenumber 
+       $k_1=\sqrt{\epsilon^r \mu^r}k_0$ and wave impedance 
+       $Z_1=\sqrt{\frac{\mu^r}{\epsilon^r}}Z_0$ for the body interior.
+       (Here $\{\epsilon^r, \mu^r\}$ are the relative permittivity 
+        and permeability of the medium inside body $\mc B$ at the 
+        frequency in question.)
+\end{itemize}
+
+\subsection{The general case}
+
+The previous discussion was for the simplest case of a 
+single compact body in vacuum with incident-field 
+sources lying outside the body. The generalization
+to more complicated cases is straighforward. 
+
 Consider a point $\vb x$ in some region $\mathcal{R}$
 of a \lss geometry. In general, $\mathcal{R}$
 will be bounded by some collection of surfaces
