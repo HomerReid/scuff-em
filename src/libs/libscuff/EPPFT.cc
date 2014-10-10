@@ -326,7 +326,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      cdouble be, bh;
      cdouble divbe[3], divbh[3], bxe[3], bxh[3];
      cdouble divbrxe[3], divbrxh[3], rxbxe[3], rxbxh[3];
-     int Order=9; // increase for greater accuracy in overlap integrals
+     int Order=4; // increase for greater accuracy in overlap integrals 
      GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
                             k, &be, &bh, divbe, divbh, bxe, bxh,
                             divbrxe, divbrxh, rxbxe, rxbxh, 
@@ -350,10 +350,10 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
         NN = conj(nAlpha) * nBeta;
       }
      else
-      { KK = SigmaMatrix->GetEntry(Offset+2*nea+0, Offset+2*neb+0);
-        KN = SigmaMatrix->GetEntry(Offset+2*nea+0, Offset+2*neb+1);
-        NK = SigmaMatrix->GetEntry(Offset+2*nea+1, Offset+2*neb+0);
-        NN = SigmaMatrix->GetEntry(Offset+2*nea+1, Offset+2*neb+1);
+      { KK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
+        KN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
+        NK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
+        NN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
       };
 
      /*--------------------------------------------------------------*/

@@ -856,10 +856,10 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
          NN = conj(nAlpha) * nBeta;
        }
       else
-       { KK = SigmaMatrix->GetEntry(Offset+2*nea+0, Offset+2*neb+0);
-         KN = SigmaMatrix->GetEntry(Offset+2*nea+0, Offset+2*neb+1);
-         NK = SigmaMatrix->GetEntry(Offset+2*nea+1, Offset+2*neb+0);
-         NN = SigmaMatrix->GetEntry(Offset+2*nea+1, Offset+2*neb+1);
+       { KK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
+         KN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
+         NK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
+         NN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
        };
 
       /*--------------------------------------------------------------*/
@@ -1001,10 +1001,10 @@ HMatrix *RWGGeometry::GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
           NN = conj(nAlpha) * nBeta;
         }
        else
-        { KK = SigmaMatrix->GetEntry(2*nea+0, 2*neb+0);
-          KN = SigmaMatrix->GetEntry(2*nea+0, 2*neb+1);
-          NK = SigmaMatrix->GetEntry(2*nea+1, 2*neb+0);
-          NN = SigmaMatrix->GetEntry(2*nea+1, 2*neb+1);
+        { KK = SigmaMatrix->GetEntry(2*neb+0, 2*nea+0);
+          KN = SigmaMatrix->GetEntry(2*neb+1, 2*nea+0);
+          NK = SigmaMatrix->GetEntry(2*neb+0, 2*nea+1);
+          NN = SigmaMatrix->GetEntry(2*neb+1, 2*nea+1);
         };
 
        /*--------------------------------------------------------------*/
