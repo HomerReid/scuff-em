@@ -1,0 +1,66 @@
+\newpage
+\section{Overlap integral between RWG basis functions}
+\label{OverlapIntegralAppendix}
+
+%====================================================================%
+\begin{align*}
+\vb O_{\alpha\beta}
+&\equiv
+ \int \vb b_\alpha(\vb x) \times \vb b_\beta(\vb x) \, d\vb x .
+\end{align*}
+%====================================================================%
+This quantity vanishes unless $\vb b_\alpha,\vb b_\beta$
+have exactly one panel in common. To evaluate the integral in
+that case, let $\mc P$ be the common panel, and suppose its vertices
+are $\{\vb Q_\alpha, \vb V_1, \vb V_2\}$ with $\vb Q_\alpha$ the  
+source/sink vertex for $\vb b_\alpha$. Let $\vb Q_\beta$ be the
+source/sink vertex for $\vb b_\beta.$
+On $\mc P$ we can parametrize points according to 
+%====================================================================%
+$$ \vb x = \vb Q_\alpha + u\vb A + v \vb B, \qquad 0 \le u \le 1, \qquad 0 \le v \le u$$
+$$ \vb A \equiv (\vb V_1 - \vb Q_\alpha)
+   \qquad 
+   \vb B \equiv (\vb V_2 - \vb V_1)
+$$
+%====================================================================%
+and the two RWG functions are 
+%====================================================================%
+\begin{align*}
+ \vb b_\alpha 
+ &= \pm \frac{\ell_\alpha}{2A}\Big(\vb x - \vb Q_\alpha\Big)
+\\
+ &= \pm \frac{\ell_\alpha}{2A}\Big(u\vb A + v\vb B\Big)
+\\
+ \vb b_\beta
+ &= \pm \frac{\ell_\beta}{2A}\Big(\vb x - \vb Q_\beta\Big)
+\\
+ &= \pm \frac{\ell_\beta}{2A}\Big(u\vb A + v\vb B + \Delta \vb Q\Big)
+\end{align*}
+%====================================================================%
+where $A$ is the area of the common panel, $\ell_{\alpha,\beta}$
+are the lengths of the edges that define $\vb b_{\alpha,\beta}$,
+and $\Delta \vb Q=(\vb Q_a - \vb Q_b).$ The $\pm$ signs are determined
+by whether $\mc P$ is the positive or negative panel associated
+with $\vb b_{\alpha,\beta}$. The overlap integral then reads
+%====================================================================%
+\begin{align*}
+\vb O_{\alpha\beta}
+&=\pm \frac{\ell_\alpha \ell_\beta}{2A}
+  \int_0^1 \, du \, \int_0^u \, dv
+  \Big[ u\vb A + v\vb B \Big] \times
+  \Big[ u\vb A + v\vb B + \Delta \vb Q\Big]
+\\
+&=\pm \frac{\ell_\alpha \ell_\beta}{2A}
+  \left[ \frac{1}{3}\Big(\vb A \times \Delta \vb Q\Big)
+       +
+        \frac{1}{6}\Big(\vb B \times \Delta \vb Q\Big)
+  \right]
+\\
+&=\pm \frac{\ell_\alpha \ell_\beta}{12A}
+  \left[ \Big(2\vb A + \vb B \Big) \times \Delta \vb Q \right]
+\\
+&=\pm \frac{\ell_\alpha \ell_\beta}{4A}
+  \left[ \Big( \vb X_c - \vb Q_\alpha\Big) \times \Delta \vb Q \right]
+\end{align*}
+%====================================================================%
+where $\vb X_c$ is the centroid of $\mc P$.
