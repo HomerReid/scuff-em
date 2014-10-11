@@ -111,7 +111,7 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
       int NBFB    = G->Surfaces[b]->NumBFs;
       int OffsetB = G->BFIndexOffset[b];
 
-      // get a,s subblock of W 
+      // get a,s subblock of W
       HMatrix Was(NBFA, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[0]);
       W->ExtractBlock(OffsetA, OffsetS, &Was);
 

@@ -352,3 +352,16 @@ embedded in a surface mesh.
 
 \subsection*{Half-RWG Basis Functions}
 
+It is also possible to assign basis functions to 
+\textit{exterior} edges of surface meshes, i.e.
+edges that lie on the boundary of open surfaces.
+In contrast to interior edges, exterior edges 
+are associated within only one panel, not two
+panels. {\sc scuff-em} adopts the convention
+that this panel is the positive panel $\mc P^+$
+for the edge, while there is no negative panel
+$\mc P^-$. For exterior edges, the \texttt{iMPanel}
+field of the \texttt{RWGEdge} structure 
+is set to \texttt{-1}.
+
+
