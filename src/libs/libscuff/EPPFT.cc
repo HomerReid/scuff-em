@@ -317,7 +317,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
    { 
      int nea = neab/NE;
      int neb = neab%NE;
-     if (neb<nea) continue;
+//     if (neb<nea) continue;
 
      /*--------------------------------------------------------------*/
      /*- Get various overlap integrals between basis function b_\alpha*/
@@ -326,7 +326,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      cdouble be, bh;
      cdouble divbe[3], divbh[3], bxe[3], bxh[3];
      cdouble divbrxe[3], divbrxh[3], rxbxe[3], rxbxh[3];
-     int Order=4; // increase for greater accuracy in overlap integrals 
+     int Order=9; // increase for greater accuracy in overlap integrals 
      GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
                             k, &be, &bh, divbe, divbh, bxe, bxh,
                             divbrxe, divbrxh, rxbxe, rxbxh, 
@@ -415,7 +415,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      /*--------------------------------------------------------------*/
      /*- accumulate contributions to full sums ----------------------*/
      /*--------------------------------------------------------------*/
-     double Weight = (nea==neb) ? 1.0 : 2.0;
+     double Weight = 1.0; // (nea==neb) ? 1.0 : 2.0;
      PAbs += Weight*dPAbs;
      Fx   += Weight*dF[0];
      Fy   += Weight*dF[1];
