@@ -311,9 +311,14 @@ class RWGSurface
    void ReadComsolFile(FILE *MeshFile, char *FileName);
 
    /* calculate reduced fields due to a single basis function */
+#if 0
    void GetReducedFields(int ne, const double *X,
                          cdouble k, GBarAccelerator *GBA,
                          cdouble e[3], cdouble h[3]);
+#endif
+   void GetReducedPotentials(int ne, const double *X,
+                             cdouble k, GBarAccelerator *GBA,
+                             cdouble *a, cdouble *Curla, cdouble *Gradp);
 
    void AddStraddlers(double LBV[MAXLDIM][2], int LDim,
                       int NumStraddlers[MAXLDIM]);

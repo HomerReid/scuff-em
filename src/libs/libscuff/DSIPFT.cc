@@ -57,7 +57,6 @@ void GetReducedFarFields(RWGGeometry *G, const int ns, const int ne,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-/*
 void GetReducedFields(RWGGeometry *G, int ns, int ne,
                       double X0[3],  cdouble k,
                       cdouble e[3], cdouble h[3])
@@ -76,7 +75,6 @@ void GetReducedFields(RWGGeometry *G, int ns, int ne,
   h[2] = curla[2];
 
 }
-*/
 
 
 /***************************************************************/
@@ -469,7 +467,8 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
         if (FarField)
          GetReducedFarFields(G, ns, ne, X, k, e, h);
         else
-         S->GetReducedFields(ne, X, k, 0, e, h);
+         GetReducedFields(G, ns, ne, X, k, e, h);
+
 
         // full fields due to this edge, populated with 
         // unit strength as an electric or magnetic current
