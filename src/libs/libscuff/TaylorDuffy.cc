@@ -903,11 +903,18 @@ static void GetScriptK(int WhichK, cdouble KParam, double X,
   else if (WhichK==TD_GRADHELMHOLTZ)
    { cdouble IK = II*KParam, IKX = IK*X, eIKX = exp(IKX);
      cdouble ExpRelTable[10]; 
-     if ( (nMin-2) < 0 || (nMax-1) >=10) 
-      ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+
+     if ( (nMin-2) < 0 || (nMax-1) >=10)
+      { Warn("%s:%i: internal inconsistency (%i,%i)",__FILE__,__LINE__,nMin,nMax);
+        for(int n=0; n<nMin; n++)
+         KVector[n]=0.0;
+        nMin=2;
+      }; 
+
+      //ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+ 
      // precompute ExpRel for all values we need; for better efficiency,
      // maybe implement a routine that computes these values all at once?
-
      for(int n=nMin-2; n<=nMax-1; n++)
       ExpRelTable[n] = ExpRelV3P0(n,-IKX);
 
@@ -1414,6 +1421,68 @@ void ComputeGeometricParameters(TaylorDuffyArgStruct *Args,
           V[2] =  -VecDot(DT, VecCross(AP, DP, Scratch) );
           V[3] =  -VecDot(DT, VecCross(BP, DP, Scratch) );
           break;
+
+        case TD_EPPFT1:
+          V[2] = 2.0*VecDot(nHat, AP);
+          V[3] = 2.0*VecDot(nHat, BP);
+          S    = 2.0*VecDot(nHat, DP);
+          break;
+
+        case TD_EPPFT2:
+          V[0] =  4.0*VecDot(nHat, A );
+          V[1] =  4.0*VecDot(nHat, B );
+          V[2] = -4.0*VecDot(nHat, AP);
+          V[3] = -4.0*VecDot(nHat, BP);
+          break;
+
+        case TD_EPPFT3:
+          M[0 + 2*4] = 2.0*VecDot(nHat, VecCross(A,AP,Scratch) );
+          M[0 + 3*4] = 2.0*VecDot(nHat, VecCross(A,BP,Scratch) );
+          M[1 + 2*4] = 2.0*VecDot(nHat, VecCross(B,AP,Scratch) );
+          M[1 + 3*4] = 2.0*VecDot(nHat, VecCross(B,BP,Scratch) );
+          M[2 + 0*4] = 2.0*VecDot(nHat, VecCross(A,AP,Scratch) );
+          M[2 + 1*4] = 2.0*VecDot(nHat, VecCross(B,AP,Scratch) );
+          M[3 + 0*4] = 2.0*VecDot(nHat, VecCross(A,BP,Scratch) );
+          M[3 + 1*4] = 2.0*VecDot(nHat, VecCross(B,BP,Scratch) );
+          V[0] =  2.0*VecDot(nHat, VecCross(A, DP,Scratch));
+          V[1] =  2.0*VecDot(nHat, VecCross(B, DP,Scratch));
+          V[2] = -2.0*VecDot(nHat, VecCross(AP,DP,Scratch));
+          V[3] = -2.0*VecDot(nHat, VecCross(BP,DP,Scratch));
+          break;
+
+        case TD_EPPFT4:
+          M[0 + 2*4] = VecDot(nHat, VecCross(A,AP,Scratch) );
+          M[0 + 3*4] = VecDot(nHat, VecCross(A,BP,Scratch) );
+          M[1 + 2*4] = VecDot(nHat, VecCross(B,AP,Scratch) );
+          M[1 + 3*4] = VecDot(nHat, VecCross(B,BP,Scratch) );
+          M[2 + 0*4] = VecDot(nHat, VecCross(A,AP,Scratch) );
+          M[2 + 1*4] = VecDot(nHat, VecCross(B,AP,Scratch) );
+          M[3 + 0*4] = VecDot(nHat, VecCross(A,BP,Scratch) );
+          M[3 + 1*4] = VecDot(nHat, VecCross(B,BP,Scratch) );
+          V[0] =  VecDot(nHat, VecCross(A, DP,Scratch));
+          V[1] =  VecDot(nHat, VecCross(B, DP,Scratch));
+          V[2] =  VecDot(nHat, VecCross(D, AP,Scratch));
+          V[3] =  VecDot(nHat, VecCross(D, BP,Scratch));
+          break;
+
+        case TD_EPPFT5:
+          M[0 + 2*4] = -2.0*VecDot(nHat, VecCross(A,AP,Scratch) );
+          M[0 + 3*4] = -2.0*VecDot(nHat, VecCross(A,BP,Scratch) );
+          M[1 + 2*4] = -2.0*VecDot(nHat, VecCross(B,AP,Scratch) );
+          M[1 + 3*4] = -2.0*VecDot(nHat, VecCross(B,BP,Scratch) );
+          M[2 + 0*4] = -2.0*VecDot(nHat, VecCross(A,AP,Scratch) );
+          M[2 + 1*4] = -2.0*VecDot(nHat, VecCross(B,AP,Scratch) );
+          M[3 + 0*4] = -2.0*VecDot(nHat, VecCross(A,BP,Scratch) );
+          M[3 + 1*4] = -2.0*VecDot(nHat, VecCross(B,BP,Scratch) );
+          V[0] =  2.0*VecDot(nHat, VecCross(D, A,Scratch));
+          V[1] =  2.0*VecDot(nHat, VecCross(D, B,Scratch));
+          V[2] = -2.0*VecDot(nHat, VecCross(D, AP,Scratch));
+          V[3] = -2.0*VecDot(nHat, VecCross(D, BP,Scratch));
+          break;
+
+        case TD_EPPFT6:
+          break;
+
       };
    
      /***************************************************************/
@@ -1421,6 +1490,9 @@ void ComputeGeometricParameters(TaylorDuffyArgStruct *Args,
      /* determine the lower and upper limits of the sum over n,     */
      /* and the number of nonzero monomial coefficients in the      */
      /* Upsilon vector                                              */
+     /* The check on the magnitude of Upsilon below should really   */
+     /* involve a lengthscale these the Upsilon values are          */
+     /* dimensionful quantities; but                                */
      /***************************************************************/
      CMVStoUpsilon(Args->WhichCase, C, M, V, S, TDW->Upsilon[np]);
    
@@ -1430,7 +1502,8 @@ void ComputeGeometricParameters(TaylorDuffyArgStruct *Args,
      for(int n=0; n<NUMWPOWERS; n++)
       for(int nr=0; nr<NumRegions; nr++)
        for(int nm=0; nm<NUMMONOMIALS; nm++)
-        if ( TDW->Upsilon[np][nr][n][nm] != 0.0 )
+ //       if ( TDW->Upsilon[np][nr][n][nm] != 0.0 )
+        if ( fabs(TDW->Upsilon[np][nr][n][nm]) > 1.0e-8 )
          { if (n<nMin) nMin=n;
            if (n>nMax) nMax=n;
            if (nm>MaxMonomial) MaxMonomial=nm;

@@ -51,7 +51,13 @@ namespace scuff {
 #define TD_NMULLERG1           4
 #define TD_NMULLERG2           5
 #define TD_NMULLERC            6
-#define NUMPS                  7
+#define TD_EPPFT1              7
+#define TD_EPPFT2              8
+#define TD_EPPFT3              9
+#define TD_EPPFT4              10
+#define TD_EPPFT5              11
+#define TD_EPPFT6              12
+#define NUMPS                  13
 
 // values for the WhichCase parameter. note the values correspond to
 // the numbers of common vertices in each case.

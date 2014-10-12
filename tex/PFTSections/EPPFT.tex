@@ -339,3 +339,213 @@ $$
                +Z_0  \big\langle \vb b_\alpha \times \vb h_\beta\big\rangle_i 
 \\
 \end{align*}
+
+\subsection*{Panel integrals in Generalized Taylor-Duffy form}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \INP{\nabla \cdot \vb b_\alpha}{ \vbhat{u} \cdot \vb e }
+&= \sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
+   \cdot
+   2\cdot\iint 
+   \Big[ \underbrace{ \vbhat{u}\cdot\big(\vb x^\prime-\vb Q^\prime\big)
+                    }_{P_1} K\supt{EFIE}
+        +\underbrace{ \frac{2}{k^2}\vbhat{u}\cdot(\vb x-\vb x^\prime)
+                    }_{P_2} K\supt{MFIE}
+   \Big]
+\\
+%--------------------------------------------------------------------%
+ \INP{\nabla \cdot \vb b_\alpha}{\vbhat{u} \cdot \vb h}
+&= \sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
+   \cdot
+   2\cdot
+   \iint \underbrace{ \vbhat{u}\cdot
+                      \Big[ \big(\vb x-\vb x^\prime \big) \times
+                            \big(\vb x^\prime-\vb Q^\prime \big)
+                      \Big]
+                    }_{P_3} K\supt{MFIE}
+\\
+%--------------------------------------------------------------------%
+ \Big\langle \vbhat{u} \cdot \big(\vb b_\alpha \times \vb e\big) \Big\rangle
+&= \sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
+   \iint
+   \Big[ \underbrace{ \varepsilon_{ijk} 
+                      \vbhat{u}_i
+                      \big(\vb x-\vb Q\big)_j
+                      \big(\vb x^\prime-\vb Q^\prime\big)_k
+                    }_{P_4} K\supt{EFIE}
+\\
+&\hspace{1.5in}
+        +\underbrace{ \frac{2}{k^2} \varepsilon_{ijk}
+                      \vbhat{u}_i
+                      \big(\vb x-\vb Q\big)_j
+                      \big(\vb x-\vb x^\prime\big)_k
+                    }_{P_5} K\supt{MFIE}
+   \Big]
+\\
+%--------------------------------------------------------------------%
+ \Big\langle \vbhat{u} \cdot \big(\vb b_\alpha \times \vb h\big) \Big\rangle
+&= \sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
+   \iint
+   \bigg\{ \underbrace{ \big[\vbhat{u}\cdot(\vb x-\vb x^\prime)\big]
+                        \big[(\vb x-\vb Q)\cdot(\vb x^\prime-\vb Q^\prime)
+                        \big]
+                      }_{P_{6a}}
+\\
+&\hspace{1.5in}
+          -\underbrace{ \big[\vbhat{u}\cdot(\vb x^\prime-\vb Q^\prime)\big]
+                        \big[(\vb x-\vb Q)\cdot(\vb x-\vb x^\prime)
+                        \big]
+                      }_{P_{6b}}
+   \bigg\} K\supt{MFIE}
+\end{align*}
+%====================================================================%
+$$ \vb x-\vb Q
+   =
+   \xi_1 \vb A + \xi_2 \vb B + 
+   \underbrace{(\vb V_1-\vb Q)}_{\vb D}, 
+%--------------------------------------------------------------------%
+   \qquad
+%--------------------------------------------------------------------%
+   \vb x^\prime-\vb Q^\prime
+   =
+   \eta_1 \vb A^\prime + \eta_2 \vb B + 
+   \underbrace{(\vb V_1-\vb Q^\prime)}_{\vb D^\prime}
+$$
+
+%====================================================================%
+$$ P\Big(\xi_1, \xi_2, \eta_1, \eta_2\Big)
+   = \frac{1}{2}\boldsymbol{\xi}^T \vb M \boldsymbol{\xi}
+     +\boldsymbol{\xi}^T \vb v
+     +S, 
+   \qquad
+ \boldsymbol{\xi}
+\equiv
+ \left(\begin{array}{c}
+ \xi_1 \\ \xi_2 \\ \eta_1 \\ \eta_2
+ \end{array}\right)
+$$
+%====================================================================%
+
+
+%====================================================================%
+\begin{align*}
+ P_1 &= 2\Big[   \eta_1 \vbhat{u}\cdot \vb A^\prime
+               + \eta_2 \vbhat{u}\cdot \vb B^\prime
+               + \vbhat{u}\cdot \vb D^\prime
+         \Big]
+\\
+ &\Longrightarrow 
+  \qquad \vb M_1=0, 
+  \qquad
+         \vb V_1=2\left(\begin{array}{c} 
+                         0 \\ 
+                         0 \\
+                         \vbhat{u} \cdot \vb A^\prime \\
+                         \vbhat{u} \cdot \vb B^\prime
+                 \end{array}\right), 
+  \qquad
+         S_1 = 2\,\vbhat{u} \cdot \vb D^\prime
+\\[8pt]
+%--------------------------------------------------------------------%
+ P_2 &= \frac{4}{k^2}
+        \Big[  \xi_1 \vbhat{u}\cdot \vb A
+             + \xi_2 \vbhat{u}\cdot \vb B
+             -\eta_1 \vbhat{u}\cdot \vb A^\prime
+             -\eta_2 \vbhat{u}\cdot \vb B^\prime
+        \Big]
+\\
+ &\Longrightarrow 
+  \qquad \vb M_2=0, 
+  \qquad 
+         \vb V_2=\frac{4}{k^2} 
+                 \left(\begin{array}{c} 
+                        \vbhat{u} \cdot \vb A\\
+                        \vbhat{u} \cdot \vb B\\
+                       -\vbhat{u} \cdot \vb A^\prime \\
+                       -\vbhat{u} \cdot \vb B^\prime
+                 \end{array}\right), 
+  \qquad
+         S_2 = 0
+\\[8pt]
+%--------------------------------------------------------------------%
+ P_3 &= \cdots
+\\
+ &
+  \vb M_3=2\left(\begin{array}{cccc}
+     0 
+   & 0 
+   & \vbhat{u}\cdot\big(\vb A \times \vb A^\prime\big)
+   & \vbhat{u}\cdot\big(\vb A \times \vb B^\prime\big)
+   \\
+     0 
+   & 0 
+   & \vbhat{u}\cdot\big(\vb B \times \vb A^\prime\big)
+   & \vbhat{u}\cdot\big(\vb B \times \vb B^\prime\big)
+   \\
+     \vbhat{u}\cdot\big(\vb A \times \vb A^\prime\big)
+   & \vbhat{u}\cdot\big(\vb B \times \vb A^\prime\big)
+   & 0
+   & 0
+   \\
+     \vbhat{u}\cdot\big(\vb A \times \vb B^\prime\big)
+   & \vbhat{u}\cdot\big(\vb B \times \vb B^\prime\big)
+   & 0
+   & 0
+  \end{array}\right),
+\\ 
+& \qquad
+         \vb V_3=2\left(\begin{array}{c} 
+                        \vbhat{u}\cdot (\vb A\times \vb D^\prime)\\
+                        \vbhat{u}\cdot (\vb B\times \vb D^\prime)\\
+                       -\vbhat{u}\cdot (\vb A^\prime\times \vb D^\prime)\\
+                       -\vbhat{u}\cdot (\vb B^\prime\times \vb D^\prime)
+                 \end{array}\right),
+  \qquad
+         S_3 = 0
+\\[8pt]
+%--------------------------------------------------------------------%
+ P_4 &= 
+\\
+ &
+  \qquad \vb M_4=,
+  \qquad 
+         \vb V_1=\left(\begin{array}{c} 
+                        0 \\ 
+                        0 \\
+                        \vbhat{u} \cdot \vb A^\prime \\
+                        \vbhat{u} \cdot \vb B^\prime \\
+                 \end{array}\right), 
+  \qquad
+         S_1 = \vbhat{u} \cdot \vb D^\prime
+\\[8pt]
+%--------------------------------------------------------------------%
+ P_5 &=
+\\
+ &\Longrightarrow 
+  \qquad \vb M_5=, 
+  \qquad
+         \vb V_5=
+  \qquad
+         S_5 = 
+\\[8pt]
+%--------------------------------------------------------------------%
+ P_6 &= \eta_1^2
+\Big(\vb A \cdot \vb B)(\vb A \cdot \vb B^|prime)
+       +\eta_2 \vbhat{u}\cdot \vb B^\prime
+       +       \vbhat{u}\cdot \vb D^\prime
+\\
+ &\Longrightarrow 
+  \qquad \vb M_6=0, 
+  \qquad
+         \vb V_6=\left(\begin{array}{c} 
+                        0 \\ 
+                        0 \\
+                        \vbhat{u} \cdot \vb A^\prime \\
+                        \vbhat{u} \cdot \vb B^\prime \\
+                 \end{array}\right), 
+  \qquad
+         S_6 = \vbhat{u} \cdot \vb D^\prime
+\\[8pt]
+%--------------------------------------------------------------------%
+\end{align*}

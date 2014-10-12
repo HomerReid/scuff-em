@@ -1,0 +1,174 @@
+\newpage
+\section{PFT in Mie Scattering}
+
+It is instructive to compare the behavior of the various 
+PFT algorithms in the simplest analytically-solvable
+case of scattering by a compact object, namely,
+namely, the scattering of a plane wave by a dielectric 
+sphere (Mie scattering). Let the sphere have radius $r$
+and relative permittivity $\epsilon$; for simplicity
+I consider the non-magnetic case, $\mu=1.$
+
+The incident fields are 
+$$ \vb E\sups{inc}(\vb x) = E_0 e^{ikx} \vbhat{x}, \qquad
+   \vb H\sups{inc}(\vb x) = \frac{1}{Z_0} E_0 e^{ikx} \vbhat{y}.
+$$
+where $k$ is the free-space wavenumber. (I work in units
+such that $c=1$, so numerically I have $k=\omega$, although
+in the formulas below the quantities $k$ and $\omega$ will
+both appear.
+
+\subsubsection*{Interior fields}
+
+Retaining terms of zeroth and first order in $k$, the fields
+inside the sphere are
+%====================================================================%
+\begin{align*}
+     \vb E(\vb x) 
+&= 
+ E_0 \Big[ (C_0 + ikz C_1) \vbhat{x} +ikx(C_1-1)\vbhat{z} \Big]
+\\
+     \vb H(\vb x) 
+&= 
+ \frac{E_0}{Z_0}
+     \Big[ (1 + ikzC_2) \vbhat{y} +iky(C_2-\epsilon C_0)\vbhat{z}
+     \Big]
+\end{align*}
+%====================================================================%
+$$ C_0=\frac{3}{2+\epsilon}, \qquad 
+   C_1=\frac{\epsilon+4}{3+2\epsilon}, \qquad
+   C_2=2-C_0.
+$$
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsubsection*{Volume EPPFT}
+
+Volume current distribution: 
+$$ \vb J(\vb x)=-\frac{k\, \text{Im }\epsilon}{Z_0} \, \vb E(\vb x) $$
+
+Absorbed power per unit volume:
+\begin{align*}
+ \frac{1}{2} \text{Re }\vb J^*(\vb x) \cdot \vb E(\vb x)
+&= -\frac{k \, (\text{Im } \epsilon) E_0^2 }{2 Z_0} \text{Re }\Big[
+  \Big|C_0 + ikz C_1\Big|^2 + \Big|ikx(C_1-1)\Big|^2
+  \Big]
+\end{align*}
+
+$z$-force per unit volume:
+%====================================================================%
+\begin{align*}
+ \frac{1}{2\omega}\text{Im }\vb J^* \cdot \partial_z \vb E(\vb x)
+&=-\frac{(\text{Im }\epsilon) E_0^2 }{2 Z_0}\text{Im }
+ \bigg\{ \Big(C_0^* - ikz C_1^*\Big)\Big(ikC_1\Big)\bigg\}
+\\
+&=-\frac{k (\text{Im }\epsilon) E_0^2 }{2 Z_0}\text{Re }
+ \Big[ C_0^* C_1 \Big]
+\end{align*}
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsubsection*{Surface EPPFT, take 1}
+
+Surface currents:
+%====================================================================%
+\begin{align*} 
+ \vb K(\vb x) 
+&= \vbhat{r} \times \vb H(\vb x) 
+= \frac{E_0}{Z_0}\bigg[ \Big(1+ikz C_2\Big)(\vbhat{r} \times \vbhat{y})
+                        +iky \Big(C_2-\epsilon C_0\Big)
+                        (\vbhat{r} \times \vbhat{z})
+                 \bigg]
+\\
+ \vb N(\vb x) 
+&= -\vbhat{r} \times \vb E(\vb x) 
+= -E_0\bigg[ \Big(C_0+ikz C_1\Big)(\vbhat{r} \times \vbhat{x})
+             +ikx \Big(C_1-1\Big) (\vbhat{r} \times \vbhat{z})
+      \bigg]
+\end{align*}
+%====================================================================%
+$$
+ \nabla \cdot \vb K(\vb x) = \frac{3i\epsilon E_0 kx}{Z_0(2+\epsilon)}, 
+\qquad 
+ \nabla \cdot \vb N(\vb x) = iky E_0.
+$$
+%====================================================================%
+Electric and magnetic surface charge densities:
+$$ \sigma\supt{E} 
+   = \frac{1}{i\omega}\nabla \cdot \vb K
+   =\frac{3\epsilon E_0 x}{Z_0 (2+\epsilon)},
+  \qquad 
+  \sigma\supt{M} 
+   = \frac{1}{i\omega}\nabla \cdot \vb N
+   = yE_0.
+$$
+
+$z$-directed force per unit area on surface currents:
+%====================================================================%
+\begin{align*}
+  F_z &=
+\frac{1}{2}\text{Re }\Big[
+    \underbrace{\sigma^{*E} \vb E_z}_{F^1} 
+ +  \underbrace{Z_0 \big(\vb K^* \times \vb H\big)_z}_{F^2}
+ +  \underbrace{\sigma^{*M} \vb H_z}_{F^3} 
+ -  \underbrace{ \frac{1}{Z_0} \big(\vb N^* \times \vb E\big)_z}_{F^4}
+ \Big]
+\end{align*}
+%====================================================================%
+\begin{align*}
+ \frac{1}{2}\text{Re } F^1 
+&= \frac{E_0^2}{2Z_0} k x^2
+   \text{Im }
+   \bigg[ \pf{3\epsilon}{2+\epsilon}^* \Big( C_1-1 \Big)\bigg]
+\\
+%--------------------------------------------------------------------%
+ \frac{1}{2}\text{Re } F^2 
+&= \frac{E_0^2}{2Z_0} k \Big[ -2 z^2\text{Im }C_2
+                              -  y^2\text{Im }(C_2 - \epsilon C_0)
+                        \Big]
+\\
+%--------------------------------------------------------------------%
+ \frac{1}{2}\text{Re } F^3
+&= \frac{E_0^2}{2Z_0} k y^2
+   \text{Im }
+   \Big( C_2 - \epsilon C_0\Big)
+\\
+\end{align*}
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsubsection*{Surface EPPFT, take 2}
+
+Force per unit surface area: 
+%====================================================================%
+\begin{align*}
+ F_z &= \frac{1}{2\omega}\text{Im }
+ \Big\{ \underbrace{\vb K^* \cdot \partial_z \vb E}
+                  _{F^1}
+       +\underbrace{\vb N^* \cdot \partial_z \vb H}
+                  _{F^2}
+     \}
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+\frac{1}{2\omega}\text{Im } F^1
+&=\frac{k E_0^2}{2Z_0} 
+  \text{Im }\Big[  C_1(C_2^*-\epsilon^* C_0^*) y^2 - C_1 C_2^* z^2 \Big]
+\\
+&\to \frac{k E_0^2}{2Z_0} y^2 
+     \text{Im }\Big[ -\epsilon^* C_1 C_0^*\Big]
+\\
+\frac{1}{2\omega}\text{Im } F^2
+&=\frac{k E_0^2}{2Z_0} \text{Im }
+   \Big[ C_2(C_1^* - 1)x^2 - C_1^* C_2 z^2 \Big]
+\\
+&\to -\frac{k E_0^2}{2Z_0} x^2
+\end{align*}
