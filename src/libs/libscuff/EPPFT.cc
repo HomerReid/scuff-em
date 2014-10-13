@@ -80,6 +80,17 @@ void GetReducedFields_Nearby(RWGGeometry *G, const int ns,
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+typedef struct EPPFTMEData
+{
+  cdouble be, bh;
+  cdouble divbe[3], divbh[3], bxe[3], bxh[3];
+  cdouble divbrxe[3], divbrxh[3], rxbxe[3], rxbxh[3];
+
+} EPPFTMEData;
+
+/***************************************************************/
 /* Fetch the particular matrix elements between RWG functions  */
 /* that we need to compute the surface EPPFT.                  */
 /*                                                             */
@@ -94,14 +105,9 @@ void GetReducedFields_Nearby(RWGGeometry *G, const int ns,
 /*                                                             */
 /***************************************************************/
 void GetEPPFTMatrixElements_Cubature(RWGGeometry *G,
-                            int nsa, int nsb, int nea, int neb,
-                            cdouble k,
-                            cdouble be[1],      cdouble bh[1],
-                            cdouble divbe[3],   cdouble divbh[3],
-                            cdouble bxe[3],     cdouble bxh[3],
-                            cdouble divbrxe[3], cdouble divbrxh[3],
-                            cdouble rxbxe[3],   cdouble rxbxh[3],
-                            bool OmitPanelPair[2][2], int Order=4)
+                                     int nsa, int nsb, int nea, int neb,
+                                     cdouble k, bool OmitPanelPair[2][2],
+                                     int Order, EPPFTMEData *ME)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -145,15 +151,7 @@ void GetEPPFTMatrixElements_Cubature(RWGGeometry *G,
   /*--------------------------------------------------------------*/
   int NumPts;
   double *TCR=GetTCR(Order, &NumPts);
-  be[0]=bh[0]=0.0;
-  memset(divbe,   0, 3*sizeof(cdouble));
-  memset(divbh,   0, 3*sizeof(cdouble));
-  memset(bxe,     0, 3*sizeof(cdouble));
-  memset(bxh,     0, 3*sizeof(cdouble));
-  memset(divbrxe, 0, 3*sizeof(cdouble));
-  memset(divbrxh, 0, 3*sizeof(cdouble));
-  memset(rxbxe,   0, 3*sizeof(cdouble));
-  memset(rxbxh,   0, 3*sizeof(cdouble));
+  memset(ME, 0, sizeof(EPPFTMEData));
   for(int np=0, ncp=0; np<NumPts; np++)
    { 
      /***************************************************************/
@@ -216,38 +214,38 @@ void GetEPPFTMatrixElements_Cubature(RWGGeometry *G,
        {
          int MP1=(Mu+1)%3, MP2=(Mu+2)%3;
 
-         be[0] += w*(bPlus[Mu]*ePlus[Mu] - bMinus[Mu]*eMinus[Mu]);
-         bh[0] += w*(bPlus[Mu]*hPlus[Mu] - bMinus[Mu]*hMinus[Mu]);
+         ME->be += w*(bPlus[Mu]*ePlus[Mu] - bMinus[Mu]*eMinus[Mu]);
+         ME->bh += w*(bPlus[Mu]*hPlus[Mu] - bMinus[Mu]*hMinus[Mu]);
 
-         divbe[Mu] += 2.0*w*( PP*ePP[Mu] + PM*ePM[Mu] + MP*eMP[Mu] + MM*eMM[Mu]);
-         divbh[Mu] += 2.0*w*( PP*hPP[Mu] + PM*hPM[Mu] + MP*hMP[Mu] + MM*hMM[Mu]);
+         ME->divbe[Mu] += 2.0*w*( PP*ePP[Mu] + PM*ePM[Mu] + MP*eMP[Mu] + MM*eMM[Mu]);
+         ME->divbh[Mu] += 2.0*w*( PP*hPP[Mu] + PM*hPM[Mu] + MP*hMP[Mu] + MM*hMM[Mu]);
 
-         bxe[Mu] += w*( PP*( bPlus[MP1]*ePP[MP2] -  bPlus[MP2]*ePP[MP1])
-                       +PM*( bPlus[MP1]*ePM[MP2] -  bPlus[MP2]*ePM[MP1])
-                       +MP*(bMinus[MP1]*eMP[MP2] - bMinus[MP2]*eMP[MP1])
-                       +MM*(bMinus[MP1]*eMM[MP2] - bMinus[MP2]*eMM[MP1])
-                      );
-
-         bxh[Mu] += w*( (bPlus[MP1]*hPlus[MP2]   - bPlus[MP2]*hPlus[MP1])
-                       -(bMinus[MP1]*hMinus[MP2] - bMinus[MP2]*hMinus[MP1])
-                      );
-
-         divbrxe[Mu] += w*( (XPmX0[MP1]*ePlus[MP2]  - XPmX0[MP2]*ePlus[MP1])
-                           -(XMmX0[MP1]*eMinus[MP2] - XMmX0[MP2]*eMinus[MP1])
+         ME->bxe[Mu] += w*( PP*( bPlus[MP1]*ePP[MP2] -  bPlus[MP2]*ePP[MP1])
+                           +PM*( bPlus[MP1]*ePM[MP2] -  bPlus[MP2]*ePM[MP1])
+                           +MP*(bMinus[MP1]*eMP[MP2] - bMinus[MP2]*eMP[MP1])
+                           +MM*(bMinus[MP1]*eMM[MP2] - bMinus[MP2]*eMM[MP1])
                           );
 
-         divbrxh[Mu] += w*( (XPmX0[MP1]*hPlus[MP2]  - XPmX0[MP2]*hPlus[MP1])
-                           -(XMmX0[MP1]*hMinus[MP2] - XMmX0[MP2]*hMinus[MP1])
+         ME->bxh[Mu] += w*( (bPlus[MP1]*hPlus[MP2]   - bPlus[MP2]*hPlus[MP1])
+                           -(bMinus[MP1]*hMinus[MP2] - bMinus[MP2]*hMinus[MP1])
                           );
+
+         ME->divbrxe[Mu] += w*( (XPmX0[MP1]*ePlus[MP2]  - XPmX0[MP2]*ePlus[MP1])
+                               -(XMmX0[MP1]*eMinus[MP2] - XMmX0[MP2]*eMinus[MP1])
+                              );
+
+         ME->divbrxh[Mu] += w*( (XPmX0[MP1]*hPlus[MP2]  - XPmX0[MP2]*hPlus[MP1])
+                               -(XMmX0[MP1]*hMinus[MP2] - XMmX0[MP2]*hMinus[MP1])
+                              );
 
          // [Ax(BxC)]_mu = B_\mu (A\cdot C) - C_\mu (A\cdot B)
-         rxbxe[Mu] += w*( (bPlus[Mu]*XPmX0dote  - ePlus[Mu]*XPmX0dotb)
-                         -(bMinus[Mu]*XMmX0dote - eMinus[Mu]*XMmX0dotb)
-                        );
+         ME->rxbxe[Mu] += w*( (bPlus[Mu]*XPmX0dote  - ePlus[Mu]*XPmX0dotb)
+                             -(bMinus[Mu]*XMmX0dote - eMinus[Mu]*XMmX0dotb)
+                            );
 
-         rxbxh[Mu] += w*( (bPlus[Mu]*XPmX0doth  - hPlus[Mu]*XPmX0dotb)
-                         -(bMinus[Mu]*XMmX0doth - hMinus[Mu]*XMmX0dotb)
-                        );
+         ME->rxbxh[Mu] += w*( (bPlus[Mu]*XPmX0doth  - hPlus[Mu]*XPmX0dotb)
+                             -(bMinus[Mu]*XMmX0doth - hMinus[Mu]*XMmX0dotb)
+                            );
        };
 
    };
@@ -313,13 +311,8 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
 /***************************************************************/
 void GetEPPFTMatrixElements(RWGGeometry *G,
                             int nsa, int nsb, int nea, int neb,
-                            cdouble k,
-                            cdouble be[1],      cdouble bh[1],
-                            cdouble divbe[3],   cdouble divbh[3],
-                            cdouble bxe[3],     cdouble bxh[3],
-                            cdouble divbrxe[3], cdouble divbrxh[3],
-                            cdouble rxbxe[3],   cdouble rxbxh[3],
-                            int Order=4)
+                            cdouble k, bool NeedQuantity, 
+                            EPPFTMEData *ME)
 {
   RWGSurface *Sa=G->Surfaces[nsa];
   RWGSurface *Sb=G->Surfaces[nsb];
@@ -353,8 +346,10 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
           double *Qb = Sb->Vertices + 3*( (B==0) ? Eb->iQP : Eb->iQM);
 
           cdouble Delta_divbe[3], Delta_divbh[3], Delta_bxe[3];
-          GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k,
-                                    Delta_divbe, Delta_divbh, Delta_bxe);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+//          GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k,
+//                                    Delta_divbe, Delta_divbh, Delta_bxe);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
           double Sign = (A==B) ? 1.0 : -1.0;
           for(int Mu=0; Mu<3; Mu++)
@@ -369,19 +364,18 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  int Order=HaveTDContributions ? 4 : 9;
   GetEPPFTMatrixElements_Cubature(G, nsa, nsb, nea, neb, k,
-                                  be, bh, divbe, divbh, bxe, bxh,
-                                  divbrxe, divbrxh, rxbxe, rxbxh,
-                                  OmitPanelPair, Order);
+                                  OmitPanelPair, Order, ME);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   if (HaveTDContributions)
    { for(int Mu=0; Mu<3; Mu++)
-      { divbe[Mu] += divbeTD[Mu];
-        divbh[Mu] += divbhTD[Mu];
-        bxe[Mu]   += bxeTD[Mu];
+      { ME->divbe[Mu] += divbeTD[Mu];
+        ME->divbh[Mu] += divbhTD[Mu];
+        ME->bxe[Mu]   += bxeTD[Mu];
       };
    };
 
@@ -399,7 +393,7 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
 void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
                                 HVector *KNVector, HMatrix *SigmaMatrix,
                                 double PFT[NUMPFT], double **ByEdge,
-                                HMatrix *TSelf, bool Exterior)
+                                bool *NeedQuantity, HMatrix *TSelf, bool Exterior)
 {
   /*--------------------------------------------------------------*/
   /*- get material parameters of interior and exterior regions    */
@@ -442,6 +436,16 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
 
   Log("Computing EPPFT for surface %i (Ext)=(%i,%i) (ZRel=%s)",
        SurfaceIndex,Exterior,z2s(ZRel));
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  bool NeedForce;
+  if (!NeedQuantity)
+   NeedForce=true;
+ else
+   NeedForce= (   NeedQuantity[1] || NeedQuantity[2] || NeedQuantity[3] 
+               || NeedQuantity[4] || NeedQuantity[5] || NeedQuantity[6] );
 
   /*--------------------------------------------------------------*/
   /*- define the constant prefactors that enter the power, force -*/
@@ -495,26 +499,27 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
    { 
      int nea = neab/NE;
      int neb = neab%NE;
+     if (neb==0) LogPercent(nea,NE,10);
 //     if (neb<nea) continue;
 
      /*--------------------------------------------------------------*/
      /*- Get various overlap integrals between basis function b_\alpha*/
      /*- and the fields of basis function b_\beta.                   */
      /*--------------------------------------------------------------*/
-     cdouble be, bh;
-     cdouble divbe[3], divbh[3], bxe[3], bxh[3];
-     cdouble divbrxe[3], divbrxh[3], rxbxe[3], rxbxh[3];
-     int Order=9; // increase for greater accuracy in overlap integrals 
-     GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
-                            k, &be, &bh, divbe, divbh, bxe, bxh,
-                            divbrxe, divbrxh, rxbxe, rxbxh, Order);
+     EPPFTMEData ME;
+     int Order=4; // increase for greater accuracy in overlap integrals 
+     if ( !TSelf || NeedForce )
+      GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
+                             k, NeedQuantity, &ME);
+     else
+      memset(&ME, 0, sizeof(EPPFTMEData));
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      if (TSelf)
-      { be = TSelf->GetEntry(2*nea+0,2*neb+0) / (II*KZ);
-        bh = TSelf->GetEntry(2*nea+1,2*neb+0);
+      { ME.be = TSelf->GetEntry(2*nea+0,2*neb+0) / (II*KZ);
+        ME.bh = TSelf->GetEntry(2*nea+1,2*neb+0);
       };
 
      /*--------------------------------------------------------------*/
@@ -546,19 +551,19 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      /*--------------------------------------------------------------*/
      double dPAbs, dF[3], dTau[3];
 
-     dPAbs = Sign*real( KK*PEE*be + KN*PEM*bh + NK*PME*bh + NN*PMM*be );
+     dPAbs = Sign*real( KK*PEE*ME.be + KN*PEM*ME.bh + NK*PME*ME.bh + NN*PMM*ME.be );
 
      for(int i=0; i<3; i++)
-      {   dF[i] = Sign*real(   KK*(FEE1*divbe[i] + FEE2*bxh[i])
-                             + KN*(FEM1*divbh[i] + FEM2*bxe[i])
-                             + NK*(FME1*divbh[i] + FME2*bxe[i])
-                             + NN*(FMM1*divbe[i] + FMM2*bxh[i])
+      {   dF[i] = Sign*real(   KK*(FEE1*ME.divbe[i] + FEE2*ME.bxh[i])
+                             + KN*(FEM1*ME.divbh[i] + FEM2*ME.bxe[i])
+                             + NK*(FME1*ME.divbh[i] + FME2*ME.bxe[i])
+                             + NN*(FMM1*ME.divbe[i] + FMM2*ME.bxh[i])
                            );
 
-        dTau[i] = Sign*real(   KK*(FEE1*divbrxe[i] + FEE2*rxbxh[i])
-                             + KN*(FEM1*divbrxh[i] + FEM2*rxbxe[i])
-                             + NK*(FME1*divbrxh[i] + FME2*rxbxe[i])
-                             + NN*(FMM1*divbrxe[i] + FMM2*rxbxh[i])
+        dTau[i] = Sign*real(   KK*(FEE1*ME.divbrxe[i] + FEE2*ME.rxbxh[i])
+                             + KN*(FEM1*ME.divbrxh[i] + FEM2*ME.rxbxe[i])
+                             + NK*(FME1*ME.divbrxh[i] + FME2*ME.rxbxe[i])
+                             + NN*(FMM1*ME.divbrxe[i] + FMM2*ME.rxbxh[i])
                            );
       };
 

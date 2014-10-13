@@ -160,8 +160,11 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
 #define METHOD_DSIPFT 0
 #define METHOD_OPFT   1
 #define METHOD_EPPFT  2
-void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
-               cdouble Omega, double SIFlux[NUMPFT])
+void GetSIFlux(SNEQData *SNEQD, 
+               int SourceSurface, int DestSurface,
+               cdouble Omega, 
+               bool NeedQuantity[NUMPFT],
+               double SIFlux[NUMPFT])
 {
   if ( (SourceSurface==DestSurface) && SNEQD->OmitSelfTerms )
    { memset(SIFlux, 0, NUMPFT*sizeof(double));
@@ -201,7 +204,7 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
 
      case METHOD_EPPFT:
       G->GetEPPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
-                       SNEQD->TSelf[DestSurface],
+                       NeedQuantity, SNEQD->TSelf[DestSurface],
                        (SourceSurface==DestSurface ? true : false));
       break;
 
@@ -494,7 +497,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
            for(int nsd=0; nsd<NS; nsd++)
             { 
               double SIFlux[7];
-              GetSIFlux(SNEQD, nss, nsd, Omega, SIFlux);
+              GetSIFlux(SNEQD, nss, nsd, Omega, NeedQuantity, SIFlux);
 
               fprintf(f,"%e %s ",real(Omega),Tag);
               if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);

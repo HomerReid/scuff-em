@@ -440,6 +440,7 @@ class RWGGeometry
    void GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
                       HVector *KNVector, HMatrix *SigmaMatrix,
                       double PFT[7], double **ByEdge=0,
+                      bool *NeedQuantity=0, 
                       HMatrix *TSelf=0, bool Exterior=false);
 
    // PFT by displaced-surface-integral method
