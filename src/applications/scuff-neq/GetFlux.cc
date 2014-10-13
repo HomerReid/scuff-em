@@ -201,6 +201,7 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
 
      case METHOD_EPPFT:
       G->GetEPPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
+                       SNEQD->TSelf[DestSurface],
                        (SourceSurface==DestSurface ? true : false));
       break;
 

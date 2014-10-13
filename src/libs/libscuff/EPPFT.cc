@@ -274,7 +274,8 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
                  TD_EPPFT4, TD_EPPFT5, TD_EPPFT6};
   int KIndex[6]={ TD_HELMHOLTZ, TD_GRADHELMHOLTZ, TD_GRADHELMHOLTZ,
                   TD_HELMHOLTZ, TD_GRADHELMHOLTZ, TD_GRADHELMHOLTZ};
-  cdouble KParam[6]={k,k,k,k,k,k};
+  cdouble KParam[6];
+  for(int n=0; n<6; n++) KParam[n]=k;
 
   TDArgs->WhichCase=ncv;
   TDArgs->NumPKs = 6;
@@ -291,8 +292,6 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
   TDArgs->Result=Result;
   TDArgs->Error=Error;
   TDArgs->nHat = nHat;
-  TDArgs->Result = Result;
-  TDArgs->Error = Error;
   
   for(int Mu=0; Mu<3; Mu++)
    { 
@@ -304,6 +303,7 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
      divbe[Mu] = Result[0] + Result[1]/(k*k);
      divbh[Mu] = Result[2];
      bxe[Mu]   = Result[3] + Result[4]/(k*k);
+
    };
 
 }
@@ -328,15 +328,6 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
   RWGEdge *Eb=Sb->Edges[neb];
   double LL=Ea->Length * Eb->Length;
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-bool ForceCubature=false;
-if (getenv("SCUFF_FORCECUBATURE"))
- { //printf("Forcing cubature.\n");
-   ForceCubature=true;
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -345,7 +336,7 @@ if (getenv("SCUFF_FORCECUBATURE"))
   cdouble bxeTD[3]   = {0.0, 0.0, 0.0};
   bool OmitPanelPair[2][2]={ {false, false}, {false, false} };
   bool HaveTDContributions=false;
-  if (nsa==nsb && ForceCubature==false)
+  if (nsa==nsb)
    for(int A=0; A<2; A++)
     for(int B=0; B<2; B++)
      {
@@ -362,10 +353,8 @@ if (getenv("SCUFF_FORCECUBATURE"))
           double *Qb = Sb->Vertices + 3*( (B==0) ? Eb->iQP : Eb->iQM);
 
           cdouble Delta_divbe[3], Delta_divbh[3], Delta_bxe[3];
-//printf("Computing TD contributions for (%i,%i)\n",npa,npb);
           GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k,
                                     Delta_divbe, Delta_divbh, Delta_bxe);
-
 
           double Sign = (A==B) ? 1.0 : -1.0;
           for(int Mu=0; Mu<3; Mu++)
@@ -410,7 +399,7 @@ if (getenv("SCUFF_FORCECUBATURE"))
 void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
                                 HVector *KNVector, HMatrix *SigmaMatrix,
                                 double PFT[NUMPFT], double **ByEdge,
-                                bool Exterior)
+                                HMatrix *TSelf, bool Exterior)
 {
   /*--------------------------------------------------------------*/
   /*- get material parameters of interior and exterior regions    */
@@ -519,6 +508,14 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
                             k, &be, &bh, divbe, divbh, bxe, bxh,
                             divbrxe, divbrxh, rxbxe, rxbxh, Order);
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     if (TSelf)
+      { be = TSelf->GetEntry(2*nea+0,2*neb+0) / (II*KZ);
+        bh = TSelf->GetEntry(2*nea+1,2*neb+0);
+      };
 
      /*--------------------------------------------------------------*/
      /*- extract the surface-current coefficient either from the KN -*/
