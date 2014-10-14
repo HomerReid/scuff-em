@@ -136,8 +136,15 @@ void GetEdgeIntegrals(const double sM, const double sP,
   J[3]= (2.0*RP*sP3 - 2.0*RM*sM3 + 5.0*X2*(RP*sP - RM*sM)
         + 3.0*LogFac*X4)/8.0;
 
-  for(int np=1; np<NUMPS; np++)
-   dJdl[np] = pow(RM, PValues[np]+2.0) - pow(RP, PValues[np]+2.0);
+  memset(dJdl,0,NUMPS*sizeof(double));
+  if ( fabs(RM) > 1.0e-8*LengthScale )
+   { for(int np=1; np<NUMPS; np++)
+      dJdl[np] += pow(RM, PValues[np]+2.0);
+   };
+  if ( fabs(RP) > 1.0e-8*LengthScale )
+   { for(int np=1; np<NUMPS; np++)
+      dJdl[np] -= pow(RP, PValues[np]+2.0);
+   };
 
 }
 
