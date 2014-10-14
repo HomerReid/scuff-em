@@ -98,7 +98,7 @@ void GetEdgeIntegrals(const double sM, const double sP,
   double LogFac;
   if ( X > 1.0e-4*LengthScale )
    LogFac = log( (RP+sP) / (RM+sM) );
-  else if ( fabs(sM)>1.0e-4*LengthScale )
+  else if ( (fabs(sM)>1.0e-4*LengthScale) && (fabs(sP)>1.0e-4*LengthScale) )
    LogFac = log( fabs(sP) / fabs(sM) );
   else
    LogFac = 0.0;
