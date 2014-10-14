@@ -96,12 +96,18 @@ void GetEdgeIntegrals(const double sM, const double sP,
   double RM  = sqrt(sM2 + X2);
 
   double LogFac;
-  if ( X < 1.0e-4*LengthScale )
-   LogFac = log( fabs(sP) / fabs(sM) );
-  else 
+  if ( X > 1.0e-4*LengthScale )
    LogFac = log( (RP+sP) / (RM+sM) );
+  else if ( fabs(sM)>1.0e-4*LengthScale )
+   LogFac = log( fabs(sP) / fabs(sM) );
+  else
+   LogFac = 0.0;
 
-  double atanFac = atan( (sP*w)/(RP*t) ) - atan( (sM*w)/(RM*t) );
+  double atanFac;
+  if ( fabs(w)<1.0e-8*LengthScale  || fabs(t)<1.0e-8*LengthScale )
+   atanFac = 0.0;
+  else 
+   atanFac = atan( (sP*w)/(RP*t) ) - atan( (sM*w)/(RM*t) );
 
   if ( fabs(t) < 1.0e-8*LengthScale )
    { 

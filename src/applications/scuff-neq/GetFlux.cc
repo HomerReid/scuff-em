@@ -228,7 +228,9 @@ void GetSIFlux(SNEQData *SNEQD,
   if (ByEdge)
    { 
      char FileName[100];
-     snprintf(FileName,100,"%s.PFTFlux.pp",G->Surfaces[DestSurface]->Label);
+     snprintf(FileName,100,"%sTo%s.PFTFlux.pp",
+                            G->Surfaces[SourceSurface]->Label,
+                            G->Surfaces[DestSurface]->Label);
 
      for(int nq=0; nq<NUMPFT; nq++)
       if (ByEdge[nq])
