@@ -43,7 +43,9 @@ include the following:
                    scuff-RF can compute 
 
  -- scuff-cas2D
+ 
  -- scuff-cas3D
+
  -- scuff-caspol:  Tools for computing Casimir forces between 2D and 
                    3D objects of arbitrary geometries and material 
                    properties, as well as Casimir-Polder potentials for
