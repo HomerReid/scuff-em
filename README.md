@@ -42,22 +42,20 @@ include the following:
                    lumped-element passives, etc. 
                    scuff-RF can compute 
 
- -- scuff-cas2D
- 
- -- scuff-cas3D
-
+ -- scuff-cas2D:
+ -- scuff-cas3D:
  -- scuff-caspol:  Tools for computing Casimir forces between 2D and 
                    3D objects of arbitrary geometries and material 
                    properties, as well as Casimir-Polder potentials for
                    polarizable molecules in the vicinity of complex
                    material surfaces.
 
- -- scuff-neq      A tool for modeling non-equilibrium fluctuation-induced
+ -- scuff-neq:     A tool for modeling non-equilibrium fluctuation-induced
                    electromagnetic phelomena such as radiative heat transfer,
                    thermal self-propulsion and self-rotation, and 
                    non-equilibrium Casimir forces. 
 
- -- scuff-static   A tool for computational electrostatics: Capacitance
+ -- scuff-static:  A tool for computational electrostatics: Capacitance
                    matrices of conductor arrays, solutions of Laplace's
                    equation in the presence of dielectrics and conductors 
                    held at fixed potentials, etc.
