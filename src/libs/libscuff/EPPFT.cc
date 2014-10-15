@@ -314,7 +314,6 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
                             cdouble k, bool *NeedQuantity,
                             EPPFTMEData *ME)
 {
-
   RWGSurface *Sa=G->Surfaces[nsa];
   RWGSurface *Sb=G->Surfaces[nsb];
 
@@ -322,14 +321,14 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
   /***************************************************************/
   /***************************************************************/
   bool OmitPanelPair[2][2]={ {false, false}, {false, false} };
-#if 0
   RWGEdge *Ea=Sa->Edges[nea];
   RWGEdge *Eb=Sb->Edges[neb];
   double LL=Ea->Length * Eb->Length;
   cdouble divbeTD[3] = {0.0, 0.0, 0.0};
   cdouble divbhTD[3] = {0.0, 0.0, 0.0};
   cdouble bxeTD[3]   = {0.0, 0.0, 0.0};
-  bool HaveTDContributions=false;
+  bool HaveTDContributions=0;
+  int MaxCommonVertices=0;
   if (nsa==nsb)
    for(int A=0; A<2; A++)
     for(int B=0; B<2; B++)
@@ -342,15 +341,14 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
         { 
           OmitPanelPair[A][B]=true;
           HaveTDContributions=true;
+          if (ncv>MaxCommonVertices) MaxCommonVertices=ncv;
 
           double *Qa = Sa->Vertices + 3*( (A==0) ? Ea->iQP : Ea->iQM);
           double *Qb = Sb->Vertices + 3*( (B==0) ? Eb->iQP : Eb->iQM);
 
           cdouble Delta_divbe[3], Delta_divbh[3], Delta_bxe[3];
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-//          GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k,
-//                                    Delta_divbe, Delta_divbh, Delta_bxe);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+          GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k,
+                                    Delta_divbe, Delta_divbh, Delta_bxe);
 
           double Sign = (A==B) ? 1.0 : -1.0;
           for(int Mu=0; Mu<3; Mu++)
@@ -361,20 +359,23 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
         };
 
      }; //  for(int A=0; A<2; A++) ...  for(int B=0; B<2; B++)
-#endif
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int ncv=NumCommonBFVertices(Sa, nea, Sb, neb);
-  int Order = (ncv==0) ? 4 : (ncv==1) ? 9 : 20;
+  int Order;
+  if (MaxCommonVertices>=2)
+   Order=20;
+  else if (MaxCommonVertices>=1)
+   Order=9;
+  else
+   Order=4;
   GetEPPFTMatrixElements_Cubature(G, nsa, nsb, nea, neb, k,
                                   OmitPanelPair, Order, ME);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-#if 0
   if (HaveTDContributions)
    { for(int Mu=0; Mu<3; Mu++)
       { ME->divbe[Mu] += divbeTD[Mu];
@@ -382,7 +383,6 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
         ME->bxe[Mu]   += bxeTD[Mu];
       };
    };
-#endif
 
 }
 

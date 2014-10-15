@@ -1463,6 +1463,7 @@ void ComputeGeometricParameters(TaylorDuffyArgStruct *Args,
           V[1] =  VecDot(nHat, VecCross(B, DP,Scratch));
           V[2] =  VecDot(nHat, VecCross(D, AP,Scratch));
           V[3] =  VecDot(nHat, VecCross(D, BP,Scratch));
+          S    =  VecDot(nHat, VecCross(D, DP,Scratch));
           break;
 
         case TD_EPPFT5:
