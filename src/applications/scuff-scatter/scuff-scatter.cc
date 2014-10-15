@@ -87,6 +87,7 @@ int main(int argc, char *argv[])
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
+  char *LogLevel=0;
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
    { 
@@ -131,6 +132,8 @@ int main(int argc, char *argv[])
 /**/
      {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {"HDF5File",       PA_STRING,  1, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export"},
+/**/
+     {"LogLevel",       PA_STRING,  1, 1,       (void *)&LogLevel,   0,             "none | terse | verbose | verbose2"},
 /**/
      {0,0,0,0,0,0,0}
    };
@@ -232,7 +235,6 @@ int main(int argc, char *argv[])
   SSData MySSData, *SSD=&MySSData;
 
   RWGGeometry *G = SSD->G = new RWGGeometry(GeoFile);
-  G->SetLogLevel(SCUFF_VERBOSELOGGING);
   HMatrix *M = SSD->M =G->AllocateBEMMatrix();
   SSD->RHS = G->AllocateRHSVector();
   HVector *KN = SSD->KN =G->AllocateRHSVector();
@@ -240,6 +242,8 @@ int main(int argc, char *argv[])
 
   char GeoFileBase[MAXSTR];
   strncpy(GeoFileBase, GetFileBase(GeoFile), MAXSTR);
+
+  if (LogLevel) G->SetLogLevel(LogLevel);
 
   /*******************************************************************/
   /* sanity check: for now (20120924), calculations involving        */

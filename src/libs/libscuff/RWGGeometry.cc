@@ -739,6 +739,28 @@ int RWGGeometry::GetDimension()
 void RWGGeometry::SetLogLevel(int NewLogLevel)
  { LogLevel=NewLogLevel; }
 
+void RWGGeometry::SetLogLevel(const char *Level)
+{
+  if (Level==0) return;
+
+  if ( !strcasecmp(Level, "NONE") ) 
+   LogLevel=SCUFF_NOLOGGING;
+  else if ( !strcasecmp(Level, "TERSE") ) 
+   { LogLevel=SCUFF_TERSELOGGING;
+     Log("Setting log level to terse.");
+   }
+  else if ( !strcasecmp(Level, "VERBOSE") ) 
+   { LogLevel=SCUFF_VERBOSELOGGING;
+     Log("Setting log level to verbose.");
+   }
+  else if ( !strcasecmp(Level, "VERBOSE2") ) 
+   { LogLevel=SCUFF_VERBOSE2;
+     Log("Setting log level to verbose2.");
+   }
+  else
+   Warn("unknown log level %s",Level);
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/

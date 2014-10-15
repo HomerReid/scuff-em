@@ -485,6 +485,7 @@ class RWGGeometry
 
    /* routine for setting logging verbosity */
    void SetLogLevel(int LogLevel);
+   void SetLogLevel(const char *Level);
 
    /* routines for changing material properties */
    void SetEps(cdouble Eps);
