@@ -18,12 +18,12 @@ The SCUFF-EM distribution includes the following components:
 
  -- a number of ancillary C++ libraries implementing utility functions
 
- -- a collection of simple C++ code examples demonstrating how to use 
-    the libscuff API
-
  -- a collection of standalone application programs, built atop 
     libscuff and its associated libraries, for solving specialized
-    problems in computational electromagnetism and related fields. 
+    problems in computational electromagnetism and related fields.
+
+ -- a collection of simple C++ code examples demonstrating how to use 
+    the libscuff API
 
 The standalone application programs distributed with SCUFF-EM 
 include the following:
@@ -55,6 +55,3 @@ include the following:
                    matrices of conductor arrays, solutions of Laplace's
                    equation in the presence of dielectrics and conductors 
                    held at fixed potentials, etc.
-
-
- 

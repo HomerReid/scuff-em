@@ -311,23 +311,24 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
 /***************************************************************/
 void GetEPPFTMatrixElements(RWGGeometry *G,
                             int nsa, int nsb, int nea, int neb,
-                            cdouble k, bool NeedQuantity, 
+                            cdouble k, bool *NeedQuantity,
                             EPPFTMEData *ME)
 {
+
   RWGSurface *Sa=G->Surfaces[nsa];
   RWGSurface *Sb=G->Surfaces[nsb];
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  bool OmitPanelPair[2][2]={ {false, false}, {false, false} };
+#if 0
   RWGEdge *Ea=Sa->Edges[nea];
   RWGEdge *Eb=Sb->Edges[neb];
   double LL=Ea->Length * Eb->Length;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
   cdouble divbeTD[3] = {0.0, 0.0, 0.0};
   cdouble divbhTD[3] = {0.0, 0.0, 0.0};
   cdouble bxeTD[3]   = {0.0, 0.0, 0.0};
-  bool OmitPanelPair[2][2]={ {false, false}, {false, false} };
   bool HaveTDContributions=false;
   if (nsa==nsb)
    for(int A=0; A<2; A++)
@@ -360,17 +361,20 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
         };
 
      }; //  for(int A=0; A<2; A++) ...  for(int B=0; B<2; B++)
+#endif
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int Order=HaveTDContributions ? 4 : 9;
+  int ncv=NumCommonBFVertices(Sa, nea, Sb, neb);
+  int Order = (ncv==0) ? 4 : (ncv==1) ? 9 : 20;
   GetEPPFTMatrixElements_Cubature(G, nsa, nsb, nea, neb, k,
                                   OmitPanelPair, Order, ME);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+#if 0
   if (HaveTDContributions)
    { for(int Mu=0; Mu<3; Mu++)
       { ME->divbe[Mu] += divbeTD[Mu];
@@ -378,6 +382,7 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
         ME->bxe[Mu]   += bxeTD[Mu];
       };
    };
+#endif
 
 }
 
@@ -500,14 +505,13 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      int nea = neab/NE;
      int neb = neab%NE;
      if (neb==0) LogPercent(nea,NE,10);
-//     if (neb<nea) continue;
+     if (neb<nea) continue;
 
      /*--------------------------------------------------------------*/
      /*- Get various overlap integrals between basis function b_\alpha*/
      /*- and the fields of basis function b_\beta.                   */
      /*--------------------------------------------------------------*/
      EPPFTMEData ME;
-     int Order=4; // increase for greater accuracy in overlap integrals 
      if ( !TSelf || NeedForce )
       GetEPPFTMatrixElements(this, SurfaceIndex, SurfaceIndex, nea, neb,
                              k, NeedQuantity, &ME);
@@ -553,24 +557,26 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
 
      dPAbs = Sign*real( KK*PEE*ME.be + KN*PEM*ME.bh + NK*PME*ME.bh + NN*PMM*ME.be );
 
-     for(int i=0; i<3; i++)
-      {   dF[i] = Sign*real(   KK*(FEE1*ME.divbe[i] + FEE2*ME.bxh[i])
-                             + KN*(FEM1*ME.divbh[i] + FEM2*ME.bxe[i])
-                             + NK*(FME1*ME.divbh[i] + FME2*ME.bxe[i])
-                             + NN*(FMM1*ME.divbe[i] + FMM2*ME.bxh[i])
-                           );
-
-        dTau[i] = Sign*real(   KK*(FEE1*ME.divbrxe[i] + FEE2*ME.rxbxh[i])
-                             + KN*(FEM1*ME.divbrxh[i] + FEM2*ME.rxbxe[i])
-                             + NK*(FME1*ME.divbrxh[i] + FME2*ME.rxbxe[i])
-                             + NN*(FMM1*ME.divbrxe[i] + FMM2*ME.rxbxh[i])
-                           );
+     if (NeedForce)
+      { for(int i=0; i<3; i++)
+         {   dF[i] = Sign*real(   KK*(FEE1*ME.divbe[i] + FEE2*ME.bxh[i])
+                                + KN*(FEM1*ME.divbh[i] + FEM2*ME.bxe[i])
+                                + NK*(FME1*ME.divbh[i] + FME2*ME.bxe[i])
+                                + NN*(FMM1*ME.divbe[i] + FMM2*ME.bxh[i])
+                              );
+  
+           dTau[i] = Sign*real(   KK*(FEE1*ME.divbrxe[i] + FEE2*ME.rxbxh[i])
+                                + KN*(FEM1*ME.divbrxh[i] + FEM2*ME.rxbxe[i])
+                                + NK*(FME1*ME.divbrxh[i] + FME2*ME.rxbxe[i])
+                                + NN*(FMM1*ME.divbrxe[i] + FMM2*ME.rxbxh[i])
+                              );
+         };
       };
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     if (Interior)
+     if (NeedForce && Interior)
       { double Overlaps[20];
         S->GetOverlaps(nea, neb, Overlaps);
 
@@ -605,7 +611,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      /*--------------------------------------------------------------*/
      /*- accumulate contributions to full sums ----------------------*/
      /*--------------------------------------------------------------*/
-     double Weight = 1.0; // (nea==neb) ? 1.0 : 2.0;
+     double Weight = (nea==neb) ? 1.0 : 2.0;
      PAbs += Weight*dPAbs;
      Fx   += Weight*dF[0];
      Fy   += Weight*dF[1];
