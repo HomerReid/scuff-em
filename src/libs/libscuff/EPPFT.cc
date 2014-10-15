@@ -439,7 +439,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      GammaM=(1.0/MuIn  - 1.0/MuOut) / ZVAC;
    };
 
-  Log("Computing EPPFT for surface %i (Ext)=(%i,%i) (ZRel=%s)",
+  Log("Computing EPPFT for surface %i (Ext)=(%i) (ZRel=%s)",
        SurfaceIndex,Exterior,z2s(ZRel));
 
   /*--------------------------------------------------------------*/
