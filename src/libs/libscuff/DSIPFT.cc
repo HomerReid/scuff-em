@@ -469,7 +469,6 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
         else
          GetReducedFields(G, ns, ne, X, k, e, h);
 
-
         // full fields due to this edge, populated with 
         // unit strength as an electric or magnetic current
         for(int Mu=0; Mu<3; Mu++)
@@ -643,7 +642,7 @@ void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
      FMatrix->GetEntries(nr, "0:2", E);
      FMatrix->GetEntries(nr, "3:5", H);
 
-     PFT[SIPOWER] += 0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
+     PFT[SIPOWER] -= 0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
                                   -HVMVP(H, NMatrix[SIPOWER], E)
                                 );
 
