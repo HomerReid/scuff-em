@@ -1,1 +1,0 @@
-/home/homer/work/scuff-em/src/libs/libscuff/TaylorDuffy.h
