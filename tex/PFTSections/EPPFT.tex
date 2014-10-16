@@ -340,10 +340,54 @@ $$
 \\
 \end{align*}
 
-\subsection*{Panel integrals in Generalized Taylor-Duffy form}
+\subsection{Computation of EPPFT panel integrals}
+\newcommand{\expval}[1]{\big\langle #1 \big \rangle}
+\newcommand{\Expval}[1]{\Big\langle #1 \Big \rangle}
+\newcommand{\lrexpval}[1]{\left\langle #1 \right\rangle}
+
+The integrals needed for the power,
+$\expval{\vb b_\alpha \cdot \{\vb e,\vb h\}_{\beta}},$ which are needed 
+for the BEM matrix assembly independent of any PFT calculation,
+are computed by the routines in \texttt{GetEdgeInteractions.cc.}
+
+The integrals needed for the force
+
+\subsubsection{Distant case: 4D Cubature}
+
+In what
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
+ \Expval{(\nabla \cdot \vb b_\alpha)(\vbhat u \cdot \vb e_\beta)}
+&=2\sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
+  \iint \hat{u}_i G_{ij}(\vb r) (\vb x_\beta - \vb Q_\beta)_j
+d\vb x_\alpha d \vb x_\beta
+\\
+ \Expval{(\nabla \cdot \vb b_\alpha)(\vbhat u \cdot \vb h_\beta)}
+&=-2ik\sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
+  \iint \hat{u}_i C_{ij}(\vb r) (\vb x_\beta - \vb Q_\beta)_j
+d\vb x_\alpha d \vb x_\beta
+\\
+ \lrexpval{ \vbhat{u} \cdot \Big(\vb b_\alpha \times \vb e_\beta\Big)}
+&=2\sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
+  \iint \varepsilon_{ijk}
+  \hat{u}_i (\vb x_\alpha - \vb Q_\alpha)_j G_{k\ell }(\vb r) (\vb x_\beta - \vb Q_\beta)_\ell
+d\vb x_\alpha d \vb x_\beta
+\\
+ \lrexpval{ \vbhat{u} \cdot \Big(\vb b_\alpha \times \vb e_\beta\Big)}
+&=-2ik\sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
+  \iint \varepsilon_{ijk}
+  \hat{u}_i (\vb x_\alpha - \vb Q_\alpha)_j C_{k\ell }(\vb r) (\vb x_\beta - \vb Q_\beta)_\ell
+d\vb x_\alpha d \vb x_\beta
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Nearby non-singular case: 2D$\times$2D Cubature}
+
+\subsection*{Singular case: Generalized Taylor-Duffy method}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*} 
  \INP{\nabla \cdot \vb b_\alpha}{ \vbhat{u} \cdot \vb e }
 &= \sum \pm \frac{\ell_\alpha \ell_\beta}{4A_\alpha A_\beta}
    \cdot

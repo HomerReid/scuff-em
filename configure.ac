@@ -217,7 +217,7 @@ AC_CONFIG_FILES([
  src/applications/scuff-tmatrix/Makefile
  src/applications/scuff-transmission/Makefile
  examples/Makefile
- examples/ApertureDiffraction/Makefile
+ examples/DiffractionPatterns/Makefile
  examples/CorrugatedDisc/Makefile
  examples/CubeTorus/Makefile
  examples/GetTMatrix/Makefile

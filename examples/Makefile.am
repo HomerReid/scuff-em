@@ -1,13 +1,13 @@
-SUBDIRS =            \
- ApertureDiffraction \
- CorrugatedDisc      \
- CubeTorus           \
- GetTMatrix          \
- PlateWithHole       \
- PerforatedThinFilm  \
- SolidSphere         \
- SphericalShell      \
+SUBDIRS =            	\
+ DiffractionPatterns	\
+ CorrugatedDisc     	\
+ CubeTorus           	\
+ GetTMatrix             \
+ PlateWithHole          \
+ PerforatedThinFilm     \
+ SolidSphere            \
+ SphericalShell         \
  TwoDimensionalCylinders \
- TwoSpheres          \
- ThinFilm            \
+ TwoSpheres              \
+ ThinFilm                \
  WireAntenna         

@@ -1,16 +1,16 @@
 //
-// GMSH mesh file for a simple planar screen parallel to the XY 
+// GMSH mesh file for a simple planar screen parallel to the XY
 // plane and located at Z=2, i.e. a distance of 2 units from
 // the aperture screen
 //
 
 //////////////////////////////////////////////////
-// adjustable parameters 
+// adjustable parameters
 //////////////////////////////////////////////////
-L = 10;
+L = 2.0;
 Z = 2;
 
-l = L/5; // meshing fineness
+l = 0.02; // meshing fineness
 
 //////////////////////////////////////////////////
 //////////////////////////////////////////////////
@@ -29,5 +29,3 @@ Line Loop (1) = { 1, 2, 3, 4};
 
 Plane Surface(1) = { 1 };
 Physical Surface(1) = { 1 };
-
-

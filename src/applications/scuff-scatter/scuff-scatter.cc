@@ -345,7 +345,7 @@ int main(int argc, char *argv[])
      /* set up the incident field profile and assemble the RHS vector */
      /***************************************************************/
      Log("  Assembling the RHS vector..."); 
-     G->AssembleRHSVector(Omega, IFDList, KN);
+     G->AssembleRHSVector(Omega, SSD->kBloch, IFDList, KN);
      SSD->RHS->Copy(SSD->KN); // copy RHS vector for later 
 
      /***************************************************************/
