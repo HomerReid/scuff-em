@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
   char *EPFiles[MAXEPF];             int nEPFiles;
+  char *PFTFile=0;
   char *OPFTFile=0;
   char *EPPFTFile=0;
   char *DSIPFTFile=0;
@@ -114,7 +115,7 @@ int main(int argc, char *argv[])
      {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
      {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
-     {"PFTFile",        PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "(synonym for --EPPFT)"},
+     {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "(synonym for --OPFTFile)"},
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "generate plots of spatially-resolved PFT flux"},
 /**/
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
@@ -368,7 +369,9 @@ int main(int argc, char *argv[])
      /*- overlap PFT ------------------------------------------------*/
      /*--------------------------------------------------------------*/
      if (OPFTFile)
-      WriteOPFTFile(SSD, OPFTFile, PlotFlux);
+      WriteOPFTFile(SSD, OPFTFile, PlotFlux, true);
+     if (PFTFile)
+      WriteOPFTFile(SSD, OPFTFile, PlotFlux, false);
 
      /*--------------------------------------------------------------*/
      /*- equivalence-principle PFT ----------------------------------*/

@@ -339,10 +339,8 @@ void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
+void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux, bool TraceMethod)
 {
-  (void *)PlotFlux;
-
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
   /*--------------------------------------------------------------*/
@@ -374,18 +372,34 @@ void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
    { 
      fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
 
-     double OPFT[8]; 
-     G->GetOPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, OPFT);
+     if (TraceMethod)
+      {
+        double **ByEdge = (PlotFlux ? AllocateByEdgeArray(G, ns) : 0);
 
-     // get scattered power as difference between total and absorbed power
-     double PScat=OPFT[1] - OPFT[0];
-     if ( fabs(PScat) < 0.1*fabs(OPFT[1]) )
-      Warn("Overlap PFT computation of scattered power may be inaccurate; use EPPFT");
-     OPFT[1]=PScat;
+        double OPFT[7]; 
+        G->GetOPFTTrace(ns, SSD->Omega, SSD->KN, 0, OPFT, ByEdge);
+        fprintf(f,"%e 0.0 ",OPFT[0]);
+        for(int nq=1; nq<7; nq++)
+         fprintf(f,"%e ",OPFT[nq]);
+        fprintf(f,"\n");
 
-     for(int nq=0; nq<8; nq++)
-      fprintf(f,"%e ",OPFT[nq]);
-     fprintf(f,"\n");
+        if (ByEdge)
+         ProcessByEdgeArray(G, ns, FileName, "OPFTFlux", SSD->Omega, ByEdge);
+      }
+     else
+      { double OPFT[8]; 
+        G->GetOPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, OPFT);
+
+        // get scattered power as difference between total and absorbed power
+        double PScat=OPFT[1] - OPFT[0];
+        if ( fabs(PScat) < 0.1*fabs(OPFT[1]) )
+         Warn("Overlap PFT computation of scattered power may be inaccurate; use EPPFT");
+        OPFT[1]=PScat;
+
+        for(int nq=0; nq<8; nq++)
+         fprintf(f,"%e ",OPFT[nq]);
+        fprintf(f,"\n");
+      };
  
    };
   fclose(f);

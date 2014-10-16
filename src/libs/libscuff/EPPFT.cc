@@ -257,7 +257,7 @@ void GetEPPFTMatrixElements_Cubature(RWGGeometry *G,
 /***************************************************************/
 void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
                                double *Vb[3], double *Qb,
-                               int ncv, cdouble k,
+                               int ncv, cdouble k, bool Diagonal,
                                cdouble divbe[3],
                                cdouble divbh[3],
                                cdouble bxe[3])
@@ -268,7 +268,7 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
   double nHat[3]={0,0,0};
   cdouble Result[6], Error[6];
 
-  int PIndex[6]={TD_EPPFT1, TD_EPPFT2, TD_EPPFT3, 
+  int PIndex[6]={TD_EPPFT1, TD_EPPFT2, TD_EPPFT3,
                  TD_EPPFT4, TD_EPPFT5, TD_EPPFT6};
   int KIndex[6]={ TD_HELMHOLTZ, TD_GRADHELMHOLTZ, TD_GRADHELMHOLTZ,
                   TD_HELMHOLTZ, TD_GRADHELMHOLTZ, TD_GRADHELMHOLTZ};
@@ -298,9 +298,17 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
 
      TaylorDuffy(TDArgs);
 
-     divbe[Mu] = Result[0] + Result[1]/(k*k);
-     divbh[Mu] = Result[2];
-     bxe[Mu]   = Result[3] + Result[4]/(k*k);
+     if (Diagonal)
+      { divbe[Mu] = Result[0]
+        divbh[Mu] = Result[2];
+        bxe[Mu]   = Result[4]/(k*k);
+      }
+     else
+      {
+        divbe[Mu] = Result[0] + Result[1]/(k*k);
+        divbh[Mu] = Result[2];
+        bxe[Mu]   = Result[3] + Result[4]/(k*k);
+      };
 
    };
 
@@ -345,9 +353,8 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
 
           double *Qa = Sa->Vertices + 3*( (A==0) ? Ea->iQP : Ea->iQM);
           double *Qb = Sb->Vertices + 3*( (B==0) ? Eb->iQP : Eb->iQM);
-
           cdouble Delta_divbe[3], Delta_divbh[3], Delta_bxe[3];
-          GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k,
+          GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k, (nea==neb),
                                     Delta_divbe, Delta_divbh, Delta_bxe);
 
           double Sign = (A==B) ? 1.0 : -1.0;
@@ -505,7 +512,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      int nea = neab/NE;
      int neb = neab%NE;
      if (neb==0) LogPercent(nea,NE,10);
-     if (neb<nea) continue;
+//     if (neb<nea) continue;
 
      /*--------------------------------------------------------------*/
      /*- Get various overlap integrals between basis function b_\alpha*/
@@ -611,7 +618,7 @@ void RWGGeometry::GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
      /*--------------------------------------------------------------*/
      /*- accumulate contributions to full sums ----------------------*/
      /*--------------------------------------------------------------*/
-     double Weight = (nea==neb) ? 1.0 : 2.0;
+     double Weight = 1.0; //(nea==neb) ? 1.0 : 2.0;
      PAbs += Weight*dPAbs;
      Fx   += Weight*dF[0];
      Fy   += Weight*dF[1];
