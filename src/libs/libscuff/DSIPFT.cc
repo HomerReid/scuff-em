@@ -38,7 +38,7 @@
  
 namespace scuff{
 
-void GetReducedFarFields(RWGGeometry *G, const int ns, const int ne,
+void GetReducedFarFields(RWGSurface *S, const int ne,
                          const double X0[3], const cdouble k,
                          cdouble e[3], cdouble h[3]);
 
@@ -57,13 +57,13 @@ void GetReducedFarFields(RWGGeometry *G, const int ns, const int ne,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetReducedFields(RWGGeometry *G, int ns, int ne,
+void GetReducedFields(RWGSurface *S, int ne,
                       double X0[3],  cdouble k,
                       cdouble e[3], cdouble h[3])
 {
   cdouble a[3], curla[3], Gradp[3];
 
-  G->Surfaces[ns]->GetReducedPotentials(ne, X0, k, 0, a, curla, Gradp);
+  S->GetReducedPotentials(ne, X0, k, 0, a, curla, Gradp);
 
   cdouble k2=k*k;
 
@@ -465,9 +465,9 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
         // reduced fields due to this edge at this eval pnt
         cdouble e[3], h[3];
         if (FarField)
-         GetReducedFarFields(G, ns, ne, X, k, e, h);
+         GetReducedFarFields(S, ne, X, k, e, h);
         else
-         GetReducedFields(G, ns, ne, X, k, e, h);
+         GetReducedFields(S, ne, X, k, e, h);
 
         // full fields due to this edge, populated with 
         // unit strength as an electric or magnetic current

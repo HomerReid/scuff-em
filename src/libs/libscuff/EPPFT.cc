@@ -1,3 +1,6 @@
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+double DeltaFactor=1.0e-4;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -54,19 +57,19 @@
 
 namespace scuff {
 
-void GetReducedPotentials_Nearby(RWGGeometry *G, const int ns, const int np, const int iQ,
+void GetReducedPotentials_Nearby(RWGSurface *S, const int np, const int iQ,
                                  const double X0[3], const cdouble k,
                                  cdouble *p, cdouble a[3],
                                  cdouble dp[3], cdouble da[3][3],
                                  cdouble ddp[3][3], cdouble dcurla[3][3]);
 
-void GetReducedFields_Nearby(RWGGeometry *G, const int ns,
+void GetReducedFields_Nearby(RWGSurface *S,
                              const int np, const int iQ,
                              const double X0[3],  const cdouble k,
                              cdouble e[3], cdouble h[3])
 {
   cdouble p[1], a[3], dp[3], da[3][3], ddp[3][3], dcurla[3][3];
-  GetReducedPotentials_Nearby(G, ns, np, iQ, X0, k, 
+  GetReducedPotentials_Nearby(S, np, iQ, X0, k, 
                               p, a, dp, da, ddp, dcurla);
 
   cdouble k2 = k*k;
@@ -77,6 +80,28 @@ void GetReducedFields_Nearby(RWGGeometry *G, const int ns,
   h[1] = da[2][0] - da[0][2];
   h[2] = da[0][1] - da[1][0];
 
+}
+
+void GRFN2(RWGGeometry *G, const int ns,
+           const int npSource, const int iQ,
+           const double X0[3],  const cdouble k,
+           const int npDest, double *ZHat, double Radius,
+           cdouble e[3], cdouble h[3])
+{
+  RWGSurface *S=G->Surfaces[ns];
+  if (npSource==npDest)
+   { double XDisplaced[3];
+     XDisplaced[0]=X0[0] - DeltaFactor*Radius*ZHat[0];
+     XDisplaced[1]=X0[1] - DeltaFactor*Radius*ZHat[1];
+     XDisplaced[2]=X0[2] - DeltaFactor*Radius*ZHat[2];
+     GetReducedFields_Nearby(S, npSource, iQ, XDisplaced, k, e, h);
+     for(int Mu=0; Mu<3; Mu++)
+      { e[Mu]*=0.5;
+        h[Mu]*=0.5;
+      };
+   }
+  else
+   GetReducedFields_Nearby(S, npSource, iQ, X0, k, e, h);
 }
 
 /***************************************************************/
@@ -115,6 +140,7 @@ void GetEPPFTMatrixElements_Cubature(RWGGeometry *G,
   RWGSurface *S=G->Surfaces[nsa];
   RWGEdge *Ea=S->Edges[nea];
   RWGEdge *Eb=S->Edges[neb];
+
   double *QP = S->Vertices + 3*Ea->iQP;
   double *V1 = S->Vertices + 3*Ea->iV1;
   double *V2 = S->Vertices + 3*Ea->iV2;
@@ -145,6 +171,11 @@ void GetEPPFTMatrixElements_Cubature(RWGGeometry *G,
   if(OmitPanelPair[1][0]) printf("Omitting panel pair (10)\n");
   if(OmitPanelPair[1][1]) printf("Omitting panel pair (11)\n");
 #endif
+
+double *ZHatP  = S->Panels[Ea->iPPanel]->ZHat;
+double RadiusP = S->Panels[Ea->iPPanel]->Radius;
+double *ZHatM  = S->Panels[Ea->iMPanel]->ZHat;
+double RadiusM = S->Panels[Ea->iMPanel]->Radius;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -183,10 +214,16 @@ void GetEPPFTMatrixElements_Cubature(RWGGeometry *G,
      /***************************************************************/
      cdouble ePP[3], ePM[3], eMP[3], eMM[3];
      cdouble hPP[3], hPM[3], hMP[3], hMM[3];
+#if 0
      GetReducedFields_Nearby(G, nsb, Eb->iPPanel, Eb->PIndex, XPlus,  k, ePP, hPP);
      GetReducedFields_Nearby(G, nsb, Eb->iMPanel, Eb->MIndex, XPlus,  k, ePM, hPM);
      GetReducedFields_Nearby(G, nsb, Eb->iPPanel, Eb->PIndex, XMinus, k, eMP, hMP);
      GetReducedFields_Nearby(G, nsb, Eb->iMPanel, Eb->MIndex, XMinus, k, eMM, hMM);
+#endif
+     GRFN2(G, nsb, Eb->iPPanel, Eb->PIndex, XPlus,  k, Ea->iPPanel, ZHatP, RadiusP, ePP, hPP);
+     GRFN2(G, nsb, Eb->iMPanel, Eb->MIndex, XPlus,  k, Ea->iPPanel, ZHatP, RadiusP, ePM, hPM);
+     GRFN2(G, nsb, Eb->iPPanel, Eb->PIndex, XMinus, k, Ea->iMPanel, ZHatM, RadiusM, eMP, hMP);
+     GRFN2(G, nsb, Eb->iMPanel, Eb->MIndex, XMinus, k, Ea->iMPanel, ZHatM, RadiusM, eMM, hMM);
 
      /***************************************************************/
      /***************************************************************/
@@ -299,7 +336,7 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
      TaylorDuffy(TDArgs);
 
      if (Diagonal)
-      { divbe[Mu] = Result[0]
+      { divbe[Mu] = Result[0];
         divbh[Mu] = Result[2];
         bxe[Mu]   = Result[4]/(k*k);
       }
@@ -363,6 +400,13 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
              divbhTD[Mu] += Sign*LL*Delta_divbh[Mu];
              bxeTD[Mu]   += Sign*LL*Delta_bxe[Mu];
            };
+
+if (npa==npb)
+ { divbeTD[0] -= Sa->Panels[npa]->ZHat[0];
+   divbeTD[1] -= Sa->Panels[npa]->ZHat[1];
+   divbeTD[2] -= Sa->Panels[npa]->ZHat[2];
+ };
+
         };
 
      }; //  for(int A=0; A<2; A++) ...  for(int B=0; B<2; B++)

@@ -46,6 +46,12 @@
 
 namespace scuff {
 
+void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
+                                 const double X0[3], const cdouble k,
+                                 cdouble *p, cdouble a[3],
+                                 cdouble dp[3], cdouble da[3][3],
+                                 cdouble ddp[3][3], cdouble dcurla[3][3]);
+
 #define II cdouble(0,1)
 
 /*******************************************************************/
@@ -240,9 +246,9 @@ void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex,
      else
       continue; // in this case S does not contribute to field at eval pt
 
-     /***************************************************************/
-     /* now loop over all basis functions on the surface to         */
-     /* get contributions to the field at the evaluation point.     */
+     /***************************************************************/ 
+     /* now loop over all basis functions on the surface to         */ 
+     /* get contributions to the field at the evaluation point.     */ 
      /***************************************************************/
      for(ne=0; ne<S->NumEdges; ne++)
       { 
@@ -256,7 +262,22 @@ void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex,
            NAlpha = Sign*KN->GetEntry( Offset + 2*ne + 1 );
          };
       
-        S->GetReducedPotentials(ne, X, K, GBA, a, Curla, Gradp);
+        if (RWGGeometry::UseGetFieldsV2P0==false)
+         S->GetReducedPotentials(ne, X, K, GBA, a, Curla, Gradp);
+        else
+         { RWGEdge *E = S->Edges[ne];
+           double rRel = VecDistance(X, E->Centroid ) / E->Radius;
+           if (rRel > 5.0) 
+            S->GetReducedPotentials(ne, X, K, GBA, a, Curla, Gradp);
+           else
+            { cdouble p, da[3][3], ddp[3][3], dcurla[3][3];
+              GetReducedPotentials_Nearby(S, ne, X, K,
+                                          &p, a, Gradp, da, ddp, dcurla);
+              Curla[0] = da[1][2]-da[2][1];
+              Curla[1] = da[2][0]-da[0][2];
+              Curla[2] = da[0][1]-da[1][0];
+            };
+         };
 
         for(i=0; i<3; i++)
          { EHS[i]   += ZVAC*( KAlpha*(iwu*a[i] - Gradp[i]/iwe) + NAlpha*Curla[i] );

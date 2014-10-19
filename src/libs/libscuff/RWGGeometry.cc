@@ -46,6 +46,7 @@ namespace scuff {
 bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
+bool RWGGeometry::UseGetFieldsV2P0=false;
 int RWGGeometry::NumMeshDirs=0;
 char **RWGGeometry::MeshDirs=0;
 
@@ -249,6 +250,9 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
    { feenableexcept(FE_INVALID | FE_OVERFLOW);
      Log("Enabling abort-on-floating-point-exception.");
    };
+
+  if ( getenv("SCUFF_GETFIELDSV2P0") )
+   UseGetFieldsV2P0=true;
 
   /***************************************************************/
   /* try to open input file **************************************/

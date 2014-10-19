@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
      if (OPFTFile)
       WriteOPFTFile(SSD, OPFTFile, PlotFlux, true);
      if (PFTFile)
-      WriteOPFTFile(SSD, OPFTFile, PlotFlux, false);
+      WriteOPFTFile(SSD, PFTFile, PlotFlux, false);
 
      /*--------------------------------------------------------------*/
      /*- equivalence-principle PFT ----------------------------------*/

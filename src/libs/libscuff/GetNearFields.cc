@@ -303,7 +303,7 @@ void GetScriptIJ(const double u[3], const double v[3], const double w0, const do
 /* compute their derivatives with respect to displacements of  */
 /* the evaluation point.                                       */
 /***************************************************************/
-void GetStaticPanelIntegrals(RWGGeometry *G, const int ns, const int nPanel, const int iQ,
+void GetStaticPanelIntegrals(RWGSurface *S, const int nPanel, const int iQ,
                              const double X0[3],
                              double pn[NUMNS], double an[NUMNS][3],
                              double dpn[NUMNS][3], double dan[NUMNS][3][3],
@@ -312,7 +312,6 @@ void GetStaticPanelIntegrals(RWGGeometry *G, const int ns, const int nPanel, con
   /***************************************************************/
   /* unpack panel vertices ***************************************/
   /***************************************************************/
-  RWGSurface *S = G->Surfaces[ns];
   RWGPanel *Pan = S->Panels[nPanel];
   double *V[3], *Q;
   V[0] = S->Vertices + 3*(Pan->VI[0]);
@@ -614,7 +613,7 @@ cdouble GetGDS(double R[3], cdouble k, cdouble dG[3],
 /*--------------------------------------------------------------*/
 /* get desingularized contributions to reduced potentials       */
 /*--------------------------------------------------------------*/
-void GetDSReducedPotentials(RWGGeometry *G, const int ns, const int np, const int iQ,
+void GetDSReducedPotentials(RWGSurface *S, const int np, const int iQ,
                             const double X0[3], const cdouble k,
                             cdouble *pDS, cdouble aDS[3],
                             cdouble dpDS[3], cdouble daDS[3][3],
@@ -623,7 +622,6 @@ void GetDSReducedPotentials(RWGGeometry *G, const int ns, const int np, const in
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGSurface *S=G->Surfaces[ns];
   RWGPanel *P=S->Panels[np];
   double *Q  = S->Vertices + 3*P->VI[iQ];
   double *V1 = S->Vertices + 3*P->VI[(iQ+1)%3];
@@ -700,7 +698,7 @@ void GetDSReducedPotentials(RWGGeometry *G, const int ns, const int np, const in
 /*- dfvrp = derivative of fvp with components                   */
 /*-  dfvrp[Mu][Nu] = d_\mu fvrp[Nu]                             */
 /*--------------------------------------------------------------*/
-void GetReducedPotentials_Nearby(RWGGeometry *G, const int ns, const int np, const int iQ,
+void GetReducedPotentials_Nearby(RWGSurface *S, const int np, const int iQ,
                                  const double X0[3], const cdouble k,
                                  cdouble *p, cdouble a[3],
                                  cdouble dp[3], cdouble da[3][3],
@@ -712,7 +710,7 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, const int ns, const int np, con
    double pn[NUMNS], an[NUMNS][3];
    double dpn[NUMNS][3], dan[NUMNS][3][3];
    double ddpn[NUMNS][3][3], dcurlan[NUMNS][3][3];
-   GetStaticPanelIntegrals(G, ns, np, iQ, X0, 
+   GetStaticPanelIntegrals(S, np, iQ, X0,
                            pn, an, dpn, dan, ddpn, dcurlan);
    double pM1=pn[0],             pP1=pn[1];
    double *aM1=an[0],            *aP1=an[1];
@@ -728,7 +726,6 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, const int ns, const int np, con
    /*--------------------------------------------------------------*/
    /* get a^{(0)} and p^{(0)} contributions                        */
    /*--------------------------------------------------------------*/
-   RWGSurface *S = G->Surfaces[ns];
    RWGPanel *P   = S->Panels[np];
    double *Q     = S->Vertices + 3*P->VI[iQ];
    double *XC    = P->Centroid;
@@ -742,7 +739,7 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, const int ns, const int np, con
    /* get desingularized contributions                             */
    /*--------------------------------------------------------------*/
    cdouble pDS, aDS[3], dpDS[3], daDS[3][3], ddpDS[3][3], dcurlaDS[3][3];
-   GetDSReducedPotentials(G, ns, np, iQ, X0, k,
+   GetDSReducedPotentials(S, np, iQ, X0, k,
                           &pDS, aDS, dpDS, daDS, ddpDS, dcurlaDS);
    
    /*--------------------------------------------------------------*/ 
@@ -788,19 +785,19 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, const int ns, const int np, con
 /* get the reduced potentials of a full RWG basis function by  */
 /* summing contributions from the positive and negative panels */
 /***************************************************************/
-void GetReducedPotentials_Nearby(RWGGeometry *G, const int ns, const int ne,
+void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
                                  const double X0[3],  const cdouble k,
                                  cdouble *p, cdouble a[3],
                                  cdouble dp[3], cdouble da[3][3],
                                  cdouble ddp[3][3], cdouble dcurla[3][3])
 {
-  RWGEdge *E = G->Surfaces[ns]->Edges[ne];
+  RWGEdge *E = S->Edges[ne];
 
-  GetReducedPotentials_Nearby(G, ns, E->iPPanel, E->PIndex, X0, k,
+  GetReducedPotentials_Nearby(S, E->iPPanel, E->PIndex, X0, k,
                               p, a, dp, da, ddp, dcurla);
 
   cdouble pM, aM[3], dpM[3], daM[3][3], ddpM[3][3], dcurlaM[3][3];
-  GetReducedPotentials_Nearby(G, ns, E->iMPanel, E->MIndex, X0, k,
+  GetReducedPotentials_Nearby(S, E->iMPanel, E->MIndex, X0, k,
                               &pM, aM, dpM, daM, ddpM, dcurlaM);
 
   *p -= pM;
@@ -820,13 +817,13 @@ void GetReducedPotentials_Nearby(RWGGeometry *G, const int ns, const int ne,
 /* E = ikZ * kAlpha*e - nAlpha*h                               */
 /* H =      +kAlpha*h + (ik/Z)*nAlpha*e                        */
 /***************************************************************/
-void GetReducedFields_Nearby(RWGGeometry *G, const int ns, const int ne,
+void GetReducedFields_Nearby(RWGSurface *S, const int ne,
                              const double X0[3], const cdouble k,
                              cdouble e[3], cdouble h[3],
                              cdouble de[3][3], cdouble dh[3][3])
 {
   cdouble p[1], a[3], dp[3], da[3][3], ddp[3][3], dcurla[3][3];
-  GetReducedPotentials_Nearby(G, ns, ne, X0, k, p, a, dp, da, ddp, dcurla);
+  GetReducedPotentials_Nearby(S, ne, X0, k, p, a, dp, da, ddp, dcurla);
 
   cdouble k2=k*k;
   for(int Mu=0; Mu<3; Mu++)
@@ -847,12 +844,12 @@ void GetReducedFields_Nearby(RWGGeometry *G, const int ns, const int ne,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetReducedFields_Nearby(RWGGeometry *G, const int ns, const int ne,
+void GetReducedFields_Nearby(RWGSurface *S, const int ne,
                              const double X0[3], const cdouble k,
                              cdouble e[3], cdouble h[3])
 {
   cdouble de[3][3], dh[3][3];
-  GetReducedFields_Nearby(G, ns, ne, X0, k, e, h, de, dh);
+  GetReducedFields_Nearby(S, ne, X0, k, e, h, de, dh);
 }
 
 /***************************************************************/
@@ -860,14 +857,13 @@ void GetReducedFields_Nearby(RWGGeometry *G, const int ns, const int ne,
 /* TODO: merge me into one of the other very similar routines  */
 /* floating around libscuff.                                   */
 /***************************************************************/
-void GetDSFarFields(RWGGeometry *G, const int ns, const int np, const int iQ,
+void GetDSFarFields(RWGSurface *S, const int np, const int iQ,
                     const double X0[3],  const cdouble k, const bool Desingularize,
                     cdouble eDS[3], cdouble hDS[3])
 { 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGSurface *S=G->Surfaces[ns];
   RWGPanel *P=S->Panels[np];
   double *Q  = S->Vertices + 3*P->VI[iQ];
   double *V1 = S->Vertices + 3*P->VI[(iQ+1)%3];
@@ -942,25 +938,24 @@ void GetDSFarFields(RWGGeometry *G, const int ns, const int np, const int iQ,
 /* ensure that the calculation is accurate even when the       */
 /* evalution point lies on or near the panel.                  */
 /***************************************************************/
-void GetReducedFarFields(RWGGeometry *G, const int ns, const int np, const int iQ,
+void GetReducedFarFields(RWGSurface *S, const int np, const int iQ,
                          const double X0[3],  const cdouble k,
                          cdouble e[3], cdouble h[3])
 {
    /*--------------------------------------------------------------*/
    /*- get singular contributions ---------------------------------*/
    /*--------------------------------------------------------------*/
-   RWGSurface *S=G->Surfaces[ns];
    RWGPanel *P = S->Panels[np];
    bool DeSingularize = (VecDistance(X0,P->Centroid) < 5.0*P->Radius);
 
-   GetDSFarFields(G, ns, np, iQ, X0, k, DeSingularize, e, h);
+   GetDSFarFields(S, np, iQ, X0, k, DeSingularize, e, h);
 
    if (DeSingularize)
     { 
       double pn[NUMNS], an[NUMNS][3];
       double dpn[NUMNS][3], dan[NUMNS][3][3];
       double ddpn[NUMNS][3][3], dcurlan[NUMNS][3][3];
-      GetStaticPanelIntegrals(G, ns, np, iQ, X0,
+      GetStaticPanelIntegrals(S, np, iQ, X0,
                               pn, an, dpn, dan, ddpn, dcurlan);
 
       for(int Mu=0; Mu<3; Mu++)
@@ -980,17 +975,15 @@ void GetReducedFarFields(RWGGeometry *G, const int ns, const int np, const int i
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetReducedFarFields(RWGGeometry *G, const int ns, const int ne,
+void GetReducedFarFields(RWGSurface *S, const int ne,
                          const double X0[3], const cdouble k,
                          cdouble e[3], cdouble h[3])
 {
-  RWGEdge *E = G->Surfaces[ns]->Edges[ne];
-  GetReducedFarFields(G, ns, E->iPPanel, E->PIndex, 
-                             X0, k, e, h);
+  RWGEdge *E = S->Edges[ne];
+  GetReducedFarFields(S, E->iPPanel, E->PIndex, X0, k, e, h);
 
   cdouble eM[3], hM[3];
-  GetReducedFarFields(G, ns, E->iMPanel, E->MIndex, 
-                             X0, k, eM, hM);
+  GetReducedFarFields(S, E->iMPanel, E->MIndex, X0, k, eM, hM);
 
   for(int Mu=0; Mu<3; Mu++)
    { e[Mu] -= eM[Mu];
