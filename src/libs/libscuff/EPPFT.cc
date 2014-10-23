@@ -384,8 +384,9 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
        int ncv=AssessPanelPair(Sa,npa,Sb,npb,&rRel,Va,Vb);
        if (ncv>0)
         { 
-          OmitPanelPair[A][B]=true;
           HaveTDContributions=true;
+#if 0
+          OmitPanelPair[A][B]=true;
           if (ncv>MaxCommonVertices) MaxCommonVertices=ncv;
 
           double *Qa = Sa->Vertices + 3*( (A==0) ? Ea->iQP : Ea->iQM);
@@ -406,7 +407,7 @@ if (npa==npb)
    divbeTD[1] -= Sa->Panels[npa]->ZHat[1];
    divbeTD[2] -= Sa->Panels[npa]->ZHat[2];
  };
-
+#endif
         };
 
      }; //  for(int A=0; A<2; A++) ...  for(int B=0; B<2; B++)
