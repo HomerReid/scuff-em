@@ -262,10 +262,19 @@ double RadiusM = S->Panels[Ea->iMPanel]->Radius;
                            +MP*(bMinus[MP1]*eMP[MP2] - bMinus[MP2]*eMP[MP1])
                            +MM*(bMinus[MP1]*eMM[MP2] - bMinus[MP2]*eMM[MP1])
                           );
-
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 1
          ME->bxh[Mu] += w*( (bPlus[MP1]*hPlus[MP2]   - bPlus[MP2]*hPlus[MP1])
                            -(bMinus[MP1]*hMinus[MP2] - bMinus[MP2]*hMinus[MP1])
                           );
+#else
+         ME->bxh[Mu] += w*( PP*( bPlus[MP1]*hPP[MP2] -  bPlus[MP2]*hPP[MP1])
+                           +PM*( bPlus[MP1]*hPM[MP2] -  bPlus[MP2]*hPM[MP1])
+                           +MP*(bMinus[MP1]*hMP[MP2] - bMinus[MP2]*hMP[MP1])
+                           +MM*(bMinus[MP1]*hMM[MP2] - bMinus[MP2]*hMM[MP1])
+                          );
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
          ME->divbrxe[Mu] += w*( (XPmX0[MP1]*ePlus[MP2]  - XPmX0[MP2]*ePlus[MP1])
                                -(XMmX0[MP1]*eMinus[MP2] - XMmX0[MP2]*eMinus[MP1])
@@ -294,7 +303,7 @@ double RadiusM = S->Panels[Ea->iMPanel]->Radius;
 /***************************************************************/
 void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
                                double *Vb[3], double *Qb,
-                               int ncv, cdouble k, bool Diagonal,
+                               int ncv, cdouble k,
                                cdouble divbe[3],
                                cdouble divbh[3],
                                cdouble bxe[3])
@@ -335,17 +344,9 @@ void GetEPPFTMatrixElements_TD(double *Va[3], double *Qa,
 
      TaylorDuffy(TDArgs);
 
-     if (Diagonal)
-      { divbe[Mu] = Result[0];
-        divbh[Mu] = Result[2];
-        bxe[Mu]   = Result[4]/(k*k);
-      }
-     else
-      {
-        divbe[Mu] = Result[0] + Result[1]/(k*k);
-        divbh[Mu] = Result[2];
-        bxe[Mu]   = Result[3] + Result[4]/(k*k);
-      };
+     divbe[Mu] = Result[0] + Result[1]/(k*k);
+     divbh[Mu] = Result[2];
+     bxe[Mu]   = Result[3] + Result[4]/(k*k);
 
    };
 
@@ -372,6 +373,7 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
   cdouble divbeTD[3] = {0.0, 0.0, 0.0};
   cdouble divbhTD[3] = {0.0, 0.0, 0.0};
   cdouble bxeTD[3]   = {0.0, 0.0, 0.0};
+  cdouble bxhTD[3]   = {0.0, 0.0, 0.0};
   bool HaveTDContributions=0;
   int MaxCommonVertices=0;
   if (nsa==nsb)
@@ -382,32 +384,23 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
        int npb = (B==0) ? Eb->iPPanel : Eb->iMPanel;
        double *Va[3], *Vb[3], rRel;
        int ncv=AssessPanelPair(Sa,npa,Sb,npb,&rRel,Va,Vb);
-       if (ncv>0)
+       if (ncv>0 && ncv<3)
         { 
           HaveTDContributions=true;
-#if 0
           OmitPanelPair[A][B]=true;
           if (ncv>MaxCommonVertices) MaxCommonVertices=ncv;
 
           double *Qa = Sa->Vertices + 3*( (A==0) ? Ea->iQP : Ea->iQM);
           double *Qb = Sb->Vertices + 3*( (B==0) ? Eb->iQP : Eb->iQM);
           cdouble Delta_divbe[3], Delta_divbh[3], Delta_bxe[3];
-          GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k, (nea==neb),
+          GetEPPFTMatrixElements_TD(Va, Qa, Vb, Qb, ncv, k,
                                     Delta_divbe, Delta_divbh, Delta_bxe);
-
           double Sign = (A==B) ? 1.0 : -1.0;
           for(int Mu=0; Mu<3; Mu++)
            { divbeTD[Mu] += Sign*LL*Delta_divbe[Mu];
              divbhTD[Mu] += Sign*LL*Delta_divbh[Mu];
              bxeTD[Mu]   += Sign*LL*Delta_bxe[Mu];
-           };
-
-if (npa==npb)
- { divbeTD[0] -= Sa->Panels[npa]->ZHat[0];
-   divbeTD[1] -= Sa->Panels[npa]->ZHat[1];
-   divbeTD[2] -= Sa->Panels[npa]->ZHat[2];
- };
-#endif
+          };
         };
 
      }; //  for(int A=0; A<2; A++) ...  for(int B=0; B<2; B++)
@@ -435,6 +428,55 @@ if (npa==npb)
         ME->bxe[Mu]   += bxeTD[Mu];
       };
    };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (MaxCommonVertices==3)
+   { EPPFTMEData ME2;
+     memset(&ME2, 0, sizeof(EPPFTMEData));
+     OmitPanelPair[0][0]=false;
+     OmitPanelPair[0][1]=false;
+     OmitPanelPair[1][0]=false;
+     OmitPanelPair[1][1]=false;
+     cdouble divbeCP[3]={0.0, 0.0, 0.0};
+     cdouble bxhCP[3]={0.0, 0.0, 0.0};
+     for(int A=0; A<2; A++)
+      for(int B=0; B<2; B++)
+       {
+         int npa = (A==0) ? Ea->iPPanel : Ea->iMPanel;
+         int npb = (B==0) ? Eb->iPPanel : Eb->iMPanel;
+         if (npa!=npb) continue;
+
+         OmitPanelPair[A][B]=true;
+         double Sign = (A==B) ? 1.0 : -1.0;
+
+         RWGPanel *P = Sa->Panels[npa];
+         divbeCP[0] += LL*Sign*P->ZHat[0] / (4.0*k*k*P->Area);
+         divbeCP[1] += LL*Sign*P->ZHat[1] / (4.0*k*k*P->Area);
+         divbeCP[2] += LL*Sign*P->ZHat[2] / (4.0*k*k*P->Area);
+         if (nea==neb)
+          { bxhCP[0] += P->Area * P->ZHat[0] / 6.0;
+            bxhCP[1] += P->Area * P->ZHat[1] / 6.0;
+            bxhCP[2] += P->Area * P->ZHat[2] / 6.0;
+          };
+       };
+
+     int Order=9;
+     GetEPPFTMatrixElements_Cubature(G, nsa, nsb, nea, neb, k,
+                                     OmitPanelPair, Order, &ME2);
+
+     ME->divbe[0] = ME2.divbe[0] + divbeCP[0];
+     ME->divbe[1] = ME2.divbe[1] + divbeCP[1];
+     ME->divbe[2] = ME2.divbe[2] + divbeCP[2];
+     if (nea==neb)
+      { ME->bxh[0]   = bxhCP[0];
+        ME->bxh[1]   = bxhCP[1];
+        ME->bxh[2]   = bxhCP[2];
+      };
+
+   };
+
 
 }
 
