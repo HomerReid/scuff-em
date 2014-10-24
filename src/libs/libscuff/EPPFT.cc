@@ -91,9 +91,9 @@ void GRFN2(RWGGeometry *G, const int ns,
   RWGSurface *S=G->Surfaces[ns];
   if (npSource==npDest)
    { double XDisplaced[3];
-     XDisplaced[0]=X0[0] - DeltaFactor*Radius*ZHat[0];
-     XDisplaced[1]=X0[1] - DeltaFactor*Radius*ZHat[1];
-     XDisplaced[2]=X0[2] - DeltaFactor*Radius*ZHat[2];
+     XDisplaced[0]=X0[0] + DeltaFactor*Radius*ZHat[0];
+     XDisplaced[1]=X0[1] + DeltaFactor*Radius*ZHat[1];
+     XDisplaced[2]=X0[2] + DeltaFactor*Radius*ZHat[2];
      GetReducedFields_Nearby(S, npSource, iQ, XDisplaced, k, e, h);
      for(int Mu=0; Mu<3; Mu++)
       { e[Mu]*=0.5;
@@ -369,6 +369,7 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
   bool OmitPanelPair[2][2]={ {false, false}, {false, false} };
   RWGEdge *Ea=Sa->Edges[nea];
   RWGEdge *Eb=Sb->Edges[neb];
+#if 0
   double LL=Ea->Length * Eb->Length;
   cdouble divbeTD[3] = {0.0, 0.0, 0.0};
   cdouble divbhTD[3] = {0.0, 0.0, 0.0};
@@ -404,23 +405,27 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
         };
 
      }; //  for(int A=0; A<2; A++) ...  for(int B=0; B<2; B++)
+#endif
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int Order;
+#if 0
   if (MaxCommonVertices>=2)
    Order=20;
   else if (MaxCommonVertices>=1)
    Order=9;
   else
    Order=4;
+#endif
+int Order=9;
   GetEPPFTMatrixElements_Cubature(G, nsa, nsb, nea, neb, k,
                                   OmitPanelPair, Order, ME);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+#if 0
   if (HaveTDContributions)
    { for(int Mu=0; Mu<3; Mu++)
       { ME->divbe[Mu] += divbeTD[Mu];
@@ -428,10 +433,12 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
         ME->bxe[Mu]   += bxeTD[Mu];
       };
    };
+#endif
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+#if 0
   if (MaxCommonVertices==3)
    { EPPFTMEData ME2;
      memset(&ME2, 0, sizeof(EPPFTMEData));
@@ -476,7 +483,7 @@ void GetEPPFTMatrixElements(RWGGeometry *G,
       };
 
    };
-
+#endif
 
 }
 
