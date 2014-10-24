@@ -193,30 +193,71 @@ void GetFarFieldGCIntegrals(RWGSurface *S, int ne,
 HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
                       cdouble Omega, HMatrix *XMatrix)
 { 
-  (void)G;
-  (void)IF;
-  (void)KN;
-  (void)Omega;
-  (void)XMatrix;
-#if 0
-  Log("Computing far fields at %i points...",XMatrix->NR);
-//#ifdef USE_OPENMP
+  int NX = XMatrix->NR;
+  Log("Computing far fields at %i points...",NX);
+  HMatrix *FMatrix = new HMatrix(NX, 6, LHM_COMPLEX);
+
+  cdouble EpsOut, MuOut;
+  G->RegionMPs[0]->GetEpsMu(Omega, &EpsOut, &MuOut);
+  cdouble k    = sqrt(EpsOut*MuOut)*Omega;
+  cdouble ZRel = sqrt(MuOut/EpsOut);
+  cdouble IKZ  = II*k*ZVAC*ZRel;
+  cdouble IKOZ = II*k/(ZVAC*ZRel);
+
+#ifdef USE_OPENMP
   int NumThreads=GetNumThreads();
-//#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
-//#endif
-  for(int nenx=0; nenx<NE*NX; nenx++)
-   { 
-     int ne=nenx / NX;
-     int nx=nenx % NX;
-
-     GetFarFields(S, ne, X, k, GInt, CInt);
-
-     HMatrix *GetFSVMatrix(RWGSurface *S, HMatrix *CRMatrix,
-                      cdouble Omega, cdouble Eps, cdouble Mu,
-                      bool FarField)
-
+#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
-  return 0;
+  for(int nx=0; nx<NX; nx++)
+   { 
+     double X[3];
+     XMatrix->GetEntriesD(nx, "0:2", X);
+     if ( !(G->PointInRegion(0,X)) )
+      ErrExit("%s:%i: points must lie in exterior region",__FILE__,__LINE__);
+
+     cdouble EH[6]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+     for(int ns=0; ns<G->NumSurfaces; ns++)
+      { 
+        RWGSurface *S=G->Surfaces[ns];
+        int Offset = G->BFIndexOffset[ns];
+
+        for(int ne=0; ne<S->NumEdges; ne++)
+         { 
+           cdouble kAlpha, nAlpha;
+           if (S->IsPEC)
+            { kAlpha = KN->GetEntry(Offset + ne);
+              nAlpha = 0.0;
+            }
+           else
+            { kAlpha =       KN->GetEntry(Offset + 2*ne + 0);
+              nAlpha = -ZVAC*KN->GetEntry(Offset + 2*ne + 1);
+            };
+
+           cdouble e[3], h[3];
+           GetReducedFarFields(S, ne, X, k, e, h);
+
+           EH[0] += IKZ*kAlpha*e[0] - nAlpha*h[0];
+           EH[1] += IKZ*kAlpha*e[1] - nAlpha*h[1];
+           EH[2] += IKZ*kAlpha*e[2] - nAlpha*h[2];
+           EH[3] +=     kAlpha*h[0] + IKOZ*nAlpha*e[0];
+           EH[4] +=     kAlpha*h[1] + IKOZ*nAlpha*e[1];
+           EH[5] +=     kAlpha*h[2] + IKOZ*nAlpha*e[2];
+
+         }; // for(int ne=0; ne<S->NumEdges; ne++)
+      }; // for(int ns=0; ns<G->NumSurfaces; ns++)
+
+     if (IF) 
+      { cdouble EHI[6];
+        IF->GetFields(X, EHI);
+        for(int Mu=0; Mu<6; Mu++) 
+         EH[Mu] += EHI[Mu];
+      };
+
+     FMatrix->SetEntries(nx, "0:5", EH);
+
+   }; // for(int nx=0; nx<XMatrix->NR; nx++)
+
+  return FMatrix;
 }
 
 /***************************************************************/
