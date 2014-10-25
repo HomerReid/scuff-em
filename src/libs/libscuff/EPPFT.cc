@@ -89,7 +89,7 @@ void GRFN2(RWGGeometry *G, const int ns,
            cdouble e[3], cdouble h[3])
 {
   RWGSurface *S=G->Surfaces[ns];
-  if (npSource==npDest)
+  if (1)
    { double XDisplaced[3];
      XDisplaced[0]=X0[0] + DeltaFactor*Radius*ZHat[0];
      XDisplaced[1]=X0[1] + DeltaFactor*Radius*ZHat[1];
