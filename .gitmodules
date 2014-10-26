@@ -10,9 +10,6 @@
 [submodule "src/libs/libMatProp"]
 	path = src/libs/libMatProp
 	url = http://homerreid.com/libMatProp.git
-[submodule "src/libs/libTriInt"]
-	path = src/libs/libTriInt
-	url = http://homerreid.com/libTriInt.git
 [submodule "src/libs/libSGJC"]
 	path = src/libs/libSGJC
 	url = http://homerreid.com/libSGJC.git
