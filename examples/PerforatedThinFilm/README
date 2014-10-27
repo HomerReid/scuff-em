@@ -1,0 +1,76 @@
+SCUFF-EM example: Perforated thin films and screens
+--------------------------------------------------
+
+This folder contains geometry files and command-line
+arguments demonstrating SCUFF-EM calculations
+of optical transmission through substrates perforated
+with arrays of holes.
+
+--------------------------------------------------
+--------------------------------------------------
+--------------------------------------------------
+** Terminology:
+
+PFT = "perforated thin film." This is a thin 
+silver film with a square-lattice array of holes,
+like that considered in the following paper:
+
+  Martín-Moreno, L., F. J. García-Vidal, H. J. Lezec, K. M. Pel-
+  lerin, T. Thio, J. B. Pendry, and T. W. Ebbesen, 2001, “Theory
+  of extraordinary optical transmission through subwavelength
+  hole arrays,” Phys. Rev. Lett. 86, 1114–1117.
+
+  http://prl.aps.org/abstract/PRL/v86/i6/p1114_1
+
+
+PFS = "perforated thin screen." This is an infinitely
+thin PEC sheet perforated by the same square-lattice
+array of holes. It is useful in SCUFF-EM calculations
+as a faster toy version of the actual thin-film geometry.
+
+--------------------------------------------------
+--------------------------------------------------
+--------------------------------------------------
+
+** GMSH Geometry files:
+
+ -- PFTUnitCell.geo
+ -- PFSUnitCell.geo 
+
+These geometry files describe the unit cells
+of the perforated thin-film and screen.
+
+** GMSH mesh files:
+
+ -- PFSUnitCell_112.msh
+ -- PFSUnitCell_654.msh
+ -- PFTUnitCell_398.msh
+ -- PFTUnitCell_794.msh
+
+These are obtained by running 
+
+ % gmsh -2 -clscale LL MyGeometry.geo 
+
+for various values of the characteristic length
+scale LL. The number in the filename is the number
+of internal edges in the discretized mesh.
+
+** SCUFF-EM geometry files:
+
+  -- PFS_112.scuffgeo
+  -- PFS_654.scuffgeo
+  -- PFT_398.scuffgeo
+  -- PFT_794.scuffgeo
+
+--------------------------------------------------
+--------------------------------------------------
+--------------------------------------------------
+scuff-transmission arguments:
+
+  -- PFS_112.args
+
+To run each example, type e.g.
+
+% scuff-transmission < PFS_112.args
+
+This produces the file PFS
