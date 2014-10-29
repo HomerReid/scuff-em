@@ -196,6 +196,6 @@ typedef struct OptStruct
 
 void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...);
 void ProcessOptions(int argc, char *argv[], OptStruct *OSArray);
-void ProcessOptions(char *ArgString, OptStruct *OSArray);
+void ProcessOptions(const char *ArgString, OptStruct *OSArray);
 
 #endif
