@@ -4,7 +4,12 @@ SCUFF-EM example: Perforated thin films and screens
 This folder contains geometry files and command-line
 arguments demonstrating SCUFF-EM calculations
 of optical transmission through substrates perforated
-with arrays of holes.
+with arrays of holes. These calculations reproduce
+selected results from this paper:
+
+F. J. García de Abajo, "Colloquium: Light scattering 
+by particle and hole arrays," Rev. Mod. Phys. 79 1267 (2007)
+
 
 --------------------------------------------------
 --------------------------------------------------
@@ -42,10 +47,10 @@ of the perforated thin-film and screen.
 
 ** GMSH mesh files:
 
- -- PFSUnitCell_112.msh
- -- PFSUnitCell_654.msh
- -- PFTUnitCell_398.msh
+ -- PFTUnitCell_340.msh
+ -- PFTUnitCell_1491.msh
  -- PFTUnitCell_794.msh
+ -- PFTUnitCell_1702.msh
 
 These are obtained by running 
 
@@ -57,20 +62,30 @@ of internal edges in the discretized mesh.
 
 ** SCUFF-EM geometry files:
 
-  -- PFS_112.scuffgeo
-  -- PFS_654.scuffgeo
-  -- PFT_398.scuffgeo
+  -- PFS_340.scuffgeo
+  -- PFS_1491.scuffgeo
   -- PFT_794.scuffgeo
+  -- PFT_1702.scuffgeo
 
 --------------------------------------------------
 --------------------------------------------------
 --------------------------------------------------
 scuff-transmission arguments:
 
-  -- PFS_112.args
+  -- PFS_340.args
+  -- PFS_1491.args
+  -- PFT_794.args
+  -- PFT_1702.args
 
 To run each example, type e.g.
 
-% scuff-transmission < PFS_112.args
+% scuff-transmission < PFS_340.args
 
-This produces the file PFS
+This produces the file 'PFS_340.transmission.' Plotting
+the third vs. the first column yields transmission
+vs. angular frequency. To reproduce Figure 6 in
+the Rev. Mod. Phys. paper by Garcia de Abajo
+(cited above), use e.g. the following command
+in GNUPLOT:
+
+gnuplot> plot 'PFS_340.transmission' u (0.75*2*pi/$1):3
