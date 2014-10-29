@@ -1,11 +1,11 @@
 EXTRA_DIST =		\
  PFTUnitCell.geo	\
- PFTUnitCell_398.msh	\
  PFTUnitCell_794.msh	\
- PFT_398.scuffgeo	\
  PFT_794.scuffgeo	\
- PFT_394.args		\
  PFT_794.args		\
+ PFTUnitCell_1702.msh	\
+ PFT_1702.scuffgeo	\
+ PFT_1702.args		\
  OmegaFile.PFT		\
  PFSUnitCell.geo	\
  PFSUnitCell_340.msh   	\
