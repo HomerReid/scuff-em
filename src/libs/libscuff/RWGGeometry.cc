@@ -247,8 +247,13 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   /***************************************************************/
   if ( getenv("SCUFF_ABORT_ON_FPE") )
-   { feenableexcept(FE_INVALID | FE_OVERFLOW);
+   {
+#ifndef __APPLE__
+     feenableexcept(FE_INVALID | FE_OVERFLOW);
      Log("Enabling abort-on-floating-point-exception.");
+#else
+     Log("Can not enable abort-on-floating-point-exception on OS X because feenableexcept is not available.");
+#endif
    };
 
   if ( getenv("SCUFF_GETFIELDSV2P0") )
