@@ -458,9 +458,9 @@ class RWGGeometry
    // faster DSIPFT routine
    void GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
                   double PFT[7],
-                  char *BSMesh=0, double R=100.0, int NumPoints=31,
-                  bool Lebedev=false, bool FarField=false,
-                  GTransformation *OTGT=0, GTransformation *GT=0);
+                  char *BSMesh=0, double R=100.0, int NumPoints=302,
+                  bool Lebedev=true, bool FarField=false,
+                  GTransformation *GT=0);
 
    HMatrix *GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
                            HVector *KNVector, HMatrix *SigmaMatrix,
@@ -553,6 +553,7 @@ class RWGGeometry
    int AllSurfacesClosed;
 
    int TotalBFs;
+   int TotalEdges;
    int TotalPanels;
    double AveragePanelArea;
    double tolVecClose; // absolute tolerance for VecClose
