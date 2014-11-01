@@ -200,11 +200,11 @@ class RWGSurface
 			   SMatrix *SArray[SCUFF_NUM_OMATRICES], 
                            cdouble Omega=1.0, MatProp *ExteriorMP=NULL);
 
-   void GetOverlapMatrices2(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
-                            SMatrix *SArray[SCUFF_NUM_OMATRICES],
-                            cdouble Omega,
-                            MatProp *ExteriorMP, 
-                            int TermOnly);
+   // void GetOverlapMatrices2(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
+   //                          SMatrix *SArray[SCUFF_NUM_OMATRICES],
+   //                          cdouble Omega,
+   //                          MatProp *ExteriorMP, 
+   //                          int TermOnly);
 
    /* apply a general transformation (rotation+displacement) to the surface */
    void Transform(const GTransformation *GT);
@@ -524,7 +524,7 @@ class RWGGeometry
 
    // the following helper functions are only used for periodic boundary conditions.
    void InitPBCData();
-   void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
+   //void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch, int ns1, int ns2);
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix);
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch,
@@ -665,7 +665,7 @@ void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY,
                        double TorqueAxisZ, double *GammaMatrix);
 void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
 
-cdouble ExpRelV2P0(int n, cdouble Z);
+//cdouble ExpRelV2P0(int n, cdouble Z);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

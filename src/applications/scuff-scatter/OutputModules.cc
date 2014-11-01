@@ -134,11 +134,12 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*- try to open output file ------------------------------------*/
   /*--------------------------------------------------------------*/
-  FILE *f=vfopen("%s.pp","w",GetFileBase(MeshFileName));
+  char GeoFileBase[100], PPFileName[100];
+  strncpy(GeoFileBase,GetFileBase(SSD->G->GeoFileName),100);
+  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,GetFileBase(MeshFileName));
+  FILE *f=fopen(PPFileName,"a");
   if (!f) 
-   { fprintf(stderr,"warning: could not open output file %s.pp\n",GetFileBase(MeshFileName));
-     return;
-   };
+   ErrExit("could not open field visualization file %s",PPFileName);
   
   /*--------------------------------------------------------------*/
   /*- try to open user's mesh file -------------------------------*/
@@ -153,8 +154,7 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   /*- the flux mesh panel vertices                                */
   /*--------------------------------------------------------------*/
   HMatrix *XMatrix=new HMatrix(S->NumVertices, 3);
-  int nv;
-  for(nv=0; nv<S->NumVertices; nv++)
+  for(int nv=0; nv<S->NumVertices; nv++)
    { 
      XMatrix->SetEntry(nv, 0, S->Vertices[3*nv + 0]);
      XMatrix->SetEntry(nv, 1, S->Vertices[3*nv + 1]);
@@ -170,31 +170,27 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGPanel *P;
-  int nff, np, iV1, iV2, iV3;
-  double *V1, *V2, *V3;
-  for(nff=0; nff<NUMFIELDFUNCS; nff++)
+  for(int nff=0; nff<NUMFIELDFUNCS; nff++)
    { 
-     fprintf(f,"View \"%s\" {\n",FieldTitles[nff]);
+     fprintf(f,"View \"%s(%s)\" {\n",FieldTitles[nff],z2s(SSD->Omega));
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     for(np=0; np<S->NumPanels; np++)
+     for(int np=0; np<S->NumPanels; np++)
       {
-        P=S->Panels[np];
-        iV1 = P->VI[0];  V1 = S->Vertices + 3*iV1;
-        iV2 = P->VI[1];  V2 = S->Vertices + 3*iV2;
-        iV3 = P->VI[2];  V3 = S->Vertices + 3*iV3;
+        RWGPanel *P=S->Panels[np];
+        int iV1 = P->VI[0];  double *V1 = S->Vertices + 3*iV1;
+        int iV2 = P->VI[1];  double *V2 = S->Vertices + 3*iV2;
+        int iV3 = P->VI[2];  double *V3 = S->Vertices + 3*iV3;
 
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   V1[0], V1[1], V1[2], 
-                   V2[0], V2[1], V2[2], 
-                   V3[0], V3[1], V3[2], 
+                   V1[0], V1[1], V1[2],
+                   V2[0], V2[1], V2[2],
+                   V3[0], V3[1], V3[2],
                    FMatrix->GetEntryD(iV1,nff),
                    FMatrix->GetEntryD(iV2,nff),
                    FMatrix->GetEntryD(iV3,nff));
-
       };
 
      /*--------------------------------------------------------------*/
@@ -202,10 +198,11 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
      /*--------------------------------------------------------------*/
      fprintf(f,"};\n\n");
    };
-
   fclose(f);
+
   delete FMatrix;
   delete XMatrix;
+
   delete S;
 
 }

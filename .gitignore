@@ -4,23 +4,27 @@ scuff-analyze
 scuff-caspol
 scuff-heat
 scuff-scatter
+scuff-static
 scuff-cas3D
 scuff-cas2D
 scuff-neq
 scuff-plotEpsMu
 scuff-rf
 scuff-transmission
+scuff-tmatrix
 # don't ignore directories, though:
 !scuff-analyze/
 !scuff-caspol/
 !scuff-heat/
 !scuff-scatter/
+!scuff-static/
 !scuff-cas3D/
 !scuff-cas2D/
 !scuff-neq/
 !scuff-plotEpsMu/
 !scuff-rf/
 !scuff-transmission/
+!scuff-tmatrix/
 
 # ChangeLog should be generated from 'git log' at 'make dist' time #
 ChangeLog
@@ -59,10 +63,12 @@ config.guess
 config.sub
 config.status
 config.log
+compile
 libtool
 INSTALL
 ylwrap
 py-compile
+test-driver
 
 # Packages #
 ############
@@ -76,6 +82,7 @@ py-compile
 *.rar
 *.tar
 *.zip
+*.tar.bz2
 
 # Logs and databases #
 ######################
@@ -90,6 +97,7 @@ py-compile
 ehthumbs.db
 Icon?
 Thumbs.db
+*~
 
 # SWIG-generated files #
 ########################
@@ -99,4 +107,8 @@ scuff.pyc
 
 # Compiled programs #
 #####################
-tests/scuff-test-overlap
+interactiveTests/scuff-test-overlap
+interactiveTests/scuff-test-Ewald
+unitTests/unit-test-BEMMatrix
+unitTests/unit-test-PPIs
+unitTests/unit-test-PFT

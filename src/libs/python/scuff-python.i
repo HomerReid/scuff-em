@@ -30,7 +30,7 @@ static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
   npy_intp sz3 = 3, stride1 = sizeof(double);
   PyObject *Rpy = PyArray_New(&PyArray_Type, 1, &sz3, NPY_DOUBLE, &stride1,
                               const_cast<double*>(R), // not NPY_WRITEABLE
-                              0, NPY_C_CONTIGUOUS | NPY_ALIGNED, NULL);
+                              0, NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_ALIGNED, NULL);
   PyObject *arglist = Py_BuildValue("O", Rpy);
   PyObject *result = PyEval_CallObject((PyObject *) f, arglist);
   PyArrayObject *EHpy;
@@ -109,7 +109,7 @@ static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
     return is_array(o) && array_numdims(o) == 1
       && (array_is_contiguous(o) || array_is_fortran(o))
       && array_is_native(o)
-      && PyArray_ISALIGNED(o)
+      && PyArray_ISALIGNED((PyArrayObject*)o)
       && (array_type(o) == NPY_DOUBLE || array_type(o) == NPY_CDOUBLE);
   }
 %}
@@ -163,7 +163,7 @@ static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
 	(&PyArray_Type, 2, dims,
 	 M->RealComplex == LHM_COMPLEX ? NPY_CDOUBLE : NPY_DOUBLE, NULL,
 	 M->RealComplex == LHM_COMPLEX ? (void*) M->ZM : (void*) M->DM, 0,
-	 NPY_FARRAY, NULL);
+	 NPY_ARRAY_FARRAY, NULL);
       M->ownsM = false; // prevent deallocation
       delete M;
       return result;
@@ -180,7 +180,7 @@ static void EHFunc_python(const double R[3], void *f, cdouble EH[6]) {
     return is_array(o) && array_numdims(o) == 2
       && (array_is_contiguous(o) || array_is_fortran(o))
       && array_is_native(o)
-      && PyArray_ISALIGNED(o)
+      && PyArray_ISALIGNED((PyArrayObject*)o)
       && (array_type(o) == NPY_DOUBLE || array_type(o) == NPY_CDOUBLE);
   }
 %}

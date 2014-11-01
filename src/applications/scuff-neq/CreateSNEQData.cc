@@ -164,13 +164,13 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- number of basis functions on any object, i.e. the max      -*/
   /*- dimension of any BEM matrix subblock.                      -*/
   /*--------------------------------------------------------------*/
-  int MaxBFs=G->Surfaces[0]->NumBFs;
+  size_t MaxBFs=G->Surfaces[0]->NumBFs;
   for(int ns=1; ns<G->NumSurfaces; ns++)
    if (G->Surfaces[ns]->NumBFs > MaxBFs) 
     MaxBFs = G->Surfaces[ns]->NumBFs;
   
   int nBuffer = 3;
-  int BufSize = MaxBFs * MaxBFs * sizeof(cdouble);
+  size_t BufSize = MaxBFs * MaxBFs * sizeof(cdouble);
   SNEQD->Buffer[0] = mallocEC(nBuffer*BufSize);
   for(int nb=1; nb<nBuffer; nb++)
    SNEQD->Buffer[nb] = (void *)( (char *)SNEQD->Buffer[nb-1] + BufSize);
