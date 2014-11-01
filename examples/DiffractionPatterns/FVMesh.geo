@@ -1,31 +1,19 @@
 //
-// GMSH mesh file for a simple planar screen parallel to the XY
-// plane and located at Z=2, i.e. a distance of 2 units from
-// the aperture screen
+// GMSH mesh for the field-visualization surface on which we
+// plot transmitted field intensity.
 //
+L = 0.750;    // square side length
 
-//////////////////////////////////////////////////
-// adjustable parameters
-//////////////////////////////////////////////////
-L = 2.0;
-Z = 2;
+Z = 1.0;      // distance of visualization surface from screen
 
-l = 0.02; // meshing fineness
+l = L/10;      // meshing fineness
 
-//////////////////////////////////////////////////
-//////////////////////////////////////////////////
-//////////////////////////////////////////////////
-Point(1) = {   L/2,   L/2,   Z,   l}; 
-Point(2) = {   L/2,  -L/2,   Z,   l}; 
-Point(3) = {  -L/2,  -L/2,   Z,   l}; 
-Point(4) = {  -L/2,   L/2,   Z,   l}; 
+// square
+Point(100)  = { 0, 0, Z, l};  
+Point(101)  = { L, 0, Z, l};
+Line(100)   = { 100, 101};
+Extrude {0,L,0}  { Line{100}; }
+Line Loop(100) = { 100, 103, -101, -102 };
 
-Line(1) = { 1, 2 };
-Line(2) = { 2, 3 };
-Line(3) = { 3, 4 };
-Line(4) = { 4, 1 };
-
-Line Loop (1) = { 1, 2, 3, 4};
-
-Plane Surface(1) = { 1 };
+Plane Surface(1) = { 100 };
 Physical Surface(1) = { 1 };

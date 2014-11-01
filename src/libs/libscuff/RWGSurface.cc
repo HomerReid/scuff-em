@@ -556,22 +556,19 @@ RWGSurface::~RWGSurface()
 { 
   free(Vertices);
 
-  int np;
-  for(np=0; np<NumPanels; np++)
+  for(int np=0; np<NumPanels; np++)
    free(Panels[np]);
   free(Panels);
 
-  int ne;
-  for(ne=0; ne<NumEdges; ne++)
+  for(int ne=0; ne<NumEdges; ne++)
    free(Edges[ne]);
   free(Edges);
 
-  for(ne=0; ne<NumExteriorEdges; ne++)
+  for(int ne=0; ne<NumExteriorEdges; ne++)
    free(ExteriorEdges[ne]);
   free(ExteriorEdges);
-
-  int nbc;
-  for(nbc=0; nbc<NumBCs; nbc++)
+  
+  for(int nbc=0; nbc<NumBCs; nbc++)
    free(BCEdges[nbc]);
   if (BCEdges) free(BCEdges);
   if (NumBCEdges) free(NumBCEdges);
