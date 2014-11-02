@@ -9,6 +9,15 @@
 %apply std::complex<double> { cdouble };
 
 %include "numpy.i" // numpy array conversions
+
+// some additional backward compatibility declarations for supporting numpy < 1.7.0
+%{
+#if NPY_API_VERSION < 0x00000007
+#define NPY_ARRAY_C_CONTIGUOUS NPY_C_CONTIGUOUS
+#define NPY_ARRAY_ALIGNED  NPY_ALIGNED
+#endif
+%}
+
 %init %{
   import_array();
 %}

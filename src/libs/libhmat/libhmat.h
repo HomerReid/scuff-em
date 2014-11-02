@@ -162,7 +162,7 @@ class HMatrix
    /* storage parameters                                           */
    HMatrix(int NRows, int NCols, int RealComplex = LHM_REAL,
 	   int StorageType = LHM_NORMAL, void *data = NULL);
-   HMatrix(HMatrix *M); // copy constructor
+   HMatrix(HMatrix *M, bool takedatandownership=false); // copy constructor
    void InitHMatrix(int NRows, int NCols, int RealComplex = LHM_REAL,
 		    int StorageType = LHM_NORMAL, void *data = NULL);
 
@@ -189,15 +189,15 @@ class HMatrix
    ~HMatrix();
 
    /* get the value of an entry */
-   cdouble GetEntry(int nr, int nc);
-   double GetEntryD(int nr, int nc);
+   cdouble GetEntry(size_t nr, size_t nc);
+   double GetEntryD(size_t nr, size_t nc);
 
    /* routines for setting or augmenting matrix entries */
-   void SetEntry(int nr, int nc, double Entry);
-   void SetEntry(int nr, int nc, cdouble Entry);
+   void SetEntry(size_t nr, size_t nc, double Entry);
+   void SetEntry(size_t nr, size_t nc, cdouble Entry);
 
-   void AddEntry(int nr, int nc, double Entry);
-   void AddEntry(int nr, int nc, cdouble Entry);
+   void AddEntry(size_t nr, size_t nc, double Entry);
+   void AddEntry(size_t nr, size_t nc, cdouble Entry);
 
    /* matlab-style fetching or setting of swaths of a matrix */
    double *GetEntriesD(const char *RowString, int Col, double *Entries=0);
@@ -298,6 +298,8 @@ class HMatrix
    /* routine for eigenvalues and optionally vectors of */
    /* non-symmetric matrices (dgeevx / zgeevx )         */
    HVector *NSEig(HVector *Lambda=0, HMatrix *U=0);
+
+   size_t inline NumEntries() { return StorageType==LHM_NORMAL ? ((size_t)NR)*NC : ((size_t)NR)*(NR+1)/2; }
 
  // private:
    int NR, NC;
