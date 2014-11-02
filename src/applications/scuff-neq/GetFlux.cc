@@ -157,9 +157,6 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
 /* to be filled in with just the number of *requested*         */
 /* quantities.                                                 */
 /***************************************************************/
-#define METHOD_DSIPFT 0
-#define METHOD_OPFT   1
-#define METHOD_EPPFT  2
 void GetSIFlux(SNEQData *SNEQD, 
                int SourceSurface, int DestSurface,
                cdouble Omega, 
@@ -173,9 +170,7 @@ void GetSIFlux(SNEQData *SNEQD,
 
   RWGGeometry *G  = SNEQD->G;
   HMatrix *Sigma  = SNEQD->Sigma;
-  bool DSISelf    = SNEQD->DSISelf;
   bool DSIOther   = SNEQD->DSIOther;
-  bool EPOther    = SNEQD->EPOther;
 
   double **ByEdge=0;
   if (SNEQD->ByEdge)
@@ -185,34 +180,22 @@ void GetSIFlux(SNEQData *SNEQD,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   int Method;
-  if (SourceSurface==DestSurface)
-   Method = DSISelf ? METHOD_DSIPFT : METHOD_EPPFT;
-  else
-   Method = DSIOther ? METHOD_DSIPFT : ( EPOther ? METHOD_EPPFT : METHOD_OPFT );
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
   double AllFlux[NUMPFT];
-  switch(Method)
+  if (SourceSurface==DestSurface || DSIOther)
    { 
-     case METHOD_DSIPFT:
       G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
                         SNEQD->DSIMesh, SNEQD->DSIRadius, SNEQD->DSIPoints,
-                        SNEQD->Lebedev, SNEQD->FarField);
-      break;
+                        SNEQD->DSICCQ, SNEQD->DSIFarField);
+   }
+  else 
+   { 
+     G->GetOPFT(DestSurface, Omega, 0, 0, Sigma, AllFlux, 0, ByEdge);
 
-     case METHOD_EPPFT:
-      G->GetEPPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
-                       NeedQuantity, SNEQD->TSelf[DestSurface],
-                       (SourceSurface==DestSurface ? true : false));
-      break;
-
-     case METHOD_OPFT:
-      G->GetOPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge);
-      break;
-
-   };
+     // replace overlap power with EPPFT power
+     if (SNEQD->NeedQuantity[QINDEX_POWER])
+      AllFlux[QINDEX_POWER]=G->GetEPP(DestSurface, Omega, 0, Sigma,
+                                      ByEdge, true, SNEQD->TSelf[DestSurface]);
+   }
 
   /*--------------------------------------------------------------*/
   /*- collapse the full vector of 7 PFTs to just the entries the -*/

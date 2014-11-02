@@ -48,6 +48,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /*--------------------------------------------------------------*/
   RWGGeometry *G  = SSD->G;
   IncField *IF    = SSD->IF;
+
   HVector  *KN    = SSD->KN;
   cdouble  Omega  = SSD->Omega;
   double *kBloch  = SSD->kBloch;
@@ -262,10 +263,14 @@ void ProcessByEdgeArray(RWGGeometry *G, int ns,
                         cdouble Omega, double **ByEdge)
 {
   static const char *PFTNames[7]
-   ={"Power","XForce","YForce","ZForce","XTorque","YTorque","ZTorque"};
+   ={"PAbs","FX","FY","FZ","TX","TY","TZ"};
 
   char FileName[100];
-  snprintf(FileName,100,"%s.%s.pp",GetFileBase(PFTFile),Suffix);
+  if (G->NumSurfaces==0)
+   snprintf(FileName,100,"%s.%s.pp",GetFileBase(PFTFile),Suffix);
+  else
+   snprintf(FileName,100,"%s.%s.%s.pp",
+                          GetFileBase(PFTFile),G->Surfaces[ns]->Label,Suffix);
 
   for(int nq=0; nq<7; nq++)
    { char Tag[20];
@@ -277,12 +282,12 @@ void ProcessByEdgeArray(RWGGeometry *G, int ns,
   free(ByEdge);
 
 }
-  
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
+void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux,
+                    int Order)
 {
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
@@ -309,20 +314,22 @@ void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
   /***************************************************************/
   RWGGeometry *G=SSD->G;
   cdouble Omega=SSD->Omega;
-  Log("Computing equivalence-principle power, force, torque at Omega=%s...",z2s(Omega));
+  Log("Computing equivalence-principle power, force, torque at Omega=%s (order %i)...",z2s(Omega),Order);
   f=fopen(FileName,"a");
   if (!f) return;
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      double **ByEdge = (PlotFlux ? AllocateByEdgeArray(G, ns) : 0);
 
-     double EPPFT[7];
-     G->GetEPPFTTrace(ns, Omega, SSD->KN, 0, EPPFT, ByEdge);
+     double PAbs  = G->GetEPP(ns, Omega, SSD->KN, 0, ByEdge, true);
+     double PScat = G->GetEPP(ns, Omega, SSD->KN, 0, 0,      false);
+     double FT[6];
+     G->GetEPFT(ns, Omega, SSD->KN, SSD->IF, FT, ByEdge, Order);
 
      fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
-     fprintf(f,"%e 0.0 ",EPPFT[0]);
-     for(int nq=1; nq<7; nq++)
-      fprintf(f,"%e ",EPPFT[nq]);
+     fprintf(f,"%e %e ",PAbs,PScat);
+     for(int nq=0; nq<6; nq++)
+      fprintf(f,"%e ",FT[nq]);
      fprintf(f,"\n");
   
      if (ByEdge)
@@ -336,7 +343,7 @@ void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux, bool TraceMethod)
+void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
 {
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
@@ -368,36 +375,17 @@ void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux, bool TraceMethod)
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
+     double **ByEdge = (PlotFlux ? AllocateByEdgeArray(G, ns) : 0);
 
-     if (TraceMethod)
-      {
-        double **ByEdge = (PlotFlux ? AllocateByEdgeArray(G, ns) : 0);
+     double OPFT[7], PScat;
+     G->GetOPFT(ns, SSD->Omega, SSD->KN, SSD->RHS, 0, OPFT, &PScat, ByEdge);
+     fprintf(f,"%e %e ",OPFT[0],PScat);
+     for(int nq=1; nq<7; nq++)
+      fprintf(f,"%e ",OPFT[nq]);
+     fprintf(f,"\n");
 
-        double OPFT[7]; 
-        G->GetOPFTTrace(ns, SSD->Omega, SSD->KN, 0, OPFT, ByEdge);
-        fprintf(f,"%e 0.0 ",OPFT[0]);
-        for(int nq=1; nq<7; nq++)
-         fprintf(f,"%e ",OPFT[nq]);
-        fprintf(f,"\n");
-
-        if (ByEdge)
-         ProcessByEdgeArray(G, ns, FileName, "OPFTFlux", SSD->Omega, ByEdge);
-      }
-     else
-      { double OPFT[8]; 
-        G->GetOPFT(SSD->KN, SSD->RHS, SSD->Omega, ns, OPFT);
-
-        // get scattered power as difference between total and absorbed power
-        double PScat=OPFT[1] - OPFT[0];
-        if ( fabs(PScat) < 0.1*fabs(OPFT[1]) )
-         Warn("Overlap PFT computation of scattered power may be inaccurate; use EPPFT");
-        OPFT[1]=PScat;
-
-        for(int nq=0; nq<8; nq++)
-         fprintf(f,"%e ",OPFT[nq]);
-        fprintf(f,"\n");
-      };
- 
+     if (ByEdge)
+      ProcessByEdgeArray(G, ns, FileName, "OPFTFlux", SSD->Omega, ByEdge);
    };
   fclose(f);
 
@@ -406,8 +394,9 @@ void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux, bool TraceMethod)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh, 
-                     double DSIRadius, int DSIPoints, bool Lebedev)
+void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
+                     double DSIRadius, int DSIPoints, bool DSICCQ,
+                     bool DSIFarField, bool PlotFlux)
 {
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
@@ -417,9 +406,9 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
    { f=fopen(FileName,"w");
      fprintf(f,"# data file columns: \n");
      fprintf(f,"# 1 omega \n");
-     fprintf(f,"# 2 cubature method \n");
+     fprintf(f,"# 2 surface label \n");
      fprintf(f,"# 3 absorbed power\n");
-     fprintf(f,"# 4 scattered power\n");
+     fprintf(f,"# 4 cubature method\n");
      fprintf(f,"# 5 x-force \n");
      fprintf(f,"# 6 y-force \n");
      fprintf(f,"# 7 z-force \n");
@@ -430,30 +419,60 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
   fclose(f);
 
   f=fopen(FileName,"a");
-  if (!f)
-   return;
+  if (!f) return;
+
+  char CubatureMethod[100];
+  if (DSIMesh)
+   snprintf(CubatureMethod,100,"%s",DSIMesh);
+  else
+   snprintf(CubatureMethod,100,"%e_%i%s%s ",DSIRadius,DSIPoints,
+            DSICCQ   ? "_CCQ" : "", DSIFarField ? "_FarField" : "");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   RWGGeometry *G=SSD->G;
-  double DSIPFT[7];
-  G->GetDSIPFT(SSD->KN, SSD->IF, SSD->Omega, DSIPFT,
-               DSIMesh, DSIRadius, DSIPoints, Lebedev);
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     RWGSurface  *S=G->Surfaces[ns];
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  fprintf(f,"%s ",z2s(SSD->Omega));
-  if (DSIMesh)
-   fprintf(f,"%s ",DSIMesh);
-  else
-   fprintf(f,"%e_%i%s ",DSIRadius,DSIPoints,
-                        Lebedev ? "(Lebedev)" : "");
-  fprintf(f,"%e 0.0 ",DSIPFT[0]);
-  for(int nq=1; nq<7; nq++)
-   fprintf(f,"%e ",DSIPFT[nq]);
-  fprintf(f,"\n");
+     char *FluxFileName=0, FFNBuffer[100];
+     if (PlotFlux && DSIMesh)
+      { FluxFileName=FFNBuffer;
+        if (G->NumSurfaces==0)
+         snprintf(FluxFileName,100,"%s.DSIPFTFlux.pp",
+                                    GetFileBase(FileName));
+        else
+         snprintf(FileName,100,"%s.%s.DSIPFTFlux.pp",
+                                GetFileBase(FileName),S->Label);
+      };
+
+     GTransformation *GT=0;
+     bool CreatedGT=false;
+     if ( (S->OTGT)  && !(S->GT) )
+      { GT=S->OTGT; }
+     else if ( !(S->OTGT) &&  (S->GT) )
+      { GT=S->GT;   }
+     else if ( (S->OTGT)  &&  (S->GT) )
+      { GT=new GTransformation(S->OTGT);
+        GT->Transform(S->GT);
+        CreatedGT=true;
+      };
+
+     double DSIPFT[7];
+     G->GetDSIPFT(SSD->Omega, SSD->KN, SSD->IF, DSIPFT,
+                  DSIMesh, DSIRadius, DSIPoints,
+                  DSICCQ, DSIFarField, FluxFileName, GT);
+
+     fprintf(f,"%s %s %e %s ",
+                z2s(SSD->Omega),S->Label,DSIPFT[0],CubatureMethod);
+     for(int nq=1; nq<7; nq++)
+      fprintf(f,"%e ",DSIPFT[nq]);
+     fprintf(f,"\n");
+
+     if (CreatedGT) delete GT;
+   };
+
   fclose(f);
 
 }

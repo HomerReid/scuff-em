@@ -62,16 +62,9 @@ namespace scuff {
 #define SCUFF_VERBOSELOGGING 2
 #define SCUFF_VERBOSE2       3
 
-// various types of overlap matrix
-#define SCUFF_OMATRIX_OVERLAP    0
-#define SCUFF_OMATRIX_POWER      1
-#define SCUFF_OMATRIX_XFORCE     2
-#define SCUFF_OMATRIX_YFORCE     3
-#define SCUFF_OMATRIX_ZFORCE     4
-#define SCUFF_OMATRIX_XTORQUE    5
-#define SCUFF_OMATRIX_YTORQUE    6
-#define SCUFF_OMATRIX_ZTORQUE    7
-#define SCUFF_NUM_OMATRICES      8
+// number of force/torque quantities and of power/force/torque quantities
+#define NUMFT 6 
+#define NUMPFT 7
 
 // maximum number of lattice basis vectors
 #ifndef MAXLDIM
@@ -194,17 +187,6 @@ class RWGSurface
    /* get overlap integrals between two basis functions */
    double GetOverlap(int neAlpha, int neBeta, double *pOTimes = NULL);
    void GetOverlaps(int neAlpha, int neBeta, double *Overlaps);
-
-   /* get one or more overlap matrices for the surface as a whole*/
-   void GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
-			   SMatrix *SArray[SCUFF_NUM_OMATRICES], 
-                           cdouble Omega=1.0, MatProp *ExteriorMP=NULL);
-
-   // void GetOverlapMatrices2(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
-   //                          SMatrix *SArray[SCUFF_NUM_OMATRICES],
-   //                          cdouble Omega,
-   //                          MatProp *ExteriorMP, 
-   //                          int TermOnly);
 
    /* apply a general transformation (rotation+displacement) to the surface */
    void Transform(const GTransformation *GT);
@@ -350,17 +332,10 @@ class RWGGeometry
    RWGGeometry(const char *GeoFileName, int pLogLevel = SCUFF_NOLOGGING);
    ~RWGGeometry();
 
-   /* geometrical transformations */
-   void Transform(GTComplex *GTC);
-   void UnTransform();
-   char *CheckGTCList(GTComplex **GTCList, int NumGTCs);
-
-   /* visualization */
-   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
-   void WriteGPMesh(const char *format, ...);
-   void WriteGPMeshPlus(const char *format, ...);
-   void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
-   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
+   /*--------------------------------------------------------------*/ 
+   /*- routines for setting up the BEM system, i.e. allocating and */ 
+   /*- assembling the BEM matrix and RHS vector                    */ 
+   /*--------------------------------------------------------------*/ 
 
    /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
@@ -381,11 +356,10 @@ class RWGGeometry
    HVector *AllocateRHSVector(bool PureImagFreq = false );
    HVector *AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS = NULL);
 
+   /*--------------------------------------------------------------*/
+   /*- post-processing routines for computing fields               */
+   /*--------------------------------------------------------------*/
    int UpdateIncFields(IncField *IF, cdouble Omega, double *kBloch=0);
-
-   // get the index of the region containing point X
-   int GetRegionIndex(const double X[3]);
-   int PointInRegion(int RegionIndex, const double X[3]); 
 
    /* simplest routine for computing fields */
    void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X, cdouble *EH);
@@ -402,6 +376,7 @@ class RWGGeometry
       field function is supplied, then the total of scattered plus
       incident fields is used.  If KN == NULL, then the scattered
       fields are set to zero. */
+   /****************************************************/
    HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
 			    cdouble Omega, HVector *KN = NULL,
 			    IncField *inc=NULL);
@@ -429,59 +404,76 @@ class RWGGeometry
                      cdouble GEScat[3][3], cdouble GMScat[3][3]);
 
    /*--------------------------------------------------------------*/
-   /* routines for computing power, force, and torque (PFT)        */
+   /* post-processing routines for power, force, and torque (PFT)  */
    /*--------------------------------------------------------------*/
    // PFT by overlap method
-   void GetOPFTTrace(int SurfaceIndex, cdouble Omega,
-                     HVector *KNVector, HMatrix *SigmaMatrix,
-                     double PFT[7], double **ByEdge=0);
-
-   // PFT by equivalence-principle method
-   void GetEPPFTTrace(int SurfaceIndex, cdouble Omega,
-                      HVector *KNVector, HMatrix *SigmaMatrix,
-                      double PFT[7], double **ByEdge=0,
-                      bool *NeedQuantity=0, 
-                      HMatrix *TSelf=0, bool Exterior=false);
+   void GetOPFT(int SurfaceIndex, cdouble Omega,
+                HVector *KNVector, HVector *RHS,
+                HMatrix *SigmaMatrix,
+                double PFT[7], double *PTot=0, double **ByEdge=0);
 
    // PFT by displaced-surface-integral method
+   void GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF, double PFT[7],
+                  char *BSMesh=0, double R=10.0, int NumPoints=110,
+                  bool UseCCQ=false, bool FarField=false, 
+                  char *FluxFileName=0, GTransformation *GT=0);
+
+   // trace version of DSIPFT
    void GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
                        HVector *KNVector, HMatrix *SigmaMatrix,
                        double PFT[7], double **ByEdge=0,
-                       char *BSMesh=0, double R=100.0,
-                       int NumPoints=31,
-                       bool Lebedev=false, bool FarField=false);
+                       char *BSMesh=0, double R=10.0,
+                       int NumPoints=110,
+                       bool UseCCQ=false, bool FarField=false);
 
-   // alternate versions of the PFT routines
-   void GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                int SurfaceIndex, double PFT[8]);
+   // absorbed or scattered/radiated power by equivalence-principle method
+   double GetEPP(int SurfaceIndex, cdouble Omega,
+                 HVector *KNVector, HMatrix *SigmaMatrix,
+                 double **ByEdge, bool Absorbed=true,
+                 HMatrix *TIn=0, HMatrix *TOut=0);
 
-   // faster DSIPFT routine
-   void GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
-                  double PFT[7],
-                  char *BSMesh=0, double R=100.0, int NumPoints=302,
-                  bool Lebedev=true, bool FarField=false,
-                  GTransformation *GT=0);
+   // force/torque by equivalence-principle method
+   void GetEPFT(int SurfaceIndex, cdouble Omega,
+                HVector *KNVector, IncField *IF, double FT[NUMFT],
+                double **ByEdge=0, int Order=1, double Delta=1.0e-5);
 
-   HMatrix *GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
-                           HVector *KNVector, HMatrix *SigmaMatrix,
-                           HMatrix *FMatrix, bool FarField);
+   // spatially-resolved fluxes (poynting vector and stress tensor)
+   HMatrix *GetSRFlux(HMatrix *XMatrix, cdouble Omega,
+                      HVector *KNVector, HMatrix *SigmaMatrix,
+                      HMatrix *FMatrix, bool FarField);
 
-   /* routine for calculating charge and current densities at panel centroids */
+   /*--------------------------------------------------------------*/
+   /*- post-processing routines for various other quantities      -*/
+   /*--------------------------------------------------------------*/
+
+   /* charge and current densities at panel centroids */
    HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
    HMatrix *GetPBCPanelSourceDensities(cdouble Omega, double *kBloch, HVector *KN, HMatrix *PSD=0);
 
-   /* routine for calculating electric and magnetic dipole moments */
+   /* electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
 
-   /* routine for computing the expansion coefficients in the RWG basis */
-   /* of an arbitrary user-supplied surface-tangential vector field;    */
+   /* expansion coefficients in the RWG expansion of an arbitrary */ 
+   /* user-supplied surface-tangential vector field               */
    void ExpandCurrentDistribution(IncField *IF, HVector *KN, cdouble Omega=1.0);
 
-   /* evaluate the surface currents at a given point X on an object */
-   /* surface, given a vector of RWG expansion coefficients         */
+   /* surface currents at a given point X on an object */
    void EvalCurrentDistribution(const double X[3], HVector *KNVec, double *kBloch, cdouble KN[6]);
    void EvalCurrentDistribution(const double X[3], HVector *KNVec, cdouble KN[6]);
+
+   /*--------------------------------------------------------------*/
+   /*- visualization routines -------------------------------------*/
+   /*--------------------------------------------------------------*/
+   void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
+   void WriteGPMesh(const char *format, ...);
+   void WriteGPMeshPlus(const char *format, ...);
+   void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
+   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
+
+   /*--------------------------------------------------------------*/
+   /*- misc routines for modifying geometric parameters, etc. -----*/
+   /*--------------------------------------------------------------*/
 
    /* routine for setting logging verbosity */
    void SetLogLevel(int LogLevel);
@@ -497,6 +489,13 @@ class RWGGeometry
    int GetDimension();
    int GetRegionByLabel(const char *Label);
    RWGSurface *GetSurfaceByLabel(const char *Label, int *pns=NULL);
+   int GetRegionIndex(const double X[3]); // index of region containing X
+   int PointInRegion(int RegionIndex, const double X[3]); 
+
+   /* geometrical transformations */
+   void Transform(GTComplex *GTC);
+   void UnTransform();
+   char *CheckGTCList(GTComplex **GTCList, int NumGTCs);
 
    /*---------------------------------------------------------------------*/
    /* periodic-boundary-condition versions of API routines.               */
@@ -514,6 +513,7 @@ class RWGGeometry
    /*- class methods intended for internal use only, i.e. which          */
    /*- would be private if we cared about the public/private distinction */
    /*--------------------------------------------------------------------*/
+
    // constructor helper functions
    void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum);
    void ProcessLATTICESection(FILE *f, char *FileName, int *LineNum);

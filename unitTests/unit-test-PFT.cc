@@ -89,6 +89,8 @@ double SiCPFT[] =
 /***************************************************************/
 int main(int argc, char *argv[])
 { 
+  (void )argc;
+  (void )argv; 
   SetLogFileName("scuff-unit-tests.log");
   Log("SCUFF-EM PFT unit tests running on %s",GetHostName());
 
@@ -132,8 +134,13 @@ int main(int argc, char *argv[])
         M->LUFactorize();
         M->LUSolve(KN);
 
+        double OPFT[7], PTot;
+        G->GetOPFT(0, Omega, KN, RHS, 0, OPFT, &PTot);
+
         double PFT[8];
-        G->GetOPFT(KN, RHS, Omega, 0, PFT);
+        PFT[0]=OPFT[0];
+        PFT[1]=PTot-PFT[0];
+        memcpy(PFT+2, OPFT+1, 6*sizeof(double));
 
         double Denom = M_PI*IncFlux;
         //double QScatScuff  = G->GetScatteredPower(KN, Omega, 0) / Denom;

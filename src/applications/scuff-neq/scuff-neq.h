@@ -94,10 +94,7 @@ typedef struct SNEQData
    /*- choice of PFT methods --------------------------------------*/
    /*--------------------------------------------------------------*/
    bool OmitSelfTerms;   // set all self terms to zero
-   bool DSISelf;  // DSIPFT instead of default EPPFT for self terms
    bool DSIOther; // DSIPFT instead of default OPFT for non-self terms
-   bool EPOther;  // EPPFT instead of default OPFT for non-self terms
-
    /*--------------------------------------------------------------*/
    /*- Edge-resolved data: ByEdge[ns][nq][ne] is the contribution -*/
    /*- of edge #ne on surface #ns to quantity #nq.                -*/
@@ -132,8 +129,8 @@ typedef struct SNEQData
    char *DSIMesh;           // bounding surface mesh for DSIPFT
    double DSIRadius;        // radius for DSIPFT
    int DSIPoints;           // number of cubature points for DSIPFT
-   bool Lebedev;
-   bool FarField; 
+   bool DSICCQ;             // use clenshaw-curtis instead of lebedev for DSIPFT 
+   bool DSIFarField;        // retain only far-field contributions to DSIPFT
 
  } SNEQData;
 

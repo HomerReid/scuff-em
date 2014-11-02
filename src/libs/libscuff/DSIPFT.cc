@@ -10,7 +10,7 @@
  * SCUFF-EM is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
@@ -278,12 +278,12 @@ HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
 /* Otherwise, the cubature rule describes a cubature rule with */
 /* NumPoints cubature points over a sphere of radius R.        */
 /*                                                             */
-/* If Lebedev is true, this is a Lebedev cubature rule. In     */
+/* If UseCCQ is false, this is a Lebedev cubature rule. In     */
 /* this case, NumPoints must be one of the numbers of cubature */
 /* points supported by the GetLebedevRule() routine in         */
 /* libTriInt.                                                  */
 /*                                                             */
-/* Otherwise (Lebedev==false) the cubature rule is a product   */
+/* Otherwise (UseCCQ==true) the cubature rule is a product     */
 /* rule with a Clenshaw-Curtis grid in the Theta direction and */
 /* an evenly-spaced grid in the Phi direction, and NumPoints   */
 /* should be an odd integer between 9 and 99 inclusive.        */
@@ -292,7 +292,7 @@ HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
 /* normal vector is transformed by GT.                         */
 /***************************************************************/
 HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints, 
-                      bool Lebedev, GTransformation *GT)
+                      bool UseCCQ, GTransformation *GT)
 {
   HMatrix *SCRMatrix;
 
@@ -304,12 +304,24 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
      RWGSurface *BS=new RWGSurface(BSMesh);
      SCRMatrix = new HMatrix(BS->NumPanels, 7);
      for(int np=0; np<BS->NumPanels; np++)
-      { SCRMatrix->SetEntry(np, 0, BS->Panels[np]->Centroid[0]);
-        SCRMatrix->SetEntry(np, 1, BS->Panels[np]->Centroid[1]);
-        SCRMatrix->SetEntry(np, 2, BS->Panels[np]->Centroid[2]);
-        SCRMatrix->SetEntry(np, 3, BS->Panels[np]->ZHat[0]);
-        SCRMatrix->SetEntry(np, 4, BS->Panels[np]->ZHat[1]);
-        SCRMatrix->SetEntry(np, 5, BS->Panels[np]->ZHat[2]);
+      { 
+        // make sure the surface normal points away from
+        // the origin, which we assume
+        double Sign  = 1.0;
+        double *X0   = BS->Panels[np]->Centroid;
+        double *ZHat = BS->Panels[np]->ZHat;
+        double Delta = 0.1*(BS->Panels[np]->Radius);
+        double X0pDelta[3];
+        VecScaleAdd(X0, Delta, ZHat, X0pDelta);
+        if ( VecNorm2(X0pDelta) < VecNorm2(X0) )
+         Sign=-1.0;
+
+        SCRMatrix->SetEntry(np, 0, X0[0]);
+        SCRMatrix->SetEntry(np, 1, X0[1]);
+        SCRMatrix->SetEntry(np, 2, X0[2]);
+        SCRMatrix->SetEntry(np, 3, Sign*ZHat[0]);
+        SCRMatrix->SetEntry(np, 4, Sign*ZHat[1]);
+        SCRMatrix->SetEntry(np, 5, Sign*ZHat[2]);
         SCRMatrix->SetEntry(np, 6, BS->Panels[np]->Area);
       };
      delete BS;
@@ -317,7 +329,7 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  else if (Lebedev)
+  else if (!UseCCQ)
    { double *LRule = GetLebedevRule(NumPoints);
      if (LRule==0) ErrExit("no Lebedev rule with %i points",NumPoints);
      SCRMatrix = new HMatrix(NumPoints, 7);
@@ -618,11 +630,11 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 /* Get power, force, and torque by the displaced               */
 /* surface-integral method.                                    */
 /***************************************************************/
-void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
+void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
                             double PFT[NUMPFT],
                             char *BSMesh, double R, int NumPoints,
-                            bool Lebedev, bool FarField,
-                            GTransformation *GT)
+                            bool UseCCQ, bool FarField, 
+                            char *FluxFileName, GTransformation *GT)
 {
   /***************************************************************/
   /***************************************************************/
@@ -631,12 +643,12 @@ void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
    Log("Computing DSIPFT over bounding surface %s...",BSMesh);
   else
    Log("Computing DSIPFT: (R,NPts,Lebedev)=(%e,%i,%s)",
-        R, NumPoints, Lebedev ? "true" : "false");
+        R, NumPoints, UseCCQ ? "false" : "true");
 
   /***************************************************************/
   /* get cubature-rule matrix ************************************/
   /***************************************************************/
-  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, Lebedev, GT);
+  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, UseCCQ, GT);
 
   /***************************************************************/
   /* we assume that all cubature points lie in the same region   */
@@ -664,6 +676,17 @@ void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
    FMatrix = GetFields(IF, KN, Omega, SCRMatrix);
 
   /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double *ByPanel=0;
+  RWGSurface *BS=0;
+  if (BSMesh && FluxFileName)
+   { BS=new RWGSurface(BSMesh);
+     if (GT) BS->Transform(GT);
+     ByPanel = (double *)mallocEC(NUMPFT*(BS->NumPanels)*sizeof(double));
+   };
+
+  /***************************************************************/
   /* loop over points in the cubature rule                       */
   /***************************************************************/
   memset(PFT, 0, NUMPFT*sizeof(double));
@@ -681,18 +704,54 @@ void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
      FMatrix->GetEntries(nr, "0:2", E);
      FMatrix->GetEntries(nr, "3:5", H);
 
-     PFT[SIPOWER] -= 0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
-                                  -HVMVP(H, NMatrix[SIPOWER], E)
-                                );
+     double dP = -0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
+                               -HVMVP(H, NMatrix[SIPOWER], E)
+                             );
+     PFT[SIPOWER] += dP;
+     if (ByPanel) ByPanel[ nr*NUMPFT + 0 ] = dP;
 
+     double dFT[7];
      for(int n=SIXFORCE; n<=SIZTORQUE; n++)
-      PFT[n] += 0.25 * w * ( EpsAbs*HVMVP(E, NMatrix[n], E)
-                             +MuAbs*HVMVP(H, NMatrix[n], H)
-                           );
+      { dFT[n] = 0.25 * w * ( EpsAbs*HVMVP(E, NMatrix[n], E)
+                              +MuAbs*HVMVP(H, NMatrix[n], H)
+                            );
+        PFT[n] += dFT[n];
+        if (ByPanel) ByPanel[ nr*NUMPFT + n ] = dFT[n];
+      };
    };
 
-  delete FMatrix; 
+  delete FMatrix;
   delete SCRMatrix;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (ByPanel)
+   {
+     static const char *PFTNames[7]
+      ={"PAbs","FX","FY","FZ","TX","TY","TZ"};
+
+     FILE *f=fopen(FluxFileName,"a");
+     for(int nq=0; nq<NUMPFT; nq++)
+      { fprintf(f,"View \"%s(%s)\" {\n",PFTNames[nq],z2s(Omega));
+        for(int np=0; np<BS->NumPanels; np++)
+         { RWGPanel *P = BS->Panels[np];
+           double *V1  = BS->Vertices + 3*P->VI[0];
+           double *V2  = BS->Vertices + 3*P->VI[1];
+           double *V3  = BS->Vertices + 3*P->VI[2];
+           double Val  = ByPanel[ np*NUMPFT + nq ] / (P->Area);
+           fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   V1[0], V1[1], V1[2], V2[0], V2[1], V2[2],
+                   V3[0], V3[1], V3[2], Val, Val, Val);
+           fclose(f);
+         };
+        fprintf(f,"};\n\n");
+      };
+     fclose(f);
+     
+     free(ByPanel);
+     delete BS;
+   };
   
 }
 
@@ -798,7 +857,7 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
                                  HVector *KNVector, HMatrix *SigmaMatrix,
                                  double PFT[7], double **ByEdge,
                                  char *BSMesh, double R, int NumPoints,
-                                 bool Lebedev, bool FarField)
+                                 bool UseCCQ, bool FarField)
 {}
 #if 0
 {
@@ -812,7 +871,7 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
         S->MeshFileName, BSMesh);
   else
    Log("Computing SIPFT for surface %s: (R,NPts,Lebedev)=(%e,%i,%s)",
-        S->MeshFileName, R, NumPoints, Lebedev ? "true" : "false");
+        S->MeshFileName, R, NumPoints, UseCCQ? "false" : "true");
 
   /***************************************************************/
   /***************************************************************/
@@ -862,7 +921,7 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*- fetch cubature rule and precompute field six-vectors       -*/
   /*--------------------------------------------------------------*/
-  HMatrix *SCRMatrix  = GetSCRMatrix(BSMesh, R, NumPoints, Lebedev, GT);
+  HMatrix *SCRMatrix  = GetSCRMatrix(BSMesh, R, NumPoints, UseCCQ, GT);
   HMatrix *FSVMatrix = GetFSVMatrix(this, SurfaceIndex, SCRMatrix,
                                     Omega, FarField);
   /*--------------------------------------------------------------*/
@@ -989,10 +1048,11 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
 /* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
 /* FMatrix[nx,12..20] = rxMST_{xx}, rxMST_{xy}, ..., rxMST_{zz}*/
 /***************************************************************/
-HMatrix *RWGGeometry::GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
-                                     HVector *KNVector, HMatrix *SigmaMatrix,
-                                     HMatrix *FMatrix, bool FarField)
-{}
+HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
+                                HVector *KNVector, HMatrix *SigmaMatrix,
+                                HMatrix *FMatrix, bool FarField)
+{ return 0;
+}
 #if 0
   /***************************************************************/
   /* (re)allocate FMatrix as necessary ***************************/
@@ -1150,5 +1210,4 @@ HMatrix *RWGGeometry::GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
 
 } // routine GetSRFluxTrace
 #endif
-
-}
+} // namespace scuff
