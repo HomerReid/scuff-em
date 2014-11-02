@@ -266,7 +266,7 @@ void ProcessByEdgeArray(RWGGeometry *G, int ns,
    ={"PAbs","FX","FY","FZ","TX","TY","TZ"};
 
   char FileName[100];
-  if (G->NumSurfaces==0)
+  if (G->NumSurfaces==1)
    snprintf(FileName,100,"%s.%s.pp",GetFileBase(PFTFile),Suffix);
   else
    snprintf(FileName,100,"%s.%s.%s.pp",
@@ -439,12 +439,12 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
      char *FluxFileName=0, FFNBuffer[100];
      if (PlotFlux && DSIMesh)
       { FluxFileName=FFNBuffer;
-        if (G->NumSurfaces==0)
+        if (G->NumSurfaces==1)
          snprintf(FluxFileName,100,"%s.DSIPFTFlux.pp",
-                                    GetFileBase(FileName));
+                                    GetFileBase(G->GeoFileName));
         else
          snprintf(FileName,100,"%s.%s.DSIPFTFlux.pp",
-                                GetFileBase(FileName),S->Label);
+                                GetFileBase(G->GeoFileName),S->Label);
       };
 
      GTransformation *GT=0;

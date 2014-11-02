@@ -743,7 +743,6 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
            fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                    V1[0], V1[1], V1[2], V2[0], V2[1], V2[2],
                    V3[0], V3[1], V3[2], Val, Val, Val);
-           fclose(f);
          };
         fprintf(f,"};\n\n");
       };
