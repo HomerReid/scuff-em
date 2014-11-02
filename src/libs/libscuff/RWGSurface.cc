@@ -567,7 +567,7 @@ RWGSurface::~RWGSurface()
   for(int ne=0; ne<NumExteriorEdges; ne++)
    free(ExteriorEdges[ne]);
   free(ExteriorEdges);
-  
+
   for(int nbc=0; nbc<NumBCs; nbc++)
    free(BCEdges[nbc]);
   if (BCEdges) free(BCEdges);

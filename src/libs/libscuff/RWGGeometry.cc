@@ -201,7 +201,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* initialize simple fields ************************************/
   /***************************************************************/
   LogLevel=pLogLevel;
-  NumSurfaces=TotalPanels=TotalBFs=0;
+  NumSurfaces=TotalBFs=TotalEdges=TotalPanels=0;
   GeoFileName=strdupEC(pGeoFileName);
   Surfaces=0;
   AllSurfacesClosed=1;
@@ -386,6 +386,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         Surfaces[NumSurfaces-1]=S;
 
         TotalBFs+=S->NumBFs;
+        TotalEdges+=S->NumEdges;
         TotalPanels+=S->NumPanels;
         S->Index=NumSurfaces-1;
 
