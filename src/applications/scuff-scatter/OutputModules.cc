@@ -436,6 +436,9 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
    { 
      RWGSurface  *S=G->Surfaces[ns];
 
+     Log("Computing displaced-surface-integral power, force, torque "
+         "for surface %i...",S->Label);
+
      char *FluxFileName=0, FFNBuffer[100];
      if (PlotFlux && DSIMesh)
       { FluxFileName=FFNBuffer;
