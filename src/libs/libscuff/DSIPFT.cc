@@ -991,7 +991,7 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
         /*--------------------------------------------------------------*/
         /*- get the contributions of this edge pair to all quantities   */
         /*--------------------------------------------------------------*/
-        double DeltaPFT[NUMPFT];
+        double DeltaPFT[NUMPFT]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         double Weight = (nsa==nsb && nea==neb) ? 1.0 : 2.0;
         for(int nq=0; nq<NUMPFT; nq++)
          { if (NeedQuantity[nq]==false) continue;
