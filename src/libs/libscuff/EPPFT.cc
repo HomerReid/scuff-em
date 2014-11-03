@@ -407,6 +407,8 @@ double RWGGeometry::GetEPP(int DestSurface, cdouble Omega,
   for(int nea=0; nea<NE; nea++)
     for(int neb=0; neb<NE; neb++)
      { 
+       if (neb<nea) continue;
+
        /*--------------------------------------------------------------*/
        /*- get the matrix elements <b_\alpha | e_\beta> and           -*/
        /*-                         <b_\alpha | h_\beta>               -*/
@@ -456,7 +458,8 @@ double RWGGeometry::GetEPP(int DestSurface, cdouble Omega,
        /*- get the contributions of this edge pair to the power and    */
        /*- accumulate contributions to full and by-edge sums           */
        /*--------------------------------------------------------------*/
-       double dP = -1.0*real( (KK*PEE + NN*PMM)*be + (KN*PEM + NK*PME)*bh );
+       double Weight = (nea==neb) ? 1.0 : 2.0;
+       double dP = -1.0*Weight*real( (KK*PEE + NN*PMM)*be + (KN*PEM + NK*PME)*bh );
 
        P += dP;
        if ( ByEdge && ByEdge[0] )
