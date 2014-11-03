@@ -421,7 +421,7 @@ class RWGGeometry
    // trace version of DSIPFT
    void GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
                        HVector *KNVector, HMatrix *SigmaMatrix,
-                       double PFT[7], double **ByEdge=0,
+                       double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                        char *BSMesh=0, double R=10.0,
                        int NumPoints=110,
                        bool UseCCQ=false, bool FarField=false);

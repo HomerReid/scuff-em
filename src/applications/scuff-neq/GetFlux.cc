@@ -183,7 +183,7 @@ void GetSIFlux(SNEQData *SNEQD,
   double AllFlux[NUMPFT];
   if (SourceSurface==DestSurface || DSIOther)
    { 
-      G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
+      G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, NeedQuantity,
                         SNEQD->DSIMesh, SNEQD->DSIRadius, SNEQD->DSIPoints,
                         SNEQD->DSICCQ, SNEQD->DSIFarField);
    }
@@ -192,7 +192,7 @@ void GetSIFlux(SNEQData *SNEQD,
      G->GetOPFT(DestSurface, Omega, 0, 0, Sigma, AllFlux, 0, ByEdge);
 
      // replace overlap power with EPPFT power
-     if (SNEQD->NeedQuantity[QINDEX_POWER])
+     if ( SNEQD->NeedQuantity[QINDEX_POWER] )
       AllFlux[QINDEX_POWER]=G->GetEPP(DestSurface, Omega, 0, Sigma,
                                       ByEdge, true, SNEQD->TSelf[DestSurface]);
    }
