@@ -574,7 +574,7 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
      NMatrix[SIXFORCE][1][2] = NMatrix[SIXFORCE][2][1] =  0.0;
    };
 
-  if ( NeedQuantity || NeedQuantity[SIYFORCE] )
+  if ( !NeedQuantity || NeedQuantity[SIYFORCE] )
    { NMatrix[SIYFORCE][0][0]                           = -nHat[1]; 
      NMatrix[SIYFORCE][1][1]                           =  nHat[1];
      NMatrix[SIYFORCE][2][2]                           = -nHat[1];
@@ -583,7 +583,7 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
      NMatrix[SIYFORCE][0][2] = NMatrix[SIYFORCE][2][0] =  0.0;
    };
 
-  if ( NeedQuantity || NeedQuantity[SIZFORCE] )
+  if ( !NeedQuantity || NeedQuantity[SIZFORCE] )
    { NMatrix[SIZFORCE][0][0]                           = -nHat[2];
      NMatrix[SIZFORCE][1][1]                           = -nHat[2];
      NMatrix[SIZFORCE][2][2]                           =  nHat[2];
