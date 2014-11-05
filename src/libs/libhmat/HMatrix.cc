@@ -50,9 +50,15 @@ HMatrix::HMatrix(int NRows, int NCols, int pRealComplex, int pStorageType,
 		 void *data)
  { InitHMatrix(NRows, NCols, pRealComplex, pStorageType, data); }
 
-HMatrix::HMatrix(HMatrix *M) {
-  InitHMatrix(M->NR, M->NC, M->RealComplex, M->StorageType);
-  Copy(M);
+HMatrix::HMatrix(HMatrix *M, bool takedatandownership) {
+  if (takedatandownership) {
+    InitHMatrix(M->NR, M->NC, M->RealComplex, M->StorageType, M->RealComplex==LHM_COMPLEX ? (void*)M->ZM : (void*)M->DM);
+    ownsM = true;
+    M->ownsM = false;
+  } else {
+    InitHMatrix(M->NR, M->NC, M->RealComplex, M->StorageType);
+    Copy(M);
+  }
 }
 
 /***************************************************************/
@@ -61,8 +67,6 @@ HMatrix::HMatrix(HMatrix *M) {
 void HMatrix::InitHMatrix(int NRows, int NCols, int pRealComplex, 
 			  int pStorageType, void *data)
 { 
-   unsigned long NumEntries;
-    
    RealComplex=pRealComplex;
    StorageType=pStorageType;
    ipiv=0;
@@ -86,8 +90,6 @@ void HMatrix::InitHMatrix(int NRows, int NCols, int pRealComplex,
       fprintf(stderr,"\n* SYMMETRIC for real-valued matrices\n*\n");
     };
 
-   NumEntries = (StorageType==LHM_NORMAL ? NR*NC : NR*(NR+1)/2);
-
    /* If the data parameter is non-NULL, it is assumed to point to a 
       user-allocated buffer of the correct size.  This is useful
       to create an HMatrix "wrapper" around an existing matrix,
@@ -96,12 +98,12 @@ void HMatrix::InitHMatrix(int NRows, int NCols, int pRealComplex,
 
    ownsM = data == NULL;
    if (RealComplex==LHM_REAL)
-    { DM=(double *)(data ? data : mallocEC(NumEntries * sizeof(double))); 
+    { DM=(double *)(data ? data : mallocEC(NumEntries() * sizeof(double)));
       ZM=0;
     }
    else
     { DM=0;
-      ZM=(cdouble *)(data ? data : mallocEC(NumEntries * sizeof(cdouble)));
+      ZM=(cdouble *)(data ? data : mallocEC(NumEntries() * sizeof(cdouble)));
     };
 
   ipiv=0; // this is only allocated when needed 
@@ -203,9 +205,9 @@ HMatrix::HMatrix(SMatrix *S)
       DM=(double *)mallocEC(NR*NC*sizeof(double));
       // memset(DM, 0, NR*NC*sizeof(double)); done by mallocEC
 
-      for(int nr=0; nr<NR; nr++) {
-	int iend = RowStart[nr+1];
-	for (int i = RowStart[nr]; i < iend; ++i)
+      for(size_t nr=0; nr<NR; nr++) {
+	size_t iend = RowStart[nr+1];
+	for (size_t i = RowStart[nr]; i < iend; ++i)
 	  SetEntry(nr, ColIndices[i], SDM[i]);
       }
     }
@@ -215,9 +217,9 @@ HMatrix::HMatrix(SMatrix *S)
       ZM=(cdouble *)mallocEC(NR*NC*sizeof(cdouble));
       // memset(ZM, 0, NR*NC*sizeof(cdouble)); done by mallocEC
 
-      for(int nr=0; nr<NR; nr++) {
-	int iend = RowStart[nr+1];
-	for (int i = RowStart[nr]; i < iend; ++i)
+      for(size_t nr=0; nr<NR; nr++) {
+	size_t iend = RowStart[nr+1];
+	for (size_t i = RowStart[nr]; i < iend; ++i)
 	  SetEntry(nr, ColIndices[i], SZM[i]);
       }
     };
@@ -243,14 +245,10 @@ HMatrix::~HMatrix()
 /***************************************************************/
 void HMatrix::Zero()
 { 
-  int NumEntries;
-
-  NumEntries = (StorageType==LHM_NORMAL ? NR*NC : NR*(NR+1)/2);
-
   if (RealComplex==LHM_REAL)
-   memset(DM,0,NumEntries*sizeof(double));
+   memset(DM,0,NumEntries()*sizeof(double));
   else
-   memset(ZM,0,NumEntries*sizeof(cdouble));
+   memset(ZM,0,NumEntries()*sizeof(cdouble));
 }
 
 /***************************************************************/
@@ -265,7 +263,7 @@ void HMatrix::ZeroBlock(int RowOffset, int NumRows, int ColOffset, int NumCols)
   if ( RowOffset < 0 || (RowOffset+NumRows)>NR || ColOffset<0 || (ColOffset+NumCols)>NC )
    ErrExit("invalid call to HMatrix(%i,%i)::ZeroBlock(%i,%i,%i,%i)",NR,NC,RowOffset,NumRows,ColOffset,NumCols);
 
-  int nr, nc;
+  size_t nr, nc;
   for(nr=RowOffset; nr<(RowOffset+NumRows); nr++)
    for(nc=ColOffset; nc<(ColOffset+NumCols); nc++)
     SetEntry(nr,nc,0.0);
@@ -281,7 +279,7 @@ void HMatrix::ZeroBlock(int RowOffset, int NumRows, int ColOffset, int NumCols)
 /***************************************************************/
 void HMatrix::Copy(HMatrix *M)
 {
-  int nr, nc, NumEntries;
+  size_t nr, nc;
 
   if ( M->NR != NR || M->NC != NC || M->RealComplex!=RealComplex )
    { fprintf(stderr,"\n*\n* WARNING: %s:%i: matrix properties mismatch (copy failed)\n*\n",__FILE__,__LINE__);
@@ -290,11 +288,10 @@ void HMatrix::Copy(HMatrix *M)
 
   if ( M->StorageType==StorageType )
    { 
-     NumEntries = (StorageType==LHM_NORMAL ? NR*NC : NR*(NR+1)/2);
      if (RealComplex==LHM_REAL)
-      memcpy(DM, M->DM, NumEntries*sizeof(double));
+      memcpy(DM, M->DM, NumEntries()*sizeof(double));
      else 
-      memcpy(ZM, M->ZM, NumEntries*sizeof(cdouble));
+      memcpy(ZM, M->ZM, NumEntries()*sizeof(cdouble));
    }
   else
    { for (nr=0; nr<NR; nr++)
@@ -307,9 +304,9 @@ void HMatrix::Copy(HMatrix *M)
 /***************************************************************/
 /* get the value of a matrix entry  ****************************/
 /***************************************************************/
-cdouble HMatrix::GetEntry(int nr, int nc)
+cdouble HMatrix::GetEntry(size_t nr, size_t nc)
 {
-  int Index, Flipped;
+  size_t Index, Flipped;
 
   Flipped=0;
   if (StorageType!=LHM_NORMAL && nr>nc) 
@@ -326,9 +323,9 @@ cdouble HMatrix::GetEntry(int nr, int nc)
 
 }
 
-double HMatrix::GetEntryD(int nr, int nc)
+double HMatrix::GetEntryD(size_t nr, size_t nc)
 {
-  int Index;
+  size_t Index;
 
   if (StorageType!=LHM_NORMAL && nr>nc) 
    { Index=nr; nr=nc; nc=Index; }
@@ -346,7 +343,7 @@ double HMatrix::GetEntryD(int nr, int nc)
 /***************************************************************/
 cdouble HMatrix::GetTrace()
 {
-  int n;
+  size_t n;
   cdouble Trace;
 
   if (NR!=NC)
@@ -367,9 +364,9 @@ double HMatrix::GetTraceD()
 /***************************************************************/
 /* set the value of a matrix entry  ****************************/
 /***************************************************************/
-void HMatrix::SetEntry(int nr, int nc, cdouble Entry)
+void HMatrix::SetEntry(size_t nr, size_t nc, cdouble Entry)
 {
-  int Index, Flipped;
+  size_t Index, Flipped;
   
   Flipped=0;
   if (StorageType!=LHM_NORMAL && nr>nc) 
@@ -386,9 +383,9 @@ void HMatrix::SetEntry(int nr, int nc, cdouble Entry)
 
 }
 
-void HMatrix::SetEntry(int nr, int nc, double Entry)
+void HMatrix::SetEntry(size_t nr, size_t nc, double Entry)
 {
-  int Index;
+  size_t Index;
 
   if (StorageType!=LHM_NORMAL && nr>nc) 
    { Index=nr; nr=nc; nc=Index; }
@@ -405,9 +402,9 @@ void HMatrix::SetEntry(int nr, int nc, double Entry)
 /***************************************************************/
 /* augment a matrix entry **************************************/
 /***************************************************************/
-void HMatrix::AddEntry(int nr, int nc, cdouble Entry)
+void HMatrix::AddEntry(size_t nr, size_t nc, cdouble Entry)
 {
-  int Index, Flipped;
+  size_t Index, Flipped;
 
   Flipped=0;
   if (StorageType!=LHM_NORMAL && nr>nc) 
@@ -423,9 +420,9 @@ void HMatrix::AddEntry(int nr, int nc, cdouble Entry)
    ZM[Index] += Entry;
 }
 
-void HMatrix::AddEntry(int nr, int nc, double Entry)
+void HMatrix::AddEntry(size_t nr, size_t nc, double Entry)
 {
-  int Index;
+  size_t Index;
 
   if (StorageType!=LHM_NORMAL && nr>nc) 
    { Index=nr; nr=nc; nc=Index; }
@@ -443,13 +440,13 @@ void HMatrix::AddEntry(int nr, int nc, double Entry)
 /***************************************************************/
 void HMatrix::Scale(cdouble Alpha)
 {
-  int n, NumEntries = (StorageType==LHM_NORMAL ? NR*NC : NR*(NR+1)/2);
+  size_t n, NumEntries_ = NumEntries();
 
   if (RealComplex==LHM_REAL)
-   for(n=0; n<NumEntries; n++)
+   for(n=0; n<NumEntries_; n++)
     DM[n] *= real(Alpha);
   else
-   for(n=0; n<NumEntries; n++)
+   for(n=0; n<NumEntries_; n++)
     ZM[n]*=Alpha;
 
 }
@@ -467,7 +464,7 @@ void HMatrix::Adjoint()
   cdouble *ZM2;
   double TD;
   cdouble TZ;
-  int nr, nc, n, NumEntries;
+  size_t nr, nc, n, NumEntries_;
 
   if ( RealComplex==LHM_REAL && StorageType==LHM_NORMAL )
    { 
@@ -525,8 +522,8 @@ void HMatrix::Adjoint()
      /* the matrix already is its own transpose */
    } 
   else if ( RealComplex==LHM_COMPLEX && StorageType==LHM_SYMMETRIC )
-   { NumEntries = NR*(NR+1)/2;
-     for (n=0; n<NumEntries; n++)
+   { NumEntries_ = NumEntries();
+     for (n=0; n<NumEntries_; n++)
       ZM[n] = conj(ZM[n]);
    };
 
@@ -538,7 +535,7 @@ void HMatrix::Adjoint()
 void HMatrix::Transpose()
 { 
   cdouble *ZM2;
-  int nr, nc, n, NumEntries;
+  size_t nr, nc, n, NumEntries_;
   cdouble TZ;
 
   if ( RealComplex==LHM_REAL )
@@ -568,8 +565,8 @@ void HMatrix::Transpose()
    }
   else if ( RealComplex==LHM_COMPLEX && StorageType==LHM_HERMITIAN )
    { 
-     NumEntries = NR*(NR+1)/2;
-     for (n=0; n<NumEntries; n++)
+     NumEntries_ = NumEntries();
+     for (n=0; n<NumEntries_; n++)
       ZM[n]=conj(ZM[n]);
    } 
   else if ( RealComplex==LHM_COMPLEX && StorageType==LHM_SYMMETRIC )
@@ -585,7 +582,7 @@ void HMatrix::Transpose()
 /***************************************************************/
 void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset)
 { 
-  int nr, nc;
+  size_t nr, nc;
 
   if ( ((RowOffset + B->NR) > NR) || ((ColOffset + B->NC) > NC) )
    ErrExit("InsertBlock(): block insertion exceeds matrix size");
@@ -602,7 +599,7 @@ void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset)
 void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset,
                           int NRB, int NCB, int BRowOffset, int BColOffset)
 {
-  int nr, nc;
+  size_t nr, nc;
 
   if ( ((RowOffset + NRB) > NR) || ((ColOffset + NCB) > NC) )
    ErrExit("InsertBlock(): block insertion exceeds matrix size");
@@ -625,7 +622,7 @@ void HMatrix::InsertBlock(HMatrix *B, int RowOffset, int ColOffset,
 /***************************************************************/
 void HMatrix::InsertBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset)
 { 
-  int nr, nc;
+  size_t nr, nc;
 
   if ( ((RowOffset + B->NC) > NR) || ((ColOffset + B->NR) > NC) )
    ErrExit("InsertBlockAdjoint(): block insertion exceeds matrix size");
@@ -652,7 +649,7 @@ void HMatrix::InsertBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset)
 /***************************************************************/
 void HMatrix::InsertBlockTranspose(HMatrix *B, int RowOffset, int ColOffset)
 { 
-  int nr, nc;
+  size_t nr, nc;
 
   if ( ((RowOffset + B->NC) > NR) || ((ColOffset + B->NR) > NC) )
    ErrExit("InsertBlockTranspose(): block insertion exceeds matrix size");
@@ -678,8 +675,8 @@ void HMatrix::AddBlock(HMatrix *B, int RowOffset, int ColOffset)
   if ( ((RowOffset + B->NR) > NR) || ((ColOffset + B->NC) > NC) )
    ErrExit("AddBlock(): block insertion exceeds matrix size");
 
-  for (int nr=0; nr<B->NR; nr++)
-   for (int nc=0; nc<B->NC; nc++)
+  for (size_t nr=0; nr<B->NR; nr++)
+   for (size_t nc=0; nc<B->NC; nc++)
     AddEntry(RowOffset+nr, ColOffset+nc, B->GetEntry(nr,nc) );
 }
 
@@ -691,7 +688,7 @@ void HMatrix::AddBlock(SMatrix *B, int RowOffset, int ColOffset)
   if ( ((RowOffset + B->NR) > NR) || ((ColOffset + B->NC) > NC) )
    ErrExit("AddBlock(): block insertion exceeds matrix size");
 
-  for(int nr=0; nr<B->NR; nr++)
+  for(size_t nr=0; nr<B->NR; nr++)
    { int *nc;
      void *Entries;
      int NNZ = B->GetRow(nr, &nc, &Entries);
@@ -715,7 +712,7 @@ void HMatrix::AddBlock(SMatrix *B, int RowOffset, int ColOffset)
 /***************************************************************/
 void HMatrix::ExtractBlock(int RowOffset, int ColOffset, HMatrix *B)
 { 
-  int nr, nc;
+  size_t nr, nc;
 
   if ( ((RowOffset + B->NR) > NR) || ((ColOffset + B->NC) > NC) )
    ErrExit("ExtractBlock(): block extraction exceeds matrix size");
@@ -760,8 +757,8 @@ HMatrix *Concat(HMatrix *A, HMatrix *B, int How)
 
   // if none of the above then A->NR=B->NR and A->NC=B->NC; use caller-specified How value
 
-  int NR = (How==LHM_HORIZONTAL) ? A->NR : (A->NR + B->NR);
-  int NC = (How==LHM_VERTICAL)   ? A->NC : (A->NC + B->NC);
+  size_t NR = (How==LHM_HORIZONTAL) ? A->NR : (A->NR + B->NR);
+  size_t NC = (How==LHM_VERTICAL)   ? A->NC : (A->NC + B->NC);
   int DataType = (A->RealComplex==LHM_REAL && B->RealComplex==LHM_REAL) ? LHM_REAL : LHM_COMPLEX;
 
   HMatrix *C = new HMatrix(NR, NC, DataType);
@@ -782,8 +779,8 @@ HMatrix *Concat(HMatrix *A, HMatrix *B, int How)
 cdouble HMatrix::BilinearProduct(HVector *X, HVector *Y)
 {
   cdouble Sum=0.0;
-  for(int nr=0; nr<NR; nr++)
-   for(int nc=0; nc<NC; nc++)
+  for(size_t nr=0; nr<NR; nr++)
+   for(size_t nc=0; nc<NC; nc++)
     Sum += conj(X->GetEntry(nr)) * GetEntry(nr, nc) * Y->GetEntry(nc);
   return Sum;
 }
