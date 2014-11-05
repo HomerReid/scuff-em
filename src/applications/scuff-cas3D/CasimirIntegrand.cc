@@ -226,11 +226,12 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
   bool PBC = (G->LDim > 0);
 
   if (G->LDim==0)
-   Log("Computing Casimir integrand at Xi=%g\n",Xi);
+   Log("Computing Casimir integrand at Xi=%g",Xi);
   else if (G->LDim==1)
-   Log("Computing Casimir integrand at (Xi,kx)=(%g,%g)\n",Xi,kBloch[0]);
+   Log("Computing Casimir integrand at (Xi,kx)=(%g,%g)",Xi,kBloch[0]);
   else // (G->LDim==2)
-   Log("Computing Casimir integrand at (Xi,kx,ky)=(%g,%g,%g)\n",Xi,kBloch[0],kBloch[1]);
+   Log("Computing Casimir integrand at (Xi,kx,ky)=(%g,%g,%g)",Xi,kBloch[0],kBloch[1]);
+  Log("Mem usage: %lu",GetMemoryUsage()/1048576);
 
   /***************************************************************/
   /* SurfaceNeverMoved[ns] is initialized true and remains true  */
