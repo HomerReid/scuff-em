@@ -846,7 +846,7 @@ void GetDSIPFTMatrixEntries(RWGGeometry *G,
      /***************************************************************/
      /* entries of force and torque matrices ************************/
      /***************************************************************/
-     for(int nq=SIXFORCE; nq<SIZTORQUE; nq++)
+     for(int nq=SIXFORCE; nq<=SIZTORQUE; nq++)
       { 
         if ( NeedQuantity[nq]==false ) continue;
 
