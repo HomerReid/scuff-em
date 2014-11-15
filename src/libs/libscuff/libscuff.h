@@ -413,7 +413,7 @@ class RWGGeometry
                 double PFT[7], double *PTot=0, double **ByEdge=0);
 
    // PFT by displaced-surface-integral method
-   void GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF, double PFT[7],
+   void GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF, double PFT[7], double *PScat,
                   char *BSMesh=0, double R=10.0, int NumPoints=110,
                   bool UseCCQ=false, bool FarField=false, 
                   char *FluxFileName=0, GTransformation *GT=0);

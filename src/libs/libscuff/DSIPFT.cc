@@ -645,7 +645,7 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 /* surface-integral method.                                    */
 /***************************************************************/
 void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
-                            double PFT[NUMPFT],
+                            double PFT[NUMPFT], double *PScat,
                             char *BSMesh, double R, int NumPoints,
                             bool UseCCQ, bool FarField, 
                             char *FluxFileName, GTransformation *GT)
@@ -692,6 +692,18 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  HMatrix *FMatrixScat=0;
+  if (PScat)
+   { *PScat=0;
+     if (FarField)
+      FMatrixScat = GetFarFields(this, 0, KN, Omega, SCRMatrix);
+     else
+      FMatrixScat = GetFields(0, KN, Omega, SCRMatrix);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   double *ByPanel=0;
   RWGSurface *BS=0;
   if (BSMesh && FluxFileName)
@@ -724,6 +736,17 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
      PFT[SIPOWER] += dP;
      if (ByPanel) ByPanel[ nr*NUMPFT + 0 ] = dP;
 
+     if (PScat)
+      { 
+        cdouble ES[3], HS[3];
+        FMatrixScat->GetEntries(nr, "0:2", ES);
+        FMatrixScat->GetEntries(nr, "3:5", HS);
+
+        *PScat += 0.25 * w * (  HVMVP(ES, NMatrix[SIPOWER], HS)
+                               -HVMVP(HS, NMatrix[SIPOWER], ES)
+                             );
+      };
+
      double dFT[7];
      for(int n=SIXFORCE; n<=SIZTORQUE; n++)
       { dFT[n] = 0.25 * w * ( EpsAbs*HVMVP(E, NMatrix[n], E)
@@ -735,6 +758,7 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
    };
 
   delete FMatrix;
+  if (FMatrixScat) delete FMatrixScat;
   delete SCRMatrix;
 
   /***************************************************************/

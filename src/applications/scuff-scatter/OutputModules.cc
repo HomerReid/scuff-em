@@ -377,9 +377,12 @@ void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
      fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
      double **ByEdge = (PlotFlux ? AllocateByEdgeArray(G, ns) : 0);
 
-     double OPFT[7], PScat;
-     G->GetOPFT(ns, SSD->Omega, SSD->KN, SSD->RHS, 0, OPFT, &PScat, ByEdge);
-     fprintf(f,"%e %e ",OPFT[0],PScat);
+     double OPFT[7], PTot;
+     G->GetOPFT(ns, SSD->Omega, SSD->KN, SSD->RHS, 0, OPFT, &PTot, ByEdge);
+     double PAbs  = OPFT[0];
+     double PScat = PTot - PAbs;
+ 
+     fprintf(f,"%e %e ",PAbs,PScat);
      for(int nq=1; nq<7; nq++)
       fprintf(f,"%e ",OPFT[nq]);
      fprintf(f,"\n");
@@ -408,7 +411,7 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
      fprintf(f,"# 1 omega \n");
      fprintf(f,"# 2 surface label \n");
      fprintf(f,"# 3 absorbed power\n");
-     fprintf(f,"# 4 cubature method\n");
+     fprintf(f,"# 4 scattered power\n");
      fprintf(f,"# 5 x-force \n");
      fprintf(f,"# 6 y-force \n");
      fprintf(f,"# 7 z-force \n");
@@ -462,13 +465,13 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
         CreatedGT=true;
       };
 
-     double DSIPFT[7];
-     G->GetDSIPFT(SSD->Omega, SSD->KN, SSD->IF, DSIPFT,
+     double DSIPFT[7], PScat;
+     G->GetDSIPFT(SSD->Omega, SSD->KN, SSD->IF, DSIPFT, &PScat,
                   DSIMesh, DSIRadius, DSIPoints,
                   DSICCQ, DSIFarField, FluxFileName, GT);
 
-     fprintf(f,"%s %s %e %s ",
-                z2s(SSD->Omega),S->Label,DSIPFT[0],CubatureMethod);
+     fprintf(f,"%s %s %e %e ",
+                z2s(SSD->Omega),S->Label,DSIPFT[0],PScat);
      for(int nq=1; nq<7; nq++)
       fprintf(f,"%e ",DSIPFT[nq]);
      fprintf(f,"\n");
