@@ -305,15 +305,16 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
      SCRMatrix = new HMatrix(BS->NumPanels, 7);
      for(int np=0; np<BS->NumPanels; np++)
       { 
-        // make sure the surface normal points away from
-        // the origin, which we assume
-        double Sign  = 1.0;
         double *X0   = BS->Panels[np]->Centroid;
         double *ZHat = BS->Panels[np]->ZHat;
-        double Delta = 0.1*(BS->Panels[np]->Radius);
-        double X0pDelta[3];
-        VecScaleAdd(X0, Delta, ZHat, X0pDelta);
-        if ( VecNorm2(X0pDelta) < VecNorm2(X0) )
+        
+        // define Sign= \pm 1 such that Sign*ZHat is the
+        // outward-pointing surface normal
+        double Sign=1.0;
+        double XP[3];
+        double LengthScale= BS->Panels[np]->Radius;
+        VecScaleAdd(X0,0.1*LengthScale,ZHat,XP);
+        if ( BS->Contains(XP) )
          Sign=-1.0;
 
         SCRMatrix->SetEntry(np, 0, X0[0]);

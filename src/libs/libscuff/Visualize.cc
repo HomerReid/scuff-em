@@ -794,7 +794,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
         PV[0]=S->Vertices + 3*P->VI[0];
         PV[1]=S->Vertices + 3*P->VI[1];
         PV[2]=S->Vertices + 3*P->VI[2];
-        cdouble Sigma=PSD->GetEntry( Offset + np, 7);
+        cdouble Sigma=PSD->GetEntry( Offset + np, 4);
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                    PV[0][0], PV[0][1], PV[0][2],
                    PV[1][0], PV[1][1], PV[1][2],
@@ -817,9 +817,9 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
 
      for(int np=0; np<S->NumPanels; np++)
       { RWGPanel *P=S->Panels[np];
-        cdouble Kx = PSD->GetEntry(Offset + np, 4);
-        cdouble Ky = PSD->GetEntry(Offset + np, 5);
-        cdouble Kz = PSD->GetEntry(Offset + np, 6);
+        cdouble Kx = PSD->GetEntry(Offset + np, 5);
+        cdouble Ky = PSD->GetEntry(Offset + np, 6);
+        cdouble Kz = PSD->GetEntry(Offset + np, 7);
         fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
                    P->Centroid[0],P->Centroid[1],P->Centroid[2],
                    real(Kx), real(Ky), real(Kz));
@@ -865,7 +865,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
         PV[0]=S->Vertices + 3*P->VI[0];
         PV[1]=S->Vertices + 3*P->VI[1];
         PV[2]=S->Vertices + 3*P->VI[2];
-        cdouble Eta=PSD->GetEntry( Offset + np, 11);
+        cdouble Eta=PSD->GetEntry( Offset + np, 8);
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
                    PV[0][0], PV[0][1], PV[0][2],
                    PV[1][0], PV[1][1], PV[1][2],
@@ -888,9 +888,9 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
 
      for(int np=0; np<S->NumPanels; np++)
       { RWGPanel *P=S->Panels[np];
-        cdouble Nx = PSD->GetEntry(Offset + np,  8);
-        cdouble Ny = PSD->GetEntry(Offset + np,  9);
-        cdouble Nz = PSD->GetEntry(Offset + np, 10);
+        cdouble Nx = PSD->GetEntry(Offset + np,  9);
+        cdouble Ny = PSD->GetEntry(Offset + np, 10);
+        cdouble Nz = PSD->GetEntry(Offset + np, 11);
         fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
                    P->Centroid[0],P->Centroid[1],P->Centroid[2],
                    real(Nx), real(Ny), real(Nz));
