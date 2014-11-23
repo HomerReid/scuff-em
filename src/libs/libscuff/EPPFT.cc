@@ -415,11 +415,11 @@ double RWGGeometry::GetEPP(int DestSurface, cdouble Omega,
        /*--------------------------------------------------------------*/
        cdouble be, bh;
        if (Absorbed && TIn)
-        { be=TIn->GetEntry(2*nea+0, 2*neb+0)/IKZ;
+        { be=TIn->GetEntry(2*nea+0, 2*neb+0)/(II*k*ZRel);
           bh=TIn->GetEntry(2*nea+1, 2*neb+0);
         }
        else if (Radiated && TOut)
-        { be=TOut->GetEntry(2*nea+0, 2*neb+0)/IKZ;
+        { be=TOut->GetEntry(2*nea+0, 2*neb+0)/(II*k*ZRel);
           bh=TOut->GetEntry(2*nea+1, 2*neb+0);
         }
        else
@@ -427,7 +427,7 @@ double RWGGeometry::GetEPP(int DestSurface, cdouble Omega,
           Args->neb = neb;
           GetEdgeEdgeInteractions(Args);
           be = Args->GC[0];
-          bh = Args->GC[1] / (-1.0*II*k);
+          bh = Args->GC[1] * (-1.0*II*k);
         };
 
        /*--------------------------------------------------------------*/
