@@ -695,7 +695,7 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
   /***************************************************************/
   HMatrix *FMatrixScat=0;
   if (PScat)
-   { *PScat=0;
+   { *PScat=0.0;
      if (FarField)
       FMatrixScat = GetFarFields(this, 0, KN, Omega, SCRMatrix);
      else
