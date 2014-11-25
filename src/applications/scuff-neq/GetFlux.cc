@@ -189,8 +189,7 @@ void GetSIFlux(SNEQData *SNEQD,
    { 
       G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, NeedQuantity,
                         SNEQD->DSIMesh, SNEQD->DSIRadius, SNEQD->DSIPoints,
-                        SNEQD->DSICCQ, SNEQD->DSIFarField,
-                        PlotFileName);
+                        PlotFileName, SNEQD->DSICCQ, SNEQD->DSIFarField);
    }
   else 
    { 
