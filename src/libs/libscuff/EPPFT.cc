@@ -361,7 +361,6 @@ double RWGGeometry::GetEPP(int DestSurface, cdouble Omega,
      ZRel = sqrt(MuOut/EpsOut);
    };
 
-  cdouble IKZ  = II*k*ZVAC*ZRel;
   cdouble PEE  = +0.5*II*k*ZVAC*ZRel;
   cdouble PEM  = -0.5;
   cdouble PME  = +0.5;

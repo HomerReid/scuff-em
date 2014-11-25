@@ -76,7 +76,6 @@ void GetReducedFields(RWGSurface *S, int ne,
 
 }
 
-
 /***************************************************************/
 /* Compute the G and C dyadic Green's functions, retaining only*/
 /* far-field contributions.                                    */
@@ -648,8 +647,8 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
                             double PFT[NUMPFT], double *PScat,
                             char *BSMesh, double R, int NumPoints,
-                            bool UseCCQ, bool FarField, 
-                            char *FluxFileName, GTransformation *GT)
+                            bool UseCCQ, bool FarField,
+                            char *PlotFileName, GTransformation *GT)
 {
   /***************************************************************/
   /***************************************************************/
@@ -705,12 +704,15 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double *ByPanel=0;
+  double **ByPanel=0;
   RWGSurface *BS=0;
-  if (BSMesh && FluxFileName)
+  if (BSMesh && PlotFileName)
    { BS=new RWGSurface(BSMesh);
      if (GT) BS->Transform(GT);
-     ByPanel = (double *)mallocEC(NUMPFT*(BS->NumPanels)*sizeof(double));
+     ByPanel = (double **)mallocEC(NUMPFT*sizeof(double *));
+     ByPanel[0] = (double *)mallocEC(NUMPFT*(BS->NumPanels)*sizeof(double));
+     for(int nq=1; nq<NUMPFT; nq++)
+      ByPanel[nq] = ByPanel[nq-1] + BS->NumPanels;
    };
 
   /***************************************************************/
@@ -735,7 +737,7 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
                                -HVMVP(H, NMatrix[SIPOWER], E)
                              );
      PFT[SIPOWER] += dP;
-     if (ByPanel) ByPanel[ nr*NUMPFT + 0 ] = dP;
+     if (ByPanel) ByPanel[0][ nr ] = dP;
 
      if (PScat)
       { 
@@ -754,7 +756,7 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
                               +MuAbs*HVMVP(H, NMatrix[n], H)
                             );
         PFT[n] += dFT[n];
-        if (ByPanel) ByPanel[ nr*NUMPFT + n ] = dFT[n];
+        if (ByPanel) ByPanel[n][ nr ] = dFT[n];
       };
    };
 
@@ -766,56 +768,47 @@ void RWGGeometry::GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF,
   /***************************************************************/
   /***************************************************************/
   if (ByPanel)
-   {
+   { 
      static const char *PFTNames[7]
       ={"PAbs","FX","FY","FZ","TX","TY","TZ"};
 
-     FILE *f=fopen(FluxFileName,"a");
+     FILE *f=fopen(PlotFileName,"a");
      for(int nq=0; nq<NUMPFT; nq++)
-      { fprintf(f,"View \"%s(%s)\" {\n",PFTNames[nq],z2s(Omega));
-        for(int np=0; np<BS->NumPanels; np++)
-         { RWGPanel *P = BS->Panels[np];
-           double *V1  = BS->Vertices + 3*P->VI[0];
-           double *V2  = BS->Vertices + 3*P->VI[1];
-           double *V3  = BS->Vertices + 3*P->VI[2];
-           double Val  = ByPanel[ np*NUMPFT + nq ] / (P->Area);
-           fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   V1[0], V1[1], V1[2], V2[0], V2[1], V2[2],
-                   V3[0], V3[1], V3[2], Val, Val, Val);
-         };
-        fprintf(f,"};\n\n");
-      };
+      BS->PlotScalarDensity(ByPanel[nq], false, PlotFileName,
+                            "%s(%s)",PFTNames[nq],z2s(Omega));
      fclose(f);
      
+     free(ByPanel[0]);
      free(ByPanel);
      delete BS;
    };
+
   
 }
 
 /***************************************************************/
 /* This routine gets the contributions of a single pair of     */
-/* RWG basis functions (weighted with unit strength) to the    */
-/* DSIPFT.                                                     */
+/* RWG basis functions to the DSIPFT.                          */
 /*                                                             */
-/* Entries is an array with enough room for 4xNUMPFT cdoubles. */
-/*                                                             */
-/* On return,                                                  */
-/*  Entries[4*nq + 0..3] = (EE, EM, ME, MM) entries of nq-th   */
-/*                         SIPFT matrix, where nq=0..7 ranges  */
-/*                         over all PFT quantities.            */
+/* DeltaPFT is an array with enough room for NUMPFT doubles.   */
 /*                                                             */
 /* If NeedQuantity[nq] == false then the calculation of that   */
 /* quantity is skipped.                                        */
 /***************************************************************/
-void GetDSIPFTMatrixEntries(RWGGeometry *G,
-                            int nsa, int nea, int nsb, int neb,
-                            HMatrix *SCRMatrix, HMatrix *FSVMatrix,
-                            cdouble EpsRel, cdouble MuRel,
-                            double *XTorque, cdouble Entries[4*NUMPFT],
-                            bool NeedQuantity[NUMPFT])
+void GetEdgeEdgeDSIPFT(RWGGeometry *G,
+                       int nsa, int nea, int nsb, int neb,
+                       cdouble KK, cdouble KN, cdouble NK, cdouble NN,
+                       HMatrix *SCRMatrix, HMatrix *FSVMatrix,
+                       cdouble EpsRel, cdouble MuRel,
+                       double *XTorque, 
+                       double DeltaPFT[NUMPFT],
+                       bool NeedQuantity[NUMPFT],
+                       double **ByPanel)
 {
-  memset(Entries, 0, 4*NUMPFT*sizeof(cdouble));
+  memset(DeltaPFT, 0, NUMPFT*sizeof(double));
+  double *MicroByPanel=0;
+  if (ByPanel)
+   MicroByPanel = new double[NUMPFT*(SCRMatrix->NR)];
 
   /***************************************************************/
   /* loop over cubature points                                   */
@@ -824,8 +817,8 @@ void GetDSIPFTMatrixEntries(RWGGeometry *G,
   int OffsetB    = G->BFIndexOffset[nsb];
   int NETot      = G->TotalEdges;
   int NC         = SCRMatrix->NR;
-  cdouble EpsAbs = TENTHIRDS * EpsRel / ZVAC;
-  cdouble MuAbs  = TENTHIRDS * MuRel * ZVAC;
+  double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
+  double MuAbs  = TENTHIRDS * real(MuRel) * ZVAC;
   for (int nc=0; nc<NC; nc++)
    {  
      double w, X[3], nHat[3];
@@ -853,19 +846,44 @@ void GetDSIPFTMatrixEntries(RWGGeometry *G,
         FSVKB[n] = FSVMatrix->GetEntry(n, ColumnKB);
         FSVNB[n] = FSVMatrix->GetEntry(n, ColumnNB);
       };
+
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
+     double EE[3][3], EH[3][3], HH[3][3];
+     for(int m=0; m<3; m++)
+      for(int n=0; n<3; n++)
+       { EE[m][n] = real( KK*conj(FSVKA[m])*FSVKB[n]
+                         +KN*conj(FSVKA[m])*FSVNB[n]
+                         +NK*conj(FSVNA[m])*FSVKB[n]
+                         +NN*conj(FSVNA[m])*FSVNB[n]
+                        );
+
+         EH[m][n] = real( KK*conj(FSVKA[m])*FSVKB[3+n]
+                         +KN*conj(FSVKA[m])*FSVNB[3+n]
+                         +NK*conj(FSVNA[m])*FSVKB[3+n]
+                         +NN*conj(FSVNA[m])*FSVNB[3+n]
+                        );
+     
+         HH[m][n] = real( KK*conj(FSVKA[3+m])*FSVKB[3+n]
+                         +KN*conj(FSVKA[3+m])*FSVNB[3+n]
+                         +NK*conj(FSVNA[3+m])*FSVKB[3+n] 
+                         +NN*conj(FSVNA[3+m])*FSVNB[3+n]
+                        );
+       };
  
      /***************************************************************/
-     /* entries of power matrix               ***********************/
+     /* power *******************************************************/
      /***************************************************************/
      if ( NeedQuantity[SIPOWER] )
       { 
+        double MicroDelta=0.0;
         for(int m=0; m<3; m++)
          for(int n=0; n<3; n++)
-          { Entries[ 0 ] += 0.5*w*conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
-            Entries[ 1 ] += 0.5*w*conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
-            Entries[ 2 ] += 0.5*w*conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
-            Entries[ 3 ] += 0.5*w*conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
-          }; 
+          MicroDelta += 0.5*w*NMatrix[SIPOWER][m][n]*EH[m][n];
+
+        DeltaPFT[0] += MicroDelta;
+        if (ByPanel) MicroByPanel[0*NC + nc]=MicroDelta;
       };
 
      /***************************************************************/
@@ -875,29 +893,28 @@ void GetDSIPFTMatrixEntries(RWGGeometry *G,
       { 
         if ( NeedQuantity[nq]==false ) continue;
 
-        cdouble UpperVMVP[4]={0.0, 0.0, 0.0, 0.0};
-        cdouble LowerVMVP[4]={0.0, 0.0, 0.0, 0.0};
+        double MicroDelta=0.0;
         for(int m=0; m<3; m++)
          for(int n=0; n<3; n++)
-          { 
-            UpperVMVP[0] += conj(FSVKA[m]) * NMatrix[nq][m][n] * FSVKB[n];
-            UpperVMVP[1] += conj(FSVKA[m]) * NMatrix[nq][m][n] * FSVNB[n];
-            UpperVMVP[2] += conj(FSVNA[m]) * NMatrix[nq][m][n] * FSVKB[n];
-            UpperVMVP[3] += conj(FSVNA[m]) * NMatrix[nq][m][n] * FSVNB[n];
-
-            LowerVMVP[0] += conj(FSVKA[3+m]) * NMatrix[nq][m][n] * FSVKB[3+n];
-            LowerVMVP[1] += conj(FSVKA[3+m]) * NMatrix[nq][m][n] * FSVNB[3+n];
-            LowerVMVP[2] += conj(FSVNA[3+m]) * NMatrix[nq][m][n] * FSVKB[3+n];
-            LowerVMVP[3] += conj(FSVNA[3+m]) * NMatrix[nq][m][n] * FSVNB[3+n];
-          };
-        Entries[ 4*nq + 0 ] += 0.25*w*( EpsAbs*UpperVMVP[0] + MuAbs*LowerVMVP[0] );
-        Entries[ 4*nq + 1 ] += 0.25*w*( EpsAbs*UpperVMVP[1] + MuAbs*LowerVMVP[1] );
-        Entries[ 4*nq + 2 ] += 0.25*w*( EpsAbs*UpperVMVP[2] + MuAbs*LowerVMVP[2] );
-        Entries[ 4*nq + 3 ] += 0.25*w*( EpsAbs*UpperVMVP[3] + MuAbs*LowerVMVP[3] );
+          MicroDelta+=0.25*w*NMatrix[nq][m][n]*(EpsAbs*EE[m][n] + MuAbs*HH[m][n]);
+        DeltaPFT[nq] += MicroDelta;
+        if (ByPanel) MicroByPanel[nq*NC + nc]=MicroDelta;
 
       }; //for(int nSIFT=0; nSIFT<NUMPFT-1; nSIFT++)
 
    }; //for (int nc=0; nc<NC; nc++)
+  
+  if (ByPanel)
+   { 
+     #pragma omp critical(Accumulate)
+      {
+        for(int nq=0; nq<NUMPFT; nq++)
+         if (NeedQuantity[nq])
+          memcpy(ByPanel[nq], MicroByPanel + nq*NC, NC*sizeof(double));
+
+        delete[] MicroByPanel;
+     };
+   };
 
 }
 
@@ -908,7 +925,7 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
                                  HVector *KNVector, HMatrix *SigmaMatrix,
                                  double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                                  char *BSMesh, double R, int NumPoints,
-                                 bool UseCCQ, bool FarField)
+                                 char *PlotFileName, bool UseCCQ, bool FarField)
 {
   /***************************************************************/
   /***************************************************************/
@@ -952,6 +969,20 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
   HMatrix *FSVMatrix = GetFSVMatrix(this, -1, SCRMatrix, Omega, FarField);
 
   /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double **ByPanel=0;
+  RWGSurface *BS=0;
+  if (BSMesh && PlotFileName)
+   { BS=new RWGSurface(BSMesh);
+     if (GT) BS->Transform(GT);
+     ByPanel = (double **)mallocEC(NUMPFT*sizeof(double *));
+     ByPanel[0] = (double *)mallocEC(NUMPFT*(BS->NumPanels)*sizeof(double));
+     for(int nq=1; nq<NUMPFT; nq++)
+      ByPanel[nq] = ByPanel[nq-1] + BS->NumPanels;
+   };
+
+  /*--------------------------------------------------------------*/
   /*- loop over all pairs of edges on all surfaces                */
   /*--------------------------------------------------------------*/
   int NS=NumSurfaces;
@@ -982,14 +1013,6 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
         if (neb==0) LogPercent(OffsetA+2*nea,TotalBFs,10);
 
         /*--------------------------------------------------------------*/
-        /*- get SIPFT contributions from this pair of basis functions---*/
-        /*--------------------------------------------------------------*/
-        cdouble Entries[NUMPFT*4];
-        GetDSIPFTMatrixEntries(this, nsa, nea, nsb, neb,
-                               SCRMatrix, FSVMatrix,
-                               Eps, Mu, XTorque, Entries, NeedQuantity);
-
-        /*--------------------------------------------------------------*/
         /*- extract the surface-current coefficient either from the KN -*/
         /*- vector or the Sigma matrix                                 -*/
         /*--------------------------------------------------------------*/
@@ -1014,17 +1037,14 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
          };
 
         /*--------------------------------------------------------------*/
-        /*- get the contributions of this edge pair to all quantities   */
+        /*- get DSIPFT contributions from this pair of basis functions -*/
         /*--------------------------------------------------------------*/
-        double DeltaPFT[NUMPFT]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        double DeltaPFT[NUMPFT];
         double Weight = (nsa==nsb && nea==neb) ? 1.0 : 2.0;
-        for(int nq=0; nq<NUMPFT; nq++)
-         { if (NeedQuantity[nq]==false) continue;
-           DeltaPFT[nq] = Weight * real(  KK*Entries[4*nq+0] + KN*Entries[4*nq+1]
-                                         +NK*Entries[4*nq+2] + NN*Entries[4*nq+3]
-                                       );
-         };
-      
+        GetEdgeEdgeDSIPFT(this, nsa, nea, nsb, neb, KK, KN, NK, NN,
+                          SCRMatrix, FSVMatrix, Eps, Mu, XTorque,
+                          DeltaPFT, NeedQuantity, ByPanel);
+
         /*--------------------------------------------------------------*/
         /*- accumulate contributions to full sums ----------------------*/
         /*--------------------------------------------------------------*/

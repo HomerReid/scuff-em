@@ -608,9 +608,18 @@ double GetTriangleArea(double *V1, double *V2, double *V3)
 }
 
 /***************************************************************/
+/* Plot a function defined on RWG edges or panels.             */
+/*                                                             */
+/* If ByEdge==true, Values[ne] is the value associated with    */
+/* edge #ne. In this case, the first NumEdges elements of the  */
+/* Values array are accessed.                                  */
+/*                                                             */
+/* If ByEdge==false, Values[np] is the value associated with   */
+/* edge #np. In this case, the first NP elements of Values are */
+/* accessed.                                                   */
 /***************************************************************/
-/***************************************************************/
-void RWGSurface::PlotScalarDensity(double *ValuePerEdge, const char *FileName,
+void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
+                                   const char *FileName,
                                    const char *Tag, ...)
 { 
 
@@ -636,37 +645,9 @@ void RWGSurface::PlotScalarDensity(double *ValuePerEdge, const char *FileName,
    };
 
   /***************************************************************/
-  /* first approach: for each panel, average the contributions   */
-  /* of the three edges that share that panel, then assign this  */
-  /* value to all three panel vertices. this works, but produces */
-  /* plots that are not very smooth looking.                     */
-  /***************************************************************/
-#if 0
-  fprintf(f,"View \"%s\" {\n",TagString);
-  for(int np=0; np<NumPanels; np++)
-   { 
-     RWGPanel *P = Panels[np];
-     double *PV[3];
-     PV[0]=Vertices + 3*P->VI[0];
-     PV[1]=Vertices + 3*P->VI[1];
-     PV[2]=Vertices + 3*P->VI[2];
-
-     double Val=0.0;
-     for(int nei=0; nei<3; nei++)
-      if ( P->EI[nei] >= 0 )
-       Val += ByEdge[ P->EI[nei] ]; 
-     Val/=3.0;
-
-     WriteST(PV, Val, f);
-   };
-  fprintf(f,"};\n");
-#endif 
-
-  /***************************************************************/
-  /* second approach: for each panel vertex, average the         */
-  /* contributions of all edges that share the vertex. This seems*/
-  /* to produce much nicer plots. Here AreaPerVertex[nv] is the  */
-  /* area of the surface lying closest to vertex #nv.            */
+  /* For each panel vertex, average the contributions of all     */
+  /* edges (if ByEdge==true) or of all panels (if ByPanel==false)*/
+  /* that share that vertex.                                     */
   /***************************************************************/
   double *ValuePerVertex = new double [NumVertices];
   double *AreaPerVertex  = new double [NumVertices];
@@ -674,43 +655,47 @@ void RWGSurface::PlotScalarDensity(double *ValuePerEdge, const char *FileName,
   memset(ValuePerVertex, 0, NumVertices*sizeof(double));
   memset(AreaPerVertex,  0, NumVertices*sizeof(double));
   memset(NumPerVertex,   0, NumVertices*sizeof(int));
-  for(int ne=0; ne<NumEdges; ne++)
+  if (ByEdge)
    { 
-     RWGEdge *E = Edges[ne];
-     int iV1    = E->iV1;
-     int iV2    = E->iV2;
-     double *V1 = Vertices + 3*iV1;
-     double *V2 = Vertices + 3*iV2;
-     double *PCentroid = Panels[E->iPPanel]->Centroid;
-     double *MCentroid
-      = (E->iMPanel==-1) ? E->Centroid : Panels[E->iMPanel]->Centroid;
-
-     ValuePerVertex[iV1] += ValuePerEdge[ne];
-     ValuePerVertex[iV2] += ValuePerEdge[ne];
-     AreaPerVertex[iV1]  += GetTriangleArea(PCentroid, MCentroid, V1);
-     AreaPerVertex[iV2]  += GetTriangleArea(PCentroid, MCentroid, V2);
-      NumPerVertex[iV1]  += 1;
-      NumPerVertex[iV2]  += 1;
+     for(int ne=0; ne<NumEdges; ne++)
+      { 
+        RWGEdge *E = Edges[ne];
+        int iV1    = E->iV1;
+        int iV2    = E->iV2;
+        double *V1 = Vertices + 3*iV1;
+        double *V2 = Vertices + 3*iV2;
+        double *PCentroid = Panels[E->iPPanel]->Centroid;
+        double *MCentroid
+         = (E->iMPanel==-1) ? E->Centroid : Panels[E->iMPanel]->Centroid;
+   
+        ValuePerVertex[iV1] += Values[ne];
+        ValuePerVertex[iV2] += Values[ne];
+        AreaPerVertex[iV1]  += GetTriangleArea(PCentroid, MCentroid, V1);
+        AreaPerVertex[iV2]  += GetTriangleArea(PCentroid, MCentroid, V2);
+         NumPerVertex[iV1]  += 1;
+         NumPerVertex[iV2]  += 1;
+      };
+   }
+  else
+   { 
+     for(int np=0; np<NumPanels; np++)
+      { 
+        RWGPanel *P = Panels[np];
+        int iV1    = P->VI[0];
+        int iV2    = P->VI[1];
+        int iV3    = P->VI[2];
+        ValuePerVertex[iV1] += Values[np] / P->Area;
+        ValuePerVertex[iV2] += Values[np] / P->Area;
+        ValuePerVertex[iV3] += Values[np] / P->Area;
+        AreaPerVertex[iV1]  = 1.0;
+        AreaPerVertex[iV2]  = 1.0;
+        AreaPerVertex[iV2]  = 1.0;
+        NumPerVertex[iV1]  = 3;
+        NumPerVertex[iV2]  = 3;
+        NumPerVertex[iV3]  = 3;
+      };
    };
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*! sanity check, delete me !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*! 20141008 it's weird that the two numbers don't agree? !!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-double TotalArea1=0.0, TotalArea2=0.0;
-for(int np=0; np<NumPanels; np++)
- TotalArea1 += Panels[np]->Area;
-for(int nv=0; nv<NumVertices; nv++)
- TotalArea2 += AreaPerVertex[nv];
-printf("Howdatage! (Panel,Vertex area) = (%e, %e)\n",TotalArea1,TotalArea2);
-if ( !EqualFloat(TotalArea1, TotalArea2) )
- Warn("Bawonkatage! Panel area = %e, Vertex area = %e",TotalArea1,TotalArea2);
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
- 
+   
   fprintf(f,"View \"%s\" {\n",TagString);
   for(int np=0; np<NumPanels; np++)
    { 

@@ -203,7 +203,7 @@ class RWGSurface
    void WritePPMesh(const char *FileName, const char *Tag, int PlotNormals=0);
    void WritePPMeshLabels(const char *FileName, const char *Tag, int WhichLabels);
    void WritePPMeshLabels(const char *FileName, const char *Tag);
-   void PlotScalarDensity(double *ByEdge, const char *FileName, const char *Tag, ...);
+   void PlotScalarDensity(double *Values, bool ByEdge, const char *FileName, const char *Tag, ...);
 
 //  private:
 
@@ -416,7 +416,7 @@ class RWGGeometry
    void GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF, double PFT[7], double *PScat,
                   char *BSMesh=0, double R=10.0, int NumPoints=110,
                   bool UseCCQ=false, bool FarField=false, 
-                  char *FluxFileName=0, GTransformation *GT=0);
+                  char *PlotFileName=0, GTransformation *GT=0);
 
    // trace version of DSIPFT
    void GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
@@ -424,6 +424,7 @@ class RWGGeometry
                        double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                        char *BSMesh=0, double R=10.0,
                        int NumPoints=110,
+                       char *PlotFileName=0,
                        bool UseCCQ=false, bool FarField=false);
 
    // absorbed or scattered/radiated power by equivalence-principle method

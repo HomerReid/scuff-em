@@ -157,9 +157,9 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
 /* to be filled in with just the number of *requested*         */
 /* quantities.                                                 */
 /***************************************************************/
-void GetSIFlux(SNEQData *SNEQD, 
+void GetSIFlux(SNEQData *SNEQD,
                int SourceSurface, int DestSurface,
-               cdouble Omega, 
+               cdouble Omega,
                bool NeedQuantity[NUMPFT],
                double SIFlux[NUMPFT])
 {
@@ -172,9 +172,13 @@ void GetSIFlux(SNEQData *SNEQD,
   HMatrix *Sigma  = SNEQD->Sigma;
   bool DSIOther   = SNEQD->DSIOther;
 
-  double **ByEdge=0;
-  if (SNEQD->ByEdge)
-   ByEdge=SNEQD->ByEdge[DestSurface];
+  char *PlotFileName=0, PFNBuffer[200];
+  if(SNEQD->ByEdge)
+   { PlotFileName=PFNBuffer;
+     snprintf(PlotFileName,200,"%sTo%s.PFTFlux.pp",
+              G->Surfaces[SourceSurface]->Label,
+              G->Surfaces[DestSurface]->Label);
+   };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -185,17 +189,34 @@ void GetSIFlux(SNEQData *SNEQD,
    { 
       G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, NeedQuantity,
                         SNEQD->DSIMesh, SNEQD->DSIRadius, SNEQD->DSIPoints,
-                        SNEQD->DSICCQ, SNEQD->DSIFarField);
+                        SNEQD->DSICCQ, SNEQD->DSIFarField,
+                        PlotFileName);
    }
   else 
    { 
+     double **ByEdge=0;
+     if (SNEQD->ByEdge)
+      ByEdge=SNEQD->ByEdge[DestSurface];
+
      G->GetOPFT(DestSurface, Omega, 0, 0, Sigma, AllFlux, 0, ByEdge);
 
      // replace overlap power with EPPFT power
      if ( SNEQD->NeedQuantity[QINDEX_POWER] )
       AllFlux[QINDEX_POWER]=G->GetEPP(DestSurface, Omega, 0, Sigma,
                                       ByEdge, true, SNEQD->TSelf[DestSurface]);
-   }
+
+    /*--------------------------------------------------------------*/
+    /*- generate panel-resolved flux plots if that was requested   -*/
+    /*--------------------------------------------------------------*/
+    if (PlotFileName)
+     for(int nq=0; nq<NUMPFT; nq++)
+      if (ByEdge[nq])
+       G->Surfaces[DestSurface]->PlotScalarDensity(ByEdge[nq], true,
+                                                   PlotFileName,
+                                                   "%s_%g",
+                                                   QuantityNames[nq],
+                                                   real(Omega));
+   };
 
   /*--------------------------------------------------------------*/
   /*- collapse the full vector of 7 PFTs to just the entries the -*/
@@ -205,24 +226,6 @@ void GetSIFlux(SNEQData *SNEQD,
    if (SNEQD->NeedQuantity[nq])
     SIFlux[nqq++] = -4.0*AllFlux[nq];
 
-  /*--------------------------------------------------------------*/
-  /*- generate panel-resolved flux plots if that was requested   -*/
-  /*--------------------------------------------------------------*/
-  if (ByEdge)
-   { 
-     char FileName[100];
-     snprintf(FileName,100,"%sTo%s.PFTFlux.pp",
-                            G->Surfaces[SourceSurface]->Label,
-                            G->Surfaces[DestSurface]->Label);
-
-     for(int nq=0; nq<NUMPFT; nq++)
-      if (ByEdge[nq])
-       G->Surfaces[DestSurface]->PlotScalarDensity(ByEdge[nq],
-                                                   FileName,
-                                                   "%s_%g",
-                                                   QuantityNames[nq],
-                                                   real(Omega));
-   };
 
 } 
 

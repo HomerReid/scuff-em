@@ -275,7 +275,7 @@ void ProcessByEdgeArray(RWGGeometry *G, int ns,
   for(int nq=0; nq<7; nq++)
    { char Tag[20];
      snprintf(Tag,20,"%s(%s)",PFTNames[nq],z2s(Omega));
-     G->Surfaces[ns]->PlotScalarDensity(ByEdge[nq],FileName,Tag);
+     G->Surfaces[ns]->PlotScalarDensity(ByEdge[nq],true,FileName,Tag);
    };
 
   free(ByEdge[0]);
