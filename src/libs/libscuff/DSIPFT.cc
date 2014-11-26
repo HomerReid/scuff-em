@@ -806,9 +806,12 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
                        double **ByPanel)
 {
   memset(DeltaPFT, 0, NUMPFT*sizeof(double));
+
   double *MicroByPanel=0;
   if (ByPanel)
-   MicroByPanel = new double[NUMPFT*(SCRMatrix->NR)];
+   MicroByPanel = new double[ NUMPFT*(SCRMatrix->NR) ];
+
+  double Weight = (nsa==nsb && neb>nea) ? 2.0 : 1.0;
 
   /***************************************************************/
   /* loop over cubature points                                   */
@@ -821,10 +824,10 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
   double MuAbs  = TENTHIRDS * real(MuRel) * ZVAC;
   for (int nc=0; nc<NC; nc++)
    {  
-     double w, X[3], nHat[3];
+     double X[3], nHat[3];
      SCRMatrix->GetEntriesD(nc, "0:2", X);
      SCRMatrix->GetEntriesD(nc, "3:5", nHat);
-     w = SCRMatrix->GetEntryD(nc, 6);
+     double w = Weight * SCRMatrix->GetEntryD(nc, 6);
 
      /***************************************************************/
      /* get 3x3 N matrices at this cubature point *******************/
@@ -850,25 +853,25 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
      /***************************************************************/
      /***************************************************************/
      /***************************************************************/
-     double EE[3][3], EH[3][3], HH[3][3];
+     double EpsEE[3][3], MuHH[3][3], EH[3][3];
      for(int m=0; m<3; m++)
       for(int n=0; n<3; n++)
-       { EE[m][n] = real( KK*conj(FSVKA[m])*FSVKB[n]
-                         +KN*conj(FSVKA[m])*FSVNB[n]
-                         +NK*conj(FSVNA[m])*FSVKB[n]
-                         +NN*conj(FSVNA[m])*FSVNB[n]
-                        );
+       { EpsEE[m][n] = EpsAbs * real( KK*conj(FSVKA[m])*FSVKB[n]
+                                     +KN*conj(FSVKA[m])*FSVNB[n]
+                                     +NK*conj(FSVNA[m])*FSVKB[n]
+                                     +NN*conj(FSVNA[m])*FSVNB[n]
+                                    );
+     
+         MuHH[m][n] = MuAbs * real(  KK*conj(FSVKA[3+m])*FSVKB[3+n]
+                                    +KN*conj(FSVKA[3+m])*FSVNB[3+n]
+                                    +NK*conj(FSVNA[3+m])*FSVKB[3+n] 
+                                    +NN*conj(FSVNA[3+m])*FSVNB[3+n]
+                                  );
 
          EH[m][n] = real( KK*conj(FSVKA[m])*FSVKB[3+n]
                          +KN*conj(FSVKA[m])*FSVNB[3+n]
                          +NK*conj(FSVNA[m])*FSVKB[3+n]
                          +NN*conj(FSVNA[m])*FSVNB[3+n]
-                        );
-     
-         HH[m][n] = real( KK*conj(FSVKA[3+m])*FSVKB[3+n]
-                         +KN*conj(FSVKA[3+m])*FSVNB[3+n]
-                         +NK*conj(FSVNA[3+m])*FSVKB[3+n] 
-                         +NN*conj(FSVNA[3+m])*FSVNB[3+n]
                         );
        };
  
@@ -896,24 +899,30 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
         double MicroDelta=0.0;
         for(int m=0; m<3; m++)
          for(int n=0; n<3; n++)
-          MicroDelta+=0.25*w*NMatrix[nq][m][n]*(EpsAbs*EE[m][n] + MuAbs*HH[m][n]);
+          MicroDelta+=0.25*w*NMatrix[nq][m][n]*(EpsEE[m][n] + MuHH[m][n]);
+
         DeltaPFT[nq] += MicroDelta;
         if (ByPanel) MicroByPanel[nq*NC + nc]=MicroDelta;
 
       }; //for(int nSIFT=0; nSIFT<NUMPFT-1; nSIFT++)
 
    }; //for (int nc=0; nc<NC; nc++)
-  
+
+  /***************************************************************/ 
+  /***************************************************************/ 
+  /***************************************************************/ 
   if (ByPanel)
    { 
      #pragma omp critical(Accumulate)
       {
         for(int nq=0; nq<NUMPFT; nq++)
-         if (NeedQuantity[nq])
-          memcpy(ByPanel[nq], MicroByPanel + nq*NC, NC*sizeof(double));
-
-        delete[] MicroByPanel;
-     };
+         { if (NeedQuantity[nq]==false)
+            continue;
+           for(int nc=0; nc<NC; nc++)
+            ByPanel[nq][nc] += MicroByPanel[nq*NC + nc];
+         };
+      };
+     delete[] MicroByPanel;
    };
 
 }
@@ -1010,7 +1019,7 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
       { 
         if (nsb==nsa && neb<nea) continue;
 
-        if (neb==0) LogPercent(OffsetA+2*nea,TotalBFs,10);
+        if (neb==nea) LogPercent(OffsetA+2*nea,TotalBFs,10);
 
         /*--------------------------------------------------------------*/
         /*- extract the surface-current coefficient either from the KN -*/
@@ -1040,7 +1049,6 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
         /*- get DSIPFT contributions from this pair of basis functions -*/
         /*--------------------------------------------------------------*/
         double DeltaPFT[NUMPFT];
-        double Weight = (nsa==nsb && nea==neb) ? 1.0 : 2.0;
         GetEdgeEdgeDSIPFT(this, nsa, nea, nsb, neb, KK, KN, NK, NN,
                           SCRMatrix, FSVMatrix, Eps, Mu, XTorque,
                           DeltaPFT, NeedQuantity, ByPanel);
