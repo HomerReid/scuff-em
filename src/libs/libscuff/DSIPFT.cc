@@ -1082,6 +1082,26 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
   PFT[4]=Taux;
   PFT[5]=Tauy;
   PFT[6]=Tauz;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (ByPanel)
+   { 
+     static const char *PFTNames[7]
+      ={"PAbs","FX","FY","FZ","TX","TY","TZ"};
+
+     FILE *f=fopen(PlotFileName,"a");
+     for(int nq=0; nq<NUMPFT; nq++)
+      BS->PlotScalarDensity(ByPanel[nq], false, PlotFileName,
+                            "%s(%s)",PFTNames[nq],z2s(Omega));
+     fclose(f);
+     
+     free(ByPanel[0]);
+     free(ByPanel);
+     delete BS;
+   };
+
     
 }
 
