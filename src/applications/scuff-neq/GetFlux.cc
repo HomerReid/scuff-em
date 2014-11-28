@@ -175,7 +175,8 @@ void GetSIFlux(SNEQData *SNEQD,
   char *PlotFileName=0, PFNBuffer[200];
   if(SNEQD->ByEdge)
    { PlotFileName=PFNBuffer;
-     snprintf(PlotFileName,200,"%sTo%s.PFTFlux.pp",
+     snprintf(PlotFileName,200,"%s.%sTo%s.PFTFlux.pp",
+              GetFileBase(G->GeoFileName),
               G->Surfaces[SourceSurface]->Label,
               G->Surfaces[DestSurface]->Label);
    };
