@@ -689,7 +689,7 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         ValuePerVertex[iV3] += Values[np] / P->Area;
         AreaPerVertex[iV1]  = 1.0;
         AreaPerVertex[iV2]  = 1.0;
-        AreaPerVertex[iV2]  = 1.0;
+        AreaPerVertex[iV3]  = 1.0;
         NumPerVertex[iV1]  = 3;
         NumPerVertex[iV2]  = 3;
         NumPerVertex[iV3]  = 3;
