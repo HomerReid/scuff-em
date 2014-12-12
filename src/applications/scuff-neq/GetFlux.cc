@@ -170,53 +170,63 @@ void GetSIFlux(SNEQData *SNEQD,
 
   RWGGeometry *G  = SNEQD->G;
   HMatrix *Sigma  = SNEQD->Sigma;
-  bool DSIOther   = SNEQD->DSIOther;
+  bool ForceDSI = SNEQD->ForceDSI;
 
+  double **ByEdge=0;
   char *PlotFileName=0, PFNBuffer[200];
+  bool PlotQuantity[7]={false, false, false, false, false, false, false};
   if(SNEQD->ByEdge)
-   { PlotFileName=PFNBuffer;
+   { 
+     ByEdge=SNEQD->ByEdge[DestSurface];
+     PlotFileName=PFNBuffer;
      snprintf(PlotFileName,200,"%s.%sTo%s.PFTFlux.pp",
               GetFileBase(G->GeoFileName),
               G->Surfaces[SourceSurface]->Label,
               G->Surfaces[DestSurface]->Label);
+     
+     for(int nq=0; nq<NUMPFT; nq++)
+      PlotQuantity[nq] = ByEdge[nq]!=0 ? true : false;
    };
 
   /*--------------------------------------------------------------*/
+  /* get PFT using DSIPFT for the self contribution and OPFT for  */
+  /* the non-self contributions                                   */
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int Method;
   double AllFlux[NUMPFT];
-  if (SourceSurface==DestSurface || DSIOther)
+  if (SourceSurface==DestSurface || ForceDSI )
    { 
       G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, NeedQuantity,
                         SNEQD->DSIMesh, SNEQD->DSIRadius, SNEQD->DSIPoints,
                         PlotFileName, SNEQD->DSICCQ, SNEQD->DSIFarField);
+
+     if (ForceDSI) PlotQuantity[QINDEX_POWER] = false;
+     for(int nq=1; nq<NUMPFT; nq++)
+      PlotQuantity[nq] = false;
    }
   else 
    { 
-     double **ByEdge=0;
-     if (SNEQD->ByEdge)
-      ByEdge=SNEQD->ByEdge[DestSurface];
-
      G->GetOPFT(DestSurface, Omega, 0, 0, Sigma, AllFlux, 0, ByEdge);
-
-     // replace overlap power with EPPFT power
-     if ( SNEQD->NeedQuantity[QINDEX_POWER] )
-      AllFlux[QINDEX_POWER]=G->GetEPP(DestSurface, Omega, 0, Sigma,
-                                      ByEdge, true, SNEQD->TSelf[DestSurface]);
-
-    /*--------------------------------------------------------------*/
-    /*- generate panel-resolved flux plots if that was requested   -*/
-    /*--------------------------------------------------------------*/
-    if (PlotFileName)
-     for(int nq=0; nq<NUMPFT; nq++)
-      if (ByEdge[nq])
-       G->Surfaces[DestSurface]->PlotScalarDensity(ByEdge[nq], true,
-                                                   PlotFileName,
-                                                   "%s_%g",
-                                                   QuantityNames[nq],
-                                                   real(Omega));
    };
+
+  /*--------------------------------------------------------------*/
+  /* replace overlap power with EPPFT power unless --ForceDSI     */
+  /* was specified                                                */
+  /*--------------------------------------------------------------*/
+  if ( SNEQD->NeedQuantity[QINDEX_POWER] && ForceDSI==false )
+   AllFlux[QINDEX_POWER]=G->GetEPP(DestSurface, Omega, 0, Sigma,
+                                   ByEdge, true, SNEQD->TSelf[DestSurface]);
+
+  /*--------------------------------------------------------------*/
+  /*- generate panel-resolved flux plots if that was requested   -*/
+  /*--------------------------------------------------------------*/
+  if (PlotFileName)
+   for(int nq=0; nq<NUMPFT; nq++)
+    if (PlotQuantity[nq])
+     G->Surfaces[DestSurface]->PlotScalarDensity(ByEdge[nq], true,
+                                                 PlotFileName,
+                                                 "%s_%g",
+                                                 QuantityNames[nq],
+                                                 real(Omega));
 
   /*--------------------------------------------------------------*/
   /*- collapse the full vector of 7 PFTs to just the entries the -*/

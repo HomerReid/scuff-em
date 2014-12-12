@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
   /*--------------------------------------------------------------*/
   bool OmitSelfTerms = false;
-  bool DSIOther      = false;
+  bool ForceDSI      = false;
 
   /*--------------------------------------------------------------*/
   char *FileBase=0;
@@ -148,11 +148,11 @@ int main(int argc, char *argv[])
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "bounding surface .msh file for DSIPFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
      {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for DSIPFT"},
-     {"DSICCQ",         PA_BOOL,    0, 1,       (void *)&DSICCQ,    0,             "use Clenshaw-Curtis cubature for DSIPFT"},
-     {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField,   0,             "retain only far-field contributions to DSIPFT"},
+     {"DSICCQ",         PA_BOOL,    0, 1,       (void *)&DSICCQ,    0,              "use Clenshaw-Curtis cubature for DSIPFT"},
+     {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField,   0,          "retain only far-field contributions to DSIPFT"},
 /**/
-     {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,             "omit the calculation of self terms"},
-     {"DSIOther",       PA_BOOL,    0, 1,       (void *)&DSIOther,   0,             "use DSIPFT instead of default OPFT for non-self terms"},
+     {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,          "omit the calculation of self terms"},
+     {"ForceDSI",       PA_BOOL,    0, 1,       (void *)&ForceDSI,   0,             "use DSIPFT instead of OPFT/EPPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
 /**/
@@ -285,7 +285,7 @@ int main(int argc, char *argv[])
   SNEQD->DSIFarField       = DSIFarField;
   SNEQD->DSICCQ            = DSICCQ;
   SNEQD->OmitSelfTerms     = OmitSelfTerms;
-  SNEQD->DSIOther          = DSIOther;
+  SNEQD->ForceDSI          = ForceDSI;
   SNEQD->AbsTol            = AbsTol;
   SNEQD->RelTol            = RelTol;
 

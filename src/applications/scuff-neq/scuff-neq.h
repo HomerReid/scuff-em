@@ -93,8 +93,9 @@ typedef struct SNEQData
    /*--------------------------------------------------------------*/
    /*- choice of PFT methods --------------------------------------*/
    /*--------------------------------------------------------------*/
-   bool OmitSelfTerms;   // set all self terms to zero
-   bool DSIOther; // DSIPFT instead of default OPFT for non-self terms
+   bool OmitSelfTerms;  // set all self terms to zero
+   bool ForceDSI;       // use DSIPFT instead of OPFT/EPPFT
+
    /*--------------------------------------------------------------*/
    /*- Edge-resolved data: ByEdge[ns][nq][ne] is the contribution -*/
    /*- of edge #ne on surface #ns to quantity #nq.                -*/
