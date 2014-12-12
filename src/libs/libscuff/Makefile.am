@@ -1,5 +1,5 @@
 lib_LTLIBRARIES = libscuff.la
-pkginclude_HEADERS = libscuff.h GTransformation.h FieldGrid.h
+pkginclude_HEADERS = libscuff.h GTransformation.h FieldGrid.h GBarAccelerator.h
 libscuff_la_SOURCES = \
  RWGGeometry.cc 		\
  RWGSurface.cc 			\
