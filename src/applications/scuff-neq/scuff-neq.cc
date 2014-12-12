@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   char *DSIMesh    = 0;
   double DSIRadius = 10.0;
-  int DSIPoints    = 302; 
+  int DSIPoints    = 302;
   bool DSICCQ      = false;
   bool DSIFarField = false;
 
