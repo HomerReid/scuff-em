@@ -55,6 +55,7 @@ public:
 
      void Displace(const double dx[3]);
      void Rotate(const double ZHat[3], double ThetaDegrees);
+     void Mirror(int Axis);
 
      void Transform(const GTransformation *G); // compose G * this
      void Transform(const GTransformation &G) { Transform(&G); }
