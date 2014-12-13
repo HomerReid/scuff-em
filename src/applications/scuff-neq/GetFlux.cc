@@ -44,6 +44,16 @@ void UndoSCUFFMatrixTransformation(HMatrix *M)
     };
 }
 
+void ApplySCUFFMatrixTransformation(HMatrix *M)
+{ 
+  for (int nr=0; nr<M->NR; nr+=2)
+   for (int nc=0; nc<M->NC; nc+=2)
+    { M->SetEntry(nr,   nc, (1.0/ZVAC)*M->GetEntry(nr,   nc)    );
+      M->SetEntry(nr,   nc+1, -1.0*M->GetEntry(nr,   nc+1)      );
+      M->SetEntry(nr+1, nc+1, -1.0*ZVAC*M->GetEntry(nr+1, nc+1) );
+    };
+}
+
 /***************************************************************/
 /* the GetFlux() routine computes a large number of flux       */
 /* quantities, including both spatially-integrated (SI) and    */
@@ -210,11 +220,15 @@ void GetSIFlux(SNEQData *SNEQD,
 
   /*--------------------------------------------------------------*/
   /* replace overlap power with EPPFT power unless --ForceDSI     */
-  /* was specified                                                */
+  /* was specified.                                               */
   /*--------------------------------------------------------------*/
   if ( SNEQD->NeedQuantity[QINDEX_POWER] && ForceDSI==false )
-   AllFlux[QINDEX_POWER]=G->GetEPP(DestSurface, Omega, 0, Sigma,
-                                   ByEdge, true, SNEQD->TSelf[DestSurface]);
+   { 
+     ApplySCUFFMatrixTransformation(SNEQD->TSelf[DestSurface]);
+     AllFlux[QINDEX_POWER]=G->GetEPP(DestSurface, Omega, 0, Sigma,
+                                     ByEdge, true, SNEQD->TSelf[DestSurface]);
+     UndoSCUFFMatrixTransformation(SNEQD->TSelf[DestSurface]);
+   };
 
   /*--------------------------------------------------------------*/
   /*- generate panel-resolved flux plots if that was requested   -*/

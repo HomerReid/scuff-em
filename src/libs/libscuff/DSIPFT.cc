@@ -800,18 +800,21 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
                        cdouble KK, cdouble KN, cdouble NK, cdouble NN,
                        HMatrix *SCRMatrix, HMatrix *FSVMatrix,
                        cdouble EpsRel, cdouble MuRel,
-                       double *XTorque, 
+                       double *XTorque,
                        double DeltaPFT[NUMPFT],
                        bool NeedQuantity[NUMPFT],
                        double **ByPanel)
 {
   memset(DeltaPFT, 0, NUMPFT*sizeof(double));
-
+ 
+  // MicroByPanel is an array that stores the contributions
+  // of each panel on a meshed bounding surface to each
+  // PFT quantity
   double *MicroByPanel=0;
   if (ByPanel)
    MicroByPanel = new double[ NUMPFT*(SCRMatrix->NR) ];
 
-  double Weight = (nsa==nsb && neb>nea) ? 2.0 : 1.0;
+  double Weight = (nsa==nsb && neb==nea) ? 1.0 : 2.0;
 
   /***************************************************************/
   /* loop over cubature points                                   */
@@ -867,7 +870,7 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
                                     +NK*conj(FSVNA[3+m])*FSVKB[3+n] 
                                     +NN*conj(FSVNA[3+m])*FSVNB[3+n]
                                   );
-
+ 
          EH[m][n] = real( KK*conj(FSVKA[m])*FSVKB[3+n]
                          +KN*conj(FSVKA[m])*FSVNB[3+n]
                          +NK*conj(FSVNA[m])*FSVKB[3+n]
@@ -880,6 +883,8 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
      /***************************************************************/
      if ( NeedQuantity[SIPOWER] )
       { 
+        // this could be accelerated by exploiting the
+        // structure of the NMatrix
         double MicroDelta=0.0;
         for(int m=0; m<3; m++)
          for(int n=0; n<3; n++)
@@ -992,13 +997,16 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
    };
 
   /*--------------------------------------------------------------*/
-  /*- loop over all pairs of edges on all surfaces                */
+  /*- loop over all pairs of edges on all surfaces for which the  */
+  /*- outer region is the exterior region of the vacuum           */
   /*--------------------------------------------------------------*/
   int NS=NumSurfaces;
   double PAbs=0.0, Fx=0.0, Fy=0.0, Fz=0.0, Taux=0.0, Tauy=0.0, Tauz=0.0;
   for(int nsa=0; nsa<NS; nsa++)
    for(int nsb=nsa; nsb<NS; nsb++)
     { 
+      if (Surfaces[nsa]->RegionIndices[0]!=0) continue;
+      if (Surfaces[nsb]->RegionIndices[0]!=0) continue;
       int NEA=Surfaces[nsa]->NumEdges;
       int NEB=Surfaces[nsb]->NumEdges;
       int OffsetA=BFIndexOffset[nsa];
