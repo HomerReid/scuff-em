@@ -226,11 +226,12 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
   bool PBC = (G->LDim > 0);
 
   if (G->LDim==0)
-   Log("Computing Casimir integrand at Xi=%g\n",Xi);
+   Log("Computing Casimir integrand at Xi=%g",Xi);
   else if (G->LDim==1)
-   Log("Computing Casimir integrand at (Xi,kx)=(%g,%g)\n",Xi,kBloch[0]);
+   Log("Computing Casimir integrand at (Xi,kx)=(%g,%g)",Xi,kBloch[0]);
   else // (G->LDim==2)
-   Log("Computing Casimir integrand at (Xi,kx,ky)=(%g,%g,%g)\n",Xi,kBloch[0],kBloch[1]);
+   Log("Computing Casimir integrand at (Xi,kx,ky)=(%g,%g,%g)",Xi,kBloch[0],kBloch[1]);
+  Log("Mem usage: %lu",GetMemoryUsage()/1048576);
 
   /***************************************************************/
   /* SurfaceNeverMoved[ns] is initialized true and remains true  */
@@ -324,12 +325,21 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
   /* for each line in the TransFile, apply the specified         */
   /* transformation, then calculate all quantities requested.    */
   /***************************************************************/
-  FILE *ByXiKFile=0;
-  if (SC3D->ByXiKFileName)
-   ByXiKFile=fopen(SC3D->ByXiKFileName,"a");
+  FILE *FRDataFile=0; // frequency-resolved data file 
+  if (G->LDim==0)
+   FRDataFile = fopen(SC3D->ByXiFileName, "a");
+  else if (SC3D->ByXiKFileName)
+   FRDataFile = fopen(SC3D->ByXiKFileName,"a");
   for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
    { 
      char *Tag=SC3D->GTCList[nt]->Tag;
+
+     if (FRDataFile && G->LDim==0)
+      fprintf(FRDataFile,"%s %6e ",Tag,Xi);
+     else if (FRDataFile && G->LDim==1)
+      fprintf(FRDataFile,"%s %6e %6e ",Tag,Xi,kBloch[0]);
+     else if (FRDataFile && G->LDim==2)
+      fprintf(FRDataFile,"%s %6e %6e %6e ",Tag,Xi,kBloch[0],kBloch[1]);
 
      /******************************************************************/
      /* skip if all quantities are already converged at this transform */
@@ -356,16 +366,11 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
         for(int nq=0; nq<SC3D->NumQuantities; nq++)
          EFT[ntnq++]=0.0;
 
-        if (ByXiKFile)
-         { 
-           if (G->LDim==1)
-            fprintf(ByXiKFile,"%s %6e %6e ",Tag,Xi,kBloch[0]);
-           else // (LDim==2)
-            fprintf(ByXiKFile,"%s %6e %6e %6e ",Tag,Xi,kBloch[0],kBloch[1]);
-           for(int nq=0; nq<SC3D->NumQuantities; nq++)
-            fprintf(ByXiKFile,"%8e ",0.0);
-           fprintf(ByXiKFile,"\n");
-           fflush(ByXiKFile);
+        if (FRDataFile)
+         { for(int nq=0; nq<SC3D->NumQuantities; nq++)
+            fprintf(FRDataFile,"%8e ",0.0);
+           fprintf(FRDataFile,"\n");
+           fflush(FRDataFile);
          };
 
         continue;
@@ -423,32 +428,17 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
       EFT[ntnq++]=GetTraceMInvdM(SC3D,'3');
 
      /******************************************************************/
-     /* write results to .byXi file (for non-periodic geometries) or   */
+     /* write results to the frequency-resolved data file, which is    */
+     /* either the .byXi file (for non-periodic geometries) or the     */
      /* to .byXiK file (for periodic geometries).                      */
      /* Note that, for periodic geometries, data are also written to   */
      /* the .byXi file, but this happens at one level higher up in the */
      /* calling hierarchy, in the GetXiIntegrand() routine.            */
      /******************************************************************/
-     FILE *f=0;
-     if (G->LDim==0)
-      { f = fopen(SC3D->ByXiFileName, "a");
-        fprintf(f,"%s %.6e ",Tag,Xi);
-      }
-     else if (G->LDim==1)
-      { f = fopen(SC3D->ByXiKFileName, "a");
-        fprintf(f,"%s %.6e %.6e ",Tag,Xi,kBloch[0]);
-      }
-     else if (G->LDim==2)
-      { f = fopen(SC3D->ByXiKFileName, "a");
-        fprintf(f,"%s %.6e %.6e %.6e ",Tag,Xi,kBloch[0],kBloch[1]);
-      }
-     else
-      ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-
      for(int nq=SC3D->NumQuantities; nq>0; nq--)
-      fprintf(f,"%.8e ",EFT[ntnq-nq]);
-     fprintf(f,"\n");
-     fclose(f);
+      fprintf(FRDataFile,"%.8e ",EFT[ntnq-nq]);
+     fprintf(FRDataFile,"\n");
+     fflush(FRDataFile);
 
      /******************************************************************/
      /* undo the geometrical transform                                 */
@@ -456,6 +446,7 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
      G->UnTransform();
 
    }; // for(ntnq=nt=0; nt<SC3D->NumTransformations; nt++)
+  fclose(FRDataFile);
 
   /***************************************************************/
   /***************************************************************/

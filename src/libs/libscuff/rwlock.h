@@ -25,7 +25,7 @@
    we can eliminat the pthread dependency that way. */
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+#  include "config.h" 
 #endif
 
 #if defined(USE_OPENMP) || defined(USE_PTHREAD)

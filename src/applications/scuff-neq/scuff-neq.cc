@@ -90,16 +90,14 @@ int main(int argc, char *argv[])
    
   /*--------------------------------------------------------------*/
   char *DSIMesh    = 0;
-  double DSIRadius = 100.0;
-  int DSIPoints    = 31;
-  bool Lebedev     = false;
-  bool FarField    = false;
+  double DSIRadius = 10.0;
+  int DSIPoints    = 302;
+  bool DSICCQ      = false;
+  bool DSIFarField = false;
 
   /*--------------------------------------------------------------*/
   bool OmitSelfTerms = false;
-  bool DSISelf       = false;
-  bool DSIOther      = false;
-  bool EPOther       = false;
+  bool ForceDSI      = false;
 
   /*--------------------------------------------------------------*/
   char *FileBase=0;
@@ -150,13 +148,11 @@ int main(int argc, char *argv[])
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "bounding surface .msh file for DSIPFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
      {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for DSIPFT"},
-     {"Lebedev",        PA_BOOL,    0, 1,       (void *)&Lebedev,    0,             "use lebedev cubature for DSIPFT"},
-     {"FarField",       PA_BOOL,    0, 1,       (void *)&FarField,   0,             "retain only far-field contributions to DSIPFT"},
+     {"DSICCQ",         PA_BOOL,    0, 1,       (void *)&DSICCQ,    0,              "use Clenshaw-Curtis cubature for DSIPFT"},
+     {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField,   0,          "retain only far-field contributions to DSIPFT"},
 /**/
-     {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,             "omit the calculation of self terms"},
-     {"DSISelf",        PA_BOOL,    0, 1,       (void *)&DSISelf,    0,             "use DSIPFT instead of default EPPFT for self terms"},
-     {"DSIOther",       PA_BOOL,    0, 1,       (void *)&DSIOther,   0,             "use DSIPFT instead of default OPFT for non-self terms"},
-     {"EPOther",        PA_BOOL,    0, 1,       (void *)&EPOther,    0,             "use EPPFT instead of default OPFT for non-self terms"},
+     {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,          "omit the calculation of self terms"},
+     {"ForceDSI",       PA_BOOL,    0, 1,       (void *)&ForceDSI,   0,             "use DSIPFT instead of OPFT/EPPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
 /**/
@@ -283,15 +279,13 @@ int main(int argc, char *argv[])
 
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData   = UseExistingData;
-  SNEQD->FarField          = FarField;
-  SNEQD->Lebedev           = Lebedev;
   SNEQD->DSIMesh           = DSIMesh;
   SNEQD->DSIRadius         = DSIRadius;
   SNEQD->DSIPoints         = DSIPoints;
+  SNEQD->DSIFarField       = DSIFarField;
+  SNEQD->DSICCQ            = DSICCQ;
   SNEQD->OmitSelfTerms     = OmitSelfTerms;
-  SNEQD->DSISelf           = DSISelf;
-  SNEQD->DSIOther          = DSIOther;
-  SNEQD->EPOther           = EPOther;
+  SNEQD->ForceDSI          = ForceDSI;
   SNEQD->AbsTol            = AbsTol;
   SNEQD->RelTol            = RelTol;
 

@@ -18,10 +18,10 @@
  */
 
 /*
- * unit-test-PFT.cc -- SCUFF-EM unit tests for PFT calculations
+ * unit-test-NEQPFT.cc -- SCUFF-EM unit tests for non-equilibrium
+ *                     -- power, force, and torque calculations
  * 
- * homer reid       -- 11/2005 -- 10/2011
- *
+ * homer reid          -- 11/2014
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,50 +39,29 @@ using namespace scuff;
 #define TENTHIRDS 3.33333333333333333334
 
 /***************************************************************/
-/* tables of power and force data for spheres of radius R=1um  */
-/* and various material composition.                           */
-/*                                                             */
-/* in each case, powers and forces are for the case of         */
-/* illumination by a z-traveling plane wave with E-field       */
-/* polarized in the +x direction.                              */
-/*                                                             */
-/* data table entries:                                         */
-/*  (1) omega (angular frequency, units 3e14 rad/sec)          */
-/*  (2) efficiency for power scattering                        */
-/*  (3) efficiency for power absorption                        */
-/*  (4) efficiency for z-force                                 */
-/*                                                             */
-/* where efficiencies are cross-sections divided by \pi R^2.   */
-/*                                                             */
-/* cross-sections for {absorbed, scattered} power are the      */
-/* total power {absorbed by, scattered from} the object        */
-/* divided by incident power flux. the cross-section for the   */
-/* force is the z-force on the object divided by the incident  */
-/* momentum flux.                                              */
+/* tables of non-equilibrium PFT data for SiC spheres of       */
+/* radius R=1 um separated by a (center--center) distance of   */
+/* 10 um in the Z direction.                                   */
 /***************************************************************/
-#define NUMOMEGAS 4
-double OmegaList[] = { 1.0e-3, 1.0e-2, 1.0e-1, 1.0 };
 
-double GoldPFT[] =
-   { 1.0e-3, 2.841416e-12, 7.066437e-04, 7.066437e-04,
-     1.0e-2, 3.111826e-08, 3.293537e-03, 3.293579e-03,
-     1.0e-1, 3.244591e-04, 8.972653e-03, 9.419389e-03,
-     1.0e-0, 2.125119e+00, 1.983620e-02, 2.509075e+00
-   };
+#define NUMOMEGAS 3
+double OmegaList[] = { 1.0e-2, 1.0e-1, 1.0 };
 
-double PECPFT[] =
-   { 1.0e-3, 3.216470e-12, 0.0, 4.427315e-12,
-     1.0e-2, 3.320868e-08, 0.0, 4.641536e-08,
-     1.0e-1, 5.980295e+00, 0.0, 6.020131e+00,
-     1.0e-0, 6.012197e+00, 0.0, 5.880804e+00
-   };
+// PowerFlux[no][0] == 0->0 power at frequency #no
+// PowerFlux[no][1] == 0->1 power at frequency #no
+// PowerFlux[no][2] == 1->0 power at frequency #no
+// PowerFlux[no][3] == 1->1 power at frequency #no
+// 
+// ForceFlux[no][0] == 0->0 force at frequency #no
+// ForceFlux[no][1] == 0->1 force at frequency #no
+// ForceFlux[no][2] == 1->0 force at frequency #no
+// ForceFlux[no][3] == 1->1 force at frequency #no
 
-double SiCPFT[] =
-   { 1.0e-3, 1.503808e-12, 3.345234e-09, 3.346738e-09,
-     1.0e-2, 1.504039e-08, 3.348068e-07, 3.498465e-07,
-     1.0e-1, 1.527705e-04, 3.648611e-05, 1.885546e-04,
-     1.0e-0, 1.465431e+00, 4.180791e-03, 8.951046e-01 
-   };
+double PowerFlux[NUMOMEGAS][4]
+ { };
+
+double ForceFlux[NUMOMEGAS][4]
+ { };
 
 /***************************************************************/
 /***************************************************************/
@@ -92,7 +71,7 @@ int main(int argc, char *argv[])
   (void )argc;
   (void )argv; 
   SetLogFileName("scuff-unit-tests.log");
-  Log("SCUFF-EM PFT unit tests running on %s",GetHostName());
+  Log("SCUFF-EM NEQPFT unit tests running on %s",GetHostName());
 
   /***************************************************************/ 
   /* set up incident field ***************************************/ 
@@ -102,11 +81,11 @@ int main(int argc, char *argv[])
   PlaneWave *PW = new PlaneWave(E0, nHat);
   double IncFlux = 1.0/(2.0*ZVAC);
 
-  /***************************************************************/
-  /* loop over all three material geometries *********************/
-  /***************************************************************/
+  /***************************************************************/ 
+  /* loop over all three material geometries *********************/ 
+  /***************************************************************/ 
   #define NUMCASES 3
-  const char *GeoFileNames[NUMCASES] = { "PECSphere_474.scuffgeo",
+  const char *GeoFileNames[NUMCASES] = { "PECSphere_474.scuffgeo", 
                                          "GoldSphere_474.scuffgeo",
                                          "SiCSphere_474.scuffgeo"
                                        };

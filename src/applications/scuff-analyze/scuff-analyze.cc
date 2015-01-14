@@ -45,10 +45,22 @@ using namespace scuff;
 void AnalyzeSurface(RWGSurface *S)
 {
   double TotalArea=0.0, AvgArea=0.0, AvgArea2=0.0;
+  double TotalVolume=0.0;
   for(int np=0; np<S->NumPanels; np++)
-   { TotalArea+=S->Panels[np]->Area;
-     AvgArea+=S->Panels[np]->Area;
-     AvgArea2+=(S->Panels[np]->Area)*(S->Panels[np]->Area);
+   { 
+     RWGPanel *P=S->Panels[np];
+     double Area = P->Area;
+
+     TotalArea+=Area;
+     AvgArea+=Area;
+     AvgArea2+=Area*Area;
+
+     double XmX0[3];
+     XmX0[0] = P->Centroid[0];
+     XmX0[1] = P->Centroid[1];
+     XmX0[2] = P->Centroid[2];
+     if (S->OTGT) S->OTGT->UnApply(XmX0);
+     TotalVolume += VecDot(XmX0, P->ZHat) * Area / 3.0;
    };
   AvgArea/=((double)S->NumPanels);
   AvgArea2/=((double)S->NumPanels);
@@ -75,6 +87,8 @@ void AnalyzeSurface(RWGSurface *S)
   printf(" Total area: %9.7e \n",TotalArea);
   printf(" Avg area: %9.7e // sqrt(Avg Area)=%9.7e\n",AvgArea,sqrt(AvgArea));
   printf(" Standard deviation of panel areas: %9.7e\n",StdDevArea);
+  if (S->IsClosed)
+   printf(" Total volume: %9.7e \n",TotalVolume);
   printf(" \n");
 
 }
