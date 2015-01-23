@@ -200,6 +200,9 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
 /* f1 = \int_0^1 \int_0^u u*e^{-i(uX+vY)} dv du                */
 /* f2 = \int_0^1 \int_0^u v*e^{-i(uX+vY)} dv du                */
 /***************************************************************/
+namespace scuff{
+cdouble ExpRel(cdouble x, int n);
+               }
 void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
 {
   cdouble ExpIX=exp(II*X);
@@ -227,6 +230,7 @@ void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
    { *f1 = ((II/2.0)*(-2.0 + (2.0 + (2.0*II)*X)/ExpIX - X2))/X3;
      *f2 = ((-II/2.0)*(-2.0 + 2.0/ExpIX + X*(2.0*II + X)))/X3;
    }
+#if 0
   else
    {
      *f1=((-II)*(-1.0 + (1.0 + II*X)/ExpIX))/(X2*Y) + 
@@ -234,6 +238,28 @@ void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
 
      *f2 = (-(X*(X*(-II + Y) + Y*(-2.0*II + Y))) - II*ExpIY*(-(ExpIX*Y2) + (XPY2)))/
             (ExpIX*ExpIY*X*Y2*XPY2);
+   };
+#endif
+  else
+   { 
+     cdouble IX   = II*X;
+     cdouble IY   = II*Y;
+     double XPY   = X+Y;
+     cdouble IXPY = II*XPY;
+
+     cdouble ExpMIX=exp(-IX);
+     cdouble ExpMIY=exp(-IY);
+     cdouble ExpMIXPY=ExpMIX * ExpMIY;
+
+     cdouble Term1 = X==0.0     ? 0.0 : ExpMIX*ExpRel(IX, 2) / (X*X);
+     cdouble Term2 = Y==0.0     ? 0.0 : ExpMIY*ExpRel(IY, 2) / (Y*Y);
+     cdouble Term3 = (XPY)==0.0 ? 0.0 : ExpMIXPY*ExpRel(IXPY, 2) / (XPY*XPY);
+
+     *f1 = (Term1 - Term3) * II / Y;
+  
+     cdouble fFull = II*ExpRel(IY,2)*ExpRel(IX,1)*ExpMIXPY/(X*Y*Y);
+
+     *f2 = fFull - (Term2 - Term3)*II/X;
    };
 
 }
