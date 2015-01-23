@@ -44,6 +44,16 @@ void UndoSCUFFMatrixTransformation(HMatrix *M)
     };
 }
 
+void ApplySCUFFMatrixTransformation(HMatrix *M)
+{ 
+  for (int nr=0; nr<M->NR; nr+=2)
+   for (int nc=0; nc<M->NC; nc+=2)
+    { M->SetEntry(nr,   nc, (1.0/ZVAC)*M->GetEntry(nr,   nc)    );
+      M->SetEntry(nr,   nc+1, -1.0*M->GetEntry(nr,   nc+1)      );
+      M->SetEntry(nr+1, nc+1, -1.0*ZVAC*M->GetEntry(nr+1, nc+1) );
+    };
+}
+
 /***************************************************************/
 /* the GetFlux() routine computes a large number of flux       */
 /* quantities, including both spatially-integrated (SI) and    */
@@ -157,12 +167,9 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
 /* to be filled in with just the number of *requested*         */
 /* quantities.                                                 */
 /***************************************************************/
-#define METHOD_DSIPFT 0
-#define METHOD_OPFT   1
-#define METHOD_EPPFT  2
-void GetSIFlux(SNEQData *SNEQD, 
+void GetSIFlux(SNEQData *SNEQD,
                int SourceSurface, int DestSurface,
-               cdouble Omega, 
+               cdouble Omega,
                bool NeedQuantity[NUMPFT],
                double SIFlux[NUMPFT])
 {
@@ -173,46 +180,67 @@ void GetSIFlux(SNEQData *SNEQD,
 
   RWGGeometry *G  = SNEQD->G;
   HMatrix *Sigma  = SNEQD->Sigma;
-  bool DSISelf    = SNEQD->DSISelf;
-  bool DSIOther   = SNEQD->DSIOther;
-  bool EPOther    = SNEQD->EPOther;
+  bool ForceDSI = SNEQD->ForceDSI;
 
   double **ByEdge=0;
-  if (SNEQD->ByEdge)
-   ByEdge=SNEQD->ByEdge[DestSurface];
+  char *PlotFileName=0, PFNBuffer[200];
+  bool PlotQuantity[7]={false, false, false, false, false, false, false};
+  if(SNEQD->ByEdge)
+   { 
+     ByEdge=SNEQD->ByEdge[DestSurface];
+     PlotFileName=PFNBuffer;
+     snprintf(PlotFileName,200,"%s.%sTo%s.PFTFlux.pp",
+              GetFileBase(G->GeoFileName),
+              G->Surfaces[SourceSurface]->Label,
+              G->Surfaces[DestSurface]->Label);
+     
+     for(int nq=0; nq<NUMPFT; nq++)
+      PlotQuantity[nq] = ByEdge[nq]!=0 ? true : false;
+   };
 
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int Method;
-  if (SourceSurface==DestSurface)
-   Method = DSISelf ? METHOD_DSIPFT : METHOD_EPPFT;
-  else
-   Method = DSIOther ? METHOD_DSIPFT : ( EPOther ? METHOD_EPPFT : METHOD_OPFT );
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /* get PFT using DSIPFT for the self contribution and OPFT for  */
+  /* the non-self contributions                                   */
   /*--------------------------------------------------------------*/
   double AllFlux[NUMPFT];
-  switch(Method)
+  if (SourceSurface==DestSurface || ForceDSI )
    { 
-     case METHOD_DSIPFT:
-      G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
+      G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, NeedQuantity,
                         SNEQD->DSIMesh, SNEQD->DSIRadius, SNEQD->DSIPoints,
-                        SNEQD->Lebedev, SNEQD->FarField);
-      break;
+                        PlotFileName, SNEQD->DSICCQ, SNEQD->DSIFarField);
 
-     case METHOD_EPPFT:
-      G->GetEPPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
-                       NeedQuantity, SNEQD->TSelf[DestSurface],
-                       (SourceSurface==DestSurface ? true : false));
-      break;
-
-     case METHOD_OPFT:
-      G->GetOPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge);
-      break;
-
+     if (ForceDSI) PlotQuantity[QINDEX_POWER] = false;
+     for(int nq=1; nq<NUMPFT; nq++)
+      PlotQuantity[nq] = false;
+   }
+  else 
+   { 
+     G->GetOPFT(DestSurface, Omega, 0, 0, Sigma, AllFlux, 0, ByEdge);
    };
+
+  /*--------------------------------------------------------------*/
+  /* replace overlap power with EPPFT power unless --ForceDSI     */
+  /* was specified.                                               */
+  /*--------------------------------------------------------------*/
+  if ( SNEQD->NeedQuantity[QINDEX_POWER] && ForceDSI==false )
+   { 
+     ApplySCUFFMatrixTransformation(SNEQD->TSelf[DestSurface]);
+     AllFlux[QINDEX_POWER]=G->GetEPP(DestSurface, Omega, 0, Sigma,
+                                     ByEdge, true, SNEQD->TSelf[DestSurface]);
+     UndoSCUFFMatrixTransformation(SNEQD->TSelf[DestSurface]);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- generate panel-resolved flux plots if that was requested   -*/
+  /*--------------------------------------------------------------*/
+  if (PlotFileName)
+   for(int nq=0; nq<NUMPFT; nq++)
+    if (PlotQuantity[nq])
+     G->Surfaces[DestSurface]->PlotScalarDensity(ByEdge[nq], true,
+                                                 PlotFileName,
+                                                 "%s_%g",
+                                                 QuantityNames[nq],
+                                                 real(Omega));
 
   /*--------------------------------------------------------------*/
   /*- collapse the full vector of 7 PFTs to just the entries the -*/
@@ -222,24 +250,6 @@ void GetSIFlux(SNEQData *SNEQD,
    if (SNEQD->NeedQuantity[nq])
     SIFlux[nqq++] = -4.0*AllFlux[nq];
 
-  /*--------------------------------------------------------------*/
-  /*- generate panel-resolved flux plots if that was requested   -*/
-  /*--------------------------------------------------------------*/
-  if (ByEdge)
-   { 
-     char FileName[100];
-     snprintf(FileName,100,"%sTo%s.PFTFlux.pp",
-                            G->Surfaces[SourceSurface]->Label,
-                            G->Surfaces[DestSurface]->Label);
-
-     for(int nq=0; nq<NUMPFT; nq++)
-      if (ByEdge[nq])
-       G->Surfaces[DestSurface]->PlotScalarDensity(ByEdge[nq],
-                                                   FileName,
-                                                   "%s_%g",
-                                                   QuantityNames[nq],
-                                                   real(Omega));
-   };
 
 } 
 

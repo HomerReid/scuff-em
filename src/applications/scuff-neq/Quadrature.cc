@@ -227,7 +227,6 @@ void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  RWGGeometry *G = SNEQD -> G;
   int fdim       = SNEQD->NumSIQs + SNEQD->NumSRQs;
   double AbsTol  = SNEQD->AbsTol;
   double RelTol  = SNEQD->RelTol;

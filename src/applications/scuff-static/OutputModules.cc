@@ -471,4 +471,4 @@ void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
      fclose(f);
    }; // for(int nepf=0; nepf<nEPFiles; nepf++)
 
-};
+}
