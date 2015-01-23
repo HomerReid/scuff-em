@@ -290,7 +290,6 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
                              HVector *KN, int BFIndexOffset, 
                              HVector *AVector)
 { 
-  
   /***************************************************************/
   /* (re)allocate the AVector as necessary ***********************/
   /***************************************************************/

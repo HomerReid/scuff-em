@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-2011 M. T. Homer Reid
+/* Copyright (C) 2005-2011 M. T. Homer ReidElectricOnly=true;
  *
  * This file is part of SCUFF-EM.
  *
@@ -284,6 +284,10 @@ void GetEMiKXRWGIntegral(RWGSurface *S, int ne, double K[3], cdouble Integral[3]
 /* This routine computes the contributions of currents on a    */
 /* single surface to the transmission amplitude.               */
 /***************************************************************/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+bool MagneticOnly=false;
+bool ElectricOnly=false;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 void GetTransmissionAmplitudes(RWGGeometry *G, HVector *KN,
                                int WhichSurface, cdouble EpsPrime,
                                cdouble Omega, double Theta,
@@ -335,6 +339,11 @@ void GetTransmissionAmplitudes(RWGGeometry *G, HVector *KN,
 
      cdouble EMiQXBAlpha[3]; 
      GetEMiKXRWGIntegral(S, ne, K, EMiQXBAlpha);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (ElectricOnly) NAlpha=0.0;
+if (MagneticOnly) KAlpha=0.0;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      
      tTE += KAlpha*(   EpsTE[0]*EMiQXBAlpha[0]
                      + EpsTE[1]*EMiQXBAlpha[1]
@@ -633,8 +642,19 @@ int main(int argc, char *argv[])
       KN->Copy(RHS);
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTE);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+ElectricOnly=true;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta, 
                                 &tTETE, &tTMTE);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+ElectricOnly=false;
+MagneticOnly=true;
+cdouble tTETE_MO, tTMTE_MO;
+      GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
+                                &tTETE_MO, &tTMTE_MO);
+MagneticOnly=false;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
       // solve with E-field parallel to plane of incidence (TM)
       E0[0]=CosTheta;
@@ -645,8 +665,19 @@ int main(int argc, char *argv[])
       KN->Copy(RHS);
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTM);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+ElectricOnly=true;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
                                 &tTETM, &tTMTM);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+ElectricOnly=false;
+MagneticOnly=true;
+cdouble tTETM_MO, tTMTM_MO;
+      GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
+                                &tTETM_MO, &tTMTM_MO);
+MagneticOnly=false;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    
       IncFlux = CosTheta/(2.0*ZVAC);
 
@@ -657,6 +688,12 @@ int main(int argc, char *argv[])
       fprintf(f,"%e %e ", norm(tTMTE), arg(tTMTE));
       fprintf(f,"%e %e ", norm(tTETM), arg(tTMTM));
       fprintf(f,"%e %e ", norm(tTMTM), arg(tTMTM));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+      fprintf(f,"%e %e ", norm(tTETE_MO), arg(tTETE_MO));
+      fprintf(f,"%e %e ", norm(tTMTE_MO), arg(tTMTE_MO));
+      fprintf(f,"%e %e ", norm(tTETM_MO), arg(tTMTM_MO));
+      fprintf(f,"%e %e ", norm(tTMTM_MO), arg(tTMTM_MO));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       fprintf(f,"\n");
       fflush(f);
 
