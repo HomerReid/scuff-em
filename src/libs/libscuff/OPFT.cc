@@ -267,7 +267,7 @@ int GetOverlappingEdgeIndices(RWGSurface *S, int nea, int nebArray[5])
 void RWGGeometry::GetOPFT(int SurfaceIndex, cdouble Omega,
                           HVector *KNVector, HVector *RHS,
                           HMatrix *SigmaMatrix,
-                          double PFT[7], 
+                          double PFT[7],
                           double *PTot, double **ByEdge)
 {
   if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)

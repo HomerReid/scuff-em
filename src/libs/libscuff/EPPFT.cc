@@ -399,14 +399,14 @@ double RWGGeometry::GetEPP(int DestSurface, cdouble Omega,
 #else
   if (LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
 #pragma omp parallel for schedule(dynamic,1),      \
-                         collapse(2),              \
                          num_threads(NumThreads),  \
                          reduction(+:P)
 #endif
-  for(int nea=0; nea<NE; nea++)
-    for(int neb=0; neb<NE; neb++)
-     { 
-       if (neb<nea) continue;
+  for(int neab=0; neab<NE*NE; neab++)
+   { 
+     int nea=neab / NE;
+     int neb=neab % NE;
+     if (neb<nea) continue;
 
        /*--------------------------------------------------------------*/
        /*- get the matrix elements <b_\alpha | e_\beta> and           -*/
