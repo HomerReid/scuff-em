@@ -669,17 +669,19 @@ int main(int argc, char *argv[])
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTE);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-ElectricOnly=true;
+ElectricOnly=false;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta, 
                                 &tTETE, &tTMTE);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
 ElectricOnly=false;
-MagneticOnly=true;
+MagneticOnly=false;
 cdouble tTETE_MO, tTMTE_MO;
       GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
                                 &tTETE_MO, &tTMTE_MO);
 MagneticOnly=false;
+#endif
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
       // solve with E-field parallel to plane of incidence (TM)
@@ -692,17 +694,19 @@ MagneticOnly=false;
       M->LUSolve(KN);
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTM);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-ElectricOnly=true;
+ElectricOnly=false;
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
                                 &tTETM, &tTMTM);
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
 ElectricOnly=false;
-MagneticOnly=true;
+MagneticOnly=false
 cdouble tTETM_MO, tTMTM_MO;
       GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
                                 &tTETM_MO, &tTMTM_MO);
 MagneticOnly=false;
+#endif
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    
       IncFlux = CosTheta/(2.0*ZVAC);
@@ -715,10 +719,12 @@ MagneticOnly=false;
       fprintf(f,"%e %e ", norm(tTETM), arg(tTMTM));
       fprintf(f,"%e %e ", norm(tTMTM), arg(tTMTM));
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
       fprintf(f,"%e %e ", norm(tTETE_MO), arg(tTETE_MO));
       fprintf(f,"%e %e ", norm(tTMTE_MO), arg(tTMTE_MO));
       fprintf(f,"%e %e ", norm(tTETM_MO), arg(tTMTM_MO));
       fprintf(f,"%e %e ", norm(tTMTM_MO), arg(tTMTM_MO));
+#endif
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
       fprintf(f,"\n");
       fflush(f);

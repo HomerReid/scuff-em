@@ -411,6 +411,7 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       // in the domain of interest and take the smallest 
       double MinDelta[3], Delta[3];
       GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.0*Ly, RhoMin, RelTol, MinDelta, 0);
+/*
       GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
       GetOptimalGridSpacing2D(GBA, 0.0*Lx, 1.0*Ly, RhoMin, RelTol, Delta, MinDelta);
       GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.0*Ly, RhoMin, RelTol, Delta, MinDelta);
@@ -427,6 +428,7 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       GetOptimalGridSpacing2D(GBA, 0.5*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
       GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
       GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
+*/
       GetOptimalGridSpacing2D(GBA, 1.0*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
 
       int nx   = ceil( Lx / MinDelta[0] );
