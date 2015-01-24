@@ -638,6 +638,13 @@ int main(int argc, char *argv[])
 
   cdouble EpsExterior, MuExterior, kExterior;
 
+  double RAbove[3]={0.0, 0.0, 0.0};
+  double RBelow[3]={0.0, 0.0, 0.0};
+  RAbove[2] = ZAbove;
+  RBelow[2] = ZBelow;
+  int RegionAbove = G->GetRegionIndex(RAbove);
+  int RegionBelow = G->GetRegionIndex(RBelow);
+
   /*--------------------------------------------------------------*/
   /*- loop over frequencies and incident angles ------------------*/
   /*--------------------------------------------------------------*/
@@ -696,16 +703,16 @@ int main(int argc, char *argv[])
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTM);
       GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
                                 &tTETM, &tTMTM);
-   
+
+      if (RegionAbove==RegionBelow)
+       { tTETE+=1.0; 
+         tTMTM+=1.0;
+       };
       
       // compute incident fluxes 
       cdouble EpsAbove, MuAbove, EpsBelow, MuBelow;
-      double RAbove[3]={0.0, 0.0, 0.0};
-      double RBelow[3]={0.0, 0.0, 0.0};
-      RAbove[2] = ZAbove;
-      RBelow[2] = ZBelow;
-      G->RegionMPs[ G->GetRegionIndex(RAbove) ] -> GetEpsMu(Omega, &EpsAbove, &MuAbove);
-      G->RegionMPs[ G->GetRegionIndex(RBelow) ] -> GetEpsMu(Omega, &EpsBelow, &MuBelow);
+      G->RegionMPs[ RegionAbove ] -> GetEpsMu(Omega, &EpsAbove, &MuAbove);
+      G->RegionMPs[ RegionBelow ] -> GetEpsMu(Omega, &EpsBelow, &MuBelow);
       double ZRelAbove = real( sqrt(MuAbove / EpsAbove) );
       double ZRelBelow = real( sqrt(MuBelow / EpsAbove) );
       double IncFluxAbove = CosTheta/(2.0*ZVAC*ZRelAbove);
