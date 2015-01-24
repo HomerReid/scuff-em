@@ -189,7 +189,6 @@ void HMatrix::ExportToHDF5(void *pHC, const char *format, ...)
 { 
   HDF5Context *HC=(HDF5Context *)pHC;
   if (!HC) return;
-  int NumEntries;
   herr_t Status;
   hsize_t dims[2];
 
@@ -216,15 +215,13 @@ void HMatrix::ExportToHDF5(void *pHC, const char *format, ...)
    }
   else if ( StorageType!=LHM_NORMAL && RealComplex==LHM_REAL )
    { 
-     NumEntries = (StorageType==LHM_NORMAL ? NR*NC : NR*(NR+1)/2);
      dims[0]=1;
-     dims[1]=NumEntries;
+     dims[1]=NumEntries();
      Status=H5LTmake_dataset_double(HC->file_id, Name, 2, dims, (double *)DM);
    }
   else if ( StorageType!=LHM_NORMAL && RealComplex==LHM_COMPLEX)
-   { NumEntries = (StorageType==LHM_NORMAL ? NR*NC : NR*(NR+1)/2);
-     dims[0]=1;
-     dims[1]=2*NumEntries;
+   { dims[0]=1;
+     dims[1]=2*NumEntries();
      Status=H5LTmake_dataset_double(HC->file_id, Name, 2, dims, (double *)ZM);
    };
 
