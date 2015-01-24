@@ -54,6 +54,11 @@ PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType,
   SetRegionLabel(Label);
 }
 
+PointSource::~PointSource()
+{ 
+  // no malloc'ed data to free
+}
+
 /**********************************************************************/
 /**********************************************************************/
 /**********************************************************************/

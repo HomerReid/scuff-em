@@ -63,7 +63,7 @@ class IncField
 
    // constructor just initializes the simple fields
    IncField(); 
-   ~IncField();
+   virtual ~IncField();
 
    void SetFrequency(cdouble Omega, bool Traverse=true);
    void SetFrequencyAndEpsMu(cdouble Omega, cdouble Eps, cdouble Mu, bool Traverse=true);
@@ -98,6 +98,7 @@ class PlaneWave : public IncField
    double nHat[3];        /* unit vector in direction of propagation */
 
    PlaneWave(const cdouble E0[3], const double nHat[3], const char *Label = 0);
+   ~PlaneWave();
 
    void SetE0(cdouble pE0[3]);
    void SetnHat(double nHat[3]);
@@ -120,6 +121,7 @@ class PointSource: public IncField
 
    PointSource(const double X0[3], const cdouble P[3], 
                int Type = LIF_ELECTRIC_DIPOLE, const char *Label = 0);
+   ~PointSource();
 
    void SetX0(double X0[3]);
    void SetP(cdouble P[3]);
@@ -145,6 +147,7 @@ class GaussianBeam: public IncField
    // constructor 
    GaussianBeam(const double X0[3], const double KProp[3], 
                 const cdouble E0[3], double W0, const char *Label = 0);
+   ~GaussianBeam();
 
    void SetX0(double pX0[3]);
    void SetKProp(double pKProp[3]);
