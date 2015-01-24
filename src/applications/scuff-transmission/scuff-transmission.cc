@@ -203,6 +203,51 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
 namespace scuff{
 cdouble ExpRel(cdouble x, int n);
                }
+
+void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
+{
+  if (X==0.0 && Y==0.0)
+   { *f1=1.0/3.0;
+     *f2=1.0/6.0;
+   }
+  else if (Y==0.0)
+   { 
+     *f1 = 2.0*II*exp(-II*X)*ExpRel(II*X, 3) / (X*X*X);
+     *f2 = (*f1)/2.0;
+   }
+  else if (X==0.0)
+   { double Y3=Y*Y*Y;
+     cdouble ER1=ExpRel(II*Y,1);
+     cdouble ER2=ExpRel(II*Y,2);
+     *f1= -II*exp(-II*Y)*ER2/Y3 - 0.5*II/Y;
+     *f2= -2.0*II*exp(-II*Y)*( ER2 - 0.5*II*Y*ER1) / Y3;
+   }
+  else
+   { 
+     cdouble IX   = II*X;
+     cdouble IY   = II*Y;
+     double XPY   = X+Y;
+     cdouble IXPY = II*XPY;
+
+     cdouble ExpMIX=exp(-IX);
+     cdouble ExpMIY=exp(-IY);
+     cdouble ExpMIXPY=ExpMIX * ExpMIY;
+
+     cdouble Term1 = X==0.0     ? -0.5 : ExpMIX*ExpRel(IX, 2) / (X*X);
+     cdouble Term2 = Y==0.0     ? -0.5 : ExpMIY*ExpRel(IY, 2) / (Y*Y);
+     cdouble Term3 = (XPY)==0.0 ? -0.5 : ExpMIXPY*ExpRel(IXPY, 2) / (XPY*XPY);
+
+     *f1 = (Term1 - Term3) * II / Y;
+  
+     cdouble fFull = II*ExpRel(IY,2)*ExpRel(IX,1)*ExpMIXPY/(X*Y*Y);
+
+     *f2 = fFull - (Term2 - Term3)*II/X;
+   }
+  
+}
+
+#if 0 
+// 20150125 old inaccurate version...delete me 
 void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
 {
   cdouble ExpIX=exp(II*X);
@@ -230,7 +275,6 @@ void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
    { *f1 = ((II/2.0)*(-2.0 + (2.0 + (2.0*II)*X)/ExpIX - X2))/X3;
      *f2 = ((-II/2.0)*(-2.0 + 2.0/ExpIX + X*(2.0*II + X)))/X3;
    }
-#if 0
   else
    {
      *f1=((-II)*(-1.0 + (1.0 + II*X)/ExpIX))/(X2*Y) + 
@@ -239,30 +283,9 @@ void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
      *f2 = (-(X*(X*(-II + Y) + Y*(-2.0*II + Y))) - II*ExpIY*(-(ExpIX*Y2) + (XPY2)))/
             (ExpIX*ExpIY*X*Y2*XPY2);
    };
-#endif
-  else
-   { 
-     cdouble IX   = II*X;
-     cdouble IY   = II*Y;
-     double XPY   = X+Y;
-     cdouble IXPY = II*XPY;
-
-     cdouble ExpMIX=exp(-IX);
-     cdouble ExpMIY=exp(-IY);
-     cdouble ExpMIXPY=ExpMIX * ExpMIY;
-
-     cdouble Term1 = X==0.0     ? 0.0 : ExpMIX*ExpRel(IX, 2) / (X*X);
-     cdouble Term2 = Y==0.0     ? 0.0 : ExpMIY*ExpRel(IY, 2) / (Y*Y);
-     cdouble Term3 = (XPY)==0.0 ? 0.0 : ExpMIXPY*ExpRel(IXPY, 2) / (XPY*XPY);
-
-     *f1 = (Term1 - Term3) * II / Y;
-  
-     cdouble fFull = II*ExpRel(IY,2)*ExpRel(IX,1)*ExpMIXPY/(X*Y*Y);
-
-     *f2 = fFull - (Term2 - Term3)*II/X;
-   };
 
 }
+#endif
 
 /***************************************************************/
 /* compute the vector-valued integral                          */
@@ -295,14 +318,14 @@ void GetEMiKXRWGIntegral(RWGSurface *S, int ne, double K[3], cdouble Integral[3]
   f1f2(KAP, KB, &f1, &f2);
   ExpFac = exp(-II*KQP);
   Integral[0] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
-  Integral[1] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
-  Integral[2] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
+  Integral[1] = Length*ExpFac*( f1*AP[1] + f2*B[1] );
+  Integral[2] = Length*ExpFac*( f1*AP[2] + f2*B[2] );
 
   f1f2(KAM, KB, &f1, &f2);
   ExpFac = exp(-II*KQM);
   Integral[0] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
-  Integral[1] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
-  Integral[2] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
+  Integral[1] -= Length*ExpFac*( f1*AM[1] + f2*B[1] );
+  Integral[2] -= Length*ExpFac*( f1*AM[2] + f2*B[2] );
   
 }
 
