@@ -2,7 +2,6 @@ bin_PROGRAMS = scuff-tmatrix
 
 scuff_tmatrix_SOURCES = 	\
  scuff-tmatrix.cc 		\
- GetSphericalMoments.cc		\
  SphericalWave.cc		\
  SphericalWave.h
 

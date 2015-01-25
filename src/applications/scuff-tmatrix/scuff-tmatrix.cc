@@ -44,12 +44,8 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
-                             HVector *KNVector, int BFIndexOffset, 
-                             HVector *AVector=0);
-
-HVector *GetSphericalMoments(RWGGeometry *S, cdouble k, int lMax,
-                             HVector *KNVector, HVector *AVector=0);
+HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
+                             HVector *KN, HVector *MomentVector);
 
 /***************************************************************/
 /***************************************************************/
