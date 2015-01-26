@@ -40,6 +40,7 @@
 #include "SphericalWave.h"
 
 using namespace scuff;
+#define II cdouble (0.0,1.0)
 
 /***************************************************************/
 /***************************************************************/
@@ -164,7 +165,7 @@ int main(int argc, char *argv[])
 
            // stamp in the vector of moments as the ncth row of the T-matrix
            for(nr=0; nr<NumMoments; nr++)
-            TMatrix->SetEntry(nr, nc, AVector->GetEntry(nr));
+            TMatrix->SetEntry(nr, nc, II*Omega*AVector->GetEntry(nr));
 
         }; // for (nc=l=0...)
 
