@@ -821,7 +821,7 @@ void GetMNlmHardCoded(int l, int m, cdouble k, double r, double Theta, double Ph
 void GetMNlm(int l, int m, cdouble k, double r, double Theta, double Phi, 
              int WaveType, cdouble M[3], cdouble N[3])
 {
-  if ( l<=2 )
+  if ( l<=2 && WaveType==LS_OUTGOING )
    { GetMNlmHardCoded(l, m, k, r, Theta, Phi, WaveType, M, N);
      return;
    };

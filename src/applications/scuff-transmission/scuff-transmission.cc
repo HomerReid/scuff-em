@@ -1,4 +1,4 @@
-/* Copyright (C) 2005-2011 M. T. Homer Reid
+/* Copyright (C) 2005-2011 M. T. Homer ReidElectricOnly=true;
  *
  * This file is part of SCUFF-EM.
  *
@@ -200,6 +200,54 @@ void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega,
 /* f1 = \int_0^1 \int_0^u u*e^{-i(uX+vY)} dv du                */
 /* f2 = \int_0^1 \int_0^u v*e^{-i(uX+vY)} dv du                */
 /***************************************************************/
+namespace scuff{
+cdouble ExpRel(cdouble x, int n);
+               }
+
+void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
+{
+  if (X==0.0 && Y==0.0)
+   { *f1=1.0/3.0;
+     *f2=1.0/6.0;
+   }
+  else if (Y==0.0)
+   { 
+     *f1 = 2.0*II*exp(-II*X)*ExpRel(II*X, 3) / (X*X*X);
+     *f2 = (*f1)/2.0;
+   }
+  else if (X==0.0)
+   { double Y3=Y*Y*Y;
+     cdouble ER1=ExpRel(II*Y,1);
+     cdouble ER2=ExpRel(II*Y,2);
+     *f1= -II*exp(-II*Y)*ER2/Y3 - 0.5*II/Y;
+     *f2= -2.0*II*exp(-II*Y)*( ER2 - 0.5*II*Y*ER1) / Y3;
+   }
+  else
+   { 
+     cdouble IX   = II*X;
+     cdouble IY   = II*Y;
+     double XPY   = X+Y;
+     cdouble IXPY = II*XPY;
+
+     cdouble ExpMIX=exp(-IX);
+     cdouble ExpMIY=exp(-IY);
+     cdouble ExpMIXPY=ExpMIX * ExpMIY;
+
+     cdouble Term1 = X==0.0     ? -0.5 : ExpMIX*ExpRel(IX, 2) / (X*X);
+     cdouble Term2 = Y==0.0     ? -0.5 : ExpMIY*ExpRel(IY, 2) / (Y*Y);
+     cdouble Term3 = (XPY)==0.0 ? -0.5 : ExpMIXPY*ExpRel(IXPY, 2) / (XPY*XPY);
+
+     *f1 = (Term1 - Term3) * II / Y;
+  
+     cdouble fFull = II*ExpRel(IY,2)*ExpRel(IX,1)*ExpMIXPY/(X*Y*Y);
+
+     *f2 = fFull - (Term2 - Term3)*II/X;
+   }
+  
+}
+
+#if 0 
+// 20150125 old inaccurate version...delete me 
 void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
 {
   cdouble ExpIX=exp(II*X);
@@ -237,6 +285,7 @@ void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
    };
 
 }
+#endif
 
 /***************************************************************/
 /* compute the vector-valued integral                          */
@@ -269,14 +318,14 @@ void GetEMiKXRWGIntegral(RWGSurface *S, int ne, double K[3], cdouble Integral[3]
   f1f2(KAP, KB, &f1, &f2);
   ExpFac = exp(-II*KQP);
   Integral[0] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
-  Integral[1] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
-  Integral[2] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
+  Integral[1] = Length*ExpFac*( f1*AP[1] + f2*B[1] );
+  Integral[2] = Length*ExpFac*( f1*AP[2] + f2*B[2] );
 
   f1f2(KAM, KB, &f1, &f2);
   ExpFac = exp(-II*KQM);
   Integral[0] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
-  Integral[1] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
-  Integral[2] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
+  Integral[1] -= Length*ExpFac*( f1*AM[1] + f2*B[1] );
+  Integral[2] -= Length*ExpFac*( f1*AM[2] + f2*B[2] );
   
 }
 
@@ -589,13 +638,20 @@ int main(int argc, char *argv[])
 
   cdouble EpsExterior, MuExterior, kExterior;
 
+  double RAbove[3]={0.0, 0.0, 0.0};
+  double RBelow[3]={0.0, 0.0, 0.0};
+  RAbove[2] = ZAbove;
+  RBelow[2] = ZBelow;
+  int RegionAbove = G->GetRegionIndex(RAbove);
+  int RegionBelow = G->GetRegionIndex(RBelow);
+
   /*--------------------------------------------------------------*/
   /*- loop over frequencies and incident angles ------------------*/
   /*--------------------------------------------------------------*/
   double kBloch[2];
   double SinTheta, CosTheta;
   cdouble Omega;
-  double FluxTE[2], FluxTM[2], IncFlux;
+  double FluxTE[2], FluxTM[2];
   cdouble tTETE, tTETM, tTMTE, tTMTM;
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
@@ -647,12 +703,25 @@ int main(int argc, char *argv[])
       GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTM);
       GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
                                 &tTETM, &tTMTM);
-   
-      IncFlux = CosTheta/(2.0*ZVAC);
 
+      if (RegionAbove==RegionBelow)
+       { tTETE+=1.0; 
+         tTMTM+=1.0;
+       };
+      
+      // compute incident fluxes 
+      cdouble EpsAbove, MuAbove, EpsBelow, MuBelow;
+      G->RegionMPs[ RegionAbove ] -> GetEpsMu(Omega, &EpsAbove, &MuAbove);
+      G->RegionMPs[ RegionBelow ] -> GetEpsMu(Omega, &EpsBelow, &MuBelow);
+      double ZRelAbove = real( sqrt(MuAbove / EpsAbove) );
+      double ZRelBelow = real( sqrt(MuBelow / EpsAbove) );
+      double IncFluxAbove = CosTheta/(2.0*ZVAC*ZRelAbove);
+      double IncFluxBelow = CosTheta/(2.0*ZVAC*ZRelBelow);
+
+      // write results to file
       fprintf(f,"%s %e ", z2s(Omega), Theta*RAD2DEG);
-      fprintf(f,"%e %e ", FluxTE[0]/IncFlux, FluxTE[1]/IncFlux);
-      fprintf(f,"%e %e ", FluxTM[0]/IncFlux, FluxTM[1]/IncFlux);
+      fprintf(f,"%e %e ", FluxTE[0]/IncFluxAbove, FluxTE[1]/IncFluxBelow);
+      fprintf(f,"%e %e ", FluxTM[0]/IncFluxAbove, FluxTM[1]/IncFluxBelow);
       fprintf(f,"%e %e ", norm(tTETE), arg(tTETE));
       fprintf(f,"%e %e ", norm(tTMTE), arg(tTMTE));
       fprintf(f,"%e %e ", norm(tTETM), arg(tTMTM));
