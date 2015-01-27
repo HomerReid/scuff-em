@@ -122,6 +122,7 @@ void GetXlmArray(int lMax, double Theta, double Phi, cdouble *X);
 /***************************************************************/
 void GetMNlm(int l, int m, cdouble k, double r, double Theta, double Phi, 
              int WaveType, cdouble M[3], cdouble N[3]);
+
 void GetMNlmArray(int lMax, cdouble k,
                   double r, double Theta, double Phi,
                   int WaveType, cdouble *M, cdouble *N, 

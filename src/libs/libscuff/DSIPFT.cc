@@ -918,7 +918,9 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
   /***************************************************************/ 
   if (ByPanel)
    { 
-     #pragma omp critical(Accumulate)
+#ifdef USE_OPENMP
+#pragma omp critical(Accumulate)
+#endif
       {
         for(int nq=0; nq<NUMPFT; nq++)
          { if (NeedQuantity[nq]==false)

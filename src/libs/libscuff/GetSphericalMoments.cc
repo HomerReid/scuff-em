@@ -335,6 +335,8 @@ NumThreads=1;
   /***************************************************************/
   /* fire off the threads ****************************************/
   /***************************************************************/
+   GSM_Thread((void *)&(TDs[0]));
+#if 0
 #ifdef USE_PTHREAD
   pthread_t *Threads = new pthread_t[NumThreads];
   for(int nt=0; nt<NumThreads; nt++)
@@ -355,6 +357,7 @@ NumThreads=1;
 #endif
   for(int nt=0; nt<NumThreads; nt++)
    GSM_Thread((void *)&(TDs[nt]));
+#endif
 #endif
 
   /***************************************************************/
