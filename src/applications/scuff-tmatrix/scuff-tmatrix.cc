@@ -164,8 +164,10 @@ int main(int argc, char *argv[])
            GetSphericalMoments(G, Omega, lMax, KN, AVector);
 
            // stamp in the vector of moments as the ncth row of the T-matrix
+           // NOTE: i don't know here the missing factor of -1.0 is coming
+           // from here...
            for(nr=0; nr<NumMoments; nr++)
-            TMatrix->SetEntry(nr, nc, II*Omega*AVector->GetEntry(nr));
+            TMatrix->SetEntry(nr, nc, -1.0*Omega*AVector->GetEntry(nr));
 
         }; // for (nc=l=0...)
 
