@@ -90,8 +90,10 @@ void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
   for(int Mu=0; Mu<3; Mu++)
    { AP[Mu] = V1[Mu] - QP[Mu];
      BP[Mu] = V2[Mu] - QP[Mu];
-     AM[Mu] = V1[Mu] - QM[Mu];
-     BM[Mu] = V2[Mu] - QM[Mu];
+     if (QM)
+      { AM[Mu] = V1[Mu] - QM[Mu];
+        BM[Mu] = V2[Mu] - QM[Mu];
+      };
    };
 
   /***************************************************************/
@@ -130,7 +132,7 @@ void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
      if (QM==0) continue;
 
      /*--------------------------------------------------------------*/
-     /*- contribution of negative panel -----------------------------*/
+     /*- contribution of negative panel if present ------------------*/
      /*--------------------------------------------------------------*/
      for(int Mu=0; Mu<3; Mu++)
       { XmQ[Mu] = u*AM[Mu] + v*BM[Mu];

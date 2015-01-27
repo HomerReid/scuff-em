@@ -31,6 +31,10 @@
 #include "libIncField.h"
 #include <math.h>
 #include <string.h>
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#include <stdio.h>
+#include <libhrutil.h>
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 #define II cdouble(0.0,1.0)
 
@@ -205,6 +209,11 @@ void PointSource::GetFields_Periodic(const double X[3], cdouble EH[6])
      cdouble GM=GMArray[0];
 
      ddG[i][i] = (GP + GM - 2.0*G) / (DeltaR*DeltaR);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+printf("ddG_{%i%i} (method 1) = %s \n",i,i,CD2S(ddG[i][i])); 
+cdouble ddG2 = (GPArray[1+i] - GMArray[1+i]) / (2.0*DeltaR);
+printf("ddG_{%i%i} (method 2) = %s \n",i,i,CD2S(ddG2));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    };
 
   /***************************************************************/
