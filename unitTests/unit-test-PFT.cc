@@ -21,7 +21,6 @@
  * unit-test-PFT.cc -- SCUFF-EM unit tests for PFT calculations
  * 
  * homer reid       -- 11/2005 -- 10/2011
- *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,11 +39,12 @@ using namespace scuff;
 
 /***************************************************************/
 /* tables of power and force data for spheres of radius R=1um  */
-/* and various material composition.                           */
+/* and various material compositions.                          */
 /*                                                             */
 /* in each case, powers and forces are for the case of         */
-/* illumination by a z-traveling plane wave with E-field       */
-/* polarized in the +x direction.                              */
+/* illumination by a unit-magnitude z-traveling plane wave     */
+/* left-circular polarization, i.e. the incident E-field is    */
+/*  E(x,y,z) = (1/sqrt{2}) (\vec{x} + i \vec{y}) e^{ikz}       */
 /*                                                             */
 /* data table entries:                                         */
 /*  (1) omega (angular frequency, units 3e14 rad/sec)          */
@@ -92,19 +92,19 @@ int main(int argc, char *argv[])
   SetLogFileName("scuff-unit-tests.log");
   Log("SCUFF-EM PFT unit tests running on %s",GetHostName());
 
-  /***************************************************************/ 
-  /* set up incident field ***************************************/ 
-  /***************************************************************/ 
+  /***************************************************************/
+  /* set up incident field ***************************************/
+  /***************************************************************/
   const cdouble E0[3]  = { 1.0, 0.0, 0.0 };
   const double nHat[3] = { 0.0, 0.0, 1.0 };
   PlaneWave *PW = new PlaneWave(E0, nHat);
   double IncFlux = 1.0/(2.0*ZVAC);
 
-  /***************************************************************/ 
-  /* loop over all three material geometries *********************/ 
-  /***************************************************************/ 
+  /***************************************************************/
+  /* loop over all three material geometries *********************/
+  /***************************************************************/
   #define NUMCASES 3
-  const char *GeoFileNames[NUMCASES] = { "PECSphere_474.scuffgeo", 
+  const char *GeoFileNames[NUMCASES] = { "PECSphere_474.scuffgeo",
                                          "GoldSphere_474.scuffgeo",
                                          "SiCSphere_474.scuffgeo"
                                        };
