@@ -21,7 +21,6 @@
  * unit-test-PFT.cc -- SCUFF-EM unit tests for PFT calculations
  * 
  * homer reid       -- 11/2005 -- 10/2011
- *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,14 +36,16 @@ using namespace scuff;
 
 #define II cdouble (0.0,1.0)
 #define TENTHIRDS 3.33333333333333333334
+#define RT1_2     0.70710678118654752440
 
 /***************************************************************/
 /* tables of power and force data for spheres of radius R=1um  */
-/* and various material composition.                           */
+/* and various material compositions.                          */
 /*                                                             */
 /* in each case, powers and forces are for the case of         */
-/* illumination by a z-traveling plane wave with E-field       */
-/* polarized in the +x direction.                              */
+/* illumination by a unit-magnitude z-traveling plane wave     */
+/* left-circular polarization, i.e. the incident E-field is    */
+/*  E(x,y,z) = (1/sqrt{2}) (\vec{x} + i \vec{y}) e^{ikz}       */
 /*                                                             */
 /* data table entries:                                         */
 /*  (1) omega (angular frequency, units 3e14 rad/sec)          */
@@ -60,26 +61,23 @@ using namespace scuff;
 /* force is the z-force on the object divided by the incident  */
 /* momentum flux.                                              */
 /***************************************************************/
-#define NUMOMEGAS 4
-double OmegaList[] = { 1.0e-3, 1.0e-2, 1.0e-1, 1.0 };
+#define NUMOMEGAS 3
+double OmegaList[] = { 1.0e-2, 1.0e-1, 1.0 };
 
 double GoldPFT[] =
-   { 1.0e-3, 2.841416e-12, 7.066437e-04, 7.066437e-04,
-     1.0e-2, 3.111826e-08, 3.293537e-03, 3.293579e-03,
+   { 1.0e-2, 3.111826e-08, 3.293537e-03, 3.293579e-03,
      1.0e-1, 3.244591e-04, 8.972653e-03, 9.419389e-03,
      1.0e-0, 2.125119e+00, 1.983620e-02, 2.509075e+00
    };
 
 double PECPFT[] =
-   { 1.0e-3, 3.216470e-12, 0.0, 4.427315e-12,
-     1.0e-2, 3.320868e-08, 0.0, 4.641536e-08,
+   { 1.0e-2, 3.320868e-08, 0.0, 4.641536e-08,
      1.0e-1, 5.980295e+00, 0.0, 6.020131e+00,
      1.0e-0, 6.012197e+00, 0.0, 5.880804e+00
    };
 
-double SiCPFT[] =
-   { 1.0e-3, 1.503808e-12, 3.345234e-09, 3.346738e-09,
-     1.0e-2, 1.504039e-08, 3.348068e-07, 3.498465e-07,
+double SiO2PFT[] =
+   { 1.0e-2, 1.504039e-08, 3.348068e-07, 3.498465e-07,
      1.0e-1, 1.527705e-04, 3.648611e-05, 1.885546e-04,
      1.0e-0, 1.465431e+00, 4.180791e-03, 8.951046e-01 
    };
@@ -89,28 +87,25 @@ double SiCPFT[] =
 /***************************************************************/
 int main(int argc, char *argv[])
 { 
-  (void )argc;
-  (void )argv; 
   SetLogFileName("scuff-unit-tests.log");
   Log("SCUFF-EM PFT unit tests running on %s",GetHostName());
 
-  /***************************************************************/ 
-  /* set up incident field ***************************************/ 
-  /***************************************************************/ 
-  const cdouble E0[3]  = { 1.0, 0.0, 0.0 };
+  /***************************************************************/
+  /* set up incident field ***************************************/
+  /***************************************************************/
+  const cdouble E0[3]  = { RT1_2, II*RT1_2, 0.0 };
   const double nHat[3] = { 0.0, 0.0, 1.0 };
   PlaneWave *PW = new PlaneWave(E0, nHat);
-  double IncFlux = 1.0/(2.0*ZVAC);
 
   /***************************************************************/
   /* loop over all three material geometries *********************/
   /***************************************************************/
   #define NUMCASES 3
-  const char *GeoFileNames[NUMCASES] = { "PECSphere_474.scuffgeo",
-                                         "GoldSphere_474.scuffgeo",
-                                         "SiCSphere_474.scuffgeo"
+  const char *GeoFileNames[NUMCASES] = { "PECSphere_498.scuffgeo",
+                                         "GoldSphere_498.scuffgeo",
+                                         "SiO2Sphere_498.scuffgeo"
                                        };
-  double *ExactData[NUMCASES] = { PECPFT, GoldPFT, SiCPFT };
+  double *ExactData[NUMCASES] = { PECPFT, GoldPFT, SiO2PFT };
   int NumTests = NUMCASES * NUMOMEGAS;
   int PassedTests = 0 ;
   FILE *DataLogFile=fopen("unit-test-PFT.data","w");
@@ -134,29 +129,27 @@ int main(int argc, char *argv[])
         M->LUFactorize();
         M->LUSolve(KN);
 
-        double OPFT[7], PTot;
-        G->GetOPFT(0, Omega, KN, RHS, 0, OPFT, &PTot);
+        double OPFT[7], OPScat;
+        G->GetOPFT(0, Omega, KN, RHS, 0, OPFT, &OPScat);
+        OPScat-=OPFT[0];
 
-        double PFT[8];
-        PFT[0]=OPFT[0];
-        PFT[1]=PTot-PFT[0];
-        memcpy(PFT+2, OPFT+1, 6*sizeof(double));
+        double DSIPFT[7], DSIPScat;
+        G->GetDSIPFT(Omega, KN, PW, DSIPFT, &DSIPScat, 0, 5.0, 302);
 
-        double Denom = M_PI*IncFlux;
-        //double QScatScuff  = G->GetScatteredPower(KN, Omega, 0) / Denom;
-        double QScatScuff  = 0.0; // FIXME
-        double QAbsScuff   = PFT[0] / Denom;
-        double QForceScuff = PFT[5] / (TENTHIRDS*Denom);
+        double EPAbs  = G->GetEPP(0, Omega, KN, 0, 0, true);
+        double EPScat = G->GetEPP(0, Omega, KN, 0, 0, false);
 
-        double QScatExact  = ExactData[nCase][4*nOmega + 1];
-        double QAbsExact   = ExactData[nCase][4*nOmega + 2];
-        double QForceExact = ExactData[nCase][4*nOmega + 3];
-  
-        if (    RD( QScatScuff , QScatExact ) > 0.05
-             || RD( QAbsScuff  , QAbsExact )  > 0.05
-             || RD( QForceScuff, QForceExact) > 0.05
+        fprintf(DataLogFile,"%e %e %e %e %e %e %e %e %e %e %e \n",Omega,
+                             OPFT[0],OPScat,OPFT[3],OPFT[6],
+                             DSIPFT[0],DSIPScat,DSIPFT[3],DSIPFT[6],
+                             EPAbs,EPScat);
+#if 0
+        if (    RD( OPFT[0], ExactPFT[0]     ) > 0.05
+             || RD( OPFT[1], ExactPFT[1]     ) > 0.05
+             || RD( OPFT[4], ExactPFT[4]     ) > 0.05
+             || RD( OPFT[7], ExactPFT[7]     ) > 0.05
            )
-          { Log("PFT test failed for %s at Omega=%e: ",
+          { Log("OPFT test failed for %s at Omega=%e: ",
                 G->GeoFileName,Omega);
             Log(" (%e,%e) (%e,%e) (%e,%e) \n", 
                   QScatScuff,  QScatExact, 
@@ -174,6 +167,7 @@ int main(int argc, char *argv[])
                    QForceScuff, QForceExact, RD(QForceScuff, QForceExact));
            fflush(DataLogFile);
          };
+#endif
 
       }; // for (int n=0; n<NUMOMEGAS; n++)
 
