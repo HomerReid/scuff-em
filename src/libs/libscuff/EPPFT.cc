@@ -50,7 +50,6 @@
 
 #define II cdouble(0.0,1.0)
 #define TENTHIRDS (10.0/3.0)
-#define NUMPFT 7
 #define NUMFT 6
 
 namespace scuff {
@@ -132,13 +131,13 @@ void GetCCDensities(RWGGeometry *G, int ns, int np, HVector *KNVector,
 /* DestSurface using a cubature scheme of degree Order over    */
 /* the surface of each panel.                                  */
 /***************************************************************/
-void RWGGeometry::GetEPFT(int DestSurface, cdouble Omega,
-                          HVector *KNVector, IncField *IF, double FT[NUMFT],
-                          double **ByEdge, int Order, double Delta)
+void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
+             HVector *KNVector, IncField *IF, double FT[NUMFT],
+             double **ByEdge, int Order, double Delta)
 {
   Log("Computing EPFT for surface %i",DestSurface);
 
-  RWGSurface *S=Surfaces[DestSurface];
+  RWGSurface *S=G->Surfaces[DestSurface];
   int NE = S->NumEdges;
   int NP = S->NumPanels;
 
@@ -191,7 +190,7 @@ void RWGGeometry::GetEPFT(int DestSurface, cdouble Omega,
         XCCMatrix->SetEntry(np*NCP + ncp,3,w);
 
         cdouble CCDensities[8];
-        GetCCDensities(this, DestSurface, np, KNVector, Omega, X, CCDensities);
+        GetCCDensities(G, DestSurface, np, KNVector, Omega, X, CCDensities);
         XCCMatrix->SetEntries(np*NCP + ncp,"4:end",CCDensities);
       };
 
@@ -202,14 +201,14 @@ void RWGGeometry::GetEPFT(int DestSurface, cdouble Omega,
   /***************************************************************/
   bool UGFVSave=RWGGeometry::UseGetFieldsV2P0;
   RWGGeometry::UseGetFieldsV2P0=true;
-  HMatrix *FMatrix=GetFields(IF, KNVector, Omega, XCCMatrix);
+  HMatrix *FMatrix=G->GetFields(IF, KNVector, Omega, XCCMatrix);
   RWGGeometry::UseGetFieldsV2P0=UGFVSave;
 
   /***************************************************************/
   /*- initialize edge-by-edge contributions to zero -------------*/
   /***************************************************************/
   if (ByEdge)
-   for(int n=1; n<NUMPFT; n++)
+   for(int n=2; n<NUMPFT; n++)
     if (ByEdge[n]) memset(ByEdge[n],0,NE*sizeof(double));
 
   /***************************************************************/
@@ -281,11 +280,11 @@ void RWGGeometry::GetEPFT(int DestSurface, cdouble Omega,
 
         if ( ncp == (NCP-1) )
          { for(int nq=0; nq<NUMFT; nq++)
-            if (ByEdge[1+nq])
+            if (ByEdge[2+nq])
              { for(int nce=0; nce<3; nce++)
                 { int ne=P->EI[nce];
                   if (ne<0) continue;
-                  ByEdge[1+nq][ne] += FTThisPanel[nq]/(3.0*Area);
+                  ByEdge[2+nq][ne] += FTThisPanel[nq]/(3.0*Area);
                 };
              };
          };
@@ -303,104 +302,102 @@ void RWGGeometry::GetEPFT(int DestSurface, cdouble Omega,
 }
 
 /***************************************************************/
-/* Get the equivalence-principle absorbed power for DestSurface*/
-/* using the interior expansion, or the radiated/scattered     */
-/* power using the exterior expansion.                         */
+/* Get the absorbed and scattered/radiated power for           */
+/* DestSurface using the equivalence-principle method.         */
 /*                                                             */
-/* Absorbed=true selects the former option, false the latter.  */
+/* Either KNVector *or* RytovMatrix should be non-null.        */
 /*                                                             */
-/* Either KNVector or SigmaMatrix should be non-null.          */
+/* If TInterior and TExterior are non-null, they should be the */
+/* interior and exterior contributions to the BEM matrix block */
+/* corresponding to the self-interactions of DestSurface.      */
+/* (TInterior is not referenced if the object is PEC).         */
 /*                                                             */
-/* If TIn is non-null, it should be the interior portion of the*/
-/* BEM matrix for surface DestSurface. (Only used if Absorbed  */
-/* ==true).                                                    */
-/*                                                             */
-/* If TOut is non-null, it should be the exterior portion of   */
-/* BEM matrix for surface DestSurface. (Only used if Absorbed  */
-/* ==false.)                                                   */
+/* On output,                                                  */
+/*  Power[0] = absorbed power                                  */
+/*  Power[1] = scattered/radiated power                        */
 /***************************************************************/
-double RWGGeometry::GetEPP(int DestSurface, cdouble Omega,
-                           HVector *KNVector, HMatrix *SigmaMatrix,
-                           double **ByEdge, bool Absorbed,
-                           HMatrix *TIn, HMatrix *TOut)
+void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
+            HVector *KNVector, HMatrix *RytovMatrix, double Power[2],
+            double **ByEdge, HMatrix *TInterior, HMatrix *TExterior)
 {
   Log("Computing EPP for surface %i ",DestSurface);
 
-  /*--------------------------------------------------------------*/
-  /*- get material parameters of interior or exterior region      */
-  /*--------------------------------------------------------------*/
-  RWGSurface *S = Surfaces[DestSurface];
-  int Offset    = BFIndexOffset[DestSurface];
+  RWGSurface *S = G->Surfaces[DestSurface];
+  int Offset    = G->BFIndexOffset[DestSurface];
   int NE        = S->NumEdges;
   int nrOut     = S->RegionIndices[0];
   int nrIn      = S->RegionIndices[1];
 
   /*--------------------------------------------------------------*/
-  /*- initialize edge-by-edge contributions to zero --------------*/
+  /*- get wavenumber and relative wave impedance of interior and  */
+  /*- exterior media                                              */
   /*--------------------------------------------------------------*/
-  if (ByEdge && ByEdge[0])
-   memset(ByEdge[0],0,NE*sizeof(double));
+  cdouble kOut, ZOutRel, ZOutAbs;
+  cdouble EpsOut, MuOut;
+  G->RegionMPs[nrOut]->GetEpsMu(Omega, &EpsOut, &MuOut);
+  kOut = Omega * sqrt(EpsOut*MuOut);
+  ZOutRel = sqrt(MuOut/EpsOut);
+  ZOutAbs = ZVAC*ZOutRel;
 
-  if (nrIn==-1 || S->IsPEC) 
-   return 0.0; // equivalence-principle power vanishes for PEC bodies
-
-  bool Radiated=!Absorbed;
-
-  cdouble k, ZRel;
-  if (Absorbed) // use interior expansion
-   {
-     cdouble EpsIn, MuIn;
-     RegionMPs[nrIn]->GetEpsMu(Omega, &EpsIn, &MuIn);
-     k = Omega * sqrt(EpsIn*MuIn);
-     ZRel = sqrt(MuIn/EpsIn);
+  cdouble kIn, ZInRel, ZInAbs;
+  if (S->IsPEC || nrIn<0)
+   { 
+     kIn=ZInRel=0.0;
+     ZInAbs=1.0;
    }
-  else // use exterior expansion
-   { cdouble EpsOut, MuOut;
-     RegionMPs[nrOut]->GetEpsMu(Omega, &EpsOut, &MuOut);
-     k = Omega * sqrt(EpsOut*MuOut);
-     ZRel = sqrt(MuOut/EpsOut);
+  else
+   { cdouble EpsIn, MuIn;
+     G->RegionMPs[nrIn]->GetEpsMu(Omega, &EpsIn, &MuIn);
+     kIn    = Omega * sqrt(EpsIn*MuIn);
+     ZInRel = sqrt(MuIn/EpsIn);
+     ZInAbs = ZVAC*ZInRel;
    };
 
-  cdouble PEE  = +0.5*II*k*ZVAC*ZRel;
-  cdouble PEM  = -0.5;
-  cdouble PME  = +0.5;
-  cdouble PMM  = +0.5*II*k/(ZVAC*ZRel);
+  /*--------------------------------------------------------------*/
+  /*- initialize edge-by-edge contributions to the absorbed and --*/
+  /*- scattered power to zero                                   --*/
+  /*--------------------------------------------------------------*/
+  if (ByEdge)
+   { if(ByEdge[0]) memset(ByEdge[0],0,NE*sizeof(double));
+     if(ByEdge[1]) memset(ByEdge[1],0,NE*sizeof(double));
+   };
 
+  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   struct GetEEIArgStruct MyArgs, *Args=&MyArgs;
   InitGetEEIArgs(Args);
   Args->Sa = Args->Sb = S;
-  Args->k  = k;
 
   /*--------------------------------------------------------------*/
+  /*- check if TInterior and TExterior are present and the proper */
+  /*- sizes                                                       */
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int NumThreads=GetNumThreads();
-  if ( (Absorbed && TIn) || (Radiated && TOut) )
-   { NumThreads=1;
-     int NBF = 2*NE;
-     if ( TIn && (TIn->NR!=NBF || TIn->NC!=NBF) )
-      { Warn("wrong-size TIn matrix passed to GetEPP (ignoring)");
-        TIn=0;
-      }
-     if ( TOut && (TOut->NR!=NBF || TOut->NC!=NBF) )
-      { Warn("wrong-size TOut matrix passed to GetEPP (ignoring)");
-        TOut=0;
-      };
+  int NBF = S->IsPEC ? NE : 2*NE;
+  if ( !(S->IsPEC) && TInterior && (TInterior->NR!=NBF || TInterior->NC!=NBF) )
+   { Warn("wrong-size TInterior matrix passed to GetEPP (ignoring)");
+     TInterior=0;
+   }
+  if ( TExterior && (TExterior->NR!=NBF || TExterior->NC!=NBF) )
+   { Warn("wrong-size TExterior matrix passed to GetEPP (ignoring)");
+     TExterior=0;
    };
 
+  int NumThreads=GetNumThreads();
+  if ( TExterior && (TInterior || S->IsPEC) )
+   NumThreads=1;
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  double P=0.0;
+  double PAbs=0.0, PScat=0.0;
 #ifndef USE_OPENMP
-  if (LogLevel>=SCUFF_VERBOSE2) Log(" no multithreading...");
+  if (G->LogLevel>=SCUFF_VERBOSE2) Log(" no multithreading...");
 #else
-  if (LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
+  if (G->LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
 #pragma omp parallel for schedule(dynamic,1),      \
                          num_threads(NumThreads),  \
-                         reduction(+:P)
+                         reduction(+:PAbs, PScat)
 #endif
   for(int neab=0; neab<NE*NE; neab++)
    { 
@@ -409,70 +406,102 @@ double RWGGeometry::GetEPP(int DestSurface, cdouble Omega,
      if (neb<nea) continue;
 
        /*--------------------------------------------------------------*/
-       /*- get the matrix elements <b_\alpha | e_\beta> and           -*/
-       /*-                         <b_\alpha | h_\beta>               -*/
+       /*- get the matrix elements                                     */
+       /*-  ikG  =  <b_\alpha |  ik*G   | b_\beta>                     */
+       /*- mikC  =  <b_\alpha | -ik*C | b_\beta>                       */
        /*--------------------------------------------------------------*/
-       cdouble be, bh;
-       if (Absorbed && TIn)
-        { be=TIn->GetEntry(2*nea+0, 2*neb+0)/(II*k*ZRel);
-          bh=TIn->GetEntry(2*nea+1, 2*neb+0);
+       cdouble ikGIn, mikCIn;
+       if (S->IsPEC)
+        { 
+          ikGIn=mikCIn=0.0; 
         }
-       else if (Radiated && TOut)
-        { be=TOut->GetEntry(2*nea+0, 2*neb+0)/(II*k*ZRel);
-          bh=TOut->GetEntry(2*nea+1, 2*neb+0);
+       else if (TInterior)
+        { 
+           ikGIn=TInterior->GetEntry(2*nea+0, 2*neb+0)/ZInRel;
+          mikCIn=TInterior->GetEntry(2*nea+1, 2*neb+0);
         }
        else
         { Args->nea = nea;
           Args->neb = neb;
+          Args->k   = kIn;
           GetEdgeEdgeInteractions(Args);
-          be = Args->GC[0];
-          bh = Args->GC[1] * (-1.0*II*k);
+          ikGIn  =  II*kIn*Args->GC[0];
+          mikCIn = -II*kIn*Args->GC[1];
+        };
+
+       cdouble ikGOut, mikCOut;
+       if (TExterior && S->IsPEC )
+        {  ikGOut=TExterior->GetEntry(nea, neb)/ZOutRel;
+          mikCOut=0.0;
+        }
+       else if (TExterior && !(S->IsPEC) )
+        {  ikGOut=TExterior->GetEntry(2*nea+0, 2*neb+0)/ZOutRel;
+          mikCOut=TExterior->GetEntry(2*nea+1, 2*neb+0);
+        }
+       else
+        { Args->nea = nea;
+          Args->neb = neb;
+          Args->k   = kOut;
+          GetEdgeEdgeInteractions(Args);
+          ikGOut  =  II*kOut*Args->GC[0];
+          mikCOut = -II*kOut*Args->GC[1];
         };
 
        /*--------------------------------------------------------------*/
-       /*- extract the surface-current coefficient either from the KN -*/
-       /*- vector or the Sigma matrix                                 -*/
+       /*- extract the surface-current coefficients either from the KN-*/
+       /*- vector or the Rytov matrix                                 -*/
        /*--------------------------------------------------------------*/
        cdouble KK, KN, NK, NN;
-       if (KNVector)
+       if ( KNVector && S->IsPEC )
+        { cdouble kAlpha = KNVector->GetEntry(Offset + nea);
+          cdouble kBeta  = KNVector->GetEntry(Offset + neb);
+          KK = conj(kAlpha) * kBeta;
+          KN = NK = NN  = 0.0;
+        }
+       else if (KNVector && !(S->IsPEC) )
         { 
           cdouble kAlpha =       KNVector->GetEntry(Offset + 2*nea + 0);
           cdouble nAlpha = -ZVAC*KNVector->GetEntry(Offset + 2*nea + 1);
           cdouble kBeta  =       KNVector->GetEntry(Offset + 2*neb + 0);
           cdouble nBeta  = -ZVAC*KNVector->GetEntry(Offset + 2*neb + 1);
-
           KK = conj(kAlpha) * kBeta;
           KN = conj(kAlpha) * nBeta;
           NK = conj(nAlpha) * kBeta;
           NN = conj(nAlpha) * nBeta;
         }
        else
-        { KK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
-          KN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
-          NK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
-          NN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
+        { KK = RytovMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
+          KN = RytovMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
+          NK = RytovMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
+          NN = RytovMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
         };
 
        /*--------------------------------------------------------------*/
        /*- get the contributions of this edge pair to the power and    */
        /*- accumulate contributions to full and by-edge sums           */
        /*--------------------------------------------------------------*/
-       double Weight = (nea==neb) ? 1.0 : 2.0;
-       double dP = -1.0*Weight*real( (KK*PEE + NN*PMM)*be + (KN*PEM + NK*PME)*bh );
+       double Weight = (nea==neb) ? -0.5 : -1.0;
+       double dPAbs  = Weight*real( (KK*ZInAbs  + NN/ZInAbs)*ikGIn   + (NK-KN)*mikCIn  );
+       double dPScat = Weight*real( (KK*ZOutAbs + NN/ZOutAbs)*ikGOut + (NK-KN)*mikCOut );
 
-       P += dP;
-       if ( ByEdge && ByEdge[0] )
+       PAbs  += dPAbs;
+       PScat += dPScat;
+       if ( ByEdge && (ByEdge[0] || ByEdge[1]) )
         { 
 #pragma omp critical
-           ByEdge[0][nea] += dP;
+          {
+            if (ByEdge[0]) ByEdge[0][nea] += dPAbs;
+            if (ByEdge[1]) ByEdge[1][nea] += dPScat;
+          }
         };
 
      };  // end of multithreaded loop
-
+    
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  return P;
+  Power[0] = PAbs;
+  Power[1] = PScat;
 
 }
 

@@ -245,49 +245,10 @@ void GetMoments(SSData *SSD, char *MomentFile)
 }
 
 /***************************************************************/
-/* This and the next routine are helpers for the PFT routines. */
-/***************************************************************/
-double **AllocateByEdgeArray(RWGGeometry *G, int ns)
-{
-  int NE = G->Surfaces[ns]->NumEdges;
-  double **ByEdge=(double **)mallocEC(7*sizeof(double *));
-  ByEdge[0]=(double *)mallocEC(7*NE*sizeof(double));
-  for(int nq=1; nq<7; nq++)
-   ByEdge[nq] = ByEdge[nq-1] + NE;
-
-  return ByEdge;
-}
-
-void ProcessByEdgeArray(RWGGeometry *G, int ns,
-                        char *PFTFile, const char *Suffix,
-                        cdouble Omega, double **ByEdge)
-{
-  static const char *PFTNames[7]
-   ={"PAbs","FX","FY","FZ","TX","TY","TZ"};
-
-  char FileName[100];
-  if (G->NumSurfaces==1)
-   snprintf(FileName,100,"%s.%s.pp",GetFileBase(PFTFile),Suffix);
-  else
-   snprintf(FileName,100,"%s.%s.%s.pp",
-                          GetFileBase(PFTFile),G->Surfaces[ns]->Label,Suffix);
-
-  for(int nq=0; nq<7; nq++)
-   { char Tag[20];
-     snprintf(Tag,20,"%s(%s)",PFTNames[nq],z2s(Omega));
-     G->Surfaces[ns]->PlotScalarDensity(ByEdge[nq],true,FileName,Tag);
-   };
-
-  free(ByEdge[0]);
-  free(ByEdge);
-
-}
-
 /***************************************************************/
 /***************************************************************/
-/***************************************************************/
-void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux,
-                    int Order)
+void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
+                  bool PlotFlux, char *FileName)
 {
   /*--------------------------------------------------------------*/
   /*- write file preamble only if file does not already exist ----*/
@@ -312,28 +273,36 @@ void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  RWGGeometry *G=SSD->G;
+  RWGGeometry *G = SSD->G;
   cdouble Omega=SSD->Omega;
-  Log("Computing equivalence-principle power, force, torque at Omega=%s (order %i)...",z2s(Omega),Order);
+  PFTOpts->PFTMethod=Method;
+  static const char *MethodNames[]
+   ={"Overlap", "DSI", "EP", "EPOverlap", "EPDSI"};
+  Log("Computing power, force, torque at Omega=%s (method: %s)...",z2s(Omega),MethodNames[Method]);
+
+  char FileNameBuffer[200];
+  if (PlotFlux)
+   { snprintf(FileNameBuffer, 200, "%s.%sPFT.pp", 
+              GetFileBase(G->GeoFileName),MethodNames[Method]);
+     PFTOpts->FluxFileName=FileNameBuffer;
+   }
+  else
+   PFTOpts->FluxFileName=0;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   f=fopen(FileName,"a");
   if (!f) return;
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     double **ByEdge = (PlotFlux ? AllocateByEdgeArray(G, ns) : 0);
-
-     double PAbs  = G->GetEPP(ns, Omega, SSD->KN, 0, ByEdge, true);
-     double PScat = G->GetEPP(ns, Omega, SSD->KN, 0, 0,      false);
-     double FT[6];
-     G->GetEPFT(ns, Omega, SSD->KN, SSD->IF, FT, ByEdge, Order);
+     double PFT[8];
+     G->GetPFT(ns, SSD->IF, SSD->KN, Omega, PFT, PFTOpts);
 
      fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
-     fprintf(f,"%e %e ",PAbs,PScat);
-     for(int nq=0; nq<6; nq++)
-      fprintf(f,"%e ",FT[nq]);
+     for(int nq=0; nq<8; nq++)
+      fprintf(f,"%e ",PFT[nq]);
      fprintf(f,"\n");
-  
-     if (ByEdge)
-      ProcessByEdgeArray(G, ns, FileName, "EPPFTFlux", Omega, ByEdge);
 
    };
   fclose(f);
@@ -343,6 +312,7 @@ void WriteEPPFTFile(SSData *SSD, char *FileName, bool PlotFlux,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
 {
   /*--------------------------------------------------------------*/
@@ -482,6 +452,7 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
   fclose(f);
 
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/

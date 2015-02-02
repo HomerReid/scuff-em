@@ -40,10 +40,12 @@ namespace scuff{
 /* Note that this routine is only looking at the first two     */
 /* cartesian components of X; the z component is arbitrary.    */
 /***************************************************************/
+#if 0
 static int PointOnLine(double *X, double *L)
 { 
    return ((float)(L[1]*X[0])) == ((float)(L[0]*X[1]));
 } 
+#endif
 
 /***************************************************************/
 /* given a single exterior edge on an RWGSurface, look for     */

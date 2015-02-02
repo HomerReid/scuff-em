@@ -25,6 +25,9 @@
  *
  */
 
+static const char *QuantityNames[]=
+ {"PAbs", "PRad", "Fx", "Fy", "Fz", "Tx", "Ty", "Tz"};
+
 #include <stdlib.h>
 #include <libSGJC.h>
 #include <libTriInt.h>
@@ -481,7 +484,7 @@ void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E)
   int NX = SNEQD->XPoints->NR;
   double TotalQuantity[NUMPFT], TotalError[NUMPFT];
   for(int nt=0; nt<NT; nt++)
-   for(int nx=0; nx<NS; nx++)
+   for(int nx=0; nx<NX; nx++)
     { 
       double X[3];
       SNEQD->XPoints->GetEntriesD(nx,"0:2",X);

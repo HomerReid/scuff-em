@@ -61,13 +61,14 @@ int main(int argc, char *argv[])
   char *TransFile=0;
 
   /*--------------------------------------------------------------*/
-  int Power=0;
-  int XForce=0;
-  int YForce=0;
-  int ZForce=0;
-  int XTorque=0;
-  int YTorque=0;
-  int ZTorque=0;
+  bool PAbs=false;
+  bool PRad=false;
+  bool XForce=false;
+  bool YForce=false;
+  bool ZForce=false;
+  bool XTorque=false;
+  bool YTorque=false;
+  bool ZTorque=false;
 
   /*--------------------------------------------------------------*/
   char *SRPointFile=0;
@@ -119,7 +120,9 @@ int main(int argc, char *argv[])
      {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
 /**/     
-     {"Power",          PA_BOOL,    0, 1,       (void *)&Power,      0,             "compute power transfer"},
+     {"Power",          PA_BOOL,    0, 1,       (void *)&PAbs,       0,             "compute power transfer"},
+     {"PAbs",          PA_BOOL,    0, 1,        (void *)&PAbs,       0,             "(synonym for --power)"},
+     {"PRad",          PA_BOOL,    0, 1,        (void *)&PRad,       0,             "compute radiated power"},
      {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,     0,             "compute X-force"},
      {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,     0,             "compute Y-force"},
      {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,     0,             "compute Z-force"},
@@ -177,7 +180,8 @@ int main(int argc, char *argv[])
   /* determine which output quantities were requested ****************/
   /*******************************************************************/
   int QuantityFlags=0;
-  if (Power)  QuantityFlags|=QFLAG_POWER;
+  if (PAbs)   QuantityFlags|=QFLAG_PABS;
+  if (PRad)   QuantityFlags|=QFLAG_PRAD;
   if (XForce) QuantityFlags|=QFLAG_XFORCE;
   if (YForce) QuantityFlags|=QFLAG_YFORCE;
   if (ZForce) QuantityFlags|=QFLAG_ZFORCE;
@@ -275,19 +279,18 @@ int main(int argc, char *argv[])
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags,
-                                 SRPointFile, PlotFlux, FileBase);
-
+                                 SRPointFile, FileBase);
   RWGGeometry *G=SNEQD->G;
-  SNEQD->UseExistingData   = UseExistingData;
-  SNEQD->DSIMesh           = DSIMesh;
-  SNEQD->DSIRadius         = DSIRadius;
-  SNEQD->DSIPoints         = DSIPoints;
-  SNEQD->DSIFarField       = DSIFarField;
-  SNEQD->DSICCQ            = DSICCQ;
-  SNEQD->OmitSelfTerms     = OmitSelfTerms;
-  SNEQD->ForceDSI          = ForceDSI;
-  SNEQD->AbsTol            = AbsTol;
-  SNEQD->RelTol            = RelTol;
+  SNEQD->UseExistingData      = UseExistingData;
+  SNEQD->PlotFlux             = PlotFlux;
+  SNEQD->OmitSelfTerms        = OmitSelfTerms;
+  SNEQD->ForceDSI             = ForceDSI;
+  SNEQD->AbsTol               = AbsTol;
+  SNEQD->RelTol               = RelTol;
+  SNEQD->PFTOpts.DSIMesh      = DSIMesh;
+  SNEQD->PFTOpts.DSIRadius    = DSIRadius;
+  SNEQD->PFTOpts.DSIPoints    = DSIPoints;
+  SNEQD->PFTOpts.DSIFarField  = DSIFarField;
 
   if (SNEQD->NumSIQs==0 && SNEQD->NumSRQs==0)
    ErrExit("you must specify at least one quantity to compute");

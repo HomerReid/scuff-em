@@ -29,6 +29,7 @@
 
 #include <libhrutil.h>
 #include "libscuff.h"
+#include "PFTOptions.h"
 #include "libscuffInternals.h"
 #include "libIncField.h"
 
@@ -61,8 +62,20 @@ using namespace scuff;
 /* force is the z-force on the object divided by the incident  */
 /* momentum flux.                                              */
 /***************************************************************/
-#define NUMOMEGAS 3
-double OmegaList[] = { 1.0e-2, 1.0e-1, 1.0 };
+//#define NUMOMEGAS 3
+//double OmegaList[] = { 1.0e-2, 1.0e-1, 1.0 };
+#if 0
+#define NUMOMEGAS 16
+double OmegaList[]=
+{ 0.01000000, 0.01584893, 0.02511886, 0.03981072, 0.06309573,
+  0.10000000, 0.15848932, 0.25118864, 0.39810717, 0.63095734,
+  1.00000000, 1.58489319, 2.51188643, 3.98107171, 6.30957344,
+ 10.00000000};
+#endif
+#define NUMOMEGAS 10
+double OmegaList[]=
+{ 0.01000000, 0.01584893, 0.02511886, 0.03981072, 0.06309573,
+  0.10000000, 0.15848932, 0.25118864, 0.39810717, 0.63095734};
 
 double GoldPFT[] =
    { 1.0e-2, 3.111826e-08, 3.293537e-03, 3.293579e-03,
@@ -98,12 +111,17 @@ int main(int argc, char *argv[])
   PlaneWave *PW = new PlaneWave(E0, nHat);
 
   /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  PFTOptions *Options=InitPFTOptions();
+
+  /***************************************************************/
   /* loop over all three material geometries *********************/
   /***************************************************************/
   #define NUMCASES 3
-  const char *GeoFileNames[NUMCASES] = { "PECSphere_498.scuffgeo",
-                                         "GoldSphere_498.scuffgeo",
-                                         "SiO2Sphere_498.scuffgeo"
+  const char *GeoFileNames[NUMCASES] = { "PECSphere_501.scuffgeo",
+                                         "GoldSphere_501.scuffgeo",
+                                         "SiO2Sphere_501.scuffgeo"
                                        };
   double *ExactData[NUMCASES] = { PECPFT, GoldPFT, SiO2PFT };
   int NumTests = NUMCASES * NUMOMEGAS;
@@ -113,36 +131,82 @@ int main(int argc, char *argv[])
    { 
      RWGGeometry *G = new RWGGeometry(GeoFileNames[nCase]);
      G->SetLogLevel(SCUFF_VERBOSELOGGING);
-     HMatrix *M   = G->AllocateBEMMatrix();
-     HVector *KN  = G->AllocateRHSVector();
-     HVector *RHS = G->AllocateRHSVector();
+     RWGSurface  *S = G->Surfaces[0];
+     HMatrix *TIn   = S->IsPEC ? 0 : G->AllocateBEMMatrix();
+     HMatrix *TOut  = G->AllocateBEMMatrix();
+     HMatrix *M     = G->AllocateBEMMatrix();
+     HVector *KN    = G->AllocateRHSVector();
+     HVector *RHS   = G->AllocateRHSVector();
 
      if (DataLogFile)
       fprintf(DataLogFile,"# geometry %s: \n",G->GeoFileName);
 
      for (int nOmega=0; nOmega<NUMOMEGAS; nOmega++)
       { 
+        // solve the scattering problem
         double Omega=OmegaList[nOmega];
-        G->AssembleBEMMatrix(Omega, M);
+
+        if (S->IsPEC)
+         {
+           G->AssembleBEMMatrix(Omega, TOut);
+           M->Copy(TOut);
+         }
+        else
+         { for(int nr=0; nr<G->NumRegions; nr++)
+            G->RegionMPs[nr]->Zero();
+
+           G->RegionMPs[1]->UnZero();
+           G->AssembleBEMMatrix(Omega, TIn);
+           G->RegionMPs[1]->Zero();
+
+           G->RegionMPs[0]->UnZero();
+           G->AssembleBEMMatrix(Omega, TOut);
+           G->RegionMPs[0]->Zero();
+ 
+           for(int nr=0; nr<G->NumRegions; nr++)
+            G->RegionMPs[nr]->UnZero();
+
+           M->Copy(TOut);
+           M->AddBlock(TIn,0,0);
+         };
+
+        M->LUFactorize();
         G->AssembleRHSVector(Omega, PW, RHS);
         KN->Copy(RHS);
-        M->LUFactorize();
         M->LUSolve(KN);
+        // compute overlap PFT
+        InitPFTOptions(Options);
+        Options->PFTMethod=SCUFF_PFT_OVERLAP;
+        Options->RHSVector=RHS;
+        double OPFT[8];
+//      G->GetPFT(0, PW, KN, Omega, OPFT, Options);
+  
+        // compute DSIPFT
+        InitPFTOptions(Options);
+        Options->PFTMethod=SCUFF_PFT_DSI;
+        double DSIPFT[8];
+//        G->GetPFT(0, PW, KN, Omega, DSIPFT, Options);
 
-        double OPFT[7], OPScat;
-        G->GetOPFT(0, Omega, KN, RHS, 0, OPFT, &OPScat);
-        OPScat-=OPFT[0];
+        // compute EP without using precomputed matrices
+        InitPFTOptions(Options);
+        Options->PFTMethod=SCUFF_PFT_EP;
+        double EPPFTWithout[8];
+        G->GetPFT(0, PW, KN, Omega, EPPFTWithout, Options);
 
-        double DSIPFT[7], DSIPScat;
-        G->GetDSIPFT(Omega, KN, PW, DSIPFT, &DSIPScat, 0, 5.0, 302);
+        // compute EPPFT using precomputed matrices
+        InitPFTOptions(Options);
+        Options->PFTMethod=SCUFF_PFT_EP;
+        Options->TInterior=TIn;
+        Options->TExterior=TOut;
+        double EPPFTWith[8];
+        G->GetPFT(0, PW, KN, Omega, EPPFTWith, Options);
 
-        double EPAbs  = G->GetEPP(0, Omega, KN, 0, 0, true);
-        double EPScat = G->GetEPP(0, Omega, KN, 0, 0, false);
-
-        fprintf(DataLogFile,"%e %e %e %e %e %e %e %e %e %e %e \n",Omega,
-                             OPFT[0],OPScat,OPFT[3],OPFT[6],
-                             DSIPFT[0],DSIPScat,DSIPFT[3],DSIPFT[6],
-                             EPAbs,EPScat);
+        fprintf(DataLogFile,"%e %e %e %e %e %e %e %e %e %e %e %e %e \n",Omega,
+                             OPFT[0],OPFT[1],OPFT[4],OPFT[7],
+                             DSIPFT[0],DSIPFT[1],DSIPFT[4],DSIPFT[7],
+                             EPPFTWith[0],EPPFTWith[1],
+                             EPPFTWithout[0],EPPFTWithout[1]);
+        fflush(DataLogFile);
 #if 0
         if (    RD( OPFT[0], ExactPFT[0]     ) > 0.05
              || RD( OPFT[1], ExactPFT[1]     ) > 0.05
@@ -175,6 +239,8 @@ int main(int argc, char *argv[])
       fprintf(DataLogFile,"\n\n");
 
      delete G; 
+     delete TIn;
+     delete TOut;
      delete M; 
      delete KN;
      delete RHS;

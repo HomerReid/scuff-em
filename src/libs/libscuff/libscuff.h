@@ -48,6 +48,7 @@
 #include "GTransformation.h"
 #include "FieldGrid.h"
 #include "GBarAccelerator.h"
+#include "PFTOptions.h"
 
 namespace scuff {
 
@@ -62,14 +63,13 @@ namespace scuff {
 #define SCUFF_VERBOSELOGGING 2
 #define SCUFF_VERBOSE2       3
 
-// number of force/torque quantities and of power/force/torque quantities
-#define NUMFT 6 
-#define NUMPFT 7
-
 // maximum number of lattice basis vectors
 #ifndef MAXLDIM
 #define MAXLDIM 2
 #endif
+
+// number of power, force, and torque quantities
+#define NUMPFT 8
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -78,6 +78,7 @@ namespace scuff {
 #ifndef ZVAC
 #define ZVAC 376.73031346177
 #endif
+
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
@@ -317,7 +318,7 @@ class RWGSurface
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 
-/*************************** ************************************/
+/*************************** ***********************************/
 /* an RWGGeometry is a collection of regions with interfaces   */
 /* described by RWGSurfaces.                                   */
 /***************************************************************/
@@ -406,42 +407,9 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
    /* post-processing routines for power, force, and torque (PFT)  */
    /*--------------------------------------------------------------*/
-   // PFT by overlap method
-   void GetOPFT(int SurfaceIndex, cdouble Omega,
-                HVector *KNVector, HVector *RHS,
-                HMatrix *SigmaMatrix,
-                double PFT[7], double *PTot=0, double **ByEdge=0);
-
-   // PFT by displaced-surface-integral method
-   void GetDSIPFT(cdouble Omega, HVector *KN, IncField *IF, double PFT[7], double *PScat,
-                  char *BSMesh=0, double R=10.0, int NumPoints=110,
-                  bool UseCCQ=false, bool FarField=false, 
-                  char *PlotFileName=0, GTransformation *GT=0);
-
-   // trace version of DSIPFT
-   void GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
-                       HVector *KNVector, HMatrix *SigmaMatrix,
-                       double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
-                       char *BSMesh=0, double R=10.0,
-                       int NumPoints=110,
-                       char *PlotFileName=0,
-                       bool UseCCQ=false, bool FarField=false);
-
-   // absorbed or scattered/radiated power by equivalence-principle method
-   double GetEPP(int SurfaceIndex, cdouble Omega,
-                 HVector *KNVector, HMatrix *SigmaMatrix,
-                 double **ByEdge, bool Absorbed=true,
-                 HMatrix *TIn=0, HMatrix *TOut=0);
-
-   // force/torque by equivalence-principle method
-   void GetEPFT(int SurfaceIndex, cdouble Omega,
-                HVector *KNVector, IncField *IF, double FT[NUMFT],
-                double **ByEdge=0, int Order=1, double Delta=1.0e-5);
-
-   // spatially-resolved fluxes (poynting vector and stress tensor)
-   HMatrix *GetSRFlux(HMatrix *XMatrix, cdouble Omega,
-                      HVector *KNVector, HMatrix *SigmaMatrix,
-                      HMatrix *FMatrix, bool FarField);
+   void GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
+               cdouble Omega, double PFT[NUMPFT],
+               PFTOptions *Options=0);
 
    /*--------------------------------------------------------------*/
    /*- post-processing routines for various other quantities      -*/

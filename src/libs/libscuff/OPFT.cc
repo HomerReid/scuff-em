@@ -75,7 +75,6 @@ namespace scuff {
 
 #define NUMOVERLAPS 20
 
-
 // Note: the prefactor of (10/3) in the force and torque factors 
 // below arises as follows: the force quantity that we would compute
 // without it has units of 
@@ -264,20 +263,19 @@ int GetOverlappingEdgeIndices(RWGSurface *S, int nea, int nebArray[5])
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::GetOPFT(int SurfaceIndex, cdouble Omega,
-                          HVector *KNVector, HVector *RHS,
-                          HMatrix *SigmaMatrix,
-                          double PFT[7],
-                          double *PTot, double **ByEdge)
+void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
+             HVector *KNVector, HVector *RHS, HMatrix *RytovMatrix,
+             double PFT[8], double **ByEdge)
 {
-  if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
-   { memset(PFT,0,7*sizeof(double));
-     Warn("GetOPFTTrace called for unknown surface #i",SurfaceIndex);
+  
+  if (SurfaceIndex<0 || SurfaceIndex>=G->NumSurfaces)
+   { memset(PFT,0,8*sizeof(double));
+     Warn("GetOPFT called for unknown surface #i",SurfaceIndex);
      return;
    };
 
-  RWGSurface *S=Surfaces[SurfaceIndex];
-  int Offset = BFIndexOffset[SurfaceIndex];
+  RWGSurface *S=G->Surfaces[SurfaceIndex];
+  int Offset = G->BFIndexOffset[SurfaceIndex];
   int NE=S->NumEdges;
 
   /*--------------------------------------------------------------*/
@@ -285,7 +283,7 @@ void RWGGeometry::GetOPFT(int SurfaceIndex, cdouble Omega,
   /*--------------------------------------------------------------*/
   cdouble ZZ=ZVAC, k2=Omega*Omega;
   cdouble Eps, Mu;
-  RegionMPs[S->RegionIndices[0]]->GetEpsMu(Omega, &Eps, &Mu);
+  G->RegionMPs[S->RegionIndices[0]]->GetEpsMu(Omega, &Eps, &Mu);
   k2 *= Eps*Mu;
   ZZ *= sqrt(Mu/Eps);
 
@@ -321,7 +319,14 @@ void RWGGeometry::GetOPFT(int SurfaceIndex, cdouble Omega,
         /*--------------------------------------------------------------*/
         /*--------------------------------------------------------------*/
         cdouble KK, KN, NK, NN;
-        if (KNVector)
+        if (KNVector && S->IsPEC)
+         { 
+           cdouble kAlpha =       KNVector->GetEntry(Offset + nea);
+           cdouble kBeta  =       KNVector->GetEntry(Offset + neb);
+           KK = conj(kAlpha) * kBeta;
+           KN = NK = NN = 0.0;
+         }
+        else if (KNVector && !(S->IsPEC) )
          { 
            cdouble kAlpha =       KNVector->GetEntry(Offset + 2*nea + 0);
            cdouble nAlpha = -ZVAC*KNVector->GetEntry(Offset + 2*nea + 1);
@@ -335,10 +340,10 @@ void RWGGeometry::GetOPFT(int SurfaceIndex, cdouble Omega,
          }
         else
          {
-           KK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
-           KN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
-           NK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
-           NN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
+           KK = RytovMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
+           KN = RytovMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
+           NK = RytovMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
+           NN = RytovMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
          };
 
        /*--------------------------------------------------------------*/
@@ -412,17 +417,19 @@ void RWGGeometry::GetOPFT(int SurfaceIndex, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   PFT[0] = PAbs;
-  PFT[1] = Fx;
-  PFT[2] = Fy;
-  PFT[3] = Fz;
-  PFT[4] = Taux;
-  PFT[5] = Tauy;
-  PFT[6] = Tauz;
+  PFT[1] = 0.0;
+  PFT[2] = Fx;
+  PFT[3] = Fy;
+  PFT[4] = Fz;
+  PFT[5] = Taux;
+  PFT[6] = Tauy;
+  PFT[7] = Tauz;
 
   /*--------------------------------------------------------------*/
-  /*- get extinction ---------------------------------------------*/
+  /*- if an RHS vector was specified, compute the extinction      */
+  /*- (total power) and use it to compute the scattered power     */
   /*--------------------------------------------------------------*/
-  if (PTot && KNVector && RHS)
+  if (KNVector && RHS)
    { double Extinction=0.0;
      for (int ne=0, nbf=0; ne<NE; ne++)
       { 
@@ -437,383 +444,9 @@ void RWGGeometry::GetOPFT(int SurfaceIndex, cdouble Omega,
         nbf++;
         Extinction += 0.5*real( conj(nAlpha)*vHAlpha );
       };
-     *PTot = Extinction;
+     PFT[1] = Extinction - PFT[0];
    };
 
 } // GetOPFT
-
-/*****************************************************************/
-/* this is a legacy routine for explicitly forming the (sparse)  */
-/* overlap matrices that are sandwiched between                  */
-/* surface-current vectors to get power, force, and torque       */
-/*                                                               */
-/* on entry, NeedMatrix is an array of 8 boolean flags, with     */
-/* NeedMatrix[n] = 1 if the user wants overlap matrix #n.        */
-/* (here 8 = SCUFF_NUM_OMATRICES).                               */
-/*                                                               */
-/* If NeedMatrix[n] = 1, then SArray must have at least n slots. */
-/*                                                               */
-/* If SArray[n] = 0 on entry, then a new SMatrix of the correct  */
-/* size is allocated for that slot. If SArray[n] is nonzero but  */
-/* points to an SMatrix of the incorrect size, then a new        */
-/* SMatrix of the correct size is allocated, and SArray[n] is    */
-/* overwritten with a pointer to this new SMatrix; the memory    */
-/* allocated for the old SMatrix is not deallocated.             */
-/*                                                               */
-/* Omega is only referenced for the computation of force/torque  */
-/* overlap matrices.                                             */
-/*                                                               */
-/* ExteriorMP is only referenced for the computation of force/   */
-/* torque overlap matrices, and then only if it non-null; if     */ 
-/* ExteriorMP==0 then the exterior medium is taken to be vacuum. */
-/*****************************************************************/
-#if 0
-#define SCUFF_OMATRIX_OVERLAP    0
-#define SCUFF_OMATRIX_POWER      1
-#define SCUFF_OMATRIX_XFORCE     2
-#define SCUFF_OMATRIX_YFORCE     3
-#define SCUFF_OMATRIX_ZFORCE     4
-#define SCUFF_OMATRIX_XTORQUE    5
-#define SCUFF_OMATRIX_YTORQUE    6
-#define SCUFF_OMATRIX_ZTORQUE    7
-#define SCUFF_NUM_OMATRICES      8
-void RWGSurface::GetOverlapMatrices(const bool NeedMatrix[SCUFF_NUM_OMATRICES],
-                                    SMatrix *SArray[SCUFF_NUM_OMATRICES],
-                                    cdouble Omega,
-                                    MatProp *ExteriorMP)
-{
-  int NR  = NumBFs;
-
-  /*--------------------------------------------------------------*/
-  /*- the number of nonzero entries per row of the overlap matrix */
-  /*- is fixed by the definition of the RWG basis function; each  */
-  /*- RWG function overlaps with at most 5 RWG functions          */
-  /*- (including itself), which gives 10 if we have both electric */
-  /*- and magnetic currents.                                      */
-  /*--------------------------------------------------------------*/
-  int nnz = IsPEC ? 5 : 10;
-
-  /*--------------------------------------------------------------*/
-  /*- make sure each necessary slot of SArray points to an SMatrix*/  
-  /*- of the appropriate size                                     */  
-  /*--------------------------------------------------------------*/
-  for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
-   { 
-     if ( NeedMatrix[n] ) 
-      { 
-        if ( SArray[n] && ( (SArray[n]->NR != NR) || (SArray[n]->NC != NR) ) )
-         { Warn("wrong-sized matrix passed to GetOverlapMatrices (reallocating)...");
-           SArray[n]=0;
-         };
-
-        if (SArray[n]==0)
-         SArray[n]=new SMatrix(NR, NR, LHM_COMPLEX);
-
-	// TODO: avoid reallocation if shape is okay?
-        SArray[n]->BeginAssembly(nnz*NR);
-
-      };   
-   };
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  cdouble ZZ=ZVAC, K2=Omega*Omega;
-  if (ExteriorMP)
-   { 
-     cdouble Eps, Mu;
-     ExteriorMP->GetEpsMu(Omega, &Eps, &Mu);
-     K2 *= Eps*Mu;
-     ZZ *= sqrt(Mu/Eps);
-   };
-
-  /*--------------------------------------------------------------*/
-  /* TOS = 'two over sigma' where sigma = surface conductivity    */
-  /*--------------------------------------------------------------*/
-  cdouble TOS=0.0;
-  if (SurfaceSigmaMP)
-   { cdouble Sigma = SurfaceSigmaMP->GetEps(Omega);
-     TOS = 2.0/Sigma;
-   };
-
-  char *SSParmNames[4]={ const_cast<char *>("w"), const_cast<char *>("x"), 
-                         const_cast<char *>("y"), const_cast<char *>("z") };
-  cdouble SSParmValues[4];
-  SSParmValues[0]=Omega*(MatProp::FreqUnit);
- 
-  /*--------------------------------------------------------------*/
-  /*- assemble the overlap matrices one row at a time ------------*/
-  /*--------------------------------------------------------------*/
-  for(int neAlpha=0; neAlpha<NumEdges; neAlpha++)
-   { 
-      /*--------------------------------------------------------------*/
-      /*- if we have a spatially-varying surface conductivity, get its*/
-      /*- value at the centroid of basis function #neAlpha            */
-      /*--------------------------------------------------------------*/
-      if (SurfaceSigmaMP)
-       { SSParmValues[1] = Edges[neAlpha]->Centroid[0];
-         SSParmValues[2] = Edges[neAlpha]->Centroid[1];
-         SSParmValues[3] = Edges[neAlpha]->Centroid[2];
-         cdouble Sigma=cevaluator_evaluate(SurfaceSigma, 4, SSParmNames, SSParmValues);
-         TOS = 2.0/Sigma;
-       };
-
-      /*--------------------------------------------------------------*/
-      /*- populate an array whose entries are the indices of the edges*/
-      /*- whose RWG basis functions have nonzero overlap with neAlpha.*/
-      /*--------------------------------------------------------------*/
-      RWGEdge *E = Edges[neAlpha];
-      int OverlappingEdgeIndices[5];
-      int NumOverlappingEdges;
-
-      RWGPanel *P = Panels[E->iPPanel];
-      int iQ      = E->PIndex;
-
-      OverlappingEdgeIndices[0] = P->EI[  iQ      ]; // =neAlpha
-      NumOverlappingEdges=1;
-      if ( P->EI[ (iQ+1)%3 ] >= 0 )
-       OverlappingEdgeIndices[NumOverlappingEdges++] = P->EI[ (iQ+1)%3 ];
-      if ( P->EI[ (iQ+2)%3 ] >= 0 )
-       OverlappingEdgeIndices[NumOverlappingEdges++] = P->EI[ (iQ+2)%3 ];
-
-      if (E->iMPanel!=-1)
-       { 
-         P  = Panels[E->iMPanel];
-         iQ = E->MIndex;
-         if ( P->EI[ (iQ+1)%3 ] >= 0 )
-          OverlappingEdgeIndices[NumOverlappingEdges++] = P->EI[ (iQ+1)%3 ];
-         if ( P->EI[ (iQ+2)%3 ] >= 0 )
-          OverlappingEdgeIndices[NumOverlappingEdges++] = P->EI[ (iQ+2)%3 ];
-       };
-
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      for(int noei=0; noei<NumOverlappingEdges; noei++)
-       { 
-         int neBeta = OverlappingEdgeIndices[noei];
-         double Overlaps[NUMOVERLAPS];
-         GetOverlaps(neAlpha, neBeta, Overlaps);
-
-         cdouble XForce1 = 
-TENTHIRDS*(Overlaps[OVERLAP_BULLET_X] - Overlaps[OVERLAP_NABLANABLA_X]/K2);
-         cdouble XForce2 = TENTHIRDS*2.0*Overlaps[OVERLAP_TIMESNABLA_X] / (II*Omega);
-
-         cdouble YForce1 = TENTHIRDS*(Overlaps[OVERLAP_BULLET_Y] - Overlaps[OVERLAP_NABLANABLA_Y]/K2);
-         cdouble YForce2 = TENTHIRDS*2.0*Overlaps[OVERLAP_TIMESNABLA_Y] / (II*Omega);
-
-         cdouble ZForce1 = TENTHIRDS*(Overlaps[OVERLAP_BULLET_Z] - Overlaps[OVERLAP_NABLANABLA_Z]/K2);
-         cdouble ZForce2 = TENTHIRDS*2.0*Overlaps[OVERLAP_TIMESNABLA_Z] / (II*Omega);
-
-         cdouble XTorque1 = TENTHIRDS*(Overlaps[OVERLAP_RXBULLET_X] - Overlaps[OVERLAP_RXNABLANABLA_X]/K2);
-         cdouble XTorque2 = TENTHIRDS*2.0*Overlaps[OVERLAP_RXTIMESNABLA_X] / (II*Omega);
-
-         cdouble YTorque1 = TENTHIRDS*(Overlaps[OVERLAP_RXBULLET_Y] - Overlaps[OVERLAP_RXNABLANABLA_Y]/K2);
-         cdouble YTorque2 = TENTHIRDS*2.0*Overlaps[OVERLAP_RXTIMESNABLA_Y] / (II*Omega);
-
-         cdouble ZTorque1 = TENTHIRDS*(Overlaps[OVERLAP_RXBULLET_Z] - Overlaps[OVERLAP_RXNABLANABLA_Z]/K2);
-         cdouble ZTorque2 = TENTHIRDS*2.0*Overlaps[OVERLAP_RXTIMESNABLA_Z] / (II*Omega);
-
-         if (IsPEC)
-          { 
-            if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
-             SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(neAlpha, neBeta, Overlaps[OVERLAP_OVERLAP]);
-
-            if ( NeedMatrix[SCUFF_OMATRIX_POWER] )
-             SArray[SCUFF_OMATRIX_POWER]->SetEntry(neAlpha, neBeta, TOS*Overlaps[OVERLAP_OVERLAP]);
-
-            if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
-             SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(neAlpha, neBeta, ZZ*XForce1);
-            if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
-             SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(neAlpha, neBeta, ZZ*YForce1);
-            if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
-             SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(neAlpha, neBeta, ZZ*ZForce1);
-
-            if ( NeedMatrix[SCUFF_OMATRIX_XTORQUE] )
-             SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(neAlpha, neBeta, ZZ*XTorque1);
-            if ( NeedMatrix[SCUFF_OMATRIX_YTORQUE] )
-             SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(neAlpha, neBeta, ZZ*YTorque1);
-            if ( NeedMatrix[SCUFF_OMATRIX_ZTORQUE] )
-             SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(neAlpha, neBeta, ZZ*ZTorque1);
-          }
-         else
-          {
-            if ( NeedMatrix[SCUFF_OMATRIX_OVERLAP] )
-             { SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+0, 2*neBeta+0, Overlaps[OVERLAP_OVERLAP]);
-               SArray[SCUFF_OMATRIX_OVERLAP]->SetEntry(2*neAlpha+1, 2*neBeta+1, Overlaps[OVERLAP_OVERLAP]);
-             };
-
-            if ( NeedMatrix[SCUFF_OMATRIX_POWER] )
-             { 
-               SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+0, 2*neBeta+0, TOS*Overlaps[OVERLAP_OVERLAP]);
-               SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+0, 2*neBeta+1, Overlaps[OVERLAP_CROSS]);
-               SArray[SCUFF_OMATRIX_POWER]->SetEntry(2*neAlpha+1, 2*neBeta+0, -1.0*Overlaps[OVERLAP_CROSS]);
-             };
-
-            if ( NeedMatrix[SCUFF_OMATRIX_XFORCE] )
-             { SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, -1.0*ZZ*XForce1);
-               SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, -1.0*XForce2);
-               SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0,      XForce2);
-               SArray[SCUFF_OMATRIX_XFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, -1.0*XForce1/ZZ);
-             };
-
-            if ( NeedMatrix[SCUFF_OMATRIX_YFORCE] )
-             { SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, -1.0*ZZ*YForce1);
-               SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, -1.0*YForce2);
-               SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0,      YForce2);
-               SArray[SCUFF_OMATRIX_YFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, -1.0*YForce1/ZZ);
-             };
-
-            if ( NeedMatrix[SCUFF_OMATRIX_ZFORCE] )
-             { SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+0, -1.0*ZZ*ZForce1);
-               SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+0, 2*neBeta+1, -1.0*ZForce2);
-               SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+0,      ZForce2);
-               SArray[SCUFF_OMATRIX_ZFORCE]->SetEntry(2*neAlpha+1, 2*neBeta+1, -1.0*ZForce1/ZZ);
-             };
-
-            if ( NeedMatrix[SCUFF_OMATRIX_XTORQUE] )
-             { SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, -1.0*ZZ*XTorque1);
-               SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, -1.0*XTorque2);
-               SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0,      XTorque2);
-               SArray[SCUFF_OMATRIX_XTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, -1.0*XTorque1/ZZ);
-             };
-
-            if ( NeedMatrix[SCUFF_OMATRIX_YTORQUE] )
-             { SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, -1.0*ZZ*YTorque1);
-               SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, -1.0*YTorque2);
-               SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0,      YTorque2);
-               SArray[SCUFF_OMATRIX_YTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, -1.0*YTorque1/ZZ);
-             };
-
-            if ( NeedMatrix[SCUFF_OMATRIX_ZTORQUE] )
-             { SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+0, -1.0*ZZ*ZTorque1);
-               SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+0, 2*neBeta+1, -1.0*ZTorque2);
-               SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+0,      ZTorque2);
-               SArray[SCUFF_OMATRIX_ZTORQUE]->SetEntry(2*neAlpha+1, 2*neBeta+1, -1.0*ZTorque1/ZZ);
-             };
-
-          }; // if (IsPEC) ... else ... 
-
-       }; // for(int noei=0;...
-         
-   }  // for(neAlpha...) ... for (neBeta...)
-
-  for(int n=0; n<SCUFF_NUM_OMATRICES; n++)
-   if ( NeedMatrix[n] )  
-    SArray[n]->EndAssembly();
-
-}
-#endif
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-// older legacy version of GetOPFT that formed the overlap
-// matrices explicitly
-void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                          int SurfaceIndex, double OPFT[8])
-{
-
-  if (SurfaceIndex<0 || SurfaceIndex>=NumSurfaces)
-   { memset(OPFT,0,8*sizeof(double));
-     Warn("GetOPFT called for unknown surface #i",SurfaceIndex);
-     return;  
-   };
-  RWGSurface *S=Surfaces[SurfaceIndex];
-
-  /***************************************************************/
-  /* compute overlap matrices.                                   */
-  /* TODO: allow caller to pass caller-allocated storage for     */
-  /* these matrices and for the KNTS vector below to avoid       */
-  /* allocating on the fly                                       */
-  /***************************************************************/
-  bool NeedMatrix[SCUFF_NUM_OMATRICES];
-  SMatrix *OMatrices[SCUFF_NUM_OMATRICES];
-  for(int nm=0; nm<SCUFF_NUM_OMATRICES; nm++)
-   { NeedMatrix[nm]=true;
-     OMatrices[nm] = 0; 
-   };
-  S->GetOverlapMatrices(NeedMatrix, OMatrices, Omega, RegionMPs[0]);
-
-  /***************************************************************/
-  /* extract the chunk of the KN vector that is relevant for this*/
-  /* surface and in the process (1) undo the SCUFF normalization */
-  /* of the magnetic currents and (2) compute the total power    */
-  /***************************************************************/
-  int N = S->NumBFs;
-  int Offset = BFIndexOffset[SurfaceIndex];
-  HVector *KNTS=new HVector(N,LHM_COMPLEX); // 'KN, this surface'
-  cdouble KAlpha, NAlpha, vEAlpha, vHAlpha;
-  OPFT[1]=0.0;
-  if (S->IsPEC)
-   { for(int ne=0; ne<S->NumEdges; ne++)
-      { 
-        KAlpha  = KN->GetEntry(Offset + ne);
-        vEAlpha = RHS ? -ZVAC*RHS->GetEntry( Offset + ne ) : 0.0;
-
-        OPFT[1] += real( conj(KAlpha)*vEAlpha );
-
-        KNTS->SetEntry(ne,  KAlpha );
-      }
-   }
-  else //non-PEC
-   { for(int ne=0; ne<S->NumEdges; ne++)
-      { 
-        KAlpha =       KN->GetEntry(Offset + 2*ne + 0);
-        NAlpha = -ZVAC*KN->GetEntry(Offset + 2*ne + 1);
-
-        vEAlpha = RHS ? -ZVAC*RHS->GetEntry( Offset + 2*ne + 0 ) : 0.0;
-        vHAlpha = RHS ?  -1.0*RHS->GetEntry( Offset + 2*ne + 1 ) : 0.0;
-
-        KNTS->SetEntry( 2*ne + 0,  KAlpha );
-        KNTS->SetEntry( 2*ne + 1,  NAlpha );
-
-        OPFT[1] += real( conj(KAlpha)*vEAlpha + conj(NAlpha)*vHAlpha );
-      };
-   };
-  OPFT[1] *= 0.5;
-
-  OPFT[0] = 0.25*OMatrices[SCUFF_OMATRIX_POWER]->BilinearProductD(KNTS,KNTS);
-
-  OPFT[2] = 0.25*OMatrices[SCUFF_OMATRIX_XFORCE]->BilinearProductD(KNTS,KNTS);
-  OPFT[3] = 0.25*OMatrices[SCUFF_OMATRIX_YFORCE]->BilinearProductD(KNTS,KNTS);
-  OPFT[4] = 0.25*OMatrices[SCUFF_OMATRIX_ZFORCE]->BilinearProductD(KNTS,KNTS);
-
-  OPFT[5] = 0.25*OMatrices[SCUFF_OMATRIX_XTORQUE]->BilinearProductD(KNTS,KNTS);
-  OPFT[6] = 0.25*OMatrices[SCUFF_OMATRIX_YTORQUE]->BilinearProductD(KNTS,KNTS);
-  OPFT[7] = 0.25*OMatrices[SCUFF_OMATRIX_ZTORQUE]->BilinearProductD(KNTS,KNTS);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  delete KNTS;
-  for(int nm=0; nm<SCUFF_NUM_OMATRICES; nm++)
-   delete OMatrices[nm];
-
-}
-#endif
-
-/***************************************************************/
-/* alternative interface to GetOPFT in which the caller        */
-/* specifies the label of the surface instead of the index     */
-/***************************************************************/
-#if 0
-void RWGGeometry::GetOPFT(HVector *KN, HVector *RHS, cdouble Omega,
-                          char *SurfaceLabel, double OPFT[8])
-{
-  /*--------------------------------------------------------------*/
-  /*- find the surface in question -------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (RWGSurface *S=GetSurfaceByLabel(SurfaceLabel))
-   { 
-     GetOPFT(KN, RHS, Omega, S->Index, OPFT);
-   }
-  else
-   { Warn("unknown surface label %s passed to GetOPFT",SurfaceLabel);
-     memset(OPFT, 0, 8*sizeof(double));
-   };
-}
-#endif
 
 }// namespace scuff

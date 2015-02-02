@@ -34,7 +34,7 @@
 /***************************************************************/
 /***************************************************************/
 const char *QuantityNames[NUMPFT]=
- { "Power",
+ { "PAbs", "PRad",
    "XForce",  "YForce",  "ZForce",
    "XTorque", "YTorque", "ZTorque"
  };
@@ -44,7 +44,7 @@ const char *QuantityNames[NUMPFT]=
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          int QuantityFlags, char *EPFile,
-                         bool PlotFlux, char *pFileBase)
+                         char *pFileBase)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
@@ -81,13 +81,21 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
   /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  InitPFTOptions( &(SNEQD->PFTOpts) );
+  SNEQD->NeedQuantity = SNEQD->PFTOpts.NeedQuantity;
+
+  /*--------------------------------------------------------------*/
   /*- figure out which quantities were specified                 -*/
   /*--------------------------------------------------------------*/
   bool *NeedQuantity=SNEQD->NeedQuantity;
   memset(NeedQuantity, 0, NUMPFT*sizeof(bool));
   int NQ=0;
-  if ( QuantityFlags & QFLAG_POWER  ) 
-   { NeedQuantity[QINDEX_POWER]   = true; NQ++; };
+  if ( QuantityFlags & QFLAG_PABS   ) 
+   { NeedQuantity[QINDEX_PABS]    = true; NQ++; };
+  if ( QuantityFlags & QFLAG_PRAD   ) 
+   { NeedQuantity[QINDEX_PRAD]    = true; NQ++; };
   if ( QuantityFlags & QFLAG_XFORCE ) 
    { NeedQuantity[QINDEX_XFORCE]  = true; NQ++; };
   if ( QuantityFlags & QFLAG_YFORCE ) 
@@ -127,8 +135,8 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- chunks of the BEM matrices for multiple geometrical        -*/
   /*- transformations.                                           -*/
   /*--------------------------------------------------------------*/
-  SNEQD->T = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
-  SNEQD->TSelf = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  SNEQD->TExt = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+  SNEQD->TInt = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
   SNEQD->U = (HMatrix **)mallocEC( ((NS*(NS-1))/2)*sizeof(HMatrix *));
   Log("Before T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   for(int nb=0, ns=0; ns<NS; ns++)
@@ -136,12 +144,12 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
      int NBF=G->Surfaces[ns]->NumBFs;
 
      if (G->Mate[ns]==-1)
-      { SNEQD->T[ns]     = new HMatrix(NBF, NBF, LHM_COMPLEX);
-        SNEQD->TSelf[ns] = new HMatrix(NBF, NBF, LHM_COMPLEX);
+      { SNEQD->TExt[ns]  = new HMatrix(NBF, NBF, LHM_COMPLEX);
+        SNEQD->TInt[ns]  = new HMatrix(NBF, NBF, LHM_COMPLEX);
       }
      else
-      { SNEQD->T[ns]     = SNEQD->T[ G->Mate[ns] ];
-        SNEQD->TSelf[ns] = SNEQD->TSelf[ G->Mate[ns] ];
+      { SNEQD->TExt[ns] = SNEQD->TExt[ G->Mate[ns] ];
+        SNEQD->TInt[ns] = SNEQD->TInt[ G->Mate[ns] ];
       };
 
      for(int nsp=ns+1; nsp<G->NumSurfaces; nsp++, nb++)
@@ -152,11 +160,11 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   Log("After T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   /*--------------------------------------------------------------*/
-  /*- allocate BEM matrix and Sigma matrix -----------------------*/
+  /*- allocate BEM matrix and Rytov matrix -----------------------*/
   /*--------------------------------------------------------------*/
   SNEQD->W     = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
-  SNEQD->Sigma = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
-  Log("After W, Sigma: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
+  SNEQD->Rytov = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  Log("After W, Rytov: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   /*--------------------------------------------------------------*/
   /*- Buffer[0..nBuffer-1] are data storage buffers with enough  -*/
@@ -180,25 +188,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   int fdim = SNEQD->NumSIQs +  SNEQD->NumSRQs;
   SNEQD->OmegaConverged = (bool *)mallocEC(fdim*sizeof(bool));
-
-  /*--------------------------------------------------------------*/
-  /*- ByEdge[nd][nq][ne] = contribution of edge #ne on surface   -*/
-  /*- #nd to the flux of quantity #nq. This is used to produce   -*/
-  /*- plots of spatially-resolved flux density.                  -*/
-  /*--------------------------------------------------------------*/
-  SNEQD->ByEdge=0;
-  if (PlotFlux)
-   { double ***ByEdge = (double ***)mallocEC(NS*sizeof(double **));
-     for(int nds=0; nds<NS; nds++)
-      { ByEdge[nds] = (double **)mallocEC(NUMPFT*sizeof(double **));
-        int NE=G->Surfaces[nds]->NumEdges;
-        for(int nq=0; nq<NUMPFT; nq++)
-         { if (NeedQuantity[nq])
-            ByEdge[nds][nq]=(double *)mallocEC(NE*sizeof(double));
-         };
-      };
-     SNEQD->ByEdge=ByEdge;
-   };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

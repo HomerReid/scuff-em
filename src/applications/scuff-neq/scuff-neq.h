@@ -39,30 +39,28 @@ using namespace scuff;
 // differentiate the various quantities that may be computed
 // (power flux and i-directed momentum flux for i=x,y,z)
 
-#define QFLAG_POWER    1
-#define QFLAG_XFORCE   2
-#define QFLAG_YFORCE   4
-#define QFLAG_ZFORCE   8
-#define QFLAG_XTORQUE 16
-#define QFLAG_YTORQUE 32
-#define QFLAG_ZTORQUE 64
+#define QFLAG_PABS      1
+#define QFLAG_PRAD      2
+#define QFLAG_XFORCE    4
+#define QFLAG_YFORCE    8
+#define QFLAG_ZFORCE   16
+#define QFLAG_XTORQUE  32
+#define QFLAG_YTORQUE  64
+#define QFLAG_ZTORQUE 128
 
-#define QINDEX_POWER   0
-#define QINDEX_XFORCE  1
-#define QINDEX_YFORCE  2
-#define QINDEX_ZFORCE  3
-#define QINDEX_XTORQUE 4
-#define QINDEX_YTORQUE 5
-#define QINDEX_ZTORQUE 6
-
-#define NUMPFT 7
+#define QINDEX_PABS    0
+#define QINDEX_PRAD    1
+#define QINDEX_XFORCE  2
+#define QINDEX_YFORCE  3
+#define QINDEX_ZFORCE  4
+#define QINDEX_XTORQUE 5
+#define QINDEX_YTORQUE 6
+#define QINDEX_ZTORQUE 7
 
 // quadrature methods 
 #define QMETHOD_ADAPTIVE 0
 #define QMETHOD_CLIFF    1
 #define QMETHOD_TRAPSIMP 2
-
-extern const char *QuantityNames[NUMPFT];
 
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
@@ -70,7 +68,7 @@ extern const char *QuantityNames[NUMPFT];
 /****************************************************************/
 typedef struct SNEQData
  {
-   /*--------------------------------------------------------------*/ 
+   /*--------------------------------------------------------------*/
    /*- information on the geometry and geometrical transforms     -*/
    /*--------------------------------------------------------------*/
    RWGGeometry *G;
@@ -81,38 +79,34 @@ typedef struct SNEQData
    /*--------------------------------------------------------------*/
    /*- information on the calculations requested by the user       */
    /*--------------------------------------------------------------*/
-   int NQ;        // number of PFT quantities requested (1--7)
-   bool NeedQuantity[NUMPFT]; // true if nqth PFT quantity was requested
+   int NQ;             // number of quantities requested (1--8)
+   bool *NeedQuantity; // true if nqth PFT quantity was requested
 
    HMatrix *XPoints; // evaluation points for spatially-resolved
-   int NX;           // fluxed
+   int NX;           // fluxes
 
    int NumSIQs;   // number of spatially-integrated quantities
    int NumSRQs;   // number of spatially-resolved quantities
 
    /*--------------------------------------------------------------*/
-   /*- choice of PFT methods --------------------------------------*/
+   /*- options for computing power, force, torque -----------------*/
    /*--------------------------------------------------------------*/
+   PFTOptions PFTOpts;
+
    bool OmitSelfTerms;  // set all self terms to zero
    bool ForceDSI;       // use DSIPFT instead of OPFT/EPPFT
+   bool PlotFlux;       // generate flux plots
 
    /*--------------------------------------------------------------*/
-   /*- Edge-resolved data: ByEdge[ns][nq][ne] is the contribution -*/
-   /*- of edge #ne on surface #ns to quantity #nq.                -*/
-   /*--------------------------------------------------------------*/
-   double ***ByEdge;
-
-   /*--------------------------------------------------------------*/
-   /* storage for the BEM matrix and its subblocks                 */
+   /* storage for the BEM matrix and its subblocks.                */
+   // Note: Buffer[0..N] are pointers into an internally-allocated */
+   // chunk of memory used as a workspace in the GetFlux() routine */
    /*--------------------------------------------------------------*/
    HMatrix *W;        // BEM matrix 
-   HMatrix *Sigma;    // Sigma matrix for a given source body
-   HMatrix **T;       // T[ns] = T-matrix block for surface #ns
-   HMatrix **TSelf;   //
+   HMatrix *Rytov;    // Rytov matrix for a given source body
+   HMatrix **TInt;    // TInt[ns], TExt[ns] = interior and exterior
+   HMatrix **TExt;    // contributions to BEM block for surface #ns
    HMatrix **U;       // U[nb] = // off-diagonal U-matrix block #nb 
-
-   // Buffer[0..N] are pointers into an internally-allocated
-   // chunk of memory used as a workspace in the GetTrace() routine.
    void *Buffer[3];
 
    /*--------------------------------------------------------------*/
@@ -127,12 +121,6 @@ typedef struct SNEQData
    char *FileBase;
    bool UseExistingData;
 
-   char *DSIMesh;           // bounding surface mesh for DSIPFT
-   double DSIRadius;        // radius for DSIPFT
-   int DSIPoints;           // number of cubature points for DSIPFT
-   bool DSICCQ;             // use clenshaw-curtis instead of lebedev for DSIPFT 
-   bool DSIFarField;        // retain only far-field contributions to DSIPFT
-
  } SNEQData;
 
 /*--------------------------------------------------------------*/
@@ -140,7 +128,7 @@ typedef struct SNEQData
 /*--------------------------------------------------------------*/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          int QuantityFlags, char *EPFile,
-                         bool PlotFlux, char *pFileBase);
+                         char *pFileBase);
 
 /*--------------------------------------------------------------*/
 /*- in GetFlux.cc ----------------------------------------------*/
@@ -170,10 +158,5 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
                             double OmegaMin, double OmegaMax,
                             double *TObjects, double TEnvironment,
                             double *I, double *E);
-
-/*--------------------------------------------------------------*/
-/*- in PlotFlux.cc ---------------------------------------------*/
-/*--------------------------------------------------------------*/
-void CreateFluxPlot(SNEQData *SNEQD, cdouble Omega, char *Tag);
 
 #endif

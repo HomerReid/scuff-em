@@ -85,12 +85,11 @@ int main(int argc, char *argv[])
   char *EPPFTFile=0;
   int  EPFTOrder=1;
 //
-  char *DSIPFTFile=0;
-  double DSIRadius = 100.0;
-  int DSIPoints = 110;
-  char *DSIMesh=0;
-  bool DSICCQ=false;
-  bool DSIFarField=false;
+  char *DSIPFTFile = 0;
+  double DSIRadius = 10.0;
+  int DSIPoints    = 302;
+  char *DSIMesh    = 0;
+  bool DSIFarField = false;
 //
   bool PlotPFTFlux=false;
 //
@@ -137,7 +136,6 @@ int main(int argc, char *argv[])
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
      {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for surface-integral PFT (6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
-     {"DSICCQ",         PA_BOOL,    0, 1,       (void *)&DSICCQ,     0,             "use Clenshaw-Curtis instead of Lebedev quadrature for DSIPFT"},
      {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField, 0,            "retain only far-field contributions to DSIPFT"},
 /**/
      {"PlotPFTFlux",    PA_BOOL,    0, 1,       (void *)&PlotPFTFlux,   0,          "generate plots of spatially-resolved PFT flux"},
@@ -236,6 +234,17 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   SetLogFileName("scuff-scatter.log");
   Log("scuff-scatter running on %s",GetHostName());
+
+  /*******************************************************************/
+  /* PFT options *****************************************************/
+  /*******************************************************************/
+  PFTOptions MyPFTOpts, *PFTOpts=&MyPFTOpts;
+  InitPFTOptions(PFTOpts);
+  PFTOpts->DSIMesh     = DSIMesh;
+  PFTOpts->DSIRadius   = DSIRadius;
+  PFTOpts->DSIPoints   = DSIPoints;
+  PFTOpts->DSIFarField = DSIFarField;
+  PFTOpts->EPFTOrder   = EPFTOrder;
 
   /*******************************************************************/
   /* create the SSData structure containing everything we need to    */
@@ -374,23 +383,19 @@ int main(int argc, char *argv[])
      SSD->Omega=Omega;
 
      /*--------------------------------------------------------------*/
-     /*- overlap PFT ------------------------------------------------*/
+     /*- power, force, torque by various methods --------------------*/
      /*--------------------------------------------------------------*/
      if (OPFTFile)
-      WriteOPFTFile(SSD, OPFTFile, PlotPFTFlux);
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_OVERLAP, PlotPFTFlux, OPFTFile);
 
-     /*--------------------------------------------------------------*/
-     /*- equivalence-principle PFT ----------------------------------*/
-     /*--------------------------------------------------------------*/
      if (EPPFTFile)
-      WriteEPPFTFile(SSD, EPPFTFile, PlotPFTFlux, EPFTOrder);
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EP, PlotPFTFlux, EPPFTFile);
 
-     /*--------------------------------------------------------------*/
-     /*- surface-integral PFT           -----------------------------*/
-     /*--------------------------------------------------------------*/
      if (DSIPFTFile)
-      WriteDSIPFTFile(SSD, DSIPFTFile, DSIMesh, 
-                      DSIRadius, DSIPoints, DSICCQ, DSIFarField, PlotPFTFlux);
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DSI, PlotPFTFlux, DSIPFTFile);
+
+     if (PFTFile) // default is overlap + EP for absorbed power
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EPOVERLAP, PlotPFTFlux, PFTFile);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/
