@@ -217,7 +217,7 @@ void RWGGeometry::GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
      // possibly replace absorbed power with EP calculation
      if ( PFTMethod==SCUFF_PFT_EP         ||
           PFTMethod==SCUFF_PFT_EPOVERLAP  ||
-          PFTMethod==SCUFF_PFT_EPDSI      
+          PFTMethod==SCUFF_PFT_EPDSI
         )
       PFT[0] = Power[0];
    };

@@ -174,18 +174,19 @@ int main(int argc, char *argv[])
         G->AssembleRHSVector(Omega, PW, RHS);
         KN->Copy(RHS);
         M->LUSolve(KN);
+
         // compute overlap PFT
         InitPFTOptions(Options);
         Options->PFTMethod=SCUFF_PFT_OVERLAP;
         Options->RHSVector=RHS;
         double OPFT[8];
-//      G->GetPFT(0, PW, KN, Omega, OPFT, Options);
+        G->GetPFT(0, PW, KN, Omega, OPFT, Options);
   
         // compute DSIPFT
         InitPFTOptions(Options);
         Options->PFTMethod=SCUFF_PFT_DSI;
         double DSIPFT[8];
-//        G->GetPFT(0, PW, KN, Omega, DSIPFT, Options);
+        G->GetPFT(0, PW, KN, Omega, DSIPFT, Options);
 
         // compute EP without using precomputed matrices
         InitPFTOptions(Options);
@@ -207,6 +208,7 @@ int main(int argc, char *argv[])
                              EPPFTWith[0],EPPFTWith[1],
                              EPPFTWithout[0],EPPFTWithout[1]);
         fflush(DataLogFile);
+
 #if 0
         if (    RD( OPFT[0], ExactPFT[0]     ) > 0.05
              || RD( OPFT[1], ExactPFT[1]     ) > 0.05

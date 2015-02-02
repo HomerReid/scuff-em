@@ -363,13 +363,6 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
    };
 
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  struct GetEEIArgStruct MyArgs, *Args=&MyArgs;
-  InitGetEEIArgs(Args);
-  Args->Sa = Args->Sb = S;
-
-  /*--------------------------------------------------------------*/
   /*- check if TInterior and TExterior are present and the proper */
   /*- sizes                                                       */
   /*--------------------------------------------------------------*/
@@ -403,6 +396,7 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
    { 
      int nea=neab / NE;
      int neb=neab % NE;
+
      if (neb<nea) continue;
 
        /*--------------------------------------------------------------*/
@@ -421,7 +415,10 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
           mikCIn=TInterior->GetEntry(2*nea+1, 2*neb+0);
         }
        else
-        { Args->nea = nea;
+        { GetEEIArgStruct MyArgs, *Args=&MyArgs;
+          InitGetEEIArgs(Args);
+          Args->Sa = Args->Sb = S;
+          Args->nea = nea;
           Args->neb = neb;
           Args->k   = kIn;
           GetEdgeEdgeInteractions(Args);
@@ -439,12 +436,20 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
           mikCOut=TExterior->GetEntry(2*nea+1, 2*neb+0);
         }
        else
-        { Args->nea = nea;
+        { GetEEIArgStruct MyArgs, *Args=&MyArgs;
+          InitGetEEIArgs(Args);
+          Args->Sa = Args->Sb = S;
+          Args->nea = nea;
           Args->neb = neb;
           Args->k   = kOut;
           GetEdgeEdgeInteractions(Args);
           ikGOut  =  II*kOut*Args->GC[0];
           mikCOut = -II*kOut*Args->GC[1];
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if ( (nea%50)==0 && (neb%50)==0 )
+ printf("%3i %3i %+8e %+8e %+8e %+8e \n",nea,neb,
+real(ikGOut),imag(ikGOut),real(mikCOut),imag(mikCOut));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
         };
 
        /*--------------------------------------------------------------*/

@@ -95,6 +95,33 @@ int GetSRQIndex(SNEQData *SNEQD, int nt, int nss, int nx, int nq)
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#define AVAC (1.0/ZVAC) // admittance of vacuum
+void TSelfToSymG(HMatrix *TSelf, HMatrix *SymG)
+{
+  int NE = TSelf->NR / 2;
+  for(int nea=0; nea<NE; nea++)
+   for(int neb=0; neb<NE; neb++)
+    { 
+       cdouble TEE_NRNC =  ZVAC*TSelf->GetEntry(2*nea + 0 ,2*neb + 0 );
+       cdouble TEH_NRNC =  -1.0*TSelf->GetEntry(2*nea + 0 ,2*neb + 1 );
+       cdouble THE_NRNC =       TSelf->GetEntry(2*nea + 1 ,2*neb + 0 );
+       cdouble THH_NRNC = -AVAC*TSelf->GetEntry(2*nea + 1 ,2*neb + 1 );
+
+       cdouble TEE_NCNR =  ZVAC*TSelf->GetEntry(2*nea + 0 ,2*neb + 0 );
+       cdouble TEH_NCNR =  -1.0*TSelf->GetEntry(2*nea + 0 ,2*neb + 1 );
+       cdouble THE_NCNR =       TSelf->GetEntry(2*nea + 1 ,2*neb + 0 );
+       cdouble THH_NCNR = -AVAC*TSelf->GetEntry(2*nea + 1 ,2*neb + 1 );
+
+       SymG->SetEntry(2*nea+0, 2*neb+0, 0.25*0.5*(TEE_NRNC + conj(TEE_NCNR)));
+       SymG->SetEntry(2*nea+0, 2*neb+1, 0.25*0.5*(TEH_NRNC + conj(TEH_NCNR)));
+       SymG->SetEntry(2*nea+1, 2*neb+0, 0.25*0.5*(THE_NRNC + conj(THE_NCNR)));
+       SymG->SetEntry(2*nea+1, 2*neb+1, 0.25*0.5*(THH_NRNC + conj(THH_NCNR)));
+    };
+}
+
+/***************************************************************/
 /* Compute the Rytov matrix for sources contained in body      */
 /* SourceSurface. The matrix is stored in the RytovMatrix      */
 /* field of the SNEQD structure.                               */
@@ -134,6 +161,7 @@ void ComputeRytovMatrix(SNEQData *SNEQD, int SourceSurface)
       HMatrix *Ts=SNEQD->TInt[SourceSurface];
 #endif
 //FIXME
+#if 1
 HMatrix TSelf(NBFS, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[2]);
 HMatrix *Ts=&TSelf;
 Ts->Copy(SNEQD->TInt[SourceSurface]);
@@ -143,7 +171,11 @@ UndoSCUFFMatrixTransformation(Ts);
         SymGs.SetEntry(nr, nc, 0.25*0.5*(        Ts->GetEntry(nr,nc)
                                           +conj( Ts->GetEntry(nc,nr) )
                                         ) 
-                      ); 
+                      );
+#else
+TSelfToSymG(SNEQD->TInt[SourceSurface], SymGs);
+#endif
+
 
       // Temp1 <- W_{a,s}*SymG_{s}
       HMatrix Temp1(NBFA, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[2]);
