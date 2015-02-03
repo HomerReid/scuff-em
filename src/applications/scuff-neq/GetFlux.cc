@@ -213,7 +213,8 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
    { memset(SIFlux, 0, NUMPFT*sizeof(double));
      return;
    };
- RWGGeometry *G      = SNEQD->G;
+
+  RWGGeometry *G      = SNEQD->G;
   bool ForceDSI       = SNEQD->ForceDSI;
   PFTOptions *PFTOpts = &(SNEQD->PFTOpts);
  

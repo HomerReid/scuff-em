@@ -208,7 +208,8 @@ void RWGGeometry::GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
      double Power[2];
      HMatrix *TInterior =  Options->TInterior;
      HMatrix *TExterior =  Options->TExterior;
-     GetEPP(this, SurfaceIndex, Omega, KN, 0, Power,
+     HMatrix *RytovMatrix = Options->RytovMatrix;
+     GetEPP(this, SurfaceIndex, Omega, KN, RytovMatrix, Power,
             ByEdge, TInterior, TExterior);
 
      // replace scattered power with EP calculation
