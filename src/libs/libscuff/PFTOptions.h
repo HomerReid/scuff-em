@@ -60,6 +60,7 @@ typedef struct PFTOptions
    int PFTMethod;
    char *FluxFileName;
    HMatrix *RytovMatrix;
+   double *kBloch;
 
    // options affecting overlap PFT computation
    HVector *RHSVector;

@@ -14,6 +14,7 @@
 \newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
 \newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
 %\newcommand{\vbchi}{\boldsymbol{\chi}}
+\newcommand{\vbGamma}{\boldsymbol{\Gamma}}
 
 
 \graphicspath{{figures/}}
@@ -235,4 +236,21 @@ $$ G_{ij}(\vb r)
    = \frac{1}{ik}\varepsilon_{ijk} \partial_k G_0(\vb r).
 $$
 %====================================================================%
+
+\subsection*{Evaluation of BZ integrals}
+
+For a 2D square lattice with lattice vectors 
+$\vb L_1=L_x\vbhat{x}, \vb L_2=L_y\vbhat{x},$
+a set of reciprocal-lattice basis vectors is 
+$\vbGamma_1=\pf{2\pi}{L_x} \vbhat{x},
+ \vbGamma_2=\pf{2\pi}{L_y} \vbhat{y}$,
+and Brillouin-zone integrals take the form
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \frac{1}{\mc V\subt{BZ}} 
+   \int\subt{BZ} f(\vb k\subs{B}) \, d \vb k\subt{B}
+  =4\int_0^{1/2} \, d u_1 \, \int_0^{1/2} \, d u_2 \, 
+   f\Big( u_1\vbGamma_1 + u_y\vbGamma_2 \Big)
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \end{document}

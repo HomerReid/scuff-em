@@ -644,7 +644,7 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 /* Get power, force, and torque by the displaced               */
 /* surface-integral method.                                    */
 /***************************************************************/
-void GetDSIPFT(RWGGeometry *G, cdouble Omega,
+void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                HVector *KN, IncField *IF,
                double PFT[NUMPFT],
                char *BSMesh, double R, int NumPoints,
@@ -685,10 +685,10 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega,
   /* get the scattered and total fields at the cubature points   */
   /***************************************************************/
   HMatrix *FMatrixScat;
-  if (FarField)
+  if (FarField && kBloch==0)
    FMatrixScat = GetFarFields(G, 0, KN, Omega, SCRMatrix);
   else
-   FMatrixScat = G->GetFields(0, KN, Omega, SCRMatrix);
+   FMatrixScat = G->GetFields(0, KN, Omega, kBloch, SCRMatrix);
 
   HMatrix *FMatrix;
   if (IF==0)
@@ -696,7 +696,7 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega,
      FMatrix = FMatrixScat;
    }
   else
-   { FMatrix = G->GetFields(IF, 0, Omega, SCRMatrix);
+   { FMatrix = G->GetFields(IF, 0, Omega, kBloch, SCRMatrix);
      FMatrix->AddBlock(FMatrixScat, 0, 0);
    };
 

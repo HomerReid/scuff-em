@@ -276,6 +276,7 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   RWGGeometry *G = SSD->G;
   cdouble Omega=SSD->Omega;
   PFTOpts->RHSVector=SSD->RHS;
+  PFTOpts->kBloch=SSD->kBloch;
   PFTOpts->PFTMethod=Method;
   static const char *MethodNames[]
    ={"Overlap", "DSI", "EP", "EPOverlap", "EPDSI"};

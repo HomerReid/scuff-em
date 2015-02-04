@@ -47,7 +47,7 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
              double PFT[NUMPFT], double **ByEdge=0);
 
 // PFT by displaced-surface-integral method
-void GetDSIPFT(RWGGeometry *G, cdouble Omega,
+void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                HVector *KN, IncField *IF, double PFT[NUMPFT],
                char *BSMesh, double R, int NumPoints,
                bool UseCCQ, bool FarField,
@@ -171,11 +171,12 @@ void RWGGeometry::GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
      double DSIRadius   = Options->DSIRadius;
      int DSIPoints      = Options->DSIPoints;
      bool DSIFarField   = Options->DSIFarField;
+     double *kBloch     = Options->kBloch;
      HMatrix *RytovMatrix = Options->RytovMatrix;
      bool *NeedQuantity = Options->NeedQuantity;
 
      if (RytovMatrix==0)
-      GetDSIPFT(this, Omega, KN, IF, PFT,
+      GetDSIPFT(this, Omega, kBloch, KN, IF, PFT,
                 DSIMesh, DSIRadius, DSIPoints,
                 false, DSIFarField, FluxFileName, GT);
      else 
@@ -259,6 +260,7 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
   Options->PFTMethod = SCUFF_PFT_DEFAULT;
   Options->FluxFileName=0;
   Options->RytovMatrix=0;
+  Options->kBloch=0;
 
   // options affecting overlap PFT computation
   Options->RHSVector = 0;
