@@ -155,6 +155,17 @@ void RWGGeometry::GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
    { 
      HVector *RHSVector   = Options->RHSVector;
      HMatrix *RytovMatrix = Options->RytovMatrix;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+bool SurfaceIsExtended=false;
+if (NumStraddlers[0] && NumStraddlers[0][SurfaceIndex]>0)  
+ SurfaceIsExtended=true;
+if (NumStraddlers[1] && NumStraddlers[1][SurfaceIndex]>0)
+ SurfaceIsExtended=true;
+if (SurfaceIsExtended)
+ { memset(PFT, 0, NUMPFT*sizeof(double));
+   return;
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      GetOPFT(this, SurfaceIndex, Omega, KN,
              RHSVector, RytovMatrix, PFT, ByEdge);
    }

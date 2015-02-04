@@ -206,6 +206,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   Surfaces=0;
   AllSurfacesClosed=1;
   LDim=0;
+  NumStraddlers[0]=NumStraddlers[1]=0;
+  RegionIsExtended[0]=RegionIsExtended[1]=0;
   tolVecClose=0.0; // to be updated once mesh is read in
   TBlockCacheNameAddendum=0;
 
