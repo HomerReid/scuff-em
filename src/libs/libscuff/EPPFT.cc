@@ -320,7 +320,15 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
             HVector *KNVector, HMatrix *RytovMatrix, double Power[2],
             double **ByEdge, HMatrix *TInterior, HMatrix *TExterior)
 {
-  Log("Computing EPP for surface %i ",DestSurface);
+  // FIXME the use of symmetry yields erroneous results. something
+  //       about the sign and/or phase of the (KN-NK)*ikC terms.
+  bool UseSymmetry=false;
+  char *s=getenv("SCUFF_EPP_SYMMETRY");
+  if ( s && s[0]=='1' )
+   UseSymmetry=true;
+
+  Log("Computing EPP for surface %i (%s symmetry)",
+       DestSurface,UseSymmetry ? "with" : "without");
 
   RWGSurface *S = G->Surfaces[DestSurface];
   int Offset    = G->BFIndexOffset[DestSurface];
@@ -396,8 +404,7 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
    { 
      int nea=neab / NE;
      int neb=neab % NE;
-
-     if (neb<nea) continue;
+     if (UseSymmetry && neb<nea) continue;
 
        /*--------------------------------------------------------------*/
        /*- get the matrix elements                                     */
@@ -481,8 +488,13 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
        /*- accumulate contributions to full and by-edge sums           */
        /*--------------------------------------------------------------*/
        double Weight = (nea==neb) ? -0.5 : -1.0;
-       double dPAbs  = Weight*real( (KK*ZInAbs  + NN/ZInAbs)*ikGIn   + (NK-KN)*mikCIn  );
-       double dPScat = Weight*real( (KK*ZOutAbs + NN/ZOutAbs)*ikGOut + (NK-KN)*mikCOut );
+       double dPAbs  = Weight*real( (KK*ZInAbs  + NN/ZInAbs)*real(ikGIn)   + (NK-KN)*imag(mikCIn)  );
+       double dPScat = Weight*real( (KK*ZOutAbs + NN/ZOutAbs)*real(ikGOut) + (NK-KN)*imag(mikCOut) );
+       if (!UseSymmetry)
+        { Weight = -0.5;
+          dPAbs  = Weight*real( (KK*ZInAbs  + NN/ZInAbs)*ikGIn   + (NK-KN)*mikCIn  );
+          dPScat = Weight*real( (KK*ZOutAbs + NN/ZOutAbs)*ikGOut + (NK-KN)*mikCOut );
+        };
 
        PAbs  += dPAbs;
        PScat += dPScat;

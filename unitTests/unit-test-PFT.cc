@@ -45,48 +45,36 @@ using namespace scuff;
 /*                                                             */
 /* in each case, powers and forces are for the case of         */
 /* illumination by a unit-magnitude z-traveling plane wave     */
-/* left-circular polarization, i.e. the incident E-field is    */
+/* with left-circular polarization, ie the incident E-field is */
 /*  E(x,y,z) = (1/sqrt{2}) (\vec{x} + i \vec{y}) e^{ikz}       */
 /*                                                             */
 /* data table entries:                                         */
 /*  (1) omega (angular frequency, units 3e14 rad/sec)          */
-/*  (2) efficiency for power scattering                        */
-/*  (3) efficiency for power absorption                        */
-/*  (4) efficiency for z-force                                 */
-/*                                                             */
-/* where efficiencies are cross-sections divided by \pi R^2.   */
-/*                                                             */
-/* cross-sections for {absorbed, scattered} power are the      */
-/* total power {absorbed by, scattered from} the object        */
-/* divided by incident power flux. the cross-section for the   */
-/* force is the z-force on the object divided by the incident  */
-/* momentum flux.                                              */
+/*  (2) absorbed  power (watts)                                */
+/*  (2) scattered power (watts)                                */
+/*  (3) Z-force (nanoNewtons)                                  */
+/*  (4) Z-torque (nanoNewtons*microns)                         */
 /***************************************************************/
-//#define NUMOMEGAS 3
-//double OmegaList[] = { 1.0e-2, 1.0e-1, 1.0 };
 #if 0
-#define NUMOMEGAS 16
-double OmegaList[]=
-{ 0.01000000, 0.01584893, 0.02511886, 0.03981072, 0.06309573,
-  0.10000000, 0.15848932, 0.25118864, 0.39810717, 0.63095734,
-  1.00000000, 1.58489319, 2.51188643, 3.98107171, 6.30957344,
- 10.00000000};
+#define NUMOMEGAS 2
+double OmegaList[] = {1.0e-1, 1.0};
 #endif
-#define NUMOMEGAS 10
-double OmegaList[]=
-{ 0.01000000, 0.01584893, 0.02511886, 0.03981072, 0.06309573,
-  0.10000000, 0.15848932, 0.25118864, 0.39810717, 0.63095734};
-
-double GoldPFT[] =
-   { 1.0e-2, 3.111826e-08, 3.293537e-03, 3.293579e-03,
-     1.0e-1, 3.244591e-04, 8.972653e-03, 9.419389e-03,
-     1.0e-0, 2.125119e+00, 1.983620e-02, 2.509075e+00
-   };
+#define NUMOMEGAS 11
+double OmegaList[] = 
+ { 0.01000000, 0.01584893, 0.02511886, 0.03981072, 0.06309573,
+   0.10000000, 0.15848932, 0.25118864, 0.39810717, 0.63095734,
+   1.00000000};
 
 double PECPFT[] =
    { 1.0e-2, 3.320868e-08, 0.0, 4.641536e-08,
      1.0e-1, 5.980295e+00, 0.0, 6.020131e+00,
      1.0e-0, 6.012197e+00, 0.0, 5.880804e+00
+   };
+
+double GoldPFT[] =
+   { 1.0e-2, 3.111826e-08, 3.293537e-03, 3.293579e-03,
+     1.0e-1, 3.244591e-04, 8.972653e-03, 9.419389e-03,
+     1.0e-0, 2.125119e+00, 1.983620e-02, 2.509075e+00
    };
 
 double SiO2PFT[] =
@@ -120,10 +108,10 @@ int main(int argc, char *argv[])
   /***************************************************************/
   #define NUMCASES 3
   const char *GeoFileNames[NUMCASES] = { "PECSphere_501.scuffgeo",
-                                         "GoldSphere_501.scuffgeo",
-                                         "SiO2Sphere_501.scuffgeo"
+                                         "SiO2Sphere_501.scuffgeo",
+                                         "GoldSphere_501.scuffgeo"
                                        };
-  double *ExactData[NUMCASES] = { PECPFT, GoldPFT, SiO2PFT };
+  double *ExactData[NUMCASES] = { PECPFT, SiO2PFT, GoldPFT };
   int NumTests = NUMCASES * NUMOMEGAS;
   int PassedTests = 0 ;
   FILE *DataLogFile=fopen("unit-test-PFT.data","w");

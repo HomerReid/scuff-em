@@ -42,7 +42,7 @@
 
 \begin{document}
 \pagestyle{myheadings}
-\markright{Homer Reid: Periodic GF computations in {\sc scuff-em}}
+\markright{Homer Reid: Periodic GF and LDOS computations in {\sc scuff-em}}
 \maketitle
 
 \tableofcontents
@@ -50,6 +50,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
 \section{Green's functions and LDOS in the non-periodic case}
 
 The scattering parts of the electric and magnetic
@@ -91,6 +92,15 @@ is the impedance of vacuum. The prefactors
 $\frac{1}{ikZ_0Z^r}$ and $\frac{1}{ik}$ are inserted to 
 ensure that $\bmc G\supt{E,M}$ have dimensions of inverse
 length.
+
+The local density of states (LDOS) at a point $\vb x$
+in a scattering geometry is related to the scattering
+DGF according to
+%====================================================================%
+$$ \texttt{LDOS}(\omega; \vb x) 
+   = 
+   -\frac{2\omega}{\pi}\text{Tr }\text{Im }\bmc G\supt{E}(\omega; \vb x, \vb x).
+$$
 %====================================================================%
 
 In {\sc scuff-em} the dyadic GFs may be computed easily by solving a
@@ -108,6 +118,7 @@ where the fields of a point electric dipole are
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{subequations}
 \begin{align*}
+ E_i&=
 \end{align*}
 \label{PDFields}
 \end{subequations}
@@ -119,6 +130,7 @@ To compute
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
 \section{Extension to the periodic case}
 
 In the Bloch-periodic module of {\sc scuff-em}, \textit{all}
@@ -184,6 +196,19 @@ Setting $\vb L^\prime=0$ recovers (\ref{EHPDAInverse}).}
 \label{EHPDAInverse}
 \end{subequations}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Example of a Brillouin-zone integral}
+
+As a simple example of an application of Brillouin-zone integration,
+let's consider the problem of computing the field of an
+\textit{individual} point source by summing the fields of
+many appropriately-phased point source \textit{arrays}.
+This will give us some insight into how many cubature points we 
+may expect
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
