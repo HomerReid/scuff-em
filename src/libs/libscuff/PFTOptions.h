@@ -34,22 +34,16 @@ namespace scuff {
 /***************************************************************/
 /* values for the PFTMethod field of PFTOptions ****************/
 /***************************************************************/
-#define SCUFF_PFT_OVERLAP       0
-#define SCUFF_PFT_DSI           1
-#define SCUFF_PFT_EP            2
+#define SCUFF_PFT_OVERLAP       0   // overlap method
+#define SCUFF_PFT_DSI           1   // displaced-surface-integral method
+#define SCUFF_PFT_EP            2   // equivalence-principle method
 
 // these two options mean: compute force and torque using 
-// overlap / DSI, but compute power using EP
+// overlap / DSI, but compute power (both absorbed and scattered) using EP
 #define SCUFF_PFT_EPOVERLAP     3
 #define SCUFF_PFT_EPDSI         4
 
-// these two options mean: compute force, torque, and absorbed
-// power using overlap / DSI, but compute scattered power
-// using EP
-#define SCUFF_PFT_EPSCATOVERLAP 5
-#define SCUFF_PFT_EPSCATDSI     6
-
-#define SCUFF_PFT_DEFAULT       SCUFF_PFT_EPSCATOVERLAP
+#define SCUFF_PFT_DEFAULT       SCUFF_PFT_EPOVERLAP
 
 /***************************************************************/
 /***************************************************************/

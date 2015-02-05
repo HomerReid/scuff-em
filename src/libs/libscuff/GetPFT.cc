@@ -150,7 +150,6 @@ void RWGGeometry::GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
   /***************************************************************/
   if (     PFTMethod==SCUFF_PFT_OVERLAP
         || PFTMethod==SCUFF_PFT_EPOVERLAP
-        || PFTMethod==SCUFF_PFT_EPSCATOVERLAP
      )
    { 
      HVector *RHSVector   = Options->RHSVector;
@@ -171,7 +170,6 @@ if (SurfaceIsExtended)
    }
   else if (     PFTMethod==SCUFF_PFT_DSI
              || PFTMethod==SCUFF_PFT_EPDSI
-             || PFTMethod==SCUFF_PFT_EPSCATDSI
           )
    { 
      bool CreatedGT;
@@ -212,9 +210,7 @@ if (SurfaceIsExtended)
   /***************************************************************/
   if ( PFTMethod==SCUFF_PFT_EP             ||
        PFTMethod==SCUFF_PFT_EPOVERLAP      ||
-       PFTMethod==SCUFF_PFT_EPDSI          ||
-       PFTMethod==SCUFF_PFT_EPSCATOVERLAP  ||
-       PFTMethod==SCUFF_PFT_EPSCATDSI
+       PFTMethod==SCUFF_PFT_EPDSI
      )
    {
      double Power[2];
@@ -224,15 +220,9 @@ if (SurfaceIsExtended)
      GetEPP(this, SurfaceIndex, Omega, KN, RytovMatrix, Power,
             ByEdge, TInterior, TExterior);
 
-     // replace scattered power with EP calculation
+     // replace absorbed and scattered power with EP calculations
+     PFT[0] = Power[0];
      PFT[1] = Power[1];
-
-     // possibly replace absorbed power with EP calculation
-     if ( PFTMethod==SCUFF_PFT_EP         ||
-          PFTMethod==SCUFF_PFT_EPOVERLAP  ||
-          PFTMethod==SCUFF_PFT_EPDSI
-        )
-      PFT[0] = Power[0];
    };
 
 

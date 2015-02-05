@@ -395,7 +395,7 @@ int main(int argc, char *argv[])
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DSI, PlotPFTFlux, DSIPFTFile);
 
      if (PFTFile) // default is overlap + EP for scattered power
-      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EPSCATOVERLAP, PlotPFTFlux, PFTFile);
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DEFAULT, PlotPFTFlux, PFTFile);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

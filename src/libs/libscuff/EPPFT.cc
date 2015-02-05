@@ -445,11 +445,6 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
           GetEdgeEdgeInteractions(Args);
           ikGOut  =  II*kOut*Args->GC[0];
           mikCOut = -II*kOut*Args->GC[1];
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if ( (nea%50)==0 && (neb%50)==0 )
- printf("%3i %3i %+8e %+8e %+8e %+8e \n",nea,neb,
-real(ikGOut),imag(ikGOut),real(mikCOut),imag(mikCOut));
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
         };
 
        /*--------------------------------------------------------------*/
