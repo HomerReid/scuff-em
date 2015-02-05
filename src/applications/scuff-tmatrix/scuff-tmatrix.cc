@@ -52,6 +52,8 @@ HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  InstallHRSignalHandler();
+
   /*--------------------------------------------------------------*/
   /*- process command-line options -------------------------------*/
   /*--------------------------------------------------------------*/
