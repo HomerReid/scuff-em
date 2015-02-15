@@ -45,18 +45,16 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
-                             HVector *KNVector, int BFIndexOffset, 
-                             HVector *AVector=0);
-
-HVector *GetSphericalMoments(RWGGeometry *S, cdouble k, int lMax,
-                             HVector *KNVector, HVector *AVector=0);
+HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
+                             HVector *KN, HVector *MomentVector);
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  InstallHRSignalHandler();
+
   /*--------------------------------------------------------------*/
   /*- process command-line options -------------------------------*/
   /*--------------------------------------------------------------*/
@@ -147,8 +145,8 @@ int main(int argc, char *argv[])
       for(m=-l; m<=l; m++)
        for(Type=SW_MAGNETIC; Type<=SW_ELECTRIC; Type++, nc++)
         { 
-          if (l==0) 
-           continue;
+           if (l==0) 
+            continue;
 
            SW.SetType(Type);
            SW.SetL(l);
@@ -187,7 +185,7 @@ int main(int argc, char *argv[])
                                      z2s(Omega),
                                      TypeChar[Type],l,m,
                                      TypeChar[TypeP],lP,mP,
-                                     real(TMatrix->GetEntry(nr,nc)), 
+                                     real(TMatrix->GetEntry(nr,nc)),
                                      imag(TMatrix->GetEntry(nr,nc)));
            };
 

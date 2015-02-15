@@ -81,9 +81,10 @@ extern "C" {
 /* Workspace is an an optionally user-supplied workspace       */
 /* buffer. It may be NULL, but if it is non-null it must       */
 /* contain enough space to hold 4*NumOrders doubles.           */
+/* Note that Workspace is of type double*, not cdouble*.       */
 /***************************************************************/
-int AmosBessel(char WhichFunction, cdouble z, 
-               double MinOrder, int NumOrders, 
+int AmosBessel(char WhichFunction, cdouble z,
+               double MinOrder, int NumOrders,
                int Scale, cdouble *f,
                double *Workspace)
 { 

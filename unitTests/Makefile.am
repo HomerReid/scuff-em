@@ -1,4 +1,8 @@
 EXTRA_DIST = 					\
+ Sphere_501.msh					\
+ PECSphere_501.scuffgeo				\
+ SiO2Sphere_501.scuffgeo			\
+ GoldSphere_501.scuffgeo			\
  SSphere_255.msh				\
  SSphere_R0P25_255.msh				\
  UnitTestSphere_R0P75_414.msh     		\

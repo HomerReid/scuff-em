@@ -45,7 +45,7 @@ namespace scuff {
 /*--------------------------------------------------------------*/
 /*- note: i found this on wikipedia ... ------------------------*/
 /*--------------------------------------------------------------*/
-long JenkinsHash(char *key, size_t len)
+long JenkinsHash(const char *key, size_t len)
 {
     long hash; 
     unsigned int i;
@@ -62,7 +62,7 @@ long JenkinsHash(char *key, size_t len)
 }
 
 long HashFunction(const float *Key)
-{ return JenkinsHash( (char *)Key, KEYSIZE );
+{ return JenkinsHash( (const char *)Key, KEYSIZE );
 } 
 
 /*--------------------------------------------------------------*/
@@ -83,7 +83,7 @@ typedef struct
  { 
    bool operator()(const KeyStruct &K1, const KeyStruct &K2) const
     { 
-      if ( memcmp( (void *)K1.Key, (void *)K2.Key, KEYSIZE) )
+      if ( memcmp( (const void *)K1.Key, (const void *)K2.Key, KEYSIZE) )
        return false;
       return true;
     };

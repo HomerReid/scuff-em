@@ -53,37 +53,50 @@
 /***************************************************************/
 int main(int argc, char *argv[])
 {
-
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
   InstallHRSignalHandler();
+//
   char *GeoFile=0;
+//
+  cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
+  char *OmegaFile=0;
+//
   double pwDir[3*MAXPW];             int npwDir;
   cdouble pwPol[3*MAXPW];            int npwPol;
+//
   double gbDir[3*MAXGB];             int ngbDir;
   cdouble gbPol[3*MAXGB];            int ngbPol;
   double gbCenter[3*MAXGB];          int ngbCenter;
   double gbWaist[MAXGB];             int ngbWaist;
+//
   double psLoc[3*MAXPS];             int npsLoc;
   cdouble psStrength[3*MAXPS];       int npsStrength;
-  cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
-  char *OmegaFile;                   int nOmegaFiles;
+//
   char *EPFiles[MAXEPF];             int nEPFiles;
-  char *PFTFile=0;
-  char *OPFTFile=0;
-  char *EPPFTFile=0;
-  char *DSIPFTFile=0;
-  double DSIRadius = 100.0;
-  int DSIPoints = 11;
-  char *DSIMesh=0;
-  bool Lebedev=false;
-  bool PlotFlux=false;
-  char *PSDFile=0;
-  char *MomentFile=0;
+//
   char *FVMeshes[MAXFVM];            int nFVMeshes;
-  int PlotSurfaceCurrents=0;
-  int nThread=0;
+//
+  char *PFTFile=0;
+//
+  char *OPFTFile=0;
+//
+  char *EPPFTFile=0;
+  int  EPFTOrder=1;
+//
+  char *DSIPFTFile = 0;
+  double DSIRadius = 10.0;
+  int DSIPoints    = 302;
+  char *DSIMesh    = 0;
+  bool DSIFarField = false;
+//
+  bool PlotPFTFlux=false;
+//
+  char *MomentFile=0;
+  char *PSDFile=0;
+  bool PlotSurfaceCurrents=false;
+//
   char *HDF5File=0;
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
@@ -95,7 +108,7 @@ int main(int argc, char *argv[])
      {"geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
 /**/
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
-     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
+     {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  0,             "file listing angular frequencies"},
 /**/
      {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,       &npwDir,       "plane wave direction"},
      {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,       &npwPol,       "plane wave polarization"},
@@ -112,29 +125,32 @@ int main(int argc, char *argv[])
 /**/
      {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
 /**/
-     {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
-     {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
-     {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
-     {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "(synonym for --OPFTFile)"},
-     {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "generate plots of spatially-resolved PFT flux"},
+     {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power, force, and torque output file"},
 /**/
+     {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
+/**/
+     {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
+     {"EPFTOrder",      PA_INT,     1, 1,       (void *)&EPFTOrder,  0,             "cubature order for equivalence-principle force/torque (1,4,9,13,20)"},
+/**/
+     {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
-     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for surface-integral PFT"},
-     {"Lebedev",        PA_BOOL,    0, 1,       (void *)&Lebedev,    0,             "use Lebedev cubature for DSIPFT PFT (allowed values of --SiPoints: 6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
+     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for surface-integral PFT (6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
+     {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField, 0,            "retain only far-field contributions to DSIPFT"},
+/**/
+     {"PlotPFTFlux",    PA_BOOL,    0, 1,       (void *)&PlotPFTFlux,   0,          "generate plots of spatially-resolved PFT flux"},
 /**/
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
      {"PSDFile",        PA_STRING,  1, 1,       (void *)&PSDFile,    0,             "name of panel source density file"},
      {"PlotSurfaceCurrents", PA_BOOL, 0, 1,     (void *)&PlotSurfaceCurrents,  0,   "generate surface current visualization files"},
 /**/
-     {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
-     {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
-     {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
-/**/
-     {"nThread",        PA_INT,     1, 1,       (void *)&nThread,    0,             "number of CPU threads to use"},
      {"HDF5File",       PA_STRING,  1, 1,       (void *)&HDF5File,   0,             "name of HDF5 file for BEM matrix/vector export"},
 /**/
      {"LogLevel",       PA_STRING,  1, 1,       (void *)&LogLevel,   0,             "none | terse | verbose | verbose2"},
+/**/
+     {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
+     {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
+     {"WriteCache",     PA_STRING,  1, 1,       (void *)&WriteCache, 0,             "write cache"},
 /**/
      {0,0,0,0,0,0,0}
    };
@@ -143,40 +159,30 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
-  if (nThread!=0)
-   SetNumThreads(nThread);
-
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */
   /* frequencies at which to run calculations                        */
   /*******************************************************************/
-  HVector *OmegaList=0, *OmegaList0;
-  int nFreq, nOV, NumFreqs=0;
-  if (nOmegaFiles==1) // first process --OmegaFile option if present
+  HVector *OmegaList1=0, *OmegaList2=0, *OmegaList=0;
+  if (OmegaFile) // process --OmegaFile option if present
    { 
-     OmegaList=new HVector(OmegaFile,LHM_TEXT);
-     if (OmegaList->ErrMsg)
-      ErrExit(OmegaList->ErrMsg);
-     NumFreqs=OmegaList->N;
+     OmegaList1=new HVector(OmegaFile,LHM_TEXT);
+     if (OmegaList1->ErrMsg)
+      ErrExit(OmegaList1->ErrMsg);
    };
-
-  // now add any individually specified --Omega options
-  if (nOmegaVals>0)
-   { 
-     NumFreqs += nOmegaVals;
-     OmegaList0=OmegaList;
-     OmegaList=new HVector(NumFreqs, LHM_COMPLEX);
-     nFreq=0;
-     if (OmegaList0)
-      { for(nFreq=0; nFreq<OmegaList0->N; nFreq++)
-         OmegaList->SetEntry(nFreq, OmegaList0->GetEntry(nFreq));
-        delete OmegaList0;
-      };
-     for(nOV=0; nOV<nOmegaVals; nOV++)
-      OmegaList->SetEntry(nFreq+nOV, OmegaVals[nOV]);
+  if (nOmegaVals>0) // process -- Omega options if present
+   {
+     OmegaList2=new HVector(nOmegaVals, LHM_COMPLEX);
+     for(int n=0; n<nOmegaVals; n++)
+      OmegaList2->SetEntry(n,OmegaVals[n]);
    };
-
-  if ( !OmegaList || OmegaList->N==0)
+  if (  OmegaList1 && !OmegaList2 )
+   OmegaList=OmegaList1;
+  else if ( !OmegaList1 && OmegaList2 )
+   OmegaList=OmegaList2;
+  else if (  OmegaList1 && OmegaList2  )
+   OmegaList=Concat(OmegaList1, OmegaList2);
+  else 
    OSUsage(argv[0], OSArray, "you must specify at least one frequency");
 
   /*******************************************************************/
@@ -228,6 +234,17 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   SetLogFileName("scuff-scatter.log");
   Log("scuff-scatter running on %s",GetHostName());
+
+  /*******************************************************************/
+  /* PFT options *****************************************************/
+  /*******************************************************************/
+  PFTOptions MyPFTOpts, *PFTOpts=&MyPFTOpts;
+  InitPFTOptions(PFTOpts);
+  PFTOpts->DSIMesh     = DSIMesh;
+  PFTOpts->DSIRadius   = DSIRadius;
+  PFTOpts->DSIPoints   = DSIPoints;
+  PFTOpts->DSIFarField = DSIFarField;
+  PFTOpts->EPFTOrder   = EPFTOrder;
 
   /*******************************************************************/
   /* create the SSData structure containing everything we need to    */
@@ -287,7 +304,7 @@ int main(int argc, char *argv[])
   char OmegaStr[MAXSTR];
   cdouble Omega;
   cdouble Eps, Mu;
-  for(nFreq=0; nFreq<NumFreqs; nFreq++)
+  for(int nFreq=0; nFreq<OmegaList->N; nFreq++)
    { 
      Omega = OmegaList->GetEntry(nFreq);
      z2s(Omega, OmegaStr);
@@ -366,25 +383,19 @@ int main(int argc, char *argv[])
      SSD->Omega=Omega;
 
      /*--------------------------------------------------------------*/
-     /*- overlap PFT ------------------------------------------------*/
+     /*- power, force, torque by various methods --------------------*/
      /*--------------------------------------------------------------*/
      if (OPFTFile)
-      WriteOPFTFile(SSD, OPFTFile, PlotFlux, true);
-     if (PFTFile)
-      WriteOPFTFile(SSD, PFTFile, PlotFlux, false);
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_OVERLAP, PlotPFTFlux, OPFTFile);
 
-     /*--------------------------------------------------------------*/
-     /*- equivalence-principle PFT ----------------------------------*/
-     /*--------------------------------------------------------------*/
      if (EPPFTFile)
-      WriteEPPFTFile(SSD, EPPFTFile, PlotFlux);
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EP, PlotPFTFlux, EPPFTFile);
 
-     /*--------------------------------------------------------------*/
-     /*- surface-integral PFT           -----------------------------*/
-     /*--------------------------------------------------------------*/
      if (DSIPFTFile)
-      WriteDSIPFTFile(SSD, DSIPFTFile, DSIMesh, 
-                      DSIRadius, DSIPoints, Lebedev);
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DSI, PlotPFTFlux, DSIPFTFile);
+
+     if (PFTFile) // default is overlap + EP for scattered power
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DEFAULT, PlotPFTFlux, PFTFile);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

@@ -43,7 +43,7 @@ namespace scuff {
 /***************************************************************/
 /* initialization of static class variables                    */
 /***************************************************************/
-bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
+bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
 bool RWGGeometry::UseGetFieldsV2P0=false;
@@ -206,6 +206,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   Surfaces=0;
   AllSurfacesClosed=1;
   LDim=0;
+  NumStraddlers[0]=NumStraddlers[1]=0;
+  RegionIsExtended[0]=RegionIsExtended[1]=0;
   tolVecClose=0.0; // to be updated once mesh is read in
   TBlockCacheNameAddendum=0;
 
@@ -218,11 +220,12 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   RegionMPs[0] = new MatProp("VACUUM");
 
   /***************************************************************/
+  /* check for various environment variables *********************/
   /***************************************************************/
-  /***************************************************************/
-  if ( NumMeshDirs==0 && getenv("SCUFF_MESH_PATH") )
+  char *s;
+  if ( NumMeshDirs==0 && (s=getenv("SCUFF_MESH_PATH")) )
    { char MeshPathCopy[1000];
-     strncpy(MeshPathCopy, getenv("SCUFF_MESH_PATH"), 1000);
+     strncpy(MeshPathCopy, s, 1000);
      char *Tokens[10];
      int NumTokens=Tokenize(MeshPathCopy, Tokens, 10, ":");
      NumMeshDirs=NumTokens;
@@ -233,20 +236,20 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       };
    };
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (char *s = getenv("SCUFF_LOGLEVEL"  ) )
+  if ( (s=getenv("SCUFF_LOGLEVEL")) )
    {      if ( !strcasecmp(s, "NONE"     ) ) LogLevel=SCUFF_NOLOGGING;
      else if ( !strcasecmp(s, "TERSE"    ) ) LogLevel=SCUFF_TERSELOGGING;
      else if ( !strcasecmp(s, "VERBOSE"  ) ) LogLevel=SCUFF_VERBOSELOGGING;
      else if ( !strcasecmp(s, "VERBOSE2" ) ) LogLevel=SCUFF_VERBOSE2;
    };
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if ( getenv("SCUFF_ABORT_ON_FPE") )
+  if ( (s= getenv("SCUFF_HALF_RWG")) && (s[0]=='1') )
+   { 
+     Log("Assigning half-RWG basis functions to exterior edges.");
+     RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
+   };
+
+  if ( (s=getenv("SCUFF_ABORT_ON_FPE")) && (s[0]=='1') )
    {
 #ifndef __APPLE__
      feenableexcept(FE_INVALID | FE_OVERFLOW);
@@ -256,8 +259,10 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
 #endif
    };
 
-  if ( getenv("SCUFF_GETFIELDSV2P0") )
-   UseGetFieldsV2P0=true;
+  if ( (s=getenv("SCUFF_GETFIELDSV2P0")) && (s[0]=='1') )
+   { Log("Using V2P0 field calculation.");
+     UseGetFieldsV2P0=true;
+   };
 
   /***************************************************************/
   /* try to open input file **************************************/

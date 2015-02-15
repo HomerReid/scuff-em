@@ -255,7 +255,6 @@ int main(int argc, char *argv[])
   GetPanelPanelInteractions(Args);
   FailedCases+=ComparePPIs(CVSW, Args);
 
-
   /*--------------------------------------------------------------*/
   /*- common-edge, long wavelength   -----------------------------*/
   /*--------------------------------------------------------------*/

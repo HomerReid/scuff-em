@@ -70,8 +70,8 @@ function ReadTMatrix(FileName)
      return
   end
 
-  TMatrixDimension = int( length(RawData[:,1]) / nOmega );
-  LMax = sqrt( sqrt(TMatrixDimension)/2 + 1 ) - 1;
+  TMatrixDimension= int( sqrt( length(RawData[:,1]) / nOmega ) );
+  LMax = sqrt( TMatrixDimension/2 + 1 ) - 1;
   if (floor(LMax) != LMax )
      @printf("error: incorrect matrix size (aborting)\n")
      return

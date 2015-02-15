@@ -18,11 +18,9 @@
  */
 
 /*
- * libscuffInternals.h -- some definitions and prototypes that are used 
- *                     -- internally within libscuff code files, but which
- *                     -- probably don't need to be exported as part of the API
- *
- * homer reid          -- 10/2005 -- 10/2011
+ * GBarAccelerator.h --
+ *                   --
+ * Homer Reid        -- 6/2014
  */
 
 #ifndef GBARACCELERATOR_H
@@ -44,7 +42,6 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
 /***************************************************************/
 /* interpolation-based acceleration of periodic GF evaluation  */
 /***************************************************************/
- 
 typedef struct GBarAccelerator
  {
    cdouble k;

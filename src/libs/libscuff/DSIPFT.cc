@@ -10,7 +10,7 @@
  * SCUFF-EM is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
@@ -46,13 +46,13 @@ void GetReducedFarFields(RWGSurface *S, const int ne,
 #define TENTHIRDS 3.33333333333333333333333
 
 #define SIPOWER   0
-#define SIXFORCE  1
-#define SIYFORCE  2
-#define SIZFORCE  3
-#define SIXTORQUE 4
-#define SIYTORQUE 5
-#define SIZTORQUE 6
-#define NUMPFT    7
+#define SIPSCAT   1
+#define SIXFORCE  2
+#define SIYFORCE  3
+#define SIZFORCE  4
+#define SIXTORQUE 5
+#define SIYTORQUE 6
+#define SIZTORQUE 7
 
 /***************************************************************/
 /***************************************************************/
@@ -75,7 +75,6 @@ void GetReducedFields(RWGSurface *S, int ne,
   h[2] = curla[2];
 
 }
-
 
 /***************************************************************/
 /* Compute the G and C dyadic Green's functions, retaining only*/
@@ -278,12 +277,12 @@ HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
 /* Otherwise, the cubature rule describes a cubature rule with */
 /* NumPoints cubature points over a sphere of radius R.        */
 /*                                                             */
-/* If Lebedev is true, this is a Lebedev cubature rule. In     */
+/* If UseCCQ is false, this is a Lebedev cubature rule. In     */
 /* this case, NumPoints must be one of the numbers of cubature */
 /* points supported by the GetLebedevRule() routine in         */
 /* libTriInt.                                                  */
 /*                                                             */
-/* Otherwise (Lebedev==false) the cubature rule is a product   */
+/* Otherwise (UseCCQ==true) the cubature rule is a product     */
 /* rule with a Clenshaw-Curtis grid in the Theta direction and */
 /* an evenly-spaced grid in the Phi direction, and NumPoints   */
 /* should be an odd integer between 9 and 99 inclusive.        */
@@ -292,7 +291,7 @@ HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
 /* normal vector is transformed by GT.                         */
 /***************************************************************/
 HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints, 
-                      bool Lebedev, GTransformation *GT)
+                      bool UseCCQ, GTransformation *GT)
 {
   HMatrix *SCRMatrix;
 
@@ -304,12 +303,25 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
      RWGSurface *BS=new RWGSurface(BSMesh);
      SCRMatrix = new HMatrix(BS->NumPanels, 7);
      for(int np=0; np<BS->NumPanels; np++)
-      { SCRMatrix->SetEntry(np, 0, BS->Panels[np]->Centroid[0]);
-        SCRMatrix->SetEntry(np, 1, BS->Panels[np]->Centroid[1]);
-        SCRMatrix->SetEntry(np, 2, BS->Panels[np]->Centroid[2]);
-        SCRMatrix->SetEntry(np, 3, BS->Panels[np]->ZHat[0]);
-        SCRMatrix->SetEntry(np, 4, BS->Panels[np]->ZHat[1]);
-        SCRMatrix->SetEntry(np, 5, BS->Panels[np]->ZHat[2]);
+      { 
+        double *X0   = BS->Panels[np]->Centroid;
+        double *ZHat = BS->Panels[np]->ZHat;
+        
+        // define Sign= \pm 1 such that Sign*ZHat is the
+        // outward-pointing surface normal
+        double Sign=1.0;
+        double XP[3];
+        double LengthScale= BS->Panels[np]->Radius;
+        VecScaleAdd(X0,0.1*LengthScale,ZHat,XP);
+        if ( BS->Contains(XP) )
+         Sign=-1.0;
+
+        SCRMatrix->SetEntry(np, 0, X0[0]);
+        SCRMatrix->SetEntry(np, 1, X0[1]);
+        SCRMatrix->SetEntry(np, 2, X0[2]);
+        SCRMatrix->SetEntry(np, 3, Sign*ZHat[0]);
+        SCRMatrix->SetEntry(np, 4, Sign*ZHat[1]);
+        SCRMatrix->SetEntry(np, 5, Sign*ZHat[2]);
         SCRMatrix->SetEntry(np, 6, BS->Panels[np]->Area);
       };
      delete BS;
@@ -317,7 +329,7 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  else if (Lebedev)
+  else if (!UseCCQ)
    { double *LRule = GetLebedevRule(NumPoints);
      if (LRule==0) ErrExit("no Lebedev rule with %i points",NumPoints);
      SCRMatrix = new HMatrix(NumPoints, 7);
@@ -543,39 +555,48 @@ static double LeviCivita[3][3][3]=
   { { 0.0, +1.0,  0.0 }, { -1.0, 0.0,  0.0 }, {  0.0,  0.0,  0.0 }  }
 };
 void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
-                  double NMatrix[NUMPFT][3][3])
+                  double NMatrix[NUMPFT][3][3], 
+                  bool *NeedQuantity=0)
 {
-  /***************************************************************/
-  /* first matrix is the power matrix ****************************/
-  /***************************************************************/
-  NMatrix[SIPOWER][0][0] = NMatrix[SIPOWER][1][1] = NMatrix[SIPOWER][2][2] = 0.0;
-  NMatrix[SIPOWER][1][2] = nHat[0]; NMatrix[SIPOWER][2][1] = -nHat[0];
-  NMatrix[SIPOWER][2][0] = nHat[1]; NMatrix[SIPOWER][0][2] = -nHat[1];
-  NMatrix[SIPOWER][0][1] = nHat[2]; NMatrix[SIPOWER][1][0] = -nHat[2];
+  if ( !NeedQuantity || NeedQuantity[SIPOWER] )
+   { NMatrix[SIPOWER][0][0] = NMatrix[SIPOWER][1][1] = NMatrix[SIPOWER][2][2] = 0.0;
+     NMatrix[SIPOWER][1][2] = nHat[0]; NMatrix[SIPOWER][2][1] = -nHat[0];
+     NMatrix[SIPOWER][2][0] = nHat[1]; NMatrix[SIPOWER][0][2] = -nHat[1];
+     NMatrix[SIPOWER][0][1] = nHat[2]; NMatrix[SIPOWER][1][0] = -nHat[2];
+   };
 
-  /***************************************************************/
-  /* next three matrices are force matrices                      */
-  /***************************************************************/
-  NMatrix[SIXFORCE][0][0]                           =  nHat[0]; 
-  NMatrix[SIXFORCE][1][1]                           = -nHat[0];
-  NMatrix[SIXFORCE][2][2]                           = -nHat[0];
-  NMatrix[SIXFORCE][0][1] = NMatrix[SIXFORCE][1][0] =  nHat[1];
-  NMatrix[SIXFORCE][0][2] = NMatrix[SIXFORCE][2][0] =  nHat[2];
-  NMatrix[SIXFORCE][1][2] = NMatrix[SIXFORCE][2][1] =  0.0;
+  if ( !NeedQuantity || NeedQuantity[SIXFORCE] )
+   { NMatrix[SIXFORCE][0][0]                           =  nHat[0]; 
+     NMatrix[SIXFORCE][1][1]                           = -nHat[0];
+     NMatrix[SIXFORCE][2][2]                           = -nHat[0];
+     NMatrix[SIXFORCE][0][1] = NMatrix[SIXFORCE][1][0] =  nHat[1];
+     NMatrix[SIXFORCE][0][2] = NMatrix[SIXFORCE][2][0] =  nHat[2];
+     NMatrix[SIXFORCE][1][2] = NMatrix[SIXFORCE][2][1] =  0.0;
+   };
 
-  NMatrix[SIYFORCE][0][0]                           = -nHat[1]; 
-  NMatrix[SIYFORCE][1][1]                           =  nHat[1];
-  NMatrix[SIYFORCE][2][2]                           = -nHat[1];
-  NMatrix[SIYFORCE][0][1] = NMatrix[SIYFORCE][1][0] =  nHat[0];
-  NMatrix[SIYFORCE][1][2] = NMatrix[SIYFORCE][2][1] =  nHat[2];
-  NMatrix[SIYFORCE][0][2] = NMatrix[SIYFORCE][2][0] =  0.0;
+  if ( !NeedQuantity || NeedQuantity[SIYFORCE] )
+   { NMatrix[SIYFORCE][0][0]                           = -nHat[1]; 
+     NMatrix[SIYFORCE][1][1]                           =  nHat[1];
+     NMatrix[SIYFORCE][2][2]                           = -nHat[1];
+     NMatrix[SIYFORCE][0][1] = NMatrix[SIYFORCE][1][0] =  nHat[0];
+     NMatrix[SIYFORCE][1][2] = NMatrix[SIYFORCE][2][1] =  nHat[2];
+     NMatrix[SIYFORCE][0][2] = NMatrix[SIYFORCE][2][0] =  0.0;
+   };
 
-  NMatrix[SIZFORCE][0][0]                           = -nHat[2]; 
-  NMatrix[SIZFORCE][1][1]                           = -nHat[2];
-  NMatrix[SIZFORCE][2][2]                           =  nHat[2];
-  NMatrix[SIZFORCE][0][2] = NMatrix[SIZFORCE][2][0] =  nHat[0];
-  NMatrix[SIZFORCE][1][2] = NMatrix[SIZFORCE][2][1] =  nHat[1];
-  NMatrix[SIZFORCE][0][1] = NMatrix[SIZFORCE][1][0] =  0.0;
+  if ( !NeedQuantity || NeedQuantity[SIZFORCE] )
+   { NMatrix[SIZFORCE][0][0]                           = -nHat[2];
+     NMatrix[SIZFORCE][1][1]                           = -nHat[2];
+     NMatrix[SIZFORCE][2][2]                           =  nHat[2];
+     NMatrix[SIZFORCE][0][2] = NMatrix[SIZFORCE][2][0] =  nHat[0];
+     NMatrix[SIZFORCE][1][2] = NMatrix[SIZFORCE][2][1] =  nHat[1];
+     NMatrix[SIZFORCE][0][1] = NMatrix[SIZFORCE][1][0] =  0.0;
+   };
+
+  if (      NeedQuantity
+       && ( NeedQuantity[SIXTORQUE]==false )
+       && ( NeedQuantity[SIYTORQUE]==false )
+       && ( NeedQuantity[SIZTORQUE]==false )
+     ) return;
 
   /***************************************************************/
   /* last three matrices are the torque matrices                 */
@@ -588,15 +609,20 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
   DxN[1] = D[2]*nHat[0] - D[0]*nHat[2];
   DxN[2] = D[0]*nHat[1] - D[1]*nHat[0];
 
-  for(int a=0; a<3; a++)
-   for(int b=0; b<3; b++)
-    for(int i=0; i<3; i++)
-     { NMatrix[SIXTORQUE+i][a][b] = (a==b) ? -DxN[i] : 0.0;
-       for(int j=0; j<3; j++)
-        NMatrix[SIXTORQUE+i][a][b] 
-         +=   LeviCivita[i][j][a]*D[j]*nHat[b]
-            + LeviCivita[i][j][b]*D[j]*nHat[a];
-     };
+  for(int i=0; i<3; i++)
+   { 
+     if ( NeedQuantity && (NeedQuantity[SIXTORQUE+i]==false) ) 
+      continue;
+
+     for(int a=0; a<3; a++)
+      for(int b=0; b<3; b++)
+       { NMatrix[SIXTORQUE+i][a][b] = (a==b) ? -DxN[i] : 0.0;
+         for(int j=0; j<3; j++)
+          NMatrix[SIXTORQUE+i][a][b] 
+           +=   LeviCivita[i][j][a]*D[j]*nHat[b]
+              + LeviCivita[i][j][b]*D[j]*nHat[a];
+       };
+   };
 
 }
 
@@ -618,11 +644,12 @@ double HVMVP(cdouble V1[3], double M[3][3], cdouble V2[3])
 /* Get power, force, and torque by the displaced               */
 /* surface-integral method.                                    */
 /***************************************************************/
-void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
-                            double PFT[NUMPFT],
-                            char *BSMesh, double R, int NumPoints,
-                            bool Lebedev, bool FarField,
-                            GTransformation *GT)
+void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
+               HVector *KN, IncField *IF,
+               double PFT[NUMPFT],
+               char *BSMesh, double R, int NumPoints,
+               bool UseCCQ, bool FarField,
+               char *PlotFileName, GTransformation *GT)
 {
   /***************************************************************/
   /***************************************************************/
@@ -631,12 +658,12 @@ void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
    Log("Computing DSIPFT over bounding surface %s...",BSMesh);
   else
    Log("Computing DSIPFT: (R,NPts,Lebedev)=(%e,%i,%s)",
-        R, NumPoints, Lebedev ? "true" : "false");
+        R, NumPoints, UseCCQ ? "false" : "true");
 
   /***************************************************************/
   /* get cubature-rule matrix ************************************/
   /***************************************************************/
-  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, Lebedev, GT);
+  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, UseCCQ, GT);
 
   /***************************************************************/
   /* we assume that all cubature points lie in the same region   */
@@ -645,9 +672,9 @@ void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
   /***************************************************************/
   double X0[3];
   SCRMatrix->GetEntriesD(0,"0:2",X0);
-  int RegionIndex=GetRegionIndex(X0); 
+  int RegionIndex=G->GetRegionIndex(X0); 
   cdouble EpsRel, MuRel;
-  RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
+  G->RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
   double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
   double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
 
@@ -655,13 +682,37 @@ void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
   if (GT) GT->Apply(XTorque);
 
   /***************************************************************/
-  /* get the total fields at the cubature points                 */
+  /* get the scattered and total fields at the cubature points   */
   /***************************************************************/
-  HMatrix *FMatrix;
-  if (FarField)
-   FMatrix = GetFarFields(this, IF, KN, Omega, SCRMatrix);
+  HMatrix *FMatrixScat;
+  if (FarField && kBloch==0)
+   FMatrixScat = GetFarFields(G, 0, KN, Omega, SCRMatrix);
   else
-   FMatrix = GetFields(IF, KN, Omega, SCRMatrix);
+   FMatrixScat = G->GetFields(0, KN, Omega, kBloch, SCRMatrix);
+
+  HMatrix *FMatrix;
+  if (IF==0)
+   { 
+     FMatrix = FMatrixScat;
+   }
+  else
+   { FMatrix = G->GetFields(IF, 0, Omega, kBloch, SCRMatrix);
+     FMatrix->AddBlock(FMatrixScat, 0, 0);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double **ByPanel=0;
+  RWGSurface *BS=0;
+  if (BSMesh && PlotFileName)
+   { BS=new RWGSurface(BSMesh);
+     if (GT) BS->Transform(GT);
+     ByPanel = (double **)mallocEC(NUMPFT*sizeof(double *));
+     ByPanel[0] = (double *)mallocEC(NUMPFT*(BS->NumPanels)*sizeof(double));
+     for(int nq=1; nq<NUMPFT; nq++)
+      ByPanel[nq] = ByPanel[nq-1] + BS->NumPanels;
+   };
 
   /***************************************************************/
   /* loop over points in the cubature rule                       */
@@ -677,70 +728,121 @@ void RWGGeometry::GetDSIPFT(HVector *KN, IncField *IF, cdouble Omega,
      double NMatrix[NUMPFT][3][3];
      GetNMatrices(nHat, X, XTorque, NMatrix);
 
-     cdouble E[3], H[3];
+     cdouble ES[3], HS[3], E[3], H[3];
+     FMatrixScat->GetEntries(nr, "0:2", ES);
+     FMatrixScat->GetEntries(nr, "3:5", HS);
      FMatrix->GetEntries(nr, "0:2", E);
      FMatrix->GetEntries(nr, "3:5", H);
 
-     PFT[SIPOWER] -= 0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
-                                  -HVMVP(H, NMatrix[SIPOWER], E)
-                                );
+     // absorbed power 
+     double dP = -0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
+                               -HVMVP(H, NMatrix[SIPOWER], E)
+                             );
+     PFT[0] += dP;
+     if (ByPanel) ByPanel[0][ nr ] = dP;
 
-     for(int n=SIXFORCE; n<=SIZTORQUE; n++)
-      PFT[n] += 0.25 * w * ( EpsAbs*HVMVP(E, NMatrix[n], E)
-                             +MuAbs*HVMVP(H, NMatrix[n], H)
-                           );
+     // scattered power
+     dP = 0.25 * w * (  HVMVP(ES, NMatrix[SIPOWER], HS)
+                       -HVMVP(HS, NMatrix[SIPOWER], ES)
+                     );
+     PFT[1] += dP;
+     if (ByPanel) ByPanel[1][ nr ] = dP;
+
+     // force and torque
+     double dFT[NUMPFT];
+     for(int n=2; n<=7; n++)
+      { dFT[n] = 0.25 * w * ( EpsAbs*HVMVP(E, NMatrix[n], E)
+                              +MuAbs*HVMVP(H, NMatrix[n], H)
+                            );
+        PFT[n] += dFT[n];
+        if (ByPanel) ByPanel[n][ nr ] = dFT[n];
+      };
    };
 
-  delete FMatrix; 
+  if (FMatrix!=FMatrixScat) delete FMatrix;
+  delete FMatrixScat;
   delete SCRMatrix;
-  
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (ByPanel)
+   { 
+     static const char *PFTNames[8]
+      ={"PAbs","PScat","FX","FY","FZ","TX","TY","TZ"};
+
+     FILE *f=fopen(PlotFileName,"a");
+     for(int nq=0; nq<NUMPFT; nq++)
+      BS->PlotScalarDensity(ByPanel[nq], false, PlotFileName,
+                            "%s(%s)",PFTNames[nq],z2s(Omega));
+     fclose(f);
+     
+     free(ByPanel[0]);
+     free(ByPanel);
+     delete BS;
+   };
+
 }
 
 /***************************************************************/
 /* This routine gets the contributions of a single pair of     */
-/* RWG basis functions (weighted with unit strength) to the    */
-/* DSIPFT.                                                     */
+/* RWG basis functions to the DSIPFT.                          */
 /*                                                             */
-/* Entries is an array with enough room for 4xNUMPFT cdoubles. */
+/* DeltaPFT is an array with enough room for NUMPFT doubles.   */
 /*                                                             */
-/* On return,                                                  */
-/*  Entries[4*nq + 0..3] = (EE, EM, ME, MM) entries of nq-th   */
-/*                         SIPFT matrix, where nq=0..7 ranges  */
-/*                         over all PFT quantities.            */
+/* If NeedQuantity[nq] == false then the calculation of that   */
+/* quantity is skipped.                                        */
 /***************************************************************/
-void GetDSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
-                            HMatrix *SCRMatrix, HMatrix *FSVMatrix,
-                            cdouble EpsRel, cdouble MuRel,
-                            double *XTorque, cdouble *SEntries)
+void GetEdgeEdgeDSIPFT(RWGGeometry *G,
+                       int nsa, int nea, int nsb, int neb,
+                       cdouble KK, cdouble KN, cdouble NK, cdouble NN,
+                       HMatrix *SCRMatrix, HMatrix *FSVMatrix,
+                       cdouble EpsRel, cdouble MuRel,
+                       double *XTorque,
+                       double DeltaPFT[NUMPFT],
+                       bool NeedQuantity[NUMPFT],
+                       double **ByPanel)
 {
+  memset(DeltaPFT, 0, NUMPFT*sizeof(double));
+ 
+  // MicroByPanel is an array that stores the contributions
+  // of each panel on a meshed bounding surface to each
+  // PFT quantity
+  double *MicroByPanel=0;
+  if (ByPanel)
+   MicroByPanel = new double[ NUMPFT*(SCRMatrix->NR) ];
+
+  double Weight = (nsa==nsb && neb==nea) ? 1.0 : 2.0;
+
   /***************************************************************/
   /* loop over cubature points                                   */
   /***************************************************************/
-  memset(SEntries, 0, 4*NUMPFT*sizeof(cdouble));
-  int NE = S->NumEdges;
-  int NC = SCRMatrix->NR;
-  cdouble EpsAbs = TENTHIRDS * EpsRel / ZVAC;
-  cdouble MuAbs  = TENTHIRDS * MuRel * ZVAC;
+  int OffsetA    = G->BFIndexOffset[nsa];
+  int OffsetB    = G->BFIndexOffset[nsb];
+  int NETot      = G->TotalEdges;
+  int NC         = SCRMatrix->NR;
+  double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
+  double MuAbs  = TENTHIRDS * real(MuRel) * ZVAC;
   for (int nc=0; nc<NC; nc++)
    {  
-     double w, X[3], nHat[3];
+     double X[3], nHat[3];
      SCRMatrix->GetEntriesD(nc, "0:2", X);
      SCRMatrix->GetEntriesD(nc, "3:5", nHat);
-     w = SCRMatrix->GetEntryD(nc, 6);
+     double w = Weight * SCRMatrix->GetEntryD(nc, 6);
 
      /***************************************************************/
      /* get 3x3 N matrices at this cubature point *******************/
      /***************************************************************/
      double NMatrix[NUMPFT][3][3];
-     GetNMatrices(nHat, X, XTorque, NMatrix);
+     GetNMatrices(nHat, X, XTorque, NMatrix, NeedQuantity);
 
      /***************************************************************/
      /* fetch 'F' six-vectors for this cubature point           *****/
      /***************************************************************/
-     int ColumnKA = nc*(2*NE) + (2*neA) + 0;
-     int ColumnNA = nc*(2*NE) + (2*neA) + 1;
-     int ColumnKB = nc*(2*NE) + (2*neB) + 0;
-     int ColumnNB = nc*(2*NE) + (2*neB) + 1;
+     int ColumnKA = nc*(2*NETot) + OffsetA + (2*nea) + 0;
+     int ColumnNA = nc*(2*NETot) + OffsetA + (2*nea) + 1;
+     int ColumnKB = nc*(2*NETot) + OffsetB + (2*neb) + 0;
+     int ColumnNB = nc*(2*NETot) + OffsetB + (2*neb) + 1;
      cdouble FSVKA[6], FSVNA[6], FSVKB[6], FSVNB[6];
      for(int n=0; n<6; n++)
       { FSVKA[n] = FSVMatrix->GetEntry(n, ColumnKA);
@@ -748,231 +850,234 @@ void GetDSIPFTMatrixEntries(RWGSurface *S, int neA, int neB,
         FSVKB[n] = FSVMatrix->GetEntry(n, ColumnKB);
         FSVNB[n] = FSVMatrix->GetEntry(n, ColumnNB);
       };
- 
+
      /***************************************************************/
-     /* entries of power matrix               ***********************/
      /***************************************************************/
+     /***************************************************************/
+     double EpsEE[3][3], MuHH[3][3], EH[3][3];
      for(int m=0; m<3; m++)
       for(int n=0; n<3; n++)
-       { SEntries[ 0 ] += 0.5*w*conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
-         SEntries[ 1 ] += 0.5*w*conj(FSVKA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
-         SEntries[ 2 ] += 0.5*w*conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVKB[3+n];
-         SEntries[ 3 ] += 0.5*w*conj(FSVNA[m]) * NMatrix[SIPOWER][m][n] * FSVNB[3+n];
-       }; 
+       { EpsEE[m][n] = EpsAbs * real( KK*conj(FSVKA[m])*FSVKB[n]
+                                     +KN*conj(FSVKA[m])*FSVNB[n]
+                                     +NK*conj(FSVNA[m])*FSVKB[n]
+                                     +NN*conj(FSVNA[m])*FSVNB[n]
+                                    );
+     
+         MuHH[m][n] = MuAbs * real(  KK*conj(FSVKA[3+m])*FSVKB[3+n]
+                                    +KN*conj(FSVKA[3+m])*FSVNB[3+n]
+                                    +NK*conj(FSVNA[3+m])*FSVKB[3+n] 
+                                    +NN*conj(FSVNA[3+m])*FSVNB[3+n]
+                                  );
+ 
+         EH[m][n] = real( KK*conj(FSVKA[m])*FSVKB[3+n]
+                         +KN*conj(FSVKA[m])*FSVNB[3+n]
+                         +NK*conj(FSVNA[m])*FSVKB[3+n]
+                         +NN*conj(FSVNA[m])*FSVNB[3+n]
+                        );
+       };
+ 
+     /***************************************************************/
+     /* absorbed power **********************************************/
+     /***************************************************************/
+     if ( NeedQuantity[SIPOWER] )
+      { 
+        // this could be accelerated by exploiting the
+        // structure of the NMatrix
+        double MicroDelta=0.0;
+        for(int m=0; m<3; m++)
+         for(int n=0; n<3; n++)
+          MicroDelta += 0.5*w*NMatrix[SIPOWER][m][n]*EH[m][n];
+
+        DeltaPFT[0] += MicroDelta;
+        if (ByPanel) MicroByPanel[0*NC + nc]=MicroDelta;
+      };
+
+     DeltaPFT[1]=0.0; // no scattered power 
 
      /***************************************************************/
      /* entries of force and torque matrices ************************/
      /***************************************************************/
-     for(int nSIFT=0; nSIFT<NUMPFT-1; nSIFT++)
-      { int nSIPFT=nSIFT+1;
-        cdouble UpperVMVP[4]={0.0, 0.0, 0.0, 0.0};
-        cdouble LowerVMVP[4]={0.0, 0.0, 0.0, 0.0};
+     for(int nq=SIXFORCE; nq<=SIZTORQUE; nq++)
+      { 
+        if ( NeedQuantity[nq]==false ) continue;
+
+        double MicroDelta=0.0;
         for(int m=0; m<3; m++)
          for(int n=0; n<3; n++)
-          { 
-            UpperVMVP[0] += conj(FSVKA[m]) * NMatrix[nSIPFT][m][n] * FSVKB[n];
-            UpperVMVP[1] += conj(FSVKA[m]) * NMatrix[nSIPFT][m][n] * FSVNB[n];
-            UpperVMVP[2] += conj(FSVNA[m]) * NMatrix[nSIPFT][m][n] * FSVKB[n];
-            UpperVMVP[3] += conj(FSVNA[m]) * NMatrix[nSIPFT][m][n] * FSVNB[n];
+          MicroDelta+=0.25*w*NMatrix[nq][m][n]*(EpsEE[m][n] + MuHH[m][n]);
 
-            LowerVMVP[0] += conj(FSVKA[3+m]) * NMatrix[nSIPFT][m][n] * FSVKB[3+n];
-            LowerVMVP[1] += conj(FSVKA[3+m]) * NMatrix[nSIPFT][m][n] * FSVNB[3+n];
-            LowerVMVP[2] += conj(FSVNA[3+m]) * NMatrix[nSIPFT][m][n] * FSVKB[3+n];
-            LowerVMVP[3] += conj(FSVNA[3+m]) * NMatrix[nSIPFT][m][n] * FSVNB[3+n];
-          };
-        SEntries[ 4*nSIPFT + 0 ] += 0.25*w*( EpsAbs*UpperVMVP[0] + MuAbs*LowerVMVP[0] );
-        SEntries[ 4*nSIPFT + 1 ] += 0.25*w*( EpsAbs*UpperVMVP[1] + MuAbs*LowerVMVP[1] );
-        SEntries[ 4*nSIPFT + 2 ] += 0.25*w*( EpsAbs*UpperVMVP[2] + MuAbs*LowerVMVP[2] );
-        SEntries[ 4*nSIPFT + 3 ] += 0.25*w*( EpsAbs*UpperVMVP[3] + MuAbs*LowerVMVP[3] );
+        DeltaPFT[nq] += MicroDelta;
+        if (ByPanel) MicroByPanel[nq*NC + nc]=MicroDelta;
 
       }; //for(int nSIFT=0; nSIFT<NUMPFT-1; nSIFT++)
 
    }; //for (int nc=0; nc<NC; nc++)
+
+  /***************************************************************/ 
+  /***************************************************************/ 
+  /***************************************************************/ 
+  if (ByPanel)
+   { 
+#ifdef USE_OPENMP
+#pragma omp critical(Accumulate)
+#endif
+      {
+        for(int nq=0; nq<NUMPFT; nq++)
+         { if (NeedQuantity[nq]==false)
+            continue;
+           for(int nc=0; nc<NC; nc++)
+            ByPanel[nq][nc] += MicroByPanel[nq*NC + nc];
+         };
+      };
+     delete[] MicroByPanel;
+   };
 
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
-                                 HVector *KNVector, HMatrix *SigmaMatrix,
-                                 double PFT[7], double **ByEdge,
-                                 char *BSMesh, double R, int NumPoints,
-                                 bool Lebedev, bool FarField)
-{}
-#if 0
+void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
+                    HMatrix *RytovMatrix,
+                    double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
+                    char *BSMesh, double R, int NumPoints,
+                    bool UseCCQ, bool FarField,
+                    char *PlotFileName, GTransformation *GT)
 {
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  RWGSurface *S=Surfaces[SurfaceIndex];
-  int Offset = BFIndexOffset[SurfaceIndex];
+  Log("Computing DSIPFT: ");
   if (BSMesh)
-   Log("Computing SIPFT for surface %s over bounding surface %s...",
-        S->MeshFileName, BSMesh);
+   LogC(" (BS mesh %s)",BSMesh);
   else
-   Log("Computing SIPFT for surface %s: (R,NPts,Lebedev)=(%e,%i,%s)",
-        S->MeshFileName, R, NumPoints, Lebedev ? "true" : "false");
+   LogC(" (R=%e, NC=%i, Lebedev=%i, FarField=%i)",R,NumPoints,!UseCCQ,FarField);
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (S->IsPEC) 
-   { 
-     Warn("GetDSIPFTTrace() not implemented for PEC bodies");
-     memset(PFT, 0, 7*sizeof(double)); 
-     return;
-   };
-
+  // assume that the integration surface lies in the exterior medium
   cdouble Eps, Mu;
-  RegionMPs[ S->RegionIndices[0] ] -> GetEpsMu(Omega, &Eps, &Mu);
+  G->RegionMPs[ 0 ] -> GetEpsMu(Omega, &Eps, &Mu);
 
   double XTorque[3] = {0.0, 0.0, 0.0};
-  if (S->OTGT) S->OTGT->Transform(XTorque);
-  if (S->GT) S->GT->Transform(XTorque);
-
-  /*--------------------------------------------------------------*/
-  /*- initialize edge-by-edge contributions to zero --------------*/
-  /*--------------------------------------------------------------*/
-  int NE = S->NumEdges;
-  if (ByEdge)
-   { for(int nq=0; nq<NUMPFT; nq++)
-      if (ByEdge[nq])
-       memset(ByEdge[nq],0,NE*sizeof(double));
-   };
-
-  /*--------------------------------------------------------------*/
-  /*- If the surface in question has been transformed since we   -*/
-  /*- read it in from the meshfile (including any "one-time"     -*/
-  /*- transformation specified in the .scuffgeo file) we need    -*/
-  /*- to transform the cubature rule accordingly.                -*/
-  /*--------------------------------------------------------------*/
-  GTransformation *GT=0;
-  bool CreatedGT=false;
-  if ( (S->OTGT!=0) && (S->GT==0) ) 
-   GT=S->OTGT;
-  else if ( (S->OTGT==0) && (S->GT!=0) ) 
-   GT=S->GT;
-  else if ( (S->OTGT!=0) && (S->GT!=0) )
-   { CreatedGT=true;
-     GT=new GTransformation(S->GT);
-     GT->Transform(S->OTGT);
-   };
+  if (GT) GT->Transform(XTorque);
 
   /*--------------------------------------------------------------*/
   /*- fetch cubature rule and precompute field six-vectors       -*/
   /*--------------------------------------------------------------*/
-  HMatrix *SCRMatrix  = GetSCRMatrix(BSMesh, R, NumPoints, Lebedev, GT);
-  HMatrix *FSVMatrix = GetFSVMatrix(this, SurfaceIndex, SCRMatrix,
-                                    Omega, FarField);
+  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, UseCCQ, GT);
+  HMatrix *FSVMatrix = GetFSVMatrix(G, -1, SCRMatrix, Omega, FarField);
+
   /*--------------------------------------------------------------*/
-  /*- loop over all pairs of edges -------------------------------*/
   /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double **ByPanel=0;
+  RWGSurface *BS=0;
+  if (BSMesh && PlotFileName)
+   { BS=new RWGSurface(BSMesh);
+     if (GT) BS->Transform(GT);
+     ByPanel = (double **)mallocEC(NUMPFT*sizeof(double *));
+     ByPanel[0] = (double *)mallocEC(NUMPFT*(BS->NumPanels)*sizeof(double));
+     for(int nq=1; nq<NUMPFT; nq++)
+      ByPanel[nq] = ByPanel[nq-1] + BS->NumPanels;
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- loop over all pairs of edges on all surfaces for which the  */
+  /*- outer region is the exterior region of the vacuum           */
+  /*--------------------------------------------------------------*/
+  int NS=G->NumSurfaces;
   double PAbs=0.0, Fx=0.0, Fy=0.0, Fz=0.0, Taux=0.0, Tauy=0.0, Tauz=0.0;
+  for(int nsa=0; nsa<NS; nsa++)
+   for(int nsb=nsa; nsb<NS; nsb++)
+    { 
+      if (G->Surfaces[nsa]->RegionIndices[0]!=0) continue;
+      if (G->Surfaces[nsb]->RegionIndices[0]!=0) continue;
+      int NEA=G->Surfaces[nsa]->NumEdges;
+      int NEB=G->Surfaces[nsb]->NumEdges;
+      int OffsetA=G->BFIndexOffset[nsa];
+      int OffsetB=G->BFIndexOffset[nsb];
+
 #ifndef USE_OPENMP
-  if (LogLevel>=SCUFF_VERBOSE2) Log(" no multithreading...");
+  if (G->LogLevel>=SCUFF_VERBOSE2) Log(" no multithreading...");
 #else
   int NumThreads=GetNumThreads();
-  if (LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
+  if (G->LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
 #pragma omp parallel for schedule(dynamic,1), 		\
-                         num_threads(NumThreads)	\
+                         num_threads(NumThreads),	\
+                         collapse(2),			\
                          reduction(+:PAbs, Fx, Fy, Fz, Taux, Tauy, Tauz)
 #endif
-  for(int neaneb=0; neaneb<NE*NE; neaneb++)
-    { 
-      int nea = neaneb / NE;
-      int neb = neaneb % NE;
-      if (neb<nea) continue;
+    for(int nea=0; nea<NEA; nea++)
+     for(int neb=0; neb<NEB; neb++)
+      { 
+        if (nsb==nsa && neb<nea) continue;
 
-      if (neb==nea) LogPercent(nea,NE,10);
+        if (neb==nea) LogPercent(OffsetA+2*nea,G->TotalBFs,10);
 
-      /*--------------------------------------------------------------*/
-      /*- get SIPFT contributions from this pair of basis functions---*/
-      /*--------------------------------------------------------------*/
-      cdouble Entries[NUMPFT*4];
-      GetDSIPFTMatrixEntries(S, nea, neb, SCRMatrix, FSVMatrix,
-                             Eps, Mu, XTorque, Entries);
+        /*--------------------------------------------------------------*/
+        /*--------------------------------------------------------------*/
+        cdouble KK = RytovMatrix->GetEntry(OffsetB+2*neb+0, OffsetA+2*nea+0);
+        cdouble KN = RytovMatrix->GetEntry(OffsetB+2*neb+1, OffsetA+2*nea+0);
+        cdouble NK = RytovMatrix->GetEntry(OffsetB+2*neb+0, OffsetA+2*nea+1);
+        cdouble NN = RytovMatrix->GetEntry(OffsetB+2*neb+1, OffsetA+2*nea+1);
 
-      /*--------------------------------------------------------------*/
-      /*- extract the surface-current coefficient either from the KN -*/
-      /*- vector or the Sigma matrix                                 -*/
-      /*--------------------------------------------------------------*/
-      cdouble KK, KN, NK, NN;
-      if (KNVector)
-       { 
-         cdouble kAlpha =       KNVector->GetEntry(Offset+2*nea+0);
-         cdouble nAlpha = -ZVAC*KNVector->GetEntry(Offset+2*nea+1);
-         cdouble kBeta  =       KNVector->GetEntry(Offset+2*neb+0);
-         cdouble nBeta  = -ZVAC*KNVector->GetEntry(Offset+2*neb+1);
+        /*--------------------------------------------------------------*/
+        /*- get DSIPFT contributions from this pair of basis functions -*/
+        /*--------------------------------------------------------------*/
+        double DeltaPFT[NUMPFT];
+        GetEdgeEdgeDSIPFT(G, nsa, nea, nsb, neb, KK, KN, NK, NN,
+                          SCRMatrix, FSVMatrix, Eps, Mu, XTorque,
+                          DeltaPFT, NeedQuantity, ByPanel);
 
-         KK = conj(kAlpha) * kBeta;
-         KN = conj(kAlpha) * nBeta;
-         NK = conj(nAlpha) * kBeta;
-         NN = conj(nAlpha) * nBeta;
-       }
-      else
-       { KK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
-         KN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
-         NK = SigmaMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
-         NN = SigmaMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
-       };
+        /*--------------------------------------------------------------*/
+        /*- accumulate contributions to full sums ----------------------*/
+        /*--------------------------------------------------------------*/
+        PAbs +=  DeltaPFT[0];
+        Fx   +=  DeltaPFT[2];
+        Fy   +=  DeltaPFT[3];
+        Fz   +=  DeltaPFT[4];
+        Taux +=  DeltaPFT[5];
+        Tauy +=  DeltaPFT[6];
+        Tauz +=  DeltaPFT[7];
 
-      /*--------------------------------------------------------------*/
-      /*- get the contributions of this edge pair to all quantities   */
-      /*--------------------------------------------------------------*/
-      double DeltaPFT[NUMPFT];
-      double Weight = (nea==neb) ? 1.0 : 2.0;
-      for(int nq=0; nq<NUMPFT; nq++)
-       DeltaPFT[nq] = Weight * real(  KK*Entries[4*nq+0] + KN*Entries[4*nq+1]
-                                     +NK*Entries[4*nq+2] + NN*Entries[4*nq+3]
-                                   );
-      
-      /*--------------------------------------------------------------*/
-      /*- accumulate contributions to full sums ----------------------*/
-      /*--------------------------------------------------------------*/
-      PAbs +=  DeltaPFT[0];
-      Fx   +=  DeltaPFT[1];
-      Fy   +=  DeltaPFT[2];
-      Fz   +=  DeltaPFT[3];
-      Taux +=  DeltaPFT[4];
-      Tauy +=  DeltaPFT[5];
-      Tauz +=  DeltaPFT[6];
+      }; // for(int nea=... for (int neb=...
 
-      /*--------------------------------------------------------------*/
-      /*- accumulate contributions to by-edge sums                    */
-      /*--------------------------------------------------------------*/
-      if (ByEdge)
-       {  
-         #pragma omp critical (ByEdge)
-          { if (ByEdge[0]) ByEdge[0][nea] += DeltaPFT[0];
-            if (ByEdge[1]) ByEdge[1][nea] += DeltaPFT[1];
-            if (ByEdge[2]) ByEdge[2][nea] += DeltaPFT[2];
-            if (ByEdge[3]) ByEdge[3][nea] += DeltaPFT[3];
-            if (ByEdge[4]) ByEdge[4][nea] += DeltaPFT[4];
-            if (ByEdge[5]) ByEdge[5][nea] += DeltaPFT[5];
-            if (ByEdge[6]) ByEdge[6][nea] += DeltaPFT[6];
-          };
-       };
-
-    }; // end of multithreaded loop
+    }; // for (int nsa... for (int nsb=...
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   delete FSVMatrix;
   delete SCRMatrix;
-  if (CreatedGT) delete GT;
 
   PFT[0]=PAbs;
-  PFT[1]=Fx;
-  PFT[2]=Fy;
-  PFT[3]=Fz;
-  PFT[4]=Taux;
+  PFT[1]=0.0;
+  PFT[2]=Fx;
+  PFT[3]=Fy;
+  PFT[4]=Fz;
+  PFT[5]=Taux;
   PFT[5]=Tauy;
-  PFT[6]=Tauz;
+  PFT[7]=Tauz;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (ByPanel)
+   { 
+     static const char *PFTNames[8]
+      ={"PAbs","PScat", "FX","FY","FZ","TX","TY","TZ"};
+
+     FILE *f=fopen(PlotFileName,"a");
+     for(int nq=0; nq<NUMPFT; nq++)
+      BS->PlotScalarDensity(ByPanel[nq], false, PlotFileName,
+                            "%s(%s)",PFTNames[nq],z2s(Omega));
+     fclose(f);
+     
+     free(ByPanel[0]);
+     free(ByPanel);
+     delete BS;
+   };
     
 }
-#endif
 
 /***************************************************************/
 /* Evaluate trace formulas for the spatially-resolved fluxes   */
@@ -989,11 +1094,19 @@ void RWGGeometry::GetDSIPFTTrace(int SurfaceIndex, cdouble Omega,
 /* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
 /* FMatrix[nx,12..20] = rxMST_{xx}, rxMST_{xy}, ..., rxMST_{zz}*/
 /***************************************************************/
-HMatrix *RWGGeometry::GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
-                                     HVector *KNVector, HMatrix *SigmaMatrix,
-                                     HMatrix *FMatrix, bool FarField)
-{}
 #if 0
+HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
+                                HVector *KNVector, HMatrix *RytovMatrix,
+                                HMatrix *FMatrix, bool FarField)
+{ 
+  (void) XMatrix; 
+  (void) Omega;
+  (void) KNVector;
+  (void) RytovMatrix;
+  (void) FMatrix; 
+  (void) FarField;
+  return 0;
+}
   /***************************************************************/
   /* (re)allocate FMatrix as necessary ***************************/
   /***************************************************************/
@@ -1059,10 +1172,10 @@ HMatrix *RWGGeometry::GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
           NN = conj(nAlpha) * nBeta;
         }
        else
-        { KK = SigmaMatrix->GetEntry(2*neb+0, 2*nea+0);
-          KN = SigmaMatrix->GetEntry(2*neb+1, 2*nea+0);
-          NK = SigmaMatrix->GetEntry(2*neb+0, 2*nea+1);
-          NN = SigmaMatrix->GetEntry(2*neb+1, 2*nea+1);
+        { KK = RytovMatrix->GetEntry(2*neb+0, 2*nea+0);
+          KN = RytovMatrix->GetEntry(2*neb+1, 2*nea+0);
+          NK = RytovMatrix->GetEntry(2*neb+0, 2*nea+1);
+          NN = RytovMatrix->GetEntry(2*neb+1, 2*nea+1);
         };
 
        /*--------------------------------------------------------------*/
@@ -1150,5 +1263,4 @@ HMatrix *RWGGeometry::GetSRFluxTrace(HMatrix *XMatrix, cdouble Omega,
 
 } // routine GetSRFluxTrace
 #endif
-
-}
+} // namespace scuff

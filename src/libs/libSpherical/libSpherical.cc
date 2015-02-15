@@ -409,9 +409,9 @@ void GetYlmDerivArray(int lMax, double Theta, double Phi,
 /* Workspace points to an optional user-allocated workspace buffer.   */
 /* Workspace may be NULL, in which case work space will be allocated  */
 /* dynamically; if it is non-NULL it must point to a buffer of length */
-/* at least 4*(lMax+2).                                               */
+/* at least 4*(lMax+2) doubles.                                       */
 /**********************************************************************/
-void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType, 
+void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
                         cdouble *R, cdouble *dRdr, double *Workspace)
 {
   int l;
@@ -478,7 +478,7 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetRadialFunction(int l, cdouble k, double r, int WaveType, 
+void GetRadialFunction(int l, cdouble k, double r, int WaveType,
                        cdouble *Rl, cdouble *dRldr, cdouble *RlSlash)
 { 
   cdouble *R    = new cdouble[l+2];
@@ -679,7 +679,7 @@ void GetXlmArray(int lMax, double Theta, double Phi, cdouble *X)
 /* Workspace points to an optional user-allocated workspace    */
 /* buffer. Workspace may be NULL, in which case work space will*/
 /* be allocated dynamically; if it is non-NULL it must point   */
-/* to a buffer of length at least 4*(lMax+2).                  */
+/* to a buffer with room to store at least 4*(lMax+2) doubles. */
 /***************************************************************/
 void GetMNlmArray(int lMax, cdouble k,
                   double r, double Theta, double Phi,

@@ -44,6 +44,16 @@ void UndoSCUFFMatrixTransformation(HMatrix *M)
     };
 }
 
+void ApplySCUFFMatrixTransformation(HMatrix *M)
+{ 
+  for (int nr=0; nr<M->NR; nr+=2)
+   for (int nc=0; nc<M->NC; nc+=2)
+    { M->SetEntry(nr,   nc, (1.0/ZVAC)*M->GetEntry(nr,   nc)    );
+      M->SetEntry(nr,   nc+1, -1.0*M->GetEntry(nr,   nc+1)      );
+      M->SetEntry(nr+1, nc+1, -1.0*ZVAC*M->GetEntry(nr+1, nc+1) );
+    };
+}
+
 /***************************************************************/
 /* the GetFlux() routine computes a large number of flux       */
 /* quantities, including both spatially-integrated (SI) and    */
@@ -85,15 +95,42 @@ int GetSRQIndex(SNEQData *SNEQD, int nt, int nss, int nx, int nq)
 }
 
 /***************************************************************/
-/* Compute the Sigma matrix for sources contained in body      */
-/* SourceSurface. The matrix is stored in the Sigma field of   */
-/* the SNEQD structure.                                        */
 /***************************************************************/
-void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
+/***************************************************************/
+#define AVAC (1.0/ZVAC) // admittance of vacuum
+void TSelfToSymG(HMatrix *TSelf, HMatrix *SymG)
+{
+  int NE = TSelf->NR / 2;
+  for(int nea=0; nea<NE; nea++)
+   for(int neb=0; neb<NE; neb++)
+    { 
+       cdouble TEE_NRNC =  ZVAC*TSelf->GetEntry(2*nea + 0 ,2*neb + 0 );
+       cdouble TEH_NRNC =  -1.0*TSelf->GetEntry(2*nea + 0 ,2*neb + 1 );
+       cdouble THE_NRNC =       TSelf->GetEntry(2*nea + 1 ,2*neb + 0 );
+       cdouble THH_NRNC = -AVAC*TSelf->GetEntry(2*nea + 1 ,2*neb + 1 );
+
+       cdouble TEE_NCNR =  ZVAC*TSelf->GetEntry(2*nea + 0 ,2*neb + 0 );
+       cdouble TEH_NCNR =  -1.0*TSelf->GetEntry(2*nea + 0 ,2*neb + 1 );
+       cdouble THE_NCNR =       TSelf->GetEntry(2*nea + 1 ,2*neb + 0 );
+       cdouble THH_NCNR = -AVAC*TSelf->GetEntry(2*nea + 1 ,2*neb + 1 );
+
+       SymG->SetEntry(2*nea+0, 2*neb+0, 0.25*0.5*(TEE_NRNC + conj(TEE_NCNR)));
+       SymG->SetEntry(2*nea+0, 2*neb+1, 0.25*0.5*(TEH_NRNC + conj(TEH_NCNR)));
+       SymG->SetEntry(2*nea+1, 2*neb+0, 0.25*0.5*(THE_NRNC + conj(THE_NCNR)));
+       SymG->SetEntry(2*nea+1, 2*neb+1, 0.25*0.5*(THH_NRNC + conj(THH_NCNR)));
+    };
+}
+
+/***************************************************************/
+/* Compute the Rytov matrix for sources contained in body      */
+/* SourceSurface. The matrix is stored in the RytovMatrix      */
+/* field of the SNEQD structure.                               */
+/***************************************************************/
+void ComputeRytovMatrix(SNEQData *SNEQD, int SourceSurface)
 {
   RWGGeometry *G = SNEQD->G;
   HMatrix *W     = SNEQD->W;
-  HMatrix *Sigma = SNEQD->Sigma;
+  HMatrix *Rytov = SNEQD->Rytov;
   void **Buffer  = SNEQD->Buffer;
 
   int s=SourceSurface;
@@ -118,15 +155,27 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
       // get Sym G_{s} / 4.
       // (The factor of 0.5 here is present in the definition
       //  of SymG, while the 0.25 prefactor appears in the 
-      //  definition of Sigma; we roll it into SymG for convenience.
+      //  definition of Rytov; we roll it into SymG for convenience.
       HMatrix SymGs(NBFS, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
-      HMatrix *Ts=SNEQD->TSelf[SourceSurface];
+#if 0
+      HMatrix *Ts=SNEQD->TInt[SourceSurface];
+#endif
+//FIXME
+#if 1
+HMatrix TSelf(NBFS, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[2]);
+HMatrix *Ts=&TSelf;
+Ts->Copy(SNEQD->TInt[SourceSurface]);
+UndoSCUFFMatrixTransformation(Ts);
       for(int nr=0; nr<NBFS; nr++)
        for(int nc=0; nc<NBFS; nc++)
         SymGs.SetEntry(nr, nc, 0.25*0.5*(        Ts->GetEntry(nr,nc)
                                           +conj( Ts->GetEntry(nc,nr) )
                                         ) 
-                      ); 
+                      );
+#else
+TSelfToSymG(SNEQD->TInt[SourceSurface], SymGs);
+#endif
+
 
       // Temp1 <- W_{a,s}*SymG_{s}
       HMatrix Temp1(NBFA, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[2]);
@@ -142,7 +191,7 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
       Temp1.Multiply(&Wbs, &Temp2, "--TransB C");
   //    Temp1.Multiply(&Wbs, &Temp2);
 
-      Sigma->InsertBlock(&Temp2, OffsetA, OffsetB);
+      Rytov->InsertBlock(&Temp2, OffsetA, OffsetB);
     };
 
 }
@@ -153,93 +202,56 @@ void ComputeSigmaMatrix(SNEQData *SNEQD, int SourceSurface)
 /* integrated quantities.                                      */
 /*                                                             */
 /* somewhat confusing: the PFT routines in libscuff compute    */
-/* all 7 PFT quantities, but the SIFlux[] output vector needs  */
+/* all 8 PFT quantities, but the SIFlux[] output vector needs  */
 /* to be filled in with just the number of *requested*         */
 /* quantities.                                                 */
 /***************************************************************/
-#define METHOD_DSIPFT 0
-#define METHOD_OPFT   1
-#define METHOD_EPPFT  2
-void GetSIFlux(SNEQData *SNEQD, 
-               int SourceSurface, int DestSurface,
-               cdouble Omega, 
-               bool NeedQuantity[NUMPFT],
-               double SIFlux[NUMPFT])
+void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
+               cdouble Omega, double SIFlux[NUMPFT])
 {
   if ( (SourceSurface==DestSurface) && SNEQD->OmitSelfTerms )
    { memset(SIFlux, 0, NUMPFT*sizeof(double));
      return;
    };
 
-  RWGGeometry *G  = SNEQD->G;
-  HMatrix *Sigma  = SNEQD->Sigma;
-  bool DSISelf    = SNEQD->DSISelf;
-  bool DSIOther   = SNEQD->DSIOther;
-  bool EPOther    = SNEQD->EPOther;
-
-  double **ByEdge=0;
-  if (SNEQD->ByEdge)
-   ByEdge=SNEQD->ByEdge[DestSurface];
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int Method;
-  if (SourceSurface==DestSurface)
-   Method = DSISelf ? METHOD_DSIPFT : METHOD_EPPFT;
-  else
-   Method = DSIOther ? METHOD_DSIPFT : ( EPOther ? METHOD_EPPFT : METHOD_OPFT );
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double AllFlux[NUMPFT];
-  switch(Method)
-   { 
-     case METHOD_DSIPFT:
-      G->GetDSIPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
-                        SNEQD->DSIMesh, SNEQD->DSIRadius, SNEQD->DSIPoints,
-                        SNEQD->Lebedev, SNEQD->FarField);
-      break;
-
-     case METHOD_EPPFT:
-      G->GetEPPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge,
-                       NeedQuantity, SNEQD->TSelf[DestSurface],
-                       (SourceSurface==DestSurface ? true : false));
-      break;
-
-     case METHOD_OPFT:
-      G->GetOPFTTrace(DestSurface, Omega, 0, Sigma, AllFlux, ByEdge);
-      break;
-
+  RWGGeometry *G      = SNEQD->G;
+  bool ForceDSI       = SNEQD->ForceDSI;
+  PFTOptions *PFTOpts = &(SNEQD->PFTOpts);
+ 
+  char FFNBuffer[200];
+  if(SNEQD->PlotFlux)
+   { snprintf(FFNBuffer,200,"%s.%sTo%s.PFTFlux.pp",
+              GetFileBase(G->GeoFileName),
+              G->Surfaces[SourceSurface]->Label,
+              G->Surfaces[DestSurface]->Label);
+     PFTOpts->FluxFileName=FFNBuffer;
    };
 
   /*--------------------------------------------------------------*/
-  /*- collapse the full vector of 7 PFTs to just the entries the -*/
+  /* get PFT using DSIPFT for the self contribution and OPFT for  */
+  /* the non-self contributions                                   */
+  /*--------------------------------------------------------------*/
+  if (ForceDSI)
+   PFTOpts->PFTMethod=SCUFF_PFT_DSI;
+  else if (SourceSurface==DestSurface)
+   PFTOpts->PFTMethod=SCUFF_PFT_EPDSI;
+  else 
+   PFTOpts->PFTMethod=SCUFF_PFT_EPOVERLAP;
+
+  double AllFlux[NUMPFT];
+  PFTOpts->RytovMatrix = SNEQD->Rytov;
+  PFTOpts->TInterior   = SNEQD->TInt[DestSurface];
+  PFTOpts->TExterior   = SNEQD->TExt[DestSurface];
+
+  G->GetPFT(DestSurface, 0, 0, Omega, AllFlux, PFTOpts);
+
+  /*--------------------------------------------------------------*/
+  /*- collapse the full vector of 8 PFTs to just the entries the -*/
   /*- user requested                                             -*/
   /*--------------------------------------------------------------*/
   for(int nq=0, nqq=0; nq<NUMPFT; nq++)
    if (SNEQD->NeedQuantity[nq])
     SIFlux[nqq++] = -4.0*AllFlux[nq];
-
-  /*--------------------------------------------------------------*/
-  /*- generate panel-resolved flux plots if that was requested   -*/
-  /*--------------------------------------------------------------*/
-  if (ByEdge)
-   { 
-     char FileName[100];
-     snprintf(FileName,100,"%sTo%s.PFTFlux.pp",
-                            G->Surfaces[SourceSurface]->Label,
-                            G->Surfaces[DestSurface]->Label);
-
-     for(int nq=0; nq<NUMPFT; nq++)
-      if (ByEdge[nq])
-       G->Surfaces[DestSurface]->PlotScalarDensity(ByEdge[nq],
-                                                   FileName,
-                                                   "%s_%g",
-                                                   QuantityNames[nq],
-                                                   real(Omega));
-   };
 
 } 
 
@@ -343,7 +355,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 /*   = contribution of sources inside surface #nsp to flux of  */
 /*     quantity #nq into surface #ns, all at transformation #nt*/
 /*                                                             */
-/*  where    NQ = number of quantities (1--7)                  */
+/*  where    NQ = number of quantities (1--8)                  */
 /*  where  NSNQ = number of surface * NQ                       */
 /*  where NS2NQ = (number of surfaces)^2* NQ                   */
 /*                                                             */
@@ -355,7 +367,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 /*     quantity #nq at evaluation point np, all at             */
 /*     transformation NT                                       */
 /*                                                             */
-/*  where    NQ  = number of quantities (1--7)                 */
+/*  where    NQ  = number of quantities (1--8)                 */
 /*  where  NSNQ  = number of surfaces * NQ                     */
 /*  where NPNSNQ = number of evaluation points * NPNSNQ        */
 /***************************************************************/
@@ -371,8 +383,8 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   /***************************************************************/
   RWGGeometry *G      = SNEQD->G;
   HMatrix *W          = SNEQD->W;
-  HMatrix **T         = SNEQD->T;
-  HMatrix **TSelf     = SNEQD->TSelf;
+  HMatrix **TExt      = SNEQD->TExt;
+  HMatrix **TInt      = SNEQD->TInt; 
   HMatrix **U         = SNEQD->U;
   int NS              = SNEQD->G->NumSurfaces;
   int NQ              = SNEQD->NQ;
@@ -396,38 +408,26 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   /* before entering the loop over transformations, we first     */
   /* assemble the (transformation-independent) T matrix blocks.  */
   /***************************************************************/
+  for(int nr=0; nr<G->NumRegions; nr++)
+   G->RegionMPs[nr]->Zero();
   for(int ns=0; ns<NS; ns++)
    { 
      if (G->Mate[ns]!=-1)
-      { Log(" Block %i is identical to %i (reusing T matrix)",ns,G->Mate[ns]);
+      { Log(" Block %i is identical to %i (reusing T matrices)",ns,G->Mate[ns]);
         continue;
       }
      else
       Log(" Assembling self contributions to T(%i)...",ns);
 
-     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, T[ns]);
-   };
-
-  /***************************************************************/
-  /* assemble the TSelf matrices *********************************/
-  /***************************************************************/
-  for(int nr=0; nr<G->NumRegions; nr++)
-   G->RegionMPs[nr]->Zero();
-  for(int ns=0; ns<NS; ns++)
-   {
-     if (G->Mate[ns]!=-1)
-      { Log(" Block %i is identical to %i (reusing TSelf matrix)",ns,G->Mate[ns]);
-        continue;
-      }
-     else
-      Log(" Assembling self contributions to TSelf(%i)...",ns);
-
      G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
-     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TSelf[ns]);
-     UndoSCUFFMatrixTransformation(TSelf[ns]);
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TInt[ns]);
      G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
 
-   }; // for(int ns=0; ns<NS; ns++)
+     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[0] ]->UnZero();
+     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TExt[ns]);
+     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[0] ]->Zero();
+
+   };
   for(int nr=0; nr<G->NumRegions; nr++)
    G->RegionMPs[nr]->UnZero();
 
@@ -467,7 +467,8 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      for(int nb=0, ns=0; ns<NS; ns++)
       { 
         int RowOffset=G->BFIndexOffset[ns];
-        W->InsertBlock(T[ns], RowOffset, RowOffset);
+        W->InsertBlock(TInt[ns], RowOffset, RowOffset);
+        W->AddBlock(TExt[ns], RowOffset, RowOffset);
 
         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
          { int ColOffset=G->BFIndexOffset[nsp];
@@ -488,8 +489,8 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      /*--------------------------------------------------------------*/
      for(int nss=0; nss<NS; nss++)
       {
-        // compute the Sigma matrix for this source
-        ComputeSigmaMatrix(SNEQD, nss);
+        // compute the Rytov matrix for this source
+        ComputeRytovMatrix(SNEQD, nss);
 
         // compute spatially-integrated flux quantities for
         // all destination objects
@@ -498,8 +499,8 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
            FILE *f=vfopen("%s.SIFlux","a",FileBase);
            for(int nsd=0; nsd<NS; nsd++)
             { 
-              double SIFlux[7];
-              GetSIFlux(SNEQD, nss, nsd, Omega, NeedQuantity, SIFlux);
+              double SIFlux[NUMPFT];
+              GetSIFlux(SNEQD, nss, nsd, Omega, SIFlux);
 
               fprintf(f,"%e %s ",real(Omega),Tag);
               if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
@@ -538,7 +539,6 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
    { StoreCache( SNEQD->WriteCache );
      SNEQD->WriteCache=0;
    };
-
 
 }
 

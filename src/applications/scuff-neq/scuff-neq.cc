@@ -61,13 +61,14 @@ int main(int argc, char *argv[])
   char *TransFile=0;
 
   /*--------------------------------------------------------------*/
-  int Power=0;
-  int XForce=0;
-  int YForce=0;
-  int ZForce=0;
-  int XTorque=0;
-  int YTorque=0;
-  int ZTorque=0;
+  bool PAbs=false;
+  bool PRad=false;
+  bool XForce=false;
+  bool YForce=false;
+  bool ZForce=false;
+  bool XTorque=false;
+  bool YTorque=false;
+  bool ZTorque=false;
 
   /*--------------------------------------------------------------*/
   char *SRPointFile=0;
@@ -90,16 +91,14 @@ int main(int argc, char *argv[])
    
   /*--------------------------------------------------------------*/
   char *DSIMesh    = 0;
-  double DSIRadius = 100.0;
-  int DSIPoints    = 31;
-  bool Lebedev     = false;
-  bool FarField    = false;
+  double DSIRadius = 10.0;
+  int DSIPoints    = 302;
+  bool DSICCQ      = false;
+  bool DSIFarField = false;
 
   /*--------------------------------------------------------------*/
   bool OmitSelfTerms = false;
-  bool DSISelf       = false;
-  bool DSIOther      = false;
-  bool EPOther       = false;
+  bool ForceDSI      = false;
 
   /*--------------------------------------------------------------*/
   char *FileBase=0;
@@ -121,7 +120,9 @@ int main(int argc, char *argv[])
      {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
 /**/     
-     {"Power",          PA_BOOL,    0, 1,       (void *)&Power,      0,             "compute power transfer"},
+     {"Power",          PA_BOOL,    0, 1,       (void *)&PAbs,       0,             "compute power transfer"},
+     {"PAbs",          PA_BOOL,    0, 1,        (void *)&PAbs,       0,             "(synonym for --power)"},
+     {"PRad",          PA_BOOL,    0, 1,        (void *)&PRad,       0,             "compute radiated power"},
      {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,     0,             "compute X-force"},
      {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,     0,             "compute Y-force"},
      {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,     0,             "compute Z-force"},
@@ -150,13 +151,11 @@ int main(int argc, char *argv[])
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "bounding surface .msh file for DSIPFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
      {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for DSIPFT"},
-     {"Lebedev",        PA_BOOL,    0, 1,       (void *)&Lebedev,    0,             "use lebedev cubature for DSIPFT"},
-     {"FarField",       PA_BOOL,    0, 1,       (void *)&FarField,   0,             "retain only far-field contributions to DSIPFT"},
+     {"DSICCQ",         PA_BOOL,    0, 1,       (void *)&DSICCQ,    0,              "use Clenshaw-Curtis cubature for DSIPFT"},
+     {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField,   0,          "retain only far-field contributions to DSIPFT"},
 /**/
-     {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,             "omit the calculation of self terms"},
-     {"DSISelf",        PA_BOOL,    0, 1,       (void *)&DSISelf,    0,             "use DSIPFT instead of default EPPFT for self terms"},
-     {"DSIOther",       PA_BOOL,    0, 1,       (void *)&DSIOther,   0,             "use DSIPFT instead of default OPFT for non-self terms"},
-     {"EPOther",        PA_BOOL,    0, 1,       (void *)&EPOther,    0,             "use EPPFT instead of default OPFT for non-self terms"},
+     {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,          "omit the calculation of self terms"},
+     {"ForceDSI",       PA_BOOL,    0, 1,       (void *)&ForceDSI,   0,             "use DSIPFT instead of OPFT/EPPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
 /**/
@@ -181,7 +180,8 @@ int main(int argc, char *argv[])
   /* determine which output quantities were requested ****************/
   /*******************************************************************/
   int QuantityFlags=0;
-  if (Power)  QuantityFlags|=QFLAG_POWER;
+  if (PAbs)   QuantityFlags|=QFLAG_PABS;
+  if (PRad)   QuantityFlags|=QFLAG_PRAD;
   if (XForce) QuantityFlags|=QFLAG_XFORCE;
   if (YForce) QuantityFlags|=QFLAG_YFORCE;
   if (ZForce) QuantityFlags|=QFLAG_ZFORCE;
@@ -279,21 +279,18 @@ int main(int argc, char *argv[])
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags,
-                                 SRPointFile, PlotFlux, FileBase);
-
+                                 SRPointFile, FileBase);
   RWGGeometry *G=SNEQD->G;
-  SNEQD->UseExistingData   = UseExistingData;
-  SNEQD->FarField          = FarField;
-  SNEQD->Lebedev           = Lebedev;
-  SNEQD->DSIMesh           = DSIMesh;
-  SNEQD->DSIRadius         = DSIRadius;
-  SNEQD->DSIPoints         = DSIPoints;
-  SNEQD->OmitSelfTerms     = OmitSelfTerms;
-  SNEQD->DSISelf           = DSISelf;
-  SNEQD->DSIOther          = DSIOther;
-  SNEQD->EPOther           = EPOther;
-  SNEQD->AbsTol            = AbsTol;
-  SNEQD->RelTol            = RelTol;
+  SNEQD->UseExistingData      = UseExistingData;
+  SNEQD->PlotFlux             = PlotFlux;
+  SNEQD->OmitSelfTerms        = OmitSelfTerms;
+  SNEQD->ForceDSI             = ForceDSI;
+  SNEQD->AbsTol               = AbsTol;
+  SNEQD->RelTol               = RelTol;
+  SNEQD->PFTOpts.DSIMesh      = DSIMesh;
+  SNEQD->PFTOpts.DSIRadius    = DSIRadius;
+  SNEQD->PFTOpts.DSIPoints    = DSIPoints;
+  SNEQD->PFTOpts.DSIFarField  = DSIFarField;
 
   if (SNEQD->NumSIQs==0 && SNEQD->NumSRQs==0)
    ErrExit("you must specify at least one quantity to compute");

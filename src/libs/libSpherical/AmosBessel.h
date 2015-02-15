@@ -30,7 +30,7 @@
  *  
  * (1) int AmosBessel(char WhichFunction, cdouble z,
  *                    double MinOrder, int NumOrders,
- *                    int Scale, cdouble *f);
+ *                    int Scale, cdouble *f, double *Workspace=0);
  *
  * (2) int AmosAiry(char WhichFunction, cdouble z,
  *                  int Scale, cdouble *f);
@@ -69,6 +69,11 @@
  *                 where J_{\nu}(z) is the regular cylindrical bessel 
  *                 function of order \nu.
  *            
+ *     Workspace:  an optional user-allocated buffer with enough
+ *                 room to store 4*NumOrders doubles. (Note that
+ *                 Workspace has type double*, not cdouble*). If
+ *                 this parameter is omitted, the workspace is
+ *                 internally allocated and deleted.
  * --------------------------------------------------------------
  *            
  *  the return value from both functions is the IERR parameter in
@@ -147,8 +152,8 @@
  typedef std::complex<double> cdouble;
 #endif
 
-int AmosBessel(char WhichFunction, cdouble z, 
-               double MinOrder, int NumOrders, 
+int AmosBessel(char WhichFunction, cdouble z,
+               double MinOrder, int NumOrders,
                int Scale, cdouble *f, double *Workspace=0);
 
 int AmosAiry(char WhichFunction, cdouble z, int Scale, cdouble *f);
