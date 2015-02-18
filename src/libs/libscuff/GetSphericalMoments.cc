@@ -62,7 +62,7 @@ using namespace scuff;
 /* such that Alpha=l^2 + l + m.                                */
 /***************************************************************/
 void GetMNProjections(RWGSurface *S, int ne, cdouble k, int lMax,
-                      cdouble *MArray, cdouble *NArray, 
+                      cdouble *MArray, cdouble *NArray,
                       double *Workspace,
                       cdouble *MProjections, cdouble *NProjections)
 {
@@ -310,7 +310,11 @@ HVector *GetSphericalMoments(RWGSurface *S, cdouble k, int lMax,
 /* believe to be a bug in the f2c-translated version of the    */
 /* AmosBessel routines                                         */
 /***************************************************************/
-NumThreads=1;
+char *s=getenv("SCUFF_SPHERICAL_SINGLETHREADED");
+if ( s && s[0]=='1' )
+ { Log("Using single-threading for spherical wave routines.");
+   NumThreads=1;
+ };
   
   int Workspace1Size = 8*NumLMs;
   int Workspace2Size = 4*(lMax+2);
