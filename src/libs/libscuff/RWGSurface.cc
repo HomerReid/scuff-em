@@ -101,7 +101,7 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
   char *Tokens[MAXTOK];
   int ReachedTheEnd=0;
   MaterialName=0;
-  RegionLabels[0]=0;
+  RegionLabels[0]=RegionLabels[1]=0;
   while ( ReachedTheEnd==0 && fgets(Line, MAXSTR, f) )
    { 
      /*--------------------------------------------------------------*/
@@ -578,6 +578,7 @@ RWGSurface::~RWGSurface()
   if (Label) free(Label);
   if (ErrMsg) free(ErrMsg);
   if (GT) delete GT;
+  if (OTGT) delete OTGT;
 
   if (MaterialName) free(MaterialName);
   if (RegionLabels[0]) free(RegionLabels[0]);
