@@ -131,7 +131,7 @@ void GetX(TDWorkspace *TDW, const double *yVector, double *X);
 void GetScriptP(TDWorkspace *TDW, int WhichP, const double *yVector, 
                 double P[NUMREGIONS][NUMWPOWERS][NUMYPOWERS]);
 
-void GtScriptJL(int WhichK, cdouble KParam,
+void GetScriptJL(int WhichK, cdouble KParam,
                  double Alpha, double Beta, double Gamma,
                  int nMin, int nMax, 
                  cdouble JVector[NUMREGIONS], cdouble LVector[NUMREGIONS]);
