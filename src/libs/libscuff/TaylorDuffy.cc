@@ -123,21 +123,21 @@ typedef struct TDWorkspace
 /********************************************************************/
 /* nitty-gritty subroutines, implemented at the bottom of this file */
 /********************************************************************/
-static void GetAlphaBetaGamma2(TDWorkspace *TDW, const double *y, 
-                               double *A, double *B, double *G2);
+void GetAlphaBetaGamma2(TDWorkspace *TDW, const double *y, 
+                        double *A, double *B, double *G2);
 
-static void GetX(TDWorkspace *TDW, const double *yVector, double *X);
+void GetX(TDWorkspace *TDW, const double *yVector, double *X);
 
-static void GetScriptP(TDWorkspace *TDW, int WhichP, const double *yVector, 
-                       double P[NUMREGIONS][NUMWPOWERS][NUMYPOWERS]);
+void GetScriptP(TDWorkspace *TDW, int WhichP, const double *yVector, 
+                double P[NUMREGIONS][NUMWPOWERS][NUMYPOWERS]);
 
-static void GetScriptJL(int WhichK, cdouble KParam,
-                        double Alpha, double Beta, double Gamma,
-                        int nMin, int nMax, 
-                        cdouble JVector[NUMREGIONS], cdouble LVector[NUMREGIONS]);
+void GtScriptJL(int WhichK, cdouble KParam,
+                 double Alpha, double Beta, double Gamma,
+                 int nMin, int nMax, 
+                 cdouble JVector[NUMREGIONS], cdouble LVector[NUMREGIONS]);
 
-static void GetScriptK(int WhichK, cdouble KParam, double X,
-                       int nMin, int nMax, cdouble KVector[NUMREGIONS]);
+void GetScriptK(int WhichK, cdouble KParam, double X,
+                int nMin, int nMax, cdouble KVector[NUMREGIONS]);
 
 void CMVStoUpsilon(int WhichCase, 
                    double *C, double *M, double *V, double S, 
@@ -382,7 +382,7 @@ static void PQRtoABG2(double P, double Q, double R, double *A, double *B, double
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void GetAlphaBetaGamma2(TDWorkspace *TDW, const double *yVector,
+void GetAlphaBetaGamma2(TDWorkspace *TDW, const double *yVector,
                                double *AVector, double *BVector, double *G2Vector)
 {
   if (TDW->WhichCase==TD_COMMONTRIANGLE) 
@@ -480,7 +480,7 @@ static void GetAlphaBetaGamma2(TDWorkspace *TDW, const double *yVector,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void GetX(TDWorkspace *TDW, const double *yVector, double *X)
+void GetX(TDWorkspace *TDW, const double *yVector, double *X)
 {
   if (TDW->WhichCase==TD_COMMONTRIANGLE)
    { double y=yVector[0], u1, u2;
@@ -616,7 +616,7 @@ void GetScriptP(TDWorkspace *TDW, int WhichP, const double *yVector,
 /*  call the parameter 'p' something like 'TwoP' but that's    */
 /*  unwieldy.)                                                 */
 /***************************************************************/
-static void GetQFPIntegral(double P, double Q2, int p, double *IntQFP, double *IntyQFP)
+void GetQFPIntegral(double P, double Q2, int p, double *IntQFP, double *IntyQFP)
 { 
   double P2     = P*P; 
   double PP1    = P+1.0, PP12=PP1*PP1;
@@ -885,7 +885,7 @@ cdouble ExpRelV3P0(int n, cdouble Z)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-static void GetScriptK(int WhichK, cdouble KParam, double X,
+void GetScriptK(int WhichK, cdouble KParam, double X,
                        int nMin, int nMax, cdouble KVector[7])
 {
   if (WhichK==TD_RP)
