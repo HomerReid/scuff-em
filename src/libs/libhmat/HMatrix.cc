@@ -680,6 +680,25 @@ void HMatrix::AddBlock(HMatrix *B, int RowOffset, int ColOffset)
     AddEntry(RowOffset+nr, ColOffset+nc, B->GetEntry(nr,nc) );
 }
 
+void HMatrix::AddBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset)
+{ 
+  size_t nr, nc;
+
+  if ( ((RowOffset + B->NC) > NR) || ((ColOffset + B->NR) > NC) )
+   ErrExit("AddBlockAdjoint(): block addition exceeds matrix size");
+
+  if (B->RealComplex==LHM_COMPLEX)
+   { for (nr=0; nr<B->NR; nr++)
+      for (nc=0; nc<B->NC; nc++)
+       AddEntry(RowOffset+nc, ColOffset+nr, conj(B->GetEntry(nr,nc)) );
+   }
+  else
+   { for (nr=0; nr<B->NR; nr++)
+      for (nc=0; nc<B->NC; nc++)
+       AddEntry(RowOffset+nc, ColOffset+nr, B->GetEntryD(nr,nc) );
+   };
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/

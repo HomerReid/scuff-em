@@ -246,6 +246,7 @@ class HMatrix
 
    // like InsertBlock, but addition rather than replacement
    void AddBlock(HMatrix *B, int RowOffset, int ColOffset);
+   void AddBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset);
    void AddBlock(SMatrix *B, int RowOffset, int ColOffset);
 
    // sort of the inverse of InsertBlock
