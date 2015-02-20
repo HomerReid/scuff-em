@@ -32,6 +32,20 @@
 namespace scuff {
 
 /***************************************************************/
+/* number of power, force, and torque quantities, plus indices */
+/* into arrays of them                                         */
+/***************************************************************/
+#define NUMPFT        8
+#define SCUFF_PABS    0  // absorbed power
+#define SCUFF_PSCAT   1  // scattered power
+#define SCUFF_XFORCE  2  // force components
+#define SCUFF_YFORCE  3  // 
+#define SCUFF_ZFORCE  4  // 
+#define SCUFF_XTORQUE 5  // torque components
+#define SCUFF_YTORQUE 6  // 
+#define SCUFF_ZTORQUE 7  // 
+
+/***************************************************************/
 /* values for the PFTMethod field of PFTOptions ****************/
 /***************************************************************/
 #define SCUFF_PFT_OVERLAP       0   // overlap method
@@ -64,7 +78,7 @@ typedef struct PFTOptions
    double DSIRadius;
    int DSIPoints;
    bool DSIFarField;
-   bool NeedQuantity[8];
+   bool NeedQuantity[NUMPFT];
 
    // options affecting EP power computation
    HMatrix *TInterior, *TExterior;

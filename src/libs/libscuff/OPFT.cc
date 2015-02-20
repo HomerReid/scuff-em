@@ -449,4 +449,127 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
 
 } // GetOPFT
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
+                     HMatrix *QPFT[NUMPFT], bool NeedMatrix[NUMPFT])
+{
+  if (SurfaceIndex<0 || SurfaceIndex>=G->NumSurfaces)
+   { Warn("GetOPFTMatrices called for unknown surface #i",SurfaceIndex);
+     return;
+   };
+
+  RWGSurface *S=G->Surfaces[SurfaceIndex];
+  int Offset = G->BFIndexOffset[SurfaceIndex];
+  bool IsPEC = S->IsPEC;
+  int NE=S->NumEdges;
+  int NBF=IsPEC ? NE : 2*NE;
+
+  /***************************************************************/
+  /* for all requested quantities, double check that the user    */
+  /* gave us either a matrix of the correct size or else a NULL  */
+  /* pointer. In the latter case, allocate a matrix of the       */
+  /* correct size.                                               */
+  /***************************************************************/
+  for(int nq=0; nq<NUMPFT; nq++)
+   { 
+     if (nq==SCUFF_PSCAT) // there is no overlap matrix for scattered power
+      continue;
+  
+     if (NeedMatrix[nq])
+      { 
+        if ( QPFT[nq] && (     QPFT[nq]->NR!=NBF
+                            || QPFT[nq]->NC!=NBF
+                            || QPFT[nq]->RealComplex!=LHM_COMPLEX
+                         )
+           )
+         { Warn("incorrect Q matrix passed to GetOPFTMatrices (reallocating...)");
+           QPFT[nq]=0;
+         };
+
+        if (!QPFT[nq])
+         QPFT[nq]=new HMatrix(NBF, NBF, LHM_COMPLEX);
+
+        QPFT[nq]->Zero();
+      };
+   };
+  HMatrix *QPAbs, *QF[3], *QT[3];
+  QPAbs = (NeedMatrix[SCUFF_PABS] && !IsPEC) ? QPFT[SCUFF_PABS] : 0;
+  QF[0] = NeedMatrix[SCUFF_XFORCE]  ? QPFT[SCUFF_XFORCE]  : 0;
+  QF[1] = NeedMatrix[SCUFF_YFORCE]  ? QPFT[SCUFF_YFORCE]  : 0;
+  QF[2] = NeedMatrix[SCUFF_ZFORCE]  ? QPFT[SCUFF_ZFORCE]  : 0;
+  QT[0] = NeedMatrix[SCUFF_XTORQUE] ? QPFT[SCUFF_XTORQUE] : 0;
+  QT[1] = NeedMatrix[SCUFF_YTORQUE] ? QPFT[SCUFF_YTORQUE] : 0;
+  QT[2] = NeedMatrix[SCUFF_ZTORQUE] ? QPFT[SCUFF_ZTORQUE] : 0;
+
+  /*--------------------------------------------------------------*/
+  /*- get material parameters of exterior medium -----------------*/
+  /*--------------------------------------------------------------*/
+  cdouble ZZ=ZVAC, k2=Omega*Omega;
+  cdouble Eps, Mu;
+  G->RegionMPs[S->RegionIndices[0]]->GetEpsMu(Omega, &Eps, &Mu);
+  k2 *= Eps*Mu;
+  ZZ *= sqrt(Mu/Eps);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  for(int nea=0; nea<NE; nea++)
+   { 
+     /*--------------------------------------------------------------*/
+     /* populate an array whose indices are the 3 or 5 edges         */
+     /* that have nonzero overlaps with edge #nea, then loop over    */
+     /* those edges                                                  */
+     /*--------------------------------------------------------------*/
+     int nebArray[5];
+     int nebCount= GetOverlappingEdgeIndices(S, nea, nebArray);
+     for(int nneb=0; nneb<nebCount; nneb++)
+      { 
+        int neb=nebArray[nneb];
+        double Overlaps[20];
+        S->GetOverlaps(nea, neb, Overlaps);
+
+       // absorbed power
+       if (QPAbs)
+        { QPAbs->SetEntry(2*nea,2*neb+1, 0.25*Overlaps[OVERLAP_CROSS]);
+          QPAbs->SetEntry(2*nea+1,2*neb,-0.25*Overlaps[OVERLAP_CROSS]);
+        };
+
+       // force, torque
+       for(int Mu=0; Mu<3; Mu++)
+        { 
+          if (QF[Mu])
+           { cdouble Term1=-1.0*(Overlaps[OVERLAP_BULLET_X + Mu] - Overlaps[OVERLAP_NABLANABLA_X + Mu]/k2);
+             cdouble Term2=-2.0*Overlaps[OVERLAP_TIMESNABLA_X + Mu] / (II*Omega);
+             if(IsPEC)
+              QF[Mu]->SetEntry(nea,neb,ZZ*Term1);
+             else
+              { QF[Mu]->SetEntry(2*nea+0,2*neb+0,ZZ*Term1);
+                QF[Mu]->SetEntry(2*nea+0,2*neb+1,Term2);
+                QF[Mu]->SetEntry(2*nea+1,2*neb+0,-Term2);
+                QF[Mu]->SetEntry(2*nea+1,2*neb+1,Term1/ZZ);
+              };
+           };
+
+          if (QT[Mu])
+           { cdouble Term1=-0.25*TENTHIRDS*(Overlaps[OVERLAP_RXBULLET_X + Mu] - Overlaps[OVERLAP_RXNABLANABLA_X + Mu]/k2);
+             cdouble Term2=-0.5*TENTHIRDS*Overlaps[OVERLAP_RXTIMESNABLA_X + Mu] / (II*Omega);
+             if(IsPEC)
+              QT[Mu]->SetEntry(nea,neb,ZZ*Term1);
+             else
+              { QT[Mu]->SetEntry(2*nea+0,2*neb+0,ZZ*Term1);
+                QT[Mu]->SetEntry(2*nea+0,2*neb+1,Term2);
+                QT[Mu]->SetEntry(2*nea+1,2*neb+0,-Term2);
+                QT[Mu]->SetEntry(2*nea+1,2*neb+1,Term1/ZZ);
+              };
+           };
+        };
+
+      } // for (int nneb=... 
+
+   }; // for(int nea=0; nea<S->NE; nea++)
+
+} // GetOPFTMatrices
+
 }// namespace scuff
