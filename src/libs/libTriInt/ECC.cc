@@ -15,7 +15,7 @@
 
 /***************************************************************/
 /* embedded clenshaw-curtis cubature in two dimensions.        */
-/* p is an integer in the range {2,3,4,5,6,7}.                 */
+/* p is an integer in the range {2,3,4,5,6}.                   */
 /* the code estimates the integral of Integrand, over the      */
 /* rectangle with lower-left corner xMin and upper-right       */
 /* corner xMax, using nested Clenshaw-Curtis cubature with     */
@@ -51,7 +51,6 @@ void ECC2D(int p, double xMin[2], double xMax[2],
      case 4: N=17;  NSub=9;  break;
      case 5: N=33;  NSub=17; break;
      case 6: N=65;  NSub=33; break;
-     case 7: N=129; NSub=65; break;
      default: ErrExit("unsupported cubature order in ECC2D");
    };
   double *FullQR=GetCCRule(N);
@@ -115,7 +114,7 @@ void ECC2D(int p, double xMin[2], double xMax[2],
 
 /***************************************************************/
 /* embedded clenshaw-curtis cubature in one dimension.         */
-/* p is an integer in the range {2,3,4,5,6,7}.                 */
+/* p is an integer in the range {2,3,4,5,6}.                   */
 /* the code estimates the integral of Integrand, over the      */
 /* interval [xMin, Max], using nested Clenshaw-Curtis cubature */
 /* with NF points and NC points (where NF=2^p+1 and            */
@@ -146,7 +145,6 @@ void ECC(int p, double xMin, double xMax,
      case 4: N=17;  NSub=9;  break;
      case 5: N=33;  NSub=17; break;
      case 6: N=65;  NSub=33; break;
-     case 7: N=129; NSub=65; break;
      default: ErrExit("unsupported cubature order in ECC2D");
    };
   double *FullQR=GetCCRule(N);
