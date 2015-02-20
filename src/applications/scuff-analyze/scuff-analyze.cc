@@ -42,7 +42,7 @@ using namespace scuff;
 /***************************************************************/
 /* subroutine to analyze a single RWG surface ******************/
 /***************************************************************/
-void AnalyzeSurface(RWGSurface *S)
+void AnalyzeSurface(RWGSurface *S, bool ComputeVolume=false)
 {
   double TotalArea=0.0, AvgArea=0.0, AvgArea2=0.0;
   double TotalVolume=0.0;
@@ -85,6 +85,8 @@ void AnalyzeSurface(RWGSurface *S)
   printf("\n");
 
   printf(" Total area: %9.7e \n",TotalArea);
+  if (ComputeVolume)
+   printf(" Volume: %9.7e \n",TotalVolume);
   printf(" Avg area: %9.7e // sqrt(Avg Area)=%9.7e\n",AvgArea,sqrt(AvgArea));
   printf(" Standard deviation of panel areas: %9.7e\n",StdDevArea);
   if (S->IsClosed)
@@ -358,11 +360,13 @@ int main(int argc, char *argv[])
   int WritePPFiles=0;
   int WriteLabels=0;
   int Neighbors=0;
+  bool ComputeVolume=false;
   /* name, type, # args, max # instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,        0, "geometry file"},
      {"mesh",               PA_STRING, 1, 1, (void *)&MeshFile,       0, "mesh file"},
      {"meshfile",           PA_STRING, 1, 1, (void *)&MeshFile,       0, "mesh file"},
+     {"ComputeVolume",      PA_BOOL,   0, 1, (void *)&ComputeVolume,  0, "compute volume"},
      {"PhysicalRegion",     PA_INT,    1, 1, (void *)&PhysicalRegion, 0, "index of surface within mesh file"},
      {"transfile",          PA_STRING, 1, 1, (void *)&TransFile,      0, "list of transformations"},
      {"WriteGnuplotFiles",  PA_BOOL,   0, 1, (void *)&WriteGPFiles,   0, "write gnuplot visualization files"},
@@ -395,7 +399,7 @@ int main(int argc, char *argv[])
    {
      RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
      S=new RWGSurface(MeshFile, PhysicalRegion);
-     AnalyzeSurface(S);
+     AnalyzeSurface(S, ComputeVolume);
 
      if (WriteGPFiles)
       WriteMeshGPFiles(S);
