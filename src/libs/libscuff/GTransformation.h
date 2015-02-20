@@ -94,7 +94,7 @@ public:
      void UnApplyRotation(const double X[3], double XP[3]) const;
      void UnApplyRotation(double X[3]) const { UnApplyRotation(X, X); }
      
-private:
+//private:
      double DX[3]; // translation
      double M[3][3]; // rotation matrix
 };
