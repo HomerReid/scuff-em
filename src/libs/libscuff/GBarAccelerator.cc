@@ -445,6 +445,13 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
          if (nRho<2) nRho=2;
        };
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+if (nx<10) nx=10;
+if (ny<10) ny=10;
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
       Log("  Initializing %ix%ix%i interpolation table...\n",nx,ny,nRho);
       GBA->I2D=0;
       GBA->I3D=new Interp3D(0.0, Lx, nx, 
@@ -896,7 +903,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double RelTol = 1.0e-3;
+  double RelTol = 1.0e-6;
   char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE");
   if ( str )
    { sscanf(str,"%le",&RelTol);
