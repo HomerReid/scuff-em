@@ -329,11 +329,18 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   /***************************************************************/
   GBarAccelerator *GBA = (GBarAccelerator *)mallocEC( sizeof(GBarAccelerator) );
 
-  GBA->k                 = k;
-  GBA->kBloch            = kBloch;
-  GBA->ExcludeInnerCells = ExcludeInnerCells;
-  GBA->RhoMin            = RhoMin;
-  GBA->RhoMax            = RhoMax;
+  GBA->k                  = k;
+  GBA->kBloch             = kBloch;
+  GBA->ExcludeInnerCells  = ExcludeInnerCells;
+  GBA->RhoMin             = RhoMin;
+  GBA->RhoMax             = RhoMax;
+
+  GBA->ForceFullSummation = false;
+  char *str=getenv("SCUFF_EWALD_FULL");
+  if ( str && str[0]=='1' )
+   { Log("Forcing full Ewald summation.");
+     GBA->ForceFullSummation=true;
+   };
 
   GBA->LDim = LDim;
   GBA->LBV1[0]=LBV[0][0];
@@ -542,12 +549,14 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
 
   /*--------------------------------------------------------------*/
   /* if we have no interpolation grid, or we have one but the     */
-  /* transverse coordinate lies outside it, then we just do the   */
-  /* calculation directly                                         */
+  /* transverse coordinate lies outside it, or if the caller      */
+  /* requested that we do the calculation directly, then we just  */
+  /* do the calculation directly via Ewald summation, skipping    */
+  /* the interpolation step                                       */
   /*--------------------------------------------------------------*/
   double Rho2 = R[1]*R[1] + R[2]*R[2];
   double Rho = sqrt(Rho2);
-  if ( GBA->I2D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax )
+  if ( GBA->I2D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax || GBA->ForceFullSummation )
    { cdouble G[8];
      GBarVDEwald(R, k, kBloch, GBA->LBV, 1, -1.0, ExcludeInnerCells, G);
      if (dGBar) 
@@ -685,12 +694,15 @@ cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA,
 
   /*--------------------------------------------------------------*/
   /* if we have no interpolation grid, or we have one but the     */
-  /* transverse coordinate lies outside it, then we just do the   */
-  /* calculation directly                                         */
+  /* transverse coordinate lies outside it, or if the caller      */
+  /* requested that we do the calculation directly, then we just  */
+  /* do the calculation directly via Ewald summation, skipping    */
+  /* the interpolation step                                       */
   /*--------------------------------------------------------------*/
   double Rho = fabs(R[2]);
-  if ( GBA->I3D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax )
-   { cdouble G[8];
+  if ( GBA->I3D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax || GBA->ForceFullSummation)
+   { 
+     cdouble G[8];
      GBarVDEwald(R, k, kBloch, GBA->LBV, 2, -1.0, ExcludeInnerCells, G);
      if (dGBar) 
       { dGBar[0]=G[1];

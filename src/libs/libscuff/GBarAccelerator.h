@@ -52,6 +52,8 @@ typedef struct GBarAccelerator
    double LBV1[2], LBV2[2], *LBV[2];
    double RhoMin, RhoMax;
 
+   bool ForceFullSummation;
+
    Interp2D *I2D;
    Interp3D *I3D;
 
