@@ -201,7 +201,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   /*--------------------------------------------------------------*/
   if (Args->GBA && Args->ForceFullEwald==false)
    { 
-     double AbsGC0 = 0.25*abs(GPreFac)*( abs(HPP[0]) + abs(HPM[0]) + abs(HMP[0]) + abs(HMM[0]) );
+     double AbsGC0 = 0.25*GPreFac*( abs(HPP[0]) + abs(HPM[0]) + abs(HMP[0]) + abs(HMM[0]) );
      if ( (AbsGC0 > 1.0e-12) && (abs(Args->GC[0]) < 0.01*AbsGC0 ) )
       { Log("Loss of precision in GetEEIs({%i,%i},{%i,%i}={%e,%e}) (recomputing)",
              Sa->Index, nea, Sb->Index, neb,AbsGC0,abs(Args->GC[0]));
