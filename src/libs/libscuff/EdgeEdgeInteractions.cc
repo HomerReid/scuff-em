@@ -145,6 +145,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   GetPPIArgs->opFC                   = Args->opFC;
   GetPPIArgs->Displacement           = Args->Displacement;
   GetPPIArgs->GBA                    = Args->GBA;    
+  GetPPIArgs->ForceFullEwald         = Args->ForceFullEwald;
 
   /*--------------------------------------------------------------*/
   /*- positive-positive, positive-negative, etc. -----------------*/
@@ -193,6 +194,21 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   for(Mu=0; Mu<NumTorqueAxes; Mu++)
    { Args->dGCdT[2*Mu+0] = GPreFac*( dHdTPP[2*Mu+0] - dHdTPM[2*Mu+0] - dHdTMP[2*Mu+0] + dHdTMM[2*Mu+0]);
      Args->dGCdT[2*Mu+1] = CPreFac*( dHdTPP[2*Mu+1] - dHdTPM[2*Mu+1] - dHdTMP[2*Mu+1] + dHdTMM[2*Mu+1]);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- 20150224 detect loss of precision in PBC calculations and   */
+  /*--------------------------------------------------------------*/
+  if (Args->GBA && Args->ForceFullEwald==false)
+   { 
+     double AbsGC0 = 0.25*abs(GPreFac)*( abs(HPP[0]) + abs(HPM[0]) + abs(HMP[0]) + abs(HMM[0]) );
+     if ( (AbsGC0 > 1.0e-12) && (abs(Args->GC[0]) < 0.01*AbsGC0 ) )
+      { Log("Loss of precision in GetEEIs({%i,%i},{%i,%i}={%e,%e}) (recomputing)",
+             Sa->Index, nea, Sb->Index, neb,AbsGC0,abs(Args->GC[0]));
+        Args->ForceFullEwald=true;
+        GetEdgeEdgeInteractions(Args);
+        Args->ForceFullEwald=false;
+      };
    };
 
 }
@@ -285,6 +301,7 @@ void InitGetEEIArgs(GetEEIArgStruct *Args)
   Args->opFC=0;
   Args->Force=EEI_NOFORCE;
   Args->GBA=0;
+  Args->ForceFullEwald=false;
   memset(Args->PPIAlgorithmCount, 0, NUMPPIALGORITHMS*sizeof(unsigned));
 }
 

@@ -89,6 +89,7 @@ typedef struct GetPPIArgStruct
    // if this object is nonzero, it is used to compute the 
    // periodic kernel; otherwise we use the usual Helmholtz kernel.
    GBarAccelerator *GBA;
+   bool ForceFullEwald;
 
    // output fields filled in by routine
    // note: H[0] = HPlus ( = HDot + (1/(ik)^2) * HNabla )
@@ -130,6 +131,7 @@ typedef struct GetEEIArgStruct
    // if this object is nonzero, it is used to compute the 
    // periodic kernel; otherwise we use the usual Helmholtz kernel.
    GBarAccelerator *GBA;
+   bool ForceFullEwald;
    
    // this is an optional 3-vector displacement applied to object b
    double *Displacement;

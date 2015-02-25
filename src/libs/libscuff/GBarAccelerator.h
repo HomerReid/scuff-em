@@ -52,7 +52,7 @@ typedef struct GBarAccelerator
    double LBV1[2], LBV2[2], *LBV[2];
    double RhoMin, RhoMax;
 
-   bool ForceFullSummation;
+   bool ForceFullEwald;
 
    Interp2D *I2D;
    Interp3D *I3D;
@@ -70,7 +70,8 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
 void DestroyGBarAccelerator(GBarAccelerator *GBA);
 
 cdouble GetGBar(double R[3], GBarAccelerator *GBA,
-                cdouble *dGBar=0, cdouble *ddGBar=0);
+                cdouble *dGBar=0, cdouble *ddGBar=0,
+                bool ForceFullEwald=false);
 
 } // namespace scuff 
 

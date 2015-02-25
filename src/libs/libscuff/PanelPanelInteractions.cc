@@ -95,8 +95,7 @@ cdouble ExpRel(cdouble x, int n)
   for(Sum=0.0 ; m<100; m++)
    { Term*=x/((double)m);
      Sum+=Term;
-     mag2Term=norm(Term);
-     mag2Sum=norm(Sum);
+     mag2Term=norm(Term); mag2Sum=norm(Sum);
      if ( mag2Term < EXPRELTOL2*mag2Sum )
       break;
    };
@@ -108,7 +107,7 @@ cdouble ExpRel(cdouble x, int n)
 /***************************************************************/
 void AssembleInnerPPIIntegrand(double wp, double *R, double *X,
                                double *F, double *FP, cdouble k,
-                               GBarAccelerator *GBA,
+                               GBarAccelerator *GBA, bool ForceFullEwald,
                                int DeSingularize,
                                int NumTorqueAxes, double *GammaMatrix,
                                cdouble *HInner, cdouble *GradHInner, cdouble *dHdTInner)
@@ -125,7 +124,7 @@ void AssembleInnerPPIIntegrand(double wp, double *R, double *X,
   if (GBA)
    { 
      cdouble G, dG[3], ddG[9];
-     G=GetGBar(R, GBA, dG, (GradHInner ? ddG : 0 ) );
+     G=GetGBar(R, GBA, dG, (GradHInner ? ddG : 0 ), ForceFullEwald );
 
      HInner[0] += wp * hPlus*G;
      HInner[1] += wp * (FxFP[0]*dG[0] + FxFP[1]*dG[1] + FxFP[2]*dG[2]);
@@ -321,7 +320,7 @@ void GetPPIs_Cubature(GetPPIArgStruct *Args,
            R[Mu] = X[Mu] - XP[Mu];
          };
 
-        AssembleInnerPPIIntegrand(wp, R, X, F, FP, k, Args->GBA,
+        AssembleInnerPPIIntegrand(wp, R, X, F, FP, k, Args->GBA, Args->ForceFullEwald,
                                   DeSingularize, NumTorqueAxes, GammaMatrix,
                                   HInner, GradHInner, dHdTInner);
 
@@ -592,6 +591,7 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
   Args->opFC=0;
   Args->Displacement=0;
   Args->GBA=0;
+  Args->ForceFullEwald=false;
 }
 
 } // namespace scuff

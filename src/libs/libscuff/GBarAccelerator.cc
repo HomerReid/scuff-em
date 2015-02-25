@@ -335,11 +335,11 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   GBA->RhoMin             = RhoMin;
   GBA->RhoMax             = RhoMax;
 
-  GBA->ForceFullSummation = false;
+  GBA->ForceFullEwald = false;
   char *str=getenv("SCUFF_EWALD_FULL");
   if ( str && str[0]=='1' )
    { Log("Forcing full Ewald summation.");
-     GBA->ForceFullSummation=true;
+     GBA->ForceFullEwald=true;
    };
 
   GBA->LDim = LDim;
@@ -535,6 +535,56 @@ void AddGFullTerm(double R[3], cdouble k, double kBloch[2],
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+cdouble GetGBarFullEwald(double R[3], GBarAccelerator *GBA,
+                             cdouble *dGBar, cdouble *ddGBar)
+{
+  cdouble G[8];
+
+  cdouble k              = GBA->k;
+  double *kBloch         = GBA->kBloch;
+  int LDim               = GBA->LDim;
+  bool ExcludeInnerCells = GBA->ExcludeInnerCells;
+
+  GBarVDEwald(R, k, kBloch, GBA->LBV, LDim, -1.0, ExcludeInnerCells, G);
+
+  if (dGBar) 
+   { dGBar[0]=G[1];
+     dGBar[1]=G[2];
+     dGBar[2]=G[3];
+   };
+
+  if (ddGBar)
+   { 
+     ddGBar[3*0 + 1] = ddGBar[3*1 + 0] = G[4];
+     ddGBar[3*0 + 2] = ddGBar[3*2 + 0] = G[5];
+     ddGBar[3*1 + 2] = ddGBar[3*2 + 1] = G[6];
+    
+     // finite-differencing to get unmixed second partials
+     for(int Mu=0; Mu<3; Mu++)
+      { 
+         double Delta = (R[Mu]==0.0) ? 1.0e-4 : 1.0e-4*fabs(R[Mu]);
+         double RR[3];
+         RR[0]=R[0]; RR[1]=R[1]; RR[2]=R[2]; 
+
+         RR[Mu] += Delta;
+         cdouble Gp[8];
+         GBarVDEwald(RR, k, kBloch, GBA->LBV, LDim, -1.0, ExcludeInnerCells, Gp);
+
+         RR[Mu] -= 2.0*Delta;
+         cdouble Gm[8];
+         GBarVDEwald(RR, k, kBloch, GBA->LBV, LDim, -1.0, ExcludeInnerCells, Gm);
+
+         ddGBar[3*Mu + Mu] = (Gp[0] + Gm[0] - 2.0*G[0]) / (Delta*Delta);
+      };
+
+   };
+
+  return G[0];
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 bool InM101(int x) { return (-1<=x) && (x<=1); }
 
 /***************************************************************/
@@ -556,19 +606,9 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
   /*--------------------------------------------------------------*/
   double Rho2 = R[1]*R[1] + R[2]*R[2];
   double Rho = sqrt(Rho2);
-  if ( GBA->I2D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax || GBA->ForceFullSummation )
-   { cdouble G[8];
-     GBarVDEwald(R, k, kBloch, GBA->LBV, 1, -1.0, ExcludeInnerCells, G);
-     if (dGBar) 
-      { dGBar[0]=G[1];
-        dGBar[1]=G[2];
-        dGBar[2]=G[3];
-      };
-     if (ddGBar)
-      memset(ddGBar, 0, 9*sizeof(cdouble));
-     return G[0];
-   };
- 
+  if (GBA->I2D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax)
+   return GetGBarFullEwald(R, GBA, dGBar, ddGBar);
+
   /*--------------------------------------------------------------*/
   /* get xBar, which is the periodic image of the x-coordinate    */
   /* lying within the Wigner-Seitz cell of the 1D lattice         */
@@ -700,19 +740,8 @@ cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA,
   /* the interpolation step                                       */
   /*--------------------------------------------------------------*/
   double Rho = fabs(R[2]);
-  if ( GBA->I3D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax || GBA->ForceFullSummation)
-   { 
-     cdouble G[8];
-     GBarVDEwald(R, k, kBloch, GBA->LBV, 2, -1.0, ExcludeInnerCells, G);
-     if (dGBar) 
-      { dGBar[0]=G[1];
-        dGBar[1]=G[2];
-        dGBar[2]=G[3];
-      };
-     if (ddGBar)
-      memset(ddGBar, 0, 9*sizeof(cdouble));
-     return G[0];
-   };
+  if (GBA->I3D==0 || Rho<GBA->RhoMin || Rho>GBA->RhoMax)
+   return GetGBarFullEwald(R, GBA, dGBar, ddGBar);
  
   /*--------------------------------------------------------------*/
   /* get (xBar, yBar) = unit-cell representative of (x,y)         */
@@ -828,9 +857,23 @@ cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA,
 /***************************************************************/
 /***************************************************************/
 cdouble GetGBar(double R[3], GBarAccelerator *GBA,
-                cdouble *dGBar, cdouble *ddGBar)
-             
+                cdouble *dGBar, cdouble *ddGBar, 
+                bool ForceFullEwald)
 {
+  /***************************************************************/
+  /* there are two ways to force the code to bypass the          */
+  /* interpolation table in favor of doing full Ewald summation: */
+  /*  (a) set the ForceFullEwald parameter to this function      */
+  /*      to true                                                */
+  /*  (b) set the ForceFullEwald field in the GBA structure      */
+  /*      to true                                                */
+  /* The reason we need both mechanisms is that (b) does not     */
+  /* allow for thread-specific selection of full Ewald summation */
+  /* (because the GBA structure is typically shared among many   */
+  /*  threads).                                                  */
+  /***************************************************************/
+  if (ForceFullEwald || GBA->ForceFullEwald)
+   return GetGBarFullEwald(R, GBA, dGBar, ddGBar);
   if (GBA->LDim==1)
    return GetGBar_1D(R, GBA, dGBar, ddGBar);
   else
@@ -841,8 +884,6 @@ cdouble GetGBar(double R[3], GBarAccelerator *GBA,
 /* Create a GBar accelerator suitable for computing GBar at    */
 /* points R in the three-dimensional box with corners RMin and */
 /* RMax.                                                       */
-/*                                                             */
-/* Actually, Bar accelerator suitable for computing GBar at    */
 /***************************************************************/
 GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch,
                                               double RMin[3], double RMax[3],
@@ -1021,3 +1062,4 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 }
 
 } // namespace scuff
+
