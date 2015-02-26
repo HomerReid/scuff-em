@@ -199,6 +199,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
   /*--------------------------------------------------------------*/
   /*- 20150224 detect loss of precision in PBC calculations and   */
   /*--------------------------------------------------------------*/
+#if 0
   if (Args->GBA && Args->ForceFullEwald==false)
    { 
      double AbsGC0 = 0.25*GPreFac*( abs(HPP[0]) + abs(HPM[0]) + abs(HMP[0]) + abs(HMM[0]) );
@@ -210,6 +211,7 @@ void GetEdgeEdgeInteractions(GetEEIArgStruct *Args)
         Args->ForceFullEwald=false;
       };
    };
+#endif
 
 }
 

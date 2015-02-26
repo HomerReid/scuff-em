@@ -438,9 +438,11 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
 
       int nx   = ceil( Lx / MinDelta[0] );
       if (nx<2) nx=2;
+if (nx<10) nx=10;
 
       int ny   = ceil( Ly / MinDelta[1] );
       if (ny<2) ny=2;
+if (ny<10) ny=10;
 
       int nRho; 
       if (RhoMax<=RhoMin)
