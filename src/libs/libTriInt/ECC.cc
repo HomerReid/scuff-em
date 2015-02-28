@@ -46,7 +46,8 @@ void ECC2D(int p, double xMin[2], double xMax[2],
   int N=0;    // number of points in full cubature rule
   int NSub=0; // number of points in embedded subrule
   switch (p)
-   { case 2: N=5;   NSub=3;  break;
+   { case 1: N=3;   NSub=1;  break;
+     case 2: N=5;   NSub=3;  break;
      case 3: N=9;   NSub=5;  break;
      case 4: N=17;  NSub=9;  break;
      case 5: N=33;  NSub=17; break;

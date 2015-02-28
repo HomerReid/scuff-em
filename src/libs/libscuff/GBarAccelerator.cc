@@ -958,7 +958,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double RelTol = 1.0e-6;
+  double RelTol = 1.0e-3;
   char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE");
   if ( str )
    { sscanf(str,"%le",&RelTol);
