@@ -50,7 +50,7 @@ typedef struct GBarAccelerator
 
    int LDim;
    double LBV1[2], LBV2[2], *LBV[2];
-   double RhoMin, RhoMax;
+   double RhoMin, RhoMax, LMax;
 
    bool ForceFullEwald;
 

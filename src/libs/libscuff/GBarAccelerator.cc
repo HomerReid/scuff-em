@@ -101,50 +101,6 @@ void GBarVDPhi3D(double X1, double X2, double X3, void *UserData, double *PhiVD)
 
 } 
 
-#if 0
-void GetInterpolationError(GBarAccelerator *GBA,
-                           int n1, int n2, int n3,
-                           double MaxRDValue, 
-                           double MaxRDDeriv[3])
-{
-  if (GBA->LDim==1)
-   { 
-     double R[2];
-     double Delta[2]; 
-
-     Delta[0] = GBA->I2D->DX1;
-     Delta[1] = GBA->I2D->DX2;
-     R[0] = GBA->I2D->X1Min + n1*(GBA->I2D->DX1);
-     R[1] = GBA->I2D->X2Min + n2*(GBA->I2D->DX2);
-
-     for(int Mu=0; Mu<2; Mu++)
-      { R[Mu] += 0.5*Delta[Mu];
-
-        GBarVDPhi2D( R[0], R[1], (void *)GBA, Phi);
-        GExact     = cdouble(Phi[0], Phi[4]);
-        dGExact[0] = cdouble(Phi[1], Phi[5]);
-        dGExact[1] = cdouble(Phi[2], Phi[6]);
-
-        I2D->EvaluatePlus(R[0], R[1], Phi);
-        GInterp     = cdouble(Phi[0], Phi[4]);
-        dGInterp[0] = cdouble(Phi[1], Phi[5]);
-        dGInterp[1] = cdouble(Phi[2], Phi[6]);
-
-        RDValue = abs(GInterp-GExact) / abs(GExact);
-        for(int Nu=0; Nu<2; Nu++)
-         { if ( abs(dGExact[Nu]) < 1.0e-6*abs(GExact) ) continue;
-           RelError = abs(dGInterp[Nu]-dGExact[Nu]) / abs(dGExact[Nu]);
-           double OptDeltaNu = Delta[Mu] * pow( RelTol/RelError, 0.33 );
-        if (OptDeltaNu < OptimalDelta[Mu] )
-         { OptimalDelta[Mu] = OptDeltaNu;
-           Worst[Mu]=1+Nu;
-         };
-      };
-   };
- 
-}
-#endif
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -302,9 +258,8 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
   delete I3D;
 
 #if 0
-  if (RWGGeometry::LogLevel >= SCUFF_VERBOSE2)
-   Log("Optimal spacing at (%e,%e,%e)=(%e,%e,%e)",
-        x,y,z,OptimalDelta[0],OptimalDelta[1],OptimalDelta[2]);
+  Log("Optimal spacing at (%e,%e,%e)=(%e,%e,%e)",
+       x,y,z,OptimalDelta[0],OptimalDelta[1],OptimalDelta[2]);
 #endif
 
   if (MinDelta)
@@ -312,7 +267,6 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
      MinDelta[1] = fmin(MinDelta[1], OptimalDelta[1]);
      MinDelta[2] = fmin(MinDelta[2], OptimalDelta[2]);
    };
-
 
 }
 
@@ -353,6 +307,22 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   GBA->LBV[1] = GBA->LBV2;
 
   /***************************************************************/
+  /* If the wavenumber has an imaginary component, LMax is the   */
+  /* distance from the origin at which GBar has decayed to 1e-10 */
+  /* of its value at the origin. If LMax lies within the Wigner- */
+  /* Seitz cell then we can truncate the range of our            */
+  /* interpolation table accordingly.                            */
+  /***************************************************************/
+  double LMax=1.0e87;
+  double Kappa=imag(k);
+  if (Kappa!=0.0)
+   { 
+     double GoK = 23.0/Kappa; // note 23.0 \approx log(1.0e10)
+     LMax = sqrt( GoK*GoK + 2.0*RhoMin*GoK );
+   };
+  GBA->LMax=LMax;
+
+  /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   if (LDim==1)
@@ -360,9 +330,14 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       // sample the optimal grid spacing at a few points
       // in the domain of interest and take the smallest
       double L0 = LBV[0][0], MinDelta[2], Delta[2];
-      GetOptimalGridSpacing1D(GBA, 0.0*L0, RhoMin, RelTol, MinDelta, 0);
-      GetOptimalGridSpacing1D(GBA, 0.5*L0, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing1D(GBA, 1.0*L0, RhoMin, RelTol, Delta, MinDelta);
+      if ( L0 > LMax )
+       { L0=LMax;
+         Log("  Cutting off interpolation table at L=LMax=%e.",LMax);
+       };
+      GetOptimalGridSpacing1D(GBA,  0.0*L0, RhoMin, RelTol, MinDelta, 0);
+      GetOptimalGridSpacing1D(GBA, -0.5*L0, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing1D(GBA,  0.0*L0, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing1D(GBA, -0.5*L0, RhoMax, RelTol, Delta, MinDelta);
 
       double DeltaX = MinDelta[0];
       int nx = ceil( L0 / DeltaX );
@@ -370,7 +345,7 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       DeltaX = L0 / ((double)(nx-1));
       double *XPoints = new double[nx];
       for(int n=0; n<nx; n++)
-       XPoints[n] = ((double)n)*DeltaX;
+       XPoints[n] = ((double)n)*DeltaX - 0.5*L0;
 
       #define MAXRHOPOINTS 1000
       double RhoPoints[MAXRHOPOINTS];
@@ -381,9 +356,8 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       while(!Done)
        { 
          double Rho = RhoPoints[nRho];
-         GetOptimalGridSpacing1D(GBA, 0.0*L0, Rho, RelTol, MinDelta, 0);
-         GetOptimalGridSpacing1D(GBA, 0.5*L0, Rho, RelTol, Delta, MinDelta);
-         GetOptimalGridSpacing1D(GBA, 1.0*L0, Rho, RelTol, Delta, MinDelta);
+         GetOptimalGridSpacing1D(GBA,  0.0*L0, Rho, RelTol, MinDelta, 0);
+         GetOptimalGridSpacing1D(GBA, -0.5*L0, Rho, RelTol, Delta, MinDelta);
          double DeltaRho = fmax(MinDeltaRho,MinDelta[1]);
          if (Rho + DeltaRho >= RhoMax)
           { DeltaRho = RhoMax - Rho;
@@ -411,38 +385,37 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   else // LDim==2
    {
       double Lx = LBV[0][0], Ly=LBV[1][1];
+      if ( LMax<Lx ) 
+       { Lx=LMax;
+         Log("  Cutting off interpolation table at Lx=LMax=%e.",LMax);
+       };
+      if ( LMax<Ly ) 
+       { Ly=LMax;
+         Log("  Cutting off interpolation table at Ly=LMax=%e.",LMax);
+       };
+
       if ( LBV[0][1]!=0.0 || LBV[1][0]!=0.0 )
        ErrExit("%s:%i: non-square lattices not yet supported",__FILE__,__LINE__);
 
       // estimate the optimal grid spacings at a few points
-      // in the domain of interest and take the smallest 
+      // in the domain of interest and take the smallest
       double MinDelta[3], Delta[3];
-      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.0*Ly, RhoMin, RelTol, MinDelta, 0);
-      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 1.0*Ly, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.0*Ly, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 1.0*Ly, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.0*Ly, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 1.0*Ly, RhoMin, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.0*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 0.5*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
-      GetOptimalGridSpacing2D(GBA, 1.0*Lx, 1.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA,  0.0*Lx,  0.0*Ly, RhoMin, RelTol, MinDelta, 0);
+      GetOptimalGridSpacing2D(GBA,  0.0*Lx, -0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, -0.5*Lx,  0.0*Ly, RhoMin, RelTol, Delta, MinDelta);
+      GetOptimalGridSpacing2D(GBA, -0.5*Lx, -0.5*Ly, RhoMin, RelTol, Delta, MinDelta);
+      if (RhoMax!=RhoMin)
+       { GetOptimalGridSpacing2D(GBA,  0.0*Lx,  0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+         GetOptimalGridSpacing2D(GBA,  0.0*Lx, -0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
+         GetOptimalGridSpacing2D(GBA, -0.5*Lx,  0.0*Ly, RhoMax, RelTol, Delta, MinDelta);
+         GetOptimalGridSpacing2D(GBA, -0.5*Lx, -0.5*Ly, RhoMax, RelTol, Delta, MinDelta);
+       };
 
       int nx   = ceil( Lx / MinDelta[0] );
       if (nx<2) nx=2;
-if (nx<10) nx=10;
 
       int ny   = ceil( Ly / MinDelta[1] );
       if (ny<2) ny=2;
-if (ny<10) ny=10;
 
       int nRho; 
       if (RhoMax<=RhoMin)
@@ -454,17 +427,9 @@ if (ny<10) ny=10;
          if (nRho<2) nRho=2;
        };
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-if (nx<10) nx=10;
-if (ny<10) ny=10;
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
-      Log("  Initializing %ix%ix%i interpolation table...\n",nx,ny,nRho);
+      Log("  Initializing %ix%ix%i interpolation table...",nx,ny,nRho);
       GBA->I2D=0;
-      GBA->I3D=new Interp3D(0.0, Lx, nx, 
-                            0.0, Ly, ny, 
+      GBA->I3D=new Interp3D(-0.5*Lx, 0.5*Lx, nx, -0.5*Ly, 0.5*Ly, ny,
                             RhoMin, RhoMax, nRho,
                             2, GBarVDPhi3D, (void *)GBA);
       Log("  ...interpolation table done");
@@ -616,8 +581,14 @@ cdouble GetGBar_1D(double R[3], GBarAccelerator *GBA,
   /* lying within the Wigner-Seitz cell of the 1D lattice         */
   /*--------------------------------------------------------------*/
   double L0 = GBA->LBV[0][0];
-  int m = (int)(round( R[0] / L0 ));
+  int m = (int)(lround( R[0] / L0 ));
   double xBar = R[0] - m*L0;
+
+  if ( fabs(xBar) > GBA->LMax )
+   { if (dGBar) memset(dGBar, 0, 3*sizeof(cdouble));
+     if (ddGBar) memset(ddGBar, 0, 9*sizeof(cdouble));
+     return 0.0;
+   };
 
   /*--------------------------------------------------------------*/
   /* get GBar(xBar, Rho) and as many derivatives as necessary     */
@@ -746,18 +717,25 @@ cdouble GetGBar_2D(double R[3], GBarAccelerator *GBA,
    return GetGBarFullEwald(R, GBA, dGBar, ddGBar);
  
   /*--------------------------------------------------------------*/
-  /* get (xBar, yBar) = unit-cell representative of (x,y)         */
+  /* get (xBar, yBar) = representative of (x,y) in the Wigner-    */
+  /* Seitz cell                                                   */
   /*--------------------------------------------------------------*/
   if (GBA->LBV[0][1]!=0.0 || GBA->LBV[1][0]!=0.0)
    ErrExit("%s:%i: non-square lattice not yet supported",__FILE__,__LINE__);
   
   double L0x = GBA->LBV[0][0];
-  int mx = (int)(floor( R[0] / L0x ));
+  int mx = (int)(lround( R[0] / L0x ));
   double xBar = R[0] - mx*L0x;
 
   double L0y = GBA->LBV[1][1];
-  int my = (int)(floor( R[1] / L0y ));
+  int my = (int)(lround( R[1] / L0y ));
   double yBar = R[1] - my*L0y;
+
+  if ( fabs(xBar)>GBA->LMax || fabs(yBar)>GBA->LMax )
+   { if (dGBar) memset(dGBar, 0, 3*sizeof(cdouble));
+     if (ddGBar) memset(ddGBar, 0, 9*sizeof(cdouble));
+     return 0.0;
+   };
 
   /*--------------------------------------------------------------*/
   /* get GBar(RBar, Rho) and as many derivatives as necessary     */
@@ -958,7 +936,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double RelTol = 1.0e-3;
+  double RelTol = 1.0e-6;
   char *str=getenv("SCUFF_INTERPOLATION_TOLERANCE");
   if ( str )
    { sscanf(str,"%le",&RelTol);
@@ -1064,4 +1042,3 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 }
 
 } // namespace scuff
-
