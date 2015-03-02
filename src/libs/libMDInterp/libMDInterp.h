@@ -31,6 +31,10 @@
 #include <stdlib.h>
 #include <math.h>
 
+#define LMDI_LOGLEVEL_NONE    0
+#define LMDI_LOGLEVEL_TERSE   1
+#define LMDI_LOGLEVEL_VERBOSE 2
+
 /***************************************************************/
 /* prototype for a user-supplied function of one variable.     */
 /*                                                             */
@@ -327,7 +331,8 @@ class Interp3D
     Interp3D(double *X1Points, int N1,
              double *X2Points, int N2,
              double *X3Points, int N3,
-             int nFun, Phi3D PhiFunc=0, void *UserData=0);
+             int nFun, Phi3D PhiFunc=0, void *UserData=0,
+             int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
     /*- class constructor 2: construct from a user-supplied function*/
@@ -336,7 +341,8 @@ class Interp3D
     Interp3D(double pX1Min, double X1Max, int pN1,
              double pX2Min, double X2Max, int pN2,
              double pX3Min, double X3Max, int pN3,
-             int pnFun, Phi3D PhiFunc=0, void *UserData=0);
+             int pnFun, Phi3D PhiFunc=0, void *UserData=0,
+             int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
     /*- body of class constructor for the previous two entry points-*/
@@ -392,6 +398,7 @@ class Interp3D
     double X1Min, X2Min, X3Min;
     double DX1, DX2, DX3;
     int nFun; 
+    int LogLevel;
 
     double *CTable;
     

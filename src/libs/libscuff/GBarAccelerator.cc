@@ -218,7 +218,8 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
   Interp3D *I3D=new Interp3D(x, x+Delta[0],   2,
                              y, y+Delta[1],   2,
                              z, z+Delta[2],   2,
-                             2,   GBarVDPhi3D, (void *)GBA);
+                             2,   GBarVDPhi3D, (void *)GBA,
+                             LMDI_LOGLEVEL_NONE);
 
   /***************************************************************/
   /***************************************************************/
@@ -427,12 +428,10 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
          if (nRho<2) nRho=2;
        };
 
-      Log("  Initializing %ix%ix%i interpolation table...",nx,ny,nRho);
       GBA->I2D=0;
       GBA->I3D=new Interp3D(-0.5*Lx, 0.5*Lx, nx, -0.5*Ly, 0.5*Ly, ny,
                             RhoMin, RhoMax, nRho,
                             2, GBarVDPhi3D, (void *)GBA);
-      Log("  ...interpolation table done");
    };
 
   return GBA;
