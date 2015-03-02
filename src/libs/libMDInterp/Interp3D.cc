@@ -300,7 +300,8 @@ Interp3D::Interp3D(double pX1Min, double X1Max, int pN1,
 void Interp3D::InitInterp3D(Phi3D PhiFunc, void *UserData)
 {
    if (LogLevel >= LMDI_LOGLEVEL_TERSE)
-    Log("Creating interpolation grid with %i grid points...",N1*N2*N3);
+    Log("Creating interpolation grid with (%ix%ix%i)=%i grid points...",
+         N1,N2,N3,N1*N2*N3);
 
    /*--------------------------------------------------------------*/ 
    /*- temporarily allocate a big array in which we will store     */ 
