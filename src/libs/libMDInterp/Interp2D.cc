@@ -179,7 +179,8 @@ static void *GetPhiVD_Thread(void *data)
 /****************************************************************/
 Interp2D::Interp2D(double *pX1Points, int pN1,
                    double *pX2Points, int pN2,
-                   int pnFun, Phi2D PhiFunc, void *UserData) 
+                   int pnFun, Phi2D PhiFunc, void *UserData,
+                   int pLogLevel)
 {
    /*--------------------------------------------------------------*/ 
    /*- simple setup: initialize class data                ---------*/ 
@@ -191,6 +192,7 @@ Interp2D::Interp2D(double *pX1Points, int pN1,
    X1Points=(double *)memdup(pX1Points, N1*sizeof(double));
    X2Points=(double *)memdup(pX2Points, N2*sizeof(double));
    nFun=pnFun;
+   LogLevel=pLogLevel;
 
    /*--------------------------------------------------------------*/ 
    /*- allocate space for the CTable, which stores all             */ 
@@ -230,7 +232,8 @@ Interp2D::Interp2D(double *pX1Points, int pN1,
 /****************************************************************/
 Interp2D::Interp2D(double pX1Min, double X1Max, int pN1,
                    double pX2Min, double X2Max, int pN2,
-                   int pnFun, Phi2D PhiFunc, void *UserData)
+                   int pnFun, Phi2D PhiFunc, void *UserData,
+                   int pLogLevel)
 {
    /*--------------------------------------------------------------*/ 
    /*- simple setup: initialize class data                ---------*/ 
@@ -252,6 +255,7 @@ Interp2D::Interp2D(double pX1Min, double X1Max, int pN1,
     ErrExit("Interp2D: grid has zero size in one or more dimensions");
 
    nFun=pnFun;
+   LogLevel=pLogLevel;
 
    /*--------------------------------------------------------------*/ 
    /*- allocate space for the CTable (see comment above on how it  */ 
@@ -279,8 +283,8 @@ Interp2D::Interp2D(double pX1Min, double X1Max, int pN1,
 /****************************************************************/
 void Interp2D::InitInterp2D(Phi2D PhiFunc, void *UserData)
 {
-
- //  Log("Creating interpolation grid with %i grid points...",N1*N2);
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("Creating interpolation grid with %i grid points...",N1*N2);
 
    /*--------------------------------------------------------------*/ 
    /*- temporarily allocate a big array in which we will store     */ 
@@ -306,7 +310,8 @@ void Interp2D::InitInterp2D(Phi2D PhiFunc, void *UserData)
    /*- fire off threads that will call the user's function to     -*/
    /*- populate the PVDTable table.                               -*/
    /*--------------------------------------------------------------*/
- //  Log("Computing user function at grid points...");
+   if (LogLevel>=LMDI_LOGLEVEL_VERBOSE)
+    Log("Computing user function at grid points...");
    int nThread=GetNumThreads();
 
 #ifdef USE_PTHREAD
@@ -418,7 +423,8 @@ void Interp2D::InitInterp2D(Phi2D PhiFunc, void *UserData)
    double *P;
    HVector *C = new HVector(NCOEFF);
 
-   //Log("Computing coefficients of interpolating polynomials...");
+   if (LogLevel>=LMDI_LOGLEVEL_VERBOSE)
+    Log("Computing coefficients of interpolating polynomials...");
    for(n1=0; n1<(N1-1); n1++)
     for(n2=0; n2<(N2-1); n2++)
      { 
@@ -457,7 +463,8 @@ void Interp2D::InitInterp2D(Phi2D PhiFunc, void *UserData)
    delete C;
    delete M;
    free(PhiVDTable);
-   //Log("...done!");
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("...interpolation table constructed!");
 
 }  
 
@@ -475,7 +482,8 @@ void Interp2D::ReInitialize(Phi2D PhiFunc, void *UserData)
 /****************************************************************/
 Interp2D::Interp2D(const char *FileName)
 {
-   Log("Attempting to read interpolation table from file %s...",FileName);
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("Attempting to read interpolation table from file %s...",FileName);
 
    FILE *f=fopen(FileName,"r");
    if (!f)
@@ -513,7 +521,8 @@ Interp2D::Interp2D(const char *FileName)
 
    fclose(f);
 
-   Log("...success!");
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("...success!");
 
 }
 
@@ -523,7 +532,8 @@ Interp2D::Interp2D(const char *FileName)
 /****************************************************************/
 void Interp2D::WriteToFile(const char *FileName)
 {
-   Log("Writing interpolation table to file %s...",FileName);
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("Writing interpolation table to file %s...",FileName);
 
    FILE *f=fopen(FileName,"w");
    if (!f)
@@ -552,7 +562,9 @@ void Interp2D::WriteToFile(const char *FileName)
    fwrite(CTable, sizeof(double), CTableSize, f);
 
    fclose(f);
-   Log("...success!");
+
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("...success!");
 }
 
 /****************************************************************/

@@ -84,6 +84,7 @@ typedef struct GRPIntegrandData
    const double *X0;     // field evaluation point 
    cdouble K;            // \sqrt{Eps*Mu} * frequency
    GBarAccelerator *GBA; // optional accelerator for PBC geometries
+   bool ForceFullEwald;
  } GRPIData;
 
 static void GRPIntegrand(double *X, void *parms, double *f)
@@ -130,7 +131,17 @@ static void GRPIntegrand(double *X, void *parms, double *f)
   else
    { 
      cdouble G, dG[3];
-     G=GetGBar(R, GBA, dG);
+     if (GRPID->ForceFullEwald)
+      { cdouble GBarVD[8];
+        GBarVDEwald(R, GBA->k, GBA->kBloch, GBA->LBV, GBA->LDim,
+                    -1.0, true, GBarVD);
+        G=GBarVD[0];
+        dG[0]=GBarVD[1];
+        dG[1]=GBarVD[2];
+        dG[2]=GBarVD[3];
+      } 
+     else
+      G=GetGBar(R, GBA, dG);
 
      /* assemble integrand components */
      zf[0]= fRWG[0] * G;
@@ -161,8 +172,9 @@ static void GRPIntegrand(double *X, void *parms, double *f)
 /* vector-valued RWG current at y.                             */
 /***************************************************************/
 void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
-                                      GBarAccelerator *GBA,
-                                      cdouble *a, cdouble *Curla, cdouble *Gradp)
+                                      GBarAccelerator *GBA, 
+                                      cdouble *a, cdouble *Curla, cdouble *Gradp,
+                                      bool ForceFullEwald)
 {
   double *QP, *V1, *V2, *QM;
   double PArea, MArea;
@@ -188,6 +200,7 @@ void RWGSurface::GetReducedPotentials(int ne, const double *X, cdouble K,
   GRPID->X0=X;
   GRPID->K=K;
   GRPID->GBA = GBA;
+  GRPID->ForceFullEwald=ForceFullEwald;
 
   /* contribution of positive panel */
   GRPID->Q=QP;
@@ -265,17 +278,41 @@ void GetScatteredFields(RWGGeometry *G, const double *X, const int RegionIndex,
         if (RWGGeometry::UseGetFieldsV2P0==false)
          S->GetReducedPotentials(ne, X, K, GBA, a, Curla, Gradp);
         else
-         { RWGEdge *E = S->Edges[ne];
+         { 
+           RWGEdge *E = S->Edges[ne];
            double rRel = VecDistance(X, E->Centroid ) / E->Radius;
-           if (rRel > 5.0) 
+           if (rRel > 3.0) 
             S->GetReducedPotentials(ne, X, K, GBA, a, Curla, Gradp);
-           else
+           else if (GBA==0)
             { cdouble p, da[3][3], ddp[3][3], dcurla[3][3];
               GetReducedPotentials_Nearby(S, ne, X, K,
                                           &p, a, Gradp, da, ddp, dcurla);
               Curla[0] = da[1][2]-da[2][1];
               Curla[1] = da[2][0]-da[0][2];
               Curla[2] = da[0][1]-da[1][0];
+            }
+           else if (GBA->LDim==1)
+            {
+              S->GetReducedPotentials(ne, X, K, GBA, a, Curla, Gradp, true);
+
+              double XmL[3];
+              XmL[1]=X[1];
+              XmL[2]=X[2];
+              for(int nx=-1; nx<=1; nx++)
+               { double L = nx*GBA->LBV[0][0];
+                 XmL[0]=X[0] - L;
+                 cdouble aDelta[3], GradpDelta[3];
+                 cdouble p, da[3][3], ddp[3][3], dcurla[3][3];
+                 GetReducedPotentials_Nearby(S, ne, XmL, K,
+                                             &p, aDelta, GradpDelta, da, ddp, dcurla);
+                 cdouble PhaseFactor = exp(II*L*(GBA->kBloch[0]));
+                 for(int n=0; n<3; n++)
+                  { int np1=(n+1)%3, np2=(n+2)%3;
+                    a[n]     += PhaseFactor*aDelta[n];
+                    Gradp[n] += PhaseFactor*GradpDelta[n];
+                    Curla[n] += PhaseFactor*(da[np1][np2]-da[np2][np1]);
+                  };
+               };
             };
          };
 
@@ -424,7 +461,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /***************************************************************/
   if ( XMatrix==0 || XMatrix->NC<3 || XMatrix->NR==0 )
    ErrExit("wrong-size XMatrix (%ix%i) passed to GetFields",XMatrix->NR,XMatrix->NC);
-if (FMatrix==0) 
+  if (FMatrix==0) 
    FMatrix=new HMatrix(XMatrix->NR, NumFuncs, LHM_COMPLEX);
   else if ( (FMatrix->NR != XMatrix->NR) || (FMatrix->NC!=NumFuncs) ) 
    { Warn(" ** warning: wrong-size FMatrix passed to GetFields(); allocating new matrix");

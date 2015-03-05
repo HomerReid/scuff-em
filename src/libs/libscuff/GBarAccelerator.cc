@@ -132,7 +132,7 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
 
   Interp2D *I2D=new Interp2D(xMin,     xMax, 2,
                              RhoMin, RhoMax, 2,
-                             2, GBarVDPhi2D, (void *)GBA);
+                             2, GBarVDPhi2D, (void *)GBA, LMDI_LOGLEVEL_NONE);
 
   /***************************************************************/
   /***************************************************************/
@@ -378,7 +378,6 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
       GBA->I3D=0;
       GBA->I2D=new Interp2D(XPoints, nx, RhoPoints, nRho,
                             2, GBarVDPhi2D, (void *)GBA);
-      Log("  ...interpolation table done");
 
       delete[] XPoints;
 
@@ -502,7 +501,7 @@ void AddGFullTerm(double R[3], cdouble k, double kBloch[2],
 /***************************************************************/
 /***************************************************************/
 cdouble GetGBarFullEwald(double R[3], GBarAccelerator *GBA,
-                             cdouble *dGBar, cdouble *ddGBar)
+                         cdouble *dGBar, cdouble *ddGBar)
 {
   cdouble G[8];
 

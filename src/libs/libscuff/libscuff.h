@@ -298,7 +298,7 @@ class RWGSurface
 #endif
    void GetReducedPotentials(int ne, const double *X,
                              cdouble k, GBarAccelerator *GBA,
-                             cdouble *a, cdouble *Curla, cdouble *Gradp);
+                             cdouble *a, cdouble *Curla, cdouble *Gradp, bool ForceFullEwald=false);
 
    void AddStraddlers(double LBV[MAXLDIM][2], int LDim,
                       int NumStraddlers[MAXLDIM]);

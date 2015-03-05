@@ -177,7 +177,7 @@ int IntegrateCliffFunction(CliffFunction fCliff, void *UserData, int nFun,
   double *dError       = Workspace + 4*nFun;
   double *dAbsIntegral = Workspace + 5*nFun;
   double *AbsIntegral  = Workspace + 6*nFun;
-  double Delta = 0.25*xCliff;
+  double Delta = 0.5*xCliff;
   int Iters=0;
   int fEvals=0;
   memset(Integral,    0, nFun*sizeof(double));

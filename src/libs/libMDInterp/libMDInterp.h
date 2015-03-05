@@ -253,7 +253,8 @@ class Interp2D
     /*- and nonuniform grid                                         */
     /*--------------------------------------------------------------*/
     Interp2D(double *X1Points, int N1, double *X2Points, int N2,
-             int nFun, Phi2D PhiFunc, void *UserData);
+             int nFun, Phi2D PhiFunc=0, void *UserData=0,
+             int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
     /*- class constructor 2: construct from a user-supplied function*/
@@ -261,7 +262,8 @@ class Interp2D
     /*--------------------------------------------------------------*/
     Interp2D(double X1Min, double X1Max, int N1, 
              double X2Min, double X2Max, int N2, 
-             int nFun, Phi2D PhiFunc, void *UserData);
+             int nFun, Phi2D PhiFunc=0, void *UserData=0,
+             int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
     /*- the body of the class constructor for the above two entry  -*/
@@ -309,6 +311,7 @@ class Interp2D
     double DX1, DX2;
 
     int nFun; 
+    int LogLevel;
 
     double *CTable;
     

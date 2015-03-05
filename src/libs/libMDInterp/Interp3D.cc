@@ -513,7 +513,7 @@ void Interp3D::InitInterp3D(Phi3D PhiFunc, void *UserData)
    delete M;
    free(PhiVDTable);
    if (LogLevel >= LMDI_LOGLEVEL_TERSE)
-    Log("...interpolation table done!");
+    Log("...interpolation table constructed!");
 
 }  
 
