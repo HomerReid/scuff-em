@@ -210,13 +210,25 @@ class HMatrix
                          int ColStart, int ColStop, int ColInc, int ColLen,
                          HMatrix *B, int RowOffset, int ColOffset);
 
-   void SetEntriesD(const char *RowString, int Col, double *Entries);
-   void SetEntries(const char *RowString, int Col, cdouble *Entries);
-   void SetEntriesD(int Row, const char *ColString, double *Entries);
-   void SetEntries(int Row, const char *ColString, cdouble *Entries);
+   void SetEntriesD(const char *RowString, int Col, 
+                    double *Entries, double Entry=0.0);
+   void SetEntries(const char *RowString, int Col, 
+                   cdouble *Entries, cdouble Entry=0.0);
+   void SetEntriesD(int Row, const char *ColString, 
+                    double *Entries, double Entry=0.0);
+   void SetEntries(int Row, const char *ColString, 
+                   cdouble *Entries, cdouble Entry=0.0);
+   void SetEntriesD(const char *RowString, int Col, double Entry)
+    { SetEntriesD(RowString, Col, 0, Entry); }
+   void SetEntries(const char *RowString, int Col, cdouble Entry)
+    { SetEntries(RowString, Col, 0, Entry); }
+   void SetEntriesD(int Row, const char *ColString, double Entry)
+    { SetEntriesD(Row, ColString, 0, Entry); }
+   void SetEntries(int Row, const char *ColString, cdouble Entry)
+    { SetEntries(Row, ColString, 0, Entry); }
    void DoSetEntries(int RowStart, int RowStop, int RowInc, int RowLen,
                      int ColStart, int ColStop, int ColInc, int ColLen,
-                     HMatrix *B);
+                     HMatrix *B, cdouble Entry=0.0);
 
 
    /* routine for copying another HMatrix of the same size*/

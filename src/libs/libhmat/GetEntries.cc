@@ -376,7 +376,7 @@ HMatrix *HMatrix::DoGetEntries(int RowStart, int RowStop, int RowInc, int RowLen
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void HMatrix::SetEntriesD(const char *RowString, int Col, double *Entries)
+void HMatrix::SetEntriesD(const char *RowString, int Col, double *Entries, double Entry)
 {
   /***************************************************************/
   /* parse column string *****************************************/
@@ -389,14 +389,22 @@ void HMatrix::SetEntriesD(const char *RowString, int Col, double *Entries)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  HMatrix B(1, Length, LHM_REAL, LHM_NORMAL, (void *)Entries);
-  DoSetEntries(RowStart, RowStop, RowInc, Length, Col, Col, 1, 1, &B);
+  if (Entries==0)
+   { 
+     DoSetEntries(RowStart, RowStop, RowInc, Length, Col, Col, 
+                  1, 1, 0, Entry);
+   }
+  else
+   { HMatrix B(1, Length, LHM_REAL, LHM_NORMAL, (void *)Entries);
+     DoSetEntries(RowStart, RowStop, RowInc, Length, Col, Col, 
+                  1, 1, &B);
+   };
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void HMatrix::SetEntries(const char *RowString, int Col, cdouble *Entries)
+void HMatrix::SetEntries(const char *RowString, int Col, cdouble *Entries, cdouble Entry)
 {
   /***************************************************************/
   /* parse column string *****************************************/
@@ -409,14 +417,22 @@ void HMatrix::SetEntries(const char *RowString, int Col, cdouble *Entries)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  HMatrix B(1, Length, LHM_COMPLEX, LHM_NORMAL, (void *)Entries);
-  DoSetEntries(RowStart, RowStop, RowInc, Length, Col, Col, 1, 1, &B);
+  if (Entries==0)
+   { 
+     DoSetEntries(RowStart, RowStop, RowInc, Length, Col, Col, 
+                  1, 1, 0, Entry);
+   }
+  else
+   { HMatrix B(1, Length, LHM_COMPLEX, LHM_NORMAL, (void *)Entries);
+     DoSetEntries(RowStart, RowStop, RowInc, Length, Col, Col,
+                  1, 1, &B);
+   };
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void HMatrix::SetEntriesD(int Row, const char *ColString, double *Entries)
+void HMatrix::SetEntriesD(int Row, const char *ColString, double *Entries, double Entry)
 {
   /***************************************************************/
   /* parse column string *****************************************/
@@ -426,14 +442,22 @@ void HMatrix::SetEntriesD(int Row, const char *ColString, double *Entries)
   if (Length<=0)
    ErrExit("invalid column index string %s",ColString);
 
-  HMatrix B(1, Length, LHM_REAL, LHM_NORMAL, (void *)Entries);
-  DoSetEntries(Row, Row, 1, 1, ColStart, ColStop, ColInc, Length, &B);
+  if (Entries==0)
+   { DoSetEntries(Row, Row, 1, 1, ColStart, ColStop, ColInc, 
+                  Length, 0, Entry);
+   }
+  else
+   { 
+     HMatrix B(1, Length, LHM_REAL, LHM_NORMAL, (void *)Entries);
+     DoSetEntries(Row, Row, 1, 1, ColStart, ColStop, ColInc, 
+                  Length, &B);
+   };
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void HMatrix::SetEntries(int Row, const char *ColString, cdouble *Entries)
+void HMatrix::SetEntries(int Row, const char *ColString, cdouble *Entries, cdouble Entry)
 {
   /***************************************************************/
   /* parse column string *****************************************/
@@ -443,8 +467,17 @@ void HMatrix::SetEntries(int Row, const char *ColString, cdouble *Entries)
   if (Length<=0)
    ErrExit("invalid column index string %s",ColString);
 
-  HMatrix B(1, Length, LHM_COMPLEX, LHM_NORMAL, (void *)Entries);
-  DoSetEntries(Row, Row, 1, 1, ColStart, ColStop, ColInc, Length, &B);
+  if (Entries==0)
+   { 
+      DoSetEntries(Row, Row, 1, 1, ColStart, ColStop, ColInc, 
+                  Length, 0, Entry);
+   }
+  else
+   {  
+     HMatrix B(1, Length, LHM_COMPLEX, LHM_NORMAL, (void *)Entries);
+     DoSetEntries(Row, Row, 1, 1, ColStart, ColStop, ColInc, 
+                  Length, &B);
+   }
 }
 
 
@@ -453,7 +486,7 @@ void HMatrix::SetEntries(int Row, const char *ColString, cdouble *Entries)
 /***************************************************************/
 void HMatrix::DoSetEntries(int RowStart, int RowStop, int RowInc, int RowLen,
                            int ColStart, int ColStop, int ColInc, int ColLen,
-                           HMatrix *B)
+                           HMatrix *B, cdouble Entry)
 {
   /*--------------------------------------------------------------*/
   /*- sanity checks on requested row/column swaths ---------------*/
@@ -471,12 +504,12 @@ void HMatrix::DoSetEntries(int RowStart, int RowStop, int RowInc, int RowLen,
    ErrExit("invalid B matrix in DoSetEntries()");
 
   /*--------------------------------------------------------------*/
-  /*- do the extraction ------------------------------------------*/
+  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   for(int nr=0; nr<RowLen; nr++)
    for(int nc=0; nc<ColLen; nc++)
-    SetEntry(RowStart + nr*RowInc, ColStart + nc*ColInc,
-             B->GetEntry(nr, nc)
+    SetEntry( RowStart + nr*RowInc, ColStart + nc*ColInc,
+              B ? B->GetEntry(nr, nc) : Entry
             );
 
 }

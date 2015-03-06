@@ -257,7 +257,7 @@ void *GSSIThread(void *data)
       else if ( !SaIsPEC && !SbIsPEC )
        { 
          X=RowOffset + 2*nea;
-         Y=ColOffset + 2*neb;  
+         Y=ColOffset + 2*neb;
 
          B->AddEntry( X, Y,   PreFac1A*GC[0]);
          B->AddEntry( X, Y+1, PreFac2A*GC[1]);
