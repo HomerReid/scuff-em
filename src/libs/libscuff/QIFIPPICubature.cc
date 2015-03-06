@@ -477,6 +477,13 @@ void ComputeQIFIPPIData(double **Va, double **Vb, int ncv, QIFIPPIData *QIFD)
       ComputeQIFIPPIData_TaylorDuffy(Va[0], Va[1], Va[2], Vb[1], Vb[2], QIFD);
    };
 
+#define FIPPIFIX_20150306
+#ifdef FIPPIFIX_20150306
+  QIFD->x0[0]=(Va[0][0]+Va[1][0]+Va[2][0])/3.0;
+  QIFD->x0[1]=(Va[0][1]+Va[1][1]+Va[2][1])/3.0;
+  QIFD->x0[2]=(Va[0][2]+Va[1][2]+Va[2][2])/3.0;
+#endif
+
 }
 
 } // namespace scuff

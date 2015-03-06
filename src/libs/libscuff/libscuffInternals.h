@@ -237,6 +237,10 @@ typedef struct QIFIPPIData
    double uvupvpRM1[9];
    double uvupvpR1[9];
    double uvupvpR2[9];
+#define FIPPIFIX_20150306
+#ifdef FIPPIFIX_20150306
+   double x0[3];
+#endif 
  } QIFIPPIData;
 
 // a 'QDFIPPIData' is ...

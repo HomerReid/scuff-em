@@ -140,6 +140,16 @@ void GetQDFIPPIData(double **Va, double *Qa,
   /*--------------------------------------------------------------*/
   QDFD->hTimesRM3 = VecDot(QaxQb, QIFD->xMxpRM3) + VecDot(QamQb, QIFD->xXxpRM3);
 
+#define FIPPIFIX_20150306
+#ifdef FIPPIFIX_20150306
+ double L[3];
+ L[0] = QIFD->x0[0] - (Va[0][0] + Va[1][0] + Va[2][0])/3.0;
+ L[1] = QIFD->x0[1] - (Va[0][1] + Va[1][1] + Va[2][1])/3.0;
+ L[2] = QIFD->x0[2] - (Va[0][2] + Va[1][2] + Va[2][2])/3.0;
+ if ( VecNorm(L) > 1.0e-8*VecNorm(A) )
+  QDFD->hTimesRM3 -= VecDot( VecCross(L, QamQb, Scratch), QIFD->xMxpRM3 );
+#endif
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
