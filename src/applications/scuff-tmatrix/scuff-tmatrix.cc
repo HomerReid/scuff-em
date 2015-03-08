@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
   cdouble Omega=0;      // angular frequency at which to run the computation
   char *OmegaFile=0;    // list of angular frequencies
   char *Cache=0;        // scuff cache file 
+  char *FileBase=0;     // base filename for output file
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry",  PA_STRING,  1, 1, (void *)&GeoFileName,  0,  ".scuffgeo file"},
@@ -70,6 +71,7 @@ int main(int argc, char *argv[])
      {"Omega",     PA_CDOUBLE, 1, 1, (void *)&Omega,        0,  "angular frequency"},
      {"OmegaFile", PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of angular frequencies"},
      {"Cache",     PA_STRING,  1, 1, (void *)&Cache,        0,  "scuff cache file"},
+     {"FileBase",  PA_STRING,  1, 1, (void *)&FileBase,     0,  "base filename for output file"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -124,7 +126,11 @@ int main(int argc, char *argv[])
   int TypeP, lP, mP;
   const char *TypeChar="ME";
   int nr, nc;
-  FILE *TextOutputFile=vfopen("%s.TMatrix","w",GetFileBase(GeoFileName));
+  FILE *TextOutputFile;
+  if (FileBase)
+   TextOutputFile=vfopen("%s.TMatrix","w",FileBase);
+  else
+   TextOutputFile=vfopen("%s.TMatrix","w",GetFileBase(GeoFileName));
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    {
      Log("Computing T matrix at frequency %s...",z2s(Omega));
