@@ -115,7 +115,8 @@ void GetEdgeIntegrals(const double sM, const double sP,
    }
   else
    { if ( fabs(w)<1.0e-8*LengthScale )
-      { I[0]= 0.0;
+      { I[0]=  sP*(2.0*sP*sP + 3.0*t*t)/(3.0*t*t*t*RP*RP*RP)
+              -sM*(2.0*sM*sM + 3.0*t*t)/(3.0*t*t*t*RM*RM*RM);
         I[1]= (sP/RP - sM/RM) / t;
       }
      else
@@ -272,7 +273,7 @@ void GetScriptIJ(const double u[3], const double v[3], const double w0, const do
   /***************************************************************/
   /* interior point correction ***********************************/
   /***************************************************************/
-  if ( OnEdgeOrVertex || EqualFloat(Beta, 2.0*M_PI) )
+  if ( EqualFloat(Beta, M_PI) || EqualFloat(Beta, 2.0*M_PI) )
    { 
      double Sign  = w0 > 0.0 ? 1.0 : -1.0;
      double w0Abs = fabs(w0);
