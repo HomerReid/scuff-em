@@ -500,7 +500,7 @@ void HMatrix::DoSetEntries(int RowStart, int RowStop, int RowInc, int RowLen,
   if (ColLen<=0)
    ErrExit("invalid col specification (%i:%i:%i) in GetEntries",ColStart,ColInc,ColStop);
 
-  if ( !B || ( (B->NR < RowLen) || (B->NC < ColLen) ) )
+  if ( B && ( (B->NR < RowLen) || (B->NC < ColLen) ) )
    ErrExit("invalid B matrix in DoSetEntries()");
 
   /*--------------------------------------------------------------*/
