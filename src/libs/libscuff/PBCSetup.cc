@@ -444,6 +444,12 @@ void RWGGeometry::InitPBCData()
      TotalBFs+=S->NumBFs;
      TotalPanels+=S->NumPanels;
 
+     int TotalStraddlers = NumStraddlersThisSurface[0] + NumStraddlersThisSurface[1];
+     S->IsClosed = (TotalStraddlers == S->NumExteriorEdges);
+     Log("Surface %s: {Straddlers, ExteriorEdges}={%i,%i} {%s}",
+          S->Label,TotalStraddlers,S->NumExteriorEdges,
+         (S->IsClosed ? "closed" : "open"));
+
    };
 
 }
