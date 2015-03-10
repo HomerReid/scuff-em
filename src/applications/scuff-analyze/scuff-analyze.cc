@@ -204,6 +204,44 @@ void WriteGeometryGPFiles(RWGGeometry *G)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+double GetRegionVolume(RWGGeometry *G, int nr)
+{
+  double V=0.0;
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     RWGSurface *S=G->Surfaces[ns];
+
+     // open surfaces embedded in a region do
+     // not contribute to the volume of that region
+//     if (!S->IsClosed) 
+//     continue;
+
+     // surfaces that do not bound a region do not 
+     // contribute to its volume
+     double Sign=0.0;
+     if (S->RegionIndices[0]==nr)
+      Sign=-1.0;
+     else if (S->RegionIndices[1]==nr)
+      Sign=+1.0;
+     else 
+      continue;
+
+     // evaluate surface integral of \vec{x} \dot \vec{nHat}/3
+     // over this surface to get its contribution to the 
+     // volume of the region it partially bounds
+     for(int np=0; np<S->NumPanels; np++)
+      { 
+        RWGPanel *P=S->Panels[np];
+        V += Sign*VecDot(P->Centroid, P->ZHat) * P->Area / 3.0;
+      };
+   };
+
+  return V;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void WriteGeometryPPFiles(RWGGeometry *G, int Neighbors)
 {
   char PPFileName[MAXSTR];
@@ -358,6 +396,7 @@ int main(int argc, char *argv[])
   int WritePPFiles=0;
   int WriteLabels=0;
   int Neighbors=0;
+  bool RegionVolumes=false;
   /* name, type, # args, max # instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,        0, "geometry file"},
@@ -369,6 +408,7 @@ int main(int argc, char *argv[])
      {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles,   0, "write GMSH visualization files "},
      {"WriteGMSHLabels",    PA_BOOL,   0, 1, (void *)&WriteLabels,    0, "write GMSH labels"},
      {"Neighbors",          PA_INT,    1, 1, (void *)&Neighbors,      0, "number of neighboring cells to plot"},
+     {"RegionVolumes",      PA_BOOL,   0, 1, (void *)&RegionVolumes,  0, "compute volumes of closed regions"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -452,6 +492,22 @@ int main(int argc, char *argv[])
      printf("Visualizations for %i transforms written to %s.\n",NGTC,PPFileName);
  
    };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (RegionVolumes)
+   { printf("Region volumes: \n");
+     for(int nr=1; nr<G->NumRegions; nr++)
+      { 
+        printf("%i (%-20s) ",nr,G->RegionLabels[nr]);
+        double RV=GetRegionVolume(G,nr);
+        if (RV==0.0)
+         printf("unbounded\n");
+        else
+         printf("%e \n",RV);
+      };
+   }
 
   /***************************************************************/
   /***************************************************************/
