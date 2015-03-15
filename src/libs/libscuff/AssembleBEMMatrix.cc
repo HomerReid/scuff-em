@@ -445,26 +445,37 @@ done:
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  Args->GBA1=CreateRegionGBA(nr1, Omega, kBloch, nsa, nsb);
-  if (nr2!=-1) 
-   Args->GBA2=CreateRegionGBA(nr2, Omega, kBloch, nsa, nsb);
-  else
-   Args->GBA2=0;
-
   Log(" Step 2: Contributions of outer grid cells...");
   Args->Displacement = 0;
   Args->Symmetric    = false;
-  Args->OmitRegion1  = false;
-  Args->OmitRegion2  = (nr2==-1);
   Args->Accumulate   = true;
   Args->B            = M;
   Args->GradB        = GradM;
   Args->RowOffset    = RowOffset;
   Args->ColOffset    = ColOffset;
+  Args->OmitRegion1  = false;
+  Args->OmitRegion2  = (nr2==-1);
 
-  GetSurfaceSurfaceInteractions(Args);
+  Args->GBA1=CreateRegionGBA(nr1, Omega, kBloch, nsa, nsb);
+  if (Args->GBA1==0)
+   { Log("Skipping interpolation table for region %i",nr1);
+     Args->OmitRegion1  = true;
+   }
 
-  DestroyGBarAccelerator(Args->GBA1);
+  if ( !(Args->OmitRegion2) )
+   { Args->GBA2=CreateRegionGBA(nr2, Omega, kBloch, nsa, nsb);
+     if (Args->GBA2==0)
+      { Log("Skipping interpolation table for region %i",nr2);
+        Args->OmitRegion2  = true;
+      }
+   }
+  else
+   Args->GBA2=0;
+
+  if (Args->OmitRegion1 || Args->OmitRegion2)
+   GetSurfaceSurfaceInteractions(Args);
+
+  if (Args->GBA1) DestroyGBarAccelerator(Args->GBA1);
   if (Args->GBA2) DestroyGBarAccelerator(Args->GBA2);
 
 }

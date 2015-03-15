@@ -1099,14 +1099,6 @@ HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
                                 HVector *KNVector, HMatrix *RytovMatrix,
                                 HMatrix *FMatrix, bool FarField)
 { 
-  (void) XMatrix; 
-  (void) Omega;
-  (void) KNVector;
-  (void) RytovMatrix;
-  (void) FMatrix; 
-  (void) FarField;
-  return 0;
-}
   /***************************************************************/
   /* (re)allocate FMatrix as necessary ***************************/
   /***************************************************************/
@@ -1261,6 +1253,7 @@ HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
   delete FSVMatrix;
   return FMatrix;
 
-} // routine GetSRFluxTrace
+} // routine GetSRFlux
 #endif
+
 } // namespace scuff

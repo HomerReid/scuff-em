@@ -93,39 +93,65 @@ $\frac{1}{ikZ_0Z^r}$ and $\frac{1}{ik}$ are inserted to
 ensure that $\bmc G\supt{E,M}$ have dimensions of inverse
 length.
 
-The local density of states (LDOS) at a point $\vb x$
-in a scattering geometry is related to the scattering
-DGF according to
+The enhancement of the local density of states (LDOS)
+at frequency $\omega$ and at a point $\vb x$ in a 
+scattering geometry is related to the scattering DGFS according 
+to\footnote{K Joulain et al.,``Definition and measurement of the local 
+density of electromagnetic states close to an interface,''
+Physical Review B \textbf{68} 245405 (2003)}
 %====================================================================%
-$$ \texttt{LDOS}(\omega; \vb x) 
+$$ \frac{\rho(\omega; \vb x}{\rho_0(\omega)}
+   \texttt{LDOS}(\omega; \vb x) 
    = 
-   -\frac{2\omega}{\pi}\text{Tr }\text{Im }\bmc G\supt{E}(\omega; \vb x, \vb x).
+   \frac{\pi}{k_0^2}\text{Tr }\text{Im }
+   \Big[ \bmc G\supt{E}(\omega; \vb x, \vb x)
+        +\bmc G\supt{M}(\omega; \vb x, \vb x)
+   \Big]
 $$
 %====================================================================%
+where $\rho_0(\omega)\equiv k^3_0/(\pi c)$ is the free-space
+LDOS and $k_0=\omega/c$ is the free-space wavenumber at the
+frequency in question.
 
 In {\sc scuff-em} the dyadic GFs may be computed easily by solving a
 scattering problem in which the incident fields arise from a point dipole
-radiator at $\vb x_0$. For example, to compute $\mc G\supt{E}$ we 
-take the incident fields to be
+radiator at some source point $\vb x\supt{S}$. For example, to compute 
+$\mc G\supt{E}$ we take the incident fields to be the fields of a 
+unit-strength $j$-directed point electric dipole source:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- \vb E\sups{inc}(\vb x) &= \vb E\supt{PD}(\vb p, \vb x_0; \vb x)
+\begin{subequations}
+\begin{align}
+ \vb E\sups{inc}(\vb x) &= \vb E\supt{PD$j$}(\vb p, \vb x\supt{S}; \vb x)
 \\
- \vb H\sups{inc}(\vb x) &= \vb H\supt{PD}(\vb p, \vb x_0; \vb x)
-\end{align*}
+ \vb H\sups{inc}(\vb x) &= \vb H\supt{PD$j$}(\vb p, \vb x\supt{S}; \vb x)
+\end{align}
+\label{EHPD}
+\end{subequations}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where the fields of a point electric dipole are
+where the fields of a unit-strength point electric dipole at $x\supt{S}$
+have the components
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{subequations}
 \begin{align*}
- E_i&=
+ E_i\supt{PD$j$}(\vb x) &= ikZ_0 Z_r \vb G_{ij}(\vb x, \vb x_s) \\
+ H_i\supt{PD$j$}(\vb x) &= -ik       \vb C_{ij}(\vb x, \vb x_s).
 \end{align*}
 \label{PDFields}
 \end{subequations}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-(The ``PD'' superscript stands for ``point dipole'')
-
-To compute
+(The ``PD'' superscript stands for ``point dipole.'' The $\vb G$
+and $\vb C$ tensors are defined in my document \texttt{lsInnards.pdf}.)
+Then we simply solve an ordinary {\sc scuff-em} scattering
+problem with the incident fields given by equation 
+(\ref{EHPD}) and compute the scattered---not total!---fields
+at the evaluation point $\vb x\supt{D}$. The three components of the
+$\vb E$-field at $\vb x\supt{D}$, divided by $ikZ_0 Z_r$, yield one 
+full column of the $j$th row of the 
+$3\times 3$ matrix $\bmc G\sups{E}(\omega; \vb x\supt{D}, \vb x\supt{S}.)$
+Calculating $\bmc G\sups{M}$ is similar except that we use 
+a point magnetic source to supply the incident field 
+and compute the scattered $\vb H$ field instead of the 
+scattered $\vb E$ field.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -209,6 +235,130 @@ let's consider the problem of computing the field of an
 many appropriately-phased point source \textit{arrays}.
 This will give us some insight into how many cubature points we 
 may expect
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Test: LDOS above an infinite half-space}
+
+At a height $z$ above an infinite material half-space,
+the enhancement of the electric LDOS may be expressed
+as an integral over a dimensionless parameter 
+$\kappa$:\footnote{K. Joulain et al.,``Definition and 
+measurement of the local density of electromagnetic states
+ close to an interface,'' Physical Review B \textbf{68} 245405 (2003)}
+%====================================================================%
+\numeq{JoulainLDOS}
+{
+ \frac{\rho\supt{E}(z; \omega)}{\rho_0(\omega)}
+  =\frac{1}{4}\int_0^\infty \kappa F(\kappa) \, d\kappa,
+}
+%====================================================================%
+\numeq{JoulainFKappa}
+{
+  F(\kappa)=
+   \frac{1}{\kappa_z}
+   \begin{cases}
+         2 + \text{Re }\Big( r^s e^{2 i k_z z} \Big)
+           + \Big(2\kappa^2-1\Big) \text{Re }\Big( r^p e^{2ik_z z}\Big)
+         , \qquad &\kappa < 1 \\[10pt]
+    \Big[   \text{Im }\big( r^s \big)
+           + \big(2\kappa^2-1\big) \text{Im }\big( r^p \Big)
+    \Big]e^{-2k_z z}, \qquad &\kappa > 1
+   \end{cases}
+}
+%====================================================================%
+where 
+%====================================================================%
+$$ \kappa_z \equiv 
+   \begin{cases}
+     \sqrt{1-\kappa^2}, \qquad &\kappa < 1, \\
+     \sqrt{\kappa^2-1}, \qquad &\kappa > 1, 
+   \end{cases}
+   \qquad
+   k_z \equiv k_0\kappa_z,
+   \qquad
+   k_0 \equiv \frac{\omega}{c},
+$$  
+%====================================================================%
+$$ r_s =,
+   \qquad 
+   r_p =
+   .
+$$
+%====================================================================%
+The integral in (\ref{JoulainLDOS}) is computing the LDOS as a trace in 
+the plane-wave basis; the integral over $\kappa$ is essentially a sum over 
+all possible plane-wave wavevectors $\vb k$, and the multiple terms in 
+(\ref{JoulainFKappa}) account for the two possible polarizations for each 
+wavevector. More specifically, if we think in terms of the usual 
+Fresnel-scattering picture of a plane wave incident on a planar interface, 
+then $\kappa$ is the sine of the incident angle and $\kappa_z$ is its 
+cosine, i.e. the wavevector of the plane wave 
+is %====================================================================
+$$ \vb k = (k_x, k_y, k_z) = k_0(\sin\theta, 0, \cos\theta)
+   =k_0(\kappa, 0, \kappa_z)
+$$
+%====================================================================
+and $r^s$ and $r^p$ are the Fresnel coefficients for reflection
+of TE and TM waves from the half-space. 
+This interpretation applies to the $0\le \kappa<1$ contribution to 
+the integral in (\ref{JoulainLDOS}). 
+
+However, the trace in equation (\ref{JoulainLDOS}) also contains
+contributions from modes that cannot be excited by irradiating
+the interface from the outside with a plane wave (corresponding
+to the $\kappa>1$ portion of the integral). These are 
+\textit{evanescent} waves for which the in-plane wavenumber
+$k_\parallel=\kappa k_0$ is greater than the free-space wavenumber 
+$k_0$. The fields associated with these modes decay exponentially
+as we move away from the half-space into the vacuum region. 
+
+\subsection*{Expression as a Brillouin-zone integral}
+
+To write equation (\ref{JoulainLDOS}) in a form that facilitates
+comparison with {\sc scuff-ldos} calcuations, I first interpret
+the integral over $\kappa$ as an integral over the upper-right
+quadrant of the $\vb k_\parallel=(k_x,k_y)$ plane; here
+$\kappa$ is the radial component of $\vb k_\parallel$ measured in
+units of $k_0$, i.e. $\kappa=\sqrt{k_x^2 + k_y^2}/k_0=k_\rho/k_0,$ 
+and the integrand in (\ref{JoulainLDOS}) is independent of the 
+angle $k_\theta=\atan(k_y/k_x).$ Then I have
+%====================================================================%
+\begin{align*}
+ \frac{\rho\supt{E}(z; \omega)}{\rho_0(\omega)}
+  &=\frac{1}{4}\int_0^\infty \kappa F(\kappa) \, d\kappa
+\\
+  &=\frac{1}{2\pi k_0^2}
+    \int_0^\infty k_\rho dk_\rho \int_0^{\pi/2} \, dk_\theta F\pf{k_\rho}{k_0}
+\\
+  &=\frac{1}{2\pi k_0^2}
+    \int_0^\infty dk_x \int_0^\infty dk_y \, F(k_x, k_y)
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ F(k_x, k_y)=\pf{\sqrt{k_x^2 + k_y^2}}{k_0}.$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I now rewrite the integral over the infinite upper-right
+quadrant of the $(k_x,k_y)$ plane as an integral over a
+\textit{finite} rectangle of that plane with side lengths 
+$\{\Gamma_x, \Gamma_y\}$: the integrand now consists of an 
+infinite sum of terms: 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{JoulainFolded}
+{
+    \frac{\rho\supt{E}(z; \omega)}{\rho_0(\omega)}
+  = \frac{1}{2\pi k_0^2}
+    \int_0^{\Gamma_x} \, dk_x \, \int_0^{\Gamma_y} \, dk_y \,
+    \overline{F}(k_x, k_y),
+}
+$$
+    \overline{F}(k_x, k_y)=\sum_{n_x,n_y=0}^\infty 
+              F\Big( k_x + n_x \Gamma_x, k_y + n_y\Gamma_y \Big).
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

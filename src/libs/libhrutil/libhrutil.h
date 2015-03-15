@@ -118,6 +118,28 @@ void z2s(cdouble z, char *zStr);
 char *z2s(cdouble z);
 
 /***************************************************************/
+/* simple operations on arrays of floating-point numbers       */
+/***************************************************************/
+void VecScale(double *V1, double Alpha, int N=3);
+void VecScale(cdouble *V1, cdouble Alpha, int N=3);
+void VecPlusEquals(double *V1, double *V2, int N=3);
+void VecPlusEquals(cdouble *V1, cdouble *V2, int N=3);
+#if 0
+void VecCompare(double *V1, double *V2, int N,
+                const char *str1, const char *str2);
+void VecCompare(cdouble *V1, cdouble *V2, int N,
+                const char *str1, const char *str2);
+void VecCompare(double *V1, double *V2, double *V3, int N,
+                const char *str1, const char *str2, const char *str3);
+void VecCompare(cdouble *V1, cdouble *V2, cdouble *V3, int N,
+                const char *str1, const char *str2, const char *str3);
+void VecPrint(FILE *f, double *v, int N=3,
+              const char *format="%+.8e");
+void VecPrint(FILE *f, double *v, int N=3,
+              const char *format="%+.8e");
+#endif
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void SetCodeMarker(const char *Marker);

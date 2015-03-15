@@ -309,7 +309,7 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
 
   /***************************************************************/
   /* If the wavenumber has an imaginary component, LMax is the   */
-  /* distance from the origin at which GBar has decayed to 1e-10 */
+  /* distance from the origin at which GBar has decayed to 1e-6  */
   /* of its value at the origin. If LMax lies within the Wigner- */
   /* Seitz cell then we can truncate the range of our            */
   /* interpolation table accordingly.                            */
@@ -318,7 +318,7 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   double Kappa=imag(k);
   if (Kappa!=0.0)
    { 
-     double GoK = 23.0/Kappa; // note 23.0 \approx log(1.0e10)
+     double GoK = 14.0/Kappa; // note 14.0 \approx log(1.0e6)
      LMax = sqrt( GoK*GoK + 2.0*RhoMin*GoK );
    };
   GBA->LMax=LMax;
@@ -930,6 +930,23 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /***************************************************************/
   /***************************************************************/
   cdouble k = Omega * RegionMPs[nr]->GetRefractiveIndex(Omega);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( ExcludeInnerCells && imag(k)>0.0 )
+   { 
+     double minL=2.0*sqrt(   GBA_LBV[0][0]*GBA_LBV[0][0]
+                           + GBA_LBV[0][1]*GBA_LBV[0][1]
+                         );
+     if (GBA_LDim>1)
+      minL=fmin(minL, 2.0*sqrt(   GBA_LBV[1][0]*GBA_LBV[1][0]
+                                + GBA_LBV[1][1]*GBA_LBV[1][1]));
+printf("(im k, minL)=(%e,%e)\n",imag(k),minL);
+
+     if ( imag(k)*minL > 14.0 )
+      return 0;
+   };
 
   /***************************************************************/
   /***************************************************************/
