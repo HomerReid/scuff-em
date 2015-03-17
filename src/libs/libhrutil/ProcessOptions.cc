@@ -124,7 +124,7 @@ int ProcessOption(char *Option, char *Args[], int NumArgs,
       /*--------------------------------------------------------------*/
       /*- make sure the correct number of arguments were specified   -*/
       /*--------------------------------------------------------------*/
-      if (NumArgs != OS->NumArgs)
+      if (NumArgs != OS->NumArgs && OS->Type!=PA_BOOL)
        return snprintf(ErrMsg,MAXSTR,"option --%s needs %i arguments (%i provided)", Option,OS->NumArgs,NumArgs);
 
       /*--------------------------------------------------------------*/

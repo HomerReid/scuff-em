@@ -374,9 +374,6 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch
   if ( (LDim==0 && kBloch!=0) || (LDim!=0 && kBloch==0) )
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
-  if ( LDim>0 )
-   IFList->SetLattice(LDim, LBasis, true);
-
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
