@@ -139,13 +139,13 @@ void PointSource::GetFields(const double X[3], cdouble EH[6])
    { 
      ExpFac /= Mu;
 
-     EH[0]=-1.0*ExpFac*Term3*RCrossP[0] / Z;
-     EH[1]=-1.0*ExpFac*Term3*RCrossP[1] / Z;
-     EH[2]=-1.0*ExpFac*Term3*RCrossP[2] / Z;
+     EH[0]=-1.0*Z*ExpFac*Term3*RCrossP[0];
+     EH[1]=-1.0*Z*ExpFac*Term3*RCrossP[1];
+     EH[2]=-1.0*Z*ExpFac*Term3*RCrossP[2];
 
-     EH[3]=ExpFac*( Term1*P[0] + Term2*RHat[0] ) / (Z*Z);
-     EH[4]=ExpFac*( Term1*P[1] + Term2*RHat[1] ) / (Z*Z);
-     EH[5]=ExpFac*( Term1*P[2] + Term2*RHat[2] ) / (Z*Z);
+     EH[3]=ExpFac*( Term1*P[0] + Term2*RHat[0] );
+     EH[4]=ExpFac*( Term1*P[1] + Term2*RHat[1] );
+     EH[5]=ExpFac*( Term1*P[2] + Term2*RHat[2] );
    };
 
 }
@@ -211,41 +211,43 @@ void PointSource::GetFields_Periodic(const double X[3], cdouble EH[6])
   /* now assemble the derivatives of G0 appropriately to form the*/
   /* dyadic GFs and read off the E and H fields due to the source*/
   /* note the scuff convention that dipole moment is measured    */
-  /* in units of volts/um^2 instead of coulomb*um; what this     */
+  /* in units of volts*um^2 instead of coulomb*um; what this     */
   /* means is that the numerical value of the dipole moment you  */
   /* specify to scuff is the dipole moment in coulombs*microns   */
   /* divided by 377 (the impedance of free space).               */
   /***************************************************************/
-  //cdouble PreFac1 = Omega*k*ZVAC*ZRel;
-  //cdouble PreFac2 = -II*Omega;
-  cdouble PreFac1 = Omega*k*ZRel;
-  cdouble PreFac2 = II*Omega/ZVAC;
-
-  // assume ( Type == LIF_ELECTRIC_DIPOLE ) and switch later as necessary
-  EH[0*3 + 0 ]
-   = PreFac1 * (G*P[0] + (ddG[0][0]*P[0]+ddG[0][1]*P[1]+ddG[0][2]*P[2])/k2 );
-  EH[0*3 + 1 ] 
-   = PreFac1 * (G*P[1] + (ddG[1][0]*P[0]+ddG[1][1]*P[1]+ddG[1][2]*P[2])/k2 );
-  EH[0*3 + 2 ] 
-   = PreFac1 * (G*P[2] + (ddG[2][0]*P[0]+ddG[2][1]*P[1]+ddG[2][2]*P[2])/k2 );
-
-  EH[1*3 + 0] = PreFac2 * (P[1]*dG[2] - P[2]*dG[1]);
-  EH[1*3 + 1] = PreFac2 * (P[2]*dG[0] - P[0]*dG[2]);
-  EH[1*3 + 2] = PreFac2 * (P[0]*dG[1] - P[1]*dG[0]);
-
-  if ( Type == LIF_MAGNETIC_DIPOLE ) 
+  if ( Type == LIF_ELECTRIC_DIPOLE )
    { 
-     cdouble Z2=ZVAC*ZVAC*Mu/Eps;
-     cdouble Hx=EH[0] / Z2;
-     cdouble Hy=EH[1] / Z2;
-     cdouble Hz=EH[2] / Z2;
+     cdouble PreFac1 = k*k/Eps;
+     cdouble PreFac2 = II*Omega/ZVAC;
 
-     EH[0] = -EH[3];
-     EH[1] = -EH[4];
-     EH[2] = -EH[5];
-     EH[3] = Hx;
-     EH[4] = Hy;
-     EH[5] = Hz;
+     EH[0*3 + 0 ]
+      = PreFac1 * (G*P[0] + (ddG[0][0]*P[0]+ddG[0][1]*P[1]+ddG[0][2]*P[2])/k2 );
+     EH[0*3 + 1 ] 
+      = PreFac1 * (G*P[1] + (ddG[1][0]*P[0]+ddG[1][1]*P[1]+ddG[1][2]*P[2])/k2 );
+     EH[0*3 + 2 ] 
+      = PreFac1 * (G*P[2] + (ddG[2][0]*P[0]+ddG[2][1]*P[1]+ddG[2][2]*P[2])/k2 );
+
+     EH[1*3 + 0] = PreFac2 * (P[1]*dG[2] - P[2]*dG[1]);
+     EH[1*3 + 1] = PreFac2 * (P[2]*dG[0] - P[0]*dG[2]);
+     EH[1*3 + 2] = PreFac2 * (P[0]*dG[1] - P[1]*dG[0]);
+   }
+  else
+   { 
+     cdouble PreFac1 = k*k/Mu;
+     cdouble PreFac2 = II*Omega/ZVAC;
+
+     EH[1*3 + 0 ]
+      = PreFac1 * (G*P[0] + (ddG[0][0]*P[0]+ddG[0][1]*P[1]+ddG[0][2]*P[2])/k2 );
+     EH[1*3 + 1 ] 
+      = PreFac1 * (G*P[1] + (ddG[1][0]*P[0]+ddG[1][1]*P[1]+ddG[1][2]*P[2])/k2 );
+     EH[1*3 + 2 ] 
+      = PreFac1 * (G*P[2] + (ddG[2][0]*P[0]+ddG[2][1]*P[1]+ddG[2][2]*P[2])/k2 );
+
+     EH[0*3 + 0] = -PreFac2 * (P[1]*dG[2] - P[2]*dG[1]);
+     EH[0*3 + 1] = -PreFac2 * (P[2]*dG[0] - P[0]*dG[2]);
+     EH[0*3 + 2] = -PreFac2 * (P[0]*dG[1] - P[1]*dG[0]);
+
    };
 
 }

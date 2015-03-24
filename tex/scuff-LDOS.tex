@@ -100,9 +100,11 @@ to\footnote{K Joulain et al.,``Definition and measurement of the local
 density of electromagnetic states close to an interface,''
 Physical Review B \textbf{68} 245405 (2003)}
 %====================================================================%
-$$ \frac{\rho(\omega; \vb x}{\rho_0(\omega)}
-   \texttt{LDOS}(\omega; \vb x) 
-   = 
+$$
+   \texttt{LDOS}(\omega; \vb x)
+   \equiv 
+   \frac{\rho(\omega; \vb x)}{\rho_0(\omega)}
+   \equiv 
    \frac{\pi}{k_0^2}\text{Tr }\text{Im }
    \Big[ \bmc G\supt{E}(\omega; \vb x, \vb x)
         +\bmc G\supt{M}(\omega; \vb x, \vb x)
@@ -115,39 +117,33 @@ frequency in question.
 
 In {\sc scuff-em} the dyadic GFs may be computed easily by solving a
 scattering problem in which the incident fields arise from a point dipole
-radiator at some source point $\vb x\supt{S}$. For example, to compute 
-$\mc G\supt{E}$ we take the incident fields to be the fields of a 
-unit-strength $j$-directed point electric dipole source:
+radiator at a source point $\vb x\subt{S}$.
+For example, to compute $\mc G\supt{E}$ we take the incident fields 
+to be the fields of a unit-strength $j$-directed point electric dipole 
+source at $\vb s\supt{S}$:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{subequations}
-\begin{align}
- \vb E\sups{inc}(\vb x) &= \vb E\supt{PD$j$}(\vb p, \vb x\supt{S}; \vb x)
-\\
- \vb H\sups{inc}(\vb x) &= \vb H\supt{PD$j$}(\vb p, \vb x\supt{S}; \vb x)
-\end{align}
-\label{EHPD}
-\end{subequations}
+\numeq{EHED}
+{
+ \vb E\sups{inc}(\vb x) =
+ \vb E\supt{ED}\Big(\vb x; \{\vb x\subt{S}, \vbhat{x}_j\} \Big),
+ \qquad
+ \vb H\sups{inc}(\vb x) =
+ \vb H\supt{ED}\Big(\vb x; \{\vb x\subt{S}, \vbhat{x}_j\} \Big)
+}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where the fields of a unit-strength point electric dipole at $x\supt{S}$
-have the components
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{subequations}
-\begin{align*}
- E_i\supt{PD$j$}(\vb x) &= ikZ_0 Z_r \vb G_{ij}(\vb x, \vb x_s) \\
- H_i\supt{PD$j$}(\vb x) &= -ik       \vb C_{ij}(\vb x, \vb x_s).
-\end{align*}
-\label{PDFields}
-\end{subequations}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-(The ``PD'' superscript stands for ``point dipole.'' The $\vb G$
-and $\vb C$ tensors are defined in my document \texttt{lsInnards.pdf}.)
+where $\{\vb E, \vb H\}\supt{ED}\Big(\vb x; \{\vb x_0, \vb p_0\}\Big)$
+are the fields of a point electric dipole radiator 
+at $\vb x_0$ with dipole moment $\vb p_0$. 
+(Expressions for these fields are given in 
+Appendix \ref{DipoleFieldsAppendix}).
 Then we simply solve an ordinary {\sc scuff-em} scattering
 problem with the incident fields given by equation 
-(\ref{EHPD}) and compute the scattered---not total!---fields
-at the evaluation point $\vb x\supt{D}$. The three components of the
-$\vb E$-field at $\vb x\supt{D}$, divided by $ikZ_0 Z_r$, yield one 
-full column of the $j$th row of the 
-$3\times 3$ matrix $\bmc G\sups{E}(\omega; \vb x\supt{D}, \vb x\supt{S}.)$
+(\ref{EHED}) and compute the scattered---not total!---fields
+at the evaluation point $\vb x\subt{D}$. The three components of the
+$\vb E$-field at $\vb x\subt{D}$, divided by $ikZ_0 Z_r$, yield the
+three vertical entries of the $j$th column of the
+$3\times 3$ matrix 
+$\bmc G\sups{E}(\omega; \vb x\subt{D}, \vb x\subt{S}.)$
 Calculating $\bmc G\sups{M}$ is similar except that we use 
 a point magnetic source to supply the incident field 
 and compute the scattered $\vb H$ field instead of the 
@@ -170,57 +166,82 @@ then we have the built-in assumption
 where $\vb L$ is any lattice vector and 
 $\vb k\subt{B}$ is the Bloch wavevector.
 
-The fields of a point dipole, equation (\ref{PDFields}), do \textit{not}
+The fields of a point dipole, equation (\ref{EHED}), do \textit{not}
 satisfy (\ref{BlochCondition}), and hence may not be used in
 Bloch-periodic {\sc scuff-em} calculations. Instead, what we can 
 simulate in the periodic case are the fields of an infinite
-phased \textit{array} of point dipoles,
+phased \textit{array} of point electric dipoles,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{subequations}
-\begin{align*}
- \vb E\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x)
+\begin{align}
+ \vb E\supt{EDA}\Big(\vb x; \{ \vb x_0, \vb p_0, \vb k\subt{B}\}\Big)
 &=\sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}
-  \vb E\supt{PD}(\vb p, \vb x_0 + \vb L; \vb x)
+  \, \vb E\supt{ED}\Big(\vb x; \{\vb x\subt{0}+\vb L, \vb p_0\} \Big),
 \\
- \vb H\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x)
-&=\sum_{\vb L} e^{i\vb k\subt{B} \cdot \vb L}
-  \vb H\supt{PD}(\vb p, \vb x_0  + \vb L; \vb x)
-\end{align*}
-\label{EHPDA}
+ \vb H\supt{EDA}\Big(\vb x; \{ \vb x_0, \vb p_0, \vb k\subt{B}\}\Big)
+&=\sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}
+  \, \vb H\supt{ED}\Big(\vb x; \{\vb x\subt{0}+\vb L, \vb p_0\} \Big),
+\end{align}
+\label{EHEDA}
 \end{subequations}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-(where ``PDA'' stands for ``point dipole array''). The quantity
-we can compute
-
-The inversion of equations (\ref{EHPDA}) recovers the fields
-of a point source as an integral over the Brillouin zone of the 
-lattice:\footnote{To derive these equations, multiply both sides
-of (\ref{EHPDA}) by $e^{-i\vb k\subt{B} \cdot \vb L^\prime}$,
+(where ``EDA'' stands for ``electric dipole array''). The quantities
+we can compute in a single {\sc scuff-em} scattering calculation
+are now the periodically phased versions of the DGFs, i.e.
+(suppressing $\omega$ arguments),
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{ScriptGBarDef}
+{
+ \overline{\mc G_{ij}\supt{E}}(\vb x, \vb x^\prime, \vb k\subt{B})
+ \equiv \sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}
+  \mc G_{ij}\sups{E}(\vb x, \vb x^\prime-\vb L), 
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+with $\overline{\mc G_{ij}\supt{M}}$ defined similarly.
+(Here and elsewhere, barred symbols denote Bloch-periodic 
+quantities.) To recover the non-periodic Green's function---that
+is, the response of our periodic geometry to a \textit{non-periodic}
+point source---we must perform a Brillouin-zone 
+integration:\footnote{To derive these equations, multiply both sides
+of (\ref{ScriptGBarDef}) by $e^{-i\vb k\subt{B} \cdot \vb L^\prime}$,
 integrate both sides over the Brillouin zone, and use the
 condition 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$\int\subt{BZ} e^{i\vb k\subt{B}\cdot (\vb L-\vb L^\prime)}\,d\vb k
   =\mc{V}\subt{BZ} \, \delta(\vb L,\vb L^\prime)
 $$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 where $\mc V\subt{BZ}$ is the Brillouin-zone volume [for example,
 a square lattice with basis vectors
 $\{\vb L_1, \vb L_2\}=\{L_x\vbhat{x}, L_y\vbhat{y}\}$ has
 $\mc V\subt{BZ}=4\pi^2/(L_x L_y)$].
-Setting $\vb L^\prime=0$ recovers (\ref{EHPDAInverse}).}
+Setting $\vb L^\prime=0$ recovers (\ref{BZIntegration}).}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{subequations}
-\begin{align}
-  \vb E\supt{PD}(\vb p, \vb x_0; \vb x)
-&=\frac{1}{\mc V\subt{BZ}} 
-   \int\subt{BZ} \vb E\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x) 
-   d\vb k\subt{B}
-\\
-  \vb H\supt{PD}(\vb p, \vb x_0; \vb x)
-&=\frac{1}{\mc V\subt{BZ}} 
-   \int\subt{BZ} \vb H\supt{PDA}(\vb p, \vb x_0, \vb k\subt{B}; \vb x) 
-   d\vb k\subt{B}
-\end{align}
-\label{EHPDAInverse}
-\end{subequations}
+\numeq{BZIntegration}
+{
+  \mc G_{ij}\supt{E}(\vb x, \vb x^\prime)
+ =\frac{1}{\mc V\subt{BZ}} 
+   \int\subt{BZ} 
+   \overline{\mc G_{ij}\supt{E}}(\vb x, \vb x^\prime, \vb k\subt{B})
+   \, d\vb k\subt{B}.
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+and similarly for $\mc G\supt{M}.$
+
+\subsection*{Evaluation of BZ integrals}
+
+For a 2D square lattice with lattice vectors 
+$\vb L_1=L_x\vbhat{x}, \vb L_2=L_y\vbhat{x},$
+a set of reciprocal-lattice basis vectors is 
+$\vbGamma_1=\pf{2\pi}{L_x} \vbhat{x},
+ \vbGamma_2=\pf{2\pi}{L_y} \vbhat{y}$,
+and Brillouin-zone integrals take the form
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \frac{1}{\mc V\subt{BZ}} 
+   \int\subt{BZ} f(\vb k\subs{B}) \, d \vb k\subt{B}
+  =4\int_0^{1/2} \, d u_1 \, \int_0^{1/2} \, d u_2 \, 
+   f\Big( u_1\vbGamma_1 + u_y\vbGamma_2 \Big)
+$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -363,69 +384,249 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{Technical implementation details}
+\appendix
+\newpage 
+\section{Fields of a phased array of point dipole radiators}
+\label{DipoleFieldsAppendix}
 
-\subsection*{Computing the fields of a point dipole array}
+To compute dyadic Green's functions in periodic geometries,
+{\sc scuff-ldos} solves a scattering problem in which the
+incident fields originate from a an infinite phased array
+of point sources. Here I describe the calculation of these
+infinite fields. This calculation implemented by the 
+\texttt{PointSource} 
+class in the {\sc libincfield} module in {\sc scuff-em}.
 
-%The {\sc libincfield} module in {\sc scuff-em} contains a
-%built-in routine (in the \texttt{PointSource} class)
-%for computing the fields of a single point dipole, but
+\subsection*{Fields of a single point dipole}
 
-First consider a single point dipole radiator (not an array) 
-at $\vb x_0$ with dipole moment $\vb p_0$ 
+First consider a single point electric dipole radiator (not an array)
+with dipole moment $\vb p_0$ at a point $\vb x_0$ in a
+medium with relative permittivity and permeability
+$\epsilon^r, \mu^r$
 (as usual suppressing time-dependence factors
-of $e^{-i\omega t}$). Thinking of this as an electric
-current distribution of the form
-%====================================================================%
-$$ \vb J(\vb x) = -i\omega \vb p \delta(\vb x-\vb x_0) $$
-%====================================================================%
-it is easy to compute the fields by convolution with the usual
-Green's functions relating currents to fields:
+of $e^{-i\omega t}$). The fields at $\vb x$ due to this source are 
 %====================================================================%
 \begin{align*}
+  \vb E\supt{ED}(\vb x; \vb x_0, \vb p_0)
+   &= \frac{|\vb p_0|}{\epsilon_0 \epsilon^r}
+      \cdot \frac{e^{ikr}}{4\pi r^3} \cdot 
+      \Big[ f_1(ikr) \vbhat{p_0} + f_2(ikr)(\vbhat{r}\cdot \vbhat{p_0})\vbhat{r} \Big]
+\\
+  \vb H\supt{ED}(\vb x; \vb x_0, \vb p_0)
+   &= \frac{1}{Z_0 Z^r }\cdot \frac{|\vb p_0|}{\epsilon_0 \epsilon^r}
+      \cdot \frac{e^{ikr}}{4\pi r^3} \cdot 
+      \Big[ f_3(ikr) (\vbhat{r}\times\vbhat{p_0})\Big]
+\end{align*}
+%====================================================================%
+$$ \vb r=|\vb x-\vb x_0|, \qquad r=|\vb r|, \qquad \vbhat{r}=\frac{\vb r}{r},$$
+$$ f_1(x)=-1+x-x^2, \qquad f_2(x)=3-3x+x^2, \qquad f_3(x)=x-x^2.$$
+%====================================================================%
+An alternative way to understand these fields is to think of the point dipole
+$\vb p_0$ at $\vb x_0$ as a localized volume current distribution, 
+%====================================================================%
+$$ \vb J(\vb x) = -i\omega \vb p_0 \delta(\vb x-\vb x_0) $$
+%====================================================================%
+in which case it is easy to compute the fields at $\vb x$ by
+convolving with the usual (free-space) dyadic
+Green's functions relating currents to fields:
+%====================================================================%
+\begin{subequations}
+\begin{align}
  E_i(\vb x) 
 &= 
  \int \Gamma_{ij}\supt{EE}(\vb x, \vb x^\prime) J_j(\vb x^\prime) d\vb x^\prime
-\\
-&=-i\omega \Gamma_{ij}\supt{EE}(\vb x, \vb x_0) p_j
-\\
-&=(-i\omega)(ikZ_0Z^r) G_{ij}(\vb x, \vb x_0) p_j
+\nn
+&=-i\omega \Gamma_{ij}\supt{EE}(\vb x, \vb x_0) p_{0j}
+\nn
+&=(-i\omega)(ikZ_0Z^r) G_{ij}(\vb x, \vb x_0) p_{0j}
+\nn
+&=+k^2 \cdot \frac{|\vb p_0|}{\epsilon_0 \epsilon^r } \cdot G_{ij}(\vb x, \vb x_0) \hat{p}_{0j}
 \\[8pt]
 H_i(\vb x) 
  &=
 \int \Gamma_{ij}\supt{ME}(\vb x, \vb x^\prime) J_j(\vb x^\prime) d\vb x^\prime
-\\
-&=-i\omega \Gamma_{ij}\supt{ME}(\vb x, \vb x_0) p_j
-\\
-&=(-i\omega)(ik) C_{ij}(\vb x, \vb x_0) p_j
-\end{align*}
+\nn
+&=-i\omega \Gamma_{ij}\supt{ME}(\vb x, \vb x_0) p_{0j}
+\nn
+&=(-i\omega)(-ik)  C_{ij}(\vb x, \vb x_0) p_{0j}
+\nn
+&=-\frac{k^2}{Z_0 Z^r} 
+   \cdot 
+   \frac{|\vb p|}{\epsilon_0 \epsilon^r}
+   \cdot C_{ij}(\vb x, \vb x_0) \hat{p}_{0j}
+\end{align}
+\label{DipoleFieldsFromGC}
+\end{subequations}
 %====================================================================%
 where the $\vb G$ and $\vb C$ dyadics are related to the
 scalar Helmholtz Green's function according to
 %====================================================================%
-$$ G_{ij}(\vb r)
+\numeq{GCFromG0}
+{
+  G_{ij}(\vb r)
    = \Big[ \delta_{ij} +\frac{1}{k^2} \partial_i \partial_j \Big] G_0(\vb r),
 \qquad
    C_{ij}(\vb r)
    = \frac{1}{ik}\varepsilon_{ijk} \partial_k G_0(\vb r).
-$$
+}
 %====================================================================%
 
-\subsection*{Evaluation of BZ integrals}
+\subsection*{Fields of a phased array of point dipoles, take 1}
 
-For a 2D square lattice with lattice vectors 
-$\vb L_1=L_x\vbhat{x}, \vb L_2=L_y\vbhat{x},$
-a set of reciprocal-lattice basis vectors is 
-$\vbGamma_1=\pf{2\pi}{L_x} \vbhat{x},
- \vbGamma_2=\pf{2\pi}{L_y} \vbhat{y}$,
-and Brillouin-zone integrals take the form
+Now consider the fields of a phased array of electric dipoles
+of dipole moment $\vb p_0$ located at $\vb x_0$ in the lattice 
+unit cell.
+A first way to get the fields of this array is 
+to start with equations (\ref{DipoleFieldsFromGC}) and
+(\ref{GCFromG0}), but replace the non-periodic scalar
+Green's function $G_0$ with its Bloch-periodic version,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ \frac{1}{\mc V\subt{BZ}} 
-   \int\subt{BZ} f(\vb k\subs{B}) \, d \vb k\subt{B}
-  =4\int_0^{1/2} \, d u_1 \, \int_0^{1/2} \, d u_2 \, 
-   f\Big( u_1\vbGamma_1 + u_y\vbGamma_2 \Big)
+$$ G_0(\vb x-\vb x^\prime) \qquad \longrightarrow \qquad 
+   \overline{G_0}(\vb x, \vb x^\prime; \vb k\subt{B}) \equiv
+   \sum_{\vb L} e^{i \vb k\subt{B} \cdot \vb L} \, G_0(\vb x- \vb x^\prime-\vb L).
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Then the components of the fields of an electric dipole array, 
+equation (\ref{EHEDA}), read
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ E_i\supt{EDA}(\vb x)
+ &=k^2 \cdot \frac{|\vb p_0|}{\epsilon_0 \epsilon^r } 
+    \left[ \delta_{ij} + \frac{1}{k^2}\partial_i \partial_j
+    \right] \overline{G}_{0}(\vb x-\vb x^\prime)\hat{p}_{0j}
+\\
+ H_i\supt{EDA}(\vb x)
+ &=\frac{ik}{Z_0 Z^r}
+    \cdot \frac{|\vb p_0|}{\epsilon_0 \epsilon^r } \cdot
+    \epsilon_{ijk} \partial_k \overline{G}_{0}(\vb x-\vb x^\prime)
+    \hat{p}_{0j}.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Fields of a phased array of point dipoles, take 2}
+
+An alternative way to get the fields of a point array of dipoles,
+which is useful for the half-space calculation of the following
+section, is to start with the two-dimensional Fourier representation 
+of the (non-periodic) homogeneous dyadic Green's functions:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{GCInfiniteKIntegrals}
+{
+\vb G(\vbrho, z)
+ = \int_{\mathbb{R}^2}
+     \frac{d\vb k}{(2\pi)^2} \vb g(\vbrho, z; \vb k),
+\qquad
+\vb C(\vbrho, z)
+ = \int_{\mathbb{R}^2}
+     \frac{d\vb k}{(2\pi)^2} \vb c(\vbrho, z; \vb k),
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+\vb g(\vbrho, z; \vb k)
+&= \pf{i}{2k_0^2 k_z}
+   \left(\begin{array}{ccc}
+    k_0^2-k_x^2      & k_x k_y      & \pm k_z k_x \\
+    k_y k_x          & k_0^2-k_y^2  & \pm k_z k_y \\
+    \pm  k_x k_z     & \pm k_y k_z  & k_0^2-k_z^2
+    \end{array}\right) e^{i\vb k \cdot \vbrho} e^{\pm i k_z z}
+\\[5pt]
+\vb c(\vbrho, z; \vb k)
+ &= -\pf{1}{2k_0 k_z}
+     \left(\begin{array}{ccc}
+         0 & \pm k_z & -k_y \\
+  \mp k_z  & 0       &  k_x \\
+      k_y  & -k_x    &  0 
+     \end{array}\right) e^{i\vb k \cdot \vbrho} e^{\pm i k_z z}
+\end{align*}
+%====================================================================%
+$$
+   k_z \equiv 
+   \begin{cases}
+     \sqrt{k_0^2 - |\vb k|^2}, \qquad &|\vb k| \le \vb k_0 \\
+    i\sqrt{|\vb k|^2-k_0^2},   \qquad &|\vb k| > \vb k_0
+   \end{cases},
+   \qquad
+   \pm \equiv
+   \begin{cases}
+     +, \quad & z\ge 0 \\ 
+     -, \quad & z<   0
+   \end{cases}.
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Now reinterpret the infinite integrals over the entire $k_x, k_y$ plane in
+(\ref{GCInfiniteKIntegrals}) as finite integrals over just the Brillouin
+zone;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{GCFiniteKIntegrals}
+{
+\vb G(\vbrho, z)
+ = \int_0^{\Gamma_x} \, dk_x \, \int_0^{\Gamma_y} \, dk_y \,
+     \frac{d\vb k}{(2\pi)^2} \overline{\vb g}(\vbrho, z; \vb k),
+\qquad
+\vb C(\vbrho, z)
+ = \int_0^{\Gamma_x} \, dk_x \, \int_0^{\Gamma_y} \, dk_y \,
+     \frac{d\vb k}{(2\pi)^2} \overline{\vb c}(\vbrho, z; \vb k),
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \overline{\vb g}(\vbrho, z; k_x, k_y)
+ &= \sum_{n_x, n_y=-\infty}^{\infty}
+     \vb g\Big(\vbrho, z; k_x + n_x\vbGamma_x, k_y + n_y \vbGamma_y\Big), 
+\\
+ \overline{\vb c}(\vbrho, z; k_x, k_y) 
+ &= \sum_{n_x, n_y=-\infty}^{\infty}
+     \vb c\Big(\vbrho, z; k_x + n_x\vbGamma_x, k_y + n_y \vbGamma_y\Big).
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+If I think of (\ref{GCFiniteKIntegrals}) as equations of the form
+(\ref{BZIntegration}), i.e. equations relating non-barred quantities
+to Brillouin-zone integrals over barred quantities, I can
+identify the Bloch-periodic versions of the dyadic Green's functions
+as 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$
+\overline{\vb G}\Big(\vbrho, z; \vb k\supt{B}\Big)
+=\frac{\mc V\supt{BZ}}{(2\pi)^2}
+  \overline{\vb g}\big(\vbrho, z; \vb k\supt{B}\big), 
+\qquad
+\overline{\vb C}\Big(\vbrho, z; \vb k\supt{B}\Big)
+=\frac{\mc V\supt{BZ}}{(2\pi)^2}
+  \overline{\vb c}\big(\vbrho, z; \vb k\supt{B}\big).
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Analytical results for dyadic Green's functions above an 
+         infinite half-space}
+
+For testing purposes it is useful to have analytical expressions
+for the dyadic Green's functions above an infinite half space.
+
+\section*{Converting $k_\rho$ integrals to Brillouin-zone integrals}
+
+\begin{align*}
+ Q &= \int_0^\infty \, dk_\rho \, k_\rho F(k_\rho) 
+\\
+   &= \frac{1}{2\pi} \int_0^{2\pi} \, dk_\theta \,
+                     \int_0^\infty \, dk_\rho\, k_\rho F(k_\rho)  \,
+\\
+   &= \frac{1}{2\pi} \int_{-\infty}^{\infty} \, dk_x \,
+                     \int_{-\infty}^{\infty} \, dk_y \,
+                     F\left(\sqrt{k_x^2 + k_y^2}\right)
+\\
+   &= \frac{1}{2\pi} \int_{0}^{\Gamma_x} \, dk_x \,
+                     \int_{0}^{\Gamma_y} \, dk_y \,
+                     \overline{F}(k_x, k_y)
+\end{align*}
+$$ \overline{F}(k_x, k_y)
+   \equiv \sum_{n_x,n_y=-\infty}^\infty
+          F\left(\sqrt{ (k_x + n_x\Gamma_x)^2 + (k_y + n_y\Gamma_y)^2}\right)
+$$
+
 \end{document}
+

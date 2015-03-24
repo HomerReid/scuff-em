@@ -108,9 +108,9 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   cdouble EpsRel, MuRel;
   int nr=GetRegionIndex(XSource);
   RegionMPs[nr]->GetEpsMu(Omega, &EpsRel, &MuRel);
-  //cdouble IKZ = II*Omega*Mu*ZVAC;
-  cdouble k2 = EpsRel*MuRel*Omega*Omega;
-  cdouble Z2 = ZVAC*ZVAC*MuRel/EpsRel;
+  cdouble k=Omega*sqrt(EpsRel*MuRel);
+  cdouble EFactor = k*k/EpsRel;
+  cdouble MFactor = k*k/MuRel;
 
   double r=VecDistance(XSource, XEval);
 
@@ -126,16 +126,16 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
      AssembleRHSVector(Omega, kBloch, &PS, KN);
      M->LUSolve(KN);
      GetFields(0, KN, Omega, kBloch, XEval, EH);
-     GEScat[0][Mu]=EH[0] / k2;
-     GEScat[1][Mu]=EH[1] / k2;
-     GEScat[2][Mu]=EH[2] / k2;
+     GEScat[0][Mu]=EH[0] / EFactor;
+     GEScat[1][Mu]=EH[1] / EFactor;
+     GEScat[2][Mu]=EH[2] / EFactor;
      
      // add the incident fields unless XSource=XEval
      if (r>0.0)
       { PS.GetFields(XEval, EH);
-        GETot[0][Mu] = GEScat[0][Mu] + EH[0]/k2;
-        GETot[1][Mu] = GEScat[1][Mu] + EH[1]/k2;
-        GETot[2][Mu] = GEScat[2][Mu] + EH[2]/k2;
+        GETot[0][Mu] = GEScat[0][Mu] + EH[0] / EFactor;
+        GETot[1][Mu] = GEScat[1][Mu] + EH[1] / EFactor;
+        GETot[2][Mu] = GEScat[2][Mu] + EH[2] / EFactor;
       };
 
      // solve the scattering problem for a magnetic point source 
@@ -143,16 +143,16 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
      AssembleRHSVector(Omega, kBloch, &PS, KN);
      M->LUSolve(KN);
      GetFields(0, KN, Omega, kBloch, XEval, EH);
-     GMScat[0][Mu]=EH[3] * Z2/k2;
-     GMScat[1][Mu]=EH[4] * Z2/k2;
-     GMScat[2][Mu]=EH[5] * Z2/k2;
+     GMScat[0][Mu]=EH[3] / MFactor;
+     GMScat[1][Mu]=EH[4] / MFactor;
+     GMScat[2][Mu]=EH[5] / MFactor;
 
      // add the incident fields unless XSource=XEval
      if (r>0.0)
       { PS.GetFields(XEval, EH);
-        GMTot[0][Mu] = GMScat[0][Mu] + EH[3]*Z2/k2;
-        GMTot[1][Mu] = GMScat[1][Mu] + EH[4]*Z2/k2;
-        GMTot[2][Mu] = GMScat[2][Mu] + EH[5]*Z2/k2;
+        GMTot[0][Mu] = GMScat[0][Mu] + EH[3] / MFactor;
+        GMTot[1][Mu] = GMScat[1][Mu] + EH[4] / MFactor;
+        GMTot[2][Mu] = GMScat[2][Mu] + EH[5] / MFactor;
       };
    };
 }
