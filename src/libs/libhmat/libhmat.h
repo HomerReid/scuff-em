@@ -314,7 +314,7 @@ class HMatrix
    HVector *NSEig(HVector *Lambda=0, HMatrix *U=0);
 
    /* matrix norm*/
-   double GetNorm(bool UseInfinityNorm);
+   double GetNorm(bool UseInfinityNorm=false);
 
    /* routine for estimating reciprocal of condition    */
    /* number (assumes LUFactorize() has been called)    */
