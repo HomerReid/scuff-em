@@ -40,7 +40,9 @@ typedef std::complex<double> cdouble;
 typedef std::complex<float>  cfloat;
 
 /* following prototype added by homer 6/2005 */
-double zlange_(char*Norm, int *M, int *N, void *A, int *LDA, double *Work);
+double zlange_(char *Norm, int *M, int *N, cdouble *A, int *LDA, double *Work);
+/* following prototype added by homer 3/2015 */
+double dlange_(char *Norm, int *M, int *N, double *A, int *LDA, double *Work);
 
 /* following prototype added by homer 11/2008 */
 double dlamch_(const char *which);

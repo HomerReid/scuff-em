@@ -743,3 +743,99 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
   return Lambda;
 
 }
+
+/***************************************************************/
+/***************************************************************/ 
+/***************************************************************/
+double HMatrix::GetNorm(bool UseInfinityNorm)
+{
+  char *Norm = const_cast <char *>(UseInfinityNorm ? "I" : "0");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (RealComplex==LHM_REAL)
+   { 
+     /*--------------------------------------------------------------*/
+     /*- (re)allocate internally--stored workspaces as necessary     */
+     /*--------------------------------------------------------------*/
+     int lworkOptimal = UseInfinityNorm ? NR : 0;
+     if (lworkOptimal > lwork)
+      { work=realloc(work,lworkOptimal*sizeof(double));
+        lwork=lworkOptimal;
+      };
+
+     double *rwork=(double *)work;
+     return dlange_(Norm, &NR, &NC, DM, &NR, rwork);
+   }
+  else // (RealComplex==LHM_COMPLEX)
+   {
+     /*--------------------------------------------------------------*/
+     /*- (re)allocate internally--stored workspaces as necessary     */
+     /*--------------------------------------------------------------*/
+     int lworkOptimal = UseInfinityNorm ? NR : 0;
+     if (lworkOptimal > lwork)
+      { work=realloc(work,lworkOptimal*sizeof(double));
+        lwork=lworkOptimal;
+      };
+     double *rwork  = (double *)work;
+     return zlange_(Norm, &NR, &NC, ZM, &NR, rwork);
+   };
+
+  return 0.0;
+
+}
+
+/***************************************************************/
+/***************************************************************/ 
+/***************************************************************/
+double HMatrix::GetRCond(double ANorm, bool UseInfinityNorm)
+{
+  const char *Norm = const_cast<char *> (UseInfinityNorm ? "I" : "0");
+  double RCond;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (RealComplex==LHM_REAL)
+   { 
+     /*--------------------------------------------------------------*/
+     /*- (re)allocate internally--stored workspaces as necessary     */
+     /*--------------------------------------------------------------*/
+     int lworkOptimal = 4*NR;
+     if (lworkOptimal > lwork)
+      { work=realloc(work,lworkOptimal*sizeof(double));
+        lwork=lworkOptimal;
+      };
+     int iworkOptimal = NR;
+     if (iworkOptimal > liwork)
+      { iwork=(int *)realloc(iwork,iworkOptimal*sizeof(int));
+        liwork=iworkOptimal;
+      };
+
+     double *rwork=(double *)work;
+     int info;
+     dgecon_(Norm, &NR, DM, &NR, &ANorm, &RCond, rwork, (int *)iwork, &info);
+   }
+  else // (RealComplex==LHM_COMPLEX)
+   {
+     /*--------------------------------------------------------------*/
+     /*- (re)allocate internally--stored workspaces as necessary     */
+     /*--------------------------------------------------------------*/
+     int lworkOptimal = 6*NR; // 2N doubles plus 2N cdoubles
+     if (lworkOptimal > lwork)
+      { work=realloc(work,lworkOptimal*sizeof(double));
+        lwork=lworkOptimal;
+      };
+  
+     double *rwork  = (double *)work;
+     double *work2  = rwork + 2*NR;
+     cdouble *zwork = (cdouble *)work2;
+     int info;
+     zgecon_(Norm, &NR, ZM, &NR, &ANorm, &RCond, zwork, rwork, &info);
+
+   };
+
+  return RCond;
+
+}

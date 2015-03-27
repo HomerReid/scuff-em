@@ -313,7 +313,15 @@ class HMatrix
    /* non-symmetric matrices (dgeevx / zgeevx )         */
    HVector *NSEig(HVector *Lambda=0, HMatrix *U=0);
 
-   size_t inline NumEntries() { return StorageType==LHM_NORMAL ? ((size_t)NR)*NC : ((size_t)NR)*(NR+1)/2; }
+   /* matrix norm*/
+   double GetNorm(bool UseInfinityNorm);
+
+   /* routine for estimating reciprocal of condition    */
+   /* number (assumes LUFactorize() has been called)    */
+   double GetRCond(double ANorm, bool UseInfinityNorm=false);
+
+   size_t inline NumEntries() 
+    { return StorageType==LHM_NORMAL ? ((size_t)NR)*NC : ((size_t)NR)*(NR+1)/2; }
 
  // private:
    int NR, NC;
