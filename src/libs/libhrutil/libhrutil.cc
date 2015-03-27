@@ -914,11 +914,11 @@ bool IsFinite(cdouble z)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void VecPlusEquals(double *V1, double *V2, int N)
+void PlusEqualsVec(double *V1, double *V2, int N)
  { for(int n=0; n<N; n++) V1[n]+=V2[n]; }
-void VecPlusEquals(cdouble *V1, cdouble *V2, int N)
+void PlusEqualsVec(cdouble *V1, cdouble *V2, int N)
  { for(int n=0; n<N; n++) V1[n]+=V2[n]; }
-void VecScale(double *V1, double Alpha, int N)
+void ScaleVec(double *V1, double Alpha, int N)
  { for(int n=0; n<N; n++) V1[n]*=Alpha; }
-void VecScale(cdouble *V1, cdouble Alpha, int N)
+void ScaleVec(cdouble *V1, cdouble Alpha, int N)
  { for(int n=0; n<N; n++) V1[n]*=Alpha; }

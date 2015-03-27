@@ -120,10 +120,10 @@ char *z2s(cdouble z);
 /***************************************************************/
 /* simple operations on arrays of floating-point numbers       */
 /***************************************************************/
-void VecScale(double *V1, double Alpha, int N=3);
-void VecScale(cdouble *V1, cdouble Alpha, int N=3);
-void VecPlusEquals(double *V1, double *V2, int N=3);
-void VecPlusEquals(cdouble *V1, cdouble *V2, int N=3);
+void ScaleVec(double *V1, double Alpha, int N=3);
+void ScaleVec(cdouble *V1, cdouble Alpha, int N=3);
+void PlusEqualsVec(double *V1, double *V2, int N=3);
+void PlusEqualsVec(cdouble *V1, cdouble *V2, int N=3);
 #if 0
 void VecCompare(double *V1, double *V2, int N,
                 const char *str1, const char *str2);
