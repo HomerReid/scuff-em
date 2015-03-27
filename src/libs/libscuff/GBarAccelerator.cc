@@ -942,7 +942,6 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
      if (GBA_LDim>1)
       minL=fmin(minL, 2.0*sqrt(   GBA_LBV[1][0]*GBA_LBV[1][0]
                                 + GBA_LBV[1][1]*GBA_LBV[1][1]));
-printf("(im k, minL)=(%e,%e)\n",imag(k),minL);
 
      if ( imag(k)*minL > 14.0 )
       return 0;
