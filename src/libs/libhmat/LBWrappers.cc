@@ -749,7 +749,7 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
 /***************************************************************/
 double HMatrix::GetNorm(bool UseInfinityNorm)
 {
-  char *Norm = const_cast <char *>(UseInfinityNorm ? "I" : "0");
+  char *Norm = const_cast <char *>(UseInfinityNorm ? "I" : "1");
 
   /***************************************************************/
   /***************************************************************/
@@ -791,7 +791,7 @@ double HMatrix::GetNorm(bool UseInfinityNorm)
 /***************************************************************/
 double HMatrix::GetRCond(double ANorm, bool UseInfinityNorm)
 {
-  const char *Norm = const_cast<char *> (UseInfinityNorm ? "I" : "0");
+  char *Norm = const_cast<char *> (UseInfinityNorm ? "I" : "1");
   double RCond;
 
   /***************************************************************/
