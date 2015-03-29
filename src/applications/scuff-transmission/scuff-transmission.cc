@@ -469,6 +469,7 @@ int main(int argc, char *argv[])
   char *GeoFileName=0;
   cdouble OmegaVals[MAXFREQ];	int nOmegaVals;
   char *OmegaFile=0;
+  char *LambdaFile=0;
   double Theta=0.0;
   double ThetaMin=0.0;
   double ThetaMax=0.0;
@@ -486,6 +487,7 @@ int main(int argc, char *argv[])
 /**/
      {"Omega",       PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nOmegaVals, "(angular) frequency"},
      {"OmegaFile",   PA_STRING,  1, 1,       (void *)&OmegaFile,    0,       "list of (angular) frequencies"},
+     {"LambdaFile",  PA_STRING,  1, 1,       (void *)&LambdaFile,   0,       "list of (free-space) wavelengths"},
 /**/
      {"Theta",       PA_DOUBLE,  1, 1,       (void *)&Theta,        0,       "incident angle in degrees"},
      {"ThetaMin",    PA_DOUBLE,  1, 1,       (void *)&ThetaMin,     0,       "minimum incident angle in degrees"}, 
@@ -537,11 +539,21 @@ int main(int argc, char *argv[])
   HVector *OmegaVector=0;
   int nFreq, nOV, NumFreqs=0;
   if (OmegaFile)
-   { 
+   { if (LambdaFile) 
+      ErrExit("--OmegaFile and --LambdaFile are incompatible");
      OmegaVector=new HVector(OmegaFile,LHM_TEXT);
      if (OmegaVector->ErrMsg)
       ErrExit(OmegaVector->ErrMsg);
      NumFreqs=OmegaVector->N;
+   }
+  else if (LambdaFile)
+   { 
+     OmegaVector=new HVector(LambdaFile,LHM_TEXT);
+     if (OmegaVector->ErrMsg)
+      ErrExit(OmegaVector->ErrMsg);
+     NumFreqs=OmegaVector->N;
+     for(int n=0; n<NumFreqs; n++)
+      OmegaVector->SetEntry(n, 2.0*M_PI/OmegaVector->GetEntryD(n));
    };
 
   // now add any individually specified --Omega options
@@ -635,6 +647,7 @@ int main(int argc, char *argv[])
   fprintf(f,"# 9,10:  mag2, phase rPerp\n");
   fprintf(f,"# 11,12: mag2, phase tPar\n");
   fprintf(f,"# 13,14: mag2, phase rPar\n");
+  fprintf(f,"# 15:    inverse condition number of BEM matrix\n");
   fflush(f);
 
   cdouble EpsExterior, MuExterior, kExterior;
@@ -669,11 +682,13 @@ int main(int argc, char *argv[])
       kBloch[0] = real(kExterior)*SinTheta;
       kBloch[1] = 0.0;
       G->AssembleBEMMatrix(Omega, kBloch, M);
+      double MNorm=M->GetNorm();
       if (WriteCache)
        { StoreCache( WriteCache );
          WriteCache=0;       
        };
       M->LUFactorize();
+      double MRCond =M->GetRCond(MNorm);
 
       // set plane wave direction
       nHat[0] = SinTheta;
@@ -727,6 +742,7 @@ int main(int argc, char *argv[])
       fprintf(f,"%e %e ", norm(tTMTE), arg(tTMTE));
       fprintf(f,"%e %e ", norm(tTETM), arg(tTMTM));
       fprintf(f,"%e %e ", norm(tTMTM), arg(tTMTM));
+      fprintf(f,"%e ", MRCond);
       fprintf(f,"\n");
       fflush(f);
 
