@@ -397,6 +397,7 @@ int main(int argc, char *argv[])
   int WriteLabels=0;
   int Neighbors=0;
   bool RegionVolumes=false;
+  double WhichRegion[3]={HUGE_VAL, HUGE_VAL, HUGE_VAL};
   /* name, type, # args, max # instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,        0, "geometry file"},
@@ -409,6 +410,7 @@ int main(int argc, char *argv[])
      {"WriteGMSHLabels",    PA_BOOL,   0, 1, (void *)&WriteLabels,    0, "write GMSH labels"},
      {"Neighbors",          PA_INT,    1, 1, (void *)&Neighbors,      0, "number of neighboring cells to plot"},
      {"RegionVolumes",      PA_BOOL,   0, 1, (void *)&RegionVolumes,  0, "compute volumes of closed regions"},
+     {"WhichRegion",        PA_DOUBLE, 3, 1, (void *)&WhichRegion,    0, "identify region in which the given point lives"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -508,6 +510,15 @@ int main(int argc, char *argv[])
          printf("%e \n",RV);
       };
    }
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (WhichRegion[0]!=HUGE_VAL)
+   { int nr=G->GetRegionIndex(WhichRegion);
+     printf("Point {%g,%g,%g} lives in region %s.\n",
+             WhichRegion[0],WhichRegion[1],WhichRegion[2],G->RegionLabels[nr]);
+   };
 
   /***************************************************************/
   /***************************************************************/

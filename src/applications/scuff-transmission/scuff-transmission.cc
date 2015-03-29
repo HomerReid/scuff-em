@@ -513,6 +513,7 @@ int main(int argc, char *argv[])
   /*- create the RWGGeometry                                        -*/
   /*******************************************************************/
   SetLogFileName("scuff-transmission.log");
+  Log("scuff-transmission running on %s",GetHostName());
   RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   if (G->LDim!=2)
@@ -526,8 +527,8 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   double X[3]={0.0, 0.0, 1.0e6};
   int UpperRegionIndex=G->GetRegionIndex(X);
-  printf("Identified uppermost region as region # %i (%s).\n",
-          UpperRegionIndex, G->RegionLabels[UpperRegionIndex]);
+  Log("Identified uppermost region as region # %i (%s).",
+       UpperRegionIndex, G->RegionLabels[UpperRegionIndex]);
 
   /*******************************************************************/
   /* process frequency-related options to construct a list of        */
@@ -674,7 +675,7 @@ int main(int argc, char *argv[])
        };
       M->LUFactorize();
 
-      // set plane wave direction 
+      // set plane wave direction
       nHat[0] = SinTheta;
       nHat[1] = 0.0;
       nHat[2] = CosTheta;
