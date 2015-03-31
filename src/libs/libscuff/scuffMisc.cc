@@ -200,6 +200,4 @@ bool Matrix2x2_Inverse(double *a[2], double ainv[2][2])
   return det != 0.0;
 }
 
-
-
 } // namespace scuff

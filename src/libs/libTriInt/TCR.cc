@@ -72,6 +72,13 @@ static double TCR1[]=
 { 0.3333333333333, 0.3333333333333, 0.50000000000000
 };
 
+/* case 2:  TCR=TCR2;   NumPts=3;  break; */
+static double TCR2[]=
+{ 0.16666666666666666, 0.16666666666666666, 0.16666666666666666,
+  0.66666666666666667, 0.16666666666666666, 0.16666666666666666,
+  0.16666666666666666, 0.66666666666666666, 0.16666666666666666
+};
+
 /* case 4:  TCR=TCR4;   NumPts=6;  break; */
 static double TCR4[]=
 { 
@@ -551,6 +558,7 @@ double *GetTCR(int Order, int *NumPts)
   switch(Order)
    { 
      case 1:  *NumPts=1;   return TCR1;
+     case 2:  *NumPts=3;   return TCR2;
      case 4:  *NumPts=6;   return TCR4;
      case 5:  *NumPts=7;   return TCR5;  
      case 7:  *NumPts=16;  return TCR7;
