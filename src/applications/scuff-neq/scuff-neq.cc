@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
      {"ForceDSI",       PA_BOOL,    0, 1,       (void *)&ForceDSI,   0,             "use DSIPFT instead of OPFT/EPPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
-     {"PlotRytovVectors",PA_INT,   0, 1,       (void *)&PlotRytovVectors, 0, "plot the first N Rytov surface-current vectors"},
+     {"PlotRytovVectors",PA_INT,    1, 1,       (void *)&PlotRytovVectors, 0, "plot the first N Rytov surface-current vectors"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},

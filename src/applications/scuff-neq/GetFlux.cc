@@ -48,7 +48,7 @@ void ProcessRytovMatrix(SNEQData *SNEQD, cdouble Omega, int SourceSurface)
 
   HMatrix _RCopy(N, N, LHM_COMPLEX, LHM_NORMAL, Buffer[0]);
   HMatrix _U(N, N, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
-  HVector _Lambda(N, LHM_COMPLEX, Buffer[2]);
+  HVector _Lambda(N, LHM_REAL, Buffer[2]);
   HMatrix *RCopy  = &_RCopy;
   HMatrix *U      = &_U;
   HVector *Lambda = &_Lambda;
