@@ -42,9 +42,12 @@ void ProcessRytovMatrix(SNEQData *SNEQD, cdouble Omega, int SourceSurface)
 
   int N = G->Surfaces[SourceSurface]->NumBFs;
 
-  void *pC=HMatrix::OpenHDF5Context("Rytov.hdf5");
+#if 0
+  Log("Exporting Rytov matrix to file...\n");
+  void *pC=HMatrix::OpenHDF5Context("%s.Rytov.hdf5",GetFileBase(G->GeoFileName));
   Rytov->ExportToHDF5(pC,"Rytov");
   HMatrix::CloseHDF5Context(pC);
+#endif
 
   HMatrix _RCopy(N, N, LHM_COMPLEX, LHM_NORMAL, Buffer[0]);
   HMatrix _U(N, N, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
@@ -53,18 +56,23 @@ void ProcessRytovMatrix(SNEQData *SNEQD, cdouble Omega, int SourceSurface)
   HMatrix *U      = &_U;
   HVector *Lambda = &_Lambda;
   RCopy->Copy(Rytov);
+  Log("Computing Rytov eigenvectors...");
   RCopy->Eig(Lambda, U);
 
-  Lambda->ExportToText("Lambda.out","w");
+  char FileName[100];
+  snprintf(FileName,100,"%s.Lambda",GetFileBase(G->GeoFileName));
+  Lambda->ExportToText(FileName);
 
   HVector _KN(N, LHM_COMPLEX, Buffer[0]);
   HVector *KN=&_KN;
   for(int nv=0; nv<SNEQD->PlotRytovVectors; nv++)
    { 
-     cdouble RtLambda=sqrt(Lambda->GetEntry(nv));
+     Log("Plotting Rytov surface currents (%i)...",nv);
+     double RtLambda=sqrt(fabs(Lambda->GetEntryD(nv)));
      for(int m=0; m<N; m++)
       KN->SetEntry(m, RtLambda*U->GetEntry(m,nv));
-     G->PlotSurfaceCurrents(KN, Omega, "Rytov_%s_%i.pp",z2s(Omega),nv);
+     G->PlotSurfaceCurrents(KN, Omega, "%s.%s.Rytov%i.pp",
+                            GetFileBase(G->GeoFileName),z2s(Omega),nv);
    };
 
 }
