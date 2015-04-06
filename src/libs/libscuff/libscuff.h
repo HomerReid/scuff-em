@@ -495,6 +495,8 @@ class RWGGeometry
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix);
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch,
                                     double RMin[3], double RMax[3], bool ExcludeInnerCells);
+   void GetUnitCellRepresentative(const double X[3], double XBar[3],
+                                  bool WignerSeitz=false);
 
    // directories within which to search for mesh files
    static int NumMeshDirs;

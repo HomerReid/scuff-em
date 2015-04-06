@@ -612,6 +612,15 @@ bool RWGSurface::Contains(const RWGSurface *S)
 /***********************************************************************/
 int RWGGeometry::PointInRegion(int RegionIndex, const double X[3])
 { 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double XX[3];
+  if (LDim>0)
+   GetUnitCellRepresentative(X,XX);
+  else 
+   { XX[0]=X[0]; XX[1]=X[1]; XX[2]=X[2]; }
+
   // for all surfaces bounding the region in question, count the 
   // number of intersections between the surface and a plumb line
   // dropped from X to z=minus infinity
@@ -621,7 +630,8 @@ int RWGGeometry::PointInRegion(int RegionIndex, const double X[3])
         || (Surfaces[ns]->RegionIndices[1]==RegionIndex) 
       )
     { Surfaces[ns]->InitkdPanels(false);
-      TotalPiercings += kdtri_surface_piercings(Surfaces[ns]->kdPanels, X);
+      TotalPiercings 
+       += kdtri_surface_piercings(Surfaces[ns]->kdPanels, XX);
     };
 
   if ( RegionIndex==0 )
@@ -630,18 +640,36 @@ int RWGGeometry::PointInRegion(int RegionIndex, const double X[3])
    return TotalPiercings%2 ? 1 : 0;
 } 
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int RWGGeometry::GetRegionIndex(const double X[3]) 
 {
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double XX[3];
+  if (LDim>0)
+   GetUnitCellRepresentative(X,XX);
+  else 
+   { XX[0]=X[0]; XX[1]=X[1]; XX[2]=X[2]; }
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   if (AllSurfacesClosed)
    { // find the innermost object containing X
      for (int i = NumSurfaces - 1; i >= 0; --i) // innermost to outermost order
-      if (Surfaces[i]->Contains(X))
+      if (Surfaces[i]->Contains(XX))
        return Surfaces[i]->RegionIndices[1];
      return 0; // if not in any object, then in exterior medium 
    };
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   for (int nr=0; nr<NumRegions; nr++)
-   if (PointInRegion(nr, X))
+   if (PointInRegion(nr, XX))
     return nr;
 
   return 0;
