@@ -311,8 +311,7 @@ class FIPPICache
 /***************************************************************/   
 extern FIPPICache GlobalFIPPICache;
 
-/****************************************************************/   
-/*- AssessPanelPair counts common vertices in a pair of panels, */
+/****************************************************************/   /*- AssessPanelPair counts common vertices in a pair of panels, */
 /*- and puts arrays of panel vertices into certain orders that  */
 /*- are expected by subsequent algorithms that work on the      */
 /*- panel pairs.                                                */

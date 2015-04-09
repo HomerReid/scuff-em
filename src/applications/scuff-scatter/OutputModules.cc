@@ -321,7 +321,7 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   /***************************************************************/
   double *RegionPFTs=0;
   if (PFTOpts->GetRegionPFTs)
-   RegionPFTs=(double *)mallocEC( G->NumRegions*NUMPFT);
+   RegionPFTs=(double *)mallocEC( G->NumRegions*NUMPFT*sizeof(double) );
 
   /***************************************************************/
   /***************************************************************/
