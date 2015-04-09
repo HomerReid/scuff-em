@@ -13,7 +13,6 @@
 \newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
 \newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
 \newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
-\newcommand{\vbSigma}{\boldsymbol{\Sigma}}
 %\newcommand{\vbchi}{\boldsymbol{\chi}}
 
 \graphicspath{{figures/}}
@@ -484,7 +483,7 @@ a sum over the contributions of sources in all bodies:
 %--------------------------------------------------------------------%
 \begin{equation}
  \text{then} \qquad \big\langle Q\big\rangle
-  = \sum_s \int_0^\infty \, \Theta_s(\omega) \Phi_s(\omega)\,d\omega 
+  = \int_0^\infty \, \sum_s \, \Theta_s(\omega) \Phi_s(\omega)\,d\omega 
 \end{equation}
 where 
 $\Theta_s(\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_s} - 1}$
@@ -497,7 +496,7 @@ is the trace of a four-matrix product involving the $\vb Q$ matrix:
   = \frac{2}{\pi} 
     \Tr\left\{ \vb Q 
                \underbrace{\vb W \overline{\vb G}_s \vb W^\dagger}
-                         _{\vbSigma_s}
+                         _{\vb R_s}
        \right\}.
 \end{equation}
 %====================================================================%
@@ -511,15 +510,20 @@ $s$ alone.
 
 \end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The matrix $\vbSigma_s$ in (\ref{FSCEquivalence}) may be thought
-of as a weighted sum of
+The matrix $\vb R_s$ in (\ref{FSCEquivalence})---the ``Rytov''
+matrix--furnishes a concise description of the fluctuating sources
+inside body $s$. More specifically, the eigenvectors of $\vb R_s$ 
+may be interpreted as ``normal modes'' of the fluctuating source 
+distribution inside body $s$; these are surface-current vectors 
+whose contributions to time-average PFT quantities add without
+mixing.
 
-\subsection*{Structure of $\vbSigma_s$}
+\subsection*{Structure of $\vb R_s$}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 {\scriptsize
 \begin{align*}
- \vbSigma_s &= \vb W \overline{\vb G}_s \vb W^\dagger
+ \vb R_s &= \vb W \overline{\vb G}_s \vb W^\dagger
 \\
 %--------------------------------------------------------------------%
 &=\left(\begin{array}{cccc}
@@ -561,41 +565,125 @@ of as a weighted sum of
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
 The $a,b$ subblock of this matrix is
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
-$$ \vbSigma_{s; ab} = \vb W_{as} \overline{\vb G}_s \vb W_{bs}^\dagger. $$
+$$ \vb R_{s; ab} = \vb W_{as} \overline{\vb G}_s \vb W_{bs}^\dagger. $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
 
-\subsection*{Spatially-resolved contributions to generalized fluxes}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Output files}
 
-The diagonal of the four-matrix product in (\ref{FSCEquivalence}c) 
-is a vector of length $N\supt{B}$ whose entries describe the 
-contributions of individual basis functions to the generalized
-fluxes. If, as is true in {\sc scuff-neq}, we work in a basis
-of \textit{localized} functions, we can use this observation 
-to obtain spatially-resolved information on the various 
-contributions to the generalized fluxes.
+\subsection{Output files for spatially-resolved quantities}
 
-More specifically, since each triangular panel $\mc P$ 
-in a discretized {\sc scuff-neq} geometry receives contributions 
-from 6 basis functions (one electric-current and one magnetic-current
-function for each of the three edges) we can roughly define the
-contribution of panel $\mc P$ to the generalized flux $\phi_b$ 
-as a sum of 6 diagonal elements of the matrix in curly braces
-in (\ref{FSCEquivalence}c):
+Let $\big\langle Q\supt{PFT}_d\big\rangle$ be the total time-average 
+power, force, or torque on body $d$. ($d$'' stands for a 
+``destination'' body, as distinct from a ``source'' body $s$ 
+whose fluctuating sources contributed to the $Q_d$). From 
+equation (\ref{FSCEquivalence}b), we have
 %====================================================================%
-$$ \phi_{b}^{\mc P} 
-   = 
-   \sum_{n=1}^6
-   \Big[\vb Q \vb W \overline{\vb G}_b \vb W^\dagger\Big]_{\alpha_n \alpha_n}
+\begin{equation}
+ \qquad \big\langle Q_d\big\rangle
+ = \int_0^\infty \, \sum_s \, \Theta_s(\omega) 
+   \Phi\supt{PFT}_{s\to d}(\omega)\,d\omega
+\end{equation}
+%====================================================================%
+where $\Theta_s$ is the Bose-Einstein factor for the temperature 
+of body $s$ 
+where $\Phi\supt{PFT}_{s \to d}(\omega)$ is the 
+(frequency-resolved, spatially-integrated) flux of power or momentum
+from body $s$ to body $d$.
+%====================================================================%
+It is convenient to introduce a dimensionless
+angular frequency $u$ according to\footnote{Note that
+$u$ is the numerical quantity referred to as \texttt{Omega}
+on the {\sc scuff-neq} command line and in the 
+{\sc scuff-neq} source code. Some convenient
+dimensionful quantities involving $\omega_0$ are:
+%====================================================================%
+$$
+ \hbar\omega_0=0.197\text{ eV}=31.6\cdot10^{-21} \text{ Joules}, 
+ \qquad 
+ \hbar\omega_0^2=9.49115\,\mu\text{W} \, (\text{microWatts}).
+$$}
+%====================================================================%
+$$ \omega=u\cdot \omega_0
+   \qquad \text{where} \qquad
+   \omega_0\equiv 3\cdot 10^{14}\text{ rad/sec}.
+$$
+Then the total time-average force PFT on body $d$ may be 
+expressed as an integral over the dimensionless variable $u$:
+%====================================================================%
+\numeq{QAverage}
+{
+ \qquad \big\langle Q_d\big\rangle
+ = \hbar \omega_0^2
+   \int_0^\infty 
+              \sum_s \, \frac{u}{e^{\beta_s u}-1}
+              \Phi\supt{PFT}_{s\to d}(u)\,du
+}
+where 
+%====================================================================%
+$$\beta_s = \frac{\hbar \omega_0}{kT_s}
+  \approx \frac{ 2278 }{T_s\text{ in Kelvin.}}
 $$
 %====================================================================%
-where $\{\alpha_n\}, n=1\cdots 6,$ are the indices of the
-aforementioned 6 basis functions associated with $\mc P.$
+The various constituents of equation (\ref{QAverage}) are written
+by {\sc scuff-neq} to three distinct output files, as follows:
+%====================================================================%
+\numeq{QAverage2}
+{
+ \qquad \big\langle Q_d\big\rangle
+ = \hbar \omega_0^2
+   \underbrace{
+   \Bigg[
+   \int_0^\infty 
+  \underbrace{\bigg\{ \sum_s \, \frac{u}{e^{\beta_s u}-1}
+  \underbrace{\Phi\supt{PFT}_{s\to d}(u)}_{\texttt{.SIFlux}}
+             \bigg\} }_{\texttt{.SIIntegrand}}
+   \,\,du \Bigg]
+              }_{\texttt{.NEQPFT}}
+}
+%====================================================================%
+More specifically, 
+%====================================================================%
+\begin{itemize}
+  \item The quantity $\Phi_{s\to d}\supt{PFT}(u)$ is written to the
+        \texttt{.SIFlux} file. This quantity may be interpreted
+        as the PFT per unit frequency per
+        unit temperature exerted on body $d$ due to sources
+        in body $s.$ This is a temperature-independent quantity.
+        For \texttt{PFT}=power, this quantity
+        is \textit{dimensionless}. For \texttt{PFT}=force,
+        this quantity has units of \textit{nanoNewtons/watts}.
+  \item The quantity written to the \texttt{.SIIntegrand} file
+        is the PFT per unit frequency exerted on body $d$ due to 
+        thermally-weighted sources in body $s$.
+        (The \texttt{.SIIntegrand} file records, for each 
+         destination body $d$, both the individual contributions
+         of each source body $s$ and the total contributions
+         of all source bodies.)
+  \item The quantity written to the \texttt{.NEQPFT} file
+        is the total time-average PFT exerted on body $d$ due to 
+        thermally-weighted sources in body $s$.
+        (The \texttt{.NEQPFT} file records, for each
+         destination body $d$, both the individual contributions
+         of each source body $s$ and the total contributions
+         of all source bodies.)
+\end{itemize}
+%====================================================================%
+
+\subsection{An explicit example}
+
+To elucidate the significance of the various numerical
+quantities reported in the {\sc scuff-neq} output files,
+we now consider a specific worked example.
 
 %====================================================================%
 %====================================================================%
-%====================================================================%
+%===================================================================%
+\newpage
 \appendix
-
 \section{Computation of DSIPFT PFT matrices}
 
 In Section \ref{PQsFromSCBsSection} we sketched expressions for

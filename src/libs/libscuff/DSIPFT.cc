@@ -439,14 +439,14 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
 /* while the fields at pnt #nx due to a unit-strength magnetic */ 
 /* current in basis function #ne are in row                    */ 
 /*                                                             */
-/*  nx*(2*NE) + 2*ne + 0.                                      */
+/*  nx*(2*NE) + 2*ne + 1.                                      */
 /*                                                             */
 /* Here NE is the total number of edges.                       */
 /*                                                             */
 /* If SurfaceIndex is >=0, then only the contributions of      */
-/* edges on that surface S are taken into account. Otherwise,  */
-/* all edges on all surfaces in the geometry are taken into    */
-/* account.                                                    */
+/* edges on surface #SurfaceIndex S are taken into account.    */
+/* Otherwise, all edges on all surfaces in the geometry are    */
+/* taken into account.                                         */
 /*                                                             */
 /* Note that this routine currently assumes all evaluation     */
 /* points lie in the exterior region of the geometry. Extending*/

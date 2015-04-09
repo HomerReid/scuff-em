@@ -454,4 +454,34 @@ void RWGGeometry::InitPBCData()
 
 }
 
+/***************************************************************/
+/* for periodic geometries, translate X into the unit cell of  */
+/* the lattice.                                                */
+/* if WignerSeitz =true, translate X into the Wigner-Seitz cell*/
+/* instead of the unit cell.                                   */
+/***************************************************************/
+void RWGGeometry::GetUnitCellRepresentative(const double X[3], 
+                                            double XBar[3],
+                                            bool WignerSeitz)
+{
+  XBar[0] = X[0];
+  XBar[1] = X[1];
+  XBar[2] = X[2];
+
+  if (LBasis[0][1]!=0.0 || LBasis[1][0]!=0.0)
+   ErrExit("%s:%i: non-square lattices not supported",__FILE__,__LINE__);
+
+  if (LDim>=1)
+   { double L = LBasis[0][0];
+     double N = WignerSeitz ? lround(X[0]/L) : floor(X[0]/L);
+     XBar[0] -= N*L;
+   };
+  if (LDim>=2)
+   { double L = LBasis[1][1];
+     double N = WignerSeitz ? lround(X[1]/L) : floor(X[1]/L);
+     XBar[1] -= N*L;
+   };
+
+}
+
 } // namespace scuff

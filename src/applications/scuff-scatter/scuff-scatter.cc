@@ -219,6 +219,7 @@ int main(int argc, char *argv[])
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
   bool NeedIncidentField = (    MomentFile!=0
+                             ||  PFTFile!=0
                              || OPFTFile!=0
                              || EPPFTFile!=0
                              || DSIPFTFile!=0

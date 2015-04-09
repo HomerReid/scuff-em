@@ -96,6 +96,7 @@ typedef struct SNEQData
    bool OmitSelfTerms;  // set all self terms to zero
    bool ForceDSI;       // use DSIPFT instead of OPFT/EPPFT
    bool PlotFlux;       // generate flux plots
+   int  PlotRytovVectors;
 
    /*--------------------------------------------------------------*/
    /* storage for the BEM matrix and its subblocks.                */

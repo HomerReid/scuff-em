@@ -156,10 +156,35 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   HMatrix *XMatrix=new HMatrix(S->NumVertices, 3);
   for(int nv=0; nv<S->NumVertices; nv++)
+   XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nv);
+
+  /*--------------------------------------------------------------*/
+  /* 20150404 explain me -----------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int nvRef=S->Panels[0]->VI[0];
+  for(int nv=0; nv<S->NumVertices; nv++)
    { 
-     XMatrix->SetEntry(nv, 0, S->Vertices[3*nv + 0]);
-     XMatrix->SetEntry(nv, 1, S->Vertices[3*nv + 1]);
-     XMatrix->SetEntry(nv, 2, S->Vertices[3*nv + 2]);
+     bool VertexUsed=false;
+     for(int np=0; np<S->NumPanels && !VertexUsed; np++)
+      if (     nv==S->Panels[np]->VI[0]
+           ||  nv==S->Panels[np]->VI[1]
+           ||  nv==S->Panels[np]->VI[2]
+         ) VertexUsed=true;
+
+     if (!VertexUsed)
+      { 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+        printf("Replacing %i:{%.2e,%.2e,%.2e} with %i: {%.2e,%.2e,%.2e}\n",
+                nv,XMatrix->GetEntryD(nv,0), 
+                   XMatrix->GetEntryD(nv,1),
+                   XMatrix->GetEntryD(nv,2),
+                nvRef,S->Vertices[3*nvRef+0],
+                      S->Vertices[3*nvRef+1],
+                      S->Vertices[3*nvRef+2]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+        XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nvRef);
+      };
    };
 
   /*--------------------------------------------------------------*/

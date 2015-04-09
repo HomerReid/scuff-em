@@ -34,6 +34,52 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void ProcessRytovMatrix(SNEQData *SNEQD, cdouble Omega, int SourceSurface)
+{ 
+  RWGGeometry *G = SNEQD->G;
+  HMatrix *Rytov = SNEQD->Rytov;
+  void **Buffer  = SNEQD->Buffer;
+
+  int N = G->Surfaces[SourceSurface]->NumBFs;
+
+#if 0
+  Log("Exporting Rytov matrix to file...\n");
+  void *pC=HMatrix::OpenHDF5Context("%s.Rytov.hdf5",GetFileBase(G->GeoFileName));
+  Rytov->ExportToHDF5(pC,"Rytov");
+  HMatrix::CloseHDF5Context(pC);
+#endif
+
+  HMatrix _RCopy(N, N, LHM_COMPLEX, LHM_NORMAL, Buffer[0]);
+  HMatrix _U(N, N, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
+  HVector _Lambda(N, LHM_REAL, Buffer[2]);
+  HMatrix *RCopy  = &_RCopy;
+  HMatrix *U      = &_U;
+  HVector *Lambda = &_Lambda;
+  RCopy->Copy(Rytov);
+  Log("Computing Rytov eigenvectors...");
+  RCopy->Eig(Lambda, U);
+
+  char FileName[100];
+  snprintf(FileName,100,"%s.Lambda",GetFileBase(G->GeoFileName));
+  Lambda->ExportToText(FileName);
+
+  HVector _KN(N, LHM_COMPLEX, Buffer[0]);
+  HVector *KN=&_KN;
+  for(int nv=0; nv<SNEQD->PlotRytovVectors; nv++)
+   { 
+     Log("Plotting Rytov surface currents (%i)...",nv);
+     double RtLambda=sqrt(fabs(Lambda->GetEntryD(nv)));
+     for(int m=0; m<N; m++)
+      KN->SetEntry(m, RtLambda*U->GetEntry(m,nv));
+     G->PlotSurfaceCurrents(KN, Omega, "%s.%s.Rytov%i.pp",
+                            GetFileBase(G->GeoFileName),z2s(Omega),nv);
+   };
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void UndoSCUFFMatrixTransformation(HMatrix *M)
 { 
   for (int nr=0; nr<M->NR; nr+=2)
@@ -261,6 +307,11 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
 void GetSRFluxes(SNEQData *SNEQD, int SourceSurface, HMatrix *XMatrix,
                  cdouble Omega, double *Results)
 { 
+  (void) SNEQD;
+  (void) SourceSurface; 
+  (void) XMatrix;
+  (void) Omega;
+  (void) Results;
  // for(int nx=0; nx<
 }
 
@@ -388,7 +439,6 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   HMatrix **U         = SNEQD->U;
   int NS              = SNEQD->G->NumSurfaces;
   int NQ              = SNEQD->NQ;
-  int NX              = SNEQD->NX;
   int NumSIQs         = SNEQD->NumSIQs;
   char *FileBase      = SNEQD->FileBase;
   bool *NeedQuantity  = SNEQD->NeedQuantity;
@@ -491,6 +541,8 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
       {
         // compute the Rytov matrix for this source
         ComputeRytovMatrix(SNEQD, nss);
+        if (SNEQD->PlotRytovVectors)
+         ProcessRytovMatrix(SNEQD, Omega, nss);
 
         // compute spatially-integrated flux quantities for
         // all destination objects

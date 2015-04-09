@@ -82,7 +82,7 @@ double VecNorm(double *v)
 /***************************************************************/
 int main(int argc, char *argv[])
 { 
-  int Orders[]={1,4,5,7,9,13,14,16,20,25};
+  int Orders[]={1,2,4,5,7,9,13,14,16,20,25};
   int NumOrders = (sizeof(Orders)/sizeof(Orders[0]));
   int i, j, no, nPts;
   double I[NFUN], IRef[NFUN];
@@ -147,11 +147,13 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*- use TriIntEmbedded to estimate errors                       */
   /*--------------------------------------------------------------*/
+#if 0
   TriIntEmbedded(Integrand, NFUN, 0, Vertices[0], Vertices[1], Vertices[2], I, E);
   printf("\n");
   printf("(Absolute) Errors reported by embedded scheme: \n");
   printf(" F1:        %.3e  (actual %.3e)\n",E[0],fabs(I[0]-IRef[0]));
   printf(" F2:        %.3e  (actual %.3e)\n",E[1],fabs(I[1]-IRef[1]));
   printf(" F3:        %.3e  (actual %.3e)\n",E[2],fabs(I[2]-IRef[2]));
+#endif
 
 }
