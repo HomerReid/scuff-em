@@ -914,6 +914,10 @@ bool IsFinite(cdouble z)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void PlusEqualsVec(double *V1, double Alpha, double *V2, int N)
+ { for(int n=0; n<N; n++) V1[n]+=Alpha*V2[n]; }
+void PlusEqualsVec(cdouble *V1, cdouble Alpha, cdouble *V2, int N)
+ { for(int n=0; n<N; n++) V1[n]+=Alpha*V2[n]; }
 void PlusEqualsVec(double *V1, double *V2, int N)
  { for(int n=0; n<N; n++) V1[n]+=V2[n]; }
 void PlusEqualsVec(cdouble *V1, cdouble *V2, int N)

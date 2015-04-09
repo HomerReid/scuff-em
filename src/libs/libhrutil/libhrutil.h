@@ -120,8 +120,15 @@ char *z2s(cdouble z);
 /***************************************************************/
 /* simple operations on arrays of floating-point numbers       */
 /***************************************************************/
+// V1 *= Alpha
 void ScaleVec(double *V1, double Alpha, int N=3);
 void ScaleVec(cdouble *V1, cdouble Alpha, int N=3);
+
+// V1 += Alpha*V2
+void PlusEqualsVec(double *V1, double Alpha, double *V2, int N=3);
+void PlusEqualsVec(cdouble *V1, cdouble Alpha, cdouble *V2, int N=3);
+
+// V1 += V2
 void PlusEqualsVec(double *V1, double *V2, int N=3);
 void PlusEqualsVec(cdouble *V1, cdouble *V2, int N=3);
 #if 0

@@ -87,6 +87,8 @@ typedef struct PFTOptions
    int EPFTOrder;
    double EPFTDelta;
 
+   bool GetRegionPFTs;
+
  } PFTOptions;
 
 /***************************************************************/

@@ -282,6 +282,8 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
   Options->EPFTOrder=1;
   Options->EPFTDelta=1.0e-5;
 
+  Options->GetRegionPFTs=false;
+
   return Options;
 }
 

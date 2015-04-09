@@ -91,6 +91,8 @@ int main(int argc, char *argv[])
   char *DSIMesh    = 0;
   bool DSIFarField = false;
 //
+  bool GetRegionPFTs = false;
+//
   bool PlotPFTFlux=false;
 //
   char *MomentFile=0;
@@ -138,6 +140,7 @@ int main(int argc, char *argv[])
      {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for surface-integral PFT (6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
      {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField, 0,            "retain only far-field contributions to DSIPFT"},
 /**/
+     {"GetRegionPFTs",  PA_BOOL,    0, 1,       (void *)&GetRegionPFTs,   0,          "report PFTs for each region"},
      {"PlotPFTFlux",    PA_BOOL,    0, 1,       (void *)&PlotPFTFlux,   0,          "generate plots of spatially-resolved PFT flux"},
 /**/
      {"MomentFile",     PA_STRING,  1, 1,       (void *)&MomentFile, 0,             "name of dipole moment output file"},
@@ -210,7 +213,7 @@ int main(int argc, char *argv[])
    };
   for(nps=0; nps<npsLoc; nps++)
    { IFD=new PointSource(psLoc + 3*nps, psStrength + 3*nps);
-     IFD->Next=IFDList;
+      IFD->Next=IFDList;
      IFDList=IFD;
    };
 
@@ -241,11 +244,12 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   PFTOptions MyPFTOpts, *PFTOpts=&MyPFTOpts;
   InitPFTOptions(PFTOpts);
-  PFTOpts->DSIMesh     = DSIMesh;
-  PFTOpts->DSIRadius   = DSIRadius;
-  PFTOpts->DSIPoints   = DSIPoints;
-  PFTOpts->DSIFarField = DSIFarField;
-  PFTOpts->EPFTOrder   = EPFTOrder;
+  PFTOpts->DSIMesh      = DSIMesh;
+  PFTOpts->DSIRadius     = DSIRadius;
+  PFTOpts->DSIPoints     = DSIPoints;
+  PFTOpts->DSIFarField   = DSIFarField;
+  PFTOpts->EPFTOrder     = EPFTOrder;
+  PFTOpts->GetRegionPFTs = GetRegionPFTs;
 
   /*******************************************************************/
   /* create the SSData structure containing everything we need to    */

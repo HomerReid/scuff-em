@@ -92,6 +92,7 @@ excitation.
 %=================================================
 %=================================================
 %=================================================
+\newpage
 \subsection*{Fields from surface currents}
 
 Recall that in the surface-integral-equation (SIE) approach to
@@ -574,30 +575,30 @@ $$ \vb R_{s; ab} = \vb W_{as} \overline{\vb G}_s \vb W_{bs}^\dagger. $$
 \newpage
 \section{Output files}
 
-\subsection{Output files for spatially-resolved quantities}
+\subsection{Output files for spatially-integrated quantities}
 
-Let $\big\langle Q\supt{PFT}_d\big\rangle$ be the total time-average 
-power, force, or torque on body $d$. ($d$'' stands for a 
-``destination'' body, as distinct from a ``source'' body $s$ 
-whose fluctuating sources contributed to the $Q_d$). From 
+Let $\big\langle Q_d\big\rangle$ be the total time-average 
+power, force, or torque (PFT) on body $d$. ($d$ stands for a 
+``destination'' body, as distinct from a ``source'' body
+whose fluctuating sources contribute to $Q_d$). From 
 equation (\ref{FSCEquivalence}b), we have
 %====================================================================%
 \begin{equation}
  \qquad \big\langle Q_d\big\rangle
  = \int_0^\infty \, \sum_s \, \Theta_s(\omega) 
-   \Phi\supt{PFT}_{s\to d}(\omega)\,d\omega
+   \Phi_{s\to d}(\omega)\,d\omega
 \end{equation}
 %====================================================================%
 where $\Theta_s$ is the Bose-Einstein factor for the temperature 
-of body $s$ 
-where $\Phi\supt{PFT}_{s \to d}(\omega)$ is the 
+of body $s$ and $\Phi_{s \to d}(\omega)$ is the 
 (frequency-resolved, spatially-integrated) flux of power or momentum
 from body $s$ to body $d$.
 %====================================================================%
-It is convenient to introduce a dimensionless
-angular frequency $u$ according to\footnote{Note that
-$u$ is the numerical quantity referred to as \texttt{Omega}
-on the {\sc scuff-neq} command line and in the 
+To evaluate this integral, it is convenient to agree to measure angular
+frequency in the default {\sc scuff} units, whereupon we 
+introduce a dimensionless angular frequency $u$ according 
+to\footnote{Note that $u$ is the numerical quantity referred to as 
+\texttt{Omega} on the {\sc scuff-neq} command line and in the 
 {\sc scuff-neq} source code. Some convenient
 dimensionful quantities involving $\omega_0$ are:
 %====================================================================%
@@ -611,7 +612,7 @@ $$ \omega=u\cdot \omega_0
    \qquad \text{where} \qquad
    \omega_0\equiv 3\cdot 10^{14}\text{ rad/sec}.
 $$
-Then the total time-average force PFT on body $d$ may be 
+Then the total time-average PFT on body $d$ may be
 expressed as an integral over the dimensionless variable $u$:
 %====================================================================%
 \numeq{QAverage}
@@ -619,13 +620,16 @@ expressed as an integral over the dimensionless variable $u$:
  \qquad \big\langle Q_d\big\rangle
  = \hbar \omega_0^2
    \int_0^\infty 
-              \sum_s \, \frac{u}{e^{\beta_s u}-1}
-              \Phi\supt{PFT}_{s\to d}(u)\,du
+              \sum_s \, \hat \Theta_s (u) \Phi\supt{PFT}_{s\to d}(u)\,du
 }
-where 
 %====================================================================%
-$$\beta_s = \frac{\hbar \omega_0}{kT_s}
-  \approx \frac{ 2278 }{T_s\text{ in Kelvin.}}
+where $\hat \Theta_s(u)$ is a dimensionless version 
+of the Bose-Einstein factor for source body $s$,
+%====================================================================%
+$$ \hat \Theta_s(u)\equiv \frac{u}{e^{\beta_s u}-1}, 
+   \qquad 
+   \beta_s \equiv \frac{\hbar \omega_0}{kT_s}
+    \approx \frac{ 2278 }{T_s\text{ in Kelvin.}}
 $$
 %====================================================================%
 The various constituents of equation (\ref{QAverage}) are written
@@ -638,7 +642,7 @@ by {\sc scuff-neq} to three distinct output files, as follows:
    \underbrace{
    \Bigg[
    \int_0^\infty 
-  \underbrace{\bigg\{ \sum_s \, \frac{u}{e^{\beta_s u}-1}
+  \underbrace{\bigg\{ \sum_s \, \hat \Theta_s(u)
   \underbrace{\Phi\supt{PFT}_{s\to d}(u)}_{\texttt{.SIFlux}}
              \bigg\} }_{\texttt{.SIIntegrand}}
    \,\,du \Bigg]
@@ -648,7 +652,7 @@ by {\sc scuff-neq} to three distinct output files, as follows:
 More specifically, 
 %====================================================================%
 \begin{itemize}
-  \item The quantity $\Phi_{s\to d}\supt{PFT}(u)$ is written to the
+  \item The quantity $\Phi_{s\to d}(u)$ is written to the
         \texttt{.SIFlux} file. This quantity may be interpreted
         as the PFT per unit frequency per
         unit temperature exerted on body $d$ due to sources
@@ -678,6 +682,130 @@ More specifically,
 To elucidate the significance of the various numerical
 quantities reported in the {\sc scuff-neq} output files,
 we now consider a specific worked example.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{{\sc scuff-neq} for Region-and-Surface Geometries}
+
+\begin{itemize}
+ \item Surface 1: vacuum-metal interface
+ \item Surface 2: metal-dielectric interface
+ \item Surface 3: vacuum-dielectric interface
+\end{itemize}
+
+%====================================================================%
+$$ \vb c=
+   \left(\begin{array}{c} \vb c_1 \\ \vb c_2 \\ \vb c_3 \end{array}\right),
+$$
+%====================================================================%
+$$ \vb M
+    =
+   \left(\begin{array}{ccc}
+     \vb T_{1}\sups{vacuum} + \vb T_{1}\sups{metal}
+   & \vb U_{12}\sups{metal}
+   & \vb U_{13}\sups{vacuum}
+\\[8pt]
+     \vb U_{21}\sups{metal}
+   & \vb T_{2}\sups{metal} + \vb T_{2}\sups{dielectric}
+   & \vb U_{23}\sups{dielectric}
+\\[8pt]
+     \vb U_{31}\sups{vac}
+   & \vb U_{31}\sups{dielectric}
+   & \vb T_{3}\sups{vacuum} + \vb T_{3}\sups{dielectric}
+   \end{array}\right)
+$$
+%====================================================================%
+Rytov matrix for metal: 
+%====================================================================%
+$$ \vb R\sups{metal}
+    = \vb W\cdot
+   \left[
+   \text{sym}
+   \left(\begin{array}{ccc}
+     \vb T_{1}\sups{metal}
+   & 0
+   & 0
+\\[8pt]
+     0
+   & \vb T_{2}\sups{metal} 
+   & 0
+\\[8pt]
+     0 
+   & 0
+   & 0
+   \end{array}\right)
+   \right]
+   \vb W^\dagger
+$$
+%====================================================================%
+Rytov matrix for dielectric: 
+%====================================================================%
+$$ \vb R\sups{dielectric}
+    = \vb W\cdot
+   \left[
+   \text{sym}
+   \left(\begin{array}{ccc}
+     0
+   & 0
+   & 0
+\\[8pt]
+     0
+   & \vb T_{2}\sups{dielectric} 
+   & 0
+\\[8pt]
+     0 
+   & 0
+   & \vb T_{3}\sups{dielectric} 
+   \end{array}\right)
+   \right]
+   \vb W^\dagger
+$$
+%====================================================================%
+Structure of $\vb Q$ matrices for PFT transfer between the 
+composite particle and the exterior (vacuum) region, as
+computed using the EPPFT / OPFT formalisms or the DSIPFT 
+formalism:
+%====================================================================%
+$$ \vb Q\supt{EP/O}
+    =
+   \left(\begin{array}{ccc}
+   \vb Q\supt{EP/O}_{1}
+   & 0
+   & 0
+\\[8pt]
+     0
+   & 0
+   & 0
+\\[8pt]
+     0 
+   & 0
+   & \vb Q\supt{EP/O}_{3}
+   \end{array}\right), 
+%--------------------------------------------------------------------%
+\qquad
+%--------------------------------------------------------------------%
+   \vb Q\supt{DSI}
+    =
+   \left(\begin{array}{ccc}
+   \vb Q\supt{DSI}_{11} 
+   \vphantom{\vb Q\supt{EP/O}_1}
+   \,\,\,\,
+   & 0
+   & \vb Q\supt{DSI}_{13}
+\\[8pt]
+     0
+   & 0
+   & 0
+\\[8pt]
+   \vb Q\supt{DSI}_{31} \vphantom{\vb Q\supt{EP/O}_1}
+   \,\,\,\,
+   & 0
+   & \vb Q\supt{DSI}_{33}
+   \end{array}\right)
+$$
+%====================================================================%
 
 %====================================================================%
 %====================================================================%

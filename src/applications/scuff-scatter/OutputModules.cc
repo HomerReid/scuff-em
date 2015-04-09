@@ -319,19 +319,46 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  double *RegionPFTs=0;
+  if (PFTOpts->GetRegionPFTs)
+   RegionPFTs=(double *)mallocEC( G->NumRegions*NUMPFT);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   f=fopen(FileName,"a");
   if (!f) return;
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
-     double PFT[8];
+     double PFT[NUMPFT];
      G->GetPFT(ns, SSD->IF, SSD->KN, Omega, PFT, PFTOpts);
 
      fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
-     for(int nq=0; nq<8; nq++)
+     for(int nq=0; nq<NUMPFT; nq++)
       fprintf(f,"%e ",PFT[nq]);
      fprintf(f,"\n");
 
+     if (RegionPFTs)
+      { RWGSurface *S=G->Surfaces[ns];
+        int nr1=S->RegionIndices[0], nr2=S->RegionIndices[1];
+        if (nr1>=0) 
+         PlusEqualsVec(RegionPFTs + 8*nr1, +1.0, PFT, NUMPFT);
+        if (nr2>=0)
+         PlusEqualsVec(RegionPFTs + 8*nr2, -1.0, PFT, NUMPFT);
+      };
+
    };
+
+  if (RegionPFTs)
+   { for(int nr=0; nr<G->NumRegions; nr++)
+      { fprintf(f,"%s %s ",z2s(Omega),G->RegionLabels[nr]);
+        for(int nq=0; nq<NUMPFT; nq++)
+         fprintf(f,"%e ",RegionPFTs[nr*NUMPFT+ nq]);
+        fprintf(f,"\n");
+      };
+     free(RegionPFTs);
+   };
+
   fclose(f);
 
 }
