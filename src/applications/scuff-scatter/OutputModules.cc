@@ -321,7 +321,7 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   /***************************************************************/
   double *RegionPFTs=0;
   if (PFTOpts->GetRegionPFTs)
-   RegionPFTs=(double *)mallocEC( G->NumRegions*NUMPFT);
+   RegionPFTs=(double *)mallocEC(G->NumRegions*NUMPFT);
 
   /***************************************************************/
   /***************************************************************/
@@ -342,9 +342,9 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
       { RWGSurface *S=G->Surfaces[ns];
         int nr1=S->RegionIndices[0], nr2=S->RegionIndices[1];
         if (nr1>=0) 
-         PlusEqualsVec(RegionPFTs + 8*nr1, +1.0, PFT, NUMPFT);
+         PlusEqualsVec(RegionPFTs + NUMPFT*nr1, +1.0, PFT, NUMPFT);
         if (nr2>=0)
-         PlusEqualsVec(RegionPFTs + 8*nr2, -1.0, PFT, NUMPFT);
+         PlusEqualsVec(RegionPFTs + NUMPFT*nr2, -1.0, PFT, NUMPFT);
       };
 
    };
