@@ -312,6 +312,7 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
      for(int nneb=0; nneb<nebCount; nneb++)
       { 
         int neb=nebArray[nneb];
+        if (neb<0) continue;
         double Overlaps[20];
         S->GetOverlaps(nea, neb, Overlaps);
 
