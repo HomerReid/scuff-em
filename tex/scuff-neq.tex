@@ -681,7 +681,11 @@ More specifically,
 
 To elucidate the significance of the various numerical
 quantities reported in the {\sc scuff-neq} output files,
-we now consider a specific worked example.
+we now consider two explicit worked examples.
+
+\subsubsection{Power radiation of a single sphere}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -695,11 +699,13 @@ we now consider a specific worked example.
  \item Surface 3: vacuum-dielectric interface
 \end{itemize}
 
+\noindent Structure of surface-current vector:
 %====================================================================%
 $$ \vb c=
    \left(\begin{array}{c} \vb c_1 \\ \vb c_2 \\ \vb c_3 \end{array}\right),
 $$
 %====================================================================%
+Structure of BEM matrix:
 $$ \vb M
     =
    \left(\begin{array}{ccc}

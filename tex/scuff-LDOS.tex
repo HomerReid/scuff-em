@@ -15,7 +15,7 @@
 \newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
 %\newcommand{\vbchi}{\boldsymbol{\chi}}
 \newcommand{\vbGamma}{\boldsymbol{\Gamma}}
-
+\newcommand{\wh}{\widehat}
 
 \graphicspath{{figures/}}
 
@@ -607,7 +607,74 @@ $$
 For testing purposes it is useful to have analytical expressions
 for the dyadic Green's functions above an infinite half space.
 
-\section*{Converting $k_\rho$ integrals to Brillouin-zone integrals}
+\subsection*{Plane-wave representation of point-source fields}
+
+Note: In what follows,
+$\vb k=(k_x,k_y)$ is a \textit{two-dimensional} vector and we have
+%====================================================================%
+$$ k_z \equiv \sqrt{k_0^2 - |\vb k|^2}, 
+%--------------------------------------------------------------------%
+   \qquad
+%--------------------------------------------------------------------%
+   \vb k\subt{3D}\equiv
+   \left(\begin{array}{c}k_x \\ k_y \\ \pm k_z \end{array}\right), 
+%--------------------------------------------------------------------%
+   \qquad
+%--------------------------------------------------------------------%
+   \pm \equiv
+   \begin{cases}
+     +, \quad & z\ge 0 \\ 
+     -, \quad & z<   0
+   \end{cases}.
+$$
+%====================================================================%
+Generalized transverse-electric and transverse-magnetic plane waves:
+%====================================================================%
+$$\begin{array}{ccccccc}
+ \vb E^{\pm} \subt{TE}(\vb x; \vb k\subt{2d})
+   &\equiv& E_0 \widehat{\vb P}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
+   &\qquad&
+ \vb H^{\pm} \subt{TE}(\vb x; \vb k)
+   &\equiv& H_0 \widehat{\vb Q}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
+\\[8pt]
+%--------------------------------------------------------------------%
+ \vb E^{\pm} \subt{TM}(\vb x; \vb k\subt{2d})
+   &\equiv& -E_0 \widehat{\vb Q}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
+   &\qquad&
+ \vb H^{\pm} \subt{TM}(\vb x; \vb k)
+   &\equiv& H_0 \widehat{\vb P}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
+\end{array}$$
+%====================================================================%
+$$ E_0 \equiv 1, \qquad H_0\equiv \frac{E_0}{Z_0}.$$
+%====================================================================%
+where I defined two $\vb k$-dependent unit vectors 
+$\widehat{\vb P}, \widehat{\vb Q}$ with the properties 
+that \textbf{(1)} both $\wh{\vb P}, \wh{\vb Q}$ are orthogonal to $\vb k$,
+and 
+\textbf{(2)} $\wh {\vb P}$ is orthogonal to $\vbhat{z}$ (i.e. ``transverse'').
+%====================================================================%
+$$ \widehat{ \vb P}(\vb k) \equiv
+   \frac{1}{|\vb k|}
+   \left(\begin{array}{c}-k_y \\ k_x \\ 0 \end{array}\right),
+   \qquad
+   \widehat{\vb Q}(\vb k) \equiv
+   \frac{1}{k_0}\Big[ \vb k\subt{3D} \times \widehat{\vb P}(\vb k) \Big]
+   =
+   \frac{1}{k_0 |\vb k|}
+   \left(\begin{array}{c} \pm k_x k_z \\ \pm k_y k_z \\ k_x^2 + k_y^2 
+         \end{array}\right)
+$$
+%====================================================================%
+
+The fields of a point source may be written as a
+%====================================================================%
+\begin{align*}
+ \vb E\supt{ED}\left((\vb x; \big\{ z_0 \vbhat{z}; \vbhat{x} \big\}\right)
+&= \sum
+\end{align*}
+%====================================================================%
+
+\subsection*{Converting $k_\rho$ integrals to Brillouin-zone integrals}
 
 \begin{align*}
  Q &= \int_0^\infty \, dk_\rho \, k_\rho F(k_\rho) 
@@ -629,4 +696,3 @@ $$ \overline{F}(k_x, k_y)
 $$
 
 \end{document}
-
