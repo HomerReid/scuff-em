@@ -628,24 +628,24 @@ $$ k_z \equiv \sqrt{k_0^2 - |\vb k|^2},
    \end{cases}.
 $$
 %====================================================================%
-Generalized transverse-electric and transverse-magnetic plane waves:
+Define generalized transverse-electric and transverse-magnetic plane waves:
 %====================================================================%
 $$\begin{array}{ccccccc}
- \vb E^{\pm} \subt{TE}(\vb x; \vb k\subt{2d})
+ \vb E^{\pm} \subt{TE}(\vb x; \vb k)
    &\equiv& E_0 \widehat{\vb P}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
    &\qquad&
  \vb H^{\pm} \subt{TE}(\vb x; \vb k)
    &\equiv& H_0 \widehat{\vb Q}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
 \\[8pt]
 %--------------------------------------------------------------------%
- \vb E^{\pm} \subt{TM}(\vb x; \vb k\subt{2d})
+ \vb E^{\pm} \subt{TM}(\vb x; \vb k)
    &\equiv& -E_0 \widehat{\vb Q}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
    &\qquad&
  \vb H^{\pm} \subt{TM}(\vb x; \vb k)
    &\equiv& H_0 \widehat{\vb P}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
 \end{array}$$
 %====================================================================%
-$$ E_0 \equiv 1, \qquad H_0\equiv \frac{E_0}{Z_0}.$$
+$$ E_0 \equiv 1 \text{ volt/$\mu$m}, \qquad H_0\equiv \frac{E_0}{Z_0}.$$
 %====================================================================%
 where I defined two $\vb k$-dependent unit vectors 
 $\widehat{\vb P}, \widehat{\vb Q}$ with the properties 
@@ -665,13 +665,60 @@ $$ \widehat{ \vb P}(\vb k) \equiv
          \end{array}\right)
 $$
 %====================================================================%
-
-The fields of a point source may be written as a
+The fields of a point source may be written in the form
 %====================================================================%
 \begin{align*}
- \vb E\supt{ED}\left((\vb x; \big\{ z_0 \vbhat{z}; \vbhat{x} \big\}\right)
-&= \sum
+ \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{x} \big\}\Big)
+&= \int \frac{d \vb k}{2\pi} 
+   \bigg\{ C^{x}\subt{TE}(\vb k)
+           \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
+          + 
+           C^{x}\subt{TM}(\vb k)
+           \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
+   \bigg\}
+\\
+ \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{y} \big\}\Big)
+&= \int \frac{d \vb k}{2\pi} 
+   \bigg\{ C^{y}\subt{TE}(\vb k)
+           \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
+          + 
+           C^{y}\subt{TM}(\vb k)
+           \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
+   \bigg\}
+\\
+ \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{z} \big\}\Big)
+&= \int \frac{d \vb k}{2\pi} 
+           C^{z}\subt{TM}(\vb k)
+           \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
 \end{align*}
+%====================================================================%
+where the scalar coefficients are 
+%====================================================================%
+$$\begin{array}{ccccccc}
+ \displaystyle{ C^{x}\subt{TE} }
+ &=& 
+  \displaystyle{ \frac{ ik_y |\vb k|}{2k_0^2 k_z} }
+ &\qquad&
+ \displaystyle{ C^{x}\subt{TM} }
+ &=& 
+ \displaystyle{ \frac{ \pm ik_x }{2k_0^2 |\vb k|^2} }
+\\[10pt]
+%--------------------------------------------------------------------%
+ \displaystyle{ C^{y}\subt{TE} }
+ &=& 
+  \displaystyle{ \frac{ -ik_x |\vb k|}{2k_0^2 k_z} }
+ &\qquad&
+ \displaystyle{ C^{y}\subt{TM} }
+ &=& 
+ \displaystyle{ \frac{ \pm ik_y }{2k_0^2 |\vb k|^2} }
+\\[10pt]
+%--------------------------------------------------------------------%
+ \displaystyle{ C^{z}\subt{TE} }
+ &=& 0
+ &\qquad&
+ \displaystyle{ C^{z}\subt{TM} }
+ &=& \displaystyle{ \frac{ \pm ikz  }{2k_0^2 |\vb k|^2} }
+\end{array}$$
 %====================================================================%
 
 \subsection*{Converting $k_\rho$ integrals to Brillouin-zone integrals}

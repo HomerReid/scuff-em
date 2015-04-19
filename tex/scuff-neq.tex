@@ -13,6 +13,7 @@
 \newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
 \newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
 \newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
+\newcommand{\wh}{\widehat}
 %\newcommand{\vbchi}{\boldsymbol{\chi}}
 
 \graphicspath{{figures/}}
@@ -620,13 +621,13 @@ expressed as an integral over the dimensionless variable $u$:
  \qquad \big\langle Q_d\big\rangle
  = \hbar \omega_0^2
    \int_0^\infty 
-              \sum_s \, \hat \Theta_s (u) \Phi\supt{PFT}_{s\to d}(u)\,du
+              \sum_s \, \wh \Theta_s (u) \Phi\supt{PFT}_{s\to d}(u)\,du
 }
 %====================================================================%
-where $\hat \Theta_s(u)$ is a dimensionless version 
+where $\wh \Theta_s(u)$ is a dimensionless version 
 of the Bose-Einstein factor for source body $s$,
 %====================================================================%
-$$ \hat \Theta_s(u)\equiv \frac{u}{e^{\beta_s u}-1}, 
+$$ \wh \Theta_s(u)\equiv \frac{u}{e^{\beta_s u}-1}, 
    \qquad 
    \beta_s \equiv \frac{\hbar \omega_0}{kT_s}
     \approx \frac{ 2278 }{T_s\text{ in Kelvin.}}
@@ -642,7 +643,7 @@ by {\sc scuff-neq} to three distinct output files, as follows:
    \underbrace{
    \Bigg[
    \int_0^\infty 
-  \underbrace{\bigg\{ \sum_s \, \hat \Theta_s(u)
+  \underbrace{\bigg\{ \sum_s \, \wh \Theta_s(u)
   \underbrace{\Phi\supt{PFT}_{s\to d}(u)}_{\texttt{.SIFlux}}
              \bigg\} }_{\texttt{.SIIntegrand}}
    \,\,du \Bigg]
