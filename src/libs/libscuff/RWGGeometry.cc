@@ -611,7 +611,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
    { Log("Using V1P0 routines for taylor-duffy FIPPI computation");
      UseTaylorDuffyV2P0=false;
    };
-     
 
 }
 

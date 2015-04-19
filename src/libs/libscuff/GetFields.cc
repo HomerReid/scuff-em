@@ -388,7 +388,7 @@ void *GetFields_Thread(void *data)
      memset(EH, 0, 6*sizeof(cdouble));
 
      int RegionIndex = G->GetRegionIndex(X);
-     if (G->RegionMPs[RegionIndex]->IsPEC())
+     if (RegionIndex<0 || G->RegionMPs[RegionIndex]->IsPEC())
       continue;
 
      cdouble Eps = G->EpsTF[RegionIndex];
