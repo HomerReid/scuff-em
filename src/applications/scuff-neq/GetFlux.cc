@@ -34,20 +34,15 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void ProcessRytovMatrix(SNEQData *SNEQD, cdouble Omega, int SourceSurface)
+void ProcessRytovMatrix(SNEQData *SNEQD,
+                        cdouble Omega,
+                        int SourceSurface)
 { 
   RWGGeometry *G = SNEQD->G;
   HMatrix *Rytov = SNEQD->Rytov;
   void **Buffer  = SNEQD->Buffer;
 
   int N = G->Surfaces[SourceSurface]->NumBFs;
-
-#if 0
-  Log("Exporting Rytov matrix to file...\n");
-  void *pC=HMatrix::OpenHDF5Context("%s.Rytov.hdf5",GetFileBase(G->GeoFileName));
-  Rytov->ExportToHDF5(pC,"Rytov");
-  HMatrix::CloseHDF5Context(pC);
-#endif
 
   HMatrix _RCopy(N, N, LHM_COMPLEX, LHM_NORMAL, Buffer[0]);
   HMatrix _U(N, N, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
@@ -135,7 +130,7 @@ int GetSRQIndex(SNEQData *SNEQD, int nt, int nss, int nx, int nq)
 
   int NS = SNEQD->G->NumSurfaces;
   int NX = SNEQD->NX;
-  int NQ = SNEQD->NQ;
+  int NQ = NUMSRFLUX;
 
   return NumSIQs + nt*(NS*NX*NQ) + nss*(NX*NQ) + nx*NQ + nq;
 }
@@ -298,28 +293,15 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   for(int nq=0, nqq=0; nq<NUMPFT; nq++)
    if (SNEQD->NeedQuantity[nq])
     SIFlux[nqq++] = -4.0*AllFlux[nq];
-
 } 
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetSRFluxes(SNEQData *SNEQD, int SourceSurface, HMatrix *XMatrix,
-                 cdouble Omega, double *Results)
-{ 
-  (void) SNEQD;
-  (void) SourceSurface; 
-  (void) XMatrix;
-  (void) Omega;
-  (void) Results;
- // for(int nx=0; nx<
-}
 
 /***************************************************************/
 /* return false on failure *************************************/
 /***************************************************************/
 bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
+  (void)kBloch;
+
   if (SNEQD->UseExistingData==false)
    return false;
 
@@ -440,8 +422,8 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   int NS              = SNEQD->G->NumSurfaces;
   int NQ              = SNEQD->NQ;
   int NumSIQs         = SNEQD->NumSIQs;
+  int NumSRQs         = SNEQD->NumSRQs;
   char *FileBase      = SNEQD->FileBase;
-  bool *NeedQuantity  = SNEQD->NeedQuantity;
 
   Log("Computing neq quantities at omega=%s...",z2s(Omega));
 
@@ -554,7 +536,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
               double SIFlux[NUMPFT];
               GetSIFlux(SNEQD, nss, nsd, Omega, SIFlux);
 
-              fprintf(f,"%e %s ",real(Omega),Tag);
+              fprintf(f,"%s %e ",Tag,real(Omega));
               if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
               fprintf(f,"%i%i ",nss+1,nsd+1);
               for(int nq=0; nq<NQ; nq++)
@@ -569,9 +551,29 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 
         // compute spatially-resolved flux quantities for
         // all evaluation points
-        //if (NumSRQs > 0)
-        //  { GetSRFlux(
-        // };
+        if (NumSRQs > 0)
+          { HMatrix *SRXMatrix=SNEQD->SRXMatrix;
+            HMatrix *SRFMatrix=SNEQD->SRFMatrix;
+            GetSRFlux(G, SRXMatrix, Omega, 0, SNEQD->Rytov, SRFMatrix);
+
+            FILE *f=vfopen("%s.SRFlux","a",FileBase);
+            int NX = SNEQD->NX;
+            for(int nx=0; nx<NX; nx++)
+             {
+               double X[3], SRFlux[NUMSRFLUX];
+               SRXMatrix->GetEntriesD(nx,":",X);
+               SRFMatrix->GetEntriesD(nx,":",SRFlux);
+
+               fprintf(f,"%s %e ",Tag,real(Omega));
+               if (kBloch) 
+                fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
+               fprintf(f,"%e %e %e %i ",X[0],X[1],X[2], nss);
+               for(int nq=0; nq<NUMSRFLUX; nq++)
+                fprintf(f,"%e ",Flux[GetSRQIndex(SNEQD, nt, nss, nx, nq) ]=SRFlux[nq]);
+               fprintf(f,"\n");
+             };
+          };
+
       };
 
      /*--------------------------------------------------------------*/

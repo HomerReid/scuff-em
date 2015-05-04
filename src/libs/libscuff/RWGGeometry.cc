@@ -47,6 +47,7 @@ bool RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
 bool RWGGeometry::UseHighKTaylorDuffy=true;
 bool RWGGeometry::UseTaylorDuffyV2P0=true;
 bool RWGGeometry::UseGetFieldsV2P0=false;
+bool RWGGeometry::DisableCache=false;
 int RWGGeometry::NumMeshDirs=0;
 char **RWGGeometry::MeshDirs=0;
 
@@ -243,9 +244,13 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
      else if ( !strcasecmp(s, "VERBOSE2" ) ) LogLevel=SCUFF_VERBOSE2;
    };
 
+  if ( (s=getenv("SCUFF_DISABLE_CACHE")) && (s[0]=='1') )
+   { Log("Disabling caching of frequency-independent panel-panel integrals.");
+     RWGGeometry::DisableCache=true;
+   };
+
   if ( (s= getenv("SCUFF_HALF_RWG")) && (s[0]=='1') )
-   { 
-     Log("Assigning half-RWG basis functions to exterior edges.");
+   { Log("Assigning half-RWG basis functions to exterior edges.");
      RWGGeometry::AssignBasisFunctionsToExteriorEdges=true;
    };
 

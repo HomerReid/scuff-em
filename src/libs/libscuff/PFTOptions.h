@@ -27,7 +27,8 @@
 #ifndef PFTOPTIONS_H
 #define PFTOPTIONS_H
 
-#include "libscuff.h"
+#include "libhmat.h"
+#include "libhrutil.h"
 
 namespace scuff {
 
@@ -97,6 +98,14 @@ typedef struct PFTOptions
 /* called with Options=NULL or with no argument                */
 /***************************************************************/
 PFTOptions *InitPFTOptions(PFTOptions *Options=0);
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+class RWGGeometry;
+HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
+                   HVector *KNVector, HMatrix *RytovMatrix,
+                   HMatrix *FMatrix=0, bool FarField=false);
 
 } // namespace scuff 
 

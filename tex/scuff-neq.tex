@@ -79,21 +79,506 @@ fluxes of energy and momentum at individual points in space,
 and \textbf{(b)} total (spatially-integrated) power-transfer 
 rates, forces, and torques on individual bodies.
 
-In this subsection we derive several such surface-current 
-bilinear formulas in the context of (classical, deterministic)
-scattering theory. In the following subsection we explain how 
-the FSC approach converts these \textit{deterministic} 
-expressions---describing energy and momentum transfer
-from fixed external sources---into \textit{statistically averaged} 
-expressions, describing energy and momentum transfer
-due to thermal and quantum-mechanical fluctuations
-in material bodies in the \textit{absence} of external
-excitation.
+More specifically, let the six-vector of surface electric
+and magnetic currents (flowing on the surfaces of \textit{all}
+bodies in a geometry) be
+%====================================================================%
+$$ \bmc C(\vb x)\equiv{\vb K(\vb x) \choose \vb N(\vb x)}
+   \approx \sum_{\alpha} c_\alpha \bmc B_\alpha(\vb x)
+$$
+%====================================================================%
+where we have discretized by approximating $\bmc C(\vb x)$ as an
+expansion in a discrete set of six-vector basis
+functions\footnote{In {\sc scuff-neq} these take the form
+$\bmc B_\alpha=$ 
+$\vb b_\alpha \choose 0$ 
+or 
+$0 \choose \vb b_\alpha$
+where $\vb b_\alpha$ is a three-vector RWG basis function.
+However, the FSC formalism is not specific to this choice.}
+\{$\bmc B_\alpha(\vb x)$\}; here $\{c_\alpha\}$ are 
+scalar expansion coefficients.\footnote{In {\sc scuff-em}
+the basis functions are dimensionless and the expansion
+coefficients have units of 
+%====================================================================%
+\begin{align*}
+ \big[c_{2\alpha}\big]&=\frac{\text{Amperes}}{\text{meters}}
+ \quad \text{(electric surface currents)}, \qquad
+ \big[c_{2\alpha+1}\big]=\frac{\text{Volts}}{\text{meters}}
+ \quad \text{(magnetic surface currents).}
+\end{align*}}
+%====================================================================%
+(We work at a fixed frequency $\omega$ and assume all fields
+and currents vary in time like $e^{-i\omega t}$.)
+
+Then the time-average values of physical quantities associated 
+with power, force and torque (PFT)---including both spatially-resolved
+PFT fluxes at individual points in space as well as spatially-integrated
+quantities representing the total PFT on compact bodies---may 
+generally be expressed as vector-matrix-vector products of the 
+form
+%====================================================================%
+\numeq{QcQc} {Q = \vb c^\dagger \vb Q \vb c}
+%====================================================================%
+where $Q$ is the quantity of interest and $\vb Q$ is a matrix
+that depends on the quantity we are computing and the method we
+use to compute it.
+
+\paragraph{Spatially-resolved PFT fluxes} 
+For example, the time-average Poynting vector and Maxwell stress 
+tensor at a point $\vb x$---that is, the time-average fluxes,
+in the $\vbhat{n}$ direction, of energy, of $\vbhat{u}$-directed
+linear momentum, and of $\vbhat{u}$-directed angular momentum---are
+given by
+%====================================================================%
+$$\begin{array}{*3{>{\displaystyle}l}}
+\text{Energy flux: } \qquad 
+&\vb P(\vb x) \cdot \vbhat{n} 
+&=\frac{1}{2}\text{Re }
+   \vb c^\dagger \vb Q\supt{PFLUX}(\vb x; \vbhat{n}) \vb c
+\\[10pt]
+\text{Linear momentum flux: } \qquad 
+&\vbhat{u} \cdot \vb T(\vb x) \cdot \vbhat{n}
+&=\frac{1}{2}\text{Re }
+   \vb c^\dagger \vb Q\supt{FFLUX}(\vb x; \vbhat{u}, \vbhat{n}) \vb c
+\\[10pt]
+\text{Angular momentum flux: } \qquad 
+&\vbhat{u} \cdot \Big[(\vb x-\vb x_0) \times \vb T(\vb x)\Big] \cdot \vbhat{n}
+&=\frac{1}{2}\text{Re }
+   \vb c^\dagger \vb Q\supt{TFLUX}(\vb x; \vb x_0, \vbhat{u}, \vbhat{n}) \vb c
+\end{array}$$
+%====================================================================%
+where the form of the $\vb Q\supt{P,F,T}$ matrices is derived in
+the Appendix. (In the last line, $\vb x_0$ is the origin about which 
+we are computing the torque).
+
+\paragraph{Spatially-integrated PFT fluxes} 
+On the other hand, the \textit{total} (spatially-integrated)
+power absorbed by, and the $\vbhat{u}$-directed force and torque 
+exerted on, one or more compact bodies contained within a 
+closed bounding surface $\mc S$ are given by 
+%====================================================================%
+$$\begin{array}{*3{>{\displaystyle}l}}
+\text{Absorbed power:} \qquad 
+& P\sups{abs}
+&=\frac{1}{2}\text{Re }
+   \vb c^\dagger \vb Q\supt{P}(\mc S) \vb c
+\\[10pt]
+\text{Force: } \qquad 
+&\vbhat{u} \cdot \vb F
+&=\frac{1}{2}\text{Re }
+   \vb c^\dagger \vb Q\supt{F}(\mc S; \vbhat{u}) \vb c
+\\[10pt]
+\text{Torque: } \qquad 
+&\vbhat{u} \cdot \bmc T
+&=\frac{1}{2}\text{Re }
+   \vb c^\dagger \vb Q\supt{T}(\mc S; \vb x_0, \vbhat{u}) \vb c
+\end{array}$$
+%====================================================================%
+
+Expressions for all of the $\vb Q$ matrices are given
+in Appendix \ref{QMatrixAppendix}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Statistical averages of surface-current bilinears}
+
+Equation (\ref{QcQc}) gives the time-average value of
+a PFT quantity in a classical, deterministic scattering 
+problem in which the surface currents $\vb c_\alpha$ are known.
+The heart of the FSC approach to nonequilibrium phenomena 
+is a concise formula for the \textit{statistical average} 
+of such surface-current bilinears,
+where the averaging is performed over thermal and quantum-mechanical
+fluctuations of sources inside material bodies at fixed temperatures.
+A precise statement of the FSC equivalence is as follows.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+
+\item
+If $Q$ is a physical quantity which (in a classical, deterministic 
+setting) is expressed as a bilinear function of the surface currents 
+involving a matrix $\vb Q$, i.e.
+%====================================================================%
+\begin{subequations}
+\begin{equation}
+ \text{if} \qquad Q=\vb c^\dagger \vb Q \vb c
+\end{equation}
+%====================================================================%
+
+\item
+then the statistical \textit{average} of the quantity $Q$---where
+the averaging is over quantum and thermal fluctuations---is given by
+a sum over the contributions of sources in all bodies:
+%--------------------------------------------------------------------%
+\begin{equation}
+ \text{then} \qquad \big\langle Q\big\rangle
+  = \int_0^\infty \, \sum_s \, \Theta(T_s,\omega) \Phi_s(\omega)\,d\omega 
+\end{equation}
+where 
+$\Theta(T_s,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_s} - 1}$
+is the Bose-Einstein factor for the temperature $T_s$ of 
+body $s$, and where the ``generalized flux'' $\Phi_s$
+is the trace of a four-matrix product involving the $\vb Q$ matrix:
+%====================================================================%
+\begin{equation}
+\Phi_s
+  = \frac{2}{\pi} 
+    \Tr\left\{ \vb Q 
+               \underbrace{\vb W \overline{\vb G}_s \vb W^\dagger}
+                         _{\vb R_s}
+       \right\}.
+\end{equation}
+%====================================================================%
+\label{FSCEquivalence}%
+\end{subequations}
+%--------------------------------------------------------------------%
+Here $\vb W$ is the inverse of the BEM matrix for the 
+\textit{entire} collection of bodies and $\overline{\vb G}_s$ 
+is a symmetrized version of a portion of the BEM matrix for body 
+$s$ alone.
+
+\end{itemize}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The matrix $\vb R_s$ in (\ref{FSCEquivalence})---the ``Rytov''
+matrix---furnishes a concise description of the fluctuating sources
+inside body $s$. For a given output quantity 
+$Q$, the generalized flux $\Phi_s$ is the contribution to $Q$ 
+of just the fluctuating currents that lie within body $s$
+(here $s$ stands for ``source''), although these contributions
+are computed with proper consideration paid to the scattering
+response of the other bodies in the geometry. In other words,
+$\Theta(T_s,\omega)\Phi_s$ is the contribution to $Q$ 
+obtained by setting body $s$ to temperature $T_s$ and setting
+all other bodies to \textit{zero} temperature, so that those
+bodies are present as electromagnetic scatterers but not as 
+sources of radiation.
+%
+%More specifically, the eigenvectors of $\vb R_s$ 
+%may be interpreted as ``normal modes'' of the fluctuating source 
+%distribution inside body $s$; these are surface-current vectors 
+%whose contributions to time-average PFT quantities add without
+%mixing.
+%
+%\subsection*{Structure of $\vb R_s$}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%{\scriptsize
+%\begin{align*}
+% \vb R_s &= \vb W \overline{\vb G}_s \vb W^\dagger
+%\\
+%%--------------------------------------------------------------------%
+%&=\left(\begin{array}{cccc}
+%  \vphantom{\vb W^\dagger_11} 
+%  \vb W_{11} & \vb W_{12} & \cdots & \vb W_{1N} 
+%\\ 
+%  \vphantom{\vb W^\dagger_11} 
+%  \vb W_{21} & \vb W_{22} & \cdots & \vb W_{2N} 
+%\\ 
+%  \vphantom{\vb W^\dagger_11} 
+%  \vdots     & \vdots     & \ddots & \vdots     
+%\\
+%  \vphantom{\vb W^\dagger_11} 
+%  \vb W_{N1} & \vb W_{N2} & \cdots & \vb W_{NN}
+%  \end{array}\right)
+%%--------------------------------------------------------------------%
+% \left(\begin{array}{cccc}
+%  \vphantom{\vb W^\dagger_11} 
+%  0          & 0          & \cdots &         0          
+%  \\ 
+%  \vphantom{\vb W^\dagger_11} 
+%  0          & 0          & \cdots &         0          
+%  \\ 
+%  \vphantom{\vb W^\dagger_11} 
+%  \vdots     & \vdots     & \overline{\vb G}_{s} &  \vdots     
+%  \\
+%  \vphantom{\vb W^\dagger_11} 
+%  0          & 0          & \cdots &         0
+%  \end{array}\right)
+%%--------------------------------------------------------------------%
+%  \left(\begin{array}{cccc}
+%  \vb W_{11}^\dagger & \vb W_{21}^\dagger & \cdots & \vb W_{N1}^\dagger \\ 
+%  \vb W_{12}^\dagger & \vb W_{22}^\dagger & \cdots & \vb W_{N2}^\dagger \\ 
+%  \vdots     & \vdots     & \ddots & \vdots     \\
+%  \vb W_{1N}^\dagger & \vb W_{2N}^\dagger & \cdots & \vb W_{NN}^\dagger
+%  \end{array}\right)
+%\end{align*}
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
+%The $a,b$ subblock of this matrix is
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
+%$$ \vb R_{s; ab} = \vb W_{as} \overline{\vb G}_s \vb W_{bs}^\dagger. $$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Output files}
+
+\subsection{Output files for spatially-integrated quantities}
+
+Let $\big\langle Q_d\big\rangle$ be the total time-average 
+power, force, or torque (PFT) on body $d$. ($d$ stands for a 
+``destination'' body, as distinct from a ``source'' body
+whose fluctuating sources contribute to $Q_d$). From 
+equation (\ref{FSCEquivalence}b), we have
+%====================================================================%
+\begin{equation}
+ \qquad \big\langle Q_d\big\rangle
+ = \int_0^\infty \, \sum_s \, \Theta_s(\omega) 
+   \Phi_{s\to d}(\omega)\,d\omega
+\end{equation}
+%====================================================================%
+where $\Theta_s$ is the Bose-Einstein factor for the temperature 
+of body $s$ and $\Phi_{s \to d}(\omega)$ is the 
+(frequency-resolved, spatially-integrated) flux of power or momentum
+from body $s$ to body $d$.
+%====================================================================%
+To evaluate this integral, it is convenient to agree to measure angular
+frequency in the default {\sc scuff} units, whereupon we 
+introduce a dimensionless angular frequency $u$ according 
+to\footnote{Note that $u$ is the numerical quantity referred to as 
+\texttt{Omega} on the {\sc scuff-neq} command line and in the 
+{\sc scuff-neq} source code. Some convenient
+dimensionful quantities involving $\omega_0$ are:
+%====================================================================%
+$$
+ \hbar\omega_0=0.197\text{ eV}=31.6\cdot10^{-21} \text{ Joules}, 
+ \qquad 
+ \hbar\omega_0^2=9.49115\,\mu\text{W} \, (\text{microWatts}).
+$$}
+%====================================================================%
+$$ \omega=u\cdot \omega_0
+   \qquad \text{where} \qquad
+   \omega_0\equiv 3\cdot 10^{14}\text{ rad/sec}.
+$$
+Then the total time-average PFT on body $d$ may be
+expressed as an integral over the dimensionless variable $u$:
+%====================================================================%
+\numeq{QAverage}
+{
+ \qquad \big\langle Q_d\big\rangle
+ = \hbar \omega_0^2
+   \int_0^\infty 
+              \sum_s \, \wh \Theta_s (u) \Phi\supt{PFT}_{s\to d}(u)\,du
+}
+%====================================================================%
+where $\wh \Theta_s(u)$ is a dimensionless version 
+of the Bose-Einstein factor for source body $s$,
+%====================================================================%
+$$ \wh \Theta_s(u)\equiv \frac{u}{e^{\beta_s u}-1}, 
+   \qquad 
+   \beta_s \equiv \frac{\hbar \omega_0}{kT_s}
+    \approx \frac{ 2278 }{T_s\text{ in Kelvin.}}
+$$
+%====================================================================%
+The various constituents of equation (\ref{QAverage}) are written
+by {\sc scuff-neq} to three distinct output files, as follows:
+%====================================================================%
+\numeq{QAverage2}
+{
+ \qquad \big\langle Q_d\big\rangle
+ = \hbar \omega_0^2
+   \underbrace{
+   \Bigg[
+   \int_0^\infty 
+  \underbrace{\bigg\{ \sum_s \, \wh \Theta_s(u)
+  \underbrace{\Phi\supt{PFT}_{s\to d}(u)}_{\texttt{.SIFlux}}
+             \bigg\} }_{\texttt{.SIIntegrand}}
+   \,\,du \Bigg]
+              }_{\texttt{.NEQPFT}}
+}
+%====================================================================%
+More specifically, 
+%====================================================================%
+\begin{itemize}
+  \item The quantity $\Phi_{s\to d}(u)$ is written to the
+        \texttt{.SIFlux} file. This quantity may be interpreted
+        as the PFT per unit frequency per
+        unit temperature exerted on body $d$ due to sources
+        in body $s.$ This is a temperature-independent quantity.
+        For \texttt{PFT}=power, this quantity
+        is \textit{dimensionless}. For \texttt{PFT}=force,
+        this quantity has units of \textit{nanoNewtons/watts}.
+  \item The quantity written to the \texttt{.SIIntegrand} file
+        is the PFT per unit frequency exerted on body $d$ due to 
+        thermally-weighted sources in body $s$.
+        (The \texttt{.SIIntegrand} file records, for each 
+         destination body $d$, both the individual contributions
+         of each source body $s$ and the total contributions
+         of all source bodies.)
+  \item The quantity written to the \texttt{.NEQPFT} file
+        is the total time-average PFT exerted on body $d$ due to 
+        thermally-weighted sources in body $s$.
+        (The \texttt{.NEQPFT} file records, for each
+         destination body $d$, both the individual contributions
+         of each source body $s$ and the total contributions
+         of all source bodies.)
+\end{itemize}
+%====================================================================%
+
+\subsection{An explicit example}
+
+To elucidate the significance of the various numerical
+quantities reported in the {\sc scuff-neq} output files,
+we now consider two explicit worked examples.
+
+\subsubsection{Power radiation of a single sphere}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{{\sc scuff-neq} for Region-and-Surface Geometries}
+
+\begin{itemize}
+ \item Surface 1: vacuum-metal interface
+ \item Surface 2: metal-dielectric interface
+ \item Surface 3: vacuum-dielectric interface
+\end{itemize}
+
+\noindent Structure of surface-current vector:
+%====================================================================%
+$$ \vb c=
+   \left(\begin{array}{c} \vb c_1 \\ \vb c_2 \\ \vb c_3 \end{array}\right),
+$$
+%====================================================================%
+Structure of BEM matrix:
+$$ \vb M
+    =
+   \left(\begin{array}{ccc}
+     \vb T_{1}\sups{vacuum} + \vb T_{1}\sups{metal}
+   & \vb U_{12}\sups{metal}
+   & \vb U_{13}\sups{vacuum}
+\\[8pt]
+     \vb U_{21}\sups{metal}
+   & \vb T_{2}\sups{metal} + \vb T_{2}\sups{dielectric}
+   & \vb U_{23}\sups{dielectric}
+\\[8pt]
+     \vb U_{31}\sups{vac}
+   & \vb U_{31}\sups{dielectric}
+   & \vb T_{3}\sups{vacuum} + \vb T_{3}\sups{dielectric}
+   \end{array}\right)
+$$
+%====================================================================%
+Rytov matrix for metal: 
+%====================================================================%
+$$ \vb R\sups{metal}
+    = \vb W\cdot
+   \left[
+   \text{sym}
+   \left(\begin{array}{ccc}
+     \vb T_{1}\sups{metal}
+   & 0
+   & 0
+\\[8pt]
+     0
+   & \vb T_{2}\sups{metal} 
+   & 0
+\\[8pt]
+     0 
+   & 0
+   & 0
+   \end{array}\right)
+   \right]
+   \vb W^\dagger
+$$
+%====================================================================%
+Rytov matrix for dielectric: 
+%====================================================================%
+$$ \vb R\sups{dielectric}
+    = \vb W\cdot
+   \left[
+   \text{sym}
+   \left(\begin{array}{ccc}
+     0
+   & 0
+   & 0
+\\[8pt]
+     0
+   & \vb T_{2}\sups{dielectric} 
+   & 0
+\\[8pt]
+     0 
+   & 0
+   & \vb T_{3}\sups{dielectric} 
+   \end{array}\right)
+   \right]
+   \vb W^\dagger
+$$
+%====================================================================%
+Structure of $\vb Q$ matrices for PFT transfer between the 
+composite particle and the exterior (vacuum) region, as
+computed using the EPPFT / OPFT formalisms or the DSIPFT 
+formalism:
+%====================================================================%
+$$ \vb Q\supt{EP/O}
+    =
+   \left(\begin{array}{ccc}
+   \vb Q\supt{EP/O}_{1}
+   & 0
+   & 0
+\\[8pt]
+     0
+   & 0
+   & 0
+\\[8pt]
+     0 
+   & 0
+   & \vb Q\supt{EP/O}_{3}
+   \end{array}\right), 
+%--------------------------------------------------------------------%
+\qquad
+%--------------------------------------------------------------------%
+   \vb Q\supt{DSI}
+    =
+   \left(\begin{array}{ccc}
+   \vb Q\supt{DSI}_{11} 
+   \vphantom{\vb Q\supt{EP/O}_1}
+   \,\,\,\,
+   & 0
+   & \vb Q\supt{DSI}_{13}
+\\[8pt]
+     0
+   & 0
+   & 0
+\\[8pt]
+   \vb Q\supt{DSI}_{31} \vphantom{\vb Q\supt{EP/O}_1}
+   \,\,\,\,
+   & 0
+   & \vb Q\supt{DSI}_{33}
+   \end{array}\right)
+$$
+%====================================================================%
 
 %=================================================
 %=================================================
 %=================================================
 \newpage
+\appendix
+\section{Derivation of surface-current bilinears}
+
+In Section \ref{PQsFromSCBsSection} we noted that
+the fluxes of power, force, and torque (PFT) at
+individual points in space, as well as the 
+total PFT absorbed by or exerted on full bodies,
+may be expressed as vector-matrix-vector product
+formulas of the form 
+%====================================================================%
+$$ Q = \vb c^\dagger \vb Q \vb c$$
+%====================================================================%
+where $Q$ is the quantity of interest (a PFT flux or a total PFT), 
+$\vb c$ is the vector of surface-current coefficients, 
+and $\vb Q$ is a matrix that depends on the quantity we are
+computing and the method we use to compute it. In this Appendix  
+we discuss the specific forms of the $\vb Q$ matrix appropriate
+for various quantities.
+
 \subsection*{Fields from surface currents}
 
 Recall that in the surface-integral-equation (SIE) approach to
@@ -447,374 +932,7 @@ F_i&=\frac{1}{\omega} \text{Im }
    \vb c
 \end{align*}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Statistical averages of surface-current bilinears}
-
-The previous section discussed several examples of physical
-quantities $Q$ which, in classical scattering problems with 
-deterministic sources and deterministic induced surface 
-currents, may be computed as bilinear functions of the surface 
-currents, $ Q(\vb c)=\vb c^\dagger \vb Q \vb c$. 
-The heart of the FSC 
-approach to nonequilibrium phenomena is a concise formula for 
-the \textit{statistical average} of such surface-current bilinears,
-where the averaging is performed over thermal and quantum-mechanical
-fluctuations of sources inside material bodies at fixed temperatures.
-A precise statement of the FSC equivalence is as follows.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{itemize}
-
-\item
-If $Q$ is a physical quantity which (in a classical, deterministic 
-setting) is expressed as a bilinear function of the surface currents 
-involving a matrix $\vb Q$, i.e.
-%====================================================================%
-\begin{subequations}
-\begin{equation}
- \text{if} \qquad Q(\vb c)=\vb c^\dagger \vb Q \vb c
-\end{equation}
-%====================================================================%
-
-\item
-then the statistical \textit{average} of the quantity $Q$---where
-the averaging is over quantum and thermal fluctuations---is given by
-a sum over the contributions of sources in all bodies:
-%--------------------------------------------------------------------%
-\begin{equation}
- \text{then} \qquad \big\langle Q\big\rangle
-  = \int_0^\infty \, \sum_s \, \Theta_s(\omega) \Phi_s(\omega)\,d\omega 
-\end{equation}
-where 
-$\Theta_s(\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_s} - 1}$
-is the Bose-Einstein factor for the temperature $T_s$ of 
-body $s$, and where the ``generalized flux'' $\Phi_s$
-is the trace of a four-matrix product involving the $\vb Q$ matrix:
-%====================================================================%
-\begin{equation}
-\Phi_b
-  = \frac{2}{\pi} 
-    \Tr\left\{ \vb Q 
-               \underbrace{\vb W \overline{\vb G}_s \vb W^\dagger}
-                         _{\vb R_s}
-       \right\}.
-\end{equation}
-%====================================================================%
-\label{FSCEquivalence}
-\end{subequations}
-%--------------------------------------------------------------------%
-Here $\vb W$ is the inverse of the BEM matrix for the 
-\textit{entire} collection of bodies and $\overline{\vb G}_s$ 
-is a symmetrized version of a portion of the BEM matrix for body 
-$s$ alone.
-
-\end{itemize}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The matrix $\vb R_s$ in (\ref{FSCEquivalence})---the ``Rytov''
-matrix--furnishes a concise description of the fluctuating sources
-inside body $s$. More specifically, the eigenvectors of $\vb R_s$ 
-may be interpreted as ``normal modes'' of the fluctuating source 
-distribution inside body $s$; these are surface-current vectors 
-whose contributions to time-average PFT quantities add without
-mixing.
-
-\subsection*{Structure of $\vb R_s$}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-{\scriptsize
-\begin{align*}
- \vb R_s &= \vb W \overline{\vb G}_s \vb W^\dagger
-\\
-%--------------------------------------------------------------------%
-&=\left(\begin{array}{cccc}
-  \vphantom{\vb W^\dagger_11} 
-  \vb W_{11} & \vb W_{12} & \cdots & \vb W_{1N} 
-\\ 
-  \vphantom{\vb W^\dagger_11} 
-  \vb W_{21} & \vb W_{22} & \cdots & \vb W_{2N} 
-\\ 
-  \vphantom{\vb W^\dagger_11} 
-  \vdots     & \vdots     & \ddots & \vdots     
-\\
-  \vphantom{\vb W^\dagger_11} 
-  \vb W_{N1} & \vb W_{N2} & \cdots & \vb W_{NN}
-  \end{array}\right)
-%--------------------------------------------------------------------%
- \left(\begin{array}{cccc}
-  \vphantom{\vb W^\dagger_11} 
-  0          & 0          & \cdots &         0          
-  \\ 
-  \vphantom{\vb W^\dagger_11} 
-  0          & 0          & \cdots &         0          
-  \\ 
-  \vphantom{\vb W^\dagger_11} 
-  \vdots     & \vdots     & \overline{\vb G}_{s} &  \vdots     
-  \\
-  \vphantom{\vb W^\dagger_11} 
-  0          & 0          & \cdots &         0
-  \end{array}\right)
-%--------------------------------------------------------------------%
-  \left(\begin{array}{cccc}
-  \vb W_{11}^\dagger & \vb W_{21}^\dagger & \cdots & \vb W_{N1}^\dagger \\ 
-  \vb W_{12}^\dagger & \vb W_{22}^\dagger & \cdots & \vb W_{N2}^\dagger \\ 
-  \vdots     & \vdots     & \ddots & \vdots     \\
-  \vb W_{1N}^\dagger & \vb W_{2N}^\dagger & \cdots & \vb W_{NN}^\dagger
-  \end{array}\right)
-\end{align*}
-}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
-The $a,b$ subblock of this matrix is
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
-$$ \vb R_{s; ab} = \vb W_{as} \overline{\vb G}_s \vb W_{bs}^\dagger. $$
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{Output files}
-
-\subsection{Output files for spatially-integrated quantities}
-
-Let $\big\langle Q_d\big\rangle$ be the total time-average 
-power, force, or torque (PFT) on body $d$. ($d$ stands for a 
-``destination'' body, as distinct from a ``source'' body
-whose fluctuating sources contribute to $Q_d$). From 
-equation (\ref{FSCEquivalence}b), we have
-%====================================================================%
-\begin{equation}
- \qquad \big\langle Q_d\big\rangle
- = \int_0^\infty \, \sum_s \, \Theta_s(\omega) 
-   \Phi_{s\to d}(\omega)\,d\omega
-\end{equation}
-%====================================================================%
-where $\Theta_s$ is the Bose-Einstein factor for the temperature 
-of body $s$ and $\Phi_{s \to d}(\omega)$ is the 
-(frequency-resolved, spatially-integrated) flux of power or momentum
-from body $s$ to body $d$.
-%====================================================================%
-To evaluate this integral, it is convenient to agree to measure angular
-frequency in the default {\sc scuff} units, whereupon we 
-introduce a dimensionless angular frequency $u$ according 
-to\footnote{Note that $u$ is the numerical quantity referred to as 
-\texttt{Omega} on the {\sc scuff-neq} command line and in the 
-{\sc scuff-neq} source code. Some convenient
-dimensionful quantities involving $\omega_0$ are:
-%====================================================================%
-$$
- \hbar\omega_0=0.197\text{ eV}=31.6\cdot10^{-21} \text{ Joules}, 
- \qquad 
- \hbar\omega_0^2=9.49115\,\mu\text{W} \, (\text{microWatts}).
-$$}
-%====================================================================%
-$$ \omega=u\cdot \omega_0
-   \qquad \text{where} \qquad
-   \omega_0\equiv 3\cdot 10^{14}\text{ rad/sec}.
-$$
-Then the total time-average PFT on body $d$ may be
-expressed as an integral over the dimensionless variable $u$:
-%====================================================================%
-\numeq{QAverage}
-{
- \qquad \big\langle Q_d\big\rangle
- = \hbar \omega_0^2
-   \int_0^\infty 
-              \sum_s \, \wh \Theta_s (u) \Phi\supt{PFT}_{s\to d}(u)\,du
-}
-%====================================================================%
-where $\wh \Theta_s(u)$ is a dimensionless version 
-of the Bose-Einstein factor for source body $s$,
-%====================================================================%
-$$ \wh \Theta_s(u)\equiv \frac{u}{e^{\beta_s u}-1}, 
-   \qquad 
-   \beta_s \equiv \frac{\hbar \omega_0}{kT_s}
-    \approx \frac{ 2278 }{T_s\text{ in Kelvin.}}
-$$
-%====================================================================%
-The various constituents of equation (\ref{QAverage}) are written
-by {\sc scuff-neq} to three distinct output files, as follows:
-%====================================================================%
-\numeq{QAverage2}
-{
- \qquad \big\langle Q_d\big\rangle
- = \hbar \omega_0^2
-   \underbrace{
-   \Bigg[
-   \int_0^\infty 
-  \underbrace{\bigg\{ \sum_s \, \wh \Theta_s(u)
-  \underbrace{\Phi\supt{PFT}_{s\to d}(u)}_{\texttt{.SIFlux}}
-             \bigg\} }_{\texttt{.SIIntegrand}}
-   \,\,du \Bigg]
-              }_{\texttt{.NEQPFT}}
-}
-%====================================================================%
-More specifically, 
-%====================================================================%
-\begin{itemize}
-  \item The quantity $\Phi_{s\to d}(u)$ is written to the
-        \texttt{.SIFlux} file. This quantity may be interpreted
-        as the PFT per unit frequency per
-        unit temperature exerted on body $d$ due to sources
-        in body $s.$ This is a temperature-independent quantity.
-        For \texttt{PFT}=power, this quantity
-        is \textit{dimensionless}. For \texttt{PFT}=force,
-        this quantity has units of \textit{nanoNewtons/watts}.
-  \item The quantity written to the \texttt{.SIIntegrand} file
-        is the PFT per unit frequency exerted on body $d$ due to 
-        thermally-weighted sources in body $s$.
-        (The \texttt{.SIIntegrand} file records, for each 
-         destination body $d$, both the individual contributions
-         of each source body $s$ and the total contributions
-         of all source bodies.)
-  \item The quantity written to the \texttt{.NEQPFT} file
-        is the total time-average PFT exerted on body $d$ due to 
-        thermally-weighted sources in body $s$.
-        (The \texttt{.NEQPFT} file records, for each
-         destination body $d$, both the individual contributions
-         of each source body $s$ and the total contributions
-         of all source bodies.)
-\end{itemize}
-%====================================================================%
-
-\subsection{An explicit example}
-
-To elucidate the significance of the various numerical
-quantities reported in the {\sc scuff-neq} output files,
-we now consider two explicit worked examples.
-
-\subsubsection{Power radiation of a single sphere}
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{{\sc scuff-neq} for Region-and-Surface Geometries}
-
-\begin{itemize}
- \item Surface 1: vacuum-metal interface
- \item Surface 2: metal-dielectric interface
- \item Surface 3: vacuum-dielectric interface
-\end{itemize}
-
-\noindent Structure of surface-current vector:
-%====================================================================%
-$$ \vb c=
-   \left(\begin{array}{c} \vb c_1 \\ \vb c_2 \\ \vb c_3 \end{array}\right),
-$$
-%====================================================================%
-Structure of BEM matrix:
-$$ \vb M
-    =
-   \left(\begin{array}{ccc}
-     \vb T_{1}\sups{vacuum} + \vb T_{1}\sups{metal}
-   & \vb U_{12}\sups{metal}
-   & \vb U_{13}\sups{vacuum}
-\\[8pt]
-     \vb U_{21}\sups{metal}
-   & \vb T_{2}\sups{metal} + \vb T_{2}\sups{dielectric}
-   & \vb U_{23}\sups{dielectric}
-\\[8pt]
-     \vb U_{31}\sups{vac}
-   & \vb U_{31}\sups{dielectric}
-   & \vb T_{3}\sups{vacuum} + \vb T_{3}\sups{dielectric}
-   \end{array}\right)
-$$
-%====================================================================%
-Rytov matrix for metal: 
-%====================================================================%
-$$ \vb R\sups{metal}
-    = \vb W\cdot
-   \left[
-   \text{sym}
-   \left(\begin{array}{ccc}
-     \vb T_{1}\sups{metal}
-   & 0
-   & 0
-\\[8pt]
-     0
-   & \vb T_{2}\sups{metal} 
-   & 0
-\\[8pt]
-     0 
-   & 0
-   & 0
-   \end{array}\right)
-   \right]
-   \vb W^\dagger
-$$
-%====================================================================%
-Rytov matrix for dielectric: 
-%====================================================================%
-$$ \vb R\sups{dielectric}
-    = \vb W\cdot
-   \left[
-   \text{sym}
-   \left(\begin{array}{ccc}
-     0
-   & 0
-   & 0
-\\[8pt]
-     0
-   & \vb T_{2}\sups{dielectric} 
-   & 0
-\\[8pt]
-     0 
-   & 0
-   & \vb T_{3}\sups{dielectric} 
-   \end{array}\right)
-   \right]
-   \vb W^\dagger
-$$
-%====================================================================%
-Structure of $\vb Q$ matrices for PFT transfer between the 
-composite particle and the exterior (vacuum) region, as
-computed using the EPPFT / OPFT formalisms or the DSIPFT 
-formalism:
-%====================================================================%
-$$ \vb Q\supt{EP/O}
-    =
-   \left(\begin{array}{ccc}
-   \vb Q\supt{EP/O}_{1}
-   & 0
-   & 0
-\\[8pt]
-     0
-   & 0
-   & 0
-\\[8pt]
-     0 
-   & 0
-   & \vb Q\supt{EP/O}_{3}
-   \end{array}\right), 
-%--------------------------------------------------------------------%
-\qquad
-%--------------------------------------------------------------------%
-   \vb Q\supt{DSI}
-    =
-   \left(\begin{array}{ccc}
-   \vb Q\supt{DSI}_{11} 
-   \vphantom{\vb Q\supt{EP/O}_1}
-   \,\,\,\,
-   & 0
-   & \vb Q\supt{DSI}_{13}
-\\[8pt]
-     0
-   & 0
-   & 0
-\\[8pt]
-   \vb Q\supt{DSI}_{31} \vphantom{\vb Q\supt{EP/O}_1}
-   \,\,\,\,
-   & 0
-   & \vb Q\supt{DSI}_{33}
-   \end{array}\right)
-$$
-%====================================================================%
-
-%====================================================================%
+====================================================================%
 %====================================================================%
 %===================================================================%
 \newpage
@@ -1076,6 +1194,8 @@ as follows:
  &=\frac{(ik)^p e^{ikX}}{4\pi(n+p+1-q)}\, X^{n+p-q} \,
    \texttt{ExpRel}\Big[n+p+1-q, -ikX\Big].
 \end{align*}
+
+
 
 %====================================================================%
 %====================================================================%

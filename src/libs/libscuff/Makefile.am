@@ -49,7 +49,6 @@ libscuff_la_SOURCES = \
  libscuffInternals.h
 
 
-
 # combine all of the auxiliary libraries into a single library 
 libscuff_la_LIBADD = 		\
  ../libhrutil/libhrutil.la	\

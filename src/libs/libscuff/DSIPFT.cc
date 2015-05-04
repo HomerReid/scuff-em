@@ -118,9 +118,9 @@ void GetFarFieldGCIntegrals(RWGSurface *S, int ne,
                             double *X, cdouble k,
                             cdouble GInt[3], cdouble CInt[3])
 {
-  /***************************************************************/ 
-  /***************************************************************/ 
-  /***************************************************************/ 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   RWGEdge *E    = S->Edges[ne];
   double *QP    = S->Vertices + 3*E->iQP;
   double *V1    = S->Vertices + 3*E->iV1;
@@ -128,8 +128,8 @@ void GetFarFieldGCIntegrals(RWGSurface *S, int ne,
   double *QM    = S->Vertices + 3*E->iQM;
   double Length = E->Length;
 
-  /***************************************************************/ 
-  /***************************************************************/ 
+  /***************************************************************/
+  /***************************************************************/
   /***************************************************************/
   double AP[3], BP[3], AM[3], BM[3];
   for(int Mu=0; Mu<3; Mu++)
@@ -173,13 +173,8 @@ void GetFarFieldGCIntegrals(RWGSurface *S, int ne,
      GInt[0]=GInt[1]=GInt[2]=CInt[0]=CInt[1]=CInt[2]=0.0;
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
-       { GInt[Mu] += w*(   GP[Mu][Nu]*XmQP[Mu]
-                         - GM[Mu][Nu]*XmQM[Mu]
-                       );
-
-         CInt[Mu] += w*(   CP[Mu][Nu]*XmQP[Mu]
-                         - CM[Mu][Nu]*XmQM[Mu]
-                       );
+       { GInt[Mu] += w*( GP[Mu][Nu]*XmQP[Nu] - GM[Mu][Nu]*XmQM[Nu] );
+         CInt[Mu] += w*( CP[Mu][Nu]*XmQP[Nu] - CM[Mu][Nu]*XmQM[Nu] );
        };
 
    };
@@ -211,6 +206,7 @@ HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
    { 
      double X[3];
      XMatrix->GetEntriesD(nx, "0:2", X);
+
      if ( !(G->PointInRegion(0,X)) )
       ErrExit("%s:%i: points must lie in exterior region",__FILE__,__LINE__);
 
@@ -422,6 +418,11 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
 /* the E and H fields, at a single point in space, due to a    */
 /* single RWG basis function.                                  */
 /*                                                             */
+/* If SurfaceIndex is >=0, then only the contributions of      */
+/* RWG functions on surface #SurfaceIndex are taken into       */
+/* account. Otherwise, all RWG functions on all surfaces in    */
+/* the geometry are taken into account.                        */
+/*                                                             */
 /* The cartesian coordinates of the evaluation points are the  */
 /* first three columns of XMatrix.                             */
 /*                                                             */
@@ -434,24 +435,16 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
 /* then the fields at point #nx due to a unit-strength electric*/
 /* current in basis function #ne are in row                    */
 /*                                                             */
-/*  nx*(2*NE) + 2*ne + 0                                       */
+/*  nx*(NBF) + 2*ne + 0                                        */
 /*                                                             */
 /* while the fields at pnt #nx due to a unit-strength magnetic */ 
 /* current in basis function #ne are in row                    */ 
 /*                                                             */
-/*  nx*(2*NE) + 2*ne + 1.                                      */
+/*  nx*(NBF) + 2*ne + 1.                                       */
 /*                                                             */
-/* Here NE is the total number of edges.                       */
-/*                                                             */
-/* If SurfaceIndex is >=0, then only the contributions of      */
-/* edges on surface #SurfaceIndex S are taken into account.    */
-/* Otherwise, all edges on all surfaces in the geometry are    */
-/* taken into account.                                         */
-/*                                                             */
-/* Note that this routine currently assumes all evaluation     */
-/* points lie in the exterior region of the geometry. Extending*/
-/* to consider points lying inside bodies is possible but not  */
-/* implemented at present.                                     */
+/* Here NBF is the total number of basis functions (in the     */
+/* surface, if SurfaceIndex>=0, or in the entire geometry      */
+/* (if SurfaceIndex==-1).                                      */
 /***************************************************************/
 HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
                       HMatrix *XMatrix, cdouble Omega,
@@ -468,7 +461,7 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
 
   /***************************************************************/
   /* reallocate FSVMatrix as necessary ***************************/
-  /***************************************************************/
+        /***************************************************************/
   if ( FSVMatrix && ( (FSVMatrix->NR!=6) || FSVMatrix->NC!=NBFNX) )
    { Warn("wrong-size FSVMatrix passed to GetFSVMatrix (reallocating)");
      delete FSVMatrix;
@@ -480,12 +473,6 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
   /***************************************************************/
   /* get material parameters of exterior region ******************/
   /***************************************************************/
-  cdouble EpsRel, MuRel;
-  G->RegionMPs[0]->GetEpsMu(Omega, &EpsRel, &MuRel);
-  cdouble k     = Omega*sqrt(EpsRel*MuRel);
-  cdouble ZRel  = sqrt(MuRel/EpsRel);
-  cdouble IKZ   = II*k*ZVAC*ZRel;
-  cdouble IKOZ  = II*k/(ZVAC*ZRel);
   
   /***************************************************************/
   /* loop over all evaluation points and all edges on all        */
@@ -517,6 +504,25 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
         double X[3];
         XMatrix->GetEntriesD(nx,"0:2",X);
 
+        // figure out what region this point is in and 
+        // whether or not the surface in question bounds that
+        // region
+        int RegionIndex=G->GetRegionIndex(X);
+        double Sign;
+        if (S->RegionIndices[0]==RegionIndex)
+         Sign=1.0;
+        else if (S->RegionIndices[1]==RegionIndex)
+         Sign=-1.0;
+        else  
+         continue; // surface does not contribute to fields at X
+
+        cdouble EpsRel, MuRel;
+        G->RegionMPs[RegionIndex]->GetEpsMu(Omega, &EpsRel, &MuRel);
+        cdouble k     = Omega*sqrt(EpsRel*MuRel);
+        cdouble ZRel  = sqrt(MuRel/EpsRel);
+        cdouble IKZ   = II*k*ZVAC*ZRel;
+        cdouble IKOZ  = II*k/(ZVAC*ZRel);
+
         // reduced fields due to this edge at this eval pnt
         cdouble e[3], h[3];
         if (FarField)
@@ -524,17 +530,17 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
         else
          GetReducedFields(S, ne, X, k, e, h);
 
-        // full fields due to this edge, populated with 
+        // full fields due to this edge, populated with
         // unit strength as an electric or magnetic current
         for(int Mu=0; Mu<3; Mu++)
          { 
            int nbf = Offset + ( (S->IsPEC) ? ne : 2*ne );
            int Column = nx*NBF + nbf;
-           FSVMatrix->SetEntry( 0+Mu, Column, IKZ*e[Mu]);
-           FSVMatrix->SetEntry( 3+Mu, Column,     h[Mu]);
+           FSVMatrix->SetEntry( 0+Mu, Column,    Sign*IKZ*e[Mu]);
+           FSVMatrix->SetEntry( 3+Mu, Column,        Sign*h[Mu]);
            if (S->IsPEC) continue;
-           FSVMatrix->SetEntry( 0+Mu, Column+1,     -h[Mu]);
-           FSVMatrix->SetEntry( 3+Mu, Column+1, IKOZ*e[Mu]);
+           FSVMatrix->SetEntry( 0+Mu, Column+1,     -Sign*h[Mu]);
+           FSVMatrix->SetEntry( 3+Mu, Column+1, Sign*IKOZ*e[Mu]);
          };
 
       }; // for (int nenx=0...)
@@ -820,6 +826,7 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
   int OffsetA    = G->BFIndexOffset[nsa];
   int OffsetB    = G->BFIndexOffset[nsb];
   int NETot      = G->TotalEdges;
+
   int NC         = SCRMatrix->NR;
   double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
   double MuAbs  = TENTHIRDS * real(MuRel) * ZVAC;
@@ -1094,10 +1101,9 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
 /* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
 /* FMatrix[nx,12..20] = rxMST_{xx}, rxMST_{xy}, ..., rxMST_{zz}*/
 /***************************************************************/
-#if 0
-HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
-                                HVector *KNVector, HMatrix *RytovMatrix,
-                                HMatrix *FMatrix, bool FarField)
+HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
+                   HVector *KNVector, HMatrix *RytovMatrix,
+                   HMatrix *FMatrix, bool FarField)
 { 
   /***************************************************************/
   /* (re)allocate FMatrix as necessary ***************************/
@@ -1113,62 +1119,79 @@ HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
 
   Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
 
-  // assume all points lie in the exterior region
-  cdouble EpsRel, MuRel;
-  RegionMPs[ 0 ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
-  double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
-  double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
-
-  // assume all surfaces are non-PEC
-  int NE = TotalBFs / 2;
-
-  // compute torque about the origin of coordinates
-  double XTorque[3]={0.0, 0.0, 0.0};
-
   /***************************************************************/
   /* precompute field six-vectors for all evaluation points      */
   /***************************************************************/
-  HMatrix *FSVMatrix = GetFSVMatrix(this, -1, XMatrix, Omega, FarField);
+  HMatrix *FSVMatrix = GetFSVMatrix(G, -1, XMatrix, Omega, FarField);
 
   /***************************************************************/
   /*- loop over all basis functions and all pairs of eval points */
   /***************************************************************/
-//#ifndef USE_OPENMP
-  if (LogLevel>=SCUFF_VERBOSE2) Log(" no multithreading...");
-//#else
+  int NS = G->NumSurfaces;
+  int NBF = G->TotalBFs;
+  double XTorque[3]={0.0, 0.0, 0.0};
+#ifndef USE_OPENMP
+  if (G->LogLevel>=SCUFF_VERBOSE2) Log(" no multithreading...");
+#else
   int NumThreads=GetNumThreads();
-  if (LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
-//#pragma omp parallel for collapse(3), schedule(dynamic,1), num_threads(NumThreads)
-//#endif
+  if (G->LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
+#pragma omp parallel for collapse(5), schedule(dynamic,1), num_threads(NumThreads)
+#endif  
   for(int nx=0; nx<NX; nx++)
-   for(int nea=0; nea<NE; nea++)
-    for(int neb=0; neb<NE; neb++)
-     { 
-       if (nx==0) LogPercent(nea,NE,10);
+   for(int nsa=0; nsa<NS; nsa++)
+    for(int nea=0; nea<G->Surfaces[nsa]->NumEdges; nea++)
+     for(int nsb=0; nsb<NS; nsb++)
+      for(int neb=0; neb<G->Surfaces[nsb]->NumEdges; neb++)
+       { 
+         if (nsa==0 && nea==0 && nsb==0 && neb==0) LogPercent(nx,NX,10);
 
-       /*--------------------------------------------------------------*/
-       /* extract the surface-current coefficients either from the KN  */
-       /* vector or the Sigma matrix                                   */
-       /*--------------------------------------------------------------*/
-       cdouble KK, KN, NK, NN;
-       if (KNVector)
-        { 
-          cdouble kAlpha =       KNVector->GetEntry(2*nea+0);
-          cdouble nAlpha = -ZVAC*KNVector->GetEntry(2*nea+1);
-          cdouble kBeta  =       KNVector->GetEntry(2*neb+0);
-          cdouble nBeta  = -ZVAC*KNVector->GetEntry(2*neb+1);
+         double X[3];
+         RWGSurface *Sa = G->Surfaces[nsa];
+         RWGSurface *Sb = G->Surfaces[nsb];
+         XMatrix->GetEntriesD(nx, "0:2", X);
+         int RegionIndex = G->GetRegionIndex(X);
+         if (    (Sa->RegionIndices[0] != RegionIndex )
+              && (Sa->RegionIndices[1] != RegionIndex )
+            ) continue;
+         if (    (Sb->RegionIndices[0] != RegionIndex )
+              && (Sb->RegionIndices[1] != RegionIndex )
+            ) continue;
+
+         cdouble EpsRel, MuRel;
+         G->RegionMPs[ RegionIndex ] -> GetEpsMu(Omega, &EpsRel, &MuRel);
+         double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
+         double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
+
+         /*--------------------------------------------------------------*/
+         /* extract the surface-current coefficients either from the KN  */
+         /* vector or the Sigma matrix                                   */
+         /*--------------------------------------------------------------*/
+         bool IsPECa = Sa->IsPEC;
+         bool IsPECb = Sb->IsPEC;
+         int nbfa = G->BFIndexOffset[nsa] + ( (IsPECa) ? nea : 2*nea );
+         int nbfb = G->BFIndexOffset[nsb] + ( (IsPECb) ? neb : 2*neb );
+         cdouble KK, KN, NK, NN;
+         if (KNVector)
+          { 
+            cdouble kAlpha =       KNVector->GetEntry(nbfa);
+            cdouble kBeta  =       KNVector->GetEntry(nbfb);
+            cdouble nAlpha, nBeta = 0.0;
+            if (!IsPECa)
+             nAlpha = -ZVAC*KNVector->GetEntry(nbfa+1);
+            if (!IsPECb)
+             nBeta  = -ZVAC*KNVector->GetEntry(nbfb+1);
   
-          KK = conj(kAlpha) * kBeta;
-          KN = conj(kAlpha) * nBeta;
-          NK = conj(nAlpha) * kBeta;
-          NN = conj(nAlpha) * nBeta;
-        }
-       else
-        { KK = RytovMatrix->GetEntry(2*neb+0, 2*nea+0);
-          KN = RytovMatrix->GetEntry(2*neb+1, 2*nea+0);
-          NK = RytovMatrix->GetEntry(2*neb+0, 2*nea+1);
-          NN = RytovMatrix->GetEntry(2*neb+1, 2*nea+1);
-        };
+            KK = conj(kAlpha) * kBeta;
+            KN = conj(kAlpha) * nBeta;
+            NK = conj(nAlpha) * kBeta;
+            NN = conj(nAlpha) * nBeta;
+          }
+         else
+          { KK = RytovMatrix->GetEntry(nbfb+0, nbfa+0);
+            KN = RytovMatrix->GetEntry(nbfb+1, nbfa+0);
+            NK = RytovMatrix->GetEntry(nbfb+0, nbfa+1);
+            NN = RytovMatrix->GetEntry(nbfb+1, nbfa+1);
+          };
 
        /*--------------------------------------------------------------*/
        /* The E-field due to basis function Alpha is                   */
@@ -1176,26 +1199,36 @@ HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
        /* The H-field due to basis function Alpha is                   */
        /*  kAlpha*HKAlpha + nAlpha*HNAlpha.                            */
        /*--------------------------------------------------------------*/
-       int ColumnKA = nx*(2*NE) + (2*nea) + 0;
-       int ColumnNA = nx*(2*NE) + (2*nea) + 1;
-       int ColumnKB = nx*(2*NE) + (2*neb) + 0;
-       int ColumnNB = nx*(2*NE) + (2*neb) + 1;
        cdouble EKAlpha[3], HKAlpha[3], ENAlpha[3], HNAlpha[3];
        cdouble EKBeta[3], HKBeta[3], ENBeta[3], HNBeta[3];
+       int ColumnKA = nx*NBF + nbfa;
        FSVMatrix->GetEntries( "0:2", ColumnKA, EKAlpha);
        FSVMatrix->GetEntries( "3:5", ColumnKA, HKAlpha);
-       FSVMatrix->GetEntries( "0:2", ColumnNA, ENAlpha);
-       FSVMatrix->GetEntries( "3:5", ColumnNA, HNAlpha);
+       if (!IsPECa)
+        { int ColumnNA = nx*NBF + nbfa + 1;
+          FSVMatrix->GetEntries( "0:2", ColumnNA, ENAlpha);
+          FSVMatrix->GetEntries( "3:5", ColumnNA, HNAlpha);
+        }
+       else
+        { memset(ENAlpha, 0, 3*sizeof(cdouble));
+          memset(HNAlpha, 0, 3*sizeof(cdouble));
+        };
+       int ColumnKB = nx*NBF + nbfb;
        FSVMatrix->GetEntries( "0:2", ColumnKB, EKBeta);
        FSVMatrix->GetEntries( "3:5", ColumnKB, HKBeta);
-       FSVMatrix->GetEntries( "0:2", ColumnNB, ENBeta);
-       FSVMatrix->GetEntries( "3:5", ColumnNB, HNBeta);
+       if (!IsPECb)
+        { int ColumnNB = nx*NBF + nbfb + 1;
+          FSVMatrix->GetEntries( "0:2", ColumnNB, ENBeta);
+          FSVMatrix->GetEntries( "3:5", ColumnNB, HNBeta);
+        }
+       else
+        { memset(ENBeta, 0, 3*sizeof(cdouble));
+          memset(HNBeta, 0, 3*sizeof(cdouble));
+        };
 
        /*--------------------------------------------------------------*/
        /*- get the contributions of this edge pair to all quantities   */
        /*--------------------------------------------------------------*/
-       double X[3];
-       XMatrix->GetEntriesD(nx, "0:2", X);
        for(int Mu=0; Mu<3; Mu++)
         { 
           // N-matrices for the Muth cartesian direction
@@ -1234,7 +1267,7 @@ HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
  
          #pragma omp critical (Accumulate)
           {
-            FMatrix->AddEntry(nx, 0  + Mu, DeltaPFT[0]); // PV[Mu]
+            FMatrix->AddEntry(nx, 0  + Mu,       DeltaPFT[0]); // PV[Mu]
             FMatrix->AddEntry(nx, 3  + 3*Mu + 0, DeltaPFT[1]); // MST[Mu][0]
             FMatrix->AddEntry(nx, 3  + 3*Mu + 1, DeltaPFT[2]); // MST[Mu][1]
             FMatrix->AddEntry(nx, 3  + 3*Mu + 2, DeltaPFT[3]); // MST[Mu][2]
@@ -1254,6 +1287,6 @@ HMatrix *RWGGeometry::GetSRFlux(HMatrix *XMatrix, cdouble Omega,
   return FMatrix;
 
 } // routine GetSRFlux
-#endif
 
 } // namespace scuff
+

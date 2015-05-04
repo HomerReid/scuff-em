@@ -242,22 +242,27 @@ double RWGSurface::GetOverlap(int neAlpha, int neBeta, double *pOTimes)
 int GetOverlappingEdgeIndices(RWGSurface *S, int nea, int nebArray[5])
 {
   nebArray[0] = nea;
+  int Count=1;
 
   RWGEdge *E   = S->Edges[nea];
   RWGPanel *PP = S->Panels[ E->iPPanel ]; 
   int      iQP = E->PIndex;
-  nebArray[1] = PP->EI[ (iQP+1)%3 ];
-  nebArray[2] = PP->EI[ (iQP+2)%3 ];
+  nebArray[Count] = PP->EI[ (iQP+1)%3 ];
+  if (nebArray[Count] >= 0) Count++;
+  nebArray[Count] = PP->EI[ (iQP+2)%3 ];
+  if (nebArray[Count] >= 0) Count++;
 
   if ( E->iMPanel == -1 )
-   return 3;
+   return Count;
 
   RWGPanel *PM = S->Panels[ E->iMPanel ];
   int      iQM = E->MIndex;
-  nebArray[3] = PM->EI[ (iQM+1)%3 ];
-  nebArray[4] = PM->EI[ (iQM+2)%3 ];
+  nebArray[Count] = PM->EI[ (iQM+1)%3 ];
+  if (nebArray[Count] >= 0) Count++;
+  nebArray[Count] = PM->EI[ (iQM+2)%3 ];
+  if (nebArray[Count] >= 0) Count++;
    
-  return 5;
+  return Count;
 }
 
 /***************************************************************/
@@ -461,11 +466,10 @@ void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
      return;
    };
 
-  RWGSurface *S=G->Surfaces[SurfaceIndex];
-  int Offset = G->BFIndexOffset[SurfaceIndex];
-  bool IsPEC = S->IsPEC;
-  int NE=S->NumEdges;
-  int NBF=IsPEC ? NE : 2*NE;
+  RWGSurface *S = G->Surfaces[SurfaceIndex];
+  bool IsPEC    = S->IsPEC;
+  int NE        = S->NumEdges;
+  int NBF       = IsPEC ? NE : 2*NE;
 
   /***************************************************************/
   /* for all requested quantities, double check that the user    */
@@ -508,10 +512,10 @@ void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
   /*- get material parameters of exterior medium -----------------*/
   /*--------------------------------------------------------------*/
   cdouble ZZ=ZVAC, k2=Omega*Omega;
-  cdouble Eps, Mu;
-  G->RegionMPs[S->RegionIndices[0]]->GetEpsMu(Omega, &Eps, &Mu);
-  k2 *= Eps*Mu;
-  ZZ *= sqrt(Mu/Eps);
+  cdouble EpsRel, MuRel;
+  G->RegionMPs[S->RegionIndices[0]]->GetEpsMu(Omega, &EpsRel, &MuRel);
+  k2 *= EpsRel*MuRel;
+  ZZ *= sqrt(MuRel/EpsRel);
 
   /***************************************************************/
   /***************************************************************/

@@ -43,7 +43,7 @@ const char *QuantityNames[NUMPFT]=
 /***************************************************************/
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
-                         int QuantityFlags, char *EPFile,
+                         int QuantityFlags, char *SRPointFile,
                          char *pFileBase)
 {
 
@@ -119,16 +119,18 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*- read the list of evaluation points for spatially-resolved  -*/
   /*- quantities                                                 -*/
   /*--------------------------------------------------------------*/
-  SNEQD->XPoints = 0;
-  SNEQD->NX      = 0; 
-  if (EPFile)
-   { SNEQD->XPoints = new HMatrix(EPFile);
-     if (SNEQD->XPoints->ErrMsg)
-      ErrExit(SNEQD->XPoints->ErrMsg);
-     SNEQD->NX = SNEQD->XPoints->NR;
-     ErrExit("--EPFile option is not yet supported");
+  SNEQD->SRXMatrix = 0;
+  SNEQD->SRFMatrix = 0;
+  SNEQD->NX        = 0; 
+  if (SRPointFile)
+   { SNEQD->SRXMatrix = new HMatrix(SRPointFile);
+     if (SNEQD->SRXMatrix->ErrMsg)
+      ErrExit(SNEQD->SRXMatrix->ErrMsg);
+     int NX = SNEQD->NX = SNEQD->SRXMatrix->NR;
+     SNEQD->SRFMatrix = new HMatrix(NX, NUMSRFLUX);
    };
-  SNEQD->NumSRQs = NT*NS*(SNEQD->NX)*NQ;
+  //SNEQD->NumSRQs = NT*NS*(SNEQD->NX)*NQ;
+  SNEQD->NumSRQs = NT*NS*(SNEQD->NX)*NUMSRFLUX;
 
   /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse -*/
@@ -192,24 +194,48 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  FILE *f=vfopen("%s.SIFlux","a",SNEQD->FileBase);
-  fprintf(f,"\n");
-  fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),GetTimeString());
-  fprintf(f,"# data file columns: \n");
-  fprintf(f,"# 1 omega \n");
-  fprintf(f,"# 2 transform tag\n");
-  int nq=3;
-  if (G->LDim==1)
-   fprintf(f,"# %i kBloch_x \n",nq++);
-  else if (G->LDim==2)
-   { fprintf(f,"# %i kBloch_x \n",nq++);
-     fprintf(f,"# %i kBloch_x \n",nq++);
+  if (SNEQD->NumSIQs>0)
+   { FILE *f=vfopen("%s.SIFlux","a",SNEQD->FileBase);
+     fprintf(f,"\n");
+     fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),GetTimeString());
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 1 transform tag\n");
+     fprintf(f,"# 2 omega \n");
+     int nq=3;
+     if (G->LDim==1)
+      fprintf(f,"# %i kBloch_x \n",nq++);
+     else if (G->LDim==2)
+      { fprintf(f,"# %i kBloch_x \n",nq++);
+        fprintf(f,"# %i kBloch_x \n",nq++);
+      };
+     fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
+     for(int nPFT=0; nPFT<NUMPFT; nPFT++)
+      if (NeedQuantity[nPFT])
+       fprintf(f,"# %i %s flux spectral density\n",nq++,QuantityNames[nPFT]);
+     fclose(f);
    };
-  fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
-  for(int nPFT=0; nPFT<NUMPFT; nPFT++)
-   if (NeedQuantity[nPFT])
-    fprintf(f,"# %i %s flux spectral density\n",nq++,QuantityNames[nPFT]);
-  fclose(f);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (SNEQD->NumSRQs>0)
+   { FILE *f=vfopen("%s.SRFlux","a",SNEQD->FileBase);
+     fprintf(f,"\n");
+     fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),GetTimeString());
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 1 transform tag\n");
+     fprintf(f,"# 2 omega \n");
+     fprintf(f,"# 3, 4, 5, x,y,z (coordinates of eval point)\n");
+     fprintf(f,"# 6 sourceObject \n");
+     fprintf(f,"# 7  8  9  Px,    Py,    Pz \n");
+     fprintf(f,"# 10 11 12 Txx,   Txy,   Txz \n");
+     fprintf(f,"# 13 14 15 Tyx,   Tyy,   Tyz \n");
+     fprintf(f,"# 16 17 18 Tzx,   Tzy,   Tzz \n");
+     fprintf(f,"# 19 20 21 rxTxx, rxTxy, rxTxz \n");
+     fprintf(f,"# 22 23 24 rxTyx, rxTyy, rxTyz \n");
+     fprintf(f,"# 25 26 27 rxTzx, rxTzy, rxTzz \n");
+     fclose(f);
+   };
 
   Log("After CreateSNEQData: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
   return SNEQD;

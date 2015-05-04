@@ -1,6 +1,6 @@
 bin_PROGRAMS = 		\
  scuff-test-overlap	\
- scuff-test-Ewald   
+ scuff-test-Ewald
 
 scuff_test_overlap_SOURCES =	\
  readlineReplacement.h          \

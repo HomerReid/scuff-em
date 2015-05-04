@@ -77,20 +77,21 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
   int NX = SNEQD->NX;
   for(int nss=0; nss<NS; nss++)
    { 
-     double DeltaTheta 
+     double DeltaTheta
       = Theta(Omega, TSurfaces[nss]) - Theta(Omega, TEnvironment);
 
      for(int nt=0; nt<NT; nt++)
-      for(int nq=0; nq<NQ; nq++)
-       { 
+      { 
+        for(int nq=0; nq<NQ; nq++)
          for(int nsd=0; nsd<NS; nsd++)
           FluxVector[ GetSIQIndex(SNEQD, nt, nss, nsd, nq) ]
            *= DeltaTheta/M_PI;
 
-         for(int nx=0; nx<NX; nx++)
+        for(int nx=0; nx<NX; nx++)
+         for(int nq=0; nq<NUMSRFLUX; nq++)
           FluxVector[ GetSRQIndex(SNEQD, nt, nss, nx, nq) ]
            *= DeltaTheta/M_PI;
-       };
+      };
    };
 
   /*--------------------------------------------------------------*/
@@ -122,7 +123,7 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
        for(int nx=0; nx<NX; nx++)
         { 
           double X[3];
-          SNEQD->XPoints->GetEntriesD(nx,"0:2",X);
+          SNEQD->SRXMatrix->GetEntriesD(nx,"0:2",X);
 
           fprintf(f,"%s %e %i ",SNEQD->GTCList[nt]->Tag,Omega,nss+1);
           fprintf(f,"%e %e %e ",X[0],X[1],X[2]);
@@ -460,18 +461,20 @@ void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E)
   /*- open file and write preamble -------------------------------*/
   /*--------------------------------------------------------------*/
   char *TimeString=GetTimeString();
-  FILE *f=vfopen("%s.SR","a",SNEQD->FileBase);
+  FILE *f=vfopen("%s.NEQFlux","a",SNEQD->FileBase);
   fprintf(f,"# scuff-neq complete at %s (%s)\n",GetHostName(),TimeString);
   fprintf(f,"# data file columns: \n");
   fprintf(f,"# 1 transform tag \n");
-  fprintf(f,"# 2,3,4 (x,y,z) coordinates of evaluation point\n");
-  fprintf(f,"# 5 sourceObject \n");
+  fprintf(f,"# 2 source surface \n");
+  fprintf(f,"# 3,4,5 (x,y,z) coordinates of evaluation point\n");
+#if 0
   int nc=6;
   for (int nq=0; nq<NUMPFT; nq++)
    if (SNEQD->NeedQuantity[nq])
     { fprintf(f,"# (%i,%i) %s (value,error in frequency quadrature)\n",nc,nc+1,QuantityNames[nq]);
       nc+=2; 
     };
+#endif
 
   /*--------------------------------------------------------------*/
   /*- as we report the contributions of each source body to the   */
@@ -480,14 +483,14 @@ void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E)
   /*--------------------------------------------------------------*/
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
-  int NQ = SNEQD->NQ;
-  int NX = SNEQD->XPoints->NR;
-  double TotalQuantity[NUMPFT], TotalError[NUMPFT];
+  int NX = SNEQD->SRXMatrix->NR;
+  int NQ = NUMSRFLUX;
+  double TotalQuantity[NUMSRFLUX], TotalError[NUMSRFLUX];
   for(int nt=0; nt<NT; nt++)
    for(int nx=0; nx<NX; nx++)
     { 
       double X[3];
-      SNEQD->XPoints->GetEntriesD(nx,"0:2",X);
+      SNEQD->SRXMatrix->GetEntriesD(nx,"0:2",X);
 
       memset(TotalQuantity,0,NQ*sizeof(double));
       memset(TotalError,   0,NQ*sizeof(double));

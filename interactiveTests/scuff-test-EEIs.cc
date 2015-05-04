@@ -25,7 +25,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+
 #include <math.h>
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -36,7 +36,9 @@
 #include <libhrutil.h>
 #include <PanelCubature.h>
 
+#ifdef HAVE_LIBPOLYFIT
 #include <libPolyFit.h>
+#endif
 
 #include "scuff-test-EEIs.h"
 
@@ -96,15 +98,18 @@ void GetEEIs_BruteForce(RWGGeometry *G, GetEEIArgStruct *Args)
 
   if (ncv==0)
    { 
+#if 0
      GetBFBFCubature(G, 
                      Args->Sa->Index, Args->nea,
                      Args->Sb->Index, Args->neb,
                      Args->Displacement,
                      Integrand, 0, 4, 100000, 1.0e-10, 0.0,
                      Args->k, 0, (double *)Args->GC);
+#endif
    }
   else
    {
+#ifdef HAVE_LIBPOLYFIT
      #define NUMETAS 5
      double EtaValues[NUMETAS]={0.002,0.004,0.006,0.008,0.01};
      double R1Values[NUMETAS], I1Values[NUMETAS], R2Values[NUMETAS], I2Values[NUMETAS];
@@ -143,6 +148,7 @@ void GetEEIs_BruteForce(RWGGeometry *G, GetEEIArgStruct *Args)
      imag(Args->GC[1]) = PF->f(0.0);
      PF->PlotFit(EtaValues, I2Values, NUMETAS);
      delete PF;
+#endif
 
    };
 
@@ -152,7 +158,7 @@ void GetEEIs_BruteForce(RWGGeometry *G, GetEEIArgStruct *Args)
 /***************************************************************/
 /***************************************************************/
 void GetEEIs_CartesianMultipole(GetEEIArgStruct *Args)
-{
+{ (void *)Args;
 }
 
 /***************************************************************/
@@ -288,6 +294,78 @@ void GetRequest(RWGGeometry *G, Request *R)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void DoVisualization(RWGGeometry *G, Request *R)
+{ 
+  int nea        = R->nea;
+  int neb        = R->neb;
+
+  RWGSurface *Sa = G->Surfaces[R->nsa];
+  RWGEdge    *Ea = Sa->Edges[nea];
+  double *QPa    = Sa->Vertices + 3*(Ea->iQP);
+  double *V1a    = Sa->Vertices + 3*(Ea->iV1);
+  double *V2a    = Sa->Vertices + 3*(Ea->iV2);
+  double *QMa    = (Ea->iQM==-1) ? 0 : Sa->Vertices + 3*(Ea->iQM);
+
+  RWGSurface *Sb = G->Surfaces[R->nsb];
+  RWGEdge    *Eb = Sb->Edges[neb];
+  double *QPb    = Sb->Vertices + 3*(Eb->iQP);
+  double *V1b    = Sb->Vertices + 3*(Eb->iV1);
+  double *V2b    = Sb->Vertices + 3*(Eb->iV2);
+  double *QMb    = (Eb->iQM==-1) ? 0 : Sb->Vertices + 3*(Eb->iQM);
+
+  char FileName[100];
+  snprintf(FileName,100,"/tmp/E%i_%i.log",nea,neb);
+  FILE *f=fopen(FileName,"w");
+
+  fprintf(f,"%e %e %e \n",QPa[0],QPa[1],QPa[2]);
+  fprintf(f,"%e %e %e \n",V1a[0],V1a[1],V1a[2]);
+  fprintf(f,"%e %e %e \n",V2a[0],V2a[1],V2a[2]);
+  fprintf(f,"%e %e %e \n",QPa[0],QPa[1],QPa[2]);
+  fprintf(f,"\n\n");
+
+  if (QMa)
+   {
+     fprintf(f,"%e %e %e \n",QMa[0],QMa[1],QMa[2]);
+     fprintf(f,"%e %e %e \n",V1a[0],V1a[1],V1a[2]);
+     fprintf(f,"%e %e %e \n",V2a[0],V2a[1],V2a[2]);
+     fprintf(f,"%e %e %e \n",QMa[0],QMa[1],QMa[2]);
+     fprintf(f,"\n\n");
+   };
+
+  fprintf(f,"%e %e %e \n",QPb[0],QPb[1],QPb[2]);
+  fprintf(f,"%e %e %e \n",V1b[0],V1b[1],V1b[2]);
+  fprintf(f,"%e %e %e \n",V2b[0],V2b[1],V2b[2]);
+  fprintf(f,"%e %e %e \n",QPb[0],QPb[1],QPb[2]);
+  fprintf(f,"\n\n");
+
+  if (QMb)
+   {
+     fprintf(f,"%e %e %e \n",QMb[0],QMb[1],QMb[2]);
+     fprintf(f,"%e %e %e \n",V1b[0],V1b[1],V1b[2]);
+     fprintf(f,"%e %e %e \n",V2b[0],V2b[1],V2b[2]);
+     fprintf(f,"%e %e %e \n",QMb[0],QMb[1],QMb[2]);
+     fprintf(f,"\n\n");
+   };
+  fclose(f);
+
+  f=vfopen("/tmp/E%i_%i.gp","w",nea,neb);
+  fprintf(f,"splot '%s' i 0 t 'E%i_P' w lp ",FileName,nea);
+  int Index=1;
+  if (QMa)
+   fprintf(f,", '%s' i %i t 'E%i_M' w lp ",FileName,Index++,neb);
+  fprintf(f,",  '%s' i %i t 'E%i_P' w lp ",FileName,Index++,neb);
+  if (QMb)
+   fprintf(f,", '%s' i %i t 'E%i_M' w lp ",FileName,Index++,neb);
+  fprintf(f,"\n\n");
+  fclose(f);
+
+  //system("gnuplot -persist /tmp/Edges.gp & ");
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int main(int argc, char *argv[]) 
 { 
   /***************************************************************/
@@ -297,6 +375,7 @@ int main(int argc, char *argv[])
   int Visualize=0;
   ArgStruct ASArray[]=
    { {"geometry",  PA_STRING, (void *)&GeoFileName, 0, ".rwggeo file"},
+     {"visualize", PA_BOOL,   (void *)&Visualize,   0, "visualize"},
      {0,0,0,0,0}
    };
   ProcessArguments(argc, argv, ASArray);
@@ -327,6 +406,12 @@ int main(int argc, char *argv[])
      GetRequest(G,R);
 
      /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     /*--------------------------------------------------------------------*/
+     if (Visualize)
+      DoVisualization(G,R);
+
+     /*--------------------------------------------------------------------*/
      /* print a little summary of the edge pair we will be considering     */
      /*--------------------------------------------------------------------*/
      //ncv=AssessEdgePair(Sa, nea, Ob, neb, &rRel);
@@ -335,9 +420,6 @@ int main(int argc, char *argv[])
      printf("* --nsb %i --neb %i ",R->nsb, R->neb);
      printf("* --k %s",CD2S(R->k));
      printf("* --ncv %i",NumCommonBFVertices(G->Surfaces[R->nsa], R->nea, G->Surfaces[R->nsb], R->neb));
-     //printf("* relative distance: %+7.3e (DBFThreshold=10.0)\n",rRel);
-//    if (DZ!=0.0)
-//     printf("*  DZ:                %e\n",DZ);
      printf("*\n\n");
 
      /*--------------------------------------------------------------------*/
@@ -367,21 +449,26 @@ int main(int argc, char *argv[])
      /* get edge-edge interactions by cartesian multipole method           */
      /*--------------------------------------------------------------------*/
      cdouble GCCM[2], GradGCCM[6]; // G,C integrals by cartesian multipole
+     double CMTime=0.0;
+#if 0
      Tic();
      for(int Times=0; Times<NUMTIMES; Times++)
       GetEEIs_CartesianMultipole(Args);
      Toc();
-     double CMTime=Toc() / NUMTIMES;
+     CMTime=Toc() / NUMTIMES;
      memcpy(GCCM, Args->GC, 2*sizeof(cdouble));
      memcpy(GradGCCM, Args->GradGC, 6*sizeof(cdouble));
+#endif
 
      /*--------------------------------------------------------------------*/
      /* get panel-panel integrals by brute-force methods                   */
      /*--------------------------------------------------------------------*/
      cdouble GCBF[2], GradGCBF[6]; // G,C integrals by brute force
+#if 0
      GetEEIs_BruteForce(G, Args);
      memcpy(GCBF, Args->GC, 2*sizeof(cdouble));
      memcpy(GradGCBF, Args->GradGC, 6*sizeof(cdouble));
+#endif
 
      /*--------------------------------------------------------------------*/
      /*- print results ----------------------------------------------------*/

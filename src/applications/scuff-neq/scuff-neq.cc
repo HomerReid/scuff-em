@@ -122,8 +122,8 @@ int main(int argc, char *argv[])
      {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometrical transformation"},
 /**/     
      {"Power",          PA_BOOL,    0, 1,       (void *)&PAbs,       0,             "compute power transfer"},
-     {"PAbs",          PA_BOOL,    0, 1,        (void *)&PAbs,       0,             "(synonym for --power)"},
-     {"PRad",          PA_BOOL,    0, 1,        (void *)&PRad,       0,             "compute radiated power"},
+     {"PAbs",           PA_BOOL,    0, 1,       (void *)&PAbs,       0,             "(synonym for --power)"},
+     {"PRad",           PA_BOOL,    0, 1,       (void *)&PRad,       0,             "compute radiated power"},
      {"XForce",         PA_BOOL,    0, 1,       (void *)&XForce,     0,             "compute X-force"},
      {"YForce",         PA_BOOL,    0, 1,       (void *)&YForce,     0,             "compute Y-force"},
      {"ZForce",         PA_BOOL,    0, 1,       (void *)&ZForce,     0,             "compute Z-force"},
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
      {"YTorque",        PA_BOOL,    0, 1,       (void *)&YTorque,    0,             "compute Y-torque"},
      {"ZTorque",        PA_BOOL,    0, 1,       (void *)&ZTorque,    0,             "compute Z-torque"},
 /**/     
-     {"SRPointFile",  PA_STRING,    1, 1,       (void *)&SRPointFile, 0,             "list of evaluation points for spatially-resolved flux"},
+     {"SRPointFile",    PA_STRING,    1, 1,       (void *)&SRPointFile, 0,             "list of evaluation points for spatially-resolved flux"},
 /**/     
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},

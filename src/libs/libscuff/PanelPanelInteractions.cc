@@ -586,7 +586,7 @@ void InitGetPPIArgs(GetPPIArgStruct *Args)
 {
   Args->NumGradientComponents=0;
   Args->NumTorqueAxes=0;
-  Args->ForceTaylorDuffy=0;
+  Args->ForceTaylorDuffy = RWGGeometry::DisableCache;
   Args->GammaMatrix=0;
   Args->opFC=0;
   Args->Displacement=0;
