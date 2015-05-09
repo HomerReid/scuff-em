@@ -193,6 +193,34 @@ int vsnprintfEC(char *str, size_t size, const char *format, va_list ap)
 }
 
 /***************************************************************/
+/* extension of fopen that accepts an optional colon-separated */
+/* search path                                                 */
+/***************************************************************/
+FILE *fopenPath(const char *Path, const char *FileName, const char *Mode)
+{ 
+  if ( FILE *f=fopen(FileName,Mode) )
+   return f;
+
+  if (!Path)
+   return 0;
+
+  const char *p=Path;
+  while(*p)
+   {
+     int n=0;
+     char FullFileName[MAXSTR];
+     while( *p && *p!=':' && n<MAXSTR )
+      FullFileName[n++] = *p++;
+     FullFileName[n++]='/';
+     strncpy(FullFileName+n,FileName,MAXSTR-n);
+     if ( FILE *f=fopen(FullFileName,Mode) )
+      return f;
+     if (*p==':') p++;
+   };
+  return 0;
+}
+
+/***************************************************************/
 /* Vararg versions of common functions *************************/
 /***************************************************************/
 FILE *vfopen(const char *format, const char *mode, ...)
@@ -238,6 +266,25 @@ int vsystem(const char *format, ...)
   va_end(ap);
 
   return RetVal;
+}
+
+char *vstrappend(char *s, const char *format, ...)
+{
+  va_list ap;
+  char buffer[MAXSTR];
+
+  va_start(ap,format);
+  vsnprintfEC(buffer,MAXSTR,format,ap);
+  va_end(ap);
+
+  if (s==0)
+   s=strdupEC(buffer);
+  else
+   { int NS=strlen(s), NB=strlen(buffer);
+     s = (char *)reallocEC(s, NS+NB+1);
+     strcpy( s + NS, buffer);
+   };
+  return s;
 }
 
 char *vstrdup(const char *format, ...)
