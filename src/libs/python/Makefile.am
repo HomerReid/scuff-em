@@ -28,7 +28,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil    \
 if MAINTAINER_MODE
 
 scuff-python.cpp scuff.py: $(SWIG_SRC) $(top_srcdir)/src/libs/libscuff/libscuff.h $(top_srcdir)/src/libs/libscuff/GTransformation.h $(top_srcdir)/src/libs/libIncField/libIncField.h $(top_srcdir)/src/libs/libhrutil/libhrutil.h $(top_srcdir)/src/libs/libMatProp/libMatProp.h $(top_srcdir)/src/libs/libhmat/libhmat.h
-	swig -Wall $(AM_CPPFLAGS) -outdir $(builddir) -c++ -python -o $(builddir)/scuff-python.cpp scuff.i
+	swig -Wall $(AM_CPPFLAGS) -outdir $(builddir) -c++ -python -o $(builddir)/scuff-python.cpp $(srcdir)/scuff.i
 
 endif
 
