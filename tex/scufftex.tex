@@ -14,11 +14,13 @@
 \usepackage{mathdots}
 %\usepackage{algorithm}
 %\usepackage{algorithmic}
-\usepackage{listings}
-%\usepackage{arydshln}
-\usepackage{verbatim}
+%\usepackage{listings}
 \usepackage{array}
 \usepackage{url}
+\usepackage{arydshln}
+\usepackage{fancybox}
+\usepackage{fancyvrb}
+\usepackage{verbatim}
 
 %--------------------------------------------------
 %- boldface greek letters 
@@ -114,22 +116,38 @@
 %------------------------------------------------------------
 %- shaded box for source code inclusions 
 %------------------------------------------------------------
-\definecolor{lightgrey}{rgb}{0.85,0.85,0.85}
+%\definecolor{lightgrey}{rgb}{0.85,0.85,0.85}
 %\newcommand{\SourceBox}[1]
 % { \begin{mdframed}[backgroundcolor=lightgrey, linewidth=2pt,
 %                    tikzsetting={draw=black, line width=2pt,
 %                                 dashed, dash pattern= on 5pt off 5pt}] %
 %  \begin{verbatim} #1 \end{verbatim} \end{mdframed} \medskip
 %}
-\IfFileExists{mdframed.sty}
- { \usepackage{mdframed}
-   \surroundwithmdframed[backgroundcolor=lightgrey, linewidth=2pt,
-                      framemethod=tikz,
-                      skipabove=10pt,
-                      skipbelow=10pt,
-                      tikzsetting={draw=black, line width=2pt,
-                                   dashed, dash pattern= on 5pt off 5pt}
-                     ]{verbatim}
- }
- {
- }
+%\IfFileExists{mdframed.sty}
+% { \usepackage{mdframed}
+%   \surroundwithmdframed[backgroundcolor=lightgrey, linewidth=2pt,
+%                         framemethod=tikz,
+%                         skipabove=10pt,
+%                         skipbelow=10pt,
+%                         tikzsetting={draw=black, line width=2pt,
+%                                      dashed, dash pattern= on 5pt off 5pt}
+%                        ]{verbatim}
+% }
+% {
+% }
+%--------------------------------------------------
+%- shaded verbatim for code inclusions
+%--------------------------------------------------
+\definecolor{lightgrey}{rgb}{0.85,0.85,0.85}
+\newenvironment{verbcode}{\VerbatimEnvironment% 
+  \noindent
+  %{\columnwidth-\leftmargin-\rightmargin-2\fboxsep-2\fboxrule-4pt} 
+  \begin{Sbox} 
+  \begin{minipage}{\linewidth}
+  \begin{Verbatim}
+}{% 
+  \end{Verbatim}  
+   \end{minipage}
+  \end{Sbox} 
+  \fcolorbox{black}{lightgrey}{\textcolor{black}{\TheSbox}}
+} 

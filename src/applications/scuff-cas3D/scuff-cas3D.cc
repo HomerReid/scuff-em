@@ -92,8 +92,9 @@ int main(int argc, char *argv[])
   //
   // other miscellaneous flags
   //
-  bool UseExistingData=false;
+  bool UseExistingData = false;
   bool NewEnergyMethod = false;
+  bool WriteHDF5Files  = false;
 //
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=
@@ -132,6 +133,7 @@ int main(int argc, char *argv[])
 //
      {"NewEnergyMethod", PA_BOOL,   0, 1,       (void *)&NewEnergyMethod, 0,           "use alternative method for energy calculation"},
 //
+     {"WriteHDF5Files", PA_BOOL,    1, 1,       (void *)&WriteHDF5Files,0,             "write BEM matrices to .hdf5 files"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -281,6 +283,7 @@ int main(int argc, char *argv[])
                               nTorque, TorqueAxes, NewEnergyMethod, FileBase);
 
   SC3D->WriteCache         = WriteCache;
+  SC3D->WriteHDF5Files     = WriteHDF5Files;
   SC3D->AbsTol             = AbsTol;
   SC3D->RelTol             = RelTol;
   SC3D->UseExistingData    = UseExistingData;

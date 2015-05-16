@@ -51,8 +51,10 @@ class named \texttt{RWGGeometry.} This is a big class
 containing lots of data fields and methods, but 
 for the purposes of this section the most important 
 fields are the following:
-%
-\begin{verbatim}
+
+\medskip
+
+\begin{verbcode}
   class RWGGeometry
    {
       int NumRegions;
@@ -61,8 +63,8 @@ fields are the following:
       int NumSurfaces;
       RWGSurface **Surfaces;
    };
-\end{verbatim}
-%
+\end{verbcode}
+
 \subsection*{Simple geometries: \texttt{OBJECT} specifications}
 
 The simplest type of \lss geometry consists of one or more
@@ -150,8 +152,10 @@ Extended geometries are described using \texttt{LATTICE}
 statements in the \texttt{scuffgeo} file.
 For example, here's an infinite square-lattice array 
 of gold spheres:
-%
-\begin{verbatim}
+
+\medskip
+
+\begin{verbcode}
 LATTICE
         VECTOR 1 0 
         VECTOR 0 1 
@@ -161,8 +165,9 @@ OBJECT TheSphere
         MESHFILE Sphere_480.msh
         MATERIAL Gold
 ENDOBJECT
-\end{verbatim}
-%
+\end{verbcode}
+
+\medskip
 
 It is also possible for surfaces to straddle 
 the lattice-cell boundaries. This will be the 

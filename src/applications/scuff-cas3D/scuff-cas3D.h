@@ -113,6 +113,7 @@ typedef struct SC3Data
 
    // various other miscellaneous items
    bool UseExistingData;
+   bool WriteHDF5Files;
    char *WriteCache;
 
  } SC3Data;

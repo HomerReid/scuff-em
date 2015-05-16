@@ -184,6 +184,43 @@ void Factorize(SC3Data *SC3D)
 } 
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void ExportHDF5Data(SC3Data *SC3D, double Xi, double *kBloch, char *Tag)
+{ 
+  int NS   = SC3D->G->NumSurfaces;
+  int LDim = SC3D->G->LDim;
+
+  char XKTString[100];
+  sprintf(XKTString,"%g",Xi);
+  if (LDim>=1)
+   sprintf(XKTString,".%g",kBloch[0]);
+  if (LDim>=2)
+   sprintf(XKTString,".%g",kBloch[1]);
+  if (Tag)
+   sprintf(XKTString,".%s",Tag);
+  void *Context=HMatrix::OpenHDF5Context("%s.%s.hdf5",SC3D->FileBase,XKTString);
+
+  
+  for(int ns=0; ns<NS; ns++)
+   SC3D->TBlocks[ns]->ExportToHDF5(Context,"T%i",ns+1);
+
+  for(int nb=0, ns=0; ns<NS; ns++)
+   for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+    SC3D->UBlocks[nb]->ExportToHDF5(Context,"U%i%i",ns+1,nsp+1);
+
+  const char *XYZT="XYZ123";
+  for(int ns=0; ns<NS; ns++)
+   for(int Mu=0; Mu<6; Mu++)
+    if (SC3D->dUBlocks[6*ns + Mu])
+     SC3D->dUBlocks[6*ns+Mu]->ExportToHDF5(Context,"dUd%c_0%i",XYZT[Mu],ns+1);
+
+  HMatrix::CloseHDF5Context(Context);
+
+}
+ 
+
+/***************************************************************/
 /* evaluate the casimir energy, force, and/or torque integrand */
 /* at a single Xi point, or a single (Xi,kBloch) point for PBC */
 /* geometries, possibly under multiple spatial transformations.*/
@@ -330,7 +367,8 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
    FRDataFile = fopen(SC3D->ByXiFileName, "a");
   else if (SC3D->ByXiKFileName)
    FRDataFile = fopen(SC3D->ByXiKFileName,"a");
-  for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
+  int NT=SC3D->NumTransformations;
+  for(int ntnq=0, nt=0; nt<NT; nt++)
    { 
      char *Tag=SC3D->GTCList[nt]->Tag;
 
@@ -439,6 +477,9 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
       fprintf(FRDataFile,"%.8e ",EFT[ntnq-nq]);
      fprintf(FRDataFile,"\n");
      fflush(FRDataFile);
+
+     if (SC3D->WriteHDF5Files)
+      ExportHDF5Data(SC3D, Xi, kBloch, (NT==1 ? 0 : Tag) );
 
      /******************************************************************/
      /* undo the geometrical transform                                 */
