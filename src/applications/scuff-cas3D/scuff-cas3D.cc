@@ -301,12 +301,13 @@ int main(int argc, char *argv[])
   double *Error=0; 
   if ( XiKPoints )
    { 
-     double Xi, kBloch[2];
      for(int nr=0; nr<XiKPoints->NR; nr++)
       { 
+        double Xi, kBloch[2]={0.0, 0.0};
         Xi        = XiKPoints->GetEntryD(nr, 0);
         kBloch[0] = XiKPoints->GetEntryD(nr, 1);
-        kBloch[1] = XiKPoints->GetEntryD(nr, 2);
+        if (G->LDim>=2)
+         kBloch[1] = XiKPoints->GetEntryD(nr, 2);
         GetCasimirIntegrand(SC3D, Xi, kBloch, EFT);
       };
    }
