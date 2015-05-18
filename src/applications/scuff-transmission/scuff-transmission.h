@@ -53,4 +53,5 @@ void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,
                             int WhichRegion, bool IsUpper,
                             cdouble TETM[2], bool WriteByKNFile=false);
 
+
 #endif // SCUFFTRANSMISSION_H
