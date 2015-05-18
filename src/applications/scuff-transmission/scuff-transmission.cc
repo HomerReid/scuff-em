@@ -26,9 +26,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <libhrutil.h>
-#include <libscuff.h>
 #include <libIncField.h>
+#include "scuff-transmission.h"
 
 using namespace scuff;
 
@@ -37,422 +36,72 @@ using namespace scuff;
 #define MAXFREQ 10
 #define MAXCACHE 10    // max number of cache files for preload
 
-#define POLARIZATION_TE 0
-#define POLARIZATION_TM 1
-
-/*******************************************************************/
-/* this is a 9th-order, 17-point cubature rule for the unit square */
-/* with corners {(0,0) (1,0) (1,1) (1,0)}.                         */
-/* array entries:                                                  */
-/*  x_0, y_0, w_0,                                                 */
-/*  x_1, y_1, w_1,                                                 */
-/*  ...                                                            */
-/*  x_16, y_16, w_16                                               */
-/* where (x_n, y_n) and w_n are the nth cubature point and weight. */
-/*******************************************************************/
-double SCR9[]={
-  +5.0000000000000000e-01, +5.0000000000000000e-01, +1.3168724279835392e-01,
-  +9.8442498318098881e-01, +8.1534005986583447e-01, +2.2219844542549678e-02,
-  +9.8442498318098881e-01, +1.8465994013416559e-01, +2.2219844542549678e-02,
-  +1.5575016819011134e-02, +8.1534005986583447e-01, +2.2219844542549678e-02,
-  +1.5575016819011134e-02, +1.8465994013416559e-01, +2.2219844542549678e-02,
-  +8.7513854998945029e-01, +9.6398082297978482e-01, +2.8024900532399120e-02,
-  +8.7513854998945029e-01, +3.6019177020215176e-02, +2.8024900532399120e-02,
-  +1.2486145001054971e-01, +9.6398082297978482e-01, +2.8024900532399120e-02,
-  +1.2486145001054971e-01, +3.6019177020215176e-02, +2.8024900532399120e-02,
-  +7.6186791010721466e-01, +7.2666991056782360e-01, +9.9570609815517519e-02,
-  +7.6186791010721466e-01, +2.7333008943217640e-01, +9.9570609815517519e-02,
-  +2.3813208989278534e-01, +7.2666991056782360e-01, +9.9570609815517519e-02,
-  +2.3813208989278534e-01, +2.7333008943217640e-01, +9.9570609815517519e-02,
-  +5.3810416409630857e-01, +9.2630786466683113e-01, +6.7262834409945196e-02,
-  +5.3810416409630857e-01, +7.3692135333168873e-02, +6.7262834409945196e-02,
-  +4.6189583590369143e-01, +9.2630786466683113e-01, +6.7262834409945196e-02,
-  +4.6189583590369143e-01, +7.3692135333168873e-02, +6.7262834409945196e-02 
-};
-
-/*******************************************************************/
-/* get the transmitted and reflected flux by integrating the       */
-/* scattered poynting vector over the area of the unit cell.       */
-/*                                                                 */
-/* more specifically, the transmitted power is the integral of     */
-/* the upward-directed poynting vector at ZAbove, while the        */
-/* reflected power is the integral of the downward-directed        */
-/* poynting vector at ZBelow; the flux is the power divided by     */
-/* the area of the unit cell.                                      */
-/*                                                                 */
-/* Return values: TRFlux[0,1] = transmitted, reflected flux        */
-/*******************************************************************/
-void GetTRFlux(RWGGeometry *G, IncField *IF, HVector *KN, cdouble Omega, 
-               int NQPoints, double *kBloch, 
-               double ZAbove, double ZBelow, double *TRFlux)
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+bool GetSourceDestRegions(RWGGeometry *G, bool FromAbove,
+                          int SourceDestRegions[2])
 {
-  double *SCR=SCR9;
+  double XSource[3]={0.0, 0.0, -1.0e6};
+  double XDest[3]  ={0.0, 0.0, +1.0e6};
+  if (FromAbove)
+   { XSource[2]*=-1.0;
+     XDest  [2]*=-1.0;
+   };
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int NCP; // number of cubature points
-  if (NQPoints==0)
-   NCP=17; 
+  int SourceRegionIndex=G->GetRegionIndex(XSource);
+  int   DestRegionIndex=G->GetRegionIndex(XDest);
+
+  if (    SourceRegionIndex==-1
+       || G->RegionMPs[SourceRegionIndex]==0
+       || G->RegionMPs[SourceRegionIndex]->IsPEC()
+     ) 
+   ErrExit("wave cannot emanate from a PEC region");
+
+  Log("Identified source region as region # %i (%s).",
+       SourceRegionIndex, G->RegionLabels[SourceRegionIndex]);
+
+  bool DestIsPEC=false;
+  if (    DestRegionIndex==-1
+       || G->RegionMPs[DestRegionIndex]==0 
+       || G->RegionMPs[DestRegionIndex]->IsPEC() 
+     ) 
+   DestIsPEC=true;
+
+  if (DestIsPEC)
+   Log("Destination region is PEC (transmission coefficients identically zero");
   else
-   NCP=NQPoints*NQPoints;
+   Log("Identified dest region as region   # %i (%s).",
+        DestRegionIndex, G->RegionLabels[DestRegionIndex]);
 
-  /***************************************************************/
-  /* on the first invocation we allocate space for the matrices  */
-  /* of evaluation points and fields.                            */
-  /***************************************************************/
-  static HMatrix *XMatrixAbove = 0, *XMatrixBelow = 0;
-  static HMatrix *FMatrixAbove = 0, *FMatrixBelow = 0;
-  if (XMatrixAbove==0)
-   { XMatrixAbove = new HMatrix(NCP, 3 ); 
-     XMatrixBelow = new HMatrix(NCP, 3 ); 
-     FMatrixAbove = new HMatrix(NCP, 6, LHM_COMPLEX);
-     FMatrixBelow = new HMatrix(NCP, 6, LHM_COMPLEX);
-   };
-
-  /***************************************************************/ 
-  /* fill in coordinates of evaluation points.                   */ 
-  /* the first NCP points are for the upper surface; the next    */ 
-  /* NCP points are for the lower surface.                       */ 
-  /***************************************************************/ 
-  double x, y, *LBV[2];
-  LBV[0]=G->LBasis[0];
-  LBV[1]=G->LBasis[1];
-  if (NQPoints==0)
-   { for(int ncp=0; ncp<NCP; ncp++)
-      { 
-        x=SCR[3*ncp+0];
-        y=SCR[3*ncp+1];
-
-        XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-        XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-        XMatrixAbove->SetEntry(ncp, 2, ZAbove);
-
-        XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-        XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-        XMatrixBelow->SetEntry(ncp, 2, ZBelow);
-
-      };
-   }
-  else
-   { double Delta = 1.0 / ( (double)NQPoints );
-     for(int nqpx=0, ncp=0; nqpx<NQPoints; nqpx++)
-      for(int nqpy=0; nqpy<NQPoints; nqpy++, ncp++)
-       { 
-         x = ((double)nqpx + 0.5)*Delta;
-         y = ((double)nqpy + 0.5)*Delta;
-
-         XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-         XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-         XMatrixAbove->SetEntry(ncp, 2, ZAbove);
-
-         XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
-         XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
-         XMatrixBelow->SetEntry(ncp, 2, ZBelow);
-       };
-   };
-
-  /***************************************************************/ 
-  /* get scattered fields at all cubature points                 */ 
-  /***************************************************************/ 
-  G->GetFields(IF, KN, Omega, kBloch, XMatrixAbove, FMatrixAbove);
-  G->GetFields(0, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
-
-  /***************************************************************/
-  /* integrate poynting vector over upper and lower surfaces.    */
-  /* Note: The jacobian in this cubature is the area of the unit */
-  /*       cell, so omitting that factor is equivalent to        */
-  /*       dividing the integrated power by the unit-cell area,  */
-  /*       which is what we want to do anyway.                   */
-  /***************************************************************/
-  double w, PTransmitted=0.0, PReflected=0.0;
-  cdouble E[3], H[3];
-  for(int ncp=0; ncp<NCP; ncp++)
-   {
-     if (NQPoints==0) 
-      w=SCR[3*ncp+2];  // cubature weight
-     else
-      w=1.0/((double)(NCP));
-
-     E[0]=FMatrixAbove->GetEntry(ncp, 0);
-     E[1]=FMatrixAbove->GetEntry(ncp, 1);
-     H[0]=FMatrixAbove->GetEntry(ncp, 3);
-     H[1]=FMatrixAbove->GetEntry(ncp, 4);
-     PTransmitted += 0.5*w*real( E[0]*conj(H[1]) - E[1]*conj(H[0]) );
-
-     E[0]=FMatrixBelow->GetEntry(ncp, 0);
-     E[1]=FMatrixBelow->GetEntry(ncp, 1);
-     H[0]=FMatrixBelow->GetEntry(ncp, 3);
-     H[1]=FMatrixBelow->GetEntry(ncp, 4);
-     PReflected -= 0.5*w*real( E[0]*conj(H[1]) - E[1]*conj(H[0]) );
-
-   };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  TRFlux[0]=PTransmitted;
-  TRFlux[1]=PReflected;
-
+  SourceDestRegions[0]=SourceRegionIndex;
+  SourceDestRegions[1]=DestRegionIndex;
+  return DestIsPEC;
 }
 
 /***************************************************************/
-/* f1 = \int_0^1 \int_0^u u*e^{-i(uX+vY)} dv du                */
-/* f2 = \int_0^1 \int_0^u v*e^{-i(uX+vY)} dv du                */
 /***************************************************************/
-namespace scuff{
-cdouble ExpRel(cdouble x, int n);
-               }
-
-void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
+/***************************************************************/
+void WriteFilePreamble(FILE *f)
 {
-  if (X==0.0 && Y==0.0)
-   { *f1=1.0/3.0;
-     *f2=1.0/6.0;
-   }
-  else if (Y==0.0)
-   { 
-     *f1 = 2.0*II*exp(-II*X)*ExpRel(II*X, 3) / (X*X*X);
-     *f2 = (*f1)/2.0;
-   }
-  else if (X==0.0)
-   { double Y3=Y*Y*Y;
-     cdouble ER1=ExpRel(II*Y,1);
-     cdouble ER2=ExpRel(II*Y,2);
-     *f1= -II*exp(-II*Y)*ER2/Y3 - 0.5*II/Y;
-     *f2= -2.0*II*exp(-II*Y)*( ER2 - 0.5*II*Y*ER1) / Y3;
-   }
-  else
-   { 
-     cdouble IX   = II*X;
-     cdouble IY   = II*Y;
-     double XPY   = X+Y;
-     cdouble IXPY = II*XPY;
-
-     cdouble ExpMIX=exp(-IX);
-     cdouble ExpMIY=exp(-IY);
-     cdouble ExpMIXPY=ExpMIX * ExpMIY;
-
-     cdouble Term1 = X==0.0     ? -0.5 : ExpMIX*ExpRel(IX, 2) / (X*X);
-     cdouble Term2 = Y==0.0     ? -0.5 : ExpMIY*ExpRel(IY, 2) / (Y*Y);
-     cdouble Term3 = (XPY)==0.0 ? -0.5 : ExpMIXPY*ExpRel(IXPY, 2) / (XPY*XPY);
-
-     *f1 = (Term1 - Term3) * II / Y;
-  
-     cdouble fFull = II*ExpRel(IY,2)*ExpRel(IX,1)*ExpMIXPY/(X*Y*Y);
-
-     *f2 = fFull - (Term2 - Term3)*II/X;
-   }
-  
-}
-
-#if 0 
-// 20150125 old inaccurate version...delete me 
-void f1f2(double X, double Y, cdouble *f1, cdouble *f2)
-{
-  cdouble ExpIX=exp(II*X);
-  cdouble ExpIY=exp(II*Y);
-  double X2=X*X; 
-  double X3=X2*X;
-  double Y2=Y*Y;
-  double Y3=Y2*Y;
-  double XPY2=(X+Y)*(X+Y);
-
-  if (X==0.0 && Y==0.0)
-   { *f1=1.0/3.0;
-     *f2=1.0/6.0;
-   }
-  else if (X==0.0 && Y!=0.0)
-   { 
-     *f1 = ((II/2.0)*(-2.0 + (2.0 + (2.0*II)*Y)/ExpIY - Y2))/Y3;
-     *f2 = -(2.0*II + Y + (-2.0*II + Y)/ExpIY)/Y3;
-   }
-  else if (Y==0.0 && X!=0.0)
-   { *f1= (2.0*II + (-2.0*II + (2.0 + II*X)*X)/ExpIX)/X3;
-     *f2= (2.0*II + (-2.0*II + (2.0 + II*X)*X)/ExpIX)/(2.0*X3);
-   }
-  else if ( fabs(XPY2)<1.0e-20 )
-   { *f1 = ((II/2.0)*(-2.0 + (2.0 + (2.0*II)*X)/ExpIX - X2))/X3;
-     *f2 = ((-II/2.0)*(-2.0 + 2.0/ExpIX + X*(2.0*II + X)))/X3;
-   }
-  else
-   {
-     *f1=((-II)*(-1.0 + (1.0 + II*X)/ExpIX))/(X2*Y) + 
-         (II*(-1.0 + (II*(-II + X + Y))/ ExpIX*ExpIY))/(Y*XPY2);
-
-     *f2 = (-(X*(X*(-II + Y) + Y*(-2.0*II + Y))) - II*ExpIY*(-(ExpIX*Y2) + (XPY2)))/
-            (ExpIX*ExpIY*X*Y2*XPY2);
-   };
-
-}
-#endif
-
-/***************************************************************/
-/* compute the vector-valued integral                          */
-/*  \int Exp[-i*(K \cdot X)] b[X] dX                           */
-/***************************************************************/
-void GetEMiKXRWGIntegral(RWGSurface *S, int ne, double K[3], cdouble Integral[3])
-{
-  RWGEdge *E    = S->Edges[ne];
-  double *QP    = S->Vertices + 3*E->iQP;
-  double *V1    = S->Vertices + 3*E->iV1;
-  double *V2    = S->Vertices + 3*E->iV2;
-  double *QM    = S->Vertices + 3*E->iQM;
-  double Length = E->Length;
-
-  double AP[3], AM[3], B[3]; 
-  double KQP=0.0, KAP=0.0, KQM=0.0, KAM=0.0, KB=0.0;
-  for(int Mu=0; Mu<3; Mu++)
-   { AP[Mu] = V1[Mu] - QP[Mu];
-     AM[Mu] = V1[Mu] - QM[Mu];
-      B[Mu] = V2[Mu] - V1[Mu];
-       KQP += K[Mu]*QP[Mu];
-       KAP += K[Mu]*AP[Mu];
-       KQM += K[Mu]*QM[Mu];
-       KAM += K[Mu]*AM[Mu];
-        KB += K[Mu]*B[Mu];
-   };
-
-  cdouble ExpFac, f1, f2;
-
-  f1f2(KAP, KB, &f1, &f2);
-  ExpFac = exp(-II*KQP);
-  Integral[0] = Length*ExpFac*( f1*AP[0] + f2*B[0] );
-  Integral[1] = Length*ExpFac*( f1*AP[1] + f2*B[1] );
-  Integral[2] = Length*ExpFac*( f1*AP[2] + f2*B[2] );
-
-  f1f2(KAM, KB, &f1, &f2);
-  ExpFac = exp(-II*KQM);
-  Integral[0] -= Length*ExpFac*( f1*AM[0] + f2*B[0] );
-  Integral[1] -= Length*ExpFac*( f1*AM[1] + f2*B[1] );
-  Integral[2] -= Length*ExpFac*( f1*AM[2] + f2*B[2] );
-  
-}
-
-/***************************************************************/
-/* This routine computes the contributions of currents on a    */
-/* single surface to the transmission amplitude.               */
-/***************************************************************/
-void GetTransmissionAmplitudes(RWGGeometry *G, HVector *KN,
-                               int WhichSurface, cdouble EpsPrime,
-                               cdouble Omega, double Theta,
-                               cdouble *ptTE, cdouble *ptTM)
-{
-  double nn = real(sqrt(EpsPrime));
-  cdouble ZPrime = 1.0/nn;
-  double SinThetaPrime = sin(Theta)/nn;
-  double CosThetaPrime = sqrt(1.0-SinThetaPrime*SinThetaPrime);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double K[3];
-  K[0] = nn*real(Omega)*SinThetaPrime;
-  K[1] = 0.0;
-  K[2] = nn*real(Omega)*CosThetaPrime;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double EpsTE[3], EpsBarTE[3], EpsTM[3], EpsBarTM[3];
-  EpsTE[0]=0.0;     EpsBarTE[0] = -CosThetaPrime;
-  EpsTE[1]=1.0;     EpsBarTE[1] = 0.0;
-  EpsTE[2]=0.0;     EpsBarTE[2] = +SinThetaPrime;
-
-  EpsTM[0]=+CosThetaPrime;  EpsBarTM[0]=0.0;
-  EpsTM[1]=0.0;             EpsBarTM[1]=1.0;
-  EpsTM[2]=-SinThetaPrime;  EpsBarTM[2]=0.0;
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGSurface *S = G->Surfaces[WhichSurface];
-  int BFIndexOffset = G->BFIndexOffset[WhichSurface];
-
-  cdouble tTE=0.0, tTM=0.0;
-  cdouble KAlpha, NAlpha=0.0;
-  for(int ne=0; ne<S->NumEdges; ne++)
-   { 
-     if (S->IsPEC)
-      { 
-        KAlpha=KN->GetEntry( BFIndexOffset + ne );
-      }
-     else
-      { KAlpha=KN->GetEntry( BFIndexOffset + 2*ne + 0 );
-        NAlpha=-ZVAC*KN->GetEntry( BFIndexOffset + 2*ne + 1 );
-      };
-
-     cdouble EMiQXBAlpha[3]; 
-     GetEMiKXRWGIntegral(S, ne, K, EMiQXBAlpha);
-     
-     tTE += KAlpha*(   EpsTE[0]*EMiQXBAlpha[0]
-                     + EpsTE[1]*EMiQXBAlpha[1]
-                     + EpsTE[2]*EMiQXBAlpha[2] 
-                   )
-           +NAlpha*(   EpsBarTE[0]*EMiQXBAlpha[0]
-                     + EpsBarTE[1]*EMiQXBAlpha[1]
-                     + EpsBarTE[2]*EMiQXBAlpha[2] 
-                   );
-     
-     tTM += KAlpha*(   EpsTM[0]*EMiQXBAlpha[0]
-                     + EpsTM[1]*EMiQXBAlpha[1]
-                     + EpsTM[2]*EMiQXBAlpha[2] 
-                   )
-           +NAlpha*(   EpsBarTM[0]*EMiQXBAlpha[0]
-                     + EpsBarTM[1]*EMiQXBAlpha[1]
-                     + EpsBarTM[2]*EMiQXBAlpha[2] 
-                   );
-
-   };
-
-  if (G->LDim!=2)
-   ErrExit("%s: %i: internal error",__FILE__,__LINE__);
-  double *L1 = G->LBasis[0];
-  double *L2 = G->LBasis[1];
-  double UnitCellVolume = L1[0]*L2[1]-L1[1]*L2[0];
-
-  tTE *= ZVAC*ZPrime / (2.0*UnitCellVolume*CosThetaPrime);
-  tTM *= ZVAC*ZPrime / (2.0*UnitCellVolume*CosThetaPrime);
-
-  if (ptTE) *ptTE = tTE;
-  if (ptTM) *ptTM = tTM;
-}
-
-/***************************************************************/
-/* This routine computes the contributions of currents on ALL  */
-/* surfaces bounding the uppermost region to the transmission  */
-/* amplitude.                                                  */
-/***************************************************************/
-void GetTransmissionAmplitudes(RWGGeometry *G, HVector *KN,
-                               int UppermostRegionIndex,
-                               cdouble Omega, double Theta,
-                               cdouble *ptTE, cdouble *ptTM)
-{
-  double EpsPrime 
-   = real( G->RegionMPs[UppermostRegionIndex]->GetEps(Omega) );
-
-  cdouble tTE=0.0, tTM=0.0;
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   { 
-     double Sign;
-
-     if (G->Surfaces[ns]->RegionIndices[0]==UppermostRegionIndex)
-      Sign=1.0;
-     else if (G->Surfaces[ns]->RegionIndices[1]==UppermostRegionIndex)
-      Sign=-1.0;
-     else
-      continue;
-
-     cdouble tTEPartial, tTMPartial;
-     GetTransmissionAmplitudes(G, KN, ns, EpsPrime, Omega, Theta,
-                               &tTEPartial, &tTMPartial);
-
-     tTE += Sign*tTEPartial;
-     tTM += Sign*tTMPartial;
-   };
-
-  if (ptTE) *ptTE = tTE;
-  if (ptTM) *ptTM = tTM;
+  fprintf(f,"# scuff-transmission run on %s (%s)\n",
+             GetHostName(),GetTimeString());
+  fprintf(f,"# data file columns: \n");
+  fprintf(f,"# 1:      omega \n");
+  fprintf(f,"# 2:      theta (incident angle) (theta=0 --> normal incidence)\n");
+  fprintf(f,"# 3:      upward   flux / vacuum plane-wave flux (TE)\n");
+  fprintf(f,"# 4:      downward flux / vacuum plane-wave flux (TE)\n");
+  fprintf(f,"# 5:      upward   flux / vacuum plane-wave flux (TM)\n");
+  fprintf(f,"# 6:      downward flux / vacuum plane-wave flux (TM)\n");
+  fprintf(f,"# 7,8:    mag, phase a_Upper(TE -> TE)\n");
+  fprintf(f,"# 9,10:   mag, phase a_Upper(TM -> TM)\n");
+  fprintf(f,"# 11,12:  mag, phase a_Lower(TE -> TE)\n");
+  fprintf(f,"# 13,14:  mag, phase a_Lower(TM -> TM)\n");
+  fprintf(f,"# 15,16   mag, phase a_Upper(TE -> TM)\n");
+  fprintf(f,"# 17,18   mag, phase a_Upper(TM -> TE)\n");
+  fprintf(f,"# 19,20   mag, phase a_Lower(TE -> TM)\n");
+  fprintf(f,"# 20,21   mag, phase a_Lower(TM -> TE)\n");
+  fflush(f);
 }
 
 /***************************************************************/
@@ -467,7 +116,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   char *GeoFileName=0;
-  cdouble OmegaVals[MAXFREQ];	int nOmegaVals;
+  cdouble OmegaVals[MAXFREQ];	int nOmegaVals;   int nLambdaVals;
   char *OmegaFile=0;
   char *LambdaFile=0;
   double Theta=0.0;
@@ -477,20 +126,22 @@ int main(int argc, char *argv[])
   double ZAbove=2.0;
   double ZBelow=-1.0;
   int NQPoints=0;
-  char *OutFileName=0;
+  char *FileBase=0;
   char *Cache=0;
   char *ReadCache[MAXCACHE];         int nReadCache;
   char *WriteCache=0;
+  bool FromAbove=false;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1,       (void *)&GeoFileName,  0,       ".scuffgeo file"},
 /**/
-     {"Omega",       PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nOmegaVals, "(angular) frequency"},
+     {"Omega",       PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nOmegaVals,  "(angular) frequency"},
+     {"Lambda",      PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,     &nLambdaVals, "(free-space) wavelength"},
      {"OmegaFile",   PA_STRING,  1, 1,       (void *)&OmegaFile,    0,       "list of (angular) frequencies"},
      {"LambdaFile",  PA_STRING,  1, 1,       (void *)&LambdaFile,   0,       "list of (free-space) wavelengths"},
 /**/
      {"Theta",       PA_DOUBLE,  1, 1,       (void *)&Theta,        0,       "incident angle in degrees"},
-     {"ThetaMin",    PA_DOUBLE,  1, 1,       (void *)&ThetaMin,     0,       "minimum incident angle in degrees"}, 
+     {"ThetaMin",    PA_DOUBLE,  1, 1,       (void *)&ThetaMin,     0,       "minimum incident angle in degrees"},
      {"ThetaMax",    PA_DOUBLE,  1, 1,       (void *)&ThetaMax,     0,       "maximum incident angle in degrees"},
      {"ThetaPoints", PA_INT,     1, 1,       (void *)&ThetaPoints,  0,       "number of incident angles"},
 /**/
@@ -500,11 +151,13 @@ int main(int argc, char *argv[])
 /**/
      {"NQPoints",    PA_INT,     1, 1,       (void *)&NQPoints,     0,       "number of quadrature points per dimension"},
 /**/
-     {"OutFile",     PA_STRING,  1, 1,       (void *)&OutFileName,  0,       "output file name"},
+     {"FileBase",    PA_STRING,  1, 1,       (void *)&FileBase,     0,       "base file name for output files"},
 /**/
      {"Cache",       PA_STRING,  1, 1,       (void *)&Cache,        0,             "read/write cache"},
      {"ReadCache",   PA_STRING,  1, MAXCACHE,(void *)ReadCache,     &nReadCache,   "read cache"},
      {"WriteCache",  PA_STRING,  1, 1,       (void *)&WriteCache,   0,             "write cache"},
+/**/
+     {"FromAbove",   PA_BOOL,    0, 1,       (void *)&FromAbove,    0,       "plane wave impinges from above"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -520,57 +173,41 @@ int main(int argc, char *argv[])
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   if (G->LDim!=2)
    ErrExit("%s: geometry must have two-dimensional lattice periodicity",GeoFileName);
-  HMatrix *M   = G->AllocateBEMMatrix();
-  HVector *RHS = G->AllocateRHSVector();
-  HVector *KN  = G->AllocateRHSVector();
 
   /*******************************************************************/
-  /* determine the index of the uppermost region in the geometry     */
+  /* determine the indices of the regions from which the plane wave  */
+  /* emanates and into which it eventually propagates                */
   /*******************************************************************/
-  double X[3]={0.0, 0.0, 1.0e6};
-  int UpperRegionIndex=G->GetRegionIndex(X);
-  Log("Identified uppermost region as region # %i (%s).",
-       UpperRegionIndex, G->RegionLabels[UpperRegionIndex]);
+  int SDIndex[2]; // "source, dest index"
+  bool DestIsPEC        = GetSourceDestRegions(G, FromAbove, SDIndex);
+  int SourceRegionIndex = SDIndex[0];
+  int   DestRegionIndex = SDIndex[1];
+  int  UpperRegionIndex = (FromAbove) ? SourceRegionIndex : DestRegionIndex;
+  int  LowerRegionIndex = (FromAbove) ?   DestRegionIndex : SourceRegionIndex;
+  MatProp     *SourceMP = G->RegionMPs[ SourceRegionIndex ];
+  MatProp       *DestMP = (DestIsPEC ? 0 : G->RegionMPs[ DestRegionIndex ]);
 
   /*******************************************************************/
-  /* process frequency-related options to construct a list of        */
-  /* frequencies at which to run calculations                        */
+  /* process frequency/wavelength options to construct a list of     */
+  /* frequencies at which to run calculations.                       */
+  /* we assume the user specifies frequencies (--OmegaFile and/or    */
+  /* --Omega) *OR* wavelengths (--LambdaFile and/or --Lambda) but    */
+  /* not both.                                                       */
   /*******************************************************************/
   HVector *OmegaVector=0;
-  int nFreq, nOV, NumFreqs=0;
-  if (OmegaFile)
-   { if (LambdaFile) 
+  if (OmegaFile || LambdaFile)
+   { if (OmegaFile && LambdaFile)
       ErrExit("--OmegaFile and --LambdaFile are incompatible");
-     OmegaVector=new HVector(OmegaFile,LHM_TEXT);
+     OmegaVector=new HVector(OmegaFile ? OmegaFile : LambdaFile, LHM_TEXT);
      if (OmegaVector->ErrMsg)
       ErrExit(OmegaVector->ErrMsg);
-     NumFreqs=OmegaVector->N;
-   }
-  else if (LambdaFile)
-   { 
-     OmegaVector=new HVector(LambdaFile,LHM_TEXT);
-     if (OmegaVector->ErrMsg)
-      ErrExit(OmegaVector->ErrMsg);
-     NumFreqs=OmegaVector->N;
-     for(int n=0; n<NumFreqs; n++)
-      OmegaVector->SetEntry(n, 2.0*M_PI/OmegaVector->GetEntryD(n));
    };
+  if (nOmegaVals>0 || nLambdaVals>0)
+   OmegaVector=Concat(OmegaVector, new HVector(nOmegaVals, LHM_REAL, OmegaVals));
 
-  // now add any individually specified --Omega options
-  if (nOmegaVals>0)
-   { 
-     NumFreqs += nOmegaVals;
-     HVector *OmegaVector0=OmegaVector;
-     OmegaVector=new HVector(NumFreqs, LHM_COMPLEX);
-     nFreq=0;
-     if (OmegaVector0)
-      { for(nFreq=0; nFreq<OmegaVector0->N; nFreq++)
-         OmegaVector->SetEntry(nFreq, OmegaVector0->GetEntry(nFreq));
-        delete OmegaVector0;
-      };
-     for(nOV=0; nOV<nOmegaVals; nOV++)
-      OmegaVector->SetEntry(nFreq+nOV, OmegaVals[nOV]);
-   };
+  if (LambdaFile || nLambdaVals) // convert wavelengths to angular frequencies
+   for(int nf=0; nf<OmegaVector->N; nf++)
+    OmegaVector->SetEntry(nf, 2.0*M_PI/OmegaVector->GetEntryD(nf));
 
   if ( !OmegaVector || OmegaVector->N==0)
    OSUsage(argv[0], OSArray, "you must specify at least one frequency");
@@ -616,133 +253,111 @@ int main(int argc, char *argv[])
    PreloadCache( Cache );
 
   /*******************************************************************/
-  /*- create the incident field                                      */
+  /*- create the incident field and allocate matrices and vectors    */
   /*******************************************************************/
   cdouble E0[3]={1.0, 0.0, 0.0};
   double nHat[3]={0.0, 0.0, 1.0};
-  PlaneWave PW(E0, nHat);
+  PlaneWave PW(E0, nHat, G->RegionLabels[SourceRegionIndex]);
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  HMatrix *M   = G->AllocateBEMMatrix();
+  HVector *KN  = G->AllocateRHSVector();
+
+  /*******************************************************************/
+  /* set up output files *********************************************/
+  /*******************************************************************/
   FILE *f;
-  if (OutFileName)
-   { f=fopen(OutFileName,"w");
-     if (!f) ErrExit("could not open file %s",f);
-   }
-  else
-   { char buffer[1000];
-     snprintf(buffer,1000,"%s.transmission",GetFileBase(GeoFileName));
-     f=CreateUniqueFile(buffer,1,buffer);
-     OutFileName=strdup(buffer);
-   };
-  fprintf(f,"# data file columns: \n");
-  fprintf(f,"# 1:     omega \n");
-  fprintf(f,"# 2:     theta (incident angle) (theta=0 --> normal incidence)\n");
-  fprintf(f,"# 3:     ktransmitted flux / incident flux (perpendicular polarization)\n");
-  fprintf(f,"# 4:     reflected flux   / incident flux (perpendicular polarization)\n");
-  fprintf(f,"# 5:     transmitted flux / incident flux (parallel polarization)\n");
-  fprintf(f,"# 6:     reflected flux   / incident flux (parallel polarization)\n");
-  fprintf(f,"# 7,8:   mag2, phase tPerp\n");
-  fprintf(f,"# 9,10:  mag2, phase rPerp\n");
-  fprintf(f,"# 11,12: mag2, phase tPar\n");
-  fprintf(f,"# 13,14: mag2, phase rPar\n");
-  fprintf(f,"# 15:    inverse condition number of BEM matrix\n");
-  fflush(f);
-
-  cdouble EpsExterior, MuExterior, kExterior;
+  if (!FileBase)
+   FileBase=GetFileBase(GeoFileName);
+  f=vfopen("%s.transmission","a",FileBase);
+  if (!f) ErrExit("could not open file %s",f);
+  WriteFilePreamble(f);
 
   double RAbove[3]={0.0, 0.0, 0.0};
   double RBelow[3]={0.0, 0.0, 0.0};
   RAbove[2] = ZAbove;
   RBelow[2] = ZBelow;
-  int RegionAbove = G->GetRegionIndex(RAbove);
-  int RegionBelow = G->GetRegionIndex(RBelow);
 
-  /*--------------------------------------------------------------*/
-  /*- loop over frequencies and incident angles ------------------*/
-  /*--------------------------------------------------------------*/
-  double kBloch[2];
-  double SinTheta, CosTheta;
-  cdouble Omega;
-  double FluxTE[2], FluxTM[2];
-  cdouble tTETE, tTETM, tTMTE, tTMTM;
+  /*******************************************************************/
+  /* loop over frequencies and incident angles   *********************/
+  /*******************************************************************/
   for(int nOmega=0; nOmega<OmegaVector->N; nOmega++)
    for(int nTheta=0; nTheta<ThetaVector->N; nTheta++)
     { 
-      Omega = OmegaVector->GetEntry(nOmega);
-      Theta = ThetaVector->GetEntryD(nTheta);
-      SinTheta=sin(Theta);
-      CosTheta=cos(Theta);
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      /*--------------------------------------------------------------*/
+      cdouble Omega = OmegaVector->GetEntry(nOmega);
+      double Theta = ThetaVector->GetEntryD(nTheta);
+      double SinTheta=sin(Theta);
+      double CosTheta=cos(Theta);
       Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)",real(Omega),Theta*RAD2DEG);
 
-      // set bloch wavevector and assemble BEM matrix 
-      G->RegionMPs[0]->GetEpsMu(Omega, &EpsExterior, &MuExterior);
-      kExterior = csqrt2(EpsExterior*MuExterior)*Omega;
-      kBloch[0] = real(kExterior)*SinTheta;
-      kBloch[1] = 0.0;
+      /*--------------------------------------------------------------*/
+      /* set bloch wavevector and assemble BEM matrix                 */
+      /*--------------------------------------------------------------*/
+      cdouble kSource  = SourceMP->GetRefractiveIndex(Omega) * Omega;
+      if ( imag(kSource)!=0.0 )
+       Warn("complex wavenumber in source region (behavior undefined)");
+      double kBloch[2] = {0.0, 0.0};
+      kBloch[0] = real(kSource)*SinTheta;
       G->AssembleBEMMatrix(Omega, kBloch, M);
-      double MNorm=M->GetNorm();
       if (WriteCache)
        { StoreCache( WriteCache );
-         WriteCache=0;       
+         WriteCache=0;
        };
       M->LUFactorize();
-      double MRCond =M->GetRCond(MNorm);
 
-      // set plane wave direction
+      /*--------------------------------------------------------------*/
+      /* set plane wave direction and compute polarization vectors    */
+      /*--------------------------------------------------------------*/
       nHat[0] = SinTheta;
       nHat[1] = 0.0;
-      nHat[2] = CosTheta;
+      nHat[2] = FromAbove ? -CosTheta : CosTheta;
       PW.SetnHat(nHat);
+      double EpsTE[3]={0.0, 1.0, 0.0}, EpsTM[3], *EpsVectors[2]={EpsTE, EpsTM};
+      VecCross(EpsTE, nHat, EpsTM);
 
-      // solve with E-field perpendicular to plane of incidence  (TE)
-      E0[0]=0.0;
-      E0[1]=1.0;
-      E0[2]=0.0;
-      PW.SetE0(E0);
-      G->AssembleRHSVector(Omega, kBloch, &PW, RHS);
-      KN->Copy(RHS);
-      M->LUSolve(KN);
-      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTE);
-      GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta, 
-                                &tTETE, &tTMTE);
+      /*--------------------------------------------------------------*/
+      /*- loop over the two polarizations of the incident field       */
+      /*--------------------------------------------------------------*/
+      double UpperFluxRatio[NUMPOLS], LowerFluxRatio[NUMPOLS];
+      cdouble UpperAmplitude[NUMPOLS][NUMPOLS], LowerAmplitude[NUMPOLS][NUMPOLS];
+      for(int IncPol = POL_TE; IncPol<=POL_TM; IncPol++)
+       { 
+         E0[0]=EpsVectors[IncPol][0];
+         E0[1]=EpsVectors[IncPol][1];
+         E0[2]=EpsVectors[IncPol][2];
+         PW.SetE0(E0);
+         G->AssembleRHSVector(Omega, kBloch, &PW, KN);
+         M->LUSolve(KN);
 
-      // solve with E-field parallel to plane of incidence (TM)
-      E0[0]=CosTheta;
-      E0[1]=0.0;
-      E0[2]=-SinTheta;
-      PW.SetE0(E0);
-      G->AssembleRHSVector(Omega, kBloch, &PW, RHS);
-      KN->Copy(RHS);
-      M->LUSolve(KN);
-      GetTRFlux(G, &PW, KN, Omega, NQPoints, kBloch, ZAbove, ZBelow, FluxTM);
-      GetTransmissionAmplitudes(G, KN, UpperRegionIndex, Omega, Theta,
-                                &tTETM, &tTMTM);
+         double Flux[NUMREGIONS];
+         GetFlux(G, &PW, KN, Omega, kBloch, NQPoints, ZAbove, ZBelow, Flux);
+         UpperFluxRatio[IncPol] = Flux[REGION_UPPER];
+         LowerFluxRatio[IncPol] = Flux[REGION_LOWER];
 
-      if (RegionAbove==RegionBelow)
-       { tTETE+=1.0; 
-         tTMTM+=1.0;
+         cdouble aTETM[2];
+         GetPlaneWaveAmplitudes(G, KN, Omega, kBloch, UpperRegionIndex, true, aTETM, true);
+         UpperAmplitude[IncPol][POL_TE] = aTETM[POL_TE];
+         UpperAmplitude[IncPol][POL_TM] = aTETM[POL_TM];
+
+         GetPlaneWaveAmplitudes(G, KN, Omega, kBloch, LowerRegionIndex, false, aTETM, true);
+         LowerAmplitude[IncPol][POL_TE] = aTETM[POL_TE];
+         LowerAmplitude[IncPol][POL_TM] = aTETM[POL_TM];
        };
-      
-      // compute incident fluxes 
-      cdouble EpsAbove, MuAbove, EpsBelow, MuBelow;
-      G->RegionMPs[ RegionAbove ] -> GetEpsMu(Omega, &EpsAbove, &MuAbove);
-      G->RegionMPs[ RegionBelow ] -> GetEpsMu(Omega, &EpsBelow, &MuBelow);
-      double ZRelAbove = real( sqrt(MuAbove / EpsAbove) );
-      double ZRelBelow = real( sqrt(MuBelow / EpsAbove) );
-      double IncFluxAbove = CosTheta/(2.0*ZVAC*ZRelAbove);
-      double IncFluxBelow = CosTheta/(2.0*ZVAC*ZRelBelow);
 
       // write results to file
       fprintf(f,"%s %e ", z2s(Omega), Theta*RAD2DEG);
-      fprintf(f,"%e %e ", FluxTE[0]/IncFluxAbove, FluxTE[1]/IncFluxBelow);
-      fprintf(f,"%e %e ", FluxTM[0]/IncFluxAbove, FluxTM[1]/IncFluxBelow);
-      fprintf(f,"%e %e ", norm(tTETE), arg(tTETE));
-      fprintf(f,"%e %e ", norm(tTMTE), arg(tTMTE));
-      fprintf(f,"%e %e ", norm(tTETM), arg(tTMTM));
-      fprintf(f,"%e %e ", norm(tTMTM), arg(tTMTM));
-      fprintf(f,"%e ", MRCond);
+      fprintf(f,"%e %e ", UpperFluxRatio[POL_TE], LowerFluxRatio[POL_TE]);
+      fprintf(f,"%e %e ", UpperFluxRatio[POL_TM], LowerFluxRatio[POL_TM]);
+      fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TE][POL_TE]), arg(UpperAmplitude[POL_TE][POL_TE]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TM][POL_TM]), arg(UpperAmplitude[POL_TM][POL_TM]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TE][POL_TE]), arg(LowerAmplitude[POL_TE][POL_TE]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TM][POL_TM]), arg(LowerAmplitude[POL_TM][POL_TM]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TE][POL_TM]), arg(UpperAmplitude[POL_TE][POL_TM]));
+      fprintf(f,"%e %e ", abs(UpperAmplitude[POL_TM][POL_TE]), arg(UpperAmplitude[POL_TM][POL_TE]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TE][POL_TM]), arg(LowerAmplitude[POL_TE][POL_TM]));
+      fprintf(f,"%e %e ", abs(LowerAmplitude[POL_TM][POL_TE]), arg(LowerAmplitude[POL_TM][POL_TE]));
       fprintf(f,"\n");
       fflush(f);
 
@@ -752,7 +367,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  printf("Transmission/reflection data written to %s.\n",OutFileName);
+  printf("Transmission/reflection data written to %s.transmission\n",FileBase);
   printf("Thank you for your support.\n");
 
 }

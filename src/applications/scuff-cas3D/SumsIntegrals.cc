@@ -513,7 +513,6 @@ void GetXiIntegral_TrapSimp(SC3Data *SC3D, int NumIntervals, double *I, double *
   for(int nf=0; nf<fdim; nf++)
    I[nf] = fLeft[nf] * (SC3D->XiMin);
   memset(E,0,SC3D->NTNQ*sizeof(double));
-
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

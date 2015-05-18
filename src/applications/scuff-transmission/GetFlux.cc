@@ -1,0 +1,194 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
+ * GetFlux.cc -- compute upward-traveling and downward-traveling power flux
+ *               by integrating the Poynting vector over the unit cell
+ *               area at points above and below the structure
+ *
+ * homer reid -- 9/2012
+ */
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <libhrutil.h>
+#include <libIncField.h>
+#include <libscuff.h>
+#include <scuff-transmission.h>
+
+using namespace scuff;
+
+#define II cdouble (0.0, 1.0)
+#define PWFLUX (1.0/(2.0*ZVAC)) // power flux of a plane wave in vacuum
+
+/*******************************************************************/
+/* this is a 9th-order, 17-point cubature rule for the unit square */
+/* with corners {(0,0) (1,0) (1,1) (1,0)}.                         */
+/* array entries:                                                  */
+/*  x_0, y_0, w_0,                                                 */
+/*  x_1, y_1, w_1,                                                 */
+/*  ...                                                            */
+/*  x_16, y_16, w_16                                               */
+/* where (x_n, y_n) and w_n are the nth cubature point and weight. */
+/*******************************************************************/
+double SCR9[]={
+  +5.0000000000000000e-01, +5.0000000000000000e-01, +1.3168724279835392e-01,
+  +9.8442498318098881e-01, +8.1534005986583447e-01, +2.2219844542549678e-02,
+  +9.8442498318098881e-01, +1.8465994013416559e-01, +2.2219844542549678e-02,
+  +1.5575016819011134e-02, +8.1534005986583447e-01, +2.2219844542549678e-02,
+  +1.5575016819011134e-02, +1.8465994013416559e-01, +2.2219844542549678e-02,
+  +8.7513854998945029e-01, +9.6398082297978482e-01, +2.8024900532399120e-02,
+  +8.7513854998945029e-01, +3.6019177020215176e-02, +2.8024900532399120e-02,
+  +1.2486145001054971e-01, +9.6398082297978482e-01, +2.8024900532399120e-02,
+  +1.2486145001054971e-01, +3.6019177020215176e-02, +2.8024900532399120e-02,
+  +7.6186791010721466e-01, +7.2666991056782360e-01, +9.9570609815517519e-02,
+  +7.6186791010721466e-01, +2.7333008943217640e-01, +9.9570609815517519e-02,
+  +2.3813208989278534e-01, +7.2666991056782360e-01, +9.9570609815517519e-02,
+  +2.3813208989278534e-01, +2.7333008943217640e-01, +9.9570609815517519e-02,
+  +5.3810416409630857e-01, +9.2630786466683113e-01, +6.7262834409945196e-02,
+  +5.3810416409630857e-01, +7.3692135333168873e-02, +6.7262834409945196e-02,
+  +4.6189583590369143e-01, +9.2630786466683113e-01, +6.7262834409945196e-02,
+  +4.6189583590369143e-01, +7.3692135333168873e-02, +6.7262834409945196e-02 
+};
+
+/*******************************************************************/
+/* get the upward-traveling and downward-traveling power fluxes    */
+/* through the planes at zAbove and zBelow by integrating the      */
+/* poynting vector over the area of the unit cell.                 */
+/*                                                                 */
+/* Note: Flux values are normalized by the flux of an unit-strength*/
+/* plane wave in vacuum.                                           */
+/*                                                                 */
+/* Return values: Flux[0] = upward-traveling flux at ZAbove        */
+/*                Flux[1] = downward-traveling flux at ZBelow      */
+/*******************************************************************/
+void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
+             cdouble Omega, double *kBloch, int NQPoints,
+             double ZAbove, double ZBelow, double *Flux)
+{
+  double *SCR=SCR9;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NCP; // number of cubature points
+  if (NQPoints==0)
+   NCP=17; 
+  else
+   NCP=NQPoints*NQPoints;
+
+  /***************************************************************/
+  /* on the first invocation we allocate space for the matrices  */
+  /* of evaluation points and fields.                            */
+  /***************************************************************/
+  static HMatrix *XMatrixAbove = 0, *XMatrixBelow = 0;
+  static HMatrix *FMatrixAbove = 0, *FMatrixBelow = 0;
+  if (XMatrixAbove==0)
+   { XMatrixAbove = new HMatrix(NCP, 3 );
+     XMatrixBelow = new HMatrix(NCP, 3 );
+     FMatrixAbove = new HMatrix(NCP, 6, LHM_COMPLEX);
+     FMatrixBelow = new HMatrix(NCP, 6, LHM_COMPLEX);
+   };
+
+  /***************************************************************/
+  /* fill in coordinates of evaluation points.                   */
+  /* the first NCP points are for the upper surface; the next    */
+  /* NCP points are for the lower surface.                       */
+  /***************************************************************/
+  double x, y, *LBV[2];
+  LBV[0]=G->LBasis[0];
+  LBV[1]=G->LBasis[1];
+  if (NQPoints==0)
+   { for(int ncp=0; ncp<NCP; ncp++)
+      { 
+        x=SCR[3*ncp+0];
+        y=SCR[3*ncp+1];
+
+        XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+        XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+        XMatrixAbove->SetEntry(ncp, 2, ZAbove);
+
+        XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+        XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+        XMatrixBelow->SetEntry(ncp, 2, ZBelow);
+
+      };
+   }
+  else
+   { double Delta = 1.0 / ( (double)NQPoints );
+     for(int nqpx=0, ncp=0; nqpx<NQPoints; nqpx++)
+      for(int nqpy=0; nqpy<NQPoints; nqpy++, ncp++)
+       { 
+         x = ((double)nqpx + 0.5)*Delta;
+         y = ((double)nqpy + 0.5)*Delta;
+
+         XMatrixAbove->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+         XMatrixAbove->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+         XMatrixAbove->SetEntry(ncp, 2, ZAbove);
+
+         XMatrixBelow->SetEntry(ncp, 0, x*LBV[0][0] + y*LBV[1][0]);
+         XMatrixBelow->SetEntry(ncp, 1, x*LBV[0][1] + y*LBV[1][1]);
+         XMatrixBelow->SetEntry(ncp, 2, ZBelow);
+       };
+   };
+
+  /***************************************************************/
+  /* get scattered fields at all cubature points                 */
+  /***************************************************************/
+  G->GetFields(IF, KN, Omega, kBloch, XMatrixAbove, FMatrixAbove);
+  G->GetFields(IF, KN, Omega, kBloch, XMatrixBelow, FMatrixBelow);
+
+  /***************************************************************/
+  /* integrate poynting vector over upper and lower surfaces.    */
+  /* Note: The jacobian in this cubature is the area of the unit */
+  /*       cell, so omitting that factor is equivalent to        */
+  /*       dividing the integrated power by the unit-cell area,  */
+  /*       which is what we want to do anyway.                   */
+  /***************************************************************/
+  double PAbove=0.0, PBelow=0.0;
+  for(int ncp=0; ncp<NCP; ncp++)
+   {
+     double w;
+     if (NQPoints==0) 
+      w=SCR[3*ncp+2];  // cubature weight
+     else
+      w=1.0/((double)(NCP));
+
+     cdouble Ex, Ey, Hx, Hy;
+     Ex=FMatrixAbove->GetEntry(ncp, 0);
+     Ey=FMatrixAbove->GetEntry(ncp, 1);
+     Hx=FMatrixAbove->GetEntry(ncp, 3);
+     Hy=FMatrixAbove->GetEntry(ncp, 4);
+     PAbove += 0.5*w*real( Ex*conj(Hy) - Ey*conj(Hx) );
+
+     Ex=FMatrixBelow->GetEntry(ncp, 0);
+     Ey=FMatrixBelow->GetEntry(ncp, 1);
+     Hx=FMatrixBelow->GetEntry(ncp, 3);
+     Hy=FMatrixBelow->GetEntry(ncp, 4);
+     PBelow -= 0.5*w*real( Ex*conj(Hy) - Ey*conj(Hx) );
+
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  Flux[0]=PAbove / PWFLUX;
+  Flux[1]=PBelow / PWFLUX;
+
+}
