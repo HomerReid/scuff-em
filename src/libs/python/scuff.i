@@ -42,6 +42,10 @@ using namespace scuff;
 //////////////////////////////////////////////////////////////////////////////
 // SWIG has difficulty with functions that take va_list arguments
 %ignore vsnprintfEC;
+// these functions are defined in two different libraries
+// but we do not need them in python anyway
+%ignore VecScale;
+%ignore VecPlusEquals;
 
 //////////////////////////////////////////////////////////////////////////////
 
