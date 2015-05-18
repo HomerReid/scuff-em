@@ -413,9 +413,11 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
 
    /* charge and current densities at panel centroids */
-   HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0);
+   HMatrix *GetPanelSourceDensities(cdouble Omega, double *kBloch, HVector *KN, HMatrix *PSD=0);
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
-   HMatrix *GetPBCPanelSourceDensities(cdouble Omega, double *kBloch, HVector *KN, HMatrix *PSD=0);
+   // legacy API routine, delete me
+   HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0) 
+   { return GetPanelSourceDensities(Omega, KN, PSD); }
 
    /* electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
@@ -436,6 +438,8 @@ class RWGGeometry
    void WriteGPMeshPlus(const char *format, ...);
    void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, const char *format, ...);
    void PlotSurfaceCurrents(HVector *KN, cdouble Omega, const char *format, ...);
+   void PlotSurfaceCurrents(const char *SurfaceLabel, HVector *KN, cdouble Omega, double *kBloch, const char *format, ...);
+   void PlotSurfaceCurrents(HVector *KN, cdouble Omega, double *kBloch, const char *format, ...);
 
    /*--------------------------------------------------------------*/
    /*- misc routines for modifying geometric parameters, etc. -----*/
@@ -497,6 +501,8 @@ class RWGGeometry
                                     double RMin[3], double RMax[3], bool ExcludeInnerCells);
    void GetUnitCellRepresentative(const double X[3], double XBar[3],
                                   bool WignerSeitz=false);
+   void GetKNCoefficients(HVector *KN, int ns, int ne,
+                          cdouble *KAlpha, cdouble *NAlpha=0);
 
    // directories within which to search for mesh files
    static int NumMeshDirs;

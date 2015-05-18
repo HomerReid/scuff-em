@@ -753,6 +753,31 @@ int RWGGeometry::GetDimension()
 { return TotalBFs; }
 
 /***************************************************************/
+/* Given a vector of surface-current coefficients obtained as  */
+/* the solution to a scattering problem, extract the           */
+/* coefficients of the electric and magnetic RWG functions     */
+/* associated with edge #ne of surface #ns.                    */
+/***************************************************************/
+void RWGGeometry::GetKNCoefficients(HVector *KN, int ns, int ne,
+                                    cdouble *pKAlpha, cdouble *pNAlpha)
+{
+  RWGSurface *S=Surfaces[ns];
+  int Offset = BFIndexOffset[ns];
+  cdouble KAlpha, NAlpha;
+
+  if (S->IsPEC)
+   { KAlpha = KN->GetEntry(Offset + ne);
+     NAlpha = 0.0;
+   }
+  else
+   { KAlpha =       KN->GetEntry(Offset + 2*ne + 0);
+     NAlpha = -ZVAC*KN->GetEntry(Offset + 2*ne + 1);
+   };
+  *pKAlpha=KAlpha;
+  if (pNAlpha) *pNAlpha=NAlpha;
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void RWGGeometry::SetLogLevel(int NewLogLevel)

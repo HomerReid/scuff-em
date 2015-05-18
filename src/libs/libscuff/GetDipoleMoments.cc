@@ -76,51 +76,44 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  cdouble iw=II*Omega; 
   RWGSurface *S;
-  RWGEdge *E;
-  double QP[3], V1[3], V2[3], QM[3];
-  double QPmQM[3], V1pV2[3], QQxVV[3];
-  double PreFac;
-  cdouble KAlpha, NAlpha;
-  cdouble pRWG[3], mRWG[3];
-  cdouble IK=II*Omega; 
-  int nbf, ns, ne, Mu;
-  for(nbf=ns=0; ns<NumSurfaces; ns++)
+  int ne;
+  for(int ns=0; ns<NumSurfaces; ns++)
    for(S=Surfaces[ns], ne=0; ne<S->NumEdges; ne++)
     { 
-      E=S->Edges[ne];
+      RWGEdge *E=S->Edges[ne];
 
+      double QP[3], V1[3], V2[3], QM[3]={0.0,0.0,0.0};
       memcpy(QP,S->Vertices + 3*E->iQP, 3*sizeof(double));
       memcpy(V1,S->Vertices + 3*E->iV1, 3*sizeof(double));
       memcpy(V2,S->Vertices + 3*E->iV2, 3*sizeof(double));
-      memcpy(QM,S->Vertices + 3*E->iQM, 3*sizeof(double));
+      if ( E->iQM!= -1 )
+       memcpy(QM,S->Vertices + 3*E->iQM, 3*sizeof(double));
       if (S->GT)
        { S->GT->UnApply(QP);
          S->GT->UnApply(V1);
          S->GT->UnApply(V2);
          S->GT->UnApply(QM);
        };
-      VecSub(QP, QM, QPmQM);
-      VecAdd(V1, V2, V1pV2);
-      VecCross(QPmQM, V1pV2, QQxVV);
-      PreFac=E->Length / 3.0;
 
-      pRWG[0] = PreFac * QPmQM[0] / (IK);
-      pRWG[1] = PreFac * QPmQM[1] / (IK);
-      pRWG[2] = PreFac * QPmQM[2] / (IK);
-      mRWG[0] = PreFac * QQxVV[0] / 4.0;
-      mRWG[1] = PreFac * QQxVV[1] / 4.0;
-      mRWG[2] = PreFac * QQxVV[2] / 4.0;
+      cdouble pRWG[3]={0.0, 0.0, 0.0}, mRWG[3]={0.0, 0.0, 0.0};
+      double QPmQM[3], QQxX0[3];
+      double PreFac=E->Length / 3.0;
+      if ( E->iQM == -1 )
+       VecSub(QP, E->Centroid, QPmQM);
+      else
+       VecSub(QP, QM, QPmQM);
+      VecCross(QPmQM, E->Centroid, QQxX0);
+      PlusEqualsVec(pRWG, PreFac/iw,  QPmQM);
+      PlusEqualsVec(mRWG, PreFac/2.0, QQxX0);
 
-      KAlpha=KN->GetEntry( nbf++ );
-      if ( S->IsPEC )
-       NAlpha = 0.0;
-      else 
-       NAlpha = -ZVAC*KN->GetEntry( nbf++ );
+      cdouble KAlpha, NAlpha;
+      GetKNCoefficients(KN, ns, ne, &KAlpha, &NAlpha);
 
-      for(Mu=0; Mu<3; Mu++)
-       { PM->AddEntry( 6*ns + Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
-         PM->AddEntry( 6*ns + Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
+      for(int Mu=0; Mu<3; Mu++)
+       { PM->AddEntry(6*ns + Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
+         PM->AddEntry(6*ns + Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
        };
  
     };
@@ -128,7 +121,7 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-PM->Scale(ZVAC); /* ? */ 
+  PM->Scale(ZVAC); /* ? */ 
   return PM;
 
 }
@@ -160,178 +153,54 @@ PM->Scale(ZVAC); /* ? */
 /*  columns 9,10,11 : components of magnetic current density   */
 /*  column  12      : normally-directed poynting flux INTO the */
 /*                    surface                                  */
+/*                                                             */
+/* Note: Because G->TotalPanels includes straddler panels,     */
+/*       the number of rows in the PSD matrix is the total     */
+/*       number of panels including straddler panels. However, */
+/*       the contributions of straddler basis functions to the */
+/*       source densities is already properly included in the  */
+/*       values computed for the non-straddler panels that are */
+/*       the periodic images of stradder panels. For this      */
+/*       reason, all rows of the PSD matrix corresponding to   */
+/*       straddler panels are returned as zeros.               */
 /***************************************************************/
-#define PSD_MATRIX_WIDTH 13
-HMatrix *RWGGeometry::GetPanelSourceDensities2(cdouble Omega,
-                                               HVector *KN,
-                                               HMatrix *PSD)
-
+#define PSD_MATRIX_COLUMNS 13
+HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
+                                              double *kBloch,
+                                              HVector *KN,
+                                              HMatrix *PSD)
 { 
-  cdouble iw = II*Omega;
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   if (    PSD==0 
        || PSD->NR!=TotalPanels 
-       || PSD->NC!=PSD_MATRIX_WIDTH 
+       || PSD->NC!=PSD_MATRIX_COLUMNS
        || PSD->RealComplex!=LHM_COMPLEX
      )
    { if (PSD) 
       Warn("invalid PSD matrix passed to GetPanelSourceDensities (reallocating)");
-     PSD=new HMatrix(TotalPanels, 13, LHM_COMPLEX);
+     PSD=new HMatrix(TotalPanels, PSD_MATRIX_COLUMNS, LHM_COMPLEX);
    };
   PSD->Zero();
 
   /***************************************************************/
-  /* loop over entries in the KN vector to add the               */
-  /* contributions of each basis function to the charge and      */
-  /* current densities at the centroids of its two panels        */
+  /* loop over all panels on all surfaces ************************/
   /***************************************************************/
+  cdouble iw = II*Omega;
   RWGSurface *S;
-  RWGEdge *E;
-  RWGPanel *PPanel, *MPanel;
-  double *QP, *QM;
-  int ne, Offset;
-  cdouble KWeight, NWeight, PreFac;
-  double XmQ[3];
-  int nbf=0;
+  int np;
   for(int ns=0; ns<NumSurfaces; ns++)
-   for(S=Surfaces[ns], Offset=PanelIndexOffset[ns], ne=0; ne<S->NumEdges; ne++)
+   for(S=Surfaces[ns], np=0; np<S->NumPanels; np++)
     { 
-      E=S->Edges[ne];
-      PPanel = S->Panels[E->iPPanel];
-      MPanel = S->Panels[E->iMPanel];
-      QP=S->Vertices + 3*(E->iQP);
-      QM=S->Vertices + 3*(E->iQM);
-
       /*--------------------------------------------------------------*/
-      /*- this code ensures that the panel centroid coordinates are   */
-      /*- filled in redundantly several times over, but i think this  */
-      /*- is faster than having a separate loop over panels.          */
-      /*--------------------------------------------------------------*/
-      PSD->SetEntry(PPanel->Index + Offset, 0, PPanel->Centroid[0]);
-      PSD->SetEntry(PPanel->Index + Offset, 1, PPanel->Centroid[1]);
-      PSD->SetEntry(PPanel->Index + Offset, 2, PPanel->Centroid[2]);
-      PSD->SetEntry(PPanel->Index + Offset, 3, PPanel->Area);
-      PSD->SetEntry(MPanel->Index + Offset, 0, MPanel->Centroid[0]);
-      PSD->SetEntry(MPanel->Index + Offset, 1, MPanel->Centroid[1]);
-      PSD->SetEntry(MPanel->Index + Offset, 2, MPanel->Centroid[2]);
-      PSD->SetEntry(MPanel->Index + Offset, 3, MPanel->Area);
-
-      /*--------------------------------------------------------------*/
-      /*- contributions of electric surface current associated with  -*/
-      /*- this edge                                                  -*/
-      /*--------------------------------------------------------------*/
-      KWeight = KN->GetEntry(nbf++);
-
-      PreFac  = E->Length * KWeight / (2.0*PPanel->Area);
-      VecSub(PPanel->Centroid, QP, XmQ);
-      PSD->AddEntry( PPanel->Index + Offset, 4, 2.0*PreFac/ iw);  // rho 
-      PSD->AddEntry( PPanel->Index + Offset, 5, PreFac*XmQ[0] );  // K_x
-      PSD->AddEntry( PPanel->Index + Offset, 6, PreFac*XmQ[1] );  // K_y
-      PSD->AddEntry( PPanel->Index + Offset, 7, PreFac*XmQ[2] );  // K_z
-
-      PreFac  = -1.0*E->Length * KWeight / (2.0*MPanel->Area);
-      VecSub(MPanel->Centroid, QM, XmQ);
-      PSD->AddEntry( MPanel->Index + Offset, 4, 2.0*PreFac/ iw);  // rho 
-      PSD->AddEntry( MPanel->Index + Offset, 5, PreFac*XmQ[0] );  // K_x
-      PSD->AddEntry( MPanel->Index + Offset, 6, PreFac*XmQ[1] );  // K_y
-      PSD->AddEntry( MPanel->Index + Offset, 7, PreFac*XmQ[2] );  // K_z
-
-      if (S->IsPEC) continue;
-
-      /*--------------------------------------------------------------*/
-      /*- contributions of magnetic surface current associated with  -*/
-      /*- this edge                                                  -*/
-      /*--------------------------------------------------------------*/
-      NWeight = -ZVAC*KN->GetEntry(nbf++);
-
-      PreFac  = E->Length * NWeight / (2.0*PPanel->Area);
-      VecSub(PPanel->Centroid, QP, XmQ);
-      PSD->AddEntry( PPanel->Index + Offset, 8,  2.0*PreFac/ iw);  // eta
-      PSD->AddEntry( PPanel->Index + Offset, 9,  PreFac*XmQ[0] );  // N_x
-      PSD->AddEntry( PPanel->Index + Offset, 10, PreFac*XmQ[1] );  // N_y
-      PSD->AddEntry( PPanel->Index + Offset, 11, PreFac*XmQ[2] );  // N_z
-
-      PreFac  = -1.0*E->Length * NWeight / (2.0*MPanel->Area);
-      VecSub(MPanel->Centroid, QM, XmQ);
-      PSD->AddEntry( MPanel->Index + Offset,  8, 2.0*PreFac/ iw);  // eta
-      PSD->AddEntry( MPanel->Index + Offset,  9, PreFac*XmQ[0] );  // N_x
-      PSD->AddEntry( MPanel->Index + Offset, 10, PreFac*XmQ[1] );  // N_y
-      PSD->AddEntry( MPanel->Index + Offset, 11, PreFac*XmQ[2] );  // N_z
-
-    }; // for (ns=0; ns<NumSurfaces; ns++) ... for(ne=0; ne<S->NumEdges; ne++)
-
-  return PSD;
-}
-
-/***************************************************************/
-/* This routine computes the induced electric and magnetic     */
-/* surface charge and current densities at the centroid of     */
-/* each panel in an RWGGeometry. As an added bonus, it         */
-/* computes the normally-directed poynting flux into the       */
-/* surface. (This is the flux, i.e. the power per unit area;   */
-/* to get the total power delivered to the object through this */
-/* panel you multiply the flux by the panel area).             */
-/*                                                             */
-/* PSD is a complex-valued matrix with G->TotalPanels rows and */
-/* 13 columns.                                                 */
-/*                                                             */
-/* (If PSD is NULL on entry, or if it points to an HMatrix of  */
-/*  the wrong size, it is reallocated).                        */
-/*                                                             */
-/* On output, the columns of the nth row of PSD are filled in  */
-/* with data on the values of the induced source distributions */
-/* at the centroid of the nth panel in the geometry, as follows*/
-/*                                                             */
-/*  columns 0, 1, 2 : cartesian coords of nth panel centroid   */
-/*  column  3       : area of nth panel                        */
-/*  column  4       : electric charge density                  */
-/*  columns 5,6,7   : components of electric current density   */
-/*  column  8       : magnetic charge density                  */
-/*  columns 9,10,11 : components of magnetic current density   */
-/*  column  12      : normally-directed poynting flux INTO the */
-/*                    surface                                  */
-/***************************************************************/
-HMatrix *RWGGeometry::GetPBCPanelSourceDensities(cdouble Omega,
-                                                 double *kBloch,
-                                                 HVector *KN,
-                                                 HMatrix *PSD)
-{ 
-  cdouble iw = II*Omega;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (    PSD==0 
-       || PSD->NR!=TotalPanels 
-       || PSD->NC!=PSD_MATRIX_WIDTH 
-       || PSD->RealComplex!=LHM_COMPLEX
-     )
-   { if (PSD) 
-      Warn("invalid PSD matrix passed to GetPanelSourceDensities (reallocating)");
-     PSD=new HMatrix(TotalPanels, PSD_MATRIX_WIDTH, LHM_COMPLEX);
-   };
-  PSD->Zero();
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  RWGSurface *S;
-  int ns, np, POffset, BFOffset;
-  for(ns=0; ns<NumSurfaces; ns++)
-   for(S=Surfaces[ns], POffset=PanelIndexOffset[ns], BFOffset=BFIndexOffset[ns], np=0; np<S->NumPanels; np++)
-    { 
-      RWGPanel *P  = S->Panels[np];
-
-      /*--------------------------------------------------------------*/
-      /* add the contributions of all panel edges (i.e. RWG basis     */
+      /* add the contributions of all three panel edges (i.e. RWG     */
       /* functions associated with all panel edges) to source         */
       /* densities at panel centroid                                  */
       /*--------------------------------------------------------------*/
-      cdouble K[3], Sigma, N[3], Eta;
-      K[0]=K[1]=K[2]=Sigma=N[0]=N[1]=N[2]=Eta=0.0;
+      cdouble K[3]={0.0,0.0,0.0}, Sigma=0.0; 
+      cdouble N[3]={0.0,0.0,0.0}, Eta=0.0;
+      RWGPanel *P  = S->Panels[np];
       for(int nce=0; nce<3; nce++) // 'number of contributing edges'
        { 
          int ne = P->EI[nce];
@@ -349,97 +218,23 @@ HMatrix *RWGGeometry::GetPBCPanelSourceDensities(cdouble Omega,
          fRWG[1] = PreFac * (P->Centroid[1] - Q[1]);
          fRWG[2] = PreFac * (P->Centroid[2] - Q[2]);
          
-         // look up the coefficients of this RWG basis function in the 
+         // look up the coefficients of this RWG basis function in the
          // expansions of the electric and magnetic surface currents
          cdouble KAlpha, NAlpha;
-         if (S->IsPEC)
-          { KAlpha = KN->GetEntry(BFOffset + ne);
-            NAlpha = 0.0;
-          }
-         else
-          { KAlpha =       KN->GetEntry(BFOffset + 2*ne + 0);
-            NAlpha = -ZVAC*KN->GetEntry(BFOffset + 2*ne + 1);
-          };
+         GetKNCoefficients(KN, ns, ne, &KAlpha, &NAlpha);
 
          // add the contributions of this RWG basis function to 
          // the source densities at the panel centroid
-         K[0]  += KAlpha * fRWG[0];
-         K[1]  += KAlpha * fRWG[1];
-         K[2]  += KAlpha * fRWG[2];
+         PlusEqualsVec(K, KAlpha, fRWG);
          Sigma += 2.0*KAlpha*PreFac / iw;
-         N[0]  += NAlpha * fRWG[0];
-         N[1]  += NAlpha * fRWG[1];
-         N[2]  += NAlpha * fRWG[2];
+         PlusEqualsVec(N, NAlpha, fRWG);
          Eta   += 2.0*NAlpha*PreFac / iw;
-       };
+       }; // for(int nce=0; nce<3; nce++)
 
       /*--------------------------------------------------------------*/
+      /*- store quantities associated with panel in the PSD matrix  --*/
       /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      if (kBloch)
-       { 
-         for(int nst=0; nst<S->TotalStraddlers; nst++)
-          if ( S->PhasedBFCs[3*nst + 0] == np )
-           { int ne      = S->PhasedBFCs[3*nst + 1];
-             int WhichBV = S->PhasedBFCs[3*nst + 2];
-   
-             RWGEdge *E  = S->Edges[ne];
-             double *L   = LBasis[WhichBV];
-  
-             double Q[3];
-             Q[0] = S->Vertices[3*(E->iQM)+0] + L[0];
-             Q[1] = S->Vertices[3*(E->iQM)+1] + L[1];
-             Q[2] = S->Vertices[3*(E->iQM)+2] + L[2];
-  
-             double Sign = -1.0;
-             double PreFac = Sign * E->Length / (2.0*P->Area);
-  
-             double fRWG[3];
-             fRWG[0] = PreFac * (P->Centroid[0] - Q[0]);
-             fRWG[1] = PreFac * (P->Centroid[1] - Q[1]);
-             fRWG[2] = PreFac * (P->Centroid[2] - Q[2]);
-  
-             cdouble BlochPhase = exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
-  
-             cdouble KAlpha, NAlpha;
-             if (S->IsPEC)
-              { KAlpha = KN->GetEntry(BFOffset + ne);
-                NAlpha = 0.0;
-              }
-             else
-              { KAlpha =       KN->GetEntry(BFOffset + 2*ne + 0);
-                NAlpha = -ZVAC*KN->GetEntry(BFOffset + 2*ne + 1);
-              };
-             KAlpha*=BlochPhase;
-             NAlpha*=BlochPhase;
-
-             // add the contributions of this RWG basis function to 
-             // the source densities at the panel centroid
-             K[0]  += KAlpha * fRWG[0];
-             K[1]  += KAlpha * fRWG[1];
-             K[2]  += KAlpha * fRWG[2];
-             Sigma += 2.0*KAlpha*PreFac / iw;
-             N[0]  += NAlpha * fRWG[0];
-             N[1]  += NAlpha * fRWG[1];
-             N[2]  += NAlpha * fRWG[2];
-             Eta   += 2.0*NAlpha*PreFac / iw;
-
-         }; // for(int ns=0; ns<S->NumStraddlers; ns++)
-
-       };
-
-      /*--------------------------------------------------------------*/
-      /* compute the inward-directed normal poynting flux             */
-      /*  = (1/2) re K^* \cdot (nHat \times N)                        */
-      /*--------------------------------------------------------------*/
-      double *nHat = P->ZHat;
-      double IDNPF = 0.5*real( conj(K[0]) * (nHat[1]*N[2] - nHat[2]*N[1])  
-                              +conj(K[1]) * (nHat[2]*N[0] - nHat[0]*N[2])  
-                              +conj(K[2]) * (nHat[0]*N[1] - nHat[1]*N[0]));
-
-      /*--------------------------------------------------------------*/
-      /*- fill in the rows of the matrix corresponding to this panel  */
-      /*--------------------------------------------------------------*/
+      int POffset=PanelIndexOffset[ns];
       PSD->SetEntry(POffset + np,  0, P->Centroid[0]);
       PSD->SetEntry(POffset + np,  1, P->Centroid[1]);
       PSD->SetEntry(POffset + np,  2, P->Centroid[2]);
@@ -452,9 +247,56 @@ HMatrix *RWGGeometry::GetPBCPanelSourceDensities(cdouble Omega,
       PSD->SetEntry(POffset + np,  9, N[0]);
       PSD->SetEntry(POffset + np, 10, N[1]);
       PSD->SetEntry(POffset + np, 11, N[2]);
-      PSD->SetEntry(POffset + np, 12, IDNPF);
 
-    }; // for (ns=0; ns<NumSurfaces; ns++) ... for(np=0; np<S->NumPanels; np++)
+    }; // for(int ns=... for (int np=...
+
+  /***************************************************************/
+  /* handle straddler panels on periodic geometries              */
+  /***************************************************************/
+  if (kBloch)
+   { 
+     for(int ns=0; ns<NumSurfaces; ns++)
+      { 
+        S=Surfaces[ns];
+        int Offset = PanelIndexOffset[ns];
+        for(int nst=0; nst<S->TotalStraddlers; nst++)
+         { 
+           int npDest   = S->PhasedBFCs[3*nst + 0] + Offset;
+           int ne       = S->PhasedBFCs[3*nst + 1];
+           int WhichBV  = S->PhasedBFCs[3*nst + 2];
+
+           int npSource = Offset + S->Edges[ne]->iMPanel;
+
+           double *L   = LBasis[WhichBV];
+           cdouble BlochPhase = exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
+
+           for(int nc=4; nc<=11; nc++)
+            { PSD->AddEntry(npDest,   nc, BlochPhase*PSD->GetEntry(npSource, nc) );
+              PSD->SetEntry(npSource, nc, 0.0);
+            }; 
+         }; 
+      };
+   }; //  if (kBloch)...for(int ns=0; ns<NumSurfaces; ns++)...
+
+  /***************************************************************/
+  /* go back and compute the inward-directed normal pointing flux*/
+  /*  = (1/2) re K^* \cdot (nHat \times N)                       */
+  /***************************************************************/
+  for(int ns=0; ns<NumSurfaces; ns++)
+   { S=Surfaces[ns];
+     int Offset = PanelIndexOffset[ns];
+     for(int np=0; np<S->NumPanels; np++)
+      { double *nHat = S->Panels[np]->ZHat;
+        cdouble K[3];
+        cdouble N[3];
+        PSD->GetEntries(Offset+np, "5:7",  K);
+        PSD->GetEntries(Offset+np, "9:11", N);
+        double IDNPF = 0.5*real( conj(K[0]) * (nHat[1]*N[2] - nHat[2]*N[1])
+                                +conj(K[1]) * (nHat[2]*N[0] - nHat[0]*N[2])
+                                +conj(K[2]) * (nHat[0]*N[1] - nHat[1]*N[0]));
+        PSD->SetEntry(Offset + np, 12, IDNPF);
+      };
+   };
 
   return PSD;
 }
@@ -463,6 +305,6 @@ HMatrix *RWGGeometry::GetPBCPanelSourceDensities(cdouble Omega,
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD)
-{ return GetPBCPanelSourceDensities(Omega, 0, KN, PSD); }
+{ return GetPanelSourceDensities(Omega, 0, KN, PSD); }
 
 } // namespace scuff

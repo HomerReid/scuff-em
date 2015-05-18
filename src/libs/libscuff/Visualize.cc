@@ -726,12 +726,29 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
 }
 
 /***************************************************************/
+/* return true if panel #np on surface #ns is a ``straddler''  */
+/* panel. detection of straddler panels is simpleminded: we    */
+/* assume that the unit-cell geometry lives in the upper-right */
+/* quadrant of the xy plane, so any panel whose centroid does  */
+/* not live in that region is a straddler.                     */
+/***************************************************************/
+bool IsStraddlerPanel(RWGGeometry *G, int ns, int np)
+{
+  double *Centroid = G->Surfaces[ns]->Panels[np]->Centroid;
+  if ( Centroid[0] > 0.0 ) return false;
+  if ( (G->LDim>=2) && Centroid[1] > 0.0 ) return false;
+  return true;
+}
+
+/***************************************************************/
 /* Emit GMSH postprocessing code for visualizing the current   */
 /* distribution described by a single vector of surface-current*/
 /* expansion coefficients.                                     */
+/* This routine is not thread-safe!                            */
 /***************************************************************/
 void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
-                                      HVector *KN, cdouble Omega, 
+                                      HVector *KN, cdouble Omega,
+                                      double *kBloch,
                                       const char *format, ...)
 { 
   /***************************************************************/
@@ -748,11 +765,11 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  static HMatrix *PSD=0 ; 
+  static HMatrix *PSD=0;
   if (PSD==0)
-   PSD=GetPanelSourceDensities(Omega, KN, 0);
+   PSD=GetPanelSourceDensities(Omega, kBloch, KN, 0);
   else
-   PSD=GetPanelSourceDensities(Omega, KN, PSD);
+   PSD=GetPanelSourceDensities(Omega, kBloch, KN, PSD);
 
   /***************************************************************/
   /***************************************************************/
@@ -773,7 +790,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
       continue;
 
      for(int np=0; np<S->NumPanels; np++)
-      { 
+      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
         RWGPanel *P=S->Panels[np];
         double *PV[3];
         PV[0]=S->Vertices + 3*P->VI[0];
@@ -801,7 +818,8 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
       continue;
 
      for(int np=0; np<S->NumPanels; np++)
-      { RWGPanel *P=S->Panels[np];
+      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
+        RWGPanel *P=S->Panels[np];
         cdouble Kx = PSD->GetEntry(Offset + np, 5);
         cdouble Ky = PSD->GetEntry(Offset + np, 6);
         cdouble Kz = PSD->GetEntry(Offset + np, 7);
@@ -844,7 +862,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
       continue;
 
      for(int np=0; np<S->NumPanels; np++)
-      { 
+      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
         RWGPanel *P=S->Panels[np];
         double *PV[3];
         PV[0]=S->Vertices + 3*P->VI[0];
@@ -872,7 +890,8 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
       continue;
 
      for(int np=0; np<S->NumPanels; np++)
-      { RWGPanel *P=S->Panels[np];
+      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
+        RWGPanel *P=S->Panels[np];
         cdouble Nx = PSD->GetEntry(Offset + np,  9);
         cdouble Ny = PSD->GetEntry(Offset + np, 10);
         cdouble Nz = PSD->GetEntry(Offset + np, 11);
@@ -896,7 +915,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
       continue;
 
      for(int np=0; np<S->NumPanels; np++)
-      { 
+      { if (kBloch && IsStraddlerPanel(this,ns,np)) continue;
         RWGPanel *P=S->Panels[np];
         double *PV[3];
         PV[0]=S->Vertices + 3*P->VI[0];
@@ -922,7 +941,8 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
 /* the caller doesn't specify a surface label; in this case    */
 /* currents on all surfaces are plotted.                       */
 /***************************************************************/
-void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega, 
+void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
+                                      double *kBloch,
                                       const char *format, ...)
 { 
   va_list ap;
@@ -931,7 +951,35 @@ void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
   vsnprintfEC(FileName,MAXSTR,format,ap);
   va_end(ap);
   
-  PlotSurfaceCurrents(0, KN, Omega, FileName);
+  PlotSurfaceCurrents(0, KN, Omega, kBloch, FileName);
+}
+
+/***************************************************************/
+/* alternative entry points with kBloch==NULL                  */
+/***************************************************************/
+void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
+                                      HVector *KN, cdouble Omega,
+                                      const char *format, ...)
+{ 
+  va_list ap;
+  char FileName[MAXSTR];
+  va_start(ap,format);
+  vsnprintfEC(FileName,MAXSTR,format,ap);
+  va_end(ap);
+
+  PlotSurfaceCurrents(SurfaceLabel, KN, Omega, 0, FileName);
+}
+
+void RWGGeometry::PlotSurfaceCurrents(HVector *KN, cdouble Omega,
+                                      const char *format, ...)
+{ 
+  va_list ap;
+  char FileName[MAXSTR];
+  va_start(ap,format);
+  vsnprintfEC(FileName,MAXSTR,format,ap);
+  va_end(ap);
+
+  PlotSurfaceCurrents(0, KN, Omega, 0, FileName);
 }
 
 } // namespace scuff

@@ -132,6 +132,7 @@ void ScaleVec(cdouble *V1, cdouble Alpha, int N=3);
 // V1 += Alpha*V2
 void PlusEqualsVec(double *V1, double Alpha, double *V2, int N=3);
 void PlusEqualsVec(cdouble *V1, cdouble Alpha, cdouble *V2, int N=3);
+void PlusEqualsVec(cdouble *V1, cdouble Alpha, double *V2, int N=3);
 
 // V1 += V2
 void PlusEqualsVec(double *V1, double *V2, int N=3);

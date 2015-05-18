@@ -192,15 +192,19 @@ void ExportHDF5Data(SC3Data *SC3D, double Xi, double *kBloch, char *Tag)
   int LDim = SC3D->G->LDim;
 
   char XKTString[100];
-  sprintf(XKTString,"%g",Xi);
-  if (LDim>=1)
-   sprintf(XKTString,".%g",kBloch[0]);
-  if (LDim>=2)
-   sprintf(XKTString,".%g",kBloch[1]);
+  if (LDim==0)
+   sprintf(XKTString,"%g",Xi);
+  else if (LDim==1)
+   sprintf(XKTString,"%g.%g",Xi,kBloch[0]);
+  else if (LDim==2)
+   sprintf(XKTString,"%g.%g.%g",Xi,kBloch[0],kBloch[1]);
   if (Tag)
-   sprintf(XKTString,".%s",Tag);
+   strcat(XKTString,Tag);
   void *Context=HMatrix::OpenHDF5Context("%s.%s.hdf5",SC3D->FileBase,XKTString);
-
+  if (Context==0)
+   { Warn("Failed to open %s.%s.hdf5 for writing",SC3D->FileBase,XKTString);
+     return;
+   }
   
   for(int ns=0; ns<NS; ns++)
    SC3D->TBlocks[ns]->ExportToHDF5(Context,"T%i",ns+1);
@@ -210,12 +214,14 @@ void ExportHDF5Data(SC3Data *SC3D, double Xi, double *kBloch, char *Tag)
     SC3D->UBlocks[nb]->ExportToHDF5(Context,"U%i%i",ns+1,nsp+1);
 
   const char *XYZT="XYZ123";
-  for(int ns=0; ns<NS; ns++)
+  for(int ns=1; ns<NS; ns++)
    for(int Mu=0; Mu<6; Mu++)
-    if (SC3D->dUBlocks[6*ns + Mu])
-     SC3D->dUBlocks[6*ns+Mu]->ExportToHDF5(Context,"dUd%c_0%i",XYZT[Mu],ns+1);
+    if (SC3D->dUBlocks[6*(ns-1) + Mu])
+     SC3D->dUBlocks[6*(ns-1)+Mu]->ExportToHDF5(Context,"dUd%c_0%i",XYZT[Mu],ns+1);
 
   HMatrix::CloseHDF5Context(Context);
+
+  Log("Wrote HDF5 data to %s.%s.hdf5.",SC3D->FileBase,XKTString);
 
 }
  

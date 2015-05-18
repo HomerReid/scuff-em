@@ -143,7 +143,7 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
   double RelError;
 
   // estimate relative error in Mu direction
-  int Worst[2];
+  //int Worst[2];
   for(int Mu=0; Mu<2; Mu++)
    { 
      double R[2];
@@ -160,14 +160,14 @@ void GetOptimalGridSpacing1D(GBarAccelerator *GBA, double x, double Rho,
      dGInterp[1] = cdouble(Phi[2], Phi[6]);
      RelError = abs(GInterp-GExact) / abs(GExact);
      OptimalDelta[Mu] = Delta[Mu] * pow( RelTol/RelError, 0.25 );
-     Worst[Mu]=0;
+     //Worst[Mu]=0;
      for(int Nu=0; Nu<2; Nu++)
       { if ( abs(dGExact[Nu]) < 1.0e-6*abs(GExact) ) continue;
         RelError = abs(dGInterp[Nu]-dGExact[Nu]) / abs(dGExact[Nu]);
         double OptDeltaNu = Delta[Mu] * pow( RelTol/RelError, 0.33 );
         if (OptDeltaNu < OptimalDelta[Mu] )
          { OptimalDelta[Mu] = OptDeltaNu;
-           Worst[Mu]=1+Nu;
+           //Worst[Mu]=1+Nu;
          };
       };
    };
