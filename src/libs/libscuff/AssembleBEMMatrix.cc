@@ -472,7 +472,7 @@ done:
   else
    Args->GBA2=0;
 
-  if (Args->OmitRegion1 || Args->OmitRegion2)
+  if ( Args->OmitRegion1==false || Args->OmitRegion2==false )
    GetSurfaceSurfaceInteractions(Args);
 
   if (Args->GBA1) DestroyGBarAccelerator(Args->GBA1);

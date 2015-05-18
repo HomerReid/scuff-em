@@ -425,7 +425,7 @@ int main(int argc, char *argv[])
      /*- surface current visualization-------------------------------*/
      /*--------------------------------------------------------------*/
      if (PlotSurfaceCurrents)
-      G->PlotSurfaceCurrents(KN, Omega, "%s.%s.pp",GetFileBase(GeoFile),z2s(Omega));
+      G->PlotSurfaceCurrents(KN, Omega, SSD->kBloch, "%s.%s.pp",GetFileBase(GeoFile),z2s(Omega));
 
      /*--------------------------------------------------------------*/
      /*- field visualization meshes ---------------------------------*/

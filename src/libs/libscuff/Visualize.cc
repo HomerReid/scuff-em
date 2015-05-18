@@ -908,7 +908,7 @@ void RWGGeometry::PlotSurfaceCurrents(const char *SurfaceLabel,
   /***************************************************************/
   fprintf(f,"View \"%s\" {\n","Normal Poynting Flux");
   for(int ns=0; ns<NumSurfaces; ns++)
-   { 
+   {
      RWGSurface *S=Surfaces[ns];
      int Offset = PanelIndexOffset[ns];
      if (WhichSurface && S!=WhichSurface)
