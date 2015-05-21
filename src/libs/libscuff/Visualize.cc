@@ -618,28 +618,28 @@ double GetTriangleArea(double *V1, double *V2, double *V3)
 /* panel #np. In this case, the first NP elements of Values    */
 /* are accessed.                                               */
 /*                                                             */
-/* How it works: Suppose we have a quantity Q defined as a     */
-/* sum of contributions from individual edges:                 */
+/* How it works: We suppose we have a quantity Q defined by    */
+/* the coefficients of the RWG basis functions associated      */
+/* with each edge:                                             */
 /*                                                             */
-/*  Q = \sum_{edges e} Q_e                                     */
+/*  Q(x,y,z) = \sum_{edges e} Q_e RWG_e(x,y,z)                 */
 /*                                                             */
-/* where Q_e is the contribution of edge #e. Rewrite this as   */
-/* a sum over vertices:                                        */
+/* where Q_e is the coefficient of the RWG basis function on   */
+/* edge #e. We want to plot Q(x,y,z) by getting its value on   */
+/* the vertices. Note that we want the "bare" function value,  */
+/* not weighted integration coefficients that conserve the sum */
+/* over vertices (instead of over edges) The RWG basis         */
+/* functions are normalized to unit integral, with their value */
+/* at the vertices equal to 1/Area. For the function value at  */
+/* each vertex, we average the contributions from all adjacent */
+/* basis functions                                             */
 /*                                                             */
-/*  Q = \sum_{vertices v} (1/2)\sum_{v \in e }Q_e              */
-/*    = \sum_{vertices v} Q_v                                  */
+/*  Q(vertex v) = \sum_{edges e} Q_e/Area(RWG_e) / Ne_touch    */
 /*                                                             */
-/* where the second sum runs over only the edges that include  */
-/* vertex v, and where the factor of 1/2 corrects for the fact */
-/* that each edge includes two vertices (so its contribution   */
-/* Q_e appears twice in the sum).                              */
-/*                                                             */
-/* Then the quantity to be associated to vertex v is           */
-/*  Q_v = (1/2) \sum_{v \in e} Q_e                             */
-/*                                                             */
-/* and the *density* of the quantity in the vicinity of vertex */
-/* v is Q_v / A_v where A_v is the area of the region lying    */
-/* closer to vertex v than to any other vertex.                */
+/* where Ne_touch is the number of edges touching the vertex,  */
+/* and Area(RWG_e) is the area of the two panels (triangles)   */
+/* that are associated to the basis function RWG_e (i.e.,      */
+/* connected by the edge).                                     */
 /***************************************************************/
 void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
                                    const char *FileName,
@@ -687,16 +687,16 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         int iV2    = E->iV2;
         double *V1 = Vertices + 3*iV1;
         double *V2 = Vertices + 3*iV2;
-	double PMArea = Panels[E->iPPanel]->Area;
-	if (E->iMPanel!=-1)
-	  PMArea += Panels[E->iMPanel]->Area;
+        double PMArea = Panels[E->iPPanel]->Area;
+        if (E->iMPanel!=-1)
+          PMArea += Panels[E->iMPanel]->Area;
    
-        ValuePerVertex[iV1] += Values[ne];
-        ValuePerVertex[iV2] += Values[ne];
-        AreaPerVertex[iV1]  += PMArea;
-        AreaPerVertex[iV2]  += PMArea;
-	NumPerVertex[iV1]    = 1;
-	NumPerVertex[iV2]    = 1;
+        ValuePerVertex[iV1] += Values[ne] / PMArea;
+        ValuePerVertex[iV2] += Values[ne] / PMArea;
+        AreaPerVertex[iV1]  = 1;
+        AreaPerVertex[iV2]  = 1;
+        NumPerVertex[iV1]   += 1;
+        NumPerVertex[iV2]   += 1;
       };
    }
   else
