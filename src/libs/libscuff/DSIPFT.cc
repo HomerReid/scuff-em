@@ -1101,6 +1101,7 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
 /* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
 /* FMatrix[nx,12..20] = rxMST_{xx}, rxMST_{xy}, ..., rxMST_{zz}*/
 /***************************************************************/
+#define NUMSRFLUX 21 
 HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                    HVector *KNVector, HMatrix *RytovMatrix,
                    HMatrix *FMatrix, bool FarField)
@@ -1109,13 +1110,13 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /* (re)allocate FMatrix as necessary ***************************/
   /***************************************************************/
   int NX = XMatrix->NR;
-  if ( FMatrix && ( (FMatrix->NR != NX) || (FMatrix->NC != 3*NUMPFT) ) )
+  if ( FMatrix && ( (FMatrix->NR != NX) || (FMatrix->NC != NUMSRFLUX) ) )
    { Warn("Wrong-size FMatrix in GetSRFluxTrace (reallocating...)");
      delete FMatrix;
      FMatrix=0;
    };
   if (FMatrix==0)
-   FMatrix = new HMatrix(NX, 3*NUMPFT, LHM_REAL);
+   FMatrix = new HMatrix(NX, NUMSRFLUX, LHM_REAL);
 
   Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
 
@@ -1139,15 +1140,18 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 #endif  
   for(int nx=0; nx<NX; nx++)
    for(int nsa=0; nsa<NS; nsa++)
-    for(int nea=0; nea<G->Surfaces[nsa]->NumEdges; nea++)
+    for(int nea=0; nea<NBF; nea++)
      for(int nsb=0; nsb<NS; nsb++)
-      for(int neb=0; neb<G->Surfaces[nsb]->NumEdges; neb++)
+      for(int neb=0; neb<NBF; neb++)
        { 
+         RWGSurface *Sa = G->Surfaces[nsa];
+         RWGSurface *Sb = G->Surfaces[nsb];
+         if (nea>=Sa->NumEdges) continue;
+         if (neb>=Sb->NumEdges) continue;
+
          if (nsa==0 && nea==0 && nsb==0 && neb==0) LogPercent(nx,NX,10);
 
          double X[3];
-         RWGSurface *Sa = G->Surfaces[nsa];
-         RWGSurface *Sb = G->Surfaces[nsb];
          XMatrix->GetEntriesD(nx, "0:2", X);
          int RegionIndex = G->GetRegionIndex(X);
          if (    (Sa->RegionIndices[0] != RegionIndex )
