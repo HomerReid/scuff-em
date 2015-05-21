@@ -687,20 +687,16 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         int iV2    = E->iV2;
         double *V1 = Vertices + 3*iV1;
         double *V2 = Vertices + 3*iV2;
-        double *PCentroid = Panels[E->iPPanel]->Centroid;
-        double *MCentroid
-         = (E->iMPanel==-1) ? E->Centroid : Panels[E->iMPanel]->Centroid;
+	double PMArea = Panels[E->iPPanel]->Area;
+	if (E->iMPanel!=-1)
+	  PMArea += Panels[E->iMPanel]->Area;
    
         ValuePerVertex[iV1] += Values[ne];
         ValuePerVertex[iV2] += Values[ne];
-        AreaPerVertex[iV1]  += GetTriangleArea(PCentroid, MCentroid, V1);
-        AreaPerVertex[iV2]  += GetTriangleArea(PCentroid, MCentroid, V2);
-	NumPerVertex[iV1]    = 2;
-        NumPerVertex[iV2]    = 2;
-/* 20150522
-         NumPerVertex[iV1]  += 1;
-         NumPerVertex[iV2]  += 1;
-*/
+        AreaPerVertex[iV1]  += PMArea;
+        AreaPerVertex[iV2]  += PMArea;
+	NumPerVertex[iV1]    = 1;
+	NumPerVertex[iV2]    = 1;
       };
    }
   else
