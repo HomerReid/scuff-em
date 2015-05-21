@@ -1237,6 +1237,11 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
         { 
           // N-matrices for the Muth cartesian direction
           double NMatrix[NUMPFT][3][3];
+          for(int nq=0; nq<NUMPFT; nq++)
+           for(int p=0; p<3; p++)
+            for(int q=0; q<3; q++)
+             NMatrix[nq][p][q]=0.0;
+
           double nHat[3]={0.0, 0.0, 0.0};
           nHat[Mu]=1.0;
           GetNMatrices(nHat, X, XTorque, NMatrix);
