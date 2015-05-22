@@ -1,0 +1,733 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\newcommand{\vbEps}{\boldsymbol{\epsilon}}
+\newcommand{\vbGamma}{\boldsymbol{\Gamma}}
+\newcommand{\wt}{\widetilde}
+\newcommand{\wh}{\widehat}
+\newcommand{\vbwhat}[1]{\vb{\widehat{#1}}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Calculation of Reflection and Transmission Coefficients
+        in {\sc scuff-transmission}}
+\author {Homer Reid}
+\date {May 9, 2015}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: {\sc scuff-transmission}}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{The Setup}
+
+{\sc scuff-transmission} considers geometries with 2D periodicity,
+i.e. the structure consists of a unit-cell geometry of finite
+extent in the $z$ direction that is infinitely periodically 
+replicated in both the $x$ and $y$ directions. The structure is 
+illuminated either from below (the default) or from above 
+by a plane wave with propagation vector $\vb k$ confined to the 
+$xz$ plane. 
+
+Working at angular frequency $\omega$, let the free-space
+wavelength be $k_0=\frac{\omega}{c}$, and let the relative 
+permittivity and permeability of the lowermost and uppermost 
+regions in the geometry be $\epsilon\subt{L,U}$ and $\mu\subt{L,U}$.
+The wavenumber and relative wave impedance in the 
+uppermost and lowermost regions are
+%====================================================================%
+\begin{align*}
+  k\subt{L}&=\sqrt{\epsilon\subt{L} \mu\subt{L}} \cdot k_0,
+   \qquad   
+  Z\subt{L}=\sqrt\frac{\mu\subt{L}}{\epsilon\subt{L}}
+\\
+  k\subt{U}&=\sqrt{\epsilon\subt{U} \mu\subt{U}} \cdot k_0,
+   \qquad   
+  Z\subt{U}=\sqrt\frac{\mu\subt{U}}{\epsilon\subt{U}}.
+\end{align*}
+%====================================================================%
+I will refer to region from which the planewave 
+originates (either the uppermost or lowermost homogeneous
+region in the {\sc scuff-em} geometry) as the ``source'' region.
+The region into which the planewave eventually emanates 
+is the ``destination'' region.
+
+In what follows, I will use the
+symbols $\vb k,Z$ and $\vb k^\prime,Z^\prime$ respectively to denote the 
+wavevectors and relative wave impedances in the source and destination 
+regions. Then I have
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+\text{wave incident from below:} \qquad
+   &\{|\vb k|,Z\}=\{k, Z\}\subt{L}, \qquad
+    \{|\vb k^\prime|,Z^\prime\}=\{k, Z\}\subt{U}
+\\
+\text{wave incident from above:} \qquad
+   &\{|\vb k|,Z\}=\{k, Z\}\subt{U}, \qquad
+    \{|\vb k^\prime|,Z^\prime\}=\{k, Z\}\subt{L}.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I will take $\vb k$ to live in the $xz$ plane (i.e. $\vb k$
+has no $y$ component, $k_y=0$) and I will let $\theta$ be 
+the angle of incidence. Thus the incident wavevector is
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \text{wave incident from below:} 
+  \qquad &\vb k= k\sin\theta\,\vbhat{x} + k\cos\theta\,\vbhat{z}
+\\
+ \text{wave incident from above:} 
+  \qquad &\vb k= k\sin\theta\,\vbhat{x} - k\cos\theta\,\vbhat{z}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The transmitted wavevector is 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \text{wave incident from below:} 
+  \qquad & \vb k^\prime = 
+    k^\prime\sin\theta^\prime\,\vbhat{x} + k^\prime\cos\theta^\prime\,\vbhat{z}
+\\
+ \text{wave incident from above:} 
+  \qquad &\vb k^\prime  = 
+    k^\prime\sin\theta^\prime\,\vbhat{x} - k^\prime\cos\theta^\prime\,\vbhat{z}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The incident and transmitted angles are related by 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ k^\prime \sin\theta^\prime = k\sin\theta.$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+For a general vector $\vb v$, I will define $\vbhat{v}=\vb v/|\vb v|$ 
+to be a unit vector in the direction of $\vb v$.
+
+\subsection*{Definition of scattering coefficients}
+
+The incident, reflected, and transmitted fields
+may be written in the form
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{trDef}
+{ \begin{array}{lclclcl}
+%--------------------------------------------------------------------%
+  \displaystyle{ \vb E\sups{inc}(\vb x) }
+& =
+& \displaystyle{ E_0 \vbEps\sups{inc}_0 e^{ i (k_x x \pm k_z z) } }
+& \qquad 
+& \displaystyle{ \vb H\sups{inc}(\vb x) }
+& =
+& \displaystyle { H_0 \overline{\vbEps}\sups{inc}_0 e^{ i (k_x x \pm k_z z) } }
+\\[5pt]
+%--------------------------------------------------------------------%
+  \displaystyle{ \vb E\sups{refl}(\vb x) }
+& =
+& \displaystyle{ r E_0 \vbEps_0\sups{refl} e^{ i (k_x x \mp k_z z)} }
+& \qquad 
+& \displaystyle{ \vb H\sups{refl}(\vb x) }
+& =
+& \displaystyle{r H_0 \overline{\vbEps}_0\sups{refl} e^{ i (k_x x \mp k_z z) }}
+\\[5pt]
+%--------------------------------------------------------------------%
+  \displaystyle{ \vb E\sups{trans}(\vb x) }
+& =
+& \displaystyle{ tE_0\vbEps_0\sups{trans} e^{ i (k_x x \pm k_z^\prime z)} }
+& \qquad 
+& \displaystyle{ \vb H\sups{trans}(\vb x) }
+& =
+& \displaystyle{ tH_0^\prime \, \overline{\vbEps}_0\sups{trans}\, e^{ i (k_x x \pm k_z^\prime z) } }
+\end{array}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $E_0$ is the incident field magnitude, 
+$\vbEps_0\sups{inc}$ is the incident-field polarization vector, 
+$\pm$ is positive (negative) if the wave is incident from 
+below (above), and
+$$ H_0\equiv \frac{i|\vb k|E_0}{Z Z_0},
+   \qquad 
+   H_0^\prime \equiv \frac{i|\vb k|E_0}{Z^\prime Z_0},
+   \qquad 
+   \overline{\vbEps} = \vbhat{k} \times \vbEps,
+   \qquad 
+   \vbEps = -\vbhat{k} \times \overline{\vbEps}.
+$$
+Equations (\ref{trDef})
+define the reflection and transmission coefficients
+$r$ and $t$ computed by {\sc scuff-transmission}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Scattering coefficients from surface currents}
+
+Next we consider an extended structure described by Bloch-periodic
+boundary conditions, i.e. all fields and currents satisfy 
+
+\numeq{BlochPeriodicity1}
+{\vb Q(\vb x+\vb L) = e^{i\vb k\subt{B} \cdot \vb L}\,\vb Q(\vb x)}
+where $\vb Q$ is a field ($\vb E$ or $\vb H$) or a surface current
+($\vb K$ or $\vb N$) and the Bloch wavevector is\footnote{Recall
+our conventions that \textbf{(a)} the propagation vector lives
+in the $xy$ plane, \textbf{(b)} unprimed (primed) quantities 
+refer to quantities in the source (destination) region.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$\vb k\subt{B}=k\sin\theta \, \vbhat{x}
+               =k^\prime \sin\theta^\prime \, \vbhat{x}.
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+For plane waves like (\ref{trDef}), equation (\ref{BlochPeriodicity1})
+actually holds for any arbitrary vector $\vb L$; for our
+purposes we will only need to use it for certain special
+vectors $\vb L$ determined by the structure of the lattice in
+our PBC geometry.
+We will derive expressions for the
+plane-wave reflection and transmission coefficients in terms
+of the surface-current distribution in the unit cell of the structure.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Fields from surface currents}
+
+On the other hand, the scattered $\vb E$ fields in the source
+and destination regions may be obtained in the usual way from the
+surface-current distributions on the surfaces bounding those
+regions. For example, at points in the destination medium, 
+the scattered (that is, transmitted) $\vb E$ field is given by
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+ \vb E\sups{trans}(\vb x)
+&=\oint_{\mc S} \Big\{ 
+   \BG\supt{EE}(\vb x,\vb x^\prime)\cdot \vb K(\vb x^\prime)
+  +\BG\supt{EM}(\vb x,\vb x^\prime)\cdot \vb N(\vb x^\prime)
+                \Big\}d\vb x^\prime
+\nn
+&=ik^\prime \oint_{\mc S} \Big\{ 
+   Z_0 Z^\prime \vb G(k^\prime; \vb x,\vb x^\prime)
+                    \cdot \vb K(\vb x^\prime)
+               +\vb C(k^\prime; \vb x,\vb x^\prime)
+                    \cdot \vb N(\vb x^\prime) \Big\}d\vb x^\prime
+\label{ETransPBC}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\mc S$ is the surface bounding the uppermost region and 
+$\vb G, \vb C$ are the homogeneous dyadic GFs. Using the
+Bloch periodicity of the surface currents, i.e.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \left\{ \begin{array}{c} 
+   \vb K(\vb x+\vb L) \\[5pt] \vb N(\vb x+\vb L)
+   \end{array}\right\}
+   =
+   e^{i\vb k\subt{B} \cdot \vb L}
+   \left\{ \begin{array}{c} 
+   \vb K(\vb x) \\[5pt] \vb N(\vb x)
+   \end{array}\right\}
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+we can restrict the surface integral in (\ref{ETransPBC}) to 
+just the lattice unit cell:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{EIntegralUnitCell}
+{
+ \vb E\sups{trans}(\vb x)
+=ik^\prime \int\subt{UC}
+  \Big\{
+  Z_0 Z^\prime 
+   \overline{\vb G}(k^\prime; \vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime)
+  +\overline{\vb C}(k^\prime; \vb x, \vb x^\prime) \cdot \vb N(\vb x^\prime)
+  \Big\}\,d\vb x^\prime
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where the periodic Green's functions are
+\numeq{PeriodicGFs}
+{
+   \left\{ \begin{array}{c} 
+   \overline{\vb G}(\vb x, \vb x^\prime) \\[5pt]
+   \overline{\vb C}(\vb x, \vb x^\prime)
+   \end{array}\right\}
+   \equiv 
+   \sum_{\vb L} e^{i\vb k\subt{B} \cdot \vb L}
+   \left\{ \begin{array}{c}
+   \vb G(\vb x, \vb x^\prime+\vb L) \\[5pt]
+   \vb C(\vb x, \vb x^\prime+\vb L)
+   \end{array}\right\}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I now invoke the following representation of the dyadic
+Green's functions (Chew, 1995): for $z>z^\prime$,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{subequations}
+\begin{align}
+ \vb G(k; \vbrho, z; \vbrho^\prime, z^\prime)
+&= \int \frac{d\vb q}{(2\pi)^2}
+   \,
+   \vb{\wt G}^\pm (k; \vb q)
+      e^{i\vb q\cdot (\vbrho-\vbrho^\prime)}
+     e^{\pm iq_z(z-z^\prime)}
+\\
+ \vb C(k; \vbrho, z; \vbrho^\prime, z^\prime)
+&=\int \frac{d\vb q}{(2\pi)^2}
+  \, 
+  \vb{\wt C}^\pm (k; \vb q) e^{i\vb q\cdot (\vbrho-\vbrho^\prime)}
+                   e^{\pm iq_z(z-z^\prime)}
+\end{align}
+\label{SpectralGFs}%
+\end{subequations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\vb q=(q_x,q_y)$ is a two-dimensional Fourier wavevector,
+$d\vb q=dq_x dq_y$,
+$q_z=\sqrt{k^2-|\vb q|^2}$, $\pm = \text{sign}(z-z^\prime)$,
+and
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \vb{\wt G}^\pm(k; \vb q)
+   &=\frac{i}{2 q_z}
+     \left[
+     \left(\begin{array}{ccc}
+      1 & 0 & 0 \\ 
+      0 & 1 & 0 \\ 
+      0 & 0 & 1
+     \end{array}\right)
+     -\frac{1}{k^2}
+     \left(\begin{array}{ccc}
+      q_x^2       & q_x q_y     & \pm q_x q_z \\
+      q_yq_x      & q_y^2       & \pm q_y q_z \\
+      \pm q_z q_x & \pm q_z q_y & q_z^2
+     \end{array}\right)\right]
+\\
+ \vb{\wt C}^\pm (k; \vb q)
+   &=\frac{i}{2q_z k}
+     \left(\begin{array}{ccc}
+           0 & \pm q_z & -q_y \\
+    -\pm q_z &       0 &  q_x \\
+         q_y &    -q_x &    0
+     \end{array}\right).
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Inserting (\ref{SpectralGFs}) into (\ref{PeriodicGFs}), I 
+obtain, for the periodic version of e.g. the $\vb G$ kernel,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+\overline{\vb G}(k; \vbrho, z; \vbrho^\prime, z)
+&=\int \frac{d\vb q}{(2\pi)^2}
+  \vb{\wt G}^\pm(k; \vb q) e^{i\vb q \cdot (\vbrho - \vbrho^\prime)}
+   e^{\pm iq_z(z-z^\prime)}
+  \underbrace{\sum_{\vb L} e^{i(\vb k\subt{B} - \vb q) \cdot \vb L}}
+             _{\mc V\subt{BZ} \sum_{\vbGamma} \delta(\vb q-\vb k-\vbGamma)}
+\\
+&=\mc V\subt{UC}^{-1}\sum_{\vb q=\vb k\subt{B} + \vbGamma}
+  \vb{\wt G}^\pm(k; \vb q)
+   e^{i\vb q \cdot (\vbrho - \vbrho^\prime)} e^{\pm iq_z(z-z^\prime)}
+\intertext{where the sum over $\vbGamma$ runs over reciprocal lattice vectors;
+           the prefactor $\mc V\subt{BZ}$, the volume of the Brillouin
+           zone, is related to the unit-cell volume by 
+           $\mc V\subt{BZ}=4\pi^2/V\subt{UC}$ for a 2D square lattice.
+           Similarly, we find}
+\overline{\vb C}(k; \vbrho, z; \vbrho^\prime, z)
+&=\mc V\subt{UC}^{-1}\sum_{\vb q=\vb k\subt{B} + \vbGamma}
+   \vb{\wt C}^\pm(k; \vb q)
+   e^{i\vb q \cdot (\vbrho - \vbrho^\prime)} e^{\pm iq_z(z-z^\prime)}.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%a
+Keeping only the $\vbGamma=0$ term in these sums, the scattered 
+$\vb E$-fields in the uppermost and lowermost regions are thus
+%====================================================================%
+\begin{align}
+\vb E\sups{upper}(\vb x) 
+&= e^{i(k\subt{Ux} x + k\subt{Uz}z)}
+   \Big[ ik\subt{U} Z_0 Z\subt{U} \vb{\wt G}^+(k\subt{U}; \vb k\subt{B})
+         \wt{\vb K}\subt{U}(\vb k\subt{B})
+        +ik\subt{U} \vb{\wt C}^+(k\subt{U}; \vb k\subt{B})
+         \wt{\vb N}(\vb k\subt{B})
+   \Big]
+\\
+\vb E\sups{lower}(\vb x) 
+&= e^{i(k\subt{Lx} x - k\subt{Lz}z)}
+   \Big[ ik\subt{L} Z_0 Z\subt{U} \vb{\wt G}^-(k\subt{L}; \vb k\subt{B})
+         \wt{\vb K}(\vb k\subt{B})
+        +ik\subt{L} \vb{\wt C}^-(k\subt{L}; \vb k\subt{B})
+         \wt{\vb N}(\vb k\subt{B})
+   \Big]
+\end{align}
+%====================================================================%
+where e.g. $\wt{\vb K}\subt{U}$ is something like
+the two-dimensional Fourier transform of the surface currents
+on the boundary of the uppermost region $\mc R\subt{U}$:
+%====================================================================%
+$$
+ \wt{\vb K}\subt{U}(\vb k\subt{B})
+   \equiv \frac{1}{\mc V\subt{UC}}
+     \int_{\partial \mc R\subt{U}}
+     \vb K(\vbrho^\prime, z^\prime)
+         e^{-i\vb k\subt{B}\cdot \vbrho^\prime
+            -iq_z |z^\prime|}
+         d\vb x^\prime,
+ \qquad 
+ q_z^2=k\subt{U}^2-|\vb k\subt{B}|^2.
+$$
+%====================================================================%
+with $\wt{\vb K}\subt{L}$ and 
+$\wt{\vb N}\subt{U,L}$ defined similarly.
+
+Comparing this to (\ref{trDef}c), we see that the transmission and
+reflection coefficients for the polarization defined by polarization
+vector $\vbEps$ are given by 
+%====================================================================%
+\begin{align}
+ \left\{\begin{array}{c}t \\ r\end{array}\right\}
+&=
+         ik\subt{U} Z_0 Z\subt{U} 
+         \vbEps^\dagger \vb{\wt G}^+(k\subt{U}, \vb k\subt{B})
+         \wt{\vb K}\subt{U}(\vb k\subt{B})
+        +ik\subt{U} \vbEps^\dagger \vb{\wt C}^+(k\subt{U}, \vb k\subt{B})
+         \wt{\vb N}(\vb k\subt{B})
+\\
+ \left\{\begin{array}{c}r \\ t\end{array}\right\}
+&= ik\subt{L} Z_0 Z\subt{L} 
+         \vbEps^\dagger \vb{\wt G}^+(k\subt{L}, \vb k\subt{B})
+         \wt{\vb K}\subt{L}(\vb k\subt{B})
+        +ik\subt{L} \vbEps^\dagger \vb{\wt C}^+(k\subt{L}, \vb k\subt{B})
+         \wt{\vb N}(\vb k\subt{B})
+\end{align}
+%====================================================================%
+The expressions on the RHS compute the upper (lower) quantities
+on the LHS for the case in which the plane wave is incident
+from below (above).
+
+The $\wt{\vb K}$ and $\wt{\vb N}$ quantities are given by
+sums of contributions from individual basis functions; for
+example, 
+%====================================================================%
+$$
+ \wt{\vb K}\subt{U}(\vb q)
+  =\frac{1}{\mc V\subt{UC}}
+    \sum_{\vb b_\alpha \in \partial \mc R\subt{U}}
+     k_\alpha \wt{\vb b_\alpha}(\vb q),
+\qquad
+ \wt{\vb N}\subt{U}(\vb q)
+  =-\frac{Z_0}{\mc V\subt{UC}} \sum_{\vb b_\alpha \in \partial \mc R\subt{U}}
+     n_\alpha \wt{\vb b_\alpha}(\vb q)
+$$
+%====================================================================%
+where the sums are over all RWG basis functions that live on
+surfaces bounding the uppermost medium and $\{k_\alpha,n_\alpha\}$
+are the surface-current coefficients obtained as the 
+solution to the {\sc scuff-em} scattering problem.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Computation of $\wt{\vb b}(\vb q)$}
+
+For RWG functions the quantity $\wt{\vb b}(\vb q)$
+may be evaluated in closed form:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+\wt{\vb b_\alpha}(\vb q)
+&\equiv
+\int_{\text{sup } \vb b_\alpha}
+  \vb b_\alpha(\vb x)e^{-i\vb q \cdot \vb x} \, d\vb x
+\\
+&=\ell_\alpha
+  \int_0^1 \, du \int_0^u \, dv \,
+  \bigg\{
+  e^{-i\vb q\cdot [\vb Q^+ + u \vb A^+ + v\vb B]}
+  \Big(u\vb A^+ + v\vb B\Big)
+\\ 
+  &\hspace{1.5in}
+  - 
+  e^{-i\vb q\cdot [\vb Q^- + u \vb A^- + v\vb B]}
+  \Big(u\vb A^- + v\vb B\Big)
+  \bigg\}
+\\
+&=\ell_\alpha\bigg\{ 
+  e^{-i\vb q \cdot \vb Q^+} 
+  \Big[ f_1\big(\vb q\cdot \vb A^+, \vb q\cdot \vb B\Big) 
+           \vb A^+
+       +f_2\big(\vb q\cdot \vb A^+, \vb q\cdot \vb B\Big)
+           \vb B
+  \Big]
+\\
+&\qquad\qquad
+  -
+  e^{-i\vb q \cdot \vb Q^-} 
+  \Big[ f_1\big(\vb q\cdot \vb A^-, \vb q\cdot \vb B\Big)
+           \vb A^-
+       +f_2\big(\vb q\cdot \vb A^-, \vb q\cdot \vb B\Big)
+           \vb B
+  \Big]\bigg\}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ f_1(x, y)&=\int_0^1 \, \int_0^u \, u e^{-i (ux + vy)} \,dv\,du  
+\\
+ f_2(x, y)&=\int_0^1 \, \int_0^u \, v e^{-i (ux + vy)} \,dv\,du.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document} 
+
+%====================================================================%
+Comparing this to (\ref{trDef}c), we see that the quantity in
+curly braces is to be identified as $t E_0 \vbEps_0\sups{trans},$
+and thus we can extract the transmission coefficient $t$ in the form
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{tExpression}
+{
+ t
+ =-\frac{k_0^\prime}{2 \mc V k_z^\prime E_0}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
+   \underbrace{
+        \left[ Z_0 Z^\prime 
+               (\vbEps_0\sups{trans})^\dagger \cdot 
+               \vb{\wt G}(\vb k) \cdot \vb K(\vb x^\prime)
+               +(\vbEps_0\sups{trans})^\dagger \cdot 
+               \vb{\wt C}(\vb k)\cdot \vb N(\vb x^\prime) 
+        \right] \, d\vb x^\prime
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Transmission coefficient for TE polarization}
+
+In this case we have 
+%====================================================================%
+\begin{align}
+&\hspace{-0.05in}
+ (\vbEps_0\sups{trans})^\dagger \cdot
+ \vb{\wt G}(\vb k) \cdot \vb K(\vb x^\prime)
+\nn
+&=
+ \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
+ \left[ \left(\begin{array}{ccc}
+               1 & 0 & 0 \\ 
+               0 & 1 & 0 \\ 
+               0 & 0 & 1
+              \end{array}\right)
+       -\frac{1}{k_0^{\prime 2}}
+        \left(\begin{array}{ccc}
+               k_x^2   & k_x k_y & k_x k_z \\
+               k_yk_x  & k_y^2   & k_y k_z \\
+               k_z k_x & k_z k_y & k_z^2
+              \end{array}
+        \right)
+ \right]
+ \left(\begin{array}{c}K_x \\ K_y \\ K_z\end{array}\right)
+\nn
+&=
+ \frac{1}{k_0^{\prime 2}}
+ \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
+ \left(\begin{array}{c} -k_y k_x K_x \\ (k_0^{\prime 2}-k_y^2)K_y \\ -k_y k_z K_z
+       \end{array}\right)
+\nn
+&= K_y
+\label{ECN1}
+\end{align}
+%====================================================================%
+since, in our setup, the $y$ component of the Bloch 
+wavevector is $k_y=0.$
+
+Similarly, 
+%====================================================================%
+\begin{align}
+&\hspace{-0.05in}
+ (\vbEps_0\sups{trans})^\dagger \cdot
+ \vb{\wt C}(\vb k) \cdot \vb N(\vb x^\prime)
+\nn
+&=
+ \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
+ \left[ \frac{1}{k_0^{\prime}}
+        \left(\begin{array}{ccc}
+               0       & k_z     & -k_y    \\
+               -k_z    & 0       & k_x     \\
+               k_y     & -k_x    & 0
+              \end{array}
+        \right)
+ \right]
+ \left(\begin{array}{c}N_x \\ N_y \\ N_z\end{array}\right)
+\nn
+&=
+ \frac{1}{k_0^\prime}
+ \left(\begin{array}{c}0 \\ 1 \\ 0\end{array}\right)^\dagger
+ \left(\begin{array}{c} \cdots \\ -k_z N_x + k_x N_z \\ \cdots
+       \end{array}\right)
+\nn
+&=-\cos\theta^\prime N_x + \sin\theta^\prime N_z.
+\label{ECN2}
+\end{align}
+%====================================================================%
+Comparing (\ref{ECN1}) and (\ref{ECN2}) to (\ref{TEPolVectors}),
+we see that the 
+vector-matrix-vector sandwiches that enter the definition of 
+the transmission coefficient (\ref{tExpression}) wind up 
+computing simply the inner products of the $\vb K$ and $\vb N$
+surface currents with the field polarization vectors: 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{EGKAndECN}
+{
+(\vbEps_0\sups{trans})^\dagger
+    \cdot
+    \vb{\wt G}(\vb k)
+    \cdot
+    \vb K(\vb x^\prime)
+   = \vbEps_0\sups{trans} \cdot \vb K, 
+   \qquad
+   (\vbEps_0\sups{trans})^\dagger
+    \cdot
+    \vb{\wt C}(\vb k)
+    \cdot
+    \vb N(\vb x^\prime)
+   = \overline{\vbEps_0}\sups{trans} \cdot \vb N
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Putting it all together, 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+ t
+&=-\frac{k_0^\prime}{2\mc V k_z^\prime E_0}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z^\prime z^\prime)}
+        \Big[ Z_0 Z^\prime \vbEps_0\sups{trans} \cdot \vb K(\vb x^\prime)
+                +\overline{\vbEps}_0\sups{trans} \cdot \vb N(\vb x^\prime)
+        \Big] \, d\vb x^\prime
+\\
+&=-\frac{Z_0 Z^\prime}{2E_0 \cos \theta^\prime}
+   \cdot \frac{1}{\mc V}
+   \int_U \Big(  \vb E^{\text{\scriptsize{ref}}*}\cdot \vb K
+                +\vb H^{\text{\scriptsize{ref}}*}\cdot \vb N
+          \Big) \, d\vb x^\prime.
+\label{TFromKN}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Here $\{\vb E,\vb H\}\sups{ref}$ are the fields of a 
+``reference'' plane wave with $E$-field magnitude $\vb E_0$
+traveling in the upper medium. If the upper medium is the
+same as the lower medium (for example, in a thin-film geometry
+where both the upper and lower media are vacuum) then
+the reference fields are just the same as the incident
+fields. 
+If the upper medium is a different medium than the lower medium
+(for example, in a Fresnel scattering problem) then the 
+reference fields are similar to the incident fields
+but with propagation and polarization vectors modified 
+appropriately.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Transmission coefficient for TM polarization}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ t\supt{TM}
+&=-\frac{k_0^\prime}{2 \mc V k_z^\prime}
+   \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
+        \left[ Z_0 Z^\prime 
+               (\vbEps_0\sups{trans})^\dagger \cdot 
+               \vb{\wt G}(\vb k) \cdot \vb K(\vb x^\prime)
+               +(\vbEps_0\sups{trans})^\dagger \cdot 
+               \vb{\wt C}(\vb k)\cdot \vb N(\vb x^\prime) 
+        \right] \, d\vb x^\prime
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We have 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+&\hspace{-0.05in}
+ (\vbEps_0\sups{trans})^\dagger \cdot
+ \vb{\wt G}(\vb k) \cdot \vb K(\vb x^\prime)
+\nn
+&=
+ \left(\begin{array}{c}\cos\theta^\prime \\ 0 \\-\sin\theta^\prime \end{array}\right)^\dagger
+ \left[ \left(\begin{array}{ccc}
+               1 & 0 & 0 \\ 
+               0 & 1 & 0 \\ 
+               0 & 0 & 1
+              \end{array}\right)
+       -\frac{1}{k_0^{\prime 2}}
+        \left(\begin{array}{ccc}
+               k_x^2   & k_x k_y & k_x k_z \\
+               k_yk_x  & k_y^2   & k_y k_z \\
+               k_z k_x & k_z k_y & k_z^2
+              \end{array}
+        \right)
+ \right]
+ \left(\begin{array}{c}K_x \\ K_y \\ K_z\end{array}\right)
+\intertext{Use $\cos\theta^\prime=k_z/k_0^\prime$, 
+               $\sin\theta^\prime=k_x/k_0^\prime$:}
+&=
+ \cos\theta^\prime K_x - \sin\theta^\prime K_z
+\label{EGK2}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+&\hspace{-0.05in}
+ (\vbEps_0\sups{trans})^\dagger \cdot
+ \vb{\wt C}(\vb k) \cdot \vb N(\vb x^\prime)
+\nn
+&=
+ \left(\begin{array}{c}\cos\theta^\prime \\ 0 \\-\sin\theta^\prime \end{array}\right)^\dagger
+ \left[ \frac{1}{k_0^{\prime}}
+        \left(\begin{array}{ccc}
+               0       & k_z     & -k_y    \\
+               -k_z    & 0       & k_x     \\
+               k_y     & -k_x    & 0
+              \end{array}
+        \right)
+ \right]
+ \left(\begin{array}{c}N_x \\ N_y \\ N_z\end{array}\right)
+\nn
+&=
+ N_y.
+\label{ECN2}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Comparing (\ref{EGN2}) and (\ref{ECN2}) to (\ref{TMPolVectors})
+we see that once again equation (\ref{EGKandECN}) holds
+and we simply recover equation (\ref{TFromKN}) for the 
+TM polarization as well.
+
+\newpage
+\subsection*{Transmission coefficients from surface-current coefficients} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \vb K(\vb x)=\sum k_\alpha \vb b_\alpha(\vb x), \qquad 
+   \vb N(\vb x)=-Z_0 \sum n_\alpha \vb b_\alpha(\vb x)
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ t=-\frac{Z_0 Z^\prime}{2E_0 \cos \theta^\prime \mc V}
+      \sum_\alpha 
+        \bigg( k_\alpha \INP{\vb E\sups{ref}}{\vb b_\alpha}
+             -Z_0 n_\alpha \INP{\vb H\sups{ref}}{\vb b_\alpha}
+        \bigg)
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \INP{\vb E\sups{ref}}{\vb b_\alpha}
+&=\int_{\text{sup } \vb b_\alpha}
+  \vbEps \cdot \vb b_\alpha(\vb x)e^{-i\vb q \cdot \vb x}
+  \, d\vb x
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

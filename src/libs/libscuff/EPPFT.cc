@@ -208,7 +208,7 @@ void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
   /*- initialize edge-by-edge contributions to zero -------------*/
   /***************************************************************/
   if (ByEdge)
-   for(int n=2; n<NUMPFT; n++)
+   for(int n=SCUFF_XFORCE; n<=SCUFF_ZTORQUE; n++)
     if (ByEdge[n]) memset(ByEdge[n],0,NE*sizeof(double));
 
   /***************************************************************/
@@ -280,11 +280,11 @@ void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
 
         if ( ncp == (NCP-1) )
          { for(int nq=0; nq<NUMFT; nq++)
-            if (ByEdge[2+nq])
+            if (ByEdge[SCUFF_XFORCE+nq])
              { for(int nce=0; nce<3; nce++)
                 { int ne=P->EI[nce];
                   if (ne<0) continue;
-                  ByEdge[2+nq][ne] += FTThisPanel[nq]/(3.0*Area);
+                  ByEdge[SCUFF_XFORCE+nq][ne] += FTThisPanel[nq]/(3.0*Area);
                 };
              };
          };
@@ -366,8 +366,8 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
   /*- scattered power to zero                                   --*/
   /*--------------------------------------------------------------*/
   if (ByEdge)
-   { if(ByEdge[0]) memset(ByEdge[0],0,NE*sizeof(double));
-     if(ByEdge[1]) memset(ByEdge[1],0,NE*sizeof(double));
+   { if(ByEdge[SCUFF_PABS])  memset(ByEdge[SCUFF_PABS], 0,NE*sizeof(double));
+     if(ByEdge[SCUFF_PSCAT]) memset(ByEdge[SCUFF_PSCAT],0,NE*sizeof(double));
    };
 
   /*--------------------------------------------------------------*/
@@ -498,12 +498,12 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
 
        PAbs  += dPAbs;
        PScat += dPScat;
-       if ( ByEdge && (ByEdge[0] || ByEdge[1]) )
+       if ( ByEdge )
         { 
 #pragma omp critical
           {
-            if (ByEdge[0]) ByEdge[0][nea] += dPAbs;
-            if (ByEdge[1]) ByEdge[1][nea] += dPScat;
+            if (ByEdge[SCUFF_PABS])  ByEdge[SCUFF_PABS][nea]  += dPAbs;
+            if (ByEdge[SCUFF_PSCAT]) ByEdge[SCUFF_PSCAT][nea] += dPScat;
           }
         };
 

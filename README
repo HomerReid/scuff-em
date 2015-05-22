@@ -55,3 +55,13 @@ include the following:
                    matrices of conductor arrays, solutions of Laplace's
                    equation in the presence of dielectrics and conductors 
                    held at fixed potentials, etc.
+
+Organization of the SCUFF-EM repository:
+
+ src/libs             source code for libscuff and support libraries
+ src/applications     source code for command-line application programs
+ unitTests            test programs intended to be run by automated checkers
+ interactiveTests     test programs intended for interactive use by developers
+ examples             input files for examples of command-line code runs
+ tex                  technical memos (math theory, etc.) in LaTeX format
+ doc                  documentation for command-line codes in markdown format

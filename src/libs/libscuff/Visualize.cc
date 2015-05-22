@@ -615,8 +615,31 @@ double GetTriangleArea(double *V1, double *V2, double *V3)
 /* Values array are accessed.                                  */
 /*                                                             */
 /* If ByEdge==false, Values[np] is the value associated with   */
-/* edge #np. In this case, the first NP elements of Values are */
-/* accessed.                                                   */
+/* panel #np. In this case, the first NP elements of Values    */
+/* are accessed.                                               */
+/*                                                             */
+/* How it works: Suppose we have a quantity Q defined as a     */
+/* sum of contributions from individual edges:                 */
+/*                                                             */
+/*  Q = \sum_{edges e} Q_e                                     */
+/*                                                             */
+/* where Q_e is the contribution of edge #e. Rewrite this as   */
+/* a sum over vertices:                                        */
+/*                                                             */
+/*  Q = \sum_{vertices v} (1/2)\sum_{v \in e }Q_e              */
+/*    = \sum_{vertices v} Q_v                                  */
+/*                                                             */
+/* where the second sum runs over only the edges that include  */
+/* vertex v, and where the factor of 1/2 corrects for the fact */
+/* that each edge includes two vertices (so its contribution   */
+/* Q_e appears twice in the sum).                              */
+/*                                                             */
+/* Then the quantity to be associated to vertex v is           */
+/*  Q_v = (1/2) \sum_{v \in e} Q_e                             */
+/*                                                             */
+/* and the *density* of the quantity in the vicinity of vertex */
+/* v is Q_v / A_v where A_v is the area of the region lying    */
+/* closer to vertex v than to any other vertex.                */
 /***************************************************************/
 void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
                                    const char *FileName,
@@ -672,8 +695,12 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         ValuePerVertex[iV2] += Values[ne];
         AreaPerVertex[iV1]  += GetTriangleArea(PCentroid, MCentroid, V1);
         AreaPerVertex[iV2]  += GetTriangleArea(PCentroid, MCentroid, V2);
+	NumPerVertex[iV1]    = 2;
+        NumPerVertex[iV2]    = 2;
+/* 20150522
          NumPerVertex[iV1]  += 1;
          NumPerVertex[iV2]  += 1;
+*/
       };
    }
   else

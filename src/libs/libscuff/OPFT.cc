@@ -270,11 +270,11 @@ int GetOverlappingEdgeIndices(RWGSurface *S, int nea, int nebArray[5])
 /***************************************************************/
 void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
              HVector *KNVector, HVector *RHS, HMatrix *RytovMatrix,
-             double PFT[8], double **ByEdge)
+             double PFT[NUMPFT], double **ByEdge)
 {
   
   if (SurfaceIndex<0 || SurfaceIndex>=G->NumSurfaces)
-   { memset(PFT,0,8*sizeof(double));
+   { memset(PFT,0,NUMPFT*sizeof(double));
      Warn("GetOPFT called for unknown surface #i",SurfaceIndex);
      return;
    };
@@ -406,13 +406,13 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
        /*--------------------------------------------------------------*/
        if (ByEdge) 
         {  
-          if (ByEdge[0]) ByEdge[0][nea] += dPAbs;
-          if (ByEdge[1]) ByEdge[1][nea] += dF[0];
-          if (ByEdge[2]) ByEdge[2][nea] += dF[1];
-          if (ByEdge[3]) ByEdge[3][nea] += dF[2];
-          if (ByEdge[4]) ByEdge[4][nea] += dTau[0];
-          if (ByEdge[5]) ByEdge[5][nea] += dTau[1];
-          if (ByEdge[6]) ByEdge[6][nea] += dTau[2];
+          if (ByEdge[SCUFF_PABS])   ByEdge[SCUFF_PABS][nea]     += dPAbs;
+          if (ByEdge[SCUFF_XFORCE]) ByEdge[SCUFF_XFORCE][nea]   += dF[0];
+          if (ByEdge[SCUFF_YFORCE]) ByEdge[SCUFF_YFORCE][nea]   += dF[1];
+          if (ByEdge[SCUFF_ZFORCE]) ByEdge[SCUFF_ZFORCE][nea]   += dF[2];
+          if (ByEdge[SCUFF_XTORQUE]) ByEdge[SCUFF_XTORQUE][nea] += dTau[0];
+          if (ByEdge[SCUFF_YTORQUE]) ByEdge[SCUFF_YTORQUE][nea] += dTau[1];
+          if (ByEdge[SCUFF_ZTORQUE]) ByEdge[SCUFF_ZTORQUE][nea] += dTau[2];
         };
 
       } // for (int nneb=... 
@@ -422,14 +422,14 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  PFT[0] = PAbs;
-  PFT[1] = 0.0;
-  PFT[2] = Fx;
-  PFT[3] = Fy;
-  PFT[4] = Fz;
-  PFT[5] = Taux;
-  PFT[6] = Tauy;
-  PFT[7] = Tauz;
+  PFT[SCUFF_PABS]    = PAbs;
+  PFT[SCUFF_PSCAT]   = 0.0;
+  PFT[SCUFF_XFORCE]  = Fx;
+  PFT[SCUFF_YFORCE]  = Fy;
+  PFT[SCUFF_ZFORCE]  = Fz;
+  PFT[SCUFF_XTORQUE] = Taux;
+  PFT[SCUFF_YTORQUE] = Tauy;
+  PFT[SCUFF_ZTORQUE] = Tauz;
 
   /*--------------------------------------------------------------*/
   /*- if an RHS vector was specified, compute the extinction      */
@@ -450,7 +450,7 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
         nbf++;
         Extinction += 0.5*real( conj(nAlpha)*vHAlpha );
       };
-     PFT[1] = Extinction - PFT[0];
+     PFT[SCUFF_PSCAT] = Extinction - PFT[SCUFF_PABS];
    };
 
 } // GetOPFT

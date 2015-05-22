@@ -1139,15 +1139,17 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 #endif  
   for(int nx=0; nx<NX; nx++)
    for(int nsa=0; nsa<NS; nsa++)
-    for(int nea=0; nea<G->Surfaces[nsa]->NumEdges; nea++)
+    for(int nea=0; nea<NBF; nea++)
      for(int nsb=0; nsb<NS; nsb++)
-      for(int neb=0; neb<G->Surfaces[nsb]->NumEdges; neb++)
+      for(int neb=0; neb<NBF; neb++)
        { 
+         RWGSurface *Sa = G->Surfaces[nsa];
+         RWGSurface *Sb = G->Surfaces[nsb];
+         if (nea>=Sa->NumEdges) continue;
+         if (neb>=Sb->NumEdges) continue;
          if (nsa==0 && nea==0 && nsb==0 && neb==0) LogPercent(nx,NX,10);
 
          double X[3];
-         RWGSurface *Sa = G->Surfaces[nsa];
-         RWGSurface *Sb = G->Surfaces[nsb];
          XMatrix->GetEntriesD(nx, "0:2", X);
          int RegionIndex = G->GetRegionIndex(X);
          if (    (Sa->RegionIndices[0] != RegionIndex )
