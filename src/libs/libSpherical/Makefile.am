@@ -1,8 +1,7 @@
 noinst_LTLIBRARIES = libSpherical.la
-pkginclude_HEADERS = libSpherical.h AmosBessel.h
+pkginclude_HEADERS = libSpherical.h
 libSpherical_la_SOURCES = \
  libSpherical.h		\
- AmosBessel.h		\
  libSpherical.cc 	\
  AmosBessel.cc   	\
  TranslationMatrices.cc	\

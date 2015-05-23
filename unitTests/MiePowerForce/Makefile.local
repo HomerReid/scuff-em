@@ -6,7 +6,7 @@ CXXFLAGS += -fopenmp
 LDFLAGS += -L$(SCUFFEM)/lib -Wl,-rpath,${SCUFFEM}/lib
 LDFLAGS += -L$(HOME)/codes/lib -L$(HOME)/lib
 
-HR_LIBS=-lAmosBessel -lscuff
+HR_LIBS=-lscuff
 OTHER_LIBS = -lhdf5_hl -lhdf5 -llapack -lopenblas -lgomp -lgfortran -lreadline -lncurses
 
 LIBS = $(HR_LIBS) $(OTHER_LIBS)

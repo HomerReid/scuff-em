@@ -157,4 +157,14 @@ void GetCurl(double r, double Theta, double Phi,
 void GetTranslationMatrices(double Xij[3], cdouble k, int lMax, 
                             HMatrix *A, HMatrix *B, HMatrix *C);
 
+/***************************************************************/
+/* bessel and airy functions in AmosBessel.cc                  */
+/***************************************************************/
+int AmosBessel(char WhichFunction, cdouble z,
+               double MinOrder, int NumOrders,
+               bool Scale, cdouble *f, double *Workspace=0);
+
+int AmosAiry(char WhichFunction, cdouble z, bool Scale, cdouble *f);
+
+
 #endif

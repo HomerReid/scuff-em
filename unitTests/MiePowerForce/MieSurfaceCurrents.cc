@@ -17,13 +17,6 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-int AmosBessel(char WhichFunction, cdouble z, 
-               double MinOrder, int NumOrders, 
-               int Scale, cdouble *f);
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 cdouble ipow(int n)
 { switch(n%4)
    { case 1:  return +1.0*II;
@@ -49,9 +42,9 @@ void GetRadialFunctionsAndCoefficients(cdouble x, cdouble Eps, cdouble Mu, int n
   /*- fetch values of spherical bessel functions j and h ---------*/
   /*--------------------------------------------------------------*/
   cdouble jX[nMax+1], jMX[nMax+1], hX[nMax+1];
-  AmosBessel('j',   x, 0, nMax+1, 0,  jX);
-  AmosBessel('j', m*x, 0, nMax+1, 0, jMX);
-  AmosBessel('o',   x, 0, nMax+1, 0,  hX);
+  AmosBessel('j',   x, 0, nMax+1, false,  jX);
+  AmosBessel('j', m*x, 0, nMax+1, false, jMX);
+  AmosBessel('o',   x, 0, nMax+1, false,  hX);
 
   /*--------------------------------------------------------------*/
   /*- construct the Psi and Xi functions and their derivatives    */

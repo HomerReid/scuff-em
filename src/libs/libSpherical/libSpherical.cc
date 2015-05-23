@@ -32,7 +32,6 @@
 #include <libhrutil.h>
 
 #include "libSpherical.h"
-#include "AmosBessel.h"
 
 #define II cdouble(0.0,1.0)
 #define ROOT2 1.41421356237309504880
@@ -433,18 +432,18 @@ void GetRadialFunctions(int lMax, cdouble k, double r, int WaveType,
    { 
      kr=imag(k)*r;
      if ( WaveType == LS_REGULAR )
-      AmosBessel('i',kr,0.0,lMax+2,0,R,Workspace);
+      AmosBessel('i',kr,0.0,lMax+2,false,R,Workspace);
      else // no distinction between incoming/outgoing in this case, right?
-      AmosBessel('k',kr,0.0,lMax+2,0,R,Workspace);
+      AmosBessel('k',kr,0.0,lMax+2,false,R,Workspace);
    }
   else
    { kr=k*r;
      if ( WaveType == LS_REGULAR )
-      AmosBessel('j',kr,0.0,lMax+2,0,R,Workspace);
+      AmosBessel('j',kr,0.0,lMax+2,false,R,Workspace);
      else if ( WaveType == LS_OUTGOING ) 
-      AmosBessel('o',kr,0.0,lMax+2,0,R,Workspace);
+      AmosBessel('o',kr,0.0,lMax+2,false,R,Workspace);
      else  // ( WaveType == LS_INCOMING ) 
-      AmosBessel('t',kr,0.0,lMax+2,0,R,Workspace);
+      AmosBessel('t',kr,0.0,lMax+2,false,R,Workspace);
    };
 
   if (dRdr==0) 

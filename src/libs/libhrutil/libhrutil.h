@@ -51,7 +51,6 @@
 #define ISNAN(x) ((x) != (x))
 #endif
 
-
 //typedef _Complex double cdouble;
 typedef std::complex<double> cdouble;
 

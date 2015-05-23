@@ -11,6 +11,7 @@
 #include <libscuff.h>
 #include <libhrutil.h>
 #include <libSGJC.h>
+#include <libSpherical.h>
 
 using namespace scuff;
 
@@ -25,44 +26,6 @@ void GetMieSurfaceCurrents(double Theta, double Phi,
 
 void GetMieCrossSections(double Omega, cdouble Epsilon, cdouble Mu, int nMax, 
                          double *SigmaScat, double *SigmaTot, double *SigmaForce);
-
-/***************************************************************/
-/* given the cartesian components of a vector, return its      */
-/* spherical components.                                       */
-/***************************************************************/
-void VectorC2S(double Theta, double Phi, cdouble VC[3], cdouble VS[3])
-{ 
-  double CT=cos(Theta), ST=sin(Theta);
-  double CP=cos(Phi), SP=sin(Phi);
-  double M[3][3];
-  int mu, nu;
-
-  M[0][0]=ST*CP;    M[0][1]=ST*SP;    M[0][2]=CT;
-  M[1][0]=CT*CP;    M[1][1]=CT*SP;    M[1][2]=-ST;
-  M[2][0]=-SP;      M[2][1]=CP;       M[2][2]=0.0;
-
-  memset(VS,0,3*sizeof(cdouble));
-  for(mu=0; mu<3; mu++)
-   for(nu=0; nu<3; nu++)
-    VS[mu] += M[mu][nu]*VC[nu];
-}
-
-/***************************************************************/
-/* convert cartesian coordinates to spherical coordinates      */
-/***************************************************************/
-void CoordinateC2S(double X, double Y, double Z, double *r, double *Theta, double *Phi)
-{ 
-  *r=sqrt(X*X + Y*Y + Z*Z);
-  *Theta=atan2( sqrt(X*X+Y*Y), Z );
-  *Phi=atan2(Y,X);
-}
-
-void CoordinateC2S(double X[3], double *r, double *Theta, double *Phi)
- { CoordinateC2S(X[0], X[1], X[2], r, Theta, Phi); }
-
-void CoordinateC2S(double X[3], double R[3])
- { CoordinateC2S(X[0], X[1], X[2], R+0, R+1, R+2); }
-
 
 /***************************************************************/
 /***************************************************************/
