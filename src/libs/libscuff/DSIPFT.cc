@@ -1101,6 +1101,7 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
 /* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
 /* FMatrix[nx,12..20] = rxMST_{xx}, rxMST_{xy}, ..., rxMST_{zz}*/
 /***************************************************************/
+#define NUMSRFLUX 21 
 HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                    HVector *KNVector, HMatrix *RytovMatrix,
                    HMatrix *FMatrix, bool FarField)
@@ -1109,13 +1110,13 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /* (re)allocate FMatrix as necessary ***************************/
   /***************************************************************/
   int NX = XMatrix->NR;
-  if ( FMatrix && ( (FMatrix->NR != NX) || (FMatrix->NC != 3*NUMPFT) ) )
+  if ( FMatrix && ( (FMatrix->NR != NX) || (FMatrix->NC != NUMSRFLUX) ) )
    { Warn("Wrong-size FMatrix in GetSRFluxTrace (reallocating...)");
      delete FMatrix;
      FMatrix=0;
    };
   if (FMatrix==0)
-   FMatrix = new HMatrix(NX, 3*NUMPFT, LHM_REAL);
+   FMatrix = new HMatrix(NX, NUMSRFLUX, LHM_REAL);
 
   Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
 
@@ -1147,7 +1148,8 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
          RWGSurface *Sb = G->Surfaces[nsb];
          if (nea>=Sa->NumEdges) continue;
          if (neb>=Sb->NumEdges) continue;
-         if (nsa==0 && nea==0 && nsb==0 && neb==0) LogPercent(nx,NX,10);
+         if (nsa==0 && nea==0 && nsb==0 && neb==0) 
+          LogPercent(nx,NX,10);
 
          double X[3];
          XMatrix->GetEntriesD(nx, "0:2", X);
@@ -1235,6 +1237,11 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
         { 
           // N-matrices for the Muth cartesian direction
           double NMatrix[NUMPFT][3][3];
+          for(int nq=0; nq<NUMPFT; nq++)
+           for(int p=0; p<3; p++)
+            for(int q=0; q<3; q++)
+             NMatrix[nq][p][q]=0.0;
+
           double nHat[3]={0.0, 0.0, 0.0};
           nHat[Mu]=1.0;
           GetNMatrices(nHat, X, XTorque, NMatrix);

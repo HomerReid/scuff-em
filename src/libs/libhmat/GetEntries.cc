@@ -200,7 +200,7 @@ double *HMatrix::GetEntriesD(const char *RowString, int Col, double *Entries)
   /***************************************************************/
   /* do the extraction *******************************************/
   /***************************************************************/
-  HMatrix B(1, Length, LHM_REAL, LHM_NORMAL, (void *)Entries);
+  HMatrix B(Length, 1, LHM_REAL, LHM_NORMAL, (void *)Entries);
   DoGetEntries(RowStart, RowStop, RowInc, Length, Col, Col, 1, 1, &B, 0, 0);
 
   return Entries;
@@ -229,7 +229,7 @@ cdouble *HMatrix::GetEntries(const char *RowString, int Col, cdouble *Entries)
   /***************************************************************/
   /* do the extraction *******************************************/
   /***************************************************************/
-  HMatrix B(1, Length, LHM_COMPLEX, LHM_NORMAL, (void *)Entries);
+  HMatrix B(Length, 1, LHM_COMPLEX, LHM_NORMAL, (void *)Entries);
   DoGetEntries(RowStart, RowStop, RowInc, Length, Col, Col, 1, 1, &B, 0, 0);
 
   return Entries;
@@ -354,7 +354,6 @@ HMatrix *HMatrix::DoGetEntries(int RowStart, int RowStop, int RowInc, int RowLen
   /*--------------------------------------------------------------*/
   if ( B && ( (B->NR < RowOffset+RowLen) || (B->NC < ColOffset+ColLen) ) )
    { Warn("wrong-size X matrix in GetEntries() (reallocating)");
-     delete B;
      B=0;
    };
   if (B==0)
@@ -395,7 +394,7 @@ void HMatrix::SetEntriesD(const char *RowString, int Col, double *Entries, doubl
                   1, 1, 0, Entry);
    }
   else
-   { HMatrix B(1, Length, LHM_REAL, LHM_NORMAL, (void *)Entries);
+   { HMatrix B(Length, 1, LHM_REAL, LHM_NORMAL, (void *)Entries);
      DoSetEntries(RowStart, RowStop, RowInc, Length, Col, Col, 
                   1, 1, &B);
    };
@@ -423,7 +422,7 @@ void HMatrix::SetEntries(const char *RowString, int Col, cdouble *Entries, cdoub
                   1, 1, 0, Entry);
    }
   else
-   { HMatrix B(1, Length, LHM_COMPLEX, LHM_NORMAL, (void *)Entries);
+   { HMatrix B(Length, 1, LHM_COMPLEX, LHM_NORMAL, (void *)Entries);
      DoSetEntries(RowStart, RowStop, RowInc, Length, Col, Col,
                   1, 1, &B);
    };
