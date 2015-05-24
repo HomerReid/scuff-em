@@ -1,0 +1,136 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\newcommand{\vbEps}{\boldsymbol{\epsilon}}
+\newcommand{\vbGamma}{\boldsymbol{\Gamma}}
+\newcommand{\wt}{\widetilde}
+\newcommand{\wh}{\widehat}
+\newcommand{\vbwhat}[1]{\vb{\widehat{#1}}}
+\newcommand{\vbhatt}[1]{\boldsymbol{\hat #1}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {Scattering of Cylindrical Waves from a Dielectric Cylinder}
+\author {Homer Reid}
+\date {May 23, 2015}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Cylindrical wave scattering}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{The Setup}
+
+\subsection{Cylindrical wave functions}
+
+%====================================================================%
+\begin{align*}
+ \vb M_{\nu}(k_0, k_z; \vb x) 
+   &= \Big[   i\nu\frac{R_\nu(\rho)}{\rho}\vbhatt{\rho} 
+                  - R_\nu^\prime(\rho) \vbhatt{\varphi} 
+      \Big]e^{i\nu\varphi} e^{ik_z z} 
+\\
+ \vb N_\nu(k_0, k_z; \vb x) 
+&=\frac{1}{ik_0}
+      \Big[ -ik_z R_\nu^\prime(\rho)          \vbhatt{\rho}
+            +\nu k_z \frac{R_\nu(\rho)}{\rho} \vbhatt{\varphi}
+            - R_\nu(\rho)\vbhat{z}
+      \Big] e^{i\nu\varphi} e^{ik_z z} 
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+$$ 
+ k_\rho\equiv \sqrt{k_0^2 - k_z^2},
+ \qquad
+ R(\rho) =
+ \begin{cases}
+   H^{(1)}_\nu(k_\rho \rho), \qquad &\text{outgoing} \\
+   H^{(2)}_\nu(k_\rho \rho), \qquad &\text{incoming} \\
+   J_\nu      (k_\rho \rho), \qquad &\text{regular}
+ \end{cases}
+$$
+%====================================================================%
+
+We have 
+%====================================================================%
+$$ \nabla \times \vb M = -ik_0 \vb N, 
+   \qquad 
+   \nabla \times \vb N = ik_0 \vb M.
+$$
+%====================================================================%
+
+Incident fields:
+%====================================================================%
+\begin{align*}
+ \vb E\sups{inc}(\vb r) 
+   &=   P_\nu(k_z) \vb M\sups{incoming}_\nu(k_0, k_z; \vb x)
+      + Q_\nu(k_z) \vb N\sups{incoming}_\nu(k_0, k_z; \vb x)
+\\
+ \vb H\sups{inc}(\vb r)
+   &= -\frac{1}{Z_0}
+      \Big\{
+      P_\nu(k_z) \vb N\sups{incoming}_\nu(k_0, k_z; \vb x)
+    - Q_\nu(k_z) \vb M\sups{incoming}_\nu(k_0, k_z; \vb x)
+      \Big\}
+\\
+\end{align*}
+%====================================================================%
+
+Interior fields:
+%====================================================================%
+\begin{align*}
+ \vb E\sups{int}(\vb r) 
+   &=   A_\nu(k_z) \vb M\sups{regular}_\nu(nk_0, k_z; \vb x)
+      + B_\nu(k_z) \vb N\sups{regular}_\nu(nk_0, k_z; \vb x)
+\\
+ \vb H\sups{int}(\vb r)
+   &= -\frac{1}{Z^\prime Z_0}
+      \Big\{
+      A_\nu(k_z) \vb N\sups{regular}_\nu(n k_0, k_z; \vb x)
+    - B_\nu(k_z) \vb M\sups{regular}_\nu(n k_0, k_z; \vb x)
+      \Big\}
+\\
+\end{align*}
+%====================================================================%
+
+Scattered fields:
+%====================================================================%
+\begin{align*}
+ \vb E\sups{scat}(\vb r) 
+   &=   C_\nu(k_z) \vb M\sups{incoming}_\nu(k_0, k_z; \vb x)
+      + D_\nu(k_z) \vb N\sups{incoming}_\nu(k_0, k_z; \vb x)
+\\
+ \vb H\sups{scat}(\vb r)
+   &= -\frac{1}{Z_0}
+      \Big\{
+      C_\nu(k_z) \vb N\sups{incoming}_\nu(k_0, k_z; \vb x)
+    - D_\nu(k_z) \vb M\sups{incoming}_\nu(k_0, k_z; \vb x)
+      \Big\}
+\end{align*}
+%====================================================================%
+
+\end{document}
