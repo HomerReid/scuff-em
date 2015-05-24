@@ -49,28 +49,30 @@
 %====================================================================%
 \begin{align*}
  \vb M_{\nu}(k_0, k_z; \vb x) 
-   &= \Big[   i\nu\frac{R_\nu(\rho)}{\rho}\vbhatt{\rho} 
-                  - R_\nu^\prime(\rho) \vbhatt{\varphi} 
+   &= \Big[   i\nu\frac{R_\nu(\zeta)}{\zeta}\vbhatt{\rho} 
+                  - R_\nu^\prime(\zeta) \vbhatt{\varphi} 
       \Big]e^{i\nu\varphi} e^{ik_z z} 
 \\
  \vb N_\nu(k_0, k_z; \vb x) 
 &=\frac{1}{ik_0}
-      \Big[ -ik_z R_\nu^\prime(\rho)          \vbhatt{\rho}
-            +\nu k_z \frac{R_\nu(\rho)}{\rho} \vbhatt{\varphi}
-            - R_\nu(\rho)\vbhat{z}
+      \Big[ -ik_z R_\nu^\prime(\zeta)          \vbhatt{\rho}
+            +\nu k_z \frac{R_\nu(\zeta)}{\zeta} \vbhatt{\varphi}
+            - R_\nu(\zeta)\vbhat{z}
       \Big] e^{i\nu\varphi} e^{ik_z z} 
 \end{align*}
 %====================================================================%
 
 %====================================================================%
 $$ 
+ \zeta=k_\rho \rho, 
+ \qquad
  k_\rho\equiv \sqrt{k_0^2 - k_z^2},
  \qquad
- R(\rho) =
+ R(\zeta) =
  \begin{cases}
-   H^{(1)}_\nu(k_\rho \rho), \qquad &\text{outgoing} \\
-   H^{(2)}_\nu(k_\rho \rho), \qquad &\text{incoming} \\
-   J_\nu      (k_\rho \rho), \qquad &\text{regular}
+   H^{(1)}_\nu(\zeta), \qquad &\text{outgoing} \\
+   H^{(2)}_\nu(\zeta), \qquad &\text{incoming} \\
+   J_\nu      (\zeta), \qquad &\text{regular}
  \end{cases}
 $$
 %====================================================================%

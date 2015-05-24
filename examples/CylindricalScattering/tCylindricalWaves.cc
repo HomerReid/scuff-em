@@ -179,16 +179,20 @@ int main(int argc, char *argv[])
       N[0] *= -1.0*IK0;
       N[1] *= -1.0*IK0;
       N[2] *= -1.0*IK0;
-      Compare(CurlM, N, 3, "CurlM","-ikN");
-      printf("\n (Nu,Wave)=(%i,%i): Mag2(CurlM, -IKN)=(%.2e,%.2e) (ratio %.2e)\n\n",
+//      Compare(CurlM, N, 3, "CurlM","-ikN");
+//      printf("\n");
+      printf("(Nu,Wave)=(%i,%i): Mag2(CurlM, -IKN)=(%.2e,%.2e) (ratio %.2e)\n",
               Nu,WaveType,CurlMMag, IKNMag, CurlMMag / IKNMag);
+//      printf("\n");
 
       M[0] *= 1.0*IK0;
       M[1] *= 1.0*IK0;
       M[2] *= 1.0*IK0;
-      Compare(CurlN, M, 3, "CurlN","+ikM");
-      printf("\n (Nu,Wave)=(%i,%i): Mag2(CurlN, +IKM)=(%.2e,%.2e) (ratio %.2e)\n\n",
+//      Compare(CurlN, M, 3, "CurlN","+ikM");
+//      printf("\n");
+      printf("(Nu,Wave)=(%i,%i): Mag2(CurlN, +IKM)=(%.2e,%.2e) (ratio %.2e)\n",
               Nu,WaveType,CurlNMag, IKMMag, CurlNMag / IKMMag);
+//      printf("\n");
 
     };
 

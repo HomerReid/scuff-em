@@ -100,7 +100,7 @@ void GetCylMN(cdouble k0, int Nu, double kz, int WaveType,
 
   NVec[0] = -1.0*kz*RNuPrime*ExpFac/k0;
   NVec[1] = -II*kz*NuRNuOverX*ExpFac/k0;
-  NVec[2] = -II*kRho*RNu*ExpFac/k0;
+  NVec[2] = II*kRho*RNu*ExpFac/k0;
 
 }
 
