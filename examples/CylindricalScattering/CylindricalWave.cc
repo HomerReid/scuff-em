@@ -60,7 +60,7 @@ void GetCylMN(cdouble k0, int Nu, double kz, int WaveType,
 {
   cdouble kRho2 = k0*k0 - kz*kz;
   cdouble kRho  = sqrt(kRho2);
-  cdouble x     = kRho*RPZ[0]; 
+  cdouble Zeta  = kRho*RPZ[0]; 
 
   char WhichFunction='J';
   switch(WaveType)
@@ -70,37 +70,37 @@ void GetCylMN(cdouble k0, int Nu, double kz, int WaveType,
      default: ErrExit("unknown wave type in GetCylMN");
    };
    
-  cdouble RNu, NuRNuOverX, RNuPrime, RArray[3];
+  cdouble RNu, NuRNuOverZeta, RNuPrime, RArray[3];
   double Workspace[12];
   if (Nu==0)
    { int NuMin=0;
      int NumNu=2;
-     AmosBessel(WhichFunction, x, NuMin, NumNu, false, RArray, Workspace);
-     RNu          = RArray[0];
-     RNuPrime     = -1.0*RArray[1];
-     NuRNuOverX   = 0.0;
+     AmosBessel(WhichFunction, Zeta, NuMin, NumNu, false, RArray, Workspace);
+     RNu           = RArray[0];
+     RNuPrime      = -1.0*RArray[1];
+     NuRNuOverZeta = 0.0;
    }
   else
    { int NuMin=Nu-1;
      int NumNu=3;
-     AmosBessel(WhichFunction, x, NuMin, NumNu, false, RArray, Workspace);
+     AmosBessel(WhichFunction, Zeta, NuMin, NumNu, false, RArray, Workspace);
      RNu          = RArray[1];
      RNuPrime     = 0.5*(RArray[0] - RArray[2]);
      if (RPZ[0]==0.0)
-      NuRNuOverX = (Nu==1 && WaveType==CW_REGULAR) ? 1.0 : 0.0;
+      NuRNuOverZeta = (Nu==1 && WaveType==CW_REGULAR) ? 0.5 : 0.0;
      else
-      NuRNuOverX = ((double)Nu)*RNu/x;
+      NuRNuOverZeta = ((double)Nu)*RNu/Zeta;
    };
 
   cdouble ExpFac = exp( II*(Nu*RPZ[1] + kz*RPZ[2]) );
 
-  MVec[0] = II*NuRNuOverX * ExpFac;
+  MVec[0] = II*NuRNuOverZeta * ExpFac;
   MVec[1] = -RNuPrime * ExpFac;
   MVec[2] = 0.0;
 
   NVec[0] = -1.0*kz*RNuPrime*ExpFac/k0;
-  NVec[1] = -II*kz*NuRNuOverX*ExpFac/k0;
-  NVec[2] = -II*kRho*RNu*ExpFac/k0;
+  NVec[1] = -II*kz*NuRNuOverZeta*ExpFac/k0;
+  NVec[2] =  II*kRho*RNu*ExpFac/k0;
 
 }
 

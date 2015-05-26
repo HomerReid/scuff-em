@@ -22,7 +22,7 @@
 %------------------------------------------------------------
 %------------------------------------------------------------
 \title {Scattering of Cylindrical Waves from a Dielectric Cylinder}
-\author {Homer Reid}
+\author {Homer Zeid}
 \date {May 23, 2015}
 
 %------------------------------------------------------------
@@ -33,7 +33,7 @@
 
 \begin{document}
 \pagestyle{myheadings}
-\markright{Homer Reid: Cylindrical wave scattering}
+\markright{Homer Zeid: Cylindrical wave scattering}
 \maketitle
 
 \tableofcontents
@@ -48,25 +48,27 @@
 
 %====================================================================%
 \begin{align*}
- \vb M_{\nu}(k_0, k_z; \vb x) 
-   &= \Big[   i\nu\frac{R_\nu(\rho)}{\rho}\vbhatt{\rho} 
-                  - R_\nu^\prime(\rho) \vbhatt{\varphi} 
+ \vb M_{\nu}(k_0, k_z; \vb x)
+   &= \Big[   i\nu\frac{Z_\nu(\zeta)}{\zeta}\vbhatt{\rho} 
+                  - Z_\nu^\prime(\zeta) \vbhatt{\varphi} 
       \Big]e^{i\nu\varphi} e^{ik_z z} 
 \\
  \vb N_\nu(k_0, k_z; \vb x) 
 &=\frac{1}{ik_0}
-      \Big[ -ik_z R_\nu^\prime(\rho)          \vbhatt{\rho}
-            +\nu k_z \frac{R_\nu(\rho)}{\rho} \vbhatt{\varphi}
-            - R_\nu(\rho)\vbhat{z}
+      \Big[ -ik_z Z_\nu^\prime(\zeta)          \vbhatt{\rho}
+            +\nu k_z \frac{Z_\nu(\zeta)}{\zeta} \vbhatt{\varphi}
+            - k_\rho Z_\nu(\zeta)\vbhat{z}
       \Big] e^{i\nu\varphi} e^{ik_z z} 
 \end{align*}
 %====================================================================%
 
 %====================================================================%
 $$ 
+ \zeta \equiv k_\rho \rho,
+ \qquad
  k_\rho\equiv \sqrt{k_0^2 - k_z^2},
  \qquad
- R(\rho) =
+ Z(\rho) =
  \begin{cases}
    H^{(1)}_\nu(k_\rho \rho), \qquad &\text{outgoing} \\
    H^{(2)}_\nu(k_\rho \rho), \qquad &\text{incoming} \\
@@ -82,6 +84,8 @@ $$ \nabla \times \vb M = -ik_0 \vb N,
    \nabla \times \vb N = ik_0 \vb M.
 $$
 %====================================================================%
+
+\subsection{Scattering Coefficients}
 
 Incident fields:
 %====================================================================%
@@ -99,7 +103,6 @@ Incident fields:
 \\
 \end{align*}
 %====================================================================%
-
 Interior fields:
 %====================================================================%
 \begin{align*}
@@ -116,7 +119,6 @@ Interior fields:
 \\
 \end{align*}
 %====================================================================%
-
 Scattered fields:
 %====================================================================%
 \begin{align*}
@@ -131,6 +133,50 @@ Scattered fields:
     - D_\nu(k_z) \vb M\sups{incoming}_\nu(k_0, k_z; \vb x)
       \Big\}
 \end{align*}
+%====================================================================%
+
+\noindent Match tangential fields at $\rho=R$ ($\eta=1/Z^\prime$:)
+%====================================================================%
+\renewcommand{\arraystretch}{1.5}
+\begin{align*}
+ \left(\begin{array}{cccc}
+%--------------------------------------------------------------------%
+      M\sups{reg}_\varphi(R) 
+  &   N\sups{reg}_\varphi(R)
+  & - M\sups{out}_\varphi(R) 
+  & - N\sups{out}_\varphi(R)
+\\
+%--------------------------------------------------------------------%
+     \eta N\sups{reg}_\varphi(R) 
+  & -\eta M\sups{reg}_\varphi(R)
+  & -     N\sups{out}_\varphi(R) 
+  & +     M\sups{out}_\varphi(R)
+\\
+%--------------------------------------------------------------------%
+      M\sups{reg}_z(R)
+  &   N\sups{reg}_z(R)
+  &  -M\sups{out}_z(R)
+  & - N\sups{out}_z(R)
+\\
+%--------------------------------------------------------------------%
+     \eta N\sups{reg}_z(R)
+  & -\eta M\sups{reg}_z(R)
+  & -     N\sups{out}_z(R)
+  & +     M\sups{out}_z(R)
+ \end{array}\right)
+%--------------------------------------------------------------------%
+ \left(\begin{array}{c}
+ A \\ B \\ C \\ D 
+ \end{array}\right)
+&=
+ \left(\begin{array}{c}
+ P M_\varphi\sups{inc}(R) + QN_\varphi\sups{inc}(R) \\
+ P N_\varphi\sups{inc}(R) - QM_\varphi\sups{inc}(R) \\
+ P M_z\sups{inc}(R) + QN_z\sups{inc}(R) \\
+ P N_z\sups{inc}(R) - QM_z\sups{inc}(R) \\
+ \end{array}\right)
+\end{align*}
+\renewcommand{\arraystretch}{1.0}
 %====================================================================%
 
 \end{document}

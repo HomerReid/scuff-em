@@ -100,10 +100,10 @@ void MFunc(double X[3], cdouble F[3], void *UserData)
 { 
   cdouble M[3], N[3];
   MyData *Data = (MyData *) UserData;
-  GetCylMN(Data->k0, Data->Nu, Data->kz, Data->WaveType, X, M, N);
-
   double RPZ[3];
   CoordinateCar2Cyl(X, RPZ);
+
+  GetCylMN(Data->k0, Data->Nu, Data->kz, Data->WaveType, RPZ, M, N);
   VectorCyl2Car(RPZ[1], M, F);
 }
 
@@ -111,10 +111,9 @@ void NFunc(double X[3], cdouble F[3], void *UserData)
 {
   cdouble M[3], N[3];
   MyData *Data=(MyData *)UserData;
-  GetCylMN(Data->k0, Data->Nu, Data->kz, Data->WaveType, X, M, N);
-
   double RPZ[3];
   CoordinateCar2Cyl(X, RPZ);
+  GetCylMN(Data->k0, Data->Nu, Data->kz, Data->WaveType, RPZ, M, N);
   VectorCyl2Car(RPZ[1], N, F);
 }
 
