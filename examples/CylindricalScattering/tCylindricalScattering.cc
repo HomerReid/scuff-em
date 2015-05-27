@@ -30,6 +30,126 @@ using namespace scuff;
 void GetCylMN(cdouble k0, int Nu, double kz, int WaveType,
               double RPZ[3], cdouble MVec[3], cdouble NVec[3]);
 
+static char *FieldFuncs=const_cast<char *>(
+ "|Ex|,|Ey|,|Ez|,"
+ "sqrt(|Ex|^2+|Ey|^2+|Ez|^2),"
+ "|Hx|,|Hy|,|Hz|,"
+ "sqrt(|Hx|^2+|Hy|^2+|Hz|^2)");
+
+static const char *FieldTitles[]=
+ {"|Ex|", "|Ey|", "|Ez|", "|E|",
+  "|Hx|", "|Hy|", "|Hz|", "|H|",
+ };
+
+#define NUMFIELDFUNCS 8
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void VisualizeFields(RWGGeometry *G, cdouble Omega, double *kBloch,
+                     HVector *KN, IncField *IF, char *MeshFileName)
+{ 
+  /*--------------------------------------------------------------*/
+  /*- try to open output file ------------------------------------*/
+  /*--------------------------------------------------------------*/
+  char GeoFileBase[100], PPFileName[100];
+  strncpy(GeoFileBase,GetFileBase(G->GeoFileName),100);
+  snprintf(PPFileName,100,"%s.%s.pp",GeoFileBase,GetFileBase(MeshFileName));
+  FILE *f=fopen(PPFileName,"a");
+  if (!f) 
+   ErrExit("could not open field visualization file %s",PPFileName);
+  
+  /*--------------------------------------------------------------*/
+  /*- try to open user's mesh file -------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S=new RWGSurface(MeshFileName);
+
+  Log("Creating flux plot for surface %s...",MeshFileName);
+  printf("Creating flux plot for surface %s...\n",MeshFileName);
+
+  /*--------------------------------------------------------------*/
+  /*- create an Nx3 HMatrix whose columns are the coordinates of  */
+  /*- the flux mesh panel vertices                                */
+  /*--------------------------------------------------------------*/
+  HMatrix *XMatrix=new HMatrix(S->NumVertices, 3);
+  for(int nv=0; nv<S->NumVertices; nv++)
+   XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nv);
+
+  /*--------------------------------------------------------------*/
+  /* 20150404 explain me -----------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int nvRef=S->Panels[0]->VI[0];
+  for(int nv=0; nv<S->NumVertices; nv++)
+   { 
+     bool VertexUsed=false;
+     for(int np=0; np<S->NumPanels && !VertexUsed; np++)
+      if (     nv==S->Panels[np]->VI[0]
+           ||  nv==S->Panels[np]->VI[1]
+           ||  nv==S->Panels[np]->VI[2]
+         ) VertexUsed=true;
+
+     if (!VertexUsed)
+      { 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+        printf("Replacing %i:{%.2e,%.2e,%.2e} with %i: {%.2e,%.2e,%.2e}\n",
+                nv,XMatrix->GetEntryD(nv,0), 
+                   XMatrix->GetEntryD(nv,1),
+                   XMatrix->GetEntryD(nv,2),
+                nvRef,S->Vertices[3*nvRef+0],
+                      S->Vertices[3*nvRef+1],
+                      S->Vertices[3*nvRef+2]);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+        XMatrix->SetEntriesD(nv, ":", S->Vertices + 3*nvRef);
+      };
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- get the total fields at the panel vertices                 -*/
+  /*--------------------------------------------------------------*/
+  HMatrix *FMatrix=G->GetFields(IF, KN, Omega, kBloch, 
+                                XMatrix, 0, FieldFuncs);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  for(int nff=0; nff<NUMFIELDFUNCS; nff++)
+   { 
+     fprintf(f,"View \"%s(%s)\" {\n",FieldTitles[nff],z2s(Omega));
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     for(int np=0; np<S->NumPanels; np++)
+      {
+        RWGPanel *P=S->Panels[np];
+        int iV1 = P->VI[0];  double *V1 = S->Vertices + 3*iV1;
+        int iV2 = P->VI[1];  double *V2 = S->Vertices + 3*iV2;
+        int iV3 = P->VI[2];  double *V3 = S->Vertices + 3*iV3;
+
+        fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
+                   V1[0], V1[1], V1[2],
+                   V2[0], V2[1], V2[2],
+                   V3[0], V3[1], V3[2],
+                   FMatrix->GetEntryD(iV1,nff),
+                   FMatrix->GetEntryD(iV2,nff),
+                   FMatrix->GetEntryD(iV3,nff));
+      };
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     fprintf(f,"};\n\n");
+   };
+  fclose(f);
+
+  delete FMatrix;
+  delete XMatrix;
+
+  delete S;
+
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -156,6 +276,192 @@ void GetExactFields(cdouble Omega, int Nu, double kz, int Pol,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void GetExactSurfaceCurrents(double XYZ[3],
+                             cdouble Omega, int Nu, double kz, int Pol,
+                             cdouble EpsRel, cdouble ABCD[4],
+                             cdouble KExact[3], cdouble NExact[3])
+{
+  cdouble A=ABCD[0];
+  cdouble B=ABCD[1];
+
+  CylindricalWave CW_MReg(Nu, kz, CW_TE2Z, CW_REGULAR);
+  CylindricalWave CW_NReg(Nu, kz, CW_TM2Z, CW_REGULAR);
+
+  CW_MReg.SetFrequencyAndEpsMu(Omega,EpsRel,1.0);
+  CW_NReg.SetFrequencyAndEpsMu(Omega,EpsRel,1.0);
+
+  cdouble EHMReg[6], EHNReg[6], EH[6];
+  CW_MReg.GetFields(XYZ, EHMReg);
+  CW_NReg.GetFields(XYZ, EHNReg);
+  for(int Mu=0; Mu<6; Mu++)
+   EH[Mu] = A*EHMReg[Mu] + B*EHNReg[Mu];
+
+  double RhoHat[3];
+  RhoHat[0] = 0.0;
+  RhoHat[1] = XYZ[1];
+  RhoHat[2] = XYZ[2];
+  VecNormalize(RhoHat);
+
+  for(int Mu=0; Mu<3; Mu++)
+   { int Nu=(Mu+1)%3, Rho=(Mu+2)%3;
+     KExact[Mu] = -(RhoHat[Nu]*EH[3+Rho] - RhoHat[Rho]*EH[3+Nu]);
+     NExact[Mu] =  (RhoHat[Nu]*EH[Rho]   - RhoHat[Rho]*EH[Nu]);
+   };
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void PlotExactSurfaceCurrents(RWGGeometry *G,
+                              cdouble Omega, int Nu,
+                              double kz, int Pol,
+                              cdouble EpsRel, cdouble ABCD[4])
+{
+  FILE *f=fopen("ExactSurfaceCurrents.pp","w");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","Exact Electric Current");
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   for(int np=0; np<G->Surfaces[ns]->NumPanels; np++)
+    { 
+      double *XYZ=G->Surfaces[ns]->Panels[np]->Centroid;
+      cdouble KExact[3], NExact[3];
+      GetExactSurfaceCurrents(XYZ, Omega, Nu, kz, Pol,
+                              EpsRel, ABCD, KExact, NExact);
+      fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
+                 XYZ[0],XYZ[1],XYZ[2],
+                 real(KExact[0]), real(KExact[1]), real(KExact[2]));
+    };
+  fprintf(f,"};\n");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","Exact Magnetic Current");
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   for(int np=0; np<G->Surfaces[ns]->NumPanels; np++)
+    { 
+      double *XYZ=G->Surfaces[ns]->Panels[np]->Centroid;
+      cdouble KExact[3], NExact[3];
+      GetExactSurfaceCurrents(XYZ, Omega, Nu, kz, Pol,
+                              EpsRel, ABCD, KExact, NExact);
+      fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
+                 XYZ[0],XYZ[1],XYZ[2],
+                 real(NExact[0]), real(NExact[1]), real(NExact[2]));
+    };
+  fprintf(f,"};\n");
+  fclose(f);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void PlotSCUFFSurfaceCurrents(HMatrix *PSDMatrix)
+{
+  FILE *f=fopen("SCUFFSurfaceCurrents.pp","w");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","SCUFF Electric Current");
+  for(int np=0; np<PSDMatrix->NR; np++)
+   { 
+     double XYZ[3];
+     cdouble KExact[3], NExact[3];
+     PSDMatrix->GetEntriesD(np,"0:2",XYZ);
+     PSDMatrix->GetEntries(np,"5:7",KExact);
+     PSDMatrix->GetEntries(np,"9:11",NExact);
+     fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
+                XYZ[0],XYZ[1],XYZ[2],
+                real(KExact[0]), real(KExact[1]), real(KExact[2]));
+   };
+  fprintf(f,"};\n");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  fprintf(f,"View \"%s\" {\n","SCUFF Magnetic Current");
+  for(int np=0; np<PSDMatrix->NR; np++)
+   { 
+     double XYZ[3];
+     cdouble KExact[3], NExact[3];
+     PSDMatrix->GetEntriesD(np,"0:2",XYZ);
+     PSDMatrix->GetEntries(np,"5:7",KExact);
+     PSDMatrix->GetEntries(np,"9:11",NExact);
+     fprintf(f,"VP(%e,%e,%e) {%e,%e,%e};\n",
+                XYZ[0],XYZ[1],XYZ[2],
+                real(NExact[0]), real(NExact[1]), real(NExact[2]));
+   };
+  fprintf(f,"};\n");
+
+  fclose(f);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void CompareSurfaceCurrents(RWGGeometry *G, HVector *KN,
+                            cdouble Omega, int Nu, double kz, int Pol, 
+                            cdouble EpsRel, cdouble ABCD[4])
+{
+  static HMatrix *PSDMatrix=0;
+  double kBloch[2]={0.0,0.0};
+  kBloch[0]=kz;
+  PSDMatrix=G->GetPanelSourceDensities(Omega, kBloch, KN, PSDMatrix);
+  PlotSCUFFSurfaceCurrents(PSDMatrix);
+
+  FILE *f=vfopen("%s.Currents","w",GetFileBase(G->GeoFileName));
+  double KExactAvg=0.0, KHRAvg=0.0;
+  double NExactAvg=0.0, NHRAvg=0.0;
+  double TotalArea=0.0;
+  for(int np=0; np<PSDMatrix->NR; np++)
+   { 
+     double XYZ[3], Area;
+     cdouble KHR[3], NHR[3];
+     PSDMatrix->GetEntriesD(np,"0:2",XYZ);
+     Area=PSDMatrix->GetEntryD(np,3);
+     PSDMatrix->GetEntries(np,"5:7",KHR);
+     PSDMatrix->GetEntries(np,"9:11",NHR);
+  
+     cdouble KExact[3], NExact[3];
+     GetExactSurfaceCurrents(XYZ, Omega, Nu, kz, Pol, EpsRel, ABCD, KExact, NExact);
+     
+     fprintf(f,"%e %e %e ",XYZ[0],XYZ[1],XYZ[2]);
+     fprintf(f,"%s %s %s ",CD2S(KHR[0]),CD2S(KHR[1]),CD2S(KHR[2]));
+     fprintf(f,"%s %s %s ",CD2S(NHR[0]),CD2S(NHR[1]),CD2S(NHR[2]));
+     fprintf(f,"%s %s %s ",CD2S(KExact[0]),CD2S(KExact[1]),CD2S(KExact[2]));
+     fprintf(f,"%s %s %s ",CD2S(NExact[0]),CD2S(NExact[1]),CD2S(NExact[2]));
+     fprintf(f,"\n");
+
+     TotalArea += Area;
+     KExactAvg += Area*sqrt( norm(KExact[0]) + norm(KExact[1]) + norm(KExact[2]) );
+     NExactAvg += Area*sqrt( norm(NExact[0]) + norm(NExact[1]) + norm(NExact[2]) );
+     KHRAvg    += Area*sqrt( norm(KHR[0])    + norm(KHR[1])    + norm(KHR[2])    );
+     NHRAvg    += Area*sqrt( norm(NHR[0])    + norm(NHR[1])    + norm(NHR[2])    );
+
+   };
+  fclose(f);
+  KExactAvg/=TotalArea;
+  NExactAvg/=TotalArea;
+  KHRAvg/=TotalArea;
+  NHRAvg/=TotalArea;
+
+  f=fopen("tCS.stats","a");
+  fprintf(f,"%e %e %e %i %i ",real(Omega),imag(Omega),kz,Nu,Pol);
+  fprintf(f,"%e %e %e ",KExactAvg,KHRAvg,RD(KExactAvg,KHRAvg));
+  fprintf(f,"%e %e %e ",NExactAvg,NHRAvg,RD(NExactAvg,NHRAvg));
+  fprintf(f,"\n");
+  fclose(f);
+ 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
@@ -227,7 +533,7 @@ int main(int argc, char *argv[])
   XMatrix1->SetEntry(0,1,0.0);
   XMatrix1->SetEntry(0,2,0.0);
   XMatrix1->SetEntry(1,0,0.0);
-  XMatrix1->SetEntry(1,1,0.0);
+  XMatrix1->SetEntry(1,1,2.0);
   XMatrix1->SetEntry(1,2,2.0);
   HMatrix *FMatrix1=new HMatrix(2,6,LHM_COMPLEX);
 
@@ -315,6 +621,17 @@ int main(int argc, char *argv[])
      G->AssembleRHSVector(Omega, kBloch, &CW, KN);
      M->LUSolve(KN);
 
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     CompareSurfaceCurrents(G, KN, Omega, Nu, kz, Pol, EpsRel, ABCD);
+
+     G->PlotSurfaceCurrents(KN, Omega, kBloch, "%s.pp",GetFileBase(GeoFileName));
+     PlotExactSurfaceCurrents(G, Omega, Nu, kz, Pol, EpsRel, ABCD);
+/*
+     VisualizeFields(G, Omega, kBloch, 0, &CW, "Square_1160.msh");
+     VisualizeFields(G, Omega, kBloch, KN, 0, "Square_1160.msh");
+*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/ 

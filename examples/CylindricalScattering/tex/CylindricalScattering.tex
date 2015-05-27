@@ -22,7 +22,7 @@
 %------------------------------------------------------------
 %------------------------------------------------------------
 \title {Scattering of Cylindrical Waves from a Dielectric Cylinder}
-\author {Homer Zeid}
+\author {Homer Reid}
 \date {May 23, 2015}
 
 %------------------------------------------------------------
@@ -33,7 +33,7 @@
 
 \begin{document}
 \pagestyle{myheadings}
-\markright{Homer Zeid: Cylindrical wave scattering}
+\markright{Homer Reid: Cylindrical wave scattering}
 \maketitle
 
 \tableofcontents
@@ -178,5 +178,19 @@ Scattered fields:
 \end{align*}
 \renewcommand{\arraystretch}{1.0}
 %====================================================================%
+
+\subsection{Surface Currents}
+\begin{align*}
+ \vb K &= -\vbhatt{\rho} \times \vb H\sups{interior} \\
+       &=+\frac{1}{Z_0 Z^\prime}
+           \Big[ \big(A N\sups{regular}_\varphi - BM\sups{regular}_\varphi\big)\vbhat{z}
+                -\big(A N\sups{regular}_z       - BM\sups{regular}_z      \big)\vbhatt{\varphi}
+           \Big]
+\\
+ \vb N &= +\vbhatt{\rho} \times \vb E\sups{interior} \\
+       &=  \Big[ \big(A M\sups{regular}_\varphi + BM\sups{regular}_\varphi\big)\vbhat{z}
+                -\big(A M\sups{regular}_z       + BM\sups{regular}_z      \big)\vbhatt{\varphi}
+           \Big]
+\end{align*}
 
 \end{document}

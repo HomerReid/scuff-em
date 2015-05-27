@@ -18,7 +18,7 @@
  */
 
 /*
- * CylindricalWave .cc   -- spherical wave implementation of IncField
+ * CylindricalWave .cc -- cylindrical wave implementation of IncField
  *
  * homer reid          -- 11/2009 -- 2/2012
  */
@@ -36,8 +36,13 @@
 /**********************************************************************/
 /* RPZ = 'rho, phi, z' ************************************************/
 /**********************************************************************/
-void CoordinateCar2Cyl(double XYZ[3], double RPZ[3])
+void CoordinateCar2Cyl(double X[3], double RPZ[3])
 {
+  double XYZ[3];
+  XYZ[0] = -X[2];
+  XYZ[1] =  X[1];
+  XYZ[2] =  X[0];
+
   RPZ[0] = sqrt(XYZ[0]*XYZ[0] + XYZ[1]*XYZ[1]);
   RPZ[1] = atan2(XYZ[1], XYZ[0]);
   RPZ[2] = XYZ[2];
@@ -47,9 +52,15 @@ void VectorCyl2Car(double Phi, cdouble VCyl[3], cdouble VCar[3])
 { 
   double CosPhi=cos(Phi), SinPhi=sin(Phi);
 
-  VCar[0] = CosPhi*VCyl[0] - SinPhi*VCyl[1];
-  VCar[1] = SinPhi*VCyl[0] + CosPhi*VCyl[1];
-  VCar[2] = VCyl[2];
+  cdouble VCarPrime[3];
+  VCarPrime[0] = CosPhi*VCyl[0] - SinPhi*VCyl[1];
+  VCarPrime[1] = SinPhi*VCyl[0] + CosPhi*VCyl[1];
+  VCarPrime[2] = VCyl[2];
+
+  VCar[0] =      VCarPrime[2];
+  VCar[1] =      VCarPrime[1];
+  VCar[2] = -1.0*VCarPrime[0];
+
 }
 
 /**********************************************************************/
@@ -166,22 +177,8 @@ void CylindricalWave::GetFields(const double X[3], cdouble EH[6])
 
   // convert the cylindrical components of E and H to
   // cartesian components
-  cdouble EHCar[6];
   double Phi = RPZ[1];
-  VectorCyl2Car(Phi, EHCyl+0, EHCar+0);
-  VectorCyl2Car(Phi, EHCyl+3, EHCar+3);
-
-  // rotate to a new coordinate system in which the 
-  // cylinder axis is the X axis; we do this because  
-  // the X axis is always the axis of periodicity for 
-  // SCUFF-EM geometries of infinite extent in one
-  // spatial direction 
-  EH[0*3 + 0] =      EHCar[0*3 + 2];
-  EH[0*3 + 1] =      EHCar[0*3 + 1];
-  EH[0*3 + 2] = -1.0*EHCar[0*3 + 0];
-
-  EH[1*3 + 0] =      EHCar[1*3 + 2];
-  EH[1*3 + 1] =      EHCar[1*3 + 1];
-  EH[1*3 + 2] = -1.0*EHCar[1*3 + 0];
+  VectorCyl2Car(Phi, EHCyl+0, EH+0);
+  VectorCyl2Car(Phi, EHCyl+3, EH+3);
 
 }

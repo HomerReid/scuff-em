@@ -1130,26 +1130,34 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /***************************************************************/
   int NS = G->NumSurfaces;
   int NBF = G->TotalBFs;
+  int NET = G->TotalEdges;
   double XTorque[3]={0.0, 0.0, 0.0};
 #ifndef USE_OPENMP
   if (G->LogLevel>=SCUFF_VERBOSE2) Log(" no multithreading...");
 #else
   int NumThreads=GetNumThreads();
   if (G->LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
-#pragma omp parallel for collapse(5), schedule(dynamic,1), num_threads(NumThreads)
+#pragma omp parallel for collapse(3), schedule(dynamic,1), num_threads(NumThreads)
 #endif  
   for(int nx=0; nx<NX; nx++)
-   for(int nsa=0; nsa<NS; nsa++)
-    for(int nea=0; nea<NBF; nea++)
-     for(int nsb=0; nsb<NS; nsb++)
-      for(int neb=0; neb<NBF; neb++)
-       { 
-         RWGSurface *Sa = G->Surfaces[nsa];
-         RWGSurface *Sb = G->Surfaces[nsb];
-         if (nea>=Sa->NumEdges) continue;
-         if (neb>=Sb->NumEdges) continue;
-         if (nsa==0 && nea==0 && nsb==0 && neb==0) 
-          LogPercent(nx,NX,10);
+   for(int neta=0; neta<NET; neta++)
+    for(int netb=0; netb<NET; netb++)
+     { 
+       if (neta==0 && netb==0)
+        LogPercent(nx,NX,100);
+
+       int nsa=0, nea=neta;
+       while(nea > G->Surfaces[nsa]->NumEdges)
+        nea -= G->Surfaces[nsa++]->NumEdges;
+       int nsb=0, neb=netb;
+       while(neb > G->Surfaces[nsb]->NumEdges)
+        neb -= G->Surfaces[nsb++]->NumEdges;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nx==0)
+ printf("(%i=%i,%i) (%i=%i,%i)\n",neta,nsa,nea,netb,nsb,neb);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+       RWGSurface *Sa = G->Surfaces[nsa];
+       RWGSurface *Sb = G->Surfaces[nsb];
 
          double X[3];
          XMatrix->GetEntriesD(nx, "0:2", X);
