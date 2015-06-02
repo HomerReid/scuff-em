@@ -54,7 +54,7 @@
 \section{Green's functions and LDOS in the non-periodic case}
 
 The scattering parts of the electric and magnetic
-dyadic Green's functions of a geometry are defined by
+dyadic Green's functions (DGFs) of a geometry are defined by
 %====================================================================%
 \begin{align*}
  \mc G_{ij}\sups{E}(\omega; \vb x, \vb x^\prime)
@@ -95,7 +95,7 @@ length.
 
 The enhancement of the local density of states (LDOS)
 at frequency $\omega$ and at a point $\vb x$ in a 
-scattering geometry is related to the scattering DGFS according 
+scattering geometry is related to the scattering DGFs according 
 to\footnote{K Joulain et al.,``Definition and measurement of the local 
 density of electromagnetic states close to an interface,''
 Physical Review B \textbf{68} 245405 (2003)}
@@ -248,22 +248,10 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Example of a Brillouin-zone integral}
-
-As a simple example of an application of Brillouin-zone integration,
-let's consider the problem of computing the field of an
-\textit{individual} point source by summing the fields of
-many appropriately-phased point source \textit{arrays}.
-This will give us some insight into how many cubature points we 
-may expect
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
 \section{Test: LDOS above an infinite half-space}
 
-At a height $z$ above an infinite material half-space,
+At a height $z$ above an infinite dielectric half-space
+with relative permittivity $\epsilon$ (and $\mu=1$)
 the enhancement of the electric LDOS may be expressed
 as an integral over a dimensionless parameter 
 $\kappa$:\footnote{K. Joulain et al.,``Definition and 
@@ -281,11 +269,11 @@ measurement of the local density of electromagnetic states
   F(\kappa)=
    \frac{1}{\kappa_z}
    \begin{cases}
-         2 + \text{Re }\Big( r^s e^{2 i k_z z} \Big)
-           + \Big(2\kappa^2-1\Big) \text{Re }\Big( r^p e^{2ik_z z}\Big)
+         2 + \text{Re }\Big( r\subt{TE} e^{2 i k_z z} \Big)
+           + \Big(2\kappa^2-1\Big) \text{Re }\Big( r\subt{TM} e^{2ik_z z}\Big)
          , \qquad &\kappa < 1 \\[10pt]
-    \Big[   \text{Im }\big( r^s \big)
-           + \big(2\kappa^2-1\big) \text{Im }\big( r^p \Big)
+    \Big[   \text{Im }\big( r\subt{TE} \big)
+           + \big(2\kappa^2-1\big) \text{Im }\big( r\subt{TM} \Big)
     \Big]e^{-2k_z z}, \qquad &\kappa > 1
    \end{cases}
 }
@@ -298,15 +286,20 @@ $$ \kappa_z \equiv
      \sqrt{\kappa^2-1}, \qquad &\kappa > 1, 
    \end{cases}
    \qquad
+   \kappa^\prime_z \equiv 
+   \begin{cases}
+     \sqrt{\epsilon-\kappa^2}, \qquad &\kappa < 1, \\
+     \sqrt{\kappa^2-\epsilon}, \qquad &\kappa > 1, 
+   \end{cases}
+   \qquad
    k_z \equiv k_0\kappa_z,
    \qquad
    k_0 \equiv \frac{\omega}{c},
 $$  
 %====================================================================%
-$$ r_s =,
-   \qquad 
-   r_p =
-   .
+$$ r\subt{TE} = \frac{\kappa_z - \kappa_z^\prime}{\kappa_z + \kappa_z^\prime}
+   \qquad
+   r\subt{TM} = \frac{\epsilon \kappa_z - \kappa_z^\prime}{\epsilon \kappa_z + \kappa_z^\prime}
 $$
 %====================================================================%
 The integral in (\ref{JoulainLDOS}) is computing the LDOS as a trace in 
@@ -317,12 +310,13 @@ wavevector. More specifically, if we think in terms of the usual
 Fresnel-scattering picture of a plane wave incident on a planar interface, 
 then $\kappa$ is the sine of the incident angle and $\kappa_z$ is its 
 cosine, i.e. the wavevector of the plane wave 
-is %====================================================================
+is 
+%====================================================================
 $$ \vb k = (k_x, k_y, k_z) = k_0(\sin\theta, 0, \cos\theta)
    =k_0(\kappa, 0, \kappa_z)
 $$
 %====================================================================
-and $r^s$ and $r^p$ are the Fresnel coefficients for reflection
+and $r\subt{TE}$ and $r\subt{TM}$ are the Fresnel coefficients for reflection
 of TE and TM waves from the half-space. 
 This interpretation applies to the $0\le \kappa<1$ contribution to 
 the integral in (\ref{JoulainLDOS}). 
@@ -339,7 +333,7 @@ as we move away from the half-space into the vacuum region.
 \subsection*{Expression as a Brillouin-zone integral}
 
 To write equation (\ref{JoulainLDOS}) in a form that facilitates
-comparison with {\sc scuff-ldos} calcuations, I first interpret
+comparison with {\sc scuff-ldos} calculations, I first interpret
 the integral over $\kappa$ as an integral over the upper-right
 quadrant of the $\vb k_\parallel=(k_x,k_y)$ plane; here
 $\kappa$ is the radial component of $\vb k_\parallel$ measured in
@@ -607,7 +601,7 @@ $$
 For testing purposes it is useful to have analytical expressions
 for the dyadic Green's functions above an infinite half space.
 
-\subsection*{Plane-wave representation of point-source fields}
+\subsection*{Plane-wave decomposition of point-source fields}
 
 Note: In what follows,
 $\vb k=(k_x,k_y)$ is a \textit{two-dimensional} vector and we have
@@ -628,37 +622,42 @@ $$ k_z \equiv \sqrt{k_0^2 - |\vb k|^2},
    \end{cases}.
 $$
 %====================================================================%
-Define generalized transverse-electric and transverse-magnetic plane waves:
+For arbitrary $\vb k$ I now define generalized\footnote{These 
+are ``generalized'' plane waves in the sense that $k_z$ is 
+imaginary for sufficiently large $\vb k$, in which case the 
+waves are evanescent.} transverse-electric and
+transverse-magnetic plane waves propagating in the direction
+of $\vb k\subt{3D}$:
 %====================================================================%
 $$\begin{array}{ccccccc}
  \vb E^{\pm} \subt{TE}(\vb x; \vb k)
-   &\equiv& E_0 \widehat{\vb P}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
+   &\equiv& E_0 \vb P(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
    &\qquad&
  \vb H^{\pm} \subt{TE}(\vb x; \vb k)
-   &\equiv& H_0 \widehat{\vb Q}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
+   &\equiv& H_0 \overline{\vb P}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
 \\[8pt]
 %--------------------------------------------------------------------%
  \vb E^{\pm} \subt{TM}(\vb x; \vb k)
-   &\equiv& -E_0 \widehat{\vb Q}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
+   &\equiv& -E_0 \overline{\vb P}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
    &\qquad&
  \vb H^{\pm} \subt{TM}(\vb x; \vb k)
-   &\equiv& H_0 \widehat{\vb P}(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
+   &\equiv& H_0 \vb P(\vb k) e^{i\vb k \cdot \vbrho \, \pm \, ik_z z},
 \end{array}$$
 %====================================================================%
 $$ E_0 \equiv 1 \text{ volt/$\mu$m}, \qquad H_0\equiv \frac{E_0}{Z_0}.$$
 %====================================================================%
-where I defined two $\vb k$-dependent unit vectors 
-$\widehat{\vb P}, \widehat{\vb Q}$ with the properties 
-that \textbf{(1)} both $\wh{\vb P}, \wh{\vb Q}$ are orthogonal to $\vb k$,
-and 
-\textbf{(2)} $\wh {\vb P}$ is orthogonal to $\vbhat{z}$ (i.e. ``transverse'').
+where $\vb P$ and $\overline{\vb P}$ are unit-magnitude
+polarization vectors with the properties
+that \textbf{(1)} both $\vb P$ and $\overline{\vb P}$ are
+orthogonal to $\vb k\subt{3D}$, and
+\textbf{(2)} $\vb P$ is orthogonal to $\vbhat{z}$ (i.e. ``transverse'').
 %====================================================================%
-$$ \widehat{ \vb P}(\vb k) \equiv
+$$ \vb P(\vb k) \equiv
    \frac{1}{|\vb k|}
    \left(\begin{array}{c}-k_y \\ k_x \\ 0 \end{array}\right),
    \qquad
-   \widehat{\vb Q}(\vb k) \equiv
-   \frac{1}{k_0}\Big[ \vb k\subt{3D} \times \widehat{\vb P}(\vb k) \Big]
+   \overline{\vb P}(\vb k) \equiv
+   \frac{1}{k_0}\Big[ \vb k\subt{3D} \times \vb P(\vb k) \Big]
    =
    \frac{1}{k_0 |\vb k|}
    \left(\begin{array}{c} \pm k_x k_z \\ \pm k_y k_z \\ k_x^2 + k_y^2 
@@ -717,9 +716,14 @@ $$\begin{array}{ccccccc}
  &=& 0
  &\qquad&
  \displaystyle{ C^{z}\subt{TM} }
- &=& \displaystyle{ \frac{ \pm ikz  }{2k_0^2 |\vb k|^2} }
+ &=& \displaystyle{ \frac{ \pm ikz  }{2k_0^2 |\vb k|^2} }.
 \end{array}$$
 %====================================================================%
+
+\subsection*{Plane-wave decomposition of DGFs}
+
+The point of this decomposition is that each
+plane wave is reflected from the dielectric interface
 
 \subsection*{Converting $k_\rho$ integrals to Brillouin-zone integrals}
 

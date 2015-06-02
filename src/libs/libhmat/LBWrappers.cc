@@ -219,8 +219,7 @@ int HMatrix::LUSolve(HMatrix *X, char Trans, int nrhs)
    ErrExit("LUFactorize() must be called before LUSolve()");
   if ( Trans!='N' && StorageType!=LHM_NORMAL )
    ErrExit("transposed LU-solves not available for packed matrices");
-
-  if ( RealComplex==LHM_REAL && StorageType==LHM_NORMAL )
+if ( RealComplex==LHM_REAL && StorageType==LHM_NORMAL )
    dgetrs_(&Trans, &NR, &nrhs, DM, &NR, ipiv, X->DM, &NR, &info);
   else if ( RealComplex==LHM_REAL && StorageType==LHM_SYMMETRIC )
    dsptrs_("U", &NR, &nrhs, DM, ipiv, X->DM, &NR, &info);
@@ -837,5 +836,70 @@ double HMatrix::GetRCond(double ANorm, bool UseInfinityNorm)
    };
 
   return RCond;
+
+}
+
+/***************************************************************/
+/* dot product of vectors **************************************/
+/***************************************************************/
+cdouble DoDot(HVector *A, HVector *B, bool Hermitian=true)
+{
+  if ( (A->N != A->N) || (A->RealComplex != B->RealComplex) )
+   { Warn("attempt to dot-product incompatible vectors (returning 0)");
+     return 0.0;
+   };
+
+  int N=A->N, IncX=1, IncY=1;
+  if (A->RealComplex==LHM_REAL)
+   return ddot_(&N, A->DV, &IncX, B->DV, &IncY);
+  else if (Hermitian)
+   return zdotc_(&N, A->ZV, &IncX, B->ZV, &IncY);
+  else 
+   return zdotu_(&N, A->ZV, &IncX, B->ZV, &IncY);
+}
+
+cdouble HVector::Dot(HVector *B)
+ { return DoDot(this, B, true); }
+
+cdouble HVector::DotU(HVector *B)
+ { return DoDot(this, B, false); }
+
+double HVector::DotD(HVector *B)
+ { return real(DoDot(this, B, true)); }
+
+/***************************************************************/
+/* matrix-vector multiplication, A*X = Y (where this=A)        */
+/*                                                             */
+/*  Transpose=='C'   // use the hermitian transpose            */
+/*  Transpose=='T'   // use the non-hermitian transpose        */
+/*  Transpose==anything else for no transpose                  */
+/***************************************************************/
+void HMatrix::Apply(HVector *X, HVector *Y, char TransChar)
+{
+  if ( StorageType!=LHM_NORMAL )
+   ErrExit("%s:%i: HMatrix::Apply not yet implemented for packed matrices");
+  if ( X==0 || Y==0 || (RealComplex!=X->RealComplex) || (RealComplex!=Y->RealComplex) )
+   ErrExit("%s:%i: data type mismatch in HMatrix::Apply",__FILE__,__LINE__);
+
+  char Trans[2]="N";
+  int NREffective=NR;
+  int NCEffective=NC;
+  if (TransChar=='T' || TransChar=='C')
+   { Trans[0]=TransChar;
+     NREffective=NC;
+     NCEffective=NR;
+   };
+
+  if ( (X->N != NCEffective) || (Y->N != NREffective) )
+   ErrExit("%s:%i: dimension mismatch in HMatrix::Apply",__FILE__,__LINE__);
+
+  int IncX=1, IncY=1;
+  double dOne=1.0, dZero=0.0;
+  cdouble zOne=1.0, zZero=0.0;
+
+  if (RealComplex==LHM_REAL)
+   dgemv_(Trans, &NR, &NC, &dOne, DM, &NR, X->DV, &IncX, &dZero, Y->DV, &IncY);
+  else 
+   zgemv_(Trans, &NR, &NC, &zOne, ZM, &NR, X->ZV, &IncX, &zZero, Y->ZV, &IncY);
 
 }

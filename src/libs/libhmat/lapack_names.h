@@ -5,6 +5,7 @@
 #define dlange_ F77_FUNC(dlange,DLANGE)
 #define dlamch_ F77_FUNC(dlamch,DLAMCH)
 #define ddot_ F77_FUNC(ddot,DDOT)
+#define zdotc_ F77_FUNC(zdotc,ZDOTC)
 #define zdotu_ F77_FUNC(zdotu,ZDOTU)
 #define cbdsqr_ F77_FUNC(cbdsqr,CBDSQR)
 #define cgbbrd_ F77_FUNC(cgbbrd,CGBBRD)
@@ -1227,4 +1228,5 @@
 #define dgemm_ F77_FUNC(dgemm,DGEMM)
 #define dgemv_ F77_FUNC(dgemv,DGEMV)
 #define zgemm_ F77_FUNC(zgemm,ZGEMM)
+#define zgemv_ F77_FUNC(zgemv,ZGEMV)
 #endif

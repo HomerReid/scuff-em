@@ -59,33 +59,36 @@ computations~\cite{Reid2009, Reid2011, Reid2013B} and later
 extended to non-equilibrium phenomena in 
 Refs.~\citenum{Rodriguez2012C} and \citenum{Rodriguez2013B}.
 Here we present a quick summary of the key equations in this
-approach.
+approach; slightly more detail may be found in the Appendices.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Physical quantities from surface-current bilinears}
+\subsection{Time-average quantities from surface-current bilinears}
 \label{PQsFromSCBsSection}
 
-The FSC approach begins with the observation that, in a 
-classical, deterministic scattering problem involving the 
-fields of known external sources impinging upon a collection
-of material bodies, many quantities of physical interest 
-may be expressed as bilinear (quadratic) products of the 
-\textit{surface currents} induced on the body surfaces by 
-the external fields. The quantities that may be expressed
-in this way include both \textbf{(a)} spatially-resolved 
-fluxes of energy and momentum at individual points in space,
-and \textbf{(b)} total (spatially-integrated) power-transfer 
-rates, forces, and torques on individual bodies.
+The FSC approach begins with the observation that, in a
+classical, deterministic frequency-domain scattering problem 
+involving the fields of known time-harmonic external sources 
+impinging upon a collection of material bodies, the time-average
+values of many physical quantities of interest may be expressed 
+as bilinear (quadratic) products of the \textit{surface currents} 
+induced on the body surfaces by
+the external fields. The quantities whose time-average values
+may be be expressed in this way include both \textbf{(a)} 
+spatially-resolved fluxes of energy and momentum at individual 
+points in space, and \textbf{(b)} total (spatially-integrated) 
+power-transfer rates, forces, and torques on individual bodies.
 
 More specifically, let the six-vector of surface electric
 and magnetic currents (flowing on the surfaces of \textit{all}
 bodies in a geometry) be
 %====================================================================%
-$$ \bmc C(\vb x)\equiv{\vb K(\vb x) \choose \vb N(\vb x)}
-   \approx \sum_{\alpha} c_\alpha \bmc B_\alpha(\vb x)
-$$
+\numeq{BigCDef}
+{
+  \bmc C(\vb x)\equiv{\vb K(\vb x) \choose \vb N(\vb x)}
+  \approx \sum_{\alpha} c_\alpha \bmc B_\alpha(\vb x)
+}
 %====================================================================%
 where we have discretized by approximating $\bmc C(\vb x)$ as an
 expansion in a discrete set of six-vector basis
@@ -97,7 +100,7 @@ $0 \choose \vb b_\alpha$
 where $\vb b_\alpha$ is a three-vector RWG basis function.
 However, the FSC formalism is not specific to this choice.}
 \{$\bmc B_\alpha(\vb x)$\}; here $\{c_\alpha\}$ are 
-scalar expansion coefficients.\footnote{In {\sc scuff-em}
+scalar expansion coefficients\footnote{In {\sc scuff-em} 
 the basis functions are dimensionless and the expansion
 coefficients have units of 
 %====================================================================%
@@ -106,8 +109,10 @@ coefficients have units of
  \quad \text{(electric surface currents)}, \qquad
  \big[c_{2\alpha+1}\big]=\frac{\text{Volts}}{\text{meters}}
  \quad \text{(magnetic surface currents).}
-\end{align*}}
+\end{align*}} typically obtained by 
 %====================================================================%
+inverting a linear system to solve a scattering 
+problem.
 (We work at a fixed frequency $\omega$ and assume all fields
 and currents vary in time like $e^{-i\omega t}$.)
 
@@ -120,7 +125,9 @@ form
 %====================================================================%
 \numeq{QcQc} {Q = \vb c^\dagger \vb Q \vb c}
 %====================================================================%
-where $Q$ is the quantity of interest and $\vb Q$ is a matrix
+where $Q$ is the quantity of interest, $\vb c$ is the 
+vector of surface-current coefficients in (\ref{BigCDef}),
+and $\vb Q$ is a matrix
 that depends on the quantity we are computing and the method we
 use to compute it.
 
@@ -148,8 +155,8 @@ $$\begin{array}{*3{>{\displaystyle}l}}
    \vb c^\dagger \vb Q\supt{TFLUX}(\vb x; \vb x_0, \vbhat{u}, \vbhat{n}) \vb c
 \end{array}$$
 %====================================================================%
-where the form of the $\vb Q\supt{P,F,T}$ matrices is derived in
-the Appendix. (In the last line, $\vb x_0$ is the origin about which 
+where the form of the $\vb Q\supt{FLUX}$ matrices is derived in
+an Appendix. (In the last line, $\vb x_0$ is the origin about which 
 we are computing the torque).
 
 \paragraph{Spatially-integrated PFT fluxes} 
@@ -162,22 +169,21 @@ $$\begin{array}{*3{>{\displaystyle}l}}
 \text{Absorbed power:} \qquad 
 & P\sups{abs}
 &=\frac{1}{2}\text{Re }
-   \vb c^\dagger \vb Q\supt{P}(\mc S) \vb c
+   \vb c^\dagger \vb Q\supt{PTOT}(\mc S) \vb c
 \\[10pt]
 \text{Force: } \qquad 
 &\vbhat{u} \cdot \vb F
 &=\frac{1}{2}\text{Re }
-   \vb c^\dagger \vb Q\supt{F}(\mc S; \vbhat{u}) \vb c
+   \vb c^\dagger \vb Q\supt{FTOT}(\mc S; \vbhat{u}) \vb c
 \\[10pt]
 \text{Torque: } \qquad 
 &\vbhat{u} \cdot \bmc T
 &=\frac{1}{2}\text{Re }
-   \vb c^\dagger \vb Q\supt{T}(\mc S; \vb x_0, \vbhat{u}) \vb c
+   \vb c^\dagger \vb Q\supt{TTOT}(\mc S; \vb x_0, \vbhat{u}) \vb c
 \end{array}$$
 %====================================================================%
-
-Expressions for all of the $\vb Q$ matrices are given
-in Appendix \ref{QMatrixAppendix}.
+Explicit expressions for the $\vb Q\supt{TOT}$ matrices are given
+in the Appendices.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -198,9 +204,11 @@ A precise statement of the FSC equivalence is as follows.
 \begin{itemize}
 
 \item
-If $Q$ is a physical quantity which (in a classical, deterministic 
-setting) is expressed as a bilinear function of the surface currents 
-involving a matrix $\vb Q$, i.e.
+If $Q$ is a physical quantity whose time-average
+value (in a classical, deterministic scattering problem
+involving time-harmonic fields at frequency $\omega$)
+may be expressed as a bilinear function of the surface currents
+with a matrix $\vb Q(\omega)$, i.e
 %====================================================================%
 \begin{subequations}
 \begin{equation}
@@ -245,12 +253,14 @@ $s$ alone.
 The matrix $\vb R_s$ in (\ref{FSCEquivalence})---the ``Rytov''
 matrix---furnishes a concise description of the fluctuating sources
 inside body $s$. For a given output quantity 
-$Q$, the generalized flux $\Phi_s$ is the contribution to $Q$ 
+$Q$, the generalized flux $\Phi_s$ is the contribution to 
+$\langle Q \rangle$ 
 of just the fluctuating currents that lie within body $s$
 (here $s$ stands for ``source''), although these contributions
 are computed with proper consideration paid to the scattering
 response of the other bodies in the geometry. In other words,
-$\Theta(T_s,\omega)\Phi_s$ is the contribution to $Q$ 
+$\Theta(T_s,\omega)\Phi_s$ is the contribution to 
+$\langle Q \rangle$ 
 obtained by setting body $s$ to temperature $T_s$ and setting
 all other bodies to \textit{zero} temperature, so that those
 bodies are present as electromagnetic scatterers but not as 
@@ -316,7 +326,42 @@ sources of radiation.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Output files}
+\section{Output files and units}
+
+\subsection{General comments about units in {\sc scuff-neq}}
+
+The numerical values specified as inputs to, or reported
+as outputs by, {\sc scuff-em} are interpreted as multiples
+of the following base units.
+
+%====================================================================%
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|p{0.5\textwidth}|}\hline
+ Length            & Microns ($L_0=$ 1 $\mu$m)
+\\\hline
+ Angular frequency & $\omega_0=\frac{c}{1\text{ $\mu$m}}
+                      =3\cdot 10^{14}$ rad/sec. 
+                     (This corresponds to a free-space 
+                      wavelength of 
+                      $\lambda\approx 6.28$ $\mu$m.)
+\\\hline
+ Power             & Watts 
+\\\hline
+ Force             & Nanonewtons
+\\\hline
+ Torque            & Nanonewtons $\times$ microns
+\\\hline
+ Power flux        & Watts / microns$^2$
+\\\hline
+ Linear momentum flux  & Nanonewtons / microns$^2$
+\\\hline
+ Angular momentum flux & Nanonewtons / microns
+\\\hline
+\end{tabular}
+\end{center}
+\renewcommand{\arraystretch}{1.0}
+%====================================================================%
 
 \subsection{Output files for spatially-integrated quantities}
 
@@ -381,11 +426,11 @@ by {\sc scuff-neq} to three distinct output files, as follows:
 \numeq{QAverage2}
 {
  \qquad \big\langle Q_d\big\rangle
- = \hbar \omega_0^2
+ = 
    \underbrace{
    \Bigg[
    \int_0^\infty 
-  \underbrace{\bigg\{ \sum_s \, \wh \Theta_s(u)
+  \underbrace{\bigg\{ \hbar\omega_0^2 \sum_s \, \wh \Theta_s(u)
   \underbrace{\Phi\supt{PFT}_{s\to d}(u)}_{\texttt{.SIFlux}}
              \bigg\} }_{\texttt{.SIIntegrand}}
    \,\,du \Bigg]
@@ -397,19 +442,39 @@ More specifically,
 \begin{itemize}
   \item The quantity $\Phi_{s\to d}(u)$ is written to the
         \texttt{.SIFlux} file. This quantity may be interpreted
-        as the PFT per unit frequency per
-        unit temperature exerted on body $d$ due to sources
+        as the PFT per unit frequency per unit temperature 
+        (which, dimensionally, amounts to the PFT per unit 
+         power, i.e. the PFT per watt) exerted on body $d$ 
+        due to sources
         in body $s.$ This is a temperature-independent quantity.
         For \texttt{PFT}=power, this quantity
         is \textit{dimensionless}. For \texttt{PFT}=force,
         this quantity has units of \textit{nanoNewtons/watts}.
+        For \texttt{PFT}=torque, this quantity has units of 
+        \textit{nanoNewtons $\times$ microns/watts}.
+
   \item The quantity written to the \texttt{.SIIntegrand} file
-        is the PFT per unit frequency exerted on body $d$ due to 
-        thermally-weighted sources in body $s$.
+        is the PFT per unit frequency exerted on body $d$ due
+        to thermally-weighted sources in body $s$.
         (The \texttt{.SIIntegrand} file records, for each 
          destination body $d$, both the individual contributions
          of each source body $s$ and the total contributions
-         of all source bodies.)
+         of all source bodies.) Plotting this quantity
+         versus the frequency yields spectrally-resolved
+         PFT information showing the contributions of fluctuations
+         at each frequency to the power, force, or torque on 
+         the destination body from the souce body.
+
+         When we say ``per unit frequency'' here, we mean 
+         ``per unit \textit{dimensionless} frequency'' 
+         (i.e. per unit interval of the dimensionless 
+          frequency $u$), which means that the quantity 
+         reported in the \texttt{.SIIntegrand} file has the 
+         same units as the final PFT output quantity:
+         \textit{watts} for power,
+         \textit{nanonewtons} for force, or 
+         \textit{nanonewtons $\times$ microns} for torque.
+
   \item The quantity written to the \texttt{.NEQPFT} file
         is the total time-average PFT exerted on body $d$ due to 
         thermally-weighted sources in body $s$.
@@ -417,17 +482,12 @@ More specifically,
          destination body $d$, both the individual contributions
          of each source body $s$ and the total contributions
          of all source bodies.)
+         This quantity has units of 
+         \textit{watts} for power,
+         \textit{nanonewtons} for force,
+         \textit{nanonewtons $\times$ microns} for torque.
 \end{itemize}
 %====================================================================%
-
-\subsection{An explicit example}
-
-To elucidate the significance of the various numerical
-quantities reported in the {\sc scuff-neq} output files,
-we now consider two explicit worked examples.
-
-\subsubsection{Power radiation of a single sphere}
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -620,13 +680,122 @@ is the six-vector of fields produced by basis function $\bmc B_\alpha$
 populated with unit strength. These may be calculated numerically
 as convolutions over basis functions,
 %--------------------------------------------------------------------%
-$$ \bmc F_\alpha(\vb x)
+\numeq{FAlpha}
+{
+  \bmc F_\alpha(\vb x)
    =\int_{\sup \bmc B_\alpha} \bmc{G}(\vb x, \vb x^\prime)
     \bmc B_\alpha(\vb x^\prime) \, d\vb x^\prime
-$$
+}
 %--------------------------------------------------------------------%
 where $\bmc{G}$ is an appropriate $6\times 6$ dyadic Green's
 function.
+
+\subsection*{Regions and surfaces}
+
+Equations (\ref{FFromC}) and (\ref{FAlpha}) gloss over
+some subtleties regarding the location of the evaluation
+point $\vb x$. To get these straight, consider
+a {\sc scuff-em} geometry like that depicted
+in Figure \ref{RegionsAndSurfaces1}, in which we 
+have multiple homogeneous regions $\{\mc R_i\}$
+and multiple interface surfaces $\{\mc S_i\}$.
+
+If the evaluation point $\vb x$ in (\ref{FFromC})
+lies in region $\mc R_i$, then the summation in
+equation (\ref{FFromC}) runs only over the 
+contributions of basis functions lying on the 
+surface bounding $\mc R_i$:
+%--------------------------------------------------------------------%
+\numeq{FFromCProper}
+{ \vb x\in \mc R_i 
+  \qquad \Longrightarrow \qquad 
+  \bmc F(\vb x)=
+  \sum_{\bmc B_\alpha \in \partial \mc R_i} 
+  c_\alpha \bmc F_\alpha(\vb x)
+}
+%--------------------------------------------------------------------%
+In this case, the dyadic Green's function that enters
+(\ref{FAlpha}) is the DGF for region $\mc R_i$:
+%--------------------------------------------------------------------%
+\numeq{FAlphaProper}
+{ \vb x\in \mc R_i
+  \qquad \Longrightarrow \qquad 
+  \bmc F_\alpha(\vb x)
+   =\int_{\sup \bmc B_\alpha} \bmc{G}(\mc R_i; \vb x, \vb x^\prime)
+    \bmc B_\alpha(\vb x^\prime) \, d\vb x^\prime
+}
+
+%####################################################################%
+\begin{figure}
+\begin{center}
+\resizebox{\textwidth}{!}{\includegraphics{RegionsAndSurfaces1.pdf}}
+\caption{Schematic depiction of a {\sc scuff-em} geometry containing
+         nested surfaces and three-material junctions.
+         The body at left is a silicon ellipsoid ($\mc R_1$)
+         that fully contains an SiO$_2$ subregion ($\mc R_2$).
+         The object at right is a silicon ellipsoid partially
+         coated with gold; the interior of the ellipsoid and 
+         the interior of the gold coating layer are regions 
+         $\mc R_3$ and $\mc R_4$ respectively.
+         }
+\label{RegionsAndSurfaces1}
+\vspace{1in}
+\resizebox{\textwidth}{!}{\includegraphics{RegionsAndSurfaces2.pdf}}
+\caption{The surfaces for the geometry of 
+         Figure \ref{RegionsAndSurfaces1}. Regions $\mc R_1$
+         and $\mc R_2$ are bounded by the closed surfaces
+         $\mc S_1$ and $\mc S_2$, while regions $\mc R_3$ and
+         $\mc R_4$ are bounded by appropriate unions of the 
+         open surfaces $\mc S_3, \mc S_4, \mc S_5.$
+         More specifically, the region boundaries are 
+         $ \partial R_1=S_1,
+            \partial R_2=S_2,
+            \partial R_3=\mc S_3 \cup \mc S_5, 
+            \partial R_4=\mc S_4 \cup \mc S_5.
+         $
+         }
+\label{RegionsAndSurfaces2}
+\end{center}
+\end{figure}
+%####################################################################%
+
+\begin{figure}
+\begin{center}
+\begin{verbcode}
+  REGION R3 MATERIAL Silicon
+  REGION R4 MATERIAL Gold
+
+  OBJECT  S1 
+	MESHFILE S1.msh
+	MATERIAL Silicon
+  ENDOBJECT
+
+  OBJECT  S2 
+	MESHFILE S2.msh
+	MATERIAL SiO2
+  ENDOBJECT
+
+  SURFACE S3
+        MESHFILE S3.msh
+        REGIONS EXTERIOR R3
+  ENDSURFACE
+
+  SURFACE S4
+        MESHFILE S4.msh
+        REGIONS EXTERIOR R4
+  ENDSURFACE
+
+  SURFACE S5
+        MESHFILE S5.msh
+        REGIONS R3 R4
+  ENDSURFACE
+\end{verbcode}
+\end{center}
+\caption{Sample \texttt{.scuffgeo} file for the geometry 
+         of Figure \ref{RegionsAndSurfaces1}.}
+\label{scuffgeoFile}
+\end{figure}
+%####################################################################%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -665,11 +834,11 @@ $$
    \end{array}\right).
 $$
 %====================================================================%
-Similarly, the flux of $i$-directed linear momentum is
+Similarly, the flux of $\vbhat{u}$-directed linear momentum is
 %--------------------------------------------------------------------%
 \begin{align}
- \vb T_{i}(\vb x) \cdot \vbhat{n} 
-&=\frac{1}{2}\text{ Re }
+ \vbhat{u} \cdot \vb T(\vb x) \cdot \vbhat{n} 
+&=\frac{1}{2}\text{ Re } u_i
   \left[ \epsilon E^*_i(\vb x) E_j(\vb x) 
              +\mu H^*_i(\vb x) H_j(\vb x) 
        -\frac{\delta_{ij}}{2}
@@ -679,65 +848,77 @@ Similarly, the flux of $i$-directed linear momentum is
  \right] \hat {n}_j
 \nn
 &= \frac{1}{4}\bmc{F}^\dagger(\vb x) 
-   \, \bmc{N}\IF \, \bmc{F}(\vb x)
+   \, \bmc{N}\supt{F} \, \bmc{F}(\vb x)
 \label{IFVMVP}
 \end{align}
 with
 %--------------------------------------------------------------------%
 $$
-   \bmc N\IF=
+   \bmc N\supt{F}
+    =
    \left(\begin{array}{cc}
-   \epsilon \vb N\IF & 0 \\
-            0        & \mu \vb N\IF 
+   \epsilon \vb N\supt{F} & 0 \\
+            0        & \mu \vb N\supt{F}
    \end{array}\right)
 $$
 %--------------------------------------------------------------------%
-where the $3\times 3$ matrix $N\IF$ has entries
+where the $3\times 3$ matrix $\vb N\supt{F}$ 
+involves the outer product
+of $\vbhat{u}$ and $\vbhat{n}$:
 %--------------------------------------------------------------------%
-$$ N\IF_{ab} = 
-   \delta_{ai} \hat{n}_b + \delta_{bi} \hat{n}_a
-  - \hat{n}_i \delta_{ab}.
+$$ \vb N\supt{F}(\vbhat{u}, \vbhat{n})
+   =  \vbhat{u} \vbhat{n}^T
+     +\vbhat{n} \vbhat{u}^T
+     +(\vbhat{u} \cdot \vbhat{n})\vb 1
+$$
+or
+$$ N\supt{F}_{ab}(\vbhat{u}, \vbhat{n}) =
+   \hat{u}_{a} \hat{n}_b + \hat{n}_a \hat{u}_b 
+  - (\vbhat{u} \cdot \vbhat{n})\delta_{ab}.
 $$
 %====================================================================%
-For example, if we are computing the $x$-force ($i=x$)
+For example, if we are computing the $x$-force ($\vbhat{u}=\vbhat{x}$)
 we have 
 %====================================================================%
-$$ \vb N^{x\text{\tiny F}}=\left(\begin{array}{ccc}
+$$ \vb N\supt{F}(\vbhat{x}, \vbhat{n})=
+   \left(\begin{array}{ccc}
    \hat{n}_x & \hat n_y   & \hat n_z \\
    \hat{n}_y & -\hat{n}_x & 0 \\
    \hat{n}_z & 0          & -\hat{n}_x
   \end{array}\right).
 $$
-The flux of $i$-directed \textit{angular} momentum, useful
+The flux of $\vbhat{u}$-directed \textit{angular} momentum, useful
 for computations of torque about an origin $\vb x_0$, is
 %====================================================================%
 \begin{align}
- \vb t_{i}(\vb x) \cdot \vbhat{n}
+ \vbhat{u} \cdot \Big[ (\vb x-\vb x_0) \times \vb T \Big]
+ \cdot \vbhat{n}
 &=\frac{1}{2}
   \text{ Re }
+  \hat{u}_i
   \varepsilon_{ijk}(\vb x-\vb x_0)_j T_{k\ell}(\vb x) \hat{n}_\ell
 \\
 &= \frac{1}{4}\bmc{F}^\dagger(\vb x) 
-   \, \bmc{N}\IT \, \bmc{F}(\vb x)
+   \, \bmc{N}\supt{T} \, \bmc{F}(\vb x)
 \label{ITVMVP}
 \end{align}
 %====================================================================%
 with 
 %--------------------------------------------------------------------%
 $$
-   \bmc N\IT=
+   \bmc N\supt{T}=
    \left(\begin{array}{cc}
-   \epsilon \vb N\IT & 0 \\
-            0        & \mu \vb N\IT 
+   \epsilon \vb N\supt{T} & 0 \\
+            0        & \mu \vb N\supt{T} 
    \end{array}\right)
 $$
 %--------------------------------------------------------------------%
-where the $3\times 3$ matrix $N\IT$ has entries ($\vb D=\vb x-\vb x_0$)
+where the $3\times 3$ matrix $N\supt{T}$ has entries ($\vb D=\vb x-\vb x_0$)
 %--------------------------------------------------------------------%
-$$ N\IT_{ab}=
-   \varepsilon_{ija}D_j \hat{n}_b
-  +\varepsilon_{ijb}D_j \hat{n}_a
-  -\delta_{ab} \varepsilon_{ijk} D_j \hat{n}_k.
+$$ N\supt{T}_{ab}(\vbhat{u}, \vbhat{n})=
+   \varepsilon_{ija}\hat{u}_i D_j \hat{n}_b
+  +\varepsilon_{ijb}\hat{u}_i D_j \hat{n}_a
+  -\delta_{ab} \varepsilon_{ijk} \hat{u}_i D_j \hat{n}_k.
 $$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -749,7 +930,8 @@ Equations (\ref{PVMVP}), (\ref{IFVMVP}), and (\ref{ITVMVP}) express
 the flux of power or momentum as bilinear products of the field
 six-vectors $\bmc F$. Using (\ref{FFromC}), we can turn these into
 bilinear products of the surface-current coefficient vectors
-$\vb c$. For example, the power flux (\ref{PVMVP}) becomes 
+$\vb c$. For example, the power flux in the $\vbhat{n}$
+direction, equation (\ref{PVMVP}), becomes 
 %--------------------------------------------------------------------%
 \begin{align}
  \vb P(\vb x) \cdot \vbhat{n}
@@ -764,48 +946,59 @@ $\vb c$. For example, the power flux (\ref{PVMVP}) becomes
         \bmc F_\beta(\vb x)
   \Big]
   c_\beta 
-\nn
-&= \vb c^\dagger \vb M\supt{PFLUX}(\vb x, \vbhat{n}) \vb c 
+\label{PFluxSum}\\
+&= \vb c^\dagger \vb Q\supt{PFLUX}(\vbhat{n}, \vb x) \vb c 
 \label{PFluxVMVP}
 \end{align}
 %--------------------------------------------------------------------%
-where $\vb M\supt{PFLUX}(\vb x,\vbhat{n})$ is a matrix 
-appropriate for $\vbhat{n}$-directed power flux in at $\vb x$.
-The fluxes of $i$-directed linear and angular momentum read
-similarly
+where $\vb Q\supt{PFLUX}(\vbhat{n}, \vb x)$ is a matrix 
+appropriate for $\vbhat{n}$-directed power flux at $\vb x$.
+[As in equation (\ref{FFromCProper}), the sum over 
+ $\alpha,\beta$ in (\ref{PFluxSum}) runs only over basis 
+ functions lying on the boundary of the region
+ containing the evaluation point $\vb x$.]
+The fluxes of $\vbhat{u}$-directed linear and angular 
+momentum read similarly
 %--------------------------------------------------------------------%
 \begin{align}
-\vb T_i(\vb x) \cdot \vbhat{n}
-&= \vb c^\dagger \vb M\IFFlux(\vb x, \vbhat{n}) \vb c 
+\vbhat{u} \cdot \vb T(\vb x) \cdot \vbhat{n}
+&= \vb c^\dagger \vb Q\supt{FFLUX}(\vbhat{u}, \vbhat{n}, \vb x) \vb c
 \label{IFFluxVMVP}
 \\
-\vb t_i(\vb x) \cdot \vbhat{n}
-&= \vb c^\dagger \vb M\ITFlux(\vb x, \vbhat{n}) \vb c 
+\vbhat{u} 
+ \cdot \Big[ (\vb x-\vb x_0) \times \vb T(\vb x) \Big]
+ \cdot \vbhat{n}
+&= \vb c^\dagger \vb Q\supt{TFLUX}(\vbhat{u}, \vbhat{n}, \vb x) \vb c
 \label{ITFluxVMVP}
 \end{align}
 %--------------------------------------------------------------------%
-The $\vb M$ matrices in (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}), and 
+The $\vb Q$ matrices in (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}), and 
 (\ref{ITFluxVMVP}) are $N\subt{B}\times N\subt{B}$ matrices
 whose entries are themselves 6-dimensional matrix-vector products:
-\begin{align*}
-M_{\alpha\beta}\supt{PFLUX}(\vb x, \vbhat{n}) 
+%====================================================================%
+\begin{subequations}
+\begin{align}
+Q_{\alpha\beta}\supt{PFLUX}(\vbhat{n}, \vb x)
  &= \frac{1}{4} 
     \bmc F^\dagger_\alpha(\vb x) 
-    \bmc N\supt{P}(\vbhat{n})
+    \bmc N\supt{P}(\vbhat{n}, \vb x)
     \bmc F_\beta(\vb x) 
 \\
-M_{\alpha\beta}\IFFlux(\vb x, \vbhat{n})
+Q_{\alpha\beta}\supt{FFLUX}(\vbhat{u}, \vbhat{n}, \vb x)
  &= \frac{1}{4} 
     \bmc F^\dagger_\alpha(\vb x) 
-    \bmc N\supt{iF}(\vbhat{n})
+    \bmc N\supt{F}(\vbhat{u}, \vbhat{n}, \vb x)
     \bmc F_\beta(\vb x) 
 \\
-M_{\alpha\beta}\ITFlux(\vb x, \vbhat{n})
+Q_{\alpha\beta}\supt{TFLUX}(\vbhat{u}, \vbhat{n}, \vb x)
  &= \frac{1}{4} 
     \bmc F^\dagger_\alpha(\vb x) 
-    \bmc N\supt{iT}(\vbhat{n})
+    \bmc N\supt{T}(\vbhat{u}, \vbhat{n}, \vb x)
     \bmc F_\beta(\vb x).
-\end{align*}
+\end{align}
+\label{SixBySixVMVPs}
+\end{subequations}
+%====================================================================%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -826,11 +1019,11 @@ spatially-resolved fluxes of the previous section over a closed
 bounding surface $\mc S$ containing the bodies.
 Indeed, noting that the $\vb x$ and $\vbhat{n}$ dependence of
 the flux expressions (\ref{PFluxVMVP}), (\ref{IFFluxVMVP}),
-and (\ref{ITFluxVMVP}) is entirely contained in the $\vb M$
+and (\ref{ITFluxVMVP}) is entirely contained in the $\vb Q$
 matrices, it is easy to integrate those expressions over
 $\mc S$, then pull the surface-current vectors $\vb c$
 outside the integral to identify what we shall call
-the \textit{dense surface-integral PFT} (DSIPFT) matrices. 
+the \textit{displaced surface-integral PFT} (DSIPFT) matrices. 
 
 For example, the total power absorbed by material bodies
 contained within a closed surface $\mc S$
@@ -842,359 +1035,134 @@ over $\mc S$:
 \intertext{with $\vbhat{n}$ taken to be the inward-pointing surface
            normal. Insert the RHS of (\ref{PFluxVMVP}) and pull 
            $\vb c^\dagger, \vb c$ outside the integral:}
-             &=\vb c^\dagger \vb M\PS \vb c
+             &=\vb c^\dagger \vb Q\supt{PTOT} \vb c
 \label{PTotVMVP}
 \end{align}
 where the elements of 
-$\vb M\PS$
+$\vb Q\supt{PTOT}$
 involve integrals over $\mc S$:
 %====================================================================%
-\numeq{MPSEntries}
-{ M_{\alpha\beta}\PS
-  = \frac{1}{4} \int_{\mc S} 
-    \bmc F^\dagger_\alpha(\vb x) 
+\begin{align}
+Q_{\alpha\beta}\supt{PTOT}(\mc S)
+  &= \frac{1}{4} \int_{\mc S}
+    \bmc F^\dagger_\alpha(\vb x)
     \bmc N\supt{P}(\vbhat{n})
-    \bmc F_\beta(\vb x) 
-     \, d\vb x.
-}
+    \bmc F_\beta(\vb x)
+     \, d\vb x
+\intertext{If $\{w_p, \vb x_p\}$ is an $N\subt{C}$-point
+           cubature for integrating over $\mc S$, this may
+           be approximated as}
+  &\approx \frac{1}{4} \sum_{p=1}^{N\supt{C}} w_p
+    \bmc F^\dagger_\alpha(\vb x_p)
+    \bmc N\supt{P}(\vbhat{n}_p)
+    \bmc F_\beta(\vb x_p)
+\label{QPTOTEntries}
+\end{align}
 %====================================================================%
-Similarly, the time-average $i$-directed force and torque on 
-material bodies contained in $\mc S$ are
+where $\vbhat{n}_p$ is the normal to $\mc S$ at $\vb x_p.$
+%====================================================================%
+Similarly, the time-average $\vbhat{u}$-directed force and 
+torque on material bodies contained in $\mc S$ are
 %====================================================================%
 \begin{align}
- F_{i\mc S} &=\vb c^\dagger \vb M\IFS \vb c
+ F_{\mc S}(\vbhat{u}) &=\vb c^\dagger \vb Q\supt{FTOT}\vb c
 \label{FTotVMVP}
 \\
- \mc T_{i\mc S} &=\vb c^\dagger \vb M\ITS \vb c
+ \mc T_{\mc S}(\vbhat{u}) &=\vb c^\dagger \vb Q\supt{TTOT}\vb c
 \label{TTotVMVP}
 \end{align}
 %====================================================================%
-where the entries of $\vb M\IFS$ and $\vb M\ITS$ are similar
-to (\ref{MPSEntries}) with $\bmc N\supt{P} \to \bmc N\IF, \bmc N\IT.$
+where the entries of $\vb Q\supt{FTOT}$ and $\vb Q\supt{TTOT}$ 
+are similar to (\ref{QPTOTEntries}) with 
+$\bmc N\supt{P} \to \bmc N\supt{F}, \bmc N\supt{T}.$
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection*{Sparse surface-integral PFT bilinears}
+\subsubsection*{Other $\vb Q$ matrices for spatially-integrated PFTs}
 
 For some quantities of interest it is possible to write alternative
 surface-current bilinears that compute the same quantities as 
 (\ref{PTotVMVP}), (\ref{FTotVMVP}), and (\ref{TTotVMVP})
-but which involve \textit{sparse} matrices instead of dense
-matrices~\cite{Reid2013a}. In particular, the (classical, deterministic) 
-power, force, or torque on a body may be written as a bilinear 
-function of the surface currents on that body alone in the form
-$$
- P = \frac{1}{4}\vb c \vb O\supt{P} \vb c, 
- \qquad
- F_i = \frac{1}{4}\vb c \vb O\IF \vb c
- \qquad
- \mc T_i = \frac{1}{4}\vb c \vb O\IT \vb c
-$$
-where the $\vb O$ matrices are sparse ``overlap'' matrices
-with nonzero entries only for pairs of basis functions
-with overlapping support.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection*{Volume-integral PFT bilinears}
-
-\begin{align*}
-P&=\text{Re }
-  \int_{\mc V} \bmc F^*(\vb x) \cdot \bmc J(\vb x) \, d\vb x
-\\
-&=
-  \int_{\mc V} \bmc F^*(\vb x) \vbchi(\vb x) \bmc F(\vb x)\, d\vb x
-\\
-&=\sum_{\alpha\beta} c_\alpha^*
-  \underbrace{
-  \Big[ \int_{\mc V} \bmc G_\alpha^*(\vb x) \vbchi(\vb x)
-                     \bmc G_\beta(\vb x) d\vb x
-  \Big] c_\beta
-             }_{\text{sym } \vb G}
-\\
-&= \vb c^\dagger \Big[ {\text{sym }\vb G} \Big] \vb c
-\intertext{Similarly,}
-F_i&=\frac{1}{\omega} \text{Im }
-  \int_{\mc V} \bmc F_i^*(\vb x) \cdot \bmc J(\vb x) \, d\vb x
-\\
-&= \vb c^\dagger 
-   \Big[ \frac{1}{\omega}{\text{sym }\partial_i \vb G} \Big] 
-   \vb c
-\\
-\intertext{Similarly,}
-\tau_i &= \frac{1}{\omega} \text{Im }
-  \int_{\mc V} \bmc F_\theta^*(\vb x) \cdot \bmc J(\vb x) \, d\vb x
-\\
-&= \vb c^\dagger 
-   \Big[ \frac{1}{\omega}{\text{sym }\partial_\theta \vb G} \Big] 
-   \vb c
-\end{align*}
-
-====================================================================%
-%====================================================================%
-%===================================================================%
-\newpage
-\appendix
-\section{Computation of DSIPFT PFT matrices}
-
-In Section \ref{PQsFromSCBsSection} we sketched expressions for
-the ``dense surface-integral PFT'' (DSIPFT)
-matrices $\{\vb M\PS, \vb M\IFS, \vb M\ITS\}$ which, when sandwiched
-between surface-current vectors $\vb c$, yield the total
-\{power, force, torque\} on objects contained within a bounding
-surface $\mc S$. In this appendix we discuss the computation of 
-these matrices.
-
-\subsection{Numerical cubature}
-
-To estimate the elements of e.g. the matrix $\vb M\PS$, we
-use a cubature rule:
-%====================================================================%
-\begin{align}
-  M_{\alpha\beta}\PS
- &= \frac{1}{4} \int_{\mc S} 
-    \bmc F^\dagger_\alpha(\vb x) 
-    \,
-    \bmc N\supt{P}(\vbhat{n})
-    \,
-    \bmc F_\beta(\vb x) 
-     \, d\vb x
-\nn
- &\approx \frac{1}{4} \sum_{n=1}^{N\subt{C}} w_n 
-    \bmc F^\dagger_\alpha(\vb x_n) 
-    \,
-    \bmc N\supt{P}(\vbhat{n}_n)
-    \,
-    \bmc F_\beta(\vb x_n) 
-\label{MPSCubature}
-\end{align}
-%====================================================================%
-where $\{w_n, \vb x_n\}$ is an $N\subt{C}$-point cubature rule 
-for the surface $\mc S$ and $\vbhat{n}_n$ is the outward-pointing
-surface normal to $\mc S$ at $\vb x_n.$
- 
-\subsection{Precomputation of field six-vectors}
-
-%====================================================================%
-%====================================================================%
-%====================================================================%
-\section{Computation of VIPFT force and torque matrices}
-
-The VIPFT matrices for the force and torque require matrix
-elements of Helmholtz kernel derivatives: 
-%====================================================================%
-\begin{subequations}
-\begin{align}
- \Big[\partial_i \vb G\Big]\supt{PQ}_{\alpha \beta}
-&= \int\, d\vb x \, \int \, d\vb x^\prime \,
-   b_{\alpha j}(\vb x) \partial_i \Gamma_{jk}\supt{PQ}(\vb x-\vb x^\prime)
-   b_{\beta k}(\vb x^\prime)
-\\[5pt]
- \Big[\partial_\theta \vb G\Big]\supt{PQ}_{\alpha \beta}
-&= \int\, d\vb x \, \int \, d\vb x^\prime \,
-   b_{\alpha j}(\vb x) 
-   \partial_\theta \Gamma_{jk}\supt{PQ}(\vb x-\vb x^\prime)
-   b_{\beta k}(\vb x^\prime)
-\end{align}
-\label{dGIntegrals}
-\end{subequations}
-%====================================================================%
-where $\partial_i$ denotes the derivative of $\Gamma$ 
-with respect to a infinitesimal displacement of $\vb x$
-in the $i$th caresian direction, 
-while $\partial_\theta$ denotes the derivative with respect to an a
-infinitesimal rotation of $\vb x$ about some origin $\vb x_0$ and 
-rotation axis $\vbhat{a}$ (my notation hides the dependence on 
-$\vb x_0$ and $\vbhat{a}$).
-
-Integrals of the form (\ref{dGIntegrals}) are required for 
-FSC calculations of equilibrium Casimir forces and torques,
-and thus their computation is implemented in my {\sc scuff-cas3d} code.
-However, in the equilibrium case we only ever need to compute
-matrix elements of the form (\ref{dGIntegrals}) between basis
-functions that live on different objects; hence the integrals
-are always nonsingular and may be evaluated by simple 
-numerical quadrature, as is done in {\sc scuff-cas3d}.
-
-A major complication in the non-equilibrium case, which is
-not present in the equilibrium case, is that here we must
-also compute integrals (\ref{dGIntegrals}) for basis
-functions living on the \textit{same} object; these are needed 
-to evaluate the self-term contributions to the non-equilibrium
-force and torque. This means we must handle the case in
-which the supports of the basis functions overlap, and the
-integrals are thus singular. In {\sc scuff-neq} we do this
-using the generalized Taylor-Duffy method reported 
-in~\citeasnoun{Reid2013C}. In this section we discuss the 
-forms of the $P$, $K$, and $\mc K$ functions relevant for
-this computation. (The $\mc P$ functions, which are generated
-by {\sc mathematica} using techniques discussed in~\citeasnoun{Reid2013C},
-are much too complicated to reproduce here.)
-
-\paragraph{Representation of integrals in generalized Taylor-Duffy form}
-
-As usual, the kernels in (\ref{dGIntegrals}) are related to the 
-dyadic Helmholtz Green's functions $\vb G, \vb C$ according to
-%====================================================================%
-$$ 
- \Gamma\supt{EE}_{ij}(\vb r)
-= ikZ_0 Z^r G_{ij}(\vb r),
-\qquad
- \Gamma\supt{EM}_{ij}(\vb r)
-= ik C_{ij}(\vb r), 
-$$
-$$
- \Gamma\supt{ME}_{ij}(\vb r)
-= -ik C_{ij}(\vb r), 
-\qquad 
- \Gamma\supt{MM}_{ij}(\vb r)
-= \frac{ik}{Z_0 Z^r} G_{ij}(\vb r)
-$$
-with 
-%====================================================================%
-$$
- G_{jk}(\vb r) 
-= \left[ f_1(ikr)\delta_{ij} + f_2(ikr)\frac{r_i r_j}{r^2}\right] 
-   \frac{e^{ikr}}{4\pi (ik)^2 r^3} 
-, \qquad 
- C_{jk}(\vb r) 
-= \varepsilon_{jk\ell } r_\ell f_3(ikr)
-   \frac{e^{ikr}}{4\pi ik r^3},
-$$
-$$
- f_1(x) = 1 -x+ x^2, \qquad 
- f_2(x) = -3 + 3x - x^2, \qquad 
- f_3(x) = x - 1.
-$$
-%====================================================================%
-In general, the matrix elements of a dyadic kernel $\bmc O$ between
-RWG functions involve contributions from four panel-panel pairs:
-%====================================================================%
-\begin{align*}
- \Big\langle 
-   \vb b_\alpha 
- \Big| 
-   \bmc O
- \Big| 
-   \vb b_\beta 
- \Big\rangle
-&= \ell_\alpha \ell_\beta \sum \pm 
-  \underbrace{
-   \frac{1}{4A_\alpha^\pm A_\beta^\pm}
-   \int_{\mc P_\alpha^\pm } \, d\vb x        \,
-   \int_{\mc P_\beta^\pm} \, d\vb x^\prime \,
-   (\vb x-\vb Q)_j (\vb x^\prime-\vb Q^\prime)_k
-   \mc O_{jk}(\vb r)
-             }_{\mc I(\mc O; \mc P_\alpha, \mc P_\beta)}
-\end{align*}
-%====================================================================%
-The derivatives of the dyadic GFs are
-%====================================================================%
-\begin{align*}
- \partial_i G_{jk}(\vb r)
-&=
-  \bigg\{ f_2(ikr)\Big[ r_i\delta_{jk} + r_j\delta_{ik} + r_k\delta_{ij} \Big]
-         +(ikr)^2 f_3(ikr) r_i \delta_{jk}
-\\
-&\hspace{0.75in}
-         + f_4(ikr)\frac{r_i r_j r_k}{r^2}
-  \bigg\} \frac{e^{ikr}}{4\pi (ik)^2 r^5}
-\intertext{[where $ f_4(x)=15-15x+6x^2 - x^3$]}
- \partial_i C_{jk}(\vb r)
-&=\varepsilon_{jk\ell}
-  \bigg\{  f_3(ikr) \delta_{i\ell} 
-          -f_2(ikr) \frac{r_i r_\ell}{r^2} 
-  \bigg\} \frac{e^{ikr}}{4\pi (ik) r^3}
-\end{align*}
-%====================================================================%
-With these expressions we may write the panel-panel
-integrals in a form suitable for treatment by the generalized 
-Taylor-Duffy method:
-%====================================================================%
-\begin{align*}
- \mathcal{I}(\partial_i \vb G;  \mc P_\alpha, \mc P_\beta)
-&=\frac{1}{(ik)^2}
-\iint \Big[  P\supt{G1}(\vb x, \vb x^\prime) K\supt{G1}(r)
-             + P\supt{G2}(\vb x, \vb x^\prime) K\supt{G2}(r)
-             + P\supt{G3}(\vb x, \vb x^\prime) K\supt{G3}(r)
-        \Big]\,d\vb x\,d\vb x^\prime
-\\
- \mathcal{I}(\partial_i \vb C; \mc P_\alpha, \mc P_\beta)
-&=\frac{1}{ik}
-  \iint \Big[  P\supt{C1}(\vb x, \vb x^\prime) K\supt{C1}(r)
-              +P\supt{C2}(\vb x, \vb x^\prime) K\supt{C2}(r)
-        \Big]\,d\vb x \, d\vb x^\prime
-\end{align*}
-%====================================================================%
-where the $P$s and $K$s are
-%====================================================================%
-\begin{align*}
-%--------------------------------------------------------------------%
-P\supt{G1} 
- &= (\vb x - \vb x^\prime)_i 
-    \Big[ (\vb x-\vb Q) \cdot (\vb x^\prime-\vb Q^\prime)\Big] 
-\\
- &\quad + (\vb x-\vb Q)_i 
-          \Big[ (\vb x - \vb x^\prime) \cdot (\vb x^\prime-\vb Q^\prime) \Big]
-        + (\vb x^\prime-\vb Q^\prime)_i 
-          \Big[ (\vb x - \vb x^\prime) \cdot (\vb x-\vb Q) \Big]
-\\
-%--------------------------------------------------------------------%
-K\supt{G1}
-&= f_2(ikr)\frac{e^{ikr}}{4\pi r^5}
-\\[5pt]
-%--------------------------------------------------------------------%
-P\supt{G2}
-&=(\vb x - \vb x^\prime)_i 
-   \Big[(\vb x-\vb Q) \cdot (\vb x^\prime-\vb Q^\prime)\Big]
-\\
-%--------------------------------------------------------------------%
-K\supt{G2}
-&= (ik)^2 f_3(ikr)\frac{e^{ikr}}{4\pi r^3}
-\\[5pt]
-%--------------------------------------------------------------------%
-P\supt{G3} 
-&=(\vb x - \vb x^\prime)_i 
-   \Big[ (\vb x-\vb x^\prime) \cdot (\vb x-\vb Q)  \Big]
-   \Big[ (\vb x-\vb x^\prime) \cdot (\vb x^\prime-\vb Q^\prime)  \Big]
-\\
-%--------------------------------------------------------------------%
-K\supt{G3}
-&= f_4(ikr)\frac{e^{ikr}}{4\pi r^7}
-\\[5pt]
-%--------------------------------------------------------------------%
-P\supt{C1}
-&=\Big[(\vb x-\vb Q) \times (\vb x^\prime - \vb Q^\prime)\Big]_i
-\\
-%--------------------------------------------------------------------%
-K\supt{C1}
-&= f_3(ikr)\frac{e^{ikr}}{4\pi r^3}
-\\[5pt]
-%--------------------------------------------------------------------%
-P\supt{C2}
- &= -(\vb x - \vb x^\prime)_i
-     \bigg\{ (\vb x - \vb x^\prime) \cdot 
-     \Big[ (\vb x-\vb Q)\times (\vb x^\prime-\vb Q^\prime) \Big]\bigg\}
-\\
-%--------------------------------------------------------------------%
-K\supt{C2}
-&= 
-f_2(ikr) \frac{e^{ikr}}{4\pi r^5}
-\end{align*}
-%====================================================================%
-The ``first integrals'' of the $K$ kernels here may be computed
-as follows:
-\begin{align*}
- \text{if  } K(r) &= (ikr)^p \frac{e^{ikr}}{4\pi r^q} 
-\\
- \text{then  } \mc K_n(r) &\equiv\int_0^n w^n K(wX) \, dw
-\\
- &=\frac{(ik)^p e^{ikX}}{4\pi(n+p+1-q)}\, X^{n+p-q} \,
-   \texttt{ExpRel}\Big[n+p+1-q, -ikX\Big].
-\end{align*}
-
+using different matrices. This is discussed 
+in \citeasnoun{Reid2013a}.
+%
+%\subsubsection*{Simplification of $6\times 6$ matrix-vector
+%                products}
+%
+%The preceding derivation was agnostic regarding the
+%choice of basis functions $\bmc B_\alpha$. For the
+%particular basis functions used in {\sc scuff-em},
+%we can write slightly more explicit expressions
+%for the matrix entries in equation (\ref{SixBySixVMVPs}).
+%
+%In {\sc scuff-em}, each internal edge on a meshed
+%surface of dielectric interface corresponds
+%to a single RWG basis function and two surface-current
+%coefficients, one for electric surface current and one 
+%for magnetic surface current. If the edge index is $a$, 
+%then the RWG function is $\vb b_a(\vb x)$ and the 
+%electric and magnetic basis function indices are 
+%$\alpha=\{2a, 2a+1\}$. 
+%
+%Then $\bmc F_{2a}$ and $\bmc F_{2a+1}$ in equation
+%(\ref{SixBySixVMVPs}) are the six-vector fields
+%due respectively to unit-strength electric and magnetic 
+%surface currents in region $\mc R_i$ (the region
+%containing the evaluation point):
+%%====================================================================%
+%\begin{align*}
+%  \bmc F_{2a}(\vb x)
+%  = \left( \begin{array}{c}
+%    ikZ \vb e_a(\vb x) \\ \vb h_a(\vb x)
+%    \end{array}\right), 
+%\qquad
+%  \bmc F_{2a+1} 
+% = \left( \begin{array}{c}
+%    -\vb h_a(\vb x) \\ \frac{ik}{Z} \vb e_a(\vb x)
+%    \end{array}\right)
+%\end{align*}
+%%====================================================================%
+%Here $k$ and $Z$ are the wavenumber and (absolute) 
+%wave impedance in region $\mc R_i$ and $\vb e_a$ and $\vb h_a$
+%are the ``reduced fields'' due to basis function $\vb b_a$:
+%%====================================================================%
+%$$ \vb e_a(\vb x) 
+%   =
+%   \int_{\sup \vb b_a} \vb G(k; \vb x, \vb x^\prime) 
+%                       \cdot \vb b_a (\vb x^\prime) 
+%   \, d\vb x^\prime,
+%   \quad
+%   \vb h_a(\vb x) 
+%   =
+%   -ik\int_{\sup \vb b_a} \vb C(k; \vb x, \vb x^\prime) 
+%                       \cdot \vb b_a (\vb x^\prime) 
+%   \, d\vb x^\prime
+%$$
+%%====================================================================%
+%
+%The elements of the matrices in (\ref{SixBySixVMVPS}) now read
+%%====================================================================%
+%\begin{align}
+% Q_{ab}\supt{PFLUX}(\vbhat{n}, \vb x)
+% &= \left(\begin{array}{cc}
+%    0 
+%    & 
+%    \vbhat{n}\cdot (ikZ \vb e_\alpha)^* \times \vb h_\alpha
+%\\
+%   -\vbhat{n}\cdot \vb h_\alpha^* \times \left(\frac{ik}{Z} \vb e_\alpha\right)
+%    & 
+%    0  
+%    \end{array}\right)
+%\end{align}
+%%====================================================================%
+%
+%$$ Q = 
+%  \frac{1}{2}\sum_{a,b}
+%  \left(\begin{array}{c} k_a \\ n_a\end{array}\right)^\dagger
+%  \left( Q_{ab} \right)
+%  \left(\begin{array}{c} k_b \\ n_b\end{array}\right)
+%$$
 
 
 %====================================================================%

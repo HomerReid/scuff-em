@@ -903,7 +903,7 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
         if (ByPanel) MicroByPanel[SCUFF_PABS*NC + nc]=MicroDelta;
       };
 
-     DeltaPFT[SCUFF_PSCAT]=0.0; // no scattered power 
+     DeltaPFT[SCUFF_PSCAT]=0.0; // no scattered power in the DSI formalism
 
      /***************************************************************/
      /* entries of force and torque matrices ************************/
@@ -1299,8 +1299,8 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                       );
  
           // force and torque
-          for(int nq=1; nq<NUMSRPFT; nq++)
-           DeltaPFT[ GetSRPFTIndex(nt, nx, nq, Mu, NX) ]
+          for(int nq=SIXFORCE; nq<=SIZTORQUE; nq++)
+           DeltaPFT[ GetSRPFTIndex(nt, nx, nq-1, Mu, NX) ]
              += 0.25*real( KK*( EpsAbs*HVMVP(EKAlpha, NMatrix[nq], EKBeta)
                                 +MuAbs*HVMVP(HKAlpha, NMatrix[nq], HKBeta) )
                           +KN*( EpsAbs*HVMVP(EKAlpha, NMatrix[nq], ENBeta)

@@ -116,13 +116,11 @@ class HVector
    void Scale(double Alpha);
    void Scale(cdouble Alpha);
 
-   void Zero();
+   cdouble Dot(HVector *B);   /* hermitian dot product    */
+   cdouble DotU(HVector *B);  /* non-conjugated dot product */
+   double  DotD(HVector *B);  /* real part of Dot()       */
 
-#if 0
-   /* export to matlab */
-   void ToMatlab(const char *Format, ...);
-   void ToMatlab(void *pCC, const char *Format, ...);
-#endif
+   void Zero();
 
  // private:
    int N;
@@ -276,13 +274,18 @@ class HMatrix
    /*- the following routines are wrappers around LAPACK or BLAS   */
    /*- calls, possibly with some pre- or post-processing           */
    /*--------------------------------------------------------------*/
-
-   /* matrix-matrix multiply, this * B -> C (xgemm) */
+   // matrix-matrix multiply, this * B -> C (xgemm)
+   // options example: "--transA T" or "--transA T --transB C"
+   //  (to use non-hermitian transpose of A and hermitian adjoint of B)
    void Multiply(HMatrix *B, HMatrix *C, const char *Options=0); 
 
    /* matrix-matrix multiply with only the diagonal elements */
    /* of the product matrix computed (using ddot or zdotu)   */
    void GetMatrixProductDiagonal(HMatrix *B, HVector *DAB);
+
+   /* matrix-vector multiplication, this*X = Y (xgemv))      */
+   /* Trans='C' or 'T' for hermitian / non-hermitian adjoint */
+   void Apply(HVector *X, HVector *Y, char Trans=0);
    
    /* routines for LU-factorizing, solving, inverting */
    /* (xgetrf, xgetrs, xgetri) */
