@@ -1,0 +1,25 @@
+# SCUFF-EM geometry file for two parallel silicon beams,
+# infinitely extended in the x direction, initially 
+# separated in the y direction by 2 microns
+
+LATTICE
+	VECTOR 1.0 0.0
+ENDLATTICE
+
+MATERIAL SILICON
+    epsf = 1.035;      # \epsilon_infinity
+    eps0 = 11.87;      # \epsilon_0 
+    wp = 6.6e15;       # \plasmon frequency
+    Eps(w) = epsf + (eps0-epsf)/(1-(w/wp)^2);
+ENDMATERIAL
+
+OBJECT Beam1
+	MESHFILE RectangularBeamUnitCell_144.msh
+	MATERIAL Silicon
+ENDOBJECT
+
+OBJECT Beam2
+	MESHFILE RectangularBeamUnitCell_144.msh
+	MATERIAL Silicon
+	DISPLACED 0 0 2
+ENDOBJECT
