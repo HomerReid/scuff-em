@@ -878,7 +878,9 @@ void HMatrix::Apply(HVector *X, HVector *Y, char TransChar)
 {
   if ( StorageType!=LHM_NORMAL )
    ErrExit("%s:%i: HMatrix::Apply not yet implemented for packed matrices");
-  if ( X==0 || Y==0 || (RealComplex!=X->RealComplex) || (RealComplex!=Y->RealComplex) )
+  if ( X==0 || Y==0  )
+   ErrExit("%s:%i: invalid operand in HMatrix::Apply",__FILE__,__LINE__);
+  if ( (RealComplex!=X->RealComplex) || (RealComplex!=Y->RealComplex) )
    ErrExit("%s:%i: data type mismatch in HMatrix::Apply",__FILE__,__LINE__);
 
   char Trans[2]="N";

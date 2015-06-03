@@ -521,7 +521,7 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
      fprintf(f,"# Data file columns: \n");
      fprintf(f,"# 1:      angular frequency\n");
      fprintf(f,"# 2 3 4:  x, y, z coordinates of panel centroid\n");
-     fprintf(f,"# 5:      panel area\n")
+     fprintf(f,"# 5:      panel area\n");
      fprintf(f,"# 6,  7   real, imag \sigma_E (electric surface charge density)\n");
      fprintf(f,"# 8,  9   real, imag K_x (electric surface current density)\n");
      fprintf(f,"# 10, 11  real, imag K_y (electric surface current density)\n");
