@@ -49,6 +49,7 @@ double dlamch_(const char *which);
 
 /* following prototypes added by homer 3/2012 */
 double ddot_(int *N, double *X, int *IncX, double *Y, int *IncY);
+cdouble zdotc_(int *N, cdouble *X, int *IncX, cdouble *Y, int *IncY);
 cdouble zdotu_(int *N, cdouble *X, int *IncX, cdouble *Y, int *IncY);
  
 /* Subroutine */ int cbdsqr_(const char *uplo, int *n, int *ncvt, int *
@@ -5142,6 +5143,10 @@ void dgemv_(const char *TRANS, int *M, int *N, double *Alpha,
 void zgemm_(const char *TRANSA, const char *TRANSB, int *M, int *N, int *K,
             cdouble *ALPHA, cdouble *A, int *LDA, cdouble *B, int *LDB,
             cdouble *BETA, cdouble *C, int *LDC);
+
+void zgemv_(const char *TRANS, int *M, int *N, cdouble *Alpha,
+            cdouble *A, int *lda, cdouble *X, int *incx, cdouble *beta,
+            cdouble *Y, int *incy);
 
 #endif /* __CLAPACK_H */
 

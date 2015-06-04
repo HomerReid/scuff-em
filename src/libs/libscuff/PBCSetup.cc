@@ -468,7 +468,7 @@ void RWGGeometry::GetUnitCellRepresentative(const double X[3],
   XBar[1] = X[1];
   XBar[2] = X[2];
 
-  if (LBasis[0][1]!=0.0 || LBasis[1][0]!=0.0)
+  if (LBasis[0][1]!=0.0 || (LDim>=2 && LBasis[1][0]!=0.0) )
    ErrExit("%s:%i: non-square lattices not supported",__FILE__,__LINE__);
 
   if (LDim>=1)

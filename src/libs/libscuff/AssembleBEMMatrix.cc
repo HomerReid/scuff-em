@@ -201,7 +201,7 @@ void *RWGGeometry::CreateABMBAccelerator(int nsa, int nsb,
   /*--------------------------------------------------------------*/
   /*- gather some information about the problem ------------------*/
   /*--------------------------------------------------------------*/
-  bool OneDLattice = (LDim== 1);
+  bool OneDLattice = (LDim==1);
   bool TwoDLattice = !OneDLattice;
   bool SameSurface = (nsa==nsb);
   int NR = Surfaces[nsa]->NumBFs;

@@ -148,12 +148,12 @@ typedef struct GetEEIArgStruct
    unsigned PPIAlgorithmCount[NUMPPIALGORITHMS];
 
    // output fields filled in by routine
-   // note: GC[0] = <f_a|G|f_b>
-   // note: GC[1] = <f_a|C|f_b>
-   // note: GradGC[3*Mu + 0 ] d/dR_\Mu (<f_a|G|f_b>)
-   // note: GradGC[3*Mu + 1 ] d/dR_\Mu (<f_a|C|f_b>)
-   // note: dGCdT[3*Mu + 0 ] d/dTheta_\Mu (<f_a|G|f_b>)
-   // note: dGCdT[3*Mu + 1 ] d/dTheta_\Mu (<f_a|C|f_b>)
+   //  GC[0] = <f_a|G|f_b>
+   //  GC[1] = <f_a|C|f_b>
+   //  GradGC[3*Mu + 0] = d/dR_\Mu (<f_a|G|f_b>)
+   //  GradGC[3*Mu + 1] = d/dR_\Mu (<f_a|C|f_b>)
+   //  dGCdT[3*Mu + 0]  = d/dTheta_\Mu (<f_a|G|f_b>)
+   //  dGCdT[3*Mu + 1]  = d/dTheta_\Mu (<f_a|C|f_b>)
    cdouble GC[2];
    cdouble GradGC[6];
    cdouble dGCdT[6];

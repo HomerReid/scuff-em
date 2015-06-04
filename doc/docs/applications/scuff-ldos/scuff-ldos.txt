@@ -1,0 +1,6 @@
+Computing the local density of states with <span style="font-variant:small-caps;">scuff-ldos</span>
+===========================================================
+
+<span style="font-variant:small-caps;">scuff-ldos</span> is a tool for computing the electromagnetic local density 
+of states (LDOS) at points inside or outside compact or 
+extended material bodies.

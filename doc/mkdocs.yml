@@ -1,0 +1,22 @@
+site_name: SCUFF-EM documentation
+site_author: Homer Reid
+site_favicon: scuffEM.ico
+
+theme_dir: 'scuff-em-mkdocs-theme'
+
+markdown_extensions:
+    - wikilinks
+    - mdx_math:
+        enable_dollar_delimiter: True
+
+extra_javascript: ['https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML','mathjaxhelper.js']
+
+pages:
+- scuff-em documentation: 'index.md'
+- Examples:
+    - 'Casimir forces between nanoparticles': 'examples/SphereTorus.md'
+    - 'Casimir forces between silicon beams': 'examples/SiliconBeams/SiliconBeams.md'
+    - 'Casimir forces between perforated surfaces': 'examples/PECScreens.md'
+- Nanophotonics applications:
+    - 'scuff-scatter': 'applications/scuff-scatter.md'
+    - 'scuff-transmission': 'applications/scuff-transmission.md'

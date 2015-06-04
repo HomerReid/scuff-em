@@ -513,7 +513,28 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
 /***************************************************************/
 void WritePSDFile(SSData *SSD, char *PSDFile)
 {
-  FILE *f=fopen(PSDFile,"a");
+  /* write output file preamble if necessary */
+  FILE *f=fopen(PSDFile,"r");
+  fclose(f);
+  if (f==0)
+   { f=fopen(PSDFile,"w");
+     fprintf(f,"# Data file columns: \n");
+     fprintf(f,"# 1:      angular frequency\n");
+     fprintf(f,"# 2 3 4:  x, y, z coordinates of panel centroid\n");
+     fprintf(f,"# 5:      panel area\n");
+     fprintf(f,"# 6,  7   real, imag \sigma_E (electric surface charge density)\n");
+     fprintf(f,"# 8,  9   real, imag K_x (electric surface current density)\n");
+     fprintf(f,"# 10, 11  real, imag K_y (electric surface current density)\n");
+     fprintf(f,"# 12, 13  real, imag K_z (electric surface current density)\n");
+     fprintf(f,"# 14, 15  real, imag \sigma_M (magnetic surface charge density)\n");
+     fprintf(f,"# 16, 17  real, imag N_x (magnetic surface current density)\n");
+     fprintf(f,"# 18, 19  real, imag N_y (magnetic surface current density)\n");
+     fprintf(f,"# 20, 21  real, imag N_z (magnetic surface current density)\n");
+     fprintf(f,"# 22      inward-directed normal Poynting flux\n");
+     fclose(f);
+   };
+
+  f=fopen(PSDFile,"a");
   if (!f)
    { Warn("could not open file %s for writing (skipping PSD output)",PSDFile);
      return;
