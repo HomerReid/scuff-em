@@ -4,49 +4,57 @@
  <span class="SmallCaps">scuff-em</span> documentation: Table of contents
 </h1> </p>
 
-## Command-line application reference
+## Command-line applications
 
 * **Nanophotonics**
+    * [scuff-scatter][scuff-scatter]            - general-purpose electromagnetic scattering
 
-    - [scuff-scatter][scuff-scatter]            - general-purpose electromagnetic scattering
-    - [scuff-LDOS][scuff-LDOS]                  - photonic **l**ocal **d**ensity **o**f **s**tates
-    - [scuff-transmission][scuff-transmission]  - plane-wave transmission through 2D extended structures
-    - [scuff-tmatrix][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis
+    * [scuff-LDOS][scuff-LDOS]                  - photonic **l**ocal **d**ensity **o**f **s**tates
 
-### Fluctuation physics at thermal equilibrium
+    * [scuff-transmission][scuff-transmission]  - plane-wave transmission through 2D extended structures
 
-* [scuff-cas3d][scuff-cas3d]   - Casimir energies, forces, and torques
-* [scuff-caspol][scuff-caspol] - Casimir-Polder potentials
+    * [scuff-tmatrix][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis      
+      
+      
 
-### Non-equilibrium fluctuation physics
 
-* [scuff-neq][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques
+* **Fluctuation physics at thermal equilibrium**
+    - [scuff-cas3d][scuff-cas3d]   - Casimir energies, forces, and torques
 
-### RF / microwave engineering
+    - [scuff-caspol][scuff-caspol] - Casimir-Polder potentials      
+       
+      
 
-* [scuff-RF][scuff-RF]         - multiport network parameters
+* **Non-equilibrium fluctuation physics**
+
+    - [scuff-neq][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques  
+  
+  
+* **RF / microwave engineering**
+    - [scuff-RF][scuff-RF]         - multiport network parameters
                                  (S- and impedance parameters),
                                  and radiated fields, for passive RF
                                  and microwave structures.
 
-### Electrostatics
+* ** Electrostatics **  
 
-* [scuff-static][scuff-static] - solution of pure electrostatics problems, 
-                                 including calculations of (a) self- and 
+    - [scuff-static][scuff-static] - solution of pure electrostatics problems, 
+                                 including calculations of 
+                                 **(a)** self- and 
                                  mutual capacitances (capacitance matrices) 
                                  of collections of arbitrarily-shaped 
                                  conducting or dielectric bodies; 
-                                 (b) DC polarizabilities of 
+                                 **(b)** DC polarizabilities of 
                                  arbitrarily-shaped conducting or 
-                                 dielectric bodies; (c) the electrostatic 
+                                 dielectric bodies; 
+                                 **(c)** the electrostatic 
                                  potentials and fields inside and outside 
                                  arbitrarily-shaped conducting or dielectric 
                                  bodies subject to arbitrary user-specified 
                                  external fields and/or fixed conductor potentials.
 
-### Utilities
-
-* [[scuff-analyze]] - diagnostic tool to print info on [[scuff-em]] geometries
+* ** Utilities **
+    - [scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
 
 ## API Documentation
 

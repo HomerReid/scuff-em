@@ -127,15 +127,15 @@ code.cs, code.c {
 code {
     white-space: pre;
     border: none;
-    background: lightgray;
     background-color: lightgray;
     color: black;
 }
 
 pre {
+  padding: 5px 5px 5px 5px;
   font-size: 125%;
-  border-width: 0pt dashed black;
-  border-style: dashed dashed dashed dashed;
+  /*border-style: dashed dashed dashed dashed;*/
+  border-width: 0pt black;
   background: lightgray;
   background-color: lightgray;
   color: black;

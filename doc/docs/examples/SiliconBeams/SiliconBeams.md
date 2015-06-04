@@ -1,5 +1,10 @@
 <h1>Casimir forces between infinitely extended silicon beams (1D periodicity)</h1>
 
+In this example, we exploit [[scuff-em]]'s 
+support for 1D periodic geometries
+to compute the equilibrium Casimir force per unit length 
+between infinitely extended silicon beams of 
+rounded rectangular cross section.
 The files for this example may be found in the
 `share/scuff-em/examples/SiliconBeams` subdirectory
 of your [[scuff-em]] installation.
@@ -42,16 +47,26 @@ Note the following:
    the endcaps must not be meshed.
 
  * For surfaces that straddle the unit-cell boundaries
-   (as is the case here, each triangle edge that lies
+   (as is the case here), each triangle edge that lies
    on the unit-cell boundary must have an identical
    image edge on the opposite side of the unit cell.
+   An easy way to achieve this is to 
 
  * In this case the unit cell is 1 \(\mu\)m long.
-   More generally the unit cell could have any length.
+   (More generally, the unit cell could have any 
+   length you like.)
 
-## [[scuff-em]] geometry file for two infinitely extended silicon cylinders: [`RoundedBeams_192.scuffgeo`][RoundedBeamsScuffgeo]
+## [[scuff-em]] geometry file for two infinitely extended silicon cylinders: [`SiliconBeams_192.scuffgeo`][SiliconBeamsScuffgeo]
 
-The [[scuff-em]] geometry file describes a 1D
+This [[scuff-em]] geometry file describes two identical
+silicon beams, of infinite extent in the *x* direction,
+separated by a distance of 2 $\mu$m in the *z$ direction.
+
+````
+
+````
+
+a 1D
 periodic geometry consisting of a unit cell that is
 periodically replicated every 1 $\mu$m. (The length
 of the lattice vector specified by the `LATTICE`
@@ -64,5 +79,5 @@ And this is some inline HTML:
 $$ \int_{-\infty}^\infty e^{-\sigma x^2}\,dx = \sqrt\frac{\pi}{\sigma}$$
 
 [RoundedBeamUnitCellGeo]: examples/SiliconBeams/RoundedBeamUnitCell.geo
-[RoundedBeamsScuffgeo]: examples/SiliconBeams/RoundedBeams_192.scuffgeo
+[SiliconBeamsScuffgeo]: examples/SiliconBeams/SiliconBeams_192.scuffgeo
 [id2]: /path/to/image "alt text"
