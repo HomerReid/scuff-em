@@ -17,6 +17,13 @@ pages:
     - 'Casimir forces between nanoparticles': 'examples/SphereTorus.md'
     - 'Casimir forces between silicon beams': 'examples/SiliconBeams/SiliconBeams.md'
     - 'Casimir forces between perforated surfaces': 'examples/PECScreens.md'
+- General reference
+    - 'Top-level overview': 'reference/TopLevel.md'
+    - 'Geometry descriptions': 'reference/Geometries.md'
+    - 'Material designations': 'reference/Materials.md'
+    - 'Geometrical transformations': 'reference/Transformations.md'
 - Nanophotonics applications:
     - 'scuff-scatter': 'applications/scuff-scatter.md'
     - 'scuff-transmission': 'applications/scuff-transmission.md'
+- API reference
+    - Accessing scuff-em from C++ and python : 'API/libscuff.md'
