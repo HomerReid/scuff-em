@@ -1,7 +1,0 @@
-#!/bin/bash
-
-ARGS=""
-ARGS="${ARGS} --from markdown_github"
-ARGS="${ARGS} --to   html"
-
-pandoc ${ARGS} $1

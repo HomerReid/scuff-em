@@ -6,7 +6,7 @@ body {
 }
 
 h3, h4, h5, h6 {
-    color: #000000;
+    color: #00FFFF;
     font-weight: 300
 }
 
@@ -56,9 +56,11 @@ h3, h4, h5, h6 {
  *
  * https://github.com/mkdocs/mkdocs/issues/313
  */
+/*
 p code {
     word-wrap: break-word;
 }
+*/
 
 /*
  * The CSS classes from highlight.js seem to clash with the
@@ -68,12 +70,10 @@ p code {
  * https://github.com/mkdocs/mkdocs/issues/411
  */
 
-/*
 code.cs, code.c {
     font-weight: inherit;
     font-style: inherit;
 }
-*/
 
 /*
  * Fix some issues with the theme and non-highlighted code
@@ -127,8 +127,10 @@ code.cs, code.c {
 code {
     white-space: pre;
     border: none;
-    background-color: lightgray;
+    /*background-color: lightgray;*/
+    background-color: inherit;
     color: black;
+    color: inherit;
 }
 
 pre {
