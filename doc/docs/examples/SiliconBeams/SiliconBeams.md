@@ -213,7 +213,7 @@ between the beams (call this quantity $\mathcal F$),
 integral over both imaginary frequencies $\xi$ and Bloch 
 wavenumbers $k$:
 $$ \mathcal F 
-  = \int_0^\infty \frac{d\xi}{2\pi}
+  = \int_0^\infty d\xi
            \underbrace{\int_0^\Gamma dk\, f(\xi, k)}_{\equiv F(\xi)}
 $$
 where $\Gamma=2\pi/L$ is the length of the 1D Brillouin

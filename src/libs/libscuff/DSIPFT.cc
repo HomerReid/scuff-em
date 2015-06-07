@@ -465,7 +465,7 @@ HMatrix *GetFSVMatrix(RWGGeometry *G, int SurfaceIndex,
 
   /***************************************************************/
   /* reallocate FSVMatrix as necessary ***************************/
-        /***************************************************************/
+  /***************************************************************/
   if ( FSVMatrix && ( (FSVMatrix->NR!=6) || FSVMatrix->NC!=NBFNX) )
    { Warn("wrong-size FSVMatrix passed to GetFSVMatrix (reallocating)");
      delete FSVMatrix;

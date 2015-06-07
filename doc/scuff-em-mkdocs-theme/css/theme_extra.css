@@ -6,7 +6,7 @@ body {
 }
 
 h3, h4, h5, h6 {
-    color: #00FFFF;
+    color: #000000;
     font-weight: 300
 }
 
@@ -174,4 +174,16 @@ a.wikilink:hover
 .SmallCaps{
    font-variant: small-caps;
    font-variant-numeric: oldstyle-nums;
+}
+
+.SC{
+   font-variant: small-caps;
+   font-variant-numeric: oldstyle-nums;
+}
+
+ol.TOC { 
+  margin: 20px 0;
+  padding:5px;
+  border: 1px solid #aaaaaa;
+  background-color: #f9f9f9;
 }

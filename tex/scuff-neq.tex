@@ -331,7 +331,7 @@ sources of radiation.
 \subsection{General comments about units in {\sc scuff-neq}}
 
 The numerical values specified as inputs to, or reported
-as outputs by, {\sc scuff-em} are interpreted as multiples
+as outputs by, {\sc scuff-neq} are interpreted as multiples
 of the following base units.
 
 %====================================================================%
@@ -362,7 +362,7 @@ of the following base units.
 \end{center}
 \renewcommand{\arraystretch}{1.0}
 %====================================================================%
-
+\newpage
 \subsection{Output files for spatially-integrated quantities}
 
 Let $\big\langle Q_d\big\rangle$ be the total time-average 
@@ -1087,75 +1087,91 @@ surface-current bilinears that compute the same quantities as
 (\ref{PTotVMVP}), (\ref{FTotVMVP}), and (\ref{TTotVMVP})
 using different matrices. This is discussed 
 in \citeasnoun{Reid2013a}.
-%
-%\subsubsection*{Simplification of $6\times 6$ matrix-vector
-%                products}
-%
-%The preceding derivation was agnostic regarding the
-%choice of basis functions $\bmc B_\alpha$. For the
-%particular basis functions used in {\sc scuff-em},
-%we can write slightly more explicit expressions
-%for the matrix entries in equation (\ref{SixBySixVMVPs}).
-%
-%In {\sc scuff-em}, each internal edge on a meshed
-%surface of dielectric interface corresponds
-%to a single RWG basis function and two surface-current
-%coefficients, one for electric surface current and one 
-%for magnetic surface current. If the edge index is $a$, 
-%then the RWG function is $\vb b_a(\vb x)$ and the 
-%electric and magnetic basis function indices are 
-%$\alpha=\{2a, 2a+1\}$. 
-%
-%Then $\bmc F_{2a}$ and $\bmc F_{2a+1}$ in equation
-%(\ref{SixBySixVMVPs}) are the six-vector fields
-%due respectively to unit-strength electric and magnetic 
-%surface currents in region $\mc R_i$ (the region
-%containing the evaluation point):
+
+\subsubsection*{Simplification of $6\times 6$ matrix-vector
+                products}
+
+The preceding derivation was agnostic regarding the
+choice of basis functions $\bmc B_\alpha$. For the
+particular basis functions used in {\sc scuff-em},
+we can write slightly more explicit expressions
+for the matrix entries in equation (\ref{SixBySixVMVPs}).
+
+In {\sc scuff-em}, each internal edge on a meshed
+surface of dielectric interface corresponds
+to a single RWG basis function and two surface-current
+coefficients, one for electric surface current and one 
+for magnetic surface current. If the edge index is $a$, 
+then the RWG function is $\vb b_a(\vb x)$ and the 
+electric and magnetic basis function indices are 
+$\alpha=\{2a, 2a+1\}$. 
+
+Then $\bmc F_{2a}$ and $\bmc F_{2a+1}$ in equation
+(\ref{SixBySixVMVPs}) are the six-vector fields
+due respectively to unit-strength electric and magnetic 
+surface currents in region $\mc R_i$ (the region
+containing the evaluation point):
 %%====================================================================%
-%\begin{align*}
-%  \bmc F_{2a}(\vb x)
-%  = \left( \begin{array}{c}
-%    ikZ \vb e_a(\vb x) \\ \vb h_a(\vb x)
-%    \end{array}\right), 
-%\qquad
-%  \bmc F_{2a+1} 
-% = \left( \begin{array}{c}
-%    -\vb h_a(\vb x) \\ \frac{ik}{Z} \vb e_a(\vb x)
-%    \end{array}\right)
-%\end{align*}
+\begin{align*}
+  \bmc F_{2a}(\vb x)
+  = \left( \begin{array}{c}
+    ikZ \vb e_a(\vb x) \\ \vb h_a(\vb x)
+    \end{array}\right), 
+\qquad
+  \bmc F_{2a+1} 
+ = \left( \begin{array}{c}
+    -\vb h_a(\vb x) \\ \frac{ik}{Z} \vb e_a(\vb x)
+    \end{array}\right)
+\end{align*}
 %%====================================================================%
-%Here $k$ and $Z$ are the wavenumber and (absolute) 
-%wave impedance in region $\mc R_i$ and $\vb e_a$ and $\vb h_a$
-%are the ``reduced fields'' due to basis function $\vb b_a$:
+Here $k$ and $Z$ are the wavenumber and (absolute) 
+wave impedance in region $\mc R_i$ and $\vb e_a$ and $\vb h_a$
+are the ``reduced fields'' due to basis function $\vb b_a$:
 %%====================================================================%
-%$$ \vb e_a(\vb x) 
-%   =
-%   \int_{\sup \vb b_a} \vb G(k; \vb x, \vb x^\prime) 
-%                       \cdot \vb b_a (\vb x^\prime) 
-%   \, d\vb x^\prime,
-%   \quad
-%   \vb h_a(\vb x) 
-%   =
-%   -ik\int_{\sup \vb b_a} \vb C(k; \vb x, \vb x^\prime) 
-%                       \cdot \vb b_a (\vb x^\prime) 
-%   \, d\vb x^\prime
-%$$
+$$ \vb e_a(\vb x) 
+   =
+   \int_{\sup \vb b_a} \vb G(k; \vb x, \vb x^\prime) 
+                       \cdot \vb b_a (\vb x^\prime) 
+   \, d\vb x^\prime,
+   \quad
+   \vb h_a(\vb x) 
+   =
+   -ik\int_{\sup \vb b_a} \vb C(k; \vb x, \vb x^\prime) 
+                       \cdot \vb b_a (\vb x^\prime) 
+   \, d\vb x^\prime
+$$
 %%====================================================================%
-%
-%The elements of the matrices in (\ref{SixBySixVMVPS}) now read
-%%====================================================================%
-%\begin{align}
-% Q_{ab}\supt{PFLUX}(\vbhat{n}, \vb x)
-% &= \left(\begin{array}{cc}
-%    0 
-%    & 
-%    \vbhat{n}\cdot (ikZ \vb e_\alpha)^* \times \vb h_\alpha
-%\\
-%   -\vbhat{n}\cdot \vb h_\alpha^* \times \left(\frac{ik}{Z} \vb e_\alpha\right)
-%    & 
-%    0  
-%    \end{array}\right)
-%\end{align}
+The contributions of a single pair of basis functions
+$\vb b_a, \vb b_b$ to the power and momentum flux
+at $\vb x$ are
+%====================================================================%
+\begin{align}
+ \Delta P_i
+ &= \frac{1}{2}\text{Re }
+    \vbhat{n}_i
+    \cdot 
+    \Big(ikZ k_\alpha \vb e_\alpha - n_\alpha \vb h_\alpha\Big)^* 
+    \times
+    \Big( k_\beta \vb h_\beta + \frac{ik}{Z} n_\beta \vb e_\beta \Big)
+\\
+&= \frac{1}{2}\text{Re }
+   \left(\begin{array}{c} k_\alpha \\ n_\alpha \end{array}\right)^\dagger
+   \left(\begin{array}{cc}
+    (ikZ)^*              \vb e^*_\alpha \times \vb h_\beta & 
+    |k|^2 \frac{Z^*}{Z}  \vb e^*_\alpha \times \vb e_\beta \\
+  -                      \vb h^*_\alpha \times \vb h_\beta & 
+  - \frac{ik}{Z}         \vb h^*_\alpha \times \vb e_\beta
+   \end{array}\right)
+   \left(\begin{array}{c} k_\beta \\ n_\beta \end{array}\right)
+\\
+ \Delta T_{ij}
+ &= \frac{1}{2}\text{Re }
+    \left(\begin{array}{c}
+    ikZ k_\alpha \vb e_\alpha - n_\alpha \vb h_\alpha \\
+        k_\alpha \vb h_\alpha + \frac{ik}{Z} n_\alpha \vb e_\alpha
+    \end{align*}\right)
+\end{align}
+
 %%====================================================================%
 %
 %$$ Q = 
