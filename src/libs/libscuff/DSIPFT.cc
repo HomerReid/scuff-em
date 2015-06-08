@@ -58,6 +58,8 @@ void GetReducedFarFields(RWGSurface *S, const int ne,
 #define SIYTORQUE 6
 #define SIZTORQUE 7
 
+#define NUMSRFLUX 21
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -1091,6 +1093,219 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
 }
 
 /***************************************************************/
+/* Compute a matrix of reduced-field six-vectors.              */
+/*                                                             */
+/* Each column of ehMatrix is a 6-component vector giving      */
+/* the reduced fields e and h, at a single point in space, due */
+/* single RWG basis function.                                  */
+/*                                                             */
+/* If SurfaceIndex is >=0, then only the contributions of      */
+/* RWG functions on surface #SurfaceIndex are taken into       */
+/* account. Otherwise, all RWG functions on all surfaces in    */
+/* the geometry are taken into account.                        */
+/*                                                             */
+/* The cartesian coordinates of the evaluation points are the  */
+/* first three columns of XMatrix.                             */
+/*                                                             */
+/* The rows of FSV matrix are indexed by pairs                 */
+/*                                                             */
+/*  (evaluation point index, basis function index)             */
+/*                                                             */
+/* More specifically, if nx is the index of an evaluation point*/
+/* and ne is the index of an internal edge in an RWGSurface,   */
+/* then the components of the reduced fields at point #nx due  */
+/* to basis function #ne populated with unit strength are in   */
+/*                                                             */
+/*  e_[0,1,2] = ehMatrix[ 0:2, nx*NE + ne ]                    */
+/*  h_[0,1,2] = ehMatrix[ 3:5, nx*NE + ne ]                    */
+/*                                                             */
+/* Here NE is the total number of internal edges (in the       */
+/* surface, if SurfaceIndex>=0, or in the entire geometry      */
+/* if SurfaceIndex==-1).                                       */
+/***************************************************************/
+HMatrix *Get_ehMatrix(RWGGeometry *G, int SurfaceIndex,
+                      HMatrix *XMatrix, cdouble Omega,
+                      bool FarField=false, HMatrix *ehMatrix=0)
+{ 
+  int NX = XMatrix->NR;
+  int NET; // total number of edges
+  int NumSurfaces;
+  if (SurfaceIndex>=0)
+   { NET = G->Surfaces[SurfaceIndex]->NumEdges;
+     NumSurfaces=1;
+   }
+  else
+   { 
+     NET = G->TotalEdges;
+     NumSurfaces=G->NumSurfaces;
+   };
+
+  /***************************************************************/
+  /* reallocate the ehMatrix as necessary ************************/
+  /***************************************************************/
+  int NETNX = NET*NX;
+  if ( ehMatrix && ( (ehMatrix->NR!=6) || ehMatrix->NC!=NETNX) )
+   { Warn("wrong-size ehMatrix passed to Get_ehMatrix (reallocating)");
+     delete ehMatrix;
+     ehMatrix=0;
+   };
+  if (ehMatrix==0)
+   ehMatrix = new HMatrix(6, NETNX, LHM_COMPLEX);
+  
+  /***************************************************************/
+  /* loop over all evaluation points and all edges on all        */
+  /* relevant surfaces                                           */
+  /***************************************************************/
+  Log("Precomputing ehMatrix (%i columns)",NETNX);
+#ifdef USE_OPENMP
+  int NumThreads=GetNumThreads();
+  Log("OpenMP multithreading (%i threads)",NumThreads);
+#pragma omp parallel for collapse(3), schedule(dynamic,1), num_threads(NumThreads)
+#endif
+  for(int nx=0; nx<NX; nx++)
+   for(int ns=0; ns<NumSurfaces; ns++)
+    for(int ne=0; ne<NET; ne++)
+     { 
+       RWGSurface *S;
+       int Offset; 
+       if (SurfaceIndex==-1) 
+        { S=G->Surfaces[ns];
+          Offset=G->EdgeIndexOffset[ns];
+        }
+       else
+        { S=G->Surfaces[SurfaceIndex];
+          Offset=0;
+        };
+       int NE = S->NumEdges;
+       if (ne>=NE) continue;
+
+       if (ns==0 && ne==0) LogPercent(nx,NX,10);
+
+       // coordinates of nxth evaluation point
+       double X[3];
+       XMatrix->GetEntriesD(nx,"0:2",X);
+
+       // figure out what region this point is in and 
+       // whether or not the surface in question bounds that
+       // region
+       int RegionIndex=G->GetRegionIndex(X);
+       double Sign;
+       if (S->RegionIndices[0]==RegionIndex)
+        Sign=1.0;
+       else if (S->RegionIndices[1]==RegionIndex)
+        Sign=-1.0;
+       else  
+        continue; // surface does not contribute to fields at X
+
+       // get reduced fields due to this edge at this eval pnt
+       cdouble EpsRel, MuRel;
+       G->RegionMPs[RegionIndex]->GetEpsMu(Omega, &EpsRel, &MuRel);
+       cdouble k = Omega*sqrt(EpsRel*MuRel);
+       cdouble e[3], h[3];
+       if (FarField)
+        GetReducedFarFields(S, ne, X, k, e, h);
+       else
+        GetReducedFields(S, ne, X, k, e, h);
+
+       int nc = nx*NET + Offset + ne;
+       for(int Mu=0; Mu<3; Mu++)
+        { ehMatrix->SetEntry( 0+Mu, nc, e[Mu]);
+          ehMatrix->SetEntry( 3+Mu, nc, h[Mu]);
+        };
+
+   }; //multithreaded loop
+
+  return ehMatrix;
+}
+
+/***************************************************************/
+/* This routine gets the contributions of a single pair of     */
+/* RWG basis functions to the average Poynting vector and      */
+/* Maxwell stress tensor at a given point x.                   */
+/***************************************************************/
+void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
+                       HMatrix *ehMatrix, int nx,
+                       cdouble KK, cdouble KN, cdouble NK, cdouble NN,
+                       cdouble Omega, cdouble EpsRel, cdouble MuRel,
+                       double XmXT[3], double SRFlux[NUMSRFLUX])
+{
+  /***************************************************************/
+  /* fetch reduced fields for this cubature point                */
+  /***************************************************************/
+  cdouble eAlpha[3], hAlpha[3], eBeta[3], hBeta[3];
+  int Offseta = G->EdgeIndexOffset[nsa];
+  int Offsetb = G->EdgeIndexOffset[nsb];
+  int NET     = G->TotalEdges;
+  ehMatrix->GetEntries("0:2", nx*NET + Offseta + nea, eAlpha);
+  ehMatrix->GetEntries("3:5", nx*NET + Offseta + nea, hAlpha);
+  ehMatrix->GetEntries("0:2", nx*NET + Offsetb + neb, eBeta);
+  ehMatrix->GetEntries("3:5", nx*NET + Offsetb + neb, hBeta);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double EpsEE[3][3], MuHH[3][3], EH[3][3];
+  cdouble k    = sqrt(EpsRel*MuRel)*Omega;
+  cdouble ZRel = sqrt(MuRel/EpsRel);
+  cdouble  IKZ = II*k*ZVAC*ZRel;
+  cdouble IKOZ = II*k/(ZVAC*ZRel);
+  double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
+  double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
+  for(int m=0; m<3; m++)
+   for(int n=0; n<3; n++)
+    { 
+      EpsEE[m][n] = EpsAbs * real( KK*conj(IKZ)*IKZ*conj(eAlpha[m])*eBeta[n]
+                                  -KN*conj(IKZ)    *conj(eAlpha[m])*hBeta[n]
+                                  -NK          *IKZ*conj(hAlpha[m])*eBeta[n]
+                                  +NN              *conj(hAlpha[m])*hBeta[n]
+                                 );
+     
+      MuHH[m][n]  = MuAbs * real(  KK                *conj(hAlpha[m])*hBeta[n]
+                                  +KN           *IKOZ*conj(hAlpha[m])*eBeta[n]
+                                  +NK*conj(IKOZ)     *conj(eAlpha[m])*hBeta[n]
+                                  +NN*conj(IKOZ)*IKOZ*conj(eAlpha[m])*eBeta[n]
+                                );
+ 
+      EH[m][n] = real( KK*conj(IKZ)     *conj(eAlpha[m])*hBeta[n]
+                      +KN*conj(IKZ)*IKOZ*conj(eAlpha[m])*eBeta[n]
+                      -NK               *conj(hAlpha[m])*hBeta[n]
+                      -NN          *IKOZ*conj(hAlpha[m])*eBeta[n]
+                     );
+    };
+  double Trace  =   EpsEE[0][0] + EpsEE[1][1] + EpsEE[2][2]
+                  +  MuHH[0][0] +  MuHH[1][1] +  MuHH[2][2];
+ 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  // P (poynting flux)
+  SRFlux[0] = 0.5*(EH[1][2] - EH[2][1]);
+  SRFlux[1] = 0.5*(EH[2][0] - EH[0][2]);
+  SRFlux[2] = 0.5*(EH[0][1] - EH[1][0]);
+
+  // T (maxwell stress tensor)
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    { 
+      double TMuNu = 0.5*( EpsEE[Mu][Nu] + MuHH[Mu][Nu] );
+      if (Mu==Nu) TMuNu -= 0.25*Trace;
+      SRFlux[ 3 + 3*Mu + Nu ] = TMuNu;
+    };
+
+  // (x-x0) x T
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    { 
+      int Rho = (Mu+1)%3;
+      int Sigma = (Mu+2)%3;
+      double TSigmaNu = SRFlux[ 3 + 3*Sigma + Nu ];
+      double   TRhoNu = SRFlux[ 3 + 3*Rho   + Nu ];
+      SRFlux[12 + 3*Mu + Nu ] = XmXT[Rho]*TSigmaNu - XmXT[Sigma]*TRhoNu;
+    };
+
+}
+
+/***************************************************************/
 /* Evaluate trace formulas for the spatially-resolved fluxes   */
 /* at individual points in space.                              */
 /*                                                             */
@@ -1105,11 +1320,11 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
 /* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
 /* FMatrix[nx,12..20] = rxMST_{xx}, rxMST_{xy}, ..., rxMST_{zz}*/
 /***************************************************************/
-#define NUMSRPFT  7
-#define NUMSRFLUX (3*NUMSRPFT)
 
-int GetSRPFTIndex(int nt, int nx, int nq, int Mu, int NX)
-{ return nt*NX*NUMSRFLUX + nx*NUMSRFLUX + 3*nq + Mu; }
+// compute a unique index for the contribution of thread #nt to the
+// SRFlux quantity #nq at spatial point #nx
+int GetSRFluxIndex(int nt, int nx, int nq, int NX)
+{ return nt*NX*NUMSRFLUX + nx*NUMSRFLUX + nq; }
 
 HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                    HVector *KNVector, HMatrix *RytovMatrix,
@@ -1130,9 +1345,10 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
 
   /***************************************************************/
-  /* precompute field six-vectors for all evaluation points      */
+  /* precompute 'reduced fields' e,h of all basis functions at   */
+  /* all evaluation points                                       */
   /***************************************************************/
-  HMatrix *FSVMatrix = GetFSVMatrix(G, -1, XMatrix, Omega, FarField);
+  HMatrix *ehMatrix = Get_ehMatrix(G, -1, XMatrix, Omega, FarField);
 
   /***************************************************************/
   /* prefetch material properties for all regions at this freq   */
@@ -1149,23 +1365,22 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /***************************************************************/
   /* allocate per-thread storage to avoid costly synchronization */
   /* primitives in the multithreaded loop                        */
+  /* [note the array is automatically zeroed by mallocEC()]      */
   /***************************************************************/
   int NumThreads=1;
 #ifdef USE_OPENMP
   NumThreads=GetNumThreads();
 #endif
-  double *DeltaPFT=(double *)mallocEC(NumThreads*NX*NUMSRFLUX * sizeof(double));
+  double *DeltaSRFlux=(double *)mallocEC(NumThreads*NX*NUMSRFLUX * sizeof(double) );
+   
+  bool UseSymmetry=false;
 
   /***************************************************************/
   /*- loop over all basis functions and all pairs of eval points */
   /***************************************************************/
-  int NS = G->NumSurfaces;
-  int NBF = G->TotalBFs;
   int NET = G->TotalEdges;
   double XTorque[3]={0.0, 0.0, 0.0};
-#ifndef USE_OPENMP
-  if (G->LogLevel>=SCUFF_VERBOSE2) Log(" no multithreading...");
-#else
+#ifdef USE_OPENMP
   if (G->LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
 #pragma omp parallel for collapse(3), schedule(dynamic,1), num_threads(NumThreads)
 #endif  
@@ -1176,6 +1391,7 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
        if (neta==0 && netb==0)
         LogPercent(nx,NX,100);
 
+       // break up total edge indices into (surfaceIndex, edgeIndex) pairs
        int nsa=0, nea=neta;
        while(nea > G->Surfaces[nsa]->NumEdges)
         nea -= G->Surfaces[nsa++]->NumEdges;
@@ -1185,7 +1401,10 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 
        RWGSurface *Sa = G->Surfaces[nsa];
        RWGSurface *Sb = G->Surfaces[nsb];
-
+  
+       // identify the region in which the eval point lies
+       // and skip if the given surfaces do not contribute
+       // to the fields in that region
        double X[3];
        XMatrix->GetEntriesD(nx, "0:2", X);
        int RegionIndex = G->GetRegionIndex(X);
@@ -1196,10 +1415,14 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
             && (Sb->RegionIndices[1] != RegionIndex )
           ) continue;
 
+       if ( UseSymmetry && (nsb<nsa || (nsa==nsb && neb<nea) ) )
+        continue;
+
+       double XmXT[3];
+       VecSub(X, XTorque, XmXT);
+
        cdouble EpsRel=RegionEpsMu[2*RegionIndex+0];
        cdouble  MuRel=RegionEpsMu[2*RegionIndex+1];
-       double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
-       double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
 
        /*--------------------------------------------------------------*/
        /* extract the surface-current coefficients either from the KN  */
@@ -1233,104 +1456,45 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
         };
 
        /*--------------------------------------------------------------*/
-       /* The E-field due to basis function Alpha is                   */
-       /*  kAlpha*EKAlpha + nAlpha*ENAlpha.                            */
-       /* The H-field due to basis function Alpha is                   */
-       /*  kAlpha*HKAlpha + nAlpha*HNAlpha.                            */
+       /*- get the contributions of this edge pair --------------------*/
        /*--------------------------------------------------------------*/
-       cdouble EKAlpha[3], HKAlpha[3], ENAlpha[3], HNAlpha[3];
-       cdouble EKBeta[3], HKBeta[3], ENBeta[3], HNBeta[3];
-       int ColumnKA = nx*NBF + nbfa;
-       FSVMatrix->GetEntries( "0:2", ColumnKA, EKAlpha);
-       FSVMatrix->GetEntries( "3:5", ColumnKA, HKAlpha);
-       if (!IsPECa)
-        { int ColumnNA = nx*NBF + nbfa + 1;
-          FSVMatrix->GetEntries( "0:2", ColumnNA, ENAlpha);
-          FSVMatrix->GetEntries( "3:5", ColumnNA, HNAlpha);
-        }
-       else
-        { memset(ENAlpha, 0, 3*sizeof(cdouble));
-          memset(HNAlpha, 0, 3*sizeof(cdouble));
-        };
-       int ColumnKB = nx*NBF + nbfb;
-       FSVMatrix->GetEntries( "0:2", ColumnKB, EKBeta);
-       FSVMatrix->GetEntries( "3:5", ColumnKB, HKBeta);
-       if (!IsPECb)
-        { int ColumnNB = nx*NBF + nbfb + 1;
-          FSVMatrix->GetEntries( "0:2", ColumnNB, ENBeta);
-          FSVMatrix->GetEntries( "3:5", ColumnNB, HNBeta);
-        }
-       else
-        { memset(ENBeta, 0, 3*sizeof(cdouble));
-          memset(HNBeta, 0, 3*sizeof(cdouble));
-        };
+       double SRFlux[NUMSRFLUX];
+       GetEdgeEdgeSRFlux(G, nsa, nea, nsb, neb, ehMatrix, nx,
+                         KK, KN, NK, NN, Omega, EpsRel, MuRel, XmXT, SRFlux);
 
        /*--------------------------------------------------------------*/
-       /*- get the contributions of this edge pair to all quantities   */
+       /*- accumulate the contributions of this edge pair              */
        /*--------------------------------------------------------------*/
-       for(int Mu=0; Mu<3; Mu++)
-        { 
-          // N-matrices for the Muth cartesian direction
-          double NMatrix[NUMPFT][3][3];
-          for(int nq=0; nq<NUMPFT; nq++)
-           for(int p=0; p<3; p++)
-            for(int q=0; q<3; q++)
-             NMatrix[nq][p][q]=0.0;
-
-          double nHat[3]={0.0, 0.0, 0.0};
-          nHat[Mu]=1.0;
-          GetNMatrices(nHat, X, XTorque, NMatrix);
-          
-          int nt=0;
+       int nt=0;
 #ifdef USE_OPENMP
-          nt=omp_get_thread_num();
+       nt=omp_get_thread_num();
 #endif
+       double Weight = (nsa==nsb && neb==nea) ? 1.0 : 2.0;
+       if (!UseSymmetry) Weight=1.0;
 
-          // power
-          DeltaPFT[ GetSRPFTIndex(nt, nx, 0, Mu, NX) ]
-           +=0.25*real( KK*(  HVMVP(EKAlpha, NMatrix[SIPOWER], HKBeta)
-                             -HVMVP(HKAlpha, NMatrix[SIPOWER], EKBeta) )
-                       +KN*(  HVMVP(EKAlpha, NMatrix[SIPOWER], HNBeta)
-                             -HVMVP(HKAlpha, NMatrix[SIPOWER], ENBeta) )
-                       +NK*(  HVMVP(ENAlpha, NMatrix[SIPOWER], HKBeta)
-                             -HVMVP(HNAlpha, NMatrix[SIPOWER], EKBeta) )
-                       +NN*(  HVMVP(ENAlpha, NMatrix[SIPOWER], HNBeta)
-                             -HVMVP(HNAlpha, NMatrix[SIPOWER], ENBeta) )
-                      );
- 
-          // force and torque
-          for(int nq=SIXFORCE; nq<=SIZTORQUE; nq++)
-           DeltaPFT[ GetSRPFTIndex(nt, nx, nq-1, Mu, NX) ]
-             += 0.25*real( KK*( EpsAbs*HVMVP(EKAlpha, NMatrix[nq], EKBeta)
-                                +MuAbs*HVMVP(HKAlpha, NMatrix[nq], HKBeta) )
-                          +KN*( EpsAbs*HVMVP(EKAlpha, NMatrix[nq], ENBeta)
-                                +MuAbs*HVMVP(HKAlpha, NMatrix[nq], HNBeta) )
-                          +NK*( EpsAbs*HVMVP(ENAlpha, NMatrix[nq], EKBeta)
-                                +MuAbs*HVMVP(HNAlpha, NMatrix[nq], HKBeta) )
-                          +NN*( EpsAbs*HVMVP(ENAlpha, NMatrix[nq], ENBeta)
-                                +MuAbs*HVMVP(HNAlpha, NMatrix[nq], HNBeta) )
-                         );
- 
-        }; // for(int Mu=0; Mu<3; Mu++)
+       for(int nq=0; nq<NUMSRFLUX; nq++)
+        DeltaSRFlux[ GetSRFluxIndex(nt, nx, nq, NX) ] += Weight*SRFlux[nq];
 
     }; // for(nx==...)
 
+  /*--------------------------------------------------------------*/
+  /*- sum contributions of all threads ---------------------------*/
+  /*--------------------------------------------------------------*/
   FMatrix->Zero();
   for(int nx=0; nx<NX; nx++)
-   for(int nq=0; nq<NUMSRPFT; nq++)
-    for(int Mu=0; Mu<3; Mu++)
-     for(int nt=0; nt<NumThreads; nt++)
-      FMatrix->AddEntry(nx, 3*nq + Mu, DeltaPFT[ GetSRPFTIndex(nt, nx, nq, Mu, NX)] );
+   for(int nq=0; nq<NUMSRFLUX; nq++)
+    for(int nt=0; nt<NumThreads; nt++)
+     FMatrix->AddEntry(nx, nq, DeltaSRFlux[ GetSRFluxIndex(nt, nx, nq, NX)] );
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  free(DeltaPFT);
+  free(DeltaSRFlux);
+  delete ehMatrix;
   delete[] RegionEpsMu;
-  delete FSVMatrix;
 
+  return FMatrix;
 
 } // routine GetSRFlux
 
 } // namespace scuff
-

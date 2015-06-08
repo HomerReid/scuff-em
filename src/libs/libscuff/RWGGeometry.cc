@@ -543,13 +543,15 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   AveragePanelArea/=((double) TotalPanels);
 
   /***************************************************************/
-  /* initialize arrays of basis-function and panel index offsets */
+  /* initialize arrays of basis-function, edge, and panel offsets*/
   /***************************************************************/
   BFIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
+  EdgeIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
   PanelIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
-  BFIndexOffset[0]=PanelIndexOffset[0]=0;
+  BFIndexOffset[0]=EdgeIndexOffset[0]=PanelIndexOffset[0]=0;
   for(int ns=1; ns<NumSurfaces; ns++)
    { BFIndexOffset[ns]=BFIndexOffset[ns-1] + Surfaces[ns-1]->NumBFs;
+     EdgeIndexOffset[ns]=EdgeIndexOffset[ns-1] + Surfaces[ns-1]->NumEdges;
      PanelIndexOffset[ns]=PanelIndexOffset[ns-1] + Surfaces[ns-1]->NumPanels;
    };
 
@@ -637,6 +639,7 @@ RWGGeometry::~RWGGeometry()
   free(RegionLabels);
 
   free(BFIndexOffset);
+  free(EdgeIndexOffset);
   free(PanelIndexOffset);
   free(EpsTF);
   free(MuTF);

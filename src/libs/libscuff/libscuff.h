@@ -560,6 +560,7 @@ class RWGGeometry
    /*  BFIndexOffset[2]=# BFs for surface 0 + # BFs for surface     */
    /* etc.                                                          */
    int *BFIndexOffset;
+   int *EdgeIndexOffset;
    int *PanelIndexOffset;
 
    /* Mate[i]=j if j<i and surface j is identical to surface i. */
