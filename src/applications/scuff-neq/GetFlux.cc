@@ -115,24 +115,25 @@ void ApplySCUFFMatrixTransformation(HMatrix *M)
 /*  (a) nt, the geometrical transform                          */
 /*  (b) nss, the source surface (object)                       */
 /*  (c) nx, the index of the evaluation point in the EP file   */
-/*  (d) nq, the physical quantity (i.e. power, xforce, etc.)   */
+/*  (d) nfc, the index of the flux component                   */
+/*      =0,1,2,3,4,...,11 for Px, Py, Pz, T_xx, T_xy, ... T_zz */
 /***************************************************************/
 int GetSIQIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq)
 {
   int NS = SNEQD->G->NumSurfaces;
-  int NQ = SNEQD->NQ;
+  int NQ = SNEQD->NPFT;
   return nt*(NS*NS*NQ) + nss*(NS*NQ) + nsd*NQ + nq;
 }
 
-int GetSRQIndex(SNEQData *SNEQD, int nt, int nss, int nx, int nq)
+int GetSRQIndex(SNEQData *SNEQD, int nt, int nss, int nx, int nfc)
 {
   int NumSIQs = SNEQD->NumSIQs;
 
-  int NS = SNEQD->G->NumSurfaces;
-  int NX = SNEQD->NX;
-  int NQ = NUMSRFLUX;
+  int NS  = SNEQD->G->NumSurfaces;
+  int NX  = SNEQD->NX;
+  int NFC = NUMSRFLUX;
 
-  return NumSIQs + nt*(NS*NX*NQ) + nss*(NX*NQ) + nx*NQ + nq;
+  return NumSIQs + nt*(NS*NX*NFC) + nss*(NX*NFC) + nx*NFC + nfc;
 }
 
 /***************************************************************/
@@ -315,7 +316,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 
   int NT=SNEQD->NumTransformations;
   int NS=SNEQD->G->NumSurfaces;
-  int NQ=SNEQD->NQ;
+  int NQ=SNEQD->NPFT;
   int nt, nss, nsd, nq;
   GTComplex **GTCList=SNEQD->GTCList;
   char *FirstTag = GTCList[0]->Tag;
@@ -381,28 +382,7 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 }
 
 /***************************************************************/
-/* for spatially-integrated fluxes, the computed quantities    */
-/* are ordered in the output vector like this:                 */ 
-/*                                                             */
-/*  SIFlux[ nt*NS2NQ + ns*NSNQ + nsp*NQ + nq ]                 */
-/*   = contribution of sources inside surface #nsp to flux of  */
-/*     quantity #nq into surface #ns, all at transformation #nt*/
-/*                                                             */
-/*  where    NQ = number of quantities (1--8)                  */
-/*  where  NSNQ = number of surface * NQ                       */
-/*  where NS2NQ = (number of surfaces)^2* NQ                   */
-/*                                                             */
-/* for spatially-resolved fluxes, the computed quantities are  */
-/* ordered in the output vector like this:                     */
-/*                                                             */
-/*  SRFlux[ nt*NPNSNQ + np*NSNQ +  ns*NQ + nq ]                */
-/*   = contribution of sources inside surface #ns to flux of   */
-/*     quantity #nq at evaluation point np, all at             */
-/*     transformation NT                                       */
-/*                                                             */
-/*  where    NQ  = number of quantities (1--8)                 */
-/*  where  NSNQ  = number of surfaces * NQ                     */
-/*  where NPNSNQ = number of evaluation points * NPNSNQ        */
+/***************************************************************/
 /***************************************************************/
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
@@ -420,7 +400,8 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
   HMatrix **TInt      = SNEQD->TInt; 
   HMatrix **U         = SNEQD->U;
   int NS              = SNEQD->G->NumSurfaces;
-  int NQ              = SNEQD->NQ;
+  int NQ              = SNEQD->NPFT;
+  int NX              = SNEQD->NX;
   int NumSIQs         = SNEQD->NumSIQs;
   int NumSRQs         = SNEQD->NumSRQs;
   char *FileBase      = SNEQD->FileBase;
@@ -552,12 +533,12 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
         // compute spatially-resolved flux quantities for
         // all evaluation points
         if (NumSRQs > 0)
-          { HMatrix *SRXMatrix=SNEQD->SRXMatrix;
+          { 
+            HMatrix *SRXMatrix=SNEQD->SRXMatrix;
             HMatrix *SRFMatrix=SNEQD->SRFMatrix;
             GetSRFlux(G, SRXMatrix, Omega, 0, SNEQD->Rytov, SRFMatrix);
 
             FILE *f=vfopen("%s.SRFlux","a",FileBase);
-            int NX = SNEQD->NX;
             for(int nx=0; nx<NX; nx++)
              {
                double X[3], SRFlux[NUMSRFLUX];
@@ -567,11 +548,15 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
                fprintf(f,"%s %e ",Tag,real(Omega));
                if (kBloch) 
                 fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
-               fprintf(f,"%e %e %e %i ",X[0],X[1],X[2], nss);
-               for(int nq=0; nq<NUMSRFLUX; nq++)
-                fprintf(f,"%e ",Flux[GetSRQIndex(SNEQD, nt, nss, nx, nq) ]=SRFlux[nq]);
+               fprintf(f,"%e %e %e %i ",X[0],X[1],X[2],nss);
+               for(int nfc; nfc<NUMSRFLUX; nfc++)
+                { int Index=GetSRQIndex(SNEQD, nt, nss, nx, nfc); 
+                  Flux[Index]=SRFMatrix->GetEntryD(nx,nfc);
+                  fprintf(f,"%e ",Flux[Index]);
+                };
                fprintf(f,"\n");
              };
+            fclose(f);
           };
 
       };

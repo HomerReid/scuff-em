@@ -5,9 +5,9 @@ SUBDIRS =            	\
  GetTMatrix             \
  PlateWithHole          \
  PerforatedThinFilm     \
+ SiO2Spheres            \
+ SiliconBeams           \
  SolidSphere            \
  SphericalShell         \
- TwoDimensionalCylinders \
- TwoSpheres              \
- ThinFilm                \
+ ThinFilm               \
  WireAntenna         

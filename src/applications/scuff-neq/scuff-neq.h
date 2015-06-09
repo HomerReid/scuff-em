@@ -57,7 +57,7 @@ using namespace scuff;
 #define QINDEX_YTORQUE 6
 #define QINDEX_ZTORQUE 7
 
-#define NUMSRFLUX       21
+#define NUMSRFLUX      12
 
 // quadrature methods 
 #define QMETHOD_ADAPTIVE 0
@@ -81,7 +81,7 @@ typedef struct SNEQData
    /*--------------------------------------------------------------*/
    /*- information on the calculations requested by the user       */
    /*--------------------------------------------------------------*/
-   int NQ;             // number of quantities requested (1--8)
+   int NPFT;           // number of PFT quantities requested (1--8)
    bool *NeedQuantity; // true if nqth PFT quantity was requested
    int NumSIQs;        // number of spatially-integrated quantities
 

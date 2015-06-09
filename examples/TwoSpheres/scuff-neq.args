@@ -1,7 +1,0 @@
-geometry TwoSSpheres_255.scuffgeo
-TransFile TwoSpheres.trans
-temperature UpperSphere 300
-power
-xforce
-yforce
-zforce

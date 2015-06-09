@@ -595,8 +595,115 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Analytical results for dyadic Green's functions above an 
-         infinite half-space}
+\newcommand{\EE}{\mathbb{E}}
+\section{Analytical expressions for dyadic Green's functions}
+
+\subsection{General formalism}
+
+$$ \EE\sups{reg}_{p\alpha}(\vb r), \EE\sups{out}_{p\alpha}(\vb r)$$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{GExpansion1}
+{ \vb G(\vb r, \vb r^\prime) 
+  =
+  \sum_{p\alpha}
+  \EE\sups{reg}_{p\alpha}(\vb r_<) \EE\sups{out}_{p\alpha}(\vb r_>)
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{DGFs at exterior points}
+
+If the object is irradiated by $\EE\sups{reg}_{p\alpha}$
+then the scattered field is
+$\sum_{p^\prime} T_{p^\prime p} \EE\sups\out_{p^\prime\alpha}$
+where $T_{p^\prime p}$ is the $T$ matrix.
+
+\numeq{GExpansion2}
+{ \bmc G(\vb r, \vb r^\prime)
+ = \sum_{pp^\prime \alpha}
+   T_{pp^\prime}
+   \EE\sups{out}_{p\alpha}(\vb r)
+   \EE\sups{out}_{p^\prime\alpha}(\vb r^\prime)
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{DGFs at interior points}
+
+If the object is irradiated from within by $\EE\sups{out}_{p\alpha}$
+then the scattered field (at interior points) is
+$\sum_{p^\prime} \overline{T}_{p^\prime p} \EE\sups\out_{p^\prime\alpha}$
+where $\overline{T}_{p^\prime p}$ is a sort of modified
+version of the $T$ matrix. [This is the quantity labeled
+$\mc F^{ii}$ in Rahi et al., PRD \textbf{80} 085021 (2009).]
+
+\subsection*{Curvilinear to cartesian conversion}
+
+$$ \bmc G\sups{cartesian}(\vb r, \vb r^\prime) 
+   = 
+   \vbLambda(\vb r) \bmc G\sups{curvilinear}(\vb r, \vb r^\prime)
+   \vbLambda^\dagger(\vb r^\prime)
+$$
+
+where $\vbmLambda(\vb r)$ is the $3\times 3$ matrix that 
+converts a $3$-vector of cartesian vector components into
+a $3$-vector of curvilinear components of the same vector
+at $\vb r$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Dielectric sphere}
+
+In this case $\alpha=\{\ell m\}$ where both $\ell,m$ are discrete.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Dielectric cylinder}
+
+In this case $\alpha=\{\nu k_z}$, where $\nu$ is discrete and 
+$k_z$ is continuous. The regular and outgoing waves are 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$
+ \mathbb{E}_{M\alpha}(\rho, \varphi, z)
+ = \Big[   i\nu\frac{Z_\nu(\zeta)}{\zeta}\vbhatt{\rho}
+                  - Z_\nu^\prime(\zeta) \vbhatt{\varphi}
+      \Big]e^{i\nu\varphi} e^{ik_z z} 
+\\
+ \mathbb{E}_{N\alpha}(\rho, \varphi, z)
+ =\frac{1}{ik_0}
+      \Big[ -ik_z Z_\nu^\prime(\zeta)          \vbhatt{\rho}
+            +\nu k_z \frac{Z_\nu(\zeta)}{\zeta} \vbhatt{\varphi}
+            - k_\rho Z_\nu(\zeta)\vbhat{z}
+      \Big] e^{i\nu\varphi} e^{ik_z z} 
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+with
+$$ 
+ \zeta \equiv k_\rho \rho,
+ \qquad
+ k_\rho\equiv \sqrt{k_0^2 - k_z^2},
+ \qquad
+ Z(\zeta) =
+ \begin{cases}
+   H^{(1)}_\nu(\zeta), \qquad &\text{outgoing} \\
+   H^{(2)}_\nu(\zeta), \qquad &\text{incoming} \\
+   J_\nu      (\zeta), \qquad &\text{regular}
+ \end{cases}
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The $T$-matrix elements are 
+
+\subsection{Dielectric half-space}
+
+In this case $\alpha=\{k_x, k_y\}=\vb k$ where
+both $k_x, k_y$ are continuous.
 
 For testing purposes it is useful to have analytical expressions
 for the dyadic Green's functions above an infinite half space.

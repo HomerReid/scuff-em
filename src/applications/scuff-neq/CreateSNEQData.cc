@@ -43,7 +43,7 @@ const char *QuantityNames[NUMPFT]=
 /***************************************************************/
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
-                         int QuantityFlags, char *SRPointFile,
+                         int QuantityFlags, char *EPFile,
                          char *pFileBase)
 {
 
@@ -109,8 +109,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   if ( QuantityFlags & QFLAG_ZTORQUE ) 
    { NeedQuantity[QINDEX_ZTORQUE] = true; NQ++; };
   
-  SNEQD->NQ = NQ;
-
+  SNEQD->NPFT = NQ;
   int NT = SNEQD->NumTransformations;
   int NS = SNEQD->G->NumSurfaces;
   SNEQD->NumSIQs = NT*NS*NS*NQ;
@@ -122,15 +121,15 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   SNEQD->SRXMatrix = 0;
   SNEQD->SRFMatrix = 0;
   SNEQD->NX        = 0; 
-  if (SRPointFile)
-   { SNEQD->SRXMatrix = new HMatrix(SRPointFile);
+  SNEQD->NumSRQs   = 0;
+  if (EPFile)
+   { SNEQD->SRXMatrix = new HMatrix(EPFile);
      if (SNEQD->SRXMatrix->ErrMsg)
       ErrExit(SNEQD->SRXMatrix->ErrMsg);
-     int NX = SNEQD->NX = SNEQD->SRXMatrix->NR;
-     SNEQD->SRFMatrix = new HMatrix(NX, NUMSRFLUX);
+     int NX      = SNEQD->NX      = SNEQD->SRXMatrix->NR;
+     int NumSRQs = SNEQD->NumSRQs = NT*NS*NX*NUMSRFLUX;
+     SNEQD->SRFMatrix = new HMatrix(NX, NumSRQs);
    };
-  //SNEQD->NumSRQs = NT*NS*(SNEQD->NX)*NQ;
-  SNEQD->NumSRQs = NT*NS*(SNEQD->NX)*NUMSRFLUX;
 
   /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse -*/
@@ -188,7 +187,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  int fdim = SNEQD->NumSIQs +  SNEQD->NumSRQs;
+  int fdim = SNEQD->NumSIQs + SNEQD->NumSRQs;
   SNEQD->OmegaConverged = (bool *)mallocEC(fdim*sizeof(bool));
 
   /*--------------------------------------------------------------*/
@@ -202,12 +201,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
      fprintf(f,"# 1 transform tag\n");
      fprintf(f,"# 2 omega \n");
      int nq=3;
-     if (G->LDim==1)
+     if (G->LDim>=1)
       fprintf(f,"# %i kBloch_x \n",nq++);
-     else if (G->LDim==2)
-      { fprintf(f,"# %i kBloch_x \n",nq++);
-        fprintf(f,"# %i kBloch_x \n",nq++);
-      };
+     if (G->LDim==2)
+      fprintf(f,"# %i kBloch_y \n",nq++);
      fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
      for(int nPFT=0; nPFT<NUMPFT; nPFT++)
       if (NeedQuantity[nPFT])
@@ -225,15 +222,18 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
      fprintf(f,"# data file columns: \n");
      fprintf(f,"# 1 transform tag\n");
      fprintf(f,"# 2 omega \n");
-     fprintf(f,"# 3, 4, 5, x,y,z (coordinates of eval point)\n");
-     fprintf(f,"# 6 sourceObject \n");
-     fprintf(f,"# 7  8  9  Px,    Py,    Pz \n");
-     fprintf(f,"# 10 11 12 Txx,   Txy,   Txz \n");
-     fprintf(f,"# 13 14 15 Tyx,   Tyy,   Tyz \n");
-     fprintf(f,"# 16 17 18 Tzx,   Tzy,   Tzz \n");
-     fprintf(f,"# 19 20 21 rxTxx, rxTxy, rxTxz \n");
-     fprintf(f,"# 22 23 24 rxTyx, rxTyy, rxTyz \n");
-     fprintf(f,"# 25 26 27 rxTzx, rxTzy, rxTzz \n");
+     int nq=3;
+     if (G->LDim>=1)
+      fprintf(f,"# %i kBloch_x \n",nq++);
+     if (G->LDim==2)
+      fprintf(f,"# %i kBloch_y \n",nq++);
+     fprintf(f,"# %i, %i, %i x,y,z (coordinates of eval point)\n",nq,nq+1,nq+2);
+     nq+=3;
+     fprintf(f,"# %i sourceObject \n",nq++);
+     fprintf(f,"# %2i %2i %2i Px,    Py,    Pz  \n",nq,nq+1,nq+2); nq+=3;
+     fprintf(f,"# %2i %2i %2i Txx,   Txy,   Txz \n",nq,nq+1,nq+2); nq+=3;
+     fprintf(f,"# %2i %2i %2i Tyx,   Tyy,   Tyz \n",nq,nq+1,nq+2); nq+=3;
+     fprintf(f,"# %2i %2i %2i Tzx,   Tzy,   Tzz \n",nq,nq+1,nq+2); nq+=3;
      fclose(f);
    };
 

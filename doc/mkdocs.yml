@@ -19,6 +19,7 @@ pages:
     - 'Casimir forces between perforated surfaces': 'examples/PECScreens.md'
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
+    - 'Installation':              'reference/Installing.md'
     - 'Geometry descriptions':     'reference/Geometries.md'
     - 'Material designations':     'reference/Materials.md'
     - 'Geometric transformations': 'reference/Transformations.md'

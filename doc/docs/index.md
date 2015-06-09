@@ -21,6 +21,7 @@
 ## General reference
 
 * [Top-level overview](reference/TopLevel.md)
+* [Installation](reference/Installing.md)
 * [Geometry files](reference/Geometries.md)
 * [Material descriptions](reference/Materials.md)
 * [Geometrical transformations](reference/Transformations.md)

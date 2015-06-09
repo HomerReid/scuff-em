@@ -25,7 +25,7 @@
  *
  */
 
-static const char *QuantityNames[]=
+static const char *SIQNames[]=
  {"PAbs", "PRad", "Fx", "Fy", "Fz", "Tx", "Ty", "Tz"};
 
 #include <stdlib.h>
@@ -39,6 +39,9 @@ static const char *QuantityNames[]=
 //     = (kT in eV) / (0.1973 eV)
 //     = (8.6173e-5 / 0.1973 ) * (T in Kelvin)
 #define BOLTZMANNK 4.36763e-4
+
+// \hbar * \omega_0^2 in units of watts
+#define HBAROMEGA02 9.491145534e-06
 
 // for example: suppose in the real world we have 
 // omega=3e14 rad/sec, T = 300 kelvin. then
@@ -67,18 +70,19 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
 {
   /*--------------------------------------------------------------*/
   /*- quantities arising from sources inside object nss are       */
-  /*- weighted by a factor [Theta(T) - Theta(TEnv)]               */
+  /*- weighted by a factor of                                     */
+  /*- \hbar \omega_0^2 [Theta(T) - Theta(TEnv)]                   */
   /*- note: nss = 'num surface, source'                           */
   /*-       nsd = 'num surface, destination'                      */
   /*--------------------------------------------------------------*/
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
-  int NQ = SNEQD->NQ;
+  int NQ = SNEQD->NPFT;
   int NX = SNEQD->NX;
   for(int nss=0; nss<NS; nss++)
    { 
      double DeltaTheta
-      = Theta(Omega, TSurfaces[nss]) - Theta(Omega, TEnvironment);
+      = HBAROMEGA02 * Theta(Omega, TSurfaces[nss]) - Theta(Omega, TEnvironment);
 
      for(int nt=0; nt<NT; nt++)
       { 
@@ -88,8 +92,8 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
            *= DeltaTheta/M_PI;
 
         for(int nx=0; nx<NX; nx++)
-         for(int nq=0; nq<NUMSRFLUX; nq++)
-          FluxVector[ GetSRQIndex(SNEQD, nt, nss, nx, nq) ]
+         for(int nfc=0; nfc<NUMSRFLUX; nfc++)
+          FluxVector[ GetSRQIndex(SNEQD, nt, nss, nx, nfc) ]
            *= DeltaTheta/M_PI;
       };
    };
@@ -127,8 +131,8 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
 
           fprintf(f,"%s %e %i ",SNEQD->GTCList[nt]->Tag,Omega,nss+1);
           fprintf(f,"%e %e %e ",X[0],X[1],X[2]);
-          for(int nq=0; nq<NQ; nq++)
-           fprintf(f,"%.8e ",FluxVector[ GetSRQIndex(SNEQD, nt, nss, nx, nq) ] );
+          for(int nfc=0; nfc<NUMSRFLUX; nfc++)
+           fprintf(f,"%.8e ",FluxVector[ GetSRQIndex(SNEQD, nt, nss, nx, nfc) ] );
           fprintf(f,"\n");
         };
      fclose(f);
@@ -414,7 +418,7 @@ void WriteSIOutputFile(SNEQData *SNEQD, double *I, double *E)
   int nc=3;
   for (int nq=0; nq<NUMPFT; nq++)
    if (SNEQD->NeedQuantity[nq])
-    { fprintf(f,"# (%i,%i) %s (value,error in frequency quadrature)\n",nc,nc+1,QuantityNames[nq]);
+    { fprintf(f,"# (%i,%i) %s (value,error in frequency quadrature)\n",nc,nc+1,SIQNames[nq]);
       nc+=2; 
     };
 
@@ -425,7 +429,7 @@ void WriteSIOutputFile(SNEQData *SNEQD, double *I, double *E)
   /*--------------------------------------------------------------*/
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
-  int NQ = SNEQD->NQ;
+  int NQ = SNEQD->NPFT;
   double TotalQuantity[NUMPFT], TotalError[NUMPFT];
   for(int nt=0; nt<NT; nt++)
    for(int nsd=0; nsd<NS; nsd++)
@@ -447,7 +451,6 @@ void WriteSIOutputFile(SNEQData *SNEQD, double *I, double *E)
       for(int nq=0; nq<NQ; nq++)
        fprintf(f,"%e %e ",TotalQuantity[nq],TotalError[nq]);
       fprintf(f,"\n");
-
     };
   fclose(f);   
 }
@@ -466,15 +469,11 @@ void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E)
   fprintf(f,"# data file columns: \n");
   fprintf(f,"# 1 transform tag \n");
   fprintf(f,"# 2 source surface \n");
-  fprintf(f,"# 3,4,5 (x,y,z) coordinates of evaluation point\n");
-#if 0
-  int nc=6;
-  for (int nq=0; nq<NUMPFT; nq++)
-   if (SNEQD->NeedQuantity[nq])
-    { fprintf(f,"# (%i,%i) %s (value,error in frequency quadrature)\n",nc,nc+1,QuantityNames[nq]);
-      nc+=2; 
-    };
-#endif
+  fprintf(f,"#  3, 4, 5 (x,y,z) coordinates of evaluation point\n");
+  fprintf(f,"#  6, 7, 8 (x,y,z) <P_x>, <P_y>, <P_z> (Poynting vector)\n");
+  fprintf(f,"#  9,10,11 (x,y,z) <T_xx>, <T_xy>, <T_xz> (Maxwell tensor )\n");
+  fprintf(f,"# 12,13,14 (x,y,z) <T_yx>, <T_yy>, <T_yz> (Maxwell tensor )\n");
+  fprintf(f,"# 15,16,17 (x,y,z) <T_zx>, <T_zy>, <T_zz> (Maxwell tensor )\n");
 
   /*--------------------------------------------------------------*/
   /*- as we report the contributions of each source body to the   */
@@ -484,32 +483,29 @@ void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E)
   int NS = SNEQD->G->NumSurfaces;
   int NT = SNEQD->NumTransformations;
   int NX = SNEQD->SRXMatrix->NR;
-  int NQ = NUMSRFLUX;
-  double TotalQuantity[NUMSRFLUX], TotalError[NUMSRFLUX];
+  double TotalQuantity[NUMSRFLUX];
   for(int nt=0; nt<NT; nt++)
    for(int nx=0; nx<NX; nx++)
     { 
       double X[3];
       SNEQD->SRXMatrix->GetEntriesD(nx,"0:2",X);
 
-      memset(TotalQuantity,0,NQ*sizeof(double));
-      memset(TotalError,   0,NQ*sizeof(double));
+      memset(TotalQuantity,0,NUMSRFLUX*sizeof(double));
       for(int nss=0; nss<NS; nss++)
        { fprintf(f,"%s %i ",SNEQD->GTCList[nt]->Tag,nss+1);
          fprintf(f,"%e %e %e ",X[0],X[1],X[2]);
-         for(int nq=0; nq<NQ; nq++)
-          { int i = GetSRQIndex(SNEQD, nt, nss, nx, nq);
-            fprintf(f,"%+16.8e %+16.8e ", I[i], E[i] );
-            TotalQuantity[nq] += I[i];
-            TotalError[nq] += E[i];
+         for(int nfc=0; nfc<NUMSRFLUX; nfc++)
+          { int i = GetSRQIndex(SNEQD, nt, nss, nx, nfc);
+            fprintf(f,"%+16.8e ", I[i]);
+            TotalQuantity[nfc] += I[i];
           };
          fprintf(f,"\n");
        };
 
       fprintf(f,"%s 0 ",SNEQD->GTCList[nt]->Tag);
       fprintf(f,"%e %e %e ",X[0],X[1],X[2]);
-      for(int nq=0; nq<NQ; nq++)
-       fprintf(f,"%e %e ",TotalQuantity[nq],TotalError[nq]);
+      for(int nfc=0; nfc<NUMSRFLUX; nfc++)
+       fprintf(f,"%e ",TotalQuantity[nfc]);
       fprintf(f,"\n");
 
     };

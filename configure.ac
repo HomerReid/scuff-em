@@ -226,7 +226,8 @@ AC_CONFIG_FILES([
  examples/PerforatedThinFilm/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
- examples/TwoSpheres/Makefile
+ examples/SiliconBeams/Makefile
+ examples/SiO2Spheres/Makefile
  examples/TwoDimensionalCylinders/Makefile
  examples/ThinFilm/Makefile
  examples/WireAntenna/Makefile

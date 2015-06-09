@@ -58,7 +58,7 @@ void GetReducedFarFields(RWGSurface *S, const int ne,
 #define SIYTORQUE 6
 #define SIZTORQUE 7
 
-#define NUMSRFLUX 21
+#define NUMSRFLUX 12
 
 /***************************************************************/
 /***************************************************************/
@@ -1227,7 +1227,7 @@ void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
                        HMatrix *ehMatrix, int nx,
                        cdouble KK, cdouble KN, cdouble NK, cdouble NN,
                        cdouble Omega, cdouble EpsRel, cdouble MuRel,
-                       double XmXT[3], double SRFlux[NUMSRFLUX])
+                       double SRFlux[NUMSRFLUX])
 {
   /***************************************************************/
   /* fetch reduced fields for this cubature point                */
@@ -1291,18 +1291,6 @@ void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
       if (Mu==Nu) TMuNu -= 0.25*Trace;
       SRFlux[ 3 + 3*Mu + Nu ] = TMuNu;
     };
-
-  // (x-x0) x T
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    { 
-      int Rho = (Mu+1)%3;
-      int Sigma = (Mu+2)%3;
-      double TSigmaNu = SRFlux[ 3 + 3*Sigma + Nu ];
-      double   TRhoNu = SRFlux[ 3 + 3*Rho   + Nu ];
-      SRFlux[12 + 3*Mu + Nu ] = XmXT[Rho]*TSigmaNu - XmXT[Sigma]*TRhoNu;
-    };
-
 }
 
 /***************************************************************/
@@ -1312,13 +1300,12 @@ void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
 /* XMatrix is an NXx3 matrix storing the cartesian coordinates */
 /* of the evaluation points.                                   */
 /*                                                             */
-/* On return, FMatrix is an NXx21 matrix whose columns are the */
+/* On return, FMatrix is an NXx12 matrix whose columns are the */
 /* components of the average Poynting vector (PV) and Maxwell  */
 /* stress tensor (MST) at each evaluation point.               */
 /*                                                             */
 /* FMatrix[nx, 0..2]  = PV_{x,y,z};                            */
 /* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
-/* FMatrix[nx,12..20] = rxMST_{xx}, rxMST_{xy}, ..., rxMST_{zz}*/
 /***************************************************************/
 
 // compute a unique index for the contribution of thread #nt to the
@@ -1371,7 +1358,7 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 #ifdef USE_OPENMP
   NumThreads=GetNumThreads();
 #endif
-  double *DeltaSRFlux=(double *)mallocEC(NumThreads*NX*NUMSRFLUX * sizeof(double) );
+  double *DeltaSRFlux=(double *)mallocEC(NumThreads*NX*NUMSRFLUX*sizeof(double));
    
   bool UseSymmetry=false;
 
@@ -1379,7 +1366,6 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /*- loop over all basis functions and all pairs of eval points */
   /***************************************************************/
   int NET = G->TotalEdges;
-  double XTorque[3]={0.0, 0.0, 0.0};
 #ifdef USE_OPENMP
   if (G->LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
 #pragma omp parallel for collapse(3), schedule(dynamic,1), num_threads(NumThreads)
@@ -1417,9 +1403,6 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 
        if ( UseSymmetry && (nsb<nsa || (nsa==nsb && neb<nea) ) )
         continue;
-
-       double XmXT[3];
-       VecSub(X, XTorque, XmXT);
 
        cdouble EpsRel=RegionEpsMu[2*RegionIndex+0];
        cdouble  MuRel=RegionEpsMu[2*RegionIndex+1];
@@ -1460,7 +1443,7 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
        /*--------------------------------------------------------------*/
        double SRFlux[NUMSRFLUX];
        GetEdgeEdgeSRFlux(G, nsa, nea, nsb, neb, ehMatrix, nx,
-                         KK, KN, NK, NN, Omega, EpsRel, MuRel, XmXT, SRFlux);
+                         KK, KN, NK, NN, Omega, EpsRel, MuRel, SRFlux);
 
        /*--------------------------------------------------------------*/
        /*- accumulate the contributions of this edge pair              */
