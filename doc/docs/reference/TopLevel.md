@@ -60,13 +60,29 @@ Typical outputs from [[scuff-em]] calculations include
 ### Nanophotonics / electromagnetic scattering 
 
  + [scuff-scatter][scuff-scatter]
-> A very general-purpose solver
+> A general-purpose solver forproblems involving
+> Available outputs include: scattered and total fields
+> at arbitrary points in space; visualization of fields 
+> and surface currents; absorbed and scattered power;
+> force and torque (radiation pressure); induced dipole
+> or spherical multipole moments; and more.
+> 
 
  + scuff-transmission: 
 > A specialized solver for computing plane-wave transmission
-> through 
+> in 2D extended geometries: thin films, perforated screens,
+> nanoparticle arrays, etc. 
 
-### Nanophotonics / electromagnetic scattering 
+ + scuff-tmatrix:
+> A specialized code for computing the elements
+> in 2D extended geometries: thin films, perforated screens,
+> nanoparticle arrays, etc. 
+
+### Fluctuation-induced interactions
+
+### RF / microwave engineering
+
+### Electrostatics
 
 ##Citing [[scuff-em]]
 
