@@ -6,6 +6,19 @@ implementation of the boundary-element method (BEM)
 scattering. (More specifically, [[scuff-em]]
 implements the EFIE and PMCHWT formulations
 of the BEM using RWG basis functions.)
+[[scuff-em]] originated as a specialized tool
+for using BEM techniques to model
+[Casimir forces](http://dx.doi.org/10.1103/PhysRevA.88.022514)
+and
+[radiative heat transfer](http://dx.doi.org/10.1103/PhysRevB.88.054305),
+and later expanded into a general-purpose 
+BEM solver targeting a variety of applications.
+
+[[scuff-em]] consists of a [core library](../API/libscuff.md)
+implementing the basic BEM solver
+plus a large number of specialized 
+[application modules](#AvailableApplications) designed for
+specific problems in science and engineering.
 
 ## Calculating with [[scuff-em]]
 
@@ -34,7 +47,7 @@ Typical inputs to [[scuff-em]] calculations include
   to be applied to the geometry, with calculations generally repeated
   at each transformation
 
-+ Specifications of the frequencies (and, for extended geometries,
++ Specification of the frequencies (and, for extended geometries,
   the Bloch vectors) at which you want to perform calculations
 
 + For scattering codes: a specification of the incident fields
@@ -59,7 +72,7 @@ Typical outputs from [[scuff-em]] calculations include
 
 ### Nanophotonics / electromagnetic scattering 
 
- + [scuff-scatter][scuff-scatter]
+ + [<span class="SC">scuff-scatter</span>][scuff-scatter]
 > A general-purpose solver forproblems involving
 > Available outputs include: scattered and total fields
 > at arbitrary points in space; visualization of fields 
@@ -68,15 +81,15 @@ Typical outputs from [[scuff-em]] calculations include
 > or spherical multipole moments; and more.
 > 
 
- + scuff-transmission: 
+ + [<span class="SC">scuff-transmission</span>][scuff-transmission]
 > A specialized solver for computing plane-wave transmission
 > in 2D extended geometries: thin films, perforated screens,
 > nanoparticle arrays, etc. 
 
- + scuff-tmatrix:
-> A specialized code for computing the elements
-> in 2D extended geometries: thin films, perforated screens,
-> nanoparticle arrays, etc. 
+ + [<span class="SC">scuff-tmatrix</span>][scuff-tmatrix]
+> A specialized code for computing the
+> [T-matrices](http://en.wikipedia.org/wiki/T-matrix_method)
+> of arbitrary compact scatterers.
 
 ### Fluctuation-induced interactions
 
@@ -120,3 +133,8 @@ month = jul,
 note="\texttt{http://homerreid.com/scuff-EM}"
 }
 ````
+
+[GMSH]: http://www.geuz.org/gmsh
+[scuff-scatter]: ../applications/scuff-scatter/scuff-scatter.md
+[scuff-transmission]: ../applications/scuff-transmission/scuff-transmission.md
+[scuff-tmatrix]: ../applications/scuff-tmatrix/scuff-tmatrix.md
