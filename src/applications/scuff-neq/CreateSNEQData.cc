@@ -127,6 +127,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
      if (SNEQD->SRXMatrix->ErrMsg)
       ErrExit(SNEQD->SRXMatrix->ErrMsg);
      int NX = SNEQD->NX = SNEQD->SRXMatrix->NR;
+     SNEQD->NumSRQs = NT*NS*NX*NUMSRFLUX;
      SNEQD->SRFMatrix = new HMatrix(NX, NUMSRFLUX);
    };
 
