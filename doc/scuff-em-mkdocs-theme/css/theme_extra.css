@@ -187,3 +187,10 @@ ol.TOC {
   border: 1px solid #aaaaaa;
   background-color: #f9f9f9;
 }
+
+.toc { 
+  margin: 20px 0;
+  padding:5px;
+  border: 1px solid #aaaaaa;
+  background-color: #f9f9f9;
+}

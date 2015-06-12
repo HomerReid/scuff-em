@@ -147,6 +147,7 @@
 #include <math.h>
 #include <complex>
 #include <cmath>
+#include "libhrutil.h" // for Warn()
 
 #ifndef cdouble
   typedef std::complex<double> cdouble;
@@ -342,6 +343,9 @@ int AmosBessel(char WhichFunction, cdouble z,
   if (!Workspace)
    delete[] fr;
 
+  if (ierr!=0)
+   Warn("error in AmosBessel (ierr=%i)",ierr);
+ 
   return ierr;
 
 }

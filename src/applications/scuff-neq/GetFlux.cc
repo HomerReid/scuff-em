@@ -549,7 +549,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
                if (kBloch) 
                 fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
                fprintf(f,"%e %e %e %i ",X[0],X[1],X[2],nss);
-               for(int nfc; nfc<NUMSRFLUX; nfc++)
+               for(int nfc=0; nfc<NUMSRFLUX; nfc++)
                 { int Index=GetSRQIndex(SNEQD, nt, nss, nx, nfc); 
                   Flux[Index]=SRFMatrix->GetEntryD(nx,nfc);
                   fprintf(f,"%e ",Flux[Index]);

@@ -91,8 +91,10 @@ void HVector::InitHVector(int pN, int pRealComplex, void *data)
 /*                                                             */
 /*  --nrow xx : insist that there be a certain number of rows  */
 /*                                                             */
-/* if an error occurs, the ErrMsg field inside the class will  */
-/* be nonzero on return.                                       */
+/* if an error occurs and HMatrix::AbortOnIOError==true, the   */
+/* code will call ErrExit(). If AbortOnIOError==false, the     */
+/* constructor will return an HMatrix with no data but with    */
+/* a non-null value for the ErrMsg field.                      */
 /***************************************************************/
 HVector::HVector(const char *FileName, int FileType, const char *Options)
  { ReadFromFile(FileName, FileType, Options); }
@@ -102,6 +104,13 @@ void HVector::ReadFromFile(const char *FileName, int FileType, const char *Optio
   DV=0;
   ZV=0;
   ErrMsg=0;
+
+  if (FileName==0)
+   { ErrMsg=strdup("no filename specified for vector import");
+     if (HMatrix::AbortOnIOError) 
+      ErrExit(ErrMsg);
+     return;
+   };
 
   if (FileType == LHM_AUTO)
     FileType = LHM_AUTO_FileType(FileName);
@@ -120,6 +129,10 @@ void HVector::ReadFromFile(const char *FileName, int FileType, const char *Optio
        ErrExit("%s:%i: internal error",__FILE__,__LINE__);
        break;
    };
+
+  if (ErrMsg && HMatrix::AbortOnIOError)
+   ErrExit(ErrMsg);
+
 }
 
 HVector::~HVector()

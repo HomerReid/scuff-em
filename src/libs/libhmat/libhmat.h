@@ -360,6 +360,15 @@ class HMatrix
    static void *OpenMATLABContext(const char *format, ... );
    static void CloseMATLABContext(void *pCC);
 
+   // static class variable that, if true, yields a call to
+   // ErrExit() whenever the HMatrix(DataFile) or HVector(DataFile)
+   // constructor fails. 
+   // This is set to true by default, but you can set it to
+   // false if you like; in this case, failed constructors
+   // will return an HMatrix/HVector with no data and with a 
+   // non-NULL value of its ErrMsg field.
+   static bool AbortOnIOError;
+
  };
 
 // make an unpacked copy of a symmetric/Hermitian matrix

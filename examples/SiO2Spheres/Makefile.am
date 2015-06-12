@@ -3,7 +3,7 @@ EXTRA_DIST=			\
  Sphere_327.msh         	\
  SiO2Spheres_327.scuffgeo	\
  scuff-neq.args     		\
- Spheres.trans			\
+ Spheres.trans
 
 pkgdatadir = $(datadir)/scuff-em/examples/SiO2Spheres
 nodist_pkgdata_DATA = ${EXTRA_DIST}

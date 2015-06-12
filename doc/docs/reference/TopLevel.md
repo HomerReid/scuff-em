@@ -6,21 +6,37 @@ implementation of the boundary-element method (BEM)
 scattering. (More specifically, [[scuff-em]]
 implements the EFIE and PMCHWT formulations
 of the BEM using RWG basis functions.)
+
 [[scuff-em]] originated as a specialized tool
 for using BEM techniques to model
+fluctuation-induced electromagnetic phenomena---such as
 [Casimir forces](http://dx.doi.org/10.1103/PhysRevA.88.022514)
 and
-[radiative heat transfer](http://dx.doi.org/10.1103/PhysRevB.88.054305),
-and later expanded into a general-purpose 
-BEM solver targeting a variety of applications.
+[radiative heat transfer](http://dx.doi.org/10.1103/PhysRevB.88.054305)---
+and subsequently expanded into a general-purpose BEM solver targeting a
+variety of applications in nanophotonics.
 
-[[scuff-em]] consists of a [core library](../API/libscuff.md)
-implementing the basic BEM solver
-plus a large number of specialized 
-[application modules](#AvailableApplications) designed for
-specific problems in science and engineering.
+[[scuff-em]] consists of a [core library](../API/libscuff.md),
+implementing the basic BEM functionality, plus a large number 
+of specialized [application modules](#AvailableApplications) 
+designed for specific problems in science and engineering.
 
-## Calculating with [[scuff-em]]
+[[scuff-em]] stands for **S**urface **CU**rrent/**F**ield **F**ormulation of 
+**E**lectro**M**agnetism. This is a reference to the underlying solution 
+methodology used by [[scuff-em]] and other BEM solvers, in which we solve 
+first for surface currents [including both electric (***K***) and 
+magnetic (***N***) currents, as cartooned in the [[scuff-em]] logo], 
+then use these currents to compute the scattered fields or other 
+quantities of interest.
+
+The entire [[scuff-em]] suite is free software distributed 
+under the [GNU GPL][GNUGPL]. The source code for [[scuff-em]] 
+may be downloaded from the 
+[<span class="SC">scuff-em</span> GitHub page][GitHub]. 
+**The GitHub page is also the right place for questions, 
+bug reports, feature requests, and other discussion of [[scuff-em]].**
+
+## Interfaces to [[scuff-em]]
 
 Access to the [[scuff-em]] computational engine is available
 via multiple interfaces.
@@ -28,8 +44,8 @@ via multiple interfaces.
 The *command-line interface* consists of a large number
 of [command-line applications](#AvailableApplications) for
 running various types of standard calculations in computational
-physics. Using [[scuff-em]] in this way requires only 
-learning how to specify command-line options to 
+physics. Using [[scuff-em]] in this way requires only
+that you learn the basic command-line options
 
 The *application programming interface* consists of 
 [C++ and python APIs](../API/libscuff.md)
@@ -138,3 +154,5 @@ note="\texttt{http://homerreid.com/scuff-EM}"
 [scuff-scatter]: ../applications/scuff-scatter/scuff-scatter.md
 [scuff-transmission]: ../applications/scuff-transmission/scuff-transmission.md
 [scuff-tmatrix]: ../applications/scuff-tmatrix/scuff-tmatrix.md
+[GNUGPL]: http://en.wikipedia.org/wiki/GNU_General_Public_License
+[GitHub]: https://github.com/HomerReid/scuff-em/

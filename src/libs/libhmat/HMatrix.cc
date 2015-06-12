@@ -42,6 +42,9 @@ extern "C" {
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 
+// initialization of static class flag
+bool HMatrix::AbortOnIOError=true;
+
 /***************************************************************/
 /* HMatrix constructors that create an empty (zero) HMatrix    */
 /* with known dimensions                                       */
@@ -128,8 +131,10 @@ void HMatrix::InitHMatrix(int NRows, int NCols, int pRealComplex,
 /*              the same number of entries (otherwise missing  */
 /*              entries are set to zero)                       */
 /*                                                             */
-/* if an error occurs, the ErrMsg field inside the class will  */
-/* be nonzero on return.                                       */
+/* if an error occurs and HMatrix::AbortOnIOError==true, the   */
+/* code will call ErrExit(). If AbortOnIOError==false, the     */
+/* constructor will return an HMatrix with no data but with    */
+/* a non-null value for the ErrMsg field.                      */
 /***************************************************************/
 HMatrix::HMatrix(const char *FileName, int FileType, const char *Options)
  { ReadFromFile(FileName, FileType, Options); }
@@ -157,6 +162,13 @@ void HMatrix::ReadFromFile(const char *FileName, int FileType, const char *Optio
   iwork=0;
   ErrMsg=0;
 
+  if (FileName==0)
+   { ErrMsg=strdup("no filename specified for matrix import");
+     if (AbortOnIOError) 
+      ErrExit(ErrMsg);
+     return;
+   };
+
   if (FileType == LHM_AUTO)
     FileType = LHM_AUTO_FileType(FileName);
 
@@ -174,6 +186,9 @@ void HMatrix::ReadFromFile(const char *FileName, int FileType, const char *Optio
        ErrExit("%s:%i: internal error",__FILE__,__LINE__);
        break;
    };
+
+  if (ErrMsg && AbortOnIOError)
+   ErrExit(ErrMsg);
 }
 
 /***************************************************************/

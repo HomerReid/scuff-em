@@ -34,5 +34,3 @@ Transfinite Line{1} = NX+1;
 Extrude { 0, LY, 0  } { Line{1};     Layers{NY}; }
 Extrude { 0,  0, LZ } { Line{1,2};   Layers{NZ}; }
 Extrude { 0, LY, 0  } { Line{6};     Layers{NY}; }
-
-//Physical Surface(1) = {5, 9, 13, 25};

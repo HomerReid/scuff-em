@@ -6,6 +6,8 @@ theme_dir: 'scuff-em-mkdocs-theme'
 
 markdown_extensions:
     - wikilinks
+    - toc
+    - attr_list
     - mdx_math:
         enable_dollar_delimiter: True
 
