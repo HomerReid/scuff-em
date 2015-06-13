@@ -489,7 +489,181 @@ More specifically,
 \end{itemize}
 %====================================================================%
 
-\subsection{Output files for spatially-resolved quantities}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Visualization: Flux plots}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+  \langle Q \rangle
+&= 
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Tests and Demonstrations}
+
+As a test and demonstration of the use of {\sc scuff-neq},
+in this section we reproduce the results of
+Kr\"uger et al.~\cite{Kruger2012} for non-equilibrium
+fluctuation-induced phenomena involving individual and paired spheres.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Radiation of a single sphere}
+
+Equation (122) of~\citeasnoun{Kruger2012},
+giving the rate of power emission from a warm
+(temperature $T$) sphere into a cold environment, 
+may be written in the form
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ P\sups{rad} 
+  &= 
+ \int_0^\infty d\omega \, \Theta(T,\omega) \Phi(\omega),
+\\
+ \Phi(\omega) 
+ &= 
+  -\frac{2}{\pi}\sum_{P \ell m}
+ \Big[ \text{Re }\mc T_{P \ell m} + |\mc T_{P \ell m}|^2\Big]
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\{\mc T_{P \ell m}(\omega)\}$ are the 
+diagonal $\mathbb T$-matrix elements of the sphere.
+For a sphere of small radius $R$,
+we may restrict the sum to just the 
+$\ell=1$ contributions, for which 
+we have~\cite{Kruger2012}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \mc T_{N, \ell=1, m}(\omega)
+   =   i\frac{2(\epsilon-1)}{3(\epsilon+2)}(kR)^3
+     +2i\frac{2-3\epsilon+\epsilon^2(1+\mu)}
+             {5(2+\epsilon^2)}(kR)^5
+     -\frac{4(\epsilon-1)^2}{9(2+\epsilon)^2}(kR)^6
+   + \cdots,
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+and $\mc T_{M1m}$ is given by the same formula but 
+with $\epsilon \leftrightarrow \mu$.
+(Here $\epsilon, \mu$ are the relative
+permittivity and permeability of the sphere and 
+$k=\omega/c$ is the free-space wavelength).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Heat transfer between two spheres}
+
+For two spheres separated by a center-center distance
+$d$, the power absorbed by sphere 2 due to fluctuating
+sources in sphere 1 is, in the large-$d$ limit~\cite{Kruger2012},
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ P^{1\to 2} 
+&= 
+ \int_0^\infty d\omega \, \Theta(T_1,\omega) \Phi\subt{P}^{1\to 2}(\omega),
+\\
+ \Phi\subt{P}^{1\to 2}(\omega) 
+&= 
+ \frac{2}{\pi}\sum_{P P^\prime}
+ \Big[ \text{Re }\mc T^1_{P} + |\mc T^1_{P}|^2\Big]
+ \Big[ \text{Re }\mc T^2_{P^\prime} + |\mc T^2_{P^\prime}|^2\Big]
+ U_{PP^\prime}(kd),
+\\
+ U_{PP^\prime}(x)
+ &=\frac{9}{2x^2} + \frac{9}{2x^4} + \frac{27}{2x^6}\delta_{PP^\prime}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where we have suppressed the $\ell=1, m$ subscript on
+$\mc T$.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Non-equilibrium forces between spheres}
+
+For two spheres separated by a center-center distance
+$d$, the force on sphere 2 due to fluctuating
+sources in sphere 1 is, in the large-$d$ limit~\cite{Kruger2012},
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ F^{1\to 2}
+&=
+ \int_0^\infty d\omega \, \Theta(T_1,\omega) \Phi\subt{F}^{1\to 2}(\omega),
+\\
+ \Phi\subt{F}^{1\to 2}(\omega)
+&= \frac{1}{c}
+   \cdot
+   \frac{1}{\pi}\sum_{P P^\prime}
+   \Big[ \text{Re }\mc T^1_P + |\mc T^1_P|^2\Big]
+   \Big[ C^1_{PP^\prime} + C^2_{PP^\prime} + C^3_{PP^\prime} \Big]
+\\
+ C^1_{PP^\prime}
+ &=\frac{9}{(kd)^2}
+   \Big[ \text{Re }\mc T^2_{P^\prime} + 
+         \text{Re }\left(\mc T_2^P T_2^{\overline{P}*}\right)\delta_{PP^\prime}
+   \Big]
+\\
+ C^2_{PP^\prime}
+ &=\text{Im }T^2_{P^\prime}
+   \Big[ \frac{9}{(kd)^3} + \frac{18}{(kd)^5} + \frac{81}{(kd)^7}\delta_{PP^\prime}\Big]
+\\
+ C^3_{PP^\prime}
+ &=-\frac{9}{(kd)^5}
+    \text{Im }\left(\mc T_2^P T_2^{\overline{P}*}\right)\delta_{PP^\prime}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The force on sphere 2 due to sources in sphere 2 is
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ F^{2\to 2}
+&=
+ \int_0^\infty d\omega \, \Theta(T_2,\omega) \Phi\subt{F}^{2\to 2}(\omega),
+\\
+ \Phi\subt{F}^{2\to 2}(\omega)
+&= \frac{1}{c}
+   \cdot
+   \frac{1}{\pi}\sum_{P P^\prime}
+   \Big[ \text{Re }\mc T^2_P + |\mc T^2_P|^2\Big]
+   \Bigg\{
+   \text{Re }
+     \Big[ D^1_{PP^\prime} + D^2_{PP^\prime} + D^3_{PP^\prime} \Big]
+   \Bigg\}
+\\
+ D^1_{PP^\prime}
+ &=\text{Re }
+   \Big[ \left(\mc T^1_P - \mc T^1_{\overline{P}}\right)
+         \left(\frac{9}{(kd)^2} + i\frac{27}{(kd)^3}\right)
+         e^{2ikd}
+   \Big]
+\\
+ D^2_{PP^\prime}
+ &=\text{Re }
+   \Big[ \left(\mc T^1_P - \frac{1}{2}\mc T^1_{\overline{P}}\right)
+         \left(\frac{72}{(kd)^4}\right)
+         e^{2ikd}
+   \Big]
+\\
+ D^3_{PP^\prime}
+ &=\Re
+   \Big[ (\mc T^1_P
+         \left(\frac{162}{(kd)^6} + i\frac{81}{(kd)^7} \right)
+         e^{2ikd}
+   \Big]
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Spatial distribution of poynting flux in the sphere--sphere case}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -12,8 +12,8 @@ for using BEM techniques to model
 fluctuation-induced electromagnetic phenomena---such as
 [Casimir forces](http://dx.doi.org/10.1103/PhysRevA.88.022514)
 and
-[radiative heat transfer](http://dx.doi.org/10.1103/PhysRevB.88.054305)---
-and subsequently expanded into a general-purpose BEM solver targeting a
+[radiative heat transfer](http://dx.doi.org/10.1103/PhysRevB.88.054305)---and 
+subsequently expanded into a general-purpose BEM solver targeting a
 variety of applications in nanophotonics.
 
 [[scuff-em]] consists of a [core library](../API/libscuff.md),

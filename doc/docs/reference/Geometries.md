@@ -52,7 +52,7 @@ files that describe each of these types of geometries.
 
 <li> <a href="#Simple">Simple geometries: One or more compact objects (possibly nested)</a>
 <li> <a href="#Complex">More complex geometries: multi-material junctions</a>
-<li> <a href="#Extended">Extended geometries periodic boundary conditions</a>
+<li> <a href="#Extended">Extended geometries: periodic boundary conditions</a>
 <li> <a href="#Reference"><code>.scuffgeo</code> file syntax reference</a>
 <li> <a href="#Examples">A compendium of <code>.scuffgeo</code> files</a>
 
@@ -65,9 +65,9 @@ The simplest [[scuff-em]] geometries consist of
 one or more *compact objects* -- that is, finite volumes of homogeneous media,
 bounded by closed 2D surfaces. In this case, all meshed surfaces in the geometry 
 must be *closed* surfaces, and no two object surfaces may touch or overlap.
-Each surface is then associated with a single homogeneous material region  -- namely, 
-the region interior to that surface -- and we collectively refer to that material 
-region and its closed surface as an *object.*
+Each surface is then associated with a single homogeneous material
+region---namely, the region interior to that surface---and we collectively
+refer to that material region and its closed surface as an *object.*
 
 The ``.scuffgeo`` file for geometries of this type consists simply 
 of a sequence of *object declarations*, one for each compact object 

@@ -1,9 +1,10 @@
 # General reference for [[scuff-em]] command-line applications
 
 This page collects some general information that applies
-to many or all of the standalone command-line applications 
+to many or all of the standalone command-line applications
 in the [[scuff-em]] suite.
 
+<a name="CommonOptions"></a>
 # Common command-line arguments
 
 The various standalone applications in the [[scuff-em]] suite
@@ -95,10 +96,10 @@ accept that argument.
 > Specifies a file describing a list of spatial evaluation points
 > for various output quantities. (*Which* output quantity depends
 > on the code you are running; for example,
-> [scuff-scatter](../applications/scuff-scatter.md){.SC}
+> [scuff-scatter](../applications/scuff-scatter/scuff-scatter.md){.SC}
 > will report components of the scattered and total fields at the 
 > evaluation points, while
-> [scuff-neq](../applications/scuff-neq.md){.SC}
+> [scuff-neq](../applications/scuff-neq/scuff-neq.md){.SC}
 > will report values of the thermally-averaged fluxes of
 > energy and momentum at the evaluation points.)
 >

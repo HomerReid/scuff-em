@@ -2,6 +2,8 @@ site_name: SCUFF-EM documentation
 site_author: Homer Reid
 site_favicon: scuffEM.ico
 
+repo_url: https://github.com/homerreid/scuff-em/
+
 theme_dir: 'scuff-em-mkdocs-theme'
 
 markdown_extensions:
