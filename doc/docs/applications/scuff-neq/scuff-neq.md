@@ -23,7 +23,7 @@ factors, to obtain the total heat-transfer rate or NEQ Casimir force.
 [What <span class="SC">scuff-neq</span> actually computes](#WhatItComputes).)
 
 + As in [[scuff-cas3d]], you can specify an optional list of 
-[geometrical transformations](../reference/Transformations.md) 
+[geometrical transformations](../../reference/Transformations.md) 
 describing various displacements and rotations of the bodies 
 in your geometry; in this case you will get back values of the 
 frequency-resolved or frequency-integrated quantities for each 
