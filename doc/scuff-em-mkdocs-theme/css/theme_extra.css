@@ -1,5 +1,4 @@
-/*
- * Tweak the overal size to better match RTD.
+ }* Tweak the overal size to better match RTD.
  */
 body {
     font-size: 90%;
@@ -194,3 +193,11 @@ ol.TOC {
   border: 1px solid #aaaaaa;
   background-color: #f9f9f9;
 }
+
+.toctitle 
+ { font-variant: small-caps; 
+   font-weight:  bold;
+   padding: 5px;
+   margin: 5px 5px;
+   text-align: center;
+ }

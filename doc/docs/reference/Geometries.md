@@ -62,7 +62,7 @@ files that describe each of these types of geometries.
 ## 1. Simple Geometries: One or more compact objects (possibly nested)
 
 The simplest [[scuff-em]] geometries consist of 
-one or more *compact objects* -- that is, finite volumes of homogeneous media,
+one or more *compact objects*---that is, finite volumes of homogeneous media,
 bounded by closed 2D surfaces. In this case, all meshed surfaces in the geometry 
 must be *closed* surfaces, and no two object surfaces may touch or overlap.
 Each surface is then associated with a single homogeneous material
@@ -103,9 +103,8 @@ repositories of mesh files which you can then re-use for
 [[scuff-em]] calculations launched from whatever directory you like.
 
 The optional ``MATERIAL`` keyword is used to select a 
-[<span class="SmallCaps">scuff-em</span> material designation][Materials]
-[scuff-em material designation][Materials]
-(in this case, ``Gold``) for the medium interior to 
+[<span class="SC">scuff-em</span> material designation][Materials]
+(in this case, `Gold`) for the medium interior to 
 your object. The actual definition of the material ``Gold``
 (given by a ``MATERIAL...ENDMATERIAL`` clause)
 may be present in the ``.scuffgeo`` file before the 
@@ -124,21 +123,22 @@ clause, then your geometry as interpreted by
 [[scuff-em]] will contain a sphere
 centered around the point with cartesian coordinates 
 (0,0,3). For more details, see the 
-[syntax reference][#Reference]
+[syntax reference](#Reference)
 below.
 
 Your ``.scuffgeo`` file may contain any number of
 ``OBJECT...ENDOBJECT`` clauses.
-The objects specified by these clauses may be *nested*,
+The objects specified by these clauses may be 
+[*nested*](#NestedSpheres),
 i.e. one object may be fully contained inside another 
 object; this will be autodetected by [[scuff-em]].
 
 (However, this simple way of specifying geometries has 
 the constraint that no two object surfaces may touch or intersect. 
 If you find yourself needing to describe geometries involving 
-objects whose surface touch (thus defining *multi-material junctions*),
+objects whose surface touch---thus defining *multi-material junctions*---you
 you have graduated to writing the 
-[slightly more complicated type of ``.scuffgeo`` file described below](#Complex).
+[slightly more complicated type of ``.scuffgeo`` file described below](#Complex).)
 
 Here's an example of a simple ``.scuffgeo`` file describing 
 a smaller PEC sphere embedded inside a larger silicon dioxide
@@ -169,12 +169,12 @@ ENDOBJECT
 ![SphericalShell](SphericalShell.png)
 
 Note that the ``MATERIAL PEC`` specification for the 
-inner sphere is actually superfluous -- we could simply have 
+inner sphere is actually superfluous---we could simply have 
 omitted it, because PEC is the default material assumed for 
 ``OBJECT`` clauses. On the other hand, if we had 
 instead said ``MATERIAL Vacuum``, then we would be 
 describing an *vacuum* sphere inside our larger 
-silicon sphere -- that is, a spherical *shell* of silicon,
+silicon sphere---that is, a spherical *shell* of silicon,
 as considered in 
 [this <span class="SmallCaps">scuff-scatter</span> example][SphericalShellExample].
 
@@ -206,16 +206,16 @@ of the equatorial plane?
 
 More formally, the key aspect of the bihemisphere geometry that prevents 
 it from being describable as a collection of compact objects is the presence
-of *multi-material junctions* -- that is, regions of the geometry 
+of *multi-material junctions*---that is, regions of the geometry 
 at which three or more homogeneous material regions meet. The equator of 
 the bihemisphere is a multi-material junction. 
 
 (A note on terminology: In [[scuff-em]] parlance,
 a multi-material junction (MMJ) is a point or line 
 at which *three or more* homogeneous regions meet.
-Of course any meshed surface in a geometry -- including 
+Of course any meshed surface in a geometry---including 
 the closed surfaces used to describe simple compact-object 
-geometries above -- lies at the junction of
+geometries above---lies at the junction of
 at least *two* regions, and is thus technically 
 a "multi-material" junction, but is not considered 
 an MMJ for the purposes of the present discussion.)
@@ -265,8 +265,8 @@ All [[scuff-em]] geometries by default
 start off with an implicitly defined region
 named ``Exterior``, of material ``VACUUM``.
 If you want to change the material properties of the 
-exterior medium -- for example, if your entire scattering geometry
-is embedded in ethanol -- you can say something like 
+exterior medium---for example, if your entire scattering geometry
+is embedded in ethanol---you can say something like 
 
 ````
 REGION Exterior MATERIAL Ethanol
@@ -432,14 +432,13 @@ the objects, or the surfaces and regions, that constitute the
 *lattice vectors* that describe how the unit cell is periodically
 repeated.
 
-<p style="font-size:smaller;">
-> The current version [[scuff-em]] 
+> **Note**: The current version of [[scuff-em]] 
 > requires that 2D lattice basis vectors have vanishing *z*
 > component and that 1D lattice basis vectors have vanishing
 > *y* and *z* components. In other words, for 2D periodicity
-> the lattice vectors must live in the *xy*$ plane, while
+> the lattice vectors must live in the *xy* plane, while
 > for 1D periodicity the lattice vector must be aligned 
-> with the *x* axis. This places no restrictions on the 
+> with the *x* axis. This places no restriction on the 
 > actual geometric configurations that may be treated, but 
 > may be inconvenient for some users who are accustomed to 
 > setting up their periodic geometries in a different way.
@@ -450,7 +449,15 @@ repeated.
 > re parallel to the *xy* plane and the thickness is in 
 > the *z* direction.) This limitation may be lifted in 
 > a future code release.
-</p>
+
+> **Note**: An additional restriction in the current version
+> of [[scuff-em]] is that 2D lattices must be *square* 
+> lattices. This actually *does* place restrictions on 
+> the geometries that may be treated (for example, it 
+> excludes hexagonal lattices), and it will be remedied
+> as soon as somebody wants to run calculations on a 
+> non-square-lattice geometry and is willing to help me
+> test the new feature.
 
 The lattice is specified using a ``LATTICE...ENDLATTICE``
 section. For example, a square lattice with lattice constant 
@@ -476,10 +483,9 @@ pattern.
 Having specified the lattice vectors, the remainder of your 
 ``.scuffgeo`` file just consists of a specification of 
 the unit-cell geometry as if it were a standalone compact 
-geometry. For example, you may include  
-``OBJECT...ENDOBJECT`` sections to describe any compact
-objects that exist inside the unit cell, or 
-or ``REGION`` statements and ``SURFACE...ENDSURFACE``
+geometry. For example, you may include `OBJECT...ENDOBJECT` 
+sections to describe any compact objects that exist inside 
+the unit cell, or `REGION` statements and `SURFACE...ENDSURFACE`
 sections to describe more complicated unit-cell geometries.
 
 ## Compact objects fully contained in the unit cell
@@ -490,7 +496,7 @@ that each object does not touch its periodically repeated images.)
 In this case, you will want to make sure that the objects 
 lie entirely within the unit cell (not straddling its boundaries),
 
-For example, here's a ``.scuffgeo`` file describing
+For example, here's a `.scuffgeo` file describing
 a square lattice of cubical nanoparticles:
 
 ** The unit cell geometry **
@@ -520,7 +526,7 @@ More generally, your unit-cell geometry may include surfaces
 that straddle the unit-cell boundary. (This will be the case 
 whenever the infinite surfaces you are describing are 
 *connected*, as opposed to the isolated arrays of objects
-considered above). For example, here's ``.scuffgeo``
+considered above). For example, here's a `.scuffgeo`
 file representing a thin metallic film perforated by an 
 array of holes. The parameters here are chosen to mimic 
 the geometry studied by 
@@ -693,8 +699,8 @@ through the origin and through the point with cartesian coordinates
 
 ### ``MATERIAL...ENDMATERIAL`` sections
 
-For details on how to write a ``MATERIAL`` section,
-see [here][Materials].
+> For details on how to write a ``MATERIAL`` section,
+> see [here][Materials].
 
 <a name="Examples"></a> 
 # 5. A compendium of sample ``.scuffgeo`` files

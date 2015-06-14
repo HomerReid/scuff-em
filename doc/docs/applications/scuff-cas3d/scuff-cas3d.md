@@ -94,9 +94,9 @@ Casimir quantities at the given temperature. In this
 case you will get both a `.byXi` and a `.out` file; 
 the `.byXi` file will report data on the Casimir
 integrands at the Matsubara frequencies
-$\xi_n\equiv n\Delta \xi$ for n=0,1,\cdots$
+$\xi_n\equiv n\Delta \xi$ for $n=0,1,\cdots$
 
-+ If you don''t specify any of the above, then [[scuff-cas3d]
++ If you don't specify any of the above, then [[scuff-cas3d]]
 defaults to performing a full numerical frequency integration
 to compute zero-temperature Casimir quantities. In 
 this case, you will get both a `.byXi` and a `.out`
@@ -118,13 +118,23 @@ vectors $\mathbf{k}$:
 $$ \mathcal{F}
    = 
    \int_0^\infty d\xi \,
-    \underbrace{\int_{\text{BZ}} f(\xi, \mathbf{k}) d\mathbf{k}}_{\equiv F(\xi)}
+    \underbrace{\int_{\text{BZ}} 
+     f(\xi, \mathbf{k}) 
+     \, d\mathbf{k}}_{\equiv F(\xi)}
 $$
 
 (Expressions for the Casimir energy and torque are similar).
+The Bloch vector $\vb k$ is a one-component vector
+for 1D-extended geometries (such as 
+[infinite-length cylinders or beams][SiliconBeams],
+and a two-component vector
+for 2D-extended geometries (such as 
+[infinite-area slabs][SiliconSlabs]).
+The $\vb k$ integral here ranges over the *Brillouin
+zone* (BZ)
 
-<a name="CommandLineOptions"></a>
-# 2. <span class="SC">scuff-cas3d</span> command-line options
+[[scuff-cas3d]] uses the FSC algorithm to compute
+values of the integrand $f(\xi, \vb k)$ 
 
 <a name="OutputFiles"></a>
 # 3. <span class="SC">scuff-cas3d</span> output files
@@ -136,5 +146,7 @@ Hello
 
 [EarlierVersion]: http://homerreid.com/scuff-em/scuff-cas3d
 [FSCPaper]: http://dx.doi.org/10.1103/PhysRevA.88.022514
-[Geometries]: ../reference/Geometries.md
-[Transformations]: ../reference/Transformations.md
+[Geometries]: ../../reference/Geometries.md
+[Transformations]: ../../reference/Transformations.md
+[SiliconBeams]: ../../examples/SiliconBeams.md
+[SiliconSlabs]: ../../examples/SiliconSlabs.md

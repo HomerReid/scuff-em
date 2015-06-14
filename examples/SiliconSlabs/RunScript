@@ -1,0 +1,21 @@
+#!/bin/bash
+
+for N in 40 96
+do
+  ARGS=""
+  ARGS="${ARGS} --geometry SiliconSlabs_L2_${N}.scuffgeo"
+  ARGS="${ARGS} --TransFile Slabs.trans"
+  ARGS="${ARGS} --Energy ZForce"
+  ARGS="${ARGS} --Xi 0.5
+  ${SEI}/scuff-cas3d ${ARGS}
+done
+
+for N in 40 96
+do
+  ARGS=""
+  ARGS="${ARGS} --geometry SiliconSlabs_L2_${N}.scuffgeo"
+  ARGS="${ARGS} --TransFile Slabs.trans"
+  ARGS="${ARGS} --Energy ZForce"
+  ARGS="${ARGS} --XiMin 0.01"
+  ${SEI}/scuff-cas3d ${ARGS}
+done
