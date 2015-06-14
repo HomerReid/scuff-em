@@ -8,7 +8,8 @@ theme_dir: 'scuff-em-mkdocs-theme'
 
 markdown_extensions:
     - wikilinks
-    - toc
+    - toc:
+        title: Table of Contents
     - attr_list
     - mdx_math:
         enable_dollar_delimiter: True
