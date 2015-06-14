@@ -142,8 +142,6 @@ values of the integrand $f(\xi, \vb k)$
 <a name="Examples"></a>
 # 4. Examples of Casimir calculations using <span class="SC">scuff-cas3d</span>
 
-Hello
-
 [EarlierVersion]: http://homerreid.com/scuff-em/scuff-cas3d
 [FSCPaper]: http://dx.doi.org/10.1103/PhysRevA.88.022514
 [Geometries]: ../../reference/Geometries.md
