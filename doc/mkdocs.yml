@@ -19,9 +19,9 @@ extra_javascript: ['https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX
 pages:
 - SCUFF-EM documentation: 'index.md'
 - Examples:
-    - 'Casimir forces between nanoparticles':       'examples/SphereTorus.md'
-    - 'Casimir forces between silicon beams':       'examples/SiliconBeams/SiliconBeams.md'
-    - 'Casimir forces between perforated surfaces': 'examples/PECScreens.md'
+    - 'Casimir forces in a compact geometry':     'examples/CubeTorus.md'
+    - 'Casimir forces in a 1D extended geometry': 'examples/SiliconBeams/SiliconBeams.md'
+    - 'Casimir forces in a 2D extended geometry': 'examples/SiliconSlabs/SiliconSlabs.md'
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
     - 'Installation':              'reference/Installing.md'
@@ -34,7 +34,7 @@ pages:
     - 'scuff-transmission':    'applications/scuff-transmission/scuff-transmission.md'
     - 'scuff-LDOS':            'applications/scuff-LDOS/scuff-LDOS.md'
     - 'scuff-tmatrix':         'applications/scuff-tmatrix/scuff-tmatrix.md'
-    - 'scuff-cas3d':           'applications/scuff-cas3d/scuff-cas3d.md'
+    - 'scuff-cas3D':           'applications/scuff-cas3D/scuff-cas3D.md'
     - 'scuff-caspol':          'applications/scuff-caspol/scuff-caspol.md'
     - 'scuff-neq':             'applications/scuff-neq/scuff-neq.md'
     - 'scuff-RF':              'applications/scuff-RF/scuff-RF.md'

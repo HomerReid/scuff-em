@@ -1159,7 +1159,8 @@ HMatrix *Get_ehMatrix(RWGGeometry *G, int SurfaceIndex,
   Log("Precomputing ehMatrix (%i columns)",NETNX);
 #ifdef USE_OPENMP
   int NumThreads=GetNumThreads();
-  Log("OpenMP multithreading (%i threads)",NumThreads);
+  if (G->LogLevel>=SCUFF_VERBOSE2)
+   Log("OpenMP multithreading (%i threads)",NumThreads);
 #pragma omp parallel for collapse(3), schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int nx=0; nx<NX; nx++)
@@ -1366,8 +1367,10 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /*- loop over all basis functions and all pairs of eval points */
   /***************************************************************/
   int NET = G->TotalEdges;
-#ifdef USE_OPENMP
-  if (G->LogLevel>=SCUFF_VERBOSE2) Log(" using %i OpenMP threads",NumThreads);
+  Log("Assembling SR flux...");
+#ifdef USE_OPENMP  
+  if (G->LogLevel>=SCUFF_VERBOSE2) 
+   Log(" using %i OpenMP threads",NumThreads);
 #pragma omp parallel for collapse(3), schedule(dynamic,1), num_threads(NumThreads)
 #endif  
   for(int nx=0; nx<NX; nx++)

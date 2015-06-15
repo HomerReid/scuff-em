@@ -247,6 +247,32 @@ values of the quantity $f(\xi,k)$ at the requested
 value of $\xi$ and at each $k$ point sampled by 
 the built-in numerical integrator.
 
+The file `SiliconBeams_192.byXi` looks like this:
+
+````bash
+# scuff-cas3D run on superhr1 at 06/07/15::01:01:38
+# data file columns: 
+#1: transform tag
+#2: imaginary angular frequency
+#3: z-force Xi integrand
+#4: z-force error due to numerical Brillouin-zone integration 
+1.00 7.000000e-01 1.53365587e-02 1.10343992e-05
+1.50 7.000000e-01 3.27174955e-03 6.54894735e-06
+...
+5.00 7.000000e-01 2.84878401e-06 4.63609357e-08
+````
+
+As the file header says, the first column here is the
+transform tag (the surface--surface separation), 
+the second column is the imaginary angular frequency 
+in units of $\xi_0=3\cdot 10^{14}$ rad/sec, and the
+third column is the Casimir force per unit length 
+per unit frequency (in units of 
+ $\hbar c/(\omega_0 L_0^3)=31.6 (\text{fN/micron})/\omega_0$
+)
+where $L_0=1\mu\text{m}$ and 
+where $\text{fN}$=femtoNewtons.
+
 --------------------------------------------------
 
 ## The full run
@@ -259,6 +285,20 @@ Now just launch the full run:
 
 (This is the same command line as before, just without the 
 ``--Xi`` option.) 
+
+After some computation, this produces the output file 
+`SiliconBeams_192.out`. You can plot the force (per unit length)
+versus surface--surface separation using e.g. [[gnuplot]]:
+
+````bash
+% gnuplot
+gnuplot> set xlabel 'Surface--surface separation (microns)'
+gnuplot> set ylabel 'Casimir force per unit length (31.6 fN/micron)'
+gnuplot> set logscale y
+gnuplot> plot 'SiliconBeams_192.out' u 1:3 w lp pt 7 ps 1.5
+````
+
+![SiliconBeamData](SiliconBeamData.png)
 
 --------------------------------------------------
 

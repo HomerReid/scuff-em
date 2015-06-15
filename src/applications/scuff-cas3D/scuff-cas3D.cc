@@ -138,17 +138,19 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
 
-  if (FileBase)
-   SetLogFileName("%s.log",FileBase);
-  else
-   SetLogFileName("scuff-cas3D.log");
+  /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  if (GeoFile==0)
+   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+  if (!FileBase)
+   FileBase=vstrdup(GetFileBase(GeoFileName));
+  SetLogFileName("%s.log",FileBase);
   Log("scuff-cas3D running on %s",GetHostName());
 
   /***************************************************************/
   /* try to create the geometry  *********************************/
   /***************************************************************/
-  if (GeoFile==0)
-   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   RWGGeometry *G = new RWGGeometry(GeoFile);
   //G->SetLogLevel(SCUFF_TERSELOGGING);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);

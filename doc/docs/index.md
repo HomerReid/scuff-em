@@ -28,6 +28,8 @@
 
 ## Command-line application reference
 
+* [General reference for <span class="SC">scuff-em</span> command-line applications][GeneralReference]
+
 * *Nanophotonics codes*
     * [scuff-scatter][scuff-scatter]            - general-purpose electromagnetic scattering
     * [scuff-LDOS][scuff-LDOS]                  - photonic **l**ocal **d**ensity **o**f **s**tates
@@ -35,7 +37,7 @@
     * [scuff-tmatrix][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis  
 
 * *Equilibrium Casimir codes*
-    - [scuff-cas3d][scuff-cas3d]   - Casimir energies, forces, and torques
+    - [scuff-cas3D][scuff-cas3D]   - Casimir energies, forces, and torques
     - [scuff-caspol][scuff-caspol] - Casimir-Polder potentials
        
       
@@ -73,11 +75,12 @@
 ## Technical memos
 
 [scuffEMLogo]:        img/scuffEMLogo.png
+[GeneralReference]:   applications/GeneralReference.md
 [scuff-scatter]:      applications/scuff-scatter/scuff-scatter.md
 [scuff-LDOS]:         applications/scuff-LDOS/scuff-LDOS.md
 [scuff-transmission]: applications/scuff-transmission/scuff-transmission.md
 [scuff-tmatrix]:      applications/scuff-tmatrix/scuff-tmatrix.md
-[scuff-cas3D]:        applications/scuff-cas3d/scuff-cas3d.md
+[scuff-cas3D]:        applications/scuff-cas3D/scuff-cas3D.md
 [scuff-caspol]:       applications/scuff-caspol/scuff-caspol.md
 [scuff-neq]:          applications/scuff-neq/scuff-neq.md
 [scuff-RF]:           applications/scuff-RF/scuff-RF.md

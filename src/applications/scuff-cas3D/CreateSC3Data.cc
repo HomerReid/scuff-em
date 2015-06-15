@@ -277,7 +277,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
      fprintf(f,"#%i: imaginary angular frequency\n",nc++);
      fprintf(f,"#%i: bloch wavevector kx \n",nc++);
      if (SC3D->G->LDim==2)
-      fprintf(f,"#%i: bloch wavevector ky \n",nc++);
+      fprintf(f,"#%i: bloch wavevector ky\n",nc++);
 
      IntegrandString="Brillouin-zone integrand";
      ErrorString=0;

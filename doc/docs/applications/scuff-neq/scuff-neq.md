@@ -8,7 +8,7 @@ and arbitrary (linear, isotropic, piecewise homogeneous)
 frequency-dependent permittivity and permeability.
 
 Mechanically, working with [[scuff-neq]] is similar in many ways to 
-working with the equilibrium Casimir code [scuff-cas3d][scuff-cas3d]{.SC}. 
+working with the equilibrium Casimir code [scuff-cas3D][scuff-cas3D]{.SC}. 
 In particular,
 
 + As in [[scuff-cas3d]], you can request either *(a)* frequency-resolved 
@@ -73,4 +73,4 @@ relation holds in the non-equilibrium case.
 
 # <span class="SC">scuff-neq</span> output files
 
-[scuff-cas3d]: ../scuff-cas3d/scuff-cas3d.md
+[scuff-cas3D]: ../scuff-cas3D/scuff-cas3D.md

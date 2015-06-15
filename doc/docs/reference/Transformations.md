@@ -16,7 +16,7 @@ configuration.
 Of course, one way to handle this situation would be simply to
 create 25 different ``.scuffgeo`` files, each describing
 the nanoparticles at different separation distances, and then run 
-[<span class="SmallCaps">scuff-cas3d</span>](../applications/scuff-cas3d/scuff-cas3d.md) 
+[<span class="SmallCaps">scuff-cas3d</span>](../applications/scuff-cas3D/scuff-cas3D.md) 
 25 separate times. However, such a procedure would not only be a major
 hassle, but would also fail to exploit some significant 
 computational redundancies.

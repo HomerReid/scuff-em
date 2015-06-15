@@ -451,8 +451,12 @@ repeated.
 > a future code release.
 
 > **Note**: An additional restriction in the current version
-> of [[scuff-em]] is that 2D lattices must be *square* 
-> lattices. This actually *does* place restrictions on 
+> of [[scuff-em]] is that 2D lattices must be *rectangular* 
+> lattices: the first `LATTICE` vector must have only its 
+> $x$ component nonzero, while the second `LATTICE` vector 
+> must have only its $y$ component nonzero (although the two 
+> vectors may have different lengths).
+. This actually *does* place restrictions on 
 > the geometries that may be treated (for example, it 
 > excludes hexagonal lattices), and it will be remedied
 > as soon as somebody wants to run calculations on a 

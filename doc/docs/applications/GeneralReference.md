@@ -15,6 +15,8 @@ Not all codes accept all arguments (for example,
 format of each arguments is standardized among all codes that *do* 
 accept that argument.
 
+### *Options specifying geometry inputs*
+
 `--geometry MyGeometry.scuffgeo`
 {.toc}
 
@@ -32,6 +34,8 @@ accept that argument.
 > an empty transformation named `DEFAULT` that leaves the geometry
 > unchanged from the configuration described by the `.scuffgeo` file.
 
+### *Options specifying individual frequencies and Bloch vectors at which to calculate*
+
   ````
 --Omega 3.34
 --Omega 4.25+0.9i
@@ -47,7 +51,7 @@ accept that argument.
 > $\omega_0=3\cdot 10^{14}$ rad/sec. The argument of `--Omega` may be a
 > [complex number](../applications/GeneralReference.md#Complex).
 >
-> The complementary option `--Lambda` instead specifies the frequency
+> The alternative option `--Lambda` instead specifies the frequency
 > in terms of the corresponding free-space wavelength $\lambda=c/\omega$ 
 > (where $c$ is the *vacuum* speed of light, irrespective of the material
 > properties of your geometry.)
@@ -85,16 +89,19 @@ accept that argument.
 {.toc} 
 
 > Similar to `--Omega`, `--OmegaFile`, and `--OmegakBlochFile,` 
-> but used for codes ([scuff-cas3d][scuff-cas3d]{.SC} and
+> but used for codes ([scuff-cas3d][scuff-cas3D]{.SC} and
 > [scuff-caspol][scuff-caspol]{.SC}) that perform calculations
 > at pure imaginary frequencies, $\omega=i\xi$.
 > Values specified for `--Xi` should be positive real numbers.
 
+### *Options specifying evaluation points*
+
 `--EPFile MyEPFile`
 {.toc}
 
-> Specifies a file describing a list of spatial evaluation points
-> for various output quantities. (*Which* output quantity depends
+> For codes that compute spatially-resolved output quantities,
+> this option specifies a file describing a list of spatial 
+> evaluation points. (*Which* output quantity depends
 > on the code you are running; for example,
 > [scuff-scatter](../applications/scuff-scatter/scuff-scatter.md){.SC}
 > will report components of the scattered and total fields at the 
@@ -120,6 +127,29 @@ accept that argument.
 > 0.0 0.0  2.0
 > ````
 {.hljs}
+
+### *Options controlling frequency integrations*
+
+  ````
+--OmegaQuadrature [adaptive | cliff ]
+--OmegaMin 0.01
+--XiQuadrature [adaptive | cliff ]
+--XiMin 0.01
+--AbsTol
+--RelTol
+  ````
+{.toc}
+
+### *Options controlling Brillouin-zone integrations*
+
+ ````
+--BZQuadrature [adaptive | cliff ]
+--BZSymmetry [adaptive | cliff ]
+--MaxBZSamples 1000;
+ ````
+{.toc}
+ 
+### *Miscellaneous options*
 
 `--FileBase MyFileBase`
 {.toc}
@@ -199,6 +229,69 @@ of the following are valid frequency specifications:
  --omega 4.5j
  --omega 12.3e2+45.4e2I
 ````
+ 
+# Log files 
 
-[scuff-cas3d]: scuff-cas3d/scuff-cas3d.md
+All command-line codes in the [[scuff-em]] suite
+write logging information to text-based logfiles
+with extension `.log.` You can monitor these
+files to follow the progress of your calculations.
+
+For example, after launching 
+[ this sample <span class="SC">scuff-cas3d</span> run ][SiliconSlabs],
+
+type the following at a terminal window:
+
+````bash
+% tail -f SiliconSlabs_L2_40.log
+````
+This produces a running list of log messages, something like this:
+````
+06/15/15::10:13:40: scuff-cas3D running on superhr1
+06/15/15::10:13:40: Added /home/homer/work/scuff-em-sandbox/mshFiles to mesh search path.
+06/15/15::10:13:40: Adding lattice basis vector (2,0).
+06/15/15::10:13:40: Adding lattice basis vector (0,2).
+06/15/15::10:13:40: Computing Casimir integrand at (Xi,kx,ky)=(0.5,0.19635,0.19635)
+06/15/15::10:13:49: Computing Casimir integrand at (Xi,kx,ky)=(0.5,0.217586,0.172518)
+06/15/15::10:13:51: Computing Casimir integrand at (Xi,kx,ky)=(0.5,0.256543,0.106264)
+06/15/15::10:13:52: Computing Casimir integrand at (Xi,kx,ky)=(0.5,0.275845,0.0318681) 
+````
+
+# Environment variables
+
+Here are some environment-variable settings that 
+affect the behavior of [[scuff-em]].
+
+````bash
+% export SCUFF_MESH_PATH=/path/to/msh/files`
+````
+
+> Specifies a directory in which to look for mesh files
+> (such as `.msh` files produced by [[gmsh]]) 
+> referred to by `.scuffgeo` files.
+
+````bash
+% export SCUFF_LOGLEVEL="NONE"
+% export SCUFF_LOGLEVEL="TERSE"
+% export SCUFF_LOGLEVEL="VERBOSE"
+% export SCUFF_LOGLEVEL="VERBOSE2"
+````
+
+> Sets the verbosity of messages written to the `.log` file.
+
+````bash
+% export OMP_NUM_THREADS="8"
+% export GOMP_CPU_AFFINITY="0-7"
+````
+
+> These options **should not** be necessary, but **may** be
+> needed to ensure that [[scuff-em]] takes advantage
+> of all available CPU cores on your system. The former 
+> option says that you want to use 8 cores, and the latter 
+> option says that you want these 8 cores to be the first
+> 8 available (as opposed to, say, the second set of 8
+> available cores on a 16-core machine).
+
+[scuff-cas3D]:  scuff-cas3D/scuff-cas3D.md
 [scuff-caspol]: scuff-caspol/scuff-caspol.md
+[SiliconBeams]: ../../examples/SiliconBeams/SiliconBeams.md

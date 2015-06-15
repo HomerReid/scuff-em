@@ -161,14 +161,20 @@ int main(int argc, char *argv[])
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
-  if (GeoFileName==0)
-   OSUsage(argv[0],OSArray,"--geometry option is mandatory");
+
+  /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
+  if (GeoFile==0)
+   OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+  if (!FileBase)
+   FileBase=vstrdup(GetFileBase(GeoFileName));
+  SetLogFileName("%s.log",FileBase);
+  Log("scuff-transmission running on %s",GetHostName());
   
   /*******************************************************************/
   /*- create the RWGGeometry                                        -*/
   /*******************************************************************/
-  SetLogFileName("scuff-transmission.log");
-  Log("scuff-transmission running on %s",GetHostName());
   RWGGeometry::AssignBasisFunctionsToExteriorEdges=false;
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   if (G->LDim!=2)

@@ -221,23 +221,26 @@ then the statistical \textit{average} of the quantity $Q$---where
 the averaging is over quantum and thermal fluctuations---is given by
 a sum over the contributions of sources in all bodies:
 %--------------------------------------------------------------------%
-\begin{equation}
+\numeq{FSCQ}
+{
  \text{then} \qquad \big\langle Q\big\rangle
   = \int_0^\infty \, \sum_s \, \Theta(T_s,\omega) \Phi_s(\omega)\,d\omega 
-\end{equation}
+}
 where 
 $\Theta(T_s,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_s} - 1}$
 is the Bose-Einstein factor for the temperature $T_s$ of 
 body $s$, and where the ``generalized flux'' $\Phi_s$
 is the trace of a four-matrix product involving the $\vb Q$ matrix:
 %====================================================================%
-\begin{equation}
+\numeq{FSCFlux}
+{
 \Phi_s
   = \frac{2}{\pi} 
     \Tr\left\{ \vb Q 
                \underbrace{\vb W \overline{\vb G}_s \vb W^\dagger}
                          _{\vb R_s}
        \right\}.
+}
 \end{equation}
 %====================================================================%
 \label{FSCEquivalence}%
@@ -494,12 +497,31 @@ More specifically,
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Visualization: Flux plots}
 
+As discussed above, the power, force, and torque quantities
+computed by {\sc scuff-neq} are traces over products matrices
+whose individual elements describe the interactions between
+RWG basis functions.\footnote{For example, the matrix $\vb W$ 
+in equation (\ref{FSCFlux}) is the inverse of the BEM matrix 
+$\vb M$; the $(\alpha,\beta$) entry of this matrix 
+($M_{\alpha\beta})$ is the inner product of basis functions 
+$\bmc B_\alpha$ with the electromagnetic field due to basis
+function $\bmc B_\beta$.} Each diagonal element of these
+matrices may thus be associated with a single localized
+RWG basis function, and the matrix trace may thus be
+decomposed into a sum of contributions associated with 
+individual RWG functions. For example, the flux defined
+by (\ref{FSCQ}) and (\ref{FSCFlux}) may be written in
+the form 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
-  \langle Q \rangle
-&= 
+ \Phi = \sum_{\alpha} \Phi_{\alpha\alpha}
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\Phi_{\alpha\alpha}$, the contribution of RWG basis function
+
+
+Each RWG function is associated with two triangular panels
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

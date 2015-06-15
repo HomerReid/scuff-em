@@ -169,14 +169,18 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
 
+  /*******************************************************************/
+  /*******************************************************************/
+  /*******************************************************************/
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
+  if (!FileBase)
+   FileBase=vstrdup(GetFileBase(GeoFileName));
+  SetLogFileName("%s.log",FileBase);
+  Log("scuff-neq running on %s",GetHostName());
 
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
-
-  SetLogFileName("scuff-neq.log");
-  Log("scuff-neq running on %s",GetHostName());
 
   /*******************************************************************/
   /* determine which output quantities were requested ****************/
