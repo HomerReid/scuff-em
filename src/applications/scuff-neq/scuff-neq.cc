@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
   if (XTorque) QuantityFlags|=QFLAG_XTORQUE;
   if (YTorque) QuantityFlags|=QFLAG_YTORQUE;
   if (ZTorque) QuantityFlags|=QFLAG_ZTORQUE;
-  if (QuantityFlags==0)
+  if (QuantityFlags==0 && EPFile==0)
    ErrExit("you must specify at least one quantity to compute");
 
   /*******************************************************************/
