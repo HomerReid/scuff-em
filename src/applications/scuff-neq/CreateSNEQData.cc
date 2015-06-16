@@ -43,6 +43,7 @@ const char *QuantityNames[NUMPFT]=
 /***************************************************************/
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
+                         char **TempStrings, int nTempStrings,
                          int QuantityFlags, char *EPFile,
                          char *pFileBase)
 {
@@ -85,6 +86,35 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   InitPFTOptions( &(SNEQD->PFTOpts) );
   SNEQD->NeedQuantity = SNEQD->PFTOpts.NeedQuantity;
+
+  /*******************************************************************/
+  /* process --temperature options ***********************************/
+  /*******************************************************************/
+  SNEQD->TEnvironment=0.0;
+  SNEQD->TSurfaces=(double *)mallocEC(G->NumSurfaces*sizeof(double));
+  for(int nts=0; nts<nTempStrings; nts++)
+   { 
+     double TTemp;
+     int WhichSurface;
+     if ( 1!=sscanf(TempStrings[2*nts+1],"%le",&TTemp) )
+      ErrExit("invalid temperature (%s) passed for --temperature option",TempStrings[2*nts+1]);
+
+     if (    !strcasecmp(TempStrings[2*nts],"MEDIUM")
+          || !strcasecmp(TempStrings[2*nts],"EXTERIOR")
+          || !strcasecmp(TempStrings[2*nts],"ENVIRONMENT")
+        )
+      { SNEQD->TEnvironment=TTemp;
+        Log("Setting environment temperature to %g kelvin.",TTemp);
+        printf("Setting environment temperature to %g kelvin.\n",TTemp);
+      }
+     else if ( G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface) )
+      { SNEQD->TSurfaces[WhichSurface]=TTemp;
+        Log("Setting temperature of object %s to %g kelvin.",TempStrings[2*nts],TTemp);
+        printf("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
+      }
+     else 
+      ErrExit("unknown surface/region %s in --temperature specification",TempStrings[2*nts]);
+   };
 
   /*--------------------------------------------------------------*/
   /*- figure out which quantities were specified                 -*/

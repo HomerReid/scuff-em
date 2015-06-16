@@ -65,9 +65,11 @@ double Theta(double Omega, double T)
 /***************************************************************/
 /***************************************************************/
 void PutInThetaFactors(SNEQData *SNEQD, double Omega,
-                       double *TSurfaces, double TEnvironment,
                        double *FluxVector)
 {
+  double TEnvironment  = SNEQD->TEnvironment;
+  double *TSurfaces    = SNEQD->TSurfaces;
+
   /*--------------------------------------------------------------*/
   /*- quantities arising from sources inside object nss are       */
   /*- weighted by a factor of                                     */
@@ -148,8 +150,6 @@ typedef struct GOIData
    SNEQData *SNEQD;
    double OmegaMin;
    bool Infinite;
-   double *TSurfaces;
-   double TEnvironment;
 
  } GOIData;
 
@@ -163,8 +163,6 @@ int GetOmegaIntegrand(unsigned ndim, const double *x, void *params,
   SNEQData *SNEQD     = Data->SNEQD;
   double OmegaMin     = Data->OmegaMin;
   bool Infinite       = Data->Infinite;
-  double *TSurfaces   = Data->TSurfaces;
-  double TEnvironment = Data->TEnvironment;
 
   if (Skip)
    memcpy(SNEQD->OmegaConverged, Skip, fdim*sizeof(bool));
@@ -193,7 +191,7 @@ int GetOmegaIntegrand(unsigned ndim, const double *x, void *params,
   GetFlux(SNEQD, Omega, fval);
   for(unsigned int nf=0; nf<fdim; nf++)
    fval[nf]*=Jacobian;
-  PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fval);
+  PutInThetaFactors(SNEQD, Omega, fval);
 
   return 0;
 }
@@ -210,8 +208,6 @@ int GetOmegaIntegrand2(unsigned ndim, const double *x, void *params,
 void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
                                double OmegaMin,
                                double OmegaMax,
-                               double *TSurfaces,
-                               double TEnvironment,
                                double *I, double *E)
 { 
   /***************************************************************/
@@ -229,8 +225,6 @@ void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
   else
    Data->Infinite=false;
 
-  Data->TSurfaces=TSurfaces;
-  Data->TEnvironment=TEnvironment;
 
   /***************************************************************/
   /***************************************************************/
@@ -251,8 +245,6 @@ void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
 void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
                                double OmegaMin,
                                double OmegaMax,
-                               double *TSurfaces,
-                               double TEnvironment,
                                int NumIntervals,
                                double *I, double *E)
 { 
@@ -289,7 +281,7 @@ void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
    { Omega=uMin;
      GetFlux(SNEQD, Omega, fLeft);
    };
-  PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fLeft);
+  PutInThetaFactors(SNEQD, Omega, fLeft);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -313,7 +305,7 @@ void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
       { Omega=u;
         GetFlux(SNEQD, Omega, fMid);
       };
-     PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fMid);
+     PutInThetaFactors(SNEQD, Omega, fMid);
 
      // evaluate integrand at right end of interval 
      u += 0.5*Delta;
@@ -331,7 +323,7 @@ void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
       { Omega=u;
         GetFlux(SNEQD, Omega, fRight);
       };
-     PutInThetaFactors(SNEQD, Omega, TSurfaces, TEnvironment, fRight);
+     PutInThetaFactors(SNEQD, Omega, fRight);
 
      // compute the simpson's rule and trapezoidal rule
      // estimates of the integral over this interval
@@ -360,7 +352,6 @@ void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
 /***************************************************************/
 void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
                             double OmegaMin, double OmegaMax,
-                            double *TSurfaces, double TEnvironment,
                             double *I, double *E)
 {
   /***************************************************************/
@@ -370,9 +361,6 @@ void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
   Data->SNEQD    = SNEQD;
   Data->OmegaMin = OmegaMin;
   Data->Infinite = false;
-
-  Data->TSurfaces=TSurfaces;
-  Data->TEnvironment=TEnvironment;
 
   /***************************************************************/
   /* this really needs to be estimated automatically FIXME       */

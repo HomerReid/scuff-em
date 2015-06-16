@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   if (!FileBase)
-   FileBase=vstrdup(GetFileBase(GeoFileName));
+   FileBase=vstrdup(GetFileBase(GeoFile));
   SetLogFileName("%s.log",FileBase);
   Log("scuff-cas3D running on %s",GetHostName());
 

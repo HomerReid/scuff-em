@@ -98,6 +98,7 @@ int main(int argc, char *argv[])
 
   /*--------------------------------------------------------------*/
   bool OmitSelfTerms = false;
+  bool OmitZeroTemperatureFlux = false;
   bool ForceDSI      = false;
 
   /*--------------------------------------------------------------*/
@@ -175,7 +176,7 @@ int main(int argc, char *argv[])
   if (GeoFile==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   if (!FileBase)
-   FileBase=vstrdup(GetFileBase(GeoFileName));
+   FileBase=vstrdup(GetFileBase(GeoFile));
   SetLogFileName("%s.log",FileBase);
   Log("scuff-neq running on %s",GetHostName());
 
@@ -284,20 +285,22 @@ int main(int argc, char *argv[])
   /* create the SNEQData structure that contains all the info needed */
   /* to evaluate the neq transfer at a single frequency              */
   /*******************************************************************/
-  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile, QuantityFlags,
-                                 EPFile, FileBase);
+  SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile,
+                                 TempStrings, nTempStrings,
+                                 QuantityFlags, EPFile, FileBase);
   RWGGeometry *G=SNEQD->G;
-  SNEQD->UseExistingData      = UseExistingData;
-  SNEQD->PlotFlux             = PlotFlux;
-  SNEQD->OmitSelfTerms        = OmitSelfTerms;
-  SNEQD->ForceDSI             = ForceDSI;
-  SNEQD->AbsTol               = AbsTol;
-  SNEQD->RelTol               = RelTol;
-  SNEQD->PFTOpts.DSIMesh      = DSIMesh;
-  SNEQD->PFTOpts.DSIRadius    = DSIRadius;
-  SNEQD->PFTOpts.DSIPoints    = DSIPoints;
-  SNEQD->PFTOpts.DSIFarField  = DSIFarField;
-  SNEQD->PlotRytovVectors     = PlotRytovVectors;
+  SNEQD->UseExistingData         = UseExistingData;
+  SNEQD->PlotFlux                = PlotFlux;
+  SNEQD->OmitSelfTerms           = OmitSelfTerms;
+  SNEQD->OmitZeroTemperatureFlux = OmitZeroTemperatureFlux;
+  SNEQD->ForceDSI                = ForceDSI;
+  SNEQD->AbsTol                  = AbsTol;
+  SNEQD->RelTol                  = RelTol;
+  SNEQD->PFTOpts.DSIMesh         = DSIMesh;
+  SNEQD->PFTOpts.DSIRadius       = DSIRadius;
+  SNEQD->PFTOpts.DSIPoints       = DSIPoints;
+  SNEQD->PFTOpts.DSIFarField     = DSIFarField;
+  SNEQD->PlotRytovVectors        = PlotRytovVectors;
 
   if (SNEQD->NumSIQs==0 && SNEQD->NumSRQs==0)
    ErrExit("you must specify at least one quantity to compute");
@@ -306,36 +309,6 @@ int main(int argc, char *argv[])
    ErrExit("--OmegaKPoints may only be used with extended geometries");
   else if (G->LDim!=0 && OmegaKPoints==0)
    ErrExit("--OmegaKPoints is required for extended geometries");
-
-  /*******************************************************************/
-  /* process any temperature specifications **************************/
-  /*******************************************************************/
-  double TEnvironment=0.0;
-  double *TSurfaces=(double *)malloc(G->NumSurfaces*sizeof(double));
-  memset(TSurfaces, 0, G->NumSurfaces*sizeof(double));
-  for(int nts=0; nts<nTempStrings; nts++)
-   { 
-     double TTemp;
-     int WhichSurface;
-     if ( 1!=sscanf(TempStrings[2*nts+1],"%le",&TTemp) )
-      ErrExit("invalid temperature (%s) passed for --temperature option",TempStrings[2*nts+1]);
-
-     if (    !strcasecmp(TempStrings[2*nts],"MEDIUM")
-          || !strcasecmp(TempStrings[2*nts],"ENVIRONMENT")
-        )
-      { TEnvironment=TTemp;
-        Log("Setting environment temperature to %g kelvin.",TTemp);
-        printf("Setting environment temperature to %g kelvin.\n",TTemp);
-      }
-     else if ( G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface) )
-      { TSurfaces[WhichSurface]=TTemp;
-        Log("Setting temperature of object %s to %g kelvin.",TempStrings[2*nts],TTemp);
-        printf("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
-      }
-     else 
-      ErrExit("unknown surface/region %s in --temperature specification",TempStrings[2*nts]);
-
-   };
          
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -373,21 +346,19 @@ int main(int argc, char *argv[])
    }
   else
    { 
+      SNEQD->OmitZeroTemperatureFlux=true;
+
       double *E = new double[ OutputVectorLength ];
 
       switch(OQMethod) 
        { case QMETHOD_ADAPTIVE:
-          GetOmegaIntegral_Adaptive(SNEQD, OmegaMin, OmegaMax,
-                                    TSurfaces, TEnvironment, I, E);
+          GetOmegaIntegral_Adaptive(SNEQD, OmegaMin, OmegaMax, I, E);
 
          case QMETHOD_TRAPSIMP:
-          GetOmegaIntegral_TrapSimp(SNEQD, OmegaMin, OmegaMax,
-                                    TSurfaces, TEnvironment,
-                                    Intervals, I, E);
+          GetOmegaIntegral_TrapSimp(SNEQD, OmegaMin, OmegaMax, Intervals, I, E);
 
          case QMETHOD_CLIFF:
-          GetOmegaIntegral_Cliff(SNEQD, OmegaMin, OmegaMax,
-                                 TSurfaces, TEnvironment, I, E);
+          GetOmegaIntegral_Cliff(SNEQD, OmegaMin, OmegaMax, I, E);
        };
 
       if (SNEQD->NumSIQs > 0) 

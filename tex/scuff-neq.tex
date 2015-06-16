@@ -364,6 +364,7 @@ of the following base units.
 \end{tabular}
 \end{center}
 \renewcommand{\arraystretch}{1.0}
+
 %====================================================================%
 \newpage
 \subsection{Output files for spatially-integrated quantities}
@@ -492,6 +493,10 @@ More specifically,
 \end{itemize}
 %====================================================================%
 
+%====================================================================%
+\newpage
+\subsection{Output files for spatially-integrated quantities}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -509,19 +514,38 @@ function $\bmc B_\beta$.} Each diagonal element of these
 matrices may thus be associated with a single localized
 RWG basis function, and the matrix trace may thus be
 decomposed into a sum of contributions associated with 
-individual RWG functions. For example, the flux defined
+individual RWG functions. Thus the flux defined
 by (\ref{FSCQ}) and (\ref{FSCFlux}) may be written in
 the form 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
- \Phi = \sum_{\alpha} \Phi_{\alpha\alpha}
+ \Phi &= \sum_{\alpha} \Phi_{\alpha}
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where $\Phi_{\alpha\alpha}$, the contribution of RWG basis function
+where $\Phi_{\alpha}$, the contribution of basis function
+$\bmc B_\alpha$ to $\Phi$, is just the $(\alpha,\alpha)$ 
+diagonal element of the matrix in (\ref{FSCFlux}).
 
+For visualization purposes it is convenient to think of the
+quantities $\Phi_\alpha$, together with the localized supports
+of the basis functions, as defining a certain \texttt{density}
+of contributions to the quantity $\Phi$
+Although the definition
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+ \item Basis function $\bmc B_\alpha$ is only nonvanishing on two
+       triangular panels (call them $\mc P^+_\alpha$ and
+       $\mc P^-_\alpha$). If we pretend that the contribution of
+       this basis function to $\Phi$ is somehow equidistributed 
+       then we
 
-Each RWG function is associated with two triangular panels
+ \item Each triangle $\mc P$ receives three such contributions to
+       the density in its interior---namely, the contributions 
+        Then 
+
+ \item $\sum_{p} A_p \Phi_p
+\end{itemize}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

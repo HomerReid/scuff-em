@@ -205,14 +205,14 @@ Matsubara frequencies.
 + `--XikBlochFile`
 + `--XiQuadrature`
 + `--XiMin`
-+ ` `k
++ ` ` 
 + `--BZQuadrature`
 + `--BZSymmetry`
 + `--MaxBZSamples`
 + ` `
 + `--AbsTol`
 + `--RelTol`
-+ `` 
++ ` ` 
 + `--FileBase`
 + ` `    
 + `--Cache`
@@ -264,12 +264,13 @@ specify particular frequencies at which to compute.
 The base file name of all output files produced by
 `scuff-cas3d` may be specified using the `--FileBase`
 command-line option; if this option is not specified
-then the file base is taken to be the base file 
+then the file base is taken to be the base file
 name of the `.scuffgeo` file you specified using
 the `--geometry` option.
 
 For all data output files (`.out`, `.byXi`,
-`.byXikBloch`), the
+`.byXikBloch`), the output file contains a
+*header* 
 
 ## The `.log` file
 
@@ -319,3 +320,4 @@ named `FILEBASE.byXikBloch`.
 [CubeTorus]: http://homerreid.dyndns.org/scuff-EM/scuff-cas3D/scuff-cas3D-Tutorial.shtml
 [SiliconBeams]: ../../examples/SiliconBeams/SiliconBeams.md
 [SiliconSlabs]: ../../examples/SiliconSlabs/SiliconSlabs.md
+[LogFiles]:     ../GeneralReference.md#LogFiles

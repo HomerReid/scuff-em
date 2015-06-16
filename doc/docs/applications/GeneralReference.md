@@ -70,7 +70,7 @@ accept that argument.
 > Similar to `--OmegaFile`, but specifies a list of
 > (frequency, Bloch vector) points at which to perform calculations.
 > This option only makes sense when used with 
-> [extended geometries](../reference/Geometries.md#Extended).
+> [extended geometries][ExtendedGeometries]
 >
 > The argument specified for `--OmegakBlochFile` should
 > be a file containing two numbers on each line (for 1D extended 
@@ -94,6 +94,7 @@ accept that argument.
 > at pure imaginary frequencies, $\omega=i\xi$.
 > Values specified for `--Xi` should be positive real numbers.
 
+<a name="EvaluationPoints"></a>
 ### *Options specifying evaluation points*
 
 `--EPFile MyEPFile`
@@ -229,7 +230,8 @@ of the following are valid frequency specifications:
  --omega 4.5j
  --omega 12.3e2+45.4e2I
 ````
- 
+
+<a name="LogFiles"></a> 
 # Log files 
 
 All command-line codes in the [[scuff-em]] suite
@@ -280,6 +282,41 @@ affect the behavior of [[scuff-em]].
 > Sets the verbosity of messages written to the `.log` file.
 
 ````bash
+% export SCUFF_INTERPOLATION_TOLERANCE=1.0e-3
+````
+
+> This option, which is only relevant for
+> [extended geometries][ExtendedGeometries],
+> set an internal tolerance parameter that controls
+> the accuracy with which BEM matrix elements and
+> scattered fields are computed. Its default value
+> is `1.0e-6`, but this is probably overly stringent,
+> and may generally be relaxed to `1e-3` or so
+> to reduce memory usage and CPU time without 
+> significant accuracy penalties. If your calculation
+> is running out of memory or taking too long to run,
+> try setting it to `1.0e-4` or `1.0e-3.`
+> Please tell us about your experiences 
+> with this parameter!
+>
+> (More specifically: [[scuff-em]] uses Ewald summation
+> to accelerate the calculation of the periodic Green's
+> function, but even this accelerated calculation is 
+> not fast enough to handle the many millions of 
+> evaluations needed to assemble the 
+> For this reason, when assembling the BEM matrix at
+> a given frequency and Bloch vector, [[scuff-em]] first
+> precomputes Ewald-summed values of the periodic DGF 
+> at grid points of an interpolation grid, after which
+> values are obtained by interpolation (bypassing 
+> Ewald summation). The spacing of the grid points is 
+> chosen automatically to ensure that the maximum relative 
+> error between the interpolated and exact values at any 
+> point within the grid boundaries is less than 
+> `SCUFF_INTERPOLATION_TOLERANCE.`
+
+
+````bash
 % export OMP_NUM_THREADS="8"
 % export GOMP_CPU_AFFINITY="0-7"
 ````
@@ -295,3 +332,4 @@ affect the behavior of [[scuff-em]].
 [scuff-cas3D]:  scuff-cas3D/scuff-cas3D.md
 [scuff-caspol]: scuff-caspol/scuff-caspol.md
 [SiliconBeams]: ../../examples/SiliconBeams/SiliconBeams.md
+[ExtendedGeometries]: ../reference/Geometries.md#Extended

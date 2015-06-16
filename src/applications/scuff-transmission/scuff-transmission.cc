@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   /*******************************************************************/
-  if (GeoFile==0)
+  if (GeoFileName==0)
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   if (!FileBase)
    FileBase=vstrdup(GetFileBase(GeoFileName));

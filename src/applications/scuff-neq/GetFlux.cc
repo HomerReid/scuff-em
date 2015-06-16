@@ -502,6 +502,9 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
      /*--------------------------------------------------------------*/
      for(int nss=0; nss<NS; nss++)
       {
+        if (SNEQD->OmitZeroTemperatureFlux && SNEQD->TSurfaces[nss]==0.0)
+         continue;
+
         // compute the Rytov matrix for this source
         ComputeRytovMatrix(SNEQD, nss);
         if (SNEQD->PlotRytovVectors)

@@ -77,6 +77,8 @@ typedef struct SNEQData
    GTComplex **GTCList;
    int NumTransformations;
    char *WriteCache;
+   double TEnvironment;
+   double *TSurfaces;
 
    /*--------------------------------------------------------------*/
    /*- information on the calculations requested by the user       */
@@ -123,6 +125,7 @@ typedef struct SNEQData
    double RelTol, AbsTol;  // integration tolerances
    char *FileBase;
    bool UseExistingData;
+   bool OmitZeroTemperatureFlux;
 
  } SNEQData;
 
@@ -130,6 +133,7 @@ typedef struct SNEQData
 /*- in CreateSNEQData.cc ---------------------------------------*/
 /*--------------------------------------------------------------*/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
+                         char **TempStrings, int nTempStrings,
                          int QuantityFlags, char *EPFile,
                          char *pFileBase);
 
@@ -149,17 +153,14 @@ void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E);
 
 void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
                                double OmegaMin, double OmegaMax,
-                               double *TObjects, double TEnvironment,
                                double *I, double *E);
 
 void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
                                double OmegaMin, double OmegaMax,
-                               double *TObjects, double TEnvironment,
                                int Intervals, double *I, double *E);
 
 void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
                             double OmegaMin, double OmegaMax,
-                            double *TObjects, double TEnvironment,
                             double *I, double *E);
 
 #endif
