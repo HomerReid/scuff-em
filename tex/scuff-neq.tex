@@ -219,40 +219,38 @@ with a matrix $\vb Q(\omega)$, i.e
 \item
 then the statistical \textit{average} of the quantity $Q$---where
 the averaging is over quantum and thermal fluctuations---is given by
-a sum over the contributions of sources in all bodies:
+a sum over the contributions of fluctuating sources in all regions
+of space:
 %--------------------------------------------------------------------%
-\numeq{FSCQ}
-{
+\begin{equation}
  \text{then} \qquad \big\langle Q\big\rangle
-  = \int_0^\infty \, \sum_s \, \Theta(T_s,\omega) \Phi_s(\omega)\,d\omega 
-}
+  = \int_0^\infty \, \sum_r \, \Theta(T_r,\omega) \Phi_r(\omega)\,d\omega 
+\end{equation}
 where 
-$\Theta(T_s,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_s} - 1}$
-is the Bose-Einstein factor for the temperature $T_s$ of 
-body $s$, and where the ``generalized flux'' $\Phi_s$
+$\Theta(T_r,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_r} - 1}$
+is the Bose-Einstein factor for the temperature $T_r$ of 
+region $r$, and where the ``generalized flux'' $\Phi_r$
 is the trace of a four-matrix product involving the $\vb Q$ matrix:
 %====================================================================%
-\numeq{FSCFlux}
-{
+\begin{equation}
 \Phi_s
   = \frac{2}{\pi} 
     \Tr\left\{ \vb Q 
-               \underbrace{\vb W \overline{\vb G}_s \vb W^\dagger}
+               \underbrace{\vb W \overline{\vb G}_r \vb W^\dagger}
                          _{\vb R_s}
        \right\}.
-}
 \end{equation}
 %====================================================================%
 \label{FSCEquivalence}%
 \end{subequations}
 %--------------------------------------------------------------------%
 Here $\vb W$ is the inverse of the BEM matrix for the 
-\textit{entire} collection of bodies and $\overline{\vb G}_s$ 
-is a symmetrized version of a portion of the BEM matrix for body 
-$s$ alone.
+\textit{entire} collection of bodies and $\overline{\vb G}_r$ 
+is a symmetrized version of a portion of the BEM matrix for region
+$r$ alone.
 
 \end{itemize}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The matrix $\vb R_s$ in (\ref{FSCEquivalence})---the ``Rytov''
 matrix---furnishes a concise description of the fluctuating sources
 inside body $s$. For a given output quantity 
@@ -268,62 +266,68 @@ obtained by setting body $s$ to temperature $T_s$ and setting
 all other bodies to \textit{zero} temperature, so that those
 bodies are present as electromagnetic scatterers but not as 
 sources of radiation.
-%
-%More specifically, the eigenvectors of $\vb R_s$ 
-%may be interpreted as ``normal modes'' of the fluctuating source 
-%distribution inside body $s$; these are surface-current vectors 
-%whose contributions to time-average PFT quantities add without
-%mixing.
-%
-%\subsection*{Structure of $\vb R_s$}
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%{\scriptsize
-%\begin{align*}
-% \vb R_s &= \vb W \overline{\vb G}_s \vb W^\dagger
-%\\
-%%--------------------------------------------------------------------%
-%&=\left(\begin{array}{cccc}
-%  \vphantom{\vb W^\dagger_11} 
-%  \vb W_{11} & \vb W_{12} & \cdots & \vb W_{1N} 
-%\\ 
-%  \vphantom{\vb W^\dagger_11} 
-%  \vb W_{21} & \vb W_{22} & \cdots & \vb W_{2N} 
-%\\ 
-%  \vphantom{\vb W^\dagger_11} 
-%  \vdots     & \vdots     & \ddots & \vdots     
-%\\
-%  \vphantom{\vb W^\dagger_11} 
-%  \vb W_{N1} & \vb W_{N2} & \cdots & \vb W_{NN}
-%  \end{array}\right)
-%%--------------------------------------------------------------------%
-% \left(\begin{array}{cccc}
-%  \vphantom{\vb W^\dagger_11} 
-%  0          & 0          & \cdots &         0          
-%  \\ 
-%  \vphantom{\vb W^\dagger_11} 
-%  0          & 0          & \cdots &         0          
-%  \\ 
-%  \vphantom{\vb W^\dagger_11} 
-%  \vdots     & \vdots     & \overline{\vb G}_{s} &  \vdots     
-%  \\
-%  \vphantom{\vb W^\dagger_11} 
-%  0          & 0          & \cdots &         0
-%  \end{array}\right)
-%%--------------------------------------------------------------------%
-%  \left(\begin{array}{cccc}
-%  \vb W_{11}^\dagger & \vb W_{21}^\dagger & \cdots & \vb W_{N1}^\dagger \\ 
-%  \vb W_{12}^\dagger & \vb W_{22}^\dagger & \cdots & \vb W_{N2}^\dagger \\ 
-%  \vdots     & \vdots     & \ddots & \vdots     \\
-%  \vb W_{1N}^\dagger & \vb W_{2N}^\dagger & \cdots & \vb W_{NN}^\dagger
-%  \end{array}\right)
-%\end{align*}
-%}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
-%The $a,b$ subblock of this matrix is
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
-%$$ \vb R_{s; ab} = \vb W_{as} \overline{\vb G}_s \vb W_{bs}^\dagger. $$
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%$
+
+\subsection*{Separating equilibrium from non-equilibrium contributions}
+
+The set of regions over which we sum in (\ref{FSCEquivalence}a) includes
+the \textit{exterior} region, i.e. the environment in which
+our interacting bodies are embedded. It is convenient to
+decompose this sum into two terms:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+ \big\langle Q\big\rangle
+&= \big\langle Q\big\rangle\supt{EQ} +
+   \big\langle Q\big\rangle\supt{NEQ}
+\\[8pt]
+ \big\langle Q\big\rangle\supt{EQ}
+&\equiv 
+  \int_0^\infty \Theta(T\subs{env},\omega) \sum_r \,
+                   \Phi_r(\omega)\,d\omega 
+\\[8pt]
+ \qquad \big\langle Q\big\rangle\supt{NEQ}
+&\equiv 
+  \int_0^\infty \sum_s 
+  \Big[ \Theta(T_s, \omega) - \Theta(T\subs{env},\omega)\Big]
+        \Phi_s(\omega)\,d\omega 
+\\[4pt]
+&=
+  \int_0^\infty \sum_s
+  \Delta \Theta(T_s, \omega) \Phi_s(\omega)\,d\omega 
+\label{QNEQ}
+\end{align}
+where 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ \Delta \Theta(T_s, \omega) \equiv 
+   \Theta(T_s, \omega) - \Theta(T\subs{env},\omega).
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The quantity $\big\langle Q\big\rangle\supt{EQ}$
+is the average value of $Q$ that would obtain if 
+the temperature in all material regions were equal
+to the environment temperature $T\subs{env}$---that is,
+it is the \textit{equilibrium} value of $\big\langle Q\big\rangle$
+at temperature $T\subs{env}$. The equilibrium value
+of PFT quantities may be computed by methods that are 
+less costly than {\sc scuff-neq}. (For example,
+if $Q$ is a spatially-integrated force or torque, then 
+$\big\langle Q\big \rangle\supt{EQ}$ is just the equilibrium
+Casimir force, for which it is far easier to
+Wick-rotate the $\omega$ integral to the positive
+imaginary frequency axis, as is done in the
+equilibrium Casimir code {\sc scuff-cas3d}. 
+On the other hand, if $Q$ is a spatially-integrated
+power transfer quantity, then 
+$\big\langle Q\big \rangle\supt{EQ}=0$ identically.)
+Thus this contribution is not computed by {\sc scuff-neq}.
+
+The quantity $\big\langle Q\big\rangle\supt{NEQ}$
+is the extent to which $\big\langle Q\big\rangle$
+\textit{deviates} from its equilibrium value, and
+the sum in (\ref{QNEQ}) now ranges only over
+the source bodies in the geometry, not including
+the environment contribution.
+$\langle Q \rangle\supt{NEQ}$ is the
+quantity that is computed by {\sc scuff-neq}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -377,12 +381,14 @@ equation (\ref{FSCEquivalence}b), we have
 %====================================================================%
 \begin{equation}
  \qquad \big\langle Q_d\big\rangle
- = \int_0^\infty \, \sum_s \, \Theta_s(\omega) 
+ = \int_0^\infty \, \sum_s \, \Delta \Theta_s(\omega) 
    \Phi_{s\to d}(\omega)\,d\omega
 \end{equation}
 %====================================================================%
-where $\Theta_s$ is the Bose-Einstein factor for the temperature 
-of body $s$ and $\Phi_{s \to d}(\omega)$ is the 
+where $\Delta\Theta_s=\Theta_s-\Theta\subs{env}$ ($\Theta_s$ and
+$\Theta\subs{env}$ are the Bose-Einstein factors for the 
+temperature of body $s$ and the temperature of the environment)
+and $\Phi_{s \to d}(\omega)$ is the 
 (frequency-resolved, spatially-integrated) flux of power or momentum
 from body $s$ to body $d$.
 %====================================================================%
@@ -412,11 +418,11 @@ expressed as an integral over the dimensionless variable $u$:
  \qquad \big\langle Q_d\big\rangle
  = \hbar \omega_0^2
    \int_0^\infty 
-              \sum_s \, \wh \Theta_s (u) \Phi\supt{PFT}_{s\to d}(u)\,du
+              \sum_s \, \Delta \wh \Theta_s (u) \Phi\supt{PFT}_{s\to d}(u)\,du
 }
 %====================================================================%
 where $\wh \Theta_s(u)$ is a dimensionless version 
-of the Bose-Einstein factor for source body $s$,
+of the Bose-Einstein factor:
 %====================================================================%
 $$ \wh \Theta_s(u)\equiv \frac{u}{e^{\beta_s u}-1}, 
    \qquad 
@@ -434,7 +440,7 @@ by {\sc scuff-neq} to three distinct output files, as follows:
    \underbrace{
    \Bigg[
    \int_0^\infty 
-  \underbrace{\bigg\{ \hbar\omega_0^2 \sum_s \, \wh \Theta_s(u)
+  \underbrace{\bigg\{ \hbar\omega_0^2 \sum_s \, \Delta \wh \Theta_s(u)
   \underbrace{\Phi\supt{PFT}_{s\to d}(u)}_{\texttt{.SIFlux}}
              \bigg\} }_{\texttt{.SIIntegrand}}
    \,\,du \Bigg]
@@ -503,10 +509,10 @@ More specifically,
 \subsection{Visualization: Flux plots}
 
 As discussed above, the power, force, and torque quantities
-computed by {\sc scuff-neq} are traces over products matrices
+computed by {\sc scuff-neq} are traces over products of matrices
 whose individual elements describe the interactions between
 RWG basis functions.\footnote{For example, the matrix $\vb W$ 
-in equation (\ref{FSCFlux}) is the inverse of the BEM matrix 
+in equation (\ref{FSCEquivalence}a) is the inverse of the BEM matrix 
 $\vb M$; the $(\alpha,\beta$) entry of this matrix 
 ($M_{\alpha\beta})$ is the inner product of basis functions 
 $\bmc B_\alpha$ with the electromagnetic field due to basis
@@ -515,8 +521,7 @@ matrices may thus be associated with a single localized
 RWG basis function, and the matrix trace may thus be
 decomposed into a sum of contributions associated with 
 individual RWG functions. Thus the flux defined
-by (\ref{FSCQ}) and (\ref{FSCFlux}) may be written in
-the form 
+by (\ref{FSCEquivalence})may be written in the form 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
  \Phi &= \sum_{\alpha} \Phi_{\alpha}
@@ -524,28 +529,18 @@ the form
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 where $\Phi_{\alpha}$, the contribution of basis function
 $\bmc B_\alpha$ to $\Phi$, is just the $(\alpha,\alpha)$ 
-diagonal element of the matrix in (\ref{FSCFlux}).
+diagonal element of the matrix in (\ref{FSCEquivalence}b).
 
-For visualization purposes it is convenient to think of the
-quantities $\Phi_\alpha$, together with the localized supports
-of the basis functions, as defining a certain \texttt{density}
-of contributions to the quantity $\Phi$
-Although the definition
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{itemize}
- \item Basis function $\bmc B_\alpha$ is only nonvanishing on two
-       triangular panels (call them $\mc P^+_\alpha$ and
-       $\mc P^-_\alpha$). If we pretend that the contribution of
-       this basis function to $\Phi$ is somehow equidistributed 
-       then we
-
- \item Each triangle $\mc P$ receives three such contributions to
-       the density in its interior---namely, the contributions 
-        Then 
-
- \item $\sum_{p} A_p \Phi_p
-\end{itemize}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Since the supports of the basis functions are spatially localized,
+we can think of $\Phi_\alpha$ as the surface integral
+of a certain spatially-constant surface density $\rho_\Phi.$
+over the support of $\bmc B_\alpha$.
+If $A_\alpha$ is the total surface area over which
+$\mc B_\alpha$ is supported,\footnote{$A_\alpha$ will generally be
+the sum of the areas of two triangles in the surface mesh;
+for half-RWG functions it will be the area of just one
+triangle.}, then the contribution of $\bmc B_\alpha$
+to $\rho_\Phi$ is simply $Q_\alpha / A_\alpha$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

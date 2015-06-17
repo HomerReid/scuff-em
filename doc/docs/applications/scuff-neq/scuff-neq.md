@@ -101,61 +101,118 @@ over closed bounding surfaces, although this is not necessarily
 the way they are computed by [[scuff-neq]].)
 
 In general, for a geometry consisting of multiple homogeneous
-bodies, PFT quantities receive contributions from source
-fluctuations in all bodies and at all frequencies, and the
+material regions, PFT quantities receive contributions from source
+fluctuations in all regions and at all frequencies, and the
 the thermal average of a PFT quantity *Q* may be
 written in the form
 
 $$ \big\langle Q\big\rangle
-   =\int_0^\infty 
-      \left\{ \sum_s 
-       \Big[ \Theta_s \left( T_s, \omega \right)
-             -
-             \Theta_s \left( T_{\hbox{\scriptsize{env}}}, \omega
-                      \right)
-       \Big] \Phi_{s}(\omega\right) \right\} d\omega
+    = \int_0^\infty \, \sum_r \, \Theta(T_r,\omega) \Phi_r(\omega)\,d\omega
 $$
+where $T_r$ is the temperature of region $r$, $\Phi_r(\omega)$ is
+a temperature-independent *generalized flux* describing the 
+contribution of frequency-$\omega$ source fluctuations in region $r$,
+and 
+$$\Theta(T_r,\omega) = \frac{\hbar\omega}{e^{\hbar \omega/kT_r} - 1}$$
+is the Bose-Einstein factor.
+
+The sum over regions $r$ in this equation includes the
+contributions of the external environment. To isolate these
+contributions it is convenient to decompose $\langle Q \rangle$
+into a sum of two terms:
+$$ \begin{array}{rcl}
+ \big\langle Q\big\rangle
+&=&
+ \big\langle Q\big\rangle^{\small EQ} + 
+   \big\langle Q\big\rangle^{\small NEQ}
+\\[8pt]
+ \big\langle Q\big\rangle^{\small EQ}
+&\equiv&
+  \displaystyle{\int_0^\infty} \Theta(T_{\small env},\omega) 
+                \sum_r \, \Phi_r(\omega)\,d\omega 
+\\[8pt]
+ \qquad \big\langle Q\big\rangle^{\small NEQ} 
+&\equiv& 
+  \displaystyle{\int_0^\infty \sum_s }
+  \Big[ \Theta(T_s, \omega) - \Theta(T_{\small env},\omega)\Big]
+        \Phi_s(\omega)\,d\omega 
+\\[4pt]
+&=&
+  \displaystyle{\int_0^\infty \sum_s}
+  \Delta \Theta(T_s, \omega) \Phi_s(\omega)\,d\omega 
+\end{array}
+$$
+
+where 
+
+$$ \Delta \Theta(T_s, \omega) \equiv 
+   \Theta(T_s, \omega) - \Theta(T_{\small env},\omega).
+$$
+
+The quantity $\langle Q\rangle^{\small EQ}$
+is the average value of $Q$ that would obtain if 
+the temperature in all material regions were equal
+to the environment temperature $T_{\small env}$---that is,
+it is the *equilibrium* value of $\langle Q\rangle$
+at temperature $T_{\small env}$. The equilibrium value
+of PFT quantities may be computed by methods that are 
+less costly than [[scuff-neq]]. (For example,
+if $Q$ is a spatially-integrated force or torque, then 
+$\langle Q\rangle^{\small EQ}$ is just the equilibrium
+Casimir force, which is computed efficiently by 
+[scuff-cas3d][scuff-cas3D]{.SC}.
+On the other hand, if $Q$ is a spatially-integrated
+power transfer quantity, then 
+$\langle Q\big \rangle^{\small EQ}=0$ identically.)
+Thus this contribution is not computed by [[scuff-neq]].
+
+The quantity $\langle Q\rangle^{\small NEQ}$
+is the extent to which $\langle Q\rangle$
+*deviates* from its equilibrium value, and
+the sum in its definition ranges only over 
+the source bodies in the geometry, not including
+the environment contribution.
+$\langle Q \rangle^{\small NEQ}$ is the
+quantity that is computed by [[scuff-neq]].
 
 <a name="CommandLineOptions"></a>
 # 2. <span class="SC">scuff-neq</span> command-line options
 
-## Common options
+### Common options
 
 [[scuff-neq]] recognizes the following subset of the 
 [list of commonly accepted options to <span class="SC">scuff-em</span> command-line codes][CommonOptions].
 
-````
-`--geometry`
-`--TransFile`
-` `
-`--Omega`
-`--OmegaFile`
-`--OmegaQuadrature`
-`--OmegaMin`
-` `
-`--AbsTol`
-`--RelTol`
-` ` 
-`--FileBase`
-` `    
-`--Cache`
-`--ReadCache`
-`--WriteCache`
-````
+ 
+  ````
+--geometry
+--TransFile
+--Omega
+--OmegaFile
+--OmegaQuadrature
+--OmegaMin
+--AbsTol
+--RelTol
+--FileBase
+--Cache
+--ReadCache
+--WriteCache
+  ````
 {.toc}
 
-## Options requesting output quantities
+### Options requesting output quantities
 
-````
-`--PAbs`  
-`--PRad`  
-`--XForce`  
-`--YForce`  
-`--ZForce`  
-`--XTorque`  
-`--YTorque`  
-`--ZTorque`  
-````{.toc}
+  ````
+--PAbs  
+--PRad  
+--XForce  
+--YForce  
+--ZForce
+--XTorque  
+--YTorque
+--ZTorque
+  ````
+{.toc}
 
 Specifies the quantities in which you are interested:
 absorbed power (`--PAbs`), radiated power (`--PRad`),
@@ -166,19 +223,21 @@ the computation time (you can scrutinize the
 [`.log` file](#LogFile) to see how *much* additional time each
 extra output quantity takes to compute).
 
-## Option requesting visualization output
+### Option requesting visualization output
 
-+ `--PlotFlux`
+  ````
+--PlotFlux
+  ````
 {.toc}
 
-## Options specifying object temperatures
+### Options specifying object temperatures
 
-````
+  ````
 --Temperature UpperSphere 300
 --Temperature LowerSphere 100
-
 --Temperature ENVIRONMENT 100
-````
+  ````
+{.toc}
 
 > The first two options here set the temperatures
 > of the objects labeled `UpperSphere` and
@@ -193,48 +252,50 @@ extra output quantity takes to compute).
 > here interchangeably with `ENVIRONMENT`).
 >
 > Note that the temperatures of all objects, and of
-> the environment, are 0 by default. This means that,
+> the environment, are zero by default. This means that,
 > if you request a full frequency-integrated calculation
 > (which you do by omitting the `--omega` or `--omegaFile`
 > option) and you do not specify any `--temperature` 
 > options, the code will chug for a while (computing 
 > temperature-independent fluxes at various frequencies)
-> before reporting strictly zero values for all  
+> before reporting strictly zero values for all
 > quantities! This is probably not what you want.
 
-## Options controlling the computation of power, force, and torque
+### Options controlling the computation of power, force, and torque
 
-`--DSIPoints 302`
-`--DSIRadius 5.0`
-`--DSIMesh BoundingMesh.msh`
-`--DSIFarField`
-`--ForceDSI`
+  ````
+--DSIPoints 302
+--DSIRadius 5.0
+--DSIMesh BoundingMesh.msh
+--DSIFarField
+--ForceDSI
+  ````
 {.toc}
 
-## Other options
+### Other options
 
-`--OmitSelfTerms`
+  ````
+--OmitSelfTerms
+  ````
 {.toc}
-
-> This h
 
 --------------------------------------------------
 
-# <span class="SC">scuff-neq</span> output files
+# 3. <span class="SC">scuff-neq</span> output files
 
 <a name="#LogFile"></a>
-## The `.log` file 
+### The `.log` file 
 
 Like all command-line codes in the [[scuff-em]] suite,
 [[scuff-cas3d]] writes a [`.log` file][LogFiles] that you
 can monitor to keep track of your calculation's progress.
 
-## Output files for spatially-integrated PFTs: The `.SIFlux`, `.SIIntegrand`, and `.NEQPFT` files
+### Output files for spatially-integrated PFTs: The `.SIFlux`, `.SIIntegrand`, and `.NEQPFT` files
 
 If you requested the computation of any spatially-integrated
 PFTs (by setting command-line options such as `--PAbs` or `--YForce`),
-you will get back
-
+you will get back files reporting various contributions to 
+these quantities.
 To understand what is written to these files, let $Q_d$ be
 the spatially-integrated PFT on a destination body $d$,
 and write the FSC decomposition of the thermal average
@@ -245,7 +306,7 @@ $$ \big\langle Q_d\big\rangle
    \underbrace{ 
     \Bigg[ \int_0^\infty
      \underbrace{ 
-      \bigg\{ \hbar\omega_0^2 \sum_s \, \widehat \Theta_s(u)
+      \bigg\{ \hbar\omega_0^2 \sum_s \, \Delta \widehat \Theta_s(u)
        \underbrace{ \Phi_{s\to d}(u)}_{\texttt{.SIFlux}}
       \bigg\}
                 }_{\texttt{.SIIntegrand}}
@@ -253,7 +314,81 @@ $$ \big\langle Q_d\big\rangle
               }_{\texttt{.NEQPFT}}
 $$
 
-## Output files for spatially-resolved PFTs: The `.SRFlux`, `.SRIntegrand`, and `.PVMST` files
+In this equation,
+
++ $u$ is a dimensionless frequency variable: $u=\omega/\omega_0$, 
+where $\omega_0=3\cdot 10^{14}$ rad/sec. (Thus $u$ agrees numerically
+with the arguments to the `--omega` option.)
+
++ $\widehat\Theta(u)$ is a dimensionless version of the usual
+Bose-Einstein factor, defined by $\Theta(\omega)=\hbar \omega_0 \widehat\Theta(u)$.
+
++ $\Delta \widehat \Theta_s(u)=\widehat \Theta_s(u) - \widehat \Theta_{\small env}(u)$ 
+is the difference between the dimensionless Bose-Einstein factors of source body $s$ 
+and the environment.
+
++ $\Phi_{s\to d}$ is the temperature-independent generalized flux
+describing the contributions of fluctuations in source body $s$
+to the power, force, or torque on destination body $d$.
+Values of this quantity are written to the `.SIFlux` output
+file.
+
++ $\hbar\omega_0^2 \Delta \widehat \Theta_s(u) \Phi_{s\to d}(u)$ is
+the spectral density of temperature-weighted contributions
+from fluctuations in source body $s$ to the PFT on destination
+body $d$. 
+Values of this quantity are written to the `.SIIntegrand` output
+file.
+
++ Finally, $\langle Q_d \rangle$ is the total thermally-averaged
+PFT on body $d$. Values of this quantity are written to the 
+`.NEQPFT` output file.
+
+### Output files for spatially-resolved PFTs: The `.SRFlux`, `.SRIntegrand`, and `.PVMST` files
+
+If you requested the computation of spatially-resolved
+power and momentum flux (by specifying the `--EPFile` 
+command-line option), you will get back files reporting 
+various contributions to these quantities. The breakdown
+here is similar to that described above for spatially-integrated
+quantities. To understand this, let $Q(\mathbf{x})$ be
+a spatially-resolved PFT quantity (a component 
+of the Poynting vector or Maxwell stress tensor)
+at a point $\mathbf{x}$. Then the thermal average of $Q$ 
+may be written in the form
+
+$$ \big\langle Q(\mathbf{x})\big\rangle
+   = 
+   \underbrace{ 
+    \Bigg[ \int_0^\infty
+     \underbrace{ 
+      \bigg\{ \hbar\omega_0^2 \sum_s \, \Delta \widehat \Theta_s(u)
+       \underbrace{ \Phi_{s\to\mathbf x}(u)}_{\texttt{.SRFlux}}
+      \bigg\}
+                }_{\texttt{.SRIntegrand}}
+    \,\,du \Bigg]
+              }_{\texttt{.PVMST}}
+$$
+
+In this equation,
+
++ $\Phi_{s\to \mathbf{x}}$ is the temperature-independent generalized flux
+describing the contributions of fluctuations in source body $s$
+to the Poynting flux or Maxwell stress at $\mathbf{x}$.
+Values of this quantity are written to the `.SRFlux` output
+file.
+
++ $\hbar\omega_0^2 \Delta \widehat \Theta_s(u) \Phi_{s\to \mathbf{x}}(u)$ is
+the spectral density of temperature-weighted contributions
+from fluctuations in source body $s$ to the Poynting flux or 
+Maxwell stress at $\mathbf{x}$. Values of this quantity are 
+written to the `.SRIntegrand` output
+file.
+
++ Finally, $\langle Q(\mathbf{x})\rangle$ is the total thermally-averaged
+Poynting vector or Maxwell stress tensor at $\mathbf{x}$.
+Values of this quantity are written to the `.PVMST` output file.
+
 
 <a name="Examples"></a>
 # 4. Examples of calculations using <span class="SC">scuff-neq</span>
@@ -271,3 +406,4 @@ $$
 [SiO2Sphere]:   ../../examples/SiO2Spheres/SiO2Spheres.md#SingleSphere
 [SiO2Spheres]:   ../../examples/SiO2Spheres/SiO2Spheres.md#TwoSpheres
 [TipSubstrate]: ../../examples/TipSubstrate/TipSubstrate.md
+[CommonOptions]: ../GeneralReference.md#CommonOptions

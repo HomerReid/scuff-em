@@ -1,0 +1,6 @@
+./docs/applications/GeneralReference.md:88:> but used for codes ([scuff-cas3d][scuff-cas3d]{.SC} and
+./docs/applications/GeneralReference.md:128:> the frequency-resolved output file written by [[scuff-cas3d]]
+./docs/applications/GeneralReference.md:203:[scuff-cas3d]: scuff-cas3d/scuff-cas3d.md
+./docs/reference/Materials.md:181:(in [[scuff-cas3d]], [[scuff-caspol]], or [[scuff-scatter]] with
+./docs/reference/Transformations.md:19:[<span class="SmallCaps">scuff-cas3d</span>](../applications/scuff-cas3d/scuff-cas3d.md) 
+./docs/reference/Transformations.md:71:[<span class="SmallCaps">scuff-cas3d</span>](../applications/scuff-cas3d) 

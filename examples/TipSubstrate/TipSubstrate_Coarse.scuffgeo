@@ -1,0 +1,17 @@
+MATERIAL SILICON
+    epsf = 1.035;      # \epsilon_infinity
+    eps0 = 11.87;      # \epsilon_0 
+    wp = 6.6e15;       # \plasmon frequency
+    Eps(w) = epsf + (eps0-epsf)/(1-(w/wp)^2);
+ENDMATERIAL
+
+OBJECT Tip
+	MESHFILE Paraboloid_426.msh
+	MATERIAL SIO2_Krueger
+	DISPLACED 0 0 1.0
+ENDOBJECT
+
+OBJECT Substrate
+	MESHFILE Cylinder_519.msh
+	MATERIAL SIO2_Krueger
+ENDOBJECT

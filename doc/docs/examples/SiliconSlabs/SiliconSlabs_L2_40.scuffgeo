@@ -19,12 +19,12 @@ REGION Gap       MATERIAL Vacuum
 REGION LowerSlab MATERIAL Silicon
 
 SURFACE UpperSurface
-	MESHFILE Square_L2_96.msh
+	MESHFILE
 	REGIONS UpperSlab Gap
 	DISPLACED 0 0 0.5
 ENDOBJECT
 
 SURFACE LowerSurface
-	MESHFILE Square_L2_96.msh
+	MESHFILE
 	REGIONS LowerSlab Gap
 ENDOBJECT

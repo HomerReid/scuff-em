@@ -389,9 +389,9 @@ void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
                SC3D->AbsTol, SC3D->RelTol, 
                ERROR_INDIVIDUAL, EFT, Error);
    }
-  else // BZQMethod == QMETHOD_CLIFF 
+  else // BZQMethod == QMETHOD_CLIFF
    {
-     char ICFLogFile[100]; 
+     char ICFLogFile[100];
      snprintf(ICFLogFile, 100,"%s.urIntegralLog",SC3D->FileBase);
      double uMax = (LDim==1) ? 0.5 : 0.5*sqrt(2.0);
      IntegrateCliffFunction(urIntegrand, (void *)SC3D, SC3D->NTNQ,
@@ -404,6 +404,17 @@ void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   double PreFactor = (LDim==2) ? 4.0 : 2.0;
+  if (LDim==1)
+   { double UnitCellVolume = G->LBasis[0][0];
+     PreFactor = 2.0 / UnitCellVolume;
+   }
+  else
+   { if ( G->LBasis[0][1]!=0.0 || G->LBasis[1][0]!=0.0 )
+      ErrExit("non-square lattices not yet supported");
+     double UnitCellVolume = G->LBasis[0][0] * G->LBasis[1][1];
+     PreFactor = 4.0 / UnitCellVolume;
+   };
+  
   for(int ntnq=0; ntnq<SC3D->NTNQ; ntnq++)
    { 
      EFT[ntnq] *= PreFactor;

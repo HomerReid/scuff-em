@@ -1,70 +1,3 @@
-<h1>Casimir forces between infinitely extended silicon beams (1D periodicity)</h1>
-
-In this example, we exploit [[scuff-em]]'s 
-support for 1D periodic geometries
-to compute the equilibrium Casimir force per unit length 
-between infinitely extended silicon beams of 
-rounded rectangular cross section.
-The files for this example may be found in the
-`share/scuff-em/examples/SiliconBeams` subdirectory
-of your [[scuff-em]] installation.
-
---------------------------------------------------
-
-## [[gmsh]] geometry file for unit-cell geometry 
-
-The [[gmsh]] geometry file 
-[`RoundedBeamUnitCell.geo`][RoundedBeamUnitCellGeo]
-describes the portion of the surface of a single
-beam that lies within the *unit cell,*
-i.e. the cell that is infinitely periodically
-replicated to yield the full geometry.
-To produce a discretized surface-mesh
-representation of this geometry, we run it through 
-[[gmsh]]:
-
-````bash
-% gmsh -2 RoundedBeamUnitCell.geo
-````
-
-
-This produces the file `RoundedBeamUnitCell.msh`, which
-I rename to `RoundedBeamUnitCell_192.msh` because 192
-is the number of interior edges (this information may be 
-found, for example, by running 
-`scuff-analyze --mesh RoundedBeamUnitCell.msh`).
-You can open the `.msh` file in [[gmsh]] to visualize
-the unit-cell mesh:
-
-````bash
-% gmsh RoundedBeamUnitCell_192.msh
-````
-
-
-![Unit cell mesh picture](RoundedBeamUnitCell_192.png)
-
-Note the following:
-
- * For 1D periodic geometries in [[scuff-em]], the direction
-   of infinite extent must be the *x* direction.
-
- * Only the sidewall of the cylinder is meshed;
-   the endcaps must not be meshed.
-
- * For surfaces that straddle the unit-cell boundaries
-   (as is the case here), each triangle edge that lies
-   on the unit-cell boundary must have an identical
-   image edge on the opposite side of the unit cell.
-   An easy way to achieve this is to use *extrusions*
-   in [[gmsh]], as in the `.geo` file above.
-
- * In this case the unit cell is 1 \(\mu\)m long.
-   (More generally, the unit cell could have any 
-   length you like.)
-
---------------------------------------------------
-
-## [[scuff-em]] geometry file 
 
 The [[scuff-em]] 
 [geometry file][scuffEMGeometries] 
@@ -212,19 +145,12 @@ integral over both imaginary frequencies $\xi$ and Bloch
 wavenumbers $k$:
 $$ \mathcal F 
   = \int_0^\infty d\xi
-           \underbrace{\left [ \frac{1}{V_{\scriptsize{BZ}}}
-                                \int_{V_{\scriptsize{BZ}}}
-                                f(\xi, k) dk \,
-                       \right]
-                      }_{\equiv F(\xi)}
+           \underbrace{\int_0^\Gamma dk\, f(\xi, k)}_{\equiv F(\xi)}
 $$
-where the $k$ integral is over the Brillouin zone (BZ)
-and $V_{\scriptsize{BZ}}$ is the one-dimensional volume 
-of the BZ. For a 1D periodic geometry, the Brillouin 
-zone is the 1D interval $0\le k \le \frac{2\pi}{L}$,
-and its one-dimensional volume (its length) is $\frac{2\pi}{L}$,
-where $L=1\, \mu$m is the length of the real-space unit cell.
-,
+where $\Gamma=2\pi/L$ is the length of the 1D Brillouin
+zone; here $L=1\, \mu$m is the length of the real-space 
+unit cell.
+
 Because the full calculation can be somewhat time-consuming,
 it's often useful to run a quick *single-frequency*
 calculation just to make sure things are making sense
@@ -232,13 +158,12 @@ before launching the full run. We do this by
 specifying the `--Xi` command-line option to
 [[scuff-cas3d]], which requests a calculation
 of just the quantity $F(\xi)$ in the above
-equation at a single imaginary frequency $\xi$.
-(Note that, for our 1D periodic geometry,
-this single-frequency calculation still entails a 
-wavenumber integration over the 1D Brillouin zone.)
+equation (note that, for our 1D periodic geometry, 
+this will still entail a wavenumber integration over 
+the 1D Brillouin zone.)
 
 ````bash
- % scuff-cas3d --geometry SiliconBeams_192.scuffgeo --TransFile Beams.trans --zforce --xi 0.7
+ % scuff-cas3D --geometry SiliconBeams_192.scuffgeo --TransFile Beams.trans --zforce --xi 0.7
 ````
 
 This produces (among other files) files called 
@@ -253,32 +178,6 @@ values of the quantity $f(\xi,k)$ at the requested
 value of $\xi$ and at each $k$ point sampled by 
 the built-in numerical integrator.
 
-The file `SiliconBeams_192.byXi` looks like this:
-
-````bash
-# scuff-cas3D run on superhr1 at 06/07/15::01:01:38
-# data file columns: 
-#1: transform tag
-#2: imaginary angular frequency
-#3: z-force Xi integrand
-#4: z-force error due to numerical Brillouin-zone integration 
-1.00 7.000000e-01 1.53365587e-02 1.10343992e-05
-1.50 7.000000e-01 3.27174955e-03 6.54894735e-06
-...
-5.00 7.000000e-01 2.84878401e-06 4.63609357e-08
-````
-
-As the file header says, the first column here is the
-transform tag (the surface--surface separation), 
-the second column is the imaginary angular frequency 
-in units of $\xi_0=3\cdot 10^{14}$ rad/sec, and the
-third column is the Casimir force per unit length 
-per unit frequency (in units of 
- $\hbar c/(\omega_0 L_0^3)=31.6 (\text{fN/micron})/\omega_0$
-)
-where $L_0=1\mu\text{m}$ and 
-where $\text{fN}$=femtoNewtons.
-
 --------------------------------------------------
 
 ## The full run
@@ -286,30 +185,9 @@ where $\text{fN}$=femtoNewtons.
 Now just launch the full run:
 
 ````bash
- % scuff-cas3d --geometry SiliconBeams_192.scuffgeo --TransFile Beams.trans --zforce
+ % scuff-cas3D --geometry SiliconBeams_192.scuffgeo --TransFile Beams.trans --zforce
 ````
 
 (This is the same command line as before, just without the 
 ``--Xi`` option.) 
 
-After some computation, this produces the output file 
-`SiliconBeams_192.out`. You can plot the force (per unit length)
-versus surface--surface separation using e.g. [[gnuplot]]:
-
-````bash
-% gnuplot
-gnuplot> set xlabel 'Surface--surface separation (microns)'
-gnuplot> set ylabel 'Casimir force per unit length (31.6 fN/micron)'
-gnuplot> set logscale y
-gnuplot> plot 'SiliconBeams_192.out' u 1:3 w lp pt 7 ps 1.5
-````
-
-![SiliconBeamData](SiliconBeamData.png)
-
---------------------------------------------------
-
-[scuffEMGeometries]: reference/Geometries
-[scuffEMTransformations]: reference/Transformations
-[RoundedBeamUnitCellGeo]: RoundedBeamUnitCell.geo
-[SiliconBeamsScuffgeo]: SiliconBeams_192.scuffgeo
-[id2]: /path/to/image "alt text"

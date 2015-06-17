@@ -623,23 +623,13 @@ double GetTriangleArea(double *V1, double *V2, double *V3)
 /*                                                             */
 /*  Q = \sum_{edges e} Q_e                                     */
 /*                                                             */
-/* where Q_e is the contribution of edge #e. Rewrite this as   */
-/* a sum over vertices:                                        */
-/*                                                             */
-/*  Q = \sum_{vertices v} (1/2)\sum_{v \in e }Q_e              */
-/*    = \sum_{vertices v} Q_v                                  */
-/*                                                             */
-/* where the second sum runs over only the edges that include  */
-/* vertex v, and where the factor of 1/2 corrects for the fact */
-/* that each edge includes two vertices (so its contribution   */
-/* Q_e appears twice in the sum).                              */
-/*                                                             */
-/* Then the quantity to be associated to vertex v is           */
-/*  Q_v = (1/2) \sum_{v \in e} Q_e                             */
-/*                                                             */
-/* and the *density* of the quantity in the vicinity of vertex */
-/* v is Q_v / A_v where A_v is the area of the region lying    */
-/* closer to vertex v than to any other vertex.                */
+/* where Q_e is the contribution of edge #e. The RWG basis     */
+/* function associated with edge #e is supported on one or two */
+/* triangles; letting A_e be the total area of those triangles,*/
+/* and imagining that the contribution Q_e is evenly           */
+/* distributed over that area, we obtain an effective *surface */
+/* density* \rho_e = Q_e/A_e of the quantity Q associated with */
+/* the edge.                                                   */
 /***************************************************************/
 void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
                                    const char *FileName,
@@ -690,17 +680,16 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         double *PCentroid = Panels[E->iPPanel]->Centroid;
         double *MCentroid
          = (E->iMPanel==-1) ? E->Centroid : Panels[E->iMPanel]->Centroid;
+
+        double TotalArea = Panels[E->iPPanel]->Area;
+        if (E->iMPanel!=-1) TotalArea+=Panels[E->iMPanel]->Area;
    
-        ValuePerVertex[iV1] += Values[ne];
-        ValuePerVertex[iV2] += Values[ne];
-        AreaPerVertex[iV1]  += GetTriangleArea(PCentroid, MCentroid, V1);
-        AreaPerVertex[iV2]  += GetTriangleArea(PCentroid, MCentroid, V2);
-	NumPerVertex[iV1]    = 2;
-        NumPerVertex[iV2]    = 2;
-/* 20150522
-         NumPerVertex[iV1]  += 1;
-         NumPerVertex[iV2]  += 1;
-*/
+        ValuePerVertex[iV1] += Values[ne] / TotalArea;
+        ValuePerVertex[iV2] += Values[ne] / TotalArea;
+        AreaPerVertex[iV1]   = 1.0;
+        AreaPerVertex[iV2]   = 1.0;
+	NumPerVertex[iV1]   += 1;
+        NumPerVertex[iV2]   += 1;
       };
    }
   else
