@@ -124,46 +124,45 @@ $$ \mathcal{F}
 $$
 
 (Expressions for the Casimir energy and torque are similar).
-The Bloch vector $\vb k$ is a one-component vector
+The Bloch vector $\mathbf k$ is a one-component vector
 for 1D-extended geometries (such as 
 [infinite-length cylinders or beams][SiliconBeams],
 and a two-component vector
 for 2D-extended geometries (such as 
 [infinite-area slabs][SiliconSlabs]).
-The $\vb k$ integral here ranges over the *Brillouin
+The $\mathbf k$ integral here ranges over the *Brillouin
 zone* (BZ)
 
 [[scuff-cas3d]] uses the FSC algorithm to compute
-values of the integrand $f(\xi, \vb k)$ at 
-individual $(\xi, \vb k)$ points.
+values of the integrand $f(\xi, \mathbf k)$ at 
+individual $(\xi, \mathbf k)$ points.
 
 The FSC algorithm implemented by [[scuff-cas3d]]
 is an efficient technique for computing the quantity
-$ f(\xi, \vb k)$---that is, the contributions of
+$ f(\xi, \mathbf k)$---that is, the contributions of
 individual (imaginary frequency, wavevector) pairs
-$(\xi,\vb k)$---to the total Casimir quantities.
-The question of *which* ($\xi, \vb k)$ points are 
+$(\xi,\mathbf k)$---to the total Casimir quantities.
+The question of *which* ($\xi, \mathbf k)$ points are 
 sampled depends on the command-line options you specify:
 
 + If you use the `--XikBlochFile` command-line option
-to specify a list of $(\xi, \vb k)$ points, then 
+to specify a list of $(\xi, \mathbf k)$ points, then 
 [[scuff-cas3d]] will compute and report just the 
-integrand $f(\xi, \vb k)$ at those
-values. 
+integrand $f(\xi, \mathbf k)$ at those values. 
 In this case, the code will produce a `.byXikBloch` file,
 but no other output files.
 
 + If you use the `--Xi` or `--XiFile` command-line options to
 specify one or more particular values of $\xi$ (but not
-specific values of $\vb k$$), then [[scuff-cas3d]] will
+specific values of $\mathbf k$), then [[scuff-cas3d]] will
 numerically evaluate the Brillouin-zone integral over 
-$\vb k$ and will report the resulting value of the 
+$\mathbf k$ and will report the resulting value of the 
 quantity $F(\xi)$ at each $\xi$ value. 
 In this case, the code will produce two output files
 **(1)** a `.byXi` file reporting values of $F(\xi)$ at the 
 $\xi$ points you specified, and **(2)** a `.byXikBloch`
-file reporting values of the $\vb k$ integrand $f(\xi, \vb k)$
-at each of the $\vb k$ points sampled by the 
+file reporting values of the $\mathbf k$ integrand $f(\xi, \mathbf k)$
+at each of the $\mathbf k$ points sampled by the 
 built-in integrator.
 
 + If you use the `--temperature` command-line option to specify
@@ -176,7 +175,7 @@ Casimir quantities,
 **(2)** a `.byXi` file reporting values of the function
 $F(\xi)$ at each Matsubara frequency; and 
 **(3)** a `.byXikBloch`
-file reporting values of the $\vb k$ integrand $f(\xi, \vb k)$
+file reporting values of the $\mathbf k$ integrand $f(\xi, \mathbf k)$
 at each point sampled by the built-in integrator.
 
 + If you don't specify any of the above, then [[scuff-cas3d]]
@@ -192,41 +191,40 @@ Matsubara frequencies.
 <a name="CommandLineOptions"></a>
 # 2. <span class="SC">scuff-cas3d</span> command-line options
 
-## Common options
+### Common options
 
 [[scuff-cas3d]] recognizes the following subset of the 
 [list of commonly accepted options to <span class="SC">scuff-em</span> command-line codes][CommonOptions].
 
-+ `--geometry`
-+ `--TransFile`
-+ ` `
-+ `--Xi`
-+ `--XiFile`
-+ `--XikBlochFile`
-+ `--XiQuadrature`
-+ `--XiMin`
-+ ` ` 
-+ `--BZQuadrature`
-+ `--BZSymmetry`
-+ `--MaxBZSamples`
-+ ` `
-+ `--AbsTol`
-+ `--RelTol`
-+ ` ` 
-+ `--FileBase`
-+ ` `    
-+ `--Cache`
-+ `--ReadCache`
-+ `--WriteCache`
+  ````
+--geometry
+--TransFile
+--Xi
+--XiFile
+--XikBlochFile
+--XiQuadrature
+--XiMin
+--BZQuadrature
+--BZSymmetry
+--MaxBZSamples
+--AbsTol
+--RelTol
+--FileBase
+--Cache
+--ReadCache
+--WriteCache
+  ````
 {.toc}
 
-## Options requesting Casimir output quantities
+### Options requesting Casimir output quantities
 
-`--Energy`
-`--XForce`
-`--YForce`
-`--ZForce`
-`--Torque ax ay az`
+  ````
+--Energy
+--XForce
+--YForce
+--ZForce
+--Torque ax ay az
+  ````
 {.toc}
 
 Specifies the Casimir quantities in which you are
@@ -246,9 +244,11 @@ consisting of just two objects or surfaces, the force/torque
 on the second object/surface is just the negative of the 
 force/torque on the first. 
 
-## Options specifying temperature
+### Options specifying temperature
 
-`--Temperature 300`
+  ````
+--Temperature 300
+  ````
 {.toc}
 
 Sets the simulation temperature **in units of Kelvin,**
@@ -270,35 +270,35 @@ the `--geometry` option.
 
 For all data output files (`.out`, `.byXi`,
 `.byXikBloch`), the output file contains a
-*header* 
+*header* (a sequence of text lines starting with`#`)
+explaining how to interpret the contents of the file.
 
-## The `.log` file
+### The `.log` file
 
 Like all command-line codes in the [[scuff-em]] suite,
 [[scuff-cas3d]] writes a [`.log` file][LogFiles] that you 
 can monitor to keep track of your calculation's progress.
 
-## The `.out` file
+### The `.out` file
 
 If you requested the calculation of
 full frequency-integrated or Matsubara-summed
 Casimir quantities, these will be written to 
 the `.out` file.
 
-## The `.byXi` file
+### The `.byXi` file
 
 For any problem involving compact geometries,
 and for any problem involving extended geometries
 in which you requested Brillouin-zone integrations,
-the contributions of 
-individual imaginary frequencies $\xi$ will be 
-written to a file named `.byXi`.
+the contributions of individual imaginary frequencies 
+$\xi$ will be written to a file named `.byXi`.
 
-## The `.byXikBloch` file
+### The `.byXikBloch` file
 
 For any problem involving extended geometries,
 the contributions of individual (frequency, Bloch vector)
-points $(\xi,\vb k)$ will be written to a file
+points $(\xi,\mathbf k)$ will be written to a file
 named `FILEBASE.byXikBloch`.
 
 <a name="Examples"></a>
