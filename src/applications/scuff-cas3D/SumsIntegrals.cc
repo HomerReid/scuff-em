@@ -404,6 +404,7 @@ void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   double PreFactor = (LDim==2) ? 4.0 : 2.0;
+  RWGGeometry *G=SC3D->G;
   if (LDim==1)
    { double UnitCellVolume = G->LBasis[0][0];
      PreFactor = 2.0 / UnitCellVolume;
