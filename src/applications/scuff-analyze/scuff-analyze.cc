@@ -386,10 +386,28 @@ void WriteGeometryLabels(RWGGeometry *G)
 int main(int argc, char *argv[])
 {
   /***************************************************************/
-  /* process options *********************************************/
+  /* convenience shortcuts that allow the code to be invoked as  */
+  /*  % scuff-analyze File.msh                                   */
+  /* or                                                          */
+  /*  % scuff-analyze File.scuffgeo                              */
   /***************************************************************/
   char *GeoFile=0;
   char *MeshFile=0;
+  if (argc>=2)
+   { char *Ext = GetFileExtension(argv[1]);
+     if (Ext && !strcasecmp(Ext,"scuffgeo"))
+      { GeoFile=strdup(argv[1]); 
+        argv[1]=0; 
+      }
+     else if (Ext && !strcasecmp(Ext,"msh"))
+      { MeshFile=strdup(argv[1]); 
+        argv[1]=0; 
+      };
+   };
+
+  /***************************************************************/
+  /* process options *********************************************/
+  /***************************************************************/
   int PhysicalRegion=-1;
   char *TransFile=0;
   int WriteGPFiles=0;

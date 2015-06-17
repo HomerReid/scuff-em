@@ -227,14 +227,28 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray)
    return;
 
   /* make sure the first thing on the command line is an argument */
-  if ( strncmp(argv[1],"--",2) )
+  int nargFirst=1;
+  while ( argv[nargFirst]==0 )
+   { nargFirst++;
+     if (nargFirst==argc) return; // no non-NULL arguments
+   };
+  if ( strncmp(argv[nargFirst],"--",2) )
    OSUsage(argv[0], OSArray,"unknown option %s",argv[1]);
   
   int nt, narg;
-  for(narg=1; narg<argc; narg++)
+  for(narg=nargFirst; narg<argc; narg++)
    { 
      /*--------------------------------------------------------------*/
+     /*- this line allows ProcessOptions() to be preceded by other   */
+     /*- command-line argument handlers, which indicate that they    */
+     /*- have already processed an argument by setting the           */
+     /*- corresponding slot(s) in the argv[] vector to NULL          */
      /*--------------------------------------------------------------*/
+     if (argv[narg]==0) continue;
+
+     /*--------------------------------------------------------------*/
+     /*- collect all successive arguments that do not begin with     */
+     /*- '--' as parameters for the current option                   */
      /*--------------------------------------------------------------*/
      for(nt=NumTokens=0; nt<MAXTOK && (narg+nt+1)<argc; nt++)
       { if ( !strncmp(argv[narg+nt+1],"--",2) )
