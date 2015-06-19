@@ -1210,8 +1210,8 @@ HMatrix *Get_ehMatrix(RWGGeometry *G, int SurfaceIndex,
 
        int nc = nx*NET + Offset + ne;
        for(int Mu=0; Mu<3; Mu++)
-        { ehMatrix->SetEntry( 0+Mu, nc, e[Mu]);
-          ehMatrix->SetEntry( 3+Mu, nc, h[Mu]);
+        { ehMatrix->SetEntry( 0+Mu, nc, Sign*e[Mu]);
+          ehMatrix->SetEntry( 3+Mu, nc, Sign*h[Mu]);
         };
 
    }; //multithreaded loop

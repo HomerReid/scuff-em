@@ -386,8 +386,6 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 /***************************************************************/
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
-  SetLogFileName("scuff-neq.log");
-
   if ( CacheRead(SNEQD, Omega, kBloch, Flux) )
    return;
 
