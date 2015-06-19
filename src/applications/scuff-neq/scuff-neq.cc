@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
      {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField,   0,          "retain only far-field contributions to DSIPFT"},
 /**/
      {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,          "omit the calculation of self terms"},
+     {"OmitZeroTemperatureFlux",  PA_BOOL,    0, 1,   (void *)&OmitZeroTemperatureFlux, 0, "omit flux contributions of zero-temperature regions"},
      {"ForceDSI",       PA_BOOL,    0, 1,       (void *)&ForceDSI,   0,             "use DSIPFT instead of OPFT/EPPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
