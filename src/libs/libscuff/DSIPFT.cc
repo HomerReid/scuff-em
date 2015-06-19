@@ -1107,11 +1107,11 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
 /* The cartesian coordinates of the evaluation points are the  */
 /* first three columns of XMatrix.                             */
 /*                                                             */
-/* The rows of FSV matrix are indexed by pairs                 */
+/* The columns of ehMatrix are indexed by pairs                */
 /*                                                             */
 /*  (evaluation point index, basis function index)             */
 /*                                                             */
-/* More specifically, if nx is the index of an evaluation point*/
+/* More specifically, if nx is the index of an evaluation pt   */
 /* and ne is the index of an internal edge in an RWGSurface,   */
 /* then the components of the reduced fields at point #nx due  */
 /* to basis function #ne populated with unit strength are in   */
@@ -1233,19 +1233,20 @@ void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
   /***************************************************************/
   /* fetch reduced fields for this cubature point                */
   /***************************************************************/
-  cdouble eAlpha[3], hAlpha[3], eBeta[3], hBeta[3];
-  int Offseta = G->EdgeIndexOffset[nsa];
-  int Offsetb = G->EdgeIndexOffset[nsb];
-  int NET     = G->TotalEdges;
-  ehMatrix->GetEntries("0:2", nx*NET + Offseta + nea, eAlpha);
-  ehMatrix->GetEntries("3:5", nx*NET + Offseta + nea, hAlpha);
-  ehMatrix->GetEntries("0:2", nx*NET + Offsetb + neb, eBeta);
-  ehMatrix->GetEntries("3:5", nx*NET + Offsetb + neb, hBeta);
+  int Offseta     = G->EdgeIndexOffset[nsa];
+  int Offsetb     = G->EdgeIndexOffset[nsb];
+  int NET         = G->TotalEdges;
+  int ncAlpha     = nx*NET+Offseta+nea;
+  cdouble *eAlpha = ehMatrix->ZM + 6*ncAlpha;
+  cdouble *hAlpha = eAlpha+3;
+  int ncBeta      = nx*NET+Offsetb+neb;
+  cdouble *eBeta  = ehMatrix->ZM + 6*ncBeta;
+  cdouble *hBeta  = eBeta+3;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double EpsEE[3][3], MuHH[3][3], EH[3][3];
+  double EpsEE[3][3], MuHH[3][3], EH[3][3], HE[3][3];
   cdouble k    = sqrt(EpsRel*MuRel)*Omega;
   cdouble ZRel = sqrt(MuRel/EpsRel);
   cdouble  IKZ = II*k*ZVAC*ZRel;
@@ -1272,6 +1273,12 @@ void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
                       -NK               *conj(hAlpha[m])*hBeta[n]
                       -NN          *IKOZ*conj(hAlpha[m])*eBeta[n]
                      );
+
+      HE[m][n] = real( KK           *IKZ*conj(hAlpha[m])*eBeta[n]
+                      -KN               *conj(hAlpha[m])*hBeta[n]
+                      +NK*conj(IKOZ)*IKZ*conj(eAlpha[m])*eBeta[n]
+                      -NN*conj(IKOZ)    *conj(eAlpha[m])*hBeta[n]
+                     );
     };
   double Trace  =   EpsEE[0][0] + EpsEE[1][1] + EpsEE[2][2]
                   +  MuHH[0][0] +  MuHH[1][1] +  MuHH[2][2];
@@ -1280,15 +1287,17 @@ void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
   /***************************************************************/
   /***************************************************************/
   // P (poynting flux)
-  SRFlux[0] = 0.5*(EH[1][2] - EH[2][1]);
-  SRFlux[1] = 0.5*(EH[2][0] - EH[0][2]);
-  SRFlux[2] = 0.5*(EH[0][1] - EH[1][0]);
+  SRFlux[0] = 0.25*(EH[1][2] - EH[2][1] - HE[1][2] + HE[2][1]);
+  SRFlux[1] = 0.25*(EH[2][0] - EH[0][2] - HE[2][0] + HE[0][2]);
+  SRFlux[2] = 0.25*(EH[0][1] - EH[1][0] - HE[0][1] + HE[1][0]);
 
   // T (maxwell stress tensor)
   for(int Mu=0; Mu<3; Mu++)
    for(int Nu=0; Nu<3; Nu++)
     { 
-      double TMuNu = 0.5*( EpsEE[Mu][Nu] + MuHH[Mu][Nu] );
+      double TMuNu = 0.25*(  EpsEE[Mu][Nu] + MuHH[Mu][Nu]
+                           + EpsEE[Nu][Mu] + MuHH[Nu][Mu]
+                          );
       if (Mu==Nu) TMuNu -= 0.25*Trace;
       SRFlux[ 3 + 3*Mu + Nu ] = TMuNu;
     };
@@ -1361,7 +1370,7 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 #endif
   double *DeltaSRFlux=(double *)mallocEC(NumThreads*NX*NUMSRFLUX*sizeof(double));
    
-  bool UseSymmetry=false;
+  bool UseSymmetry=true;
 
   /***************************************************************/
   /*- loop over all basis functions and all pairs of eval points */
@@ -1377,6 +1386,9 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
    for(int neta=0; neta<NET; neta++)
     for(int netb=0; netb<NET; netb++)
      { 
+       if (UseSymmetry && netb<neta)
+        continue;
+
        if (neta==0 && netb==0)
         LogPercent(nx,NX,100);
 
@@ -1403,9 +1415,6 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
        if (    (Sb->RegionIndices[0] != RegionIndex )
             && (Sb->RegionIndices[1] != RegionIndex )
           ) continue;
-
-       if ( UseSymmetry && (nsb<nsa || (nsa==nsb && neb<nea) ) )
-        continue;
 
        cdouble EpsRel=RegionEpsMu[2*RegionIndex+0];
        cdouble  MuRel=RegionEpsMu[2*RegionIndex+1];
@@ -1455,8 +1464,8 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 #ifdef USE_OPENMP
        nt=omp_get_thread_num();
 #endif
-       double Weight = (nsa==nsb && neb==nea) ? 1.0 : 2.0;
-       if (!UseSymmetry) Weight=1.0;
+       double Weight = (neta==netb) ? 1.0 : 2.0;
+       if (!UseSymmetry) Weight=1;
 
        for(int nq=0; nq<NUMSRFLUX; nq++)
         DeltaSRFlux[ GetSRFluxIndex(nt, nx, nq, NX) ] += Weight*SRFlux[nq];

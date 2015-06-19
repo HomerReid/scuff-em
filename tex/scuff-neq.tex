@@ -1353,8 +1353,37 @@ $$ \vb e_a(\vb x)
    =
    -ik\int_{\sup \vb b_a} \vb C(k; \vb x, \vb x^\prime) 
                        \cdot \vb b_a (\vb x^\prime) 
-   \, d\vb x^\prime
+   \, d\vb x^\prime.
 $$
+%%====================================================================%
+Power flux at $\vb x$:
+%%====================================================================%
+\begin{align*}
+ P_i(\vb x) 
+&= 
+ \frac{1}{2}\epsilon_{ijk}\text{Re }\Big[ E^*_j(\vb x) H_k(\vb x) \Big]
+\\
+&= 
+ \frac{1}{4}\epsilon_{ijk}
+ \Big[ E^*_j(\vb x) H_k(\vb x) + E_j(\vb x) H^*_k(\vb x) \Big]
+\\
+&=
+ \frac{1}{4}\epsilon_{ijk}
+ \Big[ E^*_j(\vb x) H_k(\vb x) - H^*_j(\vb x) E_k(\vb x) \Big]
+\\
+&=
+ \frac{1}{4}\epsilon_{ijk}\sum_{\alpha\beta}
+  \bigg\{ 
+   \Big( k_\alpha \cdot ikZ \vb e_\alpha - n_\alpha \vb h_\alpha\Big)^*_j
+   \Big( k_\beta \vb h_\beta             + n_\beta \cdot \frac{ik}{Z} \vb h_\beta\Big)_k
+\\
+&\hspace{0.7in}
+  -
+   \Big( k_\alpha \vb h_\alpha           + n_\alpha \cdot \frac{ik}{Z} \vb h_\alpha\Big)^*_j
+   \Big( k_\beta \cdot ikZ \vb e_\alpha - n_\alpha \vb h_\alpha\Big)_k
+  \bigg\}
+\end{align*}
+
 %%====================================================================%
 The contributions of a single pair of basis functions
 $\vb b_a, \vb b_b$ to the power and momentum flux
