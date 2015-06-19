@@ -249,8 +249,6 @@ int main(int argc, char *argv[])
   if ( OmegaKPoints || OmegaPoints ) 
    { if ( nOmegaMin>0 || nOmegaMax>0 )
       ErrExit("--OmegaMin/--OmegaMax options may not be used with --Omega/--OmegaFile");
-     if ( nTempStrings>0 )
-      ErrExit("--Temperature option may not be used with --Omega/--OmegaFile");
      Log("Computing spectral density at %i frequencies.",NumFreqs);
    }
   else
