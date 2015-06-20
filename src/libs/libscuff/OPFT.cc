@@ -75,18 +75,6 @@ namespace scuff {
 
 #define NUMOVERLAPS 20
 
-// Note: the prefactor of (10/3) in the force and torque factors 
-// below arises as follows: the force quantity that we would compute
-// without it has units of 
-// 1 watt / c = (1 joule/s) * (10-8 s/m) / 3
-//            = (10/3) nanoNewton
-// so we want to multiply the number we would naively 
-// compute by 10/3 to get a force in nanonewtons.
-// similarly for the torque: multiplying by 10/3 gives the torque
-// in nanoNewtons*microns (assuming the incident field was 
-// measured in units of volts / microns)
-#define TENTHIRDS 3.33333333333333333333333
-
 /***************************************************************/
 /* this is a helper function for GetOverlaps that computes the */
 /* contributions of a single panel to the overlap integrals.   */
@@ -406,13 +394,13 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
        /*--------------------------------------------------------------*/
        if (ByEdge) 
         {  
-          if (ByEdge[SCUFF_PABS])   ByEdge[SCUFF_PABS][nea]     += dPAbs;
-          if (ByEdge[SCUFF_XFORCE]) ByEdge[SCUFF_XFORCE][nea]   += dF[0];
-          if (ByEdge[SCUFF_YFORCE]) ByEdge[SCUFF_YFORCE][nea]   += dF[1];
-          if (ByEdge[SCUFF_ZFORCE]) ByEdge[SCUFF_ZFORCE][nea]   += dF[2];
-          if (ByEdge[SCUFF_XTORQUE]) ByEdge[SCUFF_XTORQUE][nea] += dTau[0];
-          if (ByEdge[SCUFF_YTORQUE]) ByEdge[SCUFF_YTORQUE][nea] += dTau[1];
-          if (ByEdge[SCUFF_ZTORQUE]) ByEdge[SCUFF_ZTORQUE][nea] += dTau[2];
+          if (ByEdge[PFT_PABS])   ByEdge[PFT_PABS][nea]     += dPAbs;
+          if (ByEdge[PFT_XFORCE]) ByEdge[PFT_XFORCE][nea]   += dF[0];
+          if (ByEdge[PFT_YFORCE]) ByEdge[PFT_YFORCE][nea]   += dF[1];
+          if (ByEdge[PFT_ZFORCE]) ByEdge[PFT_ZFORCE][nea]   += dF[2];
+          if (ByEdge[PFT_XTORQUE]) ByEdge[PFT_XTORQUE][nea] += dTau[0];
+          if (ByEdge[PFT_YTORQUE]) ByEdge[PFT_YTORQUE][nea] += dTau[1];
+          if (ByEdge[PFT_ZTORQUE]) ByEdge[PFT_ZTORQUE][nea] += dTau[2];
         };
 
       } // for (int nneb=... 
@@ -422,14 +410,14 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  PFT[SCUFF_PABS]    = PAbs;
-  PFT[SCUFF_PSCAT]   = 0.0;
-  PFT[SCUFF_XFORCE]  = Fx;
-  PFT[SCUFF_YFORCE]  = Fy;
-  PFT[SCUFF_ZFORCE]  = Fz;
-  PFT[SCUFF_XTORQUE] = Taux;
-  PFT[SCUFF_YTORQUE] = Tauy;
-  PFT[SCUFF_ZTORQUE] = Tauz;
+  PFT[PFT_PABS]    = PAbs;
+  PFT[PFT_PSCAT]   = 0.0;
+  PFT[PFT_XFORCE]  = Fx;
+  PFT[PFT_YFORCE]  = Fy;
+  PFT[PFT_ZFORCE]  = Fz;
+  PFT[PFT_XTORQUE] = Taux;
+  PFT[PFT_YTORQUE] = Tauy;
+  PFT[PFT_ZTORQUE] = Tauz;
 
   /*--------------------------------------------------------------*/
   /*- if an RHS vector was specified, compute the extinction      */
@@ -450,7 +438,7 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
         nbf++;
         Extinction += 0.5*real( conj(nAlpha)*vHAlpha );
       };
-     PFT[SCUFF_PSCAT] = Extinction - PFT[SCUFF_PABS];
+     PFT[PFT_PSCAT] = Extinction - PFT[PFT_PABS];
    };
 
 } // GetOPFT
@@ -479,7 +467,7 @@ void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
   /***************************************************************/
   for(int nq=0; nq<NUMPFT; nq++)
    { 
-     if (nq==SCUFF_PSCAT) // there is no overlap matrix for scattered power
+     if (nq==PFT_PSCAT) // there is no overlap matrix for scattered power
       continue;
   
      if (NeedMatrix[nq])
@@ -500,13 +488,13 @@ void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
       };
    };
   HMatrix *QPAbs, *QF[3], *QT[3];
-  QPAbs = (NeedMatrix[SCUFF_PABS] && !IsPEC) ? QPFT[SCUFF_PABS] : 0;
-  QF[0] = NeedMatrix[SCUFF_XFORCE]  ? QPFT[SCUFF_XFORCE]  : 0;
-  QF[1] = NeedMatrix[SCUFF_YFORCE]  ? QPFT[SCUFF_YFORCE]  : 0;
-  QF[2] = NeedMatrix[SCUFF_ZFORCE]  ? QPFT[SCUFF_ZFORCE]  : 0;
-  QT[0] = NeedMatrix[SCUFF_XTORQUE] ? QPFT[SCUFF_XTORQUE] : 0;
-  QT[1] = NeedMatrix[SCUFF_YTORQUE] ? QPFT[SCUFF_YTORQUE] : 0;
-  QT[2] = NeedMatrix[SCUFF_ZTORQUE] ? QPFT[SCUFF_ZTORQUE] : 0;
+  QPAbs = (NeedMatrix[PFT_PABS] && !IsPEC) ? QPFT[PFT_PABS] : 0;
+  QF[0] = NeedMatrix[PFT_XFORCE]  ? QPFT[PFT_XFORCE]  : 0;
+  QF[1] = NeedMatrix[PFT_YFORCE]  ? QPFT[PFT_YFORCE]  : 0;
+  QF[2] = NeedMatrix[PFT_ZFORCE]  ? QPFT[PFT_ZFORCE]  : 0;
+  QT[0] = NeedMatrix[PFT_XTORQUE] ? QPFT[PFT_XTORQUE] : 0;
+  QT[1] = NeedMatrix[PFT_YTORQUE] ? QPFT[PFT_YTORQUE] : 0;
+  QT[2] = NeedMatrix[PFT_ZTORQUE] ? QPFT[PFT_ZTORQUE] : 0;
 
   /*--------------------------------------------------------------*/
   /*- get material parameters of exterior medium -----------------*/

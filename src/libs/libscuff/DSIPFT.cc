@@ -47,18 +47,6 @@ void GetReducedFarFields(RWGSurface *S, const int ne,
                          cdouble e[3], cdouble h[3]);
 
 #define II cdouble(0.0,1.0) 
-#define TENTHIRDS 3.33333333333333333333333
-
-#define SIPOWER   0
-#define SIPSCAT   1
-#define SIXFORCE  2
-#define SIYFORCE  3
-#define SIZFORCE  4
-#define SIXTORQUE 5
-#define SIYTORQUE 6
-#define SIZTORQUE 7
-
-#define NUMSRFLUX 12
 
 /***************************************************************/
 /***************************************************************/
@@ -570,44 +558,44 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
                   double NMatrix[NUMPFT][3][3], 
                   bool *NeedQuantity=0)
 {
-  if ( !NeedQuantity || NeedQuantity[SIPOWER] )
-   { NMatrix[SIPOWER][0][0] = NMatrix[SIPOWER][1][1] = NMatrix[SIPOWER][2][2] = 0.0;
-     NMatrix[SIPOWER][1][2] = nHat[0]; NMatrix[SIPOWER][2][1] = -nHat[0];
-     NMatrix[SIPOWER][2][0] = nHat[1]; NMatrix[SIPOWER][0][2] = -nHat[1];
-     NMatrix[SIPOWER][0][1] = nHat[2]; NMatrix[SIPOWER][1][0] = -nHat[2];
+  if ( !NeedQuantity || NeedQuantity[PFT_PABS] )
+   { NMatrix[PFT_PABS][0][0] = NMatrix[PFT_PABS][1][1] = NMatrix[PFT_PABS][2][2] = 0.0;
+     NMatrix[PFT_PABS][1][2] = nHat[0]; NMatrix[PFT_PABS][2][1] = -nHat[0];
+     NMatrix[PFT_PABS][2][0] = nHat[1]; NMatrix[PFT_PABS][0][2] = -nHat[1];
+     NMatrix[PFT_PABS][0][1] = nHat[2]; NMatrix[PFT_PABS][1][0] = -nHat[2];
    };
 
-  if ( !NeedQuantity || NeedQuantity[SIXFORCE] )
-   { NMatrix[SIXFORCE][0][0]                           =  nHat[0]; 
-     NMatrix[SIXFORCE][1][1]                           = -nHat[0];
-     NMatrix[SIXFORCE][2][2]                           = -nHat[0];
-     NMatrix[SIXFORCE][0][1] = NMatrix[SIXFORCE][1][0] =  nHat[1];
-     NMatrix[SIXFORCE][0][2] = NMatrix[SIXFORCE][2][0] =  nHat[2];
-     NMatrix[SIXFORCE][1][2] = NMatrix[SIXFORCE][2][1] =  0.0;
+  if ( !NeedQuantity || NeedQuantity[PFT_XFORCE] )
+   { NMatrix[PFT_XFORCE][0][0]                           =  nHat[0]; 
+     NMatrix[PFT_XFORCE][1][1]                           = -nHat[0];
+     NMatrix[PFT_XFORCE][2][2]                           = -nHat[0];
+     NMatrix[PFT_XFORCE][0][1] = NMatrix[PFT_XFORCE][1][0] =  nHat[1];
+     NMatrix[PFT_XFORCE][0][2] = NMatrix[PFT_XFORCE][2][0] =  nHat[2];
+     NMatrix[PFT_XFORCE][1][2] = NMatrix[PFT_XFORCE][2][1] =  0.0;
    };
 
-  if ( !NeedQuantity || NeedQuantity[SIYFORCE] )
-   { NMatrix[SIYFORCE][0][0]                           = -nHat[1]; 
-     NMatrix[SIYFORCE][1][1]                           =  nHat[1];
-     NMatrix[SIYFORCE][2][2]                           = -nHat[1];
-     NMatrix[SIYFORCE][0][1] = NMatrix[SIYFORCE][1][0] =  nHat[0];
-     NMatrix[SIYFORCE][1][2] = NMatrix[SIYFORCE][2][1] =  nHat[2];
-     NMatrix[SIYFORCE][0][2] = NMatrix[SIYFORCE][2][0] =  0.0;
+  if ( !NeedQuantity || NeedQuantity[PFT_YFORCE] )
+   { NMatrix[PFT_YFORCE][0][0]                           = -nHat[1]; 
+     NMatrix[PFT_YFORCE][1][1]                           =  nHat[1];
+     NMatrix[PFT_YFORCE][2][2]                           = -nHat[1];
+     NMatrix[PFT_YFORCE][0][1] = NMatrix[PFT_YFORCE][1][0] =  nHat[0];
+     NMatrix[PFT_YFORCE][1][2] = NMatrix[PFT_YFORCE][2][1] =  nHat[2];
+     NMatrix[PFT_YFORCE][0][2] = NMatrix[PFT_YFORCE][2][0] =  0.0;
    };
 
-  if ( !NeedQuantity || NeedQuantity[SIZFORCE] )
-   { NMatrix[SIZFORCE][0][0]                           = -nHat[2];
-     NMatrix[SIZFORCE][1][1]                           = -nHat[2];
-     NMatrix[SIZFORCE][2][2]                           =  nHat[2];
-     NMatrix[SIZFORCE][0][2] = NMatrix[SIZFORCE][2][0] =  nHat[0];
-     NMatrix[SIZFORCE][1][2] = NMatrix[SIZFORCE][2][1] =  nHat[1];
-     NMatrix[SIZFORCE][0][1] = NMatrix[SIZFORCE][1][0] =  0.0;
+  if ( !NeedQuantity || NeedQuantity[PFT_ZFORCE] )
+   { NMatrix[PFT_ZFORCE][0][0]                           = -nHat[2];
+     NMatrix[PFT_ZFORCE][1][1]                           = -nHat[2];
+     NMatrix[PFT_ZFORCE][2][2]                           =  nHat[2];
+     NMatrix[PFT_ZFORCE][0][2] = NMatrix[PFT_ZFORCE][2][0] =  nHat[0];
+     NMatrix[PFT_ZFORCE][1][2] = NMatrix[PFT_ZFORCE][2][1] =  nHat[1];
+     NMatrix[PFT_ZFORCE][0][1] = NMatrix[PFT_ZFORCE][1][0] =  0.0;
    };
 
   if (      NeedQuantity
-       && ( NeedQuantity[SIXTORQUE]==false )
-       && ( NeedQuantity[SIYTORQUE]==false )
-       && ( NeedQuantity[SIZTORQUE]==false )
+       && ( NeedQuantity[PFT_XTORQUE]==false )
+       && ( NeedQuantity[PFT_YTORQUE]==false )
+       && ( NeedQuantity[PFT_ZTORQUE]==false )
      ) return;
 
   /***************************************************************/
@@ -623,14 +611,14 @@ void GetNMatrices(double nHat[3], double X[3], double XTorque[3],
 
   for(int i=0; i<3; i++)
    { 
-     if ( NeedQuantity && (NeedQuantity[SIXTORQUE+i]==false) ) 
+     if ( NeedQuantity && (NeedQuantity[PFT_XTORQUE+i]==false) ) 
       continue;
 
      for(int a=0; a<3; a++)
       for(int b=0; b<3; b++)
-       { NMatrix[SIXTORQUE+i][a][b] = (a==b) ? -DxN[i] : 0.0;
+       { NMatrix[PFT_XTORQUE+i][a][b] = (a==b) ? -DxN[i] : 0.0;
          for(int j=0; j<3; j++)
-          NMatrix[SIXTORQUE+i][a][b] 
+          NMatrix[PFT_XTORQUE+i][a][b] 
            +=   LeviCivita[i][j][a]*D[j]*nHat[b]
               + LeviCivita[i][j][b]*D[j]*nHat[a];
        };
@@ -747,18 +735,18 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
      FMatrix->GetEntries(nr, "3:5", H);
 
      // absorbed power 
-     double dP = -0.25 * w * (  HVMVP(E, NMatrix[SIPOWER], H)
-                               -HVMVP(H, NMatrix[SIPOWER], E)
+     double dP = -0.25 * w * (  HVMVP(E, NMatrix[PFT_PABS], H)
+                               -HVMVP(H, NMatrix[PFT_PABS], E)
                              );
-     PFT[SCUFF_PABS] += dP;
-     if (ByPanel) ByPanel[SCUFF_PABS][ nr ] = dP;
+     PFT[PFT_PABS] += dP;
+     if (ByPanel) ByPanel[PFT_PABS][ nr ] = dP;
 
      // scattered power
-     dP = 0.25 * w * (  HVMVP(ES, NMatrix[SIPOWER], HS)
-                       -HVMVP(HS, NMatrix[SIPOWER], ES)
+     dP = 0.25 * w * (  HVMVP(ES, NMatrix[PFT_PABS], HS)
+                       -HVMVP(HS, NMatrix[PFT_PABS], ES)
                      );
-     PFT[SCUFF_PSCAT] += dP;
-     if (ByPanel) ByPanel[SCUFF_PSCAT][ nr ] = dP;
+     PFT[PFT_PSCAT] += dP;
+     if (ByPanel) ByPanel[PFT_PSCAT][ nr ] = dP;
 
      // force and torque
      double dFT[NUMPFT];
@@ -892,25 +880,25 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
      /***************************************************************/
      /* absorbed power **********************************************/
      /***************************************************************/
-     if ( NeedQuantity[SIPOWER] )
+     if ( NeedQuantity[PFT_PABS] )
       { 
         // this could be accelerated by exploiting the
         // structure of the NMatrix
         double MicroDelta=0.0;
         for(int m=0; m<3; m++)
          for(int n=0; n<3; n++)
-          MicroDelta += 0.5*w*NMatrix[SIPOWER][m][n]*EH[m][n];
+          MicroDelta += 0.5*w*NMatrix[PFT_PABS][m][n]*EH[m][n];
 
-        DeltaPFT[SCUFF_PABS] += MicroDelta;
-        if (ByPanel) MicroByPanel[SCUFF_PABS*NC + nc]=MicroDelta;
+        DeltaPFT[PFT_PABS] += MicroDelta;
+        if (ByPanel) MicroByPanel[PFT_PABS*NC + nc]=MicroDelta;
       };
 
-     DeltaPFT[SCUFF_PSCAT]=0.0; // no scattered power in the DSI formalism
+     DeltaPFT[PFT_PSCAT]=0.0; // no scattered power in the DSI formalism
 
      /***************************************************************/
      /* entries of force and torque matrices ************************/
      /***************************************************************/
-     for(int nq=SIXFORCE; nq<=SIZTORQUE; nq++)
+     for(int nq=PFT_XFORCE; nq<=PFT_ZTORQUE; nq++)
       { 
         if ( NeedQuantity[nq]==false ) continue;
 
@@ -922,7 +910,7 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
         DeltaPFT[nq] += MicroDelta;
         if (ByPanel) MicroByPanel[nq*NC + nc]=MicroDelta;
 
-      }; //for(int nSIFT=0; nSIFT<NUMPFT-1; nSIFT++)
+      }; //for(int nq=2; nq<8; nq++)
 
    }; //for (int nc=0; nc<NC; nc++)
 
@@ -1044,13 +1032,13 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
         /*--------------------------------------------------------------*/
         /*- accumulate contributions to full sums ----------------------*/
         /*--------------------------------------------------------------*/
-        PAbs +=  DeltaPFT[SCUFF_PABS];
-        Fx   +=  DeltaPFT[SCUFF_XFORCE];
-        Fy   +=  DeltaPFT[SCUFF_YFORCE];
-        Fz   +=  DeltaPFT[SCUFF_ZFORCE];
-        Taux +=  DeltaPFT[SCUFF_XTORQUE];
-        Tauy +=  DeltaPFT[SCUFF_YTORQUE];
-        Tauz +=  DeltaPFT[SCUFF_ZTORQUE];
+        PAbs +=  DeltaPFT[PFT_PABS];
+        Fx   +=  DeltaPFT[PFT_XFORCE];
+        Fy   +=  DeltaPFT[PFT_YFORCE];
+        Fz   +=  DeltaPFT[PFT_ZFORCE];
+        Taux +=  DeltaPFT[PFT_XTORQUE];
+        Tauy +=  DeltaPFT[PFT_YTORQUE];
+        Tauz +=  DeltaPFT[PFT_ZTORQUE];
 
       }; // for(int nea=... for (int neb=...
 
@@ -1062,14 +1050,14 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
   delete FSVMatrix;
   delete SCRMatrix;
 
-  PFT[SCUFF_PABS]=PAbs;
-  PFT[SCUFF_PSCAT]=0.0;
-  PFT[SCUFF_XFORCE]=Fx;
-  PFT[SCUFF_YFORCE]=Fy;
-  PFT[SCUFF_ZFORCE]=Fz;
-  PFT[SCUFF_XTORQUE]=Taux;
-  PFT[SCUFF_YTORQUE]=Tauy;
-  PFT[SCUFF_ZTORQUE]=Tauz;
+  PFT[PFT_PABS]=PAbs;
+  PFT[PFT_PSCAT]=0.0;
+  PFT[PFT_XFORCE]=Fx;
+  PFT[PFT_YFORCE]=Fy;
+  PFT[PFT_ZFORCE]=Fz;
+  PFT[PFT_XTORQUE]=Taux;
+  PFT[PFT_YTORQUE]=Tauy;
+  PFT[PFT_ZTORQUE]=Tauz;
 
   /***************************************************************/
   /***************************************************************/

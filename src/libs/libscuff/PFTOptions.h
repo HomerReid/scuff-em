@@ -36,15 +36,27 @@ namespace scuff {
 /* number of power, force, and torque quantities, plus indices */
 /* into arrays of them                                         */
 /***************************************************************/
-#define NUMPFT        8
-#define SCUFF_PABS    0  // absorbed power
-#define SCUFF_PSCAT   1  // scattered power
-#define SCUFF_XFORCE  2  // force components
-#define SCUFF_YFORCE  3  // 
-#define SCUFF_ZFORCE  4  // 
-#define SCUFF_XTORQUE 5  // torque components
-#define SCUFF_YTORQUE 6  // 
-#define SCUFF_ZTORQUE 7  // 
+#define NUMPFT      8
+#define PFT_PABS    0  // absorbed power
+#define PFT_PSCAT   1  // scattered power
+#define PFT_XFORCE  2  // force components
+#define PFT_YFORCE  3  // 
+#define PFT_ZFORCE  4  // 
+#define PFT_XTORQUE 5  // torque components
+#define PFT_YTORQUE 6  // 
+#define PFT_ZTORQUE 7  // 
+
+#define NUMSRFLUX   12 // number of spatially-resolved flux quantities
+
+// 10/3 is the value of the conversion factor that
+// converts forces from internal SCUFF units of force
+// into nanonewtons.
+// internal SCUFF force units: 
+//    1 volt * 1 amp / (1 micron * omega_0 )
+//  = 1 watt / 3e8 m
+//  = (10/3) nanoNewtons 
+// (where omega_0 = 3e14 rad/sec = c/1 micron)
+#define TENTHIRDS 3.33333333333333333333333
 
 /***************************************************************/
 /* values for the PFTMethod field of PFTOptions ****************/

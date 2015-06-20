@@ -49,7 +49,6 @@
 #endif
 
 #define II cdouble(0.0,1.0)
-#define TENTHIRDS (10.0/3.0)
 #define NUMFT 6
 
 namespace scuff {
@@ -208,7 +207,7 @@ void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
   /*- initialize edge-by-edge contributions to zero -------------*/
   /***************************************************************/
   if (ByEdge)
-   for(int n=SCUFF_XFORCE; n<=SCUFF_ZTORQUE; n++)
+   for(int n=PFT_XFORCE; n<=PFT_ZTORQUE; n++)
     if (ByEdge[n]) memset(ByEdge[n],0,NE*sizeof(double));
 
   /***************************************************************/
@@ -280,11 +279,11 @@ void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
 
         if ( ncp == (NCP-1) )
          { for(int nq=0; nq<NUMFT; nq++)
-            if (ByEdge[SCUFF_XFORCE+nq])
+            if (ByEdge[PFT_XFORCE+nq])
              { for(int nce=0; nce<3; nce++)
                 { int ne=P->EI[nce];
                   if (ne<0) continue;
-                  ByEdge[SCUFF_XFORCE+nq][ne] += FTThisPanel[nq]/(3.0*Area);
+                  ByEdge[PFT_XFORCE+nq][ne] += FTThisPanel[nq]/(3.0*Area);
                 };
              };
          };
@@ -366,8 +365,8 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
   /*- scattered power to zero                                   --*/
   /*--------------------------------------------------------------*/
   if (ByEdge)
-   { if(ByEdge[SCUFF_PABS])  memset(ByEdge[SCUFF_PABS], 0,NE*sizeof(double));
-     if(ByEdge[SCUFF_PSCAT]) memset(ByEdge[SCUFF_PSCAT],0,NE*sizeof(double));
+   { if(ByEdge[PFT_PABS])  memset(ByEdge[PFT_PABS], 0,NE*sizeof(double));
+     if(ByEdge[PFT_PSCAT]) memset(ByEdge[PFT_PSCAT],0,NE*sizeof(double));
    };
 
   /*--------------------------------------------------------------*/
@@ -502,8 +501,8 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
         { 
 #pragma omp critical
           {
-            if (ByEdge[SCUFF_PABS])  ByEdge[SCUFF_PABS][nea]  += dPAbs;
-            if (ByEdge[SCUFF_PSCAT]) ByEdge[SCUFF_PSCAT][nea] += dPScat;
+            if (ByEdge[PFT_PABS])  ByEdge[PFT_PABS][nea]  += dPAbs;
+            if (ByEdge[PFT_PSCAT]) ByEdge[PFT_PSCAT][nea] += dPScat;
           }
         };
 
