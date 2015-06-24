@@ -1213,29 +1213,25 @@ HMatrix *Get_ehMatrix(RWGGeometry *G, int SurfaceIndex,
 /* Maxwell stress tensor at a given point x.                   */
 /***************************************************************/
 void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
-                       HMatrix *ehMatrix, int nx,
+                       double X[3], double Sign, int RegionIndex,
                        cdouble KK, cdouble KN, cdouble NK, cdouble NN,
-                       cdouble Omega, cdouble EpsRel, cdouble MuRel,
+                       cdouble Omega,
                        double SRFlux[NUMSRFLUX])
 {
   /***************************************************************/
-  /* fetch reduced fields for this cubature point                */
+  /* get reduced fields for this cubature point                  */
   /***************************************************************/
-  int Offseta     = G->EdgeIndexOffset[nsa];
-  int Offsetb     = G->EdgeIndexOffset[nsb];
-  int NET         = G->TotalEdges;
-  int ncAlpha     = nx*NET+Offseta+nea;
-  cdouble *eAlpha = ehMatrix->ZM + 6*ncAlpha;
-  cdouble *hAlpha = eAlpha+3;
-  int ncBeta      = nx*NET+Offsetb+neb;
-  cdouble *eBeta  = ehMatrix->ZM + 6*ncBeta;
-  cdouble *hBeta  = eBeta+3;
+  cdouble EpsRel = G->EpsTF[RegionIndex];
+  cdouble  MuRel = G->MuTF[RegionIndex];
+  cdouble k      = sqrt(EpsRel*MuRel)*Omega;
+  cdouble eAlpha[3], hAlpha[3], eBeta[3], hBeta[3];
+  GetReducedFields(G->Surfaces[nsa], nea, X, k, eAlpha, hAlpha);
+  GetReducedFields(G->Surfaces[nsb], neb, X, k, eBeta, hBeta);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   double EpsEE[3][3], MuHH[3][3], EH[3][3], HE[3][3];
-  cdouble k    = sqrt(EpsRel*MuRel)*Omega;
   cdouble ZRel = sqrt(MuRel/EpsRel);
   cdouble  IKZ = II*k*ZVAC*ZRel;
   cdouble IKOZ = II*k/(ZVAC*ZRel);
@@ -1330,22 +1326,9 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
 
   /***************************************************************/
-  /* precompute 'reduced fields' e,h of all basis functions at   */
-  /* all evaluation points                                       */
-  /***************************************************************/
-  HMatrix *ehMatrix = Get_ehMatrix(G, -1, XMatrix, Omega, FarField);
-
-  /***************************************************************/
   /* prefetch material properties for all regions at this freq   */
   /***************************************************************/
-  int NR=G->NumRegions;
-  cdouble *RegionEpsMu = new cdouble[ 2*NR ];
-  for(int nr=0; nr<G->NumRegions; nr++)
-   { cdouble EpsRel, MuRel;
-     G->RegionMPs[nr]->GetEpsMu(Omega, &EpsRel, &MuRel);
-     RegionEpsMu[2*nr + 0] = EpsRel;
-     RegionEpsMu[2*nr + 1] =  MuRel;
-   };
+  G->UpdateCachedEpsMuValues(Omega);
 
   /***************************************************************/
   /* allocate per-thread storage to avoid costly synchronization */
@@ -1397,15 +1380,23 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
        double X[3];
        XMatrix->GetEntriesD(nx, "0:2", X);
        int RegionIndex = G->GetRegionIndex(X);
-       if (    (Sa->RegionIndices[0] != RegionIndex )
-            && (Sa->RegionIndices[1] != RegionIndex )
-          ) continue;
-       if (    (Sb->RegionIndices[0] != RegionIndex )
-            && (Sb->RegionIndices[1] != RegionIndex )
-          ) continue;
+       double SignA, SignB;
 
-       cdouble EpsRel=RegionEpsMu[2*RegionIndex+0];
-       cdouble  MuRel=RegionEpsMu[2*RegionIndex+1];
+       if ( Sa->RegionIndices[0] == RegionIndex )
+        SignA=1.0;
+       else if ( Sa->RegionIndices[1] == RegionIndex )
+        SignA=-1.0;
+       else
+        continue;
+
+       if ( Sb->RegionIndices[0] == RegionIndex )
+        SignB=1.0;
+       else if ( Sb->RegionIndices[1] == RegionIndex )
+        SignB=-1.0;
+       else
+        continue;
+
+       double Sign    = SignA*SignB;
 
        /*--------------------------------------------------------------*/
        /* extract the surface-current coefficients either from the KN  */
@@ -1442,8 +1433,9 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
        /*- get the contributions of this edge pair --------------------*/
        /*--------------------------------------------------------------*/
        double SRFlux[NUMSRFLUX];
-       GetEdgeEdgeSRFlux(G, nsa, nea, nsb, neb, ehMatrix, nx,
-                         KK, KN, NK, NN, Omega, EpsRel, MuRel, SRFlux);
+       GetEdgeEdgeSRFlux(G, nsa, nea, nsb, neb,
+                         X, Sign, RegionIndex,
+                         KK, KN, NK, NN, Omega, SRFlux);
 
        /*--------------------------------------------------------------*/
        /*- accumulate the contributions of this edge pair              */
@@ -1473,9 +1465,6 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   free(DeltaSRFlux);
-  delete ehMatrix;
-  delete[] RegionEpsMu;
-
   return FMatrix;
 
 } // routine GetSRFlux
