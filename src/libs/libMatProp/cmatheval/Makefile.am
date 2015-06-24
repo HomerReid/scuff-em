@@ -23,7 +23,7 @@ AM_CFLAGS = $(CXXFLAGS)
 
 MAINTAINERCLEANFILES = Makefile.in parser.c parser.h scanner.c
 
-INCLUDES = -I$(top_builddir) -I$(top_srcdir)
+AM_CPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 
 noinst_LTLIBRARIES = libcmatheval.la
 

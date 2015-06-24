@@ -1212,31 +1212,17 @@ HMatrix *Get_ehMatrix(RWGGeometry *G, int SurfaceIndex,
 /* RWG basis functions to the average Poynting vector and      */
 /* Maxwell stress tensor at a given point x.                   */
 /***************************************************************/
-void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
-                       double X[3], double Sign, int RegionIndex,
+void GetEdgeEdgeSRFlux(cdouble IKZ, cdouble IKOZ, double EpsAbs, double MuAbs,
+                       double Sign,
+                       cdouble eAlpha[3], cdouble hAlpha[3],
+                       cdouble eBeta[3], cdouble hBeta[3],
                        cdouble KK, cdouble KN, cdouble NK, cdouble NN,
-                       cdouble Omega,
                        double SRFlux[NUMSRFLUX])
 {
-  /***************************************************************/
-  /* get reduced fields for this cubature point                  */
-  /***************************************************************/
-  cdouble EpsRel = G->EpsTF[RegionIndex];
-  cdouble  MuRel = G->MuTF[RegionIndex];
-  cdouble k      = sqrt(EpsRel*MuRel)*Omega;
-  cdouble eAlpha[3], hAlpha[3], eBeta[3], hBeta[3];
-  GetReducedFields(G->Surfaces[nsa], nea, X, k, eAlpha, hAlpha);
-  GetReducedFields(G->Surfaces[nsb], neb, X, k, eBeta, hBeta);
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   double EpsEE[3][3], MuHH[3][3], EH[3][3], HE[3][3];
-  cdouble ZRel = sqrt(MuRel/EpsRel);
-  cdouble  IKZ = II*k*ZVAC*ZRel;
-  cdouble IKOZ = II*k/(ZVAC*ZRel);
-  double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
-  double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
   for(int m=0; m<3; m++)
    for(int n=0; n<3; n++)
     { 
@@ -1271,19 +1257,17 @@ void GetEdgeEdgeSRFlux(RWGGeometry *G, int nsa, int nea, int nsb, int neb,
   /***************************************************************/
   /***************************************************************/
   // P (poynting flux)
-  SRFlux[0] = 0.25*(EH[1][2] - EH[2][1] - HE[1][2] + HE[2][1]);
-  SRFlux[1] = 0.25*(EH[2][0] - EH[0][2] - HE[2][0] + HE[0][2]);
-  SRFlux[2] = 0.25*(EH[0][1] - EH[1][0] - HE[0][1] + HE[1][0]);
+  SRFlux[0] = 0.25*Sign*(EH[1][2] - EH[2][1] - HE[1][2] + HE[2][1]);
+  SRFlux[1] = 0.25*Sign*(EH[2][0] - EH[0][2] - HE[2][0] + HE[0][2]);
+  SRFlux[2] = 0.25*Sign*(EH[0][1] - EH[1][0] - HE[0][1] + HE[1][0]);
 
   // T (maxwell stress tensor)
   for(int Mu=0; Mu<3; Mu++)
    for(int Nu=0; Nu<3; Nu++)
     { 
-      double TMuNu = 0.25*(  EpsEE[Mu][Nu] + MuHH[Mu][Nu]
-                           + EpsEE[Nu][Mu] + MuHH[Nu][Mu]
-                          );
-      if (Mu==Nu) TMuNu -= 0.25*Trace;
-      SRFlux[ 3 + 3*Mu + Nu ] = TMuNu;
+      double TMuNu = EpsEE[Mu][Nu] + MuHH[Mu][Nu] + EpsEE[Nu][Mu] + MuHH[Nu][Mu];
+      if (Mu==Nu) TMuNu -= Trace;
+      SRFlux[ 3 + 3*Mu + Nu ] = 0.25*Sign*TMuNu;
     };
 }
 
@@ -1311,6 +1295,7 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                    HVector *KNVector, HMatrix *RytovMatrix,
                    HMatrix *FMatrix, bool FarField)
 { 
+  (void) FarField;
   /***************************************************************/
   /* (re)allocate FMatrix as necessary ***************************/
   /***************************************************************/
@@ -1347,6 +1332,7 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /*- loop over all basis functions and all pairs of eval points */
   /***************************************************************/
   int NET = G->TotalEdges;
+  int NS  = G->NumSurfaces;
   Log("Assembling SR flux...");
 #ifdef USE_OPENMP  
   if (G->LogLevel>=SCUFF_VERBOSE2) 
@@ -1354,34 +1340,23 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 #pragma omp parallel for collapse(3), schedule(dynamic,1), num_threads(NumThreads)
 #endif  
   for(int nx=0; nx<NX; nx++)
-   for(int neta=0; neta<NET; neta++)
-    for(int netb=0; netb<NET; netb++)
+   for(int nsa=0; nsa<NS; nsa++)
+    for(int nea=0; nea<NET; nea++)
      { 
-       if (UseSymmetry && netb<neta)
-        continue;
-
-       if (neta==0 && netb==0)
+       if (nsa==0 && nea==0)
         LogPercent(nx,NX,100);
 
-       // break up total edge indices into (surfaceIndex, edgeIndex) pairs
-       int nsa=0, nea=neta;
-       while(nea > G->Surfaces[nsa]->NumEdges)
-        nea -= G->Surfaces[nsa++]->NumEdges;
-       int nsb=0, neb=netb;
-       while(neb > G->Surfaces[nsb]->NumEdges)
-        neb -= G->Surfaces[nsb++]->NumEdges;
-
        RWGSurface *Sa = G->Surfaces[nsa];
-       RWGSurface *Sb = G->Surfaces[nsb];
-  
+       if (nea>=Sa->NumEdges) 
+        continue;
+    
        // identify the region in which the eval point lies
        // and skip if the given surfaces do not contribute
        // to the fields in that region
        double X[3];
        XMatrix->GetEntriesD(nx, "0:2", X);
        int RegionIndex = G->GetRegionIndex(X);
-       double SignA, SignB;
-
+       double SignA;
        if ( Sa->RegionIndices[0] == RegionIndex )
         SignA=1.0;
        else if ( Sa->RegionIndices[1] == RegionIndex )
@@ -1389,68 +1364,96 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
        else
         continue;
 
-       if ( Sb->RegionIndices[0] == RegionIndex )
-        SignB=1.0;
-       else if ( Sb->RegionIndices[1] == RegionIndex )
-        SignB=-1.0;
-       else
-        continue;
+       cdouble EpsRel = G->EpsTF[RegionIndex];
+       cdouble  MuRel = G->MuTF[RegionIndex];
+       cdouble k      = sqrt(EpsRel*MuRel)*Omega;
+       cdouble ZRel   = sqrt(MuRel/EpsRel);
+       cdouble  IKZ   = II*k*ZVAC*ZRel;
+       cdouble IKOZ   = II*k/(ZVAC*ZRel);
+       double EpsAbs = TENTHIRDS * real(EpsRel) / ZVAC;
+       double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
 
-       double Sign    = SignA*SignB;
+       cdouble eAlpha[3], hAlpha[3]; 
+       GetReducedFields(G->Surfaces[nsa], nea, X, k, eAlpha, hAlpha);
 
-       /*--------------------------------------------------------------*/
-       /* extract the surface-current coefficients either from the KN  */
-       /* vector or the Sigma matrix                                   */
-       /*--------------------------------------------------------------*/
-       bool IsPECa = Sa->IsPEC;
-       bool IsPECb = Sb->IsPEC;
-       int nbfa = G->BFIndexOffset[nsa] + ( (IsPECa) ? nea : 2*nea );
-       int nbfb = G->BFIndexOffset[nsb] + ( (IsPECb) ? neb : 2*neb );
-       cdouble KK, KN, NK, NN;
-       if (KNVector)
-        { 
-          cdouble kAlpha =       KNVector->GetEntry(nbfa);
-          cdouble kBeta  =       KNVector->GetEntry(nbfb);
-          cdouble nAlpha, nBeta = 0.0;
-          if (!IsPECa)
-           nAlpha = -ZVAC*KNVector->GetEntry(nbfa+1);
-          if (!IsPECb)
-           nBeta  = -ZVAC*KNVector->GetEntry(nbfb+1);
+       for(int nsb=nsa; nsb<NS; nsb++)
+        {
+          RWGSurface *Sb = G->Surfaces[nsb];
   
-          KK = conj(kAlpha) * kBeta;
-          KN = conj(kAlpha) * nBeta;
-          NK = conj(nAlpha) * kBeta;
-          NN = conj(nAlpha) * nBeta;
-        }
-       else
-        { KK = RytovMatrix->GetEntry(nbfb+0, nbfa+0);
-          KN = RytovMatrix->GetEntry(nbfb+1, nbfa+0);
-          NK = RytovMatrix->GetEntry(nbfb+0, nbfa+1);
-          NN = RytovMatrix->GetEntry(nbfb+1, nbfa+1);
-        };
+          double SignB;
+          if ( Sb->RegionIndices[0] == RegionIndex )
+           SignB=1.0;
+          else if ( Sb->RegionIndices[1] == RegionIndex )
+           SignB=-1.0;
+          else
+           continue;
 
-       /*--------------------------------------------------------------*/
-       /*- get the contributions of this edge pair --------------------*/
-       /*--------------------------------------------------------------*/
-       double SRFlux[NUMSRFLUX];
-       GetEdgeEdgeSRFlux(G, nsa, nea, nsb, neb,
-                         X, Sign, RegionIndex,
-                         KK, KN, NK, NN, Omega, SRFlux);
+          double Sign    = SignA*SignB;
 
-       /*--------------------------------------------------------------*/
-       /*- accumulate the contributions of this edge pair              */
-       /*--------------------------------------------------------------*/
-       int nt=0;
+          int nebStart = (nsb==nsa ? nea : 0);
+          for(int neb=nebStart; neb<Sb->NumEdges; neb++)
+           {
+
+            /*--------------------------------------------------------------*/
+            /* extract the surface-current coefficients either from the KN  */
+            /* vector or the Sigma matrix                                   */
+            /*--------------------------------------------------------------*/
+            bool IsPECa = Sa->IsPEC;
+            bool IsPECb = Sb->IsPEC;
+            int nbfa = G->BFIndexOffset[nsa] + ( (IsPECa) ? nea : 2*nea );
+            int nbfb = G->BFIndexOffset[nsb] + ( (IsPECb) ? neb : 2*neb );
+            cdouble KK, KN, NK, NN;
+            if (KNVector)
+             { 
+               cdouble kAlpha =       KNVector->GetEntry(nbfa);
+               cdouble kBeta  =       KNVector->GetEntry(nbfb);
+               cdouble nAlpha, nBeta = 0.0;
+               if (!IsPECa)
+                nAlpha = -ZVAC*KNVector->GetEntry(nbfa+1);
+               if (!IsPECb)
+                nBeta  = -ZVAC*KNVector->GetEntry(nbfb+1);
+       
+               KK = conj(kAlpha) * kBeta;
+               KN = conj(kAlpha) * nBeta;
+               NK = conj(nAlpha) * kBeta;
+               NN = conj(nAlpha) * nBeta;
+             }
+            else
+             { KK = RytovMatrix->GetEntry(nbfb+0, nbfa+0);
+               KN = RytovMatrix->GetEntry(nbfb+1, nbfa+0);
+               NK = RytovMatrix->GetEntry(nbfb+0, nbfa+1);
+               NN = RytovMatrix->GetEntry(nbfb+1, nbfa+1);
+             };
+
+            cdouble eBeta[3], hBeta[3]; 
+            GetReducedFields(G->Surfaces[nsb], neb, X, k, eBeta, hBeta);
+    
+           /*--------------------------------------------------------------*/
+           /*- get the contributions of this edge pair --------------------*/
+           /*--------------------------------------------------------------*/
+           double SRFlux[NUMSRFLUX];
+           GetEdgeEdgeSRFlux(IKZ, IKOZ, EpsAbs, MuAbs, Sign,
+                             eAlpha, hAlpha, eBeta, hBeta,
+                             KK, KN, NK, NN, SRFlux);
+
+           /*--------------------------------------------------------------*/
+           /*- accumulate the contributions of this edge pair              */
+           /*--------------------------------------------------------------*/
+           int nt=0;
 #ifdef USE_OPENMP
-       nt=omp_get_thread_num();
+           nt=omp_get_thread_num();
 #endif
-       double Weight = (neta==netb) ? 1.0 : 2.0;
-       if (!UseSymmetry) Weight=1;
+           double Weight = (nsa==nsb && nea==neb) ? 1.0 : 2.0;
+           if (!UseSymmetry) Weight=1;
 
-       for(int nq=0; nq<NUMSRFLUX; nq++)
-        DeltaSRFlux[ GetSRFluxIndex(nt, nx, nq, NX) ] += Weight*SRFlux[nq];
+           for(int nq=0; nq<NUMSRFLUX; nq++)
+            DeltaSRFlux[ GetSRFluxIndex(nt, nx, nq, NX) ] += Weight*SRFlux[nq];
 
-    }; // for(nx==...)
+           }; // for(int neb=...)
+
+        }; // for(int nsb=...)
+
+     };  // for (nx=..., nsa=..., nea=...
 
   /*--------------------------------------------------------------*/
   /*- sum contributions of all threads ---------------------------*/
