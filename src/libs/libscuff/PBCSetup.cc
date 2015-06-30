@@ -1,4 +1,3 @@
-#define ONEMEG 1048576
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -424,6 +423,7 @@ void RWGGeometry::InitPBCData()
      RegionIsExtended[nd]    = (bool *)mallocEC(NumRegions*sizeof(bool));
      RegionIsExtended[nd][0] = true; // exterior medium is always extended
    };
+  #define ONEMEG 1048576
   Log(" Mem before straddlers: %lu",GetMemoryUsage()/ONEMEG);
   for(int ns=0; ns<NumSurfaces; ns++)
    { 

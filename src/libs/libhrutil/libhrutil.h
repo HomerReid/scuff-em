@@ -58,8 +58,8 @@ typedef std::complex<double> cdouble;
 /* Timing functions  *******************************************/
 /***************************************************************/
 double Secs();
-void Tic();
-double Toc();
+void Tic(bool MeasureBytesAllocated=false);
+double Toc(unsigned long *BytesAllocated=0);
 
 /***************************************************************/
 /* String functions  *******************************************/

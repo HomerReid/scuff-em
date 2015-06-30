@@ -67,15 +67,23 @@
 /***************************************************************/
 /* Timing functions ********************************************/
 /***************************************************************/
-static double tictoc;
+static double tictoc=0.0;
+static unsigned long tictocMem=0;
 double Secs()
 { 
   struct timeval tv;
   gettimeofday(&tv, 0);
   return (double)(tv.tv_sec) + 1.0e-6*((double)(tv.tv_usec));
 }
-void Tic() { tictoc=Secs(); }
-double Toc() { return Secs()-tictoc; }
+void Tic(bool MeasureBytesAllocated)
+ { tictoc=Secs(); 
+   if (MeasureBytesAllocated) tictocMem=GetMemoryUsage();
+ }
+double Toc(unsigned long *BytesAllocated)
+ { if (BytesAllocated)
+    *BytesAllocated=GetMemoryUsage() - tictocMem;
+   return Secs()-tictoc; 
+ }
 
 
 /***************************************************************/
