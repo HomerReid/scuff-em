@@ -410,6 +410,7 @@ $$ \omega=u\cdot \omega_0
    \qquad \text{where} \qquad
    \omega_0\equiv 3\cdot 10^{14}\text{ rad/sec}.
 $$
+%====================================================================%
 Then the total time-average PFT on body $d$ may be
 expressed as an integral over the dimensionless variable $u$:
 %====================================================================%
@@ -501,7 +502,89 @@ More specifically,
 
 %====================================================================%
 \newpage
-\subsection{Output files for spatially-integrated quantities}
+\subsection{Output files for spatially-resolved quantities}
+
+Let $Q_{\vb x}$ be a spatially-resolved PFT quantity:
+one of the 3 Cartesian components of the (time-average)
+Poynting vector (PV, units of watts/microns$^2$) or
+one of the 9 Cartesian components of the (time-average)
+Maxwell stress tensor (MST, units of nanoNewtons/microns$^2$).
+Then the thermal average of $Q_{\vb x}$ may be expressed in a form
+similar to that of (\ref{QAverage}):
+%====================================================================%
+\numeq{QxAverage}
+{
+ \qquad \big\langle Q_{\vb x}\big\rangle
+ = \hbar \omega_0^2
+   \int_0^\infty 
+   \sum_s \, \Delta \wh \Theta_s (u) \Phi\supt{PFT}_{s\to\vb x}(u)\,du
+}
+%====================================================================%
+The various constituents of equation (\ref{QxAverage}) are written
+by {\sc scuff-neq} to three distinct output files, as follows:
+%====================================================================%
+\numeq{QxAverage2}
+{
+ \qquad \big\langle Q_{\vb x}\big\rangle
+ =
+   \underbrace{ \Bigg[ \int_0^\infty
+  \underbrace{\bigg\{ \hbar\omega_0^2 \sum_s \, \Delta \wh \Theta_s(u)
+  \underbrace{\Phi\supt{PFT}_{s \to \vb x}(u)}_{\texttt{.SRFlux}}
+             \bigg\} }_{\texttt{.SRIntegrand}}
+   \,\,du \Bigg]
+              }_{\texttt{.PVMST}}
+}
+%====================================================================%
+More specifically, 
+%====================================================================%
+\begin{itemize}
+  \item The quantity $\Phi_{s\to \vb x}(u)$ is written to the
+        \texttt{.SRFlux} file. This quantity may be interpreted
+        as the spatially-resolved PFT flux, per unit frequency 
+        per unit temperature (which, dimensionally, amounts to 
+        the PFT per unit power, i.e. the PFT per watt)
+        at the point $\vb x$ due to sources
+        in body $s.$ This is a temperature-independent quantity.
+        For PV components,
+        this quantity has units of \textit{microns$^{-2}$}.
+        For MST components,
+        this quantity has units of 
+        \textit{nanoNewtons/(watts $\cdot$ microns$^{-2})$}.
+
+  \item The quantity written to the \texttt{.SRIntegrand} file
+        is the PFT flux per unit frequency at $\vb x$
+        due to thermally-weighted sources in body $s$.
+        (The \texttt{.SRIntegrand} file records, for each
+         evaluation point $\vb x$, both the individual 
+         contributions of each source body $s$ and the total 
+         contributions of all source bodies.) Plotting this quantity
+         versus the frequency yields spectrally-resolved
+         PFT information showing the contributions of fluctuations
+         at each frequency to the power/force flux at $\vb x$
+         from the souce body.
+
+         When we say ``per unit frequency'' here, we mean 
+         ``per unit \textit{dimensionless} frequency'' 
+         (i.e. per unit interval of the dimensionless 
+          frequency $u$), which means that the quantity 
+         reported in the \texttt{.SRIntegrand} file has the 
+         same units as the final PFT output quantity:
+         \textit{watts/microns$^2$} for PV components and 
+         \textit{nanoNewtons/microns$^2$} for MST components.
+
+  \item The quantity written to the \texttt{.PVMST} file
+        is the total (frequency-integrated) time-average 
+        PV or MST at $\vb x$.
+        (The \texttt{.PVMST} file records, for each
+         evaluation point $\vb x$, both the individual contributions
+         of each source body $s$ and the total contributions
+         of all source bodies.)
+         This quantity has units of 
+         \textit{watts/microns$^2$} for PV components and 
+         \textit{nanoNewtons/microns$^2$} for MST components.
+\end{itemize}
+%====================================================================%
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

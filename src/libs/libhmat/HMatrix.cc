@@ -717,11 +717,13 @@ void HMatrix::AddBlockAdjoint(HMatrix *B, int RowOffset, int ColOffset)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void HMatrix::AddBlock(SMatrix *B, int RowOffset, int ColOffset)
+void HMatrix::AddBlock(SMatrix *B, int RowOffset, int ColOffset,
+                       cdouble ScaleFactor)
 { 
   if ( ((RowOffset + B->NR) > NR) || ((ColOffset + B->NC) > NC) )
    ErrExit("AddBlock(): block insertion exceeds matrix size");
-
+  
+  double RSF=real(ScaleFactor);
   for(size_t nr=0; nr<B->NR; nr++)
    { int *nc;
      void *Entries;
@@ -730,12 +732,12 @@ void HMatrix::AddBlock(SMatrix *B, int RowOffset, int ColOffset)
      if (B->RealComplex==LHM_REAL) 
       { double *dEntries=(double *)Entries;
         for(int nnz=0; nnz<NNZ; nnz++)
-         AddEntry(RowOffset+nr, ColOffset+nc[nnz], dEntries[nnz]);
+         AddEntry(RowOffset+nr, ColOffset+nc[nnz], RSF*dEntries[nnz]);
       }
      else
       { cdouble *cdEntries=(cdouble *)Entries;
         for(int nnz=0; nnz<NNZ; nnz++)
-         AddEntry(RowOffset+nr, ColOffset+nc[nnz], cdEntries[nnz]);
+         AddEntry(RowOffset+nr, ColOffset+nc[nnz], ScaleFactor*cdEntries[nnz]);
       };
    };
 

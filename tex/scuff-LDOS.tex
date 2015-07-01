@@ -502,7 +502,21 @@ equation (\ref{EHEDA}), read
 An alternative way to get the fields of a point array of dipoles,
 which is useful for the half-space calculation of the following
 section, is to start with the two-dimensional Fourier representation 
-of the (non-periodic) homogeneous dyadic Green's functions:
+of the (non-periodic) homogeneous dyadic Green's functions.
+These follow from the two-dimensional Fourier representation of 
+of the non-periodic scalar Green's function:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ G_0(\vb r)=\frac{e^{ik_0 |\vb r|}}{4\pi |\vb r|}
+   =
+   \frac{i\pi}{2}
+   \int_{\mathbb R^2} \frac{d^2 \vb k}{(2\pi)^2}
+    \frac{e^{i(k_x x + k_y y + ik_z|z|)}}{k_z},
+   \qquad
+   k_z\equiv \sqrt{k_0^2 - k_x^2 - k_y^2}
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Applying (\ref{GCfromG0}), 
+we obtain the 2D Fourier expansion of the dyadic Green's functions:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{GCInfiniteKIntegrals}
 {
@@ -517,35 +531,23 @@ of the (non-periodic) homogeneous dyadic Green's functions:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
 \vb g(\vbrho, z; \vb k)
-&= \pf{i}{2k_0^2 k_z}
+&= \pf{i\pi}{2k_0^2 k_z}
    \left(\begin{array}{ccc}
-    k_0^2-k_x^2      & k_x k_y      & \pm k_z k_x \\
-    k_y k_x          & k_0^2-k_y^2  & \pm k_z k_y \\
-    \pm  k_x k_z     & \pm k_y k_z  & k_0^2-k_z^2
-    \end{array}\right) e^{i\vb k \cdot \vbrho} e^{\pm i k_z z}
+    k_0^2-k_x^2      & -k_x k_y     & \mp k_z k_x \\
+    -k_y k_x         & k_0^2-k_y^2  & \mp k_z k_y \\
+    \mp  k_x k_z     & \mp k_y k_z  & k_0^2-k_z^2
+    \end{array}\right) e^{i\vb k \cdot \vbrho} e^{i k_z |z|}
 \\[5pt]
 \vb c(\vbrho, z; \vb k)
- &= -\pf{1}{2k_0 k_z}
+ &= \pf{i \pi}{2k_0 k_z}
      \left(\begin{array}{ccc}
          0 & \pm k_z & -k_y \\
   \mp k_z  & 0       &  k_x \\
       k_y  & -k_x    &  0 
-     \end{array}\right) e^{i\vb k \cdot \vbrho} e^{\pm i k_z z}
+     \end{array}\right) e^{i\vb k \cdot \vbrho} e^{i k_z |z|}
 \end{align*}
 %====================================================================%
-$$
-   k_z \equiv 
-   \begin{cases}
-     \sqrt{k_0^2 - |\vb k|^2}, \qquad &|\vb k| \le \vb k_0 \\
-    i\sqrt{|\vb k|^2-k_0^2},   \qquad &|\vb k| > \vb k_0
-   \end{cases},
-   \qquad
-   \pm \equiv
-   \begin{cases}
-     +, \quad & z\ge 0 \\ 
-     -, \quad & z<   0
-   \end{cases}.
-$$
+where the $\pm$ sign is $\text{sign}(z).$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Now reinterpret the infinite integrals over the entire $k_x, k_y$ plane in
 (\ref{GCInfiniteKIntegrals}) as finite integrals over just the Brillouin
@@ -767,7 +769,7 @@ $$ \vb P(\vb k) \equiv
    \frac{1}{k_0}\Big[ \vb k\subt{3D} \times \vb P(\vb k) \Big]
    =
    \frac{1}{k_0 |\vb k|}
-   \left(\begin{array}{c} \pm k_x k_z \\ \pm k_y k_z \\ k_x^2 + k_y^2 
+   \left(\begin{array}{c} -\pm k_x k_z \\ -\pm k_y k_z \\ k_x^2 + k_y^2 
          \end{array}\right)
 $$
 %====================================================================%
@@ -775,7 +777,7 @@ The fields of a point source may be written in the form
 %====================================================================%
 \begin{align*}
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{x} \big\}\Big)
-&= \int \frac{d \vb k}{2\pi} 
+&= \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{x}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
           + 
@@ -784,7 +786,7 @@ The fields of a point source may be written in the form
    \bigg\}
 \\
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{y} \big\}\Big)
-&= \int \frac{d \vb k}{2\pi} 
+&= \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{y}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
           + 
@@ -793,7 +795,7 @@ The fields of a point source may be written in the form
    \bigg\}
 \\
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{z} \big\}\Big)
-&= \int \frac{d \vb k}{2\pi} 
+&= \int \frac{d \vb k}{(2\pi)^2} 
            C^{z}\subt{TM}(\vb k)
            \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
 \end{align*}
@@ -803,27 +805,27 @@ where the scalar coefficients are
 $$\begin{array}{ccccccc}
  \displaystyle{ C^{x}\subt{TE} }
  &=& 
-  \displaystyle{ \frac{ ik_y |\vb k|}{2k_0^2 k_z} }
+  \displaystyle{ -\frac{ i \pi k_y}{2|\vb k|k_z} }
  &\qquad&
  \displaystyle{ C^{x}\subt{TM} }
  &=& 
- \displaystyle{ \frac{ \pm ik_x }{2k_0^2 |\vb k|^2} }
+ \displaystyle{ \mp \frac{ i \pi k_x }{2k_0|\vb k|} }
 \\[10pt]
 %--------------------------------------------------------------------%
  \displaystyle{ C^{y}\subt{TE} }
  &=& 
-  \displaystyle{ \frac{ -ik_x |\vb k|}{2k_0^2 k_z} }
+  \displaystyle{ \frac{ i \pi k_x}{2|\vb k|k_z} }
  &\qquad&
  \displaystyle{ C^{y}\subt{TM} }
  &=& 
- \displaystyle{ \frac{ \pm ik_y }{2k_0^2 |\vb k|^2} }
+ \displaystyle{ \mp \frac{ i \pi k_y }{2k_0|\vb k|} }
 \\[10pt]
 %--------------------------------------------------------------------%
  \displaystyle{ C^{z}\subt{TE} }
  &=& 0
  &\qquad&
  \displaystyle{ C^{z}\subt{TM} }
- &=& \displaystyle{ \frac{ \pm ikz  }{2k_0^2 |\vb k|^2} }.
+ &=& \displaystyle{ \frac{ i\pi |\vb k|  }{k_0 k_z} }.
 \end{array}$$
 %====================================================================%
 
