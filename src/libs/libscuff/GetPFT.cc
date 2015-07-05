@@ -50,15 +50,15 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
 void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                HVector *KN, IncField *IF, double PFT[NUMPFT],
                char *BSMesh, double R, int NumPoints,
-               bool UseCCQ, bool FarField,
-               char *PlotFileName, GTransformation *GT);
+               bool FarField, char *PlotFileName, 
+               GTransformation *GT1, GTransformation *GT2);
 
 void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
                     HMatrix *RytovMatrix,
                     double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                     char *BSMesh, double R, int NumPoints,
-                    bool UseCCQ, bool FarField,
-                    char *PlotFileName, GTransformation *GT);
+                    bool FarField, char *PlotFileName,
+                    GTransformation *GT1, GTransformation *GT2);
 
 // absorbed and scattered/radiated power by equivalence-principle method
 void GetEPP(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
@@ -69,41 +69,6 @@ void GetEPP(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
 void GetEPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
              HVector *KNVector, IncField *IF, double FT[6],
              double **ByEdge=0, int Order=1, double Delta=1.0e-5);
-
-/***************************************************************/
-/* Get the full GTransformation that takes an object/surface   */
-/* from its native configuration (as described in its .msh     */
-/* file) to its current configuration in a scuff-em calculation.*/
-/* This is a composition of 0, 1, or 2 GTransformations        */
-/* depending on whether (a) the object was DISPLACED/ROTATED   */
-/* in the .scuffgeo file, and (b) the object has been          */
-/* transformed since it was read in from that file.            */
-/***************************************************************/
-GTransformation *GetFullSurfaceTransformation(RWGGeometry *G,
-                                              int ns,
-                                              bool *CreatedGT)
-{
-  /*--------------------------------------------------------------*/
-  /*- If the surface in question has been transformed since we   -*/
-  /*- read it in from the meshfile (including any "one-time"     -*/
-  /*- transformation specified in the .scuffgeo file) we need    -*/
-  /*- to transform the cubature rule accordingly.                -*/
-  /*--------------------------------------------------------------*/
-  RWGSurface *S=G->Surfaces[ns];
-  GTransformation *GT=0;
-  *CreatedGT=false;
-  if ( (S->OTGT!=0) && (S->GT==0) ) 
-   GT=S->OTGT;
-  else if ( (S->OTGT==0) && (S->GT!=0) ) 
-   GT=S->GT;
-  else if ( (S->OTGT!=0) && (S->GT!=0) )
-   { *CreatedGT=true;
-     GT=new GTransformation(S->GT);
-     GT->Transform(S->OTGT);
-   };
-
-  return GT;
-}
 
 /***************************************************************/
 /* Get the power, force, and torque on surface #SurfaceIndex.  */
@@ -155,29 +120,25 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
              || PFTMethod==SCUFF_PFT_EPDSI
           )
    { 
-     bool CreatedGT;
-     GTransformation *GT
-      =GetFullSurfaceTransformation(this, SurfaceIndex, &CreatedGT);
-
-     char *DSIMesh      = Options->DSIMesh;
-     double DSIRadius   = Options->DSIRadius;
-     int DSIPoints      = Options->DSIPoints;
-     bool DSIFarField   = Options->DSIFarField;
-     double *kBloch     = Options->kBloch;
+     char *DSIMesh        = Options->DSIMesh;
+     double DSIRadius     = Options->DSIRadius;
+     int DSIPoints        = Options->DSIPoints;
+     bool DSIFarField     = Options->DSIFarField;
+     double *kBloch       = Options->kBloch;
      HMatrix *RytovMatrix = Options->RytovMatrix;
-     bool *NeedQuantity = Options->NeedQuantity;
+     bool *NeedQuantity   = Options->NeedQuantity;
+     GTransformation *GT1 = S->OTGT;
+     GTransformation *GT2 = S->GT;
 
      if (RytovMatrix==0)
       GetDSIPFT(this, Omega, kBloch, KN, IF, PFT,
                 DSIMesh, DSIRadius, DSIPoints,
-                false, DSIFarField, FluxFileName, GT);
+                DSIFarField, FluxFileName, GT1, GT2);
      else 
       GetDSIPFTTrace(this, Omega, RytovMatrix,
                      PFT, NeedQuantity,
                      DSIMesh, DSIRadius, DSIPoints,
-                     false, DSIFarField, FluxFileName, GT);
-
-     if (CreatedGT) delete(GT);
+                     DSIFarField, FluxFileName, GT1, GT2);
    }
   else if (PFTMethod==SCUFF_PFT_EP)
    { 

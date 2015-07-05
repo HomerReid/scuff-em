@@ -264,24 +264,14 @@ HMatrix *GetFarFields(RWGGeometry *G, IncField *IF, HVector *KN,
 /* surface, and the cubature rule evaluates an integral over   */
 /* this surface by doing a one-point cubature over each panel. */
 /*                                                             */
-/* Otherwise, the cubature rule describes a cubature rule with */
-/* NumPoints cubature points over a sphere of radius R.        */
+/* Otherwise, the cubature rule describes a Lebedev cubature   */
+/* rule with NumPoints cubature points on a sphere of radius R.*/
 /*                                                             */
-/* If UseCCQ is false, this is a Lebedev cubature rule. In     */
-/* this case, NumPoints must be one of the numbers of cubature */
-/* points supported by the GetLebedevRule() routine in         */
-/* libTriInt.                                                  */
-/*                                                             */
-/* Otherwise (UseCCQ==true) the cubature rule is a product     */
-/* rule with a Clenshaw-Curtis grid in the Theta direction and */
-/* an evenly-spaced grid in the Phi direction, and NumPoints   */
-/* should be an odd integer between 9 and 99 inclusive.        */
-/*                                                             */
-/* If GT is non-null, then each cubature point and             */
-/* normal vector is transformed by GT.                         */
+/* If GT1 and/or GT2 are non-null, then each cubature point    */
+/* normal vector is transformed by GT1 (first) and then GT2.   */
 /***************************************************************/
-HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints, 
-                      bool UseCCQ, GTransformation *GT)
+HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
+                      GTransformation *GT1=0, GTransformation *GT2=0)
 {
   HMatrix *SCRMatrix;
 
@@ -319,7 +309,7 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  else if (!UseCCQ)
+  else
    { double *LRule = GetLebedevRule(NumPoints);
      if (LRule==0) ErrExit("no Lebedev rule with %i points",NumPoints);
      SCRMatrix = new HMatrix(NumPoints, 7);
@@ -332,58 +322,19 @@ HMatrix *GetSCRMatrix(char *BSMesh, double R, int NumPoints,
         SCRMatrix->SetEntry(np,5, LRule[4*np + 2]);
         SCRMatrix->SetEntry(np,6, R*R*LRule[4*np + 3]);
       };
-   }
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  else
-   {
-     int NumThetaPoints=NumPoints;
-     int NumPhiPoints=2*(NumPoints+1);
-     int TotalPoints = NumPhiPoints*(NumThetaPoints-2) + 2;
-     SCRMatrix = new HMatrix(TotalPoints, 7);
-     double dPhi= 2.0*M_PI / NumPhiPoints;
-
-     double *CCRule = GetCCRule(NumThetaPoints);
-     if (CCRule==0) ErrExit("invalid value of NumPoints in GetSCRMatrix");
-     for(int npTheta=0; npTheta<NumThetaPoints; npTheta++)
-      { 
-        double CosTheta = CCRule[2*npTheta+0];
-        double w = CCRule[2*npTheta+1];
-        double SinTheta = sqrt(1.0-CosTheta*CosTheta);
-
-        // north, south pole
-        if ( npTheta==0 || npTheta==(NumThetaPoints-1) )
-         { int Index  = (npTheta==0) ? 0 : TotalPoints-1;
-           SCRMatrix->SetEntry(Index, 0, 0.0);
-           SCRMatrix->SetEntry(Index, 1, 0.0);
-           SCRMatrix->SetEntry(Index, 2, R*CosTheta);
-           SCRMatrix->SetEntry(Index, 3, 0.0);
-           SCRMatrix->SetEntry(Index, 4, 0.0);
-           SCRMatrix->SetEntry(Index, 5, CosTheta);
-           SCRMatrix->SetEntry(Index, 6, 2.0*M_PI*R*R*w);
-         }
-        else
-         { for(int npPhi=0; npPhi<NumPhiPoints; npPhi++)
-            { int Index  = 1 + NumPhiPoints*(npTheta-1) + npPhi;
-              double Phi = npPhi * dPhi;
-              SCRMatrix->SetEntry(Index, 0, R*SinTheta*cos(Phi));
-              SCRMatrix->SetEntry(Index, 1, R*SinTheta*sin(Phi));
-              SCRMatrix->SetEntry(Index, 2, R*CosTheta);
-              SCRMatrix->SetEntry(Index, 3, SinTheta*cos(Phi));
-              SCRMatrix->SetEntry(Index, 4, SinTheta*sin(Phi));
-              SCRMatrix->SetEntry(Index, 5, CosTheta);
-              SCRMatrix->SetEntry(Index, 6, R*R*w*dPhi);
-            };
-         };
-      };
    };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (GT)
+  GTransformation *GTList[2];
+  GTList[0]=GT1;
+  GTList[1]=GT2;
+  for(int nGT=0; nGT<2; nGT++)
    { 
+     GTransformation *GT = GTList[nGT];
+     if (GT==0) continue;
+     
      for(int nr=0; nr<SCRMatrix->NR; nr++)
       { 
         double X[3], nHat[3], XP[3];
@@ -648,8 +599,8 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                HVector *KN, IncField *IF,
                double PFT[NUMPFT],
                char *BSMesh, double R, int NumPoints,
-               bool UseCCQ, bool FarField,
-               char *PlotFileName, GTransformation *GT)
+               bool FarField, char *PlotFileName, 
+               GTransformation *GT1, GTransformation *GT2)
 {
   /***************************************************************/
   /***************************************************************/
@@ -657,13 +608,12 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
   if (BSMesh)
    Log("Computing DSIPFT over bounding surface %s...",BSMesh);
   else
-   Log("Computing DSIPFT: (R,NPts,Lebedev)=(%e,%i,%s)",
-        R, NumPoints, UseCCQ ? "false" : "true");
+   Log("Computing DSIPFT: (R,NPts)=(%e,%i)",R, NumPoints);
 
   /***************************************************************/
   /* get cubature-rule matrix ************************************/
   /***************************************************************/
-  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, UseCCQ, GT);
+  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, GT1, GT2);
 
   /***************************************************************/
   /* we assume that all cubature points lie in the same region   */
@@ -679,7 +629,8 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
   double  MuAbs = TENTHIRDS * real(MuRel) * ZVAC;
 
   double XTorque[3] = {0.0, 0.0, 0.0};
-  if (GT) GT->Apply(XTorque);
+  if (GT1) GT1->Apply(XTorque);
+  if (GT2) GT2->Apply(XTorque);
 
   /***************************************************************/
   /* get the scattered and total fields at the cubature points   */
@@ -707,7 +658,8 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
   RWGSurface *BS=0;
   if (BSMesh && PlotFileName)
    { BS=new RWGSurface(BSMesh);
-     if (GT) BS->Transform(GT);
+     if (GT1) BS->Transform(GT1);
+     if (GT2) BS->Transform(GT2);
      ByPanel = (double **)mallocEC(NUMPFT*sizeof(double *));
      ByPanel[0] = (double *)mallocEC(NUMPFT*(BS->NumPanels)*sizeof(double));
      for(int nq=1; nq<NUMPFT; nq++)
@@ -942,8 +894,8 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
                     HMatrix *RytovMatrix,
                     double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                     char *BSMesh, double R, int NumPoints,
-                    bool UseCCQ, bool FarField,
-                    char *PlotFileName, GTransformation *GT)
+                    bool FarField, char *PlotFileName,
+                    GTransformation *GT1, GTransformation *GT2)
 {
   /***************************************************************/
   /***************************************************************/
@@ -952,19 +904,20 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
   if (BSMesh)
    LogC(" (BS mesh %s)",BSMesh);
   else
-   LogC(" (R=%e, NC=%i, Lebedev=%i, FarField=%i)",R,NumPoints,!UseCCQ,FarField);
+   LogC(" (R=%e, NC=%i)",R,NumPoints);
 
   // assume that the integration surface lies in the exterior medium
   cdouble Eps, Mu;
   G->RegionMPs[ 0 ] -> GetEpsMu(Omega, &Eps, &Mu);
 
   double XTorque[3] = {0.0, 0.0, 0.0};
-  if (GT) GT->Transform(XTorque);
+  if (GT1) GT1->Transform(XTorque);
+  if (GT2) GT2->Transform(XTorque);
 
   /*--------------------------------------------------------------*/
   /*- fetch cubature rule and precompute field six-vectors       -*/
   /*--------------------------------------------------------------*/
-  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, UseCCQ, GT);
+  HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, GT1, GT2);
   HMatrix *FSVMatrix = GetFSVMatrix(G, -1, SCRMatrix, Omega, FarField);
 
   /*--------------------------------------------------------------*/
@@ -974,7 +927,8 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
   RWGSurface *BS=0;
   if (BSMesh && PlotFileName)
    { BS=new RWGSurface(BSMesh);
-     if (GT) BS->Transform(GT);
+     if (GT1) BS->Transform(GT1);
+     if (GT2) BS->Transform(GT2);
      ByPanel = (double **)mallocEC(NUMPFT*sizeof(double *));
      ByPanel[0] = (double *)mallocEC(NUMPFT*(BS->NumPanels)*sizeof(double));
      for(int nq=1; nq<NUMPFT; nq++)
