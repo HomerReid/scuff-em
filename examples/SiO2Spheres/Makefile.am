@@ -1,6 +1,7 @@
 EXTRA_DIST=			\
  Sphere.geo			\
  Sphere_327.msh         	\
+ SiO2Sphere_327.scuffgeo	\
  SiO2Spheres_327.scuffgeo	\
  scuff-neq.args     		\
  Spheres.trans

@@ -36,7 +36,6 @@
 using namespace scuff;
 
 #define II cdouble (0.0,1.0)
-#define TENTHIRDS 3.33333333333333333334
 #define RT1_2     0.70710678118654752440
 
 // values for the WhichCase parameter below 
@@ -300,7 +299,8 @@ int main(int argc, char *argv[])
         InitPFTOptions(Options);
         Options->PFTMethod=SCUFF_PFT_OVERLAP;
         Options->RHSVector=RHS;
-        G->GetPFT(0, PW, KN, Omega, OPFT, Options);
+        Options->IF=PW;
+        G->GetPFT(0, KN, Omega, OPFT, Options);
   
         /*--------------------------------------------------------------*/
         /*- compute DSIPFT                                              */
@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
         Log("Computing DSIPFT...");
         InitPFTOptions(Options);
         Options->PFTMethod=SCUFF_PFT_DSI;
-        G->GetPFT(0, PW, KN, Omega, DSIPFT, Options);
+        G->GetPFT(0, KN, Omega, DSIPFT, Options);
 
         /*--------------------------------------------------------------*/
         /*- compute EP power without precomputed matrices               */
@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
         Log("Computing EPPFT without...");
         InitPFTOptions(Options);
         Options->PFTMethod=SCUFF_PFT_EP;
-        G->GetPFT(0, PW, KN, Omega, EPPFTWithout, Options);
+        G->GetPFT(0, KN, Omega, EPPFTWithout, Options);
 
         /*--------------------------------------------------------------*/
         /*- compute EP power with precomputed matrices                  */
@@ -326,7 +326,7 @@ int main(int argc, char *argv[])
         Options->PFTMethod=SCUFF_PFT_EP;
         Options->TInterior=TIn;
         Options->TExterior=TOut;
-        G->GetPFT(0, PW, KN, Omega, EPPFTWith, Options);
+        G->GetPFT(0, KN, Omega, EPPFTWith, Options);
 
         /*--------------------------------------------------------------*/
         /*- write data to log file if requested-------------------------*/

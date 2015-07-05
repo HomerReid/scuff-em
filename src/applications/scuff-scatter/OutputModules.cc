@@ -298,11 +298,14 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  RWGGeometry *G = SSD->G;
-  cdouble Omega=SSD->Omega;
-  PFTOpts->RHSVector=SSD->RHS;
-  PFTOpts->kBloch=SSD->kBloch;
-  PFTOpts->PFTMethod=Method;
+  RWGGeometry *G     = SSD->G;
+  HVector *KN        = SSD->KN;
+  cdouble Omega      = SSD->Omega;
+  PFTOpts->RHSVector = SSD->RHS;
+  PFTOpts->IF        = SSD->IF;
+  PFTOpts->kBloch    = SSD->kBloch;
+  PFTOpts->PFTMethod = Method;
+
   static const char *MethodNames[]
    ={"Overlap", "DSI", "EP", "EPOverlap", "EPDSI"};
   Log("Computing power, force, torque at Omega=%s (method: %s)...",z2s(Omega),MethodNames[Method]);
@@ -331,7 +334,7 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      double PFT[NUMPFT];
-     G->GetPFT(ns, SSD->IF, SSD->KN, Omega, PFT, PFTOpts);
+     G->GetPFT(ns, KN, Omega, PFT, PFTOpts);
 
      fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
      for(int nq=0; nq<NUMPFT; nq++)
@@ -362,151 +365,6 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   fclose(f);
 
 }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-void WriteOPFTFile(SSData *SSD, char *FileName, bool PlotFlux)
-{
-  /*--------------------------------------------------------------*/
-  /*- write file preamble only if file does not already exist ----*/
-  /*--------------------------------------------------------------*/
-  FILE *f=fopen(FileName,"r");
-  if (!f)
-   { f=fopen(FileName,"w");
-     fprintf(f,"# data file columns: \n");
-     fprintf(f,"# 1 omega \n");
-     fprintf(f,"# 2 surface label \n");
-     fprintf(f,"# 3 absorbed power\n");
-     fprintf(f,"# 4 scattered power\n");
-     fprintf(f,"# 5 x-force \n");
-     fprintf(f,"# 6 y-force \n");
-     fprintf(f,"# 7 z-force \n");
-     fprintf(f,"# 8 x-torque \n");
-     fprintf(f,"# 9 y-torque \n");
-     fprintf(f,"# 10 z-torque \n");
-   };
-  fclose(f);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  Log("Computing overlap power, force, torque at Omega=%s...",z2s(SSD->Omega));
-  RWGGeometry *G=SSD->G;
-  f=fopen(FileName,"a");
-  if (!f) return;
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   { 
-     fprintf(f,"%s %s ",z2s(SSD->Omega),G->Surfaces[ns]->Label);
-     double **ByEdge = (PlotFlux ? AllocateByEdgeArray(G, ns) : 0);
-
-     double OPFT[7], PTot;
-     G->GetOPFT(ns, SSD->Omega, SSD->KN, SSD->RHS, 0, OPFT, &PTot, ByEdge);
-     double PAbs  = OPFT[0];
-     double PScat = PTot - PAbs;
- 
-     fprintf(f,"%e %e ",PAbs,PScat);
-     for(int nq=1; nq<7; nq++)
-      fprintf(f,"%e ",OPFT[nq]);
-     fprintf(f,"\n");
-
-     if (ByEdge)
-      ProcessByEdgeArray(G, ns, FileName, "OPFTFlux", SSD->Omega, ByEdge);
-   };
-  fclose(f);
-
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
-                     double DSIRadius, int DSIPoints, bool DSICCQ,
-                     bool DSIFarField, bool PlotFlux)
-{
-  /*--------------------------------------------------------------*/
-  /*- write file preamble only if file does not already exist ----*/
-  /*--------------------------------------------------------------*/
-  FILE *f=fopen(FileName,"r");
-  if (!f)
-   { f=fopen(FileName,"w");
-     fprintf(f,"# data file columns: \n");
-     fprintf(f,"# 1 omega \n");
-     fprintf(f,"# 2 surface label \n");
-     fprintf(f,"# 3 absorbed power\n");
-     fprintf(f,"# 4 scattered power\n");
-     fprintf(f,"# 5 x-force \n");
-     fprintf(f,"# 6 y-force \n");
-     fprintf(f,"# 7 z-force \n");
-     fprintf(f,"# 8 x-torque \n");
-     fprintf(f,"# 9 y-torque \n");
-     fprintf(f,"# 10 z-torque \n");
-   };
-  fclose(f);
-
-  f=fopen(FileName,"a");
-  if (!f) return;
-
-  char CubatureMethod[100];
-  if (DSIMesh)
-   snprintf(CubatureMethod,100,"%s",DSIMesh);
-  else
-   snprintf(CubatureMethod,100,"%e_%i%s%s ",DSIRadius,DSIPoints,
-            DSICCQ   ? "_CCQ" : "", DSIFarField ? "_FarField" : "");
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  RWGGeometry *G=SSD->G;
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   { 
-     RWGSurface  *S=G->Surfaces[ns];
-
-     Log("Computing displaced-surface-integral power, force, torque "
-         "for surface %i...",S->Label);
-
-     char *FluxFileName=0, FFNBuffer[100];
-     if (PlotFlux && DSIMesh)
-      { FluxFileName=FFNBuffer;
-        if (G->NumSurfaces==1)
-         snprintf(FluxFileName,100,"%s.DSIPFTFlux.pp",
-                                    GetFileBase(G->GeoFileName));
-        else
-         snprintf(FileName,100,"%s.%s.DSIPFTFlux.pp",
-                                GetFileBase(G->GeoFileName),S->Label);
-      };
-
-     GTransformation *GT=0;
-     bool CreatedGT=false;
-     if ( (S->OTGT)  && !(S->GT) )
-      { GT=S->OTGT; }
-     else if ( !(S->OTGT) &&  (S->GT) )
-      { GT=S->GT;   }
-     else if ( (S->OTGT)  &&  (S->GT) )
-      { GT=new GTransformation(S->OTGT);
-        GT->Transform(S->GT);
-        CreatedGT=true;
-      };
-
-     double DSIPFT[7], PScat;
-     G->GetDSIPFT(SSD->Omega, SSD->KN, SSD->IF, DSIPFT, &PScat,
-                  DSIMesh, DSIRadius, DSIPoints,
-                  DSICCQ, DSIFarField, FluxFileName, GT);
-
-     fprintf(f,"%s %s %e %e ",
-                z2s(SSD->Omega),S->Label,DSIPFT[0],PScat);
-     for(int nq=1; nq<7; nq++)
-      fprintf(f,"%e ",DSIPFT[nq]);
-     fprintf(f,"\n");
-
-     if (CreatedGT) delete GT;
-   };
-
-  fclose(f);
-
-}
-#endif
 
 /***************************************************************/
 /***************************************************************/

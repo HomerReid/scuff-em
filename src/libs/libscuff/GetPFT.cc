@@ -70,13 +70,6 @@ void GetEPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
              HVector *KNVector, IncField *IF, double FT[6],
              double **ByEdge=0, int Order=1, double Delta=1.0e-5);
 
-#if 0
-   // spatially-resolved fluxes (poynting vector and stress tensor)
-   HMatrix *GetSRFlux(HMatrix *XMatrix, cdouble Omega,
-                      HVector *KNVector, HMatrix *RytovMatrix,
-                      HMatrix *FMatrix, bool FarField);
-#endif
-
 /***************************************************************/
 /* Get the full GTransformation that takes an object/surface   */
 /* from its native configuration (as described in its .msh     */
@@ -115,7 +108,7 @@ GTransformation *GetFullSurfaceTransformation(RWGGeometry *G,
 /***************************************************************/
 /* Get the power, force, and torque on surface #SurfaceIndex.  */
 /***************************************************************/
-void RWGGeometry::GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
+void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
                          cdouble Omega, double PFT[NUMPFT], PFTOptions *Options)
 {
   /***************************************************************/
@@ -129,6 +122,7 @@ void RWGGeometry::GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
   int PFTMethod      = Options->PFTMethod;
   char *FluxFileName = Options->FluxFileName;
   RWGSurface *S      = Surfaces[SurfaceIndex];
+  IncField *IF       = Options->IF;
 
   /***************************************************************/
   /* allocate arrays for the edge-by-edge contributions if the   */
@@ -154,17 +148,6 @@ void RWGGeometry::GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
    { 
      HVector *RHSVector   = Options->RHSVector;
      HMatrix *RytovMatrix = Options->RytovMatrix;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-bool SurfaceIsExtended=false;
-if (NumStraddlers[0] && NumStraddlers[0][SurfaceIndex]>0)  
- SurfaceIsExtended=true;
-if (NumStraddlers[1] && NumStraddlers[1][SurfaceIndex]>0)
- SurfaceIsExtended=true;
-if (SurfaceIsExtended)
- { memset(PFT, 0, NUMPFT*sizeof(double));
-   return;
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      GetOPFT(this, SurfaceIndex, Omega, KN,
              RHSVector, RytovMatrix, PFT, ByEdge);
    }
@@ -261,6 +244,7 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
   Options->PFTMethod = SCUFF_PFT_DEFAULT;
   Options->FluxFileName=0;
   Options->RytovMatrix=0;
+  Options->IF=0;
   Options->kBloch=0;
 
   // options affecting overlap PFT computation

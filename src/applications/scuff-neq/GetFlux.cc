@@ -285,7 +285,7 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, int DestSurface,
   PFTOpts->TInterior   = SNEQD->TInt[DestSurface];
   PFTOpts->TExterior   = SNEQD->TExt[DestSurface];
 
-  G->GetPFT(DestSurface, 0, 0, Omega, AllFlux, PFTOpts);
+  G->GetPFT(DestSurface, 0, Omega, AllFlux, PFTOpts);
 
   /*--------------------------------------------------------------*/
   /*- collapse the full vector of 8 PFTs to just the entries the -*/

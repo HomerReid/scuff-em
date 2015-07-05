@@ -404,9 +404,8 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
    /* post-processing routines for power, force, and torque (PFT)  */
    /*--------------------------------------------------------------*/
-   void GetPFT(int SurfaceIndex, IncField *IF, HVector *KN,
-               cdouble Omega, double PFT[NUMPFT],
-               PFTOptions *Options=0);
+   void GetPFT(int SurfaceIndex, HVector *KN, cdouble Omega,
+               double PFT[NUMPFT], PFTOptions *Options=0);
 
    /*--------------------------------------------------------------*/
    /*- post-processing routines for various other quantities      -*/
