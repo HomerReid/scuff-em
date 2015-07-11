@@ -65,13 +65,14 @@ You can visualize this configuration by typing e.g.
 ## Spectral density of radiated power
 
 As described in the 
-[<span class="CodeName">scuff-neq</span documentation][scuff-neq],
+[<span class="CodeName">scuff-neq</span> documentation][scuff-neq],
 [[scuff-neq]] computes the total power radiated by
 finite-temperature objects as an integral over angular frequencies
 $\omega,$ in which the integrand involves a
 temperature-dependent Bose-Einstein factor 
 and a temperature-independent dimensionless flux $\Phi.$ 
-To plot this radiated-power flux for a given 
+To calculate this radiated-power flux at a given set
+of frequencies, we say
 
 ````bash
  % scuff-neq --geometry SiO2Sphere_501.scuffgeo --OmegaFile --PRad
@@ -106,26 +107,25 @@ flux. (The first column lists the
 we didn't specify the `--transfile` option to 
 [[scuff-neq]], we have just a single geometric
 configuration, labeled `DEFAULT`. The third 
-column identifies the source and destination objects
-for the 
+column identifies the source and destination objects;
 since this geometry only has a single object,
 the source and destination object are both 
 always object 1 and this column always reads
 `11`.)
 
-Here's a plot of a the data:
+Here's a plot of the data:
 
 ![Power radiation from an SiO2Sphere](SiO2Sphere_PowerRadiation.png)
 
 In this plot, the solid line is the prediction of 
 the [Krueger formalism][KruegerPaper], as computed
-by a [[julia]] code called [`KrugerFormulas.jl`](GetKrugerData.jl).
+by a [[julia]] code called [`KruegerFormulas.jl`](KruegerFormulas.jl).
 
 The plot is produced by [[gnuplot]] using 
 [this script](Plotter.gp).
 
 --------------------------------------------------
-## Spectral density of power transfer and non-equlibrium force
+## Spectral density of power transfer and non-equilibrium force
 
 Here's a [bash script](RunScript) that runs [[scuff-neq]]
 for both the coarsely-meshed and finely-meshed two-sphere
