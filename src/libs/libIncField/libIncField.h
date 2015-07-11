@@ -84,6 +84,11 @@ class IncField
  };
 
 /**********************************************************************/
+/* non-class-method function to delete an entire linked chain of IncFields */
+/**********************************************************************/
+void DeleteIncFieldChain(IncField *IF);
+
+/**********************************************************************/
 /* Next come the various possible types of incident field, implemented*/
 /* as structs derived from IncField.                                  */
 /**********************************************************************/

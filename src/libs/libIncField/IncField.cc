@@ -64,6 +64,20 @@ IncField::~IncField()
 }
 
 /***************************************************************/
+/* non-class-method function to delete an entire linked chain  */
+/* of IncFields                                                */
+/***************************************************************/
+void DeleteIncFieldChain(IncField *IF)
+{ 
+  IncField *ThisIF=IF;
+  while (ThisIF)
+   { IncField *NextIF=ThisIF->Next;
+     delete ThisIF;
+     ThisIF=NextIF;
+   };
+}
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void IncField::SetFrequency(cdouble pOmega, bool Traverse)

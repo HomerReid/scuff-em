@@ -516,14 +516,14 @@ and the torque flux has units of *nanoNewtons microns/watts.*
 
 + [Heat transfer and non-equilibrium Casimir forces between warm and cold spheres][SiO2Spheres]
 
-+ [Spatial distribution of poynting flux from a warm tip above a cold substrate][SiO2Spheres]
++ [Spatial distribution of poynting flux from a warm tip above a cold substrate][TipSubstrate]
 
 [scuff-cas3D]:   ../scuff-cas3D/scuff-cas3D.md
 [EPFile]:        ../../applications/GeneralReference.md#EvaluationPoints
 [FSCPaper]:      http://link.aps.org/doi/10.1103/PhysRevB.88.054305
 [SIEPFTPaper]:	 http://dx.doi.org/10.1109/TAP.2015.2438393
 [LogFiles]:      ../GeneralReference.md#LogFiles
-[SiO2Sphere]:    ../../examples/SiO2Spheres/SiO2Spheres.md#SingleSphere
-[SiO2Spheres]:   ../../examples/SiO2Spheres/SiO2Spheres.md#TwoSpheres
+[SiO2Sphere]:    ../../examples/SiO2Spheres/SiO2Spheres.md
+[SiO2Spheres]:   ../../examples/SiO2Spheres/SiO2Spheres.md
 [TipSubstrate]:  ../../examples/TipSubstrate/TipSubstrate.md
 [CommonOptions]: ../GeneralReference.md#CommonOptions
