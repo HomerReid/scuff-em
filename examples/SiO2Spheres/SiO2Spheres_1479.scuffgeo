@@ -1,0 +1,29 @@
+# 
+# dielectric model for silicon dioxide
+# 
+MATERIAL SIO2
+  A1              = 8.2736e+13;
+  w01             = 8.54484e+13;
+  G1              = 8.46448e+12;
+  A2              = 1.58004e+14;
+  w02             = 2.029e+14;
+  G2              = 1.06449e+13;
+  A3              = 3.39786e+13;
+  w03             = 1.51198e+14;
+  G3              = 8.33205e+12;
+  EpsInf          = 2.03843;
+
+  Eps(w) = EpsInf + A1*A1/(w01*w01 - w*w - i*w*G1) + A2*A2/(w02*w02 - w*w - i*w*G2) + A3*A3/(w03*w03 - w*w - i*w*G3);
+
+ENDMATERIAL
+
+OBJECT	LowerSphere
+	MESHFILE Sphere_1479.msh
+ 	MATERIAL SiO2
+ENDOBJECT
+
+OBJECT	UpperSphere
+	MESHFILE Sphere_1479.msh
+ 	MATERIAL SiO2
+ 	DISPLACED 0 0 10
+ENDOBJECT

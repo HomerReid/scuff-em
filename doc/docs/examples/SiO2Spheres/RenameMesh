@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ $# -eq  0 ]
+then
+  echo "usage: $0 Object.msh"
+fi
+
+NUMEDGES=`scuff-analyze --mesh $1  | grep 'interior edges' | head -1 | cut -f2 -d' '`
+if [ "x${NUMEDGES}" == "x" ]
+then 
+  echo "Something's gone wrong."
+  exit
+fi
+  
+/bin/mv $1 ${1%%.msh}_${NUMEDGES}.msh
+
+echo "Moved $1 to ${1%%.msh}_${NUMEDGES}.msh."

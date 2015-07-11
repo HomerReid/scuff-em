@@ -1,0 +1,13 @@
+#!/bin/bash
+
+for N in 501 1479
+do
+  ARGS=""
+  ARGS="${ARGS} --geometry SiO2Spheres_${N}.scuffgeo"
+  ARGS="${ARGS} --OmegaFile OmegaFile"
+  ARGS="${ARGS} --Power --ZForce"
+  ARGS="${ARGS} --DSIRadius 5"
+  ARGS="${ARGS} --DSIPoints 302"
+
+  scuff-neq ${ARGS}
+done
