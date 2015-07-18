@@ -1,0 +1,954 @@
+\documentclass[letterpaper]{article}
+
+\input{scufftex}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\newcommand{\vbsigma}{\boldsymbol{\sigma}}
+\newcommand{\YY}{\mc Y}
+\newcommand{\BE}{\begin{equation}}
+\newcommand{\EE}{\end{equation}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {{\sc scuff-static}: Pure Electrostatics in {\sc scuff-em}}
+\author {Homer Reid}
+\date {May 17, 2013}
+
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: Electrostatics in \ls}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Overview}
+
+The core {\sc scuff-em} library is designed to solve
+electromagnetism problems at nonzero frequencies.
+In principle, we can use it to solve electrostatics
+problems simply by working at low nonzero frequencies
+and extrapolating to the $\omega\to 0$ limit. This
+approach works adequately in many cases of interest
+(as, for example, in the ``electrostatics of a spherical
+dielectric shell'' example on the {\sc scuff-em}
+website.\footnote{\url{http://homerreid.com/scuff-EM/scuff-scatter/scuffScatterExamples.shtml#SphericalShell}.})
+
+However, there are at least two drawbacks to such an 
+approach:
+
+\begin{itemize}
+ \item The nonzero-frequency BEM formulations
+       used by \lss are solving for surface
+       \textit{currents} (both electric and 
+       magnetic currents), whereas for 
+       electrostatics problems the appropriate 
+       unknowns are electric \textit{charges} 
+       with no magnetic unknowns. Because there 
+       are multiple current distributions whose 
+       divergence yields
+       the same charge density, the full-wave
+       formulations in \lss become ill-conditioned
+       in the extreme DC limit. Even for 
+       low-but-not-extremely-low frequencies
+       at which the full-wave formulation is 
+       not particularly badly behaved, it is 
+       still computationally \textit{wasteful} 
+       to solve for electric and magnetic currents
+       when we only need electric charges.
+       Indeed, for a dielectric object represented
+       by a surface mesh of $N$ triangular panels,
+       the full-wave formulation of \lss
+       involves roughly $3N$ unknowns, whereas a
+       pure-electrostatics formulation
+       requires exactly $N$ unknowns, as discussed below.
+
+ \item In electrostatics we frequently encounter
+       boundary conditions consisting of fixed
+       potentials on conductor surfaces. This 
+       kind of boundary condition is unwieldy 
+       to support in core \lss
+       (although the {\sc scuff-rf} module 
+       does support a version of it in the 
+       definition of port voltages).
+
+\end{itemize}
+%
+To address these difficulties, {\sc scuff-em} includes 
+a pure electrostatics module known as {\sc scuff-static}.
+This code reuses much of the existing {\sc libscuff}
+infrastructure
+to implement an electrostatic BEM formulation.
+It is designed to be easily incorporated into 
+existing {\sc scuff-em} workflows; in particular, it
+reads the same \texttt{.scuffgeo} files for describing
+geometries.\footnote{One distinction: {\sc scuff-static}
+does not presently support {\texttt{LATTICE}} statements,
+i.e. extended objects with periodic boundary conditions.}
+The following section of this memo describes the 
+(standard) electrostatic BEM formulation used by 
+{\sc scuff-em}, and subsequent sections discuss
+the implementation of the various types of calculation
+you can request in a {\sc scuff-static} run.
+
+\subsection*{Implementation of $\lambda$-surfaces}
+
+In addition to the usual electrostatic boundary conditions
+for perfect conductors and dielectrics, {\sc scuff-static} 
+supports an exotic type of boundary condition that I will 
+call ``$\lambda$-conditions,'' which arises in theoretical
+treatments of entanglement entropy. At a point $\vb x$ on
+the surface of a body 
+satisfying $\lambda$-conditions (which I will call a 
+``$\lambda$-surface''), the boundary condition on the
+electrostatic potential is 
+%====================================================================%
+\numeq{LambdaCondition0}
+{
+    \left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^+} 
+   -\left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^-} 
+   =\frac{1}{\lambda} \phi(\vb x)
+}
+%====================================================================%
+where $\lambda$ is a material property of the surface.
+[Noting that the LHS of (\ref{LambdaCondition0}) is the
+jump in normal electric field across the two sides of
+a surface in vacuum, it is 
+tempting to interpret the RHS as a surface charge
+density, in which case we can think of $1/\lambda$ as 
+a sort of linear semiconducting susceptibility, i.e.
+the surface develops a local charge density proportional to 
+the local electrostatic potential with proportionality
+constant $1/\lambda$.] $\lambda$-surfaces are 
+described in {\sc scuff-em} geometry files as 
+infinitesimally thin objects whose dielectric 
+constant has zero real part and negative imaginary part;
+the absolute value of the imaginary part is taken
+as the value of $\lambda.$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Theory}
+
+As in the usual \ls, we imagine geometries to consist
+of homogeneous regions $\{\mc R_r\}$. Homogeneous region 
+$\{\mc R_r\}$ has relative dielectric permittivity 
+$\epsilon_r.$ 
+
+The boundary of $\mc R_r$ is denoted $\partial \mc R_r$; 
+it may consist of a single closed surface or a union of
+surfaces, each of which may be individually open.
+Thus we write 
+%====================================================================%
+\numeq{RrSs} { \partial \mc R_r = \cup \, \mathcal{S}_s }
+%====================================================================%
+Each surface $\mc S_s$ bounds precisely two regions; 
+thus $\mc S_s$ appears on the RHS of equation (\ref{RrSs})
+for two different values of $r$. 
+
+On each surface lives a surface charge density 
+$\sigma(\vb x)$.
+
+Surface $\mc S_s$ may optionally be PEC, in which case it
+must be assigned a fixed potential $V_s$ before the problem
+can be solved. Physically, a PEC surface corresponds to
+an infinitesimally thin conducting layer at the interface
+between two dielectric regions, and the surface charge
+on such a surface represents free charges supplied to the
+surface by whatever batteries initially charged them up to
+their specified  potentials $V_s.$
+
+On the other hand, a non-PEC surface simply desribes the 
+interface between two dielectric regions, and the 
+surface charge on such a surface represents the divergence
+of the bound volume polarization density in the dielectric  
+region. Among other things, this means that the total
+surface charge integrated over the boundary of a dielectric
+region must vanish. There is no such constraint on 
+the total surface charge on PEC surfaces.
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\subsection*{Potentials and fields from charge densities: 
+             continuous forms} 
+
+The electrostatic potential and field at an arbitrary point
+$\vb x$ are obtained by summing contributions from
+surface charges on all surfaces, plus the contributions of
+any external field sources that may be present:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+\phi(\vb x)  
+&= \phi\sups{ext}(\vb x) 
+  +\frac{1}{4\pi\epsilon_0} 
+   \sum_{s} \oint_{\mc S_s}
+   \frac{1}{|\vb x - \vb x^\prime|}
+           \,\sigma(\vb x^\prime) \, d\vb x^\prime
+\\
+%--------------------------------------------------------------------%
+\vb E(\vb x) 
+&= \vb E\sups{ext}(\vb x)
+  +\frac{1}{4\pi\epsilon_0}
+   \sum_{s} \oint_{\mc S_s}
+   \frac{(\vb x-\vb x^\prime)}
+        {|\vb x - \vb x^\prime|^3}
+        \,\sigma(\vb x^\prime)\,d\vb x^\prime.
+\end{align}
+\label{ContinuousEquations1}
+\end{subequations}
+%====================================================================%
+\noindent 
+where $\phi\sups{ext}, \vb E\sups{ext}$ are the potential and field 
+due to external field sources.\footnote{In a full-wave scattering 
+problem these would be the ``incident'' fields, but in an 
+electrostatic problem the word ``incident'' doesn't quite make 
+sense, so we call them the ``external'' fields instead.}
+
+There are several important distinctions between these 
+equations and the corresponding equations in the full-wave
+formulations: 
+%====================================================================%
+\begin{itemize}
+ %--------------------------------------------------------------------%
+ \item
+ The integrals in (\ref{ContinuousEquations1}) are over 
+ \textit{all} surfaces in the problem, not just the surfaces 
+ bounding the region in which the evaluation point lies. 
+ This is in contrast to the full-wave case, in which the 
+ corresponding surface integrals range only over the surfaces 
+ bounding the medium in question.
+ %--------------------------------------------------------------------%
+ \item
+ Similarly, $\phi\sups{ext}, \vb E\sups{ext}$ contribute 
+ to the total fields at \textit{all} points in space, not 
+ just points living in the same regions as the external 
+ field sources. This is again in contrast to the full-wave 
+ case, where the incident field sources contribute only
+ to fields at points in the same region as those sources.
+ %--------------------------------------------------------------------%
+ \item
+ Equations (\ref{ContinuousEquations1}) do \textit{not}
+ involve the dielectric constants of the various regions.
+ Instead, surface charges on all surfaces contribute to 
+ the potential as they would in vacuum. The dielectric 
+ constants of the various materials enter only through
+ the boundary conditions, discussed below.
+ %--------------------------------------------------------------------%
+ \item
+ Another distinction with the full-wave case which is not 
+ apparent from (\ref{ContinuousEquations1}) is that we can 
+ have nonzero induced charge densities $\sigma$ even in 
+ the absence of any external fields. This is possible
+ if the problem involves conducting surfaces maintained
+ at nonzero potentials.
+\end{itemize}
+%====================================================================%
+
+%====================================================================%
+%====================================================================%
+%====================================================================%
+\subsection*{Surface charge density expansion}
+
+Now imagine approximating surface $\mc S_s$ as the union
+of $N_s\supt{P}$ flat triangular panels, 
+$$ \mc S_{s} = \cup \, \mc P_{sa}$$
+where $a=1,\cdots,N_s\supt{P}$.
+Let $P_{sa}$ have area $A_{sa}$ and surface normal
+$\vbhat{n}_{sa}$. (We will worry about the direction
+of $\vbhat{n}_{sa}$ later.)
+
+To panel $\mc P_{sa}$ we assign a scalar-valued 
+``pulse'' basis function $b_{sa}(\vb x)$ that is 
+1 on the panel and 0 elsewhere:
+$$ b_{sa}(\vb x) = 
+   \begin{cases}
+    1, \qquad &\vb x \in \mc P_{sa} \\
+    0, \qquad &\text{otherwise}.
+  \end{cases}
+$$
+We approximate the surface charge density on $\mc S_s$
+as an expansion in the $b_{sa}$ functions:
+$$ \frac{\sigma(\vb x)}{\epsilon_0} 
+   \approx \sum_{a=1}^{N_s\supt{P}} \sigma_{sa} b_{sa}(\vb x)
+   \qquad 
+   \text{for }\vb x\in \mc S_s.
+$$
+Note that my $\sigma_{sa}$ unknowns have the dimensions
+of 
+$$\frac{\text{surface charge density}}{\text{permittivity}}=
+  \frac{\text{volts}}{\text{length}}.
+$$
+In what follows, I will frequently use the collective
+subscript $n=(sa)$ with $\sum_n=\sum_s \sum_a$, i.e.
+a sum over $n$ runs over all panels on all surfaces.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Potentials and fields from charge densities: 
+             discretized forms} 
+
+The electrostatic potential and field at $\vb x$ are 
+%====================================================================%
+\begin{subequations}
+\begin{align}
+\phi(\vb x) 
+&= \phi_r\sups{ext}(\vb x)
+   +
+   \sum_{n} \sigma_n 
+   \int_{\mc P_n} \frac{d\vb x^\prime}{4\pi |\vb x - \vb x^\prime|}
+\\
+%--------------------------------------------------------------------%
+\vb E(\vb x) 
+&= \vb E_r\sups{ext}(\vb x)
+   +
+   \sum_{n} \sigma_n 
+   \int_{\mc P_n} \frac{(\vb x-\vb x^\prime)d\vb x^\prime}
+                       {4\pi |\vb x - \vb x^\prime|^3}
+\end{align}
+\label{DiscreteEquations1}
+\end{subequations}
+where the sum is over all panels on all surfaces in the problem.
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Conditions on potentials and fields}
+
+\subsubsection*{Conditions at PEC surfaces}
+
+At PEC surfaces we impose the condition that the electrostatic
+potential equal the specified potential for that conductor:
+%====================================================================%
+\begin{align}
+ \phi(\vb x) &= V_s, \qquad \text{for } \vb x \in \mc S_s.
+\nonumber
+\intertext{Galerkin-testing with the expansion functions for 
+           surface $\mc S_s$, we find }
+ \int_{\mc P_{sa}} \phi(\vb x) d\vb x &= A_{sa} V_s,
+ \qquad \text{for all panels $\mc P_{sa}$ on surface }\mc S_s.
+\nonumber
+ \intertext{Inserting (\ref{DiscreteEquations1}a), this reads }
+ \sum_{n} \mathcal{I}\supt{(1)}_{mn} \sigma_n
+ &= A_{m} V_m - \int_{\mc P_m} \phi\sups{ext}(\vb x)d\vb x
+\label{PECPanelEquation}
+\end{align}
+where $V_m$ is the potential at which the conducting surface
+containing panel $\mc P_m$ is held and
+$$ \mathcal{I}\supt{(1)}_{mn} 
+   \equiv 
+   \int_{\mc P_m} \int_{\mc P_n} 
+   \frac{1}{4\pi|\vb x - \vb x^\prime|} \, d\vb x^\prime \,d\vb x.
+$$ 
+%====================================================================%
+
+\subsubsection*{Conditions at dielectric surfaces}
+
+At non-PEC surfaces we impose the condition that the normal 
+electric field exhibit the requisite discontinuity. 
+If $\vb x$ is a point on a surface $\mc S_s$ lying between
+regions $\mc R_r$ and $\mc R_{r^\prime}$, the condition is 
+\numeq{EFieldDiscontinuity}
+{
+ \epsilon_r \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^+}
+=
+ \epsilon_{r^\prime} \left|\pard{\phi}{\vbhat{n}}\right|_{\vb x^-}
+}
+where $\vbhat{n}$ is the surface normal pointing 
+away from $\mc R_r$ into $\mc R_{r^\prime}$, and
+where $x^+$ and $x^-$ are points lying
+infinitesimally displaced from $\vb x$ along
+$\vbhat{n}$ into $\mc R_r$ and $\mc R_{r^\prime}$.
+
+When we seek to enforce condition (\ref{EFieldDiscontinuity}) 
+at a point $\vb x$ lying within a panel $\mc P_{sa}$
+on $\mc S_s$, we find the following dichotomy:
+%====================================================================%
+\begin{enumerate}
+  \item Surface charges on $\mc P_{sa}$ contribute to 
+        the two sides of (\ref{EFieldDiscontinuity})
+        with \textit{opposite} signs.
+  \item Surface charges on all other panels, as well as the 
+        external field sources, contribute
+        to the two sides of (\ref{EFieldDiscontinuity})
+        with the \textit{same} sign.
+\end{enumerate}
+Equation (\ref{EFieldDiscontinuity}) thus reads, for a 
+point $\vb x$ on $\mc P_m$,
+%====================================================================%
+\begin{align*}
+&\epsilon_r 
+   \left[ \frac{\sigma_m}{2} 
+          + \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
+            \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
+                 { 4\pi |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+          + \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
+   \right]
+\\
+&\qquad
+=\epsilon_{r^\prime}
+   \left[  -\frac{\sigma_m}{2} 
+          + \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
+            \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
+                 { 4\pi |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+          + \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
+   \right]
+\end{align*}
+or 
+\numeq{DielectricCondition}
+{ \sigma_m 
+  + \Delta_{rr^\prime}
+    \sum_{n\ne m} \sigma_n \int_{\mc P_{n}}
+    \frac{ \vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
+         { 4\pi |\vb x-\vb x^\prime|^3 } \, d\vb x^\prime
+   = -\Delta_{rr^\prime}\vbhat{n}_m \cdot \vb E\sups{ext}(\vb x)
+}
+with
+\numeq{DeltaDef}
+{\Delta_{rr^\prime} = 2\frac{\epsilon_r-\epsilon_r^\prime}{\epsilon_r + \epsilon_r^\prime}.}
+Now Galerkin-test (\ref{DielectricCondition}) with the pulse basis
+function associated with panel $m$:
+\numeq{DielectricPanelEquation}
+{
+   A_{m} \sigma_m 
+   + \Delta_{rr^\prime} \sum_{n\ne m} \mathcal{I}\sups{(2)}_{mn} \sigma_n
+   = -\Delta_{rr^\prime} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) d\vb x
+}
+where 
+$$ \mathcal{I}\supt{(2)}_{mn} 
+   \equiv 
+   \int_{\mc P_m} \int_{\mc P_n} 
+   \frac{\vbhat{n}_m \cdot (\vb x-\vb x^\prime)}
+        {4\pi|\vb x - \vb x^\prime|^3} \, d\vb x^\prime \,d\vb x.
+$$ 
+
+\subsubsection*{Conditions at $\lambda-$ surfaces}
+
+As a generalization of the usual electrostatics
+for PEC and dielectric bodies, {\sc scuff-static} 
+also supports a modified type of boundary conditions
+that we will call $\lambda$-\textit{conditions}.
+The $\lambda$ boundary condition is defined by
+\numeq{LambdaCondition}
+{
+  \lambda\bigg\{
+    \left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^+} 
+   -\left|\frac{d\phi}{d\vbhat{n}}\right|_{\vb x^-} 
+          \bigg\}
+   =\phi(\vb x).
+}
+Surfaces satisfying $\lambda$ conditions will be 
+known as $\lambda$-\textit{surfaces}. We may think 
+of $\lambda$-surfaces as a type of semiconducting
+surface on which reside a surface charge density
+proportional to the local electrostatic potential.
+
+It's easy to write down the Galerkin-tested version
+of (\ref{LambdaCondition}). Consider testing each
+side with the pulse basis function associated with
+panel $m$. By the dichotomy discussed above, the 
+contribution of all other panels $\mc P_{n\ne m}$ to 
+the quantity in curly brackets vanishes, as does the 
+contribution of the external field. The contribution
+of $\mc P_m$ may be evaluated in a way similar
+to our evaluation of the diagonal matrix element
+in the dielectric case discussed above. The Galerkin
+test of the RHS proceeds similarly to our discussion
+of the PEC case above. We obtain
+%====================================================================%
+$$ \lambda A_m \sigma_m - \sum_{mn} \mc{I}_{mn}^{(1)} \sigma_{n}
+   =\int_{\mc P_m} \phi\sups{ext}(\vb x)\,d\vb x.
+$$
+%====================================================================%
+
+
+\subsubsection*{BEM system}
+
+Assembling equations (\ref{PECPanelEquation}) for PEC panels,
+(\ref{DielectricPanelEquation}) for all dielectric panels,
+and (\ref{LambdaCondition}) for all $\lambda$ panels 
+into a big linear system, we have 
+%====================================================================%
+\numeq{BEMSystem}{ \vb M \boldsymbol{\sigma} = \vb v }
+%====================================================================%
+where the $m$th entry of the unknown vector $\sigma$ is the 
+surface charge density (divided by $\epsilon_0$) on the $m$th
+panel, and where the elements of the BEM matrix and the RHS vector are
+%====================================================================%
+\paragraph{If panel $m$ is on a PEC surface:}
+$$
+  M_{mn} = \mathcal{I}\sups{(1)}_{mn}, 
+   \hspace{1.2in}
+   v_m = A_{m} V_m - \int_{\mc P_m} \phi\sups{ext}(\vb x) \, d\vb x.
+$$
+\paragraph{If panel $m$ is on a dielectric surface:}
+$$ M_{mn} = 
+   \begin{cases} 
+     A_m, \qquad &m=n \\
+     \Delta_{rr^\prime} \mathcal{I}\sups{(2)}_{mn}, \qquad &m\ne n
+   \end{cases} 
+   \qquad 
+   v_m = -\Delta_{rr^\prime} \int_{\mc P_m} \vbhat{n}_m \cdot \vb E\sups{ext}(\vb x) \, d\vb x.
+$$
+\paragraph{If panel $m$ is on a $\lambda$-surface:}
+$$ M_{mn} = 
+     \lambda A_{m}\delta_{mn} - \mathcal{I}\sups{(1)}_{mn},
+   \qquad 
+   v_m = + \int_{\mc P_m} \phi\sups{ext}(\vb x) \, d\vb x.
+$$
+
+%====================================================================%
+In these equations, 
+\begin{itemize}
+ \item $V_m$ denotes the potential at which the conducting surface
+       containing panel $\mc P_m$ is held.
+ \item $\Delta_{rr^\prime}$ is quantity (\ref{DeltaDef}) with $\epsilon_r$
+       and $\epsilon_{r^\prime}$ the permittivities of the regions 
+       \textit{exterior} and \textit{interior} to the surface containing
+       $\mc P_m,$ respectively.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Output Modules}
+
+In this section we discuss the implementation of some of the 
+{\sc scuff-static} output modules.
+
+\subsection{Capacitance matrix}
+
+Consider a geometry consisting of $N$ conducting bodies
+(possibly in the presence of any number of additional
+dielectric bodies). The capacitance matrix is an $N\times N$
+matrix whose $m,n$ entry $C_{mn}$ gives the charge 
+induced on body $m$ when conductor $n$ is maintained at 
+a potential of 1 volt and all other conductors are maintained
+at zero volts. This is computed in {\sc scuff-static}
+by performing $N$ separate electrostatic calculations---that 
+is, solving equation (\ref{BEMSystem}) for $N$ separate RHS 
+vectors but the same matrix in each case---with the 
+$n$th RHS vector $\vb v_n$ corresponding to the case 
+in which the conductor potentials are 
+$$V_m = (1\text{ volt})\cdot \delta_{mn}, \qquad 
+  m=\{1,\cdots,N\}.$$
+After solving the system for $\vbsigma$,
+we compute the total induced charge on body $m$ by 
+simply summing the charges of all panels on that body:
+$$ C_{mn} 
+   = 
+   \epsilon_0 \cdot \sum_{p\in \text{panels on $\mc S_m$}} A_p \sigma_p 
+$$
+where $A_p$ is the panel area.
+
+\subsection{Polarizability}
+
+\subsection{C-matrix}
+
+The ``$C$-matrix'' (not to be confused with the capacitance
+matrix) is a sort of DC version of the ``T-matrix'' familiar
+from full-wave electromagnetic scattering 
+theory.\footnote{Recall that {\sc scuff-em} includes a code
+for computing full-wave T-matrices for objects of arbitrary 
+shapes and materials:\url{http://homerreid.com/scuff-EM/scuff-tmatrix}.}
+The rows and columns of the $C$-matrix are indexed by 
+spherical harmonic indices $(\ell m)$. In brief, the matrix entry 
+$C_{\ell^\prime m^\prime, \ell m}$ is the coefficient
+of the $(\ell^\prime m^\prime)$ spherical multipole term
+in the ``scattered'' or ``outgoing'' electrostatic potential 
+due to an object exposed to an ``incoming'' 
+$(\ell, m)-$spherical multipole field.
+
+\subsubsection*{Real-valued spherical harmonics}
+{\sc scuff-static} works in a basis of \textit{real-valued}
+spherical harmonics $\YY_{\ell m}$. These are defined in 
+terms of the usual complex-valued spherical harmonics 
+$Y_{\ell m}$ by simply replacing the $e^{im\phi}$ factor 
+in $Y$ with a $\cos m\phi$ factor for positive $m$
+and a $\sin m\phi$ factor for negative $m$ 
+(and then adjusting the overall normalization such that
+the new functions are orthonormal).
+More specifically, we put
+%====================================================================%
+\numeq{YYDefinition}
+{  \YY_{\ell, m} \equiv
+   \begin{cases}
+     %--------------------------------------------------------------------%
+     \frac{1}{\sqrt{2}}\Big[ Y_{\ell,m} + (-1)^{m} Y_{\ell,-m} \Big], \qquad 
+     &m>0
+     \\
+     %--------------------------------------------------------------------%
+     Y_{\ell,m} \qquad 
+     &m=0
+     \\
+     %--------------------------------------------------------------------%
+     \frac{1}{i\sqrt{2}}\Big[ Y_{\ell,m} - (-1)^m Y_{\ell,-m} \Big], \qquad
+     &m<0.
+   \end{cases}
+}
+The $\YY$ functions satisfy the orthogonality relation
+$$ \int \YY_{\ell m}(\theta, \phi)                 \,
+        \YY_{\ell^\prime m^\prime}(\theta, \phi)   \,
+        d\Omega
+   =\delta_{\ell, \ell^\prime} \delta_{m,m^\prime}
+$$
+%====================================================================%
+It is convenient to introduce a single index $\alpha$ 
+that runs over $(\ell,m)$ tuples according to 
+%====================================================================%
+$$\alpha(\ell,m) = \ell(\ell + 1) + m. $$ 
+%====================================================================%
+The following table lists the $\alpha$ indices and 
+$\YY$ functions for the first few $(\ell,m)$ tuples:
+%====================================================================%
+\renewcommand{\arraystretch}{2.0}
+$$\begin{array}{|c|c|l|}\hline
+\alpha & (\ell, m) & \hspace{0.5in} \YY_{\ell m}          \\\hline
+0      & (   0, 0) & +\sqrt\frac{1}{4\pi} \\\hline
+%--------------------------------------------------------------------%
+1      & (   1,-1) & -\sqrt{\frac{3}{4\pi}} \sin\theta\sin\phi  \\\hline
+2      & (   1, 0) & +\sqrt\frac{3}{4\pi} \cos\theta          \\\hline
+3      & (   1,+1) & -\sqrt{\frac{3}{4\pi}} \sin\theta\cos\phi  \\\hline
+4      & (   2,-2) & -\sqrt\frac{15}{16\pi} \sin^2\theta \sin 2\phi \\ \hline
+5      & (   2,-1) & -\sqrt\frac{15}{16\pi} \cos\theta \sin\theta \sin\phi \\ \hline
+6      & (   2, 0) & +\sqrt\frac{5}{16\pi}(1+3\cos 2\theta) \\ \hline
+7      & (   2,+1) & -\sqrt\frac{15}{16\pi} \cos\theta \sin\theta \cos\phi \\ \hline
+8      & (   2,+2) & +\sqrt\frac{15}{16\pi} \sin^2\theta \cos 2\phi \\ \hline
+\end{array}$$
+\renewcommand{\arraystretch}{1.0}
+%====================================================================%
+
+\subsubsection*{Definition of $C$-matrix}
+
+The entries of the $C$-matrix are defined as the coefficients
+in a spherical-wave expansion of the ``outgoing'' or 
+``scattered'' potential due to a given ``incident'' or
+``external'' spherical-wave potential. More generally,
+we consider an object subject to a given external potential 
+$\phi\sups{ext}(\vb x)$. The total potential is the sum
+of the external potential plus a ``scattered'' contribution
+arising from the induced charge density on the object:
+%====================================================================%
+\begin{equation}
+\phi(\vb x) = \phi\sups{ext}(\vb x) + \phi\sups{scat}(\vb x).
+\end{equation}
+%====================================================================%
+To define the $C$-matrix, we take the external potential 
+to be a unit-strength ``incoming'' $(\ell, m)$ spherical wave:
+%====================================================================%
+\begin{equation}
+\phi\sups{ext}(\vb x)=r^{\ell} \YY_{\ell m}(\theta, \phi).
+\end{equation}
+%====================================================================%
+Then the ``scattered'' potential can quite generally be 
+represented as a sum of ``outgoing'' spherical waves, and the 
+coefficients in this expansion are the elements of the 
+$C$-matrix:
+%====================================================================%
+\numeq{CMatrixDefinition}
+{\phi\sups{scat}(\vb x) 
+   = \sum_{\ell^\prime, m^\prime}
+     C_{\ell^\prime m^\prime, \ell m} 
+           \frac{\YY_{\ell^\prime m^\prime}(\theta, \phi)}
+                {r^{\ell^\prime + 1 }}.
+}
+%====================================================================%
+
+\subsubsection*{$C$-matrix elements from charge-density projections}
+The elements of the $C$-matrix may be computed from the induced
+surface charge density $\sigma(\vb x)$ on the surfaces of 
+the objects in a scattering problem. To do so, first note that
+the ``scattered'' potential may be obtained from $\sigma$ 
+in the form of a surface integral:
+%====================================================================%
+\begin{align}
+ \phi\sups{scat}(\vb x) 
+&= 
+ \int G(\vb x-\vb x^\prime) \sigma(\vb x^\prime) d\vb x^\prime
+\intertext{where $G(\vb r)=\frac{1}{4\pi |\vb r|}$ is the 
+usual electrostatic Green's function. Now insert the 
+spherical-wave expansion of $G$:}
+&=\int \bigg\{
+   \sum_{l^\prime m^\prime}
+   \frac{1}{(2l^\prime + 1)} 
+   \frac{ (r^\prime)^{\ell^\prime} }
+        { r^{\ell^\prime+1} }
+   \YY_{\ell^\prime m^\prime}(\theta,\phi)
+   \YY_{\ell^\prime m^\prime}(\theta^\prime,\phi^\prime)
+      \bigg\}
+      \sigma(\vb x^\prime)d\vb x^\prime
+\\[5pt]
+&= \sum_{l^\prime m^\prime}
+   \bigg[\underbrace{\frac{1}{(2l^\prime + 1)}
+               \int (r^\prime)^{\ell^\prime}
+                    \YY_{\ell^\prime m^\prime}
+                        (\theta^\prime,\phi^\prime)
+                    \sigma(\vb x^\prime)
+                    d\vb x^\prime
+              }_{=C_{\ell^\prime m^\prime, \ell m}}
+   \bigg]
+   \frac{ \YY_{\ell^\prime m^\prime}(\theta,\phi) }
+        { r^{\ell^\prime+1} }.
+\end{align}
+Comparing to (\ref{CMatrixDefinition}), we have the relation
+between the $C$-matrix coefficients and the charge density
+induced by the incoming $(\ell,m)-$wave potential: 
+%====================================================================%
+\numeq{CFromSigma}
+{ C_{\ell^\prime m^\prime, \ell m}
+  = \frac{1}{(2l^\prime + 1)}
+    \int (r^\prime)^{\ell^\prime}
+         \YY_{\ell^\prime m^\prime}(\theta^\prime,\phi^\prime)
+         \sigma(\vb x^\prime) d\vb x^\prime.
+}
+
+%====================================================================%
+
+\subsubsection*{Computation of $C$-matrix in {\sc scuff-static}}
+
+The computation of the $C$-matrix now proceeds in analogy
+to the capacitance calculation outlined above:
+%====================================================================%
+\begin{enumerate}
+ \item We solve the BEM electrostatics problem (\ref{BEMSystem})
+       with the RHS vector corresponding to an $(\ell, m)$
+       external field:
+       %====================================================================%      
+       \numeq{PhiExtCMatrix} 
+         { \phi\sups{ext}(\vb x) = r^\ell \YY_{\ell m}(\theta, \phi).}
+       %====================================================================%      
+ \item Then, for each $(\ell^\prime, m^\prime),$ we compute
+       the $(\ell^\prime, m^\prime)$ spherical-multipole
+       moment of the induced charge distribution:
+       %====================================================================%      
+       \begin{align*}
+        C_{\ell^\prime m^\prime, \ell m} 
+         &=\frac{1}{2l^\prime+1}\oint d\vb x \, r^{\ell^\prime} \YY_{\ell^\prime m^\prime}(\vbhat{x}) \, \sigma(\vb x)
+         \intertext{where the surface integral ranges over all surfaces in the problem.
+                    We evaluate the integral approximately via a one-point cubature
+                    that pretends the integrand is constant over the surface of 
+                    each panel and equal to its value at the panel centroid:}
+         &\approx \sum_p A_p \sigma_p |\vb x_p|^{\ell^\prime} \YY_{\ell^\prime m^\prime} (\vbhat{x}_p)
+       \end{align*}
+       where the sum is over all panels on all object surfaces and
+       $\vb x_p$ is the centroid of panel $\mc P_p$.
+       %====================================================================%      
+\end{enumerate}
+%====================================================================%
+(Note that the $C$-matrix computed is the $C$-matrix for the entire
+geometry including all objects).
+
+%====================================================================%
+
+\subsubsection*{Comparison to the usual $C$-matrix} 
+ 
+How do the elements of our $C$-matrix, defined in terms
+of real-valued spherical harmonics, compare with the 
+usual definition in terms of the usual complex-valued
+spherical harmonics? (We will use the notation 
+$\overline{C}_{\ell^\prime m^\prime, \ell m}$ to 
+indicate the matrix elements as defined by this usual 
+definition.) In the usual definition, we take 
+the ``incident'' field to be
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{UsualPhiExt}
+{ \phi\sups{ext}(\vb x) =  r^\ell Y_{\ell m}(\theta, \phi) }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+and then define the $\overline{C}$-matrix entries according to
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{UsualCMatrixDefinition}
+{\phi\sups{scat}(\vb x) 
+   = \sum_{\ell^\prime, m^\prime}
+     \overline{C}_{\ell^\prime m^\prime, \ell m} 
+           \frac{Y_{\ell^\prime m^\prime}(\theta, \phi)}
+                {r^{\ell^\prime + 1 }}.
+}
+Here we are using the symbol $\overline{C}$ for the 
+entries of the $C$-matrix.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+To obtain the relation between the $\vb C$ and $\overline{\vb C}$
+matrices, consider an external field consisting of a superposition
+of incoming real-valued spherical waves:
+%====================================================================%
+\begin{align}
+ \phi\sups{ext} 
+  &= \sum_{\ell, m} a_{\ell, m} r^\ell \mc Y_{\ell,m}(\theta,\phi)
+\intertext{and write the external field as a superposition
+of outgoing real-valued spherical waves:}
+ \phi\sups{scat}
+  &= \sum_{\ell, m} b_{\ell, m} \frac{\mc Y_{\ell,m}(\theta,\phi)}{r^{\ell+1}}.
+\end{align}
+%====================================================================%
+Then the $a_{\ell,m}$ and $b_{\ell,m}$ coefficients are related
+according to 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{MyBCA} { \vb b=\vb C\vb a }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\vb a,\vb b$ are vectors of $a$ and $b$ coefficients
+and $\vb C$ is the $C$-matrix as defined above with real-valued
+spherical harmonics.
+
+On the other hand, we could just as easily have expressed
+the \textit{same} external and scattered fields in terms of 
+complex-valued spherical harmonics,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{equation}
+ \phi\sups{ext} 
+  = \sum_{\ell, m} \overline{a}_{\ell, m} r^\ell Y_{\ell,m}(\theta,\phi), 
+ \qquad  
+ \phi\sups{scat}
+  = \sum_{\ell, m} \overline{b}_{\ell, m} 
+                   \frac{Y_{\ell,m}(\theta,\phi)}{r^{\ell+1}}
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+in which case the vectors of $\overline{b}$ and $\overline{a}$
+coefficients would be related by the conventionally-defined
+$C$-matrix,
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{UsualBCA}
+ {\overline{\vb b}=\overline{\vb C} \overline{\vb a}.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Finally, the $a$ and $b$ coefficients may be related to
+the $\overline{a}$ and $\overline{b}$ coefficients using
+the definition (\ref{YYDefinition}), which reads
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$
+  \boldsymbol{\Gamma}\vb a=\overline{\vb a},
+  \qquad
+  \boldsymbol{\Gamma}\vb b=\overline{\vb b}
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where the elements of the $\boldsymbol{\Gamma}$ matrix are 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\BE
+ \Gamma_{\ell m, \ell^\prime m^\prime}
+  = \begin{cases}
+    \frac{ \delta_{\ell\ell^\prime} } { \sqrt{2} }
+    \big[ \delta_{m,m^\prime} + (-1)^m\delta_{m,-m^\prime}\big], 
+    \qquad &m^\prime>0 
+    \\[5pt]
+    \delta_{\ell\ell^\prime}\delta_{m0},
+    \qquad &m^\prime=0 
+    \\[5pt]
+    \frac{ \delta_{\ell\ell^\prime} } { i\sqrt{2} }
+    \big[ \delta_{m,m^\prime} - (-1)^m\delta_{m,-m^\prime}\big], 
+    \qquad &m^\prime<0.
+    \end{cases}
+\EE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+(Note that $\boldsymbol \Gamma$ is unitary, 
+$\boldsymbol{\Gamma}^\dagger=\boldsymbol{\Gamma}^{-1}$.)
+Using these equations, I can rewrite (\ref{MyBCA}) in the form
+\begin{align}
+ \boldsymbol{\Gamma}^\dagger \overline{\vb b} 
+&= \vb C \boldsymbol{\Gamma}^\dagger \overline{\vb a}
+\nonumber\intertext{or}
+ \overline{\vb b} 
+&= \boldsymbol{\Gamma} \vb C \boldsymbol{\Gamma}^\dagger \overline{\vb a}.
+\label{NewBCA}
+\end{align}
+Comparing (\ref{NewBCA}) to (\ref{UsualBCA}) yields the 
+transformation matrix from the real-valued spherical-wave
+$C$ matrix to the conventionally-normalized $\overline{C}$-matrix:
+\BE 
+   \overline{\vb C} 
+   =
+   \boldsymbol{\Gamma} \vb C \boldsymbol{\Gamma}^\dagger.
+\EE
+\end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Fields of individual panels}
+
+\begin{align*}
+ \phi(\vb x) &= \sum_n \sigma_n \mathbb{P}_n(\vb x) \\
+ \vb E(\vb x) &= \sum_n \sigma_n \mathbb{E}_n(\vb x) \\
+\end{align*}
+
+$$ \vb x^\prime = V_0 + u\vb A + v\vb B $$
+%====================================================================%
+$$ \vb x - \vb x^\prime = u\vb A + v\vb B + (\vb V_0 - \vb x) $$
+%====================================================================%
+$$ |\vb x - \vb x^\prime|^2 = 
+    C_{20} u^2 + C_{11} uv + C_{02} v^2 + 
+    C_{10} u + C_{01} v + C_{00}
+$$
+%====================================================================%
+$$
+\begin{array}{cclcccl}
+  C_{20} &=& |\vb A|^2 
+  &\qquad &
+  C_{02} &=& |\vb B|^2 
+\\
+  C_{11} &=& 2\vb A \cdot \vb B
+  &\qquad &
+  C_{10} &=& 2\vb A \cdot (\vb V_0-\vb x)
+\\
+  C_{01} &=& 2\vb B \cdot (\vb V_0-\vb x)
+  &\qquad &
+  C_{00} &=& |\vb V_0-\vb x|^2
+\end{array}
+$$
+%====================================================================%
+It is convenient to write the distance between points in the form
+$$ |\vb x - \vb x^\prime|^2 =
+    C_{02} \Big[ (v+v_0)^2 + \xi^2 \Big]
+$$
+where
+$$ v_0=\frac{1}{2}\big(C_{11}^\prime u + C_{01}^\prime\big), 
+   \qquad
+   \xi^2 = \Big[ C_{20}^\prime - \frac{1}{4}C_{11}^{\prime 2} \Big]u^2
+          +\Big[ C_{10}^\prime - \frac{1}{2}C_{11}^{\prime}C_{01}^\prime\Big]u
+          +\Big[ C_{00}^\prime - \frac{1}{4}C_{01}^{\prime 2}\Big]
+$$
+with the shorthand
+$$C_{ij}^\prime = \frac{C_{ij}}{C_{02}}.$$
+Then we have
+%====================================================================%
+%====================================================================%
+\begin{align*}
+ \mathbb{P}_n(\vb x) &= 
+ \int_{\mc P_n} \frac{d\vb x^\prime}{|\vb x-\vb x^\prime|}
+\\
+&=
+ \int_0^1 du \, \int_0^u \, dv 
+    \frac{1}
+         {\sqrt{ C_{20}u^2 + C_{11}uv + C_{02}v^2 + C_{10}u + C_{01}v + C_{00}}}
+\intertext{Substitute $v=u\alpha, dv=ud\alpha:$}
+&=
+ \int_0^1 du \, \int_0^1 \, d\alpha
+    \frac{u}
+         {\sqrt{  \Big(C_{20}+C_{11}\alpha+C_{02}\alpha^2\Big)u^2
+                 +\Big(C_{10}+C_{01}\alpha\Big)u + C_{00}}} 
+\intertext{Evaluate the $u$ integral:}
+ \int_0^1 du \, \int_0^u \, dv 
+\end{align*}
+%====================================================================%
