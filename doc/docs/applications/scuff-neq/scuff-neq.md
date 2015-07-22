@@ -163,7 +163,7 @@ Casimir force, which is computed efficiently by
 [scuff-cas3d][scuff-cas3D]{.SC}.
 On the other hand, if $Q$ is a spatially-integrated
 power transfer quantity, then 
-$\langle Q\big \rangle^{\small EQ}=0$ identically.)
+$\langle Q\rangle^{\small EQ}=0$ identically.)
 Thus this contribution is not computed by [[scuff-neq]].
 
 The quantity $\langle Q\rangle^{\small NEQ}$
@@ -230,6 +230,15 @@ extra output quantity takes to compute).
   ````
 {.toc}
 
+This option directs [[scuff-neq]] to produce visualization
+files (in addition to its usual output files) which may be 
+opened in [[gmsh]] to visualize,
+for each spatially-integrated PFT quantity you requested,
+the spatial distribution of the Poynting flux or 
+Maxwell stress on the surfaces of objects or 
+the displaced bounding surfaces over which those quantities
+are integrated to compute the total PFT quantity.
+
 ### Options specifying object temperatures
 
   ````
@@ -264,13 +273,73 @@ extra output quantity takes to compute).
 ### Options controlling the computation of power, force, and torque
 
   ````
+--ForceDSI
+  ````
+{.toc}
+
+
+  ````
 --DSIPoints 302
 --DSIRadius 5.0
 --DSIMesh BoundingMesh.msh
 --DSIFarField
---ForceDSI
   ````
 {.toc}
+
+As detailed in [this paper][SIEPFTPaper], there are several
+ways to compute PFTs in surface-integral formulations,
+including the "displaced-surface-integral" (DSIPFT),
+"equivalence principle" (EPPFT), and "overlap" (OPFT) 
+methods.
+
+By default, [[scuff-neq]] uses different algorithms for 
+different cases of the PFT computation:
+
+* Power computation (self term): EPPFT
+* Power computation (non-self terms): EPPFT
+* Force/Torque computation (self term): DSIPFT
+* Force/Torque computation (non-self term): OPFT
+
+However, you can override this default behavior 
+by specifying `--ForceDSI`, in which case DSIPFT
+will be used in all cases.
+
+The other options here set specific parameters 
+that are only used for DSIPFT calculations.
+
+`--DSIMesh` specifies the name of a mesh file
+(such as a [[GMSH]]-produced `.msh` file) that 
+defines the bounding surface over which the 
+surface integrals are computed. (This surface is
+automatically displaced and rotated appropriately
+for each object in accordance with any
+geometrical transformations that may be 
+specified in the `.scuffgeo` file and/or the
+`.trans` file.) The surface integral is evaluated
+via a one-point cubature over the surface of 
+each panel in the bounding mesh; thus, the
+finer the bounding mesh, the more accurate and
+the more expensive the computation).
+
+If you do not specify a `--DSIMesh`, then the
+surface integral for each object is computed 
+using Lebedev cubature over a bounding sphere 
+centered at the origin of coordinates of the 
+object mesh (appropriately displaced if the 
+object has been displaced via statements in 
+the `.scuffgeo` or `.trans` files.) In this case,
+you may use `--DSIRadius` and `--DSIPoints` to
+set the radius of this sphere (in microns) and 
+the number of Lebedev cubature points (the more 
+points, the more accurate and expensive the calculation).
+To see the possible values that may be specified 
+for `--DSIPoints,` type `scuff-neq --help.`
+
+Finally, you may use `--DSIFarField` to request
+that the Poynting vector and Maxwell tensor
+on the bounding surface be computed using only
+the far-field (radiation-zone) contributions 
+of the surface currents to the fields.
 
 ### Other options
 
@@ -278,6 +347,9 @@ extra output quantity takes to compute).
 --OmitSelfTerms
   ````
 {.toc}
+
+Omit the contributions of sources in individual bodies
+to the total PFTs on those bodies themselves.
 
 --------------------------------------------------
 
@@ -344,6 +416,26 @@ file.
 PFT on body $d$. Values of this quantity are written to the 
 `.NEQPFT` output file.
 
+In all of these files, each single line corresponds to
+a single frequency, a single geometric transformation,
+and a single pair of (source,destination) objects.
+
+At the top of each output file you will find a file header
+explaining the significance of each of the various
+columns in the file. One of the columns will be
+described in the header as `# (source object, dest object),`
+and will take values like `12`, `22`, or `02.`
+The first case (`12`) indicates that the data on that
+line correspond to the contributions of object 1 to the 
+PFT on object 2. (The ordering of objects corresponds
+with the order of their appearance in the `.scuffgeo`
+file).  The second case (`22`) indicate that the data
+on that line correspond to the self-contributions of 
+object 2 to its own PFT. The third case (`02`) 
+indicates that the data on that line correspond to 
+the *total* PFT on object 2---that is, the sum of 
+contributions from all source objects.
+
 ### Output files for spatially-resolved PFTs: The `.SRFlux`, `.SRIntegrand`, and `.PVMST` files
 
 If you requested the computation of spatially-resolved
@@ -389,6 +481,33 @@ file.
 Poynting vector or Maxwell stress tensor at $\mathbf{x}$.
 Values of this quantity are written to the `.PVMST` output file.
 
+In all of these files, each line corresponds to
+a single frequency, a single geometric transformation,
+and a single source object.
+At the top of each output file you will find a file header
+explaining how to interpret the various data columns
+on each line.
+
+### Units of output quantities
+
+* The units of the total (frequency-integrated)
+spatially-integrated output quantities reported in
+the `.NEQPFT` file are *watts* for power, *nanoNewtons*
+for force, and *nanoNewtons $\times$ microns* for torque.
+
+* The quantities in the `.SIIntegrand` output file
+are the PFT quantities per unit *dimensionless* frequency,
+so have the same units as the corresponding quantities
+in the `.NEQPFT` file.
+
+* The quantities in the `.SIFlux` output file are
+the quantities per unit dimensionless frequency
+per watt of thermal energy, so these quantities
+have the same units as the quantities in 
+the `.NEQPFT` and `.SIIntegrand` file, but divided
+by watts: thus the power flux is *dimensionless*,
+the force flux has units of *nanoNewtons / watts*,
+and the torque flux has units of *nanoNewtons microns/watts.*
 
 <a name="Examples"></a>
 # 4. Examples of calculations using <span class="SC">scuff-neq</span>
@@ -397,13 +516,14 @@ Values of this quantity are written to the `.PVMST` output file.
 
 + [Heat transfer and non-equilibrium Casimir forces between warm and cold spheres][SiO2Spheres]
 
-+ [Spatial distribution of poynting flux from a warm tip above a cold substrate][SiO2Spheres]
++ [Spatial distribution of poynting flux from a warm tip above a cold substrate][TipSubstrate]
 
-[scuff-cas3D]:  ../scuff-cas3D/scuff-cas3D.md
-[EPFile]:       ../../applications/GeneralReference.md#EvaluationPoints
-[FSCPaper]:     http://link.aps.org/doi/10.1103/PhysRevB.88.054305
-[LogFiles]:     ../GeneralReference.md#LogFiles
-[SiO2Sphere]:   ../../examples/SiO2Spheres/SiO2Spheres.md#SingleSphere
-[SiO2Spheres]:   ../../examples/SiO2Spheres/SiO2Spheres.md#TwoSpheres
-[TipSubstrate]: ../../examples/TipSubstrate/TipSubstrate.md
+[scuff-cas3D]:   ../scuff-cas3D/scuff-cas3D.md
+[EPFile]:        ../../applications/GeneralReference.md#EvaluationPoints
+[FSCPaper]:      http://link.aps.org/doi/10.1103/PhysRevB.88.054305
+[SIEPFTPaper]:	 http://dx.doi.org/10.1109/TAP.2015.2438393
+[LogFiles]:      ../GeneralReference.md#LogFiles
+[SiO2Sphere]:    ../../examples/SiO2Spheres/SiO2Spheres.md
+[SiO2Spheres]:   ../../examples/SiO2Spheres/SiO2Spheres.md
+[TipSubstrate]:  ../../examples/TipSubstrate/TipSubstrate.md
 [CommonOptions]: ../GeneralReference.md#CommonOptions

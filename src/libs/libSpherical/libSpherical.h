@@ -60,7 +60,7 @@
 /* and this macro returns the index in the list for a given    */
 /* pair (l,m).                                                 */
 /***************************************************************/
-#define LM2ALPHA(l,m) ( l*(l+1) + (m) )
+#define LM2ALPHA(l,m) ( (l)*(l+1) + (m) )
 
 /***************************************************************/
 /* conversion routines                                         */

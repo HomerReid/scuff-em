@@ -230,6 +230,12 @@ and similarly for $\mc G\supt{M}.$
 
 \subsection*{Evaluation of BZ integrals}
 
+The {\sc scuff-em} API offers a routine for computing the integrand of
+(\ref{BZIntegration}) for given evaluation and source points
+$\vb x, \vb x^\prime$ and Bloch vector $\vb k\subt{B}$. To get the 
+full Green's function on the LHS requires a numerical cubature
+over the Brillouin zone.
+
 For a 2D square lattice with lattice vectors 
 $\vb L_1=L_x\vbhat{x}, \vb L_2=L_y\vbhat{x},$
 a set of reciprocal-lattice basis vectors is 
@@ -248,132 +254,65 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Test: LDOS above an infinite half-space}
+\section{API Routines for computing dyadic Green's functions}
 
-At a height $z$ above an infinite dielectric half-space
-with relative permittivity $\epsilon$ (and $\mu=1$)
-the enhancement of the electric LDOS may be expressed
-as an integral over a dimensionless parameter 
-$\kappa$:\footnote{K. Joulain et al.,``Definition and 
-measurement of the local density of electromagnetic states
- close to an interface,'' Physical Review B \textbf{68} 245405 (2003)}
-%====================================================================%
-\numeq{JoulainLDOS}
-{
- \frac{\rho\supt{E}(z; \omega)}{\rho_0(\omega)}
-  =\frac{1}{4}\int_0^\infty \kappa F(\kappa) \, d\kappa,
-}
-%====================================================================%
-\numeq{JoulainFKappa}
-{
-  F(\kappa)=
-   \frac{1}{\kappa_z}
-   \begin{cases}
-         2 + \text{Re }\Big( r\subt{TE} e^{2 i k_z z} \Big)
-           + \Big(2\kappa^2-1\Big) \text{Re }\Big( r\subt{TM} e^{2ik_z z}\Big)
-         , \qquad &\kappa < 1 \\[10pt]
-    \Big[   \text{Im }\big( r\subt{TE} \big)
-           + \big(2\kappa^2-1\big) \text{Im }\big( r\subt{TM} \Big)
-    \Big]e^{-2k_z z}, \qquad &\kappa > 1
-   \end{cases}
-}
-%====================================================================%
-where 
-%====================================================================%
-$$ \kappa_z \equiv 
-   \begin{cases}
-     \sqrt{1-\kappa^2}, \qquad &\kappa < 1, \\
-     \sqrt{\kappa^2-1}, \qquad &\kappa > 1, 
-   \end{cases}
-   \qquad
-   \kappa^\prime_z \equiv 
-   \begin{cases}
-     \sqrt{\epsilon-\kappa^2}, \qquad &\kappa < 1, \\
-     \sqrt{\kappa^2-\epsilon}, \qquad &\kappa > 1, 
-   \end{cases}
-   \qquad
-   k_z \equiv k_0\kappa_z,
-   \qquad
-   k_0 \equiv \frac{\omega}{c},
-$$  
-%====================================================================%
-$$ r\subt{TE} = \frac{\kappa_z - \kappa_z^\prime}{\kappa_z + \kappa_z^\prime}
-   \qquad
-   r\subt{TM} = \frac{\epsilon \kappa_z - \kappa_z^\prime}{\epsilon \kappa_z + \kappa_z^\prime}
-$$
-%====================================================================%
-The integral in (\ref{JoulainLDOS}) is computing the LDOS as a trace in 
-the plane-wave basis; the integral over $\kappa$ is essentially a sum over 
-all possible plane-wave wavevectors $\vb k$, and the multiple terms in 
-(\ref{JoulainFKappa}) account for the two possible polarizations for each 
-wavevector. More specifically, if we think in terms of the usual 
-Fresnel-scattering picture of a plane wave incident on a planar interface, 
-then $\kappa$ is the sine of the incident angle and $\kappa_z$ is its 
-cosine, i.e. the wavevector of the plane wave 
-is 
-%====================================================================
-$$ \vb k = (k_x, k_y, k_z) = k_0(\sin\theta, 0, \cos\theta)
-   =k_0(\kappa, 0, \kappa_z)
-$$
-%====================================================================
-and $r\subt{TE}$ and $r\subt{TM}$ are the Fresnel coefficients for reflection
-of TE and TM waves from the half-space. 
-This interpretation applies to the $0\le \kappa<1$ contribution to 
-the integral in (\ref{JoulainLDOS}). 
+The {\sc scuff-em} API routine that computes the quantity
+$\overline{\mathcal{G}\supt{E}_{ij}}(\vb x, \vb x^\prime, k\supt{B})$
+in equation (\ref{BZIntegration}) is 
 
-However, the trace in equation (\ref{JoulainLDOS}) also contains
-contributions from modes that cannot be excited by irradiating
-the interface from the outside with a plane wave (corresponding
-to the $\kappa>1$ portion of the integral). These are 
-\textit{evanescent} waves for which the in-plane wavenumber
-$k_\parallel=\kappa k_0$ is greater than the free-space wavenumber 
-$k_0$. The fields associated with these modes decay exponentially
-as we move away from the half-space into the vacuum region. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\smallskip 
+\begin{center}
+\begin{verbcode}
+void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
+                               cdouble Omega, double kBloch[2],
+                               HMatrix *M, HVector *KN,
+                               cdouble GEScat[3][3],
+                               cdouble GMScat[3][3],
+                               cdouble GETot[3][3],
+                               cdouble GMTot[3][3]);
+\end{verbcode}
+\end{center}
+\smallskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection*{Expression as a Brillouin-zone integral}
+For cases in which $\vb x=\vb x^\prime$ and we need only the 
+scattering parts of the DGFs, there is a simpler interface:
 
-To write equation (\ref{JoulainLDOS}) in a form that facilitates
-comparison with {\sc scuff-ldos} calculations, I first interpret
-the integral over $\kappa$ as an integral over the upper-right
-quadrant of the $\vb k_\parallel=(k_x,k_y)$ plane; here
-$\kappa$ is the radial component of $\vb k_\parallel$ measured in
-units of $k_0$, i.e. $\kappa=\sqrt{k_x^2 + k_y^2}/k_0=k_\rho/k_0,$ 
-and the integrand in (\ref{JoulainLDOS}) is independent of the 
-angle $k_\theta=\atan(k_y/k_x).$ Then I have
-%====================================================================%
-\begin{align*}
- \frac{\rho\supt{E}(z; \omega)}{\rho_0(\omega)}
-  &=\frac{1}{4}\int_0^\infty \kappa F(\kappa) \, d\kappa
-\\
-  &=\frac{1}{2\pi k_0^2}
-    \int_0^\infty k_\rho dk_\rho \int_0^{\pi/2} \, dk_\theta F\pf{k_\rho}{k_0}
-\\
-  &=\frac{1}{2\pi k_0^2}
-    \int_0^\infty dk_x \int_0^\infty dk_y \, F(k_x, k_y)
-\end{align*}
+\smallskip 
+\begin{center}
+\begin{verbcode}
+void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, 
+                               double *kBloch,
+                               HMatrix *M, HVector *KN,
+                               cdouble GEScat[3][3], 
+                               cdouble GMScat[3][3]);
+\end{verbcode}
+\end{center}
+\smallskip 
+
+In this routine, the input parameters are as follows:
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where 
+\begin{itemize}
+ \item \texttt{X[0..2]} are the Cartesian coordinates of the evaluation point
+ \item \texttt{Omega} is the angular frequency in units of $3\times 10^{14}$ rad/sec
+ \item \texttt{kBloch[0,1]} are the $x$ and $y$ components of the Bloch vector
+ \item \texttt{M} is the LU-factorized BEM matrix---that is, the result of 
+       calling \texttt{AssembleBEMMatrix()} followed by \texttt{LUFactorize()})
+ \item \texttt{KN} is a user-allocated RHS vector (allocated, for example,
+       by saying \texttt{KN=G->AllocateRHSVector}) which is used internally
+       as a workspace and needs only to be allocated, not initialized in any way
+\end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ F(k_x, k_y)=\pf{\sqrt{k_x^2 + k_y^2}}{k_0}.$$
+
+The output parameters are:
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-I now rewrite the integral over the infinite upper-right
-quadrant of the $(k_x,k_y)$ plane as an integral over a
-\textit{finite} rectangle of that plane with side lengths 
-$\{\Gamma_x, \Gamma_y\}$: the integrand now consists of an 
-infinite sum of terms: 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\numeq{JoulainFolded}
-{
-    \frac{\rho\supt{E}(z; \omega)}{\rho_0(\omega)}
-  = \frac{1}{2\pi k_0^2}
-    \int_0^{\Gamma_x} \, dk_x \, \int_0^{\Gamma_y} \, dk_y \,
-    \overline{F}(k_x, k_y),
-}
-$$
-    \overline{F}(k_x, k_y)=\sum_{n_x,n_y=0}^\infty 
-              F\Big( k_x + n_x \Gamma_x, k_y + n_y\Gamma_y \Big).
-$$
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{itemize}
+ \item \texttt{GEScat[i][j], GMScat[i][j]]} are the Cartesian components of the 
+       electric and magnetic scattering DGFs.
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -515,7 +454,7 @@ $$ G_0(\vb r)=\frac{e^{ik_0 |\vb r|}}{4\pi |\vb r|}
    k_z\equiv \sqrt{k_0^2 - k_x^2 - k_y^2}
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Applying (\ref{GCfromG0}), 
+Applying (\ref{GCFromG0}), 
 we obtain the 2D Fourier expansion of the dyadic Green's functions:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{GCInfiniteKIntegrals}
@@ -598,25 +537,26 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \newcommand{\EE}{\mathbb{E}}
-\section{Analytical expressions for dyadic Green's functions}
-
-\subsection{General formalism}
-
-$$ \EE\sups{reg}_{p\alpha}(\vb r), \EE\sups{out}_{p\alpha}(\vb r)$$
-
+\section{Analytical expressions for the dyadic Green's functions of a dielectric 
+         half-space}
+%
+%\subsection{General formalism}
+%
+%$$ \EE\sups{reg}_{p\alpha}(\vb r), \EE\sups{out}_{p\alpha}(\vb r)$$
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\numeq{GExpansion1}
+%{ \vb G(\vb r, \vb r^\prime) 
+%  =
+%  \sum_{p\alpha}
+%  \EE\sups{reg}_{p\alpha}(\vb r_<) \EE\sups{out}_{p\alpha}(\vb r_>)
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\numeq{GExpansion1}
-{ \vb G(\vb r, \vb r^\prime) 
-  =
-  \sum_{p\alpha}
-  \EE\sups{reg}_{p\alpha}(\vb r_<) \EE\sups{out}_{p\alpha}(\vb r_>)
-}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection*{DGFs at exterior points}
+%\subsection*{DGFs at exterior points}
 %
 %If the object is irradiated by $\EE\sups{reg}_{p\alpha}$
 %then the scattered field is
@@ -634,7 +574,7 @@ $$ \EE\sups{reg}_{p\alpha}(\vb r), \EE\sups{out}_{p\alpha}(\vb r)$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection*{DGFs at interior points}
+%\subsection*{DGFs at interior points}
 %
 %If the object is irradiated from within by $\EE\sups{out}_{p\alpha}$
 %then the scattered field (at interior points) is
@@ -659,7 +599,7 @@ $$ \EE\sups{reg}_{p\alpha}(\vb r), \EE\sups{out}_{p\alpha}(\vb r)$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Dielectric sphere}
+%\subsection{Dielectric sphere}
 %
 %In this case $\alpha=\{\ell m\}$ where both $\ell,m$ are discrete.
 %
@@ -686,31 +626,53 @@ $$ \EE\sups{reg}_{p\alpha}(\vb r), \EE\sups{out}_{p\alpha}(\vb r)$$
 %      \Big] e^{i\nu\varphi} e^{ik_z z} 
 %$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-with
-$$ 
- \zeta \equiv k_\rho \rho,
- \qquad
- k_\rho\equiv \sqrt{k_0^2 - k_z^2},
- \qquad
- Z(\zeta) =
- \begin{cases}
-   H^{(1)}_\nu(\zeta), \qquad &\text{outgoing} \\
-   H^{(2)}_\nu(\zeta), \qquad &\text{incoming} \\
-   J_\nu      (\zeta), \qquad &\text{regular}
- \end{cases}
-$$
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The $T$-matrix elements are 
-
-\subsection{Dielectric half-space}
-
-In this case $\alpha=\{k_x, k_y\}=\vb k$ where
-both $k_x, k_y$ are continuous.
+%with
+%$$ 
+% \zeta \equiv k_\rho \rho,
+% \qquad
+% k_\rho\equiv \sqrt{k_0^2 - k_z^2},
+% \qquad
+% Z(\zeta) =
+% \begin{cases}
+%   H^{(1)}_\nu(\zeta), \qquad &\text{outgoing} \\
+%   H^{(2)}_\nu(\zeta), \qquad &\text{incoming} \\
+%   J_\nu      (\zeta), \qquad &\text{regular}
+% \end{cases}
+%$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%The $T$-matrix elements are 
+%
+%\subsection{Dielectric half-space}
+%
+%In this case $\alpha=\{k_x, k_y\}=\vb k$ where
+%both $k_x, k_y$ are continuous.
 
 For testing purposes it is useful to have analytical expressions
 for the dyadic Green's functions above an infinite half space.
+These are obtained via a two-step process:
 
-\subsection*{Plane-wave decomposition of point-source fields}
+\begin{enumerate}
+ \item First we express the fields of a point source above a 
+       dielectric half-space as a superposition of plane waves;
+       in particular, the fields impinging upon the half-space
+       are a linear combination of downward-traveling plane waves.
+ \item Then we reason that each individual plane wave is
+       reflected from the interface with the usual Fresnel 
+       reflection coefficient, and thus the scattered field
+       is just the same superposition of plane waves with which
+       we began, except that \textbf{(1)} now the plane waves
+       are traveling \textit{upward}, and \textbf{(2)} each plane
+       wave comes multiplied by the Fresnel reflection coefficients    
+       for the dielectric interface.
+\end{enumerate}
+
+This procedure is worked out in more detail in the following
+sections.
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Plane-wave decomposition of point-source fields}
 
 Note: In what follows,
 $\vb k=(k_x,k_y)$ is a \textit{two-dimensional} vector and we have
@@ -829,30 +791,160 @@ $$\begin{array}{ccccccc}
 \end{array}$$
 %====================================================================%
 
-\subsection*{Plane-wave decomposition of DGFs}
+%=================================================
+%=================================================
+%=================================================
+\subsection{Plane-wave decomposition of DGFs}
 
-The point of this decomposition is that each
+The point of the above decomposition is that each
 plane wave is reflected from the dielectric interface
-
-\subsection*{Converting $k_\rho$ integrals to Brillouin-zone integrals}
-
+with the usual Fresnel reflection coefficients
+$r\supt{TE,TM}(\vb k)$, and thus the scattered fields 
+(evaluated at the location of the source point)
+due to an $x-,y-,$ or $z$-directed dipole at height
+$z_0$ are 
+%====================================================================%
 \begin{align*}
- Q &= \int_0^\infty \, dk_\rho \, k_\rho F(k_\rho) 
+ \vb E\supt{scat,x}(z_0)
+&= \int \frac{d\vb k}{(2\pi)^2}
+   \bigg\{ r\subt{TE}(\vb k) C^{x}\subt{TE}(\vb k)
+           \vb E^+\subt{TE}\Big(z_0\vbhat{z}; \vb k\Big)
+           + 
+           r\subt{TM}{\vb k} C^{x}\subt{TM}(\vb k)
+ h          \vb E^+\subt{TM}\Big(z_0\vbhat{z}; \vb k\Big)
+    \bigg\}
 \\
-   &= \frac{1}{2\pi} \int_0^{2\pi} \, dk_\theta \,
-                     \int_0^\infty \, dk_\rho\, k_\rho F(k_\rho)  \,
-\\
-   &= \frac{1}{2\pi} \int_{-\infty}^{\infty} \, dk_x \,
-                     \int_{-\infty}^{\infty} \, dk_y \,
-                     F\left(\sqrt{k_x^2 + k_y^2}\right)
-\\
-   &= \frac{1}{2\pi} \int_{0}^{\Gamma_x} \, dk_x \,
-                     \int_{0}^{\Gamma_y} \, dk_y \,
-                     \overline{F}(k_x, k_y)
+  \vb E\supt{scat,y}(z_0)
+ &= \int \frac{d \vb k}{(2\pi)^2} 
+    \bigg\{ r\subt{TE}(\vb k) C^{y}\subt{TE}(\vb k)
+            \vb E^+\subt{TE}\Big(z_0\vbhat{z}; \vb k\Big)
+           + 
+            r\subt{TM}(\vb k) C^{y}\subt{TM}(\vb k)
+            \vb E^+\subt{TM}\Big(z_0\vbhat{z}; \vb k\Big)
+    \bigg\}
+ \\
+  \vb E\supt{scat,z}
+ &= \int \frac{d \vb k}{(2\pi)^2} 
+    \bigg\{        r\subt{TM}(\vb k) C^{z}\subt{TM}(\vb k)
+            \vb E^+\subt{TM}\Big(z_0\vbhat{z}; \vb k\Big)
+    \bigg\}
 \end{align*}
-$$ \overline{F}(k_x, k_y)
-   \equiv \sum_{n_x,n_y=-\infty}^\infty
-          F\left(\sqrt{ (k_x + n_x\Gamma_x)^2 + (k_y + n_y\Gamma_y)^2}\right)
-$$
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Rewriting infinite 2D $\vb k$-integrals as Brillouin-zone integrals}
+\label{RewritingAppendix}
+
+One frequently encounters quantities expressed as infinite 
+$\vb k-$space integrals, i.e. integrals over a two-dimensional
+wavevector $\vb k$ that ranges over all of $\mathbb{R}_2$:
+%====================================================================%
+$$ I = \int_{\mathbb{R}^2} \frac{d^2 \vb k}{(2\pi)^2} Q(\vb k). $$
+%====================================================================%
+Examples include equations (\ref{GCInfiniteKIntegrals}) and 
+To rewrite such integrals in a form 
+that facilitates comparison with {\sc scuff-ldos} calculations,
+it is convenient to recast such integrals as Brillouin-zone
+integrations:
+%====================================================================%
+\begin{align*}
+ I &= \int\subt{BZ} \frac{d^2 \vb k}{(2\pi)^2} \overline{Q}(\vb k),
+\intertext{where $\overline{Q}(\vb k)$ is the sum of the integrand
+function $Q(\vb k)$ evaluated at $\vb k$ and all images of $\vb k$
+under translation by reciprocal-lattice vectors}
+\overline{Q}(\vb x)&=
+\sum_{n_1=-\infty}^\infty
+\sum_{n_2=-\infty}^\infty Q\big (\vb k + n_1\vbGamma_1 + n_2\vbGamma_2\big)
+\end{align*}
+where $\vbGamma_1, \vbGamma_2$ are a basis for the reciprocal lattice.
+(We have here considered the 2D-periodic case, but the 1D-periodic
+case is similar).
 \end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Test: LDOS above an infinite half-space}
+
+At a height $z$ above an infinite dielectric half-space
+with relative permittivity $\epsilon$ (and $\mu=1$)
+the enhancement of the electric LDOS may be expressed
+as an integral over a dimensionless parameter 
+$\kappa$:\footnote{K. Joulain et al.,``Definition and 
+measurement of the local density of electromagnetic states
+ close to an interface,'' Physical Review B \textbf{68} 245405 (2003)}
+%====================================================================%
+\numeq{JoulainLDOS}
+{
+ \frac{\rho\supt{E}(z; \omega)}{\rho_0(\omega)}
+  =\frac{1}{4}\int_0^\infty \kappa F(\kappa) \, d\kappa,
+}
+%====================================================================%
+\numeq{JoulainFKappa}
+{
+  F(\kappa)=
+   \frac{1}{\kappa_z}
+   \begin{cases}
+         2 + \text{Re }\Big( r\subt{TE} e^{2 i k_z z} \Big)
+           + \Big(2\kappa^2-1\Big) \text{Re }\Big( r\subt{TM} e^{2ik_z z}\Big)
+         , \qquad &\kappa < 1 \\[10pt]
+    \Big[   \text{Im }\big( r\subt{TE} \big)
+           + \big(2\kappa^2-1\big) \text{Im }\big( r\subt{TM} \Big)
+    \Big]e^{-2k_z z}, \qquad &\kappa > 1
+   \end{cases}
+}
+%====================================================================%
+where 
+%====================================================================%
+$$ \kappa_z \equiv 
+   \begin{cases}
+     \sqrt{1-\kappa^2}, \qquad &\kappa < 1, \\
+     \sqrt{\kappa^2-1}, \qquad &\kappa > 1, 
+   \end{cases}
+   \qquad
+   \kappa^\prime_z \equiv 
+   \begin{cases}
+     \sqrt{\epsilon-\kappa^2}, \qquad &\kappa < 1, \\
+     \sqrt{\kappa^2-\epsilon}, \qquad &\kappa > 1, 
+   \end{cases}
+   \qquad
+   k_z \equiv k_0\kappa_z,
+   \qquad
+   k_0 \equiv \frac{\omega}{c},
+$$  
+%====================================================================%
+$$ r\subt{TE} = \frac{\kappa_z - \kappa_z^\prime}{\kappa_z + \kappa_z^\prime}
+   \qquad
+   r\subt{TM} = \frac{\epsilon \kappa_z - \kappa_z^\prime}{\epsilon \kappa_z + \kappa_z^\prime}
+$$
+%====================================================================%
+The integral in (\ref{JoulainLDOS}) is computing the LDOS as a trace in 
+the plane-wave basis; the integral over $\kappa$ is essentially a sum over 
+all possible plane-wave wavevectors $\vb k$, and the multiple terms in 
+(\ref{JoulainFKappa}) account for the two possible polarizations for each 
+wavevector. More specifically, if we think in terms of the usual 
+Fresnel-scattering picture of a plane wave incident on a planar interface, 
+then $\kappa$ is the sine of the incident angle and $\kappa_z$ is its 
+cosine, i.e. the wavevector of the plane wave 
+is 
+%====================================================================
+$$ \vb k = (k_x, k_y, k_z) = k_0(\sin\theta, 0, \cos\theta)
+   =k_0(\kappa, 0, \kappa_z)
+$$
+%====================================================================
+and $r\subt{TE}$ and $r\subt{TM}$ are the Fresnel coefficients for reflection
+of TE and TM waves from the half-space. 
+This interpretation applies to the $0\le \kappa<1$ contribution to 
+the integral in (\ref{JoulainLDOS}). 
+
+However, the trace in equation (\ref{JoulainLDOS}) also contains
+contributions from modes that cannot be excited by irradiating
+the interface from the outside with a plane wave (corresponding
+to the $\kappa>1$ portion of the integral). These are 
+\textit{evanescent} waves for which the in-plane wavenumber
+$k_\parallel=\kappa k_0$ is greater than the free-space wavenumber 
+$k_0$. The fields associated with these modes decay exponentially
+as we move away from the half-space into the vacuum region. 
