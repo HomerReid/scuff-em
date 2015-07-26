@@ -429,7 +429,7 @@ void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
      SSS->AssembleRHSVector(Potentials, UserStaticField, (void *)D, Sigma);
      */
    }
-  else if ( ConstFieldDirection!=1 )
+  else if ( ConstFieldDirection!=-1 )
    SSS->AssembleRHSVector(Potentials, PhiEConstant, &ConstFieldDirection, Sigma);
   else
    SSS->AssembleRHSVector(Potentials, 0, 0, Sigma);
