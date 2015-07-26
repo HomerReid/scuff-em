@@ -326,7 +326,7 @@ To compute dyadic Green's functions in periodic geometries,
 {\sc scuff-ldos} solves a scattering problem in which the
 incident fields originate from a an infinite phased array
 of point sources. Here I describe the calculation of these
-infinite fields. This calculation implemented by the 
+infinite fields. This calculation is implemented by the 
 \texttt{PointSource} 
 class in the {\sc libincfield} module in {\sc scuff-em}.
 
@@ -672,7 +672,7 @@ sections.
 %=================================================
 %=================================================
 %=================================================
-\subsection{Plane-wave decomposition of point-source fields}
+\subsection{Plane-wave decomposition of non-periodic point-source fields}
 
 Note: In what follows,
 $\vb k=(k_x,k_y)$ is a \textit{two-dimensional} vector and we have
@@ -735,15 +735,18 @@ $$ \vb P(\vb k) \equiv
          \end{array}\right)
 $$
 %====================================================================%
-The fields of a point source may be written in the form
+The fields of a point source (a single point source, not an array)
+located at a height $z_0$ above the $xy$ plane 
+($\vb x_0=z_0 \vbhat{z}$) may be written in the form
 %====================================================================%
-\begin{align*}
+\begin{subequations}
+\begin{align}
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{x} \big\}\Big)
 &= \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{x}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
           + 
-           C^{x}\subt{TM}(\vb k)
+           C^{x;\pm}\subt{TM}(\vb k)
            \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
    \bigg\}
 \\
@@ -752,24 +755,30 @@ The fields of a point source may be written in the form
    \bigg\{ C^{y}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
           + 
-           C^{y}\subt{TM}(\vb k)
+           C^{y;\pm}\subt{TM}(\vb k)
            \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
    \bigg\}
 \\
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{z} \big\}\Big)
 &= \int \frac{d \vb k}{(2\pi)^2} 
+   \bigg\{ C^{z}\subt{TE}(\vb k)
+           \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
+          + 
            C^{z}\subt{TM}(\vb k)
            \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
-\end{align*}
+   \bigg\}
+\end{align}
+\label{IncidentFieldsPWD}
+\end{subequations}
 %====================================================================%
-where the scalar coefficients are 
+where the scalar coefficients are
 %====================================================================%
 $$\begin{array}{ccccccc}
  \displaystyle{ C^{x}\subt{TE} }
  &=& 
   \displaystyle{ -\frac{ i \pi k_y}{2|\vb k|k_z} }
  &\qquad&
- \displaystyle{ C^{x}\subt{TM} }
+ \displaystyle{ C^{x;\pm}\subt{TM} }
  &=& 
  \displaystyle{ \mp \frac{ i \pi k_x }{2k_0|\vb k|} }
 \\[10pt]
@@ -778,7 +787,7 @@ $$\begin{array}{ccccccc}
  &=& 
   \displaystyle{ \frac{ i \pi k_x}{2|\vb k|k_z} }
  &\qquad&
- \displaystyle{ C^{y}\subt{TM} }
+ \displaystyle{ C^{y;\pm}\subt{TM} }
  &=& 
  \displaystyle{ \mp \frac{ i \pi k_y }{2k_0|\vb k|} }
 \\[10pt]
@@ -790,45 +799,125 @@ $$\begin{array}{ccccccc}
  &=& \displaystyle{ \frac{ i\pi |\vb k|  }{2k_0 k_z} }.
 \end{array}$$
 %====================================================================%
+In these equations, the $\pm$ sign is $+$ for evaluation points 
+located above the source $(z>z_0)$ and $-$ for evaluation points
+located below the source. In particular, assuming the 
+source lies in the \textit{upper} half-space ($z_0>0$), 
+the fields impinging on a dielectric interface at $z=0$
+involve the $-$ sign.
 
 %=================================================
 %=================================================
 %=================================================
-\subsection{Plane-wave decomposition of DGFs}
+\subsection{Plane-wave decomposition of non-periodic DGFs}
 
 The point of the above decomposition is that each
-plane wave is reflected from the dielectric interface
-with the usual Fresnel reflection coefficients
+plane wave is reflected from a dielectric interface
+at $z=0$ with the usual Fresnel reflection coefficients
 $r\supt{TE,TM}(\vb k)$, and thus the scattered fields 
 (evaluated at the location of the source point)
 due to an $x-,y-,$ or $z$-directed dipole at height
 $z_0$ are 
 %====================================================================%
-\begin{align*}
- \vb E\supt{scat,x}(z_0)
+\begin{subequations}
+\begin{align}
+ \vb E\sups{scat,x}
 &= \int \frac{d\vb k}{(2\pi)^2}
    \bigg\{ r\subt{TE}(\vb k) C^{x}\subt{TE}(\vb k)
-           \vb E^+\subt{TE}\Big(z_0\vbhat{z}; \vb k\Big)
+           \vb E^+\subt{TE}\Big(0; \vb k\Big)
            + 
-           r\subt{TM}{\vb k} C^{x}\subt{TM}(\vb k)
- h          \vb E^+\subt{TM}\Big(z_0\vbhat{z}; \vb k\Big)
+           r\subt{TM}{\vb k} C^{x;-}\subt{TM}(\vb k)
+ h          \vb E^+\subt{TM}\Big(0; \vb k\Big)
     \bigg\}
 \\
-  \vb E\supt{scat,y}(z_0)
+  \vb E\sups{scat,y}
  &= \int \frac{d \vb k}{(2\pi)^2} 
     \bigg\{ r\subt{TE}(\vb k) C^{y}\subt{TE}(\vb k)
-            \vb E^+\subt{TE}\Big(z_0\vbhat{z}; \vb k\Big)
+            \vb E^+\subt{TE}\Big(0; \vb k\Big)
            + 
-            r\subt{TM}(\vb k) C^{y}\subt{TM}(\vb k)
-            \vb E^+\subt{TM}\Big(z_0\vbhat{z}; \vb k\Big)
+            r\subt{TM}(\vb k) C^{y;-}\subt{TM}(\vb k)
+            \vb E^+\subt{TM}\Big(0; \vb k\Big)
     \bigg\}
  \\
-  \vb E\supt{scat,z}
+  \vb E\sups{scat,z}
  &= \int \frac{d \vb k}{(2\pi)^2} 
-    \bigg\{        r\subt{TM}(\vb k) C^{z}\subt{TM}(\vb k)
-            \vb E^+\subt{TM}\Big(z_0\vbhat{z}; \vb k\Big)
+    \bigg\{ r\subt{TE}(\vb k) C^{z}\subt{TE}(\vb k)
+            \vb E^+\subt{TE}\Big(0; \vb k\Big)
+           + 
+            r\subt{TM}(\vb k) C^{z}\subt{TM}(\vb k)
+            \vb E^+\subt{TM}\Big(0; \vb k\Big)
     \bigg\}
+\end{align}
+\label{ScatteredFieldsPWD}
+\end{subequations}
+%====================================================================%
+where the Fresnel coefficients are
+%====================================================================%
+$$ r\subt{TE}(\vb k)= 
+   \frac{ \sqrt{k_0^2 - \vb k^2} - \sqrt{\epsilon k_0^2 - \vb k^2}}
+        { \sqrt{k_0^2 - \vb k^2} + \sqrt{\epsilon k_0^2 - \vb k^2}},
+  \qquad
+   r\subt{TM}(\vb k)= 
+   \frac{ \epsilon \sqrt{k_0^2 - \vb k^2} - \sqrt{\epsilon k_0^2 - \vb k^2}}
+        { \epsilon \sqrt{k_0^2 - \vb k^2} + \sqrt{\epsilon k_0^2 - \vb k^2}}.
+$$
+%====================================================================%
+Note that the $\vb E\subt{TE,TM}$ here involve the $+$
+sign, since the reflected waves are upward-traveling; 
+but the $C$ coefficients involve the $-$ sign, because
+these were the coefficients of the original downward-traveling
+plane waves that impinged on the interface.
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Plane-wave decomposition of periodic DGFs}
+
+To obtain expressions for the incident and scattered
+fields of a Bloch-phased \textit{array} of point sources,
+we first rewrite expressions (\ref{IncidentFieldsPWD})
+and (\ref{ScatteredFieldsPWD}) for the non-periodic
+incident and scattered fields as integrals over the 
+Brillouin zone. For example, the fields of a (non-periodic)
+$\vb x$-directed source at $\vb x_0=z_0\vbhat{z}$ are
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ &\hspace{-0.6in}
+\vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{x} \big\}\Big)
+\\
+ &= \int\subt{BZ} \frac{d \vb k\subt{B}}{(2\pi)^2} 
+    \sum_{\vbGamma}
+    \bigg\{ C^{x}\subt{TE}(\vb k\subt{B} + \vbGamma)
+	    \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
+\\
+&\quad\qquad\qquad\qquad +
+           C^{x;\pm}\subt{TM}(\vb k+\vbGamma)
+	   \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
+   \bigg\}
 \end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+and the corresponding scattered fields evaluated at the location
+of the dipole are
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ &\hspace{-0.1in}
+\vb E\sups{scat}
+\\
+ &= \int\subt{BZ} \frac{d \vb k\subt{B}}{(2\pi)^2} 
+    \sum_{\vbGamma}
+    \bigg\{ r\subt{TE}(\vb k\subt{B} + \vbGamma)
+            C^{x}\subt{TE}(\vb k\subt{B} + \vbGamma)
+	    \vb E^+\subt{TE}\Big(0; \vb k\subt{B}+\vbGamma\Big)
+\\
+&\quad\qquad\qquad\qquad +
+            r\subt{TM}(\vb k\subt{B} + \vbGamma)
+           C^{x;-}\subt{TM}(\vb k+\vbGamma)
+	   \vb E^+\subt{TM}\Big(0; \vb k\subt{B}+\vbGamma\Big).
+   \bigg\}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Here $k\subt{B}$ lives in the Brillouin zone---it is a Bloch vector---and
+the sum is over all reciprocal lattice vectors $\vbGamma$.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
