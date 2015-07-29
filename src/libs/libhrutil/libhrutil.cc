@@ -151,7 +151,6 @@ int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators)
   // MS uses "strtok_s" but this is not supported by MinGW apparently,
   // so just punt and use the non re-entrant version
 #  define strtok_r(s,d,p) strtok(s,d)
-  (void) saveptr; // unused
 #endif
 
 // (cram all extra tokens into the last token)
