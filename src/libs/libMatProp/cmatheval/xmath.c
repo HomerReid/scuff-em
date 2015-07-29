@@ -168,3 +168,6 @@ math_cacsch(cmplx x)
 	 */
 	return casinh(1. / x);
 }
+
+cmplx math_step(cmplx x)
+{ return real(x) >= 0.0 ? 1.0 : 0.0; }

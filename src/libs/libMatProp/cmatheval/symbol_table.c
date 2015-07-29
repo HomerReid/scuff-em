@@ -60,11 +60,11 @@ symbol_table_create(int length)
 		"csc", "asin", "acos", "atan", "acot", "asec", "acsc",
 		"sinh", "cosh", "tanh", "coth", "sech", "csch",
 		"asinh", "acosh", "atanh", "acoth", "asech", "acsch",
-		"abs", "real", "imag", "arg", "conj"
+		"abs", "real", "imag", "arg", "conj", "step"
 	};			/* Symbol table predefined functions
 				 * names. */
 	static cmplx   (*functions[]) (cmplx) = {
-	     cexp, clog, csqrt, csin, ccos, ctan, math_ccot, math_csec, math_ccsc, casin, cacos, catan, math_cacot, math_casec, math_cacsc, csinh, ccosh, ctanh, math_ccoth, math_csech, math_ccsch, casinh, cacosh, catanh, math_cacoth, math_casech, math_cacsch, math_cabs, math_creal, math_cimag, math_carg, math_cconj};	/* Symbol 
+	     cexp, clog, csqrt, csin, ccos, ctan, math_ccot, math_csec, math_ccsc, casin, cacos, catan, math_cacot, math_casec, math_cacsc, csinh, ccosh, ctanh, math_ccoth, math_csech, math_ccsch, casinh, cacosh, catanh, math_cacoth, math_casech, math_cacsch, math_cabs, math_creal, math_cimag, math_carg, math_cconj, math_step};	/* Symbol 
 																																				 * table 
 																																				 * predefined 
 																																				 * functions 

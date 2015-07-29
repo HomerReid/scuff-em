@@ -117,4 +117,7 @@ cmplx          math_casech(cmplx x);
 /* Calculate inverse hyperbolical cosecant of value x.  */
 cmplx          math_cacsch(cmplx x);
 
+/* Heaviside step function of real(x).  */
+cmplx          math_step (cmplx x);
+
 #endif
