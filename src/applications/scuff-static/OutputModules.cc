@@ -463,6 +463,10 @@ void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
       PhiE = SSS->GetFields(0, 0, Sigma, X, 0);
 
      FILE *f=vfopen("%s.out","w",GetFileBase(EPFiles[nepf]));
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 1, 2, 3: x, y, z (evaluation point coordinates)\n");
+     fprintf(f,"# 4      : Phi      (electrostatic potential)\n");
+     fprintf(f,"# 5, 6, 7: Ex,Ey,Ez (electrostatic field components)\n");
      for(int nr=0; nr<X->NR; nr++)
       fprintf(f,"%e %e %e %e %e %e %e\n",
                  X->GetEntryD(nr,0), X->GetEntryD(nr,1), X->GetEntryD(nr,2),

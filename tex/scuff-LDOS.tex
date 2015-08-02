@@ -780,7 +780,7 @@ $$\begin{array}{ccccccc}
  &\qquad&
  \displaystyle{ C^{x;\pm}\subt{TM} }
  &=& 
- \displaystyle{ \mp \frac{ i \pi k_x }{2k_0|\vb k|} }
+ \displaystyle{ \pm \frac{ i \pi k_x }{2k_0|\vb k|} }
 \\[10pt]
 %--------------------------------------------------------------------%
  \displaystyle{ C^{y}\subt{TE} }
@@ -789,14 +789,14 @@ $$\begin{array}{ccccccc}
  &\qquad&
  \displaystyle{ C^{y;\pm}\subt{TM} }
  &=& 
- \displaystyle{ \mp \frac{ i \pi k_y }{2k_0|\vb k|} }
+ \displaystyle{ \pm \frac{ i \pi k_y }{2k_0|\vb k|} }
 \\[10pt]
 %--------------------------------------------------------------------%
  \displaystyle{ C^{z}\subt{TE} }
  &=& 0
  &\qquad&
  \displaystyle{ C^{z}\subt{TM} }
- &=& \displaystyle{ \frac{ i\pi |\vb k|  }{2k_0 k_z} }.
+ &=& \displaystyle{ -\frac{ i\pi |\vb k|  }{2k_0 k_z} }.
 \end{array}$$
 %====================================================================%
 In these equations, the $\pm$ sign is $+$ for evaluation points 
@@ -824,28 +824,28 @@ $z_0$ are
  \vb E\sups{scat,x}
 &= \int \frac{d\vb k}{(2\pi)^2}
    \bigg\{ r\subt{TE}(\vb k) C^{x}\subt{TE}(\vb k)
-           \vb E^+\subt{TE}\Big(0; \vb k\Big)
+           \vb E^+\subt{TE}\Big(2z_0 \vbhat{z}; \vb k\Big)
            + 
-           r\subt{TM}{\vb k} C^{x;-}\subt{TM}(\vb k)
- h          \vb E^+\subt{TM}\Big(0; \vb k\Big)
+           r\subt{TM}(\vb k) C^{x;-}\subt{TM}(\vb k)
+           \vb E^+\subt{TM}\Big(2z_0 \vbhat{z}; \vb k\Big)
     \bigg\}
 \\
   \vb E\sups{scat,y}
  &= \int \frac{d \vb k}{(2\pi)^2} 
     \bigg\{ r\subt{TE}(\vb k) C^{y}\subt{TE}(\vb k)
-            \vb E^+\subt{TE}\Big(0; \vb k\Big)
+            \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\Big)
            + 
             r\subt{TM}(\vb k) C^{y;-}\subt{TM}(\vb k)
-            \vb E^+\subt{TM}\Big(0; \vb k\Big)
+            \vb E^+\subt{TM}\Big(2z_0\vbhat{z}; \vb k\Big)
     \bigg\}
  \\
   \vb E\sups{scat,z}
  &= \int \frac{d \vb k}{(2\pi)^2} 
     \bigg\{ r\subt{TE}(\vb k) C^{z}\subt{TE}(\vb k)
-            \vb E^+\subt{TE}\Big(0; \vb k\Big)
+            \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\Big)
            + 
             r\subt{TM}(\vb k) C^{z}\subt{TM}(\vb k)
-            \vb E^+\subt{TM}\Big(0; \vb k\Big)
+            \vb E^+\subt{TM}\Big(2z_0\vbhat{z}; \vb k\Big)
     \bigg\}
 \end{align}
 \label{ScatteredFieldsPWD}
@@ -907,12 +907,12 @@ of the dipole are
     \sum_{\vbGamma}
     \bigg\{ r\subt{TE}(\vb k\subt{B} + \vbGamma)
             C^{x}\subt{TE}(\vb k\subt{B} + \vbGamma)
-	    \vb E^+\subt{TE}\Big(0; \vb k\subt{B}+\vbGamma\Big)
+	    \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
 \\
 &\quad\qquad\qquad\qquad +
             r\subt{TM}(\vb k\subt{B} + \vbGamma)
            C^{x;-}\subt{TM}(\vb k+\vbGamma)
-	   \vb E^+\subt{TM}\Big(0; \vb k\subt{B}+\vbGamma\Big).
+	   \vb E^+\subt{TM}\Big(2z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big).
    \bigg\}
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
