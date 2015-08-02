@@ -138,6 +138,51 @@ char *GetFileBase(char *s)
   return RemoveExtension(RemoveDirectories(s));
 }
 
+/*
+ * public domain strtok_r() by Charlie Gordon
+ *
+ *   from comp.lang.c  9/14/2007
+ *
+ *      http://groups.google.com/group/comp.lang.c/msg/2ab1ecbb86646684
+ *
+ *     (Declaration that it's public domain):
+ *      http://groups.google.com/group/comp.lang.c/msg/7c7b39328fefab9c
+ * 
+*/
+char* strtok_r_PublicDomain(
+    char *str, 
+    const char *delim, 
+    char **nextp)
+{
+    char *ret;
+
+    if (str == NULL)
+    {
+        str = *nextp;
+    }
+
+    str += strspn(str, delim);
+
+    if (*str == '\0')
+    {
+        return NULL;
+    }
+
+    ret = str;
+
+    str += strcspn(str, delim);
+
+    if (*str)
+    {
+        *str++ = '\0';
+    }
+
+    *nextp = str;
+
+    return ret;
+}
+
+
 /* given "Now is the time for all", return 6, with Tokens[0]="Now",  */
 /* Tokens[1]="is", etc. Only slots Tokens[0] ... Tokens[MaxTokens-1] */
 /* are referenced.                                                   */
@@ -150,8 +195,11 @@ int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators)
 #if defined(_WIN32)
   // MS uses "strtok_s" but this is not supported by MinGW apparently,
   // so just punt and use the non re-entrant version
-#  define strtok_r(s,d,p) strtok(s,d)
-  (void) saveptr; // unused
+  // #define strtok_r(s,d,p) strtok(s,d)
+  // update 20150802 no, this seems to cause core dumps on
+  // window. instead use the public-domain strtok implementation
+  // included above.
+  #define strtok_r(s,d,p) strtok_r_PublicDomain(s,d,p)
 #endif
 
 // (cram all extra tokens into the last token)
