@@ -290,13 +290,6 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   GBA->RhoMin             = RhoMin;
   GBA->RhoMax             = RhoMax;
 
-  GBA->ForceFullEwald = false;
-  char *str=getenv("SCUFF_EWALD_FULL");
-  if ( str && str[0]=='1' )
-   { Log("Forcing full Ewald summation.");
-     GBA->ForceFullEwald=true;
-   };
-
   GBA->LDim = LDim;
   GBA->LBV1[0]=LBV[0][0];
   GBA->LBV1[1]=LBV[0][1];
@@ -322,6 +315,23 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
      LMax = sqrt( GoK*GoK + 2.0*RhoMin*GoK );
    };
   GBA->LMax=LMax;
+
+  GBA->ForceFullEwald = false;
+  if (RhoMin > RhoMax) 
+   GBA->ForceFullEwald=true;
+  else 
+   { char *str=getenv("SCUFF_EWALD_FULL");
+     if ( str && str[0]=='1' )
+     { Log("Forcing full Ewald summation.");
+       GBA->ForceFullEwald=true;
+     };
+   };
+  
+  if (GBA->ForceFullEwald)
+   { GBA->I2D=0;
+     GBA->I3D=0;
+     return GBA;
+   };
 
   /***************************************************************/
   /***************************************************************/
@@ -892,48 +902,13 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
    }
   else // region is not extended
    return 0;
-
+   
   /***************************************************************/
-  /* determine the minimum and maximum values of the transverse  */
-  /* coordinate Rho that our interpolation table will need to    */
-  /* support. This requires a little care if RMin < 0, because   */
-  /* we have to distinguish between cases in which the interval  */
-  /* [RMin, RMax] does or does not straddle the origin.          */
-  /***************************************************************/
-  double AbsRMin[3], AbsRMax[3];
-  for(int Mu=0; Mu<3; Mu++)
-   { if ( (RMin[Mu]>=0.0) )
-      { AbsRMin[Mu] = fabs(RMin[Mu]);
-        AbsRMax[Mu] = fabs(RMax[Mu]);
-      }
-     else if ( (RMin[Mu]<0.0) && (RMax[Mu]>0.0) )
-      { AbsRMin[Mu] = 0.0;
-        AbsRMax[Mu] = fmax( fabs(RMax[Mu]), fabs(RMin[Mu]) );
-      }
-     else // ( (RMin[Mu]<0.0) && (RMax[Mu]<0.0) )
-      { AbsRMin[Mu] = fabs(RMax[Mu]);
-        AbsRMax[Mu] = fabs(RMin[Mu]);
-      };
-   };
- 
-  double RhoMin, RhoMax;
-  if (LDim==1)
-   { RhoMin = sqrt(AbsRMin[1]*AbsRMin[1] + AbsRMin[2]*AbsRMin[2]);
-     RhoMax = sqrt(AbsRMax[1]*AbsRMax[1] + AbsRMax[2]*AbsRMax[2]);
-   }
-  else
-   { RhoMin = AbsRMin[2];
-     RhoMax = AbsRMax[2];
-   };
-
-  /***************************************************************/
-  /***************************************************************/
+  /* do not bother to create an interpolation table if we are in */
+  /* the regime in which GBar will be exponentially tiny at all  */
+  /* evaluation points                                           */
   /***************************************************************/
   cdouble k = Omega * RegionMPs[nr]->GetRefractiveIndex(Omega);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
   if ( ExcludeInnerCells && imag(k)>0.0 )
    { 
      double minL=2.0*sqrt(   GBA_LBV[0][0]*GBA_LBV[0][0]
@@ -945,6 +920,48 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 
      if ( imag(k)*minL > 14.0 )
       return 0;
+   };
+
+  /***************************************************************/
+  /* determine the minimum and maximum values of the transverse  */
+  /* coordinate Rho that our interpolation table will need to    */
+  /* support. This requires a little care if RMin < 0, because   */
+  /* we have to distinguish between cases in which the interval  */
+  /* [RMin, RMax] does or does not straddle the origin.          */
+  /* If RMin[0] > RMax[0], then we create a dummy 'accelerator'  */
+  /* in which no interpolation table is created and GBar is      */
+  /* always evaluated by full Ewald summation.                   */
+  /***************************************************************/
+  double RhoMin, RhoMax;
+  if (RMin[0] > RMax[0])
+   { RhoMin=1.0;
+     RhoMax=0.0;
+   }
+  else
+   { double AbsRMin[3], AbsRMax[3];
+     for(int Mu=0; Mu<3; Mu++)
+      { if ( (RMin[Mu]>=0.0) )
+         { AbsRMin[Mu] = fabs(RMin[Mu]);
+           AbsRMax[Mu] = fabs(RMax[Mu]);
+         }
+        else if ( (RMin[Mu]<0.0) && (RMax[Mu]>0.0) )
+         { AbsRMin[Mu] = 0.0;
+           AbsRMax[Mu] = fmax( fabs(RMax[Mu]), fabs(RMin[Mu]) );
+         }
+        else // ( (RMin[Mu]<0.0) && (RMax[Mu]<0.0) )
+         { AbsRMin[Mu] = fabs(RMax[Mu]);
+           AbsRMax[Mu] = fabs(RMin[Mu]);
+         };
+      };
+    
+     if (LDim==1)
+      { RhoMin = sqrt(AbsRMin[1]*AbsRMin[1] + AbsRMin[2]*AbsRMin[2]);
+        RhoMax = sqrt(AbsRMax[1]*AbsRMax[1] + AbsRMax[2]*AbsRMax[2]);
+      }
+     else
+      { RhoMin = AbsRMin[2];
+        RhoMax = AbsRMax[2];
+      };
    };
 
   /***************************************************************/
@@ -968,9 +985,11 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
 /***************************************************************/
 GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix)
 {
-  // don't bother if there are fewer than 5 points
-  if (XMatrix->NR<5)
-   return 0;
+  if (XMatrix->NR < 8)
+   { double RMin[3]={1.0, 1.0, 1.0};
+     double RMax[3]={0.0, 0.0, 0.0};
+     return CreateRegionGBA(nr, Omega, kBloch, RMin, RMax, false);
+   };
 
   Log("Creating GBar accelerator for %i points in region %s...",XMatrix->NR,RegionLabels[nr]);
 
@@ -1003,7 +1022,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
    return 0;
 
   /*--------------------------------------------------------------*/
-  // get the maximum and minimum values of X-Y where              */
+  /* get the maximum and minimum values of X-Y where              */
   /* X runs over all vertices on all surfaces bounding the region */
   /* and Y runs over all evaluation points in the region          */
   /*--------------------------------------------------------------*/
