@@ -210,6 +210,7 @@ AC_CONFIG_FILES([
  src/applications/scuff-analyze/Makefile
  src/applications/scuff-caspol/Makefile
  src/applications/scuff-cas3D/Makefile
+ src/applications/scuff-ldos/Makefile
  src/applications/scuff-neq/Makefile
  src/applications/scuff-plotEpsMu/Makefile
  src/applications/scuff-rf/Makefile
