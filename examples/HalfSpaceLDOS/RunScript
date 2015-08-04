@@ -1,0 +1,10 @@
+#!/bin/bash
+
+CODE=scuff-ldos
+
+ARGS=""
+ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo"
+ARGS="${ARGS} --EPFile EPFile"
+ARGS="${ARGS} --OmegakBlochFile OKBFile"
+
+${CODE} ${ARGS}
