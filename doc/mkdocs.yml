@@ -24,6 +24,7 @@ pages:
     - 'Casimir forces in a 2D extended geometry': 'examples/SiliconSlabs/SiliconSlabs.md'
     - 'Thermal radiation, heat transfer, and non-equilibrium Casimir forces between silicon dioxide spheres': 'examples/SiO2Spheres/SiO2Spheres.md'
     - 'Spatial distribution of heat flux from a warm tip over a cold substrate': 'examples/TipSubstrate/TipSubstrate.md'
+    - 'LDOS and dyadic Green functions above an infinite aluminum half-space': 'examples/HalfSpaceLDOS/HalfSpaceLDOS.md'
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
     - 'Installation':              'reference/Installing.md'

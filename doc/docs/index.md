@@ -32,7 +32,7 @@
 
 * *Nanophotonics codes*
     * [scuff-scatter][scuff-scatter]            - general-purpose electromagnetic scattering
-    * [scuff-LDOS][scuff-LDOS]                  - photonic **l**ocal **d**ensity **o**f **s**tates
+    * [scuff-ldos][scuff-ldos]                  - photonic **l**ocal **d**ensity **o**f **s**tates
     * [scuff-transmission][scuff-transmission]  - plane-wave transmission through 2D extended structures
     * [scuff-tmatrix][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis  
 
@@ -77,7 +77,7 @@
 [scuffEMLogo]:        img/scuffEMLogo.png
 [GeneralReference]:   applications/GeneralReference.md
 [scuff-scatter]:      applications/scuff-scatter/scuff-scatter.md
-[scuff-LDOS]:         applications/scuff-LDOS/scuff-LDOS.md
+[scuff-ldos]:         applications/scuff-ldos/scuff-ldos.md
 [scuff-transmission]: applications/scuff-transmission/scuff-transmission.md
 [scuff-tmatrix]:      applications/scuff-tmatrix/scuff-tmatrix.md
 [scuff-cas3D]:        applications/scuff-cas3D/scuff-cas3D.md

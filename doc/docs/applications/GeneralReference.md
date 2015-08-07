@@ -259,6 +259,60 @@ This produces a running list of log messages, something like this:
 06/15/15::10:13:52: Computing Casimir integrand at (Xi,kx,ky)=(0.5,0.275845,0.0318681) 
 ````
 
+<a name="OutputFiles"></a>
+# Output Files
+
+The [[scuff-em]] application codes generally produce
+output in the form of human-readable text-based
+data files. The typical naming convention for 
+these files is `Geometry.Extension`, where `Geometry.scuffgeo`
+is the name of the [[scuff-em]] geometry file 
+on which the calculation was run, and where `Extension`
+is an application-specific file extension that attempts 
+to describe the content of the file; for example, 
+[[scuff-scatter]] produces files named `Geometry.PFT`
+to report the power, force, and torque on bodies 
+irradiated by external fields. You can use the 
+`--filebase` command-line option to [[scuff-em]]
+codes to select a base filename other than 
+`Geometry.`
+
+All text-based data files produced by [[scuff-em]]
+codes should contain a human-readable *header* at the 
+top of the file explaining how to interpret its content.
+For example, the first few lines of the 
+`.PFT` output file produced by [[scuff-scatter]]
+look like this:
+
+````
+# scuff-scatter running on hikari 08/03/15::23:15:45
+# data file columns: 
+# 1 omega 
+# 2 surface label 
+# 3 absorbed power (watts)
+# 4 scattered power (watts)
+# 5 x-force (nanoNewtons)
+# 6 y-force (nanoNewtons)
+# 7 z-force (nanoNewtons)
+# 8 x-torque (nanoNewtons*microns)
+# 9 y-torque (nanoNewtons*microns)
+# 10 z-torque (nanoNewtons*microns)
+0.05 Particle 6.994160e-04 1.562608e-03 -1.120907e-04 7.169210e-03 7.128598e-03 -3.622586e-03 1.005173e-03 9.428114e-02 
+````
+
+If you encounter a situation in which a [[scuff-em]]
+application code fails to write an appropriate file
+header to an output file, please file an issue
+on the 
+[<span class="CodeName">scuff-em</span> GitHub page][GitHub].
+
+
+
+Other types of output files produced by [[scuff-em]]
+application codes include `.hdf5` binary data
+files and `.pp` files containing visualization data
+that may be viewed in [[gmsh]].
+
 # Environment variables
 
 Here are some environment-variable settings that 
@@ -333,3 +387,5 @@ affect the behavior of [[scuff-em]].
 [scuff-caspol]: scuff-caspol/scuff-caspol.md
 [SiliconBeams]: ../../examples/SiliconBeams/SiliconBeams.md
 [ExtendedGeometries]: ../reference/Geometries.md#Extended
+[GitHub]:       https://github.com/HomerReid/scuff-em.git
+[<span class="CodeName">scuff-em</span> GitHub page][GitHub].

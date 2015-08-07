@@ -1,0 +1,10 @@
+MESHPATH /home/homer/work/scuff-em-sandbox/StructuredMeshes/Square
+
+LATTICE
+	VECTOR 1.0  0.0
+	VECTOR 0.0  1.0 
+ENDLATTICE
+
+OBJECT Plate
+	MESHFILE Square_176.msh
+ENDOBJECT
