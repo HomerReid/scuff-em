@@ -178,4 +178,5 @@ void CalcGC(double R1[3], double R2[3], cdouble Omega, cdouble EpsR, cdouble MuR
   CalcGC(R,Omega,EpsR,MuR,GMuNu,CMuNu,GMuNuRho,CMuNuRho);
 }
 
+
 } // namespace scuff

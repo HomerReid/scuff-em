@@ -1,0 +1,10 @@
+#!/bin/bash
+
+for L in 1.0 0.7
+do
+  for SHAPE in Sphere Tetrahedron Octahedron
+  do
+    gmsh -clscale ${L} -2 ${SHAPE}.geo -o ${SHAPE}.msh
+    RenameMesh ${SHAPE}.msh
+  done
+done
