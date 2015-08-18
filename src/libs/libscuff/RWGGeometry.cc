@@ -188,6 +188,78 @@ void RWGGeometry::AddRegion(char *RegionLabel, char *MaterialName, int LineNum)
 
 }
 
+/***************************************************************/
+/* 20150818 convenience hack to support special file names for */
+/* single-object geometries in which the user can't be         */
+/* bothered to write a .scuffgeo file                          */
+/*                                                             */
+/* The following formats are accepted:                         */
+/*                                                             */
+/*  MESH#MyMesh.scuffgeo                                       */
+/*  MESH#MyMesh#MAT#MatProp.scuffgeo                           */
+/*  MESH#MyMesh#MAT#MatProp#MED#MatProp.scuffgeo               */
+/*                                                             */
+/* If one of these forms is detected, the appropriate .scuffgeo*/
+/* file is written in the current working directory.           */
+/***************************************************************/
+void ProcessSpecialSCUFFGeoFile(const char *GeoFileName)
+{
+  // check for a special geometry file name, which
+  //  begins with MESH# and ends with .scuffgeo
+  int N=strlen(GeoFileName);
+  if (    N<14
+       || strncmp(GeoFileName,"MESH#",5)
+       || strncasecmp(GeoFileName+N-9,".scuffgeo",9)
+     )
+   return;
+
+  char *GFNCopy=strdup(GeoFileName);
+  GFNCopy[N-9]=0;
+  char *Tokens[6];
+  int NumTokens=Tokenize(GFNCopy,Tokens,6,"#");
+
+  if ( (NumTokens%2) || (NumTokens>6) )
+   ErrExit("wrong number of tokens in special file name");
+
+  char *MeshStr=0, *MatStr=0, *MedStr=0;
+  for(int nt=0; nt<NumTokens-1; nt++)
+   { if (!strcasecmp(Tokens[nt],"MESH")) 
+      MeshStr = Tokens[++nt];
+     else if (!strcasecmp(Tokens[nt],"MAT"))
+      MatStr  = Tokens[++nt];
+     else if (!strcasecmp(Tokens[nt],"MED"))
+      MedStr  = Tokens[++nt];
+     else
+      ErrExit("invalid token %s in special file name",Tokens[nt]);
+   };
+
+  if (MeshStr==0)
+   ErrExit("no mesh found in special file name");
+
+  Log("Processing special file name: mesh=%s, mat=%s, med=%s",MeshStr,
+       MatStr ? MatStr : "(none)", MedStr ? MedStr : "(none)");
+
+  FILE *f=fopen(GeoFileName,"w");
+
+  if (MedStr)
+   fprintf(f,"MEDIUM\n MATERIAL %s\nENDMEDIUM\n\n",MedStr);
+
+  fprintf(f,"OBJECT %s\n",GetFileBase(MeshStr));
+  if (strstr(MeshStr,".msh"))
+   fprintf(f," MESHFILE %s\n",MeshStr);
+  else
+   fprintf(f," MESHFILE %s.msh\n",MeshStr);
+
+  if (MatStr) 
+   fprintf(f," MATERIAL %s\n",MatStr);
+
+  fprintf(f,"ENDOBJECT\n");
+  fclose(f);
+
+  free(GFNCopy);
+
+}
+
 /***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
@@ -272,6 +344,7 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   /* try to open input file **************************************/
   /***************************************************************/
+  ProcessSpecialSCUFFGeoFile(GeoFileName);
   FILE *f=fopen(GeoFileName,"r");
   if (!f)
    ErrExit("could not open %s",GeoFileName);

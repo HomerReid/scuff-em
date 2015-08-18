@@ -48,7 +48,6 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /*--------------------------------------------------------------*/
   RWGGeometry *G  = SSD->G;
   IncField *IF    = SSD->IF;
-
   HVector  *KN    = SSD->KN;
   cdouble  Omega  = SSD->Omega;
   double *kBloch  = SSD->kBloch;
@@ -67,48 +66,45 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /*- get components of scattered and incident fields            -*/
   /*--------------------------------------------------------------*/
   Log("Evaluating fields at points in file %s...",EPFileName);
-
-  HMatrix *FMatrix1 = G->GetFields( 0, KN, Omega, kBloch, XMatrix); // scattered
-  HMatrix *FMatrix2 = G->GetFields(IF,  0, Omega, kBloch, XMatrix); // incident
+  HMatrix *SFMatrix = G->GetFields( 0, KN, Omega, kBloch, XMatrix); // scattered
+  HMatrix *IFMatrix = G->GetFields(IF,  0, Omega, kBloch, XMatrix); // incident
 
   /*--------------------------------------------------------------*/
   /*- create .scattered and .total output files and write fields -*/
   /*--------------------------------------------------------------*/
-  char buffer[MAXSTR];
-  snprintf(buffer,MAXSTR,"%s.scattered",GetFileBase(EPFileName));
-  FILE *f1=CreateUniqueFile(buffer,1);
-  snprintf(buffer,MAXSTR,"%s.total",GetFileBase(EPFileName));
-  FILE *f2=CreateUniqueFile(buffer,1);
-
-  int nr, nc; 
-  SetDefaultCD2SFormat("%.8e %.8e ");
-  for(nr=0; nr<FMatrix1->NR; nr++)
-   { fprintf(f1,"%.8e %.8e %.8e ",XMatrix->GetEntryD(nr, 0),
-                                  XMatrix->GetEntryD(nr, 1),
-                                  XMatrix->GetEntryD(nr, 2));
-
-     fprintf(f2,"%.8e %.8e %.8e ",XMatrix->GetEntryD(nr, 0),
-                                  XMatrix->GetEntryD(nr, 1),
-                                  XMatrix->GetEntryD(nr, 2));
-
-     for(nc=0; nc<FMatrix1->NC; nc++)
-      { 
-        fprintf(f1,"%s ",CD2S(  FMatrix1->GetEntry(nr,nc)) );
-
-        fprintf(f2,"%s ",CD2S(  FMatrix1->GetEntry(nr,nc)  
-                               +FMatrix2->GetEntry(nr,nc)) );
+  SetDefaultCD2SFormat("%+.8e %+.8e ");
+  const char *Ext[2]={"scattered","total"};
+  for(int ST=0; ST<2; ST++)
+   { char OutFileName[MAXSTR];
+     snprintf(OutFileName,MAXSTR,"%s.%s",GetFileBase(EPFileName),Ext[ST]);
+     FILE *f=CreateUniqueFile(OutFileName,1);
+     fprintf(f,"# scuff-scatter run on %s (%s)\n",GetHostName(),GetTimeString());
+     fprintf(f,"# columns: \n");
+     fprintf(f,"# 1,2,3   x,y,z (evaluation point coordinates)\n");
+     fprintf(f,"# 4,5     real, imag Ex\n");
+     fprintf(f,"# 6,7     real, imag Ey\n");
+     fprintf(f,"# 8,9     real, imag Ez\n");
+     fprintf(f,"# 10,11   real, imag Hx\n");
+     fprintf(f,"# 12,13   real, imag Hy\n");
+     fprintf(f,"# 14,15   real, imag Hz\n");
+     for(int nr=0; nr<SFMatrix->NR; nr++)
+      { double X[3];
+        cdouble EH[6];
+        XMatrix->GetEntriesD(nr,":",X);
+        SFMatrix->GetEntries(nr,":",EH);
+        if (ST==1) 
+         for(int nc=0; nc<6; nc++) 
+          EH[nc]+=IFMatrix->GetEntry(nr,nc);
+        fprintf(f,"%+.8e %+.8e %+.8e ",X[0],X[1],X[2]);
+        fprintf(f,"%s %s %s   ",CD2S(EH[0]),CD2S(EH[1]),CD2S(EH[2]));
+        fprintf(f,"%s %s %s\n", CD2S(EH[3]),CD2S(EH[4]),CD2S(EH[5]));
       };
-
-     fprintf(f1,"\n");
-     fprintf(f2,"\n");
-
+     fclose(f);
    };
 
-  fclose(f1);
-  fclose(f2);
   delete XMatrix;
-  delete FMatrix1;
-  delete FMatrix2;
+  delete SFMatrix;
+  delete IFMatrix;
 
 }
 
@@ -239,10 +235,36 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
 void GetMoments(SSData *SSD, char *MomentFile)
 {
   /***************************************************************/
+  /* write file preamble on initial file creation ****************/
+  /***************************************************************/
+  FILE *f=fopen(MomentFile,"r");
+  if (!f)
+   { f=fopen(MomentFile,"w");
+     if ( !f ) ErrExit("could not open file %s",MomentFile);
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"# 01    angular frequency (3e14 rad/sec)\n");
+     fprintf(f,"#\n");
+     fprintf(f,"# 02    surface label 1 \n");
+     fprintf(f,"# 03,04 real,imag px_1 (electric dipole moment, surface 1)\n");
+     fprintf(f,"# 05,06 real,imag py_1\n");
+     fprintf(f,"# 07,08 real,imag pz_1\n");
+     fprintf(f,"# 09,10 real,imag mx_1 (magnetic dipole moment, surface 1)\n");
+     fprintf(f,"# 11,12 real,imag my_1\n");
+     fprintf(f,"# 13,14 real,imag mz_1\n");
+     fprintf(f,"#\n");
+     fprintf(f,"# 15    surface label 2 \n");
+     fprintf(f,"# 16-17 real,imag px_2 (electric dipole moment, surface 2)\n");
+     fprintf(f,"# ...   \n");
+     fprintf(f,"# 26,27 real,imag mz_2 (magnetic dipole moment, surface 2\n");
+     fprintf(f,"# 28    surface label 3 \n");
+     fprintf(f,"# ...   and so on\n");
+   };
+  fclose(f);
+
+  /***************************************************************/
   /* open the file and write the frequency at the top of the line*/
   /***************************************************************/
-  FILE *f=fopen(MomentFile,"a");
-  if ( !f ) ErrExit("could not open file %s",MomentFile);
+  f=fopen(MomentFile,"a");
   
   /***************************************************************/
   /* get dipole moments ******************************************/
@@ -281,17 +303,18 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   FILE *f=fopen(FileName,"r");
   if (!f)
    { f=fopen(FileName,"w");
+     fprintf(f,"# scuff-scatter run on %s (%s)\n",GetHostName(),GetTimeString());
      fprintf(f,"# data file columns: \n");
-     fprintf(f,"# 1 omega \n");
+     fprintf(f,"# 1 omega           (rad/sec) \n");
      fprintf(f,"# 2 surface label \n");
-     fprintf(f,"# 3 absorbed power\n");
-     fprintf(f,"# 4 scattered power\n");
-     fprintf(f,"# 5 x-force \n");
-     fprintf(f,"# 6 y-force \n");
-     fprintf(f,"# 7 z-force \n");
-     fprintf(f,"# 8 x-torque \n");
-     fprintf(f,"# 9 y-torque \n");
-     fprintf(f,"# 10 z-torque \n");
+     fprintf(f,"# 3 absorbed power  (watts)\n");
+     fprintf(f,"# 4 scattered power (watts)\n");
+     fprintf(f,"# 5 x-force         (nanonewtons)\n");
+     fprintf(f,"# 6 y-force         (nanonewtons)\n");
+     fprintf(f,"# 7 z-force         (nanonewtons)\n");
+     fprintf(f,"# 8 x-torque        (nanonewtons * microns)\n");
+     fprintf(f,"# 9 y-torque        (nanonewtons * microns)\n");
+     fprintf(f,"#10 z-torque        (nanonewtons * microns)\n");
    };
   fclose(f);
 

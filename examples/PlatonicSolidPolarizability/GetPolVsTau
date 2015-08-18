@@ -31,9 +31,9 @@ do
     # create a .scuffgeo file for this (Shape,EpsOut,EpsIn)
     ##################################################
     /bin/cp ${GEOTEMPLATE} ${GEOFILE}
-    sed -i "s/EPS_1.0/EPS_${EPSOUT}/"  ${GEOFILE}
-    sed -i "s/EPS_2.0/EPS_${EPSIN}/"   ${GEOFILE}
-    sed -i "s/SHAPE/${SHAPE}/"         ${GEOFILE}
+    sed -i "s/EPSIN/${EPSOUT}/"  ${GEOFILE}
+    sed -i "s/EPSOUT/${EPSIN}/"  ${GEOFILE}
+    sed -i "s/SHAPE/${SHAPE}/"   ${GEOFILE}
     
     ##################################################
     # run scuff-static to get the polarizability
