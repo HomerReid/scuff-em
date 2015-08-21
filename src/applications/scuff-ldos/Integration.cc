@@ -18,11 +18,10 @@
  */
 
 /*
- * CreateSLDData -- utility routine to initialize an Data
- *                 -- structure containing all information passed
- *                 -- around between the various scuff-ldos routines
+ * Integration.cc -- routines for computing numerical Brillouin-zone
+ *                -- cubatures in scuff-ldos
  *
- * homer reid      -- 3/2015
+ * homer reid     -- 3/2015
  *
  */
 

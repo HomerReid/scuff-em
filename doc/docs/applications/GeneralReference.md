@@ -132,23 +132,67 @@ accept that argument.
 ### *Options controlling frequency integrations*
 
   ````
---OmegaQuadrature [adaptive | cliff ]
+--OmegaQuadrature [adaptive | cliff]
 --OmegaMin 0.01
---XiQuadrature [adaptive | cliff ]
+--XiQuadrature [adaptive | cliff]
 --XiMin 0.01
 --AbsTol
 --RelTol
   ````
 {.toc}
 
+
+> These arguments affect the behavior of application codes
+> that compute output quantities by performing numerical
+> integrations over angular frequencies---either real
+> angular frequencies $\omega$ or imaginary angular
+> frequencies $\xi$. (More specifically, [[scuff-neq]]
+> performs $\omega$ integrations, while [[scuff-cas3d]] and
+> [[scuff-caspol]] perform $\xi$ integrations.)
+>
+> `--OmegaQuadrature` or `--XiQuadrature` specify the
+> numerical quadrature algorithm. If these
+> options are left unspecified, an appropriate algorithm 
+> is chosen automatically.
+>
+> `--OmegaMin` or `--XiMin` specify the minimum angular
+> frequency at which numerical [[scuff-em]] calculations 
+> are performed. For cases in which the lower limit of the 
+> $\omega$ or $\xi$ integration is 0, the integrand is 
+> assumed to be constant between 0 and the value specified here.
+> These options are interpreted in the usual [[scuff-em]]
+> frequency units of $3\times 10^{14}$ rad/sec, so typical
+> values will be something like `0.001.`
+>
+> `--AbsTol` and `--RelTol` may be used to specify
+> absolute and relative error tolerances for adaptive
+> quadrature algorithms. If an adaptive cubature method
+> seems be spending too much time attempting to achieve
+> high accuracy in a frequency quadrature, try increasing
+> `--RelTol` to something like `0.1` or even `0.5.`
+
 ### *Options controlling Brillouin-zone integrations*
 
  ````
---BZQuadrature [adaptive | cliff ]
---BZSymmetry [adaptive | cliff ]
+--BZQuadrature [adaptive | cliff]
+--BZSymmetry [adaptive | cliff]
 --MaxBZSamples 1000;
  ````
 {.toc}
+
+> These arguments affect the behavior of application codes
+> that compute output quantities for periodic geometries
+> by performing numerical integrations over the Brillouin
+> zone. Such codes include [[scuff-ldos]], [[scuff-neq]],
+> [[scuff-cas3d]], and [[scuff-caspol]].
+>
+> `--BZSymmetry` may be used for 2D periodic geometries to
+> declare that the Brillouin-zone integrand $f(k_x, k_y)$
+> is symmetric under the interchange $k_x \leftrightarrow k_y$.
+>
+> `--MaxBZSamples 1000` may be used to restrict adaptive
+> integration algorithms to a maximum of 1,000 evaluations
+> of the Brillouin-zone integrand.
  
 ### *Miscellaneous options*
 
@@ -305,7 +349,6 @@ application code fails to write an appropriate file
 header to an output file, please file an issue
 on the 
 [<span class="CodeName">scuff-em</span> GitHub page][GitHub].
-
 
 
 Other types of output files produced by [[scuff-em]]

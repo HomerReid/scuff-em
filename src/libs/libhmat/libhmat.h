@@ -317,6 +317,9 @@ class HMatrix
    /* non-symmetric matrices (dgeevx / zgeevx )         */
    HVector *NSEig(HVector *Lambda=0, HMatrix *U=0);
 
+   /* singular-value decomposition */
+   HVector *SVD(HVector *Sigma=0, HMatrix *U=0, HMatrix *VT=0);
+
    /* matrix norm*/
    double GetNorm(bool UseInfinityNorm=false);
 

@@ -744,6 +744,103 @@ HVector *HMatrix::NSEig(HVector *Lambda, HMatrix *U)
 }
 
 /***************************************************************/
+/* routine for singular-value decomposition (dgesvd / zgesvd)  */
+/* If Sigma is NULL on entry, a new vector is allocated and    */
+/* returned.                                                   */
+/* U, VT may be NULL if you just want the singular vectors.    */
+/***************************************************************/
+HVector *HMatrix::SVD(HVector *Sigma, HMatrix *U, HMatrix *VT)
+{
+  if (StorageType!=LHM_NORMAL)
+   ErrExit("SVD() not supported for packed-storage matrices");
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NRCMin = (NR<NC ? NR : NC);
+  if ( Sigma && ( (Sigma->N!=NRCMin) ) )
+   { Warn("Incorrect Sigma vector passed to SVD (reallocating)");
+     delete Sigma;
+     Sigma=0;
+   };
+  if (Sigma==0)
+   Sigma=new HVector(NRCMin,LHM_REAL);
+
+  if ( U && ( (U->NR!=NR) || (U->NC!=NR)) )
+   { Warn("Incorrect U matrix passed to SVD (reallocating)");
+     delete U;
+     U = new HMatrix(NR, NR, RealComplex);
+   };
+
+  if ( VT && ( (VT->NR!=NC) || (VT->NC!=NC)) )
+   { Warn("Incorrect VT matrix passed to SVD (reallocating)");
+     delete VT;
+     VT = new HMatrix(NC, NC, RealComplex);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  const char *jobu  = ( U==0) ? "N" : "A";
+  const char *jobvt = (VT==0) ? "N" : "A";
+  int lworkOptimal, info, MinusOne=-1;
+  if (RealComplex==LHM_REAL)
+   { 
+     /*--------------------------------------------------------------*/
+     /*- query optimal workspace sizes and (re)allocate internally-  */
+     /*- stored workspaces as necessary                              */
+     /*--------------------------------------------------------------*/
+     double dlworkOptimal;
+     dgesvd_(jobu, jobvt, &NR, &NC, DM, &NR, Sigma->DV, 
+             U ? U->DM : 0, &NR, VT ? VT->DM : 0, &NC, 
+             &dlworkOptimal, &MinusOne, &info);
+
+     lworkOptimal = (int)dlworkOptimal;
+     if (lworkOptimal > lwork)
+      { work=realloc(work,lworkOptimal*sizeof(double));
+        lwork=lworkOptimal;
+      };
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     dgesvd_(jobu, jobvt, &NR, &NC, DM, &NR, Sigma->DV,
+             U ? U->DM : 0, &NR, VT ? VT->DM : 0, &NC, 
+             (double *)work, &lwork, &info);
+   }
+  else // (RealComplex==LHM_COMPLEX)
+   {
+     /*--------------------------------------------------------------*/
+     /*- query optimal workspace sizes and (re)allocate internally-  */
+     /*- stored workspaces as necessary                              */
+     /*--------------------------------------------------------------*/
+     double *rwork = new double[5*NRCMin];
+     cdouble zlworkOptimal;
+     zgesvd_(jobu, jobvt, &NR, &NC, ZM, &NR, Sigma->DV, 
+             U ? U->ZM : 0, &NR, VT ? VT->ZM : 0, &NC, 
+             &zlworkOptimal, &MinusOne, rwork, &info);
+
+     lworkOptimal = 2*(int)(real(zlworkOptimal));
+     if (lworkOptimal > lwork)
+      { work=realloc(work,lworkOptimal*sizeof(double));
+        lwork=lworkOptimal;
+      };
+
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     /*--------------------------------------------------------------*/
+     zgesvd_(jobu, jobvt, &NR, &NC, ZM, &NR, Sigma->DV, 
+             U ? U->ZM : 0, &NR, VT ? VT->ZM : 0, &NC,
+             (cdouble *)work, &lwork, rwork, &info);
+     delete[] rwork;
+
+   };
+
+  return Sigma;
+
+}
+
+/***************************************************************/
 /***************************************************************/ 
 /***************************************************************/
 double HMatrix::GetNorm(bool UseInfinityNorm)
