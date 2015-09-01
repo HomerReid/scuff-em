@@ -85,11 +85,9 @@ double Toc(unsigned long *BytesAllocated)
    return Secs()-tictoc; 
  }
 
-
 /***************************************************************/
 /* String functions  *******************************************/
 /***************************************************************/
-
 /* given "/home/homer/work/MyFile.dat", return "MyFile.dat" */
 char *RemoveDirectories(char *s)
 { static char buffer[MAXSTR];
@@ -277,7 +275,7 @@ FILE *fopenPath(const char *Path, const char *FileName,
      while( *p && *p!=':' && n<MAXSTR )
       FullFileName[n++] = *p++;
      strncpy(DirFound,FullFileName,n);
-     DirFound[n+1]=0;
+     DirFound[n]=0;
      FullFileName[n++]='/';
      strncpy(FullFileName+n,FileName,MAXSTR-n);
      if ( FILE *f=fopen(FullFileName,Mode) )
