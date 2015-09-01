@@ -72,7 +72,7 @@ int Tokenize(char *s, char **Tokens, int MaxTokens, const char *Separators);
 int Tokenize(char *s, char **Tokens, int MaxTokens);
 int StrCaseCmp(const char *s1, const char *s2);
 
-FILE *fopenPath(const char *Path, const char *FileName, const char *Mode);
+FILE *fopenPath(const char *Path, const char *FileName, const char *Mode, char **WhichDir=0);
 
 /***************************************************************/
 /* Vararg versions of common functions *************************/

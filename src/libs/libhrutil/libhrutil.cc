@@ -251,11 +251,20 @@ int vsnprintfEC(char *str, size_t size, const char *format, va_list ap)
 /***************************************************************/
 /* extension of fopen that accepts an optional colon-separated */
 /* search path                                                 */
+/* if WhichDir is non-null, then on return *WhichDir points to */
+/* a static buffer containing the directory in which the file  */
+/* as found                                                    */
 /***************************************************************/
-FILE *fopenPath(const char *Path, const char *FileName, const char *Mode)
+FILE *fopenPath(const char *Path, const char *FileName,
+                const char *Mode, char **WhichDir)
 { 
+  static char DirFound[MAXSTR];
+  if (WhichDir) *WhichDir=DirFound;
+
   if ( FILE *f=fopen(FileName,Mode) )
-   return f;
+   { sprintf(DirFound,".");
+     return f;
+   };
 
   if (!Path)
    return 0;
@@ -267,6 +276,8 @@ FILE *fopenPath(const char *Path, const char *FileName, const char *Mode)
      char FullFileName[MAXSTR];
      while( *p && *p!=':' && n<MAXSTR )
       FullFileName[n++] = *p++;
+     strncpy(DirFound,FullFileName,n);
+     DirFound[n+1]=0;
      FullFileName[n++]='/';
      strncpy(FullFileName+n,FileName,MAXSTR-n);
      if ( FILE *f=fopen(FullFileName,Mode) )
