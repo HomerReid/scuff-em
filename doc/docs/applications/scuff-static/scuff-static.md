@@ -83,8 +83,11 @@ and the execution of the various types of calculation
 <a name="Examples"></a>
 # 4. Examples of calculations using <span class="SC">scuff-static</span>
 
-+ [Polarizability of the platonic solids](../../examples/PlatonicSolids/PlatonicSolids.md)
++ [Polarizability of the platonic solids](../../examplesPlatonicSolids/PlatonicSolids.md)
 
-+ [Self- and mutual-capacitance of irregularly shaped conductors](../../examples/PlatonicSolids.md)
++ [Self- and mutual-capacitance of irregularly shaped conductors](../../examples/PlatonicSolids/PlatonicSolids.md)
 
-+ [Electrostatic fields in the vicinity of a complicated gate array](../../examples/
++ [Electrostatic fields in the vicinity of a complicated gate array](../../examples/PlatonicSolids/PlatonicSolids.md)
+
+
+
