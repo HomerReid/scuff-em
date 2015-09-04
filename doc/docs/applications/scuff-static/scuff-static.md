@@ -83,7 +83,7 @@ and the execution of the various types of calculation
 <a name="Examples"></a>
 # 4. Examples of calculations using <span class="SC">scuff-static</span>
 
-+ [Polarizability of the platonic solids](../../examples/PlatonicSolids.md)
++ [Polarizability of the platonic solids](../../examples/PlatonicSolids/PlatonicSolids.md)
 
 + [Self- and mutual-capacitance of irregularly shaped conductors](../../examples/PlatonicSolids.md)
 
