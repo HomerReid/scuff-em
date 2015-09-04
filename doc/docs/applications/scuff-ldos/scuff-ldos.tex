@@ -1,5 +1,6 @@
 \documentclass[letterpaper]{article}
 \usepackage[square,sort,comma,numbers]{natbib}
+%====================================================================%
 \newcommand{\citeasnoun}[1]{Ref.~\citenum{#1}}
 
 \input{scufftex}
@@ -357,7 +358,7 @@ $$ f_1(x)=-1+x-x^2, \qquad f_2(x)=3-3x+x^2, \qquad f_3(x)=x-x^2.$$
 An alternative way to understand these fields is to think of the point dipole
 $\vb p_0$ at $\vb x_0$ as a localized volume current distribution, 
 %====================================================================%
-$$ \vb J(\vb x) = -i\omega \vb p_0 \delta(\vb x-\vb x_0) $$
+\numeq{JFromp0}{\vb J(\vb x) = -i\omega \vb p_0 \delta(\vb x-\vb x_0)}
 %====================================================================%
 in which case it is easy to compute the fields at $\vb x$ by
 convolving with the usual (free-space) dyadic
@@ -403,6 +404,16 @@ scalar Helmholtz Green's function according to
    = \frac{1}{ik}\varepsilon_{ijk} \partial_k G_0(\vb r).
 }
 %====================================================================%
+Note that the $\vb E$ and $\vb H$ fields due to an electric 
+current distribution $\vb J$ are
+%====================================================================%
+\numeq{EHFromGC}
+{ \vb E(\vb x)=ik Z_0 \int \vb G(\vb x-\vb x^\prime) \cdot \vb J(\vb x^\prime),
+  \qquad
+  \vb H(\vb x)=-ik \int \vb C(\vb x-\vb x^\prime) \cdot \vb J(\vb x^\prime).
+}
+%====================================================================%
+   
 
 \subsection*{Fields of a phased array of point dipoles, take 1}
 
@@ -468,7 +479,8 @@ we obtain the 2D Fourier expansion of the dyadic Green's functions:
      \frac{d\vb k}{(2\pi)^2} \vb c(\vbrho, z; \vb k),
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
+\begin{subequations}
+\begin{align}
 \vb g(\vbrho, z; \vb k)
 &= \pf{i\pi}{2k_0^2 k_z}
    \left(\begin{array}{ccc}
@@ -484,7 +496,9 @@ we obtain the 2D Fourier expansion of the dyadic Green's functions:
   \mp k_z  & 0       &  k_x \\
       k_y  & -k_x    &  0 
      \end{array}\right) e^{i\vb k \cdot \vbrho} e^{i k_z |z|}
-\end{align*}
+\end{align}
+\label{gc}
+\end{subequations}
 %====================================================================%
 where the $\pm$ sign is $\text{sign}(z).$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -735,14 +749,54 @@ $$ \vb P(\vb k) \equiv
          \end{array}\right)
 $$
 %====================================================================%
-The fields of a point source (a single point source, not an array)
-located at a height $z_0$ above the $xy$ plane 
-($\vb x_0=z_0 \vbhat{z}$) may be written in the form
+The trick is now to notice that the columns of the $3\times 3$ matrices
+in equation (\ref{gc}) may be written as linear combinations of
+$\vb P$ and $\overline{\vb P}$. For example, the leftmost column
+of the matrix that enters the definition of $\vb g$ is
+%====================================================================%
+\numeq{gColumnDecomposition}
+{  \left(\begin{array}{c}
+    k_0^2 - k_x^2 \\ -k_y k_x \\ \mp k_x k_z
+   \end{array}\right)
+   =
+       -\pf{k_0^2 k_y}{|\vb k|} \vb P(\vb k)
+     \mp\pf{k_0k_x k_z}{|\vb k|}\overline{\vb P}(\vb k).
+}
+%====================================================================%
+The fields of an $\vbhat{x}$-directed point dipole source
+$\vb p_0=p_0\vbhat{x}$
+(a single point source, not an array) located a height $z_0$ above the
+$xy$ plane then read, from (\ref{EHFromGC}) and (\ref{JFromp0}),
+%====================================================================%
+\begin{align*}
+ \vb E\sups{ED}\Big(\vb x; \{z_0\vbhat{z};\vbhat{x}\}\Big) 
+ &= ik_0 Z_0\left(\begin{array}{c} G_{xx} \\ G_{yx} \\ G_{zx} \end{array}\right)
+    (-i\omega p_0)
+ = \frac{p_0}{\epsilon_0}k_0^2
+   \left(\begin{array}{c} G_{xx} \\ G_{yx} \\ G_{zx} \end{array}\right)
+\\
+\intertext{Insert (\ref{GCInfiniteKIntegrals}):}
+ \vb E\sups{ED}\Big(\vb x; \{z_0\vbhat{z};\vbhat{x}\}\Big)
+ &= \frac{p_0}{\epsilon_0} k_0^2 \int_{\mathbb{R}^2} \, \frac{d\vb k}{(2\pi)^2}
+    \left(\begin{array}{c} g_{xx} \\ g_{yx} \\ g_{zx} \end{array}\right)
+\intertext{Insert (\ref{gc}) and (\ref{gColumnDecomposition}:}
+ &= \frac{p_0}{\epsilon_0}k_0^2 \int_{\mathbb{R}^2} \, \frac{d\vb k}{(2\pi)^2}
+    \pf{i\pi}{2k_0^2 k_z}
+    \left[ -\pf{k_0^2 k_y}{|\vb k|} \vb P(\vb k)
+           \mp\pf{k_0k_x k_z}{|\vb k|}\overline{\vb P}(\vb k)
+    \right] e^{i\vb k\cdot \vbrho}e^{ik_z|z-z_0|}.
+\end{align*}
+%====================================================================%
+Continuing to play this game for point sources of all possible
+orientations and expressing the results in terms of the generalized
+plane waves we defined earlier then yields a full plane-wave decomposition
+of the fields of a point source:
 %====================================================================%
 \begin{subequations}
 \begin{align}
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{x} \big\}\Big)
-&= \int \frac{d \vb k}{(2\pi)^2} 
+&=\pf{p_0}{\epsilon_0 E_0}
+ \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{x}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
           + 
@@ -751,7 +805,8 @@ located at a height $z_0$ above the $xy$ plane
    \bigg\}
 \\
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{y} \big\}\Big)
-&= \int \frac{d \vb k}{(2\pi)^2} 
+&= \pf{p_0}{\epsilon_0 E_0}
+   \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{y}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
           + 
@@ -760,7 +815,8 @@ located at a height $z_0$ above the $xy$ plane
    \bigg\}
 \\
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{z} \big\}\Big)
-&= \int \frac{d \vb k}{(2\pi)^2} 
+&= \pf{p_0}{\epsilon_0 E_0}
+   \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{z}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
           + 
@@ -776,27 +832,27 @@ where the scalar coefficients are
 $$\begin{array}{ccccccc}
  \displaystyle{ C^{x}\subt{TE} }
  &=& 
-  \displaystyle{ -\frac{ i \pi k_y}{2|\vb k|k_z} }
+  \displaystyle{ -\frac{ i \pi k_0^2 k_y}{2|\vb k|k_z} }
  &\qquad&
  \displaystyle{ C^{x;\pm}\subt{TM} }
  &=& 
- \displaystyle{ \pm \frac{ i \pi k_x }{2k_0|\vb k|} }
+ \displaystyle{ \pm \frac{ i \pi k_0 k_x }{2|\vb k|} }
 \\[10pt]
 %--------------------------------------------------------------------%
  \displaystyle{ C^{y}\subt{TE} }
  &=& 
-  \displaystyle{ \frac{ i \pi k_x}{2|\vb k|k_z} }
+  \displaystyle{ \frac{ i \pi k_0^2 k_x}{2|\vb k|k_z} }
  &\qquad&
  \displaystyle{ C^{y;\pm}\subt{TM} }
  &=& 
- \displaystyle{ \pm \frac{ i \pi k_y }{2k_0|\vb k|} }
+ \displaystyle{ \pm \frac{ i \pi k_0 k_y }{2|\vb k|} }
 \\[10pt]
 %--------------------------------------------------------------------%
  \displaystyle{ C^{z}\subt{TE} }
  &=& 0
  &\qquad&
  \displaystyle{ C^{z}\subt{TM} }
- &=& \displaystyle{ -\frac{ i\pi |\vb k|  }{2k_0 k_z} }.
+ &=& \displaystyle{ \frac{ i\pi k_0 |\vb k|  }{2 k_z} }.
 \end{array}$$
 %====================================================================%
 In these equations, the $\pm$ sign is $+$ for evaluation points 
@@ -805,6 +861,21 @@ located below the source. In particular, assuming the
 source lies in the \textit{upper} half-space ($z_0>0$), 
 the fields impinging on a dielectric interface at $z=0$
 involve the $-$ sign.
+
+The units of the source-strength prefactor are
+($\text{C}$=charge, $\text{V}$=voltage, $\text{L}$=length)
+%====================================================================%
+\begin{align*}
+\left[\pf{p_0}{\epsilon_0 E_0}\right]
+&= \Big[p_0\Big]\Big[\epsilon_0\Big]^{-1} \Big[E_0\Big]^{-1} 
+\\
+&= \frac{\text{C}\cdot \text{L}}
+        {\text{C} \text{V}^{-1} \text{L}^{-1} \text{V} \text{L}^{-1}}
+\\
+&= (\text{length})^3.
+\end{align*}
+%====================================================================%
+
 
 %=================================================
 %=================================================
@@ -822,7 +893,8 @@ $z_0$ are
 \begin{subequations}
 \begin{align}
  \vb E\sups{scat,x}
-&= \int \frac{d\vb k}{(2\pi)^2}
+&=\pf{p_0}{\epsilon_0 E_0}
+   \int \frac{d\vb k}{(2\pi)^2}
    \bigg\{ r\subt{TE}(\vb k) C^{x}\subt{TE}(\vb k)
            \vb E^+\subt{TE}\Big(2z_0 \vbhat{z}; \vb k\Big)
            + 
@@ -831,7 +903,8 @@ $z_0$ are
     \bigg\}
 \\
   \vb E\sups{scat,y}
- &= \int \frac{d \vb k}{(2\pi)^2} 
+&=\pf{p_0}{\epsilon_0 E_0}
+    \int \frac{d \vb k}{(2\pi)^2} 
     \bigg\{ r\subt{TE}(\vb k) C^{y}\subt{TE}(\vb k)
             \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\Big)
            + 
@@ -840,7 +913,8 @@ $z_0$ are
     \bigg\}
  \\
   \vb E\sups{scat,z}
- &= \int \frac{d \vb k}{(2\pi)^2} 
+&=\pf{p_0}{\epsilon_0 E_0}
+    \int \frac{d \vb k}{(2\pi)^2} 
     \bigg\{ r\subt{TE}(\vb k) C^{z}\subt{TE}(\vb k)
             \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\Big)
            + 
@@ -885,12 +959,13 @@ $\vb x$-directed source at $\vb x_0=z_0\vbhat{z}$ are
  &\hspace{-0.6in}
 \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{x} \big\}\Big)
 \\
- &= \int\subt{BZ} \frac{d \vb k\subt{B}}{(2\pi)^2} 
+ &= \pf{p_0}{\epsilon_0 E_0}
+    \int\subt{BZ} \frac{d \vb k\subt{B}}{(2\pi)^2} 
     \sum_{\vbGamma}
     \bigg\{ C^{x}\subt{TE}(\vb k\subt{B} + \vbGamma)
 	    \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
 \\
-&\quad\qquad\qquad\qquad +
+&\hspace{1.8in} + 
            C^{x;\pm}\subt{TM}(\vb k+\vbGamma)
 	   \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
    \bigg\}
@@ -903,13 +978,14 @@ of the dipole are
  &\hspace{-0.1in}
 \vb E\sups{scat}
 \\
- &= \int\subt{BZ} \frac{d \vb k\subt{B}}{(2\pi)^2} 
+ &= \pf{p_0}{\epsilon_0 E_0}
+    \int\subt{BZ} \frac{d \vb k\subt{B}}{(2\pi)^2} 
     \sum_{\vbGamma}
     \bigg\{ r\subt{TE}(\vb k\subt{B} + \vbGamma)
             C^{x}\subt{TE}(\vb k\subt{B} + \vbGamma)
 	    \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
 \\
-&\quad\qquad\qquad\qquad +
+&\hspace{1.8in} + 
             r\subt{TM}(\vb k\subt{B} + \vbGamma)
            C^{x;-}\subt{TM}(\vb k+\vbGamma)
 	   \vb E^+\subt{TM}\Big(2z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big).

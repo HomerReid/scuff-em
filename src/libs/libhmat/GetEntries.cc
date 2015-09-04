@@ -195,7 +195,7 @@ double *HMatrix::GetEntriesD(const char *RowString, int Col, double *Entries)
   /* allocate output buffer if necessary *************************/
   /***************************************************************/
   if (Entries==0)
-   Entries=(double *)malloc(Length*sizeof(double));
+   Entries=(double *)mallocEC(Length*sizeof(double));
 
   /***************************************************************/
   /* do the extraction *******************************************/
@@ -224,7 +224,7 @@ cdouble *HMatrix::GetEntries(const char *RowString, int Col, cdouble *Entries)
   /* allocate output buffer if necessary *************************/
   /***************************************************************/
   if (Entries==0)
-   Entries=(cdouble *)malloc(Length*sizeof(cdouble));
+   Entries=(cdouble *)mallocEC(Length*sizeof(cdouble));
 
   /***************************************************************/
   /* do the extraction *******************************************/
@@ -253,7 +253,7 @@ double *HMatrix::GetEntriesD(int Row, const char *ColString, double *Entries)
   /* allocate output buffer if necessary *************************/
   /***************************************************************/
   if (Entries==0)
-   Entries=(double *)malloc(Length*sizeof(double));
+   Entries=(double *)mallocEC(Length*sizeof(double));
 
   /***************************************************************/
   /* do the extraction *******************************************/
@@ -281,7 +281,7 @@ cdouble *HMatrix::GetEntries(int Row, const char *ColString, cdouble *Entries)
   /* allocate output buffer if necessary *************************/
   /***************************************************************/
   if (Entries==0)
-   Entries=(cdouble *)malloc(Length*sizeof(cdouble));
+   Entries=(cdouble *)mallocEC(Length*sizeof(cdouble));
 
   /***************************************************************/
   /* do the extraction *******************************************/

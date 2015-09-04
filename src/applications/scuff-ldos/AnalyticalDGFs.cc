@@ -126,12 +126,12 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
   // weighting coefficients for the various possible
   // orientations of the point source
   cdouble CTE[3], CTM[3];
-  CTE[0] = -II*M_PI*ky/(2.0*kMag*kz);
-  CTE[1] =  II*M_PI*kx/(2.0*kMag*kz);
+  CTE[0] = -II*M_PI*k02*ky/(2.0*kMag*kz);
+  CTE[1] =  II*M_PI*k02*kx/(2.0*kMag*kz);
   CTE[2] = 0.0;
-  CTM[0] = CSign*II*M_PI*kx/(2.0*k0*kMag);
-  CTM[1] = CSign*II*M_PI*ky/(2.0*k0*kMag);
-  CTM[2] = -1.0*II*M_PI*kMag/(2.0*k0*kz);
+  CTM[0] = CSign*II*k0*M_PI*kx/(2.0*kMag);
+  CTM[1] = CSign*II*k0*M_PI*ky/(2.0*kMag);
+  CTM[2] = II*k0*M_PI*kMag/(2.0*kz);
 
   cdouble ExpFac = exp( II*(kx*R[0] + ky*R[1] + kz*fabs(R[2]) ) );
 
