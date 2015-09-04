@@ -114,7 +114,9 @@ this:
 We'll run calculations at a single frequency 
 ($\omega=3\times 10^{14}$ rad/sec) and at Bloch
 vectors of the form $\mathbf k_B=(0,k_y)$ for 
-values of $k_y$ running from $0$ to $\pi$.
+values of $k_y$ running from $0$ to $\pi/L$
+(where $L$=1 $\mu$m is the lattice constant
+in this case).
 Thus we create a text file called `OKBFile` that
 looks like this:
 
@@ -133,28 +135,43 @@ We will do two [[scuff-ldos]] runs, one in which
 the LDOS is computed using a semi-analytical approach
 (plane-wave decomposition) and another in which
 the LDOS is computed using the [[scuff-em]] core
-library.
+library. Note that the command-line arguments 
+for the two runs are identical except that one of them
+has the extra option `--HalfSpace Aluminum.`
 
-``
+````
   ARGS=""
-  ARGS="${ARGS} --geometry ../${GEOM}"
-  ARGS="${ARGS} --EPFile  ../EPFile"
-  ARGS="${ARGS} --OmegakBlochFile ../OKBFile"
+  ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo" 
+  ARGS="${ARGS} --EPFile  EPFile"
+  ARGS="${ARGS} --OmegakBlochFile OKBFile"
   ARGS="${ARGS} --HalfSpace Aluminum"
   scuff-ldos ${ARGS}
-``
+````
 
-``
+````
   ARGS=""
-  ARGS="${ARGS} --geometry ../${GEOM}"
-  ARGS="${ARGS} --EPFile  ../EPFile"
-  ARGS="${ARGS} --OmegakBlochFile ../OKBFile"
+  ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo"
+  ARGS="${ARGS} --EPFile  EPFile"
+  ARGS="${ARGS} --OmegakBlochFile OKBFile"
   scuff-ldos ${ARGS}
-``
+````
+
+Both of these runs produce an output file 
+named `AlHalfSpace_40.byOmegakBloch.` (If you
+don't rename the file after the first run, 
+the data from the second run will simply be 
+appended to the file below the first set of data).
+
+Here's a plot of $\mathcal{G}^E_{zz}$ (the $zz$
+component of the electric dyadic Green's function)
+versus the $y$-component of the Bloch vector
+as computed using the analytical and [[scuff-em]]
+approaches.
 
 ![aluminum LDOS data](AluminumLDOS.png)
 
 
+[Geometries]:          ../../reference/Geometries.md
 [ExtendedGeometries]:  ../../reference/Geometries.md#Extended
 [RenameMesh]:          ../../examples/SiO2Spheres/RenameMesh
 [scuff-ldos]:          ../../applications/scuff-ldos/scuff-ldos.md
