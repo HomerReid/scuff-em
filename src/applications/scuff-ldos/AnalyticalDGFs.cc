@@ -75,7 +75,8 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
    };
   double kMag2 = kx*kx + ky*ky;
   double kMag  = sqrt(kMag2);
-  cdouble kz   = sqrt(k0*k0 - kMag2);
+  cdouble k02  = k0*k0;
+  cdouble kz   = sqrt(k02 - kMag2);
  
   // i'm not sure what to do about this ...
   if (kz==0.0) kz=1.0e-4;
