@@ -25,7 +25,7 @@ pages:
     - 'Thermal radiation, heat transfer, and non-equilibrium Casimir forces between silicon dioxide spheres': 'examples/SiO2Spheres/SiO2Spheres.md'
     - 'Spatial distribution of heat flux from a warm tip over a cold substrate': 'examples/TipSubstrate/TipSubstrate.md'
     - 'LDOS and dyadic Green functions above an infinite aluminum half-space': 'examples/HalfSpaceLDOS/HalfSpaceLDOS.md'
-    - 'Electrostatic polarizability of the platonic solids': 'examples/PlatonicSolids/PlatonicSolids.md'
+    - 'Electrostatic polarizability of platonic solids': 'examples/PlatonicSolids/PlatonicSolids.md'
 - General reference:
     - 'Top-level overview':        'reference/TopLevel.md'
     - 'Installation':              'reference/Installing.md'

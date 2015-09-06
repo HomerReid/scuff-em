@@ -28,41 +28,53 @@
 
 ## Command-line application reference
 
-* [General reference for <span class="SC">scuff-em</span> command-line applications][GeneralReference]
++ [General reference for <span class="SC">scuff-em</span> command-line applications][GeneralReference]
 
-* *Nanophotonics codes*
-    * [scuff-scatter][scuff-scatter]            - general-purpose electromagnetic scattering
-    * [scuff-ldos][scuff-ldos]                  - photonic **l**ocal **d**ensity **o**f **s**tates
-    * [scuff-transmission][scuff-transmission]  - plane-wave transmission through 2D extended structures
-    * [scuff-tmatrix][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis  
+<br>
 
-* *Equilibrium Casimir codes*
-    - [scuff-cas3D][scuff-cas3D]   - Casimir energies, forces, and torques
-    - [scuff-caspol][scuff-caspol] - Casimir-Polder potentials
++ *Nanophotonics codes*
+    + [<span class="SC">scuff-scatter</span>][scuff-scatter]: general-purpose electromagnetic scattering
+    + [<span class="SC">scuff-ldos</span>][scuff-ldos]                  - photonic **l**ocal **d**ensity **o**f **s**tates
+    + [<span class="SC">scuff-transmission</span>][scuff-transmission]  - plane-wave transmission through 2D extended structures
+    + [<span class="SC">scuff-tmatrix</span>][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis  
+
+<br>
+
++ *Equilibrium Casimir codes*
+    + [<span class="SC">scuff-cas3d</span>][scuff-cas3D]   - Casimir energies, forces, and torques
+    + [<span class="SC">scuff-caspol</span>][scuff-caspol] - Casimir-Polder potentials
        
+<br>
       
-* *Non-equilibrium Casimir/ heat-transfer code*
-    - [scuff-neq][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques
++ *Non-equilibrium Casimir/ heat-transfer code*
+    + [<span class="SC">scuff-neq</span>][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques
   
+<br>
   
-* *RF / microwave engineering code*
-    - [scuff-RF][scuff-RF]         - multiport network parameters
++ *RF / microwave engineering code*
+    + [<span class="SC">scuff-rf</span>][scuff-RF]         - multiport network parameters
                                      (S- and impedance parameters),
                                      and radiated fields, for passive RF
                                      and microwave structures.
 
-* *Electrostatics code*
+<br>
 
-    - [scuff-static][scuff-static] - pure electrostatics problems:
++ *Electrostatics code*
+
+    + [<span class="SC">scuff-static</span>][scuff-static] - pure electrostatics problems:
                                      capacitance matrices, DC polarizabilities,
                                      electrostatic potentials and fields
 
-* *Utility codes*
-    - [scuff-analyze][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
+<br>
+
++ *Utility code*
+    + [<span class="SC">scuff-analyze</span>][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
+
+<br>
 
 ## API reference
 
-* [libscuff][libscuff] - Accessing [[scuff-em]] from C++ and python programs
+* [<span class="SC">libscuff</span>][libscuff] - Accessing [[scuff-em]] from C++ and python programs
 
 ## Developer reference
 

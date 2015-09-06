@@ -1,11 +1,11 @@
 //
-// gmsh geometry specification for a sphere of radius R=1
+// gmsh geometry specification for a sphere of radius L
 // 
 
 //************************************************************
 //* input parameters      
 //************************************************************
-R = 1.0;    // radius
+DefineConstant[ L = 1.0 ]; // radius
 
 //************************************************************
 //* meshing finenesses ***************************************
@@ -18,16 +18,16 @@ l1 = 0.35;  // fineness at south pole
 //* upper sphere *********************************************
 //************************************************************
 Point(1) = {  0 ,    0,  0.0,  l2};
-Point(2) = {  R,    0,  0.0,  l2};
-Point(3) = {  0 ,   R,  0.0,  l2};
+Point(2) = {  L,    0,  0.0,  l2};
+Point(3) = {  0 ,   L,  0.0,  l2};
 Circle(1) = {2,1,3};
-Point(4) = { -R,    0,  0.0,  l2};
-Point(5) = {   0,  -R,  0.0,  l2};
+Point(4) = { -L,    0,  0.0,  l2};
+Point(5) = {   0,  -L,  0.0,  l2};
 Circle(2) = {3,1,4};
 Circle(3) = {4,1,5};
 Circle(4) = {5,1,2};
-Point(6) = {   0,    0,  0.0+R, l3};
-Point(7) = {   0,    0,  0.0-R, l1};
+Point(6) = {   0,    0,  0.0+L, l3};
+Point(7) = {   0,    0,  0.0-L, l1};
 Circle(5) = {3,1,6};
 Circle(6) = {6,1,5};
 Circle(7) = {5,1,7};
