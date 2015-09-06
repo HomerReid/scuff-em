@@ -157,6 +157,17 @@ void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileNa
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   FILE *f=fopen(FileName,"w");
+  fprintf(f,"# data file columns: \n");
+  fprintf(f,"# 01: object label \n");
+  fprintf(f,"# 02: alpha_{xx} \n");
+  fprintf(f,"# 03: alpha_{yx} \n");
+  fprintf(f,"# 04: alpha_{zx} \n");
+  fprintf(f,"# 05: alpha_{xy} \n");
+  fprintf(f,"# 06: alpha_{yy} \n");
+  fprintf(f,"# 07: alpha_{zy} \n");
+  fprintf(f,"# 08: alpha_{xz} \n");
+  fprintf(f,"# 09: alpha_{yz} \n");
+  fprintf(f,"# 10: alpha_{zz} \n");
   for(int ns=0; ns<NS; ns++)
    fprintf(f,"%s %e %e %e %e %e %e %e %e %e \n",G->Surfaces[ns]->Label,
               PolMatrix->GetEntryD(ns,0),
@@ -168,7 +179,7 @@ void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileNa
               PolMatrix->GetEntryD(ns,6),
               PolMatrix->GetEntryD(ns,7),
               PolMatrix->GetEntryD(ns,8));
-
+;
   delete PolMatrix;
  	
 }
@@ -225,9 +236,17 @@ void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileN
 
   //QP->ExportToText(FileName);
   FILE *f=fopen(FileName,"w");
+
+  fprintf(f,"# data file columns: \n");
+  int nColumn=1;
+  for(int nr=0; nr<QP->NR; nr++)
+   for(int nc=nr; nc<QP->NR; nc++)
+    fprintf(f,"# %i: C_{%i,%i} \n",nColumn++,nr,nc);
+
   for(int nr=0; nr<QP->NR; nr++)
    for(int nc=nr; nc<QP->NR; nc++)
     fprintf(f,"%e ",QP->GetEntryD(nr,nc));
+
   fprintf(f,"\n");
   fclose(f);
 

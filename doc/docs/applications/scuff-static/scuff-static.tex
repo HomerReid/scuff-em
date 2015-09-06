@@ -568,6 +568,24 @@ where $A_p$ is the panel area.
 
 \subsection{Polarizability}
 
+The polarizability tensor $\boldsymbol{\alpha}$ measures the dipole
+moment induced on a body by a spatially-constant external electrostatic
+field. More specifically, the cartesian components of the dipole moment
+are related to the cartesian components of the external electric field by
+%====================================================================%
+$$ p_i =\alpha_{ij} E_j.$$
+%====================================================================%
+The polarizability is computed in {\sc scuff-static} by solving
+three separate electrostatics problems---involving constant unit-strength
+$\vb E$ fields pointing in each of the three cartesian directions---and
+computing the resulting dipole moments.
+Dipole moments $\vb p$ are computed by summing
+the charge on each panel times the centroid of 
+the panel:
+%====================================================================%
+$$ \vb p = \sum_{p} A_p \sigma_p \vb x_p.$$
+%====================================================================%
+
 \subsection{C-matrix}
 
 The ``$C$-matrix'' (not to be confused with the capacitance
