@@ -5,6 +5,7 @@ SUBDIRS =            	\
  GetTMatrix             \
  PlateWithHole          \
  PerforatedThinFilm     \
+ PlatonicSolids         \
  SiO2Spheres            \
  SiliconBeams           \
  SolidSphere            \
