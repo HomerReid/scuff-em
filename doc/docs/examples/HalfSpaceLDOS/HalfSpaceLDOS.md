@@ -135,26 +135,27 @@ the LDOS is computed using a semi-analytical approach
 the LDOS is computed using the [[scuff-em]] core
 library.
 
-``
+````bash
+  #!/bin/bash
+
   ARGS=""
   ARGS="${ARGS} --geometry ../${GEOM}"
   ARGS="${ARGS} --EPFile  ../EPFile"
   ARGS="${ARGS} --OmegakBlochFile ../OKBFile"
   ARGS="${ARGS} --HalfSpace Aluminum"
   scuff-ldos ${ARGS}
-``
 
-``
   ARGS=""
   ARGS="${ARGS} --geometry ../${GEOM}"
   ARGS="${ARGS} --EPFile  ../EPFile"
   ARGS="${ARGS} --OmegakBlochFile ../OKBFile"
   scuff-ldos ${ARGS}
-``
+````
 
 ![aluminum LDOS data](AluminumLDOS.png)
 
 
+[Geometries]:          ../../reference/Geometries.md
 [ExtendedGeometries]:  ../../reference/Geometries.md#Extended
 [RenameMesh]:          ../../examples/SiO2Spheres/RenameMesh
 [scuff-ldos]:          ../../applications/scuff-ldos/scuff-ldos.md
