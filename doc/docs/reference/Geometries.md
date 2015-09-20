@@ -1,4 +1,4 @@
-# Geometry Descriptions in scuff-EM
+# Geometry Descriptions in <span class="SC">scuff-em</span>
 
 Geometries in [[scuff-em]] are described by simple text files 
 that are conventionally given the file extension ``.scuffgeo.`` 

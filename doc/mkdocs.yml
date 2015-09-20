@@ -19,6 +19,10 @@ extra_javascript: ['https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX
 pages:
 - SCUFF-EM documentation: 'index.md'
 - Examples:
+    - 'Mie scattering':                           'examples/MieScattering/MieScattering.md'
+    - 'Electrostatics of a spherical dielectric shell':   'examples/DielectricShell/DielectricShell.md'
+    - 'Spatially-resolved study of plane-wave transmission through an infinite-area thin dielectric film':   'examples/ThinFilm/ThinFilm.md'
+    - 'Imaging diffraction patterns of discs, disc arrays, and hole arrays in metal screens': 'examples/DiffractionPatterns/DiffractionPatterns.md'
     - 'Casimir forces in a compact geometry':     'examples/CubeTorus.md'
     - 'Casimir forces in a 1D extended geometry': 'examples/SiliconBeams/SiliconBeams.md'
     - 'Casimir forces in a 2D extended geometry': 'examples/SiliconSlabs/SiliconSlabs.md'
@@ -32,6 +36,7 @@ pages:
     - 'Geometry descriptions':     'reference/Geometries.md'
     - 'Material designations':     'reference/Materials.md'
     - 'Geometric transformations': 'reference/Transformations.md'
+    - 'Incident Fields':           'reference/IncidentFields.md'
 - Command-line application reference:
     - 'General command-line reference': 'applications/GeneralReference.md'
     - 'scuff-scatter':         'applications/scuff-scatter/scuff-scatter.md'

@@ -4,8 +4,10 @@ This page collects some general information that applies
 to many or all of the standalone command-line applications
 in the [[scuff-em]] suite.
 
+[TOC]
+
 <a name="CommonOptions"></a>
-# Common command-line arguments
+# 1. Common command-line arguments
 
 The various standalone applications in the [[scuff-em]] suite
 share a number of command-line arguments in common,
@@ -206,7 +208,7 @@ accept that argument.
 > specified, the file base is taken to be the base filename of the 
 > `.scuffgeo` file.
 
-# Passing command-line options via text file
+# 2. Passing command-line options via text file
 
 All of the standalone applications in the [[scuff-em]] suite allow 
 their command-line options to be passed via a text file fed into 
@@ -254,7 +256,7 @@ everything else unchanged, you could say
 ````
 
 <a name="Complex"></a>
-# Complex numbers
+# 3. Complex numbers
 
 Many of the standalone programs in the [[scuff-em]] suite have 
 options for which you may specify complex numbers. (An example 
@@ -276,7 +278,7 @@ of the following are valid frequency specifications:
 ````
 
 <a name="LogFiles"></a> 
-# Log files 
+# 4. Log files 
 
 All command-line codes in the [[scuff-em]] suite
 write logging information to text-based logfiles
@@ -284,8 +286,7 @@ with extension `.log.` You can monitor these
 files to follow the progress of your calculations.
 
 For example, after launching 
-[ this sample <span class="SC">scuff-cas3d</span> run ][SiliconSlabs],
-
+[this sample <span class="SC">scuff-cas3d</span> run][SiliconSlabs],
 type the following at a terminal window:
 
 ````bash
@@ -304,7 +305,7 @@ This produces a running list of log messages, something like this:
 ````
 
 <a name="OutputFiles"></a>
-# Output Files
+# 5. Output Files
 
 The [[scuff-em]] application codes generally produce
 output in the form of human-readable text-based
@@ -356,13 +357,13 @@ application codes include `.hdf5` binary data
 files and `.pp` files containing visualization data
 that may be viewed in [[gmsh]].
 
-# Environment variables
+# 6. Environment variables
 
 Here are some environment-variable settings that 
 affect the behavior of [[scuff-em]].
 
 ````bash
-% export SCUFF_MESH_PATH=/path/to/msh/files`
+% export SCUFF_MESH_PATH=/path/to/msh/files
 ````
 
 > Specifies a directory in which to look for mesh files
@@ -400,7 +401,7 @@ affect the behavior of [[scuff-em]].
 > to accelerate the calculation of the periodic Green's
 > function, but even this accelerated calculation is 
 > not fast enough to handle the many millions of 
-> evaluations needed to assemble the 
+> evaluations needed to assemble the full BEM matrix.
 > For this reason, when assembling the BEM matrix at
 > a given frequency and Bloch vector, [[scuff-em]] first
 > precomputes Ewald-summed values of the periodic DGF 
@@ -429,6 +430,6 @@ affect the behavior of [[scuff-em]].
 [scuff-cas3D]:  scuff-cas3D/scuff-cas3D.md
 [scuff-caspol]: scuff-caspol/scuff-caspol.md
 [SiliconBeams]: ../../examples/SiliconBeams/SiliconBeams.md
+[SiliconSlabs]: ../../examples/SiliconSlabs/SiliconSlabs.md
 [ExtendedGeometries]: ../reference/Geometries.md#Extended
 [GitHub]:       https://github.com/HomerReid/scuff-em.git
-[<span class="CodeName">scuff-em</span> GitHub page][GitHub].

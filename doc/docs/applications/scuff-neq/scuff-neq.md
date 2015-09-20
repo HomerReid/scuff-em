@@ -186,19 +186,29 @@ quantity that is computed by [[scuff-neq]].
  
   ````
 --geometry
---TransFile
+--EPFile
 --Omega
 --OmegaFile
---OmegaQuadrature
---OmegaMin
---AbsTol
---RelTol
---FileBase
 --Cache
 --ReadCache
 --WriteCache
   ````
 {.toc}
+
+### Options specifying input fields
+
+[[scuff-scatter]] recognizes the following options specifying
+various types of incident fields. You may specify more than
+one type of incident field, in which case your geometry will
+be illuminated by the simultaneous superposition of all the 
+fields you specify.
+
+For more details on how to use the following options 
+and the precise mathematical expressions for the fields
+they describe,
+see [Incident fields in <span class="SC">scuff-em</span>][IncidentFields].
+
+These options are 
 
 ### Options requesting output quantities
 
