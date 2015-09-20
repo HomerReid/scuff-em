@@ -225,6 +225,7 @@ AC_CONFIG_FILES([
  examples/GetTMatrix/Makefile
  examples/PlateWithHole/Makefile
  examples/PerforatedThinFilm/Makefile
+ examples/PlatonicSolids/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
  examples/SiliconBeams/Makefile

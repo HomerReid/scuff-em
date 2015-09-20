@@ -139,20 +139,13 @@ library. Note that the command-line arguments
 for the two runs are identical except that one of them
 has the extra option `--HalfSpace Aluminum.`
 
-````
+````bash
+  #!/bin/bash
   ARGS=""
   ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo" 
   ARGS="${ARGS} --EPFile  EPFile"
   ARGS="${ARGS} --OmegakBlochFile OKBFile"
   ARGS="${ARGS} --HalfSpace Aluminum"
-  scuff-ldos ${ARGS}
-````
-
-````
-  ARGS=""
-  ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo"
-  ARGS="${ARGS} --EPFile  EPFile"
-  ARGS="${ARGS} --OmegakBlochFile OKBFile"
   scuff-ldos ${ARGS}
 ````
 
@@ -167,6 +160,8 @@ component of the electric dyadic Green's function)
 versus the $y$-component of the Bloch vector
 as computed using the analytical and [[scuff-em]]
 approaches.
+=======
+>>>>>>> f86803d1cef0c7c65a7e721df61196204158b754
 
 ![aluminum LDOS data](AluminumLDOS.png)
 

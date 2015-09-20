@@ -25,6 +25,7 @@
 * [Geometry files](reference/Geometries.md)
 * [Material descriptions](reference/Materials.md)
 * [Geometrical transformations](reference/Transformations.md)
+* [Incident Fields](reference/IncidentFields.md)
 
 ## Command-line application reference
 

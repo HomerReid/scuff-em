@@ -5,6 +5,7 @@ EXTRA_DIST=				\
  SiO2Sphere_501.scuffgeo		\
  SiO2Spheres_1479.scuffgeo		\
  SiO2Spheres_501.scuffgeo		\
+ Spheres.trans  			\
  Sphere_1479.msh			\
  Sphere_501.msh				\
  Sphere.geo

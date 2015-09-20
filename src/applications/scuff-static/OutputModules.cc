@@ -204,7 +204,7 @@ HMatrix *ComputeCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
       delete C;
       C=0;
    };
-  if (!C)
+  if (C==0)
    C=new HMatrix(NS, NS);
 
   /*--------------------------------------------------------------*/
@@ -230,27 +230,57 @@ HMatrix *ComputeCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileName)
+void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+                          char *TransFile, char *FileName)
 { 
-  HMatrix *QP = ComputeCapacitanceMatrix(SSS, M, Sigma, 0);
+  /*--------------------------------------------------------------*/
+  /*- read the transformation file if one was specified and check */
+  /*- that it plays well with the specified geometry file.        */
+  /*- note if TransFile==0 then this code snippet still works; in */
+  /*- this case the list of GTComplices is initialized to contain */
+  /*- a single empty GTComplex and the check automatically passes.*/
+  /*--------------------------------------------------------------*/
+  int NT;
+  RWGGeometry *G=SSS->G;
+  GTComplex **GTCList=ReadTransFile(TransFile, &NT);
+  char *ErrMsg=G->CheckGTCList(GTCList, NT);
+  if (ErrMsg)
+   ErrExit("file %s: %s",TransFile,ErrMsg);
 
-  //QP->ExportToText(FileName);
+  /*--------------------------------------------------------------*/
+  /*- open output file and write file header ---------------------*/
+  /*--------------------------------------------------------------*/
+  int NS = G->NumSurfaces;
   FILE *f=fopen(FileName,"w");
-
   fprintf(f,"# data file columns: \n");
-  int nColumn=1;
-  for(int nr=0; nr<QP->NR; nr++)
-   for(int nc=nr; nc<QP->NR; nc++)
+  fprintf(f,"# 1 transformation label\n");
+  int nColumn=2;
+  for(int nr=0; nr<NS; nr++)
+   for(int nc=nr; nc<NS; nc++)
     fprintf(f,"# %i: C_{%i,%i} \n",nColumn++,nr,nc);
 
-  for(int nr=0; nr<QP->NR; nr++)
-   for(int nc=nr; nc<QP->NR; nc++)
-    fprintf(f,"%e ",QP->GetEntryD(nr,nc));
-
-  fprintf(f,"\n");
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  HMatrix *CM = new HMatrix(NS, NS, LHM_REAL);
+  for(int nt=0; nt<NT; nt++)
+   { 
+     Log("Computing capacitance matrix at transform %s",GTCList[nt]->Tag);
+     G->Transform(GTCList[nt]);
+     ComputeCapacitanceMatrix(SSS, M, Sigma, CM);
+     for(int nr=0; nr<NS; nr++)
+      for(int nc=nr; nc<NS; nc++)
+       fprintf(f,"%e ",CM->GetEntryD(nr,nc));
+     fprintf(f,"\n");
+     G->UnTransform();
+   };
   fclose(f);
+  delete CM;
 
-  delete QP;
+  // I would call the GTComplex destructor here, if I had
+  // bothered to write one
+  // deallocate GTCList
+
 }
 
 /***************************************************************/

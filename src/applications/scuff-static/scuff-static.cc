@@ -50,7 +50,8 @@ void GetPolarizabilities(SSSolver *SSS, HMatrix *M,
                          HVector *Sigma, char *FileName);
 
 void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
-                          HVector *Sigma, char *FileName);
+                          HVector *Sigma, char *TransFile,
+                          char *FileName);
 
 void GetCMatrix(SSSolver *SSS, HMatrix *M,
                 HVector *Sigma, int lMax,
@@ -70,6 +71,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   InstallHRSignalHandler();
   char *GeoFile     = 0;
+  char *TransFile   = 0;
   char *PolFile     = 0;
   char *CapFile     = 0;
   char *CMatrixFile = 0;
@@ -87,6 +89,8 @@ int main(int argc, char *argv[])
   OptStruct OSArray[]=
    { 
      {"Geometry",       PA_STRING,  1, 1,       (void *)&GeoFile,    0,             "geometry file"},
+/**/
+     {"TransFile",      PA_STRING,  1, 1,       (void *)&TransFile,  0,             "list of geometry transformations"},
 /**/
      {"PolFile",        PA_STRING,  1, 1,       (void *)&PolFile,    0,             "polarizability output file"},
 /**/
@@ -178,7 +182,7 @@ int main(int argc, char *argv[])
   if (PolFile)
    GetPolarizabilities(SSS, M, Sigma, PolFile);
   if (CapFile)
-   GetCapacitanceMatrix(SSS, M, Sigma, CapFile);
+   GetCapacitanceMatrix(SSS, M, Sigma, TransFile, CapFile);
   if (CMatrixFile)
    GetCMatrix(SSS, M, Sigma, lMax, CMatrixFile, CMatrixHDF5File);
   if (nEPFiles>0 || PlotFile )

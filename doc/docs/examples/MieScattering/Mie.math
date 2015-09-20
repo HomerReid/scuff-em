@@ -1,0 +1,139 @@
+(***********************************************************************)
+(* This is a mathematica script that computes the Mie cross-sections   *)
+(* (scattering and absorption cross-sections for a solid sphere        *)
+(*  irradiated by a plane wave) over a range of frequencies.           *)
+(*                                                                     *)
+(* To run the calculation, say                                         *)
+(*                                                                     *)
+(*  << Mie.math                                                        *)
+(*                                                                     *)
+(* at the Mathematica command line.                                    *)
+(*                                                                     *)
+(* This will produce an output text file named 'Mie.dat,' which        *)
+(* contains 6 columns of numbers, as follows:                          *)
+(*                                                                     *)
+(* 1: size parameter (ka = 2*pi*a / lambda ; a = sphere radius)        *)
+(* 2: Re Eps(w)                                                        *)
+(* 3: Im Eps(w)                                                        *)
+(* 4: Sigma_Absorption                                                 *)
+(* 5: Sigma_Scattering                                                 *)
+(* 6: maximum l-value of spherical multipoles retained to achieve      *)
+(*    two-digit accuracy in computing the cross-sections               *)
+(*                                                                     *)
+(* You can adjust the frequency-dependent dielectric constant and the  *)
+(* range of frequencies computed in the main body of the script below. *)
+(*                                                                     *)
+(* homer reid 4/2012                                                   *)
+(***********************************************************************)
+
+(***********************************************************************)
+(* riccati-bessel functions *)
+(***********************************************************************)
+PsiN[n_, rho_] := rho*SphericalBesselJ[n, rho];
+XiN[n_, rho_] := rho*SphericalHankelH1[n, rho];
+
+(***********************************************************************)
+(* compute mie scattering coefficients using bohren+huffman eqs 4.56-7 *)
+(* inputs: x (size parameter) and m=sqrt(epsilon) (permittivity)       *)
+(* output: a two-component vector whose components are a_n and b_n     *)
+(***********************************************************************)
+ABN[x_, m_, n_]:=Module[
+ {mx, PsiMX, PsiPrimeMX, PsiX, PsiPrimtX, XiMX, XiPrimeMX, XiX, XiPrimeX},
+ mx=m*x;
+ PsiMX=PsiN[n,m*x];
+ PsiPrimeMX=D[PsiN[n,R],R] /. {R->mx};
+ PsiX=PsiN[n,x];
+ PsiPrimeX=D[PsiN[n,R],R] /. {R->x};
+ XiMX=XiN[n,m*x];
+ XiPrimeMX=D[XiN[n,R],R] /. {R->mx};
+ XiX=XiN[n,x];
+ XiPrimeX=D[XiN[n,R],R] /. {R->x};
+ { (m*PsiMX*PsiPrimeX -   PsiX*PsiPrimeMX) / (m*PsiMX*XiPrimeX -   XiX*PsiPrimeMX),
+   (  PsiMX*PsiPrimeX - m*PsiX*PsiPrimeMX) / (  PsiMX*XiPrimeX - m*XiX*PsiPrimeMX)}
+];
+
+(***********************************************************************)
+(* compute the contribution of a single n-value to the cross sections. *)
+(***********************************************************************)
+SigmaN[x_, m_, n_]:=Module[ 
+ {AB},
+ AB=N[ABN[x, m, n]];
+ AB2=Norm[AB]^2;
+ 2*Pi*(2*n+1)* { Total[Re[AB]] - AB2, AB2 } / (x*x)
+];
+
+(***********************************************************************)
+(* sum the series to compute the scattered and absorbed cross-sections *)
+(* at given values of x (size parameter) and m=Sqrt[Eps]               *)
+(***********************************************************************)
+SigmaAS[x_, m_, F_]:=Module[
+ {n},
+(*---------------------------------------------------*)
+ SAS={0,0};  (* 'sigma absorbed and scattered' *)
+ RelError={1,1};
+ For[ 
+      n=1,
+(**)
+      Max[RelError]>0.001 && n<10000,
+(**)
+      Delta=SigmaN[x, m, n]; 
+      SAS = SAS + Delta;
+      RelError = If [ n>1, 
+                      Abs[ { Delta[[1]] / SAS[[1]], Delta[[2]] / SAS[[2]] } ],
+                      {1, 1} ];
+      n++;
+    ];
+
+ Write[F, X, " ", FortranForm[Re[m*m]], " ", FortranForm[Im[m*m]],
+             " ", FortranForm[SAS[[1]]], " ", FortranForm[SAS[[2]]], 
+             " ", OutputForm[n]
+      ];
+
+];
+
+(***********************************************************************)
+(* a couple of different dielectric functions; frequency-dependent     *)
+(* parameters are given in units that make sense for a = 1 micron      *)
+(***********************************************************************)
+EpsGold[w_]:=Module[
+ {wp, gamma},
+ wp = 1.37*^16;
+ gamma = 5.32*^13;
+ 1 - wp^2 / (w * (w + I*gamma))
+];
+
+EpsSiC[w_]:=Module[
+ {EpsInf, a0, a1, b0, b1},
+  EpsInf = 6.7;
+  a0     = -3.32377*^28;
+  a1     = +8.93329*^11;
+  b0     = -2.21677*^28;
+  b1     = 8.93329*^11;
+  EpsInf * ( w^2 + a1*I*w + a0 ) / ( w^2 + b1*I*w + b0)
+];
+
+EpsConst[w_] := 10+10*I;
+
+
+(***********************************************************************)
+(* main body of the mathematica script *********************************)
+(***********************************************************************)
+F=OpenWrite["SiC.mie", PageWidth->Infinity, FormatType->OutputForm];
+Eps[w_]:=EpsSiC[w];
+
+DX=Exp[Log[10]/20.0];
+For[
+(**)
+     X=0.001, 
+(**)
+     X<100, 
+(**)
+     EpsW=Eps[3.0*^14*X]; (* (c=3e8 m/s) / (1 um) *)
+     SigmaAS[X, Sqrt[EpsW], F];
+     X*=DX
+   ]; 
+(**)
+(*---------------------------------------------------*)
+ Close[F];
+(**)
+(*---------------------------------------------------*)
