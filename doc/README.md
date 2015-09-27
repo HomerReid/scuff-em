@@ -81,3 +81,25 @@ MathJax.Hub.Config({
   extensions: ["MathMenu.js", "MathZoom.js"]
 });
 ````
+
+* The mkdocs system puts the file hierarchy it builds in 
+the subdirectory doc/site off the top-level scuff-em 
+folder. The files in this directory are considered the
+results of a build operation and thus are not included
+among the version-controlled files in the scuff-em git
+repository.
+
+However, there is a *separate* git repository, rooted in
+doc/site, in which the built files *are* version controlled.
+This repository corresponds to the GitHub repository
+homerreid/scuff-em-documentation, which is a *separate
+repository* from the main scuff-em repository 
+(homerreid/scuff-em). 
+
+The reason for this is that the "GitHub Pages" service
+wants a git repository for which (a) the root directory 
+is the root directory of the documentation tree, and 
+(b) the repository is committed to the special branch
+"gh-pages." I don't want items (a) or (b) to be true 
+for the main scuff-em repository, so it's easier to
+have a separate repository for documentation alone.

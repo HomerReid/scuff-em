@@ -201,3 +201,7 @@ ol.TOC {
    margin: 5px 5px;
    text-align: center;
  }
+
+.shaded
+ { background-color: #EEEEEE;
+ }

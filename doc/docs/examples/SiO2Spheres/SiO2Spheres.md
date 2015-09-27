@@ -16,7 +16,7 @@ of your [[scuff-em]] installation.
 
 The [[gmsh]] geometry file [`Sphere.geo`](Sphere.geo)
 describes a sphere of radius 1 micron; it may 
-be meshed to generate coarse and fine surface as follows:
+be meshed to generate coarse and fine surface meshes as follows:
 
 ````bash
 % gmsh -2 -clscale 1 Sphere.geo

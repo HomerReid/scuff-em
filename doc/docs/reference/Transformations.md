@@ -80,18 +80,17 @@ will be displaced or rotated.
 Each transformation will be specified by a section of the file
 that looks something like this:
 
-> ``TRANSFORMATION`` ***name-of-transformation***  
->> ``OBJECT`` ***FirstObjectLabel***  
->>> ***displacement-or-rotation***  
->>> ***displacement-or-rotation***  
->>> ...   
-
->> ``OBJECT`` ***SecondObjectLabel***  
->>> ***displacement-or-rotation***  
->>> ***displacement-or-rotation***  
->>> ...  
-
-> ``ENDTRANSFORMATION``
+> `TRANSFORMATION` ***name-of-transformation***  
+> &nbsp; &nbsp; &nbsp; `OBJECT` ***FirstObjectLabel***  
+> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ***displacement-or-rotation***  
+> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ***displacement-or-rotation***  
+> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ...  
+> &nbsp; &nbsp; &nbsp; `OBJECT` ***SecondObjectLabel***  
+> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ***displacement-or-rotation***  
+> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ***displacement-or-rotation***  
+> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ...  
+> `ENDTRANSFORMATION`
+{.shaded}
 
 
 The <b>*name-of-transformation*</b> field after the 
@@ -103,7 +102,7 @@ transformation.
 
 The ***FirstObjectLabel*** field should be the label of
 an object in your geometry (as assigned using the ``OBJECT``
-keyword in a [``.scuffgeo`` file](Geometries.md)a.
+keyword in a [``.scuffgeo`` file](Geometries.md).
 Displacements and rotations specified after this line will apply to the
 object named on this line, until the next ``OBJECT`` line is 
 encountered.
@@ -112,10 +111,12 @@ Each ***displacement-or-rotation*** line should look either like
 this:
 
 >> ``DISPLACED``   ***xx yy zz***
+{.shaded}
 
 or like this:
 
 >> ``ROTATED`` ***dd*** ``ABOUT`` ***nx ny nz***
+{.shaded}
 
 
 The former case specifies that the object in question is to be displaced
@@ -133,8 +134,8 @@ degrees, not radians.)**
 
 You may specify any number of ``DISPLACEMENT`` and 
 ``ROTATION`` statements to be applied to each object.
-These statements will be applied  
-in the order they are specified in the ``.trans`` file.
+These statements will be applied in the order they are 
+specified in the ``.trans`` file.
 
 Note that ``TRANSFORMATION...ENDTRANSFORMATION``
 sections are not cumulative; two consecutive such sections do not 
@@ -159,6 +160,7 @@ abbreviated one-line syntax in place of an entire
 ``TRANSFORMATION...ENDTRANSFORMATION`` section:
 
 > ``TRANS`` ***name*** ``OBJECT`` ***Label***   ***displacement-or-rotation***
+{.shaded}
 
 This differs from the syntax outlined above in the following
 ways: 
@@ -169,12 +171,12 @@ ways:
 ## Empty Transformations
 The following transformations are perfectly legal:
 
-````
-TRANSFORMATION 0.0
+````bash
+TRANSFORMATION Nothing
 ENDTRANSFORMATION
 ````
 
-````
+````bash
 TRANS Default
 ````
 

@@ -429,7 +429,6 @@ affect the behavior of [[scuff-em]].
 
 [scuff-cas3D]:  scuff-cas3D/scuff-cas3D.md
 [scuff-caspol]: scuff-caspol/scuff-caspol.md
-[SiliconBeams]: ../../examples/SiliconBeams/SiliconBeams.md
-[SiliconSlabs]: ../../examples/SiliconSlabs/SiliconSlabs.md
+[SiliconSlabs]: ../examples/SiliconSlabs/SiliconSlabs.md
 [ExtendedGeometries]: ../reference/Geometries.md#Extended
 [GitHub]:       https://github.com/HomerReid/scuff-em.git

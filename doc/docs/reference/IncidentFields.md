@@ -26,7 +26,6 @@ for use in API programs.
 --pwDirection nx ny nz
 --pwPolarization Ex Ey Ez 
 ````
-{.toc}
 
 C++ code:
 
@@ -48,22 +47,22 @@ and
 $\mathbf{E}_0$
 are what you specify with the `--pwDirection` and 
 `--pwPolarization` options to [[scuff-scatter]]. (The frequency 
-$\omega$ is specified using other options described below; the 
-quantities $\epsilon$ and $\mu$ are the material properties of the exterior 
-medium at this frequency, which are determined by the material 
-property designation you give the external medium in the 
-`.scuffgeo` file; the wave impedance of the medium is 
+$\omega$ is specified elsewhere, for example using 
+command-line options like `--omega.` The
+quantities $\epsilon$ and $\mu$ are the material properties of
+the exterior medium at this frequency, which are determined by
+the material property designation you give the external medium
+in the `.scuffgeo` file; the wave impedance of the medium is
 $Z=\sqrt{\mu/\epsilon}\approx 377\,\Omega$ in vacuum.)
 
-The values specified for `--pwPolarization` may be 
+The values specified for `--pwPolarization` may be
 [complex numbers.][ComplexNumbers]
 
-As an example, the command-line options
+As an example, the [[scuff-scatter]] command-line options
 
-  ````
+````bash
 --pwDirection 0 0 1 --pwPolarization 0.7071 0.7071i 0.0
-  ````
-{.toc}
+````
 
 will specify an incident field consisting of a circularly
 polarized plane wave traveling in the positive *z* direction.
