@@ -224,6 +224,7 @@ AC_CONFIG_FILES([
  examples/CubeTorus/Makefile
  examples/GetTMatrix/Makefile
  examples/PlateWithHole/Makefile
+ examples/PlatonicSolids/Makefile
  examples/PerforatedThinFilm/Makefile
  examples/SolidSphere/Makefile
  examples/SphericalShell/Makefile
