@@ -12,7 +12,11 @@ SCUFF-EM stands for
 
  Surface-CUrrent-Field Formulation of ElectroMagnetism
 
-For documentation and further information on SCUFF-EM, visit the SCUFF-EM homepage:
+For documentation and further information on SCUFF-EM, visit the SCUFF-EM documentation homepage:
+
+http://homerreid.github.io/scuff-em-documentation
+
+Further information is available here:
 
 http://www.homerreid.com/scuff-em
 
@@ -44,9 +48,7 @@ include the following:
                    scuff-RF can compute 
 
  -- scuff-cas2D:
- 
- -- scuff-cas3D:
-
+ -- scuff-cas3D:  
  -- scuff-caspol:  Tools for computing Casimir forces between 2D and 
                    3D objects of arbitrary geometries and material 
                    properties, as well as Casimir-Polder potentials for
