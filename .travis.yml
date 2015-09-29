@@ -1,0 +1,10 @@
+language: cpp
+addons:
+  apt:
+    packages:
+    - gfortran
+    - libhdf5-serial-dev
+    - liblapack-dev
+    - python-numpy
+    - swig
+script: ./autogen.sh --enable-shared --with-python && make
