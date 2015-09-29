@@ -79,7 +79,6 @@ FILE *fopenPath(const char *Path, const char *FileName, const char *Mode, char *
 /***************************************************************/
 int vsnprintfEC(char *str, size_t size, const char *format, va_list ap);
 FILE *vfopen(const char *format, const char *mode, ...);
-FILE *vfopenPath(const char *Path, const char *format, const char *mode, ...);
 int vmkdir(const char *format, ...);
 int vsystem(const char *format, ...);
 void vsetenv(const char *VariableName, const char *format, ...);
