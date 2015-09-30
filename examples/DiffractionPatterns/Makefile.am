@@ -1,7 +1,7 @@
 EXTRA_DIST =			\
  HoleyScreenUnitCell.geo	\
- HoleyScreenUnitCell_320.msh	\
- HoleyScreen_320.scuffgeo	\
+ HoleyScreenUnitCell_1228.msh	\
+ HoleyScreen_1228.scuffgeo	\
  FVMesh.geo              	\
  scuff-scatter.args		
 
