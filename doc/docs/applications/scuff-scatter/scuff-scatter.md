@@ -62,8 +62,10 @@ The various output quantities that you can ask [[scuff-scatter]] to generate inc
 Specifies the geometry input file.
 
 ````bash
---Omega      3.14
+--Omega      3.1415
 --OmegaFile  MyOmegaFile
+--Lambda     0.5
+--LambdaFile MyLambdaFile
 ````
 
 Specifies the angular frequencies at which to
@@ -74,6 +76,16 @@ to specify multiple frequencies. Alternatively,
 the `--OmegaFile` option may be used to specify the
 name of a file containing a list of frequencies (one per
 line) at which to run calculations.
+
+The options `--Lambda` and `--LambdaFile` may alternatively
+be used to define the frequencies at which to run calculations
+in terms of the corresponding free-space wavelength
+$\lambda=\frac{2\pi}{\omega}$, interpreted in units
+of microns. Thus `--Omega 3.1415` and `--Lambda 0.5`
+are equivalent; both specify an angular frequency
+$\omega=\pi \cdot 3\cdot 10^{14}$rad/sec, 
+corresponding
+to a free-space wavelength of $\lambda=0.5\,\mu$m.
 
 ## Options defining the incident field
 

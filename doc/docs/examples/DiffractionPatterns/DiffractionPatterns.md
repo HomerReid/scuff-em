@@ -18,40 +18,47 @@ of your [[scuff-em]] installation.
 The [[gmsh]] geometry file [`HoleyScreenUnitCell.geo`](HoleyScreenUnitCell.geo)
 describes an (infinitely thin) square metallic screen, 
 of dimensions 1&mu;m &times; 1&mu;m, with a hole of radius 0.25 &mu;m
-centered at the center of the square. I produce a surface mesh for
-this geometry by saying
+centered at the center of the square. I produce coarser and 
+finer surface meshes for this geometry by saying
 
 ````bash
 % gmsh -2 -clscale 1 HoleyScreenUnitCell.geo
+% RenameMesh HoleyScreenUnitCell.msh
+% gmsh -2 -clscale 0.75 HoleyScreenUnitCell.geo
 % RenameMesh HoleyScreenUnitCell.msh
 ````
 (where [`RenameMesh`](../SiO2Spheres/RenameMesh) is a simple 
 `bash` script that uses [[scuff-analyze]] to count the number 
 of interior edges in a surface mesh and rename the mesh file 
 accordingly.)
-This produces the file `HoleyScrenUnitCell_1228.msh,`
+This produces the files `HoleyScrenUnitCell_1228.msh`
+and `HoleyScreenUnitCell_2318.msh,`
 which you can visualize by opening in [[gmsh]]::
 
 ````bash
 % gmsh HoleyScreenUnitCell_1228.msh
+% gmsh HoleyScreenUnitCell_2318.msh
 ````
-![Holey screen mesh image](HoleyScreenUnitCell_320.png)
 
-If you need finer meshing resolution, you can tweak
+![Coarse Holey screen mesh image](HoleyScreenUnitCell_1228.png)
+
+![Fine Holey screen mesh image](HoleyScreenUnitCell_2318.png)
+
+Note that finer meshing resolution is obtained by specifying
 the `-clscale ` argument to [[gmsh]] (it stands
-for "characteristic length scale"; for example,
-running with `-clscale 0.5` will do the meshing
-with 2x finer lengthscale (corresponding to a 
-roughly 4x increase in the number of triangles).
+for "characteristic length scale"), which specifies an overall
+scaling factor for all triangle edges.
 
 --------------------------------------------------
-## [[scuff-em]] geometry file
+## [[scuff-em]] geometry files
 
-The [[scuff-em]] geometry file
+The [[scuff-em]] geometry files
 [`HoleyScreen_1228.scuffgeo`](HoleyScreen_1228.scuffgeo)
-describes an infinite square lattice whose unit
-cell is defined by the unit-cell mesh we created
-above. It looks like this:
+and
+[`HoleyScreen_2318.scuffgeo`](HoleyScreen_2318.scuffgeo)
+describe infinite square lattices with unit
+cells defined by the unit-cell meshes we created
+above. The *N*=1228 guy looks like this:
 
 ````bash
 LATTICE
@@ -115,6 +122,18 @@ This produces the file `FVMesh_7400.msh`:
 Now all that's left is to run the calculation.
 Put the following content into a little text
 file called `scuff-scatter.args`:
+
+````bash
+geometry        HoleyScreen_1228.scuffgeo
+FVMesh          FVMesh_7400.msh
+Lambda          0.375
+Lambda          0.25
+Lambda          0.125
+pwDirection     0 0 1
+pwPolarization  1 0 0 
+````
+
+Note that 
 
 
 --------------------------------------------------

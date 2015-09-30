@@ -95,6 +95,30 @@ the region $z<0$ are
 and 
 [`AlHalfSpace_176.scuffgeo`](AlHalfSpace_176.scuffgeo).
 
+Here's the content of the file `AlHalfSpace_176.scuffgeo`:
+
+````bash
+# this comes from Phys Rev B **68** 245405
+MATERIAL ALUMINUM
+    wp = 1.747e16; 
+    gamma = 7.596e13;
+    Eps(w) = 1 - wp^2 / (w * (w + i*gamma));
+ENDMATERIAL
+
+LATTICE
+	VECTOR 1.0  0.0
+	VECTOR 0.0  1.0 
+ENDLATTICE
+
+REGION Exterior       MATERIAL Aluminum
+REGION UpperHalfSpace MATERIAL Vacuum
+
+SURFACE Plate
+	MESHFILE Square_176.msh
+	REGIONS Exterior Aluminum
+ENDSURFACE
+````
+
 --------------------------------------------------
 # List of evaluation points
 
