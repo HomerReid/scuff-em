@@ -87,6 +87,15 @@ $\omega=\pi \cdot 3\cdot 10^{14}$rad/sec,
 corresponding
 to a free-space wavelength of $\lambda=0.5\,\mu$m.
 
+Note: Even if you use `--Lambda / --LambdaFile`
+instead of `--Omega / --OmegaFile` to specify the
+computational frequencies, the output files
+will still report data in terms of the frequency
+(the equivalent `--Omega` values), not the 
+wavelength. To plot your data versus wavelength
+instead of frequency, just plot versus the
+quantity $\frac{2\pi}{\omega}$.
+
 ## Options defining the incident field
 
 The options for specifying incident fields in

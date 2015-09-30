@@ -628,23 +628,26 @@ int RWGGeometry::PointInRegion(int RegionIndex, const double X[3])
   else 
    { XX[0]=X[0]; XX[1]=X[1]; XX[2]=X[2]; }
 
-  // for all surfaces bounding the region in question, count the 
-  // number of intersections between the surface and a plumb line
+  // for all non-PEC surfaces bounding the region in question, count 
+  // the number of intersections between the surface and a plumb line
   // dropped from X to z=minus infinity
   int TotalPiercings=0;
   for(int ns=0; ns<NumSurfaces; ns++)
-   if (    (Surfaces[ns]->RegionIndices[0]==RegionIndex)
-        || (Surfaces[ns]->RegionIndices[1]==RegionIndex) 
-      )
-    { 
-      // 20150929 untransform the point if necessary
-      double Y[3];
-      Y[0]=XX[0]; Y[1]=XX[1]; Y[2]=XX[2];
-      if (Surfaces[ns]->GT) Surfaces[ns]->GT->UnApply(Y);
+   { RWGSurface *S=Surfaces[ns];
+     if (S->IsPEC) continue;
+     if (    (S->RegionIndices[0]==RegionIndex)
+          || (S->RegionIndices[1]==RegionIndex) 
+        )
+      { 
+        // 20150929 untransform the point if necessary
+        double Y[3];
+        Y[0]=XX[0]; Y[1]=XX[1]; Y[2]=XX[2];
+        if (S->GT) S->GT->UnApply(Y);
 
-      TotalPiercings 
-       += kdtri_surface_piercings(Surfaces[ns]->kdPanels, Y);
-    };
+        TotalPiercings 
+         += kdtri_surface_piercings(S->kdPanels, Y);
+      };
+   };
 
   if ( RegionIndex==0 )
    return TotalPiercings%2 ? 0 : 1; 
