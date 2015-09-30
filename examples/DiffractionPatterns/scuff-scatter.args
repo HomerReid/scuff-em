@@ -1,10 +1,13 @@
-geometry        ScreenWithCircularAperture_1976.scuffgeo 
-cache           ScreenWithCircularAperture_1976.scuffcache
-FluxMesh        FluxMesh.msh
-Omega           1
+geometry        HoleyScreen_1228.scuffgeo
+FVMesh          FVMesh_7400.msh
+Lambda          0.375
+Lambda          0.25
+Lambda          0.125
+pwDirection     0 0 1
+pwPolarization  1 0 0 
+# comment out the above and uncomment the following 
+# to use gaussian beam instead of plane wave
 #gbDirection     0 0 1 
 #gbPolarization  1 0 0 
 #gbCenter        0 0 0 
 #gbWaist         0.01
-pwDirection     0 0 1
-pwPolarization  1 0 0 
