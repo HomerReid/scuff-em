@@ -121,20 +121,62 @@ This produces the file `FVMesh_7400.msh`:
 
 Now all that's left is to run the calculation.
 Put the following content into a little text
-file called `scuff-scatter.args`:
+file called `scuff-scatter.args` and pipe it into
+the standard input of [[scuff-scatter]]:
 
 ````bash
 geometry        HoleyScreen_1228.scuffgeo
 FVMesh          FVMesh_7400.msh
-Lambda          0.375
-Lambda          0.25
-Lambda          0.125
+Lambda          0.3751
+Lambda          0.2501
+Lambda          0.1251
 pwDirection     0 0 1
 pwPolarization  1 0 0 
 ````
 
-Note that 
+Note that I have chosen wavelengths of 1.5x, 1.0x, and 0.5x 
+the hole radius; in each case I have shifted the wavelength by a 
+tiny amount away from being commensurate with the lattice period
+to avoid numerical instabilities associated with Wood anomalies.
 
+```bash
+ % scuff-scatter < scuff-scatter.args
+ % scuff-scatter --geometry HoleyScreen_2318.scuffgeo < scuff-scatter.args
+````
+
+In the second command line here, the command-line specified 
+geometry overrides the geometry in the `.args` file. 
+
+This produces the files `HoleyScreen_1228.FVMesh_7400.pp`
+and `HoleyScreen_2318.FVMesh_7400.pp`, which can be
+visualized by opening them in [[gmsh]].
+
+<table border="1" cellpadding="1" align="center">
+ <tr>
+  <td> <img src="L1P5RCoarse.png"></td>
+  <td> <img src="L1P5RFine.png"></td>
+ </tr>
+ <tr>
+  <td> &lambda;=1.5 R (coarse mesh)
+  <td> &lambda;=1.5 R (fine mesh)
+ </tr>
+ <tr>
+  <td> <img src="L1P0RCoarse.png"></td>
+  <td> <img src="L1P0RFine.png"></td>
+ </tr>
+ <tr>
+  <td> &lambda;=1.0 R (coarse mesh)
+  <td> &lambda;=1.0 R (fine mesh)
+ </tr>
+ <tr>
+  <td> <img src="L0P5RCoarse.png"></td>
+  <td> <img src="L0P5RFine.png"></td>
+ </tr>
+ <tr>
+  <td> &lambda;=0.5 R (coarse mesh)
+  <td> &lambda;=0.5 R (fine mesh)
+ </tr>
+</table>
 
 --------------------------------------------------
 
