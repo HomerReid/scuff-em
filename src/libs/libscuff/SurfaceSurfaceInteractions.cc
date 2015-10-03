@@ -359,7 +359,12 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
 
   /*--------------------------------------------------------------*/
   /*- evaluate the surface conductivity for this surface at this -*/
-  /*- frequency                                                  -*/
+  /*- frequency.                                                 -*/
+  /*- The scaling by ZVac here is accounting for the SCUFF-EM    -*/
+  /*- convention in which the upper half of the PMCHWT system    -*/
+  /*- (the equations specifying tangential E-field continuity)   -*/
+  /*- is divided by ZVac as part of the procedure for obtaining  -*/
+  /*- a symmetric system of equations.                           -*/
   /*--------------------------------------------------------------*/
   cdouble GZ=Args->Sa->SurfaceSigmaMP->GetEps(Args->Omega);
   Log("Surface conductivity for surface %s is (%e,%e) at Omega=%e",
