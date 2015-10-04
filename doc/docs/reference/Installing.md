@@ -67,7 +67,7 @@ will be in ``PREFIX/share/scuff-em/examples``
 
 If you have trouble installing [[scuff-em]],
 please file an issue on the 
-[<span class="SC">scuff-em</span> GitHub page](GitHub).
+[<span class="SC">scuff-em</span> GitHub page][GitHub].
 
 ### Build options
 
@@ -98,7 +98,7 @@ software packages and is definitely the right choice if you
 will be operating on a shared machine with some CPU cores 
 occupied by other users. 
 (You can monitor performance by inspecting
-<a href="scuff-em/reference/scuffEMMisc.shtml#LogFiles"``.log`` files.</a>)
+[`.log` files][LogFiles].
 
 Support for [[pthreads]]
 is a legacy feature that will be discontinued in future versions of 
@@ -115,3 +115,6 @@ variable:
 ````bash
 % export GOMP_CPU_AFFINITY=0-7
 ````
+
+[GitHub]:                      https://github.com/HomerReid/scuff-em/
+[LogFiles]:                    ../applications/GeneralReference.md#LogFiles
