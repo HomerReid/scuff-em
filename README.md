@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/HomerReid/scuff-em.svg?branch=master)](https://travis-ci.org/HomerReid/scuff-em)
 
-<span style="font-variant:small-caps;">scuff-em</span>
+SCUFF-EM
 ========
 
 A comprehensive and full-featured computational physics suite for 
@@ -10,23 +10,20 @@ heat transfer), nanophotonics, RF device engineering,
 electrostatics, and more. Includes a core library with C++ and 
 python APIs as well as many command-line applications.
 
-<span style="font-variant:small-caps;">scuff-em</span>
-stands for
+SCUFF-EM stands for
 
  Surface-CUrrent-Field Formulation of ElectroMagnetism
 
-For documentation and further information on 
-<span style="font-variant:small-caps;">scuff-em</span>
-visit the 
-[<span style="font-variant:small-caps;">scuff-em</span> documentation homepage:](http://homerreid.github.io/scuff-em-documentation)
+For documentation and further information on SCUFF-EM visit the 
+[SCUFF-EM documentation homepage:](http://homerreid.github.io/scuff-em-documentation)
 
 http://homerreid.github.io/scuff-em-documentation
 
-An older version of the 
-<span style="font-variant:small-caps;">scuff-em</span>
-documentation is available here:
+An older version of the SCUFF-EM documentation is available here:
 
 http://www.homerreid.com/scuff-em
+
+# General reference
 
 * [Top-level overview][TopLevel]
 * [Installation][Installing]
@@ -49,56 +46,54 @@ http://www.homerreid.com/scuff-em
 * [LDOS and dyadic Green functions above an infinite aluminum half-space][HalfSpaceLDOS]
 * [Electrostatic polarizability of platonic solids][PlatonicSolids]
 
-## Command-line application reference
+# Command-line application reference
 
-+ [General reference for <span style="font-variant:small-caps;">scuff-em</span> command-line applications][GeneralReference]
++ [General reference for SCUFF-EM command-line applications][GeneralReference]
 
-+ *Nanophotonics codes*
-    + [<span style="font-variant:small-caps;">scuff-scatter</span>][scuff-scatter]: general-purpose electromagnetic scattering
-    + [<span style="font-variant:small-caps;">scuff-ldos</span>][scuff-ldos]                  - photonic **l**ocal **d**ensity **o**f **s**tates
-    + [<span style="font-variant:small-caps;">scuff-transmission</span>][scuff-transmission]  - plane-wave transmission through 2D extended structures
-    + [<span style="font-variant:small-caps;">scuff-tmatrix</span>][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis  
+## *Nanophotonics codes*
+    + [SCUFF-SCATTER][scuff-scatter]: general-purpose electromagnetic scattering
+    + [SCUFF-LDOS][scuff-ldos]                  - photonic **l**ocal **d**ensity **o**f **s**tates
+    + [SCUFF-TRANSMISSION][scuff-transmission]  - plane-wave transmission through 2D extended structures
+    + [SCUFF-TMATRIX][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis  
 
-+ *Equilibrium Casimir codes*
-    + [<span style="font-variant:small-caps;">scuff-cas3d</span>][scuff-cas3D]   - Casimir energies, forces, and torques
-    + [<span style="font-variant:small-caps;">scuff-caspol</span>][scuff-caspol] - Casimir-Polder potentials
+## *Equilibrium Casimir codes*
+    + [SCUFF-CAS3D][scuff-cas3D]   - Casimir energies, forces, and torques
+    + [SCUFF-CASPOL][scuff-caspol] - Casimir-Polder potentials
        
-+ *Non-equilibrium Casimir/ heat-transfer code*
-    + [<span style="font-variant:small-caps;">scuff-neq</span>][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques
+## *Non-equilibrium Casimir/ heat-transfer code*
+    + [SCUFF-NEQ][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques
   
-+ *RF / microwave engineering code*
-    + [<span style="font-variant:small-caps;">scuff-rf</span>][scuff-RF]         - multiport network parameters
+## *RF / microwave engineering code*
+    + [SCUFF-RF][scuff-RF]         - multiport network parameters
                                      (S- and impedance parameters),
                                      and radiated fields, for passive RF
                                      and microwave structures.
 
-+ *Electrostatics code*
+## *Electrostatics code*
 
-    + [<span style="font-variant:small-caps;">scuff-static</span>][scuff-static] - pure electrostatics problems:
+    + [SCUFF-STATIC][scuff-static] - pure electrostatics problems:
                                      capacitance matrices, DC polarizabilities,
                                      electrostatic potentials and fields
 
-+ *Utility code*
-    + [<span style="font-variant:small-caps;">scuff-analyze</span>][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
+## *Utility code*
+    + [SCUFF-ANALYZE][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
 
-## API reference
+# API reference
 
-* [<span style="font-variant:small-caps;">libscuff</span>][libscuff] - Accessing [[scuff-em]] from C++ and python programs
+* [LIBSCUFF][libscuff] - Accessing [[scuff-em]] from C++ and python programs
 
-## Developer reference
+# Developer reference
 
 * [Implementation][Implementation] - how [[scuff-em]] works
 * [DataStructures][DataStructures] - data structures and methods inside the [[scuff-em]] core library
 * [Documentation][Documentation]   - about the [[scuff-em]] documentation
 
-## FAQ
+# Technical memos
 
-## Technical memos
-
-* [<span style="font-variant:small-caps;">libscuff</span> Implementation and Technical Details](tex/lsInnards.pdf) - a technical memo describing many details of the core library implementation
-* [Computation of power, force, and torque in <span style="font-variant:small-caps;">scuff-em</span>](tex/PFT.pdf) - a technical memo describing methods for computing power, force and torque, with applications to both classical scattering and non-equilibrium fluctuational electrodynamics
-* [Computation of fields near panels in <span style="font-variant:small-caps;">scuff-em</span>](tex/NearFields.pdf) - a technical memo describing the computation of fields near triangular panels in discretized surface meshes
-* [Computation of Green's Functions and LDOS in <span style="font-variant:small-caps;">scuff-em</span>](tex/scuff-ldos.pdf) - a technical memo describing the implementation of the [<span style="font-variant:small-caps;">scuff-ldos</span>](applications/scuff-ldos) code for computing dyadic Green's functions and local photonic densities of states 
+* [LIBSCUFF Implementation and Technical Details](tex/lsInnards.pdf) - a technical memo describing many details of the core library implementation
+* [Computation of power, force, and torque in SCUFF-EM](tex/PFT.pdf) - a technical memo describing methods for computing power, force and torque, with applications to both classical scattering and non-equilibrium fluctuational electrodynamics
+* [Computation of fields near panels in SCUFF-EM](tex/NearFields.pdf) - a technical memo describing the computation of fields near triangular panels in discretized surface meshes
+* [Computation of Green's Functions and LDOS in SCUFF-LDOS](applications/scuff-ldos) code for computing dyadic Green's functions and local photonic densities of states 
 
 
 [TopLevel]:                http://homerreid.github.io/scuff-em-documentation/reference/TopLevel
