@@ -558,11 +558,18 @@ void RWGSurface::InitkdPanels(bool reinit, int LogLevel)
 /***********************************************************************/
 /* return whether a closed surface contains X.                         */
 /***********************************************************************/
-bool RWGSurface::Contains(const double X[3])
+bool RWGSurface::Contains(const double X0[3])
 {
   if (!IsClosed) return false;
 
-  InitkdPanels(false);
+  // 20150929 this line is no longer necessary, as
+  // the kdtri is now initialized by the RWGSurface class constructor
+  // InitkdPanels(false); 
+
+  // 20150929 untransform the point if necessary
+  double X[3];
+  X[0]=X0[0]; X[1]=X0[1]; X[2]=X0[2];
+  if (GT) GT->UnApply(X);
 
   // attempt to bypass the calculation by checking if the eval point lies 
   // outside the bounding box of the kdtri. (this check formerly existed 
@@ -621,18 +628,26 @@ int RWGGeometry::PointInRegion(int RegionIndex, const double X[3])
   else 
    { XX[0]=X[0]; XX[1]=X[1]; XX[2]=X[2]; }
 
-  // for all surfaces bounding the region in question, count the 
-  // number of intersections between the surface and a plumb line
+  // for all non-PEC surfaces bounding the region in question, count 
+  // the number of intersections between the surface and a plumb line
   // dropped from X to z=minus infinity
   int TotalPiercings=0;
   for(int ns=0; ns<NumSurfaces; ns++)
-   if (    (Surfaces[ns]->RegionIndices[0]==RegionIndex)
-        || (Surfaces[ns]->RegionIndices[1]==RegionIndex) 
-      )
-    { Surfaces[ns]->InitkdPanels(false);
-      TotalPiercings 
-       += kdtri_surface_piercings(Surfaces[ns]->kdPanels, XX);
-    };
+   { RWGSurface *S=Surfaces[ns];
+     if (S->IsPEC) continue;
+     if (    (S->RegionIndices[0]==RegionIndex)
+          || (S->RegionIndices[1]==RegionIndex) 
+        )
+      { 
+        // 20150929 untransform the point if necessary
+        double Y[3];
+        Y[0]=XX[0]; Y[1]=XX[1]; Y[2]=XX[2];
+        if (S->GT) S->GT->UnApply(Y);
+
+        TotalPiercings 
+         += kdtri_surface_piercings(S->kdPanels, Y);
+      };
+   };
 
   if ( RegionIndex==0 )
    return TotalPiercings%2 ? 0 : 1; 

@@ -10,9 +10,9 @@ of the BEM using RWG basis functions.)
 [[scuff-em]] originated as a specialized tool
 for using BEM techniques to model
 fluctuation-induced electromagnetic phenomena---such as
-[Casimir forces](http://dx.doi.org/10.1103/PhysRevA.88.022514)
+[Casimir forces][FSCCasimirPaper]
 and
-[radiative heat transfer](http://dx.doi.org/10.1103/PhysRevB.88.054305)---and 
+[radiative heat transfer][FSCNEQPaper]---and 
 subsequently expanded into a general-purpose BEM solver targeting a
 variety of applications in nanophotonics.
 
@@ -66,7 +66,8 @@ Typical inputs to [[scuff-em]] calculations include
 + Specification of the frequencies (and, for extended geometries,
   the Bloch vectors) at which you want to perform calculations
 
-+ For scattering codes: a specification of the incident fields
++ For scattering codes: a specification of the 
+  [incident fields][IncidentFields.md].
 
 + Specifications of the output quantities you wish to get back: 
   field components at individual points in space, power/force/torque
@@ -109,9 +110,45 @@ Typical outputs from [[scuff-em]] calculations include
 
 ### Fluctuation-induced interactions
 
+ + [<span class="SC">scuff-cas3D</span>][scuff-cas3D]
+> An implementation of the 
+> [fluctuating-surface-current approach to equilibrium Casimir forces][FSCPaper] 
+> in compact or extended geometries.
+
+ + [<span class="SC">scuff-caspol</span>][scuff-caspol]
+> A tool for computing Casimir-Polder potentials for
+> polarizable molecules in the vicinity of compact or 
+> extended material bodies.
+
+ + [<span class="SC">scuff-neq</span>][scuff-neq]
+> An implementation of the fluctuating-surface-current
+> approach to non-equilibrium fluctuation-induced
+> interactions among compact objects.
+> Available outputs include: frequency-resolved or 
+> frequency-integrated rates of heat radiation or 
+> radiative heat transfer; non-equilibrium Casimir 
+> forces; self-propulsion and self-rotation of 
+> isolated bodies.
+
 ### RF / microwave engineering
 
+ + [<span class="SC">scuff-RF</span>][scuff-RF]
+> A tool for modeling the electromagnetic properties of 
+> passive RF devices such as antennas and inductors.
+> Available outputs include: frequency-dependent
+> S-parameters for arbitrarily-shaped objects;
+> radiated field patterns for antennas or other objects
+> driven by user-specified currents.
+
 ### Electrostatics
+
+ + [<span class="SC">scuff-static</span>][scuff-static]
+> An electrostatic solver. 
+> Available outputs include: self- and mutual-capacitances
+> of arbitrarily-shaped conductors ; DC polarizabilities of
+> conducting and dielectric bodies; electrostatic fields
+> (at user-specified evaluation points) in the presence 
+> of conducting surfaces held at user-specified potentials.
 
 ##Citing [[scuff-em]]
 
@@ -151,8 +188,15 @@ note="\texttt{http://homerreid.com/scuff-EM}"
 ````
 
 [GMSH]: http://www.geuz.org/gmsh
-[scuff-scatter]: ../applications/scuff-scatter/scuff-scatter.md
-[scuff-transmission]: ../applications/scuff-transmission/scuff-transmission.md
-[scuff-tmatrix]: ../applications/scuff-tmatrix/scuff-tmatrix.md
-[GNUGPL]: http://en.wikipedia.org/wiki/GNU_General_Public_License
-[GitHub]: https://github.com/HomerReid/scuff-em/
+[scuff-scatter]:            ../applications/scuff-scatter/scuff-scatter.md
+[scuff-transmission]:       ../applications/scuff-transmission/scuff-transmission.md
+[scuff-tmatrix]:            ../applications/scuff-tmatrix/scuff-tmatrix.md
+[scuff-cas3D]:              ../applications/scuff-cas3D/scuff-cas3D.md
+[scuff-caspol]:             ../applications/scuff-caspol/scuff-caspol.md
+[scuff-neq]:                ../applications/scuff-neq/scuff-neq.md
+[scuff-RF]:                 ../applications/scuff-RF/scuff-RF.md
+[scuff-static]              ../applications/scuff-static/scuff-static.md
+[GNUGPL]:                   http://en.wikipedia.org/wiki/GNU_General_Public_License
+[GitHub]:                   https://github.com/HomerReid/scuff-em/
+[FSCCasimirPaper]:          http://dx.doi.org/10.1103/PhysRevA.88.022514
+[FSCNEQPaper]:              http://dx.doi.org/10.1103/PhysRevB.88.054305

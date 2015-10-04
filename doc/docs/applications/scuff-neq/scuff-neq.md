@@ -8,7 +8,7 @@ phenomena--specifically, for computing *radiative heat-transfer rates*
 and *non-equilibrium Casimir forces and torques* for bodies of 
 arbitrary shapes and arbitrary (linear, isotropic, piecewise 
 homogeneous) frequency-dependent permittivity and permeability.
-[[scuff-cas3d]] implements the 
+[[scuff-neq]] implements the 
 [*fluctuating-surface current (FSC)* approach][FSCPaper] 
 to numerical modeling of non-equilibrium fluctuation phenomena.
 

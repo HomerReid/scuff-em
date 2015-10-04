@@ -39,7 +39,7 @@ ground planes and infinite-area dielectric half-spaces).
 # 1. What <span class="SC">scuff-ldos</span> actually computes
 
 Some technical details on the calculation performed by
-[[scuff-ldos]] may be found in [this memo](scuff-ldos.pdf).
+[[scuff-ldos]] may be found in [this memo](../../tex/scuff-ldos.pdf).
 The long story short is as follows:
 
 What [[scuff-ldos]] actually computes is the scattering

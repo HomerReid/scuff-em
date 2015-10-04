@@ -4,5 +4,5 @@ LATTICE
 ENDLATTICE	
 
 OBJECT HoleyScreen
-	MESHFILE HoleyScreenUnitCell_192.msh
+	MESHFILE HoleyScreenUnitCell_1228.msh
 ENDOBJECT

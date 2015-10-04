@@ -42,6 +42,9 @@ On Debian/Ubuntu Linux systems, you can fetch all of these packages by doing a
 ## 2. Cloning the GitHub repository and building the code
 
 [[scuff-em]] is hosted on [GitHub][GitHub].
+The current build status of the [[scuff-em]] master branch is:
+![Build Status](https://travis-ci.org/HomerReid/scuff-em.svg?branch=master)
+
 To fetch and install the latest version of the 
 code, execute the following steps. (Replace the string
 ``/path/to/scuff-em-installation-directory``
@@ -64,7 +67,7 @@ will be in ``PREFIX/share/scuff-em/examples``
 
 If you have trouble installing [[scuff-em]],
 please file an issue on the 
-[<span class="SC">scuff-em</span> GitHub page](GitHub).
+[<span class="SC">scuff-em</span> GitHub page][GitHub].
 
 ### Build options
 
@@ -95,7 +98,7 @@ software packages and is definitely the right choice if you
 will be operating on a shared machine with some CPU cores 
 occupied by other users. 
 (You can monitor performance by inspecting
-<a href="scuff-em/reference/scuffEMMisc.shtml#LogFiles"``.log`` files.</a>)
+[`.log` files][LogFiles].
 
 Support for [[pthreads]]
 is a legacy feature that will be discontinued in future versions of 
@@ -112,3 +115,6 @@ variable:
 ````bash
 % export GOMP_CPU_AFFINITY=0-7
 ````
+
+[GitHub]:                      https://github.com/HomerReid/scuff-em/
+[LogFiles]:                    ../applications/GeneralReference.md#LogFiles

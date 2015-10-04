@@ -48,6 +48,72 @@
 
 #define MAXSTR   1000
 
+/*******************************************************************/
+/* process frequency-related options to construct a list of        */
+/* frequencies at which to run calculations                        */
+/*******************************************************************/
+
+/***************************************************************/
+/* helper routine to process frequency-related options to      */
+/* construct a list of frequencies at which to run calculations*/
+/***************************************************************/
+HVector *GetOmegaList(char *OmegaFile,  cdouble *OmegaVals,  int nOmegaVals,
+                      char *LambdaFile, cdouble *LambdaVals, int nLambdaVals)
+{
+  HVector *OmegaList=0;
+  int TotalFreqs=0;
+
+  HVector *OmegaList1=0, *OmegaList2=0, *LambdaList1=0, *LambdaList2=0;
+  if (OmegaFile) // process --OmegaFile option if present
+   { 
+     OmegaList1=new HVector(OmegaFile,LHM_TEXT);
+     if (OmegaList1->ErrMsg)
+      ErrExit(OmegaList1->ErrMsg);
+     TotalFreqs += OmegaList1->N;
+   };
+  if (nOmegaVals>0) // process -- Omega options if present
+   {
+     OmegaList2=new HVector(nOmegaVals, LHM_COMPLEX);
+     for(int n=0; n<nOmegaVals; n++)
+      OmegaList2->SetEntry(n,OmegaVals[n]);
+     TotalFreqs += OmegaList2->N;
+   };
+  if (LambdaFile) // process --LambdaFile option if present
+   { 
+     LambdaList1=new HVector(LambdaFile,LHM_TEXT);
+     if (LambdaList1->ErrMsg)
+      ErrExit(LambdaList1->ErrMsg);
+     TotalFreqs += LambdaList1->N;
+   };
+  if (nLambdaVals>0) // process -- Lambda options if present
+   {
+     LambdaList2=new HVector(nLambdaVals, LHM_COMPLEX);
+     for(int n=0; n<nLambdaVals; n++)
+      LambdaList2->SetEntry(n,LambdaVals[n]);
+     TotalFreqs += LambdaList2->N;
+   };
+
+  if (TotalFreqs==0)
+   return 0;
+
+  OmegaList = new HVector(TotalFreqs, LHM_COMPLEX);
+  int nOmega=0;
+  if ( OmegaList1 )
+   for(int n=0; n<OmegaList1->N; n++)
+    OmegaList->SetEntry(nOmega++, OmegaList1->GetEntry(n));
+  if ( OmegaList2 )
+   for(int n=0; n<OmegaList2->N; n++)
+    OmegaList->SetEntry(nOmega++, OmegaList2->GetEntry(n));
+  if ( LambdaList1 )
+   for(int n=0; n<LambdaList1->N; n++)
+    OmegaList->SetEntry(nOmega++, 2.0*M_PI / (LambdaList1->GetEntry(n)));
+  if ( LambdaList2 )
+   for(int n=0; n<LambdaList2->N; n++)
+    OmegaList->SetEntry(nOmega++, 2.0*M_PI / (LambdaList2->GetEntry(n)));
+
+  return OmegaList;
+}
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -62,6 +128,8 @@ int main(int argc, char *argv[])
 //
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile=0;
+  cdouble LambdaVals[MAXFREQ];       int nLambdaVals;
+  char *LambdaFile=0;
 //
   double pwDir[3*MAXPW];             int npwDir;
   cdouble pwPol[3*MAXPW];            int npwPol;
@@ -111,6 +179,8 @@ int main(int argc, char *argv[])
 /**/
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  0,             "file listing angular frequencies"},
+     {"Lambda",         PA_CDOUBLE, 1, MAXFREQ, (void *)LambdaVals,  &nLambdaVals,  "wavelength"},
+     {"LambdaFile",     PA_STRING,  1, 1,       (void *)&LambdaFile, 0,             "file listing wavelengths"},
 /**/
      {"pwDirection",    PA_DOUBLE,  3, MAXPW,   (void *)pwDir,       &npwDir,       "plane wave direction"},
      {"pwPolarization", PA_CDOUBLE, 3, MAXPW,   (void *)pwPol,       &npwPol,       "plane wave polarization"},
@@ -163,29 +233,11 @@ int main(int argc, char *argv[])
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
 
   /*******************************************************************/
-  /* process frequency-related options to construct a list of        */
-  /* frequencies at which to run calculations                        */
+  /* process frequency-related options                               */
   /*******************************************************************/
-  HVector *OmegaList1=0, *OmegaList2=0, *OmegaList=0;
-  if (OmegaFile) // process --OmegaFile option if present
-   { 
-     OmegaList1=new HVector(OmegaFile,LHM_TEXT);
-     if (OmegaList1->ErrMsg)
-      ErrExit(OmegaList1->ErrMsg);
-   };
-  if (nOmegaVals>0) // process -- Omega options if present
-   {
-     OmegaList2=new HVector(nOmegaVals, LHM_COMPLEX);
-     for(int n=0; n<nOmegaVals; n++)
-      OmegaList2->SetEntry(n,OmegaVals[n]);
-   };
-  if (  OmegaList1 && !OmegaList2 )
-   OmegaList=OmegaList1;
-  else if ( !OmegaList1 && OmegaList2 )
-   OmegaList=OmegaList2;
-  else if (  OmegaList1 && OmegaList2  )
-   OmegaList=Concat(OmegaList1, OmegaList2);
-  else 
+  HVector *OmegaList=GetOmegaList(OmegaFile, OmegaVals, nOmegaVals,
+                                  LambdaFile, LambdaVals, nLambdaVals);
+  if (OmegaList==0)
    OSUsage(argv[0], OSArray, "you must specify at least one frequency");
 
   /*******************************************************************/

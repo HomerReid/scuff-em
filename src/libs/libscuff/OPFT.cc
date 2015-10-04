@@ -280,6 +280,11 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
   k2 *= Eps*Mu;
   ZZ *= sqrt(Mu/Eps);
 
+  // 20151003 surface-conductivity contribution to absorbed power
+  cdouble GZ = 0.0;
+  if (S->SurfaceSigmaMP)
+   GZ = S->SurfaceSigmaMP->GetEps(Omega);
+
   /*--------------------------------------------------------------*/
   /*- initialize edge-by-edge contributions to zero --------------*/
   /*--------------------------------------------------------------*/
@@ -290,7 +295,7 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
    };
 
   /***************************************************************/
-  /***************************************************************/
+  /* loop over all interior edges #nea                           */
   /***************************************************************/
   double PAbs=0.0, Fx=0.0, Fy=0.0, Fz=0.0, Taux=0.0, Tauy=0.0, Tauz=0.0;
   for(int nea=0; nea<NE; nea++)
@@ -345,6 +350,10 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
        /*--------------------------------------------------------------*/
        // power
        double dPAbs = 0.25*real( (KN-NK) * Overlaps[OVERLAP_CROSS] );
+
+       // 20151003 surface-conductivity contribution to absorbed power
+       if (GZ!=0.0)
+        dPAbs += 0.5*real(KK/GZ)*Overlaps[OVERLAP_OVERLAP];
 
        // force, torque
        double dF[3], dTau[3];
@@ -505,6 +514,11 @@ void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
   k2 *= EpsRel*MuRel;
   ZZ *= sqrt(MuRel/EpsRel);
 
+  // 20151003 surface-conductivity contribution to absorbed power
+  cdouble GZ = 0.0;
+  if (S->SurfaceSigmaMP)
+   GZ = S->SurfaceSigmaMP->GetEps(Omega);
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -527,6 +541,9 @@ void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
        if (QPAbs)
         { QPAbs->SetEntry(2*nea,2*neb+1, 0.25*Overlaps[OVERLAP_CROSS]);
           QPAbs->SetEntry(2*nea+1,2*neb,-0.25*Overlaps[OVERLAP_CROSS]);
+          // 20151003 surface-conductivity contribution to absorbed power
+          if (GZ!=0.0)
+           QPAbs->SetEntry(2*nea,2*neb,0.5*real(1.0/GZ)*Overlaps[OVERLAP_OVERLAP]);
         };
 
        // force, torque

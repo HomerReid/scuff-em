@@ -9,7 +9,15 @@ SCUFF-EM stands for
 For documentation and further information on SCUFF-EM, and to 
 download binary and source packages, visit the SCUFF-EM homepage:
 
+http://homerreid.github.io/scuff-em-documentation
+
+There is also an earlier version of the SCUFF-EM
+website here:
+
 http://www.homerreid.com/scuff-em
+
+The current build status of the SCUFF-EM master branch is:
+![Build Status](https://travis-ci.org/HomerReid/scuff-em.svg?branch=master)
 
 The SCUFF-EM distribution includes the following components: 
   

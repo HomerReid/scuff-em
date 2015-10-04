@@ -23,7 +23,7 @@ You can adjust the fineness of the surface mesh by varying the `-clscale` parame
 but will take longer to simulate.
 
 Next we create a [<span class="SC">scuff-em</span> geometry file][scuffEMGeometries]
-that will tell scuff-scatter about our geometry, including both the surface mesh 
+that will tell [[scuff-scatter]] about our geometry, including both the surface mesh 
 and the material properties (dielectric function) of the sphere. As a first example, 
 we'll use a dielectric model for silicon carbide that expresses the relative 
 permittivity as a rational function of ω; in this case we'll call the geometry 
@@ -92,7 +92,8 @@ and **(5)** a specification of the incident field.
     
 ````
 
-And now we just pipe this little file into the standard input of [[scuff-scatter]]:
+And now we just pipe this little file into the standard input of 
+[[scuff-scatter]]:
 
 ````bash
     % scuff-scatter < Args 
@@ -112,14 +113,14 @@ not the case (for example, by monitoring CPU usage using
 you may need to 
 [reconfigure and recompile with different openmp/pthreads configuration options.][scuffEMInstallation.shtml]
 
-Here's a comparison of the scuff-scatter results with the analytical Mie series, as computed 
+Here's a comparison of the [[scuff-scatter]] results with the analytical Mie series, as computed 
 using [this Mathematica script.](Mie.math) [Like most Mie codes, this script computes the 
 absorption and scattering *cross-sections*, which we multiply by the incoming beam flux ($\frac{1}{2Z_0}$ for a unit-strength plane wave in vacuum) to get 
 values for the absorbed and scattered *power*.]
 
 ![Silicon carbide data plot](SiCData.png)
 
-Now let's redo the calculation for a sphere made of gold instead of silicon carbide.  In this case we will name our scuff-em geometry file `GoldSphere.scuffgeo`:
+Now let's redo the calculation for a sphere made of gold instead of silicon carbide.  In this case we will name our [[scuff-em]] geometry file `GoldSphere.scuffgeo`:
 
 ````bash
     MATERIAL Gold

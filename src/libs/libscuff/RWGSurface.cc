@@ -449,6 +449,20 @@ void RWGSurface::InitRWGSurface()
 
   UpdateBoundingBox();
 
+  /*------------------------------------------------------------*/
+  /*- 20150929 initialize the kdtri by default, instead of      */
+  /*-          waiting until the first call to Contains()       */
+  /*-          to do so. The reason for this change is that we  */
+  /*-          want to make sure we form the kdtri prior to any */
+  /*-          geometric transformation that may be carried out */
+  /*-          on the object; this way, the kdtri always        */
+  /*-          reflects the UNTRANSFORMED object, and hence when*/
+  /*-          Contains(x) is called for an object that has been*/
+  /*-          transformed, we can just untransform x to make   */
+  /*-          the Contain() work correctly.                    */
+  /*------------------------------------------------------------*/
+  InitkdPanels(false); 
+
 } 
 
 /*--------------------------------------------------------------*/
