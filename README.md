@@ -50,43 +50,44 @@ http://www.homerreid.com/scuff-em
 
 + [General reference for SCUFF-EM command-line applications][GeneralReference]
 
-## *Nanophotonics codes*
++ *Nanophotonics codes*
+
     + [SCUFF-SCATTER][scuff-scatter]: general-purpose electromagnetic scattering
     + [SCUFF-LDOS][scuff-ldos]                  - photonic **l**ocal **d**ensity **o**f **s**tates
     + [SCUFF-TRANSMISSION][scuff-transmission]  - plane-wave transmission through 2D extended structures
     + [SCUFF-TMATRIX][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis  
 
-## *Equilibrium Casimir codes*
++ *Equilibrium Casimir codes*
     + [SCUFF-CAS3D][scuff-cas3D]   - Casimir energies, forces, and torques
     + [SCUFF-CASPOL][scuff-caspol] - Casimir-Polder potentials
        
-## *Non-equilibrium Casimir/ heat-transfer code*
++ *Non-equilibrium Casimir/ heat-transfer code*
     + [SCUFF-NEQ][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques
   
-## *RF / microwave engineering code*
++ *RF / microwave engineering code*
     + [SCUFF-RF][scuff-RF]         - multiport network parameters
                                      (S- and impedance parameters),
                                      and radiated fields, for passive RF
                                      and microwave structures.
 
-## *Electrostatics code*
++ *Electrostatics code*
 
     + [SCUFF-STATIC][scuff-static] - pure electrostatics problems:
                                      capacitance matrices, DC polarizabilities,
                                      electrostatic potentials and fields
 
-## *Utility code*
-    + [SCUFF-ANALYZE][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
++ *Utility code*
+    + [SCUFF-ANALYZE][scuff-analyze] - diagnostic tool to print info on SCUFF-EM geometries
 
 # API reference
 
-* [LIBSCUFF][libscuff] - Accessing [[scuff-em]] from C++ and python programs
+* [LIBSCUFF][libscuff] - Accessing SCUFF-EM from C++ and python programs
 
 # Developer reference
 
-* [Implementation][Implementation] - how [[scuff-em]] works
-* [DataStructures][DataStructures] - data structures and methods inside the [[scuff-em]] core library
-* [Documentation][Documentation]   - about the [[scuff-em]] documentation
+* [Implementation][Implementation] - how SCUFF-EM works
+* [DataStructures][DataStructures] - data structures and methods inside the SCUFF-EM core library
+* [Documentation][Documentation]   - about the SCUFF-EM documentation
 
 # Technical memos
 
