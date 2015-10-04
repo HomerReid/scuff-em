@@ -101,8 +101,8 @@ Here's a [[gmsh]] file called
 side length 1 micron, parallel to the *xy* plane and
 located at a height of *z*=1 micron, thus corresponding
 to the region enclosed by the dotted line in the schematic
-figure above. ("FVMesh" stands for `field-visualization
-mesh.) This `.geo` file contains a user-specifiable
+figure above. ("FVMesh" stands for "field-visualization
+mesh.") This `.geo` file contains a user-specifiable
 parameter `N` that sets the number of triangle edges per
 unit length in the mesh representation; I would
 like to set this number to 50, so I say
@@ -134,12 +134,13 @@ pwDirection     0 0 1
 pwPolarization  1 0 0 
 ````
 
-Note that I have chosen wavelengths of 1.5x, 1.0x, and 0.5x 
-the hole radius; in each case I have shifted the wavelength by a 
+Note that I have chosen wavelengths of 
+$\lambda=\{1.5,1.0,0.5\}R$ where $R=0.25\,\mu$m is 
+the hole radius. In each case I have shifted the wavelength by a 
 tiny amount away from being commensurate with the lattice period
 to avoid numerical instabilities associated with Wood anomalies.
 
-```bash
+````bash
  % scuff-scatter < scuff-scatter.args
  % scuff-scatter --geometry HoleyScreen_2318.scuffgeo < scuff-scatter.args
 ````
@@ -153,24 +154,24 @@ visualized by opening them in [[gmsh]].
 
 <table border="1" cellpadding="1" align="center">
  <tr>
-  <td> <img src="L1P5RCoarse.png"></td>
-  <td> <img src="L1P5RFine.png"></td>
+  <td> <img src="../L1P5RCoarse.png"></td>
+  <td> <img src="../L1P5RFine.png"></td>
  </tr>
  <tr>
   <td> &lambda;=1.5 R (coarse mesh)
   <td> &lambda;=1.5 R (fine mesh)
  </tr>
  <tr>
-  <td> <img src="L1P0RCoarse.png"></td>
-  <td> <img src="L1P0RFine.png"></td>
+  <td> <img src="../L1P0RCoarse.png"></td>
+  <td> <img src="../L1P0RFine.png"></td>
  </tr>
  <tr>
   <td> &lambda;=1.0 R (coarse mesh)
   <td> &lambda;=1.0 R (fine mesh)
  </tr>
  <tr>
-  <td> <img src="L0P5RCoarse.png"></td>
-  <td> <img src="L0P5RFine.png"></td>
+  <td> <img src="../L0P5RCoarse.png"></td>
+  <td> <img src="../L0P5RFine.png"></td>
  </tr>
  <tr>
   <td> &lambda;=0.5 R (coarse mesh)

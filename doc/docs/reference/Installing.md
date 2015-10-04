@@ -42,6 +42,9 @@ On Debian/Ubuntu Linux systems, you can fetch all of these packages by doing a
 ## 2. Cloning the GitHub repository and building the code
 
 [[scuff-em]] is hosted on [GitHub][GitHub].
+The current build status of the [[scuff-em]] master branch is:
+![Build Status](https://travis-ci.org/HomerReid/scuff-em.svg?branch=master)
+
 To fetch and install the latest version of the 
 code, execute the following steps. (Replace the string
 ``/path/to/scuff-em-installation-directory``
