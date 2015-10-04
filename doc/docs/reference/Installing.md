@@ -43,6 +43,7 @@ On Debian/Ubuntu Linux systems, you can fetch all of these packages by doing a
 
 [[scuff-em]] is hosted on [GitHub][GitHub].
 The current build status of the [[scuff-em]] master branch is:
+
 ![Build Status](https://travis-ci.org/HomerReid/scuff-em.svg?branch=master)
 
 To fetch and install the latest version of the 

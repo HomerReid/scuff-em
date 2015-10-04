@@ -1,0 +1,9 @@
+\contentsline {section}{\numberline {1}Overview}{2}
+\contentsline {section}{\numberline {2}Theory}{4}
+\contentsline {paragraph}{If panel $m$ is on a PEC surface:}{8}
+\contentsline {paragraph}{If panel $m$ is on a dielectric surface:}{8}
+\contentsline {paragraph}{If panel $m$ is on a $\lambda $-surface:}{8}
+\contentsline {section}{\numberline {3}Output Modules}{9}
+\contentsline {subsection}{\numberline {3.1}Capacitance matrix}{9}
+\contentsline {subsection}{\numberline {3.2}Polarizability}{9}
+\contentsline {subsection}{\numberline {3.3}C-matrix}{9}

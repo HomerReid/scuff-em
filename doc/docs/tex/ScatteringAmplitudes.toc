@@ -1,0 +1,4 @@
+\contentsline {section}{\numberline {1}Compact objects}{2}
+\contentsline {section}{\numberline {2}Extended objects}{3}
+\contentsline {paragraph}{TE:}{4}
+\contentsline {paragraph}{TM:}{4}

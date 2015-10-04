@@ -1,0 +1,58 @@
+||
+|![](scuff-em/scuff-static/scuff-static-thumb.png)||Solving electrostatics problems with scuff-static|
+
+<table>
+<col width="100%" />
+<tbody>
+<tr class="odd">
+<td align="left"><p><br /></p>
+<p>scuff-static is a tool within the scuff-em code suite for solving a broad class of electrostatics problems.</p>
+<p>The calculations that scuff-static can perform include the following:</p>
+<ul>
+<li>Compute the capacitance matrix (i.e. the self- and mutual- capacitances) for a collection of conductors.</li>
+<li>Compute the DC polarizability of a conducting or dielectric body.</li>
+<li>Compute the electrostatic potential and field at arbitrary user-specified points in the vicinity of conducting or dielectric bodies, with the conductors maintained at arbitrary user-specified potentials and (optionally) an arbitrary user-specified external forcing field.</li>
+<li>Compute the <em>C-matrix</em>, a sort of electrostatic version of the <a href="scuff-em/scuff-tmatrix">``T-matrix''</a> used to characterize the scattering properties of bodies at nonzero frequencies.</li>
+</ul>
+<p>(As a technical detail, we note that the implementation of scuff-static actually differs in some significant ways from the other codes in the scuff-em suite; in particular, as compared to the scuff-em core library, scuff-static uses different basis functions and a fundamentally different formulation of the boundary-element method, as appropriate for zero-frequency problems. However, it turns out that the calculations needed to implement the electrostatics calculations in scuff-static are, for the most part, a <em>subset</em> of the calculations already implemented in scuff-em, which is why it makes sense to package these codes together.)</p>
+<p>Here is a brief <a href="scuff-EM/scuff-static/scuff-static.pdf">technical memo</a> discussing the implementation of scuff-static, including both the underlying BEM electrostatics formulation and the execution of the various types of calculation (capacitance, polarizability, etc.) that the code can do.</p>
+<p></p>
+<table>
+<col width="100%" />
+<thead>
+<tr class="header">
+<th align="left">Table Of Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left"><a href="scuff-EM/scuff-static/scuffStaticOptions.shtml">1. scuff-static Command-Line Options</a></td>
+</tr>
+<tr class="even">
+<td align="left"><a href="scuff-EM/scuff-static/scuffStaticFiles.shtml">2. scuff-static Output Files</a></td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="scuff-EM/scuff-static/scuffStaticExamples.shtml">3. scuff-static Examples</a>
+<blockquote>
+<table>
+<tbody>
+<tr class="odd">
+<td align="left"><a href="scuff-EM/scuff-static/scuffStaticExamples.shtml#Capacitance">3a. Self- and mutual-capacitance of irregularly shaped conductors</a></td>
+</tr>
+<tr class="even">
+<td align="left"><a href="scuff-EM/scuff-static/scuffStaticExamples.shtml#Platonic">3b. Polarizability of the platonic solids</a></td>
+</tr>
+<tr class="odd">
+<td align="left"><a href="scuff-EM/scuff-static/scuffStaticExamples.shtml#Gates">3c. Electrostatic fields in the vicinity of a complicated gate array</a></td>
+</tr>
+</tbody>
+</table>
+</blockquote></td>
+</tr>
+</tbody>
+</table></td>
+</tr>
+</tbody>
+</table>
+
+

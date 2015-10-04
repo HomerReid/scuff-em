@@ -1,0 +1,100 @@
+(***************************************************)
+(***************************************************)
+(***************************************************)
+e3x = Random[Complex, {-1-1I,1+1I} ];
+e3y = Random[Complex, {-1-1I,1+1I} ];
+e3z = Random[Complex, {-1-1I,1+1I} ];
+
+e7x = Random[Complex, {-1-1I,1+1I} ];
+e7y = Random[Complex, {-1-1I,1+1I} ];
+e7z = Random[Complex, {-1-1I,1+1I} ];
+
+h3x = Random[Complex, {-1-1I,1+1I} ];
+h3y = Random[Complex, {-1-1I,1+1I} ];
+h3z = Random[Complex, {-1-1I,1+1I} ];
+
+h7x = Random[Complex, {-1-1I,1+1I} ];
+h7y = Random[Complex, {-1-1I,1+1I} ];
+h7z = Random[Complex, {-1-1I,1+1I} ];
+
+KZ  = Random[Real,{0,2}];
+KOZ = Random[Real,{0,2}];
+
+k3 = Random[Complex, {-1-1I,1+1I} ];
+k7 = Random[Complex, {-1-1I,1+1I} ];
+n3 = Random[Complex, {-1-1I,1+1I} ];
+n7 = Random[Complex, {-1-1I,1+1I} ];
+
+(***************************************************)
+(***************************************************)
+(***************************************************)
+(***************************************************)
+
+$Assumptions={Element[KZ,Reals] && Element[KOZ,Reals]};
+
+e3={e3x,e3y,e3z};
+h3={h3x,h3y,h3z};
+e7={e7x,e7y,e7z};
+h7={h7x,h7y,h7z};
+
+e3Star=Conjugate[e3];
+h3Star=Conjugate[h3];
+e7Star=Conjugate[e7];
+h7Star=Conjugate[h7];
+
+k3Star=Conjugate[k3];
+n3Star=Conjugate[n3];
+k7Star=Conjugate[k7];
+n7Star=Conjugate[n7];
+
+E3 = I*KZ*k3*e3 - n3*h3;
+H3 = k3*h3 + I*KOZ*n3*e3;
+E7 = I*KZ*k7*e7 - n7*h7;
+H7 = k7*h7 + I*KOZ*n7*e7;
+
+E3Star = -I*KZ*k3Star*e3Star - n3Star*h3Star;
+H3Star =       k3Star*h3Star - I*KOZ*n3Star*e3Star;
+E7Star = -I*KZ*k7Star*e7Star - n7Star*h7Star;
+H7Star =       k7Star*h7Star - I*KOZ*n7Star*e7Star;
+
+P33 = E3Star[[1]]*H3[[2]] - E3Star[[2]]*H3[[1]] - H3Star[[1]]*E3[[2]] + H3Star[[2]]*E3[[1]];
+P37 = E3Star[[1]]*H7[[2]] - E3Star[[2]]*H7[[1]] - H3Star[[1]]*E7[[2]] + H3Star[[2]]*E7[[1]];
+P73 = E7Star[[1]]*H3[[2]] - E7Star[[2]]*H3[[1]] - H7Star[[1]]*E3[[2]] + H7Star[[2]]*E3[[1]];
+
+Trace33=Sum[ E3Star[[n]]*E3[[n]] + H3Star[[n]]*H3[[n]], {n,1,3} ];
+Trace37=Sum[ E3Star[[n]]*E7[[n]] + H3Star[[n]]*H7[[n]], {n,1,3} ];
+Trace73=Sum[ E7Star[[n]]*E3[[n]] + H7Star[[n]]*H3[[n]], {n,1,3} ];
+
+Tzz33 = E3Star[[3]]*E3[[3]] + H3Star[[3]]*H3[[3]] - 0.5*Trace33;
+Tzz37 = E3Star[[3]]*E7[[3]] + H3Star[[3]]*H7[[3]] - 0.5*Trace37;
+Tzz73 = E7Star[[3]]*E3[[3]] + H7Star[[3]]*H3[[3]] - 0.5*Trace73;
+
+Txz33 = E3Star[[1]]*E3[[3]] + H3Star[[1]]*H3[[3]];
+Txz37 = E3Star[[1]]*E7[[3]] + H3Star[[1]]*H7[[3]];
+Txz73 = E7Star[[1]]*E3[[3]] + H7Star[[1]]*H3[[3]];
+
+Tzx33 = E3Star[[3]]*E3[[1]] + H3Star[[3]]*H3[[1]];
+Tzx37 = E3Star[[3]]*E7[[1]] + H3Star[[3]]*H7[[1]];
+Tzx73 = E7Star[[3]]*E3[[1]] + H7Star[[3]]*H3[[1]];
+
+Print["Txz33: ",Txz33];
+Print["Txz37: ",Txz37];
+Print["Txz73: ",Txz73];
+Print[""];
+
+Print["Tzx33: ",Tzx33];
+Print["Tzx37: ",Tzx37];
+Print["Tzx73: ",Tzx73];
+Print[""];
+
+Print["Tzz33: ",Tzz33];
+Print["Tzz37: ",Tzz37];
+Print["Tzz73: ",Tzz73];
+
+(*
+Print["\n\n ** P33: ** \n"];
+CoefficientRules[P33,{k3,k3Star,n3,n3Star}]
+
+Print["\n\n ** P37 + P73: ** \n"];
+CoefficientRules[P37 + P73,{k3,k3Star,n3,n3Star,k7,k7Star,n7,n7Star}]
+*)

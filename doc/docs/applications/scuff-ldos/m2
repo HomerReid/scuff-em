@@ -1,0 +1,12 @@
+#!/bin/bash
+
+BASE=scuff-ldos
+
+pdflatex ${BASE}.tex
+if [ $? -ne 0 ]
+then
+  exit
+fi
+pdflatex ${BASE}.tex
+bibtex ${BASE}
+pdflatex ${BASE}

@@ -1,0 +1,71 @@
+\documentclass[letterpaper]{article}
+\usepackage[square,sort,comma,numbers]{natbib}
+\newcommand{\citeasnoun}[1]{Ref.~\citenum{#1}}
+
+\input{scufftex}
+
+\newcommand\supsstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
+\newcommand{\IF}{^{i\text{\scriptsize F}}}
+\newcommand{\IFFlux}{^{i\text{\tiny FFLUX}}}
+\newcommand{\IT}{^{i\text{\scriptsize T}}}
+\newcommand{\ITFlux}{^{i\text{\tiny TFLUX}}}
+\newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
+\newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
+\newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
+\newcommand{\wh}{\widehat}
+%\newcommand{\vbchi}{\boldsymbol{\chi}}
+
+\graphicspath{{figures/}}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Special commands for this document -----------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Document header  -----------------------------------------
+%------------------------------------------------------------
+%------------------------------------------------------------
+\title {{\sc scuff-neq} Technical Reference}
+\author {Homer Reid}
+\date {July 6, 2014}
+
+%------------------------------------------------------------
+%------------------------------------------------------------
+%- Start of actual document
+%------------------------------------------------------------
+%------------------------------------------------------------
+
+\begin{document}
+\pagestyle{myheadings}
+\markright{Homer Reid: {\sc scuff-neq} Technical Reference}
+\maketitle
+
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Theory}
+
+%====================================================================%
+\begin{align*}
+ Q &=  \vb c^\dagger \vb Q(\omega) \vb c
+\\
+ \expval{Q}_\omega
+   &= \sum_b \Theta(\omega, T_b)\Phi_b(\omega), \qquad  
+\Phi_b(\omega) \equiv \Tr \Big[ \vb Q(\omega)\vb R_b \Big]
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+$$ R_b=\sum_{n} \lambda_n \vb v_n \vb v_n^\dagger \\
+   =\sum_{n} \lambda_n \vb v_n \vb v_n^\dagger \\
+$$
+%====================================================================%
+
+\end{document}

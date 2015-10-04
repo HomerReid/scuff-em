@@ -1,0 +1,39 @@
+\begin{thebibliography}{1}
+
+\bibitem{Reid2009}
+M.~T.~H. Reid, A.~W. Rodriguez, J.~White, and S.~G. Johnson, ``Efficient
+  computation of {C}asimir interactions between arbitrary 3d objects,'' {\em
+  Phys. Rev. Lett.}, vol.~103, p.~040401, Jul 2009.
+
+\bibitem{Reid2011}
+M.~T.~H. Reid, J.~White, and S.~G. Johnson, ``Computation of {C}asimir
+  interactions between arbitrary three-dimensional objects with arbitrary
+  material properties,'' {\em Phys. Rev. A}, vol.~84, p.~010503, Jul 2011.
+
+\bibitem{Reid2013B}
+M.~T.~H. Reid, J.~White, and S.~G. Johnson, ``Fluctuating surface currents: An
+  algorithm for efficient prediction of {C}asimir interactions among arbitrary
+  materials in arbitrary geometries,'' {\em Phys. Rev. A}, vol.~88, p.~022514,
+  Aug 2013.
+
+\bibitem{Rodriguez2012C}
+A.~W. Rodriguez, M.~T.~H. Reid, and S.~G. Johnson,
+  ``Fluctuating-surface-current formulation of radiative heat transfer for
+  arbitrary geometries,'' {\em Phys. Rev. B}, vol.~86, p.~220302, Dec 2012.
+
+\bibitem{Rodriguez2013B}
+A.~W. Rodriguez, M.~T.~H. Reid, and S.~G. Johnson,
+  ``Fluctuating-surface-current formulation of radiative heat transfer: Theory
+  and applications,'' {\em Phys. Rev. B}, vol.~88, p.~054305, Aug 2013.
+
+\bibitem{Kruger2012}
+M.~Kr\"uger, G.~Bimonte, T.~Emig, and M.~Kardar, ``Trace formulas for
+  nonequilibrium casimir interactions, heat radiation, and heat transfer for
+  arbitrary objects,'' {\em Phys. Rev. B}, vol.~86, p.~115423, Sep 2012.
+
+\bibitem{Reid2013a}
+M.~T. {Homer Reid} and S.~G. {Johnson}, ``{Efficient Computation of Power,
+  Force, and Torque in BEM Scattering Calculations},'' {\em ArXiv e-prints},
+  July 2013.
+
+\end{thebibliography}

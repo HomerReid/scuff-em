@@ -1,0 +1,17 @@
+\contentsline {section}{\numberline {1}Theoretical background}{2}
+\contentsline {subsection}{\numberline {1.1}Time-average quantities from surface-current bilinears}{2}
+\contentsline {paragraph}{Spatially-resolved PFT fluxes}{3}
+\contentsline {paragraph}{Spatially-integrated PFT fluxes}{3}
+\contentsline {subsection}{\numberline {1.2}Statistical averages of surface-current bilinears}{3}
+\contentsline {section}{\numberline {2}Output files and units}{6}
+\contentsline {subsection}{\numberline {2.1}General comments about units in {\sc scuff-neq}}{6}
+\contentsline {subsection}{\numberline {2.2}Output files for spatially-integrated quantities}{7}
+\contentsline {subsection}{\numberline {2.3}Output files for spatially-resolved quantities}{9}
+\contentsline {subsection}{\numberline {2.4}Visualization: Flux plots}{10}
+\contentsline {section}{\numberline {3}Tests and Demonstrations}{11}
+\contentsline {subsection}{\numberline {3.1}Radiation of a single sphere}{11}
+\contentsline {subsection}{\numberline {3.2}Heat transfer between two spheres}{11}
+\contentsline {subsection}{\numberline {3.3}Non-equilibrium forces between spheres}{11}
+\contentsline {subsection}{\numberline {3.4}Spatial distribution of poynting flux in the sphere--sphere case}{12}
+\contentsline {section}{\numberline {4}{\sc scuff-neq} for Region-and-Surface Geometries}{13}
+\contentsline {section}{\numberline {A}Derivation of surface-current bilinears}{14}

@@ -5,20 +5,18 @@
 </h1> 
 </p>
 
-** Note:** As of June 2015, the [[scuff-em]] documentation is the process
-   of being ported from an 
-   [older format](http://homerreid.com/scuff-em)
-   (pure HTML, maintained separately from the code repository) to a 
-   newer format (plain-text markdown files, maintained together 
-   with the repository, and built by
-   [mkdocs](http://www.mkdocs.org) into the documentation website).
+** Note:** As of October 2015, the conversion of the [[scuff-em]] 
+   documentation from its [older format](http://homerreid.com/scuff-em)
+   to this new, permanent [mkdocs](http://www.mkdocs.org) format 
+   is largely complete; however, in some cases the pages referenced 
+   below will take you to the earlier version of the documentation.
    See [here](forDevelopers/Documentation.md)
-   for more on the new documentation system and information
+   for a discussion of the new documentation system and information
    on how to contribute.
 
-   While the porting process is underway, some of the links on these  
-   pages will take you to earlier versions of the documentation. Thanks
-   for bearing with us as we complete the update!
+   If you find any inconsistencies or missing bits in the documentation,
+   please 
+   [file an issue on the <span class="SC">scuff-em</span> GitHub page][GitHub].
 
 ## General reference
 
@@ -110,3 +108,4 @@
 [Implementation]:     forDevelopers/Implementation.md
 [DataStructures]:     forDevelopers/DataStructures.md
 [Documentation]:      forDevelopers/Documentation.md
+[GitHub]:             https://github.com/HomerReid/scuff-em/

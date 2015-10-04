@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#
+# this script should be executed from within the 
+# scuff-em/doc/docs/site directory
+#
+
+git add --all .
+git commit -a -m"updates"
+git push origin gh-pages

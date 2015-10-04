@@ -1,0 +1,12 @@
+\contentsline {section}{\numberline {1}Fields from reduced potentials}{2}
+\contentsline {subsection}{\numberline {1.1}Reduced vector and scalar potentials}{2}
+\contentsline {subsection}{\numberline {1.2}Desingularized reduced potentials}{3}
+\contentsline {section}{\numberline {2}Evaluation of $\mathcal {I}, \boldsymbol {\mathcal {J}}$ integrals}{5}
+\contentsline {subsection}{\numberline {2.1}Modified coordinate system}{5}
+\contentsline {subsection}{\numberline {2.2}Reduction of surface integrals to line integrals}{6}
+\contentsline {subsection}{\numberline {2.3}Evaluation of line integrals}{6}
+\contentsline {subsection}{\numberline {2.4}Derivatives of reduced potentials}{7}
+\contentsline {subsubsection}{\numberline {2.4.1}Potential derivatives from $\mathcal {I},J$ derivatives}{7}
+\contentsline {subsubsection}{\numberline {2.4.2}Derivatives of $\mathcal {I},J$ integrals}{9}
+\contentsline {subsubsection}{\numberline {2.4.3}Derivatives of desingularized terms}{10}
+\contentsline {section}{\numberline {3}Far fields at nearby points}{11}

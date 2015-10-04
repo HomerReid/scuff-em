@@ -1,0 +1,30 @@
+# SCUFF-EM geometry file for two silicon slabs,
+# each of infinite cross-sectional area and infinite
+# thickness, separated in the z direction by 1 microns
+
+LATTICE
+	VECTOR 2.0 0.0
+	VECTOR 0.0 2.0
+ENDLATTICE
+
+MATERIAL SILICON
+    epsf = 1.035;      # \epsilon_infinity
+    eps0 = 11.87;      # \epsilon_0 
+    wp = 6.6e15;       # \plasmon frequency
+    Eps(w) = epsf + (eps0-epsf)/(1-(w/wp)^2);
+ENDMATERIAL
+
+REGION UpperSlab MATERIAL Silicon
+REGION Gap       MATERIAL Vacuum
+REGION LowerSlab MATERIAL Silicon
+
+SURFACE UpperSurface
+	MESHFILE
+	REGIONS UpperSlab Gap
+	DISPLACED 0 0 0.5
+ENDOBJECT
+
+SURFACE LowerSurface
+	MESHFILE
+	REGIONS LowerSlab Gap
+ENDOBJECT
