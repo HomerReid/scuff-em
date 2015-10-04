@@ -16,9 +16,6 @@ website here:
 
 http://www.homerreid.com/scuff-em
 
-The current build status of the SCUFF-EM master branch is:
-![Build Status](https://travis-ci.org/HomerReid/scuff-em.svg?branch=master)
-
 The SCUFF-EM distribution includes the following components: 
   
  -- libscuff, a C++ library that implements the basic boundary-element 
