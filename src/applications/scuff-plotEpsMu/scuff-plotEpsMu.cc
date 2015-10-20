@@ -134,6 +134,15 @@ int main(int argc, char *argv[])
   double Omega, OmegaMult=pow(10.0, 1.0 / PTS_PER_DECADE);
   FILE *f=vfopen("%s.epsmu","w",MP->Name);
   if (!f) ErrExit("could not create file %s.epsmu",MP->Name);
+  fprintf(f,"# scuff-plotEpsMu ran on %s (%s)\n",GetHostName(),GetTimeString());
+  fprintf(f,"# data file columns\n");
+  fprintf(f,"# 1 omega          \n");
+  fprintf(f,"# 2 re Eps(omega)  \n");
+  fprintf(f,"# 3 im Eps(omega)  \n");
+  fprintf(f,"# 4 re Mu(omega)   \n");
+  fprintf(f,"# 5 im Mu(omega)   \n");
+  fprintf(f,"# 6 Eps (i*omega)  \n");
+  fprintf(f,"# 7 Mu  (i*omega)  \n");
   for(Omega=OmegaMin; Omega<=OmegaMax; Omega*=OmegaMult)
    { 
       fprintf(f,"%e ",Omega);

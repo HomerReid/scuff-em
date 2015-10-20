@@ -117,5 +117,84 @@ variable:
 % export GOMP_CPU_AFFINITY=0-7
 ````
 
+<a name="Debugging"></a>
+#### Building for debugging
+
+If you would like to run [[scuff-em]] API codes in a debugger
+like [<span class="SC">gdb</sc>](https://www.gnu.org/software/gdb),
+you will want to modify the build options to **(a)** include
+debugging symbols, **(b)** turn off optimization, **(c)**
+disable [[openmp]] multithreading, which does not play well
+with [[GDB]]. 
+
+Here is the script that works for me to achieve these goals:
+
+````bash
+#!/bin/bash
+
+CC="gcc -ggdb -O0"
+CXX="g++ -ggdb -O0"
+export CFLAGS="-O0"
+export CXXFLAGS="-O0"
+sh autogen.sh --enable-debug --without-openmp --disable-shared
+````
+
+(It shouldn't be necessary to have to add `-O0` to both the
+environment variables and the compiler command lines, but
+this seems to be the only way things work for me.)
+
+After running this script to reconfigure for building with
+compiling support, you will want to `make clean; make`
+to rebuild everything with debugging support. Of course,
+after you are finished debugging you will need to reconfigure
+with debugging support removed and then re-do the 
+clean build. Because this is time-consuming, I typically
+maintain two separate copies of the code base, one for
+debugging and one for running at full speed.
+
+Once debugging support has been added, you can run 
+the code in [[gdb]]. Here's a sample session:
+
+````bash
+ % gdb /path/to/debug/repository/bin/scuff-ldos
+
+ (gdb) set args < scuff-ldos.args
+
+ (gdb) break GetHalfSpaceDGFs
+Breakpoint 1 at 0x409626: file AnalyticalDGFs.cc, line 217.
+
+ (gdb) run
+
+Breakpoint 1, GetHalfSpaceDGFs (Omega=..., kBloch=0x7fffffffd5c0, 
+    zp=0.10000000000000001, LBasis=0x7fffffffd380, MP=0x130a7c0, RelTol=0.01, 
+    AbsTol=1e-10, MaxCells=1000, GE=0x7fffffffd3a0, GM=0x7fffffffd430)
+    at AnalyticalDGFs.cc:217
+
+217	  double BZVolume=GetRLBasis(LBasis, RLBasis);
+
+(gdb) print Omega
+$1 = {_M_value = 0.10000000000000001 + 0 * I}
+
+(gdb) u 230
+
+GetHalfSpaceDGFs (Omega=..., kBloch=0x7fffffffd5c0, zp=0.10000000000000001, 
+    LBasis=0x7fffffffd380, MP=0x130a7c0, RelTol=0.01, AbsTol=1e-10, 
+    MaxCells=1000, GE=0x7fffffffd3a0, GM=0x7fffffffd430)
+    at AnalyticalDGFs.cc:230
+
+230	  cdouble Sum[18];
+
+(gdb) print Data->Epsilon
+$2 = {_M_value = -45765.335680436379 + 115960.58424811834 * I}
+````
+
+**Note**: If you have a better debugging solution that 
+does not require steps **(b)** and/or **(c)** above , please
+let me know about it. It stinks to have to run the codes
+at greatly reduced speed when debugging, because often the
+problem spots lie after expensive sections like BEM matrix
+assembly, and then it takes forever for the code to run
+in the debugger to get there.
+
 [GitHub]:                      https://github.com/HomerReid/scuff-em/
 [LogFiles]:                    ../applications/GeneralReference.md#LogFiles

@@ -46,7 +46,7 @@ Analyze a full geometry described by a
 ````
 
 Analyze a single object described by a surface mesh. (The
-two options are synonomous.)
+two options are synonymous.)
 
 ## *Option specifying a list of geometrical transformations*
 

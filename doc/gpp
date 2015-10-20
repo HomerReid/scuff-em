@@ -5,6 +5,12 @@
 # scuff-em/doc/docs/site directory
 #
 
+if [ "${PWD}" != "/home/homer/work/scuff-em/doc/site" ]
+then
+  echo "whoops! you are executing this script from the wrong directory"
+  exit
+fi
+
 git add --all .
 git commit -a -m"updates"
 git push origin gh-pages

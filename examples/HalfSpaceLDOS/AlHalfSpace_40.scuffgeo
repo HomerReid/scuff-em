@@ -15,5 +15,5 @@ REGION UpperHalfSpace MATERIAL Vacuum
 
 SURFACE Plate
 	MESHFILE Square_40.msh
-	REGIONS Exterior Aluminum
+	REGIONS Exterior UpperHalfSpace
 ENDSURFACE

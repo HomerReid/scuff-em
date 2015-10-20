@@ -227,7 +227,7 @@ bool ProcessSpecialSCUFFGeoFileName(const char *GeoFileName)
 
   FILE *f=vfopen("%s.scuffgeo","w",GeoFileName);
   fprintf(f,"OBJECT %s\n",GetFileBase(MeshStr));
-  fprintf(f," MESHFILE %s.vmsh\n",GetFileBase(MeshStr));
+  fprintf(f," MESHFILE %s.msh\n",GetFileBase(MeshStr));
   if (MatStr) 
    fprintf(f," MATERIAL %s\n",MatStr);
   fprintf(f,"ENDOBJECT\n");
