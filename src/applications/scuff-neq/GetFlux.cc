@@ -34,6 +34,15 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+namespace scuff {
+HMatrix *GetJDEPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
+                   HVector *KNVector, HVector *RHSVector,
+                   HMatrix *DMatrix, HMatrix *PFTMatrix);
+                }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void ProcessRytovMatrix(SNEQData *SNEQD,
                         cdouble Omega,
                         int SourceSurface)
@@ -512,22 +521,42 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
         // all destination objects
         if (NumSIQs > 0)
          { 
-           FILE *f=vfopen("%s.SIFlux","a",FileBase);
-           for(int nsd=0; nsd<NS; nsd++)
-            { 
-              double SIFlux[NUMPFT];
-              GetSIFlux(SNEQD, nss, nsd, Omega, SIFlux);
+           FILE *f=vfopen(SNEQD->SIFluxFileName,"a");
 
-              fprintf(f,"%s %e ",Tag,real(Omega));
-              if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
-              fprintf(f,"%i%i ",nss+1,nsd+1);
-              for(int nq=0; nq<NQ; nq++)
-               { int Index= GetSIQIndex(SNEQD, nt, nss, nsd, nq);
-                 Flux[Index]=SIFlux[nq];
-                 fprintf(f,"%.8e ",Flux[Index]);
+           if (SNEQD->JDEPFT)
+            { 
+              static HMatrix *JDEPFT=new HMatrix(NS, NUMPFT);
+              GetJDEPFT(G, Omega, 0, 0, 0, SNEQD->Rytov, JDEPFT);
+              for(int nsd=0; nsd<NS; nsd++)
+               { fprintf(f,"%s %e ",Tag,real(Omega));
+                 fprintf(f,"%i%i ",nss+1,nsd+1);
+                 for(int nq=0; nq<NUMPFT; nq++)
+                  { 
+                    int Index= GetSIQIndex(SNEQD, nt, nss, nsd, nq);
+                    Flux[Index]=JDEPFT->GetEntryD(nsd,nq);
+                    fprintf(f,"%.8e ",Flux[Index]);
+                  };
+                 fprintf(f,"\n");
                };
-              fprintf(f,"\n");
+            }
+           else
+            { for(int nsd=0; nsd<NS; nsd++)
+               { 
+                 double SIFlux[NUMPFT];
+                 GetSIFlux(SNEQD, nss, nsd, Omega, SIFlux);
+
+                 fprintf(f,"%s %e ",Tag,real(Omega));
+                 if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
+                 fprintf(f,"%i%i ",nss+1,nsd+1);
+                 for(int nq=0; nq<NQ; nq++)
+                  { int Index= GetSIQIndex(SNEQD, nt, nss, nsd, nq);
+                    Flux[Index]=SIFlux[nq];
+                    fprintf(f,"%.8e ",Flux[Index]);
+                  };
+                 fprintf(f,"\n");
+               };
             };
+
            fclose(f);
          };
 

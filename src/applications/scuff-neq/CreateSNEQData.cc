@@ -45,7 +45,7 @@ const char *QuantityNames[NUMPFT]=
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          char **TempStrings, int nTempStrings,
                          int QuantityFlags, char *EPFile,
-                         char *pFileBase)
+                         char *pFileBase, bool JDEPFT)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
@@ -205,7 +205,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   size_t MaxBFs=G->Surfaces[0]->NumBFs;
   for(int ns=1; ns<G->NumSurfaces; ns++)
-   if (G->Surfaces[ns]->NumBFs > MaxBFs) 
+   if ( (size_t)G->Surfaces[ns]->NumBFs > MaxBFs) 
     MaxBFs = G->Surfaces[ns]->NumBFs;
   
   int nBuffer = 3;
@@ -223,8 +223,11 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  SNEQD->JDEPFT = JDEPFT;
+  SNEQD->SIFluxFileName
+   = vstrdup("%s.%s",SNEQD->FileBase, JDEPFT ? "JDEPFT" : "SIFlux");
   if (SNEQD->NumSIQs>0)
-   { FILE *f=vfopen("%s.SIFlux","a",SNEQD->FileBase);
+   { FILE *f=fopen(SNEQD->SIFluxFileName,"a");
      fprintf(f,"\n");
      fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),GetTimeString());
      fprintf(f,"# data file columns: \n");

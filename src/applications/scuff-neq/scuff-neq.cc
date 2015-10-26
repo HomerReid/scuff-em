@@ -96,6 +96,8 @@ int main(int argc, char *argv[])
   bool DSICCQ      = false;
   bool DSIFarField = false;
 
+  bool JDEPFT      = false;
+
   /*--------------------------------------------------------------*/
   bool OmitSelfTerms = false;
   bool OmitZeroTemperatureFlux = false;
@@ -159,6 +161,7 @@ int main(int argc, char *argv[])
      {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,          "omit the calculation of self terms"},
      {"OmitZeroTemperatureFlux",  PA_BOOL,    0, 1,   (void *)&OmitZeroTemperatureFlux, 0, "omit flux contributions of zero-temperature regions"},
      {"ForceDSI",       PA_BOOL,    0, 1,       (void *)&ForceDSI,   0,             "use DSIPFT instead of OPFT/EPPFT"},
+     {"JDEPFT",         PA_BOOL,    0, 1,       (void *)&JDEPFT,     0,             "use JDEPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
      {"PlotRytovVectors",PA_INT,    1, 1,       (void *)&PlotRytovVectors, 0, "plot the first N Rytov surface-current vectors"},
@@ -187,6 +190,9 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /* determine which output quantities were requested ****************/
   /*******************************************************************/
+  if (JDEPFT)
+   PAbs=PRad=XForce=YForce=ZForce=XTorque=YTorque=ZTorque=true;
+
   int QuantityFlags=0;
   if (PAbs)   QuantityFlags|=QFLAG_PABS;
   if (PRad)   QuantityFlags|=QFLAG_PRAD;
@@ -198,6 +204,7 @@ int main(int argc, char *argv[])
   if (ZTorque) QuantityFlags|=QFLAG_ZTORQUE;
   if (QuantityFlags==0 && EPFile==0)
    ErrExit("you must specify at least one quantity to compute");
+
 
   /*******************************************************************/
   /*******************************************************************/
@@ -286,7 +293,8 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile,
                                  TempStrings, nTempStrings,
-                                 QuantityFlags, EPFile, FileBase);
+                                 QuantityFlags, EPFile,
+                                 FileBase, JDEPFT);
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData         = UseExistingData;
   SNEQD->PlotFlux                = PlotFlux;
