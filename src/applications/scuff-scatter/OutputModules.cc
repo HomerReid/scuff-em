@@ -443,3 +443,93 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
   fclose(f);
 
 }
+
+namespace scuff{
+
+HMatrix *GetJDEPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
+                   HVector *KNVector, HVector *RHSVector,
+                   HMatrix *DMatrix, HMatrix *PFTMatrix);
+
+void AddIFContributionsToJDEPFT(RWGGeometry *G, HVector *KNVector,
+                                IncField *IF, cdouble Omega,
+                                HMatrix *PFTMatrix);
+
+               }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteJDEPFTFile(SSData *SSD, char *PFTFile)
+{ 
+  /***************************************************************/
+  /* write file preamble as necessary ****************************/
+  /***************************************************************/
+  FILE *f=fopen(PFTFile,"r");
+  if (!f)
+   { 
+     f=fopen(PFTFile,"w");
+     fprintf(f,"# data columns:               \n");
+     fprintf(f,"# 1 frequency                 \n");
+     fprintf(f,"# 2 object label              \n");
+     fprintf(f,"# 3,  4,  5   Re (Px, Py, Pz) \n");
+     fprintf(f,"# 6,  7,  8   Im (Px, Py, Pz) \n");
+     fprintf(f,"# 9,  10, 11  Re (Mx, My, Mz) \n");
+     fprintf(f,"# 12, 13, 14  Im (Mx, My, Mz) \n");
+     fprintf(f,"# 15-22       JI PFT          \n");
+     fprintf(f,"# 23-30       JJ PFT          \n");
+     fprintf(f,"\n");
+   };
+  fclose(f);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  RWGGeometry *G     = SSD->G;
+  IncField *IF       = SSD->IF;
+  HVector *KN        = SSD->KN;
+  cdouble Omega      = SSD->Omega;
+  HVector *RHSVector = SSD->RHS;
+
+  /*--------------------------------------------------------------*/
+  /*- get J-I and J-J contributions to JDEPFT --------------------*/
+  /*--------------------------------------------------------------*/
+  int NS=G->NumSurfaces;
+  HMatrix *PFTMatrix1 = new HMatrix(NS, NUMPFT);
+  HMatrix *PFTMatrix2 = new HMatrix(NS, NUMPFT);
+  PFTMatrix1->Zero();
+  PFTMatrix2->Zero();
+  AddIFContributionsToJDEPFT(G, KN, IF, Omega, PFTMatrix1);
+  GetJDEPFT(G, Omega, 0, KN, RHSVector, 0, PFTMatrix2);
+
+  HVector *PM=G->GetDipoleMoments(Omega, KN);
+
+  /***************************************************************/
+  /* write results to output file ********************************/
+  /***************************************************************/
+  f=fopen(PFTFile,"a");
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     fprintf(f,"%e %s ",real(Omega),G->Surfaces[ns]->Label);
+  
+     for(int Mu=0; Mu<3; Mu++)   
+      fprintf(f,"%e ",real(PM->GetEntry(6*ns + 0 + Mu)));
+     for(int Mu=0; Mu<3; Mu++)   
+      fprintf(f,"%e ",imag(PM->GetEntry(6*ns + 0 + Mu)));
+     for(int Mu=0; Mu<3; Mu++)   
+      fprintf(f,"%e ",real(PM->GetEntry(6*ns + 3 + Mu)));
+     for(int Mu=0; Mu<3; Mu++)   
+      fprintf(f,"%e ",imag(PM->GetEntry(6*ns + 3 + Mu)));
+      
+     for(int nq=0; nq<NUMPFT; nq++)
+      fprintf(f,"%e ",PFTMatrix1->GetEntryD(ns,nq));
+     for(int nq=0; nq<NUMPFT; nq++)
+      fprintf(f,"%e ",PFTMatrix2->GetEntryD(ns,nq));
+
+     fprintf(f,"\n");
+   };
+  fclose(f);
+
+  delete PFTMatrix1;
+  delete PFTMatrix2;
+  delete PM;
+}

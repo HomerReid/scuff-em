@@ -1,5 +1,5 @@
 lib_LTLIBRARIES = libscuff.la
-pkginclude_HEADERS = libscuff.h GTransformation.h FieldGrid.h GBarAccelerator.h PFTOptions.h
+pkginclude_HEADERS = libscuff.h GTransformation.h FieldGrid.h GBarAccelerator.h PFTOptions.h PanelCubature.h
 libscuff_la_SOURCES = \
  RWGGeometry.cc 		\
  RWGSurface.cc 			\
@@ -14,6 +14,7 @@ libscuff_la_SOURCES = \
  AssembleBEMMatrix.cc          	\
  SurfaceSurfaceInteractions.cc 	\
  EdgeEdgeInteractions.cc	\
+ PanelCubature.cc          	\
  PanelPanelInteractions.cc 	\
  TaylorDuffy.cc 		\
  TaylorDuffy.h 			\
@@ -30,6 +31,7 @@ libscuff_la_SOURCES = \
  FieldGrid.cc 			\
  GetFields.cc 			\
  GetNearFields.cc 		\
+ JDEPFT.cc			\
  EPPFT.cc			\
  OPFT.cc  			\
  DSIPFT.cc 			\
@@ -46,6 +48,7 @@ libscuff_la_SOURCES = \
  rwlock.h 			\
  scuffMisc.cc			\
  libscuff.h 			\
+ PanelCubature.h		\
  libscuffInternals.h
 
 

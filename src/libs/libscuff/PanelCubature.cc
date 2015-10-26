@@ -49,12 +49,13 @@ typedef struct GPCIData
    void *UserData;
 
    double *V0, A[3], B[3];
-
    double Area;
    double *nHat;
 
-   cdouble Omega;
+   bool UseSquareMapping;
 
+   cdouble Omega;
+  
    int NumContributingEdges;
    cdouble KAlpha[3], NAlpha[3];
    double *Q[3];
@@ -66,9 +67,11 @@ typedef struct GPCIData
 /* integrand passed to adaptive cubature routine for cubature  */
 /* over a single panel                                         */
 /***************************************************************/
-void GPCIntegrand(unsigned ndim, const double *uv, void *params,
+void GPCIntegrand(unsigned ndim, const double *XiEta, void *params,
                   unsigned fdim, double *fval)
 {
+  (void) ndim; // unused 
+
    /*--------------------------------------------------------------*/
    /*- unpack fields from GPCIData --------------------------------*/
    /*--------------------------------------------------------------*/
@@ -80,16 +83,24 @@ void GPCIntegrand(unsigned ndim, const double *uv, void *params,
    int NumContributingEdges = Data->NumContributingEdges;
 
    /*--------------------------------------------------------------*/
-   /*- get the evaluation point from the standard-triangle coords  */
+   /*- get the evaluation points from the standard-triangle coords */
    /*--------------------------------------------------------------*/
-   double u = uv[0];
-   double v = u*uv[1];
-   double Jacobian= 2.0 * Area * u;
+   double Xi, Eta, Jacobian;
+   if (Data->UseSquareMapping)
+    { Xi  = XiEta[0];
+      Eta = Xi*XiEta[1];
+      Jacobian= 2.0 * Area * Xi;
+    }
+   else
+    { Xi  = XiEta[0];
+      Eta = XiEta[1];
+      Jacobian = 2.0 * Area;
+    };
 
    double X[3];
-   X[0] = V0[0] + u*A[0] + v*B[0];
-   X[1] = V0[1] + u*A[1] + v*B[1];
-   X[2] = V0[2] + u*A[2] + v*B[2];
+   X[0] = V0[0] + Xi*A[0] + Eta*B[0];
+   X[1] = V0[1] + Xi*A[1] + Eta*B[1];
+   X[2] = V0[2] + Xi*A[2] + Eta*B[2];
 
    /*--------------------------------------------------------------*/
    /*- get the surface currents at the evaluation point           -*/
@@ -130,7 +141,7 @@ void GPCIntegrand(unsigned ndim, const double *uv, void *params,
    /*--------------------------------------------------------------*/
    /*- put in Jacobian factors ------------------------------------*/
    /*--------------------------------------------------------------*/
-   for(int n=0; n<fdim; n++)
+   for(unsigned n=0; n<fdim; n++)
     fval[n]*=Jacobian;
 }
 
@@ -211,17 +222,39 @@ void GetPanelCubature(RWGGeometry *G, int ns, int np,
         Data->NumContributingEdges++;
       };
    };
- 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double *Error  = new double[IDim];
-  double Lower[2]={0.0, 0.0};
-  double Upper[2]={1.0, 1.0};
-  adapt_integrate(IDim, GPCIntegrand, (void *)Data,
-		  2, Lower, Upper, MaxEvals, AbsTol, RelTol, Result, Error);
 
-  delete[] Error;
+  /*--------------------------------------------------------------*/
+  /* evaluate the two-dimensional integral by fixed-order         */
+  /* cubature or by adaptive cubature                             */
+  /*--------------------------------------------------------------*/
+  if (MaxEvals==6 || MaxEvals==21)
+   { Data->UseSquareMapping=false;
+     int NumPts, Order = (MaxEvals==6) ? 4 : 9;
+     double uv[2], *TCR=GetTCR(Order,&NumPts);
+     memset(Result, 0, IDim*sizeof(double));
+     double *DeltaResult=new double[IDim];
+     for(int ncp=0; ncp<NumPts; ncp++)
+      { double u1 = TCR[3*ncp+0];
+        double v1 = TCR[3*ncp+1];
+        double w  = TCR[3*ncp+2];
+        uv[0] = u1+v1; uv[1] = v1;
+        GPCIntegrand(2, uv, (void *)Data, IDim, DeltaResult);
+        for(int n=0; n<IDim; n++)
+         Result[n] += w*DeltaResult[n];
+      };
+     delete[] DeltaResult;
+   }
+  else
+   { 
+     Data->UseSquareMapping=true;
+     double *Error  = new double[IDim];
+     double Lower[2]={0.0, 0.0};
+     double Upper[2]={1.0, 1.0};
+     adapt_integrate(IDim, GPCIntegrand, (void *)Data, 2, 
+                     Lower, Upper, MaxEvals, AbsTol, RelTol, 
+                     Result, Error);
+     delete[] Error;
+   };
 }
 
 /***************************************************************/
@@ -293,6 +326,8 @@ typedef struct GPPCIData
 void GPPCIntegrand(unsigned ndim, const double *XiEta, void *params,
                    unsigned fdim, double *fval)
 {
+  (void)ndim;
+
    /*--------------------------------------------------------------*/
    /*- unpack fields from GPPCIData -------------------------------*/
    /*--------------------------------------------------------------*/
@@ -400,7 +435,7 @@ void GPPCIntegrand(unsigned ndim, const double *XiEta, void *params,
    /*--------------------------------------------------------------*/
    /*- put in Jacobian factors ------------------------------------*/
    /*--------------------------------------------------------------*/
-   for(int n=0; n<fdim; n++)
+   for(unsigned n=0; n<fdim; n++)
     fval[n]*=Jacobian;
 }
 
@@ -552,7 +587,7 @@ void GetPanelPanelCubature(RWGGeometry *G, int ns1, int np1, int ns2, int np2,
        { double u1=TCR[3*np+0];  double v1=TCR[3*np+1];  double w=TCR[3*np+2];
          double u2=TCR[3*npp+0]; double v2=TCR[3*npp+1]; double wp=TCR[3*npp+2];
          uv[0] = u1+v1; uv[1] = v1; uv[2] = u2+v2; uv[3] = v2;
-         GPPCIntegrand(4, uv, (void *)Data, 4, DeltaResult);
+         GPPCIntegrand(4, uv, (void *)Data, IDim, DeltaResult);
          for(int n=0; n<IDim; n++)
           Result[n] += w*wp*DeltaResult[n];
        };
