@@ -461,6 +461,8 @@ void AddIFContributionsToJDEPFT(RWGGeometry *G, HVector *KNVector,
 /***************************************************************/
 void WriteJDEPFTFile(SSData *SSD, char *PFTFile)
 { 
+  Log("Computing JDEPFT at Omega=%s...",z2s(SSD->Omega));
+
   /***************************************************************/
   /* write file preamble as necessary ****************************/
   /***************************************************************/
