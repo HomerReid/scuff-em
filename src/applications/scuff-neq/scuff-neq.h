@@ -96,7 +96,7 @@ typedef struct SNEQData
    /*- options for computing power, force, torque -----------------*/
    /*--------------------------------------------------------------*/
    PFTOptions PFTOpts;
-   bool JDEPFT;
+   bool EMTPFT;
    char *SIFluxFileName;
 
    bool OmitSelfTerms;  // set all self terms to zero
@@ -137,7 +137,7 @@ typedef struct SNEQData
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          char **TempStrings, int nTempStrings,
                          int QuantityFlags, char *EPFile,
-                         char *pFileBase, bool JDEPFT);
+                         char *pFileBase, bool EMTPFT);
 
 /*--------------------------------------------------------------*/
 /*- in GetFlux.cc ----------------------------------------------*/

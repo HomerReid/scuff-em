@@ -45,7 +45,7 @@ const char *QuantityNames[NUMPFT]=
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          char **TempStrings, int nTempStrings,
                          int QuantityFlags, char *EPFile,
-                         char *pFileBase, bool JDEPFT)
+                         char *pFileBase, bool EMTPFT)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
@@ -223,9 +223,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  SNEQD->JDEPFT = JDEPFT;
+  SNEQD->EMTPFT = EMTPFT;
   SNEQD->SIFluxFileName
-   = vstrdup("%s.%s",SNEQD->FileBase, JDEPFT ? "JDEPFT" : "SIFlux");
+   = vstrdup("%s.%s",SNEQD->FileBase, EMTPFT ? "EMTPFT" : "SIFlux");
   if (SNEQD->NumSIQs>0)
    { FILE *f=fopen(SNEQD->SIFluxFileName,"a");
      fprintf(f,"\n");

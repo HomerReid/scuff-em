@@ -35,7 +35,7 @@
 /***************************************************************/
 /***************************************************************/
 namespace scuff {
-HMatrix *GetJDEPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
+HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
                    HVector *KNVector, HVector *RHSVector,
                    HMatrix *DMatrix, HMatrix *PFTMatrix);
                 }
@@ -523,17 +523,17 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
          { 
            FILE *f=vfopen(SNEQD->SIFluxFileName,"a");
 
-           if (SNEQD->JDEPFT)
+           if (SNEQD->EMTPFT)
             { 
-              static HMatrix *JDEPFT=new HMatrix(NS, NUMPFT);
-              GetJDEPFT(G, Omega, 0, 0, 0, SNEQD->Rytov, JDEPFT);
+              static HMatrix *EMTPFT=new HMatrix(NS, NUMPFT);
+              GetEMTPFT(G, Omega, 0, 0, 0, SNEQD->Rytov, EMTPFT);
               for(int nsd=0; nsd<NS; nsd++)
                { fprintf(f,"%s %e ",Tag,real(Omega));
                  fprintf(f,"%i%i ",nss+1,nsd+1);
                  for(int nq=0; nq<NUMPFT; nq++)
                   { 
                     int Index= GetSIQIndex(SNEQD, nt, nss, nsd, nq);
-                    Flux[Index]=JDEPFT->GetEntryD(nsd,nq);
+                    Flux[Index]=EMTPFT->GetEntryD(nsd,nq);
                     fprintf(f,"%.8e ",Flux[Index]);
                   };
                  fprintf(f,"\n");

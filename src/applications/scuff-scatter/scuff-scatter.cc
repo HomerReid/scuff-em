@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 //
   char *OPFTFile=0;
 //
-  char *JDEPFTFile=0;
+  char *EMTPFTFile=0;
 //
   char *EPPFTFile=0;
   int  EPFTOrder=1;
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 /**/
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
 /**/
-     {"JDEPFTFile",     PA_STRING,  1, 1,       (void *)&JDEPFTFile,   0,             "name of JDEPFT output file"},
+     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EMTPFTFile,   0,             "name of EMTPFT output file"},
 /**/
      {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
      {"EPFTOrder",      PA_INT,     1, 1,       (void *)&EPFTOrder,  0,             "cubature order for equivalence-principle force/torque (1,4,9,13,20)"},
@@ -460,8 +460,8 @@ int main(int argc, char *argv[])
      if (PFTFile) // default is overlap + EP for scattered power
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DEFAULT, PlotPFTFlux, PFTFile);
 
-     if (JDEPFTFile)
-      WriteJDEPFTFile(SSD, JDEPFTFile);
+     if (EMTPFTFile)
+      WriteEMTPFTFile(SSD, EMTPFTFile);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

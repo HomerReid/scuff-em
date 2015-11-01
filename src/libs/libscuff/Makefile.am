@@ -31,7 +31,7 @@ libscuff_la_SOURCES = \
  FieldGrid.cc 			\
  GetFields.cc 			\
  GetNearFields.cc 		\
- JDEPFT.cc			\
+ EMTPFT.cc			\
  EPPFT.cc			\
  OPFT.cc  			\
  DSIPFT.cc 			\

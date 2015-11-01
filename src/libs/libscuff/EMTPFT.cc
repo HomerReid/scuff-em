@@ -18,9 +18,9 @@
  */
 
 /*
- * JDEPFT.cc     -- libscuff class methods for computing power, force,
+ * EMTPFT.cc     -- libscuff class methods for computing power, force,
  *               -- and torque in classical deterministic scattering
- *               -- problems using the "J \dot E" formalism
+ *               -- problems using the "energy/momentum-transfer" method
  *
  * homer reid    -- 10/2015
  */
@@ -268,64 +268,42 @@ void PFTIntegrand_BFInc(double *x, PCData *PCD,
   IncField *IF    = PFTIData->IF;
   double *XTorque = PFTIData->XTorque;
 
-  // get fields and derivatives at eval point by finite-differencing
-  cdouble EH[6], *E=EH+0, *H=EH+3, dE[3][3], dH[3][3];
-  IF->GetFields(x, EH);
-  for(int Mu=0; Mu<3; Mu++)
-   { 
-     double xTweaked[3];
-     xTweaked[0]=x[0];
-     xTweaked[1]=x[1];
-     xTweaked[2]=x[2];
-
-     double Delta = (x[Mu]==0.0 ? 1.0e-4 : 1.0e-4*fabs(x[Mu]));
-     if ( kAbs > 1.0 )
-      Delta = fmin(Delta, 1.0e-4/kAbs);
-
-     xTweaked[Mu] += Delta;
-     cdouble EHP[6]; 
-     IF->GetFields(xTweaked, EHP);
-     xTweaked[Mu] -= 2.0*Delta;
-     cdouble EHM[6]; 
-     IF->GetFields(xTweaked, EHM);
-
-     for(int Nu=0; Nu<3; Nu++)
-      { dE[Mu][Nu] = (EHP[0+Nu]-EHM[0+Nu])/(2.0*Delta);
-        dH[Mu][Nu] = (EHP[3+Nu]-EHM[3+Nu])/(2.0*Delta);
-      };
-   };
-
   double XmXT[3];
   VecSub(x, XTorque, XmXT);
+
+  // get fields and derivatives at eval point
+  cdouble EH[6], dEH[3][6];
+  IF->GetFields(x, EH);
+  IF->GetFieldGradients(x, dEH);
 
   cdouble *zI = (cdouble *)I;
   memset(zI, 0, 2*NUMPFT*sizeof(cdouble));
   for(int Mu=0; Mu<3; Mu++)
    { 
-     zI[0 + PFT_PABS]    += b[Mu]*E[Mu];
-     zI[0 + PFT_XFORCE]  += b[Mu]*dE[0][Mu];
-     zI[0 + PFT_YFORCE]  += b[Mu]*dE[1][Mu];
-     zI[0 + PFT_ZFORCE]  += b[Mu]*dE[2][Mu];
-     zI[0 + PFT_XTORQUE] += b[Mu]*(XmXT[1]*dE[2][Mu]-XmXT[2]*dE[1][Mu]);
-     zI[0 + PFT_YTORQUE] += b[Mu]*(XmXT[2]*dE[0][Mu]-XmXT[0]*dE[2][Mu]);
-     zI[0 + PFT_ZTORQUE] += b[Mu]*(XmXT[0]*dE[1][Mu]-XmXT[1]*dE[0][Mu]);
+     zI[0 + PFT_PABS]    += b[Mu]*EH[Mu];
+     zI[0 + PFT_XFORCE]  += b[Mu]*dEH[0][Mu];
+     zI[0 + PFT_YFORCE]  += b[Mu]*dEH[1][Mu];
+     zI[0 + PFT_ZFORCE]  += b[Mu]*dEH[2][Mu];
+     zI[0 + PFT_XTORQUE] += b[Mu]*(XmXT[1]*dEH[2][Mu]-XmXT[2]*dEH[1][Mu]);
+     zI[0 + PFT_YTORQUE] += b[Mu]*(XmXT[2]*dEH[0][Mu]-XmXT[0]*dEH[2][Mu]);
+     zI[0 + PFT_ZTORQUE] += b[Mu]*(XmXT[0]*dEH[1][Mu]-XmXT[1]*dEH[0][Mu]);
 
-     zI[NUMPFT + PFT_PABS]    += b[Mu]*H[Mu];
-     zI[NUMPFT + PFT_XFORCE]  += b[Mu]*dH[0][Mu];
-     zI[NUMPFT + PFT_YFORCE]  += b[Mu]*dH[1][Mu];
-     zI[NUMPFT + PFT_ZFORCE]  += b[Mu]*dH[2][Mu];
-     zI[NUMPFT + PFT_XTORQUE] += b[Mu]*(XmXT[1]*dH[2][Mu]-XmXT[2]*dH[1][Mu]);
-     zI[NUMPFT + PFT_YTORQUE] += b[Mu]*(XmXT[2]*dH[0][Mu]-XmXT[0]*dH[2][Mu]);
-     zI[NUMPFT + PFT_ZTORQUE] += b[Mu]*(XmXT[0]*dH[1][Mu]-XmXT[1]*dH[0][Mu]);
+     zI[NUMPFT + PFT_PABS]    += b[Mu]*EH[3+Mu];
+     zI[NUMPFT + PFT_XFORCE]  += b[Mu]*dEH[0][3+Mu];
+     zI[NUMPFT + PFT_YFORCE]  += b[Mu]*dEH[1][3+Mu];
+     zI[NUMPFT + PFT_ZFORCE]  += b[Mu]*dEH[2][3+Mu];
+     zI[NUMPFT + PFT_XTORQUE] += b[Mu]*(XmXT[1]*dEH[2][3+Mu]-XmXT[2]*dEH[1][3+Mu]);
+     zI[NUMPFT + PFT_YTORQUE] += b[Mu]*(XmXT[2]*dEH[0][3+Mu]-XmXT[0]*dEH[2][3+Mu]);
+     zI[NUMPFT + PFT_ZTORQUE] += b[Mu]*(XmXT[0]*dEH[1][3+Mu]-XmXT[1]*dEH[0][3+Mu]);
    };
 
-  zI[0      + PFT_XTORQUE] += b[1]*E[2] - b[2]*E[1];
-  zI[0      + PFT_YTORQUE] += b[2]*E[0] - b[0]*E[2];
-  zI[0      + PFT_ZTORQUE] += b[0]*E[1] - b[1]*E[0];
+  zI[0      + PFT_XTORQUE] += b[1]*EH[0+2] - b[2]*EH[0+1];
+  zI[0      + PFT_YTORQUE] += b[2]*EH[0+0] - b[0]*EH[0+2];
+  zI[0      + PFT_ZTORQUE] += b[0]*EH[0+1] - b[1]*EH[0+0];
 
-  zI[NUMPFT + PFT_XTORQUE] += b[1]*H[2] - b[2]*H[1];
-  zI[NUMPFT + PFT_YTORQUE] += b[2]*H[0] - b[0]*H[2];
-  zI[NUMPFT + PFT_ZTORQUE] += b[0]*H[1] - b[1]*H[0];
+  zI[NUMPFT + PFT_XTORQUE] += b[1]*EH[3+2] - b[2]*EH[3+1];
+  zI[NUMPFT + PFT_YTORQUE] += b[2]*EH[3+0] - b[0]*EH[3+2];
+  zI[NUMPFT + PFT_ZTORQUE] += b[0]*EH[3+1] - b[1]*EH[3+0];
 
 }
 
@@ -356,7 +334,7 @@ void GetPFTIntegrals_BFInc(RWGGeometry *G, int ns, int ne,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AddIFContributionsToJDEPFT(RWGGeometry *G, HVector *KN,
+void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KN,
                                 IncField *IF, cdouble Omega,
                                 HMatrix *PFTMatrix)
 {
@@ -419,7 +397,7 @@ void AddIFContributionsToJDEPFT(RWGGeometry *G, HVector *KN,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *GetJDEPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
+HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
                    HVector *KNVector, HVector *RHSVector,
                    HMatrix *DMatrix, HMatrix *PFTMatrix)
 { 
@@ -431,7 +409,7 @@ HMatrix *GetJDEPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
        || (PFTMatrix->NR != NS)
        || (PFTMatrix->NC != NUMPFT)
      )
-   ErrExit("invalid PFTMatrix in GetJDEPFT");
+   ErrExit("invalid PFTMatrix in GetEMTPFT");
  
   double Z = ZVAC; // FIXME for non-vacuum exterior media
 
@@ -460,7 +438,7 @@ HMatrix *GetJDEPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
   /*--------------------------------------------------------------*/
   int TotalEdges  = G->TotalEdges;
 #ifdef USE_OPENMP
-  Log("JDE OpenMP multithreading (%i threads)",NT);
+  Log("EMT OpenMP multithreading (%i threads)",NT);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NT)
 #endif
   for(int neaTot=0; neaTot<TotalEdges; neaTot++)
@@ -538,7 +516,7 @@ HMatrix *GetJDEPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
   /* add incident-field contributions ****************************/
   /***************************************************************/
   if (IF)
-   AddIFContributionsToJDEPFT(G, KNVector, IF, Omega, PFTMatrix);
+   AddIFContributionsToEMTPFT(G, KNVector, IF, Omega, PFTMatrix);
 
   /*--------------------------------------------------------------*/
   /*- if an RHS vector was specified, compute the extinction      */
