@@ -81,6 +81,11 @@ class IncField
    
    virtual void GetFields(const double X[3], cdouble EH[6]) = 0 ;
    void GetTotalFields(const double X[3], cdouble EH[6]);
+
+   // the default implementation of this routine uses finite-differencing;
+   // subclasses may override it in cases where they know how to compute
+   // field gradients directly
+   virtual void GetFieldGradients(const double X[3], cdouble dEH[3][6]);
  };
 
 /**********************************************************************/
@@ -109,6 +114,7 @@ class PlaneWave : public IncField
    void SetnHat(double nHat[3]);
 
    void GetFields(const double X[3], cdouble EH[6]);
+   void GetFieldGradients(const double X[3], cdouble dEH[3][6]);
 
  };
 

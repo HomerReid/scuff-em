@@ -172,3 +172,32 @@ void IncField::GetTotalFields(const double X[3], cdouble EH[6])
       EH[nc] += PEH[nc];
    };
 }
+
+/***************************************************************/
+/* get field gradients by finite-differencing; this method may */
+/* be overridden by subclasses who know how to compute their   */
+/* field gradients analytically                                */
+/* dEH[i][0+j] = \partial_i E_j                                */
+/* dEH[i][3+j] = \partial_i H_j                                */
+/***************************************************************/
+void IncField::GetFieldGradients(const double X[3], cdouble dEH[3][6])
+{
+  cdouble EH[6], EHP[6], EHM[6];
+  GetFields(X, EH);
+  for(int i=0; i<3; i++)
+   { 
+     double xTweaked[3];
+     xTweaked[0]=X[0];
+     xTweaked[1]=X[1];
+     xTweaked[2]=X[2];
+
+     double Delta = (X[i]==0.0 ? 1.0e-4 : 1.0e-4*fabs(X[i]));
+
+     xTweaked[i] += Delta;
+     GetFields(xTweaked, EHP);
+     xTweaked[i] -= 2.0*Delta;
+     GetFields(xTweaked, EHM);
+     for(int j=0; j<6; j++)
+      dEH[i][j] = (EHP[j]-EHM[j])/(2.0*Delta);
+   };
+}

@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "libIncField.h"
 #define II cdouble(0.0,1.0)
@@ -71,3 +72,17 @@ void PlaneWave::GetFields(const double X[3], cdouble EH[6])
   EH[5] = (nHat[0]*EH[1] - nHat[1]*EH[0]) / Z;
   
 } 
+
+/***************************************************************/
+/* overrides the default implementation of this method in      */
+/* the base class                                              */
+/***************************************************************/
+void PlaneWave::GetFieldGradients(const double X[3], cdouble dEH[3][6])
+{
+  cdouble EH[6];
+  GetFields(X, EH);
+  cdouble K=sqrt(Eps*Mu) * Omega;
+  for(int i=0; i<3; i++)
+   for(int j=0; j<6; j++)
+    dEH[i][j] = II*K*nHat[i]*EH[j];
+}
