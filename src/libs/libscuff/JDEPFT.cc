@@ -18,7 +18,7 @@
  */
 
 /*
- * JDEPFT.cc     -- liscuff class methods for computing power, force,
+ * JDEPFT.cc     -- libscuff class methods for computing power, force,
  *               -- and torque in classical deterministic scattering
  *               -- problems using the "J \dot E" formalism
  *
@@ -493,7 +493,7 @@ HMatrix *GetJDEPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
        = -0.5*real(Omega)*( real(KKpNN)*ImG + imag(KNmNK)*ReC );
       for(int Mu=0; Mu<6; Mu++)
        dPFT[PFT_XFORCE + Mu] 
-        = -0.5*TENTHIRDS*( imag(KKpNN)*ImdG[Mu] + real(KNmNK)*RedC[Mu] );
+        = -0.5*TENTHIRDS*( imag(KKpNN)*ImdG[Mu] - real(KNmNK)*RedC[Mu] );
 
       int nt=0;
 #ifdef USE_OPENMP
