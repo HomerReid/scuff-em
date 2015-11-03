@@ -257,7 +257,7 @@ int GetOverlappingEdgeIndices(RWGSurface *S, int nea, int nebArray[5])
 /***************************************************************/
 /***************************************************************/
 void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
-             HVector *KNVector, HVector *RHS, HMatrix *RytovMatrix,
+             HVector *KNVector, HVector *RHS, HMatrix *DRMatrix,
              double PFT[NUMPFT], double **ByEdge)
 {
   
@@ -339,10 +339,10 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
          }
         else
          {
-           KK = RytovMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
-           KN = RytovMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
-           NK = RytovMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
-           NN = RytovMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
+           KK = DRMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
+           KN = DRMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
+           NK = DRMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
+           NN = DRMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
          };
 
        /*--------------------------------------------------------------*/

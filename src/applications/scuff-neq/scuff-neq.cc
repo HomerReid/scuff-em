@@ -90,18 +90,18 @@ int main(int argc, char *argv[])
   int Intervals=25.0;                int nIntervals=0;
    
   /*--------------------------------------------------------------*/
+  bool EMTPFT      = false;
+  bool EPPFT       = false;
+  bool OPFT        = false;
+  int DSIPoints    = 0;
+  int DSIPoints2   = 0;
   char *DSIMesh    = 0;
   double DSIRadius = 10.0;
-  int DSIPoints    = 302;
-  bool DSICCQ      = false;
   bool DSIFarField = false;
-
-  bool EMTPFT      = false;
 
   /*--------------------------------------------------------------*/
   bool OmitSelfTerms = false;
   bool OmitZeroTemperatureFlux = false;
-  bool ForceDSI      = false;
 
   /*--------------------------------------------------------------*/
   char *FileBase=0;
@@ -152,19 +152,20 @@ int main(int argc, char *argv[])
 /**/     
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
 /**/
+     {"EMTPFT",         PA_BOOL,    0, 1,       (void *)&EMTPFT,     0,             "compute SIFlux using EMT method"},
+     {"EPPFT",          PA_BOOL,    0, 1,       (void *)&EPPFT,      0,             "compute SIFlux using EP method"},
+     {"OPFT",           PA_BOOL,    0, 1,       (void *)&OPFT,       0,             "compute SIFlux using overlap method"},
+     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of cubature points for DSIPFT"},
+     {"DSIPoints2",     PA_INT,     1, 1,       (void *)&DSIPoints2, 0,             "number of cubature points for DSIPFT second opinion"},
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "bounding surface .msh file for DSIPFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
-     {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for DSIPFT"},
-     {"DSICCQ",         PA_BOOL,    0, 1,       (void *)&DSICCQ,    0,              "use Clenshaw-Curtis cubature for DSIPFT"},
      {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField,   0,          "retain only far-field contributions to DSIPFT"},
 /**/
      {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,          "omit the calculation of self terms"},
      {"OmitZeroTemperatureFlux",  PA_BOOL,    0, 1,   (void *)&OmitZeroTemperatureFlux, 0, "omit flux contributions of zero-temperature regions"},
-     {"ForceDSI",       PA_BOOL,    0, 1,       (void *)&ForceDSI,   0,             "use DSIPFT instead of OPFT/EPPFT"},
-     {"EMTPFT",         PA_BOOL,    0, 1,       (void *)&EMTPFT,     0,             "use EMTPFT"},
 /**/
      {"UseExistingData", PA_BOOL,   0, 1,       (void *)&UseExistingData, 0,        "read existing data from .flux files"},
-     {"PlotRytovVectors",PA_INT,    1, 1,       (void *)&PlotRytovVectors, 0, "plot the first N Rytov surface-current vectors"},
+     {"PlotRytovVectors",PA_INT,    1, 1,       (void *)&PlotRytovVectors, 0,       "plot the first N Rytov surface-current vectors"},
 /**/
      {"Cache",          PA_STRING,  1, 1,       (void *)&Cache,      0,             "read/write cache"},
      {"ReadCache",      PA_STRING,  1, MAXCACHE,(void *)ReadCache,   &nReadCache,   "read cache"},
@@ -190,9 +191,6 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /* determine which output quantities were requested ****************/
   /*******************************************************************/
-  if (EMTPFT)
-   PAbs=PRad=XForce=YForce=ZForce=XTorque=YTorque=ZTorque=true;
-
   int QuantityFlags=0;
   if (PAbs)   QuantityFlags|=QFLAG_PABS;
   if (PRad)   QuantityFlags|=QFLAG_PRAD;
@@ -202,9 +200,30 @@ int main(int argc, char *argv[])
   if (XTorque) QuantityFlags|=QFLAG_XTORQUE;
   if (YTorque) QuantityFlags|=QFLAG_YTORQUE;
   if (ZTorque) QuantityFlags|=QFLAG_ZTORQUE;
-  if (QuantityFlags==0 && EPFile==0)
-   ErrExit("you must specify at least one quantity to compute");
 
+  // no quantities specified means all quantities wanted
+  if (QuantityFlags==0)
+   QuantityFlags=QFLAG_ALL;
+
+  /*******************************************************************/
+  /* determine which PFT methods were requested       ****************/
+  /*******************************************************************/
+  int NumPFTMethods=0, PFTMethods[MAXPFTMETHODS];
+  if(EMTPFT)
+   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
+  if(EPPFT)
+   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EP;
+  if(OPFT)
+   PFTMethods[NumPFTMethods++] = SCUFF_PFT_OVERLAP;
+  if(DSIMesh)
+   PFTMethods[NumPFTMethods++] = SCUFF_PFT_DSI;
+  if(DSIPoints)
+   PFTMethods[NumPFTMethods++] = DSIPoints;
+  if(DSIPoints2)
+   PFTMethods[NumPFTMethods++] = DSIPoints2;
+
+  if (NumPFTMethods==0 && EPFile==0)
+   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
 
   /*******************************************************************/
   /*******************************************************************/
@@ -293,19 +312,17 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   SNEQData *SNEQD=CreateSNEQData(GeoFile, TransFile,
                                  TempStrings, nTempStrings,
-                                 QuantityFlags, EPFile,
-                                 FileBase, EMTPFT);
+                                 PFTMethods, NumPFTMethods,
+                                 QuantityFlags, EPFile, FileBase);
   RWGGeometry *G=SNEQD->G;
   SNEQD->UseExistingData         = UseExistingData;
   SNEQD->PlotFlux                = PlotFlux;
   SNEQD->OmitSelfTerms           = OmitSelfTerms;
   SNEQD->OmitZeroTemperatureFlux = OmitZeroTemperatureFlux;
-  SNEQD->ForceDSI                = ForceDSI;
   SNEQD->AbsTol                  = AbsTol;
   SNEQD->RelTol                  = RelTol;
   SNEQD->PFTOpts.DSIMesh         = DSIMesh;
   SNEQD->PFTOpts.DSIRadius       = DSIRadius;
-  SNEQD->PFTOpts.DSIPoints       = DSIPoints;
   SNEQD->PFTOpts.DSIFarField     = DSIFarField;
   SNEQD->PlotRytovVectors        = PlotRytovVectors;
 

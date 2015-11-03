@@ -85,7 +85,7 @@ typedef struct PFTOptions
    int PFTMethod;
    char *FluxFileName;
    double *kBloch;
-   HMatrix *RytovMatrix;
+   HMatrix *DRMatrix;
    IncField *IF;
    HVector *RHSVector;
 
@@ -119,7 +119,7 @@ PFTOptions *InitPFTOptions(PFTOptions *Options=0);
 /***************************************************************/
 class RWGGeometry;
 HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                   HVector *KNVector, HMatrix *RytovMatrix,
+                   HVector *KNVector, HMatrix *DRMatrix,
                    HMatrix *FMatrix=0, bool FarField=false);
 
 } // namespace scuff 

@@ -891,7 +891,7 @@ void GetEdgeEdgeDSIPFT(RWGGeometry *G,
 /***************************************************************/
 /***************************************************************/
 void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
-                    HMatrix *RytovMatrix,
+                    HMatrix *DRMatrix,
                     double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                     char *BSMesh, double R, int NumPoints,
                     bool FarField, char *PlotFileName,
@@ -970,10 +970,10 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
 
         /*--------------------------------------------------------------*/
         /*--------------------------------------------------------------*/
-        cdouble KK = RytovMatrix->GetEntry(OffsetB+2*neb+0, OffsetA+2*nea+0);
-        cdouble KN = RytovMatrix->GetEntry(OffsetB+2*neb+1, OffsetA+2*nea+0);
-        cdouble NK = RytovMatrix->GetEntry(OffsetB+2*neb+0, OffsetA+2*nea+1);
-        cdouble NN = RytovMatrix->GetEntry(OffsetB+2*neb+1, OffsetA+2*nea+1);
+        cdouble KK = DRMatrix->GetEntry(OffsetB+2*neb+0, OffsetA+2*nea+0);
+        cdouble KN = DRMatrix->GetEntry(OffsetB+2*neb+1, OffsetA+2*nea+0);
+        cdouble NK = DRMatrix->GetEntry(OffsetB+2*neb+0, OffsetA+2*nea+1);
+        cdouble NN = DRMatrix->GetEntry(OffsetB+2*neb+1, OffsetA+2*nea+1);
 
         /*--------------------------------------------------------------*/
         /*- get DSIPFT contributions from this pair of basis functions -*/
@@ -1246,7 +1246,7 @@ int GetSRFluxIndex(int nt, int nx, int nq, int NX)
 { return nt*NX*NUMSRFLUX + nx*NUMSRFLUX + nq; }
 
 HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                   HVector *KNVector, HMatrix *RytovMatrix,
+                   HVector *KNVector, HMatrix *DRMatrix,
                    HMatrix *FMatrix, bool FarField)
 { 
   (void) FarField;
@@ -1373,10 +1373,10 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                NN = conj(nAlpha) * nBeta;
              }
             else
-             { KK = RytovMatrix->GetEntry(nbfb+0, nbfa+0);
-               KN = RytovMatrix->GetEntry(nbfb+1, nbfa+0);
-               NK = RytovMatrix->GetEntry(nbfb+0, nbfa+1);
-               NN = RytovMatrix->GetEntry(nbfb+1, nbfa+1);
+             { KK = DRMatrix->GetEntry(nbfb+0, nbfa+0);
+               KN = DRMatrix->GetEntry(nbfb+1, nbfa+0);
+               NK = DRMatrix->GetEntry(nbfb+0, nbfa+1);
+               NN = DRMatrix->GetEntry(nbfb+1, nbfa+1);
              };
 
             cdouble eBeta[3], hBeta[3]; 

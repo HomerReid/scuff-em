@@ -83,7 +83,7 @@ RWGSurface *ResolveNE(RWGGeometry *G, int neFull,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetKNBilinears(HVector *KNVector, HMatrix *DMatrix,
+void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
                     bool IsPECA, int KNIndexA,
                     bool IsPECB, int KNIndexB,
                     cdouble Bilinears[4])
@@ -110,10 +110,10 @@ void GetKNBilinears(HVector *KNVector, HMatrix *DMatrix,
    }
   else
    {
-     KK = DMatrix->GetEntry(KNIndexB+0, KNIndexA+0);
-     KN = DMatrix->GetEntry(KNIndexB+1, KNIndexA+0);
-     NK = DMatrix->GetEntry(KNIndexB+0, KNIndexA+1);
-     NN = DMatrix->GetEntry(KNIndexB+1, KNIndexA+1);
+     KK = DRMatrix->GetEntry(KNIndexB+0, KNIndexA+0);
+     KN = DRMatrix->GetEntry(KNIndexB+1, KNIndexA+0);
+     NK = DRMatrix->GetEntry(KNIndexB+0, KNIndexA+1);
+     NN = DRMatrix->GetEntry(KNIndexB+1, KNIndexA+1);
    }
 
   Bilinears[0]=KK;
@@ -399,7 +399,7 @@ void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KN,
 /***************************************************************/
 HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
                    HVector *KNVector, HVector *RHSVector,
-                   HMatrix *DMatrix, HMatrix *PFTMatrix)
+                   HMatrix *DRMatrix, HMatrix *PFTMatrix)
 { 
   /***************************************************************/
   /***************************************************************/
@@ -453,7 +453,7 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
       RWGSurface *SB = ResolveNE(G, nebTot, &nsb, &neb, &KNIndexB);
    
       cdouble KNB[4];
-      GetKNBilinears(KNVector, DMatrix,
+      GetKNBilinears(KNVector, DRMatrix,
                      SA->IsPEC, KNIndexA, SB->IsPEC, KNIndexB,
                      KNB);
       cdouble KKpNN = Z*KNB[0] + KNB[3]/Z;

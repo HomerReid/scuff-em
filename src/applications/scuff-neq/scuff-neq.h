@@ -47,6 +47,7 @@ using namespace scuff;
 #define QFLAG_XTORQUE  32
 #define QFLAG_YTORQUE  64
 #define QFLAG_ZTORQUE 128
+#define QFLAG_ALL     255
 
 #define QINDEX_PABS    0
 #define QINDEX_PRAD    1
@@ -63,6 +64,8 @@ using namespace scuff;
 #define QMETHOD_ADAPTIVE 0
 #define QMETHOD_CLIFF    1
 #define QMETHOD_TRAPSIMP 2
+
+#define MAXPFTMETHODS 5
 
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */
@@ -96,11 +99,12 @@ typedef struct SNEQData
    /*- options for computing power, force, torque -----------------*/
    /*--------------------------------------------------------------*/
    PFTOptions PFTOpts;
-   bool EMTPFT;
-   char *SIFluxFileName;
+   HMatrix *PFTMatrix;
+   int NumPFTMethods;
+   int PFTMethods[MAXPFTMETHODS];
+   char *SIFluxFileNames[MAXPFTMETHODS];
 
    bool OmitSelfTerms;  // set all self terms to zero
-   bool ForceDSI;       // use DSIPFT instead of OPFT/EPPFT
    bool PlotFlux;       // generate flux plots
    int  PlotRytovVectors;
 
@@ -110,7 +114,7 @@ typedef struct SNEQData
    // chunk of memory used as a workspace in the GetFlux() routine */
    /*--------------------------------------------------------------*/
    HMatrix *W;        // BEM matrix 
-   HMatrix *Rytov;    // Rytov matrix for a given source body
+   HMatrix *DRMatrix; // dressed Rytov matrix for a given source body
    HMatrix **TInt;    // TInt[ns], TExt[ns] = interior and exterior
    HMatrix **TExt;    // contributions to BEM block for surface #ns
    HMatrix **U;       // U[nb] = // off-diagonal U-matrix block #nb 
@@ -136,8 +140,9 @@ typedef struct SNEQData
 /*--------------------------------------------------------------*/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          char **TempStrings, int nTempStrings,
+                         int *PFTMethods, int NumPFTMethods,
                          int QuantityFlags, char *EPFile,
-                         char *pFileBase, bool EMTPFT);
+                         char *pFileBase);
 
 /*--------------------------------------------------------------*/
 /*- in GetFlux.cc ----------------------------------------------*/

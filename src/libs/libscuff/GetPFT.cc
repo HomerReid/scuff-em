@@ -43,7 +43,7 @@ namespace scuff {
 
 // PFT by overlap method
 void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
-             HVector *KNVector, HVector *RHS, HMatrix *RytovMatrix,
+             HVector *KNVector, HVector *RHS, HMatrix *DRMatrix,
              double PFT[NUMPFT], double **ByEdge=0);
 
 // PFT by displaced-surface-integral method
@@ -54,7 +54,7 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                GTransformation *GT1, GTransformation *GT2);
 
 void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
-                    HMatrix *RytovMatrix,
+                    HMatrix *DRMatrix,
                     double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                     char *BSMesh, double R, int NumPoints,
                     bool FarField, char *PlotFileName,
@@ -62,7 +62,7 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
 
 // absorbed and scattered/radiated power by equivalence-principle method
 void GetEPP(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
-            HVector *KNVector, HMatrix *RytovMatrix, double Power[2],
+            HVector *KNVector, HMatrix *DRMatrix, double Power[2],
             double **ByEdge=0, HMatrix *TInterior=0, HMatrix *TExterior=0);
 
 // force/torque by equivalence-principle method
@@ -112,9 +112,9 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
      )
    { 
      HVector *RHSVector   = Options->RHSVector;
-     HMatrix *RytovMatrix = Options->RytovMatrix;
+     HMatrix *DRMatrix = Options->DRMatrix;
      GetOPFT(this, SurfaceIndex, Omega, KN,
-             RHSVector, RytovMatrix, PFT, ByEdge);
+             RHSVector, DRMatrix, PFT, ByEdge);
    }
   else if (     PFTMethod==SCUFF_PFT_DSI
              || PFTMethod==SCUFF_PFT_EPDSI
@@ -125,17 +125,17 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
      int DSIPoints        = Options->DSIPoints;
      bool DSIFarField     = Options->DSIFarField;
      double *kBloch       = Options->kBloch;
-     HMatrix *RytovMatrix = Options->RytovMatrix;
+     HMatrix *DRMatrix = Options->DRMatrix;
      bool *NeedQuantity   = Options->NeedQuantity;
      GTransformation *GT1 = S->OTGT;
      GTransformation *GT2 = S->GT;
 
-     if (RytovMatrix==0)
+     if (DRMatrix==0)
       GetDSIPFT(this, Omega, kBloch, KN, IF, PFT,
                 DSIMesh, DSIRadius, DSIPoints,
                 DSIFarField, FluxFileName, GT1, GT2);
      else 
-      GetDSIPFTTrace(this, Omega, RytovMatrix,
+      GetDSIPFTTrace(this, Omega, DRMatrix,
                      PFT, NeedQuantity,
                      DSIMesh, DSIRadius, DSIPoints,
                      DSIFarField, FluxFileName, GT1, GT2);
@@ -160,8 +160,8 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
      double Power[2];
      HMatrix *TInterior =  Options->TInterior;
      HMatrix *TExterior =  Options->TExterior;
-     HMatrix *RytovMatrix = Options->RytovMatrix;
-     GetEPP(this, SurfaceIndex, Omega, KN, RytovMatrix, Power,
+     HMatrix *DRMatrix = Options->DRMatrix;
+     GetEPP(this, SurfaceIndex, Omega, KN, DRMatrix, Power,
             ByEdge, TInterior, TExterior);
 
      // replace absorbed and scattered power with EP calculations
@@ -204,7 +204,7 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
   // general options
   Options->PFTMethod = SCUFF_PFT_DEFAULT;
   Options->FluxFileName=0;
-  Options->RytovMatrix=0;
+  Options->DRMatrix=0;
   Options->IF=0;
   Options->kBloch=0;
 

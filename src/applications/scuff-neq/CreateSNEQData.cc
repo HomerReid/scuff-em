@@ -42,10 +42,36 @@ const char *QuantityNames[NUMPFT]=
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName)
+{
+  FILE *f=fopen(FileName,"a");
+  fprintf(f,"\n");
+  fprintf(f,"# scuff-neq run on ");
+  fprintf(f,"%s (%s)\n",GetHostName(),GetTimeString());
+  fprintf(f,"# data file columns: \n");
+  fprintf(f,"# 1 transform tag\n");
+  fprintf(f,"# 2 omega \n");
+  int nq=3;
+  if (SNEQD->G->LDim>=1)
+   fprintf(f,"# %i kBloch_x \n",nq++);
+  if (SNEQD->G->LDim==2)
+   fprintf(f,"# %i kBloch_y \n",nq++);
+  fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
+  for(int nPFT=0; nPFT<NUMPFT; nPFT++)
+   fprintf(f,"# %i %s flux spectral density\n",
+  nq++,QuantityNames[nPFT]);
+
+  fclose(f);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
                          char **TempStrings, int nTempStrings,
+                         int *PFTMethods, int NumPFTMethods,
                          int QuantityFlags, char *EPFile,
-                         char *pFileBase, bool EMTPFT)
+                         char *pFileBase)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
@@ -81,12 +107,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  InitPFTOptions( &(SNEQD->PFTOpts) );
-  SNEQD->NeedQuantity = SNEQD->PFTOpts.NeedQuantity;
-
   /*******************************************************************/
   /* process --temperature options ***********************************/
   /*******************************************************************/
@@ -114,6 +134,35 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
       }
      else 
       ErrExit("unknown surface/region %s in --temperature specification",TempStrings[2*nts]);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- figure out which PFT methods were requested and write       */
+  /*- SIFlux file preambles                                       */
+  /*--------------------------------------------------------------*/
+  SNEQD->PFTMatrix = new HMatrix(G->NumSurfaces, NUMPFT);
+  InitPFTOptions( &(SNEQD->PFTOpts) );
+  SNEQD->NeedQuantity  = SNEQD->PFTOpts.NeedQuantity;
+  SNEQD->NumPFTMethods = NumPFTMethods;
+  for(int npm=0; npm<NumPFTMethods; npm++)
+   { 
+     SNEQD->PFTMethods[npm] = PFTMethods[npm];
+
+     char PFTName[20];
+     if (PFTMethods[npm]>20)
+      { SNEQD->PFTMethods[npm]=SCUFF_PFT_DSI;
+        snprintf(PFTName,20,"DSI%i",PFTMethods[npm]);
+      }
+     else if (PFTMethods[npm]==SCUFF_PFT_OVERLAP)
+      sprintf(PFTName,"OPFT");
+     else if (PFTMethods[npm]==SCUFF_PFT_EMT)
+      sprintf(PFTName,"EMT");
+     else if (PFTMethods[npm]==SCUFF_PFT_EP)
+      sprintf(PFTName,"EP");
+
+     SNEQD->SIFluxFileNames[npm]
+      = vstrdup("%s.SIFlux.%s",SNEQD->FileBase,PFTName);
+     WriteSIFluxFilePreamble(SNEQD, SNEQD->SIFluxFileNames[npm]);
    };
 
   /*--------------------------------------------------------------*/
@@ -191,10 +240,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   Log("After T, U blocks: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   /*--------------------------------------------------------------*/
-  /*- allocate BEM matrix and Rytov matrix -----------------------*/
+  /*- allocate BEM matrix and dressed Rytov matrix ---------------*/
   /*--------------------------------------------------------------*/
-  SNEQD->W     = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
-  SNEQD->Rytov = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  SNEQD->W        = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  SNEQD->DRMatrix = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   Log("After W, Rytov: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
 
   /*--------------------------------------------------------------*/
@@ -219,31 +268,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   int fdim = SNEQD->NumSIQs + SNEQD->NumSRQs;
   SNEQD->OmegaConverged = (bool *)mallocEC(fdim*sizeof(bool));
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  SNEQD->EMTPFT = EMTPFT;
-  SNEQD->SIFluxFileName
-   = vstrdup("%s.%s",SNEQD->FileBase, EMTPFT ? "EMTPFT" : "SIFlux");
-  if (SNEQD->NumSIQs>0)
-   { FILE *f=fopen(SNEQD->SIFluxFileName,"a");
-     fprintf(f,"\n");
-     fprintf(f,"# scuff-neq run on %s (%s)\n",GetHostName(),GetTimeString());
-     fprintf(f,"# data file columns: \n");
-     fprintf(f,"# 1 transform tag\n");
-     fprintf(f,"# 2 omega \n");
-     int nq=3;
-     if (G->LDim>=1)
-      fprintf(f,"# %i kBloch_x \n",nq++);
-     if (G->LDim==2)
-      fprintf(f,"# %i kBloch_y \n",nq++);
-     fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
-     for(int nPFT=0; nPFT<NUMPFT; nPFT++)
-      if (NeedQuantity[nPFT])
-       fprintf(f,"# %i %s flux spectral density\n",nq++,QuantityNames[nPFT]);
-     fclose(f);
-   };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

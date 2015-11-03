@@ -304,7 +304,7 @@ void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
 /* Get the absorbed and scattered/radiated power for           */
 /* DestSurface using the equivalence-principle method.         */
 /*                                                             */
-/* Either KNVector *or* RytovMatrix should be non-null.        */
+/* Either KNVector *or* DRMatrix should be non-null.        */
 /*                                                             */
 /* If TInterior and TExterior are non-null, they should be the */
 /* interior and exterior contributions to the BEM matrix block */
@@ -316,7 +316,7 @@ void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
 /*  Power[1] = scattered/radiated power                        */
 /***************************************************************/
 void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
-            HVector *KNVector, HMatrix *RytovMatrix, double Power[2],
+            HVector *KNVector, HMatrix *DRMatrix, double Power[2],
             double **ByEdge, HMatrix *TInterior, HMatrix *TExterior)
 {
   // FIXME the use of symmetry yields erroneous results. something
@@ -476,10 +476,10 @@ void GetEPP(RWGGeometry *G, int DestSurface, cdouble Omega,
           NN = conj(nAlpha) * nBeta;
         }
        else
-        { KK = RytovMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
-          KN = RytovMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
-          NK = RytovMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
-          NN = RytovMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
+        { KK = DRMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+0);
+          KN = DRMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+0);
+          NK = DRMatrix->GetEntry(Offset+2*neb+0, Offset+2*nea+1);
+          NN = DRMatrix->GetEntry(Offset+2*neb+1, Offset+2*nea+1);
         };
 
        /*--------------------------------------------------------------*/
