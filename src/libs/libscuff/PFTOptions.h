@@ -100,6 +100,7 @@ typedef struct PFTOptions
    HMatrix *TInterior, *TExterior;
 
    // options affecting EP force/torque computation
+   // (set EPFTOrder==0 to skip FT calculation)
    int EPFTOrder;
    double EPFTDelta;
 

@@ -143,10 +143,13 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
   else if (PFTMethod==SCUFF_PFT_EP)
    { 
      // EP force, torque
-     int EPFTOrder=Options->EPFTOrder;
-     double EPFTDelta=Options->EPFTDelta;
-     GetEPFT(this, SurfaceIndex, Omega, KN, IF, PFT + 2,
-             ByEdge, EPFTOrder, EPFTDelta);
+     int Order=Options->EPFTOrder;
+     double Delta=Options->EPFTDelta;
+     double *FT=PFT+2;
+     if (Order==0)
+      memset(FT,0,(NUMPFT-2)*sizeof(double));
+     else
+      GetEPFT(this, SurfaceIndex, Omega, KN, IF, FT, ByEdge, Order, Delta);
    };
 
   /***************************************************************/
