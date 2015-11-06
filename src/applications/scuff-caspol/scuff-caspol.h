@@ -49,6 +49,10 @@ using namespace scuff;
 #define PM_DIAGONAL 1
 #define PM_GENERAL  2
 
+#define FILETYPE_OUT   0
+#define FILETYPE_BYXI  1
+#define FILETYPE_BYXIK 2
+
 /***************************************************************/
 /* PolModel is a simple class used to describe the frequency-  */
 /* dependent polarizability of atoms and molecules. it exports */
@@ -98,6 +102,10 @@ typedef struct SCPData
    HMatrix *M;
    HVector *KN;
 
+   void **ABMBCache;
+   double RLBasis[2][2];
+   double BZVolume;
+
    int NumAtoms;
    PolModel **PolModels;
    HMatrix **Alphas;
@@ -106,10 +114,18 @@ typedef struct SCPData
 
    double RelTol;
 
-   char *ByXiFileName;
+   char *ByXiFileName, *byXikFileName;
    char *ErrMsg;
 
  } SCPData; 
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+SCPData *CreateSCPData(char *GeoFile,
+                       char **Atoms, int NumBIAtoms,
+                       char **Particles, int NumParticles,
+                       char *EPFile, char *FileBase);
 
 /***************************************************************/
 /***************************************************************/
