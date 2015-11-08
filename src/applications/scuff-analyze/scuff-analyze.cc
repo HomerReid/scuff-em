@@ -528,7 +528,7 @@ int main(int argc, char *argv[])
      else
       snprintf(PPFileName,MAXSTR,"%s.pp",GetFileBase(G->GeoFileName));
 
-     FILE *f=fopen(PPFileName,"%a");
+     FILE *f=fopen(PPFileName,"a");
      fprintf(f,"View \"%s\" {\n",EPFile);
      for(int n=0; n<XMatrix->NR; n++)
       fprintf(f,"SP(%e,%e,%e) {0.0};\n",
