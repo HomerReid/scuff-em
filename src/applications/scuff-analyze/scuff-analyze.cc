@@ -416,13 +416,15 @@ int main(int argc, char *argv[])
   int Neighbors=0;
   bool RegionVolumes=false;
   double WhichRegion[3]={HUGE_VAL, HUGE_VAL, HUGE_VAL};
+  char *EPFile=0;
   /* name, type, # args, max # instances, storage, count, description*/
   OptStruct OSArray[]=
    { {"geometry",           PA_STRING, 1, 1, (void *)&GeoFile,        0, "geometry file"},
      {"mesh",               PA_STRING, 1, 1, (void *)&MeshFile,       0, "mesh file"},
      {"meshfile",           PA_STRING, 1, 1, (void *)&MeshFile,       0, "mesh file"},
      {"PhysicalRegion",     PA_INT,    1, 1, (void *)&PhysicalRegion, 0, "index of surface within mesh file"},
-     {"transfile",          PA_STRING, 1, 1, (void *)&TransFile,      0, "list of transformations"},
+     {"TransFile",          PA_STRING, 1, 1, (void *)&TransFile,      0, "list of transformations"},
+     {"EPFile",             PA_STRING, 1, 1, (void *)&EPFile,         0, "list of points"},
      {"WriteGnuplotFiles",  PA_BOOL,   0, 1, (void *)&WriteGPFiles,   0, "write gnuplot visualization files"},
      {"WriteGMSHFiles",     PA_BOOL,   0, 1, (void *)&WritePPFiles,   0, "write GMSH visualization files "},
      {"WriteGMSHLabels",    PA_BOOL,   0, 1, (void *)&WriteLabels,    0, "write GMSH labels"},
@@ -444,6 +446,8 @@ int main(int argc, char *argv[])
    ErrExit("--PhysicalRegion option may only be used with --meshfile");
   if (TransFile && GeoFile==0)
    ErrExit("--transfile option may only be used with --geometry");
+  if (EPFile)
+   WritePPFiles=1;
    
   /***************************************************************/
   /**************************************************************/
@@ -512,6 +516,28 @@ int main(int argc, char *argv[])
      printf("Visualizations for %i transforms written to %s.\n",NGTC,PPFileName);
  
    };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (EPFile)
+   { HMatrix *XMatrix=new HMatrix(EPFile);
+     char PPFileName[MAXSTR];
+     if (MeshFile)
+      snprintf(PPFileName,MAXSTR,"%s.pp",GetFileBase(S->MeshFileName));
+     else
+      snprintf(PPFileName,MAXSTR,"%s.pp",GetFileBase(G->GeoFileName));
+
+     FILE *f=fopen(PPFileName,"%a");
+     fprintf(f,"View \"%s\" {\n",EPFile);
+     for(int n=0; n<XMatrix->NR; n++)
+      fprintf(f,"SP(%e,%e,%e) {0.0};\n",
+                 XMatrix->GetEntryD(n,0),
+                 XMatrix->GetEntryD(n,1),
+                 XMatrix->GetEntryD(n,2));
+     fprintf(f,"};\n\n");
+     fclose(f);
+  };
 
   /***************************************************************/
   /***************************************************************/

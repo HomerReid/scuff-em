@@ -29,6 +29,7 @@
 
 #include <libSGJC.h>
 #include <libIncField.h>
+#include <libTriInt.h>
 
 #include "scuff-caspol.h"
 
@@ -109,37 +110,55 @@ void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
+void GetCPIntegrand(SCPData *SCPD, cdouble Omega, double *kBloch, double *U)
 {
   RWGGeometry *G       = SCPD->G;
   HMatrix *M           = SCPD->M;
   HVector *KN          = SCPD->KN;
   int NumAtoms         = SCPD->NumAtoms;
-  PolModel **PolModels = SCPD->PolModels;
   HMatrix **Alphas     = SCPD->Alphas;   
   HMatrix *EPMatrix    = SCPD->EPMatrix;
-  char *ByXiFileName   = SCPD->ByXiFileName;
+  void **ABMBCache     = SCPD->ABMBCache;
 
-  if (Xi<=XIMIN)
-   Xi=XIMIN;
+  if (imag(Omega) < XIMIN)
+   Omega = cdouble( real(Omega), XIMIN );
+  double Xi=imag(Omega);
 
-  /***************************************************************/ 
-  /* assemble and factorize the BEM matrix at this frequency,    */ 
-  /* unless we are doing the PEC plate case.                     */ 
+  /***************************************************************/
+  /* assemble and factorize the BEM matrix at this               */
+  /* (frequency, kBloch) point, unless we are doing the PEC      */
+  /* plate case.                                                 */
   /***************************************************************/
   if (G)
-   { Log("Assembling BEM matrix at Xi=%g",Xi);
-     G->AssembleBEMMatrix(cdouble(0,Xi), M);
+   { 
+     if (G->LDim==0)
+      { Log("Assembling BEM matrix at Xi=%g",Xi);
+        G->AssembleBEMMatrix(Omega, M);
+      }
+     else
+      { if (G->LDim==1)
+         Log("Assembling BEM matrix at (Xi,kx)=(%g,%g)",Xi,kBloch[0]);
+        else
+         Log("Assembling BEM matrix at (Xi,kx,ky)=(%g,%g,%g)",Xi,kBloch[0],kBloch[1]);
+        int NS = G->NumSurfaces;
+        for(int ns=0, nb=0; ns<NS; ns++)
+         for(int nsp=ns; nsp<NS; nsp++, nb++)
+          { 
+            int RowOffset = G->BFIndexOffset[ns];
+            int ColOffset = G->BFIndexOffset[nsp];
+            G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch,
+                                      M, 0, RowOffset, ColOffset,
+                                      ABMBCache[nb], false);
+
+            if (nsp>ns)
+             G->AssembleBEMMatrixBlock(nsp, ns, Omega, kBloch,
+                                       M, 0, ColOffset, RowOffset,
+                                       ABMBCache[nb], true);
+          };
+      };
      Log("LU-factorizing...");
      M->LUFactorize();
    };
-
-  /***************************************************************/ 
-  /* look up the polarizability tensor for each atomic species   */ 
-  /* at this frequency                                           */ 
-  /***************************************************************/ 
-  for(int na=0; na<NumAtoms; na++)
-   PolModels[na]->GetPolarizability(Xi, Alphas[na]);
 
   /***************************************************************/ 
   /* loop over all evaluation points to get the contribution of  */ 
@@ -147,8 +166,8 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
   /***************************************************************/ 
   double R[3];
   cdouble GE[3][3], GM[3][3];
-  FILE *f=fopen(ByXiFileName,"a");
   Log("Computing CP potential at %i eval points...",EPMatrix->NR);
+  FILE *f = kBloch ? fopen(SCPD->ByXikFileName, "a") : 0;
   for(int nep=0; nep<EPMatrix->NR; nep++)
    { 
       /* get the dyadic GF at this eval point */
@@ -156,12 +175,13 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
       R[1]=EPMatrix->GetEntryD(nep, 1);
       R[2]=EPMatrix->GetEntryD(nep, 2);
 
-      if (G) 
-       G->GetDyadicGFs(R, cdouble(0,Xi), 0, M, KN, GE, GM);
+      if (G)
+       G->GetDyadicGFs(R, Omega, kBloch, M, KN, GE, GM);
       else
        GetPECPlateDGF(R[2], Xi, GE);
 
-      fprintf(f,"%e %e %e %e ",R[0],R[1],R[2],Xi);
+      if (f) fprintf(f,"%e %e %e %e %e ",R[0],R[1],R[2],Xi,kBloch[0]);
+      if (G->LDim==2) fprintf(f,"%e ",kBloch[1]);
       for(int na=0; na<NumAtoms; na++)
        { 
          HMatrix *Alpha = Alphas[na];
@@ -171,10 +191,59 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *U)
            UValue += PREFAC * Xi * Xi * Alpha->GetEntryD(i,j) * real(GE[j][i]);
 
          U[nep*NumAtoms + na] = UValue;
-         fprintf(f,"%e %e ",Alpha->GetEntryD(0,0),UValue);
+
+         if (f) fprintf(f,"%e %e ",Alpha->GetEntryD(0,0),UValue);
+       };
+      if (f) fprintf(f,"\n");
+   }; 
+  if (f) fclose(f);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetXiIntegrand(SCPData *SCPD, double Xi, double *U)
+{ 
+  RWGGeometry *G       = SCPD->G;
+  int NumAtoms         = SCPD->NumAtoms;
+  PolModel **PolModels = SCPD->PolModels;
+  HMatrix **Alphas     = SCPD->Alphas;   
+  HMatrix *EPMatrix    = SCPD->EPMatrix;
+
+  if (Xi<=XIMIN)
+   Xi=XIMIN;
+
+  /***************************************************************/
+  /* look up the polarizability tensor for each atomic species   */
+  /* at this frequency                                           */
+  /***************************************************************/
+  for(int na=0; na<NumAtoms; na++)
+   PolModels[na]->GetPolarizability(Xi, Alphas[na]);
+
+  /***************************************************************/ 
+  /***************************************************************/ 
+  /***************************************************************/ 
+  cdouble Omega=cdouble(0.0,Xi);
+  if (G->LDim==0)
+   GetCPIntegrand(SCPD, Omega, 0, U);
+  else 
+   GetBZIntegral(SCPD->GBZIArgs, Omega, U);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  FILE *f=fopen(SCPD->ByXiFileName,"a");
+  for(int nep=0; nep<EPMatrix->NR; nep++)
+   { 
+      double R[3];
+      EPMatrix->GetEntriesD(nep, ":", R);
+      fprintf(f,"%e %e %e %e ",R[0],R[1],R[2],Xi);
+      for(int na=0; na<NumAtoms; na++)
+       { fprintf(f,"%e ",Alphas[na]->GetEntryD(0,0));
+         fprintf(f,"%e ",U[nep*NumAtoms + na]);
        };
       fprintf(f,"\n");
- 
    }; 
   fclose(f);
 
@@ -222,7 +291,7 @@ void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U)
      /***************************************************************/
      /* evaluate the frequency integrand at this matsubara frequency*/
      /***************************************************************/
-     GetCPIntegrand(SCPD, Xi, dU);
+     GetXiIntegrand(SCPD, Xi, dU);
 
      /***************************************************************/
      /* accumulate contributions to the matsubara sum,              */
@@ -307,7 +376,7 @@ int SGJCIntegrand(unsigned ndim, const double *x, void *params,
   double Xi = x[0] / (1.0-x[0]);
 
   SCPData *SCPD = (SCPData *)params;
-  GetCPIntegrand(SCPD, Xi, fval);
+  GetXiIntegrand(SCPD, Xi, fval);
 
   unsigned nf;
   double J  = 1.0 / ((1.0-x[0])*(1.0-x[0])); // jacobian
@@ -317,7 +386,10 @@ int SGJCIntegrand(unsigned ndim, const double *x, void *params,
   return 0;
 
 }
-  
+ 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void EvaluateFrequencyIntegral(SCPData *SCPD, double *U)
 {
   double Lower=0.0;

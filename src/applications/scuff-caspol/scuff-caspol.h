@@ -33,12 +33,10 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libMDInterp.h>
+#include <libTriInt.h>
 #include <libscuff.h>
 
 using namespace scuff;
-
-// default error tolerance for frequency sums/integrals
-#define DEF_RELTOL 1.0e-2 
 
 // values for the Which field of the PolModel constructor
 #define PM_BUILTIN 0 
@@ -48,6 +46,10 @@ using namespace scuff;
 #define PM_SCALAR   0
 #define PM_DIAGONAL 1
 #define PM_GENERAL  2
+
+#define FILETYPE_OUT   0
+#define FILETYPE_BYXI  1
+#define FILETYPE_BYXIK 2
 
 /***************************************************************/
 /* PolModel is a simple class used to describe the frequency-  */
@@ -105,16 +107,34 @@ typedef struct SCPData
    HMatrix *EPMatrix;
 
    double RelTol;
+   double AbsTol;
 
-   char *ByXiFileName;
+   char *ByXiFileName; 
    char *ErrMsg;
+
+   double Xi;
+
+   // these items only used for periodic geometries
+   void **ABMBCache;
+   char *ByXikFileName;
+   GetBZIArgStruct *GBZIArgs;
 
  } SCPData; 
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCPIntegrand(SCPData *SCP, double Xi, double *U);
+SCPData *CreateSCPData(char *GeoFile,
+                       char **Atoms, int NumBIAtoms,
+                       char **Particles, int NumParticles,
+                       char *EPFile, char *FileBase);
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetCPIntegrand(SCPData *SCP, cdouble Omega,
+                    double *kBloch, double *U);
+void GetXiIntegrand(SCPData *SCP, double Xi, double *U);
 void EvaluateFrequencyIntegral(SCPData *SCP, double *U);
 void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U);
 
