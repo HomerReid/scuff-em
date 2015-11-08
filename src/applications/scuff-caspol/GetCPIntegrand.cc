@@ -29,6 +29,7 @@
 
 #include <libSGJC.h>
 #include <libIncField.h>
+#include <libTriInt.h>
 
 #include "scuff-caspol.h"
 
@@ -109,20 +110,19 @@ void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCPIntegrand(SCPData *SCPD, double Xi, double *kBloch, double *U)
+void GetCPIntegrand(SCPData *SCPD, cdouble Omega, double *kBloch, double *U)
 {
   RWGGeometry *G       = SCPD->G;
   HMatrix *M           = SCPD->M;
   HVector *KN          = SCPD->KN;
   int NumAtoms         = SCPD->NumAtoms;
-  PolModel **PolModels = SCPD->PolModels;
   HMatrix **Alphas     = SCPD->Alphas;   
   HMatrix *EPMatrix    = SCPD->EPMatrix;
   void **ABMBCache     = SCPD->ABMBCache;
 
-  if (Xi<=XIMIN)
-   Xi=XIMIN;
-  cdouble Omega = cdouble(0.0, Xi);
+  if (imag(Omega) < XIMIN)
+   Omega = cdouble( real(Omega), XIMIN );
+  double Xi=imag(Omega);
 
   /***************************************************************/
   /* assemble and factorize the BEM matrix at this               */
@@ -133,7 +133,7 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *kBloch, double *U)
    { 
      if (G->LDim==0)
       { Log("Assembling BEM matrix at Xi=%g",Xi);
-        G->AssembleBEMMatrix(Omega, kBloch, M);
+        G->AssembleBEMMatrix(Omega, M);
       }
      else
       { if (G->LDim==1)
@@ -198,12 +198,6 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *kBloch, double *U)
    }; 
   if (f) fclose(f);
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  FILE *f = fopen(SCPD->ByXiFileName, "a");
-  
-
 }
 
 /***************************************************************/
@@ -212,8 +206,6 @@ void GetCPIntegrand(SCPData *SCPD, double Xi, double *kBloch, double *U)
 void GetXiIntegrand(SCPData *SCPD, double Xi, double *U)
 { 
   RWGGeometry *G       = SCPD->G;
-  HMatrix *M           = SCPD->M;
-  HVector *KN          = SCPD->KN;
   int NumAtoms         = SCPD->NumAtoms;
   PolModel **PolModels = SCPD->PolModels;
   HMatrix **Alphas     = SCPD->Alphas;   
@@ -232,13 +224,11 @@ void GetXiIntegrand(SCPData *SCPD, double Xi, double *U)
   /***************************************************************/ 
   /***************************************************************/ 
   /***************************************************************/ 
+  cdouble Omega=cdouble(0.0,Xi);
   if (G->LDim==0)
-   GetCPIntegrand(SCPD, Xi, 0, U);
-  else if (G->LDim==1)
-   {
-     for(int
-   }
-  else if (G->LDim==2)
+   GetCPIntegrand(SCPD, Omega, 0, U);
+  else 
+   GetBZIntegral(SCPD->GBZIArgs, Omega, U);
 
   /***************************************************************/
   /***************************************************************/
@@ -247,16 +237,15 @@ void GetXiIntegrand(SCPData *SCPD, double Xi, double *U)
   for(int nep=0; nep<EPMatrix->NR; nep++)
    { 
       double R[3];
-      EPMatrix->GetEntriesD(nep, R);
-
-      fprintf(f,"%e %e %e %e %e ",R[0],R[1],R[2],Xi);
+      EPMatrix->GetEntriesD(nep, ":", R);
+      fprintf(f,"%e %e %e %e ",R[0],R[1],R[2],Xi);
       for(int na=0; na<NumAtoms; na++)
        { fprintf(f,"%e ",Alphas[na]->GetEntryD(0,0));
          fprintf(f,"%e ",U[nep*NumAtoms + na]);
        };
       fprintf(f,"\n");
    }; 
-  if (f) fclose(f);
+  fclose(f);
 
 }
 

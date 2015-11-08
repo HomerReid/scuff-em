@@ -33,12 +33,10 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libMDInterp.h>
+#include <libTriInt.h>
 #include <libscuff.h>
 
 using namespace scuff;
-
-// default error tolerance for frequency sums/integrals
-#define DEF_RELTOL 1.0e-2 
 
 // values for the Which field of the PolModel constructor
 #define PM_BUILTIN 0 
@@ -102,10 +100,6 @@ typedef struct SCPData
    HMatrix *M;
    HVector *KN;
 
-   void **ABMBCache;
-   double RLBasis[2][2];
-   double BZVolume;
-
    int NumAtoms;
    PolModel **PolModels;
    HMatrix **Alphas;
@@ -113,9 +107,17 @@ typedef struct SCPData
    HMatrix *EPMatrix;
 
    double RelTol;
+   double AbsTol;
 
-   char *ByXiFileName, *byXikFileName;
+   char *ByXiFileName; 
    char *ErrMsg;
+
+   double Xi;
+
+   // these items only used for periodic geometries
+   void **ABMBCache;
+   char *ByXikFileName;
+   GetBZIArgStruct *GBZIArgs;
 
  } SCPData; 
 
@@ -130,7 +132,9 @@ SCPData *CreateSCPData(char *GeoFile,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCPIntegrand(SCPData *SCP, double Xi, double *U);
+void GetCPIntegrand(SCPData *SCP, cdouble Omega,
+                    double *kBloch, double *U);
+void GetXiIntegrand(SCPData *SCP, double Xi, double *U);
 void EvaluateFrequencyIntegral(SCPData *SCP, double *U);
 void EvaluateMatsubaraSum(SCPData *SCPD, double Temperature, double *U);
 

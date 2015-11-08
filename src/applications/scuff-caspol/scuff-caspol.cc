@@ -74,7 +74,7 @@ void WriteFilePreamble(SCPData *SCPD, const char *FileName,
      fprintf(f,"#%i: Xi (imaginary frequency) (3e14 rad/sec)\n",nc++);
 
      int LDim = (FileType==FILETYPE_BYXI ? 0 : SCPD->G->LDim);
-     char *Quantity=0, *Units=0;
+     char const *Quantity=0, *Units=0;
      switch(LDim)
       { case 0: Quantity="CP potential per unit frequency";
                 Units="neV / (3e14 rad/sec)";
@@ -175,7 +175,13 @@ int main(int argc, char *argv[])
 //
   char *FileBase=0;
 //
-  double RelTol = DEF_RELTOL;
+  char *BZIString  = 0;
+  int BZIPoints    = 0;
+  int BZIOrder     = -1;
+  bool BZSymmetric = false;
+  bool FullBZ      = false;
+  double RelTol    = 1.0e-2;
+  double AbsTol    = 1.0e-10;
   /* name           type  #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { 
@@ -194,7 +200,13 @@ int main(int argc, char *argv[])
 //
      {"FileBase",    PA_STRING,  1, 1,       (void *)&FileBase,    0,             "base name for output files"},
 //
+     {"BZIMethod",   PA_STRING,  1, 1,       (void *)&BZIString,   0,             "Brillouin-zone integration scheme ([adaptive|CC|FOTC])"},
+     {"BZIPoints",   PA_INT,     1, 1,       (void *)&BZIPoints,   0,             "max # Brillouin-samples for adaptive scheme"},
+     {"BZIOrder",    PA_INT,     1, 1,       (void *)&BZIOrder,    0,             "order of Brillouin-zone cubature for fixed schemes"},
+     {"BZSymmetric", PA_BOOL,    0, 1,       (void *)&BZSymmetric, 0,             "specifies Brillouin zone symmetric under kx<->ky"},
+     {"FullBZ",      PA_BOOL,    0, 1,       (void *)&FullBZ,      0,             "integrate over full Brillouin zone (default is reduced)"},
      {"RelTol",      PA_DOUBLE,  1, 1,       (void *)&RelTol,      0,             "relative error tolerance"},
+     {"AbsTol",      PA_DOUBLE,  1, 1,       (void *)&AbsTol,      0,             "absolute error tolerance"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -224,7 +236,27 @@ int main(int argc, char *argv[])
                               Atoms, NumBIAtoms,
                               Particles, NumParticles,
                               EPFile, FileBase);
-  SCPD->RelTol = RelTol;
+  int BZIMethod=BZI_CC;
+  if (!BZIString || !strcasecmp(BZIString,"CC") )
+   { BZIMethod = BZI_CC;
+     if (BZIOrder==-1) BZIOrder=21;
+   }
+  else if ( !strcasecmp(BZIString,"adaptive") )
+   BZIMethod = BZI_ADAPTIVE;
+  else if ( !strcasecmp(BZIString,"FOTC") )
+   { BZIMethod = BZI_FOTC;
+     if (BZIOrder==-1) BZIOrder=13;
+   }
+  else 
+   ErrExit("unknown Brillouin-zone integration method %s",BZIString);
+  SCPD->GBZIArgs->BZIMethod   = BZIMethod;
+  SCPD->GBZIArgs->MaxPoints   = BZIPoints;
+  SCPD->GBZIArgs->Order       = BZIOrder;
+  SCPD->GBZIArgs->BZSymmetric = BZSymmetric;
+  SCPD->GBZIArgs->Reduced     = !FullBZ;
+  SCPD->GBZIArgs->RelTol      = SCPD->RelTol = RelTol;
+  SCPD->GBZIArgs->AbsTol      = SCPD->AbsTol = AbsTol;
+
   WriteFilePreamble(SCPD, SCPD->ByXiFileName, argc, argv, 
                     FILETYPE_BYXI);
   if (SCPD->ByXikFileName)
@@ -235,16 +267,17 @@ int main(int argc, char *argv[])
   /* process frequency-related options */
   /*******************************************************************/
   HVector *XiList=0;
-  HMatrix *XiKList=0;
-  if ( XiKBlochFile )
-   { if (SCPD->G->LDim==0) 
+  HMatrix *XikList=0;
+  int LDim=SCPD->G->LDim;
+  if ( XikBlochFile )
+   { if (LDim==0) 
       ErrExit("--XikBloch file cannot be used with non-periodic geometries");
-     XiKList = new HMatrix(XikBlochFile);
-     Log("Read %i (Xi,kBloch) points from file %s.",XiKList->NR, XikBlochFile);
+     XikList = new HMatrix(XikBlochFile);
+     Log("Read %i (Xi,kBloch) points from file %s.",XikList->NR, XikBlochFile);
    }
   else if (XiFile)
    { XiList = new HVector(XiFile);
-     Log("Read %i Xi points from file %s.",XiList->NR, XiFile);
+     Log("Read %i Xi points from file %s.",XiList->N, XiFile);
    }
   else if ( nXiVals>0 )
    { XiList = new HVector(nXiVals);
@@ -257,7 +290,7 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   SetLogFileName("scuff-caspol.log");
   Log("scuff-caspol running on %s",GetHostName());
-  if ( XiKList )
+  if ( XikList )
    Log("Computing CP integrand at %i (Xi,k) points",XikList->NR);
   else if ( XiList )
    Log("Computing Casimir-Polder quantities at %i user-specified frequency points.",XiList->N);
@@ -282,20 +315,20 @@ int main(int argc, char *argv[])
   /*      to get the full zero-temperature casimir-polder potential. */
   /*                                                                 */
   /*******************************************************************/
-  int NumEvalPoints=EPMatrix->NR;
+  int NumEvalPoints=SCPD->EPMatrix->NR;
   int NumDataValues = NumEvalPoints*NumAtoms;
   double *U=(double *)mallocEC(NumDataValues * sizeof(double));
-  if (XiKList)
+  if (XikList)
    {
-     for(int n=0; n<XiKList->NR; n++)
+     for(int n=0; n<XikList->NR; n++)
       { 
         double Xi, kBloch[2]={0.0, 0.0};
-        Xi = XiKList->GetEntryD(n,0);
-        kBloch[0] = XiKList->GetEntryD(n,1);
-        if (G->LDim>1)
-         kBloch[1] = XiKList->GetEntryD(n,2);
+        Xi = XikList->GetEntryD(n,0);
+        kBloch[0] = XikList->GetEntryD(n,1);
+        if (LDim>1)
+         kBloch[1] = XikList->GetEntryD(n,2);
 
-        GetCPIntegrand(SCPD, Xi, kBloch, U);
+        GetCPIntegrand(SCPD, cdouble(0.0,Xi), kBloch, U);
       }
    }
   if (XiList)
@@ -320,14 +353,16 @@ int main(int argc, char *argv[])
    { 
      char OutFileName[MAXSTR];
      snprintf(OutFileName, MAXSTR, "%s.out",GetFileBase(GeoFile));
-     WriteFilePreamble(OutFileName, argc, argv, FILETYPE_OUT, SCPD);
+     WriteFilePreamble(SCPD, OutFileName, argc, argv, FILETYPE_OUT);
+     
 
      FILE *f=fopen(OutFileName,"a");
+     HMatrix *EPMatrix=SCPD->EPMatrix;
      for(int nep=0; nep<EPMatrix->NR; nep++)
       { fprintf(f,"%e %e %e ", EPMatrix->GetEntryD(nep,0),
                                EPMatrix->GetEntryD(nep,1),
                                EPMatrix->GetEntryD(nep,2) );
-        for(na=0; na<NumAtoms; na++)
+        for(int na=0; na<NumAtoms; na++)
          fprintf(f,"%e ", U[nep*NumAtoms + na]);
 
         fprintf(f,"\n");

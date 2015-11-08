@@ -52,6 +52,7 @@ void ECC2D(int p, double xMin[2], double xMax[2],
      case 4: N=17;  NSub=9;  break;
      case 5: N=33;  NSub=17; break;
      case 6: N=65;  NSub=33; break;
+     case 7: N=129; NSub=65; break;
      default: ErrExit("unsupported cubature order in ECC2D");
    };
   double *FullQR=GetCCRule(N);

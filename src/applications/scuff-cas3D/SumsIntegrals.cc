@@ -373,7 +373,7 @@ int urIntegrand(unsigned ndim, const double *x, void *params,
 /* note that the the 1/V_{BZ} prefactor is cancelled by the */
 /* Jacobian of the variable transformation.                 */
 /************************************************************/
-void GetBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
+void GetCasimirBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
 {
   int LDim = SC3D->G->LDim;
 
@@ -456,7 +456,7 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   if (SC3D->G->LDim==0)
    GetCasimirIntegrand(SC3D, Xi, 0, EFT);
   else
-   GetBZIntegral(SC3D, Xi, EFT);
+   GetCasimirBZIntegral(SC3D, Xi, EFT);
 
 }
 

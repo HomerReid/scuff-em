@@ -3,6 +3,7 @@ bin_PROGRAMS = scuff-caspol
 scuff_caspol_SOURCES = 		\
  scuff-caspol.h			\
  scuff-caspol.cc          	\
+ CreateSCPData.cc  		\
  GetCPIntegrand.cc 		\
  PolModel.cc
 
