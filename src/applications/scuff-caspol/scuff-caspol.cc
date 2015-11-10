@@ -232,33 +232,44 @@ int main(int argc, char *argv[])
 
   /*******************************************************************/
   /*******************************************************************/
+  /*******************************************************************/
   SCPData *SCPD=CreateSCPData(GeoFile,
                               Atoms, NumBIAtoms,
                               Particles, NumParticles,
                               EPFile, FileBase);
-  int BZIMethod=BZI_CC;
-  if (!BZIString || !strcasecmp(BZIString,"CC") )
-   { BZIMethod = BZI_CC;
-     if (BZIOrder==-1) BZIOrder=21;
-   }
-  else if ( !strcasecmp(BZIString,"adaptive") )
-   BZIMethod = BZI_ADAPTIVE;
-  else if ( !strcasecmp(BZIString,"FOTC") )
-   { BZIMethod = BZI_FOTC;
-     if (BZIOrder==-1) BZIOrder=13;
-   }
-  else 
-   ErrExit("unknown Brillouin-zone integration method %s",BZIString);
-  SCPD->GBZIArgs->BZIMethod   = BZIMethod;
-  SCPD->GBZIArgs->MaxPoints   = BZIPoints;
-  SCPD->GBZIArgs->Order       = BZIOrder;
-  SCPD->GBZIArgs->BZSymmetric = BZSymmetric;
-  SCPD->GBZIArgs->Reduced     = !FullBZ;
-  SCPD->GBZIArgs->RelTol      = SCPD->RelTol = RelTol;
-  SCPD->GBZIArgs->AbsTol      = SCPD->AbsTol = AbsTol;
+
+  /*******************************************************************/
+  /* fill in a few simple fields in the SCPData structure ************/
+  /*******************************************************************/
+  SCPD->AbsTol = AbsTol;
+  SCPD->RelTol = RelTol;
+  if (SCPD->GBZIArgs)
+   { int BZIMethod=BZI_CC;
+     if (!BZIString || !strcasecmp(BZIString,"CC") )
+      { BZIMethod = BZI_CC;
+        if (BZIOrder==-1) BZIOrder=21;
+      }
+     else if ( !strcasecmp(BZIString,"adaptive") )
+      BZIMethod = BZI_ADAPTIVE;
+     else if ( !strcasecmp(BZIString,"FOTC") )
+      { BZIMethod = BZI_FOTC;
+        if (BZIOrder==-1) BZIOrder=13;
+      }
+     else 
+      ErrExit("unknown Brillouin-zone integration method %s",BZIString);
+     SCPD->GBZIArgs->BZIMethod   = BZIMethod;
+     SCPD->GBZIArgs->BZSymmetric = BZSymmetric;
+     SCPD->GBZIArgs->Order       = BZIOrder;
+     SCPD->GBZIArgs->MaxPoints   = BZIPoints;
+     SCPD->GBZIArgs->RelTol      = RelTol;
+     SCPD->GBZIArgs->AbsTol      = AbsTol;
+     SCPD->GBZIArgs->Reduced     = !FullBZ;
+
+   };
 
   WriteFilePreamble(SCPD, SCPD->ByXiFileName, argc, argv, 
                     FILETYPE_BYXI);
+
   if (SCPD->ByXikFileName)
    WriteFilePreamble(SCPD, SCPD->ByXikFileName, argc, argv,
                      FILETYPE_BYXIK);
@@ -328,7 +339,7 @@ int main(int argc, char *argv[])
         if (LDim>1)
          kBloch[1] = XikList->GetEntryD(n,2);
 
-        GetCPIntegrand(SCPD, cdouble(0.0,Xi), kBloch, U);
+        GetCPIntegrand((void *)SCPD, cdouble(0.0,Xi), kBloch, U);
       }
    }
   if (XiList)

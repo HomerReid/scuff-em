@@ -132,7 +132,7 @@ SCPData *CreateSCPData(char *GeoFile,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCPIntegrand(SCPData *SCP, cdouble Omega,
+void GetCPIntegrand(void *pSCPD, cdouble Omega,
                     double *kBloch, double *U);
 void GetXiIntegrand(SCPData *SCP, double Xi, double *U);
 void EvaluateFrequencyIntegral(SCPData *SCP, double *U);
