@@ -279,10 +279,11 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
      double *dBZI=BZIError;
      memset(BZIntegral, 0, FDim*sizeof(double));
      if (LDim==1)
-      { for(int nx=0; nx<Order; nx++)
-         { double ux = uAvg + uDelta*CCQR[2*nx + 0];
-           double w  = CCQR[2*nx+1];
-           kBloch[0] = ux*RLBasis->GetEntryD(0,0);
+      { for(int n=0; n<Order; n++)
+         { double u  = uAvg + uDelta*CCQR[2*n + 0];
+           double w  = CCQR[2*n+1];
+           kBloch[0] = u*RLBasis->GetEntryD(0,0);
+           kBloch[1] = u*RLBasis->GetEntryD(0,1);
            BZIFunc(UserData, Omega, kBloch, dBZI);
            Args->NumCalls++;
            for(int nf=0; nf<FDim; nf++)

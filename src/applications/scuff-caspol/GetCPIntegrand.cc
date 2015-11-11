@@ -108,10 +108,13 @@ void GetPECPlateDGF(double Z, double Xi, cdouble GE[3][3])
 }
 
 /***************************************************************/
+/* the first parameter here needs to be void * so the routine  */
+/* can be passed as the integrand function to GetBZIntegral()  */
 /***************************************************************/
-/***************************************************************/
-void GetCPIntegrand(SCPData *SCPD, cdouble Omega, double *kBloch, double *U)
+void GetCPIntegrand(void *pSCPD, cdouble Omega, double *kBloch, double *U)
 {
+  SCPData *SCPD        = (SCPData *)pSCPD;
+
   RWGGeometry *G       = SCPD->G;
   HMatrix *M           = SCPD->M;
   HVector *KN          = SCPD->KN;
@@ -226,7 +229,7 @@ void GetXiIntegrand(SCPData *SCPD, double Xi, double *U)
   /***************************************************************/ 
   cdouble Omega=cdouble(0.0,Xi);
   if (G->LDim==0)
-   GetCPIntegrand(SCPD, Omega, 0, U);
+   GetCPIntegrand((void *)SCPD, Omega, 0, U);
   else 
    GetBZIntegral(SCPD->GBZIArgs, Omega, U);
 

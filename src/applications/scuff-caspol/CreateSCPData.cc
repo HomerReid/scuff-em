@@ -122,7 +122,10 @@ SCPData *CreateSCPData(char *GeoFile,
       { LBasis->SetEntry(1,0,G->LBasis[1][0]);
         LBasis->SetEntry(1,1,G->LBasis[1][1]);
       };
-     SCPD->GBZIArgs = CreateGetBZIArgs(LBasis);
+     SCPD->GBZIArgs              = CreateGetBZIArgs(LBasis);
+     SCPD->GBZIArgs->BZIFunc     = GetCPIntegrand;
+     SCPD->GBZIArgs->UserData    = (void *)SCPD;
+     SCPD->GBZIArgs->FDim        = NumAtoms * (SCPD->EPMatrix)->NR;
 
    };
      /*--------------------------------------------------------------*/
