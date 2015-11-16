@@ -92,6 +92,29 @@ how your unit-cell meshes fit together with their images across unit-cell
 boundaries to comprise a periodically replicated lattice.
 
 ````bash
+    --EPFile MyEPFile
+````
+
+
+This option allows you to specify a list of individual points
+to be plotted in the visualization file together with the
+meshed surfaces in your geometry. This is useful for double-checking
+that the points at which you are requesting spatially-resolved
+information from a [[scuff-em]] code (for example, scattered
+and total field components in 
+[<span class="SC">scuff-scatter</span>][scuffScatter],
+or Casimir-Polder potentials in
+[<span class="SC">scuff-caspol</span>][scuffCasPol]
+spatially-resolved Poynting flux in
+[<span class="SC">scuff-neq</span>][scuffNEQ]) are 
+actually the points you wanted. The file `MyEPFile`
+is the same file you specify for the `--EPFile` option
+to any other [[scuff-em]] code: it
+should contain 3 numbers per line (the cartesian 
+coordinates of the points).
+
+
+````bash
     --WriteGnuplotFiles 
 ````
 
@@ -371,3 +394,6 @@ should be used with the `load` command, like this:
 ````bash
 
 ![Sphere gnuplot image](Sphere_gnuplot.png)
+[scuffScatter]:             ../applications/scuff-scatter/scuff-scatter.md
+[scuffCaspol]:              ../applications/scuff-caspol/scuff-caspol.md
+[scuffNEQ]:                 ../applications/scuff-neq/scuff-neq.md

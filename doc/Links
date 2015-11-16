@@ -32,7 +32,13 @@
 [IncidentFields]:              ../reference/IncidentFields
 
 [<span class="SC">scuff-scatter</span>][scuffScatter]
-scuffScatter:                 ../applications/scuff-scatter/scuff-scatter.md
+[scuffScatter]:                 ../applications/scuff-scatter/scuff-scatter.md
+
+[<span class="SC">scuff-caspol</span>][scuffcaspol]
+[scuffCaspol]:                 ../applications/scuff-caspol/scuff-caspol.md
+
+[<span class="SC">scuff-neq</span>][scuffneq]
+[scuffNEQ]:                 ../applications/scuff-neq/scuff-neq.md
 
 [<span class="SC">scuff-em</span> API][libscuff]
 libscuff:                     ../API/libscuff.md

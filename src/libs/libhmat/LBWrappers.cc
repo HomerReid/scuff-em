@@ -638,7 +638,6 @@ HVector *HMatrix::Eig(HVector *Lambda, HMatrix *U)
 
   delete[] isuppz;
   return Lambda;
-
 }
 
 /***************************************************************/
