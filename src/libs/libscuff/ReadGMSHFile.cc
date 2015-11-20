@@ -55,10 +55,14 @@ namespace scuff {
 
 #define MAXREFPTS 100
 
+// vertices that are within a distance of
+// PIXELSIZE of each other are considered equivalent
+#define PIXELSIZE 1.0e-6
+
 /*************************************************************/
 /* Read vertices and panels from a GMSH .msh file to specify */
 /* a surface.                                                */
-/* If MeshTag==-1, then all panels are read.          */
+/* If MeshTag==-1, then all panels are read.                 */
 /* Otherwise, only panels on the specified physical region   */
 /* are read.                                                 */
 /*************************************************************/
@@ -133,6 +137,22 @@ void RWGSurface::ReadGMSHFile(FILE *MeshFile, char *FileName)
   /*- vertices.                                                 */ 
   /*------------------------------------------------------------*/
   if (OTGT) OTGT->Apply(Vertices, NumVertices);
+
+  /*------------------------------------------------------------*/
+  /*- 20151119 -------------------------------------------------*/
+  /*------------------------------------------------------------*/
+  char *s=getenv("SCUFF_PIXEL_SIZE");
+  if (s)
+   { double PixelSize;
+     if (1!=sscanf(s,"%le",&PixelSize))
+      Log("Invalid specification for SCUFF_PIXEL_SIZE (ignoring)");
+     else
+      Log("Rounding all vertex coordinates to be an integer multiple of %e",
+           PixelSize);      
+  
+     for(int nvc=0; nvc<3*NumVertices; nvc++)
+      Vertices[nvc] = PixelSize*round(Vertices[nvc]/PixelSize);
+   };
  
   /*------------------------------------------------------------*/
   /*- Eliminate any redundant vertices from the vertex list.   -*/

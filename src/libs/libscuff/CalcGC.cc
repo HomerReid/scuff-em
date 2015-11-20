@@ -178,5 +178,65 @@ void CalcGC(double R1[3], double R2[3], cdouble Omega, cdouble EpsR, cdouble MuR
   CalcGC(R,Omega,EpsR,MuR,GMuNu,CMuNu,GMuNuRho,CMuNuRho);
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#if 0
+  cdouble GijNew[3][3], CijNew[3][3];
+  cdouble k2=k*k, ik=II*k;
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    { GijNew[Mu][Nu] = (Mu==Nu) ? G0 : 0.0;
+      GijNew[Mu][Nu] += ddGBar[3*Mu + Nu]/k2;
+    };
+
+  for(int Mu=0; Mu<3; Mu++)
+   { int MP1=(Mu+1)%3, MP2=(Mu+2)%3;
+     CijNew[Mu][Mu]=0.0;
+     CijNew[Mu][MP1]=dGBar[MP2]/(ik);
+     CijNew[MP1][Mu]=-CijNew[Mu][MP1];
+   };
+#endif
+/***************************************************************/
+cdouble GetG(double R[3], cdouble k, cdouble *dGBar, cdouble *ddGBar)
+{
+  double r2 = R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
+
+  if (r2==0.0)
+   { if (dGBar)  memset(dGBar,  0, 3*sizeof(cdouble));
+     if (ddGBar) memset(ddGBar, 0, 9*sizeof(cdouble));
+     return 0.0;
+   };
+
+  double r     = sqrt(r2);
+  cdouble ikr  = II*k*r;
+
+  cdouble Phi = exp(ikr)/(4.0*M_PI*r);
+
+  if (dGBar || ddGBar)
+   {  
+     cdouble Psi = Phi * (ikr - 1.0) / r2;
+     if (dGBar)
+      { dGBar[0] = R[0] * Psi;
+        dGBar[1] = R[1] * Psi;
+        dGBar[2] = R[2] * Psi;
+      };
+
+     if (ddGBar)
+      { double r4     = r2*r2;
+        cdouble ikr2  = ikr*ikr;
+        cdouble Zeta  = Phi * (ikr2 - 3.0*ikr + 3.0) / r4;
+        ddGBar[3*0+0] = Psi + R[0]*R[0]*Zeta;
+        ddGBar[3*1+1] = Psi + R[1]*R[1]*Zeta;
+        ddGBar[3*2+2] = Psi + R[2]*R[2]*Zeta;
+        ddGBar[3*0+1] = ddGBar[3*1+0] = R[0]*R[1]*Zeta;
+        ddGBar[3*0+2] = ddGBar[3*2+0] = R[0]*R[2]*Zeta;
+        ddGBar[3*1+2] = ddGBar[3*2+1] = R[1]*R[2]*Zeta;
+      };
+   };
+
+  return Phi;
+}
+
 
 } // namespace scuff
