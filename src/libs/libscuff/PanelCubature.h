@@ -120,6 +120,32 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
                      cdouble Omega, HVector *KN, 
                      double *Result);
 
+
+/***************************************************************/
+/* 20151118 streamlined implementation of GetBFCubature and    */
+/* GetBFBFCubature that are 2x and 4x faster respectively.     */
+/*                                                             */
+/* In these versions, the user's integrand function must       */
+/* *accumulate* contributions to Integral with weight Weight.  */
+/***************************************************************/
+typedef void PCFunction2(double x[3], double b[3], void *UserData,
+                         double Weight, double *Integral);
+
+
+typedef void PPCFunction2(double x[3], double b[3],
+                          double xp[3], double bp[3],
+                          void *UserData,
+                          double Weight, double *Integral);
+
+void GetBFCubature2(RWGGeometry *G, int ns, int ne,
+                    PCFunction2 Integrand, void *UserData, int IDim,
+                    int Order, double *Integral);
+
+void GetBFBFCubature2(RWGGeometry *G, 
+                      int ns, int ne, int nsP, int neP,
+                      PPCFunction2 Integrand, void *UserData, int IDim,
+                      int Order, double *Integral);
+
 }
 
 #endif // #ifndef PANELCUBATURE_H

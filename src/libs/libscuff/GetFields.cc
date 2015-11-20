@@ -486,6 +486,9 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /* initialize accelerator objects to accelerate computation of */
   /* the periodic Green's function in each extended region of    */
   /* the geometry.                                               */
+  /* UPDATE 20151111: we now make RegionGBAs an input parameter  */
+  /* to allow the user to pre-allocate and thus reuse it for     */
+  /* multiple Get user to pre-allocate and thus reuse it for     */
   /***************************************************************/
   GBarAccelerator **RegionGBAs=0;
   if (KN && LDim>0)

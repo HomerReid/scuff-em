@@ -668,4 +668,173 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
   
 }
 
+/***************************************************************/
+/* 20151118 streamlined implementation of GetBFCubature and    */
+/* GetBFBFCubature that are 2x and 4x faster respectively.     */
+/*                                                             */
+/* In these versions, the user's integrand function must       */
+/* *accumulate* contributions to Integral with weight Weight.  */
+/***************************************************************/
+void GetBFCubature2(RWGGeometry *G, int ns, int ne,
+                    PCFunction2 Integrand, void *UserData, int IDim,
+                    int Order, double *Integral)
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S = G->Surfaces[ns];
+  RWGEdge *E    = S->Edges[ne];
+  double Length = E->Length;
+  double *QP    = S->Vertices + 3*(E->iQP);
+  double *V1    = S->Vertices + 3*(E->iV1);
+  double *V2    = S->Vertices + 3*(E->iV2);
+  double *QM    = (E->iQM==-1) ? 0 : S->Vertices + 3*(E->iQM);
+
+  double A[2][3], B[2][3], Area[2], *Q[2];
+  VecSub(V1, QP, A[0]);
+  VecSub(V2, QP, B[0]);
+  Q[0]=QP;
+  Area[0] = S->Panels[E->iPPanel]->Area;
+  if (QM)
+   { VecSub(V1, QM, A[1]);
+     VecSub(V2, QM, B[1]);
+     Q[1]=QM;
+     Area[1] = S->Panels[E->iMPanel]->Area;
+   };
+
+  int NumPM=QM ? 2 : 1;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int NumPts;
+  double *TCR=GetTCR(Order,&NumPts);
+  if (TCR==0) ErrExit("invalid cubature order in GetBFCubature2");
+  memset(Integral, 0, IDim*sizeof(double));
+  for(int np=0, ncp=0; np<NumPts; np++)
+   { 
+     double u=TCR[ncp++];
+     double v=TCR[ncp++];
+     double w=TCR[ncp++];
+
+     for(int PM=0; PM<NumPM; PM++)
+      { 
+        double b[3], X[3], Sign=(PM==0) ? 1.0 : -1.0;
+        for(int Mu=0; Mu<3; Mu++)
+         { b[Mu] = u*A[PM][Mu] + v*B[PM][Mu];
+           X[Mu] = b[Mu]       + Q[PM][Mu];
+           b[Mu] *= Sign*Length/(2.0*Area[PM]);
+         };
+
+        Integrand(X,b,UserData,2.0*Area[PM]*w,Integral);
+      };
+   };
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetBFBFCubature2(RWGGeometry *G,
+                      int ns, int ne, int nsP, int neP,
+                      PPCFunction2 Integrand,
+                      void *UserData, int IDim,
+                      int Order, double *Integral)
+{
+  int NumPts;
+  double *TCR=GetTCR(Order,&NumPts);
+  if (TCR==0) ErrExit("invalid cubature order in GetBFCubature2");
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *S = G->Surfaces[ns];
+  RWGEdge *E    = S->Edges[ne];
+  double Length = E->Length;
+  double *QP    = S->Vertices + 3*(E->iQP);
+  double *V1    = S->Vertices + 3*(E->iV1);
+  double *V2    = S->Vertices + 3*(E->iV2);
+  double *QM    = (E->iQM==-1) ? 0 : S->Vertices + 3*(E->iQM);
+
+  double A[2][3], B[2][3], Area[2], *Q[2];
+  VecSub(V1, QP, A[0]);
+  VecSub(V2, QP, B[0]);
+  Q[0]=QP;
+  Area[0] = S->Panels[E->iPPanel]->Area;
+  if (QM)
+   { VecSub(V1, QM, A[1]);
+     VecSub(V2, QM, B[1]);
+     Q[1]=QM;
+     Area[1] = S->Panels[E->iMPanel]->Area;
+   };
+
+  int NumPM=QM ? 2 : 1;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGSurface *SP = G->Surfaces[nsP];
+  RWGEdge *EP    = SP->Edges[neP];
+  double LengthP = EP->Length;
+  double *QPP    = SP->Vertices + 3*(EP->iQP);
+  double *V1P    = SP->Vertices + 3*(EP->iV1);
+  double *V2P    = SP->Vertices + 3*(EP->iV2);
+  double *QMP    = (EP->iQM==-1) ? 0 : SP->Vertices + 3*(EP->iQM);
+
+  double AP[2][3], BP[2][3], AreaP[2], *QPArray[2];
+  VecSub(V1P, QPP, AP[0]);
+  VecSub(V2P, QPP, BP[0]);
+  QPArray[0]=QPP;
+  AreaP[0] = SP->Panels[EP->iPPanel]->Area;
+  if (QMP)
+   { VecSub(V1P, QMP, AP[1]);
+     VecSub(V2P, QMP, BP[1]);
+     QPArray[1]=QMP;
+     AreaP[1] = SP->Panels[EP->iMPanel]->Area;
+   };
+
+  int NumPMP=QMP ? 2 : 1;
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  memset(Integral, 0, IDim*sizeof(double));
+  for(int np=0, ncp=0; np<NumPts; np++)
+   { 
+     double u=TCR[ncp++];
+     double v=TCR[ncp++];
+     double w=TCR[ncp++];
+
+     for(int PM=0; PM<NumPM; PM++)
+      { 
+        double b[3], X[3], Sign=(PM==0) ? 1.0 : -1.0;
+        for(int Mu=0; Mu<3; Mu++)
+         { b[Mu] = u*A[PM][Mu] + v*B[PM][Mu];
+           X[Mu] = b[Mu]       + Q[PM][Mu];
+           b[Mu] *= Sign*Length/(2.0*Area[PM]);
+         };
+
+        for(int npP=0, ncpP=0; npP<NumPts; npP++)
+         { 
+           double uP=TCR[ncpP++];
+           double vP=TCR[ncpP++];
+           double wP=TCR[ncpP++];
+
+           for(int PMP=0; PMP<NumPMP; PMP++)
+            { 
+              double bP[3], XP[3], SignP=(PMP==0) ? 1.0 : -1.0;
+              for(int Mu=0; Mu<3; Mu++)
+               { bP[Mu] = uP*AP[PMP][Mu] + vP*BP[PMP][Mu];
+                 XP[Mu] = bP[Mu]         + QPArray[PMP][Mu];
+                 bP[Mu] *= SignP*LengthP/(2.0*AreaP[PMP]);
+               };
+
+              Integrand(X,b,XP,bP,UserData,
+                        4.0*Area[PM]*AreaP[PMP]*w*wP,Integral);
+            };
+         };        
+      };
+   };
+}
+
 } // namespace scuff
