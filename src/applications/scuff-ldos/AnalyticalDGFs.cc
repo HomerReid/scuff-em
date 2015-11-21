@@ -206,39 +206,6 @@ int GetVacuumDGFs(double X[3], double XP[3],
 }
 
 /***************************************************************/
-/* Half-space DGFs computed by the plane-wave decomposition    */
-/***************************************************************/
-int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
-                     double LBasis[2][2], MatProp *MP,
-                     double RelTol, double AbsTol, int MaxCells,
-                     cdouble GE[3][3], cdouble GM[3][3])
-{ 
-  double RLBasis[2][2];
-  double BZVolume=GetRLBasis(LBasis, RLBasis);
-
-  double X[3]={0.0, 0.0, 0.0};
-  double XP[3]={0.0, 0.0, 0.0};
-  XP[2]=zp;
-
-  SummandData MySummandData, *Data=&MySummandData;
-  Data->X       = X;
-  Data->XP      = XP;
-  Data->Omega   = Omega;
-  Data->kBloch  = kBloch;
-  Data->Epsilon = MP->GetEps(Omega);
-
-  cdouble Sum[18];
-  GetLatticeSum(MySummand, (void *)Data, 36, 2, RLBasis,
-                (double *)Sum, AbsTol, RelTol, MaxCells);
-
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    { GE[Mu][Nu] = BZVolume*Sum[0 + 3*Mu + Nu]/(4.0*M_PI*M_PI*M_PI);
-      GM[Mu][Nu] = BZVolume*Sum[9 + 3*Mu + Nu]/(4.0*M_PI*M_PI*M_PI);
-    };
-}
-
-/***************************************************************/
 /* Ground-plane DGFs computed by the image-source method       */
 /***************************************************************/
 void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
@@ -294,4 +261,48 @@ void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
       GM[Mu][Nu] = EH[3+Mu] / (Omega*Omega);
    };
 
+}
+
+/***************************************************************/
+/* Half-space DGFs computed by the plane-wave decomposition    */
+/***************************************************************/
+int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
+                     double LBasis[2][2], MatProp *MP,
+                     double RelTol, double AbsTol, int MaxCells,
+                     cdouble GE[3][3], cdouble GM[3][3])
+{ 
+  if (MP->IsPEC() )
+   { double X[3]={0.0, 0.0, 0.0}; 
+     X[2]=zp;
+     double LBV1[2], LBV2[2], *LBV[2]={LBV1, LBV2};
+     LBV1[0]=LBasis[0][0]; LBV1[1]=LBasis[0][1];
+     LBV2[0]=LBasis[1][0]; LBV2[1]=LBasis[1][1];
+     GetGroundPlaneDGFs(X, Omega, kBloch, 2, LBV, GE, GM);
+     return 0;
+   };
+ 
+  double RLBasis[2][2];
+  double BZVolume=GetRLBasis(LBasis, RLBasis);
+
+  double X[3]={0.0, 0.0, 0.0};
+  double XP[3]={0.0, 0.0, 0.0};
+  XP[2]=zp;
+
+  SummandData MySummandData, *Data=&MySummandData;
+  Data->X       = X;
+  Data->XP      = XP;
+  Data->Omega   = Omega;
+  Data->kBloch  = kBloch;
+  Data->Epsilon = MP->GetEps(Omega);
+
+  cdouble Sum[18];
+  GetLatticeSum(MySummand, (void *)Data, 36, 2, RLBasis,
+                (double *)Sum, AbsTol, RelTol, MaxCells);
+
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    { GE[Mu][Nu] = BZVolume*Sum[0 + 3*Mu + Nu]/(4.0*M_PI*M_PI*M_PI);
+      GM[Mu][Nu] = BZVolume*Sum[9 + 3*Mu + Nu]/(4.0*M_PI*M_PI*M_PI);
+    };
+  return 0;
 }

@@ -230,6 +230,7 @@ void GetBZIntegral_FOTC(GetBZIArgStruct *Args, cdouble Omega,
   double V3[3]={1.0, 1.0, 0.0};
   if (Reduced)
    V2[0]=V3[1]=V2[3]=0.5;
+  Args->Omega=Omega;
   TriIntFixed(BZIntegrand_TriCub, FDim, (void *)Args,
               V1, V2, V3, Order, BZIntegral);
   

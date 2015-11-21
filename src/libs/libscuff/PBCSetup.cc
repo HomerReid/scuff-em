@@ -484,4 +484,5 @@ void RWGGeometry::GetUnitCellRepresentative(const double X[3],
 
 }
 
+
 } // namespace scuff
