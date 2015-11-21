@@ -394,6 +394,6 @@ should be used with the `load` command, like this:
 ````bash
 
 ![Sphere gnuplot image](Sphere_gnuplot.png)
-[scuffScatter]:             ../applications/scuff-scatter/scuff-scatter.md
-[scuffCaspol]:              ../applications/scuff-caspol/scuff-caspol.md
-[scuffNEQ]:                 ../applications/scuff-neq/scuff-neq.md
+[scuffScatter]:             ../scuff-scatter/scuff-scatter.md
+[scuffCaspol]:              ../scuff-caspol/scuff-caspol.md
+[scuffNEQ]:                 ../scuff-neq/scuff-neq.md
