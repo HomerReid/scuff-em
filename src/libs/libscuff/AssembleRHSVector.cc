@@ -431,7 +431,7 @@ HVector *RWGGeometry::AllocateRHSVector(bool PureImagFreq)
 { 
   HVector *V;
 
-  if (PureImagFreq)
+  if (PureImagFreq && LDim==0)
    V=new HVector(TotalBFs,LHM_REAL);
   else
    V=new HVector(TotalBFs,LHM_COMPLEX);
