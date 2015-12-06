@@ -132,8 +132,8 @@ typedef void PCFunction2(double x[3], double b[3], void *UserData,
                          double Weight, double *Integral);
 
 
-typedef void PPCFunction2(double x[3], double b[3],
-                          double xp[3], double bp[3],
+typedef void PPCFunction2(double x[3], double b[3], double Divb,
+                          double xp[3], double bp[3], double Divbp,
                           void *UserData,
                           double Weight, double *Integral);
 

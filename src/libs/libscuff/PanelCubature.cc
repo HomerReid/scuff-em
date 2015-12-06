@@ -808,10 +808,11 @@ void GetBFBFCubature2(RWGGeometry *G,
      for(int PM=0; PM<NumPM; PM++)
       { 
         double b[3], X[3], Sign=(PM==0) ? 1.0 : -1.0;
+        double PreFac=Sign*Length/(2.0*Area[PM]);
         for(int Mu=0; Mu<3; Mu++)
          { b[Mu] = u*A[PM][Mu] + v*B[PM][Mu];
            X[Mu] = b[Mu]       + Q[PM][Mu];
-           b[Mu] *= Sign*Length/(2.0*Area[PM]);
+           b[Mu] *= PreFac;
          };
 
         for(int npP=0, ncpP=0; npP<NumPts; npP++)
@@ -823,13 +824,15 @@ void GetBFBFCubature2(RWGGeometry *G,
            for(int PMP=0; PMP<NumPMP; PMP++)
             { 
               double bP[3], XP[3], SignP=(PMP==0) ? 1.0 : -1.0;
+              double PreFacP=SignP*LengthP/(2.0*AreaP[PMP]);
               for(int Mu=0; Mu<3; Mu++)
                { bP[Mu] = uP*AP[PMP][Mu] + vP*BP[PMP][Mu];
                  XP[Mu] = bP[Mu]         + QPArray[PMP][Mu];
-                 bP[Mu] *= SignP*LengthP/(2.0*AreaP[PMP]);
+                 bP[Mu] *= PreFacP;
                };
+  
 
-              Integrand(X,b,XP,bP,UserData,
+              Integrand(X,b,2.0*PreFac,XP,bP,2.0*PreFacP,UserData,
                         4.0*Area[PM]*AreaP[PMP]*w*wP,Integral);
             };
          };        

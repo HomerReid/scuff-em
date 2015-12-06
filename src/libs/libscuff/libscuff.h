@@ -613,8 +613,7 @@ double *VecAdd(const double v1[3], const double v2[3], double v3[3]);
 double *VecSub(const double v1[3], const double v2[3], double v3[3]);
 double *VecPlusEquals(double v1[3], double alpha, const double v2[3]);
 double *VecCross(const double v1[3], const double v2[3], double v3[3]);
-double *VecLinComb(double alpha, const double v1[3], double beta, const double v2[3], 
-                   double v3[3]);
+double *VecLinComb(double alpha, const double v1[3], double beta, const double v2[3], double v3[3]);
 double VecDot(const double v1[3], const double v2[3]);
 double VecDistance(const double v1[3], const double v2[3]);
 double VecDistance2(const double v1[3], const double v2[3]);

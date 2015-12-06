@@ -317,7 +317,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
    };
 
   /***************************************************************/
-  /* The remainder of this routine is now for the PBC case only, */ 
+  /* The remainder of this routine is now for the PBC case only, */
   /* and it consists of two main steps: (a) assemble the kBloch- */
   /* independent contributions of the innermost grid cells and   */
   /* stamp them appropriately into the matrix; then (b) add the  */

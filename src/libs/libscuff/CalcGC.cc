@@ -198,14 +198,19 @@ void CalcGC(double R1[3], double R2[3], cdouble Omega, cdouble EpsR, cdouble MuR
    };
 #endif
 /***************************************************************/
-cdouble GetG(double R[3], cdouble k, cdouble *dGBar, cdouble *ddGBar)
+cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG)
 {
   double r2 = R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
 
   if (r2==0.0)
-   { if (dGBar)  memset(dGBar,  0, 3*sizeof(cdouble));
-     if (ddGBar) memset(ddGBar, 0, 9*sizeof(cdouble));
-     return 0.0;
+   {
+     memset(dG,  0, 3*sizeof(cdouble));
+     if (ddG) 
+      { memset(ddG, 0, 9*sizeof(cdouble));
+        cdouble ddGii = -II*(k*k*k/(12.0*M_PI));
+        ddG[3*0+0] = ddG[3*1+1] = ddG[3*2+2] = ddGii;
+      };
+     return II*k/(4.0*M_PI);
    };
 
   double r     = sqrt(r2);
@@ -213,25 +218,25 @@ cdouble GetG(double R[3], cdouble k, cdouble *dGBar, cdouble *ddGBar)
 
   cdouble Phi = exp(ikr)/(4.0*M_PI*r);
 
-  if (dGBar || ddGBar)
+  if (dG|| ddG)
    {  
      cdouble Psi = Phi * (ikr - 1.0) / r2;
-     if (dGBar)
-      { dGBar[0] = R[0] * Psi;
-        dGBar[1] = R[1] * Psi;
-        dGBar[2] = R[2] * Psi;
+     if (dG)
+      { dG[0] = R[0] * Psi;
+        dG[1] = R[1] * Psi;
+        dG[2] = R[2] * Psi;
       };
 
-     if (ddGBar)
+     if (ddG)
       { double r4     = r2*r2;
         cdouble ikr2  = ikr*ikr;
         cdouble Zeta  = Phi * (ikr2 - 3.0*ikr + 3.0) / r4;
-        ddGBar[3*0+0] = Psi + R[0]*R[0]*Zeta;
-        ddGBar[3*1+1] = Psi + R[1]*R[1]*Zeta;
-        ddGBar[3*2+2] = Psi + R[2]*R[2]*Zeta;
-        ddGBar[3*0+1] = ddGBar[3*1+0] = R[0]*R[1]*Zeta;
-        ddGBar[3*0+2] = ddGBar[3*2+0] = R[0]*R[2]*Zeta;
-        ddGBar[3*1+2] = ddGBar[3*2+1] = R[1]*R[2]*Zeta;
+        ddG[3*0+0] = Psi + R[0]*R[0]*Zeta;
+        ddG[3*1+1] = Psi + R[1]*R[1]*Zeta;
+        ddG[3*2+2] = Psi + R[2]*R[2]*Zeta;
+        ddG[3*0+1] = ddG[3*1+0] = R[0]*R[1]*Zeta;
+        ddG[3*0+2] = ddG[3*2+0] = R[0]*R[2]*Zeta;
+        ddG[3*1+2] = ddG[3*2+1] = R[1]*R[2]*Zeta;
       };
    };
 
