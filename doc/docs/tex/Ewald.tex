@@ -684,6 +684,47 @@ where $\vb x=(x,y)$, $\vb k=(k_x, k_y)$, and
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{3D}
+
+%====================================================================%
+\begin{align*}
+ G\sups{long}(r)
+   &=G\sups{long}\Big( \sqrt{x^2 + y^2 + z^2} \Big)
+\\
+   &=\int_{-\infty}^\infty 
+     \wt{G\sups{long}}(\vb k) e^{i\vb k \cdot \vb x} \, d\vb k
+\end{align*}
+%$$====================================================================%
+where $\vb x=(x,y,z)$, $\vb k=(k_x, k_y, k_y)$, and 
+%====================================================================%
+\begin{align*}
+ \wt{G\sups{long}}(\vb k; z)
+   &=\frac{1}{(2\pi)^3} \int
+     G\sups{long}\Big( \sqrt{x^2 + y^2 + z^2} \Big) e^{-i\vb k \cdot \vb x} 
+     \, d\vb x.
+\intertext{Insert (\ref{GLong}):}
+   &=\frac{1}{16\pi^{9/2}}
+     \int_{\mc C_1} \, du \, e^{\frac{k^2}{4u^2}}
+     \underbrace{
+     \Big[\int_{-\infty}^\infty e^{-u^2 x^2 - ik_x x} \, dx\Big]
+                }
+              _{\sqrt{\pi} \cdot u^{-1} \cdot e^{-k_x^2 / 4u^2 }}
+     \underbrace{
+     \Big[\int_{-\infty}^\infty e^{-u^2 y^2 - ik_x y} \, dy\Big]
+                }
+              _{\sqrt{\pi} \cdot u^{-1} \cdot e^{-k_y^2 / 4u^2 }}
+     \underbrace{
+     \Big[\int_{-\infty}^\infty e^{-u^2 z^2 - ik_z z} \, dy\Big]
+                }
+              _{\sqrt{\pi} \cdot u^{-1} \cdot e^{-k_z^2 / 4u^2 }}
+\\
+&=\frac{1}{16\pi^3} \int_{\mc C_1} \frac{du}{u^{3/2}}
+        e^{\frac{k^2-|\vb k|^2}{(4u^2)}}
+\end{align*}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
 \section{Short-distance behavior of $G\sups{long}$ in real space}
 
