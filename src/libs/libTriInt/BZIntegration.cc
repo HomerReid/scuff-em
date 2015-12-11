@@ -32,6 +32,38 @@
 #include "libhrutil.h"
 #include "libTriInt.h"
 
+#ifdef HAVE_DCUTRI
+ void *CreateDCUTRIWorkspace(int numfun, int maxpts);
+ int DCUTRI(void *opW, double **Vertices, TriIntFun func,
+            void *parms, double epsabs, double epsrel,
+            double *I, double *abserr);
+#else
+
+void *CreateDCUTRIWorkspace(int numfun, int maxpts)
+{ (void) numfun;
+  (void) maxpts;
+  ErrExit("SCUFF-EM was not compiled with DCUTRI; configure --with-dcutri");
+  return 0;
+}
+
+int DCUTRI(void *opW, double **Vertices, TriIntFun func,
+           void *parms, double epsabs, double epsrel,
+           double *I, double *abserr)
+{ 
+  (void)opW; 
+  (void)Vertices;
+  (void)func;
+  (void)parms;
+  (void)epsabs;
+  (void)epsrel;
+  (void)I;
+  (void)abserr;
+
+  CreateDCUTRIWorkspace(0,0);
+  return 0;
+}
+#endif
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -40,6 +72,7 @@ int BZIntegrand_PCubature(unsigned ndim, const double *u,
                           double *BZIntegrand)
 {
   (void) ndim; // unused
+  (void) fdim; // unused
 
   /*--------------------------------------------------------------*/
   /*- unpack fields from user data structure ---------------------*/
@@ -95,7 +128,7 @@ void GetBZIntegral_PCubature(GetBZIArgStruct *Args,
    Upper[0]=Upper[1]=0.5;
   Args->Omega = Omega;
   pcubature(FDim, BZIntegrand_PCubature, (void *)Args, LDim,
-	    Lower, Upper, MaxPoints, 0.0, RelTol,
+	    Lower, Upper, MaxPoints, AbsTol, RelTol,
 	    ERROR_INDIVIDUAL, BZIntegral, BZIError);
  
 }
@@ -113,7 +146,6 @@ void BZIntegrand_TriCub(double *u, void *pArgs, double *BZIntegrand)
   BZIFunction *BZIFunc   = Args->BZIFunc;
   void *UserData         = Args->UserData;
   HMatrix *RLBasis       = Args->RLBasis;
-  int LDim               = RLBasis->NR;
 
   /*--------------------------------------------------------------*/
   /*- convert (ux, uy) variable to kBloch ------------------------*/
@@ -133,106 +165,53 @@ void BZIntegrand_TriCub(double *u, void *pArgs, double *BZIntegrand)
 }
 
 /***************************************************************/
+/* triangle cubature                                           */
+/* Order = {0, 1, 2, 4, 5, 7, 9, 13, 14, 16, 20, 25}           */
 /***************************************************************/
-/***************************************************************/
-#ifdef HAVE_DCUTRI
-
-void *CreateDCUTRIWorkspace(int numfun, int maxpts);
-typedef void (*dcutri_func)(double *x, void *parms, double *f);
-void DCUTRI(void *opW, double **Vertices, dcutri_func func, 
-            void *parms, double epsabs, double epsrel, 
-            double *I, double *abserr);
-
-void GetBZIntegral_DCUTRI(GetBZIArgStruct *Args, cdouble Omega,
-                          double *BZIntegral)
-{
-  int LDim         = Args->LBasis->NR;
-  int FDim         = Args->FDim;
-  int MaxPoints    = Args->MaxPoints;
-  double AbsTol    = Args->AbsTol;
-  double RelTol    = Args->RelTol;
-  double *BZIError = Args->BZIError;
-  bool BZSymmetric = Args->BZSymmetric;
-  bool Reduced     = Args->Reduced;
-  
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  static int FDimSave=0;
-  static int MaxPointsSave=0;
-  static void *Workspace=0;
-  if (FDimSave!=FDim || MaxPointsSave!=MaxPoints )
-   { FDimSave=FDim;
-     MaxPointsSave=MaxPoints;
-     if (Workspace) free(Workspace);
-     Workspace=CreateDCUTRIWorkspace(FDim, MaxPoints);
-   };
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  double V1[3]={0.0, 0.0, 0.0};
-  double V2[3]={0.5, 0.0, 0.0};
-  double V3[3]={0.5, 0.5, 0.0};
-  if (Reduced)
-   V2[0]=V3[1]=V2[3]=0.5;
-  double *Vertices[3]={V1, V2, V3};
-  Args->Omega=Omega;
-  DCUTRI(Workspace, Vertices, BZIntegrand_TriCub, (void *)Args,
-         AbsTol, RelTol, BZIntegral, BZIError);
-
-  if (BZSymmetric)
-   { for(int n=0; n<FDim; n++)
-      { BZIntegral[n]*=2.0;
-        BZIError[n]*=2.0;
-      };
-   }
-  else
-   { 
-     V2[1]=V2[0]; V2[0]=0.0;
-     double *Result2=new double[FDim];
-     double *Error2=new double[FDim];
-     DCUTRI(Workspace, Vertices, BZIntegrand_TriCub, (void *)Args,
-            AbsTol, RelTol, Result2, Error2);
-     for(int nf=0; nf<FDim; nf++)
-      { Result[nf]   += Result2[nf];
-        BZIError[nf] += Error2[nf];
-      };
-     delete[] Result2;
-     delete[] Error2;
-   };
-}
-#else
-void GetBZIntegral_DCUTRI(GetBZIArgStruct *Args, cdouble Omega,
-                          double *BIntegral)
- { ErrExit("SCUFF-EM was not compiled with DCUTRI support; configure --with-dcutri"); }
-#endif
-
-/***************************************************************/
-/* fixed-order triangle cubature                               */
-/* Order = {1, 2, 4, 5, 7, 9, 13, 14, 16, 20, 25}              */
-/***************************************************************/
-void GetBZIntegral_FOTC(GetBZIArgStruct *Args, cdouble Omega,
-                        double *BZIntegral)
+void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
+                      double *BZIntegral)
 {
   int Order              = Args->Order;
   bool BZSymmetric       = Args->BZSymmetric;
   bool Reduced           = Args->Reduced;
   int FDim               = Args->FDim;
 
-  int NumPts;
-  double *TCR=GetTCR(Order, &NumPts);
-  if (TCR==0)
-   ErrExit("unsupported FOTC order %i",Order);
-
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  static int FDimSave=0, MaxPointsSave=0;
+  static void *Workspace=0;
+  static double *Error=0;
+  if (Order==0)
+   {
+     if (FDimSave!=FDim || MaxPointsSave!=Args->MaxPoints )
+      { FDimSave=FDim;
+        MaxPointsSave=Args->MaxPoints;
+        if (Workspace) free(Workspace);
+        Workspace=CreateDCUTRIWorkspace(FDim, Args->MaxPoints);
+        Error=(double *)reallocEC(Error, FDim*sizeof(double));
+      };
+   };
+  
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   double V1[3]={0.0, 0.0, 0.0};
   double V2[3]={1.0, 0.0, 0.0};
   double V3[3]={1.0, 1.0, 0.0};
+  double *Vertices[3]={V1,V2,V3};
   if (Reduced)
-   V2[0]=V3[1]=V2[3]=0.5;
-  Args->Omega=Omega;
-  TriIntFixed(BZIntegrand_TriCub, FDim, (void *)Args,
-              V1, V2, V3, Order, BZIntegral);
+   V2[0]=V3[0]=V3[1]=0.5;
+  Args->Omega=Omega; 
+
+  if (Order==0)
+   Args->NumCalls = DCUTRI(Workspace, Vertices, 
+                             BZIntegrand_TriCub, (void *) Args,
+                             Args->AbsTol, Args->RelTol, 
+                             BZIntegral, Error);
+  else
+   Args->NumCalls = TriIntFixed(BZIntegrand_TriCub, FDim, (void *)Args,
+                                V1, V2, V3, Order, BZIntegral);
   
   if (BZSymmetric)
    { for(int nf=0; nf<FDim; nf++)
@@ -241,14 +220,20 @@ void GetBZIntegral_FOTC(GetBZIArgStruct *Args, cdouble Omega,
   else
    { V2[1]=V2[0]; V2[0]=0.0;
      double *F2=new double[FDim];
-     TriIntFixed(BZIntegrand_TriCub, FDim, (void *)Args,
-                 V1, V2, V3, Order, F2);
+     if (Order==0)
+      Args->NumCalls += DCUTRI(Workspace, Vertices, 
+                               BZIntegrand_TriCub, (void *) Args,
+                               Args->AbsTol, Args->RelTol, 
+                               F2, Error);
+     else
+      Args->NumCalls += TriIntFixed(BZIntegrand_TriCub, FDim, (void *)Args,
+                                    V1, V2, V3, Order, F2);
+
      for(int nf=0; nf<FDim; nf++)
       BZIntegral[nf] += F2[nf];
      delete[] F2;
    };
 
-  Args->NumCalls = BZSymmetric ? NumPts : 2*NumPts;
 }
 
 /***************************************************************/
@@ -398,11 +383,8 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
      case BZI_CC:
       GetBZIntegral_CC(Args, Omega, BZIntegral);
       break;
-     case BZI_FOTC:
-      GetBZIntegral_FOTC(Args, Omega, BZIntegral);
-      break;
-     case BZI_DCUTRI:
-      GetBZIntegral_DCUTRI(Args, Omega, BZIntegral);
+     case BZI_TC:
+      GetBZIntegral_TC(Args, Omega, BZIntegral);
       break;
    };
 

@@ -127,6 +127,10 @@ LIBS="$LAPACK_LIBS $BLAS_LIBS $LIBS $FLIBS"
 ##################################################
 AC_CHECK_LIB(readline, readline)
 
+AC_LANG_PUSH([C++])
+AC_CHECK_LIB(DCUTRI, DCUTRI)
+AC_LANG_POP
+
 ##################################################
 # checks for backtrace functionality, used to 
 # output useful debugging info to log files in
