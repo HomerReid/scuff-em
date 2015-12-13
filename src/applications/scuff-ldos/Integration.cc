@@ -32,27 +32,6 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteLDOS(SLDData *Data, cdouble Omega,
-               double *Result, double *Error)
-{
-  FILE *f=vfopen(Data->OutFileName,"a");
-  HMatrix *XMatrix=Data->XMatrix;
-  for(int nx=0; nx<XMatrix->NR; nx++)
-   { 
-     double X[3];
-     XMatrix->GetEntriesD(nx,":",X);
-     int NFun = (Data->LDOSOnly ? 2 : 20);
-     fprintf(f,"%e %e %e %s ", X[0],X[1],X[2], z2s(Omega));
-     for(int nf=0; nf<NFun; nf++) 
-      fprintf(f,"%e %e ",Result[NFun*nx+nf], Error ? Error[NFun*nx+nf] : 0.0);
-     fprintf(f,"\n");
-   };
-  fclose(f);
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 int BZIntegrand_PCubature(unsigned ndim, const double *u, void *UserData,
                           unsigned fdim, double *fval)
 {

@@ -27,6 +27,7 @@
 
 #include <libhrutil.h>
 #include <libhmat.h>
+#include <libTriInt.h>
 #include "libscuff.h"
 
 using namespace scuff;
@@ -48,20 +49,20 @@ typedef struct SLDData
    // data on the BEM geometry and linear algebra workspaces
    RWGGeometry *G;
    HMatrix *M;
-   HVector *KN;
-   void **ABMBCache;
-   double RLBasis[2][2];
-   double BZVolume;
 
-   // data on evaluation points 
-   HMatrix *XMatrix;
+   // data on evaluation points and DGFs at evaluation points
+   HMatrix *XMatrix, *GMatrix;
+
+   // fields relevant for periodic geometries
+   void **ABMBCache;
+   HMatrix *LBasis;
+   double BZVolume;
 
    // other miscellaneous options
    double RelTol;
    int MaxEvals;
    char *FileBase;
    bool LDOSOnly;
-   bool BZSymmetry;
    char *ByKFileName;
    char *OutFileName;
    MatProp *HalfSpaceMP;
@@ -75,12 +76,15 @@ typedef struct SLDData
 /***************************************************************/
 /* Function prototypes *****************************************/
 /***************************************************************/
+void WriteLDOS(SLDData *Data, cdouble Omega,
+               double *Result, double *Error);
+
 // CreateLDOSData.cc
 void WriteFilePreamble(char *FileName, int FileType, int LDim);
 SLDData *CreateSLDData(char *GeoFile, char *EPFile);
 
 // GetLDOS.cc
-void GetLDOS(SLDData *Data, cdouble Omega, double *kBloch, 
+void GetLDOS(void *Data, cdouble Omega, double *kBloch, 
              double *Result);
 
 // Integration.cc

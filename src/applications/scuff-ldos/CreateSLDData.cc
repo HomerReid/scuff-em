@@ -90,14 +90,18 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
 /***************************************************************/
 SLDData *CreateSLDData(char *GeoFile, char *EPFile)
 {
+  SetDefaultCD2SFormat("%.8e %.8e");
+
   SLDData *Data=(SLDData *)mallocEC(sizeof(*Data));
+  Data->RelTol      = 1.0e-2;
+  Data->MaxEvals    = 1000;
+  Data->HalfSpaceMP = 0;
 
   /***************************************************************/
   /* read in geometry and allocate BEM matrix and RHS vector     */
   /***************************************************************/
   RWGGeometry *G = Data->G = new RWGGeometry(GeoFile);
   Data->M = G->AllocateBEMMatrix();
-  Data->KN= G->AllocateRHSVector();
 
   /***************************************************************/
   /* read in list of evaluation points ***************************/
@@ -106,10 +110,13 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
   if (Data->XMatrix->ErrMsg)
    ErrExit(Data->XMatrix->ErrMsg); 
 
+  Data->GMatrix = new HMatrix(Data->XMatrix->NR, 18, LHM_COMPLEX);
+
   /***************************************************************/
   /* For PBC geometries we need to do some preliminary setup     */
   /***************************************************************/
   Data->ABMBCache=0;
+  Data->LBasis=0;
   if (G->LDim>0)
    { 
      int NS = G->NumSurfaces;
@@ -119,36 +126,20 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
       for(int nsb=nsa; nsb<NS; nsb++, nb++)
        Data->ABMBCache[nb]=G->CreateABMBAccelerator(nsa, nsb, false, false);
 
-     if (G->LDim==1)
-      { 
-        if (G->LBasis[0][1]!=0.0)
-         ErrExit("1D lattices must have lattice vector parallel to X axis");
-
-        Data->RLBasis[0][0]=2.0*M_PI/(G->LBasis[0][0]);
-        Data->RLBasis[0][1]=0.0;
-        Data->BZVolume = Data->RLBasis[0][0];
-      }
-     else // (G->LDim==2)
-      { 
-        double Area= G->LBasis[0][0]*G->LBasis[1][1] - G->LBasis[0][1]*G->LBasis[1][0];
-        if (Area==0.0)
-         ErrExit("%s:%i: lattice has empty unit cell",__FILE__,__LINE__);
-        Data->RLBasis[0][0] =  2.0*M_PI*G->LBasis[1][1] / Area;
-        Data->RLBasis[0][1] = -2.0*M_PI*G->LBasis[0][1] / Area;
-        Data->RLBasis[1][0] = -2.0*M_PI*G->LBasis[1][0] / Area;
-        Data->RLBasis[1][1] =  2.0*M_PI*G->LBasis[0][0] / Area;
-
-        Data->BZVolume= Data->RLBasis[0][0]*Data->RLBasis[1][1] 
-                         - Data->RLBasis[0][1]*Data->RLBasis[1][0];
+     HMatrix *LBasis = Data->LBasis = new HMatrix(G->LDim,3);
+     LBasis->SetEntry(0,0,G->LBasis[0][0]);
+     LBasis->SetEntry(0,1,G->LBasis[0][1]);
+     if (G->LDim>1)
+      { LBasis->SetEntry(1,0,G->LBasis[1][0]);
+        LBasis->SetEntry(1,1,G->LBasis[1][1]);
       };
+
    };
 
-  Data->RelTol      = 1.0e-2;
-  Data->MaxEvals    = 1000;
-  Data->HalfSpaceMP = 0;
 
-  SetDefaultCD2SFormat("%.8e %.8e");
-
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   return Data;
 }
 

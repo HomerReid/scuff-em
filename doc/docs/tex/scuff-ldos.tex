@@ -17,6 +17,7 @@
 %\newcommand{\vbchi}{\boldsymbol{\chi}}
 \newcommand{\vbGamma}{\boldsymbol{\Gamma}}
 \newcommand{\wh}{\widehat}
+\newcommand{\wt}{\widetilde}
 
 \graphicspath{{figures/}}
 
@@ -249,6 +250,291 @@ $$ \frac{1}{\mc V\subt{BZ}}
   =4\int_0^{1/2} \, d u_1 \, \int_0^{1/2} \, d u_2 \, 
    f\Big( u_1\vbGamma_1 + u_y\vbGamma_2 \Big)
 $$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Vector-Matrix-Vector product formula for dyadic Green's functions}
+
+In the discretized BEM framework we can write convenient
+vector-matrix-vector product formulas for the scattering parts
+of the electric and magnetic DGFs.
+
+\subsection*{VMVP formula for $\bmc G\supt{E}$}
+
+Consider first the electric DGF
+$\bmc G\supt{E}_{ij}(\vb x\subt{D}, \vb x\subt{S})$
+where the subscripts stand for ``destination'' and ``source.''
+To get at this, we must solve a scattering problem in which 
+the incident fields are the fields radiated by a 
+$j$-directed point dipole source $\vb p=p_0\vbhat{n}_j$
+at $\vb x\subt{S}$:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{VMVEHInc}
+{
+ \left\{\begin{array}{c}
+ E_\ell\sups{inc}(\vb x) \\[8pt] 
+ H_\ell\sups{inc}(\vb x)
+ \end{array}\right\}
+%--------------------------------------------------------------------%
+= -i\omega p_0
+  \left\{\begin{array}{c}
+   \Gamma_{\ell j}\supt{EE}(\vb x, \vb x\subt{S}) \\[8pt]
+   \Gamma_{\ell j}\supt{ME}(\vb x, \vb x\subt{S})
+  \end{array}\right\}
+%--------------------------------------------------------------------%
+= (-i\omega p_0)(ik)
+  \left\{\begin{array}{r}
+  Z\mb G_{\ell j}(\vb x, \vb x\subt{S}) 
+   \\[8pt]
+   -\mb C_{\ell j}(\vb x, \vb x\subt{S})
+  \end{array}\right\}
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The scattered electric field
+at $\vb x\subt{D}$ is obtained from the surface currents
+$\vb K, \vb N$ according to 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+ E_i\sups{scat}(\vb x\subt{D})
+%--------------------------------------------------------------------%
+&=\int 
+  \left\{\begin{array}{c}
+   \Gamma_{i \ell}\supt{EE}(\vb x\subt{D}, \vb x) 
+   \\[8pt]
+   \Gamma_{i \ell}\supt{EM}(\vb x\subt{D}, \vb x) 
+  \end{array}\right\}^T
+  \left\{\begin{array}{c}
+   K_\ell(\vb x) 
+   \\[8pt]
+   N_\ell(\vb x)
+  \end{array}\right\}
+  \, d\vb x
+\\
+%--------------------------------------------------------------------%
+&= ik
+  \int 
+  \left\{\begin{array}{r}
+  Z\mb G_{i \ell}(\vb x\subt{D}, \vb x) 
+   \\[8pt]
+  \mb C_{i \ell}(\vb x\subt{D}, \vb x) 
+  \end{array}\right\}^T
+  \left\{\begin{array}{r}
+K_\ell(\vb x)
+   \\[8pt]
+N_\ell(\vb x) 
+  \end{array}\right\}
+  \, d\vb x 
+\intertext{Insert the expansions
+           $\vb K(\vb x)=\sum k_a \vb b_a(\vb x)$, 
+           $\vb N(\vb x)=-Z_0 \sum n_a \vb b_a(\vb x)$:}
+%--------------------------------------------------------------------%
+&= ikZ \sum_{a}
+  \left\{\begin{array}{r}
+  g_a(\vbhat{x}\subt{D}, \vbhat{n}_i)
+   \\[8pt]
+  -c_a(\vbhat{x}\subt{D}, \vbhat{n}_i)
+  \end{array}\right\}^T
+  \left\{\begin{array}{r}
+   k_a 
+   \\[8pt]
+   n_a
+  \end{array}\right\}
+  \, d\vb x
+\label{EScatKN}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where I defined
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+  g_a(\vb{x}\subt{D}, \vbhat{n}_i)
+\equiv \int \mb G_{i \ell}(\vb x\subt{D}, \vb x) b_{a\ell}(\vb x) \, d\vb x,
+  \qquad
+  c_a(\vb{x}\subt{D}, \vbhat{n}_i)
+\equiv\int \mb C_{i \ell}(\vb x\subt{D}, \vb x) b_{a\ell}(\vb x) \, d\vb x.
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The surface-current expansion coefficients are obtained by solving
+the BEM system:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{VMVBEMSystem}
+{
+ \left(\begin{array}{c} k_a \\ n_a\end{array}\right)
+= -W_{ab} \left(\begin{array}{l} e_b \\ h_b\end{array}\right).
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Here $\vb W$ is the inverse BEM matrix and $e_b, h_b$ are the 
+projections of the incident field onto the basis functions:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ e_b 
+&\equiv \frac{1}{Z_0} \Inp{\vb b_m}{\vb E\sups{inc}}
+ = (-i\omega p_0)(ik) 
+  \int b_{b\ell}(\vb x) \mb G_{\ell j}(\vb x, \vb x\subt{S}) \,dx
+\nn
+&= (-i\omega p_0)(ik) g_b(\vb x\subt{S}, \vbhat{n}_j)
+\\[6pt]
+ h_b 
+&\equiv \hphantom{\frac{1}{Z_0}} \Inp{\vb b_m}{\vb H\sups{inc}}
+ =(-i\omega p_0)(ik) \left[-\int b_{b\ell}(\vb x) 
+                  \mb C_{\ell j}(\vb x, \vb x\subt{S}) \,dx\right] 
+\nn
+&= -(-i\omega p_0)(ik) c_b(\vb x\subt{S}, \vbhat{n}_j) 
+\end{align}
+\label{ebhb}
+\end{subequations}
+where I used the reciprocity relation
+[$\mb O_{ij}(\vb x, \vb y)=\mb O_{ji}(\vb y, \vb x)$
+ for $\mb O=\{\mb G, \mb C\}$]
+to express the integrals here in terms of the quantities
+$g_a, c_a$ defined above. 
+Inserting (\ref{VMVBEMSystem}) and (\ref{ebhb}) into
+(\ref{EScatKN}), the scattered field at $x\subt{D}$ reads
+%====================================================================%
+\begin{align}
+  \left\{\begin{array}{c} 
+ E_i\sups{scat}(\vb x\subt{D}) \\[8pt] 
+ H_i\sups{scat}(\vb x\subt{D})
+ \end{array}\right\}
+&=(ik)^2 (i\omega p_0) Z \sum_a
+  \underbrace{
+  \left\{\begin{array}{c} 
+     g_a(\vb x\subt{D}, \vbhat{n}_i) \\[4pt]
+    -c_a(\vb x\subt{D}, \vbhat{n}_i) 
+  \end{array}\right\}^T
+             }_{\equiv v_a(\vb x\subt{D}, \vbhat{n}_i)}
+  \left(
+ \vphantom{
+  \left\{\begin{array}{c} 
+     g_a(\vb x\subt{D}, \vbhat{n}_i) \\[4pt]
+    -c_a(\vb x\subt{D}, \vbhat{n}_i) 
+  \end{array}\right\}^T
+          }
+         W_{ab}
+  \right)
+  \underbrace{
+  \left\{\begin{array}{c} 
+    g_b(\vb x\subt{S}, \vbhat{n}_j) \\[4pt]
+    -c_b(\vb x\subt{S}, \vbhat{n}_j) 
+  \end{array}\right\}
+             }_{\equiv v_b(\vb x\subt{S}, \vbhat{n}_j)}
+\end{align}
+and the scattering part of the electric DGF reads
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{GijEVMVP}
+{
+ \mc G_{ij}\supt{E}(\vb x\subt{D}, \vb x\subt{S})
+= \frac{E_i\sups{scat}}{(ikZ)(-i\omega p_0)}
+= -(ik) \vb v(\vb x\subt{D}, \vbhat n_{i})^T \vb W
+        \vb v(\vb x\subt{S}, \vbhat n_{j}).
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{VMVP formula for $\bmc G\supt{M}$}
+
+Computing the magnetic Green's function entails the following
+modifications:
+\begin{itemize}
+ \item The incident fields now arise from a point magnetic source
+       of strength $m_0$. This changes equation (\ref{VMVEHInc})
+       to read
+%====================================================================%
+$$
+ \left\{\begin{array}{c}
+ E_\ell\sups{inc}(\vb x) \\[8pt]
+ H_\ell\sups{inc}(\vb x)
+ \end{array}\right\}
+= -i\omega m_0
+  \left\{\begin{array}{r}
+   \Gamma_{\ell j}\supt{EM}(\vb x, \vb x\subt{S}) \\[8pt]
+   \Gamma_{\ell j}\supt{MM}(\vb x, \vb x\subt{S})
+  \end{array}\right\}
+= (-i\omega m_0) (ik)
+  \left\{\begin{array}{r}
+        \mb C_{\ell j}(\vb x, \vb x\subt{S}) \\[8pt]
+  Z^{-1}\mb G_{\ell j}(\vb x, \vb x\subt{S})
+  \end{array}\right\}
+$$
+%====================================================================%
+ \item The quantity I want to compute is the scattered magnetic
+       field. This replaces equation (\ref{EScatKN}) with
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+ H_i\sups{scat}(\vb x\subt{D})
+%--------------------------------------------------------------------%
+&=\int 
+  \left\{\begin{array}{c}
+   \Gamma_{i \ell}\supt{ME}(\vb x\subt{D}, \vb x) 
+   \\[8pt]
+   \Gamma_{i \ell}\supt{MM}(\vb x\subt{D}, \vb x) 
+  \end{array}\right\}^T
+  \left\{\begin{array}{c}
+   K_\ell(\vb x) 
+   \\[8pt]
+   N_\ell(\vb x)
+  \end{array}\right\}
+  \, d\vb x
+\\
+%--------------------------------------------------------------------%
+&= -ik \sum_{a}
+  \left\{\begin{array}{r}
+  c_a(\vb {x}\subt{D}, \vbhat{n}_i)
+   \\[8pt]
+  g_a(\vb {x}\subt{D}, \vbhat{n}_i)
+  \end{array}\right\}^T
+  \left\{\begin{array}{r}
+   k_a 
+   \\[8pt]
+   n_a
+  \end{array}\right\}
+\label{HScatKN}
+\end{align}
+\end{itemize}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The expression analogous to (\ref{GEVMVP}) for the scattered
+magnetic field due to a magnetic source then reads
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ H\sups{scat}_i
+&=-(ik)^2 \left(i\omega m_0 Z_0^{-1}\right)
+  \underbrace{
+  \left(\begin{array}{c} 
+      c_a(\vb x\subt{D}, \vbhat{n}_i)  \\[4pt]
+      g_a(\vb x\subt{D}, \vbhat{n}_i)  
+  \end{array}\right)^T
+             }_{\equiv \wt{v}_a(\vb x\subt{D}, \vbhat{n}_i)}
+%%====================================================================%
+  \left(
+ \vphantom{
+  \left\{\begin{array}{c} 
+     g_a(\vb x\subt{D}, \vbhat{n}_i) \\[4pt]
+    -c_a(\vb x\subt{D}, \vbhat{n}_i) 
+  \end{array}\right\}^T
+          }
+         W_{ab}
+  \right)
+%====================================================================%
+  \underbrace{
+  \left(\begin{array}{c} 
+     c_b(\vb x\subt{S}, \vbhat{n}_j)  \\[4pt]
+     g_b(\vb x\subt{S}, \vbhat{n}_j)  
+  \end{array}\right)
+             }_{\equiv \wt{v}_b(\vb x\subt{S}, \vbhat{n}_j)}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+and the scattering part of the magnetic DGF reads
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{GijMVMVP}
+{
+ \mc G_{ij}\supt{M}(\vb x\subt{D}, \vb x\subt{S})
+= \frac{H_i\sups{scat}}{(ikZ^{-1})(-i\omega m_0)}
+= +ik \wt{\vb v}(\vb x\subt{D}, \vbhat n_{i})^T \vb W
+      \wt{\vb v}(\vb x\subt{S}, \vbhat n_{j}).
+}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

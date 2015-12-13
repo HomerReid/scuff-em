@@ -675,11 +675,6 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         RWGEdge *E = Edges[ne];
         int iV1    = E->iV1;
         int iV2    = E->iV2;
-        double *V1 = Vertices + 3*iV1;
-        double *V2 = Vertices + 3*iV2;
-        double *PCentroid = Panels[E->iPPanel]->Centroid;
-        double *MCentroid
-         = (E->iMPanel==-1) ? E->Centroid : Panels[E->iMPanel]->Centroid;
 
         double TotalArea = Panels[E->iPPanel]->Area;
         if (E->iMPanel!=-1) TotalArea+=Panels[E->iMPanel]->Area;
