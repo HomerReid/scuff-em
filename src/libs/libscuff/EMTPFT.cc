@@ -263,8 +263,6 @@ void PFTIntegrand_BFInc(double *x, PCData *PCD,
   b[2] = real(PCD->K[2]);
 
   PFTIntegrandData *PFTIData=(PFTIntegrandData *)UserData;
-  cdouble k       = PFTIData->k;
-  double kAbs     = abs(k);
   IncField *IF    = PFTIData->IF;
   double *XTorque = PFTIData->XTorque;
 

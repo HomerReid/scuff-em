@@ -390,7 +390,14 @@ class RWGGeometry
    HMatrix *GetFieldsGrid(SurfaceGrid &grid, const char *expr,
 			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL);
 
-   /* routine for computing dyadic green's functions */
+   /* routine for computing dyadic green's functions, */
+   /* overhauled for efficiency 12/12/2015            */
+   HMatrix *GetDyadicGFs(cdouble Omega, double *kBloch,
+                         HMatrix *XMatrix, HMatrix *M,
+                         HMatrix *GMatrix);
+  
+   // these next two are legacy interfaces which will be
+   // removed in future versions
    void GetDyadicGFs(double XEval[3], double XSource[3],
                      cdouble Omega, double kBloch[2],
                      HMatrix *M, HVector *KN,

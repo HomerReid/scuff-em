@@ -35,16 +35,17 @@ using namespace scuff;
 /* routine to compute the LDOS at a single (Omega, kBloch)     */
 /* point (but typically multiple spatial evaluation points)    */
 /***************************************************************/
-void GetLDOS(SLDData *Data, cdouble Omega, double *kBloch, 
+void GetLDOS(void *pData, cdouble Omega, double *kBloch, 
              double *Result)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  SLDData *Data        = (SLDData *)pData;
   RWGGeometry *G       = Data->G;
   HMatrix *M           = Data->M;
-  HVector *KN          = Data->KN;
   HMatrix *XMatrix     = Data->XMatrix;
+  HMatrix *GMatrix     = Data->GMatrix;
   void **ABMBCache     = Data->ABMBCache;
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
 
@@ -65,7 +66,8 @@ void GetLDOS(SLDData *Data, cdouble Omega, double *kBloch,
    };
 
   /*--------------------------------------------------------------*/
-  /*- assemble the BEM matrix at this frequency and Bloch vector -*/
+  /*- assemble the BEM matrix at this frequency and Bloch vector, */
+  /*- then get DGFs at all evaluation points                      */
   /*--------------------------------------------------------------*/
   if (HalfSpaceMP==0)
    { int NS = G->NumSurfaces;
@@ -84,6 +86,9 @@ void GetLDOS(SLDData *Data, cdouble Omega, double *kBloch,
                                     ABMBCache[nb], true);
        };
      M->LUFactorize();
+
+     G->GetDyadicGFs(Omega, kBloch, XMatrix, M, GMatrix);
+
    };
                                
   /*--------------------------------------------------------------*/
@@ -105,17 +110,25 @@ void GetLDOS(SLDData *Data, cdouble Omega, double *kBloch,
      double X[3];
      XMatrix->GetEntriesD(nx, ":", X);
   
-     // get the DGFs 
-     cdouble GE[3][3];
-     cdouble GM[3][3]={ {0.0,0.0,0.0}, {0.0,0.0,0.0}, {0.0,0.0,0.0} };
+     /***************************************************************/
+     /* get the DGFs at this evaluation point                       */
+     /***************************************************************/
+     cdouble GE[3][3], GM[3][3];
      if ( HalfSpaceMP && HalfSpaceMP->IsPEC())
       GetGroundPlaneDGFs(X, Omega, kBloch, LDim, LBasis, GE, GM);
      else if (HalfSpaceMP)
       GetHalfSpaceDGFs(Omega, kBloch, X[2], LBV, HalfSpaceMP,
                        Data->RelTol, ABSTOL, Data->MaxEvals, GE, GM);
      else
-      G->GetDyadicGFs(X, Omega, kBloch, M, KN, GE, GM);
+      for(int i=0; i<3; i++)
+       for(int j=0; j<3; j++)
+        { GE[i][j] = GMatrix->GetEntry(nx, 0 + 3*i+j);
+          GM[i][j] = GMatrix->GetEntry(nx, 9 + 3*i+j);
+        };
 
+     /***************************************************************/
+     /* figure out what to return                                   */
+     /***************************************************************/
      if (Data->LDOSOnly)
       {
         Result[2*nx+0] = PreFac * imag(GE[0][0] + GE[1][1] + GE[2][2]);
@@ -137,6 +150,9 @@ void GetLDOS(SLDData *Data, cdouble Omega, double *kBloch,
          };
       };
 
+     /***************************************************************/
+     /* write output to data file if we have one ********************/
+     /***************************************************************/
      if (DataFile)
       { 
         fprintf(DataFile,"%e %e %e %s ",X[0],X[1],X[2],z2s(Omega));
@@ -156,6 +172,7 @@ void GetLDOS(SLDData *Data, cdouble Omega, double *kBloch,
       };
 
    }; // for(int nr=0, nr<XMatrix->NR; nr++)
+
   if (DataFile) fclose(DataFile);
 
 }

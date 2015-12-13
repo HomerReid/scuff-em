@@ -1,11 +1,10 @@
 bin_PROGRAMS = scuff-ldos
 
 scuff_ldos_SOURCES = 		\
- scuff-ldos.cc         		\
  scuff-ldos.h			\
+ scuff-ldos.cc         		\
  CreateSLDData.cc 		\
  GetLDOS.cc			\
- Integration.cc			\
  AnalyticalDGFs.cc		\
  LatticeSum.cc    
 

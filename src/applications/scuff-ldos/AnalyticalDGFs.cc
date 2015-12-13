@@ -306,3 +306,67 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
     };
   return 0;
 }
+
+/***************************************************************/
+/* compute the dyadic green's function at a distance Z above a */
+/* PEC plate using the method of images.                       */
+/***************************************************************/
+void GetPECPlateDGFs(double Z, double Omega,
+                     cdouble GE[3][3], cdouble GM[3][3])
+{
+  // construct a point source at the image location
+  double X0[3]={0.0, 0.0, -Z};
+  cdouble P0[3] = {0,0,0}; 
+  PointSource MyPSD(X0, P0);
+  MyPSD.Omega=Omega;
+  MyPSD.Eps=1.0;
+  MyPSD.Mu=1.0;
+
+  // get each column of the DGF
+  cdouble EH[6];
+  double X[3]={0.0, 0.0, Z}; 
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  MyPSD.Type=LIF_ELECTRIC_DIPOLE;
+  MyPSD.P[0] = -1.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] = 0.0;
+  MyPSD.GetFields(X, EH);
+  GE[0][0]=EH[0]; GE[1][0]=EH[1]; GE[2][0]=EH[2];
+
+  MyPSD.P[0] =  0.0;   MyPSD.P[1] = -1.0; MyPSD.P[2] = 0.0;
+  MyPSD.GetFields(X, EH);
+  GE[0][1]=EH[0]; GE[1][1]=EH[1]; GE[2][1]=EH[2];
+  
+  MyPSD.P[0] =  0.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] = 1.0;
+  MyPSD.GetFields(X, EH);
+  GE[0][2]=EH[0]; GE[1][2]=EH[1]; GE[2][2]=EH[2];
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  MyPSD.Type=LIF_MAGNETIC_DIPOLE;
+  MyPSD.P[0] =  1.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] =  0.0;
+  MyPSD.GetFields(X, EH);
+  GM[0][0]=EH[3]; GM[1][0]=EH[4]; GM[2][0]=EH[5];
+
+  MyPSD.P[0] =  0.0;   MyPSD.P[1] =  1.0; MyPSD.P[2] =  0.0;
+  MyPSD.GetFields(X, EH);
+  GM[0][1]=EH[3]; GM[1][1]=EH[4]; GM[2][1]=EH[5];
+  
+  MyPSD.P[0] =  0.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] = -1.0;
+  MyPSD.GetFields(X, EH);
+  GM[0][2]=EH[3]; GM[1][2]=EH[4]; GM[2][2]=EH[5];
+
+  // normalization factor needed to convert from 
+  // my normalization of the DGF, which has units
+  // of electric field / surface current, to the 
+  // usual normalization in which the DGF has units 
+  // of inverse length 
+  cdouble ik2=(II*Omega)*(II*Omega);
+  for(int i=0; i<3; i++)
+   for(int j=0; j<3; j++)
+    { GE[i][j] /= ik2;
+      GM[i][j] /= ik2;
+    };
+}

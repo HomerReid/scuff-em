@@ -285,7 +285,7 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
   for(int ns=0; ns<NumSurfaces; ns++)
    { S=Surfaces[ns];
      int Offset = PanelIndexOffset[ns];
-     for(int np=0; np<S->NumPanels; np++)
+     for(np=0; np<S->NumPanels; np++)
       { double *nHat = S->Panels[np]->ZHat;
         cdouble K[3];
         cdouble N[3];
