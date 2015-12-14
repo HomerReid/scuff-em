@@ -210,7 +210,7 @@ cdouble GetVMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
      VMatrix->SetEntry(Offset, 6*nx + 3, Sign*GC[3]);
      VMatrix->SetEntry(Offset, 6*nx + 4, Sign*GC[4]);
      VMatrix->SetEntry(Offset, 6*nx + 5, Sign*GC[5]);
-     if ( !(G->Surfaces[ns]->IsPEC))
+     if ( !(G->Surfaces[ns]->IsPEC) )
       { VMatrix->SetEntry(Offset+1, 6*nx + 0, -Sign*GC[3]);
         VMatrix->SetEntry(Offset+1, 6*nx + 1, -Sign*GC[4]);
         VMatrix->SetEntry(Offset+1, 6*nx + 2, -Sign*GC[5]);

@@ -133,6 +133,11 @@ int main(int argc, char *argv[])
   if ( HalfSpace && LDim!=2 )
    OSUsage(argv[0],OSArray,"--HalfSpace requires a 2D-periodic geometry");
 
+  int NX         = Data->XMatrix->NR;
+  int NFun       = Data->LDOSOnly ? 2 : 38;
+  int FDim       = NX*NFun;
+  double *Result = (double *)mallocEC(FDim*sizeof(double));
+
   /***************************************************************/
   /* now switch off to figure out what to do:                    */
   /*  1. if we have a non-periodic geometry, simply evaluate     */
@@ -156,13 +161,10 @@ int main(int argc, char *argv[])
    {  
      Data->OutFileName=vstrdup("%s.LDOS",FileBase);
      WriteFilePreamble(Data->OutFileName, FILETYPE_LDOS, LDim);
-     int NFun = 2*Data->XMatrix->NR;
-     double *Result = new double[NFun];
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
         GetLDOS( (void *)Data, Omega, 0, Result);
       };
-     delete[] Result;
    }
   /*--------------------------------------------------------------*/
   /*- PBC structure with specified kBloch points: do a periodic   */
@@ -172,8 +174,6 @@ int main(int argc, char *argv[])
    {  
      Data->ByKFileName=vstrdup("%s.byOmegakBloch",FileBase);
      WriteFilePreamble(Data->ByKFileName, FILETYPE_BYK, LDim);
-     int NFun = 2*Data->XMatrix->NR;
-     double *Result = new double[NFun];
      for(int nokb=0; nokb<OkBPoints->NR; nokb++)
       { 
         Omega=OkBPoints->GetEntry(nokb,0);
@@ -185,7 +185,6 @@ int main(int argc, char *argv[])
 
         GetLDOS( (void *)Data, Omega, kBloch, Result);
       };
-     delete[] Result;
    }
   /*--------------------------------------------------------------*/
   /*- PBC structure without specified kBloch points: perform a    */
@@ -200,7 +199,7 @@ int main(int argc, char *argv[])
      GetBZIArgStruct *Args = CreateGetBZIArgs(Data->LBasis);
      Args->BZIFunc         = GetLDOS;
      Args->UserData        = (void *)Data;
-     Args->FDim            = (Data->LDOSOnly ? 2 : 20)*(Data->XMatrix->NR);
+     Args->FDim            = FDim;
      Args->BZSymmetric     = BZSymmetric;
      Args->MaxPoints       = MaxEvals;
      Args->RelTol          = RelTol;
@@ -227,7 +226,6 @@ int main(int argc, char *argv[])
      WriteFilePreamble(Data->ByKFileName, FILETYPE_BYK, LDim);
      Data->OutFileName=vstrdup("%s.LDOS",FileBase);
      WriteFilePreamble(Data->OutFileName, FILETYPE_LDOS, LDim);
-     double *Result=(double *)mallocEC((Args->FDim)*sizeof(double));
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
         GetBZIntegral(Args, Omega, Result);
@@ -249,7 +247,7 @@ void WriteLDOS(SLDData *Data, cdouble Omega,
    { 
      double X[3];
      XMatrix->GetEntriesD(nx,":",X);
-     int NFun = (Data->LDOSOnly ? 2 : 20);
+     int NFun = (Data->LDOSOnly ? 2 : 38);
      fprintf(f,"%e %e %e %s ", X[0],X[1],X[2], z2s(Omega));
      for(int nf=0; nf<NFun; nf++) 
       fprintf(f,"%e %e ",Result[NFun*nx+nf], Error ? Error[NFun*nx+nf] : 0.0);

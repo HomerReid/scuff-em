@@ -42,29 +42,38 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
   fprintf(f,"# 1 2 3 4: x y z Omega\n");
   int nc=4;
 
-  if (FileType==FILETYPE_LDOS)
-   { fprintf(f,"# %2i (%2i): electric LDOS (integration error)\n",nc+1,nc+2);
-     nc+=2;
-     fprintf(f,"# %2i (%2i): magnetic LDOS (integration error)\n",nc+1,nc+2);
-     nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GE_{00} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{01} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{02} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{11} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{12} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{22} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GM_{01} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GM_{02} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GM_{12} \n",nc+1,nc+3); nc+=4;
+  if (FileType==FILETYPE_BYK && LDim==1)
+   { fprintf(f,"#%i: kx\n",nc);
+     nc+1;
    }
+  else if (FileType==FILETYPE_BYK && LDim==2)
+   { fprintf(f,"#%i,%i: kx ky\n",nc+1,nc+2);
+     nc+=2;
+   };
+
+  fprintf(f,"# %2i: electric LDOS\n",nc++);
+  fprintf(f,"# %2i: magnetic LDOS\n",nc++);
+  fprintf(f,"# %2i, %2i: re, im GE_{00} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{01} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{02} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{10} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{11} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{12} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{20} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{21} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{00} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{01} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{02} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{10} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{11} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{12} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{20} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{21} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc,nc+1); nc+=2;
+/*
   else // (FileType==FILETYPE_BYK)
    { 
-     if (LDim==1) 
-      fprintf(f,"#%i: kx\n",nc++);
-     else 
-      { fprintf(f,"#%i,%i: kx ky\n",nc+1,nc+2);
-        nc+=2;
-      };
     fprintf(f,"# %2i: electric LDOS\n",nc++);
     fprintf(f,"# %2i: magnetic LDOS\n",nc++);
 
@@ -81,6 +90,7 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
     fprintf(f,"# %2i, %2i: re, im GM_{12} \n",nc+1,nc+2); nc+=2;
     fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc+1,nc+2); nc+=2;
   };
+*/
 
   fclose(f);
 }
