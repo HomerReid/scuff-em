@@ -43,22 +43,14 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*--------------------------------------------------------------*/
   SLDData *Data        = (SLDData *)pData;
   RWGGeometry *G       = Data->G;
+  HMatrix *LBasis      = Data->LBasis;
   HMatrix *M           = Data->M;
   HMatrix *XMatrix     = Data->XMatrix;
   HMatrix *GMatrix     = Data->GMatrix;
   void **ABMBCache     = Data->ABMBCache;
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
 
-  int LDim = G->LDim;
-  double *LBasis[2]={0,0};
-  if (LDim>=1) LBasis[0]=G->LBasis[0];
-  if (LDim>=2) LBasis[1]=G->LBasis[1];
-  double LBV[2][2]={{0.0,0.0},{0.0,0.0}};
-  if (LDim>=1)
-   { LBV[0][0]=LBasis[0][0]; LBV[0][1]=LBasis[0][1]; }
-  if (LDim>=2)
-   { LBV[1][0]=LBasis[1][0]; LBV[1][1]=LBasis[1][1]; }
-
+  int LDim=LBasis->NC;
   switch(LDim)
    { case 0: Log("Computing LDOS at Omega=%s",z2s(Omega)); break; 
      case 1: Log("Computing LDOS at (Omega,kx)=(%s,%e)",z2s(Omega),kBloch[0]);
@@ -104,7 +96,8 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   FILE *DataFile=0;
   if (Data->ByKFileName)
    DataFile=fopen(Data->ByKFileName, "a");
-  double PreFac = 1.0 / (M_PI * real(Omega) * real(Omega) );
+  cdouble PreFac = 1.0 / (M_PI * Omega * Omega);
+  int NFun = (Data->LDOSOnly ? 2 : 38);
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
      double X[3];
@@ -115,9 +108,9 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      /***************************************************************/
      cdouble GE[3][3], GM[3][3];
      if ( HalfSpaceMP && HalfSpaceMP->IsPEC())
-      GetGroundPlaneDGFs(X, Omega, kBloch, LDim, LBasis, GE, GM);
+      GetGroundPlaneDGFs(X, Omega, kBloch, LBasis, GE, GM);
      else if (HalfSpaceMP)
-      GetHalfSpaceDGFs(Omega, kBloch, X[2], LBV, HalfSpaceMP,
+      GetHalfSpaceDGFs(Omega, kBloch, X[2], LBasis, HalfSpaceMP,
                        Data->RelTol, ABSTOL, Data->MaxEvals, GE, GM);
      else
       for(int i=0; i<3; i++)
@@ -129,25 +122,21 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      /***************************************************************/
      /* figure out what to return                                   */
      /***************************************************************/
-     if (Data->LDOSOnly)
-      {
-        Result[2*nx+0] = PreFac * imag(GE[0][0] + GE[1][1] + GE[2][2]);
-        Result[2*nx+1] = PreFac * imag(GM[0][0] + GM[1][1] + GM[2][2]);
-      }
-     else
-      { int NFun=20, nf=0;
-        Result[NFun*nx + nf++] = PreFac * imag(GE[0][0] + GE[1][1] + GE[2][2]);
-        Result[NFun*nx + nf++] = PreFac * imag(GM[0][0] + GM[1][1] + GM[2][2]);
-        for(int Mu=0; Mu<3; Mu++)
-         for(int Nu=Mu; Nu<3; Nu++)
-          { Result[NFun*nx + nf++] = real(GE[Mu][Nu]);
-            Result[NFun*nx + nf++] = imag(GE[Mu][Nu]);
+     int nf=NFun*nx;
+     Result[nf++] = imag( (GE[0][0] + GE[1][1] + GE[2][2]) / PreFac );
+     Result[nf++] = imag( (GM[0][0] + GM[1][1] + GM[2][2]) / PreFac );
+
+     if (Data->LDOSOnly == false)
+      { for(int Mu=0; Mu<3; Mu++)
+         for(int Nu=0; Nu<3; Nu++)
+          { Result[nf++] = real(GE[Mu][Nu]);
+            Result[nf++] = imag(GE[Mu][Nu]);
           };
         for(int Mu=0; Mu<3; Mu++)
-         { int Nu=(Mu+1)%3;
-           Result[NFun*nx + nf++] = real(GM[Mu][Nu]);
-           Result[NFun*nx + nf++] = imag(GM[Mu][Nu]);
-         };
+         for(int Nu=0; Nu<3; Nu++)
+          { Result[nf++] = real(GM[Mu][Nu]);
+            Result[nf++] = imag(GM[Mu][Nu]);
+          };
       };
 
      /***************************************************************/
@@ -156,9 +145,9 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      if (DataFile)
       { 
         fprintf(DataFile,"%e %e %e %s ",X[0],X[1],X[2],z2s(Omega));
-        if (G->LDim>=1) fprintf(DataFile,"%e ",kBloch[0]);
-        if (G->LDim>=2) fprintf(DataFile,"%e ",kBloch[1]);
-        fprintf(DataFile,"%e %e ",Result[2*nx+0],Result[2*nx+1]);
+        if (LDim>=1) fprintf(DataFile,"%e ",kBloch[0]);
+        if (LDim>=2) fprintf(DataFile,"%e ",kBloch[1]);
+        fprintf(DataFile,"%e %e ",Result[NFun*nx+0],Result[NFun*nx+1]);
 
         fprintf(DataFile,"%s %s %s %s %s %s ",
                          CD2S(GE[0][0]),CD2S(GE[0][1]),CD2S(GE[0][2]),

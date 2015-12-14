@@ -94,12 +94,12 @@ void GetBZIntegral_FOTC(SLDData *Data, cdouble Omega, char *BZIString);
 
 // AnalyticalDGFs.cc
 int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
-                     double LBasis[2][2], MatProp *MP,
+                     HMatrix *LBasis, MatProp *MP,
                      double RelTol, double AbsTol, int MaxCells,
                      cdouble GE[3][3], cdouble GM[3][3]);
 
 void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
-                        int LDim, double *LBasis[2],
+                        HMatrix *LBasis,                       
                         cdouble GE[3][3], cdouble GM[3][3]);
 
 #endif //#ifndef SCUFFLDOS_H

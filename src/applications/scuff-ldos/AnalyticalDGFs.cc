@@ -40,8 +40,8 @@ using namespace scuff;
 /***************************************************************/
 typedef void (*SummandFunction)(double *U, void *UserData, double *Sum);
 int GetLatticeSum(SummandFunction Summand, void *UserData, int nSum,
-                 int LDim, double (*LBasis)[2], double *Sum,
-                 double AbsTol, double RelTol, int MaxCells);
+                  HMatrix *LBasis, double *Sum,
+                  double AbsTol, double RelTol, int MaxCells);
 
 /***************************************************************/
 /* the specific summand function passed to GetLatticeSum()     */
@@ -158,20 +158,23 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-double GetRLBasis(double LBasis[2][2], double RLBasis[2][2])
+double GetRLBasis(HMatrix *HMLBasis, HMatrix *RLBasis)
 {
+  double LBasis[2][2];
+  LBasis[0][0]=HMLBasis->GetEntryD(0,0);
+  LBasis[0][1]=HMLBasis->GetEntryD(1,0);
+  LBasis[1][0]=HMLBasis->GetEntryD(0,1);
+  LBasis[1][1]=HMLBasis->GetEntryD(1,1);
+
   double Area= LBasis[0][0]*LBasis[1][1] - LBasis[0][1]*LBasis[1][0];
   if (Area==0.0)
    ErrExit("%s:%i: lattice has empty unit cell",__FILE__,__LINE__);
-  RLBasis[0][0] =  2.0*M_PI*LBasis[1][1] / Area;
-  RLBasis[0][1] = -2.0*M_PI*LBasis[0][1] / Area;
-  RLBasis[1][0] = -2.0*M_PI*LBasis[1][0] / Area;
-  RLBasis[1][1] =  2.0*M_PI*LBasis[0][0] / Area;
+  RLBasis->SetEntry(0,0,  2.0*M_PI*LBasis[1][1] / Area );
+  RLBasis->SetEntry(1,0, -2.0*M_PI*LBasis[1][0] / Area );
+  RLBasis->SetEntry(0,1, -2.0*M_PI*LBasis[0][1] / Area );
+  RLBasis->SetEntry(1,1,  2.0*M_PI*LBasis[0][0] / Area );
 
-  double BZVolume=
-   RLBasis[0][0]*RLBasis[1][1] - RLBasis[0][1]*RLBasis[1][0];
-
-  return BZVolume;
+  return 4.0*M_PI*M_PI / Area;
 }
 
 /***************************************************************/
@@ -179,13 +182,14 @@ double GetRLBasis(double LBasis[2][2], double RLBasis[2][2])
 /***************************************************************/
 int GetVacuumDGFs(double X[3], double XP[3],
                   cdouble Omega, double kBloch[2],
-                  double LBasis[2][2],
+                  HMatrix *LBasis,
                   double RelTol, double AbsTol, int MaxCells,
                   cdouble GE[3][3], cdouble GH[3][3])
 { 
-  double RLBasis[2][2];
-  double BZVolume=GetRLBasis(LBasis, RLBasis);
-
+  double RLBBuffer[9];
+  HMatrix RLBasis(3,3,LHM_REAL,LHM_NORMAL,RLBBuffer);
+  double BZVolume=GetRLBasis(LBasis, &RLBasis);
+ 
   SummandData MySummandData, *Data=&MySummandData;
   Data->X       = X;
   Data->XP      = XP;
@@ -194,8 +198,8 @@ int GetVacuumDGFs(double X[3], double XP[3],
   Data->Epsilon = 0.0;
 
   cdouble Sum[18];
-  GetLatticeSum(MySummand, (void *)Data, 36, 2, RLBasis,
-                (double *)Sum, AbsTol, RelTol, MaxCells);
+  int NumCells=GetLatticeSum(MySummand, (void *)Data, 36, &RLBasis,
+                            (double *)Sum, AbsTol, RelTol, MaxCells);
 
   for(int Mu=0; Mu<3; Mu++)
    for(int Nu=0; Nu<3; Nu++)
@@ -203,13 +207,14 @@ int GetVacuumDGFs(double X[3], double XP[3],
       GH[Mu][Nu] = BZVolume*Sum[9 + 3*Mu + Nu]/(4.0*M_PI*M_PI*M_PI);
     };
 
+  return NumCells;
 }
 
 /***************************************************************/
 /* Ground-plane DGFs computed by the image-source method       */
 /***************************************************************/
 void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
-                        int LDim, double *LBasis[2],
+                        HMatrix *LBasis,
                         cdouble GE[3][3], cdouble GM[3][3])
 {
   /***************************************************************/
@@ -224,15 +229,16 @@ void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
   cdouble P[3]={0.0,0.0,0.0};
   PointSource PS(XBar, P);
   PS.SetFrequency(Omega);
+  int LDim=LBasis->NC;
   if (LDim>0)
    { double LBV[2][2];
      if (LDim>=1)
-      { LBV[0][0]=LBasis[0][0];
-        LBV[0][1]=LBasis[0][1];
+      { LBV[0][0]=LBasis->GetEntryD(0,0);
+        LBV[0][1]=LBasis->GetEntryD(1,0);
       };
      if (LDim==2)
-      { LBV[1][0]=LBasis[1][0];
-        LBV[1][1]=LBasis[1][1];
+      { LBV[1][0]=LBasis->GetEntryD(0,1);
+        LBV[1][1]=LBasis->GetEntryD(1,1);
       };
      PS.SetLattice(LDim,LBV);
      PS.SetkBloch(kBloch);
@@ -267,22 +273,21 @@ void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
 /* Half-space DGFs computed by the plane-wave decomposition    */
 /***************************************************************/
 int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
-                     double LBasis[2][2], MatProp *MP,
+                     HMatrix *LBasis, MatProp *MP,
                      double RelTol, double AbsTol, int MaxCells,
                      cdouble GE[3][3], cdouble GM[3][3])
 { 
   if (MP->IsPEC() )
    { double X[3]={0.0, 0.0, 0.0}; 
      X[2]=zp;
-     double LBV1[2], LBV2[2], *LBV[2]={LBV1, LBV2};
-     LBV1[0]=LBasis[0][0]; LBV1[1]=LBasis[0][1];
-     LBV2[0]=LBasis[1][0]; LBV2[1]=LBasis[1][1];
-     GetGroundPlaneDGFs(X, Omega, kBloch, 2, LBV, GE, GM);
+     GetGroundPlaneDGFs(X, Omega, kBloch, LBasis, GE, GM);
      return 0;
    };
  
-  double RLBasis[2][2];
-  double BZVolume=GetRLBasis(LBasis, RLBasis);
+  double RLBBuffer[9];
+  HMatrix RLBasis(3,3,LHM_REAL,LHM_NORMAL,RLBBuffer);
+  double BZVolume=GetRLBasis(LBasis, &RLBasis);
+ 
 
   double X[3]={0.0, 0.0, 0.0};
   double XP[3]={0.0, 0.0, 0.0};
@@ -296,7 +301,7 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
   Data->Epsilon = MP->GetEps(Omega);
 
   cdouble Sum[18];
-  GetLatticeSum(MySummand, (void *)Data, 36, 2, RLBasis,
+  GetLatticeSum(MySummand, (void *)Data, 36, &RLBasis,
                 (double *)Sum, AbsTol, RelTol, MaxCells);
 
   for(int Mu=0; Mu<3; Mu++)

@@ -123,10 +123,11 @@ int main(int argc, char *argv[])
   Data->LDOSOnly    = !LDOSPlus;
 
   if (HalfSpace)
-   Data->HalfSpaceMP = new MatProp(HalfSpace);
+   { Data->HalfSpaceMP = new MatProp(HalfSpace);
+     FileBase = vstrappend("%s.%s",FileBase,HalfSpace);
+   };
 
   int LDim = Data->G->LDim;
-
   if ( HalfSpace && LDim!=2 )
    OSUsage(argv[0],OSArray,"--HalfSpace requires a 2D-periodic geometry");
 

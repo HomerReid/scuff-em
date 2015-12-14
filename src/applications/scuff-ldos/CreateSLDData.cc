@@ -128,9 +128,9 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
 
      HMatrix *LBasis = Data->LBasis = new HMatrix(G->LDim,3);
      LBasis->SetEntry(0,0,G->LBasis[0][0]);
-     LBasis->SetEntry(0,1,G->LBasis[0][1]);
+     LBasis->SetEntry(1,0,G->LBasis[0][1]);
      if (G->LDim>1)
-      { LBasis->SetEntry(1,0,G->LBasis[1][0]);
+      { LBasis->SetEntry(0,1,G->LBasis[1][0]);
         LBasis->SetEntry(1,1,G->LBasis[1][1]);
       };
 
