@@ -78,7 +78,11 @@ int main(int argc, char *argv[])
   if (EPFile==0)
    OSUsage(argv[0],OSArray,"--EPFile option is mandatory");
   if (!FileBase)
-   FileBase=vstrdup(GetFileBase(GeoFile));
+   FileBase = vstrdup(GetFileBase(GeoFile));
+  if (HalfSpace)
+   { char *NewFileBase=vstrdup("%s.%s",FileBase,HalfSpace);
+     FileBase=NewFileBase;
+   };
 
   /***************************************************************/
   /* process --Omega, --OmegaFile, --OmegakBlochFile arguments   */
@@ -123,9 +127,7 @@ int main(int argc, char *argv[])
   Data->LDOSOnly    = !LDOSPlus;
 
   if (HalfSpace)
-   { Data->HalfSpaceMP = new MatProp(HalfSpace);
-     FileBase = vstrappend("%s.%s",FileBase,HalfSpace);
-   };
+   Data->HalfSpaceMP = new MatProp(HalfSpace);
 
   int LDim = Data->G->LDim;
   if ( HalfSpace && LDim!=2 )
