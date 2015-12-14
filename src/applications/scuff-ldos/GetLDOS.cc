@@ -62,7 +62,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*- assemble the BEM matrix at this frequency and Bloch vector, */
   /*- then get DGFs at all evaluation points                      */
   /*--------------------------------------------------------------*/
-  if (!HalfSpaceMP==0 && !GroundPlane)
+  if (!HalfSpaceMP && !GroundPlane)
    { int NS = G->NumSurfaces;
      for(int ns=0, nb=0; ns<NS; ns++)
       for(int nsp=ns; nsp<NS; nsp++, nb++)
