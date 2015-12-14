@@ -94,6 +94,7 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
   /***************************************************************/
   double R[3], ESign, CSign;
   cdouble rTE, rTM;
+#if 0
   if (Epsilon==0.0)
    { 
      R[0]=X[0]-XP[0];
@@ -104,16 +105,25 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
    }
   else
    { 
+#endif
      R[0]=0.0;
      R[1]=0.0;
      R[2]=2.0*XP[2];
      ESign = 1.0;
      CSign = -1.0;
-     cdouble kzPrime = sqrt(Epsilon*k0*k0 - kMag2);
-     cdouble ekz     = Epsilon*kz;
-     rTE   = (kz  - kzPrime) / (kz+kzPrime);
-     rTM   = (ekz - kzPrime) / (ekz+kzPrime);
+     if (Epsilon==0.0)
+      { rTE=-1.0;
+        rTM=+1.0;
+      }
+     else     
+      { cdouble kzPrime = sqrt(Epsilon*k0*k0 - kMag2);
+        cdouble ekz     = Epsilon*kz;
+        rTE   = (kz  - kzPrime) / (kz+kzPrime);
+        rTM   = (ekz - kzPrime) / (ekz+kzPrime);
+      };
+#if 0
    };
+#endif
 
   // polarization vectors
   cdouble P[3], PBar[3];
@@ -277,18 +287,6 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
                      double RelTol, double AbsTol, int MaxCells,
                      cdouble GE[3][3], cdouble GM[3][3])
 { 
-  if (MP->IsPEC() )
-   { double X[3]={0.0, 0.0, 0.0}; 
-     X[2]=zp;
-     GetGroundPlaneDGFs(X, Omega, kBloch, LBasis, GE, GM);
-     return 0;
-   };
- 
-  double RLBBuffer[9];
-  HMatrix RLBasis(3,3,LHM_REAL,LHM_NORMAL,RLBBuffer);
-  double BZVolume=GetRLBasis(LBasis, &RLBasis);
- 
-
   double X[3]={0.0, 0.0, 0.0};
   double XP[3]={0.0, 0.0, 0.0};
   XP[2]=zp;
@@ -298,7 +296,11 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
   Data->XP      = XP;
   Data->Omega   = Omega;
   Data->kBloch  = kBloch;
-  Data->Epsilon = MP->GetEps(Omega);
+  Data->Epsilon = MP->IsPEC() ? 0.0 : MP->GetEps(Omega);
+
+  double Buffer[9];
+  HMatrix RLBasis(3,3,LHM_REAL,LHM_NORMAL,Buffer);
+  double BZVolume=GetRLBasis(LBasis, &RLBasis);
 
   cdouble Sum[18];
   GetLatticeSum(MySummand, (void *)Data, 36, &RLBasis,
@@ -316,8 +318,8 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
 /* compute the dyadic green's function at a distance Z above a */
 /* PEC plate using the method of images.                       */
 /***************************************************************/
-void GetPECPlateDGFs(double Z, double Omega,
-                     cdouble GE[3][3], cdouble GM[3][3])
+void GetGroundPlaneDGFs(double Z, cdouble Omega, double *kBloch,
+                        HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3])
 {
   // construct a point source at the image location
   double X0[3]={0.0, 0.0, -Z};
@@ -326,6 +328,26 @@ void GetPECPlateDGFs(double Z, double Omega,
   MyPSD.Omega=Omega;
   MyPSD.Eps=1.0;
   MyPSD.Mu=1.0;
+#if 0
+  if (LBasis)
+   { MyPSD.SetLattice(LBasis);
+     MyPSD.SetkBloch(kBloch);
+   };
+#endif
+  int LDim=LBasis->NC;
+  if (LDim>0)
+   { double LBV[2][2];
+     if (LDim>=1)
+      { LBV[0][0]=LBasis->GetEntryD(0,0);
+        LBV[0][1]=LBasis->GetEntryD(1,0);
+      };
+     if (LDim==2)
+      { LBV[1][0]=LBasis->GetEntryD(0,1);
+        LBV[1][1]=LBasis->GetEntryD(1,1);
+      };
+     MyPSD.SetLattice(LDim,LBV);
+     MyPSD.SetkBloch(kBloch);
+   };
 
   // get each column of the DGF
   cdouble EH[6];

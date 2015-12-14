@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
   double RelTol=1.0e-2;
   int MaxEvals=1000;
 /**/
+  bool GroundPlane=false;
   char *HalfSpace=0;
 /**/
   char *FileBase=0;
@@ -55,6 +56,7 @@ int main(int argc, char *argv[])
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1, (void *)&GeoFile,      0,  ".scuffgeo file"},
 //
+     {"GroundPlane", PA_BOOL,    1, 1, (void *)&GroundPlane,  0,  "simulate an infinite PEC ground plane at z=0"},
      {"HalfSpace",   PA_STRING,  1, 1, (void *)&HalfSpace,    0,  "simulate an infinite half-space for z<0 with the given material"},
 //
      {"EPFile",      PA_STRING,  1, 1, (void *)&EPFile,       0,  "list of evaluation points"},
@@ -125,6 +127,7 @@ int main(int argc, char *argv[])
   Data->MaxEvals    = MaxEvals;
   Data->FileBase    = FileBase;
   Data->LDOSOnly    = !LDOSPlus;
+  Data->GroundPlane = GroundPlane;
 
   if (HalfSpace)
    Data->HalfSpaceMP = new MatProp(HalfSpace);

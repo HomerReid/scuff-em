@@ -255,7 +255,7 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   /*  integrations                                               -*/
   /*--------------------------------------------------------------*/
   static HMatrix *VSource=0, *VDest=0;
-  if (VSource==0 || VSource->NR!=NBF || VSource->NC!=NX)
+  if ( VSource==0 || VSource->NR!=NBF || VSource->NC!=(6*NX) )
    { 
      if (VSource) delete VSource;
      if (VDest)   delete VDest;

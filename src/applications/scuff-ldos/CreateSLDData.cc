@@ -40,14 +40,14 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
   fprintf(f,"%s\n",GetTimeString());
   fprintf(f,"# columns: \n");
   fprintf(f,"# 1 2 3 4: x y z Omega\n");
-  int nc=4;
+  int nc=5;
 
   if (FileType==FILETYPE_BYK && LDim==1)
    { fprintf(f,"#%i: kx\n",nc);
      nc+1;
    }
   else if (FileType==FILETYPE_BYK && LDim==2)
-   { fprintf(f,"#%i,%i: kx ky\n",nc+1,nc+2);
+   { fprintf(f,"#%i,%i: kx ky\n",nc,nc+1);
      nc+=2;
    };
 
@@ -136,7 +136,7 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
       for(int nsb=nsa; nsb<NS; nsb++, nb++)
        Data->ABMBCache[nb]=G->CreateABMBAccelerator(nsa, nsb, false, false);
 
-     HMatrix *LBasis = Data->LBasis = new HMatrix(G->LDim,3);
+     HMatrix *LBasis = Data->LBasis = new HMatrix(3,G->LDim);
      LBasis->SetEntry(0,0,G->LBasis[0][0]);
      LBasis->SetEntry(1,0,G->LBasis[0][1]);
      if (G->LDim>1)

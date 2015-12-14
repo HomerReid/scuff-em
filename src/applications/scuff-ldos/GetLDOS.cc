@@ -49,6 +49,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   HMatrix *GMatrix     = Data->GMatrix;
   void **ABMBCache     = Data->ABMBCache;
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
+  bool GroundPlane     = Data->GroundPlane;
 
   int LDim=LBasis->NC;
   switch(LDim)
@@ -61,7 +62,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*- assemble the BEM matrix at this frequency and Bloch vector, */
   /*- then get DGFs at all evaluation points                      */
   /*--------------------------------------------------------------*/
-  if (HalfSpaceMP==0)
+  if (!HalfSpaceMP==0 && !GroundPlane)
    { int NS = G->NumSurfaces;
      for(int ns=0, nb=0; ns<NS; ns++)
       for(int nsp=ns; nsp<NS; nsp++, nb++)
@@ -107,8 +108,8 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      /* get the DGFs at this evaluation point                       */
      /***************************************************************/
      cdouble GE[3][3], GM[3][3];
-     if ( HalfSpaceMP && HalfSpaceMP->IsPEC())
-      GetGroundPlaneDGFs(X, Omega, kBloch, LBasis, GE, GM);
+     if ( GroundPlane )
+      GetGroundPlaneDGFs(X[2], Omega, kBloch, LBasis, GE, GM);
      else if (HalfSpaceMP)
       GetHalfSpaceDGFs(Omega, kBloch, X[2], LBasis, HalfSpaceMP,
                        Data->RelTol, ABSTOL, Data->MaxEvals, GE, GM);
@@ -151,10 +152,12 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
 
         fprintf(DataFile,"%s %s %s %s %s %s ",
                          CD2S(GE[0][0]),CD2S(GE[0][1]),CD2S(GE[0][2]),
-                         CD2S(GE[1][1]),CD2S(GE[1][2]),CD2S(GE[2][2]));
+                         CD2S(GE[1][0]),CD2S(GE[1][1]),CD2S(GE[1][2]),
+                         CD2S(GE[2][0]),CD2S(GE[2][1]),CD2S(GE[2][2]));
         fprintf(DataFile,"%s %s %s %s %s %s ",
                          CD2S(GM[0][0]),CD2S(GM[0][1]),CD2S(GM[0][2]),
-                         CD2S(GM[1][1]),CD2S(GM[1][2]),CD2S(GM[2][2]));
+                         CD2S(GM[1][0]),CD2S(GM[1][1]),CD2S(GM[1][2]),
+                         CD2S(GM[2][0]),CD2S(GM[2][1]),CD2S(GM[2][2]));
 
         fprintf(DataFile,"\n");
         fflush(DataFile);

@@ -66,6 +66,7 @@ typedef struct SLDData
    char *ByKFileName;
    char *OutFileName;
    MatProp *HalfSpaceMP;
+   bool GroundPlane;
 
    // internal data storage for BZ-integrated calculations
    cdouble Omega;
@@ -98,8 +99,13 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
                      double RelTol, double AbsTol, int MaxCells,
                      cdouble GE[3][3], cdouble GM[3][3]);
 
+/*
 void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
                         HMatrix *LBasis,                       
                         cdouble GE[3][3], cdouble GM[3][3]);
+*/
+
+void GetGroundPlaneDGFs(double Z, cdouble Omega, double *kBloch,
+                        HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3]);
 
 #endif //#ifndef SCUFFLDOS_H
