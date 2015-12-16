@@ -150,11 +150,11 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
         if (LDim>=2) fprintf(DataFile,"%e ",kBloch[1]);
         fprintf(DataFile,"%e %e ",Result[NFun*nx+0],Result[NFun*nx+1]);
 
-        fprintf(DataFile,"%s %s %s %s %s %s ",
+        fprintf(DataFile,"%s %s %s %s %s %s %s %s %s ",
                          CD2S(GE[0][0]),CD2S(GE[0][1]),CD2S(GE[0][2]),
                          CD2S(GE[1][0]),CD2S(GE[1][1]),CD2S(GE[1][2]),
                          CD2S(GE[2][0]),CD2S(GE[2][1]),CD2S(GE[2][2]));
-        fprintf(DataFile,"%s %s %s %s %s %s ",
+        fprintf(DataFile,"%s %s %s %s %s %s %s %s %s ",
                          CD2S(GM[0][0]),CD2S(GM[0][1]),CD2S(GM[0][2]),
                          CD2S(GM[1][0]),CD2S(GM[1][1]),CD2S(GM[1][2]),
                          CD2S(GM[2][0]),CD2S(GM[2][1]),CD2S(GM[2][2]));
