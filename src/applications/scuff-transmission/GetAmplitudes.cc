@@ -191,10 +191,10 @@ void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,
         cdouble bTwiddle[3]; 
         GetbTwiddle(S, ne, q3D, bTwiddle);
 
-        PlusEqualsVec(KTilde, Sign*KAlpha, bTwiddle);
-        PlusEqualsVec(NTilde, Sign*NAlpha, bTwiddle);
+        VecPlusEquals(KTilde, Sign*KAlpha, bTwiddle);
+        VecPlusEquals(NTilde, Sign*NAlpha, bTwiddle);
       };
-   };
+   } 
 
   /*--------------------------------------------------------------*/
   /*- compute vector-matrix-vector products                       */

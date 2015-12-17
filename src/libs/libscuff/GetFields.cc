@@ -410,7 +410,7 @@ void *GetFields_Thread(void *data)
          if ( IF->RegionIndex == RegionIndex )
           { cdouble dEH[6];
             IF->GetFields(X, dEH);
-            SixVecPlusEquals(EH, 1.0, dEH);
+            VecPlusEquals(EH, 1.0, dEH, 6);
           };
       };
 

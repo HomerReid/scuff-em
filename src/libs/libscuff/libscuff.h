@@ -612,41 +612,6 @@ void InitRWGPanel(RWGPanel *P, double *Vertices);
 int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb, 
                        int CommonRegionIndices[2], double Signs[2]);
 
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*- 4. some other lower-level non-class methods                -*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-  
-/* 3D vector manipulations */
-void VecZero(double v[3]);
-double *VecCopy(const double v1[3], double v2[3]);
-double *VecScale(const double v1[3], double alpha, double v2[3]);
-double *VecScale(double v[3], double alpha);
-double *VecScaleAdd(const double v1[3], double alpha, const double v2[3], double v3[3]);
-double *VecAdd(const double v1[3], const double v2[3], double v3[3]);
-double *VecSub(const double v1[3], const double v2[3], double v3[3]);
-double *VecPlusEquals(double v1[3], double alpha, const double v2[3]);
-double *VecCross(const double v1[3], const double v2[3], double v3[3]);
-double *VecLinComb(double alpha, const double v1[3], double beta, const double v2[3], double v3[3]);
-double VecDot(const double v1[3], const double v2[3]);
-double VecDistance(const double v1[3], const double v2[3]);
-double VecDistance2(const double v1[3], const double v2[3]);
-double VecNorm(const double v[3]);
-double VecNorm2(const double v[3]);
-double VecNormalize(double v[3]);
-bool EqualFloat(const double a, const double b);
-bool EqualFloat(const cdouble a, const cdouble b);
-bool VecEqualFloat(const double *a, const double *b);
-bool VecClose(const double *a, const double *b, double abstol);
-
-void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
-                const cdouble V2[6], cdouble V3[6]);
-void SixVecPlusEquals(cdouble V1[6], const cdouble Alpha, const cdouble V2[6]);
-void SixVecPlusEquals(cdouble V1[6], const cdouble V2[6]);
-
-bool Matrix2x2_Inverse(double *a[2],double ainv[2][2]);
-
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
