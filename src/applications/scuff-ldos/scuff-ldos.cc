@@ -30,7 +30,13 @@ int main(int argc, char *argv[])
   Log("scuff-ldos running on %s",GetHostName());
 
   /***************************************************************/
-  /* process command-line arguments ******************************/
+  /* pre-process command-line arguments to extract arguments     */
+  /* relevant for Brillouin-zone integration                     */
+  /***************************************************************/
+  //GetBZIArgStruct *BZIArgs=ProcessBZIOptions(int argc, char *argv[]);
+
+  /***************************************************************/
+  /* process remaining command-line arguments ********************/
   /***************************************************************/
   char *GeoFile;
 /**/
@@ -253,7 +259,10 @@ void WriteLDOS(SLDData *Data, cdouble Omega,
      int NFun = (Data->LDOSOnly ? 2 : 38);
      fprintf(f,"%e %e %e %s ", X[0],X[1],X[2], z2s(Omega));
      for(int nf=0; nf<NFun; nf++) 
-      fprintf(f,"%e %e ",Result[NFun*nx+nf], Error ? Error[NFun*nx+nf] : 0.0);
+      fprintf(f,"%e ",Result[NFun*nx+nf]);
+     if (Error)
+      for(int nf=0; nf<NFun; nf++) 
+       fprintf(f,"%e ",Error[NFun*nx+nf]);
      fprintf(f,"\n");
    };
   fclose(f);

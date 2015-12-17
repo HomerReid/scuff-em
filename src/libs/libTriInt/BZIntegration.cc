@@ -472,3 +472,45 @@ GetBZIArgStruct *CreateGetBZIArgs(HMatrix *LBasis)
   InitGetBZIArgs(Args, LBasis);
   return Args;
 }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+#if 0
+GetBZIArgStruct *ProcessBZIOptions(int argc, char *argv[])
+{
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  GetBZIArgStruct *Args = (GetBZIArgStruct *)mallocEC(sizeof(*Args));
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  char *BZIString=0;
+  int BZIOrder=-1;
+  int BZIMaxPoints=1000;
+  bool BZSymmetric=false;
+  double BZIRelTol=1.0e-2;
+  double BZIAbsTol=0.0;
+
+  OptStruct OSArray[]=
+   { 
+     {"BZIMethod",     PA_STRING,  1, 1, (void *)&BZIString,    0,  "Brillouin-zone integration method [DCUTRI | adaptive]"},
+     {"BZIOrder",      PA_INT,     1, 1, (void *)&BZIOrder,     0,  "Brillouin-zone integration order"},
+     {"BZIRelTol",     PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "relative tolerance for Brillouin-zone integration"},
+     {"BZIAbsTol",     PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "absolute tolerance for Brillouin-zone integration"},
+     {"BZIMaxPoints",  PA_INT,     1, 1, (void *)&MaxEvals,     0,  "maximum number of Brillouin-zone samples"},
+     {"BZSymmetric",   PA_BOOL,    0, 1, (void *)&BZSymmetric,  0,  "assume BZ integrand is xy-symmetric"},
+   };
+  ProcessOptions(argc, argv, OSArray);
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void SetLBasis(Get BZIArgStruct *Args, HMatrix *LBasis)
+{
+}
+#endif

@@ -63,20 +63,27 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*- then get DGFs at all evaluation points                      */
   /*--------------------------------------------------------------*/
   if (!HalfSpaceMP && !GroundPlane)
-   { int NS = G->NumSurfaces;
-     for(int ns=0, nb=0; ns<NS; ns++)
-      for(int nsp=ns; nsp<NS; nsp++, nb++)
-       { 
-         int RowOffset = G->BFIndexOffset[ns];
-         int ColOffset = G->BFIndexOffset[nsp];
-         G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch,
-                                   M, 0, RowOffset, ColOffset,
-                                   ABMBCache[nb], false);
+   { 
+     if (LDim==0)
+      {    
+        G->AssembleBEMMatrix(Omega, M);
+      }
+     else
+      { int NS = G->NumSurfaces;
+        for(int ns=0, nb=0; ns<NS; ns++)
+         for(int nsp=ns; nsp<NS; nsp++, nb++)
+          { 
+            int RowOffset = G->BFIndexOffset[ns];
+            int ColOffset = G->BFIndexOffset[nsp];
+            G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch,
+                                      M, 0, RowOffset, ColOffset,
+                                      ABMBCache[nb], false);
 
-         if (nsp>ns)
-          G->AssembleBEMMatrixBlock(nsp, ns, Omega, kBloch,
-                                    M, 0, ColOffset, RowOffset,
-                                    ABMBCache[nb], true);
+            if (nsp>ns)
+             G->AssembleBEMMatrixBlock(nsp, ns, Omega, kBloch,
+                                       M, 0, ColOffset, RowOffset,
+                                       ABMBCache[nb], true);
+          };
        };
      M->LUFactorize();
 
@@ -116,8 +123,8 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      else
       for(int i=0; i<3; i++)
        for(int j=0; j<3; j++)
-        { GE[i][j] = GMatrix->GetEntry(nx, 0 + 3*i+j);
-          GM[i][j] = GMatrix->GetEntry(nx, 9 + 3*i+j);
+        { GE[i][j] = GMatrix->GetEntry(nx, 0 + 3*i + j);
+          GM[i][j] = GMatrix->GetEntry(nx, 9 + 3*i + j);
         };
 
      /***************************************************************/
