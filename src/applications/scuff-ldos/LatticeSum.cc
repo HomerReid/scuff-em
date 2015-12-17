@@ -13,8 +13,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "libhmat.h"
 #define II cdouble(0,1)
-
 
 /***************************************************************/
 /* type definition for user-supplied summand function.         */
@@ -31,16 +31,16 @@ typedef void (*SummandFunction)(double *U, void *UserData, double *Sum);
 /***************************************************************/
 /***************************************************************/
 void AddContribution(SummandFunction AddSummand, void *UserData,
-                     int n1, int n2, double (*LBasis)[2], double *Sum)
+                     int n1, int n2, HMatrix *LBasis, double *Sum)
 { 
-  double U[2];
-  if (n2==0)
-   { U[0] = n1*LBasis[0][0];
-     U[1] = n1*LBasis[0][1];
-   }
-  else
-   { U[0] = n1*LBasis[0][0] + n2*LBasis[1][0];
-     U[1] = n1*LBasis[0][1] + n2*LBasis[1][1];
+  double U[3];
+  U[0] = n1*LBasis->GetEntryD(0,0);
+  U[1] = n1*LBasis->GetEntryD(1,0);
+  U[2] = n1*LBasis->GetEntryD(2,0);
+  if (LBasis->NC >=2 )
+   { U[0] += n2*LBasis->GetEntryD(0,1);
+     U[1] += n2*LBasis->GetEntryD(1,1);
+     U[2] += n2*LBasis->GetEntryD(2,1);
    };
   AddSummand(U, UserData, Sum);
 }
@@ -54,7 +54,7 @@ void AddContribution(SummandFunction AddSummand, void *UserData,
 /* Return value is number of lattice points summed.            */
 /***************************************************************/
 int GetLatticeSum(SummandFunction Summand, void *UserData, int nSum,
-                  int LDim, double (*LBasis)[2], double *Sum,
+                  HMatrix *LBasis, double *Sum,
                   double AbsTol, double RelTol, int MaxCells)
 { 
   memset(Sum,0,nSum*sizeof(double));
@@ -64,6 +64,7 @@ int GetLatticeSum(SummandFunction Summand, void *UserData, int nSum,
   /* of cells near the origin                                    */
   /***************************************************************/
   int nCells=0;
+  int LDim = LBasis->NC;
 #define NFIRSTROUND 5
   if (LDim==1)
    for (int n=-NFIRSTROUND; n<=NFIRSTROUND; n++)

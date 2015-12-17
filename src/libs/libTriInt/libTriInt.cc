@@ -276,9 +276,9 @@ static void Log(TIWorkspace *TIW, const char *format, ...)
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-void TriIntFixed(TriIntFun F, int nFun, void *UserData, 
-                 double *V1, double *V2, double *V3, 
-                 int Order, double *I)
+int TriIntFixed(TriIntFun F, int nFun, void *UserData, 
+                double *V1, double *V2, double *V3, 
+                int Order, double *I)
 { 
   int i, nf, nqr;
   double u, v, Weight, C, J;
@@ -316,6 +316,8 @@ void TriIntFixed(TriIntFun F, int nFun, void *UserData,
      for(nf=0; nf<nFun; nf++)
       I[nf]+=Weight*dI[nf];
    };
+
+ return NumPts;
 
 }
 

@@ -52,13 +52,22 @@ typedef void (*TriIntFun)(double *X, void *UserData, double *F);
 
 double *GetTCR(int Order, int *NumPts);
 
-void TriIntFixed(TriIntFun F, int nFun, void *UserData,
-                 double *V1, double *V2, double *V3, 
-                 int Order, double *Result);
+
+int TriIntFixed(TriIntFun F, int nFun, void *UserData,
+                double *V1, double *V2, double *V3, 
+                int Order, double *Result);
 
 void TriIntEmbedded(TriIntFun F, int nFun, void *UserData,
-                    double *V1, double *V2, double *V3, int Order,
-                    double *Result, double *E);
+                    double *V1, double *V2, double *V3,
+                    double *I, double *Error);
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void *CreateDCUTRIWorkspace(int numfun, int maxpts);
+int DCUTRI(void *opW, double **Vertices, TriIntFun func,
+           void *parms, double epsabs, double epsrel,
+           double *I, double *abserr);
 
 /***************************************************************/
 /* Return a pointer to an internal buffer containing the (1D)  */
@@ -105,23 +114,11 @@ int IntegrateCliffFunction(CliffFunction fCliff, void *UserData, int nFun,
                            char *LogFileName=0);
 
 /***************************************************************/
-/* stuff that didn't work very well and should probably be deleted */
-/***************************************************************/
-void *CreateTIWorkspace(int nFun, int MaxIters);
-void DeleteTIWorkspace(void *pTIW);
-void SetTriIntLogFileName(void *pTIW, const char *format, ...);
-
-int TriIntAdaptive(void *pTIW, TriIntFun F, void *UserData, 
-                   double *V1, double *V2, double *V3, double AbsTol, 
-                   double RelTol, double *Result, double *Error);
-
-/***************************************************************/
 /* brillouin-zone integration stuff                            */
 /***************************************************************/
 #define BZI_ADAPTIVE 0
 #define BZI_CC       1
-#define BZI_FOTC     2
-#define BZI_DCUTRI   3
+#define BZI_TC       2
 
 typedef void (BZIFunction)(void *UserData,
                            cdouble Omega, double *kBloch,

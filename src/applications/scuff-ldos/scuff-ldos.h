@@ -27,6 +27,7 @@
 
 #include <libhrutil.h>
 #include <libhmat.h>
+#include <libTriInt.h>
 #include "libscuff.h"
 
 using namespace scuff;
@@ -48,23 +49,24 @@ typedef struct SLDData
    // data on the BEM geometry and linear algebra workspaces
    RWGGeometry *G;
    HMatrix *M;
-   HVector *KN;
-   void **ABMBCache;
-   double RLBasis[2][2];
-   double BZVolume;
 
-   // data on evaluation points 
-   HMatrix *XMatrix;
+   // data on evaluation points and DGFs at evaluation points
+   HMatrix *XMatrix, *GMatrix;
+
+   // fields relevant for periodic geometries
+   void **ABMBCache;
+   HMatrix *LBasis;
+   double BZVolume;
 
    // other miscellaneous options
    double RelTol;
    int MaxEvals;
    char *FileBase;
    bool LDOSOnly;
-   bool BZSymmetry;
    char *ByKFileName;
    char *OutFileName;
    MatProp *HalfSpaceMP;
+   bool GroundPlane;
 
    // internal data storage for BZ-integrated calculations
    cdouble Omega;
@@ -75,12 +77,15 @@ typedef struct SLDData
 /***************************************************************/
 /* Function prototypes *****************************************/
 /***************************************************************/
+void WriteLDOS(SLDData *Data, cdouble Omega,
+               double *Result, double *Error);
+
 // CreateLDOSData.cc
 void WriteFilePreamble(char *FileName, int FileType, int LDim);
 SLDData *CreateSLDData(char *GeoFile, char *EPFile);
 
 // GetLDOS.cc
-void GetLDOS(SLDData *Data, cdouble Omega, double *kBloch, 
+void GetLDOS(void *Data, cdouble Omega, double *kBloch, 
              double *Result);
 
 // Integration.cc
@@ -90,12 +95,17 @@ void GetBZIntegral_FOTC(SLDData *Data, cdouble Omega, char *BZIString);
 
 // AnalyticalDGFs.cc
 int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
-                     double LBasis[2][2], MatProp *MP,
+                     HMatrix *LBasis, MatProp *MP,
                      double RelTol, double AbsTol, int MaxCells,
                      cdouble GE[3][3], cdouble GM[3][3]);
 
+/*
 void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
-                        int LDim, double *LBasis[2],
+                        HMatrix *LBasis,                       
                         cdouble GE[3][3], cdouble GM[3][3]);
+*/
+
+void GetGroundPlaneDGFs(double Z, cdouble Omega, double *kBloch,
+                        HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3]);
 
 #endif //#ifndef SCUFFLDOS_H

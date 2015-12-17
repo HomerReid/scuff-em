@@ -40,31 +40,40 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
   fprintf(f,"%s\n",GetTimeString());
   fprintf(f,"# columns: \n");
   fprintf(f,"# 1 2 3 4: x y z Omega\n");
-  int nc=4;
+  int nc=5;
 
-  if (FileType==FILETYPE_LDOS)
-   { fprintf(f,"# %2i (%2i): electric LDOS (integration error)\n",nc+1,nc+2);
-     nc+=2;
-     fprintf(f,"# %2i (%2i): magnetic LDOS (integration error)\n",nc+1,nc+2);
-     nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GE_{00} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{01} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{02} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{11} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{12} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GE_{22} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GM_{01} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GM_{02} \n",nc+1,nc+3); nc+=4;
-    fprintf(f,"# %2i, %2i: re, im GM_{12} \n",nc+1,nc+3); nc+=4;
+  if (FileType==FILETYPE_BYK && LDim==1)
+   { fprintf(f,"#%i: kx\n",nc);
+     nc+1;
    }
+  else if (FileType==FILETYPE_BYK && LDim==2)
+   { fprintf(f,"#%i,%i: kx ky\n",nc,nc+1);
+     nc+=2;
+   };
+
+  fprintf(f,"# %2i: electric LDOS\n",nc++);
+  fprintf(f,"# %2i: magnetic LDOS\n",nc++);
+  fprintf(f,"# %2i, %2i: re, im GE_{00} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{01} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{02} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{10} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{11} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{12} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{20} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{21} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{00} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{01} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{02} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{10} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{11} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{12} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{20} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{21} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc,nc+1); nc+=2;
+/*
   else // (FileType==FILETYPE_BYK)
    { 
-     if (LDim==1) 
-      fprintf(f,"#%i: kx\n",nc++);
-     else 
-      { fprintf(f,"#%i,%i: kx ky\n",nc+1,nc+2);
-        nc+=2;
-      };
     fprintf(f,"# %2i: electric LDOS\n",nc++);
     fprintf(f,"# %2i: magnetic LDOS\n",nc++);
 
@@ -81,6 +90,7 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
     fprintf(f,"# %2i, %2i: re, im GM_{12} \n",nc+1,nc+2); nc+=2;
     fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc+1,nc+2); nc+=2;
   };
+*/
 
   fclose(f);
 }
@@ -90,14 +100,18 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
 /***************************************************************/
 SLDData *CreateSLDData(char *GeoFile, char *EPFile)
 {
+  SetDefaultCD2SFormat("%.8e %.8e");
+
   SLDData *Data=(SLDData *)mallocEC(sizeof(*Data));
+  Data->RelTol      = 1.0e-2;
+  Data->MaxEvals    = 1000;
+  Data->HalfSpaceMP = 0;
 
   /***************************************************************/
   /* read in geometry and allocate BEM matrix and RHS vector     */
   /***************************************************************/
   RWGGeometry *G = Data->G = new RWGGeometry(GeoFile);
   Data->M = G->AllocateBEMMatrix();
-  Data->KN= G->AllocateRHSVector();
 
   /***************************************************************/
   /* read in list of evaluation points ***************************/
@@ -106,10 +120,13 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
   if (Data->XMatrix->ErrMsg)
    ErrExit(Data->XMatrix->ErrMsg); 
 
+  Data->GMatrix = new HMatrix(Data->XMatrix->NR, 18, LHM_COMPLEX);
+
   /***************************************************************/
   /* For PBC geometries we need to do some preliminary setup     */
   /***************************************************************/
   Data->ABMBCache=0;
+  Data->LBasis=0;
   if (G->LDim>0)
    { 
      int NS = G->NumSurfaces;
@@ -119,36 +136,20 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
       for(int nsb=nsa; nsb<NS; nsb++, nb++)
        Data->ABMBCache[nb]=G->CreateABMBAccelerator(nsa, nsb, false, false);
 
-     if (G->LDim==1)
-      { 
-        if (G->LBasis[0][1]!=0.0)
-         ErrExit("1D lattices must have lattice vector parallel to X axis");
-
-        Data->RLBasis[0][0]=2.0*M_PI/(G->LBasis[0][0]);
-        Data->RLBasis[0][1]=0.0;
-        Data->BZVolume = Data->RLBasis[0][0];
-      }
-     else // (G->LDim==2)
-      { 
-        double Area= G->LBasis[0][0]*G->LBasis[1][1] - G->LBasis[0][1]*G->LBasis[1][0];
-        if (Area==0.0)
-         ErrExit("%s:%i: lattice has empty unit cell",__FILE__,__LINE__);
-        Data->RLBasis[0][0] =  2.0*M_PI*G->LBasis[1][1] / Area;
-        Data->RLBasis[0][1] = -2.0*M_PI*G->LBasis[0][1] / Area;
-        Data->RLBasis[1][0] = -2.0*M_PI*G->LBasis[1][0] / Area;
-        Data->RLBasis[1][1] =  2.0*M_PI*G->LBasis[0][0] / Area;
-
-        Data->BZVolume= Data->RLBasis[0][0]*Data->RLBasis[1][1] 
-                         - Data->RLBasis[0][1]*Data->RLBasis[1][0];
+     HMatrix *LBasis = Data->LBasis = new HMatrix(3,G->LDim);
+     LBasis->SetEntry(0,0,G->LBasis[0][0]);
+     LBasis->SetEntry(1,0,G->LBasis[0][1]);
+     if (G->LDim>1)
+      { LBasis->SetEntry(0,1,G->LBasis[1][0]);
+        LBasis->SetEntry(1,1,G->LBasis[1][1]);
       };
+
    };
 
-  Data->RelTol      = 1.0e-2;
-  Data->MaxEvals    = 1000;
-  Data->HalfSpaceMP = 0;
 
-  SetDefaultCD2SFormat("%.8e %.8e");
-
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   return Data;
 }
 

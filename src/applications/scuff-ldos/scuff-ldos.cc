@@ -40,11 +40,13 @@ int main(int argc, char *argv[])
 /**/
   char *EPFile=0;
 /**/
-  bool BZSymmetry=false;
   char *BZIString=0;
+  int BZIOrder=-1;
+  bool BZSymmetric=false;
   double RelTol=1.0e-2;
   int MaxEvals=1000;
 /**/
+  bool GroundPlane=false;
   char *HalfSpace=0;
 /**/
   char *FileBase=0;
@@ -54,6 +56,7 @@ int main(int argc, char *argv[])
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1, (void *)&GeoFile,      0,  ".scuffgeo file"},
 //
+     {"GroundPlane", PA_BOOL,    1, 1, (void *)&GroundPlane,  0,  "simulate an infinite PEC ground plane at z=0"},
      {"HalfSpace",   PA_STRING,  1, 1, (void *)&HalfSpace,    0,  "simulate an infinite half-space for z<0 with the given material"},
 //
      {"EPFile",      PA_STRING,  1, 1, (void *)&EPFile,       0,  "list of evaluation points"},
@@ -61,7 +64,7 @@ int main(int argc, char *argv[])
      {"Omega",       PA_CDOUBLE, 1, 1, (void *)&Omega,  &nOmega,  "angular frequency"},
      {"OmegaFile",   PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of omega points "},
 //
-     {"BZSymmetry",  PA_BOOL,    0, 1, (void *)&BZSymmetry,    0,  "assume BZ integrand is xy-symmetric"},
+     {"BZSymmetric",  PA_BOOL,    0, 1, (void *)&BZSymmetric,    0,  "assume BZ integrand is xy-symmetric"},
      {"BZIMethod",   PA_STRING,  1, 1, (void *)&BZIString,    0,  "Brillouin-zone integration method [DCUTRI | adaptive]"},
      {"RelTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "relative tolerance for Brillouin-zone integration"},
      {"MaxEvals",    PA_INT,     1, 1, (void *)&MaxEvals,     0,  "maximum number of Brillouin-zone samples"},
@@ -77,7 +80,11 @@ int main(int argc, char *argv[])
   if (EPFile==0)
    OSUsage(argv[0],OSArray,"--EPFile option is mandatory");
   if (!FileBase)
-   FileBase=vstrdup(GetFileBase(GeoFile));
+   FileBase = vstrdup(GetFileBase(GeoFile));
+  if (HalfSpace)
+   { char *NewFileBase=vstrdup("%s.%s",FileBase,HalfSpace);
+     FileBase=NewFileBase;
+   };
 
   /***************************************************************/
   /* process --Omega, --OmegaFile, --OmegakBlochFile arguments   */
@@ -103,8 +110,8 @@ int main(int argc, char *argv[])
    { OkBPoints = new HMatrix(OkBFile);
      if (OkBPoints->ErrMsg)
       ErrExit(OkBPoints->ErrMsg);
-     if (BZSymmetry)
-      ErrExit("--BZSymmetry is incompatible with --OmegakBlochFile");
+     if (BZSymmetric)
+      ErrExit("--BZSymmetric is incompatible with --OmegakBlochFile");
      if (BZIString)
       ErrExit("--BZIMethod is incompatible with --OmegakBlochFile");
    }
@@ -120,48 +127,19 @@ int main(int argc, char *argv[])
   Data->MaxEvals    = MaxEvals;
   Data->FileBase    = FileBase;
   Data->LDOSOnly    = !LDOSPlus;
-  Data->BZSymmetry  = BZSymmetry;
+  Data->GroundPlane = GroundPlane;
 
   if (HalfSpace)
    Data->HalfSpaceMP = new MatProp(HalfSpace);
 
   int LDim = Data->G->LDim;
-
   if ( HalfSpace && LDim!=2 )
    OSUsage(argv[0],OSArray,"--HalfSpace requires a 2D-periodic geometry");
 
-  /***************************************************************/
-  /* process arguments relating to brillouin-zone cubature *******/
-  /***************************************************************/
-  int BZIMethod=BZI_PCUBATURE;
-  if (BZIString)
-   { if (LDim==0)
-      ErrExit("--BZIMethod may not be specified for non-PBC geometries");
-     if (OkBPoints!=0)
-      ErrExit("--BZIMethod and --OmegakBlochFile are mutually exclusive");
-     if (!strcasecmp(BZIString, "DCUTRI"))
-      { if (LDim==2)
-         { Log("Using DCUTRI algorithm for Brillouin-zone integration.");
-           BZIMethod=BZI_DCUTRI;
-         }
-        else
-         { Warn("--BZIMethod DCUTRI not available for 1D periodicity "
-                "(defaulting to --BZIMethod adaptive");
-           BZIMethod=BZI_PCUBATURE;
-         };
-      }
-     else if (!strncasecmp(BZIString, "FOTC",4) )
-      {  
-         BZIMethod=BZI_FOTC;
-         Log("Using %s algorithm for Brillouin-zone integration.",BZIString);
-      }
-     else if (!strcasecmp(BZIString, "PCUBATURE") )
-      {  Log("Using PCUBATURE algorithm for Brillouin-zone integration.");
-         BZIMethod=BZI_PCUBATURE;
-      }
-     else 
-      ErrExit("unknown Brillouin-zone integration scheme %s",BZIString);
-   };
+  int NX         = Data->XMatrix->NR;
+  int NFun       = Data->LDOSOnly ? 2 : 38;
+  int FDim       = NX*NFun;
+  double *Result = (double *)mallocEC(FDim*sizeof(double));
 
   /***************************************************************/
   /* now switch off to figure out what to do:                    */
@@ -186,13 +164,10 @@ int main(int argc, char *argv[])
    {  
      Data->OutFileName=vstrdup("%s.LDOS",FileBase);
      WriteFilePreamble(Data->OutFileName, FILETYPE_LDOS, LDim);
-     int NFun = 2*Data->XMatrix->NR;
-     double *Result = new double[NFun];
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
-        GetLDOS(Data, Omega, 0, Result);
+        GetLDOS( (void *)Data, Omega, 0, Result);
       };
-     delete[] Result;
    }
   /*--------------------------------------------------------------*/
   /*- PBC structure with specified kBloch points: do a periodic   */
@@ -202,8 +177,6 @@ int main(int argc, char *argv[])
    {  
      Data->ByKFileName=vstrdup("%s.byOmegakBloch",FileBase);
      WriteFilePreamble(Data->ByKFileName, FILETYPE_BYK, LDim);
-     int NFun = 2*Data->XMatrix->NR;
-     double *Result = new double[NFun];
      for(int nokb=0; nokb<OkBPoints->NR; nokb++)
       { 
         Omega=OkBPoints->GetEntry(nokb,0);
@@ -213,9 +186,8 @@ int main(int argc, char *argv[])
         if (LDim==2)
          kBloch[1]=OkBPoints->GetEntryD(nokb,2);
 
-        GetLDOS(Data, Omega, kBloch, Result);
+        GetLDOS( (void *)Data, Omega, kBloch, Result);
       };
-     delete[] Result;
    }
   /*--------------------------------------------------------------*/
   /*- PBC structure without specified kBloch points: perform a    */
@@ -223,33 +195,66 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   else
    {
+     /***************************************************************/
+     /* set up argument structure for Brillouin-zone integration    */
+     /* routine                                                     */
+     /***************************************************************/
+     GetBZIArgStruct *Args = CreateGetBZIArgs(Data->LBasis);
+     Args->BZIFunc         = GetLDOS;
+     Args->UserData        = (void *)Data;
+     Args->FDim            = FDim;
+     Args->BZSymmetric     = BZSymmetric;
+     Args->MaxPoints       = MaxEvals;
+     Args->RelTol          = RelTol;
+     Args->Reduced         = true;
+
+     Args->BZIMethod       = (Data->G->LDim==1) ? BZI_CC : BZI_TC;
+     int DefBZIOrder       = (Data->G->LDim==1) ? 21     : 9;
+     if (!BZIString || !strcasecmp(BZIString,"TC") )
+      ; // do nothing for default case
+     else if (!strcasecmp(BZIString,"CC") )
+      { Args->BZIMethod = BZI_CC;
+        DefBZIOrder=21;
+      }
+     else if ( !strcasecmp(BZIString,"adaptive") )
+      { 
+        Args->BZIMethod = BZI_ADAPTIVE;
+      }
+     Args->Order        = BZIOrder==-1 ? DefBZIOrder : BZIOrder;
+
+     /***************************************************************/
+     /***************************************************************/
+     /***************************************************************/
      Data->ByKFileName=vstrdup("%s.byOmegakBloch",FileBase);
      WriteFilePreamble(Data->ByKFileName, FILETYPE_BYK, LDim);
      Data->OutFileName=vstrdup("%s.LDOS",FileBase);
      WriteFilePreamble(Data->OutFileName, FILETYPE_LDOS, LDim);
-
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
-        switch(BZIMethod)
-         { 
-           case BZI_DCUTRI:
-             GetBZIntegral_DCUTRI(Data, Omega);
-             break;
-
-           case BZI_FOTC:
-             GetBZIntegral_FOTC(Data, Omega, BZIString);
-             break;
-
-           case BZI_PCUBATURE:
-             GetBZIntegral_PCubature(Data, Omega);
-             break;
-
-           default:
-             ErrExit("unknown Brillouin-zone integration scheme");
-         }; 
-
+        GetBZIntegral(Args, Omega, Result);
+        WriteLDOS(Data, Omega, Result, Args->BZIError);
       };
-
    };
 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteLDOS(SLDData *Data, cdouble Omega,
+               double *Result, double *Error)
+{
+  FILE *f=vfopen(Data->OutFileName,"a");
+  HMatrix *XMatrix=Data->XMatrix;
+  for(int nx=0; nx<XMatrix->NR; nx++)
+   { 
+     double X[3];
+     XMatrix->GetEntriesD(nx,":",X);
+     int NFun = (Data->LDOSOnly ? 2 : 38);
+     fprintf(f,"%e %e %e %s ", X[0],X[1],X[2], z2s(Omega));
+     for(int nf=0; nf<NFun; nf++) 
+      fprintf(f,"%e %e ",Result[NFun*nx+nf], Error ? Error[NFun*nx+nf] : 0.0);
+     fprintf(f,"\n");
+   };
+  fclose(f);
 }

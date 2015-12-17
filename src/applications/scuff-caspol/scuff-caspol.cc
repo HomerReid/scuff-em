@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 //
      {"FileBase",    PA_STRING,  1, 1,       (void *)&FileBase,    0,             "base name for output files"},
 //
-     {"BZIMethod",   PA_STRING,  1, 1,       (void *)&BZIString,   0,             "Brillouin-zone integration scheme ([adaptive|CC|FOTC])"},
+     {"BZIMethod",   PA_STRING,  1, 1,       (void *)&BZIString,   0,             "Brillouin-zone integration scheme ([adaptive|CC|TC])"},
      {"BZIPoints",   PA_INT,     1, 1,       (void *)&BZIPoints,   0,             "max # Brillouin-samples for adaptive scheme"},
      {"BZIOrder",    PA_INT,     1, 1,       (void *)&BZIOrder,    0,             "order of Brillouin-zone cubature for fixed schemes"},
      {"BZSymmetric", PA_BOOL,    0, 1,       (void *)&BZSymmetric, 0,             "specifies Brillouin zone symmetric under kx<->ky"},
@@ -251,8 +251,8 @@ int main(int argc, char *argv[])
       }
      else if ( !strcasecmp(BZIString,"adaptive") )
       BZIMethod = BZI_ADAPTIVE;
-     else if ( !strcasecmp(BZIString,"FOTC") )
-      { BZIMethod = BZI_FOTC;
+     else if ( !strcasecmp(BZIString,"TC") )
+      { BZIMethod = BZI_TC;
         if (BZIOrder==-1) BZIOrder=13;
       }
      else 
