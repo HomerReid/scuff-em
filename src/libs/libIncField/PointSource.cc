@@ -37,7 +37,7 @@
 namespace scuff {
 
 void GBarVDEwald(double *R, cdouble k, double *kBloch,
-                 double **LBV, int LDim,
+                 double (*LBV)[3], int LDim,
                  double E, bool ExcludeInnerCells, cdouble *GBarVD);
 
                 }
@@ -157,7 +157,6 @@ void PointSource::GetFields_Periodic(const double X[3], cdouble EH[6])
 {
   cdouble k    = sqrt(Eps*Mu) * Omega;
   cdouble k2   = k*k;
-  cdouble ZRel = sqrt(Mu/Eps);
 
   double R[3];
   R[0]= X[0]-X0[0];

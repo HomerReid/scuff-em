@@ -183,17 +183,15 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
 /*  S points to the RWGSurface in question; its contents are    */
 /*  modified if any straddlers were detected.                   */
 /*                                                              */
-/*  LBV[i][j] is the jth cartesian component of the ith lattice */
-/*  basis vector.                                               */
-/*  LDim is the length of the first dimension of                */
-/*  the LBV array.                                              */
+/*  LBasis[j][i] is the jth cartesian component of the ith      */
+/*  lattice basis vector.                                       */
 /*                                                              */
 /*  On return, NumStraddlers[i] is the number of straddlers     */
-/*  detected on the unit-cell boundary normal to LBV[i].        */
+/*  detected on the unit-cell boundary normal to the ith        */
+/*  lattice basis vector.                                       */
 /*--------------------------------------------------------------*/
 #define CHUNK 100
-void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
-                               int LDim,
+void RWGSurface::AddStraddlers(HMatrix *LBasis,
                                int NumStraddlers[MAXLDIM])
 { 
   int NumNew=0, NumAllocated=0;
@@ -202,6 +200,13 @@ void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
   RWGEdge *E, **NewEdges=0;
 
   memset(NumStraddlers, 0, MAXLDIM*sizeof(int));
+
+  CheckLattice(LBasis);
+  double LBV[2][2];
+  int LDim=LBasis->NC;
+  for(int nd=0; nd<LDim; nd++)
+   for(int j=0; j<2; j++)
+    LBV[nd][j]=LBasis->GetEntryD(j,nd);
 
   /***************************************************************/
   /* find the LBVi vectors, which satisfy dot(LBVi[k],LBV[j])    */
@@ -284,10 +289,10 @@ void RWGSurface::AddStraddlers(double LBV[MAXLDIM][2],
           // Centroid, and Length fields of this structure will be already 
           // correctly initialized. 
           E=ExteriorEdges[nei];
-          E->iQM  = NumVertices + NumNew;
+          E->iQM     = NumVertices + NumNew;
           E->iMPanel = NumPanels + NumNew;
-          E->Index = NumEdges + NumNew;
-          E->MIndex = 2; // because below we hard-code P->VI[2] = E->iQM;
+          E->Index   = NumEdges + NumNew;
+          E->MIndex  = 2; // because below we hard-code P->VI[2] = E->iQM;
           E->Radius=VecDistance(E->Centroid, Vertices+3*E->iQP);
           E->Radius=fmax(E->Radius, VecDistance(E->Centroid,V));
           E->Radius=fmax(E->Radius, VecDistance(E->Centroid,Vertices+3*E->iV1));
@@ -418,6 +423,7 @@ void RWGGeometry::InitPBCData()
   /* lattice basis vector i; =false otherwise.                    */
   /*--------------------------------------------------------------*/
   TotalBFs=TotalPanels=0;
+  int LDim = LBasis->NC;
   for(int nd=0; nd<LDim; nd++)
    { NumStraddlers[nd]       = (int *)mallocEC(NumSurfaces*sizeof(int));
      RegionIsExtended[nd]    = (bool *)mallocEC(NumRegions*sizeof(bool));
@@ -429,7 +435,7 @@ void RWGGeometry::InitPBCData()
    { 
      RWGSurface *S=Surfaces[ns];
      int NumStraddlersThisSurface[2];
-     S->AddStraddlers(LBasis, LDim, NumStraddlersThisSurface);
+     S->AddStraddlers(LBasis, NumStraddlersThisSurface);
 
      int nr1=S->RegionIndices[0];
      int nr2=S->RegionIndices[1];
@@ -455,34 +461,58 @@ void RWGGeometry::InitPBCData()
 }
 
 /***************************************************************/
-/* for periodic geometries, translate X into the unit cell of  */
-/* the lattice.                                                */
+/* for periodic geometries, decompose X = L + XBar where       */
+/* L is a lattice vector and XBar lies within the lattice      */
+/* unit cell.                                                  */
+/* On return, nVector={n1,n2,n3} where L=n1*L1 + n2*L2 + n3*L3 */
+/* where {L1,L2,L3} are the lattice vectors.                   */
 /* if WignerSeitz =true, translate X into the Wigner-Seitz cell*/
 /* instead of the unit cell.                                   */
 /***************************************************************/
-void RWGGeometry::GetUnitCellRepresentative(const double X[3], 
+void RWGGeometry::GetUnitCellRepresentative(const double X[3],
                                             double XBar[3],
+                                            double LVector[3],
+                                            int nVector[3],
                                             bool WignerSeitz)
 {
+  CheckLattice(LBasis);
+
   XBar[0] = X[0];
   XBar[1] = X[1];
   XBar[2] = X[2];
 
-  if (LBasis[0][1]!=0.0 || (LDim>=2 && LBasis[1][0]!=0.0) )
-   ErrExit("%s:%i: non-square lattices not supported",__FILE__,__LINE__);
-
+  int LDim=LBasis->NC;
   if (LDim>=1)
-   { double L = LBasis[0][0];
+   { double L = LBasis->GetEntryD(0,0);
      double N = WignerSeitz ? lround(X[0]/L) : floor(X[0]/L);
      XBar[0] -= N*L;
+     nVector[0] = N;
+     LVector[0] = N*L;
    };
   if (LDim>=2)
-   { double L = LBasis[1][1];
+   { double L = LBasis->GetEntryD(1,1);
      double N = WignerSeitz ? lround(X[1]/L) : floor(X[1]/L);
      XBar[1] -= N*L;
+     nVector[1] = N;
+     LVector[1] = N*L;
    };
 
 }
 
+void RWGGeometry::GetUnitCellRepresentative(const double X[3],
+                                            double XBar[3],
+                                            double LVector[3],
+                                            bool WignerSeitz)
+{ int NVector[3];
+  GetUnitCellRepresentative(X, XBar, LVector, NVector, WignerSeitz);
+}
+
+void RWGGeometry::GetUnitCellRepresentative(const double X[3],
+                                            double XBar[3],
+                                            bool WignerSeitz)
+{ int NVector[3];
+  double LVector[3];
+  GetUnitCellRepresentative(X, XBar, LVector, NVector, WignerSeitz);
+}
 
 } // namespace scuff

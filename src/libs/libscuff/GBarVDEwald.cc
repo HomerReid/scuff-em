@@ -183,7 +183,7 @@ cdouble ExpInt(cdouble z)
 /* contains the quantity Rho, the perpendicular distance from  */
 /* R to the line defined by the lattice vector.                */
 /***************************************************************/
-void GetRLBasis(double **L, int LDim, double Gamma[2][2],
+void GetRLBasis(int LDim, double (*L)[3], double (*Gamma)[3],
                 cdouble k, double *EOpt, double R[3], double *pRho)
 {
   /*--------------------------------------------------------------*/
@@ -296,7 +296,7 @@ void GetEEF(double z, double E, cdouble Q, cdouble *EEF, cdouble *EEFPrime)
 /* that defines GBarDistant in the 2D case.                    */
 /***************************************************************/
 void AddGLong2D(double R[3], cdouble k, double P[2],
-                int n1, int n2, double Gamma[2][2],
+                int n1, int n2, double Gamma[3][3],
                 double E, cdouble *GBarVD)
 { 
   double PmG[2];
@@ -412,7 +412,7 @@ cdouble GetGLongTwiddle1D(double kx, double Rho, cdouble k, double E,
 // note: I *think* this is the only place where I assume 
 // that the 1D lattice vector is oriented along the x direction.
 void AddGLong1D(double R[3], double Rho, cdouble k, double P[2],
-                int m, double Gamma[2][2], double E, cdouble *GBarVD)
+                int m, double Gamma[3][3], double E, cdouble *GBarVD)
 {
   double PmG[2], PmGMag;
   PmG[0] = P[0] - m*Gamma[0][0];
@@ -445,7 +445,7 @@ void AddGLong1D(double R[3], double Rho, cdouble k, double P[2],
 /***************************************************************/
 /***************************************************************/
 void GetGBarDistant(double *R, double Rho, cdouble k, double *kBloch,
-                    double Gamma[2][2], int LDim,
+                    double Gamma[3][3], int LDim,
                     double E, int *pnCells, cdouble *Sum)
 { 
   memset(Sum,0,NSUM*sizeof(cdouble));
@@ -608,7 +608,7 @@ void AddGFull(double R[3], cdouble k, double kBloch[2],
 /*                                                             */
 /***************************************************************/
 void AddGShort(double *R, cdouble k, double *kBloch,
-               int n1, int n2, double *LBV[2], int LDim,
+               int n1, int n2, double (*LBV)[3], int LDim,
                double E, cdouble *Sum)
 { 
   /*--------------------------------------------------------------*/
@@ -714,7 +714,7 @@ void AddGShort(double *R, cdouble k, double *kBloch,
 /***************************************************************/
 /***************************************************************/
 void GetGBarNearby(double *R, cdouble k, double *kBloch,
-                   double *LBV[2], int LDim,
+                   double (*LBV)[3], int LDim,
                    double E, bool ExcludeInnerCells,
                    int *pnCells, cdouble *Sum)
 { 
@@ -796,7 +796,7 @@ void GetGBarNearby(double *R, cdouble k, double *kBloch,
 /***************************************************************/
 #define PI32 5.5683279968317078453 // pi^{3/2}
 void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
-                       int n1, int n2, double *LBV[2], int LDim, 
+                       int n1, int n2, double (*LBV)[3], int LDim, 
                        double E, cdouble *Sum)
 {  
   if (E==0.0) return;
@@ -904,7 +904,7 @@ void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
 /*                                                             */
 /***************************************************************/
 void GBarVDEwald(double *R, cdouble k, double *kBloch,
-                 double *LBV[2], int LDim,
+                 double (*LBV)[3], int LDim,
                  double E, bool ExcludeInnerCells,
                  cdouble *GBarVD)
 { 
@@ -925,8 +925,8 @@ void GBarVDEwald(double *R, cdouble k, double *kBloch,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double Gamma[2][2], EOpt, Rho;
-  GetRLBasis(LBV, LDim, Gamma, k, &EOpt, R, &Rho);
+  double Gamma[3][3], EOpt, Rho;
+  GetRLBasis(LDim, LBV, Gamma, k, &EOpt, R, &Rho);
   if (E==-1.0) E=EOpt;
 
   /***************************************************************/

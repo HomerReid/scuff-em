@@ -44,7 +44,6 @@ IncField::IncField()
 
   // incident fields are non-periodic by default
   LDim=0;
-  LBV[0]=LBV[1]=0;
   kBloch[0]=kBloch[1]=0.0;
 
   // field sources lie in the exterior region by default
@@ -116,20 +115,28 @@ void IncField::SetLattice(int NewLDim, double NewLBV[2][2], bool Traverse)
             __FILE__,__LINE__);
 
   LDim = NewLDim;
-  if (LDim>=1)
-   { LBV1[0] = NewLBV[0][0];
-     LBV1[1] = NewLBV[0][1];
-     LBV[0] = LBV1;
-   };
-  if (LDim==2)
-   { LBV2[0] = NewLBV[1][0];
-     LBV2[1] = NewLBV[1][1];
-     LBV[1] = LBV2;
-   };
+  for(int nd=0; nd<LDim; nd++)
+   for(int j=0; j<2; j++)
+    LBV[nd][j] = NewLBV[nd][j];
 
   if (Traverse)
    for(IncField *IFD=this->Next; IFD; IFD=IFD->Next)
     IFD->SetLattice(NewLDim,NewLBV,false);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void IncField::SetLattice(HMatrix *LBasis, bool Traverse)
+{
+  LDim = LBasis->NC;
+  for(int nd=0; nd<LDim; nd++)
+   for(int j=0; j<3; j++)
+    LBV[nd][j] = LBasis->GetEntryD(j,nd);
+
+  if (Traverse)
+   for(IncField *IFD=this->Next; IFD; IFD=IFD->Next)
+    IFD->SetLattice(LBasis,false);
 }
 
 /***************************************************************/

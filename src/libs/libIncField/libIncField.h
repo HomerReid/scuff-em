@@ -28,6 +28,7 @@
 
 #include <complex>
 #include <cmath>
+#include "libhmat.h"
 
 #ifndef cdouble
   typedef std::complex<double> cdouble;
@@ -51,7 +52,7 @@ class IncField
 
    // bloch wavevector and lattice basis for Bloch-periodic case
    int LDim;
-   double LBV1[2], LBV2[2], *LBV[2];
+   double LBV[3][3];
    double kBloch[2];
 
    IncField *Next;
@@ -70,6 +71,7 @@ class IncField
    void SetRegionLabel(const char *Label = 0);
 
    void SetLattice(int LDim, double LBasis[2][2], bool Traverse=true);
+   void SetLattice(HMatrix *LBasis, bool Traverse=true);
    void SetkBloch(double *NewkBloch, bool Traverse=true);
 
    // obsolete calling convention retained for backward compatibility

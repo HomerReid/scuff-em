@@ -146,6 +146,13 @@ void GetBFBFCubature2(RWGGeometry *G,
                       PPCFunction2 Integrand, void *UserData, int IDim,
                       int Order, double *Integral);
 
-}
+void GetBFBFCubatureTD(RWGGeometry *G,
+                       int nsA, int neA, int nsB, int neB,
+                       PPCFunction2 Integrand, void *UserData,
+                       int IDim, double *Integral, double *Error,
+                       int MaxEvals=0, double AbsTol=0.0, double RelTol=1.0e-4);
+
+} // namespace scuff{
+
 
 #endif // #ifndef PANELCUBATURE_H

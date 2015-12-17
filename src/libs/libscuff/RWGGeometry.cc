@@ -96,6 +96,105 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
 
 }
 
+/***************************************************************/
+/* this is a hopefully temporary routine that asserts that the */
+/* user-specified lattice comports with our current limitations*/
+/* regarding the types of lattices that are supported;         */
+/* this routine will hopefully vanish in the future as we      */
+/* increase support for all types of lattices.                 */
+/***************************************************************/
+void CheckLattice(HMatrix *LBasis)
+{
+  int LDim = LBasis->NC;
+
+  if (LDim==1)
+   { if (    LBasis->GetEntryD(1,0)!=0.0
+          || LBasis->GetEntryD(2,0)!=0.0
+        )
+      ErrExit("1D lattice vector must be parallel to x axis");
+   }
+  else if (LDim==2)
+   { if (    LBasis->GetEntryD(2,0)!=0.0
+          || LBasis->GetEntryD(2,1)!=0.0
+        )
+      ErrExit("2D lattice vectors must lie in xy plane");
+
+     if (    LBasis->GetEntryD(1,0)!=0.0
+          || LBasis->GetEntryD(0,1)!=0.0
+       )
+      ErrExit("non-rectangular 2D lattices not yet supported");
+   }
+  else if (LDim==3)
+   ErrExit("3D lattices not yet supported");
+}
+
+/***************************************************************/
+/* get a basis for the reciprocal lattice.                     */
+/* also compute and return volumes of direct and reciprocal    */
+/* lattice unit cells if the user wants them.                  */
+/* if the direct lattice unit cell has zero volume, then NULL  */
+/* is returned.                                                */
+/***************************************************************/
+HMatrix *GetRLBasis(HMatrix *LBasis, double *pLVolume, double *pRLVolume)
+{
+  if (pLVolume)   *pLVolume=0.0;
+  if (pRLVolume) *pRLVolume=0.0;
+ 
+  double LVolume=0.0, RLVolume=0.0;
+  int LDim=LBasis->NC;
+
+  double LBV[3][3], RLBV[3][3], LProduct=1.0;
+  for(int nd=0; nd<LDim; nd++)
+   { for(int i=0; i<3; i++)
+      LBV[nd][i]=LBasis->GetEntryD(i,nd);
+     LProduct*=VecNorm(LBV[nd]);
+   };
+
+  double MinVolume = 1.0e-6*LProduct;
+
+  switch(LDim)
+   { case 1:
+      LVolume = VecNorm(LBV[0]);
+      if (LVolume==0.0) return 0;
+      RLVolume = 2.0*M_PI/LVolume;
+      VecScale(LBV[0], RLVolume, RLBV[0]);
+      break;
+      
+     case 2:
+      VecCross(LBV[0],LBV[1],LBV[2]);
+      LVolume = VecNormalize(LBV[2]);
+      if (LVolume < MinVolume) return 0;
+      RLVolume = 4.0*M_PI*M_PI/LVolume;
+      VecCross(LBV[1],LBV[2],RLBV[0]);
+      VecCross(LBV[2],LBV[0],RLBV[1]);
+      VecScale(RLBV[0],2.0*M_PI/LVolume);
+      VecScale(RLBV[1],2.0*M_PI/LVolume);
+      break;
+
+     case 3:
+      double TV[3];
+      LVolume = VecDot(VecCross(LBV[0],LBV[1],TV),LBV[2]);
+      if (LVolume < MinVolume) return 0;
+      RLVolume = 8.0*M_PI*M_PI*M_PI/LVolume;
+      VecCross(LBV[1],LBV[2],RLBV[0]);
+      VecCross(LBV[2],LBV[0],RLBV[1]);
+      VecCross(LBV[0],LBV[1],RLBV[2]);
+      VecScale(RLBV[0],2.0*M_PI/LVolume);
+      VecScale(RLBV[1],2.0*M_PI/LVolume);
+      VecScale(RLBV[2],2.0*M_PI/LVolume);
+      break;
+   };
+
+  if (pLVolume)  *pLVolume=LVolume;
+  if (pRLVolume) *pRLVolume=RLVolume;
+
+  HMatrix *RLBasis = new HMatrix(3,LDim,LHM_REAL);
+  for(int nd=0; nd<LDim; nd++)
+   RLBasis->SetEntriesD(":",nd,RLBV[nd]);
+
+  return RLBasis;
+}
+
 /***********************************************************************/
 /* subroutine to parse the LATTICE...ENDLATTICE section in a .scuffgeo */
 /* file.                                                               */
@@ -103,13 +202,14 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
 void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
 {
   char Line[MAXSTR];
-  int NumTokens;
-  char *Tokens[MAXTOK];
-  double *LBV;
+  double LBV[3][3]={{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
+  LDim=0;
   while( fgets(Line,MAXSTR,f) )
    { 
      (*LineNum)++;
-     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+
+     char *Tokens[MAXTOK];
+     int NumTokens=Tokenize(Line, Tokens, MAXTOK);
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
@@ -117,27 +217,26 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
       {
         if (LDim==MAXLDIM)
          ErrExit("%s:%i: too many lattice vectors",FileName,*LineNum);
-        LBV=LBasis[LDim++];
+        
+        if (NumTokens<2 || NumTokens>4) 
+         ErrExit("%s:%i: lattice vectors must have 1, 2, or 3 components",FileName,*LineNum);
+        for(int nc=0; nc<(NumTokens-1); nc++)
+         if ( 1 != sscanf(Tokens[nc+1],"%le",&(LBV[LDim][nc])))
+          ErrExit("%s:%i: invalid vector component %s",FileName,*LineNum,Tokens[nc+1]);
 
-        if (NumTokens==3)
-         { sscanf(Tokens[1],"%le",LBV+0);
-           sscanf(Tokens[2],"%le",LBV+1);
-         }
-        else 
-         ErrExit("%s:%i: lattice vectors must have exactly two components",FileName,*LineNum);
-
-        Log("Adding lattice basis vector (%g,%g).",LBV[0],LBV[1]);
+        Log("Adding lattice basis vector (%g,%g,%g).",LBV[LDim][0],LBV[LDim][1],LBV[LDim][2]);
+        LDim++;
       }
      else if ( !StrCaseCmp(Tokens[0],"ENDLATTICE") )
       { 
-        // if the user specified two basis vectors, test for independence
-        if (LDim==2)
-	 { double Area = LBasis[0][0]*LBasis[1][1] - LBasis[0][1]*LBasis[1][0];
-           double Norm2L1 = LBasis[0][0]*LBasis[0][0] + LBasis[0][1]*LBasis[0][1];
-           double Norm2L2 = LBasis[1][0]*LBasis[1][0] + LBasis[1][1]*LBasis[1][1];
-           if ( Area < 1.0e-6*sqrt(Norm2L1*Norm2L2) )
-            ErrExit("%s:%i: lattice basis vectors are parallel",FileName,*LineNum);
-         };
+        LBasis=new HMatrix(3, LDim);
+        for(int nd=0; nd<LDim; nd++)
+         for(int i=0; i<3; i++)
+          LBasis->SetEntry(i,nd,LBV[nd][i]);
+
+        RLBasis=GetRLBasis(LBasis, &LVolume, &RLVolume);
+        if (LVolume==0.0)
+         ErrExit("%s:%i: lattice has empty unit cell",FileName,*LineNum);
 
         return; 
       }
@@ -258,6 +357,8 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   Surfaces=0;
   AllSurfacesClosed=1;
   LDim=0;
+  LBasis=RLBasis=0;
+  LVolume=RLVolume=0.0;
   NumStraddlers[0]=NumStraddlers[1]=0;
   RegionIsExtended[0]=RegionIsExtended[1]=0;
   tolVecClose=0.0; // to be updated once mesh is read in
@@ -480,8 +581,10 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* if a lattice is present, then we need to do some preliminary    */
   /* setup                                                           */
   /*******************************************************************/
-  if (LDim>0)
-   InitPBCData();
+  if (LBasis)
+   { LDim=LBasis->NC;
+     InitPBCData();
+   };
 
   /*******************************************************************/
   /* Autodetect nesting relationships & topologically sort           */

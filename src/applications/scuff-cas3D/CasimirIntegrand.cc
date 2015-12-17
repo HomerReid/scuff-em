@@ -255,9 +255,12 @@ void ExportHDF5Data(SC3Data *SC3D, double Xi, double *kBloch, char *Tag)
 /*  ...                                                        */
 /*  EFT[2*N-1] = yforce integrand (spatial transformation N)   */
 /***************************************************************/
-void GetCasimirIntegrand(SC3Data *SC3D, double Xi, 
-                         double *kBloch, double *EFT)
+void GetCasimirIntegrand((void *)pSC3D, cdouble Omega,
+                          double *kBloch, double *EFT)
 { 
+  SC3Data *SC3D=(SC3Data *)pSC3D;
+  double Xi = imag(Omega);
+
   /***************************************************************/
   /* attempt to bypass the calculation by reading data from a    */
   /* cache file                                                  */
@@ -292,7 +295,6 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
   /***************************************************************/
   /* assemble T matrices                                         */
   /***************************************************************/
-  cdouble Omega = cdouble(0.0, Xi);
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      /* skip if this surface is identical to a previous surface */

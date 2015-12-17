@@ -30,6 +30,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <libhrutil.h>
+#include <libTriInt.h>
 
 #define MAXSTR 1000
 
@@ -45,7 +46,8 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
-  bool PBC = (G->LDim> 0);
+  int LDim = SC3D->LDim = G->LDim;
+  bool PBC = (LDim>0);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -74,36 +76,10 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->NTNQ = SC3D->NumTransformations * SC3D->NumQuantities;
 
   SC3D->XiConverged = (bool *)mallocEC( (SC3D->NTNQ) * sizeof(bool) );
-  if (G->LDim==0)
+  if (LDim==0)
    SC3D->BZConverged = 0;
   else
    SC3D->BZConverged = (bool *)mallocEC( (SC3D->NTNQ) * sizeof(bool) );
-
-  /*--------------------------------------------------------------*/
-  /*- compute a basis for the reciprocal lattice -----------------*/
-  /*--------------------------------------------------------------*/
-  if (G->LDim==1)
-   { 
-     SC3D->RLBasisVectors[0][0] = 2.0*M_PI/G->LBasis[0][0];
-     SC3D->BZVolume = SC3D->RLBasisVectors[0][0];
-   }
-  else if (G->LDim==2)
-   { 
-     double *L1 = G->LBasis[0];
-     double *L2 = G->LBasis[1];
-
-     double PreFac = 2.0*M_PI / fabs( L1[0]*L2[1] - L1[1]*L2[0]);
-
-     SC3D->RLBasisVectors[0][0] = PreFac*L2[1];
-     SC3D->RLBasisVectors[0][1] = -PreFac*L2[0];
-
-     SC3D->RLBasisVectors[1][0] = -PreFac*L1[1];
-     SC3D->RLBasisVectors[1][1] = PreFac*L1[0];
-
-     SC3D->BZVolume 
-      = SC3D->RLBasisVectors[0][0] * SC3D->RLBasisVectors[1][1]
-         - SC3D->RLBasisVectors[0][1] * SC3D->RLBasisVectors[1][0];
-   };
 
   /*--------------------------------------------------------------*/
   /*- allocate arrays of matrix subblocks that allow us to reuse  */
@@ -198,7 +174,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->ByXiFileName=vstrdup("%s.byXi",FileBase);
   WriteFilePreamble(SC3D, PREAMBLE_BYXI);
 
-  if (G->LDim>0)
+  if (LDim>0)
    { SC3D->ByXiKFileName=vstrdup("%s.byXikBloch",FileBase);
      WriteFilePreamble(SC3D, PREAMBLE_BYXIK);
    }
@@ -217,6 +193,18 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
           SC3D->UAccelerators[nt][nb] 
            = G->CreateABMBAccelerator(ns, nsp, true, NeedDMDZ && ns==0);
       };
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  SC3D->BZIArgs=0;
+  if (PBC)
+   { SC3D->BZIArgs=CreateGetBZIArgs(G->LBasis);
+     SC3D->GBZIArgs->BZIFunc     = GetCasimirIntegrand;
+     SC3D->GBZIArgs->UserData    = (void *)SC3D;
+     SC3D->GBZIArgs->FDim        = SC3D->NTNQ;
+     SC3D->GBZIArgs->Reduced     = true;
    };
 
   return SC3D;
@@ -268,7 +256,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
      fprintf(f,"#%i: imaginary angular frequency\n",nc++);
 
      IntegrandString="Xi integrand";
-     ErrorString = (SC3D->G->LDim==0) ? 0 :
+     ErrorString = (LDim==0) ? 0 :
                    "error due to numerical Brillouin-zone integration";
 
    }
@@ -276,7 +264,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
    { 
      fprintf(f,"#%i: imaginary angular frequency\n",nc++);
      fprintf(f,"#%i: bloch wavevector kx \n",nc++);
-     if (SC3D->G->LDim==2)
+     if (LDim==2)
       fprintf(f,"#%i: bloch wavevector ky\n",nc++);
 
      IntegrandString="Brillouin-zone integrand";

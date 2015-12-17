@@ -65,7 +65,7 @@ namespace scuff {
 
 // maximum number of lattice basis vectors
 #ifndef MAXLDIM
-#define MAXLDIM 2
+#define MAXLDIM 3
 #endif
 
 /*--------------------------------------------------------------*/
@@ -300,8 +300,7 @@ class RWGSurface
                              cdouble k, GBarAccelerator *GBA,
                              cdouble *a, cdouble *Curla, cdouble *Gradp, bool ForceFullEwald=false);
 
-   void AddStraddlers(double LBV[MAXLDIM][2], int LDim,
-                      int NumStraddlers[MAXLDIM]);
+   void AddStraddlers(HMatrix *LBasis, int NumStraddlers[MAXLDIM]);
 
    void UpdateBoundingBox();
  
@@ -500,6 +499,12 @@ class RWGGeometry
                                     double RMin[3], double RMax[3], bool ExcludeInnerCells);
    void GetUnitCellRepresentative(const double X[3], double XBar[3],
                                   bool WignerSeitz=false);
+   void GetUnitCellRepresentative(const double X[3], double XBar[3],
+                                  double LVector[3],
+                                  bool WignerSeitz=false);
+   void GetUnitCellRepresentative(const double X[3], double XBar[3],
+                                  double LVector[3], int NVector[3],
+                                  bool WignerSeitz=false);
    void GetKNCoefficients(HVector *KN, int ns, int ne,
                           cdouble *KAlpha, cdouble *NAlpha=0);
 
@@ -535,20 +540,23 @@ class RWGGeometry
 
    char *GeoFileName;
 
-   /* LDim>0 iff we have periodic boundary conditions.           */
+   /* LDim=0 for compact geometries.                             */
+   /* For geometries with D-dimensional Bloch-periodicity,       */
+   /* LBasis is a 3 x D matrix whose columns are the lattice     */
+   /* basis vectors.                                             */
+   /* RLBasis is a similar matrix for the reciprocal lattice.    */
+   /* LVolume, RLVolume are the unit-cell volumes of the direct  */
+   /* and reciprocal lattices.                                   */
+   /*                                                            */
    /* All other fields in this section are only used for PBCs:   */
-   /* LBasis[nd][2] = (x,y) coordinates of ndth lattice vector   */
+   /*                                                            */
    /* NumStraddlers[nd][ns] = number of straddlers in ndth       */
    /*                         dimension for surface #ns          */
    /* RegionIsExtended[nd][ns] = true if region #nr is extended  */
    /*                            in dimension #nd                */
-   /*                                                            */
-   /* (Note that lattice vectors must have zero z-component and  */
-   /* only the first two components (x and y components) are     */
-   /* stored, so the Vec... operations in scuffMisc cannot be    */
-   /* used on the LBasis vectors.)                               */
    int LDim;
-   double LBasis[2][2];
+   HMatrix *LBasis, *RLBasis;
+   double LVolume, RLVolume;
    int *NumStraddlers[2];
    bool *RegionIsExtended[2];
 
@@ -645,6 +653,7 @@ void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
 /*--------------------------------------------------------------*/
 void PreloadCache(const char *FileName);
 void StoreCache(const char *FileName);
+void CheckLattice(HMatrix *LBasis);
 
 } // namespace scuff
 

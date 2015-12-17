@@ -36,7 +36,7 @@ namespace scuff {
 /* ewald summation                                             */
 /***************************************************************/
 void GBarVDEwald(double *R, cdouble k, double *kBloch,
-                 double **LBV, int LDim,
+                 double (*LBV)[3], int LDim,
                  double E, bool ExcludeInnerCells, cdouble *GBarVD);
 
 /***************************************************************/
@@ -49,7 +49,7 @@ typedef struct GBarAccelerator
    bool ExcludeInnerCells;
 
    int LDim;
-   double LBV1[2], LBV2[2], *LBV[2];
+   double LBV[3][3];
    double RhoMin, RhoMax, LMax;
 
    bool ForceFullEwald;
@@ -62,7 +62,7 @@ typedef struct GBarAccelerator
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
+GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
                                        double RhoMin, double RhoMax,
                                        cdouble k, double *kBloch,
                                        double RelTol, bool ExcludeInnerCells);

@@ -95,7 +95,7 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   if (KN==0 || KN->N != TotalBFs )
    ErrExit("%s:%i: invalid K vector passed to GetDyadicGFs()",__FILE__,__LINE__);
 
-  if ( (LDim>0 && kBloch==0) || (LDim==0 && kBloch!=0) )
+  if ( (LBasis && !kBloch) || (!LBasis && kBloch) )
    ErrExit("%s:%i: incorrect kBloch specification",__FILE__,__LINE__);
 
   /***************************************************************/
@@ -103,8 +103,8 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   /***************************************************************/
   cdouble P[3]={1.0, 0.0, 0.0};
   PointSource PS(XSource, P);
-  if (LDim>0)
-   { PS.SetLattice(LDim, LBasis);
+  if (LBasis)
+   { PS.SetLattice(LBasis);
      PS.SetkBloch(kBloch);
    };
 

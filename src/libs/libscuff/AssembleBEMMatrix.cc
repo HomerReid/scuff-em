@@ -195,8 +195,10 @@ void *RWGGeometry::CreateABMBAccelerator(int nsa, int nsb,
                                          bool PureImagFreq,
                                          bool NeedZDerivative)
 {
-  if (LDim==0)
+  if (LBasis==0)
    return 0;
+
+  int LDim=LBasis->NC;
 
   /*--------------------------------------------------------------*/
   /*- gather some information about the problem ------------------*/
@@ -296,7 +298,7 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /***************************************************************/
   /* handle the compact-object case first since it is so simple  */
   /***************************************************************/
-  if (LDim==0)
+  if (LBasis==0)
    {  
      GetSSIArgStruct GetSSIArgs, *Args=&GetSSIArgs;
      InitGetSSIArgs(Args);
@@ -332,7 +334,6 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   bool HaveCache = (Cache!=0);
   bool HaveCleanCache = HaveCache && EqualFloat(Cache->Omega, Omega);
   if (HaveCache) Cache->Omega=Omega;
-  bool OneDLattice = (LDim==1);
 
   int NumCommonRegions, CRIndices[2];
   double Signs[2];
@@ -349,11 +350,13 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
 
   double L[3]={0.0, 0.0, 0.0};
 
+  int LDim=LBasis->NC;
+  bool OneDLattice = (LDim==1);
   double LBV[2][2];
-  LBV[0][0] = LBasis[0][0];
-  LBV[0][1] = LBasis[0][1];
-  LBV[1][0] = OneDLattice ? 0.0 : LBasis[1][0];
-  LBV[1][1] = OneDLattice ? 0.0 : LBasis[1][1];
+  LBV[0][0] = LBasis->GetEntryD(0,0);
+  LBV[0][1] = LBasis->GetEntryD(1,0);
+  LBV[1][0] = LDim > 1 ? LBasis->GetEntryD(0,1) : 0.0;
+  LBV[1][1] = LDim > 1 ? LBasis->GetEntryD(1,1) : 0.0;
 
   /***************************************************************/
   /* pre-initialize arguments for GetSurfaceSurfaceInteractions **/
@@ -494,9 +497,9 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if ( LDim==0 && kBloch!=0 && (kBloch[0]!=0.0 || kBloch[1]!=0.0) )
+  if ( LBasis==0 && kBloch!=0 && (kBloch[0]!=0.0 || kBloch[1]!=0.0) )
    ErrExit("%s:%i: Bloch wavevector is undefined for compact geometries");
-  if ( LDim!=0 && kBloch==0 )
+  if ( LBasis!=0 && kBloch==0 )
    ErrExit("%s:%i: Bloch wavevector must be specified for PBC geometries");
 
   /***************************************************************/
@@ -570,7 +573,7 @@ HMatrix *RWGGeometry::AssembleBEMMatrix(cdouble Omega, HMatrix *M)
 HMatrix *RWGGeometry::AllocateBEMMatrix(bool PureImagFreq, bool Packed)
 {
   int Storage = Packed ? LHM_SYMMETRIC : LHM_NORMAL;
-  int DataType = (LDim==0 && PureImagFreq) ? LHM_REAL : LHM_COMPLEX;
+  int DataType = (!LBasis && PureImagFreq) ? LHM_REAL : LHM_COMPLEX;
   return new HMatrix(TotalBFs, TotalBFs, DataType, Storage);
     
 }
