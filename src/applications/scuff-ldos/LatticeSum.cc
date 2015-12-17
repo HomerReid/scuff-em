@@ -63,11 +63,11 @@ int GetLatticeSum(SummandFunction Summand, void *UserData, int nSum,
   /* start by summing the contributions of a first round         */
   /* of cells near the origin                                    */
   /***************************************************************/
-  int nCells=0;
   int LDim = LBasis->NC;
+  int nCells = 0;
 #define NFIRSTROUND 5
   if (LDim==1)
-   for (int n=-NFIRSTROUND; n<=NFIRSTROUND; n++)
+   for (int n=-NFIRSTROUND; n<=NFIRSTROUND; n++, nCells++)
     AddContribution(Summand, UserData, n, 0, LBasis, Sum);
   else // LDim==2
    for (int n1=-NFIRSTROUND; n1<=NFIRSTROUND; n1++)

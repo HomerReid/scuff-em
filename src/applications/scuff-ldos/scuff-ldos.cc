@@ -30,7 +30,13 @@ int main(int argc, char *argv[])
   Log("scuff-ldos running on %s",GetHostName());
 
   /***************************************************************/
-  /* process command-line arguments ******************************/
+  /* pre-process command-line arguments to extract arguments     */
+  /* relevant for Brillouin-zone integration                     */
+  /***************************************************************/
+  //GetBZIArgStruct *BZIArgs=ProcessBZIOptions(int argc, char *argv[]);
+
+  /***************************************************************/
+  /* process remaining command-line arguments ********************/
   /***************************************************************/
   char *GeoFile;
 /**/
