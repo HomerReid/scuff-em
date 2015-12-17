@@ -51,7 +51,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
   bool GroundPlane     = Data->GroundPlane;
 
-  int LDim=LBasis->NC;
+  int LDim= LBasis ? 0 : LBasis->NC;
   switch(LDim)
    { case 0: Log("Computing LDOS at Omega=%s",z2s(Omega)); break; 
      case 1: Log("Computing LDOS at (Omega,kx)=(%s,%e)",z2s(Omega),kBloch[0]);

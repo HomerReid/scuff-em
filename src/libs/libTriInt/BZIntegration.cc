@@ -152,8 +152,8 @@ void BZIntegrand_TriCub(double *u, void *pArgs, double *BZIntegrand)
   /*--------------------------------------------------------------*/
   double kBloch[2]={0.0, 0.0};
   kBloch[0] = u[0]*RLBasis->GetEntryD(0,0)
-             +u[1]*RLBasis->GetEntryD(1,0);
-  kBloch[1] = u[0]*RLBasis->GetEntryD(0,1) 
+             +u[1]*RLBasis->GetEntryD(0,1);
+  kBloch[1] = u[0]*RLBasis->GetEntryD(1,0) 
              +u[1]*RLBasis->GetEntryD(1,1);
 
   /*--------------------------------------------------------------*/
@@ -269,7 +269,7 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
          { double u  = uAvg + uDelta*CCQR[2*n + 0];
            double w  = CCQR[2*n+1];
            kBloch[0] = u*RLBasis->GetEntryD(0,0);
-           kBloch[1] = u*RLBasis->GetEntryD(0,1);
+           kBloch[1] = u*RLBasis->GetEntryD(1,0);
            BZIFunc(UserData, Omega, kBloch, dBZI);
            Args->NumCalls++;
            for(int nf=0; nf<FDim; nf++)
@@ -284,9 +284,9 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
             double w  = CCQR[2*n1+1] * CCQR[2*n2+1];
             if (BZSymmetric && n2>n1) w*=2.0;
             kBloch[0] 
-             = u1*RLBasis->GetEntryD(0,0)+u2*RLBasis->GetEntryD(1,0);
+             = u1*RLBasis->GetEntryD(0,0)+u2*RLBasis->GetEntryD(0,1);
             kBloch[1] 
-             = u1*RLBasis->GetEntryD(0,1)+u2*RLBasis->GetEntryD(1,1);
+             = u1*RLBasis->GetEntryD(1,0)+u2*RLBasis->GetEntryD(1,1);
             BZIFunc(UserData, Omega, kBloch, dBZI);
             Args->NumCalls++;
             for(int nf=0; nf<FDim; nf++)
@@ -428,8 +428,8 @@ void InitGetBZIArgs(GetBZIArgStruct *Args, HMatrix *LBasis)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int LDim = LBasis->NR;
-  Args->RLBasis = new HMatrix(LDim, 2);
+  int LDim = LBasis->NC;
+  Args->RLBasis = new HMatrix(3, LDim);
   if (LDim==1)
    { 
      if (LBasis->GetEntryD(0,1)!=0.0)
