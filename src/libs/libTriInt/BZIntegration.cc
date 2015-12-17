@@ -422,7 +422,7 @@ void InitGetBZIArgs(GetBZIArgStruct *Args, HMatrix *LBasis)
   Args->BZIError     = 0;
   Args->BZIErrorSize = 0;
 
-  if (!LBasis || (LBasis->NR!=1 && LBasis->NR!=2) )
+  if (!LBasis || (LBasis->NR!=3 || LBasis->NC>=4) )
    ErrExit("Invalid lattice basis in InitGetBZIArgs");
 
   /***************************************************************/
@@ -441,8 +441,8 @@ void InitGetBZIArgs(GetBZIArgStruct *Args, HMatrix *LBasis)
    }
   else 
    { double L1X=LBasis->GetEntryD(0,0);
-     double L1Y=LBasis->GetEntryD(0,1);
-     double L2X=LBasis->GetEntryD(1,0);
+     double L1Y=LBasis->GetEntryD(1,0);
+     double L2X=LBasis->GetEntryD(0,1);
      double L2Y=LBasis->GetEntryD(1,1);
 
      double Area= L1X*L2Y - L1Y*L2X;
@@ -454,8 +454,8 @@ void InitGetBZIArgs(GetBZIArgStruct *Args, HMatrix *LBasis)
      double Gamma2Y =  2.0*M_PI*L1X / Area;
 
      Args->RLBasis->SetEntry(0,0,Gamma1X);
-     Args->RLBasis->SetEntry(0,1,Gamma1Y);
-     Args->RLBasis->SetEntry(1,0,Gamma2X);
+     Args->RLBasis->SetEntry(1,0,Gamma1Y);
+     Args->RLBasis->SetEntry(0,1,Gamma2X);
      Args->RLBasis->SetEntry(1,1,Gamma2Y);
   
      Args->BZVolume = Gamma1X*Gamma2Y - Gamma1Y*Gamma2X;
