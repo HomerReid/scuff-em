@@ -43,54 +43,34 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
   int nc=5;
 
   if (FileType==FILETYPE_BYK && LDim==1)
-   { fprintf(f,"#%i: kx\n",nc);
+   { fprintf(f,"# %i: kx\n",nc);
      nc+1;
    }
   else if (FileType==FILETYPE_BYK && LDim==2)
-   { fprintf(f,"#%i,%i: kx ky\n",nc,nc+1);
+   { fprintf(f,"# %i,%i: kx ky\n",nc,nc+1);
      nc+=2;
    };
 
   fprintf(f,"# %2i: electric LDOS\n",nc++);
   fprintf(f,"# %2i: magnetic LDOS\n",nc++);
-  fprintf(f,"# %2i, %2i: re, im GE_{00} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GE_{01} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GE_{02} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GE_{10} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GE_{11} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GE_{12} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GE_{20} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GE_{21} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{00} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{01} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{02} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{10} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{11} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{12} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{20} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{21} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc,nc+1); nc+=2;
-/*
-  else // (FileType==FILETYPE_BYK)
-   { 
-    fprintf(f,"# %2i: electric LDOS\n",nc++);
-    fprintf(f,"# %2i: magnetic LDOS\n",nc++);
-
-    fprintf(f,"# %2i, %2i: re, im GE_{00} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GE_{01} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GE_{02} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GE_{11} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GE_{12} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GE_{22} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GM_{00} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GM_{01} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GM_{02} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GM_{11} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GM_{12} \n",nc+1,nc+2); nc+=2;
-    fprintf(f,"# %2i, %2i: re, im GM_{22} \n",nc+1,nc+2); nc+=2;
-  };
-*/
+  fprintf(f,"# %2i, %2i: re, im GE_{xx} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{xy} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{xz} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{yx} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{yy} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{yz} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{zx} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{zy} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{zz} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{xx} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{xy} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{xz} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{yx} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{yy} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{yz} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{zx} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{zy} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GM_{zz} \n",nc,nc+1); nc+=2;
 
   fclose(f);
 }

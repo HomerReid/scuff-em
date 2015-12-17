@@ -256,7 +256,7 @@ void WriteLDOS(SLDData *Data, cdouble Omega,
       fprintf(f,"%e ",Result[NFun*nx+nf]);
      if (Error)
       for(int nf=0; nf<NFun; nf++) 
-       fprintf(f,"%e ",Error[NFun*nx+nf] : 0.0);
+       fprintf(f,"%e ",Error[NFun*nx+nf]);
      fprintf(f,"\n");
    };
   fclose(f);
