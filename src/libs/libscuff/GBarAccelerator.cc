@@ -883,13 +883,13 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   int LDim=LBasis->NC;
   int NumExtendedDimensions=0;
   if (RegionIsExtended[0][nr]) NumExtendedDimensions++;
-  if (RegionIsExtended[1][nr]) NumExtendedDimensions++;
+  if (LDim>1 && RegionIsExtended[1][nr]) NumExtendedDimensions++;
 
   if (NumExtendedDimensions == 0 ) 
    return 0; // region is not extended
   else if (NumExtendedDimensions == LDim )
    GBA_LBasis=LBasis; // region has full periodicity of geometry
-  else // region periodicity lattice is sublattice
+  else // region periodicity lattice is sublattice of full geometry lattice
    { 
      int ExtendedDim = RegionIsExtended[0][nr] ? 0 : 1;
 
