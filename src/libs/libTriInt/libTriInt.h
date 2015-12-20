@@ -120,6 +120,8 @@ int IntegrateCliffFunction(CliffFunction fCliff, void *UserData, int nFun,
 #define BZI_CC       1
 #define BZI_TC       2
 
+#define MAXBZDIM     3
+
 typedef void (BZIFunction)(void *UserData,
                            cdouble Omega, double *kBloch,
                            double *BZIntegrand);
@@ -154,6 +156,12 @@ typedef struct GetBZIArgStruct
   cdouble Omega;
   
 } GetBZIArgStruct;
+
+double SetRLBasis(HMatrix *LBasis, HMatrix *RLBasis,
+                  double *pLVolume=0, double *pRLVolume=0);
+
+HMatrix *GetRLBasis(HMatrix *LBasis, 
+                    double *pLVolume=0, double *pRLVolume=0);
 
 void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
                    double *BZIntegral);

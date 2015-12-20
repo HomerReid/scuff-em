@@ -255,8 +255,8 @@ void ExportHDF5Data(SC3Data *SC3D, double Xi, double *kBloch, char *Tag)
 /*  ...                                                        */
 /*  EFT[2*N-1] = yforce integrand (spatial transformation N)   */
 /***************************************************************/
-void GetCasimirIntegrand((void *)pSC3D, cdouble Omega,
-                          double *kBloch, double *EFT)
+void GetCasimirIntegrand(void *pSC3D, cdouble Omega,
+                         double *kBloch, double *EFT)
 { 
   SC3Data *SC3D=(SC3Data *)pSC3D;
   double Xi = imag(Omega);

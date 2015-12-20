@@ -354,7 +354,7 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   cdouble P[3]={1.0, 0.0, 0.0};
   PointSource PS(XSource, P);
   if (LDim>0)
-   { PS.SetLattice(LDim, LBasis);
+   { PS.SetLattice(LBasis);
      PS.SetkBloch(kBloch);
    };
 

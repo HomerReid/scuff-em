@@ -89,7 +89,7 @@ bool PointSource::GetSourcePoint(double X[3]) const
 /**********************************************************************/
 void PointSource::GetFields(const double X[3], cdouble EH[6])
 {
-  if (LDim>0)
+  if (LBasis)
    { GetFields_Periodic(X, EH);
      return; 
    };
@@ -162,6 +162,15 @@ void PointSource::GetFields_Periodic(const double X[3], cdouble EH[6])
   R[0]= X[0]-X0[0];
   R[1]= X[1]-X0[1];
   R[2]= X[2]-X0[2];
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double LBV[3][3];
+  int LDim = LBasis->NC;
+  for(int nd=0; nd<LDim; nd++)
+   for(int nc=0; nc<3; nc++)
+    LBV[nd][nc]=LBasis->GetEntryD(nc,nd);
 
   /***************************************************************/
   /* get the scalar green's function, its first derivatives, and */

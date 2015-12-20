@@ -115,14 +115,7 @@ SCPData *CreateSCPData(char *GeoFile,
      /*--------------------------------------------------------------*/
      /*- initialize options structure for Brillouin-zone integration-*/
      /*--------------------------------------------------------------*/
-     HMatrix *LBasis=new HMatrix(G->LDim,2);
-     LBasis->SetEntry(0,0,G->LBasis[0][0]);
-     LBasis->SetEntry(0,1,G->LBasis[0][1]);
-     if (G->LDim>1)
-      { LBasis->SetEntry(1,0,G->LBasis[1][0]);
-        LBasis->SetEntry(1,1,G->LBasis[1][1]);
-      };
-     SCPD->GBZIArgs              = CreateGetBZIArgs(LBasis);
+     SCPD->GBZIArgs              = CreateGetBZIArgs(G->LBasis);
      SCPD->GBZIArgs->BZIFunc     = GetCPIntegrand;
      SCPD->GBZIArgs->UserData    = (void *)SCPD;
      SCPD->GBZIArgs->FDim        = NumAtoms * (SCPD->EPMatrix)->NR;

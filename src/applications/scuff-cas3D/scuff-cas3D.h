@@ -143,7 +143,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType);
 /*                                                             */
 /* Note: 'EFT' stands for 'energy, force, and torque.'         */
 /***************************************************************/
-void GetCasimirIntegrand((void *)SC3D, double Xi, double *kBloch, double *EFT);
+void GetCasimirIntegrand(void *SC3D, cdouble Omega, double *kBloch, double *EFT);
 void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT);
 void GetXiIntegral_Adaptive(SC3Data *SC3D, double *EFT, double *Error);
 void GetXiIntegral_TrapSimp(SC3Data *SC3D, int NumIntervals, double *I, double *E);

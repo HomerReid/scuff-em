@@ -163,15 +163,15 @@ int main(int argc, char *argv[])
   HMatrix *XiPoints=0;
   HMatrix *XiKPoints=0;
 
-  if ( XiKFile )
-   { if (XiFile)       ErrExit("--XiKFile and --XiFile options are mutually exclusive");
-     if (nXiVals>0)    ErrExit("--XiKFile and --Xi options are mutually exclusive");
-     if (nTemperature) ErrExit("--XiKFile and --Temperature options are mutually exclusive");
-     if (G->LDim==0)   ErrExit("--XiKFile may only be used for periodic geometries");
-     XiKPoints=new HMatrix(XiKFile,LHM_TEXT,"--nc 3 --strict");
+  if ( XikBlochFile )
+   { if (XiFile)       ErrExit("--XikBlochFile and --XiFile options are mutually exclusive");
+     if (nXiVals>0)    ErrExit("--XikBlochFile and --Xi options are mutually exclusive");
+     if (nTemperature) ErrExit("--XikBlochFile and --Temperature options are mutually exclusive");
+     if (G->LDim==0)   ErrExit("--XikBlochFile may only be used for periodic geometries");
+     XiKPoints=new HMatrix(XikBlochFile,LHM_TEXT,"--nc 3 --strict");
      if (XiKPoints->ErrMsg)
       ErrExit(XiKPoints->ErrMsg);
-     Log("Read %i (Xi, kBloch) points from file %s.",XiKPoints->NR, XiKFile);
+     Log("Read %i (Xi, kBloch) points from file %s.",XiKPoints->NR, XikBlochFile);
    }
   else if ( XiFile )
    { if (nXiVals>0)    ErrExit("--XiFile and --Xi options are mutually exclusive");
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
         kBloch[0] = XiKPoints->GetEntryD(nr, 1);
         if (G->LDim>=2)
          kBloch[1] = XiKPoints->GetEntryD(nr, 2);
-        GetCasimirIntegrand(SC3D, Xi, kBloch, EFT);
+        GetCasimirIntegrand(SC3D, cdouble(0.0,Xi), kBloch, EFT);
       };
    }
   else if ( XiPoints )

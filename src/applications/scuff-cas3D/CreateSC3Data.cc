@@ -46,7 +46,7 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
 {
   SC3Data *SC3D=(SC3Data *)mallocEC(sizeof(*SC3D));
   SC3D->G = G;
-  int LDim = SC3D->LDim = G->LDim;
+  int LDim = G->LBasis ? G->LBasis->NC : 0;
   bool PBC = (LDim>0);
 
   /*--------------------------------------------------------------*/
@@ -201,10 +201,10 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
   SC3D->BZIArgs=0;
   if (PBC)
    { SC3D->BZIArgs=CreateGetBZIArgs(G->LBasis);
-     SC3D->GBZIArgs->BZIFunc     = GetCasimirIntegrand;
-     SC3D->GBZIArgs->UserData    = (void *)SC3D;
-     SC3D->GBZIArgs->FDim        = SC3D->NTNQ;
-     SC3D->GBZIArgs->Reduced     = true;
+     SC3D->BZIArgs->BZIFunc   = GetCasimirIntegrand;
+     SC3D->BZIArgs->UserData  = (void *)SC3D;
+     SC3D->BZIArgs->FDim      = SC3D->NTNQ;
+     SC3D->BZIArgs->Reduced   = true;
    };
 
   return SC3D;
@@ -245,6 +245,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
   const char *ErrorString;
   const char *IntegrandString;
   int nc=2;
+  int LDim=SC3D->G->LBasis ? SC3D->G->LBasis->NC : 0;
 
   if (PreambleType == PREAMBLE_OUT)
    { 
@@ -264,7 +265,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
    { 
      fprintf(f,"#%i: imaginary angular frequency\n",nc++);
      fprintf(f,"#%i: bloch wavevector kx \n",nc++);
-     if (LDim==2)
+     if (LDim>=2)
       fprintf(f,"#%i: bloch wavevector ky\n",nc++);
 
      IntegrandString="Brillouin-zone integrand";

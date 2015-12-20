@@ -85,15 +85,17 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 { 
   if (SC3D->UseExistingData==false)
    return false;
+   
+  int LDim=SC3D->G->LBasis ? SC3D->G->LBasis->NC : 0;
 
-  if (    (kBloch==0 && SC3D->LDim>0)
-       || (kBloch!=0 && SC3D->LDim=0)
+  if (    (kBloch==0 && LDim>0)
+       || (kBloch!=0 && LDim==0)
      ) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   /*----------------------------------------------------------*/
   /*----------------------------------------------------------*/
   /*----------------------------------------------------------*/
-  int NumKeys = 1 + SC3D->LDim;
+  int NumKeys = 1 + LDim;
   double Keys[3];
   Keys[0]=Xi;
   if(NumKeys>=2) Keys[1]=kBloch[0];
@@ -352,7 +354,7 @@ int urIntegrand(unsigned ndim, const double *x, void *params,
      double kBloch[2];
      kBloch[0] = u*SC3D->RLBasisVectors[0][0];
      kBloch[1] = u*SC3D->RLBasisVectors[0][1];
-     GetCasimirIntegrand(SC3D, Xi, kBloch, fval);
+     GetCasimirIntegrand(SC3D, cdouble(0.0,Xi), kBloch, fval);
    };
 
   return 0;
@@ -457,7 +459,7 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   if (SC3D->G->LDim==0)
-   GetCasimirIntegrand((void *)SC3D, Xi, 0, EFT);
+   GetCasimirIntegrand((void *)SC3D, cdouble(0.0,Xi), 0, EFT);
   else
    GetBZIntegral(SC3D->BZIArgs, cdouble(0.0,Xi), EFT);
 

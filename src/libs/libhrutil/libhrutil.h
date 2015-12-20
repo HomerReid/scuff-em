@@ -137,8 +137,8 @@ double VecDot(const double *v1, const double *v2, int N=3);
 double VecNorm(const double *v, int N=3);
 double VecNorm2(const double *v, int N=3);
 double VecNormalize(double *v, int N=3);
-double VecDistance(const double *v1, const double *v2);
-double VecDistance2(const double *v1, const double *v2);
+double VecDistance(const double *v1, const double *v2, int N=3);
+double VecDistance2(const double *v1, const double *v2, int N=3);
 
 // the following three routines are for the 3D case only
 double *VecCross(const double *v1, const double *v2, double *v3);
