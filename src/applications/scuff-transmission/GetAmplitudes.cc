@@ -138,10 +138,15 @@ void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,
                             int WhichRegion, bool IsUpper,
                             cdouble TETM[NUMPOLS], bool WriteByKNFile)
 {
-  if (G->LDim!=2 || G->LBasis[0][1]!=0.0 || G->LBasis[1][0]!=0.0 )
-   ErrExit("%s: %i: internal error",__FILE__,__LINE__);
+  if (G->LDim!=2)
+   ErrExit("lattice must have 2D periodicity");
 
-  double VUnitCell = G->LBasis[0][0] * G->LBasis[1][1];
+  if (    G->LBasis->GetEntryD(0,1)!=0.0
+       || G->LBasis->GetEntryD(1,0)!=0.0
+     )
+   ErrExit("non-square lattices are not currently supported");
+
+  double VUnitCell = G->LVolume;
 
   cdouble ZRel;
   cdouble nn=G->RegionMPs[WhichRegion]->GetRefractiveIndex(Omega, &ZRel);

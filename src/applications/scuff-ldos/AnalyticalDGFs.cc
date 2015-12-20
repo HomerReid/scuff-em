@@ -55,7 +55,7 @@ typedef struct SummandData
    cdouble Epsilon;   // half-space permittivity
  } SummandData;
 
-void MySummand(double *Gamma, void *UserData, double *Sum)
+void DGFSummand(double *Gamma, void *UserData, double *Sum)
 {
   /***************************************************************/
   /* unpack fields from input data structure *********************/
@@ -89,12 +89,11 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
   /*                                                             */
   /* otherwise this is the scattering part of the DGF at a point */
   /* above an infinite half space with permittivity Epsilon;     */
-  /* the height of the point is XP[2], while X[0..2] and XP[0..1]*/
+  /* the height of the point is X[2], while X[1,2]  and XP[0..2] */
   /* are not referenced.                                         */
   /***************************************************************/
   double R[3], ESign, CSign;
   cdouble rTE, rTM;
-#if 0
   if (Epsilon==0.0)
    { 
      R[0]=X[0]-XP[0];
@@ -105,10 +104,9 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
    }
   else
    { 
-#endif
      R[0]=0.0;
      R[1]=0.0;
-     R[2]=2.0*XP[2];
+     R[2]=2.0*X[2];
      ESign = 1.0;
      CSign = -1.0;
      if (Epsilon==0.0)
@@ -121,9 +119,7 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
         rTE   = (kz  - kzPrime) / (kz+kzPrime);
         rTM   = (ekz - kzPrime) / (ekz+kzPrime);
       };
-#if 0
    };
-#endif
 
   // polarization vectors
   cdouble P[3], PBar[3];
@@ -170,13 +166,10 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
 /***************************************************************/
 int GetVacuumDGFs(double X[3], double XP[3],
                   cdouble Omega, double kBloch[2],
-                  HMatrix *LBasis,
+                  HMatrix *RLBasis, double BZVolume,
                   double RelTol, double AbsTol, int MaxCells,
                   cdouble GE[3][3], cdouble GH[3][3])
 { 
-  double RLBBuffer[9];
-  HMatrix RLBasis(3,3,LHM_REAL,LHM_NORMAL,RLBBuffer);
-  double BZVolume=SetRLBasis(LBasis, &RLBasis);
  
   SummandData MySummandData, *Data=&MySummandData;
   Data->X       = X;
@@ -186,7 +179,7 @@ int GetVacuumDGFs(double X[3], double XP[3],
   Data->Epsilon = 0.0;
 
   cdouble Sum[18];
-  int NumCells=GetLatticeSum(MySummand, (void *)Data, 36, &RLBasis,
+  int NumCells=GetLatticeSum(DGFSummand, (void *)Data, 36, RLBasis,
                             (double *)Sum, AbsTol, RelTol, MaxCells);
 
   for(int Mu=0; Mu<3; Mu++)
@@ -201,14 +194,14 @@ int GetVacuumDGFs(double X[3], double XP[3],
 /***************************************************************/
 /* Half-space DGFs computed by the plane-wave decomposition    */
 /***************************************************************/
-int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
-                     HMatrix *LBasis, MatProp *MP,
+int GetHalfSpaceDGFs(double z, cdouble Omega, double kBloch[2],
+                     HMatrix *RLBasis, double BZVolume, MatProp *MP,
                      double RelTol, double AbsTol, int MaxCells,
                      cdouble GE[3][3], cdouble GM[3][3])
 { 
   double X[3]={0.0, 0.0, 0.0};
   double XP[3]={0.0, 0.0, 0.0};
-  XP[2]=zp;
+  X[2]=z;
 
   SummandData MySummandData, *Data=&MySummandData;
   Data->X       = X;
@@ -217,12 +210,8 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
   Data->kBloch  = kBloch;
   Data->Epsilon = MP->IsPEC() ? 0.0 : MP->GetEps(Omega);
 
-  double Buffer[9];
-  HMatrix RLBasis(3,3,LHM_REAL,LHM_NORMAL,Buffer);
-  double BZVolume=SetRLBasis(LBasis, &RLBasis);
-
   cdouble Sum[18];
-  GetLatticeSum(MySummand, (void *)Data, 36, &RLBasis,
+  GetLatticeSum(DGFSummand, (void *)Data, 36, RLBasis,
                 (double *)Sum, AbsTol, RelTol, MaxCells);
 
   for(int Mu=0; Mu<3; Mu++)
@@ -236,34 +225,23 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
 /***************************************************************/
 /* Ground-plane DGFs computed by the image-source method       */
 /***************************************************************/
-void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
-                        HMatrix *LBasis,
-                        cdouble GE[3][3], cdouble GM[3][3])
+void GetGroundPlaneDGFs(double z, cdouble Omega, double *kBloch,
+                        HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3])
 {
   /***************************************************************/
   /* create an IncidentField structure describing the field of a */
   /* point source or a periodic array of point sources at the    */
   /* location of the image of X                                  */
   /***************************************************************/
-  double XBar[3];
-  XBar[0] =  X[0];
-  XBar[1] =  X[1];
-  XBar[2] = -X[2];
+  double X[3], XBar[3];
+  X[0]=0.0; XBar[0]=0.0;
+  X[1]=0.0; XBar[1]=0.0;
+  X[2]=z;   XBar[2]=-z;
   cdouble P[3]={0.0,0.0,0.0};
   PointSource PS(XBar, P);
   PS.SetFrequency(Omega);
-  int LDim=LBasis->NC;
-  if (LDim>0)
-   { double LBV[2][2];
-     if (LDim>=1)
-      { LBV[0][0]=LBasis->GetEntryD(0,0);
-        LBV[0][1]=LBasis->GetEntryD(1,0);
-      };
-     if (LDim==2)
-      { LBV[1][0]=LBasis->GetEntryD(0,1);
-        LBV[1][1]=LBasis->GetEntryD(1,1);
-      };
-     PS.SetLattice(LDim,LBV);
+  if (LBasis)
+   { PS.SetLattice(LBasis);
      PS.SetkBloch(kBloch);
    };
 
@@ -290,88 +268,4 @@ void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
       GM[Mu][Nu] = EH[3+Mu] / (Omega*Omega);
    };
 
-}
-
-/***************************************************************/
-/* compute the dyadic green's function at a distance Z above a */
-/* PEC plate using the method of images.                       */
-/***************************************************************/
-void GetGroundPlaneDGFs(double Z, cdouble Omega, double *kBloch,
-                        HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3])
-{
-  // construct a point source at the image location
-  double X0[3]={0.0, 0.0, -Z};
-  cdouble P0[3] = {0,0,0}; 
-  PointSource MyPSD(X0, P0);
-  MyPSD.Omega=Omega;
-  MyPSD.Eps=1.0;
-  MyPSD.Mu=1.0;
-#if 0
-  if (LBasis)
-   { MyPSD.SetLattice(LBasis);
-     MyPSD.SetkBloch(kBloch);
-   };
-#endif
-  int LDim=LBasis->NC;
-  if (LDim>0)
-   { double LBV[2][2];
-     if (LDim>=1)
-      { LBV[0][0]=LBasis->GetEntryD(0,0);
-        LBV[0][1]=LBasis->GetEntryD(1,0);
-      };
-     if (LDim==2)
-      { LBV[1][0]=LBasis->GetEntryD(0,1);
-        LBV[1][1]=LBasis->GetEntryD(1,1);
-      };
-     MyPSD.SetLattice(LDim,LBV);
-     MyPSD.SetkBloch(kBloch);
-   };
-
-  // get each column of the DGF
-  cdouble EH[6];
-  double X[3]={0.0, 0.0, Z}; 
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  MyPSD.Type=LIF_ELECTRIC_DIPOLE;
-  MyPSD.P[0] = -1.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] = 0.0;
-  MyPSD.GetFields(X, EH);
-  GE[0][0]=EH[0]; GE[1][0]=EH[1]; GE[2][0]=EH[2];
-
-  MyPSD.P[0] =  0.0;   MyPSD.P[1] = -1.0; MyPSD.P[2] = 0.0;
-  MyPSD.GetFields(X, EH);
-  GE[0][1]=EH[0]; GE[1][1]=EH[1]; GE[2][1]=EH[2];
-  
-  MyPSD.P[0] =  0.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] = 1.0;
-  MyPSD.GetFields(X, EH);
-  GE[0][2]=EH[0]; GE[1][2]=EH[1]; GE[2][2]=EH[2];
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  MyPSD.Type=LIF_MAGNETIC_DIPOLE;
-  MyPSD.P[0] =  1.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] =  0.0;
-  MyPSD.GetFields(X, EH);
-  GM[0][0]=EH[3]; GM[1][0]=EH[4]; GM[2][0]=EH[5];
-
-  MyPSD.P[0] =  0.0;   MyPSD.P[1] =  1.0; MyPSD.P[2] =  0.0;
-  MyPSD.GetFields(X, EH);
-  GM[0][1]=EH[3]; GM[1][1]=EH[4]; GM[2][1]=EH[5];
-  
-  MyPSD.P[0] =  0.0;   MyPSD.P[1] =  0.0; MyPSD.P[2] = -1.0;
-  MyPSD.GetFields(X, EH);
-  GM[0][2]=EH[3]; GM[1][2]=EH[4]; GM[2][2]=EH[5];
-
-  // normalization factor needed to convert from 
-  // my normalization of the DGF, which has units
-  // of electric field / surface current, to the 
-  // usual normalization in which the DGF has units 
-  // of inverse length 
-  cdouble ik2=(II*Omega)*(II*Omega);
-  for(int i=0; i<3; i++)
-   for(int j=0; j<3; j++)
-    { GE[i][j] /= ik2;
-      GM[i][j] /= ik2;
-    };
 }

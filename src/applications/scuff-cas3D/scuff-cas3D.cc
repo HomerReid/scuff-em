@@ -277,11 +277,11 @@ int main(int argc, char *argv[])
 
   if (SC3D->BZIArgs)
    { 
-     SCPD->BZIArgs->MaxPoints   = BZIPoints;
-     SCPD->BZIArgs->BZSymmetric = BZSymmetry;
-     SCPD->BZIArgs->RelTol      = RelTol;
-     SCPD->BZIArgs->AbsTol      = AbsTol;
-     SCPD->BZIArgs->Reduced     = true;
+     SC3D->BZIArgs->MaxPoints   = BZIPoints;
+     SC3D->BZIArgs->BZSymmetric = BZSymmetry;
+     SC3D->BZIArgs->RelTol      = RelTol;
+     SC3D->BZIArgs->AbsTol      = AbsTol;
+     SC3D->BZIArgs->Reduced     = true;
 
      int BZIMethod   = (G->LDim==1 ? BZI_CC : BZI_TC);
      if (BZIString && !strcasecmp(BZIString,"adaptive"))
@@ -294,8 +294,8 @@ int main(int argc, char *argv[])
      if (BZIOrder==-1)
       BZIOrder = (BZIMethod==BZI_CC ? 21 : 9);
      
-     SCPD->GBZIArgs->BZIMethod = BZIMethod;
-     SCPD->GBZIArgs->Order     = BZIOrder;
+     SC3D->BZIArgs->BZIMethod = BZIMethod;
+     SC3D->BZIArgs->Order     = BZIOrder;
    };
 
   /*******************************************************************/

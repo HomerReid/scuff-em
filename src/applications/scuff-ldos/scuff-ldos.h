@@ -55,8 +55,6 @@ typedef struct SLDData
 
    // fields relevant for periodic geometries
    void **ABMBCache;
-   HMatrix *LBasis;
-   double BZVolume;
 
    // other miscellaneous options
    double RelTol;
@@ -94,18 +92,12 @@ void GetBZIntegral_DCUTRI(SLDData *Data, cdouble Omega);
 void GetBZIntegral_FOTC(SLDData *Data, cdouble Omega, char *BZIString);
 
 // AnalyticalDGFs.cc
-int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
-                     HMatrix *LBasis, MatProp *MP,
+int GetHalfSpaceDGFs(double z, cdouble Omega, double kBloch[2],
+                     HMatrix *RLBasis, double BZVolume, MatProp *MP,
                      double RelTol, double AbsTol, int MaxCells,
                      cdouble GE[3][3], cdouble GM[3][3]);
 
-/*
-void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
-                        HMatrix *LBasis,                       
-                        cdouble GE[3][3], cdouble GM[3][3]);
-*/
-
-void GetGroundPlaneDGFs(double Z, cdouble Omega, double *kBloch,
+void GetGroundPlaneDGFs(double z, cdouble Omega, double *kBloch,
                         HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3]);
 
 #endif //#ifndef SCUFFLDOS_H

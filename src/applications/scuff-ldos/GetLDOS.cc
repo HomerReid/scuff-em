@@ -43,7 +43,6 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*--------------------------------------------------------------*/
   SLDData *Data        = (SLDData *)pData;
   RWGGeometry *G       = Data->G;
-  HMatrix *LBasis      = Data->LBasis;
   HMatrix *M           = Data->M;
   HMatrix *XMatrix     = Data->XMatrix;
   HMatrix *GMatrix     = Data->GMatrix;
@@ -51,7 +50,10 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
   bool GroundPlane     = Data->GroundPlane;
 
-  int LDim= LBasis ? 0 : LBasis->NC;
+  HMatrix *LBasis      = G->LBasis;
+  HMatrix *RLBasis     = G->RLBasis;
+  double BZVolume      = G->RLVolume;
+  int LDim = RLBasis ? RLBasis->NC : 0;
   switch(LDim)
    { case 0: Log("Computing LDOS at Omega=%s",z2s(Omega)); break; 
      case 1: Log("Computing LDOS at (Omega,kx)=(%s,%e)",z2s(Omega),kBloch[0]);
@@ -118,7 +120,8 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      if ( GroundPlane )
       GetGroundPlaneDGFs(X[2], Omega, kBloch, LBasis, GE, GM);
      else if (HalfSpaceMP)
-      GetHalfSpaceDGFs(Omega, kBloch, X[2], LBasis, HalfSpaceMP,
+      GetHalfSpaceDGFs(X[2], Omega, kBloch, 
+                       RLBasis, BZVolume, HalfSpaceMP,
                        Data->RelTol, ABSTOL, Data->MaxEvals, GE, GM);
      else
       for(int i=0; i<3; i++)

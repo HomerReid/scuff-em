@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
      /* set up argument structure for Brillouin-zone integration    */
      /* routine                                                     */
      /***************************************************************/
-     GetBZIArgStruct *Args = CreateGetBZIArgs(Data->LBasis);
+     GetBZIArgStruct *Args = CreateGetBZIArgs(Data->G->LBasis);
      Args->BZIFunc         = GetLDOS;
      Args->UserData        = (void *)Data;
      Args->FDim            = FDim;

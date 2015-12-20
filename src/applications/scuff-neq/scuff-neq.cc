@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
 
   if (OmegaKPoints && !G->LBasis)
    ErrExit("--OmegaKPoints may only be used with extended geometries");
-  else if (G->Basis && !OmegaKPoints==0)
+  else if (G->LBasis && !OmegaKPoints==0)
    ErrExit("--OmegaKPoints is required for extended geometries");
          
   /*******************************************************************/

@@ -44,7 +44,7 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
 
   if (FileType==FILETYPE_BYK && LDim==1)
    { fprintf(f,"# %i: kx\n",nc);
-     nc+1;
+     nc+=1;
    }
   else if (FileType==FILETYPE_BYK && LDim==2)
    { fprintf(f,"# %i,%i: kx ky\n",nc,nc+1);
@@ -106,7 +106,6 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
   /* For PBC geometries we need to do some preliminary setup     */
   /***************************************************************/
   Data->ABMBCache=0;
-  Data->LBasis=0;
   if (G->LDim>0)
    { 
      int NS = G->NumSurfaces;
@@ -115,15 +114,6 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
      for(int nsa=0, nb=0; nsa<NS; nsa++)
       for(int nsb=nsa; nsb<NS; nsb++, nb++)
        Data->ABMBCache[nb]=G->CreateABMBAccelerator(nsa, nsb, false, false);
-
-     HMatrix *LBasis = Data->LBasis = new HMatrix(3,G->LDim);
-     LBasis->SetEntry(0,0,G->LBasis[0][0]);
-     LBasis->SetEntry(1,0,G->LBasis[0][1]);
-     if (G->LDim>1)
-      { LBasis->SetEntry(0,1,G->LBasis[1][0]);
-        LBasis->SetEntry(1,1,G->LBasis[1][1]);
-      };
-
    };
 
 

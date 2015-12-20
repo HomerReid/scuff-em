@@ -52,6 +52,11 @@
 #define NFIRSTROUND 10
 #define NMAX 10000
 
+int main()
+{}
+
+
+#if 0
 using namespace scuff;
 
 /***************************************************************/
@@ -60,11 +65,11 @@ using namespace scuff;
 namespace scuff{
 
 void GetGBarDistant(double *R, double Rho2, cdouble k, double *kBloch,
-                    double Gamma[2][2], int LDim,
+                    double Gamma[3][3], int LDim,
                     double E, int *pnCells, cdouble *Sum);
 
 void GetGBarNearby(double *R, cdouble k, double *kBloch,
-                   double *LBV[2], int LDim,
+                   double (*LBV)[3], int LDim,
                    double E, bool ExcludeInnerCells,
                    int *pnCells, cdouble *Sum);
 
@@ -72,11 +77,11 @@ void AddGFull(double R[3], cdouble k, double kBloch[2],
               double Lx, double Ly, cdouble *Sum, 
               bool ValueOnly=false);
 
-void GetRLBasis(double **L, int LDim, double Gamma[2][2],
-                cdouble k, double *EOpt, double R[3], double *Rho2);
+void GetRLBasis(int LDim, double (*L)[3], double (*Gamma)[3],
+                cdouble k, double *EOpt, double R[3], double *pRho);
 
 void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
-                       int n1, int n2, double *LBV[2], int LDim, 
+                       int n1, int n2, double (*LBV)[3], int LDim, 
                        double E, cdouble *Sum);
 
 }
@@ -169,13 +174,13 @@ int main(int argc, char *argv[])
   /* process command-line arguments ******************************/
   /***************************************************************/
   char *GeoFileName=0;
-  double LBV1[2];		int nLBV1=0;
-  double LBV2[2]; 		int nLBV2=0;
+  double LBV1[3];		int nLBV1=0;
+  double LBV2[3]; 		int nLBV2=0;
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
    { {"geometry",          PA_STRING,  1, 1, (void *)&GeoFileName,   0,  ".scuffgeo file"},
-     {"LBV1",              PA_DOUBLE,  2, 1, (void *)LBV1,      &nLBV1,  "lattice basis vector 1"},
-     {"LBV2",              PA_DOUBLE,  2, 1, (void *)LBV2,      &nLBV2,  "lattice basis vector 2"},
+     {"LBV1",              PA_DOUBLE,  3, 1, (void *)LBV1,      &nLBV1,  "lattice basis vector 1"},
+     {"LBV2",              PA_DOUBLE,  3, 1, (void *)LBV2,      &nLBV2,  "lattice basis vector 2"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -183,19 +188,22 @@ int main(int argc, char *argv[])
   /***************************************************************/ 
   /* if a geometry was specified, set the lattice vectors from it*/
   /***************************************************************/
-  double LBV[2][2];
-  double *LBVP[2] = { LBV[0], LBV[1] };
+  double LBV[3][3];
+  double *LBVP[3] = { LBV[0], LBV[1], 0 };
   int LDim;
   if ( nLBV1!=0 && nLBV2==0 )
    { LBV[0][0] = LBV1[0];
      LBV[0][1] = LBV1[1];
+     LBV[0][2] = LBV1[2];
      LDim=1;
    }
   else if (nLBV1!=0 && nLBV2!=0)
    { LBV[0][0] = LBV1[0];
      LBV[0][1] = LBV1[1];
+     LBV[0][2] = LBV1[2];
      LBV[1][0] = LBV2[0];
      LBV[1][1] = LBV2[1];
+     LBV[1][2] = LBV2[2];
      LDim=2;
    }
   else if (GeoFileName!=0)
@@ -203,18 +211,20 @@ int main(int argc, char *argv[])
      RWGGeometry *G = new RWGGeometry(GeoFileName);
      LDim = G->LDim;
      if (LDim>=1)
-      { LBV[0][0] = G->LBasis[0][0];
-        LBV[0][1] = G->LBasis[0][1];
+      { LBV[0][0] = G->LBasis->GetEntryD(0,0);
+        LBV[0][1] = G->LBasis->GetEntryD(1,0);
+        LBV[0][2] = 0.0;
       };
      if (LDim>=2)
-      { LBV[1][0] = G->LBasis[1][0];
-        LBV[1][1] = G->LBasis[1][1];
-      }
+      { LBV[1][0] = G->LBasis->GetEntryD(0,1);
+        LBV[1][1] = G->LBasis->GetEntryD(1,1);
+        LBV[1][2] = 0.0;
+      };
    }
   else // default to a square lattice with side length 1
    { LDim=2;
-     LBV[0][0] = 1.0;    LBV[0][1] = 0.0;
-     LBV[1][0] = 0.0;    LBV[1][1] = 1.0;
+     LBV[0][0] = 1.0;    LBV[0][1] = 0.0;    LBV[0][2] = 0.0;
+     LBV[1][0] = 0.0;    LBV[1][1] = 1.0;    LBV[0][2] = 0.0;
    };
 
   srand48(time(0));
@@ -332,8 +342,8 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
-     double Gamma[2][2], EOpt, Rho2;
-     GetRLBasis(LBVP, LDim, Gamma, k, &EOpt, R, &Rho2);
+     double Gamma[3][3], EOpt, Rho2;
+     GetRLBasis(LDim, LBVP, Gamma, k, &EOpt, R, &Rho2);
      if (E==-1.0) E=EOpt;
      printf("Choice of optimal E: \n");
       { printf("E0 = %e \n",sqrt(M_PI/LBVP[0][0]));
@@ -439,3 +449,4 @@ int main(int argc, char *argv[])
    }; // for(;;)
 
 }
+#endif
