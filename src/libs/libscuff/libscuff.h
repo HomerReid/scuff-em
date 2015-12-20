@@ -65,7 +65,7 @@ namespace scuff {
 
 // maximum number of lattice basis vectors
 #ifndef MAXLDIM
-#define MAXLDIM 2
+#define MAXLDIM 3
 #endif
 
 /*--------------------------------------------------------------*/
@@ -300,8 +300,7 @@ class RWGSurface
                              cdouble k, GBarAccelerator *GBA,
                              cdouble *a, cdouble *Curla, cdouble *Gradp, bool ForceFullEwald=false);
 
-   void AddStraddlers(double LBV[MAXLDIM][2], int LDim,
-                      int NumStraddlers[MAXLDIM]);
+   void AddStraddlers(HMatrix *LBasis, int NumStraddlers[MAXLDIM]);
 
    void UpdateBoundingBox();
  
@@ -507,6 +506,12 @@ class RWGGeometry
                                     double RMin[3], double RMax[3], bool ExcludeInnerCells);
    void GetUnitCellRepresentative(const double X[3], double XBar[3],
                                   bool WignerSeitz=false);
+   void GetUnitCellRepresentative(const double X[3], double XBar[3],
+                                  double LVector[3],
+                                  bool WignerSeitz=false);
+   void GetUnitCellRepresentative(const double X[3], double XBar[3],
+                                  double LVector[3], int NVector[3],
+                                  bool WignerSeitz=false);
    void GetKNCoefficients(HVector *KN, int ns, int ne,
                           cdouble *KAlpha, cdouble *NAlpha=0);
 
@@ -542,20 +547,23 @@ class RWGGeometry
 
    char *GeoFileName;
 
-   /* LDim>0 iff we have periodic boundary conditions.           */
+   /* LDim=0 for compact geometries.                             */
+   /* For geometries with D-dimensional Bloch-periodicity,       */
+   /* LBasis is a 3 x D matrix whose columns are the lattice     */
+   /* basis vectors.                                             */
+   /* RLBasis is a similar matrix for the reciprocal lattice.    */
+   /* LVolume, RLVolume are the unit-cell volumes of the direct  */
+   /* and reciprocal lattices.                                   */
+   /*                                                            */
    /* All other fields in this section are only used for PBCs:   */
-   /* LBasis[nd][2] = (x,y) coordinates of ndth lattice vector   */
+   /*                                                            */
    /* NumStraddlers[nd][ns] = number of straddlers in ndth       */
    /*                         dimension for surface #ns          */
    /* RegionIsExtended[nd][ns] = true if region #nr is extended  */
    /*                            in dimension #nd                */
-   /*                                                            */
-   /* (Note that lattice vectors must have zero z-component and  */
-   /* only the first two components (x and y components) are     */
-   /* stored, so the Vec... operations in scuffMisc cannot be    */
-   /* used on the LBasis vectors.)                               */
    int LDim;
-   double LBasis[2][2];
+   HMatrix *LBasis, *RLBasis;
+   double LVolume, RLVolume;
    int *NumStraddlers[2];
    bool *RegionIsExtended[2];
 
@@ -604,41 +612,6 @@ void InitRWGPanel(RWGPanel *P, double *Vertices);
 int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb, 
                        int CommonRegionIndices[2], double Signs[2]);
 
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*- 4. some other lower-level non-class methods                -*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-  
-/* 3D vector manipulations */
-void VecZero(double v[3]);
-double *VecCopy(const double v1[3], double v2[3]);
-double *VecScale(const double v1[3], double alpha, double v2[3]);
-double *VecScale(double v[3], double alpha);
-double *VecScaleAdd(const double v1[3], double alpha, const double v2[3], double v3[3]);
-double *VecAdd(const double v1[3], const double v2[3], double v3[3]);
-double *VecSub(const double v1[3], const double v2[3], double v3[3]);
-double *VecPlusEquals(double v1[3], double alpha, const double v2[3]);
-double *VecCross(const double v1[3], const double v2[3], double v3[3]);
-double *VecLinComb(double alpha, const double v1[3], double beta, const double v2[3], double v3[3]);
-double VecDot(const double v1[3], const double v2[3]);
-double VecDistance(const double v1[3], const double v2[3]);
-double VecDistance2(const double v1[3], const double v2[3]);
-double VecNorm(const double v[3]);
-double VecNorm2(const double v[3]);
-double VecNormalize(double v[3]);
-bool EqualFloat(const double a, const double b);
-bool EqualFloat(const cdouble a, const cdouble b);
-bool VecEqualFloat(const double *a, const double *b);
-bool VecClose(const double *a, const double *b, double abstol);
-
-void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
-                const cdouble V2[6], cdouble V3[6]);
-void SixVecPlusEquals(cdouble V1[6], const cdouble Alpha, const cdouble V2[6]);
-void SixVecPlusEquals(cdouble V1[6], const cdouble V2[6]);
-
-bool Matrix2x2_Inverse(double *a[2],double ainv[2][2]);
-
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
@@ -652,6 +625,7 @@ void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
 /*--------------------------------------------------------------*/
 void PreloadCache(const char *FileName);
 void StoreCache(const char *FileName);
+void CheckLattice(HMatrix *LBasis);
 
 } // namespace scuff
 

@@ -225,7 +225,7 @@ HMatrix **RWGGeometry::GetFieldsGrids(SurfaceGrid &grid,
         for(IFNode=IF; IFNode; IFNode=IFNode->Next)
          if ( IFNode->RegionIndex == nr )
           { IFNode->GetFields(X, EHi);
-            SixVecPlusEquals(EH, 1.0, EHi);
+            VecPlusEquals(EH, 1.0, EHi, 6);
           };
       };
 

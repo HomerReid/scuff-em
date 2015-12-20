@@ -75,10 +75,11 @@ int main(int argc, char *argv[])
   //
   // options affecting kBloch integration or sampling
   //
-  char *XiKFile=0;
-  char *BZQuadrature=0;
-  bool BZSymmetry=false;
-  int MaxkBlochPoints=1000;
+  char *XikBlochFile=0;
+  char *BZIString=0;
+  int   BZIPoints=1000;
+  int   BZIOrder=-1;
+  int   BZSymmetry=false;
   //
   // option allowing user to override default output file names
   //
@@ -118,10 +119,11 @@ int main(int argc, char *argv[])
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
 //
-     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XiKFile,       0,             "file containing (Xi, kx, ky) values"},
-     {"BZQuadrature",   PA_STRING,  1, 1,       (void *)&BZQuadrature,  0,             "quadrature method for Brillouin-zone integration"},
+     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XikBlochFile,       0,             "file containing (Xi, kx, ky) values"},
+     {"BZIMethod",      PA_STRING,  1, 1,       (void *)&BZIString, 0,             "Brillouin-zone integration method"},
+     {"BZIPoints",      PA_STRING,  1, 1,       (void *)&BZIPoints, 0,             "maximum # BZ samples for adaptive BZ integration"},
+     {"BZIOrder",       PA_STRING,  1, 1,       (void *)&BZIOrder,  0,             "order of fixed BZ integration"},
      {"BZSymmetry",     PA_BOOL,    0, 1,       (void *)&BZSymmetry,    0,             "assume symmetric BZ: f(kx,ky) = f(ky,kx)"},
-     {"MaxkBlochPoints",PA_INT,     1, 1,       (void *)&MaxkBlochPoints, 0,           "maximum number of Brillouin-zone integrand evaluations"},
 //
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,      0,             "base filename for output files"},
 //
@@ -161,15 +163,15 @@ int main(int argc, char *argv[])
   HMatrix *XiPoints=0;
   HMatrix *XiKPoints=0;
 
-  if ( XiKFile )
-   { if (XiFile)       ErrExit("--XiKFile and --XiFile options are mutually exclusive");
-     if (nXiVals>0)    ErrExit("--XiKFile and --Xi options are mutually exclusive");
-     if (nTemperature) ErrExit("--XiKFile and --Temperature options are mutually exclusive");
-     if (G->LDim==0)   ErrExit("--XiKFile may only be used for periodic geometries");
-     XiKPoints=new HMatrix(XiKFile,LHM_TEXT,"--nc 3 --strict");
+  if ( XikBlochFile )
+   { if (XiFile)       ErrExit("--XikBlochFile and --XiFile options are mutually exclusive");
+     if (nXiVals>0)    ErrExit("--XikBlochFile and --Xi options are mutually exclusive");
+     if (nTemperature) ErrExit("--XikBlochFile and --Temperature options are mutually exclusive");
+     if (G->LDim==0)   ErrExit("--XikBlochFile may only be used for periodic geometries");
+     XiKPoints=new HMatrix(XikBlochFile,LHM_TEXT,"--nc 3 --strict");
      if (XiKPoints->ErrMsg)
       ErrExit(XiKPoints->ErrMsg);
-     Log("Read %i (Xi, kBloch) points from file %s.",XiKPoints->NR, XiKFile);
+     Log("Read %i (Xi, kBloch) points from file %s.",XiKPoints->NR, XikBlochFile);
    }
   else if ( XiFile )
    { if (nXiVals>0)    ErrExit("--XiFile and --Xi options are mutually exclusive");
@@ -201,11 +203,6 @@ int main(int argc, char *argv[])
   if ( XiQuadrature && XiKPoints )
    ErrExit("--XiQuadrature is incompatible with --Temperature ");
 
-  if ( BZQuadrature && G->LDim==0 )
-   ErrExit("--BZQuadrature may only be used for periodic geometries");
-  if ( BZQuadrature && XiKPoints )
-   ErrExit("--BZQuadrature is incompatible with --XikBlochFile");
-
   int XiQMethod = QMETHOD_CLIFF;
   if (XiQuadrature)
    { if ( !strcasecmp(XiQuadrature,"CLIFF") )
@@ -222,20 +219,6 @@ int main(int argc, char *argv[])
       }
      else
       ErrExit("unknown value %s specified for --XiQuadrature",XiQuadrature);
-   };
-
-  int BZQMethod = QMETHOD_CLIFF;
-  if (BZQuadrature)
-   { if ( !strcasecmp(BZQuadrature,"CLIFF") )
-      { BZQMethod = QMETHOD_CLIFF;
-        Log("Using cliff integration method for Brillouin-zone quadrature.");
-      }
-     else if ( !strcasecmp(BZQuadrature,"ADAPTIVE") )
-      { BZQMethod = QMETHOD_ADAPTIVE;
-        Log("Using adaptive integration method for Brillouin-zone quadrature.");
-      }
-     else 
-      ErrExit("unknown value %s specified for --BZQuadrature",BZQuadrature);
    };
 
   /*******************************************************************/
@@ -290,10 +273,30 @@ int main(int argc, char *argv[])
   SC3D->RelTol             = RelTol;
   SC3D->UseExistingData    = UseExistingData;
   SC3D->MaxXiPoints        = MaxXiPoints;
-  SC3D->MaxkBlochPoints    = MaxkBlochPoints;
-  SC3D->BZQMethod          = BZQMethod;
-  SC3D->BZSymmetry         = BZSymmetry;
   SC3D->XiMin              = XiMin;
+
+  if (SC3D->BZIArgs)
+   { 
+     SCPD->BZIArgs->MaxPoints   = BZIPoints;
+     SCPD->BZIArgs->BZSymmetric = BZSymmetry;
+     SCPD->BZIArgs->RelTol      = RelTol;
+     SCPD->BZIArgs->AbsTol      = AbsTol;
+     SCPD->BZIArgs->Reduced     = true;
+
+     int BZIMethod   = (G->LDim==1 ? BZI_CC : BZI_TC);
+     if (BZIString && !strcasecmp(BZIString,"adaptive"))
+      BZIMethod=BZI_ADAPTIVE;
+     if (BZIString && !strcasecmp(BZIString,"CC"))
+      BZIMethod=BZI_CC;
+     if (BZIString && !strcasecmp(BZIString,"TC"))
+      BZIMethod=BZI_TC;
+
+     if (BZIOrder==-1)
+      BZIOrder = (BZIMethod==BZI_CC ? 21 : 9);
+     
+     SCPD->GBZIArgs->BZIMethod = BZIMethod;
+     SCPD->GBZIArgs->Order     = BZIOrder;
+   };
 
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
@@ -310,7 +313,7 @@ int main(int argc, char *argv[])
         kBloch[0] = XiKPoints->GetEntryD(nr, 1);
         if (G->LDim>=2)
          kBloch[1] = XiKPoints->GetEntryD(nr, 2);
-        GetCasimirIntegrand(SC3D, Xi, kBloch, EFT);
+        GetCasimirIntegrand(SC3D, cdouble(0.0,Xi), kBloch, EFT);
       };
    }
   else if ( XiPoints )

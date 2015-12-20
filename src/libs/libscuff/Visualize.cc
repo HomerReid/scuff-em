@@ -675,7 +675,6 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
         RWGEdge *E = Edges[ne];
         int iV1    = E->iV1;
         int iV2    = E->iV2;
-
         double TotalArea = Panels[E->iPPanel]->Area;
         if (E->iMPanel!=-1) TotalArea+=Panels[E->iMPanel]->Area;
    
@@ -746,8 +745,9 @@ void RWGSurface::PlotScalarDensity(double *Values, bool ByEdge,
 bool IsStraddlerPanel(RWGGeometry *G, int ns, int np)
 {
   double *Centroid = G->Surfaces[ns]->Panels[np]->Centroid;
+  if (G->LBasis==0) return false;
   if ( Centroid[0] < 0.0 ) return true;
-  if ( (G->LDim>=2) && Centroid[1] < 0.0 ) return true;
+  if ( (G->LBasis->NC>=2) && Centroid[1] < 0.0 ) return true;
   return false;
 }
 

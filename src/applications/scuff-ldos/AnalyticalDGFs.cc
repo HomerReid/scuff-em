@@ -166,28 +166,6 @@ void MySummand(double *Gamma, void *UserData, double *Sum)
 }
 
 /***************************************************************/
-/***************************************************************/
-/***************************************************************/
-double GetRLBasis(HMatrix *HMLBasis, HMatrix *RLBasis)
-{
-  double LBasis[2][2];
-  LBasis[0][0]=HMLBasis->GetEntryD(0,0);
-  LBasis[0][1]=HMLBasis->GetEntryD(1,0);
-  LBasis[1][0]=HMLBasis->GetEntryD(0,1);
-  LBasis[1][1]=HMLBasis->GetEntryD(1,1);
-
-  double Area= LBasis[0][0]*LBasis[1][1] - LBasis[0][1]*LBasis[1][0];
-  if (Area==0.0)
-   ErrExit("%s:%i: lattice has empty unit cell",__FILE__,__LINE__);
-  RLBasis->SetEntry(0,0,  2.0*M_PI*LBasis[1][1] / Area );
-  RLBasis->SetEntry(1,0, -2.0*M_PI*LBasis[1][0] / Area );
-  RLBasis->SetEntry(0,1, -2.0*M_PI*LBasis[0][1] / Area );
-  RLBasis->SetEntry(1,1,  2.0*M_PI*LBasis[0][0] / Area );
-
-  return 4.0*M_PI*M_PI / Area;
-}
-
-/***************************************************************/
 /* Vacuum DGFs computed by the plane-wave decomposition        */
 /***************************************************************/
 int GetVacuumDGFs(double X[3], double XP[3],
@@ -198,7 +176,7 @@ int GetVacuumDGFs(double X[3], double XP[3],
 { 
   double RLBBuffer[9];
   HMatrix RLBasis(3,3,LHM_REAL,LHM_NORMAL,RLBBuffer);
-  double BZVolume=GetRLBasis(LBasis, &RLBasis);
+  double BZVolume=SetRLBasis(LBasis, &RLBasis);
  
   SummandData MySummandData, *Data=&MySummandData;
   Data->X       = X;
@@ -241,7 +219,7 @@ int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
 
   double Buffer[9];
   HMatrix RLBasis(3,3,LHM_REAL,LHM_NORMAL,Buffer);
-  double BZVolume=GetRLBasis(LBasis, &RLBasis);
+  double BZVolume=SetRLBasis(LBasis, &RLBasis);
 
   cdouble Sum[18];
   GetLatticeSum(MySummand, (void *)Data, 36, &RLBasis,

@@ -410,7 +410,7 @@ void *GetFields_Thread(void *data)
          if ( IF->RegionIndex == RegionIndex )
           { cdouble dEH[6];
             IF->GetFields(X, dEH);
-            SixVecPlusEquals(EH, 1.0, dEH);
+            VecPlusEquals(EH, 1.0, dEH, 6);
           };
       };
 
@@ -488,7 +488,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
   /* the geometry.                                               */
   /***************************************************************/
   GBarAccelerator **RegionGBAs=0;
-  if (KN && LDim>0)
+  if (KN && LBasis)
    { RegionGBAs=(GBarAccelerator **)mallocEC(NumRegions*sizeof(GBarAccelerator *));
      for(int nr=0; nr<NumRegions; nr++)
       if ( ! ( RegionMPs[nr]->IsPEC() ) )
@@ -562,7 +562,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN,
    delete PFFuncs[nf];
   delete[] PFFuncs;
 
-  if (KN && LDim>0)
+  if (KN && LBasis)
    { for(int nr=0; nr<NumRegions; nr++)
       if (RegionGBAs[nr])
        DestroyGBarAccelerator(RegionGBAs[nr]);

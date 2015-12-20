@@ -368,9 +368,9 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
       { RWGSurface *S=G->Surfaces[ns];
         int nr1=S->RegionIndices[0], nr2=S->RegionIndices[1];
         if (nr1>=0) 
-         PlusEqualsVec(RegionPFTs + NUMPFT*nr1, +1.0, PFT, NUMPFT);
+         VecPlusEquals(RegionPFTs + NUMPFT*nr1, +1.0, PFT, NUMPFT);
         if (nr2>=0)
-         PlusEqualsVec(RegionPFTs + NUMPFT*nr2, -1.0, PFT, NUMPFT);
+         VecPlusEquals(RegionPFTs + NUMPFT*nr2, -1.0, PFT, NUMPFT);
       };
 
    };

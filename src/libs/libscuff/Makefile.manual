@@ -30,8 +30,7 @@ OBJS = AssembleBEMMatrix.o		\
        TaylorDuffy.o			\
        RWGGeometry.o			\
        rwlock.o 	     		\
-       Visualize.o			\
-       scuffMisc.o
+       Visualize.o
 
 ##################################################
 ##################################################

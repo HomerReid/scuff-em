@@ -250,7 +250,7 @@ void WriteGeometryPPFiles(RWGGeometry *G, int Neighbors)
 
   G->WritePPMesh(PPFileName,G->GeoFileName);
 
-  int LDim = G->LDim;
+  int LDim = G->LBasis ? G->LBasis->NC : 0;
   int n2Mult = (LDim==1) ? 0 : 1;
 
   if (Neighbors)
@@ -259,21 +259,23 @@ void WriteGeometryPPFiles(RWGGeometry *G, int Neighbors)
      for(int n1=-Neighbors; n1<=Neighbors; n1++)
       for(int n2=-Neighbors*n2Mult; n2<=Neighbors*n2Mult; n2++)
        { 
-         if (n1==0 && n2==0) 
+         if (n1==0 && n2==0)
           continue;
  
+         DL[0] = n1*G->LBasis->GetEntryD(0,0);
+         DL[1] = n1*G->LBasis->GetEntryD(1,0);
+         DL[2] = n1*G->LBasis->GetEntryD(2,0);
+
+         if (LDim>=1)
+          { DL[0] = n2*G->LBasis->GetEntryD(0,1);
+            DL[1] = n2*G->LBasis->GetEntryD(1,1);
+            DL[2] = n2*G->LBasis->GetEntryD(2,1);
+          };
+
          if (LDim==1)
-          { DL[0] = n1*G->LBasis[0][0];
-            DL[1] = n1*G->LBasis[0][1];
-            DL[2] = 0.0;
-            snprintf(Tag,20,"(%i)",n1);
-          }
-         else
-          { DL[0] = n1*G->LBasis[0][0] + n2*G->LBasis[1][0];
-            DL[1] = n1*G->LBasis[0][1] + n2*G->LBasis[1][1];
-            DL[2] = 0.0;
-            snprintf(Tag,20,"(%i,%i)",n1,n2);
-          }
+          snprintf(Tag,20,"(%i)",n1);
+         else if (LDim==2)
+          snprintf(Tag,20,"(%i,%i)",n1,n2);
 
          for(int ns=0; ns<G->NumSurfaces; ns++)
           G->Surfaces[ns]->Transform("DISPLACED %e %e %e \n",DL[0],DL[1],DL[2]);
@@ -473,7 +475,7 @@ int main(int argc, char *argv[])
 
      AnalyzeGeometry(G);
 
-     if (Neighbors!=0 && G->LDim==0 )
+     if (Neighbors!=0 && G->LBasis==0)
       { Warn("--Neighbors option only makes sense for periodic geometries");
         Neighbors=0;
       }

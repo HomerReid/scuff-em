@@ -329,9 +329,9 @@ int main(int argc, char *argv[])
   if (SNEQD->NumSIQs==0 && SNEQD->NumSRQs==0)
    ErrExit("you must specify at least one quantity to compute");
 
-  if (OmegaKPoints && G->LDim==0)
+  if (OmegaKPoints && !G->LBasis)
    ErrExit("--OmegaKPoints may only be used with extended geometries");
-  else if (G->LDim!=0 && OmegaKPoints==0)
+  else if (G->Basis && !OmegaKPoints==0)
    ErrExit("--OmegaKPoints is required for extended geometries");
          
   /*******************************************************************/

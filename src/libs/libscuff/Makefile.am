@@ -46,7 +46,6 @@ libscuff_la_SOURCES = \
  CalcGC.cc 			\
  rwlock.cc 			\
  rwlock.h 			\
- scuffMisc.cc			\
  libscuff.h 			\
  PanelCubature.h		\
  libscuffInternals.h

@@ -43,9 +43,8 @@ IncField::IncField()
   Omega=-1.0;
 
   // incident fields are non-periodic by default
-  LDim=0;
-  LBV[0]=LBV[1]=0;
-  kBloch[0]=kBloch[1]=0.0;
+  LBasis=0;
+  kBloch[0]=kBloch[1]=kBloch[2]=0.0;
 
   // field sources lie in the exterior region by default
   RegionLabel = NULL;
@@ -109,27 +108,18 @@ void IncField::SetFrequencyAndEpsMu(cdouble pOmega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void IncField::SetLattice(int NewLDim, double NewLBV[2][2], bool Traverse)
+void IncField::SetLattice(HMatrix *NewLBasis, bool Traverse)
 {
-  if (LDim<0 || LDim>2)
-   ErrExit("%s: %i: periodic lattices must have dimension {0,1,2}",
-            __FILE__,__LINE__);
-
-  LDim = NewLDim;
-  if (LDim>=1)
-   { LBV1[0] = NewLBV[0][0];
-     LBV1[1] = NewLBV[0][1];
-     LBV[0] = LBV1;
+  if (LBasis==0 || LBasis->NR!=3 || LBasis->NC != NewLBasis->NC)
+   { if (LBasis) delete LBasis;
+     LBasis = new HMatrix(NewLBasis);
    };
-  if (LDim==2)
-   { LBV2[0] = NewLBV[1][0];
-     LBV2[1] = NewLBV[1][1];
-     LBV[1] = LBV2;
-   };
+  
+  LBasis->Copy(NewLBasis);
 
   if (Traverse)
    for(IncField *IFD=this->Next; IFD; IFD=IFD->Next)
-    IFD->SetLattice(NewLDim,NewLBV,false);
+    IFD->SetLattice(LBasis,false);
 }
 
 /***************************************************************/
@@ -137,9 +127,10 @@ void IncField::SetLattice(int NewLDim, double NewLBV[2][2], bool Traverse)
 /***************************************************************/
 void IncField::SetkBloch(double *NewkBloch, bool Traverse)
 { 
-  if ( LDim==0 )
+  if ( LBasis==0 )
    ErrExit("%s:%i: attempt to set kBloch in a non-periodic IncField");
 
+  int LDim=LBasis->NC;
   if (NewkBloch)
    memcpy(kBloch, NewkBloch, LDim*sizeof(double));
 

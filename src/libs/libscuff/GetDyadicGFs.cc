@@ -327,6 +327,9 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   memcpy(XBuffer+3, XSource, 3*sizeof(double));
   HMatrix XMatrix(1,6,LHM_COMPLEX,LHM_NORMAL,XBuffer);
 
+  if ( (LBasis && !kBloch) || (!LBasis && kBloch) )
+   ErrExit("%s:%i: incorrect kBloch specification",__FILE__,__LINE__);
+
   cdouble GBuffer[18];
   HMatrix GMatrix(1,18,LHM_COMPLEX,LHM_NORMAL,GBuffer);
   
@@ -339,7 +342,7 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
     };
   
   /***************************************************************/
-  /***************************************************************/
+  /* add direction contributions of point source                 */
   /***************************************************************/
   cdouble EpsRel, MuRel;
   int nr=GetRegionIndex(XSource);
@@ -351,7 +354,7 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   cdouble P[3]={1.0, 0.0, 0.0};
   PointSource PS(XSource, P);
   if (LDim>0)
-   { PS.SetLattice(LDim, LBasis);
+   { PS.SetLattice(LBasis);
      PS.SetkBloch(kBloch);
    };
 

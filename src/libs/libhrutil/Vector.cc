@@ -1,0 +1,207 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
+ * Vector.cc   -- simple vector manipulation routines (formerly
+ *                defined in scuffMisc.cc)
+ * homer reid  -- 10/2006
+ */
+
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+
+#include "libhrutil.h"
+
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+/* vector routines                                              */
+/*--------------------------------------------------------------*/
+/*--------------------------------------------------------------*/
+
+/* v <= 0 */
+void VecZero(double *v, int N )
+{ memset(v,0,N*sizeof(double));
+}
+
+/* v2 = v1 */
+double *VecCopy(const double *v1, double *v2, int N) 
+{
+  memcpy(v2, v1, N*sizeof(double));
+  return v2;
+}
+
+/* v3 = Alpha*v1 + Beta*v2 */
+double *VecLinComb(double Alpha, const double *v1, double Beta, const double *v2, double *v3, int N)
+{ 
+  for(int n=0; n<N; n++)
+   v3[n]=Alpha*v1[n] + Beta*v2[n];
+  return v3;
+}
+
+/* v2 = Alpha * v1 */
+double *VecScale(const double *v1, double Alpha, double *v2, int N)
+{ return VecLinComb(Alpha, v1, 0.0, v1, v2, N); }
+
+/* v *= Alpha */
+double *VecScale(double *v, double Alpha, int N)
+{ return VecLinComb(Alpha, v, 0.0, v, v, N); }
+
+/* v3 = v1 + Alpha*v2 */
+double *VecScaleAdd(const double *v1, double Alpha, const double *v2, double *v3, int N)
+{ return VecLinComb(1.0, v1, Alpha, v2, v3, N); }
+
+/* v3 = v1 + v2 */
+double *VecAdd(const double *v1, const double *v2, double *v3, int N)
+{ return VecLinComb(1.0, v1, 1.0, v2, v3, N); }
+
+/* v3 = v1 - v2 */
+double *VecSub(const double *v1, const double *v2, double *v3, int N)
+{ return VecLinComb(1.0, v1, -1.0, v2, v3, N); } 
+
+/* v1 += Alpha*v2 */
+double *VecPlusEquals(double *v1, double Alpha, const double *v2, int N)
+{ return VecLinComb(1.0, v1, Alpha, v2, v1, N); }
+
+/* return v1 \dot v2 */
+double VecDot(const double *v1, const double *v2, int N)
+{ double Dot=0.0;
+  for(int n=0; n<N; n++) Dot+=v1[n]*v2[n];
+  return Dot;
+}
+
+double VecNorm2(const double *v, int N)
+{ return VecDot(v,v,N); }
+
+double VecNorm(const double *v, int N)
+{ return sqrt(VecDot(v,v,N)); }
+
+double VecNormalize(double *v, int N)
+{ double d=VecNorm(v, N); 
+  VecScale(v, 1.0/d, N);
+  return d;
+}
+
+double VecDistance2(const double *v1, const double *v2, int N)
+{ double d=0.0;
+  for(int n=0; n<N; n++) 
+   d += (v1[n]-v2[n])*(v1[n]-v2[n]);
+  return d;
+}
+
+double VecDistance(const double *v1, const double *v2, int N)
+{ return sqrt(VecDistance2(v1,v2,N));
+}
+
+// note cross product is for 3D vectors only
+
+/* v3 = v1 \times v2 */
+double *VecCross(const double *v1, const double *v2, double *v3)
+{ v3[0]=v1[1]*v2[2] - v1[2]*v2[1];
+  v3[1]=v1[2]*v2[0] - v1[0]*v2[2];
+  v3[2]=v1[0]*v2[1] - v1[1]*v2[0];
+  return v3;
+}
+
+/***************************************************************/
+/* complex vector arithmetic ***********************************/
+/***************************************************************/
+/* v3 = Alpha*v1 + Beta*v2 */
+cdouble *VecLinComb(cdouble Alpha, const cdouble *v1, cdouble Beta, const cdouble *v2, cdouble *v3, int N)
+{ 
+  for(int n=0; n<N; n++)
+   v3[n]=Alpha*v1[n] + Beta*v2[n];
+  return v3;
+}
+
+/* v2 = Alpha * v1 */
+cdouble *VecScale(const cdouble *v1, cdouble Alpha, cdouble *v2, int N)
+{ return VecLinComb(Alpha, v1, 0.0, v1, v2, N); }
+
+/* v *= Alpha */
+cdouble *VecScale(cdouble *v, cdouble Alpha, int N)
+{ return VecLinComb(Alpha, v, 0.0, v, v, N); }
+
+/* v3 = v1 + Alpha*v2 */
+cdouble *VecScaleAdd(const cdouble *v1, cdouble Alpha, const cdouble *v2, cdouble *v3, int N)
+{ return VecLinComb(1.0, v1, Alpha, v2, v3, N); }
+
+/* v3 = v1 + v2 */
+cdouble *VecAdd(const cdouble *v1, const cdouble *v2, cdouble *v3, int N)
+{ return VecLinComb(1.0, v1, 1.0, v2, v3, N); }
+
+/* v3 = v1 - v2 */
+cdouble *VecSub(const cdouble *v1, const cdouble *v2, cdouble *v3, int N)
+{ return VecLinComb(1.0, v1, -1.0, v2, v3, N); } 
+
+/* v1 += Alpha*v2 */
+cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const cdouble *v2, int N)
+{ return VecLinComb(1.0, v1, Alpha, v2, v1, N); }
+
+/* v1 += Alpha*v2 */
+cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const double *v2, int N)
+{ for(int n=0; n<N; n++)
+   v1[n] += Alpha*v2[n];
+  return v1;
+}
+
+/***************************************************************/
+/* matrix arithmetic *******************************************/
+/***************************************************************/
+bool Matrix2x2_Inverse(double *a[2], double ainv[2][2])
+{
+  double det = a[0][0]*a[1][1] - a[0][1]*a[1][0];
+  double detinv = 1 / det;
+  // store in local vars to work even if a == ainv
+  double ainv00 = detinv * a[1][1];
+  double ainv11 = detinv * a[0][0];
+  double ainv01 = -detinv * a[0][1];
+  double ainv10 = -detinv * a[1][0];
+  ainv[0][0] = ainv00;
+  ainv[1][1] = ainv11;
+  ainv[0][1] = ainv01;
+  ainv[1][0] = ainv10;
+  return det != 0.0;
+}
+
+/***************************************************************/
+/* single-precision comparisons of double-precision numbers    */
+/***************************************************************/
+bool EqualFloat(const double a, const double b) 
+{ return ( float(a) == float(b) ); }
+
+bool EqualFloat(const cdouble a, const cdouble b) 
+{ return      ( float(real(a)) == float(real(b)) )
+          &&  ( float(imag(a)) == float(imag(b)) );
+}
+
+bool VecEqualFloat(const double *a, const double *b) 
+{
+   return (     float(a[0]) == float(b[0])
+            &&  float(a[1]) == float(b[1])
+            &&  float(a[2]) == float(b[2])
+          );
+}
+
+bool VecClose(const double *a, const double *b, double abstol)
+{
+  return fabs(a[0]-b[0]) + fabs(a[1]-b[1]) + fabs(a[2]-b[2]) <= 3*abstol;
+}   

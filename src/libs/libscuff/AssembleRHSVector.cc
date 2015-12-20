@@ -371,14 +371,14 @@ int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch
 {
   if (IFList==0) return 0;
 
-  if ( (LDim==0 && kBloch!=0) || (LDim!=0 && kBloch==0) )
+  if ( (LBasis==0 && kBloch!=0) || (LBasis!=0 && kBloch==0) )
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  if (LDim)
-   IFList->SetLattice(LDim, LBasis, true);
+  if (LBasis)
+   IFList->SetLattice(LBasis, true);
 
   /*--------------------------------------------------------------*/
   /*- make sure the cached epsilon and mu values for all regions  */
@@ -431,7 +431,7 @@ HVector *RWGGeometry::AllocateRHSVector(bool PureImagFreq)
 { 
   HVector *V;
 
-  if (PureImagFreq && LDim==0)
+  if (PureImagFreq && LBasis==0)
    V=new HVector(TotalBFs,LHM_REAL);
   else
    V=new HVector(TotalBFs,LHM_COMPLEX);
