@@ -455,8 +455,10 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
-                     HMatrix *QPFT[NUMPFT], bool NeedMatrix[NUMPFT])
+void GetOPFTMatrices(RWGGeometry *G,
+                     int SurfaceIndex, cdouble Omega,
+                     HMatrix *QPFT[NUMPFT],
+                     bool NeedMatrix[NUMPFT])
 {
   if (SurfaceIndex<0 || SurfaceIndex>=G->NumSurfaces)
    { Warn("GetOPFTMatrices called for unknown surface #i",SurfaceIndex);
@@ -550,8 +552,8 @@ void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
        for(int Mu=0; Mu<3; Mu++)
         { 
           if (QF[Mu])
-           { cdouble Term1=-1.0*(Overlaps[OVERLAP_BULLET_X + Mu] - Overlaps[OVERLAP_NABLANABLA_X + Mu]/k2);
-             cdouble Term2=-2.0*Overlaps[OVERLAP_TIMESNABLA_X + Mu] / (II*Omega);
+           { cdouble Term1=-0.25*TENTHIRDS*(Overlaps[OVERLAP_BULLET_X + 3*Mu] - Overlaps[OVERLAP_NABLANABLA_X + 3*Mu]/k2);
+             cdouble Term2=-0.50*TENTHIRDS*Overlaps[OVERLAP_TIMESNABLA_X + 3*Mu] / (II*Omega);
              if(IsPEC)
               QF[Mu]->SetEntry(nea,neb,ZZ*Term1);
              else
@@ -563,8 +565,8 @@ void GetOPFTMatrices(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
            };
 
           if (QT[Mu])
-           { cdouble Term1=-0.25*TENTHIRDS*(Overlaps[OVERLAP_RXBULLET_X + Mu] - Overlaps[OVERLAP_RXNABLANABLA_X + Mu]/k2);
-             cdouble Term2=-0.5*TENTHIRDS*Overlaps[OVERLAP_RXTIMESNABLA_X + Mu] / (II*Omega);
+           { cdouble Term1=-0.25*TENTHIRDS*(Overlaps[OVERLAP_RXBULLET_X + 3*Mu] - Overlaps[OVERLAP_RXNABLANABLA_X + 3*Mu]/k2);
+             cdouble Term2=-0.50*TENTHIRDS*Overlaps[OVERLAP_RXTIMESNABLA_X + 3*Mu] / (II*Omega);
              if(IsPEC)
               QT[Mu]->SetEntry(nea,neb,ZZ*Term1);
              else
