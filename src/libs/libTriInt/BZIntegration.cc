@@ -90,7 +90,7 @@ int BZIntegrand_PCubature(unsigned ndim, const double *u,
   double kBloch[3]={0.0, 0.0, 0.0};
   for(int nd=0; nd<LDim; nd++)
    for(int nc=0; nc<3; nc++)
-    kBloch[nc] = u[nd]*RLBasis->GetEntryD(nc,nd);
+    kBloch[nc] += u[nd]*RLBasis->GetEntryD(nc,nd);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -154,7 +154,7 @@ void BZIntegrand_TriCub(double *u, void *pArgs, double *BZIntegrand)
   double kBloch[3]={0.0, 0.0, 0.0};
   for(int nd=0; nd<LDim; nd++)
    for(int nc=0; nc<3; nc++)
-    kBloch[nc] = u[nd]*RLBasis->GetEntryD(nc,nd);
+    kBloch[nc] += u[nd]*RLBasis->GetEntryD(nc,nd);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -291,7 +291,7 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
         double kBloch[3]={0.0, 0.0, 0.0};
         for(int nd=0; nd<LDim; nd++)
          for(int nc=0; nc<3; nc++)
-          kBloch[nc] = u[nd]*RLBasis->GetEntryD(nc,nd);
+          kBloch[nc] += u[nd]*RLBasis->GetEntryD(nc,nd);
 
          BZIFunc(UserData, Omega, kBloch, dBZI);
          VecPlusEquals(BZIntegral, w, dBZI, FDim);
