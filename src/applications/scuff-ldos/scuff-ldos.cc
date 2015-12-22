@@ -216,8 +216,8 @@ int main(int argc, char *argv[])
 
      Args->BZIMethod       = (Data->G->LDim==1) ? BZI_CC : BZI_TC;
      int DefBZIOrder       = (Data->G->LDim==1) ? 21     : 9;
-     if (!BZIString || !strcasecmp(BZIString,"TC") )
-      ; // do nothing for default case
+     if (!BZIString)
+      ; // do nothing if BZIString unspecified
      else if (!strcasecmp(BZIString,"CC") )
       { Args->BZIMethod = BZI_CC;
         DefBZIOrder=21;
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
       { 
         Args->BZIMethod = BZI_ADAPTIVE;
       }
-     Args->Order        = BZIOrder==-1 ? DefBZIOrder : BZIOrder;
+     Args->Order        = (BZIOrder==-1) ? DefBZIOrder : BZIOrder;
 
      /***************************************************************/
      /***************************************************************/

@@ -82,7 +82,7 @@ int BZIntegrand_PCubature(unsigned ndim, const double *u,
   BZIFunction *BZIFunc   = Args->BZIFunc;
   void *UserData         = Args->UserData;
   HMatrix *RLBasis       = Args->RLBasis;
-  int LDim               = RLBasis->NR;
+  int LDim               = RLBasis->NC;
 
   /*--------------------------------------------------------------*/
   /*- convert (ux, uy) variable to kBloch ------------------------*/
@@ -111,7 +111,7 @@ void GetBZIntegral_PCubature(GetBZIArgStruct *Args,
   /***************************************************************/
   /***************************************************************/
   HMatrix *RLBasis   = Args->RLBasis;
-  int LDim           = RLBasis->NR;
+  int LDim           = RLBasis->NC;
   int FDim           = Args->FDim;
   int MaxPoints      = Args->MaxPoints;
   double *BZIError   = Args->BZIError;
@@ -246,7 +246,7 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
   void *UserData        = Args->UserData;
   bool BZSymmetric      = Args->BZSymmetric;
   int FDim              = Args->FDim;
-  int LDim              = Args->RLBasis->NR;
+  int LDim              = Args->RLBasis->NC;
   double AbsTol         = Args->AbsTol;
   double RelTol         = Args->RelTol;
   double *BZIError      = Args->BZIError;
@@ -276,7 +276,7 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
          { 
            int nn = ncp[nd];
            u[nd]  = uAvg + uDelta*CCQR[2*nn + 0];
-           w     *= uDelta*CCQR[2*nn+1];
+           w     *=        uDelta*CCQR[2*nn + 1];
 
            ncp[nd] = (nn+1)%NCP;
            if(ncp[nd]) break;
@@ -396,7 +396,7 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if (Args->Reduced)
-   { int LDim = Args->RLBasis->NR;
+   { int LDim = Args->RLBasis->NC;
      double Factor = pow(2.0, LDim);
      for(int nf=0; nf<FDim; nf++)
      { BZIntegral[nf]*=Factor;
@@ -431,7 +431,7 @@ double SetRLBasis(HMatrix *LBasis, HMatrix *RLBasis,
       LVolume = VecNorm(LBV[0]);
       if (LVolume==0.0) return 0;
       RLVolume = 2.0*M_PI/LVolume;
-      VecScale(LBV[0], RLVolume, RLBV[0]);
+      VecScale(LBV[0], 2.0*M_PI/(LVolume*LVolume), RLBV[0]);
       break;
       
      case 2:
