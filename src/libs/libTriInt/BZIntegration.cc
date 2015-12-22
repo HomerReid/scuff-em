@@ -275,7 +275,7 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
         for(int nd=0; nd<LDim; nd++)
          { 
            int nn = ncp[nd];
-           u[nd]  = uAvg + uDelta*CCQR[2*nn + 0];
+           u[nd]  = uAvg - uDelta*CCQR[2*nn + 0];
            w     *=        uDelta*CCQR[2*nn + 1];
 
            ncp[nd] = (nn+1)%NCP;

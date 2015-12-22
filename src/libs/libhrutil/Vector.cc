@@ -205,3 +205,97 @@ bool VecClose(const double *a, const double *b, double abstol)
 {
   return fabs(a[0]-b[0]) + fabs(a[1]-b[1]) + fabs(a[2]-b[2]) <= 3*abstol;
 }   
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void Compare(cdouble *V1, cdouble *V2, int N,
+             const char *str1, const char *str2)
+{ 
+  printf(" n | %-25s | %-25s | RD      | Ratio\n",str1,str2);
+  for(int n=0; n<N; n++)
+   printf("%2i | (%+.4e,%+.4e) | (%+.4e,%+.4e) | %.1e | %.3e\n",n,
+    real(V1[n]),imag(V1[n]), real(V2[n]),imag(V2[n]),
+    RD(V1[n],V2[n]), abs(V1[n]/V2[n]));
+  printf("\n");
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void Compare(double *V1, double *V2, int N,
+             const char *str1, const char *str2)
+{ 
+  printf(" n | %-12s | %-12s | RD      | Ratio\n",str1,str2);
+  for(int n=0; n<N; n++)
+   printf("%2i | %+12.4e | %+12.4e | %.1e | %.3e\n",n,
+    V1[n],V2[n],RD(V1[n],V2[n]),fabs(V1[n]/V2[n]));
+  printf("\n");
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void Compare(double *V1, double *V2, double *V3, int N,
+             const char *str1, const char *str2, const char *str3)
+{ 
+  printf(" n | %-12s | %-12s | RD      | %-12s | RD\n",str1,str2,str3);
+  for(int n=0; n<N; n++)
+   printf("%2i | %+12.4e | %+12.4e | %.1e | %+12.4e | %.1e\n",n,
+    V1[n], V2[n], RD(V1[n],V2[n]), V3[n], RD(V1[n],V3[n]));
+  printf("\n");
+}
+
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void Compare(cdouble *V1, cdouble *V2, cdouble *V3, int N,
+             const char *str1, const char *str2, const char *str3)
+{ 
+  printf(" n | %-25s | %-25s | RD      | %-25s | RD\n",str1,str2,str3);
+  for(int n=0; n<N; n++)
+   printf("%2i | (%+.4e,%+.4e) | (%+.4e,%+.4e) | %.1e | (%+.4e, %+.4e) | %.1e\n",n,
+    real(V1[n]),imag(V1[n]),
+    real(V2[n]),imag(V2[n]),
+    RD(V1[n],V2[n]), 
+    real(V3[n]),imag(V3[n]),
+    RD(V1[n],V3[n]));
+  printf("\n");
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void DofprintVec(FILE *f, void *v, bool Complex, int Length,
+                 const char *fmt, bool CR)
+{
+  char format[100];
+  snprintf(format,100,"%s ",fmt);
+
+  if (Complex)
+   { cdouble *cv=(cdouble *)v;
+     for(int n=0; n<Length; n++)
+      fprintf(f,format,real(cv[n]),imag(cv[n]));
+   }
+  else
+   { double *rv=(double *)v;
+     for(int n=0; n<Length; n++)
+      fprintf(f,format,rv[n]);
+   };
+
+  if (CR) 
+   fprintf(f,"\n");
+}
+
+void fprintVec(FILE *f, double *v, int Length, const char *format)
+{  DofprintVec(f, (void *)v, false, Length, format, false); }
+
+void fprintVecCR(FILE *f, double *v, int Length, const char *format)
+{  DofprintVec(f, (void *)v, false, Length, format, true); }
+
+void fprintVec(FILE *f, cdouble *v, int Length, const char *format)
+{  DofprintVec(f, (void *)v, true, Length, format, false); }
+
+void fprintVecCR(FILE *f, cdouble *v, int Length, const char *format)
+{  DofprintVec(f, (void *)v, true, Length, format, true); }
