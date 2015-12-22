@@ -75,14 +75,14 @@ typedef struct SLDData
 /***************************************************************/
 /* Function prototypes *****************************************/
 /***************************************************************/
-void WriteLDOS(SLDData *Data, cdouble Omega,
-               double *Result, double *Error);
 
 // CreateLDOSData.cc
 void WriteFilePreamble(char *FileName, int FileType, int LDim);
 SLDData *CreateSLDData(char *GeoFile, char *EPFile);
 
 // GetLDOS.cc
+void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
+               int FileType, double *Result, double *Error);
 void GetLDOS(void *Data, cdouble Omega, double *kBloch, 
              double *Result);
 

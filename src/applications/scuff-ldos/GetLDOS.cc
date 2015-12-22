@@ -32,6 +32,40 @@
 using namespace scuff;
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
+               int FileType, double *Result, double *Error)
+{
+  char *FileName = 
+   (FileType==FILETYPE_BYK) ? Data->ByKFileName : Data->OutFileName;
+  FILE *f=fopen(FileName,"a");
+  HMatrix *XMatrix=Data->XMatrix;
+  for(int nx=0; nx<XMatrix->NR; nx++)
+   { 
+     double X[3];
+     XMatrix->GetEntriesD(nx,":",X);
+
+     fprintf(f,"%e %e %e ", X[0],X[1],X[2]);
+     fprintf(f,"%e %e ",real(Omega),imag(Omega));
+     if (FileType==FILETYPE_BYK && kBloch)
+      for(int nd=0; nd<Data->G->LDim; nd++)
+       fprintf(f,"%e ",kBloch[nd]);
+
+     int NFun = (Data->LDOSOnly ? 2 : 38);
+     for(int nf=0; nf<NFun; nf++) 
+      fprintf(f,"%e ",Result[NFun*nx+nf]);
+
+     if (Error)
+      for(int nf=0; nf<NFun; nf++) 
+       fprintf(f,"%e ",Error[NFun*nx+nf]);
+
+     fprintf(f,"\n");
+   };
+  fclose(f);
+}
+
+/***************************************************************/
 /* routine to compute the LDOS at a single (Omega, kBloch)     */
 /* point (but typically multiple spatial evaluation points)    */
 /***************************************************************/
@@ -103,9 +137,6 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*-  \Rho/Rho_0 = Im Tr G / ( \pi \omega^2 c )                  */
   /*- which explains the prefactor below.                         */
   /*--------------------------------------------------------------*/
-  FILE *DataFile=0;
-  if (Data->ByKFileName)
-   DataFile=fopen(Data->ByKFileName, "a");
   cdouble PreFac = 1.0 / (M_PI * Omega * Omega);
   int NFun = (Data->LDOSOnly ? 2 : 38);
   for(int nx=0; nx<XMatrix->NR; nx++)
@@ -150,31 +181,12 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
           };
       };
 
-     /***************************************************************/
-     /* write output to data file if we have one ********************/
-     /***************************************************************/
-     if (DataFile)
-      { 
-        fprintf(DataFile,"%e %e %e %s ",X[0],X[1],X[2],z2s(Omega));
-        if (LDim>=1) fprintf(DataFile,"%e ",kBloch[0]);
-        if (LDim>=2) fprintf(DataFile,"%e ",kBloch[1]);
-        fprintf(DataFile,"%e %e ",Result[NFun*nx+0],Result[NFun*nx+1]);
-
-        fprintf(DataFile,"%s %s %s %s %s %s %s %s %s ",
-                         CD2S(GE[0][0]),CD2S(GE[0][1]),CD2S(GE[0][2]),
-                         CD2S(GE[1][0]),CD2S(GE[1][1]),CD2S(GE[1][2]),
-                         CD2S(GE[2][0]),CD2S(GE[2][1]),CD2S(GE[2][2]));
-        fprintf(DataFile,"%s %s %s %s %s %s %s %s %s ",
-                         CD2S(GM[0][0]),CD2S(GM[0][1]),CD2S(GM[0][2]),
-                         CD2S(GM[1][0]),CD2S(GM[1][1]),CD2S(GM[1][2]),
-                         CD2S(GM[2][0]),CD2S(GM[2][1]),CD2S(GM[2][2]));
-
-        fprintf(DataFile,"\n");
-        fflush(DataFile);
-      };
-
    }; // for(int nr=0, nr<XMatrix->NR; nr++)
 
-  if (DataFile) fclose(DataFile);
+  /***************************************************************/
+  /* write output to data file if we have one ********************/
+  /***************************************************************/
+  if (Data->ByKFileName)
+   WriteData(Data, Omega, kBloch, FILETYPE_BYK, Result, 0);
 
 }

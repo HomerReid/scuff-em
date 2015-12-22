@@ -39,8 +39,8 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
   fprintf(f,"# scuff-ldos run on %s ",GetHostName());
   fprintf(f,"%s\n",GetTimeString());
   fprintf(f,"# columns: \n");
-  fprintf(f,"# 1 2 3 4: x y z Omega\n");
-  int nc=5;
+  fprintf(f,"# 1 2 3 4 5 : x y z re(Omega) im(Omega)\n");
+  int nc=6;
 
   if (FileType==FILETYPE_BYK && LDim==1)
    { fprintf(f,"# %i: kx\n",nc);
