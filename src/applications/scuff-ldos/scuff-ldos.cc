@@ -173,6 +173,7 @@ int main(int argc, char *argv[])
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
         GetLDOS( (void *)Data, Omega, 0, Result);
+        WriteData(Data, Omega, 0, FILETYPE_LDOS, Result, 0);
       };
    }
   /*--------------------------------------------------------------*/
