@@ -290,11 +290,17 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   GeoFileName=strdupEC(pGeoFileName);
   Surfaces=0;
   AllSurfacesClosed=1;
+
+  /***************************************************************/
+  /* initially assume compact (non-periodic) geometry            */
+  /***************************************************************/
   LDim=0;
   LBasis=RLBasis=0;
   LVolume=RLVolume=0.0;
-  NumStraddlers[0]=NumStraddlers[1]=0;
-  RegionIsExtended[0]=RegionIsExtended[1]=0;
+  for(int nd=0; nd<MAXLDIM; nd++)
+   { NumStraddlers[nd]=NULL;
+     RegionIsExtended[nd]=NULL;
+   };
   tolVecClose=0.0; // to be updated once mesh is read in
   TBlockCacheNameAddendum=0;
 
@@ -700,14 +706,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* the transformation.                                         */
   /***************************************************************/
   SurfaceMoved=(int *)mallocEC(NumSurfaces*sizeof(int));
-
-  /***************************************************************/
-  /* 20121022 TAKE ME OUT ****************************************/
-  /***************************************************************/
-  if ( getenv("TAYLORDUFFY") )
-   { Log("Using V1P0 routines for taylor-duffy FIPPI computation");
-     UseTaylorDuffyV2P0=false;
-   };
 
 }
 

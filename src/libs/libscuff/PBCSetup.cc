@@ -49,39 +49,25 @@ static int PointOnLine(double *X, double *L)
 /***************************************************************/
 /* given a single exterior edge on an RWGSurface, look for     */
 /* a partner of this edge -- that is, another exterior edge    */
-/* that is a translate of the original edge through either     */
-/* LBV[0] or LBV[1].                                           */
-/*                                                             */
-/* (note: LBV = 'lattice basis vector.')                       */
+/* that is a translate of the original edge through a lattice  */
+/* basis vector (LBV).                                         */
 /*                                                             */
 /* if a partner edge is found, its index within S's            */
 /* ExteriorEdges array is returned. otherwise, -1 is returned. */
 /*                                                             */
-/* if a partner edge is found, then NumStraddlers[i] is        */
-/* incremented (where i=0 or 1 depending on whether the        */
-/* translation happened through LBV[0] or LBV[1]) and V[0..2]  */
+/* if a partner edge is found, then NumStraddlers[d] is        */
+/* incremented, where d is the index of the LBV, and V[0..2]   */
 /* is filled in with the cartesian coordinates of the new      */
 /* vertex that must be added to turn the half-RWG basis        */
 /* function associated with edge #nei into a full RWG basis    */
 /* function.                                                   */
 /*                                                             */
 /* if a partner edge is found, then on return *pWhichBV is set */
-/* to 0 or 1 depending on whether the translation happened     */
-/* through LBV[0] or LBV[1].                                   */
-/*                                                             */
-/* Update 20140721: For 1D-periodic geometries I don't think   */
-/* it's necessary to establish whether or not the edge lives   */
-/* on the unit-cell boundary; indeed, without the second       */
-/* lattice vector I'm not even sure the unit-cell boundary     */
-/* is well-defined.                                            */
+/* to d.                                                       */
 /***************************************************************/
-static int FindPartnerEdge(RWGSurface *S, int nei,
-			   double LBV[MAXLDIM][2],
-                           double LBVi[MAXLDIM][2],
-                           int LDim,
+static int FindPartnerEdge(RWGSurface *S, int nei, HMatrix *LBasis,
 			   int NumStraddlers[MAXLDIM],
-			   int *pWhichBV,
-                           double *V)
+			   int *pWhichBV, double *V)
 {
   RWGEdge *E = S->ExteriorEdges[nei];
   double *V1 = S->Vertices + 3*(E->iV1);
@@ -89,81 +75,44 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
   const double tolvc = S->tolVecClose;
   
   /*--------------------------------------------------------------*/
-  /*- determine whether or not the edge lies on the unit cell     */
-  /*- boundary, and if so which face of that boundary it lies on. */
-  /*-                                                             */
-  /*- After this code snippet,                                    */
-  /*-  LTranslate = the basis vector through which we expect to   */
-  /*-               translate the given edge to find an image     */
-  /*-  *pWhich    = the index of LTranslate within LBV (0 or 1)   */
+  /* Look for an exterior edge that is a translate through a      */
+  /* lattice basis vector of the given edge. This could be more   */
+  /* efficient.                                                   */
   /*--------------------------------------------------------------*/
-  double *LTranslate=LBV[0];
-  int WhichBV=0;
-  if (LDim==1)
-   {
-     WhichBV=*pWhichBV=0;
-     LTranslate = LBV[0];
-   }
-  else if (LDim==2)
+  int LDim=LBasis->NC;
+  for(int nd=0; nd<LDim; nd++)
    { 
-     // convert V1 and V2 to lattice basis
-     double V1L[2], V2L[2];
-     V1L[0] = LBVi[0][0]*V1[0] + LBVi[0][1]*V1[1];
-     V1L[1] = LBVi[1][0]*V1[0] + LBVi[1][1]*V1[1];
-     V2L[0] = LBVi[0][0]*V2[0] + LBVi[0][1]*V2[1];
-     V2L[1] = LBVi[1][0]*V2[0] + LBVi[1][1]*V2[1];
-     if ( fabs(V1L[0]) < tolvc && fabs(V2L[0]) < tolvc )
-      { WhichBV=*pWhichBV = 0;
-        LTranslate=LBV[0];
-      }
-     else if ( fabs(V1L[1]) < tolvc && fabs(V2L[1]) < tolvc )
-      { WhichBV=*pWhichBV = 1;
-        LTranslate=LBV[1];
-      }
-     else
-      return -1; // edge does not lie on unit cell boundary
-   }
-  else
-   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+     double V1T[3], V2T[3]; // 'V12, translated'
+     for(int nc=0; nc<3; nc++)
+      { V1T[nc] = V1[nc] + LBasis->GetEntryD(nc,nd);
+        V2T[nc] = V2[nc] + LBasis->GetEntryD(nc,nd);
+      };
 
-  /*--------------------------------------------------------------*/
-  /* Look for an exterior edge that is the translate through      */
-  /* LTranslate of the present exterior edge.                     */
-  /*--------------------------------------------------------------*/
-  double V1T[3], V2T[3]; // 'V12, translated'
-  V1T[0] = V1[0] + LTranslate[0]; V1T[1] = V1[1] + LTranslate[1]; V1T[2] = V1[2];
-  V2T[0] = V2[0] + LTranslate[0]; V2T[1] = V2[1] + LTranslate[1]; V2T[2] = V2[2];
-  double *V1P, *V2P; // 'V1,V2, primed'
-  for(int neip=0; neip<S->NumExteriorEdges; neip++)
-   { 
-     if (S->ExteriorEdges[neip]==0) 
-      continue;
-
-     V1P = S->Vertices + 3*(S->ExteriorEdges[neip]->iV1);
-     V2P = S->Vertices + 3*(S->ExteriorEdges[neip]->iV2);
-     if (   (VecClose(V1T, V1P, tolvc) && VecClose(V2T, V2P, tolvc))
-         || (VecClose(V1T, V2P, tolvc) && VecClose(V2T, V1P, tolvc))
-        )
+     for(int neip=0; neip<S->NumExteriorEdges; neip++)
       { 
-        /*--------------------------------------------------------------*/
-        /*- found a translate of the edge in question.                  */
-        /*--------------------------------------------------------------*/
-        memcpy(V, S->Vertices + 3*(S->ExteriorEdges[neip]->iQP), 3*sizeof(double));
-        V[0] -= LTranslate[0]; 
-        V[1] -= LTranslate[1]; 
-        if (NumStraddlers) NumStraddlers[WhichBV]++;
-        return neip;
+        if (S->ExteriorEdges[neip]==0) 
+         continue;
+
+        double *V1P = S->Vertices + 3*(S->ExteriorEdges[neip]->iV1);
+        double *V2P = S->Vertices + 3*(S->ExteriorEdges[neip]->iV2);
+        if (   (VecClose(V1T, V1P, tolvc) && VecClose(V2T, V2P, tolvc))
+            || (VecClose(V1T, V2P, tolvc) && VecClose(V2T, V1P, tolvc))
+           )
+         { 
+           /*--------------------------------------------------------------*/
+           /*- found a translate of the edge in question.                  */
+           /*--------------------------------------------------------------*/
+           memcpy(V, S->Vertices + 3*(S->ExteriorEdges[neip]->iQP), 3*sizeof(double));
+           for(int nc=0; nc<3; nc++)
+            V[nc] -= LBasis->GetEntryD(nc,nd);
+           if (NumStraddlers) NumStraddlers[nd]++;
+           if (*pWhichBV) *pWhichBV=nd;
+           return neip;
+         };
       };
    };
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (LDim==2)
-   ErrExit("exterior edge %i of object %s has no image "
-           "on the opposite side of the unit cell", nei, S->Label);
-
-  return -1; // i am indecisive about how to handle this error
+  return -1; // no partner found
 
 }
 
@@ -183,15 +132,12 @@ static int FindPartnerEdge(RWGSurface *S, int nei,
 /*  S points to the RWGSurface in question; its contents are    */
 /*  modified if any straddlers were detected.                   */
 /*                                                              */
-/*  LBasis[j][i] is the jth cartesian component of the ith      */
-/*  lattice basis vector.                                       */
-/*                                                              */
 /*  On return, NumStraddlers[i] is the number of straddlers     */
 /*  detected on the unit-cell boundary normal to the ith        */
 /*  lattice basis vector.                                       */
 /*--------------------------------------------------------------*/
 #define CHUNK 100
-void RWGSurface::AddStraddlers(HMatrix *LBasis,
+void RWGSurface::AddStraddlers(HMatrix *LBasis, HMatrix *RLBasis,
                                int NumStraddlers[MAXLDIM])
 { 
   int NumNew=0, NumAllocated=0;
@@ -199,67 +145,21 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
   RWGPanel *P, **NewPanels=0;
   RWGEdge *E, **NewEdges=0;
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   memset(NumStraddlers, 0, MAXLDIM*sizeof(int));
-
-  CheckLattice(LBasis);
-  double LBV[2][2];
-  int LDim=LBasis->NC;
-  for(int nd=0; nd<LDim; nd++)
-   for(int j=0; j<2; j++)
-    LBV[nd][j]=LBasis->GetEntryD(j,nd);
-
-  /***************************************************************/
-  /* find the LBVi vectors, which satisfy dot(LBVi[k],LBV[j])    */
-  /* = delta(j,k), and are used to convert points to the lattice */
-  /* basis.                                                      */
-  /***************************************************************/
-  double LBVi[2][2] = {{0.0,0.0}, {0.0,0.0}};
-  if (LDim==1) 
-   {
-     double L1Norm2 = LBV[0][0]*LBV[0][0] + LBV[0][1]*LBV[0][1];
-     LBVi[0][0] = LBV[0][0] / L1Norm2;
-     LBVi[0][1] = LBV[0][1] / L1Norm2;
-   }
-  else if (LDim==2) 
-   {
-     // LBVi[0] = (LBV[0] x LBV[1]) x LBV[1] / (LBV[0] * (... x ... x ...))
-     // LBVi[1] = (LBV[0] x LBV[1]) x LBV[0] / (LBV[1] * (... x ... x ...))
-     //double perp[3];
-     //VecCross(LBV[0], LBV[1], perp);
-     double L1Norm2 = LBV[0][0]*LBV[0][0] + LBV[0][1]*LBV[0][1];
-     double L2Norm2 = LBV[1][0]*LBV[1][0] + LBV[1][1]*LBV[1][1];
-     double zPerp = LBV[0][0]*LBV[1][1] - LBV[0][1]*LBV[1][0];
-     if ( fabs(zPerp) < 1e-8 * sqrt(L1Norm2*L2Norm2) )
-      ErrExit("Lattice vectors close to parallel.");
-     for (int i=0; i<2; ++i)
-      { 
-        //VecCross(perp, LBV[1-i], LBVi[i]);
-        LBVi[i][0] = -zPerp * LBV[1-i][1];
-        LBVi[i][1] = +zPerp * LBV[1-i][0];
-
-        //VecScale(LBVi[i], 1 / VecDot(LBV[i], LBVi[i]));
-        double DotProd = LBV[i][0]*LBVi[i][0] + LBV[i][1]*LBVi[i][1];
-        LBVi[i][0] /= DotProd;
-        LBVi[i][1] /= DotProd;
-      }
-   }
-  else // (LDim> 2)
-   ErrExit("%d lattice vectors unsupported\n", LDim);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
   for(int nei=0; nei<NumExteriorEdges; nei++)
    { 
       if ( ExteriorEdges[nei]==0 )
        continue;
 
       // see if this edge is a straddler, i.e. it lies on a face
-      // of the unit cell and it has an image (a translated 
+      // of the unit cell and it has an image (a translated
       // version of itself) on the opposite side of the unit cell
       int WhichBV=0;
-      int neip=FindPartnerEdge(this, nei, LBV, LBVi, 
-                               LDim, NumStraddlers, &WhichBV, V);
+      int neip=FindPartnerEdge(this, nei, LBasis,
+                               NumStraddlers, &WhichBV, V);
 
       // if so, add a new vertex, panel, and interior edge to the RWGSurface.
       if (neip!=-1)
@@ -391,8 +291,11 @@ void RWGSurface::AddStraddlers(HMatrix *LBasis,
      Panels[E->iPPanel]->EI[E->PIndex] = -(ne+1);
    };
 
-  if (NumStraddlers)
-   Log(" Detected (%i,%i) straddlers for surface %s", NumStraddlers[0],NumStraddlers[1],Label);
+  Log(" Surface %s: \n",Label);
+  int LDim=LBasis->NC;
+  for(int nd=0; nd<LDim; nd++)
+   Log("  %i straddlers normal to lattice vector #%i",NumStraddlers[nd],nd);
+  Log("  %i total straddlers ",TotalStraddlers);
 
 }
 
@@ -406,24 +309,23 @@ void RWGGeometry::InitPBCData()
   /*--------------------------------------------------------------*/
   /* Step 1: Addition of 'straddlers.'                            */
   /* For all surfaces, we detect exterior triangle edges that lie */
-  /* on the unit-cell boundary ('straddlers'), and we add new     */
+  /* on the unit-cell boundary ('straddlers'), and we add new     */  
   /* panels and vertices to the surface to allow those edges to   */
   /* be promoted from exterior to interior edges.                 */
   /*                                                              */
   /* Note: NumStraddlers is an array stored within RWGGeometry    */
   /* that tabulates how many straddlers each surface has in each  */
   /* possible direction.                                          */
-  /* NumStraddlers[MAXLDIM*ns + i] = number of stradders for   */
-  /*                                    surface #ns that straddle */
-  /*                                    the unit cell boundary    */
-  /*                                    normal to basis vector #i */
+  /* NumStraddlers[MAXLDIM*ns + nd] = number of stradders for     */
+  /*                                  surface #ns that straddle   */
+  /*                                  the unit cell boundary      */
+  /*                                  normal to basis vector #nd  */
   /*                                                              */
-  /* Also, RegionIsExtended[MAXLDIM*nr + i] = true if region nr*/
+  /* Also, RegionIsExtended[MAXLDIM*nr + i] = true if region nr   */
   /* is extended (as opposed to compact) in the direction of      */
   /* lattice basis vector i; =false otherwise.                    */
   /*--------------------------------------------------------------*/
   TotalBFs=TotalPanels=0;
-  int LDim = LBasis->NC;
   for(int nd=0; nd<LDim; nd++)
    { NumStraddlers[nd]       = (int *)mallocEC(NumSurfaces*sizeof(int));
      RegionIsExtended[nd]    = (bool *)mallocEC(NumRegions*sizeof(bool));
@@ -434,8 +336,8 @@ void RWGGeometry::InitPBCData()
   for(int ns=0; ns<NumSurfaces; ns++)
    { 
      RWGSurface *S=Surfaces[ns];
-     int NumStraddlersThisSurface[2];
-     S->AddStraddlers(LBasis, NumStraddlersThisSurface);
+     int NumStraddlersThisSurface[MAXLDIM];
+     S->AddStraddlers(LBasis, RLBasis, NumStraddlersThisSurface);
 
      int nr1=S->RegionIndices[0];
      int nr2=S->RegionIndices[1];
@@ -450,7 +352,10 @@ void RWGGeometry::InitPBCData()
      TotalBFs+=S->NumBFs;
      TotalPanels+=S->NumPanels;
 
-     int TotalStraddlers = NumStraddlersThisSurface[0] + NumStraddlersThisSurface[1];
+     int TotalStraddlers=0;
+     for(int nd=0; nd<LDim; nd++)
+      TotalStraddlers += NumStraddlersThisSurface[nd];
+
      S->IsClosed = (TotalStraddlers == S->NumExteriorEdges);
      Log("Surface %s: {Straddlers, ExteriorEdges}={%i,%i} {%s}",
           S->Label,TotalStraddlers,S->NumExteriorEdges,
@@ -464,23 +369,61 @@ void RWGGeometry::InitPBCData()
 /* for periodic geometries, decompose X = L + XBar where       */
 /* L is a lattice vector and XBar lies within the lattice      */
 /* unit cell.                                                  */
+/*                                                             */
 /* On return, nVector={n1,n2,n3} where L=n1*L1 + n2*L2 + n3*L3 */
 /* where {L1,L2,L3} are the lattice vectors.                   */
+/*                                                             */
 /* if WignerSeitz =true, translate X into the Wigner-Seitz cell*/
 /* instead of the unit cell.                                   */
+/*                                                             */
+/* algorithm: suppose X = \sum_i (n_i + \nu_i) L_i where       */
+/*            n_i = integer and 0 <= \nu_i < 1.                */
+/*                                                             */
+/*            then since \Gamma_i \cdot L_j = 2\pi \delta_{ij} */
+/*            (where \Gamma_i = reciprocal lattice vectors)    */
+/*            I have simply                                    */
+/*            (n_i + \nu_i) = (\Gamma_i \cdot X) / (2\pi)      */
+/*                                                             */
+/* and then L=\sum n_i L_i, XBar = \sum \nu_i L_i.             */
 /***************************************************************/
 void RWGGeometry::GetUnitCellRepresentative(const double X[3],
                                             double XBar[3],
                                             double LVector[3],
-                                            int nVector[3],
+                                            int nVector[MAXLDIM],
                                             bool WignerSeitz)
 {
-  CheckLattice(LBasis);
+  XBar[0]=XBar[1]=XBar[2]=LVector[0]=LVector[1]=LVector[2]=0.0;
+  for(int nd=0; nd<LDim; nd++)
+   {
+     double npNu=0.0;
+     for(int nc=0; nc<3; nc++)
+      npNu += RLBasis->GetEntryD(nc,nd)*X[nc];
+     npNu /= 2.0*M_PI;
 
+     double n  = WignerSeitz ? lround(npNu) : floor(npNu);
+     double Nu = npNu - n;
+
+     nVector[nd] = (int)n;
+     for(int nc=0; nc<3; nc++)
+      { XBar[nc]    += Nu*LBasis->GetEntryD(nc,nd);
+        LVector[nc] +=  n*LBasis->GetEntryD(nc,nd);
+      };
+   };
+}
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/* delete me after checking that the previous routine works     */
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+void OldGetUnitCellRepresentative(RWGGeometry *G, const double X[3],
+                                  double XBar[3], double LVector[3],
+                                  int nVector[MAXLDIM],
+                                  bool WignerSeitz)
+{
   XBar[0] = X[0];
   XBar[1] = X[1];
   XBar[2] = X[2];
-
+  
+  HMatrix *LBasis=G->LBasis;
   int LDim=LBasis->NC;
   if (LDim>=1)
    { double L = LBasis->GetEntryD(0,0);

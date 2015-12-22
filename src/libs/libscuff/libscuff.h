@@ -300,7 +300,8 @@ class RWGSurface
                              cdouble k, GBarAccelerator *GBA,
                              cdouble *a, cdouble *Curla, cdouble *Gradp, bool ForceFullEwald=false);
 
-   void AddStraddlers(HMatrix *LBasis, int NumStraddlers[MAXLDIM]);
+   void AddStraddlers(HMatrix *LBasis, HMatrix *RLBasis,
+                      int NumStraddlers[MAXLDIM]);
 
    void UpdateBoundingBox();
  
@@ -557,15 +558,17 @@ class RWGGeometry
    /*                                                            */
    /* All other fields in this section are only used for PBCs:   */
    /*                                                            */
-   /* NumStraddlers[nd][ns] = number of straddlers in ndth       */
-   /*                         dimension for surface #ns          */
-   /* RegionIsExtended[nd][ns] = true if region #nr is extended  */
-   /*                            in dimension #nd                */
+   /* NumStraddlers[nd][ns] = number of straddlers on unit-cell  */
+   /*                         face normal to lattice vector #nd  */
+   /*                         for surface #ns                    */
+   /* RegionIsExtended[nd][ns] = true if the periodicity lattice */
+   /*                            of region #nr includes the #ndth*/
+   /*                            lattice vector                  */
    int LDim;
    HMatrix *LBasis, *RLBasis;
    double LVolume, RLVolume;
-   int *NumStraddlers[2];
-   bool *RegionIsExtended[2];
+   int *NumStraddlers[MAXLDIM];
+   bool *RegionIsExtended[MAXLDIM];
 
    /* BFIndexOffset[n] is the index within the overall BEM          */
    /* system vector of the first basis function on surface #n. thus */

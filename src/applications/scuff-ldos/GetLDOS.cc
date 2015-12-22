@@ -41,6 +41,7 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
    (FileType==FILETYPE_BYK) ? Data->ByKFileName : Data->OutFileName;
   FILE *f=fopen(FileName,"a");
   HMatrix *XMatrix=Data->XMatrix;
+  int LDim=Data->G->LDim;
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
      double X[3];
@@ -48,8 +49,8 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
 
      fprintf(f,"%e %e %e ", X[0],X[1],X[2]);
      fprintf(f,"%e %e ",real(Omega),imag(Omega));
-     if (FileType==FILETYPE_BYK && kBloch)
-      for(int nd=0; nd<Data->G->LDim; nd++)
+     if (FileType==FILETYPE_BYK && LDim>0 && kBloch!=0)
+      for(int nd=0; nd<LDim; nd++)
        fprintf(f,"%e ",kBloch[nd]);
 
      int NFun = (Data->LDOSOnly ? 2 : 38);
@@ -89,9 +90,11 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   double BZVolume      = G->RLVolume;
   int LDim = RLBasis ? RLBasis->NC : 0;
   switch(LDim)
-   { case 0: Log("Computing LDOS at Omega=%s",z2s(Omega)); break; 
-     case 1: Log("Computing LDOS at (Omega,kx)=(%s,%e)",z2s(Omega),kBloch[0]);
-     case 2: Log("Computing LDOS at (Omega,kx,ky)=(%s,%e),",z2s(Omega),kBloch[0],kBloch[1]);
+   { case 0: Log("Computing LDOS at Omega=%s",z2s(Omega)); 
+             break; 
+     case 1: Log("Computing LDOS at (Omega,kx)=(%s,%e)",z2s(Omega),kBloch[0]); 
+             break;
+     case 2: Log("Computing LDOS at (Omega,kx,ky)=(%s,%e,%e),",z2s(Omega),kBloch[0],kBloch[1]);
    };
 
   /*--------------------------------------------------------------*/

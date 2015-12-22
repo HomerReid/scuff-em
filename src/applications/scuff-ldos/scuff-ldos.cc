@@ -229,6 +229,15 @@ int main(int argc, char *argv[])
       }
      Args->Order        = (BZIOrder==-1) ? DefBZIOrder : BZIOrder;
 
+     if (Args->BZIMethod==BZI_TC)
+      Log("Evaluating BZ integral by triangle cubature: ");
+     else if (Args->BZIMethod==BZI_CC)
+      Log("Evaluating BZ integral by Clenshaw-Curtis cubature: ");
+     else if (Args->BZIMethod==BZI_ADAPTIVE)
+      Log("Evaluating BZ integral by adaptive cubature: ");
+     Log (" order %i, maxevals %i, BZ%ssymmetric",Args->Order,
+            MaxEvals, BZSymmetric ? " " : " not ");
+
      /***************************************************************/
      /***************************************************************/
      /***************************************************************/
@@ -238,6 +247,7 @@ int main(int argc, char *argv[])
      WriteFilePreamble(Data->OutFileName, FILETYPE_LDOS, LDim);
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
+        Log("Evaluating Brillouin-zone integral at omega=%s",z2s(Omega));
         GetBZIntegral(Args, Omega, Result);
         WriteData(Data, Omega, 0, FILETYPE_LDOS, Result, Args->BZIError);
       };
