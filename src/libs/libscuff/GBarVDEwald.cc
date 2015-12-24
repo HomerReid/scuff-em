@@ -303,7 +303,7 @@ void AddGLong2D(double R[3], cdouble k, double P[2],
   cdouble PreFactor, Q, EEF, EEFPrime;
    
   PmG[0] = P[0] - n1*Gamma[0][0] - n2*Gamma[1][0];
-  PmG[1] = P[1] - n1*Gamma[1][0] - n2*Gamma[1][1];
+  PmG[1] = P[1] - n1*Gamma[0][1] - n2*Gamma[1][1];
 
   Q = sqrt ( PmG[0]*PmG[0] + PmG[1]*PmG[1] - k*k );
 
@@ -409,8 +409,8 @@ cdouble GetGLongTwiddle1D(double kx, double Rho, cdouble k, double E,
   
 }
 
-// note: I *think* this is the only place where I assume 
-// that the 1D lattice vector is oriented along the x direction.
+// 
+// 
 void AddGLong1D(double R[3], double Rho, cdouble k, double P[2],
                 int m, double Gamma[3][3], double E, cdouble *GBarVD)
 {

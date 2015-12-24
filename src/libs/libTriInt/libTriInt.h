@@ -168,4 +168,24 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
 void InitGetBZIArgs(GetBZIArgStruct *Args);
 GetBZIArgStruct *CreateGetBZIArgs(HMatrix *LBasis);
 
+/***************************************************************/
+/* Routine for adaptive lattice summation to a desired error   */
+/* tolerance, Sum = \sum_{L} F(L)                              */
+/* where F is a user-supplied vector-valued summand            */
+/* and L ranges over all points in a D-dimensional lattice.    */
+/*                                                             */
+/* note that SummandFunction should ACCUMULATE the             */
+/* contribution of lattice point U to the sum, i.e. it should  */
+/* implement something like                                    */
+/*  Sum[ns] += f_{ns}[U]                                       */
+/* and not                                                     */
+/*  Sum[ns] = f_{ns}[U].                                       */
+/***************************************************************/
+typedef void (*SummandFunction)(double *L, void *UserData, double *Sum);
+
+int GetLatticeSum(SummandFunction Summand, void *UserData, int nSum,
+                  HMatrix *LBasis, double *Sum,
+                  double AbsTol=0.0, double RelTol=1.0e-2, 
+                  int MaxCells=1000);
+
 #endif 

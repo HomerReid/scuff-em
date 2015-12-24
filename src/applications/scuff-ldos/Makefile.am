@@ -5,8 +5,7 @@ scuff_ldos_SOURCES = 		\
  scuff-ldos.cc         		\
  CreateSLDData.cc 		\
  GetLDOS.cc			\
- AnalyticalDGFs.cc		\
- LatticeSum.cc    
+ AnalyticalDGFs.cc
 
 scuff_ldos_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 

@@ -28,20 +28,12 @@
 #include <libhrutil.h>
 #include <libIncField.h>
 #include <libhmat.h>
-#include <libSGJC.h>
+#include <libTriInt.h>
 #include <libscuff.h>
 
 #define II cdouble (0,1)
 
 using namespace scuff;
-
-/***************************************************************/
-/* general-purpose routine for evaluating lattice sums         */
-/***************************************************************/
-typedef void (*SummandFunction)(double *U, void *UserData, double *Sum);
-int GetLatticeSum(SummandFunction Summand, void *UserData, int nSum,
-                  HMatrix *LBasis, double *Sum,
-                  double AbsTol, double RelTol, int MaxCells);
 
 /***************************************************************/
 /* the specific summand function passed to GetLatticeSum()     */

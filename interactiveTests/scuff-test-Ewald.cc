@@ -52,11 +52,6 @@
 #define NFIRSTROUND 10
 #define NMAX 10000
 
-int main()
-{}
-
-
-#if 0
 using namespace scuff;
 
 /***************************************************************/
@@ -77,7 +72,7 @@ void AddGFull(double R[3], cdouble k, double kBloch[2],
               double Lx, double Ly, cdouble *Sum, 
               bool ValueOnly=false);
 
-void GetRLBasis(int LDim, double (*L)[3], double (*Gamma)[3],
+void GetRLBasis(int LDim, double (*LBV)[3], double (*Gamma)[3],
                 cdouble k, double *EOpt, double R[3], double *pRho);
 
 void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
@@ -91,7 +86,7 @@ void AddGLongRealSpace(double *R, cdouble k, double *kBloch,
 /***************************************************************/
 /***************************************************************/
 void GBarVDBF(double R[3], cdouble k, double *kBloch,
-              double **LBV, int LDim,
+              double (*LBV)[3], int LDim,
               bool ExcludeInnerCells, bool Derivatives,
               int nMax, cdouble *Sum)
 { 
@@ -189,7 +184,6 @@ int main(int argc, char *argv[])
   /* if a geometry was specified, set the lattice vectors from it*/
   /***************************************************************/
   double LBV[3][3];
-  double *LBVP[3] = { LBV[0], LBV[1], 0 };
   int LDim;
   if ( nLBV1!=0 && nLBV2==0 )
    { LBV[0][0] = LBV1[0];
@@ -343,10 +337,10 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      double Gamma[3][3], EOpt, Rho2;
-     GetRLBasis(LDim, LBVP, Gamma, k, &EOpt, R, &Rho2);
+     GetRLBasis(LDim, LBV, Gamma, k, &EOpt, R, &Rho2);
      if (E==-1.0) E=EOpt;
      printf("Choice of optimal E: \n");
-      { printf("E0 = %e \n",sqrt(M_PI/LBVP[0][0]));
+      { printf("E0 = %e \n",sqrt(M_PI/LBV[0][0]));
         printf("E1 = %e \n",abs(k)/20.0);
         printf("E2 = %e \n",1.2/sqrt(Rho2));
 
@@ -371,7 +365,7 @@ int main(int argc, char *argv[])
      cdouble GBarNearby[NSUM], GBarDistant[NSUM], GBarEwald[NSUM];
      int NearbyCells, DistantCells;
      Tic();
-     GetGBarNearby(R, k, kBloch, LBVP, LDim,
+     GetGBarNearby(R, k, kBloch, LBV, LDim,
                    E, ExcludeInnerCells, &NearbyCells, GBarNearby);
      GetGBarDistant(R, Rho2, k, kBloch, Gamma, LDim, 
                     E, &DistantCells, GBarDistant);
@@ -390,7 +384,7 @@ int main(int argc, char *argv[])
         int n2Mult = (LDim==2) ? 1 : 0;
         for(int n1=-1; n1<=1; n1++)
          for(int n2=-1*n2Mult; n2<=1*n2Mult; n2++)
-          AddGLongRealSpace(R, k, kBloch, n1, n2, LBVP, LDim, E, GLongInner);
+          AddGLongRealSpace(R, k, kBloch, n1, n2, LBV, LDim, E, GLongInner);
 
         printf(" Inner:   %s \n",CD2S(GLongInner[0]));
 
@@ -404,7 +398,7 @@ int main(int argc, char *argv[])
       { 
         cdouble GFull[NSUM];
         Tic();
-        GetGBarNearby(R, k, kBloch, LBVP, LDim,
+        GetGBarNearby(R, k, kBloch, LBV, LDim,
                       0.0, ExcludeInnerCells, &NearbyCells, GFull);
         double FullTime=Toc();
 
@@ -417,9 +411,9 @@ int main(int argc, char *argv[])
      cdouble GBarBF[8];
      if (!SkipBF)
       {
-        GBarVDBF(R, k, kBloch, LBVP, LDim, 
+        GBarVDBF(R, k, kBloch, LBV, LDim, 
                  ExcludeInnerCells, Derivatives, nMax, GBarBF);
-        printf(" BF:      %s \n",CD2S(GBarBF[0]));
+        printf(" BF:      %s (%e)\n",CD2S(GBarBF[0]),RD(GBarEwald[0],GBarBF[0]));
 
       }
      else if (Derivatives)
@@ -433,9 +427,9 @@ int main(int argc, char *argv[])
 
            cdouble Gp[8], Gm[8];
            Rp[Mu]+=Delta;
-           GBarVDEwald(Rp, k, kBloch, LBVP, LDim, -1.0, ExcludeInnerCells, Gp);
+           GBarVDEwald(Rp, k, kBloch, LBV, LDim, -1.0, ExcludeInnerCells, Gp);
            Rp[Mu]-=2.0*Delta;
-           GBarVDEwald(Rp, k, kBloch, LBVP, LDim, -1.0, ExcludeInnerCells, Gm);
+           GBarVDEwald(Rp, k, kBloch, LBV, LDim, -1.0, ExcludeInnerCells, Gm);
 
            GBarBF[1+Mu] = (Gp[0] - Gm[0]) / (2.0*Delta);
            
@@ -443,10 +437,9 @@ int main(int argc, char *argv[])
       };
 
     if (Derivatives)
-     for(int n=1; n<8; n++)
+     for(int n=0; n<8; n++)
       printf(" %i: %s | %s | %e \n",n, CD2S(GBarEwald[n]),CD2S(GBarBF[n]), RD( GBarEwald[n], GBarBF[n]));
 
    }; // for(;;)
 
 }
-#endif
