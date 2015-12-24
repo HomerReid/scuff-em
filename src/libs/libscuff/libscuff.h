@@ -367,6 +367,10 @@ class RWGGeometry
                       cdouble Omega, HMatrix *XMatrix,
                       HMatrix *FMatrix=NULL, char *FuncString=NULL);
 
+   HMatrix *GetFields2(IncField *IF, HVector *KN, 
+                       cdouble Omega, double *kBloch, 
+                       HMatrix *XMatrix, HMatrix *FMatrix);
+
    /****************************************************/
    /* Routine for evaluating arbitrary functions of the fields on a 2d
       surface grid; see FieldGrid.h/cc.  Returns a NULL-terminated

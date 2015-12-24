@@ -102,6 +102,39 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
      fclose(f);
    };
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (getenv("SCUFF_GETFIELDS2"))
+ { G->GetFields2( 0, KN, Omega, kBloch, XMatrix, SFMatrix);
+   const char *Ext[2]={"scattered","total"};
+   for(int ST=0; ST<2; ST++)
+    { char OutFileName[MAXSTR];
+      snprintf(OutFileName,MAXSTR,"%s.%s.V2",GetFileBase(EPFileName),Ext[ST]);
+      FILE *f=CreateUniqueFile(OutFileName,1);
+      fprintf(f,"# scuff-scatter run on %s (%s)\n",GetHostName(),GetTimeString());
+      fprintf(f,"# columns: \n");
+      fprintf(f,"# 1,2,3   x,y,z (evaluation point coordinates)\n");
+      fprintf(f,"# 4,5     real, imag Ex\n");
+      fprintf(f,"# 6,7     real, imag Ey\n");
+      fprintf(f,"# 8,9     real, imag Ez\n");
+      fprintf(f,"# 10,11   real, imag Hx\n");
+      fprintf(f,"# 12,13   real, imag Hy\n");
+      fprintf(f,"# 14,15   real, imag Hz\n");
+      for(int nr=0; nr<SFMatrix->NR; nr++)
+       { double X[3];
+         cdouble EH[6];
+         XMatrix->GetEntriesD(nr,":",X);
+         SFMatrix->GetEntries(nr,":",EH);
+         if (ST==1) 
+          for(int nc=0; nc<6; nc++) 
+           EH[nc]+=IFMatrix->GetEntry(nr,nc);
+         fprintf(f,"%+.8e %+.8e %+.8e ",X[0],X[1],X[2]);
+         fprintf(f,"%s %s %s   ",CD2S(EH[0]),CD2S(EH[1]),CD2S(EH[2]));
+         fprintf(f,"%s %s %s\n", CD2S(EH[3]),CD2S(EH[4]),CD2S(EH[5]));
+       };
+    };
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   delete XMatrix;
   delete SFMatrix;
   delete IFMatrix;

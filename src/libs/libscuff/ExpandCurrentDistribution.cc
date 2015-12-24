@@ -205,7 +205,6 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
   /***************************************************************/
   double EvalPoint[3];
   cdouble BlochPhase=1.0;
-  int LDim=0;
   double LBV[3][3];
   if (LBasis)
    { 

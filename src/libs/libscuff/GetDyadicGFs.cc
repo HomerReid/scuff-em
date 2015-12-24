@@ -107,6 +107,25 @@ cdouble GetVMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
                    int ColumnOffset=0)
 {
   /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  double rRelOuterThreshold=4.0;
+  double rRelInnerThreshold=0.0;
+  int LowOrder=7;
+  int HighOrder=20;
+  char *s1=getenv("SCUFF_RREL_OUTER_THRESHOLD");
+  char *s2=getenv("SCUFF_RREL_INNER_THRESHOLD");
+  char *s3=getenv("SCUFF_LOWORDER");
+  char *s4=getenv("SCUFF_HIGHORDER");
+  if (s1) sscanf(s1,"%le",&rRelOuterThreshold);
+  if (s2) sscanf(s2,"%le",&rRelInnerThreshold);
+  if (s3) sscanf(s3,"%i",&LowOrder);
+  if (s4) sscanf(s4,"%i",&HighOrder);
+  if (s1||s2||s3||s4)
+   Log("({O,I}rRelThreshold | LowOrder | HighOrder)=(%e,%e,%i,%i)",
+       rRelOuterThreshold,rRelInnerThreshold,LowOrder,HighOrder);
+
+  /***************************************************************/
   /* get region index from first point                           */
   /***************************************************************/
   double XFirst[3];
@@ -145,7 +164,8 @@ cdouble GetVMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
 
      int ns, ne, Offset;
      ResolveNE(G, neFull, &ns, &ne, &Offset);
-     RWGEdge *E=G->Surfaces[ns]->Edges[ne];
+     RWGSurface *S = G->Surfaces[ns];
+     RWGEdge *E    = S->Edges[ne];
    
      double Sign=0.0;
      if      (G->Surfaces[ns]->RegionIndices[0]==RegionIndex) 
@@ -168,18 +188,19 @@ cdouble GetVMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
      Data->k   = k;
      Data->X0  = X0;
      Data->GBA = GBA;
+// note: this is not the right metric to be using...
+#define IDIM 12
      double rRel = VecDistance(X0, E->Centroid) / E->Radius;
 
-#if 1
-     int Order = rRel>4.0 ? 7 : 20;
-     GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
-                    12, Order, (double *)GC);
-#else
-     if (rRel > 1.0) 
+     if (rRel >= rRelOuterThreshold)
       { 
-        int Order = rRel>4.0 ? 7 : 20;
         GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
-                       12, Order, (double *)GC);
+                       IDIM, LowOrder, (double *)GC);
+      }
+     else if (rRel>=rRelInnerThreshold)
+      { 
+        GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
+                       IDIM, HighOrder, (double *)GC);
       }
      else
       { 
@@ -199,7 +220,6 @@ cdouble GetVMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
            for(int Mu=0; Mu<6; Mu++) GC[Mu] += (GC1[Mu] - GC2[Mu]);
          };
       };
-#endif
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/

@@ -817,6 +817,8 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
 /***************************************************************/
 /* E = ikZ * kAlpha*e - nAlpha*h                               */
 /* H =      +kAlpha*h + (ik/Z)*nAlpha*e                        */
+/*     or                                                      */
+/* e=g, -h=ik c --> g=e, c=-h/ik                               */
 /***************************************************************/
 void GetReducedFields_Nearby(RWGSurface *S, const int ne,
                              const double X0[3], const cdouble k,

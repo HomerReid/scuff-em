@@ -392,7 +392,7 @@ void RWGGeometry::GetUnitCellRepresentative(const double X[3],
                                             int nVector[MAXLDIM],
                                             bool WignerSeitz)
 {
-  XBar[0]=XBar[1]=XBar[2]=LVector[0]=LVector[1]=LVector[2]=0.0;
+  LVector[0]=LVector[1]=LVector[2]=0.0;
   for(int nd=0; nd<LDim; nd++)
    {
      double npNu=0.0;
@@ -405,10 +405,10 @@ void RWGGeometry::GetUnitCellRepresentative(const double X[3],
 
      nVector[nd] = (int)n;
      for(int nc=0; nc<3; nc++)
-      { XBar[nc]    += Nu*LBasis->GetEntryD(nc,nd);
-        LVector[nc] +=  n*LBasis->GetEntryD(nc,nd);
-      };
+      LVector[nc] +=  n*LBasis->GetEntryD(nc,nd);
    };
+  VecSub(X, LVector, XBar);
+
 }
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/

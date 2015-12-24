@@ -46,6 +46,10 @@
 
 namespace scuff {
 
+cdouble GetVMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
+                   HMatrix *XMatrix, HMatrix *VMatrix,
+                   int ColumnOffset=0);
+
 void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
                                  const double X0[3], const cdouble k,
                                  cdouble *p, cdouble a[3],
@@ -594,5 +598,86 @@ HMatrix *RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega,
 void RWGGeometry::GetFields(IncField *IF, HVector *KN, cdouble Omega, 
                             double *X, cdouble *EH)
 { GetFields(IF, KN, Omega, 0, X, EH); }
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HMatrix *RWGGeometry::GetFields2(IncField *IF, HVector *KN, 
+                                 cdouble Omega, double *kBloch, 
+                                 HMatrix *XMatrix, HMatrix *FMatrix)
+{ 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if ( XMatrix==0 || XMatrix->NC<3 || XMatrix->NR==0 )
+   ErrExit("wrong-size XMatrix (%ix%i) passed to GetFields",XMatrix->NR,XMatrix->NC);
+  if (FMatrix==0) 
+   FMatrix=new HMatrix(XMatrix->NR, 6, LHM_COMPLEX);
+  else if ( (FMatrix->NR != XMatrix->NR) || (FMatrix->NC!=6) ) 
+   { Warn(" ** warning: wrong-size FMatrix passed to GetFields(); allocating new matrix");
+     FMatrix=new HMatrix(XMatrix->NR, 6, LHM_COMPLEX);
+   };
+
+  if (LogLevel >= SCUFF_VERBOSELOGGING)
+   Log("Computing fields at %i evaluation points...",XMatrix->NR);
+
+  /***************************************************************/
+  /* the incident fields will most likely have been updated at   */
+  /* the current frequency already by an earlier call to         */
+  /* AssembleRHSVector(), but someone might call GetFields()     */
+  /* to get information on just the incident fields before       */
+  /* before setting up and solving the BEM problem, so we should */
+  /* do this just to make sure.                                  */
+  /***************************************************************/
+  UpdateIncFields(IF, Omega, kBloch);
+
+  /***************************************************************/
+  /* get region index from first point                           */
+  /***************************************************************/
+  double XFirst[3];
+  XFirst[0]=XMatrix->GetEntryD(0,0);
+  XFirst[1]=XMatrix->GetEntryD(0,1);
+  XFirst[2]=XMatrix->GetEntryD(0,2);
+  int RegionIndex = GetRegionIndex(XFirst);
+  if (RegionIndex==-1) // PEC
+   { FMatrix->Zero();
+     return FMatrix;
+   };
+  cdouble ZRel, nn;
+  nn=RegionMPs[RegionIndex]->GetRefractiveIndex(Omega, &ZRel);
+  cdouble k  = Omega * nn;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NBF=TotalBFs;
+  int NX=XMatrix->NR;
+  HMatrix *VMatrix=new HMatrix(NBF, 6*NX, LHM_COMPLEX); 
+  GetVMatrix(this, Omega, kBloch, XMatrix, VMatrix);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  FMatrix->Zero();
+  cdouble IK=II*k, IKZ=IK*ZVAC*ZRel;
+  for(int nx=0; nx<NX; nx++)
+   { cdouble EH[6]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+     for(int Mu=0; Mu<6; Mu++)
+      { cdouble *v = VMatrix->ZM + (6*nx+Mu)*NBF;
+        for(int nbf=0; nbf<NBF; nbf++)
+         EH[Mu] += KN->ZV[nbf] * v[nbf];
+      };
+     FMatrix->SetEntry(nx, 0, IKZ*EH[0]);
+     FMatrix->SetEntry(nx, 1, IKZ*EH[1]);
+     FMatrix->SetEntry(nx, 2, IKZ*EH[2]);
+     FMatrix->SetEntry(nx, 3, IK*EH[3]);
+     FMatrix->SetEntry(nx, 4, IK*EH[4]);
+     FMatrix->SetEntry(nx, 5, IK*EH[5]);
+   };
+  delete VMatrix;
+
+  return FMatrix;
+
+}
 
 } // namespace scuff

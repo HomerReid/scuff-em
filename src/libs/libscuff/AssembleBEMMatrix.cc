@@ -198,8 +198,6 @@ void *RWGGeometry::CreateABMBAccelerator(int nsa, int nsb,
   if (LBasis==0)
    return 0;
 
-  int LDim=LBasis->NC;
-
   /*--------------------------------------------------------------*/
   /*- gather some information about the problem ------------------*/
   /*--------------------------------------------------------------*/
@@ -350,13 +348,14 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
 
   double L[3]={0.0, 0.0, 0.0};
 
-  int LDim=LBasis->NC;
   bool OneDLattice = (LDim==1);
-  double LBV[2][2];
+  double LBV[3][3];
   LBV[0][0] = LBasis->GetEntryD(0,0);
   LBV[0][1] = LBasis->GetEntryD(1,0);
+  LBV[0][2] = LBasis->GetEntryD(2,0);
   LBV[1][0] = LDim > 1 ? LBasis->GetEntryD(0,1) : 0.0;
   LBV[1][1] = LDim > 1 ? LBasis->GetEntryD(1,1) : 0.0;
+  LBV[1][2] = LDim > 1 ? LBasis->GetEntryD(2,1) : 0.0;
 
   /***************************************************************/
   /* pre-initialize arguments for GetSurfaceSurfaceInteractions **/
