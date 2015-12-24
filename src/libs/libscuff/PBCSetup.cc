@@ -106,7 +106,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei, HMatrix *LBasis,
            for(int nc=0; nc<3; nc++)
             V[nc] -= LBasis->GetEntryD(nc,nd);
            if (NumStraddlers) NumStraddlers[nd]++;
-           if (*pWhichBV) *pWhichBV=nd;
+           if (pWhichBV) *pWhichBV=nd;
            return neip;
          };
       };
