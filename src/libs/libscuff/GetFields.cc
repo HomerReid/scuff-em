@@ -423,14 +423,12 @@ void *GetFields_Thread(void *data)
      /*- IncFields whose sources lie in the same region as X        -*/
      /*--------------------------------------------------------------*/
      if (IFList)
-      { cdouble EH[6]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        for(IncField *IF=IFList; IF; IF=IF->Next)
-         if ( IF->RegionIndex == RegionIndex )
-          { cdouble dEH[6];
-            IF->GetFields(X, dEH);
-            VecPlusEquals(EH, 1.0, dEH, 6);
-          };
-      };
+      for(IncField *IF=IFList; IF; IF=IF->Next)
+       if ( IF->RegionIndex == RegionIndex )
+        { cdouble dEH[6];
+          IF->GetFields(X, dEH);
+          VecPlusEquals(EH, 1.0, dEH, 6);
+        };
 
      /*--------------------------------------------------------------*/
      /*- compute field functions ------------------------------------*/
@@ -739,6 +737,7 @@ HMatrix *GetehMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
      X[1]=XMatrix->GetEntryD(nx,ColumnOffset+1);
      X[2]=XMatrix->GetEntryD(nx,ColumnOffset+2);
      int RegionIndex = G->GetRegionIndex(X);
+     if (RegionIndex==-1) continue; // inside a closed PEC surface
    
      double Sign=0.0;
      if      (G->Surfaces[ns]->RegionIndices[0]==RegionIndex) 
@@ -778,6 +777,36 @@ HMatrix *GetehMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
         GC[3] /= (-II*k);
         GC[4] /= (-II*k);
         GC[5] /= (-II*k);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+cdouble OldGCLow[6], OldGCHigh[6];
+GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
+               IDim, LowOrder, (double *)OldGCLow);
+GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
+               IDim, HighOrder, (double *)OldGCHigh);
+
+#pragma omp critical
+{
+  double MaxRDLow=0.0, MaxRDHigh=0.0;
+  for(int n=0; n<6; n++)
+   { MaxRDLow = fmax(MaxRDLow, RD(OldGCLow[n], GC[n]));
+     MaxRDHigh = fmax(MaxRDHigh, RD(OldGCHigh[n], GC[n]));
+   };
+  
+ printf("%+g %.5e 0 %i %e ",X[2],rRel,RegionIndex,MaxRDLow);
+ for(int n=0; n<6; n++)
+  printf("%+12.4e %+12.4e ",real(OldGCLow[n]),imag(OldGCLow[n]));
+ printf("\n");
+ printf("%+g %.5e 1 %i %e ",X[2],rRel,RegionIndex,MaxRDHigh);
+ for(int n=0; n<6; n++)
+  printf("%+12.4e %+12.4e ",real(OldGCHigh[n]),imag(OldGCHigh[n]));
+ printf("\n");
+ printf("%+g %.5e 2 %i %e ",X[2],rRel,RegionIndex,0.0);
+ for(int n=0; n<6; n++)
+  printf("%+12.4e %+12.4e ",real(GC[n]),imag(GC[n]));
+ printf("\n");
+}
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
         if (RegionGBAs)
          { cdouble GC1[6], GC2[6];
@@ -862,7 +891,6 @@ HMatrix *RWGGeometry::GetFields2(IncField *IFList, HVector *KN,
   if (LogLevel >= SCUFF_VERBOSELOGGING)
    Log("Computing fields at %i evaluation points...",NX);
 
-
   /***************************************************************/
   /* (re)allocate output matrix as necessary *********************/
   /***************************************************************/
@@ -893,36 +921,35 @@ HMatrix *RWGGeometry::GetFields2(IncField *IFList, HVector *KN,
    {
      HMatrix *ehMatrix = GetehMatrix(this, Omega, kBloch, XMatrix);
      HMatrix KNMatrix(1, TotalBFs, LHM_COMPLEX, LHM_NORMAL, (void *)KN->ZV);
-     HMatrix *FMatrix2 = new HMatrix(1, 6*NX, LHM_COMPLEX);
-     KNMatrix.Multiply(ehMatrix, FMatrix2);
+     HMatrix *FMatrixT = new HMatrix(1, 6*NX, LHM_COMPLEX);
+     KNMatrix.Multiply(ehMatrix, FMatrixT);
      for(int nx=0; nx<NX; nx++)
       for(int Mu=0; Mu<6; Mu++)
-       FMatrix->SetEntry(nx, Mu, FMatrix2->GetEntry(0, 6*nx + Mu));
+       FMatrix->SetEntry(nx, Mu, FMatrixT->GetEntry(0, 6*nx + Mu));
 
      delete ehMatrix;
-     delete FMatrix2;
+     delete FMatrixT;
    };
-
 
   /***************************************************************/
   /* add contributions of incident fields if present *************/
   /***************************************************************/
   if (IFList)
-   { for(int nx=0; nx<NX; nx++)
-      { 
-        double X[3];
-        XMatrix->GetEntriesD(nx,":",X);
-        int RegionIndex = GetRegionIndex(X);
+   for(int nx=0; nx<NX; nx++)
+    { 
+      double X[3];
+      XMatrix->GetEntriesD(nx,":",X);
+      int RegionIndex = GetRegionIndex(X);
+      if (RegionIndex==-1) continue; // inside a closed PEC surface
 
-        for(IncField *IF=IFList; IF; IF=IF->Next)
-         if ( IF->RegionIndex == RegionIndex )
-          { cdouble EH[6];
-            IF->GetFields(X, EH);
-            for(int Mu=0; Mu<6; Mu++)
-             FMatrix->AddEntry(nx, Mu, EH[Mu]);
-          };
-      };
-   };
+      for(IncField *IF=IFList; IF; IF=IF->Next)
+       if ( IF->RegionIndex == RegionIndex )
+        { cdouble EH[6];
+          IF->GetFields(X, EH);
+          for(int Mu=0; Mu<6; Mu++)
+           FMatrix->AddEntry(nx, Mu, EH[Mu]);
+        };
+    };
 
   return FMatrix;
          

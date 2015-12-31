@@ -92,9 +92,9 @@ void GCX0Integrand(double X[3], double b[3],
       };
    };
 
-  GC[3+0] += W*(b[1]*dG[2] - b[2]*dG[1]) / ik;
-  GC[3+1] += W*(b[2]*dG[0] - b[0]*dG[2]) / ik;
-  GC[3+2] += W*(b[0]*dG[1] - b[1]*dG[0]) / ik;
+  GC[3+0] += W*(b[1]*dG[2] - b[2]*dG[1]) / (-1.0*ik);
+  GC[3+1] += W*(b[2]*dG[0] - b[0]*dG[2]) / (-1.0*ik);
+  GC[3+2] += W*(b[0]*dG[1] - b[1]*dG[0]) / (-1.0*ik);
 
 }
 
