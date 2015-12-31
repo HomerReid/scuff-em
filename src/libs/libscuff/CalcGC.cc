@@ -204,7 +204,8 @@ cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG)
 
   if (r2==0.0)
    {
-     memset(dG,  0, 3*sizeof(cdouble));
+     if (dG) 
+      memset(dG,  0, 3*sizeof(cdouble));
      if (ddG) 
       { memset(ddG, 0, 9*sizeof(cdouble));
         cdouble ddGii = -II*(k*k*k/(12.0*M_PI));
@@ -218,7 +219,7 @@ cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG)
 
   cdouble Phi = exp(ikr)/(4.0*M_PI*r);
 
-  if (dG|| ddG)
+  if (dG || ddG)
    {  
      cdouble Psi = Phi * (ikr - 1.0) / r2;
      if (dG)

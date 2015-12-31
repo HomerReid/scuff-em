@@ -128,8 +128,8 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
 /* In these versions, the user's integrand function must       */
 /* *accumulate* contributions to Integral with weight Weight.  */
 /***************************************************************/
-typedef void PCFunction2(double x[3], double b[3], void *UserData,
-                         double Weight, double *Integral);
+typedef void PCFunction2(double x[3], double b[3], double Divb,
+                         void *UserData, double Weight, double *Integral);
 
 
 typedef void PPCFunction2(double x[3], double b[3], double Divb,

@@ -720,13 +720,14 @@ void GetBFCubature2(RWGGeometry *G, int ns, int ne,
      for(int PM=0; PM<NumPM; PM++)
       { 
         double b[3], X[3], Sign=(PM==0) ? 1.0 : -1.0;
+        double PreFac=Sign*Length/(2.0*Area[PM]);
         for(int Mu=0; Mu<3; Mu++)
          { b[Mu] = u*A[PM][Mu] + v*B[PM][Mu];
            X[Mu] = b[Mu]       + Q[PM][Mu];
-           b[Mu] *= Sign*Length/(2.0*Area[PM]);
+           b[Mu] *= PreFac;
          };
 
-        Integrand(X,b,UserData,2.0*Area[PM]*w,Integral);
+        Integrand(X,b,2.0*PreFac,UserData,2.0*Area[PM]*w,Integral);
       };
    };
 

@@ -66,7 +66,7 @@ typedef struct GCX0Data
    GBarAccelerator *GBA;
  } GCX0Data;
 
-void GCX0Integrand(double X[3], double b[3],
+void GCX0Integrand(double X[3], double b[3], double Divb,
                    void *UserData, double W, double *Integral);
 
 #define II cdouble(0,1)
@@ -779,6 +779,7 @@ HMatrix *GetehMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
         GC[5] /= (-II*k);
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
 cdouble OldGCLow[6], OldGCHigh[6];
 GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
                IDim, LowOrder, (double *)OldGCLow);
@@ -806,6 +807,7 @@ GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
   printf("%+12.4e %+12.4e ",real(GC[n]),imag(GC[n]));
  printf("\n");
 }
+#endif
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
         if (RegionGBAs)

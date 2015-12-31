@@ -42,7 +42,7 @@
 
 namespace scuff { 
 
-cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG);
+cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG=0);
 
 RWGSurface *ResolveNE(RWGGeometry *G, int neFull,
                       int *pns, int *pne, int *pKNIndex);
@@ -61,7 +61,7 @@ typedef struct GCX0Data
    GBarAccelerator *GBA;
  } GCX0Data;
 
-void GCX0Integrand(double X[3], double b[3],
+void GCX0Integrand(double X[3], double b[3], double Divb,
                    void *UserData, double W, double *Integral)
 {
   GCX0Data *Data       = (GCX0Data *)UserData;
@@ -76,6 +76,7 @@ void GCX0Integrand(double X[3], double b[3],
 
   // Gij = \delta_{ij}*G0 + ddGBar[3*i + j]/k2;
   // Cxy = dGBar[z]/(ik) + cyclic permutations
+#if 0
   cdouble G0, dG[3], ddG[9];
   if (GBA)
    G0=GetGBar(XmX0, GBA, dG, ddG);
@@ -91,6 +92,17 @@ void GCX0Integrand(double X[3], double b[3],
         GC[j] += W*(ddG[3*j+i]/k2)*b[i];
       };
    };
+#endif
+  cdouble G0, dG[3];
+  if (GBA)
+   G0=GetGBar(XmX0, GBA, dG);
+  else
+   G0=GetG(XmX0, k, dG);
+
+  cdouble k2=k*k, ik=II*k;
+  cdouble *GC = (cdouble *)Integral;
+  for(int i=0; i<3; i++)
+   GC[i] += W*(G0*b[i] - Divb*dG[i]/k2);
 
   GC[3+0] += W*(b[1]*dG[2] - b[2]*dG[1]) / (-1.0*ik);
   GC[3+1] += W*(b[2]*dG[0] - b[0]*dG[2]) / (-1.0*ik);
