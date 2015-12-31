@@ -300,8 +300,7 @@ class RWGSurface
                              cdouble k, GBarAccelerator *GBA,
                              cdouble *a, cdouble *Curla, cdouble *Gradp, bool ForceFullEwald=false);
 
-   void AddStraddlers(HMatrix *LBasis, HMatrix *RLBasis,
-                      int NumStraddlers[MAXLDIM]);
+   void AddStraddlers(HMatrix *LBasis, int NumStraddlers[MAXLDIM]);
 
    void UpdateBoundingBox();
  
@@ -400,6 +399,10 @@ class RWGGeometry
                          HMatrix *XMatrix, HMatrix *M,
                          HMatrix *GMatrix);
   
+   HMatrix *GetDyadicGFs2(cdouble Omega, double *kBloch,
+                          HMatrix *XMatrix, HMatrix *M,
+                          HMatrix *GMatrix);
+
    // these next two are legacy interfaces which will be
    // removed in future versions
    void GetDyadicGFs(double XEval[3], double XSource[3],

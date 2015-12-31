@@ -880,7 +880,6 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   /* is not necessarily the same as the full lattice of the      */
   /* geometry; it may be a proper sublattice.                    */
   /***************************************************************/
-  int LDim=LBasis->NC;
   int NumExtendedDimensions=0;
   if (RegionIsExtended[0][nr]) NumExtendedDimensions++;
   if (LDim>1 && RegionIsExtended[1][nr]) NumExtendedDimensions++;

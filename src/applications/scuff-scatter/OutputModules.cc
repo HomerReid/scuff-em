@@ -66,7 +66,18 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /*- get components of scattered and incident fields            -*/
   /*--------------------------------------------------------------*/
   Log("Evaluating fields at points in file %s...",EPFileName);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  Tic();
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   HMatrix *SFMatrix = G->GetFields( 0, KN, Omega, kBloch, XMatrix); // scattered
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+   double Elapsed=Toc();
+   Log(" GetFields time: %e s\n",Elapsed);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   HMatrix *IFMatrix = G->GetFields(IF,  0, Omega, kBloch, XMatrix); // incident
 
   /*--------------------------------------------------------------*/
@@ -104,7 +115,15 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 if (getenv("SCUFF_GETFIELDS2"))
- { G->GetFields2( 0, KN, Omega, kBloch, XMatrix, SFMatrix);
+ { 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+   Tic();
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+   G->GetFields2( 0, KN, Omega, kBloch, XMatrix, SFMatrix);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+   double Elapsed=Toc();
+   Log("GetFields2 time: %e s\n",Elapsed);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
    const char *Ext[2]={"scattered","total"};
    for(int ST=0; ST<2; ST++)
     { char OutFileName[MAXSTR];

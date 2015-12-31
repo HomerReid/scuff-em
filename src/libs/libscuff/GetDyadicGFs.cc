@@ -412,4 +412,79 @@ void RWGGeometry::GetDyadicGFs(double X[3], cdouble Omega, double *kBloch,
   GetDyadicGFs(X, X, Omega, kBloch, M, KN, GEScat, GMScat, Dummy, Dummy);
 }
 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HMatrix *RWGGeometry::GetDyadicGFs2(cdouble Omega, double *kBloch,
+                                    HMatrix *XMatrix, HMatrix *M,
+                                    HMatrix *GMatrix)
+{ 
+  int NBF = TotalBFs;
+  int NX  = XMatrix->NR;
+  Log("Getting DGFs at %i eval points...",NX);
+
+  /*--------------------------------------------------------------*/
+  /*- allocate storage for VSource, VDest matrices. I keep these -*/
+  /*  on hand as statically-allocated buffers on the assumption  -*/
+  /*  that the routine will be called many times with the same   -*/
+  /*  number of evaluation points, for example in Brillouin-zone -*/
+  /*  integrations.                                              -*/
+  /*--------------------------------------------------------------*/
+  static HMatrix *VSource=0, *VDest=0;
+  if ( VSource==0 || VSource->NR!=NBF || VSource->NC!=(6*NX) )
+   { 
+     if (VSource) delete VSource;
+     if (VDest)   delete VDest;
+     VSource=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
+     VDest=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- allocate an output matrix of the right size if necessary   -*/
+  /*--------------------------------------------------------------*/
+  if (GMatrix==0 || GMatrix->NR!=NX || GMatrix->NC!=18)
+   { 
+     if (GMatrix) 
+      { Warn("wrong-size GMatrix passed to GetDyadicGFs (reallocating)");
+        delete GMatrix;
+      };
+     GMatrix=new HMatrix(NBF, 18, LHM_COMPLEX);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  Log("Fetching VMatrix...");
+  cdouble k=GetVMatrix(this, Omega, kBloch, XMatrix, VDest);
+  if (XMatrix->NC>=6)
+   GetVMatrix(this, Omega, kBloch, XMatrix, VSource, 3);
+  else
+   VSource->Copy(VDest);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  Log(" LUSolving...");
+  M->LUSolve(VSource);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  Log(" Computing VMVPs...");
+  for(int nx=0; nx<NX; nx++)
+   for(int i=0; i<3; i++)
+    for(int j=0; j<3; j++)
+     { cdouble GE=0.0, GM=0.0;
+       for(int nbf=0; nbf<NBF; nbf++)
+        { GE+=VDest->GetEntry(nbf, 6*nx+0+i) * VSource->GetEntry(nbf, 6*nx+0+j);
+          GM+=VDest->GetEntry(nbf, 6*nx+3+i) * VSource->GetEntry(nbf, 6*nx+3+j);
+        };
+       GMatrix->SetEntry(nx, 0 + 3*i + j, -II*k*GE);
+       GMatrix->SetEntry(nx, 9 + 3*i + j, +II*k*GM);
+     };
+
+  return GMatrix;
+
+}
+
 } // namespace scuff

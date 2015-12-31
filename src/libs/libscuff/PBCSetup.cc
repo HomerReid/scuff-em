@@ -137,7 +137,7 @@ static int FindPartnerEdge(RWGSurface *S, int nei, HMatrix *LBasis,
 /*  lattice basis vector.                                       */
 /*--------------------------------------------------------------*/
 #define CHUNK 100
-void RWGSurface::AddStraddlers(HMatrix *LBasis, HMatrix *RLBasis,
+void RWGSurface::AddStraddlers(HMatrix *LBasis, 
                                int NumStraddlers[MAXLDIM])
 { 
   int NumNew=0, NumAllocated=0;
@@ -337,7 +337,7 @@ void RWGGeometry::InitPBCData()
    { 
      RWGSurface *S=Surfaces[ns];
      int NumStraddlersThisSurface[MAXLDIM];
-     S->AddStraddlers(LBasis, RLBasis, NumStraddlersThisSurface);
+     S->AddStraddlers(LBasis, NumStraddlersThisSurface);
 
      int nr1=S->RegionIndices[0];
      int nr2=S->RegionIndices[1];
@@ -401,7 +401,6 @@ void RWGGeometry::GetUnitCellRepresentative(const double X[3],
      npNu /= 2.0*M_PI;
 
      double n  = WignerSeitz ? lround(npNu) : floor(npNu);
-     double Nu = npNu - n;
 
      nVector[nd] = (int)n;
      for(int nc=0; nc<3; nc++)
