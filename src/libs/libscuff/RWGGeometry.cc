@@ -488,10 +488,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         NumSurfaces++;
         Surfaces=(RWGSurface **)realloc(Surfaces, NumSurfaces*sizeof(RWGSurface *) );
         Surfaces[NumSurfaces-1]=S;
-
-        TotalBFs+=S->NumBFs;
-        TotalEdges+=S->NumEdges;
-        TotalPanels+=S->NumPanels;
         S->Index=NumSurfaces-1;
 
       }
@@ -641,14 +637,22 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   /* initialize arrays of basis-function, edge, and panel offsets*/
   /***************************************************************/
-  BFIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
-  EdgeIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
-  PanelIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
+  BFIndexOffset    = (int *)mallocEC(NumSurfaces*sizeof(int));
+  EdgeIndexOffset  = (int *)mallocEC(NumSurfaces*sizeof(int));
+  PanelIndexOffset = (int *)mallocEC(NumSurfaces*sizeof(int));
+  TotalBFs    = Surfaces[0]->NumBFs;
+  TotalEdges  = Surfaces[0]->NumEdges;
+  TotalPanels = Surfaces[0]->NumPanels;
   BFIndexOffset[0]=EdgeIndexOffset[0]=PanelIndexOffset[0]=0;
   for(int ns=1; ns<NumSurfaces; ns++)
-   { BFIndexOffset[ns]=BFIndexOffset[ns-1] + Surfaces[ns-1]->NumBFs;
-     EdgeIndexOffset[ns]=EdgeIndexOffset[ns-1] + Surfaces[ns-1]->NumEdges;
-     PanelIndexOffset[ns]=PanelIndexOffset[ns-1] + Surfaces[ns-1]->NumPanels;
+   { 
+     TotalBFs    += Surfaces[ns]->NumBFs;
+     TotalEdges  += Surfaces[ns]->NumEdges;
+     TotalPanels += Surfaces[ns]->NumPanels;
+
+     BFIndexOffset[ns]    = BFIndexOffset[ns-1]    + Surfaces[ns-1]->NumBFs;
+     EdgeIndexOffset[ns]  = EdgeIndexOffset[ns-1]  + Surfaces[ns-1]->NumEdges;
+     PanelIndexOffset[ns] = PanelIndexOffset[ns-1] + Surfaces[ns-1]->NumPanels;
    };
 
   /***************************************************************/
@@ -866,6 +870,32 @@ void RWGGeometry::GetKNCoefficients(HVector *KN, int ns, int ne,
    };
   *pKAlpha=KAlpha;
   if (pNAlpha) *pNAlpha=NAlpha;
+}
+
+/***************************************************************/
+/* given an interior triangle edge specified by an index into  */
+/* the overall list of internal edges in a geometry, determine */
+/* the surface to which the edge belongs and the index of the  */
+/* edge within that surface; also determine the index of the   */
+/* electric surface-current coefficient for this edge within   */
+/* the overall list of surface-current coefficients for the    */
+/* entire geometry                                             */
+/***************************************************************/
+RWGSurface *RWGGeometry::ResolveEdge(int neFull, int *pns, int *pne, int *pKNIndex)
+{
+  int ns=0, NSm1=NumSurfaces - 1;
+  while( (ns < NSm1) && (neFull >= EdgeIndexOffset[ns+1]) )
+   ns++;
+
+  int ne  = neFull - EdgeIndexOffset[ns];
+  
+  int Mult    = Surfaces[ns]->IsPEC ? 1 : 2;
+  int KNIndex = BFIndexOffset[ns] + Mult*ne;
+
+  if (pns) *pns=ns;
+  if (pne) *pne=ne;
+  if (pKNIndex) *pKNIndex=KNIndex;
+  return Surfaces[ns];
 }
 
 /***************************************************************/

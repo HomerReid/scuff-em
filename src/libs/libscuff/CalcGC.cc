@@ -244,5 +244,39 @@ cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG)
   return Phi;
 }
 
+/***************************************************************/
+/* Compute the G and C dyadic Green's functions, retaining only*/
+/* far-field contributions.                                    */
+/***************************************************************/
+void CalcGCFarField(double R[3], cdouble k,
+                    cdouble GMuNu[3][3], cdouble CMuNu[3][3])
+{ 
+  double r2=R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
+
+  if (r2==0.0)
+   return;
+
+  double r=sqrt(r2);
+
+  cdouble ExpFac=exp(II*k*r)/(4.0*M_PI*r);
+
+  GMuNu[0][0] =               ExpFac * ( 1.0 - R[0]*R[0]/r2 );
+  GMuNu[0][1] = GMuNu[1][0] = ExpFac * (     - R[0]*R[1]/r2 );
+  GMuNu[0][2] = GMuNu[2][0] = ExpFac * (     - R[0]*R[2]/r2 );
+  GMuNu[1][1] =               ExpFac * ( 1.0 - R[1]*R[1]/r2 );
+  GMuNu[1][2] = GMuNu[2][1] = ExpFac * (     - R[1]*R[2]/r2 );
+  GMuNu[2][2] =               ExpFac * ( 1.0 - R[2]*R[2]/r2 );
+
+  CMuNu[0][0]=CMuNu[1][1]=CMuNu[2][2]=0.0;
+
+  CMuNu[0][1] = ExpFac * R[2]/r;
+  CMuNu[1][2] = ExpFac * R[0]/r;
+  CMuNu[2][0] = ExpFac * R[1]/r;
+
+  CMuNu[1][0] = -CMuNu[0][1];
+  CMuNu[2][1] = -CMuNu[1][2];
+  CMuNu[0][2] = -CMuNu[2][0];
+
+}
 
 } // namespace scuff

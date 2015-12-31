@@ -311,7 +311,11 @@ class FIPPICache
 /***************************************************************/   
 extern FIPPICache GlobalFIPPICache;
 
-/****************************************************************/   /*- AssessPanelPair counts common vertices in a pair of panels, */
+/****************************************************************/
+/*- 3. Utility routines for analyzing geometrical data          */
+/*-    associated with SCUFF geometries.                        */
+/*-                                                             */
+/*- AssessPanelPair counts common vertices in a pair of panels, */
 /*- and puts arrays of panel vertices into certain orders that  */
 /*- are expected by subsequent algorithms that work on the      */
 /*- panel pairs.                                                */

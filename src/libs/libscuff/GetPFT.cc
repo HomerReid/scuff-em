@@ -53,8 +53,7 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                bool FarField, char *PlotFileName, 
                GTransformation *GT1, GTransformation *GT2);
 
-void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega,
-                    HMatrix *DRMatrix,
+void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
                     double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                     char *BSMesh, double R, int NumPoints,
                     bool FarField, char *PlotFileName,
@@ -69,6 +68,61 @@ void GetEPP(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
 void GetEPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
              HVector *KNVector, IncField *IF, double FT[6],
              double **ByEdge=0, int Order=1, double Delta=1.0e-5);
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
+                    bool IsPECA, int KNIndexA,
+                    bool IsPECB, int KNIndexB,
+                    cdouble Bilinears[4])
+{
+  cdouble KK, KN, NK, NN;
+  if (KNVector && (IsPECA || IsPECB) )
+   { 
+     cdouble kAlpha =  KNVector->GetEntry(KNIndexA);
+     cdouble kBeta  =  KNVector->GetEntry(KNIndexB);
+     KK = conj(kAlpha) * kBeta;
+     KN = NK = NN = 0.0;
+   }
+  else if (KNVector)
+   { 
+     cdouble kAlpha =       KNVector->GetEntry(KNIndexA+0);
+     cdouble nAlpha = -ZVAC*KNVector->GetEntry(KNIndexA+1);
+     cdouble kBeta  =       KNVector->GetEntry(KNIndexB+0);
+     cdouble nBeta  = -ZVAC*KNVector->GetEntry(KNIndexB+1);
+
+     KK = conj(kAlpha) * kBeta;
+     KN = conj(kAlpha) * nBeta;
+     NK = conj(nAlpha) * kBeta;
+     NN = conj(nAlpha) * nBeta;
+   }
+  else
+   {
+     KK = DRMatrix->GetEntry(KNIndexB+0, KNIndexA+0);
+     KN = DRMatrix->GetEntry(KNIndexB+1, KNIndexA+0);
+     NK = DRMatrix->GetEntry(KNIndexB+0, KNIndexA+1);
+     NN = DRMatrix->GetEntry(KNIndexB+1, KNIndexA+1);
+   }
+
+  Bilinears[0]=KK;
+  Bilinears[1]=KN;
+  Bilinears[2]=NK;
+  Bilinears[3]=NN;
+}
+
+void GetKNBilinears(RWGGeometry *G, int neA, int neB,
+                    HVector *KNVector, HMatrix *DRMatrix,
+                    cdouble Bilinears[4])
+{
+  int nbfA, nbfB;
+  RWGSurface *SA=G->ResolveEdge(neA, 0, 0, &nbfA);
+  RWGSurface *SB=G->ResolveEdge(neB, 0, 0, &nbfB);
+
+  GetKNBilinears(KNVector, DRMatrix, 
+                 SA->IsPEC, nbfA, SB->IsPEC, nbfB,
+                 Bilinears);
+}
 
 /***************************************************************/
 /* Get the power, force, and torque on surface #SurfaceIndex.  */

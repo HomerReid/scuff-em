@@ -59,68 +59,10 @@ void CalcGC(double R[3], cdouble Omega,
             cdouble GMuNu[3][3], cdouble CMuNu[3][3],
             cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3]);
 
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-RWGSurface *ResolveNE(RWGGeometry *G, int neFull,
-                      int *pns, int *pne, int *pKNIndex)
-{
-  int ns=0, NSm1=G->NumSurfaces - 1;
-  while( (ns < NSm1) && (neFull >= G->EdgeIndexOffset[ns+1]) )
-   ns++;
-
-  int ne  = neFull - G->EdgeIndexOffset[ns];
-  
-  int Mult    = G->Surfaces[ns]->IsPEC ? 1 : 2;
-  int KNIndex = G->BFIndexOffset[ns] + Mult*ne;
-
-  if (pns) *pns=ns;
-  if (pne) *pne=ne;
-  if (pKNIndex) *pKNIndex=KNIndex;
-  return G->Surfaces[ns];
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
                     bool IsPECA, int KNIndexA,
                     bool IsPECB, int KNIndexB,
-                    cdouble Bilinears[4])
-{
-  cdouble KK, KN, NK, NN;
-  if (KNVector && (IsPECA || IsPECB) )
-   { 
-     cdouble kAlpha =  KNVector->GetEntry(KNIndexA);
-     cdouble kBeta  =  KNVector->GetEntry(KNIndexB);
-     KK = conj(kAlpha) * kBeta;
-     KN = NK = NN = 0.0;
-   }
-  else if (KNVector)
-   { 
-     cdouble kAlpha =       KNVector->GetEntry(KNIndexA+0);
-     cdouble nAlpha = -ZVAC*KNVector->GetEntry(KNIndexA+1);
-     cdouble kBeta  =       KNVector->GetEntry(KNIndexB+0);
-     cdouble nBeta  = -ZVAC*KNVector->GetEntry(KNIndexB+1);
-
-     KK = conj(kAlpha) * kBeta;
-     KN = conj(kAlpha) * nBeta;
-     NK = conj(nAlpha) * kBeta;
-     NN = conj(nAlpha) * nBeta;
-   }
-  else
-   {
-     KK = DRMatrix->GetEntry(KNIndexB+0, KNIndexA+0);
-     KN = DRMatrix->GetEntry(KNIndexB+1, KNIndexA+0);
-     NK = DRMatrix->GetEntry(KNIndexB+0, KNIndexA+1);
-     NN = DRMatrix->GetEntry(KNIndexB+1, KNIndexA+1);
-   }
-
-  Bilinears[0]=KK;
-  Bilinears[1]=KN;
-  Bilinears[2]=NK;
-  Bilinears[3]=NN;
-}
+                    cdouble Bilinears[4]);
 
 /***************************************************************/
 /***************************************************************/
@@ -354,7 +296,7 @@ void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KN,
   for(int neTot=0; neTot<G->TotalEdges; neTot++)
    { 
      int ns, ne, KNIndex;
-     RWGSurface *S = ResolveNE(G, neTot, &ns, &ne, &KNIndex);
+     RWGSurface *S = G->ResolveEdge(neTot, &ns, &ne, &KNIndex);
 
      cdouble KStar = conj(KN->GetEntry(KNIndex)); 
      cdouble NStar = 0.0;
@@ -445,10 +387,10 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
       if (nebTot==neaTot) LogPercent(neaTot, TotalEdges, 10);
 
       int nsa, nea, KNIndexA;
-      RWGSurface *SA = ResolveNE(G, neaTot, &nsa, &nea, &KNIndexA);
+      RWGSurface *SA = G->ResolveEdge(neaTot, &nsa, &nea, &KNIndexA);
 
       int nsb, neb, KNIndexB;
-      RWGSurface *SB = ResolveNE(G, nebTot, &nsb, &neb, &KNIndexB);
+      RWGSurface *SB = G->ResolveEdge(nebTot, &nsb, &neb, &KNIndexB);
    
       cdouble KNB[4];
       GetKNBilinears(KNVector, DRMatrix,

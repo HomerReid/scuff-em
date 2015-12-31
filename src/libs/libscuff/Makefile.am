@@ -28,7 +28,6 @@ libscuff_la_SOURCES = \
  GBarVDEwald.cc     		\
  Faddeeva.cc        		\
  Faddeeva.hh        		\
- FieldGrid.cc 			\
  GetFields.cc 			\
  GetNearFields.cc 		\
  EMTPFT.cc			\
@@ -49,6 +48,8 @@ libscuff_la_SOURCES = \
  libscuff.h 			\
  PanelCubature.h		\
  libscuffInternals.h
+
+# FieldGrid.cc 			
 
 
 # combine all of the auxiliary libraries into a single library 
