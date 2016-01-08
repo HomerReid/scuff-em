@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 //
      {"BZSymmetric", PA_BOOL,    0, 1, (void *)&BZSymmetric,  0,  "assume BZ integrand is xy-symmetric"},
      {"BZIMethod",   PA_STRING,  1, 1, (void *)&BZIString,    0,  "Brillouin-zone integration method [| adaptive]"},
-     {"BZIOrder",    PA_INT,     0, 1, (void *)&BZIOrder,     0,  "cubature order "},
+     {"BZIOrder",    PA_INT,     1, 1, (void *)&BZIOrder,     0,  "cubature order "},
      {"RelTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "relative tolerance for Brillouin-zone integration"},
      {"MaxEvals",    PA_INT,     1, 1, (void *)&MaxEvals,     0,  "maximum number of Brillouin-zone samples"},
      {"OmegakBlochFile", PA_STRING,  1, 1, (void *)&OkBFile,  0,  "list of (omega, kx, ky) values"},
