@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
   char *HalfSpace=0;
 /**/
   char *FileBase=0;
-  bool LDOSPlus=false;
+  bool LDOSOnly=false;
 /**/
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
      {"OmegakBlochFile", PA_STRING,  1, 1, (void *)&OkBFile,  0,  "list of (omega, kx, ky) values"},
 //
      {"FileBase",    PA_STRING,  1, 1, (void *)&FileBase,      0,  "base name for output files"},
-     {"LDOSPlus",    PA_BOOL,    0, 1, (void *)&LDOSPlus,      0,  "LDOS plus"},
+     {"LDOSOnly",    PA_BOOL,    0, 1, (void *)&LDOSOnly,      0,  "omit DGF components from Brillouin-zone integration"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
   Data->RelTol      = RelTol;
   Data->MaxEvals    = MaxEvals;
   Data->FileBase    = FileBase;
-  Data->LDOSOnly    = !LDOSPlus;
+  Data->LDOSOnly    = LDOSOnly;
   Data->GroundPlane = GroundPlane;
 
   if (HalfSpace)

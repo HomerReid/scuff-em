@@ -133,14 +133,9 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*--------------------------------------------------------------*/
   /*- get LDOS at all evaluation points.                          */
   /*- Note: The LDOS is defined as                                */
-  /*-  \Rho = (\omega / \pi c^2) * Im Tr G                        */
-  /*- where G is the dyadic GF. OTOH, the vacuum LDOS is          */
-  /*-  \Rho_0 = \omega^3 / (\pi^2 c^3).                           */
-  /*- Thus the LDOS enhancement is                                */
-  /*-  \Rho/Rho_0 = Im Tr G / ( \pi \omega^2 c )                  */
-  /*- which explains the prefactor below.                         */
+  /*-  \Rho = (abs(\omega) / \pi c^2) * Im Tr G                   */
   /*--------------------------------------------------------------*/
-  double PreFac = 1.0 / (M_PI * abs(Omega) * abs(Omega) );
+  double PreFac = abs(Omega)/M_PI;
   int NFun = (Data->LDOSOnly ? 2 : 38);
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
@@ -168,8 +163,8 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      /* figure out what to return                                   */
      /***************************************************************/
      int nf=NFun*nx;
-     Result[nf++] = imag( (GE[0][0] + GE[1][1] + GE[2][2]) ) / PreFac;
-     Result[nf++] = imag( (GM[0][0] + GM[1][1] + GM[2][2]) ) / PreFac;
+     Result[nf++] = imag( (GE[0][0] + GE[1][1] + GE[2][2]) ) * PreFac;
+     Result[nf++] = imag( (GM[0][0] + GM[1][1] + GM[2][2]) ) * PreFac;
 
      if (Data->LDOSOnly == false)
       { for(int Mu=0; Mu<3; Mu++)
