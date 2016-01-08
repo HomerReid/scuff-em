@@ -7,14 +7,8 @@
 
 \newcommand\supsstar[1]{^{\hbox{\scriptsize{#1}}*}}
 \newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
-\newcommand{\IF}{^{i\text{\scriptsize F}}}
-\newcommand{\IFFlux}{^{i\text{\tiny FFLUX}}}
-\newcommand{\IT}{^{i\text{\scriptsize T}}}
-\newcommand{\ITFlux}{^{i\text{\tiny TFLUX}}}
-\newcommand{\PS}{^{\text{\scriptsize P}\mc S}}
-\newcommand{\IFS}{^{i\text{\scriptsize F}\mc S}}
-\newcommand{\ITS}{^{i\text{\scriptsize T}\mc S}}
-%\newcommand{\vbchi}{\boldsymbol{\chi}}
+\newcommand{\iD}{_{i\text{\tiny D}}}
+\newcommand{\jS}{_{j\text{\tiny S}}}
 \newcommand{\vbGamma}{\boldsymbol{\Gamma}}
 \newcommand{\wh}{\widehat}
 \newcommand{\wt}{\widetilde}
@@ -53,13 +47,72 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Green's functions and LDOS in the non-periodic case}
+\section{Homogeneous Green's functions}
 
-The scattering parts of the electric and magnetic
-dyadic Green's functions (DGFs) of a geometry are defined by
+Before doing anything we recall our notation and conventions
+for dyadic Green's functions.
+In a homogeneous material region with relative permittivity
+and permeability $\{\epsilon^r, \mu^r\}$, electric and magnetic
+volume currents $\vb J, \vb M$ give rise to electric and magnetic
+fields $\vb E, \vb H$ according to 
+$$
+\left\{\begin{array}{c} E_i(\vb x) \\[5pt] H_i(\vb x) \end{array}\right\}
+=
+\int
+\left(\begin{array}{cc}
+ \Gamma_{ij}\supt{EE}(\vb x, \vb x^\prime) &
+ \Gamma_{ij}\supt{EM}(\vb x, \vb x^\prime) \\[5pt]
+ \Gamma_{ij}\supt{ME}(\vb x, \vb x^\prime) &
+ \Gamma_{ij}\supt{MM}(\vb x, \vb x^\prime)
+\end{array}\right)
+\left(\begin{array}{c} J_i(\vb x) \\[5pt] M_i(\vb x) \end{array}\right)
+dV
+$$
+where
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ \vbGamma\supt{EE} &= ikZ_0 Z^r \mb G \\
+ \vbGamma\supt{EM} &= ik        \mb C \\
+ \vbGamma\supt{ME} &= -ik       \mb C \\
+ \vbGamma\supt{MM} &= \frac{ik}{Z_0 Z^r} \mb G
+\end{align}
+\label{GammaFromGC}
+\end{subequations}
+%====================================================================%
+where $k=\sqrt{\epsilon^r \mu^r}\cdot \omega$
+is the photon wavenumber in the medium, 
+$Z^r=\sqrt\frac{\mu^r}{\epsilon^r}$ is the dimensionless relative
+wave impedance,
+$Z_0\approx 377\,\Omega$ is the impedance of free space, and
+the $\mb G$ and $\mb C$ tensors are
+%====================================================================%
+\begin{subequations}
+\begin{align}
+\mb G_{ij}(k,\vb r) 
+ &= \frac{e^{ikr}}{4\pi (ik)^2 r^3}
+    \bigg[ \Big(1-ikr + (ikr)^2 \Big)\delta_{ij}
+          +\Big(-3 + 3ikr - (ikr)^2 \Big)\frac{r_i r_j}{r^2}
+    \bigg]
+\\
+\mb C_{ij}(k,\vb r) 
+ &= \frac{e^{ikr}}{4\pi (ik) r^3} \varepsilon_{ijk} r_k.
+\end{align}
+\label{GCDef}
+\end{subequations}
+%====================================================================%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Scattering Green's functions and LDOS in the non-periodic case}
+
+In the presence of scatterers, the scattering parts of the electric
+and magnetic dyadic Green's functions (DGFs) are
 %====================================================================%
 \begin{align*}
- \mc G_{ij}\sups{E}(\omega; \vb x, \vb x^\prime)
+ \mc G_{ij}\supt{E}(\omega; \vb x, \vb x^\prime)
    \equiv
    \frac{1}{ikZ_0 Z^r}
   &\left( \parbox{0.65\textwidth}
@@ -72,9 +125,9 @@ dyadic Green's functions (DGFs) of a geometry are defined by
    \right)
 \\[5pt]
 %%--------------------------------------------------------------------%
- \mc G_{ij}\sups{M}(\omega; \vb x, \vb x^\prime)
+ \mc G_{ij}\supt{M}(\omega; \vb x, \vb x^\prime)
    \equiv
-   \frac{1}{ik}
+   \frac{Z_0 Z^r}{ik}
   &\left( \parbox{0.65\textwidth}
     { $i$-component of scattered $\vb H$-field at $\vb x$
       due to a unit-strength $j$-directed point \textbf{magnetic}
@@ -85,14 +138,9 @@ dyadic Green's functions (DGFs) of a geometry are defined by
    \right)
 \end{align*}
 %====================================================================%
-Here $k=\sqrt{\epsilon^r \mu^r }\cdot \omega$ and 
-$Z^r=\sqrt{\mu^r /\epsilon^r }$ are the wavenumber and 
-relative wave impedance of the material medium in which 
-point $\vb x$ resides ($\epsilon^r ,\mu^r$ are its relative 
-permittivity and permeability) and $Z_0\approx 377\,\Omega$  
-is the impedance of vacuum. The prefactors 
-$\frac{1}{ikZ_0Z^r}$ and $\frac{1}{ik}$ are inserted to 
-ensure that $\bmc G\supt{E,M}$ have dimensions of inverse
+Note that the prefactors in the definitions here are the reciprocals
+of those in (\ref{GammaFromGC}a,d), and that
+$\bmc G\supt{E,M}$ both have dimensions of inverse
 length.
 
 The enhancement of the local density of states (LDOS)
@@ -196,7 +244,7 @@ are now the periodically phased versions of the DGFs, i.e.
 {
  \overline{\mc G_{ij}\supt{E}}(\vb x, \vb x^\prime, \vb k\subt{B})
  \equiv \sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}
-  \mc G_{ij}\sups{E}(\vb x, \vb x^\prime-\vb L), 
+  \mc G_{ij}\supt{E}(\vb x, \vb x^\prime+\vb L), 
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 with $\overline{\mc G_{ij}\supt{M}}$ defined similarly.
@@ -225,7 +273,7 @@ Setting $\vb L^\prime=0$ recovers (\ref{BZIntegration}).}
  =\frac{1}{\mc V\subt{BZ}} 
    \int\subt{BZ} 
    \overline{\mc G_{ij}\supt{E}}(\vb x, \vb x^\prime, \vb k\subt{B})
-   \, d\vb k\subt{B}.
+   \, d\vb k\subt{B}
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 and similarly for $\mc G\supt{M}.$
@@ -248,7 +296,7 @@ and Brillouin-zone integrals take the form
 $$ \frac{1}{\mc V\subt{BZ}} 
    \int\subt{BZ} f(\vb k\subs{B}) \, d \vb k\subt{B}
   =4\int_0^{1/2} \, d u_1 \, \int_0^{1/2} \, d u_2 \, 
-   f\Big( u_1\vbGamma_1 + u_y\vbGamma_2 \Big)
+   f\Big( u_1\vbGamma_1 + u_2\vbGamma_2 \Big)
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -266,7 +314,7 @@ of the electric and magnetic DGFs.
 \subsection*{VMVP formula for $\bmc G\supt{E}$}
 
 Consider first the electric DGF
-$\bmc G\supt{E}_{ij}(\vb x\subt{D}, \vb x\subt{S})$
+$\bmc G\supt{E}_{ij}(\vb x\subt{D}, \vb x\subt{S})$,
 where the subscripts stand for ``destination'' and ``source.''
 To get at this, we must solve a scattering problem in which 
 the incident fields are the fields radiated by a 
@@ -286,11 +334,11 @@ at $\vb x\subt{S}$:
    \Gamma_{\ell j}\supt{ME}(\vb x, \vb x\subt{S})
   \end{array}\right\}
 %--------------------------------------------------------------------%
-= (-i\omega p_0)(ik)
+= (-i\omega p_0)
   \left\{\begin{array}{r}
-  Z\mb G_{\ell j}(\vb x, \vb x\subt{S}) 
+  ik Z_0 Z^r\mb G_{\ell j}(\vb x, \vb x\subt{S}) 
    \\[8pt]
-   -\mb C_{\ell j}(\vb x, \vb x\subt{S})
+   -ik\mb C_{\ell j}(\vb x, \vb x\subt{S})
   \end{array}\right\}
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -315,12 +363,12 @@ $\vb K, \vb N$ according to
   \, d\vb x
 \\
 %--------------------------------------------------------------------%
-&= ik
+&= 
   \int 
   \left\{\begin{array}{r}
-  Z\mb G_{i \ell}(\vb x\subt{D}, \vb x) 
+  ikZ_0 Z^r\mb G_{i \ell}(\vb x\subt{D}, \vb x) 
    \\[8pt]
-  \mb C_{i \ell}(\vb x\subt{D}, \vb x) 
+  +ik\mb C_{i \ell}(\vb x\subt{D}, \vb x) 
   \end{array}\right\}^T
   \left\{\begin{array}{r}
 K_\ell(\vb x)
@@ -332,18 +380,17 @@ N_\ell(\vb x)
            $\vb K(\vb x)=\sum k_a \vb b_a(\vb x)$, 
            $\vb N(\vb x)=-Z_0 \sum n_a \vb b_a(\vb x)$:}
 %--------------------------------------------------------------------%
-&= ikZ \sum_{a}
+&= \sum_{a}
   \left\{\begin{array}{r}
-  g_a(\vbhat{x}\subt{D}, \vbhat{n}_i)
+  ikZ_0 Z^r g_a(\vb x\subt{D}, \vbhat{n}_i)
    \\[8pt]
-  -c_a(\vbhat{x}\subt{D}, \vbhat{n}_i)
+  -ikZ_0 c_a(\vb{x}\subt{D}, \vbhat{n}_i)
   \end{array}\right\}^T
   \left\{\begin{array}{r}
    k_a 
    \\[8pt]
    n_a
   \end{array}\right\}
-  \, d\vb x
 \label{EScatKN}
 \end{align}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -373,66 +420,77 @@ projections of the incident field onto the basis functions:
 \begin{align}
  e_b 
 &\equiv \frac{1}{Z_0} \Inp{\vb b_m}{\vb E\sups{inc}}
- = (-i\omega p_0)(ik) 
-  \int b_{b\ell}(\vb x) \mb G_{\ell j}(\vb x, \vb x\subt{S}) \,dx
+ = (-i\omega p_0)(ikZ^r)
+  \underbrace{\int b_{b\ell}(\vb x) \mb G_{\ell j}(\vb x, \vb x\subt{S}) \,dx}
+            _{g_{b}(\vb x\subt{S}, \vbhat{n}_j)}
 \nn
-&= (-i\omega p_0)(ik) g_b(\vb x\subt{S}, \vbhat{n}_j)
+&= (-i\omega p_0)(ikZ^r) g_b(\vb x\subt{S}, \vbhat{n}_j)
 \\[6pt]
  h_b 
 &\equiv \hphantom{\frac{1}{Z_0}} \Inp{\vb b_m}{\vb H\sups{inc}}
- =(-i\omega p_0)(ik) \left[-\int b_{b\ell}(\vb x) 
+ =(-i\omega p_0)(ik) 
+  \underbrace{\left[-\int b_{b\ell}(\vb x) 
                   \mb C_{\ell j}(\vb x, \vb x\subt{S}) \,dx\right] 
+             }_{-c_b(\vb x\subs{s}, \vbhat{n}_j)}
 \nn
-&= -(-i\omega p_0)(ik) c_b(\vb x\subt{S}, \vbhat{n}_j) 
+&= -(-i\omega p_0)(ik) c_b(\vb x\subt{S}, \vbhat{n}_j). 
 \end{align}
-\label{ebhb}
+\label{ebhb}%
 \end{subequations}
-where I used the reciprocity relation
-[$\mb O_{ij}(\vb x, \vb y)=\mb O_{ji}(\vb y, \vb x)$
- for $\mb O=\{\mb G, \mb C\}$]
-to express the integrals here in terms of the quantities
-$g_a, c_a$ defined above. 
+Note that the $g_b,c_b$ quantities are the same as the $g_a, c_a$
+computed above; this follows from reciprocity,
+$\mb O_{ij}(\vb x, \vb y)=\mb O_{ji}(\vb y, \vb x)$
+ for $\mb O=\{\mb G, \mb C\}$.
+
 Inserting (\ref{VMVBEMSystem}) and (\ref{ebhb}) into
-(\ref{EScatKN}), the scattered field at $x\subt{D}$ reads
+(\ref{EScatKN}), the scattered field at $x\subt{D}$
+takes the form of a vector-matrix-vector product,
 %====================================================================%
 \begin{align}
-  \left\{\begin{array}{c} 
- E_i\sups{scat}(\vb x\subt{D}) \\[8pt] 
+  \left\{\begin{array}{c}
+ E_i\sups{scat}(\vb x\subt{D}) \\[8pt]
  H_i\sups{scat}(\vb x\subt{D})
  \end{array}\right\}
-&=(ik)^2 (i\omega p_0) Z \sum_a
+&=(i\omega p_0) \cdot \frac{1}{Z_0}
   \underbrace{
-  \left\{\begin{array}{c} 
+  \left\{\begin{array}{c}
+     ikZ_0 Z^r
      g_a(\vb x\subt{D}, \vbhat{n}_i) \\[4pt]
-    -c_a(\vb x\subt{D}, \vbhat{n}_i) 
+    -ikZ_0 c_a(\vb x\subt{D}, \vbhat{n}_i) 
   \end{array}\right\}^T
-             }_{\equiv v_a(\vb x\subt{D}, \vbhat{n}_i)}
+             }_{\equiv (\vb r\supt{E}\iD)_a}
   \left(
  \vphantom{
   \left\{\begin{array}{c} 
+    ik Z_0 Z^r
      g_a(\vb x\subt{D}, \vbhat{n}_i) \\[4pt]
-    -c_a(\vb x\subt{D}, \vbhat{n}_i) 
+    -ikZ_0 c_a(\vb x\subt{D}, \vbhat{n}_i) 
   \end{array}\right\}^T
           }
          W_{ab}
   \right)
   \underbrace{
   \left\{\begin{array}{c} 
-    g_b(\vb x\subt{S}, \vbhat{n}_j) \\[4pt]
-    -c_b(\vb x\subt{S}, \vbhat{n}_j) 
+    ikZ_0 Z^r g_b(\vb x\subt{S}, \vbhat{n}_j) \\[4pt]
+    -ik Z_0 c_b(\vb x\subt{S}, \vbhat{n}_j) 
   \end{array}\right\}
-             }_{\equiv v_b(\vb x\subt{S}, \vbhat{n}_j)}
+             }_{\equiv (\vb r\supt{E}\jS)_b}
+\label{GEVMVP}
 \end{align}
 and the scattering part of the electric DGF reads
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{GijEVMVP}
 {
  \mc G_{ij}\supt{E}(\vb x\subt{D}, \vb x\subt{S})
-= \frac{E_i\sups{scat}}{(ikZ)(-i\omega p_0)}
-= -(ik) \vb v(\vb x\subt{D}, \vbhat n_{i})^T \vb W
-        \vb v(\vb x\subt{S}, \vbhat n_{j}).
+= \frac{E_i\sups{scat}}{(ikZ_0 Z^r)(-i\omega p_0)}
+= -\frac{1}{ikZ_0^2 Z^r}
+   \Big( \vb r\iD\supt{E} \cdot \vb W \cdot \vb r\jS\supt{E} \Big)
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+I think of the vectors $\vb r\supt{E}\iD$ and $\vb r\supt{E}\jS$ 
+as ``reduced-field'' vectors; their dot product with a vector
+of surface-current coefficients yields the $i,j$ components of 
+the scattered electric fields at $x\supt{D,S}$.
 
 \subsection*{VMVP formula for $\bmc G\supt{M}$}
 
@@ -453,10 +511,10 @@ $$
    \Gamma_{\ell j}\supt{EM}(\vb x, \vb x\subt{S}) \\[8pt]
    \Gamma_{\ell j}\supt{MM}(\vb x, \vb x\subt{S})
   \end{array}\right\}
-= (-i\omega m_0) (ik)
+= (-i\omega m_0)
   \left\{\begin{array}{r}
-        \mb C_{\ell j}(\vb x, \vb x\subt{S}) \\[8pt]
-  Z^{-1}\mb G_{\ell j}(\vb x, \vb x\subt{S})
+     ik \mb C_{\ell j}(\vb x, \vb x\subt{S}) \\[8pt]
+  \frac{ik}{Z_0 Z^r} \mb G_{\ell j}(\vb x, \vb x\subt{S})
   \end{array}\right\}
 $$
 %====================================================================%
@@ -480,11 +538,11 @@ $$
   \, d\vb x
 \\
 %--------------------------------------------------------------------%
-&= -ik \sum_{a}
+&= \sum_{a}
   \left\{\begin{array}{r}
-  c_a(\vb {x}\subt{D}, \vbhat{n}_i)
+  -ik c_a(\vb {x}\subt{D}, \vbhat{n}_i)
    \\[8pt]
-  g_a(\vb {x}\subt{D}, \vbhat{n}_i)
+  -\frac{ik}{Z^r} g_a(\vb {x}\subt{D}, \vbhat{n}_i)
   \end{array}\right\}^T
   \left\{\begin{array}{r}
    k_a 
@@ -500,13 +558,13 @@ magnetic field due to a magnetic source then reads
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
  H\sups{scat}_i
-&=-(ik)^2 \left(i\omega m_0 Z_0^{-1}\right)
+&=+\frac{1}{Z_0}
   \underbrace{
   \left(\begin{array}{c} 
-      c_a(\vb x\subt{D}, \vbhat{n}_i)  \\[4pt]
-      g_a(\vb x\subt{D}, \vbhat{n}_i)  
+   -ik c_a(\vb x\subt{D}, \vbhat{n}_i)  \\[4pt]
+   -\frac{1}{ik Z^r}  g_a(\vb x\subt{D}, \vbhat{n}_i)
   \end{array}\right)^T
-             }_{\equiv \wt{v}_a(\vb x\subt{D}, \vbhat{n}_i)}
+             }_{\equiv (\vb r\supt{H}\iD)_a}
 %%====================================================================%
   \left(
  \vphantom{
@@ -520,22 +578,27 @@ magnetic field due to a magnetic source then reads
 %====================================================================%
   \underbrace{
   \left(\begin{array}{c} 
-     c_b(\vb x\subt{S}, \vbhat{n}_j)  \\[4pt]
-     g_b(\vb x\subt{S}, \vbhat{n}_j)  
+   -ik  c_b(\vb x\subt{S}, \vbhat{n}_j)  \\[4pt]
+   -\frac{1}{ik Z^r} g_b(\vb x\subt{S}, \vbhat{n}_j)
   \end{array}\right)
-             }_{\equiv \wt{v}_b(\vb x\subt{S}, \vbhat{n}_j)}
+             }_{\equiv (\vb r\supt{H}\jS)_b}
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-and the scattering part of the magnetic DGF reads
+so the scattering part of the magnetic DGF reads
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\numeq{GijMVMVP}
+\numeq{GijHVMVP}
 {
- \mc G_{ij}\supt{M}(\vb x\subt{D}, \vb x\subt{S})
-= \frac{H_i\sups{scat}}{(ikZ^{-1})(-i\omega m_0)}
-= +ik \wt{\vb v}(\vb x\subt{D}, \vbhat n_{i})^T \vb W
-      \wt{\vb v}(\vb x\subt{S}, \vbhat n_{j}).
+ \mc G_{ij}\supt{H}(\vb x\subt{D}, \vb x\subt{S})
+= +\frac{Z_0 Z^r}{ik(-i\omega m_0)} H_i\sups{scat}
+= +\frac{Z^r}{ik}
+   \Big( \vb r\iD\supt{H} \cdot \vb W \cdot \vb r\jS\supt{H} \Big).
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\subsection{Vector-Matrix-Vector product formula for LDOS}
+%
+%When we use (\ref{GijEVMVP}) and (\ref{GijHVMVP}) to compute the LDOS,
+%the vectors in the
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

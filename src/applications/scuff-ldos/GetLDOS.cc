@@ -140,7 +140,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*-  \Rho/Rho_0 = Im Tr G / ( \pi \omega^2 c )                  */
   /*- which explains the prefactor below.                         */
   /*--------------------------------------------------------------*/
-  cdouble PreFac = 1.0 / (M_PI * Omega * Omega);
+  double PreFac = 1.0 / (M_PI * abs(Omega) * abs(Omega) );
   int NFun = (Data->LDOSOnly ? 2 : 38);
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
@@ -168,8 +168,8 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      /* figure out what to return                                   */
      /***************************************************************/
      int nf=NFun*nx;
-     Result[nf++] = imag( (GE[0][0] + GE[1][1] + GE[2][2]) / PreFac );
-     Result[nf++] = imag( (GM[0][0] + GM[1][1] + GM[2][2]) / PreFac );
+     Result[nf++] = imag( (GE[0][0] + GE[1][1] + GE[2][2]) ) / PreFac;
+     Result[nf++] = imag( (GM[0][0] + GM[1][1] + GM[2][2]) ) / PreFac;
 
      if (Data->LDOSOnly == false)
       { for(int Mu=0; Mu<3; Mu++)

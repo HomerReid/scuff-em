@@ -117,7 +117,10 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
      XMatrix->GetEntriesD(nx,"0:2",X);
      int nr=GetRegionIndex(X);
      if (nr==-1) continue;
-     cdouble k = Omega * RegionMPs[nr]->GetRefractiveIndex(Omega);
+     cdouble ZRel;
+     cdouble k = Omega * RegionMPs[nr]->GetRefractiveIndex(Omega, &ZRel);
+     cdouble GENormFac = -1.0/(II*k*ZVAC*ZVAC*ZRel);
+     cdouble GMNormFac = +ZRel/(II*k);
 
      for(int i=0; i<3; i++)
       for(int j=0; j<3; j++)
@@ -126,8 +129,8 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
           { GE += RFDest->GetEntry(nbf, 6*nx+0+i) * RFSource->GetEntry(nbf, 6*nx+0+j);
             GM += RFDest->GetEntry(nbf, 6*nx+3+i) * RFSource->GetEntry(nbf, 6*nx+3+j);
           };
-         GMatrix->SetEntry(nx, 0 + 3*i + j, -II*k*GE);
-         GMatrix->SetEntry(nx, 9 + 3*i + j, +II*k*GM);
+         GMatrix->SetEntry(nx, 0 + 3*i + j, GE*GENormFac);
+         GMatrix->SetEntry(nx, 9 + 3*i + j, GM*GMNormFac);
        };
    };
 
