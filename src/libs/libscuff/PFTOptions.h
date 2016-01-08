@@ -121,7 +121,7 @@ PFTOptions *InitPFTOptions(PFTOptions *Options=0);
 class RWGGeometry;
 HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                    HVector *KNVector, HMatrix *DRMatrix,
-                   HMatrix *FMatrix=0, bool FarField=false);
+                   HMatrix *FMatrix=0);
 
 } // namespace scuff 
 

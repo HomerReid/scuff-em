@@ -113,47 +113,6 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
      fclose(f);
    };
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (getenv("SCUFF_GETFIELDS2"))
- { 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-   Tic();
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-   G->GetFields2( 0, KN, Omega, kBloch, XMatrix, SFMatrix);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-   double Elapsed=Toc();
-   Log("GetFields2 time: %e s\n",Elapsed);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-   const char *Ext[2]={"scattered","total"};
-   for(int ST=0; ST<2; ST++)
-    { char OutFileName[MAXSTR];
-      snprintf(OutFileName,MAXSTR,"%s.%s.V2",GetFileBase(EPFileName),Ext[ST]);
-      FILE *f=CreateUniqueFile(OutFileName,1);
-      fprintf(f,"# scuff-scatter run on %s (%s)\n",GetHostName(),GetTimeString());
-      fprintf(f,"# columns: \n");
-      fprintf(f,"# 1,2,3   x,y,z (evaluation point coordinates)\n");
-      fprintf(f,"# 4,5     real, imag Ex\n");
-      fprintf(f,"# 6,7     real, imag Ey\n");
-      fprintf(f,"# 8,9     real, imag Ez\n");
-      fprintf(f,"# 10,11   real, imag Hx\n");
-      fprintf(f,"# 12,13   real, imag Hy\n");
-      fprintf(f,"# 14,15   real, imag Hz\n");
-      for(int nr=0; nr<SFMatrix->NR; nr++)
-       { double X[3];
-         cdouble EH[6];
-         XMatrix->GetEntriesD(nr,":",X);
-         SFMatrix->GetEntries(nr,":",EH);
-         if (ST==1) 
-          for(int nc=0; nc<6; nc++) 
-           EH[nc]+=IFMatrix->GetEntry(nr,nc);
-         fprintf(f,"%+.8e %+.8e %+.8e ",X[0],X[1],X[2]);
-         fprintf(f,"%s %s %s   ",CD2S(EH[0]),CD2S(EH[1]),CD2S(EH[2]));
-         fprintf(f,"%s %s %s\n", CD2S(EH[3]),CD2S(EH[4]),CD2S(EH[5]));
-       };
-    };
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   delete XMatrix;
   delete SFMatrix;
   delete IFMatrix;
@@ -165,12 +124,6 @@ if (getenv("SCUFF_GETFIELDS2"))
 /* fields on a user-specified surface mesh for visualization   */
 /* in GMSH.                                                    */
 /***************************************************************/
-static char *FieldFuncs=const_cast<char *>(
- "|Ex|,|Ey|,|Ez|,"
- "sqrt(|Ex|^2+|Ey|^2+|Ez|^2),"
- "|Hx|,|Hy|,|Hz|,"
- "sqrt(|Hx|^2+|Hy|^2+|Hz|^2)");
-
 static const char *FieldTitles[]=
  {"|Ex|", "|Ey|", "|Ez|", "|E|",
   "|Hx|", "|Hy|", "|Hz|", "|H|",
@@ -239,7 +192,7 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   /*- get the total fields at the panel vertices                 -*/
   /*--------------------------------------------------------------*/
   HMatrix *FMatrix=SSD->G->GetFields(SSD->IF, SSD->KN, SSD->Omega, SSD->kBloch, 
-                                     XMatrix, 0, FieldFuncs);
+                                     XMatrix);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -252,19 +205,30 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      for(int np=0; np<S->NumPanels; np++)
-      {
+      { 
         RWGPanel *P=S->Panels[np];
-        int iV1 = P->VI[0];  double *V1 = S->Vertices + 3*iV1;
-        int iV2 = P->VI[1];  double *V2 = S->Vertices + 3*iV2;
-        int iV3 = P->VI[2];  double *V3 = S->Vertices + 3*iV3;
 
+        double *V[3]; // vertices
+        double Q[3];  // quantities
+        for(int nv=0; nv<3; nv++)
+         { 
+           int VI = P->VI[nv];
+           V[nv]  = S->Vertices + 3*VI;
+
+           cdouble EH[6];
+           FMatrix->GetEntries(VI, ":", EH);
+           cdouble *F = (nff>=4) ? EH+0 : EH+3;
+           if (nff==3 || nff==7)
+            Q[nv] = sqrt(norm(F[0]) + norm(F[1]) + norm(F[2]));
+           else
+            Q[nv] = abs( F[nff%4] );
+         };
+           
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   V1[0], V1[1], V1[2],
-                   V2[0], V2[1], V2[2],
-                   V3[0], V3[1], V3[2],
-                   FMatrix->GetEntryD(iV1,nff),
-                   FMatrix->GetEntryD(iV2,nff),
-                   FMatrix->GetEntryD(iV3,nff));
+                   V[0][0], V[0][1], V[0][2],
+                   V[1][0], V[1][1], V[1][2],
+                   V[2][0], V[2][1], V[2][2],
+                   Q[0], Q[1], Q[2]);
       };
 
      /*--------------------------------------------------------------*/

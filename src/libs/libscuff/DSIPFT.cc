@@ -35,6 +35,7 @@
 #include <libscuff.h>
 #include <libTriInt.h>
 #include <config.h>
+#include "PFTOptions.h"
 
 #ifdef USE_OPENMP
  #include <omp.h>
@@ -43,6 +44,138 @@
 namespace scuff{
 
 #define II cdouble(0.0,1.0) 
+
+/***************************************************************/
+/* Evaluate trace formulas for the spatially-resolved fluxes   */
+/* at individual points in space.                              */
+/*                                                             */
+/* XMatrix is an NXx3 matrix storing the cartesian coordinates */
+/* of the evaluation points.                                   */
+/*                                                             */
+/* On return, FMatrix is an NXx12 matrix whose columns are the */
+/* components of the average Poynting vector (PV) and Maxwell  */
+/* stress tensor (MST) at each evaluation point.               */
+/*                                                             */
+/* FMatrix[nx, 0..2]  = PV_{x,y,z};                            */
+/* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
+/***************************************************************/
+
+// unique index for the contribution of thread #nt to the
+// SRFlux quantity #nq at spatial point #nx
+inline int GetSRFluxIndex(int NX, int nt, int nx, int nq)
+{ return nt*NX*NUMSRFLUX + nx*NUMSRFLUX + nq; }
+
+HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
+                   HVector *KNVector, HMatrix *DRMatrix, HMatrix *FMatrix)
+{ 
+  /***************************************************************/
+  /* (re)allocate FMatrix as necessary ***************************/
+  /***************************************************************/
+  int NX = XMatrix->NR;
+  if ( FMatrix && ( (FMatrix->NR != NX) || (FMatrix->NC != NUMSRFLUX) ) )
+   { Warn("Wrong-size FMatrix in GetSRFluxTrace (reallocating...)");
+     delete FMatrix;
+     FMatrix=0;
+   };
+  if (FMatrix==0)
+   FMatrix = new HMatrix(NX, NUMSRFLUX, LHM_REAL);
+
+  Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  HMatrix *RFMatrix = G->GetRFMatrix(Omega, 0, XMatrix);
+
+  /***************************************************************/
+  /* allocate per-thread storage to avoid costly synchronization */
+  /* primitives in the multithreaded loop                        */
+  /* [note the array is automatically zeroed by mallocEC()]      */
+  /***************************************************************/
+  int NumThreads=1;
+#ifdef USE_OPENMP
+  NumThreads=GetNumThreads();
+#endif
+  cdouble *DeltaSRFlux=(cdouble *)mallocEC(NumThreads*NX*NUMSRFLUX*sizeof(cdouble));
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  Log("Evaluating cubature rule");
+#ifdef USE_OPENMP
+  LogC("(%i threads)",NumThreads);
+#pragma omp parallel for schedule(dynamic,1),		\
+                         num_threads(NumThreads)
+#endif
+  for(int nx=0; nx<NX; nx++)
+   {
+     double X[3];
+     XMatrix->GetEntriesD(nx,"0:2",X);
+     int nr=G->GetRegionIndex(X);
+     double  MuAbs = TENTHIRDS*real(G->MuTF[nr] )*ZVAC;
+     double EpsAbs = TENTHIRDS*real(G->EpsTF[nr])/ZVAC;
+
+     for(int nbfA=0; nbfA<G->TotalBFs; nbfA++)
+      for(int nbfB=0; nbfB<G->TotalBFs; nbfB++)
+       { 
+         cdouble Weight = 
+          DRMatrix ?  DRMatrix->GetEntry(nbfB, nbfA) 
+                   : conj(KNVector->GetEntry(nbfA)) * KNVector->GetEntry(nbfB);
+         
+         cdouble EHA[6], *EA=EHA+0, *HA=EHA+3;
+         cdouble EHB[6], *EB=EHB+0, *HB=EHB+3;
+         for(int Mu=0; Mu<6; Mu++)
+          { EHA[Mu] = conj( RFMatrix->GetEntry(nbfA, 6*nx + Mu));
+            EHB[Mu] = RFMatrix->GetEntry(nbfB, 6*nx + Mu);
+          };
+
+         cdouble Trace, PV[3], MST[3][3];
+         Trace = EpsAbs*(EA[0]*EB[0] + EA[1]*EB[1] + EA[2]*EB[2])
+                 +MuAbs*(HA[0]*HB[0] + HA[1]*HB[1] + HA[2]*HB[2]);
+
+         PV[0] = 0.5*( EA[1]*HB[2] - EA[2]*HB[1] );
+         PV[1] = 0.5*( EA[2]*HB[0] - EA[0]*HB[2] );
+         PV[2] = 0.5*( EA[0]*HB[1] - EA[1]*HB[0] );
+
+         for(int Mu=0; Mu<3; Mu++)
+          for(int Nu=0; Nu<3; Nu++)
+           MST[Mu][Nu] = 0.5*(EpsAbs*EA[Mu]*EB[Nu] + MuAbs*HA[Mu]*HB[Nu]);
+         MST[0][0] -= 0.25*Trace;
+         MST[1][1] -= 0.25*Trace;
+         MST[2][2] -= 0.25*Trace;
+
+         int nt=0;
+#ifdef USE_OPENMP
+         nt = omp_get_thread_num();
+#endif
+         int Index=GetSRFluxIndex(NX, nt, nx, 0);
+         for(int Mu=0; Mu<3; Mu++)
+          DeltaSRFlux[Index++] += Weight*PV[Mu];
+         for(int Mu=0; Mu<3; Mu++)
+          for(int Nu=0; Nu<3; Nu++)
+           DeltaSRFlux[Index++] += Weight*MST[Mu][Nu];
+
+       }; // for(int nbfA=0 ... for(int nbfB=0...
+
+   }; //for(int nx=0; nx<NX; nx++)
+         
+  /*--------------------------------------------------------------*/
+  /*- sum contributions of all threads ---------------------------*/
+  /*--------------------------------------------------------------*/
+  FMatrix->Zero();
+  for(int nx=0; nx<NX; nx++)
+   for(int nq=0; nq<NUMSRFLUX; nq++)
+    for(int nt=0; nt<NumThreads; nt++)
+     FMatrix->AddEntry(nx, nq, real(DeltaSRFlux[ GetSRFluxIndex(NX, nt, nx, nq)] ));
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  free(DeltaSRFlux);
+  delete RFMatrix;
+  return FMatrix;
+
+} // routine GetSRFlux
 
 /***************************************************************/
 /* SCR matrix stands for 'surface cubature rule matrix.'       */
@@ -423,11 +556,14 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
   if (GT2) GT2->Transform(XTorque);
 
   /*--------------------------------------------------------------*/
-  /*- fetch cubature rule and precompute field six-vectors       -*/
+  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, GT1, GT2);
   HMatrix *SRMatrix  = GetSRFlux(G, SCRMatrix, Omega, 0, DRMatrix);
 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
   memset(PFT, 0, NUMPFT*sizeof(double));
   for(int nx=0; nx<SCRMatrix->NR; nx++)
    { 
@@ -445,7 +581,7 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
    
      double F[3]={0.0, 0.0, 0.0};
      for(int Mu=0; Mu<3; Mu++)
-      { PFT[PFT_PABS] += Weight * PV[Mu] * nHat[Mu];
+      { PFT[PFT_PABS] += Weight*PV[Mu]*nHat[Mu];
         for(int Nu=0; Nu<3; Nu++)
          F[Mu] += Weight*MST[3*Mu+Nu]*nHat[Nu];
       }; 
@@ -458,135 +594,5 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
    };
     
 }
-
-/***************************************************************/
-/* Evaluate trace formulas for the spatially-resolved fluxes   */
-/* at individual points in space.                              */
-/*                                                             */
-/* XMatrix is an NXx3 matrix storing the cartesian coordinates */
-/* of the evaluation points.                                   */
-/*                                                             */
-/* On return, FMatrix is an NXx12 matrix whose columns are the */
-/* components of the average Poynting vector (PV) and Maxwell  */
-/* stress tensor (MST) at each evaluation point.               */
-/*                                                             */
-/* FMatrix[nx, 0..2]  = PV_{x,y,z};                            */
-/* FMatrix[nx, 3..11] = MST_{xx}, MST_{xy}, ..., MST_{zz}      */
-/***************************************************************/
-
-// unique index for the contribution of thread #nt to the
-// SRFlux quantity #nq at spatial point #nx
-int GetSRFluxIndex(int NX, int nt, int nx, int nq)
-{ return nt*NX*NUMSRFLUX + nx*NUMSRFLUX + nq; }
-
-HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                   HVector *KNVector, HMatrix *DRMatrix, HMatrix *FMatrix)
-{ 
-  /***************************************************************/
-  /* (re)allocate FMatrix as necessary ***************************/
-  /***************************************************************/
-  int NX = XMatrix->NR;
-  if ( FMatrix && ( (FMatrix->NR != NX) || (FMatrix->NC != NUMSRFLUX) ) )
-   { Warn("Wrong-size FMatrix in GetSRFluxTrace (reallocating...)");
-     delete FMatrix;
-     FMatrix=0;
-   };
-  if (FMatrix==0)
-   FMatrix = new HMatrix(NX, NUMSRFLUX, LHM_REAL);
-
-  Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  HMatrix *RFMatrix = G->GetRFMatrix(Omega, 0, XMatrix);
-
-  /***************************************************************/
-  /* allocate per-thread storage to avoid costly synchronization */
-  /* primitives in the multithreaded loop                        */
-  /* [note the array is automatically zeroed by mallocEC()]      */
-  /***************************************************************/
-  int NumThreads=1;
-#ifdef USE_OPENMP
-  NumThreads=GetNumThreads();
-#endif
-  cdouble *DeltaSRFlux=(cdouble *)mallocEC(NumThreads*NX*NUMSRFLUX*sizeof(cdouble));
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-#ifdef USE_OPENMP
-#pragma omp parallel for schedule(dynamic,1),		\
-                         num_threads(NumThreads)
-#endif
-  for(int nx=0; nx<NX; nx++)
-   {
-     double X[3];
-     XMatrix->GetEntriesD(nx,"0:2",X);
-     int nr=G->GetRegionIndex(X);
-     double  MuAbs = TENTHIRDS*real(G->MuTF[nr] )*ZVAC;
-     double EpsAbs = TENTHIRDS*real(G->EpsTF[nr])/ZVAC;
-
-     for(int nbfA=0; nbfA<G->TotalBFs; nbfA++)
-      for(int nbfB=0; nbfB<G->TotalBFs; nbfB++)
-       { 
-         cdouble Weight = 
-          DRMatrix ?  DRMatrix->GetEntry(nbfB, nbfA) 
-                   : conj(KNVector->GetEntry(nbfA)) * KNVector->GetEntry(nbfB);
-         
-         cdouble EHA[6], *EA=EHA+0, *HA=EHA+3;
-         cdouble EHB[6], *EB=EHB+0, *HB=EHB+3;
-         for(int Mu=0; Mu<6; Mu++)
-          { EHA[Mu] = conj( RFMatrix->GetEntry(nbfA, 6*nx + Mu));
-            EHB[Mu] = RFMatrix->GetEntry(nbfB, 6*nx + Mu);
-          };
-
-         cdouble Trace, PV[3], MST[3][3];
-         Trace = EpsAbs*(EA[0]*EB[0] + EA[1]*EB[1] + EA[2]*EB[2])
-                 +MuAbs*(HA[0]*HB[0] + HA[1]*HB[1] + HA[2]*HB[2]);
-
-         PV[0] = 0.5*( EA[1]*HB[2] - EA[2]*HB[1] );
-         PV[1] = 0.5*( EA[2]*HB[0] - EA[0]*HB[2] );
-         PV[2] = 0.5*( EA[0]*HB[1] - EA[1]*HB[0] );
-
-         for(int Mu=0; Mu<3; Mu++)
-          for(int Nu=0; Nu<3; Nu++)
-           MST[Mu][Nu] = 0.5*(EpsAbs*EA[Mu]*EB[Nu] + MuAbs*HA[Mu]*HB[Nu]);
-         MST[0][0] -= 0.25*Trace;
-         MST[1][1] -= 0.25*Trace;
-         MST[2][2] -= 0.25*Trace;
-
-         int nt=0;
-#ifdef USE_OPENMP
-         nt = omp_get_thread_num();
-#endif
-         int Index=GetSRFluxIndex(NX, nt, nx, 0);
-         for(int Mu=0; Mu<3; Mu++)
-          DeltaSRFlux[Index++] += Weight*PV[Mu];
-         for(int Mu=0; Mu<3; Mu++)
-          for(int Nu=0; Nu<3; Nu++)
-           DeltaSRFlux[Index++] += Weight*MST[Mu][Nu];
-
-       }; // for(int nbfA=0 ... for(int nbfB=0...
-
-   }; //for(int nx=0; nx<NX; nx++)
-         
-  /*--------------------------------------------------------------*/
-  /*- sum contributions of all threads ---------------------------*/
-  /*--------------------------------------------------------------*/
-  FMatrix->Zero();
-  for(int nx=0; nx<NX; nx++)
-   for(int nq=0; nq<NUMSRFLUX; nq++)
-    for(int nt=0; nt<NumThreads; nt++)
-     FMatrix->AddEntry(nx, nq, real(DeltaSRFlux[ GetSRFluxIndex(nt, nx, nq, NX)] ));
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  free(DeltaSRFlux);
-  delete RFMatrix;
-  return FMatrix;
-
-} // routine GetSRFlux
 
 } // namespace scuff

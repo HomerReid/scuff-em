@@ -70,8 +70,9 @@ int main(int argc, char *argv[])
      {"Omega",       PA_CDOUBLE, 1, 1, (void *)&Omega,  &nOmega,  "angular frequency"},
      {"OmegaFile",   PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of omega points "},
 //
-     {"BZSymmetric",  PA_BOOL,    0, 1, (void *)&BZSymmetric,    0,  "assume BZ integrand is xy-symmetric"},
-     {"BZIMethod",   PA_STRING,  1, 1, (void *)&BZIString,    0,  "Brillouin-zone integration method [DCUTRI | adaptive]"},
+     {"BZSymmetric", PA_BOOL,    0, 1, (void *)&BZSymmetric,  0,  "assume BZ integrand is xy-symmetric"},
+     {"BZIMethod",   PA_STRING,  1, 1, (void *)&BZIString,    0,  "Brillouin-zone integration method [| adaptive]"},
+     {"BZIOrder",    PA_INT,     0, 1, (void *)&BZIOrder,     0,  "cubature order "},
      {"RelTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "relative tolerance for Brillouin-zone integration"},
      {"MaxEvals",    PA_INT,     1, 1, (void *)&MaxEvals,     0,  "maximum number of Brillouin-zone samples"},
      {"OmegakBlochFile", PA_STRING,  1, 1, (void *)&OkBFile,  0,  "list of (omega, kx, ky) values"},
@@ -215,10 +216,11 @@ int main(int argc, char *argv[])
      Args->RelTol          = RelTol;
      Args->Reduced         = true;
 
-     Args->BZIMethod       = (Data->G->LDim==1) ? BZI_CC : BZI_TC;
-     int DefBZIOrder       = (Data->G->LDim==1) ? 21     : 9;
-     if (!BZIString)
-      ; // do nothing if BZIString unspecified
+     int DefBZIOrder=0;
+     if ( !BZIString || !strcasecmp(BZIString,"TC") )
+      { Args->BZIMethod = (LDim==2) ? BZI_TC : BZI_CC;
+        DefBZIOrder     = (LDim==2) ? 9      : 21;
+      }
      else if (!strcasecmp(BZIString,"CC") )
       { Args->BZIMethod = BZI_CC;
         DefBZIOrder=21;
@@ -226,6 +228,7 @@ int main(int argc, char *argv[])
      else if ( !strcasecmp(BZIString,"adaptive") )
       { 
         Args->BZIMethod = BZI_ADAPTIVE;
+        DefBZIOrder     = 0;
       }
      Args->Order        = (BZIOrder==-1) ? DefBZIOrder : BZIOrder;
 

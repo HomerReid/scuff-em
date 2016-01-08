@@ -341,9 +341,9 @@ class RWGGeometry
    HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega,
                       HMatrix *XMatrix, HMatrix *FMatrix=NULL);
 
-   void GetFields(IncField *IF, HVector *KN, cdouble Omega, 
+   void GetFields(IncField *IF, HVector *KN, cdouble Omega,
                   double *kBloch, double *X, cdouble *EH);
-   void GetFields(IncField *IF, HVector *KN, cdouble Omega, 
+   void GetFields(IncField *IF, HVector *KN, cdouble Omega,
                   double *X, cdouble *EH);
 
    /*--------------------------------------------------------------*/
