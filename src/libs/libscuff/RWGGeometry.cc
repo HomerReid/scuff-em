@@ -716,7 +716,10 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   FIBBICaches = (void **)mallocEC(NumSurfaces*sizeof(void *));
   for(int ns=0; ns<NumSurfaces; ns++)
-   FIBBICaches[ns] = CreateFIBBICache(Surfaces[ns]->MeshFileName);
+   if (Mate[ns]!=-1)
+    FIBBICaches[ns] = FIBBICaches[ Mate[ns] ];
+   else
+    FIBBICaches[ns] = CreateFIBBICache(Surfaces[ns]->MeshFileName);
 
 }
 

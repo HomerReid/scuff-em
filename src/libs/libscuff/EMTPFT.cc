@@ -346,6 +346,19 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
                           -real(KNmNK)*imag(   dikCab[Mu])
                         ) / real(Omega);
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+dPFT[PFT_XFORCE] = 0.5*TENTHIRDS*( imag(wu0KK)*imag( MuR*dGab[2])
+                                  +imag(we0NN)*imag(EpsR*dGab[2]) ) / real(Omega);
+dPFT[PFT_YFORCE] = 0.5*TENTHIRDS*( -real(KNmNK)*imag(  dikCab[2]) ) / real(Omega);  
+
+dPFT[PFT_XTORQUE] = 0.5*( real(wu0KK)*imag( MuR*Gab)
+                         +real(we0NN)*imag(EpsR*Gab)
+                        );
+
+dPFT[PFT_YTORQUE] = 0.5*( imag(KNmNK)*imag(ikCab) );
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+
       int nt=0;
 #ifdef USE_OPENMP
       nt=omp_get_thread_num();
@@ -386,6 +399,14 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
      PFTMatrix->AddEntry(ns, nq, DeltaPFT[ nt*NSNQ + ns*NQ + nq ]);
 
   /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (!Interior)
+   for(int ns=0; ns<NS; ns++)
+    PFTMatrix->SetEntry(ns, PFT_PSCAT,
+                       -1.0*PFTMatrix->GetEntry(ns, PFT_PABS));
+
+  /***************************************************************/
   /* add incident-field contributions ****************************/
   /***************************************************************/
   if (IF)
@@ -394,15 +415,14 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  for(int ns=0; ns<NS; ns++)
-   PFTMatrix->AddEntry(ns, PFT_PABS,
-                       -1.0*PFTMatrix->GetEntry(ns, PFT_PSCAT));
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
   for(int ns=0; ns<G->NumSurfaces; ns++)
-   StoreFIBBICache(G->FIBBICaches[ns], G->Surfaces[ns]->MeshFileName);
+   if (G->Mate[ns]==-1)
+    { 
+      StoreFIBBICache(G->FIBBICaches[ns], G->Surfaces[ns]->MeshFileName);
+      int Hits, Misses;
+      int CacheSize=GetFIBBICacheSize(G->FIBBICaches[ns],&Hits, &Misses);
+      Log("EMTPFT surface %i: (%i/%i) hits/misses",ns,Hits,Misses);
+    };
 
   return PFTMatrix;
 }

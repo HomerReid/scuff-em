@@ -123,7 +123,7 @@ public:
                      RWGSurface *SB, int neB, double *FIBBIs);
    void Store(const char *MeshFileName);
    int PreLoad(const char *FileName);
-   int Size();
+   int Size(int *pHits, int *pMisses);
 
    // data
    int Hits, Misses;
@@ -222,10 +222,10 @@ void GetFIBBICacheKey(RWGSurface *SA, int neA,
   VecSubFloat(QMA, QPA, K + 0*3);
   VecSubFloat(V1A, QPA, K + 1*3);
   VecSubFloat(V2A, QPA, K + 2*3);
-  VecSubFloat(QPB, QPA, K + 4*3);
-  VecSubFloat(QMB, QPA, K + 5*3);
-  VecSubFloat(V1B, QPA, K + 6*3);
-  VecSubFloat(V2B, QPA, K + 7*3);
+  VecSubFloat(QPB, QPA, K + 3*3);
+  VecSubFloat(QMB, QPA, K + 4*3);
+  VecSubFloat(V1B, QPA, K + 5*3);
+  VecSubFloat(V2B, QPA, K + 6*3);
 
 }
 
@@ -322,12 +322,14 @@ void FIBBICache::Store(const char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   unsigned int NumRecords = KDM->size();
-  if (    !strcmp(FileName, LastFileName)
-       && NumRecords==NumRecordsInFile
+  if (    NumRecords==NumRecordsInFile
+       && LastFileName 
+       && !strcmp(FileName, LastFileName)
      )
    { Log("FC::S FIBBI cache unchanged since last disk operation (skipping cache dump)");
      return;
    };
+Log("I checked and: (%i,%i), (%s,%s)",NumRecords,NumRecordsInFile,FileName,(LastFileName ? "" : LastFileName));
   if (LastFileName) free(LastFileName);
   LastFileName=strdup(FileName);
 
@@ -482,8 +484,10 @@ int FIBBICache::PreLoad(const char *FileName)
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
-int FIBBICache::Size()
+int FIBBICache::Size(int *pHits, int *pMisses)
 { 
+  if (pHits) *pHits=Hits;
+  if (pMisses) *pMisses=Misses;
   if (opTable==0) return -1;
   KDMap *KDM = (KDMap *)opTable;
   return KDM->size();
@@ -505,9 +509,9 @@ void DestroyFIBBICache(void *pCache)
   delete Cache;
 }
 
-int GetFIBBICacheSize(void *pCache)
+int GetFIBBICacheSize(void *pCache, int *pHits, int *pMisses)
 { FIBBICache *Cache = (FIBBICache *)pCache;
-  return Cache->Size();
+  return Cache->Size(pHits, pMisses);
 }
 
 void StoreFIBBICache(void *pCache, const char *MeshFileName)

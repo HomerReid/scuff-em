@@ -584,7 +584,7 @@ void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
 /***************************************************************/
 void *CreateFIBBICache(char *MeshFileName);
 void DestroyFIBBICache(void *pCache);
-int GetFIBBICacheSize(void *pCache);
+int GetFIBBICacheSize(void *pCache, int *pHits, int *pMisses);
 void StoreFIBBICache(void *pCache, const char *MeshFileName);
 void GetFIBBIData(void *pCache,
                   RWGSurface *SA, int neA, RWGSurface *SB, int neB,
