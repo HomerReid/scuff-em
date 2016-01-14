@@ -198,19 +198,26 @@ int NumCommonVertices(RWGSurface *Sa, int npa, RWGSurface *Sb, int npb)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-int NumCommonBFVertices(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb)
+int AssessBFPair(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb, double *rRel)
 { 
+  RWGEdge *Ea = Sa->Edges[nea];
+  RWGEdge *Eb = Sb->Edges[neb];
+
+  if (rRel)
+   { *rRel = (   VecDistance(Ea->Centroid, Eb->Centroid)
+               / fmax(Ea->Radius, Eb->Radius)
+             );
+   };
+
   if (Sa!=Sb) return 0;
 
   int iVa[4], iVb[4]; 
 
-  RWGEdge *Ea = Sa->Edges[nea];
   iVa[0] = Ea->iQP;
   iVa[1] = Ea->iV1;
   iVa[2] = Ea->iV2;
   iVa[3] = Ea->iQM;
 
-  RWGEdge *Eb = Sb->Edges[neb];
   iVb[0] = Eb->iQP;
   iVb[1] = Eb->iV1;
   iVb[2] = Eb->iV2;

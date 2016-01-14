@@ -711,6 +711,13 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   SurfaceMoved=(int *)mallocEC(NumSurfaces*sizeof(int));
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  FIBBICaches = (void **)mallocEC(NumSurfaces*sizeof(void *));
+  for(int ns=0; ns<NumSurfaces; ns++)
+   FIBBICaches[ns] = CreateFIBBICache(Surfaces[ns]->MeshFileName);
+
 }
 
 /***************************************************************/
@@ -738,6 +745,10 @@ RWGGeometry::~RWGGeometry()
   free(Mate);
   free(SurfaceMoved);
   free(GeoFileName);
+
+  for(int ns=0; ns<NumSurfaces; ns++)
+   DestroyFIBBICache(FIBBICaches[ns]);
+  free(FIBBICaches);
 
 }
 

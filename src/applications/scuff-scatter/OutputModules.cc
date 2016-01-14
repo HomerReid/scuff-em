@@ -463,12 +463,12 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
 namespace scuff{
 
 HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
-                   HVector *KNVector, HVector *RHSVector,
-                   HMatrix *DMatrix, HMatrix *PFTMatrix);
+                   HVector *KNVector, HMatrix *DMatrix, 
+                   HMatrix *PFTMatrix, bool Interior);
 
 void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KNVector,
                                 IncField *IF, cdouble Omega,
-                                HMatrix *PFTMatrix);
+                                HMatrix *PFTMatrix, bool Interior);
 
                }
 
@@ -514,10 +514,16 @@ void WriteEMTPFTFile(SSData *SSD, char *PFTFile)
   int NS=G->NumSurfaces;
   HMatrix *PFTMatrix1 = new HMatrix(NS, NUMPFT);
   HMatrix *PFTMatrix2 = new HMatrix(NS, NUMPFT);
+  HMatrix *PFTMatrix3 = new HMatrix(NS, NUMPFT);
+  HMatrix *PFTMatrix4 = new HMatrix(NS, NUMPFT);
   PFTMatrix1->Zero();
   PFTMatrix2->Zero();
-  AddIFContributionsToEMTPFT(G, KN, IF, Omega, PFTMatrix1);
-  GetEMTPFT(G, Omega, 0, KN, RHSVector, 0, PFTMatrix2);
+  PFTMatrix3->Zero();
+  PFTMatrix4->Zero();
+  AddIFContributionsToEMTPFT(G, KN, IF, Omega, PFTMatrix1, false);
+  GetEMTPFT(G, Omega, 0, KN, 0, PFTMatrix2, false);
+  AddIFContributionsToEMTPFT(G, KN, IF, Omega, PFTMatrix3, true);
+  GetEMTPFT(G, Omega, 0, KN, 0, PFTMatrix4, true);
 
   HVector *PM=G->GetDipoleMoments(Omega, KN);
 
@@ -547,7 +553,26 @@ void WriteEMTPFTFile(SSData *SSD, char *PFTFile)
    };
   fclose(f);
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  f=vfopen("%s.Interior",PFTFile,"a");
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   { 
+     fprintf(f,"%e %s ",real(Omega),G->Surfaces[ns]->Label);
+      
+     for(int nq=0; nq<NUMPFT; nq++)
+      fprintf(f,"%e ",PFTMatrix3->GetEntryD(ns,nq));
+     for(int nq=0; nq<NUMPFT; nq++)
+      fprintf(f,"%e ",PFTMatrix4->GetEntryD(ns,nq));
+
+     fprintf(f,"\n");
+   };
+  fclose(f);
+
   delete PFTMatrix1;
   delete PFTMatrix2;
+  delete PFTMatrix3;
+  delete PFTMatrix4;
   delete PM;
 }

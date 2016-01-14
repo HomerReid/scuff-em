@@ -65,7 +65,7 @@ using namespace scuff;
 #define QMETHOD_CLIFF    1
 #define QMETHOD_TRAPSIMP 2
 
-#define MAXPFTMETHODS 5
+#define MAXPFTMETHODS 6
 
 /****************************************************************/
 /* SNEQData ('scuff-neq data') is a structure that contains all */

@@ -736,11 +736,12 @@ void GetBFCubature2(RWGGeometry *G, int ns, int ne,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetBFBFCubature2(RWGGeometry *G,
-                      int ns, int ne, int nsP, int neP,
+void GetBFBFCubature2(RWGSurface *S, int ne,
+                      RWGSurface *SP, int neP,
                       PPCFunction2 Integrand,
                       void *UserData, int IDim,
-                      int Order, double *Integral)
+                      int Order, double *Integral,
+                      int PanelOnlyA, int PanelOnlyB)
 {
   int NumPts;
   double *TCR=GetTCR(Order,&NumPts);
@@ -749,7 +750,6 @@ void GetBFBFCubature2(RWGGeometry *G,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGSurface *S = G->Surfaces[ns];
   RWGEdge *E    = S->Edges[ne];
   double Length = E->Length;
   double *QP    = S->Vertices + 3*(E->iQP);
@@ -774,7 +774,6 @@ void GetBFBFCubature2(RWGGeometry *G,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGSurface *SP = G->Surfaces[nsP];
   RWGEdge *EP    = SP->Edges[neP];
   double LengthP = EP->Length;
   double *QPP    = SP->Vertices + 3*(EP->iQP);
@@ -808,6 +807,8 @@ void GetBFBFCubature2(RWGGeometry *G,
 
      for(int PM=0; PM<NumPM; PM++)
       { 
+        if (PanelOnlyA!=-1 && PanelOnlyA!=PM) continue;
+
         double b[3], X[3], Sign=(PM==0) ? 1.0 : -1.0;
         double PreFac=Sign*Length/(2.0*Area[PM]);
         for(int Mu=0; Mu<3; Mu++)
@@ -824,6 +825,7 @@ void GetBFBFCubature2(RWGGeometry *G,
 
            for(int PMP=0; PMP<NumPMP; PMP++)
             { 
+              if (PanelOnlyB!=-1 && PanelOnlyB!=PMP) continue;
               double bP[3], XP[3], SignP=(PMP==0) ? 1.0 : -1.0;
               double PreFacP=SignP*LengthP/(2.0*AreaP[PMP]);
               for(int Mu=0; Mu<3; Mu++)
@@ -839,6 +841,18 @@ void GetBFBFCubature2(RWGGeometry *G,
          };        
       };
    };
+}
+
+void GetBFBFCubature2(RWGGeometry *G,
+                      int ns, int ne, int nsP, int neP,
+                      PPCFunction2 Integrand,
+                      void *UserData, int IDim,
+                      int Order, double *Integral,
+                      int PanelOnlyA, int PanelOnlyB)
+{
+  GetBFBFCubature2(G->Surfaces[ns], ne, G->Surfaces[nsP], neP,
+                   Integrand, UserData, IDim, Order, Integral,
+                   PanelOnlyA, PanelOnlyB);
 }
 
 /***************************************************************/
@@ -1036,7 +1050,7 @@ void GetBFBFCubatureTD(RWGGeometry *G,
      VecSub(V1B, QMB, Data->L1B[1]);
    };
 
-  Data->ncv = NumCommonBFVertices(SA, neA, SB, neB);
+  Data->ncv = AssessBFPair(SA, neA, SB, neB);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

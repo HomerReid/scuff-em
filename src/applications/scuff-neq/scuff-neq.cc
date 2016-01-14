@@ -210,7 +210,9 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   int NumPFTMethods=0, PFTMethods[MAXPFTMETHODS];
   if(EMTPFT)
-   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
+   { PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
+     PFTMethods[NumPFTMethods++] = 1000;
+   }
   if(EPPFT)
    PFTMethods[NumPFTMethods++] = SCUFF_PFT_EP;
   if(OPFT)

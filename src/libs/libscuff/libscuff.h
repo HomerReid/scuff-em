@@ -502,6 +502,8 @@ class RWGGeometry
 
    char *GeoFileName;
 
+   void **FIBBICaches;
+
    /**************************************************************/
    /* LDim=0 for compact geometries.                             */
    /* For geometries with D-dimensional Bloch-periodicity,       */
@@ -576,6 +578,17 @@ void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
                        double TorqueAxisZ, double *GammaMatrix);
 void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void *CreateFIBBICache(char *MeshFileName);
+void DestroyFIBBICache(void *pCache);
+int GetFIBBICacheSize(void *pCache);
+void StoreFIBBICache(void *pCache, const char *MeshFileName);
+void GetFIBBIData(void *pCache,
+                  RWGSurface *SA, int neA, RWGSurface *SB, int neB,
+                  double *FIBBIs);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/

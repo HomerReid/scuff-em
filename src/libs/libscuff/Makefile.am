@@ -6,7 +6,9 @@ libscuff_la_SOURCES = \
  ReadComsolFile.cc 		\
  ReadGMSHFile.cc 		\
  InitEdgeList.cc 		\
+ FIBBICache.cc   		\
  PBCSetup.cc 			\
+ GCMatrixElements.cc		\
  GTransformation.cc 		\
  GTransformation.h 		\
  PointInObject.cc 		\
