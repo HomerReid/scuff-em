@@ -90,7 +90,8 @@ int main(int argc, char *argv[])
   int Intervals=25.0;                int nIntervals=0;
    
   /*--------------------------------------------------------------*/
-  bool EMTPFT      = false;
+  bool IEMTPFT     = false;
+  bool EEMTPFT     = false;
   bool EPPFT       = false;
   bool OPFT        = false;
   int DSIPoints    = 0;
@@ -152,7 +153,8 @@ int main(int argc, char *argv[])
 /**/     
      {"PlotFlux",       PA_BOOL,    0, 1,       (void *)&PlotFlux,   0,             "write spatially-resolved flux data"},
 /**/
-     {"EMTPFT",         PA_BOOL,    0, 1,       (void *)&EMTPFT,     0,             "compute SIFlux using EMT method"},
+     {"IEMTPFT",        PA_BOOL,    0, 1,       (void *)&IEMTPFT,     0,            "compute SIFlux using interior EMT method"},
+     {"EEMTPFT",        PA_BOOL,    0, 1,       (void *)&EEMTPFT,     0,            "compute SIFlux using exterior EMT method"},
      {"EPPFT",          PA_BOOL,    0, 1,       (void *)&EPPFT,      0,             "compute SIFlux using EP method"},
      {"OPFT",           PA_BOOL,    0, 1,       (void *)&OPFT,       0,             "compute SIFlux using overlap method"},
      {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of cubature points for DSIPFT"},
@@ -209,10 +211,10 @@ int main(int argc, char *argv[])
   /* determine which PFT methods were requested       ****************/
   /*******************************************************************/
   int NumPFTMethods=0, PFTMethods[MAXPFTMETHODS];
-  if(EMTPFT)
-   { PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
-     PFTMethods[NumPFTMethods++] = 1000;
-   }
+  if(IEMTPFT)
+   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT_INTERIOR;
+  if(EEMTPFT)
+   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT_EXTERIOR;
   if(EPPFT)
    PFTMethods[NumPFTMethods++] = SCUFF_PFT_EP;
   if(OPFT)
@@ -225,7 +227,7 @@ int main(int argc, char *argv[])
    PFTMethods[NumPFTMethods++] = DSIPoints2;
 
   if (NumPFTMethods==0 && EPFile==0)
-   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT;
+   PFTMethods[NumPFTMethods++] = SCUFF_PFT_EMT_INTERIOR;
 
   /*******************************************************************/
   /*******************************************************************/

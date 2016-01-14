@@ -62,7 +62,7 @@ void WriteDSIPFTFile(SSData *SSD, char *FileName, char *DSIMesh,
 #endif
 void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
                   bool PlotFlux, char *FileName);
-void WriteEMTPFTFile(SSData *SSD, char *PFTFile);
+void WriteEMTPFTFile(SSData *SSD, char *PFTFile, bool Interior);
 void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);

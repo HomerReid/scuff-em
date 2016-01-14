@@ -334,6 +334,7 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
       cdouble *dikCab = ikCabArray[0] + GCME_FX;
   
       double dPFT[NUMPFT];
+      dPFT[PFT_PABS ] = 0.0;
       dPFT[PFT_PSCAT] = 0.5*(  real(wu0KK)*imag( MuR*Gab)
                               +real(we0NN)*imag(EpsR*Gab)
                               +imag(KNmNK)*imag(   ikCab)
@@ -349,6 +350,7 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 dPFT[PFT_XFORCE] = 0.5*TENTHIRDS*( imag(wu0KK)*imag( MuR*dGab[2])
                                   +imag(we0NN)*imag(EpsR*dGab[2]) ) / real(Omega);
+
 dPFT[PFT_YFORCE] = 0.5*TENTHIRDS*( -real(KNmNK)*imag(  dikCab[2]) ) / real(Omega);  
 
 dPFT[PFT_XTORQUE] = 0.5*( real(wu0KK)*imag( MuR*Gab)
@@ -367,18 +369,18 @@ dPFT[PFT_YTORQUE] = 0.5*( imag(KNmNK)*imag(ikCab) );
       int OffsetB = nt*NSNQ + nsb*NQ;
 
        if (neaTot==nebTot)
-        DeltaPFT[ OffsetA + PFT_PABS ] += abSign*dPFT[PFT_PABS];
+        DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
        else if (nsa==nsb) // nebTot > neaTot but both on same surface
         { 
-          DeltaPFT[ OffsetA + PFT_PABS ] += 2.0*abSign*dPFT[PFT_PABS];
+          DeltaPFT[ OffsetA + PFT_PSCAT ] += 2.0*abSign*dPFT[PFT_PSCAT];
           for(int Mu=0; Mu<6; Mu++)
            DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
             += 2.0*abSign*dPFT[PFT_XFORCE + Mu];
         }
        else // nebTot > neaTot and on different objects
         { 
-          DeltaPFT[ OffsetA + PFT_PABS ] += abSign*dPFT[PFT_PABS];
-          DeltaPFT[ OffsetB + PFT_PABS ] += baSign*dPFT[PFT_PABS];
+          DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
+          DeltaPFT[ OffsetB + PFT_PSCAT ] += baSign*dPFT[PFT_PSCAT];
           for(int Mu=0; Mu<6; Mu++)
            { DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
               += abSign*dPFT[PFT_XFORCE + Mu];
@@ -403,8 +405,8 @@ dPFT[PFT_YTORQUE] = 0.5*( imag(KNmNK)*imag(ikCab) );
   /***************************************************************/
   if (!Interior)
    for(int ns=0; ns<NS; ns++)
-    PFTMatrix->SetEntry(ns, PFT_PSCAT,
-                       -1.0*PFTMatrix->GetEntry(ns, PFT_PABS));
+    PFTMatrix->SetEntry(ns, PFT_ABS,
+                       -1.0*PFTMatrix->GetEntry(ns, PFT_PSCAT));
 
   /***************************************************************/
   /* add incident-field contributions ****************************/

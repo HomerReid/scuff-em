@@ -71,10 +71,11 @@ namespace scuff {
 #define SCUFF_PFT_EPOVERLAP     3
 #define SCUFF_PFT_EPDSI         4
 
-#define SCUFF_PFT_EMT           5   // energy/momentum transfer method
-#define SCUFF_PFT_MOMENTS       6   // dipole-moment method
+#define SCUFF_PFT_EMT_INTERIOR  5   // energy/momentum transfer method
+#define SCUFF_PFT_EMT_EXTERIOR  6
+#define SCUFF_PFT_MOMENTS       7   // dipole-moment method
 
-#define SCUFF_PFT_DEFAULT       SCUFF_PFT_EPOVERLAP
+#define SCUFF_PFT_DEFAULT       SCUFF_PFT_EMT_INTERIOR
 
 /***************************************************************/
 /***************************************************************/

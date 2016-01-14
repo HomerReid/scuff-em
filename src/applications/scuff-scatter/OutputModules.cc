@@ -475,9 +475,10 @@ void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KNVector,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteEMTPFTFile(SSData *SSD, char *PFTFile)
+void WriteEMTPFTFile(SSData *SSD, char *PFTFile, bool Interior)
 { 
-  Log("Computing EMTPFT at Omega=%s...",z2s(SSD->Omega));
+  Log("Computing %s EMTPFT at Omega=%s...",
+       Interior ? "interior" : "exterior", z2s(SSD->Omega));
 
   /***************************************************************/
   /* write file preamble as necessary ****************************/
@@ -520,10 +521,8 @@ void WriteEMTPFTFile(SSData *SSD, char *PFTFile)
   PFTMatrix2->Zero();
   PFTMatrix3->Zero();
   PFTMatrix4->Zero();
-  AddIFContributionsToEMTPFT(G, KN, IF, Omega, PFTMatrix1, false);
-  GetEMTPFT(G, Omega, 0, KN, 0, PFTMatrix2, false);
-  AddIFContributionsToEMTPFT(G, KN, IF, Omega, PFTMatrix3, true);
-  GetEMTPFT(G, Omega, 0, KN, 0, PFTMatrix4, true);
+  AddIFContributionsToEMTPFT(G, KN, IF, Omega, PFTMatrix1, Interior);
+  GetEMTPFT(G, Omega, 0, KN, 0, PFTMatrix2, Interior);
 
   HVector *PM=G->GetDipoleMoments(Omega, KN);
 
@@ -553,26 +552,7 @@ void WriteEMTPFTFile(SSData *SSD, char *PFTFile)
    };
   fclose(f);
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  f=vfopen("%s.Interior",PFTFile,"a");
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   { 
-     fprintf(f,"%e %s ",real(Omega),G->Surfaces[ns]->Label);
-      
-     for(int nq=0; nq<NUMPFT; nq++)
-      fprintf(f,"%e ",PFTMatrix3->GetEntryD(ns,nq));
-     for(int nq=0; nq<NUMPFT; nq++)
-      fprintf(f,"%e ",PFTMatrix4->GetEntryD(ns,nq));
-
-     fprintf(f,"\n");
-   };
-  fclose(f);
-
   delete PFTMatrix1;
   delete PFTMatrix2;
-  delete PFTMatrix3;
-  delete PFTMatrix4;
   delete PM;
 }
