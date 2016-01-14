@@ -387,7 +387,7 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
 // FIXME
   bool NeedForce=true;
 
-  int NumFIBBIs = NeedForce ? 12 : NUMFIBBIS;
+  int NumFIBBIs = NeedForce ? NUMFIBBIS : 12;
   memset(FIBBIs, 0, NumFIBBIs*sizeof(double));
 
   /***************************************************************/

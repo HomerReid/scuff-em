@@ -405,7 +405,7 @@ dPFT[PFT_YTORQUE] = 0.5*( imag(KNmNK)*imag(ikCab) );
   /***************************************************************/
   if (!Interior)
    for(int ns=0; ns<NS; ns++)
-    PFTMatrix->SetEntry(ns, PFT_ABS,
+    PFTMatrix->SetEntry(ns, PFT_PABS,
                        -1.0*PFTMatrix->GetEntry(ns, PFT_PSCAT));
 
   /***************************************************************/
