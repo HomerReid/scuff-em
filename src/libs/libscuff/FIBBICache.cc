@@ -131,9 +131,8 @@ public:
 
    pthread_rwlock_t lock;
 
-   char *PreloadFileName;
-   unsigned int RecordsPreloaded;
-   unsigned int RecordsWritten;
+   char *LastFileName;
+   unsigned int NumRecordsInFile;
 
 };
 
@@ -152,9 +151,8 @@ FIBBICache::FIBBICache(char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*- attempt to preload cache                                   -*/
   /*--------------------------------------------------------------*/
-  PreloadFileName=0;
-  RecordsPreloaded=0;
-  RecordsWritten=0;
+  LastFileName=0;
+  NumRecordsInFile=0;
   if (MeshFileName)
    { 
      char CacheFileName[MAXSTR];
@@ -184,8 +182,7 @@ FIBBICache::~FIBBICache()
 {
   pthread_rwlock_destroy(&lock);
 
-  if (PreloadFileName)
-   free(PreloadFileName);
+  if (LastFileName) free(LastFileName);
 
   KDMap *KDM = (KDMap *)opTable;
   delete KDM;
@@ -322,29 +319,17 @@ void FIBBICache::Store(const char *MeshFileName)
   KDMap *KDM = (KDMap *)opTable;
 
   /*--------------------------------------------------------------*/
-  /*- pause to check if the following conditions are satisfied:  -*/
-  /*-  (1) the FIBBI cache was preloaded from an input file whose-*/
-  /*-      name matches the name of the output file to which we  -*/
-  /*-      are being asked to dump the cache                     -*/
-  /*-  (2) the number of cache records hasn't changed since we   -*/
-  /*-      preloaded from the input file.                        -*/
-  /*- if both conditions are satisfied, we don't bother to dump  -*/
-  /*- the cache since the operation would result in a cache dump -*/
-  /*- file identical to the one that already exists.             -*/
+  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   unsigned int NumRecords = KDM->size();
-  if (NumRecords==RecordsWritten)
-   { Log("FC::S FIBBI cache unchanged since last written to disk (skipping cache dump");
-     return;
-   };
-
-  if (     PreloadFileName
-       && !strcmp(PreloadFileName, FileName)
-       && NumRecords==RecordsPreloaded
+  if (    !strcmp(FileName, LastFileName)
+       && NumRecords==NumRecordsInFile
      )
-   { Log("FC::S FIBBI cache unchanged since reading from %s (skipping cache dump)",FileName);
+   { Log("FC::S FIBBI cache unchanged since last disk operation (skipping cache dump)");
      return;
    };
+  if (LastFileName) free(LastFileName);
+  LastFileName=strdup(FileName);
 
   /*--------------------------------------------------------------*/
   /*- i assume that Preload() and Store() won't be called from    */
@@ -367,7 +352,7 @@ void FIBBICache::Store(const char *MeshFileName)
   /*---------------------------------------------------------------------*/
   /*- iterate through the table and write entries to the file one-by-one */
   /*---------------------------------------------------------------------*/
-  RecordsWritten=0;
+  NumRecordsInFile=0;
   KDMap::iterator it;
   for ( it = KDM->begin(); it != KDM->end(); it++ )
    { 
@@ -376,14 +361,14 @@ void FIBBICache::Store(const char *MeshFileName)
      if (    (1 != fwrite(Key,  KEYSIZE,  1, f )) 
           || (1 != fwrite(Data, DATASIZE, 1, f ))
         ) break;
-     RecordsWritten++;
+     NumRecordsInFile++;
    };
 
   /*---------------------------------------------------------------------*/
   /*- and that's it -----------------------------------------------------*/
   /*---------------------------------------------------------------------*/
   fclose(f);
-  Log("FC::S ...wrote %i/%i FIBBI records.",RecordsWritten,NumRecords);
+  Log("FC::S ...wrote %i/%i FIBBI records.",NumRecordsInFile,NumRecords);
 
   //FCLock.read_unlock();
 }
@@ -393,7 +378,6 @@ void FIBBICache::Store(const char *MeshFileName)
 /***************************************************************/
 int FIBBICache::PreLoad(const char *FileName)
 {
-  
   /*--------------------------------------------------------------*/
   /*- try to open the file ---------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -476,12 +460,11 @@ int FIBBICache::PreLoad(const char *FileName)
   /* allow us to skip dumping the cache back to disk in cases     */
   /* where that would amount to just rewriting the same cache     */
   /*--------------------------------------------------------------*/
-  if (PreloadFileName)
-   free(PreloadFileName);
-  PreloadFileName=strdupEC(FileName);
-  RecordsPreloaded=RecordsRead;
+  if (LastFileName) free(LastFileName);
+  LastFileName=strdupEC(FileName);
+  NumRecordsInFile=RecordsRead;
 
-  Log("FC::P ...successfully preloaded %i FIBBI records.",RecordsPreloaded);
+  Log("FC::P ...successfully preloaded %i FIBBI records.",RecordsRead);
 #define ONEMEG (1<<20)
   Log("FC::P Cache memory use: %i MB.",(GetMemoryUsage() - M0)/(ONEMEG));
   fclose(f);

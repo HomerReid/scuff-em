@@ -185,7 +185,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
      /***************************************************************/
      cdouble G0, dG[3], ddGBuffer[9], *ddG=(NeedSpatialDerivatives ? ddGBuffer : 0);
      cdouble k  = kVector[nr];
-     cdouble ik = II*k, k2=k*k, k3=k2*k;
+     cdouble ik = II*k, ikr=ik*r, k2=k*k, k3=k2*k;
    
      if (GBA[nr])
       { 
@@ -193,17 +193,16 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
       }
      else 
       { 
-        cdouble ikr=ik*r;
-        if (DeSingularize)
-         G0 = ExpRel(ikr, 4)/ (4.0*M_PI*r);
-        else
-         G0 = (r==0.0) ? ik/(4.0*M_PI) : exp(ikr)/(4.0*M_PI*r);
-
         cdouble Psi;
         if (r==0.0)
-         Psi = DeSingularize ? 0.0 : -II*k3/12.0;
+         { G0  = DeSingularize ? 0.0 : ik/(4.0*M_PI);
+           Psi = DeSingularize ? 0.0 : -II*k3/(12.0*M_PI);
+         }
         else
-         Psi = G0*(ikr-1.0)/r2;
+         { G0 = DeSingularize ? ExpRel(ikr,4) : exp(ikr);
+           G0 /= (4.0*M_PI*r);
+           Psi = G0*(ikr-1.0)/r2;
+         };
         dG[0] = R[0]*Psi;
         dG[1] = R[1]*Psi;
         dG[2] = R[2]*Psi;
@@ -370,6 +369,14 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
 
 }
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+static int TDMaxEval=1000;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -423,6 +430,9 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
   TDArgs->PIndex=PIndex;
   TDArgs->KIndex=KIndex;
   TDArgs->KParam=KParam;
+  TDArgs->AbsTol=0.0;
+  TDArgs->RelTol=1.0e-4;
+  TDArgs->MaxEval=TDMaxEval;
   RWGEdge *Ea = Sa->Edges[nea];
   RWGEdge *Eb = Sb->Edges[neb];
   double LL = Ea->Length * Eb->Length;
@@ -604,6 +614,17 @@ void InitGetGCMEArgs(GetGCMEArgStruct *Args)
   Args->ForceDeSingularize=false;
   Args->DoNotDeSingularize=false;
   Args->ForceOrder=-1;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+static int init=0;
+if (init==0)
+ { init=1;
+   char *s=getenv("SCUFF_TDMAXEVAL");
+   if (s)
+    { sscanf(s,"%i",&TDMaxEval);
+      Log("Setting TDMaxEval=%i.");
+    };
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
