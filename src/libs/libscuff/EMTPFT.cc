@@ -342,10 +342,10 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
 
       for(int Mu=0; Mu<6; Mu++)
        dPFT[PFT_XFORCE + Mu]
-        = 0.5*TENTHIRDS*(  imag(wu0KK)*imag( MuR*dGab[Mu])
-                          +imag(we0NN)*imag(EpsR*dGab[Mu])
-                          -real(KNmNK)*imag(   dikCab[Mu])
-                        ) / real(Omega);
+        = -0.5*TENTHIRDS*(  imag(wu0KK)*imag( MuR*dGab[Mu])
+                           +imag(we0NN)*imag(EpsR*dGab[Mu])
+                           -real(KNmNK)*imag(   dikCab[Mu])
+                         ) / real(Omega);
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 dPFT[PFT_XFORCE] = 0.5*TENTHIRDS*( imag(wu0KK)*imag( MuR*dGab[2])

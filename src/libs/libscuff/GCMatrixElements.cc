@@ -256,7 +256,8 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
 
      /*- \partial_i G,C ---------------------------------------------*/
      if (NeedForce)
-      { zIntegral[nzi++] += Weight*PEFIE*dG[0];
+      { 
+        zIntegral[nzi++] += Weight*PEFIE*dG[0];
         zIntegral[nzi++] += Weight*PEFIE*dG[1];
         zIntegral[nzi++] += Weight*PEFIE*dG[2];
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[0*3+0] + bxb[1]*ddG[0*3 + 1] + bxb[2]*ddG[0*3+2]);
@@ -347,7 +348,7 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
      for(int Mu=0; Mu<3; Mu++)
       {
          Gab[GCME_FX + Mu]
-           +=  D[0]*(        FIBBIs[FIBBI_PEFIE1_RX_RM3 + Mu]
+           +=  D[0]*(        FIBBIs[FIBBI_PEFIE1_RX_RM3 + Mu]  
                       - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM3 + Mu] )
               +D[1]*(        FIBBIs[FIBBI_PEFIE1_RX_RM1 + Mu]
                       - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM1 + Mu] )
