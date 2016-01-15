@@ -397,6 +397,8 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
   InitGetGCMEArgs(GetGCMEArgs);
   GetGCMEData MyGetGCMEData, *Data=&MyGetGCMEData;
   Data->Args=GetGCMEArgs;
+  Data->Args->NeedGC    = true;
+  Data->Args->NeedForce = NeedForce;
   Data->GetFIBBIs=true;
 
   /***************************************************************/
