@@ -250,7 +250,7 @@ void ProcessOptions(int argc, char *argv[], OptStruct *OSArray)
      /*- collect all successive arguments that do not begin with     */
      /*- '--' as parameters for the current option                   */
      /*--------------------------------------------------------------*/
-     for(nt=NumTokens=0; nt<MAXTOK && (narg+nt+1)<argc; nt++)
+     for(nt=NumTokens=0; nt<MAXTOK && argv[narg+nt+1] && (narg+nt+1)<argc; nt++)
       { if ( !strncmp(argv[narg+nt+1],"--",2) )
          break;
         Tokens[NumTokens]=argv[narg+nt+1];
