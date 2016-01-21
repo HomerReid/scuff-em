@@ -31,6 +31,10 @@
 
 #include "libhrutil.h"
 #include "libTriInt.h"
+#include "BZIntegration.h"
+
+#define MAXBZDIM 3
+#define MAXSTR 1000
 
 #ifdef HAVE_DCUTRI
  void *CreateDCUTRIWorkspace(int numfun, int maxpts);
@@ -113,7 +117,7 @@ void GetBZIntegral_PCubature(GetBZIArgStruct *Args,
   HMatrix *RLBasis   = Args->RLBasis;
   int LDim           = RLBasis->NC;
   int FDim           = Args->FDim;
-  int MaxPoints      = Args->MaxPoints;
+  int MaxEvals       = Args->MaxEvals;
   double *BZIError   = Args->BZIError;
   double RelTol      = Args->RelTol;
   double AbsTol      = Args->AbsTol;
@@ -125,7 +129,7 @@ void GetBZIntegral_PCubature(GetBZIArgStruct *Args,
    Upper[0]=Upper[1]=0.5;
   Args->Omega = Omega;
   pcubature(FDim, BZIntegrand_PCubature, (void *)Args, LDim,
-	    Lower, Upper, MaxPoints, AbsTol, RelTol,
+	    Lower, Upper, MaxEvals, AbsTol, RelTol,
 	    ERROR_INDIVIDUAL, BZIntegral, BZIError);
  
 }
@@ -179,16 +183,16 @@ void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  static int FDimSave=0, MaxPointsSave=0;
+  static int FDimSave=0, MaxEvalsSave=0;
   static void *Workspace=0;
   static double *Error=0;
   if (Order==0)
    {
-     if (FDimSave!=FDim || MaxPointsSave!=Args->MaxPoints )
+     if (FDimSave!=FDim || MaxEvalsSave!=Args->MaxEvals )
       { FDimSave=FDim;
-        MaxPointsSave=Args->MaxPoints;
+        MaxEvalsSave=Args->MaxEvals;
         if (Workspace) free(Workspace);
-        Workspace=CreateDCUTRIWorkspace(FDim, Args->MaxPoints);
+        Workspace=CreateDCUTRIWorkspace(FDim, Args->MaxEvals);
         Error=(double *)reallocEC(Error, FDim*sizeof(double));
       };
    };
@@ -472,7 +476,7 @@ double SetRLBasis(HMatrix *LBasis, HMatrix *RLBasis,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *GetRLBasis(HMatrix *LBasis, 
+HMatrix *GetRLBasis(HMatrix *LBasis,
                     double *pLVolume, double *pRLVolume)
 {
   HMatrix *RLBasis = new HMatrix(LBasis);
@@ -483,78 +487,150 @@ HMatrix *GetRLBasis(HMatrix *LBasis,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void InitGetBZIArgs(GetBZIArgStruct *Args, HMatrix *LBasis)
-{
-  Args->BZIFunc      = 0;
-  Args->UserData     = 0;
-  Args->FDim         = 0;
-  Args->BZSymmetric  = false;
-
-  Args->BZIMethod    = BZI_ADAPTIVE;
-  Args->MaxPoints    = 0;
-  Args->NumCalls     = 0;
-  Args->Order        = 4;
-  Args->RelTol       = 1.0e-2;
-  Args->AbsTol       = 0.0;
-  Args->Reduced      = true;
-
-  Args->BZIError     = 0;
-  Args->BZIErrorSize = 0;
-
-  if (!LBasis || (LBasis->NR!=3 || LBasis->NC>=4) )
-   ErrExit("Invalid lattice basis in InitGetBZIArgs");
-
-  Args->RLBasis = GetRLBasis(LBasis);
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-GetBZIArgStruct *CreateGetBZIArgs(HMatrix *LBasis)
-{ 
-  GetBZIArgStruct *Args = (GetBZIArgStruct *)mallocEC(sizeof(*Args));
-  InitGetBZIArgs(Args, LBasis);
-  return Args;
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-#if 0
-GetBZIArgStruct *ProcessBZIOptions(int argc, char *argv[])
+void BZIUsage(const char *format, ...)
 {
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  GetBZIArgStruct *Args = (GetBZIArgStruct *)mallocEC(sizeof(*Args));
+  if (format)
+   { va_list ap; 
+     char buffer[MAXSTR];
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  char *BZIString=0;
-  int BZIOrder=-1;
-  int BZIMaxPoints=1000;
-  bool BZSymmetric=false;
-  double BZIRelTol=1.0e-2;
-  double BZIAbsTol=0.0;
+     va_start(ap,format);
+     vsnprintfEC(buffer,MAXSTR,format,ap);
+     va_end(ap);
 
-  OptStruct OSArray[]=
-   { 
-     {"BZIMethod",     PA_STRING,  1, 1, (void *)&BZIString,    0,  "Brillouin-zone integration method [DCUTRI | adaptive]"},
-     {"BZIOrder",      PA_INT,     1, 1, (void *)&BZIOrder,     0,  "Brillouin-zone integration order"},
-     {"BZIRelTol",     PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "relative tolerance for Brillouin-zone integration"},
-     {"BZIAbsTol",     PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "absolute tolerance for Brillouin-zone integration"},
-     {"BZIMaxPoints",  PA_INT,     1, 1, (void *)&MaxEvals,     0,  "maximum number of Brillouin-zone samples"},
-     {"BZSymmetric",   PA_BOOL,    0, 1, (void *)&BZSymmetric,  0,  "assume BZ integrand is xy-symmetric"},
+     fprintf(stderr,"error: %s (aborting)\n",buffer);
    };
-  ProcessOptions(argc, argv, OSArray);
 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  printf("\n");
+  printf("Options controlling Brillouin-zone integration: \n");
+  printf("\n");
+  printf("--BZIMethod   [TC | CC | Adaptive]\n");
+  printf("--BZIOrder    xx \n");
+  printf("--BZIRelTol   xx \n");
+  printf("--BZIMaxEvals xx \n");
+  printf("--BZSymmetric    \n");
+  printf("--FullBZ         \n");
+  printf("\n");
+
+  exit(1);
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void SetLBasis(Get BZIArgStruct *Args, HMatrix *LBasis)
+GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
 {
+  /***************************************************************/
+  /* allocate structure and fill in default values ***************/
+  /***************************************************************/
+  GetBZIArgStruct *BZIArgs = (GetBZIArgStruct *)mallocEC(sizeof(*BZIArgs));
+  BZIArgs->BZSymmetric = false;
+  BZIArgs->BZIMethod   = BZI_DEFAULT;
+  BZIArgs->Order       = -1;
+  BZIArgs->MaxEvals    = 1000;
+  BZIArgs->RelTol      = 1.0e-2;
+  BZIArgs->AbsTol      = 0.0;
+  BZIArgs->Reduced     = true;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  for(int narg=1; narg<argc; narg++)
+   { 
+     if (argv[narg]==0) 
+      continue;
+
+     char *Arg    = argv[narg];
+     char *Option = ( narg == (argc-1) ? 0 : argv[narg+1]);
+
+     // handle boolean options
+     if ( !strcasecmp(Arg,"--BZSymmetric") )
+      { BZIArgs->BZSymmetric = true; 
+        argv[narg]=0;
+        continue;
+      };
+
+     if ( !strcasecmp(Arg,"--FullBZ") )
+      { BZIArgs->Reduced = false;
+        argv[narg]=0;
+        continue;
+      };
+
+     if ( !strcasecmp(Arg,"--BZIMethod") )
+      { if (Option==0) 
+         ErrExit("--BZIMethod requires an argument");
+        if (!strcasecmp(Option,"TC")) 
+         BZIArgs->BZIMethod = BZI_TC;
+        else if (!strcasecmp(Option,"CC")) 
+         BZIArgs->BZIMethod = BZI_CC;
+        else if (!strcasecmp(Option,"Adaptive")) 
+         BZIArgs->BZIMethod = BZI_ADAPTIVE;
+        else
+         ErrExit("unknown BZIMethod %s",Option);
+        argv[narg]=argv[narg+1]=0;
+        continue;
+      };
+
+     if ( !strcasecmp(Arg,"--BZIOrder") )
+      { if (Option==0) 
+         ErrExit("--BZIOrder requires an argument");
+        if (1!=sscanf(Option,"%i",&(BZIArgs->Order)))
+         ErrExit("invalid BZIOrder %s",Option);
+        argv[narg]=argv[narg+1]=0;
+        continue;
+      };
+
+     if ( !strcasecmp(Arg,"--BZIRelTol") )
+      { if (Option==0) 
+         ErrExit("--BZIRelTol requires an argument");
+        if (1!=sscanf(Option,"%le",&(BZIArgs->RelTol)))
+         ErrExit("invalid BZIRelTol %s",Option);
+        argv[narg]=argv[narg+1]=0;
+        continue;
+      };
+
+     if ( !strcasecmp(Arg,"--BZIMaxEvals") )
+      { if (Option==0)
+         ErrExit("--BZIMaxEvals requires an argument");
+        if (1!=sscanf(Option,"%i",&(BZIArgs->MaxEvals)))
+         ErrExit("invalid BZIRelTol %s",Option);
+        argv[narg]=argv[narg+1]=0;
+        continue;
+      };
+
+   }; // for(int narg=1; narg<argc; narg++)
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  return BZIArgs;
 }
-#endif
+
+void UpdateBZIArgs(GetBZIArgStruct *Args,
+                   HMatrix *RLBasis, double RLVolume)
+{
+  Args->RLBasis         = RLBasis;
+  Args->BZVolume        = RLVolume;
+  
+  int LDim = RLBasis->NC;
+
+  if (Args->BZIMethod==BZI_DEFAULT)
+   Args->BZIMethod = (LDim==1 ? BZI_CC : BZI_TC);
+  if (Args->Order==-1)
+   Args->Order  = (LDim==1 ? 21     : 9);
+
+  Log("Evaluating BZ integral by ");
+   if (Args->BZIMethod==BZI_TC)
+  LogC("triangle cubature, order %i: ",Args->Order);
+   else if (Args->BZIMethod==BZI_CC)
+  LogC("Clenshaw-Curtis cubature, order %i: ",Args->Order);
+   else if (Args->BZIMethod==BZI_ADAPTIVE)
+  LogC("adaptive cubature, {relTol, maxEvals}={%e,%i}",
+        Args->RelTol, Args->MaxEvals);
+
+}

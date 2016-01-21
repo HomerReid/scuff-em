@@ -37,7 +37,8 @@ pages:
     - 'Geometry descriptions':     'reference/Geometries.md'
     - 'Material designations':     'reference/Materials.md'
     - 'Geometric transformations': 'reference/Transformations.md'
-    - 'Incident Fields':           'reference/IncidentFields.md'
+    - 'Incident fields':           'reference/IncidentFields.md'
+    - 'Brillouin zone integration': 'reference/BrillouinZoneIntegration.md'
 - Command-line application reference:
     - 'General command-line reference': 'applications/GeneralReference.md'
     - 'scuff-scatter':         'applications/scuff-scatter/scuff-scatter.md'

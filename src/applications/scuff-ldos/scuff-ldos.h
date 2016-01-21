@@ -28,14 +28,10 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libTriInt.h>
+#include <BZIntegration.h>
 #include "libscuff.h"
 
 using namespace scuff;
-
-// Brillouin-zone integration methods
-#define BZI_PCUBATURE 0
-#define BZI_DCUTRI    1
-#define BZI_FOTC      2
 
 #define FILETYPE_LDOS 0
 #define FILETYPE_BYK  1
@@ -85,11 +81,6 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
                int FileType, double *Result, double *Error);
 void GetLDOS(void *Data, cdouble Omega, double *kBloch, 
              double *Result);
-
-// Integration.cc
-void GetBZIntegral_PCubature(SLDData *Data, cdouble Omega);
-void GetBZIntegral_DCUTRI(SLDData *Data, cdouble Omega);
-void GetBZIntegral_FOTC(SLDData *Data, cdouble Omega, char *BZIString);
 
 // AnalyticalDGFs.cc
 int GetHalfSpaceDGFs(double z, cdouble Omega, double kBloch[2],

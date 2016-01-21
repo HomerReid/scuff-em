@@ -34,6 +34,7 @@
 #include <libhmat.h>
 #include <libMDInterp.h>
 #include <libTriInt.h>
+#include <BZIntegration.h>
 #include <libscuff.h>
 
 using namespace scuff;
@@ -117,7 +118,7 @@ typedef struct SCPData
    // these items only used for periodic geometries
    void **ABMBCache;
    char *ByXikFileName;
-   GetBZIArgStruct *GBZIArgs;
+   GetBZIArgStruct *BZIArgs;
 
  } SCPData; 
 

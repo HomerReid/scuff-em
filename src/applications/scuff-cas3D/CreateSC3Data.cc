@@ -195,18 +195,6 @@ SC3Data *CreateSC3Data(RWGGeometry *G, char *TransFile,
       };
    };
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  SC3D->BZIArgs=0;
-  if (PBC)
-   { SC3D->BZIArgs=CreateGetBZIArgs(G->LBasis);
-     SC3D->BZIArgs->BZIFunc   = GetCasimirIntegrand;
-     SC3D->BZIArgs->UserData  = (void *)SC3D;
-     SC3D->BZIArgs->FDim      = SC3D->NTNQ;
-     SC3D->BZIArgs->Reduced   = true;
-   };
-
   return SC3D;
 
 }
@@ -313,5 +301,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
   fclose(f);
 
   SC3D->UTIntegralBuffer[0]=SC3D->UTIntegralBuffer[1]=0;
+
+  SC3D->BZIArgs=0;
 
 }

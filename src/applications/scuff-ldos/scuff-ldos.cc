@@ -14,6 +14,7 @@
 #include <libscuff.h>
 #include <libscuffInternals.h>
 #include <libSGJC.h>
+#include <BZIntegration.h>
 #include "scuff-ldos.h"
 
 #define II cdouble(0.0,1.0)
@@ -31,9 +32,9 @@ int main(int argc, char *argv[])
 
   /***************************************************************/
   /* pre-process command-line arguments to extract arguments     */
-  /* relevant for Brillouin-zone integration                     */
+  /* any relevant for Brillouin-zone integration                 */
   /***************************************************************/
-  //GetBZIArgStruct *BZIArgs=ProcessBZIOptions(int argc, char *argv[]);
+  GetBZIArgStruct *BZIArgs=InitBZIArgs(argc, argv);
 
   /***************************************************************/
   /* process remaining command-line arguments ********************/
@@ -46,14 +47,11 @@ int main(int argc, char *argv[])
 /**/
   char *EPFile=0;
 /**/
-  char *BZIString=0;
-  int BZIOrder=-1;
-  bool BZSymmetric=false;
-  double RelTol=1.0e-2;
-  int MaxEvals=1000;
-/**/
   bool GroundPlane=false;
   char *HalfSpace=0;
+/**/
+  double RelTol=1.0e-2;
+  int MaxEvals=1000;
 /**/
   char *FileBase=0;
   bool LDOSOnly=false;
@@ -69,13 +67,6 @@ int main(int argc, char *argv[])
 //
      {"Omega",       PA_CDOUBLE, 1, 1, (void *)&Omega,  &nOmega,  "angular frequency"},
      {"OmegaFile",   PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of omega points "},
-//
-     {"BZSymmetric", PA_BOOL,    0, 1, (void *)&BZSymmetric,  0,  "assume BZ integrand is xy-symmetric"},
-     {"BZIMethod",   PA_STRING,  1, 1, (void *)&BZIString,    0,  "Brillouin-zone integration method [| adaptive]"},
-     {"BZIOrder",    PA_INT,     1, 1, (void *)&BZIOrder,     0,  "cubature order "},
-     {"RelTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "relative tolerance for Brillouin-zone integration"},
-     {"MaxEvals",    PA_INT,     1, 1, (void *)&MaxEvals,     0,  "maximum number of Brillouin-zone samples"},
-     {"OmegakBlochFile", PA_STRING,  1, 1, (void *)&OkBFile,  0,  "list of (omega, kx, ky) values"},
 //
      {"FileBase",    PA_STRING,  1, 1, (void *)&FileBase,      0,  "base name for output files"},
      {"LDOSOnly",    PA_BOOL,    0, 1, (void *)&LDOSOnly,      0,  "omit DGF components from Brillouin-zone integration"},
@@ -117,10 +108,6 @@ int main(int argc, char *argv[])
    { OkBPoints = new HMatrix(OkBFile);
      if (OkBPoints->ErrMsg)
       ErrExit(OkBPoints->ErrMsg);
-     if (BZSymmetric)
-      ErrExit("--BZSymmetric is incompatible with --OmegakBlochFile");
-     if (BZIString)
-      ErrExit("--BZIMethod is incompatible with --OmegakBlochFile");
    }
   else
    ErrExit("you must specify at least one frequency");
@@ -204,42 +191,13 @@ int main(int argc, char *argv[])
   else
    {
      /***************************************************************/
-     /* set up argument structure for Brillouin-zone integration    */
-     /* routine                                                     */
+     /* complete the argument structure for Brillouin-zone          */
+     /* that we started to initialize above                         */
      /***************************************************************/
-     GetBZIArgStruct *Args = CreateGetBZIArgs(Data->G->LBasis);
-     Args->BZIFunc         = GetLDOS;
-     Args->UserData        = (void *)Data;
-     Args->FDim            = FDim;
-     Args->BZSymmetric     = BZSymmetric;
-     Args->MaxPoints       = MaxEvals;
-     Args->RelTol          = RelTol;
-     Args->Reduced         = true;
-
-     int DefBZIOrder=0;
-     if ( !BZIString || !strcasecmp(BZIString,"TC") )
-      { Args->BZIMethod = (LDim==2) ? BZI_TC : BZI_CC;
-        DefBZIOrder     = (LDim==2) ? 9      : 21;
-      }
-     else if (!strcasecmp(BZIString,"CC") )
-      { Args->BZIMethod = BZI_CC;
-        DefBZIOrder=21;
-      }
-     else if ( !strcasecmp(BZIString,"adaptive") )
-      { 
-        Args->BZIMethod = BZI_ADAPTIVE;
-        DefBZIOrder     = 0;
-      }
-     Args->Order        = (BZIOrder==-1) ? DefBZIOrder : BZIOrder;
-
-     if (Args->BZIMethod==BZI_TC)
-      Log("Evaluating BZ integral by triangle cubature: ");
-     else if (Args->BZIMethod==BZI_CC)
-      Log("Evaluating BZ integral by Clenshaw-Curtis cubature: ");
-     else if (Args->BZIMethod==BZI_ADAPTIVE)
-      Log("Evaluating BZ integral by adaptive cubature: ");
-     Log (" order %i, maxevals %i, BZ%ssymmetric",Args->Order,
-            MaxEvals, BZSymmetric ? " " : " not ");
+     BZIArgs->BZIFunc     = GetLDOS;
+     BZIArgs->UserData    = (void *)Data;
+     BZIArgs->FDim        = FDim;
+     UpdateBZIArgs(BZIArgs, Data->G->RLBasis, Data->G->RLVolume);
 
      /***************************************************************/
      /***************************************************************/
@@ -251,8 +209,8 @@ int main(int argc, char *argv[])
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
         Log("Evaluating Brillouin-zone integral at omega=%s",z2s(Omega));
-        GetBZIntegral(Args, Omega, Result);
-        WriteData(Data, Omega, 0, FILETYPE_LDOS, Result, Args->BZIError);
+        GetBZIntegral(BZIArgs, Omega, Result);
+        WriteData(Data, Omega, 0, FILETYPE_LDOS, Result, BZIArgs->BZIError);
       };
    };
 

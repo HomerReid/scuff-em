@@ -93,7 +93,7 @@ SCPData *CreateSCPData(char *GeoFile,
   /***************************************************************/
   SCPD->ABMBCache=0;
   SCPD->ByXikFileName=0;
-  SCPD->GBZIArgs=0;
+  SCPD->BZIArgs=0;
   RWGGeometry *G=SCPD->G;
   if (G && G->LDim>0)
    { 
@@ -115,10 +115,6 @@ SCPData *CreateSCPData(char *GeoFile,
      /*--------------------------------------------------------------*/
      /*- initialize options structure for Brillouin-zone integration-*/
      /*--------------------------------------------------------------*/
-     SCPD->GBZIArgs              = CreateGetBZIArgs(G->LBasis);
-     SCPD->GBZIArgs->BZIFunc     = GetCPIntegrand;
-     SCPD->GBZIArgs->UserData    = (void *)SCPD;
-     SCPD->GBZIArgs->FDim        = NumAtoms * (SCPD->EPMatrix)->NR;
 
    };
      /*--------------------------------------------------------------*/

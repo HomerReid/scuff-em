@@ -45,6 +45,14 @@
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
+  SetLogFileName("scuff-cas3D.log");
+  Log("scuff-cas3D running on %s",GetHostName());
+
+  /***************************************************************/
+  /* pre-process command-line arguments to extract arguments     */
+  /* any relevant for Brillouin-zone integration                 */
+  /***************************************************************/
+  GetBZIArgStruct *BZIArgs=InitBZIArgs(argc, argv);
 
   /***************************************************************/
   /* process options *********************************************/
@@ -66,20 +74,14 @@ int main(int argc, char *argv[])
   double Temperature=0.0;                   int nTemperature;
   double XiVals[MAXFREQ];	            int nXiVals;
   char *XiFile=0;
+  char *XikBlochFile=0;
   char *XiQuadrature=0;
   double XiMin=0.001;
   int MaxXiPoints=10000;
   int Intervals=50;
   double AbsTol=0.0;
   double RelTol=1.0e-2;
-  //
-  // options affecting kBloch integration or sampling
-  //
-  char *XikBlochFile=0;
-  char *BZIString=0;
-  int   BZIPoints=1000;
-  int   BZIOrder=-1;
-  int   BZSymmetry=false;
+
   //
   // option allowing user to override default output file names
   //
@@ -112,18 +114,13 @@ int main(int argc, char *argv[])
      {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature,   &nTemperature, "temperature in Kelvin"},
      {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,         &nXiVals,      "imaginary frequency"},
      {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,        0,             "file containing Xi values"},
+     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XikBlochFile,       0,             "file containing (Xi, kx, ky) values"},
      {"XiQuadrature",   PA_STRING,  1, 1,       (void *)&XiQuadrature,  0,             "quadrature method for Xi integration"},
      {"XiMin",          PA_DOUBLE,  1, 1,       (void *)&XiMin,         0,             "assume Xi integrand constant below this value"},
      {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,     0,             "number of subintervals for frequency quadrature"},
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
-//
-     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XikBlochFile,       0,             "file containing (Xi, kx, ky) values"},
-     {"BZIMethod",      PA_STRING,  1, 1,       (void *)&BZIString, 0,             "Brillouin-zone integration method"},
-     {"BZIPoints",      PA_STRING,  1, 1,       (void *)&BZIPoints, 0,             "maximum # BZ samples for adaptive BZ integration"},
-     {"BZIOrder",       PA_STRING,  1, 1,       (void *)&BZIOrder,  0,             "order of fixed BZ integration"},
-     {"BZSymmetry",     PA_BOOL,    0, 1,       (void *)&BZSymmetry,    0,             "assume symmetric BZ: f(kx,ky) = f(ky,kx)"},
 //
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,      0,             "base filename for output files"},
 //
@@ -147,8 +144,6 @@ int main(int argc, char *argv[])
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   if (!FileBase)
    FileBase=vstrdup(GetFileBase(GeoFile));
-  SetLogFileName("%s.log",FileBase);
-  Log("scuff-cas3D running on %s",GetHostName());
 
   /***************************************************************/
   /* try to create the geometry  *********************************/
@@ -275,27 +270,12 @@ int main(int argc, char *argv[])
   SC3D->MaxXiPoints        = MaxXiPoints;
   SC3D->XiMin              = XiMin;
 
-  if (SC3D->BZIArgs)
-   { 
-     SC3D->BZIArgs->MaxPoints   = BZIPoints;
-     SC3D->BZIArgs->BZSymmetric = BZSymmetry;
-     SC3D->BZIArgs->RelTol      = RelTol;
-     SC3D->BZIArgs->AbsTol      = AbsTol;
-     SC3D->BZIArgs->Reduced     = true;
-
-     int BZIMethod   = (G->LDim==1 ? BZI_CC : BZI_TC);
-     if (BZIString && !strcasecmp(BZIString,"adaptive"))
-      BZIMethod=BZI_ADAPTIVE;
-     if (BZIString && !strcasecmp(BZIString,"CC"))
-      BZIMethod=BZI_CC;
-     if (BZIString && !strcasecmp(BZIString,"TC"))
-      BZIMethod=BZI_TC;
-
-     if (BZIOrder==-1)
-      BZIOrder = (BZIMethod==BZI_CC ? 21 : 9);
-     
-     SC3D->BZIArgs->BZIMethod = BZIMethod;
-     SC3D->BZIArgs->Order     = BZIOrder;
+  if (G->LDim>1)
+   { UpdateBZIArgs(BZIArgs, G->RLBasis, G->RLVolume);
+     BZIArgs->BZIFunc  = GetCasimirIntegrand;
+     BZIArgs->UserData = (void *)SC3D;
+     BZIArgs->FDim     = SC3D->NTNQ;
+     SC3D->BZIArgs=BZIArgs;
    };
 
   /*******************************************************************/

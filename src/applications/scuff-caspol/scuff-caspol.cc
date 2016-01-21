@@ -157,6 +157,16 @@ void Usage(const char *ProgramName, OptStruct *OSArray, const char *ErrMsg)
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  InstallHRSignalHandler();
+  SetLogFileName("scuff-caspol.log");
+  Log("scuff-caspol running on %s",GetHostName());
+
+  /***************************************************************/
+  /* pre-process command-line arguments to extract arguments     */
+  /* any relevant for Brillouin-zone integration                 */
+  /***************************************************************/
+  GetBZIArgStruct *BZIArgs=InitBZIArgs(argc, argv);
+
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
@@ -175,11 +185,6 @@ int main(int argc, char *argv[])
 //
   char *FileBase=0;
 //
-  char *BZIString  = 0;
-  int BZIPoints    = 0;
-  int BZIOrder     = -1;
-  bool BZSymmetric = false;
-  bool FullBZ      = false;
   double RelTol    = 1.0e-2;
   double AbsTol    = 1.0e-10;
   /* name           type  #args  max_instances  storage    count  description*/
@@ -200,11 +205,6 @@ int main(int argc, char *argv[])
 //
      {"FileBase",    PA_STRING,  1, 1,       (void *)&FileBase,    0,             "base name for output files"},
 //
-     {"BZIMethod",   PA_STRING,  1, 1,       (void *)&BZIString,   0,             "Brillouin-zone integration scheme ([adaptive|CC|TC])"},
-     {"BZIPoints",   PA_INT,     1, 1,       (void *)&BZIPoints,   0,             "max # Brillouin-samples for adaptive scheme"},
-     {"BZIOrder",    PA_INT,     1, 1,       (void *)&BZIOrder,    0,             "order of Brillouin-zone cubature for fixed schemes"},
-     {"BZSymmetric", PA_BOOL,    0, 1,       (void *)&BZSymmetric, 0,             "specifies Brillouin zone symmetric under kx<->ky"},
-     {"FullBZ",      PA_BOOL,    0, 1,       (void *)&FullBZ,      0,             "integrate over full Brillouin zone (default is reduced)"},
      {"RelTol",      PA_DOUBLE,  1, 1,       (void *)&RelTol,      0,             "relative error tolerance"},
      {"AbsTol",      PA_DOUBLE,  1, 1,       (void *)&AbsTol,      0,             "absolute error tolerance"},
      {0,0,0,0,0,0,0}
@@ -243,28 +243,13 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   SCPD->AbsTol = AbsTol;
   SCPD->RelTol = RelTol;
-  if (SCPD->GBZIArgs)
-   { int BZIMethod=BZI_CC;
-     if (!BZIString || !strcasecmp(BZIString,"CC") )
-      { BZIMethod = BZI_CC;
-        if (BZIOrder==-1) BZIOrder=21;
-      }
-     else if ( !strcasecmp(BZIString,"adaptive") )
-      BZIMethod = BZI_ADAPTIVE;
-     else if ( !strcasecmp(BZIString,"TC") )
-      { BZIMethod = BZI_TC;
-        if (BZIOrder==-1) BZIOrder=13;
-      }
-     else 
-      ErrExit("unknown Brillouin-zone integration method %s",BZIString);
-     SCPD->GBZIArgs->BZIMethod   = BZIMethod;
-     SCPD->GBZIArgs->BZSymmetric = BZSymmetric;
-     SCPD->GBZIArgs->Order       = BZIOrder;
-     SCPD->GBZIArgs->MaxPoints   = BZIPoints;
-     SCPD->GBZIArgs->RelTol      = RelTol;
-     SCPD->GBZIArgs->AbsTol      = AbsTol;
-     SCPD->GBZIArgs->Reduced     = !FullBZ;
 
+  if (SCPD->G->LDim>1)
+   { UpdateBZIArgs(BZIArgs, SCPD->G->RLBasis, SCPD->G->RLVolume);
+     BZIArgs->BZIFunc  = GetCPIntegrand;
+     BZIArgs->UserData = (void *)SCPD;
+     BZIArgs->FDim     = NumAtoms * (SCPD->EPMatrix)->NR;
+     SCPD->BZIArgs=BZIArgs;
    };
 
   WriteFilePreamble(SCPD, SCPD->ByXiFileName, argc, argv, 
@@ -299,8 +284,6 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   /*******************************************************************/
-  SetLogFileName("scuff-caspol.log");
-  Log("scuff-caspol running on %s",GetHostName());
   if ( XikList )
    Log("Computing CP integrand at %i (Xi,k) points",XikList->NR);
   else if ( XiList )

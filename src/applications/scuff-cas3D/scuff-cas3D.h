@@ -29,6 +29,7 @@
 #include <libhmat.h>
 #include <libscuff.h>
 #include <libTriInt.h>
+#include <BZIntegration.h>
 
 using namespace scuff;
 

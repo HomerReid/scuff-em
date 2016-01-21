@@ -32,7 +32,7 @@
 #include <fenv.h>
 
 #include <libhrutil.h>
-#include <libTriInt.h> // needed for GetRLBasis
+#include <BZIntegration.h> // needed for GetRLBasis
 
 #include "libscuff.h"
 

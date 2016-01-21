@@ -1,3 +1,4 @@
+bool Subtract=false;
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -89,6 +90,7 @@ typedef struct GetGCMEData
    GetGCMEArgStruct *Args;
    bool GetFIBBIs;
    bool DeSingularize;
+   double *ZHatAP, *ZHatAM, *ZHatBP, *ZHatBM;
  } GetGCMEData;
 
 void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
@@ -125,6 +127,18 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
   double DbDb = DivbA*DivbB;
   double bxb[3]; VecCross(bA, bB, bxb);
   double PMFIE = VecDot(bxb, R);
+
+  double RPA[3], RPB[3];
+  if (NeedSpatialDerivatives)
+   { double *ZHatA = (DivbA > 0.0 ? Data->ZHatAP : Data->ZHatAM);
+     double *ZHatB = (DivbB > 0.0 ? Data->ZHatBP : Data->ZHatBM);
+     RPA[0]=RPA[1]=RPA[2]=RPB[0]=RPB[1]=RPB[2]=0.0;
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       { RPA[Mu] += (1.0 - ZHatA[Mu]*ZHatA[Nu])*R[Nu];
+         RPB[Mu] += (1.0 - ZHatB[Mu]*ZHatB[Nu])*R[Nu];
+       };
+   };
 
   /***************************************************************/
   /* compute frequency-independent contributions if that's what  */
@@ -202,6 +216,10 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
          { G0 = DeSingularize ? ExpRel(ikr,4) : exp(ikr);
            G0 /= (4.0*M_PI*r);
            Psi = G0*(ikr-1.0)/r2;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (Subtract && !DeSingularize)
+ Psi += 1.0/(4.0*M_PI*r*r*r);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
          };
         dG[0] = R[0]*Psi;
         dG[1] = R[1]*Psi;
@@ -347,8 +365,10 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
 
      for(int Mu=0; Mu<3; Mu++)
       {
+         cdouble DD0 = (Subtract ? 0.0 : D[0]);
+
          Gab[GCME_FX + Mu]
-           +=  D[0]*(        FIBBIs[FIBBI_PEFIE1_RX_RM3 + Mu]  
+           +=   DD0*(        FIBBIs[FIBBI_PEFIE1_RX_RM3 + Mu]  
                       - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM3 + Mu] )
               +D[1]*(        FIBBIs[FIBBI_PEFIE1_RX_RM1 + Mu]
                       - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM1 + Mu] )
@@ -541,6 +561,10 @@ void GetGCMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
   Data->Args          = Args;
   Data->GetFIBBIs     = false;
   Data->DeSingularize = DeSingularize;
+  Data->ZHatAP        = Sa->Panels[ Sa->Edges[nea]->iPPanel ]->ZHat;
+  Data->ZHatAM        = Sa->Panels[ Sa->Edges[nea]->iMPanel ]->ZHat;
+  Data->ZHatBP        = Sb->Panels[ Sb->Edges[neb]->iPPanel ]->ZHat;
+  Data->ZHatBM        = Sb->Panels[ Sb->Edges[neb]->iMPanel ]->ZHat;
   cdouble RawMEs[34]; 
   double Error[2*34];
   if (Order==0)
@@ -625,6 +649,11 @@ if (init==0)
    if (s)
     { sscanf(s,"%i",&TDMaxEval);
       Log("Setting TDMaxEval=%i.");
+    };
+   s=getenv("SCUFF_SUBTRACT");
+   if (s && s[0]=='1')
+    { Subtract=true;
+      Log("Subtracting most singular term from dG integrals.");
     };
  };
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
