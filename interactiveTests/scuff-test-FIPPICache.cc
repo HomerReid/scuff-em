@@ -28,8 +28,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>

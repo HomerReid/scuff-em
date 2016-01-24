@@ -27,14 +27,19 @@
 #include <stdlib.h>
 
 #include <math.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include <libhrutil.h>
 #include <PanelCubature.h>
+
+#ifdef HAVE_READLINE
+  #include <readline/readline.h>
+  #include <readline/history.h>
+#else
+  #include "readlineReplacement.h"
+#endif
 
 #ifdef HAVE_LIBPOLYFIT
 #include <libPolyFit.h>
