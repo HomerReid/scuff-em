@@ -190,9 +190,31 @@ FIBBICache::~FIBBICache()
 } 
 
 /***************************************************************/
+/* simple ordering scheme for pairs of RWG edges               */
+/* note: translationally but not rotationally invariant.       */
+/***************************************************************/
+bool ProperlyOrdered(RWGSurface *SA, int neA, RWGSurface *SB, int neB)
+{
+  if ( (SA==SB) && (neA == neB) )
+   return true;
+
+  double *X0A= SA->Edges[neA]->Centroid;
+  double *X0B= SB->Edges[neB]->Centroid;
+  
+  if ( !EqualFloat(X0A[2], X0B[2]) )
+   return (X0A[2] < X0B[2]);
+  if ( !EqualFloat(X0A[1], X0B[1]) )
+   return (X0A[1] < X0B[1]);
+  if ( !EqualFloat(X0A[0], X0B[0]) )
+   return (X0A[0] < X0B[0]);
+
+  return true;
+}
+
+/***************************************************************/
 /* the following three routines implement a technique for      */
 /* assigning a search key to pairs of RWG basis functions in   */
-/* a translation-independent (but not rotation-indepedent) way */
+/* a translation-independent (but not rotation-independent) way*/
 /***************************************************************/
 static void inline VecSubFloat(double *V1, double *V2, float *V1mV2)
 { V1mV2[0] = (float)(V1[0] - V2[0]);
@@ -204,7 +226,6 @@ void GetFIBBICacheKey(RWGSurface *SA, int neA,
                       RWGSurface *SB, int neB,
                       float *K)
 {
-
   double  *VA = SA->Vertices;
   RWGEdge *EA = SA->Edges[neA];
   double *QPA = VA + 3*(EA->iQP);
@@ -226,7 +247,6 @@ void GetFIBBICacheKey(RWGSurface *SA, int neA,
   VecSubFloat(QMB, QPA, K + 4*3);
   VecSubFloat(V1B, QPA, K + 5*3);
   VecSubFloat(V2B, QPA, K + 6*3);
-
 }
 
 /*--------------------------------------------------------------*/

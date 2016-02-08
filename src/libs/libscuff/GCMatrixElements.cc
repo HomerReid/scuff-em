@@ -1,4 +1,3 @@
-bool Subtract=false;
 /* Copyright (C) 2005-2011 M. T. Homer Reid
  *
  * This file is part of SCUFF-EM.
@@ -170,7 +169,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
          Integral[ FIBBI_PEFIE1_RX_R0  + Mu ] += Weight*bdb*R[Mu];
          Integral[ FIBBI_PEFIE1_RX_R1  + Mu ] += Weight*bdb*R[Mu]*r;
      
-         Integral[ FIBBI_PEFIE2_RX_RM3 + Mu ] += Weight*DbDb*R[Mu]*rm3;
+         Integral[ FIBBI_PEFIE2_RX_RM3 + Mu ] += Weight*DbDb*RPA[Mu]*rm3;
          Integral[ FIBBI_PEFIE2_RX_RM1 + Mu ] += Weight*DbDb*R[Mu]*rm1;
          Integral[ FIBBI_PEFIE2_RX_R0  + Mu ] += Weight*DbDb*R[Mu];
          Integral[ FIBBI_PEFIE2_RX_R1  + Mu ] += Weight*DbDb*R[Mu]*r;
@@ -197,33 +196,35 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
      /***************************************************************/
      /* compute kernel factors for each region **********************/
      /***************************************************************/
-     cdouble G0, dG[3], ddGBuffer[9], *ddG=(NeedSpatialDerivatives ? ddGBuffer : 0);
+     cdouble G0, dG[3], dGDS[3], ddGBuffer[9], *ddG=(NeedSpatialDerivatives ? ddGBuffer : 0);
      cdouble k  = kVector[nr];
      cdouble ik = II*k, ikr=ik*r, k2=k*k, k3=k2*k;
    
      if (GBA[nr])
       { 
         G0=GetGBar(R, GBA[nr], dG, ddG);
+        memset(dGDS,0,3*sizeof(cdouble));
       }
      else 
       { 
-        cdouble Psi;
+        cdouble Psi, PsiDS;
         if (r==0.0)
          { G0  = DeSingularize ? 0.0 : ik/(4.0*M_PI);
            Psi = DeSingularize ? 0.0 : -II*k3/(12.0*M_PI);
+           PsiDS = 0.0;
          }
         else
          { G0 = DeSingularize ? ExpRel(ikr,4) : exp(ikr);
            G0 /= (4.0*M_PI*r);
            Psi = G0*(ikr-1.0)/r2;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (Subtract && !DeSingularize)
- Psi += 1.0/(4.0*M_PI*r*r*r);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+           PsiDS = (DeSingularize ? Psi : Psi + 1.0/(4.0*M_PI*r*r*r));
          };
-        dG[0] = R[0]*Psi;
-        dG[1] = R[1]*Psi;
-        dG[2] = R[2]*Psi;
+        dG[0]   = R[0]*Psi;
+        dG[1]   = R[1]*Psi;
+        dG[2]   = R[2]*Psi;
+        dGDS[0] = R[0]*PsiDS;
+        dGDS[1] = R[1]*PsiDS;
+        dGDS[2] = R[2]*PsiDS;
 
         if (ddG)
          { 
@@ -249,7 +250,9 @@ if (Subtract && !DeSingularize)
      /***************************************************************/
 
      /*- G, C integrals ---------------------------------------------*/
-     cdouble PEFIE = bdb - DbDb/(k*k);
+     double PEFIE1  = bdb;
+     cdouble PEFIE2 = DbDb/(k*k);
+     cdouble PEFIE  = PEFIE1 - PEFIE2;
      if (NeedGC)
       { zIntegral[nzi++] += Weight*bdb*G0;
         zIntegral[nzi++] += Weight*DbDb*G0 / k2;
@@ -275,9 +278,10 @@ if (Subtract && !DeSingularize)
      /*- \partial_i G,C ---------------------------------------------*/
      if (NeedForce)
       { 
-        zIntegral[nzi++] += Weight*PEFIE*dG[0];
-        zIntegral[nzi++] += Weight*PEFIE*dG[1];
-        zIntegral[nzi++] += Weight*PEFIE*dG[2];
+        cdouble dGSFactor = (DeSingularize || r==0.0) ? 0.0 : 1.0/(4.0*M_PI*r*r2);
+        zIntegral[nzi++] += Weight*(PEFIE1*dG[0] - PEFIE2*(dGDS[0] - RPA[0]*dGSFactor));
+        zIntegral[nzi++] += Weight*(PEFIE1*dG[1] - PEFIE2*(dGDS[1] - RPA[1]*dGSFactor));
+        zIntegral[nzi++] += Weight*(PEFIE1*dG[2] - PEFIE2*(dGDS[2] - RPA[2]*dGSFactor));
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[0*3+0] + bxb[1]*ddG[0*3 + 1] + bxb[2]*ddG[0*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[1*3+0] + bxb[1]*ddG[1*3 + 1] + bxb[2]*ddG[1*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[2*3+0] + bxb[1]*ddG[2*3 + 1] + bxb[2]*ddG[2*3+2]);
@@ -365,17 +369,15 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
 
      for(int Mu=0; Mu<3; Mu++)
       {
-         cdouble DD0 = (Subtract ? 0.0 : D[0]);
-
          Gab[GCME_FX + Mu]
-           +=   DD0*(        FIBBIs[FIBBI_PEFIE1_RX_RM3 + Mu]  
-                      - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM3 + Mu] )
-              +D[1]*(        FIBBIs[FIBBI_PEFIE1_RX_RM1 + Mu]
-                      - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM1 + Mu] )
-              +D[2]*(        FIBBIs[FIBBI_PEFIE1_RX_R0  + Mu]
-                      - OOK2*FIBBIs[FIBBI_PEFIE2_RX_R0  + Mu] )
-              +D[3]*(        FIBBIs[FIBBI_PEFIE1_RX_R1  + Mu]
-                      - OOK2*FIBBIs[FIBBI_PEFIE2_RX_R1  + Mu] );
+           +=  D[0]*(        FIBBIs[FIBBI_PEFIE1_RX_RM3  + Mu]  
+                      - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM3  + Mu] )
+              +D[1]*(        FIBBIs[FIBBI_PEFIE1_RX_RM1  + Mu]
+                      - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM1  + Mu] )
+              +D[2]*(        FIBBIs[FIBBI_PEFIE1_RX_R0   + Mu]
+                      - OOK2*FIBBIs[FIBBI_PEFIE2_RX_R0   + Mu] )
+              +D[3]*(        FIBBIs[FIBBI_PEFIE1_RX_R1   + Mu]
+                      - OOK2*FIBBIs[FIBBI_PEFIE2_RX_R1   + Mu] );
 
        ikCab[GCME_FX + Mu]
            +=II*( imag( D[1]*FIBBIs[FIBBI_BXBX_RM1 + Mu]
@@ -422,18 +424,23 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
   Data->Args->NeedForce = NeedForce;
   Data->GetFIBBIs=true;
 
-  /***************************************************************/
-  /* FIXME *******************************************************/
-  /***************************************************************/
+  int ncv = AssessBFPair(Sa, nea, Sb, neb);
+
   memset(FIBBIs, 0, NUMFIBBIS*sizeof(double));
-  int Order=25;
-  if (NeedForce)
+  if (ncv>=1)
    { 
+     double Error[NUMFIBBIS];
+     GetBFBFCubatureTD(Sa, nea, Sb, neb,
+                       GCMEIntegrand, (void *)Data, NUMFIBBIS,
+                       FIBBIs, Error, TDMaxEval);
+   }
+  else
+   { int Order=9;
      GetBFBFCubature2(Sa, nea, Sb, neb,
                       GCMEIntegrand, (void *)Data, NUMFIBBIS,
                       Order, FIBBIs);
-     memset(FIBBIs, 0, 12*sizeof(double));
    };
+  memset(FIBBIs, 0, 12*sizeof(double));
 
   /***************************************************************/
   /***************************************************************/
@@ -470,16 +477,17 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
       int ipa = (npa==0 ? Ea->iPPanel : Ea->iMPanel);
       int ipb = (npb==0 ? Eb->iPPanel : Eb->iMPanel);
       double rRel;
-      int ncv=AssessPanelPair(Sa,ipa,Sb,ipb,&rRel,Va,Vb);
+      ncv=AssessPanelPair(Sa,ipa,Sb,ipb,&rRel,Va,Vb);
 
       if (ncv==0)
        { 
          double PPContributions[NUMFIBBIS];
          int IDim=12;
+         int Order=20;
          GetBFBFCubature2(Sa, nea, Sb, neb,
                           GCMEIntegrand, (void *)Data, IDim,
-                          25, PPContributions, npa, npb);
-         for(int n=0; n<12; n++)
+                          Order, PPContributions, npa, npb);
+         for(int n=0; n<IDim; n++)
           FIBBIs[n] += PPContributions[n];
        }
       else 
@@ -509,6 +517,41 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
        };
     };
 
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void dGSabIntegrand(double xA[3], double bA[3], double DivbA,
+                    double xB[3], double bB[3], double DivbB,
+                    void *UserData, double Weight, double *Integral)
+{
+  GetGCMEData *Data = (GetGCMEData *)UserData;
+
+  double R[3];
+  VecSub(xA, xB, R);
+  double r2=R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
+  double r=sqrt(r2);
+  if (r==0.0) return;
+
+  double RPA[3], RPB[3];
+  double *ZHatA = (DivbA > 0.0 ? Data->ZHatAP : Data->ZHatAM);
+  double *ZHatB = (DivbB > 0.0 ? Data->ZHatBP : Data->ZHatBM);
+  RPA[0]=RPA[1]=RPA[2]=RPB[0]=RPB[1]=RPB[2]=0.0;
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    { RPA[Mu] += (1.0 - ZHatA[Mu]*ZHatA[Nu])*R[Nu];
+      RPB[Mu] += (1.0 - ZHatB[Mu]*ZHatB[Nu])*R[Nu];
+    };
+
+  double ScalarFactor = DivbA*DivbB/(4.0*M_PI*r*r2);
+
+  Integral[0] += Weight*RPA[0]*ScalarFactor;
+  Integral[1] += Weight*RPA[1]*ScalarFactor;
+  Integral[2] += Weight*RPA[2]*ScalarFactor;
+  Integral[3] += Weight*RPB[0]*ScalarFactor;
+  Integral[4] += Weight*RPB[1]*ScalarFactor;
+  Integral[5] += Weight*RPB[2]*ScalarFactor;
 }
 
 /***************************************************************/
@@ -579,7 +622,7 @@ void GetGCMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
   /***************************************************************/
   double FIBBIs[NUMFIBBIS];
   if (DeSingularize)
-   GetFIBBIData(Args->FIBBICache, Sa, nea, Sb, neb, FIBBIs);
+   GetFIBBIData(/*Args->FIBBICache*/0, Sa, nea, Sb, neb, FIBBIs);
 
   /***************************************************************/
   /***************************************************************/
@@ -649,11 +692,6 @@ if (init==0)
    if (s)
     { sscanf(s,"%i",&TDMaxEval);
       Log("Setting TDMaxEval=%i.");
-    };
-   s=getenv("SCUFF_SUBTRACT");
-   if (s && s[0]=='1')
-    { Subtract=true;
-      Log("Subtracting most singular term from dG integrals.");
     };
  };
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/

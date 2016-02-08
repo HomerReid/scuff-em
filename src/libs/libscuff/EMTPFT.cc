@@ -154,7 +154,7 @@ void GetPFTIntegrals_BFInc(RWGGeometry *G, int ns, int ne,
 }
 
 /***************************************************************/
-/***************************************************************/
+/* add incident-field contributions (i.e. extinction) to EMTPFT*/
 /***************************************************************/
 void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KN,
                                 IncField *IF, cdouble Omega,
@@ -268,7 +268,7 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
   /*--------------------------------------------------------------*/
   /*- multithreaded loop over all basis functions on all surfaces-*/
   /*--------------------------------------------------------------*/
-  int TotalEdges  = G->TotalEdges;
+  int TotalEdges = G->TotalEdges;
 #ifdef USE_OPENMP
   Log("EMT OpenMP multithreading (%i threads)",NT);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NT)
@@ -347,20 +347,6 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
                            -real(KNmNK)*imag(   dikCab[Mu])
                          ) / real(Omega);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-dPFT[PFT_XFORCE] = 0.5*TENTHIRDS*( imag(wu0KK)*imag( MuR*dGab[2])
-                                  +imag(we0NN)*imag(EpsR*dGab[2]) ) / real(Omega);
-
-dPFT[PFT_YFORCE] = 0.5*TENTHIRDS*( -real(KNmNK)*imag(  dikCab[2]) ) / real(Omega);  
-
-dPFT[PFT_XTORQUE] = 0.5*( real(wu0KK)*imag( MuR*Gab)
-                         +real(we0NN)*imag(EpsR*Gab)
-                        );
-
-dPFT[PFT_YTORQUE] = 0.5*( imag(KNmNK)*imag(ikCab) );
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
-
       int nt=0;
 #ifdef USE_OPENMP
       nt=omp_get_thread_num();
@@ -401,19 +387,30 @@ dPFT[PFT_YTORQUE] = 0.5*( imag(KNmNK)*imag(ikCab) );
      PFTMatrix->AddEntry(ns, nq, DeltaPFT[ nt*NSNQ + ns*NQ + nq ]);
 
   /***************************************************************/
+  /* If we are using the interior expansion, then the quantity   */
+  /* computed as the scattered power above is actually minus the */
+  /* absorbed power.                                             */
+  /* If we are using the exterior expansion, then the quantity   */
+  /* computed as the scattered power wants to be subtracted from */
+  /* the extinction (which will be added to the absorbed power   */
+  /* when we compute the incident-field contributions below).    */
+  /* So in either case we want to set the PABS slot of the matrix*/
+  /* to the negative of PSCAT. In the interior-expansion case    */
+  /* we want further to zero out the PSCAT slot since the        */
+  /* interior expansion cannot compute the scattered power.      */
   /***************************************************************/
-  /***************************************************************/
-  if (!Interior)
-   for(int ns=0; ns<NS; ns++)
-    PFTMatrix->SetEntry(ns, PFT_PABS,
-                       -1.0*PFTMatrix->GetEntry(ns, PFT_PSCAT));
+  for(int ns=0; ns<NS; ns++)
+   { double PScat = PFTMatrix->GetEntryD(ns, PFT_PSCAT);
+     PFTMatrix->SetEntry(ns, PFT_PABS, -PScat);
+     if (Interior) PFTMatrix->SetEntry(ns, PFT_PSCAT, 0.0);
+   };
 
   /***************************************************************/
   /* add incident-field contributions ****************************/
   /***************************************************************/
   if (IF)
    AddIFContributionsToEMTPFT(G, KNVector, IF, Omega, PFTMatrix, Interior);
-  
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/

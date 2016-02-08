@@ -153,6 +153,12 @@ void GetBFBFCubature2(RWGGeometry *G,
                       int Order, double *Integral, 
                       int PanelOnlyA=-1, int PanelOnlyB=-1);
 
+void GetBFBFCubatureTD(RWGSurface *SA, int neA,
+                       RWGSurface *SB, int neB,
+                       PPCFunction2 Integrand, void *UserData,
+                       int IDim, double *Integral, double *Error,
+                       int MaxEvals=0, double AbsTol=0.0, double RelTol=1.0e-4);
+
 void GetBFBFCubatureTD(RWGGeometry *G,
                        int nsA, int neA, int nsB, int neB,
                        PPCFunction2 Integrand, void *UserData,

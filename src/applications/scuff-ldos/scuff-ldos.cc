@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 //
      {"Omega",       PA_CDOUBLE, 1, 1, (void *)&Omega,  &nOmega,  "angular frequency"},
      {"OmegaFile",   PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of omega points "},
-     {"OmegakBlochFile",   PA_STRING,  1, 1, (void *)&OmegakBlochFile,    0,  "list of (omega,kBloch) points "},
+     {"OmegakBlochFile",   PA_STRING,  1, 1, (void *)&OkBFile,    0,  "list of (omega,kBloch) points "},
 //
      {"FileBase",    PA_STRING,  1, 1, (void *)&FileBase,      0,  "base name for output files"},
      {"LDOSOnly",    PA_BOOL,    0, 1, (void *)&LDOSOnly,      0,  "omit DGF components from Brillouin-zone integration"},

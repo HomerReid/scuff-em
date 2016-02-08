@@ -3,68 +3,10 @@
 %* 
 %* homer reid -- 1994--2011
 %**************************************************
-\usepackage{graphicx}
-\usepackage{color}
-\usepackage{dsfont}
-\usepackage{bbm}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{float}
-\usepackage{psfrag}
-\usepackage{mathdots}
-%\usepackage{algorithm}
-%\usepackage{algorithmic}
-%\usepackage{listings}
-\usepackage{array}
-\usepackage{url}
-\usepackage{arydshln}
-\usepackage{fancybox}
-\usepackage{fancyvrb}
-\usepackage{verbatim}
 
-%--------------------------------------------------
-%- boldface greek letters 
-%--------------------------------------------------
-\newcommand\vbphi{\mathbf{\phi}}
-\newcommand\vbPhi{\mathbf{\Phi}}
-\newcommand{\vbDelta}{\boldsymbol{\Delta}}
-\newcommand{\vbrho}{\boldsymbol{\rho}}
-\newcommand{\vbchi}{\boldsymbol{\chi}}
+\include{HRCommands}
 
-%--------------------------------------------------
-%- colors -----------------------------------------
-%--------------------------------------------------
-\newcommand{\red}[1]{\textcolor{red}{#1}}
-\newcommand{\blue}[1]{\textcolor{blue}{#1}}
-\newcommand{\green}[1]{\textcolor{green}{#1}}
-\newcommand{\atan}{\text{atan}}
-
-%--------------------------------------------------
-% general commands
-%--------------------------------------------------
-\newcommand\Tr{\hbox{Tr }}
-\newcommand\sups[1]{^{\hbox{\scriptsize{#1}}}}
-\newcommand\supt[1]{^{\hbox{\tiny{#1}}}}
-\newcommand\subs[1]{_{\hbox{\scriptsize{#1}}}}
-\newcommand\subt[1]{_{\hbox{\tiny{#1}}}}
-\newcommand{\nn}{\nonumber \\}
-\newcommand{\vb}[1]{\mathbf{#1}}
-\newcommand{\numeq}[2]{\begin{equation} #2 \label{#1} \end{equation}}
-\newcommand{\pard}[2]{\frac{\partial #1}{\partial #2}}
-\newcommand{\pardn}[3]{\frac{\partial^{#1} #2}{\partial #3^{#1}}}
-\newcommand{\pf}[2]{\left(\frac{#1}{#2}\right)}
-\newcommand{\pp}{{\prime\prime}}
-\newcommand{\vbhat}[1]{\vb{\hat #1}}
-\newcommand{\mc}[1]{\mathcal{#1}}
-\newcommand{\bmc}[1]{\boldsymbol{\mathcal{#1}}}
-\newcommand{\mb}[1]{\mathbb{#1}}
-\newcommand{\ds}[1]{\displaystyle{#1}}
-\newcommand{\primedsum}{\sideset{}{'}{\sum}}
 \newcommand{\pan}{\mathcal{P}}
-
-%--------------------------------------------------
-%- special libscuff stuff--------------------------
-%--------------------------------------------------
 \newcommand\ls{{\sc libscuff}}
 \newcommand\lss{{\sc libscuff\,}}
 \newcommand{\BG}{\boldsymbol{\Gamma}}
@@ -101,54 +43,3 @@
 \newcommand{\BMMInt}{\boldsymbol{\hat{\mathcal{M}}}}
 \newcommand{\BNNExt}{\boldsymbol{\check{\mathcal{N}}}}
 \newcommand{\BNNInt}{\boldsymbol{\hat{\mathcal{N}}}}
-\newpage
-
-%--------------------------------------------------
-%- inner products and operator matrix elements  ---
-%--------------------------------------------------
-\newcommand{\expval}[1]{ \big\langle #1 \big\rangle}
-\newcommand{\Expval}[1]{ \Big\langle #1 \Big\rangle}
-\newcommand{\inp}[2]{ \big\langle #1 \big| #2 \big\rangle}
-\newcommand{\Inp}[2]{ \Big\langle #1 \Big| #2 \Big\rangle}
-\newcommand{\INP}[2]{ \bigg\langle #1 \bigg| #2 \Big\rangle}
-\newcommand{\vmv}[3]{ \big\langle #1 \big| #2 \big| #3 \big\rangle}
-\newcommand{\VMV}[3]{ \Big\langle #1 \Big| #2 \Big| #3 \Big\rangle}
-
-%------------------------------------------------------------
-%- shaded box for source code inclusions 
-%------------------------------------------------------------
-%\definecolor{lightgrey}{rgb}{0.85,0.85,0.85}
-%\newcommand{\SourceBox}[1]
-% { \begin{mdframed}[backgroundcolor=lightgrey, linewidth=2pt,
-%                    tikzsetting={draw=black, line width=2pt,
-%                                 dashed, dash pattern= on 5pt off 5pt}] %
-%  \begin{verbatim} #1 \end{verbatim} \end{mdframed} \medskip
-%}
-%\IfFileExists{mdframed.sty}
-% { \usepackage{mdframed}
-%   \surroundwithmdframed[backgroundcolor=lightgrey, linewidth=2pt,
-%                         framemethod=tikz,
-%                         skipabove=10pt,
-%                         skipbelow=10pt,
-%                         tikzsetting={draw=black, line width=2pt,
-%                                      dashed, dash pattern= on 5pt off 5pt}
-%                        ]{verbatim}
-% }
-% {
-% }
-%--------------------------------------------------
-%- shaded verbatim for code inclusions
-%--------------------------------------------------
-\definecolor{lightgrey}{rgb}{0.85,0.85,0.85}
-\newenvironment{verbcode}{\VerbatimEnvironment% 
-  \noindent
-  %{\columnwidth-\leftmargin-\rightmargin-2\fboxsep-2\fboxrule-4pt} 
-  \begin{Sbox} 
-  \begin{minipage}{\linewidth}
-  \begin{Verbatim}
-}{% 
-  \end{Verbatim}  
-   \end{minipage}
-  \end{Sbox} 
-  \fcolorbox{black}{lightgrey}{\textcolor{black}{\TheSbox}}
-} 

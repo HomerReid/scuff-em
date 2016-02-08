@@ -996,8 +996,8 @@ int BFBFCTDIntegrand(unsigned ndim, const double *wyyy, void *pBFBFCTDData,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetBFBFCubatureTD(RWGGeometry *G,
-                       int nsA, int neA, int nsB, int neB,
+void GetBFBFCubatureTD(RWGSurface *SA, int neA,
+                       RWGSurface *SB, int neB,
                        PPCFunction2 Integrand, void *UserData,
                        int IDim, double *Integral, double *Error,
                        int MaxEvals, double AbsTol, double RelTol)
@@ -1005,14 +1005,12 @@ void GetBFBFCubatureTD(RWGGeometry *G,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGSurface *SA  = G->Surfaces[nsA];
   RWGEdge    *EA  = SA->Edges[neA];
   double     *QPA = SA->Vertices + 3*(EA->iQP);
   double     *V1A = SA->Vertices + 3*(EA->iV1);
   double     *V2A = SA->Vertices + 3*(EA->iV2);
   double     *QMA = (EA->iQM==-1) ? 0 : SA->Vertices + 3*(EA->iQM);
 
-  RWGSurface *SB=G->Surfaces[nsB];
   RWGEdge    *EB=SB->Edges[neB];
   double     *QPB = SB->Vertices + 3*(EB->iQP);
   double     *V1B = SB->Vertices + 3*(EB->iV1);
@@ -1060,6 +1058,17 @@ void GetBFBFCubatureTD(RWGGeometry *G,
   hcubature(IDim, BFBFCTDIntegrand, (void *)Data, 4, Lower, Upper,
             MaxEvals, AbsTol, RelTol, ERROR_INDIVIDUAL,
             Integral, Error);
+}
+
+void GetBFBFCubatureTD(RWGGeometry *G,
+                       int nsA, int neA, int nsB, int neB,
+                       PPCFunction2 Integrand, void *UserData,
+                       int IDim, double *Integral, double *Error,
+                       int MaxEvals, double AbsTol, double RelTol)
+{
+  GetBFBFCubatureTD(G->Surfaces[nsA], neA, G->Surfaces[nsB], neB,  
+                    Integrand, UserData, IDim, Integral, Error,
+                    MaxEvals, AbsTol, RelTol);
 }
 
 } // namespace scuff

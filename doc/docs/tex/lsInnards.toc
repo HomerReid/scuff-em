@@ -1,3 +1,4 @@
+\select@language {english}
 \contentsline {section}{\numberline {1}Geometries in {\sc libscuff\tmspace +\thinmuskip {.1667em}}}{3}
 \contentsline {section}{\numberline {2}Representation of Surface Currents in {\sc libscuff}}{7}
 \contentsline {section}{\numberline {3}Homogeneous Dyadic Green's Functions}{11}
