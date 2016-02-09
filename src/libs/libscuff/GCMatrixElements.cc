@@ -131,11 +131,12 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
   if (NeedSpatialDerivatives)
    { double *ZHatA = (DivbA > 0.0 ? Data->ZHatAP : Data->ZHatAM);
      double *ZHatB = (DivbB > 0.0 ? Data->ZHatBP : Data->ZHatBM);
-     RPA[0]=RPA[1]=RPA[2]=RPB[0]=RPB[1]=RPB[2]=0.0;
+     memcpy(RPA, R, 3*sizeof(double));
+     memcpy(RPB, R, 3*sizeof(double));
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
-       { RPA[Mu] += (1.0 - ZHatA[Mu]*ZHatA[Nu])*R[Nu];
-         RPB[Mu] += (1.0 - ZHatB[Mu]*ZHatB[Nu])*R[Nu];
+       { RPA[Mu] -= ZHatA[Mu]*ZHatA[Nu]*R[Nu];
+         RPB[Mu] -= ZHatB[Mu]*ZHatB[Nu]*R[Nu];
        };
    };
 
@@ -196,7 +197,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
      /***************************************************************/
      /* compute kernel factors for each region **********************/
      /***************************************************************/
-     cdouble G0, dG[3], dGDS[3], ddGBuffer[9], *ddG=(NeedSpatialDerivatives ? ddGBuffer : 0);
+     cdouble G0, dG[3], dGDS[3], PsiS, ddGBuffer[9], *ddG=(NeedSpatialDerivatives ? ddGBuffer : 0);
      cdouble k  = kVector[nr];
      cdouble ik = II*k, ikr=ik*r, k2=k*k, k3=k2*k;
    
@@ -207,24 +208,24 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
       }
      else 
       { 
-        cdouble Psi, PsiDS;
+        cdouble Psi;
         if (r==0.0)
-         { G0  = DeSingularize ? 0.0 : ik/(4.0*M_PI);
-           Psi = DeSingularize ? 0.0 : -II*k3/(12.0*M_PI);
-           PsiDS = 0.0;
+         { G0   = DeSingularize ? 0.0 : ik/(4.0*M_PI);
+           Psi  = DeSingularize ? 0.0 : -II*k3/(12.0*M_PI);
+           PsiS = 0.0;
          }
         else
          { G0 = DeSingularize ? ExpRel(ikr,4) : exp(ikr);
            G0 /= (4.0*M_PI*r);
            Psi = G0*(ikr-1.0)/r2;
-           PsiDS = (DeSingularize ? Psi : Psi + 1.0/(4.0*M_PI*r*r*r));
+           PsiS = -1.0/(4.0*M_PI*r*r*r);
          };
         dG[0]   = R[0]*Psi;
         dG[1]   = R[1]*Psi;
         dG[2]   = R[2]*Psi;
-        dGDS[0] = R[0]*PsiDS;
-        dGDS[1] = R[1]*PsiDS;
-        dGDS[2] = R[2]*PsiDS;
+        dGDS[0] = R[0]*(Psi-PsiS);
+        dGDS[1] = R[1]*(Psi-PsiS);
+        dGDS[2] = R[2]*(Psi-PsiS);
 
         if (ddG)
          { 
@@ -278,10 +279,9 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
      /*- \partial_i G,C ---------------------------------------------*/
      if (NeedForce)
       { 
-        cdouble dGSFactor = (DeSingularize || r==0.0) ? 0.0 : 1.0/(4.0*M_PI*r*r2);
-        zIntegral[nzi++] += Weight*(PEFIE1*dG[0] - PEFIE2*(dGDS[0] - RPA[0]*dGSFactor));
-        zIntegral[nzi++] += Weight*(PEFIE1*dG[1] - PEFIE2*(dGDS[1] - RPA[1]*dGSFactor));
-        zIntegral[nzi++] += Weight*(PEFIE1*dG[2] - PEFIE2*(dGDS[2] - RPA[2]*dGSFactor));
+        zIntegral[nzi++] += Weight*(PEFIE1*dG[0] - PEFIE2*(dGDS[0] + RPA[0]*PsiS));
+        zIntegral[nzi++] += Weight*(PEFIE1*dG[1] - PEFIE2*(dGDS[1] + RPA[1]*PsiS));
+        zIntegral[nzi++] += Weight*(PEFIE1*dG[2] - PEFIE2*(dGDS[2] + RPA[2]*PsiS));
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[0*3+0] + bxb[1]*ddG[0*3 + 1] + bxb[2]*ddG[0*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[1*3+0] + bxb[1]*ddG[1*3 + 1] + bxb[2]*ddG[1*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[2*3+0] + bxb[1]*ddG[2*3 + 1] + bxb[2]*ddG[2*3+2]);
@@ -370,7 +370,7 @@ void AddFIBBIContributions(double *FIBBIs, cdouble k,
      for(int Mu=0; Mu<3; Mu++)
       {
          Gab[GCME_FX + Mu]
-           +=  D[0]*(        FIBBIs[FIBBI_PEFIE1_RX_RM3  + Mu]  
+           +=  D[0]*(        FIBBIs[FIBBI_PEFIE1_RX_RM3  + Mu] 
                       - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM3  + Mu] )
               +D[1]*(        FIBBIs[FIBBI_PEFIE1_RX_RM1  + Mu]
                       - OOK2*FIBBIs[FIBBI_PEFIE2_RX_RM1  + Mu] )
@@ -420,9 +420,13 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
   InitGetGCMEArgs(GetGCMEArgs);
   GetGCMEData MyGetGCMEData, *Data=&MyGetGCMEData;
   Data->Args=GetGCMEArgs;
+  Data->GetFIBBIs=true;
   Data->Args->NeedGC    = true;
   Data->Args->NeedForce = NeedForce;
-  Data->GetFIBBIs=true;
+  Data->ZHatAP = Sa->Panels[ Sa->Edges[nea]->iPPanel ]->ZHat;
+  Data->ZHatAM = Sa->Panels[ Sa->Edges[nea]->iMPanel ]->ZHat;
+  Data->ZHatBP = Sb->Panels[ Sb->Edges[neb]->iPPanel ]->ZHat;
+  Data->ZHatBM = Sb->Panels[ Sb->Edges[neb]->iMPanel ]->ZHat;
 
   int ncv = AssessBFPair(Sa, nea, Sb, neb);
 
