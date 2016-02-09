@@ -131,6 +131,9 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
   if (NeedSpatialDerivatives)
    { double *ZHatA = (DivbA > 0.0 ? Data->ZHatAP : Data->ZHatAM);
      double *ZHatB = (DivbB > 0.0 ? Data->ZHatBP : Data->ZHatBM);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (DivbA<0.0) return;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
      memcpy(RPA, R, 3*sizeof(double));
      memcpy(RPB, R, 3*sizeof(double));
      for(int Mu=0; Mu<3; Mu++)
@@ -171,6 +174,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
          Integral[ FIBBI_PEFIE1_RX_R1  + Mu ] += Weight*bdb*R[Mu]*r;
      
          Integral[ FIBBI_PEFIE2_RX_RM3 + Mu ] += Weight*DbDb*RPA[Mu]*rm3;
+  //       Integral[ FIBBI_PEFIE2_RX_RM3 + Mu ] += Weight*DbDb*R[Mu]*rm3;
          Integral[ FIBBI_PEFIE2_RX_RM1 + Mu ] += Weight*DbDb*R[Mu]*rm1;
          Integral[ FIBBI_PEFIE2_RX_R0  + Mu ] += Weight*DbDb*R[Mu];
          Integral[ FIBBI_PEFIE2_RX_R1  + Mu ] += Weight*DbDb*R[Mu]*r;
@@ -218,7 +222,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
          { G0 = DeSingularize ? ExpRel(ikr,4) : exp(ikr);
            G0 /= (4.0*M_PI*r);
            Psi = G0*(ikr-1.0)/r2;
-           PsiS = -1.0/(4.0*M_PI*r*r*r);
+           PsiS = DeSingularize ? 0.0 : -1.0/(4.0*M_PI*r*r*r);
          };
         dG[0]   = R[0]*Psi;
         dG[1]   = R[1]*Psi;
@@ -282,6 +286,11 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
         zIntegral[nzi++] += Weight*(PEFIE1*dG[0] - PEFIE2*(dGDS[0] + RPA[0]*PsiS));
         zIntegral[nzi++] += Weight*(PEFIE1*dG[1] - PEFIE2*(dGDS[1] + RPA[1]*PsiS));
         zIntegral[nzi++] += Weight*(PEFIE1*dG[2] - PEFIE2*(dGDS[2] + RPA[2]*PsiS));
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+//zIntegral[nzi++] += Weight*PEFIE*dG[0];
+//zIntegral[nzi++] += Weight*PEFIE*dG[1];
+//zIntegral[nzi++] += Weight*PEFIE*dG[2];
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[0*3+0] + bxb[1]*ddG[0*3 + 1] + bxb[2]*ddG[0*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[1*3+0] + bxb[1]*ddG[1*3 + 1] + bxb[2]*ddG[1*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[2*3+0] + bxb[1]*ddG[2*3 + 1] + bxb[2]*ddG[2*3+2]);
