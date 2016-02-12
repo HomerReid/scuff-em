@@ -247,7 +247,6 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType)
      IntegrandString="Xi integrand";
      ErrorString = (LDim==0) ? 0 :
                    "error due to numerical Brillouin-zone integration";
-
    }
   else  // PREAMBLE_BYXIK
    { 

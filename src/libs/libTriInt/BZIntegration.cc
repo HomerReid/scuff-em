@@ -179,13 +179,13 @@ void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
   bool BZSymmetric       = Args->BZSymmetric;
   bool Reduced           = Args->Reduced;
   int FDim               = Args->FDim;
+  double *BZIError       = Args->BZIError;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   static int FDimSave=0, MaxEvalsSave=0;
   static void *Workspace=0;
-  static double *Error=0;
   if (Order==0)
    {
      if (FDimSave!=FDim || MaxEvalsSave!=Args->MaxEvals )
@@ -193,7 +193,6 @@ void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
         MaxEvalsSave=Args->MaxEvals;
         if (Workspace) free(Workspace);
         Workspace=CreateDCUTRIWorkspace(FDim, Args->MaxEvals);
-        Error=(double *)reallocEC(Error, FDim*sizeof(double));
       };
    };
   
@@ -207,12 +206,12 @@ void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
   if (Reduced)
    V2[0]=V3[0]=V3[1]=0.5;
   Args->Omega=Omega; 
-
+  memset(BZIError, 0, FDim*sizeof(double));
   if (Order==0)
    Args->NumCalls = DCUTRI(Workspace, Vertices, 
-                             BZIntegrand_TriCub, (void *) Args,
-                             Args->AbsTol, Args->RelTol, 
-                             BZIntegral, Error);
+                           BZIntegrand_TriCub, (void *) Args,
+                           Args->AbsTol, Args->RelTol, 
+                           BZIntegral, BZIError);
   else
    Args->NumCalls = TriIntFixed(BZIntegrand_TriCub, FDim, (void *)Args,
                                 V1, V2, V3, Order, BZIntegral);
@@ -228,7 +227,7 @@ void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
       Args->NumCalls += DCUTRI(Workspace, Vertices, 
                                BZIntegrand_TriCub, (void *) Args,
                                Args->AbsTol, Args->RelTol, 
-                               F2, Error);
+                               F2, BZIError);
      else
       Args->NumCalls += TriIntFixed(BZIntegrand_TriCub, FDim, (void *)Args,
                                     V1, V2, V3, Order, F2);
