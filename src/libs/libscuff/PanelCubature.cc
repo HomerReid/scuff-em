@@ -227,9 +227,9 @@ void GetPanelCubature(RWGGeometry *G, int ns, int np,
   /* evaluate the two-dimensional integral by fixed-order         */
   /* cubature or by adaptive cubature                             */
   /*--------------------------------------------------------------*/
-  if (MaxEvals==6 || MaxEvals==21)
+  if (MaxEvals==6 || MaxEvals==21 || MaxEvals==78)
    { Data->UseSquareMapping=false;
-     int NumPts, Order = (MaxEvals==6) ? 4 : 9;
+     int NumPts, Order = (MaxEvals==6) ? 4 : (MaxEvals==21) ? 9 : 20;
      double uv[2], *TCR=GetTCR(Order,&NumPts);
      memset(Result, 0, IDim*sizeof(double));
      double *DeltaResult=new double[IDim];

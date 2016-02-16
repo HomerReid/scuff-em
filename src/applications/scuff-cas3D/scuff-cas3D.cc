@@ -270,12 +270,12 @@ int main(int argc, char *argv[])
   SC3D->MaxXiPoints        = MaxXiPoints;
   SC3D->XiMin              = XiMin;
 
-  if (G->LDim>1)
+  if (G->LDim>=1)
    { UpdateBZIArgs(BZIArgs, G->RLBasis, G->RLVolume);
      BZIArgs->BZIFunc  = GetCasimirIntegrand;
      BZIArgs->UserData = (void *)SC3D;
      BZIArgs->FDim     = SC3D->NTNQ;
-     SC3D->BZIArgs=BZIArgs;
+     SC3D->BZIArgs     = BZIArgs;
    };
 
   /*******************************************************************/
