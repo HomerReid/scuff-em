@@ -147,11 +147,9 @@ int main(int argc, char *argv[])
   char *FVMeshes[MAXFVM];            int nFVMeshes;
 //
   char *PFTFile=0;
-//
   char *OPFTFile=0;
-//
-  char *EMTPFTFile=0;
-//
+  char *IEMTPFTFile=0;
+  char *EEMTPFTFile=0;
   char *EPPFTFile=0;
   int  EPFTOrder=1;
 //
@@ -203,7 +201,8 @@ int main(int argc, char *argv[])
 /**/
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
 /**/
-     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EMTPFTFile,   0,             "name of EMTPFT output file"},
+     {"IEMTPFTFile",     PA_STRING,  1, 1,       (void *)&IEMTPFTFile,   0,             "name of interior EMTPFT output file"},
+     {"EEMTPFTFile",     PA_STRING,  1, 1,       (void *)&EEMTPFTFile,   0,             "name of exterior EMTPFT output file"},
 /**/
      {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
      {"EPFTOrder",      PA_INT,     1, 1,       (void *)&EPFTOrder,  0,             "cubature order for equivalence-principle force/torque (1,4,9,13,20)"},
@@ -460,8 +459,11 @@ int main(int argc, char *argv[])
      if (PFTFile) // default is overlap + EP for scattered power
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DEFAULT, PlotPFTFlux, PFTFile);
 
-     if (EMTPFTFile)
-      WriteEMTPFTFile(SSD, EMTPFTFile);
+     if (IEMTPFTFile)
+      WriteEMTPFTFile(SSD, IEMTPFTFile, true);
+
+     if (EEMTPFTFile)
+      WriteEMTPFTFile(SSD, EEMTPFTFile, false);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

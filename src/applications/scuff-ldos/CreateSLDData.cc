@@ -39,12 +39,12 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
   fprintf(f,"# scuff-ldos run on %s ",GetHostName());
   fprintf(f,"%s\n",GetTimeString());
   fprintf(f,"# columns: \n");
-  fprintf(f,"# 1 2 3 4: x y z Omega\n");
-  int nc=5;
+  fprintf(f,"# 1 2 3 4 5 : x y z re(Omega) im(Omega)\n");
+  int nc=6;
 
   if (FileType==FILETYPE_BYK && LDim==1)
    { fprintf(f,"# %i: kx\n",nc);
-     nc+1;
+     nc+=1;
    }
   else if (FileType==FILETYPE_BYK && LDim==2)
    { fprintf(f,"# %i,%i: kx ky\n",nc,nc+1);
@@ -61,7 +61,7 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
   fprintf(f,"# %2i, %2i: re, im GE_{yz} \n",nc,nc+1); nc+=2;
   fprintf(f,"# %2i, %2i: re, im GE_{zx} \n",nc,nc+1); nc+=2;
   fprintf(f,"# %2i, %2i: re, im GE_{zy} \n",nc,nc+1); nc+=2;
-  fprintf(f,"# %2i, %2i: re, im GM_{zz} \n",nc,nc+1); nc+=2;
+  fprintf(f,"# %2i, %2i: re, im GE_{zz} \n",nc,nc+1); nc+=2;
   fprintf(f,"# %2i, %2i: re, im GM_{xx} \n",nc,nc+1); nc+=2;
   fprintf(f,"# %2i, %2i: re, im GM_{xy} \n",nc,nc+1); nc+=2;
   fprintf(f,"# %2i, %2i: re, im GM_{xz} \n",nc,nc+1); nc+=2;
@@ -106,7 +106,6 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
   /* For PBC geometries we need to do some preliminary setup     */
   /***************************************************************/
   Data->ABMBCache=0;
-  Data->LBasis=0;
   if (G->LDim>0)
    { 
      int NS = G->NumSurfaces;
@@ -115,15 +114,6 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
      for(int nsa=0, nb=0; nsa<NS; nsa++)
       for(int nsb=nsa; nsb<NS; nsb++, nb++)
        Data->ABMBCache[nb]=G->CreateABMBAccelerator(nsa, nsb, false, false);
-
-     HMatrix *LBasis = Data->LBasis = new HMatrix(3,G->LDim);
-     LBasis->SetEntry(0,0,G->LBasis[0][0]);
-     LBasis->SetEntry(1,0,G->LBasis[0][1]);
-     if (G->LDim>1)
-      { LBasis->SetEntry(0,1,G->LBasis[1][0]);
-        LBasis->SetEntry(1,1,G->LBasis[1][1]);
-      };
-
    };
 
 

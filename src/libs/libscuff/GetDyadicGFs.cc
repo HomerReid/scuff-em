@@ -42,190 +42,6 @@
 
 namespace scuff { 
 
-cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG);
-
-RWGSurface *ResolveNE(RWGGeometry *G, int neFull,
-                      int *pns, int *pne, int *pKNIndex);
-
-void GetReducedFields_Nearby(RWGSurface *S, const int ne,
-                             const double X0[3], const cdouble k,
-                             cdouble e[3], cdouble h[3]);
-
-/***************************************************************/
-/* G[0..2] = + <b_ai(x) | G_ij(x,x0)> for j=x,y,z              */
-/* C[3..5] = + <b_ai(x) | C_ij(x,x0)> for j=x,y,z              */
-/***************************************************************/
-typedef struct GCX0Data 
- { cdouble k;
-   double *X0;
-   GBarAccelerator *GBA;
- } GCX0Data;
-
-void GCX0Integrand(double X[3], double b[3],
-                   void *UserData, double W, double *Integral)
-{
-  GCX0Data *Data       = (GCX0Data *)UserData;
-  cdouble k            = Data->k;
-  double *X0           = Data->X0;
-  GBarAccelerator *GBA = Data->GBA;
-
-  double XmX0[3];
-  XmX0[0] = X[0] - X0[0];
-  XmX0[1] = X[1] - X0[1];
-  XmX0[2] = X[2] - X0[2];
-
-  // Gij = \delta_{ij}*G0 + ddGBar[3*i + j]/k2;
-  // Cxy = dGBar[z]/(ik) + cyclic permutations
-  cdouble G0, dG[3], ddG[9];
-  if (GBA)
-   G0=GetGBar(XmX0, GBA, dG, ddG);
-  else
-   G0=GetG(XmX0, k, dG, ddG);
-
-  cdouble k2=k*k, ik=II*k;
-  cdouble *GC = (cdouble *)Integral;
-  for(int i=0; i<3; i++)
-   { GC[i] += W*(G0 + ddG[3*i+i]/k2)*b[i];
-     for(int j=i+1; j<3; j++)
-      { GC[i] += W*(ddG[3*i+j]/k2)*b[j]; 
-        GC[j] += W*(ddG[3*j+i]/k2)*b[i];
-      };
-   };
-
-  GC[3+0] += W*(b[1]*dG[2] - b[2]*dG[1]) / ik;
-  GC[3+1] += W*(b[2]*dG[0] - b[0]*dG[2]) / ik;
-  GC[3+2] += W*(b[0]*dG[1] - b[1]*dG[0]) / ik;
-
-}
-
-/***************************************************************/
-/* All evaluation points are assumed to lie in the same region.*/
-/* VMatrix is a matrix of dimensions NBF x 6*NX.               */
-/***************************************************************/
-cdouble GetVMatrix(RWGGeometry *G, cdouble Omega, double *kBloch,
-                   HMatrix *XMatrix, HMatrix *VMatrix,
-                   int ColumnOffset=0)
-{
-  /***************************************************************/
-  /* get region index from first point                           */
-  /***************************************************************/
-  double XFirst[3];
-  XFirst[0]=XMatrix->GetEntryD(0,ColumnOffset+0);
-  XFirst[1]=XMatrix->GetEntryD(0,ColumnOffset+1);
-  XFirst[2]=XMatrix->GetEntryD(0,ColumnOffset+2);
-  int RegionIndex = G->GetRegionIndex(XFirst);
-  if (RegionIndex==-1) // PEC
-   { VMatrix->Zero();
-     return 0.0;  
-   };
-  cdouble nn = G->RegionMPs[RegionIndex]->GetRefractiveIndex(Omega);
-  cdouble k  = Omega * nn;
-
-  GBarAccelerator *GBA=0;
-  if (G->LDim>0)
-   GBA=G->CreateRegionGBA(RegionIndex, Omega, kBloch, XMatrix);
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int NE=G->TotalEdges;
-  int NX=XMatrix->NR;
-  int NENX=NE*NX;
-#ifndef USE_OPENMP
-  Log("Computing VMatrix entries at %i points",NX);
-#else
-  int NumThreads=GetNumThreads();
-  Log("Computing VMatrix entries (%i threads) at %i points",NumThreads,NX);
-#pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
-#endif
-  for(int nenx=0; nenx<NENX; nenx++)
-   { 
-     int nx     = nenx / NE;
-     int neFull = nenx % NE;
-
-     int ns, ne, Offset;
-     ResolveNE(G, neFull, &ns, &ne, &Offset);
-     RWGEdge *E=G->Surfaces[ns]->Edges[ne];
-   
-     double Sign=0.0;
-     if      (G->Surfaces[ns]->RegionIndices[0]==RegionIndex) 
-      Sign=+1.0;
-     else if (G->Surfaces[ns]->RegionIndices[1]==RegionIndex)
-      Sign=-1.0;
-     else 
-      continue;
-
-     double X0[3];
-     X0[0]=XMatrix->GetEntryD(nx,ColumnOffset+0);
-     X0[1]=XMatrix->GetEntryD(nx,ColumnOffset+1);
-     X0[2]=XMatrix->GetEntryD(nx,ColumnOffset+2);
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     cdouble GC[6];
-     GCX0Data MyData, *Data=&MyData;
-     Data->k   = k;
-     Data->X0  = X0;
-     Data->GBA = GBA;
-     double rRel = VecDistance(X0, E->Centroid) / E->Radius;
-
-#if 1
-     int Order = rRel>4.0 ? 7 : 20;
-     GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
-                    12, Order, (double *)GC);
-#else
-     if (rRel > 1.0) 
-      { 
-        int Order = rRel>4.0 ? 7 : 20;
-        GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
-                       12, Order, (double *)GC);
-      }
-     else
-      { 
-        GetReducedFields_Nearby(S, ne, X0, k, GC+0, GC+3);
-        GC[3] /= (II*k);
-        GC[4] /= (II*k);
-        GC[5] /= (II*k);
-
-        if (GBA)
-         { cdouble GC1[6], GC2[6];
-           int Order=4;
-           GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
-                          IDIM, Order, (double *)GC1);
-           Data->GBA = 0;
-           GetBFCubature2(G, ns, ne, GCX0Integrand, (void *)Data,
-                          IDIM, Order, (double *)GC2);
-           for(int Mu=0; Mu<6; Mu++) GC[Mu] += (GC1[Mu] - GC2[Mu]);
-         };
-      };
-#endif
-
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     /*--------------------------------------------------------------*/
-     VMatrix->SetEntry(Offset, 6*nx + 0, Sign*GC[0]);
-     VMatrix->SetEntry(Offset, 6*nx + 1, Sign*GC[1]);
-     VMatrix->SetEntry(Offset, 6*nx + 2, Sign*GC[2]);
-     VMatrix->SetEntry(Offset, 6*nx + 3, Sign*GC[3]);
-     VMatrix->SetEntry(Offset, 6*nx + 4, Sign*GC[4]);
-     VMatrix->SetEntry(Offset, 6*nx + 5, Sign*GC[5]);
-     if ( !(G->Surfaces[ns]->IsPEC) )
-      { VMatrix->SetEntry(Offset+1, 6*nx + 0, -Sign*GC[3]);
-        VMatrix->SetEntry(Offset+1, 6*nx + 1, -Sign*GC[4]);
-        VMatrix->SetEntry(Offset+1, 6*nx + 2, -Sign*GC[5]);
-        VMatrix->SetEntry(Offset+1, 6*nx + 3,  Sign*GC[0]);
-        VMatrix->SetEntry(Offset+1, 6*nx + 4,  Sign*GC[1]);
-        VMatrix->SetEntry(Offset+1, 6*nx + 5,  Sign*GC[2]);
-      };
-   };
-
-  if (GBA) 
-   DestroyGBarAccelerator(GBA);
-
-  return k;
-}
-
 /***************************************************************/
 /* 20151212 new routine for computing dyadic GFs that uses a   */
 /* much faster strategy and computes DGFs at many points       */
@@ -248,19 +64,19 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   Log("Getting DGFs at %i eval points...",NX);
 
   /*--------------------------------------------------------------*/
-  /*- allocate storage for VSource, VDest matrices. I keep these -*/
-  /*  on hand as statically-allocated buffers on the assumption  -*/
-  /*  that the routine will be called many times with the same   -*/
-  /*  number of evaluation points, for example in Brillouin-zone -*/
-  /*  integrations                                               -*/
+  /* allocate storage for RFSource, RFDest matrices. I keep these */
+  /* on hand as statically-allocated buffers on the assumption    */
+  /* that the routine will be called many times with the same     */
+  /* number of evaluation points, for example in Brillouin-zone   */
+  /* integrations                                                 */
   /*--------------------------------------------------------------*/
-  static HMatrix *VSource=0, *VDest=0;
-  if ( VSource==0 || VSource->NR!=NBF || VSource->NC!=(6*NX) )
+  static HMatrix *RFSource=0, *RFDest=0;
+  if ( RFSource==0 || RFSource->NR!=NBF || RFSource->NC!=(6*NX) )
    { 
-     if (VSource) delete VSource;
-     if (VDest)   delete VDest;
-     VSource=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
-     VDest=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
+     if (RFSource) delete RFSource;
+     if (RFDest)   delete RFDest;
+     RFSource=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
+     RFDest=new HMatrix(NBF, 6*NX, LHM_COMPLEX);
    };
 
   /*--------------------------------------------------------------*/
@@ -272,40 +88,51 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
       { Warn("wrong-size GMatrix passed to GetDyadicGFs (reallocating)");
         delete GMatrix;
       };
-     GMatrix=new HMatrix(NBF, 18, LHM_COMPLEX);
+     GMatrix=new HMatrix(NX, 18, LHM_COMPLEX);
    };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  Log("Fetching VMatrix...");
-  cdouble k=GetVMatrix(this, Omega, kBloch, XMatrix, VDest);
+  Log("Fetching RFMatrix...");
+  GetRFMatrix(Omega, kBloch, XMatrix, RFDest);
   if (XMatrix->NC>=6)
-   GetVMatrix(this, Omega, kBloch, XMatrix, VSource, 3);
+   GetRFMatrix(Omega, kBloch, XMatrix, RFSource, 3);
   else
-   VSource->Copy(VDest);
+   RFSource->Copy(RFDest);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   Log(" LUSolving...");
-  M->LUSolve(VSource);
+  M->LUSolve(RFSource);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   Log(" Computing VMVPs...");
   for(int nx=0; nx<NX; nx++)
-   for(int i=0; i<3; i++)
-    for(int j=0; j<3; j++)
-     { cdouble GE=0.0, GM=0.0;
-       for(int nbf=0; nbf<NBF; nbf++)
-        { GE+=VDest->GetEntry(nbf, 6*nx+0+i) * VSource->GetEntry(nbf, 6*nx+0+j);
-          GM+=VDest->GetEntry(nbf, 6*nx+3+i) * VSource->GetEntry(nbf, 6*nx+3+j);
-        };
-       GMatrix->SetEntry(nx, 0 + 3*i + j, -II*k*GE);
-       GMatrix->SetEntry(nx, 9 + 3*i + j, +II*k*GM);
-     };
+   { 
+     double X[3];
+     XMatrix->GetEntriesD(nx,"0:2",X);
+     int nr=GetRegionIndex(X);
+     if (nr==-1) continue;
+     cdouble ZRel;
+     cdouble k = Omega * RegionMPs[nr]->GetRefractiveIndex(Omega, &ZRel);
+     cdouble GENormFac = -1.0/(II*k*ZVAC*ZVAC*ZRel);
+     cdouble GMNormFac = +ZRel/(II*k);
+
+     for(int i=0; i<3; i++)
+      for(int j=0; j<3; j++)
+       { cdouble GE=0.0, GM=0.0;
+         for(int nbf=0; nbf<NBF; nbf++)
+          { GE += RFDest->GetEntry(nbf, 6*nx+0+i) * RFSource->GetEntry(nbf, 6*nx+0+j);
+            GM += RFDest->GetEntry(nbf, 6*nx+3+i) * RFSource->GetEntry(nbf, 6*nx+3+j);
+          };
+         GMatrix->SetEntry(nx, 0 + 3*i + j, GE*GENormFac);
+         GMatrix->SetEntry(nx, 9 + 3*i + j, GM*GMNormFac);
+       };
+   };
 
   return GMatrix;
 
@@ -327,6 +154,9 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   memcpy(XBuffer+3, XSource, 3*sizeof(double));
   HMatrix XMatrix(1,6,LHM_COMPLEX,LHM_NORMAL,XBuffer);
 
+  if ( (LBasis && !kBloch) || (!LBasis && kBloch) )
+   ErrExit("%s:%i: incorrect kBloch specification",__FILE__,__LINE__);
+
   cdouble GBuffer[18];
   HMatrix GMatrix(1,18,LHM_COMPLEX,LHM_NORMAL,GBuffer);
   
@@ -339,7 +169,7 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
     };
   
   /***************************************************************/
-  /***************************************************************/
+  /* add direction contributions of point source                 */
   /***************************************************************/
   cdouble EpsRel, MuRel;
   int nr=GetRegionIndex(XSource);
@@ -351,7 +181,7 @@ void RWGGeometry::GetDyadicGFs(double XEval[3], double XSource[3],
   cdouble P[3]={1.0, 0.0, 0.0};
   PointSource PS(XSource, P);
   if (LDim>0)
-   { PS.SetLattice(LDim, LBasis);
+   { PS.SetLattice(LBasis);
      PS.SetkBloch(kBloch);
    };
 

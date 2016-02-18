@@ -83,53 +83,64 @@ void CalcGC(double R[3], cdouble Omega,
             cdouble GMuNu[3][3], cdouble CMuNu[3][3],
             cdouble GMuNuRho[3][3][3], cdouble CMuNuRho[3][3][3])
 { 
-  int Mu, Nu, Rho, Sigma;
-  cdouble k;
-  double r, r2;
-  cdouble ik, ikr, ikr2, ikr3, ExpFac;
-  cdouble f1, f2, f3, f4, f5, f1p, f2p, f3p, f4p, f5p;
+  cdouble k=csqrt2(EpsR*MuR)*Omega;
+  cdouble ik=II*k;
 
-  r2=R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
+  double r2=R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
 
   if (r2==0.0)
-   return;
+   { 
+     cdouble GDiag  = II*real(k)/(6.0*M_PI);
+     cdouble dCDiag = -real(k*k)/(12.0*M_PI);
 
-  r=sqrt(r2);
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       { GMuNu[Mu][Nu] = CMuNu[Mu][Nu] = 0.0;
+         for(int Rho=0; Rho<3; Rho++)
+          GMuNuRho[Mu][Nu][Rho] = CMuNuRho[Mu][Nu][Rho] = 0.0;
+       };
 
-  k=csqrt2(EpsR*MuR)*Omega;
-  ik=II*k;
-  ExpFac=exp(ik*r);
-  ikr=ik*r;
-  ikr2=ikr*ikr;
-  ikr3=ikr2*ikr;
+     GMuNu[0][0] = GMuNu[1][1] = GMuNu[2][2] = GDiag;
+     CMuNuRho[0][1][2] = CMuNuRho[1][2][0] = CMuNuRho[2][0][1] = dCDiag;
+     CMuNuRho[0][2][1] = CMuNuRho[1][0][2] = CMuNuRho[2][1][0] = -dCDiag;
+     return;
+   };
+
+  double r=sqrt(r2);
+
+  cdouble ExpFac=exp(ik*r);
+  cdouble ikr=ik*r;
+  cdouble ikr2=ikr*ikr;
+  cdouble ikr3=ikr2*ikr;
 
   /* scalar factors */
-  f1=ExpFac / (4.0*M_PI*ikr2*r);
-  f1p=(ikr-3.0) * ExpFac / (4.0*M_PI*ikr2*r*r);
+  cdouble f1=ExpFac / (4.0*M_PI*ikr2*r);
+  cdouble f1p=(ikr-3.0) * ExpFac / (4.0*M_PI*ikr2*r*r);
 
-  f2=1.0 - ikr + ikr2;
-  f2p=-1.0*ik + 2.0*ik*ik*r;
+  cdouble f2=1.0 - ikr + ikr2;
+  cdouble f2p=-1.0*ik + 2.0*ik*ik*r;
 
-  f3=-3.0 + 3.0*ikr - ikr2;
-  f3p=3.0*ik - 2.0*ik*ik*r;
+  cdouble f3=-3.0 + 3.0*ikr - ikr2;
+  cdouble f3p=3.0*ik - 2.0*ik*ik*r;
 
-  f4=(-1.0+ikr)/(ik);
-  f4p=1.0;
+  cdouble f4=(-1.0+ikr)/(ik);
+  cdouble f4p=1.0;
 
-  f5=ExpFac / (4.0*M_PI*r*r*r);
-  f5p=(ikr-3.0)*ExpFac/(4.0*M_PI*r*r*r*r);
+  cdouble f5=ExpFac / (4.0*M_PI*r*r*r);
+  cdouble f5p=(ikr-3.0)*ExpFac/(4.0*M_PI*r*r*r*r);
 
   /* computation of G_{\mu\nu} */
   if (GMuNu)
-   { for(Mu=0; Mu<3; Mu++)
-      for(Nu=0; Nu<3; Nu++)
+   { for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
        GMuNu[Mu][Nu]=f1*(f2*Delta[Mu][Nu] + f3*R[Mu]*R[Nu]/r2);
    };
 
   /* computation of C_{\mu\nu} */
   if (CMuNu)
-   { for(Mu=0; Mu<3; Mu++)
-      for(Nu=0; Nu<3; Nu++)
+   { int Rho;
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
        for( CMuNu[Mu][Nu]=0.0, Rho=0; Rho<3; Rho++ )
         CMuNu[Mu][Nu]+=LeviCivita[Mu][Nu][Rho]*R[Rho]*f4*f5;
    };
@@ -137,9 +148,9 @@ void CalcGC(double R[3], cdouble Omega,
   /* computation of G_{\mu\nu\rho} = d/dR_\rho G_\mu\nu  */
   if (GMuNuRho)
    { 
-     for(Mu=0; Mu<3; Mu++)
-      for(Nu=0; Nu<3; Nu++)
-       for(Rho=0; Rho<3; Rho++)
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       for(int Rho=0; Rho<3; Rho++)
         GMuNuRho[Mu][Nu][Rho]
          = (  (f1p*f2 + f1*f2p)*Delta[Mu][Nu] 
              +(f1p*f3 + f1*f3p - 2.0*f1*f3/r)*R[Mu]*R[Nu]/r2
@@ -150,9 +161,10 @@ void CalcGC(double R[3], cdouble Omega,
   /* computation of C_{\mu\nu\rho} = d/dR_\rho C_\mu\nu  */
   if (CMuNuRho)
    { 
-     for(Mu=0; Mu<3; Mu++)
-      for(Nu=0; Nu<3; Nu++)
-       for(Rho=0; Rho<3; Rho++)
+     int Sigma;
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       for(int Rho=0; Rho<3; Rho++)
         for(CMuNuRho[Mu][Nu][Rho]=0.0, Sigma=0; Sigma<3; Sigma++)
          CMuNuRho[Mu][Nu][Rho]
           += LeviCivita[Mu][Nu][Sigma] *(   Delta[Rho][Sigma]*f4*f5
@@ -204,7 +216,8 @@ cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG)
 
   if (r2==0.0)
    {
-     memset(dG,  0, 3*sizeof(cdouble));
+     if (dG) 
+      memset(dG,  0, 3*sizeof(cdouble));
      if (ddG) 
       { memset(ddG, 0, 9*sizeof(cdouble));
         cdouble ddGii = -II*(k*k*k/(12.0*M_PI));
@@ -218,7 +231,7 @@ cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG)
 
   cdouble Phi = exp(ikr)/(4.0*M_PI*r);
 
-  if (dG|| ddG)
+  if (dG || ddG)
    {  
      cdouble Psi = Phi * (ikr - 1.0) / r2;
      if (dG)
@@ -243,5 +256,39 @@ cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG)
   return Phi;
 }
 
+/***************************************************************/
+/* Compute the G and C dyadic Green's functions, retaining only*/
+/* far-field contributions.                                    */
+/***************************************************************/
+void CalcGCFarField(double R[3], cdouble k,
+                    cdouble GMuNu[3][3], cdouble CMuNu[3][3])
+{ 
+  double r2=R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
+
+  if (r2==0.0)
+   return;
+
+  double r=sqrt(r2);
+
+  cdouble ExpFac=exp(II*k*r)/(4.0*M_PI*r);
+
+  GMuNu[0][0] =               ExpFac * ( 1.0 - R[0]*R[0]/r2 );
+  GMuNu[0][1] = GMuNu[1][0] = ExpFac * (     - R[0]*R[1]/r2 );
+  GMuNu[0][2] = GMuNu[2][0] = ExpFac * (     - R[0]*R[2]/r2 );
+  GMuNu[1][1] =               ExpFac * ( 1.0 - R[1]*R[1]/r2 );
+  GMuNu[1][2] = GMuNu[2][1] = ExpFac * (     - R[1]*R[2]/r2 );
+  GMuNu[2][2] =               ExpFac * ( 1.0 - R[2]*R[2]/r2 );
+
+  CMuNu[0][0]=CMuNu[1][1]=CMuNu[2][2]=0.0;
+
+  CMuNu[0][1] = ExpFac * R[2]/r;
+  CMuNu[1][2] = ExpFac * R[0]/r;
+  CMuNu[2][0] = ExpFac * R[1]/r;
+
+  CMuNu[1][0] = -CMuNu[0][1];
+  CMuNu[2][1] = -CMuNu[1][2];
+  CMuNu[0][2] = -CMuNu[2][0];
+
+}
 
 } // namespace scuff

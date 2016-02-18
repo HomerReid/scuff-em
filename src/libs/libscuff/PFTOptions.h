@@ -72,9 +72,11 @@ namespace scuff {
 #define SCUFF_PFT_EPDSI         4
 
 #define SCUFF_PFT_EMT           5   // energy/momentum transfer method
-#define SCUFF_PFT_MOMENTS       6   // dipole-moment method
+#define SCUFF_PFT_EMT_EXTERIOR  5   //  (exterior is default)
+#define SCUFF_PFT_EMT_INTERIOR  6
+#define SCUFF_PFT_MOMENTS       7   // dipole-moment method
 
-#define SCUFF_PFT_DEFAULT       SCUFF_PFT_EPOVERLAP
+#define SCUFF_PFT_DEFAULT       SCUFF_PFT_EMT_INTERIOR
 
 /***************************************************************/
 /***************************************************************/
@@ -121,7 +123,7 @@ PFTOptions *InitPFTOptions(PFTOptions *Options=0);
 class RWGGeometry;
 HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
                    HVector *KNVector, HMatrix *DRMatrix,
-                   HMatrix *FMatrix=0, bool FarField=false);
+                   HMatrix *FMatrix=0);
 
 } // namespace scuff 
 

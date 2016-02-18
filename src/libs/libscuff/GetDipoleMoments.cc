@@ -105,8 +105,8 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
       else
        VecSub(QP, QM, QPmQM);
       VecCross(QPmQM, E->Centroid, QQxX0);
-      PlusEqualsVec(pRWG, PreFac/iw,  QPmQM);
-      PlusEqualsVec(mRWG, PreFac/2.0, QQxX0);
+      VecPlusEquals(pRWG, PreFac/iw,  QPmQM);
+      VecPlusEquals(mRWG, PreFac/2.0, QQxX0);
 
       cdouble KAlpha, NAlpha;
       GetKNCoefficients(KN, ns, ne, &KAlpha, &NAlpha);
@@ -225,9 +225,9 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
 
          // add the contributions of this RWG basis function to 
          // the source densities at the panel centroid
-         PlusEqualsVec(K, KAlpha, fRWG);
+         VecPlusEquals(K, KAlpha, fRWG);
          Sigma += 2.0*KAlpha*PreFac / iw;
-         PlusEqualsVec(N, NAlpha, fRWG);
+         VecPlusEquals(N, NAlpha, fRWG);
          Eta   += 2.0*NAlpha*PreFac / iw;
        }; // for(int nce=0; nce<3; nce++)
 
@@ -267,7 +267,11 @@ HMatrix *RWGGeometry::GetPanelSourceDensities(cdouble Omega,
 
            int npSource = Offset + S->Edges[ne]->iMPanel;
 
-           double *L   = LBasis[WhichBV];
+           double L[3]; 
+           L[0] = LBasis->GetEntryD(0,WhichBV);
+           L[1] = LBasis->GetEntryD(1,WhichBV);
+           L[2] = LBasis->GetEntryD(2,WhichBV);
+           // folowing assumes that kBloch[2]==; FIXME for LDim=3
            cdouble BlochPhase = exp( II*(kBloch[0]*L[0] + kBloch[1]*L[1]) );
 
            for(int nc=4; nc<=11; nc++)

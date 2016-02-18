@@ -94,7 +94,7 @@ void GetEEIs_BruteForce(RWGGeometry *G, GetEEIArgStruct *Args)
   int nea = Args->nea;
   int neb = Args->neb;
 
-  int ncv = NumCommonBFVertices(Args->Sa,nea,Args->Sb,neb);
+  int ncv = AssessBFPair(Args->Sa,nea,Args->Sb,neb);
 
   if (ncv==0)
    { 
@@ -286,7 +286,7 @@ void GetRequest(RWGGeometry *G, Request *R)
      R->nea=lrand48() % Sa->NumEdges;
      do
       { R->neb=lrand48() % Sa->NumEdges;
-      } while( NumCommonBFVertices(Sa,R->nea,Sa,R->neb)!=ncv );
+      } while( AssessBFPair(Sa,R->nea,Sa,R->neb)!=ncv );
    };
 
 }
@@ -419,7 +419,7 @@ int main(int argc, char *argv[])
      printf("* --nsa %i --nea %i ",R->nsa, R->nea);
      printf("* --nsb %i --neb %i ",R->nsb, R->neb);
      printf("* --k %s",CD2S(R->k));
-     printf("* --ncv %i",NumCommonBFVertices(G->Surfaces[R->nsa], R->nea, G->Surfaces[R->nsb], R->neb));
+     printf("* --ncv %i",AssessBFPair(G->Surfaces[R->nsa], R->nea, G->Surfaces[R->nsb], R->neb));
      printf("*\n\n");
 
      /*--------------------------------------------------------------------*/

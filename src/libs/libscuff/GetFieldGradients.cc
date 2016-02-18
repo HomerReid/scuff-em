@@ -359,7 +359,7 @@ void *GetFields_Thread(void *data)
       { for(IF=IFList; IF; IF=IF->Next)
          if ( IF->RegionIndex == RegionIndex )
           { IF->GetFields(X, dEH);
-            SixVecPlusEquals(EH, 1.0, dEH);
+            VecPlusEquals(EH, 1.0, dEH, 6);
           };
       };
 

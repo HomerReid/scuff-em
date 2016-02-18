@@ -87,7 +87,6 @@ char *vstrappend(char *s, const char *format, ...);
 void ErrExit(const char *format, ...);
 void Warn(const char *format, ...); 
 
-
 /***************************************************************/
 /* General-purpose status logging ******************************/
 /***************************************************************/ 
@@ -97,6 +96,8 @@ void Log(const char *format, ...);
 void LogC(const char *format, ...);
 void MutexLog(const char *format, ...);
 void LogPercent(int n, int N, int Gradations=10);
+char *GetHostName(); 
+char *GetTimeString();
 
 /***************************************************************/
 /* POSIX-specific nonportable system information functions *****/
@@ -121,40 +122,72 @@ void z2s(cdouble z, char *zStr);
 char *z2s(cdouble z);
 
 /***************************************************************/
-/* simple operations on arrays of floating-point numbers       */
+/* real-valued vector arithmetic                               */
 /***************************************************************/
-// V1 *= Alpha
-void ScaleVec(double *V1, double Alpha, int N=3);
-void ScaleVec(cdouble *V1, cdouble Alpha, int N=3);
+void VecZero(double *v, int N=3);
+double *VecCopy(const double *v1, double *v2, int N=3);
+double *VecLinComb(double Alpha, const double *v1, double Beta, const double *v2, double *v3, int N=3);
+double *VecScale(const double *v1, double Alpha, double *v2, int N=3);
+double *VecScale(double *v, double Alpha, int N=3);
+double *VecScaleAdd(const double *v1, double Alpha, const double *v2, double *v3, int N=3);
+double *VecAdd(const double *v1, const double *v2, double *v3, int N=3);
+double *VecSub(const double *v1, const double *v2, double *v3, int N=3);
+double *VecPlusEquals(double *v1, double Alpha, const double *v2, int N=3);
+double VecDot(const double *v1, const double *v2, int N=3);
+double VecNorm(const double *v, int N=3);
+double VecNorm2(const double *v, int N=3);
+double VecNormalize(double *v, int N=3);
+double VecDistance(const double *v1, const double *v2, int N=3);
+double VecDistance2(const double *v1, const double *v2, int N=3);
 
-// V1 += Alpha*V2
-void PlusEqualsVec(double *V1, double Alpha, double *V2, int N=3);
-void PlusEqualsVec(cdouble *V1, cdouble Alpha, cdouble *V2, int N=3);
-void PlusEqualsVec(cdouble *V1, cdouble Alpha, double *V2, int N=3);
-
-// V1 += V2
-void PlusEqualsVec(double *V1, double *V2, int N=3);
-void PlusEqualsVec(cdouble *V1, cdouble *V2, int N=3);
-#if 0
-void VecCompare(double *V1, double *V2, int N,
-                const char *str1, const char *str2);
-void VecCompare(cdouble *V1, cdouble *V2, int N,
-                const char *str1, const char *str2);
-void VecCompare(double *V1, double *V2, double *V3, int N,
-                const char *str1, const char *str2, const char *str3);
-void VecCompare(cdouble *V1, cdouble *V2, cdouble *V3, int N,
-                const char *str1, const char *str2, const char *str3);
-void VecPrint(FILE *f, double *v, int N=3,
-              const char *format="%+.8e");
-void VecPrint(FILE *f, double *v, int N=3,
-              const char *format="%+.8e");
-#endif
+// the following three routines are for the 3D case only
+double *VecCross(const double *v1, const double *v2, double *v3);
 
 /***************************************************************/
+/* complex-valued vector arithmetic                            */
 /***************************************************************/
+cdouble *VecLinComb(cdouble Alpha, const cdouble *v1, cdouble Beta, const cdouble *v2, cdouble *v3, int N=3);
+cdouble *VecScale(const cdouble *v1, cdouble Alpha, cdouble *v2, int N=3);
+cdouble *VecScale(cdouble *v, cdouble Alpha, int N=3);
+cdouble *VecScaleAdd(const cdouble *v1, cdouble Alpha, const cdouble *v2, cdouble *v3, int N=3);
+cdouble *VecPlusEquals(const cdouble *v1, cdouble Beta, const cdouble *v2, int N=3);
+cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const cdouble *v2, int N=3);
+cdouble *VecPlusEquals(cdouble *v1, cdouble Alpha, const double *v2, int N=3);
+cdouble *VecSub(const cdouble *v1, const cdouble *v2, cdouble *v3, int N=3);
+cdouble *VecAdd(const cdouble *v1, const cdouble *v2, cdouble *v3, int N=3);
+
 /***************************************************************/
-void SetCodeMarker(const char *Marker);
-void InstallHRSignalHandler();
+/* single-precision comparisons of double-precision numbers    */
+/***************************************************************/
+bool EqualFloat(const double a, const double b);
+bool EqualFloat(const cdouble a, const cdouble b);
+bool VecEqualFloat(const double *a, const double *b);
+bool VecClose(const double *a, const double *b, double abstol);
+
+// relative differences |x-y| / (avg( |x|, |y| ) )
+double RD(double x, double y);
+double RD(cdouble x, cdouble y);
+
+bool IsFinite(double d);
+bool IsFinite(cdouble z);
+
+/***************************************************************/
+/* matrix arithmetic *******************************************/
+/***************************************************************/
+bool Matrix2x2_Inverse(double *a[2],double ainv[2][2]);
+
+/***************************************************************/
+/* pretty-printing of vectors and comparisons ******************/
+/***************************************************************/
+void Compare(double *V1, double *V2, int N, const char *str1, const char *str2);
+void Compare(cdouble *V1, cdouble *V2, int N, const char *str1, const char *str2);
+void Compare(double *V1, double *V2, double *V3, int N, const char *str1, const char *str2, const char *str3);
+void Compare(cdouble *V1, cdouble *V2, cdouble *V3, int N, const char *str1, const char *str2, const char *str3);
+
+void fprintVec(FILE *f, double *v, int Length=3, const char *format="%+.8e");
+void fprintVecCR(FILE *f, double *v, int Length=3, const char *format="%+.8e");
+void fprintVec(FILE *f, cdouble *v, int Length=3, const char *format="%+.8e %+.8e");
+void fprintVecCR(FILE *f, cdouble *v, int Length=3, const char *format="%+.8e %+.8e");
 
 /***************************************************************/
 /* Other functions  ********************************************/
@@ -162,19 +195,15 @@ void InstallHRSignalHandler();
 void *mallocEC(size_t size);
 void *reallocEC(void *v, size_t size);
 char *strdupEC(const char *s);
-void KeyPause();
-double RD(double x, double y);
-double RD(cdouble x, cdouble y);
 void *memdup(void *v, size_t size);
-char *GetHostName(); 
-char *GetTimeString();
+void KeyPause();
 
 FILE *CreateUniqueFile(const char *Base, int ConsoleMessage, char *FileName);
 FILE *CreateUniqueFile(const char *Base, int ConsoleMessage); 
 FILE *CreateUniqueFile(const char *Base);
 
-bool IsFinite(double d);
-bool IsFinite(cdouble z);
+void SetCodeMarker(const char *Marker);
+void InstallHRSignalHandler();
 
 /***************************************************************/
 /* command-line argument processing ****************************/

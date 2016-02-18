@@ -36,8 +36,8 @@
 /***************************************************************/
 namespace scuff {
 HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
-                   HVector *KNVector, HVector *RHSVector,
-                   HMatrix *DMatrix, HMatrix *PFTMatrix);
+                   HVector *KNVector, HMatrix *DRMatrix,
+                   HMatrix *PFTMatrix, bool Interior);
                 }
 
 /***************************************************************/
@@ -282,8 +282,10 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*- do the PFT calculation           ---------------------------*/
   /*--------------------------------------------------------------*/
-  if (PFTMethod==SCUFF_PFT_EMT)
-   GetEMTPFT(G, Omega, 0, 0, 0, DRMatrix, PFTMatrix);
+  if (PFTMethod==SCUFF_PFT_EMT_INTERIOR)
+   GetEMTPFT(G, Omega, 0, 0, DRMatrix, PFTMatrix, true);
+  else if (PFTMethod==SCUFF_PFT_EMT_EXTERIOR)
+   GetEMTPFT(G, Omega, 0, 0, DRMatrix, PFTMatrix, false);
   else
    for(int DestSurface=0; DestSurface<NumSurfaces; DestSurface++)
     {

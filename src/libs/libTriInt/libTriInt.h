@@ -114,50 +114,23 @@ int IntegrateCliffFunction(CliffFunction fCliff, void *UserData, int nFun,
                            char *LogFileName=0);
 
 /***************************************************************/
-/* brillouin-zone integration stuff                            */
+/* Routine for adaptive lattice summation to a desired error   */
+/* tolerance, Sum = \sum_{L} F(L)                              */
+/* where F is a user-supplied vector-valued summand            */
+/* and L ranges over all points in a D-dimensional lattice.    */
+/*                                                             */
+/* note that SummandFunction should ACCUMULATE the             */
+/* contribution of lattice point U to the sum, i.e. it should  */
+/* implement something like                                    */
+/*  Sum[ns] += f_{ns}[U]                                       */
+/* and not                                                     */
+/*  Sum[ns] = f_{ns}[U].                                       */
 /***************************************************************/
-#define BZI_ADAPTIVE 0
-#define BZI_CC       1
-#define BZI_TC       2
+typedef void (*SummandFunction)(double *L, void *UserData, double *Sum);
 
-typedef void (BZIFunction)(void *UserData,
-                           cdouble Omega, double *kBloch,
-                           double *BZIntegrand);
-
-typedef struct GetBZIArgStruct
-{
-  // information on the Brillouin-zone integrand function
-  BZIFunction *BZIFunc;
-  void *UserData;
-  int FDim;         // number of doubles in the integrand vector
-  bool BZSymmetric; // true if f(kx,ky) = f(ky,kx)
-
-  // information on the cubature scheme
-  int BZIMethod;
-  int Order;      // cubature order for fixed cubature schemes
-  int MaxPoints;  // max # integrand samples for adaptive schemes
-  double RelTol;  // relative tolerance for adaptive schemes
-  double AbsTol;  // adaptive tolerance for adaptive schemes
-  int NumCalls;   // actual # integrand samples (return value)
-  bool Reduced;   // get full BZ integral from reduced BZ integral
-                  //  times 2 (1D) or 4 (2D)
-
-  // RLBasis = "reciprocal lattice basis"
-  // RLBasis[0][0..1] = x,y components of basis vector 1
-  // RLBasis[1][0..1] = x,y components of basis vector 2 (if present)
-  HMatrix *RLBasis;
-  double BZVolume;
-  
-  // internally used fields, to be ignored by users
-  double *BZIError;
-  int BZIErrorSize;
-  cdouble Omega;
-  
-} GetBZIArgStruct;
-
-void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
-                   double *BZIntegral);
-void InitGetBZIArgs(GetBZIArgStruct *Args);
-GetBZIArgStruct *CreateGetBZIArgs(HMatrix *LBasis);
+int GetLatticeSum(SummandFunction Summand, void *UserData, int nSum,
+                  HMatrix *LBasis, double *Sum,
+                  double AbsTol=0.0, double RelTol=1.0e-2, 
+                  int MaxCells=1000);
 
 #endif 

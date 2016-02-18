@@ -66,7 +66,18 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /*- get components of scattered and incident fields            -*/
   /*--------------------------------------------------------------*/
   Log("Evaluating fields at points in file %s...",EPFileName);
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  Tic();
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   HMatrix *SFMatrix = G->GetFields( 0, KN, Omega, kBloch, XMatrix); // scattered
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+   double Elapsed=Toc();
+   Log(" GetFields time: %e s\n",Elapsed);
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   HMatrix *IFMatrix = G->GetFields(IF,  0, Omega, kBloch, XMatrix); // incident
 
   /*--------------------------------------------------------------*/
@@ -113,12 +124,6 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
 /* fields on a user-specified surface mesh for visualization   */
 /* in GMSH.                                                    */
 /***************************************************************/
-static char *FieldFuncs=const_cast<char *>(
- "|Ex|,|Ey|,|Ez|,"
- "sqrt(|Ex|^2+|Ey|^2+|Ez|^2),"
- "|Hx|,|Hy|,|Hz|,"
- "sqrt(|Hx|^2+|Hy|^2+|Hz|^2)");
-
 static const char *FieldTitles[]=
  {"|Ex|", "|Ey|", "|Ez|", "|E|",
   "|Hx|", "|Hy|", "|Hz|", "|H|",
@@ -187,7 +192,7 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   /*- get the total fields at the panel vertices                 -*/
   /*--------------------------------------------------------------*/
   HMatrix *FMatrix=SSD->G->GetFields(SSD->IF, SSD->KN, SSD->Omega, SSD->kBloch, 
-                                     XMatrix, 0, FieldFuncs);
+                                     XMatrix);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -200,19 +205,30 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
      for(int np=0; np<S->NumPanels; np++)
-      {
+      { 
         RWGPanel *P=S->Panels[np];
-        int iV1 = P->VI[0];  double *V1 = S->Vertices + 3*iV1;
-        int iV2 = P->VI[1];  double *V2 = S->Vertices + 3*iV2;
-        int iV3 = P->VI[2];  double *V3 = S->Vertices + 3*iV3;
 
+        double *V[3]; // vertices
+        double Q[3];  // quantities
+        for(int nv=0; nv<3; nv++)
+         { 
+           int VI = P->VI[nv];
+           V[nv]  = S->Vertices + 3*VI;
+
+           cdouble EH[6];
+           FMatrix->GetEntries(VI, ":", EH);
+           cdouble *F = (nff>=4) ? EH+0 : EH+3;
+           if (nff==3 || nff==7)
+            Q[nv] = sqrt(norm(F[0]) + norm(F[1]) + norm(F[2]));
+           else
+            Q[nv] = abs( F[nff%4] );
+         };
+           
         fprintf(f,"ST(%e,%e,%e,%e,%e,%e,%e,%e,%e) {%e,%e,%e};\n",
-                   V1[0], V1[1], V1[2],
-                   V2[0], V2[1], V2[2],
-                   V3[0], V3[1], V3[2],
-                   FMatrix->GetEntryD(iV1,nff),
-                   FMatrix->GetEntryD(iV2,nff),
-                   FMatrix->GetEntryD(iV3,nff));
+                   V[0][0], V[0][1], V[0][2],
+                   V[1][0], V[1][1], V[1][2],
+                   V[2][0], V[2][1], V[2][2],
+                   Q[0], Q[1], Q[2]);
       };
 
      /*--------------------------------------------------------------*/
@@ -368,9 +384,9 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
       { RWGSurface *S=G->Surfaces[ns];
         int nr1=S->RegionIndices[0], nr2=S->RegionIndices[1];
         if (nr1>=0) 
-         PlusEqualsVec(RegionPFTs + NUMPFT*nr1, +1.0, PFT, NUMPFT);
+         VecPlusEquals(RegionPFTs + NUMPFT*nr1, +1.0, PFT, NUMPFT);
         if (nr2>=0)
-         PlusEqualsVec(RegionPFTs + NUMPFT*nr2, -1.0, PFT, NUMPFT);
+         VecPlusEquals(RegionPFTs + NUMPFT*nr2, -1.0, PFT, NUMPFT);
       };
 
    };
@@ -447,21 +463,22 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
 namespace scuff{
 
 HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
-                   HVector *KNVector, HVector *RHSVector,
-                   HMatrix *DMatrix, HMatrix *PFTMatrix);
+                   HVector *KNVector, HMatrix *DMatrix, 
+                   HMatrix *PFTMatrix, bool Interior);
 
 void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KNVector,
                                 IncField *IF, cdouble Omega,
-                                HMatrix *PFTMatrix);
+                                HMatrix *PFTMatrix, bool Interior);
 
                }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteEMTPFTFile(SSData *SSD, char *PFTFile)
+void WriteEMTPFTFile(SSData *SSD, char *PFTFile, bool Interior)
 { 
-  Log("Computing EMTPFT at Omega=%s...",z2s(SSD->Omega));
+  Log("Computing %s EMTPFT at Omega=%s...",
+       Interior ? "interior" : "exterior", z2s(SSD->Omega));
 
   /***************************************************************/
   /* write file preamble as necessary ****************************/
@@ -498,10 +515,14 @@ void WriteEMTPFTFile(SSData *SSD, char *PFTFile)
   int NS=G->NumSurfaces;
   HMatrix *PFTMatrix1 = new HMatrix(NS, NUMPFT);
   HMatrix *PFTMatrix2 = new HMatrix(NS, NUMPFT);
+  HMatrix *PFTMatrix3 = new HMatrix(NS, NUMPFT);
+  HMatrix *PFTMatrix4 = new HMatrix(NS, NUMPFT);
   PFTMatrix1->Zero();
   PFTMatrix2->Zero();
-  AddIFContributionsToEMTPFT(G, KN, IF, Omega, PFTMatrix1);
-  GetEMTPFT(G, Omega, 0, KN, RHSVector, 0, PFTMatrix2);
+  PFTMatrix3->Zero();
+  PFTMatrix4->Zero();
+  AddIFContributionsToEMTPFT(G, KN, IF, Omega, PFTMatrix1, Interior);
+  GetEMTPFT(G, Omega, 0, KN, 0, PFTMatrix2, Interior);
 
   HVector *PM=G->GetDipoleMoments(Omega, KN);
 

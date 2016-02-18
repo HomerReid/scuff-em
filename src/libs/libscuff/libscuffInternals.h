@@ -108,7 +108,7 @@ void InitGetPPIArgs(GetPPIArgStruct *Args);
 void GetPanelPanelInteractions(GetPPIArgStruct *Args);
 void GetPanelPanelInteractions(GetPPIArgStruct *Args,
                                cdouble *H,
-                               cdouble *GradH, 
+                               cdouble *GradH,
                                cdouble *dHdT);
 
 /*--------------------------------------------------------------*/
@@ -162,6 +162,47 @@ typedef struct GetEEIArgStruct
 
 void InitGetEEIArgs(GetEEIArgStruct *Args);
 void GetEdgeEdgeInteractions(GetEEIArgStruct *Args);
+
+/*--------------------------------------------------------------*/
+/*- GetGCMatrixElements ----------------------------------------*/
+/*--------------------------------------------------------------*/
+typedef struct GetGCMEArgStruct
+{
+  // these fields must be filled in by caller
+  int nsa, nsb;
+  int NumRegions;
+  cdouble k[2];
+  bool NeedGC, NeedDW, NeedForce, NeedTorque;
+
+  // these fields are set to default values by
+  // InitGetGCMEArgs and may be left unchanged
+  // by the caller
+  GBarAccelerator *GBA[2];
+  double XTorque[3];
+  double *Displacement;
+  void *FIBBICache;
+  bool ForceDeSingularize;
+  bool DoNotDeSingularize;
+  int  ForceOrder;
+
+} GetGCMEArgStruct;
+
+#define GCME_GC 0
+#define GCME_DW 1
+#define GCME_FX 2
+#define GCME_FY 3
+#define GCME_FZ 4
+#define GCME_TX 5
+#define GCME_TY 6
+#define GCME_TZ 7
+#define NUMGCMES 8
+void GetGCMatrixElements(RWGGeometry *G,
+                         GetGCMEArgStruct *Args,
+                         int nea, int neb,
+                         cdouble Gab[2][NUMGCMES],
+                         cdouble Cab[2][NUMGCMES]);
+
+void InitGetGCMEArgs(GetGCMEArgStruct *Args);
 
 /*--------------------------------------------------------------*/
 /*- GetSurfaceSurfaceInteractions() ----------------------------*/
@@ -311,7 +352,11 @@ class FIPPICache
 /***************************************************************/   
 extern FIPPICache GlobalFIPPICache;
 
-/****************************************************************/   /*- AssessPanelPair counts common vertices in a pair of panels, */
+/****************************************************************/
+/*- 3. Utility routines for analyzing geometrical data          */
+/*-    associated with SCUFF geometries.                        */
+/*-                                                             */
+/*- AssessPanelPair counts common vertices in a pair of panels, */
 /*- and puts arrays of panel vertices into certain orders that  */
 /*- are expected by subsequent algorithms that work on the      */
 /*- panel pairs.                                                */
@@ -331,9 +376,10 @@ int AssessPanelPair(RWGSurface *Sa, int npa,
                     RWGSurface *Sb, int npb,
                     double *rRel);
 
+int AssessBFPair(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb, double *rRel=0);
+
 int NumCommonVertices(RWGSurface *Sa, int npa, RWGSurface *Sb, int npb);
 
-int NumCommonBFVertices(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb);
 
 int CanonicallyOrderVertices(double **Va, double **Vb, int ncv,
                              double **OVa, double **OVb);

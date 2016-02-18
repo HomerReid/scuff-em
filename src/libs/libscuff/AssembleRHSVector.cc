@@ -44,6 +44,81 @@
 namespace scuff {
 
 /***************************************************************/
+/* Prepare a chain of IncField structures for computations in  */
+/* a given RWGGeometry at a given frequency and (optionally)   */
+/* Bloch vector:                                               */
+/*                                                             */
+/*  (1) For each IncField in the chain, set the frequency to   */
+/*      Omega, set Eps and Mu to the material properties       */
+/*      (at frequency Omega) of the region within which the    */
+/*      field sources are contained, and (for PBC geometries)  */
+/*      set the Bloch vector and the lattice dimension.        */
+/*                                                             */
+/*  (2) Make sure the RegionIndex field in the IncField        */
+/*      structure matches the index of the object specified by */
+/*      the RegionLabel field (or, if the IncField implements  */
+/*      the GetSourcePoint() routine, the index of the region  */
+/*      containing the source point).                          */
+/* Returns the total number of IncFields in the chain.         */
+/***************************************************************/
+int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch)
+{
+  if (IFList==0) return 0;
+
+  if ( (LBasis==0 && kBloch!=0) || (LBasis!=0 && kBloch==0) )
+   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (LBasis)
+   IFList->SetLattice(LBasis, true);
+
+  /*--------------------------------------------------------------*/
+  /*- make sure the cached epsilon and mu values for all regions  */
+  /*- are up-to-date for the present frequency                    */
+  /*--------------------------------------------------------------*/
+  UpdateCachedEpsMuValues(Omega);
+
+  /*--------------------------------------------------------------*/
+  /*- run through the chain of IncField structures and set the   -*/
+  /*- epsilon and mu values for each structure depending on the  -*/
+  /*- region in which its sources are contained                  -*/
+  /*--------------------------------------------------------------*/
+  int NIF;
+  IncField *IF;
+  double X[3];
+  for (NIF=0, IF=IFList; IF; NIF++, IF=IF->Next) 
+   {
+     /*--------------------------------------------------------------*/
+     /*- first get the index of the object containing the field     -*/
+     /*- sources for IF                                             -*/
+     /*--------------------------------------------------------------*/
+     if ( IF->GetSourcePoint(X) )
+      IF->RegionIndex = GetRegionIndex(X);
+     else if ( IF->RegionLabel )
+      IF->RegionIndex = GetRegionByLabel(IF->RegionLabel);
+     else
+      IF->RegionIndex = 0; // exterior medium
+
+     if ( IF->RegionIndex<0  || IF->RegionIndex>NumRegions )
+      ErrExit("invalid region index %i",IF->RegionIndex);
+
+     /*--------------------------------------------------------------*/
+     /*- now set the material properties of IF as appropriate for   -*/
+     /*- the region in question                                     -*/
+     /*--------------------------------------------------------------*/
+     IF->SetFrequencyAndEpsMu(Omega, EpsTF[ IF->RegionIndex ], MuTF[ IF->RegionIndex ] );
+     if (kBloch)
+      IF->SetkBloch(kBloch);
+
+   }; // for(NIF=0, IF=IFList ... 
+
+  return NIF;
+
+}
+
+/***************************************************************/
 /* data structure used to pass parameters to                   */
 /* InnerProductIntegrand routine.                              */
 /***************************************************************/
@@ -350,88 +425,13 @@ HVector *RWGGeometry::AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RH
 { return AssembleRHSVector(Omega, 0, IF, RHS); }
 
 /***************************************************************/
-/* Prepare a chain of IncField structures for computations in  */
-/* a given RWGGeometry at a given frequency and (optionally)   */
-/* Bloch vector:                                               */
-/*                                                             */
-/*  (1) For each IncField in the chain, set the frequency to   */
-/*      Omega, set Eps and Mu to the material properties       */
-/*      (at frequency Omega) of the region within which the    */
-/*      field sources are contained, and (for PBC geometries)  */
-/*      set the Bloch vector and the lattice dimension.        */
-/*                                                             */
-/*  (2) Make sure the RegionIndex field in the IncField        */
-/*      structure matches the index of the object specified by */
-/*      the RegionLabel field (or, if the IncField implements  */
-/*      the GetSourcePoint() routine, the index of the region  */
-/*      containing the source point).                          */
-/* Returns the total number of IncFields in the chain.         */
-/***************************************************************/
-int RWGGeometry::UpdateIncFields(IncField *IFList, cdouble Omega, double *kBloch)
-{
-  if (IFList==0) return 0;
-
-  if ( (LDim==0 && kBloch!=0) || (LDim!=0 && kBloch==0) )
-   ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (LDim)
-   IFList->SetLattice(LDim, LBasis, true);
-
-  /*--------------------------------------------------------------*/
-  /*- make sure the cached epsilon and mu values for all regions  */
-  /*- are up-to-date for the present frequency                    */
-  /*--------------------------------------------------------------*/
-  UpdateCachedEpsMuValues(Omega);
-
-  /*--------------------------------------------------------------*/
-  /*- run through the chain of IncField structures and set the   -*/
-  /*- epsilon and mu values for each structure depending on the  -*/
-  /*- region in which its sources are contained                  -*/
-  /*--------------------------------------------------------------*/
-  int NIF;
-  IncField *IF;
-  double X[3];
-  for (NIF=0, IF=IFList; IF; NIF++, IF=IF->Next) 
-   {
-     /*--------------------------------------------------------------*/
-     /*- first get the index of the object containing the field     -*/
-     /*- sources for IF                                             -*/
-     /*--------------------------------------------------------------*/
-     if ( IF->GetSourcePoint(X) )
-      IF->RegionIndex = GetRegionIndex(X);
-     else if ( IF->RegionLabel )
-      IF->RegionIndex = GetRegionByLabel(IF->RegionLabel);
-     else
-      IF->RegionIndex = 0; // exterior medium
-
-     if ( IF->RegionIndex<0  || IF->RegionIndex>NumRegions )
-      ErrExit("invalid region index %i",IF->RegionIndex);
-
-     /*--------------------------------------------------------------*/
-     /*- now set the material properties of IF as appropriate for   -*/
-     /*- the region in question                                     -*/
-     /*--------------------------------------------------------------*/
-     IF->SetFrequencyAndEpsMu(Omega, EpsTF[ IF->RegionIndex ], MuTF[ IF->RegionIndex ] );
-     if (kBloch)
-      IF->SetkBloch(kBloch);
-
-   }; // for(NIF=0, IF=IFList ... 
-
-  return NIF;
-
-}
-
-/***************************************************************/
 /* Allocate an RHS vector of the appropriate size. *************/
 /***************************************************************/
 HVector *RWGGeometry::AllocateRHSVector(bool PureImagFreq)
 { 
   HVector *V;
 
-  if (PureImagFreq && LDim==0)
+  if (PureImagFreq && LBasis==0)
    V=new HVector(TotalBFs,LHM_REAL);
   else
    V=new HVector(TotalBFs,LHM_COMPLEX);

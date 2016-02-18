@@ -227,9 +227,9 @@ void GetPanelCubature(RWGGeometry *G, int ns, int np,
   /* evaluate the two-dimensional integral by fixed-order         */
   /* cubature or by adaptive cubature                             */
   /*--------------------------------------------------------------*/
-  if (MaxEvals==6 || MaxEvals==21)
+  if (MaxEvals==6 || MaxEvals==21 || MaxEvals==78)
    { Data->UseSquareMapping=false;
-     int NumPts, Order = (MaxEvals==6) ? 4 : 9;
+     int NumPts, Order = (MaxEvals==6) ? 4 : (MaxEvals==21) ? 9 : 20;
      double uv[2], *TCR=GetTCR(Order,&NumPts);
      memset(Result, 0, IDim*sizeof(double));
      double *DeltaResult=new double[IDim];
@@ -720,13 +720,14 @@ void GetBFCubature2(RWGGeometry *G, int ns, int ne,
      for(int PM=0; PM<NumPM; PM++)
       { 
         double b[3], X[3], Sign=(PM==0) ? 1.0 : -1.0;
+        double PreFac=Sign*Length/(2.0*Area[PM]);
         for(int Mu=0; Mu<3; Mu++)
          { b[Mu] = u*A[PM][Mu] + v*B[PM][Mu];
            X[Mu] = b[Mu]       + Q[PM][Mu];
-           b[Mu] *= Sign*Length/(2.0*Area[PM]);
+           b[Mu] *= PreFac;
          };
 
-        Integrand(X,b,UserData,2.0*Area[PM]*w,Integral);
+        Integrand(X,b,2.0*PreFac,UserData,2.0*Area[PM]*w,Integral);
       };
    };
 
@@ -735,11 +736,12 @@ void GetBFCubature2(RWGGeometry *G, int ns, int ne,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetBFBFCubature2(RWGGeometry *G,
-                      int ns, int ne, int nsP, int neP,
+void GetBFBFCubature2(RWGSurface *S, int ne,
+                      RWGSurface *SP, int neP,
                       PPCFunction2 Integrand,
                       void *UserData, int IDim,
-                      int Order, double *Integral)
+                      int Order, double *Integral,
+                      int PanelOnlyA, int PanelOnlyB)
 {
   int NumPts;
   double *TCR=GetTCR(Order,&NumPts);
@@ -748,7 +750,6 @@ void GetBFBFCubature2(RWGGeometry *G,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGSurface *S = G->Surfaces[ns];
   RWGEdge *E    = S->Edges[ne];
   double Length = E->Length;
   double *QP    = S->Vertices + 3*(E->iQP);
@@ -773,7 +774,6 @@ void GetBFBFCubature2(RWGGeometry *G,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  RWGSurface *SP = G->Surfaces[nsP];
   RWGEdge *EP    = SP->Edges[neP];
   double LengthP = EP->Length;
   double *QPP    = SP->Vertices + 3*(EP->iQP);
@@ -807,6 +807,8 @@ void GetBFBFCubature2(RWGGeometry *G,
 
      for(int PM=0; PM<NumPM; PM++)
       { 
+        if (PanelOnlyA!=-1 && PanelOnlyA!=PM) continue;
+
         double b[3], X[3], Sign=(PM==0) ? 1.0 : -1.0;
         double PreFac=Sign*Length/(2.0*Area[PM]);
         for(int Mu=0; Mu<3; Mu++)
@@ -823,6 +825,7 @@ void GetBFBFCubature2(RWGGeometry *G,
 
            for(int PMP=0; PMP<NumPMP; PMP++)
             { 
+              if (PanelOnlyB!=-1 && PanelOnlyB!=PMP) continue;
               double bP[3], XP[3], SignP=(PMP==0) ? 1.0 : -1.0;
               double PreFacP=SignP*LengthP/(2.0*AreaP[PMP]);
               for(int Mu=0; Mu<3; Mu++)
@@ -838,6 +841,234 @@ void GetBFBFCubature2(RWGGeometry *G,
          };        
       };
    };
+}
+
+void GetBFBFCubature2(RWGGeometry *G,
+                      int ns, int ne, int nsP, int neP,
+                      PPCFunction2 Integrand,
+                      void *UserData, int IDim,
+                      int Order, double *Integral,
+                      int PanelOnlyA, int PanelOnlyB)
+{
+  GetBFBFCubature2(G->Surfaces[ns], ne, G->Surfaces[nsP], neP,
+                   Integrand, UserData, IDim, Order, Integral,
+                   PanelOnlyA, PanelOnlyB);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+typedef struct BFBFCTDData
+{
+  PPCFunction2 *UserFunction;
+  void *UserData; 
+  int NTA, NTB, ncv;
+  double LA, AreaA[2], L1A[2][3], L2A[3], *QA[2];
+  double LB, AreaB[2], L1B[2][3], L2B[3], *QB[2];
+ 
+} BFBFCTDData;
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void wyToXiEta(int ncv, int WhichRegion, const double wyyy[4], double XiEtaJ[5])
+{
+  double w=wyyy[0], y1=wyyy[1], y2=wyyy[2], y3=wyyy[3];
+  double Xi1=0.0, Xi2=0.0, Eta1=0.0, Eta2=0.0, J=0.0;
+  if (ncv>=2)
+   { 
+     double u1=0.0, u2=0.0, Xi1Min=0.0, Xi1Max=0.0;
+     switch(WhichRegion)
+      { case 0: u1  = -w*y1;              u2  = -w*y1*y2;
+                Xi2 = w*(1.0-y1+y1*y2);
+                Xi1Min=Xi2+u2-u1; Xi1Max=1.0;
+                break;
+
+        case 1: u1  = w*y1;               u2  = w*y1*y2;
+                Xi2 = w*(1.0-y1);
+                Xi1Min=Xi2; Xi1Max=1.0-u1;
+                break;
+
+        case 2: u1  = -w*y1*y2;           u2  = w*y1*(1.0-y2);
+                Xi2 = w*(1.0-y1);
+                Xi1Min=Xi2+u2-u1; Xi1Max=1.0;
+                break;
+
+        case 3: u1  = w*y1*y2;            u2  = -w*y1*(1.0-y2);
+                Xi2 = w*(1.0-y1*y2);
+                Xi1Min=Xi2; Xi1Max=1.0-u1;
+                break;
+
+        case 4: u1  = -w*y1*y2;           u2  = -w*y1;
+                Xi2 = w;
+                Xi1Min=Xi2; Xi1Max=1.0;
+                break;
+
+        case 5: u1  = w*y1*y2;            u2  = w*y1;
+                Xi2 = w*(1.0-y1);
+                Xi1Min=Xi2+u2-u1; Xi1Max=1.0-u1;
+                break;
+      };
+     Xi1=Xi1Min + (Xi1Max-Xi1Min)*y3;
+     J=w*w*y1*(Xi1Max-Xi1Min);
+     Eta1 = u1 + Xi1;
+     Eta2 = u2 + Xi2;
+   }
+  else // (ncv==1 || ncv==0)
+   { 
+     switch(WhichRegion)
+      { case 0: Xi1=w;    Xi2=w*y1;   Eta1=w*y2;   Eta2=w*y2*y3;
+                break;
+        case 1: Eta1=w;  Eta2=w*y1;    Xi1=w*y2;    Xi2=w*y2*y3;
+                break;
+      };
+     J=w*w*w*y2;
+   };
+
+  XiEtaJ[0] = Xi1;
+  XiEtaJ[1] = Xi2;
+  XiEtaJ[2] = Eta1;
+  XiEtaJ[3] = Eta2;
+  XiEtaJ[4] = J;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int BFBFCTDIntegrand(unsigned ndim, const double *wyyy, void *pBFBFCTDData,
+                  unsigned fdim, double *fval)
+{ 
+  (void )ndim; // unused 
+
+  memset(fval, 0, fdim*sizeof(double));
+
+  BFBFCTDData *Data             = (BFBFCTDData *)pBFBFCTDData;
+  void *UserData             = Data->UserData;
+  PPCFunction2 *UserFunction = Data->UserFunction;
+  double LA                  = Data->LA;
+  double *AreaA              = Data->AreaA;
+  int NTA                    = Data->NTA;
+  double LB                  = Data->LB;
+  double *AreaB              = Data->AreaB;
+  int NTB                    = Data->NTB;
+  int ncv                    = Data->ncv;
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  int NumRegions = (ncv>=2) ? 6 : 2;
+  for(int nr=0; nr<NumRegions; nr++)
+   { 
+     double XiEtaJ[5];
+     wyToXiEta(ncv, nr, wyyy, XiEtaJ);
+     double Xi1A = XiEtaJ[0];
+     double Xi2A = XiEtaJ[1];
+     double Xi1B = XiEtaJ[2];
+     double Xi2B = XiEtaJ[3];
+     double J    = XiEtaJ[4];
+     if (J==0.0) continue;
+
+     for(int ntA=0; ntA<NTA; ntA++)
+      for(int ntB=0; ntB<NTB; ntB++)
+       { 
+         double DivbA = (ntA==0 ? 1.0 : -1.0 ) * LA/AreaA[ntA];
+         double DivbB = (ntB==0 ? 1.0 : -1.0 ) * LB/AreaB[ntB];
+
+         double bA[3], xA[3], bB[3], xB[3];
+
+         VecLinComb(Xi1A, Data->L1A[ntA], Xi2A, Data->L2A, bA);
+         VecLinComb(1.0, bA, 1.0, Data->QA[ntA], xA);
+         VecScale(bA, DivbA / 2.0);
+
+         VecLinComb(Xi1B, Data->L1B[ntB], Xi2B, Data->L2B, bB);
+         VecLinComb(1.0, bB, 1.0, Data->QB[ntB], xB);
+         VecScale(bB, DivbB / 2.0);
+
+         double Weight = 4.0 * AreaA[ntA] * AreaB[ntB] * J;
+         UserFunction(xA, bA, DivbA, xB, bB, DivbB, UserData, Weight, fval);
+       };
+   };
+
+  return 0;
+
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetBFBFCubatureTD(RWGSurface *SA, int neA,
+                       RWGSurface *SB, int neB,
+                       PPCFunction2 Integrand, void *UserData,
+                       int IDim, double *Integral, double *Error,
+                       int MaxEvals, double AbsTol, double RelTol)
+{
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  RWGEdge    *EA  = SA->Edges[neA];
+  double     *QPA = SA->Vertices + 3*(EA->iQP);
+  double     *V1A = SA->Vertices + 3*(EA->iV1);
+  double     *V2A = SA->Vertices + 3*(EA->iV2);
+  double     *QMA = (EA->iQM==-1) ? 0 : SA->Vertices + 3*(EA->iQM);
+
+  RWGEdge    *EB=SB->Edges[neB];
+  double     *QPB = SB->Vertices + 3*(EB->iQP);
+  double     *V1B = SB->Vertices + 3*(EB->iV1);
+  double     *V2B = SB->Vertices + 3*(EB->iV2);
+  double     *QMB = (EB->iQM==-1) ? 0 : SB->Vertices + 3*(EB->iQM);
+  
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  BFBFCTDData MyData, *Data = &MyData;
+  Data->UserFunction     = Integrand;
+  Data->UserData         = UserData;
+
+  Data->LA       = EA->Length;
+  Data->NTA      = QMA ? 2 : 1;
+  Data->AreaA[0] = SA->Panels[EA->iPPanel]->Area;
+  Data->QA[0]    = QPA;
+  VecSub(V1A, QPA, Data->L1A[0]);
+  VecSub(V2A, V1A, Data->L2A);
+  if (QMA)
+   { Data->QA[1]    = QMA;
+     Data->AreaA[1] = SA->Panels[EA->iMPanel]->Area;
+     VecSub(V1A, QMA, Data->L1A[1]);
+   };
+
+  Data->LB       = EB->Length;
+  Data->NTB      = QMB ? 2 : 1;
+  Data->AreaB[0] = SB->Panels[EB->iPPanel]->Area;
+  Data->QB[0]    = QPB;
+  VecSub(V1B, QPB, Data->L1B[0]);
+  VecSub(V2B, V1B, Data->L2B);
+  if (QMB)
+   { Data->QB[1]    = QMB;
+     Data->AreaB[1] = SB->Panels[EB->iMPanel]->Area;
+     VecSub(V1B, QMB, Data->L1B[1]);
+   };
+
+  Data->ncv = AssessBFPair(SA, neA, SB, neB);
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double Lower[4]={0.0, 0.0, 0.0, 0.0};
+  double Upper[4]={1.0, 1.0, 1.0, 1.0};
+  hcubature(IDim, BFBFCTDIntegrand, (void *)Data, 4, Lower, Upper,
+            MaxEvals, AbsTol, RelTol, ERROR_INDIVIDUAL,
+            Integral, Error);
+}
+
+void GetBFBFCubatureTD(RWGGeometry *G,
+                       int nsA, int neA, int nsB, int neB,
+                       PPCFunction2 Integrand, void *UserData,
+                       int IDim, double *Integral, double *Error,
+                       int MaxEvals, double AbsTol, double RelTol)
+{
+  GetBFBFCubatureTD(G->Surfaces[nsA], neA, G->Surfaces[nsB], neB,  
+                    Integrand, UserData, IDim, Integral, Error,
+                    MaxEvals, AbsTol, RelTol);
 }
 
 } // namespace scuff

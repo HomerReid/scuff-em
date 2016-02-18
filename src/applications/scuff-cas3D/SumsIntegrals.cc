@@ -85,15 +85,17 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 { 
   if (SC3D->UseExistingData==false)
    return false;
+   
+  int LDim=SC3D->G->LBasis ? SC3D->G->LBasis->NC : 0;
 
-  if (    (kBloch==0 && SC3D->G->LDim>0)
-       || (kBloch!=0 && SC3D->G->LDim==0)
+  if (    (kBloch==0 && LDim>0)
+       || (kBloch!=0 && LDim==0)
      ) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   /*----------------------------------------------------------*/
   /*----------------------------------------------------------*/
   /*----------------------------------------------------------*/
-  int NumKeys = 1 + SC3D->G->LDim;
+  int NumKeys = 1 + LDim;
   double Keys[3];
   Keys[0]=Xi;
   if(NumKeys>=2) Keys[1]=kBloch[0];
@@ -171,12 +173,14 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
 /* prototype for passage to adapt_integrate() to use in        */
 /* integrations over the brillouin zone                        */
 /***************************************************************/
+#if 0
 int kBlochIntegrand(unsigned ndim, const double *x, void *params,
                     unsigned fdim, double *fval)
 {
   (void) fdim; // unused
 
-  SC3Data *SC3D = (SC3Data *)params;
+  SC3Data *SC3D    = (SC3Data *)params;
+  HMatrix *RLBasis = 
   double *EFT = fval;
 
   double kBloch[2];
@@ -336,7 +340,7 @@ int urIntegrand(unsigned ndim, const double *x, void *params,
   double Xi     = SC3D->Xi;
   memcpy(SC3D->BZConverged, Skip, fdim*sizeof(bool));
 
-  if (SC3D->G->LDim==2)
+  if (SC3D->LDim==2)
    { 
      double ur=x[0];
      if (ur==0.0 || ur==1.0)
@@ -350,7 +354,7 @@ int urIntegrand(unsigned ndim, const double *x, void *params,
      double kBloch[2];
      kBloch[0] = u*SC3D->RLBasisVectors[0][0];
      kBloch[1] = u*SC3D->RLBasisVectors[0][1];
-     GetCasimirIntegrand(SC3D, Xi, kBloch, fval);
+     GetCasimirIntegrand(SC3D, cdouble(0.0,Xi), kBloch, fval);
    };
 
   return 0;
@@ -375,7 +379,7 @@ int urIntegrand(unsigned ndim, const double *x, void *params,
 /************************************************************/
 void GetCasimirBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
 {
-  int LDim = SC3D->G->LDim;
+  int LDim = SC3D->LDim;
 
   double *Error = new double[SC3D->NTNQ];
      
@@ -440,6 +444,7 @@ void GetCasimirBZIntegral(SC3Data *SC3D, double Xi, double *EFT)
 
   delete[] Error;
 }
+#endif
 
 /***************************************************************/
 /* get the contribution of a single imaginary angular frequency*/
@@ -454,9 +459,26 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   if (SC3D->G->LDim==0)
-   GetCasimirIntegrand(SC3D, Xi, 0, EFT);
+   GetCasimirIntegrand((void *)SC3D, cdouble(0.0,Xi), 0, EFT);
   else
-   GetCasimirBZIntegral(SC3D, Xi, EFT);
+   GetBZIntegral(SC3D->BZIArgs, cdouble(0.0,Xi), EFT);
+
+  /***************************************************************/
+  /* write data to .byXi file                                    */
+  /***************************************************************/
+  if (SC3D->G->LDim>0)
+   { 
+     FILE *f=fopen(SC3D->ByXiFileName,"a");
+     double *Error = SC3D->BZIArgs->BZIError;
+     for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
+      { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
+        for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++)
+         fprintf(f,"%.8e %.8e ",EFT[ntnq], Error?Error[ntnq]:0.0);
+        fprintf(f,"\n");
+      };
+     fclose(f);
+   };
+  
 
 }
 

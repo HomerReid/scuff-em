@@ -7,6 +7,7 @@ libTriInt_la_SOURCES =  	\
  ECC.cc 			\
  TCR.cc 			\
  BZIntegration.cc		\
+ LatticeSum.cc   		\
  IntegrateCliffFunction.cc
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil \

@@ -623,7 +623,7 @@ int RWGGeometry::PointInRegion(int RegionIndex, const double X[3])
   /***************************************************************/
   /***************************************************************/
   double XX[3];
-  if (LDim>0)
+  if (LBasis)
    GetUnitCellRepresentative(X,XX);
   else 
    { XX[0]=X[0]; XX[1]=X[1]; XX[2]=X[2]; }
@@ -664,7 +664,7 @@ int RWGGeometry::GetRegionIndex(const double X[3])
   /***************************************************************/
   /***************************************************************/
   double XX[3];
-  if (LDim>0)
+  if (LBasis)
    GetUnitCellRepresentative(X,XX);
   else 
    { XX[0]=X[0]; XX[1]=X[1]; XX[2]=X[2]; }

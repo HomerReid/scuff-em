@@ -45,6 +45,14 @@
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
+  SetLogFileName("scuff-cas3D.log");
+  Log("scuff-cas3D running on %s",GetHostName());
+
+  /***************************************************************/
+  /* pre-process command-line arguments to extract arguments     */
+  /* any relevant for Brillouin-zone integration                 */
+  /***************************************************************/
+  GetBZIArgStruct *BZIArgs=InitBZIArgs(argc, argv);
 
   /***************************************************************/
   /* process options *********************************************/
@@ -66,19 +74,14 @@ int main(int argc, char *argv[])
   double Temperature=0.0;                   int nTemperature;
   double XiVals[MAXFREQ];	            int nXiVals;
   char *XiFile=0;
+  char *XikBlochFile=0;
   char *XiQuadrature=0;
   double XiMin=0.001;
   int MaxXiPoints=10000;
   int Intervals=50;
   double AbsTol=0.0;
   double RelTol=1.0e-2;
-  //
-  // options affecting kBloch integration or sampling
-  //
-  char *XiKFile=0;
-  char *BZQuadrature=0;
-  bool BZSymmetry=false;
-  int MaxkBlochPoints=1000;
+
   //
   // option allowing user to override default output file names
   //
@@ -111,17 +114,13 @@ int main(int argc, char *argv[])
      {"Temperature",    PA_DOUBLE,  1, 1,       (void *)&Temperature,   &nTemperature, "temperature in Kelvin"},
      {"Xi",             PA_DOUBLE,  1, MAXFREQ, (void *)XiVals,         &nXiVals,      "imaginary frequency"},
      {"XiFile",         PA_STRING,  1, 1,       (void *)&XiFile,        0,             "file containing Xi values"},
+     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XikBlochFile,       0,             "file containing (Xi, kx, ky) values"},
      {"XiQuadrature",   PA_STRING,  1, 1,       (void *)&XiQuadrature,  0,             "quadrature method for Xi integration"},
      {"XiMin",          PA_DOUBLE,  1, 1,       (void *)&XiMin,         0,             "assume Xi integrand constant below this value"},
      {"MaxXiPoints",    PA_INT,     1, 1,       (void *)&MaxXiPoints,   0,             "maximum number of Xi integrand evaluations"},
      {"Intervals",      PA_INT,     1, 1,       (void *)&Intervals,     0,             "number of subintervals for frequency quadrature"},
      {"AbsTol",         PA_DOUBLE,  1, 1,       (void *)&AbsTol,        0,             "absolute tolerance for sums and integrations"},
      {"RelTol",         PA_DOUBLE,  1, 1,       (void *)&RelTol,        0,             "relative tolerance for sums and integrations"},
-//
-     {"XikBlochFile",   PA_STRING,  1, 1,       (void *)&XiKFile,       0,             "file containing (Xi, kx, ky) values"},
-     {"BZQuadrature",   PA_STRING,  1, 1,       (void *)&BZQuadrature,  0,             "quadrature method for Brillouin-zone integration"},
-     {"BZSymmetry",     PA_BOOL,    0, 1,       (void *)&BZSymmetry,    0,             "assume symmetric BZ: f(kx,ky) = f(ky,kx)"},
-     {"MaxkBlochPoints",PA_INT,     1, 1,       (void *)&MaxkBlochPoints, 0,           "maximum number of Brillouin-zone integrand evaluations"},
 //
      {"FileBase",       PA_STRING,  1, 1,       (void *)&FileBase,      0,             "base filename for output files"},
 //
@@ -145,8 +144,6 @@ int main(int argc, char *argv[])
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   if (!FileBase)
    FileBase=vstrdup(GetFileBase(GeoFile));
-  SetLogFileName("%s.log",FileBase);
-  Log("scuff-cas3D running on %s",GetHostName());
 
   /***************************************************************/
   /* try to create the geometry  *********************************/
@@ -161,15 +158,15 @@ int main(int argc, char *argv[])
   HMatrix *XiPoints=0;
   HMatrix *XiKPoints=0;
 
-  if ( XiKFile )
-   { if (XiFile)       ErrExit("--XiKFile and --XiFile options are mutually exclusive");
-     if (nXiVals>0)    ErrExit("--XiKFile and --Xi options are mutually exclusive");
-     if (nTemperature) ErrExit("--XiKFile and --Temperature options are mutually exclusive");
-     if (G->LDim==0)   ErrExit("--XiKFile may only be used for periodic geometries");
-     XiKPoints=new HMatrix(XiKFile,LHM_TEXT,"--nc 3 --strict");
+  if ( XikBlochFile )
+   { if (XiFile)       ErrExit("--XikBlochFile and --XiFile options are mutually exclusive");
+     if (nXiVals>0)    ErrExit("--XikBlochFile and --Xi options are mutually exclusive");
+     if (nTemperature) ErrExit("--XikBlochFile and --Temperature options are mutually exclusive");
+     if (G->LDim==0)   ErrExit("--XikBlochFile may only be used for periodic geometries");
+     XiKPoints=new HMatrix(XikBlochFile,LHM_TEXT,"--nc 3 --strict");
      if (XiKPoints->ErrMsg)
       ErrExit(XiKPoints->ErrMsg);
-     Log("Read %i (Xi, kBloch) points from file %s.",XiKPoints->NR, XiKFile);
+     Log("Read %i (Xi, kBloch) points from file %s.",XiKPoints->NR, XikBlochFile);
    }
   else if ( XiFile )
    { if (nXiVals>0)    ErrExit("--XiFile and --Xi options are mutually exclusive");
@@ -201,11 +198,6 @@ int main(int argc, char *argv[])
   if ( XiQuadrature && XiKPoints )
    ErrExit("--XiQuadrature is incompatible with --Temperature ");
 
-  if ( BZQuadrature && G->LDim==0 )
-   ErrExit("--BZQuadrature may only be used for periodic geometries");
-  if ( BZQuadrature && XiKPoints )
-   ErrExit("--BZQuadrature is incompatible with --XikBlochFile");
-
   int XiQMethod = QMETHOD_CLIFF;
   if (XiQuadrature)
    { if ( !strcasecmp(XiQuadrature,"CLIFF") )
@@ -222,20 +214,6 @@ int main(int argc, char *argv[])
       }
      else
       ErrExit("unknown value %s specified for --XiQuadrature",XiQuadrature);
-   };
-
-  int BZQMethod = QMETHOD_CLIFF;
-  if (BZQuadrature)
-   { if ( !strcasecmp(BZQuadrature,"CLIFF") )
-      { BZQMethod = QMETHOD_CLIFF;
-        Log("Using cliff integration method for Brillouin-zone quadrature.");
-      }
-     else if ( !strcasecmp(BZQuadrature,"ADAPTIVE") )
-      { BZQMethod = QMETHOD_ADAPTIVE;
-        Log("Using adaptive integration method for Brillouin-zone quadrature.");
-      }
-     else 
-      ErrExit("unknown value %s specified for --BZQuadrature",BZQuadrature);
    };
 
   /*******************************************************************/
@@ -290,10 +268,15 @@ int main(int argc, char *argv[])
   SC3D->RelTol             = RelTol;
   SC3D->UseExistingData    = UseExistingData;
   SC3D->MaxXiPoints        = MaxXiPoints;
-  SC3D->MaxkBlochPoints    = MaxkBlochPoints;
-  SC3D->BZQMethod          = BZQMethod;
-  SC3D->BZSymmetry         = BZSymmetry;
   SC3D->XiMin              = XiMin;
+
+  if (G->LDim>=1)
+   { UpdateBZIArgs(BZIArgs, G->RLBasis, G->RLVolume);
+     BZIArgs->BZIFunc  = GetCasimirIntegrand;
+     BZIArgs->UserData = (void *)SC3D;
+     BZIArgs->FDim     = SC3D->NTNQ;
+     SC3D->BZIArgs     = BZIArgs;
+   };
 
   /*******************************************************************/
   /* now switch off based on the requested frequency behavior to     */
@@ -310,7 +293,7 @@ int main(int argc, char *argv[])
         kBloch[0] = XiKPoints->GetEntryD(nr, 1);
         if (G->LDim>=2)
          kBloch[1] = XiKPoints->GetEntryD(nr, 2);
-        GetCasimirIntegrand(SC3D, Xi, kBloch, EFT);
+        GetCasimirIntegrand(SC3D, cdouble(0.0,Xi), kBloch, EFT);
       };
    }
   else if ( XiPoints )

@@ -16,6 +16,72 @@ The files for this example may be found in the
 `share/scuff-em/examples/HalfSpaceLDOS` subdirectory
 of your [[scuff-em]] installation.
 
+### Slight complication: The need for Brillouin-zone integration in periodic geometries
+
+In general, the quantity in which we will be interested
+is the LDOS at a single point $\bf x$ in space---basically,
+the scattered field at $\bf x$ due to a point dipole
+source at $\bf x$. For a compact geometry such as a 
+dielectric nanoparticle, this requires just a single 
+scattering calculation (technically 6 calculations
+with different incident fields, but calculations with
+additional incident fields come basically for free
+once we've assembled and factorized the BEM matrix).
+
+However, the situation is slightly more complicated for
+periodic geometries. To compute the LDOS at a point
+in the vicinity of (say) an infinitely extended
+(periodically replicated) surface, we need to solve a
+scattering problem in which the incident field is not 
+Bloch-periodic, but is instead the field of a localized 
+point source, which certainly does not obey
+Bloch-periodic boundary conditions.
+However, when working with periodic geometries in [[scuff-em]],
+each individual scattering problem has the property
+that *everything* in the problem---including the incident
+field---must be Bloch-periodic with a specific Bloch vector
+$\bf k_{\hbox{B}}$. Thus, when we do a single scattering
+problem with a point-source incident field in a 
+periodic [[scuff-em]] geometry at Bloch vector
+$\bf k_{\hbox{B}}$, the incident field is really
+the field of an infinite phased *array* of point sources, 
+with the source in lattice cell $\bf L$ phased
+by the Bloch factor $e^{i\bf k_B\cdot \bf L}.$
+This is not the incident field we want to consider 
+when computing LDOS.
+
+Of course, it is still possible to get what we want---the
+response of our geometry to a non-periodic point source---but
+it requires summing the results of many scattering problems,
+with each problem phased in such a way as to cancel out
+the effects of all source in all lattice cells except the 
+particular cell we want. In other words, to get the 
+LDOS at a single point in a periodic geometry
+requires a *Brillouin-zone integration*, in which
+we perform and sum the results of many scattering calculations
+at various Bloch vectors $\bf k_B$ lying in the 
+Brillouin zone of the reciprocal lattice.
+
+There are two ways to do calculations like this in [[scuff-em]]:
+
++ You can design your own cubature scheme for integration over
+the Brillouin zone, and simply ask [[scuff-ldos]] to give you
+values of the integrand at specific Bloch vectors $\bf k_B$.
+In this case you will pass the ``--OmegakBlochFile`` command-line
+argument to [[scuff-ldos]]
+
++ Alternatively, you can use the built-in Brillouin-zone integrator
+in [[scuff-em]] to perform the BZ integral automatically,
+resulting in reports
+
+The general topic of Brillouin-zone integration in [[scuff-em]] codes is
+discussed in more detail 
+on the page 
+[Brillouin-zone integration in <span class="SC">scuff-em</span>]
+(../../reference/BrillouinZoneIntegration.md)
+
+
+
 --------------------------------------------------
 
 # [[gmsh]] geometry file for unit-cell geometry 
@@ -153,7 +219,7 @@ looks like this:
 
 --------------------------------------------------
 
-# Launching the run
+# Launching the Bloch-run
 
 We will do two [[scuff-ldos]] runs, one in which
 the LDOS is computed using a semi-analytical approach
@@ -184,8 +250,6 @@ component of the electric dyadic Green's function)
 versus the $y$-component of the Bloch vector
 as computed using the analytical and [[scuff-em]]
 approaches.
-=======
->>>>>>> f86803d1cef0c7c65a7e721df61196204158b754
 
 ![aluminum LDOS data](AluminumLDOS.png)
 

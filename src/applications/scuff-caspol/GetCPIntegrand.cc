@@ -231,7 +231,7 @@ void GetXiIntegrand(SCPData *SCPD, double Xi, double *U)
   if (G->LDim==0)
    GetCPIntegrand((void *)SCPD, Omega, 0, U);
   else 
-   GetBZIntegral(SCPD->GBZIArgs, Omega, U);
+   GetBZIntegral(SCPD->BZIArgs, Omega, U);
 
   /***************************************************************/
   /***************************************************************/

@@ -46,11 +46,9 @@ void AddContribution(SummandFunction AddSummand, void *UserData,
 }
 
 /***************************************************************/
-/* nSum is the dimension of the vector-valued summand function.*/
-/* LDim=1, 2 for 1D or 2D lattices.                            */
-/* LBasis[0][0,1] = x,y components of lattice basis vector 1   */
-/* LBasis[1][0,1] = x,y components of lattice basis vector 2   */
-/* (LBasis[1] is not referenced for LDim==1).                  */
+/* NSum is the dimension of the vector-valued summand function.*/
+/* LBasis is a 3xD dimensional vector whose columns are the    */
+/* lattice basis vectors.                                      */
 /* Return value is number of lattice points summed.            */
 /***************************************************************/
 int GetLatticeSum(SummandFunction Summand, void *UserData, int nSum,

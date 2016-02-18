@@ -703,7 +703,8 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int np, const int iQ,
                                  const double X0[3], const cdouble k,
                                  cdouble *p, cdouble a[3],
                                  cdouble dp[3], cdouble da[3][3],
-                                 cdouble ddp[3][3], cdouble dcurla[3][3])
+                                 cdouble ddp[3][3], cdouble dcurla[3][3],
+                                 bool *IncludeTerm=0)
 {
    /*--------------------------------------------------------------*/
    /*- get singular contributions ---------------------------------*/
@@ -750,18 +751,25 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int np, const int iQ,
    cdouble CM1 = 1.0   / (4.0*M_PI);
    cdouble C0  = IK    / (4.0*M_PI);
    cdouble CP1 = IK*IK / (8.0*M_PI);
+   cdouble CDS = 1.0;
+   if (IncludeTerm)
+    { if (IncludeTerm[0]==false) CM1=0.0;
+      if (IncludeTerm[1]==false) C0 =0.0;
+      if (IncludeTerm[2]==false) CP1=0.0;
+      if (IncludeTerm[3]==false) CDS=0.0;
+    };
    *p = CM1*pM1 + C0*p0 + CP1*pP1 + pDS;
    for(int Mu=0; Mu<3; Mu++)
     { 
-      a[Mu] = CM1*aM1[Mu] + C0*a0[Mu] + CP1*aP1[Mu] + aDS[Mu];
+      a[Mu] = CM1*aM1[Mu] + C0*a0[Mu] + CP1*aP1[Mu] + CDS*aDS[Mu];
 
-      dp[Mu] = CM1*dpM1[Mu] + CP1*dpP1[Mu] + dpDS[Mu];
+      dp[Mu] = CM1*dpM1[Mu] + CP1*dpP1[Mu] + CDS*dpDS[Mu];
 
       for(int Nu=0; Nu<3; Nu++)
        { 
-         da[Mu][Nu] = CM1*daM1[Mu][Nu] + CP1*daP1[Mu][Nu] + daDS[Mu][Nu];
-         ddp[Mu][Nu] = CM1*ddpM1[Mu][Nu] + CP1*ddpP1[Mu][Nu] + ddpDS[Mu][Nu];
-         dcurla[Mu][Nu] = CM1*dcurlaM1[Mu][Nu] + CP1*dcurlaP1[Mu][Nu] + dcurlaDS[Mu][Nu];
+         da[Mu][Nu]     = CM1*daM1[Mu][Nu]     + CP1*daP1[Mu][Nu]     + CDS*daDS[Mu][Nu];
+         ddp[Mu][Nu]    = CM1*ddpM1[Mu][Nu]    + CP1*ddpP1[Mu][Nu]    + CDS*ddpDS[Mu][Nu];
+         dcurla[Mu][Nu] = CM1*dcurlaM1[Mu][Nu] + CP1*dcurlaP1[Mu][Nu] + CDS*dcurlaDS[Mu][Nu];
        };
     };
 
@@ -790,16 +798,17 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
                                  const double X0[3],  const cdouble k,
                                  cdouble *p, cdouble a[3],
                                  cdouble dp[3], cdouble da[3][3],
-                                 cdouble ddp[3][3], cdouble dcurla[3][3])
+                                 cdouble ddp[3][3], cdouble dcurla[3][3],
+                                 bool *IncludeTerm=0)
 {
   RWGEdge *E = S->Edges[ne];
 
   GetReducedPotentials_Nearby(S, E->iPPanel, E->PIndex, X0, k,
-                              p, a, dp, da, ddp, dcurla);
+                              p, a, dp, da, ddp, dcurla, IncludeTerm);
 
   cdouble pM, aM[3], dpM[3], daM[3][3], ddpM[3][3], dcurlaM[3][3];
   GetReducedPotentials_Nearby(S, E->iMPanel, E->MIndex, X0, k,
-                              &pM, aM, dpM, daM, ddpM, dcurlaM);
+                              &pM, aM, dpM, daM, ddpM, dcurlaM, IncludeTerm);
 
   *p -= pM;
   for(int Mu=0; Mu<3; Mu++)
@@ -817,6 +826,8 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
 /***************************************************************/
 /* E = ikZ * kAlpha*e - nAlpha*h                               */
 /* H =      +kAlpha*h + (ik/Z)*nAlpha*e                        */
+/*     or                                                      */
+/* e=g, -h=ik c --> g=e, c=-h/ik                               */
 /***************************************************************/
 void GetReducedFields_Nearby(RWGSurface *S, const int ne,
                              const double X0[3], const cdouble k,

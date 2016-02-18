@@ -1,0 +1,231 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Energy/momentum-transfer PFT (MTPFT)}
+
+In the EMTPFT approach, we compute the power, force and torque
+on a body $\mc B$ by considering the transfer of energy and
+momentum from the total fields to the equivalent surface currents:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ P\sups{abs}&=\frac{1}{2}\text{Re }\int \bmc C^* \cdot \bmc F \, dV 
+\\
+ F_i&=\frac{1}{2\omega}\text{Im }\int \bmc C^* \cdot \partial_i \bmc F \, dV
+\\
+ \mc T_i
+ &=\frac{1}{2\omega}\text{Im }\int
+ \underbrace{
+ \Big[   \bmc C^* \times \bmc F 
+       + \bmc C^* \cdot \partial_{\theta_i} \vb F\Big]
+            }_{\bmc C^* \cdot \wt \partial_i \bmc F}dV
+\end{align}
+\label{EMTPFT}%
+\end{subequations}%
+%====================================================================%
+Equation (\ref{EMTPFT}a) is just the usual Joule heating
+$P=\frac{1}{2}\text{Re } \big(\vb J^*\cdot \vb E + \vb M^* \cdot \vb H\big)$,
+while Equations (\ref{EMTPFT}b,c) follow from considering the time-average
+Lorentz force 
+$d\vb F=\frac{1}{2}\text{Re }
+      (\rho\subt{E}^* \vb E + \mu\, \vb J^* \! \times \! \vb H
+      +\rho\subt{M}^* \vb H - \epsilon\, \vb M^* \! \times \! \vb E
+      )dV
+$
+and torque $\vb r\times d\vb F$ on the charges and currents
+in an infinitesimal volume $dV$; integrating over the
+volume and using integration by parts and Maxwell's equations
+yields (\ref{EMTPFT}b,c). [The symbol $\partial_{\theta_i}$
+in (\ref{EMTPFT}c) denotes differentiation with 
+respect to infinitesimal rotation about the $i$th coordinate 
+axis. The symbol $\wt{\partial_i}$ is shorthand for the 
+operation (cross product plus angular derivative)
+involved in (\ref{EMTPFT}c).]
+
+In what follows it will be convenient to express equations
+(\ref{EMTPFT}) in terms of the following shorthand operator notation:
+%====================================================================%
+\numeq{EMTPFTShorthand}
+{
+ Q=\frac{1}{2}\int_{\partial \mc B}\bmc C^* \bmc Q \bmc F \, dA
+}
+%====================================================================%
+where $Q=\{P\sups{abs}, F_i, \mc T_i\}$ and
+he operator $\bmc Q$ correspondingly operates on $\bmc F$ as
+in equations (\ref{EMTPFT}a,b,c).
+
+Equations (\ref{EMTPFT}) involve the total fields at the
+body surface. Because SIE formulations allow surface fields
+to be computed in either of two distinct ways---namely, as the
+limiting values of the bulk fields as one approaches the
+surface from the exterior or the interior of the body---the
+EMTPFT strategy in fact bifurcates into two strategies, which we 
+discuss separately below.
+
+\subsection{Exterior EMTPFT}
+
+In the exterior region, the total fields receive
+incident and scattered contributions,
+$\bmc F = \bmc F\sups{inc} + \bmc F\sups{scat}$,
+We identify the corresponding contributions to the
+PFT quantities (\ref{EMTPFT}) as respectively the
+extinction PFT and the (negative of the) scattered PFT,
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ Q &= Q\sups{ext} - Q\sups{scat}
+\\
+ Q\sups{ext}&=\frac{1}{2}\int_{\partial \mc B}\bmc C^* \bmc Q \bmc F\sups{inc},
+\\
+ Q\sups{scat}&=-\frac{1}{2}\int_{\partial \mc B}\bmc C^* \bmc Q \bmc F\sups{scat}
+\end{align}
+\label{ExtScat}%
+\end{subequations}
+%====================================================================%
+
+\subsubsection*{Extinction contributions to exterior EMTPFT}
+
+The discretized form of (\ref{ExtScat}b) for the extinction reads
+%====================================================================%
+$$ Q\sups{ext}=
+   \frac{1}{2}\sum_{\alpha} c_\alpha
+   \int_{\sup \bmc B_\alpha} \bmc B_\alpha \bmc Q \bmc F\sups{inc} \, dA
+$$
+%====================================================================%
+The integrals here are non-singular two-dimensional integrals over
+the basis-function supports, with the integrand involving values 
+and derivatives of the incident fields. These are evaluated 
+in {\sc scuff-em} by simple low-order numerical cubature.
+
+\subsubsection*{Scattered contributions to exterior EMTPFT}
+
+The scattered-field contributions to the EMTPFT power and force 
+follow from the discretized form of (\ref{ExtScat}c) and read
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ P\sups{scat}&=-\frac{1}{2}\text{Re} \sum_{ab}
+ \left(\begin{array}{c} k_a \\ n_a\end{array}\right)^\dagger
+ \left(\begin{array}{cc}i\omega \mu \vb G_{ab} & \wh{\vb C}_{ab} \\
+                        -\wh{\vb C}_{ab} & i\omega\epsilon \vb G_{ab}
+ \end{array}\right)
+ \left(\begin{array}{c}k_b \\ n_b\end{array}\right)
+\\
+ F_i\sups{scat}&=-\frac{1}{2\omega}\text{Im} \sum_{ab}
+ \left(\begin{array}{c} k_a \\ n_a\end{array}\right)^\dagger
+ \left(\begin{array}{cc}i\omega \mu \partial_i \vb G_{ab} & \partial_i \wh{\vb C}_{ab} \\
+                        -\partial_i \wh{\vb C}_{ab} & i\omega\epsilon \partial_i \vb G_{ab}
+ \end{array}\right)
+ \left(\begin{array}{c}k_b \\ n_b\end{array}\right)
+\end{align}
+\label{PFExteriorPFT1}%
+\end{subequations}
+%====================================================================%
+(The torque is similar to the force with $\partial_i \to \wt{\partial_i}$.)
+In these equations, 
+\begin{itemize}
+\item
+$a$ runs over all interior edges (RWG functions) 
+on the surface bounding the region on which we are 
+computing the power or force;
+\item
+$b$ runs over all interior edges on all surfaces bounding 
+the region exterior to the region on which we are 
+computing the power or force;
+\item
+$\epsilon=\epsilon_0 \epsilon^r$ and 
+$\mu=\mu_0 \mu^r$ are the material properties of the 
+exterior region
+\item
+ $\vb G_{ab}=\vmv{\vb b_a}{\mb G}{\vb b_b}$
+ is the matrix element of the $\mb G$ kernel for
+ the exterior medium between RWG basis functions.
+\item
+ $\wh{\vb C}_{ab}=\vmv{\vb b_a}{ik\mb C}{\vb b_b}.$
+\end{itemize}
+
+Upon using the relations
+%====================================================================%
+$$\{\vb G_{ba}, \vb C_{ba}\} = \{\vb G_{ab}, \vb C_{ab}\}, 
+  \qquad
+  \partial_i\{\vb G_{ba}, \vb C_{ba}\} = -\partial_i\{\vb G_{ab}, \vb C_{ab}\}, 
+$$
+%====================================================================%
+equations (\ref{PFExteriorPFT1}) may be simplified to read
+%====================================================================%
+\begin{align*}
+ P\sups{scat} &= +\frac{1}{2}
+  \sum_{ab}\bigg\{
+           \omega \mu_0
+           \Big[\text{Re }k_a^* k_b\Big]
+           \Big[\text{Im }\mu^r \vb G_{ab}\Big]
+          +\omega \epsilon_0
+           \Big[\text{Re }n_a^* n_b\Big]
+           \Big[\text{Im }\epsilon^r \vb G_{ab}\Big]
+\\
+&\hspace{1in} 
+  +\Big[\text{Im }k_a^* n_b - n_a^* k_b\Big]
+           \Big[\text{Im } \wh{\vb C}_{ab}\Big]\bigg\}
+\\
+ F_i\sups{scat} &= +\frac{1}{2\omega}
+  \sum_{ab}\bigg\{
+           \omega \mu_0
+           \Big[\text{Im }k_a^* k_b\Big]
+           \Big[\text{Im }\mu^r \partial_i \vb G_{ab}\Big]
+          +\omega \epsilon_0
+           \Big[\text{Im }n_a^* n_b\Big]
+           \Big[\text{Im }\epsilon^r \partial_i \vb G_{ab}\Big]
+\\
+&\hspace{1in} 
+  -\Big[\text{Re }k_a^* n_b - n_a^* k_b\Big]
+           \Big[\text{Im } \partial_i \wh{\vb C}_{ab}\Big]\bigg\}
+\end{align*}
+%====================================================================%
+
+\subsubsection*{EMTPFT matrix elements}
+
+%====================================================================%
+\begin{align*}
+   \partial_i \vb G_{ab}
+&= \partial_i \vb G^1_{ab} +\partial_i \vb G^2_{ab}
+\\
+\partial_i \vb G^1_{ab}
+&=
+ \int_{\sup \vb b_a}\, d\vb x_a \, 
+ \int_{\sup \vb b_b}\, d\vb x_b \, 
+ \left(\vb b_a \cdot \vb b_b\right) \partial_i G_0(\vb x_a-\vb x_b)
+\\
+\partial_i \vb G^2_{ab}
+&=
+ -\frac{1}{k^2}
+  \int_{\sup \vb b_a}\, d\vb x_a \,
+  \int_{\sup \vb b_b}\, d\vb x_b \,
+   (\nabla \cdot \vb b_a)(\nabla \cdot \vb b_b)
+   \partial_i G_0(\vb x_a-\vb x_b)
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+ \text{Im } \partial_i \wh{\mb C}_{jk}
+&= \text{Im }
+   \partial_i\left[ \frac{e^{ikr}}{4\pi r^3}(ikr-1)\varepsilon_{jk\ell}r_\ell\right]
+\\
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+\partial_i G_0(\vb r)
+   &= r_i(ikr-1)\frac{e^{ikr}}{4\pi r^3}
+   &= -\frac{r_i}{4\pi r^3} + \Big[\partial_i G_0\Big]\supt{DS}
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+ F_i\supt{S}
+ &\frac{\mu_0}{2} \text{Im }{k_a^* k_b}\Big[\text{Im }
+\end{align*}
+%====================================================================%

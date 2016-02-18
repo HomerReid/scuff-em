@@ -14,6 +14,7 @@
 #include <libscuff.h>
 #include <libscuffInternals.h>
 #include <libSGJC.h>
+#include <BZIntegration.h>
 #include "scuff-ldos.h"
 
 #define II cdouble(0.0,1.0)
@@ -31,9 +32,9 @@ int main(int argc, char *argv[])
 
   /***************************************************************/
   /* pre-process command-line arguments to extract arguments     */
-  /* relevant for Brillouin-zone integration                     */
+  /* any relevant for Brillouin-zone integration                 */
   /***************************************************************/
-  //GetBZIArgStruct *BZIArgs=ProcessBZIOptions(int argc, char *argv[]);
+  GetBZIArgStruct *BZIArgs=InitBZIArgs(argc, argv);
 
   /***************************************************************/
   /* process remaining command-line arguments ********************/
@@ -46,17 +47,14 @@ int main(int argc, char *argv[])
 /**/
   char *EPFile=0;
 /**/
-  char *BZIString=0;
-  int BZIOrder=-1;
-  bool BZSymmetric=false;
-  double RelTol=1.0e-2;
-  int MaxEvals=1000;
-/**/
   bool GroundPlane=false;
   char *HalfSpace=0;
 /**/
+  double RelTol=1.0e-2;
+  int MaxEvals=1000;
+/**/
   char *FileBase=0;
-  bool LDOSPlus=false;
+  bool LDOSOnly=false;
 /**/
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
@@ -69,15 +67,10 @@ int main(int argc, char *argv[])
 //
      {"Omega",       PA_CDOUBLE, 1, 1, (void *)&Omega,  &nOmega,  "angular frequency"},
      {"OmegaFile",   PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of omega points "},
-//
-     {"BZSymmetric",  PA_BOOL,    0, 1, (void *)&BZSymmetric,    0,  "assume BZ integrand is xy-symmetric"},
-     {"BZIMethod",   PA_STRING,  1, 1, (void *)&BZIString,    0,  "Brillouin-zone integration method [DCUTRI | adaptive]"},
-     {"RelTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,       0,  "relative tolerance for Brillouin-zone integration"},
-     {"MaxEvals",    PA_INT,     1, 1, (void *)&MaxEvals,     0,  "maximum number of Brillouin-zone samples"},
-     {"OmegakBlochFile", PA_STRING,  1, 1, (void *)&OkBFile,  0,  "list of (omega, kx, ky) values"},
+     {"OmegakBlochFile",   PA_STRING,  1, 1, (void *)&OkBFile,    0,  "list of (omega,kBloch) points "},
 //
      {"FileBase",    PA_STRING,  1, 1, (void *)&FileBase,      0,  "base name for output files"},
-     {"LDOSPlus",    PA_BOOL,    0, 1, (void *)&LDOSPlus,      0,  "LDOS plus"},
+     {"LDOSOnly",    PA_BOOL,    0, 1, (void *)&LDOSOnly,      0,  "omit DGF components from Brillouin-zone integration"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -116,10 +109,6 @@ int main(int argc, char *argv[])
    { OkBPoints = new HMatrix(OkBFile);
      if (OkBPoints->ErrMsg)
       ErrExit(OkBPoints->ErrMsg);
-     if (BZSymmetric)
-      ErrExit("--BZSymmetric is incompatible with --OmegakBlochFile");
-     if (BZIString)
-      ErrExit("--BZIMethod is incompatible with --OmegakBlochFile");
    }
   else
    ErrExit("you must specify at least one frequency");
@@ -132,7 +121,7 @@ int main(int argc, char *argv[])
   Data->RelTol      = RelTol;
   Data->MaxEvals    = MaxEvals;
   Data->FileBase    = FileBase;
-  Data->LDOSOnly    = !LDOSPlus;
+  Data->LDOSOnly    = LDOSOnly;
   Data->GroundPlane = GroundPlane;
 
   if (HalfSpace)
@@ -173,6 +162,7 @@ int main(int argc, char *argv[])
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
         GetLDOS( (void *)Data, Omega, 0, Result);
+        WriteData(Data, Omega, 0, FILETYPE_LDOS, Result, 0);
       };
    }
   /*--------------------------------------------------------------*/
@@ -202,31 +192,13 @@ int main(int argc, char *argv[])
   else
    {
      /***************************************************************/
-     /* set up argument structure for Brillouin-zone integration    */
-     /* routine                                                     */
+     /* complete the argument structure for Brillouin-zone          */
+     /* that we started to initialize above                         */
      /***************************************************************/
-     GetBZIArgStruct *Args = CreateGetBZIArgs(Data->LBasis);
-     Args->BZIFunc         = GetLDOS;
-     Args->UserData        = (void *)Data;
-     Args->FDim            = FDim;
-     Args->BZSymmetric     = BZSymmetric;
-     Args->MaxPoints       = MaxEvals;
-     Args->RelTol          = RelTol;
-     Args->Reduced         = true;
-
-     Args->BZIMethod       = (Data->G->LDim==1) ? BZI_CC : BZI_TC;
-     int DefBZIOrder       = (Data->G->LDim==1) ? 21     : 9;
-     if (!BZIString || !strcasecmp(BZIString,"TC") )
-      ; // do nothing for default case
-     else if (!strcasecmp(BZIString,"CC") )
-      { Args->BZIMethod = BZI_CC;
-        DefBZIOrder=21;
-      }
-     else if ( !strcasecmp(BZIString,"adaptive") )
-      { 
-        Args->BZIMethod = BZI_ADAPTIVE;
-      }
-     Args->Order        = BZIOrder==-1 ? DefBZIOrder : BZIOrder;
+     BZIArgs->BZIFunc     = GetLDOS;
+     BZIArgs->UserData    = (void *)Data;
+     BZIArgs->FDim        = FDim;
+     UpdateBZIArgs(BZIArgs, Data->G->RLBasis, Data->G->RLVolume);
 
      /***************************************************************/
      /***************************************************************/
@@ -237,33 +209,10 @@ int main(int argc, char *argv[])
      WriteFilePreamble(Data->OutFileName, FILETYPE_LDOS, LDim);
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
-        GetBZIntegral(Args, Omega, Result);
-        WriteLDOS(Data, Omega, Result, Args->BZIError);
+        Log("Evaluating Brillouin-zone integral at omega=%s",z2s(Omega));
+        GetBZIntegral(BZIArgs, Omega, Result);
+        WriteData(Data, Omega, 0, FILETYPE_LDOS, Result, BZIArgs->BZIError);
       };
    };
 
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void WriteLDOS(SLDData *Data, cdouble Omega,
-               double *Result, double *Error)
-{
-  FILE *f=vfopen(Data->OutFileName,"a");
-  HMatrix *XMatrix=Data->XMatrix;
-  for(int nx=0; nx<XMatrix->NR; nx++)
-   { 
-     double X[3];
-     XMatrix->GetEntriesD(nx,":",X);
-     int NFun = (Data->LDOSOnly ? 2 : 38);
-     fprintf(f,"%e %e %e %s ", X[0],X[1],X[2], z2s(Omega));
-     for(int nf=0; nf<NFun; nf++) 
-      fprintf(f,"%e ",Result[NFun*nx+nf]);
-     if (Error)
-      for(int nf=0; nf<NFun; nf++) 
-       fprintf(f,"%e ",Error[NFun*nx+nf]);
-     fprintf(f,"\n");
-   };
-  fclose(f);
 }

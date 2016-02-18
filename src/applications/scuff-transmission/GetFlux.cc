@@ -111,9 +111,10 @@ void GetFlux(RWGGeometry *G, IncField *IF, HVector *KN,
   /* the first NCP points are for the upper surface; the next    */
   /* NCP points are for the lower surface.                       */
   /***************************************************************/
-  double x, y, *LBV[2];
-  LBV[0]=G->LBasis[0];
-  LBV[1]=G->LBasis[1];
+  double x, y, LBV[2][3];
+  for(int nd=0; nd<2; nd++)
+   for(int nc=0; nc<3; nc++)
+    LBV[nd][nc] = G->LBasis->GetEntryD(nc,nd);
   if (NQPoints==0)
    { for(int ncp=0; ncp<NCP; ncp++)
       { 

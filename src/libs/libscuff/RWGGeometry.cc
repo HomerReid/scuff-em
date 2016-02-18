@@ -32,6 +32,7 @@
 #include <fenv.h>
 
 #include <libhrutil.h>
+#include <BZIntegration.h> // needed for GetRLBasis
 
 #include "libscuff.h"
 
@@ -96,6 +97,38 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
 
 }
 
+/***************************************************************/
+/* this is a hopefully temporary routine that asserts that the */
+/* user-specified lattice comports with our current limitations*/
+/* regarding the types of lattices that are supported;         */
+/* this routine will hopefully vanish in the future as we      */
+/* increase support for all types of lattices.                 */
+/***************************************************************/
+void CheckLattice(HMatrix *LBasis)
+{
+  int LDim = LBasis->NC;
+
+  if (LDim==1)
+   { if (    LBasis->GetEntryD(1,0)!=0.0
+          || LBasis->GetEntryD(2,0)!=0.0
+        )
+      ErrExit("1D lattice vector must be parallel to x axis");
+   }
+  else if (LDim==2)
+   { if (    LBasis->GetEntryD(2,0)!=0.0
+          || LBasis->GetEntryD(2,1)!=0.0
+        )
+      ErrExit("2D lattice vectors must lie in xy plane");
+
+     if (    LBasis->GetEntryD(1,0)!=0.0
+          || LBasis->GetEntryD(0,1)!=0.0
+       )
+      ErrExit("non-rectangular 2D lattices not yet supported");
+   }
+  else if (LDim==3)
+   ErrExit("3D lattices not yet supported");
+}
+
 /***********************************************************************/
 /* subroutine to parse the LATTICE...ENDLATTICE section in a .scuffgeo */
 /* file.                                                               */
@@ -103,13 +136,14 @@ void RWGGeometry::ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum)
 void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
 {
   char Line[MAXSTR];
-  int NumTokens;
-  char *Tokens[MAXTOK];
-  double *LBV;
+  double LBV[3][3]={{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
+  LDim=0;
   while( fgets(Line,MAXSTR,f) )
    { 
      (*LineNum)++;
-     NumTokens=Tokenize(Line, Tokens, MAXTOK);
+
+     char *Tokens[MAXTOK];
+     int NumTokens=Tokenize(Line, Tokens, MAXTOK);
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
 
@@ -117,27 +151,26 @@ void RWGGeometry::ProcessLATTICESection(FILE *f, char *FileName, int *LineNum)
       {
         if (LDim==MAXLDIM)
          ErrExit("%s:%i: too many lattice vectors",FileName,*LineNum);
-        LBV=LBasis[LDim++];
+        
+        if (NumTokens<2 || NumTokens>4) 
+         ErrExit("%s:%i: lattice vectors must have 1, 2, or 3 components",FileName,*LineNum);
+        for(int nc=0; nc<(NumTokens-1); nc++)
+         if ( 1 != sscanf(Tokens[nc+1],"%le",&(LBV[LDim][nc])))
+          ErrExit("%s:%i: invalid vector component %s",FileName,*LineNum,Tokens[nc+1]);
 
-        if (NumTokens==3)
-         { sscanf(Tokens[1],"%le",LBV+0);
-           sscanf(Tokens[2],"%le",LBV+1);
-         }
-        else 
-         ErrExit("%s:%i: lattice vectors must have exactly two components",FileName,*LineNum);
-
-        Log("Adding lattice basis vector (%g,%g).",LBV[0],LBV[1]);
+        Log("Adding lattice basis vector (%g,%g,%g).",LBV[LDim][0],LBV[LDim][1],LBV[LDim][2]);
+        LDim++;
       }
      else if ( !StrCaseCmp(Tokens[0],"ENDLATTICE") )
       { 
-        // if the user specified two basis vectors, test for independence
-        if (LDim==2)
-	 { double Area = LBasis[0][0]*LBasis[1][1] - LBasis[0][1]*LBasis[1][0];
-           double Norm2L1 = LBasis[0][0]*LBasis[0][0] + LBasis[0][1]*LBasis[0][1];
-           double Norm2L2 = LBasis[1][0]*LBasis[1][0] + LBasis[1][1]*LBasis[1][1];
-           if ( Area < 1.0e-6*sqrt(Norm2L1*Norm2L2) )
-            ErrExit("%s:%i: lattice basis vectors are parallel",FileName,*LineNum);
-         };
+        LBasis=new HMatrix(3, LDim);
+        for(int nd=0; nd<LDim; nd++)
+         for(int i=0; i<3; i++)
+          LBasis->SetEntry(i,nd,LBV[nd][i]);
+
+        RLBasis=GetRLBasis(LBasis, &LVolume, &RLVolume);
+        if (LVolume==0.0)
+         ErrExit("%s:%i: lattice has empty unit cell",FileName,*LineNum);
 
         return; 
       }
@@ -257,9 +290,17 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   GeoFileName=strdupEC(pGeoFileName);
   Surfaces=0;
   AllSurfacesClosed=1;
+
+  /***************************************************************/
+  /* initially assume compact (non-periodic) geometry            */
+  /***************************************************************/
   LDim=0;
-  NumStraddlers[0]=NumStraddlers[1]=0;
-  RegionIsExtended[0]=RegionIsExtended[1]=0;
+  LBasis=RLBasis=0;
+  LVolume=RLVolume=0.0;
+  for(int nd=0; nd<MAXLDIM; nd++)
+   { NumStraddlers[nd]=NULL;
+     RegionIsExtended[nd]=NULL;
+   };
   tolVecClose=0.0; // to be updated once mesh is read in
   TBlockCacheNameAddendum=0;
 
@@ -447,10 +488,6 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
         NumSurfaces++;
         Surfaces=(RWGSurface **)realloc(Surfaces, NumSurfaces*sizeof(RWGSurface *) );
         Surfaces[NumSurfaces-1]=S;
-
-        TotalBFs+=S->NumBFs;
-        TotalEdges+=S->NumEdges;
-        TotalPanels+=S->NumPanels;
         S->Index=NumSurfaces-1;
 
       }
@@ -480,8 +517,10 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /* if a lattice is present, then we need to do some preliminary    */
   /* setup                                                           */
   /*******************************************************************/
-  if (LDim>0)
-   InitPBCData();
+  if (LBasis)
+   { LDim=LBasis->NC;
+     InitPBCData();
+   };
 
   /*******************************************************************/
   /* Autodetect nesting relationships & topologically sort           */
@@ -598,14 +637,22 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   /***************************************************************/
   /* initialize arrays of basis-function, edge, and panel offsets*/
   /***************************************************************/
-  BFIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
-  EdgeIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
-  PanelIndexOffset=(int *)mallocEC(NumSurfaces*sizeof(int) );
+  BFIndexOffset    = (int *)mallocEC(NumSurfaces*sizeof(int));
+  EdgeIndexOffset  = (int *)mallocEC(NumSurfaces*sizeof(int));
+  PanelIndexOffset = (int *)mallocEC(NumSurfaces*sizeof(int));
+  TotalBFs    = Surfaces[0]->NumBFs;
+  TotalEdges  = Surfaces[0]->NumEdges;
+  TotalPanels = Surfaces[0]->NumPanels;
   BFIndexOffset[0]=EdgeIndexOffset[0]=PanelIndexOffset[0]=0;
   for(int ns=1; ns<NumSurfaces; ns++)
-   { BFIndexOffset[ns]=BFIndexOffset[ns-1] + Surfaces[ns-1]->NumBFs;
-     EdgeIndexOffset[ns]=EdgeIndexOffset[ns-1] + Surfaces[ns-1]->NumEdges;
-     PanelIndexOffset[ns]=PanelIndexOffset[ns-1] + Surfaces[ns-1]->NumPanels;
+   { 
+     TotalBFs    += Surfaces[ns]->NumBFs;
+     TotalEdges  += Surfaces[ns]->NumEdges;
+     TotalPanels += Surfaces[ns]->NumPanels;
+
+     BFIndexOffset[ns]    = BFIndexOffset[ns-1]    + Surfaces[ns-1]->NumBFs;
+     EdgeIndexOffset[ns]  = EdgeIndexOffset[ns-1]  + Surfaces[ns-1]->NumEdges;
+     PanelIndexOffset[ns] = PanelIndexOffset[ns-1] + Surfaces[ns-1]->NumPanels;
    };
 
   /***************************************************************/
@@ -665,12 +712,14 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
   SurfaceMoved=(int *)mallocEC(NumSurfaces*sizeof(int));
 
   /***************************************************************/
-  /* 20121022 TAKE ME OUT ****************************************/
   /***************************************************************/
-  if ( getenv("TAYLORDUFFY") )
-   { Log("Using V1P0 routines for taylor-duffy FIPPI computation");
-     UseTaylorDuffyV2P0=false;
-   };
+  /***************************************************************/
+  FIBBICaches = (void **)mallocEC(NumSurfaces*sizeof(void *));
+  for(int ns=0; ns<NumSurfaces; ns++)
+   if (Mate[ns]!=-1)
+    FIBBICaches[ns] = FIBBICaches[ Mate[ns] ];
+   else
+    FIBBICaches[ns] = CreateFIBBICache(Surfaces[ns]->MeshFileName);
 
 }
 
@@ -699,6 +748,10 @@ RWGGeometry::~RWGGeometry()
   free(Mate);
   free(SurfaceMoved);
   free(GeoFileName);
+
+  for(int ns=0; ns<NumSurfaces; ns++)
+   DestroyFIBBICache(FIBBICaches[ns]);
+  free(FIBBICaches);
 
 }
 
@@ -831,6 +884,32 @@ void RWGGeometry::GetKNCoefficients(HVector *KN, int ns, int ne,
    };
   *pKAlpha=KAlpha;
   if (pNAlpha) *pNAlpha=NAlpha;
+}
+
+/***************************************************************/
+/* given an interior triangle edge specified by an index into  */
+/* the overall list of internal edges in a geometry, determine */
+/* the surface to which the edge belongs and the index of the  */
+/* edge within that surface; also determine the index of the   */
+/* electric surface-current coefficient for this edge within   */
+/* the overall list of surface-current coefficients for the    */
+/* entire geometry                                             */
+/***************************************************************/
+RWGSurface *RWGGeometry::ResolveEdge(int neFull, int *pns, int *pne, int *pKNIndex)
+{
+  int ns=0, NSm1=NumSurfaces - 1;
+  while( (ns < NSm1) && (neFull >= EdgeIndexOffset[ns+1]) )
+   ns++;
+
+  int ne  = neFull - EdgeIndexOffset[ns];
+  
+  int Mult    = Surfaces[ns]->IsPEC ? 1 : 2;
+  int KNIndex = BFIndexOffset[ns] + Mult*ne;
+
+  if (pns) *pns=ns;
+  if (pne) *pne=ne;
+  if (pKNIndex) *pKNIndex=KNIndex;
+  return Surfaces[ns];
 }
 
 /***************************************************************/

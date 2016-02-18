@@ -128,8 +128,8 @@ void GetBFBFCubature(RWGGeometry *G, int ns1, int ne1, int ns2, int ne2,
 /* In these versions, the user's integrand function must       */
 /* *accumulate* contributions to Integral with weight Weight.  */
 /***************************************************************/
-typedef void PCFunction2(double x[3], double b[3], void *UserData,
-                         double Weight, double *Integral);
+typedef void PCFunction2(double x[3], double b[3], double Divb,
+                         void *UserData, double Weight, double *Integral);
 
 
 typedef void PPCFunction2(double x[3], double b[3], double Divb,
@@ -141,11 +141,31 @@ void GetBFCubature2(RWGGeometry *G, int ns, int ne,
                     PCFunction2 Integrand, void *UserData, int IDim,
                     int Order, double *Integral);
 
-void GetBFBFCubature2(RWGGeometry *G, 
+void GetBFBFCubature2(RWGSurface *S, int ne, 
+                      RWGSurface *SP, int neP,
+                      PPCFunction2 Integrand, void *UserData, int IDim,
+                      int Order, double *Integral, 
+                      int PanelOnlyA=-1, int PanelOnlyB=-1);
+
+void GetBFBFCubature2(RWGGeometry *G,
                       int ns, int ne, int nsP, int neP,
                       PPCFunction2 Integrand, void *UserData, int IDim,
-                      int Order, double *Integral);
+                      int Order, double *Integral, 
+                      int PanelOnlyA=-1, int PanelOnlyB=-1);
 
-}
+void GetBFBFCubatureTD(RWGSurface *SA, int neA,
+                       RWGSurface *SB, int neB,
+                       PPCFunction2 Integrand, void *UserData,
+                       int IDim, double *Integral, double *Error,
+                       int MaxEvals=0, double AbsTol=0.0, double RelTol=1.0e-4);
+
+void GetBFBFCubatureTD(RWGGeometry *G,
+                       int nsA, int neA, int nsB, int neB,
+                       PPCFunction2 Integrand, void *UserData,
+                       int IDim, double *Integral, double *Error,
+                       int MaxEvals=0, double AbsTol=0.0, double RelTol=1.0e-4);
+
+} // namespace scuff{
+
 
 #endif // #ifndef PANELCUBATURE_H

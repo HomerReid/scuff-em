@@ -36,6 +36,10 @@ may be downloaded from the
 **The GitHub page is also the right place for questions, 
 bug reports, feature requests, and other discussion of [[scuff-em]].**
 
+For commercial support and consulting services
+related to [[scuff-em]], please contact 
+[SIMPETUS Inc.](http://www.simpetuscloud.com)
+
 ## Interfaces to [[scuff-em]]
 
 Access to the [[scuff-em]] computational engine is available

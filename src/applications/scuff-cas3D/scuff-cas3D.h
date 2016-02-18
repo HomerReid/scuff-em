@@ -28,6 +28,8 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libscuff.h>
+#include <libTriInt.h>
+#include <BZIntegration.h>
 
 using namespace scuff;
 
@@ -81,10 +83,7 @@ typedef struct SC3Data
    int NumTransformations;
 
    // items relevant for extended (periodic) geometries
-   double RLBasisVectors[2][2]; // reciprocal-lattice basis vectors
-   double BZVolume;             // brillouin zone volume
-   int BZQMethod;
-   bool BZSymmetry;
+   GetBZIArgStruct *BZIArgs;
 
    // XiConverged[nf] means that the Xi integral or Matsubara
    // sum for the nfth integrand component has already
@@ -145,7 +144,7 @@ void WriteFilePreamble(SC3Data *SC3D, int PreambleType);
 /*                                                             */
 /* Note: 'EFT' stands for 'energy, force, and torque.'         */
 /***************************************************************/
-void GetCasimirIntegrand(SC3Data *SC3D, double Xi, double *kBloch, double *EFT);
+void GetCasimirIntegrand(void *SC3D, cdouble Omega, double *kBloch, double *EFT);
 void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT);
 void GetXiIntegral_Adaptive(SC3Data *SC3D, double *EFT, double *Error);
 void GetXiIntegral_TrapSimp(SC3Data *SC3D, int NumIntervals, double *I, double *E);

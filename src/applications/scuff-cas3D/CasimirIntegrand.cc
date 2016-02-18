@@ -255,9 +255,12 @@ void ExportHDF5Data(SC3Data *SC3D, double Xi, double *kBloch, char *Tag)
 /*  ...                                                        */
 /*  EFT[2*N-1] = yforce integrand (spatial transformation N)   */
 /***************************************************************/
-void GetCasimirIntegrand(SC3Data *SC3D, double Xi, 
+void GetCasimirIntegrand(void *pSC3D, cdouble Omega,
                          double *kBloch, double *EFT)
 { 
+  SC3Data *SC3D=(SC3Data *)pSC3D;
+  double Xi = imag(Omega);
+
   /***************************************************************/
   /* attempt to bypass the calculation by reading data from a    */
   /* cache file                                                  */
@@ -292,7 +295,6 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
   /***************************************************************/
   /* assemble T matrices                                         */
   /***************************************************************/
-  cdouble Omega = cdouble(0.0, Xi);
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      /* skip if this surface is identical to a previous surface */
@@ -368,22 +370,17 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
   /* for each line in the TransFile, apply the specified         */
   /* transformation, then calculate all quantities requested.    */
   /***************************************************************/
-  FILE *FRDataFile=0; // frequency-resolved data file 
-  if (G->LDim==0)
-   FRDataFile = fopen(SC3D->ByXiFileName, "a");
-  else if (SC3D->ByXiKFileName)
-   FRDataFile = fopen(SC3D->ByXiKFileName,"a");
+  FILE *ByXiKFile = (G->LDim==0) ? 0 : fopen(SC3D->ByXiKFileName,"a");
   int NT=SC3D->NumTransformations;
   for(int ntnq=0, nt=0; nt<NT; nt++)
    { 
      char *Tag=SC3D->GTCList[nt]->Tag;
 
-     if (FRDataFile && G->LDim==0)
-      fprintf(FRDataFile,"%s %6e ",Tag,Xi);
-     else if (FRDataFile && G->LDim==1)
-      fprintf(FRDataFile,"%s %6e %6e ",Tag,Xi,kBloch[0]);
-     else if (FRDataFile && G->LDim==2)
-      fprintf(FRDataFile,"%s %6e %6e %6e ",Tag,Xi,kBloch[0],kBloch[1]);
+     if (ByXiKFile)
+      { fprintf(ByXiKFile,"%s %6e ",Tag,Xi);
+        for(int d=0; d<G->LDim; d++)
+         fprintf(ByXiKFile,"%6e ",kBloch[d]);
+      };
 
      /******************************************************************/
      /* skip if all quantities are already converged at this transform */
@@ -410,11 +407,11 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
         for(int nq=0; nq<SC3D->NumQuantities; nq++)
          EFT[ntnq++]=0.0;
 
-        if (FRDataFile)
+        if (ByXiKFile)
          { for(int nq=0; nq<SC3D->NumQuantities; nq++)
-            fprintf(FRDataFile,"%8e ",0.0);
-           fprintf(FRDataFile,"\n");
-           fflush(FRDataFile);
+            fprintf(ByXiKFile,"%8e ",0.0);
+           fprintf(ByXiKFile,"\n");
+           fflush(ByXiKFile);
          };
 
         continue;
@@ -472,17 +469,15 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
       EFT[ntnq++]=GetTraceMInvdM(SC3D,'3');
 
      /******************************************************************/
-     /* write results to the frequency-resolved data file, which is    */
-     /* either the .byXi file (for non-periodic geometries) or the     */
-     /* to .byXiK file (for periodic geometries).                      */
-     /* Note that, for periodic geometries, data are also written to   */
-     /* the .byXi file, but this happens at one level higher up in the */
-     /* calling hierarchy, in the GetXiIntegrand() routine.            */
+     /* for periodic geometries, write bloch-vector-resolved data      */
+     /* to the .byXiK file                                             */
      /******************************************************************/
-     for(int nq=SC3D->NumQuantities; nq>0; nq--)
-      fprintf(FRDataFile,"%.8e ",EFT[ntnq-nq]);
-     fprintf(FRDataFile,"\n");
-     fflush(FRDataFile);
+     if (ByXiKFile)
+      { for(int nq=SC3D->NumQuantities; nq>0; nq--)
+         fprintf(ByXiKFile,"%.8e ",EFT[ntnq-nq]);
+        fprintf(ByXiKFile,"\n");
+        fflush(ByXiKFile);
+      };
 
      if (SC3D->WriteHDF5Files)
       ExportHDF5Data(SC3D, Xi, kBloch, (NT==1 ? 0 : Tag) );
@@ -493,7 +488,9 @@ void GetCasimirIntegrand(SC3Data *SC3D, double Xi,
      G->UnTransform();
 
    }; // for(ntnq=nt=0; nt<SC3D->NumTransformations; nt++)
-  fclose(FRDataFile);
+
+  if (ByXiKFile)
+   fclose(ByXiKFile);
 
   /***************************************************************/
   /***************************************************************/

@@ -26,6 +26,7 @@
 * [Material descriptions](reference/Materials.md)
 * [Geometrical transformations](reference/Transformations.md)
 * [Incident Fields](reference/IncidentFields.md)
+* [Brillouin-zone integration](reference/BrillouinZoneIntegration.md)
 
 # Tutorial Examples
 
@@ -41,9 +42,9 @@
 * [LDOS and dyadic Green functions above an infinite aluminum half-space](examples/HalfSpaceLDOS/HalfSpaceLDOS.md)
 * [Electrostatic polarizability of platonic solids](examples/PlatonicSolids/PlatonicSolids.md)
 
-## Command-line application reference
+# Command-line application reference
 
-+ [General reference for <span class="SC">scuff-em</span> command-line applications][GeneralReference]
+* [General reference for <span class="SC">scuff-em</span> command-line applications][GeneralReference]
 
 + *Nanophotonics codes*
     + [<span class="SC">scuff-scatter</span>][scuff-scatter]: general-purpose electromagnetic scattering
@@ -51,26 +52,26 @@
     + [<span class="SC">scuff-transmission</span>][scuff-transmission]  - plane-wave transmission through 2D extended structures
     + [<span class="SC">scuff-tmatrix</span>][scuff-tmatrix]            - T-matrices of arbitrary compact objects in the spherical-wave basis  
 
-+ *Equilibrium Casimir codes*
+* *Equilibrium Casimir codes*
     + [<span class="SC">scuff-cas3d</span>][scuff-cas3D]   - Casimir energies, forces, and torques
     + [<span class="SC">scuff-caspol</span>][scuff-caspol] - Casimir-Polder potentials
        
-+ *Non-equilibrium Casimir/ heat-transfer code*
+* *Non-equilibrium Casimir/ heat-transfer code*
     + [<span class="SC">scuff-neq</span>][scuff-neq]       - radiative heat transfer and non-equilibrium Casimir forces/torques
   
-+ *RF / microwave engineering code*
+* *RF / microwave engineering code*
     + [<span class="SC">scuff-rf</span>][scuff-RF]         - multiport network parameters
                                      (S- and impedance parameters),
                                      and radiated fields, for passive RF
                                      and microwave structures.
 
-+ *Electrostatics code*
+* *Electrostatics code*
 
     + [<span class="SC">scuff-static</span>][scuff-static] - pure electrostatics problems:
                                      capacitance matrices, DC polarizabilities,
                                      electrostatic potentials and fields
 
-+ *Utility code*
+* *Utility code*
     + [<span class="SC">scuff-analyze</span>][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
 
 ## API reference

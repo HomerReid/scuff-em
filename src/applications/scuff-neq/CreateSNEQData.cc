@@ -52,9 +52,10 @@ void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName)
   fprintf(f,"# 1 transform tag\n");
   fprintf(f,"# 2 omega \n");
   int nq=3;
-  if (SNEQD->G->LDim>=1)
+  int LDim = SNEQD->G->LBasis ? SNEQD->G->LBasis->NC : 0;
+  if (LDim>=1)
    fprintf(f,"# %i kBloch_x \n",nq++);
-  if (SNEQD->G->LDim==2)
+  if (LDim>=2)
    fprintf(f,"# %i kBloch_y \n",nq++);
   fprintf(f,"# %i (sourceObject,destObject) \n",nq++);
   for(int nPFT=0; nPFT<NUMPFT; nPFT++)
@@ -155,8 +156,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
       }
      else if (PFTMethods[npm]==SCUFF_PFT_OVERLAP)
       sprintf(PFTName,"OPFT");
-     else if (PFTMethods[npm]==SCUFF_PFT_EMT)
-      sprintf(PFTName,"EMT");
+     else if (PFTMethods[npm]==SCUFF_PFT_EMT_INTERIOR)
+      sprintf(PFTName,"InteriorEMT");
+     else if (PFTMethods[npm]==SCUFF_PFT_EMT_EXTERIOR)
+      sprintf(PFTName,"ExteriorEMT");
      else if (PFTMethods[npm]==SCUFF_PFT_EP)
       sprintf(PFTName,"EP");
 
@@ -280,9 +283,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
      fprintf(f,"# 1 transform tag\n");
      fprintf(f,"# 2 omega \n");
      int nq=3;
-     if (G->LDim>=1)
+     int LDim = SNEQD->G->LBasis ? SNEQD->G->LBasis->NC : 0;
+     if (LDim>=1)
       fprintf(f,"# %i kBloch_x \n",nq++);
-     if (G->LDim==2)
+     if (LDim==2)
       fprintf(f,"# %i kBloch_y \n",nq++);
      fprintf(f,"# %i, %i, %i x,y,z (coordinates of eval point)\n",nq,nq+1,nq+2);
      nq+=3;

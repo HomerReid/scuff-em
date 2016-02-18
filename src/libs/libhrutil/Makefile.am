@@ -1,6 +1,10 @@
 noinst_LTLIBRARIES = libhrutil.la
 pkginclude_HEADERS = libhrutil.h
-libhrutil_la_SOURCES = libhrutil.cc ProcessArguments.cc ProcessOptions.cc
+libhrutil_la_SOURCES = \
+ libhrutil.cc         \
+ ProcessArguments.cc  \
+ ProcessOptions.cc    \
+ Vector.cc
 
 noinst_PROGRAMS = tProcessArguments tProcessOptions
 tProcessArguments_SOURCES = tProcessArguments.cc

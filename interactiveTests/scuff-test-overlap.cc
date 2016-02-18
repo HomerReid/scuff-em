@@ -316,7 +316,7 @@ void GetRequest(RWGGeometry *G, Request *R)
   /*--------------------------------------------------------------*/
   if (ncv!=-1)
    { for(R->ne2=0; R->ne2 < (S->NumEdges-1); R->ne2++)
-      if ( ncv == NumCommonBFVertices(S, R->ne1, S, R->ne2) )
+      if ( ncv == AssessBFPair(S, R->ne1, S, R->ne2) )
        break;     
    };
 
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
      /*--------------------------------------------------------------------*/
-     printf("\n*\n* --ne1 %i --ne2 %i (--ncv %i) \n",ne1,ne2,NumCommonBFVertices(S, ne1, S, ne2)); 
+     printf("\n*\n* --ne1 %i --ne2 %i (--ncv %i) \n",ne1,ne2,AssessBFPair(S, ne1, S, ne2)); 
      for(int no=0; no<NUMOVERLAPS; no++)
       printf("%2i | %+12.5e | %+12.5e | %.1e %.5e\n",no, OverlapHR[no], OverlapBF[no],
               RD(OverlapHR[no],OverlapBF[no]), OverlapHR[no]/OverlapBF[no] );

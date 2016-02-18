@@ -274,11 +274,13 @@ void GetOptimalGridSpacing2D(GBarAccelerator *GBA,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
+GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
                                        double RhoMin, double RhoMax,
                                        cdouble k, double *kBloch,
                                        double RelTol, bool ExcludeInnerCells)
 {
+  CheckLattice(LBasis);
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -290,15 +292,10 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
   GBA->RhoMin             = RhoMin;
   GBA->RhoMax             = RhoMax;
 
-  GBA->LDim = LDim;
-  GBA->LBV1[0]=LBV[0][0];
-  GBA->LBV1[1]=LBV[0][1];
-  if (LDim==2)
-   { GBA->LBV2[0]=LBV[1][0];
-     GBA->LBV2[1]=LBV[1][1];
-   };
-  GBA->LBV[0] = GBA->LBV1;
-  GBA->LBV[1] = GBA->LBV2;
+  int LDim = GBA->LDim = LBasis->NC;
+  for(int nd=0; nd<LDim; nd++)
+   for(int j=0; j<3; j++)
+    GBA->LBV[nd][j] = LBasis->GetEntryD(j,nd);
 
   /***************************************************************/
   /* If the wavenumber has an imaginary component, LMax is the   */
@@ -340,7 +337,7 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
    {
       // sample the optimal grid spacing at a few points
       // in the domain of interest and take the smallest
-      double L0 = LBV[0][0], MinDelta[2], Delta[2];
+      double L0 = GBA->LBV[0][0], MinDelta[2], Delta[2];
       if ( L0 > LMax )
        { L0=LMax;
          Log("  Cutting off interpolation table at L=LMax=%e.",LMax);
@@ -394,7 +391,7 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
    }
   else // LDim==2
    {
-      double Lx = LBV[0][0], Ly=LBV[1][1];
+      double Lx = GBA->LBV[0][0], Ly=GBA->LBV[1][1];
       if ( LMax<Lx ) 
        { Lx=LMax;
          Log("  Cutting off interpolation table at Lx=LMax=%e.",LMax);
@@ -403,9 +400,6 @@ GBarAccelerator *CreateGBarAccelerator(int LDim, double *LBV[2],
        { Ly=LMax;
          Log("  Cutting off interpolation table at Ly=LMax=%e.",LMax);
        };
-
-      if ( LBV[0][1]!=0.0 || LBV[1][0]!=0.0 )
-       ErrExit("%s:%i: non-square lattices not yet supported",__FILE__,__LINE__);
 
       // estimate the optimal grid spacings at a few points
       // in the domain of interest and take the smallest
@@ -877,31 +871,31 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
                                               double RMin[3], double RMax[3],
                                               bool ExcludeInnerCells)
 {
-  int GBA_LDim;
-  double *GBA_LBV[2];
+  double Buffer[3];
+  HMatrix LBasis1D(3,1,LHM_REAL,LHM_NORMAL,Buffer);
+  HMatrix *GBA_LBasis;
 
   /***************************************************************/
-  /* figure out whether this region has 1D or 2D periodicity     */
-  /***************************************************************/  
-  if ( LDim==2 && (RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
-   { GBA_LDim=2;
-     GBA_LBV[0]=LBasis[0];
-     GBA_LBV[1]=LBasis[1];
-   }
-  else if ( LDim==2 && (RegionIsExtended[0][nr] && !RegionIsExtended[1][nr]) ) 
-   { GBA_LDim=1; 
-     GBA_LBV[0]=LBasis[0];
-   }
-  else if ( LDim==2 && (!RegionIsExtended[0][nr] && RegionIsExtended[1][nr]) ) 
-   { GBA_LDim=1; 
-     GBA_LBV[0]=LBasis[1];
-   }
-  else if ( LDim==1 )
-   { GBA_LDim=1;
-     GBA_LBV[0]=LBasis[0];
-   }
-  else // region is not extended
-   return 0;
+  /* the lattice with respect to which the region is periodic    */
+  /* is not necessarily the same as the full lattice of the      */
+  /* geometry; it may be a proper sublattice.                    */
+  /***************************************************************/
+  int NumExtendedDimensions=0;
+  if (RegionIsExtended[0][nr]) NumExtendedDimensions++;
+  if (LDim>1 && RegionIsExtended[1][nr]) NumExtendedDimensions++;
+
+  if (NumExtendedDimensions == 0 ) 
+   return 0; // region is not extended
+  else if (NumExtendedDimensions == LDim )
+   GBA_LBasis=LBasis; // region has full periodicity of geometry
+  else // region periodicity lattice is sublattice of full geometry lattice
+   { 
+     int ExtendedDim = RegionIsExtended[0][nr] ? 0 : 1;
+
+     GBA_LBasis = &LBasis1D;
+     for(int j=0; j<3; j++)
+      GBA_LBasis->SetEntry(j,0,LBasis->GetEntryD(j,ExtendedDim));
+   };
    
   /***************************************************************/
   /* do not bother to create an interpolation table if we are in */
@@ -911,12 +905,16 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
   cdouble k = Omega * RegionMPs[nr]->GetRefractiveIndex(Omega);
   if ( ExcludeInnerCells && imag(k)>0.0 )
    { 
-     double minL=2.0*sqrt(   GBA_LBV[0][0]*GBA_LBV[0][0]
-                           + GBA_LBV[0][1]*GBA_LBV[0][1]
-                         );
-     if (GBA_LDim>1)
-      minL=fmin(minL, 2.0*sqrt(   GBA_LBV[1][0]*GBA_LBV[1][0]
-                                + GBA_LBV[1][1]*GBA_LBV[1][1]));
+     double minL
+      =2.0*sqrt(  pow( GBA_LBasis->GetEntryD(0,0), 2.0 )
+                 +pow( GBA_LBasis->GetEntryD(1,0), 2.0 )
+               );
+
+     if (GBA_LBasis->NC >1)
+      minL = fmin(minL, 2.0*sqrt(  pow( GBA_LBasis->GetEntryD(0,1), 2.0 )
+                                  +pow( GBA_LBasis->GetEntryD(1,1), 2.0 )
+                                )
+                 );
 
      if ( imag(k)*minL > 14.0 )
       return 0;
@@ -974,7 +972,7 @@ GBarAccelerator *RWGGeometry::CreateRegionGBA(int nr, cdouble Omega, double *kBl
      Log("Setting interpolation tolerance to %e.",RelTol);
    };
 
-  return CreateGBarAccelerator(GBA_LDim, GBA_LBV, RhoMin, RhoMax,
+  return CreateGBarAccelerator(GBA_LBasis, RhoMin, RhoMax,
                                k, kBloch, RelTol, ExcludeInnerCells);
 }
 

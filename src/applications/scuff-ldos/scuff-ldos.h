@@ -28,14 +28,10 @@
 #include <libhrutil.h>
 #include <libhmat.h>
 #include <libTriInt.h>
+#include <BZIntegration.h>
 #include "libscuff.h"
 
 using namespace scuff;
-
-// Brillouin-zone integration methods
-#define BZI_PCUBATURE 0
-#define BZI_DCUTRI    1
-#define BZI_FOTC      2
 
 #define FILETYPE_LDOS 0
 #define FILETYPE_BYK  1
@@ -55,8 +51,6 @@ typedef struct SLDData
 
    // fields relevant for periodic geometries
    void **ABMBCache;
-   HMatrix *LBasis;
-   double BZVolume;
 
    // other miscellaneous options
    double RelTol;
@@ -77,35 +71,24 @@ typedef struct SLDData
 /***************************************************************/
 /* Function prototypes *****************************************/
 /***************************************************************/
-void WriteLDOS(SLDData *Data, cdouble Omega,
-               double *Result, double *Error);
 
 // CreateLDOSData.cc
 void WriteFilePreamble(char *FileName, int FileType, int LDim);
 SLDData *CreateSLDData(char *GeoFile, char *EPFile);
 
 // GetLDOS.cc
+void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
+               int FileType, double *Result, double *Error);
 void GetLDOS(void *Data, cdouble Omega, double *kBloch, 
              double *Result);
 
-// Integration.cc
-void GetBZIntegral_PCubature(SLDData *Data, cdouble Omega);
-void GetBZIntegral_DCUTRI(SLDData *Data, cdouble Omega);
-void GetBZIntegral_FOTC(SLDData *Data, cdouble Omega, char *BZIString);
-
 // AnalyticalDGFs.cc
-int GetHalfSpaceDGFs(cdouble Omega, double kBloch[2], double zp,
-                     HMatrix *LBasis, MatProp *MP,
+int GetHalfSpaceDGFs(double z, cdouble Omega, double kBloch[2],
+                     HMatrix *RLBasis, double BZVolume, MatProp *MP,
                      double RelTol, double AbsTol, int MaxCells,
                      cdouble GE[3][3], cdouble GM[3][3]);
 
-/*
-void GetGroundPlaneDGFs(double *X, cdouble Omega, double *kBloch,
-                        HMatrix *LBasis,                       
-                        cdouble GE[3][3], cdouble GM[3][3]);
-*/
-
-void GetGroundPlaneDGFs(double Z, cdouble Omega, double *kBloch,
+void GetGroundPlaneDGFs(double z, cdouble Omega, double *kBloch,
                         HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3]);
 
 #endif //#ifndef SCUFFLDOS_H

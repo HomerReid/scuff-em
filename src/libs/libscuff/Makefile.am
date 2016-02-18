@@ -6,7 +6,9 @@ libscuff_la_SOURCES = \
  ReadComsolFile.cc 		\
  ReadGMSHFile.cc 		\
  InitEdgeList.cc 		\
+ FIBBICache.cc   		\
  PBCSetup.cc 			\
+ GCMatrixElements.cc		\
  GTransformation.cc 		\
  GTransformation.h 		\
  PointInObject.cc 		\
@@ -28,7 +30,6 @@ libscuff_la_SOURCES = \
  GBarVDEwald.cc     		\
  Faddeeva.cc        		\
  Faddeeva.hh        		\
- FieldGrid.cc 			\
  GetFields.cc 			\
  GetNearFields.cc 		\
  EMTPFT.cc			\
@@ -46,10 +47,11 @@ libscuff_la_SOURCES = \
  CalcGC.cc 			\
  rwlock.cc 			\
  rwlock.h 			\
- scuffMisc.cc			\
  libscuff.h 			\
  PanelCubature.h		\
  libscuffInternals.h
+
+# FieldGrid.cc 			
 
 
 # combine all of the auxiliary libraries into a single library 

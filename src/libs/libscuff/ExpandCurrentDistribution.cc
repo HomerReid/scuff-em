@@ -184,56 +184,47 @@ int InsideTriangle(const double *X,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void RWGGeometry::EvalCurrentDistribution(const double X[3], 
-                                          HVector *KNVec, 
+void RWGGeometry::EvalCurrentDistribution(const double X[3],
+                                          HVector *KNVec,
                                           double *kBloch,
                                           cdouble KN[6])
 { 
-  bool PBC = (LDim> 0);
-  if (PBC && !kBloch)
+  if (LBasis && !kBloch)
    ErrExit("%s:%i: null KBloch in PBC geometry",__FILE__,__LINE__);
-  if (!PBC && kBloch)
+  if (!LBasis && kBloch)
    ErrExit("%s:%i: non-null KBloch in non-PBC geometry",__FILE__,__LINE__);
 
   /***************************************************************/
   /* If a lattice is present, translate the evaluation point into*/
   /* the unit cell and compute the corresponding Bloch factor.   */
+  /* (We find the lattice vector L such that X = X_0 + L with    */
+  /* X_0 living in the unit cell; then currents and fields at X  */
+  /* are related to those at X_0 according to                    */
+  /* F(X) = F(X_0 + L ) = e^{ i k\cdot L } F(X_0).               */
+  /* double BPArg=kBloch[0]*LVector[0];                          */
   /***************************************************************/
   double EvalPoint[3];
-  EvalPoint[0] = X[0];
-  EvalPoint[1] = X[1];
-  EvalPoint[2] = X[2];
   cdouble BlochPhase=1.0;
-  double *LBV[2]={0,0};
-  if ( PBC )
+  double LBV[3][3];
+  if (LBasis)
    { 
-     if (LDim!=2)
-      ErrExit("%s:%i: only 2D lattices supported");
-     if (    LBasis[0][1] != 0.0 
-          || LBasis[1][0] != 0.0 
-        ) 
-      ErrExit("%s:%i: only square lattices supported");
+     LDim = LBasis->NC;
+     for(int nd=0; nd<LDim; nd++)
+      for(int j=0; j<3; j++)
+       LBV[nd][j] = LBasis->GetEntryD(j,nd);
 
-     LBV[0] = LBasis[0];
-     LBV[1] = LBasis[1];
-
-     double L[2];
-
-     int n1 = floor( X[0] / LBV[0][0] );
-     L[0] = n1*LBV[0][0];
-     EvalPoint[0] = X[0] - L[0];
-
-     int n2 = floor( X[1] / LBV[1][1] );
-     L[1] = n2*LBV[1][1];
-     EvalPoint[1] = X[1] - L[1];
-     
-     // how this works: we just found the lattice vector L such
-     // that X = X_0 + L (with X_0 living in the unit cell)
-     // whereupon currents and fields at X are related to
-     // those at X_0 according to
-     //  F(X) = F(X_0 + L ) = e^{ i k\cdot L } F(X_0)
-     BlochPhase = exp( II * (kBloch[0]*L[0] + kBloch[1]*L[1]) );
-
+     double LVector[3];
+     GetUnitCellRepresentative(X, EvalPoint, LVector);
+     double BPArg = kBloch[0]*LVector[0];
+     if (LDim>1) BPArg+=kBloch[1]*LVector[1];
+     if (LDim>2) BPArg+=kBloch[2]*LVector[2];
+     BlochPhase = exp( II * BPArg );
+   }
+  else
+   { LDim=0;
+     EvalPoint[0] = X[0];
+     EvalPoint[1] = X[1];
+     EvalPoint[2] = X[2];
    };
  
   /***************************************************************/
@@ -265,7 +256,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
        Q=QP;
       else if ( QM && InsideTriangle(EvalPoint,QM,V1,V2)==IT_INTERIOR )
        Q=QM;
-      else if ( QM && PBC && InsideTriangle(EvalPoint,QM,V1,V2,LBV[0])==IT_INTERIOR )
+      else if ( QM && LDim>=1 && InsideTriangle(EvalPoint,QM,V1,V2,LBV[0])==IT_INTERIOR )
        { 
          QBuffer[0] = QM[0] + LBV[0][0];
          QBuffer[1] = QM[1] + LBV[0][1];
@@ -273,7 +264,7 @@ void RWGGeometry::EvalCurrentDistribution(const double X[3],
          Q = QBuffer;
          StraddlerPhase = exp( II * ( kBloch[0]*LBV[0][0] + kBloch[1]*LBV[0][1]) );
        }
-      else if ( QM && PBC && InsideTriangle(EvalPoint,QM,V1,V2,LBV[1])==IT_INTERIOR )
+      else if ( QM && LDim>=2 && InsideTriangle(EvalPoint,QM,V1,V2,LBV[1])==IT_INTERIOR )
        { 
          QBuffer[0] = QM[0] + LBV[1][0];
          QBuffer[1] = QM[1] + LBV[1][1];

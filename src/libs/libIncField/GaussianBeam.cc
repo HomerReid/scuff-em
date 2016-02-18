@@ -81,7 +81,7 @@ void GaussianBeam::GetFields(const double X[3], cdouble EH[6])
    ErrExit("%s:%i: gaussian beams not implemented for dispersive media");
   if ( imag(Omega) !=0.0 )
    ErrExit("%s:%i: gaussian beams not implemented for imaginary frequencies");
-  if ( LDim != 0 )
+  if ( LBasis )
    ErrExit("%s:%i: gaussian beams not implemented for bloch-periodic geometries");
 
   const cdouble IU(0,1);

@@ -65,7 +65,7 @@ namespace scuff {
 
 // maximum number of lattice basis vectors
 #ifndef MAXLDIM
-#define MAXLDIM 2
+#define MAXLDIM 3
 #endif
 
 /*--------------------------------------------------------------*/
@@ -289,20 +289,7 @@ class RWGSurface
    void InitEdgeList();
    void ReadGMSHFile(FILE *MeshFile, char *FileName);
    void ReadComsolFile(FILE *MeshFile, char *FileName);
-
-   /* calculate reduced fields due to a single basis function */
-#if 0
-   void GetReducedFields(int ne, const double *X,
-                         cdouble k, GBarAccelerator *GBA,
-                         cdouble e[3], cdouble h[3]);
-#endif
-   void GetReducedPotentials(int ne, const double *X,
-                             cdouble k, GBarAccelerator *GBA,
-                             cdouble *a, cdouble *Curla, cdouble *Gradp, bool ForceFullEwald=false);
-
-   void AddStraddlers(double LBV[MAXLDIM][2], int LDim,
-                      int NumStraddlers[MAXLDIM]);
-
+   void AddStraddlers(HMatrix *LBasis, int NumStraddlers[MAXLDIM]);
    void UpdateBoundingBox();
  
  };
@@ -335,23 +322,13 @@ class RWGGeometry
    /*- assembling the BEM matrix and RHS vector                    */ 
    /*--------------------------------------------------------------*/ 
 
-   /* routines for allocating, and then filling in, the BEM matrix */
    HMatrix *AllocateBEMMatrix(bool PureImagFreq = false, bool Packed = false);
+   HMatrix *AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *M = NULL);
    HMatrix *AssembleBEMMatrix(cdouble Omega, HMatrix *M = NULL);
 
-   /* lower-level routine for assembling individual BEM matrix blocks */
-   void AssembleBEMMatrixBlock(int nsa, int nsb, cdouble Omega, double *kBloch,
-                               HMatrix *M, HMatrix **GradM=0,
-                               int RowOffset=0, int ColOffset=0,
-                               void *ABMBCache=0, bool CacheTranspose=false,
-                               int NumTorqueAxes=0, HMatrix **dMdT=0,
-                               double *GammaMatrix=0);
-   void *CreateABMBAccelerator(int nsa, int nsb, bool PureImagFreq=false,
-                               bool NeedZDerivative=false);
-   void DestroyABMBAccelerator(void *Accelerator);
-
-   /* routines for allocating, and then filling in, the RHS vector */
    HVector *AllocateRHSVector(bool PureImagFreq = false );
+   HVector *AssembleRHSVector(cdouble Omega, double *kBloch,
+                              IncField *IF, HVector *RHS = NULL);
    HVector *AssembleRHSVector(cdouble Omega, IncField *IF, HVector *RHS = NULL);
 
    /*--------------------------------------------------------------*/
@@ -359,43 +336,23 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
    int UpdateIncFields(IncField *IF, cdouble Omega, double *kBloch=0);
 
-   /* simplest routine for computing fields */
-   void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *X, cdouble *EH);
+   HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, 
+                      double *kBloch, HMatrix *XMatrix, HMatrix *FMatrix=NULL);
+   HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega,
+                      HMatrix *XMatrix, HMatrix *FMatrix=NULL);
 
-   /* more sophisticated routine for computing fields */
-   HMatrix *GetFields(IncField *IF, HVector *KN,
-                      cdouble Omega, HMatrix *XMatrix,
-                      HMatrix *FMatrix=NULL, char *FuncString=NULL);
+   void GetFields(IncField *IF, HVector *KN, cdouble Omega,
+                  double *kBloch, double *X, cdouble *EH);
+   void GetFields(IncField *IF, HVector *KN, cdouble Omega,
+                  double *X, cdouble *EH);
 
-   /****************************************************/
-   /* Routine for evaluating arbitrary functions of the fields on a 2d
-      surface grid; see FieldGrid.h/cc.  Returns a NULL-terminated
-      (malloc'ed) array of HMatrix pointers.  If a non-NULL incident
-      field function is supplied, then the total of scattered plus
-      incident fields is used.  If KN == NULL, then the scattered
-      fields are set to zero. */
-   /****************************************************/
-   HMatrix **GetFieldsGrids(SurfaceGrid &grid, int nfuncs, FieldFunc **funcs,
-			    cdouble Omega, HVector *KN = NULL,
-			    IncField *inc=NULL);
-
-   // exprs is a string of COMMA-SEPARATED expressions
-   HMatrix **GetFieldsGrids(SurfaceGrid &grid, const char *exprs,
-                            cdouble Omega, HVector *KN=NULL, 
-                            IncField *inc=NULL);
-
-   // variants that only compute one function and return one matrix
-   HMatrix *GetFieldsGrid(SurfaceGrid &grid, FieldFunc &func,
-			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL);
-   HMatrix *GetFieldsGrid(SurfaceGrid &grid, const char *expr,
-			  cdouble Omega, HVector *KN=NULL, IncField *inc=NULL);
-
-   /* routine for computing dyadic green's functions, */
-   /* overhauled for efficiency 12/12/2015            */
+   /*--------------------------------------------------------------*/
+   /*- post-processing routine for dyadic green's functions -------*/
+   /*--------------------------------------------------------------*/
    HMatrix *GetDyadicGFs(cdouble Omega, double *kBloch,
                          HMatrix *XMatrix, HMatrix *M,
                          HMatrix *GMatrix);
-  
+
    // these next two are legacy interfaces which will be
    // removed in future versions
    void GetDyadicGFs(double XEval[3], double XSource[3],
@@ -417,18 +374,14 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
    /*- post-processing routines for various other quantities      -*/
    /*--------------------------------------------------------------*/
-
    /* charge and current densities at panel centroids */
    HMatrix *GetPanelSourceDensities(cdouble Omega, double *kBloch, HVector *KN, HMatrix *PSD=0);
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
-   // legacy API routine, delete me
-   HMatrix *GetPanelSourceDensities2(cdouble Omega, HVector *KN, HMatrix *PSD=0) 
-   { return GetPanelSourceDensities(Omega, KN, PSD); }
 
    /* electric and magnetic dipole moments */
    HVector *GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM=0);
 
-   /* expansion coefficients in the RWG expansion of an arbitrary */ 
+   /* expansion coefficients in the RWG expansion of an arbitrary */
    /* user-supplied surface-tangential vector field               */
    void ExpandCurrentDistribution(IncField *IF, HVector *KN, cdouble Omega=1.0);
 
@@ -473,42 +426,51 @@ class RWGGeometry
    void UnTransform();
    char *CheckGTCList(GTComplex **GTCList, int NumGTCs);
 
-   /*---------------------------------------------------------------------*/
-   /* periodic-boundary-condition versions of API routines.               */
-   /* Note PBC routines are distinguished from their non-PBC counterparts */
-   /* by the kBloch argument, which always follows Omega in the prototype.*/
-   /*---------------------------------------------------------------------*/
-   HMatrix *AssembleBEMMatrix(cdouble Omega, double *kBloch, HMatrix *M);
-   HVector *AssembleRHSVector(cdouble Omega, double *kBloch, IncField *IF, HVector *RHS = NULL);
-   void GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
-                  double *X, cdouble *EH);
-   HMatrix *GetFields(IncField *IF, HVector *KN, cdouble Omega, double *kBloch,
-                      HMatrix *XMatrix, HMatrix *FMatrix=NULL, char *FuncString=NULL);
-
    /*--------------------------------------------------------------------*/
    /*- class methods intended for internal use only, i.e. which          */
    /*- would be private if we cared about the public/private distinction */
    /*--------------------------------------------------------------------*/
-
+//private: 
    // constructor helper functions
    void ProcessMEDIUMSection(FILE *f, char *FileName, int *LineNum);
    void ProcessLATTICESection(FILE *f, char *FileName, int *LineNum);
    void AddRegion(char *RegionLabel, char *MaterialName, int LineNum);
+   void InitPBCData();
 
    // helper functions for AssembleBEMMatrix
    void UpdateCachedEpsMuValues(cdouble Omega);
+   void AssembleBEMMatrixBlock(int nsa, int nsb, cdouble Omega, double *kBloch,
+                               HMatrix *M, HMatrix **GradM=0,
+                               int RowOffset=0, int ColOffset=0,
+                               void *ABMBCache=0, bool CacheTranspose=false,
+                               int NumTorqueAxes=0, HMatrix **dMdT=0,
+                               double *GammaMatrix=0);
+   void *CreateABMBAccelerator(int nsa, int nsb, bool PureImagFreq=false,
+                               bool NeedZDerivative=false);
+   void DestroyABMBAccelerator(void *Accelerator);
 
-   // the following helper functions are only used for periodic boundary conditions.
-   void InitPBCData();
-   //void GetRegionExtents(int nr, double RMax[3], double RMin[3], double *DeltaR=0, int *NPoints=0);
+   // helper function for GetFields and GetDyadicGFs
+   HMatrix *GetRFMatrix(cdouble Omega, double *kBloch, HMatrix *XMatrix, 
+                        HMatrix *RFMatrix=0, int ColumnOffset=0);
+
+   // helper function for accelerating periodic GF calculations
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch, int ns1, int ns2);
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch, HMatrix *XMatrix);
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch,
                                     double RMin[3], double RMax[3], bool ExcludeInnerCells);
+
    void GetUnitCellRepresentative(const double X[3], double XBar[3],
                                   bool WignerSeitz=false);
+   void GetUnitCellRepresentative(const double X[3], double XBar[3],
+                                  double LVector[3],
+                                  bool WignerSeitz=false);
+   void GetUnitCellRepresentative(const double X[3], double XBar[3],
+                                  double LVector[3], int NVector[3],
+                                  bool WignerSeitz=false);
+
    void GetKNCoefficients(HVector *KN, int ns, int ne,
                           cdouble *KAlpha, cdouble *NAlpha=0);
+   RWGSurface *ResolveEdge(int neFull, int *pns, int *pne, int *pKNIndex);
 
    // directories within which to search for mesh files
    static int NumMeshDirs;
@@ -538,26 +500,33 @@ class RWGGeometry
    double AveragePanelArea;
    double tolVecClose; // absolute tolerance for VecClose
 
-   int Verbose;
-
    char *GeoFileName;
 
-   /* LDim>0 iff we have periodic boundary conditions.           */
-   /* All other fields in this section are only used for PBCs:   */
-   /* LBasis[nd][2] = (x,y) coordinates of ndth lattice vector   */
-   /* NumStraddlers[nd][ns] = number of straddlers in ndth       */
-   /*                         dimension for surface #ns          */
-   /* RegionIsExtended[nd][ns] = true if region #nr is extended  */
-   /*                            in dimension #nd                */
+   void **FIBBICaches;
+
+   /**************************************************************/
+   /* LDim=0 for compact geometries.                             */
+   /* For geometries with D-dimensional Bloch-periodicity,       */
+   /* LBasis is a 3 x D matrix whose columns are the lattice     */
+   /* basis vectors.                                             */
+   /* RLBasis is a similar matrix for the reciprocal lattice.    */
+   /* LVolume, RLVolume are the unit-cell volumes of the direct  */
+   /* and reciprocal lattices.                                   */
    /*                                                            */
-   /* (Note that lattice vectors must have zero z-component and  */
-   /* only the first two components (x and y components) are     */
-   /* stored, so the Vec... operations in scuffMisc cannot be    */
-   /* used on the LBasis vectors.)                               */
+   /* All other fields in this section are only used for PBCs:   */
+   /*                                                            */
+   /* NumStraddlers[nd][ns] = number of straddlers on unit-cell  */
+   /*                         face normal to lattice vector #nd  */
+   /*                         for surface #ns                    */
+   /* RegionIsExtended[nd][ns] = true if the periodicity lattice */
+   /*                            of region #nr includes the #ndth*/
+   /*                            lattice vector                  */
+   /**************************************************************/
    int LDim;
-   double LBasis[2][2];
-   int *NumStraddlers[2];
-   bool *RegionIsExtended[2];
+   HMatrix *LBasis, *RLBasis;
+   double LVolume, RLVolume;
+   int *NumStraddlers[MAXLDIM];
+   bool *RegionIsExtended[MAXLDIM];
 
    /* BFIndexOffset[n] is the index within the overall BEM          */
    /* system vector of the first basis function on surface #n. thus */
@@ -604,54 +573,29 @@ void InitRWGPanel(RWGPanel *P, double *Vertices);
 int CountCommonRegions(RWGSurface *Sa, RWGSurface *Sb, 
                        int CommonRegionIndices[2], double Signs[2]);
 
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-/*- 4. some other lower-level non-class methods                -*/
-/*--------------------------------------------------------------*/
-/*--------------------------------------------------------------*/
-  
-/* 3D vector manipulations */
-void VecZero(double v[3]);
-double *VecCopy(const double v1[3], double v2[3]);
-double *VecScale(const double v1[3], double alpha, double v2[3]);
-double *VecScale(double v[3], double alpha);
-double *VecScaleAdd(const double v1[3], double alpha, const double v2[3], double v3[3]);
-double *VecAdd(const double v1[3], const double v2[3], double v3[3]);
-double *VecSub(const double v1[3], const double v2[3], double v3[3]);
-double *VecPlusEquals(double v1[3], double alpha, const double v2[3]);
-double *VecCross(const double v1[3], const double v2[3], double v3[3]);
-double *VecLinComb(double alpha, const double v1[3], double beta, const double v2[3], double v3[3]);
-double VecDot(const double v1[3], const double v2[3]);
-double VecDistance(const double v1[3], const double v2[3]);
-double VecDistance2(const double v1[3], const double v2[3]);
-double VecNorm(const double v[3]);
-double VecNorm2(const double v[3]);
-double VecNormalize(double v[3]);
-bool EqualFloat(const double a, const double b);
-bool EqualFloat(const cdouble a, const cdouble b);
-bool VecEqualFloat(const double *a, const double *b);
-bool VecClose(const double *a, const double *b, double abstol);
-
-void SixVecPlus(const cdouble V1[6], const cdouble Alpha,
-                const cdouble V2[6], cdouble V3[6]);
-void SixVecPlusEquals(cdouble V1[6], const cdouble Alpha, const cdouble V2[6]);
-void SixVecPlusEquals(cdouble V1[6], const cdouble V2[6]);
-
-bool Matrix2x2_Inverse(double *a[2],double ainv[2][2]);
-
 /* routines for creating the 'Gamma Matrix' used for torque calculations */
 void CreateGammaMatrix(double *TorqueAxis, double *GammaMatrix);
 void CreateGammaMatrix(double TorqueAxisX, double TorqueAxisY, 
                        double TorqueAxisZ, double *GammaMatrix);
 void CreateGammaMatrix(double Theta, double Phi, double *GammaMatrix);
 
-//cdouble ExpRelV2P0(int n, cdouble Z);
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void *CreateFIBBICache(char *MeshFileName);
+void DestroyFIBBICache(void *pCache);
+int GetFIBBICacheSize(void *pCache, int *pHits, int *pMisses);
+void StoreFIBBICache(void *pCache, const char *MeshFileName);
+void GetFIBBIData(void *pCache,
+                  RWGSurface *SA, int neA, RWGSurface *SB, int neB,
+                  double *FIBBIs);
 
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 void PreloadCache(const char *FileName);
 void StoreCache(const char *FileName);
+void CheckLattice(HMatrix *LBasis);
 
 } // namespace scuff
 
