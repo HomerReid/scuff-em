@@ -74,6 +74,18 @@
 * *Utility code*
     + [<span class="SC">scuff-analyze</span>][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
 
+## Validation Test Suite
+
+* [Overview of the <span class="CodeName">scuff-em</span> test suite](tests/Overview.md)
+* [Mie scattering](tests/MieScattering/MieScattering.md)
+* [Fresnel scattering](tests/FresnelScattering/FresnelScattering.md)
+* [Equilibrium Casimir forces between spheres](tests/CasimirSpheres/CasimirSpheres.md)
+* [Equilibrium Casimir forces between plates](tests/CasimirPlates/CasimirPlates.md)
+* [Equilibrium Casimir-Polder potential near a sphere](tests/CPSphere/CPSphere.md)
+* [Equilibrium Casimir-Polder potential near a plate](tests/CPPlate/CPPlate.md)
+* [Heat transfer and non-equilibrium Casimir forces between spheres](tests/NEQSpheres/NEQSpheres.md)
+* [Low-level tests of the <span class="CodeName">scuff-em</span> core library](tests/libscuff/libscuff.md)
+
 ## API reference
 
 * [<span class="SC">libscuff</span>][libscuff] - Accessing [[scuff-em]] from C++ and python programs
