@@ -832,10 +832,11 @@ void GetReducedPotentials_Nearby(RWGSurface *S, const int ne,
 void GetReducedFields_Nearby(RWGSurface *S, const int ne,
                              const double X0[3], const cdouble k,
                              cdouble e[3], cdouble h[3],
-                             cdouble de[3][3], cdouble dh[3][3])
+                             cdouble de[3][3], cdouble dh[3][3],
+                             bool *IncludeTerm=0)
 {
   cdouble p[1], a[3], dp[3], da[3][3], ddp[3][3], dcurla[3][3];
-  GetReducedPotentials_Nearby(S, ne, X0, k, p, a, dp, da, ddp, dcurla);
+  GetReducedPotentials_Nearby(S, ne, X0, k, p, a, dp, da, ddp, dcurla, IncludeTerm);
 
   cdouble k2=k*k;
   for(int Mu=0; Mu<3; Mu++)
