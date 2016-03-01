@@ -229,3 +229,159 @@ equations (\ref{PFExteriorPFT1}) may be simplified to read
  &\frac{\mu_0}{2} \text{Im }{k_a^* k_b}\Big[\text{Im }
 \end{align*}
 %====================================================================%
+
+\subsection{Interior EMTPFT}
+
+%====================================================================%
+\begin{align*}
+F_i&=
+ \frac{1}{2\omega}\text{Im } 
+ \int_{\mc S}\bigg\{ \vb K^* \cdot \partial_i \vb E
+                    +\vb N^* \cdot \partial_i \vb H
+             \bigg\}\, dA
+\end{align*}
+%====================================================================%
+
+\paragraph{Planar case}
+
+Working in a coordinate system in which the
+%====================================================================%
+\begin{align*}
+\vb F&=
+ \left( K^*_x \partial_x E_x + K^*_y \partial_x E_y \right)\vbhat{x}
+ +
+ \left( K^*_x \partial_y E_x + K^*_y \partial_y E_y \right)\vbhat{y}
+ +
+ \left( K^*_x \partial_z E_x + K^*_y \partial_z E_y \right)\vbhat{z}
+\end{align*}
+%====================================================================%
+I organize the various terms here as follows:
+%====================================================================%
+\begin{align}
+\vb F
+= &\hphantom{+}\underbrace{
+   \left( K^*_x \partial_x E_x\right) \vbhat{x}
+  +\left( K^*_y \partial_y E_y \right)\vbhat{y}
+              }_{T_1}
+\\
+&+ \underbrace{
+   \left( K^*_y \partial_x E_y\right) \vbhat{x}
+  +\left( K^*_x \partial_y E_x \right)\vbhat{y}
+              }_{T_2}
+\\
+&+ \underbrace{
+    \left( K^*_x \partial_z E_x + K^*_y \partial_z E_y \right)\vbhat{z}
+              }_{T_3}
+\end{align}
+%====================================================================%
+I now add to $T_1$ and subtract from $T_2$ the quantity
+%====================================================================%
+$ \left( K^*_y \partial_y E_x\right) \vbhat{x}
+  +\left( K^*_x \partial_x E_y \right)\vbhat{y}
+$. The term $T_1$ becomes
+%====================================================================%
+\begin{align}
+T_1 &=  \left( K^*_x \partial_x E_x + K^*_y \partial_y E_x\right) \vbhat{x}
+       +\left( K^*_x \partial_x E_y + K^*_y \partial_y E_y \right)\vbhat{y}
+\\
+&\sim -\Big(\nabla_{\parallel} \cdot \vb K^*\Big) \vb E_{\parallel}
+\intertext{(where $\parallel$ indicates surface-tangential vector components
+           and $\sim$ indicates equality up to total-derivative terms
+           that make no contribution to the surface integral). The term
+           $T_2$ becomes}
+T_2 &= 
+   \left( K^*_y \partial_x E_y\right) \vbhat{x}
+  +\left( K^*_x \partial_y E_x \right)\vbhat{y}
+  -\left( K^*_y \partial_y E_x\right) \vbhat{x}
+  -\left( K^*_x \partial_x E_y \right)\vbhat{y}
+\\
+&= \underbrace{\Big(K_y^* \vbhat{x} - K_x^* \vbhat{y}\Big)}
+             _{\vb K^* \times \vbhat{z}}
+   \cdot
+   \underbrace{
+   \Big(\partial_x E_y - \partial_y E_x\Big)
+              }_{(\nabla \times \vb E)_z=i\omega \mu H_z} 
+\end{align}
+%====================================================================%
+In term $T_3$ above I write $(\nabla \times \vb E = i\omega \mu \vb H)$
+%====================================================================%
+$$ \partial_z E_x = \partial_x E_z + i\omega\mu H_y, \qquad
+   \partial_z E_y = \partial_y E_z - i\omega\mu H_x
+$$
+%====================================================================%
+and obtain
+%====================================================================%
+\begin{align*}
+ T_3 &= 
+  \Big(K_x^* \partial_x E_z + K_y^* \partial_y E_z \Big)\vbhat{z}
+ +i\omega \mu \Big( K_x^* H_y - K_y^* H_x\Big)\vbhat{z}
+\end{align*}
+%====================================================================%
+Integrating by parts in the first term, I find
+%====================================================================%
+$$ T_3 \sim
+   -\Big(\nabla \cdot \vb K^*\Big) E_z \vbhat{z}
+   +i\omega \mu \times \Big(\vb K^* \times \vb H\Big)_z \vbhat{z}
+$$
+%====================================================================%
+Adding it all up and including the contribution of the 
+$\vb{N}^* \partial_i \vb H$ term, I have 
+%====================================================================%
+\begin{align*}
+ F&=\frac{1}{2\omega}\text{Im }\int_{\mc S}
+   \Big[ -\big(\nabla \cdot \vb K^*\big) \vb E
+         -\big(\nabla \cdot \vb N^*\big) \vb H
+        +i\omega \mu \Big(\vbhat{K}^* \times \vbhat{H}\Big)
+        -i\omega \epsilon \Big(\vbhat{N}^* \times \vbhat{E}\Big)
+   \Big]dA
+\end{align*}
+%====================================================================%
+ 
+\paragraph{General case}
+\begin{align*}
+ K^*_j \partial_i E_j
+&= \underbrace{K^*_j \hat{n}_i \hat{n}_k \partial_k E_j}_{T_1}
+  +\underbrace{K^*_j \Big[\delta_{ik}-\hat{n}_i \hat{n}_k\Big] \partial_k E_j}_{T_2}
+\end{align*}
+%====================================================================%
+
+In $T_1$ write the Maxwell equation
+$\nabla \times \vb E = i\omega \mu \vb H$
+in the form
+$$ \partial_k E_j = \partial_j E_k + i\omega \mu \varepsilon_{\ell kj} H_\ell $$
+to obtain
+\begin{align*}
+ T_1 &= \underbrace{K^*_j \hat{n}_i \hat{n}_k \partial_j E_k}_{T_{1a}}
+       +\underbrace{i\omega \mu K^*_j \hat{n}_i \hat{n}_k \varepsilon_{\ell kj} H_\ell}_{T_{1b}}
+\end{align*}
+
+In $T_{1a}$ integrate by parts:
+%====================================================================%
+$$ T_{1a}\sim 
+   \underbrace{-\big(\partial_j K^*_j\big)\hat n_i \hat n_k E_k}_{T_{1a1}}
+  \quad
+   -\underbrace{K^*_j E_k \partial_j \Big( \hat{n}_i \hat{n}_k \Big)}_{T_{1a2}}
+$$
+%====================================================================%
+where $\sim$ indicates equality up to total derivative terms that yield
+vanishing contributions to surface integrals.
+(The first term here vanishes because it involves the normal derivative
+of the tangential-vector quantity $\vb K^*$.)
+
+On the other hand, $T_{1b}$ is just the quantity
+%====================================================================%
+$$ T_{1b} = i\omega \mu
+   \Big[ \vbhat{n} \cdot \big(\vb K^* \times \vb H\big) \Big] \hat{n}_i 
+$$
+%====================================================================%
+
+
+In $T_{2}$ integrate by parts:
+%====================================================================%
+$$ T_{2}\sim 
+   \underbrace{-\Big(\partial_k K^*_j\Big) E_j \Big(\delta_{ik}-\hat{n}_i \hat{n}_k\Big)}_{T_{2a}}
+ \quad
+   \underbrace{-\Big(K_j^* E_j\Big)
+ \partial_k \Big(\delta_{ik}-\hat{n}_i \hat{n}_k\Big)}_{T_{2b}}
+$$
+%====================================================================%

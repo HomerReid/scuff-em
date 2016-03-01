@@ -171,6 +171,12 @@ void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,
   q3D[1] = kBloch[1];
   q3D[2] = (IsUpper ? 1.0 : -1.0) * kz;
 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+kHat[0] = q3D[0] / k0;
+kHat[1] = q3D[1] / k0;
+kHat[2] = q3D[2] / k0;
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
   /*--------------------------------------------------------------*/
   /*- loop over all edges on all surfaces that bound the region  -*/
   /*- in question to compute KTilde and NTilde (2D Fourier       -*/
