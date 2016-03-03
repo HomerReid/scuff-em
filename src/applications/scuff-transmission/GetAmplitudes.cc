@@ -131,6 +131,11 @@ void GetbTwiddle(RWGSurface *S, int ne, double q[3], cdouble bTwiddle[3])
 }
 
 /***************************************************************/
+/* summand passed to GetLatticeSum to evaluate reciprocal-lattice */
+/* sums to compute Fourier-space Green's functions             */
+/***************************************************************/
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,
@@ -161,21 +166,11 @@ void GetPlaneWaveAmplitudes(RWGGeometry *G, HVector *KN,
    return;
  
   double kz = sqrt( kz2 );
-  double kHat[3];
-  kHat[0] = kBloch[0] / k0;
-  kHat[1] = kBloch[1] / k0;
-  kHat[2] =        kz / k0;
 
   double q3D[3];
   q3D[0] = kBloch[0];
   q3D[1] = kBloch[1];
   q3D[2] = (IsUpper ? 1.0 : -1.0) * kz;
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-kHat[0] = q3D[0] / k0;
-kHat[1] = q3D[1] / k0;
-kHat[2] = q3D[2] / k0;
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   /*--------------------------------------------------------------*/
   /*- loop over all edges on all surfaces that bound the region  -*/
@@ -214,7 +209,8 @@ kHat[2] = q3D[2] / k0;
   /*- where eps = \eps^{TE}, \eps^{TM} are polarization vectors.  */
   /*--------------------------------------------------------------*/
   double EpsTE[3] = {0.0, 1.0, 0.0}, EpsTM[3];
-  VecCross(EpsTE, kHat, EpsTM);
+  VecCross(EpsTE, q3D, EpsTM);
+  VecScale(EpsTM, -1.0/k0);
 
   cdouble EGKTE=0.0, EGKTM=0.0;
   for(int Mu=0; Mu<3; Mu++)
@@ -229,19 +225,16 @@ kHat[2] = q3D[2] / k0;
 
   cdouble ECNTE=0.0, ECNTM=0.0;
   for(int Mu=0; Mu<3; Mu++)
-   { int Nu  = (Mu+1)%3;
-     int Rho = (Mu+2)%3;
-     ECNTE += EpsTE[Mu]*(q3D[Nu]*NTilde[Rho] - q3D[Rho]*NTilde[Nu]);
-     ECNTM += EpsTM[Mu]*(q3D[Nu]*NTilde[Rho] - q3D[Rho]*NTilde[Nu]);
+   { int MP1 = (Mu+1)%3;
+     int MP2 = (Mu+2)%3;
+     ECNTE += EpsTE[Mu]*(NTilde[MP1]*q3D[MP2] - NTilde[MP2]*q3D[MP1]);
+     ECNTM += EpsTM[Mu]*(NTilde[MP1]*q3D[MP2] - NTilde[MP2]*q3D[MP1]);
    };
-  ECNTE *= -1.0/(2.0*k0*kz);
-  ECNTM *= -1.0/(2.0*k0*kz);
+  ECNTE *= II/(2.0*k0*kz);
+  ECNTM *= II/(2.0*k0*kz);
  
-  // I don't know why my calculation is off by a factor of
-  // exactly sqrt(2)...but it is!
-  # define RT2	1.4142135623730950488
-  TETM[POL_TE] = RT2*II*k0*(ZVAC*ZRel*EGKTE + ECNTE) / VUnitCell;
-  TETM[POL_TM] = RT2*II*k0*(ZVAC*ZRel*EGKTM + ECNTM) / VUnitCell;
+  TETM[POL_TE] = II*k0*(ZVAC*ZRel*EGKTE + ECNTE) / VUnitCell;
+  TETM[POL_TM] = II*k0*(ZVAC*ZRel*EGKTM + ECNTM) / VUnitCell;
 
   if (WriteByKNFile)
    {
@@ -256,12 +249,13 @@ kHat[2] = q3D[2] / k0;
         SetDefaultCD2SFormat("{%+.4e %+.4e}");
       };
 
+     SetDefaultCD2SFormat("%e %e");
      f=vfopen("%s.byKN","a",GetFileBase(G->GeoFileName));
-     fprintf(f,"%e %e %i ",real(Omega),kHat[0],IsUpper);
-     fprintf(f,"%s ",CD2S(RT2*II*k0*(ZVAC*ZRel*EGKTE)/VUnitCell));
-     fprintf(f,"%s ",CD2S(RT2*II*k0*(ECNTE)/VUnitCell));
-     fprintf(f,"%s ",CD2S(RT2*II*k0*(ZVAC*ZRel*EGKTM/VUnitCell)));
-     fprintf(f,"%s ",CD2S(RT2*II*k0*(ECNTM)/VUnitCell));
+     fprintf(f,"%e %e %i ",real(Omega),(180.0/M_PI)*asin(kBloch[0]/k0),IsUpper);
+     fprintf(f,"%s ",CD2S(II*k0*(ZVAC*ZRel*EGKTE)/VUnitCell));
+     fprintf(f,"%s ",CD2S(II*k0*(ECNTE)/VUnitCell));
+     fprintf(f,"%s ",CD2S(II*k0*(ZVAC*ZRel*EGKTM/VUnitCell)));
+     fprintf(f,"%s ",CD2S(II*k0*(ECNTM)/VUnitCell));
      fprintf(f,"\n");
      fclose(f);
    };
