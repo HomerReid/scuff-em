@@ -9,10 +9,6 @@
 %- Special commands for this document -----------------------
 %------------------------------------------------------------
 %------------------------------------------------------------
-\newcommand{\vbEps}{\boldsymbol{\epsilon}}
-\newcommand{\vbGamma}{\boldsymbol{\Gamma}}
-\newcommand{\wt}{\widetilde}
-\newcommand{\wh}{\widehat}
 \newcommand{\vbwhat}[1]{\vb{\widehat{#1}}}
 
 %------------------------------------------------------------
@@ -56,69 +52,83 @@ Working at angular frequency $\omega$, let the free-space
 wavelength be $k_0=\frac{\omega}{c}$, and let the relative 
 permittivity and permeability of the lowermost and uppermost 
 regions in the geometry be $\epsilon\subt{L,U}$ and $\mu\subt{L,U}$.
-The wavenumber and relative wave impedance in the 
+The wavenumber, refractive index, and relative wave impedance in the 
 uppermost and lowermost regions are
 %====================================================================%
 \begin{align*}
-  k\subt{L}&=\sqrt{\epsilon\subt{L} \mu\subt{L}} \cdot k_0,
+  k\subt{L}&=n\subt{L} \cdot k_0,
+   \qquad n\subt{L}\equiv \sqrt{\epsilon\subt{L} \mu\subt{L}},
    \qquad   
   Z\subt{L}=\sqrt\frac{\mu\subt{L}}{\epsilon\subt{L}}
 \\
-  k\subt{U}&=\sqrt{\epsilon\subt{U} \mu\subt{U}} \cdot k_0,
+  k\subt{U}&=n\subt{U} \cdot k_0,
+   \qquad n\subt{U}\equiv \sqrt{\epsilon\subt{U} \mu\subt{U}},
    \qquad   
   Z\subt{U}=\sqrt\frac{\mu\subt{U}}{\epsilon\subt{U}}.
 \end{align*}
 %====================================================================%
 I will refer to region from which the planewave 
 originates (either the uppermost or lowermost homogeneous
-region in the {\sc scuff-em} geometry) as the ``source'' region.
-The region into which the planewave eventually emanates 
-is the ``destination'' region.
-
-In what follows, I will use the
-symbols $\vb k,Z$ and $\vb k^\prime,Z^\prime$ respectively to denote the 
-wavevectors and relative wave impedances in the source and destination 
-regions. Then I have
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+region in the {\sc scuff-em} geometry) as the ``incident'' region.
+The region into which the planewave eventually emanates
+is the ``transmitted'' region.
+I will use the sub/superscripts $I,T$ to denote these quantities;
+thus the wavenumber and relative wave impedance in the incident and
+transmitted regions are
+%====================================================================%
 \begin{align*}
-\text{wave incident from below:} \qquad
-   &\{|\vb k|,Z\}=\{k, Z\}\subt{L}, \qquad
-    \{|\vb k^\prime|,Z^\prime\}=\{k, Z\}\subt{U}
-\\
-\text{wave incident from above:} \qquad
-   &\{|\vb k|,Z\}=\{k, Z\}\subt{U}, \qquad
-    \{|\vb k^\prime|,Z^\prime\}=\{k, Z\}\subt{L}.
+  \Big\{k\subt{I}, Z\subt{I}, k\subt{T}, Z\subt{T}\Big\} 
+ &=\begin{cases}
+     \big\{k\subt{L}, Z\subt{L}, k\subt{U}, Z\subt{U}\big\},
+      \qquad &\text{wave incident from below}
+      \\[5pt]
+     \big\{k\subt{U}, Z\subt{U}, k\subt{L}, Z\subt{L}\big\},
+      \qquad &\text{wave incident from above}
+   \end{cases}
 \end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-I will take $\vb k$ to live in the $xz$ plane (i.e. $\vb k$
-has no $y$ component, $k_y=0$) and I will let $\theta$ be 
-the angle of incidence. Thus the incident wavevector is
+%====================================================================%
+In what follows, I will use the symbols
+$\vb k\supt{I}, \vb k\supt{R}, \vb k\supt{T}$ respectively to denote the
+propagation vectors of the incident, reflected, and transmitted waves.
+I will take these vectors always to live in the $xz$ plane (i.e. $\vb k$
+has no $y$ component, $k_y=0$). I will let 
+$\theta\subt{I}$ and $\theta\subt{T}$
+be the angles of incidence and transmission
+(the angles between the incident and transmitted wavevector and the $z$ axis).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
  \text{wave incident from below:} 
-  \qquad &\vb k= k\sin\theta\,\vbhat{x} + k\cos\theta\,\vbhat{z}
+  \qquad &\vb k\supt{I}= k\subt{L}\Big[ \sin\theta\subt{I}\,\vbhat{x} + \cos\theta\subt{I}\,\vbhat{z}\Big]
 \\
  \text{wave incident from above:} 
-  \qquad &\vb k= k\sin\theta\,\vbhat{x} - k\cos\theta\,\vbhat{z}
+  \qquad &\vb k\supt{I}= k\subt{U}\Big[ \sin\theta\subt{I}\,\vbhat{x} - \cos\theta\subt{I}\,\vbhat{z}\Big]
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The reflected wavevector is 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \text{wave incident from below:} 
+  \qquad &\vb k\supt{R}= k\subt{L}\Big[ \sin\theta\subt{I}\,\vbhat{x} - \cos\theta\subt{I}\,\vbhat{z}\Big]
+\\
+ \text{wave incident from above:} 
+  \qquad &\vb k\supt{R}= k\subt{L}\Big[ \sin\theta\subt{I}\,\vbhat{x} + \cos\theta\subt{I}\,\vbhat{z}\Big]
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The transmitted wavevector is 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align*}
- \text{wave incident from below:} 
-  \qquad & \vb k^\prime = 
-    k^\prime\sin\theta^\prime\,\vbhat{x} + k^\prime\cos\theta^\prime\,\vbhat{z}
+ \text{wave incident from below:}
+  \qquad &\vb k\supt{T}= k\subt{U}\Big[ \sin\theta\subt{T}\,\vbhat{x} + \cos\theta\subt{T}\,\vbhat{z}\Big]
 \\
  \text{wave incident from above:} 
-  \qquad &\vb k^\prime  = 
-    k^\prime\sin\theta^\prime\,\vbhat{x} - k^\prime\cos\theta^\prime\,\vbhat{z}
+  \qquad &\vb k\supt{T}= k\subt{L}\Big[ \sin\theta\subt{T}\,\vbhat{x} - \cos\theta\subt{T}\,\vbhat{z}\Big]
 \end{align*}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The incident and transmitted angles are related by 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ k^\prime \sin\theta^\prime = k\sin\theta.$$
+$$ n\subt{I}\sin\theta\subt{I} = n\subt{T}\sin\theta\subt{T}.$$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-For a general vector $\vb v$, I will define $\vbhat{v}=\vb v/|\vb v|$ 
+For a general vector $\vb v$, I will define $\vbwhat{v}=\vb v/|\vb v|$ 
 to be a unit vector in the direction of $\vb v$.
 
 \subsection*{Definition of scattering coefficients}
@@ -129,45 +139,67 @@ may be written in the form
 \numeq{trDef}
 { \begin{array}{lclclcl}
 %--------------------------------------------------------------------%
-  \displaystyle{ \vb E\sups{inc}(\vb x) }
+  \displaystyle{ \vb E\supt{I}(\vb x) }
 & =
-& \displaystyle{ E_0 \vbEps\sups{inc}_0 e^{ i (k_x x \pm k_z z) } }
+& \displaystyle{ E_0 \vbEps\supt{I} e^{ i \vb k\supt{I}\cdot \vb x}}
 & \qquad 
-& \displaystyle{ \vb H\sups{inc}(\vb x) }
+& \displaystyle{ \vb H\supt{I}(\vb x) }
 & =
-& \displaystyle { H_0 \overline{\vbEps}\sups{inc}_0 e^{ i (k_x x \pm k_z z) } }
-\\[5pt]
+& \displaystyle { H_0 \overline{\vbEps}\supt{I} e^{ i\vb k\supt{I}\cdot \vb x}}l
+\\[8pt]
 %--------------------------------------------------------------------%
-  \displaystyle{ \vb E\sups{refl}(\vb x) }
+  \displaystyle{ \vb E\supt{R}(\vb x) }
 & =
-& \displaystyle{ r E_0 \vbEps_0\sups{refl} e^{ i (k_x x \mp k_z z)} }
+& \displaystyle{ r E_0 \vbEps\supt{R} e^{ i \vb k\supt{R}\cdot \vb x}}
 & \qquad 
-& \displaystyle{ \vb H\sups{refl}(\vb x) }
+& \displaystyle{ \vb H\supt{R}(\vb x) }
 & =
-& \displaystyle{r H_0 \overline{\vbEps}_0\sups{refl} e^{ i (k_x x \mp k_z z) }}
-\\[5pt]
+& \displaystyle{r H_0 \overline{\vbEps}\supt{R} e^{ i \vb k \supt{R}\cdot \vb x}}
+\\[8pt]
 %--------------------------------------------------------------------%
-  \displaystyle{ \vb E\sups{trans}(\vb x) }
+  \displaystyle{ \vb E\supt{T}(\vb x) }
 & =
-& \displaystyle{ tE_0\vbEps_0\sups{trans} e^{ i (k_x x \pm k_z^\prime z)} }
+& \displaystyle{ tE_0\vbEps\supt{T} e^{ i \vb k\supt{T}\cdot \vb x}}
 & \qquad 
-& \displaystyle{ \vb H\sups{trans}(\vb x) }
+& \displaystyle{ \vb H\supt{T}(\vb x) }
 & =
-& \displaystyle{ tH_0^\prime \, \overline{\vbEps}_0\sups{trans}\, e^{ i (k_x x \pm k_z^\prime z) } }
+& \displaystyle{ tH_0^\prime\, \overline{\vbEps}\supt{T}, e^{i\vb k\supt{T}\cdot \vb x}}
+\
 \end{array}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where $E_0$ is the incident field magnitude, 
-$\vbEps_0\sups{inc}$ is the incident-field polarization vector, 
-$\pm$ is positive (negative) if the wave is incident from 
-below (above), and
-$$ H_0\equiv \frac{i|\vb k|E_0}{Z Z_0},
+where $E_0$ is the incident field magnitude,
+$\vbEps\supt{I,R,T}$ are $\vb E$-field polarization vectors,
+$\overline{\vbEps}\supt{I,R,T}$ are $\vb H$-field polarization vectors,
+and we have
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$ H_0\equiv \frac{i|\vb k|E_0}{Z\subt{I} Z_0},
    \qquad 
-   H_0^\prime \equiv \frac{i|\vb k|E_0}{Z^\prime Z_0},
+   H_0^\prime\equiv \frac{i|\vb k|E_0}{Z\subt{T} Z_0},
    \qquad 
-   \overline{\vbEps} = \vbhat{k} \times \vbEps,
+   \overline{\vbEps} \equiv \vbwhat{k} \times \vbEps,
    \qquad 
-   \vbEps = -\vbhat{k} \times \overline{\vbEps}.
+   \vbEps = -\vbwhat{k} \times \overline{\vbEps}.
 $$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The polarization vectors are given by
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \text{for the TE case:} \qquad
+ &\vbEps\supt{I}\subt{TE}=
+ \vbEps\supt{R}\subt{TE}=
+ \vbEps\supt{T}\subt{TE}=\vbhat{y}, 
+ \qquad 
+ \overline{\vbEps}\supt{I,R,T}\subt{TE}=\wh{\vb k\supt{I,R,T}}\times \vbhat{y}
+\\
+ \text{for the TM case:} \qquad
+ &\overline{\vbEps}\supt{I}\subt{TM}=
+  \overline{\vbEps}\supt{R}\subt{TM}=
+  \overline{\vbEps}\supt{T}\subt{TM}=\vbhat{y}
+  \qquad 
+  \vbEps\supt{I,R,T}\subt{TM}=-\wh{\vb k\supt{I,R,T}}\times \vbhat{y}
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 Equations (\ref{trDef})
 define the reflection and transmission coefficients
 $r$ and $t$ computed by {\sc scuff-transmission}.
@@ -185,12 +217,11 @@ boundary conditions, i.e. all fields and currents satisfy
 {\vb Q(\vb x+\vb L) = e^{i\vb k\subt{B} \cdot \vb L}\,\vb Q(\vb x)}
 where $\vb Q$ is a field ($\vb E$ or $\vb H$) or a surface current
 ($\vb K$ or $\vb N$) and the Bloch wavevector is\footnote{Recall
-our conventions that \textbf{(a)} the propagation vector lives
-in the $xy$ plane, \textbf{(b)} unprimed (primed) quantities 
-refer to quantities in the source (destination) region.}
+our convention that the propagation vector lives
+in the $xy$ plane.}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$\vb k\subt{B}=k\sin\theta \, \vbhat{x}
-               =k^\prime \sin\theta^\prime \, \vbhat{x}.
+$$\vb k\subt{B}=k\subt{I}\sin\theta\subt{I} \, \vbhat{x}
+               =k\subt{T}\sin\theta\subt{T} \, \vbhat{x}.
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 For plane waves like (\ref{trDef}), equation (\ref{BlochPeriodicity1})
@@ -208,29 +239,29 @@ of the surface-current distribution in the unit cell of the structure.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection*{Fields from surface currents}
 
-On the other hand, the scattered $\vb E$ fields in the source
-and destination regions may be obtained in the usual way from the
+On the other hand, the scattered $\vb E$ fields in the incident
+and transmitted regions may be obtained in the usual way from the
 surface-current distributions on the surfaces bounding those
-regions. For example, at points in the destination medium, 
+regions. For example, at points in the transmitted medium, 
 the scattered (that is, transmitted) $\vb E$ field is given by
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align}
- \vb E\sups{trans}(\vb x)
-&=\oint_{\mc S} \Big\{ 
-   \BG\supt{EE}(\vb x,\vb x^\prime)\cdot \vb K(\vb x^\prime)
-  +\BG\supt{EM}(\vb x,\vb x^\prime)\cdot \vb N(\vb x^\prime)
+ \vb E\supt{T}(\vb x)
+&=\oint_{\mc S\subt{T}} \Big\{ 
+   \BG\supt{EE;T}(\vb x,\vb x^\prime)\cdot \vb K(\vb x^\prime)
+  +\BG\supt{EM;T}(\vb x,\vb x^\prime)\cdot \vb N(\vb x^\prime)
                 \Big\}d\vb x^\prime
 \nn
-&=ik^\prime \oint_{\mc S} \Big\{ 
-   Z_0 Z^\prime \vb G(k^\prime; \vb x,\vb x^\prime)
+&=ik\subt{T} \oint_{\mc S} \Big\{ 
+   Z_0 Z\subt{T}\vb G(k\subt{T}; \vb x,\vb x^\prime)
                     \cdot \vb K(\vb x^\prime)
-               +\vb C(k^\prime; \vb x,\vb x^\prime)
+               +\vb C(k\subt{T}; \vb x,\vb x^\prime)
                     \cdot \vb N(\vb x^\prime) \Big\}d\vb x^\prime
 \label{ETransPBC}
 \end{align}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-where $\mc S$ is the surface bounding the uppermost region and 
-$\vb G, \vb C$ are the homogeneous dyadic GFs. Using the
+where $\mc S\subt{T}$ is the surface bounding the transmitted region and 
+$\vb G, \vb C$ are the homogeneous dyadic GFs for that region. Using the
 Bloch periodicity of the surface currents, i.e.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$ \left\{ \begin{array}{c} 
@@ -248,12 +279,12 @@ just the lattice unit cell:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{EIntegralUnitCell}
 {
- \vb E\sups{trans}(\vb x)
-=ik^\prime \int\subt{UC}
+ \vb E\supt{T}(\vb x)
+=ik\subt{T} \int\subt{UC}
   \Big\{
-  Z_0 Z^\prime 
-   \overline{\vb G}(k^\prime; \vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime)
-  +\overline{\vb C}(k^\prime; \vb x, \vb x^\prime) \cdot \vb N(\vb x^\prime)
+  Z_0 Z\subt{T} 
+   \overline{\vb G}(k\subt{T}; \vb x, \vb x^\prime) \cdot \vb K(\vb x^\prime)
+  +\overline{\vb C}(k\subt{T}; \vb x, \vb x^\prime) \cdot \vb N(\vb x^\prime)
   \Big\}\,d\vb x^\prime
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -318,7 +349,7 @@ and
    &=\frac{i}{2q_z k}
      \left(\begin{array}{ccc}
            0 & \pm q_z & -q_y \\
-    -\pm q_z &       0 &  q_x \\
+     \mp q_z &       0 &  q_x \\
          q_y &    -q_x &    0
      \end{array}\right).
 \end{align*}
@@ -403,9 +434,9 @@ vector $\vbEps$ are given by
 \\
  \left\{\begin{array}{c}r \\ t\end{array}\right\}
 &= ik\subt{L} Z_0 Z\subt{L} 
-         \vbEps^\dagger \vb{\wt G}^+(k\subt{L}, \vb k\subt{B})
+         \vbEps^\dagger \vb{\wt G}^-(k\subt{L}, \vb k\subt{B})
          \wt{\vb K}\subt{L}(\vb k\subt{B})
-        +ik\subt{L} \vbEps^\dagger \vb{\wt C}^+(k\subt{L}, \vb k\subt{B})
+        +ik\subt{L} \vbEps^\dagger \vb{\wt C}^-(k\subt{L}, \vb k\subt{B})
          \wt{\vb N}(\vb k\subt{B})
 \end{align}
 %====================================================================%
@@ -490,7 +521,7 @@ where
 
 %====================================================================%
 Comparing this to (\ref{trDef}c), we see that the quantity in
-curly braces is to be identified as $t E_0 \vbEps_0\sups{trans},$
+curly braces is to be identified as $t E_0 \vbEps_0\supt{T},$
 and thus we can extract the transmission coefficient $t$ in the form
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{tExpression}
@@ -499,10 +530,10 @@ and thus we can extract the transmission coefficient $t$ in the form
  =-\frac{k_0^\prime}{2 \mc V k_z^\prime E_0}
    \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
    \underbrace{
-        \left[ Z_0 Z^\prime 
-               (\vbEps_0\sups{trans})^\dagger \cdot 
+        \left[ Z_0 Z\subt{T} 
+               (\vbEps_0\supt{T})^\dagger \cdot 
                \vb{\wt G}(\vb k) \cdot \vb K(\vb x^\prime)
-               +(\vbEps_0\sups{trans})^\dagger \cdot 
+               +(\vbEps_0\supt{T})^\dagger \cdot 
                \vb{\wt C}(\vb k)\cdot \vb N(\vb x^\prime) 
         \right] \, d\vb x^\prime
 }
@@ -517,7 +548,7 @@ In this case we have
 %====================================================================%
 \begin{align}
 &\hspace{-0.05in}
- (\vbEps_0\sups{trans})^\dagger \cdot
+ (\vbEps_0\supt{T})^\dagger \cdot
  \vb{\wt G}(\vb k) \cdot \vb K(\vb x^\prime)
 \nn
 &=
@@ -554,7 +585,7 @@ Similarly,
 %====================================================================%
 \begin{align}
 &\hspace{-0.05in}
- (\vbEps_0\sups{trans})^\dagger \cdot
+ (\vbEps_0\supt{T})^\dagger \cdot
  \vb{\wt C}(\vb k) \cdot \vb N(\vb x^\prime)
 \nn
 &=
@@ -588,19 +619,19 @@ surface currents with the field polarization vectors:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \numeq{EGKAndECN}
 {
-(\vbEps_0\sups{trans})^\dagger
+(\vbEps_0\supt{T})^\dagger
     \cdot
     \vb{\wt G}(\vb k)
     \cdot
     \vb K(\vb x^\prime)
-   = \vbEps_0\sups{trans} \cdot \vb K, 
+   = \vbEps_0\supt{T} \cdot \vb K, 
    \qquad
-   (\vbEps_0\sups{trans})^\dagger
+   (\vbEps_0\supt{T})^\dagger
     \cdot
     \vb{\wt C}(\vb k)
     \cdot
     \vb N(\vb x^\prime)
-   = \overline{\vbEps_0}\sups{trans} \cdot \vb N
+   = \overline{\vbEps_0}\supt{T} \cdot \vb N
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -611,11 +642,11 @@ Putting it all together,
  t
 &=-\frac{k_0^\prime}{2\mc V k_z^\prime E_0}
    \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z^\prime z^\prime)}
-        \Big[ Z_0 Z^\prime \vbEps_0\sups{trans} \cdot \vb K(\vb x^\prime)
-                +\overline{\vbEps}_0\sups{trans} \cdot \vb N(\vb x^\prime)
+        \Big[ Z_0 Z\subt{T} \vbEps_0\supt{T} \cdot \vb K(\vb x^\prime)
+                +\overline{\vbEps}_0\supt{T} \cdot \vb N(\vb x^\prime)
         \Big] \, d\vb x^\prime
 \\
-&=-\frac{Z_0 Z^\prime}{2E_0 \cos \theta^\prime}
+&=-\frac{Z_0 Z\subt{T}}{2E_0 \cos \theta^\prime}
    \cdot \frac{1}{\mc V}
    \int_U \Big(  \vb E^{\text{\scriptsize{ref}}*}\cdot \vb K
                 +\vb H^{\text{\scriptsize{ref}}*}\cdot \vb N
@@ -645,10 +676,10 @@ appropriately.
  t\supt{TM}
 &=-\frac{k_0^\prime}{2 \mc V k_z^\prime}
    \int_U e^{-i(\vb k \cdot \vbrho^\prime + k_z z^\prime)}
-        \left[ Z_0 Z^\prime 
-               (\vbEps_0\sups{trans})^\dagger \cdot 
+        \left[ Z_0 Z\subt{T} 
+               (\vbEps_0\supt{T})^\dagger \cdot 
                \vb{\wt G}(\vb k) \cdot \vb K(\vb x^\prime)
-               +(\vbEps_0\sups{trans})^\dagger \cdot 
+               +(\vbEps_0\supt{T})^\dagger \cdot 
                \vb{\wt C}(\vb k)\cdot \vb N(\vb x^\prime) 
         \right] \, d\vb x^\prime
 \end{align*}
@@ -657,7 +688,7 @@ We have
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align}
 &\hspace{-0.05in}
- (\vbEps_0\sups{trans})^\dagger \cdot
+ (\vbEps_0\supt{T})^\dagger \cdot
  \vb{\wt G}(\vb k) \cdot \vb K(\vb x^\prime)
 \nn
 &=
@@ -685,7 +716,7 @@ We have
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{align}
 &\hspace{-0.05in}
- (\vbEps_0\sups{trans})^\dagger \cdot
+ (\vbEps_0\supt{T})^\dagger \cdot
  \vb{\wt C}(\vb k) \cdot \vb N(\vb x^\prime)
 \nn
 &=
@@ -717,7 +748,7 @@ $$ \vb K(\vb x)=\sum k_\alpha \vb b_\alpha(\vb x), \qquad
    \vb N(\vb x)=-Z_0 \sum n_\alpha \vb b_\alpha(\vb x)
 $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-$$ t=-\frac{Z_0 Z^\prime}{2E_0 \cos \theta^\prime \mc V}
+$$ t=-\frac{Z_0 Z\subt{T}}{2E_0 \cos \theta^\prime \mc V}
       \sum_\alpha 
         \bigg( k_\alpha \INP{\vb E\sups{ref}}{\vb b_\alpha}
              -Z_0 n_\alpha \INP{\vb H\sups{ref}}{\vb b_\alpha}

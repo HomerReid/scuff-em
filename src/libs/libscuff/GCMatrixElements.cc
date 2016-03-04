@@ -197,35 +197,27 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
      /***************************************************************/
      /* compute kernel factors for each region **********************/
      /***************************************************************/
-     cdouble G0, dG[3], dGDS[3], PsiS, ddGBuffer[9], *ddG=(NeedSpatialDerivatives ? ddGBuffer : 0);
+     cdouble G0, dG[3], ddGBuffer[9], *ddG=(NeedSpatialDerivatives ? ddGBuffer : 0);
      cdouble k  = kVector[nr];
      cdouble ik = II*k, ikr=ik*r, k2=k*k, k3=k2*k;
    
      if (GBA[nr])
-      { 
-        G0=GetGBar(R, GBA[nr], dG, ddG);
-        memset(dGDS,0,3*sizeof(cdouble));
-      }
+      G0=GetGBar(R, GBA[nr], dG, ddG);
      else 
       { 
         cdouble Psi;
         if (r==0.0)
          { G0   = DeSingularize ? 0.0 : ik/(4.0*M_PI);
            Psi  = DeSingularize ? 0.0 : -II*k3/(12.0*M_PI);
-           PsiS = 0.0;
          }
         else
          { G0 = DeSingularize ? ExpRel(ikr,4) : exp(ikr);
            G0 /= (4.0*M_PI*r);
            Psi = G0*(ikr-1.0)/r2;
-           PsiS = DeSingularize ? 0.0 : -1.0/(4.0*M_PI*r*r*r);
          };
         dG[0]   = R[0]*Psi;
         dG[1]   = R[1]*Psi;
         dG[2]   = R[2]*Psi;
-        dGDS[0] = R[0]*(Psi-PsiS);
-        dGDS[1] = R[1]*(Psi-PsiS);
-        dGDS[2] = R[2]*(Psi-PsiS);
 
         if (ddG)
          { 
@@ -279,9 +271,9 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
      /*- \partial_i G,C ---------------------------------------------*/
      if (NeedForce)
       { 
-        zIntegral[nzi++] += Weight*(PEFIE1*dG[0] - PEFIE2*(dGDS[0] + RPA[0]*PsiS));
-        zIntegral[nzi++] += Weight*(PEFIE1*dG[1] - PEFIE2*(dGDS[1] + RPA[1]*PsiS));
-        zIntegral[nzi++] += Weight*(PEFIE1*dG[2] - PEFIE2*(dGDS[2] + RPA[2]*PsiS));
+        zIntegral[nzi++] += Weight*PEFIE*dG[0];
+        zIntegral[nzi++] += Weight*PEFIE*dG[1];
+        zIntegral[nzi++] += Weight*PEFIE*dG[2];
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[0*3+0] + bxb[1]*ddG[0*3 + 1] + bxb[2]*ddG[0*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[1*3+0] + bxb[1]*ddG[1*3 + 1] + bxb[2]*ddG[1*3+2]);
         zIntegral[nzi++] += Weight*(bxb[0]*ddG[2*3+0] + bxb[1]*ddG[2*3 + 1] + bxb[2]*ddG[2*3+2]);
@@ -626,8 +618,7 @@ void GetGCMatrixElements(RWGGeometry *G, GetGCMEArgStruct *Args,
   /***************************************************************/
   double FIBBIs[NUMFIBBIS];
   if (DeSingularize)
-   ComputeFIBBIData(Sa, nea, Sb, neb, FIBBIs);
-   //GetFIBBIData(/*Args->FIBBICache*/0, Sa, nea, Sb, neb, FIBBIs);
+   GetFIBBIData(Args->FIBBICache, Sa, nea, Sb, neb, FIBBIs);
 
   /***************************************************************/
   /***************************************************************/

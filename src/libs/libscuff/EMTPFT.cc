@@ -238,12 +238,15 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
      )
    ErrExit("invalid PFTMatrix in GetEMTPFT");
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-{
-      GetGCMEArgStruct MyArgs, *Args=&MyArgs;
-      InitGetGCMEArgs(Args);
-}
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  static int init=0;
+  if (init==0)
+   { init=1;
+     GetGCMEArgStruct MyArgs;
+     InitGetGCMEArgs(&MyArgs);
+   };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -269,12 +272,13 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
   /*- multithreaded loop over all basis functions on all surfaces-*/
   /*--------------------------------------------------------------*/
   int TotalEdges = G->TotalEdges;
+  bool UseSymmetry=false;
 #ifdef USE_OPENMP
   Log("EMT OpenMP multithreading (%i threads)",NT);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NT)
 #endif
   for(int neaTot=0; neaTot<TotalEdges; neaTot++)
-   for(int nebTot=neaTot; nebTot<TotalEdges; nebTot++)
+   for(int nebTot=(UseSymmetry ? neaTot : 0); nebTot<TotalEdges; nebTot++)
     { 
       if (nebTot==neaTot) LogPercent(neaTot, TotalEdges, 10);
 
@@ -354,26 +358,31 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
       int OffsetA = nt*NSNQ + nsa*NQ;
       int OffsetB = nt*NSNQ + nsb*NQ;
 
-       if (neaTot==nebTot)
-        DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
-       else if (nsa==nsb) // nebTot > neaTot but both on same surface
-        { 
-          DeltaPFT[ OffsetA + PFT_PSCAT ] += 2.0*abSign*dPFT[PFT_PSCAT];
-          for(int Mu=0; Mu<6; Mu++)
-           DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
-            += 2.0*abSign*dPFT[PFT_XFORCE + Mu];
-        }
-       else // nebTot > neaTot and on different objects
-        { 
+      if (!UseSymmetry)
+       VecPlusEquals(DeltaPFT + OffsetA, abSign, dPFT, NUMPFT);
+      else
+       { 
+         if (neaTot==nebTot)
           DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
-          DeltaPFT[ OffsetB + PFT_PSCAT ] += baSign*dPFT[PFT_PSCAT];
-          for(int Mu=0; Mu<6; Mu++)
-           { DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
-              += abSign*dPFT[PFT_XFORCE + Mu];
-             DeltaPFT[ OffsetB + PFT_XFORCE + Mu ] 
-              += baSign*dPFT[PFT_XFORCE + Mu];
-           };
-        };
+         else if (nsa==nsb) // nebTot > neaTot but both on same surface
+          { 
+            DeltaPFT[ OffsetA + PFT_PSCAT ] += 2.0*abSign*dPFT[PFT_PSCAT];
+            for(int Mu=0; Mu<6; Mu++)
+             DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
+              += 2.0*abSign*dPFT[PFT_XFORCE + Mu];
+          }
+         else // nebTot > neaTot and on different objects
+          { 
+            DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
+            DeltaPFT[ OffsetB + PFT_PSCAT ] += baSign*dPFT[PFT_PSCAT];
+            for(int Mu=0; Mu<6; Mu++)
+             { DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
+                += abSign*dPFT[PFT_XFORCE + Mu];
+               DeltaPFT[ OffsetB + PFT_XFORCE + Mu ] 
+                += baSign*dPFT[PFT_XFORCE + Mu];
+             };
+          };
+       };
  
     }; // end of multithreaded loop
   
