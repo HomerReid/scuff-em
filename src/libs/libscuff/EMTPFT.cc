@@ -272,12 +272,13 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
   /*- multithreaded loop over all basis functions on all surfaces-*/
   /*--------------------------------------------------------------*/
   int TotalEdges = G->TotalEdges;
+  bool UseSymmetry=false;
 #ifdef USE_OPENMP
   Log("EMT OpenMP multithreading (%i threads)",NT);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NT)
 #endif
   for(int neaTot=0; neaTot<TotalEdges; neaTot++)
-   for(int nebTot=neaTot; nebTot<TotalEdges; nebTot++)
+   for(int nebTot=(UseSymmetry ? neaTot : 0); nebTot<TotalEdges; nebTot++)
     { 
       if (nebTot==neaTot) LogPercent(neaTot, TotalEdges, 10);
 
@@ -305,6 +306,8 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
        };
       if ( RegionIndex==-1 || (abSign==0.0 && baSign==0.0) )
        continue;
+      if (!UseSymmetry)
+       baSign=0.0;
 
       cdouble EpsR, MuR;
       G->RegionMPs[RegionIndex]->GetEpsMu(Omega, &EpsR, &MuR);

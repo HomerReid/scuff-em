@@ -67,17 +67,7 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /*--------------------------------------------------------------*/
   Log("Evaluating fields at points in file %s...",EPFileName);
 
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-  Tic();
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   HMatrix *SFMatrix = G->GetFields( 0, KN, Omega, kBloch, XMatrix); // scattered
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-   double Elapsed=Toc();
-   Log(" GetFields time: %e s\n",Elapsed);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
   HMatrix *IFMatrix = G->GetFields(IF,  0, Omega, kBloch, XMatrix); // incident
 
   /*--------------------------------------------------------------*/
