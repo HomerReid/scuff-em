@@ -306,8 +306,6 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
        };
       if ( RegionIndex==-1 || (abSign==0.0 && baSign==0.0) )
        continue;
-      if (!UseSymmetry)
-       baSign=0.0;
 
       cdouble EpsR, MuR;
       G->RegionMPs[RegionIndex]->GetEpsMu(Omega, &EpsR, &MuR);
@@ -360,26 +358,31 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
       int OffsetA = nt*NSNQ + nsa*NQ;
       int OffsetB = nt*NSNQ + nsb*NQ;
 
-       if (neaTot==nebTot)
-        DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
-       else if (nsa==nsb) // nebTot > neaTot but both on same surface
-        { 
-          DeltaPFT[ OffsetA + PFT_PSCAT ] += 2.0*abSign*dPFT[PFT_PSCAT];
-          for(int Mu=0; Mu<6; Mu++)
-           DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
-            += 2.0*abSign*dPFT[PFT_XFORCE + Mu];
-        }
-       else // nebTot > neaTot and on different objects
-        { 
+      if (!UseSymmetry)
+       VecPlusEquals(DeltaPFT + OffsetA, abSign, dPFT, NUMPFT);
+      else
+       { 
+         if (neaTot==nebTot)
           DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
-          DeltaPFT[ OffsetB + PFT_PSCAT ] += baSign*dPFT[PFT_PSCAT];
-          for(int Mu=0; Mu<6; Mu++)
-           { DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
-              += abSign*dPFT[PFT_XFORCE + Mu];
-             DeltaPFT[ OffsetB + PFT_XFORCE + Mu ] 
-              += baSign*dPFT[PFT_XFORCE + Mu];
-           };
-        };
+         else if (nsa==nsb) // nebTot > neaTot but both on same surface
+          { 
+            DeltaPFT[ OffsetA + PFT_PSCAT ] += 2.0*abSign*dPFT[PFT_PSCAT];
+            for(int Mu=0; Mu<6; Mu++)
+             DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
+              += 2.0*abSign*dPFT[PFT_XFORCE + Mu];
+          }
+         else // nebTot > neaTot and on different objects
+          { 
+            DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
+            DeltaPFT[ OffsetB + PFT_PSCAT ] += baSign*dPFT[PFT_PSCAT];
+            for(int Mu=0; Mu<6; Mu++)
+             { DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
+                += abSign*dPFT[PFT_XFORCE + Mu];
+               DeltaPFT[ OffsetB + PFT_XFORCE + Mu ] 
+                += baSign*dPFT[PFT_XFORCE + Mu];
+             };
+          };
+       };
  
     }; // end of multithreaded loop
   
