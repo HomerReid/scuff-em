@@ -383,7 +383,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IFList, HVector *KN,
    for(int nx=0; nx<NX; nx++)
     { 
       double X[3];
-      XMatrix->GetEntriesD(nx,":",X);
+      XMatrix->GetEntriesD(nx,"0:2",X);
       int RegionIndex = GetRegionIndex(X);
       if (RegionIndex==-1) continue; // inside a closed PEC surface
 
