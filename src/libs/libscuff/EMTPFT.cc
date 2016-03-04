@@ -272,7 +272,13 @@ HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
   /*- multithreaded loop over all basis functions on all surfaces-*/
   /*--------------------------------------------------------------*/
   int TotalEdges = G->TotalEdges;
-  bool UseSymmetry=false;
+  bool UseSymmetry=true;
+  char *s=getenv("SCUFF_EMTPFT_SYMMETRY");
+  if (s && s[0]=='0')
+   { UseSymmetry=false;
+     Log("Not using symmetry in EMTPFT calculation.");
+   };
+    
 #ifdef USE_OPENMP
   Log("EMT OpenMP multithreading (%i threads)",NT);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NT)
