@@ -103,7 +103,8 @@
 * [<span class="SC">libscuff</span> Implementation and Technical Details](tex/lsInnards.pdf) - a technical memo describing many details of the core library implementation
 * [Computation of power, force, and torque in <span class="SC">scuff-em</span>](tex/PFT.pdf) - a technical memo describing methods for computing power, force and torque, with applications to both classical scattering and non-equilibrium fluctuational electrodynamics
 * [Computation of fields near panels in <span class="SC">scuff-em</span>](tex/NearFields.pdf) - a technical memo describing the computation of fields near triangular panels in discretized surface meshes
-* [Computation of Green's Functions and LDOS in <span class="SC">scuff-em</span>](tex/scuff-ldos.pdf) - a technical memo describing the implementation of the [<span class="SC">scuff-ldos</span>](applications/scuff-ldos) code for computing dyadic Green's functions and local photonic densities of states 
+* [Computation of Green's Functions and LDOS in <span class="SC">scuff-em</span>](tex/scuff-ldos.pdf) - a technical memo describing the implementation of the [<span class="SC">scuff-ldos</span>](applications/scuff-ldos) code for computing dyadic Green's functions and local photonic densities of states
+* [Computation of reflection and transmission coefficients in <span class="SC">scuff-em</span>](tex/scuff-transmission.pdf) - a technical memo describing the implementation of the [<span class="SC">scuff-transmission</span>](applications/scuff-transmission) code for computing plane-wave transmission and reflection coefficients
 
 [scuffEMLogo]:        img/scuffEMLogo.png
 [GeneralReference]:   applications/GeneralReference.md
