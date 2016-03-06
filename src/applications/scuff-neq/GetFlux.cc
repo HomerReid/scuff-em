@@ -34,15 +34,6 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-namespace scuff {
-HMatrix *GetEMTPFT(RWGGeometry *G, cdouble Omega, IncField *IF,
-                   HVector *KNVector, HMatrix *DRMatrix,
-                   HMatrix *PFTMatrix, bool Interior);
-                }
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
 void ProcessDRMatrix(SNEQData *SNEQD,
                         cdouble Omega,
                         int SourceSurface)
@@ -255,8 +246,6 @@ TSelfToSymG(SNEQD->TInt[SourceSurface], SymGs);
 void GetSIFlux(SNEQData *SNEQD, int SourceSurface, cdouble Omega,
                int PFTMethod, HMatrix *PFTMatrix)
 {
-  PFTMatrix->Zero();
-
   RWGGeometry *G      = SNEQD->G;
   int NumSurfaces     = G->NumSurfaces;
   HMatrix *DRMatrix   = SNEQD->DRMatrix;
@@ -282,32 +271,30 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*- do the PFT calculation           ---------------------------*/
   /*--------------------------------------------------------------*/
-  if (PFTMethod==SCUFF_PFT_EMT_INTERIOR)
-   GetEMTPFT(G, Omega, 0, 0, DRMatrix, PFTMatrix, true);
-  else if (PFTMethod==SCUFF_PFT_EMT_EXTERIOR)
-   GetEMTPFT(G, Omega, 0, 0, DRMatrix, PFTMatrix, false);
+  if (PFTMethod==SCUFF_PFT_EMT)
+   { 
+     G->GetPFTMatrix(0, Omega, PFTOpts, PFTMatrix);
+   }
   else
-   for(int DestSurface=0; DestSurface<NumSurfaces; DestSurface++)
-    {
-      if ( (SourceSurface==DestSurface) && OmitSelfTerms )
-       continue;
+   {
+     for(int DestSurface=0; DestSurface<NumSurfaces; DestSurface++)
+      {
+        if ( (SourceSurface==DestSurface) && OmitSelfTerms )
+         continue;
 
-      if(SNEQD->PlotFlux)
-       snprintf(FFNBuffer,200,"%s.%sTo%s.PFTFlux.pp",
-                               GetFileBase(G->GeoFileName),
-                               G->Surfaces[SourceSurface]->Label,
-                               G->Surfaces[DestSurface]->Label);
+        if(SNEQD->PlotFlux)
+         snprintf(FFNBuffer,200,"%s.%sTo%s.PFTFlux.pp",
+                                 GetFileBase(G->GeoFileName),
+                                 G->Surfaces[SourceSurface]->Label,
+                                 G->Surfaces[DestSurface]->Label);
 
-      if (PFTMethod==SCUFF_PFT_EP)
-       { PFTOpts->TInterior = SNEQD->TInt[DestSurface];
-         PFTOpts->TExterior = SNEQD->TExt[DestSurface];
-         PFTOpts->EPFTOrder = 0;
-       };
- 
-      double Flux[NUMPFT];
-      G->GetPFT(DestSurface, 0, Omega, Flux, PFTOpts);
-      PFTMatrix->SetEntriesD(DestSurface, ":", Flux);
-    };
+        double Flux[NUMPFT];
+        PFTOpts->TInterior=SNEQD->TInt[DestSurface];
+        PFTOpts->TExterior=SNEQD->TExt[DestSurface];
+        G->GetPFT(DestSurface, 0, Omega, Flux, PFTOpts);
+        PFTMatrix->SetEntriesD(DestSurface, ":", Flux);
+      };
+   };
 
   PFTMatrix->Scale(-4.0); // where does this factor come from?
 

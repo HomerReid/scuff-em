@@ -522,6 +522,7 @@ void dGSabIntegrand(double xA[3], double bA[3], double DivbA,
                     double xB[3], double bB[3], double DivbB,
                     void *UserData, double Weight, double *Integral)
 {
+  (void )bB; // unused
   GetGCMEData *Data = (GetGCMEData *)UserData;
 
   double R[3];

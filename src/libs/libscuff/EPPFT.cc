@@ -304,7 +304,7 @@ void GetEPFT(RWGGeometry *G, int DestSurface, cdouble Omega,
 /* Get the absorbed and scattered/radiated power for           */
 /* DestSurface using the equivalence-principle method.         */
 /*                                                             */
-/* Either KNVector *or* DRMatrix should be non-null.        */
+/* Either KNVector *or* DRMatrix should be non-null.           */
 /*                                                             */
 /* If TInterior and TExterior are non-null, they should be the */
 /* interior and exterior contributions to the BEM matrix block */

@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
       cdouble Omega = OmegaVector->GetEntry(nOmega);
-      double Theta = ThetaVector->GetEntryD(nTheta);
+      Theta = ThetaVector->GetEntryD(nTheta);
       double SinTheta=sin(Theta);
       double CosTheta=cos(Theta);
       Log("Solving the scattering problem at (Omega,Theta)=(%g,%g)",real(Omega),Theta*RAD2DEG);

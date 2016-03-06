@@ -59,15 +59,11 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
                     bool FarField, char *PlotFileName,
                     GTransformation *GT1, GTransformation *GT2);
 
-// absorbed and scattered/radiated power by equivalence-principle method
-void GetEPP(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
-            HVector *KNVector, HMatrix *DRMatrix, double Power[2],
-            double **ByEdge=0, HMatrix *TInterior=0, HMatrix *TExterior=0);
-
-// force/torque by equivalence-principle method
-void GetEPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
-             HVector *KNVector, IncField *IF, double FT[6],
-             double **ByEdge=0, int Order=1, double Delta=1.0e-5);
+// PFT by energy/momentum transfer method
+HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
+                         HVector *KNVector, HMatrix *DRMatrix,
+                         HMatrix *PFTMatrix, bool Interior,
+                         int Method);
 
 /***************************************************************/
 /***************************************************************/
@@ -128,7 +124,8 @@ void GetKNBilinears(RWGGeometry *G, int neA, int neB,
 /* Get the power, force, and torque on surface #SurfaceIndex.  */
 /***************************************************************/
 void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
-                         cdouble Omega, double PFT[NUMPFT], PFTOptions *Options)
+                         cdouble Omega, double PFT[NUMPFT],
+                         PFTOptions *Options)
 {
   /***************************************************************/
   /***************************************************************/
@@ -142,6 +139,7 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
   char *FluxFileName = Options->FluxFileName;
   RWGSurface *S      = Surfaces[SurfaceIndex];
   IncField *IF       = Options->IF;
+  HMatrix *DRMatrix  = Options->DRMatrix;
 
   /***************************************************************/
   /* allocate arrays for the edge-by-edge contributions if the   */
@@ -155,31 +153,25 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
      ByEdge[0]=(double *)mallocEC(NUMPFT*NE*sizeof(double));
      for(int nq=1; nq<NUMPFT; nq++)
       ByEdge[nq] = ByEdge[nq-1] + NE;
-   }
+   };
 
   /***************************************************************/
   /* hand off to the individual PFT algorithms to do the         */
   /* computation                                                 */
   /***************************************************************/
-  if (     PFTMethod==SCUFF_PFT_OVERLAP
-        || PFTMethod==SCUFF_PFT_EPOVERLAP
-     )
+  if ( PFTMethod==SCUFF_PFT_OVERLAP )
    { 
-     HVector *RHSVector   = Options->RHSVector;
-     HMatrix *DRMatrix = Options->DRMatrix;
+     HVector *RHSVector = Options->RHSVector;
      GetOPFT(this, SurfaceIndex, Omega, KN,
              RHSVector, DRMatrix, PFT, ByEdge);
    }
-  else if (     PFTMethod==SCUFF_PFT_DSI
-             || PFTMethod==SCUFF_PFT_EPDSI
-          )
+  else if ( PFTMethod==SCUFF_PFT_DSI )
    { 
      char *DSIMesh        = Options->DSIMesh;
      double DSIRadius     = Options->DSIRadius;
      int DSIPoints        = Options->DSIPoints;
      bool DSIFarField     = Options->DSIFarField;
      double *kBloch       = Options->kBloch;
-     HMatrix *DRMatrix = Options->DRMatrix;
      bool *NeedQuantity   = Options->NeedQuantity;
      GTransformation *GT1 = S->OTGT;
      GTransformation *GT2 = S->GT;
@@ -194,36 +186,14 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
                      DSIMesh, DSIRadius, DSIPoints,
                      DSIFarField, FluxFileName, GT1, GT2);
    }
-  else if (PFTMethod==SCUFF_PFT_EP)
+  else if (PFTMethod==SCUFF_PFT_EMT)
    { 
-     // EP force, torque
-     int Order=Options->EPFTOrder;
-     double Delta=Options->EPFTDelta;
-     double *FT=PFT+2;
-     if (Order==0)
-      memset(FT,0,(NUMPFT-2)*sizeof(double));
-     else
-      GetEPFT(this, SurfaceIndex, Omega, KN, IF, FT, ByEdge, Order, Delta);
-   };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if ( PFTMethod==SCUFF_PFT_EP             ||
-       PFTMethod==SCUFF_PFT_EPOVERLAP      ||
-       PFTMethod==SCUFF_PFT_EPDSI
-     )
-   {
-     double Power[2];
-     HMatrix *TInterior =  Options->TInterior;
-     HMatrix *TExterior =  Options->TExterior;
-     HMatrix *DRMatrix = Options->DRMatrix;
-     GetEPP(this, SurfaceIndex, Omega, KN, DRMatrix, Power,
-            ByEdge, TInterior, TExterior);
-
-     // replace absorbed and scattered power with EP calculations
-     PFT[0] = Power[0];
-     PFT[1] = Power[1];
+     bool Interior      = Options->Interior;
+     int  Method        = Options->EMTPFTMethod;  
+     HMatrix *PFTMatrix 
+      = GetEMTPFTMatrix(this, Omega, IF, KN, DRMatrix, 0, Interior, Method);
+     PFTMatrix->GetEntriesD(SurfaceIndex, ":", PFT);
+     delete PFTMatrix;
    };
 
 
@@ -246,6 +216,57 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
 
    };
  
+}
+
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+HMatrix *RWGGeometry::GetPFTMatrix(HVector *KN, cdouble Omega,
+                                   PFTOptions *Options, 
+                                   HMatrix *PFTMatrix)
+{
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  PFTOptions DefaultOptions;
+  if (Options==0)
+   { Options=&DefaultOptions;
+     InitPFTOptions(Options);
+   };
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (    PFTMatrix
+       && ( PFTMatrix->NR != NumSurfaces || PFTMatrix->NC != NUMPFT)
+     ) 
+   { Warn("wrong-size PFTMatrix in GetPFTMatrix (reallocating...)");
+     delete PFTMatrix;
+     PFTMatrix=0;
+   };
+  if (PFTMatrix==0)
+   PFTMatrix=new HMatrix(NumSurfaces, NUMPFT);
+  
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (Options->PFTMethod==SCUFF_PFT_EMT)
+   { 
+     GetEMTPFTMatrix(this, Omega, Options->IF, KN, Options->DRMatrix,
+                     PFTMatrix, Options->Interior, Options->PFTMethod);
+   }
+  else
+   { 
+     for(int ns=0; ns<NumSurfaces; ns++)
+      { double PFT[NUMPFT];
+        GetPFT(ns, KN, Omega, PFT, Options);
+        PFTMatrix->SetEntriesD(ns,":",PFT);
+      };
+   };
+
+  return PFTMatrix;
+
 }
 
 /***************************************************************/
@@ -276,13 +297,10 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
   for(int nq=0; nq<NUMPFT; nq++) 
    Options->NeedQuantity[nq]=true;
  
-  // options affecting EP power computation
-  Options->TInterior=0;
-  Options->TExterior=0;
-
-  // options affecting EP force / torque computation
-  Options->EPFTOrder=1;
-  Options->EPFTDelta=1.0e-5;
+  // options affecting EMTPFT power computation
+  Options->Interior=false;
+  Options->EMTPFTMethod=SCUFF_EMTPFT_EHDERIVATIVES;
+  Options->TInterior=Options->TExterior=0;
 
   Options->GetRegionPFTs=false;
 
