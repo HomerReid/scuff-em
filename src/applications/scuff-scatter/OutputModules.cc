@@ -439,27 +439,29 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
          Options->Interior=Interior;
          Options->EMTPFTMethod=Method;
          G->GetPFTMatrix(KN, Omega, Options, ScatteredPFT[Method]);
+
+         char FileName[100];
+         sprintf(FileName,"%s.%cEMTPFT.Method%i",FileBase,IEString[0],Method);
+         FILE *f=fopen(FileName,"r");
+         bool WritePreamble = (f==0);
+         if (f) fclose(f);
+         f=fopen(FileName,"a");
+         if (WritePreamble) WritePFTFilePreamble(f);
+         for(int ns=0; ns<NS; ns++)
+          { 
+            fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
+            for(int nq=0; nq<NUMPFT; nq++)
+             fprintf(f,"%e ",ExtinctionPFT->GetEntryD(ns,nq));
+            for(int nq=0; nq<NUMPFT; nq++)
+             fprintf(f,"%e ",ScatteredPFT[Method]->GetEntryD(ns,nq));
+            fprintf(f,"\n");
+          };
+         fclose(f);
        };
 
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
-      FILE *f=vfopen("%s.%cEMTPFT","r",FileBase,IEString[0]);
-      bool WritePreamble = (f==0);
-      if (f) fclose(f);
-      f=vfopen("%s.%cEMTPFT","a",FileBase,IEString[0]);
-      if (WritePreamble) WritePFTFilePreamble(f);
-      for(int ns=0; ns<NS; ns++)
-       { fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
-         for(int nq=0; nq<NUMPFT; nq++)
-          fprintf(f,"%e ",ExtinctionPFT->GetEntryD(ns,nq));
-         for(int nm=0; nm<SCUFF_EMTPFT_NUMMETHODS; nm++)
-          for(int nq=0; nq<NUMPFT; nq++)
-           fprintf(f,"%e ",ScatteredPFT[nm]->GetEntryD(ns,nq));
-         fprintf(f,"\n");
-       };
-      fclose(f);
-
    }; // for(int Interior=0; Interior<2; Interior++)
 
   delete ExtinctionPFT;
