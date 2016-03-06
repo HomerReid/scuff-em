@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Energy/momentum-transfer PFT (MTPFT)}
+\section{Energy/momentum-transfer PFT (EMTPFT), version 1}
 
 In the EMTPFT approach, we compute the power, force and torque
 on a body $\mc B$ by considering the transfer of energy and
@@ -48,22 +48,179 @@ In what follows it will be convenient to express equations
 %====================================================================%
 \numeq{EMTPFTShorthand}
 {
- Q=\frac{1}{2}\int_{\partial \mc B}\bmc C^* \bmc Q \bmc F \, dA
+ Q=\frac{1}{2}\int_{\partial \mc B}\bmc C^* \circledast \bmc F \, dA
 }
 %====================================================================%
 where $Q=\{P\sups{abs}, F_i, \mc T_i\}$ and
-he operator $\bmc Q$ correspondingly operates on $\bmc F$ as
+the operator $\circledast$ correspondingly operates on $\bmc F$ as
 in equations (\ref{EMTPFT}a,b,c).
 
 Equations (\ref{EMTPFT}) involve the total fields at the
 body surface. Because SIE formulations allow surface fields
 to be computed in either of two distinct ways---namely, as the
 limiting values of the bulk fields as one approaches the
-surface from the exterior or the interior of the body---the
-EMTPFT strategy in fact bifurcates into two strategies, which we 
-discuss separately below.
+surface from the exterior or the interior of the body---the EMTPFT
+may actually be computed in two difference ways:
+%====================================================================%
+\begin{subequations}
+\begin{align}
+ Q &=   \int \bmc C^* \circledast \bmc F\sups{inc,ext} d\vb x
+      + \iint \bmc C^* \circledast \bmc G\sups{ext} \bmc C\,d\vb x \,d\vb x^\prime
+\\
+   &=   \int \bmc C^* \circledast \bmc F\sups{inc,int} d\vb x
+      - \iint \bmc C^* \circledast \bmc G\sups{int} \bmc C\,d\vb x \,d\vb x^\prime
+\end{align}
+\label{EMTPFTChoice}
+\end{subequations}
+%====================================================================%
+Here $\bmc F\sups{inc,ext}$ and $\bmc F\sups{inc,int}$ are
+the contributions of incident-field sources lying external and internal
+to the body and $\bmc G\sups{ext,int}$ are the Green's functions
+for the exterior and interior media.
+In both cases of (\ref{EMTPFTChoice}) I refer to the two
+terms as the ``extinction'' and minus the ``scattered''
+PFT:
+%====================================================================%
+\begin{align*}
+ Q&=Q\sups{ext} - Q\sups{scat}
+\\
+ Q\sups{ext}
+&=\int \bmc C^* \circledast \bmc F\sups{inc} \, d\vb x
+\\
+ Q\sups{scat}
+&=\mp \iint \bmc C^* \circledast \bmc G \bmc C\,d\vb x \, d\vb x^\prime
+\end{align*}
+%====================================================================%
+For the typical case of a body irradiated by external sources,
+there is no extinction contribution to the interior EMTPFT, and 
+thus in this case the ``scattered'' PFT is actually the full PFT.
 
-\subsection{Exterior EMTPFT}
+\subsection{Extinction EMTPFT}
+
+The contributions of the incident fields to the EMTPFT are
+%====================================================================%
+$$ Q\sups{ext}=
+   \frac{1}{2}\sum_{\alpha} c_\alpha
+   \int_{\sup \bmc B_\alpha} \bmc B_\alpha \circledast \bmc F\sups{inc} \, dA
+$$
+%====================================================================%
+The integrals here are non-singular two-dimensional integrals over
+the basis-function supports, with the integrand involving values 
+and derivatives of the incident fields. These are evaluated 
+in {\sc scuff-em} by simple low-order numerical cubature.
+
+\subsection{Scattered EMTPFT}
+
+The scattered fields at a point $\vb x_a$ are
+%====================================================================%
+\begin{align*}
+ \vb E\sups{scat}(\vb x_a)
+ &=i\omega \mu \sum_b k_b \vb e_b(\vb x_a) - \sum_b n_b \vb h_b(\vb x_a)
+\\
+ \vb H\sups{scat}(\vb x_a)
+ &=\sum_b k_b \vb h_b(\vb x_a) + i\omega \epsilon \sum_b n_b \vb e_b(\vb x_a)
+\end{align*}
+where the sums are over all basis functions on all surfaces bounding
+the region containing $\vb x_a$, and where the ``reduced fields'' of
+an individual basis function are
+%====================================================================%
+\begin{align*}
+ \vb e_b(\vb x_a)
+ &= \int_{\sup \vb b_b}
+    \Big[\vb b_b \phi + \frac{1}{k^2}(\nabla \cdot \vb b_b)\vb r \psi \Big]d\vb x_b
+\\
+ \vb h_b(\vb x_a)
+ &= \int_{\sup \vb b_b}
+    \Big( \vb r \times \vb b_b \Big) \psi \, d\vb x_b
+\end{align*}
+%====================================================================%
+with 
+$$ \vb r\equiv \vb x_a-\vb x_b, \qquad
+  \phi\equiv \frac{e^{ikr}}{4\pi r}, \qquad
+  \psi\equiv \frac{e^{ikr}}{4\pi r^3}(ikr-1).
+$$
+%====================================================================%
+(Note that $\psi$ is defined such that $\nabla \phi = \vb r\psi.$)
+The scattered contribution to PFT quantities then reads
+%====================================================================%
+\begin{align*}
+Q\sups{scat}
+&= \mp 
+   \int\Big\{
+    \vb K^*(\vb x_a) \circledast \vb E\sups{scat}(\vb x_a)
+  + \vb N^*(\vb x_a) \circledast \vb H\sups{scat}(\vb x_a)
+      \Big\} \, d\vb x
+\\
+&=\sum_{ab} \Big\{ \Big[\mu k_a^* k_b + \epsilon n_a^* n_b\Big]
+                    Q\supt{KKPNN}_{ab}
+                  +\Big[k_a^* n_b - n_a^* k_b\Big]
+                    Q\supt{KNMNP}_{ab}
+            \Big\}
+\end{align*}
+with
+%====================================================================%
+$$
+Q\supt{KKPNN}_{ab} 
+ \equiv i\omega \iint \vb b_a \circledast \vb e_b \, d\vb x_a \, d\vb x_b,
+\qquad
+Q\supt{KNMNK}_{ab} 
+ \equiv -\iint \vb b_a \circledast \vb h_b \, d\vb x_a \, d\vb x_b
+$$
+%====================================================================%
+\subsection*{Power}
+%====================================================================%
+\begin{align*}
+ P\supt{KKPNN}_{ab} 
+ &= i\omega \iint \Big[ \vb b_a \cdot \vb b_b \phi
+                + \frac{(\nabla \cdot \vb b_b)}{k^2}
+                  \vb b_a \cdot \nabla\phi \Big]
+\,d\vb x_a \, d\vb x_b
+\\
+ &= i\omega 
+    \iint \underbrace{\bigg[ \vb b_a \cdot \vb b_b 
+               - \frac{(\nabla \cdot \vb b_a)(\nabla \cdot \vb b_b)}{k^2}
+                      \bigg]
+                     }_{P\supt{EFIE}} \phi
+\,d\vb x_a \, d\vb x_b
+\\
+ P\supt{KNMNK}_{ab} 
+ &=-\iint \Big[ \vb b_a \cdot (\vb r \times \vb b_b)\Big]\psi 
+                \,d\vb x_a \, d\vb x_b
+\\
+ &=+\iint \underbrace{
+          \Big[ \vb r \cdot (\vb b_a \times \vb b_b)\Big]
+                     }_{P\supt{MFIE}}\psi
+                \,d\vb x_a \, d\vb x_b
+\\
+\end{align*}
+%====================================================================%
+
+\subsection*{Force}
+
+First note 
+%====================================================================%
+\begin{align*}
+  \partial_i \vb e_b &=
+  \int \Big\{ \vb b_b r_i \psi +
+              \frac{\nabla\cdot \vb b_b}{k^2}\partial_i\Big(\vb r\psi\Big)
+       \Big\}\, d\vb x_b
+\\
+  (\partial_i \vb h_b)_j
+&=\partial_i \int \varepsilon_{jk\ell} \, r_k b_{b\ell} \, \psi \, d\vb x_b
+\\
+&=\partial_i \int \varepsilon_{jk\ell} \, r_k b_{b\ell} \, \psi \, d\vb x_b
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+ (F_i\supt{KKPNN})_{ab} 
+ &= i\omega \iint \vb b_a \cdot \partial_i \vb e_b \,d\vb x_a \, d\vb x_b
+\\
+ (F_i\supt{KNMNK})_{ab} 
+ &= -\iint \vb b_a \cdot \partial_i \vb h_b \, d\vb x_a \, d\vb x_b
+\end{align*}
+%====================================================================%
 
 In the exterior region, the total fields receive
 incident and scattered contributions,
@@ -76,27 +233,15 @@ extinction PFT and the (negative of the) scattered PFT,
 \begin{align}
  Q &= Q\sups{ext} - Q\sups{scat}
 \\
- Q\sups{ext}&=\frac{1}{2}\int_{\partial \mc B}\bmc C^* \bmc Q \bmc F\sups{inc},
+ Q\sups{ext}&=\frac{1}{2}\int_{\partial \mc B}\bmc C^* \circledast \bmc F\sups{inc},
 \\
- Q\sups{scat}&=-\frac{1}{2}\int_{\partial \mc B}\bmc C^* \bmc Q \bmc F\sups{scat}
+ Q\sups{scat}&=-\frac{1}{2}\int_{\partial \mc B}\bmc C^* \circledast \bmc F\sups{scat}
 \end{align}
 \label{ExtScat}%
 \end{subequations}
 %====================================================================%
 
 \subsubsection*{Extinction contributions to exterior EMTPFT}
-
-The discretized form of (\ref{ExtScat}b) for the extinction reads
-%====================================================================%
-$$ Q\sups{ext}=
-   \frac{1}{2}\sum_{\alpha} c_\alpha
-   \int_{\sup \bmc B_\alpha} \bmc B_\alpha \bmc Q \bmc F\sups{inc} \, dA
-$$
-%====================================================================%
-The integrals here are non-singular two-dimensional integrals over
-the basis-function supports, with the integrand involving values 
-and derivatives of the incident fields. These are evaluated 
-in {\sc scuff-em} by simple low-order numerical cubature.
 
 \subsubsection*{Scattered contributions to exterior EMTPFT}
 
@@ -229,6 +374,39 @@ equations (\ref{PFExteriorPFT1}) may be simplified to read
  &\frac{\mu_0}{2} \text{Im }{k_a^* k_b}\Big[\text{Im }
 \end{align*}
 %====================================================================%
+
+\subsection{Torque}
+
+\begin{align*}
+ \mc T_i 
+&= \frac{1}{2\omega}\text{Im }
+\int \Big\{\vb K^* \times \vb E + \vb K \cdot \partial_{\theta}\vb E
+           +\Big( \{\vb K, \vb E\} \leftrightarrow \{\vb N, \vb H\}\Big)\Big\}
+\end{align*}
+
+\begin{align*}
+\Big(\vb K^* \times \vb E + \vb K \cdot \partial_{\theta}\vb E\Big)_i 
+&=
+ \varepsilon_{ijk}\Big[ K^*_j E_k + K^*_\ell X_j \partial_k E_\ell\Big]
+\qquad \Big(\vb X \equiv \vb x_a - \vb x_0\Big)
+\end{align*}
+
+%====================================================================%
+%\begin{align*}
+% \vb E(\vb x_a)
+%&=
+% \sum_b \Big\{ i\omega \mu k_b \vb e_b(\vb x_a) - n_b \vb h_b(\vb x_a)\Big\}
+%\\
+%&=
+% \sum_b \Big\{ i\omega \mu k_b \Big[ \vb b_b \Phi
+%\end{align*}
+%====================================================================%
+
+%&
+%\sum_{ab}k^*a
+% \varepsilon_{ijk}\Big[ b_{aj}\Big(
+% + K^*_\ell X_j \partial_k E_\ell\Big]
+%\end{align*}
 
 \subsection{Interior EMTPFT}
 

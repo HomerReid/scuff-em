@@ -148,10 +148,8 @@ int main(int argc, char *argv[])
 //
   char *PFTFile=0;
   char *OPFTFile=0;
-  char *IEMTPFTFile=0;
-  char *EEMTPFTFile=0;
-  char *EPPFTFile=0;
-  int  EPFTOrder=1;
+  char *EMTPFTFile=0;
+  char *EMTPFTFileBase=0;
 //
   char *DSIPFTFile = 0;
   double DSIRadius = 10.0;
@@ -201,14 +199,9 @@ int main(int argc, char *argv[])
 /**/
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
 /**/
-     {"IEMTPFTFile",     PA_STRING,  1, 1,       (void *)&IEMTPFTFile,   0,             "name of interior EMTPFT output file"},
-     {"EEMTPFTFile",     PA_STRING,  1, 1,       (void *)&EEMTPFTFile,   0,             "name of exterior EMTPFT output file"},
-/**/
-     {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
-     {"EPFTOrder",      PA_INT,     1, 1,       (void *)&EPFTOrder,  0,             "cubature order for equivalence-principle force/torque (1,4,9,13,20)"},
-     {"EPPFTFile",      PA_STRING,  1, 1,       (void *)&EPPFTFile,  0,             "name of equivalence-principle PFT output file"},
-     {"EPFTOrder",      PA_INT,     1, 1,       (void *)&EPFTOrder,  0,             "cubature order for equivalence-principle force/torque (1,4,9,13,20)"},
-/**/
+     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EMTPFTFile,   0,             "name of energy/momentum-transfer PFT output file"},
+     {"EMTPFTFileBase", PA_STRING,  1, 1,       (void *)&EMTPFTFileBase,   0,             "base filename for full set of EMTPFT output files"},
+/**/ 
      {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
@@ -279,9 +272,10 @@ int main(int argc, char *argv[])
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
   bool NeedIncidentField = (    MomentFile!=0
-                             ||  PFTFile!=0
+                             || PFTFile!=0
                              || OPFTFile!=0
-                             || EPPFTFile!=0
+                             || EMTPFTFile!=0
+                             || EMTPFTFileBase!=0
                              || DSIPFTFile!=0
                              || nEPFiles>0
                              || nFVMeshes>0
@@ -301,11 +295,10 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   PFTOptions MyPFTOpts, *PFTOpts=&MyPFTOpts;
   InitPFTOptions(PFTOpts);
-  PFTOpts->DSIMesh      = DSIMesh;
+  PFTOpts->DSIMesh       = DSIMesh;
   PFTOpts->DSIRadius     = DSIRadius;
   PFTOpts->DSIPoints     = DSIPoints;
   PFTOpts->DSIFarField   = DSIFarField;
-  PFTOpts->EPFTOrder     = EPFTOrder;
   PFTOpts->GetRegionPFTs = GetRegionPFTs;
 
   /*******************************************************************/
@@ -450,20 +443,17 @@ int main(int argc, char *argv[])
      if (OPFTFile)
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_OVERLAP, PlotPFTFlux, OPFTFile);
 
-     if (EPPFTFile)
-      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EP, PlotPFTFlux, EPPFTFile);
-
      if (DSIPFTFile)
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DSI, PlotPFTFlux, DSIPFTFile);
 
-     if (PFTFile) // default is overlap + EP for scattered power
+     if (EMTPFTFile)
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EMT, PlotPFTFlux, EMTPFTFile);
+
+     if (EMTPFTFileBase)
+      WriteEMTPFTFiles(SSD, EMTPFTFileBase);
+
+     if (PFTFile)
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DEFAULT, PlotPFTFlux, PFTFile);
-
-     if (IEMTPFTFile)
-      WriteEMTPFTFile(SSD, IEMTPFTFile, true);
-
-     if (EEMTPFTFile)
-      WriteEMTPFTFile(SSD, EEMTPFTFile, false);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

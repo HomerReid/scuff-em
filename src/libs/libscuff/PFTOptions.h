@@ -76,7 +76,11 @@ namespace scuff {
 #define SCUFF_PFT_EMT_INTERIOR  6
 #define SCUFF_PFT_MOMENTS       7   // dipole-moment method
 
-#define SCUFF_PFT_DEFAULT       SCUFF_PFT_EMT_INTERIOR
+#define SCUFF_PFT_DEFAULT       SCUFF_PFT_EMT_EXTERIOR
+
+#define SCUFF_EMTPFT_EHDERIVATIVES 0
+#define SCUFF_EMTPFT_EHVALUES      1
+#define SCUFF_EMTPFT_NUMMETHODS    3
 
 /***************************************************************/
 /***************************************************************/
@@ -98,13 +102,10 @@ typedef struct PFTOptions
    bool DSIFarField;
    bool NeedQuantity[NUMPFT];
 
-   // options affecting EP power computation
+   // options affecting EMT PFT computation
+   bool Interior;
+   int EMTPFTMethod;
    HMatrix *TInterior, *TExterior;
-
-   // options affecting EP force/torque computation
-   // (set EPFTOrder==0 to skip FT calculation)
-   int EPFTOrder;
-   double EPFTDelta;
 
    bool GetRegionPFTs;
 

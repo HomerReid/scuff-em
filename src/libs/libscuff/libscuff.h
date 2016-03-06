@@ -260,8 +260,11 @@ class RWGSurface
    /* GT encodes a subsequent transformation that may be applied    */
    /* to the surface temporarily with the intention of eventually   */
    /* undoing it.                                                   */
+   /* Origin is the point (0,0,0) in the original mesh file,        */
+   /* transformed by OTGT and or any subsequent transformations.    */
    GTransformation *OTGT;
    GTransformation *GT;
+   double Origin[3];
 
    /* SurfaceSigma, if non-NULL, points to a cevaluator for a     */
    /* user-specified function of frequency and position (w,x,y,z) */
@@ -370,6 +373,8 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
    void GetPFT(int SurfaceIndex, HVector *KN, cdouble Omega,
                double PFT[NUMPFT], PFTOptions *Options=0);
+   HMatrix *GetPFTMatrix(HVector *KN, cdouble Omega,
+                         PFTOptions *Options=0, HMatrix *PFTMatrix=0);
 
    /*--------------------------------------------------------------*/
    /*- post-processing routines for various other quantities      -*/

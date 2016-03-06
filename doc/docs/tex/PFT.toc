@@ -5,11 +5,14 @@
 \contentsline {paragraph}{Surface currents from incident fields}{3}
 \contentsline {section}{\numberline {3}Displaced surface-integral PFT (DSIPFT)}{5}
 \contentsline {section}{\numberline {4}Overlap PFT (OPFT)}{8}
-\contentsline {section}{\numberline {5}Energy/momentum-transfer PFT (MTPFT)}{9}
-\contentsline {subsection}{\numberline {5.1}Exterior EMTPFT}{9}
-\contentsline {subsection}{\numberline {5.2}Interior EMTPFT}{11}
-\contentsline {paragraph}{Planar case}{12}
-\contentsline {paragraph}{General case}{13}
-\contentsline {section}{\numberline {A}Derivation of volume integrals for the force and torque}{14}
-\contentsline {section}{\numberline {B}Overlap integral between RWG basis functions}{16}
-\contentsline {section}{\numberline {C}PFT in Mie Scattering}{17}
+\contentsline {section}{\numberline {5}Energy/momentum-transfer PFT (EMTPFT), version 1}{9}
+\contentsline {subsection}{\numberline {5.1}Extinction EMTPFT}{10}
+\contentsline {subsection}{\numberline {5.2}Scattered EMTPFT}{10}
+\contentsline {subsection}{\numberline {5.3}Torque}{13}
+\contentsline {subsection}{\numberline {5.4}Interior EMTPFT}{13}
+\contentsline {paragraph}{Planar case}{14}
+\contentsline {paragraph}{General case}{15}
+\contentsline {section}{\numberline {6}Energy/momentum-transfer PFT (EMTPFT), version 2}{16}
+\contentsline {section}{\numberline {A}Derivation of volume integrals for the force and torque}{17}
+\contentsline {section}{\numberline {B}Overlap integral between RWG basis functions}{19}
+\contentsline {section}{\numberline {C}PFT in Mie Scattering}{20}

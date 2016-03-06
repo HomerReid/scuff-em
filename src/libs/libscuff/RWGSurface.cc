@@ -342,6 +342,8 @@ void RWGSurface::InitRWGSurface()
   /*------------------------------------------------------------*/
   NumEdges=NumPanels=NumVertices=NumRefPts=TotalStraddlers=0;
   PhasedBFCs=0;
+  Origin[0]=Origin[1]=Origin[2]=0.0;
+  if (OTGT) OTGT->Apply(Origin);
 
   /*------------------------------------------------------------*/
   /*- note: the 'OTGT' parameter to this function is distinct   */
@@ -489,7 +491,8 @@ RWGSurface::RWGSurface(double *pVertices, int pNumVertices,
   RegionIndices[1]=-1;
   IsPEC=1;
   IsObject=1;
-  GT=0;
+  OTGT=GT=0;
+  Origin[0]=Origin[1]=Origin[2]=0.0;
 
   Vertices=(double *)mallocEC(3*NumVertices*sizeof(double));
   memcpy(Vertices,pVertices,3*NumVertices*sizeof(double *));
@@ -608,9 +611,11 @@ void RWGSurface::Transform(const GTransformation *DeltaGT)
 { 
   /***************************************************************/
   /*- first apply the transformation to all points whose         */
-  /*- coordinates we store inside the RWGSurface structure:       */
-  /*- vertices, edge centroids, and panel centroids.             */
+  /*- coordinates we store inside the RWGSurface structure:      */
+  /*- vertices, edge centroids, panel centroids, and the origin  */
+  /*- of coordinates.                                            */
   /***************************************************************/
+
   /* vertices */
   DeltaGT->Apply(Vertices, NumVertices);
 
@@ -618,6 +623,9 @@ void RWGSurface::Transform(const GTransformation *DeltaGT)
   int ne;
   for(ne=0; ne<NumEdges; ne++)
     DeltaGT->Apply(Edges[ne]->Centroid, 1);
+
+  /* origin */
+  DeltaGT->Apply(Origin);
 
   /***************************************************************/
   /* reinitialize geometric data on panels (which takes care of  */ 
@@ -657,16 +665,15 @@ void RWGSurface::UnTransform()
    return;
  
   /***************************************************************/
-  /* untransform vertices                                        */
+  /* untransform vertices, edge centroids, origin                */
   /***************************************************************/
   GT->UnApply(Vertices, NumVertices);
 
-  /***************************************************************/
-  /* untransform edge centroids                                  */
-  /***************************************************************/
   int ne;
   for(ne=0; ne<NumEdges; ne++)
-    GT->UnApply(Edges[ne]->Centroid, 1);
+   GT->UnApply(Edges[ne]->Centroid, 1);
+
+  GT->UnApply(Origin);
 
   /***************************************************************/
   /* reinitialize geometric data on panels (which takes care of  */ 
