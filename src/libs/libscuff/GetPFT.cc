@@ -254,7 +254,7 @@ HMatrix *RWGGeometry::GetPFTMatrix(HVector *KN, cdouble Omega,
   if (Options->PFTMethod==SCUFF_PFT_EMT)
    { 
      GetEMTPFTMatrix(this, Omega, Options->IF, KN, Options->DRMatrix,
-                     PFTMatrix, Options->Interior, Options->PFTMethod);
+                     PFTMatrix, Options->Interior, Options->EMTPFTMethod);
    }
   else
    { 
