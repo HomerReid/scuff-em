@@ -557,6 +557,7 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+#if 0
   for(int ns=0; ns<G->NumSurfaces; ns++)
    if (G->Mate[ns]==-1 && G->FIBBICaches[ns])
     { 
@@ -565,6 +566,7 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
       int CacheSize=GetFIBBICacheSize(G->FIBBICaches[ns],&Hits, &Misses);
       Log("EMTPFT surface %i: (%i/%i) hits/misses",ns,Hits,Misses);
     };
+#endif
 
   return PFTMatrix;
 }
