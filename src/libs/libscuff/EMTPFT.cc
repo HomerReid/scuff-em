@@ -345,7 +345,7 @@ void GetPFTIntegrals_BFBF(RWGGeometry *G,
      Data->TorqueCenter = G->Surfaces[nsa]->Origin;
      Data->Method       = Method;
 
-     int IDim     = 42;
+     int IDim     = 21;
      int Order    = 21;
      int MaxEvals = 78;
 
