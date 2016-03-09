@@ -466,19 +466,15 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /* write data to .byXi file                                    */
   /***************************************************************/
-  if (SC3D->G->LDim>0)
-   { 
-     FILE *f=fopen(SC3D->ByXiFileName,"a");
-     double *Error = SC3D->BZIArgs->BZIError;
-     for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
-      { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
-        for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++)
-         fprintf(f,"%.8e %.8e ",EFT[ntnq], Error?Error[ntnq]:0.0);
-        fprintf(f,"\n");
-      };
-     fclose(f);
+  FILE *f=fopen(SC3D->ByXiFileName,"a");
+  double *Error = SC3D->BZIArgs->BZIError;
+  for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
+   { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
+     for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++)
+      fprintf(f,"%.8e %.8e ",EFT[ntnq], Error?Error[ntnq]:0.0);
+     fprintf(f,"\n");
    };
-  
+  fclose(f);
 
 }
 

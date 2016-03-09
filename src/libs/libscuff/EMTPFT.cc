@@ -127,27 +127,27 @@ void PFTIntegrand_BFBF2(double *xA, PCData *PCD,
    };
 
   double *QKK = I+0, *QNN=I+7, *QKNmNK=I+14;
-  QKK[0]    = real(II*Omega*MuRel*VecDot(bA, e));
-  QNN[0]    = real(II*Omega*EpsRel*VecDot(bA, e));
-  QKNmNK[0] = imag(VecDot(bA, h));
+  QKK[0]    =  imag(MuRel*VecDot(bA, e));
+  QNN[0]    =  imag(EpsRel*VecDot(bA, e));
+  QKNmNK[0] =  imag(VecDot(bA, h));
   if (Method==1)
    {
      for(int Mu=0; Mu<3; Mu++)
-      { QKK[1+Mu]    = real(II*Omega*MuRel*VecDot(bA, de[Mu]));
-        QNN[1+Mu]    = real(II*Omega*EpsRel*VecDot(bA, de[Mu]));
-        QKNmNK[1+Mu] = imag(VecDot(bA, dh[Mu]));
+      { QKK[1+Mu]    =  imag(MuRel*VecDot(bA, de[Mu]));
+        QNN[1+Mu]    =  imag(EpsRel*VecDot(bA, de[Mu]));
+        QKNmNK[1+Mu] = -imag(VecDot(bA, dh[Mu]));
 
-        QKK[4+Mu]    = real(II*Omega*MuRel*bxe[Mu]);
-        QNN[4+Mu]    = real(II*Omega*EpsRel*bxe[Mu]);
-        QKNmNK[4+Mu] = imag(bxh[Mu]);
+        QKK[4+Mu]    =  imag(MuRel*bxe[Mu]);
+        QNN[4+Mu]    =  imag(EpsRel*bxe[Mu]);
+        QKNmNK[4+Mu] = -imag(bxh[Mu]);
       };
    }
   else
    {
      for(int Mu=0; Mu<3; Mu++)
-      { QKK[1+Mu]    = imag(MuRel*(-DivbA*e[Mu] + bxh[Mu]));
-        QNN[1+Mu]    = imag(EpsRel*(-DivbA*e[Mu] + bxh[Mu]));
-        QKNmNK[1+Mu] = imag(DivbA*h[Mu] - k*k*bxe[Mu]);
+      { QKK[1+Mu]    =  imag(MuRel*(-DivbA*e[Mu] + bxh[Mu]));
+        QNN[1+Mu]    =  imag(EpsRel*(-DivbA*e[Mu] + bxh[Mu]));
+        QKNmNK[1+Mu] = -imag(DivbA*h[Mu] - k*k*bxe[Mu]);
       };
 
      for(int Mu=0; Mu<3; Mu++)
@@ -325,14 +325,14 @@ void GetPFTIntegrals_BFBF(RWGGeometry *G,
      cdouble GabArray[2][NUMGCMES];
      cdouble ikCabArray[2][NUMGCMES];
      GetGCMatrixElements(G, Args, nea, neb, GabArray, ikCabArray);
-     PFTIs[0*7 + 0] = imag(  MuR*GabArray[0][GCME_GC] );
-     PFTIs[1*7 + 0] = imag( EpsR*GabArray[0][GCME_GC] );
+     PFTIs[0*7 + 0] = imag(  MuR*Omega*GabArray[0][GCME_GC] );
+     PFTIs[1*7 + 0] = imag( EpsR*Omega*GabArray[0][GCME_GC] );
      PFTIs[2*7 + 0] = imag(    ikCabArray[0][GCME_GC] );
-     double FTPreFac=TENTHIRDS/real(Omega);
+     double FTPreFac=TENTHIRDS;
      for(int Mu=0; Mu<6; Mu++)
       { PFTIs[0*7+1+Mu] = FTPreFac*imag( MuR*GabArray[0][GCME_FX + Mu]);
         PFTIs[1*7+1+Mu] = FTPreFac*imag(EpsR*GabArray[0][GCME_FX + Mu]);
-        PFTIs[2*7+1+Mu] = FTPreFac*imag(   ikCabArray[0][GCME_FX + Mu]);
+        PFTIs[2*7+1+Mu] = -FTPreFac*imag(  ikCabArray[0][GCME_FX + Mu]);
       };
    }
   else 
@@ -463,9 +463,9 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
       GetKNBilinears(KNVector, DRMatrix,
                      SA->IsPEC, KNIndexA, SB->IsPEC, KNIndexB,
                      KNB);
-      cdouble wu0KK  = KNB[0] * Omega * ZVAC;
-      cdouble KNmNK  = KNB[1] - KNB[2];
-      cdouble we0NN  = KNB[3] * Omega / ZVAC;
+      cdouble u0KK  = KNB[0] * ZVAC;
+      cdouble KNmNK = KNB[1] - KNB[2];
+      cdouble e0NN  = KNB[3] / ZVAC;
  
       double PFTIs[21];
       double *QKK=PFTIs+0, *QNN=PFTIs+7, *QKNmNK=PFTIs+14;
@@ -473,16 +473,16 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
                            Omega, k, EpsR, MuR, Method, PFTIs);
 
       double dPFT[NUMPFT];
-      dPFT[PFT_PSCAT] = 0.5*(  real(wu0KK)*QKK[0]
-                              +real(we0NN)*QNN[0]
+      dPFT[PFT_PSCAT] = 0.5*(  real(u0KK)*QKK[0]
+                              +real(e0NN)*QNN[0]
                               +imag(KNmNK)*QKNmNK[0]
                             );
 
       for(int Mu=0; Mu<6; Mu++)
        dPFT[PFT_XFORCE + Mu]
-        = -0.5*(  imag(wu0KK)*QKK[1+Mu]
-                 +imag(we0NN)*QNN[1+Mu]
-                 -real(KNmNK)*QKNmNK[1+Mu]
+        = -0.5*(  imag(u0KK)*QKK[1+Mu]
+                 +imag(e0NN)*QNN[1+Mu]
+                 +real(KNmNK)*QKNmNK[1+Mu]
                );
 
       int nt=0;
