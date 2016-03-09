@@ -1,0 +1,8 @@
+OBJECT UpperSphere
+	MESHFILE  Sphere_327.msh
+	DISPLACED 0 0 3
+ENDOBJECT
+
+OBJECT LowerSphere
+	MESHFILE Sphere_327.msh
+ENDOBJECT
