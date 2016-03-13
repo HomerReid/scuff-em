@@ -1,5 +1,18 @@
 ## Installing [[scuff-em]]
 
+## 0. Try <span class="SC">scuff-em</span> online before installing anything!
+
+[Johannes Feist](http://www.johannesfeist.eu/) has set up
+an interactive online notebook using [MyBinder](http://mybinder.org/)
+that you can use to run some simple [[scuff-em]] calculations on
+the cloud without having to install anything. This free service
+offers limited computing power, so you won't want to attempt any
+heavy calculations here, but you can follow Johannes' tutorial
+to observe the flow of a typical [[scuff-em]] calculation,
+play around with your own calculations, and get a feel for what 
+using [[scuff-em]] will like once you have installed it on your 
+machine.
+
 ## 1. External packages
 
 [[scuff-em]] relies on a small number of well-established free 

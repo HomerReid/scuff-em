@@ -38,10 +38,10 @@
  #include "readlineReplacement.h"
 #endif
 
-#include "libhrutil.h"
-#include "libSGJC.h"
-#include "libscuff.h"
-#include "libscuffInternals.h"
+#include <libhrutil.h>
+#include <libSGJC.h>
+#include <libscuff.h>
+#include <libscuffInternals.h>
 
 #if defined(_WIN32)
 #  define srand48 srand
@@ -58,6 +58,10 @@ static long int lrand48() { return rand(); }
 #define RELTOL 1.0e-4
 
 using namespace scuff;
+
+namespace scuff {
+int NumCommonBFVertices(RWGSurface *Sa, int nea, RWGSurface *Sb, int neb);
+                }
 
 /***************************************************************/
 /***************************************************************/

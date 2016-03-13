@@ -26,8 +26,27 @@
 #include "libhrutil.h"
 #include "libhmat.h"
 
-#include <readline/readline.h>
-#include <readline/history.h>
+/***************************************************************/
+/* replacements for readline functions if necessary            */
+/***************************************************************/
+#ifdef HAVE_READLINE
+  #include <readline/readline.h>
+  #include <readline/history.h>
+#else
+  char *readline(const char *prompt)
+   { char buffer[1000];
+     printf("%s",prompt);
+     (void) fgets(buffer,1000,stdin);
+     return strdup(buffer);
+   }
+  void using_history() {}
+  void read_history(const char *){}
+  void add_history(const char *) {}
+  void write_history(const char *) {}
+#endif
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 
 #define DIM 5
 #define II cdouble (0.0,1.0)
