@@ -26,9 +26,6 @@
 #include "libhrutil.h"
 #include "libhmat.h"
 
-#include <readline/readline.h>
-#include <readline/history.h>
-
 #define DIM 10
 #define II cdouble (0.0,1.0)
 
