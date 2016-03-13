@@ -418,9 +418,9 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
   /***************************************************************/
   /***************************************************************/
   int NS = SSD->G->NumSurfaces;
-  HMatrix *ExtinctionPFT, *ScatteredPFT[SCUFF_EMTPFT_NUMMETHODS];
+  HMatrix *ExtinctionPFT, *ScatteredPFT[SCUFF_EMTPFTI_NUMMETHODS];
   ExtinctionPFT=new HMatrix(NS, NUMPFT);
-  for(int nm=0; nm<SCUFF_EMTPFT_NUMMETHODS; nm++)
+  for(int nm=0; nm<SCUFF_EMTPFTI_NUMMETHODS; nm++)
    ScatteredPFT[nm]=new HMatrix(NS, NUMPFT);
   for(int ExtInt=0; ExtInt<2; ExtInt++)
    {
@@ -433,7 +433,7 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
-      for(int Method=0; Method<SCUFF_EMTPFT_NUMMETHODS; Method++)
+      for(int Method=0; Method<SCUFF_EMTPFTI_NUMMETHODS; Method++)
        { 
          Log("Computing scattered EMTPFT (%s%i) at Omega=%s...",IEString,Method,z2s(SSD->Omega));
          Options->Interior=Interior;
@@ -465,7 +465,7 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
    }; // for(int Interior=0; Interior<2; Interior++)
 
   delete ExtinctionPFT;
-  for(int nm=0; nm<SCUFF_EMTPFT_NUMMETHODS; nm++)
+  for(int nm=0; nm<SCUFF_EMTPFTI_NUMMETHODS; nm++)
    delete ScatteredPFT[nm];
 }
 

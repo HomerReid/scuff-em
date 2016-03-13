@@ -76,7 +76,7 @@ typedef struct PFTIData
    cdouble Omega, k, EpsRel, MuRel;
    IncField *IF;
    double *TorqueCenter;
-   int Method;
+   int EMTPFTIMethod;
    RWGGeometry *G;
    int nsb, neb;
 
@@ -91,11 +91,12 @@ void PFTIntegrand_BFBF2(double *xA, PCData *PCD,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  double bA[3], DivbA;
+  double bA[3], DivbA, *nHat;
   bA[0] = real(PCD->K[0]);
   bA[1] = real(PCD->K[1]);
   bA[2] = real(PCD->K[2]);
   DivbA = real(PCD->DivK);
+  nHat  = PCD->nHat;
 
   /***************************************************************/
   /***************************************************************/
@@ -104,20 +105,24 @@ void PFTIntegrand_BFBF2(double *xA, PCData *PCD,
   cdouble Omega   = Data->Omega;
   cdouble k       = Data->k;
   cdouble EpsRel  = Data->EpsRel;
-  int Method      = Data->Method;
+  int EMTPFTIMethod = Data->EMTPFTIMethod;
   cdouble  MuRel  = Data->MuRel;
   RWGGeometry *G  = Data->G;
   int nsb         = Data->nsb;
   int neb         = Data->neb;
   double *XTorque = Data->TorqueCenter;
+
   double XT[3];
   VecSub(xA, XTorque, XT);
+
+  double XEval[3];
+  VecScaleAdd(xA, 1.0e-2, nHat, XEval);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   cdouble e[3], h[3], de[3][3], dh[3][3];
-  GetReducedFields_Nearby(G->Surfaces[nsb], neb, xA, k, e, h, de, dh);
+  GetReducedFields_Nearby(G->Surfaces[nsb], neb, XEval, k, e, h, de, dh);
 
   cdouble bxe[3], bxh[3];
   for(int Mu=0; Mu<3; Mu++)
@@ -130,7 +135,7 @@ void PFTIntegrand_BFBF2(double *xA, PCData *PCD,
   QKK[0]    =  imag(MuRel*VecDot(bA, e));
   QNN[0]    =  imag(EpsRel*VecDot(bA, e));
   QKNmNK[0] =  imag(VecDot(bA, h));
-  if (Method==1)
+  if (EMTPFTIMethod==1)
    {
      for(int Mu=0; Mu<3; Mu++)
       { QKK[1+Mu]    =  imag(MuRel*VecDot(bA, de[Mu]));
@@ -309,9 +314,9 @@ void GetPFTIntegrals_BFBF(RWGGeometry *G,
                           int nsa, int nea, int nsb, int neb,
                           cdouble Omega, cdouble k, 
                           cdouble EpsR, cdouble MuR,
-                          int Method, double PFTIs[21])
+                          int EMTPFTIMethod, double PFTIs[21])
 {
-  if (Method==SCUFF_EMTPFT_EHDERIVATIVES)
+  if (EMTPFTIMethod==SCUFF_EMTPFTI_EHDERIVATIVES)
   {
      GetGCMEArgStruct MyArgs, *Args=&MyArgs;
      InitGetGCMEArgs(Args);
@@ -343,21 +348,17 @@ void GetPFTIntegrals_BFBF(RWGGeometry *G,
      Data->EpsRel       = EpsR;
      Data->MuRel        = MuR;
      Data->TorqueCenter = G->Surfaces[nsa]->Origin;
-     Data->Method       = Method;
+     Data->EMTPFTIMethod = EMTPFTIMethod;
 
      int IDim     = 21;
-     int Order    = 21;
      int MaxEvals = 78;
 
-     if (Method==1 || Method==2)
-      {  
-         Data->G   = G;
-         Data->nsb = nsb;
-         Data->neb = neb;
-         GetBFCubature(G, nsa, nea, PFTIntegrand_BFBF2,
+     Data->G   = G;
+     Data->nsb = nsb;
+     Data->neb = neb;
+     GetBFCubature(G, nsa, nea, PFTIntegrand_BFBF2,
                        (void *)Data, IDim, MaxEvals,
                        0.0, 0.0, 0.0, 0, PFTIs);
-      };
    };
 
 }
@@ -368,7 +369,7 @@ void GetPFTIntegrals_BFBF(RWGGeometry *G,
 HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
                          HVector *KNVector, HMatrix *DRMatrix,
                          HMatrix *PFTMatrix, bool Interior,
-                         int Method)
+                         int EMTPFTIMethod)
 { 
   /***************************************************************/
   /***************************************************************/
@@ -470,7 +471,7 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
       double PFTIs[21];
       double *QKK=PFTIs+0, *QNN=PFTIs+7, *QKNmNK=PFTIs+14;
       GetPFTIntegrals_BFBF(G, nsa, nea, nsb, neb,
-                           Omega, k, EpsR, MuR, Method, PFTIs);
+                           Omega, k, EpsR, MuR, EMTPFTIMethod, PFTIs);
 
       double dPFT[NUMPFT];
       dPFT[PFT_PSCAT] = 0.5*(  real(u0KK)*QKK[0]

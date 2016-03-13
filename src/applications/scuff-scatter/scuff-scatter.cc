@@ -148,12 +148,14 @@ int main(int argc, char *argv[])
 //
   char *PFTFile=0;
   char *OPFTFile=0;
-  char *EMTPFTFile=0;
+  char *IEMTPFTFile=0;
+  char *EEMTPFTFile=0;
   char *EMTPFTFileBase=0;
 //
   char *DSIPFTFile = 0;
   double DSIRadius = 10.0;
   int DSIPoints    = 302;
+  int DSIPoints2   = 0;
   char *DSIMesh    = 0;
   bool DSIFarField = false;
 //
@@ -199,13 +201,15 @@ int main(int argc, char *argv[])
 /**/
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
 /**/
-     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EMTPFTFile,   0,             "name of energy/momentum-transfer PFT output file"},
+     {"IEMTPFTFile",     PA_STRING,  1, 1,       (void *)&IEMTPFTFile,   0,             "name of energy/momentum-transfer PFT output file"},
+     {"EEMTPFTFile",     PA_STRING,  1, 1,       (void *)&EEMTPFTFile,   0,             "name of energy/momentum-transfer PFT output file"},
      {"EMTPFTFileBase", PA_STRING,  1, 1,       (void *)&EMTPFTFileBase,   0,             "base filename for full set of EMTPFT output files"},
 /**/ 
      {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
      {"DSIPoints",      PA_INT,     1, 1,       (void *)&DSIPoints,  0,             "number of quadrature points for surface-integral PFT (6, 14, 26, 38, 50, 74, 86, 110, 146, 170, 194, 230, 266, 302, 350, 434, 590, 770, 974, 1202, 1454, 1730, 2030, 2354, 2702, 3074, 3470, 3890, 4334, 4802, 5294, 5810)"},
+     {"DSIPoints2",     PA_INT,     1, 1,       (void *)&DSIPoints2, 0,             "number of quadrature points for DSIPFT second opinion"},
      {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField, 0,            "retain only far-field contributions to DSIPFT"},
 /**/
      {"GetRegionPFTs",  PA_BOOL,    0, 1,       (void *)&GetRegionPFTs,   0,          "report PFTs for each region"},
@@ -274,7 +278,8 @@ int main(int argc, char *argv[])
   bool NeedIncidentField = (    MomentFile!=0
                              || PFTFile!=0
                              || OPFTFile!=0
-                             || EMTPFTFile!=0
+                             || IEMTPFTFile!=0
+                             || EEMTPFTFile!=0
                              || EMTPFTFileBase!=0
                              || DSIPFTFile!=0
                              || nEPFiles>0
@@ -300,6 +305,10 @@ int main(int argc, char *argv[])
   PFTOpts->DSIPoints     = DSIPoints;
   PFTOpts->DSIFarField   = DSIFarField;
   PFTOpts->GetRegionPFTs = GetRegionPFTs;
+
+  char *DSIPFTFile2 = 0;
+  if (DSIPFTFile && DSIPoints2)
+   DSIPFTFile2=vstrdup("%s.DSI%i",GetFileBase(DSIPFTFile),DSIPoints2);
 
   /*******************************************************************/
   /* create the SSData structure containing everything we need to    */
@@ -444,10 +453,20 @@ int main(int argc, char *argv[])
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_OVERLAP, PlotPFTFlux, OPFTFile);
 
      if (DSIPFTFile)
-      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DSI, PlotPFTFlux, DSIPFTFile);
+      { PFTOpts->DSIPoints=DSIPoints;
+        WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DSI, PlotPFTFlux, DSIPFTFile);
+      };
 
-     if (EMTPFTFile)
-      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EMT, PlotPFTFlux, EMTPFTFile);
+     if (DSIPFTFile2)
+      { PFTOpts->DSIPoints=DSIPoints2;
+        WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DSI, PlotPFTFlux, DSIPFTFile2);
+      };
+
+     if (EEMTPFTFile)
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EMT_EXTERIOR, PlotPFTFlux, EEMTPFTFile);
+
+     if (IEMTPFTFile)
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EMT_INTERIOR, PlotPFTFlux, IEMTPFTFile);
 
      if (EMTPFTFileBase)
       WriteEMTPFTFiles(SSD, EMTPFTFileBase);

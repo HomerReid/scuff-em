@@ -78,9 +78,9 @@ namespace scuff {
 
 #define SCUFF_PFT_DEFAULT       SCUFF_PFT_EMT_EXTERIOR
 
-#define SCUFF_EMTPFT_EHDERIVATIVES 0
-#define SCUFF_EMTPFT_EHVALUES      1
-#define SCUFF_EMTPFT_NUMMETHODS    3
+#define SCUFF_EMTPFTI_EHDERIVATIVES 0
+#define SCUFF_EMTPFTI_EHVALUES      1
+#define SCUFF_EMTPFTI_NUMMETHODS    3
 
 /***************************************************************/
 /***************************************************************/

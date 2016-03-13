@@ -299,7 +299,7 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
  
   // options affecting EMTPFT power computation
   Options->Interior=false;
-  Options->EMTPFTMethod=SCUFF_EMTPFT_EHDERIVATIVES;
+  Options->EMTPFTMethod=SCUFF_EMTPFTI_EHDERIVATIVES;
   Options->TInterior=Options->TExterior=0;
 
   Options->GetRegionPFTs=false;
