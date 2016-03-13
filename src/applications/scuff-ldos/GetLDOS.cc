@@ -70,7 +70,7 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
 /* routine to compute the LDOS at a single (Omega, kBloch)     */
 /* point (but typically multiple spatial evaluation points)    */
 /***************************************************************/
-void GetLDOS(void *pData, cdouble Omega, double *kBloch, 
+void GetLDOS(void *pData, cdouble Omega, double *kBloch,
              double *Result)
 {
   /*--------------------------------------------------------------*/
@@ -123,7 +123,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
                                        M, 0, ColOffset, RowOffset,
                                        ABMBCache[nb], true);
           };
-       };
+      };
      M->LUFactorize();
 
      G->GetDyadicGFs(Omega, kBloch, XMatrix, M, GMatrix);
