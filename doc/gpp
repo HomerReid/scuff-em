@@ -2,7 +2,7 @@
 
 #
 # this script should be executed from within the 
-# scuff-em/doc/docs/site directory
+# scuff-em/doc/site directory
 #
 
 if [ "${PWD}" != "/home/homer/work/scuff-em/doc/site" ]
