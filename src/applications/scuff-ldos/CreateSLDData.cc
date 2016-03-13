@@ -78,7 +78,7 @@ void WriteFilePreamble(char *FileName, int FileType, int LDim)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-SLDData *CreateSLDData(char *GeoFile, char *EPFile)
+SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles)
 {
   SetDefaultCD2SFormat("%.8e %.8e");
 
@@ -94,13 +94,44 @@ SLDData *CreateSLDData(char *GeoFile, char *EPFile)
   Data->M = G->AllocateBEMMatrix();
 
   /***************************************************************/
-  /* read in list of evaluation points ***************************/
+  /* read in lists of evaluation points **************************/
   /***************************************************************/
-  Data->XMatrix = new HMatrix(EPFile);
-  if (Data->XMatrix->ErrMsg)
-   ErrExit(Data->XMatrix->ErrMsg); 
+  HMatrix **XMatrices=0, **GMatrices=0;
+  char **EPFileBases=0;
+  int NumXGMatrices=0, TotalEvalPoints=0;
+  for(int n=0; n<nEPFiles; n++)
+   { 
+     HMatrix *XMatrix = new HMatrix(EPFiles[n]);
+     if (XMatrix->ErrMsg)
+      { Warn("%s (skipping file)",XMatrix->ErrMsg);
+        continue;
+      };
+     int NX = XMatrix->NR;
 
-  Data->GMatrix = new HMatrix(Data->XMatrix->NR, 18, LHM_COMPLEX);
+     XMatrices = (HMatrix **)reallocEC(XMatrices, (NumXGMatrices+1)*sizeof(HMatrix *));
+     GMatrices = (HMatrix **)reallocEC(GMatrices, (NumXGMatrices+1)*sizeof(HMatrix *));
+     EPFileBases = (char **)reallocEC(EPFileBases, (NumXGMatrices+1)*sizeof(char *));
+
+     XMatrices[NumXGMatrices]   = XMatrix;
+     GMatrices[NumXGMatrices]   = new HMatrix(NX, 18, LHM_COMPLEX);
+     EPFileBases[NumXGMatrices] = strdup(GetFileBase(EPFiles[n]));
+   
+     NumXGMatrices++;
+     TotalEvalPoints+=NX;
+     
+     Log("Read %i evaluation points from file %s.",NX,EPFiles[n]);
+   };
+  Log("%i total evaluation points from %i files.",TotalEvalPoints,NumXGMatrices);
+  Data->XMatrices       = XMatrices;
+  Data->GMatrices       = GMatrices;
+  Data->EPFileBases     = EPFileBases;
+  Data->NumXGMatrices   = NumXGMatrices;
+  Data->TotalEvalPoints = TotalEvalPoints;
+
+  Data->WrotePreamble[0] = (bool *)mallocEC(NumXGMatrices*sizeof(bool));
+  Data->WrotePreamble[1] = (bool *)mallocEC(NumXGMatrices*sizeof(bool));
+  for(int nm=0; nm<NumXGMatrices; nm++)
+   Data->WrotePreamble[0][nm]=Data->WrotePreamble[1][nm]=false;
 
   /***************************************************************/
   /* For PBC geometries we need to do some preliminary setup     */

@@ -47,18 +47,20 @@ typedef struct SLDData
    HMatrix *M;
 
    // data on evaluation points and DGFs at evaluation points
-   HMatrix *XMatrix, *GMatrix;
+   HMatrix **XMatrices, **GMatrices;
+   char **EPFileBases;
+   bool *WrotePreamble[2];
+   int NumXGMatrices;
+   int TotalEvalPoints;
 
    // fields relevant for periodic geometries
    void **ABMBCache;
 
    // other miscellaneous options
+   char *FileBase;
    double RelTol;
    int MaxEvals;
-   char *FileBase;
    bool LDOSOnly;
-   char *ByKFileName;
-   char *OutFileName;
    MatProp *HalfSpaceMP;
    bool GroundPlane;
 
@@ -74,9 +76,12 @@ typedef struct SLDData
 
 // CreateLDOSData.cc
 void WriteFilePreamble(char *FileName, int FileType, int LDim);
-SLDData *CreateSLDData(char *GeoFile, char *EPFile);
+SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles);
 
 // GetLDOS.cc
+void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
+               int FileType, int WhichMatrix, 
+               double *Result, double *Error);
 void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
                int FileType, double *Result, double *Error);
 void GetLDOS(void *Data, cdouble Omega, double *kBloch, 

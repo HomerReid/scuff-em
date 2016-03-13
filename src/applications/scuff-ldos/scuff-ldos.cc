@@ -14,6 +14,7 @@
 #include "scuff-ldos.h"
 
 #define II cdouble(0.0,1.0)
+#define MAXEPFILES 100
 
 using namespace scuff;
 
@@ -41,7 +42,7 @@ int main(int argc, char *argv[])
   char *OmegaFile=0;
   char *OkBFile=0;
 /**/
-  char *EPFile=0;
+  char *EPFiles[MAXEPFILES];   int nEPFiles=0;
 /**/
   bool GroundPlane=false;
   char *HalfSpace=0;
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
      {"GroundPlane", PA_BOOL,    1, 1, (void *)&GroundPlane,  0,  "simulate an infinite PEC ground plane at z=0"},
      {"HalfSpace",   PA_STRING,  1, 1, (void *)&HalfSpace,    0,  "simulate an infinite half-space for z<0 with the given material"},
 //
-     {"EPFile",      PA_STRING,  1, 1, (void *)&EPFile,       0,  "list of evaluation points"},
+     {"EPFile",      PA_STRING,  1, MAXEPFILES, (void *)EPFiles, &nEPFiles,  "list of evaluation points"},
 //
      {"Omega",       PA_CDOUBLE, 1, 1, (void *)&Omega,  &nOmega,  "angular frequency"},
      {"OmegaFile",   PA_STRING,  1, 1, (void *)&OmegaFile,    0,  "list of omega points "},
@@ -72,8 +73,8 @@ int main(int argc, char *argv[])
   ProcessOptions(argc, argv, OSArray);
   if (GeoFile==0)
    OSUsage(argv[0],OSArray,"--geometry option is mandatory");
-  if (EPFile==0)
-   OSUsage(argv[0],OSArray,"--EPFile option is mandatory");
+  if (nEPFiles==0)
+   OSUsage(argv[0],OSArray,"you must specify at least one --EPFile");
   if (!FileBase)
    FileBase = vstrdup(GetFileBase(GeoFile));
   if (HalfSpace)
@@ -110,10 +111,10 @@ int main(int argc, char *argv[])
    ErrExit("you must specify at least one frequency");
 
   /***************************************************************/
-  /* create the SLDData structure that will be passed to all   */
+  /* create the SLDData structure that will be passed to all     */
   /* computational routines                                      */
   /***************************************************************/
-  SLDData *Data     = CreateSLDData(GeoFile, EPFile);
+  SLDData *Data     = CreateSLDData(GeoFile, EPFiles, nEPFiles);
   Data->RelTol      = RelTol;
   Data->MaxEvals    = MaxEvals;
   Data->FileBase    = FileBase;
@@ -127,8 +128,8 @@ int main(int argc, char *argv[])
   if ( HalfSpace && LDim!=2 )
    OSUsage(argv[0],OSArray,"--HalfSpace requires a 2D-periodic geometry");
 
-  int NX         = Data->XMatrix->NR;
-  int NFun       = Data->LDOSOnly ? 2 : 38;
+  int NFun       = Data->LDOSOnly ? 2 : 38; // # outputs per eval pt
+  int NX         = Data->TotalEvalPoints; 
   int FDim       = NX*NFun;
   double *Result = (double *)mallocEC(FDim*sizeof(double));
 
@@ -153,13 +154,8 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   if (LDim==0)
    {  
-     Data->OutFileName=vstrdup("%s.LDOS",FileBase);
-     WriteFilePreamble(Data->OutFileName, FILETYPE_LDOS, LDim);
      for(int no=0; no<OmegaPoints->N; no++)
-      { Omega=OmegaPoints->GetEntry(no);
-        GetLDOS( (void *)Data, Omega, 0, Result);
-        WriteData(Data, Omega, 0, FILETYPE_LDOS, Result, 0);
-      };
+      GetLDOS( (void *)Data, OmegaPoints->GetEntry(no), 0, Result);
    }
   /*--------------------------------------------------------------*/
   /*- PBC structure with specified kBloch points: do a periodic   */
@@ -167,8 +163,6 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   else if (OkBPoints)
    {  
-     Data->ByKFileName=vstrdup("%s.byOmegakBloch",FileBase);
-     WriteFilePreamble(Data->ByKFileName, FILETYPE_BYK, LDim);
      for(int nokb=0; nokb<OkBPoints->NR; nokb++)
       { 
         Omega=OkBPoints->GetEntry(nokb,0);
@@ -199,10 +193,6 @@ int main(int argc, char *argv[])
      /***************************************************************/
      /***************************************************************/
      /***************************************************************/
-     Data->ByKFileName=vstrdup("%s.byOmegakBloch",FileBase);
-     WriteFilePreamble(Data->ByKFileName, FILETYPE_BYK, LDim);
-     Data->OutFileName=vstrdup("%s.LDOS",FileBase);
-     WriteFilePreamble(Data->OutFileName, FILETYPE_LDOS, LDim);
      for(int no=0; no<OmegaPoints->N; no++)
       { Omega=OmegaPoints->GetEntry(no);
         Log("Evaluating Brillouin-zone integral at omega=%s",z2s(Omega));
