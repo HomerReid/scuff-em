@@ -347,6 +347,13 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   else
    PFTOpts->FluxFileName=0;
 
+  static bool WrotePreamble[SCUFF_PFT_NUMMETHODS];
+  static bool Initialized=false;
+  if (!Initialized)
+   { Initialized=true; 
+     memset(WrotePreamble, 0, SCUFF_PFT_NUMMETHODS*sizeof(bool));
+   };
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -364,7 +371,10 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   /***************************************************************/
   FILE *f=fopen(FileName,"a");
   if (!f) return;
-  WritePFTFilePreamble(f);
+  if (!WrotePreamble[Method]) 
+   { WritePFTFilePreamble(f);
+     WrotePreamble[Method]=true;
+   };
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      double PFT[NUMPFT];
@@ -413,6 +423,16 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
   PFTOptions MyOptions, *Options=&MyOptions;
   InitPFTOptions(Options);
   Options->PFTMethod = SCUFF_PFT_EMT;
+ 
+  int nmStart=0;
+  int nmStop=SCUFF_EMTPFTI_NUMMETHODS;
+  char *s=getenv("SCUFF_EMTPFT_METHOD");
+  if (s && s[0]=='0')
+   { nmStart=0; nmStop=1; }
+  else if (s && s[0]=='1')
+   { nmStart=1; nmStop=3; }
+
+  static bool WrotePreamble=false;
 
   /***************************************************************/
   /***************************************************************/
@@ -433,7 +453,7 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
-      for(int Method=0; Method<SCUFF_EMTPFTI_NUMMETHODS; Method++)
+      for(int Method=nmStart; Method<nmStop; Method++)
        { 
          Log("Computing scattered EMTPFT (%s%i) at Omega=%s...",IEString,Method,z2s(SSD->Omega));
          Options->Interior=Interior;
@@ -442,11 +462,8 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
 
          char FileName[100];
          sprintf(FileName,"%s.%cEMTPFT.Method%i",FileBase,IEString[0],Method);
-         FILE *f=fopen(FileName,"r");
-         bool WritePreamble = (f==0);
-         if (f) fclose(f);
-         f=fopen(FileName,"a");
-         if (WritePreamble) WritePFTFilePreamble(f);
+         FILE *f=fopen(FileName,"a");
+         if (!WrotePreamble) WritePFTFilePreamble(f);
          for(int ns=0; ns<NS; ns++)
           { 
             fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
@@ -463,6 +480,8 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
    }; // for(int Interior=0; Interior<2; Interior++)
+
+  WrotePreamble=true;
 
   delete ExtinctionPFT;
   for(int nm=0; nm<SCUFF_EMTPFTI_NUMMETHODS; nm++)

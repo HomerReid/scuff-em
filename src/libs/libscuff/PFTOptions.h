@@ -75,6 +75,7 @@ namespace scuff {
 #define SCUFF_PFT_EMT_EXTERIOR  5   //  (exterior is default)
 #define SCUFF_PFT_EMT_INTERIOR  6
 #define SCUFF_PFT_MOMENTS       7   // dipole-moment method
+#define SCUFF_PFT_NUMMETHODS    8
 
 #define SCUFF_PFT_DEFAULT       SCUFF_PFT_EMT_EXTERIOR
 

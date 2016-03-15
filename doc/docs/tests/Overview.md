@@ -22,6 +22,7 @@ of [[scuff-em]] results to known analytical solutions.
 * [Mie scattering](MieScattering/MieScattering.md)
 * [Fresnel scattering](FresnelScattering/FresnelScattering.md)
 * [Equilibrium Casimir forces between spheres](CasimirSpheres/CasimirSpheres.md)
+
 * [Equilibrium Casimir forces between plates](CasimirPlates/CasimirPlates.md)
 * [Equilibrium Casimir-Polder potential near a sphere](CPSphere/CPSphere.md)
 * [Equilibrium Casimir-Polder potential near a plate](CPPlate/CPPlate.md)

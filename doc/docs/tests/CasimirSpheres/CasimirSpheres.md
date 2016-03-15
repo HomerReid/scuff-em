@@ -41,13 +41,26 @@ using [[scuff-cas3d]] as follows:
  % scuff-cas3d --geometry E10Spheres_501.scuffgeo --translist Spheres.trans --energy --zforce
 ````
 
-Here the two `.scuffgeo` files describe the two geometric configurations
+Here the two `.scuffgeo` files 
+([`PECSpheres_501.scuffgeo`](PECSpheres_501.scuffgeo) and [`E10Spheres_501.scuffgeo`](E10Spheres_501.scuffgeo)]
+describe the two geometric configurations
 (two PEC spheres and two dielectric spheres of radius $R=1\, \mu$m 
 separated by an initial center-center distance of $d$=3 $\mu$m) while
-`Spheres.trans` specifies the list of center-center separation distances
-$d$ at which we compute the energy and force.
+[`Spheres.trans`](Spheres.trans) specifies the list of center-center 
+separation distances $d$ at which we compute the energy and force.
+(Both geometries refer to the same surface mesh file for the 
+sphere, [`Sphere_327.msh`](Sphere_327.msh).
 
-The above calculations
+The above calculations produce output files named 
+[`PECSpheres_327.out`](PECSpheres_327.out) and 
+[`E10Spheres_327.out`](E10Spheres_327.out). Plotting against
+the theoretical predictions of Emig et. al (referenced above)
+yields good agreement:
+
+![CasimirSphereData.png](CasimirSphereData.png).
+
+Here's the [[gnuplot]] script I used to produce this 
+plot: [`Plotter.gp`](Plotter.gp).
 
 [scuffEMGeometries]:                  ../../reference/Geometries.md
 [scuffEMTransformations]:             ../../reference/Transformations.md
