@@ -170,7 +170,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
          Integral[ FIBBI_PEFIE1_RX_R0  + Mu ] += Weight*bdb*R[Mu];
          Integral[ FIBBI_PEFIE1_RX_R1  + Mu ] += Weight*bdb*R[Mu]*r;
      
-         Integral[ FIBBI_PEFIE2_RX_RM3 + Mu ] += Weight*DbDb*RPA[Mu]*rm3;
+         Integral[ FIBBI_PEFIE2_RX_RM3 + Mu ] += Weight*DbDb*R[Mu]*rm3;
          Integral[ FIBBI_PEFIE2_RX_RM1 + Mu ] += Weight*DbDb*R[Mu]*rm1;
          Integral[ FIBBI_PEFIE2_RX_R0  + Mu ] += Weight*DbDb*R[Mu];
          Integral[ FIBBI_PEFIE2_RX_R1  + Mu ] += Weight*DbDb*R[Mu]*r;
