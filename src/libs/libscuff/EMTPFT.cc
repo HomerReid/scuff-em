@@ -464,9 +464,9 @@ if (NSSave!=NS)
    
       double abSign=0.0, baSign=0.0;
       if (nsa==nsb)
-       abSign = Interior ? -1.0 : 1.0;
+       abSign = Interior ? -1.0 : +1.0;
       else if (SA->RegionIndices[0] == SB->RegionIndices[0]) // A, B live in same region
-       abSign = baSign = Interior ? 0.0 : 1.0;
+       abSign = baSign = (Interior ? 0.0 : 1.0);
       else if (SA->RegionIndices[0] == SB->RegionIndices[1]) // A contained in B
        { abSign = Interior ? 0.0 : -1.0;
          baSign = Interior ? 1.0 : 0.0;
@@ -559,7 +559,6 @@ if (NSSave!=NS)
   if (IF)
    AddIFContributionsToEMTPFT(G, KNVector, IF, Omega, IncidentPFT, Interior);
    
-
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -645,4 +644,5 @@ if (NSSave!=NS)
   return PFTMatrix;
 }
   
+
 } // namespace scuff
