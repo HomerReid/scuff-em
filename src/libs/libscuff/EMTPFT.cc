@@ -102,7 +102,6 @@ void PFTIntegrand_BFBF2(double *xA, PCData *PCD,
   /***************************************************************/
   /***************************************************************/
   PFTIData *Data=(PFTIData *)UserData;
-  cdouble Omega   = Data->Omega;
   cdouble k       = Data->k;
   cdouble EpsRel  = Data->EpsRel;
   int EMTPFTIMethod = Data->EMTPFTIMethod;
@@ -382,6 +381,27 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
    ErrExit("invalid PFTMatrix in GetEMTPFT");
 
   /***************************************************************/
+  /* PFTBySurface[NS] = contributions of Surface NS to PFTMatrix */
+  /***************************************************************/
+static int NSSave=0;
+static HMatrix **PFTBySurface=0, *IncidentPFT=0;
+if (NSSave!=NS)
+ { NSSave=NS;
+   if (PFTBySurface)
+    { for(int ns=0; ns<NS; ns++)
+       if (PFTBySurface[ns]) 
+        delete PFTBySurface[ns];
+      free(PFTBySurface);
+     if (IncidentPFT)
+      delete IncidentPFT;
+    };
+   PFTBySurface=(HMatrix **)mallocEC(NS*sizeof(HMatrix));
+   for(int ns=0; ns<NS; ns++)
+    PFTBySurface[ns]=new HMatrix(NS, NUMPFT);
+   IncidentPFT=new HMatrix(NS, NUMPFT);
+ };
+
+  /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   static int init=0;
@@ -392,20 +412,21 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
    };
 
   /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
+  /*- DeltaPFT[ nt*NS*NS*NQ + nsA*NS*NQ + nsB*NQ + nq ]           */
+  /*-  = contribution of surface B to PFT quantity nq on surface A*/
   /*--------------------------------------------------------------*/
   int NT=1;
 #ifdef USE_OPENMP 
   NT = GetNumThreads();
 #endif
-  int NQ     = NUMPFT;
-  int NSNQ   = NS*NQ;
-  int NTNSNQ = NT*NS*NQ; 
+  int NQ      = NUMPFT;
+  int NS2NQ   = NS*NS*NQ;
+  int NTNS2NQ = NT*NS*NS*NQ; 
   static int DeltaPFTSize=0;
   static double *DeltaPFT=0;
-  if ( DeltaPFTSize < NTNSNQ )
-   { Log("(re)allocating DeltaPFT (%i,%i)",DeltaPFTSize,NTNSNQ);
-     DeltaPFTSize=NTNSNQ;
+  if ( DeltaPFTSize < NTNS2NQ )
+   { Log("(re)allocating DeltaPFT (%i,%i)",DeltaPFTSize,NTNS2NQ);
+     DeltaPFTSize=NTNS2NQ;
      if (DeltaPFT) free(DeltaPFT);
      DeltaPFT = (double *)mallocEC(DeltaPFTSize*sizeof(double));
    };
@@ -421,6 +442,8 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
    { UseSymmetry=false;
      Log("Not using symmetry in EMTPFT calculation.");
    };
+  //TODO insert here a check for any nested objects and automatically 
+  //     disable symmetry if present
     
 #ifdef USE_OPENMP
   Log("EMT OpenMP multithreading (%i threads)",NT);
@@ -433,27 +456,27 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
 
       int nsa, nea, KNIndexA;
       RWGSurface *SA = G->ResolveEdge(neaTot, &nsa, &nea, &KNIndexA);
+      int RegionIndex = SA->RegionIndices[Interior ? 1 : 0];
+      if (RegionIndex==-1) continue; // no interior PFT for PEC bodies
 
       int nsb, neb, KNIndexB;
       RWGSurface *SB = G->ResolveEdge(nebTot, &nsb, &neb, &KNIndexB);
    
       double abSign=0.0, baSign=0.0;
-      int RegionIndex;
-      if (Interior)
-       { RegionIndex=SA->RegionIndices[1];
-         if ( SB->RegionIndices[1] == RegionIndex )
-          abSign=baSign=-1.0;
-         else if (SB->RegionIndices[0]==RegionIndex)
-          abSign=1.0;
+      if (nsa==nsb)
+       abSign = Interior ? -1.0 : 1.0;
+      else if (SA->RegionIndices[0] == SB->RegionIndices[0]) // A, B live in same region
+       abSign = baSign = Interior ? 0.0 : 1.0;
+      else if (SA->RegionIndices[0] == SB->RegionIndices[1]) // A contained in B
+       { abSign = Interior ? 0.0 : -1.0;
+         baSign = Interior ? 1.0 : 0.0;
        }
-      else
-       { RegionIndex=SA->RegionIndices[0];
-         if ( SB->RegionIndices[0] == RegionIndex )
-          abSign=baSign=+1.0;
-         else if (SB->RegionIndices[1]==RegionIndex)
-          abSign=-1.0;
+      else if (SA->RegionIndices[1] == SB->RegionIndices[0]) // B contained in A
+       { abSign = Interior ? 1.0 : 0.0;
+         baSign = Interior ? 0.0 : -1.0;
        };
-      if ( RegionIndex==-1 || (abSign==0.0 && baSign==0.0) )
+
+      if ( abSign==0.0 && baSign==0.0 )
        continue;
 
       cdouble EpsR, MuR;
@@ -490,8 +513,9 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
 #ifdef USE_OPENMP
       nt=omp_get_thread_num();
 #endif
-      int OffsetA = nt*NSNQ + nsa*NQ;
-      int OffsetB = nt*NSNQ + nsb*NQ;
+
+      int OffsetA = nt*NS2NQ + nsa*NS*NQ + nsb*NQ;
+      int OffsetB = nt*NS2NQ + nsb*NS*NQ + nsa*NQ;
 
       if (!UseSymmetry)
        VecPlusEquals(DeltaPFT + OffsetA, abSign, dPFT, NUMPFT);
@@ -502,19 +526,15 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
          else if (nsa==nsb) // nebTot > neaTot but both on same surface
           { 
             DeltaPFT[ OffsetA + PFT_PSCAT ] += 2.0*abSign*dPFT[PFT_PSCAT];
-            for(int Mu=0; Mu<6; Mu++)
-             DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
-              += 2.0*abSign*dPFT[PFT_XFORCE + Mu];
+            VecPlusEquals(DeltaPFT + OffsetA + PFT_XFORCE, 2.0*abSign, dPFT+PFT_XFORCE, NUMPFT-PFT_XFORCE);
           }
          else // nebTot > neaTot and on different objects
           { 
             DeltaPFT[ OffsetA + PFT_PSCAT ] += abSign*dPFT[PFT_PSCAT];
             DeltaPFT[ OffsetB + PFT_PSCAT ] += baSign*dPFT[PFT_PSCAT];
             for(int Mu=0; Mu<6; Mu++)
-             { DeltaPFT[ OffsetA + PFT_XFORCE + Mu ] 
-                += abSign*dPFT[PFT_XFORCE + Mu];
-               DeltaPFT[ OffsetB + PFT_XFORCE + Mu ] 
-                += baSign*dPFT[PFT_XFORCE + Mu];
+             { VecPlusEquals(DeltaPFT + OffsetA + PFT_XFORCE,      abSign, dPFT+PFT_XFORCE, NUMPFT-PFT_XFORCE);
+               VecPlusEquals(DeltaPFT + OffsetB + PFT_XFORCE, -1.0*baSign, dPFT+PFT_XFORCE, NUMPFT-PFT_XFORCE);
              };
           };
        };
@@ -524,11 +544,36 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   /*--------------------------------------------------------------*/
   /*- accumulate contributions of all threads                     */
   /*--------------------------------------------------------------*/
-  PFTMatrix->Zero();
   for(int ns=0; ns<NS; ns++)
+   PFTBySurface[ns]->Zero();
+  for(int nsa=0; nsa<NS; nsa++)
+   for(int nsb=0; nsb<NS; nsb++)
+    for(int nq=0; nq<NQ; nq++)
+     for(int nt=0; nt<NT; nt++)
+      PFTBySurface[nsb]->AddEntry(nsa, nq, DeltaPFT[ nt*NS2NQ + nsa*NS*NQ + nsb*NQ + nq ]);
+
+  /***************************************************************/
+  /* get incident-field contributions ****************************/
+  /***************************************************************/
+  IncidentPFT->Zero();
+  if (IF)
+   AddIFContributionsToEMTPFT(G, KNVector, IF, Omega, IncidentPFT, Interior);
+   
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  PFTMatrix->Zero();
+  for(int nsa=0; nsa<NS; nsa++)
    for(int nq=0; nq<NQ; nq++)
-    for(int nt=0; nt<NT; nt++)
-     PFTMatrix->AddEntry(ns, nq, DeltaPFT[ nt*NSNQ + ns*NQ + nq ]);
+    { 
+      for(int nsb=0; nsb<NS; nsb++)
+       PFTMatrix->AddEntry(nsa,nq,PFTBySurface[nsb]->GetEntry(nsa,nq));
+      PFTMatrix->AddEntry(nsa,nq,IncidentPFT->GetEntry(nsa,nq));
+    };
+  
+  /*- DeltaPFT[ nt*NS*NS*NQ + nsA*NS*NQ + nsB*NQ + nq ]           */
+  /*-  = contribution of surface B to PFT quantity nq on surface A*/
 
   /***************************************************************/
   /* If we are using the interior expansion, then the quantity   */
@@ -536,8 +581,7 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   /* absorbed power.                                             */
   /* If we are using the exterior expansion, then the quantity   */
   /* computed as the scattered power wants to be subtracted from */
-  /* the extinction (which will be added to the absorbed power   */
-  /* when we compute the incident-field contributions below).    */
+  /* the extinction (incident-field contribution to power).      */
   /* So in either case we want to set the PABS slot of the matrix*/
   /* to the negative of PSCAT. In the interior-expansion case    */
   /* we want further to zero out the PSCAT slot since the        */
@@ -550,24 +594,53 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
    };
 
   /***************************************************************/
-  /* add incident-field contributions ****************************/
   /***************************************************************/
-  if (IF)
-   AddIFContributionsToEMTPFT(G, KNVector, IF, Omega, PFTMatrix, Interior);
+  /***************************************************************/
+// if (ItemizeEMTPFT)...
+  static bool WrotePreamble=false;
+  for(int nsa=0; nsa<NS; nsa++)
+   { FILE *f=vfopen("%s.%s.%cEMTPFT%i","a",
+                     GetFileBase(G->GeoFileName),
+                     G->Surfaces[nsa]->Label,
+                     (Interior ? 'I' : 'E'), EMTPFTIMethod);
+     if (!f) continue;
+     if (!WrotePreamble)
+      { fprintf(f,"# %s EMTPFT contributions to surface %s (integral method %i)\n",
+                  Interior ? "Interior" : "Exterior", G->Surfaces[nsa]->Label, EMTPFTIMethod);
+        fprintf(f,"# columns: \n");
+        fprintf(f,"# 1 frequency \n");
+        fprintf(f,"# 2 destination surface label \n");
+        fprintf(f,"# 03-10 PAbs, PScat, Fxyz, Txyz (total)\n");
+        fprintf(f,"# 11-19 PAbs, PScat, Fxyz, Txyz (extinction)\n");
+        int nc=20;
+        for(int nsb=0; nsb<NS; nsb++, nc+=8)
+         fprintf(f,"# %i-%i PAbs, PScat, Fxyz, Txyz (surface %s)\n",nc,nc+8,G->Surfaces[nsb]->Label);
+      };
+     fprintf(f,"%e %s ",real(Omega),G->Surfaces[nsa]->Label);
+     for(int nq=0; nq<NUMPFT; nq++)
+      fprintf(f,"%e ",PFTMatrix->GetEntryD(nsa,nq));
+     for(int nq=0; nq<NUMPFT; nq++)
+      fprintf(f,"%e ",IncidentPFT->GetEntryD(nsa,nq));
+     for(int nsb=0; nsb<NS; nsb++)
+      for(int nq=0; nq<NUMPFT; nq++)
+       fprintf(f,"%e ",PFTBySurface[nsb]->GetEntryD(nsa,nq));
+     fprintf(f,"\n");
+     fclose(f);
+   };
+  WrotePreamble=true;
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-#if 0
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   if (G->Mate[ns]==-1 && G->FIBBICaches[ns])
-    { 
-      StoreFIBBICache(G->FIBBICaches[ns], G->Surfaces[ns]->MeshFileName);
-      int Hits, Misses;
-      int CacheSize=GetFIBBICacheSize(G->FIBBICaches[ns],&Hits, &Misses);
-      Log("EMTPFT surface %i: (%i/%i) hits/misses",ns,Hits,Misses);
-    };
-#endif
+  if (EMTPFTIMethod==0)
+   for(int ns=0; ns<G->NumSurfaces; ns++)
+    if (G->Mate[ns]==-1 && G->FIBBICaches[ns])
+     { 
+       StoreFIBBICache(G->FIBBICaches[ns], G->Surfaces[ns]->MeshFileName);
+       int Hits, Misses;
+       int CacheSize=GetFIBBICacheSize(G->FIBBICaches[ns],&Hits, &Misses);
+       Log("EMTPFT surface %i: (%i/%i) hits/misses",ns,Hits,Misses);
+     };
 
   return PFTMatrix;
 }
