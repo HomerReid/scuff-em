@@ -425,12 +425,11 @@ void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
   Options->PFTMethod = SCUFF_PFT_EMT;
  
   int nmStart=0;
-  int nmStop=SCUFF_EMTPFTI_NUMMETHODS;
-  char *s=getenv("SCUFF_EMTPFT_METHOD");
-  if (s && s[0]=='0')
-   { nmStart=0; nmStop=1; }
-  else if (s && s[0]=='1')
-   { nmStart=1; nmStop=3; }
+  int nmStop=2; //SCUFF_EMTPFTI_NUMMETHODS;
+  char *s=getenv("SCUFF_EMTPFT_NMSTART");
+  if (s) sscanf(s,"%i",&nmStart);
+  s=getenv("SCUFF_EMTPFT_NMSTOP");
+  if (s) sscanf(s,"%i",&nmStop);
 
   static bool WrotePreamble=false;
 

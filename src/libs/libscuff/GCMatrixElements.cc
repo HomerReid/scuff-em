@@ -518,6 +518,7 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 void dGSabIntegrand(double xA[3], double bA[3], double DivbA,
                     double xB[3], double bB[3], double DivbB,
                     void *UserData, double Weight, double *Integral)
@@ -550,6 +551,7 @@ void dGSabIntegrand(double xA[3], double bA[3], double DivbA,
   Integral[4] += Weight*RPB[1]*ScalarFactor;
   Integral[5] += Weight*RPB[2]*ScalarFactor;
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/

@@ -13,6 +13,7 @@
 \contentsline {paragraph}{Planar case}{14}
 \contentsline {paragraph}{General case}{15}
 \contentsline {section}{\numberline {6}Energy/momentum-transfer PFT (EMTPFT), version 2}{16}
-\contentsline {section}{\numberline {A}Derivation of volume integrals for the force and torque}{17}
-\contentsline {section}{\numberline {B}Overlap integral between RWG basis functions}{19}
-\contentsline {section}{\numberline {C}PFT in Mie Scattering}{20}
+\contentsline {section}{\numberline {7}Cartesian-multipole-moment PFT}{17}
+\contentsline {section}{\numberline {A}Derivation of volume integrals for the force and torque}{18}
+\contentsline {section}{\numberline {B}Overlap integral between RWG basis functions}{20}
+\contentsline {section}{\numberline {C}PFT in Mie Scattering}{21}
