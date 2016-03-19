@@ -448,7 +448,7 @@ void GetPFTIntegrals_BFBF(RWGGeometry *G,
      Data->TorqueCenter = G->Surfaces[nsa]->Origin;
 
      int IDim  = NUMPFTIS;
-     int Order = 21;
+     int Order = 9;
 
      GetBFBFCubature2(G, nsa, nea, nsb, neb,
                       PFTIIntegrand_BFBF, (void *)Data, IDim,
@@ -523,25 +523,25 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
    ErrExit("invalid PFTMatrix in GetEMTPFT");
 
   /***************************************************************/
-  /* PFTBySurface[NS] = contributions of Surface NS to PFTMatrix */
+  /* PFTTBySurface[ns] = contributions of surface #ns to PFTT    */
   /***************************************************************/
-static int NSSave=0;
-static HMatrix **PFTTBySurface=0, *IncidentPFTT=0;
-if (NSSave!=NS)
- { NSSave=NS;
-   if (PFTTBySurface)
-    { for(int ns=0; ns<NS; ns++)
-       if (PFTTBySurface[ns]) 
-        delete PFTTBySurface[ns];
-      free(PFTTBySurface);
-     if (IncidentPFTT)
-      delete IncidentPFTT;
-    };
-   PFTTBySurface=(HMatrix **)mallocEC(NS*sizeof(HMatrix));
-   for(int ns=0; ns<NS; ns++)
-    PFTTBySurface[ns]=new HMatrix(NS, NUMPFTT);
-   IncidentPFTT=new HMatrix(NS, NUMPFTT);
- };
+  static int NSSave=0;
+  static HMatrix **PFTTBySurface=0, *IncidentPFTT=0;
+  if (NSSave!=NS)
+   { if (PFTTBySurface)
+      { for(int ns=0; ns<NSSave; ns++)
+         if (PFTTBySurface[ns]) 
+          delete PFTTBySurface[ns];
+        free(PFTTBySurface);
+       if (IncidentPFTT)
+        delete IncidentPFTT;
+      };
+     NSSave=NS;
+     PFTTBySurface=(HMatrix **)mallocEC(NS*sizeof(HMatrix));
+     for(int ns=0; ns<NS; ns++)
+      PFTTBySurface[ns]=new HMatrix(NS, NUMPFTT);
+     IncidentPFTT=new HMatrix(NS, NUMPFTT);
+   };
 
   /***************************************************************/
   /***************************************************************/
@@ -594,7 +594,8 @@ if (NSSave!=NS)
   for(int neaTot=0; neaTot<TotalEdges; neaTot++)
    for(int nebTot=(UseSymmetry ? neaTot : 0); nebTot<TotalEdges; nebTot++)
     { 
-      if (nebTot==neaTot) LogPercent(neaTot, TotalEdges, 10);
+      if (nebTot==(UseSymmetry ? neaTot : 0)) 
+       LogPercent(neaTot, TotalEdges, 10);
 
       int nsa, nea, KNIndexA;
       RWGSurface *SA = G->ResolveEdge(neaTot, &nsa, &nea, &KNIndexA);
@@ -742,38 +743,41 @@ if (NSSave!=NS)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-// if (ItemizeEMTPFT)...
-  static bool WrotePreamble=false;
-  for(int nsa=0; nsa<NS; nsa++)
-   { FILE *f=vfopen("%s.%s.%cEMTPFT%i","a",
-                     GetFileBase(G->GeoFileName),
-                     G->Surfaces[nsa]->Label,
-                     (Interior ? 'I' : 'E'), EMTPFTIMethod);
-     if (!f) continue;
-     if (!WrotePreamble)
-      { fprintf(f,"# %s EMTPFT contributions to surface %s (integral method %i)\n",
-                  Interior ? "Interior" : "Exterior", G->Surfaces[nsa]->Label, EMTPFTIMethod);
-        fprintf(f,"# columns: \n");
-        fprintf(f,"# 1 frequency \n");
-        fprintf(f,"# 2 destination surface label \n");
-        fprintf(f,"# 03-10 PAbs, PScat, Fxyz, Txyz (total)\n");
-        fprintf(f,"# 11-21 PAbs, PScat, Fxyz, T1xyz, T2xyz (extinction)\n");
-        int nc=22;
-        for(int nsb=0; nsb<NS; nsb++, nc+=NUMPFTT)
-         fprintf(f,"# %i-%i PAbs, PScat, Fxyz, Txyz (surface %s)\n",nc,nc+NUMPFTT-1,G->Surfaces[nsb]->Label);
+  char *s=getenv("SCUFF_ITEMIZE_PFT");
+  if (s && s[0]=='1')
+   { 
+     static bool WrotePreamble=false;
+     for(int nsa=0; nsa<NS; nsa++)
+      { FILE *f=vfopen("%s.%s.%cEMTPFT%i","a",
+                        GetFileBase(G->GeoFileName),
+                        G->Surfaces[nsa]->Label,
+                        (Interior ? 'I' : 'E'), EMTPFTIMethod);
+        if (!f) continue;
+        if (!WrotePreamble)
+         { fprintf(f,"# %s EMTPFT contributions to surface %s (integral method %i)\n",
+                     Interior ? "Interior" : "Exterior", G->Surfaces[nsa]->Label, EMTPFTIMethod);
+           fprintf(f,"# columns: \n");
+           fprintf(f,"# 1 frequency \n");
+           fprintf(f,"# 2 destination surface label \n");
+           fprintf(f,"# 03-10 PAbs, PScat, Fxyz, Txyz (total)\n");
+           fprintf(f,"# 11-21 PAbs, PScat, Fxyz, T1xyz, T2xyz (extinction)\n");
+           int nc=22;
+           for(int nsb=0; nsb<NS; nsb++, nc+=NUMPFTT)
+            fprintf(f,"# %i-%i PAbs, PScat, Fxyz, Txyz (surface %s)\n",nc,nc+NUMPFTT-1,G->Surfaces[nsb]->Label);
+         };
+        fprintf(f,"%e %s ",real(Omega),G->Surfaces[nsa]->Label);
+        for(int nq=0; nq<NUMPFT; nq++)
+         fprintf(f,"%e ",PFTMatrix->GetEntryD(nsa,nq));
+        for(int nq=0; nq<NUMPFTT; nq++)
+         fprintf(f,"%e ",IncidentPFTT->GetEntryD(nsa,nq));
+        for(int nsb=0; nsb<NS; nsb++)
+         for(int nq=0; nq<NUMPFTT; nq++)
+          fprintf(f,"%e ",PFTTBySurface[nsb]->GetEntryD(nsa,nq));
+        fprintf(f,"\n");
+        fclose(f);
       };
-     fprintf(f,"%e %s ",real(Omega),G->Surfaces[nsa]->Label);
-     for(int nq=0; nq<NUMPFT; nq++)
-      fprintf(f,"%e ",PFTMatrix->GetEntryD(nsa,nq));
-     for(int nq=0; nq<NUMPFTT; nq++)
-      fprintf(f,"%e ",IncidentPFTT->GetEntryD(nsa,nq));
-     for(int nsb=0; nsb<NS; nsb++)
-      for(int nq=0; nq<NUMPFTT; nq++)
-       fprintf(f,"%e ",PFTTBySurface[nsb]->GetEntryD(nsa,nq));
-     fprintf(f,"\n");
-     fclose(f);
+     WrotePreamble=true;
    };
-  WrotePreamble=true;
 
   /***************************************************************/
   /***************************************************************/
