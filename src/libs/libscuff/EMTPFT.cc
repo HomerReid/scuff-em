@@ -421,7 +421,7 @@ void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KN,
   AddIFContributionsToEMTPFTT(G, KN, IF, Omega, PFTTMatrix, Interior);
   for(int ns=0; ns<NS; ns++)
    for(int nq=0; nq<NUMPFT; nq++)
-    { PFTMatrix->SetEntry(ns, nq, PFTTMatrix->GetEntry(ns, nq));
+    { PFTMatrix->AddEntry(ns, nq, PFTTMatrix->GetEntry(ns, nq));
       if (PFT_XTORQUE <=nq && nq<=PFT_ZTORQUE)
        PFTMatrix->AddEntry(ns, nq, PFTTMatrix->GetEntry(ns, nq+3));
     };
@@ -512,6 +512,13 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
                          HMatrix *PFTMatrix, bool Interior,
                          int EMTPFTIMethod)
 { 
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  char *sss=getenv("SCUFF_EMTPFTI_METHOD");
+  if (sss)
+   sscanf(sss,"%i",&EMTPFTIMethod); 
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
