@@ -743,8 +743,8 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  char *s=getenv("SCUFF_ITEMIZE_PFT");
-  if (s && s[0]=='1')
+  char *ss=getenv("SCUFF_ITEMIZE_PFT");
+  if (ss && ss[0]=='1')
    { 
      static bool WrotePreamble=false;
      for(int nsa=0; nsa<NS; nsa++)
