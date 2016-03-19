@@ -8,8 +8,9 @@
 \contentsline {section}{\numberline {5}Energy/momentum-transfer PFT (EMTPFT), version 1}{9}
 \contentsline {subsection}{\numberline {5.1}Extinction EMTPFT}{10}
 \contentsline {subsection}{\numberline {5.2}Scattered EMTPFT}{10}
-\contentsline {section}{\numberline {6}Energy/momentum-transfer PFT (EMTPFT), version 2}{12}
-\contentsline {section}{\numberline {7}Cartesian-multipole-moment PFT}{13}
-\contentsline {section}{\numberline {A}Derivation of volume integrals for the force and torque}{14}
-\contentsline {section}{\numberline {B}Overlap integral between RWG basis functions}{16}
-\contentsline {section}{\numberline {C}PFT in Mie Scattering}{17}
+\contentsline {paragraph}{Symmetry rules for summations}{11}
+\contentsline {section}{\numberline {6}Energy/momentum-transfer PFT (EMTPFT), version 2}{13}
+\contentsline {section}{\numberline {7}Cartesian-multipole-moment PFT}{14}
+\contentsline {section}{\numberline {A}Derivation of volume integrals for the force and torque}{15}
+\contentsline {section}{\numberline {B}Overlap integral between RWG basis functions}{17}
+\contentsline {section}{\numberline {C}PFT in Mie Scattering}{18}

@@ -162,26 +162,33 @@ Q\supt{KK}_{ab}
 Q\supt{NN}_{ab} 
  &\equiv i\omega \epsilon \iint \vb b_a \circledast \mb G \star \vb b_b \, d\vb x_a \, d\vb x_b
 \\[5pt]
-Q\supt{KKPNN}_{ab} 
+Q\supt{KNmNK}_{ab} 
  &\equiv \iint \vb b_a \circledast \wh{\mb C} \star \vb b_b \, d\vb x_a \, d\vb x_b
 \\[5pt]
 \end{align*}
 %%====================================================================%
 
+\paragraph{Symmetry rules for summations}
+
 \begin{align*}
    \text{Re }\sum_{ab} k^*_a k_b Q_{ab} 
 &=\begin{cases}
-    \sum_{ab} 
+   +\sum_{ab} 
     \Big[\text{Re }k_a^* k_b\Big]\Big[\text{Re }Q_{ab}\Big],
     \qquad &\text{if } Q_{ab} = +Q_{ba} \\
 \\
-    0,
+   -\sum_{ab}
+    \Big[\text{Im }k_a^* k_b\Big]\Big[\text{Im }Q_{ab}\Big],
     \qquad &\text{if } Q_{ab} = -Q_{ba} \\
   \end{cases}
-\\
+\end{align*}
+
+\begin{align*}
    \text{Im }\sum_{ab} k^*_a k_b Q_{ab} 
 &=\begin{cases}
-    0, \qquad &\text{if } Q_{ab} = +Q_{ba} 
+    \sum_{ab} 
+    \Big[\text{Re }k_a^* k_b\Big]\Big[\text{Im }Q_{ab}\Big],
+    \qquad &\text{if } Q_{ab} = +Q_{ba} \\
 \\
     \sum_{ab} 
     \Big[\text{Im }k_a^* k_b\Big]\Big[\text{Re }Q_{ab}\Big],
@@ -192,24 +199,67 @@ Q\supt{KKPNN}_{ab}
 \begin{align*}
    \text{Re }\sum_{ab} (k^*_a n_b-n_a^* k_b) Q_{ab}
 &=\begin{cases}
-    0, 
+   -\Big[\text{Im }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Im }Q_{ab}\Big],
     \qquad &\text{if } Q_{ab} = +Q_{ba} \\
 \\
     \sum_{ab}
     \Big[\text{Re }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Re }Q_{ab}\Big],
     \qquad &\text{if } Q_{ab} = -Q_{ba} \\
   \end{cases}
-\\[10pt]
+\end{align*}
+
+\begin{align*}
    \text{Im }\sum_{ab} (k^*_a n_b-n_a^* k_b) Q_{ab}
 &=\begin{cases}
-    0
-    \qquad &\text{if } Q_{ab} = -Q_{ba} \\
-\\
-    \Big[\text{Im }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Im }Q_{ab}\Big],
+    \sum_{ab}
+    \Big[\text{Im }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Re }Q_{ab}\Big],
     \qquad &\text{if } Q_{ab} = +Q_{ba} \\
+\\
+    \sum_{ab}
+    \Big[\text{Re }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Im }Q_{ab}\Big],
+    \qquad &\text{if } Q_{ab} = -Q_{ba} \\
   \end{cases}
 \end{align*}
 
+\subsection*{Power}
+
+\begin{align*}
+ Q\supt{KK}_{ab}
+&=i\omega \mu 
+  \iint b_{ai}(\vb x_a) \mb G_{ij}(\vb x_a, \vb x_b) b_{bj}(\vb x^\prime) 
+  d\vb x_a \, d\vb x_b
+\\
+ Q\supt{NN}_{ab}
+&=i\omega \epsilon
+  \iint b_{ai}(\vb x_a) \mb G_{ij}(\vb x_a, \vb x_b) b_{bj}(\vb x^\prime) 
+  d\vb x_a \, d\vb x_b
+\\
+ Q\supt{KNmNK}_{ab}
+&=
+  \iint b_{ai}(\vb x_a) \wh{\mb C_{ij}}(\vb x_a, \vb x_b) b_{bj}(\vb x^\prime) 
+  d\vb x_a \, d\vb x_b
+\\
+\end{align*}
+
+\subsection*{$i$-directed Force}
+
+\begin{align*}
+ Q\supt{KK}_{ab}
+&=i\omega \mu 
+  \iint b_{aj}(\vb x_a) \partial_i \mb G_{jk}(\vb x_a, \vb x_b) b_{bk}(\vb x^\prime) 
+  d\vb x_a \, d\vb x_b
+\\
+ Q\supt{NN}_{ab}
+&=i\omega \epsilon
+  \iint b_{aj}(\vb x_a) \partial_i \mb G_{jk}(\vb x_a, \vb x_b) b_{bk}(\vb x^\prime) 
+  d\vb x_a \, d\vb x_b
+\\
+ Q\supt{KNmNK}_{ab}
+&=
+  \iint b_{aj}(\vb x_a) \partial_i \wh{\mb C_{jk}}(\vb x_a, \vb x_b) b_{bk}(\vb x^\prime) 
+  d\vb x_a \, d\vb x_b
+\\
+\end{align*}
 
 %%====================================================================%
 %\subsection*{Power}
