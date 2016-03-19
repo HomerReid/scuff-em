@@ -703,8 +703,16 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
           dPFTT[PFT_XFORCE + Mu]
            = 0.5*imag( u0KK*QKK[PFT_XFORCE + Mu]
                       +e0NN*QNN[PFT_XFORCE + Mu]
-                      +KNmNK*QKNmNK[PFT_XFORCE +Mu]
+                      +KNmNK*QKNmNK[PFT_XFORCE + Mu]
                      );
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+dPFTT[PFT_XFORCE + 0]
+ = 0.5*imag( u0KK*QKK[PFT_XFORCE + 2]
+            +e0NN*QNN[PFT_XFORCE + 2]
+            -KNmNK*QKNmNK[PFT_XFORCE + 2]
+           );
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
        };
 
       int nt=0;
