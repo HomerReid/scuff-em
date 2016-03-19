@@ -482,7 +482,7 @@ void GetPFTIntegrals_BFBF(RWGGeometry *G,
      for(int Mu=0; Mu<NUMFT; Mu++)
       { PFTIs[0*NUMPFTT+1+Mu] = -FTPreFac*imag( MuR*GabArray[0][GCME_FX + Mu]);
         PFTIs[1*NUMPFTT+1+Mu] = -FTPreFac*imag(EpsR*GabArray[0][GCME_FX + Mu]);
-        PFTIs[2*NUMPFTT+1+Mu] = +FTPreFac*imag(  ikCabArray[0][GCME_FX + Mu]);
+        PFTIs[2*NUMPFTT+1+Mu] = +FTPreFac*imag(  ikCabArray[0][GCME_FX + Mu]/Omega);
       };
      PFTIs[0*NUMPFTT+8]=PFTIs[0*NUMPFTT+9]=PFTIs[0*NUMPFTT+10]=0.0;
      PFTIs[1*NUMPFTT+8]=PFTIs[1*NUMPFTT+9]=PFTIs[1*NUMPFTT+10]=0.0;
