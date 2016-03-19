@@ -171,6 +171,7 @@ void PFTIIntegrand_BFBF(double xA[3], double bA[3], double DivbA,
   QKNmNK[PFT_PSCAT] += Weight*PMFIE*Psi;
  
   double FTPreFac=TENTHIRDS*Weight;
+#if 0
   for(int Mu=0; Mu<3; Mu++)
    { 
      QKK[PFT_XFORCE + Mu]    -= FTPreFac*PEFIE*MuRel*R[Mu]*Psi;
@@ -185,6 +186,18 @@ void PFTIIntegrand_BFBF(double xA[3], double bA[3], double DivbA,
      QNN[PFT_XTORQUE + 3 + Mu]    -= FTPreFac*PEFIE*EpsRel*XTxR[Mu]*Psi;
      QKNmNK[PFT_XTORQUE + 3 + Mu] += FTPreFac*(XTxbxb[Mu]*Psi + PMFIE*XTxR[Mu]*Zeta)/Omega;
    };
+#endif
+QKK[PFT_XFORCE    + 0] -= FTPreFac*PEFIE*MuRel*R[2]*Psi;
+QNN[PFT_XFORCE    + 0] -= FTPreFac*PEFIE*EpsRel*R[2]*Psi;
+QKNmNK[PFT_XFORCE + 0] += 0.0;
+
+QKK[PFT_XFORCE    + 1] += 0.0;
+QNN[PFT_XFORCE    + 1] += 0.0;
+QKNmNK[PFT_XFORCE + 1] += FTPreFac*(bxb[2]*Psi + PMFIE*R[2]*Zeta)/Omega;
+
+QKK[PFT_XFORCE    + 2] -= FTPreFac*PEFIE*MuRel*R[2]*Psi;
+QNN[PFT_XFORCE    + 2] -= FTPreFac*PEFIE*EpsRel*R[2]*Psi;
+QKNmNK[PFT_XFORCE + 2] += FTPreFac*(bxb[2]*Psi + PMFIE*R[2]*Zeta)/Omega;
 
 }
 
