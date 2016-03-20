@@ -60,7 +60,9 @@ namespace scuff {
 /* If PM is NULL on entry (or points to a matrix of the wrong  */
 /* size) then it is reallocated.                               */
 /***************************************************************/
-HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM)
+HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM,
+                                       HMatrix *KNResolved)
+                                       
 { 
   /***************************************************************/
   /***************************************************************/
@@ -73,7 +75,14 @@ HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM)
   if (PM==0)
    PM=new HMatrix(NumSurfaces, 6, LHM_COMPLEX);
   PM->Zero(); 
- 
+
+  if ( KNResolved && 
+        (    KNResolved->NR!=NumSurfaces 
+          || KNResolved->NC!=12
+          || KNResolved->RealComplex!=LHM_COMPLEX
+        )
+     ) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -113,16 +122,22 @@ HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM)
       GetKNCoefficients(KN, ns, ne, &KAlpha, &NAlpha);
 
       for(int Mu=0; Mu<3; Mu++)
-       { PM->AddEntry(ns, Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
-         PM->AddEntry(ns, Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
+       { 
+         if (PM)
+          { PM->AddEntry(ns, Mu + 0, ZVAC*KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]);
+            PM->AddEntry(ns, Mu + 3, ZVAC*KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]);
+          };
+
+         if (KNResolved)
+          { KNResolved->AddEntry(ns, 0*3 + Mu, ZVAC*KAlpha*pRWG[Mu]);
+            KNResolved->AddEntry(ns, 1*3 + Mu,      KAlpha*pRWG[Mu]);
+            KNResolved->AddEntry(ns, 2*3 + Mu, ZVAC*KAlpha*mRWG[Mu]);
+            KNResolved->AddEntry(ns, 3*3 + Mu,      KAlpha*mRWG[Mu]);
+          };
        };
  
     };
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  PM->Scale(ZVAC); /* ? */ 
   return PM;
 
 }

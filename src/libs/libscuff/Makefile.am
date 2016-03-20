@@ -32,10 +32,11 @@ libscuff_la_SOURCES = \
  Faddeeva.hh        		\
  GetFields.cc 			\
  GetNearFields.cc 		\
+ DSIPFT.cc 			\
  EMTPFT.cc			\
  EPPFT.cc			\
+ MomentPFT.cc			\
  OPFT.cc  			\
- DSIPFT.cc 			\
  GetPFT.cc			\
  PFTOptions.h			\
  GetDipoleMoments.cc 		\

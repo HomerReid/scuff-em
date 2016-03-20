@@ -152,7 +152,6 @@ void ScatteredPFTIntegrand1(double xA[3], double bA[3], double DivbA,
   double bdb  = VecDot(bA, bB);
   double DbDb = DivbA*DivbB;
   double bAdR = VecDot(bA, R);
-  double bBdR = VecDot(bB, R);
 
   double bxb[3];    VecCross(bA, bB, bxb);
   double bAxR[3];   VecCross(bA, R, bAxR);
@@ -501,7 +500,7 @@ void GetExtinctionPFTT(RWGGeometry *G, HVector *KN,
      nt = omp_get_thread_num();
 #endif
      double *dPFTT = DeltaPFTT + (nt*NS + ns)*NUMPFTT;
-     dPFTT[PFT_PABS]  += real(KStar*QK[PFT_PABS] + NStar*QN[PFT_PABS]);
+     dPFTT[PFT_PABS] += real(KStar*QK[PFT_PABS] + NStar*QN[PFT_PABS]);
      for(int nq=PFT_XFORCE; nq<NUMPFTT; nq++)
       dPFTT[nq] += imag( KStar*QK[nq] + NStar*QN[nq] );
    };
@@ -554,21 +553,21 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   /*                     scattered PFTT                          */
   /***************************************************************/
   static int NSSave=0;
-  static HMatrix **ScatteredPFTT=0, *IncidentPFTT=0;
+  static HMatrix **ScatteredPFTT=0, *ExtinctionPFTT=0;
   if (NSSave!=NS)
    { if (ScatteredPFTT)
       { for(int ns=0; ns<NSSave; ns++)
          if (ScatteredPFTT[ns]) 
           delete ScatteredPFTT[ns];
         free(ScatteredPFTT);
-       if (IncidentPFTT)
-        delete IncidentPFTT;
+       if (ExtinctionPFTT)
+        delete ExtinctionPFTT;
       };
      NSSave=NS;
      ScatteredPFTT=(HMatrix **)mallocEC(NS*sizeof(HMatrix));
      for(int ns=0; ns<NS; ns++)
       ScatteredPFTT[ns]=new HMatrix(NS, NUMPFTT);
-     IncidentPFTT=new HMatrix(NS, NUMPFTT);
+     ExtinctionPFTT=new HMatrix(NS, NUMPFTT);
    };
 
   /***************************************************************/
@@ -648,17 +647,16 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
       if ( Sign==0.0 ) // B does not contribute to PFT on A
        continue;
 
+      cdouble KNB[4];
+      GetKNBilinears(KNVector, DRMatrix,
+                     SA->IsPEC, KNIndexA, SB->IsPEC, KNIndexB, KNB);
+      cdouble u0KK  = Sign * KNB[0] * ZVAC;
+      cdouble KNmNK = Sign * (KNB[1] - KNB[2]);
+      cdouble e0NN  = Sign * KNB[3] / ZVAC;
+
       cdouble EpsR, MuR;
       G->RegionMPs[RegionIndex]->GetEpsMu(Omega, &EpsR, &MuR);
       cdouble k = Omega*sqrt(EpsR*MuR);
-
-      cdouble KNB[4];
-      GetKNBilinears(KNVector, DRMatrix,
-                     SA->IsPEC, KNIndexA, SB->IsPEC, KNIndexB,
-                     KNB);
-      cdouble u0KK  = KNB[0] * ZVAC;
-      cdouble KNmNK = KNB[1] - KNB[2];
-      cdouble e0NN  = KNB[3] / ZVAC;
  
       cdouble PFTIs[NUMPFTIS];
       cdouble *QKK    = PFTIs + 0*NUMPFTT;
@@ -679,36 +677,21 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
          for(int nq=PFT_XFORCE; nq<NUMPFTT; nq++)
           dPFTT[nq] =  imag(u0KK)*imag(QKK[nq])
                       +imag(e0NN)*imag(QNN[nq])
-                     +real(KNmNK)*imag(QKNmNK[nq]);
-       }
+                      +real(KNmNK)*imag(QKNmNK[nq]);
+        }
       else
        { 
-         dPFTT[PFT_PSCAT] = real(  u0KK*II*QKK[PFT_PSCAT]
-                                  +e0NN*II*QNN[PFT_PSCAT]
-                                 +KNmNK*QKNmNK[PFT_PSCAT]
-                                );
+         dPFTT[PFT_PSCAT] = -1.0*real(  u0KK*II*QKK[PFT_PSCAT]
+                                       +e0NN*II*QNN[PFT_PSCAT]
+                                      +KNmNK*QKNmNK[PFT_PSCAT]
+                                     );
 
          for(int nq=PFT_XFORCE; nq<NUMPFTT; nq++)
-          dPFTT[nq] = imag(   u0KK*II*QKK[nq]
-                             +e0NN*II*QNN[nq]
-                            +KNmNK*QKNmNK[nq]
-                          );
+          dPFTT[nq] = -1.0*imag(   u0KK*II*QKK[nq]
+                                  +e0NN*II*QNN[nq]
+                                 +KNmNK*QKNmNK[nq]
+                               );
        };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-if (nsa==nsb)
-{
- dPFTT[PFT_XFORCE]
-           =  imag(u0KK)*imag(QKK[PFT_XFORCE + 2])
-             +imag(e0NN)*imag(QNN[PFT_XFORCE + 2]);
- dPFTT[PFT_YFORCE]
-           = real(KNmNK)*imag(QKNmNK[PFT_XFORCE +2]);
-}
-else
- { dPFTT[PFT_XFORCE] = imag(  u0KK*II*QKK[PFT_XFORCE + 2]
-                             +e0NN*II*QNN[PFT_XFORCE + 2] );
-   dPFTT[PFT_YFORCE] = imag(KNmNK*QKNmNK[PFT_XFORCE + 2]);
- };
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 
       int nt=0;
@@ -781,9 +764,9 @@ else
   /* get incident-field contributions ****************************/
   /***************************************************************/
   if (IF)
-   GetExtinctionPFTT(G, KNVector, IF, Omega, IncidentPFTT, Interior);
+   GetExtinctionPFTT(G, KNVector, IF, Omega, ExtinctionPFTT, Interior);
   else
-   IncidentPFTT->Zero();
+   ExtinctionPFTT->Zero();
    
   /***************************************************************/
   /* sum scattered contributions from all surfaces plus          */
@@ -797,7 +780,7 @@ else
   for(int nsa=0; nsa<NS; nsa++)
    for(int nq=0; nq<NUMPFT; nq++)
     { 
-      PFTMatrix->AddEntry(nsa,nq,IncidentPFTT->GetEntry(nsa,nq));
+      PFTMatrix->AddEntry(nsa,nq,ExtinctionPFTT->GetEntry(nsa,nq));
 
       for(int nsb=0; nsb<NS; nsb++)
        { 
@@ -810,7 +793,7 @@ else
        };
 
       if (PFT_XTORQUE<=nq && nq<=PFT_ZTORQUE)
-       { PFTMatrix->AddEntry(nsa,nq,IncidentPFTT->GetEntry(nsa,nq+3));
+       { PFTMatrix->AddEntry(nsa,nq,ExtinctionPFTT->GetEntry(nsa,nq+3));
          for(int nsb=0; nsb<NS; nsb++)
           PFTMatrix->AddEntry(nsa, nq, -1.0*ScatteredPFTT[nsb]->GetEntry(nsa,nq+3));
        };
@@ -857,7 +840,7 @@ else
         for(int nq=0; nq<NUMPFT; nq++)
          fprintf(f,"%e ",PFTMatrix->GetEntryD(nsa,nq));
         for(int nq=0; nq<NUMPFTT; nq++)
-         fprintf(f,"%e ",IncidentPFTT->GetEntryD(nsa,nq));
+         fprintf(f,"%e ",ExtinctionPFTT->GetEntryD(nsa,nq));
         for(int nsb=0; nsb<NS; nsb++)
          for(int nq=0; nq<NUMPFTT; nq++)
           fprintf(f,"%e ",ScatteredPFTT[nsb]->GetEntryD(nsa,nq));

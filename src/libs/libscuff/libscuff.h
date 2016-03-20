@@ -384,7 +384,7 @@ class RWGGeometry
    HMatrix *GetPanelSourceDensities(cdouble Omega, HVector *KN, HMatrix *PSD=0);
 
    /* electric and magnetic dipole moments */
-   HMatrix *GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM=0);
+   HMatrix *GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM=0, HMatrix *KNResolved=0);
 
    /* expansion coefficients in the RWG expansion of an arbitrary */
    /* user-supplied surface-tangential vector field               */

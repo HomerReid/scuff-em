@@ -148,6 +148,7 @@ int main(int argc, char *argv[])
 //
   char *PFTFile=0;
   char *OPFTFile=0;
+  char *MomentPFTFile=0;
   char *IEMTPFTFile=0;
   char *EEMTPFTFile=0;
   char *EMTPFTFileBase=0;
@@ -200,10 +201,11 @@ int main(int argc, char *argv[])
      {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power, force, and torque output file"},
 /**/
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
+     {"MomentPFTFile",  PA_STRING,  1, 1,       (void *)&MomentPFTFile,   0,             "name of multipole-moment PFT output file"},
 /**/
      {"EEMTPFTFile",    PA_STRING,  1, 1,       (void *)&EEMTPFTFile,    0,         "name of energy/momentum-transfer PFT output file"},
-     {"IEMTPFTFile",    PA_STRING,  1, 1,       (void *)&IEMTPFTFile,    0,         "name of interior energy/momentum-transfer PFT output file"},
      {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EEMTPFTFile,    0,         "(equivalent to --EEMTPFTFile)"},
+     {"IEMTPFTFile",    PA_STRING,  1, 1,       (void *)&IEMTPFTFile,    0,         "name of interior energy/momentum-transfer PFT output file"},
      {"EMTPFTFileBase", PA_STRING,  1, 1,       (void *)&EMTPFTFileBase, 0,         "base filename for full set of EMTPFT output files"},
 /**/ 
      {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
@@ -279,6 +281,7 @@ int main(int argc, char *argv[])
   bool NeedIncidentField = (    MomentFile!=0
                              || PFTFile!=0
                              || OPFTFile!=0
+                             || MomentPFTFile!=0
                              || IEMTPFTFile!=0
                              || EEMTPFTFile!=0
                              || EMTPFTFileBase!=0
@@ -452,6 +455,9 @@ int main(int argc, char *argv[])
      /*--------------------------------------------------------------*/
      if (OPFTFile)
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_OVERLAP, PlotPFTFlux, OPFTFile);
+
+     if (MomentPFTFile)
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_MOMENTS, PlotPFTFlux, MomentPFTFile);
 
      if (DSIPFTFile)
       { PFTOpts->DSIPoints=DSIPoints;
