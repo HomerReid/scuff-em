@@ -305,12 +305,11 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   /*******************************************************************/
-  HVector *PM=0;
   FILE *MomentFile=0;
   char PSDFileName[1000];
-  HMatrix *PSD=0;
+  HMatrix *PM=0, *PSD=0;
   if (Moments)
-   { PM=new HVector(6*G->NumSurfaces, LHM_COMPLEX);
+   { PM=new HMatrix(G->NumSurfaces, 6, LHM_COMPLEX);
      MomentFile=vfopen("%s.moments","w",GetFileBase(G->GeoFileName));
      PSD=new HMatrix(G->TotalPanels, 12, LHM_COMPLEX);
    };
@@ -382,8 +381,8 @@ int main(int argc, char *argv[])
                for(int ns=0; ns<G->NumSurfaces; ns++)
                 fprintf(MomentFile,"%e %i BEFORE %s %s %s %s %s %s %s \n",
                                     real(Omega),G->TotalPanels,G->Surfaces[ns]->Label,
-                                    CD2S(PM->GetEntry(6*ns+0)), CD2S(PM->GetEntry(6*ns+1)), CD2S(PM->GetEntry(6*ns+2)),
-                                    CD2S(PM->GetEntry(6*ns+3)), CD2S(PM->GetEntry(6*ns+4)), CD2S(PM->GetEntry(6*ns+5)));
+                                    CD2S(PM->GetEntry(ns,0)), CD2S(PM->GetEntry(ns,1)), CD2S(PM->GetEntry(ns,2)),
+                                    CD2S(PM->GetEntry(ns,3)), CD2S(PM->GetEntry(ns,4)), CD2S(PM->GetEntry(ns,5)));
                G->PlotSurfaceCurrents(KN, Omega, "%s_Before.pp",GetFileBase(G->GeoFileName));
 
                G->GetPanelSourceDensities(Omega, KN, PSD);
@@ -407,8 +406,8 @@ int main(int argc, char *argv[])
                for(int ns=0; ns<G->NumSurfaces; ns++)
                 fprintf(MomentFile,"%e %i AFTER %s %s %s %s %s %s %s \n",
                                     real(Omega),G->TotalPanels,G->Surfaces[ns]->Label,
-                                    CD2S(PM->GetEntry(6*ns+0)), CD2S(PM->GetEntry(6*ns+1)), CD2S(PM->GetEntry(6*ns+2)),
-                                    CD2S(PM->GetEntry(6*ns+3)), CD2S(PM->GetEntry(6*ns+4)), CD2S(PM->GetEntry(6*ns+5)));
+                                    CD2S(PM->GetEntry(ns,0)), CD2S(PM->GetEntry(ns,1)), CD2S(PM->GetEntry(ns,2)),
+                                    CD2S(PM->GetEntry(ns,3)), CD2S(PM->GetEntry(ns,4)), CD2S(PM->GetEntry(ns,5)));
                G->PlotSurfaceCurrents(KN, Omega, "%s_After.pp",GetFileBase(G->GeoFileName));
 
                G->GetPanelSourceDensities(Omega, KN, PSD);

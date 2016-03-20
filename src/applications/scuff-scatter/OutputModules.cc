@@ -279,7 +279,7 @@ void GetMoments(SSData *SSD, char *MomentFile)
   HVector *KN    = SSD->KN;
   cdouble Omega  = SSD->Omega;
 
-  HVector *PM  = G->GetDipoleMoments(Omega, KN);
+  HMatrix *PM  = G->GetDipoleMoments(Omega, KN);
 
   /***************************************************************/
   /* print to file ***********************************************/
@@ -288,7 +288,7 @@ void GetMoments(SSData *SSD, char *MomentFile)
   for (int ns=0; ns<G->NumSurfaces; ns++)
    { fprintf(f,"%s ",G->Surfaces[ns]->Label);
      for(int Mu=0; Mu<6; Mu++)
-      fprintf(f,"%s ",CD2S(PM->GetEntry(6*ns + Mu),"%.8e %.8e "));
+      fprintf(f,"%s ",CD2S(PM->GetEntry(ns,Mu),"%.8e %.8e "));
    };
   fprintf(f,"\n");
   fflush(f);

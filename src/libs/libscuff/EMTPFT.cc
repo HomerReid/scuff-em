@@ -197,7 +197,7 @@ void ScatteredPFTIntegrand1(double xA[3], double bA[3], double DivbA,
 /***************************************************************/
 /***************************************************************/
 void ScatteredPFTIntegrand2(double *xA, PCData *PCD,
-                             void *UserData, double *I)
+                            void *UserData, double *I)
 {
   /***************************************************************/
   /***************************************************************/
@@ -602,7 +602,7 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
      if (DeltaPFTT) free(DeltaPFTT);
      DeltaPFTT = (double *)mallocEC(DeltaPFTTSize*sizeof(double));
    };
-  memset(DeltaPFTT, 0, DeltaPFTTSize*sizeof(double));
+  memset(DeltaPFTT, 0, NTNS2NQ*sizeof(double));
 
   /*--------------------------------------------------------------*/
   /*- multithreaded loop over all basis functions on all surfaces-*/
@@ -676,24 +676,23 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
                             +real(e0NN)*imag(QNN[PFT_PSCAT])
                             +imag(KNmNK)*imag(QKNmNK[PFT_PSCAT]);
 
-         for(int Mu=0; Mu<NUMFTT; Mu++)
-          dPFTT[PFT_XFORCE + Mu]
-           =  imag(u0KK)*imag(QKK[PFT_XFORCE + Mu])
-             +imag(e0NN)*imag(QNN[PFT_XFORCE + Mu])
-             +real(KNmNK)*imag(QKNmNK[PFT_XFORCE +Mu]);
+         for(int nq=PFT_XFORCE; nq<NUMPFTT; nq++)
+          dPFTT[nq] =  imag(u0KK)*imag(QKK[nq])
+                      +imag(e0NN)*imag(QNN[nq])
+                     +real(KNmNK)*imag(QKNmNK[nq]);
        }
       else
        { 
-         dPFTT[PFT_PSCAT] = real(  u0KK*QKK[PFT_PSCAT]
-                                  +e0NN*QNN[PFT_PSCAT]
+         dPFTT[PFT_PSCAT] = real(  u0KK*II*QKK[PFT_PSCAT]
+                                  +e0NN*II*QNN[PFT_PSCAT]
                                  +KNmNK*QKNmNK[PFT_PSCAT]
                                 );
 
-         for(int Mu=0; Mu<NUMFTT; Mu++)
-          dPFTT[PFT_XFORCE + Mu] = imag(   u0KK*QKK[PFT_XFORCE + Mu]
-                                          +e0NN*QNN[PFT_XFORCE + Mu]
-                                         +KNmNK*QKNmNK[PFT_XFORCE + Mu]
-                                       );
+         for(int nq=PFT_XFORCE; nq<NUMPFTT; nq++)
+          dPFTT[nq] = imag(   u0KK*II*QKK[nq]
+                             +e0NN*II*QNN[nq]
+                            +KNmNK*QKNmNK[nq]
+                          );
        };
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 if (nsa==nsb)
@@ -705,8 +704,8 @@ if (nsa==nsb)
            = real(KNmNK)*imag(QKNmNK[PFT_XFORCE +2]);
 }
 else
- { dPFTT[PFT_XFORCE] = imag(  u0KK*QKK[PFT_XFORCE + 2]
-                             +e0NN*QNN[PFT_XFORCE + 2] );
+ { dPFTT[PFT_XFORCE] = imag(  u0KK*II*QKK[PFT_XFORCE + 2]
+                             +e0NN*II*QNN[PFT_XFORCE + 2] );
    dPFTT[PFT_YFORCE] = imag(KNmNK*QKNmNK[PFT_XFORCE + 2]);
  };
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
