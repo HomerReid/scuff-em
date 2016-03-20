@@ -695,6 +695,22 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
                                          +KNmNK*QKNmNK[PFT_XFORCE + Mu]
                                        );
        };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (nsa==nsb)
+{
+ dPFTT[PFT_XFORCE]
+           =  imag(u0KK)*imag(QKK[PFT_XFORCE + 2])
+             +imag(e0NN)*imag(QNN[PFT_XFORCE + 2]);
+ dPFTT[PFT_YFORCE]
+           = real(KNmNK)*imag(QKNmNK[PFT_XFORCE +2]);
+}
+else
+ { dPFTT[PFT_XFORCE] = imag(  u0KK*QKK[PFT_XFORCE + 2]
+                             +e0NN*QNN[PFT_XFORCE + 2] );
+   dPFTT[PFT_YFORCE] = imag(KNmNK*QKNmNK[PFT_XFORCE + 2]);
+ };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 
       int nt=0;
 #ifdef USE_OPENMP
@@ -726,8 +742,8 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   /*- power is symmetric and the force and torque are antisymmetric*/
   /*--------------------------------------------------------------*/
   if (UseSymmetry)
-   for(int nsa=1; nsa<NS; nsa++)
-    for(int nsb=0; nsb<nsa; nsb++)
+  for(int nsb=1; nsb<NS; nsb++)
+   for(int nsa=0; nsa<nsb; nsa++)
      {
        double nsb2nsaPFTT[NUMPFTT];
        ScatteredPFTT[nsb]->GetEntriesD(nsa,":",nsb2nsaPFTT);
