@@ -35,12 +35,6 @@
 #define RELTOL   5.0e-2
 #define MAXEVALS 20000
 
-namespace scuff {
-void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KN,
-                                IncField *IF, cdouble Omega,
-                                HMatrix *PFTMatrix, bool Interior);
-                }
-
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
@@ -408,83 +402,6 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   fclose(f);
   delete PFTMatrix;
 
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
-{ 
-  RWGGeometry *G = SSD->G;
-  HVector *KN    = SSD->KN;
-  IncField *IF   = SSD->IF;
-  cdouble Omega  = SSD->Omega;
-
-  PFTOptions MyOptions, *Options=&MyOptions;
-  InitPFTOptions(Options);
-  Options->PFTMethod = SCUFF_PFT_EMT;
- 
-  int nmStart=0;
-  int nmStop=2; //SCUFF_EMTPFTI_NUMMETHODS;
-  char *s=getenv("SCUFF_EMTPFT_NMSTART");
-  if (s) sscanf(s,"%i",&nmStart);
-  s=getenv("SCUFF_EMTPFT_NMSTOP");
-  if (s) sscanf(s,"%i",&nmStop);
-
-  static bool WrotePreamble=false;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int NS = SSD->G->NumSurfaces;
-  HMatrix *ExtinctionPFT, *ScatteredPFT[SCUFF_EMTPFTI_NUMMETHODS];
-  ExtinctionPFT=new HMatrix(NS, NUMPFT);
-  for(int nm=0; nm<SCUFF_EMTPFTI_NUMMETHODS; nm++)
-   ScatteredPFT[nm]=new HMatrix(NS, NUMPFT);
-  for(int ExtInt=0; ExtInt<2; ExtInt++)
-   {
-      bool Interior = (ExtInt==1);
-      const char *IEString = (Interior ? "Interior" : "Exterior");
-
-      ExtinctionPFT->Zero();
-      AddIFContributionsToEMTPFT(G, KN, IF, Omega, ExtinctionPFT, Interior);
-
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      for(int Method=nmStart; Method<nmStop; Method++)
-       { 
-         Log("Computing scattered EMTPFT (%s%i) at Omega=%s...",IEString,Method,z2s(SSD->Omega));
-         Options->Interior=Interior;
-         Options->EMTPFTMethod=Method;
-         G->GetPFTMatrix(KN, Omega, Options, ScatteredPFT[Method]);
-
-         char FileName[100];
-         sprintf(FileName,"%s.%cEMTPFT.Method%i",FileBase,IEString[0],Method);
-         FILE *f=fopen(FileName,"a");
-         if (!WrotePreamble) WritePFTFilePreamble(f);
-         for(int ns=0; ns<NS; ns++)
-          { 
-            fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
-            for(int nq=0; nq<NUMPFT; nq++)
-             fprintf(f,"%e ",ExtinctionPFT->GetEntryD(ns,nq));
-            for(int nq=0; nq<NUMPFT; nq++)
-             fprintf(f,"%e ",ScatteredPFT[Method]->GetEntryD(ns,nq));
-            fprintf(f,"\n");
-          };
-         fclose(f);
-       };
-
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-   }; // for(int Interior=0; Interior<2; Interior++)
-
-  WrotePreamble=true;
-
-  delete ExtinctionPFT;
-  for(int nm=0; nm<SCUFF_EMTPFTI_NUMMETHODS; nm++)
-   delete ScatteredPFT[nm];
 }
 
 /***************************************************************/

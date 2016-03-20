@@ -201,9 +201,10 @@ int main(int argc, char *argv[])
 /**/
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
 /**/
-     {"IEMTPFTFile",     PA_STRING,  1, 1,       (void *)&IEMTPFTFile,   0,             "name of energy/momentum-transfer PFT output file"},
-     {"EEMTPFTFile",     PA_STRING,  1, 1,       (void *)&EEMTPFTFile,   0,             "name of energy/momentum-transfer PFT output file"},
-     {"EMTPFTFileBase", PA_STRING,  1, 1,       (void *)&EMTPFTFileBase,   0,             "base filename for full set of EMTPFT output files"},
+     {"EEMTPFTFile",    PA_STRING,  1, 1,       (void *)&EEMTPFTFile,    0,         "name of energy/momentum-transfer PFT output file"},
+     {"IEMTPFTFile",    PA_STRING,  1, 1,       (void *)&IEMTPFTFile,    0,         "name of interior energy/momentum-transfer PFT output file"},
+     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EEMTPFTFile,    0,         "(equivalent to --EEMTPFTFile)"},
+     {"EMTPFTFileBase", PA_STRING,  1, 1,       (void *)&EMTPFTFileBase, 0,         "base filename for full set of EMTPFT output files"},
 /**/ 
      {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
@@ -469,10 +470,14 @@ int main(int argc, char *argv[])
       WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EMT_INTERIOR, PlotPFTFlux, IEMTPFTFile);
 
      if (EMTPFTFileBase)
-      WriteEMTPFTFiles(SSD, EMTPFTFileBase);
-
-     if (PFTFile)
-      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DEFAULT, PlotPFTFlux, PFTFile);
+      { PFTOpts->RHSVector = SSD->RHS;
+        PFTOpts->IF        = SSD->IF;
+        PFTOpts->kBloch    = SSD->kBloch;
+        PFTOpts->Itemize=true;
+        PFTOpts->FluxFileName=0;
+        for(int Method=0; Method<3; Method<SCUFF_EMTPFTI_NUMMETHODS)
+         HMatrix *M=G->GetPFTMatrix(KN, Omega, PFTOpts);
+      };
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

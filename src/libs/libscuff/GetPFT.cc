@@ -63,7 +63,7 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
 HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
                          HVector *KNVector, HMatrix *DRMatrix,
                          HMatrix *PFTMatrix, bool Interior,
-                         int Method);
+                         int EMTPFTIMethod, bool Itemize=false);
 
 /***************************************************************/
 /***************************************************************/
@@ -189,7 +189,7 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
   else if (PFTMethod==SCUFF_PFT_EMT)
    { 
      bool Interior      = Options->Interior;
-     int  Method        = Options->EMTPFTMethod;  
+     int  Method        = Options->EMTPFTIMethod;  
      HMatrix *PFTMatrix 
       = GetEMTPFTMatrix(this, Omega, IF, KN, DRMatrix, 0, Interior, Method);
      PFTMatrix->GetEntriesD(SurfaceIndex, ":", PFT);
@@ -254,7 +254,7 @@ HMatrix *RWGGeometry::GetPFTMatrix(HVector *KN, cdouble Omega,
   if (Options->PFTMethod==SCUFF_PFT_EMT)
    { 
      GetEMTPFTMatrix(this, Omega, Options->IF, KN, Options->DRMatrix,
-                     PFTMatrix, Options->Interior, Options->EMTPFTMethod);
+                     PFTMatrix, Options->Interior, Options->EMTPFTIMethod);
    }
   else
    { 
@@ -298,8 +298,9 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
    Options->NeedQuantity[nq]=true;
  
   // options affecting EMTPFT power computation
+  Options->Itemize=false;
   Options->Interior=false;
-  Options->EMTPFTMethod=SCUFF_EMTPFTI_EHDERIVATIVES;
+  Options->EMTPFTIMethod=SCUFF_EMTPFTI_DEFAULT;
   Options->TInterior=Options->TExterior=0;
 
   Options->GetRegionPFTs=false;

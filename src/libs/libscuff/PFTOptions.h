@@ -79,11 +79,15 @@ namespace scuff {
 
 #define SCUFF_PFT_DEFAULT       SCUFF_PFT_EMT_EXTERIOR
 
-#define SCUFF_EMTPFTI_EHDERIVATIVES  0
+// the following are various methods for computing
+// the 4-dimensional integrals needed to get scattering
+// contributions to EMTPFT
+#define SCUFF_EMTPFTI_EHDERIVATIVES1 0
 #define SCUFF_EMTPFTI_EHDERIVATIVES2 1
 #define SCUFF_EMTPFTI_EHVALUES1      2
 #define SCUFF_EMTPFTI_EHVALUES2      3
 #define SCUFF_EMTPFTI_NUMMETHODS     4
+#define SCUFF_EMTPFTI_DEFAULT SCUFF_EMTPFTI_EHDERIVATIVES1
 
 /***************************************************************/
 /***************************************************************/
@@ -106,8 +110,9 @@ typedef struct PFTOptions
    bool NeedQuantity[NUMPFT];
 
    // options affecting EMT PFT computation
+   bool Itemize;
    bool Interior;
-   int EMTPFTMethod;
+   int EMTPFTIMethod;
    HMatrix *TInterior, *TExterior;
 
    bool GetRegionPFTs;
