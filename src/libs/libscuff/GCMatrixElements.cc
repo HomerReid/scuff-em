@@ -222,6 +222,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
         if (ddG)
          { 
            double r4=r2*r2, kr5=pow( real(k), 5.0 );
+           cdouble Zeta;
            if (r==0.0)
             Zeta = DeSingularize ? 0.0 : II*kr5 / (4.0*M_PI);
            else
