@@ -180,8 +180,10 @@ void ScatteredPFTIntegrand1(double xA[3], double bA[3], double DivbA,
      QNN[PFT_XFORCE + Mu]    += FTPreFac*PEFIE*EpsRel*R[Mu]*Psi;
      QKNmNK[PFT_XFORCE + Mu] -= FTPreFac*(bxb[Mu]*Psi + PMFIE*R[Mu]*Zeta)/Omega;
 
-     QKK[PFT_XTORQUE1+ Mu ]   += FTPreFac*MuRel*( bxb[Mu]*(Phi + Psi/k2) + bAxR[Mu]*bBdR*Zeta/k2);
-     QNN[PFT_XTORQUE1+ Mu ]   += FTPreFac*EpsRel*( bxb[Mu]*(Phi + Psi/k2) + bAxR[Mu]*bBdR*Zeta/k2);
+  //   QKK[PFT_XTORQUE1+ Mu ]   += FTPreFac*MuRel*( bxb[Mu]*(Phi + Psi/k2)  + bAxR[Mu]*bBdR*Zeta/k2);
+ //    QNN[PFT_XTORQUE1+ Mu ]   += FTPreFac*EpsRel*( bxb[Mu]*(Phi + Psi/k2) + bAxR[Mu]*bBdR*Zeta/k2);
+     QKK[PFT_XTORQUE1+ Mu ]   += FTPreFac*MuRel*(bxb[Mu]*Phi);
+     QNN[PFT_XTORQUE1+ Mu ]   += FTPreFac*EpsRel*(bxb[Mu]*Phi);
      QKNmNK[PFT_XTORQUE1+ Mu] -= FTPreFac*(bAdR*bB[Mu] - R[Mu]*bdb)*Psi/Omega;
 
      QKK[PFT_XTORQUE2 + Mu]    += FTPreFac*PEFIE*MuRel*XTxR[Mu]*Psi;
@@ -251,13 +253,13 @@ void ScatteredPFTIntegrand2(double *xA, PCData *PCD,
   if (EMTPFTIMethod==SCUFF_EMTPFTI_EHVALUES1)
    {
      for(int Mu=0; Mu<3; Mu++)
-      { QKK[PFT_XFORCE+Mu]    =  MuRel*RCVecDot(bA, de[Mu]);
-        QNN[PFT_XFORCE+Mu]    =  EpsRel*RCVecDot(bA, de[Mu]);
-        QKNmNK[PFT_XFORCE+Mu] =  RCVecDot(bA, dh[Mu])/Omega;
+      { QKK[PFT_XFORCE+Mu]    =  TENTHIRDS*MuRel*RCVecDot(bA, de[Mu]);
+        QNN[PFT_XFORCE+Mu]    =  TENTHIRDS*EpsRel*RCVecDot(bA, de[Mu]);
+        QKNmNK[PFT_XFORCE+Mu] =  TENTHIRDS*RCVecDot(bA, dh[Mu])/Omega;
 
-        QKK[PFT_XTORQUE+Mu]    =  MuRel*bxe[Mu];
-        QNN[PFT_XTORQUE+Mu]    =  EpsRel*bxe[Mu];
-        QKNmNK[PFT_XTORQUE+Mu] =  bxh[Mu]/Omega;
+        QKK[PFT_XTORQUE+Mu]    =  TENTHIRDS*MuRel*bxe[Mu];
+        QNN[PFT_XTORQUE+Mu]    =  TENTHIRDS*EpsRel*bxe[Mu];
+        QKNmNK[PFT_XTORQUE+Mu] =  TENTHIRDS*bxh[Mu]/Omega;
 
         int MP1 = (Mu+1)%3, MP2 = (Mu+2)%3;
         QKK[PFT_XTORQUE2+Mu]    =  XT[MP1]*QKK[2+MP2] - XT[MP2]*QKK[2+MP1];
@@ -268,9 +270,9 @@ void ScatteredPFTIntegrand2(double *xA, PCData *PCD,
   else
    {
      for(int Mu=0; Mu<3; Mu++)
-      { QKK[PFT_XFORCE+Mu]    = MuRel*(-DivbA*e[Mu] + bxh[Mu]);
-        QNN[PFT_XFORCE+Mu]    = EpsRel*(-DivbA*e[Mu] + bxh[Mu]);
-        QKNmNK[PFT_XFORCE+Mu] = DivbA*h[Mu] - k*k*bxe[Mu];
+      { QKK[PFT_XFORCE+Mu]    = TENTHIRDS*MuRel*(-DivbA*e[Mu] + bxh[Mu]);
+        QNN[PFT_XFORCE+Mu]    = TENTHIRDS*EpsRel*(-DivbA*e[Mu] + bxh[Mu]);
+        QKNmNK[PFT_XFORCE+Mu] = TENTHIRDS*DivbA*h[Mu] - k*k*bxe[Mu];
       };
 
      for(int Mu=0; Mu<3; Mu++)
@@ -356,7 +358,7 @@ void GetScatteredPFTIntegrals(RWGGeometry *G,
      Data->TorqueCenter = G->Surfaces[nsa]->Origin;
      Data->EMTPFTIMethod = EMTPFTIMethod;
 
-     int IDim     = NUMPFTIS;
+     int IDim     = 2*NUMPFTIS;
      int MaxEvals = (ncv>0) ? 78 : 21;
 
      Data->G   = G;
