@@ -124,15 +124,15 @@ HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM,
       for(int Mu=0; Mu<3; Mu++)
        { 
          if (PM)
-          { PM->AddEntry(ns, Mu + 0, ZVAC*KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]);
-            PM->AddEntry(ns, Mu + 3, ZVAC*KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]);
+          { PM->AddEntry(ns, Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
+            PM->AddEntry(ns, Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
           };
 
          if (KNResolved)
-          { KNResolved->AddEntry(ns, 0*3 + Mu, ZVAC*KAlpha*pRWG[Mu]);
-            KNResolved->AddEntry(ns, 1*3 + Mu,      KAlpha*pRWG[Mu]);
-            KNResolved->AddEntry(ns, 2*3 + Mu, ZVAC*KAlpha*mRWG[Mu]);
-            KNResolved->AddEntry(ns, 3*3 + Mu,      KAlpha*mRWG[Mu]);
+          { KNResolved->AddEntry(ns, 0*3 + Mu, KAlpha*pRWG[Mu]);
+            KNResolved->AddEntry(ns, 1*3 + Mu, NAlpha*pRWG[Mu]/ZVAC);
+            KNResolved->AddEntry(ns, 2*3 + Mu, KAlpha*mRWG[Mu]);
+            KNResolved->AddEntry(ns, 3*3 + Mu, NAlpha*mRWG[Mu]/ZVAC);
           };
        };
  

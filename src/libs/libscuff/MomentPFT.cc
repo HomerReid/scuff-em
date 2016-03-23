@@ -176,13 +176,13 @@ void GetExtinctionMomentPFT(RWGGeometry *G, int ns,
      
   memset(PFT, 0, NUMPFT*sizeof(double));
   for(int i=0; i<3; i++)
-   { PFT[PFT_PABS]    -= 0.5*real(II*Omega*( PK[i]*E[i] + PN[i]*H[i]) );
-     PFT[PFT_XFORCE]  -= 0.5*imag(II*( PK[i]*dE[0][i] + PN[i]*dH[0][i]) );
-     PFT[PFT_YFORCE]  -= 0.5*imag(II*( PK[i]*dE[1][i] + PN[i]*dH[1][i]) );
-     PFT[PFT_ZFORCE]  -= 0.5*imag(II*( PK[i]*dE[2][i] + PN[i]*dH[2][i]) );
-     PFT[PFT_XTORQUE] -= 0.5*imag(II*( PK[1]*E[2] - PK[2]*E[1] + PN[1]*H[2] - PN[2]*H[1]));
-     PFT[PFT_YTORQUE] -= 0.5*imag(II*( PK[2]*E[0] - PK[0]*E[2] + PN[2]*H[0] - PN[0]*H[2]));
-     PFT[PFT_ZTORQUE] -= 0.5*imag(II*( PK[0]*E[1] - PK[1]*E[0] + PN[0]*H[1] - PN[1]*H[0]));
+   { PFT[PFT_PABS]    += 0.5*real(II*Omega*( PK[i]*E[i] + PN[i]*H[i]) );
+     PFT[PFT_XFORCE]  += 0.5*imag(II*( PK[i]*dE[0][i] + PN[i]*dH[0][i]) );
+     PFT[PFT_YFORCE]  += 0.5*imag(II*( PK[i]*dE[1][i] + PN[i]*dH[1][i]) );
+     PFT[PFT_ZFORCE]  += 0.5*imag(II*( PK[i]*dE[2][i] + PN[i]*dH[2][i]) );
+     PFT[PFT_XTORQUE] += 0.5*imag(II*( PK[1]*E[2] - PK[2]*E[1] + PN[1]*H[2] - PN[2]*H[1]));
+     PFT[PFT_YTORQUE] += 0.5*imag(II*( PK[2]*E[0] - PK[0]*E[2] + PN[2]*H[0] - PN[0]*H[2]));
+     PFT[PFT_ZTORQUE] += 0.5*imag(II*( PK[0]*E[1] - PK[1]*E[0] + PN[0]*H[1] - PN[1]*H[0]));
    };
 
 }
@@ -250,28 +250,26 @@ HMatrix *GetMomentPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
      Log("Not using symmetry in Moment PFT calculation.");
    };
 
+  for(int ns=0; ns<NS; ns++)
+   ScatteredPFT[ns]->Zero();
+
   for(int nsa=0; nsa<NS; nsa++)
    for(int nsb=(UseSymmetry ? nsa : 0); nsb<NS; nsb++)
     { 
       double PFT[NUMPFT];
 
       if (nsa==nsb)
-       { 
-         GetMomentPFTSelfTerm(nsa, Omega, PM, PFT);
-         ScatteredPFT[nsa]->SetEntriesD(nsa, ":", PFT);
-       }
+       GetMomentPFTSelfTerm(nsa, Omega, PM, PFT);
       else
-       {
-         GetMomentPFTContribution(G, nsa, nsb, Omega, PM, PFT);
-         for(int nq=0; nq<NUMPFT; nq++)
-          ScatteredPFT[nsb]->AddEntry(nsa, nq, PFT[nq]);
+       GetMomentPFTContribution(G, nsa, nsb, Omega, PM, PFT);
 
-         if (UseSymmetry)
-          { 
-            ScatteredPFT[nsa]->AddEntry(nsb, PFT_PSCAT, PFT[PFT_PSCAT]);
-            for(int nq=PFT_XFORCE; nq<NUMPFT; nq++)
-             ScatteredPFT[nsa]->AddEntry(nsb, nq, -1.0*PFT[nq]);
-          };
+      for(int nq=0; nq<NUMPFT; nq++)
+       ScatteredPFT[nsb]->AddEntry(nsa, nq, PFT[nq]);
+
+      if (UseSymmetry && nsa!=nsb)
+       { ScatteredPFT[nsa]->AddEntry(nsb, PFT_PSCAT, PFT[PFT_PSCAT]);
+         for(int nq=PFT_XFORCE; nq<NUMPFT; nq++)
+          ScatteredPFT[nsa]->AddEntry(nsb, nq, -1.0*PFT[nq]);
        };
     };
 
