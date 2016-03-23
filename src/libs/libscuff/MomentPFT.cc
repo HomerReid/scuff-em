@@ -62,7 +62,7 @@ inline cdouble VecHDot(cdouble *V1, cdouble *V2)
 /* contribution of surface #ns to its own PFT                  */
 /***************************************************************/
 void GetMomentPFTSelfTerm(int ns, cdouble Omega, HMatrix *PM,
-                          double PFT[NUMPFT])
+                          HMatrix *PMResolved, double PFT[NUMPFT])
 {
   double k3   = real(Omega)*real(Omega)*real(Omega);
   double k4   = real(Omega)*k3;
@@ -72,11 +72,15 @@ void GetMomentPFTSelfTerm(int ns, cdouble Omega, HMatrix *PM,
   // double FPF2 = -TENTHIRDS*k5/(120.0*M_PI);
   double TPF  = -TENTHIRDS*k3/(6.0*M_PI);
 
+  cdouble P[3], M[3];
+  PM->GetEntries(ns, "0:2", P);
+  PM->GetEntries(ns, "3:5", M);
+
   cdouble PK[3], PN[3], MK[3], MN[3];
-  PM->GetEntries(ns, "0:2",  PK);
-  PM->GetEntries(ns, "3:5",  PN);
-  PM->GetEntries(ns, "6:8",  MK);
-  PM->GetEntries(ns, "9:11", MN);
+  PMResolved->GetEntries(ns, "0:2",  PK);
+  PMResolved->GetEntries(ns, "3:5",  PN);
+  PMResolved->GetEntries(ns, "6:8",  MK);
+  PMResolved->GetEntries(ns, "9:11", MN);
 
   PFT[PFT_PABS]=0.0;
 
@@ -96,6 +100,12 @@ void GetMomentPFTSelfTerm(int ns, cdouble Omega, HMatrix *PM,
                +(real(PN[MP1])*imag(PN[MP2]) - real(PN[MP2])*imag(PN[MP1]))/ZVAC
              );
    };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+PFT[PFT_PABS]    = PPF*real( VecHDot(P,P) * ZVAC + VecHDot(M,M)/ZVAC );
+PFT[PFT_XFORCE]  = FPF*real( conj(M[0])*P[1] - conj(M[1])*P[0] );
+PFT[PFT_XTORQUE] = TPF*( real(P[0])*imag(P[1]) - real(P[1])*imag(P[0])); 
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 }
 
 
@@ -103,20 +113,26 @@ void GetMomentPFTSelfTerm(int ns, cdouble Omega, HMatrix *PM,
 /***************************************************************/
 /***************************************************************/
 void GetMomentPFTContribution(RWGGeometry *G, int nsa, int nsb,
-                              cdouble Omega, HMatrix *PM,
+                              cdouble Omega, HMatrix *PM, HMatrix *PMResolved,
                               double PFT[NUMPFT])
 {
+   cdouble Pa[3], Ma[3], Pb[3], Mb[3];
+   PM->GetEntries(nsa, "0:2", Pa);
+   PM->GetEntries(nsa, "3:5", Ma);
+   PM->GetEntries(nsb, "0:2", Pb);
+   PM->GetEntries(nsb, "3:5", Mb);
+
    cdouble PKa[3], PNa[3], MKa[3], MNa[3];
-   PM->GetEntries(nsa, "0:2",  PKa);
-   PM->GetEntries(nsa, "3:5",  PNa);
-   PM->GetEntries(nsa, "6:8",  MKa);
-   PM->GetEntries(nsa, "9:11", MNa);
+   PMResolved->GetEntries(nsa, "0:2",  PKa);
+   PMResolved->GetEntries(nsa, "3:5",  PNa);
+   PMResolved->GetEntries(nsa, "6:8",  MKa);
+   PMResolved->GetEntries(nsa, "9:11", MNa);
 
    cdouble PKb[3], PNb[3], MKb[3], MNb[3];
-   PM->GetEntries(nsb, "0:2",  PKb);
-   PM->GetEntries(nsb, "3:5",  PNb);
-   PM->GetEntries(nsb, "6:8",  MKb);
-   PM->GetEntries(nsb, "9:11", MNb);
+   PMResolved->GetEntries(nsb, "0:2",  PKb);
+   PMResolved->GetEntries(nsb, "3:5",  PNb);
+   PMResolved->GetEntries(nsb, "6:8",  MKb);
+   PMResolved->GetEntries(nsb, "9:11", MNb);
 
    cdouble Gij[3][3], C[3][3], dG[3][3][3], dC[3][3][3];
    double R[3];
@@ -136,10 +152,10 @@ void GetMomentPFTContribution(RWGGeometry *G, int nsa, int nsb,
         -= 0.5*k2*real( uKKeNN*II*Omega*Gij[i][j] + KNmNK*II*Omega*C[i][j] );
 
        for(int Mu=0; Mu<3; Mu++)
-        PFT[PFT_XFORCE + Mu] 
-         -= 0.5*k*imag( uKKeNN*II*Omega*dG[Mu][i][j] 
-                       + KNmNK*II*Omega*dC[Mu][i][j] 
-                      );
+        PFT[PFT_XFORCE + Mu]
+         -= 0.5*TENTHIRDS*k*imag( uKKeNN*II*Omega*dG[Mu][i][j] 
+                                + KNmNK*II*Omega*dC[Mu][i][j] 
+                                );
      };
 
    for(int Mu=0; Mu<3; Mu++)
@@ -147,8 +163,27 @@ void GetMomentPFTContribution(RWGGeometry *G, int nsa, int nsb,
      { int Nu=(Mu+1)%3, Rho=(Mu+2)%3;
        cdouble uKKeNN = conj(PKa[Nu])*PKb[Sigma]*ZVAC + conj(PNa[Nu])*PNb[Sigma]/ZVAC;
        PFT[PFT_XTORQUE + Mu] 
-        -= 0.5*k*imag( uKKeNN*II*Omega*Gij[Rho][Sigma] );
+        -= 0.5*TENTHIRDS*k*imag( uKKeNN*II*Omega*Gij[Rho][Sigma] );
      };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+PFT[PFT_PABS] = PFT[PFT_XFORCE] = PFT[PFT_XTORQUE] = 0.0;
+cdouble ik=II*k;
+for(int i=0; i<3; i++)
+ for(int j=0; j<3; j++)
+  { PFT[PFT_PABS]    -= 0.5*real( conj(Pa[i])*( k2*ZVAC*Gij[i][j]*Pb[j] ) );
+    PFT[PFT_XFORCE]  -= 0.5*real( conj(Pa[i])*( II*Omega*(ik*C[i][j])*(-ZVAC*Mb[j])));
+    PFT[PFT_YFORCE]  -= 0.5*real( conj(Ma[i])*( II*Omega*(ik*C[i][j])*Pa[j]) );
+    PFT[PFT_XTORQUE] -= 0.5*real( conj(Ma[i])*( k2*Gij[i][j]*Mb[j]/ZVAC));
+
+    PFT[PFT_YTORQUE] -= 0.5*real(  conj(Pa[i])*( k2*ZVAC*dG[2][i][j]*Pb[j] )
+                                  +conj(Pa[i])*( II*Omega*(ik*dC[2][i][j])*(-ZVAC*Mb[j]))
+                                  +conj(Ma[i])*( II*Omega*(ik*dC[2][i][j])*Pa[j])
+                                  +conj(Ma[i])*( k2*dG[2][i][j]*Mb[j]/ZVAC)
+                                );
+  };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 }
 
 /***************************************************************/
@@ -156,13 +191,14 @@ void GetMomentPFTContribution(RWGGeometry *G, int nsa, int nsb,
 /***************************************************************/
 void GetExtinctionMomentPFT(RWGGeometry *G, int ns,
                             IncField *IF, cdouble Omega,
-                            HMatrix *PM, double PFT[NUMPFT])
+                            HMatrix *PM, HMatrix *PMResolved, 
+                            double PFT[NUMPFT])
                             
 {
   cdouble PK[3], PN[3];
   for(int Mu=0; Mu<3; Mu++)
-   { PK[Mu] = conj(PM->GetEntry(ns,Mu + 0*3));
-     PN[Mu] = conj(PM->GetEntry(ns,Mu + 1*3));
+   { PK[Mu] = conj(PMResolved->GetEntry(ns,Mu + 0*3));
+     PN[Mu] = conj(PMResolved->GetEntry(ns,Mu + 1*3));
    };
 
   cdouble EH[6], dEH[3][6];
@@ -177,13 +213,23 @@ void GetExtinctionMomentPFT(RWGGeometry *G, int ns,
   memset(PFT, 0, NUMPFT*sizeof(double));
   for(int i=0; i<3; i++)
    { PFT[PFT_PABS]    += 0.5*real(II*Omega*( PK[i]*E[i] + PN[i]*H[i]) );
-     PFT[PFT_XFORCE]  += 0.5*imag(II*( PK[i]*dE[0][i] + PN[i]*dH[0][i]) );
-     PFT[PFT_YFORCE]  += 0.5*imag(II*( PK[i]*dE[1][i] + PN[i]*dH[1][i]) );
-     PFT[PFT_ZFORCE]  += 0.5*imag(II*( PK[i]*dE[2][i] + PN[i]*dH[2][i]) );
-     PFT[PFT_XTORQUE] += 0.5*imag(II*( PK[1]*E[2] - PK[2]*E[1] + PN[1]*H[2] - PN[2]*H[1]));
-     PFT[PFT_YTORQUE] += 0.5*imag(II*( PK[2]*E[0] - PK[0]*E[2] + PN[2]*H[0] - PN[0]*H[2]));
-     PFT[PFT_ZTORQUE] += 0.5*imag(II*( PK[0]*E[1] - PK[1]*E[0] + PN[0]*H[1] - PN[1]*H[0]));
+     PFT[PFT_XFORCE]  += 0.5*TENTHIRDS*imag(II*( PK[i]*dE[0][i] + PN[i]*dH[0][i]) );
+     PFT[PFT_YFORCE]  += 0.5*TENTHIRDS*imag(II*( PK[i]*dE[1][i] + PN[i]*dH[1][i]) );
+     PFT[PFT_ZFORCE]  += 0.5*TENTHIRDS*imag(II*( PK[i]*dE[2][i] + PN[i]*dH[2][i]) );
+     PFT[PFT_XTORQUE] += 0.5*TENTHIRDS*imag(II*( PK[1]*E[2] - PK[2]*E[1] + PN[1]*H[2] - PN[2]*H[1]));
+     PFT[PFT_YTORQUE] += 0.5*TENTHIRDS*imag(II*( PK[2]*E[0] - PK[0]*E[2] + PN[2]*H[0] - PN[0]*H[2]));
+     PFT[PFT_ZTORQUE] += 0.5*TENTHIRDS*imag(II*( PK[0]*E[1] - PK[1]*E[0] + PN[0]*H[1] - PN[1]*H[0]));
    };
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+cdouble P[3], M[3];
+for(int Mu=0; Mu<3; Mu++)
+ { P[Mu] = conj(PM->GetEntry(ns,Mu + 0*3));
+   M[Mu] = conj(PM->GetEntry(ns,Mu + 1*3));
+ };
+PFT[PFT_PSCAT]  = 0.5*real( P[0]*E[0] + P[1]*E[1] + P[2]*E[2] + M[0]*H[0] + M[1]*H[1] + M[2]*H[2]);
+PFT[PFT_XFORCE] = 0.5*real( P[0]*dE[2][0] + P[1]*dE[2][1] + P[2]*dE[2][2] + M[0]*dH[2][0] + M[1]*dH[2][1] + M[2]*dH[2][2] );
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
 
@@ -212,7 +258,7 @@ HMatrix *GetMomentPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   /***************************************************************/
   static int NSSave=0;
   static HMatrix **ScatteredPFT=0, *ExtinctionPFT=0;
-  static HMatrix *PM;
+  static HMatrix *PM, *PMResolved;
   if (NSSave!=NS)
    { if (ScatteredPFT)
       { for(int ns=0; ns<NSSave; ns++)
@@ -223,19 +269,22 @@ HMatrix *GetMomentPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
         delete ExtinctionPFT;
        if (PM)
         delete PM;
+       if (PMResolved)
+        delete PMResolved;
       };
      NSSave=NS;
      ScatteredPFT=(HMatrix **)mallocEC(NS*sizeof(HMatrix));
      for(int ns=0; ns<NS; ns++)
       ScatteredPFT[ns]=new HMatrix(NS, NUMPFT);
      ExtinctionPFT=new HMatrix(NS, NUMPFT);
-     PM=new HMatrix(NS, 12, LHM_COMPLEX);
+     PM=new HMatrix(NS, 6, LHM_COMPLEX);
+     PMResolved=new HMatrix(NS, 12, LHM_COMPLEX);
    };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  G->GetDipoleMoments(Omega, KNVector, 0, PM);
+  G->GetDipoleMoments(Omega, KNVector, PM, PMResolved);
 
   /*--------------------------------------------------------------*/
   /*- loop over all surfaces to moment PFT on that surface        */
@@ -259,9 +308,9 @@ HMatrix *GetMomentPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
       double PFT[NUMPFT];
 
       if (nsa==nsb)
-       GetMomentPFTSelfTerm(nsa, Omega, PM, PFT);
+       GetMomentPFTSelfTerm(nsa, Omega, PM, PMResolved, PFT);
       else
-       GetMomentPFTContribution(G, nsa, nsb, Omega, PM, PFT);
+       GetMomentPFTContribution(G, nsa, nsb, Omega, PM, PMResolved, PFT);
 
       for(int nq=0; nq<NUMPFT; nq++)
        ScatteredPFT[nsb]->AddEntry(nsa, nq, PFT[nq]);
@@ -281,7 +330,7 @@ HMatrix *GetMomentPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
    { G->UpdateIncFields(IF, Omega);
      for(int ns=0; ns<NS; ns++)
       { double PFT[NUMPFT];
-        GetExtinctionMomentPFT(G, ns, IF, Omega, PM, PFT);
+        GetExtinctionMomentPFT(G, ns, IF, Omega, PM, PMResolved, PFT);
         ExtinctionPFT->SetEntriesD(ns,":",PFT);
       };
    };
