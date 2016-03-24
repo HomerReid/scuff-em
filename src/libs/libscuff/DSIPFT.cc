@@ -118,8 +118,8 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
      for(int nbfA=0; nbfA<G->TotalBFs; nbfA++)
       for(int nbfB=0; nbfB<G->TotalBFs; nbfB++)
        { 
-         cdouble Weight = 
-          DRMatrix ?  DRMatrix->GetEntry(nbfB, nbfA) 
+         cdouble Weight =
+          DRMatrix ?  DRMatrix->GetEntry(nbfB, nbfA)
                    : conj(KNVector->GetEntry(nbfA)) * KNVector->GetEntry(nbfB);
          
          cdouble EHA[6], *EA=EHA+0, *HA=EHA+3;

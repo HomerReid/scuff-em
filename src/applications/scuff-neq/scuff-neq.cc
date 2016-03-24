@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <math.h>
-
+#include <BZIntegration.h>
 #include "scuff-neq.h"
 #include <libhrutil.h>
 
@@ -55,6 +55,12 @@ int main(int argc, char *argv[])
   InstallHRSignalHandler();
 
   /***************************************************************/
+  /* pre-process command-line arguments to extract arguments     */
+  /* any relevant for Brillouin-zone integration                 */
+  /***************************************************************/
+  GetBZIArgStruct *BZIArgs=InitBZIArgs(argc, argv);
+
+  /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
   char *GeoFile=0;
@@ -76,7 +82,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
-  char *OmegaKFile=0;
+  char *OmegaKBFile=0;
   double OmegaMin=0.00;              int nOmegaMin;
   double OmegaMax=-1.0;              int nOmegaMax;
   char *OQString=0;   
@@ -138,7 +144,7 @@ int main(int argc, char *argv[])
 /**/     
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
-     {"OmegaKFile",     PA_STRING,  1, 1,       (void *)&OmegaKFile, 0,             "list of (Omega, kx, ky) points"},
+     {"OmegaKBFile",    PA_STRING,  1, 1,       (void *)&OmegaKBFile, 0,             "list of (Omega, kx, ky) points"},
      {"OmegaMin",       PA_DOUBLE,  1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
      {"OmegaMax",       PA_DOUBLE,  1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
      {"OmegaQuadrature",PA_STRING,  1, 1,       (void *)&OQString,   0,             "quadrature method for omega integral"},
@@ -226,11 +232,11 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   /*******************************************************************/
-  HMatrix *OmegaKPoints=0; 
-  if (OmegaKFile)
-   { OmegaKPoints = new HMatrix(OmegaKFile,LHM_TEXT,"--ncol 3");
-     if (OmegaKPoints->ErrMsg)
-      ErrExit(OmegaKPoints->ErrMsg);
+  HMatrix *OmegaKBPoints=0;
+  if (OmegaKBFile)
+   { OmegaKBPoints = new HMatrix(OmegaKBFile,LHM_TEXT,"--ncol 3");
+     if (OmegaKBPoints->ErrMsg)
+      ErrExit(OmegaKBPoints->ErrMsg);
    };
 
   /*******************************************************************/
@@ -270,7 +276,7 @@ int main(int argc, char *argv[])
   /* of frequencies and a frequency range over which to integrate;   */
   /* if a range was specified check that it makes sense              */
   /*******************************************************************/
-  if ( OmegaKPoints || OmegaPoints ) 
+  if ( OmegaKBPoints || OmegaPoints ) 
    { if ( nOmegaMin>0 || nOmegaMax>0 )
       ErrExit("--OmegaMin/--OmegaMax options may not be used with --Omega/--OmegaFile");
      Log("Computing spectral density at %i frequencies.",NumFreqs);
@@ -327,10 +333,10 @@ int main(int argc, char *argv[])
   if (SNEQD->NumSIQs==0 && SNEQD->NumSRQs==0)
    ErrExit("you must specify at least one quantity to compute");
 
-  if (OmegaKPoints && !G->LBasis)
-   ErrExit("--OmegaKPoints may only be used with extended geometries");
-  else if (G->LBasis && !OmegaKPoints==0)
-   ErrExit("--OmegaKPoints is required for extended geometries");
+  if (OmegaKBPoints && !G->LBasis)
+   ErrExit("--OmegaKBPoints may only be used with extended geometries");
+  else if (G->LBasis && !OmegaKBPoints==0)
+   ErrExit("--OmegaKBPoints is required for extended geometries");
          
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -350,14 +356,14 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   int OutputVectorLength = SNEQD->NumSIQs + SNEQD->NumSRQs;
   double *I = new double[ OutputVectorLength ];
-  if (OmegaKPoints)
-   { for (int nok=0; nok<OmegaKPoints->NR; nok++)
+  if (OmegaKBPoints)
+   { for (int nok=0; nok<OmegaKBPoints->NR; nok++)
       {  
         cdouble Omega; 
         double kBloch[2];
-        Omega     = OmegaKPoints->GetEntryD(nok, 0);
-        kBloch[0] = OmegaKPoints->GetEntryD(nok, 1);
-        kBloch[1] = OmegaKPoints->GetEntryD(nok, 2);
+        Omega     = OmegaKBPoints->GetEntryD(nok, 0);
+        kBloch[0] = OmegaKBPoints->GetEntryD(nok, 1);
+        kBloch[1] = OmegaKBPoints->GetEntryD(nok, 2);
         GetFlux(SNEQD, Omega, kBloch, I);
       };
    }
