@@ -61,7 +61,7 @@ namespace scuff {
 /* size) then it is reallocated.                               */
 /***************************************************************/
 HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM,
-                                       HMatrix *KNResolved)
+                                       HMatrix *PMResolved)
                                        
 { 
   /***************************************************************/
@@ -76,12 +76,13 @@ HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM,
    PM=new HMatrix(NumSurfaces, 6, LHM_COMPLEX);
   PM->Zero(); 
 
-  if ( KNResolved && 
-        (    KNResolved->NR!=NumSurfaces 
-          || KNResolved->NC!=12
-          || KNResolved->RealComplex!=LHM_COMPLEX
+  if ( PMResolved && 
+        (    PMResolved->NR!=NumSurfaces 
+          || PMResolved->NC!=12
+          || PMResolved->RealComplex!=LHM_COMPLEX
         )
      ) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+  if (PMResolved) PMResolved->Zero();
 
   /***************************************************************/
   /***************************************************************/
@@ -128,11 +129,11 @@ HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM,
             PM->AddEntry(ns, Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
           };
 
-         if (KNResolved)
-          { KNResolved->AddEntry(ns, 0*3 + Mu, KAlpha*pRWG[Mu]);
-            KNResolved->AddEntry(ns, 1*3 + Mu, NAlpha*pRWG[Mu]/ZVAC);
-            KNResolved->AddEntry(ns, 2*3 + Mu, KAlpha*mRWG[Mu]);
-            KNResolved->AddEntry(ns, 3*3 + Mu, NAlpha*mRWG[Mu]/ZVAC);
+         if (PMResolved)
+          { PMResolved->AddEntry(ns, 0*3 + Mu, KAlpha*pRWG[Mu]);
+            PMResolved->AddEntry(ns, 1*3 + Mu, NAlpha*pRWG[Mu]/ZVAC);
+            PMResolved->AddEntry(ns, 2*3 + Mu, KAlpha*mRWG[Mu]);
+            PMResolved->AddEntry(ns, 3*3 + Mu, NAlpha*mRWG[Mu]/ZVAC);
           };
        };
  
