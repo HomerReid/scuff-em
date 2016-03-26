@@ -102,10 +102,14 @@ void GetMomentPFTSelfTerm(int ns, cdouble Omega, HMatrix *PM,
    };
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-PFT[PFT_PABS]    = PPF*real( VecHDot(P,P) * ZVAC + VecHDot(M,M)/ZVAC );
+PFT[PFT_PABS]    = PPF*real( VecHDot(P,P) );
+PFT[PFT_PSCAT]   = PPF*real( VecHDot(M,M) );
 PFT[PFT_XFORCE]  = FPF*real( conj(M[0])*P[1] - conj(M[1])*P[0] );
-PFT[PFT_XTORQUE] = TPF*( real(P[0])*imag(P[1]) - real(P[1])*imag(P[0])); 
+PFT[PFT_YFORCE]  = FPF*imag( conj(M[0])*P[1] - conj(M[1])*P[0] );
+PFT[PFT_XTORQUE] = TPF*( real(P[0])*imag(P[1]) - real(P[1])*imag(P[0]));
+PFT[PFT_YTORQUE] = TPF*( real(M[0])*imag(M[1]) - real(M[1])*imag(M[0]));
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 }
 
 
@@ -227,8 +231,16 @@ for(int Mu=0; Mu<3; Mu++)
  { P[Mu] = conj(PM->GetEntry(ns,Mu + 0*3));
    M[Mu] = conj(PM->GetEntry(ns,Mu + 1*3));
  };
-PFT[PFT_PSCAT]  = 0.5*real( P[0]*E[0] + P[1]*E[1] + P[2]*E[2] + M[0]*H[0] + M[1]*H[1] + M[2]*H[2]);
-PFT[PFT_XFORCE] = 0.5*real( P[0]*dE[2][0] + P[1]*dE[2][1] + P[2]*dE[2][2] + M[0]*dH[2][0] + M[1]*dH[2][1] + M[2]*dH[2][2] );
+PFT[PFT_PABS]    = 0.5*real( II*Omega*(P[0]*E[0] + P[1]*E[1] + P[2]*E[2]) );
+PFT[PFT_PSCAT]   = 0.5*real( II*Omega*(M[0]*H[0] + M[1]*H[1] + M[2]*H[2]) );
+PFT[PFT_XFORCE]  = 0.5*imag( II*Omega*(M[0]*H[0] + M[1]*H[1] + M[2]*H[2]) );
+
+PFT[PFT_YFORCE]   = 0.5*imag( II*(P[0]*dE[2][0] + P[1]*dE[2][1] + P[2]*dE[2][2]));
+PFT[PFT_ZFORCE]   = 0.5*imag( II*(M[0]*dH[2][0] + M[1]*dH[2][1] + M[2]*dH[2][2]));
+PFT[PFT_XTORQUE]  = 0.5*real( II*(M[0]*dH[2][0] + M[1]*dH[2][1] + M[2]*dH[2][2]));
+
+PFT[PFT_YTORQUE]  = 0.5*imag( II*(P[0]*E[1] - P[1]*E[0]) );
+PFT[PFT_ZTORQUE]  = 0.5*imag( II*(M[0]*H[1] - M[1]*H[0]) );
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
 }
