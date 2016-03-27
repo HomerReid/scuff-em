@@ -27,7 +27,7 @@ This code may be used to
 
 ## <span class="SC">scuff-em</span> solution
 
-Values of the flux
+Values of the flux quantity $\phi^{\text{\small 
 heat radiation
 and between two dielectric spheres may be computed
 using [[scuff-cas3d]] as follows:
