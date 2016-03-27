@@ -86,9 +86,9 @@ void GetMomentPFTSelfTerm(int ns, cdouble Omega, HMatrix *PM, double PFT[NUMPFT]
       = FPF*real( conj(M[MP1])*P[MP2] - conj(M[MP2])*P[MP1] );
 
      PFT[PFT_XTORQUE+Mu]
-      =  TPF*(  (real(P[MP1])*imag(P[MP2]) - real(P[MP2])*imag(P[MP1]))
-               +(real(M[MP1])*imag(M[MP2]) - real(M[MP2])*imag(M[MP1]))
-             );
+      = -1.0*TPF*(  (real(P[MP1])*imag(P[MP2]) - real(P[MP2])*imag(P[MP1]))
+                   +(real(M[MP1])*imag(M[MP2]) - real(M[MP2])*imag(M[MP1]))
+                 );
    };
 
 }
@@ -123,11 +123,21 @@ void GetMomentPFTContribution(RWGGeometry *G, int nsa, int nsb,
        PFT[PFT_PSCAT]
         += 0.5*k2*real( PPpMM*Gij[i][j] + PMmMP*II*k*C[i][j] );
 
+/*
        for(int Mu=0; Mu<3; Mu++)
         PFT[PFT_XFORCE + Mu]
          -= 0.5*TENTHIRDS*k*imag( PPpMM*dG[Mu][i][j] + PMmMP*II*k*dC[Mu][i][j] );
-     };
+*/
+PFT[PFT_XFORCE]
+ -= 0.5*TENTHIRDS*k*imag( PPpMM*dG[2][i][j] );
 
+PFT[PFT_YFORCE]
+ -= 0.5*TENTHIRDS*k*imag( PMmMP*II*k*dC[2][i][j] );
+
+PFT[PFT_ZFORCE]
+ -= 0.5*TENTHIRDS*k*real( PMmMP*II*k*dC[2][i][j] );
+     };
+/*
    for(int Mu=0; Mu<3; Mu++)
     { int Nu=(Mu+1)%3, Rho=(Mu+2)%3;
       for(int Sigma=0; Sigma<3; Sigma++)
@@ -148,6 +158,22 @@ void GetMomentPFTContribution(RWGGeometry *G, int nsa, int nsb,
 
        };
     };
+*/
+PFT[PFT_XTORQUE]=-0.5*TENTHIRDS*k*imag(
+  ZVAC*Omega*conj(Pa[0])*(Gij[1][0]*Pb[0]+Gij[1][1]*Pb[1]+Gij[1][2]*Pb[2])
+ -ZVAC*Omega*conj(Pa[1])*(Gij[0][0]*Pb[0]+Gij[0][1]*Pb[1]+Gij[0][2]*Pb[2])
+ + Omega*conj(Ma[0])*(Gij[1][0]*Mb[0]+Gij[1][1]*Mb[1]+Gij[1][2]*Mb[2])/ZVAC
+ - Omega*conj(Ma[1])*(Gij[0][0]*Mb[0]+Gij[0][1]*Mb[1]+Gij[0][2]*Mb[2])/ZVAC
+);
+
+PFT[PFT_ZTORQUE]=-0.5*TENTHIRDS*k*imag( 
+ II*k*(
+        conj(Pa[1])*(C[0][0]*Mb[0]+C[0][1]*Mb[1]+C[0][2]*Mb[2])
+       -conj(Pa[0])*(C[1][0]*Mb[0]+C[1][1]*Mb[1]+C[1][2]*Mb[2])
+       -conj(Ma[1])*(C[0][0]*Pb[0]+C[0][1]*Pb[1]+C[0][2]*Pb[2])
+       +conj(Ma[0])*(C[1][0]*Pb[0]+C[1][1]*Pb[1]+C[1][2]*Pb[2])
+      ));
+
 }
 
 /***************************************************************/
