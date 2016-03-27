@@ -119,15 +119,32 @@ void GetMomentPFTContribution(RWGGeometry *G, int nsa, int nsb,
      { 
        cdouble PPpMM=Omega*(ZVAC*conj(Pa[i])*Pb[j] + conj(Ma[i])*Mb[j]/ZVAC);
        cdouble PMmMP=conj(Pa[i])*Mb[j] - conj(Ma[i])*Pb[j];
-
+/*
        PFT[PFT_PSCAT]
         += 0.5*k2*real( PPpMM*Gij[i][j] + PMmMP*II*k*C[i][j] );
+*/
+PFT[PFT_PABS]
+        += 0.5*k2*real( II*Omega*ZVAC*conj(Pa[i])*Pb[j] * Gij[i][j] );
+PFT[PFT_PSCAT]
+        += 0.5*k2*real( II*Omega*conj(Ma[i])*Mb[j] * Gij[i][j] )/ZVAC;
+PFT[PFT_XFORCE]
+        += 0.5*k2*real( II*k*conj(Pa[i])*Mb[j]*C[i][j] );
+PFT[PFT_YFORCE]
+        += 0.5*k2*real( II*k*conj(Ma[i])*Pb[j]*C[i][j] );
+
+PFT[PFT_ZFORCE]
+        += 0.5*k*imag( II*Omega*ZVAC*conj(Pa[i])*Pb[j] * dG[i][j][2] );
+PFT[PFT_XTORQUE]
+        += 0.5*k*imag( II*Omega*conj(Ma[i])*Mb[j] * dG[i][j][2] )/ZVAC;
+PFT[PFT_YTORQUE]
+        += 0.5*k*imag( II*k*conj(Pa[i])*Mb[j]*dC[i][j][2] );
+PFT[PFT_ZTORQUE]
+        += 0.5*k*imag( II*k*conj(Ma[i])*Pb[j]*dC[i][j][2] );
 
 /*
        for(int Mu=0; Mu<3; Mu++)
         PFT[PFT_XFORCE + Mu]
          -= 0.5*TENTHIRDS*k*imag( PPpMM*dG[Mu][i][j] + PMmMP*II*k*dC[Mu][i][j] );
-*/
 PFT[PFT_XFORCE]
  -= 0.5*TENTHIRDS*k*imag( PPpMM*dG[2][i][j] );
 
@@ -136,6 +153,7 @@ PFT[PFT_YFORCE]
 
 PFT[PFT_ZFORCE]
  -= 0.5*TENTHIRDS*k*real( PMmMP*II*k*dC[2][i][j] );
+*/
      };
 /*
    for(int Mu=0; Mu<3; Mu++)
@@ -159,6 +177,7 @@ PFT[PFT_ZFORCE]
        };
     };
 */
+/*
 PFT[PFT_XTORQUE]=-0.5*TENTHIRDS*k*imag(
   ZVAC*Omega*conj(Pa[0])*(Gij[1][0]*Pb[0]+Gij[1][1]*Pb[1]+Gij[1][2]*Pb[2])
  -ZVAC*Omega*conj(Pa[1])*(Gij[0][0]*Pb[0]+Gij[0][1]*Pb[1]+Gij[0][2]*Pb[2])
@@ -173,6 +192,7 @@ PFT[PFT_ZTORQUE]=-0.5*TENTHIRDS*k*imag(
        -conj(Ma[1])*(C[0][0]*Pb[0]+C[0][1]*Pb[1]+C[0][2]*Pb[2])
        +conj(Ma[0])*(C[1][0]*Pb[0]+C[1][1]*Pb[1]+C[1][2]*Pb[2])
       ));
+*/
 
 }
 

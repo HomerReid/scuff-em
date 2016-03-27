@@ -82,6 +82,9 @@ public:
    char *Name;
    char *ErrMsg;
 
+   // data that are present only for MatProp models
+   MatProp *MP;
+
    // data that are present only for interpolated models
    int NumPoints;
    double *XiPoints, *PolPoints;
