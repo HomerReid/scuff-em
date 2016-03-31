@@ -282,8 +282,7 @@ void PolModel::InitPolModel_UD(char *FileName)
 
   MP=new MatProp(FileName);
   if (MP->ErrMsg==0)
-   { Name=strdup(MP->Name);
-     PolInterp=0;
+   { PolInterp=0;
      MatProp::SetLengthUnit(1.0e-6);
      return;
    }
