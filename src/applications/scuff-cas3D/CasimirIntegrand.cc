@@ -450,6 +450,10 @@ void GetCasimirIntegrand(void *pSC3D, cdouble Omega,
        };
 
      /***************************************************************/
+     /* add ground-plane contributions if necessary *****************/
+     /***************************************************************/
+
+     /***************************************************************/
      /* factorize the M matrix and compute casimir quantities       */
      /***************************************************************/
      Factorize(SC3D);

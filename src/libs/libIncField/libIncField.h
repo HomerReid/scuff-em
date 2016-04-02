@@ -132,6 +132,7 @@ class PointSource: public IncField
 
    PointSource(const double X0[3], const cdouble P[3], 
                int Type = LIF_ELECTRIC_DIPOLE, const char *Label = 0);
+   PointSource();
    ~PointSource();
 
    void SetX0(double X0[3]);
