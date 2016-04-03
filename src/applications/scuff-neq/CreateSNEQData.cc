@@ -156,10 +156,10 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
       }
      else if (PFTMethods[npm]==SCUFF_PFT_OVERLAP)
       sprintf(PFTName,"OPFT");
-     else if (PFTMethods[npm]==SCUFF_PFT_EMT_INTERIOR)
-      sprintf(PFTName,"InteriorEMT");
      else if (PFTMethods[npm]==SCUFF_PFT_EMT_EXTERIOR)
-      sprintf(PFTName,"ExteriorEMT");
+      sprintf(PFTName,"EMTPFT");
+     else if (PFTMethods[npm]==SCUFF_PFT_EMT_INTERIOR)
+      sprintf(PFTName,"IEMTPFT");
      else if (PFTMethods[npm]==SCUFF_PFT_EP)
       sprintf(PFTName,"EP");
 

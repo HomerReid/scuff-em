@@ -27,7 +27,7 @@
 #include "libscuff.h"
 #include "scuff-ldos.h"
 
-#define ABSTOL 1.0e-10
+#define ABSTOL 1.0e-20
 #define MAXSTR 1000
 
 using namespace scuff;

@@ -83,8 +83,8 @@ SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles)
   SetDefaultCD2SFormat("%.8e %.8e");
 
   SLDData *Data=(SLDData *)mallocEC(sizeof(*Data));
-  Data->RelTol      = 1.0e-2;
-  Data->MaxEvals    = 1000;
+  Data->RelTol      = 1.0e-3;
+  Data->MaxEvals    = 10000;
   Data->HalfSpaceMP = 0;
 
   /***************************************************************/
