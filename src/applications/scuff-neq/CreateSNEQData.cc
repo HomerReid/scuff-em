@@ -145,6 +145,7 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   InitPFTOptions( &(SNEQD->PFTOpts) );
   SNEQD->NeedQuantity  = SNEQD->PFTOpts.NeedQuantity;
   SNEQD->NumPFTMethods = NumPFTMethods;
+  SNEQD->DSIOmegaPoints=0;
   for(int npm=0; npm<NumPFTMethods; npm++)
    { 
      SNEQD->PFTMethods[npm] = PFTMethods[npm];

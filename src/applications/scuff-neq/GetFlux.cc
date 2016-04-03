@@ -388,6 +388,20 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+bool DoDSIAtThisFrequency(SNEQData *SNEQD, cdouble Omega)
+{
+  HVector *OmegaPoints=SNEQD->DSIOmegaPoints;
+  if (OmegaPoints==0)
+   return true;
+  for(int n=0; n<OmegaPoints->N; n++)
+   if (EqualFloat(Omega, OmegaPoints->GetEntry(n)))
+    return true;
+  return false;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
   if ( CacheRead(SNEQD, Omega, kBloch, Flux) )
@@ -518,6 +532,10 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
         // calculation methods
         for(int npm=0; npm<NumPFTMethods; npm++)
          { 
+           if (    PFTMethods[npm]==SCUFF_PFT_DSI 
+                && !DoDSIAtThisFrequency(SNEQD, Omega) 
+              ) continue;
+
            GetSIFlux(SNEQD, nss, Omega, PFTMethods[npm], PFTMatrix);
 
            FILE *f=vfopen(SNEQD->SIFluxFileNames[npm],"a");
