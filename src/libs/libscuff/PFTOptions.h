@@ -130,9 +130,13 @@ PFTOptions *InitPFTOptions(PFTOptions *Options=0);
 /***************************************************************/
 /***************************************************************/
 class RWGGeometry;
-HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                   HVector *KNVector, HMatrix *DRMatrix,
-                   HMatrix *FMatrix=0);
+HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
+                   HMatrix *DRMatrix, HMatrix *FMatrix=0);
+
+void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
+                    bool IsPECA, int KNIndexA,
+                    bool IsPECB, int KNIndexB,
+                    cdouble Bilinears[4]);
 
 } // namespace scuff 
 

@@ -561,9 +561,10 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
         // all evaluation points
         if (NumSRQs > 0)
           { 
-            HMatrix *SRXMatrix=SNEQD->SRXMatrix;
-            HMatrix *SRFMatrix=SNEQD->SRFMatrix;
-            GetSRFlux(G, SRXMatrix, Omega, 0, SNEQD->DRMatrix, SRFMatrix);
+            HMatrix *SRXMatrix = SNEQD->SRXMatrix;
+            HMatrix *SRFMatrix = SNEQD->SRFMatrix;
+            HMatrix *DRMatrix  = SNEQD->DRMatrix;
+            GetSRFluxTrace(G, SRXMatrix, Omega, DRMatrix, SRFMatrix);
 
             FILE *f=vfopen("%s.SRFlux","a",FileBase);
             for(int nx=0; nx<NX; nx++)
