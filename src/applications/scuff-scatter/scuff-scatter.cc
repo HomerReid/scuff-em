@@ -48,11 +48,6 @@
 
 #define MAXSTR   1000
 
-/*******************************************************************/
-/* process frequency-related options to construct a list of        */
-/* frequencies at which to run calculations                        */
-/*******************************************************************/
-
 /***************************************************************/
 /* helper routine to process frequency-related options to      */
 /* construct a list of frequencies at which to run calculations*/
@@ -123,6 +118,8 @@ int main(int argc, char *argv[])
   /* process options *********************************************/
   /***************************************************************/
   InstallHRSignalHandler();
+  InitializeLog(argv[0]);
+
 //
   char *GeoFile=0;
 //
@@ -149,9 +146,7 @@ int main(int argc, char *argv[])
   char *PFTFile=0;
   char *OPFTFile=0;
   char *MomentPFTFile=0;
-  char *IEMTPFTFile=0;
-  char *EEMTPFTFile=0;
-  char *EMTPFTFileBase=0;
+  char *EMTPFTFile=0;
 //
   char *DSIPFTFile = 0;
   double DSIRadius = 10.0;
@@ -201,13 +196,8 @@ int main(int argc, char *argv[])
      {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power, force, and torque output file"},
 /**/
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
-     {"MomentPFTFile",  PA_STRING,  1, 1,       (void *)&MomentPFTFile,   0,             "name of multipole-moment PFT output file"},
-/**/
-     {"EEMTPFTFile",    PA_STRING,  1, 1,       (void *)&EEMTPFTFile,    0,         "name of energy/momentum-transfer PFT output file"},
-     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EEMTPFTFile,    0,         "(equivalent to --EEMTPFTFile)"},
-     {"IEMTPFTFile",    PA_STRING,  1, 1,       (void *)&IEMTPFTFile,    0,         "name of interior energy/momentum-transfer PFT output file"},
-     {"EMTPFTFileBase", PA_STRING,  1, 1,       (void *)&EMTPFTFileBase, 0,         "base filename for full set of EMTPFT output files"},
-/**/ 
+     {"MomentPFTFile",  PA_STRING,  1, 1,       (void *)&MomentPFTFile,   0,        "name of multipole-moment PFT output file"},
+     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EMTPFTFile, 0,             "name of energy/momentum-transfer PFT output file"},
      {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
@@ -282,9 +272,7 @@ int main(int argc, char *argv[])
                              || PFTFile!=0
                              || OPFTFile!=0
                              || MomentPFTFile!=0
-                             || IEMTPFTFile!=0
-                             || EEMTPFTFile!=0
-                             || EMTPFTFileBase!=0
+                             || EMTPFTFile!=0
                              || DSIPFTFile!=0
                              || nEPFiles>0
                              || nFVMeshes>0
@@ -292,12 +280,6 @@ int main(int argc, char *argv[])
                            );
   if ( NeedIncidentField && IFDList==0 )
    ErrExit("you must specify at least one incident field source");
-
-  /*******************************************************************/
-  /*******************************************************************/
-  /*******************************************************************/
-  SetLogFileName("scuff-scatter.log");
-  Log("scuff-scatter running on %s",GetHostName());
 
   /*******************************************************************/
   /* PFT options *****************************************************/
@@ -469,21 +451,8 @@ int main(int argc, char *argv[])
         WritePFTFile(SSD, PFTOpts, SCUFF_PFT_DSI, PlotPFTFlux, DSIPFTFile2);
       };
 
-     if (EEMTPFTFile)
-      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EMT_EXTERIOR, PlotPFTFlux, EEMTPFTFile);
-
-     if (IEMTPFTFile)
-      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EMT_INTERIOR, PlotPFTFlux, IEMTPFTFile);
-
-     if (EMTPFTFileBase)
-      { PFTOpts->RHSVector = SSD->RHS;
-        PFTOpts->IF        = SSD->IF;
-        PFTOpts->kBloch    = SSD->kBloch;
-        PFTOpts->Itemize=true;
-        PFTOpts->FluxFileName=0;
-        for(int Method=0; Method<3; Method<SCUFF_EMTPFTI_NUMMETHODS)
-         HMatrix *M=G->GetPFTMatrix(KN, Omega, PFTOpts);
-      };
+     if (EMTPFTFile)
+      WritePFTFile(SSD, PFTOpts, SCUFF_PFT_EMT, PlotPFTFlux, EMTPFTFile);
 
      /*--------------------------------------------------------------*/
      /*- panel source densities -------------------------------------*/

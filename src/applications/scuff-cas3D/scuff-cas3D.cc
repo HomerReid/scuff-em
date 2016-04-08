@@ -45,8 +45,7 @@
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
-  SetLogFileName("scuff-cas3D.log");
-  Log("scuff-cas3D running on %s",GetHostName());
+  InitializeLog(argv[0]);
 
   /***************************************************************/
   /* pre-process command-line arguments to extract arguments     */

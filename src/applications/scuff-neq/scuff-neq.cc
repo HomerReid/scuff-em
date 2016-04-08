@@ -53,6 +53,7 @@
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
+  InitializeLog(argv[0]);
 
   /***************************************************************/
   /* pre-process command-line arguments to extract arguments     */
@@ -190,8 +191,6 @@ int main(int argc, char *argv[])
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   if (!FileBase)
    FileBase=vstrdup(GetFileBase(GeoFile));
-  SetLogFileName("%s.log",FileBase);
-  Log("scuff-neq running on %s",GetHostName());
 
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");

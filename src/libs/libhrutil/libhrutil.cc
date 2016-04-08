@@ -488,6 +488,13 @@ void LogC(const char *format, ...)
   fclose(f);
 }
 
+void InitializeLog(char *argv0)
+{ char *CodeName=GetFileBase(argv0);
+  if (LogFileName==0)
+   SetLogFileName("%s.log",CodeName);
+  Log("%s running on %s:%d (%s)",CodeName, GetHostName(), getpid(), GetTimeString());
+}
+
 // 20120225 thread-safe logging
 #ifdef USE_PTHREAD 
 static pthread_mutex_t LogMutex = PTHREAD_MUTEX_INITIALIZER;

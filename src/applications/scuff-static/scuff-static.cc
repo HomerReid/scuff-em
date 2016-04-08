@@ -66,6 +66,9 @@ void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
 /***************************************************************/
 int main(int argc, char *argv[])
 {
+  InstallHRSignalHandler();
+  InitializeLog(argv[0]);
+
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
@@ -142,12 +145,6 @@ int main(int argc, char *argv[])
         default:  ErrExit("invalid --ConstField specification");
       };
    };
-
-  /*******************************************************************/
-  /*******************************************************************/
-  /*******************************************************************/
-  SetLogFileName("scuff-static.log");
-  Log("scuff-static running on %s",GetHostName());
 
   /*******************************************************************/
   /* create the ScuffStaticGeometry **********************************/

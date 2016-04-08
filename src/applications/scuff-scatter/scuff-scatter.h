@@ -45,7 +45,6 @@ typedef struct SSData
    cdouble Omega;
    double *kBloch;
    IncField *IF;
-   double PowerRadius;
  } SSData;
  
 
@@ -55,7 +54,6 @@ typedef struct SSData
 /***************************************************************/
 void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
                   bool PlotFlux, char *FileName);
-void WriteEMTPFTFiles(SSData *SSD, char *PFTFile);
 void WritePSDFile(SSData *SSD, char *PSDFile);
 void GetMoments(SSData *SSD, char *MomentFile);
 void ProcessEPFile(SSData *SSData, char *EPFileName);

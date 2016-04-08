@@ -158,8 +158,7 @@ void Usage(const char *ProgramName, OptStruct *OSArray, const char *ErrMsg)
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
-  SetLogFileName("scuff-caspol.log");
-  Log("scuff-caspol running on %s",GetHostName());
+  InitializeLog(argv[0]);
 
   /***************************************************************/
   /* pre-process command-line arguments to extract arguments     */
