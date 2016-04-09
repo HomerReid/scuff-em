@@ -1,0 +1,6 @@
+RELTOL 1.0e-2
+
+KEY  D          1
+KEY  Omega      2
+KEY  SourceDest 3
+DATA F22        8

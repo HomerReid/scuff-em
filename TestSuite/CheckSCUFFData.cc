@@ -314,7 +314,6 @@ DataRecord *FindDataRecord(DataSet *DS, char **KeyValues, Checklist *CL)
     
 }
 
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -339,8 +338,8 @@ int CompareDataSets(DataSet *TestDS, DataSet *RefDS, Checklist *CL, FILE *ErrorF
 
      if (!TestDR)
       { if (ErrorFile)
-         fprintf(ErrorFile,"Data file %s has no line matching ref file %s line %i",
-                            TestDS->FileName,RefDS->FileName,RefDR->FileLine);
+         fprintf(ErrorFile,"Data file has no line matching ref file line %i\n",
+                            RefDR->FileLine);
         continue;
       };
 
@@ -424,14 +423,16 @@ int main(int argc, char *argv[])
   DataSet *TestDS = ReadDataSet(DataFile, CL);
   DataSet *RefDS  = ReadDataSet(RefFile, CL);
  
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   if (ErrorFileName==0)
-   ErrorFileName=vstrdup("%s.errors",DataFile);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-
+   ErrorFileName=vstrdup("%s.errors",GetFileBase(DataFile));
   FILE *ErrorFile = 0;
   if (ErrorFileName)
-   ErrorFile=fopen(ErrorFileName,"w");
+   { ErrorFile=fopen(ErrorFileName,"w");
+     fprintf(ErrorFile,"CheckSCUFFData running on %s (%s)\n",GetHostName(),GetTimeString());
+     fprintf(ErrorFile,"Checklist:      %s \n",CLFile);
+     fprintf(ErrorFile,"Data      file: %s \n",DataFile);
+     fprintf(ErrorFile,"Reference file: %s \n",RefFile);
+   };
 
   int DataMatches = CompareDataSets(TestDS, RefDS, CL, ErrorFile);
 
