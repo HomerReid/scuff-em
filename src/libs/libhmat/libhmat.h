@@ -173,7 +173,7 @@ class HMatrix
    HMatrix(SMatrix *S);
 
    /* HDF5 file IO */
-   void ImportFromHDF5(const char *FileName, const char *MatrixName);
+   void ImportFromHDF5(const char *FileName, const char *MatrixName, bool Init=true);
    void ExportToHDF5(const char *FileName, const char *format, ...);
    void ExportToHDF5(void *pHC, const char *format, ...);
 

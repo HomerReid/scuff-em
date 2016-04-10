@@ -159,22 +159,25 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
   int NBFs = G->Surfaces[ns]->NumBFs;
   if (Op==TBCOP_READ)	
    { Log("Attempting to read T-block (%s,%s) from file %s...",FileBase,z2s(Omega),FileName);
-     HMatrix *MFile = new HMatrix(FileName, LHM_HDF5, "T");
-     bool Success;
-     if (MFile->ErrMsg)
-      { Log("...could not read file");
-        Success=false;
-      }
-     else if ( (MFile->NR != NBFs) || (MFile->NC!= NBFs) )
-      { Log("...matrix had incorrect dimension"); 
-        Success=false;
-      }
+     HMatrix *MFile=M;
+     bool OwnsMFile=false;
+     if (RowOffset==0 && ColOffset==0 && M->NR==NBFs && M->NC==NBFs)
+      M->ImportFromHDF5(FileName,"T",false);
      else
-      { M->InsertBlock(MFile, RowOffset, ColOffset);
-        Log("...success!");
-        Success=true;
+      { MFile=new HMatrix(FileName,LHM_HDF5,"T");
+        OwnsMFile=true;
       };
-     delete MFile;
+     bool Success = (MFile->ErrMsg == 0);
+     if (Success)
+      { Log("...success!");
+        if (OwnsMFile)
+         M->InsertBlock(MFile, RowOffset, ColOffset);
+      }
+     else 
+      { Log("...failed: %s",MFile->ErrMsg);
+        if (!OwnsMFile) free(M->ErrMsg);
+      };
+     if (OwnsMFile) delete MFile;
      return Success;
    }
   else if (Op==TBCOP_WRITE)

@@ -260,8 +260,17 @@ void HMatrix::ExportToHDF5(const char *FileName, const char *format, ...)
 /***************************************************************/
 /* HMatrix constructor that attempts to construct an HMatrix   */
 /* from an HDF5 file.                                          */
+/* On success, ErrMsg will be NULL on return.                  */
+/* Otherwise ErrMsg says what went wrong.                      */
+/* If Init==true, then we assume this routine is being called  */
+/* from the HMatrix() constructor and that the matrix          */
+/* dimensions, etc. are to be read from the data file.         */
+/* Otherwise we assume this routine is being called on an      */
+/* existing HMatrix(), in which case we consider it an error   */
+/* if the matrix described by the data file doesn't have the   */
+/* same dimensions, etc as the existing matrix.                */
 /***************************************************************/
-void HMatrix::ImportFromHDF5(const char *FileName, const char *Name)
+void HMatrix::ImportFromHDF5(const char *FileName, const char *Name, bool Init)
 { 
   hid_t file_id;
   herr_t status;
@@ -314,13 +323,42 @@ void HMatrix::ImportFromHDF5(const char *FileName, const char *Name)
   /*- by another application and assume it describes a real-valued*/
   /*- non-packed matrix.                                          */
   /*--------------------------------------------------------------*/
-  status=H5LTget_attribute_int(file_id, Name, "Storage_Type", &StorageType);
-  if (status<0)
-   StorageType=LHM_NORMAL; 
+  int FileStorageType=LHM_NORMAL;
+  int FileRealComplex=LHM_REAL;
+  status=H5LTget_attribute_int(file_id, Name, "Storage_Type", &FileStorageType);
+  status=H5LTget_attribute_int(file_id, Name, "RealComplex", &FileRealComplex);
 
-  status=H5LTget_attribute_int(file_id, Name, "RealComplex", &RealComplex);
-  if (status<0)
-   RealComplex=LHM_REAL; 
+  int FileNR=0, FileNC=0;
+  if (FileStorageType==LHM_NORMAL && FileRealComplex==LHM_REAL)
+   { FileNR=dims[1];
+     FileNC=dims[0];
+   }
+  else if (FileStorageType==LHM_NORMAL && FileRealComplex==LHM_COMPLEX)
+   { FileNR=dims[1]/2;
+     FileNC=dims[0];
+   }
+  else if (FileStorageType!=LHM_NORMAL && FileRealComplex==LHM_REAL)
+   FileNR=FileNC=int( floor( sqrt( 2.0*dims[1] ) ) );
+  else if (FileStorageType!=LHM_NORMAL && FileRealComplex==LHM_COMPLEX)
+   FileNR=FileNC=int( floor( sqrt( 2.0*(dims[1]/2) ) ) );
+
+  if (Init)
+   { StorageType=FileStorageType;
+     RealComplex=FileRealComplex;
+   }
+  else 
+   { 
+     // make sure the matrix in the file matches the size, etc
+     // of the existing matrix
+     if (StorageType!=FileStorageType)
+      ErrMsg=vstrdup("file %s, dataset %s: storage type mismatch",FileName,Name);
+     else if (RealComplex!=FileRealComplex)
+      ErrMsg=vstrdup("file %s, dataset %s: data type mismatch",FileName,Name);
+     else if (NR!=FileNR || NC!=FileNC)
+      ErrMsg=vstrdup("file %s, dataset %s: dimension mismatch (%ix%i) != (%ix%i)",FileName,Name,NR,NC,FileNR,FileNC);
+     if (ErrMsg)
+      return;
+   };
 
   /*--------------------------------------------------------------*/
   /*- now switch off to handle the various cases for reading the  */
@@ -328,19 +366,19 @@ void HMatrix::ImportFromHDF5(const char *FileName, const char *Name)
   /*--------------------------------------------------------------*/
   if (StorageType==LHM_NORMAL && RealComplex==LHM_REAL )
    { 
-     InitHMatrix(dims[1], dims[0], LHM_REAL);
+     if (Init) InitHMatrix(dims[1], dims[0], LHM_REAL);
      H5LTread_dataset_double(file_id, Name, DM);
    }
   else if (StorageType==LHM_NORMAL  && RealComplex==LHM_COMPLEX )
    { 
-     InitHMatrix(dims[1]/2, dims[0], LHM_COMPLEX);
+     if (Init) InitHMatrix(dims[1]/2, dims[0], LHM_COMPLEX);
      H5LTread_dataset_double(file_id, Name, (double *)ZM);
    }
   else if ( StorageType!=LHM_NORMAL && RealComplex==LHM_REAL )
    { 
      // recover NR=NC from the NumEntries=NR*(NR+1)/2 
      int rows = int( floor( sqrt( 2.0*dims[1] ) ) );
-     InitHMatrix(rows, rows, LHM_REAL, StorageType);
+     if (Init) InitHMatrix(rows, rows, LHM_REAL, StorageType);
      H5LTread_dataset_double(file_id, Name, DM);
    }
   else if ( StorageType!=LHM_NORMAL && RealComplex==LHM_COMPLEX )
