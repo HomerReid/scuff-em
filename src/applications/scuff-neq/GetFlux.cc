@@ -504,8 +504,9 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
          };
       };
      UndoSCUFFMatrixTransformation(W);
-     Log("LU factorizing/inverting...");
+     Log("LU factorizing...");
      W->LUFactorize();
+     Log("LU inverting...");
      W->LUInvert();
      Log("Done with linear algebra...");
 

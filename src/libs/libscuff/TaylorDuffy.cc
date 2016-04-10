@@ -152,7 +152,6 @@ void ComputeGeometricParameters(TaylorDuffyArgStruct *Args,
 int TaylorDuffySum(unsigned ndim, const double *yVector, void *parms, 
                    unsigned nfun, double *f)
 {
-  (void) nfun; // unused
   (void) ndim; // unused
 
   /*--------------------------------------------------------------*/
