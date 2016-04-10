@@ -74,7 +74,7 @@ void GetMomentPFTSelfTerm(int ns, cdouble Omega, HMatrix *PM, double PFT[NUMPFT]
   PM->GetEntries(ns, "3:5", M);
 
   PFT[PFT_PABS]=0.0;
-  PFT[PFT_PSCAT]=ZVAC*PPF*real( VecHDot(P,P) + VecHDot(M,M));
+  PFT[PFT_PSCAT]=ZVAC*PPF*real( VecHDot(P,P) + VecHDot(M,M) );
 
   for(int Mu=0; Mu<3; Mu++)
    { 
@@ -244,18 +244,11 @@ HMatrix *GetMomentPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   for(int ns=0; ns<NS; ns++)
    ScatteredPFT[ns]->Zero();
 
-  bool UseSymmetry=true;
-  char *s=getenv("SCUFF_MOMENTPFT_SYMMETRY");
-  if (s && s[0]=='0')
-   { UseSymmetry=false;
-     Log("Not using symmetry in Moment PFT calculation.");
-   };
-
   for(int ns=0; ns<NS; ns++)
    ScatteredPFT[ns]->Zero();
 
   for(int nsa=0; nsa<NS; nsa++)
-   for(int nsb=(UseSymmetry ? nsa : 0); nsb<NS; nsb++)
+   for(int nsb=0; nsb<NS; nsb++)
     { 
       double PFT[NUMPFT];
 
@@ -266,12 +259,6 @@ HMatrix *GetMomentPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
 
       for(int nq=0; nq<NUMPFT; nq++)
        ScatteredPFT[nsb]->AddEntry(nsa, nq, PFT[nq]);
-
-      if (UseSymmetry && nsa!=nsb)
-       { ScatteredPFT[nsa]->AddEntry(nsb, PFT_PSCAT, PFT[PFT_PSCAT]);
-         for(int nq=PFT_XFORCE; nq<NUMPFT; nq++)
-          ScatteredPFT[nsa]->AddEntry(nsb, nq, -1.0*PFT[nq]);
-       };
     };
 
   /***************************************************************/

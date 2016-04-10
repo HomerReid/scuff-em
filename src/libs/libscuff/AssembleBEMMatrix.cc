@@ -118,7 +118,8 @@ void StampInNeighborBlock(HMatrix *B, HMatrix **GradB,
 /***************************************************************/
 #define TBCOP_READ  0
 #define TBCOP_WRITE 1
-bool TBlockCacheOp(int Op, RWGGeometry *G, int ns, cdouble Omega,
+bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
+                   cdouble Omega, double *kBloch,
                    HMatrix *M, int RowOffset, int ColOffset)
 {
   char *Dir = getenv("SCUFF_TBLOCK_PATH");
@@ -127,16 +128,30 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  char K4VStr[50];
+  if (imag(Omega)==0.0)
+   sprintf(K4VStr,"%.6e",real(Omega));
+  else if (real(Omega)==0.0)
+   sprintf(K4VStr,"%.6eI",imag(Omega));
+  else 
+   sprintf(K4VStr,"%.6e+%.6eI",real(Omega),imag(Omega));
+  if (G->LDim>=1)
+   vstrappend(K4VStr,"_%.6e",kBloch[0]);
+  if (G->LDim>=2)
+   vstrappend(K4VStr,"_%.6e",kBloch[1]);
+
+  int nr1=G->Surfaces[ns]->RegionIndices[0];
+  int nr2=G->Surfaces[ns]->RegionIndices[1];
+  if (G->RegionMPs[nr1]->Zeroed)
+   strcat(K4VStr,"_Interior");
+  else if (nr2!=-1 && G->RegionMPs[nr2]->Zeroed)
+   strcat(K4VStr,"_Exterior");
+    
   char *FileBase = GetFileBase(G->Surfaces[ns]->MeshFileName); 
   const char *Addendum = G->TBlockCacheNameAddendum;
   if (Addendum==0) Addendum="";
   char FileName[200];
-  if ( imag(Omega)==0.0 )
-   snprintf(FileName,200,"%s/%s%s_%.6e.hdf5",Dir,FileBase,Addendum,real(Omega));
-  else if ( real(Omega)==0.0 )
-   snprintf(FileName,200,"%s/%s%s_%.6eI.hdf5",Dir,FileBase,Addendum,imag(Omega));
-  else
-   snprintf(FileName,200,"%s/%s%s_%.6e+%.6eI.hdf5",Dir,FileBase,Addendum,real(Omega),imag(Omega));
+  snprintf(FileName,200,"%s/%s%s_%s.hdf5",Dir,FileBase,Addendum,K4VStr);
 
   /***************************************************************/
   /***************************************************************/
@@ -164,13 +179,20 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns, cdouble Omega,
    }
   else if (Op==TBCOP_WRITE)
    { 
-      HMatrix *MFile = new HMatrix(NBFs, NBFs, M->RealComplex);
-      M->ExtractBlock(RowOffset, ColOffset, MFile);
+      HMatrix *MFile;
+      bool OwnsMFile=false;
+      if (RowOffset==0 && ColOffset==0 && M->NR==NBFs && M->NC==NBFs)
+       MFile=M;
+      else
+       { MFile = new HMatrix(NBFs, NBFs, M->RealComplex);
+         OwnsMFile=true;
+         M->ExtractBlock(RowOffset, ColOffset, MFile);
+       };
       MFile->ExportToHDF5(FileName,"T");
       Log("Writing T-block (%s,%s) to file %s...",FileBase,z2s(Omega),FileName);
       if (MFile->ErrMsg)
        Log("...failed! %s",MFile->ErrMsg);
-      delete MFile;
+      if (OwnsMFile) delete MFile;
       return true;
    };
 
@@ -291,6 +313,11 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   if (TransposeAccelerator)
    ErrExit("%s:%i: TransposeAccelerator not implemented");
 
+  if (    nsa==nsb
+       && GradM==0
+       && TBlockCacheOp(TBCOP_READ, this, nsa, Omega, kBloch, M, RowOffset, ColOffset)
+     ) return;
+
   Log("Assembling BEM matrix block (%i,%i)",nsa,nsb);
 
   /***************************************************************/
@@ -313,6 +340,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
      Args->RowOffset=RowOffset;
      Args->ColOffset=ColOffset;
      GetSurfaceSurfaceInteractions(Args);
+     if (nsa==nsb)
+      TBlockCacheOp(TBCOP_WRITE, this, nsa, Omega, kBloch, M, RowOffset, ColOffset);
      return;
    };
 
@@ -479,6 +508,9 @@ done:
 
   if (Args->GBA1) DestroyGBarAccelerator(Args->GBA1);
   if (Args->GBA2) DestroyGBarAccelerator(Args->GBA2);
+
+  if (nsa==nsb)
+   TBlockCacheOp(TBCOP_WRITE, this, nsa, Omega, kBloch, M, RowOffset, ColOffset);
 
 }
 

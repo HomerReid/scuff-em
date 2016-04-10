@@ -829,7 +829,7 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
   /***************************************************************/
   if (Interior)
    for(int ns=0; ns<NS; ns++)
-     PFTMatrix->SetEntry(ns, PFT_PSCAT, 0.0);
+    PFTMatrix->SetEntry(ns, PFT_PSCAT, 0.0);
 
   /***************************************************************/
   /***************************************************************/
