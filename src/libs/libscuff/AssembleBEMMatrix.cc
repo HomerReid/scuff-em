@@ -198,7 +198,7 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
       Log("Writing T-block (%s,%s) to file %s...",FileBase,z2s(Omega),FileName);
       if (MFile->ErrMsg)
        { Log("...failed! %s",MFile->ErrMsg);
-         free(MFile->ErrMsg);=0;
+         free(MFile->ErrMsg);
          MFile->ErrMsg=0;
        };
       if (OwnsMFile) delete MFile;
