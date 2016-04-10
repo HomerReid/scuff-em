@@ -175,7 +175,10 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
       }
      else 
       { Log("...failed: %s",MFile->ErrMsg);
-        if (!OwnsMFile) free(M->ErrMsg);
+        if (!OwnsMFile) 
+         { free(M->ErrMsg);
+           M->ErrMsg=0;
+         };
       };
      if (OwnsMFile) delete MFile;
      return Success;
@@ -194,7 +197,10 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
       MFile->ExportToHDF5(FileName,"T");
       Log("Writing T-block (%s,%s) to file %s...",FileBase,z2s(Omega),FileName);
       if (MFile->ErrMsg)
-       Log("...failed! %s",MFile->ErrMsg);
+       { Log("...failed! %s",MFile->ErrMsg);
+         free(MFile->ErrMsg);=0;
+         MFile->ErrMsg=0;
+       };
       if (OwnsMFile) delete MFile;
       return true;
    };
