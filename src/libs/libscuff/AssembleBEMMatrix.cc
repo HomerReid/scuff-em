@@ -123,6 +123,8 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
                    HMatrix *M, int RowOffset, int ColOffset)
 {
   char *Dir = getenv("SCUFF_TBLOCK_PATH");
+  if (Dir==0 && Op==TBCOP_READ)
+   Dir = getenv("SCUFF_TBLOCK_READPATH");
   if (!Dir) return false;
 
   /*--------------------------------------------------------------*/
