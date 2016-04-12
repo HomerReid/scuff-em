@@ -86,7 +86,7 @@ bool CacheRead(SC3Data *SC3D, double Xi, double *kBloch, double *EFT)
   if (SC3D->UseExistingData==false)
    return false;
    
-  int LDim=SC3D->G->LBasis ? SC3D->G->LBasis->NC : 0;
+  int LDim = SC3D->G->LBasis ? SC3D->G->LBasis->NC : 0;
 
   if (    (kBloch==0 && LDim>0)
        || (kBloch!=0 && LDim==0)
@@ -458,27 +458,27 @@ void GetXiIntegrand(SC3Data *SC3D, double Xi, double *EFT)
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if (SC3D->G->LDim==0)
-   GetCasimirIntegrand((void *)SC3D, cdouble(0.0,Xi), 0, EFT);
-  else
+  bool Periodic = (SC3D->G->LDim > 0);
+  if (Periodic)
    GetBZIntegral(SC3D->BZIArgs, cdouble(0.0,Xi), EFT);
+  else
+   GetCasimirIntegrand((void *)SC3D, cdouble(0.0,Xi), 0, EFT);
 
   /***************************************************************/
   /* write data to .byXi file                                    */
   /***************************************************************/
-  if (SC3D->G->LDim>0)
-   { 
-     FILE *f=fopen(SC3D->ByXiFileName,"a");
-     double *Error = SC3D->BZIArgs->BZIError;
-     for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
-      { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
-        for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++)
-         fprintf(f,"%.8e %.8e ",EFT[ntnq], Error?Error[ntnq]:0.0);
-        fprintf(f,"\n");
+  FILE *f=fopen(SC3D->ByXiFileName,"a");
+  double *Error = Periodic ? SC3D->BZIArgs->BZIError : 0;
+  for(int ntnq=0, nt=0; nt<SC3D->NumTransformations; nt++)
+   { fprintf(f,"%s %.6e ",SC3D->GTCList[nt]->Tag,Xi);
+     for(int nq=0; nq<SC3D->NumQuantities; nq++, ntnq++)
+      { fprintf(f,"%.8e ",EFT[ntnq]);
+        if (Periodic)
+         fprintf(f,"%.8e ",Error ? Error[ntnq] : 0.0);
       };
-     fclose(f);
+     fprintf(f,"\n");
    };
-  
+  fclose(f);
 
 }
 

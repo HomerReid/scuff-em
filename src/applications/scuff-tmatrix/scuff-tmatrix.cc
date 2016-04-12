@@ -54,6 +54,7 @@ HVector *GetSphericalMoments(RWGGeometry *G, cdouble k, int lMax,
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
+  InitializeLog(argv[0]);
 
   /*--------------------------------------------------------------*/
   /*- process command-line options -------------------------------*/
@@ -94,7 +95,6 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /* create the RWGGeometry from the .scuffgeo file               */
   /*--------------------------------------------------------------*/
-  SetLogFileName("%s.log",GetFileBase(GeoFileName));
   RWGGeometry *G=new RWGGeometry(GeoFileName);
   G->SetLogLevel(SCUFF_VERBOSELOGGING);
   if (Cache)

@@ -27,6 +27,7 @@
  */
 
 #include "scuff-caspol.h"
+#include <libMatProp.h>
 #include <libhmat.h>
 
 /***************************************************************/
@@ -271,13 +272,24 @@ void PolModel::InitPolModel_BI(char *Atom)
 }
 
 /***************************************************************/
-/* PolModel class constructor for user-defined polarizabilities.*/
+/* PolModel class constructor for user-defined polarizabilities*/
 /***************************************************************/
 void PolModel::InitPolModel_UD(char *FileName)
 {
   ErrMsg=0;
-  Name = strdup(GetFileBase(FileName));
   LargeXiCoefficient = 0.0;
+  Name = strdup(GetFileBase(FileName));
+
+  MP=new MatProp(FileName);
+  if (MP->ErrMsg==0)
+   { PolInterp=0;
+     MatProp::SetLengthUnit(1.0e-6);
+     return;
+   }
+  else
+   { delete MP;
+     MP=0;
+   };
 
   HMatrix *PolData = new HMatrix(FileName,LHM_TEXT,"--ncol 2 --strict");
   if (PolData->ErrMsg)
@@ -312,7 +324,10 @@ void PolModel::GetPolarizability(double Xi, HMatrix *Alpha)
  {
    double AlphaDiag;
 
-   PolInterp->Evaluate(Xi, &AlphaDiag);
+   if (MP)
+    AlphaDiag = real(MP->GetEps(cdouble(0.0,Xi)));
+   else
+    PolInterp->Evaluate(Xi, &AlphaDiag);
 
    Alpha->Zero();
    Alpha->SetEntry(0,0,AlphaDiag);

@@ -8,11 +8,12 @@
 \contentsline {section}{\numberline {5}Energy/momentum-transfer PFT (EMTPFT), version 1}{9}
 \contentsline {subsection}{\numberline {5.1}Extinction EMTPFT}{10}
 \contentsline {subsection}{\numberline {5.2}Scattered EMTPFT}{10}
-\contentsline {subsection}{\numberline {5.3}Torque}{13}
-\contentsline {subsection}{\numberline {5.4}Interior EMTPFT}{13}
-\contentsline {paragraph}{Planar case}{14}
-\contentsline {paragraph}{General case}{15}
-\contentsline {section}{\numberline {6}Energy/momentum-transfer PFT (EMTPFT), version 2}{16}
-\contentsline {section}{\numberline {A}Derivation of volume integrals for the force and torque}{17}
-\contentsline {section}{\numberline {B}Overlap integral between RWG basis functions}{19}
-\contentsline {section}{\numberline {C}PFT in Mie Scattering}{20}
+\contentsline {subsubsection}{\numberline {5.2.1}Specific forms of EMTPFT integrals}{11}
+\contentsline {subsection}{\numberline {5.3}Using symmetry to simplify self-contributions to PFT}{12}
+\contentsline {subsubsection}{\numberline {5.3.1}Self-contribution to power}{13}
+\contentsline {subsubsection}{\numberline {5.3.2}Self-contribution to force and torque}{13}
+\contentsline {section}{\numberline {6}Energy/momentum-transfer PFT (EMTPFT), version 2}{14}
+\contentsline {section}{\numberline {7}Cartesian-multipole-moment PFT}{15}
+\contentsline {section}{\numberline {A}Derivation of volume integrals for the force and torque}{16}
+\contentsline {section}{\numberline {B}Overlap integral between RWG basis functions}{18}
+\contentsline {section}{\numberline {C}PFT in Mie Scattering}{19}

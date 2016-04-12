@@ -132,6 +132,7 @@ typedef struct SNEQData
    char *FileBase;
    bool UseExistingData;
    bool OmitZeroTemperatureFlux;
+   HVector *DSIOmegaPoints;
 
  } SNEQData;
 

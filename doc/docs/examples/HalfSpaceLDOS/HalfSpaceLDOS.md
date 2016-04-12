@@ -16,6 +16,10 @@ The files for this example may be found in the
 `share/scuff-em/examples/HalfSpaceLDOS` subdirectory
 of your [[scuff-em]] installation.
 
+Also, the computational procedure implemented by [scuff-ldos]
+is described in this memo:
+[Computation of Green's Functions and LDOS in <span class="SC">scuff-em</span>][LDOSMemo].
+
 ### Slight complication: The need for Brillouin-zone integration in periodic geometries
 
 In general, the quantity in which we will be interested
@@ -77,8 +81,7 @@ resulting in reports
 The general topic of Brillouin-zone integration in [[scuff-em]] codes is
 discussed in more detail 
 on the page 
-[Brillouin-zone integration in <span class="SC">scuff-em</span>]
-(../../reference/BrillouinZoneIntegration.md)
+[Brillouin-zone integration in <span class="SC">scuff-em</span>](../../reference/BrillouinZoneIntegration.md.)
 
 
 
@@ -197,18 +200,24 @@ this:
 0.0 0.0 0.1
 0.0 0.0 1.0
 ````
-
 --------------------------------------------------
-# List of $(\omega, \mathbf k_B)$ points
+# Launching a Bloch-vector-resolved run
 
-We'll run calculations at a single frequency 
-($\omega=3\times 10^{14}$ rad/sec) and at Bloch
-vectors of the form $\mathbf k_B=(0,k_y)$ for 
+Before running a full Brillouin-zone-integrated
+calculation to get the full LDOS at a given
+frequency $\omega$, we'll first run calculations
+at a set of pre-specified individual Bloch vectors
+$\mathbf k_{\small{\text{B}}}$ in the Brillouin zone.
+
+We'll take $\omega=3\times 10^{14}$ rad/sec
+(or $\omega=1$ in [[scuff]] units) and 
+will consider Bloch
+vectors of the form $\mathbf k_{\small{\text{B}}}=(0,k_y)$ for 
 values of $k_y$ running from $0$ to $\pi/L$
 (where $L$=1 $\mu$m is the lattice constant
 in this case).
-Thus we create a text file called `OKBFile` that
-looks like this:
+Thus we create a text file called [`OKBFile`](OKBFile) 
+that looks like this:
 
 ````
 1.0 0.0 0.00
@@ -217,17 +226,20 @@ looks like this:
 1.0 0.0 3.14
 ````
 
---------------------------------------------------
-
-# Launching the Bloch-run
-
-We will do two [[scuff-ldos]] runs, one in which
-the LDOS is computed using a semi-analytical approach
-(plane-wave decomposition) and another in which
+As a sanity check, we will do two [[scuff-ldos]] runs,
+one in which the LDOS is computed using a semi-analytical
+approach (plane-wave decomposition) and another in which
 the LDOS is computed using the [[scuff-em]] core
-library. Note that the command-line arguments 
-for the two runs are identical except that one of them
-has the extra option `--HalfSpace Aluminum.`
+library. The semi-analytical approach is implemented
+by [scuff-ldos] and is requested by giving all the same
+command-line arguments you would give to do an ordinary
+[scuff-ldos] calculation, but with the additional argument
+`--HalfSpace Aluminum.` (Note that you must specify a `.scuffgeo`
+file for the `--HalfSpace` calculation, even though the 
+meshed geometry is not used in this calculation; the
+`.scuffgeo` file is used to specify the lattice.)
+
+#### Command-line arguments for quasi-analytical calculation using plane-wave decomposition:
 
 ````bash
   #!/bin/bash
@@ -236,6 +248,17 @@ has the extra option `--HalfSpace Aluminum.`
   ARGS="${ARGS} --EPFile  EPFile"
   ARGS="${ARGS} --OmegakBlochFile OKBFile"
   ARGS="${ARGS} --HalfSpace Aluminum"
+  scuff-ldos ${ARGS}
+````
+
+#### Command-line arguments for fully numerical calculation using discretized surface meshes:
+
+````bash
+  #!/bin/bash
+  ARGS=""
+  ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo" 
+  ARGS="${ARGS} --EPFile  EPFile"
+  ARGS="${ARGS} --OmegakBlochFile OKBFile"
   scuff-ldos ${ARGS}
 ````
 
@@ -253,8 +276,37 @@ approaches.
 
 ![aluminum LDOS data](AluminumLDOS.png)
 
+--------------------------------------------------
+# Launching a Brillouin-zone integrated run
+
+Finally, we'll ask [[scuff-ldos]] to perform
+the Brillouin-zone integrations at each frequency
+to compute the full LDOS at that frequency.
+To do this we simply use `--OmegaFile`` instead
+of `--OmegakBlochFile`` to specify a list of 
+frequencies instead of a list of 
+$(\omega,\mathbf{k}_{\small{\hbox{B}}})$
+points; by not specifying individual Bloch vectors
+we are implicitly asking [[scuff-ldos]] to perform
+the Brillouin-zone integral at each frequency.
+
+Thus we go like this:
+
+````bash
+  #!/bin/bash
+  ARGS=""
+  ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo" 
+  ARGS="${ARGS} --EPFile  EPFile"
+  ARGS="${ARGS} --OmegaFile OmegaFile"
+  scuff-ldos ${ARGS}
+````
+
+where [`OmegaFile`](OmegaFile) is a simple text
+file specifying a list of angular frequencies in
+units of $3\cdot 10^{14}$ rad/sec.
 
 [Geometries]:          ../../reference/Geometries.md
 [ExtendedGeometries]:  ../../reference/Geometries.md#Extended
 [RenameMesh]:          ../../examples/SiO2Spheres/RenameMesh
 [scuff-ldos]:          ../../applications/scuff-ldos/scuff-ldos.md
+[LDOSMemo]:            ../../tex/scuff-ldos.pdf

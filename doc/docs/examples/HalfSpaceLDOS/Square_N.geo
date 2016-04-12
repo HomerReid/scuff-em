@@ -2,14 +2,14 @@
 // user-specifiable parameters 
 ////////////////////////////////////////////////////
 // side length 
-L = 1.00;
+L = 0.10;
 
 // center 
 X0 = 0;
 Y0 = 0;
 
 // number of elements per side length
-N = 4;
+N = 8;
 
 // meshing fineness; i think this is actually not used since we will be 
 // defining a structured mesh

@@ -434,7 +434,7 @@ void SetLogFileName(const char *format, ...)
 void Log(const char *format, ...)
 {
   va_list ap;
-  char buffer[200];
+  char buffer[MAXSTR];
   time_t MyTime;
   struct tm *MyTm;
   FILE *f;
@@ -458,7 +458,7 @@ void Log(const char *format, ...)
   fprintf(f,"%s: ",buffer);
 
   va_start(ap,format);
-  vsnprintfEC(buffer,200,format,ap);
+  vsnprintfEC(buffer,MAXSTR,format,ap);
   fprintf(f,"%s \n",buffer);
   va_end(ap);
 
@@ -469,7 +469,7 @@ void Log(const char *format, ...)
 void LogC(const char *format, ...)
 {
   va_list ap;
-  char buffer[200];
+  char buffer[MAXSTR];
   FILE *f;
 
   if ( !LogFileName )
@@ -481,11 +481,18 @@ void LogC(const char *format, ...)
   fseek(f,-2,SEEK_END);
 
   va_start(ap,format);
-  vsnprintfEC(buffer,200,format,ap);
+  vsnprintfEC(buffer,MAXSTR,format,ap);
   fprintf(f,"%s \n",buffer);
   va_end(ap);
 
   fclose(f);
+}
+
+void InitializeLog(char *argv0)
+{ char *CodeName=GetFileBase(argv0);
+  if (LogFileName==0)
+   SetLogFileName("%s.log",CodeName);
+  Log("%s running on %s:%d (%s)",CodeName, GetHostName(), getpid(), GetTimeString());
 }
 
 // 20120225 thread-safe logging

@@ -170,7 +170,7 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
          Integral[ FIBBI_PEFIE1_RX_R0  + Mu ] += Weight*bdb*R[Mu];
          Integral[ FIBBI_PEFIE1_RX_R1  + Mu ] += Weight*bdb*R[Mu]*r;
      
-         Integral[ FIBBI_PEFIE2_RX_RM3 + Mu ] += Weight*DbDb*RPA[Mu]*rm3;
+         Integral[ FIBBI_PEFIE2_RX_RM3 + Mu ] += Weight*DbDb*R[Mu]*rm3;
          Integral[ FIBBI_PEFIE2_RX_RM1 + Mu ] += Weight*DbDb*R[Mu]*rm1;
          Integral[ FIBBI_PEFIE2_RX_R0  + Mu ] += Weight*DbDb*R[Mu];
          Integral[ FIBBI_PEFIE2_RX_R1  + Mu ] += Weight*DbDb*R[Mu]*r;
@@ -221,20 +221,19 @@ void GCMEIntegrand(double xA[3], double bA[3], double DivbA,
 
         if (ddG)
          { 
-           double ImPsi = imag(Psi);
-           double ImZeta;
            double r4=r2*r2, kr5=pow( real(k), 5.0 );
+           cdouble Zeta;
            if (r==0.0)
-            ImZeta = DeSingularize ? 0.0 : kr5 / (4.0*M_PI);
+            Zeta = DeSingularize ? 0.0 : II*kr5 / (4.0*M_PI);
            else
-            ImZeta = imag( G0*(ikr*ikr - 3.0*ikr + 3.0)/r4 );
+            Zeta = G0*(ikr*ikr - 3.0*ikr + 3.0)/r4;
 
-           ddG[3*0+0] = II*(ImPsi + R[0]*R[0]*ImZeta);
-           ddG[3*1+1] = II*(ImPsi + R[1]*R[1]*ImZeta);
-           ddG[3*2+2] = II*(ImPsi + R[2]*R[2]*ImZeta);
-           ddG[3*0+1] = ddG[3*1+0] = II*R[0]*R[1]*ImZeta;
-           ddG[3*0+2] = ddG[3*2+0] = II*R[0]*R[2]*ImZeta;
-           ddG[3*1+2] = ddG[3*2+1] = II*R[1]*R[2]*ImZeta;
+           ddG[3*0+0] = Psi + R[0]*R[0]*Zeta;
+           ddG[3*1+1] = Psi + R[1]*R[1]*Zeta;
+           ddG[3*2+2] = Psi + R[2]*R[2]*Zeta;
+           ddG[3*0+1] = ddG[3*1+0] = R[0]*R[1]*Zeta;
+           ddG[3*0+2] = ddG[3*2+0] = R[0]*R[2]*Zeta;
+           ddG[3*1+2] = ddG[3*2+1] = R[1]*R[2]*Zeta;
          };
       };
 
@@ -518,6 +517,7 @@ void ComputeFIBBIData(RWGSurface *Sa, int nea,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+#if 0
 void dGSabIntegrand(double xA[3], double bA[3], double DivbA,
                     double xB[3], double bB[3], double DivbB,
                     void *UserData, double Weight, double *Integral)
@@ -550,6 +550,7 @@ void dGSabIntegrand(double xA[3], double bA[3], double DivbA,
   Integral[4] += Weight*RPB[1]*ScalarFactor;
   Integral[5] += Weight*RPB[2]*ScalarFactor;
 }
+#endif
 
 /***************************************************************/
 /***************************************************************/

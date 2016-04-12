@@ -388,6 +388,20 @@ bool CacheRead(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+bool DoDSIAtThisFrequency(SNEQData *SNEQD, cdouble Omega)
+{
+  HVector *OmegaPoints=SNEQD->DSIOmegaPoints;
+  if (OmegaPoints==0)
+   return true;
+  for(int n=0; n<OmegaPoints->N; n++)
+   if (EqualFloat(Omega, OmegaPoints->GetEntry(n)))
+    return true;
+  return false;
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
 {
   if ( CacheRead(SNEQD, Omega, kBloch, Flux) )
@@ -490,8 +504,9 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
          };
       };
      UndoSCUFFMatrixTransformation(W);
-     Log("LU factorizing/inverting...");
+     Log("LU factorizing...");
      W->LUFactorize();
+     Log("LU inverting...");
      W->LUInvert();
      Log("Done with linear algebra...");
 
@@ -518,6 +533,10 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
         // calculation methods
         for(int npm=0; npm<NumPFTMethods; npm++)
          { 
+           if (    PFTMethods[npm]==SCUFF_PFT_DSI 
+                && !DoDSIAtThisFrequency(SNEQD, Omega) 
+              ) continue;
+
            GetSIFlux(SNEQD, nss, Omega, PFTMethods[npm], PFTMatrix);
 
            FILE *f=vfopen(SNEQD->SIFluxFileNames[npm],"a");
@@ -543,9 +562,10 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
         // all evaluation points
         if (NumSRQs > 0)
           { 
-            HMatrix *SRXMatrix=SNEQD->SRXMatrix;
-            HMatrix *SRFMatrix=SNEQD->SRFMatrix;
-            GetSRFlux(G, SRXMatrix, Omega, 0, SNEQD->DRMatrix, SRFMatrix);
+            HMatrix *SRXMatrix = SNEQD->SRXMatrix;
+            HMatrix *SRFMatrix = SNEQD->SRFMatrix;
+            HMatrix *DRMatrix  = SNEQD->DRMatrix;
+            GetSRFluxTrace(G, SRXMatrix, Omega, DRMatrix, SRFMatrix);
 
             FILE *f=vfopen("%s.SRFlux","a",FileBase);
             for(int nx=0; nx<NX; nx++)

@@ -158,8 +158,8 @@ FIBBICache::FIBBICache(char *MeshFileName)
      char CacheFileName[MAXSTR];
      int Status=1;
 
-     // first look for ${SCUFF_CACHE_DIR}/MeshFile.scuffcache 
-     char *CacheDir=getenv("SCUFF_CACHE_DIR");
+     // first look for ${SCUFF_CACHE_PATH}/MeshFile.scuffcache 
+     char *CacheDir=getenv("SCUFF_CACHE_PATH");
      if (CacheDir)
       { snprintf(CacheFileName, MAXSTR, "%s/%s.%s",
                  CacheDir,GetFileBase(MeshFileName),SUFFIX);
@@ -301,7 +301,7 @@ void FIBBICache::GetFIBBIData(RWGSurface *SA, int neA,
 /* Cache files have the canonical file name MeshFile.scuffcache*/
 /* where MeshFile.msh is the triangular mesh file.             */
 /*                                                             */
-/* Cache files are written to the directory ${SCUFF_MESH_DIR}  */
+/* Cache files are written to the directory ${SCUFF_CACHE_PATH}*/
 /* if that environment variable is defined, and otherwise to   */
 /* the current working directory.                              */
 /*                                                             */
@@ -330,7 +330,7 @@ void FIBBICache::Store(const char *MeshFileName)
 
   char FileName[MAXSTR];
   
-  char *s=getenv("SCUFF_CACHE_DIR");
+  char *s=getenv("SCUFF_CACHE_PATH");
   if (!s)
    snprintf(FileName,MAXSTR,"%s.%s",GetFileBase(MFNCopy),SUFFIX);
   else

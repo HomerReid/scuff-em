@@ -49,30 +49,41 @@ namespace scuff {
 /* distribution described by a set of RWG basis functions      */
 /* populated with a vector of basis-function weights.          */
 /*                                                             */
-/* The return value is an HVector of length 6N, where N is the */
-/* number of surfaces in the geometry. The entries of this     */
-/* vector are:                                                 */
+/* The return value is an HMatrix of dimension (NS, 6) with    */
+/* NS the number of surfaces in the geometry. The entries are  */
 /*                                                             */
-/*  PM[ 6*n + 0..2 ] = x,y,z components of electric dipole     */
-/*                     moment induced on nth surface           */
-/*  PM[ 6*n + 3..5 ] = x,y,z components of magnetic dipole     */
-/*                     moment induced on nth surface           */
+/*  PM[ ns, 0..2 ] = x,y,z components of electric dipole       */
+/*                   moment induced on surface #ns             */
+/*  PM[ ns, 3..5 ] = x,y,z components of magnetic dipole       */
+/*                   moment induced on surface #ns             */
 /*                                                             */
-/* If the input parameter PM is NULL on entry (or if PM points */
-/* to an HVector of the wrong size), then the returned HVector */
-/* is newly allocated.                                         */
-/* Otherwise, the contents of PM are overwritten, and the      */
-/* return value is PM.                                         */
+/* If PM is NULL on entry (or points to a matrix of the wrong  */
+/* size) then it is reallocated.                               */
 /***************************************************************/
-HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
+HMatrix *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HMatrix *PM,
+                                       HMatrix *PMResolved)
+                                       
 { 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  if ( PM==0 || PM->N!=6*NumSurfaces)
-   PM=new HVector(6*NumSurfaces, LHM_COMPLEX);
+  if (     PM 
+       && (PM->NR!=NumSurfaces || PM->NC!=6 || PM->RealComplex!=LHM_COMPLEX) )
+   { if (PM) delete PM;
+     PM=0;
+   };
+  if (PM==0)
+   PM=new HMatrix(NumSurfaces, 6, LHM_COMPLEX);
   PM->Zero(); 
- 
+
+  if ( PMResolved && 
+        (    PMResolved->NR!=NumSurfaces 
+          || PMResolved->NC!=12
+          || PMResolved->RealComplex!=LHM_COMPLEX
+        )
+     ) ErrExit("%s:%i: internal error",__FILE__,__LINE__);
+  if (PMResolved) PMResolved->Zero();
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -112,16 +123,22 @@ HVector *RWGGeometry::GetDipoleMoments(cdouble Omega, HVector *KN, HVector *PM)
       GetKNCoefficients(KN, ns, ne, &KAlpha, &NAlpha);
 
       for(int Mu=0; Mu<3; Mu++)
-       { PM->AddEntry(6*ns + Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
-         PM->AddEntry(6*ns + Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
+       { 
+         if (PM)
+          { PM->AddEntry(ns, Mu + 0, KAlpha*pRWG[Mu] - NAlpha*mRWG[Mu]/ZVAC);
+            PM->AddEntry(ns, Mu + 3, KAlpha*mRWG[Mu] + NAlpha*pRWG[Mu]/ZVAC);
+          };
+
+         if (PMResolved)
+          { PMResolved->AddEntry(ns, 0*3 + Mu, KAlpha*pRWG[Mu]);
+            PMResolved->AddEntry(ns, 1*3 + Mu, NAlpha*pRWG[Mu]/ZVAC);
+            PMResolved->AddEntry(ns, 2*3 + Mu, KAlpha*mRWG[Mu]);
+            PMResolved->AddEntry(ns, 3*3 + Mu, NAlpha*mRWG[Mu]/ZVAC);
+          };
        };
  
     };
 
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  PM->Scale(ZVAC); /* ? */ 
   return PM;
 
 }

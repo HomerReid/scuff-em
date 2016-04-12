@@ -46,6 +46,12 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
              HVector *KNVector, HVector *RHS, HMatrix *DRMatrix,
              double PFT[NUMPFT], double **ByEdge=0);
 
+// PFT by cartesian multipole-moment method
+HMatrix *GetMomentPFTMatrix(RWGGeometry *G, cdouble Omega,
+                            IncField *IF,
+                            HVector *KNVector, HMatrix *DRMatrix=0,
+                            HMatrix *PFTMatrix=0, bool Itemize=false);
+
 // PFT by displaced-surface-integral method
 void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                HVector *KN, IncField *IF, double PFT[NUMPFT],
@@ -53,6 +59,7 @@ void GetDSIPFT(RWGGeometry *G, cdouble Omega, double *kBloch,
                bool FarField, char *PlotFileName, 
                GTransformation *GT1, GTransformation *GT2);
 
+// matrix-trace version of DSIPFT for non-equilibrium calculations
 void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
                     double PFT[NUMPFT], bool NeedQuantity[NUMPFT],
                     char *BSMesh, double R, int NumPoints,
@@ -63,7 +70,7 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
 HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
                          HVector *KNVector, HMatrix *DRMatrix,
                          HMatrix *PFTMatrix, bool Interior,
-                         int Method);
+                         int EMTPFTIMethod, bool Itemize=false);
 
 /***************************************************************/
 /***************************************************************/
@@ -186,10 +193,17 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
                      DSIMesh, DSIRadius, DSIPoints,
                      DSIFarField, FluxFileName, GT1, GT2);
    }
+  else if (PFTMethod==SCUFF_PFT_MOMENTS)
+   { 
+     HMatrix *PFTMatrix 
+      = GetMomentPFTMatrix(this, Omega, IF, KN, DRMatrix);
+     PFTMatrix->GetEntriesD(SurfaceIndex, ":", PFT);
+     delete PFTMatrix;
+   }
   else if (PFTMethod==SCUFF_PFT_EMT)
    { 
      bool Interior      = Options->Interior;
-     int  Method        = Options->EMTPFTMethod;  
+     int  Method        = Options->EMTPFTIMethod;  
      HMatrix *PFTMatrix 
       = GetEMTPFTMatrix(this, Omega, IF, KN, DRMatrix, 0, Interior, Method);
      PFTMatrix->GetEntriesD(SurfaceIndex, ":", PFT);
@@ -218,7 +232,6 @@ void RWGGeometry::GetPFT(int SurfaceIndex, HVector *KN,
  
 }
 
-
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
@@ -234,6 +247,8 @@ HMatrix *RWGGeometry::GetPFTMatrix(HVector *KN, cdouble Omega,
    { Options=&DefaultOptions;
      InitPFTOptions(Options);
    };
+  IncField *IF=Options->IF;
+  HMatrix *DRMatrix=Options->DRMatrix;
 
   /***************************************************************/
   /***************************************************************/
@@ -253,8 +268,12 @@ HMatrix *RWGGeometry::GetPFTMatrix(HVector *KN, cdouble Omega,
   /***************************************************************/
   if (Options->PFTMethod==SCUFF_PFT_EMT)
    { 
-     GetEMTPFTMatrix(this, Omega, Options->IF, KN, Options->DRMatrix,
-                     PFTMatrix, Options->Interior, Options->PFTMethod);
+     GetEMTPFTMatrix(this, Omega, IF, KN, DRMatrix,
+                     PFTMatrix, Options->Interior, Options->EMTPFTIMethod);
+   }
+  else if (Options->PFTMethod==SCUFF_PFT_MOMENTS)
+   { 
+     GetMomentPFTMatrix(this, Omega, IF, KN, DRMatrix, PFTMatrix);
    }
   else
    { 
@@ -298,8 +317,9 @@ PFTOptions *InitPFTOptions(PFTOptions *Options)
    Options->NeedQuantity[nq]=true;
  
   // options affecting EMTPFT power computation
+  Options->Itemize=false;
   Options->Interior=false;
-  Options->EMTPFTMethod=SCUFF_EMTPFT_EHDERIVATIVES;
+  Options->EMTPFTIMethod=SCUFF_EMTPFTI_DEFAULT;
   Options->TInterior=Options->TExterior=0;
 
   Options->GetRegionPFTs=false;

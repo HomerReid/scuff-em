@@ -1,7 +1,6 @@
 \documentclass[letterpaper]{article}
 \usepackage[square,sort,comma,numbers]{natbib}
 %====================================================================%
-\newcommand{\citeasnoun}[1]{Ref.~\citenum{#1}}
 
 \input{scufftex}
 
@@ -9,9 +8,6 @@
 \newcommand\suptstar[1]{^{\hbox{\scriptsize{#1}}*}}
 \newcommand{\iD}{_{i\text{\tiny D}}}
 \newcommand{\jS}{_{j\text{\tiny S}}}
-\newcommand{\vbGamma}{\boldsymbol{\Gamma}}
-\newcommand{\wh}{\widehat}
-\newcommand{\wt}{\widetilde}
 
 \graphicspath{{figures/}}
 
@@ -807,7 +803,7 @@ of the non-periodic scalar Green's function:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 $$ G_0(\vb r)=\frac{e^{ik_0 |\vb r|}}{4\pi |\vb r|}
    =
-   \frac{i\pi}{2}
+   \frac{i}{2}
    \int_{\mathbb R^2} \frac{d^2 \vb k}{(2\pi)^2}
     \frac{e^{i(k_x x + k_y y + ik_z|z|)}}{k_z},
    \qquad
@@ -831,7 +827,7 @@ we obtain the 2D Fourier expansion of the dyadic Green's functions:
 \begin{subequations}
 \begin{align}
 \vb g(\vbrho, z; \vb k)
-&= \pf{i\pi}{2k_0^2 k_z}
+&= \pf{i}{2k_0^2 k_z}
    \left(\begin{array}{ccc}
     k_0^2-k_x^2      & -k_x k_y     & \mp k_z k_x \\
     -k_y k_x         & k_0^2-k_y^2  & \mp k_z k_y \\
@@ -839,7 +835,7 @@ we obtain the 2D Fourier expansion of the dyadic Green's functions:
     \end{array}\right) e^{i\vb k \cdot \vbrho} e^{i k_z |z|}
 \\[5pt]
 \vb c(\vbrho, z; \vb k)
- &= \pf{i \pi}{2k_0 k_z}
+ &= \pf{i}{2k_0 k_z}
      \left(\begin{array}{ccc}
          0 & \pm k_z & -k_y \\
   \mp k_z  & 0       &  k_x \\
@@ -1118,19 +1114,20 @@ $\vb p_0=p_0\vbhat{x}$
 $xy$ plane then read, from (\ref{EHFromGC}) and (\ref{JFromp0}),
 %====================================================================%
 \begin{align*}
- \vb E\sups{ED}\Big(\vb x; \{z_0\vbhat{z};\vbhat{x}\}\Big) 
+ \vb E\supt{ED}\Big(\vb x; \{z_0\vbhat{z};\vbhat{x}\}\Big) 
  &= ik_0 Z_0\left(\begin{array}{c} G_{xx} \\ G_{yx} \\ G_{zx} \end{array}\right)
     (-i\omega p_0)
  = \frac{p_0}{\epsilon_0}k_0^2
    \left(\begin{array}{c} G_{xx} \\ G_{yx} \\ G_{zx} \end{array}\right)
 \\
 \intertext{Insert (\ref{GCInfiniteKIntegrals}):}
- \vb E\sups{ED}\Big(\vb x; \{z_0\vbhat{z};\vbhat{x}\}\Big)
+ \vb E\supt{ED}\Big(\vb x; \{z_0\vbhat{z};\vbhat{x}\}\Big)
  &= \frac{p_0}{\epsilon_0} k_0^2 \int_{\mathbb{R}^2} \, \frac{d\vb k}{(2\pi)^2}
     \left(\begin{array}{c} g_{xx} \\ g_{yx} \\ g_{zx} \end{array}\right)
-\intertext{Insert (\ref{gc}) and (\ref{gColumnDecomposition}:}
- &= \frac{p_0}{\epsilon_0}k_0^2 \int_{\mathbb{R}^2} \, \frac{d\vb k}{(2\pi)^2}
-    \pf{i\pi}{2k_0^2 k_z}
+    e^{i\vb k\cdot \vbrho \pm ik_z(z-z_0)}
+\intertext{Insert (\ref{gc}) and (\ref{gColumnDecomposition}):}
+ &= \frac{p_0}{\epsilon_0} \int_{\mathbb{R}^2} \, \frac{d\vb k}{(2\pi)^2}
+    \pf{i}{2 k_z}
     \left[ -\pf{k_0^2 k_y}{|\vb k|} \vb P(\vb k)
            \mp\pf{k_0k_x k_z}{|\vb k|}\overline{\vb P}(\vb k)
     \right] e^{i\vb k\cdot \vbrho}e^{ik_z|z-z_0|}.
@@ -1144,31 +1141,31 @@ of the fields of a point source:
 \begin{subequations}
 \begin{align}
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{x} \big\}\Big)
-&=\pf{p_0}{\epsilon_0 E_0}
+&=\pf{k_0^2 p_0}{\epsilon_0 E_0}
  \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{x}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
-          + 
+          - 
            C^{x;\pm}\subt{TM}(\vb k)
            \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
    \bigg\}
 \\
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{y} \big\}\Big)
-&= \pf{p_0}{\epsilon_0 E_0}
+&= \pf{k_0^2 p_0}{\epsilon_0 E_0}
    \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{y}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
-          + 
+          - 
            C^{y;\pm}\subt{TM}(\vb k)
            \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
    \bigg\}
 \\
  \vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{z} \big\}\Big)
-&= \pf{p_0}{\epsilon_0 E_0}
+&= \pf{k_0^2 p_0}{\epsilon_0 E_0}
    \int \frac{d \vb k}{(2\pi)^2} 
    \bigg\{ C^{z}\subt{TE}(\vb k)
            \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
-          + 
+          - 
            C^{z}\subt{TM}(\vb k)
            \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\Big)
    \bigg\}
@@ -1181,27 +1178,27 @@ where the scalar coefficients are
 $$\begin{array}{ccccccc}
  \displaystyle{ C^{x}\subt{TE} }
  &=& 
-  \displaystyle{ -\frac{ i \pi k_0^2 k_y}{2|\vb k|k_z} }
+  \displaystyle{ -\frac{ i k_y}{2|\vb k|k_z} }
  &\qquad&
  \displaystyle{ C^{x;\pm}\subt{TM} }
  &=& 
- \displaystyle{ \pm \frac{ i \pi k_0 k_x }{2|\vb k|} }
+ \displaystyle{ \mp \frac{ i k_x }{2k_0 |\vb k|} }
 \\[10pt]
 %--------------------------------------------------------------------%
  \displaystyle{ C^{y}\subt{TE} }
  &=& 
-  \displaystyle{ \frac{ i \pi k_0^2 k_x}{2|\vb k|k_z} }
+  \displaystyle{ \frac{ i k_x}{2|\vb k|k_z} }
  &\qquad&
  \displaystyle{ C^{y;\pm}\subt{TM} }
  &=& 
- \displaystyle{ \pm \frac{ i \pi k_0 k_y }{2|\vb k|} }
+ \displaystyle{ \mp \frac{ i k_y }{2k_0|\vb k|} }
 \\[10pt]
 %--------------------------------------------------------------------%
  \displaystyle{ C^{z}\subt{TE} }
  &=& 0
  &\qquad&
  \displaystyle{ C^{z}\subt{TM} }
- &=& \displaystyle{ \frac{ i\pi k_0 |\vb k|  }{2 k_z} }.
+ &=& \displaystyle{ \frac{ i |\vb k|  }{2 k_0 k_z} }.
 \end{array}$$
 %====================================================================%
 In these equations, the $\pm$ sign is $+$ for evaluation points 
@@ -1215,16 +1212,15 @@ The units of the source-strength prefactor are
 ($\text{C}$=charge, $\text{V}$=voltage, $\text{L}$=length)
 %====================================================================%
 \begin{align*}
-\left[\pf{p_0}{\epsilon_0 E_0}\right]
-&= \Big[p_0\Big]\Big[\epsilon_0\Big]^{-1} \Big[E_0\Big]^{-1} 
+\left[\pf{k_0^2 p_0}{\epsilon_0 E_0}\right]
+&= \Big[k_0^2 p_0\Big]\Big[\epsilon_0\Big]^{-1} \Big[E_0\Big]^{-1} 
 \\
-&= \frac{\text{C}\cdot \text{L}}
+&= \frac{\text{L}^{-2} \text{C}\cdot \text{L}}
         {\text{C} \text{V}^{-1} \text{L}^{-1} \text{V} \text{L}^{-1}}
 \\
-&= (\text{length})^3.
+&= \text{length}.
 \end{align*}
 %====================================================================%
-
 
 %=================================================
 %=================================================
@@ -1235,41 +1231,30 @@ The point of the above decomposition is that each
 plane wave is reflected from a dielectric interface
 at $z=0$ with the usual Fresnel reflection coefficients
 $r\supt{TE,TM}(\vb k)$, and thus the scattered fields 
-(evaluated at the location of the source point)
-due to an $x-,y-,$ or $z$-directed dipole at height
-$z_0$ are 
+are
 %====================================================================%
 \begin{subequations}
 \begin{align}
- \vb E\sups{scat,x}
-&=\pf{p_0}{\epsilon_0 E_0}
+ \vb E\sups{scat,x}(\vbrho,z)
+&=\pf{k_0^2 p_0}{\epsilon_0}
    \int \frac{d\vb k}{(2\pi)^2}
-   \bigg\{ r\subt{TE}(\vb k) C^{x}\subt{TE}(\vb k)
-           \vb E^+\subt{TE}\Big(2z_0 \vbhat{z}; \vb k\Big)
-           + 
-           r\subt{TM}(\vb k) C^{x;-}\subt{TM}(\vb k)
-           \vb E^+\subt{TM}\Big(2z_0 \vbhat{z}; \vb k\Big)
-    \bigg\}
+   \bigg\{   r\subt{TE}(\vb k) C^{x}\subt{TE}(\vb k) \vb P(\vb k)
+           + r\subt{TM}(\vb k) C^{x;-}\subt{TM}(\vb k) \overline{\vb P}(\vb k)
+    \bigg\}e^{i\vb k \cdot \vbrho +2ik_z z}
 \\
-  \vb E\sups{scat,y}
-&=\pf{p_0}{\epsilon_0 E_0}
+  \vb E\sups{scat,y}(\vbrho, z)
+&=\pf{k_0^2 p_0}{\epsilon_0}
     \int \frac{d \vb k}{(2\pi)^2} 
-    \bigg\{ r\subt{TE}(\vb k) C^{y}\subt{TE}(\vb k)
-            \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\Big)
-           + 
-            r\subt{TM}(\vb k) C^{y;-}\subt{TM}(\vb k)
-            \vb E^+\subt{TM}\Big(2z_0\vbhat{z}; \vb k\Big)
-    \bigg\}
+    \bigg\{   r\subt{TE}(\vb k) C^{y}\subt{TE}(\vb k) \vb P(\vb k)
+           + r\subt{TM}(\vb k) C^{y;-}\subt{TM}(\vb k) \overline{\vb P}(\vb k)
+    \bigg\}e^{i\vb k \cdot \vbrho +2ik_z z}
  \\
-  \vb E\sups{scat,z}
-&=\pf{p_0}{\epsilon_0 E_0}
+  \vb E\sups{scat,z}(\vbrho, z)
+&=\pf{k_0^2 p_0}{\epsilon_0}
     \int \frac{d \vb k}{(2\pi)^2} 
-    \bigg\{ r\subt{TE}(\vb k) C^{z}\subt{TE}(\vb k)
-            \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\Big)
-           + 
-            r\subt{TM}(\vb k) C^{z}\subt{TM}(\vb k)
-            \vb E^+\subt{TM}\Big(2z_0\vbhat{z}; \vb k\Big)
-    \bigg\}
+    \bigg\{   r\subt{TE}(\vb k) C^{z}\subt{TE}(\vb k) \vb P(\vb k)
+            + r\subt{TM}(\vb k) C^{z;-}\subt{TM}(\vb k) \overline{\vb P}(\vb k)
+    \bigg\}e^{i\vb k \cdot \vbrho +2ik_z z}
 \end{align}
 \label{ScatteredFieldsPWD}
 \end{subequations}
@@ -1285,64 +1270,52 @@ $$ r\subt{TE}(\vb k)=
         { \epsilon \sqrt{k_0^2 - \vb k^2} + \sqrt{\epsilon k_0^2 - \vb k^2}}.
 $$
 %====================================================================%
-Note that the $\vb E\subt{TE,TM}$ here involve the $+$
-sign, since the reflected waves are upward-traveling; 
-but the $C$ coefficients involve the $-$ sign, because
-these were the coefficients of the original downward-traveling
-plane waves that impinged on the interface.
+The scattering part of the electric DGF is related to the scattered 
+$\vb E$-field according to
+$\bmc G\supt{E} = \frac{1}{(-i\omega p_0)(i\omega \mu_0)}\vb E\sups{scat}.$
+or
+\numeq{GEijFourier}
+{ \mc G_{ij}\supt{E}(\vbrho, z) =
+    \int \frac{d \vb k}{(2\pi)^2} 
+    \bigg\{   r\subt{TE}(\vb k) C^{j}\subt{TE}(\vb k) P_i(\vb k)
+            + r\subt{TM}(\vb k) C^{j;-}\subt{TM}(\vb k) \overline{P}_i(\vb k)
+    \bigg\}e^{i\vb k \cdot \vbrho +2ik_z z}.
+}
+A similar derivation yields the scattering part of the magnetic DGF:
+\numeq{GMijFourier}
+{ \mc G_{ij}\supt{M}(\vbrho, z) =
+    \int \frac{d \vb k}{(2\pi)^2} 
+    \bigg\{   r\subt{TE}(\vb k) C^{j}\subt{TE}(\vb k) \overline{P}_i(\vb k)
+            - r\subt{TM}(\vb k) C^{j;-}\subt{TM}(\vb k) P_i(\vb k)
+    \bigg\}e^{i\vb k \cdot \vbrho +2ik_z z}.
+}
 
 %=================================================
 %=================================================
 %=================================================
 \subsection{Plane-wave decomposition of periodic DGFs}
 
-To obtain expressions for the incident and scattered
-fields of a Bloch-phased \textit{array} of point sources,
-we first rewrite expressions (\ref{IncidentFieldsPWD})
-and (\ref{ScatteredFieldsPWD}) for the non-periodic
-incident and scattered fields as integrals over the 
-Brillouin zone. For example, the fields of a (non-periodic)
-$\vb x$-directed source at $\vb x_0=z_0\vbhat{z}$ are
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The scattering DGFs for a Bloch-phased \textit{array} of point sources
+are
+%====================================================================%
 \begin{align*}
- &\hspace{-0.6in}
-\vb E\supt{ED}\Big(\vb x; \big\{ z_0 \vbhat{z}, \vbhat{x} \big\}\Big)
-\\
- &= \pf{p_0}{\epsilon_0 E_0}
-    \int\subt{BZ} \frac{d \vb k\subt{B}}{(2\pi)^2} 
-    \sum_{\vbGamma}
-    \bigg\{ C^{x}\subt{TE}(\vb k\subt{B} + \vbGamma)
-	    \vb E^\pm\subt{TE}\Big(\vb x-z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
-\\
-&\hspace{1.8in} + 
-           C^{x;\pm}\subt{TM}(\vb k+\vbGamma)
-	   \vb E^\pm\subt{TM}\Big(\vb x-z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
-   \bigg\}
+  \overline{\bmc G}\supt{E}(\vbrho, z; \vb k\subt{B}) 
+&= \sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}\bmc G(\vbrho-\vb L, z)
 \end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-and the corresponding scattered fields evaluated at the location
-of the dipole are
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- &\hspace{-0.1in}
-\vb E\sups{scat}
-\\
- &= \pf{p_0}{\epsilon_0 E_0}
-    \int\subt{BZ} \frac{d \vb k\subt{B}}{(2\pi)^2} 
-    \sum_{\vbGamma}
-    \bigg\{ r\subt{TE}(\vb k\subt{B} + \vbGamma)
-            C^{x}\subt{TE}(\vb k\subt{B} + \vbGamma)
-	    \vb E^+\subt{TE}\Big(2z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big)
-\\
-&\hspace{1.8in} + 
-            r\subt{TM}(\vb k\subt{B} + \vbGamma)
-           C^{x;-}\subt{TM}(\vb k+\vbGamma)
-	   \vb E^+\subt{TM}\Big(2z_0\vbhat{z}; \vb k\subt{B}+\vbGamma\Big).
-   \bigg\}
-\end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Here $k\subt{B}$ lives in the Brillouin zone---it is a Bloch vector---and
-the sum is over all reciprocal lattice vectors $\vbGamma$.
+%====================================================================%
+Insert (\ref{GijFourier}) and use
+$ \sum_{\vb L} e^{i(\vb k - \vb k\subt{B})\cdot \vb L}
+   = \mc V\subt{BZ}\sum_{\vbGamma} \delta(\vb k-\vb k\subt{B}-\vbGamma):
+$
+%====================================================================%
+\numeq{GBarijLatticeSum}
+{ \overline{\mc G}_{ij}\supt{E}(\vbrho, z) =
+  \mc V\subt{BZ} \sum_{\vb k = \vb k\subt{B}+\vbGamma}
+    \bigg\{   r\subt{TE}(\vb k) C^{j}\subt{TE}(\vb k) P_i(\vb k)
+            + r\subt{TM}(\vb k) C^{j;-}\subt{TM}(\vb k) \overline{P}_i(\vb k)
+    \bigg\}e^{i\vb k \cdot \vbrho +2ik_z z}.
+}
+%====================================================================%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

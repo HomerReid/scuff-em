@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <math.h>
-
+#include <BZIntegration.h>
 #include "scuff-neq.h"
 #include <libhrutil.h>
 
@@ -53,6 +53,13 @@
 int main(int argc, char *argv[])
 {
   InstallHRSignalHandler();
+  InitializeLog(argv[0]);
+
+  /***************************************************************/
+  /* pre-process command-line arguments to extract arguments     */
+  /* any relevant for Brillouin-zone integration                 */
+  /***************************************************************/
+  GetBZIArgStruct *BZIArgs=InitBZIArgs(argc, argv);
 
   /***************************************************************/
   /* process options *********************************************/
@@ -76,7 +83,7 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   cdouble OmegaVals[MAXFREQ];        int nOmegaVals;
   char *OmegaFile;                   int nOmegaFiles;
-  char *OmegaKFile=0;
+  char *OmegaKBFile=0;
   double OmegaMin=0.00;              int nOmegaMin;
   double OmegaMax=-1.0;              int nOmegaMax;
   char *OQString=0;   
@@ -98,6 +105,7 @@ int main(int argc, char *argv[])
   char *DSIMesh    = 0;
   double DSIRadius = 10.0;
   bool DSIFarField = false;
+  char *DSIOmegaFile = 0;
 
   /*--------------------------------------------------------------*/
   bool OmitSelfTerms = false;
@@ -138,7 +146,7 @@ int main(int argc, char *argv[])
 /**/     
      {"Omega",          PA_CDOUBLE, 1, MAXFREQ, (void *)OmegaVals,   &nOmegaVals,   "(angular) frequency"},
      {"OmegaFile",      PA_STRING,  1, 1,       (void *)&OmegaFile,  &nOmegaFiles,  "list of (angular) frequencies"},
-     {"OmegaKFile",     PA_STRING,  1, 1,       (void *)&OmegaKFile, 0,             "list of (Omega, kx, ky) points"},
+     {"OmegaKBFile",    PA_STRING,  1, 1,       (void *)&OmegaKBFile, 0,             "list of (Omega, kx, ky) points"},
      {"OmegaMin",       PA_DOUBLE,  1, 1,       (void *)&OmegaMin,   &nOmegaMin,    "lower integration limit"},
      {"OmegaMax",       PA_DOUBLE,  1, 1,       (void *)&OmegaMax,   &nOmegaMax,    "upper integration limit"},
      {"OmegaQuadrature",PA_STRING,  1, 1,       (void *)&OQString,   0,             "quadrature method for omega integral"},
@@ -160,6 +168,7 @@ int main(int argc, char *argv[])
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "bounding surface .msh file for DSIPFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "bounding-sphere radius for DSIPFT"},
      {"DSIFarField",    PA_BOOL,    0, 1,       (void *)&DSIFarField,   0,          "retain only far-field contributions to DSIPFT"},
+     {"DSIOmegaFile",   PA_STRING,  1, 1,       (void *)&DSIOmegaFile,  0,          "list of frequencies at which to perform DSI calculations"},
 /**/
      {"OmitSelfTerms",  PA_BOOL,    0, 1,       (void *)&OmitSelfTerms, 0,          "omit the calculation of self terms"},
      {"OmitZeroTemperatureFlux",  PA_BOOL,    0, 1,   (void *)&OmitZeroTemperatureFlux, 0, "omit flux contributions of zero-temperature regions"},
@@ -182,8 +191,6 @@ int main(int argc, char *argv[])
    OSUsage(argv[0], OSArray, "--geometry option is mandatory");
   if (!FileBase)
    FileBase=vstrdup(GetFileBase(GeoFile));
-  SetLogFileName("%s.log",FileBase);
-  Log("scuff-neq running on %s",GetHostName());
 
   if ( Cache!=0 && WriteCache!=0 )
    ErrExit("--cache and --writecache options are mutually exclusive");
@@ -226,11 +233,11 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   /*******************************************************************/
   /*******************************************************************/
-  HMatrix *OmegaKPoints=0; 
-  if (OmegaKFile)
-   { OmegaKPoints = new HMatrix(OmegaKFile,LHM_TEXT,"--ncol 3");
-     if (OmegaKPoints->ErrMsg)
-      ErrExit(OmegaKPoints->ErrMsg);
+  HMatrix *OmegaKBPoints=0;
+  if (OmegaKBFile)
+   { OmegaKBPoints = new HMatrix(OmegaKBFile,LHM_TEXT,"--ncol 3");
+     if (OmegaKBPoints->ErrMsg)
+      ErrExit(OmegaKBPoints->ErrMsg);
    };
 
   /*******************************************************************/
@@ -270,7 +277,7 @@ int main(int argc, char *argv[])
   /* of frequencies and a frequency range over which to integrate;   */
   /* if a range was specified check that it makes sense              */
   /*******************************************************************/
-  if ( OmegaKPoints || OmegaPoints ) 
+  if ( OmegaKBPoints || OmegaPoints ) 
    { if ( nOmegaMin>0 || nOmegaMax>0 )
       ErrExit("--OmegaMin/--OmegaMax options may not be used with --Omega/--OmegaFile");
      Log("Computing spectral density at %i frequencies.",NumFreqs);
@@ -323,14 +330,15 @@ int main(int argc, char *argv[])
   SNEQD->PFTOpts.DSIRadius       = DSIRadius;
   SNEQD->PFTOpts.DSIFarField     = DSIFarField;
   SNEQD->PlotRytovVectors        = PlotRytovVectors;
+  SNEQD->DSIOmegaPoints          = DSIOmegaFile ? new HVector(DSIOmegaFile) : 0;
 
   if (SNEQD->NumSIQs==0 && SNEQD->NumSRQs==0)
    ErrExit("you must specify at least one quantity to compute");
 
-  if (OmegaKPoints && !G->LBasis)
-   ErrExit("--OmegaKPoints may only be used with extended geometries");
-  else if (G->LBasis && !OmegaKPoints==0)
-   ErrExit("--OmegaKPoints is required for extended geometries");
+  if (OmegaKBPoints && !G->LBasis)
+   ErrExit("--OmegaKBPoints may only be used with extended geometries");
+  else if (G->LBasis && !OmegaKBPoints==0)
+   ErrExit("--OmegaKBPoints is required for extended geometries");
          
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
@@ -350,14 +358,14 @@ int main(int argc, char *argv[])
   /*******************************************************************/
   int OutputVectorLength = SNEQD->NumSIQs + SNEQD->NumSRQs;
   double *I = new double[ OutputVectorLength ];
-  if (OmegaKPoints)
-   { for (int nok=0; nok<OmegaKPoints->NR; nok++)
+  if (OmegaKBPoints)
+   { for (int nok=0; nok<OmegaKBPoints->NR; nok++)
       {  
         cdouble Omega; 
         double kBloch[2];
-        Omega     = OmegaKPoints->GetEntryD(nok, 0);
-        kBloch[0] = OmegaKPoints->GetEntryD(nok, 1);
-        kBloch[1] = OmegaKPoints->GetEntryD(nok, 2);
+        Omega     = OmegaKBPoints->GetEntryD(nok, 0);
+        kBloch[0] = OmegaKBPoints->GetEntryD(nok, 1);
+        kBloch[1] = OmegaKBPoints->GetEntryD(nok, 2);
         GetFlux(SNEQD, Omega, kBloch, I);
       };
    }

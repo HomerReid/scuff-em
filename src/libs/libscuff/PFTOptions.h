@@ -75,12 +75,19 @@ namespace scuff {
 #define SCUFF_PFT_EMT_EXTERIOR  5   //  (exterior is default)
 #define SCUFF_PFT_EMT_INTERIOR  6
 #define SCUFF_PFT_MOMENTS       7   // dipole-moment method
+#define SCUFF_PFT_NUMMETHODS    8
 
 #define SCUFF_PFT_DEFAULT       SCUFF_PFT_EMT_EXTERIOR
 
-#define SCUFF_EMTPFT_EHDERIVATIVES 0
-#define SCUFF_EMTPFT_EHVALUES      1
-#define SCUFF_EMTPFT_NUMMETHODS    3
+// the following are various methods for computing
+// the 4-dimensional integrals needed to get scattering
+// contributions to EMTPFT
+#define SCUFF_EMTPFTI_EHDERIVATIVES1 0
+#define SCUFF_EMTPFTI_EHDERIVATIVES2 1
+#define SCUFF_EMTPFTI_EHVALUES1      2
+#define SCUFF_EMTPFTI_EHVALUES2      3
+#define SCUFF_EMTPFTI_NUMMETHODS     4
+#define SCUFF_EMTPFTI_DEFAULT SCUFF_EMTPFTI_EHDERIVATIVES1
 
 /***************************************************************/
 /***************************************************************/
@@ -103,8 +110,9 @@ typedef struct PFTOptions
    bool NeedQuantity[NUMPFT];
 
    // options affecting EMT PFT computation
+   bool Itemize;
    bool Interior;
-   int EMTPFTMethod;
+   int EMTPFTIMethod;
    HMatrix *TInterior, *TExterior;
 
    bool GetRegionPFTs;
@@ -122,9 +130,13 @@ PFTOptions *InitPFTOptions(PFTOptions *Options=0);
 /***************************************************************/
 /***************************************************************/
 class RWGGeometry;
-HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                   HVector *KNVector, HMatrix *DRMatrix,
-                   HMatrix *FMatrix=0);
+HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
+                   HMatrix *DRMatrix, HMatrix *FMatrix=0);
+
+void GetKNBilinears(HVector *KNVector, HMatrix *DRMatrix,
+                    bool IsPECA, int KNIndexA,
+                    bool IsPECB, int KNIndexB,
+                    cdouble Bilinears[4]);
 
 } // namespace scuff 
 

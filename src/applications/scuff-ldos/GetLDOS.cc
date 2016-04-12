@@ -27,7 +27,8 @@
 #include "libscuff.h"
 #include "scuff-ldos.h"
 
-#define ABSTOL 1.0e-10
+#define ABSTOL 1.0e-20
+#define MAXSTR 1000
 
 using namespace scuff;
 
@@ -35,13 +36,34 @@ using namespace scuff;
 /***************************************************************/
 /***************************************************************/
 void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
-               int FileType, double *Result, double *Error)
+               int FileType, int WhichMatrix,
+               double *Result, double *Error)
 {
-  char *FileName = 
-   (FileType==FILETYPE_BYK) ? Data->ByKFileName : Data->OutFileName;
+  int LDim         = Data->G->LDim;
+  HMatrix *XMatrix = Data->XMatrices[WhichMatrix];
+  char *EPFileBase = Data->EPFileBases[WhichMatrix];
+  char *FileBase   = Data->FileBase;
+
+  const char *Extension 
+   = (FileType==FILETYPE_BYK) ? "byOmegakBloch" : "LDOS";
+
+  char FileName[MAXSTR];
+  if (Data->NumXGMatrices==1)
+   snprintf(FileName,MAXSTR,"%s.%s",FileBase,Extension);
+  else
+   snprintf(FileName,MAXSTR,"%s.%s.%s",FileBase,EPFileBase,Extension);
+
+  if ( Data->WrotePreamble[FileType][WhichMatrix] == false )
+   { Data->WrotePreamble[FileType][WhichMatrix] = true;
+     WriteFilePreamble(FileName, FileType, LDim);
+   };
+
+  int NFun = (Data->LDOSOnly ? 2 : 38);
+  int Offset=0;
+  for(int nm=0; nm<WhichMatrix; nm++)
+   Offset += NFun * (Data->XMatrices[nm]->NR);
+  
   FILE *f=fopen(FileName,"a");
-  HMatrix *XMatrix=Data->XMatrix;
-  int LDim=Data->G->LDim;
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
      double X[3];
@@ -53,13 +75,12 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
       for(int nd=0; nd<LDim; nd++)
        fprintf(f,"%e ",kBloch[nd]);
 
-     int NFun = (Data->LDOSOnly ? 2 : 38);
      for(int nf=0; nf<NFun; nf++) 
-      fprintf(f,"%e ",Result[NFun*nx+nf]);
+      fprintf(f,"%e ",Result[Offset + NFun*nx + nf]);
 
      if (Error)
       for(int nf=0; nf<NFun; nf++) 
-       fprintf(f,"%e ",Error[NFun*nx+nf]);
+       fprintf(f,"%e ",Error[Offset + NFun*nx + nf]);
 
      fprintf(f,"\n");
    };
@@ -67,10 +88,20 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
 }
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
+               int FileType, double *Result, double *Error)
+{
+  for(int nm=0; nm<Data->NumXGMatrices; nm++)
+   WriteData(Data, Omega, kBloch, FileType, nm, Result, Error);
+}
+
+/***************************************************************/
 /* routine to compute the LDOS at a single (Omega, kBloch)     */
 /* point (but typically multiple spatial evaluation points)    */
 /***************************************************************/
-void GetLDOS(void *pData, cdouble Omega, double *kBloch, 
+void GetLDOS(void *pData, cdouble Omega, double *kBloch,
              double *Result)
 {
   /*--------------------------------------------------------------*/
@@ -79,8 +110,9 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   SLDData *Data        = (SLDData *)pData;
   RWGGeometry *G       = Data->G;
   HMatrix *M           = Data->M;
-  HMatrix *XMatrix     = Data->XMatrix;
-  HMatrix *GMatrix     = Data->GMatrix;
+  HMatrix **XMatrices  = Data->XMatrices;
+  HMatrix **GMatrices  = Data->GMatrices;
+  int NumXGMatrices    = Data->NumXGMatrices;
   void **ABMBCache     = Data->ABMBCache;
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
   bool GroundPlane     = Data->GroundPlane;
@@ -123,10 +155,11 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
                                        M, 0, ColOffset, RowOffset,
                                        ABMBCache[nb], true);
           };
-       };
+      };
      M->LUFactorize();
 
-     G->GetDyadicGFs(Omega, kBloch, XMatrix, M, GMatrix);
+     for(int nm=0; nm<NumXGMatrices; nm++)
+      G->GetDyadicGFs(Omega, kBloch, XMatrices[nm], M, GMatrices[nm]);
 
    };
                                
@@ -136,55 +169,65 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*-  \Rho = (abs(\omega) / \pi c^2) * Im Tr G                   */
   /*--------------------------------------------------------------*/
   double PreFac = abs(Omega)/M_PI;
-  int NFun = (Data->LDOSOnly ? 2 : 38);
-  for(int nx=0; nx<XMatrix->NR; nx++)
+  int nResult=0;
+  for(int nm=0; nm<NumXGMatrices; nm++)
    { 
-     double X[3];
-     XMatrix->GetEntriesD(nx, ":", X);
+     HMatrix *XMatrix = Data->XMatrices[nm];
+     HMatrix *GMatrix = Data->GMatrices[nm];
+
+     for(int nx=0; nx<XMatrix->NR; nx++)
+      { 
+
+        double X[3];
+        XMatrix->GetEntriesD(nx, ":", X);
   
-     /***************************************************************/
-     /* get the DGFs at this evaluation point                       */
-     /***************************************************************/
-     cdouble GE[3][3], GM[3][3];
-     if ( GroundPlane )
-      GetGroundPlaneDGFs(X[2], Omega, kBloch, LBasis, GE, GM);
-     else if (HalfSpaceMP)
-      GetHalfSpaceDGFs(X[2], Omega, kBloch, 
-                       RLBasis, BZVolume, HalfSpaceMP,
-                       Data->RelTol, ABSTOL, Data->MaxEvals, GE, GM);
-     else
-      for(int i=0; i<3; i++)
-       for(int j=0; j<3; j++)
-        { GE[i][j] = GMatrix->GetEntry(nx, 0 + 3*i + j);
-          GM[i][j] = GMatrix->GetEntry(nx, 9 + 3*i + j);
-        };
+        /***************************************************************/
+        /* get the DGFs at this evaluation point                       */
+        /***************************************************************/
+        cdouble GE[3][3], GM[3][3];
+        if ( GroundPlane )
+         GetGroundPlaneDGFs(X[2], Omega, kBloch, LBasis, GE, GM);
+        else if (HalfSpaceMP)
+         GetHalfSpaceDGFs(X[2], Omega, kBloch, 
+                         RLBasis, BZVolume, HalfSpaceMP,
+                         Data->RelTol, ABSTOL, Data->MaxEvals, GE, GM);
+        else
+         for(int i=0; i<3; i++)
+          for(int j=0; j<3; j++)
+           { GE[i][j] = GMatrix->GetEntry(nx, 0 + 3*i + j);
+             GM[i][j] = GMatrix->GetEntry(nx, 9 + 3*i + j);
+           };
+  
+        /***************************************************************/
+        /* figure out which quantities to insert in return vector      */
+        /***************************************************************/
+        Result[nResult++] = imag( (GE[0][0] + GE[1][1] + GE[2][2]) ) * PreFac;
+        Result[nResult++] = imag( (GM[0][0] + GM[1][1] + GM[2][2]) ) * PreFac;
 
-     /***************************************************************/
-     /* figure out what to return                                   */
-     /***************************************************************/
-     int nf=NFun*nx;
-     Result[nf++] = imag( (GE[0][0] + GE[1][1] + GE[2][2]) ) * PreFac;
-     Result[nf++] = imag( (GM[0][0] + GM[1][1] + GM[2][2]) ) * PreFac;
+        if (Data->LDOSOnly == false)
+         { for(int Mu=0; Mu<3; Mu++)
+            for(int Nu=0; Nu<3; Nu++)
+             { Result[nResult++] = real(GE[Mu][Nu]);
+               Result[nResult++] = imag(GE[Mu][Nu]);
+             };
+           for(int Mu=0; Mu<3; Mu++)
+            for(int Nu=0; Nu<3; Nu++)
+             { Result[nResult++] = real(GM[Mu][Nu]);
+               Result[nResult++] = imag(GM[Mu][Nu]);
+             };
+         }; // if (Data->LDOSOnly == false)
 
-     if (Data->LDOSOnly == false)
-      { for(int Mu=0; Mu<3; Mu++)
-         for(int Nu=0; Nu<3; Nu++)
-          { Result[nf++] = real(GE[Mu][Nu]);
-            Result[nf++] = imag(GE[Mu][Nu]);
-          };
-        for(int Mu=0; Mu<3; Mu++)
-         for(int Nu=0; Nu<3; Nu++)
-          { Result[nf++] = real(GM[Mu][Nu]);
-            Result[nf++] = imag(GM[Mu][Nu]);
-          };
-      };
+      }; // for(int nr=0; nr<XMatrix->NR; nr++)
+ 
+    /***************************************************************/
+    /* write output to kBloch-resolved data file for PBC geometries*/
+    /*  or the tput to kBloch-resolved data file for PBC geometries*/
+    /***************************************************************/
+    if (LDim>0)
+     WriteData(Data, Omega, kBloch, FILETYPE_BYK, nm, Result, 0);
+    else
+     WriteData(Data, Omega, 0,      FILETYPE_LDOS, nm, Result, 0);
 
-   }; // for(int nr=0, nr<XMatrix->NR; nr++)
-
-  /***************************************************************/
-  /* write output to data file if we have one ********************/
-  /***************************************************************/
-  if (Data->ByKFileName)
-   WriteData(Data, Omega, kBloch, FILETYPE_BYK, Result, 0);
+   }; // for(int nm=0; nm<NumXGMatrices; nm++)
 
 }

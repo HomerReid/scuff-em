@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]
+then
+  echo "usage: RunChecks DataFile"
+  exit -1
+fi
+DATAFILE=${1}
+
+DIR=..
+CODE=CheckSCUFFData
+
+ARGS=""
+ARGS="${ARGS} --CheckList SiO2Spheres.12.Checklist"
+ARGS="${ARGS} --Reference SiO2Spheres_501.SIFlux.12.Reference"
+ARGS="${ARGS} --Data ${DATAFILE}"
+ARGS="${ARGS} --ErrorFile Error12.log"
+ARGS="${ARGS} --Verbose"
+${DIR}/${CODE} ${ARGS}
+
+ARGS=""
+ARGS="${ARGS} --CheckList SiO2Spheres.22.Checklist"
+ARGS="${ARGS} --Reference SiO2Spheres_501.SIFlux.22.Reference"
+ARGS="${ARGS} --Data ${DATAFILE}"
+ARGS="${ARGS} --ErrorFile Error22.log"
+ARGS="${ARGS} --Verbose"
+${DIR}/${CODE} ${ARGS}

@@ -35,12 +35,6 @@
 #define RELTOL   5.0e-2
 #define MAXEVALS 20000
 
-namespace scuff {
-void AddIFContributionsToEMTPFT(RWGGeometry *G, HVector *KN,
-                                IncField *IF, cdouble Omega,
-                                HMatrix *PFTMatrix, bool Interior);
-                }
-
 #define II cdouble(0.0,1.0)
 
 /***************************************************************/
@@ -285,7 +279,7 @@ void GetMoments(SSData *SSD, char *MomentFile)
   HVector *KN    = SSD->KN;
   cdouble Omega  = SSD->Omega;
 
-  HVector *PM  = G->GetDipoleMoments(Omega, KN);
+  HMatrix *PM  = G->GetDipoleMoments(Omega, KN);
 
   /***************************************************************/
   /* print to file ***********************************************/
@@ -294,7 +288,7 @@ void GetMoments(SSData *SSD, char *MomentFile)
   for (int ns=0; ns<G->NumSurfaces; ns++)
    { fprintf(f,"%s ",G->Surfaces[ns]->Label);
      for(int Mu=0; Mu<6; Mu++)
-      fprintf(f,"%s ",CD2S(PM->GetEntry(6*ns + Mu),"%.8e %.8e "));
+      fprintf(f,"%s ",CD2S(PM->GetEntry(ns,Mu),"%.8e %.8e "));
    };
   fprintf(f,"\n");
   fflush(f);
@@ -347,6 +341,13 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   else
    PFTOpts->FluxFileName=0;
 
+  static bool WrotePreamble[SCUFF_PFT_NUMMETHODS];
+  static bool Initialized=false;
+  if (!Initialized)
+   { Initialized=true; 
+     memset(WrotePreamble, 0, SCUFF_PFT_NUMMETHODS*sizeof(bool));
+   };
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -364,7 +365,10 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   /***************************************************************/
   FILE *f=fopen(FileName,"a");
   if (!f) return;
-  WritePFTFilePreamble(f);
+  if (!WrotePreamble[Method]) 
+   { WritePFTFilePreamble(f);
+     WrotePreamble[Method]=true;
+   };
   for(int ns=0; ns<G->NumSurfaces; ns++)
    { 
      double PFT[NUMPFT];
@@ -398,75 +402,6 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   fclose(f);
   delete PFTMatrix;
 
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void WriteEMTPFTFiles(SSData *SSD, char *FileBase)
-{ 
-  RWGGeometry *G = SSD->G;
-  HVector *KN    = SSD->KN;
-  IncField *IF   = SSD->IF;
-  cdouble Omega  = SSD->Omega;
-
-  PFTOptions MyOptions, *Options=&MyOptions;
-  InitPFTOptions(Options);
-  Options->PFTMethod = SCUFF_PFT_EMT;
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int NS = SSD->G->NumSurfaces;
-  HMatrix *ExtinctionPFT, *ScatteredPFT[SCUFF_EMTPFT_NUMMETHODS];
-  ExtinctionPFT=new HMatrix(NS, NUMPFT);
-  for(int nm=0; nm<SCUFF_EMTPFT_NUMMETHODS; nm++)
-   ScatteredPFT[nm]=new HMatrix(NS, NUMPFT);
-  for(int ExtInt=0; ExtInt<2; ExtInt++)
-   {
-      bool Interior = (ExtInt==1);
-      const char *IEString = (Interior ? "Interior" : "Exterior");
-
-      ExtinctionPFT->Zero();
-      AddIFContributionsToEMTPFT(G, KN, IF, Omega, ExtinctionPFT, Interior);
-
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      for(int Method=0; Method<SCUFF_EMTPFT_NUMMETHODS; Method++)
-       { 
-         Log("Computing scattered EMTPFT (%s%i) at Omega=%s...",IEString,Method,z2s(SSD->Omega));
-         Options->Interior=Interior;
-         Options->EMTPFTMethod=Method;
-         G->GetPFTMatrix(KN, Omega, Options, ScatteredPFT[Method]);
-
-         char FileName[100];
-         sprintf(FileName,"%s.%cEMTPFT.Method%i",FileBase,IEString[0],Method);
-         FILE *f=fopen(FileName,"r");
-         bool WritePreamble = (f==0);
-         if (f) fclose(f);
-         f=fopen(FileName,"a");
-         if (WritePreamble) WritePFTFilePreamble(f);
-         for(int ns=0; ns<NS; ns++)
-          { 
-            fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
-            for(int nq=0; nq<NUMPFT; nq++)
-             fprintf(f,"%e ",ExtinctionPFT->GetEntryD(ns,nq));
-            for(int nq=0; nq<NUMPFT; nq++)
-             fprintf(f,"%e ",ScatteredPFT[Method]->GetEntryD(ns,nq));
-            fprintf(f,"\n");
-          };
-         fclose(f);
-       };
-
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-      /*--------------------------------------------------------------*/
-   }; // for(int Interior=0; Interior<2; Interior++)
-
-  delete ExtinctionPFT;
-  for(int nm=0; nm<SCUFF_EMTPFT_NUMMETHODS; nm++)
-   delete ScatteredPFT[nm];
 }
 
 /***************************************************************/

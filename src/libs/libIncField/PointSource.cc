@@ -54,6 +54,14 @@ PointSource::PointSource(const double pX0[3], const cdouble pP[3], int pType,
   SetRegionLabel(Label);
 }
 
+PointSource::PointSource()
+{
+  memset(X0, 0, 3*sizeof(double));
+  memset(P,  0, 3*sizeof(cdouble));
+  Type = LIF_ELECTRIC_DIPOLE;
+  RegionLabel=0;
+}
+
 PointSource::~PointSource()
 { 
   // no malloc'ed data to free

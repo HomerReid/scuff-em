@@ -65,8 +65,8 @@ namespace scuff{
 inline int GetSRFluxIndex(int NX, int nt, int nx, int nq)
 { return nt*NX*NUMSRFLUX + nx*NUMSRFLUX + nq; }
 
-HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
-                   HVector *KNVector, HMatrix *DRMatrix, HMatrix *FMatrix)
+HMatrix *GetSRFluxTrace(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
+                        HMatrix *DRMatrix, HMatrix *FMatrix)
 { 
   /***************************************************************/
   /* (re)allocate FMatrix as necessary ***************************/
@@ -80,12 +80,30 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   if (FMatrix==0)
    FMatrix = new HMatrix(NX, NUMSRFLUX, LHM_REAL);
 
+  /***************************************************************/
+  /* FIXME ? *****************************************************/
+  /***************************************************************/
+  for(int ns=0; ns<G->NumSurfaces; ns++)
+   if (G->Surfaces[ns]->IsPEC)
+    ErrExit("GetSRFluxTrace not implemented for PEC bodies");
+  bool IsPECA=false;
+  bool IsPECB=false;
+
   Log("Computing spatially-resolved fluxes at %i evaluation points...",NX);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  HMatrix *RFMatrix = G->GetRFMatrix(Omega, 0, XMatrix);
+  int NBF = G->TotalBFs;
+  static int NBFSave = 0, NXSave=0;
+  static HMatrix *RFMatrix=0;
+  if (NBFSave!=NBF || NXSave<NX)
+   { NBFSave = NBF;
+     NXSave  = NX;
+     if (RFMatrix) delete RFMatrix;
+     RFMatrix = new HMatrix(NBF, 6*NX, LHM_COMPLEX);
+   };
+  G->GetRFMatrix(Omega, 0, XMatrix, RFMatrix);
 
   /***************************************************************/
   /* allocate per-thread storage to avoid costly synchronization */
@@ -96,12 +114,21 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 #ifdef USE_OPENMP
   NumThreads=GetNumThreads();
 #endif
-  cdouble *DeltaSRFlux=(cdouble *)mallocEC(NumThreads*NX*NUMSRFLUX*sizeof(cdouble));
+
+  size_t DeltaSRFluxSize = NumThreads*NX*NUMSRFLUX*sizeof(cdouble);
+  static size_t DeltaSRFluxSizeSave=0;
+  static cdouble *DeltaSRFlux = 0;
+  if (DeltaSRFluxSizeSave<DeltaSRFluxSize)
+   { 
+     DeltaSRFluxSizeSave=DeltaSRFluxSize;
+     DeltaSRFlux=(cdouble *)reallocEC(DeltaSRFlux,DeltaSRFluxSize);
+   };
+  memset(DeltaSRFlux, 0, DeltaSRFluxSize);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  Log("Evaluating cubature rule");
+  G->UpdateCachedEpsMuValues(Omega);
 #ifdef USE_OPENMP
   LogC("(%i threads)",NumThreads);
 #pragma omp parallel for schedule(dynamic,1),		\
@@ -114,32 +141,58 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
      int nr=G->GetRegionIndex(X);
      double  MuAbs = TENTHIRDS*real(G->MuTF[nr] )*ZVAC;
      double EpsAbs = TENTHIRDS*real(G->EpsTF[nr])/ZVAC;
+    
+     cdouble *EKN[3], *HKN[3];
+     for(int Mu=0; Mu<3; Mu++)
+      { EKN[Mu] = RFMatrix->ZM + NBF*(6*nx + 3*0 + Mu);
+        HKN[Mu] = RFMatrix->ZM + NBF*(6*nx + 3*1 + Mu);
+      };
 
-     for(int nbfA=0; nbfA<G->TotalBFs; nbfA++)
-      for(int nbfB=0; nbfB<G->TotalBFs; nbfB++)
+     for(int neaTot=0; neaTot<G->TotalEdges; neaTot++)
+      for(int nebTot=0; nebTot<G->TotalEdges; nebTot++)
        { 
-         cdouble Weight = 
-          DRMatrix ?  DRMatrix->GetEntry(nbfB, nbfA) 
-                   : conj(KNVector->GetEntry(nbfA)) * KNVector->GetEntry(nbfB);
-         
-         cdouble EHA[6], *EA=EHA+0, *HA=EHA+3;
-         cdouble EHB[6], *EB=EHB+0, *HB=EHB+3;
-         for(int Mu=0; Mu<6; Mu++)
-          { EHA[Mu] = conj( RFMatrix->GetEntry(nbfA, 6*nx + Mu));
-            EHB[Mu] = RFMatrix->GetEntry(nbfB, 6*nx + Mu);
-          };
+         int nsa, nea, nsb, neb, KNIndexA, KNIndexB;
+         G->ResolveEdge(neaTot, &nsa, &nea, &KNIndexA);
+         G->ResolveEdge(nebTot, &nsb, &neb, &KNIndexB);
+
+         cdouble Bilinears[4];
+         GetKNBilinears(0, DRMatrix,
+                        IsPECA, KNIndexA, IsPECB, KNIndexB, Bilinears);
+         cdouble KK=Bilinears[0];
+         cdouble KN=Bilinears[1]/(-1.0*ZVAC);
+         cdouble NK=Bilinears[2]/(-1.0*ZVAC);
+         cdouble NN=Bilinears[3]/(ZVAC*ZVAC);
+ 
+         cdouble EE[3][3], EH[3][3], HH[3][3];
+         for(int Mu=0; Mu<3; Mu++)
+          for(int Nu=0; Nu<3; Nu++)
+           { EE[Mu][Nu] =  KK*conj(EKN[Mu][KNIndexA+0])*EKN[Nu][KNIndexB+0]
+                          +KN*conj(EKN[Mu][KNIndexA+0])*EKN[Nu][KNIndexB+1]
+                          +NK*conj(EKN[Mu][KNIndexA+1])*EKN[Nu][KNIndexB+0]
+                          +NN*conj(EKN[Mu][KNIndexA+1])*EKN[Nu][KNIndexB+1];
+
+             EH[Mu][Nu] =  KK*conj(EKN[Mu][KNIndexA+0])*HKN[Nu][KNIndexB+0]
+                          +KN*conj(EKN[Mu][KNIndexA+0])*HKN[Nu][KNIndexB+1]
+                          +NK*conj(EKN[Mu][KNIndexA+1])*HKN[Nu][KNIndexB+0]
+                          +NN*conj(EKN[Mu][KNIndexA+1])*HKN[Nu][KNIndexB+1];
+
+             HH[Mu][Nu] =  KK*conj(HKN[Mu][KNIndexA+0])*HKN[Nu][KNIndexB+0]
+                          +KN*conj(HKN[Mu][KNIndexA+0])*HKN[Nu][KNIndexB+1]
+                          +NK*conj(HKN[Mu][KNIndexA+1])*HKN[Nu][KNIndexB+0]
+                          +NN*conj(HKN[Mu][KNIndexA+1])*HKN[Nu][KNIndexB+1];
+           };
 
          cdouble Trace, PV[3], MST[3][3];
-         Trace = EpsAbs*(EA[0]*EB[0] + EA[1]*EB[1] + EA[2]*EB[2])
-                 +MuAbs*(HA[0]*HB[0] + HA[1]*HB[1] + HA[2]*HB[2]);
+         Trace = EpsAbs*(EE[0][0] + EE[1][1] + EE[2][2])
+                 +MuAbs*(HH[0][0] + HH[1][1] + HH[2][2]);
 
-         PV[0] = 0.5*( EA[1]*HB[2] - EA[2]*HB[1] );
-         PV[1] = 0.5*( EA[2]*HB[0] - EA[0]*HB[2] );
-         PV[2] = 0.5*( EA[0]*HB[1] - EA[1]*HB[0] );
+         PV[0] = 0.5*( EH[1][2] - EH[2][1] );
+         PV[1] = 0.5*( EH[2][0] - EH[0][2] );
+         PV[2] = 0.5*( EH[0][1] - EH[1][0] );
 
          for(int Mu=0; Mu<3; Mu++)
           for(int Nu=0; Nu<3; Nu++)
-           MST[Mu][Nu] = 0.5*(EpsAbs*EA[Mu]*EB[Nu] + MuAbs*HA[Mu]*HB[Nu]);
+           MST[Mu][Nu] = 0.5*(EpsAbs*EE[Mu][Nu] + MuAbs*HH[Mu][Nu]);
          MST[0][0] -= 0.25*Trace;
          MST[1][1] -= 0.25*Trace;
          MST[2][2] -= 0.25*Trace;
@@ -150,10 +203,10 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
 #endif
          int Index=GetSRFluxIndex(NX, nt, nx, 0);
          for(int Mu=0; Mu<3; Mu++)
-          DeltaSRFlux[Index++] += Weight*PV[Mu];
+          DeltaSRFlux[Index++] += PV[Mu];
          for(int Mu=0; Mu<3; Mu++)
           for(int Nu=0; Nu<3; Nu++)
-           DeltaSRFlux[Index++] += Weight*MST[Mu][Nu];
+           DeltaSRFlux[Index++] += MST[Mu][Nu];
 
        }; // for(int nbfA=0 ... for(int nbfB=0...
 
@@ -171,8 +224,6 @@ HMatrix *GetSRFlux(RWGGeometry *G, HMatrix *XMatrix, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  free(DeltaSRFlux);
-  delete RFMatrix;
   return FMatrix;
 
 } // routine GetSRFlux
@@ -559,7 +610,7 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   HMatrix *SCRMatrix = GetSCRMatrix(BSMesh, R, NumPoints, GT1, GT2);
-  HMatrix *SRMatrix  = GetSRFlux(G, SCRMatrix, Omega, 0, DRMatrix);
+  HMatrix *SRMatrix  = GetSRFluxTrace(G, SCRMatrix, Omega, DRMatrix);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

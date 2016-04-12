@@ -1,0 +1,16 @@
+#
+# SCUFF-EM geometry describing a dielectric half-space (Epsilon=10)
+# occupying the region z>0, with vacuum for z<0
+#
+
+LATTICE 
+	VECTOR 1.0 0.0 0.0
+	VECTOR 0.0 1.0 0.0
+ENDLATTICE
+
+REGION	UpperHalfSpace	MATERIAL CONST_EPS_10
+
+SURFACE Interface
+	MESHFILE Square_40.msh
+	REGIONS Exterior UpperHalfSpace
+ENDSURFACE

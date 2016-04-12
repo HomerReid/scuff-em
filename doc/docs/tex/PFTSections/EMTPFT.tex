@@ -53,22 +53,24 @@ In what follows it will be convenient to express equations
 %====================================================================%
 where $Q=\{P\sups{abs}, F_i, \mc T_i\}$ and
 the operator $\circledast$ correspondingly operates on $\bmc F$ as
-in equations (\ref{EMTPFT}a,b,c).
+in equations (\ref{EMTPFT}a,b,c). Note that the $\text{Re, Im}$
+operations in (\ref{EMTPFT}) are understood as included in 
+the symbol $\circledast$.
 
 Equations (\ref{EMTPFT}) involve the total fields at the
 body surface. Because SIE formulations allow surface fields
 to be computed in either of two distinct ways---namely, as the
 limiting values of the bulk fields as one approaches the
 surface from the exterior or the interior of the body---the EMTPFT
-may actually be computed in two difference ways:
+may actually be computed in two different ways:
 %====================================================================%
 \begin{subequations}
 \begin{align}
- Q &=   \int \bmc C^* \circledast \bmc F\sups{inc,ext} d\vb x
-      + \iint \bmc C^* \circledast \bmc G\sups{ext} \bmc C\,d\vb x \,d\vb x^\prime
+ Q &= \frac{1}{2}  \int \bmc C^* \circledast \bmc F\sups{inc,ext} d\vb x
+     +\frac{1}{2} \iint \bmc C^* \circledast \bmc G\sups{ext} \bmc C\,d\vb x \,d\vb x^\prime
 \\
-   &=   \int \bmc C^* \circledast \bmc F\sups{inc,int} d\vb x
-      - \iint \bmc C^* \circledast \bmc G\sups{int} \bmc C\,d\vb x \,d\vb x^\prime
+   &= \frac{1}{2}  \int \bmc C^* \circledast \bmc F\sups{inc,int} d\vb x
+     -\frac{1}{2} \iint \bmc C^* \circledast \bmc G\sups{int} \bmc C\,d\vb x \,d\vb x^\prime
 \end{align}
 \label{EMTPFTChoice}
 \end{subequations}
@@ -85,10 +87,10 @@ PFT:
  Q&=Q\sups{ext} - Q\sups{scat}
 \\
  Q\sups{ext}
-&=\int \bmc C^* \circledast \bmc F\sups{inc} \, d\vb x
+&=\frac{1}{2}\int \bmc C^* \circledast \bmc F\sups{inc} \, d\vb x
 \\
  Q\sups{scat}
-&=\mp \iint \bmc C^* \circledast \bmc G \bmc C\,d\vb x \, d\vb x^\prime
+&=\mp \frac{1}{2} \iint \bmc C^* \circledast \bmc G \bmc C\,d\vb x \, d\vb x^\prime
 \end{align*}
 %====================================================================%
 For the typical case of a body irradiated by external sources,
@@ -104,6 +106,41 @@ $$ Q\sups{ext}=
    \int_{\sup \bmc B_\alpha} \bmc B_\alpha \circledast \bmc F\sups{inc} \, dA
 $$
 %====================================================================%
+or, more specifically,
+%====================================================================%
+\begin{align*}
+ P\sups{ext} &=
+ \frac{1}{2}\text{Re }\sum_{a}
+  \Big\{  k_a^* \Expval{\vb b_a \cdot \vb E\sups{inc}}
+         +n_a^* \Expval{\vb b_a \cdot \vb H\sups{inc}}
+  \Big\}
+\\
+ F_i\sups{ext} &=
+ \frac{1}{2\omega}\text{Im }\sum_{a}
+  \Big\{  k_a^* \Expval{\vb b_a \cdot \partial_i\vb E\sups{inc}}
+         +n_a^* \Expval{\vb b_a \cdot \partial_i \vb H\sups{inc}}
+  \Big\}
+\\
+ \mc T_i\sups{ext} &=
+ \frac{1}{2\omega}\text{Im }\sum_{a}
+  \bigg\{  k_a^*\Big[ \Expval{\vb b_a \times \vb E\sups{inc}}
+                     +\Expval{\vb b_a \cdot \partial_{\theta_i}\vb E\sups{inc}}
+               \Big]
+\\
+&\hspace{1in}
+         + n_a^*\Big[ \Expval{\vb b_a \times \vb H\sups{inc}}
+                     +\Expval{\vb b_a \cdot \partial_{\theta_i}\vb H\sups{inc}}
+               \Big]
+  \bigg\}.
+\end{align*}
+Here I have used the shorthand notation 
+$$ \vb b \cdot \partial_i \vb E = \sum_{j=1}^3 b_j \partial_i E_j, 
+   \qquad 
+   \vb b \cdot \partial_{\theta_i}\vb E = 
+   \epsilon_{ijk} \sum_{\ell=1}^3 b_\ell X_j \partial_k E_\ell,
+   \qquad \vb X = (\vb x_a - \vb x_0)
+$$
+where $\vb x_0$ is the origin about which we figure the torque.
 The integrals here are non-singular two-dimensional integrals over
 the basis-function supports, with the integrand involving values 
 and derivatives of the incident fields. These are evaluated 
@@ -111,455 +148,284 @@ in {\sc scuff-em} by simple low-order numerical cubature.
 
 \subsection{Scattered EMTPFT}
 
-The scattered fields at a point $\vb x_a$ are
+The components of the scattered fields at a point $\vb x_a$ in 
+medium $r$ are
 %====================================================================%
 \begin{align*}
- \vb E\sups{scat}(\vb x_a)
- &=i\omega \mu \sum_b k_b \vb e_b(\vb x_a) - \sum_b n_b \vb h_b(\vb x_a)
+ E_i\sups{scat}(\vb x_a)
+ &= \sum_b \left\{ i\omega \mu k_b \vb e_b(\vb x_a)
+                   -n_b \vb h_b(\vb x_a) \right\},
 \\
- \vb H\sups{scat}(\vb x_a)
- &=\sum_b k_b \vb h_b(\vb x_a) + i\omega \epsilon \sum_b n_b \vb e_b(\vb x_a)
-\end{align*}
-where the sums are over all basis functions on all surfaces bounding
-the region containing $\vb x_a$, and where the ``reduced fields'' of
-an individual basis function are
-%====================================================================%
-\begin{align*}
- \vb e_b(\vb x_a)
- &= \int_{\sup \vb b_b}
-    \Big[\vb b_b \phi + \frac{1}{k^2}(\nabla \cdot \vb b_b)\vb r \psi \Big]d\vb x_b
-\\
- \vb h_b(\vb x_a)
- &= \int_{\sup \vb b_b}
-    \Big( \vb r \times \vb b_b \Big) \psi \, d\vb x_b
+ H_i\sups{scat}(\vb x_a)
+ &= \sum_b \left\{  k_b \vb h_b(\vb x_a) 
+                   +i\omega \epsilon n_b \vb h_b(\vb x_a) \right\}
 \end{align*}
 %====================================================================%
-with 
-$$ \vb r\equiv \vb x_a-\vb x_b, \qquad
-  \phi\equiv \frac{e^{ikr}}{4\pi r}, \qquad
-  \psi\equiv \frac{e^{ikr}}{4\pi r^3}(ikr-1).
+where $\epsilon=\epsilon_0\epsilon^r,\mu=\mu_0\mu^r$ are the absolute 
+permittivity and permeability of the medium and the 
+``reduced fields'' $\{\vb e_b, \vb h_b\}$ of basis function $\vb b_b$ 
+have components
+%====================================================================%
+$$ e_{bi}(\vb x_a) =
+   \int \mb G_{ij}(\vb r_{ab})b_{bj}(\vb x_b)\,d\vb x_b, 
+  \qquad
+   h_{bi}(\vb x_a) =
+   -\int \wh{\mb C}_{ij}(\vb r_{ab})b_{bj}(\vb x_b)
 $$
 %====================================================================%
-(Note that $\psi$ is defined such that $\nabla \phi = \vb r\psi.$)
-The scattered contribution to PFT quantities then reads
+with
 %====================================================================%
+$$\vb r_{ab} \equiv \vb x_a - \vb x_b, 
+  \qquad
+  \mb G_{ij}(\vb r) 
+   = \Big[ \delta_{ij} + \frac{1}{k^2}\partial_i\partial_j\Big]\Phi(|\vb r|),
+  \qquad
+  \wh{\mb C}_{ij}(\vb r) = \varepsilon_{ijk} r_k \Psi(|\vb r|), 
+$$
+$$ \Phi(r) = \frac{e^{ikr}}{4\pi r}, 
+   \qquad 
+   \Psi(r) = (ikr-1)\frac{e^{ikr}}{4\pi r^3}.
+$$
+%====================================================================%
+(Note that $\Psi$ is defined such that $\nabla \Phi=\vb r\Psi.$
+Also, the hat on $\wh{\mb C}$ differentiates it from the tensor $\mb C$
+that I use elsewhere in the {\sc scuff-em} documentation;
+they are related by $\wh{\mb C}=ik\mb C.$)
+
+The scattered contributions to PFT quantities take the form
+%%====================================================================%
 \begin{align*}
 Q\sups{scat}
-&= \mp 
+&= \mp\frac{1}{2}
    \int\Big\{
     \vb K^*(\vb x_a) \circledast \vb E\sups{scat}(\vb x_a)
   + \vb N^*(\vb x_a) \circledast \vb H\sups{scat}(\vb x_a)
       \Big\} \, d\vb x
 \\
-&=\sum_{ab} \Big\{ \Big[\mu k_a^* k_b + \epsilon n_a^* n_b\Big]
-                    Q\supt{KKPNN}_{ab}
-                  +\Big[k_a^* n_b - n_a^* k_b\Big]
-                    Q\supt{KNMNP}_{ab}
-            \Big\}
+&=\mp \frac{1}{2}\text{Re, Im}
+  \sum_{ab} \Big\{  k_a^* k_b Q\supt{KK}_{ab}
+                   + n_a^* n_b Q\supt{NN}_{ab}
+                   +\Big[k_a^* n_b - n_a^* k_b\Big] Q\supt{KNmNK}_{ab}
+            \Big\}.
 \end{align*}
+%====================================================================%
 with
 %====================================================================%
-$$
-Q\supt{KKPNN}_{ab} 
- \equiv i\omega \iint \vb b_a \circledast \vb e_b \, d\vb x_a \, d\vb x_b,
-\qquad
-Q\supt{KNMNK}_{ab} 
- \equiv -\iint \vb b_a \circledast \vb h_b \, d\vb x_a \, d\vb x_b
-$$
-%====================================================================%
-\subsection*{Power}
-%====================================================================%
-\begin{align*}
- P\supt{KKPNN}_{ab} 
- &= i\omega \iint \Big[ \vb b_a \cdot \vb b_b \phi
-                + \frac{(\nabla \cdot \vb b_b)}{k^2}
-                  \vb b_a \cdot \nabla\phi \Big]
-\,d\vb x_a \, d\vb x_b
-\\
- &= i\omega 
-    \iint \underbrace{\bigg[ \vb b_a \cdot \vb b_b 
-               - \frac{(\nabla \cdot \vb b_a)(\nabla \cdot \vb b_b)}{k^2}
-                      \bigg]
-                     }_{P\supt{EFIE}} \phi
-\,d\vb x_a \, d\vb x_b
-\\
- P\supt{KNMNK}_{ab} 
- &=-\iint \Big[ \vb b_a \cdot (\vb r \times \vb b_b)\Big]\psi 
-                \,d\vb x_a \, d\vb x_b
-\\
- &=+\iint \underbrace{
-          \Big[ \vb r \cdot (\vb b_a \times \vb b_b)\Big]
-                     }_{P\supt{MFIE}}\psi
-                \,d\vb x_a \, d\vb x_b
-\\
-\end{align*}
-%====================================================================%
-
-\subsection*{Force}
-
-First note 
-%====================================================================%
-\begin{align*}
-  \partial_i \vb e_b &=
-  \int \Big\{ \vb b_b r_i \psi +
-              \frac{\nabla\cdot \vb b_b}{k^2}\partial_i\Big(\vb r\psi\Big)
-       \Big\}\, d\vb x_b
-\\
-  (\partial_i \vb h_b)_j
-&=\partial_i \int \varepsilon_{jk\ell} \, r_k b_{b\ell} \, \psi \, d\vb x_b
-\\
-&=\partial_i \int \varepsilon_{jk\ell} \, r_k b_{b\ell} \, \psi \, d\vb x_b
-\end{align*}
-%====================================================================%
-
-%====================================================================%
-\begin{align*}
- (F_i\supt{KKPNN})_{ab} 
- &= i\omega \iint \vb b_a \cdot \partial_i \vb e_b \,d\vb x_a \, d\vb x_b
-\\
- (F_i\supt{KNMNK})_{ab} 
- &= -\iint \vb b_a \cdot \partial_i \vb h_b \, d\vb x_a \, d\vb x_b
-\end{align*}
-%====================================================================%
-
-In the exterior region, the total fields receive
-incident and scattered contributions,
-$\bmc F = \bmc F\sups{inc} + \bmc F\sups{scat}$,
-We identify the corresponding contributions to the
-PFT quantities (\ref{EMTPFT}) as respectively the
-extinction PFT and the (negative of the) scattered PFT,
-%====================================================================%
 \begin{subequations}
 \begin{align}
- Q &= Q\sups{ext} - Q\sups{scat}
-\\
- Q\sups{ext}&=\frac{1}{2}\int_{\partial \mc B}\bmc C^* \circledast \bmc F\sups{inc},
-\\
- Q\sups{scat}&=-\frac{1}{2}\int_{\partial \mc B}\bmc C^* \circledast \bmc F\sups{scat}
+Q\supt{KK}_{ab} 
+ &\equiv i\omega \mu \iint \vb b_a \circledast \mb G \star \vb b_b \, d\vb x_a \, d\vb x_b
+\\[5pt]
+Q\supt{NN}_{ab} 
+ &\equiv i\omega \epsilon \iint \vb b_a \circledast \mb G \star \vb b_b \, d\vb x_a \, d\vb x_b
+\\[5pt]
+Q\supt{KNmNK}_{ab} 
+ &\equiv \iint \vb b_a \circledast \wh{\mb C} \star \vb b_b \, d\vb x_a \, d\vb x_b
+\\[5pt]
 \end{align}
-\label{ExtScat}%
+\label{QDef}
 \end{subequations}
-%====================================================================%
+%%====================================================================%
+I refer to the $Q_{ab}$ quantities here as ``EMTPFT integrals.''
 
-\subsubsection*{Extinction contributions to exterior EMTPFT}
+\subsubsection{Specific forms of EMTPFT integrals}
+For the power, force and torque, $Q=\{P, F_i, \mc T_i\}$,
+the EMTPFT integrals take the following specific forms.
+(In all cases, the position arguments $\vb x_a$ and $\vb x_b$
+to basis functions $\vb b_a$ and $\vb b_b$ are suppressed;
+the $\vb x_a$ and $\vb x_b$ integrals run over the
+supports of $\vb b_a$ and $\vb b_b$.
+Also, NN integrals are related to KK integrals by 
+$\mu \leftrightarrow \epsilon.$)
 
-\subsubsection*{Scattered contributions to exterior EMTPFT}
-
-The scattered-field contributions to the EMTPFT power and force 
-follow from the discretized form of (\ref{ExtScat}c) and read
-%====================================================================%
+%%====================================================================%
 \begin{subequations}
 \begin{align}
- P\sups{scat}&=-\frac{1}{2}\text{Re} \sum_{ab}
- \left(\begin{array}{c} k_a \\ n_a\end{array}\right)^\dagger
- \left(\begin{array}{cc}i\omega \mu \vb G_{ab} & \wh{\vb C}_{ab} \\
-                        -\wh{\vb C}_{ab} & i\omega\epsilon \vb G_{ab}
- \end{array}\right)
- \left(\begin{array}{c}k_b \\ n_b\end{array}\right)
+ P\supt{KK}_{ab}
+&=i\omega \mu \int \vb b_a \cdot \vb e_b \, dV 
+\nn
+&=i\omega \mu 
+  \underbrace{\iint b_{ai} \mb G_{ij} b_{bj} \, dV \, dV^\prime}_{\vb G_{ab}}
 \\
- F_i\sups{scat}&=-\frac{1}{2\omega}\text{Im} \sum_{ab}
- \left(\begin{array}{c} k_a \\ n_a\end{array}\right)^\dagger
- \left(\begin{array}{cc}i\omega \mu \partial_i \vb G_{ab} & \partial_i \wh{\vb C}_{ab} \\
-                        -\partial_i \wh{\vb C}_{ab} & i\omega\epsilon \partial_i \vb G_{ab}
- \end{array}\right)
- \left(\begin{array}{c}k_b \\ n_b\end{array}\right)
+ P\supt{KNmNK}_{ab}
+&=\int \vb b_a \cdot \vb h_b \, dV 
+\nn
+&=\underbrace{\iint b_{ai} \wh{\mb C}_{ij} b_{bj} \, dV \, dV^\prime}
+            _{\wh{\vb C}_{ab}}
 \end{align}
-\label{PFExteriorPFT1}%
+\label{PIntegrals}
 \end{subequations}
-%====================================================================%
-(The torque is similar to the force with $\partial_i \to \wt{\partial_i}$.)
-In these equations, 
-\begin{itemize}
-\item
-$a$ runs over all interior edges (RWG functions) 
-on the surface bounding the region on which we are 
-computing the power or force;
-\item
-$b$ runs over all interior edges on all surfaces bounding 
-the region exterior to the region on which we are 
-computing the power or force;
-\item
-$\epsilon=\epsilon_0 \epsilon^r$ and 
-$\mu=\mu_0 \mu^r$ are the material properties of the 
-exterior region
-\item
- $\vb G_{ab}=\vmv{\vb b_a}{\mb G}{\vb b_b}$
- is the matrix element of the $\mb G$ kernel for
- the exterior medium between RWG basis functions.
-\item
- $\wh{\vb C}_{ab}=\vmv{\vb b_a}{ik\mb C}{\vb b_b}.$
-\end{itemize}
+%%====================================================================%
 
-Upon using the relations
-%====================================================================%
-$$\{\vb G_{ba}, \vb C_{ba}\} = \{\vb G_{ab}, \vb C_{ab}\}, 
-  \qquad
-  \partial_i\{\vb G_{ba}, \vb C_{ba}\} = -\partial_i\{\vb G_{ab}, \vb C_{ab}\}, 
+\subsection{Using symmetry to simplify self-contributions to PFT}
+
+In evaluating the contributions of surface currents on a body to the
+PFT on that body, we may avail ourselves of useful simplifications
+that follow from the reciprocity of the Green's functions, namely
+$$ \mb G_{ij}(\vb x_a - \vb x_b) = \mb G_{ji}(\vb x_b-\vb x_a), 
+   \qquad
+   \mb C_{ij}(\vb x_a - \vb x_b) = \mb C_{ji}(\vb x_b-\vb x_a),
 $$
-%====================================================================%
-equations (\ref{PFExteriorPFT1}) may be simplified to read
+a consequence of which is the fact that the EMTPFT integrals $Q_{ab}$
+are either symmetric or antisymmetric ($Q_{ab}=\pm Q_{ba}$). For any
+summations in which indices $a$ and $b$ run over the same range 
+one finds
 %====================================================================%
 \begin{align*}
- P\sups{scat} &= +\frac{1}{2}
-  \sum_{ab}\bigg\{
-           \omega \mu_0
-           \Big[\text{Re }k_a^* k_b\Big]
-           \Big[\text{Im }\mu^r \vb G_{ab}\Big]
-          +\omega \epsilon_0
-           \Big[\text{Re }n_a^* n_b\Big]
-           \Big[\text{Im }\epsilon^r \vb G_{ab}\Big]
+   \text{Re }\sum_{ab} k^*_a k_b Q_{ab} 
+&=\begin{cases}
+   +\sum_{ab} 
+    \Big[\text{Re }k_a^* k_b\Big]\Big[\text{Re }Q_{ab}\Big],
+    \qquad\qquad &\text{if } Q_{ab} = +Q_{ba} \\
 \\
-&\hspace{1in} 
-  +\Big[\text{Im }k_a^* n_b - n_a^* k_b\Big]
-           \Big[\text{Im } \wh{\vb C}_{ab}\Big]\bigg\}
+   -\sum_{ab}
+    \Big[\text{Im }k_a^* k_b\Big]\Big[\text{Im }Q_{ab}\Big],
+    \qquad\qquad &\text{if } Q_{ab} = -Q_{ba} \\
+  \end{cases}
+\\[10pt]
+   \text{Im }\sum_{ab} k^*_a k_b Q_{ab} 
+&=\begin{cases}
+    \sum_{ab} 
+    \Big[\text{Re }k_a^* k_b\Big]\Big[\text{Im }Q_{ab}\Big],
+    \qquad\qquad &\text{if } Q_{ab} = +Q_{ba} \\
 \\
- F_i\sups{scat} &= +\frac{1}{2\omega}
-  \sum_{ab}\bigg\{
-           \omega \mu_0
-           \Big[\text{Im }k_a^* k_b\Big]
-           \Big[\text{Im }\mu^r \partial_i \vb G_{ab}\Big]
-          +\omega \epsilon_0
-           \Big[\text{Im }n_a^* n_b\Big]
-           \Big[\text{Im }\epsilon^r \partial_i \vb G_{ab}\Big]
+    \sum_{ab} 
+    \Big[\text{Im }k_a^* k_b\Big]\Big[\text{Re }Q_{ab}\Big],
+    \quad\qquad &\text{if } Q_{ab} = -Q_{ba} \\
+  \end{cases}
+\\[10pt]
+   \text{Re }\sum_{ab} (k^*_a n_b-n_a^* k_b) Q_{ab}
+&=\begin{cases}
+   -\Big[\text{Im }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Im }Q_{ab}\Big],
+    \qquad &\text{if } Q_{ab} = +Q_{ba} \\
 \\
-&\hspace{1in} 
-  -\Big[\text{Re }k_a^* n_b - n_a^* k_b\Big]
-           \Big[\text{Im } \partial_i \wh{\vb C}_{ab}\Big]\bigg\}
-\end{align*}
-%====================================================================%
-
-\subsubsection*{EMTPFT matrix elements}
-
-%====================================================================%
-\begin{align*}
-   \partial_i \vb G_{ab}
-&= \partial_i \vb G^1_{ab} +\partial_i \vb G^2_{ab}
+    \sum_{ab}
+    \Big[\text{Re }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Re }Q_{ab}\Big],
+    \qquad &\text{if } Q_{ab} = -Q_{ba} \\
+  \end{cases}
+\\[10pt]
+   \text{Im }\sum_{ab} (k^*_a n_b-n_a^* k_b) Q_{ab}
+&=\begin{cases}
+    \sum_{ab}
+    \Big[\text{Im }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Re }Q_{ab}\Big],
+    \qquad &\text{if } Q_{ab} = +Q_{ba} \\
 \\
-\partial_i \vb G^1_{ab}
-&=
- \int_{\sup \vb b_a}\, d\vb x_a \, 
- \int_{\sup \vb b_b}\, d\vb x_b \, 
- \left(\vb b_a \cdot \vb b_b\right) \partial_i G_0(\vb x_a-\vb x_b)
-\\
-\partial_i \vb G^2_{ab}
-&=
- -\frac{1}{k^2}
-  \int_{\sup \vb b_a}\, d\vb x_a \,
-  \int_{\sup \vb b_b}\, d\vb x_b \,
-   (\nabla \cdot \vb b_a)(\nabla \cdot \vb b_b)
-   \partial_i G_0(\vb x_a-\vb x_b)
+    \sum_{ab}
+    \Big[\text{Re }(k_a^* n_b - n_a^* k_b)\Big]\Big[\text{Im }Q_{ab}\Big],
+    \qquad &\text{if } Q_{ab} = -Q_{ba} \\
+  \end{cases}
 \end{align*}
 %====================================================================%
 
-%====================================================================%
-\begin{align*}
- \text{Im } \partial_i \wh{\mb C}_{jk}
-&= \text{Im }
-   \partial_i\left[ \frac{e^{ikr}}{4\pi r^3}(ikr-1)\varepsilon_{jk\ell}r_\ell\right]
-\\
-\end{align*}
-%====================================================================%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Self-contribution to power}
 
-%====================================================================%
-\begin{align*}
-\partial_i G_0(\vb r)
-   &= r_i(ikr-1)\frac{e^{ikr}}{4\pi r^3}
-   &= -\frac{r_i}{4\pi r^3} + \Big[\partial_i G_0\Big]\supt{DS}
-\end{align*}
-%====================================================================%
+The power EMTPFT integrals are symmetric, i.e.
+$P\supt{KK}_{ab}=P\supt{KK}_{ba}$ and similarly for 
+$P\supt{NN}_{ab}$ and $P\supt{KNmNK}_{ab}$. Using the 
+table of symmetry rules above yields
 
-%====================================================================%
-\begin{align*}
- F_i\supt{S}
- &\frac{\mu_0}{2} \text{Im }{k_a^* k_b}\Big[\text{Im }
-\end{align*}
-%====================================================================%
-
-\subsection{Torque}
-
-\begin{align*}
- \mc T_i 
-&= \frac{1}{2\omega}\text{Im }
-\int \Big\{\vb K^* \times \vb E + \vb K \cdot \partial_{\theta}\vb E
-           +\Big( \{\vb K, \vb E\} \leftrightarrow \{\vb N, \vb H\}\Big)\Big\}
-\end{align*}
-
-\begin{align*}
-\Big(\vb K^* \times \vb E + \vb K \cdot \partial_{\theta}\vb E\Big)_i 
-&=
- \varepsilon_{ijk}\Big[ K^*_j E_k + K^*_\ell X_j \partial_k E_\ell\Big]
-\qquad \Big(\vb X \equiv \vb x_a - \vb x_0\Big)
-\end{align*}
-
-%====================================================================%
-%\begin{align*}
-% \vb E(\vb x_a)
-%&=
-% \sum_b \Big\{ i\omega \mu k_b \vb e_b(\vb x_a) - n_b \vb h_b(\vb x_a)\Big\}
-%\\
-%&=
-% \sum_b \Big\{ i\omega \mu k_b \Big[ \vb b_b \Phi
-%\end{align*}
-%====================================================================%
-
-%&
-%\sum_{ab}k^*a
-% \varepsilon_{ijk}\Big[ b_{aj}\Big(
-% + K^*_\ell X_j \partial_k E_\ell\Big]
-%\end{align*}
-
-\subsection{Interior EMTPFT}
-
-%====================================================================%
-\begin{align*}
-F_i&=
- \frac{1}{2\omega}\text{Im } 
- \int_{\mc S}\bigg\{ \vb K^* \cdot \partial_i \vb E
-                    +\vb N^* \cdot \partial_i \vb H
-             \bigg\}\, dA
-\end{align*}
-%====================================================================%
-
-\paragraph{Planar case}
-
-Working in a coordinate system in which the
-%====================================================================%
-\begin{align*}
-\vb F&=
- \left( K^*_x \partial_x E_x + K^*_y \partial_x E_y \right)\vbhat{x}
- +
- \left( K^*_x \partial_y E_x + K^*_y \partial_y E_y \right)\vbhat{y}
- +
- \left( K^*_x \partial_z E_x + K^*_y \partial_z E_y \right)\vbhat{z}
-\end{align*}
-%====================================================================%
-I organize the various terms here as follows:
 %====================================================================%
 \begin{align}
-\vb F
-= &\hphantom{+}\underbrace{
-   \left( K^*_x \partial_x E_x\right) \vbhat{x}
-  +\left( K^*_y \partial_y E_y \right)\vbhat{y}
-              }_{T_1}
+P\sups{scat}
+&=\mp \frac{1}{2}\text{Re }
+  \sum_{ab} \Big\{  k_a^* k_b P\supt{KK}_{ab}
+                   + n_a^* n_b P\supt{NN}_{ab}
+                   +\Big[k_a^* n_b - n_a^* k_b\Big] P\supt{KNmNK}_{ab}
+            \Big\}
 \\
-&+ \underbrace{
-   \left( K^*_y \partial_x E_y\right) \vbhat{x}
-  +\left( K^*_x \partial_y E_x \right)\vbhat{y}
-              }_{T_2}
-\\
-&+ \underbrace{
-    \left( K^*_x \partial_z E_x + K^*_y \partial_z E_y \right)\vbhat{z}
-              }_{T_3}
+&=\mp \frac{1}{2}
+  \sum_{ab} \Big\{ \Big[\text{Re } k_a^* k_b \Big]
+                   \Big[\text{Re } P\supt{KK}_{ab} \Big]
+                  +\Big[\text{Re } n_a^* n_b \Big]
+                   \Big[\text{Re } P\supt{NN}_{ab} \Big]
+\nn
+&\hspace{1.5in}
+                  -\Big[\text{Im } (k_a^* n_b - n_a^* k_b)\Big]
+                   \Big[\text{Im } P\supt{KNmNK}_{ab}
+            \Big\}
+\nonumber
 \end{align}
+From (\ref{PIntegrals}) we have 
+$$ \text{Re } P_{ab}\supt{KK} 
+   = \text{Re }\Big[i\omega \mu \vb G_{ab}\Big]
+   = -\omega\text{Im}(\mu\vb G_{ab})
+$$
 %====================================================================%
-I now add to $T_1$ and subtract from $T_2$ the quantity
-%====================================================================%
-$ \left( K^*_y \partial_y E_x\right) \vbhat{x}
-  +\left( K^*_x \partial_x E_y \right)\vbhat{y}
-$. The term $T_1$ becomes
+so ultimately we find 
 %====================================================================%
 \begin{align}
-T_1 &=  \left( K^*_x \partial_x E_x + K^*_y \partial_y E_x\right) \vbhat{x}
-       +\left( K^*_x \partial_x E_y + K^*_y \partial_y E_y \right)\vbhat{y}
-\\
-&\sim -\Big(\nabla_{\parallel} \cdot \vb K^*\Big) \vb E_{\parallel}
-\intertext{(where $\parallel$ indicates surface-tangential vector components
-           and $\sim$ indicates equality up to total-derivative terms
-           that make no contribution to the surface integral). The term
-           $T_2$ becomes}
-T_2 &= 
-   \left( K^*_y \partial_x E_y\right) \vbhat{x}
-  +\left( K^*_x \partial_y E_x \right)\vbhat{y}
-  -\left( K^*_y \partial_y E_x\right) \vbhat{x}
-  -\left( K^*_x \partial_x E_y \right)\vbhat{y}
-\\
-&= \underbrace{\Big(K_y^* \vbhat{x} - K_x^* \vbhat{y}\Big)}
-             _{\vb K^* \times \vbhat{z}}
-   \cdot
-   \underbrace{
-   \Big(\partial_x E_y - \partial_y E_x\Big)
-              }_{(\nabla \times \vb E)_z=i\omega \mu H_z} 
+ P\sups{scat} 
+&= \pm \frac{1}{2}
+   \sum_{ab} \Big\{ 
+     \omega \mu_0 \Big[\text{Re } k_a^* k_b \Big]
+                  \Big[\text{Im }\mu^r \vb G_{ab}\Big]
+    +\omega \epsilon_0 \Big[\text{Re } n_a^* n_b \Big]
+                  \Big[\text{Im }\epsilon^r \vb G_{ab}\Big]
+\nn
+&\hspace{1.5in}
+    +\Big[\text{Im } (k_a^* n_b - n_a^* k_b)\Big]
+     \Big[\text{Im } \wh{\vb C}_{ab}\Big]
+  \Big\}.
+\label{PScatSymmetry}
 \end{align}
 %====================================================================%
-In term $T_3$ above I write $(\nabla \times \vb E = i\omega \mu \vb H)$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Self-contribution to force and torque}
+
+The force EMTPFT integrals are anti-symmetric, i.e.
+$F\supt{KK}_{ab}=-F\supt{KK}_{ba}$ and similarly for
+$F\supt{NN}_{ab}$ and $F\supt{KNmNK}_{ab}$. Using the
+table of symmetry rules above yields
 %====================================================================%
-$$ \partial_z E_x = \partial_x E_z + i\omega\mu H_y, \qquad
-   \partial_z E_y = \partial_y E_z - i\omega\mu H_x
+\begin{align}
+F_i\sups{scat}
+&=\mp \frac{1}{2\omega}\text{Im }
+  \sum_{ab} \Big\{  k_a^* k_b F\supt{KK}_{ab}
+                   + n_a^* n_b F\supt{NN}_{ab}
+                   +\Big[k_a^* n_b - n_a^* k_b\Big] F\supt{KNmNK}_{ab}
+            \Big\}
+\\
+&=\mp \frac{1}{2\omega}
+  \sum_{ab} \Big\{ \Big[\text{Im } k_a^* k_b \Big]
+                   \Big[\text{Re } F\supt{KK}_{ab} \Big]
+                  +\Big[\text{Im } n_a^* n_b \Big]
+                   \Big[\text{Re } F\supt{NN}_{ab} \Big]
+\nn
+&\hspace{1.5in}
+                  +\Big[\text{Re } (k_a^* n_b - n_a^* k_b)\Big]
+                   \Big[\text{Im } F\supt{KNmNK}_{ab}\Big]
+            \Big\}
+\nonumber
+\end{align}
+%====================================================================%
+From (\ref{FIntegrals}) we have 
+$$ \text{Re } F_{ab}\supt{KK} 
+   = \text{Re }\Big[i\omega \mu \partial_i \vb G_{ab}\Big]
+   = -\omega\text{Im}(\mu \partial_i \vb G_{ab})
 $$
 %====================================================================%
-and obtain
+so ultimately we find 
 %====================================================================%
-\begin{align*}
- T_3 &= 
-  \Big(K_x^* \partial_x E_z + K_y^* \partial_y E_z \Big)\vbhat{z}
- +i\omega \mu \Big( K_x^* H_y - K_y^* H_x\Big)\vbhat{z}
-\end{align*}
-%====================================================================%
-Integrating by parts in the first term, I find
-%====================================================================%
-$$ T_3 \sim
-   -\Big(\nabla \cdot \vb K^*\Big) E_z \vbhat{z}
-   +i\omega \mu \times \Big(\vb K^* \times \vb H\Big)_z \vbhat{z}
-$$
-%====================================================================%
-Adding it all up and including the contribution of the 
-$\vb{N}^* \partial_i \vb H$ term, I have 
-%====================================================================%
-\begin{align*}
- F&=\frac{1}{2\omega}\text{Im }\int_{\mc S}
-   \Big[ -\big(\nabla \cdot \vb K^*\big) \vb E
-         -\big(\nabla \cdot \vb N^*\big) \vb H
-        +i\omega \mu \Big(\vbhat{K}^* \times \vbhat{H}\Big)
-        -i\omega \epsilon \Big(\vbhat{N}^* \times \vbhat{E}\Big)
-   \Big]dA
-\end{align*}
-%====================================================================%
- 
-\paragraph{General case}
-\begin{align*}
- K^*_j \partial_i E_j
-&= \underbrace{K^*_j \hat{n}_i \hat{n}_k \partial_k E_j}_{T_1}
-  +\underbrace{K^*_j \Big[\delta_{ik}-\hat{n}_i \hat{n}_k\Big] \partial_k E_j}_{T_2}
-\end{align*}
-%====================================================================%
-
-In $T_1$ write the Maxwell equation
-$\nabla \times \vb E = i\omega \mu \vb H$
-in the form
-$$ \partial_k E_j = \partial_j E_k + i\omega \mu \varepsilon_{\ell kj} H_\ell $$
-to obtain
-\begin{align*}
- T_1 &= \underbrace{K^*_j \hat{n}_i \hat{n}_k \partial_j E_k}_{T_{1a}}
-       +\underbrace{i\omega \mu K^*_j \hat{n}_i \hat{n}_k \varepsilon_{\ell kj} H_\ell}_{T_{1b}}
-\end{align*}
-
-In $T_{1a}$ integrate by parts:
-%====================================================================%
-$$ T_{1a}\sim 
-   \underbrace{-\big(\partial_j K^*_j\big)\hat n_i \hat n_k E_k}_{T_{1a1}}
-  \quad
-   -\underbrace{K^*_j E_k \partial_j \Big( \hat{n}_i \hat{n}_k \Big)}_{T_{1a2}}
-$$
-%====================================================================%
-where $\sim$ indicates equality up to total derivative terms that yield
-vanishing contributions to surface integrals.
-(The first term here vanishes because it involves the normal derivative
-of the tangential-vector quantity $\vb K^*$.)
-
-On the other hand, $T_{1b}$ is just the quantity
-%====================================================================%
-$$ T_{1b} = i\omega \mu
-   \Big[ \vbhat{n} \cdot \big(\vb K^* \times \vb H\big) \Big] \hat{n}_i 
-$$
-%====================================================================%
-
-
-In $T_{2}$ integrate by parts:
-%====================================================================%
-$$ T_{2}\sim 
-   \underbrace{-\Big(\partial_k K^*_j\Big) E_j \Big(\delta_{ik}-\hat{n}_i \hat{n}_k\Big)}_{T_{2a}}
- \quad
-   \underbrace{-\Big(K_j^* E_j\Big)
- \partial_k \Big(\delta_{ik}-\hat{n}_i \hat{n}_k\Big)}_{T_{2b}}
-$$
+\begin{align}
+ F_i\sups{scat} 
+&= \pm \frac{1}{2}
+   \sum_{ab} \Big\{ 
+     \mu_0 \Big[\text{Im } k_a^* k_b \Big]
+                  \Big[\text{Im }\mu^r \partial_i \vb G_{ab}\Big]
+    +\epsilon_0 \Big[\text{Im } n_a^* n_b \Big]
+                  \Big[\text{Im }\epsilon^r \partial_i \vb G_{ab}\Big]
+\nn
+&\hspace{1.5in}
+    -\frac{1}{\omega} 
+     \Big[\text{Re } (k_a^* n_b - n_a^* k_b)\Big]
+            \Big[\text{Im } \partial_i \wh{\vb C}_{ab}\Big]
+  \Big\}.
+\label{FScatSymmetry}
+\end{align}
 %====================================================================%

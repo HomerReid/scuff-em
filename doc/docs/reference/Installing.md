@@ -13,6 +13,9 @@ play around with your own calculations, and get a feel for what
 using [[scuff-em]] will like once you have installed it on your 
 machine.
 
+Here's the link:
+[http://mybinder.org/repo/jfeist/scuff-em-mybinder](http://mybinder.org/repo/jfeist/scuff-em-mybinder).
+
 ## 1. External packages
 
 [[scuff-em]] relies on a small number of well-established free 
