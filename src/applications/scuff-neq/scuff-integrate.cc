@@ -171,6 +171,17 @@ int Integrand(unsigned ndim, const double *x, void *UserData,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+void DetectDuplicates(double *V, int Length)
+{ 
+  for(int m=0; m<Length; m++)
+   for(int n=m+1; n<Length; n++)
+    if ( V[m] == V[n] )
+     ErrExit("two or more data points both have frequency %e",V[m]);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 int main(int argc, char *argv[])
 { 
   feenableexcept(FE_INVALID | FE_OVERFLOW);
@@ -343,6 +354,7 @@ int main(int argc, char *argv[])
             YValues[N*NumData + nd]=DataMatrix->GetEntryD(nr, DataColumns[nd]-1);
            N++;
          };
+        DetectDuplicates(XValues,N);
         if (TagColumn)
          printf("tag %s | ",GetTagString(Tags[nTag]));
         if (SDColumn)
