@@ -1,4 +1,4 @@
-bin_PROGRAMS = scuff-neq
+bin_PROGRAMS = scuff-neq scuff-integrate
 
 scuff_neq_SOURCES = 		\
  scuff-neq.cc         		\
@@ -8,6 +8,10 @@ scuff_neq_SOURCES = 		\
  Quadrature.cc
 
 scuff_neq_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
+
+scuff_integrate_SOURCES = scuff-integrate.cc
+
+scuff_integrate_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libscuff      \
               -I$(top_srcdir)/src/libs/libIncField   \

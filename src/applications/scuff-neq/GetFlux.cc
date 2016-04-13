@@ -292,6 +292,8 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, cdouble Omega,
         PFTOpts->TInterior=SNEQD->TInt[DestSurface];
         PFTOpts->TExterior=SNEQD->TExt[DestSurface];
         G->GetPFT(DestSurface, 0, Omega, Flux, PFTOpts);
+        if (PFTMethod==SCUFF_PFT_DSI)
+         Flux[PFT_PSCAT]=-Flux[PFT_PABS];
         PFTMatrix->SetEntriesD(DestSurface, ":", Flux);
       };
    };
