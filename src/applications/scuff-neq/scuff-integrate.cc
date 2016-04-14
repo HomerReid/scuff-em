@@ -116,7 +116,7 @@ double GetThetaFactor(double Omega, double T)
    return 0.0;
 
   double ExpArg = Omega/(BOLTZMANNK*T);
-  if (ExpArg>1000.0)
+  if (ExpArg>100.0)
    return 0.0;
 
   return Omega / ( exp(ExpArg) - 1.0 );
