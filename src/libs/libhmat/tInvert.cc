@@ -3,6 +3,14 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <sys/timeb.h>
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+#ifdef USE_OPENMP
+#  include <omp.h>
+#endif
 
 #include "libhrutil.h"
 #include "libhmat.h"
@@ -17,7 +25,6 @@ static double my_drand48(void) {
 
 int main(int argc, char *argv[])
 { 
-   
   /*--------------------------------------------------------------*/
   /*- process command-line arguments -----------------------------*/
   /*--------------------------------------------------------------*/
@@ -33,8 +40,8 @@ int main(int argc, char *argv[])
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  HMatrix *DMNorm, *DMSym, *ZMNorm, *ZMHerm, *ZMSym;
-  HMatrix *DMCopy, *ZMCopy;
+  HMatrix *DMNorm=0, *DMSym=0, *ZMNorm=0, *ZMHerm=0, *ZMSym=0;
+  HMatrix *DMCopy=0, *ZMCopy=0;
 
   DMNorm=new HMatrix(Dim,Dim,LHM_REAL,LHM_NORMAL);
   ZMNorm=new HMatrix(Dim,Dim,LHM_COMPLEX,LHM_NORMAL);
@@ -47,19 +54,49 @@ int main(int argc, char *argv[])
   DMCopy=new HMatrix(Dim,Dim,LHM_REAL);
   ZMCopy=new HMatrix(Dim,Dim,LHM_COMPLEX);
 
+  SetConsoleLogging();
+
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   int nr, nc;
   srand48(time(0));
 
-  for(nr=0; nr<Dim; nr++)
-   for(nc=0; nc<Dim; nc++)
-    DMNorm->SetEntry(nr, nc, drand48());
+  int NumThreads=GetNumThreads();
+printf("%i threads.\n",NumThreads);
+  struct random_data **RDs=(struct random_data **)mallocEC(NumThreads*sizeof(struct random_data *));
+  int StateSize=16;
+  for(int nt=0; nt<NumThreads; nt++)
+   { struct timeb tp;
+     ftime(&tp);
+     unsigned long Seed=1000*tp.time + tp.millitm;
+     char *State=(char *)mallocEC(StateSize*sizeof(char));
+     RDs[nt]=(struct random_data *)mallocEC(sizeof(struct random_data));
+     initstate_r(Seed,State,StateSize,RDs[nt]);
+   };
 
+#ifdef USE_OPENMP
+  printf("Using %i threads for matrix assembly...\n",NumThreads);
+#pragma omp parallel for num_threads(NumThreads)
+#endif
   for(nr=0; nr<Dim; nr++)
-   for(nc=0; nc<Dim; nc++)
-    ZMNorm->SetEntry(nr, nc, cdouble(drand48(),drand48()));
+   { 
+     int nt=0;
+#ifdef USE_OPENMP
+     nt = omp_get_thread_num();
+#endif
+     LogPercent(nr,Dim,10);
+     for(nc=0; nc<Dim; nc++)
+      { int ri, ii;
+        random_r(RDs[nt], &ri);
+        random_r(RDs[nt], &ii);
+        int rd=((double)ri)/((double)RAND_MAX);
+        int id=((double)ii)/((double)RAND_MAX);
+        cdouble z=cdouble( 2*(rd-0.5), 2*(id-0.5) );
+        DMNorm->SetEntry(nr, nc, real(z));
+        ZMNorm->SetEntry(nr, nc, z);
+      };
+   };
 
   if (Symmetric) 
    { 

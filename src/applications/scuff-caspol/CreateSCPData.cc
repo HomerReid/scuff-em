@@ -111,10 +111,6 @@ SCPData *CreateSCPData(char *GeoFile,
      for(int nsa=0, nb=0; nsa<NS; nsa++)
       for(int nsb=nsa; nsb<NS; nsb++, nb++)
        SCPD->ABMBCache[nb]=G->CreateABMBAccelerator(nsa, nsb, false, false);
-  
-     /*--------------------------------------------------------------*/
-     /*- initialize options structure for Brillouin-zone integration-*/
-     /*--------------------------------------------------------------*/
 
    };
      /*--------------------------------------------------------------*/

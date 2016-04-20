@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
   SCPD->AbsTol = AbsTol;
   SCPD->RelTol = RelTol;
 
-  if (SCPD->G->LDim>1)
+  if (SCPD->G->LDim>=1)
    { UpdateBZIArgs(BZIArgs, SCPD->G->RLBasis, SCPD->G->RLVolume);
      BZIArgs->BZIFunc  = GetCPIntegrand;
      BZIArgs->UserData = (void *)SCPD;

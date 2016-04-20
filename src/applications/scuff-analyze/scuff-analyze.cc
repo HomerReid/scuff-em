@@ -266,7 +266,7 @@ void WriteGeometryPPFiles(RWGGeometry *G, int Neighbors)
          DL[1] = n1*G->LBasis->GetEntryD(1,0);
          DL[2] = n1*G->LBasis->GetEntryD(2,0);
 
-         if (LDim>=1)
+         if (LDim>=2)
           { DL[0] = n2*G->LBasis->GetEntryD(0,1);
             DL[1] = n2*G->LBasis->GetEntryD(1,1);
             DL[2] = n2*G->LBasis->GetEntryD(2,1);
