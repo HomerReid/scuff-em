@@ -60,7 +60,7 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
 
   if ( Data->WrotePreamble[FileType][WhichMatrix] == false )
    { Data->WrotePreamble[FileType][WhichMatrix] = true;
-     WriteFilePreamble(FileName, FileType, LDim);
+     WriteFilePreamble(FileName, FileType, LDim, TwoPointDGF);
    };
 
   int NFun = (Data->LDOSOnly ? 2 : 38);
@@ -71,16 +71,18 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
   FILE *f=fopen(FileName,"a");
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
-     double X[3];
+     double X[6];
      XMatrix->GetEntriesD(nx,":",X);
 
      fprintf(f,"%e %e %e ", X[0],X[1],X[2]);
+     if (TwoPointDGF)
+      fprintf(f,"%e %e %e ", X[3],X[4],X[5]);
      fprintf(f,"%e %e ",real(Omega),imag(Omega));
      if (FileType==FILETYPE_BYK && LDim>0 && kBloch!=0)
       for(int nd=0; nd<LDim; nd++)
        fprintf(f,"%e ",kBloch[nd]);
 
-     for(int nf=0; nf<NFun; nf++) 
+     for(int nf=0; nf<NFun; nf++)
       fprintf(f,"%e ",Result[Offset + NFun*nx + nf]);
 
      if (Error)
@@ -121,6 +123,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   void **ABMBCache     = Data->ABMBCache;
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
   bool GroundPlane     = Data->GroundPlane;
+  bool ScatteringOnly  = Data->ScatteringOnly;
 
   HMatrix *LBasis      = G->LBasis;
   HMatrix *RLBasis     = G->RLBasis;
@@ -167,7 +170,8 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      /*- precompute DGFs                                             */
      /*--------------------------------------------------------------*/
      for(int nm=0; nm<NumXGMatrices; nm++)
-      G->GetDyadicGFs(Omega, kBloch, XMatrices[nm], M, GMatrices[nm]);
+      G->GetDyadicGFs(Omega, kBloch, XMatrices[nm], M, GMatrices[nm],
+                      ScatteringOnly);
 
    };
                                

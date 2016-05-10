@@ -57,7 +57,8 @@ namespace scuff {
 /***************************************************************/
 HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
                                    HMatrix *XMatrix, HMatrix *M,
-                                   HMatrix *GMatrix)
+                                   HMatrix *GMatrix, 
+                                   bool ScatteringOnly)
 { 
   int NBF = TotalBFs;
   int NX  = XMatrix->NR;
@@ -92,11 +93,19 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
    };
 
   /*--------------------------------------------------------------*/
+  /*- if we are computing two-point DGFs, initialize a PointSource*/
+  /*- structure to compute the direct (non-scattering) contributions */
   /*--------------------------------------------------------------*/
+  bool TwoPointDGF = (XMatrix->NC >= 6);
+  bool AddDirectContribution = TwoPointDGF && !ScatteringOnly;
+  PointSource PSBuffer, *PS = (AddDirectContribution ? &PSBuffer : 0);
+
+  /*--------------------------------------------------------------*/
+  /*- precompute 'reduced-field' vectors -------------------------*/
   /*--------------------------------------------------------------*/
   Log("Fetching RFMatrix...");
   GetRFMatrix(Omega, kBloch, XMatrix, RFDest);
-  if (XMatrix->NC>=6)
+  if (TwoPointDGF)
    GetRFMatrix(Omega, kBloch, XMatrix, RFSource, 3);
   else
    RFSource->Copy(RFDest);
@@ -117,20 +126,60 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
      XMatrix->GetEntriesD(nx,"0:2",X);
      int nr=GetRegionIndex(X);
      if (nr==-1) continue;
-     cdouble ZRel;
-     cdouble k = Omega * RegionMPs[nr]->GetRefractiveIndex(Omega, &ZRel);
-     cdouble GENormFac = -1.0/(II*k*ZVAC*ZVAC*ZRel);
-     cdouble GMNormFac = +ZRel/(II*k);
+
+     cdouble Eps, Mu;
+     RegionMPs[nr]->GetEpsMu(Omega, &Eps, &Mu);
+     cdouble k    = Omega * sqrt(Eps*Mu);
+     cdouble ZRel = sqrt(Mu/Eps);
+     cdouble GEScatNormFac = -1.0/(II*k*ZVAC*ZVAC*ZRel);
+     cdouble GMScatNormFac = +ZRel/(II*k);
+
+     cdouble GEDirect[3][3], GMDirect[3][3];
+     double LastX0[3];
+     if (AddDirectContribution)
+      { 
+        cdouble GEDirectNormFac = k*k/Eps;
+        cdouble GMDirectNormFac = k*k/Mu;
+        double X0[3], R[3];
+        XMatrix->GetEntriesD(nx,"3:5",X0);
+        PS->SetX0(X0);
+        if (nx==0 || !VecEqualFloat(X0,LastX0) )
+         UpdateIncFields(PS, Omega, kBloch);
+        memcpy(LastX0,X0,3*sizeof(double));
+        for(int i=0; i<3; i++)
+         { cdouble EH[6];
+           cdouble P[3]={0.0, 0.0, 0.0};
+           P[i]=1.0;
+           PS->SetP(P);
+           PS->SetType(LIF_ELECTRIC_DIPOLE);
+           PS->GetFields(X, EH);
+           for(int j=0; j<3; j++)
+            GEDirect[j][i] = EH[0+j] / GEDirectNormFac;
+           PS->SetType(LIF_MAGNETIC_DIPOLE);
+           PS->GetFields(X, EH);
+           for(int j=0; j<3; j++)
+            GMDirect[j][i] = EH[3+j] / GMDirectNormFac;
+         };
+      };
 
      for(int i=0; i<3; i++)
       for(int j=0; j<3; j++)
-       { cdouble GE=0.0, GM=0.0;
+       { 
+         cdouble GEScat=0.0, GMScat=0.0;
          for(int nbf=0; nbf<NBF; nbf++)
-          { GE += RFDest->GetEntry(nbf, 6*nx+0+i) * RFSource->GetEntry(nbf, 6*nx+0+j);
-            GM += RFDest->GetEntry(nbf, 6*nx+3+i) * RFSource->GetEntry(nbf, 6*nx+3+j);
+          { GEScat += RFDest->GetEntry(nbf, 6*nx+0+i) * RFSource->GetEntry(nbf, 6*nx+0+j);
+            GMScat += RFDest->GetEntry(nbf, 6*nx+3+i) * RFSource->GetEntry(nbf, 6*nx+3+j);
           };
-         GMatrix->SetEntry(nx, 0 + 3*i + j, GE*GENormFac);
-         GMatrix->SetEntry(nx, 9 + 3*i + j, GM*GMNormFac);
+         GEScat *= GEScatNormFac;
+         GMScat *= GMScatNormFac;
+
+         GMatrix->SetEntry(nx, 0 + 3*i + j, GEScat);
+         GMatrix->SetEntry(nx, 9 + 3*i + j, GMScat);
+
+         if (AddDirectContribution)
+          { GMatrix->AddEntry(nx, 0 + 3*i + j, GEDirect[i][j]);
+            GMatrix->AddEntry(nx, 9 + 3*i + j, GMDirect[i][j]);
+          };
        };
    };
 

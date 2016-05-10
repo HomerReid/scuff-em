@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 /**/
   char *FileBase=0;
   bool LDOSOnly=false;
+  bool ScatteringOnly=false;
 /**/
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
@@ -70,6 +71,7 @@ int main(int argc, char *argv[])
 //
      {"FileBase",    PA_STRING,  1, 1, (void *)&FileBase,      0,  "base name for output files"},
      {"LDOSOnly",    PA_BOOL,    0, 1, (void *)&LDOSOnly,      0,  "omit DGF components from Brillouin-zone integration"},
+     {"ScatteringOnly", PA_BOOL, 0, 1, (void *)&ScatteringOnly,0,  "compute only scattering part of two-point DGF"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -121,6 +123,7 @@ int main(int argc, char *argv[])
   Data->MaxEvals    = MaxEvals;
   Data->FileBase    = FileBase;
   Data->LDOSOnly    = LDOSOnly;
+  Data->ScatteringOnly = ScatteringOnly;
   Data->GroundPlane = GroundPlane;
 
   // set LDOSOnly = false if any EPFiles have 6 coordinates

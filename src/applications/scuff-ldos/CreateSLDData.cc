@@ -32,15 +32,28 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WriteFilePreamble(char *FileName, int FileType, int LDim)
+void WriteFilePreamble(char *FileName, int FileType, int LDim,  
+                       bool TwoPointDGF)
 {
   FILE *f=fopen(FileName,"a");
 
   fprintf(f,"# scuff-ldos run on %s ",GetHostName());
   fprintf(f,"%s\n",GetTimeString());
   fprintf(f,"# columns: \n");
-  fprintf(f,"# 1 2 3 4 5 : x y z re(Omega) im(Omega)\n");
-  int nc=6;
+  
+  int nc;
+  if (TwoPointDGF)
+   { fprintf(f,"# 1 2 3: (x, y, z) (destination point) \n");
+     fprintf(f,"# 4 5 6: (x, y, z) (source point) \n");
+     nc=7;
+   }
+  else
+   { fprintf(f,"# 1 2 3:\n");
+     nc=4;
+   };
+
+  fprintf(f,"# %i %i : real(Omega) imag(Omega)\n",nc,nc+1);
+  nc+=2;
 
   if (FileType==FILETYPE_BYK && LDim==1)
    { fprintf(f,"# %i: kx\n",nc);

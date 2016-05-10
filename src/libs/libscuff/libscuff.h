@@ -354,7 +354,8 @@ class RWGGeometry
    /*--------------------------------------------------------------*/
    HMatrix *GetDyadicGFs(cdouble Omega, double *kBloch,
                          HMatrix *XMatrix, HMatrix *M,
-                         HMatrix *GMatrix);
+                         HMatrix *GMatrix=0, 
+                         bool ScatteringOnly=false);
 
    // these next two are legacy interfaces which will be
    // removed in future versions

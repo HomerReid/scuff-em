@@ -61,6 +61,7 @@ typedef struct SLDData
    double RelTol;
    int MaxEvals;
    bool LDOSOnly;
+   bool ScatteringOnly;
    MatProp *HalfSpaceMP;
    bool GroundPlane;
 
@@ -75,7 +76,7 @@ typedef struct SLDData
 /***************************************************************/
 
 // CreateLDOSData.cc
-void WriteFilePreamble(char *FileName, int FileType, int LDim);
+void WriteFilePreamble(char *FileName, int FileType, int LDim, bool TwoPointDGF);
 SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles);
 
 // GetLDOS.cc
