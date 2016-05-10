@@ -67,7 +67,7 @@ void WriteFilePreamble(SCPData *SCPD, const char *FileName,
   fprintf(f,"#1: X (um) \n");
   fprintf(f,"#2: Y (um) \n");
   fprintf(f,"#3: Z (um) \n");
-  
+
   int nc=4;
   if (FileType==FILETYPE_BYXI || FileType==FILETYPE_BYXIK)
    { 
@@ -347,7 +347,6 @@ int main(int argc, char *argv[])
      char OutFileName[MAXSTR];
      snprintf(OutFileName, MAXSTR, "%s.out",GetFileBase(GeoFile));
      WriteFilePreamble(SCPD, OutFileName, argc, argv, FILETYPE_OUT);
-     
 
      FILE *f=fopen(OutFileName,"a");
      HMatrix *EPMatrix=SCPD->EPMatrix;

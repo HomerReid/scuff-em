@@ -123,6 +123,12 @@ int main(int argc, char *argv[])
   Data->LDOSOnly    = LDOSOnly;
   Data->GroundPlane = GroundPlane;
 
+  // set LDOSOnly = false if any EPFiles have 6 coordinates
+  // (for two-point DGF calculations)
+  for(int n=0; n<nEPFiles; n++)
+   if (Data->XMatrices[n]->NC==6)
+    Data->LDOSOnly=false;
+
   if (HalfSpace)
    Data->HalfSpaceMP = new MatProp(HalfSpace);
 
@@ -130,8 +136,8 @@ int main(int argc, char *argv[])
   if ( HalfSpace && LDim!=2 )
    OSUsage(argv[0],OSArray,"--HalfSpace requires a 2D-periodic geometry");
 
+  int NX         = Data->TotalEvalPoints;
   int NFun       = Data->LDOSOnly ? 2 : 38; // # outputs per eval pt
-  int NX         = Data->TotalEvalPoints; 
   int FDim       = NX*NFun;
   double *Result = (double *)mallocEC(FDim*sizeof(double));
 

@@ -9,12 +9,13 @@
 [GNUGPL]:                      http://en.wikipedia.org/wiki/GNU_General_Public_License
 [LogFiles]:                    ../GeneralReference.md#LogFiles
 [RoundedBeamUnitCellGeo]:      RoundedBeamUnitCell.geo
-[scuff-cas3D]:                 ../scuff-cas3D/scuff-cas3D.md
 [scuffEMGeometries]:           reference/Geometries
 [scuffEMTransformations]:      reference/Transformations
 [scuffgeoFile]:                SiliconSlabs_L2_40.scuffgeo
-[scuff-neq]:                   ../../applications/scuff-neq/scuff-neq.md
 [scuff-scatter]:               ../applications/scuff-scatter/scuff-scatter.md
+[scuff-cas3D]:                 ../scuff-cas3D/scuff-cas3D.md
+[scuff-caspol]:                ../scuff-caspol/scuff-caspol.md
+[scuff-neq]:                   ../../applications/scuff-neq/scuff-neq.md
 [scuff-tmatrix]:               ../applications/scuff-tmatrix/scuff-tmatrix.md
 [scuff-transmission]:          ../applications/scuff-transmission/scuff-transmission.md
 [SIEPFTPaper]:                 http://dx.doi.org/10.1109/TAP.2015.2438393

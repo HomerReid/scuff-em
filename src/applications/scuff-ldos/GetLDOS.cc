@@ -44,8 +44,13 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
   char *EPFileBase = Data->EPFileBases[WhichMatrix];
   char *FileBase   = Data->FileBase;
 
-  const char *Extension 
-   = (FileType==FILETYPE_BYK) ? "byOmegakBloch" : "LDOS";
+  bool TwoPointDGF = (XMatrix->NC==6);
+
+  const char *Extension=0;
+  if (FileType==FILETYPE_BYK)
+   Extension = "byOmegakBloch";
+  else
+   Extension = TwoPointDGF ? "2PDGF" : "LDOS";
 
   char FileName[MAXSTR];
   if (Data->NumXGMatrices==1)
@@ -158,6 +163,9 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
       };
      M->LUFactorize();
 
+     /*--------------------------------------------------------------*/
+     /*- precompute DGFs                                             */
+     /*--------------------------------------------------------------*/
      for(int nm=0; nm<NumXGMatrices; nm++)
       G->GetDyadicGFs(Omega, kBloch, XMatrices[nm], M, GMatrices[nm]);
 
@@ -177,18 +185,15 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
 
      for(int nx=0; nx<XMatrix->NR; nx++)
       { 
-
-        double X[3];
-        XMatrix->GetEntriesD(nx, ":", X);
-  
         /***************************************************************/
         /* get the DGFs at this evaluation point                       */
         /***************************************************************/
+        double Z=XMatrix->GetEntryD(nx, 2);
         cdouble GE[3][3], GM[3][3];
         if ( GroundPlane )
-         GetGroundPlaneDGFs(X[2], Omega, kBloch, LBasis, GE, GM);
+         GetGroundPlaneDGFs(Z, Omega, kBloch, LBasis, GE, GM);
         else if (HalfSpaceMP)
-         GetHalfSpaceDGFs(X[2], Omega, kBloch, 
+         GetHalfSpaceDGFs(Z, Omega, kBloch, 
                          RLBasis, BZVolume, HalfSpaceMP,
                          Data->RelTol, ABSTOL, Data->MaxEvals, GE, GM);
         else
