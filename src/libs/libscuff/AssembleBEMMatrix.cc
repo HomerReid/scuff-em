@@ -161,6 +161,9 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
   int NBFs = G->Surfaces[ns]->NumBFs;
   if (Op==TBCOP_READ)	
    { Log("Attempting to read T-block (%s,%s) from file %s...",FileBase,z2s(Omega),FileName);
+     bool AbortOnIOErrorSave=HMatrix::AbortOnIOError;
+     HMatrix::AbortOnIOError=false;
+
      HMatrix *MFile=M;
      bool OwnsMFile=false;
      if (RowOffset==0 && ColOffset==0 && M->NR==NBFs && M->NC==NBFs)
@@ -183,12 +186,15 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
          };
       };
      if (OwnsMFile) delete MFile;
+     HMatrix::AbortOnIOError=AbortOnIOErrorSave;
      return Success;
    }
   else if (Op==TBCOP_WRITE)
    { 
       HMatrix *MFile;
       bool OwnsMFile=false;
+      bool AbortOnIOErrorSave=HMatrix::AbortOnIOError;
+      HMatrix::AbortOnIOError=false;
       if (RowOffset==0 && ColOffset==0 && M->NR==NBFs && M->NC==NBFs)
        MFile=M;
       else
@@ -204,6 +210,7 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
          MFile->ErrMsg=0;
        };
       if (OwnsMFile) delete MFile;
+      HMatrix::AbortOnIOError=AbortOnIOErrorSave;
       return true;
    };
 

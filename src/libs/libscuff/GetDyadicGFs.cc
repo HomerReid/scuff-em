@@ -172,6 +172,7 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
           };
          GEScat *= GEScatNormFac;
          GMScat *= GMScatNormFac;
+GEScat=GMScat=0.0;
 
          GMatrix->SetEntry(nx, 0 + 3*i + j, GEScat);
          GMatrix->SetEntry(nx, 9 + 3*i + j, GMScat);
