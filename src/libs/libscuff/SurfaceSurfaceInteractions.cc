@@ -587,10 +587,15 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   /* is stored anyway.                                           */
   /***************************************************************/
   if ( Args->Symmetric && (Args->B->StorageType==LHM_NORMAL) )
-   { int N=Args->B->NR;
+   { 
+if (G->LogLevel>=SCUFF_VERBOSE2)
+ Log("Handling symmetry...");
+     int N=Args->B->NR;
      for(int nr=1; nr<N; nr++)
       for(int nc=0; nc<nr; nc++)
        Args->B->SetEntry(nr,nc,Args->B->GetEntry(nc,nr));
+if (G->LogLevel>=SCUFF_VERBOSE2)
+ Log("...done with symmetry...");
    };
 
 }

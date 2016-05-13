@@ -489,6 +489,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
       for(int nsp=ns+1; nsp<NS; nsp++, nb++)
        if ( nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
         G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, U[nb]);
+Log("...SN done with ABMB");
 
      /*--------------------------------------------------------------*/
      /*- stamp all blocks into the BEM matrix and invert it         -*/
@@ -526,7 +527,9 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
          continue;
 
         // compute the "dressed Rytov" matrix for this source
+Log("SN computing DR matrix");
         ComputeDRMatrix(SNEQD, nss);
+Log("...done with DR matrix");
         if (SNEQD->PlotRytovVectors)
          ProcessDRMatrix(SNEQD, Omega, nss);
 
@@ -539,6 +542,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
                 && !DoDSIAtThisFrequency(SNEQD, Omega) 
               ) continue;
 
+Log("SN PFT method %i",PFTMethods[npm]);
            GetSIFlux(SNEQD, nss, Omega, PFTMethods[npm], PFTMatrix);
 
            FILE *f=vfopen(SNEQD->SIFluxFileNames[npm],"a");

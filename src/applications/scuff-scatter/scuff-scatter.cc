@@ -43,7 +43,7 @@
 #define MAXPS    10    // max number of point sources
 #define MAXFREQ  10    // max number of frequencies
 #define MAXEPF   10    // max number of evaluation-point files
-#define MAXFVM   10    // max number of field visualization meshes
+#define MAXFVM   100   // max number of field visualization meshes
 #define MAXCACHE 10    // max number of cache files for preload
 
 #define MAXSTR   1000
