@@ -33,6 +33,8 @@
 #include <math.h>
 #include <libhmat.h>
 #include <libhrutil.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
@@ -122,6 +124,9 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
                    cdouble Omega, double *kBloch,
                    HMatrix *M, int RowOffset, int ColOffset)
 {
+  if (RowOffset!=0 || ColOffset!=0 || (M->NR!=M->NC) )
+   return false;
+
   char *Dir = getenv("SCUFF_TBLOCK_PATH");
   if (Dir==0 && Op==TBCOP_READ)
    Dir = getenv("SCUFF_TBLOCK_READPATH");
@@ -158,9 +163,55 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int NBFs = G->Surfaces[ns]->NumBFs;
+  int NBFs       = M->NR; //G->Surfaces[ns]->NumBFs;
+  bool IsComplex = (M->RealComplex==LHM_COMPLEX);
+  off_t DataSize = NBFs*NBFs*(IsComplex ? sizeof(double) : sizeof(cdouble) );
+  void *DataBuffer = (IsComplex ? ((void *)(M->ZM)) : ((void *)(M->DM)));
+  bool Success=false;
+  FILE *f=0;
   if (Op==TBCOP_READ)	
-   { Log("Attempting to read T-block (%s,%s) from file %s...",FileBase,z2s(Omega),FileName);
+   {
+     Log("Attempting to read T-block (%s,%s) from file %s...",FileBase,z2s(Omega),FileName);
+     struct stat st;
+     int Status=stat(FileName, &st);
+     f=fopen(FileName,"r");
+     if (Status!=0 || f==0)
+      Log("...could not access file");
+     else if (st.st_size!=DataSize)
+      Log("...file had incorrect size %lu (should be %lu)",st.st_size,DataSize);
+     else 
+      { 
+        ssize_t SizeToRead = (ssize_t)DataSize;
+        ssize_t SizeRead = read(fileno(f), DataBuffer, SizeToRead);
+        Success = (SizeRead==SizeToRead);
+        if (Success)
+         Log("...success!");
+        else
+         Log("...failed to read full size (%lu)",SizeToRead);
+      };
+   }
+  else //(Op==TBCOP_WRITE)
+   { 
+     Log("Attempting to write T-block (%s,%s) to file %s...",FileBase,z2s(Omega),FileName);
+     f=fopen(FileName,"w");
+     if (!f) 
+      Log("...could not access file");
+     else if (DataSize != write(fileno(f), DataBuffer, DataSize))
+      Log("...failed to write full file");
+     else
+      { Log("...success!");
+        Success=true;
+      };
+   };
+
+  if (f) fclose(f);
+  return Success; 
+}
+
+
+#if 0 // old HDF5 approach which is memory-inefficient
+  if (Op==TBCOP_READ)
+{
      bool AbortOnIOErrorSave=HMatrix::AbortOnIOError;
      HMatrix::AbortOnIOError=false;
 
@@ -211,12 +262,10 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
        };
       if (OwnsMFile) delete MFile;
       HMatrix::AbortOnIOError=AbortOnIOErrorSave;
-      return true;
    };
-
   return false; // never get here 
-
 }
+#endif
 
 /***************************************************************/
 /* KBIMBCache = 'kBloch-independent matrix-block cache.'       */
