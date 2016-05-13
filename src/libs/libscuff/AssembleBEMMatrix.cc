@@ -124,9 +124,6 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
                    cdouble Omega, double *kBloch,
                    HMatrix *M, int RowOffset, int ColOffset)
 {
-  if (RowOffset!=0 || ColOffset!=0 || (M->NR!=M->NC) )
-   return false;
-
   char *Dir = getenv("SCUFF_TBLOCK_PATH");
   if (Dir==0 && Op==TBCOP_READ)
    Dir = getenv("SCUFF_TBLOCK_READPATH");
@@ -163,10 +160,20 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  int NBFs       = M->NR; //G->Surfaces[ns]->NumBFs;
+  int NBF        = G->Surfaces[ns]->NumBFs;
   bool IsComplex = (M->RealComplex==LHM_COMPLEX);
-  off_t DataSize = NBFs*NBFs*(IsComplex ? sizeof(double) : sizeof(cdouble) );
-  void *DataBuffer = (IsComplex ? ((void *)(M->ZM)) : ((void *)(M->DM)));
+  off_t DataSize = NBF*NBF*(IsComplex ? sizeof(double) : sizeof(cdouble) );
+
+  /***************************************************************/
+  /* if the block we are reading/writing is a proper subblock of */
+  /* M, then we will need to allocate an HMatrix for just that   */
+  /* block, but we hold off on doing that until necessary        */
+  /***************************************************************/
+  HMatrix *B=0;
+  bool OwnsB=false;
+  if ( RowOffset==0 && ColOffset==0 && (M->NR==NBF) && (M->NC==NBF) )
+   B=M;
+
   bool Success=false;
   FILE *f=0;
   if (Op==TBCOP_READ)	
@@ -181,11 +188,26 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
       Log("...file had incorrect size %lu (should be %lu)",st.st_size,DataSize);
      else 
       { 
+        if (B==0)
+         { OwnsB=true;
+           B=new HMatrix(NBF,NBF,M->RealComplex);
+           if (B->ErrMsg)
+            { Log("...could not allocate matrix (%s)",B->ErrMsg);
+              delete B;
+              fclose(f);
+              return false;
+            };
+         };
+
+        void *DataBuffer = (IsComplex ? ((void *)(B->ZM)) : ((void *)(B->DM)));
         ssize_t SizeToRead = (ssize_t)DataSize;
         ssize_t SizeRead = read(fileno(f), DataBuffer, SizeToRead);
         Success = (SizeRead==SizeToRead);
         if (Success)
-         Log("...success!");
+         { Log("...success!");
+           if (OwnsB)
+            M->InsertBlock(B, RowOffset, ColOffset);
+         }
         else
          Log("...failed to read full size (%lu)",SizeToRead);
       };
@@ -193,6 +215,17 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
   else //(Op==TBCOP_WRITE)
    { 
      Log("Attempting to write T-block (%s,%s) to file %s...",FileBase,z2s(Omega),FileName);
+     if (B==0)
+      { OwnsB=true;
+        B=new HMatrix(NBF,NBF,M->RealComplex);
+        if (B->ErrMsg)
+         { Log("...could not allocate matrix (%s)",B->ErrMsg);
+           delete B;
+           return false;
+         };
+        M->ExtractBlock(RowOffset, ColOffset, B);
+      };
+     void *DataBuffer = (IsComplex ? ((void *)(B->ZM)) : ((void *)(B->DM)));
      f=fopen(FileName,"w");
      if (!f) 
       Log("...could not access file");
@@ -204,6 +237,7 @@ bool TBlockCacheOp(int Op, RWGGeometry *G, int ns,
       };
    };
 
+  if (B && OwnsB) delete B;
   if (f) fclose(f);
   return Success; 
 }
