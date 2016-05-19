@@ -143,7 +143,6 @@ int main(int argc, char *argv[])
 //
   char *FVMeshes[MAXFVM];            int nFVMeshes;
 //
-  char *PFTFile=0;
   char *OPFTFile=0;
   char *MomentPFTFile=0;
   char *EMTPFTFile=0;
@@ -268,7 +267,6 @@ int main(int argc, char *argv[])
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
   bool NeedIncidentField = (    MomentFile!=0
-                             || PFTFile!=0
                              || OPFTFile!=0
                              || MomentPFTFile!=0
                              || EMTPFTFile!=0
