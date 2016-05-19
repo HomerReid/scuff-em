@@ -193,11 +193,10 @@ int main(int argc, char *argv[])
 /**/
      {"FVMesh",         PA_STRING,  1, MAXFVM,  (void *)FVMeshes,    &nFVMeshes,    "field visualization mesh"},
 /**/
-     {"PFTFile",        PA_STRING,  1, 1,       (void *)&PFTFile,    0,             "name of power, force, and torque output file"},
-/**/
+     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EMTPFTFile, 0,             "name of energy/momentum-transfer PFT output file"},
+     {"PFTFile",        PA_STRING,  1, 1,       (void *)&EMTPFTFile, 0,             "(synonymous with --EMTPFTFile)"},
      {"OPFTFile",       PA_STRING,  1, 1,       (void *)&OPFTFile,   0,             "name of overlap PFT output file"},
      {"MomentPFTFile",  PA_STRING,  1, 1,       (void *)&MomentPFTFile,   0,        "name of multipole-moment PFT output file"},
-     {"EMTPFTFile",     PA_STRING,  1, 1,       (void *)&EMTPFTFile, 0,             "name of energy/momentum-transfer PFT output file"},
      {"DSIPFTFile",     PA_STRING,  1, 1,       (void *)&DSIPFTFile, 0,             "name of displaced surface-integral PFT output file"},
      {"DSIMesh",        PA_STRING,  1, 1,       (void *)&DSIMesh,    0,             "mesh file for surface-integral PFT"},
      {"DSIRadius",      PA_DOUBLE,  1, 1,       (void *)&DSIRadius,  0,             "radius of bounding sphere for surface-integral PFT"},
