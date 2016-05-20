@@ -35,7 +35,7 @@
 
 #include "libscuff.h"
 #include "libscuffInternals.h"
-#include "FieldGrid.h"
+//#include "FieldGrid.h"
 #include "PanelCubature.h"
 
 #ifdef USE_PTHREAD

@@ -1,5 +1,6 @@
 lib_LTLIBRARIES = libscuff.la
-pkginclude_HEADERS = libscuff.h GTransformation.h FieldGrid.h GBarAccelerator.h PFTOptions.h PanelCubature.h
+pkginclude_HEADERS = libscuff.h GTransformation.h GBarAccelerator.h PFTOptions.h PanelCubature.h
+# FieldGrid.h
 libscuff_la_SOURCES = \
  RWGGeometry.cc 		\
  RWGSurface.cc 			\
@@ -52,8 +53,7 @@ libscuff_la_SOURCES = \
  PanelCubature.h		\
  libscuffInternals.h
 
-# FieldGrid.cc 			
-
+# FieldGrid.cc                   
 
 # combine all of the auxiliary libraries into a single library 
 libscuff_la_LIBADD = 		\

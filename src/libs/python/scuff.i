@@ -54,5 +54,5 @@ using namespace scuff;
 %include "libMatProp.h"
 %include "libIncField.h"
 %include "GTransformation.h"
-%include "FieldGrid.h"
+//%include "FieldGrid.h"
 %include "libscuff.h"
