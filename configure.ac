@@ -85,12 +85,23 @@ fi
 # checks for hdf5
 ##################################################
 
-AC_ARG_WITH(hdf5, [AC_HELP_STRING([--with-hdf5=<dir>/--without-hdf5],[look for HDF5 in <dir>/include and <dir>/lib])], with_hdf5=$withval, with_hdf5=yes)
+AC_ARG_WITH(hdf5-includedir,
+    [AC_HELP_STRING([--with-hdf5-includedir=<dir>/--without-hdf5],
+        [look for HDF5 header files in <dir>])],
+        with_hdf5_includedir=$withval, with_hdf5_includedir=yes)
 
-if test "x$with_hdf5" != xno; then
-   if test -d "$with_hdf5"; then
-     CPPFLAGS="$CPPFLAGS -I$with_hdf5/include"
-     LDFLAGS="$LDFLAGS -L$with_hdf5/lib"
+AC_ARG_WITH(hdf5-libdir,
+    [AC_HELP_STRING([--with-hdf5-libdir=<dir>],
+        [look for HDF5 library in <dir>])],
+        with_hdf5_libdir=$withval, with_hdf5_libdir=yes)
+
+if test "x$with_hdf5_includedir" != xno; then
+   if test -d "$with_hdf5_includedir"; then
+     CPPFLAGS="$CPPFLAGS -I$with_hdf5_includedir"
+   fi
+   if test -d "$with_hdf5_libdir"; then
+     CPPFLAGS="$CPPFLAGS -L$with_hdf5_libdir"
+     LDFLAGS="$LDFLAGS -L$with_hdf5_libdir"
    fi
 
    have_hdf5=no
@@ -110,6 +121,8 @@ if test "x$with_hdf5" != xno; then
    else
       AC_MSG_ERROR([couldn't find HDF5; configure --without-hdf5])
    fi
+else
+   AC_MSG_WARN([without HDF5 support])
 fi
 
 ##################################################
