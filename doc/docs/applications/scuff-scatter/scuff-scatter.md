@@ -286,8 +286,7 @@ supports the command-line option
   --IFFile    MyIFFile
 ````
 
-where ``MyIFFile`` is a 
-[list of incident fields][IFList].
+where ``MyIFFile`` is a [list of incident fields][IFList].
 
 <a name="Examples"></a>
 # 3. <span class="SC">scuff-scatter</span> examples
@@ -301,6 +300,7 @@ where ``MyIFFile`` is a
 [Geometries]:                  ../../reference/Geometries.md
 [Transformations]:              ../../reference/Transformations.md
 [IncidentFields]:              ../../reference/IncidentFields.md
+[IFList]:                      ../../reference/IncidentFields.md
 [Implementation]:              ../../forDevelopers/Implementation.md
 [libscuff]:                    ../../API/libscuff.md
 [MieScattering]:               ../../examples/MieScattering/MieScattering.md
