@@ -33,6 +33,16 @@ The various output quantities that you can ask [[scuff-scatter]] to generate inc
 
 + Visualization files plotting field components and Poynting fluxes on arbitrary user-specified surface meshes.
 
+For more sophisticated users, [[scuff-scatter]] also offers
+an *advanced mode* of operation that exposes---at the
+command-line level---some of the key efficiencies of the
+[surface-integral-equation formulation][Implementation]
+implemented by the
+[<span class="SC">scuff-em</sc> core library][libscuff].
+This offers significant speedup for certain types of computations,
+at the expense of a slightly more effort required to set
+up your calculation.
+
 [TOC]
 
 <a name="Options"></a>
@@ -139,17 +149,72 @@ define multiple sets of field evaluation points.
 
 ## Options requesting power, force, and torque data
 
+````bash
+ --PFTFile     MyGeometry.PFT
+ --EMTPFTFile  MyGeometry.EMTPFT
+ --OPFTFile    MyGeometry.OPFT
+ --DSIPFTFile  MyGeometry.DSIPFT
+````
+
+Each of these options requests that power, force, and torque (PFT)
+data be written to a file of the specified name. The resulting
+files all have the same file format---reporting absorbed and
+scattered power, force (radiation pressure), and torque
+for all objects in the geometry at all frequencies you
+requested (see the file header for details)---but differ 
+in the algorithm used to compute the force:
+
++ The "energy-momentum-transfer" PFT (EMTPFT) method
+computes powers, forces and torques by considering the
+Joule heating of, and Lorentz force on, the
+surface currents in the presence of the total 
+fields. (This is the default, so the ``--PFTFile`` 
+option is synonymous with ``--EMTPFTFile``.)
+
++ The "displaced-surface-integral" PFT (DSIPFT) method
+computes PFTs by integrating the Poynting vector
+and Maxwell stress tensor over a bounding surface 
+surrounding the body.
+
++ The "overlap" PFT (OPFT) method computes PFTs
+directly from the surface currents by exploiting
+the relationship between the surface currents
+and the total electric and magnetic fields at 
+body surfaces.
+
+<a name="AdvancedMode"></a>
+# 2. <span class="SC">scuff-scatter</span> advanced mode
+
+For some types of calculation it is possible to achieve
+significant computational accelerations by taking advantage
+of certain efficiencies inherent in the particular 
+mathematical strategy used by the 
+[<span class="SC">scuff-em</sc> core library][libscuff]
+to solve Maxwell's equations---namely, the
+discretized surface-integral-equation (SIE) formulation.
+You can read about all the gory details of SIE solvers 
+[here][Implementation])
+
+To understand where the efficiencies come from, all
+you really need to know is this: For a given material
+geometry irradiated by a given incident field, the 
+
 <a name="Examples"></a>
-# 2. <span class="SC">scuff-scatter</span> examples
+# 3. <span class="SC">scuff-scatter</span> examples
 
 + [Mie scattering][MieScattering]
 + [Electrostatics of a spherical dielectric shell][DielectricShell]
 + [Spatially-resolved study of plane-wave transmission through a infinite-area thin dielectric film][ThinFilm]
 + [Diffraction of a plane wave by a discs, disc arrays, and hole arrays][DiffractionPatterns]
 
+<a name="Options"></a>
+# 3. <span class="SC">scuff-scatter</span> advanced mode
+
 [CommonOptions]:               ../GeneralReference.md#CommonOptions
 [Geometries]:                  ../../reference/Geometries.md
 [IncidentFields]:              ../../reference/IncidentFields.md
+[Implementation]:              ../../forDevelopers/Implementation.md
+[libscuff]:                    ../../API/libscuff.md
 [MieScattering]:               ../../examples/MieScattering/MieScattering.md
 [DielectricShell]:             ../../examples/DielectricShell/DielectricShell.md
 [ThinFilm]:                    ../../examples/ThinFilm/ThinFilm.md

@@ -196,4 +196,18 @@ class MagneticSolenoid: public IncField
  } MagneticSolenoid;
 #endif
 
+/**********************************************************************/
+/* 20160522 new functionality for parsing an input text file to yield */
+/* a list of incident fields; used to implement "advanced mode" in    */
+/* scuff-scatter and buff-scatter                                     */
+/**********************************************************************/
+typedef struct IncFieldList
+ { IncField **IFs;
+   char **Labels;
+   int NumIFs;
+ } IncFieldList;
+
+IncFieldList *ReadIncFieldList(char *FileName);
+IncFieldList *AddIncFieldToList(IncField *IF, char *Label=0, IncFieldList *IFList=0); 
+
 #endif

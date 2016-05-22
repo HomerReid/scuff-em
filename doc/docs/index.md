@@ -5,18 +5,8 @@
 </h1> 
 </p>
 
-** Note:** As of October 2015, the conversion of the [[scuff-em]] 
-   documentation from its [older format](http://homerreid.com/scuff-em)
-   to this new, permanent [mkdocs](http://www.mkdocs.org) format 
-   is largely complete; however, in some cases the pages referenced 
-   below will take you to the earlier version of the documentation.
-   See [here](forDevelopers/Documentation.md)
-   for a discussion of the new documentation system and information
-   on how to contribute.
-
-   If you find any inconsistencies or missing bits in the documentation,
-   please 
-   [file an issue on the <span class="SC">scuff-em</span> GitHub page][GitHub].
+**If you find any inconsistencies or missing bits in the documentation, please
+  [file an issue on the <span class="SC">scuff-em</span> GitHub page][GitHub].**
 
 ## General reference
 

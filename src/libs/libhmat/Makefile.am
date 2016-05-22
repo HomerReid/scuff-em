@@ -17,11 +17,16 @@ libhmat_la_SOURCES = 	\
 AM_CPPFLAGS = -I$(top_srcdir)/src/libs/libhrutil \
               -I$(top_builddir) # for config.h
 
-noinst_PROGRAMS = tInvert tLUSolve tMultiply tReadFromFile tTextIO tlibhmat2 tQR tGetEntries
+# 20160522 removing tInvert from the noinst_PROGRAMS because
+# it is misbehavin' due to my recent switchover from drand48() to 
+# the modern glibc random-number generator, which apparently 
+# is not standard across all platforms :(
+# tInvert_SOURCES = tInvert.cc
+# tInvert_LDADD = libhmat.la ../libhrutil/libhrutil.la
+
+noinst_PROGRAMS = tLUSolve tMultiply tReadFromFile tTextIO tlibhmat2 tQR tGetEntries
 tQR_SOURCES = tQR.cc
 tQR_LDADD = libhmat.la ../libhrutil/libhrutil.la
-tInvert_SOURCES = tInvert.cc
-tInvert_LDADD = libhmat.la ../libhrutil/libhrutil.la
 tLUSolve_SOURCES = tLUSolve.cc
 tLUSolve_LDADD = libhmat.la ../libhrutil/libhrutil.la
 tMultiply_SOURCES = tMultiply.cc
