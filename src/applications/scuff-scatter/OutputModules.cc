@@ -74,20 +74,31 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
   /*- create .scattered and .total output files and write fields -*/
   /*--------------------------------------------------------------*/
   SetDefaultCD2SFormat("%+.8e %+.8e ");
+  char OmegaStr[100];
+  snprintf(OmegaStr,100,"%s",z2s(Omega));
+  char *TransformLabel=SSD->TransformLabel;
+  char *IFLabel=SSD->IFLabel;
   const char *Ext[2]={"scattered","total"};
   for(int ST=0; ST<2; ST++)
    { char OutFileName[MAXSTR];
      snprintf(OutFileName,MAXSTR,"%s.%s",GetFileBase(EPFileName),Ext[ST]);
-     FILE *f=CreateUniqueFile(OutFileName,1);
+     FILE *f=fopen(OutFileName,"a");
      fprintf(f,"# scuff-scatter run on %s (%s)\n",GetHostName(),GetTimeString());
      fprintf(f,"# columns: \n");
      fprintf(f,"# 1,2,3   x,y,z (evaluation point coordinates)\n");
-     fprintf(f,"# 4,5     real, imag Ex\n");
-     fprintf(f,"# 6,7     real, imag Ey\n");
-     fprintf(f,"# 8,9     real, imag Ez\n");
-     fprintf(f,"# 10,11   real, imag Hx\n");
-     fprintf(f,"# 12,13   real, imag Hy\n");
-     fprintf(f,"# 14,15   real, imag Hz\n");
+     fprintf(f,"# 4       omega (angular frequency)\n");
+     int nc=5;
+     if (TransformLabel)
+      fprintf(f,"# %i       geometrical transform\n",nc++);
+     if (IFLabel)
+      fprintf(f,"# %i       incident field\n",nc++);
+     fprintf(f,"# %02i,%02i   real, imag Ex\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i   real, imag Ex\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i   real, imag Ey\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i   real, imag Ez\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i   real, imag Hx\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i   real, imag Hy\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i   real, imag Hz\n",nc,nc+1); nc+=2;
      for(int nr=0; nr<SFMatrix->NR; nr++)
       { double X[3];
         cdouble EH[6];
@@ -97,6 +108,9 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
          for(int nc=0; nc<6; nc++) 
           EH[nc]+=IFMatrix->GetEntry(nr,nc);
         fprintf(f,"%+.8e %+.8e %+.8e ",X[0],X[1],X[2]);
+        fprintf(f,"%s ",OmegaStr);
+        if (TransformLabel) fprintf(f,"%s ",TransformLabel);
+        if (IFLabel) fprintf(f,"%s ",IFLabel);
         fprintf(f,"%s %s %s   ",CD2S(EH[0]),CD2S(EH[1]),CD2S(EH[2]));
         fprintf(f,"%s %s %s\n", CD2S(EH[3]),CD2S(EH[4]),CD2S(EH[5]));
       };
@@ -139,7 +153,6 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   RWGSurface *S=new RWGSurface(MeshFileName);
 
   Log("Creating flux plot for surface %s...",MeshFileName);
-  printf("Creating flux plot for surface %s...\n",MeshFileName);
 
   /*--------------------------------------------------------------*/
   /*- create an Nx3 HMatrix whose columns are the coordinates of  */
@@ -187,9 +200,15 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  char *TransformLabel=SSD->TransformLabel, *IFLabel=SSD->IFLabel;
   for(int nff=0; nff<NUMFIELDFUNCS; nff++)
    { 
-     fprintf(f,"View \"%s(%s)\" {\n",FieldTitles[nff],z2s(SSD->Omega));
+     fprintf(f,"View \"%s(%s)",FieldTitles[nff],z2s(SSD->Omega));
+     if (TransformLabel)
+      fprintf(f,"(%s)",TransformLabel);
+     if (IFLabel)
+      fprintf(f,"(%s)",IFLabel);
+     fprintf(f,"\" {\n");
 
      /*--------------------------------------------------------------*/
      /*--------------------------------------------------------------*/
@@ -240,6 +259,9 @@ void VisualizeFields(SSData *SSD, char *MeshFileName)
 /***************************************************************/
 void GetMoments(SSData *SSD, char *MomentFile)
 {
+  char *TransformLabel = SSD->TransformLabel;
+  char *IFLabel        = SSD->IFLabel;
+
   /***************************************************************/
   /* write file preamble on initial file creation ****************/
   /***************************************************************/
@@ -248,22 +270,20 @@ void GetMoments(SSData *SSD, char *MomentFile)
    { f=fopen(MomentFile,"w");
      if ( !f ) ErrExit("could not open file %s",MomentFile);
      fprintf(f,"# data file columns: \n");
-     fprintf(f,"# 01    angular frequency (3e14 rad/sec)\n");
+     fprintf(f,"# 1     angular frequency (3e14 rad/sec)\n");
+     int nc=2;
+     if (TransformLabel)
+      fprintf(f,"# %i     geometrical transform\n",nc++);
+     if (IFLabel)
+      fprintf(f,"# %i     incident field\n",nc++);
+     fprintf(f,"# %i     surface label\n",nc++);
+     fprintf(f,"# %02i,%02i real,imag px (electric dipole moment)\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i real,imag py \n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i real,imag pz \n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i real,imag mx (magnetic dipole moment)\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i real,imag my \n",nc,nc+1); nc+=2;
+     fprintf(f,"# %02i,%02i real,imag mz \n",nc,nc+1); nc+=2;
      fprintf(f,"#\n");
-     fprintf(f,"# 02    surface label 1 \n");
-     fprintf(f,"# 03,04 real,imag px_1 (electric dipole moment, surface 1)\n");
-     fprintf(f,"# 05,06 real,imag py_1\n");
-     fprintf(f,"# 07,08 real,imag pz_1\n");
-     fprintf(f,"# 09,10 real,imag mx_1 (magnetic dipole moment, surface 1)\n");
-     fprintf(f,"# 11,12 real,imag my_1\n");
-     fprintf(f,"# 13,14 real,imag mz_1\n");
-     fprintf(f,"#\n");
-     fprintf(f,"# 15    surface label 2 \n");
-     fprintf(f,"# 16-17 real,imag px_2 (electric dipole moment, surface 2)\n");
-     fprintf(f,"# ...   \n");
-     fprintf(f,"# 26,27 real,imag mz_2 (magnetic dipole moment, surface 2\n");
-     fprintf(f,"# 28    surface label 3 \n");
-     fprintf(f,"# ...   and so on\n");
    };
   fclose(f);
 
@@ -285,12 +305,16 @@ void GetMoments(SSData *SSD, char *MomentFile)
   /* print to file ***********************************************/
   /***************************************************************/
   fprintf(f,"%s ",z2s(Omega));
+  if (TransformLabel)
+   fprintf(f,"%s ",TransformLabel);
+  if (IFLabel)
+   fprintf(f,"%s ",IFLabel);
   for (int ns=0; ns<G->NumSurfaces; ns++)
    { fprintf(f,"%s ",G->Surfaces[ns]->Label);
      for(int Mu=0; Mu<6; Mu++)
       fprintf(f,"%s ",CD2S(PM->GetEntry(ns,Mu),"%.8e %.8e "));
+     fprintf(f,"\n");
    };
-  fprintf(f,"\n");
   fflush(f);
 
   delete PM;
@@ -300,20 +324,25 @@ void GetMoments(SSData *SSD, char *MomentFile)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void WritePFTFilePreamble(FILE *f)
+void WritePFTFilePreamble(FILE *f, char *TransformLabel, char *IFLabel)
 {
   fprintf(f,"# scuff-scatter run on %s (%s)\n",GetHostName(),GetTimeString());
   fprintf(f,"# data file columns: \n");
-  fprintf(f,"# 1 omega           (rad/sec) \n");
-  fprintf(f,"# 2 surface label \n");
-  fprintf(f,"# 3 absorbed power  (watts)\n");
-  fprintf(f,"# 4 scattered power (watts)\n");
-  fprintf(f,"# 5 x-force         (nanonewtons)\n");
-  fprintf(f,"# 6 y-force         (nanonewtons)\n");
-  fprintf(f,"# 7 z-force         (nanonewtons)\n");
-  fprintf(f,"# 8 x-torque        (nanonewtons * microns)\n");
-  fprintf(f,"# 9 y-torque        (nanonewtons * microns)\n");
-  fprintf(f,"#10 z-torque        (nanonewtons * microns)\n");
+  fprintf(f,"# 1   omega           (rad/sec) \n");
+  int nc=2;
+  if (TransformLabel)
+   fprintf(f,"# %i   geometrical transform\n",nc++);
+  if (IFLabel)
+   fprintf(f,"# %i   incident field\n",nc++);
+  fprintf(f,"#%2i   surface label \n",nc++);             
+  fprintf(f,"#%2i   absorbed power  (watts)\n",nc++);
+  fprintf(f,"#%2i   scattered power (watts)\n",nc++);
+  fprintf(f,"#%2i   x-force         (nanonewtons)\n",nc++);
+  fprintf(f,"#%2i   y-force         (nanonewtons)\n",nc++);
+  fprintf(f,"#%2i   z-force         (nanonewtons)\n",nc++);
+  fprintf(f,"#%2i   x-torque        (nanonewtons * microns)\n",nc++);
+  fprintf(f,"#%2i   y-torque        (nanonewtons * microns)\n",nc++);
+  fprintf(f,"#%2i   z-torque        (nanonewtons * microns)\n",nc++);
 }
 
 /***************************************************************/
@@ -325,13 +354,15 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  RWGGeometry *G     = SSD->G;
-  HVector *KN        = SSD->KN;
-  cdouble Omega      = SSD->Omega;
-  PFTOpts->RHSVector = SSD->RHS;
-  PFTOpts->IF        = SSD->IF;
-  PFTOpts->kBloch    = SSD->kBloch;
-  PFTOpts->PFTMethod = Method;
+  RWGGeometry *G       = SSD->G;
+  HVector *KN          = SSD->KN;
+  PFTOpts->RHSVector   = SSD->RHS;
+  cdouble Omega        = SSD->Omega;
+  PFTOpts->kBloch      = SSD->kBloch;
+  char *TransformLabel = SSD->TransformLabel;
+  char *IFLabel        = SSD->IFLabel;
+  PFTOpts->IF          = SSD->IF;
+  PFTOpts->PFTMethod   = Method;
 
   char FileNameBuffer[200];
   if (PlotFlux)
@@ -366,7 +397,7 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
   FILE *f=fopen(FileName,"a");
   if (!f) return;
   if (!WrotePreamble[Method]) 
-   { WritePFTFilePreamble(f);
+   { WritePFTFilePreamble(f,TransformLabel,IFLabel);
      WrotePreamble[Method]=true;
    };
   for(int ns=0; ns<G->NumSurfaces; ns++)
@@ -374,7 +405,12 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
      double PFT[NUMPFT];
      PFTMatrix->GetEntriesD(ns, ":", PFT);
 
-     fprintf(f,"%s %s ",z2s(Omega),G->Surfaces[ns]->Label);
+     fprintf(f,"%s ",z2s(Omega));
+     if (TransformLabel) 
+      fprintf(f,"%s ",TransformLabel);
+     if (IFLabel) 
+      fprintf(f,"%s ",IFLabel);
+     fprintf(f,"%s ",G->Surfaces[ns]->Label);
      for(int nq=0; nq<NUMPFT; nq++)
       fprintf(f,"%e ",PFT[nq]);
      fprintf(f,"\n");
@@ -410,23 +446,30 @@ void WritePFTFile(SSData *SSD, PFTOptions *PFTOpts, int Method,
 void WritePSDFile(SSData *SSD, char *PSDFile)
 {
   /* write output file preamble if necessary */
+  char *TransformLabel = SSD->TransformLabel;
+  char *IFLabel        = SSD->IFLabel;
   FILE *f=fopen(PSDFile,"r");
   fclose(f);
   if (f==0)
    { f=fopen(PSDFile,"w");
      fprintf(f,"# Data file columns: \n");
      fprintf(f,"# 1:      angular frequency\n");
-     fprintf(f,"# 2 3 4:  x, y, z coordinates of panel centroid\n");
-     fprintf(f,"# 5:      panel area\n");
-     fprintf(f,"# 6,  7   real, imag Sigma_E (electric surface charge density)\n");
-     fprintf(f,"# 8,  9   real, imag K_x (electric surface current density)\n");
-     fprintf(f,"# 10, 11  real, imag K_y (electric surface current density)\n");
-     fprintf(f,"# 12, 13  real, imag K_z (electric surface current density)\n");
-     fprintf(f,"# 14, 15  real, imag Sigma_M (magnetic surface charge density)\n");
-     fprintf(f,"# 16, 17  real, imag N_x (magnetic surface current density)\n");
-     fprintf(f,"# 18, 19  real, imag N_y (magnetic surface current density)\n");
-     fprintf(f,"# 20, 21  real, imag N_z (magnetic surface current density)\n");
-     fprintf(f,"# 22      inward-directed normal Poynting flux\n");
+     int nc=2;
+     if (TransformLabel)
+      fprintf(f,"# %i:     geometrical transform\n",nc++);
+     if (IFLabel)
+      fprintf(f,"# %i:     incident field\n",nc++);
+     fprintf(f,"# %i %i %i: x, y, z coordinates of panel centroid\n",nc, nc+1, nc+2); nc+=3;
+     fprintf(f,"# %i      panel area\n",nc++);
+     fprintf(f,"# %i, %i  real, imag Sigma_E (electric surface charge density)\n",nc+1,nc+2); nc+=2;
+     fprintf(f,"# %i, %i  real, imag K_x (electric surface current density)\n",nc+1,nc+2); nc+=2;
+     fprintf(f,"# %i, %i  real, imag K_y\n",nc+1,nc+2); nc+=2;
+     fprintf(f,"# %i, %i  real, imag K_z\n",nc+1,nc+2); nc+=2;
+     fprintf(f,"# %i, %i  real, imag Sigma_M (magnetic surface charge density)\n",nc+1,nc+2); nc+=2;
+     fprintf(f,"# %i, %i  real, imag N_x (magnetic surface current density)\n",nc+1,nc+2); nc+=2;
+     fprintf(f,"# %i, %i  real, imag N_y\n",nc+1,nc+2); nc+=2;
+     fprintf(f,"# %i, %i  real, imag N_z\n",nc+1,nc+2); nc+=2;
+     fprintf(f,"# %i      inward-directed normal Poynting flux\n",nc++);
      fclose(f);
    };
 
@@ -446,6 +489,10 @@ void WritePSDFile(SSData *SSD, char *PSDFile)
 
   for(int nr=0; nr<PSDMatrix->NR; nr++)
    { fprintf(f,"%s ",z2s(SSD->Omega));
+     if (TransformLabel) 
+      fprintf(f,"%s ",TransformLabel);
+     if (IFLabel) 
+      fprintf(f,"%s ",IFLabel);
      for(int nc=0; nc<4; nc++)
       fprintf(f,"%e ",real(PSDMatrix->GetEntry(nr,nc)));
      for(int nc=4; nc<=11; nc++)

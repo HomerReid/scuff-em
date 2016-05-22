@@ -192,12 +192,102 @@ mathematical strategy used by the
 [<span class="SC">scuff-em</sc> core library][libscuff]
 to solve Maxwell's equations---namely, the
 discretized surface-integral-equation (SIE) formulation.
-You can read about all the gory details of SIE solvers 
-[here][Implementation])
 
-To understand where the efficiencies come from, all
-you really need to know is this: For a given material
-geometry irradiated by a given incident field, the 
+You can read about all the gory details of SIE solvers 
+[here][Implementation], but for the purposes of 
+this discussion all you really need to know is this: For a
+given material geometry irradiated by a given incident field 
+at a given frequency, [[scuff-em]] assembles and solves a 
+linear system of the form
+$$ \mathbf{M}(\omega) \mathbf{c} = \mathbf{f}^{\text{inc}}$$
+where 
+
++ **c** represents the unknown surface currents for which we are solving,
+
++ the RHS vector **f** depends on the geometry, the frequency, and the incident field,
+
++ the matrix **M** depends on the scattering geometry and the frequency but not on the incident field.
+More specifically, for a scattering geometry consisting of *N* objects
+(or *N* surfaces in a 
+[regions-and-surfaces geometry specification][Geometries]),
+the matrix **M** has an *N&times;N* block structure in which the *(m,n)* block
+describes the interactions of object *m* with object *n*.
+
+Armed with just this much knowledge, we can understand the
+two key efficiencies possible in SIE scattering calculations:
+
++ **(1)** First, suppose that, in a geometry consisting of 2 or more bodies,
+we would like to perform calculations for various different
+relative geometric configurations of the bodies---for example,
+different separation distances or rotation angles between bodies---at
+the same frequency.
+The diagonal blocks of the **M** matrix, which represent 
+the self-interactions of objects and are the most costly
+blocks to compute, are *independent* of the relative 
+configuration of the various objects in the geometry,
+and thus need only be computed *once* for a given
+geometry at a given frequency, after which they may be
+reused for any number of calculations involving 
+rearrangements of the relative positions and orientations
+of the bodies.    
+
+
+    Thus, if we are interested in running calculations
+for a sphere-cube geometry at (say) 7 different
+values of the surface-surface separation, it greatly
+behooves us to assemble the diagonal (self-interaction)
+blocks just *once* per frequency, then reuse 
+these blocks for each of the 7 separation distances.
+The sphere-cube interaction block of the matrix
+must be recomputed at each separation distance, but 
+this is relatively cheap compared to the cost of 
+computing the sphere-sphere and cube-cube 
+self-interaction blocks.   
+
+
+&nbsp;
+
+
++ **(2)** In the equation above, the LHS is *independent* of
+the incident field. This means that, once we have 
+assembled and LU-factorized the **M** matrix 
+for given geometry at a given frequency (a procedure
+which scales asymptotically like $\sim T^3$ with $T$ 
+the total number of triangles in our surface meshes) 
+we can solve scattering problems for any number of
+incident fields with cost $\sim T^2$ per incident
+field---that is, essentially *for free* compared
+to the cost of assembling and factorizing the matrix.
+
+
+    Thus, if we are interested in observing the 
+scattering properties of our geometry under irradiation
+by 7 different types of incident field (say,
+plane waves originating from 7 different angles)
+it greatly behooves us to form and LU-factorize
+the **M** matrix just *once* for this frequency,
+then reuse the factorized matrix to solve the linear
+system above for the 7 different types of incident field.
+
+To take advantage of efficiency **(a)**, [[scuff-scatter]]
+supports the command-line option
+
+````
+  --transfile MyTransFile
+````
+
+where ``MyTransFile`` is a 
+[list of geometrical transformations][Transformations].
+
+To take advantage of efficiency **(b)**, [[scuff-scatter]]
+supports the command-line option
+
+````
+  --IFFile    MyIFFile
+````
+
+where ``MyIFFile`` is a 
+[list of incident fields][IFList].
 
 <a name="Examples"></a>
 # 3. <span class="SC">scuff-scatter</span> examples
@@ -207,11 +297,9 @@ geometry irradiated by a given incident field, the
 + [Spatially-resolved study of plane-wave transmission through a infinite-area thin dielectric film][ThinFilm]
 + [Diffraction of a plane wave by a discs, disc arrays, and hole arrays][DiffractionPatterns]
 
-<a name="Options"></a>
-# 3. <span class="SC">scuff-scatter</span> advanced mode
-
 [CommonOptions]:               ../GeneralReference.md#CommonOptions
 [Geometries]:                  ../../reference/Geometries.md
+[Transformations]:              ../../reference/Transformations.md
 [IncidentFields]:              ../../reference/IncidentFields.md
 [Implementation]:              ../../forDevelopers/Implementation.md
 [libscuff]:                    ../../API/libscuff.md

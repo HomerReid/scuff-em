@@ -45,6 +45,7 @@ typedef struct SSData
    cdouble Omega;
    double *kBloch;
    IncField *IF;
+   char *TransformLabel, *IFLabel;
  } SSData;
  
 
