@@ -148,6 +148,31 @@ IncFieldList *AddIncFieldToList(IncField *IF, char *Label, IncFieldList *IFList)
 }
 
 /***************************************************************/
+/* quick hack to convert e.g. cos(30) to 0.5 to make it a      */
+/* little easier to write IFList files describing e.g.         */
+/* angular sweeps of polarization or incident direction        */
+/***************************************************************/
+void ProcessSinCos(char **Tokens, int NumTokens)
+{
+  for(int nt=0; nt<NumTokens; nt++)
+   { 
+     int L = strlen(Tokens[nt]);
+     if (L<5) continue;
+     double ThetaDegrees;
+     if ( (     strncasecmp(Tokens[nt],"cos(",4)
+            ||  strncasecmp(Tokens[nt],"sin(",4)
+          )
+          &&  1==sscanf(Tokens[nt]+4,"%le",&ThetaDegrees)
+        )
+      snprintf(Tokens[nt],L,"%e", tolower(Tokens[nt][0])=='c' 
+                                  ? cos(ThetaDegrees*M_PI/180.0)
+                                  : sin(ThetaDegrees*M_PI/180.0) 
+              );
+   };
+}
+
+
+/***************************************************************/
 /***************************************************************/
 /***************************************************************/
 IncFieldList *ReadIncFieldList(char *FileName)
@@ -172,6 +197,9 @@ IncFieldList *ReadIncFieldList(char *FileName)
      NumTokens=Tokenize(Line, Tokens, MAXTOK);
      if ( NumTokens==0 || Tokens[0][0]=='#' )
       continue; 
+
+     // convert strings like sin(45.0) to 0.7071....
+     ProcessSinCos(Tokens, NumTokens);
  
      // switch off depending on whether or not we are in the middle
      // of a compound field declaration

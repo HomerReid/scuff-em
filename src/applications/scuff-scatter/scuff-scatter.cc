@@ -385,7 +385,7 @@ int main(int argc, char *argv[])
    { int NADB = NS*(NS-1)/2; // number of above-diagonal blocks
      TBlocks  = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
      UBlocks  = (HMatrix **)mallocEC(NADB*sizeof(HMatrix *));
-     for(int ns=0, nb=0; ns<G->NumSurfaces; ns++)
+     for(int ns=0, nb=0; ns<NS; ns++)
       { 
         int nsMate = G->Mate[ns];
         if ( nsMate!=-1 )

@@ -298,24 +298,23 @@ void GetMoments(SSData *SSD, char *MomentFile)
   RWGGeometry *G = SSD->G;
   HVector *KN    = SSD->KN;
   cdouble Omega  = SSD->Omega;
-
-  HMatrix *PM  = G->GetDipoleMoments(Omega, KN);
+  HMatrix *PM    = G->GetDipoleMoments(Omega, KN);
 
   /***************************************************************/
   /* print to file ***********************************************/
   /***************************************************************/
-  fprintf(f,"%s ",z2s(Omega));
-  if (TransformLabel)
-   fprintf(f,"%s ",TransformLabel);
-  if (IFLabel)
-   fprintf(f,"%s ",IFLabel);
   for (int ns=0; ns<G->NumSurfaces; ns++)
-   { fprintf(f,"%s ",G->Surfaces[ns]->Label);
+   { fprintf(f,"%s ",z2s(Omega));
+     if (TransformLabel)
+      fprintf(f,"%s ",TransformLabel);
+     if (IFLabel)
+      fprintf(f,"%s ",IFLabel);
+     fprintf(f,"%s ",G->Surfaces[ns]->Label);
      for(int Mu=0; Mu<6; Mu++)
       fprintf(f,"%s ",CD2S(PM->GetEntry(ns,Mu),"%.8e %.8e "));
      fprintf(f,"\n");
    };
-  fflush(f);
+  fclose(f);
 
   delete PM;
 
