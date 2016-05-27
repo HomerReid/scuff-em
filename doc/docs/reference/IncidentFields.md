@@ -14,8 +14,24 @@ built-in types of incident fields:
  + [Gaussian beams](#GaussianBeams)
  + The fields of [point electric or magnetic dipole sources.](#PointSources)
 
+
+If you only need to run scattering calculations with a single
+type of incident field, you can just specify that field on
+the command line, as described in the sections below. If you
+want to run scattering calculations with multiple types of
+incident field (for example, perhaps at each frequency you
+want to consider two different plane-wave polarizations,
+or three different point-source locations) you will want
+to write an 
+[incident-field file](#IFFile) describing an entire *list*
+of incident fields.
+
+[TOC]
+
 It is also easy to [define your own custom incident fields](#RollingYourOwn)
 for use in API programs.
+
+# Built-in types of incident field 
 
 <a name="PlaneWaves">
 ## Plane waves
@@ -149,8 +165,86 @@ possible to a define a magnetic point source as follows:
   PointSource *PS=new PointSource(X0, P0);
 ````
 
+<a name="IFFile">
+# Specifying an entire list of incident fields
+
+A feature of the 
+[surface-integral-equation solver implemented by <span class="SC">scuff-em</sc>][Implementation]
+is that, once the computational work needed to solve a single
+scattering problem (for a given geometry at given frequency irradiated
+by a single incident field) has been done, there is relatively little
+computational cost required to solve additional problems (for the same 
+geometry at the same frequency) with different incident fields.
+To exploit this feature, you may write an "incident-field file"
+(a simple text file) describing multiple types of incident field 
+with which to irradiate your geometry.
+
+## Example of an incident-field file
+
+[Here's an example](IFFile) of an incident-field file describing 9 
+different incident fields. If you specify this file
+using the `--IFFile` command-line option to
+[<span class="SC">scuff-scatter</span>][scuffScatter],
+then every calculation you request (scattered fields,
+power/force/torque, visualization, etc.) will be 
+done 7 times at each frequency, once for each field.
+
+````
+EX    PW    0  0  1       1          0          0
+EY    PW    0  0  1       0          1          0
+LC    PW    0  0  1       0.7071     0.7071i    0
+RC    PW    0  0  1       0.7071    -0.7071i    0
+
+PS1   PS    1.1 2.2 3.3   0.4+0.5i   0.7        -0.8
+PS2   MPS   1.1 2.2 3.3   0.4+0.5i   0.7        -0.8
+
+GB    GB    0.0 0.0 0.0   0.0 0.0 1.0    1.0 0.0 0.0    0.5
+
+COMPOUND1
+  PW    0   0  1      1        0        0
+  PS    1.1 2.2 3.3   0.4+0.5i 0.7      -0.8
+END
+
+COMPOUND2
+  PW    0   0  1      0        1        0
+  PS    1.1 2.2 3.3   0.4+0.5i 0.7      -0.8
+END
+````
+
+Here's how to understand the 9 incident fields described
+by this file.
+
++ The first several lines define various types of incident
+fields in which there is only a single field source. For 
+this type of incident field, the first word on the 
+line is an 
+arbitrary user-specified label (such as `EX` or `PS1`)
+that will be used to identify data corresponding to 
+this incident field in output files.
+The second word on the line is one of the four 
+keywords `PW|PS|MPS|GB`. The remainder of the line
+consists of numerical parameters:
+
+    + For [plane waves](#PlaneWaves) (keyword `PW`) there are 6 numerical parameters: `nx ny nz Ex Ey Ez`. In the example above, `EX` and `EY` are linearly-polarized plane waves, while `LC` and `RC` are left- and right-circularly polarized waves.
+
+    + For [electric-dipole point sources](#PointSource) (keyword `PS`) there are 6 numerical parameters: `xx yy zz Px Py Pz`.
+
+    + For [magnetic-dipole point sources](#PointSource) (keyword `MPS`) there are 6 numerical parameters: `xx yy zz Mx My Mz`.
+
+    + For [gaussian beams](#GaussianBeam) (keyword `GB`) there are 10 numerical parameters: `Cx Cy Cz nx ny nz Ex Ey Ez W`.    
+
+
++ The final two sections of the file describe *compound* fields---that is,
+incident fields produced by more than one source acting simultaneously.
+These types of fields are described by putting their label (here
+`COMPOUND1` or `COMPOUND2`) on line by itself, then specifying
+as many `PW|PS|MPS|GB` lines as you like, and finally closing 
+the compound-field definition with the `END` keyword.
+For example, the field we labeled `COMPOUND1` consists of a
+planewave acting simultaneously with the field of a point source.
+
 <a name="RollingYourOwn">
-## Using incident fields in API programs
+# Using incident fields in API programs
 
 Please see 
 [here][oldIncFieldPage]
@@ -161,3 +255,4 @@ own custom-designed incident field.
 [libscuff]:                     ../API/libscuff.md
 [ComplexNumbers]:	        ../applications/GeneralReference.md#Complex
 [oldIncFieldPage]:              http://homerreid.com/scuff-em/libscuff/IncField.shtml
+[Implementation]:               ../forDevelopers/Implementation.md

@@ -85,6 +85,10 @@ int main(int argc, char *argv[])
    { char *NewFileBase=vstrdup("%s.%s",FileBase,HalfSpace);
      FileBase=NewFileBase;
    };
+  if (GroundPlane)
+   { char *NewFileBase=vstrdup("%s.GroundPlane",FileBase);
+     FileBase=NewFileBase;
+   };
 
   /***************************************************************/
   /* process --Omega, --OmegaFile, --OmegakBlochFile arguments   */
