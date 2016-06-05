@@ -31,7 +31,7 @@
 #include <libTriInt.h>
 #include <libscuff.h>
 
-#define II cdouble (0,1)
+#define II cdouble (0.0,1.0)
 
 using namespace scuff;
 
@@ -76,7 +76,7 @@ void DGFSummand(double *Gamma, void *UserData, double *Sum)
   /***************************************************************/
   /* compute the 3x3 dyadic green's function.                    */
   /*                                                             */
-  /* if Epsilon==0 this is the free-space (vacuum) DGF between   */
+  /* if Epsilon==1.0 this is the free-space (vacuum) DGF between */
   /* points X, XP.                                               */
   /*                                                             */
   /* otherwise this is the scattering part of the DGF at a point */
@@ -86,7 +86,7 @@ void DGFSummand(double *Gamma, void *UserData, double *Sum)
   /***************************************************************/
   double R[3], ESign, CSign;
   cdouble rTE, rTM;
-  if (Epsilon==0.0)
+  if (Epsilon==1.0)
    { 
      R[0]=X[0]-XP[0];
      R[1]=X[1]-XP[1];
