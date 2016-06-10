@@ -49,6 +49,8 @@ typedef int (*integrand) (unsigned ndim, const double *x, void *,
                           unsigned fdim, double *fval);
 
 /* a vector integrand of a vector of npt points: x[i*ndim + j] is the
+  Data->MuMP    = MuMP;  
+  Data->MuMP    = MuMP;  
    j-th coordinate of the i-th point, and the k-th function evaluation
    for the i-th point is returned in fval[i*fdim + k].  Return 0 on success
    or nonzero to terminate the integration. */

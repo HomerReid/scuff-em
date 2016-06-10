@@ -37,9 +37,9 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-typedef void (BZIFunction)(void *UserData,
-                           cdouble Omega, double *kBloch,
-                           double *BZIntegrand);
+typedef void (*BZIFunction)(void *UserData,
+                            cdouble Omega, double *kBloch,
+                            double *BZIntegrand);
 
 /***************************************************************/
 /***************************************************************/
@@ -47,7 +47,7 @@ typedef void (BZIFunction)(void *UserData,
 typedef struct GetBZIArgStruct
 {
   // information on the Brillouin-zone integrand function
-  BZIFunction *BZIFunc;
+  BZIFunction BZIFunc;
   void *UserData;
   int FDim;         // number of doubles in the integrand vector
   bool BZSymmetric; // true if f(kx,ky) = f(ky,kx)
