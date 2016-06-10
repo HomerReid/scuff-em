@@ -83,7 +83,7 @@ int BZIntegrand_PCubature(unsigned ndim, const double *u,
   /*--------------------------------------------------------------*/
   GetBZIArgStruct *Args  = (GetBZIArgStruct *)pArgs;
   cdouble Omega          = Args->Omega;
-  BZIFunction *BZIFunc   = Args->BZIFunc;
+  BZIFunction BZIFunc    = Args->BZIFunc;
   void *UserData         = Args->UserData;
   HMatrix *RLBasis       = Args->RLBasis;
   int LDim               = RLBasis->NC;
@@ -144,7 +144,7 @@ void BZIntegrand_TriCub(double *u, void *pArgs, double *BZIntegrand)
   /*--------------------------------------------------------------*/
   GetBZIArgStruct *Args  = (GetBZIArgStruct *)pArgs;
   cdouble Omega          = Args->Omega;
-  BZIFunction *BZIFunc   = Args->BZIFunc;
+  BZIFunction BZIFunc    = Args->BZIFunc;
   void *UserData         = Args->UserData;
   HMatrix *RLBasis       = Args->RLBasis;
   int LDim               = RLBasis->NC;
@@ -245,7 +245,7 @@ void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
 void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
                       double *BZIntegral)
 {
-  BZIFunction *BZIFunc  = Args->BZIFunc;
+  BZIFunction BZIFunc   = Args->BZIFunc;
   void *UserData        = Args->UserData;
   bool BZSymmetric      = Args->BZSymmetric;
   int FDim              = Args->FDim;
