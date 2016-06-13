@@ -253,6 +253,8 @@ HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch,
       }
      else
       { 
+printf("Doin' it foryaf!");
+Log("Doin' it foryaf!");
         GetReducedFields_Nearby(S, ne, X, k, GC+0, GC+3);
         GC[3] /= (-II*k);
         GC[4] /= (-II*k);

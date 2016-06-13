@@ -88,6 +88,8 @@
 
 ## FAQ
 
+* [FAQ][FAQ] - frequently asked questions about [[scuff-em]]
+
 ## Technical memos
 
 * [<span class="SC">libscuff</span> Implementation and Technical Details](tex/lsInnards.pdf) - a technical memo describing many details of the core library implementation
@@ -113,3 +115,4 @@
 [DataStructures]:     forDevelopers/DataStructures.md
 [Documentation]:      forDevelopers/Documentation.md
 [GitHub]:             https://github.com/HomerReid/scuff-em/
+[FAQ]:                reference/FAQ.md

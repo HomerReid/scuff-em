@@ -53,6 +53,26 @@ function EpsSIO2_Krueger(u)
   EpsInf + A1*A1/(w01*w01 - w*w - im*w*G1) + A2*A2/(w02*w02 - w*w - im*w*G2) + A3*A3/(w03*w03 - w*w - im*w*G3);
 end
 
+function EpsGold(u)
+  w=3.0e14*u
+  wp = 1.37e16; 
+  gamma = 5.32e13;
+  1 - wp^2 / (w * (w + im*gamma));
+end
+
+function EpsSiC(u)
+
+  w=3.0e14*u
+  EpsInf = 6.7;
+  a0     = -3.32377e28;
+  a1     = +8.93329e11; 
+  b0     = -2.21677e28;
+  b1     = 8.93329e11;
+
+  EpsInf * ( w^2 + a1*im*w + a0 ) / ( w^2 + b1*im*w + b0) 
+end
+
+
 ###################################################
 # Get the L=1 T-matrix elements for an SiO2 sphere.
 # Returns (T_1^M, T_1^N).
@@ -67,7 +87,7 @@ function GetTMatrixElements(u, R=1.0)
   kR5 = kR3*kR*kR;
   kR6 = kR5*kR;
 
-  Eps = EpsSIO2_Krueger(u);
+  Eps = EpsSiC(u);
   Mu  = 1.0;
  
   Factor1 = 2.0*(Eps-1.0)/ ( 3.0*(Eps+2.0 ));
@@ -282,7 +302,7 @@ function GetPF(d, T1, T2, TEnv, WriteSIIntegrandFile=false)
  ##################################################
  f=0;
  if (WriteSIIntegrandFile)
-   FileName="SiO2Spheres_Kruger.SIIntegrand";
+   FileName="SiCSpheres_Kruger.SIIntegrand";
    WritePreamble = !isfile(FileName);
    f=open(FileName,"a");
    if (WritePreamble)
@@ -307,7 +327,7 @@ function GetPF(d, T1, T2, TEnv, WriteSIIntegrandFile=false)
  ##################################################
  # write results to NEQPFT file
  ##################################################
- FileName="SiO2Spheres_Kruger.NEQPFT";
+ FileName="SiCSpheres_Kruger.NEQPFT";
  WritePreamble = !isfile(FileName);
   
  f=open(FileName,"a");
