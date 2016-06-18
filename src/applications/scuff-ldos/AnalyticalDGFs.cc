@@ -29,6 +29,7 @@
 #include <libIncField.h>
 #include <libhmat.h>
 #include <libTriInt.h>
+#include <libSpherical.h>
 #include <libscuff.h>
 
 #define II cdouble (0.0,1.0)
@@ -36,142 +37,419 @@
 using namespace scuff;
 
 /***************************************************************/
-/* the specific summand function passed to GetLatticeSum()     */
+/* data structure containing everything needed to evaluate the */
+/* integrand of the half-space DGF integral                    */
 /***************************************************************/
-typedef struct SummandData
+typedef struct HalfSpaceData
  {
-   double *X;         // evaluation point
-   double *XP;        // source point
+   HMatrix *XMatrix;
    cdouble Omega;     // angular frequency
-   double *kBloch;    // point in Brillouin zone
    cdouble Epsilon;   // half-space permittivity
- } SummandData;
+   cdouble Mu;        // half-space permeability
 
-void DGFSummand(double *Gamma, void *UserData, double *Sum)
+   double *kBloch;    // point in Brillouin zone
+   
+   double Workspace[12];
+   double qrOffset;
+   bool uqTransform;
+   bool Polar;
+
+   int nCalls;
+
+ } HalfSpaceData;
+
+/***************************************************************/
+/* Integrand[ 18*nx + 0*9 + 3*Mu + Nu ] = G^{E}_{Mu,Nu}        */
+/* Integrand[ 18*nx + 1*9 + 3*Mu + Nu ] = G^{M}_{Mu,Nu}        */
+/***************************************************************/
+void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
+                           cdouble *Integrand)
 {
-  /***************************************************************/
-  /* unpack fields from input data structure *********************/
-  /***************************************************************/
-  SummandData *Data = (SummandData *)UserData;
-  double *X         = Data->X;
-  double *XP        = Data->XP;
+  cdouble EpsRel    = Data->Epsilon;
+  cdouble MuRel     = Data->Mu;
   cdouble k0        = Data->Omega;
-  double *kBloch    = Data->kBloch;
-  cdouble Epsilon   = Data->Epsilon;
-  
-  double kx    = kBloch[0] + Gamma[0];
-  double ky    = kBloch[1] + Gamma[1];
-  if (kx==0.0 && ky==0.0)
-   { kx=0.0001;
-     ky=0.0001;
-   };
-  double kMag2 = kx*kx + ky*ky;
-  double kMag  = sqrt(kMag2);
-  cdouble k02  = k0*k0;
-  cdouble kz   = sqrt(k02 - kMag2);
- 
-  // i'm not sure what to do about this ...
-  if (kz==0.0) kz=1.0e-4;
+  HMatrix *XMatrix  = Data->XMatrix;
+  bool Polar        = Data->Polar;
 
-  /***************************************************************/
-  /* compute the 3x3 dyadic green's function.                    */
-  /*                                                             */
-  /* if Epsilon==1.0 this is the free-space (vacuum) DGF between */
-  /* points X, XP.                                               */
-  /*                                                             */
-  /* otherwise this is the scattering part of the DGF at a point */
-  /* above an infinite half space with permittivity Epsilon;     */
-  /* the height of the point is X[2], while X[1,2]  and XP[0..2] */
-  /* are not referenced.                                         */
-  /***************************************************************/
-  double R[3], ESign, CSign;
-  cdouble rTE, rTM;
-  if (Epsilon==1.0)
-   { 
-     R[0]=X[0]-XP[0];
-     R[1]=X[1]-XP[1];
-     R[2]=X[2]-XP[2];
-     ESign = CSign = (R[2] >= 0.0) ? 1.0 : -1.0;
-     rTE = rTM = 1.0;
+  Data->nCalls++;
+
+  int IDim = 18*XMatrix->NR;
+  memset(Integrand, 0, IDim*sizeof(cdouble));
+
+  // Polar = true --> we have already integrated out 
+  //                  q_Theta to yield Bessel functions,
+  //                  and what we are evaluating here 
+  //                  is just the integrand of the 1-dimensional
+  //                  q_r integral 
+  //
+  // Polar = false--> we are evaluating the 2-dimensional
+  //                  (qx,qy) integral
+  //
+  double q2, qMag, Jacobian=1.0;
+  cdouble One, Cos, Sin, Cos2, Sin2, CosSin;
+  if (Polar)
+   { q2        = q[0]*q[0];
+     qMag      = q[0];
+     Jacobian *= 2.0*M_PI*q[0];
    }
   else
-   { 
-     R[0]=0.0;
-     R[1]=0.0;
-     R[2]=2.0*X[2];
-     ESign = 1.0;
-     CSign = -1.0;
-     if (Epsilon==0.0)
-      { rTE=-1.0;
-        rTM=+1.0;
-      }
-     else     
-      { cdouble kzPrime = sqrt(Epsilon*k0*k0 - kMag2);
-        cdouble ekz     = Epsilon*kz;
-        rTE   = (kz  - kzPrime) / (kz+kzPrime);
-        rTM   = (ekz - kzPrime) / (ekz+kzPrime);
-      };
+   { q2       = q[0]*q[0] + q[1]*q[1];
+     qMag     = sqrt(q2);
+     double qxHat = (qMag==0.0) ? 1.0 : q[0] / qMag;
+     double qyHat = (qMag==0.0) ? 0.0 : q[1] / qMag;
+     One      = 1.0;
+     Cos      = qxHat;
+     Sin      = qyHat;
+     Cos2     = qxHat*qxHat;
+     CosSin   = qxHat*qyHat;
+     Sin2     = qyHat*qyHat;
    };
 
-  // polarization vectors
-  cdouble P[3], PBar[3];
-  P[0] = -ky/kMag;
-  P[1] = kx/kMag;
-  P[2] = 0.0;
-  PBar[0] = -1.0*ESign*kx*kz/(k0*kMag);
-  PBar[1] = -1.0*ESign*ky*kz/(k0*kMag);
-  PBar[2] = kMag / k0;
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  cdouble k02 = k0*k0;
+  cdouble qz2 = q2 - k0*k0;
+  if (qz2==0.0)
+   return;
+  cdouble qz = sqrt(k0*k0 - q2);
+  cdouble qzPrime = sqrt(EpsRel*MuRel*k0*k0 - q2);
+  if ( imag(qz)<0.0 )
+   qz*=-1.0;
+  if ( imag(qzPrime)<0.0 )
+   qzPrime*=-1.0;
 
-  // weighting coefficients for the various possible
-  // orientations of the point source
-  cdouble CTE[3], CTM[3];
-  CTE[0] = -II*ky/(2.0*kMag*kz);
-  CTE[1] =  II*kx/(2.0*kMag*kz);
-  CTE[2] = 0.0;
-  CTM[0] = -1.0*CSign*II*kx/(2.0*k0*kMag);
-  CTM[1] = -1.0*CSign*II*ky/(2.0*k0*kMag);
-  CTM[2] = II*kMag/(2.0*k0*kz);
+  cdouble rTE, rTM;
+  if (EpsRel==0.0 && MuRel==0.0) // PEC case
+   { rTE = -1.0;
+     rTM = +1.0;
+   }
+  else
+   { rTE = (MuRel*qz - qzPrime) / (MuRel*qz + qzPrime);
+     rTM = (EpsRel*qz - qzPrime) / (EpsRel*qz + qzPrime);
+   };
 
-  cdouble ExpFac = exp( II*(kx*R[0] + ky*R[1] + kz*fabs(R[2]) ) );
+  cdouble MTE[3][3], MTM[3][3];
+  MTE[0][2] = MTE[1][2] = MTE[2][0] = MTE[2][1] = MTE[2][2] = 0.0;
 
-  cdouble GE[3][3], GM[3][3];
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    { GE[Mu][Nu] = ( rTE*CTE[Nu]*P[Mu]    + rTM*CTM[Nu]*PBar[Mu])*ExpFac;
-      GM[Mu][Nu] = (-rTE*CTE[Nu]*PBar[Mu] + rTM*CTM[Nu]*P[Mu])*ExpFac;
-    };
+  bool TwoPointDGF = (XMatrix->NC==6);
 
   /***************************************************************/
-  /* add the components to the summand vector ********************/
   /***************************************************************/
-  cdouble *zSum=(cdouble *)Sum;
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    { zSum[ 0 + 3*Mu + Nu ] += GE[Mu][Nu];
-      zSum[ 9 + 3*Mu + Nu ] += GM[Mu][Nu];
-    };
+  /***************************************************************/
+  for(int nx=0; nx<XMatrix->NR; nx++)
+   { 
+     double XSource[3], XEvalBuffer[3];
+     double *XEval = (TwoPointDGF) ? XEvalBuffer : XSource;
+     XMatrix->GetEntriesD(nx,"0:2",XSource);
+     if (TwoPointDGF)
+      XMatrix->GetEntriesD(nx,"3:5",XEval);
+     double R[3];
+     VecSub(XSource, XEval, R);
+     double Rho=sqrt( R[0]*R[0] + R[1]*R[1] );
+     double xHat = (Rho==0.0) ? 1.0 : R[0] / Rho;
+     double yHat = (Rho==0.0) ? 0.0 : R[1] / Rho;
+
+     double qDotRho=0.0;
+     if (Polar)
+      { cdouble J[3];
+        double qRho = qMag*Rho;
+        AmosBessel('J', qRho, 0.0, 3, false, J, Data->Workspace);
+        cdouble J1oqRho = (qRho==0.0 ? 0.0 : J[1]/qRho);
+        cdouble Bracket = (J[0] - 2.0*J1oqRho - J[2]);
+        One     = J[0];
+        Cos     = II*J[1]*xHat;
+        Sin     = II*J[1]*yHat;
+        Cos2    = 0.5*Bracket*xHat*xHat + J1oqRho;
+        CosSin  = 0.5*Bracket*xHat*yHat;
+        Sin2    = 0.5*Bracket*yHat*yHat + J1oqRho;
+      }
+     else
+      qDotRho = q[0]*R[0] * q[1]*R[1];
+     
+     MTE[0][0] = Sin2;
+     MTE[1][1] = Cos2;
+     MTE[0][1] = MTE[1][0] = -1.0*CosSin;
+
+     MTM[0][0] = qz2*Cos2 / k02;
+     MTM[1][1] = qz2*Sin2 / k02;
+     MTM[2][2] = q2*One  / k02;
+     MTM[0][1] = MTM[1][0] = qz2*CosSin / k02;
+     MTM[0][2] = qMag*qz*Cos  / k02;
+     MTM[2][0] = -1.0*MTM[0][2];
+     MTM[1][2] = qMag*qz*Sin  / k02;
+     MTM[2][1] = -1.0*MTM[1][2];
+
+     cdouble ExpArg = II*qDotRho + II*qz*(XSource[2]+XEval[2]);
+     if ( fabs(real(ExpArg)) > 40.0 )
+      continue;
+
+     cdouble Factor = II*Jacobian*exp(ExpArg) / (8.0*M_PI*M_PI*qz);
+  
+     for(int Mu=0; Mu<3; Mu++)
+      for(int Nu=0; Nu<3; Nu++)
+       { Integrand[18*nx + 0*9 + 3*Mu + Nu] 
+          = Factor * (rTE*MTE[Mu][Nu] + rTM*MTM[Mu][Nu]);
+         Integrand[18*nx + 1*9 + 3*Mu + Nu] 
+          = Factor * (rTE*MTE[Mu][Nu] - rTM*MTM[Mu][Nu]);
+       };
+#if 0
+     if (LogFile)
+     { fprintf(LogFile,"%e %s %s ",q,CD2S(qz),CD2S(qzPrime));
+       fprintf(LogFile,"%e %e %e ",R[0],R[1],XA[2]+XB[2]);
+       fprintf(LogFile,"%s ",CD2S(ExpFac));
+       for(int n=0; n<9; n++)
+        fprintf(LogFile,"%s ",CD2S(zf[18*nx + n]));
+       fprintf(LogFile,"\n");
+     };
+#endif
+
+   };
+}
+
+/***************************************************************/
+/* summand function passed to GetLatticeSum() to evaluate the  */
+/* reciprocal-lattice sum for the BZ integrand at a single     */
+/* kBloch point                                                */
+/***************************************************************/
+void HalfSpaceDGFSummand(double *Gamma, void *UserData, double *Sum)
+{
+  HalfSpaceData *Data = (HalfSpaceData *)UserData;
+  double *kBloch    = Data->kBloch;
+  
+  double q[2];
+  q[0] = kBloch[0] + Gamma[0];
+  q[1] = kBloch[1] + Gamma[1];
+  
+  HalfSpaceDGFIntegrand(q, (HalfSpaceData *)UserData, (cdouble *)Sum);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+void GetHalfSpaceDGFs_BZ(HMatrix *XMatrix,
+                         cdouble Omega, double kBloch[2],
+                         HMatrix *RLBasis, double BZVolume, 
+                         MatProp *MP,
+                         double RelTolSum, double AbsTolSum, 
+                         int MaxCells,
+                         HMatrix *GMatrix)
+{ 
+  int IDim = 18*XMatrix->NR;
+  static int IDimSave=0;
+  static cdouble *Sum=0;
+  if (IDimSave<IDim)
+   { IDimSave=IDim;
+     Sum = (cdouble *)reallocEC(Sum, IDim*sizeof(cdouble));
+   };
+
+  cdouble Epsilon=0.0, Mu=0.0;
+  if (MP && MP->IsPEC() == false )
+   MP->GetEpsMu(Omega, &Epsilon, &Mu);
+
+  HalfSpaceData MyData, *Data=&MyData;
+  Data->XMatrix     = XMatrix;
+  Data->Omega       = Omega;
+  Data->Epsilon     = Epsilon;
+  Data->Mu          = Mu;
+  Data->kBloch      = kBloch;
+  Data->Polar       = false;
+  Data->uqTransform = false;
+  Data->nCalls      = 0;
+ 
+  Log("Evaluating BZ sum for DGF integrand at kBloch=(%e,%e)...", kBloch[0], kBloch[1]);
+  GetLatticeSum(HalfSpaceDGFSummand, (void *)Data, 2*IDim, RLBasis,
+                (double *)Sum, AbsTolSum, RelTolSum, MaxCells);
+  Log("...%i lattice cells summed",Data->nCalls);
+
+  int NX = XMatrix->NR;
+  for(int nx=0; nx<NX; nx++)
+   for(int ng=0; ng<18; ng++)
+    GMatrix->SetEntry(nx, ng, 
+                      BZVolume*Sum[18*nx + ng]/(4.0*M_PI*M_PI)
+                     );
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int HalfSpaceDGFIntegrand_Polar(unsigned ndim, const double *u, void *UserData, unsigned fdim, double *fval)
+{ 
+  (void) ndim;
+  (void) fdim;
+
+  HalfSpaceData *Data = (HalfSpaceData *)UserData;
+  bool uqTransform = Data->uqTransform;
+  bool qrOffset    = Data->qrOffset;
+  int IDim         = 18*(Data->XMatrix->NR);
+
+  cdouble *Integrand = (cdouble *)fval;
+  memset(Integrand, 0, IDim*sizeof(cdouble));
+
+  double qr, Jacobian;
+  if (uqTransform)
+   { double Denom = 1.0 - fabs(u[0]);
+     if (Denom==0.0)
+      return 0;
+     qr       = qrOffset + u[0] / Denom;
+     Jacobian = 1.0/(Denom*Denom);
+   }
+  else
+   { qr=u[0];
+     Jacobian=1.0;
+   };
+
+  HalfSpaceDGFIntegrand(&qr, Data, Integrand);
+  for(int n=0; n<IDim; n++)
+   Integrand[n]*=Jacobian;
+
+  return 0;
+
+}
+
+void GetHalfSpaceDGFs_Polar(HMatrix *XMatrix, cdouble Omega,
+                            MatProp *MP,
+                            double RelTol, double AbsTol,
+                            int MaxEvals, HMatrix *GMatrix)
+{ 
+ 
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  int NX = XMatrix->NR;
+  int IDim = 18*NX;
+  static int IDimSave=0;
+  static cdouble *Integral1=0, *Integral2=0, *Error=0;
+  if (IDimSave!=IDim)
+   { IDimSave = IDim;
+     Integral1 = (cdouble *)reallocEC(Integral1, IDim * sizeof(cdouble));
+     Integral2 = (cdouble *)reallocEC(Integral2, IDim * sizeof(cdouble));
+     Error      = (cdouble *)reallocEC(Error, IDim * sizeof(cdouble));
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  cdouble Epsilon=0.0, Mu=0.0;
+  if ( MP && MP->IsPEC() == false )
+   MP->GetEpsMu(Omega, &Epsilon, &Mu);
+
+  Log("Evaluating qr integral for DGFs at %i points...",NX);
+
+  double Lower, Upper;
+  HalfSpaceData MyData, *Data=&MyData;
+  Data->XMatrix = XMatrix;
+  Data->Omega   = Omega; 
+  Data->Epsilon = Epsilon;
+  Data->Mu      = Mu;     
+  Data->Polar   = true;
+
+  Lower=0.0;
+  Upper=abs(Omega);
+  Data->qrOffset    = 0.0;
+  Data->uqTransform = false;
+  Data->nCalls      = 0;
+  hcubature(2*IDim, HalfSpaceDGFIntegrand_Polar, (void *)Data, 1,
+            &Lower, &Upper, MaxEvals, AbsTol, RelTol, 
+            ERROR_INDIVIDUAL, (double *)Integral1, (double *)Error);
+  Log(" small-q integral: %i calls",Data->nCalls);
+
+  Lower=0.0;
+  Upper=1.0;
+  Data->qrOffset    = abs(Omega);
+  Data->uqTransform = true;
+  Data->nCalls      = 0;
+  hcubature(2*IDim, HalfSpaceDGFIntegrand_Polar, (void *)Data, 1, 
+            &Lower, &Upper, MaxEvals, AbsTol, RelTol, 
+            ERROR_INDIVIDUAL, (double *)Integral2, (double *)Error);
+  Log(" large-q integral: %i calls",Data->nCalls);
+
+ 
+  for(int nx=0; nx<NX; nx++)
+   for(int ng=0; ng<18; ng++)
+    GMatrix->SetEntry(nx, ng, Integral1[18*nx + ng] + Integral2[18*nx + ng]);
+  
+}
+
+/***************************************************************/
+/* Ground-plane DGFs computed by the image-source method       */
+/***************************************************************/
+void GetGroundPlaneDGFs(HMatrix *XMatrix,
+                        cdouble Omega, double *kBloch, HMatrix *LBasis, 
+                        HMatrix *GMatrix) 
+{
+  /***************************************************************/
+  /* create an IncidentField structure describing the field of a */
+  /* point source or a periodic array of point sources at the    */
+  /* location of the image of XSource                            */
+  /***************************************************************/
+  PointSource PS;
+  PS.SetFrequency(Omega);
+  if (LBasis)
+   { PS.SetLattice(LBasis);
+     PS.SetkBloch(kBloch);
+   };
+
+  bool TwoPointDGF = (XMatrix->NC == 6);
+
+  int NX = XMatrix->NR;
+  for(int nx=0; nx<NX; nx++)
+   { 
+     double XSource[3], XEval[3];
+     XMatrix->GetEntriesD(nx, "0:2", XSource);
+     if (TwoPointDGF)
+      XMatrix->GetEntriesD(nx, "3:5", XEval);
+     else
+      XMatrix->GetEntriesD(nx, "0:2", XEval);
+     XSource[2]*=-1.0;
+     PS.SetX0(XSource);
+
+     /***************************************************************/
+     /* columns of DGF are fields of image source at eval point    **/
+     /***************************************************************/
+     for(int Nu=0; Nu<3; Nu++)
+      { 
+        cdouble P[3], EH[6];
+
+        memset(P, 0, 3*sizeof(cdouble));
+        P[Nu] = (Nu==2) ? 1.0 : -1.0;
+        PS.SetP(P);
+        PS.SetType(LIF_ELECTRIC_DIPOLE);
+        PS.GetFields(XEval, EH);
+        for(int Mu=0; Mu<3; Mu++)
+         GMatrix->SetEntry(nx, 0*9 + 3*Mu + Nu, EH[Mu] / (Omega*Omega));
+
+        P[Nu] *= -1.0;
+        PS.SetP(P);
+        PS.SetType(LIF_MAGNETIC_DIPOLE);
+        PS.GetFields(XEval, EH);
+        for(int Mu=0; Mu<3; Mu++)
+         GMatrix->SetEntry(nx, 1*9 + 3*Mu + Nu, EH[3+Mu] / (Omega*Omega));
+      };
+   };
 
 }
 
 /***************************************************************/
 /* Vacuum DGFs computed by the plane-wave decomposition        */
 /***************************************************************/
-int GetVacuumDGFs(double X[3], double XP[3],
+#if 0
+int GetVacuumDGFs(double *XSource, double *XDest,
                   cdouble Omega, double kBloch[2],
                   HMatrix *RLBasis, double BZVolume,
                   double RelTol, double AbsTol, int MaxCells,
                   cdouble GE[3][3], cdouble GH[3][3])
 { 
  
-  SummandData MySummandData, *Data=&MySummandData;
-  Data->X       = X;
-  Data->XP      = XP;
+  HalfSpaceData MyHalfSpaceData, *Data=&MyHalfSpaceData;
+  Data->XSource = XSource;
+  Data->XDest   = XDest;
   Data->Omega   = Omega;
   Data->kBloch  = kBloch;
   Data->Epsilon = 0.0;
 
   cdouble Sum[18];
-  int NumCells=GetLatticeSum(DGFSummand, (void *)Data, 36, RLBasis,
+  int NumCells=GetLatticeSum(DGFSummand, (void *)Data, 36, RBasis,
                             (double *)Sum, AbsTol, RelTol, MaxCells);
 
   for(int Mu=0; Mu<3; Mu++)
@@ -182,82 +460,91 @@ int GetVacuumDGFs(double X[3], double XP[3],
 
   return NumCells;
 }
+#endif
 
 /***************************************************************/
-/* Half-space DGFs computed by the plane-wave decomposition    */
 /***************************************************************/
-int GetHalfSpaceDGFs(double z, cdouble Omega, double kBloch[2],
-                     HMatrix *RLBasis, double BZVolume, MatProp *MP,
-                     double RelTol, double AbsTol, int MaxCells,
-                     cdouble GE[3][3], cdouble GM[3][3])
-{ 
-  double X[3]={0.0, 0.0, 0.0};
-  double XP[3]={0.0, 0.0, 0.0};
-  X[2]=z;
-
-  SummandData MySummandData, *Data=&MySummandData;
-  Data->X       = X;
-  Data->XP      = XP;
-  Data->Omega   = Omega;
-  Data->kBloch  = kBloch;
-  Data->Epsilon = MP->IsPEC() ? 0.0 : MP->GetEps(Omega);
-
-  cdouble Sum[18];
-  GetLatticeSum(DGFSummand, (void *)Data, 36, RLBasis,
-                (double *)Sum, AbsTol, RelTol, MaxCells);
-
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    { GE[Mu][Nu] = BZVolume*Sum[0 + 3*Mu + Nu]/(4.0*M_PI*M_PI);
-      GM[Mu][Nu] = BZVolume*Sum[9 + 3*Mu + Nu]/(4.0*M_PI*M_PI);
-    };
-  return 0;
-}
-
 /***************************************************************/
-/* Ground-plane DGFs computed by the image-source method       */
-/***************************************************************/
-void GetGroundPlaneDGFs(double z, cdouble Omega, double *kBloch,
-                        HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3])
+void ProcessHalfSpaceDGFs(HVector *OmegaPoints,
+                          char **EPFiles, int nEPFiles,
+                          char *HalfSpace,
+                          double RelTol, double AbsTol, int MaxEvals)
 {
-  /***************************************************************/
-  /* create an IncidentField structure describing the field of a */
-  /* point source or a periodic array of point sources at the    */
-  /* location of the image of X                                  */
-  /***************************************************************/
-  double X[3], XBar[3];
-  X[0]=0.0; XBar[0]=0.0;
-  X[1]=0.0; XBar[1]=0.0;
-  X[2]=z;   XBar[2]=-z;
-  cdouble P[3]={0.0,0.0,0.0};
-  PointSource PS(XBar, P);
-  PS.SetFrequency(Omega);
-  if (LBasis)
-   { PS.SetLattice(LBasis);
-     PS.SetkBloch(kBloch);
-   };
+  MatProp *MP = HalfSpace ? new MatProp(HalfSpace) : 0;
+  char *Label = HalfSpace ? HalfSpace : const_cast<char *>("GroundPlane");
 
-  /***************************************************************/
-  /* columns of DGF are fields of image source                  **/
-  /***************************************************************/
-  for(int Nu=0; Nu<3; Nu++)
+  for(int nep=0; nep<nEPFiles; nep++)
    { 
-     cdouble EH[6];
+     HMatrix *XMatrix = new HMatrix(EPFiles[nep]);
+     int NX = XMatrix->NR;
+     bool TwoPointDGF = (XMatrix->NC==6);
+     HMatrix *GMatrix = new HMatrix(NX, 18, LHM_COMPLEX);
+     
+     FILE *f=vfopen("%s.%s.DGFs","w",GetFileBase(EPFiles[nep]),Label);
+     fprintf(f,"# scuff-ldos ran on %s (%s)\n",GetHostName(),GetTimeString());
+     fprintf(f,"# data file columns: \n");
+     fprintf(f,"#  1, 2, 3 {x,y,z} (source point)\n");
+     int nc=4;
+     if (TwoPointDGF)
+      { fprintf(f,"#  %i, %i, %i {x,y,z} (evaluation point)\n", nc, nc+1, nc+2);
+        nc+=3;
+      };
+     fprintf(f,"# %i, %i    re,im Omega\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    electric, magnetic LDOS\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GExx\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GExy\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GExz\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GEyx\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GEyy\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GEyz\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GEzx\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GEzy\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GEzz\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMxx\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMxy\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMxz\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMyx\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMyy\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMyz\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMzx\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMzy\n",nc,nc+1); nc+=2;
+     fprintf(f,"# %i, %i    re,im GMzz\n",nc,nc+1); nc+=2;
 
-     memset(P, 0, 3*sizeof(cdouble));
-     P[Nu] = (Nu==2) ? 1.0 : -1.0;
-     PS.SetP(P);
-     PS.SetType(LIF_ELECTRIC_DIPOLE);
-     PS.GetFields(X, EH);
-     for(int Mu=0; Mu<3; Mu++)
-      GE[Mu][Nu] = EH[Mu] / (Omega*Omega);
+     for(int nOmega=0; nOmega<OmegaPoints->N; nOmega++)
+      { cdouble Omega = OmegaPoints->GetEntry(nOmega);
+        if (HalfSpace)
+         GetHalfSpaceDGFs_Polar(XMatrix, Omega, MP,
+                                RelTol, AbsTol, MaxEvals, GMatrix);
+        else
+         GetGroundPlaneDGFs(XMatrix, Omega, 0, 0, GMatrix);
 
-     P[Nu] *= -1.0;
-     PS.SetP(P);
-     PS.SetType(LIF_MAGNETIC_DIPOLE);
-     PS.GetFields(X, EH);
-     for(int Mu=0; Mu<3; Mu++)
-      GM[Mu][Nu] = EH[3+Mu] / (Omega*Omega);
+        double PreFac = abs(Omega)/M_PI;
+        for(int nx=0; nx<NX; nx++)
+         { for(int Mu=0; Mu<(TwoPointDGF ? 6 : 3); Mu++)
+            fprintf(f,"%e ",XMatrix->GetEntryD(nx,Mu));
+           fprintf(f,"%e %e ",real(Omega),imag(Omega));
+           
+           fprintf(f,"%e  ",PreFac*imag( GMatrix->GetEntry(nx, 0 + 0)
+                                        +GMatrix->GetEntry(nx, 0 + 4)
+                                        +GMatrix->GetEntry(nx, 0 + 8)
+                                       ));
+           fprintf(f,"%e  ",PreFac*imag( GMatrix->GetEntry(nx, 9 + 0)
+                                        +GMatrix->GetEntry(nx, 9 + 4)
+                                        +GMatrix->GetEntry(nx, 9 + 8)
+                                       ));
+           for(int m=0; m<18; m++)
+            fprintf(f,"%e %e ",real(GMatrix->GetEntry(nx, m)),
+                               imag(GMatrix->GetEntry(nx, m)));
+           fprintf(f,"\n");
+         };
+        fprintf(f,"\n\n");
+        fflush(f);
+      };
+
+     delete XMatrix; 
+     delete GMatrix; 
+     fclose(f);
+
    };
 
 }

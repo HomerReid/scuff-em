@@ -124,6 +124,9 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
   bool GroundPlane     = Data->GroundPlane;
   bool ScatteringOnly  = Data->ScatteringOnly;
+  bool RelTol          = Data->RelTol;
+  bool AbsTol          = Data->AbsTol;
+  bool MaxEvals        = Data->MaxEvals;
 
   HMatrix *LBasis      = G->LBasis;
   HMatrix *RLBasis     = G->RLBasis;
@@ -141,7 +144,21 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   /*- assemble the BEM matrix at this frequency and Bloch vector, */
   /*- then get DGFs at all evaluation points                      */
   /*--------------------------------------------------------------*/
-  if (!HalfSpaceMP && !GroundPlane)
+  if (HalfSpaceMP) 
+   {
+     for(int nm=0; nm<NumXGMatrices; nm++)
+      GetHalfSpaceDGFs_BZ(XMatrices[nm], Omega, kBloch,
+                          RLBasis, BZVolume, HalfSpaceMP,
+                          RelTol, AbsTol, MaxEvals,
+                          GMatrices[nm]);
+   }
+  else if (GroundPlane)
+   {
+     for(int nm=0; nm<NumXGMatrices; nm++)
+      GetGroundPlaneDGFs(XMatrices[nm], Omega, kBloch,
+                         LBasis, GMatrices[nm]);
+   }
+  else
    { 
      if (LDim==0)
       {    
@@ -167,7 +184,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
      M->LUFactorize();
 
      /*--------------------------------------------------------------*/
-     /*- precompute DGFs                                             */
+     /*- get DGFs                                             */
      /*--------------------------------------------------------------*/
      for(int nm=0; nm<NumXGMatrices; nm++)
       G->GetDyadicGFs(Omega, kBloch, XMatrices[nm], M, GMatrices[nm],
@@ -186,33 +203,18 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
    { 
      HMatrix *XMatrix = Data->XMatrices[nm];
      HMatrix *GMatrix = Data->GMatrices[nm];
-
      for(int nx=0; nx<XMatrix->NR; nx++)
-      { 
-        /***************************************************************/
-        /* get the DGFs at this evaluation point                       */
-        /***************************************************************/
-        double Z=XMatrix->GetEntryD(nx, 2);
-        cdouble GE[3][3], GM[3][3];
-        if ( GroundPlane )
-         GetGroundPlaneDGFs(Z, Omega, kBloch, LBasis, GE, GM);
-        else if (HalfSpaceMP)
-         GetHalfSpaceDGFs(Z, Omega, kBloch, 
-                         RLBasis, BZVolume, HalfSpaceMP,
-                         Data->RelTol, ABSTOL, Data->MaxEvals, GE, GM);
-        else
-         for(int i=0; i<3; i++)
-          for(int j=0; j<3; j++)
-           { GE[i][j] = GMatrix->GetEntry(nx, 0 + 3*i + j);
-             GM[i][j] = GMatrix->GetEntry(nx, 9 + 3*i + j);
-           };
-  
-        /***************************************************************/
-        /* figure out which quantities to insert in return vector      */
-        /***************************************************************/
-        Result[nResult++] = imag( (GE[0][0] + GE[1][1] + GE[2][2]) ) * PreFac;
-        Result[nResult++] = imag( (GM[0][0] + GM[1][1] + GM[2][2]) ) * PreFac;
+      { cdouble GE[3][3], GM[3][3];
+        for(int i=0; i<3; i++)
+         for(int j=0; j<3; j++)
+          { GE[i][j] = GMatrix->GetEntry(nx, 0 + 3*i + j);
+            GM[i][j] = GMatrix->GetEntry(nx, 9 + 3*i + j);
+          };
+        double ELDOS = PreFac * imag( GE[0][0] + GE[1][1] + GE[2][2] );
+        double MLDOS = PreFac * imag( GM[0][0] + GM[1][1] + GM[2][2] );
 
+        Result[nResult++] = ELDOS;
+        Result[nResult++] = MLDOS;
         if (Data->LDOSOnly == false)
          { for(int Mu=0; Mu<3; Mu++)
             for(int Nu=0; Nu<3; Nu++)
@@ -226,7 +228,7 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
              };
          }; // if (Data->LDOSOnly == false)
 
-      }; // for(int nr=0; nr<XMatrix->NR; nr++)
+      }; // for(int nx=0; nx<XMatrix->NR; nx++)
  
     /***************************************************************/
     /* write output to kBloch-resolved data file for PBC geometries*/

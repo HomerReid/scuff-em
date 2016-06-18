@@ -96,9 +96,11 @@ SLDData *CreateSLDData(char *GeoFile, char **EPFiles, int nEPFiles)
   SetDefaultCD2SFormat("%.8e %.8e");
 
   SLDData *Data=(SLDData *)mallocEC(sizeof(*Data));
-  Data->RelTol      = 1.0e-3;
-  Data->MaxEvals    = 10000;
+  Data->RelTol      = 1.0e-2;
+  Data->AbsTol      = 1.0e-8;
+  Data->MaxEvals    = 100000;
   Data->HalfSpaceMP = 0;
+  Data->GroundPlane = false;
 
   /***************************************************************/
   /* read in geometry and allocate BEM matrix and RHS vector     */

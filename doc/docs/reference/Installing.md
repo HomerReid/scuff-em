@@ -133,6 +133,15 @@ variable:
 % export GOMP_CPU_AFFINITY=0-7
 ````
 
+<a name="Disabling Python"></a>
+#### Disabling the python interface to speed the build process
+
+Compiling the python interface is slow---it accounts for
+more than half of the build time on some systems.
+If you don't need the python interface to [[scuff-em]],
+use the option `--without-python` when running `configure`
+to accelerate the build process.
+
 <a name="Debugging"></a>
 #### Building for debugging
 

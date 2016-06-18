@@ -63,9 +63,11 @@ int main(int argc, char *argv[])
 /**/
   bool GroundPlane=false;
   char *HalfSpace=0;
+  bool SkipBZIntegration=false;
 /**/
   double RelTol=1.0e-2;
-  int MaxEvals=1000;
+  double AbsTol=1.0e-8;
+  int MaxEvals=10000;
 /**/
   char *FileBase=0;
   bool LDOSOnly=false;
@@ -75,8 +77,9 @@ int main(int argc, char *argv[])
   OptStruct OSArray[]=
    { {"geometry",    PA_STRING,  1, 1, (void *)&GeoFile,      0,  ".scuffgeo file"},
 //
-     {"GroundPlane", PA_BOOL,    1, 1, (void *)&GroundPlane,  0,  "simulate an infinite PEC ground plane at z=0"},
      {"HalfSpace",   PA_STRING,  1, 1, (void *)&HalfSpace,    0,  "simulate an infinite half-space for z<0 with the given material"},
+     {"GroundPlane", PA_BOOL,    1, 1, (void *)&GroundPlane,  0,  "simulate an infinite PEC ground plane at z=0"},
+     {"SkipBZIntegration", PA_BOOL,  1, 1, (void *)&SkipBZIntegration, 0,  "bypass BZ integration for analytical half-space/ground-plane calculation"},
 //
      {"EPFile",      PA_STRING,  1, MAXEPFILES, (void *)EPFiles, &nEPFiles,  "list of evaluation points"},
 //
@@ -85,6 +88,7 @@ int main(int argc, char *argv[])
      {"OmegakBlochFile",   PA_STRING,  1, 1, (void *)&OkBFile,    0,  "list of (omega,kBloch) points "},
 //
      {"RelTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,        0,  "relative tolerance"},
+     {"AbsTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,        0,  "absolute tolerance"},
      {"MaxEvals",    PA_INT,     1, 1, (void *)&MaxEvals,      0,  "maximum number of integrand/summand evaluation"},
 //
      {"FileBase",    PA_STRING,  1, 1, (void *)&FileBase,      0,  "base name for output files"},
@@ -93,7 +97,7 @@ int main(int argc, char *argv[])
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
-  if (GeoFile==0)
+  if (GeoFile==0 && (SkipBZIntegration==false) )
    OSUsage(argv[0],OSArray,"--geometry option is mandatory");
   if (nEPFiles==0)
    OSUsage(argv[0],OSArray,"you must specify at least one --EPFile");
@@ -137,16 +141,31 @@ int main(int argc, char *argv[])
    ErrExit("you must specify at least one frequency");
 
   /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
+  if (SkipBZIntegration)
+   { if (OkBFile)
+      ErrExit("--SkipBZIntegration is incompatible with --OmegakBlochFile");
+     if ( !GroundPlane && HalfSpace==0 )
+      ErrExit("--SkipBZIntegration requires either --HalfSpace or --GroundPlane");
+     ProcessHalfSpaceDGFs(OmegaPoints, EPFiles, nEPFiles,
+                          HalfSpace, RelTol, AbsTol, MaxEvals);
+     exit(1);
+   };  
+
+  /***************************************************************/
   /* create the SLDData structure that will be passed to all     */
   /* computational routines                                      */
   /***************************************************************/
   SLDData *Data     = CreateSLDData(GeoFile, EPFiles, nEPFiles);
   Data->RelTol      = RelTol;
+  Data->AbsTol      = AbsTol;
   Data->MaxEvals    = MaxEvals;
   Data->FileBase    = FileBase;
   Data->LDOSOnly    = LDOSOnly;
   Data->ScatteringOnly = ScatteringOnly;
   Data->GroundPlane = GroundPlane;
+  Data->HalfSpaceMP = HalfSpace ? new MatProp(HalfSpace) : 0;
 
   // set LDOSOnly = false if any EPFiles have 6 coordinates
   // (for two-point DGF calculations)
@@ -154,12 +173,9 @@ int main(int argc, char *argv[])
    if (Data->XMatrices[n]->NC==6)
     Data->LDOSOnly=false;
 
-  if (HalfSpace)
-   Data->HalfSpaceMP = new MatProp(HalfSpace);
-
   int LDim = Data->G->LDim;
-  if ( HalfSpace && LDim!=2 )
-   OSUsage(argv[0],OSArray,"--HalfSpace requires a 2D-periodic geometry");
+  if (HalfSpace && LDim!=2)
+   OSUsage(argv[0],OSArray,"--HalfSpace requires a 2D-periodic geometry unless you also say --SkipBZIntegration");
 
   int NX         = Data->TotalEvalPoints;
   int NFun       = Data->LDOSOnly ? 2 : 38; // # outputs per eval pt

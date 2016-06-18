@@ -58,7 +58,7 @@ typedef struct SLDData
 
    // other miscellaneous options
    char *FileBase;
-   double RelTol;
+   double RelTol, AbsTol;
    int MaxEvals;
    bool LDOSOnly;
    bool ScatteringOnly;
@@ -88,13 +88,29 @@ void WriteData(SLDData *Data, cdouble Omega, double *kBloch,
 void GetLDOS(void *Data, cdouble Omega, double *kBloch, 
              double *Result);
 
+/***************************************************************/
 // AnalyticalDGFs.cc
-int GetHalfSpaceDGFs(double z, cdouble Omega, double kBloch[2],
-                     HMatrix *RLBasis, double BZVolume, MatProp *MP,
-                     double RelTol, double AbsTol, int MaxCells,
-                     cdouble GE[3][3], cdouble GM[3][3]);
+/***************************************************************/
+void GetHalfSpaceDGFs_BZ(HMatrix *XMatrix,
+                         cdouble Omega, double kBloch[2],
+                         HMatrix *RLBasis, double BZVolume, 
+                         MatProp *MP,
+                         double RelTolSum, double AbsTolSum,
+                         int MaxCells,
+                         HMatrix *GMatrix);
 
-void GetGroundPlaneDGFs(double z, cdouble Omega, double *kBloch,
-                        HMatrix *LBasis, cdouble GE[3][3], cdouble GM[3][3]);
+void GetHalfSpaceDGFs_Polar(HMatrix *XMatrix, cdouble Omega,
+                            MatProp *MP,
+                            double RelTol, double AbsTol,
+                            int MaxEvals, HMatrix *GMatrix);
+
+void GetGroundPlaneDGFs(HMatrix *XMatrix,
+                        cdouble Omega, double *kBloch, HMatrix *LBasis, 
+                        HMatrix *GMatrix);
+
+void ProcessHalfSpaceDGFs(HVector *OmegaPoints,
+                          char **EPFiles, int nEPFiles,
+                          char *HalfSpace,
+                          double RelTol, double AbsTol, int MaxEvals);
 
 #endif //#ifndef SCUFFLDOS_H

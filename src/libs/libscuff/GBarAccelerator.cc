@@ -291,6 +291,8 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
   GBA->ExcludeInnerCells  = ExcludeInnerCells;
   GBA->RhoMin             = RhoMin;
   GBA->RhoMax             = RhoMax;
+  GBA->I2D                = 0;
+  GBA->I3D                = 0;
 
   int LDim = GBA->LDim = LBasis->NC;
   for(int nd=0; nd<LDim; nd++)
@@ -325,10 +327,7 @@ GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
    };
   
   if (GBA->ForceFullEwald)
-   { GBA->I2D=0;
-     GBA->I3D=0;
-     return GBA;
-   };
+   return GBA;
 
   /***************************************************************/
   /***************************************************************/
