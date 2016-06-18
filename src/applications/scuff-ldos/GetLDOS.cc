@@ -124,9 +124,9 @@ void GetLDOS(void *pData, cdouble Omega, double *kBloch,
   MatProp *HalfSpaceMP = Data->HalfSpaceMP;
   bool GroundPlane     = Data->GroundPlane;
   bool ScatteringOnly  = Data->ScatteringOnly;
-  bool RelTol          = Data->RelTol;
-  bool AbsTol          = Data->AbsTol;
-  bool MaxEvals        = Data->MaxEvals;
+  double RelTol        = Data->RelTol;
+  double AbsTol        = Data->AbsTol;
+  int MaxEvals         = Data->MaxEvals;
 
   HMatrix *LBasis      = G->LBasis;
   HMatrix *RLBasis     = G->RLBasis;

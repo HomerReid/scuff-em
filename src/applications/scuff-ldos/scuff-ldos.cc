@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
      {"OmegakBlochFile",   PA_STRING,  1, 1, (void *)&OkBFile,    0,  "list of (omega,kBloch) points "},
 //
      {"RelTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,        0,  "relative tolerance"},
-     {"AbsTol",      PA_DOUBLE,  1, 1, (void *)&RelTol,        0,  "absolute tolerance"},
+     {"AbsTol",      PA_DOUBLE,  1, 1, (void *)&AbsTol,        0,  "absolute tolerance"},
      {"MaxEvals",    PA_INT,     1, 1, (void *)&MaxEvals,      0,  "maximum number of integrand/summand evaluation"},
 //
      {"FileBase",    PA_STRING,  1, 1, (void *)&FileBase,      0,  "base name for output files"},
