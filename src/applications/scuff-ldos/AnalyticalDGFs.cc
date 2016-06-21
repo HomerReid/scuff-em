@@ -48,6 +48,7 @@ typedef struct HalfSpaceData
    cdouble Mu;        // half-space permeability
 
    double *kBloch;    // point in Brillouin zone
+   bool Accumulate; 
    
    double Workspace[12];
    double qrOffset;
@@ -74,7 +75,8 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
   Data->nCalls++;
 
   int IDim = 18*XMatrix->NR;
-  memset(Integrand, 0, IDim*sizeof(cdouble));
+  if (Data->Accumulate == false)
+   memset(Integrand, 0, IDim*sizeof(cdouble));
 
   // Polar = true --> we have already integrated out 
   //                  q_Theta to yield Bessel functions,
@@ -165,7 +167,7 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
         Sin2    = 0.5*Bracket*yHat*yHat + J1oqRho;
       }
      else
-      qDotRho = q[0]*R[0] * q[1]*R[1];
+      qDotRho = q[0]*R[0] + q[1]*R[1];
      
      MTE[0][0] = Sin2;
      MTE[1][1] = Cos2;
@@ -180,7 +182,7 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      MTM[1][2] = qMag*qz*Sin  / k02;
      MTM[2][1] = -1.0*MTM[1][2];
 
-     cdouble ExpArg = II*qDotRho + II*qz*(XSource[2]+XEval[2]);
+     cdouble ExpArg = II*( qDotRho + qz*(XSource[2]+XEval[2]) );
      if ( fabs(real(ExpArg)) > 40.0 )
       continue;
 
@@ -189,9 +191,9 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
        { Integrand[18*nx + 0*9 + 3*Mu + Nu] 
-          = Factor * (rTE*MTE[Mu][Nu] + rTM*MTM[Mu][Nu]);
+          += Factor * (rTE*MTE[Mu][Nu] + rTM*MTM[Mu][Nu]);
          Integrand[18*nx + 1*9 + 3*Mu + Nu] 
-          = Factor * (rTE*MTE[Mu][Nu] - rTM*MTM[Mu][Nu]);
+          += Factor * (rTM*MTE[Mu][Nu] + rTE*MTM[Mu][Nu]);
        };
 #if 0
      if (LogFile)
@@ -256,6 +258,7 @@ void GetHalfSpaceDGFs_BZ(HMatrix *XMatrix,
   Data->Polar       = false;
   Data->uqTransform = false;
   Data->nCalls      = 0;
+  Data->Accumulate  = true;
  
   Log("Evaluating BZ sum for DGF integrand at kBloch=(%e,%e)...", kBloch[0], kBloch[1]);
   GetLatticeSum(HalfSpaceDGFSummand, (void *)Data, 2*IDim, RLBasis,
@@ -324,7 +327,7 @@ void GetHalfSpaceDGFs_Polar(HMatrix *XMatrix, cdouble Omega,
    { IDimSave = IDim;
      Integral1 = (cdouble *)reallocEC(Integral1, IDim * sizeof(cdouble));
      Integral2 = (cdouble *)reallocEC(Integral2, IDim * sizeof(cdouble));
-     Error      = (cdouble *)reallocEC(Error, IDim * sizeof(cdouble));
+     Error     = (cdouble *)reallocEC(Error, IDim * sizeof(cdouble));
    };
 
   /*--------------------------------------------------------------*/
@@ -338,11 +341,12 @@ void GetHalfSpaceDGFs_Polar(HMatrix *XMatrix, cdouble Omega,
 
   double Lower, Upper;
   HalfSpaceData MyData, *Data=&MyData;
-  Data->XMatrix = XMatrix;
-  Data->Omega   = Omega; 
-  Data->Epsilon = Epsilon;
-  Data->Mu      = Mu;     
-  Data->Polar   = true;
+  Data->XMatrix    = XMatrix;
+  Data->Omega      = Omega; 
+  Data->Epsilon    = Epsilon;
+  Data->Mu         = Mu;     
+  Data->Polar      = true;
+  Data->Accumulate = false;
 
   Lower=0.0;
   Upper=abs(Omega);
@@ -463,7 +467,8 @@ int GetVacuumDGFs(double *XSource, double *XDest,
 #endif
 
 /***************************************************************/
-/***************************************************************/
+/* Compute half-space DGFs by direct methods, i.e. bypassing   */
+/* the Brillouin-zone sum.                                     */
 /***************************************************************/
 void ProcessHalfSpaceDGFs(HVector *OmegaPoints,
                           char **EPFiles, int nEPFiles,
