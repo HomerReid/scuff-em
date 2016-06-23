@@ -331,7 +331,14 @@ $$
 
 In the discretized BEM framework we can write convenient
 vector-matrix-vector product formulas for the scattering parts
-of the electric and magnetic DGFs.
+of the electric and magnetic DGFs. I first derive these for
+the non-periodic case, then discuss the modifications required
+to extend to periodic geometries.
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{The non-periodic case}
 
 \subsection*{VMVP formula for $\bmc G\supt{E}$}
 
@@ -617,10 +624,40 @@ so the scattering part of the magnetic DGF reads
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%\subsection{Vector-Matrix-Vector product formula for LDOS}
-%
-%When we use (\ref{GijEVMVP}) and (\ref{GijHVMVP}) to compute the LDOS,
-%the vectors in the
+%=================================================
+%=================================================
+%=================================================
+\subsection{The periodic case}
+
+In the derivation of equations (\ref{GijEVMVP}) 
+and (\ref{GijHVMVP}), we used the reciprocity of the 
+homogeneous Green's functions, i.e.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \mb K_{ij}(\vb x, \vb y) &= \mb K_{ji}(\vb y, \vb x).
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+For this periodic Green's function this statement takes the 
+modified form
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align*}
+ \overline{\mb K}_{ij}(\vb x, \vb y; \vb k\subt{B}) 
+ &= \overline{\mb K}_{ji}(\vb y, \vb x; -\vb k\subt{B}).
+\end{align*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Thus the periodic version of (\ref{GijEVMVP}) reads
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\numeq{GijEVMVPPeriodic}
+{
+ \overline{\mc G}_{ij}\supt{E}(\vb x\subt{D}, \vb x\subt{S}; \vb k\subt{B})
+= -\frac{1}{ikZ_0^2 Z^r}
+   \Big( \vb r\iD\supt{E}(\vb k\subt{B}) 
+              \cdot \vb W(\vb k\subt{B}) 
+   \cdot \vb r\jS\supt{E}(-\vb k\subt{B})\Big)
+}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+and the periodic version of (\ref{GijHVMVP}) is similar.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
