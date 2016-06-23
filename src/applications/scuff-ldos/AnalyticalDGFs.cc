@@ -268,9 +268,7 @@ void GetHalfSpaceDGFs_BZ(HMatrix *XMatrix,
   int NX = XMatrix->NR;
   for(int nx=0; nx<NX; nx++)
    for(int ng=0; ng<18; ng++)
-    GMatrix->SetEntry(nx, ng, 
-                      BZVolume*Sum[18*nx + ng]/(4.0*M_PI*M_PI)
-                     );
+    GMatrix->SetEntry(nx, ng, BZVolume*Sum[18*nx + ng]);
 }
 
 /***************************************************************/

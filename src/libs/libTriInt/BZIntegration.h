@@ -49,8 +49,15 @@ typedef struct GetBZIArgStruct
   // information on the Brillouin-zone integrand function
   BZIFunction BZIFunc;
   void *UserData;
-  int FDim;         // number of doubles in the integrand vector
-  bool BZSymmetric; // true if f(kx,ky) = f(ky,kx)
+  int FDim;            // number of doubles in the integrand vector
+  int SymmetryFactor;  // either 1, 2, 4, or 8
+
+  // information on the lattice geometry
+  // RLBasis = "reciprocal lattice basis"
+  //         = 3 x D matrix, columns = reciprocal lattice vectors
+  // RLBasis[nc][nd] = ncth cartesian component of ndth RL vector
+  HMatrix *RLBasis;
+  double BZVolume;
 
   // information on the cubature scheme
   int BZIMethod;
@@ -58,14 +65,6 @@ typedef struct GetBZIArgStruct
   int MaxEvals;   // max # integrand samples for adaptive schemes
   double RelTol;  // relative tolerance for adaptive schemes
   double AbsTol;  // adaptive tolerance for adaptive schemes
-  bool Reduced;   // get full BZ integral from reduced BZ integral
-                  //  times 2 (1D) or 4 (2D)
-
-  // RLBasis = "reciprocal lattice basis"
-  //         = 3 x D matrix, columns = reciprocal lattice vectors
-  // RLBasis[nc][nd] = ncth cartesian component of ndth RL vector
-  HMatrix *RLBasis;
-  double BZVolume;
   
   // fields used internally that may be ignored by the caller
   int BZIErrorSize;

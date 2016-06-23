@@ -103,12 +103,22 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   /*--------------------------------------------------------------*/
   /*- precompute 'reduced-field' vectors -------------------------*/
   /*--------------------------------------------------------------*/
-  Log("Fetching RFMatrix...");
+  Log("Fetching RFMatrix for destination point...");
   GetRFMatrix(Omega, kBloch, XMatrix, RFDest);
-  if (TwoPointDGF)
-   GetRFMatrix(Omega, kBloch, XMatrix, RFSource, 3);
-  else
-   RFSource->Copy(RFDest);
+  char *s = (LDim>0) ? getenv("SCUFF_DGF_FIX") : 0;
+  if (s && s[0]=='1')
+   { Log("Fetching RFMatrix for source point...");
+     double mkBloch[3];
+     for(int d=0; d<LDim; d++)
+      mkBloch[d] = -1.0*kBloch[d];
+     GetRFMatrix(Omega, mkBloch, XMatrix, RFSource, TwoPointDGF ? 3 : 0);
+   }
+  else 
+   { if (TwoPointDGF)
+      GetRFMatrix(Omega, kBloch, XMatrix, RFSource, 3);
+     else
+      RFSource->Copy(RFDest);
+   };
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

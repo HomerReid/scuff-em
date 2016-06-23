@@ -274,6 +274,32 @@ Setting $\vb L^\prime=0$ recovers (\ref{BZIntegration}).}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 and similarly for $\mc G\supt{M}.$
 
+\subsection*{Reciprocity of homogeneous Green's functions}
+
+The non-periodic Green's functions $\mb G, \mb C$ 
+satisfy the reciprocity relations
+%====================================================================%
+\begin{align*}
+  \mb K_{ji}(\vb r) = \mb K_{ij}(-\vb r).
+\end{align*}
+%====================================================================%
+($\mb K=\mb G,\mb C$). Their periodic counterparts satisfy
+%====================================================================%
+\begin{align*}
+ \overline{\mb K}_{ji}(\vb r; \vb k\subt{B})
+ &= \sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}
+    \mb K_{ji}(\vb r - \vb L)
+\\
+ &= \sum_{\vb L} e^{i\vb k\subt{B}\cdot \vb L}
+    \mb K_{ij}(-\vb r + \vb L)
+\\
+ &= \sum_{\vb L} e^{-i\vb k\subt{B}\cdot \vb L}
+    \mb K_{ij}(-\vb r - \vb L)
+\\
+ &= \overline{\mb K}_{ij}(-\vb r; -\vb k\subt{B}).
+\end{align*}
+%====================================================================%
+
 \subsection*{Evaluation of BZ integrals}
 
 The {\sc scuff-em} API offers a routine for computing the integrand of
@@ -301,7 +327,7 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
-\section{Vector-Matrix-Vector product formula for dyadic Green's functions}
+\section{Vector-matrix-vector product formula for dyadic Green's functions}
 
 In the discretized BEM framework we can write convenient
 vector-matrix-vector product formulas for the scattering parts
@@ -895,6 +921,264 @@ $$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \newpage
+\section{Analytical formulas for scattering part of
+         DGFs above a homogeneous half space}
+
+For testing purposes it is very convenient to have
+analytical formulas for the DGFs above a half space
+with spatially homogeneous permittivity and permeability 
+$\epsilon,\mu$.\footnote{In compiling these formulas I 
+referred to these references:
+\begin{itemize}
+ \item H. Safari et al., ``Van der Waals potentials of 
+       paramagnetic atoms,'' 
+       \textit{Phys. Rev. A} \textbf{78} 062901 (2008).
+ \item S. Scheel et al., 
+       ``Macroscopic Quantum Electrodynamics---Concepts and 
+       Applications,'' \textit{Acta Physica Slovaca} \textbf{58}
+       675 (2008).
+ \end{itemize}} 
+These formulas are implemented in {\sc scuff-ldos} and
+may be accessed by adding the command-line option
+\texttt{--HalfSpace MyMaterial}
+(where \texttt{MyMaterial} is a {\sc scuff-em} material
+designation like \texttt{Gold} or \texttt{CONST\_EPS\_10+1I}).
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{2D integrals over the entire $\vb q$ plane}
+
+The expressions in this section are actually not useful
+for practical computations (the integrals converge too 
+slowly), but I quote them here as a springboard for the 
+alternative expressions of the following subsections.
+
+%====================================================================%
+\begin{subequations}
+\begin{align}
+\bmc G^{E}(\vbrho, z; \vbrho^\prime, z^\prime)
+&=\int_{\mathbb{R}^2} \wt{\bmc G}\sups{E}(\vb q) \, d \vb q
+\\
+\bmc G^{M}(\vbrho, z; \vbrho^\prime, z^\prime)
+&=\int_{\mathbb{R}^2} \wt{\bmc G}\sups{M}(\vb q) \, d \vb q
+\end{align}
+\label{GEGMHalfSpaceIntegrals2D}
+\end{subequations}
+%====================================================================%
+\begin{subequations}
+\begin{align}
+\wt{\bmc G}\sups{E}(\vb q)
+&=\frac{i}{8\pi^2 q_z}
+  e^{i\vb q \cdot (\vbrho-\vbrho^\prime) - q_z(z+z^\prime)}
+  \Big\{ r\subt{TE} \vb M\supt{TE} + r\subt{TM} \vb M\supt{TM} \Big\}
+\\[5pt]
+\wt{\bmc G}\sups{M}(\vb q)
+&=\frac{i}{8\pi^2 q_z}
+  e^{i\vb q \cdot (\vbrho-\vbrho^\prime) - q_z(z+z^\prime)}
+  \Big\{ r\subt{TM} \vb M\supt{TE} + r\subt{TE} \vb M\supt{TM} \Big\}
+\end{align}
+\label{GEGMHalfSpaceIntegrands2D}
+\end{subequations}
+%====================================================================%
+\begin{align*}
+ \vb M\supt{TE}
+&\equiv
+ \left(\begin{array}{c}
+ -\wh{q}_y \\ \wh{q}_x \\ 0 
+ \end{array}\right)
+%--------------------------------------------------------------------%
+ \left(\begin{array}{c}
+ -\wh{q}_y \\ \wh{q}_x \\ 0 
+ \end{array}\right)^T
+\\
+%====================================================================%
+&=\left(\begin{array}{ccc}
+  \sin^2 \theta & -\cos\theta \sin\theta & 0 \\
+  -\cos\theta \sin\theta & \cos^2 \theta & 0 \\
+  0 & 0 & 0 
+  \end{array}\right)
+\\[5pt]
+%--------------------------------------------------------------------%
+ \vb M\supt{TM}
+&\equiv
+ \frac{1}{k_0^2}
+ \left(\begin{array}{c}
+  -q_z \wh{q}_x \\
+  -q_z \wh{q}_y \\
+   q   
+ \end{array}\right)
+ \left(\begin{array}{c}
+  -q_z \wh{q}_x \\
+  -q_z \wh{q}_y \\
+   q   
+ \end{array}\right)^T
+\\
+%--------------------------------------------------------------------%
+&= \frac{1}{k_0^2}
+  \left(\begin{array}{ccc}
+  q_z^2 \cos^2 \theta          & q_z^2 \sin\theta \cos\theta & -q q_z \cos\theta \\
+  q_z^2 \sin \theta \cos\theta & q_z^2 \sin^2\theta          & -q q_z \sin\theta \\
+  -q q_z \cos\theta            & -q q_z \sin\theta           & q^2
+  \end{array}\right)
+\end{align*}
+%====================================================================%
+
+%====================================================================%
+$$ q \equiv |\vb q|,
+   \qquad 
+   q_z        \equiv \sqrt{ q^2 - k^2 },
+   \qquad
+   q_z^\prime \equiv \sqrt{ q^2 - \epsilon \mu k^2},
+$$
+$$
+   r\subt{TE} \equiv \frac{\mu q_z - q_z^\prime}{\mu q_z + q_z^\prime},
+   \qquad
+   r\subt{TM} \equiv \frac{\epsilon q_z - q_z^\prime}{\epsilon q_z + q_z^\prime}.
+$$
+%====================================================================%
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{2D integrals over the Brillouin zone}
+
+For comparison with {\sc scuff-ldos} it is convenient
+to recast the infinite 2D integrals in (\ref{GEGMHalfSpaceIntegrals2D})
+as integrals over a Brillouin zone:\footnote{Since the geometry
+in question has continuous translational symmetry, this can be
+the Brillouin zone for \textit{any} lattice we like. In 
+{\sc scuff-ldos} the lattice is defined by the geometry 
+in the \texttt{.scuffgeo} file. This is why the 
+\texttt{--geometry} command-line option must be specified 
+for \texttt{--HalfSpace} calculations, even though the 
+discretized geometry is otherwise not referenced.}
+
+%====================================================================%
+\begin{subequations}
+\begin{align}
+\bmc G^{E}(\vbrho, z; \vbrho^\prime, z^\prime)
+&=\int\subs{BZ} \wh{\bmc G}\sups{E}(\vb q) \, d \vb q
+\\
+\bmc G^{M}(\vbrho, z; \vbrho^\prime, z^\prime)
+&=\int\subs{BZ} \wh{\bmc G}\sups{M}(\vb q) \, d \vb q
+\end{align}
+\label{GEGMHalfSpaceIntegralsBZ}
+\end{subequations}
+%====================================================================%
+\begin{subequations}
+\begin{align}
+\wh{\bmc G}\sups{E}(\vb k\subt{B})
+&=\sum_{\vbGamma} \wt{\bmc {G}}\sups{E}(\vb k\subt{B} + \vbGamma), 
+\\
+\wh{\bmc G}\sups{M}(\vb k\subt{B})
+&=\sum_{\vbGamma} \wt{\bmc {G}}\sups{M}(\vb k\subt{B} + \vbGamma)
+\end{align}
+\label{GEGMHalfSpaceIntegrandsBZ}%
+\end{subequations}
+%====================================================================%
+The quantities $\wh{\bmc G}(\vb k\subt{B})$ may be directly
+compared to the Brillouin-zone integrand values reported
+by {\sc scuff-ldos} in the \texttt{.byOmegakBloch} output file.
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{1D integrals over $|\vb q|$}
+
+The Brillouin-zone-resolved integrand values of the 
+previous section are useful for checking the 
+predictions of {\sc scuff-ldos} for individual 
+Brillouin-zone points. However, if our goal is actually
+to evaluate the full $\vb q$ integrals to get the
+total DGFs at a given frequency, it is more efficient
+instead to write the $\vb q$-plane integrals
+(\ref{GEGMHalfSpaceIntegrals2D})
+in polar coordinates and integrate out the angular
+variable, leaving a 1D integral over the radial variable.
+This is effected by using the following table of integrals:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$$
+ \int_0^{2\pi} e^{i(qx\cos\theta  + qy\cos\theta)} 
+ \left\{\begin{array}{c}
+ 1 \\[5pt]
+ \cos\theta \\[5pt]
+ \sin\theta \\[5pt]
+ \cos^2\theta \\[5pt]
+ \cos\theta \sin\theta \\[5pt]
+ \sin^2\theta \\
+ \end{array}\right\}
+%--------------------------------------------------------------------%
+= 2\pi \left\{ \begin{array}{c}
+    J_0 (q\rho)         \\[5pt]
+    i J_1(q\rho) \wh{x} \\[5pt]
+    i J_1(q\rho) \wh{y} \\[5pt]
+    \left[J_0(q\rho) - \frac{2}{q\rho} J_1(q\rho) - J_2(q\rho)\right]\frac{\wh x^2}{2} 
+    + \frac{J_1(q\rho)}{q\rho} \\[5pt]
+    \left[J_0(q\rho) - \frac{2}{q\rho} J_1(q\rho) - J_2(q\rho)\right]\frac{\wh x \wh y}{2}
+    \\[5pt]
+    \left[J_0(q\rho) - \frac{2}{q\rho} J_1(q\rho) - J_2(q\rho)\right]\frac{\wh y^2}{2} 
+    + \frac{J_1(q\rho)}{q\rho}
+  \end{array}\right\}
+$$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+the 2D integrals (\ref{GEGMHalfSpaceIntegrals2D}) can be reduced to 1D integrals:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{align}
+ \bmc G\supt{E}
+&=\frac{i}{4\pi} \int_0^\infty \frac{qdq}{q_z} e^{-q_z(z+z^\prime)}
+  \left\{ r\subt{TE} \wt{\vb M}\supt{TE}
+         +r\subt{TM} \wt{\vb M}\supt{TM}
+  \right\}
+\\
+ \bmc G\supt{E}
+&=\frac{i}{4\pi} \int_0^\infty \frac{qdq}{q_z} e^{-q_z(z+z^\prime)}
+  \left\{ r\subt{TM} \wt{\vb M}\supt{TE}
+         +r\subt{TE} \wt{\vb M}\supt{TM}
+  \right\}
+\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+where $\wt{\vb M}$ is the matrix $\vb M$ defined above
+with all $\theta$ factors replaced by the corresponding
+entry in the Bessel-function table above.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{Rewriting infinite 2D $\vb k$-integrals as Brillouin-zone integrals}
+\label{RewritingAppendix}
+
+One frequently encounters quantities expressed as infinite 
+$\vb q-$space integrals, i.e. integrals over a two-dimensional
+wavevector $\vb q$ that ranges over all of $\mathbb{R}_2$:
+%====================================================================%
+\begin{align*}
+ I&= \int_{\mathbb{R}^2} d^2 \vb q \, Q(\vb q).
+\intertext{Examples include equations (\ref{GEGMHalfSpaceIntegrals2D}).
+To rewrite such integrals in a form 
+that facilitates comparison with {\sc scuff-ldos} calculations,
+it is convenient to recast them as Brillouin-zone
+integrations:}
+%====================================================================%
+ I &= \int\subt{BZ} d^2 \vb k\subt{B} \, \overline{Q}(\vb k\subt{B}),
+\intertext{where $\overline{Q}(\vb k\subt{B})$ is the sum of the integrand
+function $Q(\vb q)$ evaluated at $\vb k\subt{B}$ 
+and all images of $\vb k\subt{B}$
+under translation by reciprocal-lattice vectors:}
+\overline{Q}(\vb k\subt{B})&=
+\sum_{n_1=-\infty}^\infty
+\sum_{n_2=-\infty}^\infty Q\big (\vb k\subt{B} + n_1\vbGamma_1 + n_2\vbGamma_2\big)
+\end{align*}
+where $\vbGamma_1, \vbGamma_2$ are a basis for the reciprocal lattice.
+(We have here considered the 2D-periodic case, but the 1D-periodic
+case is similar).
+\end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
 \newcommand{\EE}{\mathbb{E}}
 \section{Analytical expressions for the dyadic Green's functions of a dielectric 
          half-space}
@@ -1316,146 +1600,6 @@ $
     \bigg\}e^{i\vb k \cdot \vbrho +2ik_z z}.
 }
 %====================================================================%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{Alternative analytical expression for scattering part of
-         DGF above a half-space}
-
-%====================================================================%
-\begin{align*}
-\bmc G^{E}(\vbrho, z; \vbrho^\prime, z^\prime)
-&=\frac{i}{2}\int \frac{d^2 q}{(2\pi)^2 q_z}
-  e^{i\vb q \cdot (\vbrho-\vbrho^\prime) - q_z(z+z^\prime)}
-  \Big\{ r\subt{TE} \vb M\supt{TE} - r\subt{TM} \vb M\supt{TM} \Big\}
-\\[5pt]
-%====================================================================%
- \vb M\supt{TE}
-&\equiv
- \left(\begin{array}{c}
- -\wh{q}_y \\ \wh{q}_x \\ 0 
- \end{array}\right)
-%--------------------------------------------------------------------%
- \left(\begin{array}{c}
- -\wh{q}_y \\ \wh{q}_x \\ 0 
- \end{array}\right)^T
-\\
-%====================================================================%
-&=\left(\begin{array}{ccc}
-  \sin^2 \theta & -\cos\theta \sin\theta & 0 \\
-  -\cos\theta \sin\theta & \cos^2 \theta & 0 \\
-  0 & 0 & 0 
-  \end{array}\right)
-\\[5pt]
-%--------------------------------------------------------------------%
- \vb M\supt{TM}
-&\equiv
- \frac{1}{k_0^2}
- \left(\begin{array}{c}
-  -q_z \wh{q}_x \\
-  -q_z \wh{q}_y \\
-   q   
- \end{array}\right)
- \left(\begin{array}{c}
-  -q_z \wh{q}_x \\
-  -q_z \wh{q}_y \\
-   q   
- \end{array}\right)^T
-%--------------------------------------------------------------------%
-= \frac{1}{k_0^2}
-  \left(\begin{array}{ccc}
-  q_z^2 \cos^2 \theta          & q_z^2 \sin\theta \cos\theta & -q q_z \cos\theta \\
-  q_z^2 \sin \theta \cos\theta & q_z^2 \sin^2\theta          & -q q_z \sin\theta \\
-  -q q_z \cos\theta            & -q q_z \sin\theta           & q^2
-  \end{array}\right)
-\end{align*}
-%====================================================================%
-
-%====================================================================%
-$$ q \equiv |\vb q|,
-   \quad 
-   q_z        \equiv \sqrt{ q^2 - k^2 },
-   \quad
-   q_z^\prime \equiv \sqrt{ q^2 - k^{\prime 2}},
-$$
-$$
-   r\subt{TE} \equiv \frac{\mu q_z - q_z^\prime}{\mu q_z + q_z^\prime},
-   \quad
-   r\subt{TM} \equiv \frac{\epsilon q_z - q_z^\prime}{\epsilon q_z + q_z^\prime}.
-$$
-%====================================================================%
-
-By using the following table of integrals:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- \int_0^{2\pi} e^{i(qx\cos\theta  + qy\cos\theta)} 
- \left\{\begin{array}{c}
- 1 \\[5pt]
- \cos\theta \\[5pt]
- \sin\theta \\[5pt]
- \cos^2\theta \\[5pt]
- \cos\theta \sin\theta \\[5pt]
- \sin^2\theta \\
- \end{array}\right\}
-%--------------------------------------------------------------------%
-= 2\pi \left\{ \begin{array}{c}
-    J_0 (q\rho)         \\[5pt]
-    i J_1(q\rho) \wh{x} \\[5pt]
-    i J_1(q\rho) \wh{y} \\[5pt]
-    \left[J_0(q\rho) - \frac{2}{q\rho} J_1(q\rho) - J_2(q\rho)\right]\frac{\wh x^2}{2} 
-    + \frac{J_1(q\rho)}{q\rho} \\[5pt]
-    \left[J_0(q\rho) - \frac{2}{q\rho} J_1(q\rho) - J_2(q\rho)\right]\frac{\wh x \wh y}{2}
-    \\[5pt]
-    \left[J_0(q\rho) - \frac{2}{q\rho} J_1(q\rho) - J_2(q\rho)\right]\frac{\wh y^2}{2} 
-    + \frac{J_1(q\rho)}{q\rho}
-  \end{array}\right\}
-\end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-the integral defining $\mc G\supt{E}$ can be reduced to a 1D integral:
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{align*}
- \bmc G\supt{E}
-&=\frac{i}{4\pi} \int_0^\infty \frac{qdq}{q_z} e^{-q_z(z+z^\prime)}
-  \left\{ r\subt{TE} \wt{\vb M}\supt{TE}
-         -r\subt{TM} \wt{\vb M}\supt{TM}
-  \right\}
-\end{align*}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{Rewriting infinite 2D $\vb k$-integrals as Brillouin-zone integrals}
-\label{RewritingAppendix}
-
-One frequently encounters quantities expressed as infinite 
-$\vb k-$space integrals, i.e. integrals over a two-dimensional
-wavevector $\vb k$ that ranges over all of $\mathbb{R}_2$:
-%====================================================================%
-$$ I = \int_{\mathbb{R}^2} \frac{d^2 \vb k}{(2\pi)^2} Q(\vb k). $$
-%====================================================================%
-Examples include equations (\ref{GCInfiniteKIntegrals}) and 
-To rewrite such integrals in a form 
-that facilitates comparison with {\sc scuff-ldos} calculations,
-it is convenient to recast such integrals as Brillouin-zone
-integrations:
-%====================================================================%
-\begin{align*}
- I &= \int\subt{BZ} \frac{d^2 \vb k}{(2\pi)^2} \overline{Q}(\vb k),
-\intertext{where $\overline{Q}(\vb k)$ is the sum of the integrand
-function $Q(\vb k)$ evaluated at $\vb k$ and all images of $\vb k$
-under translation by reciprocal-lattice vectors}
-\overline{Q}(\vb x)&=
-\sum_{n_1=-\infty}^\infty
-\sum_{n_2=-\infty}^\infty Q\big (\vb k + n_1\vbGamma_1 + n_2\vbGamma_2\big)
-\end{align*}
-where $\vbGamma_1, \vbGamma_2$ are a basis for the reciprocal lattice.
-(We have here considered the 2D-periodic case, but the 1D-periodic
-case is similar).
-\end{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
