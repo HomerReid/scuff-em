@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 /**/
   char *FileBase=0;
   bool LDOSOnly=false;
-  bool ScatteringOnly=false;
+  bool FullTPDGF=false;
 /**/
   /* name        type    #args  max_instances  storage    count  description*/
   OptStruct OSArray[]=
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 //
      {"FileBase",    PA_STRING,  1, 1, (void *)&FileBase,      0,  "base name for output files"},
      {"LDOSOnly",    PA_BOOL,    0, 1, (void *)&LDOSOnly,      0,  "omit DGF components from Brillouin-zone integration"},
-     {"ScatteringOnly", PA_BOOL, 0, 1, (void *)&ScatteringOnly,0,  "compute only scattering part of two-point DGF"},
+     {"FullTPDGF",   PA_BOOL,    0, 1, (void *)&FullTPDGF,     0,  "compute full (bare+scattered) two-point DGF (default is scattering part only)"},
      {0,0,0,0,0,0,0}
    };
   ProcessOptions(argc, argv, OSArray);
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
   Data->MaxEvals    = MaxEvals;
   Data->FileBase    = FileBase;
   Data->LDOSOnly    = LDOSOnly;
-  Data->ScatteringOnly = ScatteringOnly;
+  Data->ScatteringOnly = !FullTPDGF;
   Data->GroundPlane = GroundPlane;
   Data->HalfSpaceMP = HalfSpace ? new MatProp(HalfSpace) : 0;
 
@@ -216,10 +216,9 @@ int main(int argc, char *argv[])
       { 
         Omega=OkBPoints->GetEntry(nokb,0);
 
-        double kBloch[2];
-        kBloch[0]=OkBPoints->GetEntryD(nokb,1);
-        if (LDim==2)
-         kBloch[1]=OkBPoints->GetEntryD(nokb,2);
+        double kBloch[3]={0.0, 0.0, 0.0};
+        for(int d=0; d<LDim; d++)
+         kBloch[d]=OkBPoints->GetEntryD(nokb,1+d);
 
         GetLDOS( (void *)Data, Omega, kBloch, Result);
       };
