@@ -551,3 +551,50 @@ void ProcessHalfSpaceDGFs(HVector *OmegaPoints,
    };
 
 }
+
+/***************************************************************/
+/* data structure containing everything needed to evaluate the */
+/* integrand of the cylinder DGF integral                      */
+/***************************************************************/
+typedef struct CylinderData
+ {
+   HMatrix *XMatrix;
+   cdouble Omega;          // angular frequency
+   cdouble EpsOut, MuOut;  // outer material properties
+   cdouble EpsIn,  MuIn;   // outer material properties
+
+   double kx;              // (one-dimensional) bloch vector
+   bool Accumulate; 
+   
+   bool hTransform;
+   double hOffset;
+
+   int nCalls;
+
+ } CylinderData;
+
+/***************************************************************/
+/* Integrand[ 2*nx + 0 ] = G^E_{transverse}                    */
+/* Integrand[ 2*nx + 1 ] = G^E_{axial direction}               */
+/***************************************************************/
+void CylinderDGFIntegrand(const double h, CylinderData *Data,
+                          cdouble *Integrand)
+{
+  HMatrix *XMatrix = Data->XMatrix;
+  cdouble Omega    = Data->Omega;
+  cdouble EpsOut   = Data->EpsOut;
+  cdouble EpsIn    = Data->EpsIn;
+  cdouble MuOut    = Data->MuOut; 
+  cdouble MuIn     = Data->MuIn;   
+  double kx        = Data->kx;
+  bool Accumulate  = Data->Accumulate;
+
+  Data->nCalls++;
+
+  int IDim = 2*XMatrix->NR;
+  if (Data->Accumulate == false)
+   memset(Integrand, 0, IDim*sizeof(cdouble));
+
+
+
+}
