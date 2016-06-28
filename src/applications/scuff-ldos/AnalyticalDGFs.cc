@@ -134,20 +134,20 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
   cdouble MTE[3][3], MTM[3][3];
   MTE[0][2] = MTE[1][2] = MTE[2][0] = MTE[2][1] = MTE[2][2] = 0.0;
 
-  bool TwoPointDGF = (XMatrix->NC==6);
+  bool TwoPointDGF = (XMatrix->NC>=6);
 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
   for(int nx=0; nx<XMatrix->NR; nx++)
    { 
-     double XSource[3], XEvalBuffer[3];
-     double *XEval = (TwoPointDGF) ? XEvalBuffer : XSource;
-     XMatrix->GetEntriesD(nx,"0:2",XSource);
+     double XDest[3], XSourceBuffer[3];
+     double *XSource = (TwoPointDGF) ? XSourceBuffer : XDest;
+     XMatrix->GetEntriesD(nx,"0:2",XDest);
      if (TwoPointDGF)
-      XMatrix->GetEntriesD(nx,"3:5",XEval);
+      XMatrix->GetEntriesD(nx,"3:5",XSource);
      double R[3];
-     VecSub(XSource, XEval, R);
+     VecSub(XDest, XSource, R);
      double Rho=sqrt( R[0]*R[0] + R[1]*R[1] );
      double xHat = (Rho==0.0) ? 1.0 : R[0] / Rho;
      double yHat = (Rho==0.0) ? 0.0 : R[1] / Rho;
@@ -182,7 +182,7 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      MTM[1][2] = qMag*qz*Sin  / k02;
      MTM[2][1] = -1.0*MTM[1][2];
 
-     cdouble ExpArg = II*( qDotRho + qz*(XSource[2]+XEval[2]) );
+     cdouble ExpArg = II*( qDotRho + qz*(XSource[2]+XDest[2]) );
      if ( fabs(real(ExpArg)) > 40.0 )
       continue;
 
@@ -392,17 +392,17 @@ void GetGroundPlaneDGFs(HMatrix *XMatrix,
      PS.SetkBloch(kBloch);
    };
 
-  bool TwoPointDGF = (XMatrix->NC == 6);
+  bool TwoPointDGF = (XMatrix->NC >= 6);
 
   int NX = XMatrix->NR;
   for(int nx=0; nx<NX; nx++)
    { 
-     double XSource[3], XEval[3];
-     XMatrix->GetEntriesD(nx, "0:2", XSource);
+     double XDest[3], XSource[3];
+     XMatrix->GetEntriesD(nx, "0:2", XDest);
      if (TwoPointDGF)
-      XMatrix->GetEntriesD(nx, "3:5", XEval);
+      XMatrix->GetEntriesD(nx, "3:5", XSource);
      else
-      XMatrix->GetEntriesD(nx, "0:2", XEval);
+      XMatrix->GetEntriesD(nx, "0:2", XSource);
      XSource[2]*=-1.0;
      PS.SetX0(XSource);
 
@@ -417,14 +417,14 @@ void GetGroundPlaneDGFs(HMatrix *XMatrix,
         P[Nu] = (Nu==2) ? 1.0 : -1.0;
         PS.SetP(P);
         PS.SetType(LIF_ELECTRIC_DIPOLE);
-        PS.GetFields(XEval, EH);
+        PS.GetFields(XDest, EH);
         for(int Mu=0; Mu<3; Mu++)
          GMatrix->SetEntry(nx, 0*9 + 3*Mu + Nu, EH[Mu] / (Omega*Omega));
 
         P[Nu] *= -1.0;
         PS.SetP(P);
         PS.SetType(LIF_MAGNETIC_DIPOLE);
-        PS.GetFields(XEval, EH);
+        PS.GetFields(XDest, EH);
         for(int Mu=0; Mu<3; Mu++)
          GMatrix->SetEntry(nx, 1*9 + 3*Mu + Nu, EH[3+Mu] / (Omega*Omega));
       };

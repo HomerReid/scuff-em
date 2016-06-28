@@ -33,6 +33,7 @@
 #define BZI_CC       1
 #define BZI_TC       2
 #define BZI_ADAPTIVE 3
+#define BZI_RADIAL   4
 
 /***************************************************************/
 /***************************************************************/
@@ -67,6 +68,7 @@ typedef struct GetBZIArgStruct
   double AbsTol;  // adaptive tolerance for adaptive schemes
   
   // fields used internally that may be ignored by the caller
+  double kRho;
   int BZIErrorSize;
   cdouble Omega;
 

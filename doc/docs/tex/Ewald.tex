@@ -410,12 +410,9 @@ that enters (\ref{RealSpaceSum2D}) as
  &=
  \frac{1}{2\pi L_{0x} L_{0y}}
  e^{i(p_x- \frac{\nu_x}{L_{0x}})x + i(p_y-\frac{\nu_y}{L_{0y}})y}
- \texttt{PH}\Big( \frac{1}{2\eta}, 
-                  \sqrt{k^2 - (p_x-\frac{\nu_x}{L_{0x}})^2
+ \texttt{PH}\Big( \sqrt{k^2 - (p_x-\frac{\nu_x}{L_{0x}})^2
                             - (p_y-\frac{\nu_y}{L_{0y}})^2 
-                       },
-                  \frac{z}{2}
-            \Big)
+                       }, z, \frac{1}{2\eta} \Big)
 \end{align*}
 %====================================================================%
 and hence the sum that defines the distant contribution to the
@@ -427,10 +424,9 @@ reads
 \\
 &=\frac{2\pi}{L_{0x} L_{0y}} \sum_{m_x, m_y}
     e^{i (p_x - m_x\Gamma_{0x}) x + (p_y-m_y \Gamma_{0y}) y}
-    \texttt{PH}\left( \frac{1}{2\eta}, 
-                      \sqrt{k^2 + (p_x-m_x \Gamma_{0x})^2 + (p_y-m_y\Gamma_{0y})^2},
-                      \frac{z}{2}
-               \right)
+ \texttt{PH}\Big( \sqrt{k^2 - (p_x-\frac{\nu_x}{L_{0x}})^2
+                            - (p_y-\frac{\nu_y}{L_{0y}})^2 
+                       }, z, \frac{1}{2\eta}\Big)
 \end{align*}
 %====================================================================%
 where $\{\Gamma_{0x}, \Gamma_{0y}\}=\left\{\frac{2\pi}{L_{0x}}, \frac{2\pi}{L_{0y}}\right\}$.
@@ -441,9 +437,8 @@ I could alternatively write this equation as a sum over all
    \GB\sups{distant}(\vb p; \vb x) 
    =\frac{1}{2\pi}\mc V_{BZ} \sum_{\vbGamma} 
     e^{i (\vb p - \vbGamma) \cdot \vb x} \,
-    \texttt{PH}\left( \frac{1}{2\eta}, 
-                      \sqrt{k^2 + |\vb p - \vbGamma|^2},
-                      \frac{z}{2}
+    \texttt{PH}\left( \sqrt{k^2 + |\vb p - \vbGamma|^2},
+                      z, \frac{1}{2\eta}
                \right)
 }
 where $\mc V_{BZ}$ is the volume (really the area since we 
@@ -493,15 +488,15 @@ where
      \int_{\mc C_1} \, \frac{du}{u} \, e^{-u^2 \rho^2 + (k^2-k_x^2)/(4u^2)}.
 \nonumber
 \intertext{Now put $k_t^2=k_x^2-k^2$ and change variables to 
-           $t=\eta/u^2$, $dt=-2t du/u$:}
+           $t=\eta^2/u^2$, $dt=-2t du/u$:}
    &=\frac{1}{8\pi^2}
      \int_{1}^\infty \, \frac{dv}{v} \, 
-      e^{-\frac{k_t^2}{4\eta^2} - \frac{ \rho^2 \eta^2}{4t} }
+      e^{-\frac{k_t^2}{4\eta^2}t - \frac{ \rho^2 \eta^2}{4t} }
 \nonumber
 \intertext{Series-expand the quantity $e^{-(\rho^2 \eta^2)/4t}:$}
    &=\frac{1}{8\pi^2} \sum_{q=0}^\infty \frac{1}{q!}
      \left(-\frac{\rho^2 \eta^2}{4}\right)^{q}
-    \underbrace{\int_1^\infty \, \frac{dt}{t^{1+q}} \, e^{-\frac{k_t^2}{4\eta^2}}}
+    \underbrace{\int_1^\infty \, \frac{dt}{t^{1+q}} \, e^{-\frac{k_t^2}{4\eta^2}t}}
               _{\text{E}_{1+q}\pf{k_t^2}{4\eta^2}}
 \nn
    &=\frac{1}{8\pi^2} \sum_{q=0}^\infty \frac{1}{q!}
@@ -676,7 +671,7 @@ where $\vb x=(x,y)$, $\vb k=(k_x, k_y)$, and
      e^{-(k^2 - |\vb k|^2)s^2 + z^2/(4s^2)}\,ds
 \\
   &= \frac{1}{2\pi} 
-     \texttt{PH}\Big(\frac{1}{2\eta}, i\sqrt{k^2-|\vb k|^2}, \frac{z}{2}\Big).
+    \texttt{PH}\Big( i\sqrt{k^2-|\vb k|^2}, z, \frac{1}{2\eta}\Big).
 \end{align*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -844,17 +839,15 @@ $$ \gamma > \frac{\pi}{4} - \text{arg }k.$$
 \subsection*{Short-ranged Helmholtz kernel}
 
 \begin{align}
-  \texttt{PH}(\eta,r,k)
+  \texttt{PH}(r,k,\eta)
   &\equiv
   \frac{1}{2\pi^{3/2}}
   \int_{\mc C_2} e^{ ir^2 u^2 + i\frac{k^2}{4u^2}}\, du
 \nn
   &=
    \frac{1}{8\pi r}
-     \Bigg\{ e^{ ikr} \erfc\left[  \eta r
-                                 +i\frac{k}{2\eta}\right]
-            +e^{-ikr} \erfc\left[  \eta r 
-                                 -i\frac{k}{2\eta}\right]
+     \Bigg\{ e^{ ikr} \erfc\left[ \eta r + i\frac{k}{2\eta} \right]
+            +e^{-ikr} \erfc\left[ \eta r - i\frac{k}{2\eta} \right]
      \Bigg\}
   \label{PHDefinition}
 \end{align}
@@ -862,8 +855,52 @@ $$ \gamma > \frac{\pi}{4} - \text{arg }k.$$
 (Here $\mc C_2$ is the portion of the contour that 
 covers the real-axis interval $[\eta,\infty]$.)
 I call this function the ``partial Helmholtz'' function 
-because $\texttt{PH}(\eta, r, k)$ is a sort of partial
+because $\texttt{PH}(r, k, \eta)$ is a sort of partial
 version of the Helmholtz kernel $e^{ikr}/(4\pi r).$
+
+\subsection{The \texttt{EEF} functions}
+
+The thing in curly brackets above may be written in the form
+%====================================================================%
+$$ \{ \cdot \} = \texttt{EEF}(r,k,\eta) $$
+%====================================================================%
+
+%====================================================================%
+\begin{align*}
+ \texttt{EEF}(\alpha,\beta,\eta)
+&\equiv \underbrace{e^{i\alpha\beta}  \erfc\left[ \eta \alpha + \frac{i\beta}{2\eta} \right]}_{T^+}
+       +\underbrace{e^{-i\alpha\beta} \erfc\left[ \eta \alpha - \frac{i\beta}{2\eta} \right]}_{T^-}
+\intertext{The $\alpha$ derivatives of this object are}
+\partial_\alpha \texttt{EEF}(\alpha,\beta,\eta)
+ &= i\beta(T^+ - T^-) - \frac{4\eta}{\sqrt\pi}
+    e^{-\eta^2 \alpha^2 + \frac{\beta^2}{4\eta^2}}
+\\ 
+\partial^2_\alpha \texttt{EEF}(\alpha,\beta,\eta)
+ &= -\beta^2(T^+ + T^-) + \frac{8\eta^3 \alpha }{\sqrt \pi}
+    e^{-\eta^2 \alpha^2 + \frac{\beta^2}{4\eta^2}}
+\\
+\partial^3_\alpha \texttt{EEF}(\alpha,\beta,\eta)
+ &= -i\beta^3(T^+ - T^-) 
+    - \frac{4\eta}{\sqrt\pi}
+      \Big(4\eta^4 \alpha^2 - 2\eta^2 - \beta^2\Big) 
+      e^{-\eta^2 \alpha^2 + \frac{\beta^2}{4\eta^2}}
+\end{align*}
+%====================================================================%
+The $\beta$ derivatives are
+\begin{align*}
+\partial_\beta \texttt{EEF}(\alpha,\beta,\eta)
+ &= i\alpha(T^+ - T^-)
+\\ 
+\partial^2_\beta \texttt{EEF}(\alpha,\beta,\eta)
+ &= -\alpha^2(T^+ + T^-) 
+     +\frac{2\alpha }{\eta \sqrt \pi}
+      e^{-\eta^2 r^2 - \frac{Q^2}{4\eta^2}}
+\\
+\partial^3_\beta \texttt{EEF}(\alpha,\beta,\eta)
+ &= -i\alpha^3 (T^+ - T^-) 
+    - \frac{\alpha\beta}{\eta^3 \sqrt\pi}
+      e^{-\eta^2 r^2 - \frac{Q^2}{4\eta^2}}.
+\end{align*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -999,6 +1036,11 @@ $$Q_m \equiv p_x - \frac{2m\pi}{L_{0x}}, \qquad \rho=\sqrt{x^2 + y^2}.$$
  &=\frac{2\pi}{L_{0x}} \pf{z}{\rho} \sum_{m} e^{i Q_m x}
    \partial_\rho \wt{G\sups{long}}\Big( Q_m; \rho\Big)
 \\
+ \partial_x \partial_x
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \pf{y}{\rho} \sum_{m} -Q_m^2 e^{i Q_m x}
+   \partial_\rho \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\\
  \partial_x \partial_y
   \overline{G}\sups{distant}(\vb p, \vb x) 
  &=\frac{2\pi}{L_{0x}} \pf{y}{\rho} \sum_{m} (iQ_m) e^{i Q_m x}
@@ -1009,11 +1051,25 @@ $$Q_m \equiv p_x - \frac{2m\pi}{L_{0x}}, \qquad \rho=\sqrt{x^2 + y^2}.$$
  &=\frac{2\pi}{L_{0x}} \pf{z}{\rho} \sum_{m} (iQ_m) e^{i Q_m x}
    \partial_\rho \wt{G\sups{long}}\Big( Q_m; \rho\Big)
 \\
+ \partial_y \partial_y
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \sum_{m} e^{i Q_m x}
+   \left\{ \frac{z^2}{\rho^3} \partial_\rho
+          +\frac{y^2}{\rho^2} \partial_\rho^2\right\} 
+                 \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\\
  \partial_y \partial_z
   \overline{G}\sups{distant}(\vb p, \vb x) 
  &=\frac{2\pi}{L_{0x}} \pf{yz}{\rho^2} \sum_{m} e^{i Q_m x}
    \Big( \partial^2_{\rho\rho} -\frac{1}{\rho}\partial_\rho\Big)
    \wt{G\sups{long}}\Big( Q_m; \rho\Big)
+\\
+ \partial_z \partial_z
+  \overline{G}\sups{distant}(\vb p, \vb x) 
+ &=\frac{2\pi}{L_{0x}} \sum_{m} e^{i Q_m x}
+   \left\{ \frac{y^2}{\rho^3} \partial_\rho
+          +\frac{z^2}{\rho^2} \partial_\rho^2\right\} 
+                 \wt{G\sups{long}}\Big( Q_m; \rho\Big)
 \\
  \partial_x \partial_y \partial_z
   \overline{G}\sups{distant}(\vb p, \vb x) 

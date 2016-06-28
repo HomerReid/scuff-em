@@ -57,7 +57,7 @@ namespace scuff {
 /***************************************************************/
 HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
                                    HMatrix *XMatrix, HMatrix *M,
-                                   HMatrix *GMatrix, 
+                                   HMatrix *GMatrix,
                                    bool ScatteringOnly)
 { 
   int NBF = TotalBFs;
@@ -105,20 +105,10 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   /*--------------------------------------------------------------*/
   Log("Fetching RFMatrix for destination point...");
   GetRFMatrix(Omega, kBloch, XMatrix, RFDest);
-  char *s = (LDim>0) ? getenv("SCUFF_DGF_FIX") : 0;
-  if (s && s[0]=='1')
-   { Log("Fetching RFMatrix for source point...");
-     double mkBloch[3]={0.0,0.0,0.0};
-     for(int d=0; d<LDim; d++)
-      mkBloch[d] = -1.0*kBloch[d];
-     GetRFMatrix(Omega, mkBloch, XMatrix, RFSource, TwoPointDGF ? 3 : 0);
-   }
-  else 
-   { if (TwoPointDGF)
-      GetRFMatrix(Omega, kBloch, XMatrix, RFSource, 3);
-     else
-      RFSource->Copy(RFDest);
-   };
+  if (TwoPointDGF)
+   GetRFMatrix(Omega, kBloch, XMatrix, RFSource, 3);
+  else
+   RFSource->Copy(RFDest);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

@@ -251,7 +251,11 @@ void PointSource::GetFields_Periodic(const double X[3], cdouble EH[6])
   else
    { 
      cdouble PreFac1 = k*k/Mu;
-     cdouble PreFac2 = II*Omega/ZVAC;
+     cdouble PreFac2 = II*Omega*ZVAC;
+
+     EH[0*3 + 0] = -PreFac2 * (P[1]*dG[2] - P[2]*dG[1]);
+     EH[0*3 + 1] = -PreFac2 * (P[2]*dG[0] - P[0]*dG[2]);
+     EH[0*3 + 2] = -PreFac2 * (P[0]*dG[1] - P[1]*dG[0]);
 
      EH[1*3 + 0 ]
       = PreFac1 * (G*P[0] + (ddG[0][0]*P[0]+ddG[0][1]*P[1]+ddG[0][2]*P[2])/k2 );
@@ -259,10 +263,6 @@ void PointSource::GetFields_Periodic(const double X[3], cdouble EH[6])
       = PreFac1 * (G*P[1] + (ddG[1][0]*P[0]+ddG[1][1]*P[1]+ddG[1][2]*P[2])/k2 );
      EH[1*3 + 2 ] 
       = PreFac1 * (G*P[2] + (ddG[2][0]*P[0]+ddG[2][1]*P[1]+ddG[2][2]*P[2])/k2 );
-
-     EH[0*3 + 0] = -PreFac2 * (P[1]*dG[2] - P[2]*dG[1]);
-     EH[0*3 + 1] = -PreFac2 * (P[2]*dG[0] - P[0]*dG[2]);
-     EH[0*3 + 2] = -PreFac2 * (P[0]*dG[1] - P[1]*dG[0]);
 
    };
 
