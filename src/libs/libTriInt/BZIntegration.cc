@@ -486,9 +486,9 @@ int BZIntegrand_Angular(unsigned ndim, const double *u, void *pArgs,
   void *UserData      = Args->UserData;
   int FDim            = Args->FDim;
   double kRho         = Args->kRho;
+  HMatrix *RLBasis    = Args->RLBasis; 
   int SymmetryFactor  = Args->SymmetryFactor;
   cdouble Omega       = Args->Omega;
-  double *BZIError     = Args->BZIError;
 
   int NTheta=4;
   switch(SymmetryFactor)
@@ -498,14 +498,20 @@ int BZIntegrand_Angular(unsigned ndim, const double *u, void *pArgs,
      case 8: NTheta=1; break;
    };
 
+// FIXME
+static double *Buffer=0;
+if (Buffer==0)
+ Buffer=(double *)mallocEC(FDim*sizeof(double));
+
   memset(BZIntegrand, 0, FDim*sizeof(double));
+  double Gamma = RLBasis->GetEntryD(0,0);
   for(int nTheta=0; nTheta<NTheta; nTheta++)
    { double kTheta = u[0] + nTheta*0.5*M_PI;
      double kBloch[2];
-     kBloch[0] = kRho * cos(kTheta);
-     kBloch[1] = kRho * sin(kTheta);
-     BZIFunc(UserData, Omega, kBloch, BZIError);
-     VecPlusEquals(BZIntegrand, SymmetryFactor, BZIError, FDim);
+     kBloch[0] = kRho * Gamma * cos(kTheta);
+     kBloch[1] = kRho * Gamma * sin(kTheta);
+     BZIFunc(UserData, Omega, kBloch, Buffer);
+     VecPlusEquals(BZIntegrand, 1.0, Buffer, FDim);
    };
   
   return 0;
@@ -523,7 +529,7 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
   int FDim           = Args->FDim;
   int SymmetryFactor = Args->SymmetryFactor;
   HMatrix *RLBasis   = Args->RLBasis;
-  int AngularOrder   = Args->Order % 1000;
+  int AngularOrder   = Args->Order % 100;
   int MaxEvals       = Args->MaxEvals;
   double RelTol      = Args->RelTol;
   double AbsTol      = Args->AbsTol;
@@ -532,7 +538,7 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
   double kRho = u[0];
   Args->kRho  = kRho;
   
-  double Lower, Upper, kMax= 0.5*RLBasis->GetEntryD(0,0);
+  double Lower, Upper, kMax=0.5;
   if (kRho<=kMax)
    { Lower = 0.0;
      Upper = SymmetryFactor==8 ? 0.25*M_PI : 0.5*M_PI;
@@ -542,9 +548,15 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
      Upper = SymmetryFactor==8 ? 0.25*M_PI : 0.5*M_PI - Lower;
    };
 
+
+// FIXME
+static double *Buffer=0;
+if (Buffer==0)
+ Buffer=(double *)mallocEC(FDim*sizeof(double));
+
   CCCubature(AngularOrder, FDim, BZIntegrand_Angular, pArgs, 1,
 	     &Lower, &Upper, MaxEvals, AbsTol, RelTol,
-	     ERROR_INDIVIDUAL, BZIntegrand, BZIError);
+	     ERROR_INDIVIDUAL, BZIntegrand, Buffer);
 
   for(int nf=0; nf<FDim; nf++)
    BZIntegrand[nf]*=kRho;
@@ -568,11 +580,11 @@ void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
 
   Args->Omega      = Omega;
 
-  int RadialOrder  = (Args->Order) / 1000;
+  int RadialOrder  = (Args->Order) / 100;
 
   double Lower = 0.0;
-  double Upper = 0.5*RLBasis->GetEntryD(0,0);
-  CCCubature(RadialOrder, FDim, BZIntegrand_Angular, (void *)Args, 1,
+  double Upper = 0.5*M_SQRT2;
+  CCCubature(RadialOrder, FDim, BZIntegrand_Radial, (void *)Args, 1,
 	     &Lower, &Upper, MaxEvals, AbsTol, RelTol,
 	     ERROR_INDIVIDUAL, BZIntegral, BZIError);
 

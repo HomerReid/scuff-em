@@ -378,7 +378,7 @@ void GetHalfSpaceDGFs_Polar(HMatrix *XMatrix, cdouble Omega,
 /***************************************************************/
 void GetGroundPlaneDGFs(HMatrix *XMatrix,
                         cdouble Omega, double *kBloch, HMatrix *LBasis, 
-                        HMatrix *GMatrix) 
+                        HMatrix *GMatrix)
 {
   /***************************************************************/
   /* create an IncidentField structure describing the field of a */

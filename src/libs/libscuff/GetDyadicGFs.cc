@@ -106,7 +106,14 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   Log("Fetching RFMatrix for destination point...");
   GetRFMatrix(Omega, kBloch, XMatrix, RFDest);
   if (TwoPointDGF)
-   GetRFMatrix(Omega, kBloch, XMatrix, RFSource, 3);
+   { 
+     char *s=getenv("SCUFF_DGF_FIX");
+     double Sign = (s && s[0]=='1') ? -1.0 : 1.0;
+     double skBloch[3];
+     for(int d=0; d<LDim; d++)
+      skBloch[d] = Sign*kBloch[d];
+     GetRFMatrix(Omega, skBloch, XMatrix, RFSource, 3);
+   }
   else
    RFSource->Copy(RFDest);
 

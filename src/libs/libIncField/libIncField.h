@@ -141,8 +141,11 @@ class PointSource: public IncField
 
    void GetFields(const double X[3], cdouble EH[6]);
    void GetFields_Periodic(const double X[3], cdouble EH[6]);
+   void GetFields_Periodic_V2P0(const double X[3], cdouble EH[6]);
 
    bool GetSourcePoint(double X[3]) const;
+
+   static bool UseNewPeriodicFields;
  };
 
 /**********************************************************************/
