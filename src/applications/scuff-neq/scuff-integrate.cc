@@ -400,8 +400,12 @@ int main(int argc, char *argv[])
               if (SDColumn)
                fprintf(MyID.LogFile,"# SD %i \n",SDIndex);
               if (TemperatureMatrix)
-               fprintf(MyID.LogFile,"# environment / source object temperature %e/%e\n",
-                                  MyID.TEnvironment, MyID.Temperature);
+               { fprintf(MyID.LogFile,"# environment / object temperatures: ");
+                 fprintf(MyID.LogFile,"%e ",MyID.TEnvironment);
+                 for(int no=0; no<NumObjects; no++)
+                  fprintf(MyID.LogFile,"%e ",TemperatureMatrix->GetEntryD(nTemp,no+1));
+                 fprintf(MyID.LogFile,"\n");
+               };
             };
 
            /*--------------------------------------------------------------*/

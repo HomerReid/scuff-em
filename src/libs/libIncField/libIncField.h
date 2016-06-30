@@ -51,7 +51,9 @@ class IncField
    cdouble Mu;
 
    // lattice basis and Bloch vector for Bloch-periodic case
-   HMatrix *LBasis;
+   // (we also store a basis for the reciprocal lattice)
+   HMatrix *LBasis, *RLBasis;
+   double LVolume, RLVolume;
    double kBloch[3];
 
    IncField *Next;
@@ -135,17 +137,19 @@ class PointSource: public IncField
    PointSource();
    ~PointSource();
 
+   void InitPointSource(const double X0[3], const cdouble P[3],
+                        int Type, const char *Label);
    void SetX0(double X0[3]);
    void SetP(cdouble P[3]);
    void SetType(int pType);
 
    void GetFields(const double X[3], cdouble EH[6]);
    void GetFields_Periodic(const double X[3], cdouble EH[6]);
-   void GetFields_Periodic_V2P0(const double X[3], cdouble EH[6]);
+   void Get2DPeriodicFields_Fourier(const double X[3], cdouble EH[6]);
 
    bool GetSourcePoint(double X[3]) const;
 
-   static bool UseNewPeriodicFields;
+   bool UseEwaldFields;
  };
 
 /**********************************************************************/

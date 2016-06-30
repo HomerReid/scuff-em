@@ -103,17 +103,17 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   /*--------------------------------------------------------------*/
   /*- precompute 'reduced-field' vectors -------------------------*/
   /*--------------------------------------------------------------*/
-  Log("Fetching RFMatrix for destination point...");
-  GetRFMatrix(Omega, kBloch, XMatrix, RFDest);
-  if (TwoPointDGF)
-   { 
-     char *s=getenv("SCUFF_DGF_FIX");
-     double Sign = (s && s[0]=='1') ? -1.0 : 1.0;
-     double skBloch[3];
-     for(int d=0; d<LDim; d++)
-      skBloch[d] = Sign*kBloch[d];
-     GetRFMatrix(Omega, skBloch, XMatrix, RFSource, 3);
-   }
+  bool HavekBloch = false;
+  if (kBloch)
+   for(int d=0; d<LDim; d++)
+    if (kBloch[d]!=0.0) HavekBloch=true;  
+
+  Log("Fetching RF matrix for dest points...");
+  GetRFMatrix(Omega, kBloch, XMatrix, true, RFDest);
+  if ( TwoPointDGF || HavekBloch )
+   { Log("Fetching RF matrix for source points...");
+     GetRFMatrix(Omega, kBloch, XMatrix, false, RFSource);
+   }  
   else
    RFSource->Copy(RFDest);
 
@@ -129,9 +129,9 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   Log(" Computing VMVPs...");
   for(int nx=0; nx<NX; nx++)
    { 
-     double X[3];
-     XMatrix->GetEntriesD(nx,"0:2",X);
-     int nr=GetRegionIndex(X);
+     double XDest[3];
+     XMatrix->GetEntriesD(nx,"0:2",XDest);
+     int nr=GetRegionIndex(XDest);
      if (nr==-1) continue;
 
      cdouble Eps, Mu;
@@ -142,28 +142,28 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
      cdouble GMScatNormFac = +ZRel/(II*k);
 
      cdouble GEDirect[3][3], GMDirect[3][3];
-     double LastX0[3];
+     double LastXSource[3];
      if (AddDirectContribution)
       { 
         cdouble GEDirectNormFac = k*k/Eps;
         cdouble GMDirectNormFac = k*k/Mu;
-        double X0[3], R[3];
-        XMatrix->GetEntriesD(nx,"3:5",X0);
-        PS->SetX0(X0);
-        if (nx==0 || !VecEqualFloat(X0,LastX0) )
+        double XSource[3];
+        XMatrix->GetEntriesD(nx,"3:5",XSource);
+        PS->SetX0(XSource);
+        if (nx==0 || !VecEqualFloat(XSource,LastXSource) )
          UpdateIncFields(PS, Omega, kBloch);
-        memcpy(LastX0,X0,3*sizeof(double));
+        memcpy(LastXSource,XSource,3*sizeof(double));
         for(int i=0; i<3; i++)
          { cdouble EH[6];
            cdouble P[3]={0.0, 0.0, 0.0};
            P[i]=1.0;
            PS->SetP(P);
            PS->SetType(LIF_ELECTRIC_DIPOLE);
-           PS->GetFields(X, EH);
+           PS->GetFields(XDest, EH);
            for(int j=0; j<3; j++)
             GEDirect[j][i] = EH[0+j] / GEDirectNormFac;
            PS->SetType(LIF_MAGNETIC_DIPOLE);
-           PS->GetFields(X, EH);
+           PS->GetFields(XDest, EH);
            for(int j=0; j<3; j++)
             GMDirect[j][i] = EH[3+j] / GMDirectNormFac;
          };

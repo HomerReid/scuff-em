@@ -456,7 +456,7 @@ class RWGGeometry
    void DestroyABMBAccelerator(void *Accelerator);
 
    // helper function for GetFields and GetDyadicGFs
-   HMatrix *GetRFMatrix(cdouble Omega, double *kBloch, HMatrix *XMatrix, 
+   HMatrix *GetRFMatrix(cdouble Omega, double *kBloch, HMatrix *XMatrix, bool MinuskBloch,
                         HMatrix *RFMatrix=0, int ColumnOffset=0);
 
    // helper function for accelerating periodic GF calculations

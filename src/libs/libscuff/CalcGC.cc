@@ -18,10 +18,8 @@
  */
 
 /*
- * CalcGC.cc     -- routines for calculating the cartesian components
- *               -- of the homogeneous dyadic electromagnetic green's 
- *               -- functions, and their derivatives, at real or 
- *               -- imaginary frequency. 
+ * CalcGC.cc     -- non-class utility routines for calculating
+ *               -- homogeneous dyadic Green's functions
  *
  * homer reid   -- 2/2008
  */
@@ -33,6 +31,7 @@
 #include <time.h>
 
 #include <libhrutil.h>
+#include <libTriInt.h>
 
 namespace scuff {
 
@@ -111,7 +110,6 @@ void CalcGC(double R[3], cdouble Omega,
   cdouble ExpFac=exp(ik*r);
   cdouble ikr=ik*r;
   cdouble ikr2=ikr*ikr;
-  cdouble ikr3=ikr2*ikr;
 
   /* scalar factors */
   cdouble f1=ExpFac / (4.0*M_PI*ikr2*r);
@@ -193,23 +191,6 @@ void CalcGC(double R1[3], double R2[3], cdouble Omega, cdouble EpsR, cdouble MuR
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-#if 0
-  cdouble GijNew[3][3], CijNew[3][3];
-  cdouble k2=k*k, ik=II*k;
-  for(int Mu=0; Mu<3; Mu++)
-   for(int Nu=0; Nu<3; Nu++)
-    { GijNew[Mu][Nu] = (Mu==Nu) ? G0 : 0.0;
-      GijNew[Mu][Nu] += ddGBar[3*Mu + Nu]/k2;
-    };
-
-  for(int Mu=0; Mu<3; Mu++)
-   { int MP1=(Mu+1)%3, MP2=(Mu+2)%3;
-     CijNew[Mu][Mu]=0.0;
-     CijNew[Mu][MP1]=dGBar[MP2]/(ik);
-     CijNew[MP1][Mu]=-CijNew[Mu][MP1];
-   };
-#endif
-/***************************************************************/
 cdouble GetG(double R[3], cdouble k, cdouble *dG, cdouble *ddG)
 {
   double r2 = R[0]*R[0] + R[1]*R[1] + R[2]*R[2];
@@ -288,6 +269,145 @@ void CalcGCFarField(double R[3], cdouble k,
   CMuNu[1][0] = -CMuNu[0][1];
   CMuNu[2][1] = -CMuNu[1][2];
   CMuNu[0][2] = -CMuNu[2][0];
+
+}
+
+/***************************************************************/
+/* routine for computing the G and C tensors for a 2D periodic */
+/* geometry using the 2D Fourier decomposition                 */
+/***************************************************************/
+typedef struct GCBar2D_FourierData
+ {
+   cdouble k;
+   HMatrix *XDXSMatrix;
+   bool Accumulate;
+   HMatrix *RLBasis;
+   double BZVolume;
+   double *kBloch;
+
+ } GCBar2D_FourieData;
+
+// summand routine passed to GetLatticeSum
+void GCBar2D_FourierSummand(double *Gamma, void *pData, double *pZM)
+{
+  GCBar2D_FourierData *Data = (GCBar2D_FourierData *)pData;
+  cdouble k                 = Data->k;
+  HMatrix *XDXSMatrix       = Data->XDXSMatrix;
+  bool Accumulate           = Data->Accumulate;
+  double BZVolume           = Data->BZVolume;
+  double *kBloch            = Data->kBloch;
+
+  int NX=XDXSMatrix->NR;
+  HMatrix GCMatrix(NX, 18, LHM_COMPLEX, LHM_NORMAL, (void *)pZM);
+  if (!Accumulate)
+   GCMatrix.Zero();
+
+  cdouble k2 = k*k;
+
+  cdouble q[3];
+  q[0] = Gamma[0] + (kBloch ? kBloch[0] : 0.0);
+  q[1] = Gamma[1] + (kBloch ? kBloch[1] : 0.0);
+  q[2] = sqrt(k2 - q[0]*q[0] - q[1]*q[1]);
+  if (imag(q[2])<0.0) q[2]*=-1.0;
+  if (q[2]==0.0)
+   return;
+   
+  for(int nx=0; nx<NX; nx++)
+   { 
+     double R[3];
+     R[0] = XDXSMatrix->GetEntryD(nx,0) - XDXSMatrix->GetEntryD(nx,3);
+     R[1] = XDXSMatrix->GetEntryD(nx,1) - XDXSMatrix->GetEntryD(nx,4);
+     R[2] = XDXSMatrix->GetEntryD(nx,2) - XDXSMatrix->GetEntryD(nx,5);
+   
+     double Sign = (R[2] < 0.0) ? -1.0 : 1.0;
+
+     cdouble Factor = II*BZVolume * exp(II*(q[0]*R[0] + q[1]*R[1] + q[2]*fabs(R[2]))) / (8.0*M_PI*M_PI*q[2]);
+
+     GCMatrix.AddEntry(nx,3*0+0, Factor*(1.0 - q[0]*q[0]/k2 ) );
+     GCMatrix.AddEntry(nx,3*0+1, Factor*(    - q[0]*q[1]/k2 ) );
+     GCMatrix.AddEntry(nx,3*0+2, Factor*(    - Sign*q[0]*q[2]/k2 ) );
+     GCMatrix.AddEntry(nx,3*1+0, Factor*(    - q[1]*q[0]/k2 ) );
+     GCMatrix.AddEntry(nx,3*1+1, Factor*(1.0 - q[1]*q[1]/k2 ) );
+     GCMatrix.AddEntry(nx,3*1+2, Factor*(    - Sign*q[1]*q[2]/k2 ) );
+     GCMatrix.AddEntry(nx,3*2+0, Factor*(    - Sign*q[0]*q[2]/k2 ) );
+     GCMatrix.AddEntry(nx,3*2+1, Factor*(    - Sign*q[1]*q[2]/k2 ) );
+     GCMatrix.AddEntry(nx,3*2+2, Factor*(1.0 - q[2]*q[2]/k2) );
+
+     GCMatrix.AddEntry(nx,9 + 3*0 + 1,      Factor*Sign*q[2]/k);
+     GCMatrix.AddEntry(nx,9 + 3*1 + 0, -1.0*Factor*Sign*q[2]/k);
+     GCMatrix.AddEntry(nx,9 + 3*0 + 2, -1.0*Factor*q[1]/k);
+     GCMatrix.AddEntry(nx,9 + 3*2 + 0,      Factor*q[1]/k);
+     GCMatrix.AddEntry(nx,9 + 3*1 + 2,      Factor*q[0]/k);
+     GCMatrix.AddEntry(nx,9 + 3*2 + 1, -1.0*Factor*q[0]/k);
+   };
+
+}
+
+/***************************************************************/
+/* return values:                                              */
+/* GCMatrix[nx][0 + 3*Mu+Nu] = G[Mu][Nu] for point #nx         */
+/* GCMatrix[nx][9 + 3*Mu+Nu] = C[Mu][Nu] for point #nx         */
+/***************************************************************/
+HMatrix *GetGCBar2D_Fourier(cdouble k, double *kBloch,
+                            HMatrix *RLBasis, double RLVolume,
+                            HMatrix *XDXSMatrix, HMatrix *GCMatrix)
+{
+  int NX = XDXSMatrix->NR;
+  if (GCMatrix && (GCMatrix->NR!=XDXSMatrix->NR || GCMatrix->NC!=18))
+   { Warn("incorrect GCMatrix in GetGCBar2D_Fourier (reallocating)");
+     delete GCMatrix;
+     GCMatrix=0;
+   };
+  if (GCMatrix==0)
+   GCMatrix=new HMatrix(NX, 18, LHM_COMPLEX);
+
+  GCBar2D_FourierData MyData, *Data=&MyData;
+  Data->k          = k;
+  Data->XDXSMatrix = XDXSMatrix;
+  Data->RLBasis    = RLBasis;
+  Data->BZVolume   = RLVolume;
+  Data->kBloch     = kBloch;
+  Data->Accumulate = true;
+  
+  double AbsTolSum = 1.0e-8;
+  double RelTolSum = 1.0e-3;
+  char *s=getenv("SCUFF_GCBAR2DFOURIER_TOLERANCE");
+  if (s)
+   sscanf(s,"%le",&RelTolSum);
+
+  int MaxCells     = 10000;
+  int IDim         = 18*NX;
+  int nCells=GetLatticeSum(GCBar2D_FourierSummand, (void *)Data,
+                           2*IDim, RLBasis, (double *)(GCMatrix->ZM),
+                           AbsTolSum, RelTolSum, MaxCells);
+
+  if (s)
+   Log("GCBar2D tol = %e, %i/%i cells\n",RelTolSum,nCells,MaxCells);
+
+  return GCMatrix;
+
+}
+
+void GetGCBar2D_Fourier(cdouble k, double *kBloch,
+                        HMatrix *RLBasis, double RLVolume,
+                        double *XDest, double *XSource,
+                        cdouble G[3][3], cdouble C[3][3])
+{  
+  double Buf1[6];
+  HMatrix XDXSMatrix(1,6,LHM_REAL,LHM_NORMAL,(void *)Buf1);
+  XDXSMatrix.SetEntriesD(0,"0:2",XDest);
+  XDXSMatrix.SetEntriesD(0,"3:5",XSource);
+
+  cdouble Buf2[18];
+  HMatrix GCMatrix(1,18,LHM_COMPLEX,LHM_NORMAL,(void *)Buf2);
+
+  GetGCBar2D_Fourier(k, kBloch, RLBasis, RLVolume, &XDXSMatrix, &GCMatrix);
+
+  for(int Mu=0; Mu<3; Mu++)
+   for(int Nu=0; Nu<3; Nu++)
+    { G[Mu][Nu] = GCMatrix.GetEntry(0, 0*9 + 3*Mu + Nu);
+      C[Mu][Nu] = GCMatrix.GetEntry(0, 1*9 + 3*Mu + Nu);
+    };
 
 }
 

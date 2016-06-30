@@ -26,7 +26,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "libhmat.h"
 #include "libIncField.h"
+#include "BZIntegration.h"
 #include "libhrutil.h"
 
 /***************************************************************/
@@ -43,7 +45,8 @@ IncField::IncField()
   Omega=-1.0;
 
   // incident fields are non-periodic by default
-  LBasis=0;
+  LBasis=RLBasis=0;
+  LVolume=RLVolume=0;
   kBloch[0]=kBloch[1]=kBloch[2]=0.0;
 
   // field sources lie in the exterior region by default
@@ -60,6 +63,10 @@ IncField::~IncField()
 {
   if (RegionLabel)
    free(RegionLabel);
+  if (LBasis)
+   free(LBasis);
+  if (RLBasis)
+   free(RLBasis);
 }
 
 /***************************************************************/
@@ -116,6 +123,9 @@ void IncField::SetLattice(HMatrix *NewLBasis, bool Traverse)
    };
   
   LBasis->Copy(NewLBasis);
+
+  if (RLBasis) delete RLBasis;
+  RLBasis=GetRLBasis(LBasis, &LVolume, &RLVolume);
 
   if (Traverse)
    for(IncField *IFD=this->Next; IFD; IFD=IFD->Next)

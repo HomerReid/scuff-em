@@ -123,11 +123,19 @@ void GetDistanceToBF(double X0[3], RWGSurface *S, int ne)
 /* of RFMatrix is dotted into KN to yield the Muth component   */
 /* of the field six-vector F=\{ E \choose H \}.                */
 /***************************************************************/
-HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch,
-                                  HMatrix *XMatrix,
+HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch0,
+                                  HMatrix *XMatrix, bool MinuskBloch,
                                   HMatrix *RFMatrix,
                                   int ColumnOffset)
 {
+  double kBlochBuffer[3], *kBloch = 0;
+  if (kBloch0)
+   { kBloch = kBlochBuffer;
+     double Sign = MinuskBloch ? -1.0 : 1.0;
+     for(int d=0; d<LDim; d++)
+      kBloch[d] = Sign*kBloch0[d];
+   };
+
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
@@ -253,6 +261,7 @@ HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch,
       }
      else
       { 
+printf("Howdage foryaf!\n");
         GetReducedFields_Nearby(S, ne, X, k, GC+0, GC+3);
         GC[3] /= (-II*k);
         GC[4] /= (-II*k);
@@ -364,7 +373,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IFList, HVector *KN,
   /***************************************************************/
   if (KN)
    {
-     HMatrix *RFMatrix = GetRFMatrix(Omega, kBloch, XMatrix);
+     HMatrix *RFMatrix = GetRFMatrix(Omega, kBloch, XMatrix, true);
      HMatrix KNMatrix(1, TotalBFs, LHM_COMPLEX, LHM_NORMAL, (void *)KN->ZV);
      HMatrix *FMatrixT = new HMatrix(1, 6*NX, LHM_COMPLEX);
      KNMatrix.Multiply(RFMatrix, FMatrixT);
