@@ -56,10 +56,18 @@ void GetReducedFields_Nearby(RWGSurface *S, const int ne,
 /***************************************************************/
 /* integrand for computation of reduced fields                 */
 /***************************************************************/
+void GetGCBar2D_Fourier(cdouble k, double *kBloch,
+                        HMatrix *RLBasis, double RLVolume,
+                        double *XDest, double *XSource,
+                        cdouble G[3][3], cdouble C[3][3]);
+
 typedef struct RFIData
  { cdouble k;
    double *X0;
    GBarAccelerator *GBA;
+   HMatrix *RLBasis;
+   double RLVolume;
+   bool NewMethod;
  } RFIData;
 
 void RFIntegrand(double X[3], double b[3], double Divb,
@@ -69,6 +77,22 @@ void RFIntegrand(double X[3], double b[3], double Divb,
   cdouble k            = Data->k;
   double *X0           = Data->X0;
   GBarAccelerator *GBA = Data->GBA;
+
+  cdouble *GC = (cdouble *)Integral;
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+if (Data->NewMethod)
+{
+cdouble GG[3][3], CC[3][3];
+GetGCBar2D_Fourier(k, GBA->kBloch, Data->RLBasis, Data->RLVolume, X, X0, GG, CC);
+for(int Mu=0; Mu<3; Mu++)
+ for(int Nu=0; Nu<3; Nu++)
+  { GC[0 + Mu] += W*GG[Mu][Nu]*b[Nu];
+    GC[3 + Mu] -= W*CC[Mu][Nu]*b[Nu];
+  };
+return;
+}
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
   double XmX0[3];
   XmX0[0] = X[0] - X0[0];
@@ -82,7 +106,6 @@ void RFIntegrand(double X[3], double b[3], double Divb,
    G0=GetG(XmX0, k, dG);
 
   cdouble k2=k*k, ik=II*k;
-  cdouble *GC = (cdouble *)Integral;
   for(int i=0; i<3; i++)
    GC[i] += W*(G0*b[i] - Divb*dG[i]/k2);
 
@@ -246,6 +269,43 @@ HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch0,
      Data->X0  = X;
      Data->k   = ks[RegionIndex];
      Data->GBA = RegionGBAs ? RegionGBAs[RegionIndex] : 0;
+     Data->RLBasis = RLBasis;
+     Data->RLVolume= RLVolume;
+
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+#if 0
+cdouble GCNew[6];
+cdouble GCOld[6];
+Data->NewMethod = true;
+GetBFCubature2(this, ns, ne, RFIntegrand, (void *)Data,
+               12, 7, (double *)GCNew);
+Data->NewMethod = false;
+GetBFCubature2(this, ns, ne, RFIntegrand, (void *)Data,
+               12, 7, (double *)GCOld);
+bool DoCompare=false;
+for(int nc=0; nc<6; nc++)
+ { cdouble XX=GCNew[nc];
+   cdouble YY=GCOld[nc];
+   if (abs(XX) > 1.0e-7 && abs(XX-YY)>1.0e-2*abs(XX))
+    DoCompare=true;
+ };
+if (DoCompare)
+ { printf("Edge %i: \n",ne);
+   Compare(GCNew,GCOld,6,"New","Old");
+ };
+static bool Initialized=false, NewMethod=false;
+if (Initialized==false)
+ { Initialized=true;
+   char *s = getenv("SCUFF_NEWMETHOD");
+   if(s && s[0]=='1')
+    { printf("Using new method foryaf.\n");
+      NewMethod=true;
+    };
+ };  
+Data->NewMethod=NewMethod;
+LowOrder=20;
+#endif
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
      double rRel = VecDistance(X, E->Centroid) / E->Radius;
      const int IDim=12;
@@ -261,7 +321,6 @@ HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch0,
       }
      else
       { 
-printf("Howdage foryaf!\n");
         GetReducedFields_Nearby(S, ne, X, k, GC+0, GC+3);
         GC[3] /= (-II*k);
         GC[4] /= (-II*k);

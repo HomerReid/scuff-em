@@ -126,26 +126,42 @@ evaluate the Brillouin-zone integral:
   integrand samples the integrator may use.
 
   ````
---BZSymmetric
---FullBZ
+--BZSymmetryFactor [2:4:8]
   ````
 {.toc}
 
-  These options may be used to describe symmetries of the integrand function $\mathcal{Q}(\bf k)$.
+  The option '--BZSymmetryFactor' may be set to `2`, `4`, or `8` to indicate
+  a 2-, 4-, or 8-fold rotational symmetry of the Brillouin zone under which
+  the integrand $\mathcal{Q}(\bf k)$ is invariant.
 
-  For geometries with 2D square-lattice periodicity, `--BZSymmetric` may be used to specify that the Brillouin-zone integrand is symmetric under interchange of $k_x$ and $k_y$ (i.e. $\mathcal{Q}(k_x, k_y)=\mathcal{Q}(k_y, k_x)$, saving a factor of approximately 2 in evaluating the BZ cubature. 
+  More specifically, 
 
-[Note that symmetry requires both that **(a)** the surface meshes in the geometry are symmetric under inversion about the line $x=y$, and **(b)** the integrand $\mathcal{Q}(\bf k)$ is symmetric under inversion about the line $k_x=k_y.$ Condition **(b)** is not always satisfied even for geometries that satisfy condition **(a)**; an example would be the calculation of LDOS at a point $\bf x$ that does not lie on the line $x=y.$]
+    + For a one-dimensional periodic geometry, the only possibility
+      is '--BZSymmetryFactor 2'. 
+      This means that 
+      $\mathcal{Q}(k_x) = \mathcal{Q}(-k_x),$ so the BZ integration
+      may be restricted to just the range 
+      $k_x\in\left[0,\frac{\pi}{L_x}\right].$
 
-  The default behavior of [[scuff-em]] is to integrate over just the *irreducible* portion of the Brillouin zone and double or quadruple the result to get the full BZ integral. You can override this behavior by specifying `--FullBZ,` in which case the integral over the full Brillouin zone will be computed at 2x or 4x greater cost.
+    + For a two-dimensional periodic geometry, the possibilities are:
 
-For a 1D lattice with lattice constant $L$, 
-the full Brillouin zone is the region $0\le k \le \frac{2\pi}{L}$, and the irreducible Brillouin zone is the region $0\le k \le \frac{\pi}{L}.$
-For a 2D rectangular lattice with direct lattice constants $L_x, L_y$,
-the full Brillouin zone is the rectangle in the $(k_x,k_y)$ plane with corners at the origin and at 
-$(k_x,k_y)=(\frac{2\pi}{L_x},\frac{2\pi}{L_y})$,
-while the irreducible Brillouin zone is the rectangle with corners at the origin and at 
-$(k_x,k_y)=(\frac{\pi}{L_x},\frac{\pi}{L_y})$.
+	+ '--BZSymmetryFactor 2': 
+          We have
+          $\mathcal{Q}(k_x,k_y) = \mathcal{Q}(k_x,-k_y),$ so the BZ integration
+          may be restricted to just the upper half of the BZ.
+
+	+ '--BZSymmetryFactor 4':
+          We have
+          $\mathcal{Q}(k_x,k_y) = \mathcal{Q}(\pm k_x, \pm k_y),$ 
+          so the BZ integration
+          may be restricted to just the upper-right quadrant of the BZ.
+
+	+ '--BZSymmetryFactor 8':
+          In addition to symmetry under sign changes, the integrand
+          is symmetric under $k_x\leftrightarrow k_y$,
+          so the BZ integration
+          may be restricted to the triangular region
+          $k_x \in \left[0,\frac{\pi}{L_x}\right], k_y\in[0,k_x].$
 
 [scuff-analyze]:               ../applications/scuff-analyze/scuff-analyze.md
 [scuffCas3D]:                  ../applications/scuff-cas3D/scuff-cas3D.md
