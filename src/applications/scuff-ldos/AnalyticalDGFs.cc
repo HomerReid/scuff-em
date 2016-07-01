@@ -177,10 +177,10 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      MTM[1][1] = qz2*Sin2 / k02;
      MTM[2][2] = q2*One  / k02;
      MTM[0][1] = MTM[1][0] = qz2*CosSin / k02;
-     MTM[0][2] = qMag*qz*Cos  / k02;
-     MTM[2][0] = -1.0*MTM[0][2];
-     MTM[1][2] = qMag*qz*Sin  / k02;
-     MTM[2][1] = -1.0*MTM[1][2];
+     MTM[2][0] =      qMag*qz*Cos / k02;
+     MTM[0][2] = -1.0*MTM[2][0];
+     MTM[2][1] =      qMag*qz*Sin / k02;
+     MTM[1][2] = -1.0*MTM[2][1];
 
      cdouble ExpArg = II*( qDotRho + qz*(XSource[2]+XDest[2]) );
      if ( fabs(real(ExpArg)) > 40.0 )

@@ -226,6 +226,21 @@ HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch0,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+  static bool Initialized=false, UseNewMethod=false;
+  if (Initialized==false)
+   { Initialized=true;
+     char *s = getenv("SCUFF_NEW_RFMETHOD");
+     if(s && s[0]=='1')
+      { printf("Using new RF method.\n");
+        UseNewMethod=true;
+      };
+   };
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+  /***************************************************************/
+  /***************************************************************/
+  /***************************************************************/
   int NENX=NE*NX;
 #ifndef USE_OPENMP
   Log("Computing RFMatrix entries at %i points",NX);
@@ -271,41 +286,7 @@ HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch0,
      Data->GBA = RegionGBAs ? RegionGBAs[RegionIndex] : 0;
      Data->RLBasis = RLBasis;
      Data->RLVolume= RLVolume;
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-#if 0
-cdouble GCNew[6];
-cdouble GCOld[6];
-Data->NewMethod = true;
-GetBFCubature2(this, ns, ne, RFIntegrand, (void *)Data,
-               12, 7, (double *)GCNew);
-Data->NewMethod = false;
-GetBFCubature2(this, ns, ne, RFIntegrand, (void *)Data,
-               12, 7, (double *)GCOld);
-bool DoCompare=false;
-for(int nc=0; nc<6; nc++)
- { cdouble XX=GCNew[nc];
-   cdouble YY=GCOld[nc];
-   if (abs(XX) > 1.0e-7 && abs(XX-YY)>1.0e-2*abs(XX))
-    DoCompare=true;
- };
-if (DoCompare)
- { printf("Edge %i: \n",ne);
-   Compare(GCNew,GCOld,6,"New","Old");
- };
-static bool Initialized=false, NewMethod=false;
-if (Initialized==false)
- { Initialized=true;
-   char *s = getenv("SCUFF_NEWMETHOD");
-   if(s && s[0]=='1')
-    { printf("Using new method foryaf.\n");
-      NewMethod=true;
-    };
- };  
-Data->NewMethod=NewMethod;
-LowOrder=20;
-#endif
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+     Data->NewMethod = UseNewMethod;
 
      double rRel = VecDistance(X, E->Centroid) / E->Radius;
      const int IDim=12;

@@ -112,21 +112,16 @@ HMatrix *RWGGeometry::GetDyadicGFs(cdouble Omega, double *kBloch,
   GetRFMatrix(Omega, kBloch, XMatrix, true, RFDest);
   if ( TwoPointDGF || HavekBloch )
    { Log("Fetching RF matrix for source points...");
-     GetRFMatrix(Omega, kBloch, XMatrix, false, RFSource);
+     GetRFMatrix(Omega, kBloch, XMatrix, false, RFSource, TwoPointDGF ? 3 : 0);
    }  
   else
    RFSource->Copy(RFDest);
-
-RFDest->ExportToHDF5("Dest.hdf5","M");
-RFSource->ExportToHDF5("Before.hdf5","M");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   Log(" LUSolving...");
   M->LUSolve(RFSource);
-
-RFSource->ExportToHDF5("After.hdf5","M");
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -184,25 +179,6 @@ RFSource->ExportToHDF5("After.hdf5","M");
           };
          GEScat *= GEScatNormFac;
          GMScat *= GMScatNormFac;
-
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-FILE *f=fopen("/tmp/Bad.log","a");
-fprintf(f,"\n\n** G%i%i: \n",i,j);
-cdouble GG=0.0;
-for(int nbf=0; nbf<NBF; nbf++)
-{
-  cdouble X=RFDest->GetEntry(nbf, 6*nx+0+i);
-  cdouble Y=RFSource->GetEntry(nbf, 6*nx+0+j)*II*k/(ZVAC*ZVAC);
-  cdouble XY=X*Y;
-  GG+=XY;
-  fprintf(f,"%i: {%+.3e,%+.3e} * {%+.3e,%+.3e} = {%+.3e, %+.3e} {%+.3e, %+.3e}\n",nbf,
-real(X),imag(X),
-real(Y),imag(Y),
-real(XY),imag(XY),
-real(GG),imag(GG));
-};
-fclose(f);
-/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
          GMatrix->SetEntry(nx, 0 + 3*i + j, GEScat);
          GMatrix->SetEntry(nx, 9 + 3*i + j, GMScat);
