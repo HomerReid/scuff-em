@@ -1,5 +1,24 @@
+/* Copyright (C) 2005-2011 M. T. Homer Reid
+ *
+ * This file is part of SCUFF-EM.
+ *
+ * SCUFF-EM is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * SCUFF-EM is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
 /*
- * ECC.cc -- embedded clenshaw-curtis cubature in one and two dimensions
+ * CCCubature.cc -- clenshaw-curtis quadrature routines
  *
  * homer reid  -- 6/2014
  *
@@ -12,6 +31,65 @@
 #include <libhrutil.h>
 #include <libSGJC.h>
 #include <libTriInt.h>
+
+#define MAXDIM 10
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int CCCubature(int Order, unsigned fdim, integrand f, void *fdata,
+	       unsigned dim, const double *xmin, const double *xmax, 
+	       size_t maxEval, double reqAbsError, double reqRelError,
+               error_norm norm, double *Integral, double *Error)
+{
+  if (Order==0)
+   return pcubature(fdim, f, fdata, dim, xmin, xmax, maxEval,
+                    reqAbsError, reqRelError, norm, Integral, Error);
+
+  double *CCQR = GetCCRule(Order);
+  if (!CCQR) 
+   ErrExit("invalid CCRule order (%i) in CCCubature",Order);
+
+  if (dim>MAXDIM) 
+   ErrExit("dimension too high in CCCubature");
+
+  double uAvg[MAXDIM], uDelta[MAXDIM];
+  for(unsigned d=0; d<dim; d++)
+   { uAvg[d]   = 0.5*(xmax[d] + xmin[d]);
+     uDelta[d] = 0.5*(xmax[d] - xmin[d]);
+   };
+
+  int ncp[MAXDIM];
+  memset(ncp, 0, dim*sizeof(int));
+
+  double *Integrand=Error;
+  memset(Integral, 0, fdim*sizeof(double));
+  bool Done=false;
+  int nCalls=0;
+  while(!Done)
+   { 
+     // get d-dimensional cubature point and weight
+     double u[MAXDIM], w=1.0;
+     for(unsigned nd=0; nd<dim; nd++)
+      { u[nd]  = uAvg[nd] - uDelta[nd]*CCQR[2*ncp[nd] + 0];
+           w  *=            uDelta[nd]*CCQR[2*ncp[nd] + 1];
+      }; 
+
+     // advance to next d-dimensional cubature point
+     for(unsigned nd=0; nd<dim; nd++)
+      { ncp[nd] = (ncp[nd]+1)%Order;
+        if(ncp[nd]) break;
+        if(nd==(dim-1)) Done=true;
+      };
+
+     f(dim, u, fdata, fdim, Integrand);
+     VecPlusEquals(Integral, w, Integrand, fdim);
+     nCalls++;
+   };
+
+  return nCalls;
+}
+
 
 /***************************************************************/
 /* embedded clenshaw-curtis cubature in two dimensions.        */

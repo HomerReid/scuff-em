@@ -4,7 +4,7 @@ libTriInt_la_SOURCES =  	\
  libTriInt.cc			\
  CCRules.cc			\
  LebedevRules.cc		\
- ECC.cc 			\
+ CCCubature.cc			\
  TCR.cc 			\
  BZIntegration.cc		\
  LatticeSum.cc   		\

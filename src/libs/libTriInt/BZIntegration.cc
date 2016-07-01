@@ -35,6 +35,7 @@
 
 #define MAXBZDIM 3
 #define MAXSTR 1000
+
 #ifdef HAVE_DCUTRI
  void *CreateDCUTRIWorkspace(int numfun, int maxpts);
  int DCUTRI(void *opW, double **Vertices, TriIntFun func,
@@ -70,89 +71,22 @@ int DCUTRI(void *opW, double **Vertices, TriIntFun func,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-int CCCubature(int Order, unsigned fdim, integrand f, void *fdata,
-	       unsigned dim, const double *xmin, const double *xmax, 
-	       size_t maxEval, double reqAbsError, double reqRelError,
-               error_norm norm, double *Integral, double *Error)
+void GetOctantImage(double kBloch[2], int n, double Image[2])
 {
-  if (Order==0)
-   return pcubature(fdim, f, fdata, dim, xmin, xmax, maxEval,
-                    reqAbsError, reqRelError, norm, Integral, Error);
-
-  double *CCQR = GetCCRule(Order);
-  if (!CCQR) 
-   ErrExit("invalid CCRule order (%i) in CCCubature",Order);
-
-  if (dim>MAXBZDIM) 
-   ErrExit("dimension too high in CCCubature");
-
-  double uAvg[MAXBZDIM], uDelta[MAXBZDIM];
-  for(unsigned d=0; d<dim; d++)
-   { uAvg[d]   = 0.5*(xmax[d] + xmin[d]);
-     uDelta[d] = 0.5*(xmax[d] - xmin[d]);
-   };
-
-  int ncp[MAXBZDIM];
-  memset(ncp, 0, dim*sizeof(int));
-
-  double *Integrand=Error;
-  memset(Integral, 0, fdim*sizeof(double));
-  bool Done=false;
-  int nCalls=0;
-  while(!Done)
-   { 
-     // get d-dimensional cubature point and weight
-     double u[MAXBZDIM], w=1.0;
-     for(unsigned nd=0; nd<dim; nd++)
-      { u[nd]  = uAvg[nd] - uDelta[nd]*CCQR[2*ncp[nd] + 0];
-           w  *=            uDelta[nd]*CCQR[2*ncp[nd] + 1];
-      }; 
-
-     // advance to next d-dimensional cubature point
-     for(unsigned nd=0; nd<dim; nd++)
-      { ncp[nd] = (ncp[nd]+1)%Order;
-        if(ncp[nd]) break;
-        if(nd==(dim-1)) Done=true;
-      };
-
-     f(dim, u, fdata, fdim, Integrand);
-     VecPlusEquals(Integral, w, Integrand, fdim);
-     nCalls++;
-   };
-
-  return nCalls;
+  bool Swap    = (n%2)==1;
+  double xSign = (2<= n && n<=5) ? -1.0 : 1.0;
+  double ySign = (n>=4) ? -1.0:1.0;
+  Image[0] = xSign * (Swap ? kBloch[1] : kBloch[0]);
+  Image[1] = ySign * (Swap ? kBloch[0] : kBloch[1]);
 }
 
 /***************************************************************/
+/* BZ integrand function passed to clenshaw-curtis cubature    */
+/* routines                                                    */
 /***************************************************************/
-/***************************************************************/
-void GetBZLimits(int SymmetryFactor, double Lower[2], double Upper[2])
-{
-  switch(SymmetryFactor)
-   { case 1: Lower[0]=-0.5; Lower[1]=-0.5;
-             Upper[0]=+0.5; Upper[1]=+0.5;
-             return;
-
-     case 2: Lower[0]= 0.0; Lower[1]=-0.5;
-             Upper[0]=+0.5; Upper[1]=+0.5;
-             return;
-
-     case 4: Lower[0]= 0.0; Lower[1]= 0.0;
-             Upper[0]=+0.5; Upper[1]=+0.5;
-             return;
-
-     case 8: Lower[0]= 0.0; Lower[1]= 0.0;
-             Upper[0]=+0.5; Upper[1]=+1.0;
-             return;
-   };
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-int BZIntegrand_PCubature(unsigned ndim, const double *u,
-                          void *pArgs, unsigned fdim,
-                          double *BZIntegrand)
+int BZIntegrand_CCCubature(unsigned ndim, const double *u,
+                           void *pArgs, unsigned fdim,
+                           double *BZIntegrand)
 {
   (void) ndim; // unused
 
@@ -168,15 +102,25 @@ int BZIntegrand_PCubature(unsigned ndim, const double *u,
   int LDim               = RLBasis->NC;
 
   /*--------------------------------------------------------------*/
-  /* if SymmetryFactor==8 we are integrating over a triangle,     */
-  /* not a square, so we have to make a variable transformation   */
+  /*- we may be able to skip this point depending on symmetry    -*/
   /*--------------------------------------------------------------*/
-  double Jacobian=1.0, uVector[2];
-  uVector[0] = u[0];
-  uVector[1] = u[1];
-  if (SymmetryFactor==8)
-   { uVector[1]*=uVector[0];
-     Jacobian*=uVector[0];
+  memset(BZIntegrand, 0, fdim*sizeof(double));
+  double Eta=1.0e-8;
+  double EffectiveSymmetryFactor = SymmetryFactor;
+  if (SymmetryFactor>1)
+   {  
+     if (SymmetryFactor>=2 && u[1] < -Eta )  return 0;
+     if (SymmetryFactor>=4 && u[0] < -Eta )  return 0;
+     if (SymmetryFactor==8 && u[1] > (u[0]+Eta)) return 0;
+
+     if ( fabs(u[0])<Eta && fabs(u[1])<Eta )
+      EffectiveSymmetryFactor = 1.0;
+     else if ( fabs(u[0])<Eta )
+      EffectiveSymmetryFactor = 2.0;
+     else if ( fabs(u[1])<Eta )
+      EffectiveSymmetryFactor = SymmetryFactor==8 ? 4.0 : SymmetryFactor/2;
+     else if ( EqualFloat( fabs(u[0]), fabs(u[1]) ) )
+      EffectiveSymmetryFactor = SymmetryFactor==8 ? 4.0 : SymmetryFactor==4 ? 4.0 : 2.0;
    };
 
   /*--------------------------------------------------------------*/
@@ -185,51 +129,51 @@ int BZIntegrand_PCubature(unsigned ndim, const double *u,
   double kBloch[3]={0.0, 0.0, 0.0};
   for(int nd=0; nd<LDim; nd++)
    for(int nc=0; nc<3; nc++)
-    kBloch[nc] += uVector[nd]*RLBasis->GetEntryD(nc,nd);
+    kBloch[nc] += u[nd]*RLBasis->GetEntryD(nc,nd);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   BZIFunc(UserData, Omega, kBloch, BZIntegrand);
-
-  for(unsigned nf=0; nf<fdim; nf++)
-   BZIntegrand[nf] *= Jacobian;
-
+  VecScale(BZIntegrand, EffectiveSymmetryFactor, fdim);
+  
   Args->NumCalls++;
+
   return 0;
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetBZIntegral_PCubature(GetBZIArgStruct *Args,
-                             cdouble Omega, double *BZIntegral)
+void GetBZIntegral_CC(GetBZIArgStruct *Args,
+                      cdouble Omega, double *BZIntegral)
 { 
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  HMatrix *RLBasis   = Args->RLBasis;
-  int LDim           = RLBasis->NC;
-  int FDim           = Args->FDim;
-  int MaxEvals       = Args->MaxEvals;
-  double *BZIError   = Args->BZIError;
-  double RelTol      = Args->RelTol;
-  double AbsTol      = Args->AbsTol;
-  int SymmetryFactor = Args->SymmetryFactor;
+  HMatrix *RLBasis    = Args->RLBasis;
+  int LDim            = RLBasis->NC;
+  int FDim            = Args->FDim;
+  int Order           = Args->Order;
+  int MaxEvals        = Args->MaxEvals;
+  double RelTol       = Args->RelTol;
+  double AbsTol       = Args->AbsTol;
+  double **DataBuffer = Args->DataBuffer;
   
-  double Lower[2], Upper[2];
-  GetBZLimits(SymmetryFactor, Lower, Upper);
   Args->Omega = Omega;
-  pcubature(FDim, BZIntegrand_PCubature, (void *)Args, LDim,
-	    Lower, Upper, MaxEvals, AbsTol, RelTol,
-	    ERROR_INDIVIDUAL, BZIntegral, BZIError);
+
+  double Lower[2]={-0.5, -0.5};
+  double Upper[2]={+0.5, +0.5};
+  CCCubature(Order, FDim, BZIntegrand_CCCubature, (void *)Args, LDim,
+	     Lower, Upper, MaxEvals, AbsTol, RelTol,
+	     ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
  
 }
 
 /***************************************************************/
 /* BZ integrand function passed to triangle cubature routines  */
 /***************************************************************/
-void BZIntegrand_TriCub(double *u, void *pArgs, double *BZIntegrand)
+void BZIntegrand_TC(double *u, void *pArgs, double *BZIntegrand)
 {
   /*--------------------------------------------------------------*/
   /*- unpack fields from user data structure ---------------------*/
@@ -242,6 +186,7 @@ void BZIntegrand_TriCub(double *u, void *pArgs, double *BZIntegrand)
   int SymmetryFactor     = Args->SymmetryFactor;
   HMatrix *RLBasis       = Args->RLBasis;
   int LDim               = RLBasis->NC;
+  double **DataBuffer    = Args->DataBuffer;
 
   if (LDim!=2)
    ErrExit("Triangle-cubature BZ integrators require 2D lattices");
@@ -254,39 +199,21 @@ void BZIntegrand_TriCub(double *u, void *pArgs, double *BZIntegrand)
    for(int nc=0; nc<3; nc++)
     kBloch[nc] += u[nd]*RLBasis->GetEntryD(nc,nd);
 
-if (fabs(kBloch[2]>1.0e-6))
- ErrExit("%s:%i: internal error",__FILE__,__LINE__);
-
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  static int FDimSave=0;
-  static double *DeltaBZI=0;
-  if (FDimSave<FDim)
-   { FDimSave = FDim;
-     DeltaBZI = (double *)reallocEC(DeltaBZI, FDim*sizeof(double));
-   };
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int NTheta = 8/SymmetryFactor;
+  int NumOctants = 8/SymmetryFactor;
   memset(BZIntegrand, 0, FDim*sizeof(double));
-  for(int nTheta=0; nTheta<NTheta; nTheta++)
+  for(int n=0; n<NumOctants; n++)
    { 
-     double Theta = M_PI * nTheta / 4.0;
-     double CosTheta = cos(Theta), SinTheta = sin(Theta);
-
-     double RkB[3];
-     RkB[0] = CosTheta*kBloch[0] - SinTheta*kBloch[1];
-     RkB[1] = SinTheta*kBloch[0] + CosTheta*kBloch[1];
-     RkB[2] = 0.0;
-
+     double RkB[3]={0.0, 0.0, 0.0};
+     GetOctantImage(kBloch, n, RkB);
+     double *DeltaBZI=DataBuffer[0];
      BZIFunc(UserData, Omega, RkB, DeltaBZI);
      VecPlusEquals(BZIntegrand, 1.0, DeltaBZI, FDim);
+     Args->NumCalls++;
    };
 
-  Args->NumCalls++;
 }
 
 /***************************************************************/
@@ -296,9 +223,12 @@ if (fabs(kBloch[2]>1.0e-6))
 void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
                       double *BZIntegral)
 {
-  int Order              = Args->Order;
-  int FDim               = Args->FDim;
-  double *BZIError       = Args->BZIError;
+  int Order           = Args->Order;
+  int FDim            = Args->FDim;
+  int SymmetryFactor  = Args->SymmetryFactor;
+  double **DataBuffer = Args->DataBuffer;
+
+  Args->Omega=Omega;
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
@@ -319,155 +249,19 @@ void GetBZIntegral_TC(GetBZIArgStruct *Args, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   double V1[3]={0.0, 0.0, 0.0};
-  double V2[3]={1.0, 0.0, 0.0};
-  double V3[3]={1.0, 1.0, 0.0};
+  double V2[3]={0.5, 0.0, 0.0};
+  double V3[3]={0.5, 0.5, 0.0};
   double *Vertices[3]={V1,V2,V3};
-  Args->Omega=Omega; 
-  memset(BZIError, 0, FDim*sizeof(double));
   if (Order==0)
-   Args->NumCalls = DCUTRI(Workspace, Vertices, 
-                           BZIntegrand_TriCub, (void *) Args,
-                           Args->AbsTol, Args->RelTol, 
-                           BZIntegral, BZIError);
+   Args->NumCalls = DCUTRI(Workspace, Vertices,
+                           BZIntegrand_TC, (void *) Args,
+                           Args->AbsTol, Args->RelTol,
+                           BZIntegral, DataBuffer[0]);
   else
-   Args->NumCalls = TriIntFixed(BZIntegrand_TriCub, FDim, (void *)Args,
+   Args->NumCalls = TriIntFixed(BZIntegrand_TC, FDim, (void *)Args,
                                 V1, V2, V3, Order, BZIntegral);
 
-}
-
-/***************************************************************/
-/***************************************************************/
-/***************************************************************/
-void GetBZIntegral_CC(GetBZIArgStruct *Args, cdouble Omega,
-                      double *BZIntegral)
-{
-  BZIFunction BZIFunc   = Args->BZIFunc;
-  void *UserData        = Args->UserData;
-  int FDim              = Args->FDim;
-  int LDim              = Args->RLBasis->NC;
-  //double AbsTol         = Args->AbsTol;
-  //double RelTol         = Args->RelTol;
-  double *BZIError      = Args->BZIError;
-  HMatrix *RLBasis      = Args->RLBasis;
-  int SymmetryFactor    = Args->SymmetryFactor;
-
-  int FullOrder = Args->Order;
-  int HalfOrder = Args->Order/2; if ( (HalfOrder%2) == 0) HalfOrder++;
-  int Orders[2];
-  double uMin[2], uMax[2];
-  GetBZLimits(SymmetryFactor, uMin, uMax);
-  Orders[0]=Orders[1]=FullOrder;
-  if (SymmetryFactor>=2)
-   Orders[0] = HalfOrder;
-  if (SymmetryFactor>=4)
-   Orders[1] = HalfOrder;
-  double uAvg[2], uDelta[2];
-  for(int nd=0; nd<LDim; nd++)
-   { uAvg[nd]   = 0.5*(uMax[nd] + uMin[nd]);
-     uDelta[nd] = 0.5*(uMax[nd] - uMin[nd]);
-   };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  if (FullOrder>0)
-   {
-     double *CCQR[2];
-     CCQR[0]=GetCCRule(Orders[0]);
-     CCQR[1]=GetCCRule(Orders[1]);
-
-     int ncp[MAXBZDIM];
-     memset(ncp, 0, MAXBZDIM*sizeof(int));
-     double *dBZI=BZIError;
-     memset(BZIntegral, 0, FDim*sizeof(double));
-     bool Done=false;
-     while(!Done)
-      { 
-        // advance to next d-dimensional cubature point
-        double u[MAXBZDIM], w=1.0;
-        for(int nd=0; nd<LDim; nd++)
-         { u[nd]  = uAvg[nd] - uDelta[nd]*CCQR[nd][2*ncp[nd] + 0];
-           w     *=            uDelta[nd]*CCQR[nd][2*ncp[nd] + 1];
-         }; 
-
-        // advance to next d-dimensional cubature point
-        for(int nd=0; nd<LDim; nd++)
-         { ncp[nd] = (ncp[nd]+1)%(Orders[nd]);
-           if(ncp[nd]) break;
-           if(nd==(LDim-1)) Done=true;
-         };
-   
-        double kBloch[3]={0.0, 0.0, 0.0};
-        for(int nd=0; nd<LDim; nd++)
-         for(int nc=0; nc<3; nc++)
-          kBloch[nc] += u[nd]*RLBasis->GetEntryD(nc,nd);
-
-         BZIFunc(UserData, Omega, kBloch, dBZI);
-         VecPlusEquals(BZIntegral, w, dBZI, FDim);
-         Args->NumCalls++;
-      };
-     return; 
-   };
-
-#if 0
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  static int FDimSave=0;
-  static int LDimSave=0;
-  static double *AllValues=0, *OuterValues=0;
-  if (FDimSave!=FDim || LDimSave!=LDim)
-   { FDimSave=FDim;
-     LDimSave=LDim;
-     int NP1 = (LDim==1) ? 129 : 129*129;
-     int NP2 = (LDim==1) ? 65  : 65*65;
-     AllValues=(double *)realloc(AllValues, NP1*FDim*sizeof(double));
-     OuterValues=(double *)realloc(OuterValues, NP2*FDim*sizeof(double));
-   };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  int pMin = 2;
-  int pMax = 6;
-  bool Converged = false;
-  double xMin[2]={-0.5, -0.5};
-  double xMax[2]={+0.5, +0.5};
-  if (Reduced)
-   xMin[0]=xMin[1]=0.0;
-  for(int p=pMin; p<=pMax && !Converged; p++)
-   { 
-     if (LDim==1)
-      ECC( p, xMin[0], xMax[0], BZIntegrand_PCubature,
-           (void *)Args, FDim, AllValues,
-           (p==pMin ? 0 : OuterValues), BZIntegral, BZIError);
-     else
-      ECC2D( p, xMin, xMax, BZIntegrand_PCubature,
-             (void *)Args, FDim,
-             BZSymmetric, AllValues,
-             (p==pMin ? 0 : OuterValues), BZIntegral, BZIError);
-
-     int N=(1<<(p+1)+1);
-     Args->NumCalls += (LDim==1 ? N : N*N);
-     int OVSize = (1<<p)+1;
-     if (LDim==2) OVSize*=OVSize;
-     if (p<pMax) 
-      memcpy(OuterValues, AllValues, OVSize*FDim*sizeof(double));
-
-     /*--------------------------------------------------------------*/
-     /*- convergence analysis ---------------------------------------*/
-     /*--------------------------------------------------------------*/
-     double MaxAbsError=0.0, MaxRelError=0.0; 
-     for(int nf=0; nf<FDim; nf++)
-      { 
-        MaxAbsError = fmax(MaxAbsError, BZIError[nf]);
-        if ( BZIError[nf] > AbsTol )
-         MaxRelError = fmax(MaxRelError, BZIError[nf] / fabs(BZIntegral[nf]) );
-      };
-     if ( (MaxAbsError < AbsTol) || (MaxRelError < RelTol) )
-      Converged=true;
-   };
-#endif
+  VecScale(BZIntegral, SymmetryFactor, FDim);
 
 }
 
@@ -489,31 +283,26 @@ int BZIntegrand_Angular(unsigned ndim, const double *u, void *pArgs,
   HMatrix *RLBasis    = Args->RLBasis; 
   int SymmetryFactor  = Args->SymmetryFactor;
   cdouble Omega       = Args->Omega;
+  double *DeltaBZI    = Args->DataBuffer[2];
 
-  int NTheta=4;
-  switch(SymmetryFactor)
-   { case 1: NTheta=4; break; 
-     case 2: NTheta=2; break; 
-     case 4:
-     case 8: NTheta=1; break;
-   };
-
-// FIXME
-static double *Buffer=0;
-if (Buffer==0)
- Buffer=(double *)mallocEC(FDim*sizeof(double));
-
-  memset(BZIntegrand, 0, FDim*sizeof(double));
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  double kTheta=u[0];
   double Gamma = RLBasis->GetEntryD(0,0);
-  for(int nTheta=0; nTheta<NTheta; nTheta++)
-   { double kTheta = u[0] + nTheta*0.5*M_PI;
-     double kBloch[2];
-     kBloch[0] = kRho * Gamma * cos(kTheta);
-     kBloch[1] = kRho * Gamma * sin(kTheta);
-     BZIFunc(UserData, Omega, kBloch, Buffer);
-     VecPlusEquals(BZIntegrand, 1.0, Buffer, FDim);
-   };
-  
+  double kBloch[2];
+  kBloch[0]=kRho*Gamma*cos(kTheta);
+  kBloch[1]=kRho*Gamma*sin(kTheta);
+  int NumOctants = 8/SymmetryFactor;
+  memset(BZIntegrand, 0, FDim*sizeof(double));
+  for(int n=0; n<NumOctants; n++)
+   { 
+     double RkB[3]={0.0, 0.0, 0.0};
+     GetOctantImage(kBloch, n, RkB);
+     BZIFunc(UserData, Omega, RkB, DeltaBZI);
+     VecPlusEquals(BZIntegrand, 1.0, DeltaBZI, FDim);
+     Args->NumCalls++;
+   };  
   return 0;
 
 }
@@ -526,37 +315,42 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
 
   GetBZIArgStruct *Args = (GetBZIArgStruct *)pArgs;
 
-  int FDim           = Args->FDim;
-  int SymmetryFactor = Args->SymmetryFactor;
-  HMatrix *RLBasis   = Args->RLBasis;
-  int AngularOrder   = Args->Order % 100;
-  int MaxEvals       = Args->MaxEvals;
-  double RelTol      = Args->RelTol;
-  double AbsTol      = Args->AbsTol;
-  double *BZIError   = Args->BZIError;
+  int FDim            = Args->FDim;
+  int SymmetryFactor  = Args->SymmetryFactor;
+  int AngularOrder    = Args->Order % 100;
+  int MaxEvals        = Args->MaxEvals;
+  double RelTol       = Args->RelTol;
+  double AbsTol       = Args->AbsTol;
+  double **DataBuffer = Args->DataBuffer;
 
   double kRho = u[0];
   Args->kRho  = kRho;
   
-  double Lower, Upper, kMax=0.5;
-  if (kRho<=kMax)
-   { Lower = 0.0;
-     Upper = SymmetryFactor==8 ? 0.25*M_PI : 0.5*M_PI;
+  double kMax  = 0.5;
+  double Lower = (kRho<=kMax) ? 0.0 : acos(kMax / kRho);
+  double Upper = 0.25*M_PI;
+
+  if (AngularOrder==0)
+   { 
+      CCCubature(AngularOrder, FDim, BZIntegrand_Angular, pArgs, 1,
+	         &Lower, &Upper, MaxEvals, AbsTol, RelTol,
+	         ERROR_INDIVIDUAL, BZIntegrand, DataBuffer[1]);
    }
   else
-   { Lower = acos(kMax / kRho);
-     Upper = SymmetryFactor==8 ? 0.25*M_PI : 0.5*M_PI - Lower;
+   { memset(BZIntegrand, 0, FDim*sizeof(double));
+
+     double DeltaTheta0 = 0.25*M_PI / AngularOrder;
+     int NTheta = ceil( (Upper-Lower)/DeltaTheta0 );
+     if (NTheta==0) NTheta=1;
+     double DeltaTheta = (Upper-Lower) / NTheta;
+     double *DeltaBZI=DataBuffer[1];
+     for(int nTheta=0; nTheta<=NTheta; nTheta++)
+      { double Theta = 0.25*M_PI - nTheta*DeltaTheta;
+        double Weight = (nTheta==0 || nTheta==NTheta) ? 0.5 : 1.0;
+        BZIntegrand_Angular(1, &Theta, pArgs, FDim, DeltaBZI);
+        VecPlusEquals(BZIntegrand, Weight*SymmetryFactor*DeltaTheta, DeltaBZI, FDim);
+      };
    };
-
-
-// FIXME
-static double *Buffer=0;
-if (Buffer==0)
- Buffer=(double *)mallocEC(FDim*sizeof(double));
-
-  CCCubature(AngularOrder, FDim, BZIntegrand_Angular, pArgs, 1,
-	     &Lower, &Upper, MaxEvals, AbsTol, RelTol,
-	     ERROR_INDIVIDUAL, BZIntegrand, Buffer);
 
   for(int nf=0; nf<FDim; nf++)
    BZIntegrand[nf]*=kRho;
@@ -571,23 +365,21 @@ if (Buffer==0)
 void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
                           double *BZIntegral)
 {
-  int FDim         = Args->FDim;
-  int MaxEvals     = Args->MaxEvals;
-  double AbsTol    = Args->AbsTol;
-  double RelTol    = Args->RelTol;
-  HMatrix *RLBasis = Args->RLBasis;
-  double *BZIError = Args->BZIError;
+  int FDim            = Args->FDim;
+  int MaxEvals        = Args->MaxEvals;
+  double AbsTol       = Args->AbsTol;
+  double RelTol       = Args->RelTol;
+  double **DataBuffer = Args->DataBuffer;
 
   Args->Omega      = Omega;
 
-  int RadialOrder  = (Args->Order) / 100;
+  int RadialOrder  = Args->Order / 100;
 
   double Lower = 0.0;
   double Upper = 0.5*M_SQRT2;
   CCCubature(RadialOrder, FDim, BZIntegrand_Radial, (void *)Args, 1,
 	     &Lower, &Upper, MaxEvals, AbsTol, RelTol,
-	     ERROR_INDIVIDUAL, BZIntegral, BZIError);
-
+	     ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
 }
 
 /***************************************************************/
@@ -600,14 +392,24 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   int FDim = Args->FDim;
-  if (Args->BZIErrorSize!=FDim)
-   { Args->BZIErrorSize=FDim;
-     Args->BZIError
-      =(double *)reallocEC(Args->BZIError, FDim*sizeof(double));
+  if (Args->BufSize<FDim)
+   { Args->BufSize=FDim;
+     Args->DataBuffer[0]
+      =(double *)reallocEC(Args->DataBuffer[0], 3*FDim*sizeof(double));
+     Args->DataBuffer[1]=Args->DataBuffer[0] + FDim;
+     Args->DataBuffer[2]=Args->DataBuffer[0] + 2*FDim;
+     Args->BZIError=Args->DataBuffer[0];
    };
     
   int SymmetryFactor = Args->SymmetryFactor;
   int LDim           = Args->RLBasis->NC;
+  if (    SymmetryFactor!=1 && SymmetryFactor!=2 
+       && SymmetryFactor!=4 && SymmetryFactor!=8
+     )
+   { Warn("invalid symmetry factor %i (resetting to 1)",SymmetryFactor);
+     SymmetryFactor=1;
+   };
+
   if (SymmetryFactor>=4 && LDim==1)
    { Warn("Can't have symmetry factor > 2 in 1-dimensional BZ integration! Resetting to 2.");
      SymmetryFactor=Args->SymmetryFactor=2;
@@ -618,28 +420,23 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
   /*--------------------------------------------------------------*/
   Args->NumCalls=0;
   switch(Args->BZIMethod)
-   { case BZI_ADAPTIVE:
-      GetBZIntegral_PCubature(Args, Omega, BZIntegral);
-      break;
+   { 
      case BZI_CC:
       GetBZIntegral_CC(Args, Omega, BZIntegral);
       break;
+
      case BZI_TC:
       GetBZIntegral_TC(Args, Omega, BZIntegral);
       break;
+
      case BZI_RADIAL:
       GetBZIntegral_Radial(Args, Omega, BZIntegral);
       break;
+
+     default:
+      ErrExit("unknown BZIMethod in GetBZIntegral");
    };
 
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  if (SymmetryFactor>1)
-   for(int nf=0; nf<FDim; nf++)
-    { BZIntegral[nf] *= SymmetryFactor;
-      Args->BZIError[nf]*=SymmetryFactor;
-    };
 } 
 
 /***************************************************************/
@@ -742,7 +539,7 @@ void BZIUsage(const char *format, ...)
   printf("\n");
   printf("Options controlling Brillouin-zone integration: \n");
   printf("\n");
-  printf("--BZIMethod   [CC | Adaptive | TC | Radial]\n");
+  printf("--BZIMethod   [CC | TC | Radial]\n");
   printf("--BZIOrder    xx \n");
   printf("--BZIRelTol   xx \n");
   printf("--BZIMaxEvals xx \n");
@@ -761,12 +558,22 @@ GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
   /* allocate structure and fill in default values ***************/
   /***************************************************************/
   GetBZIArgStruct *BZIArgs = (GetBZIArgStruct *)mallocEC(sizeof(*BZIArgs));
+
+  BZIArgs->BZIFunc=0;
+  BZIArgs->UserData=0;
+  BZIArgs->FDim=0;
+  BZIArgs->RLBasis=0;
+  BZIArgs->BZVolume=0.0;
+
   BZIArgs->BZIMethod      = BZI_DEFAULT;
   BZIArgs->Order          = -1;
-  BZIArgs->MaxEvals       = 1000;
-  BZIArgs->RelTol         = 1.0e-2;
-  BZIArgs->AbsTol         = 0.0;
+  BZIArgs->MaxEvals       = DEF_BZIMAXEVALS;
+  BZIArgs->RelTol         = DEF_BZIRELTOL;
+  BZIArgs->AbsTol         = DEF_BZIABSTOL;
   BZIArgs->SymmetryFactor = 1;
+
+  BZIArgs->BufSize = 0;
+  BZIArgs->DataBuffer[0] = BZIArgs->DataBuffer[1] = 0;
 
   /***************************************************************/
   /***************************************************************/
@@ -804,8 +611,6 @@ GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
          BZIArgs->BZIMethod = BZI_TC;
         else if (!strcasecmp(Option,"CC")) 
          BZIArgs->BZIMethod = BZI_CC;
-        else if (!strcasecmp(Option,"Adaptive")) 
-         BZIArgs->BZIMethod = BZI_ADAPTIVE;
         else if (!strcasecmp(Option,"Radial"))
          BZIArgs->BZIMethod = BZI_RADIAL;
         else
@@ -866,7 +671,7 @@ bool LatticeIsSquare(HMatrix *LBasis)
 /***************************************************************/
 /***************************************************************/
 const char *BZIMethodNames[]=
- { "DEFAULT", "CC", "TC", "ADAPTIVE", "RADIAL" };
+ { "DEFAULT", "CC", "TC", "RADIAL" };
 
 void UpdateBZIArgs(GetBZIArgStruct *Args,
                    HMatrix *RLBasis, double RLVolume)
@@ -874,8 +679,6 @@ void UpdateBZIArgs(GetBZIArgStruct *Args,
   Args->RLBasis         = RLBasis;
   Args->BZVolume        = RLVolume;
   
-  int LDim = RLBasis->NC;
-
   if (    (Args->BZIMethod==BZI_TC || Args->BZIMethod==BZI_RADIAL)
        && !LatticeIsSquare(RLBasis)
      ) 
@@ -884,19 +687,17 @@ void UpdateBZIArgs(GetBZIArgStruct *Args,
    };
 
   if (Args->BZIMethod==BZI_DEFAULT)
-   Args->BZIMethod = (LDim==1 ? BZI_CC : BZI_TC);
+   Args->BZIMethod = BZI_CC;
   if (Args->Order==-1)
-   Args->Order  = (LDim==1 ? 21     : 9);
+   Args->Order  = 21;
 
   Log("Evaluating BZ integral by ");
    if (Args->BZIMethod==BZI_TC)
   LogC("triangle cubature, order %i: ",Args->Order);
    else if (Args->BZIMethod==BZI_CC)
   LogC("Clenshaw-Curtis cubature, order %i: ",Args->Order);
-   else if (Args->BZIMethod==BZI_ADAPTIVE)
-  LogC("adaptive cubature, {relTol, maxEvals}={%e,%i}",
-        Args->RelTol, Args->MaxEvals);
-  LogC("radial cubature, {order, relTol, maxEvals}={%i,%e,%i}",
-        Args->Order, Args->RelTol, Args->MaxEvals);
+   else if (Args->BZIMethod==BZI_RADIAL)
+  LogC("radial cubature, radial order %i, angular order %i}",
+        Args->Order/100, Args->Order%100);
 
 }

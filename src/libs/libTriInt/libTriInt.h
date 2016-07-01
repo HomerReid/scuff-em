@@ -97,6 +97,14 @@ void ECC(int p, double xMin, double xMax,
          double *Result, double *Error);
 
 /***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int CCCubature(int Order, unsigned fdim, integrand f, void *fdata,
+	       unsigned dim, const double *xmin, const double *xmax, 
+	       size_t maxEval, double reqAbsError, double reqRelError,
+               error_norm norm, double *Integral, double *Error);
+
+/***************************************************************/
 /* CliffFunction is almost identical to integrand in libSGJC,  */
 /* but it takes an additional argument consisting of a vector  */
 /* of bools; if Skip[nf]==true then the evaluation of integrand*/

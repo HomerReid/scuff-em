@@ -29,11 +29,16 @@
 #include "libhmat.h"
 #include "libTriInt.h"
 
+// values for BZIMethod
 #define BZI_DEFAULT  0
 #define BZI_CC       1
 #define BZI_TC       2
-#define BZI_ADAPTIVE 3
-#define BZI_RADIAL   4
+#define BZI_RADIAL   3
+
+// default parameters for adaptive integration
+#define DEF_BZIMAXEVALS 1000    // max # brillouin-zone samples
+#define DEF_BZIRELTOL   1.0e-2  // relative tolerance
+#define DEF_BZIABSTOL   1.0e-10 // absolute tolerance
 
 /***************************************************************/
 /***************************************************************/
@@ -69,12 +74,13 @@ typedef struct GetBZIArgStruct
   
   // fields used internally that may be ignored by the caller
   double kRho;
-  int BZIErrorSize;
   cdouble Omega;
+  int BufSize;
+  double *DataBuffer[3]; // internally allocated
 
   // return values 
-  int NumCalls;     // actual # integrand samples (return value)
-  double *BZIError; // internally allocated; only non-null for adaptive schemes
+  int NumCalls;       // actual # integrand samples (return value)
+  double *BZIError;   // error (for adaptive schemes)
   
 } GetBZIArgStruct;
 
