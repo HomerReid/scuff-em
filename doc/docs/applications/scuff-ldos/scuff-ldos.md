@@ -12,21 +12,36 @@ The inputs you supply to [[scuff-ldos]] calculation are
 
 + A `.scuffgeo` file describing your geometry.
 
++ A list of evaluation points $\mathbf x$ at which you want to know
+  the LDOS.
+
 + One or more angular frequencies $\omega$ at which to perform
   calculations.
 
-+ A list of evaluation points $\mathbf x$ at which you want to know
-  the LDOS.
++ Optionally, for periodic geometries, you may additionally specify
+  a list of Bloch wavevectors at which to evaluate wavevector-resolved
+  contributions to the LDOS. If you do not specify such a list,
+  [[scuff-ldos]] will evaluate an integral over the Brillouin zone
+  to compute the total LDOS at each $(\omega, \mathbf x)$ point.
 
 The outputs you get back from a [[scuff-ldos]] calculation may
 include
 
 + The LDOS at each $(\omega, \mathbf x)$ point.
+
 + For periodic geometries, the contributions of individual
-  Bloch wavevectors $\mathbf k_{\text{Bloch}}$ to the LDOS at
-  each $(\omega,\mathbf x)$ point.
-+ Optionally, more complete information on the scattering parts 
-  of the dyadic Green's functions (DGFs).
+  Bloch wavevectors $\mathbf k_{\text{Bloch}}$ to the LDOS.
+  If you supplied a list of Bloch vectors as an input,
+  you will get wavevector-resolved information for each point
+  in your list; otherwise, you will get wavevector-resolved 
+  information for each point chosen automatically by 
+  [[scuff-ldos]] in its numerical-cubature evaluation of 
+  the Brillouin-zone integral.
+
++ Optionally, the full Cartesian components of the scattering
+  parts of the dyadic Green's functions (DGFs) [the 
+  electric / magnetic LDOS is proportional to the imaginary part 
+  of the trace of the electric / magnetic DGFs].
 
 For testing purposes, [[scuff-ldos]] also includes built-in
 functionality to compute the LDOS for some geometries that
@@ -110,7 +125,6 @@ for the full (BZ-integrated) LDOS are written to the
 --Omega
 --OmegaFile
 --OmegakBlochFile
---BZSymmetry
 --AbsTol
 --RelTol
 --FileBase
@@ -147,13 +161,19 @@ specified. In this case you wil get back a
 `.byOmegakBloch` file, but not an
 `.LDOS` file.
 
-### Options requesting special calculations
+### Options requesting analytical LDOS calculations
 
   ````
+--GroundPlane
+
 --HalfSpace PEC
 --HalfSpace Aluminum
+
+--SkipBZIntegration
   ````
 {.toc}
+
+As noted above, for testing purposes [[scuff-ldos]] incorporates
 
 The first option here instructs [[scuff-ldos]] to 
 bypass the usual LDOS calculation it would otherwise 

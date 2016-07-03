@@ -102,25 +102,32 @@ int BZIntegrand_CCCubature(unsigned ndim, const double *u,
   int LDim               = RLBasis->NC;
 
   /*--------------------------------------------------------------*/
-  /*- we may be able to skip this point depending on symmetry    -*/
+  /*- special handling for SymmetryFactor = 8:                    */
+  /*-  (a) if we are doing fixed-order CC cubature, omit          */
+  /*-      points with ky > kx and halve the contributions of     */
+  /*-      points with kx==ky                                     */
+  /*-  (b) if we are doing adaptive cubature, use a Duffy         */
+  /*-      transform to map the square integration domain into a  */
+  /*-      triangle                                               */
   /*--------------------------------------------------------------*/
-  memset(BZIntegrand, 0, fdim*sizeof(double));
-  double Eta=1.0e-8;
-  double EffectiveSymmetryFactor = SymmetryFactor;
-  if (SymmetryFactor>1)
-   {  
-     if (SymmetryFactor>=2 && u[1] < -Eta )  return 0;
-     if (SymmetryFactor>=4 && u[0] < -Eta )  return 0;
-     if (SymmetryFactor==8 && u[1] > (u[0]+Eta)) return 0;
-
-     if ( fabs(u[0])<Eta && fabs(u[1])<Eta )
-      EffectiveSymmetryFactor = 1.0;
-     else if ( fabs(u[0])<Eta )
-      EffectiveSymmetryFactor = 2.0;
-     else if ( fabs(u[1])<Eta )
-      EffectiveSymmetryFactor = SymmetryFactor==8 ? 4.0 : SymmetryFactor/2;
-     else if ( EqualFloat( fabs(u[0]), fabs(u[1]) ) )
-      EffectiveSymmetryFactor = SymmetryFactor==8 ? 4.0 : SymmetryFactor==4 ? 4.0 : 2.0;
+  double Weight=1.0;
+  double uVector[3];
+  memcpy(uVector, u, LDim*sizeof(double));
+  if (SymmetryFactor==8)
+   { if (Args->Order==0)
+      { uVector[1]*=uVector[0];
+        Weight=uVector[0];
+      }
+     else 
+      { if ( EqualFloat(u[0],u[1]) ) 
+         Weight=0.5;
+        else if (u[1]<u[0])
+         Weight=1.0;
+        else // ky>kx
+         { memset(BZIntegrand, 0, fdim*sizeof(double));
+           return 0;
+         };
+      };
    };
 
   /*--------------------------------------------------------------*/
@@ -129,13 +136,13 @@ int BZIntegrand_CCCubature(unsigned ndim, const double *u,
   double kBloch[3]={0.0, 0.0, 0.0};
   for(int nd=0; nd<LDim; nd++)
    for(int nc=0; nc<3; nc++)
-    kBloch[nc] += u[nd]*RLBasis->GetEntryD(nc,nd);
+    kBloch[nc] += uVector[nd]*RLBasis->GetEntryD(nc,nd);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   BZIFunc(UserData, Omega, kBloch, BZIntegrand);
-  VecScale(BZIntegrand, EffectiveSymmetryFactor, fdim);
+  VecScale(BZIntegrand, Weight, fdim);
   
   Args->NumCalls++;
 
@@ -159,14 +166,29 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args,
   double RelTol       = Args->RelTol;
   double AbsTol       = Args->AbsTol;
   double **DataBuffer = Args->DataBuffer;
+  int SymmetryFactor  = Args->SymmetryFactor;
   
   Args->Omega = Omega;
 
-  double Lower[2]={-0.5, -0.5};
-  double Upper[2]={+0.5, +0.5};
+  double Lower[2], Upper[2];
+  switch(SymmetryFactor)
+   { case 1: Lower[0]=Lower[1]=-0.5;
+             Upper[0]=Upper[1]=+0.5;
+             break;
+     case 2: Lower[0]=-0.5; Lower[1]=0.0;
+             Upper[0]=Upper[1]=0.5;
+             break;
+     case 4: Lower[0]=Lower[1]=0.0;
+             Upper[0]=Upper[1]=0.5;
+             break;
+     case 8: Lower[0]=0.0; Lower[1]=0.0;
+             Upper[0]=0.5; Upper[1]=(Order==0) ? 1.0 : 0.5;
+             break;
+   };
   CCCubature(Order, FDim, BZIntegrand_CCCubature, (void *)Args, LDim,
 	     Lower, Upper, MaxEvals, AbsTol, RelTol,
 	     ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
+  VecScale(BZIntegral, SymmetryFactor);
  
 }
 
@@ -335,6 +357,23 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
       CCCubature(AngularOrder, FDim, BZIntegrand_Angular, pArgs, 1,
 	         &Lower, &Upper, MaxEvals, AbsTol, RelTol,
 	         ERROR_INDIVIDUAL, BZIntegrand, DataBuffer[1]);
+      VecScale(BZIntegrand, SymmetryFactor, FDim);
+   }
+  else if ( (AngularOrder%2)==0 )
+   { 
+     BZIFunction BZIFunc = Args->BZIFunc;
+     void *UserData      = Args->UserData;
+     cdouble Omega       = Args->Omega;
+     double Gamma        = Args->RLBasis->GetEntryD(0,0);
+     double kBloch[3]={0.0, 0.0, 0.0};
+     switch(AngularOrder)
+      { case 2:  kBloch[0] = kRho*Gamma; break;
+        case 4:  kBloch[1] = kRho*Gamma; break;
+        case 6: 
+        default: kBloch[0] = kBloch[1] = kRho*Gamma/(M_SQRT2); break;
+      };
+     BZIFunc(UserData, Omega, kBloch, BZIntegrand);
+     VecScale(BZIntegrand, 2.0*M_PI, FDim);
    }
   else
    { memset(BZIntegrand, 0, FDim*sizeof(double));
@@ -352,9 +391,7 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
       };
    };
 
-  for(int nf=0; nf<FDim; nf++)
-   BZIntegrand[nf]*=kRho;
-
+  VecScale(BZIntegrand, kRho, FDim);
   return 0;
 
 }

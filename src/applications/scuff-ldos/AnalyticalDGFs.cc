@@ -87,12 +87,11 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
   // Polar = false--> we are evaluating the 2-dimensional
   //                  (qx,qy) integral
   //
-  double q2, qMag, Jacobian=1.0;
+  double q2, qMag;
   cdouble One, Cos, Sin, Cos2, Sin2, CosSin;
   if (Polar)
    { q2        = q[0]*q[0];
      qMag      = q[0];
-     Jacobian *= 2.0*M_PI*q[0];
    }
   else
    { q2       = q[0]*q[0] + q[1]*q[1];
@@ -156,15 +155,16 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      if (Polar)
       { cdouble J[3];
         double qRho = qMag*Rho;
+        double TPQ = 2.0*M_PI*qMag;
         AmosBessel('J', qRho, 0.0, 3, false, J, Data->Workspace);
         cdouble J1oqRho = (qRho==0.0 ? 0.0 : J[1]/qRho);
         cdouble Bracket = (J[0] - 2.0*J1oqRho - J[2]);
-        One     = J[0];
-        Cos     = II*J[1]*xHat;
-        Sin     = II*J[1]*yHat;
-        Cos2    = 0.5*Bracket*xHat*xHat + J1oqRho;
-        CosSin  = 0.5*Bracket*xHat*yHat;
-        Sin2    = 0.5*Bracket*yHat*yHat + J1oqRho;
+        One     = TPQ*J[0];
+        Cos     = II*TPQ*J[1]*xHat;
+        Sin     = II*TPQ*J[1]*yHat;
+        Cos2    = TPQ*(0.5*Bracket*xHat*xHat + J1oqRho);
+        CosSin  = TPQ*0.5*Bracket*xHat*yHat;
+        Sin2    = TPQ*(0.5*Bracket*yHat*yHat + J1oqRho);
       }
      else
       qDotRho = q[0]*R[0] + q[1]*R[1];
@@ -186,7 +186,7 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      if ( fabs(real(ExpArg)) > 40.0 )
       continue;
 
-     cdouble Factor = II*Jacobian*exp(ExpArg) / (8.0*M_PI*M_PI*qz);
+     cdouble Factor = II*exp(ExpArg) / (8.0*M_PI*M_PI*qz);
   
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
@@ -301,8 +301,7 @@ int HalfSpaceDGFIntegrand_Polar(unsigned ndim, const double *u, void *UserData, 
    };
 
   HalfSpaceDGFIntegrand(&qr, Data, Integrand);
-  for(int n=0; n<IDim; n++)
-   Integrand[n]*=Jacobian;
+  VecScale(Integrand, Jacobian, IDim);
 
   return 0;
 
