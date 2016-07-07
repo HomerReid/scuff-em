@@ -33,19 +33,22 @@
 
 #include "libhmat.h"
 
+#define MAXSTR 1000
+#define MAXTOK 1000
+
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
 void HMatrix::ImportFromText(const char *FileName, const char *Options)
 {
   FILE *f;
-  char buffer[1000];
+  char buffer[MAXSTR];
 
   /***************************************************************/
   /* attempt to open file ****************************************/
   /***************************************************************/
   if ( FileName==0 || !(f=fopen(FileName,"r")))
-   { snprintf(buffer,1000,"could not open file %s",FileName ? FileName : "");
+   { snprintf(buffer,MAXSTR,"could not open file %s",FileName ? FileName : "");
      ErrMsg=strdupEC(buffer);
      return;
    };
@@ -53,12 +56,12 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
   /***************************************************************/
   /* process arguments *******************************************/
   /***************************************************************/
-  char *Tokens[50];
+  char *Tokens[MAXTOK];
   int nt, NumTokens, iVal;
   int nColsRequested=0, nRowsRequested=0, Strict=0;
 
-  strncpy(buffer,Options,1000);
-  NumTokens=Tokenize(buffer,Tokens,50);
+  strncpy(buffer,Options,MAXSTR);
+  NumTokens=Tokenize(buffer,Tokens,MAXTOK);
   for(nt=0; nt<NumTokens; nt++)
    { 
      if ( !StrCaseCmp(Tokens[nt],"--strict") )
@@ -82,16 +85,16 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
   nRows=0;
   Line=0;
   AllReal=1;
-  while(fgets(buffer,1000,f))
+  while(fgets(buffer,MAXSTR,f))
    { 
      Line++;
 
      /*--------------------------------------------------------------*/
      /*- split line up into tokens ----------------------------------*/
      /*--------------------------------------------------------------*/
-     NumTokens=Tokenize(buffer,Tokens,50);
-     if (NumTokens==50) 
-      { snprintf(buffer,1000,"%s:%i: too many columns",FileName,Line);
+     NumTokens=Tokenize(buffer,Tokens,MAXTOK);
+     if (NumTokens==MAXTOK) 
+      { snprintf(buffer,MAXSTR,"%s:%i: too many columns",FileName,Line);
         ErrMsg=strdupEC(buffer);
         fclose(f);
         return;
@@ -124,7 +127,7 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
      /*- the greatest number of columns on any line.                 */
      /*--------------------------------------------------------------*/
      if (nColsThisRow==0)
-      { snprintf(buffer,1000,"%s:%i: no columns found on row",FileName,Line);
+      { snprintf(buffer,MAXSTR,"%s:%i: no columns found on row",FileName,Line);
         ErrMsg=strdupEC(buffer);
         fclose(f);
         return;
@@ -133,7 +136,7 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
      if (nRows==0)
       nCols=nColsThisRow;
      else if (Strict && nColsThisRow!=nCols)
-      { snprintf(buffer,1000,"%s:%i: mismatch in number of data columns",FileName,Line);
+      { snprintf(buffer,MAXSTR,"%s:%i: mismatch in number of data columns",FileName,Line);
         ErrMsg=strdupEC(buffer);
         fclose(f);
         return;
@@ -149,13 +152,13 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
   /* columns and didn't get it, that's an error                  */
   /***************************************************************/
   if (nRowsRequested && nRowsRequested!=nRows)
-   { snprintf(buffer,1000,"%s: matrix has %i rows (not %i as requested)",FileName,nRows,nRowsRequested);
+   { snprintf(buffer,MAXSTR,"%s: matrix has %i rows (not %i as requested)",FileName,nRows,nRowsRequested);
      ErrMsg=strdupEC(buffer);
      fclose(f);
      return;
    };
   if (nColsRequested && nColsRequested!=nCols)
-   { snprintf(buffer,1000,"%s: matrix has %i columns (not %i as requested)",FileName,nCols,nColsRequested);
+   { snprintf(buffer,MAXSTR,"%s: matrix has %i columns (not %i as requested)",FileName,nCols,nColsRequested);
      ErrMsg=strdupEC(buffer);
      fclose(f);
      return;
@@ -174,9 +177,9 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
 
   nr=0;
   rewind(f);
-  while(fgets(buffer,1000,f))
+  while(fgets(buffer,MAXSTR,f))
    { 
-     NumTokens=Tokenize(buffer,Tokens,50);
+     NumTokens=Tokenize(buffer,Tokens,MAXTOK);
      if (NumTokens==0 || Tokens[0][0]=='#')
       continue;
 
@@ -200,7 +203,7 @@ void HMatrix::ImportFromText(const char *FileName, const char *Options)
 void HMatrix::ExportToText(const char *FileName, const char *Options)
 {
   FILE *f;
-  char buffer[1000];
+  char buffer[MAXSTR];
   int nr, nc;
   cdouble Z;
 
@@ -211,12 +214,12 @@ void HMatrix::ExportToText(const char *FileName, const char *Options)
   /* written as separate columns of the data file (separated by  */
   /* spaces) instead of as non-space-separated strings like 4+5I.*/
   /***************************************************************/
-  char *Tokens[50];
+  char *Tokens[MAXTOK];
   int nt, NumTokens;
   bool Separate=false;
 
-  strncpy(buffer,Options,1000);
-  NumTokens=Tokenize(buffer,Tokens,50);
+  strncpy(buffer,Options,MAXSTR);
+  NumTokens=Tokenize(buffer,Tokens,MAXTOK);
   for(nt=0; nt<NumTokens; nt++)
    { 
      if ( !StrCaseCmp(Tokens[nt],"--separate") )
@@ -227,7 +230,7 @@ void HMatrix::ExportToText(const char *FileName, const char *Options)
   /* attempt to open file ****************************************/
   /***************************************************************/
   if ( !FileName || !(f=fopen(FileName,"w")))
-   { snprintf(buffer,1000,"could not open file %s",FileName ? FileName : "");
+   { snprintf(buffer,MAXSTR,"could not open file %s",FileName ? FileName : "");
      ErrMsg=strdupEC(buffer);
      return;
    };
@@ -264,13 +267,13 @@ void HMatrix::ExportToText(const char *FileName, const char *Options)
 void HVector::ImportFromText(const char *FileName, const char *Options)
 {
   FILE *f;
-  char buffer[1000];
+  char buffer[MAXSTR];
 
   /***************************************************************/
   /* attempt to open file ****************************************/
   /***************************************************************/
   if ( !(f=fopen(FileName,"r")))
-   { snprintf(buffer,1000,"could not open file %s",FileName);
+   { snprintf(buffer,MAXSTR,"could not open file %s",FileName);
      ErrMsg=strdupEC(buffer);
      return;
    };
@@ -278,13 +281,13 @@ void HVector::ImportFromText(const char *FileName, const char *Options)
   /***************************************************************/
   /* process options *********************************************/
   /***************************************************************/
-  char *Tokens[50];
+  char *Tokens[MAXTOK];
   int nt, NumTokens, iVal;
   int nRowsRequested=0;
   int Strict=0;
 
-  strncpy(buffer,Options,1000);
-  NumTokens=Tokenize(buffer,Tokens,50);
+  strncpy(buffer,Options,MAXSTR);
+  NumTokens=Tokenize(buffer,Tokens,MAXTOK);
   for(nt=0; nt<NumTokens; nt++)
    { 
      if ( !StrCaseCmp(Tokens[nt],"--strict") )
@@ -306,16 +309,16 @@ void HVector::ImportFromText(const char *FileName, const char *Options)
   nRows=0;
   Line=0;
   AllReal=1;
-  while(fgets(buffer,1000,f))
+  while(fgets(buffer,MAXSTR,f))
    { 
      Line++;
 
      /*--------------------------------------------------------------*/
      /*- split line up into tokens ----------------------------------*/
      /*--------------------------------------------------------------*/
-     NumTokens=Tokenize(buffer,Tokens,50);
-     if (NumTokens==50) 
-      { snprintf(buffer,1000,"%s:%i: too many columns",FileName,Line);
+     NumTokens=Tokenize(buffer,Tokens,MAXTOK);
+     if (NumTokens==MAXTOK) 
+      { snprintf(buffer,MAXSTR,"%s:%i: too many columns",FileName,Line);
         ErrMsg=strdupEC(buffer);
         fclose(f);
         return;
@@ -349,13 +352,13 @@ void HVector::ImportFromText(const char *FileName, const char *Options)
      /*- will be ignored                                             */
      /*--------------------------------------------------------------*/
      if (nColsThisRow==0)
-      { snprintf(buffer,1000,"%s:%i: no columns found on row",FileName,Line);
+      { snprintf(buffer,MAXSTR,"%s:%i: no columns found on row",FileName,Line);
         ErrMsg=strdupEC(buffer);
         fclose(f);
         return;
       }
      else if (Strict && nColsThisRow!=1)
-      { snprintf(buffer,1000,"%s:%i: too many data columns",FileName,Line);
+      { snprintf(buffer,MAXSTR,"%s:%i: too many data columns",FileName,Line);
         ErrMsg=strdupEC(buffer);
         fclose(f);
         return;
@@ -369,7 +372,7 @@ void HVector::ImportFromText(const char *FileName, const char *Options)
   /* get it, that's an error                                     */
   /***************************************************************/
   if (nRowsRequested && nRowsRequested!=nRows)
-   { snprintf(buffer,1000,"%s: vector has %i rows (not %i as requested)",FileName,nRows,nRowsRequested);
+   { snprintf(buffer,MAXSTR,"%s: vector has %i rows (not %i as requested)",FileName,nRows,nRowsRequested);
      ErrMsg=strdupEC(buffer);
      fclose(f);
      return;
@@ -388,9 +391,9 @@ void HVector::ImportFromText(const char *FileName, const char *Options)
 
   n=0;
   rewind(f);
-  while(fgets(buffer,1000,f))
+  while(fgets(buffer,MAXSTR,f))
    { 
-     NumTokens=Tokenize(buffer,Tokens,50);
+     NumTokens=Tokenize(buffer,Tokens,MAXTOK);
      if (NumTokens==0 || Tokens[0][0]=='#')
       continue;
 
@@ -414,7 +417,7 @@ void HVector::ImportFromText(const char *FileName, const char *Options)
 void HVector::ExportToText(const char *FileName, const char *Options)
 {
   FILE *f;
-  char buffer[1000];
+  char buffer[MAXSTR];
   int n;
   cdouble Z;
 
@@ -424,7 +427,7 @@ void HVector::ExportToText(const char *FileName, const char *Options)
   /* attempt to open file ****************************************/
   /***************************************************************/
   if ( !(f=fopen(FileName,"w")))
-   { snprintf(buffer,1000,"could not open file %s",FileName);
+   { snprintf(buffer,MAXSTR,"could not open file %s",FileName);
      ErrMsg=strdupEC(buffer);
      return;
    };

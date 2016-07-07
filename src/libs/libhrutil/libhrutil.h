@@ -257,6 +257,7 @@ typedef struct OptStruct
    const char *Description;
  } OptStruct;
 
+void AppendOSUsageMessage(const char *Message);
 void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...);
 void ProcessOptions(int argc, char *argv[], OptStruct *OSArray);
 void ProcessOptions(const char *ArgString, OptStruct *OSArray);

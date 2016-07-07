@@ -116,13 +116,13 @@ int BZIntegrand_CCCubature(unsigned ndim, const double *u,
   if (SymmetryFactor==8)
    { if (Args->Order==0)
       { uVector[1]*=uVector[0];
-        Weight=uVector[0];
+        Weight*=uVector[0];
       }
      else 
       { if ( EqualFloat(u[0],u[1]) ) 
-         Weight=0.5;
+         Weight*=0.5;
         else if (u[1]<u[0])
-         Weight=1.0;
+         Weight*=1.0;
         else // ky>kx
          { memset(BZIntegrand, 0, fdim*sizeof(double));
            return 0;
@@ -554,6 +554,18 @@ HMatrix *GetRLBasis(HMatrix *LBasis,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+const char *BZIOptionsString=
+ "\n options controlling Brillouin-zone integration: \n\n"
+ "  --BZIMethod   [CC | TC | Radial]\n"
+ "  --BZIOrder    xx \n"
+ "  --BZIRelTol   xx \n"
+ "  --BZIMaxEvals xx \n"
+ "  --BZSymmetryFactor [1|2|4|8]\n"
+ "\n";
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void BZIUsage(const char *format, ...)
 {
   /***************************************************************/
@@ -569,20 +581,7 @@ void BZIUsage(const char *format, ...)
 
      fprintf(stderr,"error: %s (aborting)\n",buffer);
    };
-
-  /***************************************************************/
-  /***************************************************************/
-  /***************************************************************/
-  printf("\n");
-  printf("Options controlling Brillouin-zone integration: \n");
-  printf("\n");
-  printf("--BZIMethod   [CC | TC | Radial]\n");
-  printf("--BZIOrder    xx \n");
-  printf("--BZIRelTol   xx \n");
-  printf("--BZIMaxEvals xx \n");
-  printf("--BZSymmetryFactor [1|2|4|8]\n");
-  printf("\n");
-
+  fprintf(stderr,BZIOptionsString);
   exit(1);
 }
 
@@ -591,6 +590,8 @@ void BZIUsage(const char *format, ...)
 /***************************************************************/
 GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
 {
+  AppendOSUsageMessage(BZIOptionsString);
+
   /***************************************************************/
   /* allocate structure and fill in default values ***************/
   /***************************************************************/

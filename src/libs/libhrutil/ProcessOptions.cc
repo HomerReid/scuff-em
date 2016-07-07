@@ -46,6 +46,15 @@
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
+static char *ExtraOSUsageMessage=0;
+void AppendOSUsageMessage(const char *Message)
+{
+  ExtraOSUsageMessage=vstrappend(ExtraOSUsageMessage, Message);
+}
+
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
 void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...)
 {
   va_list ap;
@@ -75,6 +84,8 @@ void OSUsage(char *ProgName, OptStruct *OSArray, const char *format, ...)
    };
 
   fprintf(stderr,"\n");
+  if (ExtraOSUsageMessage)
+   fprintf(stderr,"%s\n",ExtraOSUsageMessage);
   
   exit(1);
 

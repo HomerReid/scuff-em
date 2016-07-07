@@ -2613,6 +2613,7 @@ double *GetCCRule(int NumPts)
      case 95: return CCRule95;
      case 97: return CCRule97;
      case 99: return CCRule99;
+     default: return 0;
 
    };
 

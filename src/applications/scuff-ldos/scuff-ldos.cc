@@ -98,9 +98,9 @@ int main(int argc, char *argv[])
    };
   ProcessOptions(argc, argv, OSArray);
   if (GeoFile==0 && (SkipBZIntegration==false) )
-   OSUsage(argv[0],OSArray,"--geometry option is mandatory");
+   OSUsage(argv[0], OSArray,"--geometry option is mandatory");
   if (nEPFiles==0)
-   OSUsage(argv[0],OSArray,"you must specify at least one --EPFile");
+   OSUsage(argv[0], OSArray,"you must specify at least one --EPFile");
   if (!FileBase)
    FileBase = vstrdup(GetFileBase(GeoFile));
   if (HalfSpace)

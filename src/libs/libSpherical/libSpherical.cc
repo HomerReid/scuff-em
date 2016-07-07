@@ -226,6 +226,9 @@ cdouble GetYlm(int l, int m, double Theta, double Phi)
   if (abs(m)>l) 
    ErrExit("%s:%i: abs(m)>l in GetYlm",__FILE__,__LINE__);
 
+  if (l==0)
+   return 1.0/sqrt(4.0*M_PI);
+
   double *Plm      = new double[l]; 
   double *PlmPrime = new double[l];
   double mPhi=m*Phi;

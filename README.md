@@ -91,10 +91,10 @@ http://www.homerreid.com/scuff-em
 
 # Technical memos
 
-* [LIBSCUFF Implementation and Technical Details](tex/lsInnards.pdf) - a technical memo describing many details of the core library implementation
-* [Computation of power, force, and torque in SCUFF-EM](tex/PFT.pdf) - a technical memo describing methods for computing power, force and torque, with applications to both classical scattering and non-equilibrium fluctuational electrodynamics
-* [Computation of fields near panels in SCUFF-EM](tex/NearFields.pdf) - a technical memo describing the computation of fields near triangular panels in discretized surface meshes
-* [Computation of Green's Functions and LDOS in SCUFF-LDOS](applications/scuff-ldos) code for computing dyadic Green's functions and local photonic densities of states 
+* [LIBSCUFF Implementation and Technical Details][LSInnardsMemo] - a technical memo describing many details of the core library implementation
+* [Computation of power, force, and torque in SCUFF-EM][PFTMemo] - a technical memo describing methods for computing power, force and torque, with applications to both classical scattering and non-equilibrium fluctuational electrodynamics
+* [Computation of fields near panels in SCUFF-EM][NearFieldsMemo] - a technical memo describing the computation of fields near triangular panels in discretized surface meshes
+* [Computation of Green's Functions and LDOS in SCUFF-LDOS][LDOSMemo] code for computing dyadic Green's functions and local photonic densities of states 
 
 
 [TopLevel]:                http://homerreid.github.io/scuff-em-documentation/reference/TopLevel
@@ -130,3 +130,7 @@ http://www.homerreid.com/scuff-em
 [Implementation]:          http://homerreid.github.io/scuff-em-documentation/forDevelopers/Implementation
 [DataStructures]:          http://homerreid.github.io/scuff-em-documentation/forDevelopers/DataStructures
 [Documentation]:           http://homerreid.github.io/scuff-em-documentation/forDevelopers/Documentation
+[LSInnardsMemo]:           http://homerreid.github.io/scuff-em-documentation/tex/lsInnards.pdf
+[PFTMemo]:                 http://homerreid.github.io/scuff-em-documentation/tex/PFT.pdf
+[NearFieldsMemo]:          http://homerreid.github.io/scuff-em-documentation/tex/NearFields.pdf
+[LDOSMemo]:                http://homerreid.github.io/scuff-em-documentation/tex/scuff-ldos.pdf
