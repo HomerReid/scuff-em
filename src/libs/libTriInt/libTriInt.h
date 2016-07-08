@@ -104,6 +104,11 @@ int CCCubature(int Order, unsigned fdim, integrand f, void *fdata,
 	       size_t maxEval, double reqAbsError, double reqRelError,
                error_norm norm, double *Integral, double *Error);
 
+int RRCubature(int Order, int *Orders, 
+               int FDim, integrand f, void *UserData,
+	       int IDim, const double *Lower, const double *Upper,
+               double *Integral, double *Error);
+
 /***************************************************************/
 /* CliffFunction is almost identical to integrand in libSGJC,  */
 /* but it takes an additional argument consisting of a vector  */

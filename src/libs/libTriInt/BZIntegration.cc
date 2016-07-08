@@ -188,7 +188,7 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args,
   CCCubature(Order, FDim, BZIntegrand_CCCubature, (void *)Args, LDim,
 	     Lower, Upper, MaxEvals, AbsTol, RelTol,
 	     ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
-  VecScale(BZIntegral, SymmetryFactor);
+  VecScale(BZIntegral, SymmetryFactor, FDim);
  
 }
 

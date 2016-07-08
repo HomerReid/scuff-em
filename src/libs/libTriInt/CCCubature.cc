@@ -45,6 +45,9 @@ int CCCubature(int Order, unsigned fdim, integrand f, void *fdata,
   if (Order==0)
    return pcubature(fdim, f, fdata, dim, xmin, xmax, maxEval,
                     reqAbsError, reqRelError, norm, Integral, Error);
+ 
+  if (Order<0)
+   return RRCubature(-Order, 0, fdim, f, fdata, dim, xmin, xmax, Integral, Error);
 
   double *CCQR = GetCCRule(Order);
   if (!CCQR) 
@@ -276,4 +279,63 @@ void ECC(int p, double xMin, double xMax,
  
   for(int nf=0; nf<nFun; nf++)
    Error[nf] = fabs(Error[nf] - Result[nf]);
+}
+
+/***************************************************************/
+/* FDim = number of doubles in integrand vector                */
+/* IDim = number of integration variables                      */
+/* If Orders is non-NULL, then Orders[0,1,..] are the number   */
+/* of sample points in each dimension.                         */
+/* If Orders is NULL, then Order is used for all dimensions.   */
+/***************************************************************/
+int RRCubature(int Order, int *Orders, 
+               int FDim, integrand f, void *UserData,
+	       int IDim, const double *Lower, const double *Upper,
+               double *Integral, double *Error)
+{
+  int N[MAXDIM];
+  if (Orders)
+   memcpy(N, Orders, IDim*sizeof(int));
+  else
+   for(int d=0; d<IDim; d++)
+    N[d]=Order;
+
+  for(int d=0; d<IDim; d++)
+   if (N[d]<=0)
+    ErrExit("invalid order %i in RRCubature",N[d]);
+
+  double Delta[MAXDIM];
+  double Weight=1.0;
+  for(int d=0; d<IDim; d++)
+   { Delta[d] = (Upper[d] - Lower[d]) / ((double)N[d]);
+     Weight*=Delta[d];
+   };
+
+  int ncp[MAXDIM];
+  memset(ncp, 0, IDim*sizeof(int));
+
+  double *Integrand=Error;
+  memset(Integral, 0, FDim*sizeof(double));
+  bool Done=false;
+  int nCalls=0;
+  while(!Done)
+   { 
+     // get d-dimensional cubature point
+     double x[MAXDIM];
+     for(int d=0; d<IDim; d++)
+      x[d] = Lower[d] + ncp[d]*Delta[d];
+
+     // advance to next d-dimensional cubature point
+     for(int d=0; d<IDim; d++)
+      { ncp[d] = (ncp[d]+1)%N[d];
+        if(ncp[d]) break;
+        if(d==(IDim-1)) Done=true;
+      };
+
+     f(IDim, x, UserData, FDim, Integrand);
+     VecPlusEquals(Integral, Weight, Integrand, FDim);
+     nCalls++;
+   };
+
+  return nCalls;
 }
