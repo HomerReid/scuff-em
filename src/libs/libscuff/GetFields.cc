@@ -151,12 +151,13 @@ HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch0,
                                   HMatrix *RFMatrix,
                                   int ColumnOffset)
 {
-  double kBlochBuffer[3], *kBloch = 0;
-  if (kBloch0)
+  double *kBloch=kBloch0;
+  double kBlochBuffer[3];
+  if (kBloch && MinuskBloch)
    { kBloch = kBlochBuffer;
-     double Sign = MinuskBloch ? -1.0 : 1.0;
+     kBloch[0] = kBloch[1] = kBloch[2] = 0.0;
      for(int d=0; d<LDim; d++)
-      kBloch[d] = Sign*kBloch0[d];
+      kBloch[d] = -1.0*kBloch0[d];
    };
 
   /***************************************************************/
