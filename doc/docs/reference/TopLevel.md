@@ -187,7 +187,7 @@ month = jul,
 }
 
 @ARTICLE{SCUFF2,
-note="\texttt{http://homerreid.com/scuff-EM}"
+note="\texttt{http://github.com/homerreid/scuff-EM}"
 }
 ````
 

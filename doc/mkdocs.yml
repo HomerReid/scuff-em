@@ -39,6 +39,7 @@ pages:
     - 'Geometric transformations': 'reference/Transformations.md'
     - 'Incident fields':           'reference/IncidentFields.md'
     - 'Brillouin zone integration': 'reference/BrillouinZoneIntegration.md'
+    - 'FAQ':                       'reference/FAQ.md'
 - Command-line application reference:
     - 'General command-line reference': 'applications/GeneralReference.md'
     - 'scuff-scatter':         'applications/scuff-scatter/scuff-scatter.md'

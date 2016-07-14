@@ -175,7 +175,8 @@ void GetBZIntegral_CC(GetBZIArgStruct *Args,
    { case 1: Lower[0]=Lower[1]=-0.5;
              Upper[0]=Upper[1]=+0.5;
              break;
-     case 2: Lower[0]=-0.5; Lower[1]=0.0;
+     case 2: Lower[0] = (LDim==1) ? 0.0 : -0.5;
+             Lower[1] = 0.0;
              Upper[0]=Upper[1]=0.5;
              break;
      case 4: Lower[0]=Lower[1]=0.0;
@@ -561,6 +562,11 @@ const char *BZIOptionsString=
  "  --BZIRelTol   xx \n"
  "  --BZIMaxEvals xx \n"
  "  --BZSymmetryFactor [1|2|4|8]\n"
+ "\n"
+ "   allowed values for --BZIOrder: \n"
+ "   CC: [0|11|13|...|99]\n"
+ "   TC: [1|2|4|5|7|9|13|14|16|20|25]\n"
+ "   Radial: 100*M + N, M=N=[11|13|...|99]\n"
  "\n";
 
 /***************************************************************/
