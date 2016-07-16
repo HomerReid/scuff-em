@@ -542,7 +542,6 @@ Log("...done with DR matrix");
                 && !DoDSIAtThisFrequency(SNEQD, Omega) 
               ) continue;
 
-Log("SN PFT method %i",PFTMethods[npm]);
            GetSIFlux(SNEQD, nss, Omega, PFTMethods[npm], PFTMatrix);
 
            FILE *f=vfopen(SNEQD->SIFluxFileNames[npm],"a");

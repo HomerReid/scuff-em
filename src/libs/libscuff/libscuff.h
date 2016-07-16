@@ -455,9 +455,10 @@ class RWGGeometry
                                bool NeedZDerivative=false);
    void DestroyABMBAccelerator(void *Accelerator);
 
-   // helper function for GetFields and GetDyadicGFs
-   HMatrix *GetRFMatrix(cdouble Omega, double *kBloch, HMatrix *XMatrix, bool MinuskBloch,
-                        HMatrix *RFMatrix=0, int ColumnOffset=0);
+   // helper function for GetFields, GetDyadicGFs, GetSRFluxTrace
+   HMatrix *GetRFMatrix(cdouble Omega, double *kBloch, HMatrix *XMatrix,
+                        HMatrix *RFMatrix=0, bool MinuskBloch=false,
+                        int ColumnOffset=0);
 
    // helper function for accelerating periodic GF calculations
    GBarAccelerator *CreateRegionGBA(int nr, cdouble Omega, double *kBloch, int ns1, int ns2);

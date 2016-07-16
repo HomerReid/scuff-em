@@ -147,9 +147,8 @@ void GetDistanceToBF(double X0[3], RWGSurface *S, int ne)
 /* of the field six-vector F=\{ E \choose H \}.                */
 /***************************************************************/
 HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch0,
-                                  HMatrix *XMatrix, bool MinuskBloch,
-                                  HMatrix *RFMatrix,
-                                  int ColumnOffset)
+                                  HMatrix *XMatrix, HMatrix *RFMatrix,
+                                  bool MinuskBloch, int ColumnOffset)
 {
   double *kBloch=kBloch0;
   double kBlochBuffer[3];
@@ -414,7 +413,7 @@ HMatrix *RWGGeometry::GetFields(IncField *IFList, HVector *KN,
   /***************************************************************/
   if (KN)
    {
-     HMatrix *RFMatrix = GetRFMatrix(Omega, kBloch, XMatrix, true);
+     HMatrix *RFMatrix = GetRFMatrix(Omega, kBloch, XMatrix, 0, true);
      HMatrix KNMatrix(1, TotalBFs, LHM_COMPLEX, LHM_NORMAL, (void *)KN->ZV);
      HMatrix *FMatrixT = new HMatrix(1, 6*NX, LHM_COMPLEX);
      KNMatrix.Multiply(RFMatrix, FMatrixT);
