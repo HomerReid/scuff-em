@@ -681,6 +681,15 @@ GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
         continue;
       };
 
+     if ( !strcasecmp(Arg,"--BZIAbsTol") )
+      { if (Option==0) 
+         ErrExit("--BZIAbsTol requires an argument");
+        if (1!=sscanf(Option,"%le",&(BZIArgs->AbsTol)))
+         ErrExit("invalid BZIAbsTol %s",Option);
+        argv[narg]=argv[narg+1]=0;
+        continue;
+      };
+
      if ( !strcasecmp(Arg,"--BZIMaxEvals") )
       { if (Option==0)
          ErrExit("--BZIMaxEvals requires an argument");

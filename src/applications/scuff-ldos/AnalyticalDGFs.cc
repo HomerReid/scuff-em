@@ -145,6 +145,10 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      XMatrix->GetEntriesD(nx,"0:2",XDest);
      if (TwoPointDGF)
       XMatrix->GetEntriesD(nx,"3:5",XSource);
+
+     if ( abs(imag(qz*(XSource[2] + XDest[2])) > 40.0 ) )
+      continue;
+
      double R[3];
      VecSub(XDest, XSource, R);
      double Rho=sqrt( R[0]*R[0] + R[1]*R[1] );
@@ -183,9 +187,6 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      MTM[1][2] = -1.0*MTM[2][1];
 
      cdouble ExpArg = II*( qDotRho + qz*(XSource[2]+XDest[2]) );
-     if ( fabs(real(ExpArg)) > 40.0 )
-      continue;
-
      cdouble Factor = II*exp(ExpArg) / (8.0*M_PI*M_PI*qz);
   
      for(int Mu=0; Mu<3; Mu++)
