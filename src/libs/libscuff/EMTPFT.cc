@@ -356,7 +356,7 @@ void GetScatteredPFTIntegrals(RWGGeometry *G,
      for(int Mu=0; Mu<NUMFT; Mu++)
       { QKK[PFT_XFORCE+Mu]    = FTPreFac*MuR*GabArray[0][GCME_FX + Mu];
         QNN[PFT_XFORCE+Mu]    = FTPreFac*EpsR*GabArray[0][GCME_FX + Mu];
-        QKNmNK[PFT_XFORCE+Mu] = -FTPreFac*ikCabArray[0][GCME_FX + Mu]/Omega;
+        QKNmNK[PFT_XFORCE+Mu] = FTPreFac*ikCabArray[0][GCME_FX + Mu]/Omega;
       };
      for(int nq=PFT_XTORQUE1+6; nq<PFT_ZTORQUE2+6; nq++)
       QKK[nq]=QNN[nq]=QKNmNK[nq]=0.0;
@@ -694,7 +694,7 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
          for(int nq=PFT_XFORCE; nq<NUMPFTT; nq++)
           dPFTT[nq] =  imag(u0KKab)*imag(QKK[nq])
                       +imag(e0NNab)*imag(QNN[nq])
-                      +real(KNmNKab)*imag(QKNmNK[nq]);
+                      -real(KNmNKab)*imag(QKNmNK[nq]);
         }
       else
        { 
@@ -749,7 +749,7 @@ HMatrix *GetEMTPFTMatrix(RWGGeometry *G, cdouble Omega, IncField *IF,
          for(int nq=PFT_XFORCE; nq<NUMPFTT; nq++)
           dPFTT[nq] =  imag(u0KKba)*imag(QKK[nq])
                       +imag(e0NNba)*imag(QNN[nq])
-                      +real(KNmNKba)*imag(QKNmNK[nq]);
+                      -real(KNmNKba)*imag(QKNmNK[nq]);
         }
       else
        { 
