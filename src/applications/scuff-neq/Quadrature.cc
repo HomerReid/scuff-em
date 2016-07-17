@@ -91,12 +91,12 @@ void PutInThetaFactors(SNEQData *SNEQD, double Omega,
         for(int nq=0; nq<NQ; nq++)
          for(int nsd=0; nsd<NS; nsd++)
           FluxVector[ GetSIQIndex(SNEQD, nt, nss, nsd, nq) ]
-           *= DeltaTheta/M_PI;
+           *= DeltaTheta;
 
         for(int nx=0; nx<NX; nx++)
          for(int nfc=0; nfc<NUMSRFLUX; nfc++)
           FluxVector[ GetSRQIndex(SNEQD, nt, nss, nx, nfc) ]
-           *= DeltaTheta/M_PI;
+           *= DeltaTheta;
       };
    };
 

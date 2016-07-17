@@ -196,9 +196,11 @@ void ComputeDRMatrix(SNEQData *SNEQD, int SourceSurface)
 
       // get Sym G_{s} / 4.
       // (The factor of 0.5 here is present in the definition
-      //  of SymG, while the 0.25 prefactor appears in the 
-      //  definition of Rytov; we roll it into SymG for convenience.
+      //  of SymG, while the prefactor appears in the
+      //  definition of the Rytov matrix; we roll it into
+      // SymG for convenience.
       HMatrix SymGs(NBFS, NBFS, LHM_COMPLEX, LHM_NORMAL, Buffer[1]);
+#define RYTOVPREFAC (-2.0/M_PI)
 #if 0
       HMatrix *Ts=SNEQD->TInt[SourceSurface];
 #endif
@@ -210,9 +212,9 @@ Ts->Copy(SNEQD->TInt[SourceSurface]);
 UndoSCUFFMatrixTransformation(Ts);
       for(int nr=0; nr<NBFS; nr++)
        for(int nc=0; nc<NBFS; nc++)
-        SymGs.SetEntry(nr, nc, 0.25*0.5*(        Ts->GetEntry(nr,nc)
-                                          +conj( Ts->GetEntry(nc,nr) )
-                                        ) 
+        SymGs.SetEntry(nr, nc, RYTOVPREFAC*0.5*(        Ts->GetEntry(nr,nc)
+                                                 +conj( Ts->GetEntry(nc,nr) )
+                                               ) 
                       );
 #else
 TSelfToSymG(SNEQD->TInt[SourceSurface], SymGs);
@@ -297,8 +299,6 @@ void GetSIFlux(SNEQData *SNEQD, int SourceSurface, cdouble Omega,
         PFTMatrix->SetEntriesD(DestSurface, ":", Flux);
       };
    };
-
-  PFTMatrix->Scale(-4.0); // where does this factor come from?
 
 } 
 
@@ -489,7 +489,7 @@ void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux)
       for(int nsp=ns+1; nsp<NS; nsp++, nb++)
        if ( nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
         G->AssembleBEMMatrixBlock(ns, nsp, Omega, kBloch, U[nb]);
-Log("...SN done with ABMB");
+     Log("...SN done with ABMB");
 
      /*--------------------------------------------------------------*/
      /*- stamp all blocks into the BEM matrix and invert it         -*/
@@ -527,9 +527,9 @@ Log("...SN done with ABMB");
          continue;
 
         // compute the "dressed Rytov" matrix for this source
-Log("SN computing DR matrix");
+        Log("SN computing DR matrix");
         ComputeDRMatrix(SNEQD, nss);
-Log("...done with DR matrix");
+        Log("...done with DR matrix");
         if (SNEQD->PlotRytovVectors)
          ProcessDRMatrix(SNEQD, Omega, nss);
 

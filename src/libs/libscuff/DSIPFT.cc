@@ -643,7 +643,10 @@ void GetDSIPFTTrace(RWGGeometry *G, cdouble Omega, HMatrix *DRMatrix,
         PFT[PFT_XTORQUE + Mu] += XmXT[MP1]*F[MP2] - XmXT[MP2]*F[MP1];
       };
    };
-    
+
+  delete SCRMatrix;
+  delete SRMatrix;
+
 }
 
 } // namespace scuff
