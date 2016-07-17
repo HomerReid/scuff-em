@@ -46,6 +46,9 @@ namespace scuff {
 #define PFT_ZTORQUE 7  // 
 #define NUMPFT      8
 
+// for NEQ calculations, radiated power goes in the PSCAT slot
+#define PFT_PRAD    1
+
 #define NUMSRFLUX   12 // number of spatially-resolved flux quantities
 
 // 10/3 is the value of the conversion factor that
