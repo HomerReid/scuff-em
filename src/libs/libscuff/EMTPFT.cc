@@ -301,8 +301,7 @@ void ScatteredPFTIntegrand2(double *xA, PCData *PCD,
 #endif
 
 /***************************************************************/
-/* compute PFT integrals between an RWG basis function and an  */
-/* external field                                              */
+/* compute PFT integrals between pairs of RWG basis functions  */
 /***************************************************************/
 void GetScatteredPFTIntegrals(RWGGeometry *G,
                                int nsa, int nea, int nsb, int neb,
