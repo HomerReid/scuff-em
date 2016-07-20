@@ -67,7 +67,6 @@ void ComputeDRMatrix(SNEQData *SNEQD, int SourceSurface)
   /* into the sth diagonal block of DRMatrix,                    */
   /* undoing the SCUFF matrix transformation along the way.      */
   /***************************************************************/
-  DR->Zero();
   for(int a=0; a<(NBFS/2); a++)
    for(int b=a; b<(NBFS/2); b++)
     {
@@ -87,16 +86,16 @@ void ComputeDRMatrix(SNEQData *SNEQD, int SourceSurface)
       cdouble SymTMM = 0.5*RYTOVPF*( TMMab + conj(TMMba) );
 
       DR->SetEntry(OffsetS + 2*a+0, OffsetS + 2*b+0, SymTEE );
-      DR->SetEntry(OffsetS + 2*b+0, OffsetS + 2*a+0, SymTEE );
+      DR->SetEntry(OffsetS + 2*b+0, OffsetS + 2*a+0, conj(SymTEE) );
 
       DR->SetEntry(OffsetS + 2*a+0, OffsetS + 2*b+1, SymTEM );
-      DR->SetEntry(OffsetS + 2*b+1, OffsetS + 2*a+0, SymTEM );
+      DR->SetEntry(OffsetS + 2*b+1, OffsetS + 2*a+0, conj(SymTEM) );
 
       DR->SetEntry(OffsetS + 2*a+1, OffsetS + 2*b+0, SymTME );
-      DR->SetEntry(OffsetS + 2*b+0, OffsetS + 2*a+1, SymTME );
+      DR->SetEntry(OffsetS + 2*b+0, OffsetS + 2*a+1, conj(SymTME) );
 
       DR->SetEntry(OffsetS + 2*a+1, OffsetS + 2*b+1, SymTMM );
-      DR->SetEntry(OffsetS + 2*b+1, OffsetS + 2*a+1, SymTMM );
+      DR->SetEntry(OffsetS + 2*b+1, OffsetS + 2*a+1, conj(SymTMM) );
     };
 
   /***************************************************************/
@@ -236,9 +235,11 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
      else
       Log(" Assembling self contributions to T(%i)...",ns);
 
-     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
-     G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TInt[ns]);
-     G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
+     if ( !(G->Surfaces[ns]->IsPEC) )
+      { G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->UnZero();
+        G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TInt[ns]);
+        G->RegionMPs[ G->Surfaces[ns]->RegionIndices[1] ]->Zero();
+      };
 
      G->RegionMPs[ G->Surfaces[ns]->RegionIndices[0] ]->UnZero();
      G->AssembleBEMMatrixBlock(ns, ns, Omega, kBloch, TExt[ns]);
@@ -279,8 +280,9 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
      for(int nb=0, ns=0; ns<NS; ns++)
       { 
         int RowOffset=G->BFIndexOffset[ns];
-        M->InsertBlock(TInt[ns], RowOffset, RowOffset);
-        M->AddBlock(TExt[ns], RowOffset, RowOffset);
+        M->InsertBlock(TExt[ns], RowOffset, RowOffset);
+        if( !(G->Surfaces[ns]->IsPEC) )
+         M->AddBlock(TInt[ns], RowOffset, RowOffset);
 
         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
          { int ColOffset=G->BFIndexOffset[nsp];
@@ -322,7 +324,7 @@ void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch)
            FILE *f=vfopen(SNEQD->SIFluxFileNames[npm],"a");
            for(int nsd=0; nsd<NS; nsd++)
             { fprintf(f,"%s %e ",Tag,real(Omega));
-              if (kBloch) fprintf(f,"%e %e ",kBloch[0],kBloch[1]);
+              if (kBloch) fprintVec(f,kBloch,G->LDim);
               fprintf(f,"%i%i ",nss+1,nsd+1);
               for(int nq=0; nq<NUMPFT; nq++)
                fprintf(f,"%+.8e ",PFTMatrix->GetEntryD(nsd,nq));
