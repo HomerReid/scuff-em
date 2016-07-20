@@ -67,6 +67,7 @@ void ComputeDRMatrix(SNEQData *SNEQD, int SourceSurface)
   /* into the sth diagonal block of DRMatrix,                    */
   /* undoing the SCUFF matrix transformation along the way.      */
   /***************************************************************/
+  DR->Zero();
   for(int a=0; a<(NBFS/2); a++)
    for(int b=a; b<(NBFS/2); b++)
     {
