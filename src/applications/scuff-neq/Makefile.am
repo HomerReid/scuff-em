@@ -3,9 +3,8 @@ bin_PROGRAMS = scuff-neq scuff-integrate
 scuff_neq_SOURCES = 		\
  scuff-neq.cc         		\
  scuff-neq.h			\
- GetFlux.cc             	\
- CreateSNEQData.cc       	\
- Quadrature.cc
+ WriteFlux.cc             	\
+ CreateSNEQData.cc
 
 scuff_neq_LDADD = $(top_builddir)/src/libs/libscuff/libscuff.la
 

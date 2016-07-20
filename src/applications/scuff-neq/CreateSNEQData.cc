@@ -69,10 +69,8 @@ void WriteSIFluxFilePreamble(SNEQData *SNEQD, char *FileName)
 /***************************************************************/
 /***************************************************************/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
-                         char **TempStrings, int nTempStrings,
                          int *PFTMethods, int NumPFTMethods,
-                         int QuantityFlags, char *EPFile,
-                         char *pFileBase)
+                         char *EPFile, char *pFileBase)
 {
 
   SNEQData *SNEQD=(SNEQData *)mallocEC(sizeof(*SNEQD));
@@ -90,13 +88,6 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
    SNEQD->FileBase = strdup(GetFileBase(G->GeoFileName));
 
   /*--------------------------------------------------------------*/
-  /*- this code does not make sense if any of the objects are PEC */
-  /*--------------------------------------------------------------*/
-  for(int ns=0; ns<G->NumSurfaces; ns++)
-   if ( G->Surfaces[ns]->IsPEC ) 
-    ErrExit("%s: object %s: PEC objects are not allowed in scuff-neq", G->GeoFileName,G->Surfaces[ns]->Label);
-
-  /*--------------------------------------------------------------*/
   /*- read the transformation file if one was specified and check */
   /*- that it plays well with the specified geometry file.        */
   /*- note if TransFile==0 then this code snippet still works; in */
@@ -108,42 +99,12 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   if (ErrMsg)
    ErrExit("file %s: %s",TransFile,ErrMsg);
 
-  /*******************************************************************/
-  /* process --temperature options ***********************************/
-  /*******************************************************************/
-  SNEQD->TEnvironment=0.0;
-  SNEQD->TSurfaces=(double *)mallocEC(G->NumSurfaces*sizeof(double));
-  for(int nts=0; nts<nTempStrings; nts++)
-   { 
-     double TTemp;
-     int WhichSurface;
-     if ( 1!=sscanf(TempStrings[2*nts+1],"%le",&TTemp) )
-      ErrExit("invalid temperature (%s) passed for --temperature option",TempStrings[2*nts+1]);
-
-     if (    !strcasecmp(TempStrings[2*nts],"MEDIUM")
-          || !strcasecmp(TempStrings[2*nts],"EXTERIOR")
-          || !strcasecmp(TempStrings[2*nts],"ENVIRONMENT")
-        )
-      { SNEQD->TEnvironment=TTemp;
-        Log("Setting environment temperature to %g kelvin.",TTemp);
-        printf("Setting environment temperature to %g kelvin.\n",TTemp);
-      }
-     else if ( G->GetSurfaceByLabel(TempStrings[2*nts],&WhichSurface) )
-      { SNEQD->TSurfaces[WhichSurface]=TTemp;
-        Log("Setting temperature of object %s to %g kelvin.",TempStrings[2*nts],TTemp);
-        printf("Setting temperature of object %s to %g kelvin.\n",TempStrings[2*nts],TTemp);
-      }
-     else 
-      ErrExit("unknown surface/region %s in --temperature specification",TempStrings[2*nts]);
-   };
-
   /*--------------------------------------------------------------*/
   /*- figure out which PFT methods were requested and write       */
   /*- SIFlux file preambles                                       */
   /*--------------------------------------------------------------*/
   SNEQD->PFTMatrix = new HMatrix(G->NumSurfaces, NUMPFT);
   InitPFTOptions( &(SNEQD->PFTOpts) );
-  SNEQD->NeedQuantity  = SNEQD->PFTOpts.NeedQuantity;
   SNEQD->NumPFTMethods = NumPFTMethods;
   SNEQD->DSIOmegaPoints=0;
   for(int npm=0; npm<NumPFTMethods; npm++)
@@ -159,43 +120,14 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
       sprintf(PFTName,"OPFT");
      else if (PFTMethods[npm]==SCUFF_PFT_EMT_EXTERIOR)
       sprintf(PFTName,"EMTPFT");
-     else if (PFTMethods[npm]==SCUFF_PFT_EMT_INTERIOR)
-      sprintf(PFTName,"IEMTPFT");
-     else if (PFTMethods[npm]==SCUFF_PFT_EP)
-      sprintf(PFTName,"EP");
 
      SNEQD->SIFluxFileNames[npm]
       = vstrdup("%s.SIFlux.%s",SNEQD->FileBase,PFTName);
      WriteSIFluxFilePreamble(SNEQD, SNEQD->SIFluxFileNames[npm]);
    };
-
-  /*--------------------------------------------------------------*/
-  /*- figure out which quantities were specified                 -*/
-  /*--------------------------------------------------------------*/
-  bool *NeedQuantity=SNEQD->NeedQuantity;
-  memset(NeedQuantity, 0, NUMPFT*sizeof(bool));
-  int NQ=0;
-  if ( QuantityFlags & QFLAG_PABS   ) 
-   { NeedQuantity[QINDEX_PABS]    = true; NQ++; };
-  if ( QuantityFlags & QFLAG_PRAD   ) 
-   { NeedQuantity[QINDEX_PRAD]    = true; NQ++; };
-  if ( QuantityFlags & QFLAG_XFORCE ) 
-   { NeedQuantity[QINDEX_XFORCE]  = true; NQ++; };
-  if ( QuantityFlags & QFLAG_YFORCE ) 
-   { NeedQuantity[QINDEX_YFORCE]  = true; NQ++; };
-  if ( QuantityFlags & QFLAG_ZFORCE ) 
-   { NeedQuantity[QINDEX_ZFORCE]  = true; NQ++; };
-  if ( QuantityFlags & QFLAG_XTORQUE ) 
-   { NeedQuantity[QINDEX_XTORQUE] = true; NQ++; };
-  if ( QuantityFlags & QFLAG_YTORQUE ) 
-   { NeedQuantity[QINDEX_YTORQUE] = true; NQ++; };
-  if ( QuantityFlags & QFLAG_ZTORQUE ) 
-   { NeedQuantity[QINDEX_ZTORQUE] = true; NQ++; };
   
-  SNEQD->NPFT = NQ;
   int NT = SNEQD->NumTransformations;
   int NS = SNEQD->G->NumSurfaces;
-  SNEQD->NumSIQs = NT*NS*NS*NQ;
 
   /*--------------------------------------------------------------*/
   /*- read the list of evaluation points for spatially-resolved  -*/
@@ -246,32 +178,9 @@ SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
   /*--------------------------------------------------------------*/
   /*- allocate BEM matrix and dressed Rytov matrix ---------------*/
   /*--------------------------------------------------------------*/
-  SNEQD->W        = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
+  SNEQD->M        = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   SNEQD->DRMatrix = new HMatrix(G->TotalBFs, G->TotalBFs, LHM_COMPLEX );
   Log("After W, Rytov: mem=%3.1f GB",GetMemoryUsage()/1.0e9);
-
-  /*--------------------------------------------------------------*/
-  /*- Buffer[0..nBuffer-1] are data storage buffers with enough  -*/
-  /*- room to hold MaxBFs^2 cdoubles, where MaxBFs is the maximum-*/
-  /*- number of basis functions on any object, i.e. the max      -*/
-  /*- dimension of any BEM matrix subblock.                      -*/
-  /*--------------------------------------------------------------*/
-  size_t MaxBFs=G->Surfaces[0]->NumBFs;
-  for(int ns=1; ns<G->NumSurfaces; ns++)
-   if ( (size_t)G->Surfaces[ns]->NumBFs > MaxBFs) 
-    MaxBFs = G->Surfaces[ns]->NumBFs;
-  
-  int nBuffer = 3;
-  size_t BufSize = MaxBFs * MaxBFs * sizeof(cdouble);
-  SNEQD->Buffer[0] = mallocEC(nBuffer*BufSize);
-  for(int nb=1; nb<nBuffer; nb++)
-   SNEQD->Buffer[nb] = (void *)( (char *)SNEQD->Buffer[nb-1] + BufSize);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  int fdim = SNEQD->NumSIQs + SNEQD->NumSRQs;
-  SNEQD->OmegaConverged = (bool *)mallocEC(fdim*sizeof(bool));
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/

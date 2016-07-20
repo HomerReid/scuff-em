@@ -80,16 +80,10 @@ typedef struct SNEQData
    GTComplex **GTCList;
    int NumTransformations;
    char *WriteCache;
-   double TEnvironment;
-   double *TSurfaces;
 
    /*--------------------------------------------------------------*/
    /*- information on the calculations requested by the user       */
    /*--------------------------------------------------------------*/
-   int NPFT;           // number of PFT quantities requested (1--8)
-   bool *NeedQuantity; // true if nqth PFT quantity was requested
-   int NumSIQs;        // number of spatially-integrated quantities
-
    HMatrix *SRXMatrix; // eval points for spatially-resolved fluxes
    HMatrix *SRFMatrix; // storage for spatially-resolved fluxes
    int NX;             // number of spatially-resolved points
@@ -104,35 +98,24 @@ typedef struct SNEQData
    int PFTMethods[MAXPFTMETHODS];
    char *SIFluxFileNames[MAXPFTMETHODS];
 
-   bool OmitSelfTerms;  // set all self terms to zero
-   bool PlotFlux;       // generate flux plots
-   int  PlotRytovVectors;
-
    /*--------------------------------------------------------------*/
    /* storage for the BEM matrix and its subblocks.                */
    // Note: Buffer[0..N] are pointers into an internally-allocated */
    // chunk of memory used as a workspace in the GetFlux() routine */
    /*--------------------------------------------------------------*/
-   HMatrix *W;        // BEM matrix 
+   HMatrix *M;        // BEM matrix 
    HMatrix *DRMatrix; // dressed Rytov matrix for a given source body
    HMatrix **TInt;    // TInt[ns], TExt[ns] = interior and exterior
    HMatrix **TExt;    // contributions to BEM block for surface #ns
    HMatrix **U;       // U[nb] = // off-diagonal U-matrix block #nb 
-   void *Buffer[3];
-
-   /*--------------------------------------------------------------*/
-   /*--------------------------------------------------------------*/
-   /*--------------------------------------------------------------*/
-   bool *OmegaConverged;
 
    /*--------------------------------------------------------------*/
    /*- miscellaneous other options                                -*/
    /*--------------------------------------------------------------*/
-   double RelTol, AbsTol;  // integration tolerances
    char *FileBase;
-   bool UseExistingData;
-   bool OmitZeroTemperatureFlux;
    HVector *DSIOmegaPoints;
+   bool PlotFlux;       // generate flux plots
+   bool OmitSelfTerms;
 
  } SNEQData;
 
@@ -140,35 +123,12 @@ typedef struct SNEQData
 /*- in CreateSNEQData.cc ---------------------------------------*/
 /*--------------------------------------------------------------*/
 SNEQData *CreateSNEQData(char *GeoFile, char *TransFile,
-                         char **TempStrings, int nTempStrings,
                          int *PFTMethods, int NumPFTMethods,
-                         int QuantityFlags, char *EPFile,
-                         char *pFileBase);
+                         char *EPFile, char *pFileBase);
 
 /*--------------------------------------------------------------*/
 /*- in GetFlux.cc ----------------------------------------------*/
 /*--------------------------------------------------------------*/
-int GetSIQIndex(SNEQData *SNEQD, int nt, int nss, int nsd, int nq);
-int GetSRQIndex(SNEQData *SNEQD, int nt, int nss, int nx, int nq);
-void GetFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch, double *Flux);
-void GetFlux(SNEQData *SNEQD, cdouble Omega, double *Flux);
-
-/*--------------------------------------------------------------*/
-/*- in Quadrature.cc          ----------------------------------*/
-/*--------------------------------------------------------------*/
-void WriteSIOutputFile(SNEQData *SNEQD, double *I, double *E);
-void WriteSROutputFile(SNEQData *SNEQD, double *I, double *E);
-
-void GetOmegaIntegral_Adaptive(SNEQData *SNEQD,
-                               double OmegaMin, double OmegaMax,
-                               double *I, double *E);
-
-void GetOmegaIntegral_TrapSimp(SNEQData *SNEQD,
-                               double OmegaMin, double OmegaMax,
-                               int Intervals, double *I, double *E);
-
-void GetOmegaIntegral_Cliff(SNEQData *SNEQD,
-                            double OmegaMin, double OmegaMax,
-                            double *I, double *E);
+void WriteFlux(SNEQData *SNEQD, cdouble Omega, double *kBloch=0);
 
 #endif
