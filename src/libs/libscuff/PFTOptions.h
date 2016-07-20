@@ -90,7 +90,7 @@ namespace scuff {
 #define SCUFF_EMTPFTI_EHVALUES1      2
 #define SCUFF_EMTPFTI_EHVALUES2      3
 #define SCUFF_EMTPFTI_NUMMETHODS     4
-#define SCUFF_EMTPFTI_DEFAULT SCUFF_EMTPFTI_EHDERIVATIVES1
+#define SCUFF_EMTPFTI_DEFAULT SCUFF_EMTPFTI_EHDERIVATIVES2
 
 /***************************************************************/
 /***************************************************************/
