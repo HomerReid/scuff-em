@@ -281,9 +281,21 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
   ZZ *= sqrt(Mu/Eps);
 
   // 20151003 surface-conductivity contribution to absorbed power
-  cdouble GZ = 0.0;
-  if (S->SurfaceSigmaMP)
-   GZ = S->SurfaceSigmaMP->GetEps(Omega);
+  cdouble ZS = 0.0;
+  if (S->SurfaceZeta)
+   {  char *ParmNames[4]={ const_cast<char *>("w"), 
+                           const_cast<char *>("x"), 
+                           const_cast<char *>("y"), 
+                           const_cast<char *>("z") 
+                         };
+      cdouble ParmValues[4];
+      ParmValues[0] = Omega*MatProp::FreqUnit;
+// FIXME this doesn't account for spatially-varying surface impedance
+      ParmValues[1] = 0.0;
+      ParmValues[2] = 0.0;
+      ParmValues[3] = 0.0;
+      ZS=ZVAC*cevaluator_evaluate(S->SurfaceZeta, 4, ParmNames, ParmValues);
+   };
 
   /*--------------------------------------------------------------*/
   /*- initialize edge-by-edge contributions to zero --------------*/
@@ -352,8 +364,8 @@ void GetOPFT(RWGGeometry *G, int SurfaceIndex, cdouble Omega,
        double dPAbs = 0.25*real( (KN-NK) * Overlaps[OVERLAP_CROSS] );
 
        // 20151003 surface-conductivity contribution to absorbed power
-       if (GZ!=0.0)
-        dPAbs += 0.5*real(KK/GZ)*Overlaps[OVERLAP_OVERLAP];
+       if (ZS!=0.0)
+        dPAbs += 0.5*real(KK*ZS)*Overlaps[OVERLAP_OVERLAP];
 
        // force, torque
        double dF[3], dTau[3];
@@ -516,10 +528,22 @@ void GetOPFTMatrices(RWGGeometry *G,
   k2 *= EpsRel*MuRel;
   ZZ *= sqrt(MuRel/EpsRel);
 
-  // 20151003 surface-conductivity contribution to absorbed power
-  cdouble GZ = 0.0;
-  if (S->SurfaceSigmaMP)
-   GZ = S->SurfaceSigmaMP->GetEps(Omega);
+  // 20151003 surface-impedance contribution to absorbed power
+  cdouble ZS = 0.0;
+  if (S->SurfaceZeta)
+   {  char *ParmNames[4]={ const_cast<char *>("w"), 
+                           const_cast<char *>("x"), 
+                           const_cast<char *>("y"), 
+                           const_cast<char *>("z") 
+                         };
+      cdouble ParmValues[4];
+      ParmValues[0] = Omega*MatProp::FreqUnit;
+// FIXME this doesn't account for spatially-varying surface impedance
+      ParmValues[1] = 0.0;
+      ParmValues[2] = 0.0;
+      ParmValues[3] = 0.0;
+      ZS=ZVAC*cevaluator_evaluate(S->SurfaceZeta, 4, ParmNames, ParmValues);
+   };
 
   /***************************************************************/
   /***************************************************************/
@@ -543,9 +567,9 @@ void GetOPFTMatrices(RWGGeometry *G,
        if (QPAbs)
         { QPAbs->SetEntry(2*nea,2*neb+1, 0.25*Overlaps[OVERLAP_CROSS]);
           QPAbs->SetEntry(2*nea+1,2*neb,-0.25*Overlaps[OVERLAP_CROSS]);
-          // 20151003 surface-conductivity contribution to absorbed power
-          if (GZ!=0.0)
-           QPAbs->SetEntry(2*nea,2*neb,0.5*real(1.0/GZ)*Overlaps[OVERLAP_OVERLAP]);
+          // 20151003 surface-impedance contribution to absorbed power
+          if (ZS!=0.0)
+           QPAbs->SetEntry(2*nea,2*neb,0.5*real(ZS)*Overlaps[OVERLAP_OVERLAP]);
         };
 
        // force, torque

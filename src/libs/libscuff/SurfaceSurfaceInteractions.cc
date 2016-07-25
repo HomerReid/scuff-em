@@ -336,13 +336,13 @@ void *GSSIThread(void *data)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
+void AddSurfaceZetaContributionToBEMMatrix(GetSSIArgStruct *Args)
 {
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   if ( (Args->Sa != Args->Sb)    ) return;
-  if ( !(Args->Sa->SurfaceSigma) && !(Args->Sa->SurfaceSigmaMP) ) return;
+  if ( !(Args->Sa->SurfaceZeta)  ) return;
   if ( Args->Displacement        ) return;
   if ( Args->GBA1 || Args->GBA2  ) return;
 
@@ -358,20 +358,6 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
    ErrExit("%s:%i: internal error",__FILE__,__LINE__);
 
   /*--------------------------------------------------------------*/
-  /*- evaluate the surface conductivity for this surface at this -*/
-  /*- frequency.                                                 -*/
-  /*- The scaling by ZVac here is accounting for the SCUFF-EM    -*/
-  /*- convention in which the upper half of the PMCHWT system    -*/
-  /*- (the equations specifying tangential E-field continuity)   -*/
-  /*- is divided by ZVac as part of the procedure for obtaining  -*/
-  /*- a symmetric system of equations.                           -*/
-  /*--------------------------------------------------------------*/
-  cdouble GZ=Args->Sa->SurfaceSigmaMP->GetEps(Args->Omega);
-  Log("Surface conductivity for surface %s is (%e,%e) at Omega=%e",
-       Args->Sa->Label,real(GZ),imag(GZ),real(Args->Omega));
-  GZ*=ZVAC;
-
-  /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   int neAlpha, neBeta;
@@ -382,55 +368,50 @@ void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args)
       Overlap=S->GetOverlap(neAlpha, neBeta);
       if (Overlap==0.0) continue;
 
-#if 0
-#20130426 this code figures out the centroid of the panel in 
-          question so we can evaluate the surface conductivity there;
-          not needed for the time being as we are using spatially-
-          constant surface conductivity. 
-
-      char *SSParmNames[4]={ const_cast<char *>("w"), const_cast<char *>("x"), 
-                         const_cast<char *>("y"), const_cast<char *>("z") };
-      cdouble SSParmValues[4];
-      SSParmValues[0]=Args->Omega*MatProp::FreqUnit;
-
-      EAlpha=S->Edges[neAlpha];
-      EBeta=S->Edges[neBeta];
-
       // if there was a nonzero overlap, get the value 
       // of the surface conductivity at the centroid
       // of the common panel (if there was only one common panel)
       // or of the common edge if there were two common panels.
+      RWGEdge *EAlpha = S->Edges[neAlpha];
+      RWGEdge *EBeta  = S->Edges[neBeta];
+      double *X = EAlpha->Centroid;
       if (neAlpha==neBeta)
-       { SSParmValues[1] = EAlpha->Centroid[0];
-         SSParmValues[2] = EAlpha->Centroid[1];
-         SSParmValues[3] = EAlpha->Centroid[2];
+       {
+         X = EAlpha->Centroid;
        }
-      else if ( EAlpha->iPPanel==EBeta->iPPanel || EAlpha->iPPanel==EBeta->iMPanel )
-       { P=S->Panels[EAlpha->iPPanel];
-         SSParmValues[1] = P->Centroid[0];
-         SSParmValues[2] = P->Centroid[1];
-         SSParmValues[3] = P->Centroid[2];
+      else if (    EAlpha->iPPanel==EBeta->iPPanel 
+                || EAlpha->iPPanel==EBeta->iMPanel 
+              )
+       {
+        X = S->Panels[EAlpha->iPPanel]->Centroid;
        }
-      else if ( (EAlpha->iMPanel!=-1) && ( (EAlpha->iMPanel==EBeta->iPPanel) || (EAlpha->iMPanel==EBeta->iMPanel) ) ) 
-       { P=S->Panels[EAlpha->iMPanel];
-         SSParmValues[1] = P->Centroid[0];
-         SSParmValues[2] = P->Centroid[1];
-         SSParmValues[3] = P->Centroid[2];
+      else if ( (EAlpha->iMPanel!=-1) && 
+                (    (EAlpha->iMPanel==EBeta->iPPanel) 
+                  || (EAlpha->iMPanel==EBeta->iMPanel) 
+                ) 
+              ) 
+       {
+         X = S->Panels[EAlpha->iMPanel]->Centroid;
        };
 
-      GZ=cevaluator_evaluate(S->SurfaceSigma, 4, SSParmNames, SSParmValues);
-#endif
+
+      char *ParmNames[4]={ const_cast<char *>("w"), 
+                           const_cast<char *>("x"), 
+                           const_cast<char *>("y"), 
+                           const_cast<char *>("z") 
+                         };
+      cdouble ParmValues[4];
+      ParmValues[0] = Args->Omega*MatProp::FreqUnit;
+      ParmValues[1] = X[0];
+      ParmValues[2] = X[1];
+      ParmValues[3] = X[2];
+      cdouble Zeta=cevaluator_evaluate(S->SurfaceZeta, 4, ParmNames, ParmValues);
 
       if ( S->IsPEC )
-       { B->AddEntry(Offset+neAlpha, Offset+neBeta, -1.0*Overlap/GZ);
+       { B->AddEntry(Offset+neAlpha, Offset+neBeta, -1.0*Zeta*Overlap);
          if (neAlpha!=neBeta)
-          B->AddEntry(Offset+neBeta, Offset+neAlpha, -1.0*Overlap/GZ);
-       }
-      else
-       { B->AddEntry(Offset + 2*neAlpha+1, Offset + 2*neBeta+1, +GZ*Overlap);
-         if (neAlpha!=neBeta)
-          B->AddEntry(Offset + 2*neBeta+1, Offset + 2*neAlpha+1, +GZ*Overlap);
-       }
+          B->AddEntry(Offset+neBeta, Offset+neAlpha, -1.0*Zeta*Overlap);
+       };
       
     };
 
@@ -576,8 +557,8 @@ void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args)
   /***************************************************************/
   /* 20120526 handle objects with finite surface conductivity    */
   /***************************************************************/
-  if ( (Args->Sa == Args->Sb) && (Args->Sa->SurfaceSigma!=0 || Args->Sa->SurfaceSigmaMP!=0) )
-   AddSurfaceSigmaContributionToBEMMatrix(Args);
+  if ( (Args->Sa == Args->Sb) && Args->Sa->SurfaceZeta!=0)
+   AddSurfaceZetaContributionToBEMMatrix(Args);
 
   /***************************************************************/
   /* if the caller specified the matrix as symmetric, then so far*/

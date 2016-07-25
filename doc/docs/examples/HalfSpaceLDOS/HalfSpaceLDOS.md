@@ -1,13 +1,14 @@
-<h1>Photonic LDOS above a dielectric half-space</h1>
+<h1>Dyadic Green's Functions and LDOS above a material half-space</h1>
 
 In this example, we exploit [[scuff-em]]'s
 [support for 2D periodic geometries][ExtendedGeometries]
 by using [<span class="SC">scuff-ldos</span>][scuff-ldos]
-to compute the electromagnetic local density
-of states (LDOS) at evaluation points lying above an
+to compute dyadic Green's functions (DGFs) and 
+electromagnetic local densities of states (LDOS) 
+at evaluation points lying above an
 infinite planar dielectric interface.
 
-Because this geometry happens to be amenable to an analytical 
+Because this geometry happens to be amenable to an analytical
 treatment, we will also *check* the numerical results of
 [[scuff-em]] against the results of analytical calculations of
 the LDOS.
@@ -20,19 +21,54 @@ Also, the computational procedure implemented by [scuff-ldos]
 is described in this memo:
 [Computation of Green's Functions and LDOS in <span class="SC">scuff-em</span>][LDOSMemo].
 
-### Slight complication: The need for Brillouin-zone integration in periodic geometries
+### Review: What we are computing and why we need Brillouin-zone integration
 
-In general, the quantity in which we will be interested
-is the LDOS at a single point $\bf x$ in space---basically,
-the scattered field at $\bf x$ due to a point dipole
-source at $\bf x$. For a compact geometry such as a 
-dielectric nanoparticle, this requires just a single 
-scattering calculation (technically 6 calculations
-with different incident fields, but calculations with
-additional incident fields come basically for free
-once we've assembled and factorized the BEM matrix).
+The scattering dyadic Green's function
+$\boldsymbol{\mathcal G}^{\text{\tiny{EE}}}
+(\omega; \mathbf{x}_{\hbox{\tiny{D}}}, \mathbf{x}_{\hbox{\tiny{S}}})$
+is a $3\times 3$ matrix whose $i,j$ entry gives the 
+$i$-component of the scattered electric field at
+$\mathbf{x}_{\hbox{\tiny{D}}}$
+due to a 
+$j$-directed point electric dipole source at
+$\mathbf{x}_{\hbox{\tiny{S}}}$, all quantities having
+time dependence $\sim e^{-i\omega t}$. 
+(We could also consider the magnetic Green's function
+$\boldsymbol{\mathcal G}^{\text{\hbox{MM}}},
+which describes the scattered magnetic fields
+arising from a point magnetic dipole excitation.)
+The subscripts "D" and "S" label the "destination" and 
+"source" points; if the destination and source points
+coincide $(\mathbf{x}_{\hbox{\tiny{D}}}=\mathbf{x}_{\hbox{\tiny{S}}})$
+then we are talking about *one-point DGFs*; otherwise
+we have *two-point DGFs.*
+The electric and magnetic local densities of states
+$\rho^\tiny{E,M}(\omega; \mathbf{x})$ are proportional to 
+the traces of the imaginary parts of the one-point DGFs:
+$$ 
+   \texttt{LDOS}(\omega; \mathbf{x})
+   \equiv 
+   \frac{\rho(\omega; \mathbf{x})}{\rho_0(\omega)}
+   \equiv 
+   \frac{\pi}{k_0^2}\text{Tr }\text{Im }
+   \Big[ \boldsymbol{\mc G}\supt{E}(\omega; \mathbf x, \mathbf x)
+        +\boldsymbol{\mc G}\supt{M}(\omega; \mathbf x, \mathbf x)
+   \Big]
+$$
+where $\rho_(\omega)=\omega^3/(\pi c^4)$ is the vacuum LDOS.
 
-However, the situation is slightly more complicated for
+The electric and magnetic DGFs for a given source point
+thus collectively describe the results of 6 scattering
+problems (with incident fields produced by electric and
+magnetic dipoles oriented in each of the 3 cartesian
+directions), and---for *compact* geometries---can
+be computed in <span class=SC>scuff-em</span> simply by
+assembling 6 right-hand-side vectors, solving the 
+BEM system for the corresponding surface currents, and 
+computing the scattered fields at all desired destination 
+points.
+
+However, the situation is more complicated for
 periodic geometries. To compute the LDOS at a point
 in the vicinity of (say) an infinitely extended
 (periodically replicated) surface, we need to solve a
@@ -48,85 +84,114 @@ $\bf k_{\hbox{B}}$. Thus, when we do a single scattering
 problem with a point-source incident field in a 
 periodic [[scuff-em]] geometry at Bloch vector
 $\bf k_{\hbox{B}}$, the incident field is really
-the field of an infinite phased *array* of point sources, 
+the field of an infinite phased *array* of point
+sources at $\mathbf{x}_{\hbox{\text{\tiny{S}}}}$
+and its (infinitely many) lattice images,
 with the source in lattice cell $\bf L$ phased
 by the Bloch factor $e^{i\bf k_B\cdot \bf L}.$
-This is not the incident field we want to consider 
+Evaluating the scattered fields at the destination point
+then yields the \textit{periodic} DGF
+$\overline{\boldsymbol{\mathcal G}(\mathbf{x}_{\hbox{\tiny{D}}}, \mathbf{x}_{\hbox{\tiny{s}}}; \omega, \mathbf k_{\hbox{\tiny{B}}})$,
+describing the scattered fields at 
+$\mathbf{x}_{\hbox{\tiny{D}}}$ due to a $k_{\hbox{\tiny{B}}}$-phased arry of point sources at $\mathbf{x}_{\hbox{\tiny{s}}}$ and its 
+lattice images.
+This is not the incident field we want to consider
 when computing LDOS.
 
 Of course, it is still possible to get what we want---the
 response of our geometry to a non-periodic point source---but
 it requires summing the results of many scattering problems,
-with each problem phased in such a way as to cancel out
-the effects of all source in all lattice cells except the 
-particular cell we want. In other words, to get the 
-LDOS at a single point in a periodic geometry
-requires a *Brillouin-zone integration*, in which
-we perform and sum the results of many scattering calculations
-at various Bloch vectors $\bf k_B$ lying in the 
-Brillouin zone of the reciprocal lattice.
+with different phase factors for the point-souce array,
+in such a way as to cancel out
+the effects of all image sources in all lattice cells except the 
+particular cell we want. More specifically, the non-periodic
+DGF is related to the periodic DGF by integration over the Brillouin
+zone:
 
-There are two ways to do calculations like this in [[scuff-em]]:
+$$ \boldsymbol{\mathcal G}(\mathbf{x}_{\hbox{\tiny{D}}}, \mathbf{x}_{\hbox{\tiny{s}}}; \omega)
+ =\frac{1}{\mc V\subt{BZ}} 
+   \int\subt{BZ} 
+   \overline{\boldsymbol{\mathcal G}(\mathbf{x}_{\hbox{\tiny{D}}}, \mathbf{x}_{\hbox{\tiny{s}}}; \omega, \mathbf k_{\hbox{\tiny{B}}})
+   \, d\mathbf{k}_{\hbox{\tiny{B}}}.
+$$
+or, approximately evaluating the integral by numerical cubature,
+$$ \approx 
+   \frac{1}{\mc V\subt{BZ}} 
+   \sum w_m
+   \overline{\boldsymbol{\mathcal G}(\mathbf{x}_{\hbox{\tiny{D}}}, \mathbf{x}_{\hbox{\tiny{s}}}; \omega, \mathbf k_{m})
+$$
+where $\{\mathbf{k}_m, w_m\}$ are the points and weights in a cubature rule for integration over
+the Brillouin zone.
+Thus, getting the LDOS at a single point in a periodic geometry
+requires summing the results of many scattering calculations at
+various Bloch vectors $\bf k_B$ lying in the Brillouin zone of the reciprocal lattice.
+
+The question of how to choose the cubature rule---that is, the set of
+Bloch wavevectors $\{\mathbf{k}_{\hbox{\tiny{B}}}\}$ at which the integrand
+is sampled and the weights $\{w\}$ with which the resulting values are 
+combined---to yield accurate integral estimates without exorbitant computational cost is a 
+tricky one, and one whose answer varies from problem to problem.
+There are two ways to proceed:
 
 + You can design your own cubature scheme for integration over
 the Brillouin zone, and simply ask [[scuff-ldos]] to give you
-values of the integrand at specific Bloch vectors $\bf k_B$.
+values of the integrand 
+$\overline{\boldsymbol{\mathcal{G}(\mathbf{k}_{\hbox{\tiny{B}}}}}$
+at specific Bloch vectors $\bf k_B$.
 In this case you will pass the ``--OmegakBlochFile`` command-line
-argument to [[scuff-ldos]]
+argument to [[scuff-ldos]].
 
 + Alternatively, you can use the built-in Brillouin-zone integrator
-in [[scuff-em]] to perform the BZ integral automatically,
-resulting in reports
-
-The general topic of Brillouin-zone integration in [[scuff-em]] codes is
-discussed in more detail 
-on the page 
-[Brillouin-zone integration in <span class="SC">scuff-em</span>](../../reference/BrillouinZoneIntegration.md.)
-
-
+in [[scuff-ldos]] to perform the BZ integral automatically. In
+this case you will probably want to set various command-line 
+options to optimize the integral evaluation; this is illustrated
+below and discussed in more detail on the page 
+[Brillouin-zone integration in <span class="SC">scuff-em</span>](../../reference/BrillouinZoneIntegration.md).
 
 --------------------------------------------------
 
-# [[gmsh]] geometry file for unit-cell geometry 
+# [[gmsh]] geometry file for unit-cell geometry
 
-The [[gmsh]] geometry file [`Square_N.geo`](Square_N.geo)
-describes the portion of the half-space interface
-that lies within the *unit cell,*
-i.e. the cell that is infinitely periodically
-replicated to yield the full geometry.
+To compute DGFs and LDOS in a half-space geometry,
+we will describe the interface between the upper (vacuum)
+and lower (dielectric) regions of our geometry as the
+infinite periodic replication of a unit-cell mesh 
+over the sites of a 2D square lattice.
+Because this particular geometry has infinite translational
+symmetry, we are free to choose the lattice constant 
+$L=L_x=L_y$ however we like; here we will consider 
+the two values $L=10$ nm and $L=100$ nm.
 
-I call this file `Square_N.geo` to remind myself that 
-it contains a parameter `N` that describes the meshing 
-fineness; more specifically, `N` defines the number of 
-segments per unit length. (The file also contains 
-a parameter named `L` that defines the unit-cell
-length in microns; here we will keep this parameter
-fixed at $L$=1 micron.)
-
-To produce a discretized surface-mesh
-representation of this geometry, we run it through 
-[[gmsh]], using the [[gmsh]] command-line argument
-`-setnumber` to fix a value for the `N` parameter.
+The [[gmsh]] geometry file [`Square_L_N.geo`](Square_L_N.geo)
+describes a square with user-adjustable parameters 
+`L` and `N` that may be configured using the `-setnumber`
+option on the [[gmsh]] command line to define the square
+side length and the number of triangle edges per side length 
+(the meshing fineness). To produce unit-cell meshes for
+the two desired lattice constants, I go like this:
 
 ````bash
-% gmsh -2 -setnumber N 4 Square_N.geo -o Square.msh
-% RenameMesh Square.msh
+% gmsh -2 -setnumber L 0.1 -setnumber N 4 Square_L_N.geo -o Square_L0P1.msh 
+% RenameMesh Square_L0P1.msh
 
-% gmsh -2 -setnumber N 8 Square_N.geo -o Square.msh
-% RenameMesh Square.msh
+% gmsh -2 -setnumber L 0.01 -setnumber N 4 Square_L_N.geo -o Square_L0P01.msh 
+% RenameMesh Square_L0P01.msh
 ````
-
 (Here [`RenameMesh`][RenameMesh] is a simple `bash` script
 that uses [[scuff-analyze]] to count the number of interior
 edges in a surface mesh and rename the mesh file accordingly.)
-These commands produce the files `Square_40.msh`
-and `Square_176.msh`.
-These meshes may be visualized in [[gmsh]]:
+These commands produce the files 
+`Square_L0P1_40.msh` and `Square_L0P01_40.msh.` I also repeat the process with `-setnumber N 8` to yield finer meshes (with 176 instead
+of 40 interior edges).
+These meshes may be visualized in [[gmsh]] by saying e.g.
 
 ````bash
-% gmsh Square_40.msh
-% gmsh Square_176.msh
+% gmsh Square_L0P1.40.msh
+% gmsh Square_L0P01.176.msh
 ````
+
+![Square_L0P1_40.png](Square_L0P1_40.png)
+![Square_L0P01_176.png](Square_L0P01_176.png)
 
 Note the following:
 
@@ -145,27 +210,45 @@ Note the following:
    (More generally, $L_x$ and $L_y$ may be any arbitrary
    nonzero values, and they need not equal each other.)
 
+ * Among the various possible ways to discretize a square
+intro triangles, I have chosen one that preserves as 
+much symmetry as possible---specifically, the mesh 
+is symmetric under the transformations
+$x \leftrightarrow -x$, $y \leftrightarrow -y$, and
+$x \leftrightarrow y$. This is important for exploiting
+symmetries to reduce the cost of Brillouin-zone integration
+(see below).
+
+The `.msh` files needed to run the calculations in this
+tutorial may be found in the `mshFiles` subfolder
+of the `HalfSpaceLDOS` example distributed with
+[[scuff-em]].
+
 --------------------------------------------------
 # [[scuff-em]] geometry files
 
-The 
+For each unit-cell mesh I create
 [<span class="SC">scuff-em</span> geometry files][Geometries]
-describing an infinite-area PEC ground plane at $z$=0
-are 
-[`PECPlate_40.scuffgeo`](PECPlate_40.scuffgeo)
-and 
-[`PECPlate_176.scuffgeo`](PECPlate_176.scuffgeo).
+describing three material geometries:
 
-The 
-[<span class="SC">scuff-em</span> geometry files][Geometries]
-describing an infinite aluminum half-space occupying
-the region $z<0$ are 
-[`AlHalfSpace_40.scuffgeo`](AlHalfSpace_40.scuffgeo)
-and 
-[`AlHalfSpace_176.scuffgeo`](AlHalfSpace_176.scuffgeo).
++ an infinite-area perfectly electrically conducting (PEC) plate at height $z=0$;
 
-Here's the content of the file `AlHalfSpace_176.scuffgeo`:
++ an infinite lossless dielectric ($\epsilon \equiv 10$) filling
+  space for $z<0$, with vacuum for $z>0$;
 
++ same as previous, but now with lossy metal (aluminum) instead
+  of lossless dielectric.
+
+The resulting `.scuffgeo` files may be found in the 
+`.scuffgeoFiles` subfolder of the `HalfSpaceLDOS`
+example directory.
+For example, the PEC-plate geometry at the coarser resolution
+with the longer lattice constant is
+[`PECPlate_L0P1_40.scuffgeo`](scuffgeoFiles/PECPlate_L0P1_40.scuffgeo),
+while the aluminum half-space geometry at the finer resolution
+with the shorter lattice constant is
+[`AlHalfSpace_L0P01_176.scuffgeo`](scuffgeoFiles/AlHalfSpace_L0P01_176.scuffgeo).
+The latter file looks like this:
 ````bash
 # this comes from Phys Rev B **68** 245405
 MATERIAL ALUMINUM
@@ -175,138 +258,75 @@ MATERIAL ALUMINUM
 ENDMATERIAL
 
 LATTICE
-	VECTOR 1.0  0.0
-	VECTOR 0.0  1.0 
+	VECTOR 0.01 0.00
+	VECTOR 0.00 0.01
 ENDLATTICE
 
-REGION Exterior       MATERIAL Aluminum
 REGION UpperHalfSpace MATERIAL Vacuum
+REGION Exterior       MATERIAL Aluminum
 
 SURFACE Plate
 	MESHFILE Square_176.msh
-	REGIONS Exterior Aluminum
+	REGIONS Exterior UpperHalfSpace
 ENDSURFACE
 ````
 
 --------------------------------------------------
 # List of evaluation points
 
-We'll compute the LDOS at two points, located 
-a distance of 0.1 $\mu$m and 1 $\mu$m above the 
-origin on the $z$ axis. The `EPFile` looks like
+We'll compute one-point DGFs and LDOS at four points,
+located at distances of 1, 10, 100, and 1000 nm above
+the surface on the $z$-axis. Thus our `EPFile` looks like
 this:
 
 ````
-0.0 0.0 0.1
-0.0 0.0 1.0
+0.0 0.0 0.001
+0.0 0.0 0.010
+0.0 0.0 0.100
+0.0 0.0 1.000
 ````
 --------------------------------------------------
-# Launching a Bloch-vector-resolved run
+## Studying the integrand to select the optimal cubature rule
 
-Before running a full Brillouin-zone-integrated
-calculation to get the full LDOS at a given
-frequency $\omega$, we'll first run calculations
-at a set of pre-specified individual Bloch vectors
-$\mathbf k_{\small{\text{B}}}$ in the Brillouin zone.
+Ultimately we will want to launch a full
+Brillouin-zone-integrated calculation to get
+the total LDOS at our desired evaluation points 
+and frequencies. However, before doing this, we
+should acquire some insight into the behavior of
+the integrand so that we can make intelligent
+choices for the various 
+[options controlling Brillouin-zone integration][BZI].
 
-We'll take $\omega=3\times 10^{14}$ rad/sec
-(or $\omega=1$ in [[scuff]] units) and 
-will consider Bloch
-vectors of the form $\mathbf k_{\small{\text{B}}}=(0,k_y)$ for 
-values of $k_y$ running from $0$ to $\pi/L$
-(where $L$=1 $\mu$m is the lattice constant
-in this case).
-Thus we create a text file called [`OKBFile`](OKBFile) 
-that looks like this:
+### Checking Brillouin-zone symmetry
 
-````
-1.0 0.0 0.00
-1.0 0.0 0.10
-...
-1.0 0.0 3.14
-````
+A first thing to check is the *symmetry* of the
+integrand within the Brillouin zone (BZ).
+As discussed [here][BZI], the built-in cubature
+routines for 2D BZ integration in [[scuff-em]]
+can exploit 2, 4, or 8-fold rotational symmetry.
+In this case, because
 
-As a sanity check, we will do two [[scuff-ldos]] runs,
-one in which the LDOS is computed using a semi-analytical
-approach (plane-wave decomposition) and another in which
-the LDOS is computed using the [[scuff-em]] core
-library. The semi-analytical approach is implemented
-by [scuff-ldos] and is requested by giving all the same
-command-line arguments you would give to do an ordinary
-[scuff-ldos] calculation, but with the additional argument
-`--HalfSpace Aluminum.` (Note that you must specify a `.scuffgeo`
-file for the `--HalfSpace` calculation, even though the 
-meshed geometry is not used in this calculation; the
-`.scuffgeo` file is used to specify the lattice.)
++ **(1)** the underlying (real-space) geometry is symmetric
+under $x\leftrightarrow -x$, $y\leftrightarrow -y$,
+and $x\leftrightarrow y$,
 
-#### Command-line arguments for quasi-analytical calculation using plane-wave decomposition:
++ **(2)** we have chosen a mesh discretization that 
+preserves these symmetries, and
 
-````bash
-  #!/bin/bash
-  ARGS=""
-  ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo" 
-  ARGS="${ARGS} --EPFile  EPFile"
-  ARGS="${ARGS} --OmegakBlochFile OKBFile"
-  ARGS="${ARGS} --HalfSpace Aluminum"
-  scuff-ldos ${ARGS}
-````
++**(3)** we are computing a one-point DGF, 
 
-#### Command-line arguments for fully numerical calculation using discretized surface meshes:
-
-````bash
-  #!/bin/bash
-  ARGS=""
-  ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo" 
-  ARGS="${ARGS} --EPFile  EPFile"
-  ARGS="${ARGS} --OmegakBlochFile OKBFile"
-  scuff-ldos ${ARGS}
-````
-
-Both of these runs produce an output file 
-named `AlHalfSpace_40.byOmegakBloch.` (If you
-don't rename the file after the first run, 
-the data from the second run will simply be 
-appended to the file below the first set of data).
-
-Here's a plot of $\mathcal{G}^E_{zz}$ (the $zz$
-component of the electric dyadic Green's function)
-versus the $y$-component of the Bloch vector
-as computed using the analytical and [[scuff-em]]
-approaches.
-
-![aluminum LDOS data](AluminumLDOS.png)
-
---------------------------------------------------
-# Launching a Brillouin-zone integrated run
-
-Finally, we'll ask [[scuff-ldos]] to perform
-the Brillouin-zone integrations at each frequency
-to compute the full LDOS at that frequency.
-To do this we simply use `--OmegaFile`` instead
-of `--OmegakBlochFile`` to specify a list of 
-frequencies instead of a list of 
-$(\omega,\mathbf{k}_{\small{\hbox{B}}})$
-points; by not specifying individual Bloch vectors
-we are implicitly asking [[scuff-ldos]] to perform
-the Brillouin-zone integral at each frequency.
-
-Thus we go like this:
-
-````bash
-  #!/bin/bash
-  ARGS=""
-  ARGS="${ARGS} --geometry AlHalfSpace_40.scuffgeo" 
-  ARGS="${ARGS} --EPFile  EPFile"
-  ARGS="${ARGS} --OmegaFile OmegaFile"
-  scuff-ldos ${ARGS}
-````
-
-where [`OmegaFile`](OmegaFile) is a simple text
-file specifying a list of angular frequencies in
-units of $3\cdot 10^{14}$ rad/sec.
+we expect the BZ integrand 
+$\overline{\boldsymbol{\mathcal{G}}}(k_x,k_y)$
+to have 8-fold rotational symmetry, and thus
+we should be able to restrict the domain of the 
+BZ integration to just the *irreducible* Brillouin
+zone (a triangular wedge having 1/8 the total area
+of the BZ, as shown [here][BZI]) and multiply by 8 
+to get the full BZ integral.
 
 [Geometries]:          ../../reference/Geometries.md
 [ExtendedGeometries]:  ../../reference/Geometries.md#Extended
 [RenameMesh]:          ../../examples/SiO2Spheres/RenameMesh
 [scuff-ldos]:          ../../applications/scuff-ldos/scuff-ldos.md
 [LDOSMemo]:            ../../tex/scuff-ldos.pdf
+[BZI]:                 ../../reference/BrillouinZoneIntegration.md

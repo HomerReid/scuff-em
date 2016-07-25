@@ -266,11 +266,10 @@ class RWGSurface
    GTransformation *GT;
    double Origin[3];
 
-   /* SurfaceSigma, if non-NULL, points to a cevaluator for a     */
+   /* SurfaceZeta, if non-NULL, points to a cevaluator for a      */
    /* user-specified function of frequency and position (w,x,y,z) */
-   /* describing surface conductivity                             */
-   void *SurfaceSigma;
-   MatProp *SurfaceSigmaMP;
+   /* describing surface impedance in units of ZVAC               */
+   void *SurfaceZeta;
 
    // the following fields are used to pass some data items up to the 
    // higher-level routine that calls the RWGSurface constructor

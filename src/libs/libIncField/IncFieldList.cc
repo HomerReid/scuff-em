@@ -159,8 +159,8 @@ void ProcessSinCos(char **Tokens, int NumTokens)
      int L = strlen(Tokens[nt]);
      if (L<5) continue;
      double ThetaDegrees;
-     if ( (     strncasecmp(Tokens[nt],"cos(",4)
-            ||  strncasecmp(Tokens[nt],"sin(",4)
+     if ( (    !strncasecmp(Tokens[nt],"cos(",4)
+            || !strncasecmp(Tokens[nt],"sin(",4)
           )
           &&  1==sscanf(Tokens[nt]+4,"%le",&ThetaDegrees)
         )

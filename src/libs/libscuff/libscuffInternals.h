@@ -258,7 +258,7 @@ typedef struct GetSSIArgStruct
 
 void InitGetSSIArgs(GetSSIArgStruct *Args);
 void GetSurfaceSurfaceInteractions(GetSSIArgStruct *Args);
-void AddSurfaceSigmaContributionToBEMMatrix(GetSSIArgStruct *Args);
+void AddSurfaceZetaContributionToBEMMatrix(GetSSIArgStruct *Args);
 
 /***************************************************************/
 /* 2. definition of data structures and methods for working    */

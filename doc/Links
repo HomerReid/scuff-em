@@ -2,6 +2,7 @@
 [ComplexGeometries]:           ../../reference/Geometries.md#Complex
 [EPFile]:                      ../../applications/GeneralReference.md#EvaluationPoints
 [ExtendedGeometries]:          ../../reference/Geometries.md#Extended
+[FAQ]:                         ../../reference/FAQ.md
 [FSCPaper]:                    http://link.aps.org/doi/10.1103/PhysRevB.88.054305
 [Geometries]:                  ../reference/Geometries
 [GitHub]:                      https://github.com/HomerReid/scuff-em/

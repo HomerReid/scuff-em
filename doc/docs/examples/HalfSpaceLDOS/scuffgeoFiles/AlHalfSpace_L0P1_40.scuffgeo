@@ -1,3 +1,5 @@
+MESHPATH ../mshFiles
+
 # this comes from Phys Rev B **68** 245405
 MATERIAL ALUMINUM
     wp = 1.747e16; 
@@ -6,14 +8,14 @@ MATERIAL ALUMINUM
 ENDMATERIAL
 
 LATTICE
-	VECTOR 1.0  0.0
-	VECTOR 0.0  1.0 
+	VECTOR 0.1  0.0
+	VECTOR 0.0  0.1 
 ENDLATTICE
 
-REGION Exterior       MATERIAL Aluminum
 REGION UpperHalfSpace MATERIAL Vacuum
+REGION Exterior       MATERIAL Aluminum
 
 SURFACE Plate
-	MESHFILE Square_176.msh
-	REGIONS Exterior Aluminum
+	MESHFILE Square_L0P1_40.msh
+	REGIONS Exterior UpperHalfSpace
 ENDSURFACE

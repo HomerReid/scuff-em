@@ -93,27 +93,55 @@ bodies, which---by way of review---I summarize thusly:
        \begin{align}
                 \vb E_{\parallel}\sups{scat}(\vb x)
             &= -\vb E_{\parallel}\sups{inc}(\vb x)
+        \label{PECBC2}
         \intertext{or} 
              \underbrace{
                 \int \BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
                      \cdot \vb K(\vb x^\prime) d\vb x^\prime 
-                        }\BG_{\parallel}\supt{EE} \star \vb K
+                        }_{\BG_{\parallel}\supt{EE} \star \vb K}
             &= - \vb E\sups{inc}(\vb x).
+        \label{PECBC3}
         \end{align}
 \end{enumerate}
 
 %=================================================
 %=================================================
 %=================================================
-\subsection{SIE formulation for IPEC bodies}
+\subsection{First SIE formulation for IPEC bodies}
 
-My first SIE formulation for IPEC bodies goes like this:
+My first SIE formulation for IPEC bodies 
 %
 \begin{enumerate}
  \item As in the PEC case, to each IPEC I continue to assign an electric
+       surface current $\vb K$ related to the total $\vb H$ field
+       by equation (\ref{KDef}).
+ \item As in the PEC case, I continue to assign \textit{no} magnetic 
+       surface current $\vb N$ to IPEC surfaces.
+ \item To determine $\vb K$ from $\vb E\sups{inc}$, I use 
+        (\ref{IPECBC1}) in place of (\ref{PECBC1}) and (\ref{PECBC2}).
+        This has the effect of replacing (\ref{PECBC3}) with
+       %====================================================================%
+       \numeq{IPECEquation1}
+        {
+                 \vbGamma\supt{EE} \star \vb K
+      -\zeta Z_0\vbhat{n}\times \vbGamma\supt{ME} \star \vb K
+                 = -\vb E\sups{inc} + \zeta Z_0 \vbhat{n}\times \vb H\sups{inc}
+        }
+       %====================================================================%
+\end{enumerate}
+
+%=================================================
+%=================================================
+%=================================================
+\subsection{Second SIE formulation for IPEC bodies}
+
+My alternative SIE formulation for IPEC bodies goes like this:
+%
+\begin{enumerate}
+ \item As before, to each IPEC surface I continue to assign an electric
        surface current $\vb K$ related to the total $\vb H$ field 
        by equation (\ref{KDef}).
- \item In contrast to the PEC case, I now assign to each IPEC
+ \item Unlike before, I now assign to each IPEC
        surface a nonvanishing magnetic current, which is
        not an independent unknown but is instead
        determined by $\vb K$ via the (\ref{IPECBC1}):
@@ -155,32 +183,26 @@ My first SIE formulation for IPEC bodies goes like this:
             -\zeta Z_0 \vbhat{n}\times \vb H_{\parallel}\sups{scat}(\vb x)
        = 
           -\vb E_{\parallel}\sups{inc}(\vb x) 
-            +\zeta Z_0 s \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
+            +\zeta Z_0 \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
        $$
        or
        \begin{align*}
        \int\bigg\{ &\BG_{\parallel}\supt{EE}(\vb x, \vb x^\prime) 
                    \cdot \vb K(\vb x^\prime)
                    \\
-                   &- Z_s\BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime)
+                   &-\zeta Z_0\BG_{\parallel}\supt{ME}(\vb x, \vb x^\prime)
                    \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big] 
                    \\
-                   &-Z_s\vbhat{n}\times \BG_{\parallel}\supt{EM}(\vb x, \vb x^\prime) 
+                   &-\zeta Z_0\vbhat{n}\times \BG_{\parallel}\supt{EM}(\vb x, \vb x^\prime) 
                    \cdot \vb K(\vb x^\prime)
                    \\
-                   &+Z_s^2
+                   &+\zeta^2 Z_0^2
                    \vbhat{n}\times\BG_{\parallel}\supt{MM}(\vb x, \vb x^\prime)
                    \cdot \Big[\vbhat{n}\times \vb K(\vb x^\prime)\Big]
        \bigg\}
        = -\vb E_{\parallel}\sups{inc}(\vb x) 
-            +Z_s \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
+            +\zeta Z_0 \vbhat{n}\times \vb H_{\parallel}\sups{inc}(\vb x).
        \end{align*}
 \end{enumerate}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newpage
-\section{Alternative formulation}
 
 \end{document}

@@ -79,8 +79,7 @@ void RWGSurface::UpdateBoundingBox()
 RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
 { 
   ErrMsg=0;
-  SurfaceSigma=0;
-  SurfaceSigmaMP=0;
+  SurfaceZeta=0;
   MeshTag=-1;
   MeshFileName=0;
   IsPEC=1;
@@ -205,52 +204,34 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
            return;
          };
       }
-     else if ( !StrCaseCmp(Tokens[0],"SURFACE_CONDUCTIVITY") )
+     else if ( !StrCaseCmp(Tokens[0],"SURFACE_IMPEDANCE") )
       { 
         if (NumTokens<2)
          { ErrMsg=strdupEC("no argument specified for SURFACE_CONDUCTIVITY");
            return;
          };
 
-        /* 20130426 TEMPORARY HACK: try to parse surface conductivities */
-        /*          as MatProps for the time being.                     */
-        /* first see if user's surface conductivity specification matches  */
-        /* a MATERIAL definition                                           */
-        MatProp *SigmaMP=0;
-        if ( NumTokens==2 )
-         { SigmaMP=new MatProp(Tokens[1]);
-           if (SigmaMP->ErrMsg)
-            { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification %s (%s)",
-                              Tokens[1],SigmaMP->ErrMsg);
-              return;
-            };
-           Log("Registered surface conductivity material %s for surface %s",Tokens[1],Label);
-           SurfaceSigmaMP = SigmaMP;
-         };
-;
-#if 0
         /* try to create a cevaluator for the user's function */
-        char *SigmaString=Line; 
-        while (strchr(" \t\n",*SigmaString)) // skip forward to the start of the 
-         SigmaString++;                        //  actual expression
-        SigmaString+=strlen("SURFACE_CONDUCTIVITY");
-        int SSLength=strlen(SigmaString);
-        if (SSLength>=1 && SigmaString[SSLength-1]=='\n') 
-         SigmaString[SSLength-1]=0;
-        SurfaceSigma=cevaluator_create(SigmaString);
-        if (SurfaceSigma==0)
-         { ErrMsg=vstrdup("invalid SURFACE_CONDUCTIVITY specification (%s)",SigmaString);
+        char *ZetaString=Line; 
+        while (strchr(" \t\n",*ZetaString)) // skip forward to the start of the 
+         ZetaString++;                        //  actual expression
+        ZetaString+=strlen("SURFACE_IMPEDANCE");
+        int SSLength=strlen(ZetaString);
+        if (SSLength>=1 && ZetaString[SSLength-1]=='\n') 
+         ZetaString[SSLength-1]=0;
+        SurfaceZeta=cevaluator_create(ZetaString);
+        if (SurfaceZeta==0)
+         { ErrMsg=vstrdup("invalid SURFACE_IMPEDANCE %s",ZetaString);
            return;
          };
 
         /* these calls are required for thread safety, and they     */
         /* mandate that the w, x, y, z values be specified in that  */
         /* order in the 'values' parameter to cevaluator_evaluate() */ 
-        cevaluator_set_var_index(SurfaceSigma, "w", 0);
-        cevaluator_set_var_index(SurfaceSigma, "x", 1);
-        cevaluator_set_var_index(SurfaceSigma, "y", 2);
-        cevaluator_set_var_index(SurfaceSigma, "z", 3);
-#endif
+        cevaluator_set_var_index(SurfaceZeta, "w", 0);
+        cevaluator_set_var_index(SurfaceZeta, "x", 1);
+        cevaluator_set_var_index(SurfaceZeta, "y", 2);
+        cevaluator_set_var_index(SurfaceZeta, "z", 3);
 
       }
      else if (   !StrCaseCmp(Tokens[0],"ENDOBJECT") || !StrCaseCmp(Tokens[0],"ENDSURFACE") )
@@ -268,8 +249,8 @@ RWGSurface::RWGSurface(FILE *f, const char *pLabel, int *LineNum, char *Keyword)
      return;
    };
 
-  if (SurfaceSigma!=0)
-   Log("Surface %s has surface conductivity Sigma=%s.\n",Label,cevaluator_get_string(SurfaceSigma));
+  if (SurfaceZeta!=0)
+   Log("Surface %s has surface impedance Zeta=%s.\n",Label,cevaluator_get_string(SurfaceZeta));
 
   // if we are an OBJECT and there was no MATERIAL specification,
   // or we are a SURFACE and there was no REGIONS specification, then 
@@ -294,7 +275,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
   MeshFileName=strdup(MeshFile);
   MeshTag=pMeshTag;
   Label=strdup(MeshFile);
-  SurfaceSigma=0;
+  SurfaceZeta=0;
   MaterialName=0;
   RegionLabels[0]=RegionLabels[1]=0;
   IsPEC=1;
@@ -311,7 +292,7 @@ RWGSurface::RWGSurface(const char *MeshFile, int pMeshTag)
 /*-                                                             */
 /*- This routine assumes that the following internal class      */
 /*- fields have been initialized: MeshFileName, MeshTag,        */
-/*- Label, SurfaceSigma, RegionLabels, IsPEC.                   */
+/*- Label, SurfaceZeta, RegionLabels, IsPEC.                    */
 /*--------------------------------------------------------------*/
 /*--------------------------------------------------------------*/
 void RWGSurface::InitRWGSurface()

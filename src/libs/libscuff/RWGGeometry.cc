@@ -396,13 +396,30 @@ RWGGeometry::RWGGeometry(const char *pGeoFileName, int pLogLevel)
       { 
         ProcessMEDIUMSection(f,GeoFileName,&LineNum);
       }
-     else if ( !StrCaseCmp(Tokens[0],"MESHPATH") )
+     else if (    !StrCaseCmp(Tokens[0],"MESHPATH")
+               || !StrCaseCmp(Tokens[0],"MESH_PATH")
+             )
       { 
         if ( nTokens!=2 )
          ErrExit("%s:%i: invalid MESHPATH specification",GeoFileName,LineNum);
+
         NumMeshDirs++;
         MeshDirs=(char **)realloc(MeshDirs,NumMeshDirs*sizeof(char *));
-        MeshDirs[NumMeshDirs-1]=strdup(Tokens[1]);
+
+        // if MESHPATH starts with a '/' then it is an absolute path; otherwise
+        // it is taken relative to the path in which the .scuffgeo file was found
+        if (Tokens[1][0]=='/')
+         MeshDirs[NumMeshDirs-1]=strdup(Tokens[1]);
+        else
+         { char *p=strrchr(GeoFileName,'/');
+           if (!p)
+            MeshDirs[NumMeshDirs-1]=strdup(Tokens[1]);
+           else
+            { *p=0;
+              MeshDirs[NumMeshDirs-1]=vstrdup("%s/%s",GeoFileName,Tokens[1]);
+              *p='/';
+            };
+         };
       }
      else if ( !StrCaseCmp(Tokens[0],"LATTICE") )
       { 
