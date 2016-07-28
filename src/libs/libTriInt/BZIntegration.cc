@@ -435,11 +435,11 @@ void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
    }
   else // ( Args->BZIMethod == BZI_RADIAL2 )
    { 
-     double Lower, Upper;
+     double Lower, Upper, Gamma=Args->RLBasis->GetEntryD(0,0);
 
      // 0 \le kzHat \le 1
      Lower = 0.0;
-     Upper = 1.0;
+     Upper = abs(Omega)/Gamma;
      Args->kz2Sign = -1.0;
      hcubature(FDim, BZIntegrand_Radial, (void *)Args, 1,
 	        &Lower, &Upper, MaxEvals, AbsTol, RelTol,
