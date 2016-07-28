@@ -302,8 +302,8 @@ int BZIntegrand_Angular(unsigned ndim, const double *u, void *pArgs,
   BZIFunction BZIFunc = Args->BZIFunc;
   void *UserData      = Args->UserData;
   int FDim            = Args->FDim;
-  double kRho         = Args->kRho;
-  HMatrix *RLBasis    = Args->RLBasis; 
+  double kRhoHat      = Args->kRhoHat;
+  HMatrix *RLBasis    = Args->RLBasis;
   int SymmetryFactor  = Args->SymmetryFactor;
   cdouble Omega       = Args->Omega;
   double *DeltaBZI    = Args->DataBuffer[2];
@@ -314,8 +314,8 @@ int BZIntegrand_Angular(unsigned ndim, const double *u, void *pArgs,
   double kTheta=u[0];
   double Gamma = RLBasis->GetEntryD(0,0);
   double kBloch[2];
-  kBloch[0]=kRho*Gamma*cos(kTheta);
-  kBloch[1]=kRho*Gamma*sin(kTheta);
+  kBloch[0]=kRhoHat*Gamma*cos(kTheta);
+  kBloch[1]=kRhoHat*Gamma*sin(kTheta);
   int NumOctants = 8/SymmetryFactor;
   memset(BZIntegrand, 0, FDim*sizeof(double));
   for(int n=0; n<NumOctants; n++)
@@ -345,13 +345,27 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
   double RelTol       = Args->RelTol;
   double AbsTol       = Args->AbsTol;
   double **DataBuffer = Args->DataBuffer;
+  cdouble Omega       = Args->Omega;
 
-  double kRho = u[0];
-  Args->kRho  = kRho;
+  double kRhoHat, Jacobian;
+  if (Args->BZIMethod == BZI_RADIAL)
+   { kRhoHat  = u[0];
+     Jacobian = kRhoHat;
+   }
+  else if ( Args->BZIMethod==BZI_RADIAL2 )
+   { double kzHat   = u[0];
+     double kzHat2  = kzHat*kzHat;
+     double kz2Sign = Args->kz2Sign;
+     double Gamma   = Args->RLBasis->GetEntryD(0,0);
+     double kHat2   = real(Omega) * real(Omega) / (Gamma*Gamma);
+     kRhoHat        = sqrt( kHat2 + kz2Sign*kzHat2 );
+     Jacobian       = kzHat;
+   };
+  Args->kRhoHat=kRhoHat;
   
-  double kMax  = 0.5;
-  double Lower = (kRho<=kMax) ? 0.0 : acos(kMax / kRho);
-  double Upper = 0.25*M_PI;
+  double kxHatMax = 0.5;
+  double Lower    = (kRhoHat<=kxHatMax) ? 0.0 : acos(kxHatMax/kRhoHat);
+  double Upper    = 0.25*M_PI;
 
   if (AngularOrder==0)
    { 
@@ -364,14 +378,13 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
    { 
      BZIFunction BZIFunc = Args->BZIFunc;
      void *UserData      = Args->UserData;
-     cdouble Omega       = Args->Omega;
      double Gamma        = Args->RLBasis->GetEntryD(0,0);
      double kBloch[3]={0.0, 0.0, 0.0};
      switch(AngularOrder)
-      { case 2:  kBloch[0] = kRho*Gamma; break;
-        case 4:  kBloch[1] = kRho*Gamma; break;
+      { case 2:  kBloch[0] = kRhoHat*Gamma; break;
+        case 4:  kBloch[1] = kRhoHat*Gamma; break;
         case 6: 
-        default: kBloch[0] = kBloch[1] = kRho*Gamma/(M_SQRT2); break;
+        default: kBloch[0] = kBloch[1] = kRhoHat*Gamma/(M_SQRT2); break;
       };
      BZIFunc(UserData, Omega, kBloch, BZIntegrand);
      VecScale(BZIntegrand, 2.0*M_PI, FDim);
@@ -392,7 +405,7 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
       };
    };
 
-  VecScale(BZIntegrand, kRho, FDim);
+  VecScale(BZIntegrand, Jacobian, FDim);
   return 0;
 
 }
@@ -409,15 +422,40 @@ void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
   double RelTol       = Args->RelTol;
   double **DataBuffer = Args->DataBuffer;
 
-  Args->Omega      = Omega;
+  Args->Omega         = Omega;
 
-  int RadialOrder  = Args->Order / 100;
+  int RadialOrder     = Args->Order / 100;
 
-  double Lower = 0.0;
-  double Upper = 0.5*M_SQRT2;
-  CCCubature(RadialOrder, FDim, BZIntegrand_Radial, (void *)Args, 1,
-	     &Lower, &Upper, MaxEvals, AbsTol, RelTol,
-	     ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
+  if ( Args->BZIMethod == BZI_RADIAL )
+   { double Lower = 0.0;
+     double Upper = 0.5*M_SQRT2;
+     CCCubature(RadialOrder, FDim, BZIntegrand_Radial, (void *)Args, 1,
+	        &Lower, &Upper, MaxEvals, AbsTol, RelTol,
+	        ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
+   }
+  else // ( Args->BZIMethod == BZI_RADIAL2 )
+   { 
+     double Lower, Upper;
+
+     // 0 \le kzHat \le 1
+     Lower = 0.0;
+     Upper = 1.0;
+     Args->kz2Sign = -1.0;
+     hcubature(FDim, BZIntegrand_Radial, (void *)Args, 1,
+	        &Lower, &Upper, MaxEvals, AbsTol, RelTol,
+	        ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
+
+     // 0 \le kzHat \le 1
+     Lower = 0.0;
+     Upper = 0.5*M_SQRT2;
+     Args->kz2Sign = +1.0;
+     double *BZIntegral2 = new double[FDim];
+     hcubature(FDim, BZIntegrand_Radial, (void *)Args, 1,
+	       &Lower, &Upper, MaxEvals, AbsTol, RelTol,
+	       ERROR_INDIVIDUAL, BZIntegral2, DataBuffer[1]);
+     VecPlusEquals(BZIntegral, 1.0, BZIntegral2, FDim);
+     delete[] BZIntegral2;
+   };
 }
 
 /***************************************************************/
@@ -468,6 +506,7 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
       break;
 
      case BZI_RADIAL:
+     case BZI_RADIAL2:
       GetBZIntegral_Radial(Args, Omega, BZIntegral);
       break;
 
@@ -657,6 +696,8 @@ GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
          BZIArgs->BZIMethod = BZI_CC;
         else if (!strcasecmp(Option,"Radial"))
          BZIArgs->BZIMethod = BZI_RADIAL;
+        else if (!strcasecmp(Option,"Radial2"))
+         BZIArgs->BZIMethod = BZI_RADIAL2;
         else
          ErrExit("unknown BZIMethod %s",Option);
         argv[narg]=argv[narg+1]=0;
@@ -724,7 +765,7 @@ bool LatticeIsSquare(HMatrix *LBasis)
 /***************************************************************/
 /***************************************************************/
 const char *BZIMethodNames[]=
- { "DEFAULT", "CC", "TC", "RADIAL" };
+ { "DEFAULT", "CC", "TC", "RADIAL", "RADIAL2" };
 
 void UpdateBZIArgs(GetBZIArgStruct *Args,
                    HMatrix *RLBasis, double RLVolume)
@@ -732,7 +773,7 @@ void UpdateBZIArgs(GetBZIArgStruct *Args,
   Args->RLBasis         = RLBasis;
   Args->BZVolume        = RLVolume;
   
-  if (    (Args->BZIMethod==BZI_TC || Args->BZIMethod==BZI_RADIAL)
+  if (    (Args->BZIMethod==BZI_TC || Args->BZIMethod==BZI_RADIAL || Args->BZIMethod==BZI_RADIAL2)
        && !LatticeIsSquare(RLBasis)
      ) 
    { Warn("BZ integration scheme %s is only for 2D square lattices (switching to default)",BZIMethodNames[Args->BZIMethod]);
@@ -745,12 +786,15 @@ void UpdateBZIArgs(GetBZIArgStruct *Args,
    Args->Order  = 21;
 
   Log("Evaluating BZ integral by ");
-   if (Args->BZIMethod==BZI_TC)
-  LogC("triangle cubature, order %i: ",Args->Order);
-   else if (Args->BZIMethod==BZI_CC)
-  LogC("Clenshaw-Curtis cubature, order %i: ",Args->Order);
-   else if (Args->BZIMethod==BZI_RADIAL)
-  LogC("radial cubature, radial order %i, angular order %i}",
-        Args->Order/100, Args->Order%100);
+  if (Args->BZIMethod==BZI_TC)
+   LogC("triangle cubature, order %i: ",Args->Order);
+  else if (Args->BZIMethod==BZI_CC)
+   LogC("Clenshaw-Curtis cubature, order %i: ",Args->Order);
+  else if (Args->BZIMethod==BZI_RADIAL)
+   LogC("radial cubature, radial order %i, angular order %i}",
+         Args->Order/100, Args->Order%100);
+  else if (Args->BZIMethod==BZI_RADIAL2)
+   LogC("radial cubature 2, radial order %i, angular order %i}",
+         Args->Order/100, Args->Order%100);
 
 }

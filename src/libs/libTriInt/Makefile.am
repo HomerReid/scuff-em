@@ -1,5 +1,5 @@
 noinst_LTLIBRARIES = libTriInt.la
-pkginclude_HEADERS = libTriInt.h
+pkginclude_HEADERS = libTriInt.h BZIntegration.h
 libTriInt_la_SOURCES =  	\
  libTriInt.cc			\
  CCRules.cc			\

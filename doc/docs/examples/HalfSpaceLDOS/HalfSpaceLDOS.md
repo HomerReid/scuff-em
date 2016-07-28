@@ -291,7 +291,7 @@ this:
 Ultimately we will want to launch a full
 Brillouin-zone-integrated calculation to get
 the total LDOS at our desired evaluation points 
-and frequencies. However, before doing this, we
+and frequencies. However, before doing this we
 should acquire some insight into the behavior of
 the integrand so that we can make intelligent
 choices for the various 

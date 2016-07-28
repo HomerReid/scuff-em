@@ -93,7 +93,6 @@ void ProcessEPFile(SSData *SSD, char *EPFileName)
      if (IFLabel)
       fprintf(f,"# %i       incident field\n",nc++);
      fprintf(f,"# %02i,%02i   real, imag Ex\n",nc,nc+1); nc+=2;
-     fprintf(f,"# %02i,%02i   real, imag Ex\n",nc,nc+1); nc+=2;
      fprintf(f,"# %02i,%02i   real, imag Ey\n",nc,nc+1); nc+=2;
      fprintf(f,"# %02i,%02i   real, imag Ez\n",nc,nc+1); nc+=2;
      fprintf(f,"# %02i,%02i   real, imag Hx\n",nc,nc+1); nc+=2;

@@ -35,6 +35,7 @@
 #define BZI_RR       2
 #define BZI_TC       3
 #define BZI_RADIAL   4
+#define BZI_RADIAL2  5
 
 // default parameters for adaptive integration
 #define DEF_BZIMAXEVALS 1000    // max # brillouin-zone samples
@@ -74,7 +75,8 @@ typedef struct GetBZIArgStruct
   double AbsTol;  // adaptive tolerance for adaptive schemes
   
   // fields used internally that may be ignored by the caller
-  double kRho;
+  double kRhoHat;
+  double kz2Sign;
   cdouble Omega;
   int BufSize;
   double *DataBuffer[3]; // internally allocated

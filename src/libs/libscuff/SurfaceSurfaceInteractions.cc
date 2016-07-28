@@ -368,8 +368,8 @@ void AddSurfaceZetaContributionToBEMMatrix(GetSSIArgStruct *Args)
       Overlap=S->GetOverlap(neAlpha, neBeta);
       if (Overlap==0.0) continue;
 
-      // if there was a nonzero overlap, get the value 
-      // of the surface conductivity at the centroid
+      // if there was a nonzero overlap, get the value
+      // of the dimensionless surface impedance at the centroid
       // of the common panel (if there was only one common panel)
       // or of the common edge if there were two common panels.
       RWGEdge *EAlpha = S->Edges[neAlpha];
@@ -406,6 +406,9 @@ void AddSurfaceZetaContributionToBEMMatrix(GetSSIArgStruct *Args)
       ParmValues[2] = X[1];
       ParmValues[3] = X[2];
       cdouble Zeta=cevaluator_evaluate(S->SurfaceZeta, 4, ParmNames, ParmValues);
+
+      if (neAlpha==0 && neBeta==neAlpha)
+       Log("Zeta = %s ",CD2S(Zeta));
 
       if ( S->IsPEC )
        { B->AddEntry(Offset+neAlpha, Offset+neBeta, -1.0*Zeta*Overlap);

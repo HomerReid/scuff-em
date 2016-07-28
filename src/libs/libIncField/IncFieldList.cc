@@ -49,7 +49,9 @@ IncField *ProcessIFTokens(char **Tokens, int NumTokens, char **pErrMsg)
   { Type=IFTYPE_PW;
     NumParameters=6;
   }
- else if ( !strcasecmp(Tokens[0], "PS" ) )
+ else if (    !strcasecmp(Tokens[0], "PS" )
+           || !strcasecmp(Tokens[0], "EPS" )
+         )
   { Type=IFTYPE_PS;
     NumParameters=6;
   }

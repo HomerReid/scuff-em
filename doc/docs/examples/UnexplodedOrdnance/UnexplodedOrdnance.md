@@ -42,7 +42,7 @@ in defining frequency-dependent material-property functions (see below).
 
 #### Surface meshes
 
-We will consider spheres of radius $R=100 cm$.
+We will consider spheres of radius $R=100$ cm.
 Here's a [<span class=SC>gmsh</span>][GMSH] geometry file
 describing a sphere with an adjustable parameter `R` that
 may be set on the <span class=SC>gmsh</span> command line 
@@ -102,15 +102,23 @@ $$  \frac{\sigma}{\epsilon_0 \omega}
      }
 $$
 %====================================================================%
+
+#### [[scuff-em]] geometry files
+
 Here are 
 [<span class=SC>scuff-em</span> geometry files][Geometries] for our
-PEC, copper, and iron spheres with the coarser meshing:
+PEC, copper, and iron spheres with the coarser meshing. Note
+that I displace the sphere downward by one radius, so that its
+north pole is at $z=0;$ this means that the $z$ coordinates
+of evaluation points above the sphere
+agree with the point-surface distance $h$.
 
 + [`PECSphere_R0P1_504.scuffgeo`](PECSphere_R0P1_504.scuffgeo)
 
 ````bash
 OBJECT Sphere
 	MESHFILE Sphere_R0P1_504.scuffgeo
+	DISPLACED 0 0 -0.1
 ENDOBJECT	
 
 + [`CopperSphere_R0P1_504.scuffgeo`](CopperSphere_R0P1_504.scuffgeo])
@@ -125,6 +133,7 @@ ENDMATERIAL
 OBJECT Sphere
 	MESHFILE Sphere_R0P1_504.scuffgeo
 	MATERIAL Copper
+	DISPLACED 0 0 -0.1
 ENDOBJECT	
 ````bash
 
@@ -141,6 +150,7 @@ ENDMATERIAL
 OBJECT Sphere
 	MESHFILE Sphere_R0P1_504.scuffgeo
 	MATERIAL Iron
+	DISPLACED 0 0 -0.1
 ENDOBJECT	
 ````bash
 
@@ -191,7 +201,19 @@ In <span class=SC>scuff-scatter</span>, each calculation
 of the DGFs for a given source point $\mathbf{x}_{\text{\tiny{S}}}$
 corresponds to a different incident field for a scattering
 problem, so in this case our first task is to write
-a [list of incident fields][IFList]. In this case our list 
+a [list of incident fields][IFList]. For each of 21
+logarithmically-spaced values of $h$ in the range
+$0.1R \le h \le 10R$, I will define four incident fields,
+corresponding to $x$- and $z$-directed electric and
+magnetic dipoles located at $(0,0,h)$. This gives 
+a total of 84 incident fields, which are specified
+one per line in a file named `IFFile`:
+
+````bash
+
+````
+
+
 
 ### Solution using <span class=SC>scuff-ldos</span>
 
