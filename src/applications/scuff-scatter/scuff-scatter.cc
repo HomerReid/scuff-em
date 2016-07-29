@@ -279,11 +279,20 @@ int main(int argc, char *argv[])
    IFList = AddIncFieldToList(IF,const_cast<char *>("Default"));
 
   /*******************************************************************/
+  /* make --PFTFile synonymous with --EMTPFTFile *********************/
+  /*******************************************************************/
+  if (PFTFile)
+   { if (EMTPFTFile)
+      Warn("specifying both --PFTFile and --EMTPFTFile is redundant (ignoring --PFTFile)");
+     else 
+      EMTPFTFile=PFTFile;
+   };
+
+  /*******************************************************************/
   /* sanity check to make sure the user specified an incident field  */
   /* if one is required for the outputs the user requested           */
   /*******************************************************************/
   bool NeedIncidentField = (    MomentFile!=0
-                             || PFTFile!=0
                              || OPFTFile!=0
                              || MomentPFTFile!=0
                              || EMTPFTFile!=0
