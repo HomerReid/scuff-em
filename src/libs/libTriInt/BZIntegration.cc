@@ -348,11 +348,11 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
   cdouble Omega       = Args->Omega;
 
   double kRhoHat, Jacobian;
-  if (Args->BZIMethod == BZI_RADIAL)
+  if (Args->BZIMethod == BZI_POLAR)
    { kRhoHat  = u[0];
      Jacobian = kRhoHat;
    }
-  else if ( Args->BZIMethod==BZI_RADIAL2 )
+  else if ( Args->BZIMethod==BZI_POLAR2 )
    { double kzHat   = u[0];
      double kzHat2  = kzHat*kzHat;
      double kz2Sign = Args->kz2Sign;
@@ -426,14 +426,14 @@ void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
 
   int RadialOrder     = Args->Order / 100;
 
-  if ( Args->BZIMethod == BZI_RADIAL )
+  if ( Args->BZIMethod == BZI_POLAR )
    { double Lower = 0.0;
      double Upper = 0.5*M_SQRT2;
      CCCubature(RadialOrder, FDim, BZIntegrand_Radial, (void *)Args, 1,
 	        &Lower, &Upper, MaxEvals, AbsTol, RelTol,
 	        ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
    }
-  else // ( Args->BZIMethod == BZI_RADIAL2 )
+  else // ( Args->BZIMethod == BZI_POLAR2 )
    { 
      double Lower, Upper, Gamma=Args->RLBasis->GetEntryD(0,0);
 
@@ -505,8 +505,8 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
       GetBZIntegral_TC(Args, Omega, BZIntegral);
       break;
 
-     case BZI_RADIAL:
-     case BZI_RADIAL2:
+     case BZI_POLAR:
+     case BZI_POLAR2:
       GetBZIntegral_Radial(Args, Omega, BZIntegral);
       break;
 
@@ -695,9 +695,9 @@ GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
         else if (!strcasecmp(Option,"CC")) 
          BZIArgs->BZIMethod = BZI_CC;
         else if (!strcasecmp(Option,"Radial"))
-         BZIArgs->BZIMethod = BZI_RADIAL;
+         BZIArgs->BZIMethod = BZI_POLAR;
         else if (!strcasecmp(Option,"Radial2"))
-         BZIArgs->BZIMethod = BZI_RADIAL2;
+         BZIArgs->BZIMethod = BZI_POLAR2;
         else
          ErrExit("unknown BZIMethod %s",Option);
         argv[narg]=argv[narg+1]=0;
@@ -765,7 +765,7 @@ bool LatticeIsSquare(HMatrix *LBasis)
 /***************************************************************/
 /***************************************************************/
 const char *BZIMethodNames[]=
- { "DEFAULT", "CC", "TC", "RADIAL", "RADIAL2" };
+ { "DEFAULT", "CC", "TC", "POLAR", "POLAR2" };
 
 void UpdateBZIArgs(GetBZIArgStruct *Args,
                    HMatrix *RLBasis, double RLVolume)
@@ -773,7 +773,7 @@ void UpdateBZIArgs(GetBZIArgStruct *Args,
   Args->RLBasis         = RLBasis;
   Args->BZVolume        = RLVolume;
   
-  if (    (Args->BZIMethod==BZI_TC || Args->BZIMethod==BZI_RADIAL || Args->BZIMethod==BZI_RADIAL2)
+  if (    (Args->BZIMethod==BZI_TC || Args->BZIMethod==BZI_POLAR || Args->BZIMethod==BZI_POLAR2)
        && !LatticeIsSquare(RLBasis)
      ) 
    { Warn("BZ integration scheme %s is only for 2D square lattices (switching to default)",BZIMethodNames[Args->BZIMethod]);
@@ -790,11 +790,11 @@ void UpdateBZIArgs(GetBZIArgStruct *Args,
    LogC("triangle cubature, order %i: ",Args->Order);
   else if (Args->BZIMethod==BZI_CC)
    LogC("Clenshaw-Curtis cubature, order %i: ",Args->Order);
-  else if (Args->BZIMethod==BZI_RADIAL)
-   LogC("radial cubature, radial order %i, angular order %i}",
+  else if (Args->BZIMethod==BZI_POLAR)
+   LogC("polar cubature, radial order %i, angular order %i}",
          Args->Order/100, Args->Order%100);
-  else if (Args->BZIMethod==BZI_RADIAL2)
-   LogC("radial cubature 2, radial order %i, angular order %i}",
+  else if (Args->BZIMethod==BZI_POLAR2)
+   LogC("polar cubature 2, radial order %i, angular order %i}",
          Args->Order/100, Args->Order%100);
 
 }

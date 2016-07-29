@@ -34,8 +34,8 @@
 #define BZI_CC       1
 #define BZI_RR       2
 #define BZI_TC       3
-#define BZI_RADIAL   4
-#define BZI_RADIAL2  5
+#define BZI_POLAR    4
+#define BZI_POLAR2   5
 
 // default parameters for adaptive integration
 #define DEF_BZIMAXEVALS 1000    // max # brillouin-zone samples
