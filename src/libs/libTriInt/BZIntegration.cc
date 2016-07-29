@@ -330,7 +330,7 @@ int BZIntegrand_Angular(unsigned ndim, const double *u, void *pArgs,
 
 }
 
-int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs, 
+int BZIntegrand_Polar(unsigned ndim, const double *u, void *pArgs, 
                        unsigned fdim, double *BZIntegrand)
 {
   (void) ndim;
@@ -413,7 +413,7 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
+void GetBZIntegral_Polar(GetBZIArgStruct *Args, cdouble Omega,
                           double *BZIntegral)
 {
   int FDim            = Args->FDim;
@@ -424,12 +424,12 @@ void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
 
   Args->Omega         = Omega;
 
-  int RadialOrder     = Args->Order / 100;
+  int PolarOrder     = Args->Order / 100;
 
   if ( Args->BZIMethod == BZI_POLAR )
    { double Lower = 0.0;
      double Upper = 0.5*M_SQRT2;
-     CCCubature(RadialOrder, FDim, BZIntegrand_Radial, (void *)Args, 1,
+     CCCubature(PolarOrder, FDim, BZIntegrand_Polar, (void *)Args, 1,
 	        &Lower, &Upper, MaxEvals, AbsTol, RelTol,
 	        ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
    }
@@ -441,7 +441,7 @@ void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
      Lower = 0.0;
      Upper = abs(Omega)/Gamma;
      Args->kz2Sign = -1.0;
-     hcubature(FDim, BZIntegrand_Radial, (void *)Args, 1,
+     hcubature(FDim, BZIntegrand_Polar, (void *)Args, 1,
 	        &Lower, &Upper, MaxEvals, AbsTol, RelTol,
 	        ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
 
@@ -450,7 +450,7 @@ void GetBZIntegral_Radial(GetBZIArgStruct *Args, cdouble Omega,
      Upper = 0.5*M_SQRT2;
      Args->kz2Sign = +1.0;
      double *BZIntegral2 = new double[FDim];
-     hcubature(FDim, BZIntegrand_Radial, (void *)Args, 1,
+     hcubature(FDim, BZIntegrand_Polar, (void *)Args, 1,
 	       &Lower, &Upper, MaxEvals, AbsTol, RelTol,
 	       ERROR_INDIVIDUAL, BZIntegral2, DataBuffer[1]);
      VecPlusEquals(BZIntegral, 1.0, BZIntegral2, FDim);
@@ -507,7 +507,7 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
 
      case BZI_POLAR:
      case BZI_POLAR2:
-      GetBZIntegral_Radial(Args, Omega, BZIntegral);
+      GetBZIntegral_Polar(Args, Omega, BZIntegral);
       break;
 
      default:
@@ -596,7 +596,7 @@ HMatrix *GetRLBasis(HMatrix *LBasis,
 /***************************************************************/
 const char *BZIOptionsString=
  "\n options controlling Brillouin-zone integration: \n\n"
- "  --BZIMethod   [CC | TC | Radial]\n"
+ "  --BZIMethod   [CC | TC | Polar]\n"
  "  --BZIOrder    xx \n"
  "  --BZIRelTol   xx \n"
  "  --BZIMaxEvals xx \n"
@@ -605,7 +605,7 @@ const char *BZIOptionsString=
  "   allowed values for --BZIOrder: \n"
  "   CC: [0|11|13|...|99]\n"
  "   TC: [1|2|4|5|7|9|13|14|16|20|25]\n"
- "   Radial: 100*M + N, M=N=[11|13|...|99]\n"
+ "   Polar: 100*M + N, M=N=[11|13|...|99]\n"
  "\n";
 
 /***************************************************************/
@@ -694,9 +694,9 @@ GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
          BZIArgs->BZIMethod = BZI_TC;
         else if (!strcasecmp(Option,"CC")) 
          BZIArgs->BZIMethod = BZI_CC;
-        else if (!strcasecmp(Option,"Radial"))
+        else if (!strcasecmp(Option,"Polar"))
          BZIArgs->BZIMethod = BZI_POLAR;
-        else if (!strcasecmp(Option,"Radial2"))
+        else if (!strcasecmp(Option,"Polar2"))
          BZIArgs->BZIMethod = BZI_POLAR2;
         else
          ErrExit("unknown BZIMethod %s",Option);
