@@ -12,7 +12,7 @@ complex shapes buried in conducting soil layers, let's begin
 by warming up with a toy problem: using
 <span class=SC>scuff-em</span> to reproduce
 known analytical results for the response of
-of a conducting, permeable spherical particle in vacuum.
+of a conducting, permeable spherical particle in vacuum
 to a dipole excitation. 
 More specifically, we'll compute
 [scattering dyadic Green's functions][LDOSMemo] (DGFs)
@@ -22,7 +22,7 @@ of the sphere---that is, the scattered fields at
 destination point $\mathbf{x}_{\text{\tiny{D}}}$
 due to excitation by a point dipole source at 
 source point $\mathbf{x}_{\text{\tiny{S}}}$---for
-various pairs of source and destination points in the 
+various pairs of source and destination points in the
 vicinity of the sphere.
 
 ### Geometry description

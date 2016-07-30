@@ -1,7 +1,9 @@
 # Frequently asked questions about [[scuff-em]]
 
 <a name="Units">
-## What units does [[scuff-em]] use for physical quantities like length, frequency, power, etc?
+## What units does [[scuff-em]] use for physical quantities like length, frequency, field strengths, power, force, torque, etc?
+
+### Length and frequency 
 
 Short answer: The default units are $L_0=1\, \mu\text{m}$ for length
 and $\omega_0=3\cdot 10^{14}$ rad/sec (=$c/L_0)$ for angular frequency.
@@ -32,12 +34,19 @@ including perfectly-conducting (`PEC`) bodies and
 frequency-independent dielectrics
 (such as `CONST_EPS_10+1i`), the scale invariance
 of Maxwell's equations means that the same
-computational results 
+computational results can be interpreted 
 
 However, this scale invariance is broken by
 frequency-dependent dielectric functions, such
 as the `SILICON` material definition in 
 [this example][SiliconSlabs].
+
+### Field strengths
+
+The only code in the [[scuff-em]] suite 
+
+### Power, force, torque
+
 
 ## I'm working on a big project involving multiple calculations on a geometry with various different values of geometric parameters, material properties, and meshing fineness. It's getting unwieldy to have all of these `.geo` and `.msh` and `.scuffgeo` files cluttering up my project directory. How would you suggest organizing things?
 
