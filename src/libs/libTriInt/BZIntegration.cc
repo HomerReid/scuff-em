@@ -336,7 +336,10 @@ int BZIntegrand_Angular(unsigned ndim, const double *u, void *pArgs,
 
 }
 
-int BZIntegrand_Polar(unsigned ndim, const double *u, void *pArgs, 
+/***************************************************************/
+/***************************************************************/
+/***************************************************************/
+int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs, 
                        unsigned fdim, double *BZIntegrand)
 {
   (void) ndim;
@@ -432,13 +435,13 @@ void GetBZIntegral_Polar(GetBZIArgStruct *Args, cdouble Omega,
 
   Args->Omega         = Omega;
 
-  int PolarOrder     = Args->Order / 100;
+  int RadialOrder     = Args->Order / 100;
 
   if ( Args->BZIMethod == BZI_POLAR )
    { double Lower = 0.0;
      double Upper = 0.5*M_SQRT2;
-     int nCalls=CCCubature(PolarOrder, FDim, 
-                           BZIntegrand_Polar, (void *)Args, 1,
+     int nCalls=CCCubature(RadialOrder, FDim, 
+                           BZIntegrand_Radial, (void *)Args, 1,
 	                   &Lower, &Upper, MaxEvals, AbsTol, RelTol,
 	                   ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
      Log("Radial integral at Omega=%s: %i kr samples",z2s(Omega),nCalls);
@@ -452,21 +455,20 @@ void GetBZIntegral_Polar(GetBZIArgStruct *Args, cdouble Omega,
      Lower = 0.0;
      Upper = abs(Omega)/Gamma;
      Args->kz2Sign = -1.0;
-     nCalls=hcubature(FDim, BZIntegrand_Polar, (void *)Args, 1,
-	              &Lower, &Upper, MaxEvals, AbsTol, RelTol,
-	              ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
+     nCalls=CCCubature(RadialOrder, FDim, BZIntegrand_Radial, (void *)Args, 1,
+	               &Lower, &Upper, MaxEvals, AbsTol, RelTol,
+	               ERROR_INDIVIDUAL, BZIntegral, DataBuffer[0]);
      Log("Lower radial integral at Omega=%s: %i kr samples",z2s(Omega),nCalls);
 
      // 0 \le kzHat \le 1
      Lower = 0.0;
      Upper = 0.5*M_SQRT2;
      Args->kz2Sign = +1.0;
-     double *BZIntegral2 = new double[FDim];
-     nCalls=hcubature(FDim, BZIntegrand_Polar, (void *)Args, 1,
-	              &Lower, &Upper, MaxEvals, AbsTol, RelTol,
-	              ERROR_INDIVIDUAL, BZIntegral2, DataBuffer[1]);
-     VecPlusEquals(BZIntegral, 1.0, BZIntegral2, FDim);
-     delete[] BZIntegral2;
+     nCalls=CCCubature(RadialOrder, FDim, BZIntegrand_Radial, (void *)Args, 1,
+	               &Lower, &Upper, MaxEvals, AbsTol, RelTol,
+	               ERROR_INDIVIDUAL, DataBuffer[1], DataBuffer[2]);
+     VecPlusEquals(BZIntegral,    1.0, DataBuffer[1], FDim);
+     VecPlusEquals(DataBuffer[0], 1.0, DataBuffer[2], FDim);
      Log("Upper radial integral at Omega=%s: %i kr samples",z2s(Omega),nCalls);
    };
 }
@@ -484,9 +486,10 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
   if (Args->BufSize<FDim)
    { Args->BufSize=FDim;
      Args->DataBuffer[0]
-      =(double *)reallocEC(Args->DataBuffer[0], 3*FDim*sizeof(double));
+      =(double *)reallocEC(Args->DataBuffer[0], 4*FDim*sizeof(double));
      Args->DataBuffer[1]=Args->DataBuffer[0] + FDim;
      Args->DataBuffer[2]=Args->DataBuffer[0] + 2*FDim;
+     Args->DataBuffer[3]=Args->DataBuffer[0] + 3*FDim;
      Args->BZIError=Args->DataBuffer[0];
    };
     
@@ -508,6 +511,7 @@ void GetBZIntegral(GetBZIArgStruct *Args, cdouble Omega,
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   Args->NumCalls=0;
+  memset(Args->DataBuffer[0],0,FDim*sizeof(double));
   switch(Args->BZIMethod)
    { 
      case BZI_CC:
@@ -672,7 +676,7 @@ GetBZIArgStruct *InitBZIArgs(int argc, char **argv)
   BZIArgs->SymmetryFactor = 1;
 
   BZIArgs->BufSize = 0;
-  BZIArgs->DataBuffer[0] = BZIArgs->DataBuffer[1] = 0;
+  memset(BZIArgs->DataBuffer, 0, 4*sizeof(double *));
 
   /***************************************************************/
   /***************************************************************/

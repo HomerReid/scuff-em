@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
   /***************************************************************/
   char *GeoFile=0;
   char *TransFile=0;
+
   //
   // options specifying quantities computed
   //
@@ -67,6 +68,7 @@ int main(int argc, char *argv[])
   bool ZForce=false;
   double TorqueAxes[9];                     int nTorque;
   bool AllTorque=false;
+
   //
   // options affecting frequency integration or sampling
   //
@@ -85,18 +87,21 @@ int main(int argc, char *argv[])
   // option allowing user to override default output file names
   //
   char *FileBase=0;
+
   //
   // cache options
   //
   char *Cache=0;
   char *ReadCache[MAXCACHE];                int nReadCache;
   char *WriteCache=0;
+
   //
   // other miscellaneous flags
   //
   bool UseExistingData = false;
   bool NewEnergyMethod = false;
   bool WriteHDF5Files  = false;
+
 //
   /* name               type    #args  max_instances  storage           count         description*/
   OptStruct OSArray[]=

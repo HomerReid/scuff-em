@@ -79,7 +79,7 @@ typedef struct GetBZIArgStruct
   double kz2Sign;
   cdouble Omega;
   int BufSize;
-  double *DataBuffer[3]; // internally allocated
+  double *DataBuffer[4]; // internally allocated
 
   // return values 
   int NumCalls;       // actual # integrand samples (return value)
