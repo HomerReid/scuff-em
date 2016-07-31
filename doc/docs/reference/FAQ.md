@@ -34,7 +34,13 @@ including perfectly-conducting (`PEC`) bodies and
 frequency-independent dielectrics
 (such as `CONST_EPS_10+1i`), the scale invariance
 of Maxwell's equations means that the same
-computational results can be interpreted 
+computational results can be interpreted on different
+length scales. For example, if your mesh file
+describes a sphere of radius `0.9' and you run
+a [[scuff-em]] calculation at angular frequency `1.2`, 
+then the results 
+
++ 
 
 However, this scale invariance is broken by
 frequency-dependent dielectric functions, such

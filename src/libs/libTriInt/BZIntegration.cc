@@ -375,9 +375,10 @@ int BZIntegrand_Polar(unsigned ndim, const double *u, void *pArgs,
 
   if (AngularOrder==0)
    { 
-      CCCubature(AngularOrder, FDim, BZIntegrand_Angular, pArgs, 1,
-	         &Lower, &Upper, MaxEvals, AbsTol, RelTol,
-	         ERROR_INDIVIDUAL, BZIntegrand, DataBuffer[1]);
+      Args->NumCalls = CCCubature(AngularOrder, FDim,
+                                  BZIntegrand_Angular, pArgs, 1,
+	                          &Lower, &Upper, MaxEvals, AbsTol, RelTol,
+	                          ERROR_INDIVIDUAL, BZIntegrand, DataBuffer[1]);
       VecScale(BZIntegrand, SymmetryFactor, FDim);
    }
   else if ( (AngularOrder%2)==0 )
@@ -394,6 +395,7 @@ int BZIntegrand_Polar(unsigned ndim, const double *u, void *pArgs,
       };
      BZIFunc(UserData, Omega, kBloch, BZIntegrand);
      VecScale(BZIntegrand, 2.0*M_PI, FDim);
+     Args->NumCalls++;
    }
   else
    { memset(BZIntegrand, 0, FDim*sizeof(double));
@@ -463,9 +465,9 @@ void GetBZIntegral_Polar(GetBZIArgStruct *Args, cdouble Omega,
      nCalls=hcubature(FDim, BZIntegrand_Polar, (void *)Args, 1,
 	              &Lower, &Upper, MaxEvals, AbsTol, RelTol,
 	              ERROR_INDIVIDUAL, BZIntegral2, DataBuffer[1]);
-     Log("Upper radial integral at Omega=%s: %i kr samples",z2s(Omega),nCalls);
      VecPlusEquals(BZIntegral, 1.0, BZIntegral2, FDim);
      delete[] BZIntegral2;
+     Log("Upper radial integral at Omega=%s: %i kr samples",z2s(Omega),nCalls);
    };
 }
 
