@@ -367,7 +367,10 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
      double kz2Sign = Args->kz2Sign;
      double Gamma   = Args->RLBasis->GetEntryD(0,0);
      double kHat2   = real(Omega) * real(Omega) / (Gamma*Gamma);
-     kRhoHat        = sqrt( kHat2 + kz2Sign*kzHat2 );
+     if ( kz2Sign==-1.0 && EqualFloat(kHat2, kzHat2) )
+      kRhoHat = 0.0;
+     else
+      kRhoHat        = sqrt( kHat2 + kz2Sign*kzHat2 );
      Jacobian       = kzHat;
    };
   Args->kRhoHat=kRhoHat;
