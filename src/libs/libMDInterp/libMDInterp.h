@@ -176,14 +176,16 @@ class Interp1D
     /*- and user-supplied array of points                           */
     /*--------------------------------------------------------------*/
     Interp1D(double *XPoints, int N,
-             int nFun, Phi1D PhiFunc, void *UserData);
+             int nFun, Phi1D PhiFunc, void *UserData,
+             int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
     /*- class constructor 2: construct from a user-supplied function*/
     /*- and user-supplied uniformly-spaced grid                     */
     /*--------------------------------------------------------------*/
-    Interp1D(double XMin, double XMax, int N, 
-             int nFun, Phi1D PhiFunc, void *UserData);
+    Interp1D(double XMin, double XMax, int N,
+             int nFun, Phi1D PhiFunc, void *UserData,
+             int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
     /*- body of class constructor for the above two cases ----------*/
@@ -194,7 +196,8 @@ class Interp1D
     /*- class constructor 3: construct from a user-specified set of */
     /*- X and Y data values.                                        */
     /*--------------------------------------------------------------*/
-    Interp1D(double *XPoints, double *YPoints, int N, int nFun);
+    Interp1D(double *XPoints, double *YPoints, int N, int nFun,
+             int LogLevel=LMDI_LOGLEVEL_TERSE);
 
     /*--------------------------------------------------------------*/
     /*- class constructor 4: construct from a data file previously  */
@@ -232,6 +235,7 @@ class Interp1D
     double XMin, DX;    // these are only used if XPoints==0
 
     int N, nFun;
+    int LogLevel;
     int Type;
 
     double *CTable;

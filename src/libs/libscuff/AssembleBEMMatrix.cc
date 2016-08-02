@@ -419,7 +419,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
        && TBlockCacheOp(TBCOP_READ, this, nsa, Omega, kBloch, M, RowOffset, ColOffset)
      ) return;
 
-  Log("Assembling BEM matrix block (%i,%i)",nsa,nsb);
+  if (LogLevel>=SCUFF_VERBOSELOGGING)
+   Log("Assembling BEM matrix block (%i,%i)",nsa,nsb);
 
   /***************************************************************/
   /* handle the compact-object case first since it is so simple  */
@@ -520,7 +521,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
   /***************************************************************/
   M->ZeroBlock(RowOffset, NBFA, ColOffset, NBFB);
   if (GradM && GradM[2]) GradM[2]->Zero();
-  Log(" Step 1: Contributions of innermost grid cells...");
+  if (LogLevel>=SCUFF_VERBOSELOGGING)
+   Log(" Step 1: Contributions of innermost grid cells...");
   for(int n1=+1, nb=0; n1>=-1; n1--)
    for(int n2=+1; n2>=-1; n2--)
     { 
@@ -551,7 +553,8 @@ void RWGGeometry::AssembleBEMMatrixBlock(int nsa, int nsb,
             if ( n2!=0 && nr2!=-1 && RegionIsExtended[1][nr2] ) Args->OmitRegion2=false;
           };
  
-         Log("  ...(%i,%i) block...",n1,n2);
+         if (LogLevel>=SCUFF_VERBOSE2)
+          Log("  ...(%i,%i) block...",n1,n2);
          Args->Symmetric = (nsa==nsb && n1==0 && n2==0); 
          GetSurfaceSurfaceInteractions(Args);
        };
@@ -577,7 +580,8 @@ done:
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
-  Log(" Step 2: Contributions of outer grid cells...");
+  if (LogLevel>=SCUFF_VERBOSELOGGING)
+   Log(" Step 2: Contributions of outer grid cells...");
   Args->Displacement = 0;
   Args->Symmetric    = false;
   Args->Accumulate   = true;
@@ -590,14 +594,16 @@ done:
 
   Args->GBA1=CreateRegionGBA(nr1, Omega, kBloch, nsa, nsb);
   if (Args->GBA1==0)
-   { Log("Skipping interpolation table for region %i",nr1);
+   { if (LogLevel>=SCUFF_VERBOSELOGGING)
+      Log("Skipping interpolation table for region %i",nr1);
      Args->OmitRegion1  = true;
    }
 
   if ( !(Args->OmitRegion2) )
    { Args->GBA2=CreateRegionGBA(nr2, Omega, kBloch, nsa, nsb);
      if (Args->GBA2==0)
-      { Log("Skipping interpolation table for region %i",nr2);
+      { if (LogLevel>=SCUFF_VERBOSELOGGING)
+         Log("Skipping interpolation table for region %i",nr2);
         Args->OmitRegion2  = true;
       }
    }

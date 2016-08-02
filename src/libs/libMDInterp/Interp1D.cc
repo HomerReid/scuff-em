@@ -73,11 +73,12 @@ typedef struct ThreadData
    double XMin, DX;
    int N;
 
-   int nFun;
-
    Phi1D PhiFunc;
    void *UserData;
    double *PhiVDTable;
+   int nFun;
+
+   int LogLevel;
 
    int nt, nThread;
 
@@ -132,12 +133,8 @@ void *GetPhiVD_Thread(void *data)
      /*--------------------------------------------------------------*/
      /*- status logging ---------------------------------------------*/
      /*--------------------------------------------------------------*/
-     if (TD->nt==0)
-      { nPoints++;
-        for(pc=10; pc<=90; pc+=10)
-         if (nPoints == (pc*N/100) )
-          Log("...%i %%",pc);
-      };
+     if (TD->nt==0 && TD->LogLevel>=LMDI_LOGLEVEL_VERBOSE)
+      LogPercent(++nPoints, N);
 
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
@@ -171,7 +168,7 @@ void *GetPhiVD_Thread(void *data)
 /* function and nonuniform grid                                 */
 /****************************************************************/
 Interp1D::Interp1D(double *pXPoints, int pN, int pnFun,
-                   Phi1D PhiFunc, void *UserData)
+                   Phi1D PhiFunc, void *UserData, int pLogLevel)
 { 
   if ( pN < 2 )
    ErrExit("Interp1D: grid must have 2 or more data points");
@@ -181,6 +178,7 @@ Interp1D::Interp1D(double *pXPoints, int pN, int pnFun,
   N=pN;
   XPoints=(double *)memdup(pXPoints, N*sizeof(double));
   nFun=pnFun;
+  LogLevel=pLogLevel;
   InitInterp1D(PhiFunc, UserData);
 }
 
@@ -189,7 +187,8 @@ Interp1D::Interp1D(double *pXPoints, int pN, int pnFun,
 /* uniform and grid                                             */
 /****************************************************************/
 Interp1D::Interp1D(double pXMin, double XMax, int pN,
-                   int pnFun, Phi1D PhiFunc, void *UserData)
+                   int pnFun, Phi1D PhiFunc, void *UserData,
+                   int pLogLevel)
 { 
   if ( pN < 2 )
    ErrExit("Interp1D: grid must have 2 or more data points");
@@ -202,6 +201,7 @@ Interp1D::Interp1D(double pXMin, double XMax, int pN,
   N=pN;
   DX = (XMax-XMin) / ( (double)(N-1) );
   nFun=pnFun;
+  LogLevel=pLogLevel;
   InitInterp1D(PhiFunc, UserData);
 }
 
@@ -210,7 +210,8 @@ Interp1D::Interp1D(double pXMin, double XMax, int pN,
 /****************************************************************/
 void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
 {
-   Log("Creating interpolation grid with %i grid points...",N);
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("Creating interpolation grid with %i grid points...",N);
 
    /*--------------------------------------------------------------*/ 
    /*- allocate space for the CTable, which stores all             */ 
@@ -254,7 +255,8 @@ void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
    /*- fire off threads that will call the user's function to     -*/
    /*- populate the PVDTable table.                               -*/
    /*--------------------------------------------------------------*/
-   Log("Computing user function at grid points...");
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("Computing user function at grid points...");
    int nThread = GetNumThreads();
 
 #ifdef USE_PTHREAD
@@ -272,6 +274,7 @@ void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
    TD1.PhiFunc=PhiFunc;
    TD1.UserData=UserData;
    TD1.PhiVDTable=PhiVDTable;
+   TD1.LogLevel=LogLevel;
    TD1.nThread=nThread;
 #ifdef USE_OPENMP
 #pragma omp parallel for firstprivate(TD1), schedule(static,1), num_threads(nThread)
@@ -355,12 +358,12 @@ void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
    double *P;
    HVector *C = new HVector(NCOEFF);
 
-   Log("Computing coefficients of interpolating polynomials...");
+   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+    Log("Computing coefficients of interpolating polynomials...");
    for(n=0; n<(N-1); n++)
     { 
-      for(pc=10; pc<=90; pc+=10)
-       if ( nPoints++ == pc*TotalPoints/100 )
-        Log("...%i %%...\n",pc);
+      if( LogLevel>=LMDI_LOGLEVEL_VERBOSE )
+       LogPercent(nPoints, TotalPoints);
 
       if (XPoints)
        DX=XPoints[n+1]-XPoints[n];
@@ -392,12 +395,13 @@ void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
    delete C;
    delete M;
    free(PhiVDTable);
-   Log("...done!");
+   if( LogLevel>=LMDI_LOGLEVEL_VERBOSE )
+    Log("...done!");
 
 }  
 
 /*--------------------------------------------------------------*/
-/*- class constructor 2: construct from a user-specified set of */
+/*- class constructor 3: construct from a user-specified set of */
 /*- X and Y data values.                                        */
 /*-                                                             */
 /*- The YPoints array should be laid out as follows:            */
@@ -414,7 +418,8 @@ void Interp1D::InitInterp1D(Phi1D PhiFunc, void *UserData)
 /*- and in general                                              */
 /*-  YPoints[ n*nfun + nf ] = Phi_nf at XPoints[n]              */
 /*--------------------------------------------------------------*/
-Interp1D::Interp1D(double *pXPoints, double *YPoints, int pN, int pnFun)
+Interp1D::Interp1D(double *pXPoints, double *YPoints, 
+                   int pN, int pnFun, int pLogLevel)
 {
    if (pN<2)
     ErrExit("Interp1D: grid must have 2 or more data points");
@@ -427,6 +432,7 @@ Interp1D::Interp1D(double *pXPoints, double *YPoints, int pN, int pnFun)
    N=pN; 
    XPoints=(double *)memdup(pXPoints, N*sizeof(double));
    nFun=pnFun;
+   LogLevel = pLogLevel;
 
    /*--------------------------------------------------------------*/ 
    /*- allocate space for the CTable, which stores all             */ 
@@ -530,8 +536,9 @@ Interp1D::Interp1D(double *pXPoints, double *YPoints, int pN, int pnFun)
 /* generated by a previous call to Interp1::WriteToFile()      */
 /****************************************************************/
 Interp1D::Interp1D(const char *FileName)
-{
-  Log("Attempting to read interpolation table from file %s...",FileName);
+{  
+  if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+   Log("Attempting to read interpolation table from file %s...",FileName);
 
   FILE *f=fopen(FileName,"r");
   if (!f)
@@ -562,7 +569,8 @@ Interp1D::Interp1D(const char *FileName)
   freadEC(CTable, sizeof(double), CTableSize, f, FileName);
 
   fclose(f);
-  Log("...success!");
+  if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+   Log("...success!");
 }
 
 /****************************************************************/
@@ -595,7 +603,8 @@ Interp1D::Interp1D(Interp1D *Original)
 /****************************************************************/
 void Interp1D::WriteToFile(const char *FileName)
 {
-  Log("Writing interpolation table to file %s...",FileName);
+  if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+   Log("Writing interpolation table to file %s...",FileName);
 
   FILE *f=fopen(FileName,"w");
   if (!f)
@@ -619,7 +628,8 @@ void Interp1D::WriteToFile(const char *FileName)
   fwrite(CTable, sizeof(double), CTableSize, f);
 
   fclose(f);
-  Log("...success!");
+  if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+   Log("...success!");
 
 }
 

@@ -76,11 +76,12 @@ typedef struct ThreadData
    double X1Min, X2Min;
    double DX1, DX2;
 
-   int nFun;
-
    Phi2D PhiFunc;
    void *UserData;
    double *PhiVDTable;
+   int nFun;
+
+   int LogLevel;
 
    int nt, nThread;
 
@@ -140,12 +141,8 @@ static void *GetPhiVD_Thread(void *data)
       /*--------------------------------------------------------------*/
       /*- status logging ---------------------------------------------*/
       /*--------------------------------------------------------------*/
-      if (TD->nt==0)
-       { nPoints++;
-        // for(pc=10; pc<=90; pc+=10)
-        //  if (nPoints == (pc*TotalPoints/100) )
-        //   Log("...%i %%",pc);
-       };
+      if (TD->nt==0 && TD->LogLevel>=LMDI_LOGLEVEL_VERBOSE)
+       LogPercent(++nPoints, N1*N2);
  
       /*--------------------------------------------------------------*/
       /*--------------------------------------------------------------*/
@@ -334,6 +331,7 @@ void Interp2D::InitInterp2D(Phi2D PhiFunc, void *UserData)
    TD1.UserData=UserData;
    TD1.PhiVDTable=PhiVDTable;
    TD1.nThread=nThread;
+   TD1.LogLevel=LogLevel;
 #ifdef USE_OPENMP
 #pragma omp parallel for firstprivate(TD1), schedule(static,1), num_threads(nThread)
 #endif
@@ -463,7 +461,7 @@ void Interp2D::InitInterp2D(Phi2D PhiFunc, void *UserData)
    delete C;
    delete M;
    free(PhiVDTable);
-   if (LogLevel>=LMDI_LOGLEVEL_TERSE)
+   if (LogLevel>=LMDI_LOGLEVEL_VERBOSE)
     Log("...interpolation table constructed!");
 
 }  

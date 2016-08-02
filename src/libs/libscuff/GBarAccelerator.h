@@ -65,7 +65,8 @@ typedef struct GBarAccelerator
 GBarAccelerator *CreateGBarAccelerator(HMatrix *LBasis,
                                        double RhoMin, double RhoMax,
                                        cdouble k, double *kBloch,
-                                       double RelTol, bool ExcludeInnerCells);
+                                       double RelTol, bool ExcludeInnerCells,
+                                       int LMDILogLevel=LMDI_LOGLEVEL_TERSE);
 
 void DestroyGBarAccelerator(GBarAccelerator *GBA);
 

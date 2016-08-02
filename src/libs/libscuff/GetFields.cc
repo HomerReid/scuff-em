@@ -243,10 +243,12 @@ HMatrix *RWGGeometry::GetRFMatrix(cdouble Omega, double *kBloch0,
   /***************************************************************/
   int NENX=NE*NX;
 #ifndef USE_OPENMP
-  Log("Computing RFMatrix entries at %i points",NX);
+  if (LogLevel>SCUFF_VERBOSELOGGING)
+   Log("Computing RFMatrix entries at %i points",NX);
 #else
   int NumThreads=GetNumThreads();
-  Log("Computing RFMatrix entries (%i threads) at %i points",NumThreads,NX);
+  if (LogLevel>SCUFF_VERBOSELOGGING)
+   Log("Computing RFMatrix entries (%i threads) at %i points",NumThreads,NX);
 #pragma omp parallel for schedule(dynamic,1), num_threads(NumThreads)
 #endif
   for(int nenx=0; nenx<NENX; nenx++)
