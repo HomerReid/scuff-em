@@ -282,7 +282,7 @@ int HalfSpaceDGFIntegrand_Polar(unsigned ndim, const double *u, void *UserData, 
 
   HalfSpaceData *Data = (HalfSpaceData *)UserData;
   bool uqTransform = Data->uqTransform;
-  bool qrOffset    = Data->qrOffset;
+  int qrOffset     = Data->qrOffset;
   int IDim         = 18*(Data->XMatrix->NR);
 
   cdouble *Integrand = (cdouble *)fval;
