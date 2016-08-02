@@ -356,6 +356,9 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
   double **DataBuffer = Args->DataBuffer;
   cdouble Omega       = Args->Omega;
 
+  double Gamma        = Args->RLBasis->GetEntryD(0,0);
+  double kHat         = real(Omega) / Gamma;
+
   double kRhoHat, Jacobian;
   if (Args->BZIMethod == BZI_POLAR)
    { kRhoHat  = u[0];
@@ -365,8 +368,7 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
    { double kzHat   = u[0];
      double kzHat2  = kzHat*kzHat;
      double kz2Sign = Args->kz2Sign;
-     double Gamma   = Args->RLBasis->GetEntryD(0,0);
-     double kHat2   = real(Omega) * real(Omega) / (Gamma*Gamma);
+     double kHat2   = kHat*kHat;
      if ( kz2Sign==-1.0 && EqualFloat(kHat2, kzHat2) )
       kRhoHat = 0.0;
      else
@@ -379,7 +381,7 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
   // for the half-space case the contribution to the LDOS
   // vanishes for |kBloch| = kPhoton, so I assume this to 
   // be the case generally?
-  if ( EqualFloat(kRhoHat,1.0) )
+  if ( EqualFloat(kRhoHat,kHat) )
    { memset(BZIntegrand, 0, FDim*sizeof(double));
      return 0;
    };
