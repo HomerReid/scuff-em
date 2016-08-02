@@ -473,6 +473,7 @@ void ProcessHalfSpaceDGFs(HVector *OmegaPoints,
                           char *HalfSpace,
                           double RelTol, double AbsTol, int MaxEvals)
 {
+  MatProp::SetLengthUnit(1.0e-6);
   MatProp *MP = HalfSpace ? new MatProp(HalfSpace) : 0;
   char *Label = HalfSpace ? HalfSpace : const_cast<char *>("GroundPlane");
 
