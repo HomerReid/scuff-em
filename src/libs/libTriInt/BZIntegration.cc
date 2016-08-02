@@ -374,6 +374,15 @@ int BZIntegrand_Radial(unsigned ndim, const double *u, void *pArgs,
      Jacobian       = kzHat;
    };
   Args->kRhoHat=kRhoHat;
+
+  // 20160802 I am not sure what to do here, but at least
+  // for the half-space case the contribution to the LDOS
+  // vanishes for |kBloch| = kPhoton, so I assume this to 
+  // be the case generally?
+  if ( EqualFloat(kRhoHat,1.0) )
+   { memset(BZIntegrand, 0, FDim*sizeof(double));
+     return 0;
+   };
   
   double kxHatMax = 0.5;
   double Lower    = (kRhoHat<=kxHatMax) ? 0.0 : acos(kxHatMax/kRhoHat);
