@@ -38,21 +38,94 @@ computational results can be interpreted on different
 length scales. For example, if your mesh file
 describes a sphere of radius `0.9' and you run
 a [[scuff-em]] calculation at angular frequency `1.2`, 
-then the results 
+then the results can be equally well interpreted as describing
 
-+ 
++ a sphere of radius 0.9 $\mu$m at an angular frequency of
+$1.2 \cdot 3\cdot 10^{14}$ rad/sec, or
+
++ a sphere of radius 0.9 mm at an angular frequency of
+$1.2 \cdot 3\cdot 10^{11}$ rad/sec, or
+
++ a sphere of radius 0.9 nm at an angular frequency of
+$1.2 \cdot 3\cdot 10^{17}$ rad/sec, etc. (Of course,
+the continuum
 
 However, this scale invariance is broken by
-frequency-dependent dielectric functions, such
-as the `SILICON` material definition in 
-[this example][SiliconSlabs].
+frequency-dependent dielectric functions 
+(or frequency-dependent permeabilities) such
+as the `SILICON` material definition in
+[this example][SiliconSlabs]. The convention
+adopted by [[scuff-em]] is that
+[$\omega$ values in frequency-dependent material
+definitions are always interpreted in units of radians/second][MaterialUnits],
+*not* specialized units like $3 \cdot 10^{14} rad/sec$.
+Thus, if your calculation involves a frequency-dependent 
+material function (either a [user-defined function][UserDefined] or
+a [datafile][Tabulated]),
+then [[scuff-em]] will eventually need to convert the numerical
+values you specify for ``--Omega`` inputs into absolute
+angular frequencies. For this purpose, [[scuff-em]] generally
+makes the scale-breaking assumption that numerical ``--Omega`` values
+are given in units of $\omega_0=3\cdot 10^{14}$ rad/sec,
+corresponding to the default length scale of $L_0=1\,\mu$m.
+(The one exception to this rule is
+[<span class=SC>scuff-rf</span>][scuff-rf], which uses
+length and frequency units more appropriate for RF modeling;
+this is discussed in the 
+[<span class=SC>scuff-rf</span> documentation][scuff-rf].)
 
-### Field strengths
+### Electric and magnetic field strengths
 
-The only code in the [[scuff-em]] suite 
+The only code in the [[scuff-em]] suite that directly outputs
+numerical values of electric and magnetic field components is
+[<span class=SC>scuff-scatter</span>][scuff-scatter]. For this
+code, there is always a user-specified incident field with
+a user-specified numerical field-strength parameter, and the
+units of electric-field components reported by [[scuff-scatter]]
+are understood simply to be the same as the units of the incident-field
+specifications.
+The units of magnetic-field components are the units of electric-field
+components divided by ohms (volts/amperes); thus, if **E**-field 
+components have units of volts/micron then **H**-field components
+have units of amps/micron.
+
+Thus, to run a [[scuff-scatter]] calculation to model the
+scattering of an incident plane wave of amplitude 1 volt/micron,
+use the command-line option `--pwPolarization 0 0 1`
+and interpret the numbers reported for **E**-field (**H**-field)
+components in units of volts/micron (amps/micron).
+Alternatively, to describe the scattering of a plane wave of 
+amplitude 1 volt/meter, use the same command-line options,
+but now interprety the output numbers in units of 
+volts/meter (amps/meter).
 
 ### Power, force, torque
 
+The units in which numerical values of power, force, and torque are
+reported differ slightly for different codes in the [[scuff-em]] suite:
+
++ For [<span class=SC>scuff-scatter</span>][scuff-scatter],
+and torque in
+
++ For [<span class=SC>scuff-cas3D</span>][scuff-cas3D],
+
+    + equilibrium Casimir energies are reported in units of 
+      $\hbar c/1\,\mu\text{m}$=0.1973 eV = 3.16\cdot 10^{-20}$ joules,
+
+    + equilibrium Casimir forces are reported in units of 
+      $\hbar c/(1\,\mu\text{m})^2$=31.6 femtoNewtons
+
+    + equilibrium Casimir torques are reported in units of
+      $\hbar c/(1\,\mu\text{m})$=31.6 femtoNewtons&times; microns.
+
++ [<span class=SC>scuff-neq</span>][scuff-neq] reports power in watts,
+force in nanoNewtons, torque in nanoNewtons&times;microns.
+(More specifically, what [[scuff-neq]] actually reports are
+**fluxes** of energy and momentum; these are quantities
+that need to be multiplied by energy prefactors and integrated
+over angular frequencies to yield heat-transfer rates, forces, and torques;
+this is discussed in more detail in the 
+[<span class=SC>scuff-neq</span>][scuff-neq] documentation.
 
 ## I'm working on a big project involving multiple calculations on a geometry with various different values of geometric parameters, material properties, and meshing fineness. It's getting unwieldy to have all of these `.geo` and `.msh` and `.scuffgeo` files cluttering up my project directory. How would you suggest organizing things?
 
@@ -155,6 +228,9 @@ not interfering with the other jobs.
 
 [GMSH]:                        http://www.geuz.org/gmsh
 [scuff-scatter]:               ../applications/scuff-scatter/scuff-scatter.md
+[scuff-neq]:                   ../applications/scuff-neq/scuff-neq.md
+[scuff-cas3D]:                 ../applications/scuff-cas3D/scuff-cas3D.md
 [Geometries]:                  ../reference/Geometries.md
 [Materials]:                   ../reference/Materials.md
+[MaterialUnits]:               ../reference/Materials.md#Parsed
 [SiliconSlabs]:                ../examples/SiliconSlabs/SiliconSlabs.md
