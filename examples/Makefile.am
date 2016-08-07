@@ -3,6 +3,7 @@ SUBDIRS =            	\
  CorrugatedDisc     	\
  CubeTorus           	\
  GetTMatrix             \
+ HalfSpaceLDOS          \
  PlateWithHole          \
  PerforatedThinFilm     \
  PlatonicSolids         \

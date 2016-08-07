@@ -205,24 +205,58 @@ a [list of incident fields][IFList]. For each of 21
 logarithmically-spaced values of $h$ in the range
 $0.1R \le h \le 10R$, I will define four incident fields,
 corresponding to $x$- and $z$-directed electric and
-magnetic dipoles located at $(0,0,h)$. This gives 
+magnetic dipoles located at $(0,0,h)$. This gives
 a total of 84 incident fields, which are specified
 one per line in a file named `IFFile`:
+
+````bash
+EX_0.01000000  EPS    0.0 0.0 0.01000000    1.0 0.0 0.0
+EX_0.01258925  EPS    0.0 0.0 0.01258925    1.0 0.0 0.0
+...
+EZ_0.01000000  EPS    0.0 0.0 0.01000000    0.0 0.0 1.0
+EZ_0.01258925  EPS    0.0 0.0 0.01258925    0.0 0.0 1.0
+...
+MX_0.01000000  MPS    0.0 0.0 0.01000000    1.0 0.0 0.0
+MX_0.01258925  MPS    0.0 0.0 0.01258925    1.0 0.0 0.0
+...
+MZ_0.01000000  MPS    0.0 0.0 0.01000000    0.0 0.0 1.0
+MZ_0.01258925  MPS    0.0 0.0 0.01258925    0.0 0.0 1.0
+...
+````
+
+Next we need to specify the points at which we
+want [[scuff-scatter]] to report scattered-field
+components.
+In this particular problem, we are only interested
+in the scattered fields at a single evaluation 
+point---namely, the location of the point source---but,
+because the coordinates of this point vary from
+one incident field to another, and because [[scuff-scatter]]
+offers no way to specify evaluation points in a way
+that depends on the incident field, we will simply
+ask for the scattered fields at *all* evaluation
+points for all incident fields, then pick out the
+particular point in which we are interested as a
+post-processing step (see below). Thus we create
+a file called `EPFile` containing the coordinates
+of the source points:
 
 ````bash
 
 ````
 
 
-
 ### Solution using <span class=SC>scuff-ldos</span>
 
-In <span class=SC>scuff-ldos</span>, it is understood 
-that we will be computing the scattered fields 
-due to point sources, so the only things we need to 
+In <span class=SC>scuff-ldos</span>, it is automatically
+understood that we will be computing the scattered fields
+due to point sources, so the only things we need to
 specify are the locations of the point sources
 and (if they are different) the locations of the
 evaluation points. Thus the separate `IFFile` and `EPFile`
-inputs that we prepared for [[scuff-scatter]] are 
-replaced by a single `EPFile` input---but which may 
-now have 
+inputs that we prepared for [[scuff-scatter]] are
+replaced by a single `EPFile` input---but which may
+now have 6 numbers per line (for two-point DGFs)
+or 3 numbers per line (for one-point DGFs).
+Since we are interested in the latter, we can use
+the same `EPFile` we used for [[scuff-scatter]] above.

@@ -1,0 +1,14 @@
+MESHPATH ../mshFiles
+
+LATTICE
+	VECTOR 0.1  0.0
+	VECTOR 0.0  0.1 
+ENDLATTICE
+
+REGION UpperHalfSpace MATERIAL Vacuum
+REGION Exterior       MATERIAL CONST_EPS_10
+
+SURFACE Plate
+	MESHFILE Square_L0P1_40.msh
+	REGIONS Exterior UpperHalfSpace
+ENDSURFACE

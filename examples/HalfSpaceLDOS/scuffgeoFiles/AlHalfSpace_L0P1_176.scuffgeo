@@ -1,0 +1,21 @@
+MESHPATH ../mshFiles
+
+# this comes from Phys Rev B **68** 2451765
+MATERIAL ALUMINUM
+    wp = 1.747e16; 
+    gamma = 7.596e13;
+    Eps(w) = 1 - wp^2 / (w * (w + i*gamma));
+ENDMATERIAL
+
+LATTICE
+	VECTOR 0.1  0.0
+	VECTOR 0.0  0.1 
+ENDLATTICE
+
+REGION UpperHalfSpace MATERIAL Vacuum
+REGION Exterior       MATERIAL Aluminum
+
+SURFACE Plate
+	MESHFILE Square_L0P1_176.msh
+	REGIONS Exterior UpperHalfSpace
+ENDSURFACE

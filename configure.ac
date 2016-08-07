@@ -239,6 +239,9 @@ AC_CONFIG_FILES([
  examples/DiffractionPatterns/Makefile
  examples/CorrugatedDisc/Makefile
  examples/CubeTorus/Makefile
+ examples/HalfSpaceLDOS/Makefile
+ examples/HalfSpaceLDOS/mshFiles/Makefile
+ examples/HalfSpaceLDOS/scuffgeoFiles/Makefile
  examples/GetTMatrix/Makefile
  examples/PlateWithHole/Makefile
  examples/PerforatedThinFilm/Makefile

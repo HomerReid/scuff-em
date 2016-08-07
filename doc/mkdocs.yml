@@ -6,11 +6,16 @@ repo_url: https://github.com/homerreid/scuff-em/
 
 theme_dir: 'scuff-em-mkdocs-theme'
 
+python:
+   version: 2 # for unicode
+   setup_py_install: True
+
 markdown_extensions:
     - wikilinks
     - toc:
         title: Table of Contents
     - attr_list
+    - fenced_code
     - mdx_math:
         enable_dollar_delimiter: True
 

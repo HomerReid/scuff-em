@@ -35,6 +35,7 @@
 #define II cdouble (0.0,1.0)
 
 using namespace scuff;
+FILE *LogFile=0;
 
 /***************************************************************/
 /* data structure containing everything needed to evaluate the */
@@ -51,9 +52,8 @@ typedef struct HalfSpaceData
    bool Accumulate; 
    
    double Workspace[12];
-   double qrOffset;
-   bool uqTransform;
    bool Polar;
+   bool Propagating;
 
    int nCalls;
 
@@ -87,11 +87,17 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
   // Polar = false--> we are evaluating the 2-dimensional
   //                  (qx,qy) integral
   //
-  double q2, qMag;
+  double q2, qMag, Jacobian=1.0;
   cdouble One, Cos, Sin, Cos2, Sin2, CosSin;
   if (Polar)
-   { q2        = q[0]*q[0];
-     qMag      = q[0];
+   { 
+     if (Data->Propagating)
+      qMag     = q[0]*real(k0);
+     else 
+      { double Denom = 1.0/(1.0-q[0]);
+        qMag = real(k0) * (1.0 + q[0]*Denom);
+        Jacobian = Denom*Denom;
+      };
    }
   else
    { q2       = q[0]*q[0] + q[1]*q[1];
@@ -110,10 +116,10 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
   /***************************************************************/
   /***************************************************************/
   cdouble k02 = k0*k0;
-  cdouble qz2 = q2 - k0*k0;
+  cdouble qz2 = k02 - q2;
   if (qz2==0.0)
    return;
-  cdouble qz = sqrt(k0*k0 - q2);
+  cdouble qz = sqrt(qz2);
   cdouble qzPrime = sqrt(EpsRel*MuRel*k0*k0 - q2);
   if ( imag(qz)<0.0 )
    qz*=-1.0;
@@ -177,10 +183,10 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      MTE[1][1] = Cos2;
      MTE[0][1] = MTE[1][0] = -1.0*CosSin;
 
-     MTM[0][0] = qz2*Cos2 / k02;
-     MTM[1][1] = qz2*Sin2 / k02;
+     MTM[0][0] = -qz2*Cos2 / k02;
+     MTM[1][1] = -qz2*Sin2 / k02;
      MTM[2][2] = q2*One  / k02;
-     MTM[0][1] = MTM[1][0] = qz2*CosSin / k02;
+     MTM[0][1] = MTM[1][0] = -qz2*CosSin / k02;
      MTM[2][0] =      qMag*qz*Cos / k02;
      MTM[0][2] = -1.0*MTM[2][0];
      MTM[2][1] =      qMag*qz*Sin / k02;
@@ -192,20 +198,23 @@ void HalfSpaceDGFIntegrand(const double *q, HalfSpaceData *Data,
      for(int Mu=0; Mu<3; Mu++)
       for(int Nu=0; Nu<3; Nu++)
        { Integrand[18*nx + 0*9 + 3*Mu + Nu] 
-          += Factor * (rTE*MTE[Mu][Nu] + rTM*MTM[Mu][Nu]);
+          += Jacobian * Factor * (rTE*MTE[Mu][Nu] + rTM*MTM[Mu][Nu]);
          Integrand[18*nx + 1*9 + 3*Mu + Nu] 
-          += Factor * (rTM*MTE[Mu][Nu] + rTE*MTM[Mu][Nu]);
+          += Jacobian * Factor * (rTM*MTE[Mu][Nu] + rTE*MTM[Mu][Nu]);
        };
-#if 0
+
      if (LogFile)
-     { fprintf(LogFile,"%e %s %s ",q,CD2S(qz),CD2S(qzPrime));
-       fprintf(LogFile,"%e %e %e ",R[0],R[1],XA[2]+XB[2]);
-       fprintf(LogFile,"%s ",CD2S(ExpFac));
-       for(int n=0; n<9; n++)
-        fprintf(LogFile,"%s ",CD2S(zf[18*nx + n]));
-       fprintf(LogFile,"\n");
-     };
-#endif
+      { fprintf(LogFile,"%e %e ",qMag/real(k0),XSource[2]);
+        fprintf(LogFile,"%e %e %e %e ",real(rTE),imag(rTE),real(rTM),imag(rTM));
+        fprintf(LogFile,"%e ",imag(Factor*rTE*MTE[0][0]));
+        fprintf(LogFile,"%e ",imag(Factor*rTE*MTE[1][1]));
+        fprintf(LogFile,"%e ",imag(Factor*rTE*MTE[2][2]));
+        fprintf(LogFile,"%e ",imag(Factor*rTM*MTM[0][0]));
+        fprintf(LogFile,"%e ",imag(Factor*rTM*MTM[1][1]));
+        fprintf(LogFile,"%e ",imag(Factor*rTM*MTM[2][2]));
+        fprintf(LogFile,"\n");
+      };
+
 
    };
 }
@@ -257,7 +266,6 @@ void GetHalfSpaceDGFs_BZ(HMatrix *XMatrix,
   Data->Mu          = Mu;
   Data->kBloch      = kBloch;
   Data->Polar       = false;
-  Data->uqTransform = false;
   Data->nCalls      = 0;
   Data->Accumulate  = true;
  
@@ -275,37 +283,13 @@ void GetHalfSpaceDGFs_BZ(HMatrix *XMatrix,
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-int HalfSpaceDGFIntegrand_Polar(unsigned ndim, const double *u, void *UserData, unsigned fdim, double *fval)
+int HalfSpaceDGFIntegrand_Polar(unsigned ndim, const double *u, 
+                                void *UserData, unsigned fdim, double *fval)
 { 
   (void) ndim;
   (void) fdim;
-
-  HalfSpaceData *Data = (HalfSpaceData *)UserData;
-  bool uqTransform = Data->uqTransform;
-  int qrOffset     = Data->qrOffset;
-  int IDim         = 18*(Data->XMatrix->NR);
-
-  cdouble *Integrand = (cdouble *)fval;
-  memset(Integrand, 0, IDim*sizeof(cdouble));
-
-  double qr, Jacobian;
-  if (uqTransform)
-   { double Denom = 1.0 - fabs(u[0]);
-     if (Denom==0.0)
-      return 0;
-     qr       = qrOffset + u[0] / Denom;
-     Jacobian = 1.0/(Denom*Denom);
-   }
-  else
-   { qr=u[0];
-     Jacobian=1.0;
-   };
-
-  HalfSpaceDGFIntegrand(&qr, Data, Integrand);
-  VecScale(Integrand, Jacobian, IDim);
-
+  HalfSpaceDGFIntegrand(u, (HalfSpaceData *)UserData, (cdouble *)fval);
   return 0;
-
 }
 
 void GetHalfSpaceDGFs_Polar(HMatrix *XMatrix, cdouble Omega,
@@ -347,10 +331,9 @@ void GetHalfSpaceDGFs_Polar(HMatrix *XMatrix, cdouble Omega,
   Data->Accumulate = false;
 
   Lower=0.0;
-  Upper=abs(Omega);
-  Data->qrOffset    = 0.0;
-  Data->uqTransform = false;
+  Upper=1.0;
   Data->nCalls      = 0;
+  Data->Propagating= true;
   hcubature(2*IDim, HalfSpaceDGFIntegrand_Polar, (void *)Data, 1,
             &Lower, &Upper, MaxEvals, AbsTol, RelTol, 
             ERROR_INDIVIDUAL, (double *)Integral1, (double *)Error);
@@ -358,9 +341,8 @@ void GetHalfSpaceDGFs_Polar(HMatrix *XMatrix, cdouble Omega,
 
   Lower=0.0;
   Upper=1.0;
-  Data->qrOffset    = abs(Omega);
-  Data->uqTransform = true;
   Data->nCalls      = 0;
+  Data->Propagating = false;
   hcubature(2*IDim, HalfSpaceDGFIntegrand_Polar, (void *)Data, 1, 
             &Lower, &Upper, MaxEvals, AbsTol, RelTol, 
             ERROR_INDIVIDUAL, (double *)Integral2, (double *)Error);
@@ -516,11 +498,13 @@ void ProcessHalfSpaceDGFs(HVector *OmegaPoints,
 
      for(int nOmega=0; nOmega<OmegaPoints->N; nOmega++)
       { cdouble Omega = OmegaPoints->GetEntry(nOmega);
+LogFile=fopen("/tmp/ADGFs.log","w");
         if (HalfSpace)
          GetHalfSpaceDGFs_Polar(XMatrix, Omega, MP,
                                 RelTol, AbsTol, MaxEvals, GMatrix);
         else
          GetGroundPlaneDGFs(XMatrix, Omega, 0, 0, GMatrix);
+fclose(LogFile);
 
         double PreFac = abs(Omega)/M_PI;
         for(int nx=0; nx<NX; nx++)
@@ -550,52 +534,5 @@ void ProcessHalfSpaceDGFs(HVector *OmegaPoints,
      fclose(f);
 
    };
-
-}
-
-/***************************************************************/
-/* data structure containing everything needed to evaluate the */
-/* integrand of the cylinder DGF integral                      */
-/***************************************************************/
-typedef struct CylinderData
- {
-   HMatrix *XMatrix;
-   cdouble Omega;          // angular frequency
-   cdouble EpsOut, MuOut;  // outer material properties
-   cdouble EpsIn,  MuIn;   // outer material properties
-
-   double kx;              // (one-dimensional) bloch vector
-   bool Accumulate; 
-   
-   bool hTransform;
-   double hOffset;
-
-   int nCalls;
-
- } CylinderData;
-
-/***************************************************************/
-/* Integrand[ 2*nx + 0 ] = G^E_{transverse}                    */
-/* Integrand[ 2*nx + 1 ] = G^E_{axial direction}               */
-/***************************************************************/
-void CylinderDGFIntegrand(const double h, CylinderData *Data,
-                          cdouble *Integrand)
-{
-  HMatrix *XMatrix = Data->XMatrix;
-  cdouble Omega    = Data->Omega;
-  cdouble EpsOut   = Data->EpsOut;
-  cdouble EpsIn    = Data->EpsIn;
-  cdouble MuOut    = Data->MuOut; 
-  cdouble MuIn     = Data->MuIn;   
-  double kx        = Data->kx;
-  bool Accumulate  = Data->Accumulate;
-
-  Data->nCalls++;
-
-  int IDim = 2*XMatrix->NR;
-  if (Data->Accumulate == false)
-   memset(Integrand, 0, IDim*sizeof(cdouble));
-
-
 
 }

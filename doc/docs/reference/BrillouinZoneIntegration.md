@@ -4,9 +4,13 @@ Many codes in the [[scuff-em]] suite require evaluating
 integrals over the Brillouin zone (BZ) of a 1D or 2D
 reciprocal lattice, i.e.
 
-$$Q(\omega) = \int_{\hbox{BZ}} \mathcal{Q}(\omega, \bf{k}) \,d\bf{k}.$$
+$$Q(\omega) = \int_\text{BZ} \overline{Q}(\omega, \mathbf{k}_\text{B}) 
+ \,d\mathbf{k}_\text{B}$$
 
-Examples of calculations that require
+where we generically use the overlined symbol
+$\overline{Q}(\mathbf{k}_\text{B})$ to denote
+the contribution of Bloch vector $\mathbf{k}_\text{B}$
+to quantity $Q$. Examples of calculations that require
 Brillouin-zone integrations include
 
 + the Casimir force per unit imaginary frequency
@@ -28,25 +32,27 @@ at user-specified evaluation points in
 In general, Brillouin-zone integrations are evaluated
 by numerical cubature---that is, as weighted sums of
 integrand samples:
-$$ Q(\omega) \approx \sum W_n \mathcal Q(\omega, \bf k_n)$$
-where $\{W_n, \bf k_n\}$ are the weights and points in
+$$ Q(\omega) \approx \sum w_n \overline Q(\omega, \mathbf{k}_n)$$
+where $\{w_n, \mathbf{k}_n\}$ are the weights and points in
 a cubature rule for the Brillouin zone of your reciprocal
 lattice, and where each integrand sample
-$\mathcal Q(\omega, \bf k_n)$ is computed by performing a
+$\overline Q(\omega, \bf k_n)$ is computed by performing a
 single [[scuff-em]] calculation at a fixed Bloch
 wavevector. The [[scuff-em]] workflow offers two 
 options for evaluating such cubatures:   
 
 + You can design and implement your own cubature scheme
 involving your own custom-chosen weights and points
-$\{W_n, \bf k_n\}$. In this case, you will use 
+$\{w_n, \bf k_n\}$. In this case, you will use 
 the ``--byOmegakBloch`` command-line option to instruct
 a [[scuff-em]] application code to report values of the
-quantity $\mathcal Q(\omega, \bf k_n)$ at each of your points
+quantity $\overline Q(\omega, \bf k_n)$ at each of your points
 (this output will typically be written to file with
 extension ``.byOmegakBloch`` or ``.byXikBloch``),
 then compute the weighted sums yourself in e.g.
 [<span class="SC">julia</span>](http://julialang.org).    
+
+&nbsp;
 
 + Alternatively, you can ask [[scuff-em]] to perform the
 BZ integration internally, using one of several
@@ -55,7 +61,7 @@ quantities $Q(\omega)$ will typically be written to
 an output file with extension `.byOmega` or `.byXi`.
 You will *also* get an output file named `.byOmegakBloch`
 or `.byXikBloch` that reports the Bloch-vector-resolved
-integrand samples $\mathcal Q(\omega, \bf k_n)$
+integrand samples $\overline Q(\omega, \bf k_n)$
 chosen internally by the [[scuff-em]] BZ integrator.
 
 ### Command-line options for customizing internal BZ integration
@@ -63,11 +69,11 @@ chosen internally by the [[scuff-em]] BZ integrator.
 If you choose the second option above, you may specify
 various command-line options to customize the algorithm
 used by [[scuff-em]] to select the cubature points and
-weights $\{W_n, \mathbf{k}_n\}$. The options are 
+weights $\{w_n, \mathbf{k}_n\}$. The options are 
 listed here and discussed in more detail below.
 
 ````bash
---BZIMethod [CC | TC | Radial]
+--BZIMethod [CC | TC | Polar | Polar2]
 ````
 
 Selects the integration algorithm (see below for details).
@@ -97,9 +103,9 @@ integrand samples that will be used.
 ````
 
 This option lets you tell [[scuff-em]] that your
-integrand function $\mathcal Q(\mathbf k)$
+integrand function $\overline Q(\mathbf k_\text{B})$
 is invariant under 2, 4, or 8-fold rotational 
-symmetry transformations applied to $\mathbf k$. 
+symmetry transformations applied to $\mathbf k_\text{B}$. 
 See below for more details on what this means.
 
 ### Understanding the internal BZ integration algorithms
@@ -131,7 +137,7 @@ The former option selects fixed-order CC cubature
 with 11, 13, ... 99 sample points. (This number must 
 be an odd integer between 11 and 99 inclusive.)
 
-The latter option (`--BZIOrder 0`) selects adaptive
+The latter option selects adaptive
 CC cubature
 using [this algorithm](http://ab-initio.mit.edu/wiki/index.php/Cubature).
 In this case the number of sample points will be chosen
@@ -145,7 +151,7 @@ For 1D Brillouin zones, the only allowed
 value of the `--BZSymmetryFactor` option is `2`,
 indicating that your integrand is symmetric under
 sign flip of the Bloch wavevector, i.e.
-$\mathcal Q(k_x) = \mathcal Q(-k_x)$.
+$\overline Q(k_x) = \overline Q(-k_x)$.
 In this case the BZ integration may be restricted to 
 the range $0\le k_x \le \frac{\pi}{L_x}.$
 
@@ -182,7 +188,7 @@ the various methods place their sample points.)
 
 &nbsp;
 
-+ **Radial cubature** (`--BZIMethod Radial`)
++ **Polar cubature** (`--BZIMethod Polar `)
 
     This algorithm uses a polar decomposition
     $(k_x,k_y) \to (k_\rho, k_\theta)$ to
@@ -211,16 +217,60 @@ the various methods place their sample points.)
     cubature, while the $k_\theta$ integral is to be evaluated
     via 21-point rectangular-rule cubature.
 
+&nbsp;
+
++ ** Polar cubature with change of variables
+     $k_\rho \to k_z$ ** (`--BZIMethod Polar2 `)
+
+    This is the same as `--BZIMethod Polar`, but with
+    two modifications: **(a)** The $k_\rho$ integral 
+    is split into two separate integrals covering the
+    ranges $k_\rho < k_0$ and $k_\rho >k_0$ 
+    (where $k_0\equiv \frac{\omega}{c}$ is the vacuum photon
+    wavenumber at the frequency in question).
+    **(b)** In each of the two $k_\rho$ integrals we
+    make the change of variables
+    $$ k_\rho \to k_z\equiv \sqrt{|k_0^2 - k_\rho^2|}.$$
+
+    These modifications are useful
+    for cases in which the free-space wavevector $k_0$
+    falls within the Brillouin zone. In these cases,
+    the convergence of the $k_\rho$ integral is
+    degraded by the phenomena known as "Wood anomalies"
+    in optics or "van Hove singularities" in solid-state
+    physics, and changing variables to $k_z$ introduces
+    a Jacobian factor that neutralizes these singularities
+    to yield a better-behaved integrand.    
+
+** Special $N_\theta$ values for rotationally-invariant integrands **
+
+As discussed above, for the ``Polar`` and ``Polar2`` integration methods
+the value of the ``--BZIOrder`` option is interpreted as the composite 
+quantity $100\times N_\rho + N_\theta$,
+where $N_\rho$ and $N_\theta$ are odd integers in the range $[11,99]$
+specifying the number of cubature points used for the $k_\rho$ and 
+$k_\theta$ integrals (or set to 0 to request adaptive quadrature).
+
+For *fully* rotationally-symmetric geometries in which the BZ integrand
+$\overline{Q}$ is independent of $k_\theta$, you can specify
+$N_\theta=\{2,4,6\}$ to indicate that the $k_\theta$ integral
+is to be evaluated by a 1-point cubature with the single $k_\theta$
+sample taken at $k_\theta=\{0,\frac{\pi}{2},\frac{\pi}{4}\}$.
+
+(Of course, no geometry discretized into triangles can actually
+be fully rotationally invariant, but pretending so may be a
+reasonable approximation in some cases, such as [this one][HalfSpaceLDOS].)
+
 #### Symmetry factors for 2D Brillouin zones
 
 For 2D geometries, the option `--BZSymmetryFactor` may
 take the value 2, 4, or 8, specifying that the Brillouin-zone
-integrand $\mathcal{Q}(k_x, k_y)$ obeys symmetries as follows:
+integrand $\overline{Q}(k_x, k_y)$ obeys symmetries as follows:
 
 + `--BZSymmetryFactor 2`: 
 
     We have
-    $\mathcal{Q}(k_x,k_y) = \mathcal{Q}(k_x,-k_y),$ so the BZ integration
+    $\overline{Q}(k_x,k_y) = \overline{Q}(k_x,-k_y),$ so the BZ integration
     may be restricted to just the right half of the BZ.
 
 &nbsp;
@@ -228,14 +278,13 @@ integrand $\mathcal{Q}(k_x, k_y)$ obeys symmetries as follows:
 + `--BZSymmetryFactor 4`:
 
     We have
-    $\mathcal{Q}(k_x,k_y) = \mathcal{Q}(\pm k_x, \pm k_y),$ 
+    $\overline{Q}(k_x,k_y) = \overline{Q}(\pm k_x, \pm k_y),$ 
     so the BZ integration
     may be restricted to just the upper-right quadrant of the BZ.
 
 &nbsp;
 
-+ `--BZSymmetryFactor 8`:
-
++ `--BZSymmetryFactor 8`: 
     In addition to symmetry under sign changes, the integrand
     is symmetric under $k_x\leftrightarrow k_y$,
     so the BZ integration
@@ -271,6 +320,7 @@ integration with various values of the command-line parameters:
 ![CC21.SF1.png](BZIDiagrams/CC21.SF4.png)
 &nbsp;
 
+<a name="IrreducibleBZ">
 
 ````bash
 --BZIMethod CC    --BZIOrder  21    --BZSymmetryFactor 8
@@ -309,32 +359,58 @@ integration with various values of the command-line parameters:
 
 
 ````bash
---BZIMethod Radial --BZIOrder 3111 --BZSymmetryFactor 1
+--BZIMethod Polar --BZIOrder 3111 --BZSymmetryFactor 1
 ````
-![Radial.3111.SF1.png](BZIDiagrams/Radial.3111.SF1.png)
+![Polar.3111.SF1.png](BZIDiagrams/Polar.3111.SF1.png)
 
 &nbsp;
 
 ````bash
---BZIMethod Radial --BZIOrder 3111 --BZSymmetryFactor 2
+--BZIMethod Polar --BZIOrder 3111 --BZSymmetryFactor 2
 ````
-![Radial.3111.SF2.png](BZIDiagrams/Radial.3111.SF2.png)
+![Polar.3111.SF2.png](BZIDiagrams/Polar.3111.SF2.png)
 
 &nbsp;
 
 ````bash
---BZIMethod Radial --BZIOrder 3111 --BZSymmetryFactor 4
+--BZIMethod Polar --BZIOrder 3111 --BZSymmetryFactor 4
 ````
-![Radial.3111.SF4.png](BZIDiagrams/Radial.3111.SF4.png)
+![Polar.3111.SF4.png](BZIDiagrams/Polar.3111.SF4.png)
 
 &nbsp;
 
 ````bash
---BZIMethod Radial --BZIOrder 3111 --BZSymmetryFactor 8
+--BZIMethod Polar --BZIOrder 3111 --BZSymmetryFactor 8
 ````
-![Radial.3111.SF8.png](BZIDiagrams/Radial.3111.SF8.png)
+![Polar.3111.SF8.png](BZIDiagrams/Polar.3111.SF8.png)
 
 &nbsp;
+
+**Note:** The next four diagrams are for a frequency of
+$\frac{\omega}{c}\approx 0.32\cdot \frac{2\pi}{L}$. The accumulation
+of points near $|\mathbf{k}_\text{B}|=\frac{\omega}{c}$
+is noticeable for the `Polar2` integration strategy.
+
+````bash
+--BZIMethod Polar2 --BZIOrder 1111 --BZSymmetryFactor 1
+````
+![Polar2.1111.SF1.png](BZIDiagrams/Polar2.SF1.png)
+
+````bash
+--BZIMethod Polar2 --BZIOrder 1111 --BZSymmetryFactor 2
+````
+![Polar2.1111.SF2.png](BZIDiagrams/Polar2.SF2.png)
+
+````bash
+--BZIMethod Polar2 --BZIOrder 1111 --BZSymmetryFactor 4
+````
+![Polar2.1111.SF4.png](BZIDiagrams/Polar2.SF4.png)
+
+````bash
+--BZIMethod Polar2 --BZIOrder 1111 --BZSymmetryFactor 8
+````
+![Polar2.1111.SF8.png](BZIDiagrams/Polar2.SF8.png)
+
 
 ##### Locations of quadrature points for 1D Brillouin zones
 
@@ -358,3 +434,4 @@ integration with various values of the command-line parameters:
 [scuffCaspol]:                 ../applications/scuff-caspol/scuff-caspol.md
 [scuffldos]:                   ../applications/scuff-ldos/scuff-ldos.md
 [CCQuadrature]:			http://homerreid.com/teaching/18.330/Notes/ClenshawCurtis.pdf
+[HalfSpaceLDOS]:		../examples/HalfSpaceLDOS/HalfSpaceLDOS.md
