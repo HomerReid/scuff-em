@@ -245,7 +245,6 @@ of the source points:
 
 ````
 
-
 ### Solution using <span class=SC>scuff-ldos</span>
 
 In <span class=SC>scuff-ldos</span>, it is automatically

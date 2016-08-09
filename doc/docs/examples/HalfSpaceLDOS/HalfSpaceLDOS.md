@@ -68,7 +68,7 @@ $$ \begin{array}{lcl}
 \rho_0(\omega) &=&\frac{\omega^2}{\pi^2 c^3}
 \\[5pt]
 \Delta \rho^{\text{E,M}}(\omega; \mathbf{x})
- &=& \frac{\omega}{\pi}
+ &=& \frac{\omega}{\pi c^2}
      \text{Tr Im }\boldsymbol{\mathcal{G}}^\text{E,M}(\omega; \mathbf{x}, \mathbf{x})
 \end{array}$$
 

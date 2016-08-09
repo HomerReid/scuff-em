@@ -48,7 +48,7 @@
  *  e) then the translation matrix expresses Phi_{lm}(xpp-x) in terms
  *     of Psi_{lm}(xpp-xp), as follows:
  *
- *      Phi_{Alpha}(xpp-x) 
+ *      Phi_{Alpha}(xpp-x)
  *        = \sum_{AlphaP} A_{Alpha,AlphaP} Psi_{AlphaP}(xpp-xp) 
  *
  * where Alpha=(lm), AlphaP=(lp,mp) are compound indices, and 
