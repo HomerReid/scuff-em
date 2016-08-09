@@ -2,6 +2,7 @@ EXTRA_DIST=				\
  EPFile					\
  OmegaFile				\
  EightPoints				\
+ XAxisPoints				\
  mshFiles/Square_L0P1_40.msh            \
  mshFiles/Square_L0P1_176.msh           \
  mshFiles/Square_L0P01_40.msh           \
