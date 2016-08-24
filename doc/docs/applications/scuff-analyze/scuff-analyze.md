@@ -288,13 +288,13 @@ SURFACE Sphere
     MESHFILE Sphere.msh
     DISPLACED 1.2 1.2 1.85
     REGIONS UpperHalfSpace SphereInterior
-ENDOBJECT
+ENDSURFACE
 
 
 SURFACE Substrate
     MESHFILE Square.msh
     REGIONS UpperHalfSpace LowerHalfSpace
-ENDOBJECT
+ENDSURFACE
 ````
     
 To visualize the unit cell together with a few surrounding lattice 

@@ -73,8 +73,6 @@ if test "x$with_openmp" = xyes; then
    need_pthreads=yes # for pthread_rwlock
 fi
 
-AC_MSG_CHECKING([suppatage foryaf 3])
-
 if test $need_pthreads = yes; then
    AX_PTHREAD([], [AC_MSG_ERROR([Could not find pthreads library.])])
    LIBS="$PTHREAD_LIBS $LIBS"
@@ -84,45 +82,67 @@ fi
 ##################################################
 # checks for hdf5
 ##################################################
+AC_ARG_WITH(hdf5,
+            [AC_HELP_STRING([--without-hdf5],[build without HDF5 support])],
+            with_hdf5=$withval,
+            with_hdf5=yes)
 
-AC_ARG_WITH(hdf5-includedir,
-    [AC_HELP_STRING([--with-hdf5-includedir=<dir>/--without-hdf5],
-        [look for HDF5 header files in <dir>])],
-        with_hdf5_includedir=$withval, with_hdf5_includedir=yes)
+# 
+# if they DIDN'T say --without-hdf5, process hdf5-related configure options
+# and look for hdf5 headers and libraries
+#
+if test "x$with_hdf5" != xno
+then
 
-AC_ARG_WITH(hdf5-libdir,
-    [AC_HELP_STRING([--with-hdf5-libdir=<dir>],
-        [look for HDF5 library in <dir>])],
-        with_hdf5_libdir=$withval, with_hdf5_libdir=yes)
+  AC_ARG_WITH(hdf5-includedir,
+              [AC_HELP_STRING([--with-hdf5-includedir=<dir>], [look for HDF5 header files in <dir>])],
+              with_hdf5_includedir=$withval, 
+              with_hdf5_includedir=yes)
 
-if test "x$with_hdf5_includedir" != xno; then
-   if test -d "$with_hdf5_includedir"; then
-     CPPFLAGS="$CPPFLAGS -I$with_hdf5_includedir"
-   fi
-   if test -d "$with_hdf5_libdir"; then
-     CPPFLAGS="$CPPFLAGS -L$with_hdf5_libdir"
-     LDFLAGS="$LDFLAGS -L$with_hdf5_libdir"
-   fi
+  AC_ARG_WITH(hdf5-libdir,
+              [AC_HELP_STRING([--with-hdf5-libdir=<dir>],
+              [look for HDF5 library in <dir>])],
+              with_hdf5_libdir=$withval, 
+              with_hdf5_libdir=yes)
 
-   have_hdf5=no
-   AC_CHECK_HEADER([hdf5.h],
-     [AC_CHECK_LIB([hdf5], [H5Fcreate],
-       [LIBS="-lhdf5 $LIBS";
-        AC_CHECK_LIB([hdf5_hl], [H5LTmake_dataset_double], 
-	             [LIBS="-lhdf5_hl $LIBS"; have_hdf5=yes])])],
-     [AC_CHECK_HEADER([H5pubconf.h],
-       [AC_PREPROC_IFELSE([AC_LANG_PROGRAM([#include <H5pubconf.h>
+  if test "x$with_hdf5_includedir" != xno; then
+
+     if test -d "$with_hdf5_includedir"; then
+       CPPFLAGS="$CPPFLAGS -I$with_hdf5_includedir"
+     fi
+     if test -d "$with_hdf5_libdir"; then
+       CPPFLAGS="$CPPFLAGS -L$with_hdf5_libdir"
+       LDFLAGS="$LDFLAGS -L$with_hdf5_libdir"
+     fi
+
+     have_hdf5=no
+     AC_CHECK_HEADER([hdf5.h], 
+                     [AC_CHECK_LIB( [hdf5], [H5Fcreate],
+                                     [LIBS="-lhdf5 $LIBS";
+                                      AC_CHECK_LIB([hdf5_hl],
+                                                   [H5LTmake_dataset_double], 
+	                                           [LIBS="-lhdf5_hl $LIBS"; have_hdf5=yes])])],
+                     [AC_CHECK_HEADER([H5pubconf.h], 
+         [AC_PREPROC_IFELSE([AC_LANG_PROGRAM([#include <H5pubconf.h>
 #ifdef H5_HAVE_PARALLEL
 #  include <mpi.h>
 #endif], [])], [], [AC_MSG_WARN([HDF5 compiled with parallel support requires MPI compiler, e.g. configure with CXX=mpic++])])])])
-   if test $have_hdf5 = yes; then
-      AC_DEFINE([HAVE_HDF5],[1],[define if we have HDF5])
-      LIBS="$LIBS -lhdf5_hl -lhdf5"
-   else
-      AC_MSG_ERROR([couldn't find HDF5; configure --without-hdf5])
-   fi
-else
-   AC_MSG_WARN([without HDF5 support])
+
+     if test $have_hdf5 = yes; then
+        AC_DEFINE([HAVE_HDF5],[1],[define if we have HDF5])
+        LIBS="$LIBS -lhdf5_hl -lhdf5"
+     else
+        AC_MSG_ERROR([couldn't find HDF5; configure --without-hdf5])
+     fi
+
+  else
+    have_hdf5=no
+  fi
+fi
+    
+if test "x$with_hdf5" == xno
+then
+  AC_MSG_WARN([building without HDF5 support])
 fi
 
 ##################################################

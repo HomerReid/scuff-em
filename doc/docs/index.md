@@ -62,8 +62,9 @@
                                      capacitance matrices, DC polarizabilities,
                                      electrostatic potentials and fields
 
-* *Utility code*
+* *Utility codes*
     + [<span class="SC">scuff-analyze</span>][scuff-analyze] - diagnostic tool to print info on [[scuff-em]] geometries
+    + [<span class="SC">scuff-integrate</span>][scuff-integrate] - utility tool to integrate functions using samples tabulated in data files
 
 ## Validation Test Suite
 
@@ -112,6 +113,7 @@
 [scuff-RF]:           applications/scuff-RF/scuff-RF.md
 [scuff-static]:       applications/scuff-static/scuff-static.md
 [scuff-analyze]:      applications/scuff-analyze/scuff-analyze.md
+[scuff-integrate]:    applications/scuff-integrate/scuff-integrate.md
 [libscuff]:           API/libscuff.md
 [Implementation]:     forDevelopers/Implementation.md
 [DataStructures]:     forDevelopers/DataStructures.md

@@ -57,6 +57,7 @@ pages:
     - 'scuff-RF':              'applications/scuff-RF/scuff-RF.md'
     - 'scuff-static':          'applications/scuff-static/scuff-static.md'
     - 'scuff-analyze':         'applications/scuff-analyze/scuff-analyze.md'
+    - 'scuff-integrate':       'applications/scuff-integrate/scuff-integrate.md'
 - Validation tests:
     - 'Overview of the test suite':                                        'tests/Overview.md'
     - 'Mie scattering':                                                    'tests/MieScattering/MieScattering.md'

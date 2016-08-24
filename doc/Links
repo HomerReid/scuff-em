@@ -15,6 +15,7 @@
 [scuffgeoFile]:                SiliconSlabs_L2_40.scuffgeo
 [scuff-scatter]:               ../applications/scuff-scatter/scuff-scatter.md
 [scuff-cas3D]:                 ../scuff-cas3D/scuff-cas3D.md
+[scuff-ldos]:                  ../scuff-ldos/scuff-ldos.md
 [scuff-caspol]:                ../scuff-caspol/scuff-caspol.md
 [scuff-neq]:                   ../../applications/scuff-neq/scuff-neq.md
 [scuff-tmatrix]:               ../applications/scuff-tmatrix/scuff-tmatrix.md
