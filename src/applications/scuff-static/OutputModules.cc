@@ -268,6 +268,7 @@ void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
      Log("Computing capacitance matrix at transform %s",GTCList[nt]->Tag);
      G->Transform(GTCList[nt]);
      ComputeCapacitanceMatrix(SSS, M, Sigma, CM);
+     fprintf(f,"%s ",GTCList[nt]->Tag);
      for(int nr=0; nr<NS; nr++)
       for(int nc=nr; nc<NS; nc++)
        fprintf(f,"%e ",CM->GetEntryD(nr,nc));
