@@ -558,7 +558,7 @@ void HMatrix::ExportToHDF5(void *pHC, const char *format, ...)
 void HMatrix::ExportToHDF5(const char *FileName, const char *format, ...)
 { WarnNoHDF5(); }
 
-void HMatrix::ImportFromHDF5(const char *FileName, const char *Name)
+void HMatrix::ImportFromHDF5(const char *FileName, const char *Name, bool Init)
 { WarnNoHDF5(); }
 
 void HVector::ExportToHDF5(void *pHC, const char *format, ...)
