@@ -49,6 +49,8 @@ namespace scuff {
 SSSolver::SSSolver(const char *GeoFileName, int LogLevel)
 {
   G=new RWGGeometry(GeoFileName, LogLevel);
+  if (G->LDim>0)
+   ErrExit("periodic geometries not yet supported for electrostatics in SCUFF-EM");
   TransformLabel=0;
 }
 
