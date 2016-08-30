@@ -18,25 +18,22 @@
 # Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 # 02110-1301, USA.
 
-#
-# HR 20160830: Modifying to eliminate flex/yacc dependencies
-# for end users trying to build SCUFF-EM from its repository.
-#
-
 CC = $(CXX)
 AM_CFLAGS = $(CXXFLAGS)
 
-MAINTAINERCLEANFILES = Makefile.in
+MAINTAINERCLEANFILES = Makefile.in parser.c parser.h scanner.c
 
 AM_CPFLAGS = -I$(top_builddir) -I$(top_srcdir)
 
 noinst_LTLIBRARIES = libcmatheval.la
 
-libcmatheval_la_SOURCES = parser.c scanner.c matheval.c	\
+libcmatheval_la_SOURCES = parser.y scanner.l matheval.c	\
 node.c symbol_table.c xmalloc.c xmath.c
 
 pkginclude_HEADERS = cmatheval.h
-noinst_HEADERS = common.h node.h symbol_table.h xmalloc.h xmath.h parser.h
+noinst_HEADERS = common.h node.h symbol_table.h xmalloc.h xmath.h
+
+AM_YFLAGS = -d
 
 noinst_PROGRAMS = tcmatheval
 tcmatheval_SOURCES = tcmatheval.c

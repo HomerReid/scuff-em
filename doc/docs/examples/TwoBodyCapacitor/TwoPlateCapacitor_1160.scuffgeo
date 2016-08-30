@@ -1,5 +1,6 @@
 OBJECT UpperPlate
 	MESHFILE Square_1160.msh
+	DISPLACED 0 0 1
 ENDOBJECT
 
 OBJECT LowerPlate

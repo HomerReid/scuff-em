@@ -7,10 +7,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define HAVE_READLINE
-#include <readline/readline.h>
-#include <readline/history.h>
-
 #include <libhrutil.h>
 #include <libSGJC.h>
 #include <libMDInterp.h>
