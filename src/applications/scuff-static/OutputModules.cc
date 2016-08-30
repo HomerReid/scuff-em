@@ -129,7 +129,7 @@ void PhiESpherical(double *x, void *UserData, double PhiE[4])
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileName)
+void WritePolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileName)
 {
   RWGGeometry *G = SSS->G;
   int NS = G->NumSurfaces;
@@ -156,20 +156,34 @@ void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileNa
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
-  FILE *f=fopen(FileName,"w");
-  fprintf(f,"# data file columns: \n");
-  fprintf(f,"# 01: object label \n");
-  fprintf(f,"# 02: alpha_{xx} \n");
-  fprintf(f,"# 03: alpha_{yx} \n");
-  fprintf(f,"# 04: alpha_{zx} \n");
-  fprintf(f,"# 05: alpha_{xy} \n");
-  fprintf(f,"# 06: alpha_{yy} \n");
-  fprintf(f,"# 07: alpha_{zy} \n");
-  fprintf(f,"# 08: alpha_{xz} \n");
-  fprintf(f,"# 09: alpha_{yz} \n");
-  fprintf(f,"# 10: alpha_{zz} \n");
+  static bool WroteHeader=false;
+  FILE *f=fopen(FileName,"a");
+  if (!WroteHeader)
+   { WroteHeader=true;
+     fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
+     fprintf(f,"# data file columns: \n");
+     int nc=1;
+     if (SSS->TransformLabel)
+      fprintf(f,"# %02i: Transformation \n",nc++);
+     fprintf(f,"# %02i: object label \n",nc++);
+     fprintf(f,"# %02i: alpha_{xx} \n",nc++);
+     fprintf(f,"# %02i: alpha_{xy} \n",nc++);
+     fprintf(f,"# %02i: alpha_{xz} \n",nc++);
+     fprintf(f,"# %02i: alpha_{yx} \n",nc++);
+     fprintf(f,"# %02i: alpha_{yy} \n",nc++);
+     fprintf(f,"# %02i: alpha_{yz} \n",nc++);
+     fprintf(f,"# %02i: alpha_{zx} \n",nc++);
+     fprintf(f,"# %02i: alpha_{zy} \n",nc++);
+     fprintf(f,"# %02i: alpha_{zz} \n",nc++);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (SSS->TransformLabel) fprintf(f,"%s ",SSS->TransformLabel);
   for(int ns=0; ns<NS; ns++)
-   fprintf(f,"%s %e %e %e %e %e %e %e %e %e \n",G->Surfaces[ns]->Label,
+   fprintf(f,"%s %e %e %e %e %e %e %e %e %e \n",
+              G->Surfaces[ns]->Label,
               PolMatrix->GetEntryD(ns,0),
               PolMatrix->GetEntryD(ns,1),
               PolMatrix->GetEntryD(ns,2),
@@ -187,29 +201,26 @@ void GetPolarizabilities(SSSolver *SSS, HMatrix *M, HVector *Sigma, char *FileNa
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-HMatrix *ComputeCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
-                                  HVector *Sigma, HMatrix *C)
+HMatrix *GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
+                              HVector *Sigma, HMatrix *CMatrix)
 {
-
   RWGGeometry *G = SSS->G;
   int NS = G->NumSurfaces;
-  double *Potentials = new double[NS];
 
   /*--------------------------------------------------------------*/
-  /*- (re)allocate matrix as necessary ---------------------------*/
+  /*- (re)allocate capacitance matrix as necessary ---------------*/
   /*--------------------------------------------------------------*/
-  if (C)
-   { if ( C->NR!=NS || C->NC!=NS )
-      Warn("%s:%i: incorrect matrix passed to GetCapacitanceMatrix (reallocating)...",__FILE__,__LINE__);
-      delete C;
-      C=0;
+  if (CMatrix==0 || CMatrix->NR!=NS || CMatrix->NC!=NS)
+   { if (CMatrix) delete CMatrix;
+     CMatrix=0;
    };
-  if (C==0)
-   C=new HMatrix(NS, NS);
+  if (CMatrix==0)
+   CMatrix = new HMatrix(NS, NS);
 
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
   /*--------------------------------------------------------------*/
+  double *Potentials = new double[NS];
   HMatrix *QP = new HMatrix(NS, 4);
   for(int ns=0; ns<NS; ns++)
    { 
@@ -219,76 +230,64 @@ HMatrix *ComputeCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
      M->LUSolve(Sigma);
      SSS->GetCartesianMoments(Sigma, QP);
      for(int nsp=0; nsp<NS; nsp++)
-      C->SetEntry(nsp, ns, QP->GetEntry(nsp,0));
+      CMatrix->SetEntry(nsp, ns, QP->GetEntry(nsp,0));
    };
+  delete[] Potentials;
   delete QP;
 
-  return C;
+  return CMatrix;
   
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-                          char *TransFile, char *FileName)
-{ 
+void WriteCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
+                            HVector *Sigma, char *CapFile)
+{
   /*--------------------------------------------------------------*/
-  /*- read the transformation file if one was specified and check */
-  /*- that it plays well with the specified geometry file.        */
-  /*- note if TransFile==0 then this code snippet still works; in */
-  /*- this case the list of GTComplices is initialized to contain */
-  /*- a single empty GTComplex and the check automatically passes.*/
   /*--------------------------------------------------------------*/
-  int NT;
-  RWGGeometry *G=SSS->G;
-  GTComplex **GTCList=ReadTransFile(TransFile, &NT);
-  char *ErrMsg=G->CheckGTCList(GTCList, NT);
-  if (ErrMsg)
-   ErrExit("file %s: %s",TransFile,ErrMsg);
+  /*--------------------------------------------------------------*/
+  HMatrix *CapMatrix=GetCapacitanceMatrix(SSS, M, Sigma, 0);
 
   /*--------------------------------------------------------------*/
-  /*- open output file and write file header ---------------------*/
+  /*- write file header the first time ---------------------------*/
   /*--------------------------------------------------------------*/
-  int NS = G->NumSurfaces;
-  FILE *f=fopen(FileName,"w");
-  fprintf(f,"# data file columns: \n");
-  fprintf(f,"# 1 transformation label\n");
-  int nColumn=2;
+  FILE *f=fopen(CapFile,"a");
+  static bool WroteHeader=false;
+  int NS = SSS->G->NumSurfaces;
+  if (WroteHeader==false)
+   { WroteHeader=true;
+     fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
+     fprintf(f,"# data file columns: \n");
+     int nc=1;
+     if (SSS->TransformLabel)
+      fprintf(f,"# %02i transformation label\n",nc++);
+     for(int p=0; p<NS; p++)
+      for(int q=p; q<NS; q++)
+       fprintf(f,"# %02i: C_{%i,%i} \n",nc++,p,q);
+   };
+
+  /*--------------------------------------------------------------*/
+  /*- write data -------------------------------------------------*/
+  /*--------------------------------------------------------------*/
+  if (SSS->TransformLabel)
+   fprintf(f,"%s ",SSS->TransformLabel);
   for(int nr=0; nr<NS; nr++)
    for(int nc=nr; nc<NS; nc++)
-    fprintf(f,"# %i: C_{%i,%i} \n",nColumn++,nr,nc);
-
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  /*--------------------------------------------------------------*/
-  HMatrix *CM = new HMatrix(NS, NS, LHM_REAL);
-  for(int nt=0; nt<NT; nt++)
-   { 
-     Log("Computing capacitance matrix at transform %s",GTCList[nt]->Tag);
-     G->Transform(GTCList[nt]);
-     ComputeCapacitanceMatrix(SSS, M, Sigma, CM);
-     fprintf(f,"%s ",GTCList[nt]->Tag);
-     for(int nr=0; nr<NS; nr++)
-      for(int nc=nr; nc<NS; nc++)
-       fprintf(f,"%e ",CM->GetEntryD(nr,nc));
-     fprintf(f,"\n");
-     G->UnTransform();
-   };
+    fprintf(f,"%e ",CapMatrix->GetEntryD(nr,nc));
+  fprintf(f,"\n");
   fclose(f);
-  delete CM;
 
-  // I would call the GTComplex destructor here, if I had
-  // bothered to write one
-  // deallocate GTCList
-
+  delete CapMatrix;
+  
 }
 
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, 
-                int lMax, char *TextFileName, char *HDF5FileName)
+void WriteCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma, 
+                  int lMax, char *TextFileName, char *HDF5FileName)
 {
   /***************************************************************/
   /***************************************************************/
@@ -361,6 +360,7 @@ void GetCMatrix(SSSolver *SSS, HMatrix *M, HVector *Sigma,
   /***************************************************************/
   if (TextFileName)
    { FILE *f=fopen(TextFileName,"w");
+     if (SSS->TransformLabel) fprintf(f,"%s ",SSS->TransformLabel);
      for(int l=0, Alpha=0; l<=lMax; l++)
       for(int m=-l; m<=l; m++, Alpha++)
        for(int lp=0, AlphaP=0; lp<=lMax; lp++)
@@ -453,9 +453,9 @@ void ParsePotentialFile(RWGGeometry *G, char *PotFile, double *Potentials)
 /***************************************************************/
 /***************************************************************/
 /***************************************************************/
-void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-                        char *PotFile, char *PhiExt, int ConstFieldDirection,
-                        char *PlotFile, char **EPFiles, int nEPFiles)
+void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+                 char *PotFile, char *PhiExt, int ConstFieldDirection,
+                 char *PlotFile, char **EPFiles, int nEPFiles)
 { 
   /***************************************************************/
   /* process user's conductor potential file if present          */
@@ -498,6 +498,7 @@ void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
   /***************************************************************/
   /***************************************************************/
   /***************************************************************/
+  char *TransformLabel = SSS->TransformLabel;
   for(int nepf=0; nepf<nEPFiles; nepf++)
    {
      HMatrix *X = new HMatrix(EPFiles[nepf]);
@@ -513,15 +514,21 @@ void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
       PhiE = SSS->GetFields(0, 0, Sigma, X, 0);
 
      FILE *f=vfopen("%s.out","w",GetFileBase(EPFiles[nepf]));
+     fprintf(f,"# scuff-static run on %s (%s)",GetHostName(),GetTimeString());
      fprintf(f,"# data file columns: \n");
-     fprintf(f,"# 1, 2, 3: x, y, z (evaluation point coordinates)\n");
-     fprintf(f,"# 4      : Phi      (electrostatic potential)\n");
-     fprintf(f,"# 5, 6, 7: Ex,Ey,Ez (electrostatic field components)\n");
+     int nc=1;
+     if (TransformLabel) 
+      fprintf(f,"# %i: transform label\n",nc++);
+     fprintf(f,"# %i, %i, %i: x, y, z (evaluation point coordinates)\n",nc,nc+1,nc+2); nc+=3;
+     fprintf(f,"# %i:       Phi      (electrostatic potential)\n",nc++);
+     fprintf(f,"# %i, %i, %i: Ex,Ey,Ez (electrostatic field components)\n",nc,nc+1,nc+2); nc+=3;
      for(int nr=0; nr<X->NR; nr++)
-      fprintf(f,"%e %e %e %e %e %e %e\n",
+      { if (TransformLabel) fprintf(f,"%s ",TransformLabel);
+        fprintf(f,"%e %e %e %e %e %e %e\n",
                  X->GetEntryD(nr,0), X->GetEntryD(nr,1), X->GetEntryD(nr,2),
                  PhiE->GetEntryD(nr,0), PhiE->GetEntryD(nr,1), 
                  PhiE->GetEntryD(nr,2), PhiE->GetEntryD(nr,3));
+      };
      fclose(f);
    }; // for(int nepf=0; nepf<nEPFiles; nepf++)
 

@@ -1,0 +1,7 @@
+OBJECT UpperPlate
+	MESHFILE Square_280.msh
+ENDOBJECT
+
+OBJECT LowerPlate
+	MESHFILE Square_280.msh
+ENDOBJECT

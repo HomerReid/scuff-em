@@ -49,6 +49,7 @@ namespace scuff {
 SSSolver::SSSolver(const char *GeoFileName, int LogLevel)
 {
   G=new RWGGeometry(GeoFileName, LogLevel);
+  TransformLabel=0;
 }
 
 /***********************************************************************/

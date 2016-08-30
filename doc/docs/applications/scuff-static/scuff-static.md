@@ -185,9 +185,10 @@ complicated (non-constant) external field.
 
 + [Polarizability of platonic solids][PlatonicSolids]
 
-+ [Self- and mutual-capacitance of irregularly shaped conductors][PlatonicSolids]
++ [Self- and mutual-capacitance of irregularly shaped conductors][TwoBodyCapacitor]
 
 + [Electrostatic fields in the vicinity of a complicated gate array][PlatonicSolids]
 
 [PlatonicSolids]: ../../examples/PlatonicSolids/PlatonicSolids.md
+[TwoBodyCapacitor]: ../../examples/TwoBodyCapacitor/TwoBodyCapacitor.md
 [CommonOptions]: ../GeneralReference.md#CommonOptions

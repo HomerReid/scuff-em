@@ -46,20 +46,19 @@ using namespace scuff;
 /***************************************************************/
 /* routines in OutputModules.cc ********************************/
 /***************************************************************/
-void GetPolarizabilities(SSSolver *SSS, HMatrix *M,
-                         HVector *Sigma, char *FileName);
+void WritePolarizabilities(SSSolver *SSS, HMatrix *M,
+                           HVector *Sigma, char *FileName);
 
-void GetCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
-                          HVector *Sigma, char *TransFile,
-                          char *FileName);
+void WriteCapacitanceMatrix(SSSolver *SSS, HMatrix *M,
+                            HVector *Sigma, char *CapFile);
 
-void GetCMatrix(SSSolver *SSS, HMatrix *M,
-                HVector *Sigma, int lMax,
-                char *TextFileName, char *HDF5FileName);
+void WriteCMatrix(SSSolver *SSS, HMatrix *M,
+                  HVector *Sigma, int lMax,
+                  char *TextFileName, char *HDF5FileName);
 
-void DoFieldCalculation(SSSolver *SSS, HMatrix *M, HVector *Sigma,
-                        char *PotFile, char *PhiExt, int ConstFieldDirection,
-                        char *PlotFile, char **EPFiles, int nEPFiles);
+void WriteFields(SSSolver *SSS, HMatrix *M, HVector *Sigma,
+                 char *PotFile, char *PhiExt, int ConstFieldDirection,
+                 char *PlotFile, char **EPFiles, int nEPFiles);
 
 /***************************************************************/
 /***************************************************************/
@@ -153,6 +152,51 @@ int main(int argc, char *argv[])
   HMatrix *M      = SSS->AllocateBEMMatrix();
   HVector *Sigma  = SSS->AllocateRHSVector();
 
+  RWGGeometry *G  = SSS->G;
+
+  /****************************************************************/
+  /*- read the transformation file if one was specified and check */
+  /*- that it plays well with the specified geometry file.        */
+  /*- note if TransFile==0 then this code snippet still works; in */
+  /*- this case the list of GTComplices is initialized to contain */
+  /*- a single empty GTComplex and the check automatically passes.*/
+  /****************************************************************/
+  int NT;
+  GTComplex **GTCList=ReadTransFile(TransFile, &NT);
+  char *ErrMsg=G->CheckGTCList(GTCList, NT);
+  if (ErrMsg)
+   ErrExit("file %s: %s",TransFile,ErrMsg);
+
+  /*******************************************************************/
+  /* if we have more than one geometrical transformation,            */
+  /* allocate storage for BEM matrix blocks                          */
+  /*******************************************************************/
+  HMatrix **TBlocks=0, **UBlocks=0;
+  int NS=G->NumSurfaces;
+  if (NT>1)
+   { int NADB = NS*(NS-1)/2; // number of above-diagonal blocks
+     TBlocks  = (HMatrix **)mallocEC(NS*sizeof(HMatrix *));
+     UBlocks  = (HMatrix **)mallocEC(NADB*sizeof(HMatrix *));
+     for(int ns=0, nb=0; ns<NS; ns++)
+      { 
+        int NBF=G->Surfaces[ns]->NumPanels;
+
+        // allocate diagonal block for surface #ns, unless
+        // it has a mate in which case we reuse the mate's block
+        int nsMate = G->Mate[ns];
+        if ( nsMate!=-1 )
+         TBlocks[ns] = TBlocks[nsMate];
+        else
+         TBlocks[ns] = new HMatrix(NBF, NBF, M->RealComplex);
+
+        // allocate off-diagonal blocks for surfaces ns,nsp>ns
+        for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+         { int NBFp = G->Surfaces[nsp]->NumPanels;
+           UBlocks[nb] = new HMatrix(NBF, NBFp, M->RealComplex);
+         };
+      };
+   };
+
   /*******************************************************************/
   /* preload the scuff cache with any cache preload files the user   */
   /* may have specified                                              */
@@ -167,25 +211,77 @@ int main(int argc, char *argv[])
    PreloadCache( Cache );
 
   /*******************************************************************/
-  /* assemble and factorize the BEM matrix                           */
+  /* loop over transformations ***************************************/
+  /* (if no --TransFile was specified, this loop iterates just once, */
+  /* for the 'default' (identity) transformation                     */
   /*******************************************************************/
-  SSS->AssembleBEMMatrix(M);
-  M->LUFactorize();
+  for(int nt=0; nt<NT; nt++)
+   { 
+     char TransformStr[100]="";
+     if (TransFile)
+      { 
+        G->Transform(GTCList[nt]);
+        SSS->TransformLabel=GTCList[nt]->Tag;
+        Log("Working at transformation %s...",SSS->TransformLabel);
+        snprintf(TransformStr,100,"_%s",SSS->TransformLabel);
+      };
 
-  /*******************************************************************/
-  /* now switch off depending on the type of calculation the user    */
-  /* requested                                                       */
-  /*******************************************************************/
-  if (PolFile)
-   GetPolarizabilities(SSS, M, Sigma, PolFile);
-  if (CapFile)
-   GetCapacitanceMatrix(SSS, M, Sigma, TransFile, CapFile);
-  if (CMatrixFile)
-   GetCMatrix(SSS, M, Sigma, lMax, CMatrixFile, CMatrixHDF5File);
-  if (nEPFiles>0 || PlotFile )
-   DoFieldCalculation(SSS, M, Sigma, 
-                      PotFile, PhiExt, ConstFieldDirection, 
-                      PlotFile, EPFiles, nEPFiles);
+     /*******************************************************************/
+     /* assemble BEM matrix, either (a) all at once if we have only one */
+     /* geometric transformation, or (b) with the diagonal and off-     */
+     /* diagonal blocks computed separately so that the former can be   */
+     /* reused for multiple geometric transformations                   */
+     /*******************************************************************/
+     if (NT==1)
+      SSS->AssembleBEMMatrix(M);
+     else
+      { 
+        if (nt==0)
+         for(int ns=0, nb=0; ns<NS; ns++)
+          SSS->AssembleBEMMatrixBlock(ns, ns, TBlocks[nb]);
+
+        for(int ns=0, nb=0; ns<NS; ns++)
+         for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+          if (nt==0 || G->SurfaceMoved[ns] || G->SurfaceMoved[nsp] )
+           SSS->AssembleBEMMatrixBlock(ns, nsp, UBlocks[nb]);
+
+        /*******************************************************************/
+        /* stamp blocks into BEM matrix and LU-factorize *******************/
+        /*******************************************************************/
+        for(int ns=0, nb=0; ns<NS; ns++)
+         { 
+           int RowOffset=G->PanelIndexOffset[ns];
+           M->InsertBlock(TBlocks[ns], RowOffset, RowOffset);
+           for(int nsp=ns+1; nsp<NS; nsp++, nb++)
+            { int ColOffset=G->PanelIndexOffset[nsp];
+              M->InsertBlock(UBlocks[nb], RowOffset, ColOffset);
+              M->InsertBlockTranspose(UBlocks[nb], ColOffset, RowOffset);
+            };
+         };
+      };
+     M->LUFactorize();
+
+     /*******************************************************************/
+     /* now switch off depending on the type of calculation the user    */
+     /* requested                                                       */
+     /*******************************************************************/
+     if (PolFile)
+      WritePolarizabilities(SSS, M, Sigma, PolFile);
+     if (CapFile)
+      WriteCapacitanceMatrix(SSS, M, Sigma, CapFile);
+     if (CMatrixFile)
+      WriteCMatrix(SSS, M, Sigma, lMax, CMatrixFile, CMatrixHDF5File);
+     if (nEPFiles>0 || PlotFile )
+      WriteFields(SSS, M, Sigma,
+                  PotFile, PhiExt, ConstFieldDirection,
+                  PlotFile, EPFiles, nEPFiles);
+
+     /*******************************************************************/
+     /*******************************************************************/
+     /*******************************************************************/
+     G->UnTransform();
+
+   }; // for(int nt=0; nt<NT; nt++)
 
   /*******************************************************************/
   /*******************************************************************/

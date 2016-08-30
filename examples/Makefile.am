@@ -12,4 +12,5 @@ SUBDIRS =            	\
  SolidSphere            \
  SphericalShell         \
  ThinFilm               \
+ TwoBodyCapacitor       \
  WireAntenna         
