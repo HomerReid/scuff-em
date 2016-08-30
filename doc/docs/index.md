@@ -32,7 +32,7 @@
 * [Spatial distribution of heat flux from a warm tip over a cold substrate](examples/TipSubstrate/TipSubstrate.md)
 * [LDOS and dyadic Green functions above an infinite aluminum half-space](examples/HalfSpaceLDOS/HalfSpaceLDOS.md)
 * [Electrostatic polarizability of platonic solids](examples/PlatonicSolids/PlatonicSolids.md)
-* [Capacitance of two-body capacitors](examples/TwoBodyCapacitor/TwoBodyCapacitor.md)
+* [Capacitance of two-body capacitors](examples/TwoBodyCapacitors/TwoBodyCapacitors.md)
 
 # Command-line application reference
 

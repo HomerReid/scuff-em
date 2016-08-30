@@ -8,6 +8,7 @@
 [GitHub]:                      https://github.com/HomerReid/scuff-em/
 [GMSH]:                        http://www.geuz.org/gmsh
 [GNUGPL]:                      http://en.wikipedia.org/wiki/GNU_General_Public_License
+[GNUPLOT]:                     http://www.gnuplot.info
 [LogFiles]:                    ../GeneralReference.md#LogFiles
 [RoundedBeamUnitCellGeo]:      RoundedBeamUnitCell.geo
 [scuffEMGeometries]:           reference/Geometries

@@ -6,7 +6,7 @@ to compute the capacitance of parallel-plate and two-sphere
 capacitors. 
 
 The files for this example may be found in the
-`share/scuff-em/examples/TwoBodyCapacitor` subdirectory
+`share/scuff-em/examples/TwoBodyCapacitors` subdirectory
 of your [[scuff-em]] installation.
 
 # Capacitance of a parallel-plate capacitor
@@ -96,9 +96,50 @@ calculation. On the other hand, the deviations at large $d$ are
 due to the finite size of the plates and are not changed by 
 computing at finer resolution.
 
+# Capacitance of a two-sphere capacitor
+
+The `share/scuff-em/examples/TwoBodyCapacitors` subdirectory
+of your [[scuff-em]] installation also contains input files
+for computing the self- and mutual capacitances of a capacitor
+consisting of two conducting spheres of radius $R$ separated by a 
+surface-surface separation distance $d$ (center-center separation $d+2R$).
+Analytical formulas for the self-capacitance $C_{11}=C_{22}$ and mutual
+capacitance $C_{12}=C_{21}$ for this case may be found in this paper
+from 1926:
+
++ A. Russell, "The problem of the spherical condenser", *Journal of the Institution of Electrical Engineers* &nbsp; ** 64 ** &nbsp; 727 (1926). DOI: [10.1049/jiee-1.1926.0065](http://dx.doi.org/10.1049/jiee-1.1926.0065)
+
+The <span class=SC>scuff-static</span> computation proceeds as above with
+new geometry and transformation files:
+
++ [`TwoSphereCapacitor_501.scuffgeo`](TwoSphereCapacitor_501.scuffgeo)
++ [`TwoSphereCapacitor_2604.scuffgeo`](TwoSphereCapacitor_2604.scuffgeo)
++ [`TwoSphereCapacitor.trans`](TwoSphereCapacitor.trans)
+
+````bash
+% for N in 501 2604
+% do
+%   ARGS=""
+%   ARGS="${ARGS} --geometry  TwoSphereCapacitor_${N}.scuffgeo"
+%   ARGS="${ARGS} --TransFile TwoSphereCapacitor.trans"
+%   ARGS="${ARGS} --CapFile   TwoSphereCapacitor_${N}.out"
+%   scuff-static ${ARGS}
+% done
+````
+
+This time we'll plot both $C_{11}(d)$ and $C_{12}(d)$ and
+compare against the large-$d$ and small-$d$ analytical formulas
+in the paper of Russel above.
+
+![TwoSphereCapacitorData.png](TwoSphereCapacitorData.png)
+
+Here's the [<span class=SC>gnuplot</span>][GNUPLOT] script I used
+to make this plot: [`TwoSphereCapacitor.gp`](TwoSphereCapacitor.gp).
+
 [Transformations]:     ../../reference/Transformations
 [GeometryFiles]:       ../../reference/Geometries
 [ScaleInvariance]:     ../../reference/FAQ.md#Units
 [RenameMesh]:          ../../examples/SiO2Spheres/RenameMesh
 [scuff-static]:        ../../applications/scuff-static/scuff-static.md
 [GMSH]:                http://www.geuz.org/gmsh
+[GNUPLOT]:             http://www.gnuplot.info
